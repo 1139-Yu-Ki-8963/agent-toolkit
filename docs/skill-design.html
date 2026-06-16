@@ -1,0 +1,889 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Skill 設計ガイド — agent-home</title>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    /* ページローカル追加スタイル */
+    .sd-wrap { max-width: 1100px; margin: 0 auto; padding: 20px; }
+
+    .sd-layout {
+      display: grid;
+      grid-template-columns: 220px 1fr;
+      gap: 24px;
+      align-items: start;
+    }
+
+    /* 左サイドバー TOC */
+    .sd-toc {
+      position: sticky;
+      top: 16px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px;
+      font-size: 12.5px;
+    }
+    .sd-toc h3 {
+      font-size: 11px;
+      margin: 0 0 10px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-weight: 700;
+    }
+    .sd-toc ul { list-style: none; padding: 0; margin: 0; }
+    .sd-toc li { margin: 0; }
+    .sd-toc a {
+      display: flex;
+      align-items: baseline;
+      gap: 7px;
+      padding: 5px 8px;
+      border-radius: 5px;
+      color: var(--text-sub);
+      font-size: 12px;
+      text-decoration: none;
+      line-height: 1.5;
+      transition: background 0.12s;
+    }
+    .sd-toc a:hover { background: var(--accent-soft); color: var(--accent); text-decoration: none; }
+    .sd-toc .toc-num {
+      font-family: var(--mono);
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--accent);
+      flex-shrink: 0;
+      min-width: 18px;
+    }
+    .sd-toc .toc-sep { border-top: 1px solid var(--border); margin: 8px 0; }
+
+    /* 本文エリア */
+    .sd-body {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px 32px;
+      box-shadow: var(--shadow-sm);
+      min-width: 0;
+    }
+
+    /* セクション区切り */
+    .sd-section { margin-bottom: 48px; }
+    .sd-section:last-child { margin-bottom: 0; }
+
+    .sd-h2 {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 18px;
+      font-weight: 800;
+      margin: 0 0 16px;
+      padding: 10px 16px;
+      background: var(--accent-soft);
+      border-left: 4px solid var(--accent);
+      border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+      scroll-margin-top: 20px;
+    }
+    .sd-h2 .sec-num {
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 800;
+      background: var(--accent);
+      color: #fff;
+      padding: 2px 8px;
+      border-radius: 999px;
+    }
+    .sd-h3 {
+      font-size: 14.5px;
+      font-weight: 700;
+      color: var(--accent-2);
+      margin: 24px 0 8px;
+      padding-bottom: 4px;
+      border-bottom: 1px dashed var(--border-strong);
+    }
+
+    /* 定義ブロック（引用風） */
+    .sd-def {
+      background: var(--panel-2);
+      border: 1px solid var(--accent-border);
+      border-left: 4px solid var(--accent);
+      border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+      padding: 12px 16px;
+      margin: 12px 0 16px;
+      font-size: 13.5px;
+      color: var(--text);
+      line-height: 1.75;
+    }
+
+    /* コードブロック */
+    .sd-code {
+      background: var(--code-bg);
+      color: var(--code-fg);
+      border-radius: var(--radius-sm);
+      padding: 14px 18px;
+      font-family: var(--mono);
+      font-size: 12.5px;
+      line-height: 1.65;
+      overflow-x: auto;
+      margin: 10px 0 16px;
+      white-space: pre;
+    }
+    .sd-code-label {
+      font-size: 10.5px;
+      font-weight: 700;
+      color: var(--text-muted);
+      font-family: var(--mono);
+      letter-spacing: 0.04em;
+      margin-bottom: 4px;
+    }
+
+    /* 判定フロー（背景付きフローチャート） */
+    .sd-flow {
+      background: var(--code-bg);
+      color: var(--code-fg);
+      border-radius: var(--radius-sm);
+      padding: 16px 20px;
+      font-family: var(--mono);
+      font-size: 12.5px;
+      line-height: 2;
+      overflow-x: auto;
+      white-space: pre;
+      margin: 12px 0 16px;
+    }
+
+    /* インラインコード */
+    code {
+      background: var(--accent-soft);
+      color: var(--accent);
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-size: 0.9em;
+      font-family: var(--mono);
+    }
+
+    /* テーブル */
+    .sd-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12.5px;
+      margin: 12px 0 16px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+    }
+    .sd-table th, .sd-table td {
+      border: 1px solid var(--border);
+      padding: 8px 12px;
+      text-align: left;
+      vertical-align: top;
+    }
+    .sd-table th {
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .sd-table tr:nth-child(even) td { background: var(--panel-2); }
+
+    /* 箇条書き */
+    .sd-body ul, .sd-body ol {
+      padding-left: 22px;
+      margin: 8px 0 12px;
+      line-height: 1.8;
+    }
+    .sd-body li { margin: 3px 0; font-size: 13.5px; color: var(--text-sub); }
+    .sd-body li strong { color: var(--text); }
+
+    /* Gotchas パネル */
+    .sd-gotcha {
+      background: var(--gold-soft);
+      border: 1px solid var(--gold-border);
+      border-left: 4px solid var(--gold);
+      border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+      padding: 12px 16px;
+      margin: 10px 0 14px;
+    }
+    .sd-gotcha-title {
+      font-size: 11.5px;
+      font-weight: 800;
+      color: var(--gold);
+      letter-spacing: 0.04em;
+      margin-bottom: 8px;
+    }
+    .sd-gotcha ul { margin: 0; padding-left: 18px; }
+    .sd-gotcha li { font-size: 12.5px; color: var(--text-sub); line-height: 1.75; }
+
+    /* タイプバッジ（手順型 / 条件付き知識型 / 強制型） */
+    .type-badge {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 10px;
+      border-radius: 999px;
+      font-family: var(--mono);
+      white-space: nowrap;
+    }
+    .type-proc    { background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; }
+    .type-know    { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
+    .type-enforce { background: #fff7ed; color: #92400e; border: 1px solid #fed7aa; }
+
+    /* 制約バッジ */
+    .badge-ok  { background: var(--success-soft); color: var(--success); border: 1px solid #bbf7d0; }
+    .badge-ng  { background: var(--danger-soft); color: var(--danger); border: 1px solid #fecaca; }
+
+    /* カードグリッド（分類 9 つ） */
+    .cat-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 10px;
+      margin: 12px 0 16px;
+    }
+    .cat-item {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 10px 14px;
+      font-size: 12.5px;
+    }
+    .cat-item-name { font-weight: 700; color: var(--text); margin-bottom: 2px; }
+    .cat-item-type { font-size: 11px; color: var(--text-muted); }
+
+    /* ツールマッピング行 */
+    .tool-map { margin: 12px 0; }
+    .tool-map-row {
+      display: grid;
+      grid-template-columns: 160px 1fr;
+      gap: 12px;
+      margin-bottom: 16px;
+      align-items: start;
+    }
+    .tool-map-type {
+      padding: 8px 12px;
+      border-radius: var(--radius-sm);
+      font-size: 12px;
+      font-weight: 700;
+      text-align: center;
+      line-height: 1.5;
+    }
+    .tool-map-detail { font-size: 12.5px; color: var(--text-sub); line-height: 1.8; }
+    .tool-map-detail strong { color: var(--text); }
+
+    /* フォルダ構造 */
+    .sd-tree {
+      background: var(--code-bg);
+      color: var(--code-fg);
+      border-radius: var(--radius-sm);
+      padding: 14px 18px;
+      font-family: var(--mono);
+      font-size: 12.5px;
+      line-height: 1.75;
+      overflow-x: auto;
+      white-space: pre;
+      margin: 10px 0 16px;
+    }
+
+    /* 起動モデル比較テーブル強調行 */
+    .row-default td:first-child { font-weight: 700; }
+
+    /* セクション内の補足メモ */
+    .sd-note {
+      font-size: 12px;
+      color: var(--text-muted);
+      background: var(--panel-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 8px 12px;
+      margin: 8px 0 12px;
+      line-height: 1.7;
+    }
+
+    /* レスポンシブ */
+    @media (max-width: 900px) {
+      .sd-layout { grid-template-columns: 1fr; }
+      .sd-toc { position: static; }
+      .sd-body { padding: 18px 20px; }
+    }
+    @media (max-width: 560px) {
+      .sd-wrap { padding: 12px; }
+      .sd-body { padding: 14px 14px; }
+      .sd-h2 { font-size: 15px; }
+      .tool-map-row { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="sd-wrap">
+
+    <!-- Hero -->
+    <div class="page-hero" style="margin-bottom:20px">
+      <h1>Skill 設計ガイド</h1>
+      <p>
+        Skill を設計・作成するときに従う定義とルール集。
+        スコープは設計定義とルールまで（メタスキルのワークフローは範囲外）。
+        <a href="../README.md">← README へ</a>
+      </p>
+    </div>
+
+    <div class="sd-layout">
+
+      <!-- 左 TOC -->
+      <nav class="sd-toc">
+        <h3>目次</h3>
+        <ul>
+          <li><a href="#s1"><span class="toc-num">§1</span>Skill の定義</a></li>
+          <li><a href="#s2"><span class="toc-num">§2</span>Skill にすべきかの判定</a></li>
+          <li><a href="#s3"><span class="toc-num">§3</span>分類</a></li>
+          <li><a href="#s4"><span class="toc-num">§4</span>起動モデル</a></li>
+          <li><a href="#s5"><span class="toc-num">§5</span>命名規約</a></li>
+          <li><a href="#s6"><span class="toc-num">§6</span>description 規律</a></li>
+          <li><a href="#s7"><span class="toc-num">§7</span>ツール選択</a></li>
+          <li><a href="#s8"><span class="toc-num">§8</span>フォルダ構造</a></li>
+          <li><a href="#s9"><span class="toc-num">§9</span>SKILL.md 本文ルール</a></li>
+          <li><a href="#s10"><span class="toc-num">§10</span>セットアップ・記憶・フック</a></li>
+          <li><a href="#s11"><span class="toc-num">§11</span>テンプレート方針</a></li>
+          <li><a href="#s12"><span class="toc-num">§12</span>frontmatter テンプレート</a></li>
+        </ul>
+        <div class="toc-sep"></div>
+        <div style="font-size:11px;color:var(--text-muted);padding:4px 8px;line-height:1.6">
+          前提: 執筆言語 <strong>日本語</strong> 固定<br>
+          想定: Claude Code skill<br>
+          （明示 + 自動起動の両対応）
+        </div>
+      </nav>
+
+      <!-- 本文 -->
+      <article class="sd-body">
+
+        <!-- §1 -->
+        <section class="sd-section" id="s1">
+          <h2 class="sd-h2"><span class="sec-num">§1</span>Skill の定義</h2>
+          <div class="sd-def">
+            skill とは、トリガー駆動で起動する拡張であり、起動したときに限り、Claude がデフォルトでは出せない
+            <strong>手順・条件付き知識・強制</strong> のいずれかを提供するもの。
+          </div>
+          <ul>
+            <li>Skill フォルダ（読み取り専用・配布物）には <strong>SKILL.md / スクリプト / テンプレート / リファレンスといった不変の部品だけ</strong>を置く。</li>
+            <li>可変データ（状態・ログ・設定）はフォルダの外に出す（詳細は §10）。</li>
+          </ul>
+        </section>
+
+        <!-- §2 -->
+        <section class="sd-section" id="s2">
+          <h2 class="sd-h2"><span class="sec-num">§2</span>Skill にすべきかの判定</h2>
+
+          <h3 class="sd-h3">判定フロー</h3>
+          <div class="sd-flow">Q1. それは「常に」必要か？
+    YES → context / rules に書く（skill にしない）
+    NO（特定のときだけ要る）→ Q2 へ
+
+Q2. その合図が来たとき、次のどれかを提供するか？
+    a. 多段の手順・フロー（デプロイ、調査、雛形生成 など）
+    b. その領域を触るときだけ要る参照知識・落とし穴
+    c. スクリプト/フックで機械的に効かせたい強制
+    → どれにも当たらない → skill にしない
+    → どれかに当たる     → Q3 へ
+
+Q3. それは Claude がデフォルトでやることの言い換えにすぎないか？
+    YES → 作らない（無駄なコストと誤発火を足すだけ）
+    NO（デフォルトから押し出す中身がある）→ ✅ skill にする</div>
+
+          <h3 class="sd-h3">除外則（当たったら即・非 skill）</h3>
+          <ul>
+            <li>常に効く固定ルール → rules ＋ CI/フック</li>
+            <li>「スクリプトを同梱したいだけ」 → 普通のフォルダで足りる</li>
+          </ul>
+        </section>
+
+        <!-- §3 -->
+        <section class="sd-section" id="s3">
+          <h2 class="sd-h2"><span class="sec-num">§3</span>分類</h2>
+
+          <h3 class="sd-h3">カテゴリ（9 分類・1 スキル = 1 分類）</h3>
+          <div class="cat-grid">
+            <div class="cat-item"><div class="cat-item-name">ライブラリ参照</div></div>
+            <div class="cat-item"><div class="cat-item-name">検証</div></div>
+            <div class="cat-item"><div class="cat-item-name">データ取得</div></div>
+            <div class="cat-item"><div class="cat-item-name">業務自動化</div></div>
+            <div class="cat-item"><div class="cat-item-name">雛形</div></div>
+            <div class="cat-item"><div class="cat-item-name">品質・レビュー</div></div>
+            <div class="cat-item"><div class="cat-item-name">CI-CD</div></div>
+            <div class="cat-item"><div class="cat-item-name">Runbook</div></div>
+            <div class="cat-item"><div class="cat-item-name">インフラ運用</div></div>
+          </div>
+          <div class="sd-note">2 分類にまたがる場合は分割のサイン。</div>
+
+          <h3 class="sd-h3">タイプ（3 型）</h3>
+          <table class="sd-table">
+            <thead>
+              <tr>
+                <th>タイプ</th>
+                <th>説明</th>
+                <th>例</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><span class="type-badge type-proc">手順型</span></td>
+                <td>多段の実行・編成</td>
+                <td>デプロイ、Runbook、雛形生成</td>
+              </tr>
+              <tr>
+                <td><span class="type-badge type-know">条件付き知識型</span></td>
+                <td>その領域を触るときだけの参照知識</td>
+                <td>ライブラリリファレンス、落とし穴</td>
+              </tr>
+              <tr>
+                <td><span class="type-badge type-enforce">強制型</span></td>
+                <td>検査して介入する</td>
+                <td>コード品質チェック、フォーマット強制</td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="sd-note">型は本文の冒頭で必ず宣言する（§9）。型が決まると、フォルダ構造・基本ツール・必須コンポーネントが芋づる式に決まる。</div>
+        </section>
+
+        <!-- §4 -->
+        <section class="sd-section" id="s4">
+          <h2 class="sd-h2"><span class="sec-num">§4</span>起動モデル</h2>
+
+          <p style="font-size:13.5px;color:var(--text-sub);margin:0 0 12px">3 状態を使い分ける。frontmatter で制御（§12）。</p>
+
+          <table class="sd-table">
+            <thead>
+              <tr>
+                <th>状態</th>
+                <th>frontmatter</th>
+                <th>用途</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="row-default">
+                <td>既定（無印）</td>
+                <td><em>なし</em></td>
+                <td>自動 ＋ 明示の両方から呼べる</td>
+              </tr>
+              <tr>
+                <td>明示限定</td>
+                <td><code>disable-model-invocation: true</code></td>
+                <td>副作用・破壊的 skill（deploy / commit / 送信 / 削除 等）にのみ付ける。Claude が勝手に発火しないようにする</td>
+              </tr>
+              <tr>
+                <td>自動限定</td>
+                <td><code>user-invocable: false</code></td>
+                <td>知識型の純粋背景知識（コマンドとして叩く意味がないもの）にのみ付ける</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="sd-gotcha">
+            <div class="sd-gotcha-title">排他制約</div>
+            <ul>
+              <li><code>disable-model-invocation</code> と <code>user-invocable: false</code> は同時に付けない（排他）。</li>
+              <li>自動起動を許可するため、description には「いつ使うか」のトリガー語を 1 つ含める（§6）。</li>
+            </ul>
+          </div>
+        </section>
+
+        <!-- §5 -->
+        <section class="sd-section" id="s5">
+          <h2 class="sd-h2"><span class="sec-num">§5</span>命名規約</h2>
+
+          <div class="sd-def">
+            <strong>最優先：名前だけで「何をするか」が一意に伝わること（解釈違いゼロ）</strong>
+          </div>
+
+          <h3 class="sd-h3">基本方針</h3>
+          <ul>
+            <li>短さより曖昧さ排除。64 字まで使え、長くてよい。</li>
+            <li>二人が別解釈しうるなら、語を足して潰す。</li>
+            <li>語形：<strong>action-oriented（動詞-目的語）で確定</strong>。<code>create-</code> / <code>verify-</code> / <code>deploy-</code> など動詞始まり。</li>
+            <li>略語・隠語を避け、平易な一般語を使う。</li>
+            <li>バージョン表記は入れない（version はメタデータで管理）。</li>
+            <li>亜種は番号でなく差分を語で表す（例：<code>create-skill-minimal</code>）。</li>
+            <li>同じ動作は同じ動詞で固定する。</li>
+          </ul>
+
+          <h3 class="sd-h3">衝突チェック（必須）</h3>
+          <ol>
+            <li>自分の skill / slash コマンドと重複しない。</li>
+            <li>Anthropic 公式 skill と重複しない（参照元：<code>anthropics/skills</code>。例：frontend-design, pdf, docx, pptx, xlsx …）。</li>
+            <li>予約語 <code>anthropic</code> / <code>claude</code> を含めない。</li>
+          </ol>
+
+          <h3 class="sd-h3">硬い制約（公式）</h3>
+          <div class="sd-code">小文字 / 数字 / ハイフン のみ使用可。最大 64 字。</div>
+        </section>
+
+        <!-- §6 -->
+        <section class="sd-section" id="s6">
+          <h2 class="sd-h2"><span class="sec-num">§6</span>description 規律（日本語・200K モデル前提）</h2>
+
+          <table class="sd-table">
+            <thead>
+              <tr><th>項目</th><th>制約</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>合計上限</td><td>約 2,000 文字（コンテキスト窓の 1% / 日本語 ≒ 1 字 1tok の保守見積）</td></tr>
+              <tr><td>1 件あたり</td><td>≤ 50 文字</td></tr>
+              <tr><td>内容</td><td>「何をするか」を三人称で 1 文。自動起動のためトリガー語を 1 つ含める</td></tr>
+              <tr><td>形式</td><td><code>TRIGGER when:</code> / <code>SKIP:</code> の固定英語キーワードを必ず含める（多行形式）</td></tr>
+              <tr><td>目安個数</td><td>2,000 ÷ 50 ＝ <strong>約 40 個</strong></td></tr>
+            </tbody>
+          </table>
+
+          <h3 class="sd-h3">40 個を超えそうなとき（優先順位）</h3>
+          <ol>
+            <li>説明をさらに削る（30 字台へ）</li>
+            <li><code>skillListingBudgetFraction: 0.02</code> で枠を倍（≒ 80 個）</li>
+            <li>よく使うものは自動で説明が残る（低頻度から落ちる）</li>
+            <li>名前は常時載るので <code>/name</code> 呼び出しは個数無制限</li>
+          </ol>
+          <h3 class="sd-h3">固定英語キーワード（<code>TRIGGER when:</code> / <code>SKIP:</code>）の仕様</h3>
+          <p style="font-size:13.5px;color:var(--text-sub);margin:0 0 10px">
+            自動発火の精度に直結するため、日本語の「使用時：」等は使わず必ず英語キーワードを使う。
+          </p>
+          <ul>
+            <li><strong>パース精度</strong> — 日本語は表記ゆれが多く、モデルが発火条件ブロックを確実に区別できない。英語固定形式は変種なく認識される。</li>
+            <li><strong>構造認識</strong> — LLM は英語構造で学習されているため、<code>TRIGGER when:</code> / <code>SKIP:</code> で条件節を切り出す精度が高い。</li>
+            <li><strong>誤発火防止</strong> — <code>SKIP:</code> を明記することで、類似トリガーを持つ別スキルとの衝突・過剰発火を防ぐ。</li>
+          </ul>
+          <div class="sd-code-label">多行形式サンプル</div>
+          <div class="sd-code">description: |
+  ブランチ作成・worktree 管理を行うスキル。
+  TRIGGER when: ブランチ作成時、git checkout 時、worktree 作成時。
+  SKIP: 既存ブランチの読み取り・確認のみの時。</div>
+          <div class="sd-note"><strong>監視</strong>：<code>/doctor</code> で溢れを確認する。</div>
+        </section>
+
+        <!-- §7 -->
+        <section class="sd-section" id="s7">
+          <h2 class="sd-h2"><span class="sec-num">§7</span>ツール選択</h2>
+
+          <h3 class="sd-h3">選択ロジック</h3>
+          <div class="sd-flow">Step1. skill の型を判定（= なぜ skill か）
+        条件付き知識型 / 手順型 / 強制型 のどれか
+
+Step2. 型ごとの「基本ツールセット」を採る（下のマッピング）
+
+Step3. 横断ツールを必要時だけ足す
+        ・起動時にユーザーの選択が要る → AskUserQuestion
+        ・他の skill を呼ぶ            → Skill
+        ・外部サービスに触る           → MCP 系（要 MCP 接続）
+        ・定期・遅延実行が要る         → Cron 系 / ScheduleWakeup
+        ・何かを監視し続ける           → Monitor
+
+Step4. 最小権限に絞り allowed-tools に固定
+        ・不要な Write/Bash は渡さない（特に知識型）
+        ・「常に・決定論的に」強制したい挙動はツールでなく hook</div>
+
+          <h3 class="sd-h3">型 → 最適ツール マッピング</h3>
+          <div class="tool-map">
+
+            <div class="tool-map-row">
+              <div class="tool-map-type type-badge type-know" style="display:block;text-align:left">
+                条件付き知識型<br>
+                <small style="font-weight:400;font-size:10.5px">（読むのが主・副作用は最小）</small>
+              </div>
+              <div class="tool-map-detail">
+                <strong>基本：</strong><code>Read</code>, <code>Grep</code>, <code>Glob</code><br>
+                <strong>必要なら：</strong><code>WebFetch</code> / MCP 系（外部参照のとき）<br>
+                <strong>原則：</strong><code>Write</code>・<code>Bash</code> は渡さない（知識 skill に実行権は危険）
+              </div>
+            </div>
+
+            <div class="tool-map-row">
+              <div class="tool-map-type type-badge type-proc" style="display:block;text-align:left">
+                手順型<br>
+                <small style="font-weight:400;font-size:10.5px">（実行と編成が主）</small>
+              </div>
+              <div class="tool-map-detail">
+                <strong>基本：</strong><code>Bash</code>, <code>Read</code>, <code>Write</code>, <code>Edit</code><br>
+                <strong>よく足す：</strong>
+                <ul style="margin:4px 0 0;padding-left:16px">
+                  <li><code>Monitor</code> … CI/ログ/エラー率を監視（CI-CD, Runbook, インフラ運用）</li>
+                  <li><code>Agent</code> … 並列調査や重い下請け（Runbook）</li>
+                  <li><code>Skill</code> … データ取得 skill を合成（CI-CD, 業務自動化）</li>
+                  <li><code>Task</code> 系 … 多段手順の進行管理</li>
+                  <li><code>AskUserQuestion</code> … セットアップ/投稿先選択（業務自動化）</li>
+                  <li><code>Cron</code> 系 … soak 期間・定期実行（インフラ運用）</li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="tool-map-row">
+              <div class="tool-map-type type-badge type-enforce" style="display:block;text-align:left">
+                強制型<br>
+                <small style="font-weight:400;font-size:10.5px">（検査して介入する）</small>
+              </div>
+              <div class="tool-map-detail">
+                <strong>基本：</strong><code>Agent</code>（第三者視点の批評）, <code>Read</code>, <code>Grep</code>, <code>LSP</code>, <code>Bash</code>（linter）<br>
+                <strong>介入するなら：</strong><code>Edit</code>（修正を適用）<br>
+                <strong>注意：</strong>「毎回必ず弾く」はツールでなく hook の領域。skill のツールは"起動時に検査する"ところまで。
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- §8 -->
+        <section class="sd-section" id="s8">
+          <h2 class="sd-h2"><span class="sec-num">§8</span>フォルダ構造</h2>
+
+          <h3 class="sd-h3">共通スケルトン</h3>
+          <div class="sd-tree">&lt;skill&gt;/
+  SKILL.md           … 概要 + 目次(=型ごとの分割単位) + 全体ルール + Gotchas(必須)
+  &lt;分割ディレクトリ&gt;  … 型で単位が決まる（下記）。1 単位 = 1 ファイル
+  scripts/           … 実行スクリプト
+  assets/            … テンプレート</div>
+
+          <h3 class="sd-h3">共通ルール</h3>
+          <ul>
+            <li>状態・ログはセッションフォルダへ出力。<strong>skill フォルダには絶対置かない。</strong></li>
+            <li>参照は SKILL.md から 1 階層まで（深いネスト禁止）。</li>
+            <li>ファイル名は内容が分かる名前（<code>doc2.md</code> ✗ / <code>form_validation_rules.md</code> ○）。</li>
+            <li>100 行超のファイルは冒頭に目次を置く。</li>
+            <li>型が決まれば分割単位は自動で決まる（判断の余地を残さない）。</li>
+          </ul>
+
+          <h3 class="sd-h3"><span class="type-badge type-proc">手順型</span> → 単位 = Phase</h3>
+          <div class="sd-tree">phases/
+  01-&lt;phase名&gt;.md
+  02-&lt;phase名&gt;.md
+  ...</div>
+          <ul>
+            <li>Phase と Step を必ず明記。</li>
+            <li>Phase ごとに 1 ファイル（番号をファイル名先頭に＝順序が一意）。</li>
+            <li>各ファイル冒頭：<code># Phase N: 名前</code></li>
+            <li>各操作：<code>## Step N</code> を連番で。</li>
+            <li>SKILL.md に Phase 一覧（目次）＋ 進捗チェックリスト（Claude がコピーして 1 つずつ消す）。</li>
+          </ul>
+
+          <h3 class="sd-h3"><span class="type-badge type-know">条件付き知識型</span> → 単位 = ドメイン/トピック</h3>
+          <div class="sd-tree">reference/
+  &lt;ドメイン or トピック&gt;.md   … 1 トピック = 1 ファイル（索引構造、フロー化しない）</div>
+          <ul>
+            <li>SKILL.md は「どのトピックがどのファイルか」のナビ表。</li>
+            <li>各ファイル 100 行超なら冒頭に目次。</li>
+            <li>Gotchas は該当トピックのファイル内に置く。</li>
+          </ul>
+
+          <h3 class="sd-h3"><span class="type-badge type-enforce">強制型</span> → 単位 = ルールカテゴリ</h3>
+          <div class="sd-tree">rules/
+  &lt;ルールカテゴリ&gt;.md   … 1 カテゴリ = 1 ファイル（該当時だけ読む）
+scripts/
+  &lt;検査スクリプト&gt;      … 決定論的チェックはコード化</div>
+          <ul>
+            <li>検査は feedback loop を Step 化（検査 → 修正 → 再検査 → 合格まで）。</li>
+            <li>機械的に効かせるなら on-demand フックを併用（§10）。</li>
+          </ul>
+        </section>
+
+        <!-- §9 -->
+        <section class="sd-section" id="s9">
+          <h2 class="sd-h2"><span class="sec-num">§9</span>SKILL.md 本文ルール</h2>
+
+          <h3 class="sd-h3">冒頭の自己宣言（AI 向け・本文先頭）</h3>
+          <div class="sd-code"># &lt;skill名&gt;
+&gt; Category: &lt;9 分類のいずれか 1 つ&gt;
+&gt; Type: 手順型 / 条件付き知識型 / 強制型</div>
+
+          <h3 class="sd-h3">必須セクション</h3>
+          <ul>
+            <li><strong>Gotchas</strong>（定義は下）</li>
+            <li>重要指示は冒頭付近に置く（溢れ時は先頭が残る＝ truncation 対策）</li>
+          </ul>
+
+          <h3 class="sd-h3">書く / 書かない</h3>
+          <table class="sd-table">
+            <thead><tr><th></th><th>方針</th></tr></thead>
+            <tbody>
+              <tr><td><span class="type-badge badge-ng">書かない</span></td><td>当たり前のこと（Claude が既に知ること）</td></tr>
+              <tr><td><span class="type-badge badge-ok">書く</span></td><td>デフォルトから押し出す情報・社内固有知識</td></tr>
+            </tbody>
+          </table>
+
+          <h3 class="sd-h3">自由度の設定</h3>
+          <ul>
+            <li><strong>高自由度</strong> = 文章指示（複数の道が正解／文脈依存）</li>
+            <li><strong>低自由度</strong> = 手順・スクリプト指定（脆い・破壊的・一意手順必須）</li>
+          </ul>
+
+          <h3 class="sd-h3">一貫性・鮮度</h3>
+          <ul>
+            <li>用語は 1 概念 1 語で統一する。</li>
+            <li>時限情報は避け、必要なら <code>old patterns</code> 節へ隔離する。</li>
+          </ul>
+
+          <h3 class="sd-h3">選択肢の提示</h3>
+          <ul>
+            <li>手段を並べない。<strong>既定を 1 つ</strong> ＋ 特定条件の代替を 1 つだけ。</li>
+            <li>例：pdfplumber を使う。スキャン PDF の OCR 時のみ pdf2image。</li>
+          </ul>
+
+          <h3 class="sd-h3">Gotchas 定義</h3>
+          <p style="font-size:13.5px;color:var(--text-sub);margin:0 0 10px">
+            その skill で Claude が繰り返す <strong>"直感に反する罠"</strong> を蓄積する節（最高シグナル）。
+          </p>
+          <div class="sd-code">## Gotchas
+- &lt;罠/直感に反する点&gt;: &lt;実際はこう&gt; → &lt;だからこうする&gt;</div>
+          <div class="sd-gotcha">
+            <div class="sd-gotcha-title">Gotchas の例</div>
+            <ul>
+              <li><code>subscriptions</code> は追記専用。最新行は <code>created_at</code> 最大でなく <code>version</code> 最大</li>
+              <li>gateway は <code>@request_id</code>、billing は <code>trace_id</code>（同じ値）</li>
+              <li>staging は webhook 未処理でも 200 を返す → <code>payment_events</code> で真の状態確認</li>
+            </ul>
+          </div>
+          <div class="sd-note">1 個から始め、失敗のたびに足して育てる。</div>
+        </section>
+
+        <!-- §10 -->
+        <section class="sd-section" id="s10">
+          <h2 class="sd-h2"><span class="sec-num">§10</span>セットアップ・記憶・on-demand フック</h2>
+
+          <h3 class="sd-h3">共通原則</h3>
+          <ul>
+            <li>可変データ（設定・記憶）は skill フォルダに置かない（フォルダは不変）。</li>
+            <li>置き場：セッションフォルダ（<code>~/agent-home/sessions/YYYY-MM-DD/</code>）/ 永続が要るなら <code>${CLAUDE_PLUGIN_DATA}</code>（※設計上の参照変数。現時点で実装例なし）</li>
+          </ul>
+
+          <h3 class="sd-h3">セットアップとは</h3>
+          <p style="font-size:13.5px;color:var(--text-sub);margin:0 0 10px">
+            skill が「ユーザー/環境ごとに違う値」を知らないと動けない場合に、その値を <strong>一度だけ埋めて記憶</strong> すること。
+          </p>
+          <table class="sd-table">
+            <thead><tr><th></th><th>対象かどうか</th><th>例</th></tr></thead>
+            <tbody>
+              <tr>
+                <td><span class="type-badge badge-ok">対象</span></td>
+                <td>一度決めたら変わらない値</td>
+                <td>Slack 投稿先チャンネル、社内 API エンドポイント・トークン、BigQuery プロジェクト ID、デプロイ対象環境</td>
+              </tr>
+              <tr>
+                <td><span class="type-badge badge-ng">非対象</span></td>
+                <td>毎回変わる入力</td>
+                <td>その時の PR 番号、対象ファイル</td>
+              </tr>
+            </tbody>
+          </table>
+          <ul>
+            <li>未設定なら <code>AskUserQuestion</code> で聞く（自由文では聞かない）。</li>
+            <li>機密（トークン等）は <code>userConfig</code> の sensitive（keychain）へ。</li>
+            <li>非機密は <code>${CLAUDE_PLUGIN_DATA}/config.json</code> に保存し、次回は聞かない。</li>
+            <li><strong>skill フォルダ内 config は禁止。</strong></li>
+          </ul>
+
+          <h3 class="sd-h3">記憶</h3>
+          <ul>
+            <li>形式：追記ログ / JSON / SQLite</li>
+            <li>置き場：セッションフォルダ（<code>~/agent-home/sessions/YYYY-MM-DD/</code>）/ 永続は <code>${CLAUDE_PLUGIN_DATA}</code>（現時点で実装例なし）</li>
+            <li>使い方：自分の履歴を読み、差分や一貫性に使う（例：<code>standups.log</code>）</li>
+          </ul>
+
+          <h3 class="sd-h3">on-demand フック（skill の hooks 設定に置く）</h3>
+          <div class="sd-note">
+            <strong>原則</strong>：「この skill の実行中だけ効かせたい決定論的なガード/検査」に使う。
+            常時・全セッションで効かせたいものは CI か常時フックへ（ここではない）。
+          </div>
+          <table class="sd-table">
+            <thead><tr><th>カテゴリ</th><th>タイミング</th><th>例</th></tr></thead>
+            <tbody>
+              <tr>
+                <td>ブロック系</td>
+                <td>PreToolUse</td>
+                <td>
+                  <code>/careful</code> = <code>rm -rf</code> / <code>DROP TABLE</code> / force-push を止める<br>
+                  <code>/freeze</code> = 指定ディレクトリ外の Edit/Write を止める
+                </td>
+              </tr>
+              <tr>
+                <td>検証系</td>
+                <td>PostToolUse</td>
+                <td>編集のたびに linter / formatter / 型チェック / テストを走らせ、結果を Claude に返して直させる</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+        <!-- §11 -->
+        <section class="sd-section" id="s11">
+          <h2 class="sd-h2"><span class="sec-num">§11</span>テンプレート方針</h2>
+
+          <table class="sd-table">
+            <thead><tr><th>型</th><th>テンプレートの要否</th></tr></thead>
+            <tbody>
+              <tr>
+                <td><span class="type-badge type-proc">手順型</span></td>
+                <td>定型アウトプットがあれば <code>assets/</code> にテンプレートを用意（<strong>必須</strong>）</td>
+              </tr>
+              <tr>
+                <td><span class="type-badge type-know">条件付き知識型</span></td>
+                <td>テンプレート不要</td>
+              </tr>
+              <tr>
+                <td><span class="type-badge type-enforce">強制型</span></td>
+                <td>レポート/修正の定型があれば <code>assets/</code> にテンプレートを用意</td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="sd-note">中身は各 skill が作る。設計ルールは「用意するか否か」まで。</div>
+        </section>
+
+        <!-- §12 -->
+        <section class="sd-section" id="s12">
+          <h2 class="sd-h2"><span class="sec-num">§12</span>frontmatter テンプレート</h2>
+
+          <div class="sd-code-label">SKILL.md の先頭（frontmatter）</div>
+          <div class="sd-code">---
+name: &lt;動詞-目的語・小文字/数字/ハイフン・最大64字&gt;
+description: |
+  &lt;三人称・日本語50字以内・「何をするか」&gt;
+  TRIGGER when: &lt;発動条件を具体的なキーワードで列挙&gt;
+  SKIP: &lt;非発動条件&gt;
+invocation: &lt;name と同値&gt;
+allowed-tools: &lt;型ごとの最小セット&gt;      # 例 知識型: Read, Grep, Glob
+# 以下は該当時のみ付ける（既定はどちらも付けない＝自動＋明示の両方可）
+disable-model-invocation: true   # 副作用・破壊的skill（deploy/commit/送信/削除）のみ
+user-invocable: false            # 知識型の純粋背景知識のみ（コマンドの意味がないもの）
+---</div>
+
+          <h3 class="sd-h3">チェックリスト</h3>
+          <ul>
+            <li>既定（無印）= 自動・明示の両方から呼べる。</li>
+            <li><code>disable-model-invocation</code> と <code>user-invocable: false</code> は同時に付けない（排他）。</li>
+            <li><code>invocation</code> は <code>name</code> と同値で必ず記載する。</li>
+          </ul>
+
+          <h3 class="sd-h3">型別 allowed-tools 最小セット</h3>
+          <table class="sd-table">
+            <thead><tr><th>型</th><th>最小セット</th></tr></thead>
+            <tbody>
+              <tr>
+                <td><span class="type-badge type-know">条件付き知識型</span></td>
+                <td><code>Read, Grep, Glob</code></td>
+              </tr>
+              <tr>
+                <td><span class="type-badge type-proc">手順型</span></td>
+                <td><code>Bash, Read, Write, Edit</code>（＋必要な横断ツール）</td>
+              </tr>
+              <tr>
+                <td><span class="type-badge type-enforce">強制型</span></td>
+                <td><code>Agent, Read, Grep, Bash</code>（介入するなら <code>Edit</code> を追加）</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+      </article>
+    </div>
+
+    <div data-md-skip style="text-align:center;margin-top:20px;font-size:12px;color:var(--text-muted)">
+      <a href="../README.md">README</a> &nbsp;·&nbsp;
+      <a href="../README.md">README</a>
+    </div>
+  </div>
+  
+</body>
+</html>
