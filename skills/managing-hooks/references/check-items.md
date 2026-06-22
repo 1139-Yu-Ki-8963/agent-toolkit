@@ -26,11 +26,11 @@ jq -r '.hooks | to_entries[] | .key as $event |
 ```json
 {
   "type": "command",
-  "command": "<legacy-flat-hooks-bucket>/textlint-postwrite.sh"
+  "command": "該当スクリプトがない場合は削除"
 }
 ```
 
-外部スクリプトファイル本体は既存の `<legacy-flat-hooks-bucket>/` 配下に該当ロジックがあれば参照する。無い場合は **ユーザーへ事実報告し** 当該修正をスキップする（CLAUDE.md「スクリプトファイル作成禁止」ルール）。
+外部スクリプトファイル本体は既存の配置先に該当ロジックがあれば参照する。無い場合は **ユーザーへ事実報告し** 当該修正をスキップする（CLAUDE.md「スクリプトファイル作成禁止」ルール）。注: `textlint-postwrite.sh` は 2026-06 の hook 移行で削除されました。
 
 ### A2 — WARN: command 200 文字超
 
@@ -98,7 +98,7 @@ jq -r '.hooks | to_entries[] | .key as $event |
 ```
 
 修正前: `"command": "./scripts/check.sh"`
-修正後: `"command": "${CLAUDE_PROJECT_DIR}/scripts/check.sh"` または絶対パス `"<legacy-flat-hooks-bucket>/check.sh"`
+修正後: `"command": "${CLAUDE_PROJECT_DIR}/scripts/check.sh"` または絶対パス `"<project>/tools/hooks/check.sh"`
 
 理由: worktree や `cd` 後の CWD 変更で破綻する。
 
@@ -223,8 +223,8 @@ jq -r '.hooks | to_entries[] |
   "\($event)\t|| true なし: \(.command)"' <settings.json>
 ```
 
-修正前: `"command": "<legacy-flat-hooks-bucket>/textlint-postwrite.sh"`
-修正後: `"command": "<legacy-flat-hooks-bucket>/textlint-postwrite.sh || true"`
+修正前: `"command": "<path-to-script>"` (exit 0 のみ)
+修正後: `"command": "<path-to-script> || true"` (exit 0 または 1 を許容)
 
 理由: PostToolUse/UserPromptSubmit で exit 1 が出るとセッションログにエラーが残る。
 
@@ -232,7 +232,7 @@ jq -r '.hooks | to_entries[] |
 
 検出:
 ```bash
-grep -rln 'exit 2' <legacy-flat-hooks-bucket>/ | wc -l
+grep -rln 'exit 2' <project>/tools/hooks/ | wc -l
 ```
 
 修正方針: 本当に止める必要があるか再評価。多用するとユーザーの作業を妨げる。
@@ -254,7 +254,7 @@ jq -r '.hooks | to_entries[] | .key as $event |
 
 修正方針: 5〜15 秒で明示。`printf` / `grep` のみなら 5 秒、外部ツール呼び出しなら 10〜15 秒。
 
-**例外**: `conventions.md` §11「外部連携 hook の例外」の判定基準（環境変数チェックで開始 + `|| true` で短絡 + 外部サービスが自動再生成）を全て満たす hook は対象外。外部通知・モニタリング統合等の外部連携を想定。
+**例外**: `conventions.md` §11「外部連携 hook の例外」の判定基準（環境変数チェックで開始 + `|| true` で短絡 + 外部サービスが自動再生成）を全て満たす hook は対象外。Superset Home Manager 等の外部連携を想定。
 
 ### F2 — WARN: `timeout > 30` 秒
 
@@ -283,20 +283,20 @@ jq -r '.hooks | to_entries[] | .key as $event |
 
 検出:
 ```bash
-grep -lE '(^|[^a-zA-Z])node ' <legacy-flat-hooks-bucket>/*.sh |
+grep -lE '(^|[^a-zA-Z])node ' <project>/tools/hooks/*.sh |
   xargs -I{} grep -L 'exec +0</dev/null' {} |
   while read f; do echo "F4: $f に exec 0</dev/null なし"; done
 ```
 
 修正前:
 ```bash
-node <your-tools>/linter/run.js
+node <project>/tools/linter/run.js
 ```
 
 修正後:
 ```bash
 exec 0</dev/null
-node <your-tools>/linter/run.js
+node <project>/tools/linter/run.js
 ```
 
 理由: Node は stdin を inherit するため、hook の stdin（JSON）を Node が消費して出力が壊れる。
@@ -305,7 +305,7 @@ node <your-tools>/linter/run.js
 
 検出:
 ```bash
-grep -lE 'claude +-p' <legacy-flat-hooks-bucket>/*.sh |
+grep -lE 'claude +-p' <project>/tools/hooks/*.sh |
   xargs -I{} grep -L 'CLAUDE_HOOK_.*_RUNNING' {} |
   while read f; do echo "F5: $f に再帰防止 env なし"; done
 ```
@@ -327,7 +327,7 @@ CLAUDE_HOOK_SUMMARY_RUNNING=1 claude -p "summarize this session"
 
 検出:
 ```bash
-grep -rEn '/tmp/\.allow-[a-z-]+' ~/.claude/settings.json <legacy-flat-hooks-bucket>/ |
+grep -rEn '/tmp/\.allow-[a-z-]+' ~/.claude/settings.json <project>/tools/hooks/ |
   grep -v 'rm -f' || true
 ```
 
@@ -339,7 +339,7 @@ grep -rEn '/tmp/\.allow-[a-z-]+' ~/.claude/settings.json <legacy-flat-hooks-buck
 
 検出:
 ```bash
-grep -rEn 'nohup .* & *disown' ~/.claude/settings.json <legacy-flat-hooks-bucket>/
+grep -rEn 'nohup .* & *disown' ~/.claude/settings.json <project>/tools/hooks/
 ```
 
 理由: 失敗時にエラー検知不可、プロセス重複起動、ログ消失。
@@ -350,7 +350,7 @@ grep -rEn 'nohup .* & *disown' ~/.claude/settings.json <legacy-flat-hooks-bucket
 
 検出:
 ```bash
-grep -rEn '\.env|token|key|secret|credential' <legacy-flat-hooks-bucket>/*.sh |
+grep -rEn '\.env|token|key|secret|credential' <project>/tools/hooks/*.sh |
   grep -E '(deny|block|reject)'
 ```
 
@@ -379,7 +379,7 @@ grep -rEn '\.env|token|key|secret|credential' <legacy-flat-hooks-bucket>/*.sh |
 検出:
 ```bash
 grep -rEn '\[(NAMING|AMBIGUITY|TEXTLINT|PUBLISH|LINT-REVIEW|TEST-FAILED|WORKTREE|AUTO-COMMIT|NO-DELEGATION|NO-DEFERRAL|AUTHOR|FLOW-SELECT|PLAYWRIGHT|PROD-SKILL)[A-Z-]*\]' \
-  <legacy-flat-hooks-bucket>/ |
+  <project>/tools/hooks/ |
   awk -F: '{print $1, $3}' |
   sort -u
 ```

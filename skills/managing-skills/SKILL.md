@@ -11,7 +11,7 @@ allowed-tools: [Bash, Read, Write, Edit, Grep, Glob, Agent, AskUserQuestion]
 
 # スキルライフサイクル管理ハブ
 
-スキルの **作成 → 静的レビュー → 実機検証** を 1 つの動線で担うオーケストレーター。create したら review → test まで自動連鎖する。
+スキルの **作成 → 静的レビュー → 実機検証** を 1 つの動線で担うオーケストレーター。旧 `creating-custom-skills` / `reviewing-skills` / `testing-skills` を統合し、create したら review → test まで自動連鎖する。
 
 ## 設計思想
 
@@ -41,6 +41,10 @@ allowed-tools: [Bash, Read, Write, Edit, Grep, Glob, Agent, AskUserQuestion]
 1. `references/conventions.md` を Read（規約をロード）
 2. `references/creating.md` を Read（手順・チェックリスト）
 3. 新規スキルの `SKILL.md` を Write
+   3a. **フロー系判定**: 作成したスキルの Type が `orchestration` / `gateway` であるか、`## Phase` 見出しが 3 つ以上であるかを判定する。フロー系の場合、以下の追加セクションが存在することを確認し、欠落していれば `conventions.md` §8.5 のテンプレートに従い補完する:
+     - `## 完了条件` セクション（各 Phase の完了条件 + Goal 行）— F8
+     - `## サブエージェント委任仕様` セクション（Agent 呼び出しがある場合）— F9
+     - `## ループ設計` セクション（反復がある場合）— F10/F11/F12
 4. 作成チェックリスト（作成後）の README.md エントリ追加まで完了
 5. **自動連鎖**: 続けて review モードへ
 6. **自動連鎖**: review 完了後、test モードへ
@@ -93,6 +97,7 @@ allowed-tools: [Bash, Read, Write, Edit, Grep, Glob, Agent, AskUserQuestion]
 - test モードは **必ず新規サブエージェント**。セルフ再読は禁止
 - create 後の自動連鎖は既定 ON。OFF にするのはユーザーが明示的に止めた時のみ
 - references/ のロードは「必要になってから」。ハブ本体だけで判断できる時は Read しない（トークン節約）
+- 統合前の `creating-custom-skills` / `reviewing-skills` / `testing-skills` を呼ぶ箇所が外部にある場合は本スキルへ参照置換すること
 
 ## 参照資料
 
@@ -113,6 +118,10 @@ allowed-tools: [Bash, Read, Write, Edit, Grep, Glob, Agent, AskUserQuestion]
 - 手順型（orchestration / action / gateway / transform） → `assets/template-手順型.md`
 - 条件付き知識型（reference） → `assets/template-条件付き知識型.md`
 - 強制型（reactive / gate / audit / verification） → `assets/template-強制型.md`
+
+### ループ設計の原則
+
+- `docs/loop-design.html` — Loop 設計ガイド（5 アクション・評価役分離・停止条件 3 パターン・4 代価）。フロー系スキルの F8〜F12 観点の理論的根拠
 
 ### 関連スキル
 

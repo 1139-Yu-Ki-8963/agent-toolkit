@@ -1,6 +1,6 @@
 # Hooks 共通規約（conventions）
 
-`managing-hooks` の create / review / test 全モードが参照する **規約の単一正本**。JSON 出力スキーマ・TAG プレフィックス・event 別パターン・timeout 目安・配置 4 象限をここで定義する。
+`managing-hooks` の create / review / test 全モードが参照する **規約の単一正本**。JSON 出力スキーマ・TAG プレフィックス・event 別パターン・timeout 目安・配置 4 象限をここで定義する。旧 `creating-hooks` 本体に散在していた規約をここに集約した。
 
 各モードは最初にこのファイルを Read してから役割別 references（`creating.md` / `reviewing.md` / `testing.md`）に進む。
 
@@ -88,9 +88,9 @@ AUTO-COMMIT / PROD-SKILL-READ / ADR-REQUIRED / SHELL-EVASION-DETECTED
 
 新規 TAG は上記と被らない名前を選び、追加時はこの一覧にも追記する。
 
-## 4. 配置 4 象限
+## 4. 配置 4 象限（hooks-architecture-rules 準拠）
 
-新規 hook script の物理配置は以下の規約に従う。flat な `hooks/` バケットへの集約を避け、規約 (rule) または skill と同じフォルダに置く。
+新規 hook script の物理配置は `docs/hooks-design.html` の規約に従う。
 
 ### 配置決定の 2 軸
 
@@ -112,22 +112,23 @@ AUTO-COMMIT / PROD-SKILL-READ / ADR-REQUIRED / SHELL-EVASION-DETECTED
 
 ### 禁止配置
 
-以下に新規 hook を置くことは禁止する。flat な `hooks/` バケットへの集約は、責務が見えにくくなり保守困難を招く。
+以下に新規 hook を置くことは禁止する。`hooks-architecture-check.sh`（PreToolUse Write 強制）が `[HOOKS-BUCKET-FORBIDDEN]` で block する。
 
+- `<project>/tools/hooks/`（既存 31 ファイルは legacy。新規追加禁止）
 - `~/.claude/hooks/`
 - `~/.claude/**/hooks/`（plugin 含む）
 - `<repo>/.claude/hooks/`
 - `<repo>/.claude/**/hooks/`
 
-例外（誤ブロック対象外）: React の `src/hooks/`、`.husky/`、`.git/hooks/`、`node_modules/**/hooks/` は `.claude/` 配下でないため自動的に対象外。
+例外（誤ブロック対象外）: React の `src/hooks/`、`.husky/`、`.git/hooks/`、`node_modules/**/hooks/` は `.claude/` を経由しないため自動的に対象外。
 
 ### 配置後の必須登録
 
 新規 hook を作成したら、同じターン内で次を実施する。
 
-1. ADR を `~/.claude/adr/<NNNN>-<hook-name>.md` または `<repo>/docs/adr/<NNNN>-<hook-name>.md` に作成（必要性・代替案不採用理由・保守責任者・廃棄条件）
-2. `settings.json` の対応イベントに command path を登録
-3. 自前の hook カタログがあれば登録（任意）
+1. `hooks 一覧ドキュメント` の `HOOKS` 配列に登録（file / group / matcher / role）
+2. 配置先の rule.md 内に `## 設計判断` セクションを記載（必要性・代替案不採用理由・保守責任者・廃棄条件）
+3. `settings.json` の対応イベントに command path を登録
 
 ## 5. イベント別パターン
 
@@ -170,8 +171,8 @@ AUTO-COMMIT / PROD-SKILL-READ / ADR-REQUIRED / SHELL-EVASION-DETECTED
 
 | TAG | 参照箇所 | 用途 |
 |-----|---------|------|
-| `AMBIGUITY-AUTO-FIX` | CLAUDE.md §7 | 曖昧表現を `clarifying-ambiguity` スキルで修正 |
-| `TEXTLINT` | CLAUDE.md §8 | textlint エラーを `writing-quality` スキルで修正 |
+| `AMBIGUITY-AUTO-FIX` | `~/.claude/rules/subagent-delegation-rules/rule.md` | 曖昧表現を `clarifying-ambiguity` スキルで修正 |
+| `TEXTLINT` | `~/.claude/skills/writing-quality/SKILL.md` | textlint エラーを `writing-quality` スキルで修正 |
 
 新しい委譲パターンを追加する時は、CLAUDE.md または rules にも対応するルールを必ず書き加える。
 
@@ -188,7 +189,7 @@ AUTO-COMMIT / PROD-SKILL-READ / ADR-REQUIRED / SHELL-EVASION-DETECTED
 
 ## 9. フックカテゴリ定義（A〜H）
 
-hooks をカテゴリ分類する分類軸。review モード（dry-run）でカテゴリ別整合性を診断する際に使う。
+旧 `diagnose-hooks` の分類軸。review モード（dry-run）でカテゴリ別整合性を診断する際に使う。
 
 | カテゴリ | ラベル | 主目的 | 判定基準 |
 |---------|--------|--------|---------|
@@ -212,11 +213,11 @@ hooks をカテゴリ分類する分類軸。review モード（dry-run）でカ
 
 ## 11. 外部連携 hook の例外（timeout 未設定の許容）
 
-外部サービス（外部通知・モニタリング等の連携 hook）と連携する **短絡パターン** の hook は、`timeout` フィールドを意図的に省略してよい。外部サービス側が hook を自動再生成する場合、こちらで追記しても上書きされるため。
+外部サービス（Superset Home Manager 等）と連携する **短絡パターン** の hook は、`timeout` フィールドを意図的に省略してよい。外部サービス側が hook を自動再生成する場合、こちらで追記しても上書きされるため。
 
 ```bash
-# 例: 外部通知サービスの hook（環境変数未設定なら短絡終了）
-[ -n "$EXTERNAL_SVC_DIR" ] && [ -x "$EXTERNAL_SVC_DIR/hooks/notify.sh" ] && "$EXTERNAL_SVC_DIR/hooks/notify.sh" || true
+# 例: Superset Home の通知 hook（環境変数未設定なら短絡終了）
+[ -n "$SUPERSET_HOME_DIR" ] && [ -x "$SUPERSET_HOME_DIR/hooks/notify.sh" ] && SUPERSET_AGENT_ID=claude "$SUPERSET_HOME_DIR/hooks/notify.sh" || true
 ```
 
 判定基準（**全部満たすときのみ例外扱い**）:
@@ -226,5 +227,3 @@ hooks をカテゴリ分類する分類軸。review モード（dry-run）でカ
 - 外部サービスが hook を自動生成 / 自動更新する責任を持つ
 
 これを満たさない hook で `timeout` 欠落は通常どおり **F1 CRITICAL** として検出する。
-
-代表的な外部連携サービスの例: ターミナル通知統合（OS 通知統合・home manager 系ツール等）、外部監視 / observability ツール、開発体験ツール一般。

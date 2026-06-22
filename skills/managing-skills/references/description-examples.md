@@ -174,7 +174,7 @@ description: |
 ```bash
 python3 -c "
 import os, re
-d = os.path.expanduser('~/.claude/skills')
+d = os.path.expanduser('<project>/skills')
 t = 0
 for s in os.listdir(d):
     p = os.path.join(d, s, 'SKILL.md')

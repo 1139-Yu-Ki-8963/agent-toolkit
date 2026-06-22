@@ -84,18 +84,18 @@ PostToolUse。`matcher: Write|Edit` で file_path を取り、ファイルを走
 - ねらい: .md / .txt 保存後に曖昧表現（適宜 / 随時 / 必要に応じて / それ / これ ...）を検出 → サブエージェント起動を指示
 - マッチ: 拡張子フィルタで md / txt のみ走査
 - 動作: `grep -nE '<曖昧パターン>' "$file" | head -5` の結果を additionalContext に埋め込む
-- 出力: `[AMBIGUITY-AUTO-FIX]` + ファイルパス + 検出行 + 「Agent ツール（subagent_type: general-purpose）を即座に起動し、clarifying-ambiguity スキルで修正すること（CLAUDE.md §7）」
+- 出力: `[AMBIGUITY-AUTO-FIX]` + ファイルパス + 検出行 + 「Agent ツール（subagent_type: general-purpose）を即座に起動し、clarifying-ambiguity スキルで修正すること（`~/.claude/rules/subagent-delegation-rules/rule.md`）」
 - timeout: 10（ファイル走査込み）
-- 連動: CLAUDE.md §7 にサブエージェント起動ルールを明記
+- 連動: `~/.claude/rules/subagent-delegation-rules/rule.md` にサブエージェント起動ルールを明記
 
 ### 4.2 textlint 検査
 
 - ねらい: .md 保存後に textlint を走らせ、エラーがあれば writing-quality スキルでの修正を指示
 - マッチ: 拡張子フィルタで md のみ
 - 動作: `node_modules/.bin/textlint --config .textlintrc.json "$file" --format compact`
-- 出力: `[TEXTLINT]` + ファイルパス + textlint 結果 + 「~/.claude/skills/writing-quality/SKILL.md のルールに従い修正すること（CLAUDE.md §8）」
+- 出力: `[TEXTLINT]` + ファイルパス + textlint 結果 + 「~/.claude/skills/writing-quality/SKILL.md のルールに従い修正すること（`~/.claude/skills/writing-quality/SKILL.md`）」
 - timeout: 15（外部ツール起動のため最長）
-- 連動: CLAUDE.md §8
+- 連動: `~/.claude/skills/writing-quality/SKILL.md`
 
 ---
 
@@ -127,7 +127,7 @@ PostToolUse。`matcher: Write|Edit` で file_path を取り、ファイルを走
 - 失敗時: stderr を `~/.claude/session-summaries/.errors/{session}.log` に保存し、`{session}.md.error` にコピー
 - timeout: 180（claude -p の冷起動を考慮）
 - 出力: なし（exit 0 のみ）
-- 連動: CLAUDE.md §9 セッション要約セクション
+- 連動: `~/.claude/settings.json` の SessionEnd フック定義
 
 `--bare` を使わない理由: keychain 認証と OAuth トークンを温存するため。再帰防止は ENV ガードで担保する。
 
@@ -143,7 +143,7 @@ PostToolUse。`matcher: Write|Edit` で file_path を取り、ファイルを走
 - [x] `hookSpecificOutput.hookEventName` を親イベント名と一致（11/13、出力する 11 件のみ対象）
 - [x] キーワードマッチ系で `|| true` フォールバック（5/5、UserPromptSubmit と PostToolUse）
 - [x] 動的内容を含む出力は `jq -n --arg` で組み立て（PostToolUse 2 件）
-- [x] サブエージェント委譲は CLAUDE.md §N と連動（AMBIGUITY-AUTO-FIX §7、TEXTLINT §8、SESSION-SUMMARY §9）
+- [x] サブエージェント委譲は対応するルール・スキルと連動（AMBIGUITY-AUTO-FIX → subagent-delegation-rules、TEXTLINT → writing-quality SKILL.md、SESSION-SUMMARY → settings.json SessionEnd）
 - [x] 再帰呼び出しを伴う子プロセス起動は ENV ガードで止める（カテゴリ 5 の 2 件）
 
 新規フックを追加する場合、このチェックリストを満たすかを **必ず** 確認すること。

@@ -47,9 +47,9 @@
 **配置（hooks-architecture-rules 準拠）**
 
 - [ ] hook script の配置先が 4 象限のいずれかに該当するか（skill×global / skill×project / 独立規約×global / 独立規約×project）
-- [ ] `.claude/` 配下の flat `hooks/` バケットに置いていないか（禁止配置）
-- [ ] ADR を `~/.claude/adr/` または `<repo>/docs/adr/` に作成したか（4 項目: 必要性 / 代替案不採用理由 / 保守責任者 / 廃棄条件）
-- [ ] `（自前の hook カタログがあれば）` の `HOOKS` 配列に新規 hook を登録したか
+- [ ] `(.claude)` 配下の flat `hooks/` バケットに置いていないか（禁止配置）
+- [ ] 配置先の rule.md 内に `## 設計判断` セクションを記載したか（4 項目: 必要性 / 代替案不採用理由 / 保守責任者 / 廃棄条件）
+- [ ] `hooks 一覧ドキュメント` の `HOOKS` 配列に新規 hook を登録したか
 
 **書式**
 
@@ -71,7 +71,7 @@
 ## 作成後チェックリスト（必須）
 
 - [ ] hook script を配置先に保存した
-- [ ] ADR を作成した
+- [ ] 配置先の rule.md に `## 設計判断` セクションを記載した
 - [ ] `hooks.html` の `HOOKS` 配列に登録した
 - [ ] `settings.json` の対応イベントに command path を登録した
 - [ ] **review モードへ自動連鎖**（managing-hooks ハブが制御）
@@ -81,7 +81,7 @@
 
 - 作成しただけで終わらせない: ハブが自動で review → test へ連鎖する。連鎖を止めるのはユーザー明示時のみ
 - 配置を最初に決めない罠: 書き始めてから「これは skill 延長 / 独立規約 のどっち？」と悩むと、後から `git mv` + settings.json + hooks.html の 3 箇所更新が必要になる
-- ADR を後回しにしない: `sh-adr-check.sh` が新規 `.sh` 作成時に `[ADR-REQUIRED]` を出すので、後回しにすると次ターンで警告される
+- 設計判断を後回しにしない: `sh-adr-check.sh` が新規 `.sh` 作成時に `[ADR-REQUIRED]` を出すので、後回しにすると次ターンで警告される
 
 ## 参照資料
 

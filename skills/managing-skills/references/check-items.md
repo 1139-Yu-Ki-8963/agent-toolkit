@@ -305,6 +305,114 @@ grep -nE 'AskUserQuestion' "$F"
 
 「Claude が適切に判断する」式の AI 挙動依存でなく、ツール呼び出し・条件分岐で仕組み化されているか（`anti-patterns.md` ⑧）。
 
+### F8 — Phase/Step 完了条件（CRITICAL）
+
+各 Phase / Step に `完了条件:` 行、または `## 完了条件` セクション内に Phase 対応テーブルが存在するか。
+
+```bash
+PHASES=$(grep -cE '^#{2,3} Phase' "$F")
+DONE_INLINE=$(grep -cE '完了条件:|Done when:' "$F")
+DONE_TABLE=$(grep -cE '^\| Phase' "$F")
+echo "Phase 数: $PHASES / 完了条件（インライン）: $DONE_INLINE / 完了条件（テーブル行）: $DONE_TABLE"
+```
+
+Phase 数 > 0 かつ DONE_INLINE + DONE_TABLE == 0 なら CRITICAL。
+
+Goal 行の存在確認:
+
+```bash
+grep -qE '\*\*Goal\*\*|Goal.*:' "$F" && echo "OK: Goal 定義あり" || echo "MISSING: Goal 未定義"
+```
+
+```diff
+ ## Phase 2: 静的解析
++
++完了条件: 全観点の検査結果が記録され、未検査の観点が 0 件
+ 
+ ### Step 1
+```
+
+### F9 — サブエージェント呼び出し仕様表（WARN）
+
+`Agent(` / `subagent_type` / `サブエージェント` を含むスキルで、仕様表（subagent_type・prompt 骨格・期待返却値の 3 列以上のテーブル）が存在するか。
+
+```bash
+HAS_AGENT=$(grep -cE 'Agent\(|subagent_type|サブエージェント' "$F")
+HAS_SPEC=$(grep -cE '## サブエージェント委任仕様|subagent_type.*prompt.*期待|呼び出し箇所.*subagent_type' "$F")
+if [ "$HAS_AGENT" -gt 0 ] && [ "$HAS_SPEC" -eq 0 ]; then
+  echo "WARN: サブエージェント呼び出しあり、仕様表なし"
+fi
+```
+
+```diff
++## サブエージェント委任仕様
++
++| 呼び出し箇所 | subagent_type | prompt 骨格 | 期待返却値 |
++|---|---|---|---|
++| Phase 6 Step 1 | general-purpose | 「修正後スキルの発火検証: ① TRIGGER 語で発火 ② SKIP 語で非発火 ③ 隣接スキルと衝突なし」 | 発火 PASS/FAIL 表 + 原因箇条書き |
+```
+
+### F10 — ループ構成（WARN）
+
+反復キーワード（「繰り返す」「再実行」「ループ」「反復」「イテレーション」）を含むスキルで、`## ループ設計` セクションまたは停止条件 3 要素（上限回数・収束条件・発散条件）が定義されているか。
+
+```bash
+HAS_LOOP=$(grep -cE '繰り返す|再実行|ループ|反復|イテレーション|再評価' "$F")
+HAS_DESIGN=$(grep -cE '## ループ設計|上限回数|停止条件|収束.*停止|最大.*回' "$F")
+if [ "$HAS_LOOP" -gt 0 ] && [ "$HAS_DESIGN" -eq 0 ]; then
+  echo "WARN: 反復記述あり、ループ設計セクションなし"
+fi
+```
+
+```diff
++## ループ設計
++
++| 要素 | 設定値 |
++|---|---|
++| 反復条件 | 不明瞭な点が新たに浮上したら修正 → 再評価 |
++| 上限回数 | 5 回 |
++| 停止条件（収束） | 全チェック通過 + 不明瞭な点 0 件が 2 連続 |
++| 停止条件（発散） | 同じエラー 3 回連続で構造見直し |
++| 停止条件（上限） | 5 回到達で打ち切り・ユーザーに報告 |
++| 検証役 | 別サブエージェント（Read のみ権限推奨） |
+```
+
+### F11 — /goal 最終成功判定（WARN）
+
+`## 完了条件` セクションに `**Goal**` 行、または本文中に `/goal` 設定・最終成功判定の記述があるか。
+
+```bash
+grep -qE '\*\*Goal\*\*|/goal|最終成功判定|最終判定基準|健全性判定' "$F" \
+  && echo "OK: Goal 定義あり" \
+  || echo "WARN: Goal（最終成功判定基準）未定義"
+```
+
+```diff
+ ## 完了条件
+ 
+ | Phase | 完了条件 |
+ |---|---|
+ | Phase 1 | 対象ファイルが 1 件以上特定されている |
+ | Phase 2 | 全観点の検査結果が記録されている |
++| **Goal** | CRITICAL 0 件・WARN 3 件以下・test モード全 PASS で「健全」判定 |
+```
+
+### F12 — 検証役の分離（INFO）
+
+ループを含むスキルで、生成役とは別の検証役（別エージェント・別モデル・Read のみ権限）が指定されているか。
+
+```bash
+HAS_LOOP=$(grep -cE '繰り返す|再実行|ループ|反復|イテレーション' "$F")
+HAS_VERIFIER=$(grep -cE '検証役|評価役|別.*エージェント|Read のみ|verifier|evaluator' "$F")
+if [ "$HAS_LOOP" -gt 0 ] && [ "$HAS_VERIFIER" -eq 0 ]; then
+  echo "INFO: ループあり、検証役の分離が未記載"
+fi
+```
+
+```diff
++| 検証役 | 別サブエージェント（Read のみ権限推奨） |
+```
+
 ---
 
 ## G. 登録・整合性

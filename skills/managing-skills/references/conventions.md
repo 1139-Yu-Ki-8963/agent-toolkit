@@ -1,6 +1,6 @@
 # スキル共通規約（conventions）
 
-`managing-skills` の create / review / test 全モードが参照する **規約の単一正本**。フロントマター必須項目・Type 決定木・文字数予算・フォルダ構成・Progressive Disclosure をここで定義する。
+`managing-skills` の create / review / test 全モードが参照する **規約の単一正本**。フロントマター必須項目・Type 決定木・文字数予算・フォルダ構成・Progressive Disclosure をここで定義する。旧 `creating-custom-skills` 本体に散在していた規約をここに集約した。
 
 各モードは最初にこのファイルを Read してから役割別 references（`creating.md` / `reviewing.md` / `testing.md`）に進む。
 
@@ -52,7 +52,7 @@ description: |
 ```bash
 python3 -c "
 import os, re
-d = os.path.expanduser('~/.claude/skills')
+d = os.path.expanduser('<project>/skills')
 t = 0
 for s in os.listdir(d):
     p = os.path.join(d, s, 'SKILL.md')
@@ -153,6 +153,54 @@ my-skill/
 - `## 重要な注意事項` - 禁止事項・制約
 - `## Gotchas` - 直感に反する罠（1 行でも可、必須）
 - `## 参照資料` - references/ への参照
+
+## 8.5. フロー系スキルの追加必須セクション
+
+Type が `orchestration` または `gateway` のスキル、あるいは `## Phase` 見出しを 3 つ以上含むスキルには、以下のセクションが追加で必要になる。
+
+### `## 完了条件`
+
+各 Phase / Step の完了条件を一覧する。各 Phase 見出しの直後に `完了条件:` 行を 1 行で書く方式と、セクション末尾にまとめて書く方式のいずれでも可。最終行には **最終成功判定（Goal）** を記載する。
+
+```markdown
+## 完了条件
+
+| Phase | 完了条件 |
+|---|---|
+| Phase 1 | 対象ファイルが 1 件以上特定されている |
+| Phase 2 | 全観点の検査結果が記録されている |
+| Phase 3 | レポートがユーザーに提示されている |
+| **Goal** | CRITICAL 0 件かつ WARN 3 件以下で「健全」判定 |
+```
+
+### `## サブエージェント委任仕様`（サブエージェントを呼ぶ場合のみ）
+
+サブエージェント呼び出しごとに以下の 4 列を仕様表で定義する。
+
+| 列 | 内容 |
+|---|---|
+| 呼び出し箇所 | どの Phase/Step で呼ぶか |
+| subagent_type | `worker-sonnet` / `worker-haiku` / `researcher` / `brain` / `general-purpose` 等 |
+| prompt 骨格 | 渡すプロンプトの構造（シナリオ・要件チェックリスト・レポート構造） |
+| 期待返却値 | サブエージェントが返すべき出力の形式 |
+
+### `## ループ設計`（反復がある場合のみ）
+
+反復を含むフローでは、以下の 3 要素を定義する。
+
+| 要素 | 内容 | 例 |
+|---|---|---|
+| 反復条件 | 何を反復するか | 「不明瞭な点が新たに浮上したら修正→再評価」 |
+| 上限回数 | 最大何回で打ち切るか | 5 回 |
+| 停止条件 | 何をもって反復を止めるか（3 パターン推奨） | 全チェック通過 / 最大 N 回 / 同じエラー 2 連続 |
+
+停止条件は loop-design.html の原則に従い、以下の 3 パターンのうち少なくとも 2 つを明記する:
+
+- **収束停止**: 全チェック通過が N 連続（推奨: N=2）
+- **リソース上限**: 最大反復回数に到達
+- **発散検知**: 同じエラーが M 回連続で再発（推奨: M=2〜3）
+
+検証役（評価役）は生成役と分離する。理想的には別の subagent_type / Read のみ権限を使う（loop-design.html §5「評価役の設計」参照）。
 
 ## 9. 配置ルール
 

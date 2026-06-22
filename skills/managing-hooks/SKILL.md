@@ -11,13 +11,13 @@ allowed-tools: [Bash, Read, Write, Edit, Grep, Glob, Agent, AskUserQuestion]
 
 # Hooks ライフサイクル管理ハブ
 
-settings.json hooks の **作成 → 静的レビュー → 実機検証** を 1 つの動線で担うオーケストレーター。create したら review → test まで自動連鎖する。`managing-skills` の hooks 版。
+settings.json hooks の **作成 → 静的レビュー → 実機検証** を 1 つの動線で担うオーケストレーター。旧 `creating-hooks` / `reviewing-hooks-config` / `diagnose-hooks` / `testing-hooks` を統合し、create したら review → test まで自動連鎖する。`managing-skills` の hooks 版。
 
 ## 設計思想
 
 - **作りっぱなしを許さない**: hook を書いた直後に、公式仕様準拠・配置規約・設計観点（複雑度／無限ループ／コンテキスト直書き）を静的監査し、サブエージェントの実機 bash 検証まで連鎖させる
 - **共通規約の単一正本化**: JSON 出力スキーマ・TAG プレフィックス・event 別パターン・timeout 目安・配置 4 象限は `references/conventions.md` に集約し、create / review / test が同じ正本を参照する
-- **diagnose を review に吸収**: 設計面の 5 観点（複雑度・無限ループ・解釈の曖昧さ・コンテキスト直書き・カテゴリ整合性）は review モードの拡張観点として統合。読み取り専用にしたい時は review モードを **dry-run** で起動する
+- **diagnose を review に吸収**: 旧 `diagnose-hooks` の 5 観点（複雑度・無限ループ・解釈の曖昧さ・コンテキスト直書き・カテゴリ整合性）は review モードの拡張観点として統合。読み取り専用にしたい時は review モードを **dry-run** で起動する
 - **段階的開示**: 本体ハブは振り分けのみ。各モードの詳細手順は `references/` に置き、必要時のみロードする
 
 ## モード判定
@@ -36,7 +36,11 @@ settings.json hooks の **作成 → 静的レビュー → 実機検証** を 1
 ## 共通の前段（必ず最初に実行）
 
 1. **進捗の可視化**: 各モードの主要 Phase（references ロード・静的解析・実体検証・修正承認・test 連鎖）を `TaskCreate` で登録し、開始時に `TaskUpdate` で `in_progress`、完了時に `completed` に切り替える。連鎖をまたぐ作業はタスクが切れがちになるため、ハブが入口で必ず作る
-2. **規約のロード**: `references/conventions.md` を Read する。これが JSON 出力スキーマ・TAG プレフィックス・event 別パターン・timeout 目安・配置 4 象限の正本。これを読んでいないと作成・点検・検証のいずれも基準が定まらない。
+2. **規約のロード**: 以下の 2 つを Read する。
+   - `references/conventions.md` — JSON 出力スキーマ・TAG プレフィックス・event 別パターン・timeout 目安・配置 4 象限の正本
+   - `docs/hooks-design.html` — 配置 4 象限・禁止 glob の規約（外部正本）
+
+これを読んでいないと作成・点検・検証のいずれも基準が定まらない。
 
 ## create モード
 
@@ -44,8 +48,8 @@ settings.json hooks の **作成 → 静的レビュー → 実機検証** を 1
 2. `references/creating.md` を Read（手順・チェックリスト）
 3. 配置 4 象限から ownership × scope を判定し、配置先パスを決定
 4. hook script を Write
-5. ADR を `~/.claude/adr/` または `<repo>/docs/adr/` に作成
-6. 自前の hook カタログがあれば登録（任意）
+5. 配置先の rule.md 内に `## 設計判断` セクションを記載
+6. `hooks.html` の `HOOKS` 配列に登録
 7. `settings.json` の対応イベントに command path を登録
 8. **自動連鎖**: 続けて review モード（full）へ
 9. **自動連鎖**: review 完了後、test モードへ
@@ -67,7 +71,7 @@ settings.json hooks の **作成 → 静的レビュー → 実機検証** を 1
 2. `references/reviewing.md` の観点 I〜M（複雑度・無限ループ・解釈曖昧さ・コンテキスト直書き・カテゴリ整合性）のみ実行
 3. レポート出力で終了。`Edit` は発行しない。連鎖もしない
 
-dry-run は読み取り専用の診断モード。「修正は別途検討したい」「読み取りのみで安全に診断したい」場合に使う。
+dry-run は旧 `diagnose-hooks` の挙動を再現する。「修正は別途検討したい」「読み取りのみで安全に診断したい」場合に使う。
 
 ## test モード
 

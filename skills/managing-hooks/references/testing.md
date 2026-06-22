@@ -26,11 +26,11 @@
 
 - **配置アーキ準拠**（`conventions.md` §4 準拠）:
   - command path が flat `hooks/` バケットに無いか確認
-  - 禁止 glob: `<legacy-flat-hooks-bucket>/` / `~/.claude/hooks/` / `~/.claude/**/hooks/` / `<repo>/.claude/hooks/` / `<repo>/.claude/**/hooks/`
+  - 禁止 glob: `<project>/tools/hooks/` / `~/.claude/hooks/` / `~/.claude/**/hooks/` / `<repo>/.claude/hooks/` / `<repo>/.claude/**/hooks/`
   - 違反検出時の対応: テストを **続行せず中断** し、ユーザーに次の選択肢を `AskUserQuestion` で提示
     - (A) 正しい象限に移動してからテスト再開（推奨）
     - (B) legacy として現状維持・テストのみ続行
-  - 検出コマンド: `echo "$cmd" | grep -qE '(\.claude/hooks\|\.claude/.+/hooks\|<legacy-flat-bucket>\|<another-flat-bucket>)/'`
+  - 検出コマンド: `echo "$cmd" | grep -qE '(\.claude/hooks\|\.claude/.+/hooks)/'`
 - command 文字列の JSON 内ダブルクォートエスケープが揃っている（`\"`）
 - `if` 条件の構文チェック（**`if` は bash では検証不可。静的チェックが唯一の手段**）:
   - `Bash(<tool> *)` 形式を使う（コロンなし・スペース区切り）
@@ -39,8 +39,8 @@
 - timeout が `conventions.md` §6 の目安（5〜15 秒）内
 - TAG プレフィックスが既存と重複していない（`conventions.md` §3 の重複禁止 TAG リスト参照）
 - hookEventName が親 `<EventName>` と一致
-- ADR が `~/.claude/adr/` または `<repo>/docs/adr/` に存在する（新規 hook のみ。legacy は対象外）
-- `（自前の hook カタログがあれば）` の `HOOKS` 配列に登録されている
+- 配置先の rule.md / SKILL.md 内に `## 設計判断` セクションが存在する（新規 hook のみ。legacy は対象外）
+- `hooks 一覧ドキュメント` の `HOOKS` 配列に登録されている
 
 ずれがあれば、Step 2 に進む前に command / if / timeout / 配置 を修正する。
 

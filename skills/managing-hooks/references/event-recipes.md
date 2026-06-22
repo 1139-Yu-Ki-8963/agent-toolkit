@@ -213,10 +213,10 @@ file=<対象ファイル>
 <grep -n の出力>
 
 Agent ツール（subagent_type: general-purpose）を即座に起動し、
-このファイルを ~/.claude/skills/<scope-skill>/SKILL.md で修正すること（CLAUDE.md §N）。
+このファイルを ~/.claude/skills/<scope-skill>/SKILL.md で修正すること。
 ```
 
-CLAUDE.md 側に `[<TAG>]` を含む additionalContext が来たときの動作ルールを書いておく（既存例: §7 AMBIGUITY-AUTO-FIX、§8 TEXTLINT）。
+対応するルール・スキルの側に `[<TAG>]` を含む additionalContext が来たときの動作ルールを書いておく（既存例: AMBIGUITY-AUTO-FIX → subagent-delegation-rules、TEXTLINT → writing-quality SKILL.md）。
 
 ### 出力 JSON は jq で組み立てる
 
