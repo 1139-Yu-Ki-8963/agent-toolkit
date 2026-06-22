@@ -29,6 +29,43 @@
   --radius-sm: 6px;
 }
 
+/* Dark theme */
+:root[data-theme="dark"] {
+  --bg: #0d1117;
+  --panel: #161b22;
+  --panel-2: #1c2128;
+  --border: #30363d;
+  --border-strong: #484f58;
+  --text: #e6edf3;
+  --text-sub: #b1bac4;
+  --text-muted: #8b949e;
+  --accent: #58a6ff;
+  --accent-2: #79c0ff;
+  --accent-soft: rgba(56,139,253,0.1);
+  --accent-border: rgba(56,139,253,0.3);
+  --gold: #d29922;
+  --gold-soft: rgba(210,153,34,0.1);
+  --gold-border: rgba(210,153,34,0.3);
+  --success: #3fb950;
+  --success-soft: rgba(63,185,80,0.1);
+  --warn: #d29922;
+  --danger: #f85149;
+  --danger-soft: rgba(248,81,73,0.1);
+  --code-bg: #0d1117;
+  --code-fg: #e6edf3;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.2);
+  --shadow-md: 0 2px 6px rgba(0,0,0,0.3);
+}
+:root[data-theme="dark"] .topbar {
+  background: linear-gradient(180deg, #161b22 0%, #0d1117 100%);
+  border-bottom-color: #30363d;
+}
+:root[data-theme="dark"] .topnav a { color: #8b949e; }
+:root[data-theme="dark"] .topnav a:hover { background: rgba(56,139,253,0.1); color: #58a6ff; }
+:root[data-theme="dark"] .topsearch input { background: #0d1117; border-color: #30363d; color: #e6edf3; }
+:root[data-theme="dark"] .hero { background: linear-gradient(135deg, #1158c7 0%, #1a6bdb 55%, #0e2e6e 100%); }
+:root[data-theme="dark"] .pm-updated { background: rgba(56,139,253,0.1); border-color: rgba(56,139,253,0.3); color: #b1bac4; }
+
 * { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; }
 html, body { margin: 0; padding: 0; }
@@ -156,13 +193,21 @@ a:hover { text-decoration: underline; }
 .card.is-visual { border-left: 4px solid var(--accent-2); }
 .card.is-doc-list { border-left: 4px solid var(--accent); }
 .card.is-category { border-left: 4px solid var(--accent); }
+.card.is-coming-soon {
+  opacity: 0.4;
+  filter: grayscale(1);
+  pointer-events: none;
+  cursor: default;
+}
+.card.is-coming-soon:hover { transform: none; box-shadow: var(--shadow-sm); border-color: var(--border); }
 
 /* カテゴリ別アクセント（TOP のカテゴリカード・カテゴリページのツールカード共通。
    group-<id> はカード要素自身に付くため同一要素セレクタで指定する） */
 .card.group-rules  { border-left-color: #2563eb; } /* ルール: 青 */
 .card.group-master { border-left-color: #059669; } /* マスタ: 緑 */
-.card.group-flow   { border-left-color: #d97706; } /* フロー: 橙 */
-.card.group-design { border-left-color: #7c3aed; } /* デザイン: 紫 */
+.card.group-flow     { border-left-color: #d97706; } /* フロー: 橙 */
+.card.group-routines { border-left-color: #0d9488; } /* ルーティン: teal */
+.card.group-design   { border-left-color: #7c3aed; } /* デザイン: 紫 */
 
 /* カテゴリページのサブカテゴリ（sections 描画時）。
    見出しバー + カード群を 1 ブロックにまとめ、群ごとの境界を視覚化する。 */
@@ -184,8 +229,9 @@ a:hover { text-decoration: underline; }
   border-radius: 999px; padding: 1px 9px; min-width: 18px; text-align: center;
 }
 /* カテゴリ色をサブ見出しの左帯へも反映する（category-view が group-<id> を子カードに付与） */
-.cat-subsection:has(.card.group-master) .cat-sub-head { border-left-color: #059669; }
-.cat-subsection:has(.card.group-flow)   .cat-sub-head { border-left-color: #d97706; }
+.cat-subsection:has(.card.group-master)   .cat-sub-head { border-left-color: #059669; }
+.cat-subsection:has(.card.group-flow)     .cat-sub-head { border-left-color: #d97706; }
+.cat-subsection:has(.card.group-routines) .cat-sub-head { border-left-color: #0d9488; }
 
 /* カテゴリページの戻る導線 */
 .back-link { margin-top: 24px; }

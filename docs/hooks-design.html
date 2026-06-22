@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Hooks 設計ガイド — agent-home</title>
+  <title>Hooks 設計ガイド — agent-toolkit</title>
   <link rel="stylesheet" href="style.css" />
   <style>
     .sd-wrap { max-width: 1100px; margin: 0 auto; padding: 20px; }
@@ -199,8 +199,8 @@
       <h1>Hooks 設計ガイド</h1>
       <p>
         Claude Code の hook script を新規追加・移動する時に従う配置ルールと管理方針。
-        スコープは「どこに置くか」「どう管理するか」のアーキテクト規約まで。個別 hook の中身の書き方は <a href="../../skills/creating-hooks/SKILL.md">creating-hooks</a> スキルが担う。
-        <a href="hooks.html">← フック一覧へ</a>
+        スコープは「どこに置くか」「どう管理するか」のアーキテクト規約まで。個別 hook の中身の書き方は creating-hooks スキルが担う。
+        <a href="../README.md">← README へ</a>
       </p>
     </div>
 
@@ -222,7 +222,7 @@
         <div class="toc-sep"></div>
         <div style="font-size:11px;color:var(--text-muted);padding:4px 8px;line-height:1.6">
           対象: Claude Code hook<br>
-          関連: <a href="skill-design.html">Skill 設計ガイド</a> / <a href="hooks.html">フック一覧</a>
+          関連: <a href="skill-design.html">Skill 設計ガイド</a> / README
         </div>
       </nav>
 
@@ -253,7 +253,7 @@
               <tr><th>パス</th><th>分類</th><th>禁止理由</th></tr>
             </thead>
             <tbody>
-              <tr><td><code>~/agent-home/tools/hooks/</code></td><td>global flat bucket</td><td>31 ファイルが規約と無関係に同居。最大の負債源</td></tr>
+              <tr><td><code>&lt;project&gt;/tools/hooks/</code></td><td>global flat bucket</td><td>31 ファイルが規約と無関係に同居。最大の負債源</td></tr>
               <tr><td><code>~/.claude/hooks/</code></td><td>global flat bucket</td><td>同上の構造になる前に禁止しておく</td></tr>
               <tr><td><code>~/.claude/&lt;any&gt;/hooks/</code></td><td>plugin enforcement</td><td>plugin 内 hooks は plugin 側で完結すべき。手動で増やさない</td></tr>
               <tr><td><code>&lt;repo&gt;/.claude/hooks/</code></td><td>project flat bucket</td><td>oradora-battle-base の <code>.claude/hooks/</code> 19 ファイルが同じ負債を抱えている</td></tr>
@@ -277,7 +277,7 @@
           </table>
 
           <div class="sd-note">
-            判定式: 禁止対象は <code>(.claude|agent-home)</code> 配下に <code>hooks/</code> セグメントを含むパスのみ。React の <code>src/hooks/</code> は <code>.claude/</code> も <code>agent-home/</code> も経由しないので影響を受けない。
+            判定式: 禁止対象は <code>(.claude)</code> 配下に <code>hooks/</code> セグメントを含むパスのみ。React の <code>src/hooks/</code> は <code>.claude/</code> を経由しないので影響を受けない。
           </div>
         </section>
 
@@ -299,7 +299,7 @@
               <tr>
                 <td><strong>独立規約</strong></td>
                 <td>単一 skill に紐付かない system 全体のメタ規約を強制する</td>
-                <td>commit author を白リストに縛る規約・先送り表現禁止・依頼形禁止</td>
+                <td>commit author を白リストに縛る規約・禁止事項・制約</td>
               </tr>
               <tr>
                 <td><strong>その他</strong></td>
@@ -328,8 +328,8 @@
           <div class="quad">
             <div class="quad-cell">
               <h4>skill × global</h4>
-              <code>~/agent-home/skills/&lt;skill&gt;/scripts/&lt;hook&gt;.sh</code>
-              <p>例: parallel-dev-worktree skill の延長 → <code>~/agent-home/skills/parallel-dev-worktree/scripts/worktree-required-check.sh</code></p>
+              <code>~/.claude/skills/&lt;skill&gt;/scripts/&lt;hook&gt;.sh</code>
+              <p>例: parallel-dev-worktree skill の延長 → <code>~/.claude/skills/parallel-dev-worktree/scripts/worktree-required-check.sh</code></p>
             </div>
             <div class="quad-cell">
               <h4>skill × project</h4>
@@ -364,7 +364,7 @@
     └── hooks-architecture-check.sh</div>
 
           <h3 class="sd-h3">skill 配下のフォルダ構造</h3>
-          <div class="sd-tree">~/agent-home/skills/
+          <div class="sd-tree">~/.claude/skills/
 ├── parallel-dev-worktree/
 │   ├── SKILL.md
 │   └── scripts/
@@ -377,24 +377,24 @@
 
         <section class="sd-section" id="s5">
           <h2 class="sd-h2"><span class="sec-num">§5</span>例: 既存 hook の正しい置き場</h2>
-          <p><code>~/agent-home/tools/hooks/</code> 配下の 31 ファイルを 2 軸で分類した時の本来の置き場を示す。これらは legacy として現状放置するが、新規 hook を作る時の参考にする。</p>
+          <p><code>&lt;project&gt;/tools/hooks/</code> 配下の 31 ファイルを 2 軸で分類した時の本来の置き場を示す。これらは legacy として現状放置するが、新規 hook を作る時の参考にする。</p>
 
           <table class="sd-table">
             <thead>
               <tr><th>既存 hook</th><th>本来の置き場</th><th>分類</th></tr>
             </thead>
             <tbody>
-              <tr><td><code>worktree-required-check.sh</code></td><td><code>~/agent-home/skills/parallel-dev-worktree/scripts/</code></td><td>skill × global</td></tr>
-              <tr><td><code>stop-auto-commit.sh</code></td><td><code>~/agent-home/skills/auto-ship/scripts/</code></td><td>skill × global</td></tr>
-              <tr><td><code>prod-skill-read-enforce.sh</code><br><code>prod-skill-detect.sh</code></td><td><code>~/agent-home/skills/oradora-deploy-production/scripts/</code></td><td>skill × global</td></tr>
-              <tr><td><code>issue-scope-check.sh</code></td><td><code>~/agent-home/skills/verifying-issue-scope/scripts/</code></td><td>skill × global</td></tr>
-              <tr><td><code>flow-select-detect.sh</code><br><code>flow-select-enforce.sh</code></td><td><code>~/agent-home/skills/flow-feature/scripts/</code> 等</td><td>skill × global</td></tr>
+              <tr><td><code>worktree-required-check.sh</code></td><td><code>~/.claude/skills/parallel-dev-worktree/scripts/</code></td><td>skill × global</td></tr>
+              <tr><td><code>stop-auto-commit.sh</code></td><td><code>~/.claude/skills/auto-ship/scripts/</code></td><td>skill × global</td></tr>
+              <tr><td><code>prod-skill-read-enforce.sh</code><br><code>prod-skill-detect.sh</code></td><td><code>~/.claude/skills/oradora-deploy-production/scripts/</code></td><td>skill × global</td></tr>
+              <tr><td><code>issue-scope-check.sh</code></td><td><code>~/.claude/skills/verifying-issue-scope/scripts/</code></td><td>skill × global</td></tr>
+              <tr><td><code>flow-select-detect.sh</code><br><code>flow-select-enforce.sh</code></td><td><code>~/.claude/skills/flow-feature/scripts/</code> 等</td><td>skill × global</td></tr>
               <tr><td><code>skill-log-recorder.sh</code></td><td><code>~/.claude/rules/skill-logging-rules/</code></td><td>独立規約 × global</td></tr>
               <tr><td><code>no-deferral-*.sh</code> (4 件)</td><td><code>~/.claude/rules/no-deferral-rules/</code></td><td>独立規約 × global</td></tr>
               <tr><td><code>no-delegation-*.sh</code> (3 件)</td><td><code>~/.claude/rules/no-delegation-rules/</code></td><td>独立規約 × global</td></tr>
               <tr><td><code>author-check.sh</code></td><td><code>~/.claude/rules/author-identity-rules/</code></td><td>独立規約 × global</td></tr>
               <tr><td><code>no-root-marker-check.sh</code></td><td><code>~/.claude/rules/no-root-marker-rules/</code></td><td>独立規約 × global</td></tr>
-              <tr><td><code>pre-bash-dispatch.sh</code></td><td>共通基盤 → <code>~/agent-home/tools/dispatch/</code> など（hook ではない）</td><td>例外（dispatcher）</td></tr>
+              <tr><td><code>pre-bash-dispatch.sh</code></td><td>共通基盤 → <code>&lt;project&gt;/tools/dispatch/</code> など（hook ではない）</td><td>例外（dispatcher）</td></tr>
             </tbody>
           </table>
         </section>
@@ -431,7 +431,7 @@
                 <td>事前</td>
                 <td><code>hooks-architecture-check.sh</code></td>
                 <td><code>[HOOKS-BUCKET-FORBIDDEN]</code></td>
-                <td>PreToolUse(Write|Edit|MultiEdit) で <code>(.claude|agent-home)</code> 配下の <code>hooks/</code> セグメントに新規ファイル作成を検出すると <code>exit 2</code> でブロック。既存ファイルの編集は通す</td>
+                <td>PreToolUse(Write|Edit|MultiEdit) で <code>(.claude)</code> 配下の <code>hooks/</code> セグメントに新規ファイル作成を検出すると <code>exit 2</code> でブロック。既存ファイルの編集は通す</td>
               </tr>
             </tbody>
           </table>
@@ -448,7 +448,7 @@
           <h2 class="sd-h2"><span class="sec-num">§8</span>既存 legacy の扱いと移行</h2>
           <p>本ガイドの導入時点で既に存在する legacy 配置:</p>
           <ul>
-            <li><code>~/agent-home/tools/hooks/*.sh</code> — 31 ファイル</li>
+            <li><code>&lt;project&gt;/tools/hooks/*.sh</code> — 31 ファイル</li>
             <li><code>~/Projects/oradora-battle-base/.claude/hooks/*.sh</code> — 19 ファイル</li>
             <li><code>~/.claude/plugins/marketplaces/*/plugins/*/hooks/</code> — plugin 内</li>
           </ul>
@@ -459,7 +459,7 @@
             <li>移行は別タスクで <span class="bad">大規模</span>に行う:
               <ol>
                 <li>各 hook を 2 軸分類で象限を決定</li>
-                <li>新フォルダを <code>~/.claude/rules/&lt;rule&gt;-rules/</code> または <code>~/agent-home/skills/&lt;skill&gt;/scripts/</code> に作る</li>
+                <li>新フォルダを <code>~/.claude/rules/&lt;rule&gt;-rules/</code> または <code>~/.claude/skills/&lt;skill&gt;/scripts/</code> に作る</li>
                 <li><code>git mv</code> でファイル移動</li>
                 <li><code>settings.json</code> の hook command パスを更新</li>
                 <li><code>hooks.html</code> の <code>file</code> 列を更新</li>
@@ -480,18 +480,17 @@
             <li>発火イベントを名前に含めると分散配置時に検索しやすい: <code>-pre-bash.sh</code> / <code>-post-write.sh</code> / <code>-stop.sh</code></li>
           </ul>
 
-          <h3 class="sd-h3">ADR（必須）</h3>
-          <p>新規 <code>.sh</code> 作成は <a href="../../.claude/rules/security.md">security.md</a> の規約に従い ADR が必須。ADR は次のいずれかに置く。</p>
+          <h3 class="sd-h3">設計判断（必須）</h3>
+          <p>新規 <code>.sh</code> 作成は security 規約に従い設計判断の記録が必須。配置先の正本ドキュメント内に <code>## 設計判断</code> セクションとして記載する。</p>
           <ul>
-            <li>global hook → <code>~/.claude/adr/&lt;NNNN&gt;-&lt;hook-name&gt;.md</code></li>
-            <li>project hook → <code>&lt;repo&gt;/docs/adr/&lt;NNNN&gt;-&lt;hook-name&gt;.md</code> または <code>&lt;repo&gt;/.claude/adr/&lt;NNNN&gt;-&lt;hook-name&gt;.md</code></li>
+            <li>global hook → 配置先の <code>~/.claude/rules/&lt;rule&gt;-rules/rule.md</code> 内</li>
+            <li>project hook → 配置先の <code>&lt;repo&gt;/.claude/rules/&lt;rule&gt;-rules/rule.md</code> または <code>~/.claude/skills/&lt;skill&gt;/SKILL.md</code> 内</li>
           </ul>
-          <p>ADR が書けない（必要性を説明できない）hook はそもそも作らない。</p>
+          <p>設計判断が書けない（必要性を説明できない）hook はそもそも作らない。</p>
         </section>
 
       </article>
     </div>
   </div>
-  
 </body>
 </html>

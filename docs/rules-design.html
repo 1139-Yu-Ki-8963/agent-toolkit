@@ -1,0 +1,567 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>rules 設計ガイド — agent-toolkit</title>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    .sd-wrap { max-width: 1100px; margin: 0 auto; padding: 20px; }
+    .sd-layout { display: grid; grid-template-columns: 220px 1fr; gap: 24px; align-items: start; }
+    .sd-toc { position: sticky; top: 16px; background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; font-size: 12.5px; }
+    .sd-toc h3 { font-size: 11px; margin: 0 0 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700; }
+    .sd-toc ul { list-style: none; padding: 0; margin: 0; }
+    .sd-toc li { margin: 0; }
+    .sd-toc a { display: flex; align-items: baseline; gap: 7px; padding: 5px 8px; border-radius: 5px; color: var(--text-sub); font-size: 12px; text-decoration: none; line-height: 1.5; transition: background 0.12s; }
+    .sd-toc a:hover { background: var(--accent-soft); color: var(--accent); text-decoration: none; }
+    .sd-toc .toc-num { font-family: var(--mono); font-size: 10px; font-weight: 700; color: var(--accent); flex-shrink: 0; min-width: 18px; }
+    .sd-toc .toc-sep { border-top: 1px solid var(--border); margin: 8px 0; }
+    .sd-body { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px 32px; box-shadow: var(--shadow-sm); min-width: 0; }
+    .sd-section { margin-bottom: 48px; }
+    .sd-section:last-child { margin-bottom: 0; }
+    .sd-h2 { display: flex; align-items: center; gap: 12px; font-size: 18px; font-weight: 800; margin: 0 0 16px; padding: 10px 16px; background: var(--accent-soft); border-left: 4px solid var(--accent); border-radius: 0 var(--radius-sm) var(--radius-sm) 0; scroll-margin-top: 20px; }
+    .sd-h2 .sec-num { font-family: var(--mono); font-size: 12px; font-weight: 800; background: var(--accent); color: #fff; padding: 2px 8px; border-radius: 999px; }
+    .sd-h3 { font-size: 14.5px; font-weight: 700; color: var(--accent-2); margin: 24px 0 8px; padding-bottom: 4px; border-bottom: 1px dashed var(--border-strong); }
+    .sd-def { background: var(--panel-2); border: 1px solid var(--accent-border); border-left: 4px solid var(--accent); border-radius: 0 var(--radius-sm) var(--radius-sm) 0; padding: 12px 16px; margin: 12px 0 16px; font-size: 13.5px; color: var(--text); line-height: 1.75; }
+    .sd-code { background: var(--code-bg); color: var(--code-fg); border-radius: var(--radius-sm); padding: 14px 18px; font-family: var(--mono); font-size: 12.5px; line-height: 1.65; overflow-x: auto; margin: 10px 0 16px; white-space: pre; }
+    .sd-code-label { font-size: 10.5px; font-weight: 700; color: var(--text-muted); font-family: var(--mono); letter-spacing: 0.04em; margin-bottom: 4px; }
+    .sd-flow { background: var(--code-bg); color: var(--code-fg); border-radius: var(--radius-sm); padding: 16px 20px; font-family: var(--mono); font-size: 12.5px; line-height: 2; overflow-x: auto; white-space: pre; margin: 12px 0 16px; }
+    .sd-tree { background: var(--code-bg); color: var(--code-fg); border-radius: var(--radius-sm); padding: 14px 18px; font-family: var(--mono); font-size: 12.5px; line-height: 1.75; overflow-x: auto; white-space: pre; margin: 10px 0 16px; }
+    code { background: var(--accent-soft); color: var(--accent); padding: 1px 6px; border-radius: 4px; font-size: 0.9em; font-family: var(--mono); }
+    .sd-table { width: 100%; border-collapse: collapse; font-size: 12.5px; margin: 12px 0 16px; border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; }
+    .sd-table th, .sd-table td { border: 1px solid var(--border); padding: 8px 12px; text-align: left; vertical-align: top; }
+    .sd-table th { background: var(--accent-soft); color: var(--accent); font-weight: 700; white-space: nowrap; }
+    .sd-table tr:nth-child(even) td { background: var(--panel-2); }
+    .sd-body ul, .sd-body ol { padding-left: 22px; margin: 8px 0 12px; line-height: 1.8; }
+    .sd-body li { margin: 3px 0; font-size: 13.5px; color: var(--text-sub); }
+    .sd-body li strong { color: var(--text); }
+    .sd-gotcha { background: var(--gold-soft); border: 1px solid var(--gold-border); border-left: 4px solid var(--gold); border-radius: 0 var(--radius-sm) var(--radius-sm) 0; padding: 12px 16px; margin: 10px 0 14px; }
+    .sd-gotcha-title { font-size: 11.5px; font-weight: 800; color: var(--gold); letter-spacing: 0.04em; margin-bottom: 8px; }
+    .sd-gotcha ul { margin: 0; padding-left: 18px; }
+    .sd-gotcha li { font-size: 12.5px; color: var(--text-sub); line-height: 1.75; }
+    .badge-ok { display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 10px; border-radius: 999px; font-family: var(--mono); background: var(--success-soft); color: var(--success); border: 1px solid #bbf7d0; white-space: nowrap; }
+    .badge-ng { display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 10px; border-radius: 999px; font-family: var(--mono); background: var(--danger-soft); color: var(--danger); border: 1px solid #fecaca; white-space: nowrap; }
+    .badge-eager { display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 10px; border-radius: 999px; font-family: var(--mono); background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; white-space: nowrap; }
+    .badge-lazy { display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 10px; border-radius: 999px; font-family: var(--mono); background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; white-space: nowrap; }
+    .sd-note { font-size: 12px; color: var(--text-muted); background: var(--panel-2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 8px 12px; margin: 8px 0 12px; line-height: 1.7; }
+    .sd-quote { font-size: 12.5px; color: var(--text-sub); background: var(--panel-2); border-left: 3px solid var(--text-muted); padding: 8px 14px; margin: 10px 0 14px; line-height: 1.75; font-style: italic; }
+    @media (max-width: 900px) { .sd-layout { grid-template-columns: 1fr; } .sd-toc { position: static; } .sd-body { padding: 18px 20px; } }
+    @media (max-width: 560px) { .sd-wrap { padding: 12px; } .sd-body { padding: 14px 14px; } .sd-h2 { font-size: 15px; } }
+  </style>
+</head>
+<body>
+  <div class="sd-wrap">
+
+    <div class="page-hero" style="margin-bottom:20px">
+      <h1>rules 設計ガイド</h1>
+      <p>
+        <code>~/.claude/rules/</code> 配下にカテゴリ別の規約を育てる方針と、配置・命名・hook 連携・paths 戦略のルール集。
+        関連スクリプト（hook script・検査スクリプト）も rules フォルダに同居させる。
+        <a href="../README.md">← README へ</a>
+      </p>
+    </div>
+
+    <div class="sd-layout">
+
+      <nav class="sd-toc">
+        <h3>目次</h3>
+        <ul>
+          <li><a href="#s1"><span class="toc-num">§1</span>定義</a></li>
+          <li><a href="#s2"><span class="toc-num">§2</span>ロードタイミング</a></li>
+          <li><a href="#s3"><span class="toc-num">§3</span>記載方針</a></li>
+          <li><a href="#s4"><span class="toc-num">§4</span>カテゴリ設計</a></li>
+          <li><a href="#s5"><span class="toc-num">§5</span>paths 戦略</a></li>
+          <li><a href="#s6"><span class="toc-num">§6</span>配置とフォルダ構造</a></li>
+          <li><a href="#s7"><span class="toc-num">§7</span>hook 連携</a></li>
+          <li><a href="#s8"><span class="toc-num">§8</span>ルールの育て方</a></li>
+          <li><a href="#s9"><span class="toc-num">§9</span>命名と ADR</a></li>
+          <li><a href="#s10"><span class="toc-num">§10</span>テンプレート</a></li>
+          <li><a href="#s11"><span class="toc-num">§11</span>アンチパターン</a></li>
+        </ul>
+        <div class="toc-sep"></div>
+        <div style="font-size:11px;color:var(--text-muted);padding:4px 8px;line-height:1.6">
+          対象: <code>~/.claude/rules/</code><br>
+          paths 無し: <span class="badge-eager">eager</span> CLAUDE.md と同列<br>
+          paths 有り: <span class="badge-lazy">lazy</span> マッチ Read 時のみ
+        </div>
+      </nav>
+
+      <article class="sd-body">
+
+        <!-- §1 -->
+        <section class="sd-section" id="s1">
+          <h2 class="sd-h2"><span class="sec-num">§1</span>定義</h2>
+          <div class="sd-def">
+            rules とは、<strong>カテゴリ別にトピック分割した規約集</strong>で、状況に応じて context に注入される。
+            CLAUDE.md がモノリシックなのに対し、rules は<strong>カテゴリ別に育てる</strong>。
+            paths frontmatter の有無で 2 つの注入モード（eager / lazy）を使い分けられる、公式機能。
+          </div>
+          <div class="sd-quote">
+            公式: 「Rules without `paths` frontmatter are loaded at launch with the same priority as `.claude/CLAUDE.md`. Path-scoped rules trigger when Claude reads files matching the pattern, not on every tool use.」
+            <br>— <a href="https://code.claude.com/docs/en/memory#organize-rules-with-claude-rules">memory#organize-rules</a>
+          </div>
+
+          <h3 class="sd-h3">3 つの責務を 1 つの場所に集約</h3>
+          <ul>
+            <li><strong>規約の正本</strong>（人間とエージェントの両方が読む長文ルール）</li>
+            <li><strong>機械強制の手順書</strong>（hook が注入するタグに対応する Claude の修正手順）</li>
+            <li><strong>関連スクリプト</strong>（規約を強制する hook script・検査スクリプト本体）</li>
+          </ul>
+          <div class="sd-note">
+            「rule + hook + script」を 1 フォルダに同居させることで、規約とその機械強制を物理的に結びつける。
+            別フォルダに分散させると、片方の更新がもう片方に反映されずに腐る。
+          </div>
+        </section>
+
+        <!-- §2 -->
+        <section class="sd-section" id="s2">
+          <h2 class="sd-h2"><span class="sec-num">§2</span>ロードタイミング（公式仕様）</h2>
+
+          <h3 class="sd-h3">2 モードの違い</h3>
+          <table class="sd-table">
+            <thead>
+              <tr><th>モード</th><th>初回ロード</th><th>再注入トリガー</th><th>session 中の総ロード回数</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><span class="badge-eager">eager</span><br>paths 無し</td>
+                <td>session 開始時</td>
+                <td>compaction（手動 <code>/compact</code> + 自動 compact）のたび</td>
+                <td><strong>1 + compact 回数</strong>（CLAUDE.md と同列）</td>
+              </tr>
+              <tr>
+                <td><span class="badge-lazy">lazy</span><br>paths 有り</td>
+                <td>マッチするファイル Read 時</td>
+                <td>compaction で消失 → 次のマッチ Read で再ロード</td>
+                <td><strong>マッチファイル Read 回数</strong>（compact 区間ごとにリセット）</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="sd-quote">
+            公式: 「Path-scoped rules and nested CLAUDE.md files load into message history when their trigger file is read, so compaction summarizes them away with everything else. They reload the next time Claude reads a matching file.」
+            <br>— <a href="https://code.claude.com/docs/en/context-window#what-survives-compaction">context-window#what-survives-compaction</a>
+          </div>
+
+          <h3 class="sd-h3">「定期的に注入される」の正体</h3>
+          <div class="sd-flow">session start
+  ↓ eager rules（paths 無し）+ CLAUDE.md がディスクから注入
+  ↓ Read src/api/foo.ts → lazy rule（paths: src/api/**）が初注入
+  ↓ ... 作業継続 ...
+  ↓ 自動 compaction（context 80% 圧迫）
+  ↓ ★ eager rules は disk から再注入される
+  ↓ lazy rule は一旦消失
+  ↓ Read src/api/bar.ts → lazy rule が再注入される
+  ↓ ... 作業継続 ...
+  ↓ 自動 compaction
+  ↓ ★ eager rules は disk から再注入される
+  ↓ ...</div>
+          <div class="sd-note">
+            長尺セッションでは eager rule が 5〜10 回再注入されることがある。<strong>「session 開始時に 1 回だけ」は誤り</strong>。
+            これが「カテゴリ別に状況に応じて育てる」設計を支える基盤。
+          </div>
+        </section>
+
+        <!-- §3 -->
+        <section class="sd-section" id="s3">
+          <h2 class="sd-h2"><span class="sec-num">§3</span>記載方針</h2>
+
+          <div class="sd-def">
+            <strong>原則：カテゴリ別に状況に応じて注入される「育てる規約集」として扱う。</strong>
+            CLAUDE.md がユーザー指定の固定内容を保持するのに対し、rules はトピックを増やし・統合し・paths を絞り、エージェントの挙動を観察しながら継続的にチューニングする。
+          </div>
+
+          <h3 class="sd-h3">rules に書くべきもの</h3>
+          <table class="sd-table">
+            <thead><tr><th>項目</th><th>例</th></tr></thead>
+            <tbody>
+              <tr><td>機械強制と pair の規約</td><td>「ルート直下マーカー禁止」「<code>.sh</code> 作成時 ADR 必須」</td></tr>
+              <tr><td>hook が注入する <code>[<TAG>]</code> への対応手順</td><td><code>[NO-ROOT-MARKER-BLOCK]</code> → 書き出し先を <code>${TMPDIR}/claude-hooks/${session}/</code> に変更</td></tr>
+              <tr><td>例外ホワイトリスト</td><td>「<code>/tmp/claude-hooks/**</code> は block しない」</td></tr>
+              <tr><td>違反の背景・なぜ禁止か</td><td>「過去 821 件のドットファイル蓄積を引き起こした」</td></tr>
+              <tr><td>カテゴリ別の長文ルール</td><td>security / hooks-architecture / no-root-marker / naming など</td></tr>
+              <tr><td>該当タスク中だけ効かせたい規約</td><td>paths frontmatter 付きで <code>**/*.sh</code> など</td></tr>
+            </tbody>
+          </table>
+
+          <h3 class="sd-h3">rules に書かないもの</h3>
+          <ul>
+            <li>全タスク共通の根本姿勢（言語・文体・対話原則）→ <code>CLAUDE.md</code></li>
+            <li>トリガー駆動の手順（PR レビュー手順・worktree 作成など）→ <code>skills/</code></li>
+            <li>1 度しか使わない使い捨て規約 → どこにも書かない</li>
+          </ul>
+        </section>
+
+        <!-- §4 -->
+        <section class="sd-section" id="s4">
+          <h2 class="sd-h2"><span class="sec-num">§4</span>カテゴリ設計</h2>
+
+          <div class="sd-def">
+            <strong>1 カテゴリ = 1 フォルダまたは 1 ファイル</strong>。カテゴリ名 = 規約の主題。
+            カテゴリは「禁止事項の領域」で切る（言語・操作対象・違反イベント）。
+          </div>
+
+          <h3 class="sd-h3">既存のカテゴリ例</h3>
+          <table class="sd-table">
+            <thead><tr><th>カテゴリ</th><th>領域</th><th>形式</th></tr></thead>
+            <tbody>
+              <tr><td><code>security</code></td><td>削除操作・スクリプト作成・worktree 畳み</td><td>単一ファイル <code>security.md</code></td></tr>
+              <tr><td><code>no-root-marker</code></td><td>ルート直下マーカー禁止</td><td>単一ファイル <code>no-root-marker.md</code></td></tr>
+              <tr><td><code>hooks-architecture</code></td><td>hook script の配置規約</td><td>フォルダ <code>hooks-architecture-rules/</code></td></tr>
+            </tbody>
+          </table>
+
+          <h3 class="sd-h3">単一ファイル vs フォルダの選択</h3>
+          <table class="sd-table">
+            <thead><tr><th>形式</th><th>選択条件</th></tr></thead>
+            <tbody>
+              <tr>
+                <td><code><name>.md</code><br>単一ファイル</td>
+                <td>規約本体のみ。関連スクリプトを持たない or 持っても 1 本だけで他にメタファイルがない</td>
+              </tr>
+              <tr>
+                <td><code><name>-rules/</code><br>フォルダ</td>
+                <td>規約本体 + 複数の hook script・検査スクリプト・ADR を同居させる必要がある</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <h3 class="sd-h3">カテゴリ分割の判定</h3>
+          <ul>
+            <li>2 つの規約が同じイベント（同じ hook タイミング）で発火するなら 1 カテゴリ</li>
+            <li>違反検知の <code>[<TAG>]</code> が異なるなら別カテゴリ</li>
+            <li>規約本体が 200 行を超え、3 つ以上のサブトピックを含むなら分割を検討</li>
+          </ul>
+        </section>
+
+        <!-- §5 -->
+        <section class="sd-section" id="s5">
+          <h2 class="sd-h2"><span class="sec-num">§5</span>paths 戦略</h2>
+
+          <div class="sd-def">
+            <strong>paths frontmatter は「いつ attention に乗せたいか」を制御する道具。</strong>
+            常時必要なら paths 無し、特定タスク中だけ強く効かせたいなら paths 指定。
+          </div>
+
+          <h3 class="sd-h3">判定フロー</h3>
+          <div class="sd-flow">Q1. この規約は全タスクで違反しうるか？
+    YES → paths 無し（eager）。CLAUDE.md と同列で常時注入
+    NO  → Q2 へ
+
+Q2. 特定の path・拡張子の作業中だけ違反しうるか？
+    YES → paths 指定（lazy）。該当 Read 時のみ高 attention で注入
+    NO  → Q3 へ
+
+Q3. 特定キーワードを含む prompt 時だけ違反しうるか？
+    YES → rules に置かず、UserPromptSubmit hook の additionalContext で
+          rule.md の該当箇所を抜き出して注入
+    NO  → skill 化を検討</div>
+
+          <h3 class="sd-h3">paths frontmatter のサンプル</h3>
+          <div class="sd-code">---
+paths:
+  - "**/*.sh"
+  - "**/Makefile"
+  - "**/package.json"
+---
+
+# シェルスクリプト作成時の規約
+
+- `.sh` の新規作成は ADR 必須
+- ...</div>
+
+          <h3 class="sd-h3">トレードオフ</h3>
+          <table class="sd-table">
+            <thead><tr><th>方針</th><th>メリット</th><th>デメリット</th></tr></thead>
+            <tbody>
+              <tr>
+                <td>paths 無し（eager）</td>
+                <td>常に context にある → 違反防止が確実</td>
+                <td>全タスクで context を消費。compact のたび再注入されるため複数回トークン消費</td>
+              </tr>
+              <tr>
+                <td>paths 有り（lazy）</td>
+                <td>該当タスク中だけ高 attention で乗る。不要タスクでは 0 トークン</td>
+                <td>マッチしないと注入されないため、トリガー漏れがあると違反する</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="sd-gotcha">
+            <div class="sd-gotcha-title">Gotchas</div>
+            <ul>
+              <li>compaction で path-scoped rule は消える。再注入には次のマッチ Read が必要</li>
+              <li>「絶対に守らせたい」規約は paths 無しにする（lazy だと Read 漏れで違反する）</li>
+              <li>paths 指定の glob は <code>**/*.sh</code> のように広めに取ると Read 漏れを防げる</li>
+            </ul>
+          </div>
+        </section>
+
+        <!-- §6 -->
+        <section class="sd-section" id="s6">
+          <h2 class="sd-h2"><span class="sec-num">§6</span>配置とフォルダ構造</h2>
+
+          <h3 class="sd-h3">基本配置</h3>
+          <div class="sd-tree">~/.claude/rules/
+  <category>.md                       … 単一ファイル規約
+  <category>-rules/                   … 複数ファイル規約
+    rule.md                           … 規約本体
+    <hook-name>.sh                    … 対になる hook script
+    <check-name>.sh                   … 検査スクリプト
+    README.md                         … 必要に応じて
+  ...</div>
+
+          <h3 class="sd-h3">関連スクリプトの同居原則</h3>
+          <div class="sd-def">
+            <strong>rules 関連の hook script・検査スクリプトは <code>rules/<category>-rules/</code> 配下に同居させる。</strong>
+            別フォルダ（<code>~/.claude/hooks/</code> や <code>&lt;project&gt;/tools/hooks/</code>）に置くと、
+            規約と機械強制の対応関係が見えなくなり、片方の更新がもう片方に反映されずに腐る。
+          </div>
+
+          <h3 class="sd-h3">配置の 4 象限</h3>
+          <table class="sd-table">
+            <thead>
+              <tr><th>ownership × scope</th><th>置き場</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>独立規約 × global</td><td><code>~/.claude/rules/<rule>-rules/</code></td></tr>
+              <tr><td>独立規約 × project</td><td><code><repo>/.claude/rules/<rule>-rules/</code></td></tr>
+              <tr><td>skill 延長 × global</td><td><code>~/.claude/skills/<skill>/scripts/</code></td></tr>
+              <tr><td>skill 延長 × project</td><td><code><repo>/.claude/skills/<skill>/scripts/</code></td></tr>
+            </tbody>
+          </table>
+          <div class="sd-note">
+            判定: 特定 skill の前提を強制するなら skill 延長。単一 skill に紐付かないシステムメタ規約なら独立規約。詳細は <a href="hooks-design.html">Hooks 設計ガイド</a> を参照。
+          </div>
+
+          <h3 class="sd-h3">禁止される配置</h3>
+          <ul>
+            <li><code>~/.claude/hooks/</code> 直下に rules 連動の hook script を新規作成（flat な hooks/ バケット禁止）</li>
+            <li><code>&lt;project&gt;/tools/hooks/</code> 直下に新規作成（flat bucket 禁止）</li>
+            <li>rule.md と hook script を別フォルダに分離（同居強制）</li>
+          </ul>
+        </section>
+
+        <!-- §7 -->
+        <section class="sd-section" id="s7">
+          <h2 class="sd-h2"><span class="sec-num">§7</span>hook 連携</h2>
+
+          <div class="sd-def">
+            <strong>rules + hook は pair で動作する</strong>。rules が「規約と修正手順の正本」を、hook が「違反検知と additionalContext 注入」を担う分業。
+          </div>
+
+          <h3 class="sd-h3">標準パターン</h3>
+          <div class="sd-flow">[1] hook script が違反コマンドを検知（PreToolUse など）
+       ↓
+[2] additionalContext に [<TAG>] と修正手順の short text を出力
+       ↓
+[3] Claude が <system-reminder> を受信し attention 上位に置く
+       ↓
+[4] Claude が rule.md 本体（既に context にロード済み）を参照し詳細手順を実行</div>
+
+          <h3 class="sd-h3">タグの規約</h3>
+          <table class="sd-table">
+            <thead><tr><th>項目</th><th>規約</th></tr></thead>
+            <tbody>
+              <tr><td>タグ名</td><td>大文字ハイフン区切り（例: <code>[NO-ROOT-MARKER-BLOCK]</code>）</td></tr>
+              <tr><td>タグと rule.md の対応</td><td>1:1。<code>[FOO-BLOCK]</code> なら <code>rules/foo*.md</code> に対応手順がある</td></tr>
+              <tr><td>additionalContext の長さ</td><td>短文（300 字以内）。詳細手順は書かず、タグ＋短い指示＋rule.md への path</td></tr>
+              <tr><td>修正手順の所在</td><td>rule.md 本体に書く（既に launch 時にロード済みなので Claude が即参照できる）</td></tr>
+            </tbody>
+          </table>
+
+          <h3 class="sd-h3">hook 側に書く内容</h3>
+          <div class="sd-code-label">例: rules/no-root-marker-rules/no-root-marker-check.sh</div>
+          <div class="sd-code">#!/bin/sh
+cmd=$(jq -r '.tool_input.command')
+if echo "$cmd" | grep -qE 'touch \"?\$HOME/\.claude/\.[a-z-]+'; then
+  cat <<EOF
+{
+  "hookSpecificOutput": {
+    "hookEventName": "PreToolUse",
+    "additionalContext": "[NO-ROOT-MARKER-BLOCK] ルート直下マーカー禁止。書き出し先を \${TMPDIR}/claude-hooks/\${session}/<name> に変更。詳細: ~/.claude/rules/no-root-marker.md"
+  },
+  "permissionDecision": "deny"
+}
+EOF
+  exit 0
+fi</div>
+
+          <div class="sd-gotcha">
+            <div class="sd-gotcha-title">Gotchas</div>
+            <ul>
+              <li>additionalContext に rule.md 全文をコピペしない（毎発火で token を浪費）</li>
+              <li>タグ名と rule.md ファイル名の対応を崩さない（Claude が rule.md を探せなくなる）</li>
+              <li>hook script は decision 系（block / deny）と observability 系（log のみ）を 1 ファイルに混ぜない</li>
+            </ul>
+          </div>
+        </section>
+
+        <!-- §8 -->
+        <section class="sd-section" id="s8">
+          <h2 class="sd-h2"><span class="sec-num">§8</span>ルールの育て方</h2>
+
+          <div class="sd-def">
+            <strong>rules はカテゴリ別に「状況に応じて注入されるルール集」として継続的に育てる。</strong>
+            CLAUDE.md がユーザー指定の固定内容を保つのに対し、rules はエージェントの違反パターンを観察しながら成長させる。
+          </div>
+
+          <h3 class="sd-h3">追加プロセス</h3>
+          <ol>
+            <li><strong>違反検知</strong>: Claude が規約違反を起こすパターンを発見</li>
+            <li><strong>カテゴリ判定</strong>: 既存カテゴリに統合するか、新規カテゴリを作るか</li>
+            <li><strong>paths 判定</strong>: 常時必要か特定 path のみか</li>
+            <li><strong>rule.md 起草</strong>: 違反背景・規約・例外・修正手順を記載</li>
+            <li><strong>hook 設計</strong>: 必要なら hook script を同居フォルダに作成</li>
+            <li><strong>ADR 作成</strong>: 規約追加の必要性・代替案不採用理由・廃棄条件を残す</li>
+            <li><strong>実測</strong>: 5〜10 セッション運用して違反 0 を確認</li>
+          </ol>
+
+          <h3 class="sd-h3">削除プロセス</h3>
+          <ol>
+            <li>四半期に 1 回、hook 発火ログを集計</li>
+            <li>発火 0 件のカテゴリは「規約が陳腐化」か「Claude が学習した」のいずれか</li>
+            <li>rule.md・hook script・ADR を同時に削除（孤児を残さない）</li>
+          </ol>
+
+          <h3 class="sd-h3">カテゴリ統合の判定</h3>
+          <ul>
+            <li>2 つのカテゴリの違反が同じ場面で連続発生するようになったら統合検討</li>
+            <li>統合後の rule.md が 200 行を超えるなら分割を維持</li>
+            <li>統合後のタグ名は 1 つに集約し、旧タグは hook の中で alias 化</li>
+          </ul>
+        </section>
+
+        <!-- §9 -->
+        <section class="sd-section" id="s9">
+          <h2 class="sd-h2"><span class="sec-num">§9</span>命名と ADR</h2>
+
+          <h3 class="sd-h3">命名規約</h3>
+          <table class="sd-table">
+            <thead><tr><th>対象</th><th>命名規則</th><th>例</th></tr></thead>
+            <tbody>
+              <tr><td>カテゴリ（フォルダ・ファイル）</td><td>kebab-case</td><td><code>no-root-marker</code>, <code>hooks-architecture</code></td></tr>
+              <tr><td>フォルダ形式</td><td><code><category>-rules/</code></td><td><code>hooks-architecture-rules/</code></td></tr>
+              <tr><td>規約本体</td><td><code>rule.md</code> または <code><category>.md</code></td><td><code>rule.md</code>（フォルダ形式時）</td></tr>
+              <tr><td>hook script</td><td>kebab-case + <code>.sh</code></td><td><code>no-root-marker-check.sh</code></td></tr>
+              <tr><td>注入タグ</td><td>UPPER-HYPHEN</td><td><code>[NO-ROOT-MARKER-BLOCK]</code></td></tr>
+            </tbody>
+          </table>
+
+          <h3 class="sd-h3">設計判断の記載先</h3>
+          <ul>
+            <li>カテゴリ追加時の設計判断は対象の <code>rule.md</code> 内に <code>## 設計判断</code> セクションとして記載</li>
+            <li>必須項目: 必要性 / 代替案不採用理由 / 保守責任者 / 廃棄条件</li>
+            <li>カテゴリ削除時は設計判断セクションも同時削除</li>
+          </ul>
+        </section>
+
+        <!-- §10 -->
+        <section class="sd-section" id="s10">
+          <h2 class="sd-h2"><span class="sec-num">§10</span>テンプレート</h2>
+
+          <h3 class="sd-h3">rule.md の構造</h3>
+          <div class="sd-code">---
+paths:                             # 任意。常時必要なら省略
+  - "**/*.sh"
+---
+
+# <カテゴリ名>（<TAG-NAME>）
+
+<禁止 / 規約の宣言文（1 段落）>
+
+## 背景
+
+<なぜこの規約が必要か・過去の事故事例>
+
+## 機械強制
+
+| timing | hook | 注入タグ | 挙動 |
+|---|---|---|---|
+| PreToolUse | <script名> | [<TAG>] | <検知内容と block 条件> |
+
+## 例外（block されないパス / 条件）
+
+<ホワイトリスト>
+
+## 違反検知時の手順
+
+<タグ注入時の Claude の対応手順。具体的な edit が打てる粒度で>
+
+## 関連
+
+<関連 skill / 他 rules / hook script の path></div>
+
+          <h3 class="sd-h3">フォルダ構造の例</h3>
+          <div class="sd-tree">~/.claude/rules/
+  security.md                          … 単一ファイル形式
+  no-root-marker.md                    … 単一ファイル形式
+  hooks-architecture-rules/            … フォルダ形式
+    rule.md                            … 規約本体
+    hooks-architecture-check.sh        … PreToolUse hook
+    README.md                          … 任意
+  no-root-marker-rules/                … フォルダ形式（hook 同居版）
+    rule.md
+    no-root-marker-check.sh
+    cleanup-session-markers.sh
+  ※ 設計判断は各 rule.md 内に ## 設計判断 セクションとして記載（独立 ADR ファイルは廃止）</div>
+        </section>
+
+        <!-- §11 -->
+        <section class="sd-section" id="s11">
+          <h2 class="sd-h2"><span class="sec-num">§11</span>アンチパターン</h2>
+
+          <table class="sd-table">
+            <thead><tr><th>パターン</th><th>何が悪いか</th><th>正解</th></tr></thead>
+            <tbody>
+              <tr>
+                <td>hook script を <code>~/.claude/hooks/</code> 直下に置く</td>
+                <td>rule.md との対応が見えなくなり片方が腐る</td>
+                <td><code>rules/<name>-rules/<hook>.sh</code> に同居</td>
+              </tr>
+              <tr>
+                <td>1 つの rule.md に 5 カテゴリ詰め込む</td>
+                <td>200 行超で attention が落ち、違反検知の対応手順が見つからない</td>
+                <td>カテゴリ分割</td>
+              </tr>
+              <tr>
+                <td>全 rule に paths を付ける</td>
+                <td>Read 漏れで違反が出る</td>
+                <td>常時必要な規約は paths 無しで eager</td>
+              </tr>
+              <tr>
+                <td>全 rule を paths 無しにする</td>
+                <td>全タスクで context を圧迫し compact 連動で再注入のたび token 消費</td>
+                <td>該当 path 限定の規約は paths 指定で lazy 化</td>
+              </tr>
+              <tr>
+                <td>additionalContext に rule.md 全文をコピペ</td>
+                <td>毎発火で token を浪費。rule.md と二重管理で腐る</td>
+                <td>タグ + 短い指示 + rule.md の path だけ</td>
+              </tr>
+              <tr>
+                <td>違反検知の hook が決定（deny）と log を 1 ファイルで担当</td>
+                <td>役割が混在し、変更時の影響範囲が読めない</td>
+                <td>decision 系と observability 系を別 script に分離</td>
+              </tr>
+              <tr>
+                <td>ADR なしで <code>.sh</code> や規約を追加</td>
+                <td>必要性を説明できない規約が残り、削除判断ができなくなる</td>
+                <td>追加時に ADR を起こす（4 項目）</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+      </article>
+    </div>
+
+    <div data-md-skip style="text-align:center;margin-top:20px;font-size:12px;color:var(--text-muted)">
+      <a href="claude-md-design.html">CLAUDE.md 設計ガイド</a> &nbsp;·&nbsp;
+      <a href="skill-design.html">Skill 設計ガイド</a> &nbsp;·&nbsp;
+      <a href="hooks-design.html">Hooks 設計ガイド</a> &nbsp;·&nbsp;
+      <a href="../README.md">README</a>
+    </div>
+  </div>
+</body>
+</html>

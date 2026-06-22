@@ -1,0 +1,481 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>設定層 配置判定ガイド — agent-toolkit</title>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    .sd-wrap { max-width: 1100px; margin: 0 auto; padding: 20px; }
+    .sd-layout { display: grid; grid-template-columns: 220px 1fr; gap: 24px; align-items: start; }
+    .sd-toc { position: sticky; top: 16px; background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; font-size: 12.5px; }
+    .sd-toc h3 { font-size: 11px; margin: 0 0 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700; }
+    .sd-toc ul { list-style: none; padding: 0; margin: 0; }
+    .sd-toc li { margin: 0; }
+    .sd-toc a { display: flex; align-items: baseline; gap: 7px; padding: 5px 8px; border-radius: 5px; color: var(--text-sub); font-size: 12px; text-decoration: none; line-height: 1.5; transition: background 0.12s; }
+    .sd-toc a:hover { background: var(--accent-soft); color: var(--accent); text-decoration: none; }
+    .sd-toc .toc-num { font-family: var(--mono); font-size: 10px; font-weight: 700; color: var(--accent); flex-shrink: 0; min-width: 18px; }
+    .sd-toc .toc-sep { border-top: 1px solid var(--border); margin: 8px 0; }
+    .sd-body { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px 32px; box-shadow: var(--shadow-sm); min-width: 0; }
+    .sd-section { margin-bottom: 48px; }
+    .sd-section:last-child { margin-bottom: 0; }
+    .sd-h2 { display: flex; align-items: center; gap: 12px; font-size: 18px; font-weight: 800; margin: 0 0 16px; padding: 10px 16px; background: var(--accent-soft); border-left: 4px solid var(--accent); border-radius: 0 var(--radius-sm) var(--radius-sm) 0; scroll-margin-top: 20px; }
+    .sd-h2 .sec-num { font-family: var(--mono); font-size: 12px; font-weight: 800; background: var(--accent); color: #fff; padding: 2px 8px; border-radius: 999px; }
+    .sd-h3 { font-size: 14.5px; font-weight: 700; color: var(--accent-2); margin: 24px 0 8px; padding-bottom: 4px; border-bottom: 1px dashed var(--border-strong); }
+    .sd-def { background: var(--panel-2); border: 1px solid var(--accent-border); border-left: 4px solid var(--accent); border-radius: 0 var(--radius-sm) var(--radius-sm) 0; padding: 12px 16px; margin: 12px 0 16px; font-size: 13.5px; color: var(--text); line-height: 1.75; }
+    .sd-flow { background: var(--code-bg); color: var(--code-fg); border-radius: var(--radius-sm); padding: 16px 20px; font-family: var(--mono); font-size: 12.5px; line-height: 2; overflow-x: auto; white-space: pre; margin: 12px 0 16px; }
+    .sd-note { font-size: 12px; color: var(--text-muted); background: var(--panel-2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 8px 12px; margin: 8px 0 12px; line-height: 1.7; }
+    .sd-quote { font-size: 12.5px; color: var(--text-sub); background: var(--panel-2); border-left: 3px solid var(--text-muted); padding: 8px 14px; margin: 10px 0 14px; line-height: 1.75; font-style: italic; }
+    .sd-gotcha { background: var(--gold-soft); border: 1px solid var(--gold-border); border-left: 4px solid var(--gold); border-radius: 0 var(--radius-sm) var(--radius-sm) 0; padding: 12px 16px; margin: 10px 0 14px; }
+    .sd-gotcha-title { font-size: 11.5px; font-weight: 800; color: var(--gold); letter-spacing: 0.04em; margin-bottom: 8px; }
+    .sd-gotcha ul { margin: 0; padding-left: 18px; }
+    .sd-gotcha li { font-size: 12.5px; color: var(--text-sub); line-height: 1.75; }
+    .sd-table { width: 100%; border-collapse: collapse; font-size: 12.5px; margin: 12px 0 16px; border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; }
+    .sd-table th, .sd-table td { border: 1px solid var(--border); padding: 8px 12px; text-align: left; vertical-align: top; }
+    .sd-table th { background: var(--accent-soft); color: var(--accent); font-weight: 700; white-space: nowrap; }
+    .sd-table tr:nth-child(even) td { background: var(--panel-2); }
+    .sd-body ul, .sd-body ol { padding-left: 22px; margin: 8px 0 12px; line-height: 1.8; }
+    .sd-body li { margin: 3px 0; font-size: 13.5px; color: var(--text-sub); }
+    .sd-body li strong { color: var(--text); }
+    code { background: var(--accent-soft); color: var(--accent); padding: 1px 6px; border-radius: 4px; font-size: 0.9em; font-family: var(--mono); }
+
+    /* 層バッジ */
+    .layer-badge { display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 10px; border-radius: 999px; font-family: var(--mono); white-space: nowrap; }
+    .layer-hook      { background: #fff1f2; color: #be123c; border: 1px solid #fecdd3; }
+    .layer-output    { background: #faf5ff; color: #7e22ce; border: 1px solid #e9d5ff; }
+    .layer-append    { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
+    .layer-skill     { background: #f0f9ff; color: #0369a1; border: 1px solid #bae6fd; }
+    .layer-subagent  { background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; }
+    .layer-lazy      { background: #f0fdfa; color: #0f766e; border: 1px solid #99f6e4; }
+    .layer-eager     { background: #ecfdf5; color: #065f46; border: 1px solid #6ee7b7; }
+    .layer-claude-md { background: #f8fafc; color: #475569; border: 1px solid #cbd5e1; }
+
+    /* 決定木ビジュアル */
+    .dtree { display: flex; flex-direction: column; gap: 6px; margin: 16px 0; }
+    .dtree-row { display: grid; grid-template-columns: 28px 1fr auto; gap: 10px; align-items: start; padding: 10px 14px; background: var(--panel-2); border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 13px; }
+    .dtree-q { font-family: var(--mono); font-size: 11px; font-weight: 800; color: var(--accent); padding-top: 2px; }
+    .dtree-cond { color: var(--text-sub); line-height: 1.65; }
+    .dtree-cond strong { color: var(--text); }
+    .dtree-dest { text-align: right; min-width: 110px; padding-top: 2px; }
+
+    /* アンチパターン */
+    .anti-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 12px 0 16px; }
+    .anti-item { background: var(--panel-2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 14px; font-size: 12.5px; line-height: 1.7; }
+    .anti-item .anti-bad  { color: #be123c; font-weight: 700; font-size: 11.5px; margin-bottom: 4px; }
+    .anti-item .anti-good { color: #15803d; font-size: 11.5px; margin-top: 4px; }
+
+    @media (max-width: 900px) { .sd-layout { grid-template-columns: 1fr; } .sd-toc { position: static; } .sd-body { padding: 18px 20px; } .anti-grid { grid-template-columns: 1fr; } }
+    @media (max-width: 560px) { .sd-wrap { padding: 12px; } .sd-body { padding: 14px 14px; } .sd-h2 { font-size: 15px; } .dtree-row { grid-template-columns: 20px 1fr; } .dtree-dest { grid-column: 2; text-align: left; } }
+  </style>
+</head>
+<body>
+  <div class="sd-wrap">
+
+    <div class="page-hero" style="margin-bottom:20px">
+      <h1>設定層 配置判定ガイド</h1>
+      <p>
+        「これはどこに書くか」を判定するための 7 層決定木。
+        CLAUDE.md / Rules / Skills / Subagents / Hooks / Output styles の使い分けを一枚で参照できる。
+        正本ルール: <code>~/.claude/rules/config-placement.md</code>
+        <a href="docs/config-placement-design.html">docs/config-placement-design.html</a>
+      </p>
+    </div>
+
+    <div class="sd-layout">
+
+      <nav class="sd-toc">
+        <h3>目次</h3>
+        <ul>
+          <li><a href="#s1"><span class="toc-num">§1</span>このガイドの立ち位置</a></li>
+          <li><a href="#s2"><span class="toc-num">§2</span>7 層の一覧</a></li>
+          <li><a href="#s3"><span class="toc-num">§3</span>決定木（Q1–Q8）</a></li>
+          <li><a href="#s4"><span class="toc-num">§4</span>各 Q の解説</a></li>
+          <li><a href="#s5"><span class="toc-num">§5</span>CLAUDE.md の厳しい条件</a></li>
+          <li><a href="#s6"><span class="toc-num">§6</span>頻出アンチパターン</a></li>
+          <li><a href="#s7"><span class="toc-num">§7</span>各層の設計ガイドへ</a></li>
+        </ul>
+        <div class="toc-sep"></div>
+        <div style="font-size:11px;color:var(--text-muted);padding:4px 8px;line-height:1.6">
+          正本: <code>~/.claude/rules/config-placement.md</code><br>
+          層数: <strong>7 層</strong>（+ --append-system-prompt）<br>
+          適用: 全プロジェクト共通
+        </div>
+      </nav>
+
+      <article class="sd-body">
+
+        <!-- §1 -->
+        <section class="sd-section" id="s1">
+          <h2 class="sd-h2"><span class="sec-num">§1</span>このガイドの立ち位置</h2>
+          <div class="sd-def">
+            このガイドは「何を書くか」ではなく <strong>「どこに書くか」</strong> を決める横断的な判定ガイド。<br>
+            既存の各設計ガイド（CLAUDE.md / Rules / Skills / Hooks）は「その層内での詳細設計」を扱うが、
+            本ガイドは <strong>どの層を選ぶか</strong> を Q1 から順に降りる決定木で示す。
+          </div>
+          <div class="sd-quote">
+            CLAUDE.md に「毎回 X したら必ず Y せよ」と書くなら Hook へ。「絶対するな」と書くなら Hook + permissions.deny へ。
+            30 行の手順を書くなら Skills へ。src/api/ だけに効くルールなら paths 付きの Rules へ。
+          </div>
+          <div class="sd-note">
+            各層の詳細設計（命名・フォルダ構造・frontmatter）は、§7 にリンクする各設計ガイドを参照。
+            本ガイドは「選択肢を絞る入口」に特化している。
+          </div>
+        </section>
+
+        <!-- §2 -->
+        <section class="sd-section" id="s2">
+          <h2 class="sd-h2"><span class="sec-num">§2</span>7 層の一覧</h2>
+
+          <table class="sd-table">
+            <thead>
+              <tr><th>層</th><th>配置場所</th><th>ロードタイミング</th><th>向いている内容</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><span class="layer-badge layer-hook">Hooks</span></td>
+                <td><code>rules/&lt;name&gt;-rules/*.sh</code><br><code>skills/&lt;name&gt;/scripts/*.sh</code></td>
+                <td>ライフサイクルイベント（決定論的）</td>
+                <td>「必ず Y せよ」「絶対するな」の強制、linter 自動実行、block</td>
+              </tr>
+              <tr>
+                <td><span class="layer-badge layer-output">Output styles</span></td>
+                <td><code>.claude/output-styles/</code></td>
+                <td>セッション開始（system prompt を置き換え）</td>
+                <td>ペルソナ・出力形式の全セッション制御</td>
+              </tr>
+              <tr>
+                <td><span class="layer-badge layer-append">--append</span></td>
+                <td>起動フラグ</td>
+                <td>その起動のみ（system prompt に追記）</td>
+                <td>単発起動時のトーン・形式の補足</td>
+              </tr>
+              <tr>
+                <td><span class="layer-badge layer-skill">Skills</span></td>
+                <td><code>skills/&lt;name&gt;/SKILL.md</code></td>
+                <td>スラッシュ / 自動マッチ（遅延ロード）</td>
+                <td>多段手順・フロー・条件付き知識（30 行超の手順）</td>
+              </tr>
+              <tr>
+                <td><span class="layer-badge layer-subagent">Subagents</span></td>
+                <td><code>.claude/agents/</code></td>
+                <td>Agent ツール起動時（独立 context）</td>
+                <td>独立実行・中間結果を散らかしたくない作業</td>
+              </tr>
+              <tr>
+                <td><span class="layer-badge layer-lazy">Rules lazy</span></td>
+                <td><code>rules/*.md</code>（paths 付き）</td>
+                <td>マッチファイル Read 時のみ（遅延）</td>
+                <td>特定パス・ファイル種別だけに効かせる制約</td>
+              </tr>
+              <tr>
+                <td><span class="layer-badge layer-eager">Rules eager</span></td>
+                <td><code>rules/*.md</code>（paths 無し）</td>
+                <td>セッション開始 + compaction（常時）</td>
+                <td>機械強制 pair の規約、[TAG] 対応手順、カテゴリ別長文ルール</td>
+              </tr>
+              <tr>
+                <td><span class="layer-badge layer-claude-md">CLAUDE.md</span></td>
+                <td><code>CLAUDE.md</code>（ルート or サブ）</td>
+                <td>セッション開始 + compaction（常時）</td>
+                <td>言語・文体・対話・コーディング原則（機械強制不可の根本姿勢）</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="sd-note">
+            <strong>コスト高い層は上に集中する。</strong>
+            CLAUDE.md と Rules eager は毎 compaction で再注入される。200 行を超えると attention が低下して個別ルールが効かなくなる。
+            可能な限り遅延ロード（Skills / Rules lazy / Subagents）を選ぶ。
+          </div>
+        </section>
+
+        <!-- §3 -->
+        <section class="sd-section" id="s3">
+          <h2 class="sd-h2"><span class="sec-num">§3</span>決定木（Q1–Q8）</h2>
+          <p style="font-size:13.5px;color:var(--text-sub);margin:0 0 12px">
+            トップダウンで読み、<strong>最初にヒットした層</strong>を使う。ヒットしなかった質問はスキップ。
+          </p>
+
+          <div class="dtree">
+            <div class="dtree-row">
+              <div class="dtree-q">Q1</div>
+              <div class="dtree-cond">
+                <strong>ライフサイクルイベントで確実に発火させたいか？</strong><br>
+                OR「毎回 X したら必ず Y せよ」「絶対にするな」を技術的に保証したいか？<br>
+                OR 特定キーワードを含む prompt のときだけ context 注入したいか？
+              </div>
+              <div class="dtree-dest"><span class="layer-badge layer-hook">Hooks</span></div>
+            </div>
+            <div class="dtree-row">
+              <div class="dtree-q">Q2</div>
+              <div class="dtree-cond">
+                <strong>全セッションで出力形式・ペルソナ全体をシステムレベルで制御したいか？</strong><br>
+                デフォルトの役割（ソフトウェアエンジニア）を置き換えてよいか？
+              </div>
+              <div class="dtree-dest"><span class="layer-badge layer-output">Output styles</span></div>
+            </div>
+            <div class="dtree-row">
+              <div class="dtree-q">Q3</div>
+              <div class="dtree-cond">
+                <strong>単発起動時のみのトーン・出力形式の補足か？</strong><br>
+                その起動だけで有効であり、永続させる必要がないか？
+              </div>
+              <div class="dtree-dest"><span class="layer-badge layer-append">--append</span></div>
+            </div>
+            <div class="dtree-row">
+              <div class="dtree-q">Q4</div>
+              <div class="dtree-cond">
+                <strong>特定のトリガー（スラッシュ / 自動マッチ）でのみ要る手順 or 知識か？</strong><br>
+                OR 30 行を超える手順・フロー・デプロイチェックリストか？
+              </div>
+              <div class="dtree-dest"><span class="layer-badge layer-skill">Skills</span></div>
+            </div>
+            <div class="dtree-row">
+              <div class="dtree-q">Q5</div>
+              <div class="dtree-cond">
+                <strong>独立したコンテキストで完結させたい作業か？</strong><br>
+                中間結果でメイン会話を汚染したくない（ログ解析・依存関係監査など）
+              </div>
+              <div class="dtree-dest"><span class="layer-badge layer-subagent">Subagents</span></div>
+            </div>
+            <div class="dtree-row">
+              <div class="dtree-q">Q6</div>
+              <div class="dtree-cond">
+                <strong>特定のパス・ファイル種別に限定した制約か？</strong><br>
+                例: <code>src/api/**</code> のみ、<code>**/*.sh</code> のみ
+              </div>
+              <div class="dtree-dest"><span class="layer-badge layer-lazy">Rules lazy</span></div>
+            </div>
+            <div class="dtree-row">
+              <div class="dtree-q">Q7</div>
+              <div class="dtree-cond">
+                <strong>機械強制と対になる制約・規約か？ OR 全タスクで違反しうる制約か？</strong><br>
+                hook が注入する [TAG] への対応手順 / カテゴリ別長文ルール
+              </div>
+              <div class="dtree-dest"><span class="layer-badge layer-eager">Rules eager</span></div>
+            </div>
+            <div class="dtree-row">
+              <div class="dtree-q">Q8</div>
+              <div class="dtree-cond">
+                <strong>ユーザーが明示 AND 機械強制不可 AND 全タスク共通 AND デフォルトと異なるか？</strong><br>
+                4 条件すべて YES → CLAUDE.md（200 行以内）。いずれか NO → <em>どこにも書かない</em>
+              </div>
+              <div class="dtree-dest"><span class="layer-badge layer-claude-md">CLAUDE.md</span></div>
+            </div>
+          </div>
+
+          <div class="sd-gotcha">
+            <div class="sd-gotcha-title">決定木の使い方</div>
+            <ul>
+              <li>Q1 から順に読む。YES になった最初の層を使う</li>
+              <li>複数の Q に引っかかるなら、<strong>番号が小さい Q を優先</strong>（Hook &gt; Skill &gt; Rules &gt; CLAUDE.md）</li>
+              <li>Q8 まで全部 NO なら「どこにも書かない」（dead code を生産しない）</li>
+            </ul>
+          </div>
+        </section>
+
+        <!-- §4 -->
+        <section class="sd-section" id="s4">
+          <h2 class="sd-h2"><span class="sec-num">§4</span>各 Q の解説</h2>
+
+          <h3 class="sd-h3">Q1 — <span class="layer-badge layer-hook">Hooks</span></h3>
+          <p style="font-size:13.5px;color:var(--text-sub);line-height:1.75">
+            プロンプト指示は長時間セッション・プロンプトインジェクションで破られうる。
+            「絶対しない」「必ず実行する」を保証したいなら Hook 一択。
+            「特定キーワードを含む prompt 時だけ context を注入」は <code>UserPromptSubmit</code> hook で実装する。
+          </p>
+          <table class="sd-table">
+            <thead><tr><th>用途</th><th>hook タイミング</th></tr></thead>
+            <tbody>
+              <tr><td>特定ファイル編集を block</td><td>PreToolUse(Edit|Write)</td></tr>
+              <tr><td>保存後 linter 実行</td><td>PostToolUse(Write)</td></tr>
+              <tr><td>完了時 Slack 通知</td><td>Stop</td></tr>
+              <tr><td>キーワード条件付き context 注入</td><td>UserPromptSubmit</td></tr>
+              <tr><td>特定 Bash コマンドを block</td><td>PreToolUse(Bash)</td></tr>
+            </tbody>
+          </table>
+
+          <h3 class="sd-h3">Q2 — <span class="layer-badge layer-output">Output styles</span></h3>
+          <p style="font-size:13.5px;color:var(--text-sub);line-height:1.75">
+            システムプロンプトを<strong>置き換える</strong>ため、Claude の「ソフトウェアエンジニア」役割などデフォルト挙動が消える。
+            全セッション共通でペルソナを変えたい場合のみ使う。慎重に。
+          </p>
+
+          <h3 class="sd-h3">Q3 — <span class="layer-badge layer-append">--append-system-prompt</span></h3>
+          <p style="font-size:13.5px;color:var(--text-sub);line-height:1.75">
+            役割を置き換えず、追記のみ。その起動時のみ有効。
+            指示が多いほど従い度が下がる「逓減」があるため、短くシンプルに保つ。
+          </p>
+
+          <h3 class="sd-h3">Q4 — <span class="layer-badge layer-skill">Skills</span></h3>
+          <p style="font-size:13.5px;color:var(--text-sub);line-height:1.75">
+            起動時は name と description だけ読まれ、本体は呼び出し時に遅延ロードされる。
+            CLAUDE.md / Rules eager に対して<strong>コスト的に優位</strong>。
+            手順型（デプロイ）/ 条件付き知識型（ライブラリ参照）/ 強制型（品質チェック）の 3 型がある。
+          </p>
+
+          <h3 class="sd-h3">Q5 — <span class="layer-badge layer-subagent">Subagents</span></h3>
+          <p style="font-size:13.5px;color:var(--text-sub);line-height:1.75">
+            独立したコンテキストウィンドウで動作し、最終結果だけメイン会話に返す。
+            中間の試行錯誤・長大な調査ログがメインの context を圧迫しない。
+            会話の文脈・インタラクティブな承認が必要な作業には向かない。
+          </p>
+
+          <h3 class="sd-h3">Q6 — <span class="layer-badge layer-lazy">Rules lazy</span>（paths 付き）</h3>
+          <p style="font-size:13.5px;color:var(--text-sub);line-height:1.75">
+            <code>paths</code> frontmatter を付けると、マッチするファイルを Read したときだけ高 attention で注入される。
+            compaction で消失し、次のマッチ Read で再注入。「絶対に守らせたい」制約は lazy にしない。
+          </p>
+
+          <h3 class="sd-h3">Q7 — <span class="layer-badge layer-eager">Rules eager</span>（paths 無し）</h3>
+          <p style="font-size:13.5px;color:var(--text-sub);line-height:1.75">
+            CLAUDE.md と同列でセッション開始 + compaction のたびに再注入。
+            hook と pair で使うのが基本形。hook が注入する <code>[TAG]</code> への対応手順もここに書く。
+          </p>
+
+          <h3 class="sd-h3">Q8 — <span class="layer-badge layer-claude-md">CLAUDE.md</span></h3>
+          <p style="font-size:13.5px;color:var(--text-sub);line-height:1.75">
+            4 条件すべてを満たさないと書けない（§5 で詳述）。
+            書けるものは「言語」「文体」「対話原則」「コーディング原則」程度に絞られる。
+          </p>
+        </section>
+
+        <!-- §5 -->
+        <section class="sd-section" id="s5">
+          <h2 class="sd-h2"><span class="sec-num">§5</span>CLAUDE.md の厳しい条件</h2>
+
+          <div class="sd-def">
+            Q8 に到達するには Q1〜Q7 すべてに NO と答える必要がある。実際に書けるものはほとんどない。
+          </div>
+
+          <div class="sd-flow">Q8 の 4 条件（すべて YES で初めて書ける）
+
+  ① ユーザーが「CLAUDE.md に書け」と明示したか？
+     NO → 書かない（自律追加禁止）
+
+  ② 機械強制（hook / permissions / CI）で技術的に強制できないか？
+     できる → rules/ + hook へ誘導
+
+  ③ 全タスク共通の根本姿勢か？（トリガー駆動でない）
+     トリガー駆動 → Skills へ
+
+  ④ Claude のデフォルトと異なるか？
+     同じ → dead code になるので書かない</div>
+
+          <h3 class="sd-h3">実際に CLAUDE.md に残る内容</h3>
+          <table class="sd-table">
+            <thead><tr><th>カテゴリ</th><th>例</th><th>理由</th></tr></thead>
+            <tbody>
+              <tr><td>言語規約</td><td>「思考は英語で、やり取りは日本語で」</td><td>hook で判定不可能</td></tr>
+              <tr><td>文体の根本姿勢</td><td>「受動態を能動表現に変える」</td><td>hook で機械強制不可能</td></tr>
+              <tr><td>対話の根本姿勢</td><td>「不足があれば 1 問ずつ確認」</td><td>常時必要・強制不可能</td></tr>
+              <tr><td>コーディング原則</td><td>YAGNI / KISS / DRY / 根本原因主義</td><td>全タスク共通・強制不可能</td></tr>
+              <tr><td>正本ポインタ</td><td>「禁止事項は rules/*.md を参照」</td><td>ショートカット（実体は rules）</td></tr>
+            </tbody>
+          </table>
+
+          <div class="sd-note">
+            セッション実測で「CLAUDE.md に書いても skills/hooks の介入なしには遵守率がゼロに張り付く」ことが確認されている。
+            機械強制可能なものは必ず hooks/rules に移す。
+          </div>
+        </section>
+
+        <!-- §6 -->
+        <section class="sd-section" id="s6">
+          <h2 class="sd-h2"><span class="sec-num">§6</span>頻出アンチパターン</h2>
+
+          <div class="anti-grid">
+            <div class="anti-item">
+              <div class="anti-bad">✗ CLAUDE.md に「毎回 X したら必ず Y せよ」</div>
+              確実な発火が必要なら Hook へ。プロンプト指示は破られる。
+              <div class="anti-good">✓ Hook（PostToolUse / PreToolUse）</div>
+            </div>
+            <div class="anti-item">
+              <div class="anti-bad">✗ CLAUDE.md に「絶対にするな」</div>
+              プロンプトインジェクションで破られうる。決定論的な block が必要。
+              <div class="anti-good">✓ Hook + permissions.deny</div>
+            </div>
+            <div class="anti-item">
+              <div class="anti-bad">✗ CLAUDE.md に 30 行超の手順</div>
+              特定トリガーでのみ必要な手順は毎セッションでトークンを消費する。
+              <div class="anti-good">✓ Skills（遅延ロード）</div>
+            </div>
+            <div class="anti-item">
+              <div class="anti-bad">✗ CLAUDE.md と rules 両方に同じ制約</div>
+              片方が腐ったとき矛盾する。正本は 1 つに決める。
+              <div class="anti-good">✓ rules を正本、CLAUDE.md はポインタのみ</div>
+            </div>
+            <div class="anti-item">
+              <div class="anti-bad">✗ 全タスク共通の制約を paths 付き rules に</div>
+              特定パスを Read しないセッションでは注入されず違反する。
+              <div class="anti-good">✓ paths 無し rules（eager）</div>
+            </div>
+            <div class="anti-item">
+              <div class="anti-bad">✗ src/api/ だけのルールを eager rules に</div>
+              不要なタスクでもトークンを消費し続ける。
+              <div class="anti-good">✓ paths 付き rules（lazy）</div>
+            </div>
+            <div class="anti-item">
+              <div class="anti-bad">✗ スラッシュコマンド化したい手順を rules に</div>
+              rules は「常時注入される制約」であり、手順書ではない。
+              <div class="anti-good">✓ Skills</div>
+            </div>
+            <div class="anti-item">
+              <div class="anti-bad">✗ 会話の文脈が必要な作業を Subagents に</div>
+              Subagents は独立 context で動くため、親の会話履歴を参照できない。
+              <div class="anti-good">✓ Skills（または直接実行）</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- §7 -->
+        <section class="sd-section" id="s7">
+          <h2 class="sd-h2"><span class="sec-num">§7</span>各層の設計ガイドへ</h2>
+
+          <table class="sd-table">
+            <thead><tr><th>層</th><th>設計ガイド</th><th>概要</th></tr></thead>
+            <tbody>
+              <tr>
+                <td><span class="layer-badge layer-claude-md">CLAUDE.md</span></td>
+                <td><a href="claude-md-design.html">CLAUDE.md 設計ガイド</a></td>
+                <td>書く/書かない判定・サイズ制約・正本決定・アンチパターン</td>
+              </tr>
+              <tr>
+                <td><span class="layer-badge layer-eager">Rules eager</span> / <span class="layer-badge layer-lazy">lazy</span></td>
+                <td><a href="rules-design.html">rules 設計ガイド</a></td>
+                <td>paths 戦略・カテゴリ設計・hook 連携・フォルダ構造</td>
+              </tr>
+              <tr>
+                <td><span class="layer-badge layer-skill">Skills</span></td>
+                <td><a href="skill-design.html">Skill 設計ガイド</a></td>
+                <td>判定フロー・型・命名・ツール選択・frontmatter</td>
+              </tr>
+              <tr>
+                <td><span class="layer-badge layer-hook">Hooks</span></td>
+                <td><a href="hooks-design.html">Hooks 設計ガイド</a></td>
+                <td>配置 4 象限・ownership × scope 判定・禁止配置</td>
+              </tr>
+              <tr>
+                <td><span class="layer-badge layer-subagent">Subagents</span></td>
+                <td style="color:var(--text-muted)">—（未作成）</td>
+                <td><code>.claude/agents/</code> の設計ガイドは今後追加予定</td>
+              </tr>
+              <tr>
+                <td><span class="layer-badge layer-output">Output styles</span></td>
+                <td style="color:var(--text-muted)">—（未作成）</td>
+                <td><code>.claude/output-styles/</code> の設計ガイドは今後追加予定</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="sd-note">
+            正本ルール: <code>~/.claude/rules/config-placement.md</code>（eager rule として全セッションに注入される）<br>
+            設計ガイド（このファイル）: <code>docs/config-placement-design.html</code>
+          </div>
+        </section>
+
+      </article>
+    </div>
+  </div>
+</body>
+</html>

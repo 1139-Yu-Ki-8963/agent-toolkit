@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Skill 設計ガイド — agent-home</title>
+  <title>Skill 設計ガイド — agent-toolkit</title>
   <link rel="stylesheet" href="style.css" />
   <style>
     /* ページローカル追加スタイル */
@@ -746,7 +746,7 @@ scripts/
           <h3 class="sd-h3">共通原則</h3>
           <ul>
             <li>可変データ（設定・記憶）は skill フォルダに置かない（フォルダは不変）。</li>
-            <li>置き場：セッションフォルダ（<code>~/agent-home/sessions/YYYY-MM-DD/</code>）/ 永続が要るなら <code>${CLAUDE_PLUGIN_DATA}</code>（※設計上の参照変数。現時点で実装例なし）</li>
+            <li>置き場：セッションフォルダ（<code>${CLAUDE_SESSION_DIR}/</code>）/ 永続が要るなら <code>${CLAUDE_PLUGIN_DATA}</code>（※設計上の参照変数。現時点で実装例なし）</li>
           </ul>
 
           <h3 class="sd-h3">セットアップとは</h3>
@@ -778,7 +778,7 @@ scripts/
           <h3 class="sd-h3">記憶</h3>
           <ul>
             <li>形式：追記ログ / JSON / SQLite</li>
-            <li>置き場：セッションフォルダ（<code>~/agent-home/sessions/YYYY-MM-DD/</code>）/ 永続は <code>${CLAUDE_PLUGIN_DATA}</code>（現時点で実装例なし）</li>
+            <li>置き場：セッションフォルダ（<code>${CLAUDE_SESSION_DIR}/</code>）/ 永続は <code>${CLAUDE_PLUGIN_DATA}</code>（現時点で実装例なし）</li>
             <li>使い方：自分の履歴を読み、差分や一貫性に使う（例：<code>standups.log</code>）</li>
           </ul>
 
