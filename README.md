@@ -72,6 +72,38 @@ ln -s "$(pwd)/agent-toolkit/skills/managing-agent-configs" ~/.claude/skills/mana
 
 プロジェクト固有で使う場合は `<repo>/.claude/skills/` に配置。
 
+### 機械強制フック（任意）
+
+`skills/managing-agent-configs/scripts/` に、managed ファイル（`skills/*/SKILL.md` / `.claude/rules/*/rule.md` / `routines/*/ルーティン設計書.md` / `tools/hooks/*.sh`）の編集を検知して `managing-agent-configs` の実行を促し、テスト未完了のまま commit するのを block する hook 2 本を同梱しています。
+
+- `managing-review-gate.sh` — PostToolUse(Write\|Edit\|MultiEdit)。managed ファイル編集時に `[MANAGING-REVIEW-REQUIRED]` を advisory 注入
+- `managing-commit-gate.sh` — PreToolUse(Bash)。テスト完了マーカーが無い状態での `git commit` を exit 2 で block
+
+有効化するには `~/.claude/settings.json`（または `<repo>/.claude/settings.json`）に登録する:
+
+```json
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [{ "type": "command", "command": "~/.claude/skills/managing-agent-configs/scripts/managing-review-gate.sh" }]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [{ "type": "command", "command": "~/.claude/skills/managing-agent-configs/scripts/managing-commit-gate.sh" }]
+      }
+    ]
+  }
+}
+```
+
+`scripts/lib/marker-path.sh` はマーカーの配置先（worktree 内 `.claude/markers/<session>/` または `${TMPDIR:-/tmp}/claude-hooks/<session>/`）を解決する共有ヘルパーで、2 本の hook から自動的に読み込まれる。設定不要。
+
+登録しなくても `managing-agent-configs` スキル自体は手動呼び出し（自然文での起動）だけで動作する。この hook 2 本は「編集したら自動的にレビュー・テストへ誘導し、未テストの commit を防ぐ」機械強制を追加するものであり必須ではない。
+
 ## 使い方
 
 ### スキルを作る
@@ -180,8 +212,13 @@ agent-toolkit/
     │   │   │   └── testing.md
     │   │   └── workflows/
     │   │       └── workflow-documentation.md
-    │   └── assets/
-    │       └── template-{手順型,条件付き知識型,強制型}.md
+    │   ├── assets/
+    │   │   └── template-{手順型,条件付き知識型,強制型}.md
+    │   └── scripts/                    # 機械強制フック（任意・README「機械強制フック」参照）
+    │       ├── managing-review-gate.sh
+    │       ├── managing-commit-gate.sh
+    │       └── lib/
+    │           └── marker-path.sh
     └── syncing-reverse-env/
         ├── SKILL.md
         ├── config.yml
