@@ -76,6 +76,8 @@ ln -s "$(pwd)/agent-toolkit/skills/managing-agent-configs" ~/.claude/skills/mana
 
 `skills/managing-agent-configs/scripts/` に、managed ファイル（`skills/*/SKILL.md` / `.claude/rules/*/rule.md` / `routines/*/ルーティン設計書.md` / `tools/hooks/*.sh`）の編集を検知して `managing-agent-configs` の実行を促し、テスト未完了のまま commit するのを block する hook 2 本を同梱しています。
 
+**本リポジトリ自体を clone して開発する場合は設定不要**です。リポジトリ直下の `.claude/settings.json` にこの 2 本を `$CLAUDE_PROJECT_DIR` 相対パスで登録済みで、そのまま機械強制が有効になります（詳細は [`CLAUDE.md`](CLAUDE.md) 参照）。以下は他プロジェクトへスキルだけを個別インストールする場合の登録例です。
+
 - `managing-review-gate.sh` — PostToolUse(Write\|Edit\|MultiEdit)。managed ファイル編集時に `[MANAGING-REVIEW-REQUIRED]` を advisory 注入
 - `managing-commit-gate.sh` — PreToolUse(Bash)。テスト完了マーカーが無い状態での `git commit` を exit 2 で block
 
@@ -145,6 +147,9 @@ ln -s "$(pwd)/agent-toolkit/skills/managing-agent-configs" ~/.claude/skills/mana
 ```
 agent-toolkit/
 ├── README.md
+├── CLAUDE.md                            # 本リポジトリ内で作業する時の hook 設定の説明
+├── .claude/
+│   └── settings.json                   # 機械強制フック2本を登録済み（$CLAUDE_PROJECT_DIR 相対）
 ├── ai-management-portal/               # 人間用：設計ガイド + スキルの俯瞰ポータル
 │   ├── index.html                      # 入口（規模サマリ・カテゴリカード）
 │   ├── style.css
