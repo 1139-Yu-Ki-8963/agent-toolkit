@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>スキル一覧 — agent-toolkit</title>
+  <link rel="stylesheet" href="../style.css" />
+  <script type="module" src="../src/common/header.js"></script>
+</head>
+<body>
+  <div class="cat-wrap">
+    <div class="page-hero">
+      <h1>スキル一覧</h1>
+      <p>本リポジトリ <code>skills/</code> で同梱しているスキル（SKILL.md）をカテゴリ別に一覧化したものです。各行を開くとトリガーと概要を表示します。</p>
+    </div>
+
+    <div class="cat-bar">
+      <a class="cat-back" href="../index.html#/">← ポータル TOP</a>
+      <span class="cat-total" id="total"></span>
+      <input class="cat-filter" id="filter" type="search" placeholder="スキル名・説明で絞り込み…" autocomplete="off" />
+    </div>
+
+    <div id="list"></div>
+  </div>
+
+  <script type="module">
+    import { CATEGORIES } from "../data/skill-categories.js";
+
+    // 本リポジトリに同梱しているスキルのみを列挙する（現状 2 件）。
+    const SKILLS = [
+      { id: "managing-agent-configs", cat: "manage", sub: "skill", summary: "エージェント構成 6 種の作成・レビュー・検証ハブ。", trigger: "スキル/ルール/ルーティン/エージェント/フック作成・レビュー・テスト・診断・発火検証、/schedule・CronCreate 登録、ワークフロー作成。" },
+      { id: "syncing-reverse-env", cat: "dev", summary: "リバース元と設計書由来の 2 環境を同期・検証し基準コミットを確立する。", trigger: "リバース環境の整備・検証・同期・片付け、setup/sync/teardown 指定、基準タグ reverse-baseline の操作。" },
+    ];
+
+    const root = document.getElementById("list");
+    const totalEl = document.getElementById("total");
+    const filterEl = document.getElementById("filter");
+    totalEl.textContent = SKILLS.length + " スキル / " + CATEGORIES.length + " カテゴリ";
+
+    function rowHtml(s) {
+      return (
+        '<details class="fr" data-key="' + (s.id + " " + s.summary + " " + s.trigger).toLowerCase() + '">' +
+          '<summary>' +
+            '<span class="expbtn">+</span>' +
+            '<span class="fn">' + s.id + '</span>' +
+            '<span class="fsep">—</span>' +
+            '<span class="fdesc">' + s.summary + '</span>' +
+          '</summary>' +
+          '<div class="fdetail">' +
+            '<div class="fmeta">skills/' + s.id + '/SKILL.md</div>' +
+            '<div class="frow"><span class="frow-label">概要</span><span class="frow-val">' + s.summary + '</span></div>' +
+            '<div class="frow"><span class="frow-label">トリガー</span><span class="frow-val"><span class="tag tag-trigger">TRIGGER</span> ' + s.trigger + '</span></div>' +
+          '</div>' +
+        '</details>'
+      );
+    }
+
+    function subWrap(label, tag, items) {
+      return (
+        '<div class="sub-wrap">' +
+          '<div class="sub-divider"><span class="tag ' + tag + '">' + label + '</span><span class="sub-count">' + items.length + '</span></div>' +
+          items.map(rowHtml).join("") +
+        '</div>'
+      );
+    }
+
+    function rowsHtml(cat, items) {
+      const subs = cat.subs;
+      if (!subs) return items.map(rowHtml).join("");
+      let html = "";
+      subs.forEach((g) => {
+        const members = items.filter((s) => s.sub === g.key);
+        if (members.length) html += subWrap(g.label, g.tag, members);
+      });
+      const rest = items.filter((s) => !subs.some((g) => g.key === s.sub));
+      if (rest.length) html += subWrap("その他", "tag-lib", rest);
+      return html;
+    }
+
+    function render() {
+      root.innerHTML = "";
+      CATEGORIES.forEach((c, i) => {
+        const items = SKILLS.filter((s) => s.cat === c.id);
+        if (items.length === 0) return;
+        const sec = document.createElement("details");
+        sec.className = "cat-block";
+        sec.open = true;
+        sec.innerHTML =
+          '<summary class="cat-card">' +
+            '<span class="cat-fold"></span>' +
+            '<div class="cat-num-block"><span class="cat-number">' + String(i + 1).padStart(2, "0") + '</span></div>' +
+            '<div class="cat-body"><div class="cat-name">' + c.name + '</div><div class="cat-desc">' + c.desc + '</div></div>' +
+            '<span class="cat-count">' + items.length + ' skills</span>' +
+          '</summary>' +
+          '<div class="file-rows">' + rowsHtml(c, items) + '</div>';
+        root.appendChild(sec);
+      });
+    }
+
+    function applyFilter() {
+      const q = filterEl.value.trim().toLowerCase();
+      let shown = 0;
+      root.querySelectorAll("details.cat-block").forEach((sec) => {
+        let secShown = 0;
+        sec.querySelectorAll("details.fr").forEach((d) => {
+          const hit = !q || d.dataset.key.includes(q);
+          d.style.display = hit ? "" : "none";
+          if (hit) { secShown++; shown++; }
+        });
+        sec.querySelectorAll(".sub-wrap").forEach((w) => {
+          const anyVisible = [...w.querySelectorAll("details.fr")].some((d) => d.style.display !== "none");
+          w.style.display = anyVisible ? "" : "none";
+        });
+        sec.style.display = secShown > 0 ? "" : "none";
+        if (q && secShown > 0) sec.open = true;
+      });
+      totalEl.textContent = q
+        ? shown + " 件ヒット / " + SKILLS.length + " スキル"
+        : SKILLS.length + " スキル / " + CATEGORIES.length + " カテゴリ";
+    }
+
+    let t;
+    filterEl.addEventListener("input", () => { clearTimeout(t); t = setTimeout(applyFilter, 120); });
+    render();
+  </script>
+</body>
+</html>

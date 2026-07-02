@@ -4,7 +4,9 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>rules 設計ガイド — agent-toolkit</title>
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="../style.css" />
+  <link rel="stylesheet" href="design.css" />
+  <script type="module" src="../src/common/header.js"></script>
   <style>
     .sd-wrap { max-width: 1100px; margin: 0 auto; padding: 20px; }
     .sd-layout { display: grid; grid-template-columns: 220px 1fr; gap: 24px; align-items: start; }
@@ -57,7 +59,6 @@
       <p>
         <code>~/.claude/rules/</code> 配下にカテゴリ別の規約を育てる方針と、配置・命名・hook 連携・paths 戦略のルール集。
         関連スクリプト（hook script・検査スクリプト）も rules フォルダに同居させる。
-        <a href="../README.md">← README へ</a>
       </p>
     </div>
 
@@ -337,7 +338,7 @@ paths:
           <h3 class="sd-h3">禁止される配置</h3>
           <ul>
             <li><code>~/.claude/hooks/</code> 直下に rules 連動の hook script を新規作成（flat な hooks/ バケット禁止）</li>
-            <li><code>&lt;project&gt;/tools/hooks/</code> 直下に新規作成（flat bucket 禁止）</li>
+            <li><code>&lt;project&gt;/tools/hooks/</code> 直下に新規作成（既存 legacy のみ）</li>
             <li>rule.md と hook script を別フォルダに分離（同居強制）</li>
           </ul>
         </section>

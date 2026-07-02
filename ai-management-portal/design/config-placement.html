@@ -4,7 +4,9 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>設定層 配置判定ガイド — agent-toolkit</title>
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="../style.css" />
+  <link rel="stylesheet" href="design.css" />
+  <script type="module" src="../src/common/header.js"></script>
   <style>
     .sd-wrap { max-width: 1100px; margin: 0 auto; padding: 20px; }
     .sd-layout { display: grid; grid-template-columns: 220px 1fr; gap: 24px; align-items: start; }
@@ -77,7 +79,6 @@
         「これはどこに書くか」を判定するための 7 層決定木。
         CLAUDE.md / Rules / Skills / Subagents / Hooks / Output styles の使い分けを一枚で参照できる。
         正本ルール: <code>~/.claude/rules/config-placement.md</code>
-        <a href="docs/config-placement-design.html">docs/config-placement-design.html</a>
       </p>
     </div>
 
@@ -457,8 +458,8 @@
               </tr>
               <tr>
                 <td><span class="layer-badge layer-subagent">Subagents</span></td>
-                <td style="color:var(--text-muted)">—（未作成）</td>
-                <td><code>.claude/agents/</code> の設計ガイドは今後追加予定</td>
+                <td><a href="subagent-design.html">Subagent 設計ガイド</a></td>
+                <td>4 役割アーキテクチャ・frontmatter 仕様・references 構造・品質基準</td>
               </tr>
               <tr>
                 <td><span class="layer-badge layer-output">Output styles</span></td>

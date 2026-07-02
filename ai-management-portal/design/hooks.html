@@ -4,7 +4,9 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Hooks 設計ガイド — agent-toolkit</title>
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="../style.css" />
+  <link rel="stylesheet" href="design.css" />
+  <script type="module" src="../src/common/header.js"></script>
   <style>
     .sd-wrap { max-width: 1100px; margin: 0 auto; padding: 20px; }
     .sd-layout {
@@ -200,7 +202,6 @@
       <p>
         Claude Code の hook script を新規追加・移動する時に従う配置ルールと管理方針。
         スコープは「どこに置くか」「どう管理するか」のアーキテクト規約まで。個別 hook の中身の書き方は creating-hooks スキルが担う。
-        <a href="../README.md">← README へ</a>
       </p>
     </div>
 
@@ -256,7 +257,7 @@
               <tr><td><code>&lt;project&gt;/tools/hooks/</code></td><td>global flat bucket</td><td>31 ファイルが規約と無関係に同居。最大の負債源</td></tr>
               <tr><td><code>~/.claude/hooks/</code></td><td>global flat bucket</td><td>同上の構造になる前に禁止しておく</td></tr>
               <tr><td><code>~/.claude/&lt;any&gt;/hooks/</code></td><td>plugin enforcement</td><td>plugin 内 hooks は plugin 側で完結すべき。手動で増やさない</td></tr>
-              <tr><td><code>&lt;repo&gt;/.claude/hooks/</code></td><td>project flat bucket</td><td>oradora-battle-base の <code>.claude/hooks/</code> 19 ファイルが同じ負債を抱えている</td></tr>
+              <tr><td><code>&lt;repo&gt;/.claude/hooks/</code></td><td>project flat bucket</td><td>特定プロジェクトの <code>.claude/hooks/</code> 19 ファイルが同じ負債を抱えている</td></tr>
               <tr><td><code>&lt;repo&gt;/.claude/&lt;any&gt;/hooks/</code></td><td>project flat bucket</td><td>同上</td></tr>
             </tbody>
           </table>
@@ -299,7 +300,7 @@
               <tr>
                 <td><strong>独立規約</strong></td>
                 <td>単一 skill に紐付かない system 全体のメタ規約を強制する</td>
-                <td>commit author を白リストに縛る規約・禁止事項・制約</td>
+                <td>commit author を白リストに縛る規約・先送り表現禁止・依頼形禁止</td>
               </tr>
               <tr>
                 <td><strong>その他</strong></td>
@@ -386,10 +387,10 @@
             <tbody>
               <tr><td><code>worktree-required-check.sh</code></td><td><code>~/.claude/skills/parallel-dev-worktree/scripts/</code></td><td>skill × global</td></tr>
               <tr><td><code>stop-auto-commit.sh</code></td><td><code>~/.claude/skills/auto-ship/scripts/</code></td><td>skill × global</td></tr>
-              <tr><td><code>prod-skill-read-enforce.sh</code><br><code>prod-skill-detect.sh</code></td><td><code>~/.claude/skills/oradora-deploy-production/scripts/</code></td><td>skill × global</td></tr>
+              <tr><td><code>prod-skill-read-enforce.sh</code><br><code>prod-skill-detect.sh</code></td><td><code>~/.claude/skills/deploy-production/scripts/</code></td><td>skill × global</td></tr>
               <tr><td><code>issue-scope-check.sh</code></td><td><code>~/.claude/skills/verifying-issue-scope/scripts/</code></td><td>skill × global</td></tr>
               <tr><td><code>flow-select-detect.sh</code><br><code>flow-select-enforce.sh</code></td><td><code>~/.claude/skills/flow-feature/scripts/</code> 等</td><td>skill × global</td></tr>
-              <tr><td><code>skill-log-recorder.sh</code></td><td><code>~/.claude/rules/skill-logging-rules/</code></td><td>独立規約 × global</td></tr>
+              <tr><td><code>skill-log-recorder.sh</code></td><td><code>~/.claude/rules/session-infra-rules/</code></td><td>独立規約 × global</td></tr>
               <tr><td><code>no-deferral-*.sh</code> (4 件)</td><td><code>~/.claude/rules/no-deferral-rules/</code></td><td>独立規約 × global</td></tr>
               <tr><td><code>no-delegation-*.sh</code> (3 件)</td><td><code>~/.claude/rules/no-delegation-rules/</code></td><td>独立規約 × global</td></tr>
               <tr><td><code>author-check.sh</code></td><td><code>~/.claude/rules/author-identity-rules/</code></td><td>独立規約 × global</td></tr>
@@ -401,7 +402,7 @@
 
         <section class="sd-section" id="s6">
           <h2 class="sd-h2"><span class="sec-num">§6</span>hook の管理（一覧化）</h2>
-          <p>hook は分散配置されるが、<strong>全 hook の網羅一覧は単一の HTML ドキュメント <a href="hooks.html">hooks.html</a> で管理する</strong>。検索性と「漏れなく把握できる」状態を担保するため。</p>
+          <p>hook は分散配置されるが、<strong>全 hook の網羅一覧は単一の HTML ドキュメント（例: 本リポジトリの <a href="../docs-portal/index.html">docs-portal/index.html</a> のような俯瞰ページ）で管理する</strong>。検索性と「漏れなく把握できる」状態を担保するため。</p>
 
           <h3 class="sd-h3">hooks.html に必ず登録する</h3>
           <ul>
@@ -449,7 +450,7 @@
           <p>本ガイドの導入時点で既に存在する legacy 配置:</p>
           <ul>
             <li><code>&lt;project&gt;/tools/hooks/*.sh</code> — 31 ファイル</li>
-            <li><code>~/Projects/oradora-battle-base/.claude/hooks/*.sh</code> — 19 ファイル</li>
+            <li><code>~/Projects/&lt;project&gt;/.claude/hooks/*.sh</code> — 19 ファイル</li>
             <li><code>~/.claude/plugins/marketplaces/*/plugins/*/hooks/</code> — plugin 内</li>
           </ul>
 
@@ -484,7 +485,7 @@
           <p>新規 <code>.sh</code> 作成は security 規約に従い設計判断の記録が必須。配置先の正本ドキュメント内に <code>## 設計判断</code> セクションとして記載する。</p>
           <ul>
             <li>global hook → 配置先の <code>~/.claude/rules/&lt;rule&gt;-rules/rule.md</code> 内</li>
-            <li>project hook → 配置先の <code>&lt;repo&gt;/.claude/rules/&lt;rule&gt;-rules/rule.md</code> または <code>~/.claude/skills/&lt;skill&gt;/SKILL.md</code> 内</li>
+            <li>project hook → 配置先の <code>&lt;repo&gt;/.claude/rules/&lt;rule&gt;-rules/rule.md</code> または skill の <code>SKILL.md</code> 内</li>
           </ul>
           <p>設計判断が書けない（必要性を説明できない）hook はそもそも作らない。</p>
         </section>

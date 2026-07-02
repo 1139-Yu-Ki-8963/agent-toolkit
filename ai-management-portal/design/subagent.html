@@ -4,7 +4,9 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Subagent 設計ガイド — agent-toolkit</title>
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="../style.css" />
+  <link rel="stylesheet" href="design.css" />
+  <script type="module" src="../src/common/header.js"></script>
   <style>
     .sd-wrap { max-width: 1100px; margin: 0 auto; padding: 20px; }
 
@@ -263,7 +265,6 @@
       <p>
         カスタムサブエージェント（<code>~/.claude/agents/</code>）を設計・作成するときに従う定義とルール集。
         4 役割の使い分け・frontmatter 仕様・references 構造・品質基準を一覧で参照できる。
-        <a href="../README.md">← README へ</a>
       </p>
     </div>
 
@@ -285,6 +286,7 @@
           <li><a href="#s10"><span class="toc-num">§10</span>references の設計</a></li>
           <li><a href="#s11"><span class="toc-num">§11</span>Skill との連携</a></li>
           <li><a href="#s12"><span class="toc-num">§12</span>品質チェックリスト</a></li>
+          <li><a href="#s13"><span class="toc-num">§13</span>調査チェックリストパイプライン</a></li>
         </ul>
         <div class="toc-sep"></div>
         <div style="font-size:11px;color:var(--text-muted);padding:4px 8px;line-height:1.6">
@@ -778,6 +780,99 @@ model: &lt;opus | sonnet | haiku&gt;
             <li><strong>境界テスト</strong>: 本来 SKIP すべきタスクを渡し、拒否するか代替を案内するかを確認</li>
             <li><strong>出力形式テスト</strong>: 定義した出力フォーマットに沿った結果が返るかを確認</li>
           </ol>
+        </section>
+
+        <!-- §13 -->
+        <section class="sd-section" id="s13">
+          <h2 class="sd-h2"><span class="sec-num">§13</span>調査チェックリストパイプライン（2026-06-27 導入）</h2>
+
+          <h3 class="sd-h3">背景と課題</h3>
+          <p style="font-size:13.5px;color:var(--text-sub);margin:0 0 12px">
+            2026-06-27 のプロジェクト構成レビューで 5 件の事実誤認が発生した。
+          </p>
+
+          <table class="sd-table">
+            <thead>
+              <tr><th>#</th><th>誤り</th><th>実際</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>1</td><td>Playwright 設定がルート直下</td><td>frontend/ 配下だった</td></tr>
+              <tr><td>2</td><td>logs/ は .gitkeep だけ</td><td>554 ファイル / 7.6MB が Git 追跡</td></tr>
+              <tr><td>3</td><td>render.yaml はルート固定</td><td>Dashboard で任意パス指定可能</td></tr>
+              <tr><td>4</td><td>vercel.json はルート固定</td><td>Root Directory 設定で変更可能</td></tr>
+              <tr><td>5</td><td>.vercelignore を ignoreCommand で代替可能</td><td>ignoreCommand はビルドスキップ判定で別機能</td></tr>
+            </tbody>
+          </table>
+
+          <div class="sd-note">
+            共通原因: 確認せずに推測を事実として断言した。
+          </div>
+
+          <h3 class="sd-h3">パイプライン構造</h3>
+          <p style="font-size:13.5px;color:var(--text-sub);margin:0 0 8px">
+            調査・分析・レビューのサブエージェント委任は、以下の 3 ステップで実行する。
+          </p>
+
+          <div class="sd-flow">Step 1: チェックリスト作成
+  Skill(subagent-investigation-checklist) で調査チェックリストを作成。
+  タスク種別（構成レビュー / コード調査 / 仕様調査 / ログ分析）ごとの
+  必須項目 + タスク固有項目を生成し、worktree 内に配置。
+
+Step 2: 調査実行
+  Agent(model: opus) にチェックリスト全文を埋め込んで委任。
+  調査エージェントはチェックリスト項目を 1 つずつ実行し、
+  各 finding に証拠（コマンド出力）を添付して報告。
+
+Step 3: レビュー
+  Agent(subagent_type: "reviewer") にチェックリスト + 調査結果を渡す。
+  レビュアーが 4 観点（完了性・証拠・事実性・再現性）で検証し PASS / FAIL を返す。
+  FAIL なら Step 2 に戻る（最大 2 回）。</div>
+
+          <h3 class="sd-h3">チェックリストの配置と破棄</h3>
+          <table class="sd-table">
+            <thead><tr><th>項目</th><th>内容</th></tr></thead>
+            <tbody>
+              <tr>
+                <td>配置先</td>
+                <td>worktree 内の <code>.investigation-checklist.md</code></td>
+              </tr>
+              <tr>
+                <td>破棄</td>
+                <td>worktree 削除時に自動消滅。手動 rm 不要</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <h3 class="sd-h3">機械強制</h3>
+          <div class="sd-def">
+            <strong>PreToolUse(Agent) hook: <code>check-investigation-checklist.sh</code></strong><br>
+            調査・レビュー系の Agent 委任で prompt 内に <code>## 調査チェックリスト</code> がなければ
+            <code>[CHECKLIST-MISSING]</code> で exit 2 block。<br>
+            例外: worker-haiku / routine-worker / <code>[CHECKLIST-EXEMPT]</code> 明示。
+          </div>
+
+          <h3 class="sd-h3">関連ファイル</h3>
+          <table class="sd-table">
+            <thead><tr><th>ファイル</th><th>役割</th></tr></thead>
+            <tbody>
+              <tr>
+                <td><code>~/.claude/rules/subagent-delegation-rules/rule.md</code></td>
+                <td>委任規約本体（パイプライン定義）</td>
+              </tr>
+              <tr>
+                <td><code>~/.claude/skills/subagent-investigation-checklist/SKILL.md</code></td>
+                <td>チェックリスト作成スキル</td>
+              </tr>
+              <tr>
+                <td><code>~/.claude/agents/reviewer/reviewer.md</code></td>
+                <td>レビュアーエージェント定義</td>
+              </tr>
+              <tr>
+                <td><code>~/.claude/rules/subagent-delegation-rules/check-investigation-checklist.sh</code></td>
+                <td>hook スクリプト</td>
+              </tr>
+            </tbody>
+          </table>
         </section>
 
       </article>
