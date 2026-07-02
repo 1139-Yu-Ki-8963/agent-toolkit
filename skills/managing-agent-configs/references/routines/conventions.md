@@ -1,6 +1,6 @@
 # ルーティン共通規約（conventions）
 
-`managing-routines` の create / review / test 全モードが参照する規約。
+`managing-agent-configs`（種別: routines） の create / review / test 全モードが参照する規約。
 
 ## 正本の所在
 
@@ -119,7 +119,7 @@ JSONL ファイルに run_end 行が追記されていること
 
 ### TaskCreate / TaskUpdate の使用ルール
 
-managing-routines の create / review / test 各モード実行時は、`TaskCreate` で Phase を登録し進捗を可視化する。正本: `~/.claude/skills/skill-design-spec.md` §13。
+managing-agent-configs（種別: routines） の create / review / test 各モード実行時は、`TaskCreate` で Phase を登録し進捗を可視化する。正本: `~/.claude/skills/skill-design-spec.md` §13。
 
 **具体例（create モードの場合）:**
 
@@ -266,7 +266,7 @@ AskUserQuestion({
 
 **代替案を採用しなかった理由**: 等間隔 4.8h は半端な時刻（09:48 / 14:36 等）で人間が把握しにくい。固定時刻なし（自由配置）はルーティン追加のたびに全体の再調整が必要で運用コストが高い。Max プラン前提（15 runs/day）はプラン変更に依存する設計になる。
 
-**保守責任者**: managing-routines スキル + ユーザー。
+**保守責任者**: managing-agent-configs（種別: routines） スキル + ユーザー。
 
 **廃棄条件**: プラン体系が根本的に変わり、5h グリッドの分散が不要になった場合。
 

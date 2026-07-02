@@ -1,6 +1,6 @@
 # Hook 実機検証手順（testing）
 
-`managing-hooks` の **test モード** が参照する手順書。`conventions.md` を前段で読んだ前提で、サブエージェントを使った hook の実機 bash 検証を実行する。
+`managing-agent-configs`（種別: hooks） の **test モード** が参照する手順書。`conventions.md` を前段で読んだ前提で、サブエージェントを使った hook の実機 bash 検証を実行する。
 
 このファイルは create / review モードからの **自動連鎖の終端** にあたる。test モード完了後は最終レポートを返す（さらなる連鎖はない）。
 
@@ -119,7 +119,7 @@
 
 ## 対象
 - settings.json から `jq -r '<JSONPath>' ~/.claude/settings.json` で command を抽出
-- 規約参照: ~/.claude/skills/managing-hooks/references/conventions.md の「標準出力 JSON フォーマット」「プレフィックス規約」
+- 規約参照: ~/.claude/skills/managing-agent-configs/references/hooks/conventions.md の「標準出力 JSON フォーマット」「プレフィックス規約」
 
 ## シナリオ
 - マッチケース: <発火条件を 1 行で>
@@ -267,4 +267,4 @@
 
 - 共通規約: `conventions.md`
 - 連鎖元の手順書: `creating.md` / `reviewing.md`
-- 関連スキル: `managing-skills` の test モード（SKILL.md 専用版。評価軸と失敗パターンが異なる）
+- 関連スキル: `managing-agent-configs（種別: skills）` の test モード（SKILL.md 専用版。評価軸と失敗パターンが異なる）

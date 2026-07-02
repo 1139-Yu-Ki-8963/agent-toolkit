@@ -1,6 +1,6 @@
 # ルーティン作成手順（creating）
 
-`managing-routines` の **create モード** が参照する手順書。`conventions.md` を前段で読んだ前提で、実際の新規ルーティン作成の流れと作成後チェックリストを定義する。
+`managing-agent-configs`（種別: routines） の **create モード** が参照する手順書。`conventions.md` を前段で読んだ前提で、実際の新規ルーティン作成の流れと作成後チェックリストを定義する。
 
 このファイルを読み終えたら、ルーティンの設計書・実行プロンプトを作成し、作成後チェックリストを実行する。完了したら **自動的に review モード → test モード** へ連鎖する（ハブ SKILL.md の指示に従う）。
 
@@ -162,7 +162,7 @@ grep -oE '[a-zA-Z0-9_/./-]+\.(sh|py|js|ts|md|yml|yaml|json)' routines/<project>/
 - [ ] ツール依存の確認が完了（クラウドの場合）
 - [ ] ルーティン登録が完了または指示を提示済み
 - [ ] git commit 済み（クラウドの場合は fresh clone に含まれる必要がある）
-- [ ] **review モードへ自動連鎖**（managing-routines ハブが制御）
+- [ ] **review モードへ自動連鎖**（managing-agent-configs（種別: routines） ハブが制御）
 - [ ] **test モードへ自動連鎖**（review 完了後）
 
 ## Gotchas

@@ -1,6 +1,6 @@
 # ルーティンレビュー手順（reviewing）
 
-`managing-routines` の **review モード** が参照する手順書。12 観点 × 6 Phase でルーティンの品質を検証する。
+`managing-agent-configs`（種別: routines） の **review モード** が参照する手順書。12 観点 × 6 Phase でルーティンの品質を検証する。
 
 12 観点の一覧定義の正本は `routines/<project>/共通ルール.md` にある。本ファイルは各観点の **詳細チェック項目・検出パターン・判定基準** を定義する。
 

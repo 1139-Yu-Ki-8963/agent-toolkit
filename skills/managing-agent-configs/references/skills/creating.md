@@ -1,6 +1,6 @@
 # スキル作成手順（creating）
 
-`managing-skills` の **create モード** が参照する手順書。`conventions.md` を前段で読んだ前提で、実際の新規スキル作成の流れと作成後チェックリストを定義する。
+`managing-agent-configs`（種別: skills） の **create モード** が参照する手順書。`conventions.md` を前段で読んだ前提で、実際の新規スキル作成の流れと作成後チェックリストを定義する。
 
 このファイルを読み終えたら、新規スキルの SKILL.md を Write し、作成後チェックリストを実行する。完了したら **自動的に review モード → test モード** へ連鎖する（ハブ SKILL.md の指示に従う）。
 
@@ -83,7 +83,7 @@
   - summary: `<code>スキル名</code> — 一行説明`
   - 本文: 使用タイミング・主要機能を箇条書きで記載
 - [ ] アンチパターンを踏んでいないか `anti-patterns.md` で確認した
-- [ ] **review モードへ自動連鎖**（managing-skills ハブが制御）
+- [ ] **review モードへ自動連鎖**（managing-agent-configs（種別: skills）ハブが制御）
 - [ ] **test モードへ自動連鎖**（review 完了後）
 
 ## Gotchas

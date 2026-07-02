@@ -1,6 +1,6 @@
 # Hook 作成手順（creating）
 
-`managing-hooks` の **create モード** が参照する手順書。`conventions.md` を前段で読んだ前提で、新規 hook 作成の流れと作成後チェックリストを定義する。
+`managing-agent-configs`（種別: hooks） の **create モード** が参照する手順書。`conventions.md` を前段で読んだ前提で、新規 hook 作成の流れと作成後チェックリストを定義する。
 
 このファイルを読み終えたら、配置を決定し hook script を Write し、ADR・hooks.html・settings.json への登録を実施する。完了したら **自動的に review モード → test モード** へ連鎖する（ハブ SKILL.md の指示に従う）。
 
@@ -74,7 +74,7 @@
 - [ ] 配置先の rule.md に `## 設計判断` セクションを記載した
 - [ ] `hooks.html` の `HOOKS` 配列に登録した
 - [ ] `settings.json` の対応イベントに command path を登録した
-- [ ] **review モードへ自動連鎖**（managing-hooks ハブが制御）
+- [ ] **review モードへ自動連鎖**（managing-agent-configs（種別: hooks） ハブが制御）
 - [ ] **test モードへ自動連鎖**（review 完了後）
 
 ## Gotchas

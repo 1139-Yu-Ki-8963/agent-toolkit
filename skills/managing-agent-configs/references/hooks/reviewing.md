@@ -1,6 +1,6 @@
 # Hook レビュー手順（reviewing）
 
-`managing-hooks` の **review モード** が参照する手順書。`conventions.md` を前段で読んだ前提で、settings.json hooks の観点ベース静的レビューと自動修正を実行する。
+`managing-agent-configs`（種別: hooks） の **review モード** が参照する手順書。`conventions.md` を前段で読んだ前提で、settings.json hooks の観点ベース静的レビューと自動修正を実行する。
 
 このファイルを読み終えたら、Phase 1〜5 を実行し、完了後 **自動的に test モード** へ連鎖する（ハブ SKILL.md の指示に従う）。
 
@@ -13,7 +13,7 @@ dry-run は「修正は別途検討したい」「読み取りのみで安全に
 
 ## 概要
 
-Claude Code の `settings.json` に登録された hooks を **公式仕様準拠**・**配置アーキ規約準拠**・**設計健全性** の観点で静的レビューし、検出した問題をユーザー承認のうえ自動修正し、最後に test モードへ連鎖して全 hook の実機発火を検証する。`managing-skills` の review モードの hooks 版。
+Claude Code の `settings.json` に登録された hooks を **公式仕様準拠**・**配置アーキ規約準拠**・**設計健全性** の観点で静的レビューし、検出した問題をユーザー承認のうえ自動修正し、最後に test モードへ連鎖して全 hook の実機発火を検証する。`managing-agent-configs（種別: skills）` の review モードの hooks 版。
 
 ## 実行 Phase
 
@@ -66,7 +66,7 @@ command 内から外部 script path を抽出し、
 #### full モードのレポート例
 
 ```
-## managing-hooks review レポート（full）
+## managing-agent-configs（種別: hooks） review レポート（full）
 
 ### ファイル: ~/.claude/settings.json
 - 検出 hook 数: 14
@@ -86,7 +86,7 @@ command 内から外部 script path を抽出し、
 #### dry-run モードのレポート例
 
 ```
-## managing-hooks review レポート（dry-run = diagnose）
+## managing-agent-configs（種別: hooks） review レポート（dry-run = diagnose）
 
 ### Section 1: カテゴリ別フック一覧
 [A ガード系] 危険な操作を強制停止する
@@ -130,7 +130,7 @@ Phase 5 完了後、ハブ SKILL.md の指示に従い **test モードへ自動
 Agent(
   description: "全 hook の実機検証",
   subagent_type: "general-purpose",
-  prompt: "~/.claude/skills/managing-hooks/references/testing.md の手順に従い、
+  prompt: "~/.claude/skills/managing-agent-configs/references/hooks/testing.md の手順に従い、
            Phase 5 で修正された settings.json 全ファイルの全 hook を
            サンプル stdin で実機実行し、以下を全件チェック:
            ① JSON 構文エラー無し

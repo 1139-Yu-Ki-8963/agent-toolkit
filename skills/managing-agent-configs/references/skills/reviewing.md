@@ -1,12 +1,12 @@
 # スキルレビュー手順（reviewing）
 
-`managing-skills` の **review モード** が参照する手順書。`conventions.md` を前段で読んだ前提で、既存 SKILL.md の観点ベース静的レビューと自動修正を実行する。
+`managing-agent-configs`（種別: skills） の **review モード** が参照する手順書。`conventions.md` を前段で読んだ前提で、既存 SKILL.md の観点ベース静的レビューと自動修正を実行する。
 
 このファイルを読み終えたら、Phase 1〜5 を実行し、完了後 **自動的に test モード** へ連鎖する（ハブ SKILL.md の指示に従う）。
 
 ## 概要
 
-既存の `SKILL.md` を **観点ベース** で静的レビューし、検出した問題をユーザー承認のうえ自動修正する。`managing-hooks` の review モードと構造は同型（SKILL.md 版）。
+既存の `SKILL.md` を **観点ベース** で静的レビューし、検出した問題をユーザー承認のうえ自動修正する。`managing-agent-configs（種別: hooks）` の review モードと構造は同型（SKILL.md 版）。
 
 ## フロー系スキルの判定基準
 
@@ -85,11 +85,11 @@ Phase 5 完了後、ハブ SKILL.md の指示に従い **test モードへ自動
 Agent(
   description: "修正後スキルの発火検証",
   subagent_type: "general-purpose",
-  prompt: "~/.claude/skills/managing-skills/references/testing.md の手順に従い、
+  prompt: "~/.claude/skills/managing-agent-configs/references/skills/testing.md の手順に従い、
            Phase 5 で修正された各 SKILL.md について以下を検証:
            ① description の TRIGGER 語を含む代表プロンプトで正しく発火するか
            ② SKIP 語を含むプロンプトで誤発火しないか
-           ③ 隣接スキル（managing-hooks / managing-skills 自体 等）と発火が衝突しないか
+           ③ 隣接スキル（managing-agent-configs（種別: hooks） / managing-agent-configs（種別: skills） 自体 等）と発火が衝突しないか
            発火しなかった / 誤発火したスキル名と原因を箇条書きで報告。"
 )
 ```
@@ -156,7 +156,7 @@ Agent(
 | E2 | WARN | スクリプトを SKILL.md に直書き | `scripts/` へ分離 |
 | E3 | WARN | `!` 構文を使用（Cursor 非互換） | 通常記法に置換 |
 
-### F. Claude ツール活用（★フロー系限定・12 項目）
+### F. Claude ツール活用（★フロー系限定・13 項目）
 
 | ID | 重大度 | 検出 | 修正方針 |
 |----|--------|------|----------|
@@ -172,6 +172,7 @@ Agent(
 | F10 | WARN | ループ構成（反復条件・上限回数・停止条件）が定義されていない | `## ループ設計` セクションに 3 要素を明記 |
 | F11 | WARN | /goal（最終成功判定基準）が定義されていない | `## 完了条件` セクション末尾に Goal 行を追記 |
 | F12 | INFO | 検証役（生成役と別のエージェント）が指定されていない | 検証役の分離を明記 |
+| F13 | CRITICAL | `### Step` が `## Step` や `## <親見出し>` の下に h3 としてネストされている | 全 Step を `##`（h2）に昇格し、親の傘見出しを削除する。h3 ネストはエージェントが複数 Step を 1 タスクとして扱い、別成果物を統合してしまう原因になる |
 
 ### G. 登録・整合性（3 項目）
 
@@ -181,7 +182,7 @@ Agent(
 | G2 | WARN | `README.md` のスキル一覧にエントリがない | `<details>` エントリを追加 |
 | G3 | INFO | セクション見出しが日本語で統一されていない | 日本語へ統一 |
 
-**合計 31 項目（A〜E・G: 19 項目／F: 12 項目はフロー系のみ）**
+**合計 32 項目（A〜E・G: 19 項目／F: 13 項目はフロー系のみ）**
 
 ## 健全性目安
 

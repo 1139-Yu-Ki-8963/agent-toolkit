@@ -1,6 +1,6 @@
 # Hooks 共通規約（conventions）
 
-`managing-hooks` の create / review / test 全モードが参照する **規約の単一正本**。JSON 出力スキーマ・TAG プレフィックス・event 別パターン・timeout 目安・配置 4 象限をここで定義する。旧 `creating-hooks` 本体に散在していた規約をここに集約した。
+`managing-agent-configs`（種別: hooks） の create / review / test 全モードが参照する **規約の単一正本**。JSON 出力スキーマ・TAG プレフィックス・event 別パターン・timeout 目安・配置 4 象限をここで定義する。旧 `creating-hooks` 本体に散在していた規約をここに集約した。
 
 各モードは最初にこのファイルを Read してから役割別 references（`creating.md` / `reviewing.md` / `testing.md`）に進む。
 
@@ -84,6 +84,7 @@ NO-DELEGATION / NO-DEFERRAL / NO-ROOT-MARKER-BLOCK
 HOOKS-BUCKET-FORBIDDEN / WORKTREE-REQUIRED / WORKTREE-CLEANUP
 FLOW-SELECT-REQUIRED / FLOW-SELECT-BLOCK / FLOW-SELFIMPROVE-PENDING
 AUTO-COMMIT / PROD-SKILL-READ / ADR-REQUIRED / SHELL-EVASION-DETECTED
+MAIN-DIRECT-WORK-BLOCK / SUBAGENT-DELEGATION-HINT
 ```
 
 新規 TAG は上記と被らない名前を選び、追加時はこの一覧にも追記する。

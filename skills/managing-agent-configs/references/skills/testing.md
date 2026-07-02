@@ -1,6 +1,6 @@
 # スキル実機検証手順（testing）
 
-`managing-skills` の **test モード** が参照する手順書。`conventions.md` を前段で読んだ前提で、サブエージェントを使った経験的プロンプトチューニングを実行する。
+`managing-agent-configs`（種別: skills） の **test モード** が参照する手順書。`conventions.md` を前段で読んだ前提で、サブエージェントを使った経験的プロンプトチューニングを実行する。
 
 このファイルは create / review モードからの **自動連鎖の終端** にあたる。test モード完了後は最終レポートを返す（さらなる連鎖はない）。
 
@@ -249,4 +249,4 @@
 
 - 共通規約: `conventions.md`
 - 連鎖元の手順書: `creating.md` / `reviewing.md`
-- 関連スキル: `managing-hooks` の test モード（hooks 専用版。settings.json の hooks の挙動を実機 bash で検証する。本モードは SKILL.md の品質、managing-hooks は command の品質を担当）
+- 関連スキル: `managing-agent-configs（種別: hooks）` の test モード（hooks 専用版。settings.json の hooks の挙動を実機 bash で検証する。本モードは SKILL.md の品質、managing-agent-configs（種別: hooks） は command の品質を担当）

@@ -1,6 +1,6 @@
 # ルーティン実機検証手順（testing）
 
-`managing-routines` の **test モード** が参照する手順書。メインセッションが `ScheduleWakeup` で動的ペーシングしながら、RemoteTrigger → ポーリング → JSONL 分析 → 修正 → 再実行を収束するまで自律ループする。
+`managing-agent-configs`（種別: routines） の **test モード** が参照する手順書。メインセッションが `ScheduleWakeup` で動的ペーシングしながら、RemoteTrigger → ポーリング → JSONL 分析 → 修正 → 再実行を収束するまで自律ループする。
 
 このファイルは create / review モードからの **自動連鎖の終端** にあたる。test モード完了後は最終レポートを返す（さらなる連鎖はない）。
 
@@ -82,7 +82,7 @@ RemoteTrigger({ action: "run", trigger_id: state.trigger_id })
 ScheduleWakeup({
   delaySeconds: 270,
   reason: "<routine_name> のクラウド実行完了を待機（1 回目）",
-  prompt: "managing-routines test: <routine_name> の JSONL を確認"
+  prompt: "managing-agent-configs（種別: routines） test: <routine_name> の JSONL を確認"
 })
 ```
 
@@ -342,7 +342,7 @@ trigger_id: <trigger_id>
   - Fix Rule: JSONL 出力は具体的な echo コマンドを省略せず記載する
 
 - **ログパスが旧形式（logs/test-quality/ 等）**
-  - Fix Rule: oradora 側の旧ファイルを削除するか、実行プロンプト冒頭に「本ファイルのみに従え」を明記
+  - Fix Rule: 旧プロジェクト側の旧ファイルを削除するか、実行プロンプト冒頭に「本ファイルのみに従え」を明記
 
 - **Phase 全スキップ**
   - Fix Rule: 各 Phase に「この Phase をスキップしてはならない」ガードを追加
@@ -393,6 +393,6 @@ trigger_id: <trigger_id>
 - `RemoteTrigger action=run` で即時実行可能。ユーザー操作は不要
 - `ScheduleWakeup` は 270 秒（キャッシュ TTL 内）でポーリング。35 分でタイムアウト
 - push し忘れると前回のプロンプトで実行される
-- oradora 側に旧実行プロンプトが残っている場合、エージェントがそちらを読む可能性がある
+- 旧プロジェクト側に旧実行プロンプトが残っている場合、エージェントがそちらを読む可能性がある
 - test モードは create / review からの **連鎖の終端**
 - ScheduleWakeup を呼ばなければループが終了する。収束後は意図的に呼ばない

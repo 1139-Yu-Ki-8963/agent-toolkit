@@ -55,7 +55,7 @@ grep -q 'TRIGGER when:' "$F" && grep -q 'SKIP:' "$F" \
  description: |
    PR 差分をセキュリティ観点でレビューする。
 +  TRIGGER when: 「セキュリティレビュー」「脆弱性チェック」と言われた時。
-+  SKIP: 差分を伴わない設計相談（→ managing-skills）。
++  SKIP: 差分を伴わない設計相談（→ managing-agent-configs（種別: skills））。
 ```
 
 ### A4 — 説明文 50 字以内（CRITICAL）
@@ -149,7 +149,7 @@ SKIP が「〜の時」だけで止まり、代わりに使うべきスキル（
 
 ```diff
 -  SKIP: 新規作成の時。
-+  SKIP: スキルライフサイクル全般（→ managing-skills）、命名のみ（→ naming-conventions）。
++  SKIP: スキルライフサイクル全般（→ managing-agent-configs（種別: skills））、命名のみ（→ naming-conventions）。
 ```
 
 ---
@@ -174,7 +174,7 @@ wc -l "$F"   # >500 で C1 CRITICAL, >200 で C2 WARN
 
 ### C5 — Category / Type 宣言（WARN）
 
-frontmatter に `type:` が宣言されているか。`managing-skills` の review モードが型別最小セット検査（A7）に使うため必須。旧形式の本文 H1 直下 `> Category:` / `> Type:` blockquote は frontmatter `type:` に統合済み（残存していたら C5 で削除指示）。
+frontmatter に `type:` が宣言されているか。`managing-agent-configs`（種別: skills） の review モードが型別最小セット検査（A7）に使うため必須。旧形式の本文 H1 直下 `> Category:` / `> Type:` blockquote は frontmatter `type:` に統合済み（残存していたら C5 で削除指示）。
 
 ```bash
 grep -E '^> (Category|Type):' "$F"
@@ -411,6 +411,31 @@ fi
 
 ```diff
 +| 検証役 | 別サブエージェント（Read のみ権限推奨） |
+```
+
+### F13 — Step 見出しのネスト禁止（CRITICAL）
+
+Phase ファイル内で `### Step` が `## Step` や `## <親見出し>` の下に h3 としてネストされていないか。ネストされていると、エージェントが複数 Step を 1 つのタスクとして扱い、別々の成果物を統合してしまう。
+
+```bash
+# references/ 配下の Phase ファイルを走査し、### Step を検出
+for ref in ~/.claude/skills/<NAME>/references/phase-*.md; do
+  [ -f "$ref" ] || continue
+  NESTED=$(grep -n '^### Step' "$ref")
+  if [ -n "$NESTED" ]; then
+    echo "CRITICAL: $ref に ### Step（h3 ネスト）あり:"
+    echo "$NESTED"
+  fi
+done
+```
+
+```diff
+-## Step 4-2: 成果物生成
+-
+-### Step 4-3: 説明用 HTML 生成
+-### Step 4-4: 画面 UI モック生成
++## Step 4-2: 説明用 HTML 生成
++## Step 4-3: 画面 UI モック生成
 ```
 
 ---
