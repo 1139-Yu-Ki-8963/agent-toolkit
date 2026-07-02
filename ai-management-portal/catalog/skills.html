@@ -28,7 +28,7 @@
 
     // 本リポジトリに同梱しているスキルのみを列挙する（現状 2 件）。
     const SKILLS = [
-      { id: "managing-agent-configs", cat: "manage", sub: "skill", summary: "エージェント構成 6 種の作成・レビュー・検証ハブ。", trigger: "スキル/ルール/ルーティン/エージェント/フック作成・レビュー・テスト・診断・発火検証、/schedule・CronCreate 登録、ワークフロー作成。" },
+      { id: "managing-agent-configs", cat: "manage", sub: "skill", summary: "エージェント構成 6 種の作成・レビュー・検証ハブ。", trigger: "スキル/ルール/ルーティン/エージェント/フック作成・レビュー・テスト・診断・発火検証、/schedule・CronCreate 登録、ワークフロー作成。", hooks: "scripts/managing-review-gate.sh・scripts/managing-commit-gate.sh・scripts/lib/marker-path.sh（任意・settings.json 登録で機械強制が有効化）" },
       { id: "syncing-reverse-env", cat: "dev", summary: "リバース元と設計書由来の 2 環境を同期・検証し基準コミットを確立する。", trigger: "リバース環境の整備・検証・同期・片付け、setup/sync/teardown 指定、基準タグ reverse-baseline の操作。" },
     ];
 
@@ -50,6 +50,7 @@
             '<div class="fmeta">skills/' + s.id + '/SKILL.md</div>' +
             '<div class="frow"><span class="frow-label">概要</span><span class="frow-val">' + s.summary + '</span></div>' +
             '<div class="frow"><span class="frow-label">トリガー</span><span class="frow-val"><span class="tag tag-trigger">TRIGGER</span> ' + s.trigger + '</span></div>' +
+            (s.hooks ? '<div class="frow"><span class="frow-label">同梱hook</span><span class="frow-val">' + s.hooks + '</span></div>' : '') +
           '</div>' +
         '</details>'
       );

@@ -398,6 +398,14 @@
     <tr><td>自動清掃</td><td>セッション終了時</td><td>マーカーは揮発領域（<code>${TMPDIR}/claude-hooks/&lt;session&gt;/</code>）に置かれ、セッション終了 hook が削除する</td></tr>
   </table>
   <p class="note">この機構により「レビューせずにコミットする」経路が構造的に塞がれる。hooks を使わない環境ではこの節は適用されず、連鎖の既定 ON が防衛線になる。</p>
+  <p>この連携を実装する hook script 3 本は <code>skills/managing-agent-configs/scripts/</code> に同梱している。</p>
+  <table class="spec">
+    <tr><th>ファイル</th><th>イベント</th><th>役割</th></tr>
+    <tr><td><code>scripts/managing-review-gate.sh</code></td><td>PostToolUse(Write&#124;Edit&#124;MultiEdit)</td><td>managed ファイル編集を検知し needed マーカーを書き、<code>[MANAGING-REVIEW-REQUIRED]</code> を advisory 注入する</td></tr>
+    <tr><td><code>scripts/managing-commit-gate.sh</code></td><td>PreToolUse(Bash)</td><td>staged ファイルを検査し、test-passed マーカーが無ければ <code>git commit</code> を exit 2 で block する</td></tr>
+    <tr><td><code>scripts/lib/marker-path.sh</code></td><td>（両 hook から source）</td><td>マーカーの配置先（worktree 内 <code>.claude/markers/&lt;session&gt;/</code> または <code>${TMPDIR}/claude-hooks/&lt;session&gt;/</code>）を解決する共有ヘルパー</td></tr>
+  </table>
+  <p class="note">有効化するには <code>~/.claude/settings.json</code> の <code>PostToolUse</code> / <code>PreToolUse</code> にこの2本を登録する（README「機械強制フック（任意）」参照）。登録しなくても managing-agent-configs 自体は手動呼び出しで動作する。</p>
 </section>
 
 <section id="s8">
