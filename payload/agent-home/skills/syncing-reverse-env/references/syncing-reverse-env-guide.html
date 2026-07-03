@@ -210,7 +210,7 @@
   <circle cx="880" cy="800" r="8" fill="#D97706"></circle>
   <line x1="880" y1="780" x2="880" y2="700" stroke="#475569" stroke-width="3"></line>
   <path d="M880,700 L948,713 L880,726 Z" fill="#D97706"></path>
-  <text x="966" y="720" font-size="22" font-weight="700" fill="#B45309" font-family="ui-monospace,'SF Mono',Menlo,Consolas,monospace">reverse-baseline/&lt;system&gt;</text>
+  <text x="966" y="720" font-size="22" font-weight="700" fill="#B45309" font-family="ui-monospace,'SF Mono',Menlo,Consolas,monospace">reverse-baseline/&lt;scope&gt;</text>
   <text x="966" y="746" font-size="15" fill="#94A3B8">完全一致を証明した基準コミット</text>
 
   <text x="1360" y="756" font-size="17" fill="#64748B" text-anchor="middle">その後の実験や作り直しで汚れても…</text>
@@ -346,7 +346,7 @@
   <circle cx="600" cy="952" r="5" fill="#D97706"></circle>
   <text x="618" y="959" font-size="18" fill="#475569">割り当てを変えるだけで、同じ検証エンジンがそのまま使える</text>
   <circle cx="600" cy="992" r="5" fill="#D97706"></circle>
-  <text x="618" y="999" font-size="18" fill="#475569">固定ポート（<tspan font-family="ui-monospace,'SF Mono',Menlo,Consolas,monospace">9100 / 9110</tspan> 番台）と基準タグの仕組みも共通</text>
+  <text x="618" y="999" font-size="18" fill="#475569">スロット単位のポート帯（既定 slot 1: <tspan font-family="ui-monospace,'SF Mono',Menlo,Consolas,monospace">9100 / 9110</tspan> 番台）と基準タグの仕組みも共通</text>
 </svg>
     <figcaption class="note">応用 3 例の構成図。2 つの環境への割り当てと合格条件だけを入れ替える。図をクリックすると拡大表示できます。</figcaption>
   </figure>
@@ -371,18 +371,24 @@
 <section id="s3">
   <h2><span class="sec-num">§3</span>用語</h2>
   <dl class="def">
+    <dt>&lt;system&gt;</dt>
+    <dd>設計書 frontmatter の <code>source_repo</code> 末尾のリポジトリ名（<code>.git</code> 除去）から機械的に導出する識別子。</dd>
+    <dt>&lt;画面ID&gt;</dt>
+    <dd>設計書 frontmatter <code>doc_id: screen-&lt;画面ID&gt;</code> から <code>screen-</code> 接頭辞を除去して導出する識別子。</dd>
+    <dt>&lt;scope&gt;</dt>
+    <dd><code>&lt;system&gt;-&lt;画面ID&gt;</code>。worktree・ブランチ・基準タグ・ポートスロットの管理単位。共有アプリを画面単位で最大 5 画面まで並行検証するために、この粒度で分離する。</dd>
     <dt>オリジナルコード環境</dt>
-    <dd>リバース対象のオリジナルコードを保持する git worktree（worktree 名 <code>original-code-&lt;system&gt;</code>）。設計書 frontmatter の <code>source_repo</code> / <code>source_ref</code> から本スキルが用意する読み取り専用コピーで、常に「正」。内容を変更することはない。</dd>
+    <dd>リバース対象のオリジナルコードを保持する git worktree（worktree 名 <code>original-code-&lt;scope&gt;</code>）。設計書 frontmatter の <code>source_repo</code> / <code>source_ref</code> から本スキルが用意する読み取り専用コピーで、常に「正」。内容を変更することはない。</dd>
     <dt>リバースコード環境</dt>
-    <dd>設計書だけを見て再構築したコードの git worktree（worktree 名 <code>reverse-code-&lt;system&gt;</code>、ブランチ <code>feature/reverse-code-&lt;system&gt;</code>）。容器（worktree・ブランチ・固定ポート）は本スキルが用意し、中身のコードは rebuilding-code-from-docs スキルが書く。</dd>
+    <dd>設計書だけを見て再構築したコードの git worktree（worktree 名 <code>reverse-code-&lt;scope&gt;</code>、ブランチ <code>feature/reverse-code-&lt;scope&gt;</code>）。容器（worktree・ブランチ・ポート）は本スキルが用意し、中身のコードは rebuilding-code-from-docs スキルが書く。</dd>
     <dt>worktree のライフサイクル（永続・使い回し）</dt>
     <dd>両 worktree は初回実行時に一度だけ作成し、以後の検証ではすべて同じものを使い回す。削除はユーザーが明示的に依頼した時（teardown）のみ。</dd>
     <dt>基準コミット / 基準タグ</dt>
-    <dd>ポート以外の完全一致を証明できた時点のリバースコード環境側コミットが基準コミット。annotated git tag <code>reverse-baseline/&lt;system&gt;</code>（基準タグ）がその唯一の記録で、タグメッセージに検証日と判定サマリを持つ。コミットとタグはリポジトリ本体に保存されるため、worktree を破棄しても消えない。リバースコード環境はいつでも <code>git reset --hard reverse-baseline/&lt;system&gt;</code> で基準状態へ復帰できる。</dd>
-    <dt>固定ポート</dt>
-    <dd>両環境の稼働ポート。プロジェクトに依存しない全体共通の固定値（オリジナル=9100 番台 / リバース=9110 番台。§5）。両環境は必ず異なる帯域を持ち、これが「唯一許容される差分＝ポート番号」の根拠になる。</dd>
+    <dd>ポート以外の完全一致を証明できた時点のリバースコード環境側コミットが基準コミット。annotated git tag <code>reverse-baseline/&lt;scope&gt;</code>（基準タグ）がその唯一の記録で、タグメッセージに検証日と判定サマリを持つ。コミットとタグはリポジトリ本体に保存されるため、worktree を破棄しても消えない。リバースコード環境はいつでも <code>git reset --hard reverse-baseline/&lt;scope&gt;</code> で基準状態へ復帰できる。</dd>
+    <dt>ポートモデル</dt>
+    <dd>両環境の稼働ポートは <code>&lt;scope&gt;</code> ごとに動的割当てするスロット番号（1〜5）から計算式で決まる（§5）。両環境は必ず異なる帯域を持ち、これが「唯一許容される差分＝ポート番号」の根拠になる。</dd>
     <dt>config.yml（スキルフォルダ直下）</dt>
-    <dd>プロジェクトによって変えたくなる可能性がある値（ポート番号・起動手順・diff 除外リスト・L3 閾値・max-loop 既定値）の置き場。defaults ＋ projects 別上書きの 2 層構造。</dd>
+    <dd>プロジェクトによって変えたくなる可能性がある値（ポート計算式・サービス一覧・起動手順・diff 除外リスト・L3 閾値・max-loop 既定値）の置き場。defaults ＋ projects 別上書きの 2 層構造。</dd>
   </dl>
 </section>
 
@@ -436,7 +442,7 @@
   <table class="spec">
     <tr><th>区分</th><th>引数</th><th>内容</th></tr>
     <tr><td><strong>必須</strong></td>
-        <td><code>design-doc</code></td><td>対象の画面基本設計書パス。<strong>唯一の必須入力＝検証の主キー</strong>（全 mode 共通。teardown でも <code>&lt;system&gt;</code> 導出に使う）。リバース元の同一性（<code>source_repo</code> / <code>source_ref</code>）はこの frontmatter が保持する</td></tr>
+        <td><code>design-doc</code></td><td>対象の画面詳細設計書パス。<strong>唯一の必須入力＝検証の主キー</strong>（全 mode 共通。teardown でも <code>&lt;scope&gt;</code> 導出に使う）。リバース元の同一性（<code>source_repo</code> / <code>source_ref</code>）はこの frontmatter が保持する</td></tr>
     <tr><td rowspan="4"><strong>任意</strong></td>
         <td><code>mode</code></td><td>setup / sync（既定）/ teardown</td></tr>
     <tr><td><code>dry-run</code> / <code>reset-first</code></td><td>sync のオプション（上記）</td></tr>
@@ -458,30 +464,43 @@
   <p>worktree の用意・命名・再発見はすべて本スキルが担う。作成は初回実行時の一度だけで、以後は同じ worktree を再発見して使い回す。どの mode でも Phase 2 で必ず実行し、冪等に振る舞う。</p>
   <table class="spec">
     <tr><th>対象</th><th>規則</th></tr>
-    <tr><td>システム識別子 <code>&lt;system&gt;</code></td><td>設計書 frontmatter の <code>source_repo</code> 末尾のリポジトリ名から機械的に導出する（<code>doc_id</code> は画面粒度のため使わない）</td></tr>
-    <tr><td>オリジナルコード環境</td><td>worktree 名 <code>original-code-&lt;system&gt;</code>。<code>source_ref</code> を固定 checkout した読み取り専用コピー。汚れ・ズレを検出したら内容だけを <code>source_ref</code> へ復元する（worktree 自体・名前・ポートは保持）</td></tr>
-    <tr><td>リバースコード環境</td><td>worktree 名 <code>reverse-code-&lt;system&gt;</code>、ブランチ <code>feature/reverse-code-&lt;system&gt;</code>。基準コミットと再構築履歴を持つ本体</td></tr>
-    <tr><td>基準タグ</td><td>annotated tag <code>reverse-baseline/&lt;system&gt;</code>。基準コミットの唯一の記録</td></tr>
-    <tr><td>ポート</td><td>config.yml の固定ベース（オリジナル=9100 / リバース=9110）から下の割当表のとおり確定する。プロジェクトに依存しない</td></tr>
+    <tr><td>システム識別子 <code>&lt;system&gt;</code></td><td>設計書 frontmatter の <code>source_repo</code> 末尾のリポジトリ名（<code>.git</code> 除去）から機械的に導出する</td></tr>
+    <tr><td>画面ID <code>&lt;画面ID&gt;</code></td><td>設計書 frontmatter <code>doc_id: screen-&lt;画面ID&gt;</code> から <code>screen-</code> 接頭辞を除去して導出する</td></tr>
+    <tr><td>スコープ <code>&lt;scope&gt;</code></td><td><code>&lt;system&gt;-&lt;画面ID&gt;</code>。worktree・ブランチ・基準タグ・ポートスロットの管理単位（共有アプリを画面単位で最大 5 画面まで並行検証するため）</td></tr>
+    <tr><td>オリジナルコード環境</td><td>worktree 名 <code>original-code-&lt;scope&gt;</code>。<code>source_ref</code> を固定 checkout した読み取り専用コピー。汚れ・ズレを検出したら内容だけを <code>source_ref</code> へ復元する（worktree 自体・名前・ポートは保持）</td></tr>
+    <tr><td>リバースコード環境</td><td>worktree 名 <code>reverse-code-&lt;scope&gt;</code>、ブランチ <code>feature/reverse-code-&lt;scope&gt;</code>。基準コミットと再構築履歴を持つ本体</td></tr>
+    <tr><td>基準タグ</td><td>annotated tag <code>reverse-baseline/&lt;scope&gt;</code>。基準コミットの唯一の記録</td></tr>
+    <tr><td>ポート</td><td>config.yml のポート計算式と、<code>&lt;scope&gt;</code> に動的割当てするスロット番号から下の計算式のとおり確定する。プロジェクトに依存しない</td></tr>
     <tr><td>作成の実務</td><td>worktree の物理作成・削除は <code>git worktree add / remove</code> を本スキルが直接実行する（オリジナルは <code>--detach</code>、リバースは <code>-b</code>。配置は <code>source_repo</code> の親ディレクトリ直下）。通常開発用の worktree 管理の仕組みとは命名・配置規約が異なるため委譲しない</td></tr>
   </table>
 
-  <h3>ポート割当（確定値）</h3>
-  <table class="spec">
-    <tr><th>環境</th><th>ベース</th><th>サービス別ポート</th></tr>
-    <tr><td>オリジナルコード環境</td><td><strong>9100</strong></td><td>backend 9100 / frontend 9101 / docs 9102 / DB tools 9103（9104〜9109 は予約）</td></tr>
-    <tr><td>リバースコード環境</td><td><strong>9110</strong></td><td>backend 9110 / frontend 9111 / docs 9112 / DB tools 9113（9114〜9119 は予約）</td></tr>
-  </table>
+  <h3>ポートモデル（計算式）</h3>
+  <p>worktree は初回に一度だけ作成し、teardown まで使い回す。ポートは <code>&lt;scope&gt;</code> ごとに動的割当てするスロット番号（1〜5）から次の式で決まる。</p>
+  <pre class="flow"><span class="cap">── ポート計算式 ─────────────────────────────────────────────</span>
+
+  slot k = 1..5（動的割当）
+  original = band_start + slot_stride×(k-1) + サービス index
+  reverse  = original + reverse_offset
+  既定: band_start=9100, slot_stride=20, reverse_offset=10
+  → slot k の占有帯 = [9100+20(k-1), 9119+20(k-1)]（連続 20 ポート）</pre>
+  <p>サービス index は config.yml の <code>services</code> 配列の並び順（既定 <code>[frontend]</code> → index 0）。既定の slot 1・frontend では原ポートは <code>original=9100</code> / <code>reverse=9110</code> になる。</p>
+  <p class="note">スロット割当手順: 兄弟 worktree（<code>original-code-*</code> / <code>reverse-code-*</code>）を走査し、各ルート直下の <code>.reverse-port-slot</code>（番号 1 行）を読んで使用中スロットを把握 → 空いている最小番号を両 worktree のルートに書き込む。開発用 worktree のスロットファイル <code>.port-slot</code> とは誤カウント防止のため別名にしている。<code>max_slots</code>（既定 5）を超えて空きがない場合は ERROR。</p>
+  <p class="note">互換注記: 旧固定表（frontend = オリジナル 9101 / リバース 9111）は廃止し、既定の slot 1 では frontend = オリジナル 9100 / リバース 9110 になる（稼働中環境が存在しないため移行措置は設けない）。</p>
 
   <h3>config.yml</h3>
-  <p>プロジェクトによって変えたくなる可能性がある値は、スキルフォルダ直下の <code>config.yml</code> に集約する。値の階層は 3 層で役割分担する: 普遍のルール＝SKILL.md / プロジェクト単位の可変値（ポート上書き・起動手順）＝config.yml / 画面単位の可変値（routes・マスク対象セレクタ）＝設計書 frontmatter。</p>
+  <p>プロジェクトによって変えたくなる可能性がある値は、スキルフォルダ直下の <code>config.yml</code> に集約する。値の階層は 3 層で役割分担する: 普遍のルール＝SKILL.md / プロジェクト単位の可変値（サービス一覧・起動手順）＝config.yml / 画面単位の可変値（routes・マスク対象セレクタ）＝設計書 frontmatter。</p>
   <pre class="flow"><span class="cap">── config.yml の構造 ───────────────────────────────────────</span>
 
   defaults:
     ports:
-      original_code_base: 9100  # オリジナルコード環境のベースポート
-      reverse_code_base: 9110   # リバースコード環境のベースポート
-    launch: "npm run dev -- --port {port}"  # 起動コマンドの既定形
+      band_start: 9100      # slot 1 のオリジナル側ベースポート
+      slot_stride: 20        # スロット 1 個あたりの占有帯幅
+      reverse_offset: 10     # オリジナル→リバースのポート加算値
+      max_slots: 5           # 同時並行できる画面スロット数の上限
+    services:                # 並び順 = ポートオフセット（0..9）。未使用分類は書かない
+      - frontend
+    launch:
+      frontend: "npm run dev -- --port {port}"  # 起動コマンドの既定形
     l3_threshold_percent: 0.1   # L3 視覚比較の許容差分画素率
     max_loop: 3                 # 収束ループ上限の既定値
     tag_namespace: reverse-baseline
@@ -492,18 +511,19 @@
       - .next/
       - "*.lock"
       - ".env*"                 # ポート設定を含む環境ファイル
+      - .reverse-port-slot       # スロット番号記録ファイル（開発用 .port-slot とは別物）
 
-  projects:                     # プロジェクト単位の上書き（必要時のみ）
-    "&lt;project-name&gt;":
-      ports: { original_code_base: 9120, reverse_code_base: 9130 }
+  projects:                     # プロジェクト（&lt;system&gt;）単位の上書き（必要時のみ）
+    "&lt;system&gt;":
+      services: [backend, frontend, docs, "db-tools"]
       launch:                   # 起動手順は唯一のアプリ依存要素
         backend: "&lt;backend 起動コマンド&gt; --port {port}"
         frontend: "&lt;frontend 起動コマンド&gt; --port {port}"</pre>
 
   <h3>制約</h3>
   <div class="constraint"><strong>制約:</strong>
-    ① ポートは全体共通の固定値のため、リバース検証環境は同時に 1 組だけ稼働できる（並行稼働は config.yml の projects 上書きで別帯域を割り当てた場合のみ）
-    ② worktree は全体で 5 本までの上限のうち 2 本を長期に占有する
+    ① 画面スロット制のため最大 5 画面まで並行検証できる（slot 1〜5、各 20 ポート帯）。6 画面目以降は空きスロット待ちとなる
+    ② worktree は全体で 5 本までの上限のうち 2 本を <code>&lt;scope&gt;</code> ごとに長期占有する
     ③ teardown はユーザーの明示依頼がある時だけ受け付け、本スキルが自発的に削除することはない
     ④ teardown 後も基準タグとブランチは残り、基準コミットは消えない
   </div>
@@ -511,11 +531,11 @@
   <h3>プリフライト（go / no-go 判定）</h3>
   <table class="spec">
     <tr><th>#</th><th>検証項目</th><th>NO-GO 時の扱い</th></tr>
-    <tr><td>1</td><td>設計書が存在し reverse-docs テンプレート準拠（<code>type: screen-basic-design</code>）で、<code>source_repo</code> / <code>source_ref</code> が解決できる</td><td>NO-GO</td></tr>
-    <tr><td>2</td><td>環境確保（命名規則で両環境を検出。無ければ作成）が完了している</td><td>worktree 総数上限（5 本）超過は NO-GO</td></tr>
+    <tr><td>1</td><td>設計書が存在し reverse-docs テンプレート準拠（<code>type: screen-detail-design</code>）で、<code>doc_id</code> が <code>screen-</code> 接頭辞を持ち、<code>source_repo</code> / <code>source_ref</code> が解決できる</td><td>NO-GO</td></tr>
+    <tr><td>2</td><td>環境確保（命名規則で両環境を検出。無ければ作成）とスロット割当が完了している</td><td>worktree 総数上限（5 本）超過・スロット枯渇（<code>max_slots</code>）は NO-GO</td></tr>
     <tr><td>3</td><td>オリジナルコード環境が <code>source_ref</code> と一致し clean</td><td>ズレ・汚れは内容を <code>source_ref</code> へ自動復元する</td></tr>
     <tr><td>4</td><td>リバースコード環境の dirty 状態を記録</td><td>sync では許容（整列で上書きされる）。dry-run 指定時は警告を提示</td></tr>
-    <tr><td>5</td><td>固定ポート（9100 / 9110 番台）が未占有</td><td>stale プロセスは kill して続行</td></tr>
+    <tr><td>5</td><td>当該 <code>&lt;scope&gt;</code> のスロット帯（計算式で確定するポート）が未占有</td><td>stale プロセスは kill して続行</td></tr>
     <tr><td>6</td><td>Playwright が利用可能、リバースコード環境側の依存インストールが完了（依存確認は sync のみ適用。setup 直後の空容器では Playwright 可用性の確認だけ行う）</td><td>NO-GO（<span class="tag error">ERROR</span> 系。§8）</td></tr>
     <tr><td>7</td><td><code>reset-first</code> 指定時のみ: 基準タグが存在</td><td>NO-GO（基準未確立と報告）</td></tr>
   </table>
@@ -523,7 +543,7 @@
 
 <section id="s6">
   <h2><span class="sec-num">§6</span>動作フロー</h2>
-  <p>初回か再実行かは基準タグ <code>reverse-baseline/&lt;system&gt;</code> の有無で判定する（<code>git tag -l</code> ＋ 参照先コミットの実在確認。タグなし・参照先不明はどちらも初回扱い）。</p>
+  <p>初回か再実行かは基準タグ <code>reverse-baseline/&lt;scope&gt;</code> の有無で判定する（<code>git tag -l</code> ＋ 参照先コミットの実在確認。タグなし・参照先不明はどちらも初回扱い）。</p>
   <pre class="flow"><span class="cap">── 分岐の全体図 ────────────────────────────────────────────</span>
 
   Phase 1  起動契約解決（args 検証・config.yml 読込）
@@ -536,7 +556,8 @@
      │                   このリバースコード環境に再構築コードを書く）
      │
      ├─ mode=teardown ─▶ 明示依頼を確認できた場合のみ
-     │  （検証終了時）    ポート一括 kill → worktree 削除 → 終了
+     │  （検証終了時）    当該 scope のスロット帯（連続 20 ポート）kill
+     │                   → worktree 削除 → 終了
      │                   （人間なら AskUserQuestion、スキル経由なら
      │                    args の user-approved 必須。無ければ削除せず
      │                    ERROR 差し戻し。基準タグとブランチは残す）
@@ -546,7 +567,7 @@
           │  基準タグの有無を確認（なし・参照先不明は初回扱い）
           │
           ├─ reset-first 指定 かつ タグあり
-          │    → git reset --hard reverse-baseline/&lt;system&gt; で
+          │    → git reset --hard reverse-baseline/&lt;scope&gt; で
           │      基準状態へ戻してから続行
           │
           ▼
@@ -571,7 +592,7 @@
   Phase 7  基準確立（dry-run 指定時はスキップ）
      │        git commit で直接コミット（日本語 prefix 規約）
      │        → 基準コミットに annotated tag を打つ
-     │           git tag -a reverse-baseline/&lt;system&gt;
+     │           git tag -a reverse-baseline/&lt;scope&gt;
      │        ※ 整列が走らず新規コミット対象が無い場合はコミットを
      │          スキップし、現 HEAD にタグを打ち直す
      │
@@ -583,11 +604,11 @@
 
   <h3>7-1. 静的比較</h3>
   <p>「パス除外 → 残った差分行のポート正規化判定」の 2 段構えで、全差分を 3 分類に落とす。除外パスは config.yml の <code>diff_exclude</code> ＋ 設計書 frontmatter での画面固有の追加指定。</p>
-  <p>ポートが固定値で決定的であることを利用し、差分行ごとに「オリジナル側のポートをサービスオフセットへ逆引きし、リバース側の同位置の値がリバース側期待値（9110 番台）と一致する」場合のみ許容する。行内のポート以外の部分は完全一致を要求し、「数字が違うだけなら許容」にはしない。</p>
+  <p>ポートが計算式で決定的であることを利用し、差分行ごとに「オリジナル側の値をサービス index へ逆引きし、リバース側の同位置の値が <code>reverse = original + reverse_offset</code> の期待値と一致する」場合のみ許容する。行内のポート以外の部分は完全一致を要求し、「数字が違うだけなら許容」にはしない。</p>
   <table class="spec">
     <tr><th>分類</th><th>意味</th><th>扱い</th></tr>
     <tr><td>一致</td><td>差分なし</td><td>—</td></tr>
-    <tr><td>ポート差のみ</td><td>固定ポートの期待値どおりの番号相違</td><td>許容（件数をレポートに記録）</td></tr>
+    <tr><td>ポート差のみ</td><td>計算式どおりの期待値どおりの番号相違</td><td>許容（件数をレポートに記録）</td></tr>
     <tr><td>実差分</td><td>上記以外のすべての相違</td><td><span class="tag fail">FAIL</span> 対象。ファイル別・追加/削除/変更別に集計</td></tr>
   </table>
 
@@ -595,9 +616,9 @@
   <p>実行環境そのものが「ポート以外は同一」かつ「互いに独立」であることを機械的に確認する。起動前（#1〜#2, #4〜#8, #10）と起動後（#3, #9）に実行する。</p>
   <table class="spec">
     <tr><th>#</th><th>検証項目</th><th>確認方法</th><th>NG 時の扱い</th></tr>
-    <tr><td>1</td><td>ポート占有の帰属</td><td><code>lsof -i</code> で固定ポート帯を走査し、LISTEN プロセスの cwd が自環境の worktree かを突合</td><td>stale は kill して続行。無関係な稼働プロセスは <span class="tag error">ERROR</span></td></tr>
-    <tr><td>2</td><td>ポート設定の混入（転写後）</td><td>リバース側を 9100 番台で、オリジナル側を 9110 番台で相互に grep</td><td>相手帯域の番号が 1 件でもあれば転写ミス。ポート再生成をやり直す</td></tr>
-    <tr><td>3</td><td>実際の待受ポート</td><td>起動後の LISTEN 一覧を §5 割当表の期待値と突合</td><td>期待外の待受・不応答は <span class="tag fail">FAIL</span></td></tr>
+    <tr><td>1</td><td>ポート占有の帰属</td><td><code>lsof -i</code> で当該 <code>&lt;scope&gt;</code> のスロット帯を走査し、LISTEN プロセスの cwd が自環境の worktree かを突合</td><td>stale は kill して続行。無関係な稼働プロセスは <span class="tag error">ERROR</span></td></tr>
+    <tr><td>2</td><td>ポート設定の混入（転写後）</td><td>リバース側をオリジナル側帯域で、オリジナル側をリバース側帯域で相互に grep</td><td>相手帯域の番号が 1 件でもあれば転写ミス。ポート再生成をやり直す</td></tr>
+    <tr><td>3</td><td>実際の待受ポート</td><td>起動後の LISTEN 一覧を §5 の計算式による期待値と突合</td><td>期待外の待受・不応答は <span class="tag fail">FAIL</span></td></tr>
     <tr><td>4</td><td>シンボリックリンクの実態</td><td><code>find -type l</code> ＋ <code>realpath</code> で実体を解決し「自 worktree 内 / 共有 store / worktree 外」に分類</td><td>相手側 worktree・元リポジトリを指すものは <span class="tag fail">FAIL</span>。共有 store は同一バージョンの実体を指すことを確認して許容</td></tr>
     <tr><td>5</td><td>依存ツリーの同一性</td><td><code>npm ls --all</code> 相当を正規化し、名前＋バージョン集合を比較</td><td>依存再構築を 1 回リトライ → なお不一致は <span class="tag fail">FAIL</span></td></tr>
     <tr><td>6</td><td>ランタイムの同一性</td><td><code>node -v</code> 等を両環境で実測して突合</td><td>不一致は <span class="tag error">ERROR</span>（実行基盤の問題）</td></tr>
@@ -626,7 +647,7 @@
   1. 保全    リバースコード環境のポート設定ファイル群を退避
   2. 転写    オリジナルコード環境 → リバースコード環境へミラーコピー
              （削除同期あり。除外は 7-1 準拠）
-  3. 再生成  config.yml の固定ベース（9110）から
+  3. 再生成  当該 &lt;scope&gt; のスロットから算出したリバース側ポートで
              リバースコード環境側のポート設定を再生成
   4. 再構築  依存インストールを再実行
   5. 再検証  Phase 3（静的）→ Phase 5（環境＋動的）へ合流し、
@@ -639,7 +660,7 @@
   <h3>異常系の挙動</h3>
   <table class="spec">
     <tr><th>局面</th><th>挙動</th></tr>
-    <tr><td>プリフライト NO-GO</td><td>停止して報告（<code>source_repo</code> / <code>source_ref</code> 解決不能・固定ポート帯の占有 等）</td></tr>
+    <tr><td>プリフライト NO-GO</td><td>停止して報告（<code>source_repo</code> / <code>source_ref</code> 解決不能・スロット帯の占有・スロット枯渇 等）</td></tr>
     <tr><td>静的比較 FAIL</td><td>dry-run 指定時: 報告のみ。通常の sync: 自動整列へ進む</td></tr>
     <tr><td>動的比較 FAIL（整列後も）</td><td>依存再構築を 1 回だけ自動リトライ → なお FAIL なら収束ループ上限内で継続、上限到達で停止・差し戻し</td></tr>
     <tr><td>収束ループ上限到達</td><td><span class="tag fail">FAIL</span> 確定。リバースコード環境は最後の整列状態のまま残し、コミット・基準更新はしない</td></tr>
@@ -652,9 +673,13 @@
 
   status:          PASS | FAIL | ERROR
   mode:            setup | sync | teardown（+ dry-run / reset-first の有無）
+  scope:           &lt;system&gt;-&lt;画面ID&gt;
+  screen_id:       &lt;画面ID&gt;
+  slot:            &lt;1〜5&gt;
+  ports:           original: { frontend: &lt;port&gt;, ... } / reverse: { frontend: &lt;port&gt;, ... }
   original_code:   &lt;オリジナルコード環境のパス&gt;（ブランチ・ポート付き）
   reverse_code:    &lt;リバースコード環境のパス&gt;（ブランチ・ポート付き）
-  baseline_tag:    reverse-baseline/&lt;system&gt; → &lt;hash&gt;  # PASS 時は新基準
+  baseline_tag:    reverse-baseline/&lt;scope&gt; → &lt;hash&gt;  # PASS 時は新基準
   static_diff:     実差分 &lt;N&gt; 件（上位 &lt;n&gt; 件のファイル一覧）
                    ポート差（許容） &lt;M&gt; 件
   dynamic:         L1=PASS L2=PASS L3=PASS(0.03%) L4=PASS
@@ -672,14 +697,15 @@
 
   ## リバース環境 検証結果: PASS（ポート以外完全一致）
 
-  基準タグ: reverse-baseline/&lt;system&gt; → &lt;hash&gt;（本日確立）
+  scope: &lt;system&gt;-&lt;画面ID&gt;（slot &lt;k&gt;）
+  基準タグ: reverse-baseline/&lt;scope&gt; → &lt;hash&gt;（本日確立）
 
   ### ブラウザで見比べる
   | 環境 | 確認 URL |
   |---|---|
-  | オリジナルコード環境 | http://localhost:9101&lt;route&gt; |
-  | リバースコード環境   | http://localhost:9111&lt;route&gt; |
-  ※ 両環境は起動したまま。URL のパスは設計書の route 由来
+  | オリジナルコード環境 | http://localhost:&lt;original_port&gt;&lt;route&gt; |
+  | リバースコード環境   | http://localhost:&lt;reverse_port&gt;&lt;route&gt; |
+  ※ 両環境は起動したまま。URL のパスは設計書の route 由来、ポートは §5 の計算式による確定値
 
   ### 検証内容
   - 静的比較: 実差分 0 件（許容したポート差 &lt;M&gt; 件）
@@ -692,15 +718,15 @@
   ### 環境情報
   - オリジナルコード環境: &lt;パス&gt;（source_ref: &lt;hash&gt;）
   - リバースコード環境:   &lt;パス&gt;
-    （ブランチ: feature/reverse-code-&lt;system&gt;）
+    （ブランチ: feature/reverse-code-&lt;scope&gt;）
 
   ### 手動で再起動したい時（config.yml の launch より生成）
-  cd &lt;オリジナルコード環境のパス&gt; && &lt;起動コマンド&gt; --port 9101
-  cd &lt;リバースコード環境のパス&gt;   && &lt;起動コマンド&gt; --port 9111
+  cd &lt;オリジナルコード環境のパス&gt; && &lt;起動コマンド&gt; --port &lt;original_port&gt;
+  cd &lt;リバースコード環境のパス&gt;   && &lt;起動コマンド&gt; --port &lt;reverse_port&gt;
 
   ### 片付けたい時
   「リバース検証環境を teardown して」と依頼する
-  （worktree 削除・ポート解放。基準タグとブランチは残る）</pre>
+  （worktree 削除・当該 scope のスロット帯を解放。基準タグとブランチは残る）</pre>
 
   <table class="spec">
     <tr><th>判定</th><th>見出し行</th><th>追加・変更するセクション</th></tr>
@@ -716,7 +742,7 @@
   <table class="spec">
     <tr><th>名前</th><th>関係</th></tr>
     <tr><td>コミット・命名規約</td><td>基準コミットのメッセージは日本語 prefix 規約に従い、本スキルが git commit を直接実行する（他スキルへの委譲はしない）</td></tr>
-    <tr><td>ポート管理規約</td><td>stale プロセスの検出・kill 手順の正。本スキルの固定ポート帯（9100 番台）は既存の開発帯域と衝突しないよう選定</td></tr>
+    <tr><td>ポート管理規約</td><td>stale プロセスの検出・kill 手順の正。本スキルのスロット帯（既定 band_start 9100 番台）は既存の開発帯域と衝突しないよう選定</td></tr>
     <tr><td>rebuilding-code-from-docs スキル</td><td>設計書修正 → リバースコード環境の再構築ループ。本スキルの呼び出し元。§8 の返却ブロックが両者のインターフェース</td></tr>
     <tr><td><code>syncing-reverse-env-concept.html</code></td><td>設計経緯と設計判断（ADR）の記録</td></tr>
   </table>

@@ -3,9 +3,14 @@
 
 defaults:
   ports:
-    original_code_base: 9100  # オリジナルコード環境のベースポート
-    reverse_code_base: 9110   # リバースコード環境のベースポート
-  launch: "npm run dev -- --port {port}"  # 起動コマンドの既定形
+    band_start: 9100      # slot 1 のオリジナル側ベースポート
+    slot_stride: 20        # スロット 1 個あたりの占有帯幅
+    reverse_offset: 10     # オリジナル→リバースのポート加算値
+    max_slots: 5           # 同時並行できる画面スロット数の上限
+  services:                # 並び順 = ポートオフセット（0..9）。未使用分類は書かない
+    - frontend
+  launch:
+    frontend: "npm run dev -- --port {port}"  # 起動コマンドの既定形
   l3_threshold_percent: 0.1   # L3 視覚比較の許容差分画素率
   max_loop: 3                 # 収束ループ上限の既定値
   tag_namespace: reverse-baseline
@@ -16,10 +21,11 @@ defaults:
     - .next/
     - "*.lock"
     - ".env*"                 # ポート設定を含む環境ファイル
+    - .reverse-port-slot       # スロット番号記録ファイル（開発用 .port-slot とは別物）
 
-projects: {}                  # プロジェクト単位の上書き（必要時のみ追記）
-  # "<project-name>":
-  #   ports: { original_code_base: 9120, reverse_code_base: 9130 }
+projects: {}                  # プロジェクト（<system>）単位の上書き（必要時のみ追記）
+  # "<system>":
+  #   services: [backend, frontend, docs, "db-tools"]
   #   launch:
   #     backend: "<backend 起動コマンド> --port {port}"
   #     frontend: "<frontend 起動コマンド> --port {port}"
