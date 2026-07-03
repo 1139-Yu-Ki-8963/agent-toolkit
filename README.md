@@ -24,6 +24,7 @@ payload/
 │       ├── generating-screen-list-for-reverse-docs/
 │       ├── managing-agent-configs/
 │       ├── rebuilding-code-from-docs/
+│       ├── rebuilding-screen-unit-from-docs/
 │       └── syncing-reverse-env/
 └── claude-config/       → ~/.claude/       （ファイル単位で設置）
     ├── CLAUDE.md                            （既存があれば上書きしない）
@@ -41,6 +42,7 @@ payload/
 | [`generating-screen-list-for-reverse-docs`](payload/agent-home/skills/generating-screen-list-for-reverse-docs/SKILL.md) | レガシーコードベースをスタック調査→検出戦略宣言→抽出→整合検証の4 Phaseで画面単位にグルーピングし、画面一覧.HTML を生成する。抽出は「組み込み検出器（Next.js/React Router・useRoutes 2段階追跡対応）」と「カスタム抽出パス（未知のルーティング方式にプロジェクト専用手順で対応）」の2経路で、どちらも `validate-manifest.sh` が抽出者非依存で整合性を機械検証する（戦略未承認・重複キー・entryFile不在をFAIL）。共有クラスタ・埋め込みビュー・画面ID・診断警告を可視化。仕事は画面一覧.HTMLの作成のみで、設計書の雛形展開・生成は行わない。validate/build は jq に依存。スキルガイドを [`references/generating-screen-list-for-reverse-docs-guide.html`](payload/agent-home/skills/generating-screen-list-for-reverse-docs/references/generating-screen-list-for-reverse-docs-guide.html) に同梱 |
 | [`managing-agent-configs`](payload/agent-home/skills/managing-agent-configs/SKILL.md) | エージェント構成 5 種（スキル・フック・ルール・ルーティン・サブエージェント）のライフサイクル管理（作成・観点ベース静的レビュー・実機検証）。スキルガイドを [`references/managing-agent-configs-guide.html`](payload/agent-home/skills/managing-agent-configs/references/managing-agent-configs-guide.html) に同梱 |
 | [`rebuilding-code-from-docs`](payload/agent-home/skills/rebuilding-code-from-docs/SKILL.md) | リバース済み画面基本設計書だけからコードを再生成し、元コードと機械突合して設計書の欠落を発見する往復検証スキル。環境同期・比較エンジンは `syncing-reverse-env` に全面委譲。**注意**: 対象テンプレート（`~/agent-home/templates/reverse-docs/02_画面基本設計/`）は本リポジトリに未同梱のため別途用意が必要。スキルガイドを [`references/rebuilding-code-from-docs-guide.html`](payload/agent-home/skills/rebuilding-code-from-docs/references/rebuilding-code-from-docs-guide.html) に同梱 |
+| [`rebuilding-screen-unit-from-docs`](payload/agent-home/skills/rebuilding-screen-unit-from-docs/SKILL.md) | 画面詳細設計書だけから単体テスト観点で1ファイルを再生成し、原本と5計測（import diff・style diff・全体diff・実質diff・単体テスト仕様検査）で軽量突合する stage1 スキル。カンニング防止を git rm 白紙化＋サブエージェント隔離の二層で構造化。合格後は `rebuilding-code-from-docs`（画面単位・結合観点）へ引き継ぐ。**注意**: 対象テンプレートは兄弟スキル rebuilding-code-from-docs 同様、本リポジトリに未同梱。スキルガイドを [`references/rebuilding-screen-unit-from-docs-guide.html`](payload/agent-home/skills/rebuilding-screen-unit-from-docs/references/rebuilding-screen-unit-from-docs-guide.html) に同梱 |
 | [`syncing-reverse-env`](payload/agent-home/skills/syncing-reverse-env/SKILL.md) | ポート番号だけが違う 2 つの検証環境を用意・同期し、完全一致の証明を基準タグとして確立。スキルガイドを [`references/syncing-reverse-env-guide.html`](payload/agent-home/skills/syncing-reverse-env/references/syncing-reverse-env-guide.html) に同梱 |
 
 ---
@@ -157,6 +159,14 @@ agent-toolkit/
 │   │       │   └── scripts/
 │   │       │       ├── audit-consistency.sh
 │   │       │       └── check-freeze.sh
+│   │       ├── rebuilding-screen-unit-from-docs/
+│   │       │   ├── SKILL.md
+│   │       │   ├── references/
+│   │       │   │   ├── rebuilding-screen-unit-from-docs-guide.html
+│   │       │   │   ├── phase-details.md
+│   │       │   │   └── ng-classification.md
+│   │       │   └── scripts/
+│   │       │       └── measure-file-diff.sh
 │   │       └── syncing-reverse-env/
 │   │           ├── SKILL.md
 │   │           ├── config.yml
