@@ -121,7 +121,7 @@
   <table class="meta-table">
     <tr><td>対応 OS</td><td>macOS（Bash 標準ツールに依存。Linux 移植時は sed 構文の差異に注意）</td></tr>
     <tr><td>検証状況</td><td>managing-agent-configs の test モードによる実機検証を経て運用開始</td></tr>
-    <tr><td>依存</td><td>標準的な POSIX ツール（find / grep / sed / awk）のみ。外部コマンド依存なし</td></tr>
+    <tr><td>依存</td><td>標準的な POSIX ツール（find / grep / sed / awk）に加え、画面一覧.HTML生成（build-screen-list.sh）で jq を使用</td></tr>
     <tr><td>関連資料</td><td>rebuilding-code-from-docs / syncing-reverse-env</td></tr>
   </table>
 </header>
@@ -132,9 +132,9 @@
     <li><a href="#s1">概要</a></li>
     <li><a href="#s2">用語</a></li>
     <li><a href="#s3">使い方（起動引数）</a></li>
-    <li><a href="#s4">動作フロー（Phase 1〜2）</a></li>
+    <li><a href="#s4">動作フロー（Phase 1〜4）</a></li>
     <li><a href="#s5">画面キー生成規則</a></li>
-    <li><a href="#s6">画面一覧.HTMLの活用方法</a></li>
+    <li><a href="#s6">検出戦略宣言の作り方</a></li>
     <li><a href="#s7">画面一覧.HTML フォーマット</a></li>
     <li><a href="#s8">Gotchas・スコープ外</a></li>
     <li><a href="#s9">関連スキル・規約</a></li>
@@ -173,15 +173,26 @@
 </section>
 
 <section id="s4">
-  <h2><span class="sec-num">§4</span>動作フロー（Phase 1〜2）</h2>
-  <pre class="flow"><span class="cap">Phase 1: 画面境界検出</span>
-  detect-screens.sh source-dir manifest.json
+  <h2><span class="sec-num">§4</span>動作フロー（Phase 1〜4）</h2>
+  <pre class="flow"><span class="cap">Phase 1: スタック・画面規約の特定</span>
+  package.json / lockファイル / ルーター定義を調査しフレームワーク・ルーターを確定
+  画面ID命名パターン・メニュー定義有無・ナビゲーション方式(router.push型/View切替型)を調査
+  検出戦略宣言(画面単位定義・screen-id-regex・view-switch-pattern)をAskUserQuestionで1回確認
+
+<span class="cap">Phase 2: 戦略に基づく抽出</span>
+  detect-screens.sh source-dir manifest.json [--screen-id-regex re] [--view-switch-pattern re]
   優先順位: Next.js App Router → Pages Router → React Router(flat) → 慣習ディレクトリ
   0件ならハード停止(exit 3)。捏造しない
+  view-switch-pattern 指定時は kind: embedded-view を独立行として検出
 
-<span class="cap">Phase 2: 画面一覧.HTML 生成</span>
-  screen-list-template.html を土台に Write
-  埋め込みJSON = Phase1の確定結果の正本コピー</pre>
+<span class="cap">Phase 3: 整合検証（スクリプト内で自動実行）</span>
+  同一(route, entryFile)の重複マージ → routeDupCount
+  共有クラスタ算出 → sharedWith / clusterId
+  unresolved は confidence=low 強制。共有クラスタは screenNameGuess を抑制
+
+<span class="cap">Phase 4: 画面一覧.HTML 生成</span>
+  build-screen-list.sh manifest.json output-dir/画面一覧.html
+  手作業でのプレースホルダ置換は禁止。決定的スクリプト経由のみ</pre>
 </section>
 
 <section id="s5">
@@ -198,19 +209,26 @@
 </section>
 
 <section id="s6">
-  <h2><span class="sec-num">§6</span>画面一覧.HTMLの活用方法</h2>
-  <p>画面一覧.HTMLは「画面詳細設計の画面単位を正確に分けるための正本」として位置づけられる。本スキルはこの一覧を作るところまでが仕事であり、以降の設計書作成・雛形展開は対象外。</p>
+  <h2><span class="sec-num">§6</span>検出戦略宣言の作り方</h2>
+  <p>Phase 1でエージェントが調査した内容をもとに、画面単位の定義・<code>screen-id-regex</code>・<code>view-switch-pattern</code>の3点を宣言し、AskUserQuestionで1回だけ確認を取る。汎用の正規表現をプロジェクトを問わず当てるのではなく、対象プロジェクトの実際の命名規約・ナビゲーション方式から導出する。</p>
   <table class="spec">
-    <tr><th>用途</th><th>使い方</th></tr>
-    <tr><td>人間によるレビュー</td><td>ブラウザで開き、検出方式・confidence列を見て境界の妥当性を目視確認する</td></tr>
-    <tr><td>後続作業への入力</td><td>埋め込みJSON（<code>#screen-manifest</code>）をパースし、別プロセス・別スキルが設計書作成等の入力に使う</td></tr>
+    <tr><th>項目</th><th>決め方</th><th>例</th></tr>
+    <tr><td>画面単位の定義</td><td>1ファイル=1画面か、複数ファイルの集合（コンポーネント分割）かをディレクトリ構成から判断する</td><td>「エントリファイル＋直下components/を1画面とする」</td></tr>
+    <tr><td>screen-id-regex</td><td>ファイル名に画面IDが埋め込まれている場合、そのIDを抽出する正規表現を決める。命名パターンが無ければ「なし」と明記する</td><td><code>T-[A-Z]-\d-\d+</code>（<code>T-A-1-113.tsx</code>から画面IDを抽出）</td></tr>
+    <tr><td>view-switch-pattern</td><td>router.push型ではなく状態切替関数でView遷移するSPA構成の場合、その切替関数呼び出しを検出する正規表現を決める</td><td><code>setEditView\(['"]([\w-]+)['"]\)</code></td></tr>
   </table>
-  <p class="note">confidence が low の画面は自動判定の確度が低いため、後続作業に渡す前に人間の確認を挟むことを推奨する。</p>
+  <p class="note">画面規約が不明瞭な場合は空の宣言（「なし」）で進めてよいが、後続Phaseの検出精度は confidence に反映される。</p>
 </section>
 
 <section id="s7">
   <h2><span class="sec-num">§7</span>画面一覧.HTML フォーマット</h2>
-  <p>テーブル列: 画面キー／画面名／ルート／検出方式／confidence／構成ファイル数／主ファイル。<code>&lt;script type="application/json" id="screen-manifest"&gt;</code> に構造化データを埋め込み、人間可読と機械可読を両立する。外部CDN不使用の単一ファイル自己完結。</p>
+  <p>テーブル列: 画面ID／画面キー／区分／画面名／ルート／検出方式／confidence／共有／構成ファイル数／主ファイル。<code>&lt;script type="application/json" id="screen-manifest"&gt;</code> に構造化データを埋め込み、人間可読と機械可読を両立する。外部CDN不使用の単一ファイル自己完結。</p>
+  <table class="spec">
+    <tr><th>列</th><th>内容</th></tr>
+    <tr><td>画面ID</td><td>Phase 1の screen-id-regex で抽出したID（該当なしなら空欄）</td></tr>
+    <tr><td>区分</td><td>kind（route / embedded-view / unresolved）</td></tr>
+    <tr><td>共有</td><td>sharedWith / clusterId の有無。共有クラスタに属する画面は screenNameGuess を表示しない</td></tr>
+  </table>
   <div class="constraint"><strong>正本の位置づけ</strong>: 画面一覧.HTML は後続フェーズが読む計画書ではなく、実施済み事実のレポート。画面詳細設計の単位を正確に分けるための正本として機能する。</div>
 </section>
 
