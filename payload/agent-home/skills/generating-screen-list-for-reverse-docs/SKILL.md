@@ -54,7 +54,7 @@ allowed-tools: [Bash, Read, Write, Edit, Grep, Glob, AskUserQuestion, TaskCreate
 
 ### Phase 3: 整合検証（機械実行）
 
-- **Step 1**: `scripts/validate-manifest.sh <manifest.json>` を実行する。完了条件: 全6項目PASS
+- **Step 1**: `scripts/validate-manifest.sh <manifest.json>` を実行する。完了条件: 全7項目PASS
 - **Step 2**: FAIL時は指摘に応じて修正する（entryFile不在は `--fix` でunresolved降格可）。修正後Step 1を再実行する。3回失敗したら抽出方式の再検討（Phase 2 Step 1）へ差し戻す。完了条件: exit 0
 
 `validate-manifest.sh` は抽出方式（組み込み/カスタム）を問わず同一基準で検証する。カスタム抽出パスであっても、この検証を通過しないマニフェストはPhase 4に進めない。
@@ -71,7 +71,7 @@ allowed-tools: [Bash, Read, Write, Edit, Grep, Glob, AskUserQuestion, TaskCreate
 |---|---|
 | Phase 1 | Step 1〜4の調査完了。Step 5の検出戦略宣言（screenUnitDefinition/screenIdRegex/viewSwitchPattern/excludePatterns）がユーザー承認済み |
 | Phase 2 | Step 1で抽出方式（builtin/custom）が決定済み。Step 2でスキーマ準拠のマニフェストが1件以上確定、または0件検出をユーザーに報告して停止している。Step 3でdiagnosticsを確認済み |
-| Phase 3 | Step 1で `validate-manifest.sh` が全6項目PASS。Step 2のFAIL時修正ループは3回以内 |
+| Phase 3 | Step 1で `validate-manifest.sh` が全7項目PASS。Step 2のFAIL時修正ループは3回以内 |
 | Phase 4 | Step 1で画面一覧.HTMLが生成され、埋め込みJSONがマニフェストと一致している |
 | **Goal** | 検証済みマニフェストのみからHTMLが生成され、共有/埋め込み/未解決/診断警告が可視化され、設計書単位の判断材料が揃っている |
 
@@ -107,6 +107,11 @@ allowed-tools: [Bash, Read, Write, Edit, Grep, Glob, AskUserQuestion, TaskCreate
 - 動的に構築されるルート文字列（変数結合等）は組み込み検出器では検出できない。静的リテラルの `path` のみが対象
 - 埋め込みビュー（`kind: embedded-view`）の検出はPhase 1で `view-switch-pattern` を指定した場合のみ有効。未指定なら検出しない
 - 設計書の雛形展開・生成は行わない（本スキルのスコープ外）
+- カスタム抽出でソースを解析する際、コメントアウトされたルート定義・import文を除去してから抽出する（コメント内の定義を実在として誤検出した実害を防ぐ）
+- View切替の検出パターンはsetEditView/ModalModeに限らない。自己管理モーダル（useState+条件レンダリング等）を使うプロジェクトではPhase 1でそのパターンを特定して宣言する
+- `import Foo, { Bar } from ...`（default+named混合import）の解決は組み込み検出器では不完全。カスタム抽出パスで対応する
+- 埋め込みビューの1階層スキャンでは子コンポーネント内のさらなるView切替を検出できない。深い階層が疑われる場合はカスタム抽出パスで再帰スキャンを設計する
+- 画面数のカウントには部品ファイル（共有クラスタで参照されるだけのコンポーネント等）を含めない。画面として数えるのはroute行とembedded-view行のみ
 
 ## 設計判断
 
