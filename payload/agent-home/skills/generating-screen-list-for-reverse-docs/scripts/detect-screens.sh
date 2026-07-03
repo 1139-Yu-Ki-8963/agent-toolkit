@@ -244,12 +244,10 @@ mkdir -p "$(dirname "$MANIFEST_OUT")"
     printf '      "entryFile": "%s",\n' "$(json_escape "$entry_file")"
     printf '      "fileCount": %d,\n' "$file_count"
     if [ -n "$files_json" ]; then
-      printf '      "files": [\n%s\n      ],\n' "$files_json"
+      printf '      "files": [\n%s\n      ]\n' "$files_json"
     else
-      printf '      "files": [],\n'
+      printf '      "files": []\n'
     fi
-    printf '      "scaffoldDir": "screen-%s",\n' "$(json_escape "$key")"
-    printf '      "scaffoldStatus": "pending"\n'
     printf '    }'
   done < "${TMP_ROWS}.keyed"
   printf '\n  ]\n'

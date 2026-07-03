@@ -38,7 +38,7 @@ payload/
 
 | スキル | 担当 |
 |---|---|
-| [`generating-screen-list-for-reverse-docs`](payload/agent-home/skills/generating-screen-list-for-reverse-docs/SKILL.md) | レガシーコードベースをルーティング検出（Next.js App/Pages Router・React Router）またはディレクトリ慣習で画面単位にグルーピングし、画面一覧.HTML と `02_画面基本設計/` の雛形を機械生成する。**注意**: スキャフォールドのコピー元テンプレート（`~/agent-home/templates/reverse-docs/02_画面基本設計/`）は本リポジトリに未同梱のため別途用意が必要。スキルガイドを [`references/generating-screen-list-for-reverse-docs-guide.html`](payload/agent-home/skills/generating-screen-list-for-reverse-docs/references/generating-screen-list-for-reverse-docs-guide.html) に同梱 |
+| [`generating-screen-list-for-reverse-docs`](payload/agent-home/skills/generating-screen-list-for-reverse-docs/SKILL.md) | レガシーコードベースをルーティング検出（Next.js App/Pages Router・React Router）またはディレクトリ慣習で画面単位にグルーピングし、画面一覧.HTML を生成する。仕事は画面一覧.HTMLの作成のみで、設計書の雛形展開・生成は行わない。外部ファイルへの依存なし（POSIX標準ツールのみ）。スキルガイドを [`references/generating-screen-list-for-reverse-docs-guide.html`](payload/agent-home/skills/generating-screen-list-for-reverse-docs/references/generating-screen-list-for-reverse-docs-guide.html) に同梱 |
 | [`managing-agent-configs`](payload/agent-home/skills/managing-agent-configs/SKILL.md) | エージェント構成 5 種（スキル・フック・ルール・ルーティン・サブエージェント）のライフサイクル管理（作成・観点ベース静的レビュー・実機検証）。スキルガイドを [`references/managing-agent-configs-guide.html`](payload/agent-home/skills/managing-agent-configs/references/managing-agent-configs-guide.html) に同梱 |
 | [`rebuilding-code-from-docs`](payload/agent-home/skills/rebuilding-code-from-docs/SKILL.md) | リバース済み画面基本設計書だけからコードを再生成し、元コードと機械突合して設計書の欠落を発見する往復検証スキル。環境同期・比較エンジンは `syncing-reverse-env` に全面委譲。**注意**: 対象テンプレート（`~/agent-home/templates/reverse-docs/02_画面基本設計/`）は本リポジトリに未同梱のため別途用意が必要。スキルガイドを [`references/rebuilding-code-from-docs-guide.html`](payload/agent-home/skills/rebuilding-code-from-docs/references/rebuilding-code-from-docs-guide.html) に同梱 |
 | [`syncing-reverse-env`](payload/agent-home/skills/syncing-reverse-env/SKILL.md) | ポート番号だけが違う 2 つの検証環境を用意・同期し、完全一致の証明を基準タグとして確立。スキルガイドを [`references/syncing-reverse-env-guide.html`](payload/agent-home/skills/syncing-reverse-env/references/syncing-reverse-env-guide.html) に同梱 |
@@ -128,8 +128,7 @@ agent-toolkit/
 │   │       ├── generating-screen-list-for-reverse-docs/
 │   │       │   ├── SKILL.md
 │   │       │   ├── scripts/
-│   │       │   │   ├── detect-screens.sh
-│   │       │   │   └── scaffold-screens.sh
+│   │       │   │   └── detect-screens.sh
 │   │       │   ├── assets/
 │   │       │   │   └── screen-list-template.html
 │   │       │   └── references/
