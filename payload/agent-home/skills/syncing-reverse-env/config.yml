@@ -28,14 +28,20 @@ defaults:
     - node_modules/.vite
     - node_modules/.cache
   artifacts_root: "~/agent-home/sessions/reverse-env"  # 証跡ルート（scope/実行日時で分離）
-  node_modules_strategy: npm_ci  # npm_ci（既定・各環境で独立インストール） /
-                                 # symlink_main（source_repo の node_modules へ symlink。独立 2 環境の証明対象から除外）
-  allow_mnt_fs: false            # false（既定）で fs-location が /mnt/* を ERROR /
-                                 # true で ERROR ではなく性能 WARN に緩和（drvfs 上でも動くが低速。projects で個別上書き可）
+  # 環境差を吸収する 3 値。既定はすべて auto（Phase 2 プリフライトが実行時に検出して解決）。
+  # 人間が値を書かなくても環境に合わせて自動決定される。明示値は強制上書きとして機能する。
+  node_modules_strategy: auto    # auto（既定・source_repo が drvfs 上なら symlink_main / それ以外は npm_ci） /
+                                 # npm_ci（強制・各環境で独立インストール） /
+                                 # symlink_main（強制・source_repo の node_modules へ symlink。独立 2 環境の証明対象から除外）
+  allow_mnt_fs: auto             # auto（既定・source_repo が /mnt/* 配下なら性能 WARN で続行 / それ以外は論点なし） /
+                                 # true（強制・/mnt/* でも WARN で続行） /
+                                 # false（強制・/mnt/* を ERROR で止める）
   playwright_exec:
-    mode: mcp                    # mcp（既定・Playwright MCP ツールを使用） /
-                                 # node-script（下記 command_template を Bash で直接実行。MCP 非接続環境向け）
-    node_path: null              # node-script 時に NODE_PATH へ渡す playwright の解決先（npx キャッシュ等）。null で環境依存
+    mode: auto                   # auto（既定・Playwright MCP が利用可能なら mcp / 非接続なら node-script に自動フォールバック） /
+                                 # mcp（強制・Playwright MCP ツールを使用） /
+                                 # node-script（強制・下記 command_template を Bash で直接実行）
+    node_path: null              # null（既定・自動解決: reverse worktree の node_modules で playwright を解決 → だめなら npx 解決先を照会） /
+                                 # 明示パス（強制・NODE_PATH へ渡す playwright の解決先を固定）
     # command_template の実機検証で判明した固定事項（変更禁止）:
     #   - waitUntil: "load"（networkidle だと Vite dev server の HMR 用 WebSocket が繋がりっぱなしで永久タイムアウト）
     #   - page.locator("body").ariaSnapshot()（page.accessibility.snapshot() は Playwright 1.61 系で撤去済み）
@@ -62,16 +68,17 @@ defaults:
       })().catch(e => { console.error("CAPTURE_FAILED", e); process.exit(1); });
       '
 
-projects: {}                  # プロジェクト（<system>）単位の上書き（必要時のみ追記）
+projects: {}                  # プロジェクト（<system>）単位の上書き（任意）
+  # 環境差（drvfs / MCP 非接続 / node_path）は既定の auto がプリフライトで自動検出するため、
+  # 通常は projects を書かなくてよい。auto の判定を強制的に上書きしたい場合のみ追記する。
   # 具体的な絶対パスを含む実エントリはデプロイ先ローカルの config.yml に置く（本 payload には汎用例のみ）。
-  # WSL2 + drvfs 上のプロジェクトで node-script 方式を使う例:
+  # 起動コマンドだけはアプリ固有のため、非既定のサービス構成なら services / launch を指定する:
   # "<system>":
   #   services: [backend, frontend]
   #   launch:
   #     backend: "cd <backend repo path> && SERVER_PORT={port} ./gradlew bootRun --args='--spring.profiles.active=<profile>'"
   #     frontend: "npm run dev -- --port {port}"
-  #   allow_mnt_fs: true               # /mnt/* 配下（drvfs）を ERROR ではなく性能 WARN に緩和
-  #   node_modules_strategy: symlink_main  # source_repo の node_modules へ symlink（drvfs での npm ci 低速回避）
-  #   playwright_exec:
-  #     mode: node-script              # MCP 非接続環境で command_template を Bash 直実行
-  #     node_path: "<playwright を解決できる node_modules パス>"
+  #   # 以下はすべて任意（既定 auto の検出結果を強制上書きしたい時だけ）:
+  #   # allow_mnt_fs: true
+  #   # node_modules_strategy: symlink_main
+  #   # playwright_exec: { mode: node-script, node_path: "<playwright を解決できる node_modules パス>" }
