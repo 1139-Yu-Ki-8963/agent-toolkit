@@ -716,19 +716,26 @@
     <div class="adr-title"><span class="adr-label">ADR-13</span>node_modules_strategy による symlink_main 方式の追加</div>
     <p><strong>採用</strong>: 依存構築の方式を <code>node_modules_strategy</code>（既定 <code>npm_ci</code>＝各環境が独立して <code>npm ci</code> を実行 / <code>symlink_main</code>＝<code>source_repo</code> の node_modules へ symlink）で切替可能にする。<code>symlink_main</code> 選択時は node_modules を「独立した 2 環境であることの証明対象」から除外し、env_check の symlink-independence・node-modules-health・bundler-cache-fresh の各項目に但し書きを設ける。<strong>理由</strong>: drvfs 配下では <code>npm ci</code> が極端に低速で、実プロジェクトの既存運用は <code>source_repo</code> の node_modules へ symlink する方式だった。</p>
     <p><strong>却下案</strong>: 常に <code>npm ci</code> に固定する（ADR-9 を無条件維持） — drvfs 上での実行時間が長すぎ実運用に耐えないため不採用。<strong>トレードオフ</strong>: <code>symlink_main</code> は <code>.vite</code> 等のバンドラキャッシュも共有するため、初回 navigate が dependency re-optimize による reload に巻き込まれる可能性がある。1 回のリトライで吸収する。</p>
-    <p class="note">なお <code>node_modules_strategy</code> の既定は後続 ADR（ADR-14）で <code>auto</code> 化し、drvfs 検出により <code>symlink_main</code> / <code>npm_ci</code> を自動選択するようにした。</p>
+    <p class="note">なお <code>node_modules_strategy</code> の既定は後続 ADR（ADR-14）で <code>auto</code> 化し、drvfs 検出により <code>symlink_main</code> / <code>npm_ci</code> を自動選択するようにした。ただしこの自動選択はさらに後続 ADR（ADR-16）で撤回し、<code>auto</code> は常に <code>npm_ci</code> に固定した。</p>
   </div>
 
   <div class="adr">
     <div class="adr-title"><span class="adr-label">ADR-14</span>環境固有値のゼロコンフィグ自動解決（既定 auto）</div>
     <p><strong>採用</strong>: <code>node_modules_strategy</code> / <code>allow_mnt_fs</code> / <code>playwright_exec.mode</code> の既定を <code>auto</code>、<code>playwright_exec.node_path</code> の既定を <code>null</code>（自動解決）とし、Phase 2 プリフライトが実行時に検出して具体値へ解決する。<code>allow_mnt_fs=auto</code> は <code>source_repo</code> が <code>/mnt/*</code> 配下かで性能 WARN 続行を判定し、<code>node_modules_strategy=auto</code> は drvfs 検出で <code>symlink_main</code> / それ以外 <code>npm_ci</code> を選び、<code>playwright_exec.mode=auto</code> は Playwright MCP 可用性で <code>mcp</code> / <code>node-script</code> を選び、<code>node_path=null</code> は <code>require.resolve</code> / npm root で解決先を取得する。明示値は auto を上書きする強制指定として残す。<strong>理由</strong>: これらの値はすべて実行時に機械検出できる（パス prefix・fs 種別・MCP 可用性・モジュール解決）。にもかかわらず config.yml への手入力を要求すると、<code>node_path</code> のような npx キャッシュハッシュ付き絶対パスを人間が用意することになり非現実的で、初回セットアップが破綻する。検出できる値は検出して埋め、人間が書くのはアプリ固有の起動コマンド（<code>services</code> / <code>launch</code>）だけに限定する。</p>
     <p><strong>却下案</strong>: 環境値を config.yml への手入力必須とする — 人間が <code>node_path</code> 等を用意できず初回運用が成立しないため不採用。／既定を安全側の固定値（<code>false</code> / <code>npm_ci</code> / <code>mcp</code>）に置き projects で上書きさせる — 特殊環境ごとに毎回手書きが必要で、ゼロコンフィグにならないため不採用。<strong>トレードオフ</strong>: 自動検出は誤検出の可能性があるため、解決結果と根拠（drvfs 検出・MCP 可用性）を §8 の報告に必ず含めて可監査にする。強制上書きの明示値も残す。</p>
+    <p class="note">なお <code>node_modules_strategy=auto</code> の drvfs 検出による <code>symlink_main</code> 自動選択は後続 ADR（ADR-16）で撤回し、<code>auto</code> は常に <code>npm_ci</code> に固定した。<code>allow_mnt_fs</code> / <code>playwright_exec.mode</code> / <code>node_path</code> の自動解決方針は本 ADR のまま維持する。</p>
   </div>
 
   <div class="adr">
     <div class="adr-title"><span class="adr-label">ADR-15</span>調整可能な数値パラメータの config 外出しと projects 上書き</div>
     <p><strong>採用</strong>: <code>command_template</code> にハードコードしていたタイムアウト（<code>page.goto</code> の <code>60000</code>・描画安定待ちの <code>10000</code>）を <code>playwright_exec.nav_timeout_ms</code> / <code>settle_wait_ms</code> として config.yml に外出しし、テンプレートは <code>{nav_timeout}</code> / <code>{settle_wait}</code> プレースホルダで参照する。これらを含む数値系 defaults はすべて <code>projects.&lt;system&gt;</code> で上書きでき、有効値は defaults ← projects の深いマージ（projects 優先）で解決する。<strong>理由</strong>: プロジェクトごとに初回変換の重さ・描画の重さが異なり、単一のハードコード値では大規模アプリで初回タイムアウト、軽量アプリで無駄待ちが起きる。スキル本体（<code>command_template</code>）を書き換えずにプロジェクト単位で調整できる逃し口が必要。</p>
     <p><strong>却下案</strong>: タイムアウトをテンプレートにハードコード維持する — プロジェクト差に対応できず不採用。／値をコマンド引数で毎回渡す — 呼び出し側の負担が増え、config の値階層と二重管理になり不採用。</p>
+  </div>
+
+  <div class="adr">
+    <div class="adr-title"><span class="adr-label">ADR-16</span>独立性を犠牲にする選択は自動化しない（node_modules_strategy=auto は常に npm_ci）</div>
+    <p><strong>採用</strong>: <code>node_modules_strategy=auto</code> を「常に <code>npm_ci</code> に解決」に変更し、<code>symlink_main</code> は人間が config/projects で明示指定した時だけ使う。drvfs 検出時は「<code>symlink_main</code> で高速化できるが node_modules の独立性が証明対象から外れる」を WARN で提示するに留め、自動切替はしない。あわせて <code>playwright_exec.node_path</code> の自動解決を、テスト対象アプリの多くが playwright を自依存に持たない現実に即した再現可能な具体手順（① reverse worktree での <code>require.resolve('playwright')</code> → ② <code>npm root -g</code> 配下の playwright/ → ③ npx キャッシュの実探索 <code>find "${npm_config_cache:-$HOME/.npm}/_npx" -type d -path '*/node_modules/playwright'</code> のヒット先の親 node_modules → ④ いずれも不在なら <code>runtime-deps-ready</code> を NO-GO とし人間に <code>node_path</code> 明示を促す）に確定した。<strong>理由</strong>: 本スキルの核心目的は「2 環境の完全独立の証明」である。独立性を犠牲にするか否かは目的の根幹に関わる判断であり、性能都合で自動判定が黙って行うと、証明の前提が利用者に気づかれぬまま崩れる。低速環境でも <code>npm_ci</code> は時間がかかるだけで動作・正しさは変わらないため、既定を <code>npm_ci</code> に倒すコストは待ち時間のみ。また ADR-14 時点の <code>node_path</code> 自動解決（「require.resolve → だめなら npx/npm root の解決先」）は後段が曖昧で機能しない。テスト対象アプリの多くは playwright を自依存に持たず require.resolve が失敗し、<code>npm root</code>（プロジェクトローカル）は npx キャッシュのハッシュ名フォルダを探さないため、再現可能な実探索手順に置き換えた。</p>
+    <p><strong>却下案</strong>: <code>auto</code> が drvfs 検出時に <code>symlink_main</code> を自動選択し理由は事後報告に留める（ADR-14 の原案） — 独立性という核心を黙って犠牲にするため不採用。</p>
   </div>
 
   <h3>関連スキル・規約</h3>
