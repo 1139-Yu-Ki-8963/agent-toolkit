@@ -698,6 +698,24 @@
     <p><strong>却下案</strong>: 完全無副作用を維持する（生成物の修復も dry-run では行わない） — node_modules 破損時に L1 が起動不能となり、dry-run で得られるはずの診断情報が得られなくなる（不採用）。</p>
   </div>
 
+  <div class="adr">
+    <div class="adr-title"><span class="adr-label">ADR-11</span>Playwright 実行方式の 2 モード化（mcp / node-script）</div>
+    <p><strong>採用</strong>: 動的比較（§7）の実行方式を <code>playwright_exec.mode</code> で <code>mcp</code>（既定）と <code>node-script</code> の 2 つに分岐する。<code>mcp</code> は従来どおり Playwright MCP ツールを呼び出す。<code>node-script</code> は config.yml の <code>command_template</code> を Bash から直接実行し、Playwright MCP が接続されていない環境でも動的比較を完走できるようにする。<strong>理由</strong>: 実プロジェクトのセッションに Playwright MCP が接続されておらず、既定の MCP 前提のままでは Phase 5 が実行不能だった。<code>command_template</code> は実機検証で判明した 3 件の不具合 — <code>waitUntil="networkidle"</code> が Vite dev server の HMR 用 WebSocket で繋がりっぱなしになり永久タイムアウトする／<code>page.accessibility.snapshot()</code> が Playwright 1.61 系で撤去済み／navigate 先を <code>localhost</code> にすると WSL2 の Chromium が名前解決待ちでタイムアウトする — を修正した検証済み版であり、<code>waitUntil="load"</code>・<code>ariaSnapshot()</code>・<code>127.0.0.1</code> 固定の 3 点をそのまま固定事項として保持する。</p>
+    <p><strong>却下案</strong>: Playwright MCP 接続を必須要件のまま維持する — MCP が接続されない環境では本スキルそのものが運用できなくなるため不採用。</p>
+  </div>
+
+  <div class="adr">
+    <div class="adr-title"><span class="adr-label">ADR-12</span>allow_mnt_fs による /mnt 配置の WARN 緩和（ADR-7 の部分緩和）</div>
+    <p><strong>採用</strong>: fs-location プリフライトの <code>/mnt/*</code>（drvfs）判定を <code>allow_mnt_fs</code>（既定 <code>false</code>＝<span class="tag error">ERROR</span>）で切替可能にし、<code>true</code> 指定時は <span class="tag error">ERROR</span> ではなく性能 <span class="tag error">WARN</span> として扱う。<strong>理由</strong>: 実プロジェクトの <code>source_repo</code> が <code>/mnt/c/...</code>（Windows 側 drvfs）固定で、既定 <span class="tag error">ERROR</span> のままでは即 NO-GO になる。実測では worktree 作成（約 80 秒/本）も全量 diff も動作しており、低速であるだけで運用は成立する。</p>
+    <p><strong>却下案</strong>: <code>/mnt</code> を常に <span class="tag error">ERROR</span> のまま維持する — drvfs 上に配置された実プロジェクトを検証できなくなるため不採用。／常に許可する — ADR-7 が定めたネイティブ FS 配置の推奨を既定側から崩すことになるため不採用。<code>allow_mnt_fs</code> は既定 <code>false</code> を保ったまま projects 単位の opt-in にとどめる。</p>
+  </div>
+
+  <div class="adr">
+    <div class="adr-title"><span class="adr-label">ADR-13</span>node_modules_strategy による symlink_main 方式の追加</div>
+    <p><strong>採用</strong>: 依存構築の方式を <code>node_modules_strategy</code>（既定 <code>npm_ci</code>＝各環境が独立して <code>npm ci</code> を実行 / <code>symlink_main</code>＝<code>source_repo</code> の node_modules へ symlink）で切替可能にする。<code>symlink_main</code> 選択時は node_modules を「独立した 2 環境であることの証明対象」から除外し、env_check の symlink-independence・node-modules-health・bundler-cache-fresh の各項目に但し書きを設ける。<strong>理由</strong>: drvfs 配下では <code>npm ci</code> が極端に低速で、実プロジェクトの既存運用は <code>source_repo</code> の node_modules へ symlink する方式だった。</p>
+    <p><strong>却下案</strong>: 常に <code>npm ci</code> に固定する（ADR-9 を無条件維持） — drvfs 上での実行時間が長すぎ実運用に耐えないため不採用。<strong>トレードオフ</strong>: <code>symlink_main</code> は <code>.vite</code> 等のバンドラキャッシュも共有するため、初回 navigate が dependency re-optimize による reload に巻き込まれる可能性がある。1 回のリトライで吸収する。</p>
+  </div>
+
   <h3>関連スキル・規約</h3>
   <table class="spec">
     <tr><th>名前</th><th>関係</th></tr>

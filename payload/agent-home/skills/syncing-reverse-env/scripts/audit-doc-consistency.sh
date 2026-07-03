@@ -28,7 +28,8 @@
 #   3. config 整合   : config.yml の defaults 直下キー（ports / services /
 #                       launch / l3_threshold_percent / max_loop /
 #                       tag_namespace / diff_exclude / install_command /
-#                       env_file_globs / bundler_cache_dirs / artifacts_root）
+#                       env_file_globs / bundler_cache_dirs / artifacts_root /
+#                       node_modules_strategy / allow_mnt_fs / playwright_exec）
 #                       がすべて guide.html 本文にキー名として登場するかを
 #                       確認する。1 件でも欠ければ FAIL。
 #   4. 返却ブロック契約: guide.html §8 の機械向け返却ブロックが持つべき
@@ -194,7 +195,7 @@ fi
 # 3. config 整合
 # ---------------------------------------------------------------------------
 
-config_keys=(ports services launch l3_threshold_percent max_loop tag_namespace diff_exclude install_command env_file_globs bundler_cache_dirs artifacts_root)
+config_keys=(ports services launch l3_threshold_percent max_loop tag_namespace diff_exclude install_command env_file_globs bundler_cache_dirs artifacts_root node_modules_strategy allow_mnt_fs playwright_exec)
 
 config_missing=()
 for k in "${config_keys[@]}"; do
