@@ -1,60 +1,57 @@
-# agent-toolkit
+# agent-toolkit / CLAUDE.md（リポジトリ作業手順書）
 
-Claude Code のスキルを「ライフサイクル」として管理する meta スキル集。詳細は [README.md](README.md) を参照。
+このファイルは **agent-toolkit リポジトリを clone して Claude Code を起動した AI 向けの手順書** です。
+配布される CLAUDE.md の実体は `payload/claude-config/CLAUDE.md` にあります（二役分離）。
 
-## 本リポジトリ内で作業する時の hook 設定
+## 設置マッピング
 
-`skills/managing-agent-configs/scripts/` に、managed ファイル（`skills/*/SKILL.md` 等）の編集を検知して
-自動的にレビュー・テストへ誘導し、未テストの `git commit` を block する hook 2 本が同梱されている。
+| payload パス | 設置先 | 備考 |
+|---|---|---|
+| `payload/agent-home/` | `~/agent-home/` | ディレクトリ全体をミラー |
+| `payload/claude-config/CLAUDE.md` | `~/.claude/CLAUDE.md` | 既存があれば上書きしない |
+| `payload/claude-config/settings-hooks.json` | `~/.claude/settings.json` | 既存の hooks セクションへ merge |
 
-本リポジトリ直下の `.claude/settings.json` に、この 2 本を **登録済み** で同梱している。
-clone してこのリポジトリ自体を編集する分には追加設定は不要（`$CLAUDE_PROJECT_DIR` でパス解決するため、
-clone 先のパスによらずそのまま動く）。
+設置・更新の実作業は `scripts/install.mjs` が担う。インターフェース:
 
-```json
-{
-  "hooks": {
-    "PostToolUse": [
-      {
-        "matcher": "Write|Edit|MultiEdit",
-        "hooks": [
-          { "type": "command", "command": "$CLAUDE_PROJECT_DIR/skills/managing-agent-configs/scripts/managing-review-gate.sh" }
-        ]
-      }
-    ],
-    "PreToolUse": [
-      {
-        "matcher": "Bash",
-        "hooks": [
-          { "type": "command", "command": "$CLAUDE_PROJECT_DIR/skills/managing-agent-configs/scripts/managing-commit-gate.sh" }
-        ]
-      }
-    ]
-  }
-}
+```
+node scripts/install.mjs --doctor    # 前提診断（Node.js / 必須コマンド / 既存設定の確認）
+node scripts/install.mjs --diff      # 設置予定を差分で提示（書き込み禁止）
+node scripts/install.mjs --apply     # 設置実行（settings.json はバックアップ後 merge）
+node scripts/install.mjs --target <dir>   # テスト用: 設置先を <dir> に変更して実行
 ```
 
-## 他プロジェクトへ managing-agent-configs だけをインストールする場合
+---
 
-`.claude/settings.json` はこのリポジトリ専用（`$CLAUDE_PROJECT_DIR` がこのリポジトリのルートを指す前提）なので、
-スキルだけを別プロジェクトや `~/.claude/skills/` へコピーする場合はそのまま流用できない。
-インストール先の `~/.claude/settings.json`（グローバル）または `<repo>/.claude/settings.json`（プロジェクト）に、
-スキルを配置したパスへ書き換えたうえで同じ2本を登録する。手順は README.md の「機械強制フック（任意）」節を参照。
+## 初回設定（新しい PC）
 
-## 設計判断
+1. **前提診断**: `node scripts/install.mjs --doctor` を実行し、必須コマンドの不足や既存設定の競合を確認する
+2. **差分確認**: `node scripts/install.mjs --diff` で設置予定の一覧をユーザーに提示し、承認を得る
+3. **設置実行**: `node scripts/install.mjs --apply` を実行する
+   - `~/.claude/settings.json` は自動バックアップ後に hooks セクションを merge する
+   - `~/.claude/CLAUDE.md` が既存の場合は上書きせず、差分をユーザーに報告する
+   - `--apply` の最後に `manage-portal.mjs generate` → `verify` を自動実行し、exit 0 を受け入れ判定とする
+4. **hook 発火スモーク**: 設置後に `~/agent-home/skills/managing-agent-configs/SKILL.md` を 1 行編集し、`[MANAGING-REVIEW-REQUIRED]` advisory が注入されることを確認する
 
-**必要性**: hook script（`scripts/managing-review-gate.sh` / `managing-commit-gate.sh`）を同梱しても、
-`settings.json` への登録手順がリポジトリ内に実体として無いと「同梱されているが動かない」状態になる。
-`$CLAUDE_PROJECT_DIR` を使った settings.json をこのリポジトリ自体に同梱することで、clone した時点で
-このリポジトリ内の作業に対しては即座に機械強制が有効になる（動作確認済みの設定を配布物として持たせる）。
+---
 
-**代替案を採用しなかった理由**:
-- README にコピペ用 JSON だけ書く（settings.json 実体は同梱しない）: 「このリポジトリ自身の開発」に対して
-  機械強制が効かず、動作未検証のスニペットをコピペさせるだけになる
-- 絶対パスで settings.json を書く: clone 先のディレクトリ名・場所に依存し、他人の環境で壊れる
+## 更新（2 回目以降）
 
-**保守責任者**: 人手（ユーザー）。`scripts/` 配下の hook ファイル名・配置を変更した場合は本ファイルと
-`.claude/settings.json` を同時に更新する。
+1. `git pull` で最新を取得する
+2. `node scripts/install.mjs --diff` で設置先との差分を提示する
+   - **設置先にローカル改変がある場合は停止し、ユーザーに内容を報告する**（強制上書き禁止）
+3. ユーザーの承認後に `node scripts/install.mjs --apply` を実行する
+4. `manage-portal.mjs verify` が exit 0 で完了することを受け入れ判定とする
 
-**廃棄条件**: `managing-agent-configs` の hook 連携方式が変わった時、または本リポジトリ自体の開発を
-別リポジトリ・別ツールに移行した時。
+---
+
+## このリポジトリで開発する人向け
+
+リポジトリ直下の `.claude/settings.json` に gate hook 2 本が登録済みです。managed ファイル
+（`payload/agent-home/skills/*/SKILL.md` 等）を編集すると `[MANAGING-REVIEW-REQUIRED]` が
+advisory 注入され、テスト完了マーカーがない状態の `git commit` は exit 2 で block されます。
+
+commit 前に `payload/agent-home/skills/managing-agent-configs/scripts/manage-portal.mjs verify`
+を実行して 7 検査が全て PASS することを確認してから commit してください。
+
+配布物の同期元は private リポジトリの agent-home です。AT への変更は agent-home 側の正本と
+齟齬が生じないよう、design/ HTML と `references/` conventions.md の両方を更新してください。
