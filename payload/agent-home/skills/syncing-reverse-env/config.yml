@@ -46,6 +46,8 @@ defaults:
     #   - waitUntil: "load"（networkidle だと Vite dev server の HMR 用 WebSocket が繋がりっぱなしで永久タイムアウト）
     #   - page.locator("body").ariaSnapshot()（page.accessibility.snapshot() は Playwright 1.61 系で撤去済み）
     #   - navigate 先の URL は呼び出し側で必ず 127.0.0.1 を使う（localhost だと WSL2 の Chromium が名前解決待ちでタイムアウト）
+    #   - try/finally で browser.close() を必ず呼ぶ（失敗時に .catch だけで exit すると Chromium が孤児化して残存し、CPU/メモリを消費して以降の起動を不安定にする）
+    #   - timeout: 60000（dev サーバー再起動直後の初回リクエストは Vite の依存遅延変換で大規模アプリでは 40〜50 秒かかるため 30000 では不足。2 回目以降は数秒）
     command_template: |
       CAP_URL={url} CAP_SHOT={screenshot} CAP_CLOG={console_log} CAP_SNAP={snapshot} NODE_PATH={node_path} node -e '
       const { chromium } = require("playwright");
@@ -53,18 +55,21 @@ defaults:
       (async () => {
         const url = process.env.CAP_URL;
         const browser = await chromium.launch();
-        const page = await browser.newPage();
-        const logs = [];
-        page.on("console", m => logs.push({ type: m.type(), text: m.text() }));
-        page.on("pageerror", e => logs.push({ type: "pageerror", text: String(e) }));
-        await page.goto(url, { waitUntil: "load", timeout: 30000 });
-        await page.waitForTimeout(10000);
-        await page.screenshot({ path: process.env.CAP_SHOT, fullPage: true });
-        const snap = await page.locator("body").ariaSnapshot();
-        fs.writeFileSync(process.env.CAP_SNAP, snap);
-        fs.writeFileSync(process.env.CAP_CLOG, JSON.stringify(logs, null, 2));
-        console.log("L1_OK");
-        await browser.close();
+        try {
+          const page = await browser.newPage();
+          const logs = [];
+          page.on("console", m => logs.push({ type: m.type(), text: m.text() }));
+          page.on("pageerror", e => logs.push({ type: "pageerror", text: String(e) }));
+          await page.goto(url, { waitUntil: "load", timeout: 60000 });
+          await page.waitForTimeout(10000);
+          await page.screenshot({ path: process.env.CAP_SHOT, fullPage: true });
+          const snap = await page.locator("body").ariaSnapshot();
+          fs.writeFileSync(process.env.CAP_SNAP, snap);
+          fs.writeFileSync(process.env.CAP_CLOG, JSON.stringify(logs, null, 2));
+          console.log("L1_OK");
+        } finally {
+          await browser.close();
+        }
       })().catch(e => { console.error("CAPTURE_FAILED", e); process.exit(1); });
       '
 
