@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<!--
+  rebuilding-code-from-docs スキルガイド
+
+  設計書だけからコードを再生成し、元コードと機械突合して設計書の欠落を発見する
+  往復検証スキルの解説。SKILL.md に定義された仕様のみを転記する（創作なし）。
+-->
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>rebuilding-code-from-docs スキルガイド</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 0 24px 96px;
+    font-family: system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif;
+    line-height: 1.85; color: #1a1a1a; background: #fafafa;
+    max-width: 980px; margin-inline: auto;
+  }
+  header { padding: 56px 0 24px; border-bottom: 3px solid #1a1a1a; }
+  header h1 { font-size: 1.9rem; margin: 0 0 10px; letter-spacing: 0.01em; }
+  header .skill-name {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 1.0rem; background: #1a1a1a; color: #fafafa;
+    padding: 2px 10px; border-radius: 4px; vertical-align: middle;
+  }
+  header p { margin: 6px 0 0; color: #555; }
+  .meta-table { margin-top: 16px; font-size: 0.9rem; color: #555; }
+  .meta-table td { padding: 1px 16px 1px 0; }
+
+  nav.toc {
+    margin-top: 32px; padding: 18px 22px;
+    background: #fff; border: 1px solid #e0e0e0; border-radius: 8px;
+  }
+  nav.toc .toc-title { font-weight: 700; margin-bottom: 6px; }
+  nav.toc ol { margin: 0; padding-left: 1.4em; columns: 2; column-gap: 40px; }
+  nav.toc li { margin: 2px 0; }
+  nav.toc a { color: #1a1a1a; text-decoration: none; border-bottom: 1px dotted #999; }
+  nav.toc a:hover { border-bottom-style: solid; }
+
+  section { margin-top: 64px; }
+  section > h2 {
+    font-size: 1.35rem; padding-bottom: 8px; margin-bottom: 20px;
+    border-bottom: 2px solid #1a1a1a;
+  }
+  section > h2 .sec-num {
+    display: inline-block; min-width: 2.4em; margin-right: 10px;
+    font-family: ui-monospace, monospace; font-size: 0.95rem;
+    background: #1a1a1a; color: #fafafa; text-align: center;
+    padding: 1px 8px; border-radius: 4px; vertical-align: 2px;
+  }
+  h3 { font-size: 1.05rem; margin: 32px 0 10px; }
+  .note { color: #555; font-size: 0.92rem; }
+
+  table.spec { border-collapse: collapse; width: 100%; margin: 14px 0; background: #fff; font-size: 0.93rem; }
+  table.spec th, table.spec td { border: 1px solid #d8d8d8; padding: 8px 12px; text-align: left; vertical-align: top; }
+  table.spec th { background: #f0f0ee; font-weight: 700; white-space: nowrap; }
+  table.spec td code, li code, p code, table.spec th code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.86em; background: #eeeeea; padding: 1px 5px; border-radius: 3px;
+  }
+
+  pre.flow {
+    background: #16211c; color: #d7e6dc; border-radius: 8px;
+    padding: 20px 24px; overflow-x: auto;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.82rem; line-height: 1.55;
+  }
+  pre.flow .cap { color: #8fb8a0; }
+
+  figure.diagram { margin: 20px 0; padding: 8px; background: #fff;
+    border: 1px solid #e0e0e0; border-radius: 8px; }
+  figure.diagram svg { width: 100%; height: auto; display: block; cursor: zoom-in; }
+  figure.diagram figcaption { padding: 8px 10px 2px; }
+
+  .zoom-overlay {
+    position: fixed; inset: 0; z-index: 1000;
+    background: rgba(15, 23, 42, 0.93);
+    overflow: auto; padding: 24px; cursor: zoom-out;
+    -webkit-overflow-scrolling: touch;
+  }
+  .zoom-overlay svg {
+    width: 1880px; max-width: none; height: auto;
+    display: block; margin: 0 auto;
+    background: #fff; border-radius: 8px;
+  }
+
+  .def {
+    background: #fff; border-left: 4px solid #1a1a1a;
+    padding: 12px 18px; margin: 14px 0; border-radius: 0 6px 6px 0;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  }
+  .def dt { font-weight: 700; margin-top: 8px; }
+  .def dt:first-child { margin-top: 0; }
+  .def dd { margin: 2px 0 0 0; color: #333; }
+
+  .constraint {
+    background: #eef2f7; border: 1px solid #c8d4e3; border-radius: 8px;
+    padding: 12px 18px; margin: 16px 0; font-size: 0.93rem;
+  }
+  .constraint strong:first-child { color: #2a4a7a; }
+
+  .tag {
+    display: inline-block; font-family: ui-monospace, monospace; font-size: 0.78rem;
+    font-weight: 700; padding: 0 8px; border-radius: 3px; border: 1px solid transparent;
+  }
+  .tag.pass  { background: #e7f3e7; color: #23662a; border-color: #b9d9ba; }
+  .tag.fail  { background: #fbe9e7; color: #9c2b1a; border-color: #ecc0b8; }
+  .tag.error { background: #fdf3d7; color: #7a5d10; border-color: #e8d59a; }
+  .tag.mode  { background: #e8eef7; color: #2a4a7a; border-color: #c2d2e8; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>設計書からのコード再構築<br><span class="skill-name">rebuilding-code-from-docs</span></h1>
+  <p>設計書だけからコードを再生成し、元コードと機械突合して設計書の欠落を発見する往復検証スキル。</p>
+
+  <div class="def">
+    <dt>こんな人向け</dt>
+    <dd>リバースエンジニアリングで作成した画面基本設計書の品質を、実際にコードが再現できるかどうかで検証したい人。</dd>
+    <dt>こんな場面で使う</dt>
+    <dd>リバース済み設計書の往復検証・設計書からのコード再生成・設計書の粒度検証や品質検証を行うとき。環境の整備・同期・基準タグ操作は syncing-reverse-env、設計書の直接修正や通常実装は本スキルの対象外。</dd>
+  </div>
+
+  <table class="meta-table">
+    <tr><td>対応 OS</td><td>macOS</td></tr>
+    <tr><td>検証状況</td><td>SKILL.md を正本として整理（個別の実機検証記録なし）</td></tr>
+    <tr><td>依存</td><td>allowed-tools: Read / Write / Edit / Bash / Grep / Glob / Agent / AskUserQuestion / Skill。連携スキル: syncing-reverse-env（環境同期・比較エンジン）</td></tr>
+    <tr><td>関連資料</td><td>SKILL.md / references/phase-details.md / references/ng-classification.md / references/test-item-patterns.md / references/report-format.md</td></tr>
+  </table>
+</header>
+
+<nav class="toc">
+  <div class="toc-title">目次</div>
+  <ol>
+    <li><a href="#s1">概要</a></li>
+    <li><a href="#s2">用語</a></li>
+    <li><a href="#s3">使い方</a></li>
+    <li><a href="#s4">動作フロー（Phase 1〜9）</a></li>
+    <li><a href="#s5">設計原則</a></li>
+    <li><a href="#s6">ガード設計</a></li>
+    <li><a href="#s7">検証内容</a></li>
+    <li><a href="#s8">報告フォーマット</a></li>
+    <li><a href="#s9">関連スキル・規約</a></li>
+  </ol>
+</nav>
+
+<section id="s1">
+  <h2><span class="sec-num">§1</span>概要</h2>
+  <p>リバースエンジニアリングで作成した画面基本設計書（<code>templates/reverse-docs/02_画面基本設計/</code> 準拠、§1〜§16 構成）は納品物であり、「設計書だけを読んで忠実にコーディングできる」詳細度が求められる。本スキルはその品質を検証するため、<strong>設計書だけからコードを再生成し、元コードと機械突合して設計書の欠落を発見する</strong>往復検証を行う。</p>
+  <div class="constraint">
+    <strong>目的の分離:</strong> コードを直すことは目的ではない。フィードバック先は (a) 当該画面設計書の該当§、(b) 欠落が汎用的ならテンプレート自体の記載粒度改善の 2 つ。
+  </div>
+  <p>環境管理・比較エンジンは <code>syncing-reverse-env</code> に全面委譲する。本スキルは値を保持せず、都度その返却ブロックから受け取る。</p>
+</section>
+
+<section id="s2">
+  <h2><span class="sec-num">§2</span>用語</h2>
+  <table class="spec">
+    <tr><th>用語</th><th>意味</th></tr>
+    <tr><td>オリジナルコード環境</td><td>worktree 名 <code>original-code-&lt;system&gt;</code>。設計書 frontmatter の <code>source_repo</code> / <code>source_ref</code> から用意する読み取り専用コピー（9100 番台）</td></tr>
+    <tr><td>リバースコード環境</td><td>worktree 名 <code>reverse-code-&lt;system&gt;</code>、ブランチ <code>feature/reverse-code-&lt;system&gt;</code>。本スキルが Phase 4 で書き込む対象（9110 番台）</td></tr>
+    <tr><td>基準タグ</td><td>annotated tag <code>reverse-baseline/&lt;system&gt;</code>。基準コミットの唯一の記録</td></tr>
+    <tr><td>白紙化ゲート</td><td>Phase 3 で reverse-code 環境の追跡ファイルを全削除するコミット。削除前に AskUserQuestion でユーザー承認を取る。以降カンニング防止のため original-code の Read を禁止する</td></tr>
+    <tr><td>凍結コミット</td><td>Phase 6 で確定するコミットハッシュ。Phase 7 以降の比較対象点として固定される</td></tr>
+    <tr><td>失敗クラス</td><td><code>ng-classification.md</code> が定義する、検出シグナルを分類した意味キー。設計書の該当§への帰着先を持つ</td></tr>
+  </table>
+</section>
+
+<section id="s3">
+  <h2><span class="sec-num">§3</span>使い方</h2>
+  <p>起動引数は <strong>画面ディレクトリのみ</strong>。設計書・<code>DESIGN.md</code>・共通設計書・メッセージ定義書・テスト観点表は設計書 frontmatter を経由してロードする。</p>
+  <div class="constraint">
+    <strong>前提条件:</strong> 基準タグ <code>reverse-baseline/&lt;system&gt;</code> が確立済みであること。未確立の場合は Phase 1 で停止し、<code>syncing-reverse-env</code>（mode=setup → sync）の完走を指示する。
+  </div>
+  <table class="spec">
+    <tr><th>項目</th><th>内容</th></tr>
+    <tr><td>起動引数</td><td>画面ディレクトリ（例: <code>02_画面基本設計/screen-&lt;画面ID&gt;/</code>）のみ</td></tr>
+    <tr><td>環境値の取得元</td><td><code>syncing-reverse-env</code>（mode=setup 冪等呼び出し）の機械向け返却ブロック</td></tr>
+    <tr><td>比較エンジン</td><td>自前実装しない。<code>syncing-reverse-env</code> の <code>mode=sync, dry-run</code> のみ</td></tr>
+    <tr><td>1 起動の単位</td><td>1 起動 = 1 往復。設計書修正後の再往復は再起動として扱う</td></tr>
+  </table>
+</section>
+
+<section id="s4">
+  <h2><span class="sec-num">§4</span>動作フロー（Phase 1〜9）</h2>
+  <pre class="flow"><span class="cap">Phase 1</span> 入力ロード + preflight ── 基準タグ確認・syncing-reverse-env(setup)
+<span class="cap">Phase 2</span> 設計書内部整合性監査 ── 内部矛盾あれば Phase 8 へ直行
+<span class="cap">Phase 3</span> 白紙化ゲート ── ユーザー承認後に reverse-code 追跡ファイル全削除コミット
+<span class="cap">Phase 4</span> 設計書からの TDD 実装 ── 唯一コードを書けるフェーズ
+<span class="cap">Phase 5</span> 自己完結チェック ── 型チェック/テスト/スモーク（内側ループ上限3）
+<span class="cap">Phase 6</span> 凍結コミット ── push禁止・ハッシュ確定
+<span class="cap">Phase 7</span> 答え合わせ ── syncing-reverse-env(sync, dry-run)
+<span class="cap">Phase 8</span> NG分類 → フィードバック ── 修正指示書のみ・修正禁止
+<span class="cap">Phase 9</span> 証跡保存 + 最終報告 ── check-freeze.sh・承認後に基準タグ更新提案
+</pre>
+  <table class="spec">
+    <tr><th>Phase</th><th>完了条件</th></tr>
+    <tr><td>Phase 1</td><td>設計書一式がロード済み・基準タグの存在確認済み</td></tr>
+    <tr><td>Phase 2</td><td>監査結果が記録済み（内部矛盾なら Phase 8 へ直行）</td></tr>
+    <tr><td>Phase 3</td><td>ユーザー承認取得済み・白紙化コミット完了・カンニング禁止を宣言済み</td></tr>
+    <tr><td>Phase 4</td><td>§15.1 ファイル一覧と実装が過不足なく一致</td></tr>
+    <tr><td>Phase 5</td><td>型チェック・テスト・スモークの結果が記録済み</td></tr>
+    <tr><td>Phase 6</td><td>凍結コミットハッシュが確定</td></tr>
+    <tr><td>Phase 7</td><td>syncing-reverse-env 返却ブロックを受領済み</td></tr>
+    <tr><td>Phase 8</td><td>修正指示書または「NG なし」の明示が完了</td></tr>
+    <tr><td>Phase 9</td><td>最終報告作成済み・凍結検証の結果が明示済み</td></tr>
+  </table>
+</section>
+
+<section id="s5">
+  <h2><span class="sec-num">§5</span>設計原則</h2>
+  <ol>
+    <li><strong>正本一元化</strong>: 環境固有値の正は <code>syncing-reverse-env/config.yml</code>。画面固有値の正は設計書 frontmatter。本スキル専用の config.yml は新設しない</li>
+    <li><strong>比較エンジンの非自前実装</strong>: 判定は <code>syncing-reverse-env</code> の <code>mode=sync, dry-run</code> 呼び出しのみ（args 全量指定・対話ゼロ）</li>
+    <li><strong>1 起動 = 1 往復</strong>: 設計書修正後の再往復は本スキルの再起動として扱う</li>
+    <li><strong>検証役と生成役の分離</strong>: Phase 4 実装エージェントの自己申告では判定しない。判定は Phase 7 の決定的出力のみ</li>
+  </ol>
+</section>
+
+<section id="s6">
+  <h2><span class="sec-num">§6</span>ガード設計</h2>
+  <table class="spec">
+    <tr><th>ガード</th><th>方式</th></tr>
+    <tr><td>修正禁止（Phase 7 以降）</td><td>advisory + <code>check-freeze.sh</code> による事後機械検証（不一致 = 結果無効）</td></tr>
+    <tr><td>push 禁止</td><td>SKILL.md に明記。凍結コミットはローカルブランチに留める</td></tr>
+    <tr><td>Phase 5 内側ループ</td><td>上限 3 回・同一エラーシグネチャ 3 連続で発散確定</td></tr>
+    <tr><td>カンニング防止</td><td>Phase 3 白紙化コミット + Phase 4〜Phase 6 での original-code パス Read 禁止の二重化</td></tr>
+  </table>
+  <div class="constraint">
+    <strong>Phase 8 の制約:</strong> コード・設計書とも修正禁止。修正指示書の作成と <code>test-item-patterns.md</code> への台帳追記のみ許可する。
+  </div>
+</section>
+
+<section id="s7">
+  <h2><span class="sec-num">§7</span>検証内容</h2>
+  <h3>Phase 2: 設計書内部整合性監査</h3>
+  <p><code>scripts/audit-consistency.sh</code> による機械チェック（<span class="tag mode">a</span> §2 機能一覧表 × 観点表の機能キー集合突合（両方向一致）、<span class="tag mode">b</span> 未記入プレースホルダ検出、<span class="tag mode">c</span> 連番キー検出 WARN）に加え、目視で §7 API 型 × §15.2 型定義、§5 状態変数 × §9/§15 の経路を突合する。詳細は <code>references/phase-details.md</code>。</p>
+  <h3>Phase 5: 自己完結チェック</h3>
+  <p>型チェック・単体/結合テスト・Playwright スモーク（reverse 側 9110 番台のみ）を実行する。内側ループは上限 3 回、同一エラーシグネチャ 3 連続で発散確定とし、発散エラー自体を設計書欠落候補として Phase 8 へ渡す。</p>
+  <h3>Phase 7: 答え合わせ</h3>
+  <p><code>syncing-reverse-env</code> の <code>mode=sync, dry-run</code> 呼び出しで、静的 3 分類・env_check 10 項目・Playwright L1〜L4・<code>hint</code> を受領する。比較の自前実装は禁止。</p>
+  <h3>Phase 9: 凍結検証</h3>
+  <p><code>scripts/check-freeze.sh</code> で Phase 6 の凍結コミットハッシュと現状（HEAD・作業ツリー）を突合する。
+    <span class="tag pass">PASS</span> = HEAD一致かつ作業ツリークリーン、
+    <span class="tag fail">FAIL</span> = 不一致（結果全体を無効宣言）。
+  </p>
+</section>
+
+<section id="s8">
+  <h2><span class="sec-num">§8</span>報告フォーマット</h2>
+  <p>書式の正は <code>references/report-format.md</code>。配置先は <code>&lt;画面ディレクトリ&gt;/検証記録/&lt;timestamp&gt;/</code>（設計書リポジトリ内）。生証跡（スクリーンショット・テストログ・返却ブロック全文）は <code>~/agent-home/sessions/</code> 配下に置く。</p>
+  <table class="spec">
+    <tr><th>成果物</th><th>作成 Phase</th><th>内容</th></tr>
+    <tr><td>修正指示書</td><td>Phase 8</td><td>対象設計書パス / NG 一覧（失敗クラス・帰着§・修正指示・証跡パス）/ テンプレート改善提案</td></tr>
+    <tr><td>最終報告</td><td>Phase 9</td><td>判定（PASS/FAIL/無効）/ 凍結コミットハッシュ / 各 Phase の実行結果 / syncing-reverse-env 返却ブロック要約 / 証跡パス一覧</td></tr>
+  </table>
+  <div class="constraint">
+    <strong>基準タグ更新:</strong> PASS かつ凍結検証 PASS の場合のみ、AskUserQuestion でユーザー承認を取り、<code>syncing-reverse-env</code> の <code>sync</code>（非 dry-run）で基準タグ更新を提案する。承認前に更新しない。
+  </div>
+</section>
+
+<section id="s9">
+  <h2><span class="sec-num">§9</span>関連スキル・規約</h2>
+  <table class="spec">
+    <tr><th>資料</th><th>役割</th></tr>
+    <tr><td>syncing-reverse-env</td><td>環境同期・静的/動的比較エンジン。本スキルはこのスキルの呼び出し契約（args 全量指定・対話ゼロ）に従う</td></tr>
+    <tr><td>templates/reverse-docs/02_画面基本設計/画面基本設計書.md</td><td>§1〜§16 テンプレート。突合・帰着先§の基準</td></tr>
+    <tr><td>references/phase-details.md</td><td>Phase 2 突合式・Phase 4 実装規律・Phase 5 検証コマンド詳細</td></tr>
+    <tr><td>references/ng-classification.md</td><td>検出シグナル→失敗クラス→§帰着のマッピング</td></tr>
+    <tr><td>references/test-item-patterns.md</td><td>失敗クラス台帳（追記型）</td></tr>
+    <tr><td>意味キー規約（semantic-key-rules）</td><td>連番 ID 禁止・意味語キー必須の正本</td></tr>
+  </table>
+</section>
+
+<div id="zoom-overlay" class="zoom-overlay" hidden></div>
+<script>
+  (function () {
+    var overlay = document.getElementById('zoom-overlay');
+    if (!overlay) return;
+    document.querySelectorAll('figure.diagram svg').forEach(function (svg) {
+      svg.addEventListener('click', function () {
+        overlay.innerHTML = '';
+        overlay.appendChild(svg.cloneNode(true));
+        overlay.hidden = false;
+        document.body.style.overflow = 'hidden';
+      });
+    });
+    overlay.addEventListener('click', function () {
+      overlay.hidden = true;
+      overlay.innerHTML = '';
+      document.body.style.overflow = '';
+    });
+  })();
+</script>
+
+</body>
+</html>
