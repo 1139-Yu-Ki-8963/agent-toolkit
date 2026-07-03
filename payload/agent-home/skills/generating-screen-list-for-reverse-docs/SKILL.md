@@ -113,6 +113,8 @@ allowed-tools: [Bash, Read, Write, Edit, Grep, Glob, AskUserQuestion, TaskCreate
 - 埋め込みビューの1階層スキャンでは子コンポーネント内のさらなるView切替を検出できない。深い階層が疑われる場合はカスタム抽出パスで再帰スキャンを設計する
 - 画面数のカウントには部品ファイル（共有クラスタで参照されるだけのコンポーネント等）を含めない。画面として数えるのはroute行とembedded-view行のみ
 - 検出方式は戦略宣言（`strategy.extractionMethod` が `builtin-*`）が最優先される。自動チェーン時、Next.js系検出器は `next.config.*` の実在を必須とする（Vite+React Routerプロジェクトの `src/pages/` を Next.js Pages Router と誤判定する実害を防ぐ）。ルーティング方式が確定しているPhase 1では `--strategy-json` で `extractionMethod` を明示指定するのが確実
+- `strategy.sharedWithBusinessIdsAllowed: true` を設定すると、`sharedWith` に `screenIdRegex` 一致の業務ID（screenKey/screenId行を持たない「代表1冊+バリエーション統合」方式のバリエーション）を列挙しても参照整合が誤FAILしない。デフォルトは `false`（strict）で通常プロジェクトのダングリング参照検出を維持する
+- この方式は汎用スキル本体（`validate-manifest.sh`）を改造せず、プロジェクト側のstrategy宣言（config）で吸収する設計である
 
 ## 設計判断
 

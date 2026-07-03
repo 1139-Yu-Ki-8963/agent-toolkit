@@ -121,7 +121,12 @@ row_html() {
   entry_file="$(jq -r '.entryFile // ""' <<<"$row")"
   route_dup_count="$(jq -r '.routeDupCount // 1' <<<"$row")"
   shared_count="$(jq -r '(.sharedWith // []) | length' <<<"$row")"
-  embedded_in="$(jq -r '.embeddedIn // ""' <<<"$row")"
+  embedded_in="$(jq -r '
+    (.embeddedIn // "") as $e
+    | if ($e | type) == "array" then ($e | map(tostring) | join(", "))
+      elif ($e | type) == "string" then $e
+      else "" end
+  ' <<<"$row")"
 
   # --- 共有列: sharedWithの各キーをmanifestから引き、screenId(なければキー):routeの
   #     詳細を優先表示する。全メンバーがscreenId欠落の場合のみ「N件: キー一覧」にフォールバック ---
