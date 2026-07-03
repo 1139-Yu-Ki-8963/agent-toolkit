@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<!--
+  画面一覧.HTML の静的シェル(テンプレート)
+
+  使い方(generating-screen-list-for-reverse-docs Phase 3):
+    1. このファイルをコピーして <output-root>/docs/02_画面基本設計/画面一覧.html に配置する
+    2. 以下のプレースホルダを実データで置換して Write する
+       - {{GENERATED_AT}}       : ISO8601 生成日時
+       - {{SOURCE_DIR}}         : 探索対象ソースディレクトリ(絶対パス)
+       - {{OUTPUT_DIR}}         : 出力先ルートディレクトリ(絶対パス)
+       - {{DETECTION_METHOD}}   : nextjs-app / nextjs-pages / react-router / fallback-directory
+       - {{SCREEN_COUNT}}       : 検出画面数
+       - {{CONFIDENCE_SUMMARY}} : "high: N / medium: N / low: N" 形式の文字列
+       - <!--SCREEN_TABLE_ROWS--> : <tr> 行を画面ごとに1個ずつ挿入(下記テーブル列順を厳守)
+       - <!--COMMENT SCREEN_MANIFEST_JSON--> ブロック内の {} を screen-manifest.json の中身で置換
+
+  テーブル列順(固定): 画面キー / 画面名 / ルート / 検出方式 / confidence / 構成ファイル数 / 主ファイル / 02_画面基本設計状態
+
+  制約:
+    - 外部リソース(CDN・フォント・画像)は一切使わない。単一ファイル自己完結
+    - <script id="screen-manifest"> の中身は Phase 1/2 の確定結果と完全に一致させる(二重管理・ドリフト禁止)
+    - 前回生成分が存在する場合は診断ヘッダ(<!--DIFF_SUMMARY-->)に新規/廃止候補の差分を追記する。消滅画面のディレクトリは削除しない
+-->
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>画面一覧 - {{OUTPUT_DIR}}</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 0 24px 96px;
+    font-family: system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif;
+    line-height: 1.7; color: #1a1a1a; background: #fafafa;
+    max-width: 1180px; margin-inline: auto;
+  }
+  header { padding: 40px 0 20px; border-bottom: 3px solid #1a1a1a; }
+  header h1 { font-size: 1.7rem; margin: 0 0 10px; }
+  .meta-table { font-size: 0.88rem; color: #444; border-collapse: collapse; }
+  .meta-table td { padding: 2px 18px 2px 0; vertical-align: top; }
+  .meta-table td:first-child { color: #777; white-space: nowrap; }
+
+  .summary-tiles { display: flex; gap: 14px; margin: 20px 0; flex-wrap: wrap; }
+  .tile {
+    background: #fff; border: 1px solid #e0e0e0; border-radius: 8px;
+    padding: 10px 18px; font-size: 0.85rem; color: #555;
+  }
+  .tile strong { display: block; font-size: 1.3rem; color: #1a1a1a; }
+
+  .toolbar { display: flex; gap: 10px; margin: 24px 0 10px; align-items: center; flex-wrap: wrap; }
+  .toolbar input[type="search"] {
+    flex: 1; min-width: 220px; padding: 8px 12px; font-size: 0.92rem;
+    border: 1px solid #ccc; border-radius: 6px;
+  }
+  .toolbar .note { font-size: 0.82rem; color: #777; }
+
+  details.module-group { margin: 18px 0; background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; }
+  details.module-group > summary {
+    cursor: pointer; padding: 12px 16px; font-weight: 700; list-style: none;
+  }
+  details.module-group > summary::-webkit-details-marker { display: none; }
+  details.module-group > summary::before { content: "▸ "; }
+  details.module-group[open] > summary::before { content: "▾ "; }
+
+  table.screens { border-collapse: collapse; width: 100%; font-size: 0.88rem; }
+  table.screens th, table.screens td {
+    border-top: 1px solid #eee; padding: 8px 12px; text-align: left; vertical-align: top;
+  }
+  table.screens th {
+    background: #f0f0ee; font-weight: 700; cursor: pointer; user-select: none; white-space: nowrap;
+  }
+  table.screens th:hover { background: #e6e6e2; }
+  table.screens td code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.85em; background: #f2f2ee; padding: 1px 5px; border-radius: 3px;
+  }
+  .badge { display: inline-block; font-size: 0.76rem; font-weight: 700; padding: 1px 8px; border-radius: 3px; }
+  .badge.high   { background: #e7f3e7; color: #23662a; }
+  .badge.medium { background: #fdf3d7; color: #7a5d10; }
+  .badge.low    { background: #fbe9e7; color: #9c2b1a; }
+  .badge.status-created { background: #e8eef7; color: #2a4a7a; }
+  .badge.status-skipped { background: #eee; color: #666; }
+
+  section.diff-summary, section.common-files, section.unclassified {
+    margin-top: 40px; background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; padding: 16px 20px;
+  }
+  section.diff-summary h2, section.common-files h2, section.unclassified h2 { font-size: 1.05rem; margin: 0 0 10px; }
+
+  footer { margin-top: 48px; font-size: 0.8rem; color: #999; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>画面一覧</h1>
+  <table class="meta-table">
+    <tr><td>生成日時</td><td>{{GENERATED_AT}}</td></tr>
+    <tr><td>ソースディレクトリ</td><td><code>{{SOURCE_DIR}}</code></td></tr>
+    <tr><td>出力先</td><td><code>{{OUTPUT_DIR}}</code></td></tr>
+    <tr><td>検出方式</td><td>{{DETECTION_METHOD}}</td></tr>
+  </table>
+
+  <div class="summary-tiles">
+    <div class="tile"><strong>{{SCREEN_COUNT}}</strong>検出画面数</div>
+    <div class="tile"><strong>{{CONFIDENCE_SUMMARY}}</strong>confidence内訳</div>
+  </div>
+</header>
+
+<!--DIFF_SUMMARY-->
+<!-- 前回生成分が存在する場合のみ、新規検出画面・消滅した画面(廃止候補)をここに列挙する -->
+
+<div class="toolbar">
+  <input type="search" id="screen-search" placeholder="画面キー・ルートで絞り込み">
+  <span class="note">列見出しクリックでソート</span>
+</div>
+
+<details class="module-group" open>
+  <summary>画面一覧</summary>
+  <table class="screens" id="screen-table">
+    <thead>
+      <tr>
+        <th data-key="screenKey">画面キー</th>
+        <th data-key="screenNameGuess">画面名</th>
+        <th data-key="route">ルート</th>
+        <th data-key="detectionMethod">検出方式</th>
+        <th data-key="confidence">confidence</th>
+        <th data-key="fileCount">構成ファイル数</th>
+        <th data-key="entryFile">主ファイル</th>
+        <th data-key="scaffoldStatus">02_画面基本設計状態</th>
+      </tr>
+    </thead>
+    <tbody>
+      <!--SCREEN_TABLE_ROWS-->
+    </tbody>
+  </table>
+</details>
+
+<section class="common-files">
+  <h2>共通ファイル・未分類（参考情報）</h2>
+  <p class="note">本スキルは import グラフ解析を行わないため、共通ファイルのクロス参照分離は非対応。必要に応じて手動確認する。</p>
+</section>
+
+<script type="application/json" id="screen-manifest">
+{}
+</script>
+
+<footer>generating-screen-list-for-reverse-docs により生成。手編集は次回再生成で上書きされる。</footer>
+
+<script>
+  (function () {
+    var manifestEl = document.getElementById('screen-manifest');
+    var manifest = {};
+    try { manifest = JSON.parse(manifestEl.textContent); } catch (e) { /* ignore */ }
+
+    var search = document.getElementById('screen-search');
+    var table = document.getElementById('screen-table');
+    if (!table) return;
+    var tbody = table.querySelector('tbody');
+    var rows = Array.prototype.slice.call(tbody.querySelectorAll('tr'));
+
+    if (search) {
+      search.addEventListener('input', function () {
+        var q = search.value.trim().toLowerCase();
+        rows.forEach(function (tr) {
+          var hit = tr.textContent.toLowerCase().indexOf(q) !== -1;
+          tr.style.display = hit ? '' : 'none';
+        });
+      });
+    }
+
+    table.querySelectorAll('th[data-key]').forEach(function (th, colIndex) {
+      th.addEventListener('click', function () {
+        var asc = th.getAttribute('data-asc') !== 'true';
+        table.querySelectorAll('th[data-key]').forEach(function (t) { t.removeAttribute('data-asc'); });
+        th.setAttribute('data-asc', asc);
+        var sorted = rows.slice().sort(function (a, b) {
+          var av = a.children[colIndex].textContent.trim();
+          var bv = b.children[colIndex].textContent.trim();
+          var an = parseFloat(av), bn = parseFloat(bv);
+          var cmp = (!isNaN(an) && !isNaN(bn)) ? (an - bn) : av.localeCompare(bv, 'ja');
+          return asc ? cmp : -cmp;
+        });
+        sorted.forEach(function (tr) { tbody.appendChild(tr); });
+      });
+    });
+  })();
+</script>
+
+</body>
+</html>
