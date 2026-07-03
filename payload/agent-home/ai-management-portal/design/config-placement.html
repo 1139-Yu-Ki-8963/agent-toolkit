@@ -3,71 +3,36 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>設定層 配置判定ガイド — agent-toolkit</title>
+  <title>設定層 配置判定ガイド — agent-home</title>
   <link rel="stylesheet" href="../style.css" />
   <link rel="stylesheet" href="design.css" />
   <script type="module" src="../src/common/header.js"></script>
   <style>
-    .sd-wrap { max-width: 1100px; margin: 0 auto; padding: 20px; }
-    .sd-layout { display: grid; grid-template-columns: 220px 1fr; gap: 24px; align-items: start; }
-    .sd-toc { position: sticky; top: 16px; background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; font-size: 12.5px; }
-    .sd-toc h3 { font-size: 11px; margin: 0 0 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700; }
-    .sd-toc ul { list-style: none; padding: 0; margin: 0; }
-    .sd-toc li { margin: 0; }
-    .sd-toc a { display: flex; align-items: baseline; gap: 7px; padding: 5px 8px; border-radius: 5px; color: var(--text-sub); font-size: 12px; text-decoration: none; line-height: 1.5; transition: background 0.12s; }
-    .sd-toc a:hover { background: var(--accent-soft); color: var(--accent); text-decoration: none; }
-    .sd-toc .toc-num { font-family: var(--mono); font-size: 10px; font-weight: 700; color: var(--accent); flex-shrink: 0; min-width: 18px; }
-    .sd-toc .toc-sep { border-top: 1px solid var(--border); margin: 8px 0; }
-    .sd-body { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px 32px; box-shadow: var(--shadow-sm); min-width: 0; }
-    .sd-section { margin-bottom: 48px; }
-    .sd-section:last-child { margin-bottom: 0; }
-    .sd-h2 { display: flex; align-items: center; gap: 12px; font-size: 18px; font-weight: 800; margin: 0 0 16px; padding: 10px 16px; background: var(--accent-soft); border-left: 4px solid var(--accent); border-radius: 0 var(--radius-sm) var(--radius-sm) 0; scroll-margin-top: 20px; }
-    .sd-h2 .sec-num { font-family: var(--mono); font-size: 12px; font-weight: 800; background: var(--accent); color: #fff; padding: 2px 8px; border-radius: 999px; }
-    .sd-h3 { font-size: 14.5px; font-weight: 700; color: var(--accent-2); margin: 24px 0 8px; padding-bottom: 4px; border-bottom: 1px dashed var(--border-strong); }
-    .sd-def { background: var(--panel-2); border: 1px solid var(--accent-border); border-left: 4px solid var(--accent); border-radius: 0 var(--radius-sm) var(--radius-sm) 0; padding: 12px 16px; margin: 12px 0 16px; font-size: 13.5px; color: var(--text); line-height: 1.75; }
-    .sd-flow { background: var(--code-bg); color: var(--code-fg); border-radius: var(--radius-sm); padding: 16px 20px; font-family: var(--mono); font-size: 12.5px; line-height: 2; overflow-x: auto; white-space: pre; margin: 12px 0 16px; }
-    .sd-note { font-size: 12px; color: var(--text-muted); background: var(--panel-2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 8px 12px; margin: 8px 0 12px; line-height: 1.7; }
-    .sd-quote { font-size: 12.5px; color: var(--text-sub); background: var(--panel-2); border-left: 3px solid var(--text-muted); padding: 8px 14px; margin: 10px 0 14px; line-height: 1.75; font-style: italic; }
-    .sd-gotcha { background: var(--gold-soft); border: 1px solid var(--gold-border); border-left: 4px solid var(--gold); border-radius: 0 var(--radius-sm) var(--radius-sm) 0; padding: 12px 16px; margin: 10px 0 14px; }
-    .sd-gotcha-title { font-size: 11.5px; font-weight: 800; color: var(--gold); letter-spacing: 0.04em; margin-bottom: 8px; }
-    .sd-gotcha ul { margin: 0; padding-left: 18px; }
-    .sd-gotcha li { font-size: 12.5px; color: var(--text-sub); line-height: 1.75; }
-    .sd-table { width: 100%; border-collapse: collapse; font-size: 12.5px; margin: 12px 0 16px; border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; }
-    .sd-table th, .sd-table td { border: 1px solid var(--border); padding: 8px 12px; text-align: left; vertical-align: top; }
-    .sd-table th { background: var(--accent-soft); color: var(--accent); font-weight: 700; white-space: nowrap; }
-    .sd-table tr:nth-child(even) td { background: var(--panel-2); }
-    .sd-body ul, .sd-body ol { padding-left: 22px; margin: 8px 0 12px; line-height: 1.8; }
-    .sd-body li { margin: 3px 0; font-size: 13.5px; color: var(--text-sub); }
-    .sd-body li strong { color: var(--text); }
-    code { background: var(--accent-soft); color: var(--accent); padding: 1px 6px; border-radius: 4px; font-size: 0.9em; font-family: var(--mono); }
-
-    /* 層バッジ */
-    .layer-badge { display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 10px; border-radius: 999px; font-family: var(--mono); white-space: nowrap; }
-    .layer-hook      { background: #fff1f2; color: #be123c; border: 1px solid #fecdd3; }
-    .layer-output    { background: #faf5ff; color: #7e22ce; border: 1px solid #e9d5ff; }
-    .layer-append    { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
-    .layer-skill     { background: #f0f9ff; color: #0369a1; border: 1px solid #bae6fd; }
-    .layer-subagent  { background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; }
-    .layer-lazy      { background: #f0fdfa; color: #0f766e; border: 1px solid #99f6e4; }
-    .layer-eager     { background: #ecfdf5; color: #065f46; border: 1px solid #6ee7b7; }
-    .layer-claude-md { background: #f8fafc; color: #475569; border: 1px solid #cbd5e1; }
-
-    /* 決定木ビジュアル */
+    .layer-hook { background: var(--danger-soft); color: var(--danger); border: 1px solid var(--danger-border); }
+    .layer-output { background: var(--gold-soft); color: var(--gold); border: 1px solid var(--gold-border); }
+    .layer-append { background: var(--chip-bg); color: var(--chip-fg); border: 1px solid var(--border-strong); }
+    .layer-skill { background: var(--accent-soft); color: var(--accent); border: 1px solid var(--accent-border); }
+    .layer-subagent { background: var(--success-soft); color: var(--success); border: 1px solid var(--success-border); }
+    .layer-lazy { background: var(--success-soft); color: var(--success); border: 1px solid var(--success-border); }
+    .layer-eager { background: var(--accent-soft); color: var(--accent); border: 1px solid var(--accent-border); }
+    .layer-claude-md { background: var(--chip-bg); color: var(--chip-fg); border: 1px solid var(--border-strong); }
     .dtree { display: flex; flex-direction: column; gap: 6px; margin: 16px 0; }
     .dtree-row { display: grid; grid-template-columns: 28px 1fr auto; gap: 10px; align-items: start; padding: 10px 14px; background: var(--panel-2); border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 13px; }
     .dtree-q { font-family: var(--mono); font-size: 11px; font-weight: 800; color: var(--accent); padding-top: 2px; }
     .dtree-cond { color: var(--text-sub); line-height: 1.65; }
     .dtree-cond strong { color: var(--text); }
     .dtree-dest { text-align: right; min-width: 110px; padding-top: 2px; }
-
-    /* アンチパターン */
     .anti-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 12px 0 16px; }
     .anti-item { background: var(--panel-2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 14px; font-size: 12.5px; line-height: 1.7; }
-    .anti-item .anti-bad  { color: #be123c; font-weight: 700; font-size: 11.5px; margin-bottom: 4px; }
-    .anti-item .anti-good { color: #15803d; font-size: 11.5px; margin-top: 4px; }
-
-    @media (max-width: 900px) { .sd-layout { grid-template-columns: 1fr; } .sd-toc { position: static; } .sd-body { padding: 18px 20px; } .anti-grid { grid-template-columns: 1fr; } }
-    @media (max-width: 560px) { .sd-wrap { padding: 12px; } .sd-body { padding: 14px 14px; } .sd-h2 { font-size: 15px; } .dtree-row { grid-template-columns: 20px 1fr; } .dtree-dest { grid-column: 2; text-align: left; } }
+    .anti-item .anti-bad { color: var(--danger); font-weight: 700; font-size: 11.5px; margin-bottom: 4px; }
+    .anti-item .anti-good { color: var(--success); font-size: 11.5px; margin-top: 4px; }
+    @media (max-width: 768px) {
+      .anti-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 480px) {
+      .dtree-row { grid-template-columns: 20px 1fr; }
+      .dtree-dest { grid-column: 2; text-align: left; }
+    }
   </style>
 </head>
 <body>
@@ -79,6 +44,7 @@
         「これはどこに書くか」を判定するための 7 層決定木。
         CLAUDE.md / Rules / Skills / Subagents / Hooks / Output styles の使い分けを一枚で参照できる。
         正本ルール: <code>~/.claude/rules/config-placement.md</code>
+        <a href="../index.html#/category/catalog">← カタログへ</a>
       </p>
     </div>
 
@@ -471,7 +437,7 @@
 
           <div class="sd-note">
             正本ルール: <code>~/.claude/rules/config-placement.md</code>（eager rule として全セッションに注入される）<br>
-            設計ガイド（このファイル）: <code>docs/config-placement-design.html</code>
+            設計ガイド（このファイル）: <code>~/agent-home/ai-management-portal/config-placement-design.html</code>
           </div>
         </section>
 

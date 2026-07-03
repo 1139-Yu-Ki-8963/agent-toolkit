@@ -2,3 +2,4 @@
 # manage-portal.mjs verify の「エイリアス-解決」チェックがこのファイルを参照する。
 # 書式: aliases: ブロック配下に "旧名: 現行名" を追記する。実測値・個人データは書かない。
 aliases:
+  cataloging-screens-for-reverse-docs: generating-screen-list-for-reverse-docs  # 2026-07-03 作成直後に改名（画面一覧という主成果物を名前に明示するため）

@@ -3,263 +3,17 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Loop 設計ガイド — agent-toolkit</title>
+  <title>Loop 設計ガイド — agent-home</title>
   <link rel="stylesheet" href="../style.css" />
   <link rel="stylesheet" href="design.css" />
   <script type="module" src="../src/common/header.js"></script>
   <style>
-    .sd-wrap { max-width: 1100px; margin: 0 auto; padding: 20px; }
-
-    .sd-layout {
-      display: grid;
-      grid-template-columns: 220px 1fr;
-      gap: 24px;
-      align-items: start;
-    }
-
-    .sd-toc {
-      position: sticky;
-      top: 16px;
-      background: var(--panel);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 14px;
-      font-size: 12.5px;
-    }
-    .sd-toc h3 {
-      font-size: 11px;
-      margin: 0 0 10px;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      font-weight: 700;
-    }
-    .sd-toc ul { list-style: none; padding: 0; margin: 0; }
-    .sd-toc li { margin: 0; }
-    .sd-toc a {
-      display: flex;
-      align-items: baseline;
-      gap: 7px;
-      padding: 5px 8px;
-      border-radius: 5px;
-      color: var(--text-sub);
-      font-size: 12px;
-      text-decoration: none;
-      line-height: 1.5;
-      transition: background 0.12s;
-    }
-    .sd-toc a:hover { background: var(--accent-soft); color: var(--accent); text-decoration: none; }
-    .sd-toc .toc-num {
-      font-family: var(--mono);
-      font-size: 10px;
-      font-weight: 700;
-      color: var(--accent);
-      flex-shrink: 0;
-      min-width: 18px;
-    }
-    .sd-toc .toc-sep { border-top: 1px solid var(--border); margin: 8px 0; }
-
-    .sd-body {
-      background: var(--panel);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 28px 32px;
-      box-shadow: var(--shadow-sm);
-      min-width: 0;
-    }
-
-    .sd-section { margin-bottom: 48px; }
-    .sd-section:last-child { margin-bottom: 0; }
-
-    .sd-h2 {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      font-size: 18px;
-      font-weight: 800;
-      margin: 0 0 16px;
-      padding: 10px 16px;
-      background: var(--accent-soft);
-      border-left: 4px solid var(--accent);
-      border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
-      scroll-margin-top: 20px;
-    }
-    .sd-h2 .sec-num {
-      font-family: var(--mono);
-      font-size: 12px;
-      font-weight: 800;
-      background: var(--accent);
-      color: #fff;
-      padding: 2px 8px;
-      border-radius: 999px;
-    }
-    .sd-h3 {
-      font-size: 14.5px;
-      font-weight: 700;
-      color: var(--accent-2);
-      margin: 24px 0 8px;
-      padding-bottom: 4px;
-      border-bottom: 1px dashed var(--border-strong);
-    }
-
-    .sd-def {
-      background: var(--panel-2);
-      border: 1px solid var(--accent-border);
-      border-left: 4px solid var(--accent);
-      border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
-      padding: 12px 16px;
-      margin: 12px 0 16px;
-      font-size: 13.5px;
-      color: var(--text);
-      line-height: 1.75;
-    }
-
-    .sd-code {
-      background: var(--code-bg);
-      color: var(--code-fg);
-      border-radius: var(--radius-sm);
-      padding: 14px 18px;
-      font-family: var(--mono);
-      font-size: 12.5px;
-      line-height: 1.65;
-      overflow-x: auto;
-      margin: 10px 0 16px;
-      white-space: pre;
-    }
-    .sd-code-label {
-      font-size: 10.5px;
-      font-weight: 700;
-      color: var(--text-muted);
-      font-family: var(--mono);
-      letter-spacing: 0.04em;
-      margin-bottom: 4px;
-    }
-
-    .sd-flow {
-      background: var(--code-bg);
-      color: var(--code-fg);
-      border-radius: var(--radius-sm);
-      padding: 16px 20px;
-      font-family: var(--mono);
-      font-size: 12.5px;
-      line-height: 2;
-      overflow-x: auto;
-      white-space: pre;
-      margin: 12px 0 16px;
-    }
-
-    code {
-      background: var(--accent-soft);
-      color: var(--accent);
-      padding: 1px 6px;
-      border-radius: 4px;
-      font-size: 0.9em;
-      font-family: var(--mono);
-    }
-
-    .sd-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 12.5px;
-      margin: 12px 0 16px;
-      border: 1px solid var(--border);
-      border-radius: var(--radius-sm);
-      overflow: hidden;
-    }
-    .sd-table th, .sd-table td {
-      border: 1px solid var(--border);
-      padding: 8px 12px;
-      text-align: left;
-      vertical-align: top;
-    }
-    .sd-table th {
-      background: var(--accent-soft);
-      color: var(--accent);
-      font-weight: 700;
-      white-space: nowrap;
-    }
-    .sd-table tr:nth-child(even) td { background: var(--panel-2); }
-
-    .sd-body ul, .sd-body ol {
-      padding-left: 22px;
-      margin: 8px 0 12px;
-      line-height: 1.8;
-    }
-    .sd-body li { margin: 3px 0; font-size: 13.5px; color: var(--text-sub); }
-    .sd-body li strong { color: var(--text); }
-
-    .sd-gotcha {
-      background: var(--gold-soft);
-      border: 1px solid var(--gold-border);
-      border-left: 4px solid var(--gold);
-      border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
-      padding: 12px 16px;
-      margin: 10px 0 14px;
-    }
-    .sd-gotcha-title {
-      font-size: 11.5px;
-      font-weight: 800;
-      color: var(--gold);
-      letter-spacing: 0.04em;
-      margin-bottom: 8px;
-    }
-    .sd-gotcha ul { margin: 0; padding-left: 18px; }
-    .sd-gotcha li { font-size: 12.5px; color: var(--text-sub); line-height: 1.75; }
-
-    .sd-note {
-      font-size: 12px;
-      color: var(--text-muted);
-      background: var(--panel-2);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-sm);
-      padding: 8px 12px;
-      margin: 8px 0 12px;
-      line-height: 1.7;
-    }
-
-    .sd-quote {
-      background: var(--panel-2);
-      border-left: 4px solid var(--text-muted);
-      border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
-      padding: 12px 16px;
-      margin: 12px 0 16px;
-      font-size: 13px;
-      color: var(--text-sub);
-      font-style: italic;
-      line-height: 1.75;
-    }
-    .sd-quote cite {
-      display: block;
-      margin-top: 6px;
-      font-size: 11.5px;
-      font-style: normal;
-      color: var(--text-muted);
-    }
-
-    .layer-badge {
-      display: inline-block;
-      font-size: 11px;
-      font-weight: 700;
-      padding: 2px 10px;
-      border-radius: 999px;
-      font-family: var(--mono);
-      white-space: nowrap;
-    }
-    .layer-prompt  { background: #fef3c7; color: #92400e; border: 1px solid #fcd34d; }
-    .layer-context { background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; }
-    .layer-harness { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
-    .layer-loop    { background: #fdf2f8; color: #9d174d; border: 1px solid #fbcfe8; }
-
-    @media (max-width: 900px) {
-      .sd-layout { grid-template-columns: 1fr; }
-      .sd-toc { position: static; }
-      .sd-body { padding: 18px 20px; }
-    }
-    @media (max-width: 560px) {
-      .sd-wrap { padding: 12px; }
-      .sd-body { padding: 14px 14px; }
-      .sd-h2 { font-size: 15px; }
-    }
+    .sd-quote { background: var(--panel-2); border-left: 4px solid var(--text-muted); border-radius: 0 var(--radius-sm) var(--radius-sm) 0; padding: 12px 16px; margin: 12px 0 16px; font-size: 13px; color: var(--text-sub); font-style: italic; line-height: 1.75; }
+    .sd-quote cite { display: block; margin-top: 6px; font-size: 11.5px; font-style: normal; color: var(--text-muted); }
+    .layer-prompt { background: var(--gold-soft); color: var(--gold); border: 1px solid var(--gold-border); }
+    .layer-context { background: var(--accent-soft); color: var(--accent); border: 1px solid var(--accent-border); }
+    .layer-harness { background: var(--success-soft); color: var(--success); border: 1px solid var(--success-border); }
+    .layer-loop { background: var(--danger-soft); color: var(--danger); border: 1px solid var(--danger-border); }
   </style>
 </head>
 <body>
@@ -270,6 +24,7 @@
       <p>
         エージェントへの指示を「1 回のプロンプト」から「自動で繰り返す仕組み」へ昇格させる設計原則。
         ハーネスの上に検証ループを組み、人手を介さず品質を担保する。
+        <a href="../index.html#/category/catalog">&larr; カタログへ</a>
       </p>
     </div>
 
@@ -466,7 +221,7 @@
                 <td><strong>Skills</strong></td>
                 <td>知識を SKILL.md に固定し再利用</td>
                 <td>発見</td>
-                <td><code>~/.claude/skills/</code></td>
+                <td><code>~/agent-home/skills/</code></td>
               </tr>
               <tr>
                 <td><strong>Connectors (MCP)</strong></td>
@@ -712,7 +467,7 @@ fixer が文脈リセットで修正 → チェック再実行</div>
           <h2 class="sd-h2"><span class="sec-num">&sect;8</span>本環境での実装対応</h2>
 
           <p style="font-size:13.5px;color:var(--text-sub);line-height:1.8;margin:0 0 12px">
-            本ツールキットの環境では、ループエンジニアリングの各要素が既に以下の形で実装されている。
+            本環境（agent-home）では、ループエンジニアリングの各要素が既に以下の形で実装されている。
           </p>
 
           <table class="sd-table">
@@ -726,7 +481,7 @@ fixer が文脈リセットで修正 → チェック再実行</div>
               <tr>
                 <td>受け渡し (handoff)</td>
                 <td><code>git worktree</code> + <code>parallel-dev-worktree</code> スキル</td>
-                <td>parallel-dev-worktree スキル</td>
+                <td><a href="../index.html#/flow/parallel-dev-worktree">worktree 開発フロー</a></td>
               </tr>
               <tr>
                 <td>検証 (verification)</td>
@@ -741,7 +496,7 @@ fixer が文脈リセットで修正 → チェック再実行</div>
               <tr>
                 <td>スケジューリング (scheduling)</td>
                 <td><code>/schedule</code>、CronCreate、ルーティン</td>
-                <td>ルーティン一覧</td>
+                <td><a href="../index.html#/category/routines">ルーティン一覧</a></td>
               </tr>
               <tr>
                 <td>評価役の分離</td>
@@ -770,7 +525,8 @@ fixer が文脈リセットで修正 → チェック再実行</div>
     </div>
 
     <div data-md-skip style="text-align:center;margin-top:20px;font-size:12px;color:var(--text-muted)">
-      <a href="../index.html">ホーム</a>
+      <a href="../catalog/skills.html">スキル一覧</a> &nbsp;&middot;&nbsp;
+      <a href="../index.html">ポータル TOP</a>
     </div>
   </div>
 </body>

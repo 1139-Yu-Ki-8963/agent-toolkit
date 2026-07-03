@@ -3,194 +3,26 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Hooks 設計ガイド — agent-toolkit</title>
+  <title>Hooks 設計ガイド — agent-home</title>
   <link rel="stylesheet" href="../style.css" />
   <link rel="stylesheet" href="design.css" />
   <script type="module" src="../src/common/header.js"></script>
   <style>
-    .sd-wrap { max-width: 1100px; margin: 0 auto; padding: 20px; }
-    .sd-layout {
-      display: grid;
-      grid-template-columns: 220px 1fr;
-      gap: 24px;
-      align-items: start;
-    }
-    .sd-toc {
-      position: sticky;
-      top: 16px;
-      background: var(--panel);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 14px;
-      font-size: 12.5px;
-    }
-    .sd-toc h3 {
-      font-size: 11px;
-      margin: 0 0 10px;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      font-weight: 700;
-    }
-    .sd-toc ul { list-style: none; padding: 0; margin: 0; }
-    .sd-toc li { margin: 0; }
-    .sd-toc a {
-      display: flex;
-      align-items: baseline;
-      gap: 7px;
-      padding: 5px 8px;
-      border-radius: 5px;
-      color: var(--text-sub);
-      font-size: 12px;
-      text-decoration: none;
-      line-height: 1.5;
-      transition: background 0.12s;
-    }
-    .sd-toc a:hover { background: var(--accent-soft); color: var(--accent); text-decoration: none; }
-    .sd-toc .toc-num {
-      font-family: var(--mono);
-      font-size: 10px;
-      font-weight: 700;
-      color: var(--accent);
-      flex-shrink: 0;
-      min-width: 18px;
-    }
-    .sd-toc .toc-sep { border-top: 1px solid var(--border); margin: 8px 0; }
-    .sd-body {
-      background: var(--panel);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 28px 32px;
-      box-shadow: var(--shadow-sm);
-      min-width: 0;
-    }
-    .sd-section { margin-bottom: 48px; }
-    .sd-section:last-child { margin-bottom: 0; }
-    .sd-h2 {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      font-size: 18px;
-      font-weight: 800;
-      margin: 0 0 16px;
-      padding: 10px 16px;
-      background: var(--accent-soft);
-      border-left: 4px solid var(--accent);
-      border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
-      scroll-margin-top: 20px;
-    }
-    .sd-h2 .sec-num {
-      font-family: var(--mono);
-      font-size: 12px;
-      font-weight: 800;
-      background: var(--accent);
-      color: #fff;
-      padding: 2px 8px;
-      border-radius: 999px;
-    }
-    .sd-h3 {
-      font-size: 14.5px;
-      font-weight: 700;
-      margin: 22px 0 10px;
-      padding-bottom: 4px;
-      border-bottom: 1px dashed var(--border);
-    }
-    .sd-tree {
-      background: var(--code-bg);
-      color: var(--code-fg);
-      border-radius: var(--radius-sm);
-      padding: 14px 18px;
-      font-family: var(--mono);
-      font-size: 12.5px;
-      line-height: 1.75;
-      overflow-x: auto;
-      white-space: pre;
-      margin: 10px 0 16px;
-    }
-    .sd-note {
-      font-size: 12px;
-      color: var(--text-muted);
-      background: var(--panel-2);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-sm);
-      padding: 8px 12px;
-      margin: 8px 0 12px;
-      line-height: 1.7;
-    }
-    .sd-banner {
-      background: #fff4e5;
-      border: 1px solid #f0b27a;
-      color: #7d4a1a;
-      border-radius: var(--radius-sm);
-      padding: 12px 14px;
-      margin: 12px 0 16px;
-      line-height: 1.7;
-      font-size: 13px;
-    }
-    .sd-banner strong { color: #5b3210; }
-    .quad {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-      margin: 12px 0 16px;
-    }
-    .quad-cell {
-      background: var(--panel-2);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-sm);
-      padding: 12px 14px;
-      font-size: 12.5px;
-      line-height: 1.7;
-    }
-    .quad-cell h4 {
-      margin: 0 0 6px;
-      font-size: 13px;
-      font-weight: 700;
-      color: var(--accent);
-    }
-    .quad-cell code {
-      display: block;
-      font-family: var(--mono);
-      font-size: 11.5px;
-      color: var(--code-fg);
-      background: var(--code-bg);
-      padding: 6px 8px;
-      border-radius: 4px;
-      margin: 6px 0;
-      white-space: nowrap;
-      overflow-x: auto;
-    }
-    table.sd-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 12.5px;
-      margin: 10px 0 16px;
-    }
-    table.sd-table th, table.sd-table td {
-      border: 1px solid var(--border);
-      padding: 6px 10px;
-      text-align: left;
-      vertical-align: top;
-    }
-    table.sd-table th {
-      background: var(--panel-2);
-      font-weight: 700;
-      color: var(--text);
-    }
+    .sd-h3 { font-size: 14.5px; font-weight: 700; margin: 22px 0 10px; padding-bottom: 4px; border-bottom: 1px dashed var(--border); }
+    .sd-banner { background: var(--gold-soft); border: 1px solid var(--gold-border); color: var(--gold); border-radius: var(--radius-sm); padding: 12px 14px; margin: 12px 0 16px; line-height: 1.7; font-size: 13px; }
+    .sd-banner strong { color: var(--gold); }
+    .quad { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 12px 0 16px; }
+    .quad-cell { min-width: 0; background: var(--panel-2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px 14px; font-size: 12.5px; line-height: 1.7; }
+    .quad-cell h4 { margin: 0 0 6px; font-size: 13px; font-weight: 700; color: var(--accent); }
+    .quad-cell code { display: block; font-family: var(--mono); font-size: 11.5px; color: var(--code-fg); background: var(--code-bg); padding: 6px 8px; border-radius: 4px; margin: 6px 0; white-space: nowrap; overflow-x: auto; }
+    table.sd-table { width: 100%; border-collapse: collapse; font-size: 12.5px; margin: 10px 0 16px; }
+    table.sd-table th, table.sd-table td { border: 1px solid var(--border); padding: 6px 10px; text-align: left; vertical-align: top; }
+    table.sd-table th { background: var(--panel-2); font-weight: 700; color: var(--text); }
     table.sd-table td code { font-family: var(--mono); font-size: 11.5px; }
-    .bad { color: #b03030; font-weight: 700; }
-    .good { color: #1f7d3a; font-weight: 700; }
-
-    @media (max-width: 900px) {
-      .sd-layout { grid-template-columns: 1fr; }
-      .sd-toc { position: static; }
-      .sd-body { padding: 18px 20px; }
+    .bad { color: var(--danger); font-weight: 700; }
+    .good { color: var(--success); font-weight: 700; }
+    @media (max-width: 768px) {
       .quad { grid-template-columns: 1fr; }
-    }
-    @media (max-width: 560px) {
-      .sd-wrap { padding: 12px; }
-      .sd-body { padding: 14px 14px; }
-      .sd-h2 { font-size: 15px; }
     }
   </style>
 </head>
@@ -201,7 +33,8 @@
       <h1>Hooks 設計ガイド</h1>
       <p>
         Claude Code の hook script を新規追加・移動する時に従う配置ルールと管理方針。
-        スコープは「どこに置くか」「どう管理するか」のアーキテクト規約まで。個別 hook の中身の書き方は creating-hooks スキルが担う。
+        スコープは「どこに置くか」「どう管理するか」のアーキテクト規約まで。個別 hook の中身の書き方は <a href="../../skills/managing-agent-configs/SKILL.md">managing-agent-configs</a> スキルが担う。
+        <a href="../index.html">← ポータルへ</a>
       </p>
     </div>
 
@@ -223,7 +56,7 @@
         <div class="toc-sep"></div>
         <div style="font-size:11px;color:var(--text-muted);padding:4px 8px;line-height:1.6">
           対象: Claude Code hook<br>
-          関連: <a href="skill.html">Skill 設計ガイド</a> / README
+          関連: <a href="skill.html">Skill 設計ガイド</a>
         </div>
       </nav>
 
@@ -254,10 +87,10 @@
               <tr><th>パス</th><th>分類</th><th>禁止理由</th></tr>
             </thead>
             <tbody>
-              <tr><td><code>&lt;project&gt;/tools/hooks/</code></td><td>global flat bucket</td><td>31 ファイルが規約と無関係に同居。最大の負債源</td></tr>
+              <tr><td><code>~/agent-home/tools/hooks/</code></td><td>global flat bucket</td><td>31 ファイルが規約と無関係に同居。最大の負債源</td></tr>
               <tr><td><code>~/.claude/hooks/</code></td><td>global flat bucket</td><td>同上の構造になる前に禁止しておく</td></tr>
               <tr><td><code>~/.claude/&lt;any&gt;/hooks/</code></td><td>plugin enforcement</td><td>plugin 内 hooks は plugin 側で完結すべき。手動で増やさない</td></tr>
-              <tr><td><code>&lt;repo&gt;/.claude/hooks/</code></td><td>project flat bucket</td><td>特定プロジェクトの <code>.claude/hooks/</code> 19 ファイルが同じ負債を抱えている</td></tr>
+              <tr><td><code>&lt;repo&gt;/.claude/hooks/</code></td><td>project flat bucket</td><td>oradora-battle-base の <code>.claude/hooks/</code> 19 ファイルが同じ負債を抱えている</td></tr>
               <tr><td><code>&lt;repo&gt;/.claude/&lt;any&gt;/hooks/</code></td><td>project flat bucket</td><td>同上</td></tr>
             </tbody>
           </table>
@@ -278,7 +111,7 @@
           </table>
 
           <div class="sd-note">
-            判定式: 禁止対象は <code>(.claude)</code> 配下に <code>hooks/</code> セグメントを含むパスのみ。React の <code>src/hooks/</code> は <code>.claude/</code> を経由しないので影響を受けない。
+            判定式: 禁止対象は <code>(.claude|agent-home)</code> 配下に <code>hooks/</code> セグメントを含むパスのみ。React の <code>src/hooks/</code> は <code>.claude/</code> も <code>agent-home/</code> も経由しないので影響を受けない。
           </div>
         </section>
 
@@ -329,8 +162,8 @@
           <div class="quad">
             <div class="quad-cell">
               <h4>skill × global</h4>
-              <code>~/.claude/skills/&lt;skill&gt;/scripts/&lt;hook&gt;.sh</code>
-              <p>例: parallel-dev-worktree skill の延長 → <code>~/.claude/skills/parallel-dev-worktree/scripts/worktree-required-check.sh</code></p>
+              <code>~/agent-home/skills/&lt;skill&gt;/scripts/&lt;hook&gt;.sh</code>
+              <p>例: parallel-dev-worktree skill の延長 → <code>~/agent-home/skills/parallel-dev-worktree/scripts/worktree-required-check.sh</code></p>
             </div>
             <div class="quad-cell">
               <h4>skill × project</h4>
@@ -365,7 +198,7 @@
     └── hooks-architecture-check.sh</div>
 
           <h3 class="sd-h3">skill 配下のフォルダ構造</h3>
-          <div class="sd-tree">~/.claude/skills/
+          <div class="sd-tree">~/agent-home/skills/
 ├── parallel-dev-worktree/
 │   ├── SKILL.md
 │   └── scripts/
@@ -378,31 +211,31 @@
 
         <section class="sd-section" id="s5">
           <h2 class="sd-h2"><span class="sec-num">§5</span>例: 既存 hook の正しい置き場</h2>
-          <p><code>&lt;project&gt;/tools/hooks/</code> 配下の 31 ファイルを 2 軸で分類した時の本来の置き場を示す。これらは legacy として現状放置するが、新規 hook を作る時の参考にする。</p>
+          <p><code>~/agent-home/tools/hooks/</code> 配下の 31 ファイルを 2 軸で分類した時の本来の置き場を示す。これらは legacy として現状放置するが、新規 hook を作る時の参考にする。</p>
 
           <table class="sd-table">
             <thead>
               <tr><th>既存 hook</th><th>本来の置き場</th><th>分類</th></tr>
             </thead>
             <tbody>
-              <tr><td><code>worktree-required-check.sh</code></td><td><code>~/.claude/skills/parallel-dev-worktree/scripts/</code></td><td>skill × global</td></tr>
-              <tr><td><code>stop-auto-commit.sh</code></td><td><code>~/.claude/skills/auto-ship/scripts/</code></td><td>skill × global</td></tr>
-              <tr><td><code>prod-skill-read-enforce.sh</code><br><code>prod-skill-detect.sh</code></td><td><code>~/.claude/skills/deploy-production/scripts/</code></td><td>skill × global</td></tr>
-              <tr><td><code>issue-scope-check.sh</code></td><td><code>~/.claude/skills/verifying-issue-scope/scripts/</code></td><td>skill × global</td></tr>
-              <tr><td><code>flow-select-detect.sh</code><br><code>flow-select-enforce.sh</code></td><td><code>~/.claude/skills/flow-feature/scripts/</code> 等</td><td>skill × global</td></tr>
-              <tr><td><code>skill-log-recorder.sh</code></td><td><code>~/.claude/rules/session-infra-rules/</code></td><td>独立規約 × global</td></tr>
+              <tr><td><code>worktree-required-check.sh</code></td><td><code>~/agent-home/skills/parallel-dev-worktree/scripts/</code></td><td>skill × global</td></tr>
+              <tr><td><code>stop-auto-commit.sh</code></td><td><code>~/agent-home/skills/auto-ship/scripts/</code></td><td>skill × global</td></tr>
+              <tr><td><code>prod-skill-read-enforce.sh</code><br><code>prod-skill-detect.sh</code></td><td><code>~/agent-home/skills/oradora-deploy-production/scripts/</code></td><td>skill × global</td></tr>
+              <tr><td><code>issue-scope-check.sh</code></td><td><code>~/agent-home/skills/verifying-issue-scope/scripts/</code></td><td>skill × global</td></tr>
+              <tr><td><code>flow-select-detect.sh</code><br><code>flow-select-enforce.sh</code></td><td><code>~/agent-home/skills/flow-feature/scripts/</code> 等</td><td>skill × global</td></tr>
+              <tr><td><code>skill-log-recorder.sh</code></td><td><code>~/.claude/rules/always/session/session-infra/</code></td><td>独立規約 × global</td></tr>
               <tr><td><code>no-deferral-*.sh</code> (4 件)</td><td><code>~/.claude/rules/no-deferral-rules/</code></td><td>独立規約 × global</td></tr>
               <tr><td><code>no-delegation-*.sh</code> (3 件)</td><td><code>~/.claude/rules/no-delegation-rules/</code></td><td>独立規約 × global</td></tr>
               <tr><td><code>author-check.sh</code></td><td><code>~/.claude/rules/author-identity-rules/</code></td><td>独立規約 × global</td></tr>
               <tr><td><code>no-root-marker-check.sh</code></td><td><code>~/.claude/rules/no-root-marker-rules/</code></td><td>独立規約 × global</td></tr>
-              <tr><td><code>pre-bash-dispatch.sh</code></td><td>共通基盤 → <code>&lt;project&gt;/tools/dispatch/</code> など（hook ではない）</td><td>例外（dispatcher）</td></tr>
+              <tr><td><code>pre-bash-dispatch.sh</code></td><td>共通基盤 → <code>~/agent-home/tools/dispatch/</code> など（hook ではない）</td><td>例外（dispatcher）</td></tr>
             </tbody>
           </table>
         </section>
 
         <section class="sd-section" id="s6">
           <h2 class="sd-h2"><span class="sec-num">§6</span>hook の管理（一覧化）</h2>
-          <p>hook は分散配置されるが、<strong>全 hook の網羅一覧は単一の HTML ドキュメント（例: 本リポジトリの <a href="../index.html">docs-portal/index.html</a> のような俯瞰ページ）で管理する</strong>。検索性と「漏れなく把握できる」状態を担保するため。</p>
+          <p>hook は分散配置されるが、<strong>全 hook の網羅一覧は単一の HTML ドキュメント <code>catalog/hooks.html</code> で管理する</strong>。検索性と「漏れなく把握できる」状態を担保するため。</p>
 
           <h3 class="sd-h3">hooks.html に必ず登録する</h3>
           <ul>
@@ -432,15 +265,15 @@
                 <td>事前</td>
                 <td><code>hooks-architecture-check.sh</code></td>
                 <td><code>[HOOKS-BUCKET-FORBIDDEN]</code></td>
-                <td>PreToolUse(Write|Edit|MultiEdit) で <code>(.claude)</code> 配下の <code>hooks/</code> セグメントに新規ファイル作成を検出すると <code>exit 2</code> でブロック。既存ファイルの編集は通す</td>
+                <td>PreToolUse(Write|Edit|MultiEdit) で <code>(.claude|agent-home)</code> 配下の <code>hooks/</code> セグメントに新規ファイル作成を検出すると <code>exit 2</code> でブロック。既存ファイルの編集は通す</td>
               </tr>
             </tbody>
           </table>
 
           <h3 class="sd-h3">本 hook 自身の置き場</h3>
-          <p><code>hooks-architecture-check.sh</code> は独立規約 × global の象限なので <code>~/.claude/rules/hooks-architecture-rules/</code> に置く。</p>
+          <p><code>hooks-architecture-check.sh</code> は独立規約 × global の象限なので <code>~/.claude/rules/scoped/config/hooks-architecture/</code> に置く。</p>
 
-          <div class="sd-tree">~/.claude/rules/hooks-architecture-rules/
+          <div class="sd-tree">~/.claude/rules/scoped/config/hooks-architecture/
 ├── rule.md                       ← 本ガイドへのリンクと要点
 └── hooks-architecture-check.sh   ← PreToolUse enforcement</div>
         </section>
@@ -449,8 +282,8 @@
           <h2 class="sd-h2"><span class="sec-num">§8</span>既存 legacy の扱いと移行</h2>
           <p>本ガイドの導入時点で既に存在する legacy 配置:</p>
           <ul>
-            <li><code>&lt;project&gt;/tools/hooks/*.sh</code> — 31 ファイル</li>
-            <li><code>~/Projects/&lt;project&gt;/.claude/hooks/*.sh</code> — 19 ファイル</li>
+            <li><code>~/agent-home/tools/hooks/*.sh</code> — 31 ファイル</li>
+            <li><code>~/Projects/oradora-battle-base/.claude/hooks/*.sh</code> — 19 ファイル</li>
             <li><code>~/.claude/plugins/marketplaces/*/plugins/*/hooks/</code> — plugin 内</li>
           </ul>
 
@@ -460,7 +293,7 @@
             <li>移行は別タスクで <span class="bad">大規模</span>に行う:
               <ol>
                 <li>各 hook を 2 軸分類で象限を決定</li>
-                <li>新フォルダを <code>~/.claude/rules/&lt;rule&gt;-rules/</code> または <code>~/.claude/skills/&lt;skill&gt;/scripts/</code> に作る</li>
+                <li>新フォルダを <code>~/.claude/rules/&lt;rule&gt;-rules/</code> または <code>~/agent-home/skills/&lt;skill&gt;/scripts/</code> に作る</li>
                 <li><code>git mv</code> でファイル移動</li>
                 <li><code>settings.json</code> の hook command パスを更新</li>
                 <li><code>hooks.html</code> の <code>file</code> 列を更新</li>
@@ -482,7 +315,7 @@
           </ul>
 
           <h3 class="sd-h3">設計判断（必須）</h3>
-          <p>新規 <code>.sh</code> 作成は security 規約に従い設計判断の記録が必須。配置先の正本ドキュメント内に <code>## 設計判断</code> セクションとして記載する。</p>
+          <p>新規 <code>.sh</code> 作成は <code>~/.claude/rules/</code> の security 規約（security-rules/rule.md）に従い設計判断の記録が必須。配置先の正本ドキュメント内に <code>## 設計判断</code> セクションとして記載する。</p>
           <ul>
             <li>global hook → 配置先の <code>~/.claude/rules/&lt;rule&gt;-rules/rule.md</code> 内</li>
             <li>project hook → 配置先の <code>&lt;repo&gt;/.claude/rules/&lt;rule&gt;-rules/rule.md</code> または skill の <code>SKILL.md</code> 内</li>

@@ -84,9 +84,9 @@ PostToolUse。`matcher: Write|Edit` で file_path を取り、ファイルを走
 - ねらい: .md / .txt 保存後に曖昧表現（適宜 / 随時 / 必要に応じて / それ / これ ...）を検出 → サブエージェント起動を指示
 - マッチ: 拡張子フィルタで md / txt のみ走査
 - 動作: `grep -nE '<曖昧パターン>' "$file" | head -5` の結果を additionalContext に埋め込む
-- 出力: `[AMBIGUITY-AUTO-FIX]` + ファイルパス + 検出行 + 「Agent ツール（subagent_type: general-purpose）を即座に起動し、clarifying-ambiguity スキルで修正すること（`~/.claude/rules/subagent-delegation-rules/rule.md`）」
+- 出力: `[AMBIGUITY-AUTO-FIX]` + ファイルパス + 検出行 + 「Agent ツール（subagent_type: general-purpose）を即座に起動し、clarifying-ambiguity スキルで修正すること（`~/.claude/rules/always/agent/subagent-delegation/rule.md`）」
 - timeout: 10（ファイル走査込み）
-- 連動: `~/.claude/rules/subagent-delegation-rules/rule.md` にサブエージェント起動ルールを明記
+- 連動: `~/.claude/rules/always/agent/subagent-delegation/rule.md` にサブエージェント起動ルールを明記
 
 ### 4.2 textlint 検査
 

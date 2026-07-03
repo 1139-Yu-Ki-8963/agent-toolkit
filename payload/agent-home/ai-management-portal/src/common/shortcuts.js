@@ -1,8 +1,11 @@
 // ai-management-portal 共通: キーボードショートカット
+// "/"        → 全体検索を開く
 // "g d"      → ダッシュボード TOP
 // "g s"      → スキル一覧
+// "g h"      → フック一覧
 // "?"        → ショートカット一覧モーダル
 
+import * as search from "./search-ui.js";
 import { findPortalRoot } from "./controls.js";
 
 function go(path) {
@@ -14,6 +17,7 @@ function go(path) {
 const GO_TARGETS = {
   d: "index.html",
   s: "catalog/skills.html",
+  h: "catalog/hooks.html",
 };
 
 let _gPending = false;
@@ -39,8 +43,10 @@ function openHelp() {
   modal.innerHTML = `
     <div class="dp-search-input-row"><span class="material-symbols-outlined">keyboard</span><div class="dp-search-input" style="font-weight:700">キーボードショートカット</div></div>
     <div class="dp-search-results" style="padding:10px 18px;font-size:13px">
+      <p><kbd>/</kbd> 全体検索を開く</p>
       <p><kbd>g</kbd> <kbd>d</kbd> ダッシュボード TOP</p>
       <p><kbd>g</kbd> <kbd>s</kbd> スキル一覧</p>
+      <p><kbd>g</kbd> <kbd>h</kbd> フック一覧</p>
       <p><kbd>?</kbd> このヘルプを開く</p>
       <p><kbd>Esc</kbd> 閉じる</p>
     </div>`;
@@ -53,6 +59,7 @@ function openHelp() {
 
 function onKey(e) {
   if (e.altKey || e.ctrlKey || e.metaKey) return;
+  if (search.isOpen()) return;
   if (isTypingTarget(e.target)) return;
 
   if (_gPending) {
@@ -63,6 +70,7 @@ function onKey(e) {
     return;
   }
 
+  if (e.key === "/") { search.open(); e.preventDefault(); return; }
   if (e.key === "?") { openHelp(); e.preventDefault(); return; }
   if (e.key === "g") {
     _gPending = true;
@@ -74,4 +82,8 @@ function onKey(e) {
 
 export function initShortcuts() {
   document.addEventListener("keydown", onKey);
+}
+
+export function openSearch() {
+  search.open();
 }

@@ -12,7 +12,8 @@
 
 ```bash
 # hook script を持つ rules を列挙
-for d in ~/.claude/rules/*/; do
+for d in ~/.claude/rules/always/*/*/ ~/.claude/rules/scoped/*/*/; do
+  [ -d "$d" ] || continue
   sh_count=$(find "$d" -name "*.sh" -not -name "*.test.sh" | wc -l | tr -d ' ')
   [ "$sh_count" -gt 0 ] && echo "$(basename $d)  hooks=$sh_count"
 done
@@ -65,7 +66,7 @@ hook 出力: <additionalContext の内容>
 既存の `.test.sh` がある場合はそれを実行する:
 
 ```bash
-for test_sh in ~/.claude/rules/*-rules/*.test.sh; do
+for test_sh in ~/.claude/rules/{always,scoped}/*/*/*.test.sh; do
   [ -f "$test_sh" ] || continue
   echo "=== $(basename $test_sh) ==="
   bash "$test_sh" 2>&1
@@ -77,7 +78,7 @@ done
 ```
 ## managing-agent-configs（種別: rules） test レポート
 
-### 対象: <category>-rules/
+### 対象: <scope>/<topic>/<name>/
 | テスト | 種類 | 結果 | hook 出力 |
 |---|---|---|---|
 | 違反コマンド実行 | 正ケース | PASS | [TAG] ... |

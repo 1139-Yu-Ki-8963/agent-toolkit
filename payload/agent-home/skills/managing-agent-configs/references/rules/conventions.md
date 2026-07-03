@@ -8,49 +8,67 @@
 
 ## 1. フォルダ構造
 
+グローバル rules は **深さ 3 固定** `<scope>/<topic>/<name>/rule.md`。第 1 階層は注入方式（`always/` = 常時注入、`scoped/` = paths 条件付き注入）、第 2 階層は内容トピック、第 3 階層は規約名（`-rules` suffix なし）。
+
 ```
-~/.claude/rules/                    … グローバル rules
-  <category>-rules/                 … 必須形式（ルート直下 .md は禁止）
-    rule.md                         … 規約本体（必須）
-    <hook-name>.sh                  … 対になる hook script（任意）
-    <hook-name>.test.sh             … hook のテスト（任意）
+~/.claude/rules/                    … グローバル rules（深さ 3 固定）
+  always/                           … 常時注入（frontmatter なし）
+    <topic>/                        … 内容トピック（naming / agent / git / gate / placement / session / response / ui / infra）
+      <name>/
+        rule.md                     … 規約本体（必須）
+        <hook-name>.sh              … 対になる hook script（任意・同居）
+        <hook-name>.test.sh         … hook のテスト（任意）
+        <sidecar>.txt               … 非注入サイドカー（任意。※ .md 禁止、下記参照）
+  scoped/                           … paths: frontmatter 付き（条件付き注入）
+    <topic>/                        … 内容トピック（config / security 等）
+      <name>/
+        rule.md
 
 <repo>/.claude/rules/               … プロジェクト rules
-  <category>-rules/                 … 同上
-    rule.md
-    <hook-name>.sh
+  <category>-rules/                 … 既存形式（深さ 1）。移行は任意
+  <scope>/<topic>/<name>/           … 委譲可規約の受け口はグローバルと同一相対パスを推奨
 ```
 
-**禁止**: ルート直下に `<name>.md` を置くこと。必ず `<name>-rules/rule.md` にする。
+**禁止**: ルート直下に `<name>.md` を置くこと。グローバルで深さ 3 以外に rule.md を置くこと。
+
+**サイドカーは `.txt`**: `~/.claude/rules/` 配下の `.md` は深さ・ファイル名を問わず**全て常時注入される**（2026-07-03 実測。`references/` サブディレクトリ配下も注入される）。注入したくない規約値・長文資料は `.txt` 拡張子でサイドカー化する。
 
 ## 2. 命名規約
 
 | 対象 | 命名規則 | 例 |
 |---|---|---|
-| カテゴリ（ディレクトリ名） | `<category>-rules/`（kebab-case） | `no-root-marker-rules/` |
+| scope（第 1 階層） | `always` / `scoped` の 2 値固定 | — |
+| topic（第 2 階層） | kebab-case・内容カテゴリ | `naming/` `placement/` |
+| 規約名（第 3 階層） | kebab-case・`-rules` suffix 禁止 | `semantic-key/` `commit-branch/` |
 | 規約本体 | `rule.md`（固定） | — |
 | hook script | kebab-case + `.sh` | `no-root-marker-check.sh` |
+| サイドカー | kebab-case + `.txt` | `naming-values.txt` |
 | 注入タグ | UPPER-HYPHEN | `[NO-ROOT-MARKER-BLOCK]` |
 
-## 3. eager / lazy 判定
+## 3. eager / lazy 判定（= always / scoped 配置判定）
 
-| モード | 条件 | paths frontmatter |
-|---|---|---|
-| eager（常時注入） | 全タスクで違反しうる規約 | なし |
-| lazy（条件注入） | 特定 path・拡張子の作業中だけ違反しうる規約 | あり |
+| モード | 条件 | paths frontmatter | 配置先 |
+|---|---|---|---|
+| eager（常時注入） | 全タスクで違反しうる規約 | なし | `always/<topic>/<name>/` |
+| lazy（条件注入） | 特定 path・拡張子の作業中だけ違反しうる規約 | あり | `scoped/<topic>/<name>/` |
 
 判定フロー:
 
 ```
 Q1. この規約は全タスクで違反しうるか？
-    YES → paths 無し（eager）
+    YES → paths 無し（eager）→ always/
     NO  → Q2
 
 Q2. 特定の path・拡張子の作業中だけ違反しうるか？
-    YES → paths 指定（lazy）
+    YES → paths 指定（lazy）→ scoped/
     NO  → Q3
 
-Q3. 特定キーワード時だけ違反しうるか？
+Q3. 特定コマンド・イベント時だけ違反しうるか？
+    YES → always/ に置き、rule.md は「タグ + 参照先」の薄い索引に留めて
+          詳細（規約値・長文手順）は .txt サイドカーへ。hook がイベント時に参照を注入する
+    NO  → Q4
+
+Q4. 特定キーワード時だけ違反しうるか？
     YES → rules に置かず UserPromptSubmit hook で注入
     NO  → skill 化を検討
 ```
@@ -61,8 +79,8 @@ Q3. 特定キーワード時だけ違反しうるか？
 
 | scope | 条件 | 配置先 |
 |---|---|---|
-| global | 全プロジェクトで効かせる | `~/.claude/rules/<category>-rules/` |
-| project | 単一プロジェクトのみ | `<repo>/.claude/rules/<category>-rules/` |
+| global | 全プロジェクトで効かせる | `~/.claude/rules/<scope>/<topic>/<name>/` |
+| project | 単一プロジェクトのみ | `<repo>/.claude/rules/<category>-rules/`（既存形式） |
 
 判定基準:
 - 規約が参照するファイル・概念が特定プロジェクト固有（oradora の slot/mock/portal 等）なら project
@@ -101,7 +119,7 @@ ctx="[NO-DELEGATION] 最終応答にユーザー操作依頼を検出。
 
 ### タグと rule.md の対応
 
-1:1 対応。`[FOO-BLOCK]` なら `foo-rules/rule.md` に対応手順がある。
+1:1 対応。`[FOO-BLOCK]` なら規約名 `foo` の rule.md（`<scope>/<topic>/foo/rule.md`）に対応手順がある。
 
 ## 6. rule.md の必須構造
 
@@ -126,6 +144,13 @@ ctx="[NO-DELEGATION] 最終応答にユーザー操作依頼を検出。
 1. ...
 2. ...
 
+## プロジェクト上書き
+
+- 上書き可否: <委譲可（値のみ） / 一律適用 / 上書き禁止> のいずれかを必ず宣言
+- 受け口: <repo>/.claude/rules/<本規約と同一相対パス>（委譲可の場合のみ）
+- 優先順位: 受け口が存在すれば値はプロジェクト側を優先。
+  枠組み（何を守るか・違反時手順）はグローバルが常に正
+
 ## 設計判断
 
 ### <script 名>
@@ -135,6 +160,18 @@ ctx="[NO-DELEGATION] 最終応答にユーザー操作依頼を検出。
 **保守責任者**: ...
 **廃棄条件**: ...
 ```
+
+## 6b. プロジェクト上書き宣言（必須セクション）
+
+全ての新規 rule.md は `## プロジェクト上書き` セクションで次の 3 択を必ず宣言する:
+
+| 宣言 | 意味 | 例 |
+|---|---|---|
+| 委譲可（値のみ） | プロジェクト側受け口があれば規約値をそちら優先で読む。hook は `lib-rule-resolver.sh` の `resolve_rule_file` で解決する | directory-structure の許可リスト、commit-branch の naming-values |
+| 一律適用 | 全プロジェクト共通。上書き実例を作らない | semantic-key |
+| 上書き禁止 | プロジェクト側での迂回を例外なく禁止する | security 系 |
+
+宣言がない rule.md はレビューで WARN とする。デフォルトを「委譲可」に倒さない（セキュリティ系規約の迂回口になるため、規約ごとの明示宣言が必須）。
 
 ## 7. ADR 必須項目
 
@@ -153,7 +190,10 @@ hook script（`.sh`）が存在する場合は、各 `.sh` ごとに設計判断
 
 | パターン | 問題 | 正解 |
 |---|---|---|
-| ルート直下に `<name>.md` を置く | フォルダ構造の一貫性が崩れる | `<name>-rules/rule.md` |
+| ルート直下に `<name>.md` を置く | フォルダ構造の一貫性が崩れる | `<scope>/<topic>/<name>/rule.md` |
+| ディレクトリ名に `-rules` suffix を付ける | `rules/` 配下で冗長。旧形式の残骸 | suffix なしの規約名 |
+| 規約値の長文サイドカーを `.md` で置く | rules 配下の .md は全て常時注入され context を浪費 | `.txt` 化（例: `naming-values.txt`） |
+| `## プロジェクト上書き` 宣言の欠落 | グローバル/プロジェクトの優先関係が規約ごとに不明のまま残る | 3 択（委譲可/一律適用/上書き禁止）を必ず宣言 |
 | hook script を別フォルダに分離 | 規約と機械強制の対応が見えなくなる | 同ディレクトリに同居 |
 | additionalContext に rule.md 全文をコピペ | 毎発火で token を浪費 | タグ + 短い指示 + path のみ |
 | 全 rule を eager にする | context を圧迫 | 該当 path 限定の規約は lazy 化 |

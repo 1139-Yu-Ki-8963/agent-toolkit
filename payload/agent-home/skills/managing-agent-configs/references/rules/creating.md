@@ -17,7 +17,7 @@
 既存の rules ディレクトリを列挙し、新規カテゴリが必要か判定する。
 
 ```bash
-find ~/.claude/rules/ -maxdepth 1 -type d | sort
+find ~/.claude/rules/always ~/.claude/rules/scoped -mindepth 2 -maxdepth 2 -type d 2>/dev/null | sort
 ```
 
 判定基準:
@@ -33,8 +33,8 @@ find ~/.claude/rules/ -maxdepth 1 -type d | sort
 |---|---|
 | 全プロジェクト共通か → YES | global（`~/.claude/rules/`） |
 | 特定プロジェクト固有か → YES | project（`<repo>/.claude/rules/`） |
-| 全タスクで違反しうるか → YES | eager（paths なし） |
-| 特定 path のみか → YES | lazy（paths あり） |
+| 全タスクで違反しうるか → YES | eager（paths なし）→ `always/<topic>/<name>/` |
+| 特定 path のみか → YES | lazy（paths あり）→ `scoped/<topic>/<name>/` |
 
 ## Phase 4: rule.md の作成
 
@@ -84,15 +84,18 @@ hook script を作成した場合、settings.json に登録する。
 
 ## Phase 7: 作成後チェックリスト
 
-| # | チェック項目 | 確認方法 |
+| キー | チェック項目 | 確認方法 |
 |---|---|---|
-| 1 | `<category>-rules/rule.md` が存在する | `ls` |
-| 2 | ルート直下に `.md` を作っていない | `find ~/.claude/rules/ -maxdepth 1 -name "*.md"` |
-| 3 | rule.md に `## 設計判断` がある | `grep "## 設計判断" rule.md` |
-| 4 | hook script があれば同ディレクトリに同居 | `ls <category>-rules/*.sh` |
-| 5 | hook script があれば settings.json に登録済み | `grep "<script-name>" settings.json` |
-| 6 | additionalContext にプロンプトを埋め込んでいない | hook script を Read して確認 |
-| 7 | paths frontmatter が妥当（eager/lazy） | `head -5 rule.md` |
-| 8 | ADR 4 項目（必要性 / 代替案 / 保守責任者 / 廃棄条件）が揃っている | `grep` |
+| 配置-深さ3 | `<scope>/<topic>/<name>/rule.md` が存在する（`<scope>` は `always`/`scoped`） | `ls` |
+| 配置-ルート直下禁止 | ルート直下に `.md` を作っていない | `find ~/.claude/rules/ -maxdepth 1 -name "*.md"` |
+| 本文-設計判断 | rule.md に `## 設計判断` がある | `grep "## 設計判断" rule.md` |
+| 本文-上書き宣言 | `## プロジェクト上書き` で 3 択（委譲可/一律適用/上書き禁止）を宣言している | `grep "## プロジェクト上書き" rule.md` |
+| hook-同居 | hook script があれば同ディレクトリに同居 | `ls <scope>/<topic>/<name>/*.sh` |
+| hook-登録 | hook script があれば settings.json に登録済み | `grep "<script-name>" settings.json` |
+| hook-短文注入 | additionalContext にプロンプトを埋め込んでいない | hook script を Read して確認 |
+| frontmatter-整合 | paths frontmatter が妥当（eager/lazy） | `head -5 rule.md` |
+| adr-4項目 | ADR 4 項目（必要性 / 代替案 / 保守責任者 / 廃棄条件）が揃っている | `grep` |
+
+キーは連番禁止。内容を要約した意味語で付ける（番号からは情報を得られないため）。
 
 全項目 PASS で create 完了。review モードへ自動連鎖する。

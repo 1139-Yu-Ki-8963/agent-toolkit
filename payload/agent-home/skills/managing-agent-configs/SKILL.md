@@ -2,8 +2,8 @@
 name: managing-agent-configs
 description: |
   エージェント構成管理ハブ。
-  TRIGGER when: スキル/ルール/ルーティン/エージェント/フック作成・レビュー・テスト、/schedule・CronCreate。
-  SKIP: 命名（→naming-conventions）、settings.json（→update-config）。
+  TRIGGER when: スキル/ルール/ルーティン/エージェント/フック作成・レビュー・テスト。
+  SKIP: 命名/settings.json（→naming-conventions/update-config）。
 invocation: managing-agent-configs
 type: orchestration
 allowed-tools: [Bash, Read, Write, Edit, Grep, Glob, Agent, AskUserQuestion]
