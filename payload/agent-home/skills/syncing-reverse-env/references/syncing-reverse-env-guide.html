@@ -134,8 +134,8 @@
 
   <table class="meta-table">
     <tr><td>対応 OS</td><td>macOS / Windows（WSL2・Ubuntu）</td></tr>
-    <tr><td>検証状況</td><td>サンプルプロジェクトで動作確認済み（E2E: setup → sync → 基準タグ確立 → reset）。WSL2 は未実証（コマンド互換設計のみ）</td></tr>
-    <tr><td>依存</td><td>git / Playwright MCP</td></tr>
+    <tr><td>検証状況</td><td>サンプルプロジェクトで動作確認済み（E2E: setup → sync → 基準タグ確立 → reset）。node-script 方式（MCP 非接続）でも実プロジェクト（WSL2・drvfs）で L1〜L4 まで実機検証済み</td></tr>
+    <tr><td>依存</td><td>git / Playwright（MCP または node-script 直実行のいずれか）</td></tr>
     <tr><td>関連資料</td><td><code>syncing-reverse-env-concept.html</code>（設計経緯・設計判断の記録）</td></tr>
   </table>
 </header>
@@ -469,7 +469,7 @@
     <tr><td>Playwright 依存</td><td>通常のインストールのみで動作</td><td><code>npx playwright install-deps</code> 相当のシステムライブラリ導入を確認。不足は導入手順を提示して NO-GO</td></tr>
   </table>
   <div class="constraint"><strong>WSL2 固有の注意:</strong>
-    ① worktree の配置先（<code>source_repo</code> の親ディレクトリ）が Windows 側ファイルシステム <code>/mnt/*</code> 配下だと <span class="tag error">ERROR</span>（パーミッションが 777 に丸められる・<code>inotify</code> が動作しない・I/O が劣化するため、worktree は Linux ネイティブファイルシステム配下に置く必要がある）
+    ① worktree の配置先（<code>source_repo</code> の親ディレクトリ）が Windows 側ファイルシステム <code>/mnt/*</code>（drvfs）配下だと既定で <span class="tag error">ERROR</span>。ただし config.yml / projects の <code>allow_mnt_fs: true</code> で性能 WARN に緩和できる（worktree 作成は約 80 秒/本、全量 diff はバックグラウンド実行が必要なほど低速だが動作はする）
     ② dev サーバーが <code>localhost</code>（または <code>0.0.0.0</code>）で待ち受ければ、WSL2 の localhost フォワーディングにより Windows 側ブラウザから <code>http://localhost:&lt;port&gt;</code> でそのままアクセスできる
     ③ <code>inotify</code> の watch 数上限に注意する。最大 5 scope × 2 環境で常駐する dev サーバーは最大 10 プロセスに達しうるため、<code>fs.inotify.max_user_watches</code> の余裕を事前に確認する
     ④ <code>band_start</code>（既定 9100）が Windows 側の常駐プロセスと衝突する場合は、config.yml で <code>band_start</code> を変更する
@@ -533,13 +533,38 @@
       - "*.lock"                 # 整列時は転写対象（§7-4）。静的比較のみ除外
       - ".env*"                 # env-file-parity（§7-2）で直接比較するため静的比較からは除外
       - .reverse-port-slot       # スロット番号記録ファイル（開発用 .port-slot とは別物）
+    node_modules_strategy: npm_ci   # npm_ci（既定・各環境で独立インストール。
+                                    #   §7-2 symlink-independence / node-modules-health
+                                    #   の独立性検証対象） /
+                                    # symlink_main（source_repo の node_modules へ
+                                    #   symlink。独立性の証明対象から除外。
+                                    #   drvfs 上での npm ci 低速回避に使う）
+    allow_mnt_fs: false             # false（既定）: fs-location（§5 プリフライト #3）が
+                                    #   /mnt/* 配下を ERROR とする /
+                                    # true: ERROR ではなく性能 WARN に緩和
+                                    #   （worktree 作成 約 80 秒/本・全量 diff は
+                                    #    BG 実行要。drvfs 上でも動作はする）
+    playwright_exec:
+      mode: mcp                     # mcp（既定・Playwright MCP ツールを使用） /
+                                    # node-script（command_template を Bash で直接
+                                    #   実行。MCP 非接続環境向け）
+      node_path: null               # node-script 時に playwright の解決先へ渡す
+                                    #   NODE_PATH。null で環境依存
+      # command_template: 実機検証で判明した固定事項（waitUntil="load" 固定・
+      #   ariaSnapshot() 使用・navigate 先 127.0.0.1 固定）を理由ごと保持する
+      #   検証済みスクリプト。全文は config.yml を正とし、本書では再掲しない
 
   projects:                     # プロジェクト（&lt;system&gt;）単位の上書き（必要時のみ）
     "&lt;system&gt;":
       services: [backend, frontend, docs, "db-tools"]
       launch:                   # 起動手順は唯一のアプリ依存要素
         backend: "&lt;backend 起動コマンド&gt; --port {port}"
-        frontend: "&lt;frontend 起動コマンド&gt; --port {port}"</pre>
+        frontend: "&lt;frontend 起動コマンド&gt; --port {port}"
+      allow_mnt_fs: true                    # 画面別に個別上書き可
+      node_modules_strategy: symlink_main   # 画面別に個別上書き可
+      playwright_exec:
+        mode: node-script                   # 画面別に個別上書き可</pre>
+  <p class="note">具体的な絶対パスを含む実エントリ（<code>node_path</code> の実パス等）はデプロイ先ローカルの config.yml に置く。上記は汎用例。</p>
 
   <h3>制約</h3>
   <div class="constraint"><strong>制約:</strong>
@@ -554,12 +579,12 @@
     <tr><th>#</th><th>キー</th><th>検証項目</th><th>NO-GO 時の扱い</th></tr>
     <tr><td>1</td><td>design-doc-contract</td><td>設計書が存在し reverse-docs テンプレート準拠（<code>type: screen-detail-design</code>）で、<code>doc_id</code> が <code>screen-</code> 接頭辞を持ち、<code>source_repo</code> / <code>source_ref</code> が解決できる</td><td>NO-GO</td></tr>
     <tr><td>2</td><td>os-toolchain</td><td>OS を判定（macOS / WSL2）し、コマンドを解決する（§5 対応 OS とコマンド互換）。WSL では Playwright 依存ライブラリの導入確認を含む</td><td>コマンド解決不能・依存不足は導入手順を提示して NO-GO</td></tr>
-    <tr><td>3</td><td>fs-location</td><td>worktree 配置先（<code>source_repo</code> の親ディレクトリ）が WSL の <code>/mnt/*</code> 配下でないことを確認</td><td>/mnt/* 配下は <span class="tag error">ERROR</span>（Linux ネイティブ FS が必須）</td></tr>
+    <tr><td>3</td><td>fs-location</td><td>worktree 配置先（<code>source_repo</code> の親ディレクトリ）が WSL の <code>/mnt/*</code> 配下でないことを確認</td><td>/mnt/* 配下は既定 <span class="tag error">ERROR</span>。<code>allow_mnt_fs: true</code> 指定時は性能 WARN に緩和（worktree 作成 約 80 秒/本・全量 diff は BG 実行要）</td></tr>
     <tr><td>4</td><td>env-provision</td><td>環境確保（命名規則で両環境を検出。無ければ作成）とスロット割当が完了している。<code>git worktree list --porcelain</code> で prunable・破損を検出したら prune してから再作成する。スロット割当は親ディレクトリへの <code>mkdir</code> ロック（走査 → 書込 → 解放）で原子化する。setup 時も symlink・HEAD・ブランチ整合を軽量検証する</td><td>worktree 総数上限（5 本）超過・スロット枯渇（<code>max_slots</code>）は NO-GO</td></tr>
     <tr><td>5</td><td>original-clean</td><td>オリジナルコード環境が <code>source_ref</code> と一致し clean</td><td>ズレ・汚れは内容を <code>source_ref</code> へ自動復元する</td></tr>
     <tr><td>6</td><td>reverse-dirty-log</td><td>リバースコード環境の dirty 状態を記録</td><td>sync では許容（整列で上書きされる）。dry-run 指定時は警告を提示</td></tr>
     <tr><td>7</td><td>port-band-free</td><td>当該 <code>&lt;scope&gt;</code> のスロット帯（計算式で確定するポート）が未占有</td><td>stale プロセスは kill して続行。WSL で Windows 側常駐プロセスが占有し kill 不能な場合は <code>band_start</code> の変更を案内して <span class="tag error">ERROR</span></td></tr>
-    <tr><td>8</td><td>runtime-deps-ready</td><td>Playwright が利用可能かつブラウザバイナリ導入済み。sync 時は node_modules の存在・<code>.bin/*</code> の実行可能性・lock ファイルの存在まで確認する（setup 直後の空容器では可用性確認のみ行う）</td><td>NO-GO（<span class="tag error">ERROR</span> 系。§8）</td></tr>
+    <tr><td>8</td><td>runtime-deps-ready</td><td><code>playwright_exec.mode</code> で分岐する。mode=mcp（既定）: Playwright MCP 接続とブラウザバイナリ導入済みを要求。mode=node-script: MCP 非接続でも NO-GO にせず、<code>node_path</code> で解決される playwright モジュールと chromium バイナリの存在を確認する。sync 時は node_modules の存在・<code>.bin/*</code> の実行可能性・lock ファイルの存在まで確認する（setup 直後の空容器では可用性確認のみ行う）</td><td>NO-GO（<span class="tag error">ERROR</span> 系。§8）</td></tr>
     <tr><td>9</td><td>baseline-tag-exists</td><td><code>reset-first</code> 指定時のみ: 基準タグが存在</td><td>NO-GO（基準未確立と報告）</td></tr>
   </table>
 </section>
@@ -650,14 +675,14 @@
     <tr><td>1</td><td>port-owner</td><td>ポート占有の帰属</td><td>os-toolchain の解決結果に従い確認する（macOS: <code>lsof -i</code> の cwd 突合 / WSL: <code>ss -ltnp</code> ＋ <code>/proc/&lt;pid&gt;/cwd</code> の cwd 突合）で当該 <code>&lt;scope&gt;</code> のスロット帯を走査し、LISTEN プロセスの cwd が自環境の worktree かを突合</td><td>stale は kill して続行。無関係な稼働プロセスは <span class="tag error">ERROR</span></td></tr>
     <tr><td>2</td><td>port-config-cross</td><td>ポート設定の混入（転写後）</td><td>リバース側をオリジナル側帯域で、オリジナル側をリバース側帯域で相互に grep</td><td>相手帯域の番号が 1 件でもあれば転写ミス。ポート再生成をやり直す</td></tr>
     <tr><td>3</td><td>listen-actual</td><td>実際の待受ポート</td><td>起動後の LISTEN 一覧を §5 の計算式による期待値と突合</td><td>期待外の待受・不応答は <span class="tag fail">FAIL</span></td></tr>
-    <tr><td>4</td><td>symlink-independence</td><td>シンボリックリンクの実態</td><td><code>find -type l</code> ＋ <code>realpath</code> で実体を解決し「自 worktree 内 / 共有 store / worktree 外」に分類</td><td>相手側 worktree・元リポジトリを指すものは <span class="tag fail">FAIL</span>。共有 store は同一バージョンの実体を指すことを確認して許容</td></tr>
+    <tr><td>4</td><td>symlink-independence</td><td>シンボリックリンクの実態</td><td><code>find -type l</code> ＋ <code>realpath</code> で実体を解決し「自 worktree 内 / 共有 store / worktree 外」に分類</td><td>相手側 worktree・元リポジトリを指すものは <span class="tag fail">FAIL</span>。共有 store は同一バージョンの実体を指すことを確認して許容。ただし <code>node_modules_strategy: symlink_main</code> のときは node_modules（およびその配下）が source_repo を指す symlink であることは想定内であり、独立性の証明対象から除外する（FAIL としない）</td></tr>
     <tr><td>5</td><td>dep-tree-parity</td><td>依存ツリーの同一性</td><td><code>npm ls --all</code> 相当を正規化し、名前＋バージョン集合を比較</td><td>依存再構築（<code>npm ci</code> 再実行）を 1 回リトライ → なお不一致は <span class="tag fail">FAIL</span></td></tr>
-    <tr><td>6</td><td>node-modules-health</td><td>node_modules の健全性</td><td>node_modules の存在・<code>.bin/vite</code> 等の実行可能性（<code>--version</code> 実行）・独立性（相手側/元リポジトリへの symlink でないこと）を確認</td><td>NG は <code>npm ci</code> で修復してから再検証</td></tr>
+    <tr><td>6</td><td>node-modules-health</td><td>node_modules の健全性</td><td>node_modules の存在・<code>.bin/vite</code> 等の実行可能性（<code>--version</code> 実行）・独立性（相手側/元リポジトリへの symlink でないこと）を確認。ただし <code>node_modules_strategy: symlink_main</code> のときは source_repo への symlink が正常状態であり、存在と <code>.bin</code> 実行可能性のみ確認する</td><td>NG は <code>npm ci</code> で修復してから再検証</td></tr>
     <tr><td>7</td><td>runtime-parity</td><td>ランタイムの同一性</td><td><code>node -v</code> 等を両環境で実測して突合</td><td>不一致は <span class="tag error">ERROR</span>（実行基盤の問題）</td></tr>
     <tr><td>8</td><td>env-runtime-parity</td><td>環境変数の同一性</td><td>起動時に注入される env をダンプし、ポート正規化後に比較</td><td>ポート以外の差分は <span class="tag fail">FAIL</span></td></tr>
     <tr><td>9</td><td>env-file-parity</td><td>env ファイルの同一性</td><td>両環境の <code>.env*</code> ファイル群（config.yml <code>env_file_globs</code>）をポート正規化付きで直接突合し、バンドラのみが読む変数の差分も捕捉する</td><td>ポート以外の差分は <span class="tag fail">FAIL</span></td></tr>
     <tr><td>10</td><td>file-mode-parity</td><td>ファイルモード・種別</td><td><code>git ls-files --stage</code> のインデックス値のみで実行ビット・種別を比較する（実 FS の <code>stat</code> は使わない。/mnt 配下の 777 化対策）</td><td>実差分として扱い、整列で揃える</td></tr>
-    <tr><td>11</td><td>bundler-cache-fresh</td><td>バンドラキャッシュの新鮮さ</td><td>整列が走った周回では config.yml の <code>bundler_cache_dirs</code> が削除済みであることを確認</td><td>検証不能なら起動時の強制再構築を案内</td></tr>
+    <tr><td>11</td><td>bundler-cache-fresh</td><td>バンドラキャッシュの新鮮さ</td><td>整列が走った周回では config.yml の <code>bundler_cache_dirs</code> が削除済みであることを確認。<code>node_modules_strategy: symlink_main</code> のときは <code>.vite</code> が source_repo と共有されるため、整列後の削除ではなく初回 navigate 時の dependency re-optimize を許容し、巻き込まれ reload は 1 回リトライで吸収する</td><td>検証不能なら起動時の強制再構築を案内</td></tr>
     <tr><td>12</td><td>process-independence</td><td>プロセス独立性</td><td>片方を停止してももう片方が応答し続けることを確認して再起動</td><td>連動停止は <span class="tag fail">FAIL</span>（プロセス・DB の共有）</td></tr>
     <tr><td>13</td><td>storage-isolation</td><td>ストレージ分離</td><td>DB・キャッシュ等のパス設定が worktree 内に閉じているか走査</td><td>同一の外部パスを読み書きしていれば <span class="tag fail">FAIL</span></td></tr>
   </table>
@@ -667,8 +692,8 @@
   <p>両環境をそれぞれの固定ポートで起動し、<code>routes</code> の各画面を 4 層で突合する。総合判定は L1 ∧ L2 ∧ L4 を必須とし、L3 は閾値超過で FAIL（画像ペアを添付して人間が最終裁定できる）。</p>
   <table class="spec">
     <tr><th>層</th><th>内容</th><th>判定基準</th></tr>
-    <tr><td><strong>L1 起動</strong></td><td>両環境のヘルスチェック / トップ応答</td><td>両方の成功が前提。片方でも失敗なら以降をスキップして <span class="tag fail">FAIL</span></td></tr>
-    <tr><td><strong>L2 構造</strong></td><td>アクセシビリティスナップショット（DOM 構造）をポート・URL 正規化後に比較</td><td>完全一致を要求（一次判定）</td></tr>
+    <tr><td><strong>L1 起動</strong></td><td>両環境のヘルスチェック / トップ応答。<code>playwright_exec.mode</code> で実行手段が分岐する: mode=mcp は MCP ツールの navigate/snapshot、mode=node-script は config.yml の <code>command_template</code> を Bash で直接実行する。navigate 先 URL は 127.0.0.1 固定・<code>waitUntil="load"</code> 固定</td><td>両方の成功が前提。片方でも失敗なら以降をスキップして <span class="tag fail">FAIL</span></td></tr>
+    <tr><td><strong>L2 構造</strong></td><td>アクセシビリティスナップショット（DOM 構造）をポート・URL 正規化後に比較。node-script モードでは body の ARIA snapshot 文字列（<code>ariaSnapshot()</code>）を突合対象とする</td><td>完全一致を要求（一次判定）</td></tr>
     <tr><td><strong>L3 視覚</strong></td><td>同一ビューポートのスクリーンショット画素比較（動的領域はマスク）</td><td>差分画素率が閾値以下（config.yml、既定 0.1%）。補助判定・証跡</td></tr>
     <tr><td><strong>L4 コンソール</strong></td><td>console error / warning の集合比較（ポートは正規化）</td><td>リバース側にのみ存在するエラーで <span class="tag fail">FAIL</span>。両方に出る既存エラーは許容</td></tr>
   </table>
@@ -685,9 +710,14 @@
               *.lock を除いたもの。lock ファイルは転写対象に含める）
   3. 再生成  当該 &lt;scope&gt; のスロットから算出したリバース側ポートで
              リバースコード環境側のポート設定を再生成
-  4. 再構築  config.yml の install_command（既定 npm ci）で
-             依存インストールを再実行。lock 不整合による失敗は ERROR
-  5. 掃除    config.yml の bundler_cache_dirs を削除
+  4. 再構築  node_modules_strategy で分岐する:
+             npm_ci（既定）: install_command で各環境に独立インストール。
+                            lock 不整合による失敗は ERROR
+             symlink_main:   source_repo の node_modules へ symlink を張る
+  5. 掃除    node_modules_strategy=npm_ci のみ実施。config.yml の
+             bundler_cache_dirs を削除。symlink_main では .vite が
+             source_repo と共有されるためスキップし、§7-2 の
+             bundler-cache-fresh 但し書きに従う
   6. 再検証  Phase 3（静的）→ Phase 5（環境＋動的）へ合流し、
              収束ループを継続</pre>
 </section>

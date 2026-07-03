@@ -22,16 +22,56 @@ defaults:
     - "*.lock"
     - ".env*"                 # ポート設定を含む環境ファイル（env-file-parity で別途直接比較する）
     - .reverse-port-slot       # スロット番号記録ファイル（開発用 .port-slot とは別物）
-  install_command: "npm ci"     # 整列と修復の依存インストール（projects で上書き可）
+  install_command: "npm ci"     # 整列と修復の依存インストール（node_modules_strategy=npm_ci 時。projects で上書き可）
   env_file_globs: [".env", ".env.*"]   # env-file-parity の比較対象
   bundler_cache_dirs:            # 整列後に削除するバンドラキャッシュ
     - node_modules/.vite
     - node_modules/.cache
   artifacts_root: "~/agent-home/sessions/reverse-env"  # 証跡ルート（scope/実行日時で分離）
+  node_modules_strategy: npm_ci  # npm_ci（既定・各環境で独立インストール） /
+                                 # symlink_main（source_repo の node_modules へ symlink。独立 2 環境の証明対象から除外）
+  allow_mnt_fs: false            # false（既定）で fs-location が /mnt/* を ERROR /
+                                 # true で ERROR ではなく性能 WARN に緩和（drvfs 上でも動くが低速。projects で個別上書き可）
+  playwright_exec:
+    mode: mcp                    # mcp（既定・Playwright MCP ツールを使用） /
+                                 # node-script（下記 command_template を Bash で直接実行。MCP 非接続環境向け）
+    node_path: null              # node-script 時に NODE_PATH へ渡す playwright の解決先（npx キャッシュ等）。null で環境依存
+    # command_template の実機検証で判明した固定事項（変更禁止）:
+    #   - waitUntil: "load"（networkidle だと Vite dev server の HMR 用 WebSocket が繋がりっぱなしで永久タイムアウト）
+    #   - page.locator("body").ariaSnapshot()（page.accessibility.snapshot() は Playwright 1.61 系で撤去済み）
+    #   - navigate 先の URL は呼び出し側で必ず 127.0.0.1 を使う（localhost だと WSL2 の Chromium が名前解決待ちでタイムアウト）
+    command_template: |
+      CAP_URL={url} CAP_SHOT={screenshot} CAP_CLOG={console_log} CAP_SNAP={snapshot} NODE_PATH={node_path} node -e '
+      const { chromium } = require("playwright");
+      const fs = require("fs");
+      (async () => {
+        const url = process.env.CAP_URL;
+        const browser = await chromium.launch();
+        const page = await browser.newPage();
+        const logs = [];
+        page.on("console", m => logs.push({ type: m.type(), text: m.text() }));
+        page.on("pageerror", e => logs.push({ type: "pageerror", text: String(e) }));
+        await page.goto(url, { waitUntil: "load", timeout: 30000 });
+        await page.waitForTimeout(10000);
+        await page.screenshot({ path: process.env.CAP_SHOT, fullPage: true });
+        const snap = await page.locator("body").ariaSnapshot();
+        fs.writeFileSync(process.env.CAP_SNAP, snap);
+        fs.writeFileSync(process.env.CAP_CLOG, JSON.stringify(logs, null, 2));
+        console.log("L1_OK");
+        await browser.close();
+      })().catch(e => { console.error("CAPTURE_FAILED", e); process.exit(1); });
+      '
 
 projects: {}                  # プロジェクト（<system>）単位の上書き（必要時のみ追記）
+  # 具体的な絶対パスを含む実エントリはデプロイ先ローカルの config.yml に置く（本 payload には汎用例のみ）。
+  # WSL2 + drvfs 上のプロジェクトで node-script 方式を使う例:
   # "<system>":
-  #   services: [backend, frontend, docs, "db-tools"]
+  #   services: [backend, frontend]
   #   launch:
-  #     backend: "<backend 起動コマンド> --port {port}"
-  #     frontend: "<frontend 起動コマンド> --port {port}"
+  #     backend: "cd <backend repo path> && SERVER_PORT={port} ./gradlew bootRun --args='--spring.profiles.active=<profile>'"
+  #     frontend: "npm run dev -- --port {port}"
+  #   allow_mnt_fs: true               # /mnt/* 配下（drvfs）を ERROR ではなく性能 WARN に緩和
+  #   node_modules_strategy: symlink_main  # source_repo の node_modules へ symlink（drvfs での npm ci 低速回避）
+  #   playwright_exec:
+  #     mode: node-script              # MCP 非接続環境で command_template を Bash 直実行
+  #     node_path: "<playwright を解決できる node_modules パス>"
