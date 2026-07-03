@@ -21,6 +21,7 @@ payload/
 │   ├── ai-management-portal/
 │   ├── sessions/
 │   └── skills/
+│       ├── generating-screen-list-for-reverse-docs/
 │       ├── managing-agent-configs/
 │       └── syncing-reverse-env/
 └── claude-config/       → ~/.claude/       （ファイル単位で設置）
@@ -36,6 +37,7 @@ payload/
 
 | スキル | 担当 |
 |---|---|
+| [`generating-screen-list-for-reverse-docs`](payload/agent-home/skills/generating-screen-list-for-reverse-docs/SKILL.md) | レガシーコードベースをルーティング検出（Next.js App/Pages Router・React Router）またはディレクトリ慣習で画面単位にグルーピングし、画面一覧.HTML と `02_画面基本設計/` の雛形を機械生成する。**注意**: スキャフォールドのコピー元テンプレート（`~/agent-home/templates/reverse-docs/02_画面基本設計/`）は本リポジトリに未同梱のため別途用意が必要。スキルガイドを [`references/generating-screen-list-for-reverse-docs-guide.html`](payload/agent-home/skills/generating-screen-list-for-reverse-docs/references/generating-screen-list-for-reverse-docs-guide.html) に同梱 |
 | [`managing-agent-configs`](payload/agent-home/skills/managing-agent-configs/SKILL.md) | エージェント構成 5 種（スキル・フック・ルール・ルーティン・サブエージェント）のライフサイクル管理（作成・観点ベース静的レビュー・実機検証）。スキルガイドを [`references/managing-agent-configs-guide.html`](payload/agent-home/skills/managing-agent-configs/references/managing-agent-configs-guide.html) に同梱 |
 | [`syncing-reverse-env`](payload/agent-home/skills/syncing-reverse-env/SKILL.md) | ポート番号だけが違う 2 つの検証環境を用意・同期し、完全一致の証明を基準タグとして確立。スキルガイドを [`references/syncing-reverse-env-guide.html`](payload/agent-home/skills/syncing-reverse-env/references/syncing-reverse-env-guide.html) に同梱 |
 
@@ -121,6 +123,15 @@ agent-toolkit/
 │   │   ├── sessions/
 │   │   │   └── .skill-log/
 │   │   └── skills/
+│   │       ├── generating-screen-list-for-reverse-docs/
+│   │       │   ├── SKILL.md
+│   │       │   ├── scripts/
+│   │       │   │   ├── detect-screens.sh
+│   │       │   │   └── scaffold-screens.sh
+│   │       │   ├── assets/
+│   │       │   │   └── screen-list-template.html
+│   │       │   └── references/
+│   │       │       └── generating-screen-list-for-reverse-docs-guide.html
 │   │       ├── managing-agent-configs/
 │   │       │   ├── SKILL.md
 │   │       │   ├── references/
