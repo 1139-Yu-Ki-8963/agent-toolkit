@@ -119,7 +119,7 @@
 
   <div class="def">
     <dt>こんな人向け</dt>
-    <dd>リバースエンジニアリングで作成した画面基本設計書の品質を、実際にコードが再現できるかどうかで検証したい人。</dd>
+    <dd>リバースエンジニアリングで作成した画面詳細設計書の品質を、実際にコードが再現できるかどうかで検証したい人。</dd>
     <dt>こんな場面で使う</dt>
     <dd>リバース済み設計書の往復検証・設計書からのコード再生成・設計書の粒度検証や品質検証を行うとき。環境の整備・同期・基準タグ操作は syncing-reverse-env、設計書の直接修正や通常実装は本スキルの対象外。</dd>
   </div>
@@ -149,9 +149,9 @@
 
 <section id="s1">
   <h2><span class="sec-num">§1</span>概要</h2>
-  <p>リバースエンジニアリングで作成した画面基本設計書（<code>templates/reverse-docs/02_画面基本設計/</code> 準拠、§1〜§16 構成）は納品物であり、「設計書だけを読んで忠実にコーディングできる」詳細度が求められる。本スキルはその品質を検証するため、<strong>設計書だけからコードを再生成し、元コードと機械突合して設計書の欠落を発見する</strong>往復検証を行う。</p>
+  <p>リバースエンジニアリングで作成した画面詳細設計書（<code>assets/02_画面詳細設計/</code> 準拠、章の役割キー（16 種、既定 §1〜§16）で構成）は納品物であり、「設計書だけを読んで忠実にコーディングできる」詳細度が求められる。本スキルはその品質を検証するため、<strong>設計書だけからコードを再生成し、元コードと機械突合して設計書の欠落を発見する</strong>往復検証を行う。</p>
   <div class="constraint">
-    <strong>目的の分離:</strong> コードを直すことは目的ではない。フィードバック先は (a) 当該画面設計書の該当§、(b) 欠落が汎用的ならテンプレート自体の記載粒度改善の 2 つ。
+    <strong>目的の分離:</strong> コードを直すことは目的ではない。フィードバック先は (a) 当該画面設計書の該当章（役割キー）、(b) 欠落が汎用的ならテンプレート自体の記載粒度改善の 2 つ。
   </div>
   <p>環境管理・比較エンジンは <code>syncing-reverse-env</code> に全面委譲する。本スキルは値を保持せず、都度その返却ブロックから受け取る。</p>
 </section>
@@ -160,12 +160,12 @@
   <h2><span class="sec-num">§2</span>用語</h2>
   <table class="spec">
     <tr><th>用語</th><th>意味</th></tr>
-    <tr><td>オリジナルコード環境</td><td>worktree 名 <code>original-code-&lt;system&gt;</code>。設計書 frontmatter の <code>source_repo</code> / <code>source_ref</code> から用意する読み取り専用コピー（9100 番台）</td></tr>
-    <tr><td>リバースコード環境</td><td>worktree 名 <code>reverse-code-&lt;system&gt;</code>、ブランチ <code>feature/reverse-code-&lt;system&gt;</code>。本スキルが Phase 4 で書き込む対象（9110 番台）</td></tr>
-    <tr><td>基準タグ</td><td>annotated tag <code>reverse-baseline/&lt;system&gt;</code>。基準コミットの唯一の記録</td></tr>
-    <tr><td>白紙化ゲート</td><td>Phase 3 で reverse-code 環境の追跡ファイルを全削除するコミット。削除前に AskUserQuestion でユーザー承認を取る。以降カンニング防止のため original-code の Read を禁止する</td></tr>
+    <tr><td>オリジナルコード環境</td><td>worktree 名 <code>original-code-&lt;scope&gt;</code>。設計書 frontmatter の <code>source_repo</code> / <code>source_ref</code> から用意する読み取り専用コピー（9100 番台）</td></tr>
+    <tr><td>リバースコード環境</td><td>worktree 名 <code>reverse-code-&lt;scope&gt;</code>、ブランチ <code>feature/reverse-code-&lt;scope&gt;</code>。本スキルが Phase 4 で書き込む対象（9110 番台）</td></tr>
+    <tr><td>基準タグ</td><td>annotated tag <code>reverse-baseline/&lt;scope&gt;</code>。基準コミットの唯一の記録</td></tr>
+    <tr><td>白紙化ゲート</td><td>Phase 3 で reverse-code 環境のうち実装契約章のファイル分割表（既定 §15.1）に列挙された対象ファイルのみを削除するコミット。削除前に AskUserQuestion でユーザー承認を取る。以降カンニング防止のため original-code の Read を禁止する</td></tr>
     <tr><td>凍結コミット</td><td>Phase 6 で確定するコミットハッシュ。Phase 7 以降の比較対象点として固定される</td></tr>
-    <tr><td>失敗クラス</td><td><code>ng-classification.md</code> が定義する、検出シグナルを分類した意味キー。設計書の該当§への帰着先を持つ</td></tr>
+    <tr><td>失敗クラス</td><td><code>ng-classification.md</code> が定義する、検出シグナルを分類した意味キー。設計書の該当章（役割キー）への帰着先を持つ</td></tr>
   </table>
 </section>
 
@@ -173,11 +173,11 @@
   <h2><span class="sec-num">§3</span>使い方</h2>
   <p>起動引数は <strong>画面ディレクトリのみ</strong>。設計書・<code>DESIGN.md</code>・共通設計書・メッセージ定義書・テスト観点表は設計書 frontmatter を経由してロードする。</p>
   <div class="constraint">
-    <strong>前提条件:</strong> 基準タグ <code>reverse-baseline/&lt;system&gt;</code> が確立済みであること。未確立の場合は Phase 1 で停止し、<code>syncing-reverse-env</code>（mode=setup → sync）の完走を指示する。
+    <strong>前提条件:</strong> 基準タグ <code>reverse-baseline/&lt;scope&gt;</code> が確立済みであること。未確立の場合は Phase 1 で停止し、<code>syncing-reverse-env</code>（mode=setup → sync）の完走を指示する。
   </div>
   <table class="spec">
     <tr><th>項目</th><th>内容</th></tr>
-    <tr><td>起動引数</td><td>画面ディレクトリ（例: <code>02_画面基本設計/screen-&lt;画面ID&gt;/</code>）のみ</td></tr>
+    <tr><td>起動引数</td><td>画面ディレクトリ（例: <code>02_画面詳細設計/screen-&lt;画面ID&gt;/</code>）のみ</td></tr>
     <tr><td>環境値の取得元</td><td><code>syncing-reverse-env</code>（mode=setup 冪等呼び出し）の機械向け返却ブロック</td></tr>
     <tr><td>比較エンジン</td><td>自前実装しない。<code>syncing-reverse-env</code> の <code>mode=sync, dry-run</code> のみ</td></tr>
     <tr><td>1 起動の単位</td><td>1 起動 = 1 往復。設計書修正後の再往復は再起動として扱う</td></tr>
@@ -201,7 +201,7 @@
     <tr><td>Phase 1</td><td>設計書一式がロード済み・基準タグの存在確認済み</td></tr>
     <tr><td>Phase 2</td><td>監査結果が記録済み（内部矛盾なら Phase 8 へ直行）</td></tr>
     <tr><td>Phase 3</td><td>ユーザー承認取得済み・白紙化コミット完了・カンニング禁止を宣言済み</td></tr>
-    <tr><td>Phase 4</td><td>§15.1 ファイル一覧と実装が過不足なく一致</td></tr>
+    <tr><td>Phase 4</td><td>実装契約章のファイル分割表（既定 §15.1）と実装が過不足なく一致</td></tr>
     <tr><td>Phase 5</td><td>型チェック・テスト・スモークの結果が記録済み</td></tr>
     <tr><td>Phase 6</td><td>凍結コミットハッシュが確定</td></tr>
     <tr><td>Phase 7</td><td>syncing-reverse-env 返却ブロックを受領済み</td></tr>
@@ -237,7 +237,7 @@
 <section id="s7">
   <h2><span class="sec-num">§7</span>検証内容</h2>
   <h3>Phase 2: 設計書内部整合性監査</h3>
-  <p><code>scripts/audit-consistency.sh</code> による機械チェック（<span class="tag mode">a</span> §2 機能一覧表 × 観点表の機能キー集合突合（両方向一致）、<span class="tag mode">b</span> 未記入プレースホルダ検出、<span class="tag mode">c</span> 連番キー検出 WARN）に加え、目視で §7 API 型 × §15.2 型定義、§5 状態変数 × §9/§15 の経路を突合する。詳細は <code>references/phase-details.md</code>。</p>
+  <p><code>scripts/audit-consistency.sh</code> による機械チェック（<span class="tag mode">a</span> 機能一覧章の機能一覧表（既定 §2）× 観点表の機能キー集合突合（両方向一致）、<span class="tag mode">b</span> 未記入プレースホルダ検出、<span class="tag mode">c</span> 連番キー検出 WARN）に加え、目視で API通信章の API 型（既定 §7）× 実装契約章の型定義（既定 §15.2）、状態管理章の状態変数（既定 §5）× 領域別仕様章/実装契約章の経路（既定 §9/§15）を突合する。詳細は <code>references/phase-details.md</code>。</p>
   <h3>Phase 5: 自己完結チェック</h3>
   <p>型チェック・単体/結合テスト・Playwright スモーク（reverse 側 9110 番台のみ）を実行する。内側ループは上限 3 回、同一エラーシグネチャ 3 連続で発散確定とし、発散エラー自体を設計書欠落候補として Phase 8 へ渡す。</p>
   <h3>Phase 7: 答え合わせ</h3>
@@ -254,7 +254,7 @@
   <p>書式の正は <code>references/report-format.md</code>。配置先は <code>&lt;画面ディレクトリ&gt;/検証記録/&lt;timestamp&gt;/</code>（設計書リポジトリ内）。生証跡（スクリーンショット・テストログ・返却ブロック全文）は <code>~/agent-home/sessions/</code> 配下に置く。</p>
   <table class="spec">
     <tr><th>成果物</th><th>作成 Phase</th><th>内容</th></tr>
-    <tr><td>修正指示書</td><td>Phase 8</td><td>対象設計書パス / NG 一覧（失敗クラス・帰着§・修正指示・証跡パス）/ テンプレート改善提案</td></tr>
+    <tr><td>修正指示書</td><td>Phase 8</td><td>対象設計書パス / NG 一覧（失敗クラス・帰着章・修正指示・証跡パス）/ テンプレート改善提案</td></tr>
     <tr><td>最終報告</td><td>Phase 9</td><td>判定（PASS/FAIL/無効）/ 凍結コミットハッシュ / 各 Phase の実行結果 / syncing-reverse-env 返却ブロック要約 / 証跡パス一覧</td></tr>
   </table>
   <div class="constraint">
@@ -267,9 +267,9 @@
   <table class="spec">
     <tr><th>資料</th><th>役割</th></tr>
     <tr><td>syncing-reverse-env</td><td>環境同期・静的/動的比較エンジン。本スキルはこのスキルの呼び出し契約（args 全量指定・対話ゼロ）に従う</td></tr>
-    <tr><td>templates/reverse-docs/02_画面基本設計/画面基本設計書.md</td><td>§1〜§16 テンプレート。突合・帰着先§の基準</td></tr>
-    <tr><td>references/phase-details.md</td><td>Phase 2 突合式・Phase 4 実装規律・Phase 5 検証コマンド詳細</td></tr>
-    <tr><td>references/ng-classification.md</td><td>検出シグナル→失敗クラス→§帰着のマッピング</td></tr>
+    <tr><td>assets/02_画面詳細設計/画面詳細設計書.md</td><td>章の役割キー（16 種、既定 §1〜§16）テンプレート。突合・帰着先章の基準</td></tr>
+    <tr><td>references/phase-details.md</td><td>Phase 2 突合式・Phase 4 実装規律・Phase 5 検証コマンド詳細・章の役割キー対応表</td></tr>
+    <tr><td>references/ng-classification.md</td><td>検出シグナル→失敗クラス→章（役割キー）帰着のマッピング</td></tr>
     <tr><td>references/test-item-patterns.md</td><td>失敗クラス台帳（追記型）</td></tr>
     <tr><td>意味キー規約（semantic-key-rules）</td><td>連番 ID 禁止・意味語キー必須の正本</td></tr>
   </table>
