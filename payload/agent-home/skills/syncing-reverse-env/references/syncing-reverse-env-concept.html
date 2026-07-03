@@ -702,18 +702,27 @@
     <div class="adr-title"><span class="adr-label">ADR-11</span>Playwright 実行方式の 2 モード化（mcp / node-script）</div>
     <p><strong>採用</strong>: 動的比較（§7）の実行方式を <code>playwright_exec.mode</code> で <code>mcp</code>（既定）と <code>node-script</code> の 2 つに分岐する。<code>mcp</code> は従来どおり Playwright MCP ツールを呼び出す。<code>node-script</code> は config.yml の <code>command_template</code> を Bash から直接実行し、Playwright MCP が接続されていない環境でも動的比較を完走できるようにする。<strong>理由</strong>: 実プロジェクトのセッションに Playwright MCP が接続されておらず、既定の MCP 前提のままでは Phase 5 が実行不能だった。<code>command_template</code> は実機検証で判明した 3 件の不具合 — <code>waitUntil="networkidle"</code> が Vite dev server の HMR 用 WebSocket で繋がりっぱなしになり永久タイムアウトする／<code>page.accessibility.snapshot()</code> が Playwright 1.61 系で撤去済み／navigate 先を <code>localhost</code> にすると WSL2 の Chromium が名前解決待ちでタイムアウトする — を修正した検証済み版であり、<code>waitUntil="load"</code>・<code>ariaSnapshot()</code>・<code>127.0.0.1</code> 固定の 3 点をそのまま固定事項として保持する。</p>
     <p><strong>却下案</strong>: Playwright MCP 接続を必須要件のまま維持する — MCP が接続されない環境では本スキルそのものが運用できなくなるため不採用。</p>
+    <p class="note">なお <code>playwright_exec.mode</code> の既定は後続 ADR（ADR-14）で <code>auto</code> 化し、MCP 可用性を実行時検出して mcp / node-script を自動選択するようにした。</p>
   </div>
 
   <div class="adr">
     <div class="adr-title"><span class="adr-label">ADR-12</span>allow_mnt_fs による /mnt 配置の WARN 緩和（ADR-7 の部分緩和）</div>
     <p><strong>採用</strong>: fs-location プリフライトの <code>/mnt/*</code>（drvfs）判定を <code>allow_mnt_fs</code>（既定 <code>false</code>＝<span class="tag error">ERROR</span>）で切替可能にし、<code>true</code> 指定時は <span class="tag error">ERROR</span> ではなく性能 <span class="tag error">WARN</span> として扱う。<strong>理由</strong>: 実プロジェクトの <code>source_repo</code> が <code>/mnt/c/...</code>（Windows 側 drvfs）固定で、既定 <span class="tag error">ERROR</span> のままでは即 NO-GO になる。実測では worktree 作成（約 80 秒/本）も全量 diff も動作しており、低速であるだけで運用は成立する。</p>
     <p><strong>却下案</strong>: <code>/mnt</code> を常に <span class="tag error">ERROR</span> のまま維持する — drvfs 上に配置された実プロジェクトを検証できなくなるため不採用。／常に許可する — ADR-7 が定めたネイティブ FS 配置の推奨を既定側から崩すことになるため不採用。<code>allow_mnt_fs</code> は既定 <code>false</code> を保ったまま projects 単位の opt-in にとどめる。</p>
+    <p class="note">なお <code>allow_mnt_fs</code> の既定は後続 ADR（ADR-14）で <code>auto</code> 化し、<code>source_repo</code> が <code>/mnt/*</code> 配下かを実行時検出して性能 WARN 続行を自動判定するようにした。</p>
   </div>
 
   <div class="adr">
     <div class="adr-title"><span class="adr-label">ADR-13</span>node_modules_strategy による symlink_main 方式の追加</div>
     <p><strong>採用</strong>: 依存構築の方式を <code>node_modules_strategy</code>（既定 <code>npm_ci</code>＝各環境が独立して <code>npm ci</code> を実行 / <code>symlink_main</code>＝<code>source_repo</code> の node_modules へ symlink）で切替可能にする。<code>symlink_main</code> 選択時は node_modules を「独立した 2 環境であることの証明対象」から除外し、env_check の symlink-independence・node-modules-health・bundler-cache-fresh の各項目に但し書きを設ける。<strong>理由</strong>: drvfs 配下では <code>npm ci</code> が極端に低速で、実プロジェクトの既存運用は <code>source_repo</code> の node_modules へ symlink する方式だった。</p>
     <p><strong>却下案</strong>: 常に <code>npm ci</code> に固定する（ADR-9 を無条件維持） — drvfs 上での実行時間が長すぎ実運用に耐えないため不採用。<strong>トレードオフ</strong>: <code>symlink_main</code> は <code>.vite</code> 等のバンドラキャッシュも共有するため、初回 navigate が dependency re-optimize による reload に巻き込まれる可能性がある。1 回のリトライで吸収する。</p>
+    <p class="note">なお <code>node_modules_strategy</code> の既定は後続 ADR（ADR-14）で <code>auto</code> 化し、drvfs 検出により <code>symlink_main</code> / <code>npm_ci</code> を自動選択するようにした。</p>
+  </div>
+
+  <div class="adr">
+    <div class="adr-title"><span class="adr-label">ADR-14</span>環境固有値のゼロコンフィグ自動解決（既定 auto）</div>
+    <p><strong>採用</strong>: <code>node_modules_strategy</code> / <code>allow_mnt_fs</code> / <code>playwright_exec.mode</code> の既定を <code>auto</code>、<code>playwright_exec.node_path</code> の既定を <code>null</code>（自動解決）とし、Phase 2 プリフライトが実行時に検出して具体値へ解決する。<code>allow_mnt_fs=auto</code> は <code>source_repo</code> が <code>/mnt/*</code> 配下かで性能 WARN 続行を判定し、<code>node_modules_strategy=auto</code> は drvfs 検出で <code>symlink_main</code> / それ以外 <code>npm_ci</code> を選び、<code>playwright_exec.mode=auto</code> は Playwright MCP 可用性で <code>mcp</code> / <code>node-script</code> を選び、<code>node_path=null</code> は <code>require.resolve</code> / npm root で解決先を取得する。明示値は auto を上書きする強制指定として残す。<strong>理由</strong>: これらの値はすべて実行時に機械検出できる（パス prefix・fs 種別・MCP 可用性・モジュール解決）。にもかかわらず config.yml への手入力を要求すると、<code>node_path</code> のような npx キャッシュハッシュ付き絶対パスを人間が用意することになり非現実的で、初回セットアップが破綻する。検出できる値は検出して埋め、人間が書くのはアプリ固有の起動コマンド（<code>services</code> / <code>launch</code>）だけに限定する。</p>
+    <p><strong>却下案</strong>: 環境値を config.yml への手入力必須とする — 人間が <code>node_path</code> 等を用意できず初回運用が成立しないため不採用。／既定を安全側の固定値（<code>false</code> / <code>npm_ci</code> / <code>mcp</code>）に置き projects で上書きさせる — 特殊環境ごとに毎回手書きが必要で、ゼロコンフィグにならないため不採用。<strong>トレードオフ</strong>: 自動検出は誤検出の可能性があるため、解決結果と根拠（drvfs 検出・MCP 可用性）を §8 の報告に必ず含めて可監査にする。強制上書きの明示値も残す。</p>
   </div>
 
   <h3>関連スキル・規約</h3>
