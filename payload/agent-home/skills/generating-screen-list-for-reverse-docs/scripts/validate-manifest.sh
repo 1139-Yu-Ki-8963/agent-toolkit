@@ -14,6 +14,9 @@
 #                                  (strategy.screenIdRegexが非null文字列の場合、そのEREに完全一致するscreenKey
 #                                   および `<一致部分>-<dup番号>` 形式の派生キーは業務ID由来として判定対象から除外する)
 #   6. 参照整合                : 派生キー(末尾-dup番号)の元キー実在・sharedWith参照先の実在・embeddedIn親キーの実在
+#                                  (strategy.sharedWithBusinessIdsAllowed=trueかつscreenIdRegex設定時のみ、
+#                                   sharedWith要素のうちregexに完全一致する業務IDは行未解決でも参照整合の
+#                                   対象外とする opt-in 緩和。デフォルトfalseはstrict維持。embeddedIn等には非適用)
 #   7. summary-一致             : detectionSummary が screens[] からの再計算値と一致するか
 #                                  (--fix出力に対しては修正後の値で検査)
 #
@@ -194,10 +197,16 @@ fi
 #    参照先の実在判定は screenKey への一致 または screenId(業務ID)への一致のいずれかで成立とする
 #    (「代表1冊+バリエーション統合」方式では sharedWith/embeddedIn に独立screenKeyを持たない
 #     業務IDが列挙されるため)。
+#    strategy.sharedWithBusinessIdsAllowed=true かつ screenIdRegex非null文字列の場合のみ、
+#    sharedWith要素のうちregexに完全一致する業務IDは行未解決でも参照整合の対象外とする
+#    (opt-in緩和。デフォルトfalseはstrict維持。派生キー・embeddedInには非適用)。
 #    jqがエラー終了した場合はfail-closedで即FAILとする(誤PASS防止)。
 # ---------------------------------------------------------------------------
-ref_integrity_issues="$(jq -r --arg re "$screen_id_regex" '
+shared_with_relax_flag="$(jq -r '(.strategy.sharedWithBusinessIdsAllowed == true)' "$MANIFEST")"
+
+ref_integrity_issues="$(jq -r --arg re "$screen_id_regex" --argjson relaxFlag "$shared_with_relax_flag" '
   ($re | length > 0) as $has_re
+  | ($relaxFlag and $has_re) as $relax_shared_with
   | (.screens // []) as $screens
   | ($screens | map(.screenKey // "") | map(select(length > 0))) as $validkeys
   | ($screens | map(.screenId // empty) | map(select(type == "string" and length > 0))) as $validids
@@ -221,7 +230,9 @@ ref_integrity_issues="$(jq -r --arg re "$screen_id_regex" '
       +
       [ $screens[] | (.screenKey // "?") as $sk
         | (.sharedWith // [])[] as $sw
-        | select((($validkeys | index($sw)) == null) and (($validids | index($sw)) == null))
+        | ((($validkeys | index($sw)) == null) and (($validids | index($sw)) == null)) as $unresolved
+        | ($relax_shared_with and (try ($sw | test("^(" + $re + ")$")) catch false)) as $is_business_id
+        | select($unresolved and ($is_business_id | not))
         | "screens[" + $sk + "].sharedWith[" + $sw + "]が不在"
       ]
       +
