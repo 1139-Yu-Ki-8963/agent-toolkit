@@ -190,12 +190,17 @@ fi
 #    - 派生キー(末尾-dup番号)が存在する場合、dup番号を除いた元キーがscreens[]内に実在するか
 #      (screenIdRegex設定時は、regexに完全一致しないキーのみを派生キー候補とする)
 #    - 各行のsharedWithが指すキーが全てscreens[]内に実在するか
-#    - 各行のembeddedIn(カンマ結合文字列)が指す親キーが全てscreens[]内に実在するか
+#    - 各行のembeddedIn(配列 または カンマ結合文字列)が指す親キーが全てscreens[]内に実在するか
+#    参照先の実在判定は screenKey への一致 または screenId(業務ID)への一致のいずれかで成立とする
+#    (「代表1冊+バリエーション統合」方式では sharedWith/embeddedIn に独立screenKeyを持たない
+#     業務IDが列挙されるため)。
+#    jqがエラー終了した場合はfail-closedで即FAILとする(誤PASS防止)。
 # ---------------------------------------------------------------------------
 ref_integrity_issues="$(jq -r --arg re "$screen_id_regex" '
   ($re | length > 0) as $has_re
   | (.screens // []) as $screens
   | ($screens | map(.screenKey // "") | map(select(length > 0))) as $validkeys
+  | ($screens | map(.screenId // empty) | map(select(type == "string" and length > 0))) as $validids
   | (
       [ $validkeys[] | . as $k
         | (
@@ -210,27 +215,37 @@ ref_integrity_issues="$(jq -r --arg re "$screen_id_regex" '
           ) as $is_derived
         | select($is_derived)
         | ($k | sub("-[0-9]+$"; "")) as $base
-        | select(($validkeys | index($base)) == null)
+        | select((($validkeys | index($base)) == null) and (($validids | index($base)) == null))
         | "派生キー[" + $k + "]の元キー[" + $base + "]が不在"
       ]
       +
       [ $screens[] | (.screenKey // "?") as $sk
         | (.sharedWith // [])[] as $sw
-        | select(($validkeys | index($sw)) == null)
+        | select((($validkeys | index($sw)) == null) and (($validids | index($sw)) == null))
         | "screens[" + $sk + "].sharedWith[" + $sw + "]が不在"
       ]
       +
       [ $screens[] | (.screenKey // "?") as $sk
-        | (.embeddedIn // "") | select(length > 0)
-        | split(",") | map(gsub("^ +"; "") | gsub(" +$"; "")) | .[]
-        | select(length > 0) | . as $parent
-        | select(($validkeys | index($parent)) == null)
+        | .embeddedIn as $ei
+        | (
+            if ($ei | type) == "array" then $ei
+            elif ($ei | type) == "string" then
+              ($ei | split(",") | map(gsub("^ +"; "") | gsub(" +$"; "")))
+            else []
+            end
+          ) as $parents
+        | $parents[] | select(length > 0) as $parent
+        | select((($validkeys | index($parent)) == null) and (($validids | index($parent)) == null))
         | "screens[" + $sk + "].embeddedIn[" + $parent + "]が不在"
       ]
     ) | join("; ")
-' "$MANIFEST")"
+' "$MANIFEST" 2>/dev/null)"
+jq_rc=$?
 
-if [ -n "$ref_integrity_issues" ]; then
+if [ "$jq_rc" -ne 0 ]; then
+  overall_fail=1
+  echo "[FAIL] 参照整合 — jq評価エラー(rc=${jq_rc})。マニフェスト構造を確認してください" >&2
+elif [ -n "$ref_integrity_issues" ]; then
   overall_fail=1
   echo "[FAIL] 参照整合 — ${ref_integrity_issues}" >&2
 else
