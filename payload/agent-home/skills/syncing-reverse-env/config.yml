@@ -30,9 +30,10 @@ defaults:
   artifacts_root: "~/agent-home/sessions/reverse-env"  # 証跡ルート（scope/実行日時で分離）
   # 環境差を吸収する 3 値。既定はすべて auto（Phase 2 プリフライトが実行時に検出して解決）。
   # 人間が値を書かなくても環境に合わせて自動決定される。明示値は強制上書きとして機能する。
-  node_modules_strategy: auto    # auto（既定・source_repo が drvfs 上なら symlink_main / それ以外は npm_ci） /
+  node_modules_strategy: auto    # auto（既定・常に npm_ci に解決＝各環境で独立インストール。本スキルの核心は「2 環境の完全独立の証明」のため、drvfs でも symlink_main を自動選択しない） /
                                  # npm_ci（強制・各環境で独立インストール） /
-                                 # symlink_main（強制・source_repo の node_modules へ symlink。独立 2 環境の証明対象から除外）
+                                 # symlink_main（強制・source_repo の node_modules へ symlink。速いが node_modules が独立性の証明対象から外れる＝独立性を犠牲にする判断のため人間の明示 opt-in に限る）
+                                 # 注: source_repo が drvfs（/mnt/*）上だと npm_ci は低速になる。auto はこの時「symlink_main で高速化できるが独立性を犠牲にする」旨を WARN で報告するだけで、自動切替はしない
   allow_mnt_fs: auto             # auto（既定・source_repo が /mnt/* 配下なら性能 WARN で続行 / それ以外は論点なし） /
                                  # true（強制・/mnt/* でも WARN で続行） /
                                  # false（強制・/mnt/* を ERROR で止める）
@@ -40,8 +41,15 @@ defaults:
     mode: auto                   # auto（既定・Playwright MCP が利用可能なら mcp / 非接続なら node-script に自動フォールバック） /
                                  # mcp（強制・Playwright MCP ツールを使用） /
                                  # node-script（強制・下記 command_template を Bash で直接実行）
-    node_path: null              # null（既定・自動解決: reverse worktree の node_modules で playwright を解決 → だめなら npx 解決先を照会） /
-                                 # 明示パス（強制・NODE_PATH へ渡す playwright の解決先を固定）
+    node_path: null              # null（既定・下記の再現可能な順で自動解決。全て不在なら runtime-deps-ready を NO-GO とし人間に node_path 明示を促す） /
+                                 # 明示パス（強制・NODE_PATH へ渡す「playwright を含む node_modules」を固定）
+                                 # node_path 自動解決順（node-script mode 時。テスト対象アプリの多くは playwright を自依存に持たないため ②③ が主経路）:
+                                 #   ① reverse worktree で `node -e "require.resolve('playwright')"` が成功すれば、その解決先を含む node_modules
+                                 #   ② グローバル: `npm root -g` 配下に playwright/ があればその node_modules
+                                 #   ③ npx キャッシュを実探索（曖昧さなし）:
+                                 #      find "${npm_config_cache:-$HOME/.npm}/_npx" -type d -path '*/node_modules/playwright' 2>/dev/null | head -1
+                                 #      にヒットしたら、その playwright の親（.../node_modules）を node_path に採用
+                                 #   ④ ①〜③ いずれも不在 → NO-GO（node_path を人間が明示するまで node-script は実行不可）
     # 調整可能な数値（command_template の {nav_timeout} / {settle_wait} に展開される）。
     # プロジェクト毎に変えたい場合は projects.<system>.playwright_exec で同名キーを上書きする（projects が常に優先）。
     nav_timeout_ms: 60000        # page.goto の待受タイムアウト。dev サーバー再起動直後の初回は Vite の依存遅延変換で 40〜50 秒かかるため既定 60 秒。大規模アプリは projects で延長する

@@ -533,13 +533,15 @@
       - "*.lock"                 # 整列時は転写対象（§7-4）。静的比較のみ除外
       - ".env*"                 # env-file-parity（§7-2）で直接比較するため静的比較からは除外
       - .reverse-port-slot       # スロット番号記録ファイル（開発用 .port-slot とは別物）
-    node_modules_strategy: auto     # auto（既定・source_repo が drvfs（/mnt/*）上なら
-                                    #   symlink_main、それ以外は npm_ci に自動解決） /
+    node_modules_strategy: auto     # auto（既定・常に npm_ci に解決＝各環境で独立インス
+                                    #   トール。drvfs でも symlink_main は自動選択しない。
+                                    #   本スキルの核心は「2 環境の完全独立の証明」のため） /
                                     # npm_ci（強制・各環境で独立インストール。
                                     #   §7-2 symlink-independence / node-modules-health
                                     #   の独立性検証対象） /
                                     # symlink_main（強制・source_repo の node_modules へ
-                                    #   symlink。独立性の証明対象から除外）
+                                    #   symlink。独立性の証明対象から除外＝人間の明示
+                                    #   opt-in に限る）
     allow_mnt_fs: auto              # auto（既定）: source_repo が /mnt/* 配下なら
                                     #   性能 WARN で自動続行、それ以外は論点なし /
                                     # true（強制）: /mnt/* でも WARN で続行
@@ -552,9 +554,12 @@
                                     # mcp（強制・Playwright MCP ツールを使用） /
                                     # node-script（強制・command_template を Bash で
                                     #   直接実行）
-      node_path: null               # null（既定・自動解決: reverse worktree で
-                                    #   playwright を require.resolve → だめなら
-                                    #   npx/npm root の解決先を照会） /
+      node_path: null               # null（既定・自動解決: ① reverse worktree で
+                                    #   playwright を require.resolve → ② npm root -g
+                                    #   配下の playwright/ → ③ npx キャッシュを実探索
+                                    #   （find "${npm_config_cache:-$HOME/.npm}/_npx"
+                                    #   -type d -path '*/node_modules/playwright' の
+                                    #   ヒット先の親）→ ④ いずれも不在なら NO-GO） /
                                     # 明示パス（強制・NODE_PATH へ渡す解決先を固定）
       nav_timeout_ms: 60000          # page.goto の待受タイムアウト（既定 60 秒。
                                     #   projects で上書き可）
@@ -579,13 +584,13 @@
   <p class="note">具体的な絶対パスを含む実エントリ（<code>node_path</code> の実パス等）はデプロイ先ローカルの config.yml に置く。上記は汎用例。</p>
 
   <h3>環境差の自動解決（ゼロコンフィグ）</h3>
-  <p><code>node_modules_strategy</code> / <code>allow_mnt_fs</code> / <code>playwright_exec.mode</code> / <code>playwright_exec.node_path</code> の 4 値は既定がすべて <code>auto</code>（<code>node_path</code> のみ <code>null</code>）で、Phase 2 プリフライトが <code>source_repo</code> のパス・fs 種別・Playwright MCP 可用性を実行時検出して具体値へ自動解決する。人間が projects を手書きする必要はなく、アプリ毎に人手で書くのは起動コマンド（<code>services</code> / <code>launch</code>）だけになる。明示値（<code>true</code>/<code>false</code>・<code>npm_ci</code>/<code>symlink_main</code>・<code>mcp</code>/<code>node-script</code>・明示 <code>node_path</code>）は auto の自動解決を上書きする強制指定として働く。解決結果は §8 の報告に含める。</p>
+  <p><code>node_modules_strategy</code> / <code>allow_mnt_fs</code> / <code>playwright_exec.mode</code> / <code>playwright_exec.node_path</code> の 4 値は既定がすべて <code>auto</code>（<code>node_path</code> のみ <code>null</code>）で、Phase 2 プリフライトが <code>source_repo</code> のパス・fs 種別・Playwright MCP 可用性を実行時検出して具体値へ自動解決する。ただし <code>node_modules_strategy=auto</code> は fs 種別の検出結果に関わらず常に <code>npm_ci</code> に解決する。独立性を犠牲にする <code>symlink_main</code> の自動選択は行わず、drvfs 検出時は高速化の選択肢を WARN で提示するに留める（人間が projects で明示指定した時だけ <code>symlink_main</code> になる）。人間が projects を手書きする必要はなく、アプリ毎に人手で書くのは起動コマンド（<code>services</code> / <code>launch</code>）だけになる。明示値（<code>true</code>/<code>false</code>・<code>npm_ci</code>/<code>symlink_main</code>・<code>mcp</code>/<code>node-script</code>・明示 <code>node_path</code>）は auto の自動解決を上書きする強制指定として働く。解決結果は §8 の報告に含める。</p>
   <table class="spec">
     <tr><th>config 値</th><th>既定</th><th>auto の解決規則</th><th>検出方法</th></tr>
     <tr><td><code>allow_mnt_fs</code></td><td>auto</td><td>source_repo 親が <code>/mnt/*</code> 配下 → 性能 WARN で続行。それ以外 → 論点なし</td><td>パス prefix 判定</td></tr>
-    <tr><td><code>node_modules_strategy</code></td><td>auto</td><td>source_repo が drvfs（<code>/mnt/*</code>）上 → <code>symlink_main</code>。それ以外 → <code>npm_ci</code></td><td>fs 種別（パス prefix）判定</td></tr>
+    <tr><td><code>node_modules_strategy</code></td><td>auto</td><td>常に <code>npm_ci</code> に解決（drvfs 検出時でも <code>symlink_main</code> は自動選択しない。独立性を犠牲にする選択は本スキルの核心目的に関わるため人間の明示 opt-in に限る。drvfs 検出時は「<code>symlink_main</code> で高速化できるが独立性の証明対象から外れる」旨を WARN として提示するのみ）</td><td>fs 種別（パス prefix）判定は WARN 提示にのみ使用</td></tr>
     <tr><td><code>playwright_exec.mode</code></td><td>auto</td><td>Playwright MCP ツールが利用可能 → <code>mcp</code>。不可 → <code>node-script</code></td><td>MCP 可用性確認</td></tr>
-    <tr><td><code>playwright_exec.node_path</code></td><td>null</td><td>node-script 時に reverse worktree で <code>require.resolve('playwright')</code> 成功ならそのパス。だめなら npx/npm root の解決先</td><td>require.resolve / npm root</td></tr>
+    <tr><td><code>playwright_exec.node_path</code></td><td>null</td><td>node-script 時: ① reverse worktree で <code>require.resolve('playwright')</code> 成功ならそのパス → ② <code>npm root -g</code> 配下に playwright/ があればそのパス → ③ npx キャッシュを実探索（<code>find "${npm_config_cache:-$HOME/.npm}/_npx" -type d -path '*/node_modules/playwright'</code> のヒット先の親 node_modules）→ ④ いずれも不在なら <code>runtime-deps-ready</code> を NO-GO とし人間に <code>node_path</code> 明示を促す</td><td>require.resolve / npm root -g / npx キャッシュ find</td></tr>
   </table>
 
   <h3>制約</h3>
@@ -606,7 +611,7 @@
     <tr><td>5</td><td>original-clean</td><td>オリジナルコード環境が <code>source_ref</code> と一致し clean</td><td>ズレ・汚れは内容を <code>source_ref</code> へ自動復元する</td></tr>
     <tr><td>6</td><td>reverse-dirty-log</td><td>リバースコード環境の dirty 状態を記録</td><td>sync では許容（整列で上書きされる）。dry-run 指定時は警告を提示</td></tr>
     <tr><td>7</td><td>port-band-free</td><td>当該 <code>&lt;scope&gt;</code> のスロット帯（計算式で確定するポート）が未占有</td><td>stale プロセスは kill して続行。WSL で Windows 側常駐プロセスが占有し kill 不能な場合は <code>band_start</code> の変更を案内して <span class="tag error">ERROR</span></td></tr>
-    <tr><td>8</td><td>runtime-deps-ready</td><td><code>playwright_exec.mode=auto</code>（既定）は Playwright MCP の可用性を検出して mcp / node-script を自動選択する（MCP 非接続でも NO-GO にせず node-script へ自動フォールバック）。node-script 選択時は <code>node_path=null</code>（既定）が reverse worktree での require.resolve、だめなら npx/npm root の解決先を自動照会し、playwright モジュールと chromium バイナリの存在を確認する。mode=mcp 明示時は MCP 接続とブラウザバイナリ導入済みを要求する。sync 時は node_modules の存在・<code>.bin/*</code> の実行可能性・lock ファイルの存在まで確認する（setup 直後の空容器では可用性確認のみ行う）</td><td>NO-GO（<span class="tag error">ERROR</span> 系。§8）</td></tr>
+    <tr><td>8</td><td>runtime-deps-ready</td><td><code>playwright_exec.mode=auto</code>（既定）は Playwright MCP の可用性を検出して mcp / node-script を自動選択する（MCP 非接続でも NO-GO にせず node-script へ自動フォールバック）。node-script 選択時は <code>node_path=null</code>（既定）を ① reverse worktree での <code>require.resolve('playwright')</code> → ② <code>npm root -g</code> 配下の playwright/ → ③ npx キャッシュの実探索（<code>find "${npm_config_cache:-$HOME/.npm}/_npx" -type d -path '*/node_modules/playwright'</code> のヒット先の親 node_modules）の順で自動解決し、playwright モジュールと chromium バイナリの存在を確認する。①〜③ いずれも不在なら NO-GO とし人間に <code>node_path</code> 明示を促す。mode=mcp 明示時は MCP 接続とブラウザバイナリ導入済みを要求する。sync 時は node_modules の存在・<code>.bin/*</code> の実行可能性・lock ファイルの存在まで確認する（setup 直後の空容器では可用性確認のみ行う）</td><td>NO-GO（<span class="tag error">ERROR</span> 系。§8）</td></tr>
     <tr><td>9</td><td>baseline-tag-exists</td><td><code>reset-first</code> 指定時のみ: 基準タグが存在</td><td>NO-GO（基準未確立と報告）</td></tr>
   </table>
 </section>
@@ -697,14 +702,14 @@
     <tr><td>1</td><td>port-owner</td><td>ポート占有の帰属</td><td>os-toolchain の解決結果に従い確認する（macOS: <code>lsof -i</code> の cwd 突合 / WSL: <code>ss -ltnp</code> ＋ <code>/proc/&lt;pid&gt;/cwd</code> の cwd 突合）で当該 <code>&lt;scope&gt;</code> のスロット帯を走査し、LISTEN プロセスの cwd が自環境の worktree かを突合</td><td>stale は kill して続行。無関係な稼働プロセスは <span class="tag error">ERROR</span></td></tr>
     <tr><td>2</td><td>port-config-cross</td><td>ポート設定の混入（転写後）</td><td>リバース側をオリジナル側帯域で、オリジナル側をリバース側帯域で相互に grep</td><td>相手帯域の番号が 1 件でもあれば転写ミス。ポート再生成をやり直す</td></tr>
     <tr><td>3</td><td>listen-actual</td><td>実際の待受ポート</td><td>起動後の LISTEN 一覧を §5 の計算式による期待値と突合</td><td>期待外の待受・不応答は <span class="tag fail">FAIL</span></td></tr>
-    <tr><td>4</td><td>symlink-independence</td><td>シンボリックリンクの実態</td><td><code>find -type l</code> ＋ <code>realpath</code> で実体を解決し「自 worktree 内 / 共有 store / worktree 外」に分類</td><td>相手側 worktree・元リポジトリを指すものは <span class="tag fail">FAIL</span>。共有 store は同一バージョンの実体を指すことを確認して許容。ただし <code>node_modules_strategy: symlink_main</code> のときは node_modules（およびその配下）が source_repo を指す symlink であることは想定内であり、独立性の証明対象から除外する（FAIL としない）</td></tr>
+    <tr><td>4</td><td>symlink-independence</td><td>シンボリックリンクの実態</td><td><code>find -type l</code> ＋ <code>realpath</code> で実体を解決し「自 worktree 内 / 共有 store / worktree 外」に分類</td><td>相手側 worktree・元リポジトリを指すものは <span class="tag fail">FAIL</span>。共有 store は同一バージョンの実体を指すことを確認して許容。ただし <code>node_modules_strategy: symlink_main</code>（人間の明示指定時のみ発生）のときは node_modules（およびその配下）が source_repo を指す symlink であることは想定内であり、独立性の証明対象から除外する（FAIL としない）</td></tr>
     <tr><td>5</td><td>dep-tree-parity</td><td>依存ツリーの同一性</td><td><code>npm ls --all</code> 相当を正規化し、名前＋バージョン集合を比較</td><td>依存再構築（<code>npm ci</code> 再実行）を 1 回リトライ → なお不一致は <span class="tag fail">FAIL</span></td></tr>
-    <tr><td>6</td><td>node-modules-health</td><td>node_modules の健全性</td><td>node_modules の存在・<code>.bin/vite</code> 等の実行可能性（<code>--version</code> 実行）・独立性（相手側/元リポジトリへの symlink でないこと）を確認。ただし <code>node_modules_strategy: symlink_main</code> のときは source_repo への symlink が正常状態であり、存在と <code>.bin</code> 実行可能性のみ確認する</td><td>NG は <code>npm ci</code> で修復してから再検証</td></tr>
+    <tr><td>6</td><td>node-modules-health</td><td>node_modules の健全性</td><td>node_modules の存在・<code>.bin/vite</code> 等の実行可能性（<code>--version</code> 実行）・独立性（相手側/元リポジトリへの symlink でないこと）を確認。ただし <code>node_modules_strategy: symlink_main</code>（人間の明示指定時のみ発生）のときは source_repo への symlink が正常状態であり、存在と <code>.bin</code> 実行可能性のみ確認する</td><td>NG は <code>npm ci</code> で修復してから再検証</td></tr>
     <tr><td>7</td><td>runtime-parity</td><td>ランタイムの同一性</td><td><code>node -v</code> 等を両環境で実測して突合</td><td>不一致は <span class="tag error">ERROR</span>（実行基盤の問題）</td></tr>
     <tr><td>8</td><td>env-runtime-parity</td><td>環境変数の同一性</td><td>起動時に注入される env をダンプし、ポート正規化後に比較</td><td>ポート以外の差分は <span class="tag fail">FAIL</span></td></tr>
     <tr><td>9</td><td>env-file-parity</td><td>env ファイルの同一性</td><td>両環境の <code>.env*</code> ファイル群（config.yml <code>env_file_globs</code>）をポート正規化付きで直接突合し、バンドラのみが読む変数の差分も捕捉する</td><td>ポート以外の差分は <span class="tag fail">FAIL</span></td></tr>
     <tr><td>10</td><td>file-mode-parity</td><td>ファイルモード・種別</td><td><code>git ls-files --stage</code> のインデックス値のみで実行ビット・種別を比較する（実 FS の <code>stat</code> は使わない。/mnt 配下の 777 化対策）</td><td>実差分として扱い、整列で揃える</td></tr>
-    <tr><td>11</td><td>bundler-cache-fresh</td><td>バンドラキャッシュの新鮮さ</td><td>整列が走った周回では config.yml の <code>bundler_cache_dirs</code> が削除済みであることを確認。<code>node_modules_strategy: symlink_main</code> のときは <code>.vite</code> が source_repo と共有されるため、整列後の削除ではなく初回 navigate 時の dependency re-optimize を許容し、巻き込まれ reload は 1 回リトライで吸収する</td><td>検証不能なら起動時の強制再構築を案内</td></tr>
+    <tr><td>11</td><td>bundler-cache-fresh</td><td>バンドラキャッシュの新鮮さ</td><td>整列が走った周回では config.yml の <code>bundler_cache_dirs</code> が削除済みであることを確認。<code>node_modules_strategy: symlink_main</code>（人間の明示指定時のみ発生）のときは <code>.vite</code> が source_repo と共有されるため、整列後の削除ではなく初回 navigate 時の dependency re-optimize を許容し、巻き込まれ reload は 1 回リトライで吸収する</td><td>検証不能なら起動時の強制再構築を案内</td></tr>
     <tr><td>12</td><td>process-independence</td><td>プロセス独立性</td><td>片方を停止してももう片方が応答し続けることを確認して再起動</td><td>連動停止は <span class="tag fail">FAIL</span>（プロセス・DB の共有）</td></tr>
     <tr><td>13</td><td>storage-isolation</td><td>ストレージ分離</td><td>DB・キャッシュ等のパス設定が worktree 内に閉じているか走査</td><td>同一の外部パスを読み書きしていれば <span class="tag fail">FAIL</span></td></tr>
   </table>
@@ -732,16 +737,16 @@
               *.lock を除いたもの。lock ファイルは転写対象に含める）
   3. 再生成  当該 &lt;scope&gt; のスロットから算出したリバース側ポートで
              リバースコード環境側のポート設定を再生成
-  4. 再構築  node_modules_strategy で分岐する（auto の場合は Phase 2 で
-             解決済みの具体値＝drvfs なら symlink_main、それ以外は
-             npm_ci に従う）:
+  4. 再構築  node_modules_strategy で分岐する（auto は常に npm_ci に
+             解決済み。symlink_main は人間の明示指定時のみ）:
              npm_ci（既定）: install_command で各環境に独立インストール。
                             lock 不整合による失敗は ERROR
-             symlink_main:   source_repo の node_modules へ symlink を張る
+             symlink_main（明示指定時のみ）:
+                            source_repo の node_modules へ symlink を張る
   5. 掃除    node_modules_strategy=npm_ci のみ実施。config.yml の
-             bundler_cache_dirs を削除。symlink_main では .vite が
-             source_repo と共有されるためスキップし、§7-2 の
-             bundler-cache-fresh 但し書きに従う
+             bundler_cache_dirs を削除。symlink_main（明示指定時のみ）
+             では .vite が source_repo と共有されるためスキップし、
+             §7-2 の bundler-cache-fresh 但し書きに従う
   6. 再検証  Phase 3（静的）→ Phase 5（環境＋動的）へ合流し、
              収束ループを継続</pre>
 </section>
