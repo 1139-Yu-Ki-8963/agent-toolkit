@@ -66,6 +66,12 @@ if [ ! -f "$MANIFEST" ]; then
 fi
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+if ! "$SCRIPT_DIR/validate-manifest.sh" "$MANIFEST"; then
+  echo "ERROR: manifestがvalidate-manifest.shの検証に失敗しました。Phase 3の整合検証を先に完了してください" >&2
+  exit 1
+fi
+
 TEMPLATE="$SCRIPT_DIR/../assets/screen-list-template.html"
 if [ ! -f "$TEMPLATE" ]; then
   echo "ERROR: template not found: $TEMPLATE" >&2
@@ -82,6 +88,7 @@ html_escape() {
 # --- メタ情報・サマリ集計をマニフェストから抽出 ---
 generated_at="$(jq -r '.generatedAt // ""' "$MANIFEST")"
 source_dir="$(jq -r '.sourceDir // ""' "$MANIFEST")"
+extraction_method="$(jq -r '.strategy.extractionMethod // ""' "$MANIFEST")"
 detection_method="$(jq -r '.detectionSummary.method // ""' "$MANIFEST")"
 tile_screen_count="$(jq -r '.detectionSummary.screenCount // 0' "$MANIFEST")"
 tile_cluster_count="$(jq -r '.detectionSummary.clusterCount // 0' "$MANIFEST")"
@@ -178,12 +185,26 @@ EOF
 )"
 fi
 
+# --- diagnostics(警告)一覧をHTML断片へ整形。空なら何も出力しない ---
+diag_items=""
+while IFS= read -r diag; do
+  [ -z "$diag" ] && continue
+  diag_items="${diag_items}<li>$(html_escape "$diag")</li>"
+done < <(jq -r '(.diagnostics // [])[]' "$MANIFEST")
+
+if [ -z "$diag_items" ]; then
+  diagnostics_html=""
+else
+  diagnostics_html="<div class=\"diag-warn\"><strong>診断・警告</strong><ul>${diag_items}</ul></div>"
+fi
+
 screen_manifest_json="$(cat "$MANIFEST")"
 
 # --- テンプレートへの注入(単純文字列置換。パターン中に glob 特殊文字は無いため安全) ---
 out="$(cat "$TEMPLATE")"
 out="${out//"{{GENERATED_AT}}"/$(html_escape "$generated_at")}"
 out="${out//"{{SOURCE_DIR}}"/$(html_escape "$source_dir")}"
+out="${out//"{{EXTRACTION_METHOD}}"/$(html_escape "$extraction_method")}"
 out="${out//"{{DETECTION_METHOD}}"/$(html_escape "$detection_method")}"
 out="${out//"{{TILE_SCREEN_COUNT}}"/$tile_screen_count}"
 out="${out//"{{TILE_CLUSTER_COUNT}}"/$tile_cluster_count}"
@@ -192,6 +213,7 @@ out="${out//"{{TILE_EMBEDDED_COUNT}}"/$tile_embedded_count}"
 out="${out//"{{TILE_UNRESOLVED_COUNT}}"/$tile_unresolved_count}"
 out="${out//"<!--SCREEN_TABLE_ROWS-->"/$screen_rows}"
 out="${out//"<!--UNRESOLVED_SECTION-->"/$unresolved_section}"
+out="${out//"<!--DIAGNOSTICS-->"/$diagnostics_html}"
 # マニフェストJSONの埋め込みは他マーカーの置換完了後に最後へ回す
 # (JSON内容に他マーカー文字列が偶然含まれた場合の誤爆を避けるため)
 out="${out//"<!--SCREEN_MANIFEST_JSON-->"/$screen_manifest_json}"

@@ -121,7 +121,7 @@
   <table class="meta-table">
     <tr><td>対応 OS</td><td>macOS（Bash 標準ツールに依存。Linux 移植時は sed 構文の差異に注意）</td></tr>
     <tr><td>検証状況</td><td>managing-agent-configs の test モードによる実機検証を経て運用開始</td></tr>
-    <tr><td>依存</td><td>標準的な POSIX ツール（find / grep / sed / awk）に加え、画面一覧.HTML生成（build-screen-list.sh）で jq を使用</td></tr>
+    <tr><td>依存</td><td>標準的な POSIX ツール（find / grep / sed / awk）に加え、整合検証（validate-manifest.sh）・画面一覧.HTML生成（build-screen-list.sh）で jq を使用</td></tr>
     <tr><td>関連資料</td><td>rebuilding-code-from-docs / syncing-reverse-env</td></tr>
   </table>
 </header>
@@ -148,7 +148,7 @@
     <strong>単独動作</strong>: <code>syncing-reverse-env</code>（2 環境同期・基準タグ確立）には依存しない。ソースディレクトリと出力先ディレクトリを直接指定して起動する。
   </div>
   <div class="constraint">
-    <strong>仕事は画面一覧.HTMLの作成のみ</strong>: 設計書（<code>02_画面基本設計</code> 等）の雛形展開・生成・記入は一切行わない。他のスキル・人手による作業の入力として画面一覧.HTMLを渡すところまでが本スキルの範囲。
+    <strong>仕事は画面一覧.HTMLの作成のみ</strong>: 設計書（<code>02_画面詳細設計</code> 等）の雛形展開・生成・記入は一切行わない。他のスキル・人手による作業の入力として画面一覧.HTMLを渡すところまでが本スキルの範囲。
   </div>
 </section>
 
@@ -174,24 +174,37 @@
 
 <section id="s4">
   <h2><span class="sec-num">§4</span>動作フロー（Phase 1〜4）</h2>
-  <pre class="flow"><span class="cap">Phase 1: スタック・画面規約の特定</span>
-  package.json / lockファイル / ルーター定義を調査しフレームワーク・ルーターを確定
-  画面ID命名パターン・メニュー定義有無・ナビゲーション方式(router.push型/View切替型)を調査
-  検出戦略宣言(画面単位定義・screen-id-regex・view-switch-pattern)をAskUserQuestionで1回確認
+  <p>固定（スキーマ契約・整合検証・HTML生成）と可変（抽出）を分離する。抽出はPhase 2 Step 1の分岐判定で「組み込みパス」「カスタム抽出パス」のいずれかを選ぶ。</p>
+  <pre class="flow"><span class="cap">Phase 1: スタック・画面規約の特定（TaskCreateで全Phase登録）</span>
+  Step 1: package.json / lockファイルからフレームワーク・ルーターを確定
+  Step 2: ルーティング定義の所在を特定(useRoutes(router)等は定義ファイルまで追跡)
+  Step 3: 画面ID命名パターン・View切替関数・メニュー定義有無を調査
+  Step 4: 除外パターン(tests/stories/mocks等)をlsで確認し確定
+  Step 5: 検出戦略宣言(strategy JSON)を作成しAskUserQuestionで承認取得
 
 <span class="cap">Phase 2: 戦略に基づく抽出</span>
-  detect-screens.sh source-dir manifest.json [--screen-id-regex re] [--view-switch-pattern re]
-  優先順位: Next.js App Router → Pages Router → React Router(flat) → 慣習ディレクトリ
-  0件ならハード停止(exit 3)。捏造しない
-  view-switch-pattern 指定時は kind: embedded-view を独立行として検出
+  Step 1: 抽出方式を分岐判定 ─┬─ 適合 ──→ 組み込みパス
+                              └─ 不適合 →  カスタム抽出パス
+  ┌─ 組み込みパス ─────────────────────────────────┐
+  │ Step 2: detect-screens.sh source-dir manifest.json    │
+  │   --strategy-json strategy.json                       │
+  │   [--screen-id-regex re] [--view-switch-pattern re]   │
+  │   [--exclude pattern]                                 │
+  │   0件ならハード停止(exit 3)。捏造しない               │
+  └─────────────────────────────────────────────────┘
+  ┌─ カスタム抽出パス ─────────────────────────────┐
+  │ Step 2: Claudeが戦略宣言に沿った専用手順を         │
+  │   Bash/Grep/Readで実行し、スキーマ準拠の            │
+  │   manifest JSONをWriteで出力                        │
+  └─────────────────────────────────────────────────┘
+  Step 3: diagnostics確認。entryFile集中警告等→カスタムパスへの切替検討(Step1へ)
 
-<span class="cap">Phase 3: 整合検証（スクリプト内で自動実行）</span>
-  同一(route, entryFile)の重複マージ → routeDupCount
-  共有クラスタ算出 → sharedWith / clusterId
-  unresolved は confidence=low 強制。共有クラスタは screenNameGuess を抑制
+<span class="cap">Phase 3: 整合検証（機械実行・抽出方式に非依存）</span>
+  Step 1: validate-manifest.sh manifest.json を実行。全6項目PASSが完了条件
+  Step 2: FAIL時は修正しStep1を再実行。3回失敗でPhase 2 Step 1へ差し戻し
 
 <span class="cap">Phase 4: 画面一覧.HTML 生成</span>
-  build-screen-list.sh manifest.json output-dir/画面一覧.html
+  Step 1: build-screen-list.sh manifest.json output-dir/画面一覧.html
   手作業でのプレースホルダ置換は禁止。決定的スクリプト経由のみ</pre>
 </section>
 
@@ -218,6 +231,21 @@
     <tr><td>view-switch-pattern</td><td>router.push型ではなく状態切替関数でView遷移するSPA構成の場合、その切替関数呼び出しを検出する正規表現を決める</td><td><code>setEditView\(['"]([\w-]+)['"]\)</code></td></tr>
   </table>
   <p class="note">画面規約が不明瞭な場合は空の宣言（「なし」）で進めてよいが、後続Phaseの検出精度は confidence に反映される。</p>
+
+  <h3>カスタム抽出パスへの切替</h3>
+  <p>Phase 2 Step 1で組み込み検出器（Next.js App/Pages Router・React Router（<code>useRoutes</code>含む）・慣習ディレクトリ）がPhase 1の調査結果と適合しないと判断した場合、カスタム抽出パスを取る。</p>
+  <table class="spec">
+    <tr><th>組み込みが合わない兆候</th><th>内容</th></tr>
+    <tr><td>未知のルーティング方式</td><td><code>useRoutes</code>以外の独自ルート定義（設定オブジェクト配列・element属性からの動的解決等）で組み込み検出器のパターンにヒットしない</td></tr>
+    <tr><td>entryFile集中診断</td><td>Phase 2 Step 3のdiagnosticsで特定の1〜2ファイルに大量の画面候補が集中する警告が出る（境界を取り違えている兆候）</td></tr>
+    <tr><td>path抽出0件</td><td>組み込み検出器を実行しても静的な<code>path</code>リテラルが1件も抽出できない</td></tr>
+  </table>
+  <p>カスタム抽出時の手順は次の順で進める。</p>
+  <ol>
+    <li>Phase 1 Step 5で検出戦略宣言（<code>extractionMethod: custom</code>）をAskUserQuestionで承認する</li>
+    <li>Claude自身がPhase 2 Step 2でBash/Grep/Readを用い、宣言した専用手順（element属性の<code>viewId</code>/<code>pageId</code>から物理ファイルを組み立てる・カスタムルート配列のJSON解析等）を実行し、スキーマ準拠のmanifest JSONをWriteする</li>
+    <li>Phase 3の<code>validate-manifest.sh</code>を通過させる。抽出者（組み込みスクリプトかClaudeか）に関わらず同一基準で検証されるため、通過しないマニフェストのままPhase 4へは進めない</li>
+  </ol>
 </section>
 
 <section id="s7">
@@ -235,13 +263,15 @@
 <section id="s8">
   <h2><span class="sec-num">§8</span>Gotchas・スコープ外</h2>
   <ul>
-    <li>import グラフ解析なし（物理的同居のみでファイル収集）</li>
-    <li>React Router の深いネスト親子パス合成なし（フラット抽出のみ）</li>
+    <li><strong>validateゲート</strong>: Phase 4の <code>build-screen-list.sh</code> は内部で <code>validate-manifest.sh</code> を再実行する。Phase 3の検証を経ないマニフェストからはHTMLを生成できない（抽出方式に依らず強制）</li>
+    <li><code>validate-manifest.sh</code>・<code>build-screen-list.sh</code> はいずれも jq に依存する。未インストール環境では事前に導入する</li>
+    <li>import グラフ解析なし（組み込み検出器は物理的同居のみでファイル収集。カスタム抽出パスは戦略宣言に沿った収集）</li>
+    <li>組み込み検出器は React Router の深いネスト親子パス合成に非対応（フラット抽出のみ）、useRoutesと2段階importまでのimport追跡には対応</li>
     <li>画面名は技術名の機械整形のみ（業務的な日本語意訳はしない）</li>
-    <li>動的に構築されるルート文字列は検出不可（静的リテラルのみ）</li>
+    <li>動的に構築されるルート文字列は組み込み検出器では検出不可（静的リテラルのみ）</li>
     <li>モノレポ・複数アプリ構成の自動判別なし</li>
     <li>0件検出時はハード停止。AskUserQuestionでの手動リスト入力にフォールバックしない</li>
-    <li>設計書（02_画面基本設計 等）の雛形展開・生成・記入は一切行わない（本スキルのスコープ外）</li>
+    <li>設計書（02_画面詳細設計 等）の雛形展開・生成・記入は一切行わない（本スキルのスコープ外）</li>
   </ul>
 </section>
 
