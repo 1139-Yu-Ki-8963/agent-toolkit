@@ -113,6 +113,45 @@ if [ -n "$EXCLUDE_PATTERN" ]; then
   EXCLUDE_REGEX="${EXCLUDE_REGEX}|${EXCLUDE_PATTERN}"
 fi
 
+# --- 検出方式の決定(戦略宣言を最優先) ---
+# strategy JSON の extractionMethod が builtin-* を指定していれば該当検出器のみを使う。
+# 未指定/custom/auto の場合は自動チェーン。ただし自動チェーンの Next.js 判定は
+# next.config.* の実在(SOURCE_DIR/その親/祖父)を必須とする。Vite+React Router プロジェクトの
+# 慣習的な src/pages/ ディレクトリを Next.js Pages Router と誤判定した実害(oradora)への対策。
+FORCED_METHOD=""
+if [ -n "$STRATEGY_JSON_FILE" ]; then
+  FORCED_METHOD="$(grep -o '"extractionMethod"[[:space:]]*:[[:space:]]*"[^"]*"' "$STRATEGY_JSON_FILE" 2>/dev/null \
+    | head -1 | sed -E 's/.*"extractionMethod"[[:space:]]*:[[:space:]]*"([^"]*)".*/\1/' || true)"
+  case "$FORCED_METHOD" in
+    builtin-nextjs-app|builtin-nextjs-pages|builtin-react-router|builtin-fallback) ;;
+    *) FORCED_METHOD="" ;;
+  esac
+fi
+
+has_next_config() {
+  local d
+  for d in "$SOURCE_DIR" "$SOURCE_DIR/.." "$SOURCE_DIR/../.."; do
+    if ls "$d"/next.config.* >/dev/null 2>&1; then
+      return 0
+    fi
+  done
+  return 1
+}
+
+allow_method() {
+  # $1: 検出器名。FORCED_METHOD 指定時はそれのみ許可。
+  # 自動チェーン時、Next.js 系は next.config.* の実在を必須とする。
+  local m="$1"
+  if [ -n "$FORCED_METHOD" ]; then
+    [ "$m" = "$FORCED_METHOD" ]
+    return
+  fi
+  case "$m" in
+    builtin-nextjs-app|builtin-nextjs-pages) has_next_config ;;
+    *) return 0 ;;
+  esac
+}
+
 TMP_ROWS="$(mktemp)"
 SEEN_KEYS_FILE="$(mktemp)"
 TMP_MERGED="$(mktemp)"
@@ -125,7 +164,7 @@ trap 'rm -f "$TMP_ROWS" "$SEEN_KEYS_FILE" "$TMP_MERGED" "$TMP_KEYED" "$TMP_EMBED
 detection_method=""
 
 # --- 1. Next.js App Router ---
-if [ -d "$SOURCE_DIR/app" ]; then
+if allow_method "builtin-nextjs-app" && [ -d "$SOURCE_DIR/app" ]; then
   pagefiles="$(find "$SOURCE_DIR/app" -type f \( -name "page.tsx" -o -name "page.jsx" -o -name "page.js" \) 2>/dev/null | grep -v node_modules | grep -Ev "$EXCLUDE_REGEX" || true)"
   if [ -n "$pagefiles" ]; then
     detection_method="nextjs-app"
@@ -144,7 +183,7 @@ if [ -d "$SOURCE_DIR/app" ]; then
 fi
 
 # --- 2. Next.js Pages Router ---
-if [ -z "$detection_method" ] && [ -d "$SOURCE_DIR/pages" ]; then
+if allow_method "builtin-nextjs-pages" && [ -z "$detection_method" ] && [ -d "$SOURCE_DIR/pages" ]; then
   pagefiles="$(find "$SOURCE_DIR/pages" -type f \( -name "*.tsx" -o -name "*.jsx" -o -name "*.js" \) 2>/dev/null \
     | grep -v node_modules \
     | grep -Ev '/_app\.[jt]sx?$' \
@@ -174,7 +213,7 @@ extract_route_paths() {
     | sed -E 's/^path[[:space:]]*[:=][[:space:]]*["'"'"'\`]//; s/["'"'"'\`]$//' || true
 }
 
-if [ -z "$detection_method" ]; then
+if allow_method "builtin-react-router" && [ -z "$detection_method" ]; then
   router_files="$(grep -rlE 'createBrowserRouter|createHashRouter|useRoutes|<Route\b' "$SOURCE_DIR" \
     --include='*.tsx' --include='*.jsx' --include='*.ts' --include='*.js' 2>/dev/null \
     | grep -v node_modules | grep -Ev "$EXCLUDE_REGEX" || true)"
@@ -227,7 +266,7 @@ if [ -z "$detection_method" ]; then
 fi
 
 # --- 4. フォールバック: 慣習ディレクトリ ---
-if [ -z "$detection_method" ]; then
+if allow_method "builtin-fallback" && [ -z "$detection_method" ]; then
   for conv in pages screens views; do
     conv_dir="$(find "$SOURCE_DIR" -maxdepth 4 -type d -iname "$conv" 2>/dev/null | grep -v node_modules | grep -Ev "$EXCLUDE_REGEX" | head -1 || true)"
     if [ -n "$conv_dir" ]; then

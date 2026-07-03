@@ -112,6 +112,7 @@ allowed-tools: [Bash, Read, Write, Edit, Grep, Glob, AskUserQuestion, TaskCreate
 - `import Foo, { Bar } from ...`（default+named混合import）の解決は組み込み検出器では不完全。カスタム抽出パスで対応する
 - 埋め込みビューの1階層スキャンでは子コンポーネント内のさらなるView切替を検出できない。深い階層が疑われる場合はカスタム抽出パスで再帰スキャンを設計する
 - 画面数のカウントには部品ファイル（共有クラスタで参照されるだけのコンポーネント等）を含めない。画面として数えるのはroute行とembedded-view行のみ
+- 検出方式は戦略宣言（`strategy.extractionMethod` が `builtin-*`）が最優先される。自動チェーン時、Next.js系検出器は `next.config.*` の実在を必須とする（Vite+React Routerプロジェクトの `src/pages/` を Next.js Pages Router と誤判定する実害を防ぐ）。ルーティング方式が確定しているPhase 1では `--strategy-json` で `extractionMethod` を明示指定するのが確実
 
 ## 設計判断
 
