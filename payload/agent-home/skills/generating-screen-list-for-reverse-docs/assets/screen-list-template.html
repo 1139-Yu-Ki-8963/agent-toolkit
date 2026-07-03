@@ -2,31 +2,39 @@
 <!--
   画面一覧.HTML の静的シェル(テンプレート)
 
-  使い方(generating-screen-list-for-reverse-docs Phase 2):
-    1. このファイルをコピーして <output-dir>/画面一覧.html に配置する
-    2. 以下のプレースホルダを実データで置換して Write する
-       - {{GENERATED_AT}}       : ISO8601 生成日時
-       - {{SOURCE_DIR}}         : 探索対象ソースディレクトリ(絶対パス)
-       - {{OUTPUT_DIR}}         : 出力先ディレクトリ(絶対パス)
-       - {{DETECTION_METHOD}}   : nextjs-app / nextjs-pages / react-router / fallback-directory
-       - {{SCREEN_COUNT}}       : 検出画面数
-       - {{CONFIDENCE_SUMMARY}} : "high: N / medium: N / low: N" 形式の文字列
-       - <!--SCREEN_TABLE_ROWS--> : <tr> 行を画面ごとに1個ずつ挿入(下記テーブル列順を厳守)
-       - <!--COMMENT SCREEN_MANIFEST_JSON--> ブロック内の {} を screen-manifest.json の中身で置換
+  使い方(generating-screen-list-for-reverse-docs Phase 4):
+    scripts/build-screen-list.sh <manifest.json> <output-html-path> を実行する。
+    build-screen-list.sh が本テンプレートを土台に、jqでマニフェストJSONをパースして
+    プレースホルダ・注入マーカーを機械的に置換し、決定的にHTMLを生成する。
+    Claude(手作業)によるプレースホルダ置換は禁止。生成は必ずスクリプト経由で行う。
 
-  テーブル列順(固定): 画面キー / 画面名 / ルート / 検出方式 / confidence / 構成ファイル数 / 主ファイル
+  プレースホルダ(build-screen-list.shが注入。実際のマーカー記法は
+  scripts/build-screen-list.sh 冒頭コメントを正本とする。本コメントでは
+  二重置換事故を避けるため意図的に波括弧・HTMLコメント記法を外して記載する):
+    GENERATED_AT (生成日時マーカー)            : ISO8601 生成日時
+    SOURCE_DIR (ソースディレクトリマーカー)     : 探索対象ソースディレクトリ(絶対パス)
+    DETECTION_METHOD (検出方式マーカー)         : detectionSummary.method
+    TILE_SCREEN_COUNT (画面数タイルマーカー)    : detectionSummary.screenCount
+    TILE_CLUSTER_COUNT (クラスタ数タイルマーカー): detectionSummary.clusterCount
+    TILE_SHARED_SCREEN_COUNT (共有画面数タイルマーカー): detectionSummary.sharedScreenCount
+    TILE_EMBEDDED_COUNT (埋め込み候補数タイルマーカー)  : detectionSummary.embeddedCandidateCount
+    TILE_UNRESOLVED_COUNT (要確認数タイルマーカー)      : detectionSummary.unresolvedCount
+    SCREEN_TABLE_ROWS (画面テーブル行マーカー)  : kind=route/embedded-view の行を1画面ごとに挿入
+    UNRESOLVED_SECTION (要手動確認セクションマーカー) : kind=unresolved の一覧テーブル、0件なら「なし」の文言
+    SCREEN_MANIFEST_JSON (マニフェストJSON埋め込みマーカー) : manifest.json の内容をそのまま埋め込み(二重管理・ドリフト禁止)
+
+  テーブル列順(固定・全10列): 画面ID / 画面キー / 区分 / 画面名 / ルート / 検出方式 / confidence / 共有 / 構成ファイル数 / 主ファイル
 
   制約:
     - 外部リソース(CDN・フォント・画像)は一切使わない。単一ファイル自己完結
-    - <script id="screen-manifest"> の中身は Phase 1 の確定結果と完全に一致させる(二重管理・ドリフト禁止)
-    - 前回生成分が存在する場合は診断ヘッダ(<!--DIFF_SUMMARY-->)に新規/廃止候補の差分を追記する
+    - <script id="screen-manifest"> の中身は Phase 2 の確定結果(manifest.json)と完全に一致させる
     - 本テンプレートは画面一覧.HTMLの生成のみを対象とする。設計書の雛形展開・生成は本スキルの範囲外
 -->
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>画面一覧 - {{OUTPUT_DIR}}</title>
+<title>画面一覧</title>
 <style>
   * { box-sizing: border-box; }
   body {
@@ -79,11 +87,16 @@
   .badge.high   { background: #e7f3e7; color: #23662a; }
   .badge.medium { background: #fdf3d7; color: #7a5d10; }
   .badge.low    { background: #fbe9e7; color: #9c2b1a; }
+  .badge.kind-route      { background: #e7effc; color: #1c4f9c; }
+  .badge.kind-embedded   { background: #f1e7fc; color: #5b2a91; }
+  .badge.kind-unresolved { background: #ececec; color: #555555; }
 
-  section.diff-summary, section.common-files, section.unclassified {
+  .dup-note { display: block; font-size: 0.76rem; color: #9c6b1a; margin-top: 2px; }
+
+  section.common-files, section.unresolved {
     margin-top: 40px; background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; padding: 16px 20px;
   }
-  section.diff-summary h2, section.common-files h2, section.unclassified h2 { font-size: 1.05rem; margin: 0 0 10px; }
+  section.common-files h2, section.unresolved h2 { font-size: 1.05rem; margin: 0 0 10px; }
 
   footer { margin-top: 48px; font-size: 0.8rem; color: #999; }
 </style>
@@ -95,18 +108,16 @@
   <table class="meta-table">
     <tr><td>生成日時</td><td>{{GENERATED_AT}}</td></tr>
     <tr><td>ソースディレクトリ</td><td><code>{{SOURCE_DIR}}</code></td></tr>
-    <tr><td>出力先</td><td><code>{{OUTPUT_DIR}}</code></td></tr>
     <tr><td>検出方式</td><td>{{DETECTION_METHOD}}</td></tr>
   </table>
 
   <div class="summary-tiles">
-    <div class="tile"><strong>{{SCREEN_COUNT}}</strong>検出画面数</div>
-    <div class="tile"><strong>{{CONFIDENCE_SUMMARY}}</strong>confidence内訳</div>
+    <div class="tile"><strong>{{TILE_SCREEN_COUNT}}</strong>検出画面数</div>
+    <div class="tile"><strong>{{TILE_CLUSTER_COUNT}}</strong>共有クラスタ数（{{TILE_SHARED_SCREEN_COUNT}}画面が関与）</div>
+    <div class="tile"><strong>{{TILE_EMBEDDED_COUNT}}</strong>埋め込みビュー候補数</div>
+    <div class="tile"><strong>{{TILE_UNRESOLVED_COUNT}}</strong>要手動確認数</div>
   </div>
 </header>
-
-<!--DIFF_SUMMARY-->
-<!-- 前回生成分が存在する場合のみ、新規検出画面・消滅した画面(廃止候補)をここに列挙する -->
 
 <div class="toolbar">
   <input type="search" id="screen-search" placeholder="画面キー・ルートで絞り込み">
@@ -118,11 +129,14 @@
   <table class="screens" id="screen-table">
     <thead>
       <tr>
+        <th data-key="screenId">画面ID</th>
         <th data-key="screenKey">画面キー</th>
+        <th data-key="kind">区分</th>
         <th data-key="screenNameGuess">画面名</th>
         <th data-key="route">ルート</th>
         <th data-key="detectionMethod">検出方式</th>
         <th data-key="confidence">confidence</th>
+        <th data-key="sharedWith">共有</th>
         <th data-key="fileCount">構成ファイル数</th>
         <th data-key="entryFile">主ファイル</th>
       </tr>
@@ -133,13 +147,18 @@
   </table>
 </details>
 
+<section class="unresolved">
+  <h2>要手動確認</h2>
+  <!--UNRESOLVED_SECTION-->
+</section>
+
 <section class="common-files">
   <h2>共通ファイル・未分類（参考情報）</h2>
   <p class="note">本スキルは import グラフ解析を行わないため、共通ファイルのクロス参照分離は非対応。必要に応じて手動確認する。</p>
 </section>
 
 <script type="application/json" id="screen-manifest">
-{}
+<!--SCREEN_MANIFEST_JSON-->
 </script>
 
 <footer>generating-screen-list-for-reverse-docs により生成。手編集は次回再生成で上書きされる。</footer>
