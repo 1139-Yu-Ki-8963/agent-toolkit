@@ -152,8 +152,13 @@ row_html() {
     fi
   fi
 
-  # --- 埋め込み元列: embedded-viewのみembeddedIn(親画面キー)を表示。routeは「—」 ---
-  if [ "$kind" = "embedded-view" ] && [ -n "$embedded_in" ]; then
+  # 埋め込み元・親画面列: embeddedIn が非空なら kind を問わず表示する。
+  # kind=="embedded-view" に限定しない理由: 独立ルートを持ちつつ他画面からも
+  # 呼ばれる二重の性質の画面(kind=route で embeddedIn を持つ)で親が空欄になるため。
+  # embeddedIn は「値があれば表示」という普遍的な表示ルールで扱う(kindは表示可否の判断材料にしない)。
+  # この制限は過去に繰り返し再導入されたため、変更しないこと。route画面で embeddedIn が
+  # null/空の通常ケースは $embedded_in が空になり「—」表示のままで挙動は変わらない。
+  if [ -n "$embedded_in" ]; then
     embedded_text="<code>$(html_escape "$embedded_in")</code>"
   else
     embedded_text="—"
