@@ -503,7 +503,7 @@
   <p class="note">互換注記: 旧固定表（frontend = オリジナル 9101 / リバース 9111）は廃止し、既定の slot 1 では frontend = オリジナル 9100 / リバース 9110 になる（稼働中環境が存在しないため移行措置は設けない）。</p>
 
   <h3>config.yml</h3>
-  <p>プロジェクトによって変えたくなる可能性がある値は、スキルフォルダ直下の <code>config.yml</code> に集約する。値の階層は 3 層で役割分担する: 普遍のルール＝SKILL.md / プロジェクト単位の可変値（サービス一覧・起動手順）＝config.yml / 画面単位の可変値（routes・マスク対象セレクタ）＝設計書 frontmatter。</p>
+  <p>プロジェクトによって変えたくなる可能性がある値は、スキルフォルダ直下の <code>config.yml</code> に集約する。値の階層は 3 層で役割分担する: 普遍のルール＝SKILL.md / プロジェクト単位の可変値（サービス一覧・起動手順）＝config.yml / 画面単位の可変値（routes・マスク対象セレクタ）＝設計書 frontmatter。タイムアウト等の数値パラメータ（<code>nav_timeout_ms</code> / <code>settle_wait_ms</code> / <code>l3_threshold_percent</code> / <code>max_loop</code> 等）も同じ階層に従い、<code>defaults</code> を <code>projects.&lt;system&gt;</code> で上書きして調整する（有効値 = defaults ← projects の深いマージ、projects 優先）。</p>
   <pre class="flow"><span class="cap">── config.yml の構造 ───────────────────────────────────────</span>
 
   defaults:
@@ -556,9 +556,15 @@
                                     #   playwright を require.resolve → だめなら
                                     #   npx/npm root の解決先を照会） /
                                     # 明示パス（強制・NODE_PATH へ渡す解決先を固定）
+      nav_timeout_ms: 60000          # page.goto の待受タイムアウト（既定 60 秒。
+                                    #   projects で上書き可）
+      settle_wait_ms: 10000          # load 後の描画安定待ち（既定 10 秒。
+                                    #   projects で上書き可）
       # command_template: 実機検証で判明した固定事項（waitUntil="load" 固定・
       #   ariaSnapshot() 使用・navigate 先 127.0.0.1 固定）を理由ごと保持する
-      #   検証済みスクリプト。全文は config.yml を正とし、本書では再掲しない
+      #   検証済みスクリプト。timeout / 描画安定待ちは {nav_timeout} / {settle_wait}
+      #   プレースホルダで上記 nav_timeout_ms / settle_wait_ms を参照する。
+      #   全文は config.yml を正とし、本書では再掲しない
 
   projects:                     # プロジェクト（&lt;system&gt;）単位の上書き（必要時のみ）
     "&lt;system&gt;":
@@ -708,7 +714,7 @@
   <p>両環境をそれぞれの固定ポートで起動し、<code>routes</code> の各画面を 4 層で突合する。総合判定は L1 ∧ L2 ∧ L4 を必須とし、L3 は閾値超過で FAIL（画像ペアを添付して人間が最終裁定できる）。</p>
   <table class="spec">
     <tr><th>層</th><th>内容</th><th>判定基準</th></tr>
-    <tr><td><strong>L1 起動</strong></td><td>両環境のヘルスチェック / トップ応答。<code>playwright_exec.mode</code> で実行手段が分岐する: mode=mcp は MCP ツールの navigate/snapshot、mode=node-script は config.yml の <code>command_template</code> を Bash で直接実行する。navigate 先 URL は 127.0.0.1 固定・<code>waitUntil="load"</code> 固定</td><td>両方の成功が前提。片方でも失敗なら以降をスキップして <span class="tag fail">FAIL</span></td></tr>
+    <tr><td><strong>L1 起動</strong></td><td>両環境のヘルスチェック / トップ応答。<code>playwright_exec.mode</code> で実行手段が分岐する: mode=mcp は MCP ツールの navigate/snapshot、mode=node-script は config.yml の <code>command_template</code> を Bash で直接実行する。navigate 先 URL は 127.0.0.1 固定・<code>waitUntil="load"</code> 固定。navigate タイムアウト・描画安定待ちは config.yml の <code>nav_timeout_ms</code> / <code>settle_wait_ms</code>（projects で上書き可）</td><td>両方の成功が前提。片方でも失敗なら以降をスキップして <span class="tag fail">FAIL</span></td></tr>
     <tr><td><strong>L2 構造</strong></td><td>アクセシビリティスナップショット（DOM 構造）をポート・URL 正規化後に比較。node-script モードでは body の ARIA snapshot 文字列（<code>ariaSnapshot()</code>）を突合対象とする</td><td>完全一致を要求（一次判定）</td></tr>
     <tr><td><strong>L3 視覚</strong></td><td>同一ビューポートのスクリーンショット画素比較（動的領域はマスク）</td><td>差分画素率が閾値以下（config.yml、既定 0.1%）。補助判定・証跡</td></tr>
     <tr><td><strong>L4 コンソール</strong></td><td>console error / warning の集合比較（ポートは正規化）</td><td>リバース側にのみ存在するエラーで <span class="tag fail">FAIL</span>。両方に出る既存エラーは許容</td></tr>
