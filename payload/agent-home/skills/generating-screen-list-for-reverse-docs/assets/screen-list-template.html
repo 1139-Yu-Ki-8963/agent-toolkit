@@ -13,6 +13,7 @@
   二重置換事故を避けるため意図的に波括弧・HTMLコメント記法を外して記載する):
     GENERATED_AT (生成日時マーカー)            : ISO8601 生成日時
     SOURCE_DIR (ソースディレクトリマーカー)     : 探索対象ソースディレクトリ(絶対パス)
+    EXTRACTION_METHOD (抽出方式マーカー)        : strategy.extractionMethod(組み込みスクリプト/Claude手書き等の抽出方式)
     DETECTION_METHOD (検出方式マーカー)         : detectionSummary.method
     TILE_SCREEN_COUNT (画面数タイルマーカー)    : detectionSummary.screenCount
     TILE_CLUSTER_COUNT (クラスタ数タイルマーカー): detectionSummary.clusterCount
@@ -22,6 +23,7 @@
     SCREEN_TABLE_ROWS (画面テーブル行マーカー)  : kind=route/embedded-view の行を1画面ごとに挿入
     UNRESOLVED_SECTION (要手動確認セクションマーカー) : kind=unresolved の一覧テーブル、0件なら「なし」の文言
     SCREEN_MANIFEST_JSON (マニフェストJSON埋め込みマーカー) : manifest.json の内容をそのまま埋め込み(二重管理・ドリフト禁止)
+    DIAGNOSTICS (診断・警告マーカー)            : diagnostics配列を警告リストとして表示。空配列なら何も出力しない
 
   テーブル列順(固定・全10列): 画面ID / 画面キー / 区分 / 画面名 / ルート / 検出方式 / confidence / 共有 / 構成ファイル数 / 主ファイル
 
@@ -93,6 +95,13 @@
 
   .dup-note { display: block; font-size: 0.76rem; color: #9c6b1a; margin-top: 2px; }
 
+  .diag-warn {
+    margin: 16px 0; padding: 12px 18px; background: #fdf3d7; border: 1px solid #e6c766;
+    border-radius: 8px; font-size: 0.86rem; color: #6b4f0a;
+  }
+  .diag-warn strong { display: block; margin-bottom: 6px; }
+  .diag-warn ul { margin: 0; padding-left: 20px; }
+
   section.common-files, section.unresolved {
     margin-top: 40px; background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; padding: 16px 20px;
   }
@@ -108,6 +117,7 @@
   <table class="meta-table">
     <tr><td>生成日時</td><td>{{GENERATED_AT}}</td></tr>
     <tr><td>ソースディレクトリ</td><td><code>{{SOURCE_DIR}}</code></td></tr>
+    <tr><td>抽出方式</td><td>{{EXTRACTION_METHOD}}</td></tr>
     <tr><td>検出方式</td><td>{{DETECTION_METHOD}}</td></tr>
   </table>
 
@@ -118,6 +128,8 @@
     <div class="tile"><strong>{{TILE_UNRESOLVED_COUNT}}</strong>要手動確認数</div>
   </div>
 </header>
+
+<!--DIAGNOSTICS-->
 
 <div class="toolbar">
   <input type="search" id="screen-search" placeholder="画面キー・ルートで絞り込み">
