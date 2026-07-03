@@ -364,6 +364,9 @@
   <div class="constraint">
     <strong>from-zero:</strong> §15.1 に対象ファイルが存在せず設計書側にも記載が無い場合、P1 で新規追加を宣言してから P2 以降に進む。ひな形は <code>assets/02_画面詳細設計/画面詳細設計書.md</code> のテンプレ構造に従う。単体テスト観点表に対応する観点が無い場合も同様に、意味キー規約（連番禁止・内容要約キー）に沿って最低限の行を追記してから進める。
   </div>
+  <div class="constraint">
+    <strong>実測が要る断定の scope 境界（P3）:</strong> 初期表示値・DOM 配置順序・要素位置・レイアウトなど、実行時の観測（Playwright 実測等）でしか正しく決められない断定は、stage1 の from-zero では <code>[stage2で実測]</code> プレースホルダに留める。stage1 が確定させるのは静的に決定可能な宣言的契約（型・import・export・Props 名・API 契約形・ロジック構造・定数値）に限定し、実測は Playwright を持つ stage2（<code>rebuilding-code-from-docs</code>）に委ねる。
+  </div>
 </section>
 
 <section id="s6">
@@ -379,6 +382,7 @@
   <div class="constraint">
     <strong>重大違反:</strong> import diff だけでの合格判定は重大違反とする。5 計測はすべて出力し、いずれか 1 つでも省略してはならない。
   </div>
+  <p class="note"><code>measure-file-diff.sh</code> の verdict は生シグナルである。差分のうち <code>[stage2で実測]</code> に該当する実測委譲差分（初期表示値・DOM 順・位置・レイアウト起因）は収束判定の分母から除外し、静的な宣言的契約由来の差分のみで PASS/FAIL を判定する。</p>
   <h3>measure-file-diff.sh の入出力</h3>
   <table class="spec">
     <tr><th>項目</th><th>内容</th></tr>
