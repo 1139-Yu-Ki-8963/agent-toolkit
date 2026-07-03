@@ -12,4 +12,6 @@ export const CATEGORIES = [
 export const SKILL_CATEGORY = {
   "managing-agent-configs": { cat: "manage", sub: "skill" },
   "syncing-reverse-env": "dev",
+  "rebuilding-code-from-docs": "dev",
+  "generating-screen-list-for-reverse-docs": "dev",
 };

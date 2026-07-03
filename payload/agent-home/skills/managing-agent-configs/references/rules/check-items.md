@@ -12,18 +12,28 @@ find ~/.claude/rules/ -maxdepth 1 -name "*.md" -type f
 
 空出力なら PASS。
 
-### A2: `-rules/` suffix 欠落
+### A2: `-rules` suffix 残存 / rule.md 深さ不正
+
+新形式では `-rules` suffix は廃止済み。`always/` `scoped/` 配下に suffix 付きディレクトリが残っていないか、rule.md が深さ 3（`<scope>/<topic>/<name>/rule.md`）以外に置かれていないかを検出する。
 
 ```bash
-find ~/.claude/rules/ -maxdepth 1 -type d -not -name "rules" | while read d; do
-  basename "$d" | grep -qE '\-rules$' || echo "FAIL: $d"
+# -rules suffix が残存していないか（新形式では suffix 禁止）
+find ~/.claude/rules/always ~/.claude/rules/scoped -mindepth 2 -maxdepth 2 -type d 2>/dev/null | while read d; do
+  basename "$d" | grep -qE '\-rules$' && echo "FAIL: $d に -rules suffix が残存"
+done
+
+# rule.md が深さ 3 以外にないか
+find ~/.claude/rules/always ~/.claude/rules/scoped -name "rule.md" 2>/dev/null | while read f; do
+  depth=$(echo "$f" | sed "s|$HOME/.claude/rules/||" | awk -F/ '{print NF-1}')
+  [ "$depth" -eq 3 ] || echo "FAIL: $f が深さ 3 以外にある (depth=$depth)"
 done
 ```
 
 ### A3: rule.md 欠落
 
 ```bash
-for d in ~/.claude/rules/*/; do
+for d in ~/.claude/rules/always/*/*/ ~/.claude/rules/scoped/*/*/; do
+  [ -d "$d" ] || continue
   [ -f "$d/rule.md" ] || echo "FAIL: $d に rule.md がない"
 done
 ```
@@ -45,7 +55,7 @@ done
 ```bash
 ORADORA_KEYWORDS='slot/wt|owner.cwd|portal|mock_awaiting|spawn-child|ledger|\.slot-pool|worktrees/owner|EnterWorktree|ai-management-portal.*8780'
 
-for d in ~/.claude/rules/*/; do
+for d in ~/.claude/rules/always/*/*/ ~/.claude/rules/scoped/*/*/; do
   [ -f "$d/rule.md" ] || continue
   hits=$(grep -cE "$ORADORA_KEYWORDS" "$d/rule.md" 2>/dev/null || echo 0)
   [ "$hits" -gt 0 ] && echo "CRITICAL: $(basename $d) に oradora 固有キーワード $hits 件"
@@ -57,7 +67,7 @@ done
 ### C1: additionalContext のプロンプト埋め込み検出
 
 ```bash
-for sh in ~/.claude/rules/*-rules/*.sh; do
+for sh in ~/.claude/rules/{always,scoped}/*/*/*.sh; do
   [ -f "$sh" ] || continue
   # ctx= 変数の長さを計測
   ctx_len=$(grep -A 20 'ctx=' "$sh" | head -20 | wc -c | tr -d ' ')
@@ -68,7 +78,7 @@ done
 ### C2: rule.md 参照の有無
 
 ```bash
-for sh in ~/.claude/rules/*-rules/*.sh; do
+for sh in ~/.claude/rules/{always,scoped}/*/*/*.sh; do
   [ -f "$sh" ] || continue
   grep -q 'rule\.md' "$sh" || echo "WARN: $(basename $sh) に rule.md への参照がない"
 done
@@ -86,7 +96,7 @@ done
 ### C5-C6: shebang と実行ビット
 
 ```bash
-for sh in ~/.claude/rules/*-rules/*.sh; do
+for sh in ~/.claude/rules/{always,scoped}/*/*/*.sh; do
   [ -f "$sh" ] || continue
   head -1 "$sh" | grep -q '^#!/' || echo "WARN: $(basename $sh) に shebang がない"
   [ -x "$sh" ] || echo "WARN: $(basename $sh) に実行ビットがない"
@@ -98,7 +108,7 @@ done
 ### E1-E3: 設計判断セクション
 
 ```bash
-for d in ~/.claude/rules/*/; do
+for d in ~/.claude/rules/always/*/*/ ~/.claude/rules/scoped/*/*/; do
   [ -f "$d/rule.md" ] || continue
   name=$(basename "$d")
   grep -q '## 設計判断' "$d/rule.md" || { echo "CRITICAL: $name に設計判断セクションがない"; continue; }
@@ -114,7 +124,7 @@ done
 ### F1-F2: タグ突合
 
 ```bash
-for d in ~/.claude/rules/*/; do
+for d in ~/.claude/rules/always/*/*/ ~/.claude/rules/scoped/*/*/; do
   [ -f "$d/rule.md" ] || continue
   name=$(basename "$d")
   # rule.md 内のタグ
@@ -138,7 +148,7 @@ done
 ### G1: 行数
 
 ```bash
-for d in ~/.claude/rules/*/; do
+for d in ~/.claude/rules/always/*/*/ ~/.claude/rules/scoped/*/*/; do
   [ -f "$d/rule.md" ] || continue
   lines=$(wc -l < "$d/rule.md" | tr -d ' ')
   [ "$lines" -gt 200 ] && echo "INFO: $(basename $d)/rule.md が $lines 行（200 行超）"

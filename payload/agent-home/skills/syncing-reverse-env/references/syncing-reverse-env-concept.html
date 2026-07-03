@@ -568,7 +568,7 @@
                    ポート差（許容） &lt;M&gt; 件
   dynamic:         L1=PASS L2=PASS L3=PASS(0.03%) L4=PASS
                    （route 別の内訳を添付）
-  env_check:       10/10 PASS（NG があれば §8 の項目番号と内容を列挙）
+  env_check:       全項目 PASS（NG があれば §7-2 のキーと内容を列挙）
   artifacts:       &lt;スクリーンショット等の保存先パス&gt;
   hint:            # FAIL 時のみ
                    src/components/Foo.tsx の差分
@@ -592,7 +592,7 @@
 
   ### 検証内容
   - 静的比較: 実差分 0 件（許容したポート差 &lt;M&gt; 件）
-  - 環境同一性: 10 項目すべて ○
+  - 環境同一性: 全項目 ○
     （ポート帰属・ポート混入なし・symlink 実態・依存ツリー 等）
   - 動的比較: L1 起動 ○ / L2 構造 ○ / L3 視覚 ○（0.03%）/
               L4 コンソール ○
@@ -672,6 +672,30 @@
     <div class="adr-title"><span class="adr-label">ADR-6</span>プロジェクト可変値は config.yml に集約する</div>
     <p><strong>採用</strong>: ポート番号・diff 除外リスト・L3 閾値・max-loop 既定値など、プロジェクトによって変えたくなる可能性がある値は、スキルフォルダ直下の <code>config.yml</code>（defaults ＋ projects 別上書き）に置き、スキル本文から分離する。<strong>理由</strong>: SKILL.md を書き換えずにプロジェクト固有の調整ができ、値の変更がスキルのレビュー・テストサイクルを毎回要求しない。値の階層は「普遍のルール＝SKILL.md / プロジェクト単位＝config.yml / 画面単位（routes・マスク対象セレクタ）＝設計書 frontmatter」の 3 層で役割分担する。</p>
     <p><strong>却下案</strong>: SKILL.md へのベタ書き — 値変更のたびに managed ファイル編集となりレビューゲートが走る。/ 設計書 frontmatter に全部書く — プロジェクト共通の値が画面ごとに重複し、変更漏れを招く。</p>
+  </div>
+
+  <div class="adr">
+    <div class="adr-title"><span class="adr-label">ADR-7</span>WSL2 対応と /mnt 配置禁止</div>
+    <p><strong>採用</strong>: コマンド解決（<code>lsof</code> が使えなければ <code>ss -ltnp</code> ＋ <code>/proc/&lt;pid&gt;/cwd</code> へフォールバック）と、fs-location プリフライトで対応する。worktree 配置先が Windows 側ファイルシステム <code>/mnt/*</code> 配下の場合は <span class="tag error">ERROR</span> とする。<strong>理由</strong>: <code>/mnt/*</code> はパーミッションが 777 に丸められ、<code>inotify</code> が動作せず、I/O も劣化するため、Linux ネイティブファイルシステム配下への配置を必須とする。</p>
+    <p><strong>却下案</strong>: <code>/mnt</code> 配下もサポートする — パーミッション・inotify・I/O の問題を個別に回避する実装コストが、WSL2 ユーザーが素直に Linux ネイティブ FS 側に worktree を置けば得られる利益に対して見合わない（不採用）。</p>
+  </div>
+
+  <div class="adr">
+    <div class="adr-title"><span class="adr-label">ADR-8</span>env ファイル直接比較（env-file-parity）の追加</div>
+    <p><strong>採用</strong>: <code>.env*</code> は静的比較から除外したまま、ポート正規化付きの専用突合を env_check の項目（env-file-parity）として追加する。<strong>理由</strong>: バンドラのみが読み込む変数（MSW フラグ等、起動プロセスの環境変数ダンプには現れない値）が、既存の env-runtime-parity の検証網にかからない穴になっていた。</p>
+    <p><strong>却下案</strong>: <code>diff_exclude</code> から <code>.env*</code> を外して静的比較に戻す — 両環境のポート番号が異なるため常に差分として検出されてしまい、実質的に使えない（不採用）。</p>
+  </div>
+
+  <div class="adr">
+    <div class="adr-title"><span class="adr-label">ADR-9</span>npm ci 化と lock 転写（ADR-3 の部分改訂）</div>
+    <p><strong>採用</strong>: 整列時の依存再構築を <code>install_command</code>（既定 <code>npm ci</code>）に固定し、<code>*.lock</code> を diff 除外から外して転写対象に変更する。<strong>理由</strong>: 従来の <code>npm install</code> 相当は非決定的で、依存ツリーの不一致を dep-tree-parity のリトライに頼って検出・解消する運用だった。lock を転写したうえで <code>npm ci</code> に固定することで、依存解決そのものを決定論的にする。</p>
+    <p><strong>却下案</strong>: lock ファイルも引き続き diff 除外のままとする（ADR-3 を維持） — 依存解決の決定論が担保できず、dep-tree-parity のリトライ頼みの運用が残ってしまう（不採用）。</p>
+  </div>
+
+  <div class="adr">
+    <div class="adr-title"><span class="adr-label">ADR-10</span>dry-run 無副作用対象の精緻化</div>
+    <p><strong>採用</strong>: dry-run の無副作用対象を「リバースコード環境の git 管理内容」と「基準タグ」の 2 つに限定する。node_modules・バンドラキャッシュ等の git 管理外生成物の修復（<code>npm ci</code>・キャッシュ削除）は dry-run でも実行を許容する。<strong>理由</strong>: Phase 5（環境同一性チェック＋動的比較）を dry-run でも実行し、静的比較が FAIL でも L1〜L4 まで計測して診断情報を最大化するという既存方針を成立させるための前提整備。node_modules が壊れたままでは L1 起動そのものが失敗し、診断ができない。</p>
+    <p><strong>却下案</strong>: 完全無副作用を維持する（生成物の修復も dry-run では行わない） — node_modules 破損時に L1 が起動不能となり、dry-run で得られるはずの診断情報が得られなくなる（不採用）。</p>
   </div>
 
   <h3>関連スキル・規約</h3>

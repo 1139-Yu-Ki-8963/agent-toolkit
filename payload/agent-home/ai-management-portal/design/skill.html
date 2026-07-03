@@ -3,314 +3,28 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Skill 設計ガイド — agent-toolkit</title>
+  <title>Skill 設計ガイド — agent-home</title>
   <link rel="stylesheet" href="../style.css" />
   <link rel="stylesheet" href="design.css" />
   <script type="module" src="../src/common/header.js"></script>
   <style>
-    /* ページローカル追加スタイル */
-    .sd-wrap { max-width: 1100px; margin: 0 auto; padding: 20px; }
-
-    .sd-layout {
-      display: grid;
-      grid-template-columns: 220px 1fr;
-      gap: 24px;
-      align-items: start;
-    }
-
-    /* 左サイドバー TOC */
-    .sd-toc {
-      position: sticky;
-      top: 16px;
-      background: var(--panel);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 14px;
-      font-size: 12.5px;
-    }
-    .sd-toc h3 {
-      font-size: 11px;
-      margin: 0 0 10px;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      font-weight: 700;
-    }
-    .sd-toc ul { list-style: none; padding: 0; margin: 0; }
-    .sd-toc li { margin: 0; }
-    .sd-toc a {
-      display: flex;
-      align-items: baseline;
-      gap: 7px;
-      padding: 5px 8px;
-      border-radius: 5px;
-      color: var(--text-sub);
-      font-size: 12px;
-      text-decoration: none;
-      line-height: 1.5;
-      transition: background 0.12s;
-    }
-    .sd-toc a:hover { background: var(--accent-soft); color: var(--accent); text-decoration: none; }
-    .sd-toc .toc-num {
-      font-family: var(--mono);
-      font-size: 10px;
-      font-weight: 700;
-      color: var(--accent);
-      flex-shrink: 0;
-      min-width: 18px;
-    }
-    .sd-toc .toc-sep { border-top: 1px solid var(--border); margin: 8px 0; }
-
-    /* 本文エリア */
-    .sd-body {
-      background: var(--panel);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 28px 32px;
-      box-shadow: var(--shadow-sm);
-      min-width: 0;
-    }
-
-    /* セクション区切り */
-    .sd-section { margin-bottom: 48px; }
-    .sd-section:last-child { margin-bottom: 0; }
-
-    .sd-h2 {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      font-size: 18px;
-      font-weight: 800;
-      margin: 0 0 16px;
-      padding: 10px 16px;
-      background: var(--accent-soft);
-      border-left: 4px solid var(--accent);
-      border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
-      scroll-margin-top: 20px;
-    }
-    .sd-h2 .sec-num {
-      font-family: var(--mono);
-      font-size: 12px;
-      font-weight: 800;
-      background: var(--accent);
-      color: #fff;
-      padding: 2px 8px;
-      border-radius: 999px;
-    }
-    .sd-h3 {
-      font-size: 14.5px;
-      font-weight: 700;
-      color: var(--accent-2);
-      margin: 24px 0 8px;
-      padding-bottom: 4px;
-      border-bottom: 1px dashed var(--border-strong);
-    }
-
-    /* 定義ブロック（引用風） */
-    .sd-def {
-      background: var(--panel-2);
-      border: 1px solid var(--accent-border);
-      border-left: 4px solid var(--accent);
-      border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
-      padding: 12px 16px;
-      margin: 12px 0 16px;
-      font-size: 13.5px;
-      color: var(--text);
-      line-height: 1.75;
-    }
-
-    /* コードブロック */
-    .sd-code {
-      background: var(--code-bg);
-      color: var(--code-fg);
-      border-radius: var(--radius-sm);
-      padding: 14px 18px;
-      font-family: var(--mono);
-      font-size: 12.5px;
-      line-height: 1.65;
-      overflow-x: auto;
-      margin: 10px 0 16px;
-      white-space: pre;
-    }
-    .sd-code-label {
-      font-size: 10.5px;
-      font-weight: 700;
-      color: var(--text-muted);
-      font-family: var(--mono);
-      letter-spacing: 0.04em;
-      margin-bottom: 4px;
-    }
-
-    /* 判定フロー（背景付きフローチャート） */
-    .sd-flow {
-      background: var(--code-bg);
-      color: var(--code-fg);
-      border-radius: var(--radius-sm);
-      padding: 16px 20px;
-      font-family: var(--mono);
-      font-size: 12.5px;
-      line-height: 2;
-      overflow-x: auto;
-      white-space: pre;
-      margin: 12px 0 16px;
-    }
-
-    /* インラインコード */
-    code {
-      background: var(--accent-soft);
-      color: var(--accent);
-      padding: 1px 6px;
-      border-radius: 4px;
-      font-size: 0.9em;
-      font-family: var(--mono);
-    }
-
-    /* テーブル */
-    .sd-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 12.5px;
-      margin: 12px 0 16px;
-      border: 1px solid var(--border);
-      border-radius: var(--radius-sm);
-      overflow: hidden;
-    }
-    .sd-table th, .sd-table td {
-      border: 1px solid var(--border);
-      padding: 8px 12px;
-      text-align: left;
-      vertical-align: top;
-    }
-    .sd-table th {
-      background: var(--accent-soft);
-      color: var(--accent);
-      font-weight: 700;
-      white-space: nowrap;
-    }
-    .sd-table tr:nth-child(even) td { background: var(--panel-2); }
-
-    /* 箇条書き */
-    .sd-body ul, .sd-body ol {
-      padding-left: 22px;
-      margin: 8px 0 12px;
-      line-height: 1.8;
-    }
-    .sd-body li { margin: 3px 0; font-size: 13.5px; color: var(--text-sub); }
-    .sd-body li strong { color: var(--text); }
-
-    /* Gotchas パネル */
-    .sd-gotcha {
-      background: var(--gold-soft);
-      border: 1px solid var(--gold-border);
-      border-left: 4px solid var(--gold);
-      border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
-      padding: 12px 16px;
-      margin: 10px 0 14px;
-    }
-    .sd-gotcha-title {
-      font-size: 11.5px;
-      font-weight: 800;
-      color: var(--gold);
-      letter-spacing: 0.04em;
-      margin-bottom: 8px;
-    }
-    .sd-gotcha ul { margin: 0; padding-left: 18px; }
-    .sd-gotcha li { font-size: 12.5px; color: var(--text-sub); line-height: 1.75; }
-
-    /* タイプバッジ（手順型 / 条件付き知識型 / 強制型） */
-    .type-badge {
-      display: inline-block;
-      font-size: 11px;
-      font-weight: 700;
-      padding: 2px 10px;
-      border-radius: 999px;
-      font-family: var(--mono);
-      white-space: nowrap;
-    }
-    .type-proc    { background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; }
-    .type-know    { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
-    .type-enforce { background: #fff7ed; color: #92400e; border: 1px solid #fed7aa; }
-
-    /* 制約バッジ */
-    .badge-ok  { background: var(--success-soft); color: var(--success); border: 1px solid #bbf7d0; }
-    .badge-ng  { background: var(--danger-soft); color: var(--danger); border: 1px solid #fecaca; }
-
-    /* カードグリッド（分類 9 つ） */
-    .cat-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-      gap: 10px;
-      margin: 12px 0 16px;
-    }
-    .cat-item {
-      background: var(--panel);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-sm);
-      padding: 10px 14px;
-      font-size: 12.5px;
-    }
+    .type-badge { display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 10px; border-radius: 999px; font-family: var(--mono); white-space: nowrap; }
+    .type-proc { background: var(--accent-soft); color: var(--accent); border: 1px solid var(--accent-border); }
+    .type-know { background: var(--success-soft); color: var(--success); border: 1px solid var(--success-border); }
+    .type-enforce { background: var(--gold-soft); color: var(--gold); border: 1px solid var(--gold-border); }
+    .badge-ok { background: var(--success-soft); color: var(--success); border: 1px solid var(--success-border); }
+    .badge-ng { background: var(--danger-soft); color: var(--danger); border: 1px solid var(--danger-border); }
+    .cat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; margin: 12px 0 16px; }
+    .cat-item { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 14px; font-size: 12.5px; }
     .cat-item-name { font-weight: 700; color: var(--text); margin-bottom: 2px; }
     .cat-item-type { font-size: 11px; color: var(--text-muted); }
-
-    /* ツールマッピング行 */
     .tool-map { margin: 12px 0; }
-    .tool-map-row {
-      display: grid;
-      grid-template-columns: 160px 1fr;
-      gap: 12px;
-      margin-bottom: 16px;
-      align-items: start;
-    }
-    .tool-map-type {
-      padding: 8px 12px;
-      border-radius: var(--radius-sm);
-      font-size: 12px;
-      font-weight: 700;
-      text-align: center;
-      line-height: 1.5;
-    }
+    .tool-map-row { display: grid; grid-template-columns: 160px 1fr; gap: 12px; margin-bottom: 16px; align-items: start; }
+    .tool-map-type { padding: 8px 12px; border-radius: var(--radius-sm); font-size: 12px; font-weight: 700; text-align: center; line-height: 1.5; }
     .tool-map-detail { font-size: 12.5px; color: var(--text-sub); line-height: 1.8; }
     .tool-map-detail strong { color: var(--text); }
-
-    /* フォルダ構造 */
-    .sd-tree {
-      background: var(--code-bg);
-      color: var(--code-fg);
-      border-radius: var(--radius-sm);
-      padding: 14px 18px;
-      font-family: var(--mono);
-      font-size: 12.5px;
-      line-height: 1.75;
-      overflow-x: auto;
-      white-space: pre;
-      margin: 10px 0 16px;
-    }
-
-    /* 起動モデル比較テーブル強調行 */
     .row-default td:first-child { font-weight: 700; }
-
-    /* セクション内の補足メモ */
-    .sd-note {
-      font-size: 12px;
-      color: var(--text-muted);
-      background: var(--panel-2);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-sm);
-      padding: 8px 12px;
-      margin: 8px 0 12px;
-      line-height: 1.7;
-    }
-
-    /* レスポンシブ */
-    @media (max-width: 900px) {
-      .sd-layout { grid-template-columns: 1fr; }
-      .sd-toc { position: static; }
-      .sd-body { padding: 18px 20px; }
-    }
-    @media (max-width: 560px) {
-      .sd-wrap { padding: 12px; }
-      .sd-body { padding: 14px 14px; }
-      .sd-h2 { font-size: 15px; }
+    @media (max-width: 480px) {
       .tool-map-row { grid-template-columns: 1fr; }
     }
   </style>
@@ -324,6 +38,7 @@
       <p>
         Skill を設計・作成するときに従う定義とルール集。
         スコープは設計定義とルールまで（メタスキルのワークフローは範囲外）。
+        <a href="../catalog/skills.html">← スキル一覧へ</a>
       </p>
     </div>
 
@@ -747,7 +462,7 @@ scripts/
           <h3 class="sd-h3">共通原則</h3>
           <ul>
             <li>可変データ（設定・記憶）は skill フォルダに置かない（フォルダは不変）。</li>
-            <li>置き場：セッションフォルダ（<code>${CLAUDE_SESSION_DIR}/</code>）/ 永続が要るなら <code>${CLAUDE_PLUGIN_DATA}</code>（※設計上の参照変数。現時点で実装例なし）</li>
+            <li>置き場：セッションフォルダ（<code>~/agent-home/sessions/YYYY-MM-DD/</code>）/ 永続が要るなら <code>${CLAUDE_PLUGIN_DATA}</code>（※設計上の参照変数。現時点で実装例なし）</li>
           </ul>
 
           <h3 class="sd-h3">セットアップとは</h3>
@@ -779,7 +494,7 @@ scripts/
           <h3 class="sd-h3">記憶</h3>
           <ul>
             <li>形式：追記ログ / JSON / SQLite</li>
-            <li>置き場：セッションフォルダ（<code>${CLAUDE_SESSION_DIR}/</code>）/ 永続は <code>${CLAUDE_PLUGIN_DATA}</code>（現時点で実装例なし）</li>
+            <li>置き場：セッションフォルダ（<code>~/agent-home/sessions/YYYY-MM-DD/</code>）/ 永続は <code>${CLAUDE_PLUGIN_DATA}</code>（現時点で実装例なし）</li>
             <li>使い方：自分の履歴を読み、差分や一貫性に使う（例：<code>standups.log</code>）</li>
           </ul>
 
@@ -881,7 +596,8 @@ user-invocable: false            # 知識型の純粋背景知識のみ（コマ
     </div>
 
     <div data-md-skip style="text-align:center;margin-top:20px;font-size:12px;color:var(--text-muted)">
-      <a href="../index.html">ホーム</a>
+      <a href="../catalog/skills.html">スキル一覧</a> &nbsp;·&nbsp;
+      <a href="../index.html">ポータル TOP</a>
     </div>
   </div>
 </body>

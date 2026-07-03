@@ -1,9 +1,9 @@
 ---
 name: generating-screen-list-for-reverse-docs
 description: |
-  レガシー画面を検出し画面一覧HTMLを生成する。
-  TRIGGER when: 画面一覧作成、画面境界確定。
-  SKIP: 往復検証/環境同期/通常実装（→rebuilding-code-from-docs/syncing-reverse-env/orchestrating-dev-flow）。
+  レガシー画面検出→画面一覧HTML生成。
+  TRIGGER when: 画面一覧作成。
+  SKIP: 往復検証/環境同期/実装（→rebuilding-code-from-docs/syncing-reverse-env/orchestrating-dev-flow）。
 invocation: generating-screen-list-for-reverse-docs
 type: transform
 allowed-tools: [Bash, Read, Write, Edit, Grep, Glob, AskUserQuestion, TaskCreate, TaskUpdate]

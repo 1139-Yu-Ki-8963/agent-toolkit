@@ -8,7 +8,7 @@
 - `~/agent-home/ai-management-portal/design/rules.html` — rules 設計ガイド（§1〜§11）
 - `~/agent-home/ai-management-portal/design/subagent.html` — Subagent 設計ガイド（12 セクション）
 - `~/agent-home/ai-management-portal/loop-design.html` — Loop 設計ガイド（フロー系 skills の F8〜F12 観点の理論的根拠）
-- `~/.claude/rules/config-placement-rules/rule.md` — 設定層配置判定規約（rules vs skills vs hooks の振り分け）
+- `~/.claude/rules/scoped/config/config-placement/rule.md` — 設定層配置判定規約（rules vs skills vs hooks の振り分け）
 - `~/agent-home/skills/managing-agent-configs/references/skills/design-spec.md` §12〜§13 — Phase / Step / TaskCreate の書式ルール（orchestration / gateway 型）
 
 ## 関連スキル

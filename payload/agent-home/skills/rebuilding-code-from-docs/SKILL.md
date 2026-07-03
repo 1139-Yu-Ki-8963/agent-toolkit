@@ -66,7 +66,7 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, AskUserQuestion, Ski
 
 ### Phase 7: 答え合わせ
 
-Skill ツールで `syncing-reverse-env` を `mode=sync, dry-run`（args 全量指定・対話ゼロ）で起動し、静的 3 分類・env_check 10 項目・Playwright L1〜L4・`hint` を受領する。**比較の自前実装は禁止**。
+Skill ツールで `syncing-reverse-env` を `mode=sync, dry-run`（args 全量指定・対話ゼロ）で起動し、静的 3 分類・env_check 全項目・Playwright L1〜L4・`hint` を受領する。**比較の自前実装は禁止**。
 完了条件: `syncing-reverse-env` の返却ブロックを受領している
 
 ### Phase 8: NG 分類 → フィードバック

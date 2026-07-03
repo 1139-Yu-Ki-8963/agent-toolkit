@@ -10,17 +10,18 @@ review モードは 2 つの動作モードを持つ:
 ## Phase 1: 対象 rules の全列挙
 
 ```bash
-# グローバル
-find ~/.claude/rules/ -type d -mindepth 1 -maxdepth 1 | sort
+# グローバル（深さ 3 固定: <scope>/<topic>/<name>/）
+find ~/.claude/rules/always ~/.claude/rules/scoped -mindepth 2 -maxdepth 2 -type d 2>/dev/null | sort
 
-# プロジェクト
+# プロジェクト（既存形式 <category>-rules/ が当面並存）
 find ~/Projects/*/.claude/rules/ -type d -mindepth 1 -maxdepth 1 2>/dev/null | sort
 ```
 
 各ディレクトリについて `rule.md` と `.sh` の有無を確認:
 
 ```bash
-for d in ~/.claude/rules/*/; do
+for d in ~/.claude/rules/always/*/*/ ~/.claude/rules/scoped/*/*/; do
+  [ -d "$d" ] || continue
   name=$(basename "$d")
   has_rule=$( [ -f "$d/rule.md" ] && echo "Y" || echo "N" )
   sh_count=$(find "$d" -name "*.sh" -not -name "*.test.sh" | wc -l | tr -d ' ')
@@ -35,7 +36,7 @@ done
 | # | チェック | 重要度 | 検出方法 |
 |---|---|---|---|
 | A1 | ルート直下に `.md` が残存していないか | CRITICAL | `find ~/.claude/rules/ -maxdepth 1 -name "*.md"` |
-| A2 | 全ディレクトリが `-rules/` suffix を持つか | CRITICAL | `find ~/.claude/rules/ -maxdepth 1 -type d \| grep -v '\-rules$'` |
+| A2 | `always/` `scoped/` 配下に `-rules` suffix 付きディレクトリが残存していないか / rule.md が深さ 3 以外にないか | CRITICAL | check-items.md A2（新形式は suffix 禁止） |
 | A3 | 全ディレクトリに `rule.md` が存在するか | CRITICAL | Phase 1 の `has_rule=N` |
 | A4 | hook script が rule.md と同ディレクトリに同居しているか | WARN | settings.json の command path と rule.md の配置を突合 |
 
@@ -71,6 +72,7 @@ done
 | E1 | rule.md に `## 設計判断` セクションがあるか | CRITICAL | `grep "## 設計判断" rule.md` |
 | E2 | ADR 4 項目（必要性 / 代替案 / 保守責任者 / 廃棄条件）が揃っているか | WARN | grep で各項目を確認 |
 | E3 | hook script ごとに設計判断があるか（`.sh` が存在する場合） | WARN | `.sh` の basename を設計判断セクション内で grep |
+| E4 | `## プロジェクト上書き` セクションがあるか（委譲可/一律適用/上書き禁止 の 3 択宣言） | WARN | `grep "## プロジェクト上書き" rule.md` |
 
 ### 観点 F: 注入タグの整合性
 
@@ -102,7 +104,7 @@ done
   修正案: `security-rules/rule.md` に移動
 
 #### B. scope 適合性
-- [CRITICAL] B1 `role-boundary-rules/` がグローバルに配置されているが
+- [CRITICAL] B1 `always/agent/role-boundary/` がグローバルに配置されているが
   `slot/wt` `owner cwd` 等の oradora 固有概念に依存
   修正案: `oradora-battle-base/.claude/rules/` に移動
 ...

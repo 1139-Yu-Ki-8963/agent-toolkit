@@ -20,8 +20,14 @@ defaults:
     - dist/
     - .next/
     - "*.lock"
-    - ".env*"                 # ポート設定を含む環境ファイル
+    - ".env*"                 # ポート設定を含む環境ファイル（env-file-parity で別途直接比較する）
     - .reverse-port-slot       # スロット番号記録ファイル（開発用 .port-slot とは別物）
+  install_command: "npm ci"     # 整列と修復の依存インストール（projects で上書き可）
+  env_file_globs: [".env", ".env.*"]   # env-file-parity の比較対象
+  bundler_cache_dirs:            # 整列後に削除するバンドラキャッシュ
+    - node_modules/.vite
+    - node_modules/.cache
+  artifacts_root: "~/agent-home/sessions/reverse-env"  # 証跡ルート（scope/実行日時で分離）
 
 projects: {}                  # プロジェクト（<system>）単位の上書き（必要時のみ追記）
   # "<system>":

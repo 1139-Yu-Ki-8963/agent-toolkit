@@ -1,8 +1,9 @@
 // ai-management-portal 共通: 共通ヘッダ拡張モジュール
-// サイト全体スコープの機能（テーマ切替）のみをヘッダに残す。
+// サイト全体スコープの機能（検索・テーマ切替）のみをヘッダに残す。
 // ページ単位の操作（MD コピー / MD DL / LLM コピー / GitHub 編集）は page-actions.js が担当する。
 
 import { initTheme, getCurrentTheme, cycleTheme } from "./theme.js";
+import * as search from "./search-ui.js";
 import { initShortcuts } from "./shortcuts.js";
 import { initCodeCopy } from "./code-copy.js";
 import { initTableExport } from "./table-export.js";
@@ -16,6 +17,11 @@ const LABEL_MAP_THEME = { light: "ダーク表示", dark: "ライト表示" };
 
 const NAV_LINKS = [
   { path: "catalog/skills.html", label: "スキル一覧" },
+  { path: "catalog/hooks.html", label: "フック一覧" },
+  { path: "catalog/usage.html", label: "利用頻度" },
+  { path: "../routines/index.html", label: "ルーティン詳細" },
+  { path: "catalog/rules.html", label: "ルール一覧" },
+  { path: "catalog/subagents.html", label: "エージェント一覧" },
 ];
 
 function ensureMaterialSymbols() {
@@ -39,8 +45,8 @@ function buildGeneratedHeader() {
   brand.className = "brand";
   brand.href = portalRoot ? portalRoot + "index.html" : "#";
   brand.innerHTML = `
-    <span class="brand-title">agent-toolkit ポータル</span>
-    <span class="brand-sub">skills · design</span>
+    <span class="brand-title">AI マネジメントポータル</span>
+    <span class="brand-sub">agent-home · .claude · .codex</span>
   `;
   header.appendChild(brand);
 
@@ -140,6 +146,14 @@ function mountControls() {
     },
   });
 
+  const searchCtl = makeBtn({
+    iconName: "search",
+    ariaLabel: "全体検索を開く（ / キー）",
+    labelText: "検索",
+    onClick: () => search.open(),
+  });
+
+  host.appendChild(searchCtl.btn);
   host.appendChild(themeCtl.btn);
 
   let header = findHostHeader();

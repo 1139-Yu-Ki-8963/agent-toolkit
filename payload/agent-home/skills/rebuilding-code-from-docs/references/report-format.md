@@ -73,7 +73,7 @@ PASS / FAIL / 無効（凍結検証失敗時）
 - status: <PASS/FAIL/ERROR>
 - static_diff: <3 分類の集計>
 - dynamic: <L1〜L4 の判定>
-- env_check: <10 項目の通過数>
+- env_check: <全項目の通過数>
 - hint: <あれば>
 
 ## 凍結検証結果

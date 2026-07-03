@@ -241,7 +241,7 @@
   <h3>Phase 5: 自己完結チェック</h3>
   <p>型チェック・単体/結合テスト・Playwright スモーク（reverse 側 9110 番台のみ）を実行する。内側ループは上限 3 回、同一エラーシグネチャ 3 連続で発散確定とし、発散エラー自体を設計書欠落候補として Phase 8 へ渡す。</p>
   <h3>Phase 7: 答え合わせ</h3>
-  <p><code>syncing-reverse-env</code> の <code>mode=sync, dry-run</code> 呼び出しで、静的 3 分類・env_check 10 項目・Playwright L1〜L4・<code>hint</code> を受領する。比較の自前実装は禁止。</p>
+  <p><code>syncing-reverse-env</code> の <code>mode=sync, dry-run</code> 呼び出しで、静的 3 分類・env_check 全項目・Playwright L1〜L4・<code>hint</code> を受領する。比較の自前実装は禁止。</p>
   <h3>Phase 9: 凍結検証</h3>
   <p><code>scripts/check-freeze.sh</code> で Phase 6 の凍結コミットハッシュと現状（HEAD・作業ツリー）を突合する。
     <span class="tag pass">PASS</span> = HEAD一致かつ作業ツリークリーン、

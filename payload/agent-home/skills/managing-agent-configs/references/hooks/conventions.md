@@ -86,6 +86,7 @@ FLOW-SELECT-REQUIRED / FLOW-SELECT-BLOCK / FLOW-SELFIMPROVE-PENDING
 AUTO-COMMIT / PROD-SKILL-READ / ADR-REQUIRED / SHELL-EVASION-DETECTED
 MAIN-DIRECT-WORK-BLOCK / SUBAGENT-DELEGATION-HINT
 MERGE-APPROVAL-STALE / LOOP-DETECTED / SESSION-CONTEXT-LARGE / MERGE-APPROVAL-FETCH-FAILED
+CURL-EGRESS-BLOCK
 ```
 
 新規 TAG は上記と被らない名前を選び、追加時はこの一覧にも追記する。
@@ -173,7 +174,7 @@ MERGE-APPROVAL-STALE / LOOP-DETECTED / SESSION-CONTEXT-LARGE / MERGE-APPROVAL-FE
 
 | TAG | 参照箇所 | 用途 |
 |-----|---------|------|
-| `AMBIGUITY-AUTO-FIX` | `~/.claude/rules/subagent-delegation-rules/rule.md` | 曖昧表現を `clarifying-ambiguity` スキルで修正 |
+| `AMBIGUITY-AUTO-FIX` | `~/.claude/rules/always/agent/subagent-delegation/rule.md` | 曖昧表現を `clarifying-ambiguity` スキルで修正 |
 | `TEXTLINT` | `~/agent-home/skills/writing-quality/SKILL.md` | textlint エラーを `writing-quality` スキルで修正 |
 
 新しい委譲パターンを追加する時は、CLAUDE.md または rules にも対応するルールを必ず書き加える。
