@@ -119,8 +119,8 @@
   </div>
 
   <table class="meta-table">
-    <tr><td>対応 OS</td><td>macOS（Bash 標準ツールに依存。Linux 移植時は sed 構文の差異に注意）</td></tr>
-    <tr><td>検証状況</td><td>managing-agent-configs の test モードによる実機検証を経て運用開始</td></tr>
+    <tr><td>対応 OS</td><td>macOS・Windows WSL（Linux）（Bash 3.2 互換・BSD/GNU 両対応で実装。Windows WSL 環境での動作を別環境で確認済み）</td></tr>
+    <tr><td>検証状況</td><td>実プロジェクト（oradora-battle-base〔Vite + React Router〕・kakeibo〔Next.js〕等）で動作確認済み。Windows WSL 環境でも別環境で動作確認済み。managing-agent-configs の test モードによる実機検証を経て運用中</td></tr>
     <tr><td>依存</td><td>標準的な POSIX ツール（find / grep / sed / awk）に加え、整合検証（validate-manifest.sh）・画面一覧.HTML生成（build-screen-list.sh）で jq を使用</td></tr>
     <tr><td>関連資料</td><td>rebuilding-code-from-docs / syncing-reverse-env</td></tr>
   </table>
