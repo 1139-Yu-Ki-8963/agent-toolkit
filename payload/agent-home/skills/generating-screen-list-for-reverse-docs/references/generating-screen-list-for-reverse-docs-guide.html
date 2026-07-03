@@ -109,20 +109,20 @@
 
 <header>
   <h1>レガシー画面一覧生成スキル<br><span class="skill-name">generating-screen-list-for-reverse-docs</span></h1>
-  <p>レガシーコードベースを画面単位にグルーピングし、画面一覧.HTML と 02_画面基本設計 の雛形を機械生成する。</p>
+  <p>レガシーコードベースを画面単位にグルーピングし、画面一覧.HTML を生成する。仕事は画面一覧.HTMLの作成のみで、設計書の雛形展開・生成は行わない。</p>
 
   <div class="def">
     <dt>こんな人向け</dt>
     <dd>既存（レガシー）コードベースをリバースエンジニアリングで文書化したい人。画面の境界がまだ確定していない状態から着手したい人。</dd>
     <dt>こんな場面で使う</dt>
-    <dd>納品用の画面基本設計書を作る前に、対象コードのどのファイル群が1画面を構成するかを機械的に洗い出したいとき。</dd>
+    <dd>設計書を作る前に、対象コードのどのファイル群が1画面を構成するかを機械的に洗い出したいとき。</dd>
   </div>
 
   <table class="meta-table">
-    <tr><td>対応 OS</td><td>macOS（Bash + jq + sed -i '' の BSD 構文に依存。Linux 移植時は sed 構文の差異に注意）</td></tr>
+    <tr><td>対応 OS</td><td>macOS（Bash 標準ツールに依存。Linux 移植時は sed 構文の差異に注意）</td></tr>
     <tr><td>検証状況</td><td>managing-agent-configs の test モードによる実機検証を経て運用開始</td></tr>
-    <tr><td>依存</td><td><code>jq</code>（Phase 2 のマニフェストパース）、標準的な POSIX ツール（find / grep / sed / awk）</td></tr>
-    <tr><td>関連資料</td><td>rebuilding-code-from-docs / syncing-reverse-env / creating-new-project</td></tr>
+    <tr><td>依存</td><td>標準的な POSIX ツール（find / grep / sed / awk）のみ。外部コマンド依存なし</td></tr>
+    <tr><td>関連資料</td><td>rebuilding-code-from-docs / syncing-reverse-env</td></tr>
   </table>
 </header>
 
@@ -132,9 +132,9 @@
     <li><a href="#s1">概要</a></li>
     <li><a href="#s2">用語</a></li>
     <li><a href="#s3">使い方（起動引数）</a></li>
-    <li><a href="#s4">動作フロー（Phase 1〜3）</a></li>
+    <li><a href="#s4">動作フロー（Phase 1〜2）</a></li>
     <li><a href="#s5">画面キー生成規則</a></li>
-    <li><a href="#s6">02_画面基本設計 スキャフォールド仕様</a></li>
+    <li><a href="#s6">画面一覧.HTMLの活用方法</a></li>
     <li><a href="#s7">画面一覧.HTML フォーマット</a></li>
     <li><a href="#s8">Gotchas・スコープ外</a></li>
     <li><a href="#s9">関連スキル・規約</a></li>
@@ -143,12 +143,12 @@
 
 <section id="s1">
   <h2><span class="sec-num">§1</span>概要</h2>
-  <p>レガシー（既存）コードベースを画面単位にファイルをグルーピングし、その結果を <strong>画面一覧.HTML</strong> として出力する。同じ粒度で <code>templates/reverse-docs/02_画面基本設計/</code> テンプレート一式を対象プロジェクトへスキャフォールド展開する。</p>
+  <p>レガシー（既存）コードベースを画面単位にファイルをグルーピングし、その結果を <strong>画面一覧.HTML</strong> として出力する。</p>
   <div class="constraint">
     <strong>単独動作</strong>: <code>syncing-reverse-env</code>（2 環境同期・基準タグ確立）には依存しない。ソースディレクトリと出力先ディレクトリを直接指定して起動する。
   </div>
   <div class="constraint">
-    <strong>過剰生成をしない</strong>: 02_画面基本設計 側は機械的に確定できる事実（画面名・ルート・構成ファイル一覧）のみを frontmatter・§15.1 に反映する。§1〜§16 の本文（業務ルール等）は原則テンプレートのプレースホルダのまま残す。
+    <strong>仕事は画面一覧.HTMLの作成のみ</strong>: 設計書（<code>02_画面基本設計</code> 等）の雛形展開・生成・記入は一切行わない。他のスキル・人手による作業の入力として画面一覧.HTMLを渡すところまでが本スキルの範囲。
   </div>
 </section>
 
@@ -159,8 +159,6 @@
     <dd>意味キー規約に準拠した画面の一意識別子。ルートの静的セグメントから導出し、連番サフィックスは使わない。</dd>
     <dt>confidence</dt>
     <dd>画面境界検出の確からしさ。high（ルーティング定義との直接一致）／medium（正規表現ヒューリスティック）／low（慣習ディレクトリからの推測）の3段階。</dd>
-    <dt>スキャフォールド</dt>
-    <dd>テンプレート4ファイルセットを複製し、frontmatterの機械欄のみを書き換える処理。本文は創作しない。</dd>
   </dl>
 </section>
 
@@ -169,28 +167,21 @@
   <table class="spec">
     <tr><th>引数</th><th>内容</th></tr>
     <tr><td>ソースコードディレクトリ</td><td>探索対象。モノレポの場合は対象アプリのディレクトリを直接指定する（自動判別なし）</td></tr>
-    <tr><td>出力先ルートディレクトリ</td><td>対象プロジェクト root。配下に <code>docs/02_画面基本設計/</code> を自動付加する</td></tr>
+    <tr><td>出力先ディレクトリ</td><td>画面一覧.HTMLの書き出し先</td></tr>
   </table>
-  <p class="note">Phase 1 完了後に検出サマリを提示し、AskUserQuestion で 1 回だけ続行確認を取る。承認後にのみ Phase 2 の破壊的操作（mkdir/cp）を行う。</p>
+  <p class="note">0件検出時は AskUserQuestion で結果を報告して停止する（手動リスト入力は行わない）。</p>
 </section>
 
 <section id="s4">
-  <h2><span class="sec-num">§4</span>動作フロー（Phase 1〜3）</h2>
+  <h2><span class="sec-num">§4</span>動作フロー（Phase 1〜2）</h2>
   <pre class="flow"><span class="cap">Phase 1: 画面境界検出</span>
   detect-screens.sh source-dir manifest.json
   優先順位: Next.js App Router → Pages Router → React Router(flat) → 慣習ディレクトリ
   0件ならハード停止(exit 3)。捏造しない
 
-<span class="cap">── AskUserQuestion 続行確認（1回のみ） ──</span>
-
-<span class="cap">Phase 2: スキャフォールド展開</span>
-  scaffold-screens.sh manifest.json output-root
-  既存 screen-&lt;key&gt;/ は無条件スキップ(非破壊)
-  frontmatter機械欄のみEdit、本文は創作しない
-
-<span class="cap">Phase 3: 画面一覧.HTML 生成</span>
+<span class="cap">Phase 2: 画面一覧.HTML 生成</span>
   screen-list-template.html を土台に Write
-  埋め込みJSON = Phase1/2確定結果の正本コピー</pre>
+  埋め込みJSON = Phase1の確定結果の正本コピー</pre>
 </section>
 
 <section id="s5">
@@ -207,21 +198,19 @@
 </section>
 
 <section id="s6">
-  <h2><span class="sec-num">§6</span>02_画面基本設計 スキャフォールド仕様</h2>
+  <h2><span class="sec-num">§6</span>画面一覧.HTMLの活用方法</h2>
+  <p>画面一覧.HTMLは「画面詳細設計の画面単位を正確に分けるための正本」として位置づけられる。本スキルはこの一覧を作るところまでが仕事であり、以降の設計書作成・雛形展開は対象外。</p>
   <table class="spec">
-    <tr><th>対象</th><th>扱い</th></tr>
-    <tr><td>README.md / _共通/ 2ファイル</td><td>プロジェクトに存在しなければ1回だけコピー（既存なら上書きしない）</td></tr>
-    <tr><td>doc_id / target_screen / route / updated</td><td>機械置換する（<code>updated</code> は <code>date +%Y-%m-%d</code>）</td></tr>
-    <tr><td>design_md / common_spec_version / mock / messages / common_spec</td><td>業務判断を要するため変更しない</td></tr>
-    <tr><td>§15.1 ファイルパス列</td><td>Phase 1 の構成ファイル一覧で機械記入。export名・種別列はプレースホルダのまま</td></tr>
-    <tr><td>§16（confidence=low の画面）</td><td>意味キー <code>画面境界-自動判定信頼度低</code> で要確認事項を1行追記</td></tr>
-    <tr><td>既存 screen-&lt;キー&gt;/</td><td>無条件スキップ（差分マージ・部分更新はしない）</td></tr>
+    <tr><th>用途</th><th>使い方</th></tr>
+    <tr><td>人間によるレビュー</td><td>ブラウザで開き、検出方式・confidence列を見て境界の妥当性を目視確認する</td></tr>
+    <tr><td>後続作業への入力</td><td>埋め込みJSON（<code>#screen-manifest</code>）をパースし、別プロセス・別スキルが設計書作成等の入力に使う</td></tr>
   </table>
+  <p class="note">confidence が low の画面は自動判定の確度が低いため、後続作業に渡す前に人間の確認を挟むことを推奨する。</p>
 </section>
 
 <section id="s7">
   <h2><span class="sec-num">§7</span>画面一覧.HTML フォーマット</h2>
-  <p>テーブル列: 画面キー／画面名／ルート／検出方式／confidence／構成ファイル数／主ファイル／02_画面基本設計状態。<code>&lt;script type="application/json" id="screen-manifest"&gt;</code> に構造化データを埋め込み、人間可読と機械可読を両立する。外部CDN不使用の単一ファイル自己完結。</p>
+  <p>テーブル列: 画面キー／画面名／ルート／検出方式／confidence／構成ファイル数／主ファイル。<code>&lt;script type="application/json" id="screen-manifest"&gt;</code> に構造化データを埋め込み、人間可読と機械可読を両立する。外部CDN不使用の単一ファイル自己完結。</p>
   <div class="constraint"><strong>正本の位置づけ</strong>: 画面一覧.HTML は後続フェーズが読む計画書ではなく、実施済み事実のレポート。画面詳細設計の単位を正確に分けるための正本として機能する。</div>
 </section>
 
@@ -234,7 +223,7 @@
     <li>動的に構築されるルート文字列は検出不可（静的リテラルのみ）</li>
     <li>モノレポ・複数アプリ構成の自動判別なし</li>
     <li>0件検出時はハード停止。AskUserQuestionでの手動リスト入力にフォールバックしない</li>
-    <li>大規模コードベース向けのサブエージェント並列探索は本バージョン非搭載（将来拡張ポイント）</li>
+    <li>設計書（02_画面基本設計 等）の雛形展開・生成・記入は一切行わない（本スキルのスコープ外）</li>
   </ul>
 </section>
 
@@ -242,11 +231,8 @@
   <h2><span class="sec-num">§9</span>関連スキル・規約</h2>
   <table class="spec">
     <tr><th>関連</th><th>関係</th></tr>
-    <tr><td><code>rebuilding-code-from-docs</code></td><td>本スキルが生成した設計書の往復検証を担う後工程</td></tr>
+    <tr><td><code>rebuilding-code-from-docs</code></td><td>設計書の往復検証を担うスキル（本スキルとは独立、直接の連携はない）</td></tr>
     <tr><td><code>syncing-reverse-env</code></td><td>2環境同期・基準タグ確立。本スキルは非依存</td></tr>
-    <tr><td><code>creating-new-project</code></td><td>project-docs/greenfield版のスキャフォールドパターンの転用元</td></tr>
-    <tr><td>semantic-key-rules</td><td>画面キー生成アルゴリズムの制約元</td></tr>
-    <tr><td>file-guard-rules</td><td>出力先パス設計（<code>docs/02_画面基本設計/</code> 配下限定）の制約元</td></tr>
   </table>
 </section>
 
