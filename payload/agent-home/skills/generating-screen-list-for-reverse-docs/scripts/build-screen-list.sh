@@ -34,7 +34,7 @@
 ## **必要性**: 画面一覧.HTMLの生成をClaudeによる手作業のプレースホルダ置換から
 ## スクリプトによる決定的生成に置き換える。手作業組み立てはentryFile=None等の
 ## データ混入・列ズレ・JSONエスケープ漏れを起こしやすく、実際に発生した。
-## jqによるJSONパース・10列テーブルのHTMLエスケープ・kind別振り分け・
+## jqによるJSONパース・11列テーブルのHTMLエスケープ・kind別振り分け・
 ## sharedWith集計・routeDupCount注記という複数の決定的処理をひとまとまりの
 ## スクリプトに固定することで、生成物を再現可能かつレビュー可能にする。
 ##
@@ -96,12 +96,18 @@ tile_shared_screen_count="$(jq -r '.detectionSummary.sharedScreenCount // 0' "$M
 tile_embedded_count="$(jq -r '.detectionSummary.embeddedCandidateCount // 0' "$MANIFEST")"
 tile_unresolved_count="$(jq -r '.detectionSummary.unresolvedCount // 0' "$MANIFEST")"
 
+# --- sharedWithキー -> {screenId, route} の逆引きテーブル(manifest全体から1回だけ構築) ---
+shared_lookup_json="$(jq -c '
+  [ .screens[]? | {key: (.screenKey // ""), screenId: (.screenId // null), route: (.route // "")} ]
+  | map({(.key): {screenId: .screenId, route: .route}}) | add // {}
+' "$MANIFEST")"
+
 # --- 1画面分の <tr> を生成する ---
 row_html() {
   local row="$1"
   local screen_id screen_key kind screen_name route detection_method_row confidence
-  local file_count entry_file route_dup_count shared_count shared_list shared_text
-  local dup_note kind_class kind_label
+  local file_count entry_file route_dup_count shared_count shared_text
+  local dup_note kind_class kind_label embedded_in embedded_text shared_mode shared_detail
 
   screen_id="$(jq -r '.screenId // empty' <<<"$row")"
   [ -z "$screen_id" ] && screen_id="—"
@@ -115,12 +121,37 @@ row_html() {
   entry_file="$(jq -r '.entryFile // ""' <<<"$row")"
   route_dup_count="$(jq -r '.routeDupCount // 1' <<<"$row")"
   shared_count="$(jq -r '(.sharedWith // []) | length' <<<"$row")"
-  shared_list="$(jq -r '(.sharedWith // []) | join(", ")' <<<"$row")"
+  embedded_in="$(jq -r '.embeddedIn // ""' <<<"$row")"
 
+  # --- 共有列: sharedWithの各キーをmanifestから引き、screenId(なければキー):routeの
+  #     詳細を優先表示する。全メンバーがscreenId欠落の場合のみ「N件: キー一覧」にフォールバック ---
   if [ "$shared_count" -eq 0 ]; then
     shared_text="—"
   else
-    shared_text="${shared_count}件: $(html_escape "$shared_list")"
+    shared_mode="$(jq -r --argjson lookup "$shared_lookup_json" '
+      (.sharedWith // []) as $sw
+      | ($sw | map($lookup[.].screenId) | map(select(. != null)) | length) as $with_id
+      | if $with_id > 0 then "detail" else "fallback" end
+    ' <<<"$row")"
+    if [ "$shared_mode" = "detail" ]; then
+      shared_detail="$(jq -r --argjson lookup "$shared_lookup_json" '
+        (.sharedWith // []) as $sw
+        | $sw | map(
+            ($lookup[.] // {"screenId":null,"route":null}) as $m
+            | ((if $m.screenId != null then $m.screenId else . end) + ":" + ($m.route // ""))
+          ) | join(", ")
+      ' <<<"$row")"
+      shared_text="$(html_escape "$shared_detail")"
+    else
+      shared_text="${shared_count}件: $(html_escape "$(jq -r '(.sharedWith // []) | join(", ")' <<<"$row")")"
+    fi
+  fi
+
+  # --- 埋め込み元列: embedded-viewのみembeddedIn(親画面キー)を表示。routeは「—」 ---
+  if [ "$kind" = "embedded-view" ] && [ -n "$embedded_in" ]; then
+    embedded_text="<code>$(html_escape "$embedded_in")</code>"
+  else
+    embedded_text="—"
   fi
 
   dup_note=""
@@ -144,6 +175,7 @@ row_html() {
   printf '<td>%s</td>\n' "$(html_escape "$detection_method_row")"
   printf '<td><span class="badge %s">%s</span></td>\n' "$(html_escape "$confidence")" "$(html_escape "$confidence")"
   printf '<td>%s</td>\n' "$shared_text"
+  printf '<td>%s</td>\n' "$embedded_text"
   printf '<td>%s</td>\n' "$(html_escape "$file_count")"
   printf '<td><code>%s</code></td>\n' "$(html_escape "$entry_file")"
   printf '</tr>\n'
@@ -163,7 +195,7 @@ while IFS= read -r row; do
 done < <(jq -c '.screens[]' "$MANIFEST")
 
 if [ -z "$screen_rows" ]; then
-  screen_rows='<tr><td colspan="10">なし</td></tr>'
+  screen_rows='<tr><td colspan="11">なし</td></tr>'
 fi
 
 if [ -z "$unresolved_rows" ]; then
@@ -174,7 +206,7 @@ else
 <thead>
 <tr>
 <th>画面ID</th><th>画面キー</th><th>区分</th><th>画面名</th><th>ルート</th>
-<th>検出方式</th><th>confidence</th><th>共有</th><th>構成ファイル数</th><th>主ファイル</th>
+<th>検出方式</th><th>confidence</th><th>共有</th><th>埋め込み元</th><th>構成ファイル数</th><th>主ファイル</th>
 </tr>
 </thead>
 <tbody>

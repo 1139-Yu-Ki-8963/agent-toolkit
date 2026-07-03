@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# generating-screen-list-for-reverse-docs: screen-manifest.json の独立検証(6項目)。抽出元(組み込みスクリプト/Claude手書き)を問わずマニフェスト品質を機械保証する。
+# generating-screen-list-for-reverse-docs: screen-manifest.json の独立検証(7項目)。抽出元(組み込みスクリプト/Claude手書き)を問わずマニフェスト品質を機械保証する。
 #
 # Usage: validate-manifest.sh <manifest.json> [--fix <fixed-out.json>]
 #
-# 検査項目(全6項目。結果は [PASS]/[FAIL] 項目名 — 詳細 の形式でstderrへ列挙):
+# 検査項目(全7項目。結果は [PASS]/[FAIL] 項目名 — 詳細 の形式でstderrへ列挙):
 #   1. schema-必須フィールド    : トップレベル必須キー + screens[]各要素の必須キーの存在
 #   2. strategy-承認            : strategy.extractionMethod 非空 かつ strategy.approvedByUser == true
 #   3. 重複-route+entryFile     : (route, entryFile) 組の重複0件
@@ -11,10 +11,13 @@
 #                                  (--fix指定時は不在行を kind=unresolved・confidence=low に降格し
 #                                   detectionSummaryを再計算した修正版JSONを出力してPASS扱い)
 #   5. 意味キー-品質            : screenKeyが連番ID規約(数字のみ/-数字終わり/前後ハイフン/連続ハイフン)に違反していないか
-#   6. summary-一致             : detectionSummary が screens[] からの再計算値と一致するか
+#                                  (strategy.screenIdRegexが非null文字列の場合、そのEREに完全一致するscreenKey
+#                                   および `<一致部分>-<dup番号>` 形式の派生キーは業務ID由来として判定対象から除外する)
+#   6. 参照整合                : 派生キー(末尾-dup番号)の元キー実在・sharedWith参照先の実在・embeddedIn親キーの実在
+#   7. summary-一致             : detectionSummary が screens[] からの再計算値と一致するか
 #                                  (--fix出力に対しては修正後の値で検査)
 #
-# 全6項目PASSでexit 0。1件でもFAILがあればexit 1(--fixで解消された項目4はPASS扱い)。
+# 全7項目PASSでexit 0。1件でもFAILがあればexit 1(--fixで解消された項目4はPASS扱い)。
 
 set -uo pipefail
 
@@ -156,13 +159,23 @@ fi
 
 # ---------------------------------------------------------------------------
 # 5. 意味キー-品質
+#    strategy.screenIdRegexが非null文字列の場合、そのEREに完全一致するscreenKey
+#    (および `<一致部分>-<dup番号>` 形式の派生キー)は業務ID由来として判定対象から除外する
 # ---------------------------------------------------------------------------
-bad_keys="$(jq -r '
-  [ .screens[]? | (.screenKey // "") |
-    select(
-      test("^[0-9]+$") or test("-[0-9]+$") or test("^-") or test("-$") or test("--")
-    )
-  ] | join(", ")
+screen_id_regex="$(jq -r '(.strategy.screenIdRegex // "")' "$MANIFEST")"
+
+bad_keys="$(jq -r --arg re "$screen_id_regex" '
+  ($re | length > 0) as $has_re
+  | ("^(" + $re + ")(-[0-9]+)?$") as $exclude
+  | [ .screens[]? | (.screenKey // "") |
+      (
+        if $has_re then (try (test($exclude)) catch false) else false end
+      ) as $is_excluded
+      | select(
+          ($is_excluded | not) and
+          (test("^[0-9]+$") or test("-[0-9]+$") or test("^-") or test("-$") or test("--"))
+        )
+    ] | join(", ")
 ' "$MANIFEST")"
 
 if [ -n "$bad_keys" ]; then
@@ -173,7 +186,59 @@ else
 fi
 
 # ---------------------------------------------------------------------------
-# 6. summary-一致(--fixが実行された場合は修正後JSONで検査)
+# 6. 参照整合
+#    - 派生キー(末尾-dup番号)が存在する場合、dup番号を除いた元キーがscreens[]内に実在するか
+#      (screenIdRegex設定時は、regexに完全一致しないキーのみを派生キー候補とする)
+#    - 各行のsharedWithが指すキーが全てscreens[]内に実在するか
+#    - 各行のembeddedIn(カンマ結合文字列)が指す親キーが全てscreens[]内に実在するか
+# ---------------------------------------------------------------------------
+ref_integrity_issues="$(jq -r --arg re "$screen_id_regex" '
+  ($re | length > 0) as $has_re
+  | (.screens // []) as $screens
+  | ($screens | map(.screenKey // "") | map(select(length > 0))) as $validkeys
+  | (
+      [ $validkeys[] | . as $k
+        | (
+            if $has_re then
+              ( (try (test("^(" + $re + ")$")) catch false) as $full
+                | (try (test("^(" + $re + ")-[0-9]+$")) catch false) as $suffixed
+                | ($full | not) and $suffixed
+              )
+            else
+              (test("-[0-9]+$"))
+            end
+          ) as $is_derived
+        | select($is_derived)
+        | ($k | sub("-[0-9]+$"; "")) as $base
+        | select(($validkeys | index($base)) == null)
+        | "派生キー[" + $k + "]の元キー[" + $base + "]が不在"
+      ]
+      +
+      [ $screens[] | (.screenKey // "?") as $sk
+        | (.sharedWith // [])[] as $sw
+        | select(($validkeys | index($sw)) == null)
+        | "screens[" + $sk + "].sharedWith[" + $sw + "]が不在"
+      ]
+      +
+      [ $screens[] | (.screenKey // "?") as $sk
+        | (.embeddedIn // "") | select(length > 0)
+        | split(",") | map(gsub("^ +"; "") | gsub(" +$"; "")) | .[]
+        | select(length > 0) | . as $parent
+        | select(($validkeys | index($parent)) == null)
+        | "screens[" + $sk + "].embeddedIn[" + $parent + "]が不在"
+      ]
+    ) | join("; ")
+' "$MANIFEST")"
+
+if [ -n "$ref_integrity_issues" ]; then
+  overall_fail=1
+  echo "[FAIL] 参照整合 — ${ref_integrity_issues}" >&2
+else
+  echo "[PASS] 参照整合 — 派生キー・sharedWith・embeddedInの参照先はすべて実在" >&2
+fi
+
+# ---------------------------------------------------------------------------
+# 7. summary-一致(--fixが実行された場合は修正後JSONで検査)
 # ---------------------------------------------------------------------------
 if [ -n "$FIX_OUT" ] && [ -n "$missing_keys_raw" ] && [ -f "$FIX_OUT" ]; then
   effective_source="$FIX_OUT"
@@ -206,7 +271,7 @@ fi
 
 # ---------------------------------------------------------------------------
 if [ "$overall_fail" -eq 0 ]; then
-  echo "[OK] validate-manifest: 全6項目PASS" >&2
+  echo "[OK] validate-manifest: 全7項目PASS" >&2
   exit 0
 fi
 

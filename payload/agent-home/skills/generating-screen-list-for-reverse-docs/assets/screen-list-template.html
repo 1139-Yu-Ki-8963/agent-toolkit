@@ -25,7 +25,11 @@
     SCREEN_MANIFEST_JSON (マニフェストJSON埋め込みマーカー) : manifest.json の内容をそのまま埋め込み(二重管理・ドリフト禁止)
     DIAGNOSTICS (診断・警告マーカー)            : diagnostics配列を警告リストとして表示。空配列なら何も出力しない
 
-  テーブル列順(固定・全10列): 画面ID / 画面キー / 区分 / 画面名 / ルート / 検出方式 / confidence / 共有 / 構成ファイル数 / 主ファイル
+  テーブル列順(固定・全11列): 画面ID / 画面キー / 区分 / 画面名 / ルート / 検出方式 / confidence / 共有 / 埋め込み元 / 構成ファイル数 / 主ファイル
+    - 共有列: sharedWithの各キーをmanifest内で引き、screenId(欠落時はキー):routeのペアを列挙。
+      メンバーのscreenIdが1件でも取れれば詳細表示を優先し、全メンバーがscreenId欠落の場合のみ
+      「N件: キー一覧」表示にフォールバックする
+    - 埋め込み元列: kind=embedded-view の行はembeddedIn(親画面キー)を表示。kind=routeは「—」
 
   制約:
     - 外部リソース(CDN・フォント・画像)は一切使わない。単一ファイル自己完結
@@ -149,6 +153,7 @@
         <th data-key="detectionMethod">検出方式</th>
         <th data-key="confidence">confidence</th>
         <th data-key="sharedWith">共有</th>
+        <th data-key="embeddedIn">埋め込み元</th>
         <th data-key="fileCount">構成ファイル数</th>
         <th data-key="entryFile">主ファイル</th>
       </tr>
