@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<!--
+  rebuilding-screen-unit-from-docs スキルガイド
+
+  設計書だけから1ファイルを再生成し元ファイルと軽量突合して設計書の欠落を発見する
+  stage1（単体観点・from-zero）スキルの解説。SKILL.md / references 配下の仕様のみを
+  転記する（創作なし）。
+-->
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>rebuilding-screen-unit-from-docs スキルガイド</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 0 24px 96px;
+    font-family: system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif;
+    line-height: 1.85; color: #1a1a1a; background: #fafafa;
+    max-width: 980px; margin-inline: auto;
+  }
+  header { padding: 56px 0 24px; border-bottom: 3px solid #1a1a1a; }
+  header h1 { font-size: 1.9rem; margin: 0 0 10px; letter-spacing: 0.01em; }
+  header .skill-name {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 1.0rem; background: #1a1a1a; color: #fafafa;
+    padding: 2px 10px; border-radius: 4px; vertical-align: middle;
+  }
+  header p { margin: 6px 0 0; color: #555; }
+  .meta-table { margin-top: 16px; font-size: 0.9rem; color: #555; }
+  .meta-table td { padding: 1px 16px 1px 0; }
+
+  nav.toc {
+    margin-top: 32px; padding: 18px 22px;
+    background: #fff; border: 1px solid #e0e0e0; border-radius: 8px;
+  }
+  nav.toc .toc-title { font-weight: 700; margin-bottom: 6px; }
+  nav.toc ol { margin: 0; padding-left: 1.4em; columns: 2; column-gap: 40px; }
+  nav.toc li { margin: 2px 0; }
+  nav.toc a { color: #1a1a1a; text-decoration: none; border-bottom: 1px dotted #999; }
+  nav.toc a:hover { border-bottom-style: solid; }
+
+  section { margin-top: 64px; }
+  section > h2 {
+    font-size: 1.35rem; padding-bottom: 8px; margin-bottom: 20px;
+    border-bottom: 2px solid #1a1a1a;
+  }
+  section > h2 .sec-num {
+    display: inline-block; min-width: 2.4em; margin-right: 10px;
+    font-family: ui-monospace, monospace; font-size: 0.95rem;
+    background: #1a1a1a; color: #fafafa; text-align: center;
+    padding: 1px 8px; border-radius: 4px; vertical-align: 2px;
+  }
+  h3 { font-size: 1.05rem; margin: 32px 0 10px; }
+  .note { color: #555; font-size: 0.92rem; }
+
+  table.spec { border-collapse: collapse; width: 100%; margin: 14px 0; background: #fff; font-size: 0.93rem; }
+  table.spec th, table.spec td { border: 1px solid #d8d8d8; padding: 8px 12px; text-align: left; vertical-align: top; }
+  table.spec th { background: #f0f0ee; font-weight: 700; white-space: nowrap; }
+  table.spec td code, li code, p code, table.spec th code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.86em; background: #eeeeea; padding: 1px 5px; border-radius: 3px;
+  }
+
+  pre.flow {
+    background: #16211c; color: #d7e6dc; border-radius: 8px;
+    padding: 20px 24px; overflow-x: auto;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.82rem; line-height: 1.55;
+  }
+  pre.flow .cap { color: #8fb8a0; }
+
+  figure.diagram { margin: 20px 0; padding: 8px; background: #fff;
+    border: 1px solid #e0e0e0; border-radius: 8px; }
+  figure.diagram svg { width: 100%; height: auto; display: block; cursor: zoom-in; }
+  figure.diagram figcaption { padding: 8px 10px 2px; }
+
+  .zoom-overlay {
+    position: fixed; inset: 0; z-index: 1000;
+    background: rgba(15, 23, 42, 0.93);
+    overflow: auto; padding: 24px; cursor: zoom-out;
+    -webkit-overflow-scrolling: touch;
+  }
+  .zoom-overlay svg {
+    width: 1880px; max-width: none; height: auto;
+    display: block; margin: 0 auto;
+    background: #fff; border-radius: 8px;
+  }
+
+  .def {
+    background: #fff; border-left: 4px solid #1a1a1a;
+    padding: 12px 18px; margin: 14px 0; border-radius: 0 6px 6px 0;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  }
+  .def dt { font-weight: 700; margin-top: 8px; }
+  .def dt:first-child { margin-top: 0; }
+  .def dd { margin: 2px 0 0 0; color: #333; }
+
+  .constraint {
+    background: #eef2f7; border: 1px solid #c8d4e3; border-radius: 8px;
+    padding: 12px 18px; margin: 16px 0; font-size: 0.93rem;
+  }
+  .constraint strong:first-child { color: #2a4a7a; }
+
+  .tag {
+    display: inline-block; font-family: ui-monospace, monospace; font-size: 0.78rem;
+    font-weight: 700; padding: 0 8px; border-radius: 3px; border: 1px solid transparent;
+  }
+  .tag.pass  { background: #e7f3e7; color: #23662a; border-color: #b9d9ba; }
+  .tag.fail  { background: #fbe9e7; color: #9c2b1a; border-color: #ecc0b8; }
+  .tag.error { background: #fdf3d7; color: #7a5d10; border-color: #e8d59a; }
+  .tag.mode  { background: #e8eef7; color: #2a4a7a; border-color: #c2d2e8; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>設計書からの単体ファイル再構築<br><span class="skill-name">rebuilding-screen-unit-from-docs</span></h1>
+  <p>設計書だけから1ファイルを再生成し、元ファイルと軽量突合して設計書の欠落を発見する stage1（単体観点・from-zero）スキル。</p>
+
+  <div class="def">
+    <dt>こんな人向け</dt>
+    <dd>from-zero でリバース設計書の記載粒度をファイル単位でブートストラップしたい人。既存の画面詳細設計書が「1 ファイル分だけ」正しく書けているかを軽量に検証したい人。</dd>
+    <dt>こんな場面で使う</dt>
+    <dd>ファイル単位の往復検証・from-zero での設計書品質ブートストラップを行うとき。画面単位の結合・e2e 検証（Playwright スモーク・複数ファイル横断の突合）は兄弟スキル <code>rebuilding-code-from-docs</code>（stage2）、環境同期・基準タグ運用は <code>syncing-reverse-env</code> の対象であり、本スキルの対象外。</dd>
+  </div>
+
+  <table class="meta-table">
+    <tr><td>対応 OS</td><td>macOS</td></tr>
+    <tr><td>検証状況</td><td>SKILL.md / references を正本として整理（個別の実機検証記録なし）</td></tr>
+    <tr><td>依存</td><td>allowed-tools: Read / Write / Edit / Bash / Grep / Glob / Agent / AskUserQuestion / Skill。連携スキル: rebuilding-code-from-docs（stage2・合格後の引き継ぎ先）</td></tr>
+    <tr><td>関連資料</td><td>SKILL.md / references/phase-details.md / references/ng-classification.md / scripts/measure-file-diff.sh</td></tr>
+  </table>
+</header>
+
+<nav class="toc">
+  <div class="toc-title">目次</div>
+  <ol>
+    <li><a href="#s1">概要</a></li>
+    <li><a href="#s2">位置づけ（stage1 / stage2 パイプライン）</a></li>
+    <li><a href="#s3">使い方</a></li>
+    <li><a href="#s4">カンニング防止（二層）</a></li>
+    <li><a href="#s5">動作フロー（P1〜P7）</a></li>
+    <li><a href="#s6">5 計測（合格判定表 + measure-file-diff.sh 入出力）</a></li>
+    <li><a href="#s7">ループ設計</a></li>
+    <li><a href="#s8">サブエージェント委任仕様</a></li>
+    <li><a href="#s9">関連スキル・資料</a></li>
+  </ol>
+</nav>
+
+<section id="s1">
+  <h2><span class="sec-num">§1</span>概要</h2>
+  <p>リバース設計書（<code>assets/02_画面詳細設計/</code> 準拠、章の役割キー 16 種で構成）の往復検証を、<strong>「1 起動 = 1 ファイル・単体観点・from-zero」</strong>で行う stage1 スキル。画面単位・結合観点・e2e の stage2（<code>rebuilding-code-from-docs</code>）とは役割が異なる。stage1 で設計書の記載粒度をファイル単位でブートストラップし、合格した画面から stage2（画面単位の結合検証）へ引き継ぐ。</p>
+  <div class="constraint">
+    <strong>目的の分離:</strong> コードを直すことは目的ではない。P5 の差分は「コードの誤り」ではなく「設計書の記載不足」として扱い、フィードバック先は当該設計書の該当章（役割キー）。設計書に対象ファイルの記載自体が無い場合は、ひな形から新規作成してよい（from-zero）。
+  </div>
+  <p>比較エンジンは自前実装する。<code>syncing-reverse-env</code> の重い環境同期・基準タグ運用には委譲しない（stage1 は 1 ファイル規模の軽量往復であり、画面単位の環境同期は過剰）。</p>
+  <h3>設計原則</h3>
+  <ol>
+    <li><strong>正本一元化</strong>: 環境固有値（ポート・worktree パス）には触れない。画面固有値の正は設計書 frontmatter。本スキル専用の config.yml は新設しない</li>
+    <li><strong>比較は自前の 5 計測で行う</strong>。<code>scripts/measure-file-diff.sh</code> の決定的出力のみを判定根拠とし、<code>syncing-reverse-env</code> の環境同期・基準タグ運用には委譲しない</li>
+    <li><strong>1 起動 = 1 ファイルの往復</strong>。他のファイルへは進まない。画面内の別ファイルを検証する場合は本スキルの再起動として扱う</li>
+    <li><strong>カンニング防止の二層</strong>（詳細は §4）</li>
+  </ol>
+</section>
+
+<section id="s2">
+  <h2><span class="sec-num">§2</span>位置づけ（stage1 / stage2 パイプライン）</h2>
+  <p>本スキルは、リバースドキュメント生成からコード再構築に至る一連のパイプラインのうち、設計書のファイル単位ブートストラップを担う stage1 に位置する。</p>
+  <figure class="diagram">
+    <svg viewBox="0 0 980 220" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="stage1/stage2 パイプライン図">
+      <defs>
+        <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="#1a1a1a"/>
+        </marker>
+      </defs>
+
+      <!-- Box 1: generating-screen-list-for-reverse-docs -->
+      <rect x="16" y="60" width="200" height="100" rx="8" fill="#f0f0ee" stroke="#999" stroke-width="1.5"/>
+      <text x="116" y="98" text-anchor="middle" font-size="13" font-weight="700" fill="#1a1a1a">画面一覧生成</text>
+      <text x="116" y="118" text-anchor="middle" font-size="10.5" font-family="ui-monospace,monospace" fill="#555">generating-screen</text>
+      <text x="116" y="132" text-anchor="middle" font-size="10.5" font-family="ui-monospace,monospace" fill="#555">-list-for-reverse-docs</text>
+      <text x="116" y="150" text-anchor="middle" font-size="10.5" fill="#777">画面一覧.HTML 作成</text>
+
+      <!-- Box 2: rebuilding-screen-unit-from-docs (stage1) -->
+      <rect x="266" y="44" width="220" height="132" rx="8" fill="#e8eef7" stroke="#2a4a7a" stroke-width="2"/>
+      <text x="376" y="80" text-anchor="middle" font-size="13" font-weight="700" fill="#2a4a7a">本スキル（stage1）</text>
+      <text x="376" y="100" text-anchor="middle" font-size="10.5" font-family="ui-monospace,monospace" fill="#2a4a7a">rebuilding-file</text>
+      <text x="376" y="114" text-anchor="middle" font-size="10.5" font-family="ui-monospace,monospace" fill="#2a4a7a">-from-docs</text>
+      <text x="376" y="134" text-anchor="middle" font-size="10.5" fill="#3a5a8a">単体・ファイル単位</text>
+      <text x="376" y="150" text-anchor="middle" font-size="10.5" fill="#3a5a8a">from-zero ブートストラップ</text>
+
+      <!-- Box 3: rebuilding-code-from-docs (stage2) -->
+      <rect x="536" y="60" width="220" height="100" rx="8" fill="#f0f0ee" stroke="#999" stroke-width="1.5"/>
+      <text x="646" y="92" text-anchor="middle" font-size="13" font-weight="700" fill="#1a1a1a">stage2（結合・e2e）</text>
+      <text x="646" y="112" text-anchor="middle" font-size="10.5" font-family="ui-monospace,monospace" fill="#555">rebuilding-code</text>
+      <text x="646" y="126" text-anchor="middle" font-size="10.5" font-family="ui-monospace,monospace" fill="#555">-from-docs</text>
+      <text x="646" y="146" text-anchor="middle" font-size="10.5" fill="#777">画面単位・Playwright スモーク</text>
+
+      <!-- Box 4: syncing-reverse-env -->
+      <rect x="806" y="60" width="160" height="100" rx="8" fill="#f0f0ee" stroke="#999" stroke-width="1.5"/>
+      <text x="886" y="98" text-anchor="middle" font-size="13" font-weight="700" fill="#1a1a1a">環境同期</text>
+      <text x="886" y="118" text-anchor="middle" font-size="10.5" font-family="ui-monospace,monospace" fill="#555">syncing-reverse</text>
+      <text x="886" y="132" text-anchor="middle" font-size="10.5" font-family="ui-monospace,monospace" fill="#555">-env</text>
+      <text x="886" y="150" text-anchor="middle" font-size="10.5" fill="#777">基準タグ・比較エンジン</text>
+
+      <!-- Arrows -->
+      <line x1="216" y1="110" x2="262" y2="110" stroke="#1a1a1a" stroke-width="1.6" marker-end="url(#arrow)"/>
+      <line x1="486" y1="110" x2="532" y2="110" stroke="#1a1a1a" stroke-width="1.6" marker-end="url(#arrow)"/>
+      <line x1="756" y1="110" x2="802" y2="110" stroke="#1a1a1a" stroke-width="1.6" marker-end="url(#arrow)"/>
+
+      <text x="239" y="102" text-anchor="middle" font-size="9.5" fill="#555">画面一覧</text>
+      <text x="509" y="102" text-anchor="middle" font-size="9.5" fill="#555">合格ファイル</text>
+      <text x="779" y="102" text-anchor="middle" font-size="9.5" fill="#555">呼び出し契約</text>
+
+      <text x="490" y="205" text-anchor="middle" font-size="10.5" fill="#777">1 起動 = 1 ファイル（stage1） → 1 起動 = 1 画面・結合検証（stage2） → 環境同期・比較エンジン（syncing-reverse-env）</text>
+    </svg>
+    <figcaption>画面一覧生成 → 本スキル（stage1・ファイル単位ブートストラップ） → stage2（画面単位・結合/e2e） → syncing-reverse-env（環境同期）の順で引き継がれる。矢印はクリックで拡大できる。</figcaption>
+  </figure>
+  <p class="note">本スキルが直接呼び出すのは <code>rebuilding-code-from-docs</code> の資産（章の役割キー→節キーワード対応表・<code>audit-consistency.sh</code>・テンプレート・<code>test-item-patterns.md</code> 台帳）のみ。<code>syncing-reverse-env</code> は stage2 側が担当する環境同期・比較エンジンであり、本スキルからは呼び出さない。</p>
+</section>
+
+<section id="s3">
+  <h2><span class="sec-num">§3</span>使い方</h2>
+  <div class="constraint">
+    <strong>前提条件:</strong> 対象ファイルが実装契約章のファイル分割表（既定 §15.1）に列挙されていること。列挙が無い場合は from-zero として扱い、P1 で新規追加を宣言してから進める。
+  </div>
+  <table class="spec">
+    <tr><th>項目</th><th>内容</th></tr>
+    <tr><td>起動引数</td><td>画面ディレクトリ + 対象ファイルパス（実装契約章のファイル分割表〔既定 §15.1〕の 1 エントリ）</td></tr>
+    <tr><td>比較エンジン</td><td>自前実装（<code>scripts/measure-file-diff.sh</code>）。<code>syncing-reverse-env</code> には委譲しない</td></tr>
+    <tr><td>1 起動の単位</td><td>1 起動 = 1 ファイルの往復。画面内の別ファイルは本スキルの再起動として扱う</td></tr>
+    <tr><td>合格後の遷移</td><td>合格した画面から stage2（<code>rebuilding-code-from-docs</code>）の画面単位・結合検証へ引き継ぐ</td></tr>
+  </table>
+</section>
+
+<section id="s4">
+  <h2><span class="sec-num">§4</span>カンニング防止（二層）</h2>
+  <p>生成物が「正解を見て書いた」ものにならないよう、2 つの独立した層で防止する。</p>
+  <figure class="diagram">
+    <svg viewBox="0 0 980 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="カンニング防止の二層構造図">
+      <defs>
+        <marker id="arrow2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="#1a1a1a"/>
+        </marker>
+      </defs>
+
+      <!-- Layer 1 -->
+      <rect x="20" y="20" width="440" height="250" rx="10" fill="#fdf3d7" stroke="#e8d59a" stroke-width="1.5"/>
+      <text x="240" y="48" text-anchor="middle" font-size="13.5" font-weight="700" fill="#7a5d10">層 1: ファイル内の答え</text>
+
+      <rect x="48" y="66" width="150" height="52" rx="6" fill="#fff" stroke="#c9ab5a" stroke-width="1.2"/>
+      <text x="123" y="88" text-anchor="middle" font-size="10.5" fill="#333">対象ファイル</text>
+      <text x="123" y="104" text-anchor="middle" font-size="10.5" fill="#333">（P2 前）</text>
+
+      <line x1="198" y1="92" x2="238" y2="92" stroke="#7a5d10" stroke-width="1.5" marker-end="url(#arrow2)"/>
+      <text x="218" y="82" text-anchor="middle" font-size="9" fill="#7a5d10">git rm</text>
+
+      <rect x="240" y="66" width="150" height="52" rx="6" fill="#fff" stroke="#c9ab5a" stroke-width="1.2"/>
+      <text x="315" y="88" text-anchor="middle" font-size="10.5" fill="#333">白紙化ゲート</text>
+      <text x="315" y="104" text-anchor="middle" font-size="10.5" fill="#333">（作業ツリーから消滅）</text>
+
+      <rect x="140" y="150" width="200" height="52" rx="6" fill="#fff" stroke="#c9ab5a" stroke-width="1.2"/>
+      <text x="240" y="172" text-anchor="middle" font-size="10.5" fill="#333">原本参照コミット</text>
+      <text x="240" y="188" text-anchor="middle" font-size="10.5" fill="#333">（削除直前 HEAD）</text>
+
+      <line x1="315" y1="118" x2="260" y2="146" stroke="#7a5d10" stroke-width="1.3" marker-end="url(#arrow2)"/>
+
+      <rect x="90" y="228" width="300" height="34" rx="6" fill="#fbe9e7" stroke="#ecc0b8" stroke-width="1.2"/>
+      <text x="240" y="250" text-anchor="middle" font-size="10.2" fill="#9c2b1a">P2〜P5取得時まで Read 禁止</text>
+
+      <!-- Layer 2 -->
+      <rect x="500" y="20" width="460" height="250" rx="10" fill="#eef2f7" stroke="#c8d4e3" stroke-width="1.5"/>
+      <text x="730" y="48" text-anchor="middle" font-size="13.5" font-weight="700" fill="#2a4a7a">層 2: セッション文脈の汚染</text>
+
+      <rect x="524" y="66" width="180" height="60" rx="6" fill="#fff" stroke="#a9c0dd" stroke-width="1.2"/>
+      <text x="614" y="88" text-anchor="middle" font-size="10.5" fill="#333">メインエージェント</text>
+      <text x="614" y="104" text-anchor="middle" font-size="10.5" fill="#333">（P5 でのみ原本 Read）</text>
+
+      <line x1="704" y1="96" x2="744" y2="96" stroke="#2a4a7a" stroke-width="1.5" marker-end="url(#arrow2)"/>
+      <text x="724" y="86" text-anchor="middle" font-size="9" fill="#2a4a7a">隔離委任</text>
+
+      <rect x="746" y="66" width="190" height="60" rx="6" fill="#fff" stroke="#a9c0dd" stroke-width="1.2"/>
+      <text x="841" y="88" text-anchor="middle" font-size="10.5" fill="#333">worker-sonnet（P4）</text>
+      <text x="841" y="104" text-anchor="middle" font-size="10.5" fill="#333">元コードのパス・内容を渡さない</text>
+
+      <rect x="600" y="160" width="140" height="46" rx="6" fill="#fff" stroke="#a9c0dd" stroke-width="1.2"/>
+      <text x="670" y="188" text-anchor="middle" font-size="10" fill="#333">周 N の生成文脈</text>
+
+      <rect x="760" y="160" width="140" height="46" rx="6" fill="#fff" stroke="#a9c0dd" stroke-width="1.2"/>
+      <text x="830" y="188" text-anchor="middle" font-size="10" fill="#333">周 N+1（新規起動）</text>
+
+      <line x1="740" y1="183" x2="756" y2="183" stroke="#9c2b1a" stroke-width="1.5" stroke-dasharray="4 3"/>
+      <text x="748" y="172" text-anchor="middle" font-size="8.5" fill="#9c2b1a">継承しない</text>
+
+      <rect x="540" y="228" width="380" height="34" rx="6" fill="#e7f3e7" stroke="#b9d9ba" stroke-width="1.2"/>
+      <text x="730" y="250" text-anchor="middle" font-size="10.2" fill="#23662a">ループ各周で新規サブエージェントを起動</text>
+    </svg>
+    <figcaption>層 1（対象ファイルを P2 で白紙化し原本の Read を P2〜P5 まで禁止）と層 2（P4 生成を worker-sonnet へ隔離委任し、元コードのパス・内容を prompt に含めない。周ごとに新規起動し前周の文脈を継承しない）の二重防止。</figcaption>
+  </figure>
+  <table class="spec">
+    <tr><th>層</th><th>対象</th><th>方式</th></tr>
+    <tr><td>層 1: ファイル内の答え</td><td>対象ファイルの内容</td><td>P2 で <code>git rm</code> により白紙化。削除直前の HEAD を「原本参照コミット」として記録し、以降 P5 まで作業ツリー上に実体が存在しない。原本は P5 でのみ <code>git show &lt;commit&gt;:&lt;path&gt;</code> で一時ファイルへ抽出する</td></tr>
+    <tr><td>層 2: セッション文脈の汚染</td><td>P4 生成エージェントの会話文脈</td><td>P4 は必ず <code>worker-sonnet</code> へ隔離委任。prompt には設計書の該当章・共通部品・単体テスト観点表の該当行・P3 のテストのみを渡し、元コードのパス・内容を一切含めない。ループの各周で新規サブエージェントを起動し前周の生成文脈を持ち越さない</td></tr>
+  </table>
+</section>
+
+<section id="s5">
+  <h2><span class="sec-num">§5</span>動作フロー（P1〜P7）</h2>
+  <pre class="flow"><span class="cap">P1</span> 入力ロード + preflight ── §15.1 対象確認 or from-zero 宣言
+<span class="cap">P2</span> 白紙化ゲート ── 内部整合監査 → ユーザー承認 → 対象ファイル1件のみ git rm
+<span class="cap">P3</span> 単体テスト仕様作成 ── 観点表からRED（TDD）
+<span class="cap">P4</span> サブエージェント生成 ── worker-sonnetへ隔離委任・唯一コードを書けるフェーズ
+<span class="cap">P5</span> 差分比較（5計測） ── 原本Read解禁・measure-file-diff.sh
+<span class="cap">P6</span> 設計書修正 ── 差分4分類・不合格ならP2へ再投入（上限5回）
+<span class="cap">P7</span> NG分類 + 報告 ── 収束/未収束判定・修正指示書
+</pre>
+  <p>各 Phase における元コード（原本参照コミットの内容）Read 可否を色分けして示す。</p>
+  <table class="spec">
+    <tr><th>Phase</th><th>内容</th><th>元コード Read 可否</th><th>完了条件</th></tr>
+    <tr>
+      <td>P1</td>
+      <td>設計書・DESIGN.md・共通設計書・メッセージ定義書・単体テスト観点表を frontmatter 経由でロード。<code>audit-consistency.sh --list-contract-files</code> で §15.1 対象一覧を取得し、対象ファイルの列挙有無を確認</td>
+      <td><span class="tag error">可（存在確認のみ）</span></td>
+      <td>対象ファイルが §15.1 リストに含まれることを確認済み（または from-zero 宣言済み）・設計書一式ロード済み</td>
+    </tr>
+    <tr>
+      <td>P2</td>
+      <td><code>audit-consistency.sh</code> 通常モードで内部整合性を確認。違反があれば P7 へ直行。問題無ければ AskUserQuestion で承認後、対象ファイル1件のみ <code>git rm</code></td>
+      <td><span class="tag error">可（対象特定のため。字面読み禁止）</span></td>
+      <td>内部整合監査結果記録済み・ユーザー承認取得済み・原本参照コミット記録済み・白紙化コミット完了</td>
+    </tr>
+    <tr>
+      <td>P3</td>
+      <td>単体テスト観点表から対象ファイルの担当観点を抽出しテストケースを先に書く（TDD の Red）</td>
+      <td><span class="tag fail">禁止</span>（<code>git show</code> 等の間接参照も禁止）</td>
+      <td>対象ファイルの観点に対応するテストケース一式が RED で書き出し済み</td>
+    </tr>
+    <tr>
+      <td>P4</td>
+      <td><strong>唯一コードを書けるフェーズ</strong>。<code>worker-sonnet</code> へ隔離委任（1 エージェント = 1 ファイル）</td>
+      <td><span class="tag fail">禁止</span>（メイン・サブエージェントとも）</td>
+      <td>対象ファイルが生成され、P3 のテストがローカルで実行可能</td>
+    </tr>
+    <tr>
+      <td>P5</td>
+      <td>原本参照コミットから一時ファイルへ抽出。単体テスト仕様の検査 + 5 計測（<code>measure-file-diff.sh</code>）を実施</td>
+      <td><span class="tag pass">可（本フェーズのみ）</span></td>
+      <td>単体テスト仕様の検査結果 + 5 計測の結果が省略なく記録済み</td>
+    </tr>
+    <tr>
+      <td>P6</td>
+      <td>P5 の差分を 4 分類（import / style / logic / JSX）に振り分け、設計書修正先を決定。不合格なら P2 へ再投入</td>
+      <td><span class="tag fail">禁止</span>（P5 の数値・パターンのみを根拠にする）</td>
+      <td>差分 4 分類・修正内容（または P2 再投入判断）が記録済み</td>
+    </tr>
+    <tr>
+      <td>P7</td>
+      <td>収束（5 計測 PASS かつ単体テスト仕様の検査 全項目合格）/ 未収束を判定し、修正指示書または「NG なし」を出力</td>
+      <td><span class="tag fail">禁止</span>（P5 の結果のみ参照）</td>
+      <td>修正指示書または「NG なし」明示・収束/未収束判定完了</td>
+    </tr>
+  </table>
+  <div class="constraint">
+    <strong>from-zero:</strong> §15.1 に対象ファイルが存在せず設計書側にも記載が無い場合、P1 で新規追加を宣言してから P2 以降に進む。ひな形は <code>assets/02_画面詳細設計/画面詳細設計書.md</code> のテンプレ構造に従う。単体テスト観点表に対応する観点が無い場合も同様に、意味キー規約（連番禁止・内容要約キー）に沿って最低限の行を追記してから進める。
+  </div>
+</section>
+
+<section id="s6">
+  <h2><span class="sec-num">§6</span>5 計測（合格判定表 + measure-file-diff.sh 入出力）</h2>
+  <table class="spec">
+    <tr><th>計測</th><th>合格条件</th></tr>
+    <tr><td>単体テスト仕様の検査（禁止パターン・import・コンポーネント/API 利用）</td><td>全項目合格</td></tr>
+    <tr><td>import の diff</td><td>0 行</td></tr>
+    <tr><td>スタイル定数の diff</td><td>0 行</td></tr>
+    <tr><td>ファイル全体の diff</td><td>行数を出力（参考値・合格判定には使わない）</td></tr>
+    <tr><td>実質 diff（コメント・空行除外）</td><td>20 行以下</td></tr>
+  </table>
+  <div class="constraint">
+    <strong>重大違反:</strong> import diff だけでの合格判定は重大違反とする。5 計測はすべて出力し、いずれか 1 つでも省略してはならない。
+  </div>
+  <h3>measure-file-diff.sh の入出力</h3>
+  <table class="spec">
+    <tr><th>項目</th><th>内容</th></tr>
+    <tr><td>呼び出し</td><td><code>scripts/measure-file-diff.sh &lt;generated-file&gt; &lt;original-file&gt;</code></td></tr>
+    <tr><td>標準出力</td><td><code>import_diff_lines=&lt;整数&gt;</code> / <code>style_diff_lines=&lt;整数&gt;</code> / <code>total_diff_lines=&lt;整数&gt;</code> / <code>substantive_diff_lines=&lt;整数&gt;</code> / <code>verdict=PASS|FAIL</code>（key=value を1行ずつ・機械可読）</td></tr>
+    <tr><td>verdict 判定式</td><td><code>import_diff_lines == 0 &amp;&amp; style_diff_lines == 0 &amp;&amp; substantive_diff_lines &lt;= 20</code> のとき <span class="tag pass">PASS</span>、それ以外 <span class="tag fail">FAIL</span></td></tr>
+    <tr><td>対象外</td><td>「単体テスト仕様の検査」（禁止パターン・import・コンポーネント/API 利用）は本スクリプトの対象外。P5 でメインが別途実施する</td></tr>
+    <tr><td>異常系</td><td>引数不足・ファイル不在は stderr にメッセージを出して <code>exit 1</code>。正常時は <code>exit 0</code></td></tr>
+  </table>
+  <h3>4 計測の算出方法（heuristic）</h3>
+  <table class="spec">
+    <tr><th>計測</th><th>算出方法</th></tr>
+    <tr><td>import diff</td><td>両ファイルから <code>^\s*import </code> 行を抽出→ソート→<code>diff</code> の差分行数（<code>^[&lt;&gt;]</code> 行の数）</td></tr>
+    <tr><td>style diff</td><td><code>className</code> / <code>style=</code> 属性・<code>const .*Style</code> 系変数・16 進カラーコード（<code>#[0-9a-fA-F]{3,8}</code>）・<code>px</code>/<code>rem</code>/<code>em</code>/<code>vh</code>/<code>vw</code> を含む数値行を抽出→ソート→diff の差分行数</td></tr>
+    <tr><td>全体 diff</td><td><code>diff &lt;original&gt; &lt;generated&gt;</code> の差分行数（参考値。合格判定には使わない）</td></tr>
+    <tr><td>実質 diff</td><td>コメント行（<code>^\s*//</code>・<code>^\s*/\*</code>・<code>^\s*\*</code>）と空行を除外した上での diff 差分行数</td></tr>
+  </table>
+  <p class="note">P5 の抽出手順: <code>git show &lt;原本参照コミット&gt;:&lt;対象ファイルパス&gt; &gt; $CLAUDE_JOB_DIR/tmp/&lt;basename&gt;.original</code>（<code>$CLAUDE_JOB_DIR</code> 未設定時は <code>${TMPDIR:-/tmp}/claude-job-&lt;session&gt;/</code> にフォールバック）。worktree・設計書リポジトリを汚染しないよう常にスクラッチ領域へ抽出する。</p>
+</section>
+
+<section id="s7">
+  <h2><span class="sec-num">§7</span>ループ設計</h2>
+  <table class="spec">
+    <tr><th>要素</th><th>内容</th></tr>
+    <tr><td>反復条件（内側）</td><td>P5 の判定（単体テスト仕様の検査 または verdict）が FAIL の場合、P6 で設計書を修正した上で P2（白紙化）へ再投入し、P3→P4→P5 をやり直す</td></tr>
+    <tr><td>上限回数（内側）</td><td>5 回</td></tr>
+    <tr><td>停止条件（内側）</td><td>収束停止: 単体テスト仕様の検査 全項目合格 かつ <code>verdict=PASS</code> / リソース上限: 5 回到達 / 発散検知: 同一差分集合（import diff・style diff・実質 diff の内容シグネチャ）が 2 連続で再発</td></tr>
+    <tr><td>反復条件（外側）</td><td>なし（1 起動 = 1 ファイルの往復。他のファイルへは進まない）</td></tr>
+    <tr><td>上限回数（外側）</td><td>1</td></tr>
+    <tr><td>検証役の分離</td><td>P5 の判定は <code>scripts/measure-file-diff.sh</code> の決定的出力のみで行う。P4 生成エージェントの自己申告では判定しない</td></tr>
+  </table>
+  <p class="note">P6 再投入時、原本参照コミットは変わらないため再取得不要（対象ファイルを再度白紙化し P3〜P5 をやり直すのみ）。発散確定（同一差分集合 2 連続）は失敗ではなく手がかりであり、差分内容自体を P7 の NG 分類材料として使う。</p>
+</section>
+
+<section id="s8">
+  <h2><span class="sec-num">§8</span>サブエージェント委任仕様</h2>
+  <table class="spec">
+    <tr><th>呼び出し箇所</th><th>subagent_type</th><th>prompt 骨格</th><th>期待返却値</th></tr>
+    <tr>
+      <td>P4（生成）</td>
+      <td><code>worker-sonnet</code></td>
+      <td>対象設計書の該当章の抜粋 + 共通部品（DESIGN.md・共通設計書・メッセージ定義書の関連部分）+ 単体テスト観点表の該当行 + P3 で書いたテスト + 「元コードのパス・内容を一切含めない」を明記</td>
+      <td>実装ファイル1件・変更内容・P3 テストのローカル実行可否</td>
+    </tr>
+    <tr>
+      <td>P5（テスト実行・5 計測スクリプト実行）</td>
+      <td><code>worker-haiku</code></td>
+      <td>実行するテストコマンド・<code>scripts/measure-file-diff.sh</code> 呼び出しコマンドをベタ書き・判断不要と明記</td>
+      <td>各コマンドの終了コード・出力全文（5 計測の key=value を省略なく）</td>
+    </tr>
+  </table>
+  <div class="constraint">
+    <strong>新規起動の徹底:</strong> ループの各周（P6→P2 再投入後の P4 再実行時）で必ず新規に <code>worker-sonnet</code> を起動する。前周の会話・生成物の文脈を prompt に含めない（同一エージェントへの追加指示は禁止）。
+  </div>
+</section>
+
+<section id="s9">
+  <h2><span class="sec-num">§9</span>関連スキル・資料</h2>
+  <table class="spec">
+    <tr><th>資料</th><th>役割</th></tr>
+    <tr><td>references/phase-details.md</td><td>P4 サブエージェント委任 prompt 骨格・5 計測の算出方法・P6 差分分類マップ・修正指示書の書式</td></tr>
+    <tr><td>references/ng-classification.md</td><td>検出シグナル→失敗クラス→章（役割キー）帰着のマッピング（stage1 版）</td></tr>
+    <tr><td>rebuilding-code-from-docs（stage2）</td><td>画面単位・結合観点・e2e。本スキルの合格後の引き継ぎ先</td></tr>
+    <tr><td>rebuilding-code-from-docs/references/phase-details.md</td><td>章の役割キー→節キーワード対応表（正本）</td></tr>
+    <tr><td>rebuilding-code-from-docs/scripts/audit-consistency.sh</td><td>実装契約章のファイル分割表取得・内部整合性監査（本スキルが流用）</td></tr>
+    <tr><td>rebuilding-code-from-docs/assets/02_画面詳細設計/画面詳細設計書.md</td><td>章の役割キー（16 種、既定 §1〜§16）テンプレート</td></tr>
+    <tr><td>rebuilding-code-from-docs/assets/02_画面詳細設計/単体テスト観点表.md</td><td>単体テスト観点表テンプレート</td></tr>
+    <tr><td>rebuilding-code-from-docs/references/test-item-patterns.md</td><td>失敗クラス台帳（stage1・stage2 共通の正本。テンプレ昇格条件に合致した場合に追記）</td></tr>
+    <tr><td>意味キー規約</td><td>連番 ID 禁止・意味語キー必須の正本</td></tr>
+  </table>
+</section>
+
+<div id="zoom-overlay" class="zoom-overlay" hidden></div>
+<script>
+  (function () {
+    var overlay = document.getElementById('zoom-overlay');
+    if (!overlay) return;
+    document.querySelectorAll('figure.diagram svg').forEach(function (svg) {
+      svg.addEventListener('click', function () {
+        overlay.innerHTML = '';
+        overlay.appendChild(svg.cloneNode(true));
+        overlay.hidden = false;
+        document.body.style.overflow = 'hidden';
+      });
+    });
+    overlay.addEventListener('click', function () {
+      overlay.hidden = true;
+      overlay.innerHTML = '';
+      document.body.style.overflow = '';
+    });
+  })();
+</script>
+
+</body>
+</html>
