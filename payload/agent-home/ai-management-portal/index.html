@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>agent-toolkit ポータル</title>
+  <link rel="stylesheet" href="style.css" />
+  <script type="module" src="src/common/header.js"></script>
+</head>
+<body>
+  <div class="pm-page">
+    <header class="topbar">
+      <a class="brand" href="#">
+        <span class="brand-title">agent-toolkit ポータル</span>
+        <span class="brand-sub">skills · design</span>
+      </a>
+      <nav class="topnav">
+        <a href="catalog/skills.html">スキル一覧</a>
+      </nav>
+    </header>
+
+    <main class="pm-main">
+      <!-- ヒーロー -->
+      <div class="pm-hero">
+        <div>
+          <h1>agent-toolkit ポータル</h1>
+          <p>Claude Code のスキルと設計ガイドを 1 画面で俯瞰する。本リポジトリに実際に同梱している資産のみを掲載しています。</p>
+        </div>
+        <span class="pm-updated">更新: <!-- PM:UPDATED -->2026-07-03<!-- /PM:UPDATED --></span>
+      </div>
+
+      <!-- 規模サマリ（実ファイル数を集計してベタ書き） -->
+      <div class="sec-label">規模サマリ</div>
+      <div class="metric-grid">
+        <a class="metric-card" href="#/category/design">
+          <div class="metric-label">設計ガイド</div>
+          <div class="metric-value">7<span class="unit">件</span></div>
+          <div class="metric-sub">design/**.html</div>
+        </a>
+        <a class="metric-card ok" href="catalog/skills.html">
+          <div class="metric-label">スキル</div>
+          <div class="metric-value"><!-- GEN:COUNT:skills -->2<!-- /GEN:COUNT:skills --><span class="unit">個</span></div>
+          <div class="metric-sub">skills/**/SKILL.md</div>
+        </a>
+        <a class="metric-card ok" href="#">
+          <div class="metric-label">hook</div>
+          <div class="metric-value"><!-- GEN:COUNT:hooks -->36<!-- /GEN:COUNT:hooks --><span class="unit">本</span></div>
+          <div class="metric-sub">~/.claude/rules/**/*.sh</div>
+        </a>
+        <a class="metric-card" href="#">
+          <div class="metric-label">ルール</div>
+          <div class="metric-value"><!-- GEN:COUNT:rules -->21<!-- /GEN:COUNT:rules --><span class="unit">本</span></div>
+          <div class="metric-sub">~/.claude/rules/*.md</div>
+        </a>
+        <a class="metric-card ok" href="#">
+          <div class="metric-label">サブエージェント</div>
+          <div class="metric-value"><!-- GEN:COUNT:subagents -->5<!-- /GEN:COUNT:subagents --><span class="unit">体</span></div>
+          <div class="metric-sub">~/.claude/agents/</div>
+        </a>
+        <a class="metric-card" href="#">
+          <div class="metric-label">ルーティン</div>
+          <div class="metric-value"><!-- GEN:COUNT:routines -->0<!-- /GEN:COUNT:routines --></div>
+          <div class="metric-sub">routines/（クラウド）</div>
+        </a>
+        <a class="metric-card" href="#">
+          <div class="metric-label">ツール設定</div>
+          <div class="metric-value"><!-- GEN:COUNT:tools -->0<!-- /GEN:COUNT:tools --><span class="unit">件</span></div>
+          <div class="metric-sub">MCP ツール設定ガイド</div>
+        </a>
+      </div>
+
+      <!-- ドキュメント入口（カテゴリカード → クリックでカテゴリ内一覧へドリルダウン） -->
+      <div class="sec-label">ドキュメント入口</div>
+      <div id="app-main" class="docs-entry-mount"></div>
+
+      <div class="pm-foot">数値は本リポジトリの <code>skills/</code> 配下の実ファイル数および新 PC セットアップ後の実数を集計した静的値です。</div>
+    </main>
+  </div>
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>

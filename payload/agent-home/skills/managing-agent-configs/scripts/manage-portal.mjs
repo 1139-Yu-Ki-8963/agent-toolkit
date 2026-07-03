@@ -1,0 +1,933 @@
+#!/usr/bin/env node
+// ポータルの生成・検証・配信を単一スクリプトに集約する。
+// 実行例:
+//   node skills/managing-agent-configs/scripts/manage-portal.mjs generate
+//   node skills/managing-agent-configs/scripts/manage-portal.mjs check
+//   node skills/managing-agent-configs/scripts/manage-portal.mjs verify [--only <key>,<key>]
+//   node skills/managing-agent-configs/scripts/manage-portal.mjs serve
+
+import fs from "node:fs";
+import path from "node:path";
+import os from "node:os";
+import http from "node:http";
+import { fileURLToPath, pathToFileURL } from "node:url";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const REPO_ROOT = path.resolve(__dirname, "../../..");
+const PORTAL = path.join(REPO_ROOT, "ai-management-portal");
+const HOME_DIR = os.homedir();
+
+const SKILLS_DIR = path.join(REPO_ROOT, "skills");
+const ROUTINES_DIR = path.join(REPO_ROOT, "routines");
+const SKILL_CATEGORIES_FILE = path.join(PORTAL, "data", "skill-categories.js");
+const MANIFEST_FILE = path.join(PORTAL, "data", "manifest.js");
+const SKILLS_HTML = path.join(PORTAL, "catalog", "skills.html");
+const INDEX_HTML = path.join(PORTAL, "index.html");
+const RULES_DIR = path.join(HOME_DIR, ".claude", "rules");
+const AGENTS_DIR = path.join(HOME_DIR, ".claude", "agents");
+
+// ── frontmatter パース ──────────────────────────────────────────
+
+function readFrontmatter(filePath) {
+  const text = fs.readFileSync(filePath, "utf8");
+  const lines = text.split("\n");
+  if (lines[0].trim() !== "---") return null;
+  const end = lines.indexOf("---", 1);
+  if (end === -1) return null;
+  return lines.slice(1, end);
+}
+
+function parseSkillMd(filePath) {
+  const fmLines = readFrontmatter(filePath);
+  if (!fmLines) return null;
+
+  let name = null;
+  const descLines = [];
+  let i = 0;
+  while (i < fmLines.length) {
+    const line = fmLines[i];
+    const m = line.match(/^([A-Za-z0-9_-]+):\s*(.*)$/);
+    if (m) {
+      const key = m[1];
+      const rest = m[2];
+      if (key === "name") {
+        name = rest.trim().replace(/^["']|["']$/g, "");
+        i++;
+        continue;
+      }
+      if (key === "description") {
+        i++;
+        while (i < fmLines.length && (fmLines[i].trim() === "" || /^\s+/.test(fmLines[i]))) {
+          const trimmed = fmLines[i].trim();
+          if (trimmed !== "") descLines.push(trimmed);
+          i++;
+        }
+        continue;
+      }
+    }
+    i++;
+  }
+
+  const triggerIdx = descLines.findIndex((l) => /^TRIGGER when:/.test(l));
+  let summary;
+  let trigger;
+  if (triggerIdx === -1) {
+    summary = descLines.join(" ").trim();
+    trigger = "";
+  } else {
+    summary = descLines.slice(0, triggerIdx).join(" ").trim();
+    trigger = descLines[triggerIdx].replace(/^TRIGGER when:\s*/, "").trim();
+  }
+
+  return { name, summary, trigger };
+}
+
+// ── スキル走査 ──────────────────────────────────────────────────
+
+function collectSkills() {
+  const entries = fs
+    .readdirSync(SKILLS_DIR, { withFileTypes: true })
+    .filter((e) => e.isDirectory())
+    .map((e) => e.name)
+    .sort();
+
+  const skills = [];
+  for (const dirName of entries) {
+    const skillMd = path.join(SKILLS_DIR, dirName, "SKILL.md");
+    if (!fs.existsSync(skillMd)) continue;
+    const parsed = parseSkillMd(skillMd);
+    if (!parsed) {
+      console.error(`警告: ${dirName}/SKILL.md の frontmatter を解析できませんでした`);
+      continue;
+    }
+    const id = parsed.name || dirName;
+    // guide フィールド: references/<id>-guide.html が実在すれば true
+    const guideFile = path.join(SKILLS_DIR, dirName, "references", `${id}-guide.html`);
+    const guide = fs.existsSync(guideFile);
+    if (!guide) {
+      console.error(`警告: ${id} のガイド HTML が見つかりません（${dirName}/references/${id}-guide.html）`);
+    }
+    skills.push({
+      id,
+      dirName,
+      summary: parsed.summary,
+      trigger: parsed.trigger,
+      guide,
+    });
+  }
+  return skills;
+}
+
+async function loadSkillCategoryMap() {
+  const mod = await import(pathToFileURL(SKILL_CATEGORIES_FILE).href);
+  return mod.SKILL_CATEGORY;
+}
+
+function resolveCat(skillCategoryMap, id) {
+  const entry = skillCategoryMap[id];
+  if (entry === undefined) return { cat: "other", sub: undefined };
+  if (typeof entry === "string") return { cat: entry, sub: undefined };
+  return { cat: entry.cat, sub: entry.sub };
+}
+
+function warnUnmappedAndStale(skills, skillCategoryMap) {
+  const warnings = [];
+  const skillIds = new Set(skills.map((s) => s.id));
+
+  for (const s of skills) {
+    if (skillCategoryMap[s.id] === undefined) {
+      warnings.push(`未登録: "${s.id}" が data/skill-categories.js の SKILL_CATEGORY に無い（cat: "other" にフォールバック）`);
+    }
+  }
+  for (const key of Object.keys(skillCategoryMap)) {
+    if (!skillIds.has(key)) {
+      warnings.push(`削除済み疑い: "${key}" が data/skill-categories.js の SKILL_CATEGORY に残っているが、対応する skills/${key}/SKILL.md が見つからない`);
+    }
+  }
+  return warnings;
+}
+
+// ── コード生成 ──────────────────────────────────────────────────
+
+function buildSkillsArraySource(skills, skillCategoryMap) {
+  const rows = skills.map((s) => {
+    const { cat, sub } = resolveCat(skillCategoryMap, s.id);
+    const fields = [
+      `id: ${JSON.stringify(s.id)}`,
+      `cat: ${JSON.stringify(cat)}`,
+    ];
+    if (sub) fields.push(`sub: ${JSON.stringify(sub)}`);
+    fields.push(`summary: ${JSON.stringify(s.summary)}`);
+    fields.push(`trigger: ${JSON.stringify(s.trigger)}`);
+    if (s.guide) fields.push(`guide: true`);
+    return `      { ${fields.join(", ")} },`;
+  });
+  return `    const SKILLS = [\n${rows.join("\n")}\n    ];`;
+}
+
+function replaceBetweenMarkers(text, startMarker, endMarker, replacement) {
+  const startIdx = text.indexOf(startMarker);
+  const endIdx = text.indexOf(endMarker);
+  if (startIdx === -1 || endIdx === -1 || endIdx < startIdx) {
+    throw new Error(`マーカーが見つかりません: ${startMarker} ... ${endMarker}`);
+  }
+  const before = text.slice(0, startIdx + startMarker.length);
+  const after = text.slice(endIdx);
+  return `${before}\n${replacement}\n    ${after}`;
+}
+
+function replaceInlineBetweenMarkers(text, startMarker, endMarker, replacement) {
+  const startIdx = text.indexOf(startMarker);
+  const endIdx = text.indexOf(endMarker);
+  if (startIdx === -1 || endIdx === -1 || endIdx < startIdx) {
+    throw new Error(`マーカーが見つかりません: ${startMarker} ... ${endMarker}`);
+  }
+  const before = text.slice(0, startIdx + startMarker.length);
+  const after = text.slice(endIdx);
+  return `${before}${replacement}${after}`;
+}
+
+// ── カウント集計 ──────────────────────────────────────────────────
+
+function countSkills() {
+  return fs
+    .readdirSync(SKILLS_DIR, { withFileTypes: true })
+    .filter((e) => e.isDirectory() && fs.existsSync(path.join(SKILLS_DIR, e.name, "SKILL.md")))
+    .length;
+}
+
+function walkFiles(dir, predicate, acc = []) {
+  if (!fs.existsSync(dir)) return acc;
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      walkFiles(full, predicate, acc);
+    } else if (predicate(full)) {
+      acc.push(full);
+    }
+  }
+  return acc;
+}
+
+function countHooks() {
+  return walkFiles(RULES_DIR, (f) => f.endsWith(".sh")).length;
+}
+
+function countRules() {
+  if (!fs.existsSync(RULES_DIR)) return 0;
+  return fs
+    .readdirSync(RULES_DIR, { withFileTypes: true })
+    .filter((e) => e.isDirectory() && fs.existsSync(path.join(RULES_DIR, e.name, "rule.md")))
+    .length;
+}
+
+function countSubagents() {
+  if (!fs.existsSync(AGENTS_DIR)) return 0;
+  return fs.readdirSync(AGENTS_DIR, { withFileTypes: true }).filter((e) => e.isDirectory()).length;
+}
+
+function countRoutines() {
+  return walkFiles(ROUTINES_DIR, (f) => f.endsWith("ルーティン設計書.md")).length;
+}
+
+async function countTools() {
+  const mod = await import(pathToFileURL(MANIFEST_FILE).href + "?t=" + Date.now());
+  const groups = mod.VISUAL_TOOL_GROUPS;
+  const toolsGroup = groups.find((g) => g.id === "tools");
+  if (!toolsGroup) return 0;
+  const directTools = (toolsGroup.tools || []).length;
+  const sectionTools = (toolsGroup.sections || []).reduce((acc, s) => acc + (s.toolIds || []).length, 0);
+  return directTools + sectionTools;
+}
+
+// ── generate サブコマンド ──────────────────────────────────────
+
+async function cmdGenerate(checkMode = false) {
+  const skills = collectSkills();
+  const skillCategoryMap = await loadSkillCategoryMap();
+  const warnings = warnUnmappedAndStale(skills, skillCategoryMap);
+  for (const w of warnings) console.error(`警告: ${w}`);
+
+  // catalog/skills.html の GEN:SKILLS ブロックを再生成
+  const skillsHtmlBefore = fs.readFileSync(SKILLS_HTML, "utf8");
+  const skillsArraySource = buildSkillsArraySource(skills, skillCategoryMap);
+  const skillsHtmlAfter = replaceBetweenMarkers(
+    skillsHtmlBefore,
+    "// <!-- GEN:SKILLS -->",
+    "// <!-- /GEN:SKILLS -->",
+    skillsArraySource
+  );
+
+  // index.html の規模サマリ 6 種 + PM:UPDATED を再生成
+  const counts = {
+    skills: countSkills(),
+    hooks: countHooks(),
+    rules: countRules(),
+    subagents: countSubagents(),
+    routines: countRoutines(),
+    tools: await countTools(),
+  };
+
+  let indexHtmlAfter = fs.readFileSync(INDEX_HTML, "utf8");
+  for (const [key, value] of Object.entries(counts)) {
+    // routines と tools のマーカーが存在する場合のみ置換
+    const startMarker = `<!-- GEN:COUNT:${key} -->`;
+    const endMarker = `<!-- /GEN:COUNT:${key} -->`;
+    if (indexHtmlAfter.includes(startMarker)) {
+      indexHtmlAfter = replaceInlineBetweenMarkers(indexHtmlAfter, startMarker, endMarker, String(value));
+    }
+  }
+  const today = new Date().toISOString().slice(0, 10);
+  indexHtmlAfter = indexHtmlAfter.replace(
+    /<!-- PM:UPDATED -->.*?<!-- \/PM:UPDATED -->/,
+    `<!-- PM:UPDATED -->${today}<!-- /PM:UPDATED -->`
+  );
+
+  const indexHtmlBefore = fs.readFileSync(INDEX_HTML, "utf8");
+  const changed = skillsHtmlAfter !== skillsHtmlBefore || indexHtmlAfter !== indexHtmlBefore;
+
+  if (checkMode) {
+    if (changed) {
+      // 差分箇所を出力
+      if (skillsHtmlAfter !== skillsHtmlBefore) {
+        console.error("差分あり: catalog/skills.html が skills/ 実体と同期していません。");
+        showDiff(skillsHtmlBefore, skillsHtmlAfter, "catalog/skills.html");
+      }
+      if (indexHtmlAfter !== indexHtmlBefore) {
+        console.error("差分あり: index.html が実体と同期していません。");
+        showDiff(indexHtmlBefore, indexHtmlAfter, "index.html");
+      }
+      console.error("node skills/managing-agent-configs/scripts/manage-portal.mjs generate を実行してください。");
+      process.exit(1);
+    }
+    console.error("差分なし: skills.html / index.html は同期済みです。");
+    process.exit(0);
+  }
+
+  const changedFiles = [];
+  if (skillsHtmlAfter !== skillsHtmlBefore) {
+    fs.writeFileSync(SKILLS_HTML, skillsHtmlAfter);
+    changedFiles.push("catalog/skills.html");
+  }
+  if (indexHtmlAfter !== indexHtmlBefore) {
+    fs.writeFileSync(INDEX_HTML, indexHtmlAfter);
+    changedFiles.push("index.html");
+  }
+
+  const msg = `生成完了: skills=${counts.skills} hooks=${counts.hooks} rules=${counts.rules} subagents=${counts.subagents} routines=${counts.routines} tools=${counts.tools}`;
+  console.error(msg);
+  if (changedFiles.length > 0) {
+    console.error(`更新ファイル: ${changedFiles.join(", ")}`);
+  } else {
+    console.error("変更なし（既に同期済み）");
+  }
+}
+
+function showDiff(before, after, label) {
+  const beforeLines = before.split("\n");
+  const afterLines = after.split("\n");
+  const maxLen = Math.max(beforeLines.length, afterLines.length);
+  let diffCount = 0;
+  for (let i = 0; i < maxLen && diffCount < 20; i++) {
+    if (beforeLines[i] !== afterLines[i]) {
+      console.error(`  ${label}:${i + 1}: - ${(beforeLines[i] || "").slice(0, 120)}`);
+      console.error(`  ${label}:${i + 1}: + ${(afterLines[i] || "").slice(0, 120)}`);
+      diffCount++;
+    }
+  }
+  if (diffCount === 20) console.error("  ... (差分が多いため省略)");
+}
+
+// ── verify サブコマンド ──────────────────────────────────────────
+
+async function cmdVerify(onlyKeys) {
+  const results = [];
+
+  // カタログ-ドリフト
+  if (!onlyKeys || onlyKeys.includes("catalog-ドリフト")) {
+    results.push(await checkCatalogDrift());
+  }
+
+  // guide-カバレッジ
+  if (!onlyKeys || onlyKeys.includes("guide-カバレッジ")) {
+    results.push(checkGuideCoverage());
+  }
+
+  // 数値-一致
+  if (!onlyKeys || onlyKeys.includes("数値-一致")) {
+    results.push(await checkCountsMatch());
+  }
+
+  // リンク-実在
+  if (!onlyKeys || onlyKeys.includes("リンク-実在")) {
+    results.push(checkLinksExist());
+  }
+
+  // guide-テンプレ準拠
+  if (!onlyKeys || onlyKeys.includes("guide-テンプレ準拠")) {
+    results.push(checkGuideTemplate());
+  }
+
+  // カテゴリ-整合
+  if (!onlyKeys || onlyKeys.includes("カテゴリ-整合")) {
+    results.push(await checkCategoryConsistency());
+  }
+
+  // エイリアス-解決
+  if (!onlyKeys || onlyKeys.includes("エイリアス-解決")) {
+    results.push(checkAliasResolution());
+  }
+
+  // 出力
+  let failCount = 0;
+  let warnCount = 0;
+  let passCount = 0;
+  for (const r of results) {
+    const icon = r.status === "FAIL" ? "[FAIL]" : r.status === "WARN" ? "[WARN]" : "[PASS]";
+    if (r.status === "FAIL") {
+      failCount++;
+      console.error(`${icon} ${r.key} — ${r.problems.length} 件`);
+      for (const p of r.problems) console.error(`  ${p}`);
+    } else if (r.status === "WARN") {
+      warnCount++;
+      console.error(`${icon} ${r.key} — ${r.problems.length} 件`);
+      for (const p of r.problems) console.error(`  ${p}`);
+    } else {
+      passCount++;
+      console.error(`${icon} ${r.key}`);
+    }
+  }
+
+  console.error(`\nまとめ: FAIL ${failCount} / WARN ${warnCount} / PASS ${passCount}`);
+  if (failCount > 0) process.exit(1);
+}
+
+async function checkCatalogDrift() {
+  // generate --check 相当を内部実行
+  const skills = collectSkills();
+  const skillCategoryMap = await loadSkillCategoryMap();
+  const skillsHtmlBefore = fs.readFileSync(SKILLS_HTML, "utf8");
+  const skillsArraySource = buildSkillsArraySource(skills, skillCategoryMap);
+  const skillsHtmlAfter = replaceBetweenMarkers(
+    skillsHtmlBefore,
+    "// <!-- GEN:SKILLS -->",
+    "// <!-- /GEN:SKILLS -->",
+    skillsArraySource
+  );
+
+  const counts = {
+    skills: countSkills(),
+    hooks: countHooks(),
+    rules: countRules(),
+    subagents: countSubagents(),
+    routines: countRoutines(),
+    tools: await countTools(),
+  };
+
+  let indexHtmlAfter = fs.readFileSync(INDEX_HTML, "utf8");
+  for (const [key, value] of Object.entries(counts)) {
+    const startMarker = `<!-- GEN:COUNT:${key} -->`;
+    const endMarker = `<!-- /GEN:COUNT:${key} -->`;
+    if (indexHtmlAfter.includes(startMarker)) {
+      indexHtmlAfter = replaceInlineBetweenMarkers(indexHtmlAfter, startMarker, endMarker, String(value));
+    }
+  }
+  const today = new Date().toISOString().slice(0, 10);
+  indexHtmlAfter = indexHtmlAfter.replace(
+    /<!-- PM:UPDATED -->.*?<!-- \/PM:UPDATED -->/,
+    `<!-- PM:UPDATED -->${today}<!-- /PM:UPDATED -->`
+  );
+
+  const indexHtmlBefore = fs.readFileSync(INDEX_HTML, "utf8");
+  const problems = [];
+  if (skillsHtmlAfter !== skillsHtmlBefore) problems.push("catalog/skills.html がドリフトしています");
+  if (indexHtmlAfter !== indexHtmlBefore) problems.push("index.html がドリフトしています");
+
+  return {
+    key: "catalog-ドリフト",
+    status: problems.length > 0 ? "FAIL" : "PASS",
+    problems,
+  };
+}
+
+function checkGuideCoverage() {
+  const problems = [];
+  const entries = fs
+    .readdirSync(SKILLS_DIR, { withFileTypes: true })
+    .filter((e) => e.isDirectory())
+    .map((e) => e.name)
+    .sort();
+
+  for (const dirName of entries) {
+    const skillMd = path.join(SKILLS_DIR, dirName, "SKILL.md");
+    if (!fs.existsSync(skillMd)) continue;
+    const parsed = parseSkillMd(skillMd);
+    const id = (parsed && parsed.name) || dirName;
+
+    // id フォーマット検証
+    if (!/^[a-z0-9-]+$/.test(id)) {
+      problems.push(`${id}: id が ^[a-z0-9-]+$ に合致しない`);
+    }
+
+    const refsDir = path.join(SKILLS_DIR, dirName, "references");
+    const guideFile = path.join(refsDir, `${id}-guide.html`);
+    if (!fs.existsSync(guideFile)) {
+      problems.push(`${id}: references/${id}-guide.html が存在しない`);
+    }
+
+    // 孤児検出: references/ 内の *-guide.html でファイル名 ≠ <親dir>-guide.html
+    if (fs.existsSync(refsDir)) {
+      const refFiles = fs.readdirSync(refsDir).filter((f) => f.endsWith("-guide.html"));
+      for (const rf of refFiles) {
+        if (rf !== `${id}-guide.html`) {
+          problems.push(`${dirName}/references/${rf}: 孤児ガイド（期待ファイル名: ${id}-guide.html）`);
+        }
+      }
+    }
+  }
+
+  return {
+    key: "guide-カバレッジ",
+    status: problems.length > 0 ? "FAIL" : "PASS",
+    problems,
+  };
+}
+
+async function checkCountsMatch() {
+  const problems = [];
+
+  // skills 3点一致
+  const skillsActual = countSkills();
+
+  // GEN:SKILLS ブロック内エントリ数
+  const skillsHtml = fs.readFileSync(SKILLS_HTML, "utf8");
+  const genStart = skillsHtml.indexOf("// <!-- GEN:SKILLS -->");
+  const genEnd = skillsHtml.indexOf("// <!-- /GEN:SKILLS -->");
+  const genBlock = genStart !== -1 && genEnd !== -1 ? skillsHtml.slice(genStart, genEnd) : "";
+  const genEntries = (genBlock.match(/\{ id:/g) || []).length;
+
+  // GEN:COUNT:skills 値
+  const countMatch = skillsHtml.match(/<!-- GEN:COUNT:skills -->(.*?)<!-- \/GEN:COUNT:skills -->/);
+  const genCount = countMatch ? parseInt(countMatch[1], 10) : NaN;
+
+  if (skillsActual !== genEntries) {
+    problems.push(`skills 実体数(${skillsActual}) ≠ GEN:SKILLS ブロック内エントリ数(${genEntries})`);
+  }
+
+  // GEN:COUNT は index.html から取得
+  const indexHtml = fs.readFileSync(INDEX_HTML, "utf8");
+  const skillsCountMatch = indexHtml.match(/<!-- GEN:COUNT:skills -->(.*?)<!-- \/GEN:COUNT:skills -->/);
+  const indexGenCount = skillsCountMatch ? parseInt(skillsCountMatch[1], 10) : NaN;
+  if (skillsActual !== indexGenCount) {
+    problems.push(`skills 実体数(${skillsActual}) ≠ index.html GEN:COUNT:skills(${indexGenCount})`);
+  }
+
+  // routines カウント
+  const routinesActual = countRoutines();
+  const routinesMatch = indexHtml.match(/<!-- GEN:COUNT:routines -->(.*?)<!-- \/GEN:COUNT:routines -->/);
+  if (routinesMatch) {
+    const routinesGen = parseInt(routinesMatch[1], 10);
+    if (routinesActual !== routinesGen) {
+      problems.push(`routines 実体数(${routinesActual}) ≠ GEN:COUNT:routines(${routinesGen})`);
+    }
+  }
+
+  // tools カウント
+  const toolsActual = await countTools();
+  const toolsMatch = indexHtml.match(/<!-- GEN:COUNT:tools -->(.*?)<!-- \/GEN:COUNT:tools -->/);
+  if (toolsMatch) {
+    const toolsGen = parseInt(toolsMatch[1], 10);
+    if (toolsActual !== toolsGen) {
+      problems.push(`tools 実体数(${toolsActual}) ≠ GEN:COUNT:tools(${toolsGen})`);
+    }
+  }
+
+  return {
+    key: "数値-一致",
+    status: problems.length > 0 ? "FAIL" : "PASS",
+    problems,
+  };
+}
+
+function checkLinksExist() {
+  const problems = [];
+
+  // PORTAL 配下 *.html（templates/ 除外）+ REPO_ROOT/routines/index.html
+  const htmlFiles = walkFiles(PORTAL, (f) => f.endsWith(".html") && !f.includes("/templates/"));
+  const routinesIndex = path.join(REPO_ROOT, "routines", "index.html");
+  if (fs.existsSync(routinesIndex)) htmlFiles.push(routinesIndex);
+
+  const skipPrefixes = ["#", "http:", "https:", "mailto:", "data:", "javascript:"];
+
+  for (const htmlFile of htmlFiles) {
+    const rawContent = fs.readFileSync(htmlFile, "utf8");
+    const dir = path.dirname(htmlFile);
+
+    // <script> ブロック内は JS 文字列が混在するため除去してから走査する
+    const content = rawContent.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, "");
+
+    // href と src を抽出
+    const attrs = [...content.matchAll(/(?:href|src)="([^"]+)"/g)].map((m) => m[1]);
+    for (let attr of attrs) {
+      // スキップ対象
+      if (skipPrefixes.some((p) => attr.startsWith(p))) continue;
+      // query/fragment 除去
+      attr = attr.split("?")[0].split("#")[0];
+      if (!attr) continue;
+
+      const resolved = path.resolve(dir, attr);
+      let exists = false;
+      if (attr.endsWith("/")) {
+        exists = fs.existsSync(resolved) && fs.statSync(resolved).isDirectory();
+      } else {
+        exists = fs.existsSync(resolved);
+      }
+      if (!exists) {
+        const rel = path.relative(REPO_ROOT, htmlFile);
+        problems.push(`${rel}: リンク切れ → ${attr}`);
+      }
+    }
+  }
+
+  return {
+    key: "リンク-実在",
+    status: problems.length > 0 ? "FAIL" : "PASS",
+    problems,
+  };
+}
+
+function normalizeStyle(s) {
+  return s
+    .split("\n")
+    .map((l) => l.trimEnd())
+    .join("\n")
+    .replace(/^\n+|\n+$/g, "");
+}
+
+function extractStyle(html) {
+  // HTML コメントを除去してから <style> タグを抽出する（コメント内の <style> テキストを誤検知しない）
+  const stripped = html.replace(/<!--[\s\S]*?-->/g, "");
+  const m = stripped.match(/<style\b[^>]*>([\s\S]*?)<\/style>/);
+  return m ? normalizeStyle(m[1]) : null;
+}
+
+function checkGuideTemplate() {
+  const FAILS = [];
+  const WARNS = [];
+
+  const templateFile = path.join(SKILLS_DIR, "managing-agent-configs", "references", "skills", "template-guide.html");
+  const templateExists = fs.existsSync(templateFile);
+  let templateStyle = null;
+  if (templateExists) {
+    const tmplContent = fs.readFileSync(templateFile, "utf8");
+    templateStyle = extractStyle(tmplContent);
+  }
+
+  const entries = fs
+    .readdirSync(SKILLS_DIR, { withFileTypes: true })
+    .filter((e) => e.isDirectory())
+    .map((e) => e.name)
+    .sort();
+
+  for (const dirName of entries) {
+    const skillMd = path.join(SKILLS_DIR, dirName, "SKILL.md");
+    if (!fs.existsSync(skillMd)) continue;
+    const parsed = parseSkillMd(skillMd);
+    const id = (parsed && parsed.name) || dirName;
+    const guideFile = path.join(SKILLS_DIR, dirName, "references", `${id}-guide.html`);
+    if (!fs.existsSync(guideFile)) continue;
+
+    const content = fs.readFileSync(guideFile, "utf8");
+
+    // FAIL 条件チェック
+    // 1. <title>
+    if (!content.includes(`<title>${id} スキルガイド</title>`)) {
+      FAILS.push(`${id}: <title> が "${id} スキルガイド" でない`);
+    }
+
+    // 2. .skill-name の中身
+    const skillNameMatch = content.match(/class="skill-name"[^>]*>([\s\S]*?)<\//);
+    if (skillNameMatch && skillNameMatch[1].trim() !== id) {
+      FAILS.push(`${id}: .skill-name の中身(${skillNameMatch[1].trim()}) が id と不一致`);
+    }
+
+    // 3. nav class="toc" 不在
+    if (!content.includes('class="toc"') && !content.includes("class='toc'")) {
+      FAILS.push(`${id}: nav class="toc" が不在`);
+    }
+
+    // 4. <section id="sN"> の連番チェック
+    const sectionIds = [...content.matchAll(/<section\s+id="(s\d+)"/g)].map((m) => m[1]);
+    // TOC li 数は <nav class="toc"> 〜 </nav> 内の href="#sN" アンカー数で数える
+    const tocNavMatch = content.match(/<nav\s[^>]*class="toc"[^>]*>([\s\S]*?)<\/nav>/);
+    const tocAnchors = tocNavMatch
+      ? [...tocNavMatch[1].matchAll(/href="#s\d+"/g)].length
+      : 0;
+    if (sectionIds.length > 0) {
+      for (let i = 0; i < sectionIds.length; i++) {
+        if (sectionIds[i] !== `s${i + 1}`) {
+          FAILS.push(`${id}: section id が s${i + 1} でなく ${sectionIds[i]}`);
+        }
+      }
+      // section id 列と TOC アンカー列の不一致は FAIL
+      if (tocAnchors > 0 && sectionIds.length !== tocAnchors) {
+        FAILS.push(`${id}: section 数(${sectionIds.length}) と TOC アンカー数(${tocAnchors}) が不一致`);
+      }
+    }
+
+    // 5. .def に「こんな人向け」「こんな場面で使う」欠落
+    const defMatch = content.match(/class="def"[\s\S]*?<\/[^>]+>/);
+    if (defMatch) {
+      if (!content.includes("こんな人向け") && !content.includes("人向け")) {
+        FAILS.push(`${id}: .def に「こんな人向け」が欠落`);
+      }
+      if (!content.includes("こんな場面で使う") && !content.includes("場面で使う")) {
+        FAILS.push(`${id}: .def に「こんな場面で使う」が欠落`);
+      }
+    }
+
+    // 6. meta-table に 4 行の必須項目
+    const metaRequired = ["対応 OS", "検証状況", "依存", "関連資料"];
+    for (const req of metaRequired) {
+      if (!content.includes(req)) {
+        FAILS.push(`${id}: meta-table に「${req}」が欠落`);
+      }
+    }
+
+    // 7. 外部リソース参照（SVG の xmlns= は除外）
+    const externalPatterns = [/<link /, /<img /, /<script src=/, /url\(http/];
+    for (const pat of externalPatterns) {
+      if (pat.test(content)) {
+        // <link rel= の中で xmlns= は除外
+        if (pat === /<link / && !/<link\s[^>]*href=/.test(content)) continue;
+        FAILS.push(`${id}: 外部リソース参照あり（${pat}）`);
+      }
+    }
+
+    // WARN 条件
+    // セクション数 ≠ 9
+    if (sectionIds.length !== 9 && sectionIds.length > 0) {
+      WARNS.push(`${id}: セクション数(${sectionIds.length}) ≠ 9`);
+    }
+
+    // <a href="http
+    if (/<a\s[^>]*href="http/.test(content)) {
+      WARNS.push(`${id}: 外部リンク（<a href="http）あり`);
+    }
+
+    // style ブロックのテンプレ比較（テンプレ未配置の間はスキップ）
+    if (templateStyle) {
+      const guideStyle = extractStyle(content);
+      if (guideStyle && guideStyle !== templateStyle) {
+        // 最初に食い違う行を特定してデバッグ可能にする
+        const tLines = templateStyle.split("\n");
+        const gLines = guideStyle.split("\n");
+        let diffLine = -1;
+        for (let i = 0; i < Math.max(tLines.length, gLines.length); i++) {
+          if (tLines[i] !== gLines[i]) { diffLine = i + 1; break; }
+        }
+        const detail = diffLine !== -1
+          ? ` (最初の差異: 行${diffLine} テンプレ=${JSON.stringify(tLines[diffLine - 1])} ガイド=${JSON.stringify(gLines[diffLine - 1])})`
+          : "";
+        WARNS.push(`${id}: style ブロックがテンプレと不一致${detail}`);
+      }
+    }
+  }
+
+  const allProblems = FAILS.map((f) => `[FAIL] ${f}`).concat(WARNS.map((w) => `[WARN] ${w}`));
+  const status = FAILS.length > 0 ? "FAIL" : WARNS.length > 0 ? "WARN" : "PASS";
+
+  return {
+    key: "guide-テンプレ準拠",
+    status,
+    problems: allProblems,
+  };
+}
+
+async function checkCategoryConsistency() {
+  const problems = [];
+  const skillCategoryMap = await loadSkillCategoryMap();
+
+  const entries = fs
+    .readdirSync(SKILLS_DIR, { withFileTypes: true })
+    .filter((e) => e.isDirectory())
+    .map((e) => e.name)
+    .sort();
+
+  const actualIds = new Set();
+  for (const dirName of entries) {
+    const skillMd = path.join(SKILLS_DIR, dirName, "SKILL.md");
+    if (!fs.existsSync(skillMd)) continue;
+    const parsed = parseSkillMd(skillMd);
+    const id = (parsed && parsed.name) || dirName;
+    actualIds.add(id);
+  }
+
+  for (const id of actualIds) {
+    if (skillCategoryMap[id] === undefined) {
+      problems.push(`未登録スキル: "${id}" が SKILL_CATEGORY に無い`);
+    }
+  }
+  for (const key of Object.keys(skillCategoryMap)) {
+    if (!actualIds.has(key)) {
+      problems.push(`残骸キー: "${key}" が SKILL_CATEGORY に残っているが skills/${key}/SKILL.md が存在しない`);
+    }
+  }
+
+  return {
+    key: "カテゴリ-整合",
+    status: problems.length > 0 ? "FAIL" : "PASS",
+    problems,
+  };
+}
+
+function checkAliasResolution() {
+  const problems = [];
+  const aliasFile = path.join(REPO_ROOT, "sessions", ".skill-log", "skill-aliases.yml");
+
+  if (!fs.existsSync(aliasFile)) {
+    return { key: "エイリアス-解決", status: "WARN", problems: ["skill-aliases.yml が見つかりません"] };
+  }
+
+  const content = fs.readFileSync(aliasFile, "utf8");
+  const lines = content.split("\n");
+
+  // aliases: ブロックを抽出（^  <key>: <value> 行）
+  let inAliases = false;
+  const aliases = {};
+  for (const line of lines) {
+    if (line.trim() === "aliases:") { inAliases = true; continue; }
+    if (inAliases) {
+      // ブロック終端（unresolved: 等のトップレベルキー）
+      if (/^[a-z]/.test(line) && line.includes(":")) { inAliases = false; continue; }
+      // ^  <key>: <value> 形式
+      const m = line.match(/^  ([^:#\s][^:]*?):\s+([^#\s]+)/);
+      if (m) {
+        const key = m[1].trim();
+        const val = m[2].replace(/#.*$/, "").trim();
+        if (key && val) aliases[key] = val;
+      }
+    }
+  }
+
+  // 右辺が skills/<right>/SKILL.md へ解決できるか（他エイリアス経由の遷移も含む）
+  function resolve(val, visited = new Set()) {
+    if (visited.has(val)) return null; // 循環
+    visited.add(val);
+    const skillMd = path.join(SKILLS_DIR, val, "SKILL.md");
+    if (fs.existsSync(skillMd)) return val;
+    // 他エイリアス経由
+    if (aliases[val]) return resolve(aliases[val], visited);
+    return null;
+  }
+
+  for (const [key, val] of Object.entries(aliases)) {
+    // 循環チェック
+    const visited = new Set([key]);
+    function resolveWithCycleCheck(v, vis) {
+      if (vis.has(v)) return "CYCLE";
+      vis.add(v);
+      const skillMd = path.join(SKILLS_DIR, v, "SKILL.md");
+      if (fs.existsSync(skillMd)) return v;
+      if (aliases[v]) return resolveWithCycleCheck(aliases[v], vis);
+      return null;
+    }
+    const result = resolveWithCycleCheck(val, visited);
+    if (result === "CYCLE") {
+      problems.push(`${key}: エイリアス循環を検出`);
+    } else if (result === null) {
+      problems.push(`${key} → ${val}: skills/${val}/SKILL.md が解決できない`);
+    }
+  }
+
+  return {
+    key: "エイリアス-解決",
+    status: problems.length > 0 ? "FAIL" : "PASS",
+    problems,
+  };
+}
+
+// ── serve サブコマンド ───────────────────────────────────────────
+
+const MIME_TYPES = {
+  ".html": "text/html; charset=utf-8",
+  ".css": "text/css; charset=utf-8",
+  ".js": "text/javascript; charset=utf-8",
+  ".mjs": "text/javascript; charset=utf-8",
+  ".json": "application/json; charset=utf-8",
+  ".svg": "image/svg+xml",
+  ".png": "image/png",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".gif": "image/gif",
+  ".ico": "image/x-icon",
+  ".yml": "text/yaml; charset=utf-8",
+  ".md": "text/markdown; charset=utf-8",
+};
+
+function cmdServe() {
+  const PORT = parseInt(process.env.PORT || "9000", 10);
+  const DOCROOT = REPO_ROOT;
+
+  const server = http.createServer((req, res) => {
+    let urlPath = req.url.split("?")[0].split("#")[0];
+    // パストラバーサル防止
+    const safePath = path.normalize(urlPath).replace(/^(\.\.[/\\])+/, "");
+    const filePath = path.join(DOCROOT, safePath);
+    const realFilePath = path.resolve(filePath);
+    if (!realFilePath.startsWith(DOCROOT + path.sep) && realFilePath !== DOCROOT) {
+      res.writeHead(403, { "Content-Type": "text/plain" });
+      res.end("403 Forbidden");
+      return;
+    }
+
+    let targetPath = realFilePath;
+    // ディレクトリの場合は index.html を試みる
+    if (fs.existsSync(targetPath) && fs.statSync(targetPath).isDirectory()) {
+      targetPath = path.join(targetPath, "index.html");
+    }
+
+    if (!fs.existsSync(targetPath)) {
+      res.writeHead(404, { "Content-Type": "text/plain" });
+      res.end("404 Not Found");
+      return;
+    }
+
+    const ext = path.extname(targetPath).toLowerCase();
+    const mime = MIME_TYPES[ext] || "application/octet-stream";
+    const content = fs.readFileSync(targetPath);
+    res.writeHead(200, { "Content-Type": mime });
+    res.end(content);
+  });
+
+  server.listen(PORT, () => {
+    console.error(`ポータル配信中: http://localhost:${PORT}/ai-management-portal/`);
+    console.error(`docroot: ${DOCROOT}`);
+    console.error("停止: Ctrl+C");
+  });
+}
+
+// ── エントリポイント ────────────────────────────────────────────
+
+const subcommand = process.argv[2];
+
+switch (subcommand) {
+  case "generate":
+    await cmdGenerate(false);
+    break;
+  case "check":
+    await cmdGenerate(true);
+    break;
+  case "verify": {
+    const onlyIdx = process.argv.indexOf("--only");
+    const onlyKeys = onlyIdx !== -1 ? process.argv[onlyIdx + 1].split(",") : null;
+    await cmdVerify(onlyKeys);
+    break;
+  }
+  case "serve":
+    cmdServe();
+    break;
+  default:
+    console.error("使い方: manage-portal.mjs <generate|check|verify|serve> [--only <key>,<key>]");
+    process.exit(1);
+}

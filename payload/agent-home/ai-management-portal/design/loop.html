@@ -1,0 +1,777 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Loop 設計ガイド — agent-toolkit</title>
+  <link rel="stylesheet" href="../style.css" />
+  <link rel="stylesheet" href="design.css" />
+  <script type="module" src="../src/common/header.js"></script>
+  <style>
+    .sd-wrap { max-width: 1100px; margin: 0 auto; padding: 20px; }
+
+    .sd-layout {
+      display: grid;
+      grid-template-columns: 220px 1fr;
+      gap: 24px;
+      align-items: start;
+    }
+
+    .sd-toc {
+      position: sticky;
+      top: 16px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px;
+      font-size: 12.5px;
+    }
+    .sd-toc h3 {
+      font-size: 11px;
+      margin: 0 0 10px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-weight: 700;
+    }
+    .sd-toc ul { list-style: none; padding: 0; margin: 0; }
+    .sd-toc li { margin: 0; }
+    .sd-toc a {
+      display: flex;
+      align-items: baseline;
+      gap: 7px;
+      padding: 5px 8px;
+      border-radius: 5px;
+      color: var(--text-sub);
+      font-size: 12px;
+      text-decoration: none;
+      line-height: 1.5;
+      transition: background 0.12s;
+    }
+    .sd-toc a:hover { background: var(--accent-soft); color: var(--accent); text-decoration: none; }
+    .sd-toc .toc-num {
+      font-family: var(--mono);
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--accent);
+      flex-shrink: 0;
+      min-width: 18px;
+    }
+    .sd-toc .toc-sep { border-top: 1px solid var(--border); margin: 8px 0; }
+
+    .sd-body {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px 32px;
+      box-shadow: var(--shadow-sm);
+      min-width: 0;
+    }
+
+    .sd-section { margin-bottom: 48px; }
+    .sd-section:last-child { margin-bottom: 0; }
+
+    .sd-h2 {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 18px;
+      font-weight: 800;
+      margin: 0 0 16px;
+      padding: 10px 16px;
+      background: var(--accent-soft);
+      border-left: 4px solid var(--accent);
+      border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+      scroll-margin-top: 20px;
+    }
+    .sd-h2 .sec-num {
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 800;
+      background: var(--accent);
+      color: #fff;
+      padding: 2px 8px;
+      border-radius: 999px;
+    }
+    .sd-h3 {
+      font-size: 14.5px;
+      font-weight: 700;
+      color: var(--accent-2);
+      margin: 24px 0 8px;
+      padding-bottom: 4px;
+      border-bottom: 1px dashed var(--border-strong);
+    }
+
+    .sd-def {
+      background: var(--panel-2);
+      border: 1px solid var(--accent-border);
+      border-left: 4px solid var(--accent);
+      border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+      padding: 12px 16px;
+      margin: 12px 0 16px;
+      font-size: 13.5px;
+      color: var(--text);
+      line-height: 1.75;
+    }
+
+    .sd-code {
+      background: var(--code-bg);
+      color: var(--code-fg);
+      border-radius: var(--radius-sm);
+      padding: 14px 18px;
+      font-family: var(--mono);
+      font-size: 12.5px;
+      line-height: 1.65;
+      overflow-x: auto;
+      margin: 10px 0 16px;
+      white-space: pre;
+    }
+    .sd-code-label {
+      font-size: 10.5px;
+      font-weight: 700;
+      color: var(--text-muted);
+      font-family: var(--mono);
+      letter-spacing: 0.04em;
+      margin-bottom: 4px;
+    }
+
+    .sd-flow {
+      background: var(--code-bg);
+      color: var(--code-fg);
+      border-radius: var(--radius-sm);
+      padding: 16px 20px;
+      font-family: var(--mono);
+      font-size: 12.5px;
+      line-height: 2;
+      overflow-x: auto;
+      white-space: pre;
+      margin: 12px 0 16px;
+    }
+
+    code {
+      background: var(--accent-soft);
+      color: var(--accent);
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-size: 0.9em;
+      font-family: var(--mono);
+    }
+
+    .sd-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12.5px;
+      margin: 12px 0 16px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+    }
+    .sd-table th, .sd-table td {
+      border: 1px solid var(--border);
+      padding: 8px 12px;
+      text-align: left;
+      vertical-align: top;
+    }
+    .sd-table th {
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .sd-table tr:nth-child(even) td { background: var(--panel-2); }
+
+    .sd-body ul, .sd-body ol {
+      padding-left: 22px;
+      margin: 8px 0 12px;
+      line-height: 1.8;
+    }
+    .sd-body li { margin: 3px 0; font-size: 13.5px; color: var(--text-sub); }
+    .sd-body li strong { color: var(--text); }
+
+    .sd-gotcha {
+      background: var(--gold-soft);
+      border: 1px solid var(--gold-border);
+      border-left: 4px solid var(--gold);
+      border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+      padding: 12px 16px;
+      margin: 10px 0 14px;
+    }
+    .sd-gotcha-title {
+      font-size: 11.5px;
+      font-weight: 800;
+      color: var(--gold);
+      letter-spacing: 0.04em;
+      margin-bottom: 8px;
+    }
+    .sd-gotcha ul { margin: 0; padding-left: 18px; }
+    .sd-gotcha li { font-size: 12.5px; color: var(--text-sub); line-height: 1.75; }
+
+    .sd-note {
+      font-size: 12px;
+      color: var(--text-muted);
+      background: var(--panel-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 8px 12px;
+      margin: 8px 0 12px;
+      line-height: 1.7;
+    }
+
+    .sd-quote {
+      background: var(--panel-2);
+      border-left: 4px solid var(--text-muted);
+      border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+      padding: 12px 16px;
+      margin: 12px 0 16px;
+      font-size: 13px;
+      color: var(--text-sub);
+      font-style: italic;
+      line-height: 1.75;
+    }
+    .sd-quote cite {
+      display: block;
+      margin-top: 6px;
+      font-size: 11.5px;
+      font-style: normal;
+      color: var(--text-muted);
+    }
+
+    .layer-badge {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 10px;
+      border-radius: 999px;
+      font-family: var(--mono);
+      white-space: nowrap;
+    }
+    .layer-prompt  { background: #fef3c7; color: #92400e; border: 1px solid #fcd34d; }
+    .layer-context { background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; }
+    .layer-harness { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
+    .layer-loop    { background: #fdf2f8; color: #9d174d; border: 1px solid #fbcfe8; }
+
+    @media (max-width: 900px) {
+      .sd-layout { grid-template-columns: 1fr; }
+      .sd-toc { position: static; }
+      .sd-body { padding: 18px 20px; }
+    }
+    @media (max-width: 560px) {
+      .sd-wrap { padding: 12px; }
+      .sd-body { padding: 14px 14px; }
+      .sd-h2 { font-size: 15px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="sd-wrap">
+
+    <div class="page-hero" style="margin-bottom:20px">
+      <h1>Loop 設計ガイド</h1>
+      <p>
+        エージェントへの指示を「1 回のプロンプト」から「自動で繰り返す仕組み」へ昇格させる設計原則。
+        ハーネスの上に検証ループを組み、人手を介さず品質を担保する。
+      </p>
+    </div>
+
+    <div class="sd-layout">
+
+      <nav class="sd-toc">
+        <h3>目次</h3>
+        <ul>
+          <li><a href="#s1"><span class="toc-num">&sect;1</span>ループエンジニアリングとは</a></li>
+          <li><a href="#s2"><span class="toc-num">&sect;2</span>4 層の積み上がり構造</a></li>
+          <li><a href="#s3"><span class="toc-num">&sect;3</span>ループの 5 アクション</a></li>
+          <li><a href="#s4"><span class="toc-num">&sect;4</span>ループを組む 6 パーツ</a></li>
+          <li><a href="#s5"><span class="toc-num">&sect;5</span>評価役の設計</a></li>
+          <li><a href="#s6"><span class="toc-num">&sect;6</span>入門: 3 ファイル構成</a></li>
+          <li><a href="#s7"><span class="toc-num">&sect;7</span>回しっぱなしの 4 代価</a></li>
+          <li><a href="#s8"><span class="toc-num">&sect;8</span>本環境での実装対応</a></li>
+        </ul>
+        <div class="toc-sep"></div>
+        <div style="font-size:11px;color:var(--text-muted);padding:4px 8px;line-height:1.6">
+          出典: Addy Osmani<br>
+          整理: Syoitu den (KDDI)
+        </div>
+      </nav>
+
+      <article class="sd-body">
+
+        <!-- §1 -->
+        <section class="sd-section" id="s1">
+          <h2 class="sd-h2"><span class="sec-num">&sect;1</span>ループエンジニアリングとは</h2>
+
+          <div class="sd-quote">
+            "Loop engineering is replacing yourself as the person who prompts the agent.
+            You design the system that does it instead."
+            <cite>— Addy Osmani (Google Chrome)</cite>
+          </div>
+
+          <p style="font-size:13.5px;color:var(--text-sub);line-height:1.8;margin:0 0 12px">
+            ループエンジニアリングとは、エージェントにプロンプトを打つ「人」というポジションを仕組みで置き換える設計技法。
+            従来の「プロンプト技術」から「組織設計」へのパラダイムシフトを意味する。
+          </p>
+
+          <div class="sd-def">
+            核心は <strong>「手を動かす位置から降りる」</strong> こと。
+            個別のプロンプトを磨くのではなく、プロンプトを自動で発行し・検証し・繰り返す仕組み自体を設計する。
+          </div>
+
+          <h3 class="sd-h3">発生源（2026年6月）</h3>
+          <table class="sd-table">
+            <thead><tr><th>人物</th><th>所属</th><th>発言</th></tr></thead>
+            <tbody>
+              <tr>
+                <td>Peter Steinberger</td>
+                <td>OpenClaw</td>
+                <td>コーディングエージェントへの直接指示を避け、指示ループの設計を提唱</td>
+              </tr>
+              <tr>
+                <td>Boris Cherny</td>
+                <td>Anthropic (Claude Code 責任者)</td>
+                <td>「私の仕事はループを書くこと」</td>
+              </tr>
+              <tr>
+                <td>Addy Osmani</td>
+                <td>Google Chrome</td>
+                <td>上記の流れを「Loop Engineering」と命名</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+        <!-- §2 -->
+        <section class="sd-section" id="s2">
+          <h2 class="sd-h2"><span class="sec-num">&sect;2</span>4 層の積み上がり構造</h2>
+
+          <p style="font-size:13.5px;color:var(--text-sub);line-height:1.8;margin:0 0 12px">
+            ループは他の 3 層の上に積み上がる。各層は独立ではなく、下層を前提に上層が成り立つ。
+          </p>
+
+          <div class="sd-flow">┌─────────────────────────────────────┐
+│  <span class="layer-badge layer-loop">Loop Engineering</span>              │  ハーネスの自動繰り返し
+├─────────────────────────────────────┤
+│  <span class="layer-badge layer-harness">Harness Engineering</span>           │  単発実行の"装備"
+├─────────────────────────────────────┤
+│  <span class="layer-badge layer-context">Context Engineering</span>           │  この瞬間のウィンドウ内容
+├─────────────────────────────────────┤
+│  <span class="layer-badge layer-prompt">Prompt Engineering</span>            │  1 回の指示文
+└─────────────────────────────────────┘</div>
+
+          <table class="sd-table">
+            <thead><tr><th>層</th><th>管理対象</th><th>中心の問い</th></tr></thead>
+            <tbody>
+              <tr>
+                <td><span class="layer-badge layer-prompt">Prompt</span></td>
+                <td>1 回の指示文</td>
+                <td>モデルに何を伝えるか</td>
+              </tr>
+              <tr>
+                <td><span class="layer-badge layer-context">Context</span></td>
+                <td>この瞬間のウィンドウ内容</td>
+                <td>何を検索・要約・削除するか</td>
+              </tr>
+              <tr>
+                <td><span class="layer-badge layer-harness">Harness</span></td>
+                <td>単発実行の"装備"</td>
+                <td>どのツール許可、完了定義は何か</td>
+              </tr>
+              <tr>
+                <td><span class="layer-badge layer-loop">Loop</span></td>
+                <td>ハーネスの自動繰り返し</td>
+                <td>自動で何度も回す方法は何か</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="sd-note">
+            ループは「ハーネスの 1 回実行」を「自動で複数回実行する仕組み」に昇格させるもの。
+            ハーネスが整っていないままループを組んでも、壊れた実行を繰り返すだけで終わる。
+          </div>
+        </section>
+
+        <!-- §3 -->
+        <section class="sd-section" id="s3">
+          <h2 class="sd-h2"><span class="sec-num">&sect;3</span>ループの 5 アクション</h2>
+
+          <div class="sd-def">
+            ループを構成する 5 つの基本動作。このうち<strong>検証（verification）</strong>が欠けると、
+            ループではなく「生成垂れ流し装置」になる。
+          </div>
+
+          <table class="sd-table">
+            <thead><tr><th>アクション</th><th>やること</th><th>欠落時のリスク</th></tr></thead>
+            <tbody>
+              <tr>
+                <td><strong>発見</strong> (discovery)</td>
+                <td>この 1 周で何をやるべきかを自分で見つける</td>
+                <td>無関係なタスクを延々と回す</td>
+              </tr>
+              <tr>
+                <td><strong>受け渡し</strong> (handoff)</td>
+                <td>タスクを隔離し、作業役エージェントに渡す</td>
+                <td>コンテキスト汚染・干渉</td>
+              </tr>
+              <tr>
+                <td><strong>検証</strong> (verification)</td>
+                <td>別のエージェントが「これでよいか」をチェック</td>
+                <td>品質が保証されない生成物の蓄積</td>
+              </tr>
+              <tr>
+                <td><strong>記憶</strong> (persistence)</td>
+                <td>状態をファイル等に書き出す</td>
+                <td>周回をまたぐ文脈の喪失</td>
+              </tr>
+              <tr>
+                <td><strong>スケジューリング</strong> (scheduling)</td>
+                <td>タイマー等で放っておいても回り続けさせる</td>
+                <td>人手でのトリガーが毎回必要に</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="sd-gotcha">
+            <div class="sd-gotcha-title">最重要: 検証のない「ループ」はループではない</div>
+            <ul>
+              <li>コードを書いた本人（エージェント）は自分の作業に甘い</li>
+              <li>書く側（生成役）とチェック側（評価役）を必ず分離する</li>
+              <li>評価役は別の指示、できれば別モデルを使う</li>
+            </ul>
+          </div>
+        </section>
+
+        <!-- §4 -->
+        <section class="sd-section" id="s4">
+          <h2 class="sd-h2"><span class="sec-num">&sect;4</span>ループを組む 6 パーツ</h2>
+
+          <p style="font-size:13.5px;color:var(--text-sub);line-height:1.8;margin:0 0 12px">
+            5 アクションを実現するための構成要素。Claude Code 環境では、これらはすべてハーネス機能として利用できる。
+          </p>
+
+          <table class="sd-table">
+            <thead><tr><th>パーツ</th><th>何か</th><th>対応アクション</th><th>Claude Code での対応</th></tr></thead>
+            <tbody>
+              <tr>
+                <td><strong>Automations</strong></td>
+                <td>時間表・トリガーによる自動起動</td>
+                <td>スケジューリング</td>
+                <td><code>/schedule</code>、CronCreate</td>
+              </tr>
+              <tr>
+                <td><strong>Worktrees</strong></td>
+                <td>並行エージェントの作業ディレクトリ隔離</td>
+                <td>受け渡し</td>
+                <td><code>git worktree</code>、<code>isolation: "worktree"</code></td>
+              </tr>
+              <tr>
+                <td><strong>Skills</strong></td>
+                <td>知識を SKILL.md に固定し再利用</td>
+                <td>発見</td>
+                <td><code>~/.claude/skills/</code></td>
+              </tr>
+              <tr>
+                <td><strong>Connectors (MCP)</strong></td>
+                <td>Issue tracker・DB・Slack 等の外部接続</td>
+                <td>記憶 / 発見</td>
+                <td>MCP サーバー群</td>
+              </tr>
+              <tr>
+                <td><strong>Sub-agents</strong></td>
+                <td>生成役と評価役の分離</td>
+                <td>検証</td>
+                <td><code>~/.claude/agents/</code>、<code>Agent()</code></td>
+              </tr>
+              <tr>
+                <td><strong>Memory</strong></td>
+                <td>ファイルに残る状態</td>
+                <td>記憶</td>
+                <td>CLAUDE.md、MEMORY.md</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="sd-note">
+            MCP と Skills はループのためのハーネス。タスクチケット・DB・ブラウザに手が届いて初めて、
+            エージェントによる代行が成立する。
+          </div>
+        </section>
+
+        <!-- §5 -->
+        <section class="sd-section" id="s5">
+          <h2 class="sd-h2"><span class="sec-num">&sect;5</span>評価役の設計</h2>
+
+          <div class="sd-def">
+            ループの品質を決定づける最重要要素。
+            <strong>「ダメと言える評価役」</strong>がいないループは、エラーを増幅する装置になる。
+          </div>
+
+          <h3 class="sd-h3">生成役と評価役の分離原則</h3>
+          <table class="sd-table">
+            <thead><tr><th>観点</th><th>生成役</th><th>評価役</th></tr></thead>
+            <tbody>
+              <tr>
+                <td>目的</td>
+                <td>コードを書く・タスクを実行する</td>
+                <td>成果物が基準を満たすか判定する</td>
+              </tr>
+              <tr>
+                <td>指示</td>
+                <td>実装手順・要件</td>
+                <td>合格基準・停止条件</td>
+              </tr>
+              <tr>
+                <td>モデル</td>
+                <td>作業に適したモデル</td>
+                <td>生成役と<strong>別のモデル</strong>が望ましい</td>
+              </tr>
+              <tr>
+                <td>権限</td>
+                <td>Write / Edit / Bash</td>
+                <td>Read のみ（変更権限を持たない）</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <h3 class="sd-h3">Claude Code での実現方法</h3>
+          <ul>
+            <li><strong>Stop hook</strong>: 完了宣言のたびにテスト・lint を自動実行。不合格なら結果を会話に押し戻し、次周へ強制</li>
+            <li><strong>PostToolUse hook</strong>: ファイル編集のたびに型チェック・lint を即座に実行。書きながら修正を促す</li>
+            <li><strong><code>/goal</code></strong>: 完了判定を別モデルに委託する内蔵機能</li>
+            <li><strong>fixer エージェント</strong>: 同じエラーが 2 周連続で直らないとき、文脈をリセットした別エージェントに引き継ぐ</li>
+          </ul>
+
+          <div class="sd-gotcha">
+            <div class="sd-gotcha-title">評価なしで回した場合の実証</div>
+            <ul>
+              <li>禁止項目なしでループを回したところ、Claude が 3 周目でアサーション自体を削除してテストを通過させた実例がある</li>
+              <li>評価基準が曖昧だと、エージェントは<strong>スコアボードを改変する</strong>方向に最適化する</li>
+              <li>「直すのはコード。スコアボードではない」を明文化する必要がある</li>
+            </ul>
+          </div>
+        </section>
+
+        <!-- §6 -->
+        <section class="sd-section" id="s6">
+          <h2 class="sd-h2"><span class="sec-num">&sect;6</span>入門: 3 ファイル構成</h2>
+
+          <p style="font-size:13.5px;color:var(--text-sub);line-height:1.8;margin:0 0 12px">
+            ループエンジニアリングの最小構成は 3 ファイルで実現できる。
+            CLAUDE.md（ループ協議の明文化）、settings.json（hook による硬い制約）、fixer.md（行き詰まり打破）。
+          </p>
+
+          <h3 class="sd-h3">ファイル 1: CLAUDE.md — ループ協議</h3>
+          <div class="sd-code-label">CLAUDE.md に追記する「ループ協議」セクション</div>
+          <div class="sd-code">## ループ協議
+
+各タスクは「直線」ではなく「ループ」として走らせる:
+
+1. 変更を書く
+2. チェックを走らせる: テスト + linter + 型チェック
+3. 失敗した? エラーを読み、原因を特定し、直して、2 に戻る
+4. ループは最大 5 回まで
+
+停止条件:
+- 全チェック通過 → 「完了」と報告。通過した出力を証拠として添える
+- 5 回使い切った → 止まって、何が残っているか報告する
+- 同じエラーが 2 回連続 → ループを止め、@fixer を呼ぶよう促す
+
+禁止: チェック出力なしで「完了」と報告すること
+禁止: アサーション削除やテスト弱体化で通すこと</div>
+
+          <h3 class="sd-h3">ファイル 2: settings.json — hook による硬い制約</h3>
+          <div class="sd-code-label">.claude/settings.json</div>
+          <div class="sd-code">{
+  "hooks": {
+    "Stop": [{
+      "hooks": [{
+        "type": "command",
+        "command": "npm test --silent 2>&1 | tail -20"
+      }]
+    }],
+    "PostToolUse": [{
+      "matcher": "Write|Edit",
+      "hooks": [{
+        "type": "command",
+        "command": "npx tsc --noEmit --pretty false 2>&1 | head -10"
+      }]
+    }]
+  }
+}</div>
+
+          <table class="sd-table">
+            <thead><tr><th>hook</th><th>タイミング</th><th>効果</th></tr></thead>
+            <tbody>
+              <tr>
+                <td><code>PostToolUse</code></td>
+                <td>ファイル編集のたび</td>
+                <td>型チェックを即座に実行。書きながら修正させる</td>
+              </tr>
+              <tr>
+                <td><code>Stop</code></td>
+                <td>完了宣言の時点</td>
+                <td>フルテスト実行。失敗なら出力を会話に押し戻し、次周を強制</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="sd-note">
+            他言語での対応例: Python なら <code>pytest -q</code> + <code>pyright</code>、
+            Rust なら <code>cargo test --quiet</code> + <code>cargo check</code> に置き換える。
+          </div>
+
+          <h3 class="sd-h3">ファイル 3: fixer.md — 行き詰まり打破エージェント</h3>
+          <div class="sd-code-label">.claude/agents/fixer.md</div>
+          <div class="sd-code">---
+name: fixer
+description: 同じテストが 2 回失敗した時に使う行き詰まり打破エージェント
+tools: Read, Edit, Grep, Glob, Bash
+model: opus
+---
+
+あなたは失敗したチェックを直す。推測は禁止。
+
+1. 失敗したチェックを自分で実行し、エラー全文を読む
+2. 失敗パス上のファイルを、頭から終わりまで全部読む
+3. 一文で書く: 本当の原因は何か
+4. その原因だけ直す。ついでのリファクタはしない
+5. チェックを再実行し、修正前後の出力を報告する
+
+禁止: テスト削除、アサーション緩和、try/catch でのエラー握りつぶし、
+      テストの skip 化</div>
+
+          <p style="font-size:13.5px;color:var(--text-sub);line-height:1.8;margin:12px 0">
+            fixer はメインコンテキストから呼ばれ、直前の失敗の記憶を持たないまま診断する。
+            文脈がリセットされるため、一発で通ることが多い。
+          </p>
+
+          <h3 class="sd-h3">3 ファイルの効果</h3>
+          <div class="sd-flow">ユーザーがタスクを指示
+    ↓
+Claude が変更を書く
+    ↓
+PostToolUse hook → 型チェック即時実行
+    ↓ (エラーあれば即修正)
+Claude が「完了」宣言
+    ↓
+Stop hook → フルテスト実行
+    ↓
+失敗 → 結果を会話に押し戻し → ループ再開（最大 5 周）
+成功 → 完了報告
+    ↓
+同じエラー 2 連続 → @fixer を呼び出し
+    ↓
+fixer が文脈リセットで修正 → チェック再実行</div>
+        </section>
+
+        <!-- §7 -->
+        <section class="sd-section" id="s7">
+          <h2 class="sd-h2"><span class="sec-num">&sect;7</span>回しっぱなしの 4 代価</h2>
+
+          <div class="sd-def">
+            ループは生成コストを下げるが、放置は新たなリスクを生む。
+            <strong>「見ていないループは、間違え続けるループである」</strong>。
+          </div>
+
+          <table class="sd-table">
+            <thead><tr><th>落とし穴</th><th>症状</th><th>防ぎ方</th></tr></thead>
+            <tbody>
+              <tr>
+                <td><strong>検証の積み残し</strong></td>
+                <td>成果物は溜まるが誰もチェックしていない</td>
+                <td>作業役とは別の評価役を入れる</td>
+              </tr>
+              <tr>
+                <td><strong>理解の劣化</strong></td>
+                <td>コードは増えるが頭の中の地図が古いまま</td>
+                <td>定期的にアウトプットを読み、自分で説明できるか確認する</td>
+              </tr>
+              <tr>
+                <td><strong>判断の放棄</strong></td>
+                <td>ループが回ると人が「まあよい」で意見を放棄する</td>
+                <td>実行は任せても判断は手放さない</td>
+              </tr>
+              <tr>
+                <td><strong>トークン暴走</strong></td>
+                <td>使用量が乱高下し請求額が読めない</td>
+                <td>本番投入前に予算・最大再試行回数の上限を決定する</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="sd-gotcha">
+            <div class="sd-gotcha-title">特にトークン暴走に注意</div>
+            <ul>
+              <li>1 つのバグで夜間に空回りすると、修正コードではなく<strong>予想外の請求</strong>が朝来る</li>
+              <li><code>maxRuns</code> / 最大周回数のハード上限を<strong>必ず</strong>設定する</li>
+              <li>「停止条件なしのループ」は設計不良のサイン</li>
+            </ul>
+          </div>
+        </section>
+
+        <!-- §8 -->
+        <section class="sd-section" id="s8">
+          <h2 class="sd-h2"><span class="sec-num">&sect;8</span>本環境での実装対応</h2>
+
+          <p style="font-size:13.5px;color:var(--text-sub);line-height:1.8;margin:0 0 12px">
+            本ツールキットの環境では、ループエンジニアリングの各要素が既に以下の形で実装されている。
+          </p>
+
+          <table class="sd-table">
+            <thead><tr><th>ループ要素</th><th>本環境の対応物</th><th>設計ガイド</th></tr></thead>
+            <tbody>
+              <tr>
+                <td>発見 (discovery)</td>
+                <td>SKILL.md の <code>TRIGGER when</code> 自動マッチ</td>
+                <td><a href="skill.html">Skill 設計ガイド</a></td>
+              </tr>
+              <tr>
+                <td>受け渡し (handoff)</td>
+                <td><code>git worktree</code> + <code>parallel-dev-worktree</code> スキル</td>
+                <td>parallel-dev-worktree スキル</td>
+              </tr>
+              <tr>
+                <td>検証 (verification)</td>
+                <td>PostToolUse / Stop hook + <code>reviewing-prs</code> スキル</td>
+                <td><a href="hooks.html">Hooks 設計ガイド</a></td>
+              </tr>
+              <tr>
+                <td>記憶 (persistence)</td>
+                <td>CLAUDE.md、<code>.claude/markers/</code>、hook 状態ファイル</td>
+                <td><a href="claude-md.html">CLAUDE.md 設計ガイド</a></td>
+              </tr>
+              <tr>
+                <td>スケジューリング (scheduling)</td>
+                <td><code>/schedule</code>、CronCreate、ルーティン</td>
+                <td>ルーティン一覧</td>
+              </tr>
+              <tr>
+                <td>評価役の分離</td>
+                <td>4 役割サブエージェント（brain / worker / researcher）</td>
+                <td><a href="subagent.html">Subagent 設計ガイド</a></td>
+              </tr>
+            </tbody>
+          </table>
+
+          <h3 class="sd-h3">設計原則の対応</h3>
+          <div class="sd-flow">記事の原則                      本環境での機械強制
+─────────────────────────────────────────────────────
+「アサーション削除で通すな」  →  Stop hook でテスト実行を強制
+「チェック出力なしで完了するな」→  auto-ship の Phase 制御
+「同じエラー 2 連続で止めろ」 →  counter マーカーによる auto-release
+「評価役は別モデルで」       →  brain(opus) が worker の結果を検証
+「ループの上限を決めよ」     →  CronCreate の maxRuns / budget 制御</div>
+
+          <div class="sd-note">
+            本環境は既にループエンジニアリングの構造を大部分実装している。
+            ハーネス層（hook・skill・rule）の機械強制がそのまま「検証」アクションとして機能する。
+          </div>
+        </section>
+
+      </article>
+    </div>
+
+    <div data-md-skip style="text-align:center;margin-top:20px;font-size:12px;color:var(--text-muted)">
+      <a href="../index.html">ホーム</a>
+    </div>
+  </div>
+</body>
+</html>
