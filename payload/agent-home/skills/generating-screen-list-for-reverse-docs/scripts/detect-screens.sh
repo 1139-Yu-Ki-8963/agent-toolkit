@@ -2,7 +2,8 @@
 # generating-screen-list-for-reverse-docs: Phase 1 画面境界検出
 #
 # Usage: detect-screens.sh <source-dir> <manifest-out-path> \
-#          [--screen-id-regex <ERE>] [--view-switch-pattern <ERE>]
+#          [--screen-id-regex <ERE>] [--view-switch-pattern <ERE>] \
+#          [--exclude <ERE>] [--strategy-json <file>]
 #
 # --screen-id-regex <ERE>:
 #   entryFile の basename(拡張子なし) から grep -oE で画面IDを抽出するパターン
@@ -10,13 +11,23 @@
 # --view-switch-pattern <ERE>:
 #   埋め込みビュー検出用の grep パターン(例: 'setEditView|setModalView')。
 #   未指定なら埋め込みビュー検出をスキップする。
+# --exclude <ERE>:
+#   デフォルト除外(node_modules/tests/__tests__/test/stories/__mocks__ ディレクトリ、
+#   *.test.*/*.spec.*/*.stories.* ファイル)に追加する除外パターン(grep -Ev に合成)。
+# --strategy-json <file>:
+#   指定した JSON ファイルの中身をマニフェストの "strategy" フィールドにそのまま埋め込む。
+#   未指定時は screenIdRegex/viewSwitchPattern/extractionMethod/approvedByUser を自動合成する。
 #
 # 検出優先順位:
 #   1. Next.js App Router (app/**/page.{tsx,jsx,js})
 #   2. Next.js Pages Router (pages/**/*.{tsx,jsx,js}, _app/_document/api 除外)
-#   3. React Router (createBrowserRouter/createHashRouter/<Route> のフラット path 抽出)
+#   3. React Router (createBrowserRouter/createHashRouter/useRoutes/<Route> のフラット path 抽出。
+#      useRoutes(識別子)/createBrowserRouter(識別子) 形式は1段の import 追跡で定義ファイルを解決する)
 #   4. フォールバック: pages/screens/views 慣習ディレクトリ直下を1画面として扱う
 #   5. 1-4すべて0件ならハード停止 (exit 3)。画面を捏造しない
+#
+# デフォルト除外: tests/__tests__/test/stories/__mocks__ ディレクトリ配下と
+#   *.test.*/*.spec.*/*.stories.* ファイルは全検出方式の find/grep 結果から除外する。
 #
 # 画面キー生成アルゴリズム(意味キー規約準拠・連番サフィックス禁止):
 #   1. ルートの静的セグメントのみ抽出(動的パラメータ・ワイルドカード除外)
@@ -38,6 +49,8 @@ set -euo pipefail
 
 SCREEN_ID_REGEX=""
 VIEW_SWITCH_PATTERN=""
+EXCLUDE_PATTERN=""
+STRATEGY_JSON_FILE=""
 POSITIONAL=()
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -47,6 +60,14 @@ while [ $# -gt 0 ]; do
       ;;
     --view-switch-pattern)
       VIEW_SWITCH_PATTERN="${2:-}"
+      shift 2
+      ;;
+    --exclude)
+      EXCLUDE_PATTERN="${2:-}"
+      shift 2
+      ;;
+    --strategy-json)
+      STRATEGY_JSON_FILE="${2:-}"
       shift 2
       ;;
     --)
@@ -68,7 +89,7 @@ while [ $# -gt 0 ]; do
 done
 
 if [ "${#POSITIONAL[@]}" -lt 2 ]; then
-  echo "Usage: detect-screens.sh <source-dir> <manifest-out-path> [--screen-id-regex <ERE>] [--view-switch-pattern <ERE>]" >&2
+  echo "Usage: detect-screens.sh <source-dir> <manifest-out-path> [--screen-id-regex <ERE>] [--view-switch-pattern <ERE>] [--exclude <ERE>] [--strategy-json <file>]" >&2
   exit 1
 fi
 SOURCE_DIR="${POSITIONAL[0]}"
@@ -79,6 +100,18 @@ if [ ! -d "$SOURCE_DIR" ]; then
   exit 1
 fi
 SOURCE_DIR="$(cd "$SOURCE_DIR" && pwd)"
+
+if [ -n "$STRATEGY_JSON_FILE" ] && [ ! -f "$STRATEGY_JSON_FILE" ]; then
+  echo "ERROR: --strategy-json file not found: $STRATEGY_JSON_FILE" >&2
+  exit 1
+fi
+
+# --- デフォルト除外(node_modules/tests/stories系ディレクトリ・test/spec/storiesファイル) ---
+DEFAULT_EXCLUDE_ERE='(^|/)(node_modules|tests|__tests__|test|__mocks__|stories)(/|$)|\.(test|spec|stories)\.[^/]+$'
+EXCLUDE_REGEX="$DEFAULT_EXCLUDE_ERE"
+if [ -n "$EXCLUDE_PATTERN" ]; then
+  EXCLUDE_REGEX="${EXCLUDE_REGEX}|${EXCLUDE_PATTERN}"
+fi
 
 TMP_ROWS="$(mktemp)"
 SEEN_KEYS_FILE="$(mktemp)"
@@ -93,7 +126,7 @@ detection_method=""
 
 # --- 1. Next.js App Router ---
 if [ -d "$SOURCE_DIR/app" ]; then
-  pagefiles="$(find "$SOURCE_DIR/app" -type f \( -name "page.tsx" -o -name "page.jsx" -o -name "page.js" \) 2>/dev/null | grep -v node_modules || true)"
+  pagefiles="$(find "$SOURCE_DIR/app" -type f \( -name "page.tsx" -o -name "page.jsx" -o -name "page.js" \) 2>/dev/null | grep -v node_modules | grep -Ev "$EXCLUDE_REGEX" || true)"
   if [ -n "$pagefiles" ]; then
     detection_method="nextjs-app"
     while IFS= read -r pagefile; do
@@ -116,7 +149,8 @@ if [ -z "$detection_method" ] && [ -d "$SOURCE_DIR/pages" ]; then
     | grep -v node_modules \
     | grep -Ev '/_app\.[jt]sx?$' \
     | grep -Ev '/_document\.[jt]sx?$' \
-    | grep -Ev '/api/' || true)"
+    | grep -Ev '/api/' \
+    | grep -Ev "$EXCLUDE_REGEX" || true)"
   if [ -n "$pagefiles" ]; then
     detection_method="nextjs-pages"
     while IFS= read -r pagefile; do
@@ -132,21 +166,61 @@ if [ -z "$detection_method" ] && [ -d "$SOURCE_DIR/pages" ]; then
   fi
 fi
 
-# --- 3. React Router (フラット抽出のみ) ---
+# --- 3. React Router (フラット抽出 + useRoutes/createBrowserRouter の1段 import 追跡) ---
+extract_route_paths() {
+  # $1: 対象ファイル。path: "..." / path= "..." 形式を抽出する
+  local f="$1"
+  grep -oE 'path[[:space:]]*[:=][[:space:]]*["'"'"'\`][^"'"'"'\`]+["'"'"'\`]' "$f" 2>/dev/null \
+    | sed -E 's/^path[[:space:]]*[:=][[:space:]]*["'"'"'\`]//; s/["'"'"'\`]$//' || true
+}
+
 if [ -z "$detection_method" ]; then
-  router_files="$(grep -rlE 'createBrowserRouter|createHashRouter|<Route\b' "$SOURCE_DIR" \
+  router_files="$(grep -rlE 'createBrowserRouter|createHashRouter|useRoutes|<Route\b' "$SOURCE_DIR" \
     --include='*.tsx' --include='*.jsx' --include='*.ts' --include='*.js' 2>/dev/null \
-    | grep -v node_modules || true)"
+    | grep -v node_modules | grep -Ev "$EXCLUDE_REGEX" || true)"
   if [ -n "$router_files" ]; then
     detection_method="react-router"
     while IFS= read -r rf; do
       [ -z "$rf" ] && continue
-      routes="$(grep -oE 'path[[:space:]]*[:=][[:space:]]*["'"'"'\`][^"'"'"'\`]+["'"'"'\`]' "$rf" 2>/dev/null \
-        | sed -E 's/^path[[:space:]]*[:=][[:space:]]*["'"'"'\`]//; s/["'"'"'\`]$//' || true)"
+      routes="$(extract_route_paths "$rf")"
+      resolved_file="$rf"
+      if [ -z "$routes" ]; then
+        # 2段階追跡: useRoutes(識別子) / createBrowserRouter(識別子) のように
+        # 引数がインライン配列ではなく識別子の場合、import 元を1段だけ辿って定義ファイルを解決する
+        ident="$(grep -oE '(useRoutes|createBrowserRouter)\([[:space:]]*[A-Za-z_$][A-Za-z0-9_$]*[[:space:]]*\)' "$rf" 2>/dev/null \
+          | head -1 | sed -E 's/^(useRoutes|createBrowserRouter)\([[:space:]]*//; s/[[:space:]]*\)$//' || true)"
+        if [ -n "$ident" ]; then
+          import_line="$(grep -E "^import[[:space:]].*\\b${ident}\\b.*from" "$rf" 2>/dev/null | head -1 || true)"
+          if [ -n "$import_line" ]; then
+            import_path="$(printf '%s' "$import_line" | grep -oE "['\"][^'\"]+['\"]" | head -1 | sed "s/^['\"]//; s/['\"]\$//" || true)"
+            if [ -n "$import_path" ]; then
+              import_base="$(basename "$import_path")"
+              import_base="${import_base%.*}"
+              target_file="$(find "$SOURCE_DIR" -type f \( -iname "${import_base}.tsx" -o -iname "${import_base}.jsx" -o -iname "${import_base}.ts" -o -iname "${import_base}.js" \) 2>/dev/null \
+                | grep -v node_modules | grep -Ev "$EXCLUDE_REGEX" | head -1 || true)"
+              if [ -z "$target_file" ]; then
+                # import 先がディレクトリ(index.{tsx,jsx,ts,js})の場合のフォールバック解決
+                target_dir="$(find "$SOURCE_DIR" -type d -iname "$import_base" 2>/dev/null \
+                  | grep -v node_modules | grep -Ev "$EXCLUDE_REGEX" | head -1 || true)"
+                if [ -n "$target_dir" ]; then
+                  target_file="$(find "$target_dir" -maxdepth 1 -type f \( -iname "index.tsx" -o -iname "index.jsx" -o -iname "index.ts" -o -iname "index.js" \) 2>/dev/null | head -1 || true)"
+                fi
+              fi
+              if [ -n "$target_file" ]; then
+                target_routes="$(extract_route_paths "$target_file")"
+                if [ -n "$target_routes" ]; then
+                  routes="$target_routes"
+                  resolved_file="$target_file"
+                fi
+              fi
+            fi
+          fi
+        fi
+      fi
       [ -z "$routes" ] && continue
       while IFS= read -r route; do
         [ -z "$route" ] && continue
-        printf '%s\t%s\t%s\t%s\n' "$route" "$(dirname "$rf")" "$rf" "medium" >> "$TMP_ROWS"
+        printf '%s\t%s\t%s\t%s\n' "$route" "$(dirname "$resolved_file")" "$resolved_file" "medium" >> "$TMP_ROWS"
       done <<< "$routes"
     done <<< "$router_files"
   fi
@@ -155,9 +229,9 @@ fi
 # --- 4. フォールバック: 慣習ディレクトリ ---
 if [ -z "$detection_method" ]; then
   for conv in pages screens views; do
-    conv_dir="$(find "$SOURCE_DIR" -maxdepth 4 -type d -iname "$conv" 2>/dev/null | grep -v node_modules | head -1 || true)"
+    conv_dir="$(find "$SOURCE_DIR" -maxdepth 4 -type d -iname "$conv" 2>/dev/null | grep -v node_modules | grep -Ev "$EXCLUDE_REGEX" | head -1 || true)"
     if [ -n "$conv_dir" ]; then
-      entries="$(find "$conv_dir" -mindepth 1 -maxdepth 1 2>/dev/null || true)"
+      entries="$(find "$conv_dir" -mindepth 1 -maxdepth 1 2>/dev/null | grep -Ev "$EXCLUDE_REGEX" || true)"
       [ -z "$entries" ] && continue
       detection_method="fallback-directory"
       while IFS= read -r entry; do
@@ -359,7 +433,7 @@ if [ -n "$VIEW_SWITCH_PATTERN" ]; then
       if [ -n "$import_line" ]; then
         import_path="$(printf '%s' "$import_line" | grep -oE "['\"][^'\"]+['\"]" | head -1 | sed "s/^['\"]//; s/['\"]\$//" || true)"
       fi
-      found_file="$(find "$SOURCE_DIR" -type f \( -iname "${comp}.tsx" -o -iname "${comp}.jsx" -o -iname "${comp}.ts" -o -iname "${comp}.js" \) 2>/dev/null | grep -v node_modules | head -1 || true)"
+      found_file="$(find "$SOURCE_DIR" -type f \( -iname "${comp}.tsx" -o -iname "${comp}.jsx" -o -iname "${comp}.ts" -o -iname "${comp}.js" \) 2>/dev/null | grep -v node_modules | grep -Ev "$EXCLUDE_REGEX" | head -1 || true)"
       if [ -n "$found_file" ]; then
         resolved="$found_file"
       elif [ -n "$import_path" ]; then
@@ -441,16 +515,63 @@ shared_screen_count="$(awk -F'\t' '{n=split($2,a,","); sum+=n} END{print sum+0}'
 embedded_candidate_count="$(wc -l < "$TMP_EMBEDDED" | tr -d ' ')"
 unresolved_count="$(awk -F'\t' '$5==""{c++} END{print c+0}' "$TMP_ALL")"
 
+# --- entryFile集中の自己診断(route画面が単一ファイルに10件以上かつ80%以上集中している場合) ---
+DIAGNOSTICS=()
+diag_line="$(awk -F'\t' '
+  $2=="route" && $5!="" { cnt[$5]++; total++ }
+  END {
+    if (total==0) { exit }
+    maxfile=""; maxcnt=0
+    for (f in cnt) { if (cnt[f]>maxcnt) { maxcnt=cnt[f]; maxfile=f } }
+    if (maxcnt>=10 && maxcnt/total>=0.8) {
+      printf "%s\t%d\t%d", maxfile, maxcnt, total
+    }
+  }
+' "$TMP_ALL")"
+if [ -n "$diag_line" ]; then
+  diag_file="$(printf '%s' "$diag_line" | cut -f1)"
+  diag_maxcnt="$(printf '%s' "$diag_line" | cut -f2)"
+  diag_msg="WARN: ${diag_maxcnt}画面のentryFileが単一ファイル ${diag_file} に集中しています。ルーター定義ファイルがentryFileになっている可能性が高く、element属性等からの実体解決(カスタム抽出パス)を検討してください"
+  echo "$diag_msg" >&2
+  DIAGNOSTICS+=("$diag_msg")
+fi
+diagnostics_json="[]"
+if [ "${#DIAGNOSTICS[@]}" -gt 0 ]; then
+  diag_items=""
+  for d in "${DIAGNOSTICS[@]}"; do
+    d_esc="$(json_escape "$d")"
+    if [ -z "$diag_items" ]; then
+      diag_items="\"$d_esc\""
+    else
+      diag_items="$diag_items,\"$d_esc\""
+    fi
+  done
+  diagnostics_json="[$diag_items]"
+fi
+
 screen_id_regex_json="null"
 [ -n "$SCREEN_ID_REGEX" ] && screen_id_regex_json="\"$(json_escape "$SCREEN_ID_REGEX")\""
 view_switch_pattern_json="null"
 [ -n "$VIEW_SWITCH_PATTERN" ] && view_switch_pattern_json="\"$(json_escape "$VIEW_SWITCH_PATTERN")\""
 
+# --- strategy フィールド(--strategy-json 指定時はファイル内容をそのまま埋め込む) ---
+if [ -n "$STRATEGY_JSON_FILE" ]; then
+  strategy_brace_count="$(grep -c '{' "$STRATEGY_JSON_FILE" || true)"
+  if [ -z "$strategy_brace_count" ] || [ "$strategy_brace_count" -eq 0 ]; then
+    echo "ERROR: --strategy-json file is empty or invalid: $STRATEGY_JSON_FILE" >&2
+    exit 1
+  fi
+  strategy_json="$(cat "$STRATEGY_JSON_FILE")"
+else
+  strategy_json="{\"screenIdRegex\": $screen_id_regex_json, \"viewSwitchPattern\": $view_switch_pattern_json, \"extractionMethod\": \"builtin-${detection_method}\", \"approvedByUser\": false}"
+fi
+
 {
   printf '{\n'
   printf '  "generatedAt": "%s",\n' "$(date +%Y-%m-%dT%H:%M:%S%z)"
   printf '  "sourceDir": "%s",\n' "$(json_escape "$SOURCE_DIR")"
-  printf '  "strategy": {"screenIdRegex": %s, "viewSwitchPattern": %s},\n' "$screen_id_regex_json" "$view_switch_pattern_json"
+  printf '  "strategy": %s,\n' "$strategy_json"
+  printf '  "diagnostics": %s,\n' "$diagnostics_json"
   printf '  "detectionSummary": {"method": "%s", "screenCount": %d, "clusterCount": %d, "sharedScreenCount": %d, "embeddedCandidateCount": %d, "unresolvedCount": %d},\n' \
     "$detection_method" "$screen_count" "$cluster_count" "$shared_screen_count" "$embedded_candidate_count" "$unresolved_count"
   printf '  "screens": [\n'
