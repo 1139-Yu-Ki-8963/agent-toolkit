@@ -750,7 +750,7 @@
     <tr><td><strong>L3 視覚</strong></td><td>同一ビューポートのスクリーンショット画素比較（動的領域は <code>mask</code> でマスク）</td><td>差分画素率が閾値以下（config.yml、既定 0.1%）。補助判定・証跡</td></tr>
     <tr><td><strong>L4 コンソール</strong></td><td>console error / warning の集合比較（ポートは正規化）</td><td>リバース側にのみ存在するエラーで <span class="tag fail">FAIL</span>。両方に出る既存エラーは許容</td></tr>
   </table>
-  <p class="note">L1 が失敗した場合の診断手順: ① dev サーバーの stdout/stderr を artifacts へ収集 → ② 待受ポートを再確認 → ③ 1 回だけ再起動してリトライ → それでも失敗すれば <span class="tag error">ERROR</span> とし、収集した log のパスを添付する。</p>
+  <p class="note">L1 が失敗した場合の段階診断手順: ① dev サーバーの stdout/stderr を artifacts へ収集 → ② 待受ポートを再確認 → ③ navigate を 1 回再試行 → ④ なお失敗するなら dev サーバープロセス自体を kill → 再起動して再試行する（navigate の再試行だけでは解消しない dependency re-optimize 起因のケースが実測されているため。<code>symlink_main</code> で <code>.vite</code> を共有している時に起きやすい）→ ⑤ それでも失敗すれば <span class="tag error">ERROR</span> とし、収集した log のパスを添付する。</p>
   <p class="note">DB 内容・乱数・日時などの動的データによる誤検出には、マスク対象セレクタ（<code>mask</code>）を設計書 frontmatter で宣言して対応する。</p>
   <p class="note">mcp / node-script の等価性: 両手段は同一の内容 JSON 契約（<code>rendered</code>/<code>reason</code>/<code>tables</code>/<code>texts</code>）を出力する。node-script は scenario 引数（url・ready・assert・loading）を <code>CAP_SCENARIO</code> の JSON で受け取り、内容抽出結果を <code>CAP_CONTENT</code> に書き出す。mcp は <code>browser_navigate</code> → <code>browser_wait_for</code>（ready）→ <code>browser_evaluate</code>（loading 不可視確認・innerText 抽出）→ <code>browser_take_screenshot</code> → <code>browser_snapshot</code> → <code>browser_console_messages</code> で同形の結果を得る。</p>
   <p class="note">結果分類: 両環境が render-ready 到達 ∧ 内容一致で <span class="tag pass">PASS</span> 候補。reverse 側だけ <code>NOT_RENDERED</code> は再構築未完のため <span class="tag fail">FAIL</span>。両環境が同様に <code>NOT_RENDERED</code>（引数不足でスピナー等）は <strong>DESIGN-INCOMPLETE</strong> として設計書 <code>scenarios</code> への <code>query</code>/<code>path_params</code>/<code>ready</code> 追加を促す（§8）。</p>
@@ -790,7 +790,7 @@
     <tr><td>動的比較 FAIL（整列後も）</td><td>依存再構築を 1 回だけ自動リトライ → なお FAIL なら収束ループ上限内で継続、上限到達で停止・差し戻し</td></tr>
     <tr><td>収束ループ上限到達</td><td><span class="tag fail">FAIL</span> 確定。リバースコード環境は最後の整列状態のまま残し、コミット・基準更新はしない</td></tr>
     <tr><td>環境起因（ポート占有・Playwright 不通 等）</td><td>差分判定と区別して <span class="tag error">ERROR</span> として報告（「設計書の不備」との誤解釈を防ぐ）</td></tr>
-    <tr><td>L1 起動失敗</td><td>診断手順（stdout/stderr 収集 → 待受ポート再確認 → 1 回リトライ）を実施したうえで <span class="tag error">ERROR</span>。収集した log のパスを添付する</td></tr>
+    <tr><td>L1 起動失敗</td><td>段階診断（stdout/stderr 収集 → 待受ポート再確認 → navigate 1 回再試行 → 直らなければ dev サーバープロセスを kill→再起動して再試行）を実施したうえで、なお失敗なら <span class="tag error">ERROR</span>。収集した log のパスを添付する</td></tr>
     <tr><td><code>NOT_RENDERED</code>（reverse 側のみ）</td><td>reverse だけ render-ready 未到達（再構築未完）。<span class="tag fail">FAIL</span> として報告し、収束ループを継続する</td></tr>
     <tr><td><strong>DESIGN-INCOMPLETE</strong>（両環境が render-ready 未到達）</td><td>両環境が同様にスピナー等で停止。<code>status=INCOMPLETE</code> とし、設計書 <code>scenarios</code> への <code>query</code>/<code>path_params</code>/<code>ready</code> 追加を促す hint を付けて呼び出し元（rebuilding-code-from-docs）へ差し戻す</td></tr>
     <tr><td><strong>DYNAMIC-UNVERIFIED</strong>（動的検証手段なし）</td><td>MCP・node-script（Playwright 実行環境）のいずれも利用不能。<code>status=INCOMPLETE</code> とし、静的一致は報告するが PASS は宣言しない（コードは同一の可能性が高いが描画・データ未検証と明記）</td></tr>
