@@ -447,7 +447,7 @@
         <td><code>mode</code></td><td>setup / sync（既定）/ teardown</td></tr>
     <tr><td><code>dry-run</code> / <code>reset-first</code></td><td>sync のオプション（上記）</td></tr>
     <tr><td><code>user-approved</code></td><td>teardown 時のユーザー依頼発話の引用。呼び出し元スキル経由の teardown では必須（無ければ削除せず ERROR で差し戻す）</td></tr>
-    <tr><td><code>routes</code></td><td>動的比較で巡回する画面パス。省略時は設計書 frontmatter の <code>route</code> から導出</td></tr>
+    <tr><td><code>scenarios</code></td><td>動的比較で巡回する画面シナリオ一覧。省略時は設計書 frontmatter の <code>scenarios</code> から導出（スキーマは下記 h3「scenarios（画面単位の正本）」。旧 <code>route</code> 単一パスは後方互換で <code>[{path: &lt;パス&gt;}]</code> に正規化する）</td></tr>
     <tr><td><code>max-loop</code></td><td>整列 → 再検証の収束ループ上限。既定は config.yml の値（3）</td></tr>
   </table>
   <ul>
@@ -455,6 +455,20 @@
     <li><strong>人間から</strong>: <code>design-doc</code> だけ渡せば起動できる。</li>
     <li><strong>共通</strong>: worktree のパスを引数で受け取ることはない。両環境は本スキルが命名規則（§5）から導出・確保する。</li>
   </ul>
+
+  <h3>scenarios（画面単位の正本）</h3>
+  <p>設計書 frontmatter の <code>scenarios[]</code> が、動的比較で巡回する画面シナリオの正本になる。旧 <code>route: &lt;パス&gt;</code>（単一パス）は後方互換で <code>scenarios: [{path: &lt;パス&gt;}]</code> に正規化してから扱う。</p>
+  <table class="spec">
+    <tr><th>キー</th><th>内容</th></tr>
+    <tr><td><code>name</code></td><td>シナリオ識別名（意味語キー。artifacts の scenario 別サブディレクトリ名にも使う）</td></tr>
+    <tr><td><code>path</code></td><td>画面パス。<code>:名</code> のプレースホルダは <code>path_params</code> で置換する</td></tr>
+    <tr><td><code>query</code></td><td>クエリ引数（key-value）。URL 構築時に <code>?</code> 以降へ展開する</td></tr>
+    <tr><td><code>path_params</code></td><td><code>path</code> 中の <code>:名</code> を実値に置換するための key-value</td></tr>
+    <tr><td><code>ready</code></td><td><code>selector</code>（可視になるまで待つ render-ready 条件）と <code>not</code>（config.yml <code>loading_selectors</code> に画面固有のセレクタを追加する配列。既定と統合して使う）</td></tr>
+    <tr><td><code>assert</code></td><td><code>tables</code> / <code>texts</code>（内容一致の対象セレクタ一覧）。innerText を正規化して両環境を突合する</td></tr>
+    <tr><td><code>mask</code></td><td>L3 視覚比較でマスクする動的領域のセレクタ一覧（DB 内容・乱数・日時等の誤検出対策）</td></tr>
+  </table>
+  <p class="note">URL 構築規則: <code>http://127.0.0.1:&lt;port&gt;</code> ＋ <code>path</code>（<code>path_params</code> 置換後）＋ <code>?</code> ＋ <code>query</code>。<code>path</code> / <code>query</code> は両環境で同一値を使い、port だけスロット確定値に差し替える。</p>
 </section>
 
 <section id="s5">
@@ -503,7 +517,7 @@
   <p class="note">互換注記: 旧固定表（frontend = オリジナル 9101 / リバース 9111）は廃止し、既定の slot 1 では frontend = オリジナル 9100 / リバース 9110 になる（稼働中環境が存在しないため移行措置は設けない）。</p>
 
   <h3>config.yml</h3>
-  <p>プロジェクトによって変えたくなる可能性がある値は、スキルフォルダ直下の <code>config.yml</code> に集約する。値の階層は 3 層で役割分担する: 普遍のルール＝SKILL.md / プロジェクト単位の可変値（サービス一覧・起動手順）＝config.yml / 画面単位の可変値（routes・マスク対象セレクタ）＝設計書 frontmatter。タイムアウト等の数値パラメータ（<code>nav_timeout_ms</code> / <code>settle_wait_ms</code> / <code>l3_threshold_percent</code> / <code>max_loop</code> 等）も同じ階層に従い、<code>defaults</code> を <code>projects.&lt;system&gt;</code> で上書きして調整する（有効値 = defaults ← projects の深いマージ、projects 優先）。</p>
+  <p>プロジェクトによって変えたくなる可能性がある値は、スキルフォルダ直下の <code>config.yml</code> に集約する。値の階層は 3 層で役割分担する: 普遍のルール＝SKILL.md / プロジェクト単位の可変値（サービス一覧・起動手順）＝config.yml / 画面単位の可変値（scenarios・マスク対象セレクタ）＝設計書 frontmatter。タイムアウト等の数値パラメータ（<code>nav_timeout_ms</code> / <code>ready_timeout_ms</code> / <code>settle_wait_ms</code> / <code>l3_threshold_percent</code> / <code>max_loop</code> 等）も同じ階層に従い、<code>defaults</code> を <code>projects.&lt;system&gt;</code> で上書きして調整する（有効値 = defaults ← projects の深いマージ、projects 優先）。</p>
   <pre class="flow"><span class="cap">── config.yml の構造 ───────────────────────────────────────</span>
 
   defaults:
@@ -563,13 +577,23 @@
                                     # 明示パス（強制・NODE_PATH へ渡す解決先を固定）
       nav_timeout_ms: 60000          # page.goto の待受タイムアウト（既定 60 秒。
                                     #   projects で上書き可）
-      settle_wait_ms: 10000          # load 後の描画安定待ち（既定 10 秒。
-                                    #   projects で上書き可）
+      ready_timeout_ms: 60000        # readiness gate: ready セレクタが可視になる
+                                    #   まで待つ上限（既定 60 秒）。到達しなければ
+                                    #   NOT_RENDERED（未描画）
+      settle_wait_ms: 10000          # ready セレクタ未指定時のみ使う弱いフォール
+                                    #   バック待ち（既定 10 秒。ready 指定が本筋）
+      loading_selectors:              # readiness gate の anti-spinner 既定セレクタ。
+        - "[aria-busy='true']"        #   可視で残っていれば NOT_RENDERED。画面固有の
+        - "[role='progressbar']"      #   追加は設計書 frontmatter の scenarios[].ready.not
+        - ".spinner"                  #   で行う（既定と統合して使う）
+        - ".loading"
       # command_template: 実機検証で判明した固定事項（waitUntil="load" 固定・
       #   ariaSnapshot() 使用・navigate 先 127.0.0.1 固定）を理由ごと保持する
-      #   検証済みスクリプト。timeout / 描画安定待ちは {nav_timeout} / {settle_wait}
-      #   プレースホルダで上記 nav_timeout_ms / settle_wait_ms を参照する。
-      #   全文は config.yml を正とし、本書では再掲しない
+      #   検証済みスクリプト（v2: readiness gate ＋ 内容抽出に対応）。timeout /
+      #   readiness 待ち / 描画安定待ちは {nav_timeout} / {ready_timeout} /
+      #   {settle_wait} プレースホルダで上記 nav_timeout_ms / ready_timeout_ms /
+      #   settle_wait_ms を参照する。内容抽出結果（rendered/reason/tables/texts）
+      #   は CAP_CONTENT に書き出す。全文は config.yml を正とし、本書では再掲しない
 
   projects:                     # プロジェクト（&lt;system&gt;）単位の上書き（必要時のみ）
     "&lt;system&gt;":
@@ -614,6 +638,7 @@
     <tr><td>8</td><td>runtime-deps-ready</td><td><code>playwright_exec.mode=auto</code>（既定）は Playwright MCP の可用性を検出して mcp / node-script を自動選択する（MCP 非接続でも NO-GO にせず node-script へ自動フォールバック）。node-script 選択時は <code>node_path=null</code>（既定）を ① reverse worktree での <code>require.resolve('playwright')</code> → ② <code>npm root -g</code> 配下の playwright/ → ③ npx キャッシュの実探索（<code>find "${npm_config_cache:-$HOME/.npm}/_npx" -type d -path '*/node_modules/playwright'</code> のヒット先の親 node_modules）の順で自動解決し、playwright モジュールと chromium バイナリの存在を確認する。①〜③ いずれも不在なら NO-GO とし人間に <code>node_path</code> 明示を促す。mode=mcp 明示時は MCP 接続とブラウザバイナリ導入済みを要求する。sync 時は node_modules の存在・<code>.bin/*</code> の実行可能性・lock ファイルの存在まで確認する（setup 直後の空容器では可用性確認のみ行う）</td><td>NO-GO（<span class="tag error">ERROR</span> 系。§8）</td></tr>
     <tr><td>9</td><td>baseline-tag-exists</td><td><code>reset-first</code> 指定時のみ: 基準タグが存在</td><td>NO-GO（基準未確立と報告）</td></tr>
   </table>
+  <p class="note"><code>runtime-deps-ready</code> の NO-GO は setup 直後の空容器や依存導入不備が対象。mode=sync で環境自体は整っているが MCP も node-script（Playwright 実行環境）も利用不能で動的検証の実行手段が無い場合は、NO-GO で止めず <strong>DYNAMIC-UNVERIFIED</strong>（§7-3・§8）として扱う。静的一致のみで PASS を宣言しない。</p>
 </section>
 
 <section id="s6">
@@ -715,17 +740,20 @@
   </table>
   <p class="note"><code>port-owner</code>・<code>symlink-independence</code>・<code>process-independence</code>・<code>storage-isolation</code> は「同一」ではなく「独立」の検証。実体を共有した 2 環境は一致して見えて当然であり、完全一致の証明は「独立した 2 環境が同じに振る舞う」ことで初めて成立する。</p>
 
-  <h3>7-3. 動的比較（Playwright 4 層）</h3>
-  <p>両環境をそれぞれの固定ポートで起動し、<code>routes</code> の各画面を 4 層で突合する。総合判定は L1 ∧ L2 ∧ L4 を必須とし、L3 は閾値超過で FAIL（画像ペアを添付して人間が最終裁定できる）。</p>
+  <h3>7-3. 動的比較（render-ready ＋ Playwright 4 層）</h3>
+  <p>両環境をそれぞれの固定ポートで起動し、<code>scenarios</code> の各画面シナリオを render-ready 到達確認・内容一致・4 層で突合する。総合判定は <strong>render-ready 到達 ∧ L2' 内容一致 ∧ L2（ARIA）∧ L4</strong> を必須とし、L3 は閾値超過で FAIL（画像ペアを添付して人間が最終裁定できる）。<strong>静的一致・L2（ARIA）一致だけでは PASS にしない</strong>。両環境が同一のスピナーで止まっていても render-ready 未到達であれば PASS ではない。</p>
   <table class="spec">
     <tr><th>層</th><th>内容</th><th>判定基準</th></tr>
-    <tr><td><strong>L1 起動</strong></td><td>両環境のヘルスチェック / トップ応答。<code>playwright_exec.mode</code> で実行手段が分岐する: mode=mcp は MCP ツールの navigate/snapshot、mode=node-script は config.yml の <code>command_template</code> を Bash で直接実行する。navigate 先 URL は 127.0.0.1 固定・<code>waitUntil="load"</code> 固定。navigate タイムアウト・描画安定待ちは config.yml の <code>nav_timeout_ms</code> / <code>settle_wait_ms</code>（projects で上書き可）</td><td>両方の成功が前提。片方でも失敗なら以降をスキップして <span class="tag fail">FAIL</span></td></tr>
-    <tr><td><strong>L2 構造</strong></td><td>アクセシビリティスナップショット（DOM 構造）をポート・URL 正規化後に比較。node-script モードでは body の ARIA snapshot 文字列（<code>ariaSnapshot()</code>）を突合対象とする</td><td>完全一致を要求（一次判定）</td></tr>
-    <tr><td><strong>L3 視覚</strong></td><td>同一ビューポートのスクリーンショット画素比較（動的領域はマスク）</td><td>差分画素率が閾値以下（config.yml、既定 0.1%）。補助判定・証跡</td></tr>
+    <tr><td><strong>L1 起動</strong></td><td>両環境のヘルスチェック / トップ応答 <strong>かつ render-ready 到達</strong>（scenario の <code>ready.selector</code> が可視 ∧ <code>loading_selectors</code>（既定 ∪ <code>ready.not</code>）が不可視）。<code>playwright_exec.mode</code> で実行手段が分岐する: mode=mcp は MCP ツールの navigate/wait_for/evaluate、mode=node-script は config.yml の <code>command_template</code> を Bash で直接実行する。navigate 先 URL は 127.0.0.1 固定・<code>waitUntil="load"</code> 固定。navigate / readiness 待ち / 描画安定待ちのタイムアウトは config.yml の <code>nav_timeout_ms</code> / <code>ready_timeout_ms</code> / <code>settle_wait_ms</code>（projects で上書き可）</td><td>両方の成功 かつ render-ready 到達が前提。片方でも失敗・未到達なら <code>NOT_RENDERED</code> とし以降をスキップして <span class="tag fail">FAIL</span></td></tr>
+    <tr><td><strong>L2 構造</strong></td><td>アクセシビリティスナップショット（DOM 構造）をポート・URL 正規化後に比較。node-script モードでは body の ARIA snapshot 文字列（<code>ariaSnapshot()</code>）を突合対象とする</td><td>一次スクリーニング。完全一致を要求するが、<strong>単独では PASS 条件にしない</strong>（L2' 内容一致・render-ready 到達と併せて判定する）</td></tr>
+    <tr><td><strong>L2' 内容一致</strong></td><td>scenario の <code>assert.tables</code> / <code>assert.texts</code> 各セレクタの innerText を正規化し、両環境の内容 JSON（<code>rendered</code>/<code>reason</code>/<code>tables</code>/<code>texts</code>）を突合する。mcp・node-script のいずれも同一形の内容 JSON を出力する（node-script は <code>CAP_CONTENT</code>）</td><td>tables/texts が完全一致。不一致はデータ差分として <span class="tag fail">FAIL</span></td></tr>
+    <tr><td><strong>L3 視覚</strong></td><td>同一ビューポートのスクリーンショット画素比較（動的領域は <code>mask</code> でマスク）</td><td>差分画素率が閾値以下（config.yml、既定 0.1%）。補助判定・証跡</td></tr>
     <tr><td><strong>L4 コンソール</strong></td><td>console error / warning の集合比較（ポートは正規化）</td><td>リバース側にのみ存在するエラーで <span class="tag fail">FAIL</span>。両方に出る既存エラーは許容</td></tr>
   </table>
   <p class="note">L1 が失敗した場合の診断手順: ① dev サーバーの stdout/stderr を artifacts へ収集 → ② 待受ポートを再確認 → ③ 1 回だけ再起動してリトライ → それでも失敗すれば <span class="tag error">ERROR</span> とし、収集した log のパスを添付する。</p>
-  <p class="note">DB 内容・乱数・日時などの動的データによる誤検出には、マスク対象セレクタを設計書 frontmatter で宣言して対応する。</p>
+  <p class="note">DB 内容・乱数・日時などの動的データによる誤検出には、マスク対象セレクタ（<code>mask</code>）を設計書 frontmatter で宣言して対応する。</p>
+  <p class="note">mcp / node-script の等価性: 両手段は同一の内容 JSON 契約（<code>rendered</code>/<code>reason</code>/<code>tables</code>/<code>texts</code>）を出力する。node-script は scenario 引数（url・ready・assert・loading）を <code>CAP_SCENARIO</code> の JSON で受け取り、内容抽出結果を <code>CAP_CONTENT</code> に書き出す。mcp は <code>browser_navigate</code> → <code>browser_wait_for</code>（ready）→ <code>browser_evaluate</code>（loading 不可視確認・innerText 抽出）→ <code>browser_take_screenshot</code> → <code>browser_snapshot</code> → <code>browser_console_messages</code> で同形の結果を得る。</p>
+  <p class="note">結果分類: 両環境が render-ready 到達 ∧ 内容一致で <span class="tag pass">PASS</span> 候補。reverse 側だけ <code>NOT_RENDERED</code> は再構築未完のため <span class="tag fail">FAIL</span>。両環境が同様に <code>NOT_RENDERED</code>（引数不足でスピナー等）は <strong>DESIGN-INCOMPLETE</strong> として設計書 <code>scenarios</code> への <code>query</code>/<code>path_params</code>/<code>ready</code> 追加を促す（§8）。</p>
 
   <h3>7-4. 整列</h3>
   <p>sync で実差分が見つかった場合（dry-run 指定がない時）、リバースコード環境をオリジナルコード環境に揃える。整列は git 操作（checkout / merge）ではなくファイル転写で行い、両ブランチの歴史を混ぜない。</p>
@@ -763,6 +791,9 @@
     <tr><td>収束ループ上限到達</td><td><span class="tag fail">FAIL</span> 確定。リバースコード環境は最後の整列状態のまま残し、コミット・基準更新はしない</td></tr>
     <tr><td>環境起因（ポート占有・Playwright 不通 等）</td><td>差分判定と区別して <span class="tag error">ERROR</span> として報告（「設計書の不備」との誤解釈を防ぐ）</td></tr>
     <tr><td>L1 起動失敗</td><td>診断手順（stdout/stderr 収集 → 待受ポート再確認 → 1 回リトライ）を実施したうえで <span class="tag error">ERROR</span>。収集した log のパスを添付する</td></tr>
+    <tr><td><code>NOT_RENDERED</code>（reverse 側のみ）</td><td>reverse だけ render-ready 未到達（再構築未完）。<span class="tag fail">FAIL</span> として報告し、収束ループを継続する</td></tr>
+    <tr><td><strong>DESIGN-INCOMPLETE</strong>（両環境が render-ready 未到達）</td><td>両環境が同様にスピナー等で停止。<code>status=INCOMPLETE</code> とし、設計書 <code>scenarios</code> への <code>query</code>/<code>path_params</code>/<code>ready</code> 追加を促す hint を付けて呼び出し元（rebuilding-code-from-docs）へ差し戻す</td></tr>
+    <tr><td><strong>DYNAMIC-UNVERIFIED</strong>（動的検証手段なし）</td><td>MCP・node-script（Playwright 実行環境）のいずれも利用不能。<code>status=INCOMPLETE</code> とし、静的一致は報告するが PASS は宣言しない（コードは同一の可能性が高いが描画・データ未検証と明記）</td></tr>
     <tr><td>teardown 部分失敗</td><td>残存資源（kill 未了のプロセス・未削除の worktree・スロット/ロック残骸・artifacts）を列挙して報告する。再実行時は残っている手順から掃除を続ける</td></tr>
   </table>
 
@@ -770,7 +801,9 @@
   <p class="note">setup / teardown / ERROR の早期終了時も返却ブロックの形を保ち、未実施フィールドは「未実施」と記す。</p>
   <pre class="flow"><span class="cap">── 返却ブロック ─────────────────────────────────────────────</span>
 
-  status:          PASS | FAIL | ERROR
+  status:          PASS | FAIL | ERROR | INCOMPLETE
+                   # INCOMPLETE の内訳（DESIGN-INCOMPLETE / DYNAMIC-UNVERIFIED）は
+                   # フィールドを増やさず hint に記す
   mode:            setup | sync | teardown（+ dry-run / reset-first の有無）
   scope:           &lt;system&gt;-&lt;画面ID&gt;
   screen_id:       &lt;画面ID&gt;
@@ -783,19 +816,26 @@
                    # の形で付記する
   static_diff:     実差分 &lt;N&gt; 件（上位 &lt;n&gt; 件のファイル一覧）
                    ポート差（許容） &lt;M&gt; 件
-  dynamic:         L1=PASS L2=PASS L3=PASS(0.03%) L4=PASS
-                   （route 別の内訳を添付）
+  dynamic:         L1=PASS(render-ready到達) L2=PASS L2'=PASS(内容一致) L3=PASS(0.03%) L4=PASS
+                   （scenario 別の内訳を添付。render-ready 未到達時は
+                    reason に NOT_RENDERED の理由セレクタを記す）
   env_check:       全項目 PASS（NG があれば §7-2 のキーと内容を列挙）
   artifacts:       &lt;artifacts_root&gt;/&lt;scope&gt;/&lt;実行日時&gt;/ 配下の保存先パス
-                   （route 別サブディレクトリ）
-  hint:            # FAIL 時のみ
+                   （scenario 別サブディレクトリ）
+  hint:            # FAIL / INCOMPLETE 時のみ
                    src/components/Foo.tsx の差分
-                   → 設計書 §9 領域別仕様 の記載不足と推定</pre>
-  <p class="note"><code>hint</code> は「差分ファイル → 設計書章マップの対応推定」であり、rebuilding-code-from-docs スキルの設計書修正ループの入力になる。</p>
-  <p class="note"><code>artifacts</code> の保存規約: <code>&lt;artifacts_root&gt;/&lt;scope&gt;/&lt;実行日時&gt;/</code> 配下に route 別のサブディレクトリを作成して保存する（<code>artifacts_root</code> は config.yml、既定 <code>~/agent-home/sessions/reverse-env</code>）。</p>
+                   → 設計書 §9 領域別仕様 の記載不足と推定
+                   # DESIGN-INCOMPLETE の例:
+                   # 両環境が render-ready 未到達 → 設計書 scenarios に
+                   # query/path_params/ready の追加が必要と推定
+                   # DYNAMIC-UNVERIFIED の例:
+                   # MCP・node-script とも利用不能のため動的検証未実施。
+                   # 静的一致のみでは PASS を判定できない</pre>
+  <p class="note"><code>hint</code> は「差分ファイル → 設計書章マップの対応推定」であり、rebuilding-code-from-docs スキルの設計書修正ループの入力になる。<code>status=INCOMPLETE</code> 時は内訳（DESIGN-INCOMPLETE / DYNAMIC-UNVERIFIED）と対処方針も <code>hint</code> に記す。</p>
+  <p class="note"><code>artifacts</code> の保存規約: <code>&lt;artifacts_root&gt;/&lt;scope&gt;/&lt;実行日時&gt;/</code> 配下に scenario 別のサブディレクトリを作成して保存する（<code>artifacts_root</code> は config.yml、既定 <code>~/agent-home/sessions/reverse-env</code>）。</p>
 
   <h3>ユーザー向け定型文（検証後の報告）</h3>
-  <p>ポートと起動手順は config.yml、確認 URL のパスは設計書 frontmatter の <code>route</code>、判定と証跡は実行結果から埋める。アプリ依存は起動手順だけなので、定型文の形は全アプリ共通。</p>
+  <p>ポートと起動手順は config.yml、確認 URL のパスは設計書 frontmatter の <code>scenarios[].path</code>（<code>query</code>/<code>path_params</code> 展開後）、判定と証跡は実行結果から埋める。アプリ依存は起動手順だけなので、定型文の形は全アプリ共通。</p>
   <pre class="flow"><span class="cap">── ユーザーへ返す定型文（PASS の例）─────────────────────────</span>
 
   ## リバース環境 検証結果: PASS（ポート以外完全一致）
@@ -840,6 +880,8 @@
     <tr><td><span class="tag pass">PASS</span></td><td>PASS（ポート以外完全一致）</td><td>基準タグの確立・更新を報告（上記の例のとおり）</td></tr>
     <tr><td><span class="tag fail">FAIL</span></td><td>FAIL（&lt;N&gt; 周の整列でも不一致）</td><td>「残差分と設計書ヒント」を追加。基準タグは更新していないことを明記</td></tr>
     <tr><td><span class="tag error">ERROR</span></td><td>ERROR（環境起因で判定不能）</td><td>「原因と対処」を追加。設計書の不備ではないことを明記</td></tr>
+    <tr><td>INCOMPLETE（DESIGN-INCOMPLETE）</td><td>INCOMPLETE（両環境が render-ready 未到達・設計書不足の疑い）</td><td>設計書 <code>scenarios</code> への <code>query</code>/<code>path_params</code>/<code>ready</code> 追加ヒントを追加。PASS ではないことを明記</td></tr>
+    <tr><td>INCOMPLETE（DYNAMIC-UNVERIFIED）</td><td>INCOMPLETE（動的検証手段なし・未検証）</td><td>静的一致の結果のみ報告し、「描画・データ未検証のため PASS ではない」ことを明記</td></tr>
     <tr><td>dry-run 時</td><td>判定の後ろに「（dry-run・無変更）」を付す</td><td>整列・基準タグ更新を行っていないことを明記</td></tr>
   </table>
 </section>

@@ -14,6 +14,8 @@ Phase 8 で使う分類表。表 A は Phase 7（答え合わせ）・Phase 2（
 | L4コンソール差 | Phase 7（動的比較 L4） | コンソールエラー集合が一致しない | 表 B の該当失敗クラスへ（多くは API 呼び出し条件・型差、イベント処理挙動差） |
 | P2内部矛盾 | Phase 2（内部整合性監査） | 突合 1〜5 のいずれかで不一致が検出された | 表 B の該当失敗クラスへ。実装を経ずに直接指示書へ |
 | P5発散エラー | Phase 5（自己完結チェック） | 同一エラーシグネチャが 3 連続で再発し発散確定 | エラー内容から表 B の該当失敗クラスを推定 |
+| 描画未到達(両環境) | Phase 7（syncing-reverse-env 返却 `status`） | `status` が `DESIGN-INCOMPLETE`（両環境とも同様に render-ready 未到達。引数不足のスピナー等） | 表 B の「scenarios引数不足」へ |
+| 動的検証不能 | Phase 7（syncing-reverse-env 返却 `status`） | `status` が `DYNAMIC-UNVERIFIED`（MCP・Playwright とも不在で動的検証不能） | 表 B 対象外。NG 計上せず最終報告の注記へ（PASS 扱いにしない） |
 
 ## 表 B: 失敗クラス → 一次帰着（役割・既定§） → テンプレ昇格条件
 
@@ -29,11 +31,13 @@ Phase 8 で使う分類表。表 A は Phase 7（答え合わせ）・Phase 2（
 | 遷移方式・パラメータ差 | 画面遷移（既定 §12） | — |
 | 定数値差 | 定数設定値（既定 §10） | — |
 | 空状態・エラー状態差 | データフロー/エラーハンドリング（空状態/エラー状態。既定 §6.6/§11） | — |
+| scenarios引数不足 | frontmatter（`scenarios[].query` / `path_params` / `ready`） | 2 画面以上で再発 |
 
 ## 使い方
 
-1. Phase 7 の返却ブロック（`static_diff` / `dynamic` / `env_check` / `hint`）、Phase 2 の監査結果、Phase 5 の発散エラーを検出シグナルとして集める
+1. Phase 7 の返却ブロック（`status` / `static_diff` / `dynamic` / `env_check` / `hint`）、Phase 2 の監査結果、Phase 5 の発散エラーを検出シグナルとして集める
 2. 表 A で検出シグナルを失敗クラスへ写像する
 3. 表 B で失敗クラスから一次帰着（役割・既定§）を決め、修正指示書（`references/report-format.md` 参照）の該当欄に記入する
 4. テンプレ昇格条件に合致する場合、`references/test-item-patterns.md` に新規エントリを追記し「テンプレ反映状況: 未」で記録する
 5. 「正の分担違反」（スタイル数値差・文言差）は、設計書本体ではなく `DESIGN.md` / メッセージ定義書側の記載不足として指摘する（章マップの正の宣言に従う）
+6. `status` が `DYNAMIC-UNVERIFIED` の場合は表 A・表 B を経由せず、最終報告（`references/report-format.md`）に「動的未検証のため往復検証完了としない」旨を注記する

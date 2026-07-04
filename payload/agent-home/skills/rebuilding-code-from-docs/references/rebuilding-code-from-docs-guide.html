@@ -166,6 +166,7 @@
     <tr><td>白紙化ゲート</td><td>Phase 3 で reverse-code 環境のうち実装契約章のファイル分割表（既定 §15.1）に列挙された対象ファイルのみを削除するコミット。削除前に AskUserQuestion でユーザー承認を取る。以降カンニング防止のため original-code の Read を禁止する</td></tr>
     <tr><td>凍結コミット</td><td>Phase 6 で確定するコミットハッシュ。Phase 7 以降の比較対象点として固定される</td></tr>
     <tr><td>失敗クラス</td><td><code>ng-classification.md</code> が定義する、検出シグナルを分類した意味キー。設計書の該当章（役割キー）への帰着先を持つ</td></tr>
+    <tr><td>scenarios</td><td>設計書 frontmatter に置く画面表示状態の配列。<code>path</code>/<code>query</code>/<code>path_params</code> で対象状態を指定し、<code>ready</code>/<code>assert</code>/<code>mask</code> で描画到達（render-ready）判定・内容一致判定・非決定領域マスクを渡す。旧 <code>route: &lt;パス&gt;</code> は <code>scenarios:[{path:&lt;パス&gt;}]</code> 相当として後方互換で解釈される</td></tr>
   </table>
 </section>
 
@@ -241,7 +242,7 @@
   <h3>Phase 5: 自己完結チェック</h3>
   <p>型チェック・単体/結合テスト・Playwright スモーク（reverse 側 9110 番台のみ）を実行する。内側ループは上限 3 回、同一エラーシグネチャ 3 連続で発散確定とし、発散エラー自体を設計書欠落候補として Phase 8 へ渡す。</p>
   <h3>Phase 7: 答え合わせ</h3>
-  <p><code>syncing-reverse-env</code> の <code>mode=sync, dry-run</code> 呼び出しで、静的 3 分類・env_check 全項目・Playwright L1〜L4・<code>hint</code> を受領する。比較の自前実装は禁止。</p>
+  <p><code>syncing-reverse-env</code> の <code>mode=sync, dry-run</code> 呼び出しで、静的 3 分類・env_check 全項目・Playwright L1〜L4・<code>hint</code>・<code>status</code> を受領する。設計書 frontmatter の <code>scenarios[].query</code>/<code>path_params</code>/<code>ready</code>/<code>assert</code>/<code>mask</code> が描画到達（render-ready）判定・内容一致判定・マスクの入力になる。比較の自前実装は禁止。<code>status</code> が <span class="tag mode">DESIGN-INCOMPLETE</span>（両環境とも render-ready 未到達）なら Phase 8 で scenarios への query/path_params/ready 追加を指示し、<span class="tag mode">DYNAMIC-UNVERIFIED</span>（MCP・Playwright とも不在）なら PASS 扱いにせず往復検証未完了として報告する。</p>
   <h3>Phase 9: 凍結検証</h3>
   <p><code>scripts/check-freeze.sh</code> で Phase 6 の凍結コミットハッシュと現状（HEAD・作業ツリー）を突合する。
     <span class="tag pass">PASS</span> = HEAD一致かつ作業ツリークリーン、
@@ -255,7 +256,7 @@
   <table class="spec">
     <tr><th>成果物</th><th>作成 Phase</th><th>内容</th></tr>
     <tr><td>修正指示書</td><td>Phase 8</td><td>対象設計書パス / NG 一覧（失敗クラス・帰着章・修正指示・証跡パス）/ テンプレート改善提案</td></tr>
-    <tr><td>最終報告</td><td>Phase 9</td><td>判定（PASS/FAIL/無効）/ 凍結コミットハッシュ / 各 Phase の実行結果 / syncing-reverse-env 返却ブロック要約 / 証跡パス一覧</td></tr>
+    <tr><td>最終報告</td><td>Phase 9</td><td>判定（PASS/FAIL/INCOMPLETE/無効）/ 凍結コミットハッシュ / 各 Phase の実行結果 / syncing-reverse-env 返却ブロック要約（status に DESIGN-INCOMPLETE/DYNAMIC-UNVERIFIED を含む）/ 証跡パス一覧</td></tr>
   </table>
   <div class="constraint">
     <strong>基準タグ更新:</strong> PASS かつ凍結検証 PASS の場合のみ、AskUserQuestion でユーザー承認を取り、<code>syncing-reverse-env</code> の <code>sync</code>（非 dry-run）で基準タグ更新を提案する。承認前に更新しない。

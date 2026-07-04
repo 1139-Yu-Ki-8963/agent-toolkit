@@ -459,6 +459,7 @@
     <tr><td><strong>L4 コンソール</strong></td><td>console error / warning の集合比較（メッセージ内のポートは正規化）</td><td>リバースコード環境にのみ存在するエラーがあれば <span class="tag fail">FAIL</span>。両方に出るオリジナルコード環境由来の既存エラーは許容</td></tr>
   </table>
   <p><strong>総合判定</strong>: L1 ∧ L2 ∧ L4 を必須とする。L3 は閾値超過で FAIL とするが、レポートに画像ペアを添付して人間が最終裁定できるようにする。</p>
+  <p class="note">なお L2 の「完全一致を要求（一次判定）」という位置づけは、後続 ADR-17 で一次スクリーニングに降格し、単独では PASS 条件にしないよう改訂した（総合判定は render-ready ∧ L2' 内容一致 ∧ ARIA ∧ L4 ∧ L3 閾値内）。</p>
   <div class="gotcha"><strong>偽陽性対策（拡張点）:</strong> DB 内容・乱数・日時などの動的データによる誤検出に備え、マスク対象セレクタを設計書 frontmatter で宣言できる拡張点を設ける。</div>
 </section>
 
@@ -736,6 +737,18 @@
     <div class="adr-title"><span class="adr-label">ADR-16</span>独立性を犠牲にする選択は自動化しない（node_modules_strategy=auto は常に npm_ci）</div>
     <p><strong>採用</strong>: <code>node_modules_strategy=auto</code> を「常に <code>npm_ci</code> に解決」に変更し、<code>symlink_main</code> は人間が config/projects で明示指定した時だけ使う。drvfs 検出時は「<code>symlink_main</code> で高速化できるが node_modules の独立性が証明対象から外れる」を WARN で提示するに留め、自動切替はしない。あわせて <code>playwright_exec.node_path</code> の自動解決を、テスト対象アプリの多くが playwright を自依存に持たない現実に即した再現可能な具体手順（① reverse worktree での <code>require.resolve('playwright')</code> → ② <code>npm root -g</code> 配下の playwright/ → ③ npx キャッシュの実探索 <code>find "${npm_config_cache:-$HOME/.npm}/_npx" -type d -path '*/node_modules/playwright'</code> のヒット先の親 node_modules → ④ いずれも不在なら <code>runtime-deps-ready</code> を NO-GO とし人間に <code>node_path</code> 明示を促す）に確定した。<strong>理由</strong>: 本スキルの核心目的は「2 環境の完全独立の証明」である。独立性を犠牲にするか否かは目的の根幹に関わる判断であり、性能都合で自動判定が黙って行うと、証明の前提が利用者に気づかれぬまま崩れる。低速環境でも <code>npm_ci</code> は時間がかかるだけで動作・正しさは変わらないため、既定を <code>npm_ci</code> に倒すコストは待ち時間のみ。また ADR-14 時点の <code>node_path</code> 自動解決（「require.resolve → だめなら npx/npm root の解決先」）は後段が曖昧で機能しない。テスト対象アプリの多くは playwright を自依存に持たず require.resolve が失敗し、<code>npm root</code>（プロジェクトローカル）は npx キャッシュのハッシュ名フォルダを探さないため、再現可能な実探索手順に置き換えた。</p>
     <p><strong>却下案</strong>: <code>auto</code> が drvfs 検出時に <code>symlink_main</code> を自動選択し理由は事後報告に留める（ADR-14 の原案） — 独立性という核心を黙って犠牲にするため不採用。</p>
+  </div>
+
+  <div class="adr">
+    <div class="adr-title"><span class="adr-label">ADR-17</span>描画到達（readiness gate）と内容/データ一致を PASS の必須条件にする</div>
+    <p><strong>採用</strong>: 動的比較に render-ready（scenario の <code>ready.selector</code> 可視 ∧ <code>loading</code> セレクタ不可視）を必須の前提とし、その到達後に特定テーブル/データ（<code>assert.tables</code> / <code>assert.texts</code> の innerText）を両環境で突合する（L2' 内容一致）。ARIA snapshot（旧 L2）は一次スクリーニングに降格し単独では PASS 条件にしない。総合判定は「render-ready ∧ L2' 内容一致 ∧ ARIA ∧ L4 ∧ L3 閾値内」。<strong>理由</strong>: 静的一致と ARIA 文字列一致だけでは、両環境が同一のスピナー（ローディング状態）で止まっていても「同一・準備完了」と誤判定する事故が実際に起きた。コードが同じでも実際に描画・データ表示できないリバース環境は「整えた仕事の完了」とは言えない。元の検証運用が「特定テーブル・特定操作・特定データの完全一致」まで見て OK としていた水準に合わせる。</p>
+    <p><strong>却下案</strong>: (1) 静的一致＋ARIA一致で PASS（同一スピナーを誤 PASS するため不採用）。(2) 固定の <code>settle_wait</code> 待ちだけで描画済みとみなす（描画到達を保証できず不採用。ready 未指定時の弱いフォールバックとしてのみ残す）。<strong>トレードオフ</strong>: 描画到達判定には画面ごとの ready セレクタ指定が要る。これを設計書 frontmatter の <code>scenarios[].ready</code> に置くことで画面単位の正本に一元化した。ready 未指定時は config.loading_selectors による anti-spinner ヒューリスティックで最低限のスピナー検出を行う。</p>
+  </div>
+
+  <div class="adr">
+    <div class="adr-title"><span class="adr-label">ADR-18</span>表示引数の標準化（scenarios）と動的検証不能時の INCOMPLETE 化</div>
+    <p><strong>採用</strong>: 設計書 frontmatter の単一 <code>route</code> を <code>scenarios[]</code>（<code>path</code> / <code>query</code> / <code>path_params</code> / <code>ready</code> / <code>assert</code> / <code>mask</code>）に標準化し、クエリ・パスパラメータを持てるようにした（後方互換: 旧 <code>route</code> は <code>{path}</code> に正規化）。URL は 127.0.0.1 固定で path/query を両環境同一・port だけ差し替えて構築する。また MCP も Playwright も無く動的検証が実行不能な場合は <code>DYNAMIC-UNVERIFIED</code>（INCOMPLETE）とし、静的一致は報告するが PASS/準備完了を宣言しない。両環境が同様に render-ready 未到達（引数不足のスピナー等）は <code>DESIGN-INCOMPLETE</code> とし、設計書 <code>scenarios</code> への引数/ready 追加を修正ループへ差し戻す。<strong>理由</strong>: クエリ引数（例 <code>?year=2025</code>）を必要とする画面が、設計書に置き場が無いため引数なしで開かれスピナーのまま描画されず、それが誤 PASS の一因だった。引数を画面単位の正本に標準化することで再現可能に描画できる。静的のみで完成宣言しない方針は、本スキルの目的（リバース環境を整えた仕事の完了の保証）を静的一致だけで満たしたことにしないため。</p>
+    <p><strong>却下案</strong>: (1) 引数をスキルや config.yml に持つ（画面単位の値であり設計書 frontmatter が正本。不採用）。(2) 動的不能時に静的のみで PASS（描画・データ未検証のまま完成扱いになり目的に反するため不採用）。</p>
   </div>
 
   <h3>関連スキル・規約</h3>
