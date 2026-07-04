@@ -33,7 +33,11 @@ defaults:
   node_modules_strategy: auto    # auto（既定・常に npm_ci に解決＝各環境で独立インストール。本スキルの核心は「2 環境の完全独立の証明」のため、drvfs でも symlink_main を自動選択しない） /
                                  # npm_ci（強制・各環境で独立インストール） /
                                  # symlink_main（強制・source_repo の node_modules へ symlink。速いが node_modules が独立性の証明対象から外れる＝独立性を犠牲にする判断のため人間の明示 opt-in に限る）
-                                 # 注: source_repo が drvfs（/mnt/*）上だと npm_ci は低速になる。auto はこの時「symlink_main で高速化できるが独立性を犠牲にする」旨を WARN で報告するだけで、自動切替はしない
+                                 # ⚠警告: symlink_main は node_modules/.vite（依存最適化キャッシュ）も両環境で共有するため、共有キャッシュのレースコンディションにより
+                                 #   片方の環境（どちらになるかは実行順・タイミング次第の非対称パターン）が持続的に描画失敗することがある（実測）。
+                                 #   navigate リトライでも dev サーバープロセス再起動でも直らない場合がある。これは「独立性を諦める」穏当なトレードオフではなく、
+                                 #   検証結果自体を信頼不能にする（片方がランダムに壊れる）副作用。対処: 該当環境の node_modules を独立 npm ci に切り替えると解消する。
+                                 # 注: source_repo が drvfs（/mnt/*）上だと npm_ci は低速になる。auto はこの時「symlink_main で高速化できるが独立性を犠牲にし描画が不安定になりうる」旨を WARN で報告するだけで、自動切替はしない
   allow_mnt_fs: auto             # auto（既定・source_repo が /mnt/* 配下なら性能 WARN で続行 / それ以外は論点なし） /
                                  # true（強制・/mnt/* でも WARN で続行） /
                                  # false（強制・/mnt/* を ERROR で止める）
