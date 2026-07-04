@@ -26,7 +26,7 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, AskUserQuestion, Ski
 
 ## 設計原則
 
-1. **正本一元化**: 環境固有値（ポート・worktree パス）の正は `syncing-reverse-env/config.yml`。画面固有値の正は設計書 frontmatter（`doc_id` / `route` / `source_repo` / `unit_test_sheet` / `integration_test_sheet` 等）。本スキル専用の config.yml は新設しない
+1. **正本一元化**: 環境固有値（ポート・worktree パス）の正は `syncing-reverse-env/config.yml`。画面固有値の正は設計書 frontmatter（`doc_id` / `scenarios`（旧 `route`） / `source_repo` / `unit_test_sheet` / `integration_test_sheet` 等）。本スキル専用の config.yml は新設しない
 2. 比較エンジンは自前実装しない。Skill ツールで `syncing-reverse-env` を `mode=sync, dry-run` で起動した結果のみを判定根拠とする（args 全量指定・対話ゼロ、呼び出し先は AskUserQuestion を発行しない契約）
 3. **1 起動 = 1 往復**。設計書修正が必要になった場合、修正後の再往復は本スキルの再起動として扱う（同一起動内でループしない）
 4. **検証役と生成役の分離**: P4（実装）の自己申告では判定しない。判定は P7 の `syncing-reverse-env` 決定的出力のみで行う
@@ -66,12 +66,12 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, AskUserQuestion, Ski
 
 ### Phase 7: 答え合わせ
 
-Skill ツールで `syncing-reverse-env` を `mode=sync, dry-run`（args 全量指定・対話ゼロ）で起動し、静的 3 分類・env_check 全項目・Playwright L1〜L4・`hint` を受領する。**比較の自前実装は禁止**。
+Skill ツールで `syncing-reverse-env` を `mode=sync, dry-run`（args 全量指定・対話ゼロ）で起動し、静的 3 分類・env_check 全項目・Playwright L1〜L4・`hint`・`status` を受領する。設計書 frontmatter の `scenarios[].query` / `path_params` / `ready` / `assert` / `mask` が、syncing 側の描画到達（render-ready）判定・テーブル/データ内容一致判定・非決定領域マスクの入力になる。**比較の自前実装は禁止**。`status` が `DESIGN-INCOMPLETE`（両環境とも同様に render-ready 未到達）の場合は Phase 8 へ「設計書 frontmatter の scenarios に query/path_params/ready を追加する」修正指示として渡す。`status` が `DYNAMIC-UNVERIFIED`（MCP・Playwright とも不在で動的検証不能）の場合は静的一致のみで PASS 扱いにせず、Phase 9 の最終報告に「動的未検証のため往復検証完了としない」旨を明記する。
 完了条件: `syncing-reverse-env` の返却ブロックを受領している
 
 ### Phase 8: NG 分類 → フィードバック
 
-`references/ng-classification.md` で検出シグナルを失敗クラスに分類し、(a) 当該設計書の該当章（役割キー）への修正指示書、(b) 汎用的失敗クラスはテンプレート改善提案 + `references/test-item-patterns.md` への台帳追記を作る。**コード・設計書とも修正禁止。指示書の作成と台帳追記のみ許可**する。書式は `references/report-format.md` に従う。
+`references/ng-classification.md` で検出シグナルを失敗クラスに分類し、(a) 当該設計書の該当章（役割キー）への修正指示書、(b) 汎用的失敗クラスはテンプレート改善提案 + `references/test-item-patterns.md` への台帳追記を作る。Phase 7 の `status` が `DESIGN-INCOMPLETE` の場合、帰着先は frontmatter の `scenarios` とし「query/path_params/ready の追加」を修正指示とする。`DYNAMIC-UNVERIFIED` は失敗クラスではなく報告注記として扱い、NG 一覧には計上しない。**コード・設計書とも修正禁止。指示書の作成と台帳追記のみ許可**する。書式は `references/report-format.md` に従う。
 完了条件: 修正指示書（NG があった場合）または「NG なし」の明示が完了している
 
 ### Phase 9: 証跡保存 + 最終報告

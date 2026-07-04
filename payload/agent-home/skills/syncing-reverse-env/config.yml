@@ -50,35 +50,68 @@ defaults:
                                  #      find "${npm_config_cache:-$HOME/.npm}/_npx" -type d -path '*/node_modules/playwright' 2>/dev/null | head -1
                                  #      にヒットしたら、その playwright の親（.../node_modules）を node_path に採用
                                  #   ④ ①〜③ いずれも不在 → NO-GO（node_path を人間が明示するまで node-script は実行不可）
-    # 調整可能な数値（command_template の {nav_timeout} / {settle_wait} に展開される）。
+    # 調整可能な数値（command_template の {nav_timeout} / {ready_timeout} / {settle_wait} に展開される）。
     # プロジェクト毎に変えたい場合は projects.<system>.playwright_exec で同名キーを上書きする（projects が常に優先）。
     nav_timeout_ms: 60000        # page.goto の待受タイムアウト。dev サーバー再起動直後の初回は Vite の依存遅延変換で 40〜50 秒かかるため既定 60 秒。大規模アプリは projects で延長する
-    settle_wait_ms: 10000        # load 後の描画安定待ち。SPA の初期非同期描画が重いプロジェクトは projects で延長する
-    # command_template の実機検証で判明した固定事項（変更禁止）:
+    ready_timeout_ms: 60000      # readiness gate: ready セレクタが可視になるまでの待受上限。到達しなければ NOT_RENDERED（未描画）
+    settle_wait_ms: 10000        # ready セレクタ未指定時のみ使う弱いフォールバック待ち（描画安定）。ready 指定が本筋
+    # readiness gate の anti-spinner 既定セレクタ。ここに一致する要素が可視で残っていたら「未描画（NOT_RENDERED）」と判定する。
+    # 画面固有の ready 条件は設計書 frontmatter の scenarios[].ready で指定する（projects で本既定を上書き可）。
+    loading_selectors:
+      - "[aria-busy='true']"
+      - "[role='progressbar']"
+      - ".spinner"
+      - ".loading"
+    # command_template（node-script mode 用）の実機検証で判明した固定事項（変更禁止）:
     #   - waitUntil: "load"（networkidle だと Vite dev server の HMR 用 WebSocket が繋がりっぱなしで永久タイムアウト）
     #   - page.locator("body").ariaSnapshot()（page.accessibility.snapshot() は Playwright 1.61 系で撤去済み）
     #   - navigate 先の URL は呼び出し側で必ず 127.0.0.1 を使う（localhost だと WSL2 の Chromium が名前解決待ちでタイムアウト）
-    #   - try/finally で browser.close() を必ず呼ぶ（失敗時に .catch だけで exit すると Chromium が孤児化して残存し、CPU/メモリを消費して以降の起動を不安定にする）
-    #   - timeout / 描画安定待ちは {nav_timeout} / {settle_wait} プレースホルダで外出し済み（値は下の nav_timeout_ms / settle_wait_ms。projects で上書き可）
+    #   - try/finally で browser.close() を必ず呼ぶ（失敗時に .catch だけで exit すると Chromium が孤児化して残存する）
+    #   - readiness gate: ready セレクタが可視になるまで待つ（無ければ settle_wait のフォールバック）。loading セレクタが可視で残れば NOT_RENDERED を出力し、一致判定に進ませない
+    #   - 内容抽出: assertTables / assertTexts の各セレクタの innerText を正規化して CAP_CONTENT に書き出す（スキルが両環境の内容を突合する）
+    #   - {nav_timeout} / {ready_timeout} / {settle_wait} は上の同名 config 値に展開。シナリオ引数（url・ready・assert・loading）はスキルが CAP_SCENARIO に JSON で書き出して渡す
     command_template: |
-      CAP_URL={url} CAP_SHOT={screenshot} CAP_CLOG={console_log} CAP_SNAP={snapshot} NODE_PATH={node_path} node -e '
+      CAP_SCENARIO={scenario} CAP_SHOT={screenshot} CAP_CLOG={console_log} CAP_SNAP={snapshot} CAP_CONTENT={content} NODE_PATH={node_path} node -e '
       const { chromium } = require("playwright");
       const fs = require("fs");
+      const env = process.env;
+      const S = JSON.parse(fs.readFileSync(env.CAP_SCENARIO, "utf8"));
       (async () => {
-        const url = process.env.CAP_URL;
         const browser = await chromium.launch();
         try {
           const page = await browser.newPage();
           const logs = [];
           page.on("console", m => logs.push({ type: m.type(), text: m.text() }));
           page.on("pageerror", e => logs.push({ type: "pageerror", text: String(e) }));
-          await page.goto(url, { waitUntil: "load", timeout: {nav_timeout} });
-          await page.waitForTimeout({settle_wait});
-          await page.screenshot({ path: process.env.CAP_SHOT, fullPage: true });
+          await page.goto(S.url, { waitUntil: "load", timeout: {nav_timeout} });
+          let rendered = true, reason = "";
+          try {
+            if (S.readySelector) await page.waitForSelector(S.readySelector, { state: "visible", timeout: {ready_timeout} });
+            else await page.waitForTimeout({settle_wait});
+            for (const sel of (S.loadingSelectors || [])) {
+              const still = await page.locator(sel).first().isVisible().catch(() => false);
+              if (still) { rendered = false; reason = "loading-visible:" + sel; break; }
+            }
+          } catch (e) { rendered = false; reason = "ready-timeout:" + (S.readySelector || "(none)"); }
+          const norm = t => String(t == null ? "" : t).replace(/\s+/g, " ").trim();
+          const extract = async (sels) => {
+            const out = {};
+            for (const sel of (sels || [])) {
+              const loc = page.locator(sel);
+              const n = await loc.count().catch(() => 0);
+              const items = [];
+              for (let i = 0; i < n; i++) items.push(norm(await loc.nth(i).innerText().catch(() => "")));
+              out[sel] = items;
+            }
+            return out;
+          };
+          const content = { rendered, reason, tables: await extract(S.assertTables), texts: await extract(S.assertTexts) };
+          await page.screenshot({ path: env.CAP_SHOT, fullPage: true });
           const snap = await page.locator("body").ariaSnapshot();
-          fs.writeFileSync(process.env.CAP_SNAP, snap);
-          fs.writeFileSync(process.env.CAP_CLOG, JSON.stringify(logs, null, 2));
-          console.log("L1_OK");
+          fs.writeFileSync(env.CAP_SNAP, snap);
+          fs.writeFileSync(env.CAP_CLOG, JSON.stringify(logs, null, 2));
+          fs.writeFileSync(env.CAP_CONTENT, JSON.stringify(content, null, 2));
+          console.log(rendered ? "L1_OK" : "NOT_RENDERED " + reason);
         } finally {
           await browser.close();
         }
