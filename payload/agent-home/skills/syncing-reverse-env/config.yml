@@ -3,10 +3,14 @@
 
 defaults:
   ports:
-    band_start: 9100      # slot 1 のオリジナル側ベースポート
+    band_start: 9100      # reverse スロット帯のベースポート（per-scope モードでは original もこの帯）
     slot_stride: 20        # スロット 1 個あたりの占有帯幅
-    reverse_offset: 10     # オリジナル→リバースのポート加算値
+    reverse_offset: 10     # スロット内の reverse オフセット（per-scope モードでは original→reverse 加算値）
     max_slots: 5           # 同時並行できる画面スロット数の上限
+    # 共有オリジナル方式（original_sharing=by-source-ref）用の専用帯。reverse 帯（9100〜）と非重複。
+    original_shared_band_start: 9000   # 共有オリジナル専用帯のベースポート
+    original_shared_slot_stride: 10     # 共有オリジナル 1 個あたりの占有幅
+    max_shared_originals: 5             # 同時に立てられる共有オリジナル（system@sha 単位）の上限
   services:                # 並び順 = ポートオフセット（0..9）。未使用分類は書かない
     - frontend
   launch:
@@ -22,6 +26,12 @@ defaults:
     - "*.lock"
     - ".env*"                 # ポート設定を含む環境ファイル（env-file-parity で別途直接比較する）
     - .reverse-port-slot       # スロット番号記録ファイル（開発用 .port-slot とは別物）
+    - .shared-original-slot     # 共有オリジナルのオリジナルスロット番号記録
+    - .shared-original-refcount.d/   # 共有オリジナルの参照カウント（session-pid ごとのエントリ）
+    - .shared-original-lock.d/       # 共有オリジナルの mkdir 原子ロック
+  original_sharing: by-source-ref  # by-source-ref（既定・同一 system かつ同一解決 source_ref SHA・同一起動プロファイル・オリジナルがリクエスト独立、の画面群で 1 つの読み取り専用オリジナルを共有。複数画面の並行検証で元コードの二重化を避ける） /
+                                   # per-scope（従来・画面ごとに original も作る。障害隔離が要る/オリジナルがステートフルな運用向け）
+                                   # 前提条件を満たさない画面は自動で per-scope に degrade する
   install_command: "npm ci"     # 整列と修復の依存インストール（node_modules_strategy=npm_ci 時。projects で上書き可）
   env_file_globs: [".env", ".env.*"]   # env-file-parity の比較対象
   bundler_cache_dirs:            # 整列後に削除するバンドラキャッシュ

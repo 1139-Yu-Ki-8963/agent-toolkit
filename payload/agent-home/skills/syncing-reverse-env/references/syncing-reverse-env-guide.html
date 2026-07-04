@@ -503,18 +503,44 @@
     <tr><td>作成の実務</td><td>worktree の物理作成・削除は <code>git worktree add / remove</code> を本スキルが直接実行する（オリジナルは <code>--detach</code>、リバースは <code>-b</code>。配置は <code>source_repo</code> の親ディレクトリ直下）。通常開発用の worktree 管理の仕組みとは命名・配置規約が異なるため委譲しない</td></tr>
   </table>
 
+  <h3>共有オリジナル環境（既定・by-source-ref）</h3>
+  <p><code>original_sharing</code>（config.yml、既定 <code>by-source-ref</code>）が <code>by-source-ref</code> の場合、複数画面の検証で 1 つの読み取り専用オリジナル worktree を使い回す。命名は <code>original-code-&lt;system&gt;@&lt;sha8&gt;</code>（<code>sha8</code> = 解決済み <code>source_ref</code> コミットの先頭 8 文字）。<code>original_sharing: per-scope</code> を選択した場合、または下記の共有前提条件を 1 つでも満たさない画面は、従来どおり画面ごとの <code>original-code-&lt;scope&gt;</code> に自動で degrade する。</p>
+  <table class="spec">
+    <tr><th>共有前提条件</th><th>内容</th></tr>
+    <tr><td>1. 同一 &lt;system&gt;</td><td>設計書 frontmatter の <code>source_repo</code> から導出した <code>&lt;system&gt;</code> が一致すること</td></tr>
+    <tr><td>2. 同一の解決済み source_ref</td><td>セッション開始時（最初の setup/sync）に <code>git rev-parse &lt;source_ref&gt;</code> で SHA（コミットのハッシュ値）へ解決して pin する。以後そのセッションは全画面が同一 SHA を使う（ブランチが途中で動いても pin した SHA を使い続ける）</td></tr>
+    <tr><td>3. 同一の起動プロファイル</td><td>launch コマンド・関連 env が一致すること</td></tr>
+    <tr><td>4. オリジナルがリクエスト独立</td><td>サーバー側の可変状態を持たず、同一リクエストが状態非依存に同一応答を返すこと。満たさなければ共有時に N 画面の並行キャプチャがサーバー状態を汚し合う</td></tr>
+  </table>
+  <div class="constraint"><strong>不変性:</strong> 共有オリジナルは初回に一度だけ <code>git worktree add --detach &lt;sha&gt;</code> で作成し読み取り専用。使用中（参照カウント&gt;0）は再チェックアウト・<code>source_ref</code> 復元をしない。dirty 検出時は自動復元せず <span class="tag error">ERROR</span>（読み取り専用契約の違反）。復元は参照カウント=0 の時だけ行う。</div>
+  <p class="note">参照カウント方式のライフサイクル: 各画面（<code>reverse-code-&lt;scope&gt;</code>）が共有オリジナルの使用を開始する時、共有オリジナル root の <code>.shared-original-refcount.d/&lt;session&gt;-&lt;pid&gt;</code> を mkdir で登録する（原子ロック <code>.shared-original-lock.d</code> を mkdir で取得 → 登録 → 解放）。使用終了・teardown で該当エントリを削除する。参照カウント（生存セッションのエントリ数）が 0 の時だけ、明示 teardown で共有オリジナルの dev サーバー kill + worktree 削除が許される。Phase 2 開始時と teardown 時に、死んだセッション（pid 不在）のエントリを prune する。</p>
+  <p class="note">基準タグ <code>reverse-baseline/&lt;scope&gt;</code> のメッセージには検証時の解決 <code>source_ref</code> SHA を記録する。sync 時、設計書 <code>source_ref</code> の解決 SHA が基準タグ記録の SHA と異なれば「別オリジナルに対する古い基準」＝再検証必要と判定する（§6 の基準タグ乖離検出に source_ref SHA 軸を追加）。</p>
+  <p class="note">障害ドメイン: 共有オリジナルの dev サーバーが落ちると、それを使う全画面が同時失敗する。§7-3 の L1 段階診断のプロセス再起動は system 単位（共有オリジナルを 1 回再起動）で行い、影響画面をまとめて再走行する。per-scope は画面ごとに障害隔離できる。</p>
+
   <h3>ポートモデル（計算式）</h3>
-  <p>worktree は初回に一度だけ作成し、teardown まで使い回す。ポートは <code>&lt;scope&gt;</code> ごとに動的割当てするスロット番号（1〜5）から次の式で決まる。</p>
+  <p>worktree は初回に一度だけ作成し、teardown まで使い回す。既定の共有オリジナル方式（<code>original_sharing: by-source-ref</code>）では、reverse ポートは <code>&lt;scope&gt;</code> ごとの reverse スロット、original ポートは <code>&lt;system&gt;@&lt;sha8&gt;</code> ごとの共有オリジナルスロット（oslot）から、それぞれ別の帯域で決まる。</p>
   <pre class="flow"><span class="cap">── ポート計算式 ─────────────────────────────────────────────</span>
 
-  slot k = 1..5（動的割当）
+  reverse スロット k = 1..max_slots（既定 5・&lt;scope&gt; ごとに動的割当）
+  reverse = band_start + slot_stride×(k-1) + reverse_offset + サービス index
+  既定: band_start=9100, slot_stride=20, reverse_offset=10
+  → slot k の reverse 占有帯 = [9110+20(k-1), 9119+20(k-1)]
+
+  共有オリジナルスロット o = 1..max_shared_originals（既定 5・&lt;system&gt;@&lt;sha8&gt; ごとに動的割当）
+  original = original_shared_band_start + original_shared_slot_stride×(o-1) + サービス index
+  既定: original_shared_band_start=9000, original_shared_slot_stride=10
+  → oslot o の占有帯 = [9000+10(o-1), 9009+10(o-1)]
+
+  per-scope フォールバック（original_sharing: per-scope 選択時、または共有前提条件を
+  満たさず degrade した画面）:
+  slot k = 1..max_slots（&lt;scope&gt; ごとに動的割当）
   original = band_start + slot_stride×(k-1) + サービス index
   reverse  = original + reverse_offset
-  既定: band_start=9100, slot_stride=20, reverse_offset=10
-  → slot k の占有帯 = [9100+20(k-1), 9119+20(k-1)]（連続 20 ポート）</pre>
-  <p>サービス index は config.yml の <code>services</code> 配列の並び順（既定 <code>[frontend]</code> → index 0）。既定の slot 1・frontend では原ポートは <code>original=9100</code> / <code>reverse=9110</code> になる。</p>
-  <p class="note">スロット割当手順: 兄弟 worktree（<code>original-code-*</code> / <code>reverse-code-*</code>）を走査し、各ルート直下の <code>.reverse-port-slot</code>（番号 1 行）を読んで使用中スロットを把握 → 空いている最小番号を両 worktree のルートに書き込む。開発用 worktree のスロットファイル <code>.port-slot</code> とは誤カウント防止のため別名にしている。<code>max_slots</code>（既定 5）を超えて空きがない場合は ERROR。</p>
-  <p class="note">互換注記: 旧固定表（frontend = オリジナル 9101 / リバース 9111）は廃止し、既定の slot 1 では frontend = オリジナル 9100 / リバース 9110 になる（稼働中環境が存在しないため移行措置は設けない）。</p>
+  → slot k の占有帯 = [9100+20(k-1), 9119+20(k-1)]（連続 20 ポート、original/reverse 同一帯）</pre>
+  <p>サービス index は config.yml の <code>services</code> 配列の並び順（既定 <code>[frontend]</code> → index 0）。共有オリジナル方式の既定 oslot 1・frontend では <code>original=9000</code> になる。per-scope フォールバックの既定 slot 1・frontend では <code>original=9100</code> / <code>reverse=9110</code> になる。</p>
+  <p class="note">reverse スロット割当手順: 兄弟 worktree（<code>reverse-code-*</code>）を走査し、各ルート直下の <code>.reverse-port-slot</code>（番号 1 行）を読んで使用中スロットを把握 → 空いている最小番号を reverse worktree のルートに書き込む。開発用 worktree のスロットファイル <code>.port-slot</code> とは誤カウント防止のため別名にしている。<code>max_slots</code>（既定 5）を超えて空きがない場合は ERROR。</p>
+  <p class="note">共有オリジナルスロット割当手順: 兄弟 worktree（<code>original-code-&lt;system&gt;@*</code>）を走査し、共有オリジナル worktree ルート直下の <code>.shared-original-slot</code>（番号 1 行）を読んで使用中 oslot を把握 → 空いている最小番号を共有オリジナル worktree のルートに書き込む（割当は reverse スロットと同じ <code>.reverse-slot-lock.d</code> の mkdir 原子ロックで排他する）。<code>max_shared_originals</code>（既定 5）を超えて空きがない場合は ERROR。</p>
+  <p class="note">互換注記: 旧固定表（frontend = オリジナル 9101 / リバース 9111）は廃止した。per-scope フォールバックの既定 slot 1 では frontend = オリジナル 9100 / リバース 9110 になる（稼働中環境が存在しないため移行措置は設けない）。</p>
 
   <h3>config.yml</h3>
   <p>プロジェクトによって変えたくなる可能性がある値は、スキルフォルダ直下の <code>config.yml</code> に集約する。値の階層は 3 層で役割分担する: 普遍のルール＝SKILL.md / プロジェクト単位の可変値（サービス一覧・起動手順）＝config.yml / 画面単位の可変値（scenarios・マスク対象セレクタ）＝設計書 frontmatter。タイムアウト等の数値パラメータ（<code>nav_timeout_ms</code> / <code>ready_timeout_ms</code> / <code>settle_wait_ms</code> / <code>l3_threshold_percent</code> / <code>max_loop</code> 等）も同じ階層に従い、<code>defaults</code> を <code>projects.&lt;system&gt;</code> で上書きして調整する（有効値 = defaults ← projects の深いマージ、projects 優先）。</p>
@@ -522,10 +548,13 @@
 
   defaults:
     ports:
-      band_start: 9100      # slot 1 のオリジナル側ベースポート
+      band_start: 9100      # slot 1 のオリジナル側ベースポート（per-scope モードでは original もこの帯）
       slot_stride: 20        # スロット 1 個あたりの占有帯幅
       reverse_offset: 10     # オリジナル→リバースのポート加算値
       max_slots: 5           # 同時並行できる画面スロット数の上限
+      original_shared_band_start: 9000   # 共有オリジナル専用帯のベースポート
+      original_shared_slot_stride: 10     # 共有オリジナル 1 個あたりの占有幅
+      max_shared_originals: 5             # 同時に立てられる共有オリジナル（system@sha 単位）の上限
     services:                # 並び順 = ポートオフセット（0..9）。未使用分類は書かない
       - frontend
     launch:
@@ -539,6 +568,9 @@
     l3_threshold_percent: 0.1   # L3 視覚比較の許容差分画素率
     max_loop: 3                 # 収束ループ上限の既定値
     tag_namespace: reverse-baseline
+    original_sharing: by-source-ref  # by-source-ref（既定・共有前提条件を満たす画面群で
+                                      #   original を共有） / per-scope（従来・画面ごと。
+                                      #   前提を満たさない画面は自動 degrade）
     diff_exclude:               # 静的比較の除外リスト（§7）
       - .git/
       - node_modules/
@@ -547,6 +579,9 @@
       - "*.lock"                 # 整列時は転写対象（§7-4）。静的比較のみ除外
       - ".env*"                 # env-file-parity（§7-2）で直接比較するため静的比較からは除外
       - .reverse-port-slot       # スロット番号記録ファイル（開発用 .port-slot とは別物）
+      - .shared-original-slot     # 共有オリジナルの oslot 番号記録
+      - .shared-original-refcount.d/   # 共有オリジナルの参照カウント（session-pid ごとのエントリ）
+      - .shared-original-lock.d/       # 共有オリジナルの mkdir 原子ロック
     node_modules_strategy: auto     # auto（既定・常に npm_ci に解決＝各環境で独立インス
                                     #   トール。drvfs でも symlink_main は自動選択しない。
                                     #   本スキルの核心は「2 環境の完全独立の証明」のため） /
@@ -634,7 +669,7 @@
     <tr><td>1</td><td>design-doc-contract</td><td>設計書が存在し reverse-docs テンプレート準拠（<code>type: screen-detail-design</code>）で、<code>doc_id</code> が <code>screen-</code> 接頭辞を持ち、<code>source_repo</code> / <code>source_ref</code> が解決できる</td><td>NO-GO</td></tr>
     <tr><td>2</td><td>os-toolchain</td><td>OS を判定（macOS / WSL2）し、コマンドを解決する（§5 対応 OS とコマンド互換）。WSL では Playwright 依存ライブラリの導入確認を含む</td><td>コマンド解決不能・依存不足は導入手順を提示して NO-GO</td></tr>
     <tr><td>3</td><td>fs-location</td><td>worktree 配置先（<code>source_repo</code> の親ディレクトリ）が WSL の <code>/mnt/*</code> 配下でないことを確認</td><td><code>allow_mnt_fs=auto</code>（既定）は /mnt/* 検出時に性能 WARN で自動続行（worktree 作成 約 80 秒/本・全量 diff は BG 実行要）。<code>allow_mnt_fs: false</code> 明示時のみ /mnt/* を <span class="tag error">ERROR</span> で止める</td></tr>
-    <tr><td>4</td><td>env-provision</td><td>環境確保（命名規則で両環境を検出。無ければ作成）とスロット割当が完了している。<code>git worktree list --porcelain</code> で prunable・破損を検出したら prune してから再作成する。スロット割当は親ディレクトリへの <code>mkdir</code> ロック（走査 → 書込 → 解放）で原子化する。setup 時も symlink・HEAD・ブランチ整合を軽量検証する</td><td>worktree 総数上限（5 本）超過・スロット枯渇（<code>max_slots</code>）は NO-GO</td></tr>
+    <tr><td>4</td><td>env-provision</td><td>環境確保（命名規則で両環境を検出。無ければ作成）とスロット割当が完了している。<code>git worktree list --porcelain</code> で prunable・破損を検出したら prune してから再作成する。Phase 2 開始時に死んだセッション（pid 不在）の <code>.shared-original-refcount.d/</code> エントリを prune する。オリジナルは <code>original_sharing</code> の解決値に従う: <code>by-source-ref</code>（既定）かつ共有前提条件（同一 system・同一の解決済み source_ref・同一起動プロファイル・オリジナルがリクエスト独立）を満たす画面は <code>original-code-&lt;system&gt;@&lt;sha8&gt;</code> の共有オリジナルを検出/作成し、共有オリジナルスロット（oslot）割当と参照カウント登録（<code>.shared-original-refcount.d/&lt;session&gt;-&lt;pid&gt;</code> の mkdir 登録）を行って読み取り専用固定とする（使用中の再チェックアウト・source_ref 復元はしない。dirty 検出時は自動復元せず ERROR）。前提を満たさない画面は <code>original-code-&lt;scope&gt;</code> の per-scope に自動 degrade する。reverse のスロット割当は親ディレクトリへの <code>mkdir</code> ロック（走査 → 書込 → 解放）で原子化する。setup 時も symlink・HEAD・ブランチ整合を軽量検証する</td><td>worktree 総数上限（5 本）超過・スロット枯渇（<code>max_slots</code> / <code>max_shared_originals</code>）は NO-GO。共有オリジナルの dirty は自動復元せず <span class="tag error">ERROR</span>（読み取り専用契約の違反）</td></tr>
     <tr><td>5</td><td>original-clean</td><td>オリジナルコード環境が <code>source_ref</code> と一致し clean</td><td>ズレ・汚れは内容を <code>source_ref</code> へ自動復元する</td></tr>
     <tr><td>6</td><td>reverse-dirty-log</td><td>リバースコード環境の dirty 状態を記録</td><td>sync では許容（整列で上書きされる）。dry-run 指定時は警告を提示</td></tr>
     <tr><td>7</td><td>port-band-free</td><td>当該 <code>&lt;scope&gt;</code> のスロット帯（計算式で確定するポート）が未占有</td><td>stale プロセスは kill して続行。WSL で Windows 側常駐プロセスが占有し kill 不能な場合は <code>band_start</code> の変更を案内して <span class="tag error">ERROR</span></td></tr>
@@ -651,19 +686,30 @@
 
   Phase 1  起動契約解決（args 検証・config.yml 読込。projects 上書きは
             スキーマ検証: services 非空・各 service に launch 設定・
-            services 数 ≤ reverse_offset。違反は ERROR）
+            services 数 ≤ reverse_offset。違反は ERROR。セッション開始時
+            （最初の setup/sync）に source_ref を git rev-parse で SHA へ
+            解決して pin し、以後同一セッションは全画面この SHA を使う）
      │
   Phase 2  環境確保 + プリフライト（§5）── NO-GO ──▶ 停止・報告
-     │ GO    worktree は初回のみ作成・以後は再発見して使い回す
+     │ GO    worktree は初回のみ作成・以後は再発見して使い回す。死んだ
+     │       セッションの参照カウントエントリを prune してから、共有可否
+     │       判定（4 条件）で original-code-&lt;system&gt;@&lt;sha8&gt;（共有）か
+     │       original-code-&lt;scope&gt;（per-scope・degrade）かを確定する
      │
      ├─ mode=setup ────▶ 両 worktree のパス・ブランチ・確定ポートを
      │  （初回の整備）    返して終了（rebuilding-code-from-docs スキルは
      │                   このリバースコード環境に再構築コードを書く）
      │
      ├─ mode=teardown ─▶ 明示依頼を確認できた場合のみ
-     │  （検証終了時）    ① スロット帯（連続 20 ポート）kill
-     │                   → ② worktree 削除 → ③ スロット/ロック残骸の
-     │                     掃除 → ④ artifacts の整理、の順に冪等実行
+     │  （検証終了時）    ① reverse スロット帯（連続 20 ポート）kill
+     │                   → ② reverse worktree 削除 → ③ 共有オリジナルの
+     │                     参照カウントエントリを削除し、カウントが 0 に
+     │                     なった時だけ共有オリジナルの dev サーバー kill
+     │                     + worktree 削除（0 でなければ他画面が使用中の
+     │                     ため共有オリジナルは残す。per-scope 時は当該
+     │                     scope の original も併せて削除）→ ④ スロット/
+     │                     ロック残骸の掃除 → ⑤ artifacts の整理、の順に
+     │                     冪等実行
      │                   （人間なら AskUserQuestion、スキル経由なら
      │                    args の user-approved 必須。無ければ削除せず
      │                    ERROR 差し戻し。基準タグとブランチは残す。
@@ -676,6 +722,9 @@
           │  タグありなら基準タグの参照先コミットと reverse HEAD の
           │  コミット差分数を計測（乖離検出。§8 の baseline_tag 行に
           │  「HEAD と N コミット乖離」を付記。新フィールドは増やさない）
+          │  基準タグメッセージに記録された検証時の source_ref SHA と
+          │  Phase 1 で pin した現在の SHA が異なる場合、「別オリジナル
+          │  に対する古い基準」＝再検証必要と baseline_tag に付記する
           │
           ├─ reset-first 指定 かつ タグあり
           │    → git reset --hard reverse-baseline/&lt;scope&gt; で
@@ -727,9 +776,9 @@
   <p>実行環境そのものが「ポート以外は同一」かつ「互いに独立」であることを機械的に確認する。起動前（<code>listen-actual</code>・<code>process-independence</code> を除く全項目）と起動後（<code>listen-actual</code>・<code>process-independence</code>）に実行する。</p>
   <table class="spec">
     <tr><th>#</th><th>キー</th><th>検証項目</th><th>確認方法</th><th>NG 時の扱い</th></tr>
-    <tr><td>1</td><td>port-owner</td><td>ポート占有の帰属</td><td>os-toolchain の解決結果に従い確認する（macOS: <code>lsof -i</code> の cwd 突合 / WSL: <code>ss -ltnp</code> ＋ <code>/proc/&lt;pid&gt;/cwd</code> の cwd 突合）で当該 <code>&lt;scope&gt;</code> のスロット帯を走査し、LISTEN プロセスの cwd が自環境の worktree かを突合</td><td>stale は kill して続行。無関係な稼働プロセスは <span class="tag error">ERROR</span></td></tr>
+    <tr><td>1</td><td>port-owner</td><td>ポート占有の帰属</td><td>os-toolchain の解決結果に従い確認する（macOS: <code>lsof -i</code> の cwd 突合 / WSL: <code>ss -ltnp</code> ＋ <code>/proc/&lt;pid&gt;/cwd</code> の cwd 突合）で当該 <code>&lt;scope&gt;</code> のスロット帯を走査し、LISTEN プロセスの cwd が自環境の worktree かを突合。共有オリジナル方式では 1 つの待受（oslot 帯）を複数 reverse が参照するのが正常で、reverse 側は各自の reverse スロット帯の帰属のみ確認する</td><td>stale は kill して続行。無関係な稼働プロセスは <span class="tag error">ERROR</span></td></tr>
     <tr><td>2</td><td>port-config-cross</td><td>ポート設定の混入（転写後）</td><td>リバース側をオリジナル側帯域で、オリジナル側をリバース側帯域で相互に grep</td><td>相手帯域の番号が 1 件でもあれば転写ミス。ポート再生成をやり直す</td></tr>
-    <tr><td>3</td><td>listen-actual</td><td>実際の待受ポート</td><td>起動後の LISTEN 一覧を §5 の計算式による期待値と突合</td><td>期待外の待受・不応答は <span class="tag fail">FAIL</span></td></tr>
+    <tr><td>3</td><td>listen-actual</td><td>実際の待受ポート</td><td>起動後の LISTEN 一覧を §5 の計算式による期待値と突合。共有オリジナル方式では oslot 帯の待受を突合し、reverse 帯は各自の reverse スロットと突合する（1 つの共有オリジナル待受を複数 reverse が参照する構成は正常）</td><td>期待外の待受・不応答は <span class="tag fail">FAIL</span></td></tr>
     <tr><td>4</td><td>symlink-independence</td><td>シンボリックリンクの実態</td><td><code>find -type l</code> ＋ <code>realpath</code> で実体を解決し「自 worktree 内 / 共有 store / worktree 外」に分類</td><td>相手側 worktree・元リポジトリを指すものは <span class="tag fail">FAIL</span>。共有 store は同一バージョンの実体を指すことを確認して許容。ただし <code>node_modules_strategy: symlink_main</code>（人間の明示指定時のみ発生）のときは node_modules（およびその配下）が source_repo を指す symlink であることは想定内であり、独立性の証明対象から除外する（FAIL としない）</td></tr>
     <tr><td>5</td><td>dep-tree-parity</td><td>依存ツリーの同一性</td><td><code>npm ls --all</code> 相当を正規化し、名前＋バージョン集合を比較</td><td>依存再構築（<code>npm ci</code> 再実行）を 1 回リトライ → なお不一致は <span class="tag fail">FAIL</span></td></tr>
     <tr><td>6</td><td>node-modules-health</td><td>node_modules の健全性</td><td>node_modules の存在・<code>.bin/vite</code> 等の実行可能性（<code>--version</code> 実行）・独立性（相手側/元リポジトリへの symlink でないこと）を確認。ただし <code>node_modules_strategy: symlink_main</code>（人間の明示指定時のみ発生）のときは source_repo への symlink が正常状態であり、存在と <code>.bin</code> 実行可能性のみ確認する。なお symlink_main 運用時、片方だけ描画が異常に遅い・失敗する場合は共有 .vite のレースが原因の可能性が高い、という hint を出す</td><td>NG は <code>npm ci</code> で修復してから再検証</td></tr>
@@ -738,10 +787,10 @@
     <tr><td>9</td><td>env-file-parity</td><td>env ファイルの同一性</td><td>両環境の <code>.env*</code> ファイル群（config.yml <code>env_file_globs</code>）をポート正規化付きで直接突合し、バンドラのみが読む変数の差分も捕捉する</td><td>ポート以外の差分は <span class="tag fail">FAIL</span></td></tr>
     <tr><td>10</td><td>file-mode-parity</td><td>ファイルモード・種別</td><td><code>git ls-files --stage</code> のインデックス値のみで実行ビット・種別を比較する（実 FS の <code>stat</code> は使わない。/mnt 配下の 777 化対策）</td><td>実差分として扱い、整列で揃える</td></tr>
     <tr><td>11</td><td>bundler-cache-fresh</td><td>バンドラキャッシュの新鮮さ</td><td>整列が走った周回では config.yml の <code>bundler_cache_dirs</code> が削除済みであることを確認。<code>node_modules_strategy: symlink_main</code>（人間の明示指定時のみ発生）のときは <code>.vite</code> が source_repo と共有されるため、整列後の削除ではなく初回 navigate 時の dependency re-optimize を許容し、巻き込まれ reload は 1 回リトライで吸収する。ただし symlink_main では .vite が共有されるため、片方の環境で持続的な描画失敗（非対称）が出たら共有キャッシュのレースを疑い、該当環境の node_modules を独立 npm ci に切り替える</td><td>検証不能なら起動時の強制再構築を案内</td></tr>
-    <tr><td>12</td><td>process-independence</td><td>プロセス独立性</td><td>片方を停止してももう片方が応答し続けることを確認して再起動</td><td>連動停止は <span class="tag fail">FAIL</span>（プロセス・DB の共有）</td></tr>
+    <tr><td>12</td><td>process-independence</td><td>プロセス独立性</td><td>共有オリジナル方式では <strong>reverse 側を停止</strong>してオリジナル側が応答し続けることを確認する（共有オリジナルは他画面を巻き添えにしないため kill しない）。per-scope 方式では従来どおり片方を停止してももう片方が応答し続けることを確認して再起動する</td><td>連動停止は <span class="tag fail">FAIL</span>（プロセス・DB の共有）</td></tr>
     <tr><td>13</td><td>storage-isolation</td><td>ストレージ分離</td><td>DB・キャッシュ等のパス設定が worktree 内に閉じているか走査</td><td>同一の外部パスを読み書きしていれば <span class="tag fail">FAIL</span></td></tr>
   </table>
-  <p class="note"><code>port-owner</code>・<code>symlink-independence</code>・<code>process-independence</code>・<code>storage-isolation</code> は「同一」ではなく「独立」の検証。実体を共有した 2 環境は一致して見えて当然であり、完全一致の証明は「独立した 2 環境が同じに振る舞う」ことで初めて成立する。</p>
+  <p class="note"><code>port-owner</code>・<code>symlink-independence</code>・<code>process-independence</code>・<code>storage-isolation</code> は「同一」ではなく「独立」の検証。実体を共有した 2 環境は一致して見えて当然であり、完全一致の証明は「独立した 2 環境が同じに振る舞う」ことで初めて成立する。共有オリジナル方式では独立性は「共有オリジナル 1 つ」と「各 reverse」のペアで成立し、共有オリジナル同士の独立性は問わない。</p>
 
   <h3>7-3. 動的比較（render-ready ＋ Playwright 4 層）</h3>
   <p>両環境をそれぞれの固定ポートで起動し、<code>scenarios</code> の各画面シナリオを render-ready 到達確認・内容一致・4 層で突合する。総合判定は <strong>render-ready 到達 ∧ L2' 内容一致 ∧ L2（ARIA）∧ L4</strong> を必須とし、L3 は閾値超過で FAIL（画像ペアを添付して人間が最終裁定できる）。<strong>静的一致・L2（ARIA）一致だけでは PASS にしない</strong>。両環境が同一のスピナーで止まっていても render-ready 未到達であれば PASS ではない。</p>
@@ -753,7 +802,7 @@
     <tr><td><strong>L3 視覚</strong></td><td>同一ビューポートのスクリーンショット画素比較（動的領域は <code>mask</code> でマスク）</td><td>差分画素率が閾値以下（config.yml、既定 0.1%）。補助判定・証跡</td></tr>
     <tr><td><strong>L4 コンソール</strong></td><td>console error / warning の集合比較（ポートは正規化）</td><td>リバース側にのみ存在するエラーで <span class="tag fail">FAIL</span>。両方に出る既存エラーは許容</td></tr>
   </table>
-  <p class="note">L1 が失敗した場合の段階診断手順: ① dev サーバーの stdout/stderr を artifacts へ収集 → ② 待受ポートを再確認 → ③ navigate を 1 回再試行 → ④ なお失敗するなら dev サーバープロセス自体を kill → 再起動して再試行する（navigate の再試行だけでは解消しない dependency re-optimize 起因のケースが実測されているため。<code>symlink_main</code> で <code>.vite</code> を共有している時に起きやすい）→ ⑤ <code>symlink_main</code> 運用中で片方だけが持続的に失敗するなら共有 <code>.vite</code> のレースが原因なので、該当環境の node_modules を独立 <code>npm ci</code> に切り替えて再試行 → ⑥ それでも失敗すれば <span class="tag error">ERROR</span> とし、収集した log のパスを添付する。</p>
+  <p class="note">L1 が失敗した場合の段階診断手順: ① dev サーバーの stdout/stderr を artifacts へ収集 → ② 待受ポートを再確認 → ③ navigate を 1 回再試行 → ④ なお失敗するなら dev サーバープロセス自体を kill → 再起動して再試行する（navigate の再試行だけでは解消しない dependency re-optimize 起因のケースが実測されているため。<code>symlink_main</code> で <code>.vite</code> を共有している時に起きやすい）→ ⑤ <code>symlink_main</code> 運用中で片方だけが持続的に失敗するなら共有 <code>.vite</code> のレースが原因なので、該当環境の node_modules を独立 <code>npm ci</code> に切り替えて再試行 → ⑥ それでも失敗すれば <span class="tag error">ERROR</span> とし、収集した log のパスを添付する。④の再起動対象が共有オリジナルの場合は system 単位（共有オリジナルを 1 回再起動）で行い、同一 system@sha を使う影響画面をまとめて再走行する。per-scope は画面ごとに障害隔離できる。</p>
   <p class="note">DB 内容・乱数・日時などの動的データによる誤検出には、マスク対象セレクタ（<code>mask</code>）を設計書 frontmatter で宣言して対応する。</p>
   <p class="note">mcp / node-script の等価性: 両手段は同一の内容 JSON 契約（<code>rendered</code>/<code>reason</code>/<code>tables</code>/<code>texts</code>）を出力する。node-script は scenario 引数（url・ready・assert・loading）を <code>CAP_SCENARIO</code> の JSON で受け取り、内容抽出結果を <code>CAP_CONTENT</code> に書き出す。mcp は <code>browser_navigate</code> → <code>browser_wait_for</code>（ready）→ <code>browser_evaluate</code>（loading 不可視確認・innerText 抽出）→ <code>browser_take_screenshot</code> → <code>browser_snapshot</code> → <code>browser_console_messages</code> で同形の結果を得る。</p>
   <p class="note">結果分類: 両環境が render-ready 到達 ∧ 内容一致で <span class="tag pass">PASS</span> 候補。reverse 側だけ <code>NOT_RENDERED</code> は再構築未完のため <span class="tag fail">FAIL</span>。両環境が同様に <code>NOT_RENDERED</code>（引数不足でスピナー等）は <strong>DESIGN-INCOMPLETE</strong> として設計書 <code>scenarios</code> への <code>query</code>/<code>path_params</code>/<code>ready</code> 追加を促す（§8）。</p>
@@ -798,6 +847,9 @@
     <tr><td><strong>DESIGN-INCOMPLETE</strong>（両環境が render-ready 未到達）</td><td>両環境が同様にスピナー等で停止。<code>status=INCOMPLETE</code> とし、設計書 <code>scenarios</code> への <code>query</code>/<code>path_params</code>/<code>ready</code> 追加を促す hint を付けて呼び出し元（rebuilding-code-from-docs）へ差し戻す</td></tr>
     <tr><td><strong>DYNAMIC-UNVERIFIED</strong>（動的検証手段なし）</td><td>MCP・node-script（Playwright 実行環境）のいずれも利用不能。<code>status=INCOMPLETE</code> とし、静的一致は報告するが PASS は宣言しない（コードは同一の可能性が高いが描画・データ未検証と明記）</td></tr>
     <tr><td>teardown 部分失敗</td><td>残存資源（kill 未了のプロセス・未削除の worktree・スロット/ロック残骸・artifacts）を列挙して報告する。再実行時は残っている手順から掃除を続ける</td></tr>
+    <tr><td>共有オリジナル dirty 検出（参照カウント&gt;0）</td><td>読み取り専用契約の違反として <span class="tag error">ERROR</span>。他画面が使用中のため自動復元はしない。参照カウントが 0 になってからの復元を案内する</td></tr>
+    <tr><td>共有前提条件を満たさない画面</td><td>per-scope へ自動 degrade して続行する（<span class="tag error">ERROR</span> にはしない）。degrade した旨と満たさなかった条件を報告に含める</td></tr>
+    <tr><td>共有オリジナルの dev サーバー障害</td><td>障害ドメインが同一 system@sha を使う全画面に及ぶ。L1 段階診断のプロセス再起動は system 単位で行い、影響画面をまとめて再走行する（per-scope は画面単位で隔離できる）</td></tr>
   </table>
 
   <h3>機械向け返却ブロック（rebuilding-code-from-docs スキルへの契約）</h3>

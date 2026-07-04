@@ -752,6 +752,12 @@
     <p><strong>却下案</strong>: (1) 引数をスキルや config.yml に持つ（画面単位の値であり設計書 frontmatter が正本。不採用）。(2) 動的不能時に静的のみで PASS（描画・データ未検証のまま完成扱いになり目的に反するため不採用）。</p>
   </div>
 
+  <div class="adr">
+    <div class="adr-title"><span class="adr-label">ADR-19</span>複数画面の並行検証における共有オリジナル方式</div>
+    <p><strong>採用</strong>: 同一 system・同一解決 source_ref SHA・同一起動プロファイル・オリジナルがリクエスト独立、の 4 条件を満たす画面群で 1 つの読み取り専用オリジナル（<code>original-code-&lt;system&gt;@&lt;sha8&gt;</code>）を共有し、reverse は画面ごと（<code>reverse-code-&lt;scope&gt;</code>）に持つ。共有キーは <code>system@解決 SHA</code> で、<code>source_ref</code> はセッション開始時に SHA へ pin する。共有オリジナルは初回 <code>--detach</code> 作成・読み取り専用・使用中は復元しない（dirty は <span class="tag error">ERROR</span>）。参照カウント（session-pid ごと mkdir 登録）が 0 の時だけ teardown で削除し、死セッションは prune する。ポートは共有オリジナル専用帯を新設し reverse スロット帯と分離。基準タグに解決 SHA を記録し陳腐化を検出。独立性は (共有オリジナル, 各 reverse) ペアで成立し、process-independence は reverse を止めて確認する。切替 <code>original_sharing: by-source-ref</code>（既定）| <code>per-scope</code>。<strong>理由</strong>: 同一 system・同一 source_ref なら元コードは全画面で同一で、画面ごとに original worktree・dev サーバー・npm ci を二重化するのは純粋な無駄（ディスク・メモリ・時間）。共有 original vs 各 reverse は別プロセス・別 worktree なので独立性の証明は崩れない。source_ref の流動化（ブランチが動く/画面ごとに source_ref が違うと 1 worktree が両方に checkout できず後勝ちで壊れる）は、共有キーに解決 SHA を含め pin することで原理的に防ぐ。</p>
+    <p><strong>却下案</strong>: (1) 元コードも画面ごとに per-scope（現行。同一 source_ref の二重化が無駄・実測で元画面を画面数だけ起動していた）。(2) system 単位で共有し source_ref を見ない（ブランチ流動・source_ref 食い違いで 1 worktree が流されて比較が壊れる）。(3) 動的検証中に共有オリジナルを再チェックアウト（使用中の他画面を壊す。読み取り専用固定が必須）。<strong>トレードオフ</strong>: 共有オリジナルは単一障害点になり、dev サーバー障害は使用中の全画面に波及する（L1 診断のプロセス再起動は system 単位で影響画面をまとめて再走行）。障害隔離が要る運用・オリジナルがステートフルな場合は per-scope を選ぶ。オリジナルがサーバー側可変状態を持つと N 画面の並行キャプチャが状態を汚し合うため、リクエスト独立を共有の前提条件とし満たさなければ degrade する。</p>
+  </div>
+
   <h3>関連スキル・規約</h3>
   <table class="spec">
     <tr><th>名前</th><th>関係</th></tr>
