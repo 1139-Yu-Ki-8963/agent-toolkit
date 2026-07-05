@@ -51,7 +51,7 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, AskUserQuestion, Skill]
 - 共通設計書.md（frontmatter `common_spec` キーがあれば必須）
 - メッセージ定義書.md（frontmatter `messages` キーがあれば必須）
 - DESIGN.md（frontmatter `common_design_md` キーがあれば必須）
-- 規約/ 配下の 4 ファイル（コーディング規約.md・命名規約.md・ディレクトリ構成規約.md・コンポーネント設計規約.md）。規約ファイルは frontmatter キーを持たず、`../../プロジェクト共通/規約/` を固定パスで探索する。存在するファイルをすべてロードし、存在しないファイルは「不在」と記録して続行する（規約ファイルは任意）
+- 規約/ 配下の 4 ファイル（コーディング規約.md・命名規約.md・ディレクトリ構成規約.md・コンポーネント設計規約.md）。規約ファイルは frontmatter キーを持たず、`../../../プロジェクト共通/規約/` を固定パスで探索する。存在するファイルをすべてロードし、存在しないファイルは「不在」と記録して続行する（規約ファイルは任意）
 
 上記のうち「キーがあるのに実体が無い」ファイルは preflight エラーとする。
 

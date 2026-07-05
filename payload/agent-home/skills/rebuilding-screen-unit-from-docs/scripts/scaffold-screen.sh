@@ -56,17 +56,17 @@ else
   cp -r "$template_dir/プロジェクト共通" "$common_dir"
 fi
 
-# プレースホルダ置換（macOS sed 互換: -i '' を使用）
+# プレースホルダ置換（GNU/BSD sed 両対応: -i.bak + rm を使用）
 echo "プレースホルダを置換: <画面ID> → $screen_id, <画面名> → $screen_name"
 find "$screen_dir" -name '*.md' -type f | while IFS= read -r file; do
-  sed -i '' "s/<画面ID>/${screen_id}/g" "$file"
-  sed -i '' "s/<画面名>/${screen_name}/g" "$file"
+  sed -i.bak "s/<画面ID>/${screen_id}/g" "$file" && rm -f "${file}.bak"
+  sed -i.bak "s/<画面名>/${screen_name}/g" "$file" && rm -f "${file}.bak"
 done
 
 # 相対パス補正: テンプレートは 画面/詳細設計/ を想定した ../../プロジェクト共通/... だが、
 # 展開先は 画面/screen-<画面ID>/詳細設計/ で1階層深い。../../../プロジェクト共通/... に補正する。
 find "$screen_dir" -name '*.md' -type f | while IFS= read -r file; do
-  sed -i '' "s#\\.\\./\\.\\./プロジェクト共通#../../../プロジェクト共通#g" "$file"
+  sed -i.bak "s#\\.\\./\\.\\./プロジェクト共通#../../../プロジェクト共通#g" "$file" && rm -f "${file}.bak"
 done
 
 # 展開結果の表示
