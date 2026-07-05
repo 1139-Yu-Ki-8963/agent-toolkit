@@ -261,6 +261,12 @@ INTEG_SHEET_REL="$(frontmatter_value integration_test_sheet)"
 UNIT_SHEET="$(resolve_rel_path "$SCREEN_DIR" "$UNIT_SHEET_REL" || true)"
 INTEG_SHEET="$(resolve_rel_path "$SCREEN_DIR" "$INTEG_SHEET_REL" || true)"
 
+# operation_test_spec は任意キー（L5 操作シーケンス突合が無い画面には存在しない）。
+# frontmatter のインライン `# 任意。...` コメントを除去してからパス解決する。
+OPTEST_SPEC_REL="$(frontmatter_value operation_test_spec)"
+OPTEST_SPEC_REL="$(printf '%s' "$OPTEST_SPEC_REL" | sed 's/[[:space:]]*#.*$//; s/[[:space:]]*$//')"
+OPTEST_SPEC="$(resolve_rel_path "$SCREEN_DIR" "$OPTEST_SPEC_REL" || true)"
+
 # --- (a) 機能一覧章 × 観点表 の機能キー集合突合（両方向一致） ---
 echo ""
 echo "[検査 a] 機能一覧章 × 観点表 の機能キーの集合突合（両方向一致）"
@@ -411,6 +417,62 @@ else
       WARNINGS=$((WARNINGS + 1))
     else
       echo "  往復検証観点表の対応失敗クラス 10 種すべて充足"
+    fi
+  fi
+fi
+
+# --- (e) 往復検証観点表の L5 観点 × 操作シナリオ仕様書のシナリオ実在チェック（WARN） ---
+echo ""
+echo "[検査 e] 往復検証観点表の L5 観点 × 操作シナリオ仕様書のシナリオ突合（WARN）"
+
+# operation_test_spec 自体が無い画面は L5 が任意機能のためスキップする（後方互換）。
+# キーはあるが実体ファイルが無い場合はここで WARN + スキップする（audit スクリプト
+# 自身の既存規約＝unit_test_sheet/integration_test_sheet 不在時の扱いに揃える。
+# rebuilding SKILL.md Phase 1 のランタイム preflight はエラー扱いだが、こちらは
+# 静的検査のため WARN に留める）。
+if [ -z "$OPTEST_SPEC_REL" ]; then
+  echo "  operation_test_spec が未設定のため検査 e をスキップします（L5 は任意機能）"
+elif [ ! -f "$OPTEST_SPEC" ]; then
+  echo "  WARN: 操作シナリオ仕様書が見つかりません ($OPTEST_SPEC_REL)" >&2
+  WARNINGS=$((WARNINGS + 1))
+elif [ -z "$INTEG_SHEET" ] || [ ! -f "$INTEG_SHEET" ]; then
+  echo "  WARN: 結合テスト観点表が見つからないため検査 e をスキップします" >&2
+  WARNINGS=$((WARNINGS + 1))
+else
+  RECIPROCAL_BODY_E="$(extract_heading_body "$INTEG_SHEET" '^## 往復検証観点表')"
+  if [ -z "$RECIPROCAL_BODY_E" ]; then
+    echo "  WARN: '## 往復検証観点表' セクションが結合テスト観点表に見つかりません: $INTEG_SHEET" >&2
+    WARNINGS=$((WARNINGS + 1))
+  else
+    # 検証層列（5列目）が L5 の行のキー（1列目）を抽出する。
+    # extract_table_column と同じヘッダー・区切り行スキップ規則を踏襲する。
+    L5_KEYS="$(printf '%s\n' "$RECIPROCAL_BODY_E" | awk '
+      BEGIN { row=0 }
+      /^\|/ {
+        row++
+        if (row == 1) next
+        if (row == 2 && $0 ~ /^\|[ \t:|\-]+$/) next
+        n = split($0, cols, "|")
+        layer = cols[6]; gsub(/^[ \t]+|[ \t]+$/, "", layer)
+        key = cols[2]; gsub(/^[ \t]+|[ \t]+$/, "", key); gsub(/`/, "", key)
+        if (layer == "L5" && key != "" && key !~ /^-+$/) print key
+      }
+    ' | sort -u)"
+    L5_COUNT=$(printf '%s\n' "$L5_KEYS" | grep -c . || true)
+
+    if [ "$L5_COUNT" -eq 0 ]; then
+      echo "  往復検証観点表に L5 の行がないため検査 e は対象外です"
+    else
+      SCENARIO_BODY_E="$(extract_heading_body "$OPTEST_SPEC" '^## シナリオ一覧表')"
+      SCENARIO_KEYS="$(extract_table_column "$SCENARIO_BODY_E" 2 | sed 's/`//g' | sort -u)"
+      MISSING_L5="$(comm -23 <(printf '%s\n' "$L5_KEYS") <(printf '%s\n' "$SCENARIO_KEYS") || true)"
+      if [ -n "$MISSING_L5" ]; then
+        echo "  WARN: 往復検証観点表の L5 観点に対応するシナリオが操作シナリオ仕様書に見つかりません:" >&2
+        printf '%s\n' "$MISSING_L5" | sed 's/^/    - /' >&2
+        WARNINGS=$((WARNINGS + 1))
+      else
+        echo "  往復検証観点表の L5 観点（${L5_COUNT} 件）はすべて操作シナリオ仕様書にシナリオが存在します"
+      fi
     fi
   fi
 fi

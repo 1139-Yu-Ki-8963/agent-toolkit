@@ -260,7 +260,7 @@
 
 <section id="s2">
   <h2><span class="sec-num">§2</span>リバース以外の使い方</h2>
-  <p>本スキルはリバース検証のために設計する。ただし「ポート以外同一の 2 環境を永続 worktree で維持し、静的 diff ＋ Playwright 4 層で突合する」という仕組みの性質上、リバース以外にも次のような使い方ができると考えられる。</p>
+  <p>本スキルはリバース検証のために設計する。ただし「ポート以外同一の 2 環境を永続 worktree で維持し、静的 diff ＋ Playwright 5 層で突合する」という仕組みの性質上、リバース以外にも次のような使い方ができると考えられる。</p>
   <figure class="diagram">
 <svg style="width:100%;height:auto;display:block" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" font-family="'Hiragino Kaku Gothic ProN','Hiragino Sans','Noto Sans JP','Yu Gothic',sans-serif">
   <defs>
@@ -285,7 +285,7 @@
   <rect x="680" y="152" width="230" height="36" rx="18" fill="#FFFFFF" stroke="#94A3B8" stroke-width="1.5"></rect>
   <text x="795" y="176" font-size="17" fill="#334155" text-anchor="middle">環境同一性 全項目</text>
   <rect x="940" y="152" width="230" height="36" rx="18" fill="#FFFFFF" stroke="#94A3B8" stroke-width="1.5"></rect>
-  <text x="1055" y="176" font-size="17" fill="#334155" text-anchor="middle">動的比較 L1〜L4</text>
+  <text x="1055" y="176" font-size="17" fill="#334155" text-anchor="middle">動的比較 L1〜L5</text>
   <rect x="1200" y="152" width="150" height="36" rx="18" fill="#FFFFFF" stroke="#94A3B8" stroke-width="1.5"></rect>
   <text x="1275" y="176" font-size="17" fill="#334155" text-anchor="middle">基準タグ</text>
 
@@ -320,7 +320,7 @@
   <text x="960" y="576" font-size="25" font-weight="700" fill="#1F6B44" text-anchor="middle">リファクタ後</text>
   <text x="960" y="646" font-size="14" fill="#64748B" text-anchor="middle">何を一致とみなすか（合格条件）</text>
   <rect x="720" y="658" width="480" height="76" rx="10" fill="#FEF6EC" stroke="#D97706" stroke-width="1.5"></rect>
-  <text x="960" y="690" font-size="20" font-weight="700" fill="#B45309" text-anchor="middle">動的比較 L1〜L4 の全層一致</text>
+  <text x="960" y="690" font-size="20" font-weight="700" fill="#B45309" text-anchor="middle">動的比較 L1〜L5 の全層一致</text>
   <text x="960" y="718" font-size="15" fill="#B45309" text-anchor="middle">コードの差分は問わない（静的は対象外）</text>
   <text x="960" y="788" font-size="17" fill="#475569" text-anchor="middle">挙動を壊していないことを</text>
   <text x="960" y="816" font-size="17" fill="#475569" text-anchor="middle">証明してから出せる</text>
@@ -358,7 +358,7 @@
     </tr>
     <tr>
       <td><strong>リファクタ安全性証明</strong></td><td>リファクタ前</td><td>リファクタ後</td>
-      <td>「挙動が変わらないこと」を L1〜L4 の全層一致で証明する。この場合は実差分ゼロではなく動的比較の全層一致が合格条件になる</td>
+      <td>「挙動が変わらないこと」を L1〜L5（該当画面）の全層一致で証明する。この場合は実差分ゼロではなく動的比較の全層一致が合格条件になる</td>
     </tr>
     <tr>
       <td><strong>UI ビジュアルリグレッション</strong></td><td>変更前</td><td>変更後</td>
@@ -469,6 +469,7 @@
     <tr><td><code>mask</code></td><td>L3 視覚比較でマスクする動的領域のセレクタ一覧（DB 内容・乱数・日時等の誤検出対策）</td></tr>
   </table>
   <p class="note">URL 構築規則: <code>http://127.0.0.1:&lt;port&gt;</code> ＋ <code>path</code>（<code>path_params</code> 置換後）＋ <code>?</code> ＋ <code>query</code>。<code>path</code> / <code>query</code> は両環境で同一値を使い、port だけスロット確定値に差し替える。</p>
+  <p class="note"><strong>operations（L5 操作シーケンス突合用・任意）</strong>: <code>scenarios[]</code> 自体には書かない。設計書 frontmatter の <code>operation_test_spec</code>（独立した「操作シナリオ仕様書.md」への相対パス）が指す先で、<code>scenarios[].name</code> と同名のシナリオに対して <code>operations</code>（<code>{action, selector, value?, key?}</code> の配列。<code>action</code> は <code>click</code>/<code>fill</code>/<code>selectOption</code>/<code>press</code> の 4 種）を定義する。本スキルが解決時に該当シナリオの <code>CAP_SCENARIO</code> JSON へ注入する。<code>operation_test_spec</code> が無い画面・名前が一致しないシナリオは L5 評価対象外のまま従来どおり動作する（後方互換）。</p>
 </section>
 
 <section id="s5">
@@ -741,8 +742,8 @@
      │
   Phase 4  整列（§7-4。実差分あり かつ dry-run でない時のみ）
      │
-  Phase 5  環境同一性チェック（§7-2）＋ 動的比較（§7-3: Playwright 4 層）
-     │       ※ dry-run でも実行する（静的 FAIL でも L1〜L4 まで計測し
+  Phase 5  環境同一性チェック（§7-2）＋ 動的比較（§7-3: Playwright 5 層）
+     │       ※ dry-run でも実行する（静的 FAIL でも L1〜L5 まで計測し
      │         診断情報を最大化する）
      │
   Phase 6  収束判定（dry-run 指定時は 1 周で確定・ループしない）
@@ -792,8 +793,8 @@
   </table>
   <p class="note"><code>port-owner</code>・<code>symlink-independence</code>・<code>process-independence</code>・<code>storage-isolation</code> は「同一」ではなく「独立」の検証。実体を共有した 2 環境は一致して見えて当然であり、完全一致の証明は「独立した 2 環境が同じに振る舞う」ことで初めて成立する。共有オリジナル方式では独立性は「共有オリジナル 1 つ」と「各 reverse」のペアで成立し、共有オリジナル同士の独立性は問わない。</p>
 
-  <h3>7-3. 動的比較（render-ready ＋ Playwright 4 層）</h3>
-  <p>両環境をそれぞれの固定ポートで起動し、<code>scenarios</code> の各画面シナリオを render-ready 到達確認・内容一致・4 層で突合する。総合判定は <strong>render-ready 到達 ∧ L2' 内容一致 ∧ L2（ARIA）∧ L4</strong> を必須とし、L3 は閾値超過で FAIL（画像ペアを添付して人間が最終裁定できる）。<strong>静的一致・L2（ARIA）一致だけでは PASS にしない</strong>。両環境が同一のスピナーで止まっていても render-ready 未到達であれば PASS ではない。</p>
+  <h3>7-3. 動的比較（render-ready ＋ Playwright 5 層）</h3>
+  <p>両環境をそれぞれの固定ポートで起動し、<code>scenarios</code> の各画面シナリオを render-ready 到達確認・内容一致・5 層で突合する。総合判定は <strong>render-ready 到達 ∧ L2' 内容一致 ∧ L2（ARIA）∧ L4</strong> を必須とし、<code>operations</code> を持つシナリオが 1 つでもある画面はさらに <strong>L5 一致</strong> も必須とする（<code>operations</code> を持つシナリオが無い画面は L5 を評価対象外とし従来どおりの条件のみで判定）。L3 は閾値超過で FAIL（画像ペアを添付して人間が最終裁定できる）。<strong>静的一致・L2（ARIA）一致だけでは PASS にしない</strong>。両環境が同一のスピナーで止まっていても render-ready 未到達であれば PASS ではない。</p>
   <table class="spec">
     <tr><th>層</th><th>内容</th><th>判定基準</th></tr>
     <tr><td><strong>L1 起動</strong></td><td>両環境のヘルスチェック / トップ応答 <strong>かつ render-ready 到達</strong>（scenario の <code>ready.selector</code> が可視 ∧ <code>loading_selectors</code>（既定 ∪ <code>ready.not</code>）が不可視）。<code>playwright_exec.mode</code> で実行手段が分岐する: mode=mcp は MCP ツールの navigate/wait_for/evaluate、mode=node-script は config.yml の <code>command_template</code> を Bash で直接実行する。navigate 先 URL は 127.0.0.1 固定・<code>waitUntil="load"</code> 固定。navigate / readiness 待ち / 描画安定待ちのタイムアウトは config.yml の <code>nav_timeout_ms</code> / <code>ready_timeout_ms</code> / <code>settle_wait_ms</code>（projects で上書き可）</td><td>両方の成功 かつ render-ready 到達が前提。片方でも失敗・未到達なら <code>NOT_RENDERED</code> とし以降をスキップして <span class="tag fail">FAIL</span></td></tr>
@@ -801,10 +802,11 @@
     <tr><td><strong>L2' 内容一致</strong></td><td>scenario の <code>assert.tables</code> / <code>assert.texts</code> 各セレクタの innerText を正規化し、両環境の内容 JSON（<code>rendered</code>/<code>reason</code>/<code>tables</code>/<code>texts</code>）を突合する。mcp・node-script のいずれも同一形の内容 JSON を出力する（node-script は <code>CAP_CONTENT</code>）</td><td>tables/texts が完全一致。不一致はデータ差分として <span class="tag fail">FAIL</span></td></tr>
     <tr><td><strong>L3 視覚</strong></td><td>同一ビューポートのスクリーンショット画素比較（動的領域は <code>mask</code> でマスク）</td><td>差分画素率が閾値以下（config.yml、既定 0.1%）。補助判定・証跡</td></tr>
     <tr><td><strong>L4 コンソール</strong></td><td>console error / warning の集合比較（ポートは正規化）</td><td>リバース側にのみ存在するエラーで <span class="tag fail">FAIL</span>。両方に出る既存エラーは許容</td></tr>
+    <tr><td><strong>L5 操作シーケンス突合</strong></td><td>設計書 frontmatter の <code>operation_test_spec</code> が指す「操作シナリオ仕様書.md」から <code>scenarios[].name</code> と同名のシナリオの <code>operations</code>（<code>{action, selector, value?, key?}</code> の配列。action は <code>click</code>/<code>fill</code>/<code>selectOption</code>/<code>press</code>）を解決し、初回内容抽出後に両環境で同順序に実行、実行後に同じセレクタで再抽出した <code>postContent</code>（<code>tables</code>/<code>texts</code>）を突合する。node-script は config.yml <code>command_template</code> の <code>extract()</code> 再実行結果、mcp は <code>browser_click</code>/<code>browser_fill_form</code>/<code>browser_select_option</code>/<code>browser_press_key</code> 実行後の <code>browser_evaluate</code> 再抽出結果を用いる（mcp 側の詳細実装は本改修のスコープ外・概念記述のみ）</td><td><code>operations</code> を持つシナリオが 1 つでもある画面は必須。postContent の tables/texts が完全一致。不一致は操作後の挙動差として <span class="tag fail">FAIL</span>。<code>operations</code> を持つシナリオが無い画面は評価対象外</td></tr>
   </table>
   <p class="note">L1 が失敗した場合の段階診断手順: ① dev サーバーの stdout/stderr を artifacts へ収集 → ② 待受ポートを再確認 → ③ navigate を 1 回再試行 → ④ なお失敗するなら dev サーバープロセス自体を kill → 再起動して再試行する（navigate の再試行だけでは解消しない dependency re-optimize 起因のケースが実測されているため。<code>symlink_main</code> で <code>.vite</code> を共有している時に起きやすい）→ ⑤ <code>symlink_main</code> 運用中で片方だけが持続的に失敗するなら共有 <code>.vite</code> のレースが原因なので、該当環境の node_modules を独立 <code>npm ci</code> に切り替えて再試行 → ⑥ それでも失敗すれば <span class="tag error">ERROR</span> とし、収集した log のパスを添付する。④の再起動対象が共有オリジナルの場合は system 単位（共有オリジナルを 1 回再起動）で行い、同一 system@sha を使う影響画面をまとめて再走行する。per-scope は画面ごとに障害隔離できる。</p>
   <p class="note">DB 内容・乱数・日時などの動的データによる誤検出には、マスク対象セレクタ（<code>mask</code>）を設計書 frontmatter で宣言して対応する。</p>
-  <p class="note">mcp / node-script の等価性: 両手段は同一の内容 JSON 契約（<code>rendered</code>/<code>reason</code>/<code>tables</code>/<code>texts</code>）を出力する。node-script は scenario 引数（url・ready・assert・loading）を <code>CAP_SCENARIO</code> の JSON で受け取り、内容抽出結果を <code>CAP_CONTENT</code> に書き出す。mcp は <code>browser_navigate</code> → <code>browser_wait_for</code>（ready）→ <code>browser_evaluate</code>（loading 不可視確認・innerText 抽出）→ <code>browser_take_screenshot</code> → <code>browser_snapshot</code> → <code>browser_console_messages</code> で同形の結果を得る。</p>
+  <p class="note">mcp / node-script の等価性: 両手段は同一の内容 JSON 契約（<code>rendered</code>/<code>reason</code>/<code>tables</code>/<code>texts</code>。<code>operations</code> 指定時はさらに <code>postContent</code>）を出力する。node-script は scenario 引数（url・ready・assert・loading・operations）を <code>CAP_SCENARIO</code> の JSON で受け取り、内容抽出結果を <code>CAP_CONTENT</code> に書き出す。<code>operations</code> がある場合は初回抽出後に <code>page.click</code>/<code>page.fill</code>/<code>page.selectOption</code>/<code>page.keyboard.press</code> を順に実行し、同じ <code>extract()</code> を再実行して <code>postContent</code> を得る。mcp は <code>browser_navigate</code> → <code>browser_wait_for</code>（ready）→ <code>browser_evaluate</code>（loading 不可視確認・innerText 抽出）→ <code>browser_take_screenshot</code> → <code>browser_snapshot</code> → <code>browser_console_messages</code> で同形の結果を得る。<code>operations</code> 指定時は上記の後に <code>browser_click</code>/<code>browser_fill_form</code>/<code>browser_select_option</code>/<code>browser_press_key</code> を同順序で実行し、同一の <code>browser_evaluate</code> 抽出を再実行して <code>postContent</code> を得る（概念記述。詳細実装は本改修のスコープ外）。</p>
   <p class="note">結果分類: 両環境が render-ready 到達 ∧ 内容一致で <span class="tag pass">PASS</span> 候補。reverse 側だけ <code>NOT_RENDERED</code> は再構築未完のため <span class="tag fail">FAIL</span>。両環境が同様に <code>NOT_RENDERED</code>（引数不足でスピナー等）は <strong>DESIGN-INCOMPLETE</strong> として設計書 <code>scenarios</code> への <code>query</code>/<code>path_params</code>/<code>ready</code> 追加を促す（§8）。</p>
 
   <h3>7-4. 整列</h3>
@@ -872,6 +874,9 @@
   static_diff:     実差分 &lt;N&gt; 件（上位 &lt;n&gt; 件のファイル一覧）
                    ポート差（許容） &lt;M&gt; 件
   dynamic:         L1=PASS(render-ready到達) L2=PASS L2'=PASS(内容一致) L3=PASS(0.03%) L4=PASS
+                   （operations を持つ scenario では L5=PASS(postContent一致) も
+                    同じ dynamic フィールド内に入れ子で追加する。新規トップレベル
+                    フィールドは増やさない）
                    （scenario 別の内訳を添付。render-ready 未到達時は
                     reason に NOT_RENDERED の理由セレクタを記す）
   env_check:       全項目 PASS（NG があれば §7-2 のキーと内容を列挙）
