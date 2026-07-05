@@ -137,7 +137,7 @@ Phase 1 でロード済みの設計資産を、以下の順序で参照する。
 
 ## Phase 5: 検証コマンド詳細
 
-- **型チェック**: `reverse-code-<scope>` worktree 内で、実体 config を明示指定して実行する: `NODE_OPTIONS=--max-old-space-size=8192 tsc --noEmit -p tsconfig.app.json`。`package.json` の型チェックスクリプトに依存しない（スクリプト不在や solution-style tsconfig `"files": []` で 0 ファイル検査の偽 PASS を防ぐため）。偽通過検知: 検査対象に白紙化リストのファイルが含まれることを `tsc` 出力から確認してから合否判定する。合格条件は「リポジトリ全体 0 エラー」ではなく「白紙化リスト内ファイルのエラー 0 件」とする（既存コードに大量のエラーがある場合、全体基準は運用不能なため）
+- **型チェック**: `reverse-code-<scope>` worktree 内で実行する。solution-style tsconfig（ルートの `tsconfig.json` が `"files": []` または `references` のみを持ち、実体の型定義を含まない構成）を検出した場合は、`references` 先の実体 config（例: `tsconfig.app.json`・`tsconfig.src.json` 等）を特定し、そちらを `-p` に指定する: `NODE_OPTIONS=--max-old-space-size=8192 tsc --noEmit -p <実体config>`。solution-style でない場合（ルートの `tsconfig.json` 自体が実体 config の場合）は `tsc --noEmit` をそのまま実行する。偽通過検知: 検査対象に白紙化リストのファイルが含まれることを `tsc` 出力から確認してから合否判定する。合格条件は「リポジトリ全体 0 エラー」ではなく「白紙化リスト内ファイルのエラー 0 件」とする（既存コードに大量のエラーがある場合、全体基準は運用不能なため）
 - **単体/結合テスト**: 単体テスト観点表・結合テスト観点表に記載されたケースを実装したテストファイルを実行する
 - **Playwright スモーク**: **reverse 側 9110 番台のみ**を対象とする。オリジナル側 9100 番台は Phase 7 の答え合わせでのみ起動する（Phase 5 時点でオリジナル側を見るとカンニングになる）
 
