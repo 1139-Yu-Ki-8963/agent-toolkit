@@ -356,7 +356,13 @@ PLACEHOLDER_LINES=$(awk '
       if (line ~ /<[^<>]+>/) print NR": "line
     }
   }
-' "$DESIGN_DOC" | grep -E '<[^<>]+>' || true)
+' "$DESIGN_DOC" | grep -E '<[^<>]+>' |
+  # TypeScript ジェネリクスの誤検出除外: 識別子文字（英数字・アンダースコア・
+  # `]`・`)`）の直後に続く `<` は型パラメータ（例: ReturnType<...>,
+  # Dispatch<SetStateAction<T>>, styled("td")<{...}>）であり未記入プレースホルダ
+  # ではない。当該パターンを含む行は検出対象から除外する。日本語プレースホルダ
+  # （<画面ID> 等）や <YYYY-MM-DD> は '<' 直前に識別子文字が来ないため対象外にならない。
+  grep -vE '[A-Za-z0-9_\]\)]<' || true)
 
 if [ -n "$PLACEHOLDER_LINES" ]; then
   PLACEHOLDER_COUNT=$(printf '%s\n' "$PLACEHOLDER_LINES" | grep -c .)
