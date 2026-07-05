@@ -120,7 +120,7 @@
 
   <div class="def">
     <dt>こんな人向け</dt>
-    <dd>from-zero でリバース設計書の記載粒度をファイル単位でブートストラップしたい人。既存の画面詳細設計書が「1 ファイル分だけ」正しく書けているかを軽量に検証したい人。</dd>
+    <dd>from-zero でリバース設計書の記載粒度をファイル単位でブートストラップしたい人。既存の画面詳細設計書.md が「1 ファイル分だけ」正しく書けているかを軽量に検証したい人。</dd>
     <dt>こんな場面で使う</dt>
     <dd>ファイル単位の往復検証・from-zero での設計書品質ブートストラップを行うとき。画面単位の結合・e2e 検証（Playwright スモーク・複数ファイル横断の突合）は兄弟スキル <code>rebuilding-code-from-docs</code>（stage2）、環境同期・基準タグ運用は <code>syncing-reverse-env</code> の対象であり、本スキルの対象外。</dd>
   </div>
@@ -150,7 +150,7 @@
 
 <section id="s1">
   <h2><span class="sec-num">§1</span>概要</h2>
-  <p>リバース設計書（<code>assets/02_画面詳細設計/</code> 準拠、章の役割キー 16 種で構成）の往復検証を、<strong>「1 起動 = 1 ファイル・単体観点・from-zero」</strong>で行う stage1 スキル。画面単位・結合観点・e2e の stage2（<code>rebuilding-code-from-docs</code>）とは役割が異なる。stage1 で設計書の記載粒度をファイル単位でブートストラップし、合格した画面から stage2（画面単位の結合検証）へ引き継ぐ。</p>
+  <p>リバース設計書（<code>assets/リバース検証/画面/詳細設計/</code> 準拠、章の役割キー 16 種で構成）の往復検証を、<strong>「1 起動 = 1 ファイル・単体観点・from-zero」</strong>で行う stage1 スキル。画面単位・結合観点・e2e の stage2（<code>rebuilding-code-from-docs</code>）とは役割が異なる。stage1 で設計書の記載粒度をファイル単位でブートストラップし、合格した画面から stage2（画面単位の結合検証）へ引き継ぐ。</p>
   <div class="constraint">
     <strong>目的の分離:</strong> コードを直すことは目的ではない。P5 の差分は「コードの誤り」ではなく「設計書の記載不足」として扱い、フィードバック先は当該設計書の該当章（役割キー）。設計書に対象ファイルの記載自体が無い場合は、ひな形から新規作成してよい（from-zero）。
   </div>
@@ -362,7 +362,7 @@
     </tr>
   </table>
   <div class="constraint">
-    <strong>from-zero:</strong> §15.1 に対象ファイルが存在せず設計書側にも記載が無い場合、P1 で新規追加を宣言してから P2 以降に進む。ひな形は <code>assets/02_画面詳細設計/画面詳細設計書.md</code> のテンプレ構造に従う。単体テスト観点表に対応する観点が無い場合も同様に、意味キー規約（連番禁止・内容要約キー）に沿って最低限の行を追記してから進める。
+    <strong>from-zero:</strong> §15.1 に対象ファイルが存在せず設計書側にも記載が無い場合、P1 で新規追加を宣言してから P2 以降に進む。ひな形は <code>assets/リバース検証/画面/詳細設計/画面詳細設計書.md</code> のテンプレ構造に従う。単体テスト観点表に対応する観点が無い場合も同様に、意味キー規約（連番禁止・内容要約キー）に沿って最低限の行を追記してから進める。
   </div>
   <div class="constraint">
     <strong>実測が要る断定の scope 境界（P3）:</strong> 初期表示値・DOM 配置順序・要素位置・レイアウトなど、実行時の観測（Playwright 実測等）でしか正しく決められない断定は、stage1 の from-zero では <code>[stage2で実測]</code> プレースホルダに留める。stage1 が確定させるのは静的に決定可能な宣言的契約（型・import・export・Props 名・API 契約形・ロジック構造・定数値）に限定し、実測は Playwright を持つ stage2（<code>rebuilding-code-from-docs</code>）に委ねる。
@@ -448,8 +448,8 @@
     <tr><td>rebuilding-code-from-docs（stage2）</td><td>画面単位・結合観点・e2e。本スキルの合格後の引き継ぎ先</td></tr>
     <tr><td>rebuilding-code-from-docs/references/phase-details.md</td><td>章の役割キー→節キーワード対応表（正本）</td></tr>
     <tr><td>rebuilding-code-from-docs/scripts/audit-consistency.sh</td><td>実装契約章のファイル分割表取得・内部整合性監査（本スキルが流用）</td></tr>
-    <tr><td>rebuilding-code-from-docs/assets/02_画面詳細設計/画面詳細設計書.md</td><td>章の役割キー（16 種、既定 §1〜§16）テンプレート</td></tr>
-    <tr><td>rebuilding-code-from-docs/assets/02_画面詳細設計/単体テスト観点表.md</td><td>単体テスト観点表テンプレート</td></tr>
+    <tr><td>rebuilding-code-from-docs/assets/リバース検証/画面/詳細設計/画面詳細設計書.md</td><td>章の役割キー（16 種、既定 §1〜§16）テンプレート</td></tr>
+    <tr><td>rebuilding-code-from-docs/assets/リバース検証/画面/詳細設計/単体テスト観点表.md</td><td>単体テスト観点表テンプレート</td></tr>
     <tr><td>rebuilding-code-from-docs/references/test-item-patterns.md</td><td>失敗クラス台帳（stage1・stage2 共通の正本。テンプレ昇格条件に合致した場合に追記）</td></tr>
     <tr><td>意味キー規約</td><td>連番 ID 禁止・意味語キー必須の正本</td></tr>
   </table>
