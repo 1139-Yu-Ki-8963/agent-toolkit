@@ -114,7 +114,7 @@
 <body>
 
 <header>
-  <h1>設計書からのコード再構築<br><span class="skill-name">rebuilding-code-from-docs</span></h1>
+  <h1>設計書精度検証のためのコード再構築<br><span class="skill-name">rebuilding-code-from-docs</span></h1>
   <p>設計書だけからコードを再生成し、元コードと機械突合して設計書の欠落を発見する往復検証スキル。</p>
 
   <div class="def">
@@ -125,31 +125,85 @@
   </div>
 
   <table class="meta-table">
-    <tr><td>対応 OS</td><td>macOS</td></tr>
-    <tr><td>検証状況</td><td>SKILL.md を正本として整理（個別の実機検証記録なし）</td></tr>
-    <tr><td>依存</td><td>allowed-tools: Read / Write / Edit / Bash / Grep / Glob / AskUserQuestion / Skill。連携スキル: syncing-reverse-env（環境同期・比較エンジン）</td></tr>
-    <tr><td>関連資料</td><td>SKILL.md / references/phase-details.md / references/ng-classification.md / references/test-item-patterns.md / references/report-format.md</td></tr>
+    <tr><td>対応 OS</td><td>Windows WSL2 環境</td></tr>
+    <tr><td>検証状況</td><td>実機検証済み</td></tr>
+    <tr><td>依存</td><td>連携スキル: syncing-reverse-env（環境同期・比較エンジン）</td></tr>
   </table>
 </header>
 
 <nav class="toc">
   <div class="toc-title">目次</div>
   <ol>
-    <li><a href="#s1">概要</a></li>
+    <li><a href="#s1">概要・検証範囲</a></li>
     <li><a href="#s2">用語</a></li>
     <li><a href="#s3">使い方</a></li>
     <li><a href="#s4">動作フロー（Phase 1〜9）</a></li>
     <li><a href="#s5">設計原則</a></li>
     <li><a href="#s6">ガード設計</a></li>
-    <li><a href="#s7">検証内容</a></li>
-    <li><a href="#s8">報告フォーマット</a></li>
-    <li><a href="#s9">関連スキル・規約</a></li>
+    <li><a href="#s7">報告フォーマット</a></li>
+    <li><a href="#s8">関連スキル・規約</a></li>
   </ol>
 </nav>
 
 <section id="s1">
-  <h2><span class="sec-num">§1</span>概要</h2>
-  <p>リバースエンジニアリングで作成した画面詳細設計書（<code>assets/リバース検証/画面/詳細設計/</code> 準拠、章の役割キー（16 種、既定 §1〜§16）で構成）は納品物であり、「設計書だけを読んで忠実にコーディングできる」詳細度が求められる。本スキルはその品質を検証するため、<strong>設計書だけからコードを再生成し、元コードと機械突合して設計書の欠落を発見する</strong>往復検証を行う。</p>
+  <h2><span class="sec-num">§1</span>概要・検証範囲</h2>
+  <p>リバースエンジニアリングで作成した画面詳細設計書（<code>assets/リバース検証/画面/詳細設計/</code> 準拠）は納品物であり、「設計書だけを読んで忠実にコーディングできる」詳細度が求められる。設計書は 16 種類の<strong>章の役割キー</strong>（各章に付けられた意味分類ラベル。例: 機能一覧・状態管理・API通信）で構成される。以下で頻出する「既定 §n」という表記は、各役割キーがテンプレート上で通常割り当てられる章番号を指す注記である（正の識別子は章番号ではなく役割キーであり、個別の設計書では番号がずれる場合がある）。本スキルはその品質を検証するため、<strong>設計書だけからコードを再生成し、元コードと機械突合して設計書の欠落を発見する</strong>往復検証を行う。</p>
+
+  <div class="constraint">
+    <strong>検証範囲:</strong> 本スキルは単体テスト・結合テストに加え、<strong>Playwright による動的検証</strong>まで行う。動的検証は、起動確認から画面操作結果の突合までを 5 段階に分けた検証レベル（<strong>L1〜L5</strong>。内訳は後述の Phase 7 の表を参照）で構成される。最終段階の L5 は複数の操作をまたぐ操作シーケンス比較であり、<strong>e2e</strong>（end-to-end。実際の利用者の操作の流れを再現して検証する手法）に相当する。ファイル単位の往復検証は前段スキル <code>rebuilding-screen-unit-from-docs</code>（stage1）が担い、本スキルは画面単位の結合・動的検証（stage2）を担う。
+  </div>
+  <table class="spec">
+    <tr><th>項目</th><th>rebuilding-screen-unit-from-docs（stage1）</th><th>rebuilding-code-from-docs（本スキル・stage2）</th></tr>
+    <tr><td>検証単位</td><td>1 ファイル</td><td>画面単位（結合・e2e を含む）</td></tr>
+    <tr><td>用途</td><td>from-zero 品質ブートストラップ</td><td>リバース済み設計書の往復品質検証</td></tr>
+    <tr><td>対象外</td><td>画面単位結合・e2e 検証（→本スキル）</td><td>—</td></tr>
+  </table>
+
+  <h3>Phase 2: 設計書内部整合性監査の具体的な突合内容</h3>
+  <p><code>scripts/audit-consistency.sh</code> による機械チェック（a・d・e）と、目視突合（b・c）を組み合わせる。突合式の全文は <code>references/phase-details.md</code>「Phase 2: 設計書内部整合性監査の突合式」を参照。</p>
+  <table class="spec">
+    <tr><th>突合</th><th>方式</th><th>内容</th></tr>
+    <tr><td>a. 機能一覧表 × 観点表</td><td><span class="tag mode">機械</span></td><td>機能一覧章の機能一覧表（既定 §2.1）のキー集合と観点表の機能キー集合を両方向一致で突合</td></tr>
+    <tr><td>b. API 型 × 実装契約型</td><td><span class="tag mode">目視</span></td><td>API通信章のリクエスト/レスポンス型（既定 §7.2）と実装契約章の型定義（既定 §15.2）のフィールド名・型を完全一致で突合</td></tr>
+    <tr><td>c. 状態変数 × 参照経路</td><td><span class="tag mode">目視</span></td><td>状態管理章の状態変数（既定 §5.3/5.4）が領域別仕様章（既定 §9）または実装契約章（既定 §15.1/15.5）のいずれかから参照されているかを確認</td></tr>
+    <tr><td>d. 意味キー連番検出</td><td><span class="tag mode">機械</span></td><td><code>grep -E '\b[A-Z]{1,4}-[0-9]+\b'</code> 等で連番 ID・「ID」列を検出（WARN）</td></tr>
+    <tr><td>e. 未記入プレースホルダ検出</td><td><span class="tag mode">機械</span></td><td><code>&lt;...&gt;</code> 形式の未記入箇所を本文（HTML コメント外）から検出</td></tr>
+  </table>
+
+  <h3>Phase 5: 自己完結チェックの具体的な検証コマンド</h3>
+  <table class="spec">
+    <tr><th>検証</th><th>内容</th></tr>
+    <tr><td>型チェック</td><td><code>tsc --noEmit</code>（solution-style tsconfig の場合は実体 config を <code>-p</code> で指定）。合格条件は「白紙化リスト内ファイルのエラー 0 件」（リポジトリ全体 0 エラーではない）</td></tr>
+    <tr><td>単体/結合テスト</td><td>単体テスト観点表・結合テスト観点表のケースを実装したテストファイルを実行</td></tr>
+    <tr><td>Playwright スモーク</td><td>reverse 側 9110 番台のみ対象（オリジナル側は Phase 7 でのみ起動し、Phase 5 での参照はカンニングとして禁止）</td></tr>
+    <tr><td>発散判定</td><td>同一エラーシグネチャが 3 連続で再発したら発散確定。発散エラー自体を Phase 8 へ設計書欠落候補として引き継ぐ</td></tr>
+  </table>
+
+  <h3>Phase 7: 答え合わせ（Playwright L1〜L5）の具体的な判定内容</h3>
+  <p><code>syncing-reverse-env</code>（<code>mode=sync, dry-run</code>）が返す静的 3 分類・env_check・Playwright 動的検証（L1〜L5）を判定根拠とする。比較の自前実装は禁止。L1〜L5 はそれぞれ次を確認する検証レベルである。</p>
+  <table class="spec">
+    <tr><th>レベル</th><th>確認内容</th></tr>
+    <tr><td>L1 起動確認</td><td>アプリが起動し、render-ready（初期表示が完了し読み込み中表示が消えた状態）に到達しているか。失敗時は L2 以降を評価せず、後述の <span class="tag mode">DESIGN-INCOMPLETE</span> 等として扱う（単独の失敗クラスとしては計上しない）</td></tr>
+    <tr><td>L2 画面構造スナップショット</td><td>Playwright の構造スナップショット（ARIA。画面上の要素構成を表現した情報）が両環境で完全一致するか</td></tr>
+    <tr><td>L3 画素比較</td><td>画面のスクリーンショットを画素単位で比較し、差分が config.yml の閾値を超えないか</td></tr>
+    <tr><td>L4 コンソールエラー</td><td>ブラウザのコンソールに出力されたエラー集合が両環境で一致するか</td></tr>
+    <tr><td>L5 操作シーケンス比較</td><td>クリック・入力等の一連の操作（<code>operations</code>）を実行した後の画面内容（<code>postContent</code> の tables/texts）が両環境で一致するか。<code>operations</code> を持つ画面のみ評価対象</td></tr>
+  </table>
+  <p class="note">上記とは別軸で、静的比較（ファイル diff の「実差分」判定）も同時に受領する。</p>
+  <p class="note">status が <span class="tag mode">DESIGN-INCOMPLETE</span>（両環境とも render-ready 未到達）の場合は scenarios への query/path_params/ready 追加を指示する。<span class="tag mode">DYNAMIC-UNVERIFIED</span>（MCP・Playwright とも不在）の場合は PASS 扱いにせず往復検証未完了として報告する。</p>
+
+  <h3>Phase 8: NG 分類の具体例</h3>
+  <p>検出シグナルは <code>references/ng-classification.md</code> 表 A で失敗クラスへ写像し、表 B で設計書の帰着先（役割・既定§）を決める。全件は同ファイル参照。以下は代表例。</p>
+  <table class="spec">
+    <tr><th>失敗クラス</th><th>帰着（役割・既定§）</th></tr>
+    <tr><td>export-import-型不一致</td><td>実装契約（ファイル分割/型定義/依存。既定 §15.1/15.2/15.3）</td></tr>
+    <tr><td>状態変数欠落・初期値差</td><td>状態管理（既定 §5.3/5.9）</td></tr>
+    <tr><td>scenarios引数不足</td><td>frontmatter（<code>scenarios[].query</code>/<code>path_params</code>）</td></tr>
+  </table>
+
+  <h3>Phase 9: 凍結検証と最終報告の定量欄</h3>
+  <p><code>scripts/check-freeze.sh</code> で Phase 6 の凍結コミットハッシュと現状（HEAD・作業ツリー）を突合する。<span class="tag pass">PASS</span> = HEAD 一致かつ作業ツリークリーン、<span class="tag fail">FAIL</span> = 不一致（結果全体を無効宣言）。最終報告には DESIGN.md トークン適用率（n/m）・対象ファイル型エラー数・L3 画素差分値（証跡パス付き）を必須記載する。書式全体は <a href="#s7">§7 報告フォーマット</a> と <code>references/report-format.md</code> を参照。</p>
+
   <div class="constraint">
     <strong>目的の分離:</strong> コードを直すことは目的ではない。フィードバック先は (a) 当該画面設計書の該当章（役割キー）、(b) 欠落が汎用的ならテンプレート自体の記載粒度改善の 2 つ。
   </div>
@@ -160,6 +214,8 @@
   <h2><span class="sec-num">§2</span>用語</h2>
   <table class="spec">
     <tr><th>用語</th><th>意味</th></tr>
+    <tr><td>章の役割キー／既定 §n</td><td>画面詳細設計書の各章に付けられた意味分類ラベル（16 種）。「既定 §n」はテンプレート上でその役割キーに通常割り当てられる章番号を指す注記で、正の識別子は番号ではなく役割キー自体（§1 参照）</td></tr>
+    <tr><td>L1〜L5</td><td>Playwright による動的検証を、起動確認から画面操作結果の突合までの 5 段階に分けた検証レベル（内訳は §1 Phase 7 の表を参照）</td></tr>
     <tr><td>オリジナルコード環境</td><td>worktree 名 <code>original-code-&lt;scope&gt;</code>。設計書 frontmatter の <code>source_repo</code> / <code>source_ref</code> から用意する読み取り専用コピー（9100 番台）</td></tr>
     <tr><td>リバースコード環境</td><td>worktree 名 <code>reverse-code-&lt;scope&gt;</code>、ブランチ <code>feature/reverse-code-&lt;scope&gt;</code>。本スキルが Phase 4 で書き込む対象（9110 番台）</td></tr>
     <tr><td>基準タグ</td><td>annotated tag <code>reverse-baseline/&lt;scope&gt;</code>。基準コミットの唯一の記録</td></tr>
@@ -236,22 +292,7 @@
 </section>
 
 <section id="s7">
-  <h2><span class="sec-num">§7</span>検証内容</h2>
-  <h3>Phase 2: 設計書内部整合性監査</h3>
-  <p><code>scripts/audit-consistency.sh</code> による機械チェック（<span class="tag mode">a</span> 機能一覧章の機能一覧表（既定 §2）× 観点表の機能キー集合突合（両方向一致）、<span class="tag mode">b</span> 未記入プレースホルダ検出、<span class="tag mode">c</span> 連番キー検出 WARN）に加え、目視で API通信章の API 型（既定 §7）× 実装契約章の型定義（既定 §15.2）、状態管理章の状態変数（既定 §5）× 領域別仕様章/実装契約章の経路（既定 §9/§15）を突合する。詳細は <code>references/phase-details.md</code>。</p>
-  <h3>Phase 5: 自己完結チェック</h3>
-  <p>本スキルを実行しているセッション自身が、型チェック・単体/結合テスト・Playwright スモーク（reverse 側 9110 番台のみ）を直接実行する。内側ループは上限 3 回、同一エラーシグネチャ 3 連続で発散確定とし、発散エラー自体を設計書欠落候補として Phase 8 へ渡す。</p>
-  <h3>Phase 7: 答え合わせ</h3>
-  <p><code>syncing-reverse-env</code> の <code>mode=sync, dry-run</code> 呼び出しで、静的 3 分類・env_check 全項目・Playwright L1〜L5（L5 は <code>operations</code> を持つ画面のみ評価対象）・<code>hint</code>・<code>status</code> を受領する。設計書 frontmatter の <code>scenarios[].query</code>/<code>path_params</code>/<code>ready</code>/<code>assert</code>/<code>mask</code> が描画到達（render-ready）判定・内容一致判定・マスクの入力になる。比較の自前実装は禁止。<code>status</code> が <span class="tag mode">DESIGN-INCOMPLETE</span>（両環境とも render-ready 未到達）なら Phase 8 で scenarios への query/path_params/ready 追加を指示し、<span class="tag mode">DYNAMIC-UNVERIFIED</span>（MCP・Playwright とも不在）なら PASS 扱いにせず往復検証未完了として報告する。</p>
-  <h3>Phase 9: 凍結検証</h3>
-  <p><code>scripts/check-freeze.sh</code> で Phase 6 の凍結コミットハッシュと現状（HEAD・作業ツリー）を突合する。
-    <span class="tag pass">PASS</span> = HEAD一致かつ作業ツリークリーン、
-    <span class="tag fail">FAIL</span> = 不一致（結果全体を無効宣言）。
-  </p>
-</section>
-
-<section id="s8">
-  <h2><span class="sec-num">§8</span>報告フォーマット</h2>
+  <h2><span class="sec-num">§7</span>報告フォーマット</h2>
   <p>書式の正は <code>references/report-format.md</code>。配置先は <code>&lt;画面ディレクトリ&gt;/検証記録/&lt;timestamp&gt;/</code>（設計書リポジトリ内）。生証跡（スクリーンショット・テストログ・返却ブロック全文）は <code>~/agent-home/sessions/</code> 配下に置く。</p>
   <table class="spec">
     <tr><th>成果物</th><th>作成 Phase</th><th>内容</th></tr>
@@ -263,10 +304,11 @@
   </div>
 </section>
 
-<section id="s9">
-  <h2><span class="sec-num">§9</span>関連スキル・規約</h2>
+<section id="s8">
+  <h2><span class="sec-num">§8</span>関連スキル・規約</h2>
   <table class="spec">
     <tr><th>資料</th><th>役割</th></tr>
+    <tr><td>rebuilding-screen-unit-from-docs</td><td>ファイル単位往復検証（stage1）。本スキル（stage2・画面単位結合/e2e）の前段</td></tr>
     <tr><td>syncing-reverse-env</td><td>環境同期・静的/動的比較エンジン。本スキルはこのスキルの呼び出し契約（args 全量指定・対話ゼロ）に従う</td></tr>
     <tr><td>assets/リバース検証/画面/詳細設計/画面詳細設計書.md</td><td>章の役割キー（16 種、既定 §1〜§16）テンプレート。突合・帰着先章の基準</td></tr>
     <tr><td>references/phase-details.md</td><td>Phase 2 突合式・Phase 4 実装規律・Phase 5 検証コマンド詳細・章の役割キー対応表</td></tr>

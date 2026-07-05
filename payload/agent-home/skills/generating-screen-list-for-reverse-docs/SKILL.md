@@ -1,14 +1,14 @@
 ---
 name: generating-screen-list-for-reverse-docs
-description: "レガシー画面検出→画面一覧HTML生成。 TRIGGER when: 画面一覧作成。 SKIP: 往復検証/同期/実装（→rebuilding-code-from-docs/syncing-reverse-env/orchestrating-dev-flow）。"
+description: "既存画面検出→画面一覧HTML生成。 TRIGGER when: 画面一覧作成。 SKIP: 往復検証/同期/実装（→rebuilding-code-from-docs/syncing-reverse-env/orchestrating-dev-flow）。"
 invocation: generating-screen-list-for-reverse-docs
 type: transform
 allowed-tools: [Bash, Read, Write, Edit, Grep, Glob, AskUserQuestion, TaskCreate, TaskUpdate]
 ---
 
-# レガシー画面一覧生成スキル
+# 既存画面一覧生成スキル
 
-レガシー（既存）コードベースを、スタック調査→検出戦略の宣言→戦略に基づく抽出→整合検証、の順で調査し、「画面」単位にファイルをグルーピングして **画面一覧.HTML**（画面詳細設計書.md の単位を正確に分けるための正本）を作成する。**本スキルの仕事は画面一覧.HTMLの作成のみ**であり、設計書の雛形展開・生成・記入は一切行わない。
+既存コードベースを、スタック調査→検出戦略の宣言→戦略に基づく抽出→整合検証、の順で調査し、「画面」単位にファイルをグルーピングして **画面一覧.HTML**（画面詳細設計書.md の単位を正確に分けるための正本）を作成する。**本スキルの仕事は画面一覧.HTMLの作成のみ**であり、設計書の雛形展開・生成・記入は一切行わない。
 
 `rebuilding-code-from-docs`（既に存在する設計書の往復検証）・`syncing-reverse-env`（環境同期）とは独立して単独動作する。
 
@@ -23,7 +23,7 @@ allowed-tools: [Bash, Read, Write, Edit, Grep, Glob, AskUserQuestion, TaskCreate
 
 ## 使用タイミング
 
-- レガシーコードベースの画面一覧を作りたいとき
+- 既存コードベースの画面一覧を作りたいとき
 - 起動引数: ソースコードディレクトリ（探索対象）と出力先ディレクトリ（画面一覧.HTMLの書き出し先）の2つ
 
 ## 進捗管理（必須手順）

@@ -114,7 +114,7 @@
 <body>
 
 <header>
-  <h1>リバース環境同期スキル ガイド<br><span class="skill-name">syncing-reverse-env</span></h1>
+  <h1>リバース環境同期スキル<br><span class="skill-name">syncing-reverse-env</span></h1>
   <p>リバース元の「オリジナルコード環境」と設計書由来の「リバースコード環境」の 2 つの worktree を用意・名前管理し、ポート番号以外の完全同一を検証して、一致証明済みの「基準コミット」を確立するスキルの確定仕様。</p>
 
   <div class="def">
@@ -133,10 +133,9 @@
   </div>
 
   <table class="meta-table">
-    <tr><td>対応 OS</td><td>macOS / Windows（WSL2・Ubuntu）</td></tr>
-    <tr><td>検証状況</td><td>サンプルプロジェクトで動作確認済み（E2E: setup → sync → 基準タグ確立 → reset）。node-script 方式（MCP 非接続）でも実プロジェクト（WSL2・drvfs）で L1〜L4 まで実機検証済み</td></tr>
+    <tr><td>対応 OS</td><td>Windows WSL2 環境</td></tr>
+    <tr><td>検証状況</td><td>サンプルプロジェクトで動作確認済み（E2E: setup → sync → 基準タグ確立 → reset）。node-script 方式（MCP 非接続）でも実プロジェクト（WSL2 環境の drvfs＝Windows 側ドライブのマウント領域）で、動的検証 5 段階のうち L1〜L4 まで実機検証済み</td></tr>
     <tr><td>依存</td><td>git / Playwright（MCP または node-script 直実行のいずれか）</td></tr>
-    <tr><td>関連資料</td><td><code>syncing-reverse-env-concept.html</code>（設計経緯・設計判断の記録）</td></tr>
   </table>
 </header>
 
@@ -158,6 +157,7 @@
 <section id="s1">
   <h2><span class="sec-num">§1</span>概要</h2>
   <p>リバースエンジニアリング設計の中心課題は「設計書が完全であることの証明」にある。本スキルはこれを、<strong>設計書だけを見て再構築したリバースコード環境が、オリジナルコード環境とポート番号以外で完全に同じ動作をすること</strong>で証明する。</p>
+  <p class="note">本ガイドで使う「L1〜L5」は、起動確認から画面操作結果の突合までを 5 段階に分けた動的検証レベルを指す（内訳は §7 検証内容）。「drvfs」は、WSL2 環境で Windows 側のドライブがマウントされる特殊なファイル領域（<code>/mnt/*</code>）を指す（詳細は §5）。</p>
   <figure class="diagram">
 <svg style="width:100%;height:auto;display:block" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" font-family="'Hiragino Kaku Gothic ProN','Hiragino Sans','Noto Sans JP','Yu Gothic',sans-serif">
   <defs>
@@ -389,6 +389,10 @@
     <dd>両環境の稼働ポートは <code>&lt;scope&gt;</code> ごとに動的割当てするスロット番号（1〜5）から計算式で決まる（§5）。両環境は必ず異なる帯域を持ち、これが「唯一許容される差分＝ポート番号」の根拠になる。</dd>
     <dt>config.yml（スキルフォルダ直下）</dt>
     <dd>プロジェクトによって変えたくなる可能性がある値（ポート計算式・サービス一覧・起動手順・diff 除外リスト・L3 閾値・max-loop 既定値）の置き場。defaults ＋ projects 別上書きの 2 層構造。</dd>
+    <dt>L1〜L5</dt>
+    <dd>動的検証を、起動確認から画面操作結果の突合までの 5 段階に分けた検証レベル（L1 起動確認・L2 構造スナップショット・L3 画素比較・L4 コンソールエラー・L5 操作シーケンス突合。詳細は §7）。</dd>
+    <dt>drvfs</dt>
+    <dd>WSL2 環境で Windows 側のドライブ（<code>C:\</code> 等）が <code>/mnt/*</code> としてマウントされる特殊なファイル領域。ネイティブ Linux ファイルシステムより低速なため、worktree の配置先として非推奨（詳細は §5）。</dd>
   </dl>
 </section>
 
