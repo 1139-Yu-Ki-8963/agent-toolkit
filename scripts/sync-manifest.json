@@ -1,0 +1,29 @@
+{
+  "mappings": [
+    { "mode": "mirror", "src": "~/agent-home/skills/generating-screen-list-for-reverse-docs", "dst": "payload/agent-home/skills/generating-screen-list-for-reverse-docs" },
+    { "mode": "mirror", "src": "~/agent-home/skills/rebuilding-code-from-docs", "dst": "payload/agent-home/skills/rebuilding-code-from-docs" },
+    { "mode": "mirror", "src": "~/agent-home/skills/rebuilding-screen-unit-from-docs", "dst": "payload/agent-home/skills/rebuilding-screen-unit-from-docs" },
+    { "mode": "mirror", "src": "~/agent-home/skills/syncing-reverse-env", "dst": "payload/agent-home/skills/syncing-reverse-env" },
+    { "mode": "mirror", "src": "~/agent-home/skills/managing-agent-configs", "dst": "payload/agent-home/skills/managing-agent-configs" },
+    { "mode": "file", "src": "~/.claude/rules/always/gate/managing-review-gate/managing-review-gate.sh", "dst": "payload/agent-home/skills/managing-agent-configs/scripts/managing-review-gate.sh" },
+    { "mode": "file", "src": "~/.claude/rules/always/gate/managing-review-gate/managing-commit-gate.sh", "dst": "payload/agent-home/skills/managing-agent-configs/scripts/managing-commit-gate.sh" },
+    { "mode": "file", "src": "~/agent-home/tools/hooks/lib/marker-path.sh", "dst": "payload/agent-home/skills/managing-agent-configs/scripts/lib/marker-path.sh" },
+    { "mode": "manual", "src": "~/.claude/CLAUDE.md", "dst": "payload/claude-config/CLAUDE.md", "note": "install用テンプレート。意図的差分あり。自動同期禁止" },
+    { "mode": "manual", "src": "~/.claude/settings.json", "dst": "payload/claude-config/settings-hooks.json", "note": "hooks抜粋版。自動同期禁止" },
+    { "mode": "manual", "src": "~/agent-home/ai-management-portal", "dst": "payload/agent-home/ai-management-portal", "note": "縮小同梱版。自動同期禁止" },
+    { "mode": "manual", "src": "~/agent-home/sessions/.skill-log/skill-aliases.yml", "dst": "payload/agent-home/sessions/.skill-log/skill-aliases.yml", "note": "同梱版が正本と異なる可能性。自動同期禁止" },
+    { "mode": "mirror", "src": "~/.claude/agents/brain", "dst": "payload/claude-config/agents/brain" },
+    { "mode": "mirror", "src": "~/.claude/agents/researcher", "dst": "payload/claude-config/agents/researcher" },
+    { "mode": "mirror", "src": "~/.claude/agents/reviewer", "dst": "payload/claude-config/agents/reviewer" },
+    { "mode": "mirror", "src": "~/.claude/agents/worker-sonnet", "dst": "payload/claude-config/agents/worker-sonnet" },
+    { "mode": "mirror", "src": "~/.claude/agents/worker-haiku", "dst": "payload/claude-config/agents/worker-haiku" },
+    { "mode": "mirror", "src": "~/.claude/agents/investigator", "dst": "payload/claude-config/agents/investigator" },
+    { "mode": "file", "src": "~/.claude/rules/always/agent/subagent-delegation/worker-haiku-bash-guard.sh", "dst": "payload/claude-config/agents/worker-haiku/scripts/worker-haiku-bash-guard.sh" },
+    { "mode": "file", "src": "~/.claude/rules/always/agent/subagent-delegation/worker-haiku-bash-guard.test.sh", "dst": "payload/claude-config/agents/worker-haiku/scripts/worker-haiku-bash-guard.test.sh" },
+    { "mode": "mirror", "src": "~/agent-home/templates/project-docs", "dst": "payload/agent-home/templates/project-docs" },
+    { "mode": "file", "src": "~/agent-home/tools/linter/.textlintrc.json", "dst": "payload/agent-home/tools/linter/.textlintrc.json" },
+    { "mode": "file", "src": "~/agent-home/tools/linter/.textlintrc.pr.json", "dst": "payload/agent-home/tools/linter/.textlintrc.pr.json" },
+    { "mode": "file", "src": "~/agent-home/tools/linter/package.json", "dst": "payload/agent-home/tools/linter/package.json" },
+    { "mode": "file", "src": "~/agent-home/tools/linter/link-checker.sh", "dst": "payload/agent-home/tools/linter/link-checker.sh" }
+  ]
+}

@@ -17,7 +17,7 @@
 | `name` | string | kebab-case, 64 字以内, dir 名・file 名と一致 |
 | `description` | multiline | 1 行目 50 字以内 + `TRIGGER when:` + `SKIP:` |
 | `tools` | comma-separated | 最小権限。使用するツールのみ |
-| `model` | string | `opus` / `sonnet` / `haiku` のいずれか |
+| `model` | string | 明示モデル ID を指定する（例: `claude-opus-4-8` / `claude-sonnet-5` / `claude-haiku-4-5-20251001`）。エイリアス（`opus` / `sonnet` / `haiku`）は CLI の更新で解決先が黙って変わるため禁止 |
 
 `TRIGGER when:` / `SKIP:` は固定英語キーワード。`Use when:` や `使用時:` はシステムが認識しない。
 
@@ -25,31 +25,41 @@
 
 ```
 Q1. タスクの分解・計画・結果検証が必要か？
-    YES → brain (model: opus)
+    YES → brain (model: claude-opus-4-8)
     NO  → Q2
 
 Q2. 外部情報（Web・API・ライブラリ仕様）が必要か？
-    YES → researcher (model: sonnet)
+    YES → researcher (model: claude-sonnet-5)
     NO  → Q3
 
-Q3. 作業に判断が必要か？
-    YES → worker-sonnet (model: sonnet)
-    NO  → worker-haiku (model: haiku)
+Q3. 変更を伴わない調査・分析・根本原因特定か？
+    YES → investigator (model: claude-sonnet-5)
+          （読み取り専用。調査チェックリストの実行はここ）
+    NO  → Q4
+
+Q4. ファイルの作成・編集、または文脈判断が必要か？
+    YES → worker-sonnet (model: claude-sonnet-5)
+    NO  → worker-haiku (model: claude-haiku-4-5-20251001)
+          （コマンド実行と結果報告のみ。ファイル変更は一切させない）
 ```
 
-新規役割を追加するのは、既存 4 役割で不足する専門性がある場合のみ。
+新規役割を追加するのは、既存 6 役割で不足する専門性がある場合のみ。
 
 ## ツール選択基準
 
 | 役割パターン | 推奨ツール | 禁止ツール |
 |---|---|---|
 | 計画・検証系 (brain) | Read, Grep, Glob, Bash | Write, Edit |
+| 調査・分析系 (investigator) | Read, Grep, Glob, Bash | Write, Edit |
 | 調査・修正系 (worker-sonnet) | Read, Write, Edit, Bash, Grep, Glob | Agent |
-| 機械的実行系 (worker-haiku) | Read, Write, Edit, Bash, Grep, Glob | Agent |
+| 実行専用系 (worker-haiku) | Bash, Read | Write, Edit, Grep, Glob, Agent |
 | 外部調査系 (researcher) | MCP 各種, WebSearch, WebFetch, Read, Grep, Glob | Write, Edit |
+| 事実性検証系 (reviewer) | Read, Bash, Grep, Glob | Write, Edit |
 
 - `Agent` ツールを subagent に付与すると再帰呼び出しが発生する。原則禁止
 - 計画者（brain）に Write/Edit を与えない理由: 計画と実装を分離して品質管理する
+- 実行専用系（worker-haiku）に Write/Edit を与えない理由: 低コストモデルにファイル変更をさせない。編集の品質判断は sonnet 以上が担い、haiku は「指示にベタ書きされたコマンドの実行と結果報告」に限定する。Bash 経由のファイル変更（`sed -i`・リダイレクト等）は本文の禁止事項に加え、`worker-haiku-bash-guard.sh`（PreToolUse(Bash)、`agent_type` で判定）が機械的に block する。プロンプトの禁止事項だけでは haiku の遵守が不安定なことが実機検証で確認済み
+- **注意（実測）**: エージェント定義はセッション開始時（または初回ディスパッチ時）に読み込まれ、セッション中の定義編集は既存セッションのディスパッチに反映されない。定義変更のテストは新しいセッションで行うこと
 
 ## 本文構成ルール
 
@@ -69,11 +79,13 @@ Q3. 作業に判断が必要か？
 - subagent 固有の知識のみ。汎用パターンは skill や rules に置く
 - 可変データ（ログ・状態）は `~/.claude/agents/` 配下に置かない
 
-## 既存 4 役割一覧
+## 既存 6 役割一覧
 
 | name | model | 責務 | references |
 |---|---|---|---|
-| brain | opus | 計画・判断・検証 | planning.md, reviewing.md |
-| worker-sonnet | sonnet | 文脈を読んで調査・修正 | patterns.md |
-| worker-haiku | haiku | 機械的タスクの高速実行 | なし |
-| researcher | sonnet | MCP で外部情報収集 | なし |
+| brain | claude-opus-4-8 | 計画・分解と、自分が立てた成功条件との突合（成果物検証） | planning.md, reviewing.md |
+| investigator | claude-sonnet-5 | 変更を伴わない調査・分析・根本原因特定（読み取り専用） | なし |
+| worker-sonnet | claude-sonnet-5 | ファイル変更を伴う作業全般（変更前提の影響範囲分析を含む） | patterns.md |
+| worker-haiku | claude-haiku-4-5-20251001 | コマンド実行と結果報告のみ（ファイル変更禁止） | なし |
+| researcher | claude-sonnet-5 | MCP で外部情報収集 | なし |
+| reviewer | claude-opus-4-8 | 他者の調査報告の事実性検証（チェックリスト照合・裏取り） | なし |

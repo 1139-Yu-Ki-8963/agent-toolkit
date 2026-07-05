@@ -20,6 +20,10 @@ payload/
 ├── agent-home/          → ~/agent-home/    （ディレクトリ全体をミラー）
 │   ├── ai-management-portal/
 │   ├── sessions/
+│   ├── templates/
+│   │   └── project-docs/
+│   ├── tools/
+│   │   └── linter/
 │   └── skills/
 │       ├── generating-screen-list-for-reverse-docs/
 │       ├── managing-agent-configs/
@@ -28,7 +32,8 @@ payload/
 │       └── syncing-reverse-env/
 └── claude-config/       → ~/.claude/       （ファイル単位で設置）
     ├── CLAUDE.md                            （既存があれば上書きしない）
-    └── settings-hooks.json                  （既存 settings.json へ merge）
+    ├── settings-hooks.json                  （既存 settings.json へ merge）
+    └── agents/                              （サブエージェント6体をそのままコピー）
 ```
 
 `scripts/install.mjs --doctor / --diff / --apply` が設置・更新を担う。詳細は `CLAUDE.md` を参照。
@@ -44,6 +49,8 @@ payload/
 | [`rebuilding-code-from-docs`](payload/agent-home/skills/rebuilding-code-from-docs/SKILL.md) | リバース済み画面基本設計書だけからコードを再生成し、元コードと機械突合して設計書の欠落を発見する往復検証スキル。環境同期・比較エンジンは `syncing-reverse-env` に全面委譲。**注意**: 対象テンプレート（`~/agent-home/templates/reverse-docs/02_画面基本設計/`）は本リポジトリに未同梱のため別途用意が必要。スキルガイドを [`references/rebuilding-code-from-docs-guide.html`](payload/agent-home/skills/rebuilding-code-from-docs/references/rebuilding-code-from-docs-guide.html) に同梱 |
 | [`rebuilding-screen-unit-from-docs`](payload/agent-home/skills/rebuilding-screen-unit-from-docs/SKILL.md) | 画面詳細設計書だけから単体テスト観点で1ファイルを再生成し、原本と5計測（import diff・style diff・全体diff・実質diff・単体テスト仕様検査）で軽量突合する stage1 スキル。カンニング防止を git rm 白紙化＋サブエージェント隔離の二層で構造化。合格後は `rebuilding-code-from-docs`（画面単位・結合観点）へ引き継ぐ。**注意**: 対象テンプレートは兄弟スキル rebuilding-code-from-docs 同様、本リポジトリに未同梱。スキルガイドを [`references/rebuilding-screen-unit-from-docs-guide.html`](payload/agent-home/skills/rebuilding-screen-unit-from-docs/references/rebuilding-screen-unit-from-docs-guide.html) に同梱 |
 | [`syncing-reverse-env`](payload/agent-home/skills/syncing-reverse-env/SKILL.md) | ポート番号だけが違う 2 つの検証環境を用意・同期し、完全一致の証明を基準タグとして確立。スキルガイドを [`references/syncing-reverse-env-guide.html`](payload/agent-home/skills/syncing-reverse-env/references/syncing-reverse-env-guide.html) に同梱 |
+
+サブエージェント 6 体（`brain` / `researcher` / `reviewer` / `worker-sonnet` / `worker-haiku` / `investigator`）を `payload/claude-config/agents/` に、画面基本設計テンプレート一式を `payload/agent-home/templates/project-docs/` に、textlint 設定と link-checker の仕組みを `payload/agent-home/tools/linter/` に同梱しています。
 
 ---
 
@@ -103,6 +110,12 @@ create モード ──→ review モード ──→ test モード
 - `managing-commit-gate.sh` — PreToolUse(Bash)。テスト完了マーカーが無い状態での `git commit` を exit 2 で block
 
 `scripts/lib/marker-path.sh` はマーカーの配置先（worktree 内 `.claude/markers/<session>/` または `${TMPDIR:-/tmp}/claude-hooks/<session>/`）を解決する共有ヘルパーで、2 本の hook から自動的に読み込まれます。
+
+---
+
+## 更新（payload の同期）
+
+`payload/` の一部ファイル（managing-agent-configs の gate スクリプト等）は private リポジトリ agent-home の正本コピーです。`scripts/sync-manifest.json` の対応表に基づき `scripts/sync-payload.mjs --check` / `--apply` で乖離検知・同期を行います。`git commit` 時には `scripts/check-payload-sync.sh` が乖離を検知して block します。詳細は `CLAUDE.md` の「payload 同期機構」を参照してください。
 
 ---
 

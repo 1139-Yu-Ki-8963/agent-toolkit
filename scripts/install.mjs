@@ -35,19 +35,38 @@ function buildMappings() {
     });
   }
 
-  // payload/claude-config/CLAUDE.md → <TARGET>/.claude/CLAUDE.md（上書きしない）
-  mappings.push({
-    src: path.join(PAYLOAD, "claude-config", "CLAUDE.md"),
-    dst: path.join(TARGET, ".claude", "CLAUDE.md"),
-    mode: "skip-if-exists",
-  });
+  // payload/claude-config/** → <TARGET>/.claude/**（CLAUDE.md・settings-hooks.json は特殊挙動）
+  const claudeConfigSrc = path.join(PAYLOAD, "claude-config");
+  for (const rel of walkFiles(claudeConfigSrc)) {
+    const src = path.join(claudeConfigSrc, rel);
 
-  // payload/claude-config/settings-hooks.json → <TARGET>/.claude/settings.json（merge）
-  mappings.push({
-    src: path.join(PAYLOAD, "claude-config", "settings-hooks.json"),
-    dst: path.join(TARGET, ".claude", "settings.json"),
-    mode: "merge-json",
-  });
+    if (rel === "CLAUDE.md") {
+      // payload/claude-config/CLAUDE.md → <TARGET>/.claude/CLAUDE.md（上書きしない）
+      mappings.push({
+        src,
+        dst: path.join(TARGET, ".claude", "CLAUDE.md"),
+        mode: "skip-if-exists",
+      });
+      continue;
+    }
+
+    if (rel === "settings-hooks.json") {
+      // payload/claude-config/settings-hooks.json → <TARGET>/.claude/settings.json（merge）
+      mappings.push({
+        src,
+        dst: path.join(TARGET, ".claude", "settings.json"),
+        mode: "merge-json",
+      });
+      continue;
+    }
+
+    // それ以外（agents/** 等）→ <TARGET>/.claude/<相対パス> にそのままコピー
+    mappings.push({
+      src,
+      dst: path.join(TARGET, ".claude", rel),
+      mode: "copy",
+    });
+  }
 
   return mappings;
 }

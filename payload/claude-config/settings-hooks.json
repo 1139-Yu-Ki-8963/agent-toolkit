@@ -18,6 +18,11 @@
           {
             "type": "command",
             "command": "$HOME/agent-home/skills/managing-agent-configs/scripts/managing-commit-gate.sh"
+          },
+          {
+            "type": "command",
+            "command": "$HOME/.claude/agents/worker-haiku/scripts/worker-haiku-bash-guard.sh",
+            "timeout": 5
           }
         ]
       }

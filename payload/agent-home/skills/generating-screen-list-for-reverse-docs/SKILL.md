@@ -1,9 +1,6 @@
 ---
 name: generating-screen-list-for-reverse-docs
-description: |
-  レガシー画面検出→画面一覧HTML生成。
-  TRIGGER when: 画面一覧作成。
-  SKIP: 往復検証/環境同期/実装（→rebuilding-code-from-docs/syncing-reverse-env/orchestrating-dev-flow）。
+description: "レガシー画面検出→画面一覧HTML生成。 TRIGGER when: 画面一覧作成。 SKIP: 往復検証/同期/実装（→rebuilding-code-from-docs/syncing-reverse-env/orchestrating-dev-flow）。"
 invocation: generating-screen-list-for-reverse-docs
 type: transform
 allowed-tools: [Bash, Read, Write, Edit, Grep, Glob, AskUserQuestion, TaskCreate, TaskUpdate]
@@ -11,7 +8,7 @@ allowed-tools: [Bash, Read, Write, Edit, Grep, Glob, AskUserQuestion, TaskCreate
 
 # レガシー画面一覧生成スキル
 
-レガシー（既存）コードベースを、スタック調査→検出戦略の宣言→戦略に基づく抽出→整合検証、の順で調査し、「画面」単位にファイルをグルーピングして **画面一覧.HTML**（画面詳細設計の単位を正確に分けるための正本）を作成する。**本スキルの仕事は画面一覧.HTMLの作成のみ**であり、設計書の雛形展開・生成・記入は一切行わない。
+レガシー（既存）コードベースを、スタック調査→検出戦略の宣言→戦略に基づく抽出→整合検証、の順で調査し、「画面」単位にファイルをグルーピングして **画面一覧.HTML**（画面詳細設計書.md の単位を正確に分けるための正本）を作成する。**本スキルの仕事は画面一覧.HTMLの作成のみ**であり、設計書の雛形展開・生成・記入は一切行わない。
 
 `rebuilding-code-from-docs`（既に存在する設計書の往復検証）・`syncing-reverse-env`（環境同期）とは独立して単独動作する。
 
@@ -94,7 +91,7 @@ allowed-tools: [Bash, Read, Write, Edit, Grep, Glob, AskUserQuestion, TaskCreate
 
 ## 重要な注意事項
 
-- 設計書（`02_画面詳細設計` 等）の雛形展開・生成・記入は一切行わない。本スキルの成果物は画面一覧.HTMLのみ
+- 設計書（`画面詳細設計書.md` 等）の雛形展開・生成・記入は一切行わない。本スキルの成果物は画面一覧.HTMLのみ
 - Phase 4のHTML手作業組み立てを禁止する。`build-screen-list.sh` を必ず経由し、プレースホルダの手動置換による `entryFile=None` 等のデータ混入を防ぐ
 - import グラフ解析は行わない（組み込み検出器の場合。カスタム抽出パスでは戦略宣言に沿った収集を行う）
 - 0件検出時にAskUserQuestionで手動リストを聞き出さない。誤った境界を即興確定させない
