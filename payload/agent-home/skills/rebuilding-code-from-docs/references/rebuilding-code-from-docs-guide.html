@@ -149,7 +149,7 @@
 
 <section id="s1">
   <h2><span class="sec-num">§1</span>概要</h2>
-  <p>リバースエンジニアリングで作成した画面詳細設計書（<code>assets/02_画面詳細設計/</code> 準拠、章の役割キー（16 種、既定 §1〜§16）で構成）は納品物であり、「設計書だけを読んで忠実にコーディングできる」詳細度が求められる。本スキルはその品質を検証するため、<strong>設計書だけからコードを再生成し、元コードと機械突合して設計書の欠落を発見する</strong>往復検証を行う。</p>
+  <p>リバースエンジニアリングで作成した画面詳細設計書（<code>assets/リバース検証/画面/詳細設計/</code> 準拠、章の役割キー（16 種、既定 §1〜§16）で構成）は納品物であり、「設計書だけを読んで忠実にコーディングできる」詳細度が求められる。本スキルはその品質を検証するため、<strong>設計書だけからコードを再生成し、元コードと機械突合して設計書の欠落を発見する</strong>往復検証を行う。</p>
   <div class="constraint">
     <strong>目的の分離:</strong> コードを直すことは目的ではない。フィードバック先は (a) 当該画面設計書の該当章（役割キー）、(b) 欠落が汎用的ならテンプレート自体の記載粒度改善の 2 つ。
   </div>
@@ -178,7 +178,7 @@
   </div>
   <table class="spec">
     <tr><th>項目</th><th>内容</th></tr>
-    <tr><td>起動引数</td><td>画面ディレクトリ（例: <code>02_画面詳細設計/screen-&lt;画面ID&gt;/</code>）のみ</td></tr>
+    <tr><td>起動引数</td><td>画面ディレクトリ（例: <code>リバース検証/画面/screen-&lt;画面ID&gt;/</code>）のみ</td></tr>
     <tr><td>環境値の取得元</td><td><code>syncing-reverse-env</code>（mode=setup 冪等呼び出し）の機械向け返却ブロック</td></tr>
     <tr><td>比較エンジン</td><td>自前実装しない。<code>syncing-reverse-env</code> の <code>mode=sync, dry-run</code> のみ</td></tr>
     <tr><td>1 起動の単位</td><td>1 起動 = 1 往復。設計書修正後の再往復は再起動として扱う</td></tr>
@@ -268,7 +268,7 @@
   <table class="spec">
     <tr><th>資料</th><th>役割</th></tr>
     <tr><td>syncing-reverse-env</td><td>環境同期・静的/動的比較エンジン。本スキルはこのスキルの呼び出し契約（args 全量指定・対話ゼロ）に従う</td></tr>
-    <tr><td>assets/02_画面詳細設計/画面詳細設計書.md</td><td>章の役割キー（16 種、既定 §1〜§16）テンプレート。突合・帰着先章の基準</td></tr>
+    <tr><td>assets/リバース検証/画面/詳細設計/画面詳細設計書.md</td><td>章の役割キー（16 種、既定 §1〜§16）テンプレート。突合・帰着先章の基準</td></tr>
     <tr><td>references/phase-details.md</td><td>Phase 2 突合式・Phase 4 実装規律・Phase 5 検証コマンド詳細・章の役割キー対応表</td></tr>
     <tr><td>references/ng-classification.md</td><td>検出シグナル→失敗クラス→章（役割キー）帰着のマッピング</td></tr>
     <tr><td>references/test-item-patterns.md</td><td>失敗クラス台帳（追記型）</td></tr>
