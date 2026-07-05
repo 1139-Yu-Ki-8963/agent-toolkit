@@ -9,26 +9,31 @@ file_path=$(printf '%s' "$input" | jq -r '.tool_input.file_path // empty' 2>/dev
 
 asset_type=""
 case "$file_path" in
-  */skills/*/SKILL.md)              asset_type="skills" ;;
-  */.claude/rules/*/rule.md)        asset_type="rules" ;;
-  */routines/*/ルーティン設計書.md)  asset_type="routines" ;;
-  */tools/hooks/*.sh)               asset_type="hooks" ;;
+  */skills/*/SKILL.md)                    asset_type="skills" ;;
+  */.claude/rules/*/rule.md)              asset_type="rules" ;;
+  */.claude/rules/*/prh.yml)              asset_type="rules" ;;
+  */routines/*/ルーティン設計書.md)        asset_type="routines" ;;
+  */tools/hooks/*.sh)                     asset_type="hooks" ;;
 esac
 [ -z "$asset_type" ] && exit 0
 
 session=$(printf '%s' "$input" | jq -r '.session_id // empty' 2>/dev/null)
-[ -z "$session" ] && exit 0
+if [ -n "$session" ]; then
+  log_file="$HOME/agent-home/sessions/.skill-log/${session}.jsonl"
+  if [ -f "$log_file" ] && grep -q "\"skill\":\"managing-agent-configs\"" "$log_file" 2>/dev/null; then
+    exit 0
+  fi
+fi
 
-cwd=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null)
-[ -z "$cwd" ] && cwd="$PWD"
-
-script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-. "$script_dir/lib/marker-path.sh"
-
-needed_marker="$(marker_path "$cwd" "$session" "managing-agent-configs-${asset_type}-needed")"
-touch "$needed_marker"
-passed_marker="$(marker_path "$cwd" "$session" "managing-agent-configs-${asset_type}-test-passed")"
-rm -f "$passed_marker" 2>/dev/null || true
+if [ -n "$session" ]; then
+  . "$HOME/agent-home/tools/hooks/lib/marker-path.sh"
+  cwd=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null)
+  [ -z "$cwd" ] && cwd="$PWD"
+  needed_marker="$(marker_path "$cwd" "$session" "managing-agent-configs-${asset_type}-needed")"
+  touch "$needed_marker"
+  passed_marker="$(marker_path "$cwd" "$session" "managing-agent-configs-${asset_type}-test-passed")"
+  rm -f "$passed_marker" 2>/dev/null || true
+fi
 
 jq -n --arg type "$asset_type" '{
   hookSpecificOutput: {

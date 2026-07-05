@@ -25,15 +25,20 @@
 #   import_diff_lines == 0 && style_diff_lines == 0 && substantive_diff_lines <= 20
 #
 # 算出方法（heuristic）:
-#   import_diff_lines      : 両ファイルから `^\s*import ` 行を抽出→ソート→diff の
-#                            差分行数（`^[<>]` 行の数）
+#   import_diff_lines      : 両ファイルから `^\s*import ` 行を抽出→前後空白除去→
+#                            ソート→diff の差分行数（`^[<>]` 行の数）
 #   style_diff_lines       : className / style 属性・`const *Style` 系変数・
 #                            16進カラーコード・px/rem/em/vh/vw 数値を含む行を
-#                            抽出→ソート→diff の差分行数
+#                            抽出→前後空白除去→ソート→diff の差分行数
 #   total_diff_lines       : diff によるファイル全体の差分行数（参考値。
 #                            合格判定には使わない）
-#   substantive_diff_lines : コメント行（// ・/* ・*）と空行を除外した上での
-#                            diff 差分行数
+#   substantive_diff_lines : コメント行（// ・/* ・*）と空行を除外し、前後空白を
+#                            除去した上での diff 差分行数
+#
+# 前後空白除去について: 条件分岐の書き方（早期return vs 三項演算子等）の違いで
+# ネスト段数がずれると、内容が同一の行でも行頭インデント幅だけが異なり、素朴な
+# 文字列比較では誤って差分と判定される。行頭・行末の空白を除去してから比較する
+# ことで、この誤検出を防ぐ（インデント自体の一致・不一致は判定対象にしない）。
 #
 # 終了コード:
 #   引数不足・ファイル不在 = 1（stderr にメッセージ） / 正常時 = 0
@@ -62,9 +67,15 @@ if [ ! -f "$ORIGINAL" ]; then
   exit 1
 fi
 
+# 行頭・行末の空白を除去する。インデント幅だけが異なる（条件分岐の書き方の違い等で
+# ネスト段数がずれる）行を、内容が同一なら差分として誤検出しないための共通ヘルパー。
+trim_whitespace() {
+  sed -E 's/^[[:space:]]+//; s/[[:space:]]+$//'
+}
+
 # --- import diff ---
 extract_imports() {
-  grep -E '^[[:space:]]*import ' "$1" 2>/dev/null | sort -u || true
+  grep -E '^[[:space:]]*import ' "$1" 2>/dev/null | trim_whitespace | sort -u || true
 }
 IMPORT_DIFF_LINES=$(diff <(extract_imports "$ORIGINAL") <(extract_imports "$GENERATED") | grep -cE '^[<>]' || true)
 
@@ -73,7 +84,7 @@ IMPORT_DIFF_LINES=$(diff <(extract_imports "$ORIGINAL") <(extract_imports "$GENE
 # px/rem/em/vh/vw 数値を含む行をスタイル定数行とみなす。
 STYLE_PATTERN='className|style[[:space:]]*=|const .*[Ss]tyle|#[0-9a-fA-F]{3,8}|[0-9]+(px|rem|em|vh|vw)'
 extract_style_lines() {
-  grep -E "$STYLE_PATTERN" "$1" 2>/dev/null | sort -u || true
+  grep -E "$STYLE_PATTERN" "$1" 2>/dev/null | trim_whitespace | sort -u || true
 }
 STYLE_DIFF_LINES=$(diff <(extract_style_lines "$ORIGINAL") <(extract_style_lines "$GENERATED") | grep -cE '^[<>]' || true)
 
@@ -82,7 +93,7 @@ TOTAL_DIFF_LINES=$(diff "$ORIGINAL" "$GENERATED" | grep -cE '^[<>]' || true)
 
 # --- substantive diff（コメント・空行除外） ---
 strip_noise() {
-  grep -vE '^[[:space:]]*(//|/\*|\*)' "$1" 2>/dev/null | grep -vE '^[[:space:]]*$' || true
+  grep -vE '^[[:space:]]*(//|/\*|\*)' "$1" 2>/dev/null | grep -vE '^[[:space:]]*$' | trim_whitespace || true
 }
 SUBSTANTIVE_DIFF_LINES=$(diff <(strip_noise "$ORIGINAL") <(strip_noise "$GENERATED") | grep -cE '^[<>]' || true)
 

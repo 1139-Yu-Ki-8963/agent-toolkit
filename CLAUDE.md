@@ -55,3 +55,70 @@ commit 前に `payload/agent-home/skills/managing-agent-configs/scripts/manage-p
 
 配布物の同期元は private リポジトリの agent-home です。AT への変更は agent-home 側の正本と
 齟齬が生じないよう、design/ HTML と `references/` conventions.md の両方を更新してください。
+
+---
+
+## payload 同期機構（正本 → payload）
+
+`payload/` 配下の一部ファイルは private 環境の正本（`~/agent-home/`・`~/.claude/`）のコピー
+です。手動コピーによる二重管理を避けるため、`scripts/sync-manifest.json` に対応表を持ち、
+`scripts/sync-payload.mjs` が乖離検知・同期を行います。
+
+### インターフェース
+
+```
+node scripts/sync-payload.mjs --list    # manifest の全マッピングを表示
+node scripts/sync-payload.mjs --check   # 乖離検知（書き込みなし）。乖離があれば exit 1
+node scripts/sync-payload.mjs --apply   # 乖離を正本の内容で payload に反映（manual は書かない）
+```
+
+### manifest のモード
+
+| mode | 意味 |
+|---|---|
+| `mirror` | ディレクトリ全体をミラー。src にのみ存在するファイルは追加、dst にのみ存在するファイルは削除対象 |
+| `file` | 単一ファイルのバイト比較・コピー。mirror 配下を指す場合は overlay として扱われ、mirror 側の削除対象から除外される |
+| `manual` | 意図的に正本と差分がある配布物（install 用テンプレート等）。`--check` は情報表示のみで失敗にせず、`--apply` は絶対に書き込まない |
+
+### 運用ルール（重要）
+
+**`sync-manifest.json` の mapping 追加（`mirror` / `file`）は public リポジトリへの公開判断
+である。追加前に `~/agent-home/skills/reviewing-public-readiness/SKILL.md` に従って公開可否
+レビューを行うこと。** manual mapping の追加は同梱物の存在を示すのみで公開判断を伴わないため
+対象外。
+
+### commit 時 block（`[PAYLOAD-SYNC-BLOCK]`）
+
+`.claude/settings.json` に登録された `scripts/check-payload-sync.sh`（PreToolUse(Bash)）が
+`git commit` 実行前に `sync-payload.mjs --check` を走らせ、乖離があれば exit 2 で block しま
+す。受信した場合の対応:
+
+1. stderr に出力された DRIFT 一覧を確認する
+2. `node scripts/sync-payload.mjs --apply` で乖離を解消する
+3. 差分を `git add` してから再度 `git commit` する
+4. 緊急口（常用禁止）: `CLAUDE_PAYLOAD_SYNC_SKIP=1 git commit ...` で当該コマンドのみ検査を
+   skip できる
+
+新PC・`git clone` 直後など正本（`~/agent-home/`）が存在しない環境では hook・スクリプトとも
+fail-safe で素通りします（乖離検知不能なため block しない）。
+
+### 設計判断
+
+**必要性**: payload/ は private リポジトリ agent-home の一部スキル・gate スクリプトのコピー
+を同梱しているが、手動コピーの二重管理により `managing-review-gate.sh` /
+`managing-commit-gate.sh` / `lib/marker-path.sh` の 3 ファイルが正本の更新に追従できず古いま
+ま放置される事故が発生した。manifest 駆動の `--check` / `--apply` で同期状態を可視化し、
+`git commit` 時の block（check-payload-sync）で乖離の commit を構造的に防止する。
+
+**代替案を採用しなかった理由**:
+- 手動コピーの継続: 今回の事故そのものであり再発が確実
+- git submodule / subtree: private リポジトリを public リポジトリから参照する構成になり、
+  意図しない private 情報の露出リスクが増す。payload は「公開可能と判断した範囲」を選択的に
+  同梱する現行方式の利点を失う
+- symlink: public リポジトリの clone 先（配布先の新 PC）には正本が存在しないため機能しない
+
+**保守責任者**: 人手（ユーザー）。`sync-manifest.json` への mapping 追加時は公開可否レビュー
+を実施し、正本側にファイルが増減した際は manifest を追従させる。
+
+**廃棄条件**: payload の配布方式が別の仕組み（パッケージ配布・別リポジトリ分離等）に置き換
+わった時。

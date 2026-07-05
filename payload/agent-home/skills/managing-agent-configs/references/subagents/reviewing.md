@@ -27,7 +27,7 @@ find ~/.claude/agents/ -name "*.md" -not -path "*/references/*" | sort
 | A1 | `name` が kebab-case かつ dir 名・file 名と一致 | CRITICAL | `basename` と `dirname` を突合 |
 | A2 | `description` に TRIGGER when + SKIP が存在 | CRITICAL | `grep -c "TRIGGER when" && grep -c "SKIP:"` |
 | A3 | `description` 1 行目が 50 字以内 | WARN | 文字数カウント |
-| A4 | `model` が `opus` / `sonnet` / `haiku` のいずれか | CRITICAL | 値の突合 |
+| A4 | `model` が明示モデル ID（`claude-opus-4-8` / `claude-sonnet-5` / `claude-haiku-4-5-20251001` 等）。エイリアス（`opus` / `sonnet` / `haiku`）は禁止 | CRITICAL | 値の突合 |
 | A5 | `tools` に禁止ツールが含まれていない | CRITICAL | conventions.md のツール選択基準と突合 |
 
 ### 観点 B: 本文品質（4 項目）

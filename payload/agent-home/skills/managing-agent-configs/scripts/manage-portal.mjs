@@ -42,7 +42,7 @@ function parseSkillMd(filePath) {
   if (!fmLines) return null;
 
   let name = null;
-  const descLines = [];
+  let descText = null;
   let i = 0;
   while (i < fmLines.length) {
     const line = fmLines[i];
@@ -56,28 +56,44 @@ function parseSkillMd(filePath) {
         continue;
       }
       if (key === "description") {
+        const inline = rest.trim();
+        if (inline !== "" && !/^[|>][+-]?$/.test(inline)) {
+          // 1行引用符付き形式: description: "本文。 TRIGGER when: ... SKIP: ..."
+          descText = inline.replace(/^["']|["']$/g, "");
+          i++;
+          continue;
+        }
+        // ブロックスカラー形式: description: | の後に続く字下げ行を収集する
+        const descLines = [];
         i++;
         while (i < fmLines.length && (fmLines[i].trim() === "" || /^\s+/.test(fmLines[i]))) {
           const trimmed = fmLines[i].trim();
           if (trimmed !== "") descLines.push(trimmed);
           i++;
         }
+        descText = descLines.join(" ");
         continue;
       }
     }
     i++;
   }
 
-  const triggerIdx = descLines.findIndex((l) => /^TRIGGER when:/.test(l));
+  descText = descText || "";
+  const triggerMatch = descText.match(/TRIGGER when:\s*/);
   let summary;
   let trigger;
-  if (triggerIdx === -1) {
-    summary = descLines.join(" ").trim();
+  if (!triggerMatch) {
+    summary = descText.trim();
     trigger = "";
   } else {
-    summary = descLines.slice(0, triggerIdx).join(" ").trim();
-    trigger = descLines[triggerIdx].replace(/^TRIGGER when:\s*/, "").trim();
+    summary = descText.slice(0, triggerMatch.index).trim();
+    trigger = descText.slice(triggerMatch.index + triggerMatch[0].length).trim();
+    const skipMatch = trigger.match(/\s*SKIP:\s*/);
+    if (skipMatch) trigger = trigger.slice(0, skipMatch.index).trim();
   }
+  // summary/trigger はタイトル・ラベルとして表示するため、文末の句点は不要
+  summary = summary.replace(/。$/, "");
+  trigger = trigger.replace(/。$/, "");
 
   return { name, summary, trigger };
 }

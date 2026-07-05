@@ -290,13 +290,13 @@ grep -lE '(^|[^a-zA-Z])node ' ~/agent-home/tools/hooks/*.sh |
 
 修正前:
 ```bash
-node ~/agent-home/tools/linter/run.js
+node ~/agent-home/tools/linter/node_modules/textlint/bin/textlint.js
 ```
 
 修正後:
 ```bash
 exec 0</dev/null
-node ~/agent-home/tools/linter/run.js
+node ~/agent-home/tools/linter/node_modules/textlint/bin/textlint.js
 ```
 
 理由: Node は stdin を inherit するため、hook の stdin（JSON）を Node が消費して出力が壊れる。

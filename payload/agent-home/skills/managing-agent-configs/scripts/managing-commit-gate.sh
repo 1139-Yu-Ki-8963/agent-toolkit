@@ -19,8 +19,7 @@ session=$(printf '%s' "$input" | jq -r '.session_id // empty' 2>/dev/null)
 staged=$(cd "$cwd" && git diff --cached --name-only 2>/dev/null) || exit 0
 [ -z "$staged" ] && exit 0
 
-script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-. "$script_dir/lib/marker-path.sh"
+. "$HOME/agent-home/tools/hooks/lib/marker-path.sh"
 
 types_needed=""
 while IFS= read -r f; do
@@ -29,6 +28,12 @@ while IFS= read -r f; do
       echo "$types_needed" | grep -q "skills" || types_needed="${types_needed}skills "
       ;;
     .claude/rules/*/rule.md)
+      echo "$types_needed" | grep -q "rules" || types_needed="${types_needed}rules "
+      ;;
+    .claude/rules/*/prh.yml)
+      echo "$types_needed" | grep -q "rules" || types_needed="${types_needed}rules "
+      ;;
+    rules/*/prh.yml)
       echo "$types_needed" | grep -q "rules" || types_needed="${types_needed}rules "
       ;;
     routines/*/ルーティン設計書.md)
