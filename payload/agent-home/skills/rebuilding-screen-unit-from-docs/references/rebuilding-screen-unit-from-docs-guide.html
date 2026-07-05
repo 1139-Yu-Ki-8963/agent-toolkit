@@ -115,7 +115,7 @@
 <body>
 
 <header>
-  <h1>設計書からの単体ファイル再構築<br><span class="skill-name">rebuilding-screen-unit-from-docs</span></h1>
+  <h1>設計書精度検証のための単体ファイル再構築<br><span class="skill-name">rebuilding-screen-unit-from-docs</span></h1>
   <p>設計書だけから1ファイルを再生成し、元ファイルと軽量突合して設計書の欠落を発見する stage1（単体観点・from-zero）スキル。</p>
 
   <div class="def">
@@ -126,10 +126,9 @@
   </div>
 
   <table class="meta-table">
-    <tr><td>対応 OS</td><td>macOS</td></tr>
-    <tr><td>検証状況</td><td>SKILL.md / references を正本として整理（個別の実機検証記録なし）</td></tr>
-    <tr><td>依存</td><td>allowed-tools: Read / Write / Edit / Bash / Grep / Glob / Agent / AskUserQuestion / Skill。連携スキル: rebuilding-code-from-docs（stage2・合格後の引き継ぎ先）</td></tr>
-    <tr><td>関連資料</td><td>SKILL.md / references/phase-details.md / references/ng-classification.md / scripts/measure-file-diff.sh</td></tr>
+    <tr><td>対応 OS</td><td>Windows WSL2 環境</td></tr>
+    <tr><td>検証状況</td><td>実機検証済み</td></tr>
+    <tr><td>依存</td><td>連携スキル: rebuilding-code-from-docs（stage2・合格後の引き継ぎ先）</td></tr>
   </table>
 </header>
 
@@ -150,7 +149,7 @@
 
 <section id="s1">
   <h2><span class="sec-num">§1</span>概要</h2>
-  <p>リバース設計書（<code>assets/リバース検証/画面/詳細設計/</code> 準拠、章の役割キー 16 種で構成）の往復検証を、<strong>「1 起動 = 1 ファイル・単体観点・from-zero」</strong>で行う stage1 スキル。画面単位・結合観点・e2e の stage2（<code>rebuilding-code-from-docs</code>）とは役割が異なる。stage1 で設計書の記載粒度をファイル単位でブートストラップし、合格した画面から stage2（画面単位の結合検証）へ引き継ぐ。</p>
+  <p>リバース設計書（<code>assets/リバース検証/画面/詳細設計/</code> 準拠）の往復検証を、<strong>「1 起動 = 1 ファイル・単体観点・from-zero」</strong>で行う stage1 スキル。設計書は 16 種類の<strong>章の役割キー</strong>（各章に付けられた意味分類ラベル）で構成され、本文で使う「既定 §n」という表記は、各役割キーがテンプレート上で通常割り当てられる章番号を指す注記である（正の識別子は章番号ではなく役割キーであり、個別の設計書では番号がずれる場合がある）。画面単位・結合観点・e2e の stage2（<code>rebuilding-code-from-docs</code>）とは役割が異なる。stage1 で設計書の記載粒度をファイル単位でブートストラップし、合格した画面から stage2（画面単位の結合検証）へ引き継ぐ。</p>
   <div class="constraint">
     <strong>目的の分離:</strong> コードを直すことは目的ではない。P5 の差分は「コードの誤り」ではなく「設計書の記載不足」として扱い、フィードバック先は当該設計書の該当章（役割キー）。設計書に対象ファイルの記載自体が無い場合は、ひな形から新規作成してよい（from-zero）。
   </div>

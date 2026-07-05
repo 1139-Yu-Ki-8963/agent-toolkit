@@ -117,7 +117,7 @@ fi
 # strategy JSON の extractionMethod が builtin-* を指定していれば該当検出器のみを使う。
 # 未指定/custom/auto の場合は自動チェーン。ただし自動チェーンの Next.js 判定は
 # next.config.* の実在(SOURCE_DIR/その親/祖父)を必須とする。Vite+React Router プロジェクトの
-# 慣習的な src/pages/ ディレクトリを Next.js Pages Router と誤判定した実害(oradora)への対策。
+# 慣習的な src/pages/ ディレクトリを Next.js Pages Router と誤判定した実害への対策。
 FORCED_METHOD=""
 if [ -n "$STRATEGY_JSON_FILE" ]; then
   FORCED_METHOD="$(grep -o '"extractionMethod"[[:space:]]*:[[:space:]]*"[^"]*"' "$STRATEGY_JSON_FILE" 2>/dev/null \

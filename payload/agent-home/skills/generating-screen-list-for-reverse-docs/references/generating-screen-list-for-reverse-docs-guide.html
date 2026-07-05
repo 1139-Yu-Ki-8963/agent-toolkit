@@ -108,21 +108,20 @@
 <body>
 
 <header>
-  <h1>レガシー画面一覧生成スキル<br><span class="skill-name">generating-screen-list-for-reverse-docs</span></h1>
-  <p>レガシーコードベースを画面単位にグルーピングし、画面一覧.HTML を生成する。仕事は画面一覧.HTMLの作成のみで、設計書の雛形展開・生成は行わない。</p>
+  <h1>既存画面一覧生成スキル<br><span class="skill-name">generating-screen-list-for-reverse-docs</span></h1>
+  <p>既存コードベースを画面単位にグルーピングし、画面一覧.HTML を生成する。仕事は画面一覧.HTMLの作成のみで、設計書の雛形展開・生成は行わない。</p>
 
   <div class="def">
     <dt>こんな人向け</dt>
-    <dd>既存（レガシー）コードベースをリバースエンジニアリングで文書化したい人。画面の境界がまだ確定していない状態から着手したい人。</dd>
+    <dd>既存コードベースをリバースエンジニアリングで文書化したい人。画面の境界がまだ確定していない状態から着手したい人。</dd>
     <dt>こんな場面で使う</dt>
     <dd>設計書を作る前に、対象コードのどのファイル群が1画面を構成するかを機械的に洗い出したいとき。</dd>
   </div>
 
   <table class="meta-table">
-    <tr><td>対応 OS</td><td>macOS・Windows WSL（Linux）（Bash 3.2 互換・BSD/GNU 両対応で実装。Windows WSL 環境での動作を別環境で確認済み）</td></tr>
-    <tr><td>検証状況</td><td>実プロジェクト（oradora-battle-base〔Vite + React Router〕・kakeibo〔Next.js〕等）で動作確認済み。Windows WSL 環境でも別環境で動作確認済み。managing-agent-configs の test モードによる実機検証を経て運用中</td></tr>
+    <tr><td>対応 OS</td><td>Windows WSL2 環境</td></tr>
+    <tr><td>検証状況</td><td>実機検証済み</td></tr>
     <tr><td>依存</td><td>標準的な POSIX ツール（find / grep / sed / awk）に加え、整合検証（validate-manifest.sh）・画面一覧.HTML生成（build-screen-list.sh）で jq を使用</td></tr>
-    <tr><td>関連資料</td><td>rebuilding-code-from-docs / syncing-reverse-env</td></tr>
   </table>
 </header>
 
@@ -143,7 +142,7 @@
 
 <section id="s1">
   <h2><span class="sec-num">§1</span>概要</h2>
-  <p>レガシー（既存）コードベースを画面単位にファイルをグルーピングし、その結果を <strong>画面一覧.HTML</strong> として出力する。</p>
+  <p>既存コードベースを画面単位にファイルをグルーピングし、その結果を <strong>画面一覧.HTML</strong> として出力する。</p>
   <div class="constraint">
     <strong>単独動作</strong>: <code>syncing-reverse-env</code>（2 環境同期・基準タグ確立）には依存しない。ソースディレクトリと出力先ディレクトリを直接指定して起動する。
   </div>
