@@ -127,7 +127,7 @@
   <table class="meta-table">
     <tr><td>対応 OS</td><td>macOS</td></tr>
     <tr><td>検証状況</td><td>SKILL.md を正本として整理（個別の実機検証記録なし）</td></tr>
-    <tr><td>依存</td><td>allowed-tools: Read / Write / Edit / Bash / Grep / Glob / Agent / AskUserQuestion / Skill。連携スキル: syncing-reverse-env（環境同期・比較エンジン）</td></tr>
+    <tr><td>依存</td><td>allowed-tools: Read / Write / Edit / Bash / Grep / Glob / AskUserQuestion / Skill。連携スキル: syncing-reverse-env（環境同期・比較エンジン）</td></tr>
     <tr><td>関連資料</td><td>SKILL.md / references/phase-details.md / references/ng-classification.md / references/test-item-patterns.md / references/report-format.md</td></tr>
   </table>
 </header>
@@ -190,8 +190,8 @@
   <pre class="flow"><span class="cap">Phase 1</span> 入力ロード + preflight ── 基準タグ確認・syncing-reverse-env(setup)
 <span class="cap">Phase 2</span> 設計書内部整合性監査 ── 内部矛盾あれば Phase 8 へ直行
 <span class="cap">Phase 3</span> 白紙化ゲート ── ユーザー承認後に reverse-code 追跡ファイル全削除コミット
-<span class="cap">Phase 4</span> 設計書からの TDD 実装 ── 唯一コードを書けるフェーズ
-<span class="cap">Phase 5</span> 自己完結チェック ── 型チェック/テスト/スモーク（内側ループ上限3）
+<span class="cap">Phase 4</span> 設計書からの TDD 実装 ── 唯一コードを書けるフェーズ・本スキルを実行しているセッション自身が直接実装
+<span class="cap">Phase 5</span> 自己完結チェック ── 型チェック/テスト/スモークを自セッションが直接実行（内側ループ上限3）
 <span class="cap">Phase 6</span> 凍結コミット ── push禁止・ハッシュ確定
 <span class="cap">Phase 7</span> 答え合わせ ── syncing-reverse-env(sync, dry-run)
 <span class="cap">Phase 8</span> NG分類 → フィードバック ── 修正指示書のみ・修正禁止
@@ -217,7 +217,7 @@
     <li><strong>正本一元化</strong>: 環境固有値の正は <code>syncing-reverse-env/config.yml</code>。画面固有値の正は設計書 frontmatter。本スキル専用の config.yml は新設しない</li>
     <li><strong>比較エンジンの非自前実装</strong>: 判定は <code>syncing-reverse-env</code> の <code>mode=sync, dry-run</code> 呼び出しのみ（args 全量指定・対話ゼロ）</li>
     <li><strong>1 起動 = 1 往復</strong>: 設計書修正後の再往復は本スキルの再起動として扱う</li>
-    <li><strong>検証役と生成役の分離</strong>: Phase 4 実装エージェントの自己申告では判定しない。判定は Phase 7 の決定的出力のみ</li>
+    <li><strong>検証役と生成役の分離</strong>: Phase 4 実装時点の自己申告では判定しない。判定は Phase 7 の決定的出力のみ</li>
   </ol>
 </section>
 
@@ -240,9 +240,9 @@
   <h3>Phase 2: 設計書内部整合性監査</h3>
   <p><code>scripts/audit-consistency.sh</code> による機械チェック（<span class="tag mode">a</span> 機能一覧章の機能一覧表（既定 §2）× 観点表の機能キー集合突合（両方向一致）、<span class="tag mode">b</span> 未記入プレースホルダ検出、<span class="tag mode">c</span> 連番キー検出 WARN）に加え、目視で API通信章の API 型（既定 §7）× 実装契約章の型定義（既定 §15.2）、状態管理章の状態変数（既定 §5）× 領域別仕様章/実装契約章の経路（既定 §9/§15）を突合する。詳細は <code>references/phase-details.md</code>。</p>
   <h3>Phase 5: 自己完結チェック</h3>
-  <p>型チェック・単体/結合テスト・Playwright スモーク（reverse 側 9110 番台のみ）を実行する。内側ループは上限 3 回、同一エラーシグネチャ 3 連続で発散確定とし、発散エラー自体を設計書欠落候補として Phase 8 へ渡す。</p>
+  <p>本スキルを実行しているセッション自身が、型チェック・単体/結合テスト・Playwright スモーク（reverse 側 9110 番台のみ）を直接実行する。内側ループは上限 3 回、同一エラーシグネチャ 3 連続で発散確定とし、発散エラー自体を設計書欠落候補として Phase 8 へ渡す。</p>
   <h3>Phase 7: 答え合わせ</h3>
-  <p><code>syncing-reverse-env</code> の <code>mode=sync, dry-run</code> 呼び出しで、静的 3 分類・env_check 全項目・Playwright L1〜L4・<code>hint</code>・<code>status</code> を受領する。設計書 frontmatter の <code>scenarios[].query</code>/<code>path_params</code>/<code>ready</code>/<code>assert</code>/<code>mask</code> が描画到達（render-ready）判定・内容一致判定・マスクの入力になる。比較の自前実装は禁止。<code>status</code> が <span class="tag mode">DESIGN-INCOMPLETE</span>（両環境とも render-ready 未到達）なら Phase 8 で scenarios への query/path_params/ready 追加を指示し、<span class="tag mode">DYNAMIC-UNVERIFIED</span>（MCP・Playwright とも不在）なら PASS 扱いにせず往復検証未完了として報告する。</p>
+  <p><code>syncing-reverse-env</code> の <code>mode=sync, dry-run</code> 呼び出しで、静的 3 分類・env_check 全項目・Playwright L1〜L5（L5 は <code>operations</code> を持つ画面のみ評価対象）・<code>hint</code>・<code>status</code> を受領する。設計書 frontmatter の <code>scenarios[].query</code>/<code>path_params</code>/<code>ready</code>/<code>assert</code>/<code>mask</code> が描画到達（render-ready）判定・内容一致判定・マスクの入力になる。比較の自前実装は禁止。<code>status</code> が <span class="tag mode">DESIGN-INCOMPLETE</span>（両環境とも render-ready 未到達）なら Phase 8 で scenarios への query/path_params/ready 追加を指示し、<span class="tag mode">DYNAMIC-UNVERIFIED</span>（MCP・Playwright とも不在）なら PASS 扱いにせず往復検証未完了として報告する。</p>
   <h3>Phase 9: 凍結検証</h3>
   <p><code>scripts/check-freeze.sh</code> で Phase 6 の凍結コミットハッシュと現状（HEAD・作業ツリー）を突合する。
     <span class="tag pass">PASS</span> = HEAD一致かつ作業ツリークリーン、

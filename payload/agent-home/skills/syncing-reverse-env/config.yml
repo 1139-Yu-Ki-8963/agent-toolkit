@@ -83,7 +83,9 @@ defaults:
     #   - try/finally で browser.close() を必ず呼ぶ（失敗時に .catch だけで exit すると Chromium が孤児化して残存する）
     #   - readiness gate: ready セレクタが可視になるまで待つ（無ければ settle_wait のフォールバック）。loading セレクタが可視で残れば NOT_RENDERED を出力し、一致判定に進ませない
     #   - 内容抽出: assertTables / assertTexts の各セレクタの innerText を正規化して CAP_CONTENT に書き出す（スキルが両環境の内容を突合する）
-    #   - {nav_timeout} / {ready_timeout} / {settle_wait} は上の同名 config 値に展開。シナリオ引数（url・ready・assert・loading）はスキルが CAP_SCENARIO に JSON で書き出して渡す
+    #   - {nav_timeout} / {ready_timeout} / {settle_wait} は上の同名 config 値に展開。シナリオ引数（url・ready・assert・loading・operations）はスキルが CAP_SCENARIO に JSON で書き出して渡す
+    #   - operations（任意・L5 操作シーケンス突合用）: 初回 extract() の後に click/fill/selectOption/press を順に実行し、
+    #     settle_wait 分待ってから同じ extract() を再実行して postContent として content に追加する（無ければ従来どおり postContent なし）
     command_template: |
       CAP_SCENARIO={scenario} CAP_SHOT={screenshot} CAP_CLOG={console_log} CAP_SNAP={snapshot} CAP_CONTENT={content} NODE_PATH={node_path} node -e '
       const { chromium } = require("playwright");
@@ -120,6 +122,17 @@ defaults:
             return out;
           };
           const content = { rendered, reason, tables: await extract(S.assertTables), texts: await extract(S.assertTexts) };
+          if (S.operations && S.operations.length) {
+            for (const op of S.operations) {
+              if (op.action === "click") await page.click(op.selector);
+              else if (op.action === "fill") await page.fill(op.selector, op.value);
+              else if (op.action === "selectOption") await page.selectOption(op.selector, op.value);
+              else if (op.action === "press") { if (op.selector) await page.press(op.selector, op.key); else await page.keyboard.press(op.key); }
+              else throw new Error("unknown op");
+            }
+            await page.waitForTimeout({settle_wait});
+            content.postContent = { tables: await extract(S.assertTables), texts: await extract(S.assertTexts) };
+          }
           await page.screenshot({ path: env.CAP_SHOT, fullPage: true });
           const snap = await page.locator("body").ariaSnapshot();
           fs.writeFileSync(env.CAP_SNAP, snap);
