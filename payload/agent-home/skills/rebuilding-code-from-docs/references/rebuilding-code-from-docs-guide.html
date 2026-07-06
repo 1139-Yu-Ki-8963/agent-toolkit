@@ -128,6 +128,7 @@
     <tr><td>対応 OS</td><td>Windows WSL2 環境</td></tr>
     <tr><td>検証状況</td><td>実機検証済み</td></tr>
     <tr><td>依存</td><td>連携スキル: syncing-reverse-env（環境同期・比較エンジン）</td></tr>
+    <tr><td>関連資料</td><td><code>references/phase-details.md</code>, <code>references/ng-classification.md</code>, <code>references/test-item-patterns.md</code>, <code>references/report-format.md</code>, <code>~/agent-home/skills/syncing-reverse-env/SKILL.md</code></td></tr>
   </table>
 </header>
 
@@ -141,7 +142,8 @@
     <li><a href="#s5">設計原則</a></li>
     <li><a href="#s6">ガード設計</a></li>
     <li><a href="#s7">報告フォーマット</a></li>
-    <li><a href="#s8">関連スキル・規約</a></li>
+    <li><a href="#s8">重要な注意事項・Gotchas</a></li>
+    <li><a href="#s9">関連スキル・規約</a></li>
   </ol>
 </nav>
 
@@ -305,7 +307,29 @@
 </section>
 
 <section id="s8">
-  <h2><span class="sec-num">§8</span>関連スキル・規約</h2>
+  <h2><span class="sec-num">§8</span>重要な注意事項・Gotchas</h2>
+  <div class="constraint">
+    <strong>コード記述はフェーズ限定</strong>: Phase 4 以外でコードを書いてはならない。Phase 3〜Phase 7 の間、オリジナルコード環境への Read は禁止（カンニング防止）。
+  </div>
+  <h3>重要な注意事項</h3>
+  <ul>
+    <li>Phase 8 ではコード・設計書とも修正禁止。修正指示書の作成と <code>test-item-patterns.md</code> への台帳追記のみ許可</li>
+    <li>push は一切禁止。凍結コミットはローカルブランチに留める</li>
+    <li>Phase 管理: 次の Phase に入る前に、その Phase 内の全 Step を TaskCreate で登録する。各 Step 完了時に TaskUpdate で completed にする。Phase の全 Step が completed になるまで次の Phase に進まない。一括登録（全 Phase 分を最初に登録）は禁止し、1 Phase ずつ登録する</li>
+    <li>Skill ツールで <code>syncing-reverse-env</code> を起動する際は args 全量指定・対話ゼロで行う（AskUserQuestion を発行させない）</li>
+    <li>基準タグ更新（Phase 9 の <code>sync</code> 非 dry-run）は PASS 時かつユーザー承認後のみ実行する</li>
+  </ul>
+  <h3>Gotchas</h3>
+  <ul>
+    <li>Phase 2 で内部矛盾を検出した場合、Phase 4 の実装は行わない。欠陥設計書からの実装検証は往復検証として無意味なため、直ちに Phase 8 の指示書作成に移る</li>
+    <li>Phase 5 の発散確定は失敗ではなく手がかり。発散したエラー自体を設計書欠落候補として Phase 8 に渡す</li>
+    <li>検証成果物は設計書リポジトリ内 <code>&lt;画面ディレクトリ&gt;/検証記録/&lt;timestamp&gt;/</code> に置く。worktree 内には置かない（静的比較を汚すため）</li>
+    <li>生証跡（スクリーンショット・テストログ・返却ブロック全文）は <code>~/agent-home/sessions/</code> 側に保存し、指示書からパス参照する</li>
+  </ul>
+</section>
+
+<section id="s9">
+  <h2><span class="sec-num">§9</span>関連スキル・規約</h2>
   <table class="spec">
     <tr><th>資料</th><th>役割</th></tr>
     <tr><td>rebuilding-screen-unit-from-docs</td><td>ファイル単位往復検証（stage1）。本スキル（stage2・画面単位結合/e2e）の前段</td></tr>

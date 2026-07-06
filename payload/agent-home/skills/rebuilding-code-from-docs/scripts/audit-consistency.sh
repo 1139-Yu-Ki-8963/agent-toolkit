@@ -67,11 +67,12 @@ fi
 
 # --- frontmatter から観点表パスを取得 ---
 frontmatter_value() {
-  local key="$1"
-  awk -v k="$key" '
+  local key="$1" raw
+  raw="$(awk -v k="$key" '
     /^---$/ { c++; next }
     c==1 && $0 ~ "^"k":" { sub("^"k": *", ""); print; exit }
-  ' "$DESIGN_DOC"
+  ' "$DESIGN_DOC")"
+  printf '%s' "$raw" | sed 's/[[:space:]]*#.*$//; s/[[:space:]]*$//'
 }
 
 # BSD realpath（macOS）には -m が無いため、cd + pwd によるポータブルな解決を行う。
@@ -196,6 +197,26 @@ extract_sheet_keys() {
   extract_table_column "$body" 1 | sort -u
 }
 
+# 参照先ドキュメントの種別（frontmatter type:）と必須見出しを検証する。
+# ファイル存在チェックだけでは「実体はあるが別スキル・別画面用の資産だった」
+# という取り違えを検出できないため、type: とセクション見出しの両方を確認する。
+validate_referenced_doc() {
+  local file="$1" label="$2" expected_type="$3"; shift 3
+  local actual_type h
+  actual_type="$(awk '/^---$/ { c++; next } c==1 && /^type:/ { sub(/^type: */, ""); print; exit }' "$file")"
+  if [ "$actual_type" != "$expected_type" ]; then
+    echo "  違反: ${label} の type が想定と異なります（期待: $expected_type / 実際: ${actual_type:-なし}）: $file" >&2
+    VIOLATIONS=$((VIOLATIONS + 1))
+  fi
+  for h in "$@"; do
+    if ! grep -qE "^## ${h}" "$file"; then
+      echo "  違反: ${label} に必須見出し '## ${h}' が見つかりません: $file" >&2
+      VIOLATIONS=$((VIOLATIONS + 1))
+    fi
+  done
+  return 0
+}
+
 # --- --list-contract-files モード ---
 # 実装契約章内の「ファイル分割」表（### 見出しに「ファイル分割」を含む節の表。
 # 無ければ実装契約章の最初の表）の 1 列目からファイルパスを抽出し、
@@ -262,9 +283,8 @@ UNIT_SHEET="$(resolve_rel_path "$SCREEN_DIR" "$UNIT_SHEET_REL" || true)"
 INTEG_SHEET="$(resolve_rel_path "$SCREEN_DIR" "$INTEG_SHEET_REL" || true)"
 
 # operation_test_spec は任意キー（L5 操作シーケンス突合が無い画面には存在しない）。
-# frontmatter のインライン `# 任意。...` コメントを除去してからパス解決する。
+# インラインコメント除去は frontmatter_value() 内で共通化済み。
 OPTEST_SPEC_REL="$(frontmatter_value operation_test_spec)"
-OPTEST_SPEC_REL="$(printf '%s' "$OPTEST_SPEC_REL" | sed 's/[[:space:]]*#.*$//; s/[[:space:]]*$//')"
 OPTEST_SPEC="$(resolve_rel_path "$SCREEN_DIR" "$OPTEST_SPEC_REL" || true)"
 
 # --- (a) 機能一覧章 × 観点表 の機能キー集合突合（両方向一致） ---
@@ -290,6 +310,7 @@ UNIT_KEYS=""
 INTEG_KEYS=""
 
 if [ -f "$UNIT_SHEET" ]; then
+  validate_referenced_doc "$UNIT_SHEET" "単体テスト観点表" "unit-test-sheet" "観点表"
   UNIT_KEYS="$(extract_sheet_keys "$UNIT_SHEET")"
   UNIT_COUNT=$(printf '%s\n' "$UNIT_KEYS" | grep -c . || true)
   echo "  単体テスト観点表 ($UNIT_SHEET_REL) のキー行数: $UNIT_COUNT"
@@ -299,6 +320,7 @@ else
 fi
 
 if [ -f "$INTEG_SHEET" ]; then
+  validate_referenced_doc "$INTEG_SHEET" "結合テスト観点表" "integration-test-sheet" "観点表" "往復検証観点表"
   INTEG_KEYS="$(extract_sheet_keys "$INTEG_SHEET")"
   INTEG_COUNT=$(printf '%s\n' "$INTEG_KEYS" | grep -c . || true)
   echo "  結合テスト観点表 ($INTEG_SHEET_REL) のキー行数: $INTEG_COUNT"
@@ -362,7 +384,7 @@ PLACEHOLDER_LINES=$(awk '
   # Dispatch<SetStateAction<T>>, styled("td")<{...}>）であり未記入プレースホルダ
   # ではない。当該パターンを含む行は検出対象から除外する。日本語プレースホルダ
   # （<画面ID> 等）や <YYYY-MM-DD> は '<' 直前に識別子文字が来ないため対象外にならない。
-  grep -vE '[A-Za-z0-9_\]\)]<' || true)
+  grep -vE '[]A-Za-z0-9_)]<' || true)
 
 if [ -n "$PLACEHOLDER_LINES" ]; then
   PLACEHOLDER_COUNT=$(printf '%s\n' "$PLACEHOLDER_LINES" | grep -c .)
