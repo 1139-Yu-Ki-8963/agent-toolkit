@@ -141,7 +141,7 @@
     <li><a href="#s3">使い方</a></li>
     <li><a href="#s4">カンニング防止（二層）</a></li>
     <li><a href="#s5">動作フロー（P1〜P7）</a></li>
-    <li><a href="#s6">5 計測（合格判定表 + measure-file-diff.sh 入出力）</a></li>
+    <li><a href="#s6">6 計測（合格判定表 + measure-file-diff.sh 入出力）</a></li>
     <li><a href="#s7">ループ設計</a></li>
     <li><a href="#s8">サブエージェント委任仕様</a></li>
     <li><a href="#s9">関連スキル・資料</a></li>
@@ -158,7 +158,7 @@
   <h3>設計原則</h3>
   <ol>
     <li><strong>正本一元化</strong>: 環境固有値（ポート・worktree パス）には触れない。画面固有値の正は設計書 frontmatter。本スキル専用の config.yml は新設しない</li>
-    <li><strong>比較は自前の 5 計測で行う</strong>。<code>scripts/measure-file-diff.sh</code> の決定的出力のみを判定根拠とし、環境同期・基準タグ運用（後続工程の責務）には委譲しない</li>
+    <li><strong>比較は自前の 6 計測で行う</strong>。<code>scripts/measure-file-diff.sh</code> の決定的出力のみを判定根拠とし、環境同期・基準タグ運用（後続工程の責務）には委譲しない</li>
     <li><strong>1 起動 = 1 ファイルの往復</strong>。他のファイルへは進まない。画面内の別ファイルを検証する場合は本スキルの再起動として扱う</li>
     <li><strong>カンニング防止の二層</strong>（詳細は §4）</li>
   </ol>
@@ -305,7 +305,7 @@
 <span class="cap">P2</span> 白紙化ゲート ── 内部整合監査 → ユーザー承認 → 対象ファイル1件のみ git rm
 <span class="cap">P3</span> 単体テスト仕様作成 ── 観点表からRED（TDD）
 <span class="cap">P4</span> サブエージェント生成 ── worker-sonnetへ隔離委任・唯一コードを書けるフェーズ
-<span class="cap">P5</span> 差分比較（5計測） ── 原本Read解禁・measure-file-diff.sh
+<span class="cap">P5</span> 差分比較（6計測） ── 原本Read解禁・measure-file-diff.sh
 <span class="cap">P6</span> 設計書修正 ── 差分4分類・不合格ならP2へ再投入（上限5回）
 <span class="cap">P7</span> NG分類 + 報告 ── 収束/未収束判定・修正指示書
 </pre>
@@ -338,9 +338,9 @@
     </tr>
     <tr>
       <td>P5</td>
-      <td>原本参照コミットから一時ファイルへ抽出。単体テスト仕様の検査 + 5 計測（<code>measure-file-diff.sh</code>）を実施</td>
+      <td>原本参照コミットから一時ファイルへ抽出。単体テスト仕様の検査 + 6 計測（<code>measure-file-diff.sh</code>）を実施</td>
       <td><span class="tag pass">可（本フェーズのみ）</span></td>
-      <td>単体テスト仕様の検査結果 + 5 計測の結果が省略なく記録済み</td>
+      <td>単体テスト仕様の検査結果 + 6 計測の結果が省略なく記録済み</td>
     </tr>
     <tr>
       <td>P6</td>
@@ -350,7 +350,7 @@
     </tr>
     <tr>
       <td>P7</td>
-      <td>収束（5 計測 PASS かつ単体テスト仕様の検査 全項目合格）/ 未収束を判定し、修正指示書または「NG なし」を出力</td>
+      <td>収束（6 計測 PASS かつ単体テスト仕様の検査 全項目合格）/ 未収束を判定し、修正指示書または「NG なし」を出力</td>
       <td><span class="tag fail">禁止</span>（P5 の結果のみ参照）</td>
       <td>修正指示書または「NG なし」明示・収束/未収束判定完了</td>
     </tr>
@@ -364,7 +364,7 @@
 </section>
 
 <section id="s6">
-  <h2><span class="sec-num">§6</span>5 計測（合格判定表 + measure-file-diff.sh 入出力）</h2>
+  <h2><span class="sec-num">§6</span>6 計測（合格判定表 + measure-file-diff.sh 入出力）</h2>
   <table class="spec">
     <tr><th>計測</th><th>合格条件</th></tr>
     <tr><td>単体テスト仕様の検査（禁止パターン・import・コンポーネント/API 利用）</td><td>全項目合格</td></tr>
@@ -374,7 +374,7 @@
     <tr><td>実質 diff（コメント・空行除外）</td><td>20 行以下</td></tr>
   </table>
   <div class="constraint">
-    <strong>重大違反:</strong> import diff だけでの合格判定は重大違反とする。5 計測はすべて出力し、いずれか 1 つでも省略してはならない。
+    <strong>重大違反:</strong> import diff だけでの合格判定は重大違反とする。6 計測はすべて出力し、いずれか 1 つでも省略してはならない。
   </div>
   <p class="note"><code>measure-file-diff.sh</code> の verdict は生シグナルである。差分のうち <code>[画面単位検証で実測]</code> に該当する実測委譲差分（初期表示値・DOM 順・位置・レイアウト起因）は収束判定の分母から除外し、静的な宣言的契約由来の差分のみで PASS/FAIL を判定する。</p>
   <h3>measure-file-diff.sh の入出力</h3>
@@ -422,10 +422,10 @@
       <td>実装ファイル1件・変更内容・P3 テストのローカル実行可否</td>
     </tr>
     <tr>
-      <td>P5（テスト実行・5 計測スクリプト実行）</td>
+      <td>P5（テスト実行・6 計測スクリプト実行）</td>
       <td><code>worker-haiku</code></td>
       <td>実行するテストコマンド・<code>scripts/measure-file-diff.sh</code> 呼び出しコマンドをベタ書き・判断不要と明記</td>
-      <td>各コマンドの終了コード・出力全文（5 計測の key=value を省略なく）</td>
+      <td>各コマンドの終了コード・出力全文（6 計測の key=value を省略なく）</td>
     </tr>
   </table>
   <div class="constraint">
@@ -437,7 +437,7 @@
   <h2><span class="sec-num">§9</span>関連スキル・資料</h2>
   <table class="spec">
     <tr><th>資料</th><th>役割</th></tr>
-    <tr><td>references/phase-details.md</td><td>P4 サブエージェント委任 prompt 骨格・5 計測の算出方法・P6 差分分類マップ・修正指示書の書式</td></tr>
+    <tr><td>references/phase-details.md</td><td>P4 サブエージェント委任 prompt 骨格・6 計測の算出方法・P6 差分分類マップ・修正指示書の書式</td></tr>
     <tr><td>references/ng-classification.md</td><td>検出シグナル→失敗クラス→章（役割キー）帰着のマッピング</td></tr>
     <tr><td>起動引数 chapter_map_path</td><td>章の役割キー→節キーワード対応表（正本。管理者が配布）</td></tr>
     <tr><td>起動引数 audit_script_path</td><td>実装契約章のファイル分割表取得・内部整合性監査</td></tr>
