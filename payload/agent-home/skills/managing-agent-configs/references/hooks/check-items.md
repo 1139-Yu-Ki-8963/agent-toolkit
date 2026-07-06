@@ -2,6 +2,8 @@
 
 各項目の検出方法（jq 式・grep パターン）と修正前後サンプル。SKILL.md から参照される詳細リファレンス。
 
+`check-items` は機械検査可能な hooks / rules / skills の 3 種のみを対象とする。routines / subagents は定型構造が薄く機械チェック項目が成立しないため、各 `references/<type>/conventions.md` のレビュー観点でカバーする。
+
 ## A. command 書式
 
 ### A1 — CRITICAL: command 500 文字超
@@ -98,7 +100,7 @@ jq -r '.hooks | to_entries[] | .key as $event |
 ```
 
 修正前: `"command": "./scripts/check.sh"`
-修正後: `"command": "${CLAUDE_PROJECT_DIR}/scripts/check.sh"` または絶対パス `"~/agent-home/tools/hooks/check.sh"`
+修正後: `"command": "${CLAUDE_PROJECT_DIR}/scripts/check.sh"` または絶対パス `"~/agent-home/tools/hooks/lib/marker-path.sh"`（既存 hook が共通処理を source する実例）
 
 理由: worktree や `cd` 後の CWD 変更で破綻する。
 
@@ -375,6 +377,7 @@ grep -rEn '\.env|token|key|secret|credential' ~/agent-home/tools/hooks/*.sh |
 - FLOW-SELECT-REQUIRED / FLOW-SELECT-BLOCK
 - PLAYWRIGHT-WORKTREE-REQUIRED
 - PROD-SKILL-READ-REQUIRED
+- MANAGING-REVIEW-REQUIRED / MANAGING-COMMIT-BLOCK / MANAGING-GATE-DISABLED
 
 検出:
 ```bash

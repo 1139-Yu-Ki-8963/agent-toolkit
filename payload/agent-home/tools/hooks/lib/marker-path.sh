@@ -44,3 +44,37 @@ marker_path() {
   mkdir -p "$dir" 2>/dev/null || true
   printf '%s/%s' "$dir" "$name"
 }
+
+# managed_asset_type - パス（相対/絶対どちらでも）を受け取り managing-agent-configs の
+# 種別名（skills/rules/routines/hooks）を echo する。非該当は空文字を echo する。
+#
+# 監視パスの正本はここ。~/.claude/rules/always/gate/managing-review-gate/rule.md の
+# 対応表と乖離した場合は本関数を正とする。
+#
+# `*` が `/` にもマッチする sh case の性質を利用し、絶対パス対応のため
+# `パターン|*/パターン` の両建てで記述する（意図した挙動）。
+managed_asset_type() {
+  local f="$1"
+  case "$f" in
+    skills/*/SKILL.md|*/skills/*/SKILL.md)
+      printf 'skills' ;;
+    skills/*/scripts/*.sh|*/skills/*/scripts/*.sh)
+      printf 'skills' ;;
+    skills/*/references/*|*/skills/*/references/*)
+      printf 'skills' ;;
+    .claude/rules/*/rule.md|*/.claude/rules/*/rule.md)
+      printf 'rules' ;;
+    .claude/rules/*/*.sh|*/.claude/rules/*/*.sh)
+      printf 'rules' ;;
+    .claude/rules/*/prh.yml|*/.claude/rules/*/prh.yml)
+      printf 'rules' ;;
+    rules/*/prh.yml|*/rules/*/prh.yml)
+      printf 'rules' ;;
+    routines/*/ルーティン設計書.md|*/routines/*/ルーティン設計書.md)
+      printf 'routines' ;;
+    tools/hooks/*.sh|*/tools/hooks/*.sh)
+      printf 'hooks' ;;
+    *)
+      printf '' ;;
+  esac
+}

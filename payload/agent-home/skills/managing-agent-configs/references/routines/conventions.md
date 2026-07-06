@@ -4,28 +4,31 @@
 
 ## 正本の所在
 
-ルーティン資産は `~/agent-home/routines/` に一元管理する。プロジェクトごとにサブディレクトリを持つ。
+ルーティン資産は `~/agent-home/routines/` に一元管理する。各ルーティンのディレクトリは直下に日本語名で並び、プロジェクト固有ファイルは `_projects/<project>/` に、全プロジェクト共通ファイルは `_shared/` にまとめる。
 
 ```
 ~/agent-home/routines/
-├── _shared/                      ← 全プロジェクト共通
-│   └── common-log-rules.md       ← JSONL エンベロープ仕様
-├── <project>/                    ← プロジェクト固有
-│   ├── profile.md                ← 技術スタック・パス・閾値
-│   ├── 共通ルール.md              ← 12 観点定義・ルーティン一覧
-│   ├── クラウド共通プロンプト.md    ← git author・コミット規約・lint
-│   └── routines/                 ← 各ルーティンの設計書・実行プロンプト
-│       └── <ルーティン名>/
-│           ├── ルーティン設計書.md
-│           ├── 実行プロンプト.md
-│           └── 検証仕様.md
+├── _shared/                        ← 全プロジェクト共通
+│   ├── common-log-rules.md         ← JSONL エンベロープ仕様
+│   ├── cloud-prompt-template.md    ← クラウド共通プロンプトの雛形
+│   └── templates/                  ← 実行プロンプト等の雛形
+├── _projects/
+│   └── <project>/                  ← プロジェクト固有
+│       ├── profile.md              ← 技術スタック・パス・閾値・git author
+│       ├── 共通ルール.md            ← 12 観点定義・ルーティン一覧
+│       └── クラウド共通プロンプト.md  ← git author・コミット規約・lint
+├── index.html                      ← ルーティン一覧ページ
+└── <ルーティン名>/                  ← 個別ルーティン（日本語名）
+    ├── ルーティン設計書.md
+    ├── 実行プロンプト.md
+    └── 検証仕様.md                 ← 任意（検証仕様を持たないルーティンもある）
 ```
 
 | 正本 | パス | 内容 |
 |---|---|---|
-| プロジェクトプロファイル | `routines/<project>/profile.md` | 技術スタック・パス・閾値・git author・有効ルーティン一覧 |
-| 共通ルール | `routines/<project>/共通ルール.md` | 12 観点定義・JSONL 仕様・prompt 登録形式 |
-| クラウド共通プロンプト | `routines/<project>/クラウド共通プロンプト.md` | git author・コミット規約・lint 必須・PR テンプレ等 |
+| プロジェクトプロファイル | `routines/_projects/<project>/profile.md` | 技術スタック・パス・閾値・git author・有効ルーティン一覧 |
+| 共通ルール | `routines/_projects/<project>/共通ルール.md` | 12 観点定義・JSONL 仕様・prompt 登録形式 |
+| クラウド共通プロンプト | `routines/_projects/<project>/クラウド共通プロンプト.md` | git author・コミット規約・lint 必須・PR テンプレ等 |
 | JSONL ログ仕様 | `routines/_shared/common-log-rules.md` | 共通 JSONL エンベロープ（全プロジェクト共通） |
 
 **create / review 時は対象プロジェクトの `profile.md` → `共通ルール.md` の順に Read すること。**
@@ -60,7 +63,7 @@ Q3. 実行間隔が 1 時間未満か?
 
 ## 3. 実行プロンプト.md の必須構造
 
-以下の構造とする。事前 Read ファイルは agent-home 側（`routines/<project>/`）とプロジェクト側の両方を含む:
+以下の構造とする。事前 Read ファイルは agent-home 側（`routines/_projects/<project>/`）とプロジェクト側の両方を含む:
 
 ```markdown
 # <ルーティン名> エージェント
@@ -73,12 +76,12 @@ Q3. 実行間隔が 1 時間未満か?
 本ルーティンの実行前に、次のファイルを必ず Read します。
 
 ### agent-home 側（ルーティン資産）
-- `routines/<project>/共通ルール.md`
-- `routines/<project>/クラウド共通プロンプト.md`
+- `routines/_projects/<project>/共通ルール.md`
+- `routines/_projects/<project>/クラウド共通プロンプト.md`
 - `routines/_shared/common-log-rules.md`
 
 ### プロジェクト側（プロジェクト固有ルール。profile.md の事前 Read 一覧に従う）
-- 例: `ai-management-portal/sites/rules/08-auto/code-docs-mapping/rule.html` 等
+- 対象プロジェクトのリポジトリ内にある固有ルール・規約ファイル（`profile.md` が列挙するパスに従う）
 
 ## 事前準備: 自律実行ガード
 

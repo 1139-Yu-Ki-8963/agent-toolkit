@@ -368,20 +368,30 @@ function countHooks() {
 }
 
 function countRules() {
-  if (!fs.existsSync(RULES_DIR)) return 0;
-  return fs
-    .readdirSync(RULES_DIR, { withFileTypes: true })
-    .filter((e) => e.isDirectory() && fs.existsSync(path.join(RULES_DIR, e.name, "rule.md")))
-    .length;
+  // ~/.claude/rules/ は <scope>/<topic>/<name>/rule.md の3階層ネスト構造。
+  // 任意の深さで rule.md を再帰的に数える（walkFiles は既に再帰探索を実装済み）。
+  return walkFiles(RULES_DIR, (f) => path.basename(f) === "rule.md").length;
 }
 
 function countSubagents() {
   if (!fs.existsSync(AGENTS_DIR)) return 0;
-  return fs.readdirSync(AGENTS_DIR, { withFileTypes: true }).filter((e) => e.isDirectory()).length;
+  return fs
+    .readdirSync(AGENTS_DIR, { withFileTypes: true })
+    .filter(
+      (e) =>
+        e.isDirectory() &&
+        fs.readdirSync(path.join(AGENTS_DIR, e.name)).some((f) => f.endsWith(".md"))
+    ).length;
 }
 
 function countRoutines() {
   return walkFiles(ROUTINES_DIR, (f) => f.endsWith("ルーティン設計書.md")).length;
+}
+
+// UTC ではなくローカル日付を使う（UTC とローカルのズレによるドリフト誤検出を防ぐ）
+function localToday() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
 async function countTools() {
@@ -443,7 +453,7 @@ async function cmdGenerate(checkMode = false) {
       indexHtmlAfter = replaceInlineBetweenMarkers(indexHtmlAfter, startMarker, endMarker, String(value));
     }
   }
-  const today = new Date().toISOString().slice(0, 10);
+  const today = localToday();
   indexHtmlAfter = indexHtmlAfter.replace(
     /<!-- PM:UPDATED -->.*?<!-- \/PM:UPDATED -->/,
     `<!-- PM:UPDATED -->${today}<!-- /PM:UPDATED -->`
@@ -517,6 +527,60 @@ function showDiff(before, after, label) {
 
 // ── verify サブコマンド ──────────────────────────────────────────
 
+// 意図的な架空例など、実在しなくても FAIL 対象外とするパス（初期値は空）
+const EXAMPLE_PATH_ALLOWLIST = [];
+
+const MANAGING_AGENT_CONFIGS_DIR = path.join(SKILLS_DIR, "managing-agent-configs");
+
+function checkReferencePathsExist() {
+  const problems = [];
+
+  const targets = [path.join(MANAGING_AGENT_CONFIGS_DIR, "SKILL.md")];
+  const refsDir = path.join(MANAGING_AGENT_CONFIGS_DIR, "references");
+  targets.push(...walkFiles(refsDir, (f) => f.endsWith(".md")));
+
+  // バッククォート内のパストークンを抽出（拡張子付きに限定して誤抽出を抑制）
+  const pathPattern = /`((?:~\/|skills\/|tools\/|routines\/|ai-management-portal\/)[^\s`]+\.(?:md|sh|mjs|html|yml|json|txt))`/g;
+
+  for (const file of targets) {
+    const content = fs.readFileSync(file, "utf8");
+    const lines = content.split("\n");
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      let m;
+      pathPattern.lastIndex = 0;
+      while ((m = pathPattern.exec(line)) !== null) {
+        const token = m[1];
+
+        // プレースホルダを含むパスは対象外
+        if (/<[^>]+>/.test(token)) continue;
+        // グロブパターン（例: skills/*/SKILL.md）は参照ではなくパターンのため対象外
+        if (token.includes("*")) continue;
+        // 除外リスト
+        if (EXAMPLE_PATH_ALLOWLIST.includes(token)) continue;
+
+        let resolved;
+        if (token.startsWith("~/")) {
+          resolved = path.join(HOME_DIR, token.slice(2));
+        } else {
+          resolved = path.join(REPO_ROOT, token);
+        }
+
+        if (!fs.existsSync(resolved)) {
+          const rel = path.relative(REPO_ROOT, file);
+          problems.push(`${rel}:${i + 1} → ${token}`);
+        }
+      }
+    }
+  }
+
+  return {
+    key: "参照-実在",
+    status: problems.length > 0 ? "FAIL" : "PASS",
+    problems,
+  };
+}
+
 async function cmdVerify(onlyKeys) {
   const results = [];
 
@@ -528,6 +592,11 @@ async function cmdVerify(onlyKeys) {
   // guide-カバレッジ
   if (!onlyKeys || onlyKeys.includes("guide-カバレッジ")) {
     results.push(checkGuideCoverage());
+  }
+
+  // 参照-実在
+  if (!onlyKeys || onlyKeys.includes("参照-実在")) {
+    results.push(checkReferencePathsExist());
   }
 
   // 数値-一致
@@ -625,7 +694,7 @@ async function checkCatalogDrift() {
       indexHtmlAfter = replaceInlineBetweenMarkers(indexHtmlAfter, startMarker, endMarker, String(value));
     }
   }
-  const today = new Date().toISOString().slice(0, 10);
+  const today = localToday();
   indexHtmlAfter = indexHtmlAfter.replace(
     /<!-- PM:UPDATED -->.*?<!-- \/PM:UPDATED -->/,
     `<!-- PM:UPDATED -->${today}<!-- /PM:UPDATED -->`
@@ -700,10 +769,6 @@ async function checkCountsMatch() {
   const genBlock = genStart !== -1 && genEnd !== -1 ? skillsHtml.slice(genStart, genEnd) : "";
   const genEntries = (genBlock.match(/\{ id:/g) || []).length;
 
-  // GEN:COUNT:skills 値
-  const countMatch = skillsHtml.match(/<!-- GEN:COUNT:skills -->(.*?)<!-- \/GEN:COUNT:skills -->/);
-  const genCount = countMatch ? parseInt(countMatch[1], 10) : NaN;
-
   if (skillsActual !== genEntries) {
     problems.push(`skills 実体数(${skillsActual}) ≠ GEN:SKILLS ブロック内エントリ数(${genEntries})`);
   }
@@ -723,6 +788,26 @@ async function checkCountsMatch() {
     const routinesGen = parseInt(routinesMatch[1], 10);
     if (routinesActual !== routinesGen) {
       problems.push(`routines 実体数(${routinesActual}) ≠ GEN:COUNT:routines(${routinesGen})`);
+    }
+  }
+
+  // hooks カウント
+  const hooksActual = countHooks();
+  const hooksMatch = indexHtml.match(/<!-- GEN:COUNT:hooks -->(.*?)<!-- \/GEN:COUNT:hooks -->/);
+  if (hooksMatch) {
+    const hooksGen = parseInt(hooksMatch[1], 10);
+    if (hooksActual !== hooksGen) {
+      problems.push(`hooks 実体数(${hooksActual}) ≠ GEN:COUNT:hooks(${hooksGen})`);
+    }
+  }
+
+  // rules カウント
+  const rulesActual = countRules();
+  const rulesMatch = indexHtml.match(/<!-- GEN:COUNT:rules -->(.*?)<!-- \/GEN:COUNT:rules -->/);
+  if (rulesMatch) {
+    const rulesGen = parseInt(rulesMatch[1], 10);
+    if (rulesActual !== rulesGen) {
+      problems.push(`rules 実体数(${rulesActual}) ≠ GEN:COUNT:rules(${rulesGen})`);
     }
   }
 

@@ -15,4 +15,5 @@ export const SKILL_CATEGORY = {
   "rebuilding-code-from-docs": "dev",
   "rebuilding-screen-unit-from-docs": "dev",
   "generating-screen-list-for-reverse-docs": "dev",
+  "orchestrating-reverse-docs-flow": "dev",
 };

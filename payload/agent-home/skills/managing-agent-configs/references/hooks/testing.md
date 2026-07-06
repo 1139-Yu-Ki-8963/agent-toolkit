@@ -40,7 +40,7 @@
 - TAG プレフィックスが既存と重複していない（`conventions.md` §3 の重複禁止 TAG リスト参照）
 - hookEventName が親 `<EventName>` と一致
 - 配置先の rule.md / SKILL.md 内に `## 設計判断` セクションが存在する（新規 hook のみ。legacy は対象外）
-- `~/agent-home/ai-management-portal/hooks.html` の `HOOKS` 配列に登録されている
+- `~/agent-home/ai-management-portal/catalog/hooks.html` の `HOOKS` 配列に登録されている
 
 ずれがあれば、Step 2 に進む前に command / if / timeout / 配置 を修正する。
 

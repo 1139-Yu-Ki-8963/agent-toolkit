@@ -72,6 +72,8 @@ Q4. ファイルの作成・編集、または文脈判断が必要か？
 
 本文は「人格と専門性」を定義する。手順書ではない。詳細な手順は `references/` に分離する。
 
+MCP ツールに依存する subagent は、定義 md 内に前提 MCP サーバーの節を書く（例: `researcher` の「前提 MCP サーバー」節）。
+
 ## references ディレクトリ
 
 - 必要な場合のみ作成。全 subagent に必要なわけではない
@@ -79,13 +81,6 @@ Q4. ファイルの作成・編集、または文脈判断が必要か？
 - subagent 固有の知識のみ。汎用パターンは skill や rules に置く
 - 可変データ（ログ・状態）は `~/.claude/agents/` 配下に置かない
 
-## 既存 6 役割一覧
+## 既存エージェントの一覧
 
-| name | model | 責務 | references |
-|---|---|---|---|
-| brain | claude-opus-4-8 | 計画・分解と、自分が立てた成功条件との突合（成果物検証） | planning.md, reviewing.md |
-| investigator | claude-sonnet-5 | 変更を伴わない調査・分析・根本原因特定（読み取り専用） | なし |
-| worker-sonnet | claude-sonnet-5 | ファイル変更を伴う作業全般（変更前提の影響範囲分析を含む） | patterns.md |
-| worker-haiku | claude-haiku-4-5-20251001 | コマンド実行と結果報告のみ（ファイル変更禁止） | なし |
-| researcher | claude-sonnet-5 | MCP で外部情報収集 | なし |
-| reviewer | claude-opus-4-8 | 他者の調査報告の事実性検証（チェックリスト照合・裏取り） | なし |
+既存エージェントの一覧と分類（reviewer を含む）は `~/agent-home/ai-management-portal/catalog/subagents.html` を参照。reviewer は「他者の調査報告の事実性検証（チェックリスト照合・裏取り）」を担う事実性検証系で、4 役割判定フローには登場しないが `investigator` / `brain` の結果検証ステップから呼ばれる。
