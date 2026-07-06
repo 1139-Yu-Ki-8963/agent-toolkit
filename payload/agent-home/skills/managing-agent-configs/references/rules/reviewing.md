@@ -69,9 +69,9 @@ done
 
 | # | チェック | 重要度 | 検出方法 |
 |---|---|---|---|
-| E1 | rule.md に `## 設計判断` セクションがあるか | CRITICAL | `grep "## 設計判断" rule.md` |
-| E2 | ADR 4 項目（必要性 / 代替案 / 保守責任者 / 廃棄条件）が揃っているか | WARN | grep で各項目を確認 |
-| E3 | hook script ごとに設計判断があるか（`.sh` が存在する場合） | WARN | `.sh` の basename を設計判断セクション内で grep |
+| E1 | 同ディレクトリに `design-notes.txt`（設計判断サイドカー）があるか。rule.md 内に長文の `## 設計判断` が残っていないか | CRITICAL | `[ -f design-notes.txt ]` と `grep "## 設計判断" rule.md`（後者はヒットしないのが正） |
+| E2 | ADR 4 項目（必要性 / 代替案 / 保守責任者 / 廃棄条件）が design-notes.txt に揃っているか | WARN | grep で各項目を確認 |
+| E3 | hook script ごとに設計判断があるか（`.sh` が存在する場合） | WARN | `.sh` の basename を design-notes.txt 内で grep |
 | E4 | `## プロジェクト上書き` セクションがあるか（委譲可/一律適用/上書き禁止 の 3 択宣言） | WARN | `grep "## プロジェクト上書き" rule.md` |
 
 ### 観点 F: 注入タグの整合性
@@ -105,8 +105,8 @@ done
 
 #### B. scope 適合性
 - [CRITICAL] B1 `always/agent/role-boundary/` がグローバルに配置されているが
-  `slot/wt` `owner cwd` 等の oradora 固有概念に依存
-  修正案: `oradora-battle-base/.claude/rules/` に移動
+  特定プロジェクト固有の内部概念（例: 内部スロット識別子・所有者コンテキスト等）に依存
+  修正案: `<project>/.claude/rules/` に移動
 ...
 ```
 
