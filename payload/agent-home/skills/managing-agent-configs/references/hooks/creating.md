@@ -49,7 +49,7 @@
 - [ ] hook script の配置先が 4 象限のいずれかに該当するか（skill×global / skill×project / 独立規約×global / 独立規約×project）
 - [ ] `(.claude\|agent-home)` 配下の flat `hooks/` バケットに置いていないか（禁止配置）
 - [ ] 配置先の rule.md 内に `## 設計判断` セクションを記載したか（4 項目: 必要性 / 代替案不採用理由 / 保守責任者 / 廃棄条件）
-- [ ] `~/agent-home/ai-management-portal/hooks.html` の `HOOKS` 配列に新規 hook を登録したか
+- [ ] `~/agent-home/ai-management-portal/catalog/hooks.html` の `HOOKS` 配列に新規 hook を登録したか
 
 **書式**
 
@@ -72,7 +72,7 @@
 
 - [ ] hook script を配置先に保存した
 - [ ] 配置先の rule.md に `## 設計判断` セクションを記載した
-- [ ] `~/agent-home/ai-management-portal/hooks.html` の `HOOKS` 配列に登録した
+- [ ] `~/agent-home/ai-management-portal/catalog/hooks.html` の `HOOKS` 配列に登録した
 - [ ] `settings.json` の対応イベントに command path を登録した
 - [ ] **review モードへ自動連鎖**（managing-agent-configs（種別: hooks） ハブが制御）
 - [ ] **test モードへ自動連鎖**（review 完了後）

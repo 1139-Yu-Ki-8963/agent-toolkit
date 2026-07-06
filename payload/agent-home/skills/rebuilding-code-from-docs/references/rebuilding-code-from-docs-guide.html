@@ -152,10 +152,10 @@
   <p>リバースエンジニアリングで作成した画面詳細設計書（<code>assets/リバース検証/画面/詳細設計/</code> 準拠）は納品物であり、「設計書だけを読んで忠実にコーディングできる」詳細度が求められる。設計書は 16 種類の<strong>章の役割キー</strong>（各章に付けられた意味分類ラベル。例: 機能一覧・状態管理・API通信）で構成される。以下で頻出する「既定 §n」という表記は、各役割キーがテンプレート上で通常割り当てられる章番号を指す注記である（正の識別子は章番号ではなく役割キーであり、個別の設計書では番号がずれる場合がある）。本スキルはその品質を検証するため、<strong>設計書だけからコードを再生成し、元コードと機械突合して設計書の欠落を発見する</strong>往復検証を行う。</p>
 
   <div class="constraint">
-    <strong>検証範囲:</strong> 本スキルは単体テスト・結合テストに加え、<strong>Playwright による動的検証</strong>まで行う。動的検証は、起動確認から画面操作結果の突合までを 5 段階に分けた検証レベル（<strong>L1〜L5</strong>。内訳は後述の Phase 7 の表を参照）で構成される。最終段階の L5 は複数の操作をまたぐ操作シーケンス比較であり、<strong>e2e</strong>（end-to-end。実際の利用者の操作の流れを再現して検証する手法）に相当する。ファイル単位の往復検証は前段工程（stage1）が担い、本スキルは画面単位の結合・動的検証（stage2）を担う。
+    <strong>検証範囲:</strong> 本スキルは単体テスト・結合テストに加え、<strong>Playwright による動的検証</strong>まで行う。動的検証は、起動確認から画面操作結果の突合までを 5 段階に分けた検証レベル（<strong>L1〜L5</strong>。内訳は後述の Phase 7 の表を参照）で構成される。最終段階の L5 は複数の操作をまたぐ操作シーケンス比較であり、<strong>e2e</strong>（end-to-end。実際の利用者の操作の流れを再現して検証する手法）に相当する。ファイル単位の往復検証は前段工程（rebuilding-screen-unit-from-docs）が担い、本スキルは画面単位の結合・動的検証を担う。
   </div>
   <table class="spec">
-    <tr><th>項目</th><th>前段工程（stage1）</th><th>rebuilding-code-from-docs（本スキル・stage2）</th></tr>
+    <tr><th>項目</th><th>前段工程（rebuilding-screen-unit-from-docs）</th><th>rebuilding-code-from-docs（本スキル）</th></tr>
     <tr><td>検証単位</td><td>1 ファイル</td><td>画面単位（結合・e2e を含む）</td></tr>
     <tr><td>用途</td><td>from-zero 品質ブートストラップ</td><td>リバース済み設計書の往復品質検証</td></tr>
     <tr><td>対象外</td><td>画面単位結合・e2e 検証（→本スキル）</td><td>—</td></tr>
@@ -182,7 +182,7 @@
   </table>
 
   <h3>Phase 7: 答え合わせ（mode=judge・Playwright L1〜L5）の具体的な判定内容</h3>
-  <p>起動引数 <code>compare_result</code>（管理者が比較〔dry-run〕を実行して取得した結果ブロック）が持つ静的 3 分類・env_check・Playwright 動的検証（L1〜L5）を判定根拠とする。比較の自前実装は禁止。L1〜L5 はそれぞれ次を確認する検証レベルである。</p>
+  <p>起動引数 <code>compare_result</code>（管理者が比較〔dry-run〕を実行して取得した結果ブロック）が持つ静的 3 分類・env_check・Playwright 動的検証（L1〜L5）を判定根拠とする。比較の自前実装は禁止。起動引数 <code>reverse_worktree</code>・<code>freeze_commit</code> も併せて受け取り、Phase 9 の凍結検証に用いる。L1〜L5 はそれぞれ次を確認する検証レベルである。</p>
   <table class="spec">
     <tr><th>レベル</th><th>確認内容</th></tr>
     <tr><td>L1 起動確認</td><td>アプリが起動し、render-ready（初期表示が完了し読み込み中表示が消えた状態）に到達しているか。失敗時は L2 以降を評価せず、後述の <span class="tag mode">DESIGN-INCOMPLETE</span> 等として扱う（単独の失敗クラスとしては計上しない）</td></tr>
@@ -204,7 +204,7 @@
   </table>
 
   <h3>Phase 9: 凍結検証と最終報告の定量欄</h3>
-  <p><code>scripts/check-freeze.sh</code> で Phase 6 の凍結コミットハッシュと現状（HEAD・作業ツリー）を突合する。<span class="tag pass">PASS</span> = HEAD 一致かつ作業ツリークリーン、<span class="tag fail">FAIL</span> = 不一致（結果全体を無効宣言）。最終報告には DESIGN.md トークン適用率（n/m）・対象ファイル型エラー数・L3 画素差分値（証跡パス付き）を必須記載する。書式全体は <a href="#s7">§7 報告フォーマット</a> と <code>references/report-format.md</code> を参照。</p>
+  <p>起動引数 <code>reverse_worktree</code>・<code>freeze_commit</code> を用いて <code>scripts/check-freeze.sh &lt;reverse_worktree&gt; &lt;freeze_commit&gt;</code> を実行し、現状（HEAD・作業ツリー）と突合する。<span class="tag pass">PASS</span> = HEAD 一致かつ作業ツリークリーン、<span class="tag fail">FAIL</span> = 不一致（結果全体を無効宣言）。最終報告には DESIGN.md トークン適用率（n/m）・対象ファイル型エラー数・L3 画素差分値（証跡パス付き）を必須記載する。書式全体は <a href="#s7">§7 報告フォーマット</a> と <code>references/report-format.md</code> を参照。</p>
 
   <div class="constraint">
     <strong>目的の分離:</strong> コードを直すことは目的ではない。フィードバック先は (a) 当該画面設計書の該当章（役割キー）、(b) 欠落が汎用的ならテンプレート自体の記載粒度改善の 2 つ。
@@ -237,7 +237,7 @@
   <table class="spec">
     <tr><th>項目</th><th>内容</th></tr>
     <tr><td>mode=implement の起動引数</td><td><code>screen_dir</code>・<code>scope</code>・<code>reverse_worktree</code>・<code>ports</code>・<code>baseline_tag_status</code>・<code>docs_root</code>・<code>template_root</code>・<code>audit_script_path</code>・<code>chapter_map_path</code>・<code>user-approved</code></td></tr>
-    <tr><td>mode=judge の起動引数</td><td><code>screen_dir</code>・<code>compare_result</code></td></tr>
+    <tr><td>mode=judge の起動引数</td><td><code>screen_dir</code>・<code>compare_result</code>・<code>reverse_worktree</code>・<code>freeze_commit</code></td></tr>
     <tr><td>環境値の取得元</td><td>管理者が事前解決した args（env_block）。本スキルは自ら取得・導出しない</td></tr>
     <tr><td>比較エンジン</td><td>自前実装しない。<code>mode=judge</code> は起動引数 <code>compare_result</code> のみを判定根拠とする</td></tr>
     <tr><td>1 起動の単位</td><td>1 起動 = 1 往復（mode どちらか一方のみ）。設計書修正後の再往復は管理者による再起動として扱う</td></tr>
@@ -255,9 +255,9 @@
 <span class="cap">Phase 6</span> 凍結コミット ── push禁止・ハッシュ確定・status=NEED-COMPARE と compare_request を返して終了
 
 <span class="cap">mode=judge</span>
-<span class="cap">Phase 7</span> 答え合わせ ── 起動引数 compare_result を判定根拠に評価
+<span class="cap">Phase 7</span> 答え合わせ ── 起動引数 compare_result・reverse_worktree・freeze_commit を判定根拠に評価
 <span class="cap">Phase 8</span> NG分類 → フィードバック ── 修正指示書のみ・修正禁止
-<span class="cap">Phase 9</span> 証跡保存 + 最終報告 ── check-freeze.sh・基準タグ更新は管理者が実施
+<span class="cap">Phase 9</span> 証跡保存 + 最終報告 ── check-freeze.sh(reverse_worktree, freeze_commit)・基準タグ更新は管理者が実施
 </pre>
   <table class="spec">
     <tr><th>Phase</th><th>完了条件</th></tr>

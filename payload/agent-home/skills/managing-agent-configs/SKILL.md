@@ -26,7 +26,7 @@ allowed-tools: [Bash, Read, Write, Edit, Grep, Glob, Agent, AskUserQuestion]
 | スキル・SKILL.md・create a skill | `skills` | `~/agent-home/skills/<name>/SKILL.md` |
 | フック・hook・settings.json の hooks | `hooks` | 配置 4 象限（`references/hooks/conventions.md` 参照） |
 | ルール・rule・`~/.claude/rules/` | `rules` | `<category>-rules/rule.md` |
-| ルーティン・routine・/schedule・CronCreate | `routines` | `~/agent-home/routines/<project>/routines/<name>/` |
+| ルーティン・routine・/schedule・CronCreate | `routines` | `~/agent-home/routines/<name>/`（個別ルーティン）/ `~/agent-home/routines/_projects/<project>/`（プロジェクト共通プロファイル） |
 | サブエージェント・agent・`~/.claude/agents/` | `subagents` | `~/.claude/agents/<name>/<name>.md` |
 
 判定が曖昧な場合はユーザーに確認する。誤判定のまま進めると誤った `references/<type>/` をロードしてしまう。
@@ -88,7 +88,7 @@ allowed-tools: [Bash, Read, Write, Edit, Grep, Glob, Agent, AskUserQuestion]
 
 **重要**: test モードはセルフ再読で代替してはならない。バイアスや実機固有バグ（シェル変数展開・パイプ・エスケープ等）は新規コンテキストでしか検出できない。サブエージェントをディスパッチできない環境では「empirical evaluation skipped: dispatch unavailable」と明示してスキップする。
 
-### テスト完了マーカー
+### テスト完了マーカー（ハッシュ照合方式）
 
 テスト全項目 PASS の場合、以下の Bash コマンドを実行してコミットゲートのマーカーを書き出す（`<type>` は `skills` / `rules` / `routines` / `hooks` のいずれか）。`skills` 種別はマーカー書き出しの前提として `manage-portal.mjs verify` の exit 0 も必須（`testing.md` の「整合性ゲート」セクション参照）:
 
@@ -98,12 +98,23 @@ needed=$(ls -t \
   "$(git rev-parse --show-toplevel 2>/dev/null)/.claude/markers/"*/managing-agent-configs-$type-needed \
   ${TMPDIR:-/tmp}/claude-hooks/*/managing-agent-configs-$type-needed \
   2>/dev/null | head -1)
-[ -n "$needed" ] && touch "${needed%-needed}-test-passed"
+if [ -n "$needed" ]; then
+  . "$HOME/agent-home/tools/hooks/lib/marker-path.sh"
+  root=$(git rev-parse --show-toplevel)
+  ( cd "$root" && git status --porcelain=v1 | sed 's/^...//' | sed 's/.* -> //' \
+    | while IFS= read -r f; do
+        [ "$(managed_asset_type "$f")" = "$type" ] && [ -f "$f" ] && shasum -a 256 "$f"
+      done ) > "${needed%-needed}-test-passed"
+fi
 ```
 
 このコマンドは PostToolUse の `managing-review-gate.sh` が編集検知時に作成した `-needed` マーカーと同一ディレクトリに `-test-passed` を置く。`marker_path` の解決先（worktree では `<worktree_root>/.claude/markers/<session>/`、非 worktree では `${TMPDIR:-/tmp}/claude-hooks/<session>/`）と一致するため、置き場ズレによる commit の誤ブロックが起きない。
 
-マーカー機構は 2 つの hook で成り立つ。`managing-review-gate.sh`（PostToolUse(Write|Edit|MultiEdit)）が managed ファイルの編集を検知した時点で `-needed` マーカーを付与し、既存の `-test-passed` マーカーを無効化する（編集後は再テストが必要なため）。`managing-commit-gate.sh`（PreToolUse(Bash)）がこの `-test-passed` マーカーの有無で `git commit` の許可を判定する。マーカーはセッション終了時に `cleanup-session-markers.sh` で自動削除される。`subagents` 種別は commit gate の対象外のためマーカー書き出し不要。
+`-test-passed` マーカーは空 touch ではなく、当該種別の managed ファイルそれぞれの現在の内容ハッシュ（`shasum -a 256` 形式、`<sha256>  <relpath>` の行列挙）を記録する。`managing-commit-gate.sh`（PreToolUse(Bash)）は commit 時に staged 内容のハッシュを再計算し、このマーカー記録と突合する。一致しなければ「stale」として block する（マーカー記録後に対象ファイルが再編集されたことを意味する）。
+
+マーカー機構は 2 つの hook で成り立つ。`managing-review-gate.sh`（PostToolUse(Write|Edit|MultiEdit)）が managed ファイルの編集を検知した時点で `-needed` マーカーを付与する（`-test-passed` の削除は行わない。stale 判定は commit-gate のハッシュ突合が担う）。`managing-commit-gate.sh`（PreToolUse(Bash)）がこの `-test-passed` マーカーの有無とハッシュ一致で `git commit` の許可を判定する。マーカーはセッション終了時に `cleanup-session-markers.sh` で自動削除される。`subagents` 種別は commit gate の対象外のためマーカー書き出し不要。
+
+監視パスの正本は `~/agent-home/tools/hooks/lib/marker-path.sh` の `managed_asset_type()`。新しい managed ディレクトリを追加する場合はこの関数を更新する。
 
 ## 完了条件
 

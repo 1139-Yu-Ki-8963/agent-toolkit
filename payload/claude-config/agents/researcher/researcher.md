@@ -37,3 +37,7 @@ model: claude-sonnet-5
 - **情報源**: 使用したツールとソース
 - **発見事項**: 構造化された調査結果
 - **信頼度**: 情報の確度（公式ドキュメント / コミュニティ情報 / 推測）
+
+## 前提 MCP サーバー
+
+tavily / context7 / deepwiki / serena / readability の 5 依存を前提とする。context7・serena は Claude Code plugins（claude-plugins-official）の `.mcp.json` で構成済み。tavily・deepwiki・readability は構成先が環境依存であり、未構成の環境では該当ツールが使えず縮退動作となる。

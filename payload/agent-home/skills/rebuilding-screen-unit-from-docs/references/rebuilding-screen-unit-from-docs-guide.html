@@ -3,7 +3,7 @@
   rebuilding-screen-unit-from-docs スキルガイド
 
   設計書だけから1ファイルを再生成し元ファイルと軽量突合して設計書の欠落を発見する
-  stage1（単体観点・from-zero）スキルの解説。SKILL.md / references 配下の仕様のみを
+  スキル（単体観点・from-zero）の解説。SKILL.md / references 配下の仕様のみを
   転記する（創作なし）。
 -->
 <html lang="ja">
@@ -116,19 +116,19 @@
 
 <header>
   <h1>設計書精度検証のための単体ファイル再構築<br><span class="skill-name">rebuilding-screen-unit-from-docs</span></h1>
-  <p>設計書だけから1ファイルを再生成し、元ファイルと軽量突合して設計書の欠落を発見する stage1（単体観点・from-zero）スキル。</p>
+  <p>設計書だけから1ファイルを再生成し、元ファイルと軽量突合して設計書の欠落を発見するスキル（単体観点・from-zero）。</p>
 
   <div class="def">
     <dt>こんな人向け</dt>
     <dd>from-zero でリバース設計書の記載粒度をファイル単位でブートストラップしたい人。既存の画面詳細設計書.md が「1 ファイル分だけ」正しく書けているかを軽量に検証したい人。</dd>
     <dt>こんな場面で使う</dt>
-    <dd>ファイル単位の往復検証・from-zero での設計書品質ブートストラップを行うとき。画面単位の結合・e2e 検証（Playwright スモーク・複数ファイル横断の突合）は後続の stage2、環境同期・基準タグ運用は後続工程の対象であり、本スキルの対象外。</dd>
+    <dd>ファイル単位の往復検証・from-zero での設計書品質ブートストラップを行うとき。画面単位の結合・e2e 検証（Playwright スモーク・複数ファイル横断の突合）は後続の画面単位検証、環境同期・基準タグ運用は後続工程の対象であり、本スキルの対象外。</dd>
   </div>
 
   <table class="meta-table">
     <tr><td>対応 OS</td><td>Windows WSL2 環境</td></tr>
     <tr><td>検証状況</td><td>実機検証済み</td></tr>
-    <tr><td>依存</td><td>管理者: orchestrating-reverse-docs-flow（args 配布・合格後の stage2 引き継ぎ判断）</td></tr>
+    <tr><td>依存</td><td>管理者: orchestrating-reverse-docs-flow（args 配布・合格後の画面単位検証への引き継ぎ判断）</td></tr>
     <tr><td>関連資料</td><td><code>references/phase-details.md</code>, <code>references/ng-classification.md</code>, orchestrating-reverse-docs-flow の契約（<code>references/contract.md</code>）</td></tr>
   </table>
 </header>
@@ -137,7 +137,7 @@
   <div class="toc-title">目次</div>
   <ol>
     <li><a href="#s1">概要</a></li>
-    <li><a href="#s2">位置づけ（stage1 / stage2 パイプライン）</a></li>
+    <li><a href="#s2">位置づけ（ファイル単位検証 / 画面単位検証 パイプライン）</a></li>
     <li><a href="#s3">使い方</a></li>
     <li><a href="#s4">カンニング防止（二層）</a></li>
     <li><a href="#s5">動作フロー（P1〜P7）</a></li>
@@ -150,11 +150,11 @@
 
 <section id="s1">
   <h2><span class="sec-num">§1</span>概要</h2>
-  <p>リバース設計書（<code>assets/リバース検証/画面/詳細設計/</code> 準拠）の往復検証を、<strong>「1 起動 = 1 ファイル・単体観点・from-zero」</strong>で行う stage1 スキル。設計書は 16 種類の<strong>章の役割キー</strong>（各章に付けられた意味分類ラベル）で構成され、本文で使う「既定 §n」という表記は、各役割キーがテンプレート上で通常割り当てられる章番号を指す注記である（正の識別子は章番号ではなく役割キーであり、個別の設計書では番号がずれる場合がある）。画面単位・結合観点・e2e の検証は行わず、後続の画面単位検証工程（stage2）へ引き継ぐ（引き継ぎは orchestrating-reverse-docs-flow が案内する）。stage1 で設計書の記載粒度をファイル単位でブートストラップする。</p>
+  <p>リバース設計書（<code>assets/リバース検証/画面/詳細設計/</code> 準拠）の往復検証を、<strong>「1 起動 = 1 ファイル・単体観点・from-zero」</strong>で行うスキル。設計書は 16 種類の<strong>章の役割キー</strong>（各章に付けられた意味分類ラベル）で構成され、本文で使う「既定 §n」という表記は、各役割キーがテンプレート上で通常割り当てられる章番号を指す注記である（正の識別子は章番号ではなく役割キーであり、個別の設計書では番号がずれる場合がある）。画面単位・結合観点・e2e の検証は行わず、後続の画面単位検証工程へ引き継ぐ（引き継ぎは orchestrating-reverse-docs-flow が案内する）。本スキルで設計書の記載粒度をファイル単位でブートストラップする。</p>
   <div class="constraint">
     <strong>目的の分離:</strong> コードを直すことは目的ではない。P5 の差分は「コードの誤り」ではなく「設計書の記載不足」として扱い、フィードバック先は当該設計書の該当章（役割キー）。設計書に対象ファイルの記載自体が無い場合は、ひな形から新規作成してよい（from-zero）。
   </div>
-  <p>比較エンジンは自前実装する。重い環境同期・基準タグ運用（後続工程の責務）には委譲しない（stage1 は 1 ファイル規模の軽量往復であり、画面単位の環境同期は過剰）。</p>
+  <p>比較エンジンは自前実装する。重い環境同期・基準タグ運用（後続工程の責務）には委譲しない（本スキルは 1 ファイル規模の軽量往復であり、画面単位の環境同期は過剰）。</p>
   <h3>設計原則</h3>
   <ol>
     <li><strong>正本一元化</strong>: 環境固有値（ポート・worktree パス）には触れない。画面固有値の正は設計書 frontmatter。本スキル専用の config.yml は新設しない</li>
@@ -165,10 +165,10 @@
 </section>
 
 <section id="s2">
-  <h2><span class="sec-num">§2</span>位置づけ（stage1 / stage2 パイプライン）</h2>
-  <p>本スキルは、リバースドキュメント生成からコード再構築に至る一連のパイプラインのうち、設計書のファイル単位ブートストラップを担う stage1 に位置する。</p>
+  <h2><span class="sec-num">§2</span>位置づけ（ファイル単位検証 / 画面単位検証 パイプライン）</h2>
+  <p>本スキルは、リバースドキュメント生成からコード再構築に至る一連のパイプラインのうち、設計書のファイル単位ブートストラップを担う工程に位置する。</p>
   <figure class="diagram">
-    <svg viewBox="0 0 980 220" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="stage1/stage2 パイプライン図">
+    <svg viewBox="0 0 980 220" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="ファイル単位検証/画面単位検証 パイプライン図">
       <defs>
         <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
           <path d="M0,0 L10,5 L0,10 z" fill="#1a1a1a"/>
@@ -180,17 +180,17 @@
       <text x="116" y="104" text-anchor="middle" font-size="13" font-weight="700" fill="#1a1a1a">画面一覧生成</text>
       <text x="116" y="126" text-anchor="middle" font-size="10.5" fill="#777">画面一覧.HTML 作成</text>
 
-      <!-- Box 2: rebuilding-screen-unit-from-docs (stage1・本スキル) -->
+      <!-- Box 2: rebuilding-screen-unit-from-docs（本スキル） -->
       <rect x="266" y="44" width="220" height="132" rx="8" fill="#e8eef7" stroke="#2a4a7a" stroke-width="2"/>
-      <text x="376" y="86" text-anchor="middle" font-size="13" font-weight="700" fill="#2a4a7a">本スキル（stage1）</text>
+      <text x="376" y="86" text-anchor="middle" font-size="13" font-weight="700" fill="#2a4a7a">本スキル</text>
       <text x="376" y="108" text-anchor="middle" font-size="10.5" font-family="ui-monospace,monospace" fill="#2a4a7a">rebuilding-screen-unit</text>
       <text x="376" y="122" text-anchor="middle" font-size="10.5" font-family="ui-monospace,monospace" fill="#2a4a7a">-from-docs</text>
       <text x="376" y="144" text-anchor="middle" font-size="10.5" fill="#3a5a8a">単体・ファイル単位</text>
       <text x="376" y="160" text-anchor="middle" font-size="10.5" fill="#3a5a8a">from-zero ブートストラップ</text>
 
-      <!-- Box 3: 画面単位・結合/e2e 検証工程 (stage2) -->
+      <!-- Box 3: 画面単位・結合/e2e 検証工程 -->
       <rect x="536" y="60" width="220" height="100" rx="8" fill="#f0f0ee" stroke="#999" stroke-width="1.5"/>
-      <text x="646" y="104" text-anchor="middle" font-size="13" font-weight="700" fill="#1a1a1a">stage2（結合・e2e）</text>
+      <text x="646" y="104" text-anchor="middle" font-size="13" font-weight="700" fill="#1a1a1a">画面単位検証（結合・e2e）</text>
       <text x="646" y="126" text-anchor="middle" font-size="10.5" fill="#777">画面単位・Playwright スモーク</text>
 
       <!-- Box 4: 環境同期・比較エンジン工程 -->
@@ -207,9 +207,9 @@
       <text x="509" y="102" text-anchor="middle" font-size="9.5" fill="#555">合格ファイル</text>
       <text x="779" y="102" text-anchor="middle" font-size="9.5" fill="#555">呼び出し契約</text>
 
-      <text x="490" y="205" text-anchor="middle" font-size="10.5" fill="#777">1 起動 = 1 ファイル（stage1） → 1 起動 = 1 画面・結合検証（stage2） → 環境同期・比較エンジン</text>
+      <text x="490" y="205" text-anchor="middle" font-size="10.5" fill="#777">1 起動 = 1 ファイル（ファイル単位検証） → 1 起動 = 1 画面・結合検証（画面単位検証） → 環境同期・比較エンジン</text>
     </svg>
-    <figcaption>画面一覧生成 → 本スキル（stage1・ファイル単位ブートストラップ） → stage2（画面単位・結合/e2e） → 環境同期の順で引き継がれる。引き継ぎの起動判断は管理者 orchestrating-reverse-docs-flow が行う。矢印はクリックで拡大できる。</figcaption>
+    <figcaption>画面一覧生成 → 本スキル（ファイル単位ブートストラップ） → 画面単位検証（画面単位・結合/e2e） → 環境同期の順で引き継がれる。引き継ぎの起動判断は管理者 orchestrating-reverse-docs-flow が行う。矢印はクリックで拡大できる。</figcaption>
   </figure>
   <p class="note">本スキルが直接読み書きするのは起動引数で受け取る資産（章役割キー対応表・監査スクリプト・テンプレート）のみ。環境同期・比較エンジンは後続工程の担当であり、本スキルからは呼び出さない。</p>
 </section>
@@ -224,7 +224,7 @@
     <tr><td>起動引数</td><td>画面ディレクトリ + 対象ファイルパス（実装契約章のファイル分割表〔既定 §15.1〕の 1 エントリ）</td></tr>
     <tr><td>比較エンジン</td><td>自前実装（<code>scripts/measure-file-diff.sh</code>）。後続工程の環境同期には委譲しない</td></tr>
     <tr><td>1 起動の単位</td><td>1 起動 = 1 ファイルの往復。画面内の別ファイルは本スキルの再起動として扱う</td></tr>
-    <tr><td>合格後の遷移</td><td>合格した画面から stage2 の画面単位・結合検証へ引き継ぐ（引き継ぎ判断は orchestrating-reverse-docs-flow が行う）</td></tr>
+    <tr><td>合格後の遷移</td><td>合格した画面から後続の画面単位検証（結合検証）へ引き継ぐ（引き継ぎ判断は orchestrating-reverse-docs-flow が行う）</td></tr>
   </table>
 </section>
 
@@ -359,7 +359,7 @@
     <strong>from-zero:</strong> §15.1 に対象ファイルが存在せず設計書側にも記載が無い場合、P1 で新規追加を宣言してから P2 以降に進む。ひな形は <code>assets/リバース検証/画面/詳細設計/画面詳細設計書.md</code> のテンプレ構造に従う。単体テスト観点表に対応する観点が無い場合も同様に、意味キー規約（連番禁止・内容要約キー）に沿って最低限の行を追記してから進める。
   </div>
   <div class="constraint">
-    <strong>実測が要る断定の scope 境界（P3）:</strong> 初期表示値・DOM 配置順序・要素位置・レイアウトなど、実行時の観測（Playwright 実測等）でしか正しく決められない断定は、stage1 の from-zero では <code>[stage2で実測]</code> プレースホルダに留める。stage1 が確定させるのは静的に決定可能な宣言的契約（型・import・export・Props 名・API 契約形・ロジック構造・定数値）に限定し、実測は Playwright を持つ stage2 に委ねる。
+    <strong>実測が要る断定の scope 境界（P3）:</strong> 初期表示値・DOM 配置順序・要素位置・レイアウトなど、実行時の観測（Playwright 実測等）でしか正しく決められない断定は、本スキルの from-zero では <code>[画面単位検証で実測]</code> プレースホルダに留める。本スキルが確定させるのは静的に決定可能な宣言的契約（型・import・export・Props 名・API 契約形・ロジック構造・定数値）に限定し、実測は Playwright を持つ画面単位検証に委ねる。
   </div>
 </section>
 
@@ -376,7 +376,7 @@
   <div class="constraint">
     <strong>重大違反:</strong> import diff だけでの合格判定は重大違反とする。5 計測はすべて出力し、いずれか 1 つでも省略してはならない。
   </div>
-  <p class="note"><code>measure-file-diff.sh</code> の verdict は生シグナルである。差分のうち <code>[stage2で実測]</code> に該当する実測委譲差分（初期表示値・DOM 順・位置・レイアウト起因）は収束判定の分母から除外し、静的な宣言的契約由来の差分のみで PASS/FAIL を判定する。</p>
+  <p class="note"><code>measure-file-diff.sh</code> の verdict は生シグナルである。差分のうち <code>[画面単位検証で実測]</code> に該当する実測委譲差分（初期表示値・DOM 順・位置・レイアウト起因）は収束判定の分母から除外し、静的な宣言的契約由来の差分のみで PASS/FAIL を判定する。</p>
   <h3>measure-file-diff.sh の入出力</h3>
   <table class="spec">
     <tr><th>項目</th><th>内容</th></tr>
@@ -438,12 +438,12 @@
   <table class="spec">
     <tr><th>資料</th><th>役割</th></tr>
     <tr><td>references/phase-details.md</td><td>P4 サブエージェント委任 prompt 骨格・5 計測の算出方法・P6 差分分類マップ・修正指示書の書式</td></tr>
-    <tr><td>references/ng-classification.md</td><td>検出シグナル→失敗クラス→章（役割キー）帰着のマッピング（stage1 版）</td></tr>
+    <tr><td>references/ng-classification.md</td><td>検出シグナル→失敗クラス→章（役割キー）帰着のマッピング</td></tr>
     <tr><td>起動引数 chapter_map_path</td><td>章の役割キー→節キーワード対応表（正本。管理者が配布）</td></tr>
     <tr><td>起動引数 audit_script_path</td><td>実装契約章のファイル分割表取得・内部整合性監査</td></tr>
     <tr><td>起動引数 template_root 起点の <code>画面/詳細設計/画面詳細設計書.md</code></td><td>章の役割キー（16 種、既定 §1〜§16）テンプレート</td></tr>
     <tr><td>起動引数 template_root 起点の <code>画面/詳細設計/単体テスト観点表.md</code></td><td>単体テスト観点表テンプレート</td></tr>
-    <tr><td>失敗クラス台帳</td><td>stage1・stage2 共通の正本（テンプレ昇格条件に合致した場合に追記。所在は管理者経由で取得する）</td></tr>
+    <tr><td>失敗クラス台帳</td><td>ファイル単位検証・画面単位検証 共通の正本（テンプレ昇格条件に合致した場合に追記。所在は管理者経由で取得する）</td></tr>
     <tr><td>意味キー規約</td><td>連番 ID 禁止・意味語キー必須の正本</td></tr>
   </table>
 </section>

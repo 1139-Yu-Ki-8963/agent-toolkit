@@ -70,7 +70,7 @@ UserPromptSubmit。すべて `jq -r '.prompt' | grep -qiE '...' && printf '<json
 
 - ねらい: 「フロー図」「シーケンス図」「diagram」等を検出したら drawio に誘導
 - マッチ: 多数の日本語図名 + 英語の diagram/flowchart/mockup/wireframe + `\.drawio`
-- 出力: `[DRAWIO] 図・ダイアグラムの作成は必ず ~/agent-home/skills/drawing-diagrams/SKILL.md を参照し .drawio ファイルで生成すること。`
+- 出力: `[DRAWIO] 図・ダイアグラムの作成は必ず ~/agent-home/skills/frontend-design/SKILL.md を参照し .drawio ファイルで生成すること。`
 - timeout: 5
 
 ---
@@ -105,7 +105,7 @@ PostToolUse。`matcher: Write|Edit` で file_path を取り、ファイルを走
 
 ### 5.1 スキル発動ログ
 
-- ねらい: スキル呼び出し時に `~/.claude/session-summaries/.skill-log/{session-id}.jsonl` に `{ts, skill}` を追記
+- ねらい: スキル呼び出し時に `~/agent-home/sessions/.skill-log/{session-id}.jsonl` に `{ts, skill}` を追記
 - マッチ: `matcher: Skill`（PreToolUse）
 - 動作: `tool_input.skill` を抽出 → 1 行 jsonl で append
 - 再帰防止: 先頭で `[ -n "$CLAUDE_HOOK_SUMMARY_RUNNING" ] && exit 0`
@@ -115,16 +115,16 @@ PostToolUse。`matcher: Write|Edit` で file_path を取り、ファイルを走
 
 ### 5.2 セッション要約（SessionEnd）
 
-- ねらい: `/clear` 時に headless `claude -p` でセッション要約 Markdown を `~/.claude/session-summaries/YYYY-MM-DD/{session-id}.md` に書き出す
+- ねらい: `/clear` 時に headless `claude -p` でセッション要約 Markdown を `~/agent-home/sessions/YYYY-MM-DD/<session-id>.md` に書き出す
 - マッチ: SessionEnd（matcher なし、command 内で `reason="clear"` を判定）
 - 動作:
   1. `[ -n "$CLAUDE_HOOK_SUMMARY_RUNNING" ] && exit 0` で再帰即停止
-  2. stdin 全体を `/tmp/session-end.log` にデバッグ追記
+  2. stdin 全体をデバッグログに追記
   3. reason フィルタ
-  4. `~/.claude/session-summaries/.skill-log/{session}.jsonl` を `jq -s 'group_by(.skill)'` で集計
+  4. `~/agent-home/sessions/.skill-log/{session}.jsonl` を `jq -s 'group_by(.skill)'` で集計
   5. transcript jsonl から user/assistant メッセージのみ抽出 + `head -c 200000` で打ち切り
   6. プロンプトを `claude --no-session-persistence -p` に流す（環境変数 `CLAUDE_HOOK_SUMMARY_RUNNING=1` を子プロセスに渡す）
-- 失敗時: stderr を `~/.claude/session-summaries/.errors/{session}.log` に保存し、`{session}.md.error` にコピー
+- 失敗時: stderr をエラーログに保存し、要約ファイルに `.error` サフィックス付きでコピー
 - timeout: 180（claude -p の冷起動を考慮）
 - 出力: なし（exit 0 のみ）
 - 連動: `~/.claude/settings.json` の SessionEnd フック定義

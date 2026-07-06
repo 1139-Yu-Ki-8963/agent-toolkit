@@ -88,6 +88,7 @@ MAIN-DIRECT-WORK-BLOCK / SUBAGENT-DELEGATION-HINT
 MERGE-APPROVAL-STALE / LOOP-DETECTED / SESSION-CONTEXT-LARGE / MERGE-APPROVAL-FETCH-FAILED
 CURL-EGRESS-BLOCK / HAIKU-FILE-GUARD-BLOCK
 PHASE-TASK-BLOCK / STEP-TASK-FORMAT
+MANAGING-REVIEW-REQUIRED / MANAGING-COMMIT-BLOCK / MANAGING-GATE-DISABLED
 ```
 
 新規 TAG は上記と被らない名前を選び、追加時はこの一覧にも追記する。
@@ -126,11 +127,13 @@ PHASE-TASK-BLOCK / STEP-TASK-FORMAT
 
 例外（誤ブロック対象外）: React の `src/hooks/`、`.husky/`、`.git/hooks/`、`node_modules/**/hooks/` は `.claude/` も `agent-home/` も経由しないため自動的に対象外。
 
+ゲート監視パスの正本は `~/agent-home/tools/hooks/lib/marker-path.sh` の `managed_asset_type()`。本表と乖離した場合は関数側を正とする。
+
 ### 配置後の必須登録
 
 新規 hook を作成したら、同じターン内で次を実施する。
 
-1. `~/agent-home/ai-management-portal/hooks.html` の `HOOKS` 配列に登録（file / group / matcher / role）
+1. `~/agent-home/ai-management-portal/catalog/hooks.html` の `HOOKS` 配列に登録（file / group / matcher / role）
 2. 配置先の rule.md 内に `## 設計判断` セクションを記載（必要性・代替案不採用理由・保守責任者・廃棄条件）
 3. `settings.json` の対応イベントに command path を登録
 

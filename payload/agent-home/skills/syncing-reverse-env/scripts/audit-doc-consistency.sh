@@ -148,7 +148,7 @@ fi
 # 2. 陳腐化 grep
 # ---------------------------------------------------------------------------
 
-TARGET_DIRS=("${AGENT_HOME}/skills/syncing-reverse-env" "${AGENT_HOME}/skills/rebuilding-code-from-docs")
+TARGET_DIRS=("${AGENT_HOME}/skills/syncing-reverse-env")
 
 stale_hits="$(
   grep -rnE '7 項目|10 項目|10/10' "${TARGET_DIRS[@]}" \
