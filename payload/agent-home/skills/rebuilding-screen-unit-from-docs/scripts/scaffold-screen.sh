@@ -4,15 +4,19 @@ set -euo pipefail
 # scaffold-screen.sh — リバース検証テンプレートを対象プロジェクトへ展開する
 #
 # 使い方:
-#   scaffold-screen.sh <docs_root> <画面ID> [<画面名>]
+#   scaffold-screen.sh <docs_root> <画面ID> [<画面名>] [<template_root>]
+#   scaffold-screen.sh --verify <docs_root> <画面ID>
+#   scaffold-screen.sh --dry-run <docs_root> <画面ID> [<画面名>] [<template_root>]
 #
 # 引数:
-#   docs_root  設計書展開先ルート（syncing-reverse-env/config.yml の docs_root）
-#   画面ID     画面識別子（例: monthly-report）
-#   画面名     日本語の画面名（省略時は画面IDをそのまま使う）
+#   docs_root     設計書展開先ルート（呼び出し元スキルが起動引数として渡す）
+#   画面ID        画面識別子（例: monthly-report）
+#   画面名        日本語の画面名（省略時は画面IDをそのまま使う）
+#   template_root テンプレート原本ルート（省略時は既定値
+#                 `~/agent-home/skills/orchestrating-reverse-docs-flow/assets/リバース検証` を使う）
 #
 # 処理:
-#   1. テンプレート（rebuilding-code-from-docs/assets/リバース検証/）を特定
+#   1. template_root（引数指定 or 既定値）からテンプレートを特定
 #   2. <docs_root>/画面/screen-<画面ID>/ へ画面単位テンプレートをコピー
 #   3. <docs_root>/プロジェクト共通/ が未存在なら初回コピー
 #   4. 全 .md の <画面ID> <画面名> プレースホルダを sed 置換
@@ -57,15 +61,34 @@ fi
 docs_root="${1:?引数1 docs_root が必要です}"
 screen_id="${2:?引数2 画面ID が必要です}"
 screen_name="${3:-$screen_id}"
+template_root="${4:-$HOME/agent-home/skills/orchestrating-reverse-docs-flow/assets/リバース検証}"
 today="$(date +%Y-%m-%d)"
 
-script_dir="$(cd "$(dirname "$0")" && pwd)"
-template_dir="$(cd "$script_dir/../../rebuilding-code-from-docs/assets/リバース検証" && pwd)"
+# 禁止文字バリデーション（sed 展開先の破壊・部分生成物の混入を防ぐ）
+for _val in "$screen_id" "$screen_name"; do
+  case "$_val" in
+    *"/"*|*"&"*|*"|"*)
+      echo "エラー: 画面ID・画面名に禁止文字（ / & |）を含められません: '$_val'" >&2
+      exit 1 ;;
+  esac
+  case "$_val" in
+    *$'\n'*)
+      echo "エラー: 画面ID・画面名に改行を含められません" >&2
+      exit 1 ;;
+  esac
+done
 
-if [ ! -d "$template_dir" ]; then
-  echo "エラー: テンプレートディレクトリが見つかりません: $template_dir" >&2
+# docs_root は既存必須（タイポによる意図しない新規作成を防ぐ）
+if [ ! -d "$docs_root" ]; then
+  echo "エラー: docs_root が存在しません（タイポ防止のため自動作成しません）: $docs_root" >&2
   exit 1
 fi
+
+if [ ! -d "$template_root" ]; then
+  echo "エラー: テンプレートディレクトリが見つかりません: $template_root" >&2
+  exit 1
+fi
+template_dir="$(cd "$template_root" && pwd)"
 
 screen_dir="$docs_root/画面/screen-${screen_id}"
 common_dir="$docs_root/プロジェクト共通"
@@ -89,14 +112,16 @@ if [ "$DRY_RUN" -eq 1 ]; then
   exit 0
 fi
 
-# 画面単位テンプレートのコピー
+# 画面単位テンプレートのコピー（一時ディレクトリへ展開し、全処理成功時のみ最終位置へ mv する）
 echo "画面テンプレートを展開: $screen_dir"
-mkdir -p "$screen_dir"
-cp -r "$template_dir/画面/詳細設計" "$screen_dir/"
-cp -r "$template_dir/画面/テスト項目書" "$screen_dir/"
-mkdir -p "$screen_dir/検証記録"
+staging="$(dirname "$screen_dir")/.staging-screen-${screen_id}.$$"
+rm -rf "$staging"
+mkdir -p "$staging"
+cp -r "$template_dir/画面/詳細設計" "$staging/"
+cp -r "$template_dir/画面/テスト項目書" "$staging/"
+mkdir -p "$staging/検証記録"
 
-# プロジェクト共通テンプレートのコピー（初回のみ）
+# プロジェクト共通テンプレートのコピー（初回のみ。docs_root 直下の共通領域なので画面ディレクトリとは別扱い）
 if [ -d "$common_dir" ]; then
   echo "プロジェクト共通/ は既に存在するためスキップ: $common_dir"
 else
@@ -104,24 +129,48 @@ else
   cp -r "$template_dir/プロジェクト共通" "$common_dir"
   # プロジェクト共通は画面非依存のため <画面ID>/<画面名> は置換しない
   # （メッセージ定義書.md の記入例行にある <画面名> を誤って書き換えないため）。
-  find "$common_dir" -name '*.md' -type f | while IFS= read -r file; do
-    sed -i.bak "s/<YYYY-MM-DD>/${today}/g" "$file" && rm -f "${file}.bak"
-  done
+  while IFS= read -r file; do
+    ok=1
+    sed -i.bak "s/<YYYY-MM-DD>/${today}/g" "$file" || ok=0
+    rm -f "${file}.bak"
+    if [ "$ok" -eq 0 ]; then
+      rm -rf "$staging"
+      echo "エラー: プレースホルダ置換に失敗しました: $file" >&2
+      exit 1
+    fi
+  done < <(find "$common_dir" -name '*.md' -type f)
 fi
 
-# プレースホルダ置換（GNU/BSD sed 両対応: -i.bak + rm を使用）
+# プレースホルダ置換（GNU/BSD sed 両対応: -i.bak + rm を使用）。一時ディレクトリに対して行う。
 echo "プレースホルダを置換: <画面ID> → $screen_id, <画面名> → $screen_name"
-find "$screen_dir" -name '*.md' -type f | while IFS= read -r file; do
-  sed -i.bak "s/<画面ID>/${screen_id}/g" "$file" && rm -f "${file}.bak"
-  sed -i.bak "s/<画面名>/${screen_name}/g" "$file" && rm -f "${file}.bak"
-  sed -i.bak "s/<YYYY-MM-DD>/${today}/g" "$file" && rm -f "${file}.bak"
-done
+while IFS= read -r file; do
+  ok=1
+  sed -i.bak "s/<画面ID>/${screen_id}/g" "$file" || ok=0
+  sed -i.bak "s/<画面名>/${screen_name}/g" "$file" || ok=0
+  sed -i.bak "s/<YYYY-MM-DD>/${today}/g" "$file" || ok=0
+  rm -f "${file}.bak"
+  if [ "$ok" -eq 0 ]; then
+    rm -rf "$staging"
+    echo "エラー: プレースホルダ置換に失敗しました: $file" >&2
+    exit 1
+  fi
+done < <(find "$staging" -name '*.md' -type f)
 
 # 相対パス補正: テンプレートは 画面/詳細設計/ を想定した ../../プロジェクト共通/... だが、
 # 展開先は 画面/screen-<画面ID>/詳細設計/ で1階層深い。../../../プロジェクト共通/... に補正する。
-find "$screen_dir" -name '*.md' -type f | while IFS= read -r file; do
-  sed -i.bak "s#\\.\\./\\.\\./プロジェクト共通#../../../プロジェクト共通#g" "$file" && rm -f "${file}.bak"
-done
+while IFS= read -r file; do
+  ok=1
+  sed -i.bak "s#\\.\\./\\.\\./プロジェクト共通#../../../プロジェクト共通#g" "$file" || ok=0
+  rm -f "${file}.bak"
+  if [ "$ok" -eq 0 ]; then
+    rm -rf "$staging"
+    echo "エラー: 相対パス補正に失敗しました: $file" >&2
+    exit 1
+  fi
+done < <(find "$staging" -name '*.md' -type f)
+
+# 全処理成功。ここで初めて最終位置へ移動する。
+mv "$staging" "$screen_dir"
 
 # 展開結果の表示
 echo ""

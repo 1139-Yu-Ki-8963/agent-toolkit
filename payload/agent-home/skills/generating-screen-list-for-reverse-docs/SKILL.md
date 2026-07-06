@@ -1,6 +1,6 @@
 ---
 name: generating-screen-list-for-reverse-docs
-description: "既存画面検出→画面一覧HTML生成。 TRIGGER when: 画面一覧作成。 SKIP: 往復検証/同期/実装（→rebuilding-code-from-docs/syncing-reverse-env/orchestrating-dev-flow）。"
+description: "既存画面検出→画面一覧HTML生成。 TRIGGER when: 画面一覧作成。 SKIP: 往復検証/同期/実装。"
 invocation: generating-screen-list-for-reverse-docs
 type: transform
 allowed-tools: [Bash, Read, Write, Edit, Grep, Glob, AskUserQuestion, TaskCreate, TaskUpdate]
@@ -8,9 +8,11 @@ allowed-tools: [Bash, Read, Write, Edit, Grep, Glob, AskUserQuestion, TaskCreate
 
 # 既存画面一覧生成スキル
 
+工程全体は orchestrating-reverse-docs-flow が案内する。本スキルは画面一覧生成のみを担い、単独起動できる（起動引数 source_dir・output_dir を渡せば動く）。
+
 既存コードベースを、スタック調査→検出戦略の宣言→戦略に基づく抽出→整合検証、の順で調査し、「画面」単位にファイルをグルーピングして **画面一覧.HTML**（画面詳細設計書.md の単位を正確に分けるための正本）を作成する。**本スキルの仕事は画面一覧.HTMLの作成のみ**であり、設計書の雛形展開・生成・記入は一切行わない。
 
-`rebuilding-code-from-docs`（既に存在する設計書の往復検証）・`syncing-reverse-env`（環境同期）とは独立して単独動作する。
+他スキルへの依存を持たず、単独で動作する。
 
 ## 設計原則: 固定と可変の分離
 
@@ -71,6 +73,10 @@ allowed-tools: [Bash, Read, Write, Edit, Grep, Glob, AskUserQuestion, TaskCreate
 | Phase 3 | Step 1で `validate-manifest.sh` が全7項目PASS。Step 2のFAIL時修正ループは3回以内 |
 | Phase 4 | Step 1で画面一覧.HTMLが生成され、埋め込みJSONがマニフェストと一致している |
 | **Goal** | 検証済みマニフェストのみからHTMLが生成され、共有/埋め込み/未解決/診断警告が可視化され、設計書単位の判断材料が揃っている |
+
+## 返却
+
+本スキルは orchestrating-reverse-docs-flow の契約に準拠する。完了時に status（`DONE | ERROR`）と artifacts（生成した画面一覧.HTMLのパス）を返す。artifacts[0] を screen_list_html とし、HTML内に埋め込んだマニフェストJSONへの参照を embedded_json_ref として併せて返す。
 
 ## ツールリファレンス
 

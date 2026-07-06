@@ -8,15 +8,15 @@ Phase 8 で使う分類表。表 A は Phase 7（答え合わせ）・Phase 2（
 
 | 検出シグナルキー | 由来 Phase | 判定内容 | 遷移先 |
 |---|---|---|---|
-| 静的実差分 | Phase 7（syncing-reverse-env 静的比較） | ファイル diff に「実差分」として計上された行がある | 表 B の該当失敗クラスへ |
+| 静的実差分 | Phase 7（compare_result 静的比較） | ファイル diff に「実差分」として計上された行がある | 表 B の該当失敗クラスへ |
 | L2構造差 | Phase 7（動的比較 L2） | Playwright 構造スナップショットが完全一致しない | 表 B の該当失敗クラスへ |
 | L3画素差 | Phase 7（動的比較 L3） | 画素比較が config.yml の閾値を超える | 表 B の「スタイル数値差」へ |
 | L4コンソール差 | Phase 7（動的比較 L4） | コンソールエラー集合が一致しない | 表 B の該当失敗クラスへ（多くは API 呼び出し条件・型差、イベント処理挙動差） |
 | L5操作シーケンス差 | Phase 7（動的比較 L5） | 操作シーケンス実行後の postContent（tables/texts）が両環境で不一致 | 表 B の該当失敗クラスへ（多くは イベント処理挙動差・遷移方式・パラメータ差） |
 | P2内部矛盾 | Phase 2（内部整合性監査） | 突合 1〜5 のいずれかで不一致が検出された | 表 B の該当失敗クラスへ。実装を経ずに直接指示書へ |
 | P5発散エラー | Phase 5（自己完結チェック） | 同一エラーシグネチャが 3 連続で再発し発散確定 | エラー内容から表 B の該当失敗クラスを推定 |
-| 描画未到達(両環境) | Phase 7（syncing-reverse-env 返却 `status`） | `status` が `DESIGN-INCOMPLETE`（両環境とも同様に render-ready 未到達。引数不足のスピナー等） | 表 B の「scenarios引数不足」へ |
-| 動的検証不能 | Phase 7（syncing-reverse-env 返却 `status`） | `status` が `DYNAMIC-UNVERIFIED`（MCP・Playwright とも不在で動的検証不能） | 表 B 対象外。NG 計上せず最終報告の注記へ（PASS 扱いにしない） |
+| 描画未到達(両環境) | Phase 7（`compare_result.status`） | `status` が `DESIGN-INCOMPLETE`（両環境とも同様に render-ready 未到達。引数不足のスピナー等） | 表 B の「scenarios引数不足」へ |
+| 動的検証不能 | Phase 7（`compare_result.status`） | `status` が `DYNAMIC-UNVERIFIED`（MCP・Playwright とも不在で動的検証不能） | 表 B 対象外。NG 計上せず最終報告の注記へ（PASS 扱いにしない） |
 
 ## 表 B: 失敗クラス → 一次帰着（役割・既定§） → テンプレ昇格条件
 

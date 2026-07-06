@@ -1,6 +1,6 @@
 ---
 name: syncing-reverse-env
-description: "リバース元/設計書2環境同期・検証・基準コミット。 TRIGGER when: setup/sync/teardown・baseline。 SKIP: 設計書修正（→rebuilding-code-from-docs）。"
+description: "リバース元/設計書2環境同期・検証・基準コミット。 TRIGGER when: setup/sync/teardown・baseline。 SKIP: 設計書修正。"
 invocation: syncing-reverse-env
 type: orchestration
 allowed-tools: [Bash, Read, Write, Edit, Grep, Glob, AskUserQuestion]
@@ -12,9 +12,11 @@ allowed-tools: [Bash, Read, Write, Edit, Grep, Glob, AskUserQuestion]
 
 仕様の正は `references/syncing-reverse-env-guide.html`（確定仕様）。設計判断（ADR）の記録は `references/syncing-reverse-env-concept.html`。
 
+本スキルは orchestrating-reverse-docs-flow の契約（`~/agent-home/skills/orchestrating-reverse-docs-flow/references/contract.md`）に準拠し、args 全量指定・対話ゼロで単独起動できる。
+
 ## 使用タイミング
 
-- rebuilding-code-from-docs スキルが Skill ツールで呼び出す。args 全量指定・**対話ゼロで完走**が契約（AskUserQuestion を発行しない）
+- orchestrating-reverse-docs-flow が Skill ツールで呼び出す。args 全量指定・**対話ゼロで完走**が契約（AskUserQuestion を発行しない）
 - 人間が直接起動する。`design-doc` だけ渡せば起動できる
 - worktree のパスは引数で受け取らない。環境は本スキルが命名規則から導出・確保する
 
@@ -27,7 +29,7 @@ allowed-tools: [Bash, Read, Write, Edit, Grep, Glob, AskUserQuestion]
 | `<scope>` | `<system>-<画面ID>`。worktree・ブランチ・基準タグ・ポートスロットの管理単位（共有アプリを画面単位で最大 5 画面まで並行検証するため） |
 | オリジナルコード環境 | 共有オリジナル方式（既定、`original_sharing: by-source-ref`）では worktree 名 `original-code-<system>@<sha8>`（sha8 = 解決済み `source_ref` の先頭 8 文字）を複数画面で共有する読み取り専用コピー。per-scope 選択時、または共有前提条件を満たさず degrade した時は、従来どおり worktree 名 `original-code-<scope>` を画面ごとに用意する。内容を変更しない |
 | 共有オリジナル環境 | 同一 `<system>`・同一の解決済み `source_ref`・同一起動プロファイル・オリジナルがリクエスト独立、の 4 条件をすべて満たす画面群が 1 つの読み取り専用オリジナル worktree を使い回す方式。参照カウント（使用中の reverse 数）が 0 の時だけ teardown で削除できる |
-| リバースコード環境 | worktree 名 `reverse-code-<scope>`、ブランチ `feature/reverse-code-<scope>`。容器は本スキルが用意し、中身は rebuilding-code-from-docs スキルが書く |
+| リバースコード環境 | worktree 名 `reverse-code-<scope>`、ブランチ `feature/reverse-code-<scope>`。容器は本スキルが用意し、中身は呼び出し元（orchestrating-reverse-docs-flow が仲介）が書く |
 | 基準タグ | annotated tag `reverse-baseline/<scope>`。基準コミットの唯一の記録。タグメッセージに検証日と判定サマリ、検証時の解決 `source_ref` SHA（コミットのハッシュ値）を持つ |
 
 ## ポートモデル（`config.yml` が正・プロジェクト非依存）
@@ -164,7 +166,7 @@ git tag -af "reverse-baseline/<scope>" -m "<検証日> 検証PASS: 実差分0 en
 
 ### Phase 8: 結果報告
 
-機械向け返却ブロック（`status` / `mode` / `scope` / `screen_id` / `slot` / `ports`（サービス別 original/reverse 実値） / `original_code` / `reverse_code` / `baseline_tag` / `static_diff` / `dynamic` / `env_check` / `artifacts` / `docs_root`（config.yml から解決した設計書展開先ルート。null の場合はそのまま null を返す） / `hint`）と、ユーザー向け定型文（確認 URL・検証内容・環境情報・再起動手順・片付け方法）の両方を出力する。`status` は `PASS` / `FAIL` / `ERROR` / `INCOMPLETE` のいずれかを取る。`INCOMPLETE` の内訳（設計書の引数・ready 不足による `DESIGN-INCOMPLETE` か、動的検証手段が無い `DYNAMIC-UNVERIFIED` か）はフィールドを増やさず `hint` に記す。`dynamic` には route/scenario 別に render-ready 到達可否・内容一致（L2'）・L2/L3/L4 の結果を含め、`operations` を持つ scenario では L5（操作シーケンス突合。`postContent` の両環境一致可否）も同じ `dynamic` フィールド内に入れ子で含める（新規トップレベルフィールドは追加しない）。`DESIGN-INCOMPLETE` 時の `hint` には「`scenarios` に `query`/`path_params`/`ready` を追加」を出す。ユーザー向け定型文の環境情報には、Phase 2 で自動解決した `allow_mnt_fs` / `node_modules_strategy` / `playwright_exec.mode` / `node_path` の解決結果と根拠（drvfs 検出・MCP 可用性）を含める。`artifacts` の保存先は `<artifacts_root>/<scope>/<実行日時>/`（scenario 別サブディレクトリ）。書式の正は仕様書 §8。setup / teardown / ERROR の早期終了時も返却ブロックの形を保ち、未実施フィールドは「未実施」と記す。FAIL 時の `hint`（差分ファイル → 設計書章マップの対応推定）が rebuilding-code-from-docs スキルの修正ループ入力になる。
+機械向け返却ブロック（`status` / `mode` / `scope` / `screen_id` / `slot` / `ports`（サービス別 original/reverse 実値） / `original_code` / `reverse_code` / `baseline_tag` / `static_diff` / `dynamic` / `env_check` / `artifacts` / `docs_root`（config.yml から解決した設計書展開先ルート。null の場合はそのまま null を返す） / `hint`）と、ユーザー向け定型文（確認 URL・検証内容・環境情報・再起動手順・片付け方法）の両方を出力する。`status` は `PASS` / `FAIL` / `ERROR` / `INCOMPLETE` のいずれかを取る。`INCOMPLETE` の内訳（設計書の引数・ready 不足による `DESIGN-INCOMPLETE` か、動的検証手段が無い `DYNAMIC-UNVERIFIED` か）はフィールドを増やさず `hint` に記す。`dynamic` には route/scenario 別に render-ready 到達可否・内容一致（L2'）・L2/L3/L4 の結果を含め、`operations` を持つ scenario では L5（操作シーケンス突合。`postContent` の両環境一致可否）も同じ `dynamic` フィールド内に入れ子で含める（新規トップレベルフィールドは追加しない）。`DESIGN-INCOMPLETE` 時の `hint` には「`scenarios` に `query`/`path_params`/`ready` を追加」を出す。ユーザー向け定型文の環境情報には、Phase 2 で自動解決した `allow_mnt_fs` / `node_modules_strategy` / `playwright_exec.mode` / `node_path` の解決結果と根拠（drvfs 検出・MCP 可用性）を含める。`artifacts` の保存先は `<artifacts_root>/<scope>/<実行日時>/`（scenario 別サブディレクトリ）。書式の正は仕様書 §8。setup / teardown / ERROR の早期終了時も返却ブロックの形を保ち、未実施フィールドは「未実施」と記す。FAIL 時の `hint`（差分ファイル → 設計書章マップの対応推定）が呼び出し元（orchestrating-reverse-docs-flow が仲介）の修正ループ入力になる。
 完了条件: 返却ブロックと定型文の両方が出力されている
 
 ## ループ設計
@@ -221,7 +223,7 @@ git tag -af "reverse-baseline/<scope>" -m "<検証日> 検証PASS: 実差分0 en
 **代替案を採用しなかった理由**:
 - Bash ツール直叩き: 4 検査 × 対象 4 ファイルの grep/突合をセッション内で都度書くとトークン消費が大きく、検査の再現性が失われる
 - 既存 Makefile ターゲット拡張: 本スキルはプロジェクト非依存のグローバルスキルであり、プロジェクト Makefile には置けない
-- rebuilding-code-from-docs の audit-consistency.sh 拡張: 同スクリプトは設計書 .md の章マップ・観点表突合に特化しており、本スキルの HTML/YAML 構成とは検査対象も正本も異なる
+- 呼び出し元スキルの audit-consistency.sh 拡張: 同スクリプトは設計書 .md の章マップ・観点表突合に特化しており、本スキルの HTML/YAML 構成とは検査対象も正本も異なる
 
 **保守責任者**: 人手（ユーザー）。検査項目キー・config キー・返却フィールドの追加変更時に同時更新する。
 
