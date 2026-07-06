@@ -26,6 +26,17 @@
           }
         ]
       }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$HOME/agent-home/skills/managing-agent-configs/scripts/cleanup-session-markers.sh",
+            "timeout": 5
+          }
+        ]
+      }
     ]
   }
 }
