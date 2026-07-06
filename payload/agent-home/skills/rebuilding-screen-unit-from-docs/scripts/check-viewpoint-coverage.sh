@@ -67,9 +67,16 @@ if [ -z "$SHEET_KEYS" ]; then
 fi
 
 # テストコード内でリテラル言及されているキー集合（固定文字列マッチ）
+# 注意: `grep ... && printf ...` の && 連結は使わない。set -e 下でコマンド置換内の
+# while ループの最終反復が grep 不一致（非ゼロ終了）で終わると、その終了コードが
+# コマンド置換自体の終了コードとして伝播し、診断出力（違反一覧）を出す前にスクリプト
+# 全体が即死する実害を確認したため、if 文（条件が偽でも else が無ければ 0 を返す）に
+# 置き換えて、ループの各反復が必ず 0 で終わるようにしている。
 MENTIONED="$(while IFS= read -r k; do
   [ -z "$k" ] && continue
-  grep -RqF -- "$k" "$CODE" 2>/dev/null && printf '%s\n' "$k"
+  if grep -RqF -- "$k" "$CODE" 2>/dev/null; then
+    printf '%s\n' "$k"
+  fi
 done <<<"$SHEET_KEYS" | sort -u)"
 
 MISSING="$(comm -23 <(printf '%s\n' "$SHEET_KEYS") <(printf '%s\n' "$MENTIONED") || true)"
