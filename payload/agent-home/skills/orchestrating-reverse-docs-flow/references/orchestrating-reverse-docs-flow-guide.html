@@ -126,7 +126,7 @@
   <table class="meta-table">
     <tr><td>対応 OS</td><td>Windows WSL2 環境（統括対象の子スキル群と同一環境）</td></tr>
     <tr><td>検証状況</td><td>SKILL.md を正本として整理（個別の実機検証記録なし）</td></tr>
-    <tr><td>依存</td><td>ツール: Read, Bash, Grep, Glob, AskUserQuestion, TaskCreate, TaskUpdate, Skill, Agent ／ 子スキル: generating-screen-list-for-reverse-docs, syncing-reverse-env, rebuilding-screen-unit-from-docs, rebuilding-code-from-docs ／ スクリプト: <code>~/agent-home/skills/orchestrating-dev-flow/scripts/update-flow-status.sh</code>（共用）</td></tr>
+    <tr><td>依存</td><td>ツール: Read, Bash, Grep, Glob, AskUserQuestion, TaskCreate, TaskUpdate, Skill, Agent ／ 子スキル: generating-screen-list-for-reverse-docs, syncing-reverse-env, rebuilding-screen-unit-from-docs, rebuilding-code-from-docs</td></tr>
     <tr><td>関連資料</td><td><code>SKILL.md</code>、<code>references/contract.md</code>（返却ブロック契約・args仕様・状態判定表の正本）、<code>references/chapter-map.md</code>、<code>assets/リバース検証/</code>、<code>scripts/audit-consistency.sh</code></td></tr>
   </table>
 </header>
@@ -211,7 +211,7 @@
     </tbody>
   </table>
 
-  <p class="note"><code>S1</code> は任意工程。設計書が揃った画面は stage1 をスキップし <code>S2</code>/<code>S3</code> から開始してよい。</p>
+  <p class="note"><code>S1</code> は任意工程。設計書が揃った画面はファイル単位検証をスキップし <code>S2</code>/<code>S3</code> から開始してよい。</p>
 
   <figure class="diagram">
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 400" font-family="system-ui,-apple-system,sans-serif" font-size="12.5">
@@ -280,12 +280,6 @@
 <section id="s3">
   <h2><span class="sec-num">§3</span>9 Phase のワークフロー</h2>
 
-  <p>状態確定後、以下でステータスラインを更新してから Phase を順に進める。</p>
-
-  <pre class="flow"><span class="cap"># Phase 開始時・Step 完了ごとに実行</span>
-bash ~/agent-home/skills/orchestrating-dev-flow/scripts/update-flow-status.sh \
-  &lt;phase&gt; "&lt;phase名&gt;" &lt;step&gt; &lt;total&gt; "&lt;step名&gt;"</pre>
-
   <table class="spec">
     <thead>
       <tr><th>Phase</th><th>内容</th><th>実行条件</th></tr>
@@ -294,11 +288,11 @@ bash ~/agent-home/skills/orchestrating-dev-flow/scripts/update-flow-status.sh \
       <tr><td>Phase 1</td><td>状態判定。実在判定を決定木の順に確認し S0〜S4 を確定。必要な工程だけを 1 つずつ TaskCreate（一括登録禁止）</td><td>常時</td></tr>
       <tr><td>Phase 2</td><td>①画面一覧生成。<code>generating-screen-list-for-reverse-docs</code> を <code>source_dir</code>・<code>output_dir</code> 指定で起動</td><td>S0 時のみ</td></tr>
       <tr><td>Phase 3</td><td>②setup（環境ブロック取得）。<code>syncing-reverse-env</code> を <code>design-doc</code>・<code>mode=setup</code> で起動し env_block を抽出</td><td>常時</td></tr>
-      <tr><td>Phase 4</td><td>③stage1 単体往復。<code>rebuilding-screen-unit-from-docs</code> を対象ファイル1件ごとに繰り返し起動。白紙化のため事前にユーザー承認を取得</td><td>S1（任意工程）</td></tr>
+      <tr><td>Phase 4</td><td>③ファイル単位検証。<code>rebuilding-screen-unit-from-docs</code> を対象ファイル1件ごとに繰り返し起動。白紙化のため事前にユーザー承認を取得</td><td>S1（任意工程）</td></tr>
       <tr><td>Phase 5</td><td>②sync（基準確立）。<code>syncing-reverse-env</code> を <code>design-doc</code>・<code>mode=sync</code> で起動し <code>baseline_tag</code> を確立</td><td>S2 時のみ</td></tr>
       <tr><td>Phase 6</td><td>④implement。<code>rebuilding-code-from-docs</code> を <code>mode=implement</code> で起動し <code>compare_request</code> を取得</td><td>S3 時のみ</td></tr>
       <tr><td>Phase 7</td><td>②sync dry-run（比較）。<code>syncing-reverse-env</code> を <code>design-doc</code>・<code>mode=sync</code>・<code>dry-run</code> で起動し比較結果ブロックを取得</td><td>常時（Phase 6 の後）</td></tr>
-      <tr><td>Phase 8</td><td>④judge。<code>rebuilding-code-from-docs</code> を <code>mode=judge</code>・<code>compare_result</code> で起動し PASS/FAIL を確定</td><td>常時（Phase 7 の後）</td></tr>
+      <tr><td>Phase 8</td><td>④judge。<code>rebuilding-code-from-docs</code> を <code>mode=judge</code>・<code>compare_result</code>・<code>reverse_worktree</code>・<code>freeze_commit</code> で起動し PASS/FAIL を確定</td><td>常時（Phase 7 の後）</td></tr>
       <tr><td>Phase 9</td><td>②sync本番/teardown。<code>syncing-reverse-env</code> を <code>mode=sync</code>・<code>user-approved</code> で起動し基準タグを本番更新。検証終了依頼時は <code>mode=teardown</code></td><td>Phase 8 が PASS のとき（S4）</td></tr>
     </tbody>
   </table>
@@ -327,7 +321,7 @@ bash ~/agent-home/skills/orchestrating-dev-flow/scripts/update-flow-status.sh \
       <tr><td>Phase 5</td><td>syncing-reverse-env</td><td>design-doc, mode=sync</td><td><span class="tag pass">PASS</span></td></tr>
       <tr><td>Phase 6</td><td>rebuilding-code-from-docs</td><td>mode=implement, scope, reverse_worktree, ports, 資産paths, user-approved</td><td><span class="tag mode">NEED-COMPARE</span></td></tr>
       <tr><td>Phase 7</td><td>syncing-reverse-env</td><td>design-doc, mode=sync, dry-run</td><td><span class="tag pass">PASS</span>/<span class="tag fail">FAIL</span>（比較結果）</td></tr>
-      <tr><td>Phase 8</td><td>rebuilding-code-from-docs</td><td>mode=judge, compare_result</td><td><span class="tag pass">PASS</span>/<span class="tag fail">FAIL</span></td></tr>
+      <tr><td>Phase 8</td><td>rebuilding-code-from-docs</td><td>mode=judge, compare_result, reverse_worktree, freeze_commit</td><td><span class="tag pass">PASS</span>/<span class="tag fail">FAIL</span></td></tr>
       <tr><td>Phase 9</td><td>syncing-reverse-env</td><td>design-doc, mode=sync／teardown, user-approved</td><td><span class="tag pass">PASS</span></td></tr>
     </tbody>
   </table>
@@ -361,7 +355,7 @@ bash ~/agent-home/skills/orchestrating-dev-flow/scripts/update-flow-status.sh \
       <tr><td><code>status</code></td><td>enum</td><td>各スキル固有の enum。管理者はこれで go / 差し戻しを判定する</td></tr>
       <tr><td><code>scope</code></td><td>string</td><td><code>&lt;system&gt;-&lt;画面ID&gt;</code>。工程を跨いだ同一性キー</td></tr>
       <tr><td><code>artifacts</code></td><td>path[]</td><td>生成物のパス（画面一覧HTML / 修正指示書.md / 最終報告.md / 証跡ディレクトリ 等）</td></tr>
-      <tr><td><code>hint</code></td><td>string</td><td>次工程への申し送り（差し戻し理由・不足引数・stage2への申し送り 等）</td></tr>
+      <tr><td><code>hint</code></td><td>string</td><td>次工程への申し送り（差し戻し理由・不足引数・後続工程への申し送り 等）</td></tr>
     </tbody>
   </table>
 
@@ -390,12 +384,12 @@ bash ~/agent-home/skills/orchestrating-dev-flow/scripts/update-flow-status.sh \
         </td>
       </tr>
       <tr>
-        <td>rebuilding-screen-unit-from-docs（stage1）</td>
+        <td>rebuilding-screen-unit-from-docs（ファイル単位検証）</td>
         <td><code>CONVERGED | DIVERGED | INTERNAL-CONTRADICTION | BLOCKED</code></td>
-        <td>instruction_doc（修正指示書.md のパス）、stage2_handoff（stage2 で要注意なファイル一覧）</td>
+        <td>instruction_doc（修正指示書.md のパス）、handoff_files（画面単位検証で要注意なファイル一覧）</td>
       </tr>
       <tr>
-        <td>rebuilding-code-from-docs（stage2・mode分割）</td>
+        <td>rebuilding-code-from-docs（画面単位検証・mode分割）</td>
         <td>
           mode=implement: <code>NEED-COMPARE | INTERNAL-CONTRADICTION | ERROR | BLOCKED</code><br>
           mode=judge: <code>PASS | FAIL | DESIGN-INCOMPLETE | DYNAMIC-UNVERIFIED</code>
@@ -424,7 +418,7 @@ bash ~/agent-home/skills/orchestrating-dev-flow/scripts/update-flow-status.sh \
       <tr><td>syncing-reverse-env</td><td>design-doc, mode（setup|sync|teardown）, dry-run, reset-first, user-approved, scenarios, max-loop（既存契約のまま）</td></tr>
       <tr><td>rebuilding-screen-unit-from-docs</td><td>screen_dir, target_file_path, docs_root, template_root, audit_script_path, chapter_map_path, env_block, user-approved</td></tr>
       <tr><td>rebuilding-code-from-docs (mode=implement)</td><td>screen_dir, scope, reverse_worktree, ports, baseline_tag_status, docs_root, template_root, audit_script_path, chapter_map_path, user-approved</td></tr>
-      <tr><td>rebuilding-code-from-docs (mode=judge)</td><td>screen_dir, compare_result</td></tr>
+      <tr><td>rebuilding-code-from-docs (mode=judge)</td><td>screen_dir, compare_result, reverse_worktree, freeze_commit</td></tr>
     </tbody>
   </table>
 
@@ -493,8 +487,8 @@ bash ~/agent-home/skills/orchestrating-dev-flow/scripts/update-flow-status.sh \
     <tbody>
       <tr><td>generating-screen-list-for-reverse-docs</td><td>①画面一覧生成（S0 時に起動）</td></tr>
       <tr><td>syncing-reverse-env</td><td>②環境同期（setup / sync / sync,dry-run / teardown）</td></tr>
-      <tr><td>rebuilding-screen-unit-from-docs</td><td>③stage1 単体往復（S1 任意工程）</td></tr>
-      <tr><td>rebuilding-code-from-docs</td><td>④stage2（implement / judge の2モード分割）</td></tr>
+      <tr><td>rebuilding-screen-unit-from-docs</td><td>③ファイル単位検証（S1 任意工程）</td></tr>
+      <tr><td>rebuilding-code-from-docs</td><td>④画面単位検証（implement / judge の2モード分割）</td></tr>
     </tbody>
   </table>
 
@@ -516,7 +510,6 @@ bash ~/agent-home/skills/orchestrating-dev-flow/scripts/update-flow-status.sh \
       <tr><td><code>assets/リバース検証/</code></td><td>移設済みの共有資産（テンプレート一式）</td></tr>
       <tr><td><code>scripts/audit-consistency.sh</code></td><td>工程間ゲート</td></tr>
       <tr><td><code>references/chapter-map.md</code></td><td>章役割キー対応表</td></tr>
-      <tr><td><code>~/agent-home/skills/orchestrating-dev-flow/scripts/update-flow-status.sh</code></td><td>ステータスライン更新（共用）</td></tr>
     </tbody>
   </table>
 </section>
