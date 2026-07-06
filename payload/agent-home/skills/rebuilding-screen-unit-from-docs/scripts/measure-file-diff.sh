@@ -25,11 +25,17 @@
 #   import_diff_lines == 0 && style_diff_lines == 0 && substantive_diff_lines <= 20
 #
 # 算出方法（heuristic）:
-#   import_diff_lines      : 両ファイルから `^\s*import ` 行を抽出→前後空白除去→
-#                            ソート→diff の差分行数（`^[<>]` 行の数）
-#   style_diff_lines       : className / style 属性・`const *Style` 系変数・
+#   import_diff_lines      : 両ファイルからコメント行を除去→複数行 import を1論理行へ
+#                            結合→ `^\s*import ` 行を抽出→前後空白除去→ソート→
+#                            diff の差分行数（`^[<>]` 行の数）
+#                            （既知の限界: import 抽出は sort -u で重複を畳むため、生成物側にのみ存在する
+#                             重複 import 行は import diff に現れない。重複 import の検出はスコープ外）
+#   style_diff_lines       : コメント行を除去した上で className / style 属性・
 #                            16進カラーコード・px/rem/em/vh/vw 数値を含む行を
 #                            抽出→前後空白除去→ソート→diff の差分行数
+#                            （既知の限界: className / style= を含む行は行全体を対象とするため、同一行内の
+#                             スタイル無関係な属性〔aria-label 等〕の変更も style 差分に乗りうる。JSX 属性値の
+#                             精密抽出は bash では過剰実装のため見送っている）
 #   total_diff_lines       : diff によるファイル全体の差分行数（参考値。
 #                            合格判定には使わない）
 #   substantive_diff_lines : コメント行（// ・/* ・*）と空行を除外し、前後空白を
@@ -73,18 +79,35 @@ trim_whitespace() {
   sed -E 's/^[[:space:]]+//; s/[[:space:]]+$//'
 }
 
+# 行頭が // ・/* ・* で始まるコメント行を除去する。style/import/substantive の
+# いずれの抽出でも、コメント内の px・色コード・import 風文字列を差分として
+# 誤検出しないための共通前処理。
+strip_comments() {
+  grep -vE '^[[:space:]]*(//|/\*|\*)' 2>/dev/null || true
+}
+
+# `import {` で始まり `}` が同一行に無い複数行 import を、閉じ `}` を含む行までを
+# 1 論理行へ結合する。折り返し import の要素欠落を import diff で検出するため。
+normalize_imports() {
+  awk '
+    inimport { buf = buf " " $0; if ($0 ~ /}/) { print buf; inimport=0 }; next }
+    /^[[:space:]]*import[[:space:]]/ && /{/ && $0 !~ /}/ { buf=$0; inimport=1; next }
+    { print }
+  ' 2>/dev/null || true
+}
+
 # --- import diff ---
 extract_imports() {
-  grep -E '^[[:space:]]*import ' "$1" 2>/dev/null | trim_whitespace | sort -u || true
+  strip_comments < "$1" 2>/dev/null | normalize_imports | grep -E '^[[:space:]]*import ' | trim_whitespace | sort -u || true
 }
 IMPORT_DIFF_LINES=$(diff <(extract_imports "$ORIGINAL") <(extract_imports "$GENERATED") | grep -cE '^[<>]' || true)
 
 # --- style diff ---
-# className / style 属性、`const *Style` 系変数、16進カラーコード、
+# className / style 属性、16進カラーコード、
 # px/rem/em/vh/vw 数値を含む行をスタイル定数行とみなす。
-STYLE_PATTERN='className|style[[:space:]]*=|const .*[Ss]tyle|#[0-9a-fA-F]{3,8}|[0-9]+(px|rem|em|vh|vw)'
+STYLE_PATTERN='className|style[[:space:]]*=|#[0-9a-fA-F]{3,8}|[0-9]+(px|rem|em|vh|vw)'
 extract_style_lines() {
-  grep -E "$STYLE_PATTERN" "$1" 2>/dev/null | trim_whitespace | sort -u || true
+  strip_comments < "$1" 2>/dev/null | grep -E "$STYLE_PATTERN" | trim_whitespace | sort -u || true
 }
 STYLE_DIFF_LINES=$(diff <(extract_style_lines "$ORIGINAL") <(extract_style_lines "$GENERATED") | grep -cE '^[<>]' || true)
 
