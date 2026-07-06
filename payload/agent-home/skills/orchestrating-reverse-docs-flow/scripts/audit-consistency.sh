@@ -5,7 +5,7 @@
 #   通常モード: 画面詳細設計書.md の内部整合性を機械的にチェックする。
 #     (a) 機能一覧章の機能キー集合と、frontmatter の unit_test_sheet /
 #         integration_test_sheet が指す観点表の機能キー集合の突合（両方向一致）
-#     (b) 未記入プレースホルダ `<...>` の検出（HTML コメント内は除外）
+#     (b) 未記入プレースホルダ `<...>` の検出（HTML コメント内・fenced code block 内は除外）
 #     (c) 連番キー検出（意味キー規約違反の WARN）
 #     (d) 結合テスト観点表「## 往復検証観点表」の対応失敗クラス網羅チェック（WARN）
 #   --list-contract-files モード: 実装契約章の「ファイル分割」表 1 列目のパス一覧を
@@ -363,28 +363,37 @@ fi
 
 # --- (b) 未記入プレースホルダ検出 ---
 echo ""
-echo "[検査 b] 未記入プレースホルダ検出（HTML コメント外の <...>）"
+echo "[検査 b] 未記入プレースホルダ検出（HTML コメント外・fenced code block 外の <...>）"
 
+# 検出方式: `<...>` の「中身（inner）」で判定する（直前文字による判定は
+# `<T>(x)` や `<Type>value`（旧式アサーション）を見逃すため廃止）。
+# inner が次のいずれかに該当すれば未記入プレースホルダとみなす:
+#   非 ASCII（日本語プレースホルダ）／ YYYY 日付／ HH:MM・MM:SS 等の時刻／
+#   vX.Y バージョン／ 全大文字ハイフン区切り（MSG-ID 等）／ " / " を含む選択肢列挙。
+# TS ジェネリクス（<T>, <T,>, Dispatch<SetStateAction<T>>, Record<string, number>,
+# styled("td")<{...}> 等）は inner がいずれの条件にも該当しないため誤検出しない。
+# 注意: 本テンプレートのプレースホルダは `<画面名>` のように単一バッククォートで
+# 囲むのが標準記法（実測: テンプレート本文の 83 行がこの記法）。バッククォート
+# 区間を丸ごと検出対象から除外する実装は、この標準記法のプレースホルダを大量に
+# 見逃す（実測: 除外ありだと 99 件中 18 件しか検出できない）ため採用しない。
 PLACEHOLDER_LINES=$(awk '
+  /^```/ { in_fence=!in_fence; next }
+  in_fence { next }
   /<!--/ { in_comment=1 }
   {
     line=$0
-    if (in_comment) {
-      if (line ~ /-->/) { in_comment=0 }
-      next
-    }
-    if (line ~ /<[^\/!][^>]*>/ && line ~ /<[^>]+>/) {
-      # frontmatter のプレースホルダ行 <値> のような単純表現を対象
-      if (line ~ /<[^<>]+>/) print NR": "line
+    if (in_comment) { if (line ~ /-->/) in_comment=0; next }
+    rest=line
+    while (match(rest, /<[^\/!<>][^<>]*>/)) {
+      inner=substr(rest, RSTART+1, RLENGTH-2)
+      if (inner ~ /[^ -~]/ || inner ~ /Y{2,4}/ || inner ~ /MM-DD|HH:MM|MM:SS/ \
+          || inner ~ /^v?X\.Y/ || inner ~ /^[A-Z]+(-[A-Z]+)+$/ || inner ~ / \/ /) {
+        print NR": "line; break
+      }
+      rest=substr(rest, RSTART+RLENGTH)
     }
   }
-' "$DESIGN_DOC" | grep -E '<[^<>]+>' |
-  # TypeScript ジェネリクスの誤検出除外: 識別子文字（英数字・アンダースコア・
-  # `]`・`)`）の直後に続く `<` は型パラメータ（例: ReturnType<...>,
-  # Dispatch<SetStateAction<T>>, styled("td")<{...}>）であり未記入プレースホルダ
-  # ではない。当該パターンを含む行は検出対象から除外する。日本語プレースホルダ
-  # （<画面ID> 等）や <YYYY-MM-DD> は '<' 直前に識別子文字が来ないため対象外にならない。
-  grep -vE '[]A-Za-z0-9_)]<' || true)
+' "$DESIGN_DOC" || true)
 
 if [ -n "$PLACEHOLDER_LINES" ]; then
   PLACEHOLDER_COUNT=$(printf '%s\n' "$PLACEHOLDER_LINES" | grep -c .)
@@ -501,6 +510,214 @@ else
       else
         echo "  往復検証観点表の L5 観点（${L5_COUNT} 件）はすべて操作シナリオ仕様書にシナリオが存在します"
       fi
+    fi
+  fi
+fi
+
+# --- (f) §15.1 ファイル分割表の配置ディレクトリ列の記入チェック ---
+echo ""
+echo "[検査 f] §15.1 ファイル分割表の配置ディレクトリ列の記入チェック"
+
+CONTRACT_SECNUM="$(resolve_role_section "実装契約")"
+if [ -z "$CONTRACT_SECNUM" ]; then
+  echo "  エラー: 章マップに役割キー '実装契約' の行が見つかりません: $DESIGN_DOC" >&2
+  exit 1
+fi
+CONTRACT_BODY="$(extract_design_section_body "$CONTRACT_SECNUM")"
+SPLIT_15_1="$(printf '%s\n' "$CONTRACT_BODY" | awk '
+  /^### / && $0 ~ /ファイル分割/ { insub=1; next }
+  /^### / && insub { exit }
+  insub { print }
+')"
+HDR_15_1="$(printf '%s\n' "$SPLIT_15_1" | awk '/^\|/{print; exit}')"
+if printf '%s' "$HDR_15_1" | grep -q '配置ディレクトリ'; then
+  BAD_15_1="$(printf '%s\n' "$SPLIT_15_1" | awk '
+    BEGIN { row=0 }
+    /^\|/ {
+      row++
+      if (row == 1) next
+      if (row == 2 && $0 ~ /^\|[ \t:|\-]+$/) next
+      n = split($0, cols, "|")
+      p = cols[2]; gsub(/^[ \t]+|[ \t]+$/, "", p)
+      d = cols[5]; gsub(/^[ \t]+|[ \t]+$/, "", d)
+      if (d == "" || d ~ /^<.*>$/) print "    - "p" (配置ディレクトリ未記入)"
+    }
+  ')"
+  if [ -n "$BAD_15_1" ]; then
+    echo "  違反: 配置ディレクトリ未記入の行があります" >&2
+    printf '%s\n' "$BAD_15_1" >&2
+    VIOLATIONS=$((VIOLATIONS + 1))
+  else
+    echo "  配置ディレクトリすべて記入済み"
+  fi
+else
+  echo "  配置ディレクトリ列なし（旧テンプレ）。検査 f をスキップします"
+fi
+
+# --- (g) §15.3 依存(import)一覧・内部モジュールの実在確認（WARN） ---
+echo ""
+echo "[検査 g] §15.3 依存(import)一覧・内部モジュールの実在確認（WARN・barrel export 等の誤検出があるため hard fail にしない）"
+
+SPLIT_15_2="$(printf '%s\n' "$CONTRACT_BODY" | awk '
+  /^### / && $0 ~ /型定義/ { insub=1; next }
+  /^### / && insub { exit }
+  insub { print }
+')"
+TYPE_NAMES="$(printf '%s\n' "$SPLIT_15_2" | grep -oE '(type|interface) +[A-Za-z0-9_]+' | awk '{print $2}' | sort -u)"
+
+FILE_BASENAMES="$(printf '%s\n' "$SPLIT_15_1" | awk '
+  BEGIN { row=0 }
+  /^\|/ {
+    row++
+    if (row == 1) next
+    if (row == 2 && $0 ~ /^\|[ \t:|\-]+$/) next
+    n = split($0, cols, "|")
+    p = cols[2]; gsub(/^[ \t]+|[ \t]+$/, "", p)
+    if (p != "" && p !~ /^<.*>$/) print p
+  }
+' | xargs -I{} basename {} 2>/dev/null | sed -E 's/\.[A-Za-z0-9]+$//' | sort -u)"
+
+SPLIT_15_3="$(printf '%s\n' "$CONTRACT_BODY" | awk '
+  /^### / && $0 ~ /依存/ && $0 ~ /import/ { insub=1; next }
+  /^### / && insub { exit }
+  insub { print }
+')"
+INTERNAL_MODULES="$(printf '%s\n' "$SPLIT_15_3" | awk '
+  BEGIN { row=0 }
+  /^\|/ {
+    row++
+    if (row == 1) next
+    if (row == 2 && $0 ~ /^\|[ \t:|\-]+$/) next
+    n = split($0, cols, "|")
+    m = cols[2]; gsub(/^[ \t]+|[ \t]+$/, "", m); gsub(/`/, "", m)
+    t = cols[4]; gsub(/^[ \t]+|[ \t]+$/, "", t)
+    if (t == "内部" && m != "" && m !~ /^<.*>$/) print m
+  }
+')"
+
+UNRESOLVED_IMPORTS=""
+if [ -n "$INTERNAL_MODULES" ]; then
+  while IFS= read -r mod; do
+    [ -z "$mod" ] && continue
+    seg="$(basename "$mod")"
+    seg="${seg%.*}"
+    if ! printf '%s\n' "$FILE_BASENAMES" | grep -qxF "$seg" && ! printf '%s\n' "$TYPE_NAMES" | grep -qxF "$seg"; then
+      UNRESOLVED_IMPORTS="${UNRESOLVED_IMPORTS}${mod}
+"
+    fi
+  done <<< "$INTERNAL_MODULES"
+fi
+
+if [ -n "$(printf '%s' "$UNRESOLVED_IMPORTS" | tr -d '[:space:]')" ]; then
+  echo "  WARN: §15.1/§15.2 に対応が見つからない内部 import があります（barrel export 等の可能性）:" >&2
+  printf '%s\n' "$UNRESOLVED_IMPORTS" | grep . | sort -u | sed 's/^/    - /' >&2
+  WARNINGS=$((WARNINGS + 1))
+else
+  echo "  内部 import はすべて §15.1/§15.2 に対応が見つかりました（または内部 import なし）"
+fi
+
+# --- 状態キーの表記ゆれ検出（WARN・最小: lowercase 完全一致 + 原表記差分のみ） ---
+# 日英ゆれ・同義語は機械判定不能なため対象外とする（Claude レビューのチェックリストに委ねる）。
+echo ""
+echo "[検査] 状態管理キーの表記ゆれ検出（WARN・大小/区切りゆれのみを対象とする最小判定）"
+
+STATE_SECNUM="$(resolve_role_section "状態管理")"
+if [ -z "$STATE_SECNUM" ]; then
+  echo "  WARN: 章マップに役割キー '状態管理' の行が見つかりません。表記ゆれ検査をスキップします" >&2
+  WARNINGS=$((WARNINGS + 1))
+else
+  STATE_BODY="$(extract_design_section_body "$STATE_SECNUM")"
+  STATE_KEYS="$(printf '%s\n' "$STATE_BODY" | grep -oE '`[A-Za-z_][A-Za-z0-9_]*`' | tr -d '`' | sort -u)"
+
+  REST_BODY="$(awk -v pat="^## §${STATE_SECNUM}([^0-9]|\$)" '
+    $0 ~ pat { in_sec=1; next }
+    in_sec && /^## / { in_sec=0 }
+    !in_sec { print }
+  ' "$DESIGN_DOC")"
+  REST_KEYS="$(printf '%s\n' "$REST_BODY" | grep -oE '`[A-Za-z_][A-Za-z0-9_]*`' | tr -d '`' | sort -u)"
+
+  MISMATCHES=""
+  if [ -n "$STATE_KEYS" ] && [ -n "$REST_KEYS" ]; then
+    while IFS= read -r sk; do
+      [ -z "$sk" ] && continue
+      sk_lower="$(printf '%s' "$sk" | tr 'A-Z' 'a-z')"
+      while IFS= read -r rk; do
+        [ -z "$rk" ] && continue
+        [ "$rk" = "$sk" ] && continue
+        rk_lower="$(printf '%s' "$rk" | tr 'A-Z' 'a-z')"
+        if [ "$rk_lower" = "$sk_lower" ]; then
+          MISMATCHES="${MISMATCHES}${sk} (§${STATE_SECNUM}) <-> ${rk}
+"
+        fi
+      done <<< "$REST_KEYS"
+    done <<< "$STATE_KEYS"
+  fi
+
+  if [ -n "$(printf '%s' "$MISMATCHES" | tr -d '[:space:]')" ]; then
+    echo "  WARN: 状態キーの表記ゆれの疑いがあります（大文字小文字・区切り文字違い）:" >&2
+    printf '%s\n' "$MISMATCHES" | grep . | sort -u | sed 's/^/    - /' >&2
+    WARNINGS=$((WARNINGS + 1))
+  else
+    echo "  状態キーの表記ゆれなし"
+  fi
+fi
+
+# --- (h) 起動時初期化（§6.1.1）の記載有無チェック（条件付き WARN） ---
+echo ""
+echo "[検査 h] 起動時初期化（§6.1.1）の記載有無チェック（URL パラメータ実在 かつ 画面専用ストア実在の画面が対象）"
+
+STATE_SECNUM_H="$(resolve_role_section "状態管理")"
+FLOW_SECNUM_H="$(resolve_role_section "データフロー")"
+
+if [ -z "$STATE_SECNUM_H" ] || [ -z "$FLOW_SECNUM_H" ]; then
+  echo "  WARN: 章マップに役割キー '状態管理' または 'データフロー' の行が見つかりません。検査 h をスキップします" >&2
+  WARNINGS=$((WARNINGS + 1))
+else
+  STATE_BODY_H="$(extract_design_section_body "$STATE_SECNUM_H")"
+
+  URL_PARAM_BODY="$(printf '%s\n' "$STATE_BODY_H" | awk '
+    /^### / && $0 ~ /URL パラメータ/ { insub=1; next }
+    /^### / && insub { exit }
+    insub { print }
+  ')"
+  URL_PARAM_ROWS="$(extract_table_column "$URL_PARAM_BODY" 1 | grep -vE '^<.*>$' || true)"
+  URL_PARAM_COUNT=$(printf '%s\n' "$URL_PARAM_ROWS" | grep -c . || true)
+
+  STORE_BODY="$(printf '%s\n' "$STATE_BODY_H" | awk '
+    /^### / && $0 ~ /画面専用ストア/ { insub=1; next }
+    /^### / && insub { exit }
+    insub { print }
+  ')"
+  STORE_TEXT="$(printf '%s\n' "$STORE_BODY" | grep -v '^$' | grep -v '^<!--' || true)"
+  STORE_TEXT_COMPACT="$(printf '%s' "$STORE_TEXT" | tr -d '[:space:]')"
+  if [ -z "$STORE_TEXT_COMPACT" ] \
+     || printf '%s' "$STORE_TEXT" | grep -qE '該当なし' \
+     || printf '%s' "$STORE_TEXT" | grep -qE '^`?<[^<>]*>`?$'; then
+    STORE_FILLED=0
+  else
+    STORE_FILLED=1
+  fi
+
+  if [ "$URL_PARAM_COUNT" -eq 0 ]; then
+    echo "  URL パラメータが無い画面のため検査 h は対象外です"
+  elif [ "$STORE_FILLED" -eq 0 ]; then
+    echo "  画面専用ストアが無い画面のため検査 h は対象外です"
+  else
+    FLOW_BODY_H="$(extract_design_section_body "$FLOW_SECNUM_H")"
+    INIT_BODY="$(printf '%s\n' "$FLOW_BODY_H" | awk '
+      /^#### / && $0 ~ /起動時初期化/ { insub=1; next }
+      insub && /^#### / { exit }
+      insub && /^### / { exit }
+      insub { print }
+    ')"
+    INIT_TEXT="$(printf '%s\n' "$INIT_BODY" | grep -v '^$' | grep -v '^<!--' || true)"
+    INIT_TEXT_COMPACT="$(printf '%s' "$INIT_TEXT" | tr -d '[:space:]')"
+    if [ -z "$INIT_TEXT_COMPACT" ] \
+       || printf '%s' "$INIT_TEXT" | grep -qE '^`?<[^<>]*>`?$'; then
+      echo "  WARN: URL パラメータと画面専用ストアが存在するにもかかわらず §6.1.1 起動時初期化が未記載です" >&2
+      WARNINGS=$((WARNINGS + 1))
+    else
+      echo "  §6.1.1 起動時初期化が記載済みです"
     fi
   fi
 fi
