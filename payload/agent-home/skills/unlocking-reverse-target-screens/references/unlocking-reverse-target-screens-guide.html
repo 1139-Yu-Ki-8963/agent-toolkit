@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>unlocking-reverse-target-screens スキルガイド</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 0 24px 96px;
+    font-family: system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif;
+    line-height: 1.85; color: #1a1a1a; background: #fafafa;
+    max-width: 980px; margin-inline: auto;
+  }
+  header { padding: 56px 0 24px; border-bottom: 3px solid #1a1a1a; }
+  header h1 { font-size: 1.9rem; margin: 0 0 10px; letter-spacing: 0.01em; }
+  header .skill-name {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 1.0rem; background: #1a1a1a; color: #fafafa;
+    padding: 2px 10px; border-radius: 4px; vertical-align: middle;
+  }
+  header p { margin: 6px 0 0; color: #555; }
+  .meta-table { margin-top: 16px; font-size: 0.9rem; color: #555; }
+  .meta-table td { padding: 1px 16px 1px 0; }
+
+  nav.toc {
+    margin-top: 32px; padding: 18px 22px;
+    background: #fff; border: 1px solid #e0e0e0; border-radius: 8px;
+  }
+  nav.toc .toc-title { font-weight: 700; margin-bottom: 6px; }
+  nav.toc ol { margin: 0; padding-left: 1.4em; columns: 2; column-gap: 40px; }
+  nav.toc li { margin: 2px 0; }
+  nav.toc a { color: #1a1a1a; text-decoration: none; border-bottom: 1px dotted #999; }
+  nav.toc a:hover { border-bottom-style: solid; }
+
+  section { margin-top: 64px; }
+  section > h2 {
+    font-size: 1.35rem; padding-bottom: 8px; margin-bottom: 20px;
+    border-bottom: 2px solid #1a1a1a;
+  }
+  section > h2 .sec-num {
+    display: inline-block; min-width: 2.4em; margin-right: 10px;
+    font-family: ui-monospace, monospace; font-size: 0.95rem;
+    background: #1a1a1a; color: #fafafa; text-align: center;
+    padding: 1px 8px; border-radius: 4px; vertical-align: 2px;
+  }
+  h3 { font-size: 1.05rem; margin: 32px 0 10px; }
+  .note { color: #555; font-size: 0.92rem; }
+
+  table.spec { border-collapse: collapse; width: 100%; margin: 14px 0; background: #fff; font-size: 0.93rem; }
+  table.spec th, table.spec td { border: 1px solid #d8d8d8; padding: 8px 12px; text-align: left; vertical-align: top; }
+  table.spec th { background: #f0f0ee; font-weight: 700; white-space: nowrap; }
+  table.spec td code, li code, p code, table.spec th code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.86em; background: #eeeeea; padding: 1px 5px; border-radius: 3px;
+  }
+
+  pre.flow {
+    background: #16211c; color: #d7e6dc; border-radius: 8px;
+    padding: 20px 24px; overflow-x: auto;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.82rem; line-height: 1.55;
+  }
+  pre.flow .cap { color: #8fb8a0; }
+
+  figure.diagram { margin: 20px 0; padding: 8px; background: #fff;
+    border: 1px solid #e0e0e0; border-radius: 8px; }
+  figure.diagram svg { width: 100%; height: auto; display: block; cursor: zoom-in; }
+  figure.diagram figcaption { padding: 8px 10px 2px; }
+
+  .zoom-overlay {
+    position: fixed; inset: 0; z-index: 1000;
+    background: rgba(15, 23, 42, 0.93);
+    overflow: auto; padding: 24px; cursor: zoom-out;
+    -webkit-overflow-scrolling: touch;
+  }
+  .zoom-overlay svg {
+    width: 1880px; max-width: none; height: auto;
+    display: block; margin: 0 auto;
+    background: #fff; border-radius: 8px;
+  }
+
+  .def {
+    background: #fff; border-left: 4px solid #1a1a1a;
+    padding: 12px 18px; margin: 14px 0; border-radius: 0 6px 6px 0;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  }
+  .def dt { font-weight: 700; margin-top: 8px; }
+  .def dt:first-child { margin-top: 0; }
+  .def dd { margin: 2px 0 0 0; color: #333; }
+
+  .constraint {
+    background: #eef2f7; border: 1px solid #c8d4e3; border-radius: 8px;
+    padding: 12px 18px; margin: 16px 0; font-size: 0.93rem;
+  }
+  .constraint strong:first-child { color: #2a4a7a; }
+
+  .tag {
+    display: inline-block; font-family: ui-monospace, monospace; font-size: 0.78rem;
+    font-weight: 700; padding: 0 8px; border-radius: 3px; border: 1px solid transparent;
+  }
+  .tag.pass  { background: #e7f3e7; color: #23662a; border-color: #b9d9ba; }
+  .tag.fail  { background: #fbe9e7; color: #9c2b1a; border-color: #ecc0b8; }
+  .tag.error { background: #fdf3d7; color: #7a5d10; border-color: #e8d59a; }
+  .tag.mode  { background: #e8eef7; color: #2a4a7a; border-color: #c2d2e8; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>設計書なし画面の開通スキル<br><span class="skill-name">unlocking-reverse-target-screens</span></h1>
+  <p>設計書がまだ無い画面を対象に、既存コードを調査してモックAPIを適用し、ログイン後まで画面表示できる状態（開通）にする作業者スキル。</p>
+
+  <div class="def">
+    <dt>こんな人向け</dt>
+    <dd>リバース検証工程で、設計書に着手する前に対象画面をまず動く状態にしたい人。</dd>
+    <dt>こんな場面で使う</dt>
+    <dd>対象画面にまだ設計書が無く、既存コードがログインを要求するなどの理由でそのままでは動作確認できないとき。</dd>
+  </div>
+
+  <table class="meta-table">
+    <tr><td>対応 OS</td><td>Windows WSL2 環境</td></tr>
+    <tr><td>検証状況</td><td>暫定実装</td></tr>
+    <tr><td>依存</td><td>reverse_worktree 上の対象画面ソースコード一式</td></tr>
+    <tr><td>関連資料</td><td><code>SKILL.md</code>, <code>orchestrating-reverse-docs-flow/references/contract.md</code></td></tr>
+  </table>
+</header>
+
+<nav class="toc">
+  <div class="toc-title">目次</div>
+  <ol>
+    <li><a href="#s1">概要</a></li>
+    <li><a href="#s2">使用タイミング</a></li>
+    <li><a href="#s3">起動引数</a></li>
+    <li><a href="#s4">実行手順（Phase 1〜4）</a></li>
+    <li><a href="#s5">完了条件</a></li>
+    <li><a href="#s6">サブエージェント委任仕様</a></li>
+    <li><a href="#s7">重要な注意事項</a></li>
+    <li><a href="#s8">Gotchas</a></li>
+    <li><a href="#s9">参照資料</a></li>
+  </ol>
+</nav>
+
+<section id="s1">
+  <h2><span class="sec-num">§1</span>概要</h2>
+  <p>本スキルは「作業者」であり、設計書がまだ無い画面を対象に既存コードを調査してモックAPIを適用し、ログイン後まで画面表示できる状態（開通）にする。</p>
+  <div class="constraint">
+    <strong>責務の境界</strong>: 開通完了後の記帳・基準タグ確立は行わない。それは管理者が担い、orchestrating-reverse-docs-flow が syncing-reverse-env をレジストリモードで起動する。本スキルは他スキルを呼び出さず、他スキルの設定ファイルに書き込まない。
+  </div>
+  <div class="constraint">
+    <strong>既存4子スキルと同格</strong>: generating-screen-list-for-reverse-docs / syncing-reverse-env / rebuilding-screen-unit-from-docs / rebuilding-code-from-docs と同じく、管理者スキル orchestrating-reverse-docs-flow が起動する完全仲介方式の子スキル。
+  </div>
+</section>
+
+<section id="s2">
+  <h2><span class="sec-num">§2</span>使用タイミング</h2>
+  <ul>
+    <li>対象画面にまだ設計書が無く、既存コードがログインを要求するなどの理由でそのままでは動作確認できないとき</li>
+    <li>設計書が既にある画面はこのスキルの対象外（<code>rebuilding-screen-unit-from-docs</code> / <code>rebuilding-code-from-docs</code> を使う）</li>
+  </ul>
+</section>
+
+<section id="s3">
+  <h2><span class="sec-num">§3</span>起動引数</h2>
+  <table class="spec">
+    <tr><th>引数</th><th>内容</th></tr>
+    <tr><td>system</td><td>対象システム名</td></tr>
+    <tr><td>screen_id</td><td>対象画面ID</td></tr>
+    <tr><td>reverse_worktree</td><td>対象画面のソースコードを持つ worktree の絶対パス</td></tr>
+    <tr><td>ports</td><td>動作確認に使うポート情報</td></tr>
+    <tr><td>docs_root</td><td>今後の設計書配置ルート（design_doc_path の組み立てに使用）</td></tr>
+  </table>
+  <p class="note">全量が管理者から渡される。単独起動時はユーザーが同じ引数を手渡せば動く。</p>
+</section>
+
+<section id="s4">
+  <h2><span class="sec-num">§4</span>実行手順（Phase 1〜4）</h2>
+  <pre class="flow"><span class="cap">Phase 1: 入力ロード + preflight</span>
+  起動引数(system/screen_id/reverse_worktree/ports/docs_root)を受け取る
+  いずれか欠落→status=ERRORで管理者へ差し戻し
+  reverse_worktree配下で対象画面のソースコード一式の実在をGrep/Globで確認
+  完了条件: 対象画面のソースコード一式の所在が確認済み
+
+<span class="cap">Phase 2: 既存コード調査</span>
+  ルーティング定義・認証ガード（ログイン必須化ロジック）・外部API呼び出し箇所を調査
+  オリジナルコードの改変はまだ行わない（調査のみ）
+  完了条件: モックAPI適用が必要な箇所の一覧が記録されている
+
+<span class="cap">Phase 3: モックAPI適用 + 動作確認</span>
+  特定箇所に最小限のモックAPI（固定レスポンスのスタブ等）を適用
+  reverse_worktree上でログイン後まで画面表示を確認（実機 or 静的確認）
+  変更をコミット（メッセージ:「【機能追加】&lt;画面名&gt;をモックAPIで開通」）
+  完了条件: 画面がログイン後まで表示可能であることを確認済み、変更がコミット済み
+
+<span class="cap">Phase 4: 証跡保存 + 返却</span>
+  source_ref（開通確認時点のコミットハッシュ）
+  verification_url（表示確認できたURL。未実施なら「未実施」と明記）
+  design_doc_path（docs_root起点の &lt;system&gt;-&lt;screen_id&gt; 相当パス）
+  完了条件: 返却ブロック（status・source_ref・verification_url・design_doc_path）が確定</pre>
+</section>
+
+<section id="s5">
+  <h2><span class="sec-num">§5</span>完了条件</h2>
+  <table class="spec">
+    <tr><th>Phase</th><th>完了条件</th></tr>
+    <tr><td>Phase 1</td><td>対象画面のソースコード一式の所在が確認済み</td></tr>
+    <tr><td>Phase 2</td><td>モックAPI適用が必要な箇所の一覧が記録されている</td></tr>
+    <tr><td>Phase 3</td><td>画面がログイン後まで表示可能であることを確認済み、変更がコミット済み</td></tr>
+    <tr><td>Phase 4</td><td>返却ブロックが確定している</td></tr>
+    <tr><td><strong>Goal</strong></td><td>対象画面がモックAPI経由でログイン後まで表示可能になり、返却ブロック（status=UNLOCKED・source_ref・verification_url・design_doc_path）が管理者に渡っている</td></tr>
+  </table>
+</section>
+
+<section id="s6">
+  <h2><span class="sec-num">§6</span>サブエージェント委任仕様</h2>
+  <div class="constraint">
+    <strong>該当なし</strong>。本スキルは他スキル・サブエージェントを呼ばず、単独でPhase 1〜4を完結させる。allowed-tools に Agent・Skill・AskUserQuestion を含まない。
+  </div>
+</section>
+
+<section id="s7">
+  <h2><span class="sec-num">§7</span>重要な注意事項</h2>
+  <ul>
+    <li>本スキルは他スキル（syncing-reverse-env 等）を一切呼ばない。呼び出し・環境同期・基準タグ確立は管理者（orchestrating-reverse-docs-flow）が担う</li>
+    <li>他スキルの設定ファイル（<code>syncing-reverse-env/config.yml</code> 等）に書き込まない</li>
+    <li>開通済み画面の記帳（画面レジストリへの登録）は行わない。返却ブロックで管理者に情報を渡すのみ</li>
+    <li>責務は「画面の開通まで」。基準タグ確立・往復検証は本スキルの対象外</li>
+  </ul>
+</section>
+
+<section id="s8">
+  <h2><span class="sec-num">§8</span>Gotchas</h2>
+  <ul>
+    <li>本スキルは「設計書がまだ無い」段階の画面が対象。設計書がある画面は <code>rebuilding-screen-unit-from-docs</code> / <code>rebuilding-code-from-docs</code> の対象であり本スキルは使わない</li>
+    <li>モックAPIの適用範囲は「ログイン後まで表示可能にする」最小限に留める。往復検証相当の精緻な動作確認は行わない（それは後続工程の責務）</li>
+  </ul>
+</section>
+
+<section id="s9">
+  <h2><span class="sec-num">§9</span>参照資料</h2>
+  <table class="spec">
+    <tr><th>関連</th><th>関係</th></tr>
+    <tr><td><code>orchestrating-reverse-docs-flow/references/contract.md</code></td><td>返却ブロック契約・args仕様・画面レジストリの正本</td></tr>
+  </table>
+</section>
+
+<div id="zoom-overlay" class="zoom-overlay" hidden></div>
+<script>
+  (function () {
+    var overlay = document.getElementById('zoom-overlay');
+    if (!overlay) return;
+    document.querySelectorAll('figure.diagram svg').forEach(function (svg) {
+      svg.addEventListener('click', function () {
+        overlay.innerHTML = '';
+        overlay.appendChild(svg.cloneNode(true));
+        overlay.hidden = false;
+        document.body.style.overflow = 'hidden';
+      });
+    });
+    overlay.addEventListener('click', function () {
+      overlay.hidden = true;
+      overlay.innerHTML = '';
+      document.body.style.overflow = '';
+    });
+  })();
+</script>
+
+</body>
+</html>
