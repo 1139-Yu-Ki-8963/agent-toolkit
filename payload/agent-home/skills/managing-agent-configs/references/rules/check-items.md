@@ -53,12 +53,13 @@ done
 ### B1: プロジェクト固有キーワード検出
 
 ```bash
-ORADORA_KEYWORDS='slot/wt|owner.cwd|portal|mock_awaiting|spawn-child|ledger|\.slot-pool|worktrees/owner|EnterWorktree|ai-management-portal.*8780'
+# <project固有語彙をパイプ区切りで列挙>（例: 'internal-slot-id|owner-context|mock-fixture|internal-queue-name'）
+PROJECT_SPECIFIC_KEYWORDS='internal-slot-id|owner-context|mock-fixture|internal-queue-name'
 
 for d in ~/.claude/rules/always/*/*/ ~/.claude/rules/scoped/*/*/; do
   [ -f "$d/rule.md" ] || continue
-  hits=$(grep -cE "$ORADORA_KEYWORDS" "$d/rule.md" 2>/dev/null || echo 0)
-  [ "$hits" -gt 0 ] && echo "CRITICAL: $(basename $d) に oradora 固有キーワード $hits 件"
+  hits=$(grep -cE "$PROJECT_SPECIFIC_KEYWORDS" "$d/rule.md" 2>/dev/null || echo 0)
+  [ "$hits" -gt 0 ] && echo "CRITICAL: $(basename $d) にプロジェクト固有キーワード $hits 件"
 done
 ```
 

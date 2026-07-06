@@ -25,6 +25,10 @@ const SKILLS_HTML = path.join(PORTAL, "catalog", "skills.html");
 const INDEX_HTML = path.join(PORTAL, "index.html");
 const RULES_DIR = path.join(HOME_DIR, ".claude", "rules");
 const AGENTS_DIR = path.join(HOME_DIR, ".claude", "agents");
+const DICTIONARY_CATEGORIES_FILE = path.join(PORTAL, "data", "dictionary-categories.js");
+const DICTIONARIES_HTML = path.join(PORTAL, "catalog", "dictionaries.html");
+const GLOBAL_PRH_FILE = path.join(HOME_DIR, ".claude", "rules", "always", "lint", "text-dictionary", "prh.yml");
+const PROJECTS_ROOT = path.join(HOME_DIR, "Projects");
 
 // ── frontmatter パース ──────────────────────────────────────────
 
@@ -163,6 +167,119 @@ function warnUnmappedAndStale(skills, skillCategoryMap) {
   return warnings;
 }
 
+// ── prh 辞書パース ──────────────────────────────────────────────
+// YAML パーサは使わない。パターン行に含まれる `#`（例: /\bP[0-9]\b/ の直後の
+// コメント等）を YAML パーサがコメント扱いして欠落させる罠があるため、
+// 行ベースの専用パーサで抽出する。
+
+function parsePrhFile(filePath, scope) {
+  if (!fs.existsSync(filePath)) {
+    console.error(`警告: 辞書ファイルが見つかりません（${filePath}）。scope=${scope} をスキップします。`);
+    return [];
+  }
+
+  const lines = fs.readFileSync(filePath, "utf8").split("\n");
+  const entries = [];
+
+  let currentCategory = "other";
+  let pendingNote = null;
+  let pendingCaution = null;
+  let lastField = null; // "note" | "caution" | null（継続行の連結先）
+  let currentEntry = null;
+
+  for (const rawLine of lines) {
+    const line = rawLine;
+
+    const catMatch = line.match(/^\s*#\s*═+\s*カテゴリ:\s*([a-z0-9-]+)/);
+    if (catMatch) {
+      currentCategory = catMatch[1];
+      pendingNote = null;
+      pendingCaution = null;
+      lastField = null;
+      continue;
+    }
+
+    const noteMatch = line.match(/^\s*#\s*推奨:\s*(.*)$/);
+    if (noteMatch) {
+      pendingNote = noteMatch[1].trim();
+      lastField = "note";
+      continue;
+    }
+
+    const usageMatch = line.match(/^\s*#\s*用途:\s*(.*)$/);
+    if (usageMatch) {
+      pendingNote = pendingNote ? `${pendingNote} ${usageMatch[1].trim()}` : usageMatch[1].trim();
+      lastField = "note";
+      continue;
+    }
+
+    const cautionMatch = line.match(/^\s*#\s*誤検知注意:\s*(.*)$/);
+    if (cautionMatch) {
+      pendingCaution = cautionMatch[1].trim();
+      lastField = "caution";
+      continue;
+    }
+
+    // 継続行: 無印インデントコメント（"# ═══" "推奨:" "用途:" "誤検知注意:" のいずれでもない # 行）
+    const continuationMatch = line.match(/^\s*#\s{2,}(\S.*)$/);
+    if (continuationMatch && lastField) {
+      const text = continuationMatch[1].trim();
+      if (lastField === "caution") {
+        pendingCaution = pendingCaution ? `${pendingCaution} ${text}` : text;
+      } else if (lastField === "note") {
+        pendingNote = pendingNote ? `${pendingNote} ${text}` : text;
+      }
+      continue;
+    }
+
+    const entryMatch = line.match(/^\s*-\s*expected:\s*(.*)$/);
+    if (entryMatch) {
+      currentEntry = {
+        expected: entryMatch[1].trim(),
+        patterns: [],
+        note: pendingNote,
+        caution: pendingCaution,
+        category: currentCategory,
+        scope,
+      };
+      entries.push(currentEntry);
+      pendingNote = null;
+      pendingCaution = null;
+      lastField = null;
+      continue;
+    }
+
+    const patternMatch = line.match(/^\s{4,}-\s*(.+?)\s*$/);
+    if (patternMatch && currentEntry && !entryMatch) {
+      currentEntry.patterns.push(patternMatch[1]);
+      continue;
+    }
+  }
+
+  return entries;
+}
+
+function discoverProjectPrhFiles() {
+  if (!fs.existsSync(PROJECTS_ROOT)) return [];
+  return fs.readdirSync(PROJECTS_ROOT, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => ({
+      scope: entry.name,
+      file: path.join(PROJECTS_ROOT, entry.name, ".claude", "rules", "always", "lint", "text-dictionary", "prh.yml"),
+    }))
+    .filter(({ file }) => fs.existsSync(file));
+}
+
+function collectDictionaries() {
+  const global = parsePrhFile(GLOBAL_PRH_FILE, "global");
+  const projectEntries = discoverProjectPrhFiles().flatMap(({ scope, file }) => parsePrhFile(file, scope));
+  return [...global, ...projectEntries];
+}
+
+function countDictionaries() {
+  return collectDictionaries().length;
+}
+
 // ── コード生成 ──────────────────────────────────────────────────
 
 function buildSkillsArraySource(skills, skillCategoryMap) {
@@ -179,6 +296,27 @@ function buildSkillsArraySource(skills, skillCategoryMap) {
     return `      { ${fields.join(", ")} },`;
   });
   return `    const SKILLS = [\n${rows.join("\n")}\n    ];`;
+}
+
+// `</script>` による HTML パーサの早期終了事故を防ぐため、JSON.stringify の
+// 出力に含まれる可能性がある `</` を `<\/` にエスケープしてから埋め込む。
+function safeJsonStringify(value) {
+  return JSON.stringify(value).replace(/<\//g, "<\\/");
+}
+
+function buildDictionariesArraySource(entries) {
+  const rows = entries.map((e) => {
+    const fields = [
+      `expected: ${safeJsonStringify(e.expected)}`,
+      `patterns: ${safeJsonStringify(e.patterns)}`,
+      `note: ${safeJsonStringify(e.note || "")}`,
+      `caution: ${safeJsonStringify(e.caution || "")}`,
+      `category: ${safeJsonStringify(e.category)}`,
+      `scope: ${safeJsonStringify(e.scope)}`,
+    ];
+    return `      { ${fields.join(", ")} },`;
+  });
+  return `    const DICTIONARIES = [\n${rows.join("\n")}\n    ];`;
 }
 
 function replaceBetweenMarkers(text, startMarker, endMarker, replacement) {
@@ -274,7 +412,18 @@ async function cmdGenerate(checkMode = false) {
     skillsArraySource
   );
 
-  // index.html の規模サマリ 6 種 + PM:UPDATED を再生成
+  // catalog/dictionaries.html の GEN:DICTIONARIES ブロックを再生成
+  const dictionaries = collectDictionaries();
+  const dictionariesHtmlBefore = fs.readFileSync(DICTIONARIES_HTML, "utf8");
+  const dictionariesArraySource = buildDictionariesArraySource(dictionaries);
+  const dictionariesHtmlAfter = replaceBetweenMarkers(
+    dictionariesHtmlBefore,
+    "// <!-- GEN:DICTIONARIES -->",
+    "// <!-- /GEN:DICTIONARIES -->",
+    dictionariesArraySource
+  );
+
+  // index.html の規模サマリ + PM:UPDATED を再生成
   const counts = {
     skills: countSkills(),
     hooks: countHooks(),
@@ -282,6 +431,7 @@ async function cmdGenerate(checkMode = false) {
     subagents: countSubagents(),
     routines: countRoutines(),
     tools: await countTools(),
+    dictionaries: countDictionaries(),
   };
 
   let indexHtmlAfter = fs.readFileSync(INDEX_HTML, "utf8");
@@ -300,7 +450,10 @@ async function cmdGenerate(checkMode = false) {
   );
 
   const indexHtmlBefore = fs.readFileSync(INDEX_HTML, "utf8");
-  const changed = skillsHtmlAfter !== skillsHtmlBefore || indexHtmlAfter !== indexHtmlBefore;
+  const changed =
+    skillsHtmlAfter !== skillsHtmlBefore ||
+    dictionariesHtmlAfter !== dictionariesHtmlBefore ||
+    indexHtmlAfter !== indexHtmlBefore;
 
   if (checkMode) {
     if (changed) {
@@ -309,6 +462,10 @@ async function cmdGenerate(checkMode = false) {
         console.error("差分あり: catalog/skills.html が skills/ 実体と同期していません。");
         showDiff(skillsHtmlBefore, skillsHtmlAfter, "catalog/skills.html");
       }
+      if (dictionariesHtmlAfter !== dictionariesHtmlBefore) {
+        console.error("差分あり: catalog/dictionaries.html が prh.yml 実体と同期していません。");
+        showDiff(dictionariesHtmlBefore, dictionariesHtmlAfter, "catalog/dictionaries.html");
+      }
       if (indexHtmlAfter !== indexHtmlBefore) {
         console.error("差分あり: index.html が実体と同期していません。");
         showDiff(indexHtmlBefore, indexHtmlAfter, "index.html");
@@ -316,7 +473,7 @@ async function cmdGenerate(checkMode = false) {
       console.error("node skills/managing-agent-configs/scripts/manage-portal.mjs generate を実行してください。");
       process.exit(1);
     }
-    console.error("差分なし: skills.html / index.html は同期済みです。");
+    console.error("差分なし: skills.html / dictionaries.html / index.html は同期済みです。");
     process.exit(0);
   }
 
@@ -325,12 +482,16 @@ async function cmdGenerate(checkMode = false) {
     fs.writeFileSync(SKILLS_HTML, skillsHtmlAfter);
     changedFiles.push("catalog/skills.html");
   }
+  if (dictionariesHtmlAfter !== dictionariesHtmlBefore) {
+    fs.writeFileSync(DICTIONARIES_HTML, dictionariesHtmlAfter);
+    changedFiles.push("catalog/dictionaries.html");
+  }
   if (indexHtmlAfter !== indexHtmlBefore) {
     fs.writeFileSync(INDEX_HTML, indexHtmlAfter);
     changedFiles.push("index.html");
   }
 
-  const msg = `生成完了: skills=${counts.skills} hooks=${counts.hooks} rules=${counts.rules} subagents=${counts.subagents} routines=${counts.routines} tools=${counts.tools}`;
+  const msg = `生成完了: skills=${counts.skills} hooks=${counts.hooks} rules=${counts.rules} subagents=${counts.subagents} routines=${counts.routines} tools=${counts.tools} dictionaries=${counts.dictionaries}`;
   console.error(msg);
   if (changedFiles.length > 0) {
     console.error(`更新ファイル: ${changedFiles.join(", ")}`);
@@ -394,6 +555,11 @@ async function cmdVerify(onlyKeys) {
     results.push(checkAliasResolution());
   }
 
+  // 辞書-整合
+  if (!onlyKeys || onlyKeys.includes("辞書-整合")) {
+    results.push(await checkDictionaryConsistency());
+  }
+
   // 出力
   let failCount = 0;
   let warnCount = 0;
@@ -431,6 +597,16 @@ async function checkCatalogDrift() {
     skillsArraySource
   );
 
+  const dictionaries = collectDictionaries();
+  const dictionariesHtmlBefore = fs.readFileSync(DICTIONARIES_HTML, "utf8");
+  const dictionariesArraySource = buildDictionariesArraySource(dictionaries);
+  const dictionariesHtmlAfter = replaceBetweenMarkers(
+    dictionariesHtmlBefore,
+    "// <!-- GEN:DICTIONARIES -->",
+    "// <!-- /GEN:DICTIONARIES -->",
+    dictionariesArraySource
+  );
+
   const counts = {
     skills: countSkills(),
     hooks: countHooks(),
@@ -438,6 +614,7 @@ async function checkCatalogDrift() {
     subagents: countSubagents(),
     routines: countRoutines(),
     tools: await countTools(),
+    dictionaries: countDictionaries(),
   };
 
   let indexHtmlAfter = fs.readFileSync(INDEX_HTML, "utf8");
@@ -457,6 +634,7 @@ async function checkCatalogDrift() {
   const indexHtmlBefore = fs.readFileSync(INDEX_HTML, "utf8");
   const problems = [];
   if (skillsHtmlAfter !== skillsHtmlBefore) problems.push("catalog/skills.html がドリフトしています");
+  if (dictionariesHtmlAfter !== dictionariesHtmlBefore) problems.push("catalog/dictionaries.html がドリフトしています");
   if (indexHtmlAfter !== indexHtmlBefore) problems.push("index.html がドリフトしています");
 
   return {
@@ -555,6 +733,16 @@ async function checkCountsMatch() {
     const toolsGen = parseInt(toolsMatch[1], 10);
     if (toolsActual !== toolsGen) {
       problems.push(`tools 実体数(${toolsActual}) ≠ GEN:COUNT:tools(${toolsGen})`);
+    }
+  }
+
+  // dictionaries カウント
+  const dictionariesActual = countDictionaries();
+  const dictionariesMatch = indexHtml.match(/<!-- GEN:COUNT:dictionaries -->(.*?)<!-- \/GEN:COUNT:dictionaries -->/);
+  if (dictionariesMatch) {
+    const dictionariesGen = parseInt(dictionariesMatch[1], 10);
+    if (dictionariesActual !== dictionariesGen) {
+      problems.push(`dictionaries 実体数(${dictionariesActual}) ≠ GEN:COUNT:dictionaries(${dictionariesGen})`);
     }
   }
 
@@ -860,6 +1048,48 @@ function checkAliasResolution() {
     key: "エイリアス-解決",
     status: problems.length > 0 ? "FAIL" : "PASS",
     problems,
+  };
+}
+
+async function checkDictionaryConsistency() {
+  const problems = [];
+  const warnings = [];
+
+  const mod = await import(pathToFileURL(DICTIONARY_CATEGORIES_FILE).href + "?t=" + Date.now());
+  const categoryIds = new Set(mod.CATEGORIES.map((c) => c.id));
+
+  const entries = collectDictionaries();
+  const usedCategoryIds = new Set();
+  let otherCount = 0;
+
+  for (const e of entries) {
+    if (e.category === "other") {
+      otherCount++;
+      continue;
+    }
+    usedCategoryIds.add(e.category);
+    if (!categoryIds.has(e.category)) {
+      problems.push(`未登録カテゴリ: "${e.category}"（expected: "${e.expected}"）が data/dictionary-categories.js の CATEGORIES に無い`);
+    }
+  }
+
+  for (const id of categoryIds) {
+    if (!usedCategoryIds.has(id)) {
+      warnings.push(`未使用カテゴリ: "${id}" を参照する辞書エントリが prh.yml に無い`);
+    }
+  }
+
+  if (otherCount > 0) {
+    problems.push(`category が "other"（カテゴリヘッダ未検出）のエントリが ${otherCount} 件ある`);
+  }
+
+  const allProblems = problems.map((p) => `[FAIL] ${p}`).concat(warnings.map((w) => `[WARN] ${w}`));
+  const status = problems.length > 0 ? "FAIL" : warnings.length > 0 ? "WARN" : "PASS";
+
+  return {
+    key: "辞書-整合",
+    status,
+    problems: allProblems,
   };
 }
 

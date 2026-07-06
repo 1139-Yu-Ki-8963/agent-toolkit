@@ -342,7 +342,7 @@ trigger_id: <trigger_id>
   - Fix Rule: JSONL 出力は具体的な echo コマンドを省略せず記載する
 
 - **ログパスが旧形式（logs/test-quality/ 等）**
-  - Fix Rule: oradora 側の旧ファイルを削除するか、実行プロンプト冒頭に「本ファイルのみに従え」を明記
+  - Fix Rule: 対象プロジェクト側の旧ファイルを削除するか、実行プロンプト冒頭に「本ファイルのみに従え」を明記
 
 - **Phase 全スキップ**
   - Fix Rule: 各 Phase に「この Phase をスキップしてはならない」ガードを追加
@@ -393,6 +393,6 @@ trigger_id: <trigger_id>
 - `RemoteTrigger action=run` で即時実行可能。ユーザー操作は不要
 - `ScheduleWakeup` は 270 秒（キャッシュ TTL 内）でポーリング。35 分でタイムアウト
 - push し忘れると前回のプロンプトで実行される
-- oradora 側に旧実行プロンプトが残っている場合、エージェントがそちらを読む可能性がある
+- 対象プロジェクト側に旧実行プロンプトが残っている場合、エージェントがそちらを読む可能性がある
 - test モードは create / review からの **連鎖の終端**
 - ScheduleWakeup を呼ばなければループが終了する。収束後は意図的に呼ばない
