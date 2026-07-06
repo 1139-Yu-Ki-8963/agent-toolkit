@@ -57,9 +57,9 @@ reverse  = original + reverse_offset
 
 サービス index は `config.yml` の `services` 配列の並び順（既定 `[frontend]` → index 0）。
 
-reverse スロット割当手順: 兄弟 worktree（`reverse-code-*`）を走査し、各ルート直下の `.reverse-port-slot`（番号 1 行）を読んで使用中スロットを把握する → 空いている最小番号を reverse worktree のルートに書き込む（割当は `.reverse-slot-lock.d` の mkdir 原子ロックで排他する）。開発用 worktree のスロットファイル `.port-slot` とは誤カウント防止のため別名にしている。`max_slots`（既定 5）を超えて空きがない場合は ERROR。
+reverse スロット割当手順: 兄弟 worktree（`reverse-code-*`）を走査し、各ルート直下の `.reverse-port-slot`（番号 1 行）を読んで使用中スロットを把握する → 空いている最小番号の候補スロット k について、reverse 占有帯の先頭ポート（サービス index 0 のポート）が `ss -ltn` または `lsof -i :<port>` で実際に LISTEN されていないか確認する → LISTEN 中（`.reverse-port-slot` 走査では検出できない外部プロセスによる占有）なら次に空いている番号へフォールバックし同様に確認する → 未使用と確認できたスロットを reverse worktree のルートに書き込む（割当は `.reverse-slot-lock.d` の mkdir 原子ロックで排他する）。開発用 worktree のスロットファイル `.port-slot` とは誤カウント防止のため別名にしている。`max_slots`（既定 5）を超えて空きがない、または全候補が実ポート占有で使用不能な場合は ERROR。
 
-共有オリジナルスロット割当手順: 兄弟 worktree（`original-code-<system>@*`）を走査し、共有オリジナル worktree ルート直下の `.shared-original-slot`（番号 1 行）を読んで使用中 oslot を把握する → 空いている最小番号を共有オリジナル worktree のルートに書き込む（reverse スロットと同じ `.reverse-slot-lock.d` の mkdir 原子ロックで排他する）。`max_shared_originals`（既定 5）を超えて空きがない場合は ERROR。
+共有オリジナルスロット割当手順: 兄弟 worktree（`original-code-<system>@*`）を走査し、共有オリジナル worktree ルート直下の `.shared-original-slot`（番号 1 行）を読んで使用中 oslot を把握する → 空いている最小番号の候補 oslot について、占有帯の先頭ポート（サービス index 0 のポート）が `ss -ltn` または `lsof -i :<port>` で実際に LISTEN されていないか確認する → LISTEN 中なら次に空いている番号へフォールバックし同様に確認する → 未使用と確認できた oslot を共有オリジナル worktree のルートに書き込む（reverse スロットと同じ `.reverse-slot-lock.d` の mkdir 原子ロックで排他する）。`max_shared_originals`（既定 5）を超えて空きがない、または全候補が実ポート占有で使用不能な場合は ERROR。
 
 互換注記: 旧固定表（frontend = オリジナル 9101 / リバース 9111）は廃止した。per-scope フォールバックの既定 slot 1 では frontend = オリジナル 9100 / リバース 9110 になる。共有オリジナル方式では既定 oslot 1・frontend で original=9000、reverse は当該画面の reverse slot 1・frontend で 9110 になる（稼働中環境が存在しないため移行措置は設けない）。
 
@@ -213,6 +213,7 @@ git tag -af "reverse-baseline/<scope>" -m "<検証日> 検証PASS: 実差分0 en
 - ポート差の許容は「計算式どおりの original→reverse 対応」のみ。数字が違うだけの行を許容すると、ポートのハードコードミスを見逃す
 - `node_modules_strategy=symlink_main` は node_modules/.vite（依存最適化キャッシュ）も両環境で共有するため、**共有キャッシュのレースコンディション**で片方の環境（どちらになるかは実行順・タイミング次第の非対称パターン）が持続的に描画失敗することがある（実測）。navigate リトライでも dev サーバープロセス再起動でも直らない場合がある。これは「独立性を諦める」穏当なトレードオフではなく、**検証結果自体を信頼不能にする（片方がランダムに壊れる）副作用**。確実な対処は該当環境の node_modules を独立 npm ci に切り替えること。だからこそ auto は npm_ci 固定で、symlink_main は明示 opt-in に限る
 - 独立性を犠牲にする `symlink_main` は auto では自動選択されない。速度が必要なら人間が明示 opt-in する（drvfs 検出時は WARN で選択肢を提示するのみ）
+- 本スキルの PASS 基準「静的実差分 0」は自身の用途（オリジナルをリバース環境へ整列コピーする検証）専用の基準。rebuilding-code-from-docs（設計書だけからの独立リライト検証）はこの `status` を直接使わず、`env_check`/`dynamic` のみで独自に PASS/FAIL を判定する（詳細は rebuilding-code-from-docs の SKILL.md Phase 7 参照）。独立リライト用途に合わせて本スキルの「静的実差分 0」基準自体を緩めないこと（整列コピー検証としての正しさが壊れる）
 
 ## 設計判断
 
