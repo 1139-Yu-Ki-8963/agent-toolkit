@@ -145,7 +145,7 @@
   <h2><span class="sec-num">§1</span>概要</h2>
   <p>既存コードベースを画面単位にファイルをグルーピングし、その結果を <strong>画面一覧.HTML</strong> として出力する。</p>
   <div class="constraint">
-    <strong>単独動作</strong>: <code>syncing-reverse-env</code>（2 環境同期・基準タグ確立）には依存しない。ソースディレクトリと出力先ディレクトリを直接指定して起動する。
+    <strong>単独動作</strong>: 他スキルへの依存を持たない。ソースディレクトリと出力先ディレクトリを直接指定して起動する。工程全体は orchestrating-reverse-docs-flow が案内する。
   </div>
   <div class="constraint">
     <strong>仕事は画面一覧.HTMLの作成のみ</strong>: 設計書（<code>画面詳細設計書.md</code> 等）の雛形展開・生成・記入は一切行わない。他のスキル・人手による作業の入力として画面一覧.HTMLを渡すところまでが本スキルの範囲。
@@ -279,8 +279,7 @@
   <h2><span class="sec-num">§9</span>関連スキル・規約</h2>
   <table class="spec">
     <tr><th>関連</th><th>関係</th></tr>
-    <tr><td><code>rebuilding-code-from-docs</code></td><td>設計書の往復検証を担うスキル（本スキルとは独立、直接の連携はない）</td></tr>
-    <tr><td><code>syncing-reverse-env</code></td><td>2環境同期・基準タグ確立。本スキルは非依存</td></tr>
+    <tr><td><code>orchestrating-reverse-docs-flow</code></td><td>工程全体を案内する管理者スキル。本スキルは他スキル名を参照せず単独起動できるが、返却する status / artifacts はこの管理者スキルの契約に準拠する</td></tr>
   </table>
 </section>
 
