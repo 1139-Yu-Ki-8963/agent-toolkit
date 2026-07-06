@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<!--
+  orchestrating-reverse-docs-flow スキルガイド
+  リバース設計書往復検証フローの進行係（管理者）。子スキル4つを完全仲介方式で統括する。
+  正本: skills/orchestrating-reverse-docs-flow/SKILL.md および references/contract.md。
+-->
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>orchestrating-reverse-docs-flow スキルガイド</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 0 24px 96px;
+    font-family: system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif;
+    line-height: 1.85; color: #1a1a1a; background: #fafafa;
+    max-width: 980px; margin-inline: auto;
+  }
+  header { padding: 56px 0 24px; border-bottom: 3px solid #1a1a1a; }
+  header h1 { font-size: 1.9rem; margin: 0 0 10px; letter-spacing: 0.01em; }
+  header .skill-name {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 1.0rem; background: #1a1a1a; color: #fafafa;
+    padding: 2px 10px; border-radius: 4px; vertical-align: middle;
+  }
+  header p { margin: 6px 0 0; color: #555; }
+  .meta-table { margin-top: 16px; font-size: 0.9rem; color: #555; }
+  .meta-table td { padding: 1px 16px 1px 0; }
+
+  nav.toc {
+    margin-top: 32px; padding: 18px 22px;
+    background: #fff; border: 1px solid #e0e0e0; border-radius: 8px;
+  }
+  nav.toc .toc-title { font-weight: 700; margin-bottom: 6px; }
+  nav.toc ol { margin: 0; padding-left: 1.4em; columns: 2; column-gap: 40px; }
+  nav.toc li { margin: 2px 0; }
+  nav.toc a { color: #1a1a1a; text-decoration: none; border-bottom: 1px dotted #999; }
+  nav.toc a:hover { border-bottom-style: solid; }
+
+  section { margin-top: 64px; }
+  section > h2 {
+    font-size: 1.35rem; padding-bottom: 8px; margin-bottom: 20px;
+    border-bottom: 2px solid #1a1a1a;
+  }
+  section > h2 .sec-num {
+    display: inline-block; min-width: 2.4em; margin-right: 10px;
+    font-family: ui-monospace, monospace; font-size: 0.95rem;
+    background: #1a1a1a; color: #fafafa; text-align: center;
+    padding: 1px 8px; border-radius: 4px; vertical-align: 2px;
+  }
+  h3 { font-size: 1.05rem; margin: 32px 0 10px; }
+  .note { color: #555; font-size: 0.92rem; }
+
+  table.spec { border-collapse: collapse; width: 100%; margin: 14px 0; background: #fff; font-size: 0.93rem; }
+  table.spec th, table.spec td { border: 1px solid #d8d8d8; padding: 8px 12px; text-align: left; vertical-align: top; }
+  table.spec th { background: #f0f0ee; font-weight: 700; white-space: nowrap; }
+  table.spec td code, li code, p code, table.spec th code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.86em; background: #eeeeea; padding: 1px 5px; border-radius: 3px;
+  }
+
+  pre.flow {
+    background: #16211c; color: #d7e6dc; border-radius: 8px;
+    padding: 20px 24px; overflow-x: auto;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.82rem; line-height: 1.55;
+  }
+  pre.flow .cap { color: #8fb8a0; }
+
+  figure.diagram { margin: 20px 0; padding: 8px; background: #fff;
+    border: 1px solid #e0e0e0; border-radius: 8px; }
+  figure.diagram svg { width: 100%; height: auto; display: block; cursor: zoom-in; }
+  figure.diagram figcaption { padding: 8px 10px 2px; }
+
+  .zoom-overlay {
+    position: fixed; inset: 0; z-index: 1000;
+    background: rgba(15, 23, 42, 0.93);
+    overflow: auto; padding: 24px; cursor: zoom-out;
+    -webkit-overflow-scrolling: touch;
+  }
+  .zoom-overlay svg {
+    width: 1880px; max-width: none; height: auto;
+    display: block; margin: 0 auto;
+    background: #fff; border-radius: 8px;
+  }
+
+  .def {
+    background: #fff; border-left: 4px solid #1a1a1a;
+    padding: 12px 18px; margin: 14px 0; border-radius: 0 6px 6px 0;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  }
+  .def dt { font-weight: 700; margin-top: 8px; }
+  .def dt:first-child { margin-top: 0; }
+  .def dd { margin: 2px 0 0 0; color: #333; }
+
+  .constraint {
+    background: #eef2f7; border: 1px solid #c8d4e3; border-radius: 8px;
+    padding: 12px 18px; margin: 16px 0; font-size: 0.93rem;
+  }
+  .constraint strong:first-child { color: #2a4a7a; }
+
+  .tag {
+    display: inline-block; font-family: ui-monospace, monospace; font-size: 0.78rem;
+    font-weight: 700; padding: 0 8px; border-radius: 3px; border: 1px solid transparent;
+  }
+  .tag.pass  { background: #e7f3e7; color: #23662a; border-color: #b9d9ba; }
+  .tag.fail  { background: #fbe9e7; color: #9c2b1a; border-color: #ecc0b8; }
+  .tag.error { background: #fdf3d7; color: #7a5d10; border-color: #e8d59a; }
+  .tag.mode  { background: #e8eef7; color: #2a4a7a; border-color: #c2d2e8; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>リバース設計書往復検証オーケストレーター<br><span class="skill-name">orchestrating-reverse-docs-flow</span></h1>
+  <p>リバース設計書往復検証フローの進行係（管理者）。自分では検証・比較・実装を行わず、状態判定 → 子スキルを args 全量指定で Skill 起動 → 返却ブロックの status で検収 → 次工程決定、というループで工程全体を統括する。</p>
+
+  <dl class="def">
+    <dt>こんな人向け</dt>
+    <dd>リバース検証を工程統括したい人。画面一覧生成から基準タグ確立までの一連の流れを一気通貫で進めたい場面で使う。</dd>
+    <dt>こんな場面で使う</dt>
+    <dd>リバース検証の進行・工程統括、画面一覧から基準確立までを通しで動かしたいとき。個別工程だけを単発で動かしたい場合は本スキルではなく各子スキルを単独起動する（SKIP 対象）。</dd>
+  </dl>
+
+  <table class="meta-table">
+    <tr><td>対応 OS</td><td>Windows WSL2 環境（統括対象の子スキル群と同一環境）</td></tr>
+    <tr><td>検証状況</td><td>SKILL.md を正本として整理（個別の実機検証記録なし）</td></tr>
+    <tr><td>依存</td><td>ツール: Read, Bash, Grep, Glob, AskUserQuestion, TaskCreate, TaskUpdate, Skill, Agent ／ 子スキル: generating-screen-list-for-reverse-docs, syncing-reverse-env, rebuilding-screen-unit-from-docs, rebuilding-code-from-docs ／ スクリプト: <code>~/agent-home/skills/orchestrating-dev-flow/scripts/update-flow-status.sh</code>（共用）</td></tr>
+    <tr><td>関連資料</td><td><code>SKILL.md</code>、<code>references/contract.md</code>（返却ブロック契約・args仕様・状態判定表の正本）、<code>references/chapter-map.md</code>、<code>assets/リバース検証/</code>、<code>scripts/audit-consistency.sh</code></td></tr>
+  </table>
+</header>
+
+<nav class="toc">
+  <div class="toc-title">目次</div>
+  <ol>
+    <li><a href="#s1">概要</a></li>
+    <li><a href="#s2">状態判定表と決定木（S0〜S4）</a></li>
+    <li><a href="#s3">9 Phase のワークフロー</a></li>
+    <li><a href="#s4">サブエージェント委任仕様</a></li>
+    <li><a href="#s5">返却ブロック契約</a></li>
+    <li><a href="#s6">args 仕様</a></li>
+    <li><a href="#s7">ループ設計</a></li>
+    <li><a href="#s8">完了条件一覧</a></li>
+    <li><a href="#s9">関連スキル・規約・Gotchas</a></li>
+  </ol>
+</nav>
+
+<!-- ===== §1 概要 ===== -->
+<section id="s1">
+  <h2><span class="sec-num">§1</span>概要</h2>
+
+  <p>
+    <code>orchestrating-reverse-docs-flow</code> はリバース設計書往復検証フローの進行係（管理者）。
+    自分では検証・比較・実装を一切行わず、状態判定 → 子スキルを args 全量指定で <code>Skill</code> 起動 →
+    返却ブロックの <code>status</code> で検収 → 次工程決定、というループで工程全体を統括する。
+  </p>
+  <p>
+    子スキル4つ（<code>generating-screen-list-for-reverse-docs</code> / <code>syncing-reverse-env</code> /
+    <code>rebuilding-screen-unit-from-docs</code> / <code>rebuilding-code-from-docs</code>）は互いを知らず、
+    工程間の受け渡しはすべて本スキルが仲介する（完全仲介方式）。契約の正本は <code>references/contract.md</code>。
+  </p>
+
+  <div class="constraint">
+    <strong>使用タイミング / スキップ条件</strong><br>
+    使用する: リバース検証を工程統括したいとき（画面一覧生成から基準タグ確立までの一連の流れ）。<br>
+    スキップする: 個別工程だけを動かしたい場合。各子スキルは同じ args を手渡せば単独でも動く契約のため、単体実行なら子スキルを直接起動する。
+  </div>
+</section>
+
+<!-- ===== §2 状態判定表と決定木（S0〜S4） ===== -->
+<section id="s2">
+  <h2><span class="sec-num">§2</span>状態判定表と決定木（S0〜S4）</h2>
+
+  <p>
+    成果物の実在から現在の状態（S0〜S4）を判定し、次に起動する子スキルを機械的に決定する。
+    判定は「画面一覧HTMLの実在 → 設計書/対象ファイルの実在 → ②setup返却の <code>baseline_tag</code> → ④judge の <code>status</code>」の順に降りる決定木で、5状態を漏れなく被覆する。
+    成果物の実在から毎回評価するので中断後も再開できる。
+  </p>
+
+  <table class="spec">
+    <thead>
+      <tr><th>状態キー</th><th>判定の要点</th><th>次に起動する子スキル</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>S0</code> 画面未列挙</td>
+        <td>画面一覧HTMLが不在</td>
+        <td>generating-screen-list-for-reverse-docs</td>
+      </tr>
+      <tr>
+        <td><code>S1</code> 設計書不足</td>
+        <td>画面一覧HTML有・設計書/対象ファイルが不在（任意工程）</td>
+        <td>rebuilding-screen-unit-from-docs</td>
+      </tr>
+      <tr>
+        <td><code>S2</code> 基準未確立</td>
+        <td>設計書有・<code>baseline_tag</code> 未確立</td>
+        <td>syncing-reverse-env（mode=setup → sync）</td>
+      </tr>
+      <tr>
+        <td><code>S3</code> 往復未検証</td>
+        <td><code>baseline_tag</code> 有・reverse未実装 or 未突合</td>
+        <td>rebuilding-code-from-docs（implement）→ syncing-reverse-env（sync,dry-run）→ rebuilding-code-from-docs（judge）</td>
+      </tr>
+      <tr>
+        <td><code>S4</code> 検証完了</td>
+        <td>judge の <code>status=PASS</code></td>
+        <td>syncing-reverse-env（mode=sync 本番 / 依頼時 teardown）</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p class="note"><code>S1</code> は任意工程。設計書が揃った画面は stage1 をスキップし <code>S2</code>/<code>S3</code> から開始してよい。</p>
+
+  <figure class="diagram">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 400" font-family="system-ui,-apple-system,sans-serif" font-size="12.5">
+      <rect width="640" height="400" fill="#fafafa" rx="6"/>
+
+      <!-- Check1 -->
+      <rect x="150" y="16" width="260" height="40" rx="6" fill="#e8eef7" stroke="#c2d2e8"/>
+      <text x="280" y="41" text-anchor="middle" fill="#2a4a7a" font-weight="700">画面一覧HTML実在?</text>
+      <!-- S0 -->
+      <rect x="20" y="16" width="110" height="40" rx="6" fill="#fbe9e7" stroke="#ecc0b8"/>
+      <text x="75" y="41" text-anchor="middle" fill="#9c2b1a" font-weight="700">S0</text>
+      <line x1="150" y1="36" x2="132" y2="36" stroke="#1a1a1a" stroke-width="1.5" marker-end="url(#a)"/>
+      <text x="140" y="28" text-anchor="middle" font-size="10.5" fill="#555">いいえ</text>
+
+      <!-- Check2 -->
+      <rect x="150" y="96" width="260" height="40" rx="6" fill="#e8eef7" stroke="#c2d2e8"/>
+      <text x="280" y="121" text-anchor="middle" fill="#2a4a7a" font-weight="700">設計書/対象ファイル実在?</text>
+      <!-- S1 -->
+      <rect x="20" y="96" width="110" height="40" rx="6" fill="#fdf3d7" stroke="#e8d59a"/>
+      <text x="75" y="116" text-anchor="middle" fill="#7a5d10" font-weight="700">S1</text>
+      <text x="75" y="130" text-anchor="middle" fill="#7a5d10" font-size="10">（任意）</text>
+      <line x1="150" y1="116" x2="132" y2="116" stroke="#1a1a1a" stroke-width="1.5" marker-end="url(#a)"/>
+      <text x="140" y="108" text-anchor="middle" font-size="10.5" fill="#555">いいえ</text>
+      <line x1="280" y1="56" x2="280" y2="94" stroke="#1a1a1a" stroke-width="1.5" marker-end="url(#a)"/>
+      <text x="292" y="78" font-size="10.5" fill="#555">はい</text>
+
+      <!-- Check3 -->
+      <rect x="150" y="176" width="260" height="40" rx="6" fill="#e8eef7" stroke="#c2d2e8"/>
+      <text x="280" y="201" text-anchor="middle" fill="#2a4a7a" font-weight="700">baseline_tag 確立済み?</text>
+      <!-- S2 -->
+      <rect x="20" y="176" width="110" height="40" rx="6" fill="#fbe9e7" stroke="#ecc0b8"/>
+      <text x="75" y="201" text-anchor="middle" fill="#9c2b1a" font-weight="700">S2</text>
+      <line x1="150" y1="196" x2="132" y2="196" stroke="#1a1a1a" stroke-width="1.5" marker-end="url(#a)"/>
+      <text x="140" y="188" text-anchor="middle" font-size="10.5" fill="#555">いいえ</text>
+      <line x1="280" y1="136" x2="280" y2="174" stroke="#1a1a1a" stroke-width="1.5" marker-end="url(#a)"/>
+      <text x="292" y="158" font-size="10.5" fill="#555">はい</text>
+
+      <!-- Check4 -->
+      <rect x="150" y="256" width="260" height="40" rx="6" fill="#e8eef7" stroke="#c2d2e8"/>
+      <text x="280" y="281" text-anchor="middle" fill="#2a4a7a" font-weight="700">judge status=PASS?</text>
+      <!-- S3 -->
+      <rect x="20" y="256" width="110" height="40" rx="6" fill="#fbe9e7" stroke="#ecc0b8"/>
+      <text x="75" y="281" text-anchor="middle" fill="#9c2b1a" font-weight="700">S3</text>
+      <line x1="150" y1="276" x2="132" y2="276" stroke="#1a1a1a" stroke-width="1.5" marker-end="url(#a)"/>
+      <text x="140" y="268" text-anchor="middle" font-size="10.5" fill="#555">いいえ</text>
+      <line x1="280" y1="216" x2="280" y2="254" stroke="#1a1a1a" stroke-width="1.5" marker-end="url(#a)"/>
+      <text x="292" y="238" font-size="10.5" fill="#555">はい</text>
+
+      <!-- S4 -->
+      <rect x="210" y="336" width="140" height="40" rx="6" fill="#e7f3e7" stroke="#b9d9ba"/>
+      <text x="280" y="361" text-anchor="middle" fill="#23662a" font-weight="700">S4 検証完了</text>
+      <line x1="280" y1="296" x2="280" y2="334" stroke="#1a1a1a" stroke-width="1.5" marker-end="url(#a)"/>
+      <text x="292" y="318" font-size="10.5" fill="#555">はい</text>
+
+      <defs>
+        <marker id="a" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+          <path d="M0,0 L0,6 L8,3 z" fill="#1a1a1a"/>
+        </marker>
+      </defs>
+    </svg>
+    <figcaption class="note">S0〜S4 の状態判定決定木。成果物の実在を上から順に確認し、最初に「いいえ」になった時点の状態が現在の状態として確定する。</figcaption>
+  </figure>
+</section>
+
+<!-- ===== §3 9 Phase のワークフロー ===== -->
+<section id="s3">
+  <h2><span class="sec-num">§3</span>9 Phase のワークフロー</h2>
+
+  <p>状態確定後、以下でステータスラインを更新してから Phase を順に進める。</p>
+
+  <pre class="flow"><span class="cap"># Phase 開始時・Step 完了ごとに実行</span>
+bash ~/agent-home/skills/orchestrating-dev-flow/scripts/update-flow-status.sh \
+  &lt;phase&gt; "&lt;phase名&gt;" &lt;step&gt; &lt;total&gt; "&lt;step名&gt;"</pre>
+
+  <table class="spec">
+    <thead>
+      <tr><th>Phase</th><th>内容</th><th>実行条件</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Phase 1</td><td>状態判定。実在判定を決定木の順に確認し S0〜S4 を確定。必要な工程だけを 1 つずつ TaskCreate（一括登録禁止）</td><td>常時</td></tr>
+      <tr><td>Phase 2</td><td>①画面一覧生成。<code>generating-screen-list-for-reverse-docs</code> を <code>source_dir</code>・<code>output_dir</code> 指定で起動</td><td>S0 時のみ</td></tr>
+      <tr><td>Phase 3</td><td>②setup（環境ブロック取得）。<code>syncing-reverse-env</code> を <code>design-doc</code>・<code>mode=setup</code> で起動し env_block を抽出</td><td>常時</td></tr>
+      <tr><td>Phase 4</td><td>③stage1 単体往復。<code>rebuilding-screen-unit-from-docs</code> を対象ファイル1件ごとに繰り返し起動。白紙化のため事前にユーザー承認を取得</td><td>S1（任意工程）</td></tr>
+      <tr><td>Phase 5</td><td>②sync（基準確立）。<code>syncing-reverse-env</code> を <code>design-doc</code>・<code>mode=sync</code> で起動し <code>baseline_tag</code> を確立</td><td>S2 時のみ</td></tr>
+      <tr><td>Phase 6</td><td>④implement。<code>rebuilding-code-from-docs</code> を <code>mode=implement</code> で起動し <code>compare_request</code> を取得</td><td>S3 時のみ</td></tr>
+      <tr><td>Phase 7</td><td>②sync dry-run（比較）。<code>syncing-reverse-env</code> を <code>design-doc</code>・<code>mode=sync</code>・<code>dry-run</code> で起動し比較結果ブロックを取得</td><td>常時（Phase 6 の後）</td></tr>
+      <tr><td>Phase 8</td><td>④judge。<code>rebuilding-code-from-docs</code> を <code>mode=judge</code>・<code>compare_result</code> で起動し PASS/FAIL を確定</td><td>常時（Phase 7 の後）</td></tr>
+      <tr><td>Phase 9</td><td>②sync本番/teardown。<code>syncing-reverse-env</code> を <code>mode=sync</code>・<code>user-approved</code> で起動し基準タグを本番更新。検証終了依頼時は <code>mode=teardown</code></td><td>Phase 8 が PASS のとき（S4）</td></tr>
+    </tbody>
+  </table>
+
+  <div class="constraint">
+    <strong>Phase 6〜8 の関係</strong><br>
+    ④（<code>rebuilding-code-from-docs</code>）は <code>mode</code> で2分割される（<code>implement</code>=比較要求を返して停止 / <code>judge</code>=比較結果を受け取り判定）。
+    管理者がこの2回を別々に起動し、間に②sync dry-run（Phase 7）を挟む。
+  </div>
+</section>
+
+<!-- ===== §4 サブエージェント委任仕様 ===== -->
+<section id="s4">
+  <h2><span class="sec-num">§4</span>サブエージェント委任仕様</h2>
+
+  <p>子スキルは args 全量指定・対話ゼロで起動する（子は <code>AskUserQuestion</code> を発行しない契約）。</p>
+
+  <table class="spec">
+    <thead>
+      <tr><th>呼び出し箇所</th><th>invocation</th><th>args骨格</th><th>期待返却 status</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Phase 2</td><td>generating-screen-list-for-reverse-docs</td><td>source_dir, output_dir</td><td><span class="tag pass">DONE</span></td></tr>
+      <tr><td>Phase 3</td><td>syncing-reverse-env</td><td>design-doc, mode=setup</td><td><span class="tag pass">PASS</span>（env_block抽出）</td></tr>
+      <tr><td>Phase 4</td><td>rebuilding-screen-unit-from-docs</td><td>screen_dir, target_file_path, 資産paths, env_block, user-approved</td><td><span class="tag pass">CONVERGED</span></td></tr>
+      <tr><td>Phase 5</td><td>syncing-reverse-env</td><td>design-doc, mode=sync</td><td><span class="tag pass">PASS</span></td></tr>
+      <tr><td>Phase 6</td><td>rebuilding-code-from-docs</td><td>mode=implement, scope, reverse_worktree, ports, 資産paths, user-approved</td><td><span class="tag mode">NEED-COMPARE</span></td></tr>
+      <tr><td>Phase 7</td><td>syncing-reverse-env</td><td>design-doc, mode=sync, dry-run</td><td><span class="tag pass">PASS</span>/<span class="tag fail">FAIL</span>（比較結果）</td></tr>
+      <tr><td>Phase 8</td><td>rebuilding-code-from-docs</td><td>mode=judge, compare_result</td><td><span class="tag pass">PASS</span>/<span class="tag fail">FAIL</span></td></tr>
+      <tr><td>Phase 9</td><td>syncing-reverse-env</td><td>design-doc, mode=sync／teardown, user-approved</td><td><span class="tag pass">PASS</span></td></tr>
+    </tbody>
+  </table>
+
+  <p class="note"><code>Agent</code>（サブエージェント）は preflight の並行事実確認等に限定して用いる。実検証は子スキルへ委ねる。</p>
+
+  <div class="constraint">
+    <strong>重要な注意事項</strong><br>
+    白紙化などの破壊的操作のユーザー承認は管理者が事前に取り、<code>user-approved</code> として args で渡す（子はユーザーに直接聞かない）。<br>
+    <code>docs_root</code> が null のときの展開先確認も管理者が担う。<br>
+    各子スキルは単独起動可能（ユーザーが同じ args を手渡せば動く）。工程順序を知るのは管理者だけ。
+  </div>
+</section>
+
+<!-- ===== §5 返却ブロック契約 ===== -->
+<section id="s5">
+  <h2><span class="sec-num">§5</span>返却ブロック契約</h2>
+
+  <p>
+    正本は <code>references/contract.md</code>。管理者は各子スキルの返却ブロックを共通サブセットで検収し、状態判定表に従って次工程を機械的に決定する。
+    これにより管理者と子スキルの間には契約書という単一の仲介点だけが存在し、子スキル同士が互いの内部仕様を知る必要がない完全仲介方式が成立する。
+  </p>
+
+  <h3>返却ブロック共通サブセット</h3>
+
+  <table class="spec">
+    <thead>
+      <tr><th>キー</th><th>型</th><th>意味</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><code>status</code></td><td>enum</td><td>各スキル固有の enum。管理者はこれで go / 差し戻しを判定する</td></tr>
+      <tr><td><code>scope</code></td><td>string</td><td><code>&lt;system&gt;-&lt;画面ID&gt;</code>。工程を跨いだ同一性キー</td></tr>
+      <tr><td><code>artifacts</code></td><td>path[]</td><td>生成物のパス（画面一覧HTML / 修正指示書.md / 最終報告.md / 証跡ディレクトリ 等）</td></tr>
+      <tr><td><code>hint</code></td><td>string</td><td>次工程への申し送り（差し戻し理由・不足引数・stage2への申し送り 等）</td></tr>
+    </tbody>
+  </table>
+
+  <p class="note">注記: <code>next_request</code> という語は使わない。<code>syncing-reverse-env</code> の実返却ブロックに存在しないフィールドのため。次工程への依頼内容は <code>hint</code> または各スキル固有の拡張フィールドで表す。</p>
+
+  <h3>各スキル固有の status enum と拡張フィールド</h3>
+
+  <table class="spec">
+    <thead>
+      <tr><th>子スキル</th><th>status enum</th><th>拡張フィールド</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>generating-screen-list-for-reverse-docs</td>
+        <td><code>DONE | ERROR</code></td>
+        <td>screen_list_html（= artifacts[0]）、embedded_json_ref（HTML内埋め込みマニフェストJSONへの参照）</td>
+      </tr>
+      <tr>
+        <td>syncing-reverse-env</td>
+        <td><code>PASS | FAIL | ERROR | INCOMPLETE</code></td>
+        <td>
+          既存の15フィールド返却ブロック（status / mode / scope / screen_id / slot / ports / original_code / reverse_code / baseline_tag / static_diff / dynamic / env_check / artifacts / docs_root / hint）はそのまま正で改変しない。
+          管理者が読むのは status / scope / ports / baseline_tag / docs_root / artifacts / hint。
+          <code>mode=setup</code> の返却からは env_block として docs_root / scope / ports / slot / baseline_tag / original_code / reverse_code を抽出する。
+          <code>mode=sync,dry-run</code> の返却が「比較結果ブロック」= static_diff / dynamic / env_check / status / hint を含む15フィールドそのもの。
+        </td>
+      </tr>
+      <tr>
+        <td>rebuilding-screen-unit-from-docs（stage1）</td>
+        <td><code>CONVERGED | DIVERGED | INTERNAL-CONTRADICTION | BLOCKED</code></td>
+        <td>instruction_doc（修正指示書.md のパス）、stage2_handoff（stage2 で要注意なファイル一覧）</td>
+      </tr>
+      <tr>
+        <td>rebuilding-code-from-docs（stage2・mode分割）</td>
+        <td>
+          mode=implement: <code>NEED-COMPARE | INTERNAL-CONTRADICTION | ERROR | BLOCKED</code><br>
+          mode=judge: <code>PASS | FAIL | DESIGN-INCOMPLETE | DYNAMIC-UNVERIFIED</code>
+        </td>
+        <td>
+          mode=implement: compare_request { scope, design_doc（パス）, freeze_commit（凍結コミットのハッシュ）, scenarios_ready（真偽値）}。これは「比較してほしい」を表す専用フィールドで、管理者はこれを見て <code>syncing-reverse-env</code> を <code>sync,dry-run</code> で起動する。<br>
+          mode=judge: 入力 args として compare_result（= <code>syncing-reverse-env</code> の <code>sync,dry-run</code> 返却ブロック全文）を受け取る。拡張: instruction_doc（修正指示書.md）、final_report（最終報告.md）、loop_verdict（発散 / 収束の判定）
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ===== §6 args 仕様 ===== -->
+<section id="s6">
+  <h2><span class="sec-num">§6</span>args 仕様</h2>
+
+  <p>各子スキルが単独起動で受け取る引数の全量。単独起動時はユーザーが同じ args を手渡しすれば動く。</p>
+
+  <table class="spec">
+    <thead>
+      <tr><th>子スキル</th><th>args</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>generating-screen-list-for-reverse-docs</td><td>source_dir, output_dir</td></tr>
+      <tr><td>syncing-reverse-env</td><td>design-doc, mode（setup|sync|teardown）, dry-run, reset-first, user-approved, scenarios, max-loop（既存契約のまま）</td></tr>
+      <tr><td>rebuilding-screen-unit-from-docs</td><td>screen_dir, target_file_path, docs_root, template_root, audit_script_path, chapter_map_path, env_block, user-approved</td></tr>
+      <tr><td>rebuilding-code-from-docs (mode=implement)</td><td>screen_dir, scope, reverse_worktree, ports, baseline_tag_status, docs_root, template_root, audit_script_path, chapter_map_path, user-approved</td></tr>
+      <tr><td>rebuilding-code-from-docs (mode=judge)</td><td>screen_dir, compare_result</td></tr>
+    </tbody>
+  </table>
+
+  <p class="note">注記: <code>user-approved</code>（白紙化承認）と <code>docs_root</code> は管理者が事前に解決して args で渡す（完全仲介方式のため子スキルはユーザーに直接聞かない）。</p>
+</section>
+
+<!-- ===== §7 ループ設計 ===== -->
+<section id="s7">
+  <h2><span class="sec-num">§7</span>ループ設計</h2>
+
+  <table class="spec">
+    <thead>
+      <tr><th>要素</th><th>内容</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>反復条件</td><td>Phase 8 ④judge が FAIL → Phase 6 ④implement へ戻す</td></tr>
+      <tr><td>上限回数</td><td>max_loop（既定3。②の max_loop とは別軸の工程ループ）</td></tr>
+      <tr>
+        <td>停止条件</td>
+        <td>
+          ① 収束停止: 全対象画面が PASS（2連続で確定）<br>
+          ② リソース上限: max_loop 到達で FAIL 確定<br>
+          ③ 発散検知: ④judge が2連続同一差分（compare_result の static_diff 署名一致）で上限前に打切り
+        </td>
+      </tr>
+      <tr><td>検証役の分離</td><td>各工程の判定は子スキルの返却ブロック（status）のみで行い、管理者は自然文で判定しない</td></tr>
+    </tbody>
+  </table>
+
+  <p class="note">この外側ループ（発散判定2連続・上限）は、元々④（<code>rebuilding-code-from-docs</code>）が持っていた責務を管理者へ移管したものである。</p>
+</section>
+
+<!-- ===== §8 完了条件一覧 ===== -->
+<section id="s8">
+  <h2><span class="sec-num">§8</span>完了条件一覧</h2>
+
+  <table class="spec">
+    <thead>
+      <tr><th>Phase</th><th>完了条件</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Phase 1</td><td>状態キー（S0〜S4）が確定し、次に起動すべき子スキルが1つ定まっている</td></tr>
+      <tr><td>Phase 2</td><td>画面一覧HTMLが生成され、status=DONE で検収済み</td></tr>
+      <tr><td>Phase 3</td><td>env_block の7フィールドが確定している</td></tr>
+      <tr><td>Phase 4</td><td>from-zero 対象の全ファイルが CONVERGED または NG 分類済み（S1 対象が無ければ直行）</td></tr>
+      <tr><td>Phase 5</td><td>baseline_tag が確立済み（status=PASS）</td></tr>
+      <tr><td>Phase 6</td><td>compare_request が取得済み（status=NEED-COMPARE）</td></tr>
+      <tr><td>Phase 7</td><td>比較結果ブロックが省略なく取得済み</td></tr>
+      <tr><td>Phase 8</td><td>PASS / FAIL いずれかに確定している</td></tr>
+      <tr><td>Phase 9</td><td>基準タグが更新済み、または依頼時は teardown が完了している</td></tr>
+      <tr><td><strong>Goal</strong></td><td><strong>全対象画面が status=PASS で基準タグ確立、または NG分類済み修正指示書が保存されている</strong></td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ===== §9 関連スキル・規約・Gotchas ===== -->
+<section id="s9">
+  <h2><span class="sec-num">§9</span>関連スキル・規約・Gotchas</h2>
+
+  <h3>子スキル一覧</h3>
+
+  <table class="spec">
+    <thead>
+      <tr><th>子スキル</th><th>役割</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>generating-screen-list-for-reverse-docs</td><td>①画面一覧生成（S0 時に起動）</td></tr>
+      <tr><td>syncing-reverse-env</td><td>②環境同期（setup / sync / sync,dry-run / teardown）</td></tr>
+      <tr><td>rebuilding-screen-unit-from-docs</td><td>③stage1 単体往復（S1 任意工程）</td></tr>
+      <tr><td>rebuilding-code-from-docs</td><td>④stage2（implement / judge の2モード分割）</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Gotchas</h3>
+
+  <div class="constraint">
+    状態判定は「画面一覧HTMLの実在 → 設計書/対象ファイルの実在 → ②setup返却の baseline_tag → ④judge の status」の順の決定木。成果物の実在から毎回評価するので中断後も再開できる。<br>
+    ④は mode で2分割される（implement=比較要求を返して停止 / judge=比較結果を受け取り判定）。管理者がこの2回を別々に起動し、間に②sync dry-run を挟む。
+  </div>
+
+  <h3>参照資料</h3>
+
+  <table class="spec">
+    <thead>
+      <tr><th>資料</th><th>内容</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><code>references/contract.md</code></td><td>返却ブロック契約・args仕様・状態判定表の正本</td></tr>
+      <tr><td><code>assets/リバース検証/</code></td><td>移設済みの共有資産（テンプレート一式）</td></tr>
+      <tr><td><code>scripts/audit-consistency.sh</code></td><td>工程間ゲート</td></tr>
+      <tr><td><code>references/chapter-map.md</code></td><td>章役割キー対応表</td></tr>
+      <tr><td><code>~/agent-home/skills/orchestrating-dev-flow/scripts/update-flow-status.sh</code></td><td>ステータスライン更新（共用）</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<div id="zoom-overlay" class="zoom-overlay" hidden></div>
+<script>
+  (function () {
+    var overlay = document.getElementById('zoom-overlay');
+    if (!overlay) return;
+    document.querySelectorAll('figure.diagram svg').forEach(function (svg) {
+      svg.addEventListener('click', function () {
+        overlay.innerHTML = '';
+        overlay.appendChild(svg.cloneNode(true));
+        overlay.hidden = false;
+        document.body.style.overflow = 'hidden';
+      });
+    });
+    overlay.addEventListener('click', function () {
+      overlay.hidden = true;
+      overlay.innerHTML = '';
+      document.body.style.overflow = '';
+    });
+  })();
+</script>
+
+</body>
+</html>

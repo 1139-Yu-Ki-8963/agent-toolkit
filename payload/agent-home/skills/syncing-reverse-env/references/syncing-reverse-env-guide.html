@@ -236,7 +236,7 @@
 └────────────────────┘                  └────────┬─────────┘
         ▲                                        │ 設計書「だけ」を見て
         │                                        │ コードを再構築
-        │       ポート以外は完全一致か？            ▼ [rebuilding-code-from-docs]
+        │       ポート以外は完全一致か？            ▼ [orchestrating-reverse-docs-flow が仲介]
         │     ┌─────────────────────┐   ┌────────────────────┐
         └─────┤ 本スキルが worktree の  ├───│ リバースコード環境     │
               │ 用意・検証・整列・       │   │ 設計書由来コード       │
@@ -252,11 +252,11 @@
       <td>⓪ 両 worktree の用意と名前管理（初回のみ作成・固定ポート割当・冪等な再発見・ユーザー依頼時のみ削除）<br>① 同一性検証（静的 diff ＋ 環境ヘルスチェック ＋ Playwright 動的比較）<br>② 差分があればリバースコード環境をオリジナルコード環境へ整列<br>③ 一致証明後のコミット＝基準コミットの確立と基準タグの記録<br>④ 基準コミットへの復帰（sync の reset-first オプション）</td>
     </tr>
     <tr>
-      <td><strong>rebuilding-code-from-docs スキル</strong><br>（呼び出し元）</td>
+      <td><strong>呼び出し元</strong><br>（orchestrating-reverse-docs-flow が仲介）</td>
       <td>設計書の不備を修正し、リバースコード環境の中身（コード）を再構築するループ全体の運転。worktree という容器の用意は本スキルに任せる</td>
     </tr>
   </table>
-  <p class="note">オリジナルコード環境が常に「正」。リバースコード環境と設計書のどちらを直すかの判断は rebuilding-code-from-docs スキルが持ち、本スキルは環境の用意・判定・整列に徹する。</p>
+  <p class="note">オリジナルコード環境が常に「正」。リバースコード環境と設計書のどちらを直すかの判断は呼び出し元（orchestrating-reverse-docs-flow が仲介）が持ち、本スキルは環境の用意・判定・整列に徹する。</p>
 </section>
 
 <section id="s2">
@@ -381,7 +381,7 @@
     <dt>オリジナルコード環境</dt>
     <dd>リバース対象のオリジナルコードを保持する git worktree（worktree 名 <code>original-code-&lt;scope&gt;</code>）。設計書 frontmatter の <code>source_repo</code> / <code>source_ref</code> から本スキルが用意する読み取り専用コピーで、常に「正」。内容を変更することはない。</dd>
     <dt>リバースコード環境</dt>
-    <dd>設計書だけを見て再構築したコードの git worktree（worktree 名 <code>reverse-code-&lt;scope&gt;</code>、ブランチ <code>feature/reverse-code-&lt;scope&gt;</code>）。容器（worktree・ブランチ・ポート）は本スキルが用意し、中身のコードは rebuilding-code-from-docs スキルが書く。</dd>
+    <dd>設計書だけを見て再構築したコードの git worktree（worktree 名 <code>reverse-code-&lt;scope&gt;</code>、ブランチ <code>feature/reverse-code-&lt;scope&gt;</code>）。容器（worktree・ブランチ・ポート）は本スキルが用意し、中身のコードは呼び出し元（orchestrating-reverse-docs-flow が仲介）が書く。</dd>
     <dt>worktree のライフサイクル（永続・使い回し）</dt>
     <dd>両 worktree は初回実行時に一度だけ作成し、以後の検証ではすべて同じものを使い回す。削除はユーザーが明示的に依頼した時（teardown）のみ。</dd>
     <dt>基準コミット / 基準タグ</dt>
@@ -418,13 +418,13 @@
   <table class="spec">
     <tr><th>アクター</th><th>意図</th><th>入口と mode</th><th>期待する出力</th></tr>
     <tr>
-      <td><strong>rebuilding-code-from-docs スキル</strong><br>（初回の環境整備）</td>
+      <td><strong>呼び出し元</strong><br>（orchestrating-reverse-docs-flow が仲介・初回の環境整備）</td>
       <td>検証システムの立ち上げ時に、書き込み先となるリバースコード環境と比較相手のオリジナルコード環境を整備したい</td>
       <td>Skill ツール・args 全量指定<br><span class="tag mode">setup</span></td>
       <td>両環境のパス・ブランチ名・確定ポート一覧。比較は実行しない</td>
     </tr>
     <tr>
-      <td><strong>rebuilding-code-from-docs スキル</strong><br>（検証サイクル）</td>
+      <td><strong>呼び出し元</strong><br>（orchestrating-reverse-docs-flow が仲介・検証サイクル）</td>
       <td>設計書を直してリバースコード環境を再構築した直後、「今回の設計書で完全再現できたか」を機械判定し、一致すれば基準を確立したい</td>
       <td>Skill ツール・args 全量指定<br><span class="tag mode">sync</span></td>
       <td><span class="tag pass">PASS</span> / <span class="tag fail">FAIL</span> ＋ 差分サマリ ＋ 設計書章マップへの対応ヒント（§8）。PASS 時は基準タグを更新</td>
@@ -456,7 +456,7 @@
     <tr><td><code>max-loop</code></td><td>整列 → 再検証の収束ループ上限。既定は config.yml の値（3）</td></tr>
   </table>
   <ul>
-    <li><strong>rebuilding-code-from-docs スキルから</strong>: args で全量指定する。対話ゼロで完走できることが契約（AskUserQuestion を発行しない）。</li>
+    <li><strong>orchestrating-reverse-docs-flow が仲介する呼び出し元から</strong>: args で全量指定する。対話ゼロで完走できることが契約（AskUserQuestion を発行しない）。</li>
     <li><strong>人間から</strong>: <code>design-doc</code> だけ渡せば起動できる。</li>
     <li><strong>共通</strong>: worktree のパスを引数で受け取ることはない。両環境は本スキルが命名規則（§5）から導出・確保する。</li>
   </ul>
@@ -703,7 +703,7 @@
      │       original-code-&lt;scope&gt;（per-scope・degrade）かを確定する
      │
      ├─ mode=setup ────▶ 両 worktree のパス・ブランチ・確定ポートを
-     │  （初回の整備）    返して終了（rebuilding-code-from-docs スキルは
+     │  （初回の整備）    返して終了（呼び出し元は
      │                   このリバースコード環境に再構築コードを書く）
      │
      ├─ mode=teardown ─▶ 明示依頼を確認できた場合のみ
@@ -851,7 +851,7 @@
     <tr><td>環境起因（ポート占有・Playwright 不通 等）</td><td>差分判定と区別して <span class="tag error">ERROR</span> として報告（「設計書の不備」との誤解釈を防ぐ）</td></tr>
     <tr><td>L1 起動失敗</td><td>段階診断（stdout/stderr 収集 → 待受ポート再確認 → navigate 1 回再試行 → 直らなければ dev サーバープロセスを kill→再起動して再試行）を実施したうえで、なお失敗なら <span class="tag error">ERROR</span>。収集した log のパスを添付する</td></tr>
     <tr><td><code>NOT_RENDERED</code>（reverse 側のみ）</td><td>reverse だけ render-ready 未到達（再構築未完）。<span class="tag fail">FAIL</span> として報告し、収束ループを継続する</td></tr>
-    <tr><td><strong>DESIGN-INCOMPLETE</strong>（両環境が render-ready 未到達）</td><td>両環境が同様にスピナー等で停止。<code>status=INCOMPLETE</code> とし、設計書 <code>scenarios</code> への <code>query</code>/<code>path_params</code>/<code>ready</code> 追加を促す hint を付けて呼び出し元（rebuilding-code-from-docs）へ差し戻す</td></tr>
+    <tr><td><strong>DESIGN-INCOMPLETE</strong>（両環境が render-ready 未到達）</td><td>両環境が同様にスピナー等で停止。<code>status=INCOMPLETE</code> とし、設計書 <code>scenarios</code> への <code>query</code>/<code>path_params</code>/<code>ready</code> 追加を促す hint を付けて呼び出し元（orchestrating-reverse-docs-flow が仲介）へ差し戻す</td></tr>
     <tr><td><strong>DYNAMIC-UNVERIFIED</strong>（動的検証手段なし）</td><td>MCP・node-script（Playwright 実行環境）のいずれも利用不能。<code>status=INCOMPLETE</code> とし、静的一致は報告するが PASS は宣言しない（コードは同一の可能性が高いが描画・データ未検証と明記）</td></tr>
     <tr><td>teardown 部分失敗</td><td>残存資源（kill 未了のプロセス・未削除の worktree・スロット/ロック残骸・artifacts）を列挙して報告する。再実行時は残っている手順から掃除を続ける</td></tr>
     <tr><td>共有オリジナル dirty 検出（参照カウント&gt;0）</td><td>読み取り専用契約の違反として <span class="tag error">ERROR</span>。他画面が使用中のため自動復元はしない。参照カウントが 0 になってからの復元を案内する</td></tr>
@@ -859,7 +859,7 @@
     <tr><td>共有オリジナルの dev サーバー障害</td><td>障害ドメインが同一 system@sha を使う全画面に及ぶ。L1 段階診断のプロセス再起動は system 単位で行い、影響画面をまとめて再走行する（per-scope は画面単位で隔離できる）</td></tr>
   </table>
 
-  <h3>機械向け返却ブロック（rebuilding-code-from-docs スキルへの契約）</h3>
+  <h3>機械向け返却ブロック（呼び出し元（orchestrating-reverse-docs-flow が仲介）への契約）</h3>
   <p class="note">setup / teardown / ERROR の早期終了時も返却ブロックの形を保ち、未実施フィールドは「未実施」と記す。</p>
   <pre class="flow"><span class="cap">── 返却ブロック ─────────────────────────────────────────────</span>
 
@@ -896,7 +896,7 @@
                    # DYNAMIC-UNVERIFIED の例:
                    # MCP・node-script とも利用不能のため動的検証未実施。
                    # 静的一致のみでは PASS を判定できない</pre>
-  <p class="note"><code>hint</code> は「差分ファイル → 設計書章マップの対応推定」であり、rebuilding-code-from-docs スキルの設計書修正ループの入力になる。<code>status=INCOMPLETE</code> 時は内訳（DESIGN-INCOMPLETE / DYNAMIC-UNVERIFIED）と対処方針も <code>hint</code> に記す。</p>
+  <p class="note"><code>hint</code> は「差分ファイル → 設計書章マップの対応推定」であり、呼び出し元（orchestrating-reverse-docs-flow が仲介）の設計書修正ループの入力になる。<code>status=INCOMPLETE</code> 時は内訳（DESIGN-INCOMPLETE / DYNAMIC-UNVERIFIED）と対処方針も <code>hint</code> に記す。</p>
   <p class="note"><code>artifacts</code> の保存規約: <code>&lt;artifacts_root&gt;/&lt;scope&gt;/&lt;実行日時&gt;/</code> 配下に scenario 別のサブディレクトリを作成して保存する（<code>artifacts_root</code> は config.yml、既定 <code>~/agent-home/sessions/reverse-env</code>）。</p>
 
   <h3>ユーザー向け定型文（検証後の報告）</h3>
@@ -957,7 +957,7 @@
     <tr><th>名前</th><th>関係</th></tr>
     <tr><td>コミット・命名規約</td><td>基準コミットのメッセージは日本語 prefix 規約に従い、本スキルが git commit を直接実行する（他スキルへの委譲はしない）</td></tr>
     <tr><td>ポート管理規約</td><td>stale プロセスの検出・kill 手順の正。本スキルのスロット帯（既定 band_start 9100 番台）は既存の開発帯域と衝突しないよう選定</td></tr>
-    <tr><td>rebuilding-code-from-docs スキル</td><td>設計書修正 → リバースコード環境の再構築ループ。本スキルの呼び出し元。§8 の返却ブロックが両者のインターフェース</td></tr>
+    <tr><td>orchestrating-reverse-docs-flow</td><td>設計書修正 → リバースコード環境の再構築ループを仲介する呼び出し元。§8 の返却ブロックが両者のインターフェース</td></tr>
     <tr><td><code>syncing-reverse-env-concept.html</code></td><td>設計経緯と設計判断（ADR）の記録</td></tr>
   </table>
 </section>
