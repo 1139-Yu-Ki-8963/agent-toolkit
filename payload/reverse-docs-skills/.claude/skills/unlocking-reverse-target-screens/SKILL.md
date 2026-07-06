@@ -70,4 +70,4 @@ Phase 2 で特定した箇所に最小限のモックAPI（固定レスポンス
 
 ## 参照資料
 
-- `~/agent-home/skills/orchestrating-reverse-docs-flow/references/contract.md` — 返却ブロック契約・args仕様・画面レジストリの正本
+- `~/reverse-docs-skills/.claude/skills/orchestrating-reverse-docs-flow/references/contract.md` — 返却ブロック契約・args仕様・画面レジストリの正本

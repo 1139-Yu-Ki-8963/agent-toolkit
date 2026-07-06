@@ -29,6 +29,7 @@ const DICTIONARY_CATEGORIES_FILE = path.join(PORTAL, "data", "dictionary-categor
 const DICTIONARIES_HTML = path.join(PORTAL, "catalog", "dictionaries.html");
 const GLOBAL_PRH_FILE = path.join(HOME_DIR, ".claude", "rules", "always", "lint", "text-dictionary", "prh.yml");
 const PROJECTS_ROOT = path.join(HOME_DIR, "Projects");
+const PUBLIC_SET_HTML = path.join(PORTAL, "catalog", "public-set.html");
 
 // ── frontmatter パース ──────────────────────────────────────────
 
@@ -364,7 +365,26 @@ function walkFiles(dir, predicate, acc = []) {
 }
 
 function countHooks() {
-  return walkFiles(RULES_DIR, (f) => f.endsWith(".sh")).length;
+  // rule.md と同一ディレクトリに存在する .sh のみを正規 hook としてカウントする。
+  // rules-bash-runner.sh のような runner 本体・lib-*.sh ヘルパー・*.test.sh は
+  // hook 本体ではないため除外する。
+  const ruleDirs = walkFiles(RULES_DIR, (f) => path.basename(f) === "rule.md").map((f) =>
+    path.dirname(f)
+  );
+  let count = 0;
+  for (const dir of ruleDirs) {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      if (
+        entry.isFile() &&
+        entry.name.endsWith(".sh") &&
+        !entry.name.endsWith(".test.sh") &&
+        !entry.name.startsWith("lib-")
+      ) {
+        count += 1;
+      }
+    }
+  }
+  return count;
 }
 
 function countRules() {
@@ -386,6 +406,16 @@ function countSubagents() {
 
 function countRoutines() {
   return walkFiles(ROUTINES_DIR, (f) => f.endsWith("ルーティン設計書.md")).length;
+}
+
+function countPublicSet() {
+  if (!fs.existsSync(PUBLIC_SET_HTML)) return 0;
+  const html = fs.readFileSync(PUBLIC_SET_HTML, "utf8");
+  const genStart = html.indexOf("const ITEMS = [");
+  const genEnd = html.indexOf("\n    ];", genStart);
+  if (genStart === -1 || genEnd === -1) return 0;
+  const block = html.slice(genStart, genEnd);
+  return (block.match(/\{ id:/g) || []).length;
 }
 
 // UTC ではなくローカル日付を使う（UTC とローカルのズレによるドリフト誤検出を防ぐ）
@@ -442,6 +472,7 @@ async function cmdGenerate(checkMode = false) {
     routines: countRoutines(),
     tools: await countTools(),
     dictionaries: countDictionaries(),
+    "public-set": countPublicSet(),
   };
 
   let indexHtmlAfter = fs.readFileSync(INDEX_HTML, "utf8");
@@ -684,6 +715,7 @@ async function checkCatalogDrift() {
     routines: countRoutines(),
     tools: await countTools(),
     dictionaries: countDictionaries(),
+    "public-set": countPublicSet(),
   };
 
   let indexHtmlAfter = fs.readFileSync(INDEX_HTML, "utf8");
@@ -828,6 +860,16 @@ async function checkCountsMatch() {
     const dictionariesGen = parseInt(dictionariesMatch[1], 10);
     if (dictionariesActual !== dictionariesGen) {
       problems.push(`dictionaries 実体数(${dictionariesActual}) ≠ GEN:COUNT:dictionaries(${dictionariesGen})`);
+    }
+  }
+
+  // public-set カウント
+  const publicSetActual = countPublicSet();
+  const publicSetMatch = indexHtml.match(/<!-- GEN:COUNT:public-set -->(.*?)<!-- \/GEN:COUNT:public-set -->/);
+  if (publicSetMatch) {
+    const publicSetGen = parseInt(publicSetMatch[1], 10);
+    if (publicSetActual !== publicSetGen) {
+      problems.push(`public-set 実体数(${publicSetActual}) ≠ GEN:COUNT:public-set(${publicSetGen})`);
     }
   }
 
