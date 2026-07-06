@@ -59,7 +59,7 @@ allowed-tools: [Bash, Read, Write, Edit, Grep, Glob, Agent, AskUserQuestion]
 3. 新規アセットを Write（配置先は「対象種別判定」表を参照。`hooks` は配置 4 象限からの ownership × scope 判定が必要）
 4. `skills` 種別のみ: フロー系判定（Type が `orchestration` / `gateway`、または `## Phase` 見出しが 3 つ以上）を行い、該当する場合は `## 完了条件` / `## サブエージェント委任仕様` / `## ループ設計` の各セクションを補完する
 5. `hooks` / `rules` 種別: hook script を settings.json の対応イベントに登録する
-6. **ポータル更新**（`~/agent-home/ai-management-portal/` が存在する場合のみ実行。存在しなければスキップ）: `skills` 種別は ①ガイド HTML を `references/<name>-guide.html` に作成・更新する（テンプレート: `references/skills/template-guide.html`、手順: `references/skills/creating.md` 手順 10）②`~/agent-home/ai-management-portal/data/skill-categories.js` にカテゴリを追記する ③`node ~/agent-home/skills/managing-agent-configs/scripts/manage-portal.mjs generate` でカタログと数値を再生成する ④同 `verify` が exit 0 になることを確認する（`catalog/skills.html` と `index.html` の数値は手動編集しない）。他種別は対応するカタログページ（`catalog/hooks.html` / `catalog/rules.html` / `routines/index.html` / `catalog/subagents.html`）にエントリを追加し、規模数値は `node ~/agent-home/skills/managing-agent-configs/scripts/manage-portal.mjs generate` で再生成する。新規カタログページを増設する場合は `ai-management-portal/templates/page-catalog.html` をコピーする
+6. **ポータル更新**（`~/agent-home/ai-management-portal/` が存在する場合のみ実行。存在しなければスキップ）: `skills` 種別は ①ガイド HTML を `references/<name>-guide.html` に作成・更新する（テンプレート: `references/skills/template-guide.html`、手順: `references/skills/creating.md` 手順 10）②`~/agent-home/ai-management-portal/data/skill-categories.js` にカテゴリを追記する ③`node ~/agent-home/skills/managing-agent-configs/scripts/manage-portal.mjs generate` でカタログと数値を再生成する ④同 `verify` が exit 0 になることを確認する（`catalog/skills.html` と `index.html` の数値は手動編集しない）。他種別は対応するカタログページ（`catalog/hooks.html` / `catalog/rules.html` / `routines/index.html` / `catalog/subagents.html`）にエントリを追加し、規模数値は `node ~/agent-home/skills/managing-agent-configs/scripts/manage-portal.mjs generate` で再生成する。新規カタログページを増設する場合は `~/agent-home/ai-management-portal/templates/page-catalog.html` をコピーする
 7. **エイリアス表の更新**（`skills` 種別のリネーム・統合・削除時は必須）: `~/agent-home/sessions/.skill-log/skill-aliases.yml` に旧名 → 現行名（削除は unresolved セクション）を追記する。発火ログは生値記録のため、この表がないと利用実態の集計が壊れ、多用中スキルの誤削除につながる
 8. **自動連鎖** で review モードへ、review 完了後さらに test モードへ
 
@@ -93,11 +93,53 @@ allowed-tools: [Bash, Read, Write, Edit, Grep, Glob, Agent, AskUserQuestion]
 テスト全項目 PASS の場合、以下の Bash コマンドを実行してコミットゲートのマーカーを書き出す（`<type>` は `skills` / `rules` / `routines` / `hooks` のいずれか）。`skills` 種別はマーカー書き出しの前提として `manage-portal.mjs verify` の exit 0 も必須（`testing.md` の「整合性ゲート」セクション参照）:
 
 ```bash
-dir=$(ls -td ${TMPDIR:-/tmp}/claude-hooks/*/ 2>/dev/null | head -1)
-[ -n "$dir" ] && touch "${dir}managing-agent-configs-<type>-test-passed"
+type=<type>   # skills / rules / routines / hooks のいずれか
+needed=$(ls -t \
+  "$(git rev-parse --show-toplevel 2>/dev/null)/.claude/markers/"*/managing-agent-configs-$type-needed \
+  ${TMPDIR:-/tmp}/claude-hooks/*/managing-agent-configs-$type-needed \
+  2>/dev/null | head -1)
+[ -n "$needed" ] && touch "${needed%-needed}-test-passed"
 ```
 
-`managing-commit-gate.sh`（PreToolUse(Bash)）がこのマーカーの有無で `git commit` の許可を判定する。マーカーはセッション終了時に `cleanup-session-markers.sh` で自動削除される。`subagents` 種別は commit gate の対象外のためマーカー書き出し不要。
+このコマンドは PostToolUse の `managing-review-gate.sh` が編集検知時に作成した `-needed` マーカーと同一ディレクトリに `-test-passed` を置く。`marker_path` の解決先（worktree では `<worktree_root>/.claude/markers/<session>/`、非 worktree では `${TMPDIR:-/tmp}/claude-hooks/<session>/`）と一致するため、置き場ズレによる commit の誤ブロックが起きない。
+
+マーカー機構は 2 つの hook で成り立つ。`managing-review-gate.sh`（PostToolUse(Write|Edit|MultiEdit)）が managed ファイルの編集を検知した時点で `-needed` マーカーを付与し、既存の `-test-passed` マーカーを無効化する（編集後は再テストが必要なため）。`managing-commit-gate.sh`（PreToolUse(Bash)）がこの `-test-passed` マーカーの有無で `git commit` の許可を判定する。マーカーはセッション終了時に `cleanup-session-markers.sh` で自動削除される。`subagents` 種別は commit gate の対象外のためマーカー書き出し不要。
+
+## 完了条件
+
+| モード | 完了条件 |
+|---|---|
+| create | 新規アセットを配置し、review → test まで連鎖が完了している |
+| review | 全観点の検査結果が記録され、CRITICAL が 0 件または修正承認済みである |
+| test | 対象種別の実機検証が全項目 PASS し、テスト完了マーカーが書き出されている |
+| **Goal** | 通過した最終モードの完了条件を満たし、`skills` 種別は `manage-portal.mjs verify` が exit 0 である |
+
+## サブエージェント委任仕様
+
+test モードで実機検証を新規サブエージェントに委任する（`routines` のみメインセッション自身が `ScheduleWakeup` で回すため対象外）。
+
+| 列 | 内容 |
+|---|---|
+| 呼び出し箇所 | test モードの実機検証（`## test モード` 手順3） |
+| subagent_type | `worker-sonnet`（ファイル生成を伴う検証）/ `worker-haiku`（コマンド実行のみの検証）/ `investigator`（読み取り専用の事実確認） |
+| prompt 骨格 | 検証対象のアセットパス・実行する検証コマンド（ベタ書き）・期待結果・出力形式（項目構成と行数上限）・スコープ外変更の禁止 |
+| 期待返却値 | 各検証項目の PASS / FAIL、失敗時は再現コマンドと出力、収束 / 発散 / リソース上限のいずれで停止したか |
+
+## ループ設計
+
+test モードの検証が FAIL した場合は修正 → 再検証を反復する。
+
+| 要素 | 内容 |
+|---|---|
+| 反復条件 | 検証項目が FAIL したら原因を特定し修正して再検証する |
+| 上限回数 | 最大 5 回 |
+| 停止条件 | 下記 3 パターンのうち 2 つ以上で停止する |
+
+- **収束停止**: 全検証項目が PASS（推奨: 2 連続 PASS で確定）
+- **リソース上限**: 反復が 5 回に到達
+- **発散検知**: 同一エラーが 2 回連続で再発
+
+検証役（サブエージェント）は生成役（メインセッション）と分離する。
 
 ## 連鎖の中断制御
 

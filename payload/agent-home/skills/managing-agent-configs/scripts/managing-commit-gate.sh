@@ -58,9 +58,5 @@ done
 missing=$(echo "$missing" | xargs)
 [ -z "$missing" ] && exit 0
 
-jq -n --arg types "$missing" '{
-  hookSpecificOutput: {
-    additionalContext: ("[MANAGING-COMMIT-BLOCK] managed ファイルのテストが未完了です（種別: " + $types + "）。\n\n対応する種別で Skill(\"managing-agent-configs\") を実行し、テストまで完了させてください。テスト PASS 時にマーカーが書き出され、コミットが許可されます。")
-  }
-}'
+echo "[MANAGING-COMMIT-BLOCK] managed ファイルのテストが未完了です（種別: ${missing}）。対応する種別で Skill(\"managing-agent-configs\") を実行し、テストまで完了させてください。テスト PASS 時にマーカーが書き出され、コミットが許可されます。" >&2
 exit 2

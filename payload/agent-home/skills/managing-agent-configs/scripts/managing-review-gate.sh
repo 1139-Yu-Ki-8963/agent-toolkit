@@ -37,6 +37,7 @@ fi
 
 jq -n --arg type "$asset_type" '{
   hookSpecificOutput: {
+    hookEventName: "PostToolUse",
     additionalContext: ("[MANAGING-REVIEW-REQUIRED] managed ディレクトリのファイルが編集されました。Skill(\"managing-agent-configs\") を種別 " + $type + " で実行してレビュー・テストを完了させてください。テスト未完了のままコミットすると block されます。")
   }
 }'

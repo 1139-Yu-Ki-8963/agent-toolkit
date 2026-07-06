@@ -374,13 +374,23 @@ function cmdApply() {
     process.exit(1);
   }
 
-  // ⑥ generate → verify
+  // ⑥ generate → verify（ポータルが完全同梱されている環境のみ）
   const agentHome = path.join(TARGET, "agent-home");
   const manageScript = path.join(agentHome, "skills", "managing-agent-configs", "scripts", "manage-portal.mjs");
 
   if (!fs.existsSync(manageScript)) {
     console.error(`[エラー] manage-portal.mjs が見つかりません: ${manageScript}`);
     process.exit(1);
+  }
+
+  // ai-management-portal は縮小同梱版であり、generate は catalog 群を readFileSync
+  // する（新規作成しない）。前提ファイルが無い環境では generate/verify をスキップし、
+  // 設置自体は成功として扱う。
+  const portalProbe = path.join(agentHome, "ai-management-portal", "catalog", "dictionaries.html");
+  if (!fs.existsSync(portalProbe)) {
+    console.log("\n" + "─".repeat(70));
+    console.log("ポータルが完全同梱されていないため generate/verify をスキップしました。設置は完了しています。");
+    return;
   }
 
   console.log("ポータル generate を実行中...");
