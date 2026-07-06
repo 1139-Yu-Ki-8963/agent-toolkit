@@ -208,6 +208,7 @@ git tag -af "reverse-baseline/<scope>" -m "<検証日> 検証PASS: 実差分0 en
 - 環境固有値（allow_mnt_fs / node_modules_strategy / playwright_exec.mode / node_path）は既定 auto で自動検出されるため、WSL2 でも人間が config.yml に値を書く必要はない。projects の明示指定は auto の判定を強制的に上書きしたい時だけ使う
 - 共有オリジナルは読み取り専用・`source_ref` の解決 SHA で pin し、使用中（参照カウント>0）は再チェックアウト・復元をしない
 - 共有オリジナル方式は障害ドメインが同一 system@sha を使う画面群で共有になる（1 つの dev サーバー障害が全画面に波及する）。障害隔離が要る場合は per-scope を選ぶ
+- 環境名・環境識別に使う値（worktree 名・ポート・commit ガード等の周辺スクリプトの判定文字列を含む）は、`<system>`・`<画面ID>` の具体値をスクリプトに直書きしない。スクリプトが持ってよいのは命名規則の**構造**（`original-code-<system>` / `reverse-code-<scope>` のように `<...>` を常にプレースホルダとして持つ形）だけで、具体値は `source_repo`／`config.yml` から実行時に解決する。commit ガードのような周辺フックも同様に `<system>` を解決してから判定し、解決できない環境では正当な操作の誤ブロックを避けるため素通し（fail-open）する。この規約は `audit-doc-consistency.sh` の「環境名直書き」検査が機械強制する（接頭辞 `original-code-`/`reverse-code-` の直後にプレースホルダ以外の具体値が続く記述を FAIL とする）
 
 ## Gotchas
 
@@ -222,7 +223,7 @@ git tag -af "reverse-baseline/<scope>" -m "<検証日> 検証PASS: 実差分0 en
 
 ### audit-doc-consistency.sh
 
-**必要性**: 本スキルの仕様は guide.html（正本）・SKILL.md・concept.html・config.yml の 4 ファイルに分散しており、検査項目キー（プリフライト・env_check）・config キー・返却フィールドの追従漏れが改訂のたびに発生しうる。キー突合・陳腐化表現（個数直書き・OS 依存コマンドの単独前提）・config 整合・返却ブロック契約の 4 検査を機械化し、改訂後に必ず実行する回帰ゲートとする。
+**必要性**: 本スキルの仕様は guide.html（正本）・SKILL.md・concept.html・config.yml の 4 ファイルに分散しており、検査項目キー（プリフライト・env_check）・config キー・返却フィールドの追従漏れが改訂のたびに発生しうる。キー突合・陳腐化表現（個数直書き・OS 依存コマンドの単独前提）・config 整合・返却ブロック契約・環境名直書き検出（命名規則の接頭辞の直後に `<system>`/`<画面ID>` の具体値が焼き込まれていないか）の 5 検査を機械化し、改訂後に必ず実行する回帰ゲートとする。
 
 **代替案を採用しなかった理由**:
 - Bash ツール直叩き: 4 検査 × 対象 4 ファイルの grep/突合をセッション内で都度書くとトークン消費が大きく、検査の再現性が失われる
