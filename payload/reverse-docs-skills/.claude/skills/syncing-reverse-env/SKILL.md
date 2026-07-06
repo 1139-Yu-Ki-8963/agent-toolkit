@@ -12,7 +12,7 @@ allowed-tools: [Bash, Read, Write, Edit, Grep, Glob, AskUserQuestion]
 
 仕様の正は `references/syncing-reverse-env-guide.html`（確定仕様）。設計判断（ADR）の記録は `references/syncing-reverse-env-concept.html`。
 
-本スキルは orchestrating-reverse-docs-flow の契約（`~/agent-home/skills/orchestrating-reverse-docs-flow/references/contract.md`）に準拠し、args 全量指定・対話ゼロで単独起動できる。
+本スキルは orchestrating-reverse-docs-flow の契約（`~/reverse-docs-skills/.claude/skills/orchestrating-reverse-docs-flow/references/contract.md`）に準拠し、args 全量指定・対話ゼロで単独起動できる。
 
 ## 使用タイミング
 

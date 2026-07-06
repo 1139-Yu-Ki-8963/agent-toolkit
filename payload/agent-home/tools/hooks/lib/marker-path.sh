@@ -48,7 +48,7 @@ marker_path() {
 # managed_asset_type - パス（相対/絶対どちらでも）を受け取り managing-agent-configs の
 # 種別名（skills/rules/routines/hooks）を echo する。非該当は空文字を echo する。
 #
-# 監視パスの正本はここ。~/.claude/rules/always/gate/managing-review-gate/rule.md の
+# 監視パスの正本はここ。~/.claude/rules/always/agent-config/review/rule.md の
 # 対応表と乖離した場合は本関数を正とする。
 #
 # `*` が `/` にもマッチする sh case の性質を利用し、絶対パス対応のため
@@ -69,6 +69,10 @@ managed_asset_type() {
     .claude/rules/*/prh.yml|*/.claude/rules/*/prh.yml)
       printf 'rules' ;;
     rules/*/prh.yml|*/rules/*/prh.yml)
+      printf 'rules' ;;
+    rules/*/rule.md)
+      printf 'rules' ;;
+    rules/*/*.sh)
       printf 'rules' ;;
     routines/*/ルーティン設計書.md|*/routines/*/ルーティン設計書.md)
       printf 'routines' ;;

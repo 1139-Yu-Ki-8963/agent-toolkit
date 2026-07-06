@@ -2,7 +2,7 @@
 
 `SKILL.md` の P3・P4・P5・P6 で参照する詳細手順。SKILL.md 本体には要約のみを置き、具体的な算出方法・prompt 骨格・書式はここに集約する。
 
-章の役割キー → 節キーワード対応表は本ファイルでは複製しない。正本は起動引数 chapter_map_path（管理者が配布。移設先: `~/agent-home/skills/orchestrating-reverse-docs-flow/references/chapter-map.md`）であり、本スキルもそちらを参照する。
+章の役割キー → 節キーワード対応表は本ファイルでは複製しない。正本は起動引数 chapter_map_path（管理者が配布。実体: `~/reverse-docs-skills/shared/references/chapter-map.md`）であり、本スキルもそちらを参照する。
 
 ## スクリプト入力契約
 
