@@ -12,6 +12,8 @@
 # 検査:
 #   (1) HEAD が $2 と一致する
 #   (2) `git status --porcelain` が空（作業ツリーの汚染なし）
+#       ただし既知の無害な残留物（.reverse-port-slot・.shared-original-slot・
+#       node_modules/ 配下）は除外して判定する
 #
 # 終了コード: PASS = 0 / 違反 = 1（違反内容は stderr）
 #
@@ -55,7 +57,15 @@ else
   echo "OK: HEAD が凍結コミットと一致 ($CURRENT_HEAD)"
 fi
 
-DIRTY_STATUS="$(git -C "$WORKTREE_PATH" status --porcelain)"
+DIRTY_STATUS="$(git -C "$WORKTREE_PATH" status --porcelain | awk '
+  {
+    path = substr($0, 4)
+    if (path == ".reverse-port-slot") next
+    if (path == ".shared-original-slot") next
+    if (path ~ /^node_modules\//) next
+    print
+  }
+')"
 if [ -n "$DIRTY_STATUS" ]; then
   echo "違反: 作業ツリーが汚染されています（凍結後の変更が検出されました）" >&2
   echo "$DIRTY_STATUS" >&2
