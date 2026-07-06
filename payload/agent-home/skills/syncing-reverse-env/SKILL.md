@@ -70,13 +70,16 @@ reverse スロット割当手順: 兄弟 worktree（`reverse-code-*`）を走査
 | `setup` | 初回 | 両 worktree を作成し、パス・ブランチ・確定ポートを返す。比較しない |
 | `sync`（既定） | 2 回目以降 | 検証 → 差分があれば整列 → 一致で基準タグ更新 |
 | `teardown` | 検証終了時 | 当該 scope のスロット帯（連続 20 ポート）kill + worktree 削除。**ユーザーの明示依頼がある時だけ** |
+| `registry` | 設計書が無い画面（unlocking-reverse-target-screens が開通済み） | 画面レジストリから source_ref・verification_url を解決し、setup 相当の環境確保 + 基準タグ確立まで進める。design-doc の代わりに system・screen_id で起動する |
 
 sync のオプション: `dry-run`（整列・タグ更新なし）/ `reset-first`（開始前に `git reset --hard reverse-baseline/<scope>` で基準状態へ復帰）。
 
 - **dry-run の無副作用対象**は「リバースコード環境の **git 管理内容**」と「基準タグ」の 2 つ。Phase 5（起動と観測）は dry-run でも実行し、静的比較が FAIL でも L1〜L5（該当画面）まで計測して診断情報を最大化する。オリジナルコード環境の `source_ref` 復元（プリフライト）と証跡（スクリーンショット等の計測成果物）の書き出しは、無副作用の例外として dry-run でも行う。node_modules・バンドラキャッシュ等 git 管理外の生成物の修復（npm ci・キャッシュ削除）は dry-run でも行う
 - **teardown の明示依頼確認**: 人間の直接起動なら AskUserQuestion で最終確認する。呼び出し元スキル経由なら args の `user-approved`（ユーザー依頼発話の引用）を必須とし、無ければ削除を実行せず status=ERROR（前提不成立）で差し戻す
 
-入力は `design-doc`（画面詳細設計書パス）のみ必須（**全 mode 共通**。teardown でも `<scope>` 導出に使う）。任意: `mode` / `dry-run` / `reset-first` / `user-approved`（teardown 時のユーザー依頼発話の引用）/ `scenarios`（省略時は設計書 frontmatter の `scenarios`。旧 `route`（単一パス）は後方互換で `[{path: <パス>}]` に正規化する）/ `max-loop`（既定は config.yml の値）。mode 別の必須 args 検証は Phase 1 で行い、Phase 2 以降は環境操作に徹する。
+入力は `design-doc`（画面詳細設計書パス）のみ必須（**mode=registry 以外の全 mode 共通**。teardown でも `<scope>` 導出に使う）。`mode=registry` のみ `design-doc` の代わりに `system`・`screen_id` を必須入力とし、画面レジストリ（`~/agent-home/state/reverse-screen-registry.yml`）から `source_ref`・`verification_url` を解決して `<scope>` = `<system>-<screen_id>` を導出する。任意: `mode` / `dry-run` / `reset-first` / `user-approved`（teardown 時のユーザー依頼発話の引用）/ `scenarios`（省略時は設計書 frontmatter の `scenarios`。旧 `route`（単一パス）は後方互換で `[{path: <パス>}]` に正規化する）/ `max-loop`（既定は config.yml の値）。mode 別の必須 args 検証は Phase 1 で行い、Phase 2 以降は環境操作に徹する。
+
+`mode=registry` の動作: 画面レジストリから該当 `<system>-<screen_id>` エントリの `source_ref`・`verification_url` を読む（エントリが無ければ status=ERROR で差し戻す）。`source_ref` を元にオリジナルコード環境相当の参照点を確保し、reverse 環境は起動引数 `reverse_worktree` をそのまま用いる（`mode=setup`/`sync` のような worktree 新規作成は行わず、unlocking-reverse-target-screens が既に用意した worktree を使う）。以降は `mode=sync` と同様に環境同一性チェック・基準タグ確立まで進め、返却ブロックは既存15フィールドと同型で返す（`docs_root` は画面レジストリの `design_doc_path` から補う）。
 
 ## ツールリファレンス
 
