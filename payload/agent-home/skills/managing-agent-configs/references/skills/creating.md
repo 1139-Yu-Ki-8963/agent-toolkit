@@ -59,6 +59,10 @@
 3. 9 セクション（テンプレート定義分）を SKILL.md の正本に基づいて執筆する（SKILL.md に無い仕様の創作禁止）
 4. `references/<name>-guide.html` に配置する
 
+### 11. 完了報告節を追加する
+
+`## 完了報告` 見出しを追加し、`completion-report-format.md` への参照 1 行と固有差分（あれば検証行の追加宣言）のみを書く。骨格のコピー禁止。
+
 ## 作成前チェックリスト
 
 - [ ] description の説明文（TRIGGER 行より前）が **50 字以内** か（超過時は TRIGGER when の例示を絞る）
@@ -87,6 +91,7 @@
 
 - [ ] `~/agent-home/ai-management-portal/data/skill-categories.js` に新スキルのカテゴリを追記した
 - [ ] スキルガイド HTML を `references/<name>-guide.html` に作成した（手順 10 参照）
+- [ ] `## 完了報告` 節を追加し、`completion-report-format.md` への参照と固有差分のみを書いた（手順 11 参照）
 - [ ] `node ~/agent-home/skills/managing-agent-configs/scripts/manage-portal.mjs generate` を実行してカタログと数値を再生成した
 - [ ] `node ~/agent-home/skills/managing-agent-configs/scripts/manage-portal.mjs verify` が exit 0 になることを確認した
 - [ ] アンチパターンを踏んでいないか `anti-patterns.md` で確認した

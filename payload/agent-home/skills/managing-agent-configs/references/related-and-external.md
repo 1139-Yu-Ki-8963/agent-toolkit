@@ -13,6 +13,6 @@
 
 ## 関連スキル
 
-- `naming-conventions` — スキル・ブランチ・ディレクトリ命名規則の正本
+- `~/.claude/rules/always/naming/commit-branch/naming-values.txt` — スキル・ブランチ・ディレクトリ命名規則の正本
 - `update-config` — settings.json への書き込み・移動・権限管理
 - `clarifying-ambiguity` / `writing-quality` — hooks から呼び出されるサブエージェント側のスキル

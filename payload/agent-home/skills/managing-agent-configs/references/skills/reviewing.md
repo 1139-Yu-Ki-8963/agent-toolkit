@@ -113,7 +113,7 @@ Agent(
 | ID | 重大度 | 検出 | 修正方針 |
 |----|--------|------|----------|
 | A1 | CRITICAL | `name` が非 kebab-case / 64 字超 / invocation 設定時に name≠invocation | 規約準拠に修正 |
-| A2 | WARN | `name` が gerund 形（verb+ing + 名詞）でない。**ただし公式スキル（プロバイダー提供で名前変更不可）は対象外** | naming-conventions に沿って改名提案（カスタムスキルのみ） |
+| A2 | WARN | `name` が gerund 形（verb+ing + 名詞）でない。**ただし公式スキル（プロバイダー提供で名前変更不可）は対象外** | conventions.md の「name の形式」に沿って改名提案（カスタムスキルのみ） |
 | A3 | CRITICAL | description に `TRIGGER when:` か `SKIP:` が欠落 | 両キーワードを追記 |
 | A4 | CRITICAL | 説明文（TRIGGER 行より前）が 50 字超 | 要約して 50 字以内に。TRIGGER / SKIP は計上しない |
 | A5 | WARN | 全スキル合計 description が 2000 字超 | 長い description を圧縮 |
@@ -183,8 +183,10 @@ Agent(
 | G3 | INFO | セクション見出しが日本語で統一されていない | 日本語へ統一 |
 | G4 | WARN | `references/<name>-guide.html` が存在しない | スキルガイド HTML を作成する（`creating.md` 手順 10 参照） |
 | G5 | WARN | ガイドがテンプレ非準拠（`node ~/agent-home/skills/managing-agent-configs/scripts/manage-portal.mjs verify --only guide-テンプレ準拠` で機械検出） | テンプレートに準拠するよう修正する |
+| G6 | WARN | `## 完了報告` 見出しが存在しない | 完了報告節を追加する（`completion-report-format.md` 参照） |
+| G7 | WARN | `## 完了報告` 節が `completion-report-format.md` を参照していない | 骨格参照 1 行 + 固有差分の宣言に書き換える |
 
-**合計 34 項目（A〜E・G: 21 項目／F: 13 項目はフロー系のみ）**
+**合計 36 項目（A〜E・G: 23 項目／F: 13 項目はフロー系のみ）**
 
 ## 健全性目安
 

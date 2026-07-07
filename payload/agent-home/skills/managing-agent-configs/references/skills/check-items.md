@@ -149,7 +149,7 @@ SKIP が「〜の時」だけで止まり、代わりに使うべきスキル（
 
 ```diff
 -  SKIP: 新規作成の時。
-+  SKIP: スキルライフサイクル全般（→ managing-agent-configs（種別: skills））、命名のみ（→ naming-conventions）。
++  SKIP: スキルライフサイクル全般（→ managing-agent-configs（種別: skills））、命名のみ（→ rules: always/naming/commit-branch）。
 ```
 
 ---
@@ -463,4 +463,37 @@ grep -q "id: \"$NAME\"" ~/agent-home/ai-management-portal/catalog/skills.html \
 
 ```bash
 grep -E '^#{2,3} ' "$F"
+```
+
+### G6 — 完了報告節の実在（WARN）
+
+`## 完了報告` 見出しが存在するか。
+
+```bash
+grep -L '^## 完了報告' ~/agent-home/skills/*/SKILL.md
+```
+
+ヒット（出力あり）= 違反。
+
+```diff
++## 完了報告
++
++`managing-agent-configs/references/skills/completion-report-format.md` の共通骨格（作業報告型）に従う。
+```
+
+### G7 — 完了報告正本への参照（WARN）
+
+`## 完了報告` 節が `completion-report-format.md` を参照しているか。
+
+```bash
+grep -l 'completion-report-format.md' "$F" || echo "MISSING: 完了報告正本への参照"
+```
+
+非ヒット（`MISSING` 出力）= 違反。
+
+```diff
+ ## 完了報告
+
+-作業内容をまとめて報告する。
++`managing-agent-configs/references/skills/completion-report-format.md` の共通骨格（作業報告型）に従う。
 ```

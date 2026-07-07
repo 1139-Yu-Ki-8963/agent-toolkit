@@ -41,7 +41,7 @@
 | topic（第 2 階層） | kebab-case・内容カテゴリ | `naming/` `placement/` |
 | 規約名（第 3 階層） | kebab-case・`-rules` suffix 禁止 | `semantic-key/` `commit-branch/` |
 | 規約本体 | `rule.md`（固定） | — |
-| hook script | kebab-case + `.sh` | `no-root-marker-check.sh` |
+| hook script | kebab-case + `.sh` | `check-root-marker.sh` |
 | サイドカー | kebab-case + `.txt` | `naming-values.txt` |
 | 注入タグ | UPPER-HYPHEN | `[NO-ROOT-MARKER-BLOCK]` |
 
@@ -162,7 +162,7 @@ ctx="[NO-DELEGATION] 最終応答にユーザー操作依頼を検出。
 
 | 宣言 | 意味 | 例 |
 |---|---|---|
-| 委譲可（値のみ） | プロジェクト側受け口があれば規約値をそちら優先で読む。hook は `lib-rule-resolver.sh` の `resolve_rule_file` で解決する | directory-structure の許可リスト、commit-branch の naming-values |
+| 委譲可（値のみ） | プロジェクト側受け口があれば規約値をそちら優先で読む。hook は `lib/rule-resolver.sh` の `resolve_rule_file` で解決する | directory-structure の許可リスト、commit-branch の naming-values |
 | 一律適用 | 全プロジェクト共通。上書き実例を作らない | semantic-key |
 | 上書き禁止 | プロジェクト側での迂回を例外なく禁止する | security 系 |
 

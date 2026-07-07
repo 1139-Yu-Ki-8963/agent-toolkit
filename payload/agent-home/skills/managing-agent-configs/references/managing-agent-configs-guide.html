@@ -128,14 +128,14 @@
     <dd>
       スキル・hook・rule・ルーティン・サブエージェントの新規作成時（create → review → test を自動連鎖） ／
       既存アセットの品質診断・観点チェック時（review モード） ／
-      発火条件・終端報告の検証を新規サブエージェントに実機実行させたい時（test モード）
+      発火条件・完了報告の検証を新規サブエージェントに実機実行させたい時（test モード）
     </dd>
   </div>
 
   <table class="meta-table">
     <tr><td>対応 OS</td><td>macOS</td></tr>
     <tr><td>検証状況</td><td>skills / hooks / rules / routines / subagents の 5 種で実動確認済み</td></tr>
-    <tr><td>依存</td><td>Agent（白紙実行者サブエージェント）/ managing-review-gate.sh（PostToolUse advisory hook）</td></tr>
+    <tr><td>依存</td><td>Agent（白紙実行者サブエージェント）/ check-managing-review.sh（PostToolUse advisory hook）</td></tr>
     <tr><td>関連資料</td><td><code>SKILL.md</code>（本ガイドの正本）と <code>references/&lt;type&gt;/</code> 各 MD が各種別の正本</td></tr>
   </table>
 </header>
@@ -151,7 +151,7 @@
     <li><a href="#s6">test モード（白紙実行者ループ）</a></li>
     <li><a href="#s7">hook 連携（commit gate）</a></li>
     <li><a href="#s8">references の地図（段階的開示）</a></li>
-    <li><a href="#s9">終端報告</a></li>
+    <li><a href="#s9">完了報告</a></li>
   </ol>
 </nav>
 
@@ -223,7 +223,7 @@
 
   <line x1="1585" y1="464" x2="1585" y2="560" stroke="#475569" stroke-width="3" marker-end="url(#mgArrDark)"></line>
   <rect x="780" y="570" width="930" height="60" rx="30" fill="#334155"></rect>
-  <text x="1245" y="609" font-size="20" font-weight="700" fill="#FFFFFF" text-anchor="middle">終端報告 — 種別・通過モード・件数・健全性判定を 1 報告に集約</text>
+  <text x="1245" y="609" font-size="20" font-weight="700" fill="#FFFFFF" text-anchor="middle">完了報告 — 種別・通過モード・件数・健全性判定を 1 報告に集約</text>
 
   <path d="M905,464 L905,570" stroke="#94A3B8" stroke-width="2" stroke-dasharray="5 5" marker-end="url(#mgArrGray)"></path>
   <text x="885" y="530" font-size="14" fill="#64748B" text-anchor="end">workflows のみ create 単発で終端へ</text>
@@ -233,12 +233,12 @@
   <circle cx="560" cy="752" r="5" fill="#D97706"></circle>
   <text x="578" y="759" font-size="18" fill="#475569">フロー構造は 6 種で共通、規約・観点・完了条件は種別ごとに異なる</text>
 </svg>
-    <figcaption class="note">ライフサイクルの全体図。6 種のアセットが同じ動線（create → review → test → 終端報告）を通る。図をクリックすると拡大表示できます。</figcaption>
+    <figcaption class="note">ライフサイクルの全体図。6 種のアセットが同じ動線（create → review → test → 完了報告）を通る。図をクリックすると拡大表示できます。</figcaption>
   </figure>
 
   <div class="constraint"><strong>設計思想:</strong>
     ① 作りっぱなしを許さない（create したら review → test まで自動連鎖）
-    ② 骨格（モード判定・連鎖制御・終端報告）はハブに集約し、型別の詳細は references/ に分離
+    ② 骨格（モード判定・連鎖制御・完了報告）はハブに集約し、型別の詳細は references/ に分離
     ③ 段階的開示 — ハブ本体は「種別判定 → モード判定 → 該当 references のロード指示」のみを行う
     ④ 6 種の統合であって画一化ではない — 共通化するのは「フロー構造」であり「内容」ではない
   </div>
@@ -445,9 +445,9 @@
 </section>
 
 <section id="s9">
-  <h2><span class="sec-num">§9</span>終端報告</h2>
+  <h2><span class="sec-num">§9</span>完了報告</h2>
   <p>最終モードまで完了したら、次の項目を能動文の 1 報告にまとめる。作業ログの羅列ではなく「何がどういう状態で完了したか」を答える。</p>
-  <pre class="flow"><span class="cap">── 終端報告に含める項目 ─────────────────────────────────────</span>
+  <pre class="flow"><span class="cap">── 完了報告に含める項目 ─────────────────────────────────────</span>
 
   対象:      種別（skills / hooks / rules / routines /
              subagents / workflows）・アセット名・通過モード
