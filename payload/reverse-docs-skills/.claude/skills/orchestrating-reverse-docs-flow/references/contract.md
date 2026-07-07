@@ -30,10 +30,18 @@
 - mode=setup の返却からは環境ブロック（env_block）として docs_root / scope / ports / slot / baseline_tag / original_code / reverse_code を抽出する
 - mode=sync,dry-run の返却が「比較結果ブロック」= static_diff / dynamic / env_check / status / hint を含む15フィールドそのもの
 
+### authoring-screen-docs-from-code（設計書著述）
+
+- status: `AUTHORED | BLOCKED`
+- 拡張: fact_table_path（事実表 fact-table.md のパス）、measurement_pending（実測委譲項目一覧。⑨実測系として画面単位検証へ委譲した項目）
+- 返却ブロック共通サブセット（status/scope/artifacts/hint）に準拠する
+
 ### rebuilding-screen-unit-from-docs（ファイル単位検証）
 
-- status: `CONVERGED | DIVERGED | INTERNAL-CONTRADICTION | BLOCKED`
+- status: `差し戻し | 再現一致 | 再現不一致`
 - 拡張: instruction_doc（修正指示書.md のパス）、handoff_files（画面単位検証で要注意なファイル一覧）、saved_test_paths（本スキルが保存した最終テストコードのパス一覧。設計書リポジトリ `<画面ディレクトリ>/テスト項目書/テストコード/単体/<basename>/` 配下）
+- `status=差し戻し` の場合、hint に「authoring-screen-docs-from-code を実行してから再起動せよ」等の差し戻し理由を記録する（設計書に対象ファイルの契約が無い・観点表に契約が無い・画面ディレクトリ構造が壊れている等の**内容起因**の理由に限る）
+- target_repo_path・target_branch・user-approved 等の必須引数欠落やチェックアウト失敗による**起動不可**は `status=差し戻し` を返さず、Skill 呼び出し自体の失敗として管理者へ即時報告する（authoring-screen-docs-from-code の再著述では解消しないため、S1a⇄S1b ループの対象外）
 - 下流引き継ぎ契約: 画面単位検証（rebuilding-code-from-docs）は、上流 rebuilding-screen-unit-from-docs が `saved_test_paths` に保存した単体テストコードを **`reverse_worktree`（rebuilding-code-from-docs が操作する対象コードリポジトリ。rebuilding-screen-unit-from-docs の `target_repo_path` とは別物）へ配置して実行するのみ**とし、単体テストコードの新規作成は行わない
 
 ### rebuilding-code-from-docs（画面単位検証・mode分割）
@@ -52,6 +60,7 @@
 
 - generating-screen-list-for-reverse-docs: source_dir, output_dir
 - syncing-reverse-env: design-doc, mode（setup|sync|teardown）, dry-run, reset-first, user-approved, scenarios, max-loop（既存契約のまま）
+- authoring-screen-docs-from-code: screen_dir, docs_root, template_root, chapter_map_path, audit_script_path, target_repo_path, target_branch, source_ref, mode, target_file_path（mode=file時）, screenshot_dir（任意・補助情報源）, registry値（任意・補助情報源）
 - rebuilding-screen-unit-from-docs: screen_dir, target_file_path, docs_root, template_root, audit_script_path, chapter_map_path, env_block, user-approved
 - rebuilding-code-from-docs (mode=implement): screen_dir, scope, reverse_worktree, ports, baseline_tag_status, docs_root, template_root, audit_script_path, chapter_map_path, user-approved, saved_test_paths（上流 rebuilding-screen-unit-from-docs が保存した単体テストコードのパス一覧。管理者が転送する。上流未実施の画面では省略可）
 - rebuilding-code-from-docs (mode=judge): screen_dir, compare_result, reverse_worktree, freeze_commit（Phase 6 の compare_request から管理者が保持して転送する。scripts/check-freeze.sh の入力に使う）
@@ -62,19 +71,23 @@
 
 ## 状態判定表
 
-成果物の実在から次工程を決める。S0〜S4を漏れなく被覆する。
+成果物の実在から次工程を決める。S0/S0u/S1a/S1b/S2/S3/S4 を漏れなく被覆する。
 
 | 状態キー | 実在判定 | 次に起動する子スキル | 渡す主要 args |
 |---|---|---|---|
 | S0 画面未列挙 | 画面一覧HTML が不在 | generating-screen-list-for-reverse-docs | source_dir, output_dir |
-| S1 設計書不足 | 画面一覧HTML有・(a)画面が未開通（設計書も基準タグも無い新規画面）または (b)screen_dir/設計書が不在 or from-zero 対象ファイル未記載 | (a) unlocking-reverse-target-screens → syncing-reverse-env（mode=registry） → (b) rebuilding-screen-unit-from-docs（任意工程） | (a) system, screen_id, reverse_worktree, ports, docs_root → mode=registry, system, screen_id, reverse_worktree, ports, user-approved ／ (b) screen_dir, target_file_path, 資産paths, env_block |
+| S0u 画面未開通 | 画面一覧HTML有・画面が未開通（設計書も基準タグも無い新規画面） | unlocking-reverse-target-screens → syncing-reverse-env（mode=registry） | system, screen_id, reverse_worktree, ports, docs_root → mode=registry, system, screen_id, reverse_worktree, ports, user-approved |
+| S1a 設計書未著述 | 画面開通済み・画面ディレクトリ不在 or §15.1 に対象ファイル行なし or 著者スキルの完全性ゲート成果物（fact-table.md + check-fact-coverage 通過記録）不在 | authoring-screen-docs-from-code（任意工程） | screen_dir, docs_root, template_root, chapter_map_path, audit_script_path, target_repo_path, target_branch, source_ref, mode, target_file_path |
+| S1b ファイル単位未検証 | 著述済み（S1a の成果物実在）かつ当該ファイルの検証記録に「再現一致」なし | rebuilding-screen-unit-from-docs（任意工程） | screen_dir, target_file_path, 資産paths, env_block |
 | S2 基準未確立 | 設計書有・baseline_tag 未確立（syncing setup の baseline_tag が未実施） | syncing-reverse-env（mode=setup → sync） | design-doc, mode=setup |
 | S3 往復未検証 | baseline_tag有・reverse未実装 or 未突合 | rebuilding-code-from-docs（mode=implement）→ syncing-reverse-env（mode=sync,dry-run）→ rebuilding-code-from-docs（mode=judge） | screen_dir, scope, reverse_worktree, ports, docs_root（implement）／ design-doc, mode=sync, dry-run（sync,dry-run）／ screen_dir, compare_result, reverse_worktree, freeze_commit（judge） |
 | S4 検証完了 | rebuilding-code-from-docs judge が status=PASS | syncing-reverse-env（mode=sync 本番で基準タグ更新 / 依頼時 teardown。user-approved 必須） | design-doc, mode=sync, user-approved |
 
-判定は「画面一覧HTMLの実在 → 設計書/対象ファイルの実在 → syncing setup返却の baseline_tag → judge の status」の順に降りる決定木で、5状態を漏れなく被覆する。
+判定は「画面一覧HTMLの実在 → 画面開通有無 → 設計書/対象ファイル/著者スキルの完全性ゲート成果物の実在 → 検証記録の再現一致有無 → syncing setup返却の baseline_tag → judge の status」の順に降りる決定木で、7状態を漏れなく被覆する。
 
-S1 は任意工程である。設計書が揃った画面はファイル単位検証をスキップし S2/S3 から開始してよい。
+S1b が `status=差し戻し` を返した場合は S1a（authoring-screen-docs-from-code）へ戻す。
+
+S1a/S1b は任意工程である。設計書が揃い当該ファイルの検証記録に再現一致がある画面は、ファイル単位工程をスキップし S2/S3 から開始してよい。
 
 ## 画面レジストリ
 
