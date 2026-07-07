@@ -21,7 +21,9 @@
 
 `TRIGGER when:` / `SKIP:` は固定英語キーワード。`Use when:` や `使用時:` はシステムが認識しない。
 
-## 4 役割判定フロー
+## 役割判定フロー
+
+判定は Q1〜Q4 の 4 段階の分岐点で構成されるが、Q4 の YES/NO で worker-sonnet と worker-haiku に分かれるため、到達する役割は brain / researcher / investigator / worker-sonnet / worker-haiku の 5 種類になる（下記「既存 6 役割」は reviewer を含めた役割総数であり、本フローの到達役割数とは別の数字）。
 
 ```
 Q1. タスクの分解・計画・結果検証が必要か？

@@ -1,10 +1,10 @@
 # 章役割キー→§→節キーワードの対応表
 
-章役割キー→§→節キーワードの対応表。orchestrating-reverse-docs-flow が正本を持ち、rebuilding-screen-unit-from-docs / rebuilding-code-from-docs へ chapter_map_path として配布する。
+章役割キー→§→節キーワードの対応表。本リポジトリの shared/ 配下で正本を持ち、rebuilding-screen-unit-from-docs / rebuilding-code-from-docs へ chapter_map_path として配布する。
 
 ## 章の役割キー → 節キーワード対応表（正本）
 
-章の特定は設計書の章マップ表（役割キー列）で行う。`scripts/audit-consistency.sh` は章マップ表から役割キー→§番号を解決し、以下の節キーワードで二次解決する。本表が節キーワード対応の正本であり、SKILL.md・ng-classification.md・report-format.md・guide.html はここへのポインタとする。
+章の特定は設計書の章マップ表（役割キー列）で行う。`shared/scripts/audit-consistency.sh` は章マップ表から役割キー→§番号を解決し、以下の節キーワードで二次解決する。本表が節キーワード対応の正本であり、SKILL.md・ng-classification.md・report-format.md・guide.html はここへのポインタとする。
 
 | 役割キー | 節キーワード（既定 §） |
 |---|---|

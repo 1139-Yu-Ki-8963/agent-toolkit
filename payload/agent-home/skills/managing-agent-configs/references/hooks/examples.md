@@ -84,9 +84,9 @@ PostToolUse。`matcher: Write|Edit` で file_path を取り、ファイルを走
 - ねらい: .md / .txt 保存後に曖昧表現（適宜 / 随時 / 必要に応じて / それ / これ ...）を検出 → サブエージェント起動を指示
 - マッチ: 拡張子フィルタで md / txt のみ走査
 - 動作: `grep -nE '<曖昧パターン>' "$file" | head -5` の結果を additionalContext に埋め込む
-- 出力: `[AMBIGUITY-AUTO-FIX]` + ファイルパス + 検出行 + 「Agent ツール（subagent_type: general-purpose）を即座に起動し、clarifying-ambiguity スキルで修正すること（`~/.claude/rules/always/agent/subagent-delegation/rule.md`）」
+- 出力: `[AMBIGUITY-AUTO-FIX]` + ファイルパス + 検出行 + 「Agent ツール（subagent_type: general-purpose）を即座に起動し、clarifying-ambiguity スキルで修正すること（`~/.claude/rules/always/agent/delegation/rule.md`）」
 - timeout: 10（ファイル走査込み）
-- 連動: `~/.claude/rules/always/agent/subagent-delegation/rule.md` にサブエージェント起動ルールを明記
+- 連動: `~/.claude/rules/always/agent/delegation/rule.md` にサブエージェント起動ルールを明記
 
 ### 4.2 textlint 検査
 
@@ -143,7 +143,7 @@ PostToolUse。`matcher: Write|Edit` で file_path を取り、ファイルを走
 - [x] `hookSpecificOutput.hookEventName` を親イベント名と一致（11/13、出力する 11 件のみ対象）
 - [x] キーワードマッチ系で `|| true` フォールバック（5/5、UserPromptSubmit と PostToolUse）
 - [x] 動的内容を含む出力は `jq -n --arg` で組み立て（PostToolUse 2 件）
-- [x] サブエージェント委譲は対応するルール・スキルと連動（AMBIGUITY-AUTO-FIX → subagent-delegation-rules、TEXTLINT → writing-quality SKILL.md、SESSION-SUMMARY → settings.json SessionEnd）
+- [x] サブエージェント委譲は対応するルール・スキルと連動（AMBIGUITY-AUTO-FIX → always/agent/delegation 規約、TEXTLINT → writing-quality SKILL.md、SESSION-SUMMARY → settings.json SessionEnd）
 - [x] 再帰呼び出しを伴う子プロセス起動は ENV ガードで止める（カテゴリ 5 の 2 件）
 
 新規フックを追加する場合、このチェックリストを満たすかを **必ず** 確認すること。

@@ -7,8 +7,8 @@
 #   返却フィールドの整合を機械的に検査する。仕様追従の抜け（typo・記述漏れ・
 #   古い記述の残存）を早期検出するためのスキルローカル監査スクリプト。
 #
-# 検査内容（4 項目。「1」はキー突合単独、「2」は陳腐化 grep を FAIL/WARN の
-#   2 系統に分けて出力するため、実行結果は 5 行になる）:
+# 検査内容（5 項目。「1」はキー突合単独、「2」は陳腐化 grep を FAIL/WARN の
+#   2 系統に分けて出力するため、実行結果は 6 行になる）:
 #   1. キー突合      : guide.html のプリフライト表（9 キー）・env_check 表
 #                       （13 キー）を抽出し、SKILL.md / concept.html 内で
 #                       「キー: ...」の形式により明示的に列挙されているキー名が
@@ -38,6 +38,13 @@
 #                       baseline_tag / static_diff / dynamic / env_check /
 #                       artifacts / hint）の存在を確認する。1 件でも欠ければ
 #                       FAIL。
+#   5. 環境名直書き   : 命名規則の接頭辞 original-code- / reverse-code- の直後
+#                       には常に <system> / <scope> 等のプレースホルダ（<...>）
+#                       か glob（*）だけが来る。直後に具体値（英数字）が続く記述
+#                       は <system>/<画面ID> のハードコード（プロジェクトに寄った
+#                       実装）の兆候として FAIL。worktree 名・ポート・ガード等の
+#                       判定文字列は source_repo / config.yml から実行時に解決し、
+#                       具体値をファイルに焼き込まないことを保証する。
 #
 # 引数: なし（本スクリプト自身の配置場所からスキルフォルダ・agent-home を
 #   相対的に解決する。実行時の cwd に依存しない）
@@ -228,6 +235,27 @@ if [ "${#return_missing[@]}" -eq 0 ]; then
   report_pass "返却ブロック契約: guide.html §8 の返却ブロックに ${#return_fields[@]} フィールドすべてが存在する"
 else
   report_fail "返却ブロック契約" "${return_missing[@]}"
+fi
+
+# ---------------------------------------------------------------------------
+# 5. 環境名の直書き検出
+# ---------------------------------------------------------------------------
+# 命名規則の接頭辞 original-code- / reverse-code- の直後には、常に <system> /
+# <scope> 等のプレースホルダ（<...>）か glob（*）だけが来る。直後に具体値（英数字）
+# が続く記述は <system>/<画面ID> のハードコードであり、プロジェクトに寄った実装の
+# 兆候として FAIL する。worktree 名・ポート・ガード等の判定文字列は source_repo /
+# config.yml から実行時に解決し、具体値をファイルに焼き込まないことを保証する。
+hardcode_hits="$(
+  grep -rnE '(original|reverse)-code-[A-Za-z0-9]' "${TARGET_DIRS[@]}" \
+    --include='*.md' --include='*.html' --include='*.yml' \
+    --include='*.sh' --include='*.py' 2>/dev/null || true
+)"
+
+if [ -z "$hardcode_hits" ]; then
+  report_pass "環境名直書き検出: original-code-/reverse-code- の直後は常にプレースホルダ（<...>）または glob（*）で、具体値の焼き込みなし"
+else
+  mapfile -t hardcode_lines <<< "$hardcode_hits"
+  report_fail "環境名直書き検出: original-code-/reverse-code- の直後に具体値（<system>/<画面ID> のハードコード疑い）" "${hardcode_lines[@]}"
 fi
 
 # ---------------------------------------------------------------------------

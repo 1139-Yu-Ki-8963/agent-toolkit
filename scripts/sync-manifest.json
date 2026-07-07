@@ -1,11 +1,12 @@
 {
   "mappings": [
-    { "mode": "mirror", "src": "~/agent-home/skills/generating-screen-list-for-reverse-docs", "dst": "payload/agent-home/skills/generating-screen-list-for-reverse-docs" },
-    { "mode": "mirror", "src": "~/agent-home/skills/rebuilding-code-from-docs", "dst": "payload/agent-home/skills/rebuilding-code-from-docs" },
-    { "mode": "mirror", "src": "~/agent-home/skills/rebuilding-screen-unit-from-docs", "dst": "payload/agent-home/skills/rebuilding-screen-unit-from-docs" },
-    { "mode": "mirror", "src": "~/agent-home/skills/syncing-reverse-env", "dst": "payload/agent-home/skills/syncing-reverse-env" },
-    { "mode": "mirror", "src": "~/agent-home/skills/orchestrating-reverse-docs-flow", "dst": "payload/agent-home/skills/orchestrating-reverse-docs-flow" },
-    { "mode": "mirror", "src": "~/agent-home/skills/unlocking-reverse-target-screens", "dst": "payload/agent-home/skills/unlocking-reverse-target-screens" },
+    { "mode": "mirror", "src": "~/Projects/reverse-docs-skills/.claude/skills/generating-screen-list-for-reverse-docs", "dst": "payload/reverse-docs-skills/.claude/skills/generating-screen-list-for-reverse-docs" },
+    { "mode": "mirror", "src": "~/Projects/reverse-docs-skills/.claude/skills/rebuilding-code-from-docs", "dst": "payload/reverse-docs-skills/.claude/skills/rebuilding-code-from-docs" },
+    { "mode": "mirror", "src": "~/Projects/reverse-docs-skills/.claude/skills/rebuilding-screen-unit-from-docs", "dst": "payload/reverse-docs-skills/.claude/skills/rebuilding-screen-unit-from-docs" },
+    { "mode": "mirror", "src": "~/Projects/reverse-docs-skills/.claude/skills/syncing-reverse-env", "dst": "payload/reverse-docs-skills/.claude/skills/syncing-reverse-env" },
+    { "mode": "mirror", "src": "~/Projects/reverse-docs-skills/.claude/skills/orchestrating-reverse-docs-flow", "dst": "payload/reverse-docs-skills/.claude/skills/orchestrating-reverse-docs-flow" },
+    { "mode": "mirror", "src": "~/Projects/reverse-docs-skills/.claude/skills/unlocking-reverse-target-screens", "dst": "payload/reverse-docs-skills/.claude/skills/unlocking-reverse-target-screens" },
+    { "mode": "mirror", "src": "~/Projects/reverse-docs-skills/shared", "dst": "payload/reverse-docs-skills/shared" },
     { "mode": "mirror", "src": "~/agent-home/state", "dst": "payload/agent-home/state" },
     { "mode": "mirror", "src": "~/agent-home/skills/managing-agent-configs", "dst": "payload/agent-home/skills/managing-agent-configs" },
     { "mode": "file", "src": "~/.claude/rules/always/gate/managing-review-gate/managing-review-gate.sh", "dst": "payload/agent-home/skills/managing-agent-configs/scripts/managing-review-gate.sh" },
