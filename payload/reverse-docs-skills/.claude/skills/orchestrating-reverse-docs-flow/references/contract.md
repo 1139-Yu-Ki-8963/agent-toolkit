@@ -51,8 +51,10 @@
 
 ### unlocking-reverse-target-screens
 
-- status: `UNLOCKED | BLOCKED | ERROR`
-- 拡張: source_ref（開通確認時点のコミットハッシュ等、追跡に使う参照）、verification_url（モックAPI経由で画面が表示確認できるURL。未実施なら「未実施」）、design_doc_path（今後の設計書の想定配置パス）
+- status: `BASELINE-ESTABLISHED | UNLOCKED | BLOCKED | ERROR`
+- `BASELINE-ESTABLISHED`（新設・終端成功）: 開通〜画面レジストリ記帳〜`syncing-reverse-env(mode=registry)`起動〜基準タグ確立まで完走し、決定的コマンド出力（`git tag -l "reverse-baseline/<scope>"`等）で確認済み
+- `UNLOCKED`（意味変更・中間/部分完了）: 画面開通は完了したが `syncing-reverse-env(mode=registry)` がPASS以外で基準タグ未確立
+- 拡張: source_ref（開通確認時点のコミットハッシュ等、追跡に使う参照）、verification_url（モックAPI経由で画面が表示確認できるURL。未実施なら「未実施」）、design_doc_path（今後の設計書の想定配置パス）、baseline_tag（`BASELINE-ESTABLISHED`時のみ確定。`syncing-reverse-env`返却の`baseline_tag`をそのまま転記）
 
 ## args 仕様
 
@@ -64,7 +66,8 @@
 - rebuilding-screen-unit-from-docs: screen_dir, target_file_path, docs_root, template_root, audit_script_path, chapter_map_path, env_block, user-approved
 - rebuilding-code-from-docs (mode=implement): screen_dir, scope, reverse_worktree, ports, baseline_tag_status, docs_root, template_root, audit_script_path, chapter_map_path, user-approved, saved_test_paths（上流 rebuilding-screen-unit-from-docs が保存した単体テストコードのパス一覧。管理者が転送する。上流未実施の画面では省略可）
 - rebuilding-code-from-docs (mode=judge): screen_dir, compare_result, reverse_worktree, freeze_commit（Phase 6 の compare_request から管理者が保持して転送する。scripts/check-freeze.sh の入力に使う）
-- unlocking-reverse-target-screens: system, screen_id, reverse_worktree, ports, docs_root
+- unlocking-reverse-target-screens: system, screen_id, reverse_worktree, ports, docs_root, user-approved
+- 注記: 通常経路では `unlocking-reverse-target-screens` が内部から本モードを起動する。管理者が本行を直接使うのは、`unlocking-reverse-target-screens` が `status=UNLOCKED`（部分完了）で差し戻した場合の救済経路のみ
 - syncing-reverse-env (mode=registry): system, screen_id, reverse_worktree, ports, user-approved
 
 注記: user-approved（白紙化承認）と docs_root は管理者が事前に解決して args で渡す（完全仲介方式のため子スキルはユーザーに直接聞かない）。
@@ -76,7 +79,7 @@
 | 状態キー | 実在判定 | 次に起動する子スキル | 渡す主要 args |
 |---|---|---|---|
 | S0 画面未列挙 | 画面一覧HTML が不在 | generating-screen-list-for-reverse-docs | source_dir, output_dir |
-| S0u 画面未開通 | 画面一覧HTML有・画面が未開通（設計書も基準タグも無い新規画面） | unlocking-reverse-target-screens → syncing-reverse-env（mode=registry） | system, screen_id, reverse_worktree, ports, docs_root → mode=registry, system, screen_id, reverse_worktree, ports, user-approved |
+| S0u 画面未開通 | 画面一覧HTML有・画面が未開通（設計書も基準タグも無い新規画面） | unlocking-reverse-target-screens（内部で基準タグ確立まで完走。`UNLOCKED`差し戻し時のみ管理者がsyncing-reverse-env（mode=registry）を直接起動） | system, screen_id, reverse_worktree, ports, docs_root, user-approved（期待返却 BASELINE-ESTABLISHED） |
 | S1a 設計書未著述 | 画面開通済み・画面ディレクトリ不在 or §15.1 に対象ファイル行なし or 著者スキルの完全性ゲート成果物（fact-table.md + check-fact-coverage 通過記録）不在 | authoring-screen-docs-from-code（任意工程） | screen_dir, docs_root, template_root, chapter_map_path, audit_script_path, target_repo_path, target_branch, source_ref, mode, target_file_path |
 | S1b ファイル単位未検証 | 著述済み（S1a の成果物実在）かつ当該ファイルの検証記録に「再現一致」なし | rebuilding-screen-unit-from-docs（任意工程） | screen_dir, target_file_path, 資産paths, env_block |
 | S2 基準未確立 | 設計書有・baseline_tag 未確立（syncing setup の baseline_tag が未実施） | syncing-reverse-env（mode=setup → sync） | design-doc, mode=setup |
@@ -91,9 +94,9 @@ S1a/S1b は任意工程である。設計書が揃い当該ファイルの検証
 
 ## 画面レジストリ
 
-`unlocking-reverse-target-screens` が開通を完了した画面の記帳台帳。管理者がこのファイルへの読み書きを担う（子スキルは直接触れない）。
+`unlocking-reverse-target-screens` が開通を完了した画面の記帳台帳。原則は管理者が読み書きを担うが、`unlocking-reverse-target-screens` のみ例外として自ら記帳し自ら `syncing-reverse-env(mode=registry)` を起動して基準タグ確立まで進める（理由: 開通の事実を知るのは本スキルだけであり、管理者が能動的に検知できないため）。他の子スキルはこのファイルに直接触れない。
 
 - 正本ファイル: `~/agent-home/state/reverse-screen-registry.yml`（スキルフォルダ外。スキル同期・上書きコピーの影響を受けない）
 - キー: `<system>-<screen_id>`
 - 値: `source_ref` / `verification_url` / `design_doc_path` / `status`（`unlocked` | `baseline-established`）
-- 管理者は unlocking-reverse-target-screens の返却（status=UNLOCKED）を受けたら本ファイルへ記帳し（status=`unlocked`）、続けて syncing-reverse-env を `mode=registry` で起動して基準タグ確立まで進める。確立後は本ファイルの該当エントリの `status` を `baseline-established` に更新する
+- 管理者は unlocking-reverse-target-screens の返却が `status=BASELINE-ESTABLISHED` であれば追加の記帳作業は不要（既に完了済み）。`status=UNLOCKED`（部分完了）で差し戻された場合のみ、管理者が本ファイルへ記帳し（status=`unlocked`）、続けて syncing-reverse-env を `mode=registry` で起動して基準タグ確立まで進める。確立後は本ファイルの該当エントリの `status` を `baseline-established` に更新する
