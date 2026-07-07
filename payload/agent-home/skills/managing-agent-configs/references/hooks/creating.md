@@ -20,7 +20,7 @@
 
 ### 0. 配置 4 象限を決める（最初に必ず実施）
 
-`conventions.md` の「4. 配置 4 象限」を参照。新規 hook script の物理配置は ownership × scope で決定する。配置先を決めずに書き始めると `hooks-architecture-check.sh` が PreToolUse で block する。
+`conventions.md` の「4. 配置 4 象限」を参照。新規 hook script の物理配置は ownership × scope で決定する。配置先を決めずに書き始めると `check-hooks-architecture.sh` が PreToolUse で block する。
 
 ### 1. JSON 出力スキーマを決める
 
@@ -81,7 +81,7 @@
 
 - 作成しただけで終わらせない: ハブが自動で review → test へ連鎖する。連鎖を止めるのはユーザー明示時のみ
 - 配置を最初に決めない罠: 書き始めてから「これは skill 延長 / 独立規約 のどっち？」と悩むと、後から `git mv` + settings.json + hooks.html の 3 箇所更新が必要になる
-- 設計判断を後回しにしない: `sh-adr-check.sh` が新規 `.sh` 作成時に `[ADR-REQUIRED]` を出すので、後回しにすると次ターンで警告される
+- 設計判断を後回しにしない: `check-sh-adr.sh` が新規 `.sh` 作成時に `[ADR-REQUIRED]` を出すので、後回しにすると次ターンで警告される
 
 ## 参照資料
 

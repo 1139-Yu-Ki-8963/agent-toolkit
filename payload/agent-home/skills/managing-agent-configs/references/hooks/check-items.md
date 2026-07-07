@@ -100,7 +100,7 @@ jq -r '.hooks | to_entries[] | .key as $event |
 ```
 
 修正前: `"command": "./scripts/check.sh"`
-修正後: `"command": "${CLAUDE_PROJECT_DIR}/scripts/check.sh"` または絶対パス `"~/agent-home/tools/hooks/lib/marker-path.sh"`（既存 hook が共通処理を source する実例）
+修正後: `"command": "${CLAUDE_PROJECT_DIR}/scripts/check.sh"` または絶対パス `"~/agent-home/tools/hooks/shared/marker-path.sh"`（既存 hook が共通処理を source する実例）
 
 理由: worktree や `cd` 後の CWD 変更で破綻する。
 
@@ -388,3 +388,56 @@ grep -rEn '\[(NAMING|AMBIGUITY|TEXTLINT|PUBLISH|LINT-REVIEW|TEST-FAILED|WORKTREE
 ```
 
 新規 TAG を追加する場合は上記リストを更新し、3〜5 文字以内の動詞句で重複しない名前にする。
+
+## H. 命名規則準拠
+
+### H1 — WARN: 命名規則準拠
+
+新規 hook script のファイル名が振る舞いと語彙で一致しているかを検査する。正本: `~/.claude/rules/scoped/agent-config/hooks/rule.md`「## 命名規則」。
+
+検出式:
+```bash
+for sh in <settings.jsonが参照する全hookスクリプト>; do
+  base=$(basename "$sh")
+  # exit 2 を含むのに check- で始まらない
+  if grep -q "exit 2" "$sh" 2>/dev/null && [[ "$base" != check-* ]]; then
+    echo "WARN: $base — block可能(exit 2)だがcheck-前置でない"
+  fi
+  # advisory専用(exit 2を含まない)なのにsuggest-以外
+  if ! grep -q "exit 2" "$sh" 2>/dev/null && [[ "$base" == *-gate.sh || "$base" == *-guard.sh || "$base" == *-check.sh ]]; then
+    echo "INFO: $base — 旧命名パターン(-gate/-guard/-check後置)が残存。check-前置への改名を検討"
+  fi
+done
+```
+
+修正前後例:
+```
+修正前: worker-haiku-bash-guard.sh（block可能・exit 2使用）
+修正後: check-worker-haiku-bash.sh
+```
+## N. 環境依存前提
+
+I〜M と異なり N は機械化率が高いため check-items.md に検出式を持つ（他の設計健全性項目と粒度を分ける明示的な例外）。
+
+```bash
+declare -A CLI_OVERRIDE_FLAGS=(
+  [gh]='--repo|-R\b'
+  [git]='-C\b|--git-dir|--work-tree'
+  [kubectl]='--context|--namespace|-n\b|--kubeconfig'
+  [aws]='--profile|--region'
+  [docker]='--context|-H\b'
+)
+for sh in <settings.json が参照する外部スクリプト全体>; do
+  for cli in "${!CLI_OVERRIDE_FLAGS[@]}"; do
+    flags="${CLI_OVERRIDE_FLAGS[$cli]}"
+    grep -qE "(^|[^A-Za-z])$cli[[:space:]]" "$sh" || continue
+    implicit=$(grep -cE '\{owner\}/\{repo\}|git (diff|fetch|cat-file|log) ' "$sh" || echo 0)
+    [ "$implicit" -eq 0 ] && continue
+    if grep -qE "$flags" "$sh"; then
+      echo "N2 WARN: $sh — $cli 上書き引数抽出コードあり。全暗黙呼び出し箇所への反映は要確認"
+    else
+      echo "N1 HIGH: $sh — $cli を暗黙解決 ($implicit 箇所) で呼びつつ $flags 抽出処理なし"
+    fi
+  done
+done
+```

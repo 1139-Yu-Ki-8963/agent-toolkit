@@ -280,10 +280,9 @@ scripts/
 
 - **パス**: `~/agent-home/skills/<name>/SKILL.md` 形式で配置する
 - **絶対パス禁止**: 本文に `/Users/...` のような絶対パスを書かない。`~/agent-home/skills/<name>/` からの相対パスで参照する
-- **ポータル catalog 登録（必須）**: skill 作成後、`~/agent-home/ai-management-portal/catalog/skills.html` の `SKILLS` 配列に 1 エントリを追加する
-  - 適切な `cat`（カテゴリ）に配置（なければ `CATEGORIES` に新規カテゴリを追加）
-  - `summary`: 一行説明
-  - `trigger`: 発火トリガー語を箇条書き相当で記載
+- **ポータル catalog 反映（自動生成）**: `~/agent-home/ai-management-portal/catalog/skills.html` の `SKILLS` 配列と `index.html` の数値は手動編集しない
+  - skill 作成後、新カテゴリが必要な場合のみ `~/agent-home/ai-management-portal/data/skill-categories.js` にカテゴリを追記する
+  - `node ~/agent-home/skills/managing-agent-configs/scripts/manage-portal.mjs generate` でカタログと数値を再生成し、同 `verify` が exit 0 になることを確認する
 
 ## 9. description 規律
 

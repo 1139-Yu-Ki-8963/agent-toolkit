@@ -144,6 +144,47 @@ for d in ~/.claude/rules/always/*/*/ ~/.claude/rules/scoped/*/*/; do
 done
 ```
 
+## C7-C8: 環境依存前提
+
+既知 CLI × 既知の「暗黙解決を示す呼び出しパターン」× 既知の「上書き引数」の対応表で機械検出する。
+
+```bash
+# gh: {owner}/{repo} プレースホルダを使っている ⇒ --repo/-R を読んでいるか
+# git: 単純呼び出し(diff/fetch/cat-file/log)で -C を使っていない ⇒ --git-dir/--work-tree/-C を読んでいるか
+for sh in ~/.claude/rules/{always,scoped}/*/*/*.sh; do
+  [ -f "$sh" ] || continue
+  implicit=$(grep -cE '\{owner\}/\{repo\}' "$sh" 2>/dev/null || echo 0)
+  [ "$implicit" -gt 0 ] || continue
+  if grep -qE -- '--repo|-R[[:space:]]' "$sh"; then
+    echo "WARN: $(basename $sh) — --repo/-R 抽出コードはあるが、抽出結果が全ての暗黙呼び出し箇所に反映されているかは要人手確認"
+  else
+    echo "CRITICAL: $(basename $sh) — {owner}/{repo} プレースホルダに依存しているが --repo/-R を抽出していない"
+  fi
+done
+```
+
+修正前後例（`check-approved-sha-on-merge.sh` が実例）:
+
+修正前:
+```bash
+gh api "repos/{owner}/{repo}/pulls/$PR_NUMBER/reviews"
+```
+
+修正後:
+```bash
+REPO_ARG=$(printf '%s' "$COMMAND" | grep -oE '(--repo|-R)[[:space:]]+[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+' | ...)
+if [ -n "$REPO_ARG" ]; then gh api "repos/$REPO_ARG/pulls/$PR_NUMBER/reviews"; else gh api "repos/{owner}/{repo}/pulls/$PR_NUMBER/reviews"; fi
+```
+
+### 機械化できる範囲 / 人間・サブエージェント判断が必要な範囲
+
+| 範囲 | 判定手段 |
+|---|---|
+| 既知 CLI + 既知プレースホルダ + 抽出コード有無の突合 | 機械（grep のみ、CRITICAL/WARN 判定まで自動） |
+| 抽出した変数が全ての暗黙呼び出し箇所に実際に伝播しているか（制御フロー） | 人間 or Phase 2.5 のロジックレビューへ委譲 |
+| cwd 自体が対象と異なる worktree の場合の二次的失敗 | 人間 or Phase 2.5 へ委譲 |
+| ホワイトリストにない CLI・未知のラップパターン | 機械検出不可。Phase 2.5 のロジックレビューでのみ発見できる |
+
 ## G. 内容品質
 
 ### G1: 行数

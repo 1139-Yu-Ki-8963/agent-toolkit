@@ -6,8 +6,8 @@
 
 review モードは 2 つの動作モードを持つ:
 
-- **full モード**（既定）: 全観点 A〜M を評価、CRITICAL / WARN を `AskUserQuestion` 承認の上 `Edit` で自動修正、Phase 6 で test 連鎖
-- **dry-run モード**: 旧 `diagnose-hooks` 互換。観点 I〜M（設計面の 5 観点）のみ実行、レポートのみで `Edit` は発行しない、連鎖もしない
+- **full モード**（既定）: 全観点 A〜N を評価、CRITICAL / WARN を `AskUserQuestion` 承認の上 `Edit` で自動修正、Phase 6 で test 連鎖
+- **dry-run モード**: 旧 `diagnose-hooks` 互換。観点 I〜N（設計面の 6 観点）のみ実行、レポートのみで `Edit` は発行しない、連鎖もしない
 
 dry-run は「修正は別途検討したい」「読み取りのみで安全に診断したい」場合に使う。
 
@@ -36,7 +36,7 @@ find ~/Projects ~/agent-home -maxdepth 5 -type f \
 
 ### Phase 2: 静的解析
 
-#### full モード: 全観点 A〜M
+#### full モード: 全観点 A〜N
 
 各ファイルを `jq` でパースし、`hooks` セクションを観点表（後述）で検査する。詳細な jq 式・grep パターンは `check-items.md` を参照。
 
@@ -90,7 +90,7 @@ command 内から外部 script path を抽出し、
 
 ### Section 1: カテゴリ別フック一覧
 [A ガード系] 危険な操作を強制停止する
-- PreToolUse/Bash git add → issue-scope-check.sh ブロック
+- PreToolUse/Bash git add → check-issue-scope.sh ブロック
 
 [B 規約系] 命名・テンプレートの一貫性を維持する
 ...

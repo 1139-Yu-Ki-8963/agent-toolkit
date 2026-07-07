@@ -117,7 +117,7 @@ MANAGING-REVIEW-REQUIRED / MANAGING-COMMIT-BLOCK / MANAGING-GATE-DISABLED
 
 ### 禁止配置
 
-以下に新規 hook を置くことは禁止する。`hooks-architecture-check.sh`（PreToolUse Write 強制）が `[HOOKS-BUCKET-FORBIDDEN]` で block する。
+以下に新規 hook を置くことは禁止する。`check-hooks-architecture.sh`（PreToolUse Write 強制）が `[HOOKS-BUCKET-FORBIDDEN]` で block する。
 
 - `~/agent-home/tools/hooks/`（既存 31 ファイルは legacy。新規追加禁止）
 - `~/.claude/hooks/`
@@ -127,7 +127,7 @@ MANAGING-REVIEW-REQUIRED / MANAGING-COMMIT-BLOCK / MANAGING-GATE-DISABLED
 
 例外（誤ブロック対象外）: React の `src/hooks/`、`.husky/`、`.git/hooks/`、`node_modules/**/hooks/` は `.claude/` も `agent-home/` も経由しないため自動的に対象外。
 
-ゲート監視パスの正本は `~/agent-home/tools/hooks/lib/marker-path.sh` の `managed_asset_type()`。本表と乖離した場合は関数側を正とする。
+ゲート監視パスの正本は `~/agent-home/tools/hooks/shared/marker-path.sh` の `managed_asset_type()`。本表と乖離した場合は関数側を正とする。
 
 ### 配置後の必須登録
 
@@ -178,7 +178,7 @@ MANAGING-REVIEW-REQUIRED / MANAGING-COMMIT-BLOCK / MANAGING-GATE-DISABLED
 
 | TAG | 参照箇所 | 用途 |
 |-----|---------|------|
-| `AMBIGUITY-AUTO-FIX` | `~/.claude/rules/always/agent/delegation/rule.md` | 曖昧表現を `clarifying-ambiguity` スキルで修正 |
+| `AMBIGUITY-AUTO-FIX` | `~/.claude/rules/always/agent/subagent-selection/rule.md` | 曖昧表現を `clarifying-ambiguity` スキルで修正 |
 | `TEXTLINT` | `~/agent-home/skills/writing-quality/SKILL.md` | textlint エラーを `writing-quality` スキルで修正 |
 
 新しい委譲パターンを追加する時は、CLAUDE.md または rules にも対応するルールを必ず書き加える。

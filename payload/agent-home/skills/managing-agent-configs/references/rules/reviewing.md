@@ -29,6 +29,15 @@ for d in ~/.claude/rules/always/*/*/ ~/.claude/rules/scoped/*/*/; do
 done
 ```
 
+### 緊急回避 / fail-closed 頻度の集計（優先レビュー対象の判定）
+
+```bash
+find ~/agent-home/sessions/.escape-log -name '*.jsonl' -mtime -30 -exec cat {} + 2>/dev/null \
+  | jq -r '.hook' | sort | uniq -c | sort -rn
+```
+
+過去30日で3回以上の緊急回避・fail-closed発火があるhookは「優先レビュー対象」とし、後述のPhase 2.5（ロジックレビュー）を省略不可とする。
+
 ## Phase 2: 観点別検査
 
 ### 観点 A: フォルダ構造
@@ -57,6 +66,8 @@ done
 | C4 | settings.json の command path と rule.md が同ディレクトリにあるか | WARN | パスのディレクトリ部分を比較 |
 | C5 | hook script に shebang があるか | WARN | `head -1 <script>.sh` |
 | C6 | hook script に実行ビットがあるか | WARN | `[ -x <script>.sh ]` |
+| C7 | hook script が git/gh/kubectl/aws/docker 等の外部 CLI を暗黙のコンテキスト解決（cwd・単一 remote・カレント kubeconfig 等）に依存して呼んでいないか。コマンド文字列側に明示的なコンテキスト上書き引数（`--repo`/`-R`, `-C`/`--git-dir`/`--work-tree`, `--context`/`--namespace`/`-n`/`--kubeconfig`, `--profile`/`--region` 等）が現れうるのに、それを読み取って外部 CLI 呼び出しへ反映していないか | CRITICAL（既知パターン検出時）/ WARN（抽出コードはあるが反映範囲が静的検出不能） | check-items.md C7 |
+| C8 | 上記の環境依存前提の限界が `design-notes.txt` に明記されているか（cwd 依存性の既知の限界として） | INFO | `grep '既知の限界\|cwd' design-notes.txt` |
 
 ### 観点 D: paths 戦略
 
