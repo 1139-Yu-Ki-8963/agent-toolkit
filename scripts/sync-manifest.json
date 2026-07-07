@@ -2,6 +2,7 @@
   "mappings": [
     { "mode": "mirror", "src": "~/Projects/reverse-docs-skills/.claude/skills/generating-screen-list-for-reverse-docs", "dst": "payload/reverse-docs-skills/.claude/skills/generating-screen-list-for-reverse-docs" },
     { "mode": "mirror", "src": "~/Projects/reverse-docs-skills/.claude/skills/rebuilding-code-from-docs", "dst": "payload/reverse-docs-skills/.claude/skills/rebuilding-code-from-docs" },
+    { "mode": "mirror", "src": "~/Projects/reverse-docs-skills/.claude/skills/authoring-screen-docs-from-code", "dst": "payload/reverse-docs-skills/.claude/skills/authoring-screen-docs-from-code" },
     { "mode": "mirror", "src": "~/Projects/reverse-docs-skills/.claude/skills/rebuilding-screen-unit-from-docs", "dst": "payload/reverse-docs-skills/.claude/skills/rebuilding-screen-unit-from-docs" },
     { "mode": "mirror", "src": "~/Projects/reverse-docs-skills/.claude/skills/syncing-reverse-env", "dst": "payload/reverse-docs-skills/.claude/skills/syncing-reverse-env" },
     { "mode": "mirror", "src": "~/Projects/reverse-docs-skills/.claude/skills/orchestrating-reverse-docs-flow", "dst": "payload/reverse-docs-skills/.claude/skills/orchestrating-reverse-docs-flow" },

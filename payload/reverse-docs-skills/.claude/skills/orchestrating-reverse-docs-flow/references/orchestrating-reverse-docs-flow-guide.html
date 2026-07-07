@@ -135,7 +135,7 @@
   <div class="toc-title">目次</div>
   <ol>
     <li><a href="#s1">概要</a></li>
-    <li><a href="#s2">状態判定表と決定木（S0〜S4）</a></li>
+    <li><a href="#s2">状態判定表と決定木（S0/S0u/S1a/S1b/S2/S3/S4）</a></li>
     <li><a href="#s3">9 Phase のワークフロー</a></li>
     <li><a href="#s4">サブエージェント委任仕様</a></li>
     <li><a href="#s5">返却ブロック契約</a></li>
@@ -168,13 +168,13 @@
   </div>
 </section>
 
-<!-- ===== §2 状態判定表と決定木（S0〜S4） ===== -->
+<!-- ===== §2 状態判定表と決定木（S0/S0u/S1a/S1b/S2/S3/S4） ===== -->
 <section id="s2">
-  <h2><span class="sec-num">§2</span>状態判定表と決定木（S0〜S4）</h2>
+  <h2><span class="sec-num">§2</span>状態判定表と決定木（S0/S0u/S1a/S1b/S2/S3/S4）</h2>
 
   <p>
-    成果物の実在から現在の状態（S0〜S4）を判定し、次に起動する子スキルを機械的に決定する。
-    判定は「画面一覧HTMLの実在 → 設計書/対象ファイルの実在 → ②setup返却の <code>baseline_tag</code> → ④judge の <code>status</code>」の順に降りる決定木で、5状態を漏れなく被覆する。
+    成果物の実在から現在の状態（S0/S0u/S1a/S1b/S2/S3/S4）を判定し、次に起動する子スキルを機械的に決定する。
+    判定は「画面一覧HTMLの実在 → 画面開通有無 → 設計書/対象ファイル/著者スキルの完全性ゲート成果物の実在 → 検証記録の再現一致有無 → ②setup返却の <code>baseline_tag</code> → ④judge の <code>status</code>」の順に降りる決定木で、7状態を漏れなく被覆する。
     成果物の実在から毎回評価するので中断後も再開できる。
   </p>
 
@@ -189,8 +189,18 @@
         <td>generating-screen-list-for-reverse-docs</td>
       </tr>
       <tr>
-        <td><code>S1</code> 設計書不足</td>
-        <td>画面一覧HTML有・設計書/対象ファイルが不在（任意工程）</td>
+        <td><code>S0u</code> 画面未開通</td>
+        <td>画面一覧HTML有・画面が未開通（設計書も基準タグも無い新規画面）</td>
+        <td>unlocking-reverse-target-screens → syncing-reverse-env（mode=registry）</td>
+      </tr>
+      <tr>
+        <td><code>S1a</code> 設計書未著述</td>
+        <td>画面開通済み・画面ディレクトリ不在 or §15.1に対象ファイル行なし or 著者スキルの完全性ゲート成果物不在（任意工程）</td>
+        <td>authoring-screen-docs-from-code</td>
+      </tr>
+      <tr>
+        <td><code>S1b</code> ファイル単位未検証</td>
+        <td>著述済み（S1aの成果物実在）かつ検証記録に再現一致なし（任意工程）</td>
         <td>rebuilding-screen-unit-from-docs</td>
       </tr>
       <tr>
@@ -211,11 +221,11 @@
     </tbody>
   </table>
 
-  <p class="note"><code>S1</code> は任意工程。設計書が揃った画面はファイル単位検証をスキップし <code>S2</code>/<code>S3</code> から開始してよい。</p>
+  <p class="note"><code>S1b</code> が <code>status=差し戻し</code>（内容起因: 設計書に対象契約なし等）を返した場合は <code>S1a</code> へ戻す。<code>target_repo_path</code> 等の必須引数欠落による起動不可は <code>status=差し戻し</code> を返さない Skill 呼び出し失敗として扱われ、このループの対象外である。<code>S1a</code>/<code>S1b</code> は任意工程。設計書が揃い検証記録に再現一致がある画面はファイル単位工程をスキップし <code>S2</code>/<code>S3</code> から開始してよい。</p>
 
   <figure class="diagram">
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 400" font-family="system-ui,-apple-system,sans-serif" font-size="12.5">
-      <rect width="640" height="400" fill="#fafafa" rx="6"/>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 560" font-family="system-ui,-apple-system,sans-serif" font-size="12.5">
+      <rect width="640" height="560" fill="#fafafa" rx="6"/>
 
       <!-- Check1 -->
       <rect x="150" y="16" width="260" height="40" rx="6" fill="#e8eef7" stroke="#c2d2e8"/>
@@ -228,11 +238,10 @@
 
       <!-- Check2 -->
       <rect x="150" y="96" width="260" height="40" rx="6" fill="#e8eef7" stroke="#c2d2e8"/>
-      <text x="280" y="121" text-anchor="middle" fill="#2a4a7a" font-weight="700">設計書/対象ファイル実在?</text>
-      <!-- S1 -->
-      <rect x="20" y="96" width="110" height="40" rx="6" fill="#fdf3d7" stroke="#e8d59a"/>
-      <text x="75" y="116" text-anchor="middle" fill="#7a5d10" font-weight="700">S1</text>
-      <text x="75" y="130" text-anchor="middle" fill="#7a5d10" font-size="10">（任意）</text>
+      <text x="280" y="121" text-anchor="middle" fill="#2a4a7a" font-weight="700">画面開通済み?</text>
+      <!-- S0u -->
+      <rect x="20" y="96" width="110" height="40" rx="6" fill="#fbe9e7" stroke="#ecc0b8"/>
+      <text x="75" y="121" text-anchor="middle" fill="#9c2b1a" font-weight="700">S0u</text>
       <line x1="150" y1="116" x2="132" y2="116" stroke="#1a1a1a" stroke-width="1.5" marker-end="url(#a)"/>
       <text x="140" y="108" text-anchor="middle" font-size="10.5" fill="#555">いいえ</text>
       <line x1="280" y1="56" x2="280" y2="94" stroke="#1a1a1a" stroke-width="1.5" marker-end="url(#a)"/>
@@ -240,10 +249,12 @@
 
       <!-- Check3 -->
       <rect x="150" y="176" width="260" height="40" rx="6" fill="#e8eef7" stroke="#c2d2e8"/>
-      <text x="280" y="201" text-anchor="middle" fill="#2a4a7a" font-weight="700">baseline_tag 確立済み?</text>
-      <!-- S2 -->
-      <rect x="20" y="176" width="110" height="40" rx="6" fill="#fbe9e7" stroke="#ecc0b8"/>
-      <text x="75" y="201" text-anchor="middle" fill="#9c2b1a" font-weight="700">S2</text>
+      <text x="280" y="197" text-anchor="middle" fill="#2a4a7a" font-weight="700">設計書/対象ファイル/</text>
+      <text x="280" y="211" text-anchor="middle" fill="#2a4a7a" font-weight="700">完全性ゲート成果物実在?</text>
+      <!-- S1a -->
+      <rect x="20" y="176" width="110" height="40" rx="6" fill="#fdf3d7" stroke="#e8d59a"/>
+      <text x="75" y="196" text-anchor="middle" fill="#7a5d10" font-weight="700">S1a</text>
+      <text x="75" y="210" text-anchor="middle" fill="#7a5d10" font-size="10">（任意）</text>
       <line x1="150" y1="196" x2="132" y2="196" stroke="#1a1a1a" stroke-width="1.5" marker-end="url(#a)"/>
       <text x="140" y="188" text-anchor="middle" font-size="10.5" fill="#555">いいえ</text>
       <line x1="280" y1="136" x2="280" y2="174" stroke="#1a1a1a" stroke-width="1.5" marker-end="url(#a)"/>
@@ -251,20 +262,43 @@
 
       <!-- Check4 -->
       <rect x="150" y="256" width="260" height="40" rx="6" fill="#e8eef7" stroke="#c2d2e8"/>
-      <text x="280" y="281" text-anchor="middle" fill="#2a4a7a" font-weight="700">judge status=PASS?</text>
-      <!-- S3 -->
-      <rect x="20" y="256" width="110" height="40" rx="6" fill="#fbe9e7" stroke="#ecc0b8"/>
-      <text x="75" y="281" text-anchor="middle" fill="#9c2b1a" font-weight="700">S3</text>
+      <text x="280" y="281" text-anchor="middle" fill="#2a4a7a" font-weight="700">検証記録に再現一致あり?</text>
+      <!-- S1b -->
+      <rect x="20" y="256" width="110" height="40" rx="6" fill="#fdf3d7" stroke="#e8d59a"/>
+      <text x="75" y="276" text-anchor="middle" fill="#7a5d10" font-weight="700">S1b</text>
+      <text x="75" y="290" text-anchor="middle" fill="#7a5d10" font-size="10">（任意）</text>
       <line x1="150" y1="276" x2="132" y2="276" stroke="#1a1a1a" stroke-width="1.5" marker-end="url(#a)"/>
       <text x="140" y="268" text-anchor="middle" font-size="10.5" fill="#555">いいえ</text>
       <line x1="280" y1="216" x2="280" y2="254" stroke="#1a1a1a" stroke-width="1.5" marker-end="url(#a)"/>
       <text x="292" y="238" font-size="10.5" fill="#555">はい</text>
 
-      <!-- S4 -->
-      <rect x="210" y="336" width="140" height="40" rx="6" fill="#e7f3e7" stroke="#b9d9ba"/>
-      <text x="280" y="361" text-anchor="middle" fill="#23662a" font-weight="700">S4 検証完了</text>
+      <!-- Check5 -->
+      <rect x="150" y="336" width="260" height="40" rx="6" fill="#e8eef7" stroke="#c2d2e8"/>
+      <text x="280" y="361" text-anchor="middle" fill="#2a4a7a" font-weight="700">baseline_tag 確立済み?</text>
+      <!-- S2 -->
+      <rect x="20" y="336" width="110" height="40" rx="6" fill="#fbe9e7" stroke="#ecc0b8"/>
+      <text x="75" y="361" text-anchor="middle" fill="#9c2b1a" font-weight="700">S2</text>
+      <line x1="150" y1="356" x2="132" y2="356" stroke="#1a1a1a" stroke-width="1.5" marker-end="url(#a)"/>
+      <text x="140" y="348" text-anchor="middle" font-size="10.5" fill="#555">いいえ</text>
       <line x1="280" y1="296" x2="280" y2="334" stroke="#1a1a1a" stroke-width="1.5" marker-end="url(#a)"/>
       <text x="292" y="318" font-size="10.5" fill="#555">はい</text>
+
+      <!-- Check6 -->
+      <rect x="150" y="416" width="260" height="40" rx="6" fill="#e8eef7" stroke="#c2d2e8"/>
+      <text x="280" y="441" text-anchor="middle" fill="#2a4a7a" font-weight="700">judge status=PASS?</text>
+      <!-- S3 -->
+      <rect x="20" y="416" width="110" height="40" rx="6" fill="#fbe9e7" stroke="#ecc0b8"/>
+      <text x="75" y="441" text-anchor="middle" fill="#9c2b1a" font-weight="700">S3</text>
+      <line x1="150" y1="436" x2="132" y2="436" stroke="#1a1a1a" stroke-width="1.5" marker-end="url(#a)"/>
+      <text x="140" y="428" text-anchor="middle" font-size="10.5" fill="#555">いいえ</text>
+      <line x1="280" y1="376" x2="280" y2="414" stroke="#1a1a1a" stroke-width="1.5" marker-end="url(#a)"/>
+      <text x="292" y="398" font-size="10.5" fill="#555">はい</text>
+
+      <!-- S4 -->
+      <rect x="210" y="496" width="140" height="40" rx="6" fill="#e7f3e7" stroke="#b9d9ba"/>
+      <text x="280" y="521" text-anchor="middle" fill="#23662a" font-weight="700">S4 検証完了</text>
+      <line x1="280" y1="456" x2="280" y2="494" stroke="#1a1a1a" stroke-width="1.5" marker-end="url(#a)"/>
+      <text x="292" y="478" font-size="10.5" fill="#555">はい</text>
 
       <defs>
         <marker id="a" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
@@ -272,7 +306,7 @@
         </marker>
       </defs>
     </svg>
-    <figcaption class="note">S0〜S4 の状態判定決定木。成果物の実在を上から順に確認し、最初に「いいえ」になった時点の状態が現在の状態として確定する。</figcaption>
+    <figcaption class="note">S0/S0u/S1a/S1b/S2/S3/S4 の状態判定決定木。成果物の実在を上から順に確認し、最初に「いいえ」になった時点の状態が現在の状態として確定する。S1b が status=差し戻し を返した場合は S1a へ戻る（図には収録せず本文で補足）。</figcaption>
   </figure>
 </section>
 
@@ -285,10 +319,10 @@
       <tr><th>Phase</th><th>内容</th><th>実行条件</th></tr>
     </thead>
     <tbody>
-      <tr><td>Phase 1</td><td>状態判定。実在判定を決定木の順に確認し S0〜S4 を確定。必要な工程だけを 1 つずつ TaskCreate（一括登録禁止）</td><td>常時</td></tr>
+      <tr><td>Phase 1</td><td>状態判定。実在判定を決定木の順に確認し S0/S0u/S1a/S1b/S2/S3/S4 を確定。必要な工程だけを 1 つずつ TaskCreate（一括登録禁止）</td><td>常時</td></tr>
       <tr><td>Phase 2</td><td>①画面一覧生成。<code>generating-screen-list-for-reverse-docs</code> を <code>source_dir</code>・<code>output_dir</code> 指定で起動</td><td>S0 時のみ</td></tr>
       <tr><td>Phase 3</td><td>②setup（環境ブロック取得）。<code>syncing-reverse-env</code> を <code>design-doc</code>・<code>mode=setup</code> で起動し env_block を抽出</td><td>常時</td></tr>
-      <tr><td>Phase 4</td><td>③ファイル単位検証。<code>rebuilding-screen-unit-from-docs</code> を対象ファイル1件ごとに繰り返し起動。白紙化のため事前にユーザー承認を取得</td><td>S1（任意工程）</td></tr>
+      <tr><td>Phase 4</td><td>③ファイル単位検証。(a)S0u画面未開通なら <code>unlocking-reverse-target-screens</code>→<code>syncing-reverse-env</code>(registry)。(b)S1a設計書未著述なら <code>authoring-screen-docs-from-code</code> を起動。(c)S1bファイル単位未検証なら <code>rebuilding-screen-unit-from-docs</code> を対象ファイル1件ごとに繰り返し起動。白紙化のため事前にユーザー承認を取得。status=差し戻し なら(b)へ戻す</td><td>S1a/S1b（任意工程）</td></tr>
       <tr><td>Phase 5</td><td>②sync（基準確立）。<code>syncing-reverse-env</code> を <code>design-doc</code>・<code>mode=sync</code> で起動し <code>baseline_tag</code> を確立</td><td>S2 時のみ</td></tr>
       <tr><td>Phase 6</td><td>④implement。<code>rebuilding-code-from-docs</code> を <code>mode=implement</code> で起動し <code>compare_request</code> を取得</td><td>S3 時のみ</td></tr>
       <tr><td>Phase 7</td><td>②sync dry-run（比較）。<code>syncing-reverse-env</code> を <code>design-doc</code>・<code>mode=sync</code>・<code>dry-run</code> で起動し比較結果ブロックを取得</td><td>常時（Phase 6 の後）</td></tr>
@@ -317,7 +351,8 @@
     <tbody>
       <tr><td>Phase 2</td><td>generating-screen-list-for-reverse-docs</td><td>source_dir, output_dir</td><td><span class="tag pass">DONE</span></td></tr>
       <tr><td>Phase 3</td><td>syncing-reverse-env</td><td>design-doc, mode=setup</td><td><span class="tag pass">PASS</span>（env_block抽出）</td></tr>
-      <tr><td>Phase 4</td><td>rebuilding-screen-unit-from-docs</td><td>screen_dir, target_file_path, 資産paths, env_block, user-approved</td><td><span class="tag pass">CONVERGED</span></td></tr>
+      <tr><td>Phase 4（S1a）</td><td>authoring-screen-docs-from-code</td><td>screen_dir, docs_root, template_root, chapter_map_path, audit_script_path, target_repo_path, target_branch, source_ref, mode, target_file_path</td><td><span class="tag pass">AUTHORED</span></td></tr>
+      <tr><td>Phase 4（S1b）</td><td>rebuilding-screen-unit-from-docs</td><td>screen_dir, target_file_path, 資産paths, env_block, user-approved</td><td><span class="tag pass">再現一致</span></td></tr>
       <tr><td>Phase 5</td><td>syncing-reverse-env</td><td>design-doc, mode=sync</td><td><span class="tag pass">PASS</span></td></tr>
       <tr><td>Phase 6</td><td>rebuilding-code-from-docs</td><td>mode=implement, scope, reverse_worktree, ports, 資産paths, user-approved</td><td><span class="tag mode">NEED-COMPARE</span></td></tr>
       <tr><td>Phase 7</td><td>syncing-reverse-env</td><td>design-doc, mode=sync, dry-run</td><td><span class="tag pass">PASS</span>/<span class="tag fail">FAIL</span>（比較結果）</td></tr>
@@ -384,9 +419,14 @@
         </td>
       </tr>
       <tr>
+        <td>authoring-screen-docs-from-code（設計書著述）</td>
+        <td><code>AUTHORED | BLOCKED</code></td>
+        <td>fact_table_path（事実表 fact-table.md のパス）、measurement_pending（実測委譲項目一覧）</td>
+      </tr>
+      <tr>
         <td>rebuilding-screen-unit-from-docs（ファイル単位検証）</td>
-        <td><code>CONVERGED | DIVERGED | INTERNAL-CONTRADICTION | BLOCKED</code></td>
-        <td>instruction_doc（修正指示書.md のパス）、handoff_files（画面単位検証で要注意なファイル一覧）</td>
+        <td><code>差し戻し | 再現一致 | 再現不一致</code></td>
+        <td>instruction_doc（修正指示書.md のパス）、handoff_files（画面単位検証で要注意なファイル一覧）、saved_test_paths（本スキルが保存した最終テストコードのパス一覧）。status=差し戻し（内容起因のみ）の場合、hint に「authoring-screen-docs-from-code を実行してから再起動せよ」等の理由を記録する。必須引数欠落による起動不可は status=差し戻し を返さない</td>
       </tr>
       <tr>
         <td>rebuilding-code-from-docs（画面単位検証・mode分割）</td>
@@ -416,6 +456,7 @@
     <tbody>
       <tr><td>generating-screen-list-for-reverse-docs</td><td>source_dir, output_dir</td></tr>
       <tr><td>syncing-reverse-env</td><td>design-doc, mode（setup|sync|teardown）, dry-run, reset-first, user-approved, scenarios, max-loop（既存契約のまま）</td></tr>
+      <tr><td>authoring-screen-docs-from-code</td><td>screen_dir, docs_root, template_root, chapter_map_path, audit_script_path, target_repo_path, target_branch, source_ref, mode, target_file_path（mode=file時）, screenshot_dir（任意）, registry値（任意）</td></tr>
       <tr><td>rebuilding-screen-unit-from-docs</td><td>screen_dir, target_file_path, docs_root, template_root, audit_script_path, chapter_map_path, env_block, user-approved</td></tr>
       <tr><td>rebuilding-code-from-docs (mode=implement)</td><td>screen_dir, scope, reverse_worktree, ports, baseline_tag_status, docs_root, template_root, audit_script_path, chapter_map_path, user-approved</td></tr>
       <tr><td>rebuilding-code-from-docs (mode=judge)</td><td>screen_dir, compare_result, reverse_worktree, freeze_commit</td></tr>
@@ -449,6 +490,20 @@
   </table>
 
   <p class="note">この外側ループ（発散判定2連続・上限）は、元々④（<code>rebuilding-code-from-docs</code>）が持っていた責務を管理者へ移管したものである。</p>
+
+  <h3>Phase 4 内: S1a⇄S1b ループ</h3>
+
+  <table class="spec">
+    <thead>
+      <tr><th>要素</th><th>内容</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>反復条件</td><td>rebuilding-screen-unit-from-docs（S1b）が status=差し戻し を返したら authoring-screen-docs-from-code（S1a）へ戻し、再著述後に S1b を再実行する</td></tr>
+      <tr><td>上限回数</td><td>5回目安（rebuilding-screen-unit-from-docs 自身の内側ループ上限と揃える）</td></tr>
+      <tr><td>停止条件</td><td>① 収束停止: rebuilding-screen-unit-from-docs が status=再現一致 を返す<br>② リソース上限: 5回到達しても差し戻しが続く場合はユーザーに報告する</td></tr>
+      <tr><td>検証役の分離</td><td>S1a（著述）と S1b（盲検検証）は別スキル・別セッションで実行され、S1b の判定は自身の完全性ゲート・6計測の決定的出力のみで行う</td></tr>
+    </tbody>
+  </table>
 </section>
 
 <!-- ===== §8 完了条件一覧 ===== -->
@@ -460,10 +515,10 @@
       <tr><th>Phase</th><th>完了条件</th></tr>
     </thead>
     <tbody>
-      <tr><td>Phase 1</td><td>状態キー（S0〜S4）が確定し、次に起動すべき子スキルが1つ定まっている</td></tr>
+      <tr><td>Phase 1</td><td>状態キー（S0/S0u/S1a/S1b/S2/S3/S4）が確定し、次に起動すべき子スキルが1つ定まっている</td></tr>
       <tr><td>Phase 2</td><td>画面一覧HTMLが生成され、status=DONE で検収済み</td></tr>
       <tr><td>Phase 3</td><td>env_block の7フィールドが確定している</td></tr>
-      <tr><td>Phase 4</td><td>from-zero 対象の全ファイルが CONVERGED または NG 分類済み（S1 対象が無ければ直行）</td></tr>
+      <tr><td>Phase 4</td><td>S1a/S1b 対象の全ファイルが再現一致または NG 分類済み（S1 対象が無ければ直行）</td></tr>
       <tr><td>Phase 5</td><td>baseline_tag が確立済み（status=PASS）</td></tr>
       <tr><td>Phase 6</td><td>compare_request が取得済み（status=NEED-COMPARE）</td></tr>
       <tr><td>Phase 7</td><td>比較結果ブロックが省略なく取得済み</td></tr>
