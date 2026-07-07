@@ -23,14 +23,14 @@
   substantive_diff_lines=<整数>（参考）
   verdict=PASS|FAIL
   ```
-- **契約突合（`contract_match`）**: 生成物と原本それぞれから export 名集合・定数値集合・ハンドラ名集合・型名集合・状態変数名集合・API 呼出先集合の 6 カテゴリを抽出し、集合同士を突合する。6 カテゴリすべてが一致すれば `YES`、いずれか 1 つでも不一致があれば `NO`（`export_diff_lines` 等の各カテゴリ別 diff 行数はその内訳）
-- **verdict の判定式**: `import_diff_lines == 0 && style_diff_lines == 0 && contract_match == YES` のとき `PASS`、それ以外 `FAIL`。`total_diff_lines`・`substantive_diff_lines` は参考値であり verdict には使わない
+- **契約突合（`contract_match`）**: 生成物と原本それぞれから export 名集合・定数値集合・ハンドラ名集合・型名集合・状態変数名集合・API 呼出先集合の 6 カテゴリを抽出し、集合同士を突合する。6 カテゴリすべてが一致すれば `YES`、いずれか 1 つでも不一致があれば `NO`（`export_diff_lines` 等の各カテゴリ別 diff 行数はその内訳）。契約突合は宣言レベルの欠落しか検出できず、関数本体のロジック（条件分岐・算術式・JSX子要素の並び等）は対象外
+- **verdict の判定式**: `import_diff_lines == 0 && style_diff_lines == 0 && contract_match == YES && substantive_diff_lines <= 20` のとき `PASS`、それ以外 `FAIL`。契約突合が拾えないロジック差分の安全網として実質diff 20行以下のしきい値を維持する。`total_diff_lines` は参考値のまま
 - **対象外**: 「単体テスト仕様の検査」（禁止パターン・import・コンポーネント/API 利用）は本スクリプトの対象外。P5 でメインが別途実施する
 - **引数不足・ファイル不在**: stderr にメッセージを出して `exit 1`。正常時は `exit 0`
 
-### 7 計測の算出方法（判定 5 ＋ 参考 2）
+### 7 計測の算出方法（判定 6 ＋ 参考 1）
 
-「7 計測」の内訳は判定 5（単体テスト仕様の検査 / import diff / style diff / 契約突合 / 元コード全緑証明）＋参考 2（全体 diff / 実質 diff）。このうち単体テスト仕様の検査（P5 手順 2）と元コード全緑証明（P5 手順 6）は `measure-file-diff.sh` の対象外で P5 の手順として別途実施する。本表は `measure-file-diff.sh` が算出する計測（import diff・style diff・契約突合・全体 diff（参考）・実質 diff（参考））の算出方法を示す。
+「7 計測」の内訳は判定 6（単体テスト仕様の検査 / import diff / style diff / 契約突合 / 実質 diff / 元コード全緑証明）＋参考 1（全体 diff）。このうち単体テスト仕様の検査（P5 手順 2）と元コード全緑証明（P5 手順 6）は `measure-file-diff.sh` の対象外で P5 の手順として別途実施する。本表は `measure-file-diff.sh` が算出する計測（import diff・style diff・契約突合・実質 diff・全体 diff（参考））の算出方法を示す。
 
 本表は概要説明であり、正本は `measure-file-diff.sh` 本体（ヘッダコメントおよび `STYLE_PATTERN`）である。スクリプトの実装が変更された場合、本表よりスクリプト本体を正とする。
 
@@ -39,8 +39,8 @@
 | import diff（判定） | 両ファイルから `^\s*import ` 行を抽出→ソート→`diff` の差分行数（`^[<>]` 行の数） |
 | style diff（判定） | `className="..."` / `style={{...}}` 等の属性値部分のみを `grep -oE` で抽出（行全体ではなく属性値のみが対象）・16 進カラーコード（`#[0-9a-fA-F]{3,8}`）・`px`/`rem`/`em`/`vh`/`vw` の直後が区切り文字（`;` `,` `)` `}` `]` クォート・空白・行末のいずれか）の場合のみ数値を抽出→ソート→diff の差分行数 |
 | 契約突合（判定） | 生成物・原本それぞれから export 名集合・定数値集合・ハンドラ名集合・型名集合・状態変数名集合・API 呼出先集合の 6 カテゴリを抽出し集合同士を突合。6 カテゴリすべて一致で `contract_match=YES`、いずれか不一致で `NO` |
+| 実質 diff（判定・20行以下） | コメント行（`^\s*//`・`^\s*/\*`・`^\s*\*`）と空行を除外した上での diff 差分行数。契約突合が対象外とするロジック差分を拾う安全網 |
 | 全体 diff（参考） | `diff <original> <generated>` の差分行数（参考値。合格判定には使わない） |
-| 実質 diff（参考） | コメント行（`^\s*//`・`^\s*/\*`・`^\s*\*`）と空行を除外した上での diff 差分行数（参考値。合格判定には使わない） |
 
 ### 非 JSX ファイル（hook / util 等）での縮退
 

@@ -31,8 +31,10 @@
 #
 # 合格条件（verdict=PASS）:
 #   import_diff_lines == 0 && style_diff_lines == 0 && contract_match == YES
-#   total_diff_lines と substantive_diff_lines は参考値として出力を継続するが、
-#   verdict の判定には使わない（旧「実質diff 20行以下」のしきい値は撤去した）。
+#   && substantive_diff_lines <= 20
+#   contract_match は export/const/handler/type/state/apicall の宣言レベルの欠落しか
+#   検出できず、関数本体のロジック差分は対象外のため、実質diff 20行以下のしきい値を
+#   ロジック差分の安全網として維持する。total_diff_lines は参考値のまま。
 #
 # contract_match の算出:
 #   export_diff_lines / const_diff_lines / handler_diff_lines / type_diff_lines /
@@ -90,7 +92,8 @@
 #                             最初の行の `(` までしか見ない）
 #   total_diff_lines       : diff によるファイル全体の差分行数（参考値。verdict には使わない）
 #   substantive_diff_lines : コメント行（// ・/* ・*）と空行を除外し、前後空白を
-#                            除去した上での diff 差分行数（参考値。verdict には使わない）
+#                            除去した上での diff 差分行数（verdict 判定に使用: 20行以下が
+#                            条件。契約突合が対象外とするロジック差分の安全網）
 #
 # 前後空白除去について: 条件分岐の書き方（早期return vs 三項演算子等）の違いで
 # ネスト段数がずれると、内容が同一の行でも行頭インデント幅だけが異なり、素朴な
@@ -193,7 +196,7 @@ EXPORT_DIFF_LINES=$(diff <(extract_exports "$ORIGINAL") <(extract_exports "$GENE
 
 # --- const diff ---
 # `const` / `export const` の両形式を同一視し、リテラル値（文字列/数値/真偽値）のみを対象とする。
-CONST_SED_SCRIPT="s/^[[:space:]]*(export[[:space:]]+)?const[[:space:]]+([A-Za-z_\$][A-Za-z0-9_\$]*)[[:space:]]*=[[:space:]]*(\"[^\"]*\"|'[^']*'|-?[0-9]+(\.[0-9]+)?|true|false)[[:space:]]*;.*/\2=\3/"
+CONST_SED_SCRIPT="s/^[[:space:]]*(export[[:space:]]+)?const[[:space:]]+([A-Za-z_\$][A-Za-z0-9_\$]*)[[:space:]]*=[[:space:]]*(\"[^\"]*\"|'[^']*'|-?[0-9]+(\.[0-9]+)?|true|false)[[:space:]]*;?.*/\2=\3/"
 extract_consts() {
   strip_comments < "$1" 2>/dev/null | sed -nE "${CONST_SED_SCRIPT}p" | trim_whitespace | sort -u || true
 }
@@ -248,14 +251,19 @@ fi
 # --- total diff（参考値） ---
 TOTAL_DIFF_LINES=$(diff "$ORIGINAL" "$GENERATED" | grep -cE '^[<>]' || true)
 
-# --- substantive diff（コメント・空行除外・参考値） ---
+# --- substantive diff（コメント・空行除外。verdict判定に使用: 20行以下が条件） ---
 strip_noise() {
   strip_comments < "$1" 2>/dev/null | normalize_imports | grep -vE '^[[:space:]]*$' | trim_whitespace || true
 }
 SUBSTANTIVE_DIFF_LINES=$(diff <(strip_noise "$ORIGINAL") <(strip_noise "$GENERATED") | grep -cE '^[<>]' || true)
 
 # --- verdict ---
-if [ "$IMPORT_DIFF_LINES" -eq 0 ] && [ "$STYLE_DIFF_LINES" -eq 0 ] && [ "$CONTRACT_MATCH" = "YES" ]; then
+# contract_match（6カテゴリの識別子集合一致）は export/const/handler/type/state/apicall の
+# 宣言レベルの欠落だけを検出し、関数本体のロジック（条件分岐・算術式・JSX子要素の並び等）は
+# 対象外である。ロジック差分を見逃さないよう、実質diff（コメント・空行除外）の上限を
+# 判定条件として維持する（契約突合の追加以前から存在する既知の限界はそのまま: 純粋な
+# 実装スタイル差は P7 で「実装スタイル差」クラスとして扱う）。
+if [ "$IMPORT_DIFF_LINES" -eq 0 ] && [ "$STYLE_DIFF_LINES" -eq 0 ] && [ "$CONTRACT_MATCH" = "YES" ] && [ "$SUBSTANTIVE_DIFF_LINES" -le 20 ]; then
   VERDICT="PASS"
 else
   VERDICT="FAIL"

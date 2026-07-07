@@ -221,7 +221,7 @@
     </tbody>
   </table>
 
-  <p class="note"><code>S1b</code> が <code>status=差し戻し</code> を返した場合は <code>S1a</code> へ戻す。<code>S1a</code>/<code>S1b</code> は任意工程。設計書が揃い検証記録に再現一致がある画面はファイル単位工程をスキップし <code>S2</code>/<code>S3</code> から開始してよい。</p>
+  <p class="note"><code>S1b</code> が <code>status=差し戻し</code>（内容起因: 設計書に対象契約なし等）を返した場合は <code>S1a</code> へ戻す。<code>target_repo_path</code> 等の必須引数欠落による起動不可は <code>status=差し戻し</code> を返さない Skill 呼び出し失敗として扱われ、このループの対象外である。<code>S1a</code>/<code>S1b</code> は任意工程。設計書が揃い検証記録に再現一致がある画面はファイル単位工程をスキップし <code>S2</code>/<code>S3</code> から開始してよい。</p>
 
   <figure class="diagram">
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 560" font-family="system-ui,-apple-system,sans-serif" font-size="12.5">
@@ -426,7 +426,7 @@
       <tr>
         <td>rebuilding-screen-unit-from-docs（ファイル単位検証）</td>
         <td><code>差し戻し | 再現一致 | 再現不一致</code></td>
-        <td>instruction_doc（修正指示書.md のパス）、handoff_files（画面単位検証で要注意なファイル一覧）、saved_test_paths（本スキルが保存した最終テストコードのパス一覧）。status=差し戻し の場合、hint に「authoring-screen-docs-from-code を実行してから再起動せよ」等の理由を記録する</td>
+        <td>instruction_doc（修正指示書.md のパス）、handoff_files（画面単位検証で要注意なファイル一覧）、saved_test_paths（本スキルが保存した最終テストコードのパス一覧）。status=差し戻し（内容起因のみ）の場合、hint に「authoring-screen-docs-from-code を実行してから再起動せよ」等の理由を記録する。必須引数欠落による起動不可は status=差し戻し を返さない</td>
       </tr>
       <tr>
         <td>rebuilding-code-from-docs（画面単位検証・mode分割）</td>
