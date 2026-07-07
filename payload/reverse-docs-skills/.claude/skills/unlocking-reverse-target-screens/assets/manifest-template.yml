@@ -1,0 +1,66 @@
+# manifest.yml の projects.<system> に複製するための完全な雛形（1プロジェクト分）。
+#
+# プレースホルダ一覧（<FILL:...> の意味）:
+#   <FILL:work_repo_path>             作業リポジトリのパス（絶対パス）
+#   <FILL:default_branch>             デフォルトブランチ名
+#   <FILL:service名>                  起動対象サービス名（services配列とlaunch_commandsキーで同じ値を使う）
+#   <FILL:起動コマンド。{port}プレースホルダ可>  各サービスの起動コマンド。ポート番号は{port}で埋め込み可
+#   <FILL:モックの有効化方法>         モック機能をどう有効化するか（環境変数・フラグ等）
+#   <FILL:モックコードの配置規約>     モックコードを置くディレクトリ規約
+#   <FILL:モックの登録方法>           モックをルーティング/DIにどう登録するか
+#   <FILL:API定義の正本パス（OpenAPI/型定義/proto等）>  APIスキーマ定義の正本ファイル・ディレクトリパス
+#   <FILL:画面本体特定glob>           対象画面のエントリファイルを特定するglobパターン
+#   <FILL:共有ゲート部品のパス（年度・組織セレクタ等）>  画面共通の前提ゲートUI部品のパス
+#   <FILL:共有fetchラッパー/APIクライアント基盤のパス>  共有データ取得層の実装パス
+#   <FILL:セッション初期化の入口>     セッション初期化処理のエントリポイント
+#   <FILL:セッションキー名>           session_keys配下の各セッションキー名
+#   <FILL:sync-initial|async>         当該セッションキーの充足タイミング（sync-initialまたはasync）
+#   <FILL:充足元>                     当該セッションキーの値の充足元（API・cookie・localStorage等）
+#   <FILL:権限チェーンの各層と登録方法>  権限チェックが通過する各層と、その登録方法
+#   <FILL:認証系APIが読む識別子フィールド名>  認証系APIレスポンスが参照する識別子フィールド名
+#   <FILL:健全性確認に使う開通済み画面のID>  疎通確認の基準にする既存の開通済み画面ID
+#   <FILL:確認URLテンプレート（{port}等含む）>  動作確認に使うURLテンプレート
+#   <FILL:開通証跡の置き場>           開通作業の証跡（ログ・スクリーンショット等）の保存先ディレクトリ
+#
+# 運用制約:
+#   本テンプレートを manifest.yml の projects.<system> へ複製し、<FILL:...> を全て実値に
+#   置き換えてから前提ゲートを再実行すること。<FILL:...> が1つでも残ったまま開通作業を
+#   開始してはならない。
+
+"<system>":
+  repo_and_launch:
+    work_repo_path: "<FILL:work_repo_path>"
+    default_branch: "<FILL:default_branch>"
+    services: ["<FILL:service名>"]
+    launch_commands:
+      "<FILL:service名>": "<FILL:起動コマンド。{port}プレースホルダ可>"
+  mock_conventions:
+    enable_method: "<FILL:モックの有効化方法>"
+    placement_dir: "<FILL:モックコードの配置規約>"
+    registration_method: "<FILL:モックの登録方法>"
+    hot_reload_caveat: "モック変更はホットリロードで反映されないことがある。反映確認は必ずサーバー再起動後に行う"
+  api_source_of_truth:
+    definition_root: "<FILL:API定義の正本パス（OpenAPI/型定義/proto等）>"
+    wire_name_caveat: "コード生成名と実名は大小文字が食い違うことがある"
+  api_dependency_entrypoints:
+    screen_entry_globs: ["<FILL:画面本体特定glob>"]
+    shared_gate_components: ["<FILL:共有ゲート部品のパス（年度・組織セレクタ等）>"]
+  shared_data_prerequisites:
+    shared_fetch_layer_paths: ["<FILL:共有fetchラッパー/APIクライアント基盤のパス>"]
+  auth_session_permission:
+    session_init_entry: "<FILL:セッション初期化の入口>"
+    session_keys:
+      - name: "<FILL:セッションキー名>"
+        timing: "<FILL:sync-initial|async>"
+        source: "<FILL:充足元>"
+    permission_chain_layers: ["<FILL:権限チェーンの各層と登録方法>"]
+    identifier_field_check: "<FILL:認証系APIが読む識別子フィールド名>"
+  reference_screen:
+    screen_id: "<FILL:健全性確認に使う開通済み画面のID>"
+    verification_url_template: "<FILL:確認URLテンプレート（{port}等含む）>"
+  handoff:
+    unlock_record_dir: "<FILL:開通証跡の置き場>"
+    screen_registry_path: "~/agent-home/state/reverse-screen-registry.yml"
+    registration_procedure: "既定はcontract.md準拠。差分があれば記載"
+  prohibitions: []          # 無ければ空配列のままでよい（<FILL:...> の必須埋め込み対象外）。例: ["本番DBへ接続しない"]
+  known_gotchas: []         # 無ければ空配列のままでよい（<FILL:...> の必須埋め込み対象外）。例: [{symptom: "...", cause: "...", workaround: "..."}]

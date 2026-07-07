@@ -1,7 +1,9 @@
 #!/usr/bin/env node
 // 正本（~/agent-home・~/.claude）→ payload/ の乖離検知・同期スクリプト。
 // ゼロ依存。node:fs/path/os/process のみ使用。
-// 使い方: node scripts/sync-payload.mjs [--list|--check|--apply]
+// 使い方: node scripts/sync-payload.mjs [--list|--check|--apply] [--only <dst-prefix>]
+//   --only <dst-prefix>: dst が指定 prefix で始まる mapping だけを対象に絞り込む
+//   （例: --only payload/reverse-docs-skills）
 
 import fs from "node:fs";
 import path from "node:path";
@@ -13,7 +15,17 @@ const REPO_ROOT = path.resolve(__dirname, "..");
 const MANIFEST_PATH = path.join(__dirname, "sync-manifest.json");
 
 const args = process.argv.slice(2);
-const flag = args.find((a) => a.startsWith("--"));
+const flag = args.find((a) => ["--list", "--check", "--apply"].includes(a));
+
+const onlyIndex = args.indexOf("--only");
+let onlyPrefix = null;
+if (onlyIndex !== -1) {
+  onlyPrefix = args[onlyIndex + 1];
+  if (!onlyPrefix || onlyPrefix.startsWith("--")) {
+    console.error("--only には dst prefix を指定してください（例: --only payload/reverse-docs-skills）");
+    process.exit(1);
+  }
+}
 
 // ── パス解決（~ を os.homedir() で解決。/Users/... のリテラルは書かない） ──
 
@@ -27,7 +39,14 @@ function resolveHome(p) {
 function loadManifest() {
   const text = fs.readFileSync(MANIFEST_PATH, "utf8");
   const json = JSON.parse(text);
-  return json.mappings.map((m) => ({
+  let mappings = json.mappings;
+  if (onlyPrefix !== null) {
+    mappings = mappings.filter((m) => m.dst.startsWith(onlyPrefix));
+    if (mappings.length === 0) {
+      console.error(`--only ${onlyPrefix} に一致する mapping がありません`);
+    }
+  }
+  return mappings.map((m) => ({
     ...m,
     srcAbs: resolveHome(m.src),
     dstAbs: path.join(REPO_ROOT, m.dst),
@@ -283,6 +302,6 @@ switch (flag) {
     cmdApply();
     break;
   default:
-    console.error("使い方: node scripts/sync-payload.mjs [--list|--check|--apply]");
+    console.error("使い方: node scripts/sync-payload.mjs [--list|--check|--apply] [--only <dst-prefix>]");
     process.exit(1);
 }

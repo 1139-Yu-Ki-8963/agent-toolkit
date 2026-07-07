@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 # PreToolUse(Bash) — payload/ が正本（~/agent-home・~/.claude）と乖離した状態での
 # git commit を block する。乖離検知は scripts/sync-payload.mjs --check に委譲する。
+# staged に payload/ 配下のファイルがある場合は、その payload/<name> prefix に対応する
+# mapping だけを --only で検査する（無関係な mapping の乖離に巻き込まれない）。
+# staged に payload/ 配下がなければ従来どおり全 mapping を検査する。
 set -euo pipefail
 
 input=$(cat)
@@ -26,17 +29,39 @@ cwd=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null || true)
 # node が使えない場合は fail-safe で block しない
 command -v node >/dev/null 2>&1 || exit 0
 
-drift_output=$(cd "$cwd" && node scripts/sync-payload.mjs --check 2>&1) || {
+# 検査スコープの決定: staged の payload/<name> prefix ごとに --only 検査。
+# staged に payload/ 配下がなければ空 prefix 1 件（= 全 mapping 検査）とする。
+staged=$(git -C "$cwd" diff --cached --name-only 2>/dev/null || true)
+prefixes=$(printf '%s\n' "$staged" | grep '^payload/' | cut -d/ -f1-2 | sort -u || true)
+
+run_check() {
+  # $1: --only に渡す prefix（空なら全体検査）
+  local drift_output status
+  if [ -n "$1" ]; then
+    drift_output=$(cd "$cwd" && node scripts/sync-payload.mjs --check --only "$1" 2>&1) && return 0
+  else
+    drift_output=$(cd "$cwd" && node scripts/sync-payload.mjs --check 2>&1) && return 0
+  fi
   status=$?
   if [ "$status" -eq 1 ]; then
     {
-      echo "[PAYLOAD-SYNC-BLOCK] payload が正本と乖離しています。node scripts/sync-payload.mjs --apply で同期してから commit してください。"
+      echo "[PAYLOAD-SYNC-BLOCK] payload が正本と乖離しています。node scripts/sync-payload.mjs --apply${1:+ --only $1} で同期してから commit してください。"
       echo "$drift_output"
     } >&2
     exit 2
   fi
   # node 実行エラー等（status が 1 以外）は fail-safe で block しない
-  exit 0
+  return 0
 }
+
+if [ -n "$prefixes" ]; then
+  while IFS= read -r p; do
+    [ -n "$p" ] && run_check "$p"
+  done <<EOF
+$prefixes
+EOF
+else
+  run_check ""
+fi
 
 exit 0

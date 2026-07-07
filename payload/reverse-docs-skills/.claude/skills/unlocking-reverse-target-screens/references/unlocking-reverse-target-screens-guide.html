@@ -109,20 +109,21 @@
 
 <header>
   <h1>設計書なし画面の開通スキル<br><span class="skill-name">unlocking-reverse-target-screens</span></h1>
-  <p>設計書がまだ無い画面を対象に、既存コードを調査してモックAPIを適用し、ログイン後まで画面表示できる状態（開通）にする作業者スキル。</p>
+  <p>設計書が無い画面をモックAPIで開通させ、リバース基準タグ確立まで単独で完走する自己完結型スキル。</p>
 
   <div class="def">
     <dt>こんな人向け</dt>
-    <dd>リバース検証工程で、設計書に着手する前に対象画面をまず動く状態にしたい人。</dd>
+    <dd>リバース検証工程で、対象画面を開通させ基準タグ確立まで一気通貫で任せたい人。</dd>
     <dt>こんな場面で使う</dt>
-    <dd>対象画面にまだ設計書が無く、既存コードがログインを要求するなどの理由でそのままでは動作確認できないとき。</dd>
+    <dd>画面開通・設計書皆無画面の動作確認・設計書着手前の下準備・基準タグ確立まで含む一気通貫実行。設計書がある画面の往復検証には使わない。</dd>
   </div>
 
   <table class="meta-table">
     <tr><td>対応 OS</td><td>Windows WSL2 環境</td></tr>
     <tr><td>検証状況</td><td>暫定実装</td></tr>
-    <tr><td>依存</td><td>reverse_worktree 上の対象画面ソースコード一式</td></tr>
-    <tr><td>関連資料</td><td><code>SKILL.md</code>, <code>orchestrating-reverse-docs-flow/references/contract.md</code></td></tr>
+    <tr><td>種別</td><td>orchestration（allowed-tools: Read, Write, Edit, Bash, Grep, Glob, Skill, TaskCreate, TaskUpdate）</td></tr>
+    <tr><td>依存</td><td>reverse_worktree 上の対象画面ソースコード一式、<code>manifest.yml</code> の <code>projects.&lt;system&gt;</code> エントリ</td></tr>
+    <tr><td>関連資料</td><td><code>SKILL.md</code>, <code>manifest.yml</code>, <code>assets/manifest-template.yml</code>, <code>orchestrating-reverse-docs-flow/references/contract.md</code>, <code>syncing-reverse-env/config.yml</code></td></tr>
   </table>
 </header>
 
@@ -130,38 +131,38 @@
   <div class="toc-title">目次</div>
   <ol>
     <li><a href="#s1">概要</a></li>
-    <li><a href="#s2">使用タイミング</a></li>
-    <li><a href="#s3">起動引数</a></li>
-    <li><a href="#s4">実行手順（Phase 1〜4）</a></li>
-    <li><a href="#s5">完了条件</a></li>
-    <li><a href="#s6">サブエージェント委任仕様</a></li>
-    <li><a href="#s7">重要な注意事項</a></li>
-    <li><a href="#s8">Gotchas</a></li>
-    <li><a href="#s9">参照資料</a></li>
+    <li><a href="#s2">使用タイミングと起動引数</a></li>
+    <li><a href="#s3">実行手順（前提ゲート + Phase 1〜5）</a></li>
+    <li><a href="#s4">完了条件</a></li>
+    <li><a href="#s5">ループ設計</a></li>
+    <li><a href="#s6">同一条件混在時の対処</a></li>
+    <li><a href="#s7">サブエージェント委任仕様</a></li>
+    <li><a href="#s8">重要な注意事項</a></li>
+    <li><a href="#s9">Gotchas</a></li>
+    <li><a href="#s10">参照資料</a></li>
+    <li><a href="#s11">改訂完了時の機械チェック</a></li>
   </ol>
 </nav>
 
 <section id="s1">
   <h2><span class="sec-num">§1</span>概要</h2>
-  <p>本スキルは「作業者」であり、設計書がまだ無い画面を対象に既存コードを調査してモックAPIを適用し、ログイン後まで画面表示できる状態（開通）にする。</p>
+  <p>本スキルは開通からリバース基準タグ確立までを単独で完走する自己完結型スキルである。開通の事実（どのURLなら検証できるか）を知るのは本スキルだけであり、下流の管理者（orchestrating-reverse-docs-flow）はこの事実を能動的に検知できない。</p>
   <div class="constraint">
-    <strong>責務の境界</strong>: 開通完了後の記帳・基準タグ確立は行わない。それは管理者が担い、orchestrating-reverse-docs-flow が syncing-reverse-env をレジストリモードで起動する。本スキルは他スキルを呼び出さず、他スキルの設定ファイルに書き込まない。
+    <strong>例外的な直接操作</strong>: そのため本スキルは例外的に、画面レジストリへの直接読み書きと <code>syncing-reverse-env</code> の直接起動を自ら行う。他の子スキルは完全仲介方式に従い、この2点に触れない。
   </div>
   <div class="constraint">
-    <strong>既存4子スキルと同格</strong>: generating-screen-list-for-reverse-docs / syncing-reverse-env / rebuilding-screen-unit-from-docs / rebuilding-code-from-docs と同じく、管理者スキル orchestrating-reverse-docs-flow が起動する完全仲介方式の子スキル。
+    <strong>プロジェクト固有値の排除</strong>: プロジェクト固有の値（パス・コマンド・API名・ポート・画面ID等）は本文に一切書かず、すべて同ディレクトリの <code>manifest.yml</code> の <code>projects.&lt;system&gt;</code> から取得する。
   </div>
 </section>
 
 <section id="s2">
-  <h2><span class="sec-num">§2</span>使用タイミング</h2>
+  <h2><span class="sec-num">§2</span>使用タイミングと起動引数</h2>
   <ul>
     <li>対象画面にまだ設計書が無く、既存コードがログインを要求するなどの理由でそのままでは動作確認できないとき</li>
+    <li>画面開通・設計書皆無画面の動作確認・設計書着手前の下準備・基準タグ確立まで含む一気通貫実行を行いたいとき</li>
     <li>設計書が既にある画面はこのスキルの対象外（<code>rebuilding-screen-unit-from-docs</code> / <code>rebuilding-code-from-docs</code> を使う）</li>
   </ul>
-</section>
 
-<section id="s3">
-  <h2><span class="sec-num">§3</span>起動引数</h2>
   <table class="spec">
     <tr><th>引数</th><th>内容</th></tr>
     <tr><td>system</td><td>対象システム名</td></tr>
@@ -169,79 +170,158 @@
     <tr><td>reverse_worktree</td><td>対象画面のソースコードを持つ worktree の絶対パス</td></tr>
     <tr><td>ports</td><td>動作確認に使うポート情報</td></tr>
     <tr><td>docs_root</td><td>今後の設計書配置ルート（design_doc_path の組み立てに使用）</td></tr>
+    <tr><td>user-approved</td><td>Phase 5 で <code>syncing-reverse-env(mode=registry)</code> へ転送する承認情報。必須</td></tr>
   </table>
-  <p class="note">全量が管理者から渡される。単独起動時はユーザーが同じ引数を手渡せば動く。</p>
+  <p class="note">全量が管理者から渡される。単独起動時はユーザーから直接取得してよい。対象プロジェクトの <code>manifest.yml</code> に <code>projects.&lt;system&gt;</code> エントリが無い、または未確定キー（<code>&lt;FILL:...&gt;</code>）が残っている場合は <code>assets/manifest-template.yml</code> を複製してまず埋める（前提ゲートで検出・差し戻し）。</p>
+</section>
+
+<section id="s3">
+  <h2><span class="sec-num">§3</span>実行手順（前提ゲート + Phase 1〜5）</h2>
+
+  <h3>前提ゲート</h3>
+  <p><code>manifest.yml</code> の <code>projects.&lt;system&gt;</code> を読み込む。エントリ不在、または値に未確定トークン（<code>&lt;FILL:...&gt;</code>）が1つでも残っていれば <span class="tag error">ERROR</span> とし、hint に不足キー一覧と <code>assets/manifest-template.yml</code> への案内を記して停止する。<code>manifest.&lt;system&gt;.repo_and_launch</code> に従い、対象リポジトリで dev サーバーを自分で起動する（稼働中の他エージェントのサーバーには接続・干渉しない）。<code>manifest.&lt;system&gt;.reference_screen</code>（開通済みの健全性確認用画面）を、自分が起動したサーバー上でブラウザ自動化により表示確認する。失敗したら環境自体の不備として <span class="tag error">ERROR</span> で停止する（この画面自体の開通作業には進まない）。</p>
+  <p class="note">TaskCreate で本前提ゲートを含む全Phase分のタスクを1つずつ登録し、各Phase開始時にTaskUpdateでin_progressに更新する。</p>
+  <p class="note">完了条件: (a) manifest必須キー全確定 (b) devサーバー起動確認 (c) リファレンス画面の健全性確認PASSの3点がすべて満たされている</p>
+
+  <pre class="flow"><span class="cap">Phase 1: API依存の特定</span>
+  画面本体のソースコード一式（ルーティング定義・画面コンポーネント・APIクライアント）をGrep/Globで特定
+  共有ゲート部品(年度/組織セレクタ等。api_dependency_entrypoints.shared_gate_componentsが示す箇所)を
+  実際のimport等の取り込み記述から辿り、これらが呼ぶAPIも対象に含める（推測で決めつけない）
+  各APIについてapi_source_of_truth.definition_root（型定義/OpenAPI等の正本）でワイヤ上の実名を確認
+  （コード生成名と実名は大小文字が食い違うことがある点に注意）
+  URLパラメータ・ストア値・セッションキーを列挙する（セッションキーは充足タイミングまで確認）
+  完了条件: API一覧（画面本体分＋共有ゲート部品分）・実名対応表・URLパラメータ/ストア値/
+            セッションキー（充足タイミング付き）の一覧が記録済み
+
+<span class="cap">Phase 2: 認証・権限基盤の登録</span>
+  セッションキーの存在確認はブラウザ自動化での実測とする（静的読解だけで済ませない）
+  auth_session_permission.identifier_field_checkが指す識別子フィールドについて、
+  キーの存在だけでなく値が空でないことまで確認する
+  permission_chain_layers（route guard/APIミドルウェア/UI表示条件等）の各層に
+  対象画面のエントリを登録する
+  完了条件: セッションキー実測結果（充足済み・識別子フィールド非空を確認済み）、
+            権限チェーン各層への登録完了
+
+<span class="cap">Phase 3: 画面別モック実装</span>
+  mock_conventions（有効化方法・配置規約・登録方法）に従い、Phase 1で特定したAPI一覧に
+  モックを実装する
+  実装後、登録した名前の一覧とapi_source_of_truthの実名一覧を機械的に突合し、
+  差分ゼロを完了条件とする（自然文の目視確認で済ませない）
+  モック変更はホットリロードで反映されないことがあるため、反映確認は必ずサーバー再起動後に行う
+  完了条件: 登録名一覧×実名一覧の突合差分ゼロ、サーバー再起動後の反映確認済み
+
+<span class="cap">Phase 4: 検証ループ</span>
+  ブラウザ自動化で実データ表示を確認する
+  失敗症状は「クエリ未発火」「権限エラー」に加え「画面全体のクラッシュ（エラー境界への遷移）」
+  クラッシュはクエリ記録では検知できないため、ページのpageerrorイベントから診断する
+  差分が見つかれば原因のPhase（1/2/3）へ戻る
+  スクリーンショットまたはログ抜粋を伴わない合格判定は禁止。未検証項目は「未検証」と明記
+  反復規律の詳細は §5 ループ設計 に従う
+  完了条件: 収束条件を満たすか、発散/上限到達によりstatus=BLOCKEDが確定している
+
+<span class="cap">Phase 5: 基準確立への引き渡し</span>
+  開通状態をコミット（メッセージ:「【機能追加】&lt;画面名&gt; をモックAPIで開通」）
+  画面レジストリ（handoff.screen_registry_path。既定は
+  ~/agent-home/state/reverse-screen-registry.yml。contract.mdの正本と一致させる）へ
+  source_ref・verification_url・design_doc_path・status=unlockedを記帳
+  Skillでsyncing-reverse-envをmode=registry・system・screen_id・reverse_worktree・
+  ports・user-approvedで起動する
+  返却status=PASSなら画面レジストリの該当エントリをstatus=baseline-establishedに更新し、
+  git tag -l "reverse-baseline/&lt;scope&gt;" 等の決定的コマンド出力でタグ確立を確認
+  （自然文の自己申告で完了と判定しない）。確認できたらstatus=BASELINE-ESTABLISHEDで返却
+  （返却フィールドにbaseline_tagを追加し、syncing-reverse-envの返却値をそのまま転記する）
+  返却がPASS以外（FAIL/ERROR/INCOMPLETE）の場合は、画面レジストリをstatus=unlockedのまま残し、
+  status=UNLOCKED（部分完了）でhintに理由を記して差し戻す
+  完了条件: レジストリ登録済み、かつ（成功時のみ）git tag -l 等の決定的出力でタグ確立を確認済み</pre>
 </section>
 
 <section id="s4">
-  <h2><span class="sec-num">§4</span>実行手順（Phase 1〜4）</h2>
-  <pre class="flow"><span class="cap">Phase 1: 入力ロード + preflight</span>
-  起動引数(system/screen_id/reverse_worktree/ports/docs_root)を受け取る
-  いずれか欠落→status=ERRORで管理者へ差し戻し
-  reverse_worktree配下で対象画面のソースコード一式の実在をGrep/Globで確認
-  完了条件: 対象画面のソースコード一式の所在が確認済み
-
-<span class="cap">Phase 2: 既存コード調査</span>
-  ルーティング定義・認証ガード（ログイン必須化ロジック）・外部API呼び出し箇所を調査
-  オリジナルコードの改変はまだ行わない（調査のみ）
-  完了条件: モックAPI適用が必要な箇所の一覧が記録されている
-
-<span class="cap">Phase 3: モックAPI適用 + 動作確認</span>
-  特定箇所に最小限のモックAPI（固定レスポンスのスタブ等）を適用
-  reverse_worktree上でログイン後まで画面表示を確認（実機 or 静的確認）
-  変更をコミット（メッセージ:「【機能追加】&lt;画面名&gt;をモックAPIで開通」）
-  完了条件: 画面がログイン後まで表示可能であることを確認済み、変更がコミット済み
-
-<span class="cap">Phase 4: 証跡保存 + 返却</span>
-  source_ref（開通確認時点のコミットハッシュ）
-  verification_url（表示確認できたURL。未実施なら「未実施」と明記）
-  design_doc_path（docs_root起点の &lt;system&gt;-&lt;screen_id&gt; 相当パス）
-  完了条件: 返却ブロック（status・source_ref・verification_url・design_doc_path）が確定</pre>
+  <h2><span class="sec-num">§4</span>完了条件</h2>
+  <table class="spec">
+    <tr><th>Phase</th><th>完了条件</th></tr>
+    <tr><td>前提ゲート</td><td>manifest必須キー全確定・devサーバー起動確認・リファレンス画面健全性確認PASS</td></tr>
+    <tr><td>Phase 1</td><td>API一覧（画面本体＋共有ゲート部品分）・実名対応表・URLパラメータ/ストア値/セッションキー一覧が記録済み</td></tr>
+    <tr><td>Phase 2</td><td>セッションキー実測結果・識別子フィールド非空確認・権限チェーン各層への登録完了</td></tr>
+    <tr><td>Phase 3</td><td>登録名一覧×実名一覧の突合差分ゼロ、サーバー再起動後の反映確認済み</td></tr>
+    <tr><td>Phase 4</td><td>収束条件を満たすか、発散/上限到達で <span class="tag error">BLOCKED</span> 確定</td></tr>
+    <tr><td>Phase 5</td><td>画面レジストリ登録済み、<code>git tag -l</code> 等の決定的出力でタグ確立を確認済み（PASS以外なら <span class="tag mode">UNLOCKED</span> で差し戻し）</td></tr>
+    <tr><td><strong>Goal</strong></td><td><span class="tag pass">BASELINE-ESTABLISHED</span>（開通〜レジストリ登録〜基準タグ確立まで完走、決定的コマンド出力で確認済み）。Phase5でsyncing-reverse-envがPASS以外なら <span class="tag mode">UNLOCKED</span> で部分完了として差し戻す</td></tr>
+  </table>
 </section>
 
 <section id="s5">
-  <h2><span class="sec-num">§5</span>完了条件</h2>
+  <h2><span class="sec-num">§5</span>ループ設計</h2>
   <table class="spec">
-    <tr><th>Phase</th><th>完了条件</th></tr>
-    <tr><td>Phase 1</td><td>対象画面のソースコード一式の所在が確認済み</td></tr>
-    <tr><td>Phase 2</td><td>モックAPI適用が必要な箇所の一覧が記録されている</td></tr>
-    <tr><td>Phase 3</td><td>画面がログイン後まで表示可能であることを確認済み、変更がコミット済み</td></tr>
-    <tr><td>Phase 4</td><td>返却ブロックが確定している</td></tr>
-    <tr><td><strong>Goal</strong></td><td>対象画面がモックAPI経由でログイン後まで表示可能になり、返却ブロック（status=UNLOCKED・source_ref・verification_url・design_doc_path）が管理者に渡っている</td></tr>
+    <tr><th>要素</th><th>内容</th></tr>
+    <tr><td>反復対象</td><td>Phase 4（検証ループ）。差分が見つかればPhase 1/2/3のいずれかへ戻り再実行</td></tr>
+    <tr><td>上限回数</td><td>3回（<code>rebuilding-code-from-docs</code> 外側ループ・<code>syncing-reverse-env/config.yml</code> の <code>max_loop</code> 既定と整合）</td></tr>
+    <tr><td>収束条件</td><td>「画面が要求する値とモックデータの突合差分ゼロ」かつ「ブラウザ自動化での実データ表示確認PASS」が2連続で確認できた場合</td></tr>
+    <tr><td>発散条件</td><td>同一差分（同一クエリ未発火／同一権限エラー／同一エラー境界遷移）が2連続で再発した場合、原因と推定されるPhase（1/2/3）まで巻き戻し、それでも3回目に達したら発散確定</td></tr>
+    <tr><td>上限到達時の報告</td><td><span class="tag error">BLOCKED</span> とし、hintに「未解消の差分内容」「試行履歴（何を変えて何度試したか）の要約」「推定原因Phase」を記してユーザーに報告する。TaskUpdateで該当タスクを進行中断状態に更新する</td></tr>
   </table>
 </section>
 
 <section id="s6">
-  <h2><span class="sec-num">§6</span>サブエージェント委任仕様</h2>
-  <div class="constraint">
-    <strong>該当なし</strong>。本スキルは他スキル・サブエージェントを呼ばず、単独でPhase 1〜4を完結させる。allowed-tools に Agent・Skill・AskUserQuestion を含まない。
-  </div>
+  <h2><span class="sec-num">§6</span>同一条件混在時の対処</h2>
+  <p>「同一条件で成功と失敗が混在する」場合、次の順序で対処する。</p>
+  <ol>
+    <li>直ちにレース条件と断定しない</li>
+    <li>まず「チェックが実行されれば確実に失敗するデータ欠落が、チェック自体のスキップというタイミングの穴で時々成功して見える」可能性を排除する: Phase 1で列挙した画面要求値（URLパラメータ・ストア値・セッションキー）の一覧と、Phase 3で実装したモックデータの一覧を機械的に突合する</li>
+    <li>突合で不一致（画面が要求する値にモック側の対応が無い等）が見つかれば「データ欠落」と確定し、発散カウントには含めずPhase 3へ差し戻す（原因が特定できたやり直しのため）</li>
+    <li>突合が完全一致してもなお混在する場合のみ、次の対処に進む: 同一シナリオを3回連続実行し多数決を取る。1回でも失敗が出たら「モック側の非同期タイミング（データ投入とクエリ発火の順序保証が無い）」を疑い、モックを固定遅延無し・即時応答型に修正して再検証する</li>
+    <li>それでも混在が解消しない場合は <span class="tag error">BLOCKED</span> とし、hintに「モック実装ではなくアプリ側の真のレースコンディションの疑いあり」と明記してユーザーに報告する</li>
+  </ol>
 </section>
 
 <section id="s7">
-  <h2><span class="sec-num">§7</span>重要な注意事項</h2>
-  <ul>
-    <li>本スキルは他スキル（syncing-reverse-env 等）を一切呼ばない。呼び出し・環境同期・基準タグ確立は管理者（orchestrating-reverse-docs-flow）が担う</li>
-    <li>他スキルの設定ファイル（<code>syncing-reverse-env/config.yml</code> 等）に書き込まない</li>
-    <li>開通済み画面の記帳（画面レジストリへの登録）は行わない。返却ブロックで管理者に情報を渡すのみ</li>
-    <li>責務は「画面の開通まで」。基準タグ確立・往復検証は本スキルの対象外</li>
-  </ul>
+  <h2><span class="sec-num">§7</span>サブエージェント委任仕様</h2>
+  <table class="spec">
+    <tr><th>呼び出し箇所</th><th>invocation</th><th>args骨格</th><th>期待返却status</th></tr>
+    <tr><td>Phase 5</td><td>syncing-reverse-env</td><td>mode=registry, system, screen_id, reverse_worktree, ports, user-approved</td><td><span class="tag pass">PASS</span></td></tr>
+  </table>
+  <div class="constraint">
+    <strong>唯一の例外</strong>: 本スキルは唯一、他子スキル（syncing-reverse-env）を直接起動する子スキルである。これは完全仲介方式に対する意図的な例外として本スキル内でのみ許容される。
+  </div>
 </section>
 
 <section id="s8">
-  <h2><span class="sec-num">§8</span>Gotchas</h2>
+  <h2><span class="sec-num">§8</span>重要な注意事項</h2>
   <ul>
-    <li>本スキルは「設計書がまだ無い」段階の画面が対象。設計書がある画面は <code>rebuilding-screen-unit-from-docs</code> / <code>rebuilding-code-from-docs</code> の対象であり本スキルは使わない</li>
-    <li>モックAPIの適用範囲は「ログイン後まで表示可能にする」最小限に留める。往復検証相当の精緻な動作確認は行わない（それは後続工程の責務）</li>
+    <li>本スキルは例外的に画面レジストリへの直接読み書きと <code>syncing-reverse-env</code> の直接起動を行う（理由: 開通の事実を知るのは本スキルだけであり、下流が能動的に検知できないため）</li>
+    <li>プロジェクト固有値（パス・コマンド・API名・ポート・画面ID等）は本文・references に一切書かない。すべて <code>manifest.yml</code> の <code>projects.&lt;system&gt;</code> から取得する</li>
+    <li>健全性確認は自分が起動したサーバー上でのみ行う。稼働中の他エージェントの環境には触れない</li>
+    <li>合格判定は自然文の自己申告でなく、決定的コマンド出力（<code>git tag -l</code> 等）で行う</li>
+    <li>責務は「基準タグ確立まで」。往復検証（設計書との突合精度）自体は本スキルの対象外（それは <code>rebuilding-code-from-docs</code> の責務）</li>
   </ul>
 </section>
 
 <section id="s9">
-  <h2><span class="sec-num">§9</span>参照資料</h2>
+  <h2><span class="sec-num">§9</span>Gotchas</h2>
+  <ul>
+    <li>設計書がある画面は対象外（<code>rebuilding-screen-unit-from-docs</code> / <code>rebuilding-code-from-docs</code> を使う）</li>
+    <li>モック変更はホットリロードで反映されないことがある。反映確認は必ずサーバー再起動後に行う</li>
+    <li>コード生成名とワイヤ上の実名は大小文字が食い違うことがある。実名は <code>api_source_of_truth.definition_root</code> で確認する</li>
+    <li>画面全体のクラッシュ（エラー境界遷移）はクエリ記録では見えない。<code>pageerror</code> イベントから診断する</li>
+    <li>同一条件で成功と失敗が混在する場合、即座にレース条件と断定せず、まず画面要求値とモックデータの突合でデータ欠落を排除する（§6参照）</li>
+    <li>manifest に未確定キー（<code>&lt;FILL:...&gt;</code>）が残ったまま作業を開始してはならない</li>
+  </ul>
+</section>
+
+<section id="s10">
+  <h2><span class="sec-num">§10</span>参照資料</h2>
   <table class="spec">
     <tr><th>関連</th><th>関係</th></tr>
-    <tr><td><code>orchestrating-reverse-docs-flow/references/contract.md</code></td><td>返却ブロック契約・args仕様・画面レジストリの正本</td></tr>
+    <tr><td><code>~/reverse-docs-skills/.claude/skills/orchestrating-reverse-docs-flow/references/contract.md</code></td><td>返却ブロック契約・args仕様・画面レジストリの正本（例外条項含む）</td></tr>
+    <tr><td><code>manifest.yml</code>（本スキル同梱）</td><td>プロジェクト固有値の正本</td></tr>
+    <tr><td><code>assets/manifest-template.yml</code>（本スキル同梱）</td><td>manifest未整備プロジェクト向け雛形</td></tr>
+    <tr><td><code>~/reverse-docs-skills/.claude/skills/syncing-reverse-env/config.yml</code></td><td>Playwright実行系設定（<code>playwright_exec</code> 等）の共有正本。本スキルは重複定義しない</td></tr>
   </table>
+</section>
+
+<section id="s11">
+  <h2><span class="sec-num">§11</span>改訂完了時の機械チェック</h2>
+  <p>編集完了後、以下のようなgrepコマンドを実行しゼロヒットを確認する。このリポジトリ自体は具体値を持たないため、実運用では配布先プロジェクトが実際に埋めた値を対象に同種のgrepを実施する。</p>
+  <pre class="flow">grep -riE '&lt;実プロジェクト名&gt;|&lt;実ポート番号&gt;|&lt;実API名&gt;|&lt;実画面ID&gt;' .claude/skills/unlocking-reverse-target-screens/SKILL.md .claude/skills/unlocking-reverse-target-screens/references/*.html</pre>
 </section>
 
 <div id="zoom-overlay" class="zoom-overlay" hidden></div>

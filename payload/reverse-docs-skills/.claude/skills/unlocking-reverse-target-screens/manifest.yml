@@ -1,0 +1,57 @@
+# unlocking-reverse-target-screens の可変値設定（プロジェクト固有マニフェスト）
+# 値の階層: 普遍のルール＝SKILL.md（プロジェクト固有値を含まない） /
+#           プロジェクト単位＝本ファイル projects.<system> / 画面単位＝呼び出し引数（screen_id等）
+# 未確定キー（<FILL:...>）が残ったまま前提ゲートを通過してはならない。
+# 雛形は assets/manifest-template.yml を参照。
+
+operating_rules:                          # 全プロジェクト共通・固定（projectsでの上書き不可）
+  forbid_unresolved_keys: true            # <FILL:...> が残っていれば前提ゲートでERROR
+  forbid_other_agent_server_touch: true   # 稼働中の他エージェントのdevサーバー・環境に触れない
+  require_deterministic_pass: true        # 合格判定は決定的コマンド出力（例: git tag -l）で行う
+
+shared_config_ref:
+  syncing_env_config: "../syncing-reverse-env/config.yml"   # playwright_exec等の実行系設定を参照。重複定義しない
+
+projects: {}
+# 実プロジェクトを追加する際は以下の構造で "<system>" キー配下に記入する（10グループ、全て必須）。
+# 完全な雛形（実際にYAMLとしてパース可能な形）は assets/manifest-template.yml にある。
+# ここでは記入例のみをコメントとして示す。
+#
+# projects:
+#   "<system>":
+#     repo_and_launch:
+#       work_repo_path: "<FILL:work_repo_path>"           # 作業リポジトリのパス
+#       default_branch: "<FILL:default_branch>"
+#       services: ["<FILL:service名>"]
+#       launch_commands:
+#         "<FILL:service名>": "<FILL:起動コマンド。{port}プレースホルダ可>"
+#     mock_conventions:
+#       enable_method: "<FILL:モックの有効化方法>"
+#       placement_dir: "<FILL:モックコードの配置規約>"
+#       registration_method: "<FILL:モックの登録方法>"
+#       hot_reload_caveat: "モック変更はホットリロードで反映されないことがある。反映確認は必ずサーバー再起動後に行う"
+#     api_source_of_truth:
+#       definition_root: "<FILL:API定義の正本パス（OpenAPI/型定義/proto等）>"
+#       wire_name_caveat: "コード生成名と実名は大小文字が食い違うことがある"
+#     api_dependency_entrypoints:
+#       screen_entry_globs: ["<FILL:画面本体特定glob>"]
+#       shared_gate_components: ["<FILL:共有ゲート部品のパス（年度・組織セレクタ等）>"]
+#     shared_data_prerequisites:
+#       shared_fetch_layer_paths: ["<FILL:共有fetchラッパー/APIクライアント基盤のパス>"]
+#     auth_session_permission:
+#       session_init_entry: "<FILL:セッション初期化の入口>"
+#       session_keys:
+#         - name: "<FILL:セッションキー名>"
+#           timing: "<FILL:sync-initial|async>"
+#           source: "<FILL:充足元>"
+#       permission_chain_layers: ["<FILL:権限チェーンの各層と登録方法>"]
+#       identifier_field_check: "<FILL:認証系APIが読む識別子フィールド名>"
+#     reference_screen:
+#       screen_id: "<FILL:健全性確認に使う開通済み画面のID>"
+#       verification_url_template: "<FILL:確認URLテンプレート（{port}等含む）>"
+#     handoff:
+#       unlock_record_dir: "<FILL:開通証跡の置き場>"
+#       screen_registry_path: "~/agent-home/state/reverse-screen-registry.yml"  # contract.md正本と一致させる
+#       registration_procedure: "既定はcontract.md準拠。差分があれば記載"
+#     prohibitions: []          # 例: ["本番DBへ接続しない"]
+#     known_gotchas: []         # 例: [{symptom: "...", cause: "...", workaround: "..."}]
