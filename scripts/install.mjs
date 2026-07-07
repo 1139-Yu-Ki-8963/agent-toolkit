@@ -35,6 +35,16 @@ function buildMappings() {
     });
   }
 
+  // payload/reverse-docs-skills/** → <TARGET>/reverse-docs-skills/**
+  const reverseDocsSkillsSrc = path.join(PAYLOAD, "reverse-docs-skills");
+  for (const rel of walkFiles(reverseDocsSkillsSrc)) {
+    mappings.push({
+      src: path.join(reverseDocsSkillsSrc, rel),
+      dst: path.join(TARGET, "reverse-docs-skills", rel),
+      mode: "copy",
+    });
+  }
+
   // payload/claude-config/** → <TARGET>/.claude/**（CLAUDE.md・settings-hooks.json は特殊挙動）
   const claudeConfigSrc = path.join(PAYLOAD, "claude-config");
   for (const rel of walkFiles(claudeConfigSrc)) {

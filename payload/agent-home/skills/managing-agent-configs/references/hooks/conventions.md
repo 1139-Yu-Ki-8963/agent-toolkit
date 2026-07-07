@@ -178,7 +178,7 @@ MANAGING-REVIEW-REQUIRED / MANAGING-COMMIT-BLOCK / MANAGING-GATE-DISABLED
 
 | TAG | 参照箇所 | 用途 |
 |-----|---------|------|
-| `AMBIGUITY-AUTO-FIX` | `~/.claude/rules/always/agent/subagent-delegation/rule.md` | 曖昧表現を `clarifying-ambiguity` スキルで修正 |
+| `AMBIGUITY-AUTO-FIX` | `~/.claude/rules/always/agent/delegation/rule.md` | 曖昧表現を `clarifying-ambiguity` スキルで修正 |
 | `TEXTLINT` | `~/agent-home/skills/writing-quality/SKILL.md` | textlint エラーを `writing-quality` スキルで修正 |
 
 新しい委譲パターンを追加する時は、CLAUDE.md または rules にも対応するルールを必ず書き加える。
