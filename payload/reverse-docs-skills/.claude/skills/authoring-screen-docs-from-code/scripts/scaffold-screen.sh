@@ -134,37 +134,27 @@ else
     sed -i.bak "s/<YYYY-MM-DD>/${today}/g" "$file" || ok=0
     rm -f "${file}.bak"
     if [ "$ok" -eq 0 ]; then
-      rm -rf "$staging"
+      rm -rf "$staging" "$common_dir"
       echo "エラー: プレースホルダ置換に失敗しました: $file" >&2
       exit 1
     fi
   done < <(find "$common_dir" -name '*.md' -type f)
 fi
 
-# プレースホルダ置換（GNU/BSD sed 両対応: -i.bak + rm を使用）。一時ディレクトリに対して行う。
+# プレースホルダ置換（GNU/BSD sed 両対応: -i.bak + rm を使用）+ 相対パス補正を1回のfindループで行う。
+# 相対パス補正: テンプレートは 画面/詳細設計/ を想定した ../../プロジェクト共通/... だが、
+# 展開先は 画面/screen-<画面ID>/詳細設計/ で1階層深い。../../../プロジェクト共通/... に補正する。
 echo "プレースホルダを置換: <画面ID> → $screen_id, <画面名> → $screen_name"
 while IFS= read -r file; do
   ok=1
   sed -i.bak "s/<画面ID>/${screen_id}/g" "$file" || ok=0
   sed -i.bak "s/<画面名>/${screen_name}/g" "$file" || ok=0
   sed -i.bak "s/<YYYY-MM-DD>/${today}/g" "$file" || ok=0
-  rm -f "${file}.bak"
-  if [ "$ok" -eq 0 ]; then
-    rm -rf "$staging"
-    echo "エラー: プレースホルダ置換に失敗しました: $file" >&2
-    exit 1
-  fi
-done < <(find "$staging" -name '*.md' -type f)
-
-# 相対パス補正: テンプレートは 画面/詳細設計/ を想定した ../../プロジェクト共通/... だが、
-# 展開先は 画面/screen-<画面ID>/詳細設計/ で1階層深い。../../../プロジェクト共通/... に補正する。
-while IFS= read -r file; do
-  ok=1
   sed -i.bak "s#\\.\\./\\.\\./プロジェクト共通#../../../プロジェクト共通#g" "$file" || ok=0
   rm -f "${file}.bak"
   if [ "$ok" -eq 0 ]; then
     rm -rf "$staging"
-    echo "エラー: 相対パス補正に失敗しました: $file" >&2
+    echo "エラー: プレースホルダ置換・相対パス補正に失敗しました: $file" >&2
     exit 1
   fi
 done < <(find "$staging" -name '*.md' -type f)

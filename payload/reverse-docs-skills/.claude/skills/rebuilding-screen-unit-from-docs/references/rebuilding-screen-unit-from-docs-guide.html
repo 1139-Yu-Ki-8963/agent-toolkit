@@ -350,7 +350,7 @@
     </tr>
     <tr>
       <td>P7</td>
-      <td>再現一致（7 計測の判定 5 項目すべて合格）/ 再現不一致を判定し、修正指示書または「NG なし」を出力</td>
+      <td>再現一致（7 計測の判定 6 項目すべて合格）/ 再現不一致を判定し、修正指示書または「NG なし」を出力</td>
       <td><span class="tag fail">禁止</span>（P5 の結果のみ参照）</td>
       <td>修正指示書または「NG なし」明示・再現一致/再現不一致判定完了</td>
     </tr>
@@ -367,35 +367,35 @@
   <h2><span class="sec-num">§6</span>7 計測（合格判定表 + measure-file-diff.sh 入出力）</h2>
   <table class="spec">
     <tr><th>区分</th><th>計測</th><th>合格条件</th></tr>
-    <tr><td rowspan="5">判定 5 項目</td><td>単体テスト仕様の検査（禁止パターン・import・コンポーネント/API 利用）</td><td>全項目合格</td></tr>
+    <tr><td rowspan="6">判定 6 項目</td><td>単体テスト仕様の検査（禁止パターン・import・コンポーネント/API 利用）</td><td>全項目合格</td></tr>
     <tr><td>import の diff</td><td>0 行</td></tr>
     <tr><td>スタイル定数の diff</td><td>0 行</td></tr>
     <tr><td>契約突合（export名・定数値・ハンドラ名・型名・状態変数名・API呼出先の 6 カテゴリ）</td><td><code>contract_match=YES</code></td></tr>
+    <tr><td>実質 diff（コメント・空行除外）</td><td>20 行以下（契約突合が対象外とするロジック差分の安全網）</td></tr>
     <tr><td>元コード全緑証明（原本での P3 テスト実行）</td><td>原本 green、または原本 red がユーザー承認済みの原本バグ</td></tr>
-    <tr><td rowspan="2">参考 2 項目</td><td>ファイル全体の diff</td><td>行数を出力（参考値・合格判定には使わない）</td></tr>
-    <tr><td>実質 diff（コメント・空行除外）</td><td>行数を出力（参考値・しきい値なし・合格判定には使わない）</td></tr>
+    <tr><td>参考 1 項目</td><td>ファイル全体の diff</td><td>行数を出力（参考値・合格判定には使わない）</td></tr>
   </table>
   <div class="constraint">
     <strong>重大違反:</strong> import diff だけでの合格判定は重大違反とする。7 計測はすべて出力し、いずれか 1 つでも省略してはならない。
   </div>
-  <p class="note"><code>measure-file-diff.sh</code> の verdict は生シグナルである。差分のうち <code>[画面単位検証で実測]</code> に該当する実測委譲差分（初期表示値・DOM 順・位置・レイアウト起因）は再現一致判定の分母から除外し、静的な宣言的契約由来の差分のみで判定する。再現一致の主判定式は <code>import diff = 0 ∧ style diff = 0 ∧ 契約突合一致（contract_match=YES） ∧ 単体テスト仕様の検査 全緑</code> とし、これに加えて元コード全緑証明を満たして初めて P7 で再現一致と判定する。ファイル全体 diff・実質 diff の 2 項目は参考値であり、しきい値による合否判定には用いない。</p>
+  <p class="note"><code>measure-file-diff.sh</code> の verdict は生シグナルである。差分のうち <code>[画面単位検証で実測]</code> に該当する実測委譲差分（初期表示値・DOM 順・位置・レイアウト起因）は再現一致判定の分母から除外し、静的な宣言的契約由来の差分のみで判定する。再現一致の主判定式は <code>import diff = 0 ∧ style diff = 0 ∧ 契約突合一致（contract_match=YES） ∧ 実質diff 20行以下 ∧ 単体テスト仕様の検査 全緑</code> とし、これに加えて元コード全緑証明を満たして初めて P7 で再現一致と判定する。契約突合は宣言レベルの欠落しか検出できずロジック差分は対象外のため、実質diffのしきい値をその安全網として維持する。ファイル全体 diff のみ参考値であり、しきい値による合否判定には用いない。</p>
   <h3>measure-file-diff.sh の入出力</h3>
   <table class="spec">
     <tr><th>項目</th><th>内容</th></tr>
     <tr><td>呼び出し</td><td><code>scripts/measure-file-diff.sh &lt;generated-file&gt; &lt;original-file&gt;</code></td></tr>
-    <tr><td>標準出力</td><td><code>import_diff_lines=&lt;整数&gt;</code> / <code>style_diff_lines=&lt;整数&gt;</code> / <code>total_diff_lines=&lt;整数&gt;</code> / <code>substantive_diff_lines=&lt;整数&gt;</code> / <code>contract_match=YES|NO</code> / <code>verdict=PASS|FAIL</code>（key=value を1行ずつ・機械可読）</td></tr>
-    <tr><td>verdict 判定式</td><td><code>import_diff_lines == 0 &amp;&amp; style_diff_lines == 0 &amp;&amp; contract_match == YES</code> のとき <span class="tag pass">PASS</span>、それ以外 <span class="tag fail">FAIL</span>（<code>substantive_diff_lines</code> は参考値であり判定式から除外済み）</td></tr>
+    <tr><td>標準出力</td><td><code>import_diff_lines=&lt;整数&gt;</code> / <code>style_diff_lines=&lt;整数&gt;</code> / <code>export_diff_lines=&lt;整数&gt;</code> / <code>const_diff_lines=&lt;整数&gt;</code> / <code>handler_diff_lines=&lt;整数&gt;</code> / <code>type_diff_lines=&lt;整数&gt;</code> / <code>state_diff_lines=&lt;整数&gt;</code> / <code>apicall_diff_lines=&lt;整数&gt;</code> / <code>contract_match=YES|NO</code> / <code>total_diff_lines=&lt;整数&gt;</code> / <code>substantive_diff_lines=&lt;整数&gt;</code> / <code>verdict=PASS|FAIL</code>（key=value を1行ずつ・機械可読）</td></tr>
+    <tr><td>verdict 判定式</td><td><code>import_diff_lines == 0 &amp;&amp; style_diff_lines == 0 &amp;&amp; contract_match == YES &amp;&amp; substantive_diff_lines &lt;= 20</code> のとき <span class="tag pass">PASS</span>、それ以外 <span class="tag fail">FAIL</span>（<code>contract_match</code> は宣言レベルの欠落しか検出できないため、ロジック差分の安全網として実質diff 20行以下のしきい値を維持する。<code>total_diff_lines</code> は参考値のまま）</td></tr>
     <tr><td>対象外</td><td>「単体テスト仕様の検査」と「元コード全緑証明」（原本での P3 テスト実行）は本スクリプトの対象外。P5 でメインが別途実施する</td></tr>
     <tr><td>異常系</td><td>引数不足・ファイル不在は stderr にメッセージを出して <code>exit 1</code>。正常時は <code>exit 0</code></td></tr>
   </table>
-  <h3>5 計測の算出方法（heuristic）</h3>
+  <h3>6 計測の算出方法（heuristic）</h3>
   <table class="spec">
     <tr><th>計測</th><th>算出方法</th></tr>
     <tr><td>import diff</td><td>両ファイルから <code>^\s*import </code> 行を抽出→ソート→<code>diff</code> の差分行数（<code>^[&lt;&gt;]</code> 行の数）</td></tr>
     <tr><td>style diff</td><td><code>className</code> / <code>style=</code> 属性・<code>const .*Style</code> 系変数・16 進カラーコード（<code>#[0-9a-fA-F]{3,8}</code>）・<code>px</code>/<code>rem</code>/<code>em</code>/<code>vh</code>/<code>vw</code> を含む数値行を抽出→ソート→diff の差分行数</td></tr>
     <tr><td>契約突合</td><td>生成物と原本それぞれから 6 カテゴリ（export名・定数値・ハンドラ名・型名・状態変数名・API呼出先）を抽出して集合化→集合同士を比較→完全一致なら <code>contract_match=YES</code>、1 件でも差異があれば <code>contract_match=NO</code></td></tr>
+    <tr><td>実質 diff（20行以下）</td><td>コメント行（<code>^\s*//</code>・<code>^\s*/\*</code>・<code>^\s*\*</code>）と空行を除外した上での diff 差分行数。契約突合が対象外とするロジック差分の安全網</td></tr>
     <tr><td>全体 diff</td><td><code>diff &lt;original&gt; &lt;generated&gt;</code> の差分行数（参考値。合格判定には使わない）</td></tr>
-    <tr><td>実質 diff</td><td>コメント行（<code>^\s*//</code>・<code>^\s*/\*</code>・<code>^\s*\*</code>）と空行を除外した上での diff 差分行数（参考値。しきい値は設けない）</td></tr>
   </table>
   <p class="note">P5 の抽出手順: <code>git show &lt;原本参照コミット&gt;:&lt;対象ファイルパス&gt; &gt; $CLAUDE_JOB_DIR/tmp/&lt;basename&gt;.original</code>（<code>$CLAUDE_JOB_DIR</code> 未設定時は <code>${TMPDIR:-/tmp}/claude-job-&lt;session&gt;/</code> にフォールバック）。worktree・設計書リポジトリを汚染しないよう常にスクラッチ領域へ抽出する。</p>
 </section>

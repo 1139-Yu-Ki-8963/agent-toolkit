@@ -51,8 +51,9 @@ run_check() {
     [ -z "$key" ] && continue
     total=$((total + 1))
     found=0
+    esc_key="$(printf '%s' "$key" | sed -E 's/([.[\*^$()+?{}|\\])/\\\1/g')"
     for doc in "$@"; do
-      if grep -qF -- "$key" "$doc" 2>/dev/null; then
+      if grep -qE -- "(^|[^A-Za-z0-9_-])${esc_key}([^A-Za-z0-9_-]|\$)" "$doc" 2>/dev/null; then
         found=1
         break
       fi
