@@ -3,7 +3,7 @@
   rebuilding-screen-unit-from-docs スキルガイド
 
   設計書だけから1ファイルを再生成し元ファイルと軽量突合して設計書の欠落を発見する
-  スキル（単体観点・from-zero）の解説。SKILL.md / references 配下の仕様のみを
+  スキル（単体観点・検証専任）の解説。SKILL.md / references 配下の仕様のみを
   転記する（創作なし）。
 -->
 <html lang="ja">
@@ -116,13 +116,13 @@
 
 <header>
   <h1>設計書精度検証のための単体ファイル再構築<br><span class="skill-name">rebuilding-screen-unit-from-docs</span></h1>
-  <p>設計書だけから1ファイルを再生成し、元ファイルと軽量突合して設計書の欠落を発見するスキル（単体観点・from-zero）。</p>
+  <p>設計書だけから1ファイルを再生成し、元ファイルと軽量突合して設計書の欠落を発見する検証専任スキル（単体観点）。</p>
 
   <div class="def">
     <dt>こんな人向け</dt>
-    <dd>from-zero でリバース設計書の記載粒度をファイル単位でブートストラップしたい人。既存の画面詳細設計書.md が「1 ファイル分だけ」正しく書けているかを軽量に検証したい人。</dd>
+    <dd>既存の画面詳細設計書.md が「1 ファイル分だけ」正しく書けているかを軽量に検証したい人。設計書の契約記載に欠落があれば著者スキルへ差し戻したい人。</dd>
     <dt>こんな場面で使う</dt>
-    <dd>ファイル単位の往復検証・from-zero での設計書品質ブートストラップを行うとき。画面単位の結合・e2e 検証（Playwright スモーク・複数ファイル横断の突合）は後続の画面単位検証、環境同期・基準タグ運用は後続工程の対象であり、本スキルの対象外。</dd>
+    <dd>ファイル単位の往復検証を行うとき。設計書に対象ファイルの契約記載が無ければ<code>差し戻し</code>で著者スキル <code>authoring-screen-docs-from-code</code> へ渡す。画面単位の結合・e2e 検証（Playwright スモーク・複数ファイル横断の突合）は後続の画面単位検証、環境同期・基準タグ運用は後続工程の対象であり、本スキルの対象外。</dd>
   </div>
 
   <table class="meta-table">
@@ -141,7 +141,7 @@
     <li><a href="#s3">使い方</a></li>
     <li><a href="#s4">カンニング防止（二層）</a></li>
     <li><a href="#s5">動作フロー（P1〜P7）</a></li>
-    <li><a href="#s6">6 計測（合格判定表 + measure-file-diff.sh 入出力）</a></li>
+    <li><a href="#s6">7 計測（合格判定表 + measure-file-diff.sh 入出力）</a></li>
     <li><a href="#s7">ループ設計</a></li>
     <li><a href="#s8">サブエージェント委任仕様</a></li>
     <li><a href="#s9">関連スキル・資料</a></li>
@@ -150,15 +150,15 @@
 
 <section id="s1">
   <h2><span class="sec-num">§1</span>概要</h2>
-  <p>リバース設計書（<code>assets/リバース検証/画面/詳細設計/</code> 準拠）の往復検証を、<strong>「1 起動 = 1 ファイル・単体観点・from-zero」</strong>で行うスキル。設計書は 16 種類の<strong>章の役割キー</strong>（各章に付けられた意味分類ラベル）で構成され、本文で使う「既定 §n」という表記は、各役割キーがテンプレート上で通常割り当てられる章番号を指す注記である（正の識別子は章番号ではなく役割キーであり、個別の設計書では番号がずれる場合がある）。画面単位・結合観点・e2e の検証は行わず、後続の画面単位検証工程へ引き継ぐ（引き継ぎは orchestrating-reverse-docs-flow が案内する）。本スキルで設計書の記載粒度をファイル単位でブートストラップする。</p>
+  <p>リバース設計書（<code>assets/リバース検証/画面/詳細設計/</code> 準拠）の往復検証を、<strong>「1 起動 = 1 ファイル・単体観点・検証専任」</strong>で行うスキル。設計書は 16 種類の<strong>章の役割キー</strong>（各章に付けられた意味分類ラベル）で構成され、本文で使う「既定 §n」という表記は、各役割キーがテンプレート上で通常割り当てられる章番号を指す注記である（正の識別子は章番号ではなく役割キーであり、個別の設計書では番号がずれる場合がある）。画面単位・結合観点・e2e の検証は行わず、後続の画面単位検証工程へ引き継ぐ（引き継ぎは orchestrating-reverse-docs-flow が案内する）。本スキルは検証専任であり、設計書に対象ファイルの契約記載が無い場合は自ら著述せず、著者スキル <code>authoring-screen-docs-from-code</code> へ差し戻す。</p>
   <div class="constraint">
-    <strong>目的の分離:</strong> コードを直すことは目的ではない。P5 の差分は「コードの誤り」ではなく「設計書の記載不足」として扱い、フィードバック先は当該設計書の該当章（役割キー）。設計書に対象ファイルの記載自体が無い場合は、ひな形から新規作成してよい（from-zero）。
+    <strong>目的の分離:</strong> コードを直すことは目的ではない。P5 の差分は「コードの誤り」ではなく「設計書の記載不足」として扱い、フィードバック先は当該設計書の該当章（役割キー）。設計書に対象ファイルの契約記載自体が無い場合は、本スキルは新規作成せず<code>差し戻し</code>として著者スキル <code>authoring-screen-docs-from-code</code> へ渡す。
   </div>
   <p>比較エンジンは自前実装する。重い環境同期・基準タグ運用（後続工程の責務）には委譲しない（本スキルは 1 ファイル規模の軽量往復であり、画面単位の環境同期は過剰）。</p>
   <h3>設計原則</h3>
   <ol>
     <li><strong>正本一元化</strong>: 環境固有値（ポート・worktree パス）には触れない。画面固有値の正は設計書 frontmatter。本スキル専用の config.yml は新設しない</li>
-    <li><strong>比較は自前の 6 計測で行う</strong>。<code>scripts/measure-file-diff.sh</code> の決定的出力のみを判定根拠とし、環境同期・基準タグ運用（後続工程の責務）には委譲しない</li>
+    <li><strong>比較は自前の 7 計測で行う</strong>。<code>scripts/measure-file-diff.sh</code> の決定的出力のみを判定根拠とし、環境同期・基準タグ運用（後続工程の責務）には委譲しない</li>
     <li><strong>1 起動 = 1 ファイルの往復</strong>。他のファイルへは進まない。画面内の別ファイルを検証する場合は本スキルの再起動として扱う</li>
     <li><strong>カンニング防止の二層</strong>（詳細は §4）</li>
   </ol>
@@ -166,7 +166,7 @@
 
 <section id="s2">
   <h2><span class="sec-num">§2</span>位置づけ（ファイル単位検証 / 画面単位検証 パイプライン）</h2>
-  <p>本スキルは、リバースドキュメント生成からコード再構築に至る一連のパイプラインのうち、設計書のファイル単位ブートストラップを担う工程に位置する。</p>
+  <p>本スキルは、リバースドキュメント生成からコード再構築に至る一連のパイプラインのうち、設計書のファイル単位検証を担う工程に位置する。</p>
   <figure class="diagram">
     <svg viewBox="0 0 980 220" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="ファイル単位検証/画面単位検証 パイプライン図">
       <defs>
@@ -186,7 +186,7 @@
       <text x="376" y="108" text-anchor="middle" font-size="10.5" font-family="ui-monospace,monospace" fill="#2a4a7a">rebuilding-screen-unit</text>
       <text x="376" y="122" text-anchor="middle" font-size="10.5" font-family="ui-monospace,monospace" fill="#2a4a7a">-from-docs</text>
       <text x="376" y="144" text-anchor="middle" font-size="10.5" fill="#3a5a8a">単体・ファイル単位</text>
-      <text x="376" y="160" text-anchor="middle" font-size="10.5" fill="#3a5a8a">from-zero ブートストラップ</text>
+      <text x="376" y="160" text-anchor="middle" font-size="10.5" fill="#3a5a8a">検証専任（欠落は差し戻し）</text>
 
       <!-- Box 3: 画面単位・結合/e2e 検証工程 -->
       <rect x="536" y="60" width="220" height="100" rx="8" fill="#f0f0ee" stroke="#999" stroke-width="1.5"/>
@@ -209,7 +209,7 @@
 
       <text x="490" y="205" text-anchor="middle" font-size="10.5" fill="#777">1 起動 = 1 ファイル（ファイル単位検証） → 1 起動 = 1 画面・結合検証（画面単位検証） → 環境同期・比較エンジン</text>
     </svg>
-    <figcaption>画面一覧生成 → 本スキル（ファイル単位ブートストラップ） → 画面単位検証（画面単位・結合/e2e） → 環境同期の順で引き継がれる。引き継ぎの起動判断は管理者 orchestrating-reverse-docs-flow が行う。矢印はクリックで拡大できる。</figcaption>
+    <figcaption>画面一覧生成 → 本スキル（ファイル単位検証・専任） → 画面単位検証（画面単位・結合/e2e） → 環境同期の順で引き継がれる。引き継ぎの起動判断は管理者 orchestrating-reverse-docs-flow が行う。矢印はクリックで拡大できる。</figcaption>
   </figure>
   <p class="note">本スキルが直接読み書きするのは起動引数で受け取る資産（章役割キー対応表・監査スクリプト・テンプレート）のみ。環境同期・比較エンジンは後続工程の担当であり、本スキルからは呼び出さない。</p>
 </section>
@@ -217,7 +217,7 @@
 <section id="s3">
   <h2><span class="sec-num">§3</span>使い方</h2>
   <div class="constraint">
-    <strong>前提条件:</strong> 対象ファイルが実装契約章のファイル分割表（既定 §15.1）に列挙されていること。列挙が無い場合は from-zero として扱い、P1 で新規追加を宣言してから進める。
+    <strong>前提条件:</strong> 対象ファイルが実装契約章のファイル分割表（既定 §15.1）に列挙されていること。列挙が無い場合は P1 で <code>差し戻し</code> と判定し、著者スキル <code>authoring-screen-docs-from-code</code> へ渡す。
   </div>
   <table class="spec">
     <tr><th>項目</th><th>内容</th></tr>
@@ -301,13 +301,13 @@
 
 <section id="s5">
   <h2><span class="sec-num">§5</span>動作フロー（P1〜P7）</h2>
-  <pre class="flow"><span class="cap">P1</span> 入力ロード + preflight ── §15.1 対象確認 or from-zero 宣言
+  <pre class="flow"><span class="cap">P1</span> 入力ロード + preflight ── §15.1 対象確認 or 差し戻し判定
 <span class="cap">P2</span> 白紙化ゲート ── 内部整合監査 → ユーザー承認 → 対象ファイル1件のみ git rm
 <span class="cap">P3</span> 単体テスト仕様作成 ── 観点表からRED（TDD）
 <span class="cap">P4</span> サブエージェント生成 ── worker-sonnetへ隔離委任・唯一コードを書けるフェーズ
-<span class="cap">P5</span> 差分比較（6計測） ── 原本Read解禁・measure-file-diff.sh
+<span class="cap">P5</span> 差分比較（7計測） ── 原本Read解禁・measure-file-diff.sh
 <span class="cap">P6</span> 設計書修正 ── 差分4分類・不合格ならP2へ再投入（上限5回）
-<span class="cap">P7</span> NG分類 + 報告 ── 収束/未収束判定・修正指示書
+<span class="cap">P7</span> NG分類 + 報告 ── 再現一致/再現不一致判定・修正指示書
 </pre>
   <p>各 Phase における元コード（原本参照コミットの内容）Read 可否を色分けして示す。</p>
   <table class="spec">
@@ -316,7 +316,7 @@
       <td>P1</td>
       <td>設計書・DESIGN.md・共通設計書・メッセージ定義書・単体テスト観点表を frontmatter 経由でロード。<code>audit-consistency.sh --list-contract-files</code> で §15.1 対象一覧を取得し、対象ファイルの列挙有無を確認</td>
       <td><span class="tag error">可（存在確認のみ）</span></td>
-      <td>対象ファイルが §15.1 リストに含まれることを確認済み（または from-zero 宣言済み）・設計書一式ロード済み</td>
+      <td>対象ファイルが §15.1 リストに含まれることを確認済み（含まれなければ差し戻し判定済み）・設計書一式ロード済み</td>
     </tr>
     <tr>
       <td>P2</td>
@@ -338,61 +338,64 @@
     </tr>
     <tr>
       <td>P5</td>
-      <td>原本参照コミットから一時ファイルへ抽出。単体テスト仕様の検査 + 6 計測（<code>measure-file-diff.sh</code>）を実施</td>
+      <td>原本参照コミットから一時ファイルへ抽出。単体テスト仕様の検査 + 7 計測（<code>measure-file-diff.sh</code>）を実施</td>
       <td><span class="tag pass">可（本フェーズのみ）</span></td>
-      <td>単体テスト仕様の検査結果 + 6 計測の結果が省略なく記録済み</td>
+      <td>単体テスト仕様の検査結果 + 7 計測の結果が省略なく記録済み</td>
     </tr>
     <tr>
       <td>P6</td>
-      <td>P5 の差分を 4 分類（import / style / logic / JSX）に振り分け、設計書修正先を決定。不合格なら P2 へ再投入</td>
+      <td>P5 の差分を 4 分類（import / style / logic / JSX）に振り分け、設計書修正先を決定する。修正は P5 で記録した <code>p5-diff-facts.md</code>（差分に現れた宣言的契約の記録）のみを根拠に増分修正し、原本の再 Read は行わない。不合格なら P2 へ再投入</td>
       <td><span class="tag fail">禁止</span>（P5 の数値・パターンのみを根拠にする）</td>
       <td>差分 4 分類・修正内容（または P2 再投入判断）が記録済み</td>
     </tr>
     <tr>
       <td>P7</td>
-      <td>収束（6 計測 PASS かつ単体テスト仕様の検査 全項目合格）/ 未収束を判定し、修正指示書または「NG なし」を出力</td>
+      <td>再現一致（7 計測の判定 5 項目すべて合格）/ 再現不一致を判定し、修正指示書または「NG なし」を出力</td>
       <td><span class="tag fail">禁止</span>（P5 の結果のみ参照）</td>
-      <td>修正指示書または「NG なし」明示・収束/未収束判定完了</td>
+      <td>修正指示書または「NG なし」明示・再現一致/再現不一致判定完了</td>
     </tr>
   </table>
   <div class="constraint">
-    <strong>from-zero:</strong> §15.1 に対象ファイルが存在せず設計書側にも記載が無い場合、P1 で新規追加を宣言してから P2 以降に進む。ひな形は <code>assets/リバース検証/画面/詳細設計/画面詳細設計書.md</code> のテンプレ構造に従う。単体テスト観点表に対応する観点が無い場合も同様に、意味キー規約（連番禁止・内容要約キー）に沿って最低限の行を追記してから進める。
+    <strong>差し戻し:</strong> §15.1 に対象ファイルが存在せず設計書側にも記載が無い場合、本スキルは新規作成・即席著述を行わず、P1 の時点で <code>差し戻し</code> と判定して著者スキル <code>authoring-screen-docs-from-code</code> へ渡す。単体テスト観点表に対応する観点が無い場合も同様に、観点表側の欠落として差し戻し対象に含める。本スキルは検証専任であり、設計書・観点表の著述は一切行わない。
   </div>
   <div class="constraint">
-    <strong>実測が要る断定の scope 境界（P3）:</strong> 初期表示値・DOM 配置順序・要素位置・レイアウトなど、実行時の観測（Playwright 実測等）でしか正しく決められない断定は、本スキルの from-zero では <code>[画面単位検証で実測]</code> プレースホルダに留める。本スキルが確定させるのは静的に決定可能な宣言的契約（型・import・export・Props 名・API 契約形・ロジック構造・定数値）に限定し、実測は Playwright を持つ画面単位検証に委ねる。
+    <strong>実測が要る断定の scope 境界（P3）:</strong> 初期表示値・DOM 配置順序・要素位置・レイアウトなど、実行時の観測（Playwright 実測等）でしか正しく決められない断定は、本スキルでは <code>[画面単位検証で実測]</code> プレースホルダに留める。本スキルが確定させるのは静的に決定可能な宣言的契約（型・import・export・Props 名・API 契約形・ロジック構造・定数値）に限定し、実測は Playwright を持つ画面単位検証に委ねる。
   </div>
 </section>
 
 <section id="s6">
-  <h2><span class="sec-num">§6</span>6 計測（合格判定表 + measure-file-diff.sh 入出力）</h2>
+  <h2><span class="sec-num">§6</span>7 計測（合格判定表 + measure-file-diff.sh 入出力）</h2>
   <table class="spec">
-    <tr><th>計測</th><th>合格条件</th></tr>
-    <tr><td>単体テスト仕様の検査（禁止パターン・import・コンポーネント/API 利用）</td><td>全項目合格</td></tr>
+    <tr><th>区分</th><th>計測</th><th>合格条件</th></tr>
+    <tr><td rowspan="5">判定 5 項目</td><td>単体テスト仕様の検査（禁止パターン・import・コンポーネント/API 利用）</td><td>全項目合格</td></tr>
     <tr><td>import の diff</td><td>0 行</td></tr>
     <tr><td>スタイル定数の diff</td><td>0 行</td></tr>
-    <tr><td>ファイル全体の diff</td><td>行数を出力（参考値・合格判定には使わない）</td></tr>
-    <tr><td>実質 diff（コメント・空行除外）</td><td>20 行以下</td></tr>
+    <tr><td>契約突合（export名・定数値・ハンドラ名・型名・状態変数名・API呼出先の 6 カテゴリ）</td><td><code>contract_match=YES</code></td></tr>
+    <tr><td>元コード全緑証明（原本での P3 テスト実行）</td><td>原本 green、または原本 red がユーザー承認済みの原本バグ</td></tr>
+    <tr><td rowspan="2">参考 2 項目</td><td>ファイル全体の diff</td><td>行数を出力（参考値・合格判定には使わない）</td></tr>
+    <tr><td>実質 diff（コメント・空行除外）</td><td>行数を出力（参考値・しきい値なし・合格判定には使わない）</td></tr>
   </table>
   <div class="constraint">
-    <strong>重大違反:</strong> import diff だけでの合格判定は重大違反とする。6 計測はすべて出力し、いずれか 1 つでも省略してはならない。
+    <strong>重大違反:</strong> import diff だけでの合格判定は重大違反とする。7 計測はすべて出力し、いずれか 1 つでも省略してはならない。
   </div>
-  <p class="note"><code>measure-file-diff.sh</code> の verdict は生シグナルである。差分のうち <code>[画面単位検証で実測]</code> に該当する実測委譲差分（初期表示値・DOM 順・位置・レイアウト起因）は収束判定の分母から除外し、静的な宣言的契約由来の差分のみで PASS/FAIL を判定する。</p>
+  <p class="note"><code>measure-file-diff.sh</code> の verdict は生シグナルである。差分のうち <code>[画面単位検証で実測]</code> に該当する実測委譲差分（初期表示値・DOM 順・位置・レイアウト起因）は再現一致判定の分母から除外し、静的な宣言的契約由来の差分のみで判定する。再現一致の主判定式は <code>import diff = 0 ∧ style diff = 0 ∧ 契約突合一致（contract_match=YES） ∧ 単体テスト仕様の検査 全緑</code> とし、これに加えて元コード全緑証明を満たして初めて P7 で再現一致と判定する。ファイル全体 diff・実質 diff の 2 項目は参考値であり、しきい値による合否判定には用いない。</p>
   <h3>measure-file-diff.sh の入出力</h3>
   <table class="spec">
     <tr><th>項目</th><th>内容</th></tr>
     <tr><td>呼び出し</td><td><code>scripts/measure-file-diff.sh &lt;generated-file&gt; &lt;original-file&gt;</code></td></tr>
-    <tr><td>標準出力</td><td><code>import_diff_lines=&lt;整数&gt;</code> / <code>style_diff_lines=&lt;整数&gt;</code> / <code>total_diff_lines=&lt;整数&gt;</code> / <code>substantive_diff_lines=&lt;整数&gt;</code> / <code>verdict=PASS|FAIL</code>（key=value を1行ずつ・機械可読）</td></tr>
-    <tr><td>verdict 判定式</td><td><code>import_diff_lines == 0 &amp;&amp; style_diff_lines == 0 &amp;&amp; substantive_diff_lines &lt;= 20</code> のとき <span class="tag pass">PASS</span>、それ以外 <span class="tag fail">FAIL</span></td></tr>
-    <tr><td>対象外</td><td>「単体テスト仕様の検査」（禁止パターン・import・コンポーネント/API 利用）は本スクリプトの対象外。P5 でメインが別途実施する</td></tr>
+    <tr><td>標準出力</td><td><code>import_diff_lines=&lt;整数&gt;</code> / <code>style_diff_lines=&lt;整数&gt;</code> / <code>total_diff_lines=&lt;整数&gt;</code> / <code>substantive_diff_lines=&lt;整数&gt;</code> / <code>contract_match=YES|NO</code> / <code>verdict=PASS|FAIL</code>（key=value を1行ずつ・機械可読）</td></tr>
+    <tr><td>verdict 判定式</td><td><code>import_diff_lines == 0 &amp;&amp; style_diff_lines == 0 &amp;&amp; contract_match == YES</code> のとき <span class="tag pass">PASS</span>、それ以外 <span class="tag fail">FAIL</span>（<code>substantive_diff_lines</code> は参考値であり判定式から除外済み）</td></tr>
+    <tr><td>対象外</td><td>「単体テスト仕様の検査」と「元コード全緑証明」（原本での P3 テスト実行）は本スクリプトの対象外。P5 でメインが別途実施する</td></tr>
     <tr><td>異常系</td><td>引数不足・ファイル不在は stderr にメッセージを出して <code>exit 1</code>。正常時は <code>exit 0</code></td></tr>
   </table>
-  <h3>4 計測の算出方法（heuristic）</h3>
+  <h3>5 計測の算出方法（heuristic）</h3>
   <table class="spec">
     <tr><th>計測</th><th>算出方法</th></tr>
     <tr><td>import diff</td><td>両ファイルから <code>^\s*import </code> 行を抽出→ソート→<code>diff</code> の差分行数（<code>^[&lt;&gt;]</code> 行の数）</td></tr>
     <tr><td>style diff</td><td><code>className</code> / <code>style=</code> 属性・<code>const .*Style</code> 系変数・16 進カラーコード（<code>#[0-9a-fA-F]{3,8}</code>）・<code>px</code>/<code>rem</code>/<code>em</code>/<code>vh</code>/<code>vw</code> を含む数値行を抽出→ソート→diff の差分行数</td></tr>
+    <tr><td>契約突合</td><td>生成物と原本それぞれから 6 カテゴリ（export名・定数値・ハンドラ名・型名・状態変数名・API呼出先）を抽出して集合化→集合同士を比較→完全一致なら <code>contract_match=YES</code>、1 件でも差異があれば <code>contract_match=NO</code></td></tr>
     <tr><td>全体 diff</td><td><code>diff &lt;original&gt; &lt;generated&gt;</code> の差分行数（参考値。合格判定には使わない）</td></tr>
-    <tr><td>実質 diff</td><td>コメント行（<code>^\s*//</code>・<code>^\s*/\*</code>・<code>^\s*\*</code>）と空行を除外した上での diff 差分行数</td></tr>
+    <tr><td>実質 diff</td><td>コメント行（<code>^\s*//</code>・<code>^\s*/\*</code>・<code>^\s*\*</code>）と空行を除外した上での diff 差分行数（参考値。しきい値は設けない）</td></tr>
   </table>
   <p class="note">P5 の抽出手順: <code>git show &lt;原本参照コミット&gt;:&lt;対象ファイルパス&gt; &gt; $CLAUDE_JOB_DIR/tmp/&lt;basename&gt;.original</code>（<code>$CLAUDE_JOB_DIR</code> 未設定時は <code>${TMPDIR:-/tmp}/claude-job-&lt;session&gt;/</code> にフォールバック）。worktree・設計書リポジトリを汚染しないよう常にスクラッチ領域へ抽出する。</p>
 </section>
@@ -403,12 +406,12 @@
     <tr><th>要素</th><th>内容</th></tr>
     <tr><td>反復条件（内側）</td><td>P5 の判定（単体テスト仕様の検査 または verdict）が FAIL の場合、P6 で設計書を修正した上で P2（白紙化）へ再投入し、P3→P4→P5 をやり直す</td></tr>
     <tr><td>上限回数（内側）</td><td>5 回</td></tr>
-    <tr><td>停止条件（内側）</td><td>収束停止: 単体テスト仕様の検査 全項目合格 かつ <code>verdict=PASS</code> / リソース上限: 5 回到達 / 発散検知: 同一差分集合（import diff・style diff・実質 diff の内容シグネチャ）が 2 連続で再発</td></tr>
+    <tr><td>停止条件（内側）</td><td>再現一致停止: 単体テスト仕様の検査 全項目合格 かつ <code>verdict=PASS</code> / リソース上限: 5 回到達 / 発散検知: 同一差分集合（import diff・style diff・実質 diff の内容シグネチャ）が 2 連続で再発</td></tr>
     <tr><td>反復条件（外側）</td><td>なし（1 起動 = 1 ファイルの往復。他のファイルへは進まない）</td></tr>
     <tr><td>上限回数（外側）</td><td>1</td></tr>
     <tr><td>検証役の分離</td><td>P5 の判定は <code>scripts/measure-file-diff.sh</code> の決定的出力のみで行う。P4 生成エージェントの自己申告では判定しない</td></tr>
   </table>
-  <p class="note">P6 再投入時、原本参照コミットは変わらないため再取得不要（対象ファイルを再度白紙化し P3〜P5 をやり直すのみ）。発散確定（同一差分集合 2 連続）は失敗ではなく手がかりであり、差分内容自体を P7 の NG 分類材料として使う。</p>
+  <p class="note">P6 再投入時、原本参照コミットは変わらないため再取得不要（対象ファイルを再度白紙化し P3〜P5 をやり直すのみ）。発散検知による再現不一致（同一差分集合 2 連続）は失敗ではなく手がかりであり、差分内容自体を P7 の NG 分類材料として使う。</p>
 </section>
 
 <section id="s8">
@@ -422,10 +425,10 @@
       <td>実装ファイル1件・変更内容・P3 テストのローカル実行可否</td>
     </tr>
     <tr>
-      <td>P5（テスト実行・6 計測スクリプト実行）</td>
+      <td>P5（テスト実行・7 計測スクリプト実行）</td>
       <td><code>worker-haiku</code></td>
       <td>実行するテストコマンド・<code>scripts/measure-file-diff.sh</code> 呼び出しコマンドをベタ書き・判断不要と明記</td>
-      <td>各コマンドの終了コード・出力全文（6 計測の key=value を省略なく）</td>
+      <td>各コマンドの終了コード・出力全文（7 計測の key=value を省略なく）</td>
     </tr>
   </table>
   <div class="constraint">
@@ -437,7 +440,7 @@
   <h2><span class="sec-num">§9</span>関連スキル・資料</h2>
   <table class="spec">
     <tr><th>資料</th><th>役割</th></tr>
-    <tr><td>references/phase-details.md</td><td>P4 サブエージェント委任 prompt 骨格・6 計測の算出方法・P6 差分分類マップ・修正指示書の書式</td></tr>
+    <tr><td>references/phase-details.md</td><td>P4 サブエージェント委任 prompt 骨格・7 計測の算出方法・P6 差分分類マップ・修正指示書の書式</td></tr>
     <tr><td>references/ng-classification.md</td><td>検出シグナル→失敗クラス→章（役割キー）帰着のマッピング</td></tr>
     <tr><td>起動引数 chapter_map_path</td><td>章の役割キー→節キーワード対応表（正本。管理者が配布）</td></tr>
     <tr><td>起動引数 audit_script_path</td><td>実装契約章のファイル分割表取得・内部整合性監査</td></tr>
