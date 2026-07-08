@@ -24,7 +24,7 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, TaskCreate, TaskUpdate]
 | 引数 | 必須 | 内容 |
 |---|---|---|
 | target_repo_path | 必須 | 対象リポジトリの絶対パス |
-| target_file_paths | 必須 | 対象ユニットの対象ファイル（画面本体＋直接の子コンポーネント）の、target_repo_path からの相対パス配列 |
+| target_file_paths | 必須 | 対象ユニットの対象ファイル（画面本体＋直接の子コンポーネント＋ルーター定義ファイル。route 採録のため）の、target_repo_path からの相対パス配列 |
 | screen_dir | 必須 | 出力先の画面ディレクトリ絶対パス。facts は `<screen_dir>/検証記録/facts/<run_id>/` に出力する |
 | profile | 必須 | `screen` のみ実装。他値は `status=中断` で hint に未対応と返す |
 | survey_doc_path | 必須 | アーキテクチャ調査書のパス（方式→プロファイル選択の根拠）。本スキルは内容を読み込まず実在確認のみ行う |
@@ -51,9 +51,9 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, TaskCreate, TaskUpdate]
 
 ### Phase 2: 抽出
 
-`references/profile-screen.md` の分類別抽出手順に従い、`target_file_paths` の実コードを読解し、`facts.yml`（`shared/references/facts-schema.md` 準拠の9分類構造）を作成する。全項目は原本の行番号根拠付き（`file:line`）とする。推測・要約での補完を禁止する（コードに無い事実を書かない）。分類に該当項目が無い場合は `items: []` とし `reason` に根拠を記す（根拠なしの空節・裸の「未確認」は完了条件違反）。⑨実測系（`measurement_pending`）は key・evidence のみを記録し value は書かない。
+`references/profile-screen.md` の分類別抽出手順に従い、`target_file_paths` の実コードを読解し、`facts.yml`（`shared/references/facts-schema.md` 準拠の9分類構造）を作成する。全項目は原本の行番号根拠付き（`file:line`）とする。推測・要約での補完を禁止する（コードに無い事実を書かない）。分類に該当項目が無い場合は `items: []` とし `reason` に根拠を記す（根拠なしの空節・裸の「未確認」は完了条件違反）。⑨実測系（`measurement_pending`）は key・evidence のみを記録し value は書かない。あわせて `references/profile-screen.md` の「メタ節（meta）の採録手順」に従い `meta`（source_repo・source_ref・route）を記録する。
 
-完了条件: facts.ymlが9分類（`sections` 配下9キー）の節を持つ
+完了条件: facts.ymlが9分類（`sections` 配下9キー）の節を持ち、かつ `meta`（source_repo・source_ref・route）を記録済み
 
 ### Phase 3: 独立再計数ゲート
 
@@ -84,7 +84,7 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, TaskCreate, TaskUpdate]
 | Phase | 完了条件 |
 |---|---|
 | Phase 1 | 全args解決済み・target_file_paths全件実在確認済み・facts出力ディレクトリ作成済み |
-| Phase 2 | facts.ymlが9分類（`sections` 配下9キー）の節を持つ |
+| Phase 2 | facts.ymlが9分類（`sections` 配下9キー）の節を持ち、かつ `meta`（source_repo・source_ref・route）を記録済み |
 | Phase 3 | `recount-facts.sh` が `exit 0` かつ recount-report.txt保存済み |
 | Phase 4 | `seal-facts.sh verify` が `exit 0` |
 | Phase 5 | 2回の正規化出力の diff が空 |

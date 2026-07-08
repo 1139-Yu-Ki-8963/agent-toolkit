@@ -123,6 +123,12 @@ count_state() {
     }
     {
       line = $0
+      # `useParams<{ id: string }>()` のようなジェネリック型注釈は、注釈内の
+      # `{`/`}` が分割代入の終端探索（process()の末尾"}"/"]"逆走査）を狂わせ、
+      # かつ `=[ \t]*use...\(` パターンの直後に"("が来ないため呼出し自体を
+      # 検知できなくする。フック呼出し直前の `<...>` 注釈は呼出し検知に無関係
+      # なので、`(` に隣接する `<...>` を先に潰してから以降の判定に使う。
+      gsub(/<[^>]*>\(/, "(", line)
       if (indestr == 0) {
         if (match(line, /(^|[^A-Za-z0-9_])(useState|useReducer|useRef)(<[^>]*>)?\(/)) { directcount++ }
         if (line !~ /(useState|useReducer|useRef)(<[^>]*>)?\(/ && match(line, /^[ \t]*(export[ \t]+)?const[ \t]+[A-Za-z_][A-Za-z0-9_]*[ \t]*=[ \t]*use[A-Z][A-Za-z0-9_]*\(/)) {
@@ -597,6 +603,38 @@ EOF
     echo "  [PASS] 追加陽性: カスタムフックの分割代入による状態変数を検知（6件）"
   else
     echo "  [FAIL] 追加陽性: カスタムフックの分割代入を検知できない（実測=${hook_count} 期待=6）" >&2
+    rc=1
+  fi
+
+  # 追加陽性: ジェネリック型注釈付きフック呼出しの分割代入（例 useParams<{ id: string }>()）は、
+  # 注釈内の"{"/"}"が分割代入終端の逆走査を狂わせ、かつ"=...use...\("パターンが
+  # 直後に"("を要求するため検知できなかった構造的盲点（oradora-battle-base App.tsx:80）。
+  generic_destructure_file="$tmp/generic-destructure.txt"
+  cat > "$generic_destructure_file" <<'EOF'
+  const { id } = useParams<{ id: string }>()
+EOF
+  generic_destructure_count="$(count_state "$generic_destructure_file")"
+  if [ "$generic_destructure_count" = "1" ]; then
+    echo "  [PASS] 追加陽性: ジェネリック型注釈付きフック呼出しの分割代入を検知（1件）"
+  else
+    echo "  [FAIL] 追加陽性: ジェネリック型注釈付きフック呼出しの分割代入を検知できない（実測=${generic_destructure_count} 期待=1）" >&2
+    rc=1
+  fi
+
+  # 追加陽性: フック直接呼出しの単純代入（分割代入なし・型注釈なし。例 const location = useLocation()）
+  # は、単独では既存パターンで検知できていたが、直前行がジェネリック型注釈付き分割代入だと
+  # buf継続状態に巻き込まれ独立して数えられなくなっていた（oradora-battle-base App.tsx:81）。
+  # 実ファイルの隣接行を模した組合せで、両方が合算して数えられることを検証する。
+  simple_hook_file="$tmp/simple-hook-assignment.txt"
+  cat > "$simple_hook_file" <<'EOF'
+  const { id } = useParams<{ id: string }>()
+  const location = useLocation()
+EOF
+  simple_hook_count="$(count_state "$simple_hook_file")"
+  if [ "$simple_hook_count" = "2" ]; then
+    echo "  [PASS] 追加陽性: フック単純代入がジェネリック型注釈行に続いても独立して検知（合算2件）"
+  else
+    echo "  [FAIL] 追加陽性: フック単純代入が独立して検知できない（実測=${simple_hook_count} 期待=2）" >&2
     rc=1
   fi
 
