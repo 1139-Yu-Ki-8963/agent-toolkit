@@ -132,15 +132,19 @@
   <ol>
     <li><a href="#s1">概要</a></li>
     <li><a href="#s2">使用タイミングと起動引数</a></li>
-    <li><a href="#s3">実行手順（前提ゲート + Phase 1〜5）</a></li>
-    <li><a href="#s4">完了条件</a></li>
-    <li><a href="#s5">ループ設計</a></li>
-    <li><a href="#s6">同一条件混在時の対処</a></li>
-    <li><a href="#s7">サブエージェント委任仕様</a></li>
-    <li><a href="#s8">重要な注意事項</a></li>
-    <li><a href="#s9">Gotchas</a></li>
-    <li><a href="#s10">参照資料</a></li>
-    <li><a href="#s11">改訂完了時の機械チェック</a></li>
+    <li><a href="#s3">埋め込みビュー画面の開通（ルートを持たない画面）</a></li>
+    <li><a href="#s4">実行手順（前提ゲート + Phase 1〜5）</a></li>
+    <li><a href="#s5">完了条件</a></li>
+    <li><a href="#s6">ループ設計</a></li>
+    <li><a href="#s7">同一条件で成功と失敗が混在する場合の対処</a></li>
+    <li><a href="#s8">同一条件で常に同じ失敗（決定的クラッシュ）が再現する場合の対処</a></li>
+    <li><a href="#s9">サブエージェント委任仕様</a></li>
+    <li><a href="#s10">重要な注意事項</a></li>
+    <li><a href="#s11">並列実行時の運用規約</a></li>
+    <li><a href="#s12">完了報告</a></li>
+    <li><a href="#s13">Gotchas</a></li>
+    <li><a href="#s14">参照資料</a></li>
+    <li><a href="#s15">改訂完了時の機械チェック</a></li>
   </ol>
 </nav>
 
@@ -179,31 +183,67 @@
 </section>
 
 <section id="s3">
-  <h2><span class="sec-num">§3</span>実行手順（前提ゲート + Phase 1〜5）</h2>
+  <h2><span class="sec-num">§3</span>埋め込みビュー画面の開通（ルートを持たない画面）</h2>
+  <div class="def">
+    <dt>対象</dt>
+    <dd>独自のルーティングエントリを持たず、常に親画面の内部（タブ・モーダル・埋め込みパネル等）としてのみマウントされる画面。</dd>
+    <dt>判定基準</dt>
+    <dd>Phase 1でのトップレベルルート検索（画面ID・画面コンポーネント名によるルーティング定義の検索）が空振りすること。</dd>
+  </div>
+  <p>この場合、対象画面コンポーネントの import 元を逆引きし、どの親画面がこの画面を取り込んでいるかを特定する。親画面が複数存在する場合は、最も単純な操作手順で到達できる1つを選ぶ。</p>
+  <p>検証URLは対象画面単体のURLとしては構築できないため、「親画面のURL＋そこから対象画面を表示させる操作手順」の組で表現する。操作手順は、クリック対象・入力値・遷移待機条件など、再現に必要な情報を過不足なく記述する。</p>
+  <div class="constraint">
+    <strong>読み替えの範囲</strong>: この読み替えは実行手順全体に及ぶ。前提ゲートの対象URLマウント確認、Phase 4の実データ表示確認、Phase 5の <code>verification_url</code> 記録は、いずれも「親画面URL＋操作手順」による確認・記録に読み替える。
+  </div>
+</section>
+
+<section id="s4">
+  <h2><span class="sec-num">§4</span>実行手順（前提ゲート + Phase 1〜5）</h2>
 
   <h3>前提ゲート</h3>
-  <p><code>manifest.yml</code> の <code>projects.&lt;system&gt;</code> を読み込む。エントリ不在、または値に未確定トークン（<code>&lt;FILL:...&gt;</code>）が1つでも残っていれば <span class="tag error">ERROR</span> とし、hint に不足キー一覧と <code>assets/manifest-template.yml</code> への案内を記して停止する。<code>manifest.&lt;system&gt;.repo_and_launch</code> に従い、対象リポジトリで dev サーバーを自分で起動する（稼働中の他エージェントのサーバーには接続・干渉しない）。<code>manifest.&lt;system&gt;.reference_screen</code>（開通済みの健全性確認用画面）を、自分が起動したサーバー上でブラウザ自動化により表示確認する。失敗したら環境自体の不備として <span class="tag error">ERROR</span> で停止する（この画面自体の開通作業には進まない）。</p>
+  <p><code>manifest.yml</code> の <code>projects.&lt;system&gt;</code> を読み込む。エントリ不在、または値に未確定トークン（<code>&lt;FILL:...&gt;</code>）が1つでも残っていれば <span class="tag error">ERROR</span> とし、hint に不足キー一覧と <code>assets/manifest-template.yml</code> への案内を記して停止する。値の穴埋めは実行者自身が推測して行わない。人間または呼び出し元が <code>assets/manifest-template.yml</code> を複製して実値を埋めてから前提ゲートを再実行する（本スキルの自己完結性は「開通〜基準タグ確立」の作業範囲に限られ、manifestのブートストラップ自体は対象外）。<code>manifest.&lt;system&gt;.repo_and_launch</code> に従い、対象リポジトリで dev サーバーを自分で起動する（稼働中の他エージェントのサーバーには接続・干渉しない）。</p>
+  <p>画面レジストリ（<code>manifest.&lt;system&gt;.handoff.screen_registry_path</code>）を <code>&lt;system&gt;-</code> プレフィックスで検索し、該当エントリが1件も無い（今回が最初の1枚目である）ことを確認できた場合は、次の健全性確認を省略し、devサーバー起動確認のみで前提ゲートを通過してよい。それ以外の場合は <code>manifest.&lt;system&gt;.reference_screen</code>（開通済みの健全性確認用画面）を、自分が起動したサーバー上でブラウザ自動化により表示確認する。合格基準は実データが最低1件表示されること、または空表示が仕様上正当である根拠を確認できることのいずれかとする。失敗したら環境自体の不備として <span class="tag error">ERROR</span> で停止する（この画面自体の開通作業には進まない）。</p>
+  <p class="note">この健全性確認は対象画面と同一の業務ドメイン内でのみ有効とみなす。対象画面が異なる業務ドメインに属する場合、過去に蓄積した知見は「仮説」として扱い、実測をやり直す（<code>reference_screen.domain_tag</code>（任意キー）で補助判定してよい）。</p>
+  <p class="note">前提ゲート通過後・Phase 1着手前に、対象URL（画面が埋め込みビュー型の場合は §3「埋め込みビュー画面の開通（ルートを持たない画面）」に従い親経由URL）を1回開き、対象コンポーネントがマウントされることを確認する。マウントが確認できなければAPI調査には進まず <span class="tag mode">BLOCKED</span> とする。</p>
   <p class="note">TaskCreate で本前提ゲートを含む全Phase分のタスクを1つずつ登録し、各Phase開始時にTaskUpdateでin_progressに更新する。</p>
-  <p class="note">完了条件: (a) manifest必須キー全確定 (b) devサーバー起動確認 (c) リファレンス画面の健全性確認PASSの3点がすべて満たされている</p>
+  <p class="note">完了条件: (a) manifest必須キー全確定 (b) devサーバー起動確認 (c) リファレンス画面の健全性確認PASS (d) 対象URL（埋め込みビュー画面の場合は親経由URL）のマウント確認PASS の4点がすべて満たされている（開通済み画面が1件も無い最初の1枚目の場合は(c)を省略可）</p>
 
   <pre class="flow"><span class="cap">Phase 1: API依存の特定</span>
+  対象画面のルーティング定義を画面IDで検索する。ルートが1件も見つからない場合は、
+  その画面が§3「埋め込みビュー画面の開通」が扱うルートを持たない画面である可能性を疑い、同節に従う
   画面本体のソースコード一式（ルーティング定義・画面コンポーネント・APIクライアント）をGrep/Globで特定
+  画面IDでのファイル検索が空振りする場合は、ルーティング定義側から画面IDで逆引きする
+  複数の画面IDが同一コンポーネントを共有している場合は、ID固有の分岐処理をすべて洗い出すことを
+  完了条件に含める。ストーリーファイル・テストファイルも一次情報源として探索対象に含める
   共有ゲート部品(年度/組織セレクタ等。api_dependency_entrypoints.shared_gate_componentsが示す箇所)を
   実際のimport等の取り込み記述から辿り、これらが呼ぶAPIも対象に含める（推測で決めつけない）
+  画面が複合画面（複数の子画面・タブ・モーダルを内包する画面）の場合、取り込み範囲を
+  「初期表示で無条件にマウントされる部分＝今回の開通対象」「ユーザー操作後にのみマウントされる部分
+  ＝後続タスクとしてhandoff.unlock_record_dirに記録し今回は対象外」に振り分ける
   各APIについてapi_source_of_truth.definition_root（型定義/OpenAPI等の正本）でワイヤ上の実名を確認
   （コード生成名と実名は大小文字が食い違うことがある点に注意）
-  URLパラメータ・ストア値・セッションキーを列挙する（セッションキーは充足タイミングまで確認）
-  完了条件: API一覧（画面本体分＋共有ゲート部品分）・実名対応表・URLパラメータ/ストア値/
-            セッションキー（充足タイミング付き）の一覧が記録済み
+  URLパラメータ・ストア値・セッションキーを列挙する
+  ストア値は充足元で「ロード時に自動充足されるもの」「前画面での操作を経由してのみ充填されるもの」の
+  二分類に整理する。後者は前画面での操作手順を再現するか、困難な場合は起動時初期投入での代替を検討
+  セッションキーは「いつ埋まるか」（同期的初期投入/非同期処理）まで確認する
+  対象画面が保持するオペレーション（API呼び出し・状態遷移）数を数え、20件を超える大型複合画面と
+  判明した場合は、初期表示に必要な最小集合のみを今回の開通対象とし、残りは未開通一覧として記録する
+  （この場合の合格基準は最小集合の実データ表示確認とする）
+  完了条件: API一覧（画面本体分＋共有ゲート部品分・オペレーション数20超の場合は初期表示最小集合分）・
+            実名対応表・URLパラメータ/ストア値（充足元の二分類付き）/セッションキー（充足タイミング付き）
+            の一覧が記録済み。複数画面IDを共有する場合はID固有分岐の洗い出しも完了済み
 
 <span class="cap">Phase 2: 認証・権限基盤の登録</span>
   セッションキーの存在確認はブラウザ自動化での実測とする（静的読解だけで済ませない）
   auth_session_permission.identifier_field_checkが指す識別子フィールドについて、
   キーの存在だけでなく値が空でないことまで確認する
-  permission_chain_layers（route guard/APIミドルウェア/UI表示条件等）の各層に
-  対象画面のエントリを登録する
+  permission_chain_layers（route guard/APIミドルウェア/UI表示条件等）の各層に対象画面のエントリを
+  登録する前に、消費側の比較ロジックを読み、権限チェーンが単層か二層構造かを確認する
+  （分類キー値の突合を先に行う）
+  二層構造で分類キーが一致しない場合は、既存の分類グループへの追加では解消しない。
+  最上位グループ要素の新設が必要と判断し、その旨を登録内容に反映する
   完了条件: セッションキー実測結果（充足済み・識別子フィールド非空を確認済み）、
-            権限チェーン各層への登録完了
+            権限チェーン構造（単層/二層）の分類キー突合確認、各層への登録完了
 
 <span class="cap">Phase 3: 画面別モック実装</span>
   mock_conventions（有効化方法・配置規約・登録方法）に従い、Phase 1で特定したAPI一覧に
@@ -211,22 +251,43 @@
   実装後、登録した名前の一覧とapi_source_of_truthの実名一覧を機械的に突合し、
   差分ゼロを完了条件とする（自然文の目視確認で済ませない）
   モック変更はホットリロードで反映されないことがあるため、反映確認は必ずサーバー再起動後に行う
+  具体的な実装レシピ（正本からの書き写し方・消費側からの逆引き特定・型決定基準・同名API分岐の
+  判断基準）はreferences/mock-implementation-recipe.mdを参照する
   完了条件: 登録名一覧×実名一覧の突合差分ゼロ、サーバー再起動後の反映確認済み
 
 <span class="cap">Phase 4: 検証ループ</span>
   ブラウザ自動化で実データ表示を確認する
   失敗症状は「クエリ未発火」「権限エラー」に加え「画面全体のクラッシュ（エラー境界への遷移）」
+  「クエリ未発火」の亜種として、権限判定ゲートを構成する複数フラグの論理積が未解決のまま
+  主要クエリが発火しない症状がある（詳細はreferences/troubleshooting-patterns.mdを参照）
   クラッシュはクエリ記録では検知できないため、ページのpageerrorイベントから診断する
+  ブラウザ自動化がナビゲーションタイムアウトし未描画と判定された場合、直ちに失敗と結論しない。
+  syncing-reverse-env/config.ymlのprojects.&lt;system&gt;上書きでナビゲーションタイムアウトを
+  延長し、再検証してから判定する
   差分が見つかれば原因のPhase（1/2/3）へ戻る
   スクリーンショットまたはログ抜粋を伴わない合格判定は禁止。未検証項目は「未検証」と明記
-  反復規律の詳細は §5 ループ設計 に従う
+  反復規律の詳細は §6 ループ設計 に従う
   完了条件: 収束条件を満たすか、発散/上限到達によりstatus=BLOCKEDが確定している
 
 <span class="cap">Phase 5: 基準確立への引き渡し</span>
   開通状態をコミット（メッセージ:「【機能追加】&lt;画面名&gt; をモックAPIで開通」）
+  開通確認時点のコミットハッシュをsource_refとする。このオリジナル参照点となる元リポジトリは
+  repo_and_launch.original_repo_path（任意キー。無指定ならwork_repo_pathと同一視する）を正本とする
+  （存在確認は前提ゲートの必須キー確認で完了済みのため、Phase 5独自のエラー分岐は設けない）
+  画面を表示確認できたURLをverification_urlとする（埋め込みビュー画面の場合は§3に従い
+  親画面URL＋操作手順の組で記録。ローカル起動できず確認手段が無ければ「未実施」と明記）
+  docs_root起点で&lt;system&gt;-&lt;screen_id&gt;相当のパスを組み立ててdesign_doc_path
+  （今後の設計書の想定配置パス）とする
   画面レジストリ（handoff.screen_registry_path。既定は
   ~/agent-home/state/reverse-screen-registry.yml。contract.mdの正本と一致させる）へ
   source_ref・verification_url・design_doc_path・status=unlockedを記帳
+  syncing-reverse-envへ渡すreverse_worktreeは、呼び出し前に命名規則
+  （reverse-code-&lt;scope&gt; / feature/reverse-code-&lt;scope&gt;）に従い自ら用意する。
+  既存のworktreeがあれば再利用し新規作成はしない。並列実行時は§11「並列実行時の運用規約」で
+  定義する作業コピーとは別物であることに注意する
+  起動引数portsは前提ゲートで自ら起動したdevサーバー専用の値であり、syncing-reverse-envが
+  管理する環境のポートは同スキルのconfig.yml計算式が常に正となる。両者に食い違いが生じても
+  異常ではなく、完了報告にその旨を記す
   Skillでsyncing-reverse-envをmode=registry・system・screen_id・reverse_worktree・
   ports・user-approvedで起動する
   返却status=PASSなら画面レジストリの該当エントリをstatus=baseline-establishedに更新し、
@@ -235,25 +296,29 @@
   （返却フィールドにbaseline_tagを追加し、syncing-reverse-envの返却値をそのまま転記する）
   返却がPASS以外（FAIL/ERROR/INCOMPLETE）の場合は、画面レジストリをstatus=unlockedのまま残し、
   status=UNLOCKED（部分完了）でhintに理由を記して差し戻す
-  完了条件: レジストリ登録済み、かつ（成功時のみ）git tag -l 等の決定的出力でタグ確立を確認済み</pre>
+  返却がstatus=ERRORかつポートスロット上限（max_slots）到達が理由の場合はstatus=BLOCKEDとし、
+  hintに「(a) 並行検証の要否再確認」「(b) baseline-established済み環境のteardown可否」
+  「(c) 上限拡張要否のユーザー確認」の3点を記す
+  完了条件: レジストリ登録済み、reverse_worktreeの命名規則準拠を確認済み、
+            かつ（成功時のみ）git tag -l 等の決定的出力でタグ確立を確認済み</pre>
 </section>
 
-<section id="s4">
-  <h2><span class="sec-num">§4</span>完了条件</h2>
+<section id="s5">
+  <h2><span class="sec-num">§5</span>完了条件</h2>
   <table class="spec">
     <tr><th>Phase</th><th>完了条件</th></tr>
-    <tr><td>前提ゲート</td><td>manifest必須キー全確定・devサーバー起動確認・リファレンス画面健全性確認PASS</td></tr>
-    <tr><td>Phase 1</td><td>API一覧（画面本体＋共有ゲート部品分）・実名対応表・URLパラメータ/ストア値/セッションキー一覧が記録済み</td></tr>
-    <tr><td>Phase 2</td><td>セッションキー実測結果・識別子フィールド非空確認・権限チェーン各層への登録完了</td></tr>
+    <tr><td>前提ゲート</td><td>manifest必須キー全確定・devサーバー起動確認・リファレンス画面健全性確認PASS（実データ最低1件表示または空表示の正当性確認。同一業務ドメイン限定。開通済み画面が1件も無い最初の1枚目の場合は省略可）・対象URL（埋め込みビュー画面は親経由URL）のマウント確認PASS</td></tr>
+    <tr><td>Phase 1</td><td>API一覧（画面本体＋共有ゲート部品分・大型複合画面は初期表示最小集合分）・実名対応表・URLパラメータ/ストア値（充足元の二分類付き）/セッションキー（充足タイミング付き）一覧が記録済み。複数画面ID共有時はID固有分岐の洗い出しも完了済み</td></tr>
+    <tr><td>Phase 2</td><td>セッションキー実測結果・識別子フィールド非空確認・権限チェーン構造（単層/二層）の分類キー突合確認・各層への登録完了</td></tr>
     <tr><td>Phase 3</td><td>登録名一覧×実名一覧の突合差分ゼロ、サーバー再起動後の反映確認済み</td></tr>
     <tr><td>Phase 4</td><td>収束条件を満たすか、発散/上限到達で <span class="tag error">BLOCKED</span> 確定</td></tr>
-    <tr><td>Phase 5</td><td>画面レジストリ登録済み、<code>git tag -l</code> 等の決定的出力でタグ確立を確認済み（PASS以外なら <span class="tag mode">UNLOCKED</span> で差し戻し）</td></tr>
+    <tr><td>Phase 5</td><td>画面レジストリ登録済み、<code>reverse_worktree</code> の命名規則準拠を確認済み、<code>git tag -l</code> 等の決定的出力でタグ確立を確認済み（PASS以外なら <span class="tag mode">UNLOCKED</span> で差し戻し。ポートスロット上限到達なら <span class="tag mode">BLOCKED</span> で差し戻し）</td></tr>
     <tr><td><strong>Goal</strong></td><td><span class="tag pass">BASELINE-ESTABLISHED</span>（開通〜レジストリ登録〜基準タグ確立まで完走、決定的コマンド出力で確認済み）。Phase5でsyncing-reverse-envがPASS以外なら <span class="tag mode">UNLOCKED</span> で部分完了として差し戻す</td></tr>
   </table>
 </section>
 
-<section id="s5">
-  <h2><span class="sec-num">§5</span>ループ設計</h2>
+<section id="s6">
+  <h2><span class="sec-num">§6</span>ループ設計</h2>
   <table class="spec">
     <tr><th>要素</th><th>内容</th></tr>
     <tr><td>反復対象</td><td>Phase 4（検証ループ）。差分が見つかればPhase 1/2/3のいずれかへ戻り再実行</td></tr>
@@ -264,8 +329,8 @@
   </table>
 </section>
 
-<section id="s6">
-  <h2><span class="sec-num">§6</span>同一条件混在時の対処</h2>
+<section id="s7">
+  <h2><span class="sec-num">§7</span>同一条件で成功と失敗が混在する場合の対処</h2>
   <p>「同一条件で成功と失敗が混在する」場合、次の順序で対処する。</p>
   <ol>
     <li>直ちにレース条件と断定しない</li>
@@ -276,21 +341,37 @@
   </ol>
 </section>
 
-<section id="s7">
-  <h2><span class="sec-num">§7</span>サブエージェント委任仕様</h2>
+<section id="s8">
+  <h2><span class="sec-num">§8</span>同一条件で常に同じ失敗（決定的クラッシュ）が再現する場合の対処</h2>
+  <p>混在（断続的に成功・失敗が入れ替わる）か決定的（同一条件で毎回同一の失敗が再現する）かをまず判定する。混在なら §7「同一条件で成功と失敗が混在する場合の対処」に進み、決定的なら本節に進む。</p>
+  <p>Phase 1で列挙した画面要求値とPhase 3で実装したモックデータの突合が完全一致していて、なお毎回100%同一のクラッシュが再現する場合であっても、直ちにアプリ本体側の問題と結論しない。まず、非同期（async）処理で埋まるはずのセッションキーを、起動時の初期投入に一時的に付け替えて再検証する。「キーが丸ごと欠落している」場合だけでなく「キー自体は存在するが必要な行・ノードが不足している」場合も、同じ付け替えで解消することがある。</p>
+  <div class="constraint">
+    <strong>それでも解消しない場合</strong>: §10「重要な注意事項」に記す事前バグ対応方針（修正せず記録してユーザー判断に委ねる）に従う。
+  </div>
+</section>
+
+<section id="s9">
+  <h2><span class="sec-num">§9</span>サブエージェント委任仕様</h2>
   <table class="spec">
     <tr><th>呼び出し箇所</th><th>invocation</th><th>args骨格</th><th>期待返却status</th></tr>
     <tr><td>Phase 5</td><td>syncing-reverse-env</td><td>mode=registry, system, screen_id, reverse_worktree, ports, user-approved</td><td><span class="tag pass">PASS</span></td></tr>
   </table>
   <div class="constraint">
+    <strong>ポートスロット上限時の扱い</strong>: ポートスロット上限（<code>max_slots</code>）到達で <code>status=ERROR</code> が返った場合は <span class="tag mode">BLOCKED</span> とし、hintに並行検証の要否再確認・baseline-established済み環境のteardown可否・上限拡張要否のユーザー確認を記す。
+  </div>
+  <div class="constraint">
+    <strong>ポート値の食い違い</strong>: 起動引数 <code>ports</code> は本スキルが自ら起動したdevサーバー専用の値であり、<code>syncing-reverse-env</code> が管理する環境のポートは同スキルの <code>config.yml</code> 計算式が常に正。食い違いは異常ではない。
+  </div>
+  <div class="constraint">
     <strong>唯一の例外</strong>: 本スキルは唯一、他子スキル（syncing-reverse-env）を直接起動する子スキルである。これは完全仲介方式に対する意図的な例外として本スキル内でのみ許容される。
   </div>
 </section>
 
-<section id="s8">
-  <h2><span class="sec-num">§8</span>重要な注意事項</h2>
+<section id="s10">
+  <h2><span class="sec-num">§10</span>重要な注意事項</h2>
   <ul>
-    <li><strong>変更してよい範囲</strong>: モックの実装・開発用の起動時初期化処理（devサーバー起動スクリプト等）・設定ファイル（<code>manifest.&lt;system&gt;</code> に記載された範囲、および Phase 2 で対象画面を権限チェーンの既存許可リストへ追記登録する作業を含む）のみ。画面・業務ロジック・共通処理などアプリケーション本体のコードを新規実装・改変することは対象外（リバース対象の原本性を損なうため）。検証がうまくいかない根本原因がアプリ本体側の実装にあると判明した場合は、コードを書き換えるのではなく、その事実を開通記録（<code>handoff.unlock_record_dir</code>）に書き残しユーザーの判断に委ねる。</li>
+    <li><strong>変更してよい範囲</strong>: モックの実装・開発用の起動時初期化処理（devサーバー起動スクリプト等）・設定ファイル（<code>manifest.&lt;system&gt;</code> に記載された範囲、および Phase 2 で対象画面を権限チェーンの既存許可リストへ追記登録する作業を含む）のみ。画面・業務ロジック・共通処理などアプリケーション本体のコードを新規実装・改変することは対象外（リバース対象の原本性を損なうため）。検証がうまくいかない場合は、まず同一条件で失敗が混在するか常に決定的に再現するかを切り分け、該当する対処節（§7「同一条件で成功と失敗が混在する場合の対処」／§8「同一条件で常に同じ失敗（決定的クラッシュ）が再現する場合の対処」）に従う。それでも根本原因がアプリ本体側の実装にあると判明した場合は、コードを書き換えるのではなく、その事実を開通記録（<code>handoff.unlock_record_dir</code>）に書き残しユーザーの判断に委ねる。</li>
+    <li>対象画面自身の配線（ルート定義等）に既存バグを見つけた場合も修正しない。「未使用ゆえ検証されてこなかった事前バグの可能性」として <code>handoff.unlock_record_dir</code> に記録し、修正要否はユーザー判断に委ねる</li>
     <li>本スキルは例外的に画面レジストリへの直接読み書きと <code>syncing-reverse-env</code> の直接起動を行う（理由: 開通の事実を知るのは本スキルだけであり、下流が能動的に検知できないため）</li>
     <li>プロジェクト固有値（パス・コマンド・API名・ポート・画面ID等）は本文・references に一切書かない。すべて <code>manifest.yml</code> の <code>projects.&lt;system&gt;</code> から取得する</li>
     <li>健全性確認は自分が起動したサーバー上でのみ行う。稼働中の他エージェントの環境には触れない</li>
@@ -299,8 +380,26 @@
   </ul>
 </section>
 
-<section id="s9">
-  <h2><span class="sec-num">§9</span>Gotchas</h2>
+<section id="s11">
+  <h2><span class="sec-num">§11</span>並列実行時の運用規約</h2>
+  <p>複数の実行者が同時に本スキルを走らせる場合、各実行者は <code>manifest.&lt;system&gt;.repo_and_launch.work_repo_path</code> から画面専用の<strong>作業コピー</strong>（git worktree。命名規則 <code>unlock-work-&lt;system&gt;-&lt;screen_id&gt;</code>）を用意し、その上でdevサーバーを起動する。作業コピーは専用ブランチ（<code>unlock/&lt;system&gt;-&lt;screen_id&gt;</code>）と専用ポート（起動引数 <code>ports</code> を画面ごとに変える）で他の実行者と分離する。</p>
+  <p>画面レジストリへの記帳（Phase 5）のみを直列化する。記帳の直前に <code>&lt;screen_registry_path&gt;.lock</code> のmkdir原子ロックを取得してから記帳し、完了後に解放する（<code>syncing-reverse-env</code> の <code>.reverse-slot-lock.d</code> と同方式）。開通作業自体（前提ゲート〜Phase 4）は並列実行のままでよく、直列化の対象はレジストリ記帳のみである。</p>
+</section>
+
+<section id="s12">
+  <h2><span class="sec-num">§12</span>完了報告</h2>
+  <p><code>managing-agent-configs/references/skills/completion-report-format.md</code> の共通骨格（作業報告型）に従う。</p>
+  <p class="note">固有の検証行:</p>
+  <ul>
+    <li>前提ゲート通過状況（manifest全キー確定・devサーバー起動・リファレンス画面健全性、または最初の1枚目省略）</li>
+    <li>Phase 3の登録名×実名突合差分件数</li>
+    <li>Phase 4検証ループの収束/発散判定結果</li>
+    <li>Phase 5のレジストリ登録状況と<code>baseline_tag</code>（<code>status=BASELINE-ESTABLISHED</code>到達時のみ）</li>
+  </ul>
+</section>
+
+<section id="s13">
+  <h2><span class="sec-num">§13</span>Gotchas</h2>
   <p class="note">一般的な症状別の切り分け（詰まりパターン）は <code>references/troubleshooting-patterns.md</code> を参照する。以下は同ファイルに寄せていない個別の注意点。</p>
   <ul>
     <li>設計書がある画面は対象外（<code>rebuilding-screen-unit-from-docs</code> / <code>rebuilding-code-from-docs</code> を使う）</li>
@@ -309,24 +408,29 @@
     <li>manifest に未確定キー（<code>&lt;FILL:...&gt;</code>）が残ったまま作業を開始してはならない</li>
     <li>manifestの穴埋めは実行者ではなく人間・呼び出し元の責任。実行者が値を推測して埋めてはならない</li>
     <li>対象プロジェクトの最初の1枚目を開通する場合、<code>reference_screen</code> による健全性確認は省略してよい（開通済み画面が存在しないため）</li>
+    <li>権限チェーンは単層とは限らない。二層構造の場合は登録前に分類キー値の突合を先に行う</li>
+    <li>同一条件で毎回同一のクラッシュが再現する場合は、非同期セッションキーの初期投入への一時的な付け替えを試してから本体側の問題と結論する</li>
+    <li>対象画面自身の既存バグは修正しない。事前バグの可能性として記録しユーザー判断に委ねる</li>
+    <li>並列実行時は作業コピー（worktree・ブランチ・ポート）を画面ごとに分離し、画面レジストリへの記帳のみを直列化する</li>
   </ul>
 </section>
 
-<section id="s10">
-  <h2><span class="sec-num">§10</span>参照資料</h2>
+<section id="s14">
+  <h2><span class="sec-num">§14</span>参照資料</h2>
   <table class="spec">
     <tr><th>関連</th><th>関係</th></tr>
     <tr><td><code>~/reverse-docs-skills/.claude/skills/orchestrating-reverse-docs-flow/references/contract.md</code></td><td>返却ブロック契約・args仕様・画面レジストリの正本（例外条項含む）</td></tr>
     <tr><td><code>manifest.yml</code>（本スキル同梱）</td><td>プロジェクト固有値の正本</td></tr>
+    <tr><td><code>manifest.local.yml</code>（同ディレクトリ・任意）</td><td>存在する場合、<code>manifest.yml</code> を基底として深いマージ（local 優先）で重ねた結果を有効値とする。実プロジェクトの絶対パス入り <code>projects</code> エントリはこちらにのみ記載する（<code>.gitignore</code> 済みのため公開 payload に載らない）。<code>operating_rules</code> 等の枠組みキーの上書きは不可</td></tr>
     <tr><td><code>assets/manifest-template.yml</code>（本スキル同梱）</td><td>manifest未整備プロジェクト向け雛形</td></tr>
     <tr><td><code>references/mock-implementation-recipe.md</code>（本スキル同梱）</td><td>Phase 3のモック実装レシピ（正本からの書き写し・消費側からの逆引き特定・型決定基準・同名API分岐の判断基準）</td></tr>
     <tr><td><code>references/troubleshooting-patterns.md</code>（本スキル同梱）</td><td>症状・原因・対処の詰まりパターン集（プロジェクト非依存分。プロジェクト固有は <code>manifest.yml</code> の <code>known_gotchas</code>）</td></tr>
-    <tr><td><code>~/reverse-docs-skills/.claude/skills/syncing-reverse-env/config.yml</code></td><td>Playwright実行系設定（<code>playwright_exec</code> 等）の共有正本。本スキルは重複定義しない</td></tr>
+    <tr><td><code>~/reverse-docs-skills/.claude/skills/syncing-reverse-env/config.yml</code></td><td>Playwright実行系設定（<code>playwright_exec</code> 等）の共有正本。本スキルは重複定義しない。既定のナビゲーションタイムアウト（60000ms）を実際の描画時間が超える実例があるため、Phase 4で未描画と誤認する前に <code>projects.&lt;system&gt;</code> 上書きで延長を試す</td></tr>
   </table>
 </section>
 
-<section id="s11">
-  <h2><span class="sec-num">§11</span>改訂完了時の機械チェック</h2>
+<section id="s15">
+  <h2><span class="sec-num">§15</span>改訂完了時の機械チェック</h2>
   <p>編集完了後、以下のようなgrepコマンドを実行しゼロヒットを確認する。このリポジトリ自体は具体値を持たないため、実運用では配布先プロジェクトが実際に埋めた値を対象に同種のgrepを実施する。</p>
   <pre class="flow">grep -riE '&lt;実プロジェクト名&gt;|&lt;実ポート番号&gt;|&lt;実API名&gt;|&lt;実画面ID&gt;' .claude/skills/unlocking-reverse-target-screens/SKILL.md .claude/skills/unlocking-reverse-target-screens/references/*.html</pre>
 </section>
