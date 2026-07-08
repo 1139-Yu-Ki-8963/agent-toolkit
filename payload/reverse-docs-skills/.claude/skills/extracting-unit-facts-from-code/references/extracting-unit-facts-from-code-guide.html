@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>extracting-unit-facts-from-code スキルガイド</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 0 24px 96px;
+    font-family: system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif;
+    line-height: 1.85; color: #1a1a1a; background: #fafafa;
+    max-width: 980px; margin-inline: auto;
+  }
+  header { padding: 56px 0 24px; border-bottom: 3px solid #1a1a1a; }
+  header h1 { font-size: 1.9rem; margin: 0 0 10px; letter-spacing: 0.01em; }
+  header .skill-name {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 1.0rem; background: #1a1a1a; color: #fafafa;
+    padding: 2px 10px; border-radius: 4px; vertical-align: middle;
+  }
+  header p { margin: 6px 0 0; color: #555; }
+  .meta-table { margin-top: 16px; font-size: 0.9rem; color: #555; }
+  .meta-table td { padding: 1px 16px 1px 0; }
+
+  nav.toc {
+    margin-top: 32px; padding: 18px 22px;
+    background: #fff; border: 1px solid #e0e0e0; border-radius: 8px;
+  }
+  nav.toc .toc-title { font-weight: 700; margin-bottom: 6px; }
+  nav.toc ol { margin: 0; padding-left: 1.4em; columns: 2; column-gap: 40px; }
+  nav.toc li { margin: 2px 0; }
+  nav.toc a { color: #1a1a1a; text-decoration: none; border-bottom: 1px dotted #999; }
+  nav.toc a:hover { border-bottom-style: solid; }
+
+  section { margin-top: 64px; }
+  section > h2 {
+    font-size: 1.35rem; padding-bottom: 8px; margin-bottom: 20px;
+    border-bottom: 2px solid #1a1a1a;
+  }
+  section > h2 .sec-num {
+    display: inline-block; min-width: 2.4em; margin-right: 10px;
+    font-family: ui-monospace, monospace; font-size: 0.95rem;
+    background: #1a1a1a; color: #fafafa; text-align: center;
+    padding: 1px 8px; border-radius: 4px; vertical-align: 2px;
+  }
+  h3 { font-size: 1.05rem; margin: 32px 0 10px; }
+  .note { color: #555; font-size: 0.92rem; }
+
+  table.spec { border-collapse: collapse; width: 100%; margin: 14px 0; background: #fff; font-size: 0.93rem; }
+  table.spec th, table.spec td { border: 1px solid #d8d8d8; padding: 8px 12px; text-align: left; vertical-align: top; }
+  table.spec th { background: #f0f0ee; font-weight: 700; white-space: nowrap; }
+  table.spec td code, li code, p code, table.spec th code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.86em; background: #eeeeea; padding: 1px 5px; border-radius: 3px;
+  }
+
+  pre.flow {
+    background: #16211c; color: #d7e6dc; border-radius: 8px;
+    padding: 20px 24px; overflow-x: auto;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.82rem; line-height: 1.55;
+  }
+  pre.flow .cap { color: #8fb8a0; }
+
+  figure.diagram { margin: 20px 0; padding: 8px; background: #fff;
+    border: 1px solid #e0e0e0; border-radius: 8px; }
+  figure.diagram svg { width: 100%; height: auto; display: block; cursor: zoom-in; }
+  figure.diagram figcaption { padding: 8px 10px 2px; }
+
+  .zoom-overlay {
+    position: fixed; inset: 0; z-index: 1000;
+    background: rgba(15, 23, 42, 0.93);
+    overflow: auto; padding: 24px; cursor: zoom-out;
+    -webkit-overflow-scrolling: touch;
+  }
+  .zoom-overlay svg {
+    width: 1880px; max-width: none; height: auto;
+    display: block; margin: 0 auto;
+    background: #fff; border-radius: 8px;
+  }
+
+  .def {
+    background: #fff; border-left: 4px solid #1a1a1a;
+    padding: 12px 18px; margin: 14px 0; border-radius: 0 6px 6px 0;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  }
+  .def dt { font-weight: 700; margin-top: 8px; }
+  .def dt:first-child { margin-top: 0; }
+  .def dd { margin: 2px 0 0 0; color: #333; }
+
+  .constraint {
+    background: #eef2f7; border: 1px solid #c8d4e3; border-radius: 8px;
+    padding: 12px 18px; margin: 16px 0; font-size: 0.93rem;
+  }
+  .constraint strong:first-child { color: #2a4a7a; }
+
+  .tag {
+    display: inline-block; font-family: ui-monospace, monospace; font-size: 0.78rem;
+    font-weight: 700; padding: 0 8px; border-radius: 3px; border: 1px solid transparent;
+  }
+  .tag.pass  { background: #e7f3e7; color: #23662a; border-color: #b9d9ba; }
+  .tag.fail  { background: #fbe9e7; color: #9c2b1a; border-color: #ecc0b8; }
+  .tag.error { background: #fdf3d7; color: #7a5d10; border-color: #e8d59a; }
+  .tag.mode  { background: #e8eef7; color: #2a4a7a; border-color: #c2d2e8; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>ユニット事実抽出スキル<br><span class="skill-name">extracting-unit-facts-from-code</span></h1>
+  <p>対象ユニットの原本コードから宣言的契約factsを抽出し、独立再計数・封印・再現性検証を通して「執筆工程が原本を読まずに済む」品質のfacts.ymlを確定する。仕事はfacts.yml等3ファイルの確定のみで、対象リポジトリへの書き込み・変更は一切行わない。</p>
+
+  <div class="def">
+    <dt>こんな人向け</dt>
+    <dd>対象ユニット（画面）の原本コードから、後続の詳細設計執筆が参照する宣言的契約factsを抽出したい人。</dd>
+    <dt>こんな場面で使う</dt>
+    <dd>アーキテクチャ調査書が確定した後、画面ユニットの事実表を新規に抽出したいとき。判定がNG帰着(b)（facts欠落）と判定し、抽出プロファイルを改訂した上で再抽出したいとき。</dd>
+  </div>
+
+  <table class="meta-table">
+    <tr><td>動作範囲</td><td>対象リポジトリは読み取り専用。出力は screen_dir 配下の 検証記録/facts/&lt;run_id&gt;/ の3ファイルのみ</td></tr>
+    <tr><td>対応プロファイル</td><td>screen のみ（Stage 3範囲）。他プロファイルは status=中断</td></tr>
+    <tr><td>対話</td><td>AskUserQuestion不使用。args全量指定・対話ゼロで完走する</td></tr>
+    <tr><td>依存</td><td>find / grep / awk 等の決定的コマンド、機械ゲート実行に scripts/recount-facts.sh・shared/scripts/seal-facts.sh を使用</td></tr>
+    <tr><td>関連資料</td><td><code>SKILL.md</code>, <code>references/profile-screen.md</code>, <code>shared/references/facts-schema.md</code></td></tr>
+  </table>
+</header>
+
+<nav class="toc">
+  <div class="toc-title">目次</div>
+  <ol>
+    <li><a href="#s1">概要</a></li>
+    <li><a href="#s2">用語</a></li>
+    <li><a href="#s3">使い方（起動引数）</a></li>
+    <li><a href="#s4">設計原則</a></li>
+    <li><a href="#s5">動作フロー（Phase 1〜6）</a></li>
+    <li><a href="#s6">facts.ymlの9分類</a></li>
+    <li><a href="#s7">機械ゲート（recount-facts.sh・seal-facts.sh）</a></li>
+    <li><a href="#s8">返却ブロック</a></li>
+    <li><a href="#s9">ループ設計</a></li>
+    <li><a href="#s10">Gotchas・重要な注意事項</a></li>
+    <li><a href="#s11">関連スキル・資料</a></li>
+  </ol>
+</nav>
+
+<section id="s1">
+  <h2><span class="sec-num">§1</span>概要</h2>
+  <p>対象ユニット（画面）の原本コードを決定的手順で読解し、宣言的契約 <strong>facts.yml</strong> として確定する。抽出者と検証者を分離した独立再計数、確定後の封印、同一argsでの再現性検証を経て初めて「執筆工程が原本を読まずに済む」品質に達したとみなす。</p>
+  <div class="constraint">
+    <strong>単独動作</strong>: 他スキルへの依存を持たない。起動引数を渡せば単独で動く。工程全体は orchestrating-reverse-docs-flow が案内する。後続工程（詳細設計執筆）はこのfactsを前提として動く。
+  </div>
+  <div class="constraint">
+    <strong>読み取り専用</strong>: 対象リポジトリへの書き込み・変更は一切行わない。出力は screen_dir 配下の1ディレクトリ（検証記録/facts/&lt;run_id&gt;/）のみ。
+  </div>
+</section>
+
+<section id="s2">
+  <h2><span class="sec-num">§2</span>用語</h2>
+  <dl class="def">
+    <dt>facts.yml</dt>
+    <dd>9分類（①〜⑨）で構成される宣言的契約事実の正本。各項目は意味語キー・値・原本の file:line 根拠を持つ（⑨は値を持たない）。</dd>
+    <dt>独立再計数</dt>
+    <dd><code>recount-facts.sh</code>による検証。facts.ymlを読まずにまずコードから分類別件数を独立算出し、その後facts.ymlの記載件数と突合する。</dd>
+    <dt>封印</dt>
+    <dd><code>seal-facts.sh</code>による正規化ハッシュの記録（facts.lock）。以降の改変を1コマンドで検知できる状態にする。</dd>
+    <dt>孤児参照</dt>
+    <dd>facts.yml内の項目のevidence（file:line）のファイル部分が、target_file_pathsの集合に含まれない状態。対象ユニットの宣言範囲外を根拠にした事実を機械検知する。</dd>
+  </dl>
+</section>
+
+<section id="s3">
+  <h2><span class="sec-num">§3</span>使い方（起動引数）</h2>
+  <p class="note">全量指定・対話ゼロ。単独起動時は下表の args をユーザーから直接取得する。</p>
+  <table class="spec">
+    <tr><th>引数</th><th>必須</th><th>内容</th></tr>
+    <tr><td>target_repo_path</td><td>必須</td><td>対象リポジトリの絶対パス</td></tr>
+    <tr><td>target_file_paths</td><td>必須</td><td>対象ユニットの対象ファイル（画面本体＋直接の子コンポーネント）の相対パス配列</td></tr>
+    <tr><td>screen_dir</td><td>必須</td><td>出力先の画面ディレクトリ絶対パス。facts は <code>&lt;screen_dir&gt;/検証記録/facts/&lt;run_id&gt;/</code> に出力する</td></tr>
+    <tr><td>profile</td><td>必須</td><td><code>screen</code> のみ実装。他値は status=中断で未対応と返す</td></tr>
+    <tr><td>survey_doc_path</td><td>必須</td><td>アーキテクチャ調査書のパス（方式→プロファイル選択の根拠。実在確認のみ）</td></tr>
+    <tr><td>run_id</td><td>任意（既定 extract-1）</td><td>抽出実行の識別子。出力ディレクトリ名・facts.yml内のrun_idフィールドに使う</td></tr>
+  </table>
+</section>
+
+<section id="s4">
+  <h2><span class="sec-num">§4</span>設計原則</h2>
+  <table class="spec">
+    <tr><th>原則</th><th>内容</th></tr>
+    <tr><td>読み取り専用</td><td>対象リポジトリへの書き込み・変更は一切行わない。出力は screen_dir 配下のみ</td></tr>
+    <tr><td>原本事実主義</td><td>推測・要約での補完を禁止する。コードに存在しない事実を書かない。全項目に file:line 根拠が必要</td></tr>
+    <tr><td>独立再計数による検証</td><td>抽出者（Phase 2）と検証者（recount-facts.sh）を分離する。検証者はfacts.ymlを読まずにまずコードから件数を独立算出する</td></tr>
+    <tr><td>封印による改ざん検知</td><td>確定したfacts.ymlは正規化ハッシュで封印し、以降の改変を機械検知できる状態にする</td></tr>
+    <tr><td>再現性の担保</td><td>同一argsでの抽出結果は（run_idを除き）決定的に一致することをdiffで確認する</td></tr>
+    <tr><td>合格判定はスクリプトのexit codeのみ</td><td>自然文の自己申告での合格判定を行わない</td></tr>
+  </table>
+</section>
+
+<section id="s5">
+  <h2><span class="sec-num">§5</span>動作フロー（Phase 1〜6）</h2>
+  <pre class="flow"><span class="cap">Phase 1: 前提確認</span>
+  target_repo_path・screen_dir・survey_doc_pathの実在を確認する(test -d/-f)
+  target_file_paths全件の実在を確認する
+  profile=screenを確認する(screen以外はstatus=中断)
+  run_id確定+facts出力ディレクトリ作成
+  完了条件: 全args解決済み・target_file_paths全件実在確認済み・
+   facts出力ディレクトリ作成済み
+
+<span class="cap">Phase 2: 抽出</span>
+  profile-screen.mdの分類別抽出手順に従いfacts.ymlを作成する
+  全項目に原本のfile:line根拠を付ける。推測・要約での補完を禁止する
+  該当なしの分類はitems:[]+reasonで埋める
+  完了条件: facts.ymlが9分類(sections配下9キー)の節を持つ
+
+<span class="cap">Phase 3: 独立再計数ゲート</span>
+  recount-facts.sh <facts.yml> <target_repo_path> <target_file_paths...>
+  乖離率5%以内・空欄率30%以内・孤児参照0件の3検査
+  FAILしたらPhase 2に戻る(上限3回・同一NG理由2連続で発散中断)
+  完了条件: recount-facts.shがexit 0、recount-report.txt保存済み
+
+<span class="cap">Phase 4: 封印</span>
+  seal-facts.sh seal <facts_dir> でfacts.lockを生成
+  seal-facts.sh verify <facts_dir> で直後の整合性を確認
+  完了条件: seal-facts.sh verifyがexit 0
+
+<span class="cap">Phase 5: 再現性検証</span>
+  同じargsで抽出をもう1度、一時ディレクトリに実行する
+  両facts.ymlをseal-facts.sh normalizeで一時ファイルへ書き出しdiff比較
+  diff≠0なら非決定箇所をhintに記録しstatus=中断(Phase 2へは戻らない)
+  完了条件: 2回の正規化出力のdiffが空
+
+<span class="cap">Phase 6: 返却</span>
+  返却ブロックを出力する
+  status=封印済み: artifacts/facts_ref/pending_measurementsを記す
+  status=中断: hintに未解消の検査項目・非決定箇所・非対応プロファイル等を記す
+  完了条件: statusが確定している</pre>
+</section>
+
+<section id="s6">
+  <h2><span class="sec-num">§6</span>facts.ymlの9分類</h2>
+  <p>スキーマの正本は <code>shared/references/facts-schema.md</code>。丸数字①〜⑨は分類記号であり連番IDではない。</p>
+  <table class="spec">
+    <tr><th>記号</th><th>セクションキー</th><th>ラベル</th><th>備考</th></tr>
+    <tr><td>①</td><td>import</td><td>import</td><td>named/default/type/namespace全シンボル。副作用importも含む</td></tr>
+    <tr><td>②</td><td>export_type</td><td>export・型</td><td>export名、interface/typeの全フィールド</td></tr>
+    <tr><td>③</td><td>const</td><td>定数</td><td>トップレベル定数。オブジェクト/enumはフィールドごとに分解</td></tr>
+    <tr><td>④</td><td>state</td><td>状態変数</td><td>useState/useReducer/useRef/store参照</td></tr>
+    <tr><td>⑤</td><td>handler</td><td>イベントハンドラ</td><td>ハンドラ名・発火要素・処理要約</td></tr>
+    <tr><td>⑥</td><td>jsx</td><td>JSX構造</td><td>コンポーネントのネストのみ（属性値は書かない）</td></tr>
+    <tr><td>⑦</td><td>style</td><td>スタイル実測値</td><td>styled定数のプロパティ・数値・色</td></tr>
+    <tr><td>⑧</td><td>api</td><td>API呼出</td><td>BL名・契機・リクエスト/レスポンス形</td></tr>
+    <tr><td>⑨</td><td>measurement_pending</td><td>実測系（実測委譲）</td><td>key・evidenceのみ。再計数対象外・転記対象外</td></tr>
+  </table>
+</section>
+
+<section id="s7">
+  <h2><span class="sec-num">§7</span>機械ゲート（recount-facts.sh・seal-facts.sh）</h2>
+  <p><code>recount-facts.sh</code>は合否を exit code のみで判定する（自然文の自己申告は用いない）。</p>
+  <table class="spec">
+    <tr><th>検査</th><th>内容</th></tr>
+    <tr><td>乖離検査</td><td>①〜⑧の8分類をコードから独立再計数し、facts.ymlの記載件数との乖離率が5%を超える分類が1つでもあれば違反</td></tr>
+    <tr><td>空欄検査</td><td>全9分類の各項目についてkey・evidence（file:line形式）の空欄率が30%を超えれば違反</td></tr>
+    <tr><td>孤児参照検査</td><td>evidenceのファイル部分がtarget_file_pathsの集合に含まれない項目が1件でもあれば違反</td></tr>
+  </table>
+  <p><code>seal-facts.sh</code>は3つのサブコマンドを持つ。</p>
+  <table class="spec">
+    <tr><th>サブコマンド</th><th>内容</th></tr>
+    <tr><td>seal</td><td>normalize済みfacts.ymlのsha256を facts_dir/facts.lock へ記録する</td></tr>
+    <tr><td>verify</td><td>facts.lockの記録ハッシュと現在のfacts.ymlの再計算ハッシュを照合する。不一致ならexit 1</td></tr>
+    <tr><td>normalize</td><td>run_id行・行末空白・空行を除去した正規形をstdoutへ出す</td></tr>
+  </table>
+</section>
+
+<section id="s8">
+  <h2><span class="sec-num">§8</span>返却ブロック</h2>
+  <p>orchestrating-reverse-docs-flow の契約（返却ブロック共通サブセット: status/scope/artifacts/hint）に準拠する。</p>
+  <table class="spec">
+    <tr><th>キー</th><th>値</th></tr>
+    <tr><td>status</td><td><span class="tag pass">封印済み</span> または <span class="tag fail">中断</span></td></tr>
+    <tr><td>scope</td><td>screen_dir のbasename</td></tr>
+    <tr><td>artifacts</td><td>facts.yml・facts.lock・recount-report.txtの絶対パス（配列）</td></tr>
+    <tr><td>hint</td><td>次工程への申し送り、または中断理由</td></tr>
+    <tr><td>facts_ref（拡張）</td><td>facts ディレクトリの絶対パス＋facts.lockのsha256</td></tr>
+    <tr><td>pending_measurements（拡張）</td><td>⑨実測委譲キーの一覧</td></tr>
+  </table>
+</section>
+
+<section id="s9">
+  <h2><span class="sec-num">§9</span>ループ設計</h2>
+  <table class="spec">
+    <tr><th>要素</th><th>内容</th></tr>
+    <tr><td>反復対象</td><td>Phase 3（独立再計数ゲート）exit 1 → Phase 2（抽出）へ戻る</td></tr>
+    <tr><td>上限回数</td><td>3回</td></tr>
+    <tr><td>収束条件</td><td>recount-facts.sh が exit 0</td></tr>
+    <tr><td>発散条件</td><td>同一のNG理由（同一検査の同一違反）が2回連続で再発した場合、発散として即中断する</td></tr>
+    <tr><td>上限到達時の報告</td><td>status=中断とし、hintに未解消の検査項目・違反内容・試行回数を記録する</td></tr>
+    <tr><td>検証役の分離</td><td>合否判定はスクリプトのexit codeのみ。Phase 5の再現性検証失敗はPhase 2へ戻らず終端条件として中断する</td></tr>
+  </table>
+</section>
+
+<section id="s10">
+  <h2><span class="sec-num">§10</span>Gotchas・重要な注意事項</h2>
+  <ul>
+    <li><code>mktemp</code> は必ず <code>mktemp -d "${TMPDIR:-/tmp}/XXXXXX"</code> 形式で使う。macOS の引数なし <code>mktemp -d</code> はサンドボックス環境で失敗する実害がある</li>
+    <li>再現性検証のため facts.yml に現在時刻を書かない。run_id のみを持たせ、normalize が run_id 行を除去することで2回の抽出結果を比較可能にする</li>
+    <li>独立再計数の乖離許容5%は正規表現ベースの近似計数と手動キー付けの粒度差を吸収するための閾値。profile-screen.md の分類別パターンに沿ってキー付け粒度を揃えないと乖離超過になりやすい</li>
+    <li>空欄率検査は key・evidence の2フィールドのみを対象とする。value の欠落はこのメトリクスに現れない</li>
+    <li>孤児参照は evidence のファイル部分が target_file_paths の集合と完全一致するかで判定する</li>
+    <li>grep実装（ugrep/BSD grep/GNU grep等）は同一パターンでもパイプ経由のstdinと通常ファイルとで正規表現マッチングの挙動が異なる場合がある。recount-facts.sh の分類別カウント関数は必ず実ファイルを引数に渡す</li>
+    <li>シェルスクリプト内で <code>$変数</code> の直後に全角記号を空白なしで続けると、環境によって変数名の終端誤認識が起きる場合がある。<code>${変数}</code> のブレース記法を必須にする</li>
+    <li>Phase 5 の diff はプロセス置換 <code>&lt;(...)</code> ではなく一時ファイル書き出し経由の比較に固定する（サンドボックス環境で /dev/fd への書き込みが権限拒否されるケースがある）</li>
+    <li>対象リポジトリに対しては読み取り専用。書き込み・変更は一切行わない</li>
+    <li>出力は screen_dir 配下のみ（検証記録/facts/&lt;run_id&gt;/ の3ファイル）。対象リポジトリ側には何も生成しない</li>
+    <li>推測・要約での補完を禁止する。コードに存在しない事実を書かない</li>
+    <li>profile=screen 以外は未対応。指定された場合は抽出を行わず status=中断を返す</li>
+    <li>AskUserQuestionを使わない。args全量指定・対話ゼロで完走する</li>
+    <li>SKILL.md本文にプロジェクト固有値（リポジトリ名・画面名・絶対パス・ユーザー名）を一切書かない。固有値はすべて起動argsで受ける</li>
+  </ul>
+</section>
+
+<section id="s11">
+  <h2><span class="sec-num">§11</span>関連スキル・資料</h2>
+  <table class="spec">
+    <tr><th>関連</th><th>関係</th></tr>
+    <tr><td>orchestrating-reverse-docs-flow</td><td>工程全体を案内する管理者スキル。本スキルは他スキル名を参照せず単独起動できるが、返却する status / artifacts はこの管理者スキルの契約に準拠する</td></tr>
+    <tr><td>authoring-screen-docs-from-code</td><td>本スキルが確定したfactsを前提に詳細設計を執筆する下流スキル。9分類の定義移設元でもある</td></tr>
+    <tr><td>surveying-architecture-for-reverse-docs</td><td>本スキルが前提とするアーキテクチャ調査書（方式→プロファイル選択の根拠）を確定する上流スキル</td></tr>
+    <tr><td>リバース工程設計.md</td><td>Phase/Step×スキル対応の正本。本スキルの位置づけはPhase 5 / Step 18-21</td></tr>
+  </table>
+</section>
+
+<div id="zoom-overlay" class="zoom-overlay" hidden></div>
+<script>
+  (function () {
+    var overlay = document.getElementById('zoom-overlay');
+    if (!overlay) return;
+    document.querySelectorAll('figure.diagram svg').forEach(function (svg) {
+      svg.addEventListener('click', function () {
+        overlay.innerHTML = '';
+        overlay.appendChild(svg.cloneNode(true));
+        overlay.hidden = false;
+        document.body.style.overflow = 'hidden';
+      });
+    });
+    overlay.addEventListener('click', function () {
+      overlay.hidden = true;
+      overlay.innerHTML = '';
+      document.body.style.overflow = '';
+    });
+  })();
+</script>
+
+</body>
+</html>
