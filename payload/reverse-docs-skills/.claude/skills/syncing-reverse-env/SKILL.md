@@ -237,6 +237,7 @@ git tag -af "reverse-baseline/<scope>" -m "<検証日> 検証PASS: 実差分0 en
 ## 参照資料
 
 - `config.yml` — ポート計算式・サービス一覧・起動コマンド・diff 除外・L3 閾値・max_loop の可変値（本スキルフォルダ直下）
+- `config.local.yml`（同ディレクトリ・任意） — 存在する場合、`config.yml` を基底として `config.local.yml` を深いマージ（local 優先）で重ねた結果を有効値とする。実プロジェクトの絶対パス入り `projects` エントリは `config.local.yml` にのみ記載する（`.gitignore` 済みのため公開 payload に載らない）。`config.yml` 側には汎用例のみを残す
 - `references/syncing-reverse-env-guide.html` — 確定仕様（プリフライト全項目・env_check 全項目・報告書式の正）
 - `references/syncing-reverse-env-concept.html` — 設計判断（ADR）と検討過程の記録
 - `scripts/audit-doc-consistency.sh` — ドキュメント整合性監査（改訂後の回帰ゲート）

@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>surveying-architecture-for-reverse-docs スキルガイド</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 0 24px 96px;
+    font-family: system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif;
+    line-height: 1.85; color: #1a1a1a; background: #fafafa;
+    max-width: 980px; margin-inline: auto;
+  }
+  header { padding: 56px 0 24px; border-bottom: 3px solid #1a1a1a; }
+  header h1 { font-size: 1.9rem; margin: 0 0 10px; letter-spacing: 0.01em; }
+  header .skill-name {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 1.0rem; background: #1a1a1a; color: #fafafa;
+    padding: 2px 10px; border-radius: 4px; vertical-align: middle;
+  }
+  header p { margin: 6px 0 0; color: #555; }
+  .meta-table { margin-top: 16px; font-size: 0.9rem; color: #555; }
+  .meta-table td { padding: 1px 16px 1px 0; }
+
+  nav.toc {
+    margin-top: 32px; padding: 18px 22px;
+    background: #fff; border: 1px solid #e0e0e0; border-radius: 8px;
+  }
+  nav.toc .toc-title { font-weight: 700; margin-bottom: 6px; }
+  nav.toc ol { margin: 0; padding-left: 1.4em; columns: 2; column-gap: 40px; }
+  nav.toc li { margin: 2px 0; }
+  nav.toc a { color: #1a1a1a; text-decoration: none; border-bottom: 1px dotted #999; }
+  nav.toc a:hover { border-bottom-style: solid; }
+
+  section { margin-top: 64px; }
+  section > h2 {
+    font-size: 1.35rem; padding-bottom: 8px; margin-bottom: 20px;
+    border-bottom: 2px solid #1a1a1a;
+  }
+  section > h2 .sec-num {
+    display: inline-block; min-width: 2.4em; margin-right: 10px;
+    font-family: ui-monospace, monospace; font-size: 0.95rem;
+    background: #1a1a1a; color: #fafafa; text-align: center;
+    padding: 1px 8px; border-radius: 4px; vertical-align: 2px;
+  }
+  h3 { font-size: 1.05rem; margin: 32px 0 10px; }
+  .note { color: #555; font-size: 0.92rem; }
+
+  table.spec { border-collapse: collapse; width: 100%; margin: 14px 0; background: #fff; font-size: 0.93rem; }
+  table.spec th, table.spec td { border: 1px solid #d8d8d8; padding: 8px 12px; text-align: left; vertical-align: top; }
+  table.spec th { background: #f0f0ee; font-weight: 700; white-space: nowrap; }
+  table.spec td code, li code, p code, table.spec th code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.86em; background: #eeeeea; padding: 1px 5px; border-radius: 3px;
+  }
+
+  pre.flow {
+    background: #16211c; color: #d7e6dc; border-radius: 8px;
+    padding: 20px 24px; overflow-x: auto;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.82rem; line-height: 1.55;
+  }
+  pre.flow .cap { color: #8fb8a0; }
+
+  figure.diagram { margin: 20px 0; padding: 8px; background: #fff;
+    border: 1px solid #e0e0e0; border-radius: 8px; }
+  figure.diagram svg { width: 100%; height: auto; display: block; cursor: zoom-in; }
+  figure.diagram figcaption { padding: 8px 10px 2px; }
+
+  .zoom-overlay {
+    position: fixed; inset: 0; z-index: 1000;
+    background: rgba(15, 23, 42, 0.93);
+    overflow: auto; padding: 24px; cursor: zoom-out;
+    -webkit-overflow-scrolling: touch;
+  }
+  .zoom-overlay svg {
+    width: 1880px; max-width: none; height: auto;
+    display: block; margin: 0 auto;
+    background: #fff; border-radius: 8px;
+  }
+
+  .def {
+    background: #fff; border-left: 4px solid #1a1a1a;
+    padding: 12px 18px; margin: 14px 0; border-radius: 0 6px 6px 0;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  }
+  .def dt { font-weight: 700; margin-top: 8px; }
+  .def dt:first-child { margin-top: 0; }
+  .def dd { margin: 2px 0 0 0; color: #333; }
+
+  .constraint {
+    background: #eef2f7; border: 1px solid #c8d4e3; border-radius: 8px;
+    padding: 12px 18px; margin: 16px 0; font-size: 0.93rem;
+  }
+  .constraint strong:first-child { color: #2a4a7a; }
+
+  .tag {
+    display: inline-block; font-family: ui-monospace, monospace; font-size: 0.78rem;
+    font-weight: 700; padding: 0 8px; border-radius: 3px; border: 1px solid transparent;
+  }
+  .tag.pass  { background: #e7f3e7; color: #23662a; border-color: #b9d9ba; }
+  .tag.fail  { background: #fbe9e7; color: #9c2b1a; border-color: #ecc0b8; }
+  .tag.error { background: #fdf3d7; color: #7a5d10; border-color: #e8d59a; }
+  .tag.mode  { background: #e8eef7; color: #2a4a7a; border-color: #c2d2e8; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>アーキテクチャ調査スキル<br><span class="skill-name">surveying-architecture-for-reverse-docs</span></h1>
+  <p>既存リポジトリを走査し、アーキテクチャ調査書を機械検証付きで確定する。仕事はアーキテクチャ調査書.mdの確定のみで、対象リポジトリへの書き込み・変更は一切行わない。</p>
+
+  <div class="def">
+    <dt>こんな人向け</dt>
+    <dd>リバース設計に着手する前に、対象リポジトリの技術スタック・ディレクトリ責務・ユニット種別の実在有無を確定したい人。</dd>
+    <dt>こんな場面で使う</dt>
+    <dd>後続工程（共通文書採録・facts抽出・詳細設計執筆）の前提として、決定的な根拠に基づくアーキテクチャ調査書が必要なとき。既存の調査書に検出手がかりの欠落が見つかり、該当節のみ改訂したいとき（mode=revise）。</dd>
+  </div>
+
+  <table class="meta-table">
+    <tr><td>動作範囲</td><td>対象リポジトリは読み取り専用。出力は docs_root 側のアーキテクチャ調査書.md 1本のみ</td></tr>
+    <tr><td>対話</td><td>AskUserQuestion不使用。args全量指定・対話ゼロで完走する</td></tr>
+    <tr><td>依存</td><td>find / grep / ls 等の決定的コマンド、機械ゲート実行に scripts/check-architecture-survey.sh を使用</td></tr>
+    <tr><td>関連資料</td><td><code>SKILL.md</code>, <code>scripts/check-architecture-survey.sh</code></td></tr>
+  </table>
+</header>
+
+<nav class="toc">
+  <div class="toc-title">目次</div>
+  <ol>
+    <li><a href="#s1">概要</a></li>
+    <li><a href="#s2">用語</a></li>
+    <li><a href="#s3">使い方（起動引数）</a></li>
+    <li><a href="#s4">設計原則</a></li>
+    <li><a href="#s5">動作フロー（Phase 1〜6）</a></li>
+    <li><a href="#s6">機械ゲート4検査</a></li>
+    <li><a href="#s7">返却ブロック</a></li>
+    <li><a href="#s8">ループ設計</a></li>
+    <li><a href="#s9">Gotchas・重要な注意事項</a></li>
+    <li><a href="#s10">関連スキル・資料</a></li>
+  </ol>
+</nav>
+
+<section id="s1">
+  <h2><span class="sec-num">§1</span>概要</h2>
+  <p>既存リポジトリを決定的コマンドで走査し、その結果を<strong>アーキテクチャ調査書.md</strong>として確定する。</p>
+  <div class="constraint">
+    <strong>単独動作</strong>: 他スキルへの依存を持たない。起動引数を渡せば単独で動く。工程全体は orchestrating-reverse-docs-flow が案内する。後続工程（共通採録・facts抽出・詳細設計執筆）はこの調査書を前提として動く。
+  </div>
+  <div class="constraint">
+    <strong>読み取り専用</strong>: 対象リポジトリへの書き込み・変更は一切行わない。出力は docs_root 配下の1ファイル（アーキテクチャ調査書.md）のみ。
+  </div>
+</section>
+
+<section id="s2">
+  <h2><span class="sec-num">§2</span>用語</h2>
+  <dl class="def">
+    <dt>ユニット6種別</dt>
+    <dd>画面・API・テーブル・バッチ・帳票・外部連携の6区分。各種別について実在有無を決定的コマンドで判定する。</dd>
+    <dt>機械ゲート</dt>
+    <dd><code>check-architecture-survey.sh</code>による決定的スクリプト検証。合否判定は exit code のみで行い、自然文の自己申告では判定しない。</dd>
+    <dt>mode=revise</dt>
+    <dd>差し戻し改訂モード。差し戻し元が指摘した欠落節・欠落理由（revise_findings）を受け取り、該当節のみ改訂して全ゲートを再実行する。</dd>
+  </dl>
+</section>
+
+<section id="s3">
+  <h2><span class="sec-num">§3</span>使い方（起動引数）</h2>
+  <p class="note">全量指定・対話ゼロ。単独起動時は下表の args をユーザーから直接取得する。</p>
+  <table class="spec">
+    <tr><th>引数</th><th>必須</th><th>内容</th></tr>
+    <tr><td>target_repo_path</td><td>必須</td><td>調査対象リポジトリの絶対パス</td></tr>
+    <tr><td>docs_root</td><td>必須</td><td>出力先ルート。調査書は <code>&lt;docs_root&gt;/プロジェクト共通/アーキテクチャ調査書.md</code> に出力する</td></tr>
+    <tr><td>template_root</td><td>必須</td><td>テンプレ一式のルート。この配下の <code>プロジェクト共通/アーキテクチャ調査書.md</code> を雛形に使う</td></tr>
+    <tr><td>target_branch</td><td>任意</td><td>調査時点の対象ブランチ。調査メタ節に記録する</td></tr>
+    <tr><td>source_ref</td><td>任意</td><td>調査時点のコミット参照。調査メタ節に記録する</td></tr>
+    <tr><td>mode</td><td>任意（既定 survey）</td><td>survey（新規）／revise（差し戻し改訂。revise_findings を受け取り該当節のみ改訂して全ゲートを再実行）</td></tr>
+    <tr><td>revise_findings</td><td>mode=revise 時のみ必須</td><td>差し戻し元が指摘した欠落節・欠落理由の一覧</td></tr>
+  </table>
+</section>
+
+<section id="s4">
+  <h2><span class="sec-num">§4</span>設計原則</h2>
+  <table class="spec">
+    <tr><th>原則</th><th>内容</th></tr>
+    <tr><td>読み取り専用</td><td>対象リポジトリへの書き込み・変更は一切行わない。出力は docs_root 配下のみ</td></tr>
+    <tr><td>決定的根拠のみ</td><td>全記述は find / grep / ls 等の決定的コマンドの実出力を根拠とする。推測での埋め合わせを禁止する</td></tr>
+    <tr><td>空欄禁止・理由必須</td><td>判定不能・実在しない項目は空欄にせず「実在しない（理由: …）」で必ず埋める</td></tr>
+    <tr><td>固定と可変の分離</td><td>ゲート（check-architecture-survey.sh）は決定的スクリプトに固定する。調査そのもの（何をどう調べるか）はプロジェクトごとに可変であり、Phase 2〜3 で都度 Bash/Grep/Glob を用いて実行する</td></tr>
+    <tr><td>合格判定はスクリプトのexit codeのみ</td><td>自然文の自己申告での合格判定を行わない</td></tr>
+  </table>
+</section>
+
+<section id="s5">
+  <h2><span class="sec-num">§5</span>動作フロー（Phase 1〜6）</h2>
+  <pre class="flow"><span class="cap">Phase 1: 前提確認</span>
+  target_repo_path・template_rootの実在を確認する(test -d)
+  docs_rootに「プロジェクト共通/」が無ければ作成する
+  mode=revise: 既存調査書の実在確認+指摘節の洗い出し
+  mode=survey: テンプレを調査書の出力先へ複製する
+  完了条件: 全args解決済み・実在確認済み・ディレクトリ作成済み
+   (mode=revise時は既存調査書と指摘節の特定済み)
+
+<span class="cap">Phase 2: 決定的走査</span>
+  find/grep/lsで対象リポジトリを走査する
+  ビルド設定(実在するもののみ)・起動コマンド・エントリポイント・
+  ルーティング定義・依存関係を決定的出力のみを根拠に列挙する
+  実行した調査コマンドは全て調査メタ節に記録する(再現可能性の担保)
+  完了条件: ディレクトリ責務マップとエントリポイント一覧が
+   根拠パス付きで揃っている
+
+<span class="cap">Phase 3: ユニット6種別判定</span>
+  画面・API・テーブル・バッチ・帳票・外部連携の6種別それぞれについて
+  決定的コマンドで実在を判定する
+  各種別は「実在する」または「実在しない(理由: …)」のいずれかで記録
+  検出に使った再現可能なgrep/findパターンを検出手がかり列に記録する
+  完了条件: 6種別すべてに判定行がある(種別名と判定語が同一行)
+
+<span class="cap">Phase 4: 調査書執筆</span>
+  テンプレの全節(調査メタ・技術スタック・ビルドと起動・
+  ディレクトリ責務マップ・エントリポイントとルーティング・
+  ユニット種別判定・判定不能と実在しない項目の理由・
+  後続工程への申し送り)を実測値の転記で埋める
+  mode=revise: revise_findingsが指摘した節のみ改訂すればよいが、
+   次のPhase 5ゲートは全項目を再実行する(部分ゲートは無い)
+  完了条件: プレースホルダの残存ゼロ
+
+<span class="cap">Phase 5: 機械ゲート</span>
+  check-architecture-survey.sh <調査書> <target_repo_path> を実行
+  FAILしたらPhase 4に戻り、指摘された未実在パス・未判定種別・
+  推測語・テンプレ残存を修正して再実行する(上限5回)
+  完了条件: ゲート exit 0
+
+<span class="cap">Phase 6: 返却</span>
+  返却ブロックを出力する
+  status=調査確定: artifacts/scope/survey_doc_path/
+   unit_kinds_presentを記す。hintに後続工程への申し送りを記す
+  status=中断: hintにPhase 5で未収束のまま残った検査項目・理由を記す
+  完了条件: statusが確定している</pre>
+</section>
+
+<section id="s6">
+  <h2><span class="sec-num">§6</span>機械ゲート4検査</h2>
+  <p><code>check-architecture-survey.sh</code>は合否を exit code のみで判定する（自然文の自己申告は用いない）。</p>
+  <table class="spec">
+    <tr><th>検査</th><th>内容</th></tr>
+    <tr><td>パス実在検査</td><td>調査書に記載された相対パス（backtick囲みで「/」を含むもの）の実在を確認する。URL・glob・プレースホルダ・絶対パス・空白や正規表現記号を含むトークンは対象外</td></tr>
+    <tr><td>種別網羅検査</td><td>ユニット6種別すべてに判定行（種別名と判定語「実在する」または「実在しない（」が同一行）が存在するかを確認する</td></tr>
+    <tr><td>推測語検査</td><td>調査書ファイル全体（テンプレ由来の固定文・HTMLコメントを含む）を走査し、「おそらく」「と思われ」「かもしれ」「推測」「たぶん」「恐らく」「でしょう」「のはず」等の推測語の不在を確認する</td></tr>
+    <tr><td>テンプレ残存検査</td><td>プレースホルダ（<code>&lt;実測: …&gt;</code>等）の残存ゼロを確認する</td></tr>
+  </table>
+</section>
+
+<section id="s7">
+  <h2><span class="sec-num">§7</span>返却ブロック</h2>
+  <p>orchestrating-reverse-docs-flow の契約（返却ブロック共通サブセット: status/scope/artifacts/hint）に準拠する。</p>
+  <table class="spec">
+    <tr><th>キー</th><th>値</th></tr>
+    <tr><td>status</td><td><span class="tag pass">調査確定</span> または <span class="tag fail">中断</span></td></tr>
+    <tr><td>scope</td><td>target_repo_path のbasename</td></tr>
+    <tr><td>artifacts</td><td>調査書の絶対パス（配列）</td></tr>
+    <tr><td>hint</td><td>次工程への申し送り、または中断理由</td></tr>
+    <tr><td>survey_doc_path（拡張）</td><td>調査書の絶対パス（artifacts[0] と同値）</td></tr>
+    <tr><td>unit_kinds_present（拡張）</td><td>実在判定が「実在する」だった種別の一覧</td></tr>
+  </table>
+</section>
+
+<section id="s8">
+  <h2><span class="sec-num">§8</span>ループ設計</h2>
+  <table class="spec">
+    <tr><th>要素</th><th>内容</th></tr>
+    <tr><td>反復対象</td><td>Phase 5（機械ゲート）exit 1 → Phase 4（調査書執筆）へ戻る</td></tr>
+    <tr><td>上限回数</td><td>5回</td></tr>
+    <tr><td>収束条件</td><td>check-architecture-survey.sh が exit 0</td></tr>
+    <tr><td>発散条件</td><td>同一のNG理由（同一検査項目の同一違反）が2回連続で再発した場合、発散として即中断する（上限回数消化前でも中断してよい）</td></tr>
+    <tr><td>上限到達時の報告</td><td>status=中断とし、hintに未解消の検査項目・違反内容・試行回数を記録する</td></tr>
+    <tr><td>検証役の分離</td><td>合否判定は check-architecture-survey.sh の exit code のみで行う。自然文の自己申告での合格判定は行わない</td></tr>
+  </table>
+</section>
+
+<section id="s9">
+  <h2><span class="sec-num">§9</span>Gotchas・重要な注意事項</h2>
+  <ul>
+    <li>記載パスの実在チェック（機械ゲート検査1）は、backtickで囲んだ「/」を含む相対パスのみを対象とする。URL（<code>://</code>）・glob（<code>*</code>/<code>?</code>）・プレースホルダ（<code>&lt;</code>/<code>&gt;</code>）・絶対パス（先頭<code>/</code>）・空白や正規表現記号を含むトークン（コマンド例・grepパターン）は対象外</li>
+    <li>6種別の判定行は、種別名と判定語（「実在する」または「実在しない（」）が<strong>同一行</strong>に存在しないと機械検知されない。表のセルを分けて書くと検知漏れになる</li>
+    <li>mode=revise は指摘節のみ改訂すればよいが、機械ゲートは全項目を再実行する。部分ゲートは存在しない</li>
+    <li>発散判定（同一NG理由2連続）は上限5回を消化する前でも即中断する</li>
+    <li>調査書のfrontmatter <code>updated</code> はテンプレのプレースホルダ（<code>&lt;実測: YYYY-MM-DD&gt;</code>）のまま残してはならない。確定日を実測で記入する</li>
+    <li>ビルド設定・エントリポイントの列挙は「実在するもののみ」を書く。対象スタックに存在しないファイル種別を推測で書かない</li>
+    <li>機械ゲートの推測語検査（検査3）は調査書ファイル全体（テンプレ由来の固定文・HTMLコメントを含む）を走査する。テンプレの固定文にも検出正規表現に一致する語を書いてはならない（テンプレ改訂時の注意）</li>
+    <li>対象リポジトリに対しては読み取り専用。書き込み・変更は一切行わない</li>
+    <li>出力は docs_root 側のみ（アーキテクチャ調査書.md 1本）。対象リポジトリ側には何も生成しない</li>
+    <li>推測禁止。全記述は決定的コマンド（find/grep/ls）の実出力を根拠とする</li>
+    <li>6種別は実在しない場合も「実在しない（理由: …）」で必ず埋める。空欄・省略は禁止する</li>
+    <li>AskUserQuestionを使わない。args全量指定・対話ゼロで完走する</li>
+    <li>SKILL.md本文にプロジェクト固有値（リポジトリ名・画面名・絶対パス・ユーザー名）を一切書かない。固有値はすべて起動argsで受ける</li>
+  </ul>
+</section>
+
+<section id="s10">
+  <h2><span class="sec-num">§10</span>関連スキル・資料</h2>
+  <table class="spec">
+    <tr><th>関連</th><th>関係</th></tr>
+    <tr><td>orchestrating-reverse-docs-flow</td><td>工程全体を案内する管理者スキル。本スキルは他スキル名を参照せず単独起動できるが、返却する status / artifacts はこの管理者スキルの契約に準拠する</td></tr>
+    <tr><td>generating-screen-list-for-reverse-docs</td><td>画面一覧生成を担う姉妹スキル。本スキルのスコープ外（TRIGGER条件のSKIP対象）</td></tr>
+    <tr><td>リバース工程設計.md</td><td>Phase/Step×スキル対応の正本。本スキルの位置づけはPhase 2 / Step 3-7</td></tr>
+  </table>
+</section>
+
+<div id="zoom-overlay" class="zoom-overlay" hidden></div>
+<script>
+  (function () {
+    var overlay = document.getElementById('zoom-overlay');
+    if (!overlay) return;
+    document.querySelectorAll('figure.diagram svg').forEach(function (svg) {
+      svg.addEventListener('click', function () {
+        overlay.innerHTML = '';
+        overlay.appendChild(svg.cloneNode(true));
+        overlay.hidden = false;
+        document.body.style.overflow = 'hidden';
+      });
+    });
+    overlay.addEventListener('click', function () {
+      overlay.hidden = true;
+      overlay.innerHTML = '';
+      document.body.style.overflow = '';
+    });
+  })();
+</script>
+
+</body>
+</html>

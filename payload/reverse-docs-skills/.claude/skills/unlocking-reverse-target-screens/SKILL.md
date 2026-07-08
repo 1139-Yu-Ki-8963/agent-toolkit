@@ -8,7 +8,7 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Skill, TaskCreate, TaskUpda
 
 # 設計書なし画面の開通スキル
 
-このスキルは開通からリバース基準タグ確立までを単独で完走する自己完結型スキルである。開通の事実（どのURLなら検証できるか）を知るのは本スキルだけであり、下流の管理者（orchestrating-reverse-docs-flow）はこの事実を能動的に検知できない。そのため本スキルは例外的に、画面レジストリへの直接読み書きと `syncing-reverse-env` の直接起動を自ら行う（他の子スキルは完全仲介方式に従い、この2点に触れない）。プロジェクト固有の値（パス・コマンド・API名・ポート・画面ID等）は本文に一切書かず、すべて同ディレクトリの `manifest.yml` の `projects.<system>` から取得する。
+このスキルは開通からリバース基準タグ確立までを単独で完走する自己完結型スキルである。開通の事実（どのURLなら検証できるか）を知るのは本スキルだけであり、下流の管理者（orchestrating-reverse-docs-flow）はこの事実を能動的に検知できない。そのため本スキルは例外的に、画面レジストリへの直接読み書きと `syncing-reverse-env` の直接起動を自ら行う（他の子スキルは完全仲介方式に従い、この2点に触れない）。プロジェクト固有の値（パス・コマンド・API名・ポート・画面ID等）は本文に一切書かず、すべて同ディレクトリの `manifest.yml` の `projects.<system>` から取得する。起動経路は二重である。単独起動時はユーザー自身が起点となり、管理者経由時は `orchestrating-reverse-docs-flow` によるS0u（画面未開通）状態の判定が起点となる。これは意図した二重運用であり、単独起動条件・返却ブロック契約への参照は削除すべき旧設計の名残ではない。
 
 ## 使用タイミング
 
@@ -41,7 +41,7 @@ TaskCreate で本前提ゲートを含む全Phase分のタスクを1つずつ登
 
 ### Phase 3: 画面別モック実装
 
-`manifest.<system>.mock_conventions`（有効化方法・配置規約・登録方法）に従い、Phase 1 で特定したAPI一覧にモックを実装する。実装後、登録した名前の一覧と `api_source_of_truth` の実名一覧を機械的に突合し、差分ゼロを完了条件とする（自然文の目視確認で済ませない）。モック変更はホットリロードで反映されないことがあるため、反映確認は必ずサーバー再起動後に行う。
+`manifest.<system>.mock_conventions`（有効化方法・配置規約・登録方法）に従い、Phase 1 で特定したAPI一覧にモックを実装する。実装後、登録した名前の一覧と `api_source_of_truth` の実名一覧を機械的に突合し、差分ゼロを完了条件とする（自然文の目視確認で済ませない）。モック変更はホットリロードで反映されないことがあるため、反映確認は必ずサーバー再起動後に行う。具体的な実装レシピ（正本からの書き写し方・消費側からの逆引き特定・型決定基準・同名API分岐の判断基準）は `references/mock-implementation-recipe.md` を参照する。
 
 完了条件: 登録名一覧×実名一覧の突合差分ゼロ、サーバー再起動後の反映確認済み
 
@@ -98,19 +98,30 @@ TaskCreate で本前提ゲートを含む全Phase分のタスクを1つずつ登
 
 ## 重要な注意事項
 
+- **変更してよい範囲**: モックの実装・開発用の起動時初期化処理（devサーバー起動スクリプト等）・設定ファイル（`manifest.<system>` に記載された範囲、および Phase 2 で対象画面を権限チェーンの既存許可リストへ追記登録する作業を含む）のみ。画面・業務ロジック・共通処理などアプリケーション本体のコードを新規実装・改変することは対象外（リバース対象の原本性を損なうため）。検証がうまくいかない根本原因がアプリ本体側の実装にあると判明した場合は、コードを書き換えるのではなく、その事実を開通記録（`handoff.unlock_record_dir`）に書き残しユーザーの判断に委ねる。
 - 本スキルは例外的に画面レジストリへの直接読み書きと `syncing-reverse-env` の直接起動を行う（理由: 開通の事実を知るのは本スキルだけであり、下流が能動的に検知できないため）
 - プロジェクト固有値（パス・コマンド・API名・ポート・画面ID等）は本文・references に一切書かない。すべて `manifest.yml` の `projects.<system>` から取得する
 - 健全性確認は自分が起動したサーバー上でのみ行う。稼働中の他エージェントの環境には触れない
 - 合格判定は自然文の自己申告でなく、決定的コマンド出力（`git tag -l` 等）で行う
 - 責務は「基準タグ確立まで」。往復検証（設計書との突合精度）自体は本スキルの対象外（それは `rebuilding-code-from-docs` の責務）
 
+## 完了報告
+
+`managing-agent-configs/references/skills/completion-report-format.md` の共通骨格（作業報告型）に従う。
+
+固有の検証行:
+- 前提ゲート通過状況（manifest全キー確定・devサーバー起動・リファレンス画面健全性、または最初の1枚目省略）
+- Phase 3の登録名×実名突合差分件数
+- Phase 4検証ループの収束/発散判定結果
+- Phase 5のレジストリ登録状況と`baseline_tag`（`status=BASELINE-ESTABLISHED`到達時のみ）
+
 ## Gotchas
+
+一般的な症状別の切り分け（詰まりパターン）は `references/troubleshooting-patterns.md` を参照する。以下は同ファイルに寄せていない個別の注意点。
 
 - 設計書がある画面は対象外（`rebuilding-screen-unit-from-docs` / `rebuilding-code-from-docs` を使う）
 - モック変更はホットリロードで反映されないことがある。反映確認は必ずサーバー再起動後に行う
 - コード生成名とワイヤ上の実名は大小文字が食い違うことがある。実名は `api_source_of_truth.definition_root` で確認する
-- 画面全体のクラッシュ（エラー境界遷移）はクエリ記録では見えない。`pageerror` イベントから診断する
-- 同一条件で成功と失敗が混在する場合、即座にレース条件と断定せず、まず画面要求値とモックデータの突合でデータ欠落を排除する（上記「同一条件で成功と失敗が混在する場合の対処」参照）
 - manifest に未確定キー（`<FILL:...>`）が残ったまま作業を開始してはならない
 - manifestの穴埋めは実行者ではなく人間・呼び出し元の責任。実行者が値を推測して埋めてはならない
 - 対象プロジェクトの最初の1枚目を開通する場合、`reference_screen` による健全性確認は省略してよい（開通済み画面が存在しないため）
@@ -119,7 +130,10 @@ TaskCreate で本前提ゲートを含む全Phase分のタスクを1つずつ登
 
 - `~/reverse-docs-skills/.claude/skills/orchestrating-reverse-docs-flow/references/contract.md` — 返却ブロック契約・args仕様・画面レジストリの正本（例外条項含む）
 - `manifest.yml`（本スキル同梱） — プロジェクト固有値の正本
+- `manifest.local.yml`（同ディレクトリ・任意） — 存在する場合、`manifest.yml` を基底として `manifest.local.yml` を深いマージ（local 優先）で重ねた結果を有効値とする。実プロジェクトの絶対パス入り `projects` エントリは `manifest.local.yml` にのみ記載する（`.gitignore` 済みのため公開 payload に載らない）。`operating_rules` 等の枠組みキーの上書きは不可
 - `assets/manifest-template.yml`（本スキル同梱） — manifest未整備プロジェクト向け雛形
+- `references/mock-implementation-recipe.md`（本スキル同梱） — Phase 3のモック実装レシピ（正本からの書き写し・消費側からの逆引き特定・型決定基準・同名API分岐の判断基準）
+- `references/troubleshooting-patterns.md`（本スキル同梱） — 症状・原因・対処の詰まりパターン集（プロジェクト非依存分。プロジェクト固有は `manifest.yml` の `known_gotchas`）
 - `~/reverse-docs-skills/.claude/skills/syncing-reverse-env/config.yml` — Playwright実行系設定（`playwright_exec` 等）の共有正本。本スキルは重複定義しない
 
 ## 改訂完了時の機械チェック
