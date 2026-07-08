@@ -11,6 +11,12 @@ target_repo_path: /abs/path/to/target-repo
 target_file_paths:
   - src/screens/Foo/Foo.tsx
   - src/screens/Foo/FooRow.tsx
+meta:
+  source_repo: /abs/path/to/target-repo
+  source_ref: a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2
+  route:
+    value: "/foo/:id"
+    evidence: "src/router/routes.tsx:42"
 sections:
   import:
     reason: ""
@@ -47,6 +53,14 @@ sections:
 ```
 
 インデントは2スペース刻み固定とする（`sections` 配下のキー = 2段目、`reason`/`items` = 3段目、`- key:` = 4段目、`value:`/`evidence:` = 5段目）。この固定インデントは `scripts/recount-facts.sh` が awk で行位置ベースに解析するための契約であり、崩すと再計数ゲートが正しく集計できない。
+
+`meta` は `sections` と並ぶトップレベル必須節であり、以下の3フィールドを持つ。
+
+| フィールド | 内容 |
+|---|---|
+| source_repo | 対象リポジトリの絶対パス（`target_repo_path` と同値） |
+| source_ref | 抽出時点のコミットSHA（`git -C <target_repo_path> rev-parse HEAD` で実測） |
+| route | 画面のルートパス。`value`（実測したパス文字列）と `evidence`（ルーター定義ファイルの `file:line`）を持つ |
 
 ## 9分類とキーの付け方
 
@@ -89,7 +103,7 @@ sections:
 2. 各行の行末空白を除去する
 3. 空行を削除する
 
-`target_repo_path`・`target_file_paths`・`sections` 配下の内容（key・value・evidence）はそのまま比較対象に残る。normalize は封印（sha256計算）にも同じ関数を使う（`seal`/`verify` は normalize 後のハッシュを比較する）。
+`target_repo_path`・`target_file_paths`・`meta`・`sections` 配下の内容（key・value・evidence）はそのまま比較対象に残る（`meta` は正規化対象に含め除去しない。`source_ref` も値そのものを比較対象とする）。normalize は封印（sha256計算）にも同じ関数を使う（`seal`/`verify` は normalize 後のハッシュを比較する）。
 
 ## 拡張予約（screen 以外のプロファイル追加余地）
 

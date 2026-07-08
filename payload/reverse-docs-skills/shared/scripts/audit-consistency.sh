@@ -248,6 +248,13 @@ list_contract_files() {
     subbody="$body"
   fi
 
+  # 行のいずれかの列に「参考情報」と明記された行（画面固有でない共有ファイル・
+  # ルーター定義ファイル等の注記行）は白紙化対象から除外する。
+  subbody="$(printf '%s\n' "$subbody" | awk '
+    /^\|/ && $0 ~ /参考情報/ { next }
+    { print }
+  ')"
+
   col1="$(extract_table_column "$subbody" 1)"
   total_count=$(printf '%s\n' "$col1" | grep -c . || true)
   if [ "$total_count" -eq 0 ]; then
