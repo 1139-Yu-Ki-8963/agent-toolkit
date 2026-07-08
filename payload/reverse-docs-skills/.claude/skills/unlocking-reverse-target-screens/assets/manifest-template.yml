@@ -16,7 +16,7 @@
 #   <FILL:セッションキー名>           session_keys配下の各セッションキー名
 #   <FILL:sync-initial|async>         当該セッションキーの充足タイミング（sync-initialまたはasync）
 #   <FILL:充足元>                     当該セッションキーの値の充足元（API・cookie・localStorage等）
-#   <FILL:権限チェーンの各層と登録方法>  権限チェックが通過する各層と、その登録方法
+#   <FILL:権限チェーンの各層と登録方法（単層/二層いずれの構造かを明記）>  権限チェックが通過する各層と、その登録方法。単層構造か二層構造かを明記すること
 #   <FILL:認証系APIが読む識別子フィールド名>  認証系APIレスポンスが参照する識別子フィールド名
 #   <FILL:健全性確認に使う開通済み画面のID>  疎通確認の基準にする既存の開通済み画面ID
 #   <FILL:確認URLテンプレート（{port}等含む）>  動作確認に使うURLテンプレート
@@ -30,6 +30,9 @@
 "<system>":
   repo_and_launch:
     work_repo_path: "<FILL:work_repo_path>"
+    original_repo_path: ""   # 任意。オリジナル参照点となる元リポジトリのパス。
+                              # syncing-reverse-env(mode=registry)がsource_ref解決の基点として使う。
+                              # 無指定ならwork_repo_pathと同一とみなす
     default_branch: "<FILL:default_branch>"
     services: ["<FILL:service名>"]
     launch_commands:
@@ -53,11 +56,12 @@
       - name: "<FILL:セッションキー名>"
         timing: "<FILL:sync-initial|async>"
         source: "<FILL:充足元>"
-    permission_chain_layers: ["<FILL:権限チェーンの各層と登録方法>"]
+    permission_chain_layers: ["<FILL:権限チェーンの各層と登録方法（単層/二層いずれの構造かを明記）>"]
     identifier_field_check: "<FILL:認証系APIが読む識別子フィールド名>"
   reference_screen:
     screen_id: "<FILL:健全性確認に使う開通済み画面のID>"
     verification_url_template: "<FILL:確認URLテンプレート（{port}等含む）>"
+    domain_tag: ""   # 任意。reference_screenが属する業務ドメインの識別ラベル
   handoff:
     unlock_record_dir: "<FILL:開通証跡の置き場>"
     screen_registry_path: "~/agent-home/state/reverse-screen-registry.yml"

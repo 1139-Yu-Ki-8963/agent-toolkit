@@ -21,6 +21,9 @@ projects: {}
 #   "<system>":
 #     repo_and_launch:
 #       work_repo_path: "<FILL:work_repo_path>"           # 作業リポジトリのパス
+#       original_repo_path: ""                             # 任意。オリジナル参照点となる元リポジトリのパス。
+#                                                            # syncing-reverse-env(mode=registry)がsource_ref解決の基点として使う。
+#                                                            # 無指定ならwork_repo_pathと同一とみなす
 #       default_branch: "<FILL:default_branch>"
 #       services: ["<FILL:service名>"]
 #       launch_commands:
@@ -44,11 +47,12 @@ projects: {}
 #         - name: "<FILL:セッションキー名>"
 #           timing: "<FILL:sync-initial|async>"
 #           source: "<FILL:充足元>"
-#       permission_chain_layers: ["<FILL:権限チェーンの各層と登録方法>"]
+#       permission_chain_layers: ["<FILL:権限チェーンの各層と登録方法（単層/二層いずれの構造かを明記）>"]
 #       identifier_field_check: "<FILL:認証系APIが読む識別子フィールド名>"
 #     reference_screen:
 #       screen_id: "<FILL:健全性確認に使う開通済み画面のID>"
 #       verification_url_template: "<FILL:確認URLテンプレート（{port}等含む）>"
+#       domain_tag: ""   # 任意。reference_screenが属する業務ドメインの識別ラベル
 #     handoff:
 #       unlock_record_dir: "<FILL:開通証跡の置き場>"
 #       screen_registry_path: "~/agent-home/state/reverse-screen-registry.yml"  # contract.md正本と一致させる
