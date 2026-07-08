@@ -56,6 +56,11 @@ function loadManifest() {
 // ── ファイル列挙（mirror 用。node_modules・.DS_Store を除外） ──
 
 const EXCLUDE_NAMES = new Set(["node_modules", ".DS_Store"]);
+const EXCLUDE_SUFFIXES = [".local.yml"];
+
+function isExcluded(name) {
+  return EXCLUDE_NAMES.has(name) || EXCLUDE_SUFFIXES.some((suffix) => name.endsWith(suffix));
+}
 
 function walkFiles(dir) {
   const results = [];
@@ -67,7 +72,7 @@ function walkFiles(dir) {
       return;
     }
     for (const entry of entries) {
-      if (EXCLUDE_NAMES.has(entry.name)) continue;
+      if (isExcluded(entry.name)) continue;
       const full = path.join(cur, entry.name);
       if (entry.isDirectory()) {
         recurse(full);
