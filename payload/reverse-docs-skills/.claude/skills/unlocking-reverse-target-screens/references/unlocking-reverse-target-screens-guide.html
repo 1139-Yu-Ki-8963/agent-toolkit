@@ -153,6 +153,9 @@
   <div class="constraint">
     <strong>プロジェクト固有値の排除</strong>: プロジェクト固有の値（パス・コマンド・API名・ポート・画面ID等）は本文に一切書かず、すべて同ディレクトリの <code>manifest.yml</code> の <code>projects.&lt;system&gt;</code> から取得する。
   </div>
+  <div class="constraint">
+    <strong>二重起動経路</strong>: 起動経路は二重である。単独起動時はユーザー自身が起点となり、管理者経由時は <code>orchestrating-reverse-docs-flow</code> によるS0u（画面未開通）状態の判定が起点となる。これは意図した二重運用であり、単独起動条件・返却ブロック契約への参照は削除すべき旧設計の名残ではない。
+  </div>
 </section>
 
 <section id="s2">
@@ -287,6 +290,7 @@
 <section id="s8">
   <h2><span class="sec-num">§8</span>重要な注意事項</h2>
   <ul>
+    <li><strong>変更してよい範囲</strong>: モックの実装・開発用の起動時初期化処理（devサーバー起動スクリプト等）・設定ファイル（<code>manifest.&lt;system&gt;</code> に記載された範囲、および Phase 2 で対象画面を権限チェーンの既存許可リストへ追記登録する作業を含む）のみ。画面・業務ロジック・共通処理などアプリケーション本体のコードを新規実装・改変することは対象外（リバース対象の原本性を損なうため）。検証がうまくいかない根本原因がアプリ本体側の実装にあると判明した場合は、コードを書き換えるのではなく、その事実を開通記録（<code>handoff.unlock_record_dir</code>）に書き残しユーザーの判断に委ねる。</li>
     <li>本スキルは例外的に画面レジストリへの直接読み書きと <code>syncing-reverse-env</code> の直接起動を行う（理由: 開通の事実を知るのは本スキルだけであり、下流が能動的に検知できないため）</li>
     <li>プロジェクト固有値（パス・コマンド・API名・ポート・画面ID等）は本文・references に一切書かない。すべて <code>manifest.yml</code> の <code>projects.&lt;system&gt;</code> から取得する</li>
     <li>健全性確認は自分が起動したサーバー上でのみ行う。稼働中の他エージェントの環境には触れない</li>
@@ -297,13 +301,14 @@
 
 <section id="s9">
   <h2><span class="sec-num">§9</span>Gotchas</h2>
+  <p class="note">一般的な症状別の切り分け（詰まりパターン）は <code>references/troubleshooting-patterns.md</code> を参照する。以下は同ファイルに寄せていない個別の注意点。</p>
   <ul>
     <li>設計書がある画面は対象外（<code>rebuilding-screen-unit-from-docs</code> / <code>rebuilding-code-from-docs</code> を使う）</li>
     <li>モック変更はホットリロードで反映されないことがある。反映確認は必ずサーバー再起動後に行う</li>
     <li>コード生成名とワイヤ上の実名は大小文字が食い違うことがある。実名は <code>api_source_of_truth.definition_root</code> で確認する</li>
-    <li>画面全体のクラッシュ（エラー境界遷移）はクエリ記録では見えない。<code>pageerror</code> イベントから診断する</li>
-    <li>同一条件で成功と失敗が混在する場合、即座にレース条件と断定せず、まず画面要求値とモックデータの突合でデータ欠落を排除する（§6参照）</li>
     <li>manifest に未確定キー（<code>&lt;FILL:...&gt;</code>）が残ったまま作業を開始してはならない</li>
+    <li>manifestの穴埋めは実行者ではなく人間・呼び出し元の責任。実行者が値を推測して埋めてはならない</li>
+    <li>対象プロジェクトの最初の1枚目を開通する場合、<code>reference_screen</code> による健全性確認は省略してよい（開通済み画面が存在しないため）</li>
   </ul>
 </section>
 
@@ -314,6 +319,8 @@
     <tr><td><code>~/reverse-docs-skills/.claude/skills/orchestrating-reverse-docs-flow/references/contract.md</code></td><td>返却ブロック契約・args仕様・画面レジストリの正本（例外条項含む）</td></tr>
     <tr><td><code>manifest.yml</code>（本スキル同梱）</td><td>プロジェクト固有値の正本</td></tr>
     <tr><td><code>assets/manifest-template.yml</code>（本スキル同梱）</td><td>manifest未整備プロジェクト向け雛形</td></tr>
+    <tr><td><code>references/mock-implementation-recipe.md</code>（本スキル同梱）</td><td>Phase 3のモック実装レシピ（正本からの書き写し・消費側からの逆引き特定・型決定基準・同名API分岐の判断基準）</td></tr>
+    <tr><td><code>references/troubleshooting-patterns.md</code>（本スキル同梱）</td><td>症状・原因・対処の詰まりパターン集（プロジェクト非依存分。プロジェクト固有は <code>manifest.yml</code> の <code>known_gotchas</code>）</td></tr>
     <tr><td><code>~/reverse-docs-skills/.claude/skills/syncing-reverse-env/config.yml</code></td><td>Playwright実行系設定（<code>playwright_exec</code> 等）の共有正本。本スキルは重複定義しない</td></tr>
   </table>
 </section>
