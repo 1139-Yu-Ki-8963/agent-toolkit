@@ -563,7 +563,7 @@ SPLIT_15_2="$(printf '%s\n' "$CONTRACT_BODY" | awk '
   /^### / && insub { exit }
   insub { print }
 ')"
-TYPE_NAMES="$(printf '%s\n' "$SPLIT_15_2" | grep -oE '(type|interface) +[A-Za-z0-9_]+' | awk '{print $2}' | sort -u)"
+TYPE_NAMES="$(printf '%s\n' "$SPLIT_15_2" | { grep -oE '(type|interface) +[A-Za-z0-9_]+' || true; } | awk '{print $2}' | sort -u)"
 
 FILE_BASENAMES="$(printf '%s\n' "$SPLIT_15_1" | awk '
   BEGIN { row=0 }

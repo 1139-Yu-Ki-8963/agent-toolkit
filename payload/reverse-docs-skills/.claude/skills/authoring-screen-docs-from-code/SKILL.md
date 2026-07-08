@@ -1,27 +1,27 @@
 ---
 name: authoring-screen-docs-from-code
-description: "元コードを読解し画面詳細設計書・DESIGN.mdを著述するリバース著者役。 TRIGGER when: リバース設計書の新規著述、元コードからの設計書ブートストラップ、宣言的契約事実表の作成。 SKIP: 盲検の往復検証（→rebuilding-screen-unit-from-docs）、環境同期・基準タグ（→syncing-reverse-env）。"
+description: "封印済みfactsと共通文書から画面詳細設計書を執筆する執筆役。 TRIGGER when: facts封印後の設計書執筆・再執筆。 SKIP: facts抽出（→extracting-unit-facts-from-code）、盲検検証（→rebuilding-screen-unit-from-docs）。"
 invocation: authoring-screen-docs-from-code
 type: orchestration
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent]
 ---
 
-# 元コードからのリバース設計書著述スキル
+# 封印済みfactsからのリバース設計書執筆スキル
 
-元コードを読解し、リバース設計書（画面詳細設計書・DESIGN.md・単体テスト観点表）を「元コード水準の網羅性」で著述する著者役スキル。本スキルは体系内で唯一「**対象ファイルの原本を読むことが正当**」な工程である。リバース設計書とは原本から書くものであり、盲検（原本読解の禁止）が必要なのは検証スキル rebuilding-screen-unit-from-docs の生成役だけである。
+封印済み facts（facts.yml）とプロジェクト共通文書だけを情報源に、リバース設計書（画面詳細設計書・DESIGN.md・単体テスト観点表）を著述する執筆専任スキル。原本コードの読解は上流スキル extracting-unit-facts-from-code が担い、本スキルはその成果物（facts_ref）を受け取って書くだけの役割に限定する。**本スキル実行中に対象リポジトリの原本コードを Read することは全面禁止**（検証の盲検性を壊す契約違反）である。
 
-ただし著述は「**宣言的契約への正規化**」であり、コード行の字面転記（コードブロック丸写し）は禁止する（例外: テンプレート §15.2 の typescript 型ブロックはテンプレート様式として許可）。字面転記禁止の境界例は `references/phase-details.md` を参照する。
+執筆は「宣言的契約への正規化」であり、facts.yml の `value` をそのまま書き写すだけでなく、章の文脈に沿って要約・整形する。ただし facts に無い事実を創作することも禁止する（境界例は `references/writing-rules.md`）。
 
 ## 目的
 
-著者役と検証役は情報アクセス規律が正反対である。著者役は原本を読むのが仕事であり、検証役は原本を読んだら測定が無効になる。両者を同居させると「検証役の規律を著者役に誤適用して設計書がスカスカのまま収束宣言される」事故が起きる。本スキルは著者役を独立させ、原本読解を正当な工程として引き受ける。
+facts 抽出・設計書執筆・盲検検証の3スキルは情報アクセス規律がそれぞれ異なる。**原本を読むのは抽出役（extracting-unit-facts-from-code）だけ**であり、執筆役（本スキル）と検証役（rebuilding-screen-unit-from-docs）はどちらも原本を読まない。両者の違いは、執筆役が封印済み facts という確定情報を読める点にある（検証役は設計書のみから再現する）。本スキルを独立させることで、「執筆役が原本を読んで穴埋めする」事故（facts の欠落を勝手に推測で埋めてしまい、盲検検証の意味が失われる事故）を構造的に防ぐ。
 
 ## 使用タイミング
 
-- リバース設計書を元コードから新規著述したいとき・from-code で設計書の記載粒度をブートストラップしたいとき
-- 本スキルが `status=AUTHORED` を返した後に検証スキル rebuilding-screen-unit-from-docs を起動する（著述 → 盲検往復検証の順）
+- facts が封印済み（extracting-unit-facts-from-code が `status=封印済み` で facts_ref を返した後）で、リバース設計書を新規著述・再著述したいとき
+- 本スキルが `status=AUTHORED` を返した後に検証スキル rebuilding-screen-unit-from-docs を起動する（facts抽出 → 執筆 → 盲検往復検証の順）
 - 検証スキルが `差し戻し`（設計書に対象契約なし）を返した場合の差し戻し先は本スキルである
-- 起動引数は screen_dir + 資産パス群 + mode（+ mode=file 時は target_file_path）
+- 起動引数は screen_dir + facts_ref + common_docs_root + 資産パス群 + mode（+ mode=file 時は target_file_path）
 
 ## スコープ（2 モード）
 
@@ -30,59 +30,60 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent]
 
 ## 設計原則
 
-1. **正本一元化**: 事実表（fact-table.md）は監査証跡であり第二の正本ではない。正は設計書。設計書と事実表が食い違ったら設計書を直す
-2. **「該当なし」に根拠を必須とする**（例:「該当なし（事実表にイベント項目なし）」）。根拠なしの裸の「未確認」は完了条件違反
+1. **正本一元化**: facts.yml は封印済みの確定情報であり第二の正本ではない。正は設計書。設計書と facts.yml が食い違ったら設計書を直す（facts.yml 自体の誤りは extracting-unit-facts-from-code への差し戻し対象であり本スキルは書き換えない）
+2. **「該当なし」に根拠を必須とする**（例:「該当なし（facts.yml の const セクションに項目なし）」）。根拠なしの裸の「未確認」は完了条件違反
 3. **プロジェクト非依存**: リバース対象の固有値（対象リポジトリパス・画面 ID・BL 名）はすべて起動引数・設計書側に置き、本 SKILL.md 本文には書かない。完成後に固有文字列ゼロを確認する（環境名の直書き禁止規約にも整合させる）
-4. **検証スキルとの関係を明記**: 上記「使用タイミング」の通り、AUTHORED 後に検証スキルを起動し、検証 差し戻し の差し戻し先は本スキルである
+4. **原本 Read 禁止**: 本スキル実行中に対象リポジトリの原本コードを Read することを全面禁止する。情報源は起動引数 facts_ref 配下の facts.yml と common_docs_root 配下の共通文書に限定する。原本を読むことは検証の盲検性を壊す契約違反であり、facts の欠落に気づいた場合でも自ら原本を確認せず extracting-unit-facts-from-code への差し戻しとして扱う
+5. **検証スキルとの関係を明記**: 上記「使用タイミング」の通り、AUTHORED 後に検証スキルを起動し、検証 差し戻し の差し戻し先は本スキルである
 
 ## Phase 1: preflight（起動引数検収・スキャフォールディング）
 
-起動引数を検収する: screen_dir / docs_root / template_root / chapter_map_path / audit_script_path / target_repo_path / target_branch / source_ref / mode / target_file_path（mode=file 時）。補助情報源（スクリーンショット dir・レジストリ値）があれば受け取る。いずれか必須引数が欠ける場合は起動不可として呼び出し元へ差し戻す。
+起動引数を検収する: screen_dir / docs_root / template_root / chapter_map_path / audit_script_path / facts_ref / common_docs_root / mode / target_file_path（mode=file 時）。補助情報源（スクリーンショット dir・レジストリ値）があれば受け取る。いずれか必須引数が欠ける場合は起動不可として呼び出し元へ差し戻す。
 
 画面ディレクトリが未存在の場合、本スキルがスキャフォールディングを実施する: `scripts/scaffold-screen.sh <docs_root> <画面ID> [<画面名>]`。既存の場合は `scripts/scaffold-screen.sh --verify <docs_root> <画面ID>` で構造の健全性を確認し、exit 1 なら template_root 起点の原本から欠落ファイルのみ復元して再実行する（fail-closed）。
 
 完了条件: 必須引数が揃い、画面ディレクトリの構造健全性を確認済み
 
-## Phase 2: 原本読解（宣言的契約事実表の作成）
+## Phase 2: 封印検証と facts 読込
 
-対象の原本を読解し、9 分類の「宣言的契約事実表」を `<screen_dir>/検証記録/著述-<対象>/<timestamp>/fact-table.md` に作成する。9 分類（①import ②export・型 ③定数 ④状態変数 ⑤イベントハンドラ ⑥JSX 構造 ⑦スタイル実測値 ⑧API 呼出 ⑨実測系）の抽出粒度・キーの付け方・節構成テンプレートは `references/phase-details.md` を参照する。
+`shared/scripts/seal-facts.sh verify <facts_ref>` を実行し exit 0 を確認する（Phase 2 の必須ゲート）。exit 1（facts.yml が封印時から改変されている）なら著述を行わず `status=BLOCKED` とし、hint に「extracting-unit-facts-from-code で再封印せよ」と記す（このゲートはループ対象外の終端条件）。
 
-各分類は「該当なし」でも根拠付きで節を残す。表の 1 列目は意味キー（連番禁止・内容要約キー）とし、これが Phase 5 の転記突合の識別子になる。
+exit 0 を確認したら、`<facts_ref>/facts.yml`（`shared/references/facts-schema.md` 準拠の9分類構造）と `common_docs_root` 配下のプロジェクト共通文書だけを情報源として読み込む。**対象リポジトリの原本コードは Read しない**（設計原則4）。9 分類（① import 〜 ⑨ measurement_pending）の定義・キーの付け方は `shared/references/facts-schema.md` を参照する。
 
-完了条件: 事実表が 9 分類すべての節を持ち（該当なし節も根拠付きで残す）作成済み
+完了条件: `seal-facts.sh verify` が exit 0、かつ facts.yml と共通文書の読込完了
 
 ## Phase 3: 観点表追記
 
-事実表から単体テスト観点表へ観点行を追記する（意味キー規約: 連番禁止・内容要約キー）。⑨実測系に由来する観点は `[画面単位検証で実測]` として留保する。
+facts.yml から単体テスト観点表へ観点行を追記する（意味キー規約: 連番禁止・内容要約キー）。`measurement_pending`（⑨）に由来する観点は `実測委譲（画面単位検証で確定）` として留保する。
 
-完了条件: 事実表由来の観点行が観点表に追記済み・意味キー規約準拠
+完了条件: facts.yml 由来の観点行が観点表に追記済み・意味キー規約準拠
 
 ## Phase 4: 設計書転記
 
-事実表を下記マップに従って各章へ転記する。⑨実測系は転記せず、該当章に `[画面単位検証で実測]` プレースホルダを残し、返却ブロックの `measurement_pending[]` に一覧化する。判定条件付きの詳細は `references/phase-details.md` を参照する。
+facts.yml の各セクションを下記マップに従って各章へ転記する。`measurement_pending`（⑨）は転記せず、該当章に `実測委譲（画面単位検証で確定）` プレースホルダを残し、返却ブロックの `measurement_pending[]` に一覧化する。転記先決定・字面転記と要約の境界・実測委譲の書式などの執筆規律は `references/writing-rules.md` を正本とする。
 
-| 事実表分類 | 転記先 |
+| facts.yml セクション | 転記先 |
 |---|---|
-| ①import | §15.3（依存） |
-| ②export・型 | §15.1（ファイル分割）/ §15.2（型定義） |
-| ③定数 | §10（定数・設定値） |
-| ④状態変数 | §5（状態管理） |
-| ⑤イベントハンドラ | §8（イベント処理） |
-| ⑥JSX 構造 | §3（画面構造）/ §9（領域別仕様） |
-| ⑦スタイル実測値 | DESIGN.md + §3.6/§15.6 のキー参照 |
-| ⑧API 呼出 | §7（API 通信仕様） |
-| ⑨実測系 | 転記せず `[画面単位検証で実測]` + measurement_pending |
+| import | §15.3（依存） |
+| export_type | §15.1（ファイル分割）/ §15.2（型定義） |
+| const | §10（定数・設定値） |
+| state | §5（状態管理） |
+| handler | §8（イベント処理） |
+| jsx | §3（画面構造）/ §9（領域別仕様） |
+| style | DESIGN.md + §3.6/§15.6 のキー参照 |
+| api | §7（API 通信仕様） |
+| measurement_pending | 転記せず `実測委譲（画面単位検証で確定）` + measurement_pending |
 
 章の役割キー → §番号の解決は起動引数 chapter_map_path を正本とする。§番号は既定値であり、設計書の章マップ表で解決する。
 
-完了条件: 転記完了・⑨が `[画面単位検証で実測]` として留保済み
+完了条件: 転記完了・`measurement_pending` が `実測委譲（画面単位検証で確定）` として留保済み
 
 ## Phase 5: 完全性ゲート
 
-1. `scripts/check-fact-coverage.sh <fact-table.md> <画面詳細設計書.md> [<DESIGN.md>]` を実行し exit 0 を確認する。事実表の全行（⑨除く）が設計書いずれかの章に転記済みかを機械突合し、未転記が 1 行でもあれば exit 1（fail-closed）。未転記キーを Phase 4 のマップに従って転記してから再実行する
-2. 起動引数 audit_script_path（`shared/scripts/audit-consistency.sh`）を通常モードで実行し、内部整合性の違反が 0 件であることを確認する
+1. `scripts/check-fact-coverage.sh <facts_ref>/facts.yml <画面詳細設計書.md> [<DESIGN.md>]` を実行し exit 0 を確認する。facts.yml の全項目（`measurement_pending` は「実測委譲」表記があれば転記済み扱い）が設計書いずれかの章に転記済みかを機械突合し、未転記が 1 件でもあれば exit 1（fail-closed）。未転記キーを Phase 4 のマップに従って転記してから再実行する
+2. 起動引数 audit_script_path（`shared/scripts/audit-consistency.sh`）を通常モードで実行し、exit 0（内部整合性の違反 0 件）を確認する。§15.2 が facts.yml の export_type「型定義なし」に基づく根拠付き該当なし文であっても exit 0 になる（型を捏造して検査を通すことは禁止）
 
-完了条件: `check-fact-coverage.sh` が exit 0 かつ `audit-consistency.sh` 違反 0 件
+完了条件: `check-fact-coverage.sh` と `audit-consistency.sh` がともに exit 0
 
 ## Phase 6: 返却
 
@@ -95,16 +96,16 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent]
 | Phase | 完了条件 |
 |---|---|
 | Phase 1 | 必須引数が揃い、画面ディレクトリの構造健全性を確認済み |
-| Phase 2 | 事実表が 9 分類すべての節を持ち（該当なし節も根拠付きで残す）作成済み |
-| Phase 3 | 事実表由来の観点行が観点表に追記済み・意味キー規約準拠 |
-| Phase 4 | 転記完了・⑨が `[画面単位検証で実測]` として留保済み |
+| Phase 2 | `seal-facts.sh verify` が exit 0、かつ facts.yml と共通文書の読込完了 |
+| Phase 3 | facts.yml 由来の観点行が観点表に追記済み・意味キー規約準拠 |
+| Phase 4 | 転記完了・`measurement_pending` が `実測委譲（画面単位検証で確定）` として留保済み |
 | Phase 5 | `check-fact-coverage.sh` が exit 0 かつ `audit-consistency.sh` 違反 0 件 |
 | Phase 6 | `status=AUTHORED` の返却ブロックが検証記録に保存済み |
-| **Goal** | 裸の「未確認」ゼロ（残ってよいのは `[画面単位検証で実測]` と §16 起票済みのみ） |
+| **Goal** | 裸の「未確認」ゼロ（残ってよいのは `実測委譲（画面単位検証で確定）` と §16 起票済みのみ） |
 
 ## ループ設計
 
-Phase 5（完全性ゲート）で未転記キーが検出された場合、Phase 4 へ差し戻して転記を補い、Phase 5 を再実行する。
+Phase 5（完全性ゲート）で未転記キーが検出された場合、Phase 4 へ差し戻して転記を補い、Phase 5 を再実行する。Phase 2 の封印検証失敗（exit 1）はこのループの対象外であり、即 `status=BLOCKED` として呼び出し元へ差し戻す終端条件である。
 
 | 要素 | 内容 |
 |---|---|
@@ -112,7 +113,7 @@ Phase 5（完全性ゲート）で未転記キーが検出された場合、Phas
 | 上限回数 | 5 回 |
 | 停止条件 | 収束停止: `check-fact-coverage.sh` exit 0 かつ `audit-consistency.sh` 違反 0 件 ／ リソース上限: 5 回到達（未収束の場合は BLOCKED として呼び出し元へ差し戻す） |
 
-原本読解（Phase 2）はサブエージェントへ委任しない。本スキルはカンニング防止が不要な著者役であり、対象ファイルの原本を読むことが正当な唯一の工程はメインエージェント自身が担う（検証スキルのカンニング防止層 2 とは異なる設計）。
+facts 読込・執筆（Phase 2〜4）はサブエージェントへ委任しない。本スキルは原本非アクセスの執筆役であり、カンニング防止のための情報遮断は不要だが、章マップ・執筆規律の一貫性を保つため単一のメインエージェントが通しで担う。
 
 ## 返却ブロック
 
@@ -120,17 +121,21 @@ Phase 5（完全性ゲート）で未転記キーが検出された場合、Phas
 
 | キー | 値 |
 |---|---|
-| status | `AUTHORED`（著述完了）\| `BLOCKED`（原本不在・引数不足等で著述不能） |
+| status | `AUTHORED`（著述完了）\| `BLOCKED`（facts 未封印・引数不足等で著述不能） |
 | scope | `<system>-<画面ID>`（工程を跨いだ同一性キー） |
-| artifacts | 画面詳細設計書・DESIGN.md・単体テスト観点表・fact-table.md のパス |
+| artifacts | 画面詳細設計書・DESIGN.md・単体テスト観点表 のパス |
+| facts_ref（拡張） | 入力で受け取った facts ディレクトリの絶対パスをそのまま転記（下流工程への追跡用） |
 | measurement_pending | ⑨実測系として設計書に確定せず画面単位検証へ委譲した項目の一覧（拡張フィールド） |
 | hint | 次工程（検証スキル起動）への申し送り・差し戻し理由 |
 
 ## Gotchas
 
-- 原本の字面転記（コードブロック丸写し）は禁止。宣言的契約への正規化として書く（境界例は `references/phase-details.md`）
-- ⑨実測系（初期表示値・DOM 順・要素位置・レイアウト）を目視転記・推測で確定しない。`[画面単位検証で実測]` に留め measurement_pending へ回す
+- 原本コードの Read は全面禁止。情報源は facts_ref 配下の facts.yml と common_docs_root 配下の共通文書のみ（設計原則4）
+- facts.yml の字面（`value` 列）をそのまま書き写すだけでなく、章の文脈に沿って正規化して書く。ただし facts に無い事実を創作しない（境界例は `references/writing-rules.md`）
+- `measurement_pending`（⑨実測系: 初期表示値・DOM 順・要素位置・レイアウト）を目視転記・推測で確定しない。`実測委譲（画面単位検証で確定）` に留め measurement_pending へ回す
 - 「該当なし」は必ず根拠を添える。裸の「未確認」は完了条件違反
+- §15.2 が facts.yml export_type「型定義なし」の根拠付き該当なし文でも audit_script_path は exit 0 になる（検査gの型名抽出は無マッチ許容）。exit 1 は常に実違反として扱い、型を捏造して検査を通すことは絶対にしない
+- facts.yml 自体の誤り・欠落に気づいても本スキルは書き換えない。extracting-unit-facts-from-code への差し戻しとして hint に記録する
 - 本 SKILL.md 本文にリバース対象の固有値（対象リポジトリパス・画面 ID・BL 名）を書かない。固有値は起動引数・設計書側に置く
 - 進捗は Step 単位で TaskCreate/TaskUpdate する（一括登録しない）
 
@@ -138,14 +143,14 @@ Phase 5（完全性ゲート）で未転記キーが検出された場合、Phas
 
 ### check-fact-coverage.sh
 
-**必要性**: 事実表の全行が設計書に転記されたかの網羅を機械ゲート化する必要がある。著述の完了条件は「裸の未確認ゼロ」であり、転記漏れを目視確認に頼ると from-zero でスカスカの設計書が収束宣言される事故（本スキル分離の動機そのもの）を防げない。事実表の意味キー集合と設計書本文の言及を突合し、未転記が 1 件でもあれば exit 1 とすることで Phase 5 の完全性ゲートに組み込む。⑨実測系を除外する分岐・意味キー抽出・自己テストという複数分岐があり、Bash 直叩きでは再現性が失われる。
+**必要性**: facts.yml の全項目が設計書に転記されたかの網羅を機械ゲート化する必要がある。著述の完了条件は「裸の未確認ゼロ」であり、転記漏れを目視確認に頼ると穴だらけの設計書が収束宣言される事故（本スキル分離の動機そのもの）を防げない。facts.yml の意味キー集合（`sections` 配下、`measurement_pending` 除く）と設計書本文の言及を突合し、未転記が 1 件でもあれば exit 1 とすることで Phase 5 の完全性ゲートに組み込む。`measurement_pending` は「実測委譲」表記の有無で判定を切り替える分岐・YAML 固定インデントに基づくキー抽出・自己テストという複数分岐があり、Bash 直叩きでは再現性が失われる。
 
 **代替案を採用しなかった理由**:
-- Bash 直叩き: 意味キー抽出・⑨除外・comm 突合を都度手書きすると抽出条件がぶれ、転記漏れの見逃しを誘発する
+- Bash 直叩き: YAML の固定インデントに基づくキー抽出・`measurement_pending` の分岐・comm 突合を都度手書きすると抽出条件がぶれ、転記漏れの見逃しを誘発する
 - 既存 Makefile ターゲット拡張: このリポジトリに Makefile がない
 - package.json scripts 追加: スキル用途でありプロジェクトの package.json に属さない
 
-**保守責任者**: 人手（ユーザー）。fact-table.md の書式・除外分類を変更した時に更新する。
+**保守責任者**: 人手（ユーザー）。facts.yml の書式・除外分類を変更した時に更新する。
 
 **廃棄条件**: 本スキル廃止時、または転記突合が別の網羅計測に統合された時。
 
@@ -166,9 +171,13 @@ Phase 5（完全性ゲート）で未転記キーが検出された場合、Phas
 
 本スキルは orchestrating-reverse-docs-flow の契約（`references/contract.md`）に準拠し、args 全量指定で単独起動できる。
 
-- `references/phase-details.md` — 9 分類の抽出粒度・Phase 4 転記マップの判定条件・字面転記禁止の境界例・fact-table.md の節構成テンプレート
-- `scripts/check-fact-coverage.sh` — Phase 5 完全性ゲート（事実表 → 設計書の転記突合。`--self-test` 内蔵）
+- `references/phase-details.md` — Phase 2（封印検証と facts 読込）・Phase 5（完全性ゲート）の詳細手順
+- `references/writing-rules.md` — 執筆規律の正本（章マップ準拠の転記先決定・facts のキー→設計書章の対応規律・字面転記と要約の境界・実測委譲の書式・禁止事項）
+- `scripts/check-fact-coverage.sh` — Phase 5 完全性ゲート（facts.yml → 設計書の転記突合。`--self-test` 内蔵）
 - `scripts/scaffold-screen.sh` — Phase 1 スキャフォールディング（テンプレート展開・--verify・--dry-run）
+- 起動引数 facts_ref（封印済み facts ディレクトリの絶対パス。実体: extracting-unit-facts-from-code が出力する `<screen_dir>/検証記録/facts/<run_id>/`）
+- 起動引数 common_docs_root（プロジェクト共通文書ルートの絶対パス。実体: compiling-project-common-docs が採録する `プロジェクト共通/`）
 - 起動引数 chapter_map_path（章役割キー対応表。実体: `shared/references/chapter-map.md`）
 - 起動引数 audit_script_path（内部整合性監査。実体: `shared/scripts/audit-consistency.sh`）
 - 起動引数 template_root（テンプレート原本。実体: `shared/templates/リバース検証`）
+- `shared/references/facts-schema.md` — facts.yml のスキーマ正本（9 分類・必須フィールド・正規化規則）
