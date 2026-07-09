@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PRDの学術調長文を文章品質の機械強制で解消する 解決事例</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 0 24px 96px;
+    font-family: system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif;
+    line-height: 1.85; color: #1a1a1a; background: #fafafa;
+    max-width: 980px; margin-inline: auto;
+  }
+  header { padding: 56px 0 24px; border-bottom: 3px solid #1a1a1a; }
+  header h1 { font-size: 1.9rem; margin: 0 0 10px; letter-spacing: 0.01em; }
+  header .skill-name {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 1.0rem; background: #1a1a1a; color: #fafafa;
+    padding: 2px 10px; border-radius: 4px; vertical-align: middle;
+  }
+  header p { margin: 6px 0 0; color: #555; }
+  .meta-table { margin-top: 16px; font-size: 0.9rem; color: #555; }
+  .meta-table td { padding: 1px 16px 1px 0; }
+
+  nav.toc {
+    margin-top: 32px; padding: 18px 22px;
+    background: #fff; border: 1px solid #e0e0e0; border-radius: 8px;
+  }
+  nav.toc .toc-title { font-weight: 700; margin-bottom: 6px; }
+  nav.toc ol { margin: 0; padding-left: 1.4em; columns: 2; column-gap: 40px; }
+  nav.toc li { margin: 2px 0; }
+  nav.toc a { color: #1a1a1a; text-decoration: none; border-bottom: 1px dotted #999; }
+  nav.toc a:hover { border-bottom-style: solid; }
+
+  section { margin-top: 64px; }
+  section > h2 {
+    font-size: 1.35rem; padding-bottom: 8px; margin-bottom: 20px;
+    border-bottom: 2px solid #1a1a1a;
+  }
+  section > h2 .sec-num {
+    display: inline-block; min-width: 2.4em; margin-right: 10px;
+    font-family: ui-monospace, monospace; font-size: 0.95rem;
+    background: #1a1a1a; color: #fafafa; text-align: center;
+    padding: 1px 8px; border-radius: 4px; vertical-align: 2px;
+  }
+  h3 { font-size: 1.05rem; margin: 32px 0 10px; }
+  .note { color: #555; font-size: 0.92rem; }
+
+  table.spec { border-collapse: collapse; width: 100%; margin: 14px 0; background: #fff; font-size: 0.93rem; }
+  table.spec th, table.spec td { border: 1px solid #d8d8d8; padding: 8px 12px; text-align: left; vertical-align: top; }
+  table.spec th { background: #f0f0ee; font-weight: 700; white-space: nowrap; }
+  table.spec td code, li code, p code, table.spec th code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.86em; background: #eeeeea; padding: 1px 5px; border-radius: 3px;
+  }
+
+  pre.flow {
+    background: #16211c; color: #d7e6dc; border-radius: 8px;
+    padding: 20px 24px; overflow-x: auto;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.82rem; line-height: 1.55;
+  }
+  pre.flow .cap { color: #8fb8a0; }
+
+  figure.diagram { margin: 20px 0; padding: 8px; background: #fff;
+    border: 1px solid #e0e0e0; border-radius: 8px; }
+  figure.diagram svg { width: 100%; height: auto; display: block; cursor: zoom-in; }
+  figure.diagram figcaption { padding: 8px 10px 2px; }
+
+  .zoom-overlay {
+    position: fixed; inset: 0; z-index: 1000;
+    background: rgba(15, 23, 42, 0.93);
+    overflow: auto; padding: 24px; cursor: zoom-out;
+    -webkit-overflow-scrolling: touch;
+  }
+  .zoom-overlay svg {
+    width: 1880px; max-width: none; height: auto;
+    display: block; margin: 0 auto;
+    background: #fff; border-radius: 8px;
+  }
+
+  .def {
+    background: #fff; border-left: 4px solid #1a1a1a;
+    padding: 12px 18px; margin: 14px 0; border-radius: 0 6px 6px 0;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  }
+  .def dt { font-weight: 700; margin-top: 8px; }
+  .def dt:first-child { margin-top: 0; }
+  .def dd { margin: 2px 0 0 0; color: #333; }
+
+  .constraint {
+    background: #eef2f7; border: 1px solid #c8d4e3; border-radius: 8px;
+    padding: 12px 18px; margin: 16px 0; font-size: 0.93rem;
+  }
+  .constraint strong:first-child { color: #2a4a7a; }
+
+  .tag {
+    display: inline-block; font-family: ui-monospace, monospace; font-size: 0.78rem;
+    font-weight: 700; padding: 0 8px; border-radius: 3px; border: 1px solid transparent;
+  }
+  .tag.pass  { background: #e7f3e7; color: #23662a; border-color: #b9d9ba; }
+  .tag.fail  { background: #fbe9e7; color: #9c2b1a; border-color: #ecc0b8; }
+  .tag.error { background: #fdf3d7; color: #7a5d10; border-color: #e8d59a; }
+  .tag.mode  { background: #e8eef7; color: #2a4a7a; border-color: #c2d2e8; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>PRDの学術調長文を文章品質の機械強制で解消する<br><span class="skill-name">解決事例</span></h1>
+  <p>AIが書くPRD（Product Requirements Document。製品要求仕様書）や設計書が学術論文調の冗長長文になる課題を、検査エンジン・機械強制・行動規約の3層で解消した事例。</p>
+
+  <table class="meta-table">
+    <tr><td>事例キー</td><td><code>prd長文-学術調</code></td></tr>
+    <tr><td>分類</td><td>文章生成の品質</td></tr>
+    <tr><td>登録日</td><td>2026-07-08</td></tr>
+    <tr><td>検証環境</td><td>macOS + Claude Code + textlint 15系</td></tr>
+  </table>
+</header>
+
+<nav class="toc">
+  <div class="toc-title">目次</div>
+  <ol>
+    <li><a href="#s1">概要</a></li>
+    <li><a href="#s2">課題</a></li>
+    <li><a href="#s3">原因</a></li>
+    <li><a href="#s4">解決の型</a></li>
+    <li><a href="#s5">実装の実物</a></li>
+    <li><a href="#s6">効果</a></li>
+    <li><a href="#s7">顧客環境への導入手順</a></li>
+    <li><a href="#s8">適用時の注意</a></li>
+    <li><a href="#s9">導入手段</a></li>
+  </ol>
+</nav>
+
+<section id="s1">
+  <h2><span class="sec-num">§1</span>概要</h2>
+  <p>AIにPRDや設計書を書かせると、学術論文のような冗長な長文になり、カタカナ語も多くなる。現場では読まれず、結局書き直しになる。この課題を、検査エンジン・機械強制・行動規約の3層構造で解消した。都度の指示ではなく、成果物が確定する瞬間に機械で検査する仕組みを組み込んだ点が要点である。</p>
+  <p>導入は<code>consult-lint-setup</code>スキルが実行する。本HTMLは課題・解決の型・導入の流れを説明する資料である。</p>
+</section>
+
+<section id="s2">
+  <h2><span class="sec-num">§2</span>課題</h2>
+  <p>PRDや設計書をAIに書かせると、学術論文調の冗長な長文になりやすい。一文が長く、網羅性を優先するあまり同じ内容を言い換えて繰り返す。カタカナビジネス用語（ベストプラクティス・ステークホルダー・オンボーディング等）も多用され、初見の読み手には意味が伝わりにくい。現場担当者はこうした文章を読まず、結果として書き直しが発生する。</p>
+</section>
+
+<section id="s3">
+  <h2><span class="sec-num">§3</span>原因</h2>
+  <p>生成AIの既定の文体は、網羅的・冗長で、一文が長く、受動態や外来語を多用する方向に寄りやすい。プロンプトで都度「簡潔に」「平易に」と指示しても、指示漏れや会話が長くなるうちの文体劣化で再発する。</p>
+  <div class="constraint">
+    <strong>要点</strong><br>
+    都度の指示だけでは再発を防げない。成果物が確定する瞬間（コミット・PR作成等）に機械で検査する仕組みが必要になる。
+  </div>
+</section>
+
+<section id="s4">
+  <h2><span class="sec-num">§4</span>解決の型</h2>
+  <p>検査エンジン・機械強制・行動規約の3層を積み上げて機能させる。どの層か1つだけでは効果が続かない。</p>
+  <figure class="diagram">
+    <svg viewBox="0 0 760 320" xmlns="http://www.w3.org/2000/svg" font-family="system-ui, -apple-system, sans-serif">
+      <rect x="40" y="20" width="680" height="80" rx="8" fill="#e8eef7" stroke="#2a4a7a" stroke-width="1.5"/>
+      <text x="70" y="52" font-size="16" font-weight="700" fill="#2a4a7a">層3：行動規約</text>
+      <text x="70" y="76" font-size="13" fill="#333">文体ルールを常時コンテキストへ注入する（何を守るべきかを常に提示）</text>
+
+      <rect x="40" y="120" width="680" height="80" rx="8" fill="#fdf3d7" stroke="#7a5d10" stroke-width="1.5"/>
+      <text x="70" y="152" font-size="16" font-weight="700" fill="#7a5d10">層2：機械強制（hook）</text>
+      <text x="70" y="176" font-size="13" fill="#333">コミット・PR作成の瞬間に違反を検知し、操作そのものを停止する</text>
+
+      <rect x="40" y="220" width="680" height="80" rx="8" fill="#e7f3e7" stroke="#23662a" stroke-width="1.5"/>
+      <text x="70" y="252" font-size="16" font-weight="700" fill="#23662a">層1：検査エンジン</text>
+      <text x="70" y="276" font-size="13" fill="#333">textlint + prh置き換え辞書で、冗長表現・カタカナ語を機械判定する</text>
+    </svg>
+    <figcaption class="note">3層構造。層1が判定基準を持ち、層2が判定結果で操作を止め、層3が判定基準そのものを常時提示する。</figcaption>
+  </figure>
+</section>
+
+<section id="s5">
+  <h2><span class="sec-num">§5</span>実装の実物</h2>
+
+  <h3>検査エンジン</h3>
+  <table class="spec">
+    <tr><th>項目</th><th>内容</th></tr>
+    <tr><td>本体</td><td>textlint 15系 + textlint-rule-preset-ja-technical-writing 12系</td></tr>
+    <tr><td>一文の長さ</td><td>最大100文字（コード・表・箇条書きは除外）</td></tr>
+    <tr><td>読点</td><td>一文につき3つまで</td></tr>
+    <tr><td>連続漢字</td><td>8文字まで</td></tr>
+    <tr><td>その他の判定</td><td>冗長表現の禁止・二重助詞の禁止・形式名詞のひらがな化</td></tr>
+  </table>
+
+  <h3>prh置き換え辞書</h3>
+  <p>語彙64件・正規表現99パターンを6分類で管理する。置き換え例は次のとおり。</p>
+  <table class="spec">
+    <tr><th>置き換え前</th><th>置き換え後</th></tr>
+    <tr><td>ベストプラクティス</td><td>推奨手順</td></tr>
+    <tr><td>ステークホルダー</td><td>関係者</td></tr>
+    <tr><td>オンボーディング</td><td>導入</td></tr>
+    <tr><td>ボトルネック</td><td>制約箇所</td></tr>
+    <tr><td>マイルストーン</td><td>節目</td></tr>
+  </table>
+
+  <h3>hookの発火点と強度</h3>
+  <table class="spec">
+    <tr><th>発火点</th><th>検査対象</th><th>強度</th></tr>
+    <tr><td>git commit</td><td>ドキュメントの追加・変更行のみ</td><td>違反があれば停止</td></tr>
+    <tr><td>PR・課題票の新規作成</td><td>本文全体</td><td>違反があれば停止</td></tr>
+    <tr><td>コメント投稿</td><td>本文全体</td><td>通知のみ（停止しない）</td></tr>
+  </table>
+  <p class="note">検査は追加・変更行のみが対象になるため、導入時に既存の過去文書を一括修正する必要はない。</p>
+</section>
+
+<section id="s6">
+  <h2><span class="sec-num">§6</span>効果</h2>
+  <p>成果物が確定する経路（コミット・PR作成）のすべてに検問を置くことで、学術論文調の長文・カタカナビジネス用語・冗長な言い回しが成果物に残らなくなる。書き手がAIであっても人であっても、注意力に依存しない仕組みになっている。</p>
+</section>
+
+<section id="s7">
+  <h2><span class="sec-num">§7</span>顧客環境への導入手順</h2>
+  <p>導入は手作業ではなく、道具箱の<code>consult-lint-setup</code>スキルが実行する。対象プロジェクトを開いたセッションで「文章品質を導入」と依頼する。</p>
+  <table class="spec">
+    <tr><th>段階</th><th>スキルが行うこと</th></tr>
+    <tr><td>①プロジェクト解析</td><td>文書配置・Node.js環境・既存lint設定・既存hookの構成を調べる</td></tr>
+    <tr><td>②導入計画の提示と承認</td><td>調査結果に基づく導入計画を提示し、実行前に承認を得る</td></tr>
+    <tr><td>③検査エンジンの導入</td><td>textlint一式と置き換え辞書の雛形を配置する</td></tr>
+    <tr><td>④文体規約の配置</td><td>常時読み込みの文体規約を配置する</td></tr>
+    <tr><td>⑤コミット検査hookの設置</td><td>成果物確定の瞬間に違反を検知するhookを設置する</td></tr>
+    <tr><td>⑥実機検証</td><td>違反語を含む試験コミットが停止することを確認する</td></tr>
+    <tr><td>⑦顧客語彙の初期登録</td><td>ヒアリングで得た顧客固有の語彙を辞書に登録する</td></tr>
+  </table>
+  <p class="note">辞書は一般語彙のみの雛形から始め、顧客固有の語彙は導入後のヒアリングで追加する。コンサル側環境の辞書・設定の実物は使わない。</p>
+</section>
+
+<section id="s8">
+  <h2><span class="sec-num">§8</span>適用時の注意</h2>
+  <div class="constraint">
+    <strong>AI文体検出プリセットは不採用</strong><br>
+    AI文体を検出する既定プリセット（ai-writing）は、定型の箇条書きまで誤検知するため採用しなかった。実測では30件のPRで119件が発火し、6割超が誤検知だった。
+  </div>
+  <ul>
+    <li>検査対象は追加・変更行のみとし、既存資産は壊さない</li>
+    <li>設定ファイル自体やAI実行ルール自体は検査対象から除外する</li>
+  </ul>
+</section>
+
+<section id="s9">
+  <h2><span class="sec-num">§9</span>導入手段</h2>
+  <p>本事例は資材を同梱しない。コンサル環境の設定・辞書の実物を顧客へ渡すと、環境固有情報の漏洩になるためである。導入に必要な雛形（検査設定・辞書雛形・文体規約・hookスクリプト）は<code>consult-lint-setup</code>スキルの<code>references/</code>にあり、スキルが顧客環境に合わせて配置する。</p>
+  <p class="note">本事例は <code>../解決事例集.md</code> の蓄積簿に登録されている。</p>
+</section>
+
+<div id="zoom-overlay" class="zoom-overlay" hidden></div>
+<script>
+  (function () {
+    var overlay = document.getElementById('zoom-overlay');
+    if (!overlay) return;
+    document.querySelectorAll('figure.diagram svg').forEach(function (svg) {
+      svg.addEventListener('click', function () {
+        overlay.innerHTML = '';
+        overlay.appendChild(svg.cloneNode(true));
+        overlay.hidden = false;
+        document.body.style.overflow = 'hidden';
+      });
+    });
+    overlay.addEventListener('click', function () {
+      overlay.hidden = true;
+      overlay.innerHTML = '';
+      document.body.style.overflow = '';
+    });
+  })();
+</script>
+
+</body>
+</html>

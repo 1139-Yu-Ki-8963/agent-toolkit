@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<!--
+  AI化レベル定義の顧客向け説明資料
+
+  正本: docs/02_AI化レベル基準/AI化レベル基準.md
+  用途: ヒアリング冒頭で顧客に見せ「AI化レベルとは何か」を共通言語にするための1枚HTML
+
+  制約:
+    - 外部リソース禁止（CDN・画像・link・script src は一切使わない。完全自己完結）
+    - 図は inline SVG のみ（figure.diagram > svg）
+    - <style> とページ末尾のズーム script は case-template.html を踏襲
+-->
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI化レベル定義</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 0 24px 96px;
+    font-family: system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif;
+    line-height: 1.85; color: #1a1a1a; background: #fafafa;
+    max-width: 980px; margin-inline: auto;
+  }
+  header { padding: 56px 0 24px; border-bottom: 3px solid #1a1a1a; }
+  header h1 { font-size: 1.9rem; margin: 0 0 10px; letter-spacing: 0.01em; }
+  header .case-badge {
+    display: inline-block; font-size: 0.85rem; font-weight: 700;
+    background: #1a1a1a; color: #fafafa; padding: 3px 12px; border-radius: 999px;
+    vertical-align: middle; margin-right: 10px;
+  }
+  header p { margin: 6px 0 0; color: #555; }
+  .meta-table { margin-top: 16px; font-size: 0.9rem; color: #555; }
+  .meta-table td { padding: 1px 16px 1px 0; }
+
+  nav.toc {
+    margin-top: 32px; padding: 18px 22px;
+    background: #fff; border: 1px solid #e0e0e0; border-radius: 8px;
+  }
+  nav.toc .toc-title { font-weight: 700; margin-bottom: 6px; }
+  nav.toc ol { margin: 0; padding-left: 1.4em; columns: 2; column-gap: 40px; }
+  nav.toc li { margin: 2px 0; }
+  nav.toc a { color: #1a1a1a; text-decoration: none; border-bottom: 1px dotted #999; }
+  nav.toc a:hover { border-bottom-style: solid; }
+
+  section { margin-top: 64px; }
+  section > h2 {
+    font-size: 1.35rem; padding-bottom: 8px; margin-bottom: 20px;
+    border-bottom: 2px solid #1a1a1a;
+  }
+  section > h2 .sec-num {
+    display: inline-block; min-width: 2.4em; margin-right: 10px;
+    font-family: ui-monospace, monospace; font-size: 0.95rem;
+    background: #1a1a1a; color: #fafafa; text-align: center;
+    padding: 1px 8px; border-radius: 4px; vertical-align: 2px;
+  }
+  h3 { font-size: 1.05rem; margin: 32px 0 10px; }
+  .note { color: #555; font-size: 0.92rem; }
+
+  table.spec { border-collapse: collapse; width: 100%; margin: 14px 0; background: #fff; font-size: 0.93rem; }
+  table.spec th, table.spec td { border: 1px solid #d8d8d8; padding: 8px 12px; text-align: left; vertical-align: top; }
+  table.spec th { background: #f0f0ee; font-weight: 700; white-space: nowrap; }
+
+  figure.diagram { margin: 20px 0; padding: 8px; background: #fff;
+    border: 1px solid #e0e0e0; border-radius: 8px; }
+  figure.diagram svg { width: 100%; height: auto; display: block; cursor: zoom-in; }
+  figure.diagram figcaption { padding: 8px 10px 2px; }
+
+  .zoom-overlay {
+    position: fixed; inset: 0; z-index: 1000;
+    background: rgba(15, 23, 42, 0.93);
+    overflow: auto; padding: 24px; cursor: zoom-out;
+    -webkit-overflow-scrolling: touch;
+  }
+  .zoom-overlay svg {
+    width: 1880px; max-width: none; height: auto;
+    display: block; margin: 0 auto;
+    background: #fff; border-radius: 8px;
+  }
+
+  .level-track { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin: 16px 0; }
+  .level-card { border: 1px solid #d8d8d8; border-radius: 8px; padding: 14px; background: #fff; }
+  .level-card h4 { margin: 0 0 8px; font-size: 0.95rem; }
+  .level-card p { margin: 0; font-size: 0.88rem; color: #333; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1><span class="case-badge">共通言語</span>AI化レベル定義</h1>
+  <p>業務のどこまでをAIに任せるかを決めるための共通尺度。ヒアリングの冒頭で顧客と確認し、上限判定・現在地診断・目標合意の全工程で使う。</p>
+
+  <table class="meta-table">
+    <tr><td>対象</td><td>AI推進コンサルの全案件</td></tr>
+    <tr><td>正本</td><td>docs/02_AI化レベル基準</td></tr>
+  </table>
+</header>
+
+<nav class="toc">
+  <div class="toc-title">目次</div>
+  <ol>
+    <li><a href="#s1">AI化レベルとは</a></li>
+    <li><a href="#s2">レベル定義表</a></li>
+    <li><a href="#s3">レベルの視覚化</a></li>
+    <li><a href="#s4">レベルを分ける6つの観測点</a></li>
+    <li><a href="#s5">各レベルの詳細定義</a></li>
+    <li><a href="#s6">現在地レベルの診断</a></li>
+    <li><a href="#s7">4つの判定軸</a></li>
+    <li><a href="#s8">判定マトリクス（軸別上限表）</a></li>
+    <li><a href="#s9">昇格条件</a></li>
+    <li><a href="#s10">判定の流れ</a></li>
+    <li><a href="#s11">課題からレベル軌道を書く手順</a></li>
+    <li><a href="#s12">境界事例</a></li>
+  </ol>
+</nav>
+
+<section id="s1">
+  <h2><span class="sec-num">§1</span>AI化レベルとは</h2>
+  <p>業務のどこまでをAIに任せるかを、レベル1からレベル5までの5段階で定義したもの。段階が上がるほどAIの自律度が増し、人の関与は薄くなる。導入は一度に1レベルずつ進めるのが原則で、いきなり高いレベルから始めることはしない。</p>
+  <p>本基準は次の3つの問いに、推測を挟まずに答えるための道具である。</p>
+  <table class="spec">
+    <thead><tr><th>使い方</th><th>問い</th><th>使う道具</th></tr></thead>
+    <tbody>
+      <tr><td>上限の判定</td><td>このタスクはどのレベルまで任せてよいか</td><td>4つの判定軸 → 軸別上限表（§7・§8）</td></tr>
+      <tr><td>現在地の診断</td><td>このタスクは今どのレベルで運用されているか</td><td>診断の質問 → 各レベルの判定条件（§5・§6）</td></tr>
+      <tr><td>レベル軌道の記述</td><td>このタスクの各レベルは具体的にどう動く姿か</td><td>6つの観測点 → 課題別のL1〜L5説明（§4・§11）</td></tr>
+    </tbody>
+  </table>
+  <p>課題を1つ与えられたとき、本基準だけを根拠に「この課題のL1〜L5はこういう姿で、現在地はここ、上限はここ」と出力できることがゴールとなる。</p>
+</section>
+
+<section id="s2">
+  <h2><span class="sec-num">§2</span>レベル定義表</h2>
+  <table class="spec">
+    <thead>
+      <tr><th>レベル</th><th>呼び方</th><th>人とAIの役割分担</th><th>例</th><th>導入の前提条件</th><th>運用時の監視</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>レベル1（人手のみ）</td><td>人手のみ</td><td>AIを使わない。人がすべて実行する</td><td>対面交渉・物理作業</td><td>なし</td><td>不要</td></tr>
+      <tr><td>レベル2（AI補助）</td><td>AI補助</td><td>人が主体で作業し、AIは下書き・要約・調査を提供する。人が毎回全部を確認する</td><td>文書下書き・議事録要約</td><td>出力を毎回全件確認する運用を組む</td><td>都度の全件確認</td></tr>
+      <tr><td>レベル3（人が承認するAI実行）</td><td>人が承認するAI実行</td><td>AIが主体で実行し、人が成果物を承認してから次工程へ進める</td><td>帳票作成→人が承認→送付</td><td>承認手順・差戻し手順を整備する</td><td>承認時の全件確認</td></tr>
+      <tr><td>レベル4（例外のみ人介入）</td><td>例外のみ人介入</td><td>AIが自動実行する。定型外・エラー時だけ人に引き継ぐ</td><td>定型問い合わせの自動応答</td><td>例外検知の仕組み・引き継ぎ先を整備する</td><td>例外発生時のみ、抜き取り確認を併用</td></tr>
+      <tr><td>レベル5（完全自動）</td><td>完全自動</td><td>AIが自動実行し、人は関与しない</td><td>ログ集計・定期報告の配信</td><td>監査体制・異常検知の仕組みを整備する</td><td>定期監査のみ</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="s3">
+  <h2><span class="sec-num">§3</span>レベルの視覚化</h2>
+  <p class="note">左が人手、右に行くほどAIの自律度が上がる。</p>
+  <div class="level-track">
+    <div class="level-card">
+      <h4>L1 人手のみ</h4>
+      <p>AIを使わず人がすべて実行する。</p>
+    </div>
+    <div class="level-card">
+      <h4>L2 AI補助</h4>
+      <p>人が毎回指示文を書き、AIの出力を人が編集して完成させる。</p>
+    </div>
+    <div class="level-card">
+      <h4>L3 人が承認するAI実行</h4>
+      <p>固定指示でAIが完成品を作り、人は手を入れず合否だけ判定する。</p>
+    </div>
+    <div class="level-card">
+      <h4>L4 例外のみ人介入</h4>
+      <p>自動起動でAIが実行し、列挙済みの例外だけ人に引き継ぐ。</p>
+    </div>
+    <div class="level-card">
+      <h4>L5 完全自動</h4>
+      <p>日常運用に人が登場しない。定期監査のみ行う。</p>
+    </div>
+  </div>
+</section>
+
+<section id="s4">
+  <h2><span class="sec-num">§4</span>レベルを分ける6つの観測点</h2>
+  <p>レベルの違いは「AIの賢さ」の違いではなく、<strong>業務の回り方</strong>の違いである。次の6点を観測すれば、どのレベルで運用されているかは機械的に決まる。課題別のレベル説明を書くときの型でもある（§11参照）。</p>
+  <table class="spec">
+    <thead>
+      <tr><th>観測点</th><th>L1 人手のみ</th><th>L2 AI補助</th><th>L3 人が承認するAI実行</th><th>L4 例外のみ人介入</th><th>L5 完全自動</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>仕事の起動</td><td>人が始める</td><td>人が始める</td><td>人がAIを起動する</td><td>受信・時刻・他システムの通知で自動起動</td><td>自動起動</td></tr>
+      <tr><td>AIへの指示</td><td>なし</td><td>人が毎回考えて書く。1つの成果物に何往復も対話する</td><td>文書化された固定指示を1回渡すだけ</td><td>通常運用ではゼロ</td><td>ゼロ</td></tr>
+      <tr><td>手順知識の所在</td><td>人の頭と手順書</td><td>人の頭（指示は毎回組み立てる）</td><td>指示文集・出力の型として文書化</td><td>機械が実行できる自動化設定</td><td>自動化設定に加え、異常検知・自動停止の仕組み</td></tr>
+      <tr><td>成果物を完成させる者</td><td>人</td><td>人（AIの出力は素材）</td><td>AI（人は手を入れない）</td><td>AI</td><td>AI</td></tr>
+      <tr><td>人の確認</td><td>自分の作業として行う</td><td>全件を読んで手直しする</td><td>完成品を全件、合否だけ判定する</td><td>例外時のみ対応し、正常分は抜き取り確認</td><td>定期監査のみ</td></tr>
+      <tr><td>誤りの発見と回復</td><td>人が自分で気づいて直す</td><td>手直しの過程で人が直す</td><td>承認時に人が見つけ、差し戻してAIに作り直させる</td><td>機械が例外を検知して人へ引き継ぐ</td><td>機械が検知・停止し、定期監査で検証する</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="s5">
+  <h2><span class="sec-num">§5</span>各レベルの詳細定義</h2>
+
+  <h3>レベル1（人手のみ）</h3>
+  <p>AIをその業務で使わない。対面交渉・物理作業のようにAI化の対象にならないものと、単にまだAIを使っていないものの両方が含まれる。どちらであるかは軸別上限表（§8）による上限の判定で区別する。</p>
+  <p><strong>判定条件</strong>: 対象業務でのAI利用実績がない。</p>
+
+  <h3>レベル2（AI補助）</h3>
+  <p><strong>具体像</strong>: 担当者が対話型AIの画面を開き、その都度指示文を書いて下書き・要約・調査結果を得る。1つの成果物のために何往復もやり取りし、得られた出力を自分で編集して完成させる。指示文をうまく書けるかどうかが担当者の腕前に依存し、品質が人によってばらつく。</p>
+  <p><strong>判定条件（すべて満たすこと）</strong></p>
+  <ul>
+    <li>人が起動し、人が毎回指示文を考えて書いている</li>
+    <li>AIの出力は素材であり、人が手を入れて完成させている</li>
+    <li>完成前に人が全件を確認している</li>
+  </ul>
+  <p class="note"><strong>このレベルでないもの</strong>: AIの出力を無修正のまま成果物として使っているなら、実態はレベル3の運用である。承認手順・差戻し基準がないまま無修正利用している場合は「仕組みのないレベル3」であり、レベル3の前提条件（承認手順の整備）を満たすよう是正する。</p>
+
+  <h3>レベル3（人が承認するAI実行）</h3>
+  <p><strong>具体像</strong>: 指示文は文書化・固定化されており、人が新しく文章を考えることはない。人の仕事は「起動」と「承認」の2つに絞られる。AIは完成形の成果物を出し、人は内容に手を入れず、合格なら次工程へ進め、不合格なら差し戻してAIに作り直させる。品質は指示文と差戻し基準の出来で決まり、担当者の腕前に依存しなくなる。</p>
+  <p><strong>判定条件（すべて満たすこと）</strong></p>
+  <ul>
+    <li>固定の指示文（指示文集・テンプレート）と出力の型が文書化されている</li>
+    <li>人はAIの出力に手を入れない。修正は差戻しでAIに行わせる</li>
+    <li>承認手順と差戻し基準が文書化され、人が全件を承認している</li>
+  </ul>
+  <p class="note"><strong>このレベルでないもの</strong>: 人が出力に手を入れて仕上げているならレベル2。人が毎回指示文を考えているならレベル2。起動が自動（人が始めない）ならレベル4。</p>
+
+  <h3>レベル4（例外のみ人介入）</h3>
+  <p><strong>具体像</strong>: 業務はメールの受信・決まった時刻・他システムの通知をきっかけに自動で始まり、完成まで人は登場しない。あらかじめ列挙した例外条件に該当した場合だけ機械が人へ通知し、人がその件だけを処理する。正常に流れた分は抜き取りで品質を確認する。</p>
+  <p><strong>判定条件（すべて満たすこと）</strong></p>
+  <ul>
+    <li>人が起動しなくても業務が始まる（自動起動）</li>
+    <li>例外と判定する条件が文書で列挙されている（「なんとなく変なら」は不可）</li>
+    <li>例外発生時の通知先と対応手順が決まっている</li>
+    <li>処理件数・失敗率が記録されている</li>
+    <li>正常分を人は都度確認しない（抜き取り確認のみ）</li>
+  </ul>
+  <p class="note"><strong>このレベルでないもの</strong>: 人が毎回起動しているならレベル3。例外条件が列挙されておらず、人が心配で全件を見ているならレベル3。</p>
+
+  <h3>レベル5（完全自動）</h3>
+  <p><strong>具体像</strong>: 例外対応を含めて、日常運用に人が登場しない。異常があれば機械が検知して自動停止し、担当者ではなく監査者が月次などの定期監査でだけ関わる。</p>
+  <p><strong>判定条件（すべて満たすこと）</strong></p>
+  <ul>
+    <li>異常検知と自動停止の仕組みが動作している</li>
+    <li>監査手順と監査記録の保管先が決まっている</li>
+    <li>日常運用における人の作業がゼロである</li>
+  </ul>
+  <p class="note"><strong>このレベルでないもの</strong>: 例外の引き継ぎ先として人が待機しているならレベル4。</p>
+</section>
+
+<section id="s6">
+  <h2><span class="sec-num">§6</span>現在地レベルの診断</h2>
+  <p>現在地は自己申告ではなく<strong>観測できる証拠</strong>で判定する。証拠は担当者の実演・指示文の実物・自動化設定の画面・監査記録のいずれかとする（棚卸し表の「推測記入の禁止」と同じ原則）。</p>
+  <table class="spec">
+    <thead><tr><th>質問キー</th><th>質問</th><th>回答とレベルの対応</th></tr></thead>
+    <tbody>
+      <tr><td>AI利用有無</td><td>この業務でAIを使っていますか</td><td>いいえ → レベル1</td></tr>
+      <tr><td>指示文の固定化</td><td>AIへの指示文は毎回考えて書きますか、固定の指示文を使い回しますか</td><td>毎回書く → レベル2の証拠 / 固定 → レベル3以上の証拠</td></tr>
+      <tr><td>出力の扱い</td><td>AIの出力に手を入れて完成させますか、手を入れず合否だけ判定しますか</td><td>手を入れる → レベル2 / 合否のみ → レベル3以上</td></tr>
+      <tr><td>起動のきっかけ</td><td>この業務は何をきっかけに始まりますか。人が始めなくても動きますか</td><td>人が起動 → レベル3以下 / 自動起動 → レベル4以上</td></tr>
+      <tr><td>確認の頻度</td><td>AIの結果を人がいつ・どれだけ見ますか</td><td>全件確認 → レベル3以下 / 例外と抜き取りのみ → レベル4 / 定期監査のみ → レベル5</td></tr>
+    </tbody>
+  </table>
+  <p>§5の各レベルの判定条件に照らし、<strong>条件をすべて満たす最も高いレベル</strong>を現在地とする。条件を一部しか満たさない場合は1つ下のレベルに倒す（例: 指示文は固定だが人が出力に手を入れている → レベル2）。</p>
+  <p class="note">質問キーは連番禁止。内容を要約した意味語で付ける（番号からは情報を得られないため）。</p>
+</section>
+
+<section id="s7">
+  <h2><span class="sec-num">§7</span>4つの判定軸</h2>
+  <p>タスクごとに以下4軸を「高・中・低」の3段階で評価する。</p>
+
+  <h3>誤り影響度</h3>
+  <p class="note">AIが誤った成果物を出した場合に、どこまで影響が及ぶかを表す軸。</p>
+  <table class="spec">
+    <thead><tr><th>評価</th><th>基準</th></tr></thead>
+    <tbody>
+      <tr><td>高</td><td>顧客・金銭・法令に影響が及ぶ</td></tr>
+      <tr><td>中</td><td>社内の手戻りで収まる</td></tr>
+      <tr><td>低</td><td>すぐ修正でき影響が残らない</td></tr>
+    </tbody>
+  </table>
+
+  <h3>判断定型度</h3>
+  <p class="note">タスク内の判断が、あらかじめルール化されているかを表す軸。</p>
+  <table class="spec">
+    <thead><tr><th>評価</th><th>基準</th></tr></thead>
+    <tbody>
+      <tr><td>高</td><td>ルール化済みで手順書がある</td></tr>
+      <tr><td>中</td><td>おおむね定型だが例外がある</td></tr>
+      <tr><td>低</td><td>都度判断・暗黙知に依存する</td></tr>
+    </tbody>
+  </table>
+
+  <h3>入力構造化度</h3>
+  <p class="note">タスクへの入力データがどこまで整った形式かを表す軸。</p>
+  <table class="spec">
+    <thead><tr><th>評価</th><th>基準</th></tr></thead>
+    <tbody>
+      <tr><td>高</td><td>データが整備済み</td></tr>
+      <tr><td>中</td><td>形式が不揃い（半構造）</td></tr>
+      <tr><td>低</td><td>紙・口頭・暗黙知</td></tr>
+    </tbody>
+  </table>
+
+  <h3>検証容易性</h3>
+  <p class="note">AIの成果物が正しいかどうかを、人がどれだけ手早く確認できるかを表す軸。</p>
+  <table class="spec">
+    <thead><tr><th>評価</th><th>基準</th></tr></thead>
+    <tbody>
+      <tr><td>高</td><td>数分で正誤を確認できる</td></tr>
+      <tr><td>中</td><td>抜き取り確認で足りる</td></tr>
+      <tr><td>低</td><td>全件の精査が必要</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="s8">
+  <h2><span class="sec-num">§8</span>判定マトリクス（軸別上限表）</h2>
+  <p>4軸の評価結果から、到達可能な上限レベルを機械的に判定する。各軸の評価値ごとに上限が決まり、<strong>最も低い上限がそのタスクの判定レベル（上限）</strong>となる。</p>
+  <table class="spec">
+    <thead><tr><th>軸</th><th>評価</th><th>上限</th><th>理由</th></tr></thead>
+    <tbody>
+      <tr><td rowspan="3">誤り影響度</td><td>低</td><td>レベル5</td><td>影響が残らない誤りは定期監査で拾えば足りる</td></tr>
+      <tr><td>中</td><td>レベル4</td><td>社内の手戻りは例外運用で収まるが、完全無人にはしない</td></tr>
+      <tr><td>高</td><td>レベル3</td><td>顧客・金銭・法令に届く誤りは、人の承認を最後の防壁として残す</td></tr>
+      <tr><td rowspan="3">判断定型度</td><td>高</td><td>レベル5</td><td>ルール化済みの判断は機械に完全移管できる</td></tr>
+      <tr><td>中</td><td>レベル4</td><td>例外がある限り、引き継ぎ先の人が必要</td></tr>
+      <tr><td>低</td><td>レベル2</td><td>ルール化されていない判断では、AIが完成品を安定して作れない</td></tr>
+      <tr><td rowspan="3">入力構造化度</td><td>高</td><td>レベル5</td><td>整備済みデータは無人でも取り込める</td></tr>
+      <tr><td>中</td><td>レベル4</td><td>形式が不揃いだと取り込みの失敗があり得るため無人化しない</td></tr>
+      <tr><td>低</td><td>レベル2</td><td>紙・口頭・暗黙知の入力は、人が対話で補いながら渡すしかない</td></tr>
+      <tr><td rowspan="3">検証容易性</td><td>高</td><td>レベル5</td><td>正誤の確認が速い成果物は監査に載せやすい</td></tr>
+      <tr><td>中</td><td>レベル4</td><td>抜き取り確認で足りるなら例外運用に移せる</td></tr>
+      <tr><td>低</td><td>レベル3</td><td>全件の精査が必要なものは抜き取り確認へ移行できない</td></tr>
+    </tbody>
+  </table>
+  <p><strong>追加規則</strong>: 誤り影響度=高 かつ 検証容易性=低 の組み合わせは、上限をレベル2に引き下げる（重大な誤りを見つけにくい業務では、AIに完成品を作らせない）。</p>
+  <p><strong>判定手順</strong>: 4軸それぞれの上限を表から引き、追加規則を適用したうえで、最小値を判定レベル（上限）とする。</p>
+  <p class="note">適用例を次に示す（4軸の並びは誤り影響度・判断定型度・入力構造化度・検証容易性）。</p>
+  <table class="spec">
+    <thead><tr><th>タスク例</th><th>4軸の評価</th><th>軸別上限</th><th>判定</th></tr></thead>
+    <tbody>
+      <tr><td>請求書発行</td><td>高・高・高・高</td><td>レベル3・5・5・5</td><td>レベル3</td></tr>
+      <tr><td>問い合わせ一次応答</td><td>中・高・高・中</td><td>レベル4・5・5・4</td><td>レベル4</td></tr>
+      <tr><td>契約書の確認</td><td>誤り影響度=高、検証容易性=低</td><td>追加規則に該当</td><td>レベル2</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="s9">
+  <h2><span class="sec-num">§9</span>昇格条件</h2>
+  <p>段階導入では、下のレベルでの運用実績が次のレベルの前提になる。以下の条件がすべて満たされたときに1レベル上げる。件数・期間・比率は初期の目安であり、案件ごとに顧客と合意して確定する（AI・コンサルタントの推測で確定しない）。</p>
+  <table class="spec">
+    <thead><tr><th>昇格</th><th>満たすべき条件（すべて）</th></tr></thead>
+    <tbody>
+      <tr><td>レベル1→2</td><td>データ取り扱いチェック（docs/06）の判定を通過している / 指示文の初版がある / 出力を毎回全件確認する運用が決まっている</td></tr>
+      <tr><td>レベル2→3</td><td>指示文が固定化され、直近の運用で内容の変更が不要になっている / 直近20件で、AI出力への内容の手直しが2割未満（誤字調整など形式の手直しは数えない） / 出力の型・承認手順・差戻し基準が文書化されている</td></tr>
+      <tr><td>レベル3→4</td><td>直近50件または1か月の差戻し率が5%未満 / 発生した差戻し理由が、すべて例外条件として列挙済みである / 自動起動と例外通知の仕組みが動いている / 処理件数・失敗率が記録されている</td></tr>
+      <tr><td>レベル4→5</td><td>直近3か月の例外率が1%未満で、例外の見逃しがない / 異常検知と自動停止の動作を確認済みである / 監査手順と監査記録の保管先が決まっている</td></tr>
+    </tbody>
+  </table>
+  <p>昇格条件は「AIをどこまで使いこなせているか」の判定軸でもある。指示文を固定化できているか（レベル2→3）、指示なしで動く仕組みを組めているか（レベル3→4）、無人でも異常に気づける仕組みがあるか（レベル4→5）が、それぞれの節目となる。</p>
+</section>
+
+<section id="s10">
+  <h2><span class="sec-num">§10</span>判定の流れ</h2>
+  <figure class="diagram">
+    <svg viewBox="0 0 820 200" xmlns="http://www.w3.org/2000/svg">
+      <rect x="15" y="60" width="175" height="80" rx="8" fill="#fff" stroke="#1a1a1a" stroke-width="2"/>
+      <text x="102" y="95" text-anchor="middle" font-size="16" fill="#1a1a1a">4軸を評価</text>
+      <text x="102" y="118" text-anchor="middle" font-size="11" fill="#555">棚卸し表の記録から</text>
+
+      <polygon points="193,90 193,110 218,100" fill="#1a1a1a"/>
+
+      <rect x="220" y="60" width="175" height="80" rx="8" fill="#fff" stroke="#1a1a1a" stroke-width="2"/>
+      <text x="307" y="95" text-anchor="middle" font-size="16" fill="#1a1a1a">上限を判定</text>
+      <text x="307" y="118" text-anchor="middle" font-size="11" fill="#555">軸別上限の最小値</text>
+
+      <polygon points="398,90 398,110 423,100" fill="#1a1a1a"/>
+
+      <rect x="425" y="60" width="175" height="80" rx="8" fill="#fff" stroke="#1a1a1a" stroke-width="2"/>
+      <text x="512" y="95" text-anchor="middle" font-size="16" fill="#1a1a1a">現在地を診断</text>
+      <text x="512" y="118" text-anchor="middle" font-size="11" fill="#555">証拠と判定条件を突合</text>
+
+      <polygon points="603,90 603,110 628,100" fill="#1a1a1a"/>
+
+      <rect x="630" y="60" width="175" height="80" rx="8" fill="#fff" stroke="#1a1a1a" stroke-width="2"/>
+      <text x="717" y="95" text-anchor="middle" font-size="16" fill="#1a1a1a">目標を合意</text>
+      <text x="717" y="118" text-anchor="middle" font-size="11" fill="#555">現在地の1つ上・上限以内</text>
+    </svg>
+    <figcaption class="note">4軸の評価から上限を判定し、証拠で現在地を診断したうえで、段階導入の原則（一度に1レベルずつ・上限以内）に従って今回の目標を顧客と合意する。運用開始後は昇格条件（§9）の実績を記録し、次の1レベルを検討する。</figcaption>
+  </figure>
+</section>
+
+<section id="s11">
+  <h2><span class="sec-num">§11</span>課題からレベル軌道を書く手順</h2>
+  <p>課題（タスク）を与えられたとき、その課題のL1〜L5の具体像を書く手順。</p>
+  <ol>
+    <li>課題を「入力 → 処理 → 出力 → 確認」の4要素に分解する（何を受け取り、何をして、何を出し、誰が確かめるか）</li>
+    <li>6つの観測点（§4）の各レベルの値を、その課題の固有名詞に置き換える</li>
+    <li>レベルごとに1〜2文で書く。<strong>「何をきっかけに・誰が・AIが何をして・人が何を確認するか」</strong>を必ず含める</li>
+    <li>判定レベル（上限）を超えるレベルには「上限超過」と超過理由を明記する（参考として姿を書いてもよい）</li>
+  </ol>
+  <h3>記入例: 請求書発行（4軸=高・高・高・高、上限レベル3）</h3>
+  <table class="spec">
+    <thead><tr><th>レベル</th><th>この課題での姿</th></tr></thead>
+    <tbody>
+      <tr><td>レベル1（人手のみ）</td><td>担当者が受注一覧と単価表を突き合わせ、請求書を手作業で作成して発行する</td></tr>
+      <tr><td>レベル2（AI補助）</td><td>担当者が受注データを対話型AIに渡して請求書の下書きを作らせ、金額と宛先を自分で修正して仕上げる。指示文は毎回担当者が書く</td></tr>
+      <tr><td>レベル3（人が承認するAI実行）</td><td>担当者が固定指示でAIを起動すると、AIが受注データから請求書を完成形で作成する。担当者は金額突合で合否だけを判定し、合格分を発行する。不合格分は差し戻してAIに作り直させる</td></tr>
+      <tr><td>レベル4（例外のみ人介入）</td><td>上限超過（誤り影響度=高のため、人の承認を外せない）。参考: 月次締めをきっかけにAIが自動作成・発行し、単価表にない品目など列挙済みの例外だけ人が処理する姿</td></tr>
+      <tr><td>レベル5（完全自動）</td><td>上限超過（同上）。参考: 発行から入金確認まで無人で流れ、人は月次監査のみ行う姿</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="s12">
+  <h2><span class="sec-num">§12</span>境界事例</h2>
+  <p>判断に迷いやすい実例を示す。</p>
+
+  <h3>請求書作成</h3>
+  <p>誤り影響度は高いが、金額突合を数分で確認できるため検証容易性は高い。軸別上限表では誤り影響度=高の上限レベル3が最小となり、レベル3（人が承認するAI実行）が上限となる。</p>
+
+  <h3>問い合わせ一次応答</h3>
+  <p>判断定型度・入力構造化度が高く、誤り影響度は中にとどまる。軸別上限は誤り影響度=中と検証容易性=中のレベル4が最小となる。段階導入の原則に従いレベル3で開始し、昇格条件（差戻し率5%未満・例外条件の列挙）を満たしてからレベル4へ上げる。</p>
+
+  <h3>契約書の確認</h3>
+  <p>誤り影響度が高く、検証容易性は低い（条項の妥当性を全件精査する必要がある）。追加規則（誤り影響度=高 かつ 検証容易性=低）に該当し、上限はレベル2。AIには論点の洗い出しまでを任せ、最終判断は人が行う。</p>
+</section>
+
+<div id="zoom-overlay" class="zoom-overlay" hidden></div>
+<script>
+  (function () {
+    var overlay = document.getElementById('zoom-overlay');
+    if (!overlay) return;
+    document.querySelectorAll('figure.diagram svg').forEach(function (svg) {
+      svg.addEventListener('click', function () {
+        overlay.innerHTML = '';
+        overlay.appendChild(svg.cloneNode(true));
+        overlay.hidden = false;
+        document.body.style.overflow = 'hidden';
+      });
+    });
+    overlay.addEventListener('click', function () {
+      overlay.hidden = true;
+      overlay.innerHTML = '';
+      document.body.style.overflow = '';
+    });
+  })();
+</script>
+
+</body>
+</html>

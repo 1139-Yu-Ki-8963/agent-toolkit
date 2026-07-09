@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<!--
+  解決事例HTMLのテンプレート
+
+  使い方:
+    1. このファイルをコピーして docs/09_解決事例集/<課題キー>/解決事例.html に配置する
+    2. {{...}} プレースホルダをすべて実データで置換する
+    3. コンサル環境の設定・辞書の実物を assets に置かない（環境固有情報の漏洩防止）
+
+  制約:
+    - 外部リソース禁止（CDN・画像・link・script src は一切使わない。完全自己完結）
+    - 図は inline SVG のみ（figure.diagram > svg）
+    - <style> とページ末尾のズーム script は変更しない
+-->
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{case-title}} 解決事例</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 0 24px 96px;
+    font-family: system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif;
+    line-height: 1.85; color: #1a1a1a; background: #fafafa;
+    max-width: 980px; margin-inline: auto;
+  }
+  header { padding: 56px 0 24px; border-bottom: 3px solid #1a1a1a; }
+  header h1 { font-size: 1.9rem; margin: 0 0 10px; letter-spacing: 0.01em; }
+  header .case-badge {
+    display: inline-block; font-size: 0.85rem; font-weight: 700;
+    background: #1a1a1a; color: #fafafa; padding: 3px 12px; border-radius: 999px;
+    vertical-align: middle; margin-right: 10px;
+  }
+  header p { margin: 6px 0 0; color: #555; }
+  .meta-table { margin-top: 16px; font-size: 0.9rem; color: #555; }
+  .meta-table td { padding: 1px 16px 1px 0; }
+
+  nav.toc {
+    margin-top: 32px; padding: 18px 22px;
+    background: #fff; border: 1px solid #e0e0e0; border-radius: 8px;
+  }
+  nav.toc .toc-title { font-weight: 700; margin-bottom: 6px; }
+  nav.toc ol { margin: 0; padding-left: 1.4em; columns: 2; column-gap: 40px; }
+  nav.toc li { margin: 2px 0; }
+  nav.toc a { color: #1a1a1a; text-decoration: none; border-bottom: 1px dotted #999; }
+  nav.toc a:hover { border-bottom-style: solid; }
+
+  section { margin-top: 64px; }
+  section > h2 {
+    font-size: 1.35rem; padding-bottom: 8px; margin-bottom: 20px;
+    border-bottom: 2px solid #1a1a1a;
+  }
+  section > h2 .sec-num {
+    display: inline-block; min-width: 2.4em; margin-right: 10px;
+    font-family: ui-monospace, monospace; font-size: 0.95rem;
+    background: #1a1a1a; color: #fafafa; text-align: center;
+    padding: 1px 8px; border-radius: 4px; vertical-align: 2px;
+  }
+  h3 { font-size: 1.05rem; margin: 32px 0 10px; }
+  .note { color: #555; font-size: 0.92rem; }
+
+  table.spec { border-collapse: collapse; width: 100%; margin: 14px 0; background: #fff; font-size: 0.93rem; }
+  table.spec th, table.spec td { border: 1px solid #d8d8d8; padding: 8px 12px; text-align: left; vertical-align: top; }
+  table.spec th { background: #f0f0ee; font-weight: 700; white-space: nowrap; }
+  table.spec td code, li code, p code, table.spec th code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.86em; background: #eeeeea; padding: 1px 5px; border-radius: 3px;
+  }
+
+  pre.flow {
+    background: #16211c; color: #d7e6dc; border-radius: 8px;
+    padding: 20px 24px; overflow-x: auto;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.82rem; line-height: 1.55;
+  }
+  pre.flow .cap { color: #8fb8a0; }
+
+  figure.diagram { margin: 20px 0; padding: 8px; background: #fff;
+    border: 1px solid #e0e0e0; border-radius: 8px; }
+  figure.diagram svg { width: 100%; height: auto; display: block; cursor: zoom-in; }
+  figure.diagram figcaption { padding: 8px 10px 2px; }
+
+  .zoom-overlay {
+    position: fixed; inset: 0; z-index: 1000;
+    background: rgba(15, 23, 42, 0.93);
+    overflow: auto; padding: 24px; cursor: zoom-out;
+    -webkit-overflow-scrolling: touch;
+  }
+  .zoom-overlay svg {
+    width: 1880px; max-width: none; height: auto;
+    display: block; margin: 0 auto;
+    background: #fff; border-radius: 8px;
+  }
+
+  .def {
+    background: #fff; border-left: 4px solid #1a1a1a;
+    padding: 12px 18px; margin: 14px 0; border-radius: 0 6px 6px 0;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  }
+  .def dt { font-weight: 700; margin-top: 8px; }
+  .def dt:first-child { margin-top: 0; }
+  .def dd { margin: 2px 0 0 0; color: #333; }
+
+  .constraint {
+    background: #eef2f7; border: 1px solid #c8d4e3; border-radius: 8px;
+    padding: 12px 18px; margin: 16px 0; font-size: 0.93rem;
+  }
+  .constraint strong:first-child { color: #2a4a7a; }
+
+  .tag {
+    display: inline-block; font-family: ui-monospace, monospace; font-size: 0.78rem;
+    font-weight: 700; padding: 0 8px; border-radius: 3px; border: 1px solid transparent;
+  }
+  .tag.pass  { background: #e7f3e7; color: #23662a; border-color: #b9d9ba; }
+  .tag.fail  { background: #fbe9e7; color: #9c2b1a; border-color: #ecc0b8; }
+  .tag.error { background: #fdf3d7; color: #7a5d10; border-color: #e8d59a; }
+  .tag.mode  { background: #e8eef7; color: #2a4a7a; border-color: #c2d2e8; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1><span class="case-badge">解決事例</span>{{case-title}}</h1>
+
+  <table class="meta-table">
+    <tr><td>事例キー</td><td>{{case-key}}</td></tr>
+    <tr><td>分類</td><td>{{case-category}}</td></tr>
+    <tr><td>登録日</td><td>{{case-date}}</td></tr>
+    <tr><td>検証環境</td><td>{{case-env}}</td></tr>
+  </table>
+</header>
+
+<nav class="toc">
+  <div class="toc-title">目次</div>
+  <ol>
+    <li><a href="#s1">概要</a></li>
+    <li><a href="#s2">課題</a></li>
+    <li><a href="#s3">原因</a></li>
+    <li><a href="#s4">解決の型</a></li>
+    <li><a href="#s5">実装の実物</a></li>
+    <li><a href="#s6">効果</a></li>
+    <li><a href="#s7">導入手順</a></li>
+    <li><a href="#s8">適用時の注意</a></li>
+    <li><a href="#s9">導入手段</a></li>
+  </ol>
+</nav>
+
+<section id="s1">
+  <h2><span class="sec-num">§1</span>概要</h2>
+  <!-- {{s1-summary}}: 本事例が何を解決するかを 3〜5 行で要約する -->
+</section>
+
+<section id="s2">
+  <h2><span class="sec-num">§2</span>課題</h2>
+  <!-- {{s2-problem}}: 発生した課題の事実（症状・再現条件）を記述する。推測は書かない -->
+</section>
+
+<section id="s3">
+  <h2><span class="sec-num">§3</span>原因</h2>
+  <!-- {{s3-cause}}: 検証済みの原因を記述する。未検証の仮説は書かない -->
+</section>
+
+<section id="s4">
+  <h2><span class="sec-num">§4</span>解決の型</h2>
+  <!-- {{s4-approach}}: 解決策の構造を table.spec や pre.flow で示す -->
+  <!-- 任意: figure.diagram > svg（inline SVG）で解決の型の構造図を追加できる
+  <figure class="diagram">
+    <svg viewBox="0 0 800 300" xmlns="http://www.w3.org/2000/svg"></svg>
+    <figcaption class="note">{{s4-diagram-caption}}</figcaption>
+  </figure>
+  -->
+</section>
+
+<section id="s5">
+  <h2><span class="sec-num">§5</span>実装の実物</h2>
+  <!-- {{s5-implementation}}: assets/ に同梱した実物ファイルの中身・設定値を検証済みの内容だけ記述する -->
+</section>
+
+<section id="s6">
+  <h2><span class="sec-num">§6</span>効果</h2>
+  <!-- {{s6-effect}}: 実測できた効果のみ記述する。推測の効果・数値は書かない -->
+</section>
+
+<section id="s7">
+  <h2><span class="sec-num">§7</span>導入手順</h2>
+  <!-- {{s7-steps}}: 顧客環境で再現できる手順を書く。このPC固有の絶対パスは書かない -->
+  <table class="spec">
+    <thead>
+      <tr><th>手順</th><th>作業内容</th><th>対象</th><th>実行コマンド・操作</th><th>確認方法</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>1</td><td></td><td></td><td></td><td></td></tr>
+      <tr><td>2</td><td></td><td></td><td></td><td></td></tr>
+      <tr><td>3</td><td></td><td></td><td></td><td></td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="s8">
+  <h2><span class="sec-num">§8</span>適用時の注意</h2>
+  <!-- {{s8-cautions}}: 別案件へ適用する際に確認すべき前提条件・適用不可な条件を記述する -->
+</section>
+
+<section id="s9">
+  <h2><span class="sec-num">§9</span>導入手段</h2>
+  <!-- {{s9-install}}: 導入を実行するスキル名と起動のしかたを記述する。
+  記載例: 導入は consult-lint-setup スキルが実行する。対象プロジェクトのセッションで「文章品質を導入」と依頼する。
+  -->
+  <!-- 一般資材（案件で新規作成した図・雛形等、顧客に渡す前提のもの）がある場合のみ、以下の資材表を任意で使う
+  <table class="spec">
+    <thead>
+      <tr><th>ファイル</th><th>内容</th><th>由来</th></tr>
+    </thead>
+    <tbody>
+      <tr><td></td><td></td><td></td></tr>
+    </tbody>
+  </table>
+  -->
+</section>
+
+<div id="zoom-overlay" class="zoom-overlay" hidden></div>
+<script>
+  (function () {
+    var overlay = document.getElementById('zoom-overlay');
+    if (!overlay) return;
+    document.querySelectorAll('figure.diagram svg').forEach(function (svg) {
+      svg.addEventListener('click', function () {
+        overlay.innerHTML = '';
+        overlay.appendChild(svg.cloneNode(true));
+        overlay.hidden = false;
+        document.body.style.overflow = 'hidden';
+      });
+    });
+    overlay.addEventListener('click', function () {
+      overlay.hidden = true;
+      overlay.innerHTML = '';
+      document.body.style.overflow = '';
+    });
+  })();
+</script>
+
+</body>
+</html>
