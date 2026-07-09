@@ -24,6 +24,8 @@
     { "mode": "file", "src": "~/agent-home/tools/linter/.textlintrc.json", "dst": "payload/agent-home/tools/linter/.textlintrc.json" },
     { "mode": "file", "src": "~/agent-home/tools/linter/.textlintrc.pr.json", "dst": "payload/agent-home/tools/linter/.textlintrc.pr.json" },
     { "mode": "file", "src": "~/agent-home/tools/linter/package.json", "dst": "payload/agent-home/tools/linter/package.json" },
-    { "mode": "file", "src": "~/agent-home/tools/linter/link-checker.sh", "dst": "payload/agent-home/tools/linter/link-checker.sh" }
+    { "mode": "file", "src": "~/agent-home/tools/linter/link-checker.sh", "dst": "payload/agent-home/tools/linter/link-checker.sh" },
+    { "mode": "mirror", "src": "~/Projects/ai-consulting-toolkit/.claude/skills", "dst": "payload/ai-consulting-toolkit/.claude/skills" },
+    { "mode": "mirror", "src": "~/Projects/ai-consulting-toolkit/docs", "dst": "payload/ai-consulting-toolkit/docs" }
   ]
 }
