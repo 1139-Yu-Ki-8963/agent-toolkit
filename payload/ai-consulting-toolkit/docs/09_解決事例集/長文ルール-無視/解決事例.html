@@ -127,9 +127,10 @@
     <li><a href="#s4">解決の型</a></li>
     <li><a href="#s5">実装の実物</a></li>
     <li><a href="#s6">効果</a></li>
-    <li><a href="#s7">導入手順</a></li>
-    <li><a href="#s8">適用時の注意</a></li>
-    <li><a href="#s9">導入手段</a></li>
+    <li><a href="#s7">実現するAI化レベル</a></li>
+    <li><a href="#s8">導入手順</a></li>
+    <li><a href="#s9">適用時の注意</a></li>
+    <li><a href="#s10">導入手段</a></li>
   </ol>
 </nav>
 
@@ -206,7 +207,20 @@
 </section>
 
 <section id="s7">
-  <h2><span class="sec-num">§7</span>導入手順</h2>
+  <h2><span class="sec-num">§7</span>実現するAI化レベル</h2>
+  <p>遵守検査（タスク登録数・形式・段階順序）はツール実行を契機にhookが自動実行し（自動起動）、違反条件は列挙済みである。違反時のみ書き手が対応し、正常に流れた分は人が遵守を確認しない。</p>
+  <table class="spec">
+    <thead>
+      <tr><th>到達レベル</th><th>判断根拠（誰が・何を確認する運用か）</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>レベル4（例外のみ人介入）相当</td><td>遵守検査は自動起動し、違反条件が列挙済みである。違反時のみ書き手が対応し、正常分は人が結果を見ずに流れる運用であり、docs/02_AI化レベル基準の「検証主体の注記」における「人が結果を見ずに流れる運用」に該当する。</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="s8">
+  <h2><span class="sec-num">§8</span>導入手順</h2>
   <p>導入は<code>consult-repo-rules</code>スキルが実行する。対象プロジェクトのセッションで「規約を整備」と依頼する。</p>
   <table class="spec">
     <thead>
@@ -224,8 +238,8 @@
   <p class="note">進行ゲート・タスク分解強制のhook化は、顧客の開発フローが固まった段階で追加導入する。最初から全部の機械強制を入れない。</p>
 </section>
 
-<section id="s8">
-  <h2><span class="sec-num">§8</span>適用時の注意</h2>
+<section id="s9">
+  <h2><span class="sec-num">§9</span>適用時の注意</h2>
   <ul>
     <li>上限・分割は「実害と対」で設計する。守らないと困る仕組みがないと形骸化する</li>
     <li>ゲートを一度に増やしすぎない。開発の摩擦が跳ね上がるため、まず分割規律、次に検証ループ、最後に進行ゲートの順で段階導入する</li>
@@ -233,8 +247,8 @@
   </ul>
 </section>
 
-<section id="s9">
-  <h2><span class="sec-num">§9</span>導入手段</h2>
+<section id="s10">
+  <h2><span class="sec-num">§10</span>導入手段</h2>
   <p>導入は<code>consult-repo-rules</code>スキルが実行する。資材の同梱はない。</p>
   <p class="note">本事例は <code>../解決事例集.md</code> の蓄積簿に登録されている。</p>
 </section>

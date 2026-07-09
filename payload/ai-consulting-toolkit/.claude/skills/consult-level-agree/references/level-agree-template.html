@@ -105,8 +105,16 @@
   .level-card.goal { background: #e7f3e7; border-color: #23662a; }
   .level-card h4 { margin: 0 0 8px; font-size: 0.95rem; }
   .level-card p { margin: 0 0 10px; font-size: 0.88rem; color: #333; }
-  .mark-row { display: flex; gap: 12px; font-size: 0.85rem; }
-  .mark-box { border: 1px solid #999; border-radius: 3px; padding: 2px 8px; cursor: default; }
+  .level-badge {
+    display: inline-block; font-size: 0.78rem; font-weight: 700;
+    padding: 2px 10px; border-radius: 999px; margin-top: 4px; margin-right: 6px;
+  }
+  .level-badge.current { background: #2a4a7a; color: #fff; }
+  .level-badge.goal { background: #23662a; color: #fff; }
+  .issue-quote {
+    border-left: 4px solid #999; margin: 16px 0; padding: 8px 18px;
+    color: #333; font-size: 0.93rem; font-style: italic; background: #fff;
+  }
   .issue-header { display: flex; justify-content: space-between; align-items: baseline; }
   .undecided { font-size: 0.9rem; color: #555; }
 </style>
@@ -138,50 +146,34 @@
   </div>
   <span class="tag mode">{{種別}}</span>
 
-  <div class="constraint">
-    <strong>顧客の声：</strong>{{顧客原文の引用}}
-  </div>
+  <!-- 原文引用がある課題のみ blockquote を出す。顧客発言に限らず、推進側追加課題等ラベルを付けられない原文にも使える。原文がなければこの要素ごと省略する -->
+  <blockquote class="issue-quote">{{課題原文の引用（あれば）}}</blockquote>
 
   <div class="level-track">
     <div class="level-card {{L1のcurrent/goalクラス}}">
       <h4>L1 人手のみ</h4>
       <p>{{この課題がL1だと具体的にどう動くか}}</p>
-      <div class="mark-row">
-        <span class="mark-box">現在地 [ ]</span>
-        <span class="mark-box">ゴール [ ]</span>
-      </div>
+      <!-- L1が現在地なら <span class="level-badge current">現在地</span>、L1がゴールなら <span class="level-badge goal">今回のゴール</span> をここに出す（該当する方のみ。両方該当すれば両方、どちらでもなければ何も出さない） -->
     </div>
     <div class="level-card {{L2のcurrent/goalクラス}}">
       <h4>L2 AI補助</h4>
       <p>{{この課題がL2だと具体的にどう動くか}}</p>
-      <div class="mark-row">
-        <span class="mark-box">現在地 [ ]</span>
-        <span class="mark-box">ゴール [ ]</span>
-      </div>
+      <!-- L2が現在地/ゴールに該当する場合のみ、L1と同様のバッジをここに出す -->
     </div>
     <div class="level-card {{L3のcurrent/goalクラス}}">
       <h4>L3 人が承認するAI実行</h4>
       <p>{{この課題がL3だと具体的にどう動くか}}</p>
-      <div class="mark-row">
-        <span class="mark-box">現在地 [ ]</span>
-        <span class="mark-box">ゴール [ ]</span>
-      </div>
+      <!-- L3が現在地/ゴールに該当する場合のみ、L1と同様のバッジをここに出す -->
     </div>
     <div class="level-card {{L4のcurrent/goalクラス}}">
       <h4>L4 例外のみ人介入</h4>
       <p>{{この課題がL4だと具体的にどう動くか}}</p>
-      <div class="mark-row">
-        <span class="mark-box">現在地 [ ]</span>
-        <span class="mark-box">ゴール [ ]</span>
-      </div>
+      <!-- L4が現在地/ゴールに該当する場合のみ、L1と同様のバッジをここに出す -->
     </div>
     <div class="level-card {{L5のcurrent/goalクラス}}">
       <h4>L5 完全自動</h4>
       <p>{{この課題がL5だと具体的にどう動くか}}</p>
-      <div class="mark-row">
-        <span class="mark-box">現在地 [ ]</span>
-        <span class="mark-box">ゴール [ ]</span>
-      </div>
+      <!-- L5が現在地/ゴールに該当する場合のみ、L1と同様のバッジをここに出す -->
     </div>
   </div>
 </section>
@@ -199,6 +191,12 @@
       <!-- 1課題ぶんの記載例: <tr><td>{{課題名}}</td><td>{{現在地}}</td><td>{{ゴール}}</td><td>{{成功の定義}}</td></tr> -->
     </tbody>
   </table>
+
+  <!-- 複数課題のゴールが同一レベルに収束する場合のみ、決定根拠を記す。単一の課題ごとに独立した理由であれば省略してよい -->
+  <h3>決定根拠</h3>
+  <div class="constraint">
+    {{決定根拠（なぜこのゴールにしたか。対応方法の確度が違う課題群に異なる質の理由を当てて同じ結論に着地させる書き方を避け、単一の一貫した理由で記す）}}
+  </div>
 </section>
 
 <table class="meta-table">

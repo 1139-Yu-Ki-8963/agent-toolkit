@@ -128,9 +128,10 @@
     <li><a href="#s4">解決の型</a></li>
     <li><a href="#s5">実装の実物</a></li>
     <li><a href="#s6">効果</a></li>
-    <li><a href="#s7">顧客環境への導入手順</a></li>
-    <li><a href="#s8">適用時の注意</a></li>
-    <li><a href="#s9">導入手段</a></li>
+    <li><a href="#s7">実現するAI化レベル</a></li>
+    <li><a href="#s8">顧客環境への導入手順</a></li>
+    <li><a href="#s9">適用時の注意</a></li>
+    <li><a href="#s10">導入手段</a></li>
   </ol>
 </nav>
 
@@ -215,7 +216,20 @@
 </section>
 
 <section id="s7">
-  <h2><span class="sec-num">§7</span>顧客環境への導入手順</h2>
+  <h2><span class="sec-num">§7</span>実現するAI化レベル</h2>
+  <p>検査は commit・PR 作成を契機に自動で走り（自動起動）、例外＝違反の条件は textlint ルールと置き換え辞書に列挙済みである。違反時だけ書き手が修正に入り、正常分は人が確認せずに通過する。</p>
+  <table class="spec">
+    <thead>
+      <tr><th>到達レベル</th><th>判断根拠（誰が・何を確認する運用か）</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>レベル4（例外のみ人介入）相当</td><td>検査は自動起動し、例外＝違反の条件が列挙済みである。違反時だけ書き手が修正に入り、正常分は人が結果を見ずに流れる運用であり、docs/02_AI化レベル基準の「検証主体の注記」における「人が結果を見ずに流れる運用」に該当する。</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="s8">
+  <h2><span class="sec-num">§8</span>顧客環境への導入手順</h2>
   <p>導入は手作業ではなく、道具箱の<code>consult-lint-setup</code>スキルが実行する。対象プロジェクトを開いたセッションで「文章品質を導入」と依頼する。</p>
   <table class="spec">
     <tr><th>段階</th><th>スキルが行うこと</th></tr>
@@ -230,8 +244,8 @@
   <p class="note">辞書は一般語彙のみの雛形から始め、顧客固有の語彙は導入後のヒアリングで追加する。コンサル側環境の辞書・設定の実物は使わない。</p>
 </section>
 
-<section id="s8">
-  <h2><span class="sec-num">§8</span>適用時の注意</h2>
+<section id="s9">
+  <h2><span class="sec-num">§9</span>適用時の注意</h2>
   <div class="constraint">
     <strong>AI文体検出プリセットは不採用</strong><br>
     AI文体を検出する既定プリセット（ai-writing）は、定型の箇条書きまで誤検知するため採用しなかった。実測では30件のPRで119件が発火し、6割超が誤検知だった。
@@ -242,8 +256,8 @@
   </ul>
 </section>
 
-<section id="s9">
-  <h2><span class="sec-num">§9</span>導入手段</h2>
+<section id="s10">
+  <h2><span class="sec-num">§10</span>導入手段</h2>
   <p>本事例は資材を同梱しない。コンサル環境の設定・辞書の実物を顧客へ渡すと、環境固有情報の漏洩になるためである。導入に必要な雛形（検査設定・辞書雛形・文体規約・hookスクリプト）は<code>consult-lint-setup</code>スキルの<code>references/</code>にあり、スキルが顧客環境に合わせて配置する。</p>
   <p class="note">本事例は <code>../解決事例集.md</code> の蓄積簿に登録されている。</p>
 </section>
