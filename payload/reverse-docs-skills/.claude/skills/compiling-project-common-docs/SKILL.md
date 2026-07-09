@@ -134,6 +134,7 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, TaskCreate, TaskUpdate]
 - `mode=append` は指摘文書のみ追記すればよいが、機械ゲートは全項目を再実行する。部分ゲートは存在しない
 - 発散判定（同一NG理由2連続）は上限5回を消化する前でも即中断する
 - 層あたりのk値は層内ファイル数の平方根以上・3以上10以下に丸める。全層合計20ファイル未満だとPhase 2の完了条件を満たさない（詳細は `references/sampling-rules.md`）
+- ディレクトリ責務マップの行が「共有ファイル」型（責務列が `共有ファイル（` で始まる）の場合はこの限りでない。対象そのものが単一ファイルのため N=1・k=1固定として扱う（詳細は `references/sampling-rules.md`「共有ファイル行の扱い」）
 
 ## 設計判断
 

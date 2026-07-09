@@ -70,17 +70,17 @@ sections:
 |---|---|---|---|---|
 | ① | import | import | モジュール名 + import 名（named/default/type/namespace）。副作用 import も含む | `import-react-useState`・`import-styled-components` |
 | ② | export_type | export・型 | export 名、interface/type の全フィールド（フィールド名・型・省略可否）。型宣言を伴わない export は事実欄に「型定義なし・リテラル推論型」と明記する | `export-ReportTable`・`type-ReportRow-id` |
-| ③ | const | 定数 | 定数名と値（リテラル・enum・as const）。オブジェクト/enum 型はフィールドごとにキーを分解する | `const-MAX_ROWS-100` |
+| ③ | const | 定数 | 定数名と値（リテラル・enum・as const）。オブジェクト/enum 型はフィールドごとにキーを分解する（最上位1階層のみ。フィールド値自体がオブジェクト/配列でも内部までは再帰的に分解しない）。フィールドのevidenceは当該フィールド行のfile:line | `const-MAX_ROWS-100`（スカラー）・`const-cardStyle-height`（オブジェクトのフィールド分解） |
 | ④ | state | 状態変数 | useState/useReducer/useRef/store 参照の変数名・型・初期値リテラル | `state-rows-empty` |
 | ⑤ | handler | イベントハンドラ | ハンドラ名・発火要素・処理1行要約 | `handler-onRowClick-遷移` |
-| ⑥ | jsx | JSX構造 | コンポーネントのネストのみ（属性値・実測レイアウトは書かない） | `jsx-Table-Row-Cell` |
+| ⑥ | jsx | JSX構造 | コンポーネントのネスト構造。全文字列リテラル・全propsの具体値・className・見出しレベル等の具体粒度は references/profile-screen.md の「⑥JSX構造の採録規律」を正本とする。条件分岐（早期return・三項演算子・&&）で複数パスが生成される場合、パスごとのルート要素を独立キーで採録する（jsx-path-<パス識別子>-<ルート要素名>） | `jsx-Table-Row-Cell`（ネスト）・`jsx-path-loading-div`（パス別ルート） |
 | ⑦ | style | スタイル実測値 | styled 定数名と数値・色（実測値。DESIGN.md が正） | `style-Wrapper-padding-16` |
 | ⑧ | api | API呼出 | BL 名・契機・リクエスト/レスポンス形 | `api-fetchReport-req` |
 | ⑨ | measurement_pending | 実測系（実測委譲・転記対象外） | 初期表示値・DOM配置順・要素位置・レイアウト。断定せず一覧化のみ | `初期表示-件数` |
 
 各分類は「該当なし」を許容する。その場合 `items: []` とし `reason` に根拠を記す（例: `"該当なし（原本にトップレベル定数が存在しない）"`）。`items` が空で `reason` も空のセクションは不正（Phase 2 の完了条件違反）。
 
-**「該当なし」は原本に当該分類の事実が実在しない場合専用**である。原本に事実が実在するが `scripts/recount-facts.sh` の再計数パターンがそれを構造的に検知できない（Promiseチェーン形式のAPI呼出し・複数行JSX開始タグ・カスタムフック分割代入等）場合は「該当なし」に該当しない。この場合に items を省略・reason へ逃がして Phase 3 を通すことは禁止する。`extracting-unit-facts-from-code` の `references/profile-screen.md`・`scripts/recount-facts.sh` 側のパターンを実在の構文に合わせて修正する（詳細は同スキルの SKILL.md Gotchas を参照）。
+**「該当なし」は原本に当該分類の事実が実在しない場合専用**である。原本に事実が実在するが `scripts/recount-facts.sh` の再計数パターンがそれを構造的に検知できない（Promiseチェーン形式のAPI呼出し・複数行JSX開始タグ・カスタムフック分割代入・オブジェクトリテラル定数のフィールド値・条件分岐JSXパスの外殻ラッパー等）場合は「該当なし」に該当しない。この場合に items を省略・reason へ逃がして Phase 3 を通すことは禁止する。`extracting-unit-facts-from-code` の `references/profile-screen.md`・`scripts/recount-facts.sh` 側のパターンを実在の構文に合わせて修正する（詳細は同スキルの SKILL.md Gotchas を参照）。
 
 ## 必須フィールド
 

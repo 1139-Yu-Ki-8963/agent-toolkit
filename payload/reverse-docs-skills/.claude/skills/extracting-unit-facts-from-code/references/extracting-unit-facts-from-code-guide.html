@@ -243,10 +243,10 @@
     <tr><th>記号</th><th>セクションキー</th><th>ラベル</th><th>備考</th></tr>
     <tr><td>①</td><td>import</td><td>import</td><td>named/default/type/namespace全シンボル。副作用importも含む</td></tr>
     <tr><td>②</td><td>export_type</td><td>export・型</td><td>export名、interface/typeの全フィールド</td></tr>
-    <tr><td>③</td><td>const</td><td>定数</td><td>トップレベル定数。オブジェクト/enumはフィールドごとに分解</td></tr>
+    <tr><td>③</td><td>const</td><td>定数</td><td>トップレベル定数。オブジェクト/enumは最上位1階層のみフィールドごとに分解（内部までは再帰しない）。フィールドのevidenceは当該フィールド行のfile:line</td></tr>
     <tr><td>④</td><td>state</td><td>状態変数</td><td>useState/useReducer/useRef/store参照</td></tr>
     <tr><td>⑤</td><td>handler</td><td>イベントハンドラ</td><td>ハンドラ名・発火要素・処理要約</td></tr>
-    <tr><td>⑥</td><td>jsx</td><td>JSX構造</td><td>コンポーネントのネストのみ（属性値は書かない）</td></tr>
+    <tr><td>⑥</td><td>jsx</td><td>JSX構造</td><td>コンポーネントのネスト構造。全文字列リテラル・全props具体値・className等の具体粒度は<code>references/profile-screen.md</code>「⑥JSX構造の採録規律」が正本。早期return・三項演算子・&amp;&amp;による複数分岐は<code>jsx-path-&lt;パス識別子&gt;-&lt;ルート要素名&gt;</code>でパスごとに独立採録</td></tr>
     <tr><td>⑦</td><td>style</td><td>スタイル実測値</td><td>styled定数のプロパティ・数値・色</td></tr>
     <tr><td>⑧</td><td>api</td><td>API呼出</td><td>BL名・契機・リクエスト/レスポンス形</td></tr>
     <tr><td>⑨</td><td>measurement_pending</td><td>実測系（実測委譲）</td><td>key・evidenceのみ。再計数対象外・転記対象外</td></tr>
