@@ -8,6 +8,8 @@
 #     (b) 未記入プレースホルダ `<...>` の検出（HTML コメント内・fenced code block 内は除外）
 #     (c) 連番キー検出（意味キー規約違反の WARN）
 #     (d) 結合テスト観点表「## 往復検証観点表」の対応失敗クラス網羅チェック（WARN）
+#     (i) §16 要確認事項一覧の未解消（状態≠解消済み）チェック（既定 WARN・
+#         AUDIT_STRICT_P16=1 で違反扱いに昇格）
 #   --list-contract-files モード: 実装契約章の「ファイル分割」表 1 列目のパス一覧を
 #     stdout に 1 行 1 パスで出力する（rebuilding Phase 3 の白紙化対象取得用）。
 #
@@ -26,8 +28,143 @@
 # 使い方:
 #   ./audit-consistency.sh <画面ディレクトリ>
 #   ./audit-consistency.sh --list-contract-files <画面ディレクトリ>
+#   ./audit-consistency.sh --self-test
 
 set -euo pipefail
+
+# --- --self-test モード ---
+# 検査g（§15.2テーブル型名抽出）・検査i（§16未解消チェック）の回帰保護。
+# 既存検査a〜fは対象外（今回無変更のため）。最小構成の画面詳細設計書.mdフィクスチャを
+# mktemp -d 配下に生成し、"$0" <dir> を呼び出して出力・終了コードを検証する。
+self_test() {
+  local script_path="$0"
+  local tmp fail=0
+  tmp="$(mktemp -d -p "${TMPDIR:-/tmp}")"
+
+  make_fixture() {
+    local dir="$1" p16_body="$2"
+    mkdir -p "$dir"
+    cat > "$dir/画面詳細設計書.md" <<MDEOF
+---
+unit_test_sheet: ./none.md
+integration_test_sheet: ./none.md
+---
+
+## 章マップ
+
+| 役割キー | § |
+|---|---|
+| 機能一覧 | §2 |
+| 実装契約 | §15 |
+| 要確認事項 | §16 |
+
+## §2 機能一覧
+
+| キー | 内容 |
+|---|---|
+| foo-view | 表示 |
+
+## §15 実装契約
+
+### 15.1 ファイル分割と export 一覧
+
+| ファイルパス | export 名 | 種別 | 配置ディレクトリ |
+|---|---|---|---|
+| components/Foo.tsx | Foo | コンポーネント | components/ |
+
+### 15.2 型定義
+
+| 型名 | フィールド名 | 型 | 必須/任意 |
+|---|---|---|---|
+| \`FooValues\` | \`name\` | \`string\` | 必須 |
+| \`FooValues\` | \`age\` | \`number\` | 任意 |
+
+### 15.3 依存（import）一覧
+
+| モジュール | import 内容 | 種別 |
+|---|---|---|
+| \`./Foo\` | \`Foo\` | 内部 |
+| \`./FooValues\` | \`FooValues\` | 内部 |
+
+## §16 要確認事項一覧
+
+${p16_body}
+MDEOF
+  }
+
+  # フィクスチャ a: §16 全解消済み（6列）
+  make_fixture "$tmp/a" '| キー | 起票日 | 内容 | 暫定扱いにしている § | 解消条件 | 状態 |
+|---|---|---|---|---|---|
+| foo-issue | `2026-01-01` | 何らかの確認事項 | §15 | 実装完了 | 解消済み |'
+
+  # フィクスチャ b: §16 未解消あり（6列）
+  make_fixture "$tmp/b" '| キー | 起票日 | 内容 | 暫定扱いにしている § | 解消条件 | 状態 |
+|---|---|---|---|---|---|
+| foo-issue | `2026-01-01` | 何らかの確認事項 | §15 | 実装完了 | 未解消 |'
+
+  # フィクスチャ c: 旧5列テンプレ（状態列なし）
+  make_fixture "$tmp/c" '| キー | 起票日 | 内容 | 暫定扱いにしている § | 解消条件 |
+|---|---|---|---|---|
+| foo-issue | `2026-01-01` | 何らかの確認事項 | §15 | 実装完了 |'
+
+  # ケース1: 検査g陽性（§15.2テーブル型名抽出 + §15.3内部import解決）
+  if out_a="$(bash "$script_path" "$tmp/a" 2>&1)"; then rc_a=0; else rc_a=$?; fi
+  if printf '%s' "$out_a" | grep -q "内部 import はすべて §15.1/§15.2 に対応が見つかりました"; then
+    echo "[PASS] 検査g陽性: §15.2テーブルの型名(FooValues)が抽出され内部importが解決される"
+  else
+    echo "[FAIL] 検査g陽性: 内部importの解決に失敗（型名抽出ロジックの回帰の疑い）"
+    fail=1
+  fi
+
+  # ケース2: 検査i陽性（全解消済み→WARN/違反なし）
+  if [ "$rc_a" -eq 0 ] && printf '%s' "$out_a" | grep -q "要確認事項一覧はすべて解消済みです"; then
+    echo "[PASS] 検査i陽性: 状態=解消済みのみでは違反・WARNが発生しない"
+  else
+    echo "[FAIL] 検査i陽性: 全解消済みフィクスチャでの判定に失敗（exit=${rc_a}）"
+    fail=1
+  fi
+
+  # ケース3: 検査i陰性1（未解消行があっても既定はWARN止まり・exit0）
+  if out_b_default="$(bash "$script_path" "$tmp/b" 2>&1)"; then rc_b_default=0; else rc_b_default=$?; fi
+  if [ "$rc_b_default" -eq 0 ] && printf '%s' "$out_b_default" | grep -q "WARN:.*要確認事項一覧に未解消"; then
+    echo "[PASS] 検査i陰性1: 未解消行があっても既定はWARN止まり(exit0)"
+  else
+    echo "[FAIL] 検査i陰性1: 期待した既定WARN挙動になっていません（exit=${rc_b_default}）"
+    fail=1
+  fi
+
+  # ケース4: 検査i陰性2（AUDIT_STRICT_P16=1で違反に昇格しexit1）
+  if out_b_strict="$(AUDIT_STRICT_P16=1 bash "$script_path" "$tmp/b" 2>&1)"; then rc_b_strict=0; else rc_b_strict=$?; fi
+  if [ "$rc_b_strict" -eq 1 ] && printf '%s' "$out_b_strict" | grep -q "違反:.*要確認事項一覧に未解消"; then
+    echo "[PASS] 検査i陰性2: AUDIT_STRICT_P16=1で未解消行が違反に昇格しexit1になる"
+  else
+    echo "[FAIL] 検査i陰性2: STRICT指定時に違反へ昇格しませんでした（exit=${rc_b_strict}）"
+    fail=1
+  fi
+
+  # ケース5: 検査i陰性3（旧5列テンプレはSTRICT指定でもexit0のまま・fail-safe）
+  if out_c_strict="$(AUDIT_STRICT_P16=1 bash "$script_path" "$tmp/c" 2>&1)"; then rc_c_strict=0; else rc_c_strict=$?; fi
+  if [ "$rc_c_strict" -eq 0 ] && printf '%s' "$out_c_strict" | grep -q "旧テンプレのため状態列で解消判定できません"; then
+    echo "[PASS] 検査i陰性3: 旧5列テンプレはAUDIT_STRICT_P16=1でも違反に昇格しない（fail-safe）"
+  else
+    echo "[FAIL] 検査i陰性3: 旧5列テンプレのfail-safe挙動が崩れています（exit=${rc_c_strict}）"
+    fail=1
+  fi
+
+  rm -rf "$tmp"
+
+  if [ "$fail" -ne 0 ]; then
+    echo "=== self-test: FAIL ==="
+    return 1
+  fi
+  echo "=== self-test: すべてPASS ==="
+  return 0
+}
+
+if [ "${1:-}" = "--self-test" ]; then
+  self_test
+  exit $?
+fi
 
 LIST_CONTRACT_MODE=0
 if [ "${1:-}" = "--list-contract-files" ]; then
@@ -570,7 +707,8 @@ SPLIT_15_2="$(printf '%s\n' "$CONTRACT_BODY" | awk '
   /^### / && insub { exit }
   insub { print }
 ')"
-TYPE_NAMES="$(printf '%s\n' "$SPLIT_15_2" | { grep -oE '(type|interface) +[A-Za-z0-9_]+' || true; } | awk '{print $2}' | sort -u)"
+# §15.2はテーブル様式（型名/フィールド名/型/必須任意）。型名は1列目から抽出する。
+TYPE_NAMES="$(extract_table_column "$SPLIT_15_2" 1 | sed 's/`//g' | sort -u)"
 
 FILE_BASENAMES="$(printf '%s\n' "$SPLIT_15_1" | awk '
   BEGIN { row=0 }
@@ -725,6 +863,56 @@ else
       WARNINGS=$((WARNINGS + 1))
     else
       echo "  §6.1.1 起動時初期化が記載済みです"
+    fi
+  fi
+fi
+
+# --- (i) §16 要確認事項一覧の未解消チェック（既定WARN・AUDIT_STRICT_P16=1で違反扱い） ---
+echo ""
+echo "[検査 i] §16 要確認事項一覧の未解消チェック（既定WARN。AUDIT_STRICT_P16=1で違反扱い）"
+
+CONFIRM_SECNUM="$(resolve_role_section "要確認事項")"
+if [ -z "$CONFIRM_SECNUM" ]; then
+  echo "  WARN: 章マップに役割キー '要確認事項' の行が見つかりません。検査iをスキップします" >&2
+  WARNINGS=$((WARNINGS + 1))
+else
+  CONFIRM_BODY="$(extract_design_section_body "$CONFIRM_SECNUM")"
+  CONFIRM_HDR="$(printf '%s\n' "$CONFIRM_BODY" | awk '/^\|/{print; exit}')"
+
+  if printf '%s' "$CONFIRM_HDR" | grep -q '状態'; then
+    UNRESOLVED_ROWS="$(printf '%s\n' "$CONFIRM_BODY" | awk '
+      BEGIN { row=0 }
+      /^\|/ {
+        row++
+        if (row == 1) next
+        if (row == 2 && $0 ~ /^\|[ \t:|\-]+$/) next
+        n = split($0, cols, "|")
+        key = cols[2]; gsub(/^[ \t]+|[ \t]+$/, "", key)
+        st  = cols[7]; gsub(/^[ \t]+|[ \t]+$/, "", st)
+        if (key != "" && key !~ /^<.*>$/ && st != "解消済み") print key" ("st")"
+      }
+    ')"
+    UNRESOLVED_COUNT=$(printf '%s\n' "$UNRESOLVED_ROWS" | grep -c . || true)
+    if [ "$UNRESOLVED_COUNT" -gt 0 ]; then
+      if [ "${AUDIT_STRICT_P16:-0}" = "1" ]; then
+        echo "  違反: §${CONFIRM_SECNUM} 要確認事項一覧に未解消（状態≠解消済み）が ${UNRESOLVED_COUNT} 件あります（AUDIT_STRICT_P16=1）:" >&2
+        printf '%s\n' "$UNRESOLVED_ROWS" | grep . | sed 's/^/    - /' >&2
+        VIOLATIONS=$((VIOLATIONS + 1))
+      else
+        echo "  WARN: §${CONFIRM_SECNUM} 要確認事項一覧に未解消（状態≠解消済み）が ${UNRESOLVED_COUNT} 件あります:" >&2
+        printf '%s\n' "$UNRESOLVED_ROWS" | grep . | sed 's/^/    - /' >&2
+        WARNINGS=$((WARNINGS + 1))
+      fi
+    else
+      echo "  §${CONFIRM_SECNUM} 要確認事項一覧はすべて解消済みです（0件を含む）"
+    fi
+  else
+    UNRESOLVED_COUNT="$(extract_table_column "$CONFIRM_BODY" 1 | grep -vE '^<.*>$' | grep -c . || true)"
+    if [ "$UNRESOLVED_COUNT" -gt 0 ]; then
+      echo "  WARN: §${CONFIRM_SECNUM} 要確認事項一覧に ${UNRESOLVED_COUNT} 件の記載があります（旧テンプレのため状態列で解消判定できません。6列テンプレへの更新を検討してください）" >&2
+      WARNINGS=$((WARNINGS + 1))
+    else
+      echo "  §${CONFIRM_SECNUM} 要確認事項一覧は0件です"
     fi
   fi
 fi

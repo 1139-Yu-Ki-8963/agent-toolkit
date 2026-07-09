@@ -68,12 +68,38 @@ count_export_type() {
   ' "$1"
 }
 
+# 値がオブジェクトリテラル（`{...}`または`as const`オブジェクト）の場合は宣言行1件ではなく、
+# 最上位1階層（ブレース深度1）のフィールド行を1件ずつ数える（profile-screen.md③定数の分解規則）。
+# 空オブジェクト・分解不能な場合は宣言1件にフォールバックする。値がスカラーの場合は従来どおり
+# 宣言行を1件として数える。
 count_const() {
   awk '
+    function count_object_fields(   depth, line, opens, closes, fieldcount) {
+      depth = 1
+      fieldcount = 0
+      while ((getline line) > 0) {
+        if (depth == 1 && line ~ /^[ \t]*["'"'"'`]?[A-Za-z_$][A-Za-z0-9_$]*["'"'"'`]?[ \t]*:[ \t]*[^ \t]/) {
+          fieldcount++
+        }
+        opens = gsub(/\{/, "{", line)
+        closes = gsub(/\}/, "}", line)
+        depth += opens - closes
+        if (depth <= 0) break
+      }
+      return fieldcount
+    }
     /^(export[ \t]+)?const[ \t]+[A-Za-z_][A-Za-z0-9_]*/ {
       if ($0 ~ /=[ \t]*styled\./) next
       if ($0 ~ /use(State|Reducer|Ref)\(/) next
-      count++
+      rest = $0
+      sub(/^(export[ \t]+)?const[ \t]+[A-Za-z_][A-Za-z0-9_]*[ \t]*(:[^=]*)?=[ \t]*/, "", rest)
+      gsub(/^[ \t]+/, "", rest)
+      if (rest ~ /^\{/) {
+        n = count_object_fields()
+        if (n > 0) { count += n } else { count += 1 }
+      } else {
+        count++
+      }
     }
     END { print count+0 }
   ' "$1"
@@ -169,8 +195,26 @@ count_handler() {
 # JSX開始タグは属性を複数行に折り返すと `<Header` の直後が改行になり、従来の
 # 「タグ名直後に同一行内で空白/スラッシュ/> が続く」条件に一致しなくなる。行末（$）も
 # 終端条件に加えることで、属性が次行以降に続く開始タグを検知対象に含める。
+# 対象文字クラスは `[A-Za-z]` とし、ネイティブHTMLタグ（`<div>`等の小文字始まり）も
+# PascalCaseコンポーネントと同様にカウント対象へ含める。
+# ユニークタグ数に加え、早期return・三項演算子・`&&`短絡評価による複数レンダリングパスの
+# 分岐数を加算する（`count_api`がawaitと.thenを合算する既存方式を踏襲）。
 count_jsx() {
-  { grep -oE '<[A-Z][A-Za-z0-9]*([[:blank:]/>]|$)' "$1" | sed -E 's/^<//; s/[[:blank:]\/>]$//' | sort -u | wc -l | tr -d ' '; } || true
+  tag_count="$(grep -oE '<[A-Za-z][A-Za-z0-9]*([[:blank:]/>]|$)' "$1" | sed -E 's/^<//; s/[[:blank:]\/>]$//' | sort -u | wc -l | tr -d ' ')"
+
+  return_jsx_count="$( { grep -cE '(^|[^A-Za-z0-9_])return[ \t]*(\(|<[A-Za-z])' "$1" || true; } )"
+  extra_return_branches=0
+  if [ "$return_jsx_count" -gt 1 ]; then
+    extra_return_branches=$((return_jsx_count - 1))
+  fi
+
+  ternary_count="$( { grep -oE '[^.][ \t]*\?[ \t]*\(?[ \t]*<[A-Za-z]' "$1" | wc -l | tr -d ' '; } || true )"
+  ternary_branches=$((ternary_count * 2))
+
+  and_render_count="$( { grep -oE '&&[ \t]*\(?[ \t]*<[A-Za-z]' "$1" | wc -l | tr -d ' '; } || true )"
+
+  total=$((tag_count + extra_return_branches + ternary_branches + and_render_count))
+  printf '%s' "$total"
 }
 
 count_style() {
@@ -635,6 +679,138 @@ EOF
     echo "  [PASS] 追加陽性: フック単純代入がジェネリック型注釈行に続いても独立して検知（合算2件）"
   else
     echo "  [FAIL] 追加陽性: フック単純代入が独立して検知できない（実測=${simple_hook_count} 期待=2）" >&2
+    rc=1
+  fi
+
+  # 追加陽性: オブジェクト定数のフィールド分解（profile-screen.md③定数の分解規則）。
+  # 最上位2フィールドのオブジェクトリテラルは宣言行1件ではなくフィールド数（2）で数える。
+  object_const_file="$tmp/object-const.txt"
+  cat > "$object_const_file" <<'EOF'
+const cardStyle = {
+  height: "48px",
+  fontSize: "14px",
+};
+EOF
+  object_const_count="$(count_const "$object_const_file")"
+  if [ "$object_const_count" = "2" ]; then
+    echo "  [PASS] 追加陽性: オブジェクト定数のフィールド分解を検知（2件）"
+  else
+    echo "  [FAIL] 追加陽性: オブジェクト定数のフィールド分解を検知できない（実測=${object_const_count} 期待=2）" >&2
+    rc=1
+  fi
+
+  # 追加陽性: ネストオブジェクト定数（最上位1階層のみ分解し、ネスト内部までは再帰しない）。
+  # 最上位フィールドは header・footer の2件。headerの値がさらにオブジェクトでも内部は数えない。
+  nested_const_file="$tmp/nested-const.txt"
+  cat > "$nested_const_file" <<'EOF'
+const layout = {
+  header: { height: "48px", color: "#fff" },
+  footer: "bottom",
+};
+EOF
+  nested_const_count="$(count_const "$nested_const_file")"
+  if [ "$nested_const_count" = "2" ]; then
+    echo "  [PASS] 追加陽性: ネストオブジェクト定数を最上位1階層のみで分解（2件）"
+  else
+    echo "  [FAIL] 追加陽性: ネストオブジェクト定数の分解粒度が誤り（実測=${nested_const_count} 期待=2）" >&2
+    rc=1
+  fi
+
+  # 回帰確認: スカラー定数は従来どおり宣言1件のまま数える。
+  scalar_const_file="$tmp/scalar-const.txt"
+  cat > "$scalar_const_file" <<'EOF'
+const MAX_ROWS = 100;
+EOF
+  scalar_const_count="$(count_const "$scalar_const_file")"
+  if [ "$scalar_const_count" = "1" ]; then
+    echo "  [PASS] 回帰確認: スカラー定数は宣言1件のまま（1件）"
+  else
+    echo "  [FAIL] 回帰確認: スカラー定数の件数が変化した（実測=${scalar_const_count} 期待=1）" >&2
+    rc=1
+  fi
+
+  # 追加陽性: 小文字ネイティブHTMLタグ（<div>等）もPascalCaseコンポーネントと同様に検知する。
+  lowercase_tag_file="$tmp/lowercase-tag.txt"
+  cat > "$lowercase_tag_file" <<'EOF'
+  return (
+    <div>
+      <Header />
+    </div>
+  );
+EOF
+  lowercase_tag_count="$(count_jsx "$lowercase_tag_file")"
+  if [ "$lowercase_tag_count" = "2" ]; then
+    echo "  [PASS] 追加陽性: 小文字ネイティブタグを検知（div/Headerの2件）"
+  else
+    echo "  [FAIL] 追加陽性: 小文字ネイティブタグを検知できない（実測=${lowercase_tag_count} 期待=2）" >&2
+    rc=1
+  fi
+
+  # 追加陽性: 早期returnによる複数レンダリングパス。ユニークタグ数（div/Spinner/Card/Content=4）に
+  # 複数return文の分岐数（2件のreturn文 → 追加1件）を加算する。
+  early_return_file="$tmp/early-return.txt"
+  cat > "$early_return_file" <<'EOF'
+function Foo() {
+  if (isLoading) {
+    return (
+      <div className="spinner">
+        <Spinner />
+      </div>
+    );
+  }
+
+  return (
+    <Card>
+      <Content />
+    </Card>
+  );
+}
+EOF
+  early_return_count="$(count_jsx "$early_return_file")"
+  if [ "$early_return_count" = "5" ]; then
+    echo "  [PASS] 追加陽性: 早期returnの複数レンダリングパスを検知（4タグ+分岐1=5件）"
+  else
+    echo "  [FAIL] 追加陽性: 早期returnの分岐を検知できない（実測=${early_return_count} 期待=5）" >&2
+    rc=1
+  fi
+
+  # 追加陽性: 三項演算子による複数レンダリングパス。ユニークタグ数（Wrapper/Spinner/Content=3）に
+  # 三項2アーム分（2件）を加算する。
+  ternary_file="$tmp/ternary.txt"
+  cat > "$ternary_file" <<'EOF'
+function Foo() {
+  return (
+    <Wrapper>
+      {isLoading ? (<Spinner />) : (<Content />)}
+    </Wrapper>
+  );
+}
+EOF
+  ternary_count_result="$(count_jsx "$ternary_file")"
+  if [ "$ternary_count_result" = "5" ]; then
+    echo "  [PASS] 追加陽性: 三項演算子の複数レンダリングパスを検知（3タグ+2アーム=5件）"
+  else
+    echo "  [FAIL] 追加陽性: 三項演算子の分岐を検知できない（実測=${ternary_count_result} 期待=5）" >&2
+    rc=1
+  fi
+
+  # 追加陽性: `&&`短絡評価による条件付きレンダリング。ユニークタグ数（Wrapper/ErrorBanner=2）に
+  # 短絡評価分（1件）を加算する。
+  and_render_file="$tmp/and-render.txt"
+  cat > "$and_render_file" <<'EOF'
+function Foo() {
+  return (
+    <Wrapper>
+      {hasError && (<ErrorBanner />)}
+    </Wrapper>
+  );
+}
+EOF
+  and_render_count_result="$(count_jsx "$and_render_file")"
+  if [ "$and_render_count_result" = "3" ]; then
+    echo "  [PASS] 追加陽性: &&短絡評価の条件付きレンダリングを検知（2タグ+1=3件）"
+  else
+    echo "  [FAIL] 追加陽性: &&短絡評価の条件付きレンダリングを検知できない（実測=${and_render_count_result} 期待=3）" >&2
     rc=1
   fi
 

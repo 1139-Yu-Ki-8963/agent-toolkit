@@ -143,9 +143,11 @@ self_test() {
 
   repo="$tmp/repo"
   mkdir -p "$repo/src/app/api"
+  mkdir -p "$repo/src/styles"
   : > "$repo/package.json"
   : > "$repo/src/app/page.tsx"
   : > "$repo/src/app/api/route.ts"
+  : > "$repo/src/styles/shared-theme.ts"
 
   base_kinds='| 種別 | 実在判定 | 検出手がかり | 根拠パス |
 |---|---|---|---|
@@ -164,6 +166,11 @@ self_test() {
 
 ## エントリポイント
 \`package.json\` と \`src/app/page.tsx\` を確認した。API定義は \`src/app/api/route.ts\`。
+
+## ディレクトリ責務マップ
+| ディレクトリ | 責務 | 根拠パス |
+|---|---|---|
+| \`src/styles/shared-theme.ts\` | 共有ファイル（3ディレクトリから参照） | grep -rlE "from ['\"].*theme['\"]" src で検出（3件） |
 
 ## ユニット種別判定
 $base_kinds

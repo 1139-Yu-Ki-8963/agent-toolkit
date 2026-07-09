@@ -1,0 +1,16 @@
+# .claude/skills/flow-config/flow-context.yml
+# orchestrating-dev-flow がプロジェクト固有のコンテキストを注入するための設定ファイル。
+# reverse-docs-skills は本体スキル定義・参照ドキュメントの改修が中心のため、
+# ドメイン固有セクションは未設定（デフォルト動作）とする。
+domain_glossary: null
+design_system: null
+adr_dir: null
+
+review_gates: {}
+
+classify:
+  quick_max_files: 2
+  quick_excludes: []
+
+preflight:
+  skip_tools: []
