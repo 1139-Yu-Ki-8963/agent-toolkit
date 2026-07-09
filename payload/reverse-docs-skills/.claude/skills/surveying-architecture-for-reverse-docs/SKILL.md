@@ -1,6 +1,6 @@
 ---
 name: surveying-architecture-for-reverse-docs
-description: "既存リポジトリを走査しアーキテクチャ調査書を機械検証付きで確定する。 TRIGGER when: リバース設計着手前の前提調査、アーキテクチャ調査書の新規作成・改訂。 SKIP: 画面一覧生成（→generating-screen-list-for-reverse-docs）、共通文書採録・facts抽出・詳細設計執筆（後続工程）。"
+description: "既存リポジトリを走査しアーキテクチャ調査書を機械検証付きで確定する。 TRIGGER when: リバース設計着手前の前提調査、アーキテクチャ調査書の新規作成・改訂。 SKIP: 画面一覧生成（→generating-unit-list-for-reverse-docs）、共通文書採録・facts抽出・詳細設計執筆（後続工程）。"
 invocation: surveying-architecture-for-reverse-docs
 type: orchestration
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, TaskCreate, TaskUpdate]

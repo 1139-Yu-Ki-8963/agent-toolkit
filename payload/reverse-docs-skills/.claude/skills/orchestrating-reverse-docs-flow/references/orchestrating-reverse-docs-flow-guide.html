@@ -126,7 +126,7 @@
   <table class="meta-table">
     <tr><td>対応 OS</td><td>Windows WSL2 環境（統括対象の子スキル群と同一環境）</td></tr>
     <tr><td>検証状況</td><td>SKILL.md を正本として整理（個別の実機検証記録なし）</td></tr>
-    <tr><td>依存</td><td>ツール: Read, Bash, Grep, Glob, AskUserQuestion, TaskCreate, TaskUpdate, Skill, Agent ／ 子スキル: generating-screen-list-for-reverse-docs, syncing-reverse-env, rebuilding-screen-unit-from-docs, rebuilding-code-from-docs</td></tr>
+    <tr><td>依存</td><td>ツール: Read, Bash, Grep, Glob, AskUserQuestion, TaskCreate, TaskUpdate, Skill, Agent ／ 子スキル: generating-unit-list-for-reverse-docs, syncing-reverse-env, rebuilding-screen-unit-from-docs, rebuilding-code-from-docs</td></tr>
     <tr><td>関連資料</td><td><code>SKILL.md</code>、<code>references/contract.md</code>（返却ブロック契約・args仕様・状態判定表の正本）、<code>references/chapter-map.md</code>、<code>assets/リバース検証/</code>、<code>scripts/audit-consistency.sh</code></td></tr>
   </table>
 </header>
@@ -157,7 +157,7 @@
     返却ブロックの <code>status</code> で検収 → 次工程決定、というループで工程全体を統括する。
   </p>
   <p>
-    子スキル4つ（<code>generating-screen-list-for-reverse-docs</code> / <code>syncing-reverse-env</code> /
+    子スキル4つ（<code>generating-unit-list-for-reverse-docs</code> / <code>syncing-reverse-env</code> /
     <code>rebuilding-screen-unit-from-docs</code> / <code>rebuilding-code-from-docs</code>）は互いを知らず、
     工程間の受け渡しはすべて本スキルが仲介する（完全仲介方式）。契約の正本は <code>references/contract.md</code>。
   </p>
@@ -197,7 +197,7 @@
       <tr>
         <td><code>S0</code> 画面未列挙</td>
         <td>画面一覧HTMLが不在</td>
-        <td>generating-screen-list-for-reverse-docs</td>
+        <td>generating-unit-list-for-reverse-docs</td>
       </tr>
       <tr>
         <td><code>S0u</code> 画面未開通</td>
@@ -331,7 +331,7 @@
     </thead>
     <tbody>
       <tr><td>Phase 1</td><td>状態判定。実在判定を決定木の順に確認し S0/S0u/S1a/S1b/S2/S3/S4 を確定。必要な工程だけを 1 つずつ TaskCreate（一括登録禁止）</td><td>常時</td></tr>
-      <tr><td>Phase 2</td><td>①画面一覧生成。<code>generating-screen-list-for-reverse-docs</code> を <code>source_dir</code>・<code>output_dir</code> 指定で起動</td><td>S0 時のみ</td></tr>
+      <tr><td>Phase 2</td><td>①画面一覧生成。<code>generating-unit-list-for-reverse-docs</code> を <code>source_dir</code>・<code>output_dir</code> 指定で起動</td><td>S0 時のみ</td></tr>
       <tr><td>Phase 3</td><td>②setup（環境ブロック取得）。<code>syncing-reverse-env</code> を <code>design-doc</code>・<code>mode=setup</code> で起動し env_block を抽出</td><td>常時</td></tr>
       <tr><td>Phase 4</td><td>③ファイル単位検証。(a)S0u画面未開通なら <code>unlocking-reverse-target-screens</code>→<code>syncing-reverse-env</code>(registry)。(b)S1a設計書未著述なら <code>authoring-screen-docs-from-code</code> を起動。(c)S1bファイル単位未検証なら <code>rebuilding-screen-unit-from-docs</code> を対象ファイル1件ごとに繰り返し起動。白紙化のため事前にユーザー承認を取得。status=差し戻し なら(b)へ戻す</td><td>S1a/S1b（任意工程）</td></tr>
       <tr><td>Phase 5</td><td>②sync（基準確立）。<code>syncing-reverse-env</code> を <code>design-doc</code>・<code>mode=sync</code> で起動し <code>baseline_tag</code> を確立</td><td>S2 時のみ</td></tr>
@@ -360,7 +360,7 @@
       <tr><th>呼び出し箇所</th><th>invocation</th><th>args骨格</th><th>期待返却 status</th></tr>
     </thead>
     <tbody>
-      <tr><td>Phase 2</td><td>generating-screen-list-for-reverse-docs</td><td>source_dir, output_dir</td><td><span class="tag pass">DONE</span></td></tr>
+      <tr><td>Phase 2</td><td>generating-unit-list-for-reverse-docs</td><td>source_dir, output_dir</td><td><span class="tag pass">DONE</span></td></tr>
       <tr><td>Phase 3</td><td>syncing-reverse-env</td><td>design-doc, mode=setup</td><td><span class="tag pass">PASS</span>（env_block抽出）</td></tr>
       <tr><td>Phase 4（S1a）</td><td>authoring-screen-docs-from-code</td><td>screen_dir, docs_root, template_root, chapter_map_path, audit_script_path, target_repo_path, target_branch, source_ref, mode, target_file_path</td><td><span class="tag pass">AUTHORED</span></td></tr>
       <tr><td>Phase 4（S1b）</td><td>rebuilding-screen-unit-from-docs</td><td>screen_dir, target_file_path, 資産paths, env_block, user-approved</td><td><span class="tag pass">再現一致</span></td></tr>
@@ -415,7 +415,7 @@
     </thead>
     <tbody>
       <tr>
-        <td>generating-screen-list-for-reverse-docs</td>
+        <td>generating-unit-list-for-reverse-docs</td>
         <td><code>DONE | ERROR</code></td>
         <td>screen_list_html（= artifacts[0]）、embedded_json_ref（HTML内埋め込みマニフェストJSONへの参照）</td>
       </tr>
@@ -465,7 +465,7 @@
       <tr><th>子スキル</th><th>args</th></tr>
     </thead>
     <tbody>
-      <tr><td>generating-screen-list-for-reverse-docs</td><td>source_dir, output_dir</td></tr>
+      <tr><td>generating-unit-list-for-reverse-docs</td><td>source_dir, output_dir</td></tr>
       <tr><td>syncing-reverse-env</td><td>design-doc, mode（setup|sync|teardown）, dry-run, reset-first, user-approved, scenarios, max-loop（既存契約のまま）</td></tr>
       <tr><td>authoring-screen-docs-from-code</td><td>screen_dir, docs_root, template_root, chapter_map_path, audit_script_path, target_repo_path, target_branch, source_ref, mode, target_file_path（mode=file時）, screenshot_dir（任意）, registry値（任意）</td></tr>
       <tr><td>rebuilding-screen-unit-from-docs</td><td>screen_dir, target_file_path, docs_root, template_root, audit_script_path, chapter_map_path, env_block, user-approved</td></tr>
@@ -551,7 +551,7 @@
       <tr><th>子スキル</th><th>役割</th></tr>
     </thead>
     <tbody>
-      <tr><td>generating-screen-list-for-reverse-docs</td><td>①画面一覧生成（S0 時に起動）</td></tr>
+      <tr><td>generating-unit-list-for-reverse-docs</td><td>①画面一覧生成（S0 時に起動）</td></tr>
       <tr><td>syncing-reverse-env</td><td>②環境同期（setup / sync / sync,dry-run / teardown）</td></tr>
       <tr><td>rebuilding-screen-unit-from-docs</td><td>③ファイル単位検証（S1 任意工程）</td></tr>
       <tr><td>rebuilding-code-from-docs</td><td>④画面単位検証（implement / judge の2モード分割）</td></tr>
