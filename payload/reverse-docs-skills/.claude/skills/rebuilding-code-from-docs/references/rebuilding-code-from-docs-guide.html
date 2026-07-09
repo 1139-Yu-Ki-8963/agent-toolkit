@@ -136,14 +136,15 @@
   <div class="toc-title">目次</div>
   <ol>
     <li><a href="#s1">概要・検証範囲</a></li>
-    <li><a href="#s2">用語</a></li>
-    <li><a href="#s3">使い方</a></li>
-    <li><a href="#s4">動作フロー（Phase 1〜9）</a></li>
-    <li><a href="#s5">設計原則</a></li>
-    <li><a href="#s6">ガード設計</a></li>
-    <li><a href="#s7">報告フォーマット</a></li>
-    <li><a href="#s8">重要な注意事項・Gotchas</a></li>
-    <li><a href="#s9">関連スキル・規約</a></li>
+    <li><a href="#s2">出力</a></li>
+    <li><a href="#s3">用語</a></li>
+    <li><a href="#s4">使い方</a></li>
+    <li><a href="#s5">動作フロー（Phase 1〜9）</a></li>
+    <li><a href="#s6">設計原則</a></li>
+    <li><a href="#s7">ガード設計</a></li>
+    <li><a href="#s8">報告フォーマット</a></li>
+    <li><a href="#s9">重要な注意事項・Gotchas</a></li>
+    <li><a href="#s10">関連スキル・規約</a></li>
   </ol>
 </nav>
 
@@ -204,7 +205,7 @@
   </table>
 
   <h3>Phase 9: 凍結検証と最終報告の定量欄</h3>
-  <p>起動引数 <code>reverse_worktree</code>・<code>freeze_commit</code> を用いて <code>scripts/check-freeze.sh &lt;reverse_worktree&gt; &lt;freeze_commit&gt;</code> を実行し、現状（HEAD・作業ツリー）と突合する。<span class="tag pass">PASS</span> = HEAD 一致かつ作業ツリークリーン、<span class="tag fail">FAIL</span> = 不一致（結果全体を無効宣言）。最終報告には DESIGN.md トークン適用率（n/m）・対象ファイル型エラー数・L3 画素差分値（証跡パス付き）を必須記載する。書式全体は <a href="#s7">§7 報告フォーマット</a> と <code>references/report-format.md</code> を参照。</p>
+  <p>起動引数 <code>reverse_worktree</code>・<code>freeze_commit</code> を用いて <code>scripts/check-freeze.sh &lt;reverse_worktree&gt; &lt;freeze_commit&gt;</code> を実行し、現状（HEAD・作業ツリー）と突合する。<span class="tag pass">PASS</span> = HEAD 一致かつ作業ツリークリーン、<span class="tag fail">FAIL</span> = 不一致（結果全体を無効宣言）。最終報告には DESIGN.md トークン適用率（n/m）・対象ファイル型エラー数・L3 画素差分値（証跡パス付き）を必須記載する。書式全体は <a href="#s8">§8 報告フォーマット</a> と <code>references/report-format.md</code> を参照。</p>
 
   <div class="constraint">
     <strong>目的の分離:</strong> コードを直すことは目的ではない。フィードバック先は (a) 当該画面設計書の該当章（役割キー）、(b) 欠落が汎用的ならテンプレート自体の記載粒度改善の 2 つ。
@@ -213,7 +214,16 @@
 </section>
 
 <section id="s2">
-  <h2><span class="sec-num">§2</span>用語</h2>
+  <h2><span class="sec-num">§2</span>出力</h2>
+  <p>画面単位の往復検証を行い、設計書の完全性を判定する。</p>
+  <div class="def">
+    <dt>往復検証の合否判定</dt>
+    <dd>設計書だけを読んで画面のコードを丸ごと再構築し、オリジナルと突合した結果。「設計書の記述だけでコードを再現できたか」を判定し、再現できなかった箇所を設計書の欠落として具体的に報告する。合格すれば「この設計書は画面を完全に記述している」という証明になる。</dd>
+  </div>
+</section>
+
+<section id="s3">
+  <h2><span class="sec-num">§3</span>用語</h2>
   <table class="spec">
     <tr><th>用語</th><th>意味</th></tr>
     <tr><td>章の役割キー／既定 §n</td><td>画面詳細設計書の各章に付けられた意味分類ラベル（16 種）。「既定 §n」はテンプレート上でその役割キーに通常割り当てられる章番号を指す注記で、正の識別子は番号ではなく役割キー自体（§1 参照）</td></tr>
@@ -228,8 +238,8 @@
   </table>
 </section>
 
-<section id="s3">
-  <h2><span class="sec-num">§3</span>使い方</h2>
+<section id="s4">
+  <h2><span class="sec-num">§4</span>使い方</h2>
   <p>起動引数は <strong>mode</strong>（<code>implement</code> | <code>judge</code>）と mode ごとの args 全量。設計書・<code>DESIGN.md</code>・共通設計書・メッセージ定義書・テスト観点表は設計書 frontmatter を経由してロードする。</p>
   <div class="constraint">
     <strong>前提条件:</strong> 基準タグ <code>reverse-baseline/&lt;scope&gt;</code> が確立済みであること。未確立の場合、<code>mode=implement</code> は Phase 1 で <span class="tag mode">BLOCKED</span> を返して管理者へ差し戻す。
@@ -244,8 +254,8 @@
   </table>
 </section>
 
-<section id="s4">
-  <h2><span class="sec-num">§4</span>動作フロー（Phase 1〜9）</h2>
+<section id="s5">
+  <h2><span class="sec-num">§5</span>動作フロー（Phase 1〜9）</h2>
   <pre class="flow"><span class="cap">mode=implement</span>
 <span class="cap">Phase 1</span> 入力ロード + preflight ── 基準タグ確認（env_block受領。未確立ならBLOCKED）
 <span class="cap">Phase 2</span> 設計書内部整合性監査 ── 内部矛盾あれば Phase 8 へ直行
@@ -273,8 +283,8 @@
   </table>
 </section>
 
-<section id="s5">
-  <h2><span class="sec-num">§5</span>設計原則</h2>
+<section id="s6">
+  <h2><span class="sec-num">§6</span>設計原則</h2>
   <ol>
     <li><strong>正本一元化</strong>: 環境固有値の正は起動引数の env_block（<code>scope</code>/<code>reverse_worktree</code>/<code>ports</code>/<code>baseline_tag_status</code>/<code>docs_root</code>）。画面固有値の正は設計書 frontmatter。本スキル専用の config.yml は新設しない</li>
     <li><strong>比較エンジンの非自前実装</strong>: 判定は <code>mode=judge</code> が受け取る起動引数 <code>compare_result</code> のみ</li>
@@ -283,8 +293,8 @@
   </ol>
 </section>
 
-<section id="s6">
-  <h2><span class="sec-num">§6</span>ガード設計</h2>
+<section id="s7">
+  <h2><span class="sec-num">§7</span>ガード設計</h2>
   <table class="spec">
     <tr><th>ガード</th><th>方式</th></tr>
     <tr><td>修正禁止（Phase 7 以降）</td><td>advisory + <code>check-freeze.sh</code> による事後機械検証（不一致 = 結果無効）</td></tr>
@@ -297,8 +307,8 @@
   </div>
 </section>
 
-<section id="s7">
-  <h2><span class="sec-num">§7</span>報告フォーマット</h2>
+<section id="s8">
+  <h2><span class="sec-num">§8</span>報告フォーマット</h2>
   <p>書式の正は <code>references/report-format.md</code>。配置先は <code>&lt;画面ディレクトリ&gt;/検証記録/&lt;timestamp&gt;/</code>（設計書リポジトリ内）。生証跡（スクリーンショット・テストログ・返却ブロック全文）は <code>~/agent-home/sessions/</code> 配下に置く。</p>
   <table class="spec">
     <tr><th>成果物</th><th>作成 Phase</th><th>内容</th></tr>
@@ -310,8 +320,8 @@
   </div>
 </section>
 
-<section id="s8">
-  <h2><span class="sec-num">§8</span>重要な注意事項・Gotchas</h2>
+<section id="s9">
+  <h2><span class="sec-num">§9</span>重要な注意事項・Gotchas</h2>
   <div class="constraint">
     <strong>コード記述はフェーズ限定</strong>: Phase 4 以外でコードを書いてはならない。Phase 3〜Phase 7 の間、オリジナルコード環境への Read は禁止（カンニング防止）。
   </div>
@@ -331,8 +341,8 @@
   </ul>
 </section>
 
-<section id="s9">
-  <h2><span class="sec-num">§9</span>関連スキル・規約</h2>
+<section id="s10">
+  <h2><span class="sec-num">§10</span>関連スキル・規約</h2>
   <table class="spec">
     <tr><th>資料</th><th>役割</th></tr>
     <tr><td>orchestrating-reverse-docs-flow の契約（references/contract.md）</td><td>完全仲介方式の契約正本。本スキルはこの契約に準拠し、mode を含む args 全量指定で単独起動できる</td></tr>

@@ -130,14 +130,15 @@
   <div class="toc-title">目次</div>
   <ol>
     <li><a href="#s1">概要</a></li>
-    <li><a href="#s2">用語</a></li>
-    <li><a href="#s3">使い方（起動引数）</a></li>
-    <li><a href="#s4">動作フロー（Phase 1〜4）</a></li>
-    <li><a href="#s5">画面キー生成規則</a></li>
-    <li><a href="#s6">検出戦略宣言の作り方</a></li>
-    <li><a href="#s7">画面一覧.HTML フォーマット</a></li>
-    <li><a href="#s8">Gotchas・スコープ外</a></li>
-    <li><a href="#s9">関連スキル・規約</a></li>
+    <li><a href="#s2">出力</a></li>
+    <li><a href="#s3">用語</a></li>
+    <li><a href="#s4">使い方（起動引数）</a></li>
+    <li><a href="#s5">動作フロー（Phase 1〜4）</a></li>
+    <li><a href="#s6">画面キー生成規則</a></li>
+    <li><a href="#s7">検出戦略宣言の作り方</a></li>
+    <li><a href="#s8">画面一覧.HTML フォーマット</a></li>
+    <li><a href="#s9">Gotchas・スコープ外</a></li>
+    <li><a href="#s10">関連スキル・規約</a></li>
   </ol>
 </nav>
 
@@ -153,7 +154,16 @@
 </section>
 
 <section id="s2">
-  <h2><span class="sec-num">§2</span>用語</h2>
+  <h2><span class="sec-num">§2</span>出力</h2>
+  <p>リバース設計の出発点となる画面の全体像が生まれる。</p>
+  <div class="def">
+    <dt>画面一覧</dt>
+    <dd>対象アプリケーションのソースコードを自動走査し、検出した全画面をルーティング定義・コンポーネント構成・ファイルパスとともに一覧化した HTML。「アプリに何画面あるか」「各画面がどこに定義されているか」をひと目で俯瞰でき、以降の全工程でどの画面から着手するかの判断材料になる。</dd>
+  </div>
+</section>
+
+<section id="s3">
+  <h2><span class="sec-num">§3</span>用語</h2>
   <dl class="def">
     <dt>画面キー（screenKey）</dt>
     <dd>意味キー規約に準拠した画面の一意識別子。ルートの静的セグメントから導出し、連番サフィックスは使わない。</dd>
@@ -162,8 +172,8 @@
   </dl>
 </section>
 
-<section id="s3">
-  <h2><span class="sec-num">§3</span>使い方（起動引数）</h2>
+<section id="s4">
+  <h2><span class="sec-num">§4</span>使い方（起動引数）</h2>
   <table class="spec">
     <tr><th>引数</th><th>内容</th></tr>
     <tr><td>ソースコードディレクトリ</td><td>探索対象。モノレポの場合は対象アプリのディレクトリを直接指定する（自動判別なし）</td></tr>
@@ -172,8 +182,8 @@
   <p class="note">0件検出時は AskUserQuestion で結果を報告して停止する（手動リスト入力は行わない）。</p>
 </section>
 
-<section id="s4">
-  <h2><span class="sec-num">§4</span>動作フロー（Phase 1〜4）</h2>
+<section id="s5">
+  <h2><span class="sec-num">§5</span>動作フロー（Phase 1〜4）</h2>
   <p>固定（スキーマ契約・整合検証・HTML生成）と可変（抽出）を分離する。抽出はPhase 2 Step 1の分岐判定で「組み込みパス」「カスタム抽出パス」のいずれかを選ぶ。</p>
   <pre class="flow"><span class="cap">Phase 1: スタック・画面規約の特定（TaskCreateで全Phase登録）</span>
   Step 1: package.json / lockファイルからフレームワーク・ルーターを確定
@@ -208,8 +218,8 @@
   手作業でのプレースホルダ置換は禁止。決定的スクリプト経由のみ</pre>
 </section>
 
-<section id="s5">
-  <h2><span class="sec-num">§5</span>画面キー生成規則</h2>
+<section id="s6">
+  <h2><span class="sec-num">§6</span>画面キー生成規則</h2>
   <p>semantic-key-rules（連番禁止）に準拠したアルゴリズム。</p>
   <table class="spec">
     <tr><th>手順</th><th>内容</th></tr>
@@ -221,8 +231,8 @@
   </table>
 </section>
 
-<section id="s6">
-  <h2><span class="sec-num">§6</span>検出戦略宣言の作り方</h2>
+<section id="s7">
+  <h2><span class="sec-num">§7</span>検出戦略宣言の作り方</h2>
   <p>Phase 1でエージェントが調査した内容をもとに、画面単位の定義・<code>screen-id-regex</code>・<code>view-switch-pattern</code>の3点を宣言し、AskUserQuestionで1回だけ確認を取る。汎用の正規表現をプロジェクトを問わず当てるのではなく、対象プロジェクトの実際の命名規約・ナビゲーション方式から導出する。</p>
   <table class="spec">
     <tr><th>項目</th><th>決め方</th><th>例</th></tr>
@@ -248,8 +258,8 @@
   </ol>
 </section>
 
-<section id="s7">
-  <h2><span class="sec-num">§7</span>画面一覧.HTML フォーマット</h2>
+<section id="s8">
+  <h2><span class="sec-num">§8</span>画面一覧.HTML フォーマット</h2>
   <p>テーブル列: 画面ID／画面キー／区分／画面名／ルート／検出方式／confidence／共有／構成ファイル数／主ファイル。<code>&lt;script type="application/json" id="screen-manifest"&gt;</code> に構造化データを埋め込み、人間可読と機械可読を両立する。外部CDN不使用の単一ファイル自己完結。</p>
   <table class="spec">
     <tr><th>列</th><th>内容</th></tr>
@@ -260,8 +270,8 @@
   <div class="constraint"><strong>正本の位置づけ</strong>: 画面一覧.HTML は後続フェーズが読む計画書ではなく、実施済み事実のレポート。画面詳細設計書.md の単位を正確に分けるための正本として機能する。</div>
 </section>
 
-<section id="s8">
-  <h2><span class="sec-num">§8</span>Gotchas・スコープ外</h2>
+<section id="s9">
+  <h2><span class="sec-num">§9</span>Gotchas・スコープ外</h2>
   <ul>
     <li><strong>validateゲート</strong>: Phase 4の <code>build-screen-list.sh</code> は内部で <code>validate-manifest.sh</code> を再実行する。Phase 3の検証を経ないマニフェストからはHTMLを生成できない（抽出方式に依らず強制）</li>
     <li><code>validate-manifest.sh</code>・<code>build-screen-list.sh</code> はいずれも jq に依存する。未インストール環境では事前に導入する</li>
@@ -275,8 +285,8 @@
   </ul>
 </section>
 
-<section id="s9">
-  <h2><span class="sec-num">§9</span>関連スキル・規約</h2>
+<section id="s10">
+  <h2><span class="sec-num">§10</span>関連スキル・規約</h2>
   <table class="spec">
     <tr><th>関連</th><th>関係</th></tr>
     <tr><td><code>orchestrating-reverse-docs-flow</code></td><td>工程全体を案内する管理者スキル。本スキルは他スキル名を参照せず単独起動できるが、返却する status / artifacts はこの管理者スキルの契約に準拠する</td></tr>

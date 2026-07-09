@@ -121,7 +121,6 @@
   <table class="meta-table">
     <tr><td>対応 OS</td><td>Windows WSL2 環境</td></tr>
     <tr><td>検証状況</td><td>暫定実装</td></tr>
-    <tr><td>種別</td><td>orchestration（allowed-tools: Read, Write, Edit, Bash, Grep, Glob, Skill, TaskCreate, TaskUpdate）</td></tr>
     <tr><td>依存</td><td>reverse_worktree 上の対象画面ソースコード一式、<code>manifest.yml</code> の <code>projects.&lt;system&gt;</code> エントリ</td></tr>
     <tr><td>関連資料</td><td><code>SKILL.md</code>, <code>manifest.yml</code>, <code>assets/manifest-template.yml</code>, <code>orchestrating-reverse-docs-flow/references/contract.md</code>, <code>syncing-reverse-env/config.yml</code></td></tr>
   </table>
@@ -131,20 +130,21 @@
   <div class="toc-title">目次</div>
   <ol>
     <li><a href="#s1">概要</a></li>
-    <li><a href="#s2">使用タイミングと起動引数</a></li>
-    <li><a href="#s3">埋め込みビュー画面の開通（ルートを持たない画面）</a></li>
-    <li><a href="#s4">実行手順（前提ゲート + Phase 1〜5）</a></li>
-    <li><a href="#s5">完了条件</a></li>
-    <li><a href="#s6">ループ設計</a></li>
-    <li><a href="#s7">同一条件で成功と失敗が混在する場合の対処</a></li>
-    <li><a href="#s8">同一条件で常に同じ失敗（決定的クラッシュ）が再現する場合の対処</a></li>
-    <li><a href="#s9">サブエージェント委任仕様</a></li>
-    <li><a href="#s10">重要な注意事項</a></li>
-    <li><a href="#s11">並列実行時の運用規約</a></li>
-    <li><a href="#s12">完了報告</a></li>
-    <li><a href="#s13">Gotchas</a></li>
-    <li><a href="#s14">参照資料</a></li>
-    <li><a href="#s15">改訂完了時の機械チェック</a></li>
+    <li><a href="#s2">出力</a></li>
+    <li><a href="#s3">使用タイミングと起動引数</a></li>
+    <li><a href="#s4">埋め込みビュー画面の開通（ルートを持たない画面）</a></li>
+    <li><a href="#s5">実行手順（前提ゲート + Phase 1〜5）</a></li>
+    <li><a href="#s6">完了条件</a></li>
+    <li><a href="#s7">ループ設計</a></li>
+    <li><a href="#s8">同一条件で成功と失敗が混在する場合の対処</a></li>
+    <li><a href="#s9">同一条件で常に同じ失敗（決定的クラッシュ）が再現する場合の対処</a></li>
+    <li><a href="#s10">サブエージェント委任仕様</a></li>
+    <li><a href="#s11">重要な注意事項</a></li>
+    <li><a href="#s12">並列実行時の運用規約</a></li>
+    <li><a href="#s13">完了報告</a></li>
+    <li><a href="#s14">Gotchas</a></li>
+    <li><a href="#s15">参照資料</a></li>
+    <li><a href="#s16">改訂完了時の機械チェック</a></li>
   </ol>
 </nav>
 
@@ -163,7 +163,16 @@
 </section>
 
 <section id="s2">
-  <h2><span class="sec-num">§2</span>使用タイミングと起動引数</h2>
+  <h2><span class="sec-num">§2</span>出力</h2>
+  <p>設計書がまだ無い画面を、リバース設計の対象として着手できる状態にする。</p>
+  <div class="def">
+    <dt>画面が開通した状態</dt>
+    <dd>モック API やダミーデータを注入して、ブラウザ上で画面が実際に描画・操作できる状態を確立する。API エラーや認証壁で画面が表示できない問題を解消し、「この画面はリバース設計に着手してよい」と判断できる基準タグを付与する。</dd>
+  </div>
+</section>
+
+<section id="s3">
+  <h2><span class="sec-num">§3</span>使用タイミングと起動引数</h2>
   <ul>
     <li>対象画面にまだ設計書が無く、既存コードがログインを要求するなどの理由でそのままでは動作確認できないとき</li>
     <li>画面開通・設計書皆無画面の動作確認・設計書着手前の下準備・基準タグ確立まで含む一気通貫実行を行いたいとき</li>
@@ -182,8 +191,8 @@
   <p class="note">全量が管理者から渡される。単独起動時はユーザーから直接取得してよい。対象プロジェクトの <code>manifest.yml</code> に <code>projects.&lt;system&gt;</code> エントリが無い、または未確定キー（<code>&lt;FILL:...&gt;</code>）が残っている場合は <code>assets/manifest-template.yml</code> を複製してまず埋める（前提ゲートで検出・差し戻し）。</p>
 </section>
 
-<section id="s3">
-  <h2><span class="sec-num">§3</span>埋め込みビュー画面の開通（ルートを持たない画面）</h2>
+<section id="s4">
+  <h2><span class="sec-num">§4</span>埋め込みビュー画面の開通（ルートを持たない画面）</h2>
   <div class="def">
     <dt>対象</dt>
     <dd>独自のルーティングエントリを持たず、常に親画面の内部（タブ・モーダル・埋め込みパネル等）としてのみマウントされる画面。</dd>
@@ -198,8 +207,8 @@
   </div>
 </section>
 
-<section id="s4">
-  <h2><span class="sec-num">§4</span>実行手順（前提ゲート + Phase 1〜5）</h2>
+<section id="s5">
+  <h2><span class="sec-num">§5</span>実行手順（前提ゲート + Phase 1〜5）</h2>
 
   <h3>前提ゲート</h3>
   <p><code>manifest.yml</code> の <code>projects.&lt;system&gt;</code> を読み込む。エントリ不在、または値に未確定トークン（<code>&lt;FILL:...&gt;</code>）が1つでも残っていれば <span class="tag error">ERROR</span> とし、hint に不足キー一覧と <code>assets/manifest-template.yml</code> への案内を記して停止する。値の穴埋めは実行者自身が推測して行わない。人間または呼び出し元が <code>assets/manifest-template.yml</code> を複製して実値を埋めてから前提ゲートを再実行する（本スキルの自己完結性は「開通〜基準タグ確立」の作業範囲に限られ、manifestのブートストラップ自体は対象外）。<code>manifest.&lt;system&gt;.repo_and_launch</code> に従い、対象リポジトリで dev サーバーを自分で起動する（稼働中の他エージェントのサーバーには接続・干渉しない）。</p>
@@ -316,8 +325,8 @@
             かつ（成功時のみ）git tag -l 等の決定的出力でタグ確立を確認済み</pre>
 </section>
 
-<section id="s5">
-  <h2><span class="sec-num">§5</span>完了条件</h2>
+<section id="s6">
+  <h2><span class="sec-num">§6</span>完了条件</h2>
   <table class="spec">
     <tr><th>Phase</th><th>完了条件</th></tr>
     <tr><td>前提ゲート</td><td>manifest必須キー全確定・devサーバー起動確認・リファレンス画面健全性確認PASS（実データ最低1件表示または空表示の正当性確認。同一業務ドメイン限定。開通済み画面が1件も無い最初の1枚目の場合は省略可）・対象URL（埋め込みビュー画面は親経由URL）のマウント確認PASS</td></tr>
@@ -330,8 +339,8 @@
   </table>
 </section>
 
-<section id="s6">
-  <h2><span class="sec-num">§6</span>ループ設計</h2>
+<section id="s7">
+  <h2><span class="sec-num">§7</span>ループ設計</h2>
   <table class="spec">
     <tr><th>要素</th><th>内容</th></tr>
     <tr><td>反復対象</td><td>Phase 4（検証ループ）。差分が見つかればPhase 1/2/3のいずれかへ戻り再実行</td></tr>
@@ -342,8 +351,8 @@
   </table>
 </section>
 
-<section id="s7">
-  <h2><span class="sec-num">§7</span>同一条件で成功と失敗が混在する場合の対処</h2>
+<section id="s8">
+  <h2><span class="sec-num">§8</span>同一条件で成功と失敗が混在する場合の対処</h2>
   <p>「同一条件で成功と失敗が混在する」場合、次の順序で対処する。</p>
   <ol>
     <li>直ちにレース条件と断定しない</li>
@@ -354,8 +363,8 @@
   </ol>
 </section>
 
-<section id="s8">
-  <h2><span class="sec-num">§8</span>同一条件で常に同じ失敗（決定的クラッシュ）が再現する場合の対処</h2>
+<section id="s9">
+  <h2><span class="sec-num">§9</span>同一条件で常に同じ失敗（決定的クラッシュ）が再現する場合の対処</h2>
   <p>混在（断続的に成功・失敗が入れ替わる）か決定的（同一条件で毎回同一の失敗が再現する）かをまず判定する。混在なら §7「同一条件で成功と失敗が混在する場合の対処」に進み、決定的なら本節に進む。</p>
   <p>Phase 1で列挙した画面要求値とPhase 3で実装したモックデータの突合が完全一致していて、なお毎回100%同一のクラッシュが再現する場合であっても、直ちにアプリ本体側の問題と結論しない。まず、非同期（async）処理で埋まるはずのセッションキーを、起動時の初期投入に一時的に付け替えて再検証する。「キーが丸ごと欠落している」場合だけでなく「キー自体は存在するが必要な行・ノードが不足している」場合も、同じ付け替えで解消することがある。</p>
   <p>ただし、対象自身の初期化処理が外部から投入した値を上書き・再構築する実装の場合、この付け替えは効かない。その場合は初期化処理自体の実行タイミングやトリガー条件を確認し、別の充足経路を検討する。</p>
@@ -364,8 +373,8 @@
   </div>
 </section>
 
-<section id="s9">
-  <h2><span class="sec-num">§9</span>サブエージェント委任仕様</h2>
+<section id="s10">
+  <h2><span class="sec-num">§10</span>サブエージェント委任仕様</h2>
   <table class="spec">
     <tr><th>呼び出し箇所</th><th>invocation</th><th>args骨格</th><th>期待返却status</th></tr>
     <tr><td>Phase 5</td><td>syncing-reverse-env</td><td>mode=registry, system, screen_id, reverse_worktree, ports, user-approved</td><td><span class="tag pass">PASS</span></td></tr>
@@ -381,8 +390,8 @@
   </div>
 </section>
 
-<section id="s10">
-  <h2><span class="sec-num">§10</span>重要な注意事項</h2>
+<section id="s11">
+  <h2><span class="sec-num">§11</span>重要な注意事項</h2>
   <ul>
     <li><strong>変更してよい範囲</strong>: モックの実装・開発用の起動時初期化処理（devサーバー起動スクリプト等）・設定ファイル（<code>manifest.&lt;system&gt;</code> に記載された範囲、および Phase 2 で対象画面を権限チェーンの既存許可リストへ追記登録する作業を含む）のみ。画面・業務ロジック・共通処理などアプリケーション本体のコードを新規実装・改変することは対象外（リバース対象の原本性を損なうため）。検証がうまくいかない場合は、まず同一条件で失敗が混在するか常に決定的に再現するかを切り分け、該当する対処節（§7「同一条件で成功と失敗が混在する場合の対処」／§8「同一条件で常に同じ失敗（決定的クラッシュ）が再現する場合の対処」）に従う。それでも根本原因がアプリ本体側の実装にあると判明した場合は、コードを書き換えるのではなく、その事実を開通記録（<code>handoff.unlock_record_dir</code>）に書き残しユーザーの判断に委ねる。</li>
     <li>対象画面自身の配線（ルート定義等）に既存バグを見つけた場合も修正しない。「未使用ゆえ検証されてこなかった事前バグの可能性」として <code>handoff.unlock_record_dir</code> に記録し、修正要否はユーザー判断に委ねる</li>
@@ -394,14 +403,14 @@
   </ul>
 </section>
 
-<section id="s11">
-  <h2><span class="sec-num">§11</span>並列実行時の運用規約</h2>
+<section id="s12">
+  <h2><span class="sec-num">§12</span>並列実行時の運用規約</h2>
   <p>複数の実行者が同時に本スキルを走らせる場合、各実行者は <code>manifest.&lt;system&gt;.repo_and_launch.work_repo_path</code> から画面専用の<strong>作業コピー</strong>（git worktree。命名規則 <code>unlock-work-&lt;system&gt;-&lt;screen_id&gt;</code>）を用意し、その上でdevサーバーを起動する。作業コピーは専用ブランチ（<code>unlock/&lt;system&gt;-&lt;screen_id&gt;</code>）と専用ポート（起動引数 <code>ports</code> を画面ごとに変える）で他の実行者と分離する。</p>
   <p>画面レジストリへの記帳（Phase 5）のみを直列化する。記帳の直前に <code>&lt;screen_registry_path&gt;.lock</code> のmkdir原子ロックを取得してから記帳し、完了後に解放する（<code>syncing-reverse-env</code> の <code>.reverse-slot-lock.d</code> と同方式）。開通作業自体（前提ゲート〜Phase 4）は並列実行のままでよく、直列化の対象はレジストリ記帳のみである。</p>
 </section>
 
-<section id="s12">
-  <h2><span class="sec-num">§12</span>完了報告</h2>
+<section id="s13">
+  <h2><span class="sec-num">§13</span>完了報告</h2>
   <p><code>managing-agent-configs/references/skills/completion-report-format.md</code> の共通骨格（作業報告型）に従う。</p>
   <p class="note">固有の検証行:</p>
   <ul>
@@ -412,8 +421,8 @@
   </ul>
 </section>
 
-<section id="s13">
-  <h2><span class="sec-num">§13</span>Gotchas</h2>
+<section id="s14">
+  <h2><span class="sec-num">§14</span>Gotchas</h2>
   <p class="note">一般的な症状別の切り分け（詰まりパターン）は <code>references/troubleshooting-patterns.md</code> を参照する。以下は同ファイルに寄せていない個別の注意点。</p>
   <ul>
     <li>設計書がある画面は対象外（<code>rebuilding-screen-unit-from-docs</code> / <code>rebuilding-code-from-docs</code> を使う）</li>
@@ -429,8 +438,8 @@
   </ul>
 </section>
 
-<section id="s14">
-  <h2><span class="sec-num">§14</span>参照資料</h2>
+<section id="s15">
+  <h2><span class="sec-num">§15</span>参照資料</h2>
   <table class="spec">
     <tr><th>関連</th><th>関係</th></tr>
     <tr><td><code>~/reverse-docs-skills/.claude/skills/orchestrating-reverse-docs-flow/references/contract.md</code></td><td>返却ブロック契約・args仕様・画面レジストリの正本（例外条項含む）</td></tr>
@@ -443,8 +452,8 @@
   </table>
 </section>
 
-<section id="s15">
-  <h2><span class="sec-num">§15</span>改訂完了時の機械チェック</h2>
+<section id="s16">
+  <h2><span class="sec-num">§16</span>改訂完了時の機械チェック</h2>
   <p>編集完了後、以下のようなgrepコマンドを実行しゼロヒットを確認する。このリポジトリ自体は具体値を持たないため、実運用では配布先プロジェクトが実際に埋めた値を対象に同種のgrepを実施する。</p>
   <pre class="flow">grep -riE '&lt;実プロジェクト名&gt;|&lt;実ポート番号&gt;|&lt;実API名&gt;|&lt;実画面ID&gt;' .claude/skills/unlocking-reverse-target-screens/SKILL.md .claude/skills/unlocking-reverse-target-screens/references/*.html</pre>
 </section>

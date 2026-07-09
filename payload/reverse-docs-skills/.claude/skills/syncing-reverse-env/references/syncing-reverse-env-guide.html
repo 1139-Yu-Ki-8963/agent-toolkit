@@ -144,21 +144,22 @@
   <div class="toc-title">目次</div>
   <ol>
     <li><a href="#s1">概要</a></li>
-    <li><a href="#s2">リバース以外の使い方</a></li>
-    <li><a href="#s3">用語</a></li>
-    <li><a href="#s4">使い方（mode とユースケース）</a></li>
-    <li><a href="#s5">環境と設定（命名・ポート・config.yml）</a></li>
-    <li><a href="#s6">動作フロー</a></li>
-    <li><a href="#s7">検証内容</a></li>
-    <li><a href="#s8">報告フォーマット</a></li>
-    <li><a href="#s9">関連スキル・規約</a></li>
+    <li><a href="#s2">出力</a></li>
+    <li><a href="#s3">リバース以外の使い方</a></li>
+    <li><a href="#s4">用語</a></li>
+    <li><a href="#s5">使い方（mode とユースケース）</a></li>
+    <li><a href="#s6">環境と設定（命名・ポート・config.yml）</a></li>
+    <li><a href="#s7">動作フロー</a></li>
+    <li><a href="#s8">検証内容</a></li>
+    <li><a href="#s9">報告フォーマット</a></li>
+    <li><a href="#s10">関連スキル・規約</a></li>
   </ol>
 </nav>
 
 <section id="s1">
   <h2><span class="sec-num">§1</span>概要</h2>
   <p>リバースエンジニアリング設計の中心課題は「設計書が完全であることの証明」にある。本スキルはこれを、<strong>設計書だけを見て再構築したリバースコード環境が、オリジナルコード環境とポート番号以外で完全に同じ動作をすること</strong>で証明する。</p>
-  <p class="note">本ガイドで使う「L1〜L5」は、起動確認から画面操作結果の突合までを 5 段階に分けた動的検証レベルを指す（内訳は §7 検証内容）。「drvfs」は、WSL2 環境で Windows 側のドライブがマウントされる特殊なファイル領域（<code>/mnt/*</code>）を指す（詳細は §5）。</p>
+  <p class="note">本ガイドで使う「L1〜L5」は、起動確認から画面操作結果の突合までを 5 段階に分けた動的検証レベルを指す（内訳は §8 検証内容）。「drvfs」は、WSL2 環境で Windows 側のドライブがマウントされる特殊なファイル領域（<code>/mnt/*</code>）を指す（詳細は §6）。</p>
   <figure class="diagram">
 <svg style="width:100%;height:auto;display:block" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" font-family="'Hiragino Kaku Gothic ProN','Hiragino Sans','Noto Sans JP','Yu Gothic',sans-serif">
   <defs>
@@ -260,7 +261,18 @@
 </section>
 
 <section id="s2">
-  <h2><span class="sec-num">§2</span>リバース以外の使い方</h2>
+  <h2><span class="sec-num">§2</span>出力</h2>
+  <p>環境同期が成功すると、以下の状態が確立される。</p>
+  <div class="def">
+    <dt>基準コミット</dt>
+    <dd>「設計書だけを見て再構築したコード」と「オリジナルのコード」の 2 環境を実際に起動し、画面表示・API 応答・DOM 構造まで一致することを証明済みのコミット。このコミットが存在する限り「設計書はコードを完全に再現できる品質である」と主張できる。</dd>
+    <dt>検証報告</dt>
+    <dd>ファイル差分の静的比較、環境設定の同一性チェック、ブラウザを使った画面描画の動的比較（5 段階）の結果を、合否とともにまとめた報告文。不一致がある場合は具体的な差分箇所を指摘する。</dd>
+  </div>
+</section>
+
+<section id="s3">
+  <h2><span class="sec-num">§3</span>リバース以外の使い方</h2>
   <p>本スキルはリバース検証のために設計する。ただし「ポート以外同一の 2 環境を永続 worktree で維持し、静的 diff ＋ Playwright 5 層で突合する」という仕組みの性質上、リバース以外にも次のような使い方ができると考えられる。</p>
   <figure class="diagram">
 <svg style="width:100%;height:auto;display:block" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" font-family="'Hiragino Kaku Gothic ProN','Hiragino Sans','Noto Sans JP','Yu Gothic',sans-serif">
@@ -369,8 +381,8 @@
   <p class="note">応用時は「何を一致とみなすか」（静的一致まで求めるか、動的一致のみか）が用途ごとに変わる。合格条件のプリセットを mode とは別の軸で持たせることが、スキル本体実装時の検討事項になる。</p>
 </section>
 
-<section id="s3">
-  <h2><span class="sec-num">§3</span>用語</h2>
+<section id="s4">
+  <h2><span class="sec-num">§4</span>用語</h2>
   <dl class="def">
     <dt>&lt;system&gt;</dt>
     <dd>設計書 frontmatter の <code>source_repo</code> 末尾のリポジトリ名（<code>.git</code> 除去）から機械的に導出する識別子。</dd>
@@ -387,18 +399,18 @@
     <dt>基準コミット / 基準タグ</dt>
     <dd>ポート以外の完全一致を証明できた時点のリバースコード環境側コミットが基準コミット。annotated git tag <code>reverse-baseline/&lt;scope&gt;</code>（基準タグ）がその唯一の記録で、タグメッセージに検証日と判定サマリを持つ。コミットとタグはリポジトリ本体に保存されるため、worktree を破棄しても消えない。リバースコード環境はいつでも <code>git reset --hard reverse-baseline/&lt;scope&gt;</code> で基準状態へ復帰できる。</dd>
     <dt>ポートモデル</dt>
-    <dd>両環境の稼働ポートは <code>&lt;scope&gt;</code> ごとに動的割当てするスロット番号（1〜5）から計算式で決まる（§5）。両環境は必ず異なる帯域を持ち、これが「唯一許容される差分＝ポート番号」の根拠になる。</dd>
+    <dd>両環境の稼働ポートは <code>&lt;scope&gt;</code> ごとに動的割当てするスロット番号（1〜5）から計算式で決まる（§6）。両環境は必ず異なる帯域を持ち、これが「唯一許容される差分＝ポート番号」の根拠になる。</dd>
     <dt>config.yml（スキルフォルダ直下）</dt>
     <dd>プロジェクトによって変えたくなる可能性がある値（ポート計算式・サービス一覧・起動手順・diff 除外リスト・L3 閾値・max-loop 既定値）の置き場。defaults ＋ projects 別上書きの 2 層構造。</dd>
     <dt>L1〜L5</dt>
-    <dd>動的検証を、起動確認から画面操作結果の突合までの 5 段階に分けた検証レベル（L1 起動確認・L2 構造スナップショット・L3 画素比較・L4 コンソールエラー・L5 操作シーケンス突合。詳細は §7）。</dd>
+    <dd>動的検証を、起動確認から画面操作結果の突合までの 5 段階に分けた検証レベル（L1 起動確認・L2 構造スナップショット・L3 画素比較・L4 コンソールエラー・L5 操作シーケンス突合。詳細は §8）。</dd>
     <dt>drvfs</dt>
-    <dd>WSL2 環境で Windows 側のドライブ（<code>C:\</code> 等）が <code>/mnt/*</code> としてマウントされる特殊なファイル領域。ネイティブ Linux ファイルシステムより低速なため、worktree の配置先として非推奨（詳細は §5）。</dd>
+    <dd>WSL2 環境で Windows 側のドライブ（<code>C:\</code> 等）が <code>/mnt/*</code> としてマウントされる特殊なファイル領域。ネイティブ Linux ファイルシステムより低速なため、worktree の配置先として非推奨（詳細は §6）。</dd>
   </dl>
 </section>
 
-<section id="s4">
-  <h2><span class="sec-num">§4</span>使い方（mode とユースケース）</h2>
+<section id="s5">
+  <h2><span class="sec-num">§5</span>使い方（mode とユースケース）</h2>
   <p>mode は運用の 3 局面 —「初回の環境整備」「それ以降の検証サイクル」「検証終了時の片付け」— に対応する 3 つ。</p>
   <table class="spec">
     <tr><th>mode</th><th>局面</th><th>動作</th></tr>
@@ -427,7 +439,7 @@
       <td><strong>呼び出し元</strong><br>（orchestrating-reverse-docs-flow が仲介・検証サイクル）</td>
       <td>設計書を直してリバースコード環境を再構築した直後、「今回の設計書で完全再現できたか」を機械判定し、一致すれば基準を確立したい</td>
       <td>Skill ツール・args 全量指定<br><span class="tag mode">sync</span></td>
-      <td><span class="tag pass">PASS</span> / <span class="tag fail">FAIL</span> ＋ 差分サマリ ＋ 設計書章マップへの対応ヒント（§8）。PASS 時は基準タグを更新</td>
+      <td><span class="tag pass">PASS</span> / <span class="tag fail">FAIL</span> ＋ 差分サマリ ＋ 設計書章マップへの対応ヒント（§9）。PASS 時は基準タグを更新</td>
     </tr>
     <tr>
       <td><strong>人間（状態確認）</strong></td>
@@ -458,7 +470,7 @@
   <ul>
     <li><strong>orchestrating-reverse-docs-flow が仲介する呼び出し元から</strong>: args で全量指定する。対話ゼロで完走できることが契約（AskUserQuestion を発行しない）。</li>
     <li><strong>人間から</strong>: <code>design-doc</code> だけ渡せば起動できる。</li>
-    <li><strong>共通</strong>: worktree のパスを引数で受け取ることはない。両環境は本スキルが命名規則（§5）から導出・確保する。</li>
+    <li><strong>共通</strong>: worktree のパスを引数で受け取ることはない。両環境は本スキルが命名規則（§6）から導出・確保する。</li>
   </ul>
 
   <h3>scenarios（画面単位の正本）</h3>
@@ -477,8 +489,8 @@
   <p class="note"><strong>operations（L5 操作シーケンス突合用・任意）</strong>: <code>scenarios[]</code> 自体には書かない。設計書 frontmatter の <code>operation_test_spec</code>（独立した「操作シナリオ仕様書.md」への相対パス）が指す先で、<code>scenarios[].name</code> と同名のシナリオに対して <code>operations</code>（<code>{action, selector, value?, key?}</code> の配列。<code>action</code> は <code>click</code>/<code>fill</code>/<code>selectOption</code>/<code>press</code> の 4 種）を定義する。本スキルが解決時に該当シナリオの <code>CAP_SCENARIO</code> JSON へ注入する。<code>operation_test_spec</code> が無い画面・名前が一致しないシナリオは L5 評価対象外のまま従来どおり動作する（後方互換）。</p>
 </section>
 
-<section id="s5">
-  <h2><span class="sec-num">§5</span>環境と設定（命名・ポート・config.yml）</h2>
+<section id="s6">
+  <h2><span class="sec-num">§6</span>環境と設定（命名・ポート・config.yml）</h2>
 
   <h3>対応 OS とコマンド互換</h3>
   <p>本スキルは macOS と Windows（WSL2・Ubuntu）の両方に対応する。起動時に OS を判定し、以下のとおりコマンドを解決する。</p>
@@ -520,8 +532,8 @@
   </table>
   <div class="constraint"><strong>不変性:</strong> 共有オリジナルは初回に一度だけ <code>git worktree add --detach &lt;sha&gt;</code> で作成し読み取り専用。使用中（参照カウント&gt;0）は再チェックアウト・<code>source_ref</code> 復元をしない。dirty 検出時は自動復元せず <span class="tag error">ERROR</span>（読み取り専用契約の違反）。復元は参照カウント=0 の時だけ行う。</div>
   <p class="note">参照カウント方式のライフサイクル: 各画面（<code>reverse-code-&lt;scope&gt;</code>）が共有オリジナルの使用を開始する時、共有オリジナル root の <code>.shared-original-refcount.d/&lt;session&gt;-&lt;pid&gt;</code> を mkdir で登録する（原子ロック <code>.shared-original-lock.d</code> を mkdir で取得 → 登録 → 解放）。使用終了・teardown で該当エントリを削除する。参照カウント（生存セッションのエントリ数）が 0 の時だけ、明示 teardown で共有オリジナルの dev サーバー kill + worktree 削除が許される。Phase 2 開始時と teardown 時に、死んだセッション（pid 不在）のエントリを prune する。</p>
-  <p class="note">基準タグ <code>reverse-baseline/&lt;scope&gt;</code> のメッセージには検証時の解決 <code>source_ref</code> SHA を記録する。sync 時、設計書 <code>source_ref</code> の解決 SHA が基準タグ記録の SHA と異なれば「別オリジナルに対する古い基準」＝再検証必要と判定する（§6 の基準タグ乖離検出に source_ref SHA 軸を追加）。</p>
-  <p class="note">障害ドメイン: 共有オリジナルの dev サーバーが落ちると、それを使う全画面が同時失敗する。§7-3 の L1 段階診断のプロセス再起動は system 単位（共有オリジナルを 1 回再起動）で行い、影響画面をまとめて再走行する。per-scope は画面ごとに障害隔離できる。</p>
+  <p class="note">基準タグ <code>reverse-baseline/&lt;scope&gt;</code> のメッセージには検証時の解決 <code>source_ref</code> SHA を記録する。sync 時、設計書 <code>source_ref</code> の解決 SHA が基準タグ記録の SHA と異なれば「別オリジナルに対する古い基準」＝再検証必要と判定する（§7 の基準タグ乖離検出に source_ref SHA 軸を追加）。</p>
+  <p class="note">障害ドメイン: 共有オリジナルの dev サーバーが落ちると、それを使う全画面が同時失敗する。§8-3 の L1 段階診断のプロセス再起動は system 単位（共有オリジナルを 1 回再起動）で行い、影響画面をまとめて再走行する。per-scope は画面ごとに障害隔離できる。</p>
 
   <h3>ポートモデル（計算式）</h3>
   <p>worktree は初回に一度だけ作成し、teardown まで使い回す。既定の共有オリジナル方式（<code>original_sharing: by-source-ref</code>）では、reverse ポートは <code>&lt;scope&gt;</code> ごとの reverse スロット、original ポートは <code>&lt;system&gt;@&lt;sha8&gt;</code> ごとの共有オリジナルスロット（oslot）から、それぞれ別の帯域で決まる。</p>
@@ -566,24 +578,24 @@
     launch:
       frontend: "npm run dev -- --port {port}"  # 起動コマンドの既定形
     install_command: "npm ci"                 # 整列・修復時の依存インストール（projects で上書き可）
-    env_file_globs: [".env", ".env.*"]        # env-file-parity（§7-2）の比較対象
-    bundler_cache_dirs:                        # 整列後に削除するキャッシュ（§7-4 手順⑤）
+    env_file_globs: [".env", ".env.*"]        # env-file-parity（§8-2）の比較対象
+    bundler_cache_dirs:                        # 整列後に削除するキャッシュ（§8-4 手順⑤）
       - node_modules/.vite
       - node_modules/.cache
-    artifacts_root: "~/agent-home/sessions/reverse-env"  # 証跡ルート（scope/実行日時で分離。§8）
+    artifacts_root: "~/agent-home/sessions/reverse-env"  # 証跡ルート（scope/実行日時で分離。§9）
     l3_threshold_percent: 0.1   # L3 視覚比較の許容差分画素率
     max_loop: 3                 # 収束ループ上限の既定値
     tag_namespace: reverse-baseline
     original_sharing: by-source-ref  # by-source-ref（既定・共有前提条件を満たす画面群で
                                       #   original を共有） / per-scope（従来・画面ごと。
                                       #   前提を満たさない画面は自動 degrade）
-    diff_exclude:               # 静的比較の除外リスト（§7）
+    diff_exclude:               # 静的比較の除外リスト（§8）
       - .git/
       - node_modules/
       - dist/
       - .next/
-      - "*.lock"                 # 整列時は転写対象（§7-4）。静的比較のみ除外
-      - ".env*"                 # env-file-parity（§7-2）で直接比較するため静的比較からは除外
+      - "*.lock"                 # 整列時は転写対象（§8-4）。静的比較のみ除外
+      - ".env*"                 # env-file-parity（§8-2）で直接比較するため静的比較からは除外
       - .reverse-port-slot       # スロット番号記録ファイル（開発用 .port-slot とは別物）
       - .shared-original-slot     # 共有オリジナルの oslot 番号記録
       - .shared-original-refcount.d/   # 共有オリジナルの参照カウント（session-pid ごとのエントリ）
@@ -592,7 +604,7 @@
                                     #   トール。drvfs でも symlink_main は自動選択しない。
                                     #   本スキルの核心は「2 環境の完全独立の証明」のため） /
                                     # npm_ci（強制・各環境で独立インストール。
-                                    #   §7-2 symlink-independence / node-modules-health
+                                    #   §8-2 symlink-independence / node-modules-health
                                     #   の独立性検証対象） /
                                     # symlink_main（強制・source_repo の node_modules へ
                                     #   symlink。独立性の証明対象から除外＝人間の明示
@@ -649,7 +661,7 @@
   <p class="note">具体的な絶対パスを含む実エントリ（<code>node_path</code> の実パス等）はデプロイ先ローカルの config.yml に置く。上記は汎用例。</p>
 
   <h3>環境差の自動解決（ゼロコンフィグ）</h3>
-  <p><code>node_modules_strategy</code> / <code>allow_mnt_fs</code> / <code>playwright_exec.mode</code> / <code>playwright_exec.node_path</code> の 4 値は既定がすべて <code>auto</code>（<code>node_path</code> のみ <code>null</code>）で、Phase 2 プリフライトが <code>source_repo</code> のパス・fs 種別・Playwright MCP 可用性を実行時検出して具体値へ自動解決する。ただし <code>node_modules_strategy=auto</code> は fs 種別の検出結果に関わらず常に <code>npm_ci</code> に解決する。独立性を犠牲にする <code>symlink_main</code> の自動選択は行わず、drvfs 検出時は高速化の選択肢を WARN で提示するに留める（人間が projects で明示指定した時だけ <code>symlink_main</code> になる）。人間が projects を手書きする必要はなく、アプリ毎に人手で書くのは起動コマンド（<code>services</code> / <code>launch</code>）だけになる。明示値（<code>true</code>/<code>false</code>・<code>npm_ci</code>/<code>symlink_main</code>・<code>mcp</code>/<code>node-script</code>・明示 <code>node_path</code>）は auto の自動解決を上書きする強制指定として働く。解決結果は §8 の報告に含める。</p>
+  <p><code>node_modules_strategy</code> / <code>allow_mnt_fs</code> / <code>playwright_exec.mode</code> / <code>playwright_exec.node_path</code> の 4 値は既定がすべて <code>auto</code>（<code>node_path</code> のみ <code>null</code>）で、Phase 2 プリフライトが <code>source_repo</code> のパス・fs 種別・Playwright MCP 可用性を実行時検出して具体値へ自動解決する。ただし <code>node_modules_strategy=auto</code> は fs 種別の検出結果に関わらず常に <code>npm_ci</code> に解決する。独立性を犠牲にする <code>symlink_main</code> の自動選択は行わず、drvfs 検出時は高速化の選択肢を WARN で提示するに留める（人間が projects で明示指定した時だけ <code>symlink_main</code> になる）。人間が projects を手書きする必要はなく、アプリ毎に人手で書くのは起動コマンド（<code>services</code> / <code>launch</code>）だけになる。明示値（<code>true</code>/<code>false</code>・<code>npm_ci</code>/<code>symlink_main</code>・<code>mcp</code>/<code>node-script</code>・明示 <code>node_path</code>）は auto の自動解決を上書きする強制指定として働く。解決結果は §9 の報告に含める。</p>
   <div class="constraint"><strong>⚠ symlink_main を明示指定する場合の警告:</strong>
     <code>node_modules_strategy: symlink_main</code> は node_modules/.vite（依存最適化キャッシュ）も両環境で共有するため、共有キャッシュのレースコンディションにより片方の環境（どちらになるかは実行順・タイミング次第の非対称パターン）が持続的に描画失敗することがある。navigate の再試行や dev サーバープロセスの再起動でも直らない場合がある。これは「独立性を諦める」穏当なトレードオフにとどまらず、<strong>検証結果自体を信頼不能にする（片方がランダムに壊れる）副作用</strong>になる。対処は該当環境の node_modules を独立 <code>npm ci</code> に切り替えることである。<code>auto</code> が drvfs 検出時でも常に <code>npm_ci</code> に解決するのは、この危険を避けるためでもある。
   </div>
@@ -673,20 +685,20 @@
   <table class="spec">
     <tr><th>#</th><th>キー</th><th>検証項目</th><th>NO-GO 時の扱い</th></tr>
     <tr><td>1</td><td>design-doc-contract</td><td>設計書が存在し reverse-docs テンプレート準拠（<code>type: screen-detail-design</code>）で、<code>doc_id</code> が <code>screen-</code> 接頭辞を持ち、<code>source_repo</code> / <code>source_ref</code> が解決できる</td><td>NO-GO</td></tr>
-    <tr><td>2</td><td>os-toolchain</td><td>OS を判定（macOS / WSL2）し、コマンドを解決する（§5 対応 OS とコマンド互換）。WSL では Playwright 依存ライブラリの導入確認を含む</td><td>コマンド解決不能・依存不足は導入手順を提示して NO-GO</td></tr>
+    <tr><td>2</td><td>os-toolchain</td><td>OS を判定（macOS / WSL2）し、コマンドを解決する（§6 対応 OS とコマンド互換）。WSL では Playwright 依存ライブラリの導入確認を含む</td><td>コマンド解決不能・依存不足は導入手順を提示して NO-GO</td></tr>
     <tr><td>3</td><td>fs-location</td><td>worktree 配置先（<code>source_repo</code> の親ディレクトリ）が WSL の <code>/mnt/*</code> 配下でないことを確認</td><td><code>allow_mnt_fs=auto</code>（既定）は /mnt/* 検出時に性能 WARN で自動続行（worktree 作成 約 80 秒/本・全量 diff は BG 実行要）。<code>allow_mnt_fs: false</code> 明示時のみ /mnt/* を <span class="tag error">ERROR</span> で止める</td></tr>
     <tr><td>4</td><td>env-provision</td><td>環境確保（命名規則で両環境を検出。無ければ作成）とスロット割当が完了している。<code>git worktree list --porcelain</code> で prunable・破損を検出したら prune してから再作成する。Phase 2 開始時に死んだセッション（pid 不在）の <code>.shared-original-refcount.d/</code> エントリを prune する。オリジナルは <code>original_sharing</code> の解決値に従う: <code>by-source-ref</code>（既定）かつ共有前提条件（同一 system・同一の解決済み source_ref・同一起動プロファイル・オリジナルがリクエスト独立）を満たす画面は <code>original-code-&lt;system&gt;@&lt;sha8&gt;</code> の共有オリジナルを検出/作成し、共有オリジナルスロット（oslot）割当と参照カウント登録（<code>.shared-original-refcount.d/&lt;session&gt;-&lt;pid&gt;</code> の mkdir 登録）を行って読み取り専用固定とする（使用中の再チェックアウト・source_ref 復元はしない。dirty 検出時は自動復元せず ERROR）。前提を満たさない画面は <code>original-code-&lt;scope&gt;</code> の per-scope に自動 degrade する。reverse のスロット割当は親ディレクトリへの <code>mkdir</code> ロック（走査 → 書込 → 解放）で原子化する。setup 時も symlink・HEAD・ブランチ整合を軽量検証する</td><td>worktree 総数上限（5 本）超過・スロット枯渇（<code>max_slots</code> / <code>max_shared_originals</code>）は NO-GO。共有オリジナルの dirty は自動復元せず <span class="tag error">ERROR</span>（読み取り専用契約の違反）</td></tr>
     <tr><td>5</td><td>original-clean</td><td>オリジナルコード環境が <code>source_ref</code> と一致し clean</td><td>ズレ・汚れは内容を <code>source_ref</code> へ自動復元する</td></tr>
     <tr><td>6</td><td>reverse-dirty-log</td><td>リバースコード環境の dirty 状態を記録</td><td>sync では許容（整列で上書きされる）。dry-run 指定時は警告を提示</td></tr>
     <tr><td>7</td><td>port-band-free</td><td>当該 <code>&lt;scope&gt;</code> のスロット帯（計算式で確定するポート）が未占有</td><td>stale プロセスは kill して続行。WSL で Windows 側常駐プロセスが占有し kill 不能な場合は <code>band_start</code> の変更を案内して <span class="tag error">ERROR</span></td></tr>
-    <tr><td>8</td><td>runtime-deps-ready</td><td><code>playwright_exec.mode=auto</code>（既定）は Playwright MCP の可用性を検出して mcp / node-script を自動選択する（MCP 非接続でも NO-GO にせず node-script へ自動フォールバック）。node-script 選択時は <code>node_path=null</code>（既定）を ① reverse worktree での <code>require.resolve('playwright')</code> → ② <code>npm root -g</code> 配下の playwright/ → ③ npx キャッシュの実探索（<code>find "${npm_config_cache:-$HOME/.npm}/_npx" -type d -path '*/node_modules/playwright'</code> のヒット先の親 node_modules）の順で自動解決し、playwright モジュールと chromium バイナリの存在を確認する。①〜③ いずれも不在なら NO-GO とし人間に <code>node_path</code> 明示を促す。mode=mcp 明示時は MCP 接続とブラウザバイナリ導入済みを要求する。sync 時は node_modules の存在・<code>.bin/*</code> の実行可能性・lock ファイルの存在まで確認する（setup 直後の空容器では可用性確認のみ行う）</td><td>NO-GO（<span class="tag error">ERROR</span> 系。§8）</td></tr>
+    <tr><td>8</td><td>runtime-deps-ready</td><td><code>playwright_exec.mode=auto</code>（既定）は Playwright MCP の可用性を検出して mcp / node-script を自動選択する（MCP 非接続でも NO-GO にせず node-script へ自動フォールバック）。node-script 選択時は <code>node_path=null</code>（既定）を ① reverse worktree での <code>require.resolve('playwright')</code> → ② <code>npm root -g</code> 配下の playwright/ → ③ npx キャッシュの実探索（<code>find "${npm_config_cache:-$HOME/.npm}/_npx" -type d -path '*/node_modules/playwright'</code> のヒット先の親 node_modules）の順で自動解決し、playwright モジュールと chromium バイナリの存在を確認する。①〜③ いずれも不在なら NO-GO とし人間に <code>node_path</code> 明示を促す。mode=mcp 明示時は MCP 接続とブラウザバイナリ導入済みを要求する。sync 時は node_modules の存在・<code>.bin/*</code> の実行可能性・lock ファイルの存在まで確認する（setup 直後の空容器では可用性確認のみ行う）</td><td>NO-GO（<span class="tag error">ERROR</span> 系。§9）</td></tr>
     <tr><td>9</td><td>baseline-tag-exists</td><td><code>reset-first</code> 指定時のみ: 基準タグが存在</td><td>NO-GO（基準未確立と報告）</td></tr>
   </table>
-  <p class="note"><code>runtime-deps-ready</code> の NO-GO は setup 直後の空容器や依存導入不備が対象。mode=sync で環境自体は整っているが MCP も node-script（Playwright 実行環境）も利用不能で動的検証の実行手段が無い場合は、NO-GO で止めず <strong>DYNAMIC-UNVERIFIED</strong>（§7-3・§8）として扱う。静的一致のみで PASS を宣言しない。</p>
+  <p class="note"><code>runtime-deps-ready</code> の NO-GO は setup 直後の空容器や依存導入不備が対象。mode=sync で環境自体は整っているが MCP も node-script（Playwright 実行環境）も利用不能で動的検証の実行手段が無い場合は、NO-GO で止めず <strong>DYNAMIC-UNVERIFIED</strong>（§8-3・§9）として扱う。静的一致のみで PASS を宣言しない。</p>
 </section>
 
-<section id="s6">
-  <h2><span class="sec-num">§6</span>動作フロー</h2>
+<section id="s7">
+  <h2><span class="sec-num">§7</span>動作フロー</h2>
   <p>初回か再実行かは基準タグ <code>reverse-baseline/&lt;scope&gt;</code> の有無で判定する（<code>git tag -l</code> ＋ 参照先コミットの実在確認。タグなし・参照先不明はどちらも初回扱い）。</p>
   <pre class="flow"><span class="cap">── 分岐の全体図 ────────────────────────────────────────────</span>
 
@@ -696,7 +708,7 @@
             （最初の setup/sync）に source_ref を git rev-parse で SHA へ
             解決して pin し、以後同一セッションは全画面この SHA を使う）
      │
-  Phase 2  環境確保 + プリフライト（§5）── NO-GO ──▶ 停止・報告
+  Phase 2  環境確保 + プリフライト（§6）── NO-GO ──▶ 停止・報告
      │ GO    worktree は初回のみ作成・以後は再発見して使い回す。死んだ
      │       セッションの参照カウントエントリを prune してから、共有可否
      │       判定（4 条件）で original-code-&lt;system&gt;@&lt;sha8&gt;（共有）か
@@ -726,7 +738,7 @@
           │
           │  基準タグの有無を確認（なし・参照先不明は初回扱い）
           │  タグありなら基準タグの参照先コミットと reverse HEAD の
-          │  コミット差分数を計測（乖離検出。§8 の baseline_tag 行に
+          │  コミット差分数を計測（乖離検出。§9 の baseline_tag 行に
           │  「HEAD と N コミット乖離」を付記。新フィールドは増やさない）
           │  基準タグメッセージに記録された検証時の source_ref SHA と
           │  Phase 1 で pin した現在の SHA が異なる場合、「別オリジナル
@@ -743,17 +755,17 @@
 
 <span class="cap">── 検証・整列の収束ループ（Phase 3〜8）──────────────────────</span>
 
-  Phase 3  静的比較（§7-1: diff + ポート正規化判定）
+  Phase 3  静的比較（§8-1: diff + ポート正規化判定）
      │
-  Phase 4  整列（§7-4。実差分あり かつ dry-run でない時のみ）
+  Phase 4  整列（§8-4。実差分あり かつ dry-run でない時のみ）
      │
-  Phase 5  環境同一性チェック（§7-2）＋ 動的比較（§7-3: Playwright 5 層）
+  Phase 5  環境同一性チェック（§8-2）＋ 動的比較（§8-3: Playwright 5 層）
      │       ※ dry-run でも実行する（静的 FAIL でも L1〜L5 まで計測し
      │         診断情報を最大化する）
      │
   Phase 6  収束判定（dry-run 指定時は 1 周で確定・ループしない）
      │        ├─ FAIL（ループ上限内）──▶ Phase 3 へ戻る
-     │        └─ FAIL（max-loop 到達）─▶ FAIL 確定・差し戻し（§8）
+     │        └─ FAIL（max-loop 到達）─▶ FAIL 確定・差し戻し（§9）
      │ PASS
   Phase 7  基準確立（dry-run 指定時はスキップ）
      │        git commit で直接コミット（日本語 prefix 規約）
@@ -762,13 +774,13 @@
      │        ※ 整列が走らず新規コミット対象が無い場合はコミットを
      │          スキップし、現 HEAD にタグを打ち直す
      │
-  Phase 8  結果報告（§8 の返却フォーマットと定型文）</pre>
+  Phase 8  結果報告（§9 の返却フォーマットと定型文）</pre>
 </section>
 
-<section id="s7">
-  <h2><span class="sec-num">§7</span>検証内容</h2>
+<section id="s8">
+  <h2><span class="sec-num">§8</span>検証内容</h2>
 
-  <h3>7-1. 静的比較</h3>
+  <h3>8-1. 静的比較</h3>
   <p>「パス除外 → 残った差分行のポート正規化判定」の 2 段構えで、全差分を 3 分類に落とす。除外パスは config.yml の <code>diff_exclude</code> ＋ 設計書 frontmatter での画面固有の追加指定。</p>
   <p>ポートが計算式で決定的であることを利用し、差分行ごとに「オリジナル側の値をサービス index へ逆引きし、リバース側の同位置の値が <code>reverse = original + reverse_offset</code> の期待値と一致する」場合のみ許容する。行内のポート以外の部分は完全一致を要求し、「数字が違うだけなら許容」にはしない。</p>
   <table class="spec">
@@ -778,13 +790,13 @@
     <tr><td>実差分</td><td>上記以外のすべての相違</td><td><span class="tag fail">FAIL</span> 対象。ファイル別・追加/削除/変更別に集計</td></tr>
   </table>
 
-  <h3>7-2. 環境同一性チェック（全項目）</h3>
+  <h3>8-2. 環境同一性チェック（全項目）</h3>
   <p>実行環境そのものが「ポート以外は同一」かつ「互いに独立」であることを機械的に確認する。起動前（<code>listen-actual</code>・<code>process-independence</code> を除く全項目）と起動後（<code>listen-actual</code>・<code>process-independence</code>）に実行する。</p>
   <table class="spec">
     <tr><th>#</th><th>キー</th><th>検証項目</th><th>確認方法</th><th>NG 時の扱い</th></tr>
     <tr><td>1</td><td>port-owner</td><td>ポート占有の帰属</td><td>os-toolchain の解決結果に従い確認する（macOS: <code>lsof -i</code> の cwd 突合 / WSL: <code>ss -ltnp</code> ＋ <code>/proc/&lt;pid&gt;/cwd</code> の cwd 突合）で当該 <code>&lt;scope&gt;</code> のスロット帯を走査し、LISTEN プロセスの cwd が自環境の worktree かを突合。共有オリジナル方式では 1 つの待受（oslot 帯）を複数 reverse が参照するのが正常で、reverse 側は各自の reverse スロット帯の帰属のみ確認する</td><td>stale は kill して続行。無関係な稼働プロセスは <span class="tag error">ERROR</span></td></tr>
     <tr><td>2</td><td>port-config-cross</td><td>ポート設定の混入（転写後）</td><td>リバース側をオリジナル側帯域で、オリジナル側をリバース側帯域で相互に grep</td><td>相手帯域の番号が 1 件でもあれば転写ミス。ポート再生成をやり直す</td></tr>
-    <tr><td>3</td><td>listen-actual</td><td>実際の待受ポート</td><td>起動後の LISTEN 一覧を §5 の計算式による期待値と突合。共有オリジナル方式では oslot 帯の待受を突合し、reverse 帯は各自の reverse スロットと突合する（1 つの共有オリジナル待受を複数 reverse が参照する構成は正常）</td><td>期待外の待受・不応答は <span class="tag fail">FAIL</span></td></tr>
+    <tr><td>3</td><td>listen-actual</td><td>実際の待受ポート</td><td>起動後の LISTEN 一覧を §6 の計算式による期待値と突合。共有オリジナル方式では oslot 帯の待受を突合し、reverse 帯は各自の reverse スロットと突合する（1 つの共有オリジナル待受を複数 reverse が参照する構成は正常）</td><td>期待外の待受・不応答は <span class="tag fail">FAIL</span></td></tr>
     <tr><td>4</td><td>symlink-independence</td><td>シンボリックリンクの実態</td><td><code>find -type l</code> ＋ <code>realpath</code> で実体を解決し「自 worktree 内 / 共有 store / worktree 外」に分類</td><td>相手側 worktree・元リポジトリを指すものは <span class="tag fail">FAIL</span>。共有 store は同一バージョンの実体を指すことを確認して許容。ただし <code>node_modules_strategy: symlink_main</code>（人間の明示指定時のみ発生）のときは node_modules（およびその配下）が source_repo を指す symlink であることは想定内であり、独立性の証明対象から除外する（FAIL としない）</td></tr>
     <tr><td>5</td><td>dep-tree-parity</td><td>依存ツリーの同一性</td><td><code>npm ls --all</code> 相当を正規化し、名前＋バージョン集合を比較</td><td>依存再構築（<code>npm ci</code> 再実行）を 1 回リトライ → なお不一致は <span class="tag fail">FAIL</span></td></tr>
     <tr><td>6</td><td>node-modules-health</td><td>node_modules の健全性</td><td>node_modules の存在・<code>.bin/vite</code> 等の実行可能性（<code>--version</code> 実行）・独立性（相手側/元リポジトリへの symlink でないこと）を確認。ただし <code>node_modules_strategy: symlink_main</code>（人間の明示指定時のみ発生）のときは source_repo への symlink が正常状態であり、存在と <code>.bin</code> 実行可能性のみ確認する。なお symlink_main 運用時、片方だけ描画が異常に遅い・失敗する場合は共有 .vite のレースが原因の可能性が高い、という hint を出す</td><td>NG は <code>npm ci</code> で修復してから再検証</td></tr>
@@ -798,7 +810,7 @@
   </table>
   <p class="note"><code>port-owner</code>・<code>symlink-independence</code>・<code>process-independence</code>・<code>storage-isolation</code> は「同一」ではなく「独立」の検証。実体を共有した 2 環境は一致して見えて当然であり、完全一致の証明は「独立した 2 環境が同じに振る舞う」ことで初めて成立する。共有オリジナル方式では独立性は「共有オリジナル 1 つ」と「各 reverse」のペアで成立し、共有オリジナル同士の独立性は問わない。</p>
 
-  <h3>7-3. 動的比較（render-ready ＋ Playwright 5 層）</h3>
+  <h3>8-3. 動的比較（render-ready ＋ Playwright 5 層）</h3>
   <p>両環境をそれぞれの固定ポートで起動し、<code>scenarios</code> の各画面シナリオを render-ready 到達確認・内容一致・5 層で突合する。総合判定は <strong>render-ready 到達 ∧ L2' 内容一致 ∧ L2（ARIA）∧ L4</strong> を必須とし、<code>operations</code> を持つシナリオが 1 つでもある画面はさらに <strong>L5 一致</strong> も必須とする（<code>operations</code> を持つシナリオが無い画面は L5 を評価対象外とし従来どおりの条件のみで判定）。L3 は閾値超過で FAIL（画像ペアを添付して人間が最終裁定できる）。<strong>静的一致・L2（ARIA）一致だけでは PASS にしない</strong>。両環境が同一のスピナーで止まっていても render-ready 未到達であれば PASS ではない。</p>
   <table class="spec">
     <tr><th>層</th><th>内容</th><th>判定基準</th></tr>
@@ -812,15 +824,15 @@
   <p class="note">L1 が失敗した場合の段階診断手順: ① dev サーバーの stdout/stderr を artifacts へ収集 → ② 待受ポートを再確認 → ③ navigate を 1 回再試行 → ④ なお失敗するなら dev サーバープロセス自体を kill → 再起動して再試行する（navigate の再試行だけでは解消しない dependency re-optimize 起因のケースが実測されているため。<code>symlink_main</code> で <code>.vite</code> を共有している時に起きやすい）→ ⑤ <code>symlink_main</code> 運用中で片方だけが持続的に失敗するなら共有 <code>.vite</code> のレースが原因なので、該当環境の node_modules を独立 <code>npm ci</code> に切り替えて再試行 → ⑥ それでも失敗すれば <span class="tag error">ERROR</span> とし、収集した log のパスを添付する。④の再起動対象が共有オリジナルの場合は system 単位（共有オリジナルを 1 回再起動）で行い、同一 system@sha を使う影響画面をまとめて再走行する。per-scope は画面ごとに障害隔離できる。</p>
   <p class="note">DB 内容・乱数・日時などの動的データによる誤検出には、マスク対象セレクタ（<code>mask</code>）を設計書 frontmatter で宣言して対応する。</p>
   <p class="note">mcp / node-script の等価性: 両手段は同一の内容 JSON 契約（<code>rendered</code>/<code>reason</code>/<code>tables</code>/<code>texts</code>。<code>operations</code> 指定時はさらに <code>postContent</code>）を出力する。node-script は scenario 引数（url・ready・assert・loading・operations）を <code>CAP_SCENARIO</code> の JSON で受け取り、内容抽出結果を <code>CAP_CONTENT</code> に書き出す。<code>operations</code> がある場合は初回抽出後に <code>page.click</code>/<code>page.fill</code>/<code>page.selectOption</code>/<code>page.keyboard.press</code> を順に実行し、同じ <code>extract()</code> を再実行して <code>postContent</code> を得る。mcp は <code>browser_navigate</code> → <code>browser_wait_for</code>（ready）→ <code>browser_evaluate</code>（loading 不可視確認・innerText 抽出）→ <code>browser_take_screenshot</code> → <code>browser_snapshot</code> → <code>browser_console_messages</code> で同形の結果を得る。<code>operations</code> 指定時は上記の後に <code>browser_click</code>/<code>browser_fill_form</code>/<code>browser_select_option</code>/<code>browser_press_key</code> を同順序で実行し、同一の <code>browser_evaluate</code> 抽出を再実行して <code>postContent</code> を得る（概念記述。詳細実装は本改修のスコープ外）。</p>
-  <p class="note">結果分類: 両環境が render-ready 到達 ∧ 内容一致で <span class="tag pass">PASS</span> 候補。reverse 側だけ <code>NOT_RENDERED</code> は再構築未完のため <span class="tag fail">FAIL</span>。両環境が同様に <code>NOT_RENDERED</code>（引数不足でスピナー等）は <strong>DESIGN-INCOMPLETE</strong> として設計書 <code>scenarios</code> への <code>query</code>/<code>path_params</code>/<code>ready</code> 追加を促す（§8）。</p>
+  <p class="note">結果分類: 両環境が render-ready 到達 ∧ 内容一致で <span class="tag pass">PASS</span> 候補。reverse 側だけ <code>NOT_RENDERED</code> は再構築未完のため <span class="tag fail">FAIL</span>。両環境が同様に <code>NOT_RENDERED</code>（引数不足でスピナー等）は <strong>DESIGN-INCOMPLETE</strong> として設計書 <code>scenarios</code> への <code>query</code>/<code>path_params</code>/<code>ready</code> 追加を促す（§9）。</p>
 
-  <h3>7-4. 整列</h3>
+  <h3>8-4. 整列</h3>
   <p>sync で実差分が見つかった場合（dry-run 指定がない時）、リバースコード環境をオリジナルコード環境に揃える。整列は git 操作（checkout / merge）ではなくファイル転写で行い、両ブランチの歴史を混ぜない。</p>
   <pre class="flow"><span class="cap">── 整列の手順 ───────────────────────────────────────────────</span>
 
   1. 保全    リバースコード環境のポート設定ファイル群を退避
   2. 転写    オリジナルコード環境 → リバースコード環境へミラーコピー
-             （削除同期あり。除外は 7-1 の diff_exclude から
+             （削除同期あり。除外は 8-1 の diff_exclude から
               *.lock を除いたもの。lock ファイルは転写対象に含める）
   3. 再生成  当該 &lt;scope&gt; のスロットから算出したリバース側ポートで
              リバースコード環境側のポート設定を再生成
@@ -833,13 +845,13 @@
   5. 掃除    node_modules_strategy=npm_ci のみ実施。config.yml の
              bundler_cache_dirs を削除。symlink_main（明示指定時のみ）
              では .vite が source_repo と共有されるためスキップし、
-             §7-2 の bundler-cache-fresh 但し書きに従う
+             §8-2 の bundler-cache-fresh 但し書きに従う
   6. 再検証  Phase 3（静的）→ Phase 5（環境＋動的）へ合流し、
              収束ループを継続</pre>
 </section>
 
-<section id="s8">
-  <h2><span class="sec-num">§8</span>報告フォーマット</h2>
+<section id="s9">
+  <h2><span class="sec-num">§9</span>報告フォーマット</h2>
 
   <h3>異常系の挙動</h3>
   <table class="spec">
@@ -884,7 +896,7 @@
                     フィールドは増やさない）
                    （scenario 別の内訳を添付。render-ready 未到達時は
                     reason に NOT_RENDERED の理由セレクタを記す）
-  env_check:       全項目 PASS（NG があれば §7-2 のキーと内容を列挙）
+  env_check:       全項目 PASS（NG があれば §8-2 のキーと内容を列挙）
   artifacts:       &lt;artifacts_root&gt;/&lt;scope&gt;/&lt;実行日時&gt;/ 配下の保存先パス
                    （scenario 別サブディレクトリ）
   hint:            # FAIL / INCOMPLETE 時のみ
@@ -913,7 +925,7 @@
   |---|---|
   | オリジナルコード環境 | http://localhost:&lt;original_port&gt;&lt;route&gt; |
   | リバースコード環境   | http://localhost:&lt;reverse_port&gt;&lt;route&gt; |
-  ※ 両環境は起動したまま。URL のパスは設計書の route 由来、ポートは §5 の計算式による確定値
+  ※ 両環境は起動したまま。URL のパスは設計書の route 由来、ポートは §6 の計算式による確定値
 
   ### 検証内容
   - 静的比較: 実差分 0 件（許容したポート差 &lt;M&gt; 件）
@@ -951,13 +963,13 @@
   </table>
 </section>
 
-<section id="s9">
-  <h2><span class="sec-num">§9</span>関連スキル・規約</h2>
+<section id="s10">
+  <h2><span class="sec-num">§10</span>関連スキル・規約</h2>
   <table class="spec">
     <tr><th>名前</th><th>関係</th></tr>
     <tr><td>コミット・命名規約</td><td>基準コミットのメッセージは日本語 prefix 規約に従い、本スキルが git commit を直接実行する（他スキルへの委譲はしない）</td></tr>
     <tr><td>ポート管理規約</td><td>stale プロセスの検出・kill 手順の正。本スキルのスロット帯（既定 band_start 9100 番台）は既存の開発帯域と衝突しないよう選定</td></tr>
-    <tr><td>orchestrating-reverse-docs-flow</td><td>設計書修正 → リバースコード環境の再構築ループを仲介する呼び出し元。§8 の返却ブロックが両者のインターフェース</td></tr>
+    <tr><td>orchestrating-reverse-docs-flow</td><td>設計書修正 → リバースコード環境の再構築ループを仲介する呼び出し元。§9 の返却ブロックが両者のインターフェース</td></tr>
     <tr><td><code>syncing-reverse-env-concept.html</code></td><td>設計経緯と設計判断（ADR）の記録</td></tr>
   </table>
 </section>
