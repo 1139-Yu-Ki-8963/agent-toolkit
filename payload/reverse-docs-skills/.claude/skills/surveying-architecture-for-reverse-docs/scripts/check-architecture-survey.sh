@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# check-architecture-survey.sh — アーキテクチャ調査書の機械ゲート（4検査すべて決定的）
+# check-architecture-survey.sh — アーキテクチャ調査書の機械ゲート（5検査すべて決定的）
 #
 # 使い方:
 #   check-architecture-survey.sh <調査書パス> <target_repo_path>
@@ -16,6 +16,9 @@ set -euo pipefail
 #      判定語（実在する / 実在しない（）が同一行に存在する判定行があるか確認する。
 #   3. 推測語ゼロ: おそらく|と思われ|かもしれ|推測|たぶん|恐らく|でしょう|のはず が0件。
 #   4. テンプレ残存ゼロ: <実測|<FILL|TBD|TODO が0件。
+#   5. §4ディレクトリ網羅: §1のfindコマンドから走査範囲を決定的に再現し、直接ファイルを
+#      持つディレクトリがすべて§4（責務マップ本体または対象外ディレクトリ）もしくは
+#      §4に列挙された層の子ディレクトリとして包含されることを確認する。
 #
 #   いずれか1件でも違反があれば exit 1（fail-closed）。全件PASSでexit 0。
 #   --self-test は合成フィクスチャで陽性exit 0・陰性(検査ごと)exit 1を自己検証する。
@@ -45,6 +48,21 @@ is_path_candidate() {
 
 extract_path_tokens() {
   grep -oE '`[^`]+`' "$1" 2>/dev/null | sed -E 's/^`//; s/`$//'
+}
+
+# §1 調査メタ節を抽出する（### サブ見出しを含む）
+extract_section_meta() {
+  awk '/^## .*調査メタ/{f=1;next} /^## [^#]|^---$/{if(f)exit} f' "$1"
+}
+
+# §4 ディレクトリ責務マップの本体テーブルのみ抽出する（### 対象外ディレクトリの手前で停止）
+extract_section4() {
+  awk '/^## .*ディレクトリ責務マップ/{f=1;next} /^## [^#]|^### |^---$/{if(f)exit} f' "$1"
+}
+
+# §4 内の「### 対象外ディレクトリ」サブセクションを抽出する
+extract_excluded_dirs() {
+  awk '/^### .*対象外ディレクトリ/{f=1;next} /^## [^#]|^---$/{if(f)exit} f' "$1"
 }
 
 # 検査1: 記載パス実在100%
@@ -124,7 +142,137 @@ check_no_placeholder() {
   return 0
 }
 
-# 4検査すべてを実行し集約結果を返す。
+# 検査5: §4ディレクトリ網羅性
+check_directory_coverage() {
+  survey="$1"
+  repo="$2"
+
+  # §1からfindコマンドを抽出
+  meta="$(extract_section_meta "$survey")"
+  find_cmds="$(echo "$meta" | grep -oE '`find [^`]+`' | sed 's/^`//; s/`$//')"
+
+  if [ -z "$find_cmds" ]; then
+    echo "検査5失敗: §1にfindコマンドが見つかりません" >&2
+    return 1
+  fi
+
+  # 最初のfindコマンドからパスとmaxdepthを解析
+  cmd="$(echo "$find_cmds" | head -1)"
+  find_path="$(echo "$cmd" | awk '{print $2}')"
+  find_depth="$(echo "$cmd" | grep -oE '\-maxdepth [0-9]+' | awk '{print $2}')"
+
+  # パスをrepo基準の絶対パスへ解決
+  case "$find_path" in
+    .) scan_root="$repo" ;;
+    ./*) scan_root="$repo/${find_path#./}" ;;
+    *) scan_root="$repo/$find_path" ;;
+  esac
+
+  if [ ! -d "$scan_root" ]; then
+    echo "検査5失敗: findコマンドの走査ルート $find_path が実在しません" >&2
+    return 1
+  fi
+
+  # 走査範囲内の実在ディレクトリを列挙
+  if [ -n "$find_depth" ]; then
+    all_dirs="$(find "$scan_root" -maxdepth "$find_depth" -type d 2>/dev/null | sort)"
+  else
+    all_dirs="$(find "$scan_root" -type d 2>/dev/null | sort)"
+  fi
+
+  # §4本体テーブルからディレクトリパスを抽出（covered集合を構築）
+  s4_raw="$(extract_section4 "$survey")"
+  covered=""
+  while IFS= read -r line; do
+    [ -z "$line" ] && continue
+    case "$line" in '|'*) ;; *) continue ;; esac
+    case "$line" in *'|---|'*) continue ;; esac
+    case "$line" in *'ディレクトリ'*'責務'*) continue ;; esac
+    cell="$(echo "$line" | awk -F'|' '{gsub(/^[ \t]+|[ \t]+$/,"",$2); print $2}')"
+    path="$(echo "$cell" | grep -oE '`[^`]+`' | head -1 | sed 's/^`//; s/`$//')"
+    if [ -n "$path" ]; then
+      norm="$path"
+      case "$norm" in ./*) norm="${norm#./}" ;; esac
+      if [ -f "$repo/$norm" ] 2>/dev/null; then
+        norm="$(dirname "$norm")"
+      fi
+      covered="${covered}${norm}
+"
+    fi
+  done <<S4END
+$s4_raw
+S4END
+
+  # 対象外ディレクトリを抽出してcovered集合に追加
+  excl_raw="$(extract_excluded_dirs "$survey")"
+  while IFS= read -r line; do
+    [ -z "$line" ] && continue
+    case "$line" in '|'*) ;; *) continue ;; esac
+    case "$line" in *'|---|'*) continue ;; esac
+    case "$line" in *'ディレクトリ'*'除外理由'*) continue ;; esac
+    cell="$(echo "$line" | awk -F'|' '{gsub(/^[ \t]+|[ \t]+$/,"",$2); print $2}')"
+    path="$(echo "$cell" | grep -oE '`[^`]+`' | head -1 | sed 's/^`//; s/`$//')"
+    if [ -n "$path" ]; then
+      norm="$path"
+      case "$norm" in ./*) norm="${norm#./}" ;; esac
+      covered="${covered}${norm}
+"
+    fi
+  done <<EXCLEND
+$excl_raw
+EXCLEND
+
+  # 各ディレクトリの網羅性を検証
+  uncovered=0
+  while IFS= read -r dir; do
+    [ -z "$dir" ] && continue
+
+    # 直接ファイルを持たないディレクトリはスキップ
+    has_files="$(find "$dir" -maxdepth 1 -type f 2>/dev/null | head -1)"
+    [ -z "$has_files" ] && continue
+
+    # 相対パスに変換
+    if [ "$dir" = "$repo" ]; then
+      rel="."
+    else
+      rel="${dir#$repo/}"
+    fi
+    case "$rel" in ./*) rel="${rel#./}" ;; esac
+
+    # covered集合との照合
+    found=false
+    while IFS= read -r c; do
+      [ -z "$c" ] && continue
+      if [ "$rel" = "$c" ]; then
+        found=true; break
+      fi
+      if [ "$c" = "." ]; then
+        found=true; break
+      fi
+      case "$rel" in
+        "$c"/*) found=true; break ;;
+      esac
+    done <<COVCHECK
+$covered
+COVCHECK
+
+    if ! "$found"; then
+      echo "  未網羅: $rel" >&2
+      uncovered=$((uncovered + 1))
+    fi
+  done <<DIREND
+$all_dirs
+DIREND
+
+  if [ "$uncovered" -gt 0 ]; then
+    echo "検査5失敗: §4ディレクトリ責務マップに $uncovered 件の未網羅ディレクトリがあります" >&2
+    return 1
+  fi
+  echo "検査5通過: ディレクトリ網羅性OK（走査範囲: ${find_path}${find_depth:+ -maxdepth $find_depth}）"
+  return 0
+}
+
+# 5検査すべてを実行し集約結果を返す。
 run_all_checks() {
   survey="$1"
   repo="$2"
@@ -133,10 +281,11 @@ run_all_checks() {
   check_unit_kinds "$survey" || rc=1
   check_no_guess_words "$survey" || rc=1
   check_no_placeholder "$survey" || rc=1
+  check_directory_coverage "$survey" "$repo" || rc=1
   return "$rc"
 }
 
-# 合成フィクスチャによる自己テスト（陽性1件・検査ごとの陰性4件＝計5ケース）。
+# 合成フィクスチャによる自己テスト（陽性1件・検査ごとの陰性5件＝計6ケース）。
 self_test() {
   tmp="$(mktemp -d "${TMPDIR:-/tmp}/architecture-survey-self-test.XXXXXX")"
   trap 'rm -rf "$tmp"' RETURN
@@ -158,11 +307,15 @@ self_test() {
 | 帳票 | 実在しない（帳票生成ライブラリの使用箇所が見つからないため） | - | - |
 | 外部連携 | 実在しない（外部APIクライアントの使用箇所が見つからないため） | - | - |'
 
-  # 陽性フィクスチャ: 4検査すべてPASSする想定
+  # 陽性フィクスチャ: 5検査すべてPASSする想定
   cat > "$tmp/pass.md" <<MD
 ## 調査メタ
-対象リポジトリ: $repo
-実行した調査コマンド: \`find . -maxdepth 2 -type f\`
+
+### 実行した調査コマンド一覧
+
+| コマンド | 目的 |
+|---|---|
+| \`find . -maxdepth 2 -type f\` | ディレクトリ構造の確認 |
 
 ## エントリポイント
 \`package.json\` と \`src/app/page.tsx\` を確認した。API定義は \`src/app/api/route.ts\`。
@@ -170,7 +323,13 @@ self_test() {
 ## ディレクトリ責務マップ
 | ディレクトリ | 責務 | 根拠パス |
 |---|---|---|
+| \`.\` | プロジェクトルート | \`package.json\` |
 | \`src/styles/shared-theme.ts\` | 共有ファイル（3ディレクトリから参照） | grep -rlE "from ['\"].*theme['\"]" src で検出（3件） |
+
+### 対象外ディレクトリ
+| ディレクトリ | 除外理由 |
+|---|---|
+| \`src/app\` | ユニット種別判定で個別管理するため |
 
 ## ユニット種別判定
 $base_kinds
@@ -222,6 +381,28 @@ updated: <実測: YYYY-MM-DD>
 $base_kinds
 MD
 
+  # 陰性5: 検査5のみ違反（ディレクトリ未網羅）
+  cat > "$tmp/fail5.md" <<MD
+## 調査メタ
+
+### 実行した調査コマンド一覧
+
+| コマンド | 目的 |
+|---|---|
+| \`find . -maxdepth 2 -type f\` | ディレクトリ構造の確認 |
+
+## エントリポイント
+\`package.json\` を確認した。
+
+## ディレクトリ責務マップ
+| ディレクトリ | 責務 | 根拠パス |
+|---|---|---|
+| \`src/styles/shared-theme.ts\` | 共有ファイル（3ディレクトリから参照） | grep で検出 |
+
+## ユニット種別判定
+$base_kinds
+MD
+
   rc=0
 
   if run_all_checks "$tmp/pass.md" "$repo" >/dev/null 2>&1; then
@@ -259,6 +440,13 @@ MD
     echo "  [PASS] 検査4: テンプレ残存でexit 1"
   fi
 
+  if check_directory_coverage "$tmp/fail5.md" "$repo" >/dev/null 2>&1; then
+    echo "  [FAIL] 検査5: ディレクトリ未網羅があるのにexit 0になった" >&2
+    rc=1
+  else
+    echo "  [PASS] 検査5: ディレクトリ未網羅でexit 1"
+  fi
+
   if [ "$rc" -eq 0 ]; then
     echo "self-test 全項目 PASS"
   else
@@ -285,7 +473,7 @@ if [ ! -d "$repo" ]; then
 fi
 
 if run_all_checks "$survey" "$repo"; then
-  echo "アーキテクチャ調査書ゲート: 全4検査PASS"
+  echo "アーキテクチャ調査書ゲート: 全5検査PASS"
   exit 0
 else
   echo "アーキテクチャ調査書ゲート: FAIL" >&2
