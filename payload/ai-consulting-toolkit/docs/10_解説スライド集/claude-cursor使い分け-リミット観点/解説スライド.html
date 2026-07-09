@@ -1,0 +1,523 @@
+<meta charset="utf-8">
+<title>Claude Code と Cursor の使い分け</title>
+<style>
+  :root {
+    --page: #EDF0F4;
+    --surface: #FFFFFF;
+    --ink: #1C2B3A;
+    --ink-2: #55667A;
+    --ink-3: #8494A6;
+    --border: #D9E0E8;
+    --grid: #E9EDF2;
+    --claude: #D97757;
+    --claude-deep: #BC5B3B;
+    --claude-soft: #FBF0EA;
+    --cursor: #23282E;
+    --cursor-soft: #EFF1F4;
+    --critical: #C0392B;
+    --critical-soft: #FAECEA;
+    --good: #1F7A46;
+    --good-soft: #EAF4EE;
+    --tag-bg: #EDF1F6;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body { background: var(--page); }
+
+  .slide-viewport {
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--page);
+    overflow: hidden;
+  }
+
+  .slide {
+    width: min(1060px, 96vw);
+    aspect-ratio: 16 / 9;
+    max-height: 94vh;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    box-shadow: 0 4px 24px rgba(28, 43, 58, 0.08);
+    display: flex;
+    flex-direction: column;
+    padding: clamp(20px, 3vw, 40px) clamp(24px, 3.6vw, 48px);
+    gap: clamp(10px, 1.8vh, 18px);
+    font-family: system-ui, -apple-system, 'Segoe UI', 'Hiragino Sans', sans-serif;
+  }
+
+  /* ---------- header ---------- */
+  .slide-header {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding-bottom: clamp(8px, 1.4vh, 14px);
+    border-bottom: 2px solid var(--ink);
+  }
+
+  .slide-eyebrow {
+    font-size: clamp(9px, 1vw, 11px);
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    color: var(--ink-3);
+  }
+
+  .slide-title {
+    font-size: clamp(18px, 2.5vw, 28px);
+    font-weight: 700;
+    line-height: 1.25;
+    color: var(--ink);
+    text-wrap: balance;
+  }
+
+  .slide-subtitle {
+    font-size: clamp(10px, 1.25vw, 13.5px);
+    color: var(--ink-2);
+  }
+
+  /* ---------- panels ---------- */
+  .panel {
+    display: flex;
+    flex-direction: column;
+    gap: clamp(14px, 2vh, 18px);
+    flex: 1;
+    justify-content: center;
+    min-height: 0;
+  }
+
+  .panel-head {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+  }
+
+  .panel-tag {
+    font-size: clamp(9px, 1vw, 11px);
+    font-weight: 700;
+    color: var(--ink);
+    background: var(--tag-bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 3px 9px;
+    white-space: nowrap;
+  }
+
+  .panel-head h2 {
+    font-size: clamp(12px, 1.4vw, 15.5px);
+    font-weight: 700;
+    color: var(--ink);
+  }
+
+  .panel-head .panel-note {
+    font-size: clamp(9px, 1.05vw, 12px);
+    color: var(--ink-3);
+    margin-left: auto;
+  }
+
+  .lane {
+    position: relative;
+    height: clamp(52px, 9vh, 68px);
+    border-left: 1px solid var(--grid);
+    border-right: 1px solid var(--grid);
+  }
+
+  .lane-daily {
+    background-image: linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size: 20% 100%;
+  }
+
+  .lane-weekly {
+    background-image: linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size: 16.667% 100%;
+  }
+
+  .axis {
+    position: relative;
+    height: clamp(13px, 1.8vh, 16px);
+    margin-top: 5px;
+  }
+
+  .axis span {
+    position: absolute;
+    transform: translateX(-50%);
+    font-size: clamp(8.5px, 1vw, 11px);
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+    color: var(--ink-3);
+    white-space: nowrap;
+  }
+
+  .axis span:first-child { transform: none; }
+  .axis span:last-child { transform: translateX(-100%); }
+
+  .axis-weekly { display: grid; grid-template-columns: repeat(6, 1fr); }
+  .axis-weekly span { position: static; transform: none !important; text-align: center; }
+  .axis-weekly .next-week { color: var(--good); font-weight: 700; }
+
+  /* ---------- bands ---------- */
+  .band {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 5px;
+    padding: 6px clamp(8px, 1.3vw, 14px);
+    overflow: hidden;
+  }
+
+  .band-claude {
+    background: var(--claude-soft);
+    border: 1.5px solid var(--claude);
+  }
+
+  .band-cursor {
+    background: var(--cursor-soft);
+    border: 1.5px solid var(--cursor);
+  }
+
+  .band-cursor--narrow {
+    padding: 4px 4px;
+    gap: 2px;
+    align-items: center;
+  }
+  .band-cursor--narrow .tool-name {
+    font-size: clamp(10px, 1.15vw, 12.5px);
+    white-space: nowrap;
+  }
+
+  .band-return {
+    background: var(--claude-soft);
+    border: 1.5px dashed var(--claude);
+  }
+
+  .band-head {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .band-head svg { flex-shrink: 0; }
+
+  .tool-name {
+    font-size: clamp(11px, 1.35vw, 14.5px);
+    font-weight: 700;
+    color: var(--ink);
+    white-space: nowrap;
+  }
+
+  .band-note {
+    font-size: clamp(8.5px, 1vw, 11.5px);
+    color: var(--ink-2);
+    white-space: nowrap;
+  }
+
+  .step-chip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: clamp(15px, 1.7vw, 18px);
+    height: clamp(15px, 1.7vw, 18px);
+    border-radius: 50%;
+    font-size: clamp(8.5px, 1vw, 10.5px);
+    font-weight: 700;
+    color: #fff;
+    flex-shrink: 0;
+  }
+
+  .step-chip--claude { background: var(--claude); }
+  .step-chip--critical { background: var(--critical); }
+  .step-chip--good { background: var(--good); }
+
+  /* ---------- meter ---------- */
+  .meter { display: flex; flex-direction: column; gap: 3px; }
+
+  .meter-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-size: clamp(8px, 0.95vw, 10.5px);
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+    color: var(--ink-2);
+  }
+
+  .meter-exhausted { color: var(--critical); font-weight: 700; }
+
+  .meter-track {
+    height: clamp(6px, 1vh, 8px);
+    border-radius: 4px;
+    background: linear-gradient(90deg, var(--claude) 0%, var(--claude-deep) 75%, var(--critical) 100%);
+  }
+
+  /* ---------- event lines & badges ---------- */
+  .event-line {
+    position: absolute;
+    top: -4px;
+    bottom: -4px;
+    width: 0;
+    border-left: 2px dashed var(--critical);
+  }
+
+  .event-line--good { border-color: var(--good); }
+
+  .event-badge {
+    position: absolute;
+    top: 0;
+    transform: translate(-50%, -55%);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: clamp(8.5px, 1.05vw, 11.5px);
+    font-weight: 700;
+    white-space: nowrap;
+    background: var(--critical-soft);
+    color: var(--critical);
+    border: 1.5px solid var(--critical);
+    box-shadow: 0 1px 3px rgba(28, 43, 58, 0.15);
+    z-index: 2;
+  }
+
+  .event-badge--good {
+    background: var(--good-soft);
+    color: var(--good);
+    border-color: var(--good);
+  }
+
+  .event-badge--right-edge {
+    left: auto;
+    right: 0;
+    transform: translateY(-55%);
+  }
+
+  /* ---------- footer ---------- */
+  .steps {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: clamp(10px, 1.6vw, 20px);
+    padding-top: clamp(8px, 1.4vh, 14px);
+    border-top: 1px solid var(--border);
+  }
+
+  .step {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .step-text {
+    font-size: clamp(9.5px, 1.1vw, 12.5px);
+    line-height: 1.5;
+    color: var(--ink-2);
+  }
+
+  .step-text strong { color: var(--ink); }
+
+  @media (max-width: 620px) {
+    .slide { aspect-ratio: auto; min-height: 100vh; }
+    .steps { grid-template-columns: 1fr; }
+    .band-note { display: none; }
+  }
+</style>
+
+<div class="slide-viewport">
+  <div class="slide">
+
+    <header class="slide-header">
+      <span class="slide-eyebrow">開発ツール運用ガイド</span>
+      <h1 class="slide-title">Claude Code と Cursor の使い分け</h1>
+      <p class="slide-subtitle">Claude Code には「5時間」と「週次」の 2 つの利用リミットがある。どちらかを使い切ったら Cursor に切り替え、リセット後に戻る。</p>
+    </header>
+
+    <!-- Panel 1: 5-hour limit (intra-day) -->
+    <section class="panel">
+      <div class="panel-head">
+        <span class="panel-tag">リミット 1｜5時間</span>
+        <h2>1 日の中での切り替え</h2>
+        <span class="panel-note">利用枠は開始から 5 時間で回復（9:00 開始 → 14:00 リセット）。先に使い切ったら Cursor でつなぐ</span>
+      </div>
+
+      <div class="lane lane-daily">
+        <div class="event-line" style="left: 40%;"></div>
+        <div class="event-line event-line--good" style="left: 50%;"></div>
+
+        <div class="band band-claude" style="left: 0; width: 40%;">
+          <div class="band-head">
+            <span class="step-chip step-chip--claude">1</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <g stroke="var(--claude)" stroke-width="2.6" stroke-linecap="round">
+                <line x1="15.5" y1="12" x2="22" y2="12"/><line x1="15.03" y1="13.75" x2="20.66" y2="17"/>
+                <line x1="13.75" y1="15.03" x2="17" y2="20.66"/><line x1="12" y1="15.5" x2="12" y2="22"/>
+                <line x1="10.25" y1="15.03" x2="7" y2="20.66"/><line x1="8.97" y1="13.75" x2="3.34" y2="17"/>
+                <line x1="8.5" y1="12" x2="2" y2="12"/><line x1="8.97" y1="10.25" x2="3.34" y2="7"/>
+                <line x1="10.25" y1="8.97" x2="7" y2="3.34"/><line x1="12" y1="8.5" x2="12" y2="2"/>
+                <line x1="13.75" y1="8.97" x2="17" y2="3.34"/><line x1="15.03" y1="10.25" x2="20.66" y2="7"/>
+              </g>
+            </svg>
+            <span class="tool-name">Claude Code</span>
+          </div>
+          <div class="meter">
+            <div class="meter-row">
+              <span>9:00 利用開始</span>
+              <span class="meter-exhausted">13:00 利用枠 使い切り</span>
+            </div>
+            <div class="meter-track"></div>
+          </div>
+        </div>
+
+        <div class="band band-cursor band-cursor--narrow" style="left: 40%; width: 10%;">
+          <div class="band-head" style="justify-content: center;">
+            <span class="step-chip step-chip--critical">2</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 2 L21 7 L12 12 L3 7 Z" fill="var(--cursor)" opacity="0.9"/>
+              <path d="M3 7 L12 12 L12 22 L3 17 Z" fill="var(--cursor)" opacity="0.55"/>
+              <path d="M12 12 L21 7 L21 17 L12 22 Z" fill="var(--cursor)" opacity="0.3"/>
+            </svg>
+          </div>
+          <span class="tool-name" style="text-align: center;">Cursor</span>
+        </div>
+
+        <div class="band band-return" style="left: 50%; width: 50%;">
+          <div class="band-head">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <g stroke="var(--claude)" stroke-width="2.6" stroke-linecap="round">
+                <line x1="15.5" y1="12" x2="22" y2="12"/><line x1="15.03" y1="13.75" x2="20.66" y2="17"/>
+                <line x1="13.75" y1="15.03" x2="17" y2="20.66"/><line x1="12" y1="15.5" x2="12" y2="22"/>
+                <line x1="10.25" y1="15.03" x2="7" y2="20.66"/><line x1="8.97" y1="13.75" x2="3.34" y2="17"/>
+                <line x1="8.5" y1="12" x2="2" y2="12"/><line x1="8.97" y1="10.25" x2="3.34" y2="7"/>
+                <line x1="10.25" y1="8.97" x2="7" y2="3.34"/><line x1="12" y1="8.5" x2="12" y2="2"/>
+                <line x1="13.75" y1="8.97" x2="17" y2="3.34"/><line x1="15.03" y1="10.25" x2="20.66" y2="7"/>
+              </g>
+            </svg>
+            <span class="tool-name" style="font-size: clamp(10px, 1.15vw, 12.5px);">Claude Code に復帰</span>
+          </div>
+          <span class="band-note">利用枠が全回復。メイン利用を再開する</span>
+        </div>
+
+        <div class="event-badge" style="left: 40%; transform: translate(calc(-100% + 14px), -55%);">
+          <span class="step-chip step-chip--critical" style="width:14px;height:14px;font-size:8.5px;">2</span>
+          4h で利用枠を使い切り → 切り替え
+        </div>
+        <div class="event-badge event-badge--good" style="left: 50%; transform: translate(-14px, -55%);">
+          <span class="step-chip step-chip--good" style="width:14px;height:14px;font-size:8.5px;">3</span>
+          開始から 5 時間でリセット → 復帰
+        </div>
+      </div>
+
+      <div class="axis">
+        <span style="left: 0;">9時</span>
+        <span style="left: 20%;">11時</span>
+        <span style="left: 40%;">13時</span>
+        <span style="left: 60%;">15時</span>
+        <span style="left: 80%;">17時</span>
+        <span style="left: 100%;">19時</span>
+      </div>
+    </section>
+
+    <!-- Panel 2: weekly limit -->
+    <section class="panel">
+      <div class="panel-head">
+        <span class="panel-tag">リミット 2｜週次</span>
+        <h2>1 週間の中での切り替え</h2>
+        <span class="panel-note">週の利用枠を使い切ると、その週は上限のまま → 週次リセットで全回復</span>
+      </div>
+
+      <div class="lane lane-weekly">
+        <div class="event-line" style="left: 50%;"></div>
+        <div class="event-line event-line--good" style="left: 83.333%;"></div>
+
+        <div class="band band-claude" style="left: 0; width: 50%;">
+          <div class="band-head">
+            <span class="step-chip step-chip--claude">1</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <g stroke="var(--claude)" stroke-width="2.6" stroke-linecap="round">
+                <line x1="15.5" y1="12" x2="22" y2="12"/><line x1="15.03" y1="13.75" x2="20.66" y2="17"/>
+                <line x1="13.75" y1="15.03" x2="17" y2="20.66"/><line x1="12" y1="15.5" x2="12" y2="22"/>
+                <line x1="10.25" y1="15.03" x2="7" y2="20.66"/><line x1="8.97" y1="13.75" x2="3.34" y2="17"/>
+                <line x1="8.5" y1="12" x2="2" y2="12"/><line x1="8.97" y1="10.25" x2="3.34" y2="7"/>
+                <line x1="10.25" y1="8.97" x2="7" y2="3.34"/><line x1="12" y1="8.5" x2="12" y2="2"/>
+                <line x1="13.75" y1="8.97" x2="17" y2="3.34"/><line x1="15.03" y1="10.25" x2="20.66" y2="7"/>
+              </g>
+            </svg>
+            <span class="tool-name">Claude Code</span>
+          </div>
+          <div class="meter">
+            <div class="meter-row">
+              <span>週初 利用開始</span>
+              <span class="meter-exhausted">週次枠 使い切り</span>
+            </div>
+            <div class="meter-track"></div>
+          </div>
+        </div>
+
+        <div class="band band-cursor" style="left: 50%; width: 33.333%;">
+          <div class="band-head">
+            <span class="step-chip step-chip--critical">2</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 2 L21 7 L12 12 L3 7 Z" fill="var(--cursor)" opacity="0.9"/>
+              <path d="M3 7 L12 12 L12 22 L3 17 Z" fill="var(--cursor)" opacity="0.55"/>
+              <path d="M12 12 L21 7 L21 17 L12 22 Z" fill="var(--cursor)" opacity="0.3"/>
+            </svg>
+            <span class="tool-name">Cursor</span>
+          </div>
+          <span class="band-note">週末まで作業を継続</span>
+        </div>
+
+        <div class="band band-return" style="left: 83.333%; width: 16.667%;">
+          <div class="band-head">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <g stroke="var(--claude)" stroke-width="2.6" stroke-linecap="round">
+                <line x1="15.5" y1="12" x2="22" y2="12"/><line x1="15.03" y1="13.75" x2="20.66" y2="17"/>
+                <line x1="13.75" y1="15.03" x2="17" y2="20.66"/><line x1="12" y1="15.5" x2="12" y2="22"/>
+                <line x1="10.25" y1="15.03" x2="7" y2="20.66"/><line x1="8.97" y1="13.75" x2="3.34" y2="17"/>
+                <line x1="8.5" y1="12" x2="2" y2="12"/><line x1="8.97" y1="10.25" x2="3.34" y2="7"/>
+                <line x1="10.25" y1="8.97" x2="7" y2="3.34"/><line x1="12" y1="8.5" x2="12" y2="2"/>
+                <line x1="13.75" y1="8.97" x2="17" y2="3.34"/><line x1="15.03" y1="10.25" x2="20.66" y2="7"/>
+              </g>
+            </svg>
+            <span class="tool-name" style="font-size: clamp(10px, 1.15vw, 12.5px);">Claude Code に復帰</span>
+          </div>
+          <span class="band-note">リミット全回復</span>
+        </div>
+
+        <div class="event-badge" style="left: 50%;">
+          <span class="step-chip step-chip--critical" style="width:14px;height:14px;font-size:8.5px;">2</span>
+          週次上限到達 → 切り替え
+        </div>
+        <div class="event-badge event-badge--good" style="left: 83.333%;">
+          <span class="step-chip step-chip--good" style="width:14px;height:14px;font-size:8.5px;">3</span>
+          週次リセット → 復帰
+        </div>
+      </div>
+
+      <div class="axis axis-weekly">
+        <span>月</span><span>火</span><span>水</span><span>木</span><span>金</span>
+        <span class="next-week">翌週 月</span>
+      </div>
+    </section>
+
+    <footer class="steps">
+      <div class="step">
+        <span class="step-chip step-chip--claude">1</span>
+        <p class="step-text"><strong>Claude Code をメインに使う</strong>— 設計判断・複雑な実装を優先的に任せる</p>
+      </div>
+      <div class="step">
+        <span class="step-chip step-chip--critical">2</span>
+        <p class="step-text"><strong>上限到達で Cursor へ</strong>— 5時間・週次のどちらでも同じ運用で作業を止めない</p>
+      </div>
+      <div class="step">
+        <span class="step-chip step-chip--good">3</span>
+        <p class="step-text"><strong>リセットで復帰</strong>— リミットが回復したら Claude Code に戻る</p>
+      </div>
+    </footer>
+
+  </div>
+</div>

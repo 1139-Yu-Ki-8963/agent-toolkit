@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>仕様書やルールが長くなるとAIが無視・端折る問題を分割と進行ゲートで解消する 解決事例</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 0 24px 96px;
+    font-family: system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif;
+    line-height: 1.85; color: #1a1a1a; background: #fafafa;
+    max-width: 980px; margin-inline: auto;
+  }
+  header { padding: 56px 0 24px; border-bottom: 3px solid #1a1a1a; }
+  header h1 { font-size: 1.9rem; margin: 0 0 10px; letter-spacing: 0.01em; }
+  header .case-badge {
+    display: inline-block; font-size: 0.85rem; font-weight: 700;
+    background: #1a1a1a; color: #fafafa; padding: 3px 12px; border-radius: 999px;
+    vertical-align: middle; margin-right: 10px;
+  }
+  header p { margin: 6px 0 0; color: #555; }
+  .meta-table { margin-top: 16px; font-size: 0.9rem; color: #555; }
+  .meta-table td { padding: 1px 16px 1px 0; }
+
+  nav.toc {
+    margin-top: 32px; padding: 18px 22px;
+    background: #fff; border: 1px solid #e0e0e0; border-radius: 8px;
+  }
+  nav.toc .toc-title { font-weight: 700; margin-bottom: 6px; }
+  nav.toc ol { margin: 0; padding-left: 1.4em; columns: 2; column-gap: 40px; }
+  nav.toc li { margin: 2px 0; }
+  nav.toc a { color: #1a1a1a; text-decoration: none; border-bottom: 1px dotted #999; }
+  nav.toc a:hover { border-bottom-style: solid; }
+
+  section { margin-top: 64px; }
+  section > h2 {
+    font-size: 1.35rem; padding-bottom: 8px; margin-bottom: 20px;
+    border-bottom: 2px solid #1a1a1a;
+  }
+  section > h2 .sec-num {
+    display: inline-block; min-width: 2.4em; margin-right: 10px;
+    font-family: ui-monospace, monospace; font-size: 0.95rem;
+    background: #1a1a1a; color: #fafafa; text-align: center;
+    padding: 1px 8px; border-radius: 4px; vertical-align: 2px;
+  }
+  h3 { font-size: 1.05rem; margin: 32px 0 10px; }
+  .note { color: #555; font-size: 0.92rem; }
+
+  table.spec { border-collapse: collapse; width: 100%; margin: 14px 0; background: #fff; font-size: 0.93rem; }
+  table.spec th, table.spec td { border: 1px solid #d8d8d8; padding: 8px 12px; text-align: left; vertical-align: top; }
+  table.spec th { background: #f0f0ee; font-weight: 700; white-space: nowrap; }
+  table.spec td code, li code, p code, table.spec th code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.86em; background: #eeeeea; padding: 1px 5px; border-radius: 3px;
+  }
+
+  pre.flow {
+    background: #16211c; color: #d7e6dc; border-radius: 8px;
+    padding: 20px 24px; overflow-x: auto;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.82rem; line-height: 1.55;
+  }
+  pre.flow .cap { color: #8fb8a0; }
+
+  figure.diagram { margin: 20px 0; padding: 8px; background: #fff;
+    border: 1px solid #e0e0e0; border-radius: 8px; }
+  figure.diagram svg { width: 100%; height: auto; display: block; cursor: zoom-in; }
+  figure.diagram figcaption { padding: 8px 10px 2px; }
+
+  .zoom-overlay {
+    position: fixed; inset: 0; z-index: 1000;
+    background: rgba(15, 23, 42, 0.93);
+    overflow: auto; padding: 24px; cursor: zoom-out;
+    -webkit-overflow-scrolling: touch;
+  }
+  .zoom-overlay svg {
+    width: 1880px; max-width: none; height: auto;
+    display: block; margin: 0 auto;
+    background: #fff; border-radius: 8px;
+  }
+
+  .def {
+    background: #fff; border-left: 4px solid #1a1a1a;
+    padding: 12px 18px; margin: 14px 0; border-radius: 0 6px 6px 0;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  }
+  .def dt { font-weight: 700; margin-top: 8px; }
+  .def dt:first-child { margin-top: 0; }
+  .def dd { margin: 2px 0 0 0; color: #333; }
+
+  .constraint {
+    background: #eef2f7; border: 1px solid #c8d4e3; border-radius: 8px;
+    padding: 12px 18px; margin: 16px 0; font-size: 0.93rem;
+  }
+  .constraint strong:first-child { color: #2a4a7a; }
+
+  .tag {
+    display: inline-block; font-family: ui-monospace, monospace; font-size: 0.78rem;
+    font-weight: 700; padding: 0 8px; border-radius: 3px; border: 1px solid transparent;
+  }
+  .tag.pass  { background: #e7f3e7; color: #23662a; border-color: #b9d9ba; }
+  .tag.fail  { background: #fbe9e7; color: #9c2b1a; border-color: #ecc0b8; }
+  .tag.error { background: #fdf3d7; color: #7a5d10; border-color: #e8d59a; }
+  .tag.mode  { background: #e8eef7; color: #2a4a7a; border-color: #c2d2e8; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1><span class="case-badge">解決事例</span>仕様書やルールが長くなるとAIが無視・端折る問題を分割と進行ゲートで解消する</h1>
+
+  <table class="meta-table">
+    <tr><td>事例キー</td><td><code>長文ルール-無視</code></td></tr>
+    <tr><td>分類</td><td>指示・仕様の遵守</td></tr>
+    <tr><td>登録日</td><td>2026-07-08</td></tr>
+    <tr><td>検証環境</td><td>macOS + Claude Code</td></tr>
+  </table>
+</header>
+
+<nav class="toc">
+  <div class="toc-title">目次</div>
+  <ol>
+    <li><a href="#s1">概要</a></li>
+    <li><a href="#s2">課題</a></li>
+    <li><a href="#s3">原因</a></li>
+    <li><a href="#s4">解決の型</a></li>
+    <li><a href="#s5">実装の実物</a></li>
+    <li><a href="#s6">効果</a></li>
+    <li><a href="#s7">導入手順</a></li>
+    <li><a href="#s8">適用時の注意</a></li>
+    <li><a href="#s9">導入手段</a></li>
+  </ol>
+</nav>
+
+<section id="s1">
+  <h2><span class="sec-num">§1</span>概要</h2>
+  <p>仕様書・規約が長くなるほどAIの遵守率が下がる課題を、「分割と段階的開示」「タスク分解の強制」「進行ゲート」の3要素で解消した事例である。長文を読ませる工夫ではなく、読み飛ばしても違反自体ができない構造を作る点が要点である。</p>
+</section>
+
+<section id="s2">
+  <h2><span class="sec-num">§2</span>課題</h2>
+  <p>仕様書・規約の分量が数百行を超えると、AIは一部を読み飛ばし、依頼していない省略・要約を行うようになる。「全部読んで」と念押ししても改善しない。むしろルールを追加するほど遵守率が下がるという悪循環が起きる。</p>
+</section>
+
+<section id="s3">
+  <h2><span class="sec-num">§3</span>原因</h2>
+  <p>AIの注意は有限であり、長文を一括で投入すると重要箇所が埋没する。また「読むこと」自体は外側から強制できないため、読了をAIの注意力に依存させる運用は構造的に破綻する。</p>
+  <div class="constraint">
+    <strong>要点</strong><br>
+    読ませる工夫ではなく、「読まなくても違反できない」構造にする。
+  </div>
+</section>
+
+<section id="s4">
+  <h2><span class="sec-num">§4</span>解決の型</h2>
+  <p>3要素を積み上げて機能させる。どれか1つだけでは長文問題は再発する。</p>
+  <figure class="diagram">
+    <svg viewBox="0 0 760 320" xmlns="http://www.w3.org/2000/svg" font-family="system-ui, -apple-system, sans-serif">
+      <rect x="40" y="20" width="680" height="80" rx="8" fill="#e8eef7" stroke="#2a4a7a" stroke-width="1.5"/>
+      <text x="70" y="52" font-size="16" font-weight="700" fill="#2a4a7a">分割と段階的開示</text>
+      <text x="70" y="76" font-size="13" fill="#333">本文は要点のみの薄い索引にし、具体値・詳細手順は必要な時だけ読む別ファイルへ分離する</text>
+
+      <rect x="40" y="120" width="680" height="80" rx="8" fill="#fdf3d7" stroke="#7a5d10" stroke-width="1.5"/>
+      <text x="70" y="152" font-size="16" font-weight="700" fill="#7a5d10">タスク分解の強制</text>
+      <text x="70" y="176" font-size="13" fill="#333">段階に入る前に、その段階の全手順を1件ずつタスク登録することを機械で要求する</text>
+
+      <rect x="40" y="220" width="680" height="80" rx="8" fill="#e7f3e7" stroke="#23662a" stroke-width="1.5"/>
+      <text x="70" y="252" font-size="16" font-weight="700" fill="#23662a">進行ゲート</text>
+      <text x="70" y="276" font-size="13" fill="#333">前段階が完了するまで次の作業（実装コードの書き込み等）を機械で停止する</text>
+    </svg>
+    <figcaption class="note">3要素の関係。分割で本文を薄く保ち、タスク分解の強制で手順の端折りを着手前に発覚させ、進行ゲートで段階の飛び越しを止める。</figcaption>
+  </figure>
+</section>
+
+<section id="s5">
+  <h2><span class="sec-num">§5</span>実装の実物</h2>
+
+  <h3>文字数の上限</h3>
+  <p>スキルの説明文は50字以内、全スキルの説明合計は2,000字以内という上限を規約化している。超過すると後ろのスキルが自動選択から脱落するという実害があるため、上限が形骸化しない。</p>
+
+  <h3>薄い本文と詳細分離の分割</h3>
+  <p>常時読み込む規約本文は「要点＋参照先」だけの薄い索引にし、具体値の一覧は読み込まれない別ファイルへ分離する。実例は次のとおり。</p>
+  <table class="spec">
+    <tr><th>規約</th><th>本文</th><th>値一覧（別ファイル）</th></tr>
+    <tr><td>ポート管理規約</td><td>73行</td><td>112行</td></tr>
+    <tr><td>命名規約</td><td>44行</td><td>107行</td></tr>
+  </table>
+
+  <h3>段階的開示</h3>
+  <p>大型スキルは入口ファイルで判定だけを行い、種別ごとの詳細手順は該当作業の時だけ読み込む構造にする。必要になるまでロードしない。</p>
+
+  <h3>タスク分解の強制</h3>
+  <p>段階（Phase）に入る前に、その段階の全手順（Step）を1件ずつタスク登録することをhookが要求し、登録数が不足すると段階の開始自体が停止する。タスク名の形式（Phase N Step N-M: 完了判定可能な動詞句）も検査される。</p>
+
+  <h3>進行ゲート</h3>
+  <p>計画段階（要件・仕様・実装計画）が完了するまで、実装コードの書き込みをhookが機械で停止する。進捗は状態ファイル経由でのみ更新でき、状態の手書き偽装も禁止する。</p>
+
+  <h3>進捗の可視化</h3>
+  <p>端末の状態表示にPhase/Stepの進捗バーが常時表示され、今どの段階のどの手順かが人にもAIにも見える。</p>
+</section>
+
+<section id="s6">
+  <h2><span class="sec-num">§6</span>効果</h2>
+  <p>遵守が「AIの読解力」ではなく「構造」で保証されるようになる。ルールが増えても本文は薄いまま保て、読み飛ばしによる違反はゲートで止まる。仕様の端折りは「タスク登録に現れない手順」として着手前に発覚する。</p>
+</section>
+
+<section id="s7">
+  <h2><span class="sec-num">§7</span>導入手順</h2>
+  <p>導入は<code>consult-repo-rules</code>スキルが実行する。対象プロジェクトのセッションで「規約を整備」と依頼する。</p>
+  <table class="spec">
+    <thead>
+      <tr><th>手順</th><th>作業内容</th><th>対象</th><th>実行コマンド・操作</th><th>確認方法</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>1</td><td>リポジトリ解析</td><td>既存の仕様書・規約・スキル構成</td><td>スキルが自動で走査する</td><td>解析結果の提示内容を確認する</td></tr>
+      <tr><td>2</td><td>規約の起草（分割規律つき）</td><td>新規・改訂の規約本文</td><td>1トピック50行目安で本文を薄くし、値は別ファイルへ分離する</td><td>本文と値一覧が分離されているか確認する</td></tr>
+      <tr><td>3</td><td>顧客合意</td><td>起草した規約案</td><td>提示して承認を得る</td><td>承認記録を確認する</td></tr>
+      <tr><td>4</td><td>レビュー・テストスキル設置</td><td>規約に対応するレビュー手順</td><td>スキルが設置する</td><td>設置後のレビュー実行結果を確認する</td></tr>
+      <tr><td>5</td><td>検証</td><td>設置した規約・レビュー手順</td><td>試験的な違反ケースで動作確認する</td><td>想定どおり検知・停止するか確認する</td></tr>
+      <tr><td>6</td><td>運用引き継ぎ</td><td>導入した規約一式</td><td>顧客側の運用担当へ引き継ぐ</td><td>引き継ぎ完了の合意を確認する</td></tr>
+    </tbody>
+  </table>
+  <p class="note">進行ゲート・タスク分解強制のhook化は、顧客の開発フローが固まった段階で追加導入する。最初から全部の機械強制を入れない。</p>
+</section>
+
+<section id="s8">
+  <h2><span class="sec-num">§8</span>適用時の注意</h2>
+  <ul>
+    <li>上限・分割は「実害と対」で設計する。守らないと困る仕組みがないと形骸化する</li>
+    <li>ゲートを一度に増やしすぎない。開発の摩擦が跳ね上がるため、まず分割規律、次に検証ループ、最後に進行ゲートの順で段階導入する</li>
+    <li>分離した詳細ファイルへの参照パスは本文に必ず書く</li>
+  </ul>
+</section>
+
+<section id="s9">
+  <h2><span class="sec-num">§9</span>導入手段</h2>
+  <p>導入は<code>consult-repo-rules</code>スキルが実行する。資材の同梱はない。</p>
+  <p class="note">本事例は <code>../解決事例集.md</code> の蓄積簿に登録されている。</p>
+</section>
+
+<div id="zoom-overlay" class="zoom-overlay" hidden></div>
+<script>
+  (function () {
+    var overlay = document.getElementById('zoom-overlay');
+    if (!overlay) return;
+    document.querySelectorAll('figure.diagram svg').forEach(function (svg) {
+      svg.addEventListener('click', function () {
+        overlay.innerHTML = '';
+        overlay.appendChild(svg.cloneNode(true));
+        overlay.hidden = false;
+        document.body.style.overflow = 'hidden';
+      });
+    });
+    overlay.addEventListener('click', function () {
+      overlay.hidden = true;
+      overlay.innerHTML = '';
+      document.body.style.overflow = '';
+    });
+  })();
+</script>
+
+</body>
+</html>

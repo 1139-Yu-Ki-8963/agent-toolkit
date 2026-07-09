@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<!--
+  設定診断レポートHTMLのテンプレート
+
+  使い方:
+    1. このファイルをコピーして clients/<案件名>/設定診断_<YYYYMMDD>.html に配置する
+    2. {{...}} プレースホルダをすべて実データで置換する
+    3. table.spec の空行は診断で検出した件数分だけ複製し、検出0件のセクションは
+       その旨（「検出なし」）を1行で記載する
+
+  制約:
+    - 外部リソース禁止（CDN・画像・link・script src は一切使わない。完全自己完結）
+    - <style> とページ末尾のズーム script は変更しない
+-->
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{project-name}} 設定診断レポート</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 0 24px 96px;
+    font-family: system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif;
+    line-height: 1.85; color: #1a1a1a; background: #fafafa;
+    max-width: 980px; margin-inline: auto;
+  }
+  header { padding: 56px 0 24px; border-bottom: 3px solid #1a1a1a; }
+  header h1 { font-size: 1.9rem; margin: 0 0 10px; letter-spacing: 0.01em; }
+  header .case-badge {
+    display: inline-block; font-size: 0.85rem; font-weight: 700;
+    background: #1a1a1a; color: #fafafa; padding: 3px 12px; border-radius: 999px;
+    vertical-align: middle; margin-right: 10px;
+  }
+  header p { margin: 6px 0 0; color: #555; }
+  .meta-table { margin-top: 16px; font-size: 0.9rem; color: #555; }
+  .meta-table td { padding: 1px 16px 1px 0; }
+
+  nav.toc {
+    margin-top: 32px; padding: 18px 22px;
+    background: #fff; border: 1px solid #e0e0e0; border-radius: 8px;
+  }
+  nav.toc .toc-title { font-weight: 700; margin-bottom: 6px; }
+  nav.toc ol { margin: 0; padding-left: 1.4em; columns: 2; column-gap: 40px; }
+  nav.toc li { margin: 2px 0; }
+  nav.toc a { color: #1a1a1a; text-decoration: none; border-bottom: 1px dotted #999; }
+  nav.toc a:hover { border-bottom-style: solid; }
+
+  section { margin-top: 64px; }
+  section > h2 {
+    font-size: 1.35rem; padding-bottom: 8px; margin-bottom: 20px;
+    border-bottom: 2px solid #1a1a1a;
+  }
+  section > h2 .sec-num {
+    display: inline-block; min-width: 2.4em; margin-right: 10px;
+    font-family: ui-monospace, monospace; font-size: 0.95rem;
+    background: #1a1a1a; color: #fafafa; text-align: center;
+    padding: 1px 8px; border-radius: 4px; vertical-align: 2px;
+  }
+  h3 { font-size: 1.05rem; margin: 32px 0 10px; }
+  .note { color: #555; font-size: 0.92rem; }
+
+  table.spec { border-collapse: collapse; width: 100%; margin: 14px 0; background: #fff; font-size: 0.93rem; }
+  table.spec th, table.spec td { border: 1px solid #d8d8d8; padding: 8px 12px; text-align: left; vertical-align: top; }
+  table.spec th { background: #f0f0ee; font-weight: 700; white-space: nowrap; }
+  table.spec td code, li code, p code, table.spec th code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.86em; background: #eeeeea; padding: 1px 5px; border-radius: 3px;
+  }
+
+  .summary-cards { display: flex; flex-wrap: wrap; gap: 12px; margin: 14px 0; }
+  .summary-cards .card {
+    flex: 1 1 200px; background: #fff; border: 1px solid #e0e0e0; border-radius: 8px;
+    padding: 14px 18px;
+  }
+  .summary-cards .card .num { font-size: 1.6rem; font-weight: 700; }
+  .summary-cards .card .label { color: #555; font-size: 0.85rem; }
+
+  .coverage-cards { display: flex; flex-wrap: wrap; gap: 12px; margin: 14px 0; }
+  .coverage-cards .card {
+    flex: 1 1 200px; border-radius: 8px; padding: 14px 18px; border: 1px solid;
+  }
+  .coverage-cards .card.ok { background: #e7f3e7; border-color: #b9d9ba; }
+  .coverage-cards .card.ng { background: #fbe9e7; border-color: #ecc0b8; }
+  .coverage-cards .card .label { font-weight: 700; }
+  .coverage-cards .card .state { font-size: 0.85rem; color: #555; }
+
+  .def {
+    background: #fff; border-left: 4px solid #1a1a1a;
+    padding: 12px 18px; margin: 14px 0; border-radius: 0 6px 6px 0;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  }
+  .def dt { font-weight: 700; margin-top: 8px; }
+  .def dt:first-child { margin-top: 0; }
+  .def dd { margin: 2px 0 0 0; color: #333; }
+
+  .tag {
+    display: inline-block; font-family: ui-monospace, monospace; font-size: 0.78rem;
+    font-weight: 700; padding: 0 8px; border-radius: 3px; border: 1px solid transparent;
+  }
+  .tag.pass  { background: #e7f3e7; color: #23662a; border-color: #b9d9ba; }
+  .tag.fail  { background: #fbe9e7; color: #9c2b1a; border-color: #ecc0b8; }
+  .tag.error { background: #fdf3d7; color: #7a5d10; border-color: #e8d59a; }
+  .tag.mode  { background: #e8eef7; color: #2a4a7a; border-color: #c2d2e8; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1><span class="case-badge">設定診断レポート</span>{{project-name}}</h1>
+
+  <table class="meta-table">
+    <tr><td>診断日</td><td>{{diagnosis-date}}</td></tr>
+    <tr><td>対象リポジトリ</td><td>{{repo-path}}</td></tr>
+  </table>
+</header>
+
+<nav class="toc">
+  <div class="toc-title">目次</div>
+  <ol>
+    <li><a href="#s1">概要</a></li>
+    <li><a href="#s2">ルール一覧</a></li>
+    <li><a href="#s3">スキル一覧</a></li>
+    <li><a href="#s4">hook一覧</a></li>
+    <li><a href="#s5">網羅性</a></li>
+    <li><a href="#s6">推奨アクション</a></li>
+    <li><a href="#s7">所見</a></li>
+  </ol>
+</nav>
+
+<section id="s1">
+  <h2><span class="sec-num">§1</span>概要</h2>
+  <!-- {{s1-summary}}: 検出した設定資産の件数サマリを1〜2行で要約する -->
+  <div class="summary-cards">
+    <div class="card"><div class="num">{{claude-md-lines}}</div><div class="label">CLAUDE.md 行数</div></div>
+    <div class="card"><div class="num">{{rules-count}}</div><div class="label">rules 本数</div></div>
+    <div class="card"><div class="num">{{skills-count}}</div><div class="label">skills 本数</div></div>
+    <div class="card"><div class="num">{{hooks-count}}</div><div class="label">hooks 件数</div></div>
+  </div>
+</section>
+
+<section id="s2">
+  <h2><span class="sec-num">§2</span>ルール一覧</h2>
+  <!-- {{s2-rules-note}}: ルール検出に関する注記（検出0件ならその旨） -->
+  <table class="spec">
+    <thead>
+      <tr><th>ルール名</th><th>行数</th><th>hook有無</th><th>機械強制のタグ名</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>{{rule-name}}</td><td>{{rule-lines}}</td><td><span class="tag pass">あり</span></td><td><code>{{rule-tag}}</code></td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="s3">
+  <h2><span class="sec-num">§3</span>スキル一覧</h2>
+  <!-- {{s3-skills-note}}: スキル検出に関する注記（検出0件ならその旨） -->
+  <table class="spec">
+    <thead>
+      <tr><th>スキル名</th><th>type</th><th>Phase数</th><th>Step有無</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>{{skill-name}}</td><td>{{skill-type}}</td><td>{{skill-phase-count}}</td><td><span class="tag pass">あり</span></td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="s4">
+  <h2><span class="sec-num">§4</span>hook一覧</h2>
+  <!-- {{s4-hooks-note}}: hook検出に関する注記（検出0件ならその旨） -->
+  <table class="spec">
+    <thead>
+      <tr><th>イベント</th><th>matcher</th><th>commandパス</th><th>構文検査結果</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>{{hook-event}}</td><td>{{hook-matcher}}</td><td><code>{{hook-command}}</code></td><td><span class="tag pass">PASS</span></td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="s5">
+  <h2><span class="sec-num">§5</span>網羅性</h2>
+  <!-- {{s5-coverage-note}}: 4項目の判定根拠を1〜2行で補足する -->
+  <div class="coverage-cards">
+    <div class="card {{claude-md-state-class}}">
+      <div class="label">CLAUDE.md</div><div class="state">{{claude-md-state}}</div>
+    </div>
+    <div class="card {{rules-state-class}}">
+      <div class="label">rules</div><div class="state">{{rules-state}}</div>
+    </div>
+    <div class="card {{skills-state-class}}">
+      <div class="label">skills</div><div class="state">{{skills-state}}</div>
+    </div>
+    <div class="card {{hooks-state-class}}">
+      <div class="label">hooks</div><div class="state">{{hooks-state}}</div>
+    </div>
+  </div>
+</section>
+
+<section id="s6">
+  <h2><span class="sec-num">§6</span>推奨アクション</h2>
+  <!-- {{recommendations}}: 「なし」判定資産ごとの対応スキル（consult-lint-setup / consult-repo-rules 等）を箇条書きで記載する -->
+  <ul>
+    <li>{{recommendation-item}}</li>
+  </ul>
+</section>
+
+<section id="s7">
+  <h2><span class="sec-num">§7</span>所見</h2>
+  <!-- {{findings}}: Step粒度未達のスキル等、検出結果に対する所見を箇条書きで記載する。該当なしの場合は「該当なし」と書く -->
+  <ul>
+    <li>{{finding-item}}</li>
+  </ul>
+</section>
+
+</body>
+</html>

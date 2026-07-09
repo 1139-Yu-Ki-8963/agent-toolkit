@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>過去事例を真似させても癖のあるコードが出る問題を規約化と検証分離で解消する 解決事例</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 0 24px 96px;
+    font-family: system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif;
+    line-height: 1.85; color: #1a1a1a; background: #fafafa;
+    max-width: 980px; margin-inline: auto;
+  }
+  header { padding: 56px 0 24px; border-bottom: 3px solid #1a1a1a; }
+  header h1 { font-size: 1.9rem; margin: 0 0 10px; letter-spacing: 0.01em; }
+  header .case-badge {
+    display: inline-block; font-size: 0.85rem; font-weight: 700;
+    background: #1a1a1a; color: #fafafa; padding: 3px 12px; border-radius: 999px;
+    vertical-align: middle; margin-right: 10px;
+  }
+  header p { margin: 6px 0 0; color: #555; }
+  .meta-table { margin-top: 16px; font-size: 0.9rem; color: #555; }
+  .meta-table td { padding: 1px 16px 1px 0; }
+
+  nav.toc {
+    margin-top: 32px; padding: 18px 22px;
+    background: #fff; border: 1px solid #e0e0e0; border-radius: 8px;
+  }
+  nav.toc .toc-title { font-weight: 700; margin-bottom: 6px; }
+  nav.toc ol { margin: 0; padding-left: 1.4em; columns: 2; column-gap: 40px; }
+  nav.toc li { margin: 2px 0; }
+  nav.toc a { color: #1a1a1a; text-decoration: none; border-bottom: 1px dotted #999; }
+  nav.toc a:hover { border-bottom-style: solid; }
+
+  section { margin-top: 64px; }
+  section > h2 {
+    font-size: 1.35rem; padding-bottom: 8px; margin-bottom: 20px;
+    border-bottom: 2px solid #1a1a1a;
+  }
+  section > h2 .sec-num {
+    display: inline-block; min-width: 2.4em; margin-right: 10px;
+    font-family: ui-monospace, monospace; font-size: 0.95rem;
+    background: #1a1a1a; color: #fafafa; text-align: center;
+    padding: 1px 8px; border-radius: 4px; vertical-align: 2px;
+  }
+  h3 { font-size: 1.05rem; margin: 32px 0 10px; }
+  .note { color: #555; font-size: 0.92rem; }
+
+  table.spec { border-collapse: collapse; width: 100%; margin: 14px 0; background: #fff; font-size: 0.93rem; }
+  table.spec th, table.spec td { border: 1px solid #d8d8d8; padding: 8px 12px; text-align: left; vertical-align: top; }
+  table.spec th { background: #f0f0ee; font-weight: 700; white-space: nowrap; }
+  table.spec td code, li code, p code, table.spec th code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.86em; background: #eeeeea; padding: 1px 5px; border-radius: 3px;
+  }
+
+  pre.flow {
+    background: #16211c; color: #d7e6dc; border-radius: 8px;
+    padding: 20px 24px; overflow-x: auto;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.82rem; line-height: 1.55;
+  }
+  pre.flow .cap { color: #8fb8a0; }
+
+  figure.diagram { margin: 20px 0; padding: 8px; background: #fff;
+    border: 1px solid #e0e0e0; border-radius: 8px; }
+  figure.diagram svg { width: 100%; height: auto; display: block; cursor: zoom-in; }
+  figure.diagram figcaption { padding: 8px 10px 2px; }
+
+  .zoom-overlay {
+    position: fixed; inset: 0; z-index: 1000;
+    background: rgba(15, 23, 42, 0.93);
+    overflow: auto; padding: 24px; cursor: zoom-out;
+    -webkit-overflow-scrolling: touch;
+  }
+  .zoom-overlay svg {
+    width: 1880px; max-width: none; height: auto;
+    display: block; margin: 0 auto;
+    background: #fff; border-radius: 8px;
+  }
+
+  .def {
+    background: #fff; border-left: 4px solid #1a1a1a;
+    padding: 12px 18px; margin: 14px 0; border-radius: 0 6px 6px 0;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  }
+  .def dt { font-weight: 700; margin-top: 8px; }
+  .def dt:first-child { margin-top: 0; }
+  .def dd { margin: 2px 0 0 0; color: #333; }
+
+  .constraint {
+    background: #eef2f7; border: 1px solid #c8d4e3; border-radius: 8px;
+    padding: 12px 18px; margin: 16px 0; font-size: 0.93rem;
+  }
+  .constraint strong:first-child { color: #2a4a7a; }
+
+  .tag {
+    display: inline-block; font-family: ui-monospace, monospace; font-size: 0.78rem;
+    font-weight: 700; padding: 0 8px; border-radius: 3px; border: 1px solid transparent;
+  }
+  .tag.pass  { background: #e7f3e7; color: #23662a; border-color: #b9d9ba; }
+  .tag.fail  { background: #fbe9e7; color: #9c2b1a; border-color: #ecc0b8; }
+  .tag.error { background: #fdf3d7; color: #7a5d10; border-color: #e8d59a; }
+  .tag.mode  { background: #e8eef7; color: #2a4a7a; border-color: #c2d2e8; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1><span class="case-badge">解決事例</span>過去事例を真似させても癖のあるコードが出る問題を規約化と検証分離で解消する</h1>
+  <p>「過去のコードを真似て書いて」とAIに指示しても、過剰な防御コード・不要な抽象化・独自の命名といったAI特有の癖が生成物に混じる課題を、実例からの規約抽出・常時注入・生成と検証の分離ループの3要素で解消した事例。</p>
+
+  <table class="meta-table">
+    <tr><td>事例キー</td><td><code>コード癖-規約不在</code></td></tr>
+    <tr><td>分類</td><td>コード生成の品質</td></tr>
+    <tr><td>登録日</td><td>2026-07-08</td></tr>
+    <tr><td>検証環境</td><td>macOS + Claude Code</td></tr>
+  </table>
+</header>
+
+<nav class="toc">
+  <div class="toc-title">目次</div>
+  <ol>
+    <li><a href="#s1">概要</a></li>
+    <li><a href="#s2">課題</a></li>
+    <li><a href="#s3">原因</a></li>
+    <li><a href="#s4">解決の型</a></li>
+    <li><a href="#s5">実装の実物</a></li>
+    <li><a href="#s6">効果</a></li>
+    <li><a href="#s7">導入手順</a></li>
+    <li><a href="#s8">適用時の注意</a></li>
+    <li><a href="#s9">導入手段</a></li>
+  </ol>
+</nav>
+
+<section id="s1">
+  <h2><span class="sec-num">§1</span>概要</h2>
+  <p>参考実装を渡して「これを真似て書いて」と指示しても、AIは過剰な防御コード・不要な抽象化・独自の命名といった、その場限りの癖を持ち込みやすい。この課題を、実例からの規約抽出・常時注入・生成と検証の分離ループという3つの要素の組み合わせで解消した。個別の指摘を都度行うのではなく、守るべき様式を明文化して毎回のコンテキストに載せ、さらに書いた本人以外が検証する構造にした点が要点である。</p>
+</section>
+
+<section id="s2">
+  <h2><span class="sec-num">§2</span>課題</h2>
+  <p>参考実装を渡してもAIは網羅的なエラー処理・使われない汎用化・リポジトリの命名規則と異なる独自命名を持ち込む。都度指摘して直させても、別の箇所で同種の癖が再発し、レビューの負担は減らない。</p>
+</section>
+
+<section id="s3">
+  <h2><span class="sec-num">§3</span>原因</h2>
+  <p>「真似ろ」という指示は暗黙知の参照であり、何を守るべきかが明文化されていない。会話が長くなるにつれ参考実装の記憶が薄れ、AIは既定の癖に戻る。さらに、生成した本人に自己確認させても、自分自身の癖は検出できない。</p>
+  <div class="constraint">
+    <strong>要点</strong><br>
+    「規約の明文化」と「検証役の分離」の2つがそろって初めて再発が止まる。どちらか一方だけでは効果が続かない。
+  </div>
+</section>
+
+<section id="s4">
+  <h2><span class="sec-num">§4</span>解決の型</h2>
+  <p>実例からの規約抽出・常時注入・生成と検証の分離ループという3つの要素を積み上げて機能させる。</p>
+  <figure class="diagram">
+    <svg viewBox="0 0 760 320" xmlns="http://www.w3.org/2000/svg" font-family="system-ui, -apple-system, sans-serif">
+      <rect x="40" y="20" width="680" height="80" rx="8" fill="#e8eef7" stroke="#2a4a7a" stroke-width="1.5"/>
+      <text x="70" y="52" font-size="16" font-weight="700" fill="#2a4a7a">①実例からの規約抽出</text>
+      <text x="70" y="76" font-size="13" fill="#333">既存コードの様式を読み取り、守るべき規約として明文化する</text>
+
+      <rect x="40" y="120" width="680" height="80" rx="8" fill="#fdf3d7" stroke="#7a5d10" stroke-width="1.5"/>
+      <text x="70" y="152" font-size="16" font-weight="700" fill="#7a5d10">②常時注入</text>
+      <text x="70" y="176" font-size="13" fill="#333">規約を毎回のコンテキストに自動で載せ、指示忘れが起きない状態にする</text>
+
+      <rect x="40" y="220" width="680" height="80" rx="8" fill="#e7f3e7" stroke="#23662a" stroke-width="1.5"/>
+      <text x="70" y="252" font-size="16" font-weight="700" fill="#23662a">③生成と検証の分離ループ</text>
+      <text x="70" y="276" font-size="13" fill="#333">書いた本人以外が観点表で照合し、テストしてから修正を繰り返す</text>
+    </svg>
+    <figcaption class="note">3要素の積み上げ構造。①が判断基準を作り、②が判断基準を毎回届け、③が判断基準への適合を第三者が確かめる。</figcaption>
+  </figure>
+</section>
+
+<section id="s5">
+  <h2><span class="sec-num">§5</span>実装の実物</h2>
+  <p>次の仕組みは、実際に稼働している環境で機能を確認済みである。</p>
+  <table class="spec">
+    <tr><th>仕組み</th><th>内容</th></tr>
+    <tr><td>コーディング原則の常時注入</td><td>簡潔さ優先・不要な複雑化の禁止・根本原因主義などの原則を、AIの設定ファイル（常時読み込まれる規約群）として全セッションに自動で載せる</td></tr>
+    <tr><td>修正ループの規律</td><td>「変更を書く→テスト・lint・型検査→失敗なら原因を特定して修正→再検査」を1タスクの標準とし、上限5回・同一エラーが2回連続したら停止して上位に差し戻す。無限の自己流修正を防ぐ</td></tr>
+    <tr><td>検証役の分離</td><td>レビューと実機テストは変更を書いた本人ではなく、新規のサブエージェントが行う。自己確認は偏りが生じ、癖を見逃すため禁止する</td></tr>
+    <tr><td>作りっぱなしの禁止</td><td>資産の新規作成は「作成→静的レビュー→実機検証」まで自動で連鎖し、レビュー・テストの完了記録（判定と対象のハッシュ照合）がないとコミット自体が機械的に停止する</td></tr>
+  </table>
+</section>
+
+<section id="s6">
+  <h2><span class="sec-num">§6</span>効果</h2>
+  <p>癖の指摘が、その場限りの口頭注意から規約1行の追記に変わる。追記した規約は以後、全セッション・全担当（AI・人）に自動で適用される。検証役を分離したことで、生成した本人による見逃しも構造的に起きなくなった。</p>
+</section>
+
+<section id="s7">
+  <h2><span class="sec-num">§7</span>導入手順</h2>
+  <p>導入は<code>consult-repo-rules</code>スキルが実行する。対象プロジェクトのセッションで「規約を整備」と依頼する。</p>
+  <table class="spec">
+    <tr><th>段階</th><th>スキルが行うこと</th></tr>
+    <tr><td>①リポジトリ解析</td><td>既存コードから様式を抽出する</td></tr>
+    <tr><td>②規約の起草</td><td>抽出結果を規約として起草する（1トピックあたりの分割規律つき）</td></tr>
+    <tr><td>③顧客との合意</td><td>「守る様式」と「直す癖」を切り分け、顧客と合意する</td></tr>
+    <tr><td>④レビュー・テストスキルの設置</td><td>検証役を分離する仕組みを設置する</td></tr>
+    <tr><td>⑤違反サンプルでの検出確認</td><td>規約違反を含む試験コードで検出できることを確認する</td></tr>
+    <tr><td>⑥運用引き継ぎ</td><td>再発時は規約追記で対応するループを引き継ぐ</td></tr>
+  </table>
+</section>
+
+<section id="s8">
+  <h2><span class="sec-num">§8</span>適用時の注意</h2>
+  <div class="constraint">
+    <strong>抽出結果は必ず顧客と合意する</strong><br>
+    既存コード由来の様式であっても、直したい癖が混じっていることがある。抽出しただけの規約をそのまま採用せず、必ず顧客と合意してから規約化する。
+  </div>
+  <ul>
+    <li>規約は1トピック50行以内を目安に保つ。長文化すると読み飛ばしが起き、別の課題を生む</li>
+    <li>一般論だけの観点表を作らない。顧客リポジトリの実例に紐づける</li>
+  </ul>
+</section>
+
+<section id="s9">
+  <h2><span class="sec-num">§9</span>導入手段</h2>
+  <p>導入は<code>consult-repo-rules</code>スキルが実行する。資材の同梱はない。雛形はスキルの<code>references/</code>にあり、規約の中身は顧客リポジトリの実例から抽出する。</p>
+  <p class="note">本事例は<code>../解決事例集.md</code>の蓄積簿に登録されている。</p>
+</section>
+
+<div id="zoom-overlay" class="zoom-overlay" hidden></div>
+<script>
+  (function () {
+    var overlay = document.getElementById('zoom-overlay');
+    if (!overlay) return;
+    document.querySelectorAll('figure.diagram svg').forEach(function (svg) {
+      svg.addEventListener('click', function () {
+        overlay.innerHTML = '';
+        overlay.appendChild(svg.cloneNode(true));
+        overlay.hidden = false;
+        document.body.style.overflow = 'hidden';
+      });
+    });
+    overlay.addEventListener('click', function () {
+      overlay.hidden = true;
+      overlay.innerHTML = '';
+      document.body.style.overflow = '';
+    });
+  })();
+</script>
+
+</body>
+</html>

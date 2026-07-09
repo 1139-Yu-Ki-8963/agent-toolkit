@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<!--
+  レベル合意書HTMLのテンプレート
+
+  使い方:
+    1. このファイルをコピーして clients/<案件名>/レベル合意_<YYYYMMDD>.html に配置する
+    2. {{...}} プレースホルダをすべて実データで置換する
+    3. {{course-sections}} は課題数分、下の1課題分セクションを繰り返して生成する
+
+  制約:
+    - 外部リソース禁止（CDN・画像・link・script src は一切使わない。完全自己完結）
+    - <style> とページ末尾のズーム script は変更しない
+-->
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{案件名}} レベル合意書</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 0 24px 96px;
+    font-family: system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif;
+    line-height: 1.85; color: #1a1a1a; background: #fafafa;
+    max-width: 980px; margin-inline: auto;
+  }
+  header { padding: 56px 0 24px; border-bottom: 3px solid #1a1a1a; }
+  header h1 { font-size: 1.9rem; margin: 0 0 10px; letter-spacing: 0.01em; }
+  header .case-badge {
+    display: inline-block; font-size: 0.85rem; font-weight: 700;
+    background: #1a1a1a; color: #fafafa; padding: 3px 12px; border-radius: 999px;
+    vertical-align: middle; margin-right: 10px;
+  }
+  header p { margin: 6px 0 0; color: #555; }
+  .meta-table { margin-top: 16px; font-size: 0.9rem; color: #555; }
+  .meta-table td { padding: 1px 16px 1px 0; }
+
+  nav.toc {
+    margin-top: 32px; padding: 18px 22px;
+    background: #fff; border: 1px solid #e0e0e0; border-radius: 8px;
+  }
+  nav.toc .toc-title { font-weight: 700; margin-bottom: 6px; }
+  nav.toc ol { margin: 0; padding-left: 1.4em; columns: 2; column-gap: 40px; }
+  nav.toc li { margin: 2px 0; }
+  nav.toc a { color: #1a1a1a; text-decoration: none; border-bottom: 1px dotted #999; }
+  nav.toc a:hover { border-bottom-style: solid; }
+
+  section { margin-top: 64px; }
+  section > h2 {
+    font-size: 1.35rem; padding-bottom: 8px; margin-bottom: 20px;
+    border-bottom: 2px solid #1a1a1a;
+  }
+  section > h2 .sec-num {
+    display: inline-block; min-width: 2.4em; margin-right: 10px;
+    font-family: ui-monospace, monospace; font-size: 0.95rem;
+    background: #1a1a1a; color: #fafafa; text-align: center;
+    padding: 1px 8px; border-radius: 4px; vertical-align: 2px;
+  }
+  h3 { font-size: 1.05rem; margin: 32px 0 10px; }
+  .note { color: #555; font-size: 0.92rem; }
+
+  table.spec { border-collapse: collapse; width: 100%; margin: 14px 0; background: #fff; font-size: 0.93rem; }
+  table.spec th, table.spec td { border: 1px solid #d8d8d8; padding: 8px 12px; text-align: left; vertical-align: top; }
+  table.spec th { background: #f0f0ee; font-weight: 700; white-space: nowrap; }
+  table.spec td code, li code, p code, table.spec th code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.86em; background: #eeeeea; padding: 1px 5px; border-radius: 3px;
+  }
+
+  .constraint {
+    background: #eef2f7; border: 1px solid #c8d4e3; border-radius: 8px;
+    padding: 12px 18px; margin: 16px 0; font-size: 0.93rem;
+  }
+  .constraint strong:first-child { color: #2a4a7a; }
+
+  .tag {
+    display: inline-block; font-family: ui-monospace, monospace; font-size: 0.78rem;
+    font-weight: 700; padding: 0 8px; border-radius: 3px; border: 1px solid transparent;
+  }
+  .tag.pass  { background: #e7f3e7; color: #23662a; border-color: #b9d9ba; }
+  .tag.fail  { background: #fbe9e7; color: #9c2b1a; border-color: #ecc0b8; }
+  .tag.error { background: #fdf3d7; color: #7a5d10; border-color: #e8d59a; }
+  .tag.mode  { background: #e8eef7; color: #2a4a7a; border-color: #c2d2e8; }
+
+  figure.diagram { margin: 20px 0; padding: 8px; background: #fff;
+    border: 1px solid #e0e0e0; border-radius: 8px; }
+  figure.diagram svg { width: 100%; height: auto; display: block; cursor: zoom-in; }
+  figure.diagram figcaption { padding: 8px 10px 2px; }
+
+  .zoom-overlay {
+    position: fixed; inset: 0; z-index: 1000;
+    background: rgba(15, 23, 42, 0.93);
+    overflow: auto; padding: 24px; cursor: zoom-out;
+    -webkit-overflow-scrolling: touch;
+  }
+  .zoom-overlay svg {
+    width: 1880px; max-width: none; height: auto;
+    display: block; margin: 0 auto;
+    background: #fff; border-radius: 8px;
+  }
+
+  .level-track { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin: 16px 0; }
+  .level-card { border: 1px solid #d8d8d8; border-radius: 8px; padding: 14px; background: #fff; }
+  .level-card.current { background: #e8eef7; border-color: #2a4a7a; }
+  .level-card.goal { background: #e7f3e7; border-color: #23662a; }
+  .level-card h4 { margin: 0 0 8px; font-size: 0.95rem; }
+  .level-card p { margin: 0 0 10px; font-size: 0.88rem; color: #333; }
+  .mark-row { display: flex; gap: 12px; font-size: 0.85rem; }
+  .mark-box { border: 1px solid #999; border-radius: 3px; padding: 2px 8px; cursor: default; }
+  .issue-header { display: flex; justify-content: space-between; align-items: baseline; }
+  .undecided { font-size: 0.9rem; color: #555; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1><span class="case-badge">レベル合意書</span>{{案件名}}</h1>
+  <p>業務棚卸し表で判定した各課題のAI化レベルについて、現在地と今回の目標を合意する。</p>
+</header>
+
+<nav class="toc">
+  <div class="toc-title">課題一覧</div>
+  <ol>
+    {{toc-items}}
+    <!-- 1課題ぶんの記載例: <li><a href="#issue-1">{{課題名}}</a></li> -->
+  </ol>
+</nav>
+
+{{course-sections}}
+<!--
+  課題数ぶん、以下のセクションを繰り返して{{course-sections}}に差し込む。
+  id は issue-1, issue-2 のように課題の出現順で連番を振る（表示上の通し番号であり本文の識別キーではない）。
+
+<section id="issue-1">
+  <div class="issue-header">
+    <h2><span class="sec-num">{{課題番号}}</span>{{課題名}}</h2>
+    <span class="undecided">この課題の未決 <span>{{未決数}}</span></span>
+  </div>
+  <span class="tag mode">{{種別}}</span>
+
+  <div class="constraint">
+    <strong>顧客の声：</strong>{{顧客原文の引用}}
+  </div>
+
+  <div class="level-track">
+    <div class="level-card {{L1のcurrent/goalクラス}}">
+      <h4>L1 人手のみ</h4>
+      <p>{{この課題がL1だと具体的にどう動くか}}</p>
+      <div class="mark-row">
+        <span class="mark-box">現在地 [ ]</span>
+        <span class="mark-box">ゴール [ ]</span>
+      </div>
+    </div>
+    <div class="level-card {{L2のcurrent/goalクラス}}">
+      <h4>L2 AI補助</h4>
+      <p>{{この課題がL2だと具体的にどう動くか}}</p>
+      <div class="mark-row">
+        <span class="mark-box">現在地 [ ]</span>
+        <span class="mark-box">ゴール [ ]</span>
+      </div>
+    </div>
+    <div class="level-card {{L3のcurrent/goalクラス}}">
+      <h4>L3 人が承認するAI実行</h4>
+      <p>{{この課題がL3だと具体的にどう動くか}}</p>
+      <div class="mark-row">
+        <span class="mark-box">現在地 [ ]</span>
+        <span class="mark-box">ゴール [ ]</span>
+      </div>
+    </div>
+    <div class="level-card {{L4のcurrent/goalクラス}}">
+      <h4>L4 例外のみ人介入</h4>
+      <p>{{この課題がL4だと具体的にどう動くか}}</p>
+      <div class="mark-row">
+        <span class="mark-box">現在地 [ ]</span>
+        <span class="mark-box">ゴール [ ]</span>
+      </div>
+    </div>
+    <div class="level-card {{L5のcurrent/goalクラス}}">
+      <h4>L5 完全自動</h4>
+      <p>{{この課題がL5だと具体的にどう動くか}}</p>
+      <div class="mark-row">
+        <span class="mark-box">現在地 [ ]</span>
+        <span class="mark-box">ゴール [ ]</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+-->
+
+<section id="decisions">
+  <h2><span class="sec-num">決定</span>この場で決めること</h2>
+  <table class="spec">
+    <thead>
+      <tr><th>課題</th><th>現在地</th><th>ゴール</th><th>成功基準</th></tr>
+    </thead>
+    <tbody>
+      {{decision-rows}}
+      <!-- 1課題ぶんの記載例: <tr><td>{{課題名}}</td><td>{{現在地}}</td><td>{{ゴール}}</td><td>{{成功の定義}}</td></tr> -->
+    </tbody>
+  </table>
+</section>
+
+<table class="meta-table">
+  <tr><td>合意日</td><td>{{日付}}</td></tr>
+  <tr><td>合意者</td><td>{{合意者}}</td></tr>
+</table>
+
+<div id="zoom-overlay" class="zoom-overlay" hidden></div>
+<script>
+  (function () {
+    var overlay = document.getElementById('zoom-overlay');
+    if (!overlay) return;
+    document.querySelectorAll('figure.diagram svg').forEach(function (svg) {
+      svg.addEventListener('click', function () {
+        overlay.innerHTML = '';
+        overlay.appendChild(svg.cloneNode(true));
+        overlay.hidden = false;
+        document.body.style.overflow = 'hidden';
+      });
+    });
+    overlay.addEventListener('click', function () {
+      overlay.hidden = true;
+      overlay.innerHTML = '';
+      document.body.style.overflow = '';
+    });
+  })();
+</script>
+
+</body>
+</html>

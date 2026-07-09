@@ -1,0 +1,13 @@
+domain_glossary: null
+design_system: null
+adr_dir: null
+source:
+  design_docs: null
+review_gates: {}
+pr:
+  required_sections: []
+classify:
+  quick_max_files: 2
+  quick_excludes: []
+preflight:
+  skip_tools: []
