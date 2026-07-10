@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // 正本（~/agent-home・~/.claude）→ payload/ の乖離検知・同期スクリプト。
 // ゼロ依存。node:fs/path/os/process のみ使用。
-// 使い方: node scripts/sync-payload.mjs [--list|--check|--apply] [--only <dst-prefix>]
+// 使い方: node scripts/sync-payload.mjs [--list|--check|--check-artifacts|--apply] [--only <dst-prefix>]
 //   --only <dst-prefix>: dst が指定 prefix で始まる mapping だけを対象に絞り込む
 //   （例: --only payload/reverse-docs-skills）
 
@@ -13,9 +13,10 @@ import { fileURLToPath } from "node:url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "..");
 const MANIFEST_PATH = path.join(__dirname, "sync-manifest.json");
+const ARTIFACTS_PATH = path.join(__dirname, "payload-artifacts.json");
 
 const args = process.argv.slice(2);
-const flag = args.find((a) => ["--list", "--check", "--apply"].includes(a));
+const flag = args.find((a) => ["--list", "--check", "--check-artifacts", "--apply"].includes(a));
 
 const onlyIndex = args.indexOf("--only");
 let onlyPrefix = null;
@@ -60,6 +61,27 @@ const EXCLUDE_SUFFIXES = [".local.yml"];
 
 function isExcluded(name) {
   return EXCLUDE_NAMES.has(name) || EXCLUDE_SUFFIXES.some((suffix) => name.endsWith(suffix));
+}
+
+// ── 禁止アーティファクト（配布してはいけないプロジェクトローカル実行時生成物） ──
+// src 側の walkFiles 結果からのみ除外する（非対称）。理由: dst 側に既に紛れ込んで
+// いる場合は "extra" drift として検知・削除させたいため、dst 側は除外しない。
+// 詳細: CLAUDE.md「payload禁止アーティファクト機構」節。
+
+function loadForbiddenPatterns() {
+  const json = JSON.parse(fs.readFileSync(ARTIFACTS_PATH, "utf8"));
+  return { names: new Set(json.names || []), pathSuffixes: json.pathSuffixes || [] };
+}
+
+const FORBIDDEN = loadForbiddenPatterns();
+
+function isForbiddenArtifact(relPath) {
+  const segments = relPath.split(path.sep);
+  if (segments.some((seg) => FORBIDDEN.names.has(seg))) return true;
+  const posixRel = segments.join("/");
+  return FORBIDDEN.pathSuffixes.some(
+    (suffix) => posixRel === suffix || posixRel.endsWith("/" + suffix)
+  );
 }
 
 function walkFiles(dir) {
@@ -127,7 +149,9 @@ function computeMirrorDrift(mirror, overlayMap) {
     return { skip: true, drifts };
   }
 
-  const srcFiles = new Set(walkFiles(mirror.srcAbs));
+  const srcFiles = new Set(
+    [...walkFiles(mirror.srcAbs)].filter((rel) => !isForbiddenArtifact(rel))
+  );
   const dstFiles = fs.existsSync(mirror.dstAbs) ? new Set(walkFiles(mirror.dstAbs)) : new Set();
 
   // src に存在するファイル: overlay があればその file mapping の src と比較、
@@ -229,6 +253,32 @@ function cmdCheck() {
   }
 }
 
+// ── --check-artifacts ── payload/ 配下を manifest と無関係に独立スキャンし、
+// 禁止パターンに一致するファイル・ディレクトリの残存を検出する。
+
+function cmdCheckArtifacts() {
+  const payloadRoot = path.join(REPO_ROOT, "payload");
+  const files = walkFiles(payloadRoot);
+  const hits = files.filter((rel) => isForbiddenArtifact(rel));
+
+  console.log("\n禁止アーティファクトスキャン（payload/ 配下）");
+  console.log("─".repeat(70));
+  if (hits.length === 0) {
+    console.log("  該当なし。");
+    return;
+  }
+  for (const rel of hits) {
+    console.log(`  FOUND payload/${rel}`);
+  }
+  console.log("─".repeat(70));
+  console.log(
+    `禁止アーティファクトが ${hits.length} 件見つかりました。scripts/payload-artifacts.json ` +
+    `を参照し、該当ファイルを payload/ から削除してください（正本側の除外が漏れている場合は ` +
+    `sync-manifest.json の mapping 見直しも検討する）。`
+  );
+  process.exit(1);
+}
+
 // ── --apply ──
 
 function cmdApply() {
@@ -303,10 +353,13 @@ switch (flag) {
   case "--check":
     cmdCheck();
     break;
+  case "--check-artifacts":
+    cmdCheckArtifacts();
+    break;
   case "--apply":
     cmdApply();
     break;
   default:
-    console.error("使い方: node scripts/sync-payload.mjs [--list|--check|--apply] [--only <dst-prefix>]");
+    console.error("使い方: node scripts/sync-payload.mjs [--list|--check|--check-artifacts|--apply] [--only <dst-prefix>]");
     process.exit(1);
 }
