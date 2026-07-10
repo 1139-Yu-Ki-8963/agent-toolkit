@@ -6,6 +6,7 @@
     { "mode": "file", "src": "~/Projects/reverse-docs-skills/reverse-docs-overview.html", "dst": "payload/reverse-docs-skills/reverse-docs-overview.html" },
     { "mode": "mirror", "src": "~/agent-home/state", "dst": "payload/agent-home/state" },
     { "mode": "mirror", "src": "~/agent-home/skills/managing-agent-configs", "dst": "payload/agent-home/skills/managing-agent-configs" },
+    { "mode": "mirror", "src": "~/agent-home/skills/running-headless-batch", "dst": "payload/agent-home/skills/running-headless-batch" },
     { "mode": "file", "src": "~/.claude/rules/always/agent-config/review/check-managing-review.sh", "dst": "payload/agent-home/skills/managing-agent-configs/scripts/managing-review-gate.sh" },
     { "mode": "file", "src": "~/.claude/rules/always/agent-config/review/managing-commit-gate.sh", "dst": "payload/agent-home/skills/managing-agent-configs/scripts/managing-commit-gate.sh" },
     { "mode": "file", "src": "~/agent-home/tools/hooks/shared/marker-path.sh", "dst": "payload/agent-home/tools/hooks/lib/marker-path.sh" },
