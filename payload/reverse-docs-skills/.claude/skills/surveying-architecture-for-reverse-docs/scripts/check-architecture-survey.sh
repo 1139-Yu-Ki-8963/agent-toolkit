@@ -246,7 +246,8 @@ EXCLEND
       if [ "$rel" = "$c" ]; then
         found=true; break
       fi
-      if [ "$c" = "." ]; then
+      # §4の`.`行はルート直下の直接ファイルのみを網羅し、子ディレクトリへは波及しない
+      if [ "$c" = "." ] && [ "$rel" = "." ]; then
         found=true; break
       fi
       case "$rel" in
@@ -285,7 +286,7 @@ run_all_checks() {
   return "$rc"
 }
 
-# 合成フィクスチャによる自己テスト（陽性1件・検査ごとの陰性5件＝計6ケース）。
+# 合成フィクスチャによる自己テスト（陽性1件・検査ごとの陰性6件＝計7ケース）。
 self_test() {
   tmp="$(mktemp -d "${TMPDIR:-/tmp}/architecture-survey-self-test.XXXXXX")"
   trap 'rm -rf "$tmp"' RETURN
@@ -403,6 +404,30 @@ MD
 $base_kinds
 MD
 
+  # 陰性6: 検査5のみ違反（§4の`.`行が対象外ディレクトリ表なしで存在し、
+  # 子ディレクトリsrc/appが個別行にも対象外にも未記載＝`.`の誤った全域マッチを検出する）
+  cat > "$tmp/fail6.md" <<MD
+## 調査メタ
+
+### 実行した調査コマンド一覧
+
+| コマンド | 目的 |
+|---|---|
+| \`find . -maxdepth 2 -type f\` | ディレクトリ構造の確認 |
+
+## エントリポイント
+\`package.json\` と \`src/app/page.tsx\` を確認した。API定義は \`src/app/api/route.ts\`。
+
+## ディレクトリ責務マップ
+| ディレクトリ | 責務 | 根拠パス |
+|---|---|---|
+| \`.\` | プロジェクトルート | \`package.json\` |
+| \`src/styles/shared-theme.ts\` | 共有ファイル（3ディレクトリから参照） | grep -rlE "from ['\"].*theme['\"]" src で検出（3件） |
+
+## ユニット種別判定
+$base_kinds
+MD
+
   rc=0
 
   if run_all_checks "$tmp/pass.md" "$repo" >/dev/null 2>&1; then
@@ -445,6 +470,13 @@ MD
     rc=1
   else
     echo "  [PASS] 検査5: ディレクトリ未網羅でexit 1"
+  fi
+
+  if check_directory_coverage "$tmp/fail6.md" "$repo" >/dev/null 2>&1; then
+    echo "  [FAIL] 検査5: §4の\`.\`行が子ディレクトリへ誤って全域マッチしexit 0になった" >&2
+    rc=1
+  else
+    echo "  [PASS] 検査5: §4の\`.\`行はルート直下のみ網羅しsrc/appの未網羅でexit 1"
   fi
 
   if [ "$rc" -eq 0 ]; then

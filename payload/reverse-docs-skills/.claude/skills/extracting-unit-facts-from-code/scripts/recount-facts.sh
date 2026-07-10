@@ -37,21 +37,51 @@ ALL_SECTIONS="import export_type const state handler jsx style api measurement_p
 # grep実装（ugrep/BSD grep/GNU grep）によってはstdinストリームと通常ファイルとで
 # 正規表現マッチングの挙動が異なる場合があるため、常に実ファイルを渡して再現性を担保する。
 
+# named import のシンボル計数規則（from以降除去→type除去→{}除去→* as除去→
+# カンマ分割・空トークン除外）をawk関数に抽出し、単一行経路・複数行継続経路の
+# 両方から共用する。複数行にまたがる named import（`import {` 開始行から
+# `from` を含む終端行まで）はinmulti状態で継続行を連結してから一括計数する。
 count_import() {
   awk '
-    /^import[ \t]/ {
-      line=$0
-      sub(/^import[ \t]+/, "", line)
-      if (line !~ /from/) { count++; next }
+    function count_symbols(line,    n, arr, i, tok, cnt) {
       sub(/from.*/, "", line)
       gsub(/type[ \t]+/, "", line)
       gsub(/[{}]/, "", line)
       gsub(/\*[ \t]+as[ \t]+/, "", line)
       n = split(line, arr, ",")
+      cnt = 0
       for (i=1;i<=n;i++) {
         tok = arr[i]
         gsub(/^[ \t]+|[ \t]+$/, "", tok)
-        if (tok != "") count++
+        if (tok != "") cnt++
+      }
+      return cnt
+    }
+    {
+      if (inmulti) {
+        buf = buf " " $0
+        buflines++
+        if ($0 ~ /from/) {
+          count += count_symbols(buf)
+          inmulti=0; buf=""; buflines=0
+        } else if (buflines > 40) {
+          count++
+          inmulti=0; buf=""; buflines=0
+        }
+        next
+      }
+      if ($0 ~ /^import[ \t]/) {
+        line=$0
+        sub(/^import[ \t]+/, "", line)
+        if (line !~ /from/) {
+          if (line ~ /\{/ && line !~ /\}/) {
+            inmulti=1; buf=line; buflines=1
+            next
+          }
+          count++; next
+        }
+        count += count_symbols(line)
+        next
       }
     }
     END { print count+0 }
@@ -224,10 +254,57 @@ count_style() {
 # await を伴わない Promise チェーン形式（`api.foo(...).then(...).catch(...)`）のAPI呼出しは
 # 従来の `await <識別子>(` パターンでは構造的に検知できない（await自体が存在しないため）。
 # `.then(` の出現数を1呼出しの起点とみなして加算する（`.catch`/`.finally` は継続部のため数えない）。
+# さらに await/.then のいずれも伴わない直接呼出し（代入形 `const x = obj.method(...)` /
+# 文頭ステートメント形 `obj.method(...)`）はawait/.thenパターンでは構造的に検知できないため、
+# count_api_directで別途計上し合算する（重複計上防止のためawait/.then該当行は対象外にする）。
 count_api() {
   awaitn="$( { grep -oE '(^|[^A-Za-z0-9_])await[[:blank:]]+[A-Za-z_][A-Za-z0-9_.]*\(' "$1" | wc -l | tr -d ' '; } || true )"
   thenn="$( { grep -oE '\.then[[:blank:]]*\(' "$1" | wc -l | tr -d ' '; } || true )"
-  echo $((awaitn + thenn))
+  directn="$(count_api_direct "$1")"
+  echo $((awaitn + thenn + directn))
+}
+
+# 一般的な組込みオブジェクト（console/Math/JSON等）へのレシーバ、配列・文字列の
+# 汎用メソッド（map/filter/replace等）への呼出しは業務ロジック呼出しではないため除外する
+# （除外リストはプロジェクト固有値を含まない一般的な語彙のみ）。
+count_api_direct() {
+  awk '
+    BEGIN {
+      split("console Math JSON Object Array Date Number String Promise window document localStorage sessionStorage navigator e event", robj, " ")
+      for (i in robj) receiver_excl[robj[i]] = 1
+      split("map filter reduce forEach find some every includes indexOf slice splice join concat sort push pop shift unshift split replace trim toString toFixed toLowerCase toUpperCase keys values entries preventDefault stopPropagation catch finally", rmeth, " ")
+      for (i in rmeth) method_excl[rmeth[i]] = 1
+    }
+    function check_chain(chain,   n, parts, receiver, method) {
+      n = split(chain, parts, ".")
+      if (n < 2) return 0
+      receiver = parts[1]
+      method = parts[n]
+      if (receiver in receiver_excl) return 0
+      if (method in method_excl) return 0
+      return 1
+    }
+    {
+      line = $0
+      if (line ~ /\.then[ \t]*\(/) next
+      if (line ~ /(^|[^A-Za-z0-9_])await([ \t]|$)/) next
+      if (match(line, /^[ \t]*(export[ \t]+)?(const|let|var)[ \t]+[A-Za-z_][A-Za-z0-9_]*[ \t]*(:[^=]*)?=[ \t]*[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)+[ \t]*\(/)) {
+        chain = substr(line, RSTART, RLENGTH)
+        sub(/[ \t]*\($/, "", chain)
+        sub(/^.*=[ \t]*/, "", chain)
+        if (check_chain(chain)) count++
+        next
+      }
+      if (match(line, /^[ \t]*[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)+[ \t]*\(/)) {
+        chain = substr(line, RSTART, RLENGTH)
+        sub(/[ \t]*\($/, "", chain)
+        gsub(/^[ \t]+/, "", chain)
+        if (check_chain(chain)) count++
+        next
+      }
+    }
+    END { print count+0 }
+  ' "$1"
 }
 
 # 対象ファイル群を連結して一時ファイルへ書き出し、そのパスを標準出力へ返す。
@@ -811,6 +888,47 @@ EOF
     echo "  [PASS] 追加陽性: &&短絡評価の条件付きレンダリングを検知（2タグ+1=3件）"
   else
     echo "  [FAIL] 追加陽性: &&短絡評価の条件付きレンダリングを検知できない（実測=${and_render_count_result} 期待=3）" >&2
+    rc=1
+  fi
+
+  # 追加陽性: 複数行にまたがるnamed import（開き`{`〜`from`行終端）はシンボル単位で
+  # 継続追跡して数える。default import(React) 2 + 単一行(useMemo) + 複数行3シンボル
+  # (fetchUser/updateUser/type UserPayload) + 副作用import 1 = 合計6件。
+  multiline_import_file="$tmp/multiline-import.txt"
+  cat > "$multiline_import_file" <<'EOF'
+import React, { useMemo } from 'react';
+import {
+  fetchUser,
+  updateUser,
+  type UserPayload,
+} from './userService';
+import './styles.css';
+EOF
+  multiline_import_count="$(count_import "$multiline_import_file")"
+  if [ "$multiline_import_count" = "6" ]; then
+    echo "  [PASS] 追加陽性: 複数行named importをシンボル単位で検知（6件）"
+  else
+    echo "  [FAIL] 追加陽性: 複数行named importを検知できない（実測=${multiline_import_count} 期待=6）" >&2
+    rc=1
+  fi
+
+  # 追加陽性: await/.thenを伴わない直接呼出し（代入形・文頭形）。
+  # 業務ロジック呼出し（userService.getProfile / analytics.track）を2件計上し、
+  # 汎用メソッド（items.map）・フック（useState分割代入）は除外、await行は
+  # awaitn側で計上済みのためdirect側では重複させない（合算期待値3=await1+direct2）。
+  direct_api_file="$tmp/direct-api.txt"
+  cat > "$direct_api_file" <<'EOF'
+const profile = userService.getProfile();
+const rows = items.map((r) => r.id);
+const [open, setOpen] = useState(false);
+analytics.track('view');
+const data = await api.fetch();
+EOF
+  direct_api_count="$(count_api "$direct_api_file")"
+  if [ "$direct_api_count" = "3" ]; then
+    echo "  [PASS] 追加陽性: await/.thenを伴わない直接API呼出しを検知（await1+direct2=3件）"
+  else
+    echo "  [FAIL] 追加陽性: await/.thenを伴わない直接API呼出しを検知できない（実測=${direct_api_count} 期待=3）" >&2
     rc=1
   fi
 
