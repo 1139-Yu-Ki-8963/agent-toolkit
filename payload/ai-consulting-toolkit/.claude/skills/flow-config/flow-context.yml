@@ -1,3 +1,6 @@
+# 本ファイルはこのリポジトリを開発するローカル環境の開発フローゲート（hook）が参照する設定である。
+# 道具箱（consult- スキル・docs）の配布物としては未使用。全キー null は未設定を表す。
+# ローカルの hook がファイルの存在を前提とするため、未使用でも削除しない。
 domain_glossary: null
 design_system: null
 adr_dir: null

@@ -127,5 +127,5 @@ Phase 6 で案内する運用ループ（癖・違反の再発検知→規約追
 
 ## 完了報告
 
-- `completion-report-format.md` の作業報告型骨格に従う
+- `.claude/skills/shared/references/completion-report-format.md` の作業報告型骨格に従う
 - 固有の検証行として、起草した規約一覧・設置した検証スキル・違反サンプル検出結果を追加する
