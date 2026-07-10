@@ -267,6 +267,13 @@ count_api() {
 # 一般的な組込みオブジェクト（console/Math/JSON等）へのレシーバ、配列・文字列の
 # 汎用メソッド（map/filter/replace等）への呼出しは業務ロジック呼出しではないため除外する
 # （除外リストはプロジェクト固有値を含まない一般的な語彙のみ）。
+#
+# 直接呼出しは「呼出し形式（レシーバ経由のドット連結 / レシーバを介さない裸の関数呼出し）」
+# ×「代入形式（単純識別子への代入 / 波括弧の分割代入）」の2軸4パターンを検知する。
+# 裸の関数呼出しは、英字接頭辞+数字のモジュール名規約（例: bl1DoSomething・api2FetchX）を
+# 持つ名前のみを業務ロジック呼出しとみなす。数字を含まない一般的な語彙（ユーティリティ関数・
+# 制御構文・フック等）まで拾うと誤検知が広がるため対象外とし、フック呼出し（use大文字…）と
+# TypedArrayコンストラクタは明示的に除外する。
 count_api_direct() {
   awk '
     BEGIN {
@@ -274,6 +281,8 @@ count_api_direct() {
       for (i in robj) receiver_excl[robj[i]] = 1
       split("map filter reduce forEach find some every includes indexOf slice splice join concat sort push pop shift unshift split replace trim toString toFixed toLowerCase toUpperCase keys values entries preventDefault stopPropagation catch finally", rmeth, " ")
       for (i in rmeth) method_excl[rmeth[i]] = 1
+      split("Int8Array Uint8Array Int16Array Uint16Array Int32Array Uint32Array Float32Array Float64Array BigInt64Array BigUint64Array", barr, " ")
+      for (i in barr) bare_excl[barr[i]] = 1
     }
     function check_chain(chain,   n, parts, receiver, method) {
       n = split(chain, parts, ".")
@@ -284,17 +293,33 @@ count_api_direct() {
       if (method in method_excl) return 0
       return 1
     }
+    function check_bare(name) {
+      if (name ~ /^use[A-Z]/) return 0
+      if (name in bare_excl) return 0
+      if (name !~ /^[A-Za-z]+[0-9]+[A-Za-z0-9_]*$/) return 0
+      return 1
+    }
     {
       line = $0
       if (line ~ /\.then[ \t]*\(/) next
       if (line ~ /(^|[^A-Za-z0-9_])await([ \t]|$)/) next
-      if (match(line, /^[ \t]*(export[ \t]+)?(const|let|var)[ \t]+[A-Za-z_][A-Za-z0-9_]*[ \t]*(:[^=]*)?=[ \t]*[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)+[ \t]*\(/)) {
+      # 代入形（LHSは単純識別子または分割代入{...}のいずれも許容）× レシーバ経由チェーン呼出し
+      if (match(line, /^[ \t]*(export[ \t]+)?(const|let|var)[ \t]+([A-Za-z_][A-Za-z0-9_]*|\{[^{}]*\})[ \t]*(:[^=]*)?=[ \t]*[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)+[ \t]*\(/)) {
         chain = substr(line, RSTART, RLENGTH)
         sub(/[ \t]*\($/, "", chain)
         sub(/^.*=[ \t]*/, "", chain)
         if (check_chain(chain)) count++
         next
       }
+      # 代入形（LHSは単純識別子または分割代入{...}のいずれも許容）× レシーバを介さない裸の関数呼出し
+      if (match(line, /^[ \t]*(export[ \t]+)?(const|let|var)[ \t]+([A-Za-z_][A-Za-z0-9_]*|\{[^{}]*\})[ \t]*(:[^=]*)?=[ \t]*[A-Za-z_][A-Za-z0-9_]*[ \t]*\(/)) {
+        callee = substr(line, RSTART, RLENGTH)
+        sub(/[ \t]*\($/, "", callee)
+        sub(/^.*=[ \t]*/, "", callee)
+        if (check_bare(callee)) count++
+        next
+      }
+      # 文頭ステートメント形（代入なし）× レシーバ経由チェーン呼出し
       if (match(line, /^[ \t]*[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)+[ \t]*\(/)) {
         chain = substr(line, RSTART, RLENGTH)
         sub(/[ \t]*\($/, "", chain)
@@ -675,8 +700,8 @@ TSX
 
   promise_file="$tmp/promise-chain.txt"
   cat > "$promise_file" <<'EOF'
-  api.battles.list({ season }).then((res) => {
-    setBattles(res.data);
+  api.records.list({ filter }).then((res) => {
+    setRecords(res.data);
   }).catch((err) => {
     console.error(err);
   }).finally(() => {
@@ -711,13 +736,13 @@ EOF
   hook_file="$tmp/hook-destructure.txt"
   cat > "$hook_file" <<'EOF'
   const {
-    season,
-    setSeason,
-    seasons,
+    filter,
+    setFilter,
+    filters,
     isLoading,
     error,
     refetch,
-  } = useCurrentSeason('first');
+  } = useCurrentFilter('first');
 EOF
   hook_count="$(count_state "$hook_file")"
   if [ "$hook_count" = "6" ]; then
@@ -729,7 +754,7 @@ EOF
 
   # 追加陽性: ジェネリック型注釈付きフック呼出しの分割代入（例 useParams<{ id: string }>()）は、
   # 注釈内の"{"/"}"が分割代入終端の逆走査を狂わせ、かつ"=...use...\("パターンが
-  # 直後に"("を要求するため検知できなかった構造的盲点（oradora-battle-base App.tsx:80）。
+  # 直後に"("を要求するため検知できなかった構造的盲点として発見された。
   generic_destructure_file="$tmp/generic-destructure.txt"
   cat > "$generic_destructure_file" <<'EOF'
   const { id } = useParams<{ id: string }>()
@@ -744,7 +769,7 @@ EOF
 
   # 追加陽性: フック直接呼出しの単純代入（分割代入なし・型注釈なし。例 const location = useLocation()）
   # は、単独では既存パターンで検知できていたが、直前行がジェネリック型注釈付き分割代入だと
-  # buf継続状態に巻き込まれ独立して数えられなくなっていた（oradora-battle-base App.tsx:81）。
+  # buf継続状態に巻き込まれ独立して数えられなくなっていた事例が確認された。
   # 実ファイルの隣接行を模した組合せで、両方が合算して数えられることを検証する。
   simple_hook_file="$tmp/simple-hook-assignment.txt"
   cat > "$simple_hook_file" <<'EOF'
@@ -929,6 +954,58 @@ EOF
     echo "  [PASS] 追加陽性: await/.thenを伴わない直接API呼出しを検知（await1+direct2=3件）"
   else
     echo "  [FAIL] 追加陽性: await/.thenを伴わない直接API呼出しを検知できない（実測=${direct_api_count} 期待=3）" >&2
+    rc=1
+  fi
+
+  # 追加陽性: 直接呼出し4パターン（呼出し形式×代入形式）を個別ケースで検証する。
+  # いずれか1パターンでも検知が壊れれば当該ケースのみFAILし、合計件数の帳尻合わせでは
+  # 隠れないようにする。
+
+  bare_simple_file="$tmp/direct-bare-simple.txt"
+  cat > "$bare_simple_file" <<'EOF'
+const profile = svc1FetchProfile();
+EOF
+  bare_simple_count="$(count_api_direct "$bare_simple_file")"
+  if [ "$bare_simple_count" = "1" ]; then
+    echo "  [PASS] 直接呼出しパターン: 裸の関数呼出し×単純代入を検知（1件）"
+  else
+    echo "  [FAIL] 直接呼出しパターン: 裸の関数呼出し×単純代入を検知できない（実測=${bare_simple_count} 期待=1）" >&2
+    rc=1
+  fi
+
+  bare_destructure_file="$tmp/direct-bare-destructure.txt"
+  cat > "$bare_destructure_file" <<'EOF'
+const { data, error } = svc2LoadItems();
+EOF
+  bare_destructure_count="$(count_api_direct "$bare_destructure_file")"
+  if [ "$bare_destructure_count" = "1" ]; then
+    echo "  [PASS] 直接呼出しパターン: 裸の関数呼出し×分割代入を検知（1件）"
+  else
+    echo "  [FAIL] 直接呼出しパターン: 裸の関数呼出し×分割代入を検知できない（実測=${bare_destructure_count} 期待=1）" >&2
+    rc=1
+  fi
+
+  receiver_simple_file="$tmp/direct-receiver-simple.txt"
+  cat > "$receiver_simple_file" <<'EOF'
+const profile = userService.getProfile();
+EOF
+  receiver_simple_count="$(count_api_direct "$receiver_simple_file")"
+  if [ "$receiver_simple_count" = "1" ]; then
+    echo "  [PASS] 直接呼出しパターン: レシーバ経由呼出し×単純代入を検知（1件）"
+  else
+    echo "  [FAIL] 直接呼出しパターン: レシーバ経由呼出し×単純代入を検知できない（実測=${receiver_simple_count} 期待=1）" >&2
+    rc=1
+  fi
+
+  receiver_destructure_file="$tmp/direct-receiver-destructure.txt"
+  cat > "$receiver_destructure_file" <<'EOF'
+const { data, error } = userService.loadItems();
+EOF
+  receiver_destructure_count="$(count_api_direct "$receiver_destructure_file")"
+  if [ "$receiver_destructure_count" = "1" ]; then
+    echo "  [PASS] 直接呼出しパターン: レシーバ経由呼出し×分割代入を検知（1件）"
+  else
+    echo "  [FAIL] 直接呼出しパターン: レシーバ経由呼出し×分割代入を検知できない（実測=${receiver_destructure_count} 期待=1）" >&2
     rc=1
   fi
 

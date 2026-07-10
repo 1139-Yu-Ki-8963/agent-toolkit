@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<!--
+  generating-report-list-for-reverse-docs スキルガイド（単一ファイル自己完結型）
+
+  - 外部リソース（CDN・画像・link）は一切使わず、完全自己完結に保つ
+-->
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>generating-report-list-for-reverse-docs スキルガイド</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 0 24px 96px;
+    font-family: system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif;
+    line-height: 1.85; color: #1a1a1a; background: #fafafa;
+    max-width: 980px; margin-inline: auto;
+  }
+  header { padding: 56px 0 24px; border-bottom: 3px solid #1a1a1a; }
+  header h1 { font-size: 1.9rem; margin: 0 0 10px; letter-spacing: 0.01em; }
+  header .skill-name {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 1.0rem; background: #1a1a1a; color: #fafafa;
+    padding: 2px 10px; border-radius: 4px; vertical-align: middle;
+  }
+  header p { margin: 6px 0 0; color: #555; }
+  .meta-table { margin-top: 16px; font-size: 0.9rem; color: #555; }
+  .meta-table td { padding: 1px 16px 1px 0; }
+
+  nav.toc {
+    margin-top: 32px; padding: 18px 22px;
+    background: #fff; border: 1px solid #e0e0e0; border-radius: 8px;
+  }
+  nav.toc .toc-title { font-weight: 700; margin-bottom: 6px; }
+  nav.toc ol { margin: 0; padding-left: 1.4em; columns: 2; column-gap: 40px; }
+  nav.toc li { margin: 2px 0; }
+  nav.toc a { color: #1a1a1a; text-decoration: none; border-bottom: 1px dotted #999; }
+  nav.toc a:hover { border-bottom-style: solid; }
+
+  section { margin-top: 64px; }
+  section > h2 {
+    font-size: 1.35rem; padding-bottom: 8px; margin-bottom: 20px;
+    border-bottom: 2px solid #1a1a1a;
+  }
+  section > h2 .sec-num {
+    display: inline-block; min-width: 2.4em; margin-right: 10px;
+    font-family: ui-monospace, monospace; font-size: 0.95rem;
+    background: #1a1a1a; color: #fafafa; text-align: center;
+    padding: 1px 8px; border-radius: 4px; vertical-align: 2px;
+  }
+  h3 { font-size: 1.05rem; margin: 32px 0 10px; }
+  .note { color: #555; font-size: 0.92rem; }
+
+  table.spec { border-collapse: collapse; width: 100%; margin: 14px 0; background: #fff; font-size: 0.93rem; }
+  table.spec th, table.spec td { border: 1px solid #d8d8d8; padding: 8px 12px; text-align: left; vertical-align: top; }
+  table.spec th { background: #f0f0ee; font-weight: 700; white-space: nowrap; }
+  table.spec td code, li code, p code, dd code, table.spec th code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.86em; background: #eeeeea; padding: 1px 5px; border-radius: 3px;
+  }
+
+  pre.flow {
+    background: #16211c; color: #d7e6dc; border-radius: 8px;
+    padding: 20px 24px; overflow-x: auto;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.82rem; line-height: 1.55;
+  }
+  pre.flow .cap { color: #8fb8a0; }
+
+  .def {
+    background: #fff; border-left: 4px solid #1a1a1a;
+    padding: 12px 18px; margin: 14px 0; border-radius: 0 6px 6px 0;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  }
+  .def dt { font-weight: 700; margin-top: 8px; }
+  .def dt:first-child { margin-top: 0; }
+  .def dd { margin: 2px 0 0 0; color: #333; }
+
+  .constraint {
+    background: #eef2f7; border: 1px solid #c8d4e3; border-radius: 8px;
+    padding: 12px 18px; margin: 16px 0; font-size: 0.93rem;
+  }
+  .constraint strong:first-child { color: #2a4a7a; }
+
+  .tag {
+    display: inline-block; font-family: ui-monospace, monospace; font-size: 0.78rem;
+    font-weight: 700; padding: 0 8px; border-radius: 3px; border: 1px solid transparent;
+  }
+  .tag.pass  { background: #e7f3e7; color: #23662a; border-color: #b9d9ba; }
+  .tag.fail  { background: #fbe9e7; color: #9c2b1a; border-color: #ecc0b8; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>帳票一覧生成スキル<br><span class="skill-name">generating-report-list-for-reverse-docs</span></h1>
+  <p>既存コードベースを調査して帳票の単位を洗い出し、整合検証を通過したマニフェストだけから <strong>帳票一覧.html</strong> を生成する帳票専用スキルの確定仕様。</p>
+
+  <table class="meta-table">
+    <tr><td>対応 OS</td><td>Windows WSL2 環境</td></tr>
+    <tr><td>検証状況</td><td>共有エンジン（<code>validate-manifest.sh</code>・<code>build-unit-list.sh</code>）は分割元スキルの画面一覧生成で動作確認済み。帳票専用スキルとしての単独実機検証は分割直後のため未実施</td></tr>
+    <tr><td>依存</td><td>jq ／ 共有スクリプト <code>shared/scripts/unit-list/validate-manifest.sh</code>・<code>build-unit-list.sh</code></td></tr>
+    <tr><td>関連資料</td><td><code>SKILL.md</code>, <code>references/report-detection.md</code></td></tr>
+  </table>
+</header>
+
+<nav class="toc">
+  <div class="toc-title">目次</div>
+  <ol>
+    <li><a href="#s1">概要</a></li>
+    <li><a href="#s2">出力</a></li>
+    <li><a href="#s3">用語</a></li>
+    <li><a href="#s4">動作フロー（Phase 1〜4）</a></li>
+    <li><a href="#s5">守り（禁止事項と機械検証）</a></li>
+    <li><a href="#s6">関連スキル・資料</a></li>
+  </ol>
+</nav>
+
+<section id="s1">
+  <h2><span class="sec-num">§1</span>概要</h2>
+  <p>リバース設計の出発点は「このシステムには帳票が何枚あり、それぞれどのファイルでできているか」を正確に確定させることにある。本スキルは既存コードベースを <strong>スタック調査 → 検出戦略の宣言 → 戦略に基づく抽出 → 整合検証</strong> の順で調べ、帳票の単位にファイルをグルーピングした帳票一覧.html を作成する。</p>
+  <p>帳票はプロジェクトごとに実現方式が大きく異なる（テンプレートファイル主体・生成コード主体・両者の複合）。そのため画面一覧のような機械的な組み込み検出器は持たず、対象プロジェクト固有の帳票規約を先に調査・宣言してから、その宣言に沿って Claude 自身が抽出する<strong>カスタム抽出パス</strong>だけを使う。抽出結果は共有の検証スクリプトが機械検査し、検証を通らないデータからは一覧を生成できない。</p>
+
+  <div class="def">
+    <dt>本スキルがやること</dt>
+    <dd>帳票の洗い出し・マニフェスト作成・整合検証・帳票一覧.html の生成</dd>
+    <dt>本スキルがやらないこと</dt>
+    <dd>帳票設計書の雛形展開・生成・記入（後続工程の担当）／ 他種別（画面・API 等）の一覧生成（各種別別一覧スキルの担当）</dd>
+  </div>
+
+  <h3>起動引数</h3>
+  <table class="spec">
+    <tr><th>引数</th><th>内容</th></tr>
+    <tr><td><code>source_dir</code></td><td>探索対象のソースコードディレクトリ。モノレポの場合は対象アプリのディレクトリのみを渡す</td></tr>
+    <tr><td><code>output_dir</code></td><td>帳票一覧.html の書き出し先ディレクトリ</td></tr>
+  </table>
+  <p class="note">種別を切り替える引数は無い。本スキルは帳票（<code>unit_kind=report</code>）固定で動作する。</p>
+</section>
+
+<section id="s2">
+  <h2><span class="sec-num">§2</span>出力</h2>
+  <p>このスキルを実行すると、帳票 1 種別につき以下の 2 点が生まれる。</p>
+  <div class="def">
+    <dt>帳票一覧.html（<code>&lt;output_dir&gt;/帳票一覧/帳票一覧.html</code>）</dt>
+    <dd>システム内の全帳票を 1 行 1 帳票で並べた一覧表。帳票ごとの推定名・主ファイル・構成ファイル数・検出手法・確度が読め、「帳票設計書を何冊、どの単位で書くべきか」を決める正本として機能する。未解決（主ファイルを特定できなかった帳票）や診断警告も隠さず可視化される。</dd>
+    <dt>検証済みマニフェスト（HTML に埋め込み）</dt>
+    <dd>一覧の元データである JSON。整合検証スクリプトの全項目を通過したものだけが HTML に埋め込まれるため、一覧の各行は「機械検査済みの事実」として後続工程（設計書執筆・往復検証）から参照できる。</dd>
+  </div>
+</section>
+
+<section id="s3">
+  <h2><span class="sec-num">§3</span>用語</h2>
+  <dl class="def">
+    <dt>帳票（unit_kind=report）</dt>
+    <dd>システムが出力する定型文書（PDF・Excel・CSV・HTML 等）の 1 単位。テンプレートファイル 1 枚が 1 帳票のこともあれば、生成関数 1 つが 1 帳票のこともあり、その数え方自体を Phase 1 で確定させる。</dd>
+    <dt>検出戦略宣言</dt>
+    <dd>Phase 1 の調査結果を固めた JSON（<code>unitKind</code>／<code>extractionMethod</code>／<code>unitIdRegex</code>／<code>excludePatterns</code>／<code>approvedByUser</code>／<code>notes</code>）。ユーザー承認（<code>approvedByUser: true</code>）が無いと後段の検証を通らない。</dd>
+    <dt>カスタム抽出パス</dt>
+    <dd>戦略宣言に沿って Claude 自身が抽出手順を設計・実行し、マニフェスト JSON を書き出す経路。帳票にはこの経路しか無い（組み込み検出器は画面専用）。</dd>
+    <dt>マニフェスト</dt>
+    <dd>抽出結果の JSON。配列キーは <code>units</code> で、各要素が 1 帳票（<code>unitKey</code>・<code>sourceFile</code>・<code>kind</code>・<code>files</code> 等）。スキーマの全文は <code>references/report-detection.md</code> を参照。</dd>
+    <dt>kind 区分値</dt>
+    <dd>帳票の実現方式の区分。<code>template</code>（テンプレートファイル主体）／<code>generator</code>（生成コード主体）／<code>unresolved</code>（主ファイル未解決の隔離用）の 3 値。</dd>
+    <dt>共有エンジン</dt>
+    <dd>整合検証 <code>validate-manifest.sh</code> と HTML 生成 <code>build-unit-list.sh</code>。種別別一覧スキル群が共用する決定的スクリプトで、スキルフォルダから <code>../../../shared/scripts/unit-list/</code> の相対パスで参照する（正本リポジトリと公開先はレイアウト同一のため両環境で成立する）。</dd>
+  </dl>
+</section>
+
+<section id="s4">
+  <h2><span class="sec-num">§4</span>動作フロー（Phase 1〜4）</h2>
+  <pre class="flow"><span class="cap">── 帳票一覧ができるまで ─────────────────────────────</span>
+
+  Phase 1  スタック・帳票規約の特定
+           帳票生成ライブラリ／テンプレートの所在／ID 命名／除外パターン
+           └─▶ 検出戦略宣言（JSON）をユーザー承認
+                    │
+  Phase 2  戦略に基づく抽出（カスタム抽出パスのみ）
+           宣言どおりに走査し、マニフェスト JSON を書き出す
+           0 件検出ならここでハード停止（帳票を捏造しない）
+                    │
+  Phase 3  整合検証（機械実行）
+           validate-manifest.sh --unit-kind report
+           FAIL ─▶ 修正して再検証（3 回失敗で Phase 2 へ差し戻し）
+                    │ PASS
+  Phase 4  帳票一覧.html 生成
+           build-unit-list.sh（内部で validate を再実行）
+           └─▶ &lt;output_dir&gt;/帳票一覧/帳票一覧.html</pre>
+
+  <table class="spec">
+    <tr><th>Phase</th><th>やること</th><th>完了条件</th></tr>
+    <tr>
+      <td><strong>Phase 1</strong><br>調査と戦略宣言</td>
+      <td>package.json・lock ファイルから帳票生成ライブラリを確定し、帳票定義の所在（テンプレート／生成コード／定義設定）・ID 命名パターン・除外パターンを調査する。調査項目の正本は <code>references/report-detection.md</code></td>
+      <td>検出戦略宣言 JSON がユーザー承認済み（<code>approvedByUser: true</code>）</td>
+    </tr>
+    <tr>
+      <td><strong>Phase 2</strong><br>抽出</td>
+      <td>宣言した手順を Bash/Grep/Read で実行し、スキーマ準拠のマニフェスト JSON を一時ディレクトリに書き出す</td>
+      <td>マニフェストが 1 件以上確定、または 0 件検出を報告して停止している</td>
+    </tr>
+    <tr>
+      <td><strong>Phase 3</strong><br>整合検証</td>
+      <td><code>validate-manifest.sh &lt;manifest.json&gt; --unit-kind report</code> を実行し、FAIL は指摘に応じて修正する</td>
+      <td>全項目 <span class="tag pass">PASS</span>（修正ループは 3 回以内）</td>
+    </tr>
+    <tr>
+      <td><strong>Phase 4</strong><br>HTML 生成</td>
+      <td><code>build-unit-list.sh &lt;manifest.json&gt; &lt;output_dir&gt;/帳票一覧/帳票一覧.html --unit-kind report</code> を実行する</td>
+      <td>帳票一覧.html が生成され、埋め込み JSON がマニフェストと一致している</td>
+    </tr>
+  </table>
+  <p class="note">進捗は TaskCreate/TaskUpdate で Phase 1〜4 を登録・更新しながら進める。完了時は orchestrating-reverse-docs-flow の契約に沿って status（DONE ／ ERROR）・artifacts・unit_list_html・embedded_json_ref・unit_kind=report を返す。</p>
+</section>
+
+<section id="s5">
+  <h2><span class="sec-num">§5</span>守り（禁止事項と機械検証）</h2>
+  <div class="constraint">
+    <strong>手作業でのプレースホルダ置換は禁止。</strong>
+    帳票一覧.html は必ず <code>build-unit-list.sh</code> 経由の決定的処理で生成する。過去に手作業置換で <code>entryFile=None</code> という不正データが 10 件混入した実害があり、build 側が内部で validate を再実行することで「検証を経ないデータからは一覧を作れない」構造にしている。
+  </div>
+  <div class="constraint">
+    <strong>0 件検出はハード停止。</strong>
+    帳票が 1 件も見つからない場合、AskUserQuestion で手動リストを聞き出して即興の境界を確定させることはしない。ユーザーに報告して停止し、戦略の見直しから再開する。
+  </div>
+  <div class="constraint">
+    <strong>設計書には触れない。</strong>
+    帳票設計書の雛形展開・生成・記入はスコープ外。本スキルの成果物は帳票一覧.html のみ。
+  </div>
+  <h3>そのほかの注意</h3>
+  <table class="spec">
+    <tr><th>注意</th><th>理由</th></tr>
+    <tr><td>共有エンジンは jq に依存する</td><td>未インストール環境では事前導入が必要</td></tr>
+    <tr><td>コメントアウトされた帳票定義は抽出前に除去する</td><td>コメント内の定義を実在として誤検出した実害がある</td></tr>
+    <tr><td>汎用の <code>unitIdRegex</code> を無調査で当てない</td><td>帳票の命名規約・生成方式はプロジェクトごとに異なる</td></tr>
+    <tr><td>マニフェストの配列キーは <code>units</code></td><td><code>screens</code> は画面一覧専用の後方互換キー</td></tr>
+  </table>
+</section>
+
+<section id="s6">
+  <h2><span class="sec-num">§6</span>関連スキル・資料</h2>
+  <table class="spec">
+    <tr><th>関連</th><th>関係</th></tr>
+    <tr><td><code>orchestrating-reverse-docs-flow</code></td><td>工程全体の案内役。本スキルはその一工程（帳票一覧生成）を担い、契約準拠の返却を行う</td></tr>
+    <tr><td>他の種別別一覧スキル（画面・API・テーブル・バッチ・外部連携）</td><td>兄弟スキル。共有エンジンを共用し、種別だけが異なる</td></tr>
+    <tr><td><code>references/report-detection.md</code></td><td>帳票の調査項目・マニフェストスキーマ・kind 区分値の正本</td></tr>
+    <tr><td><code>shared/scripts/unit-list/</code></td><td>共有エンジン（validate-manifest.sh・build-unit-list.sh）の置き場</td></tr>
+  </table>
+</section>
+
+</body>
+</html>

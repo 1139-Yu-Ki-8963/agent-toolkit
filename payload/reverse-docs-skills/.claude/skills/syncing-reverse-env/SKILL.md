@@ -10,7 +10,7 @@ allowed-tools: [Bash, Read, Write, Edit, Grep, Glob, AskUserQuestion]
 
 オリジナルコード環境（リバース元・常に「正」）と、リバースコード環境（設計書だけから再構築）の 2 つの worktree を用意・名前管理し、「ポート番号以外は完全同一」であることを検証して、一致証明済みの基準コミット（基準タグ `reverse-baseline/<scope>`）を確立する。共有アプリを画面単位で最大 5 画面まで並行検証できるよう、worktree・ブランチ・基準タグ・ポートはすべて `<scope>`（`<system>-<画面ID>`）単位で管理する。
 
-仕様の正は `references/syncing-reverse-env-guide.html`（確定仕様）。設計判断（ADR）の記録は `references/syncing-reverse-env-concept.html`。
+仕様の正は `references/syncing-reverse-env-guide.html`（確定仕様）。
 
 本スキルは orchestrating-reverse-docs-flow の契約（`~/reverse-docs-skills/.claude/skills/orchestrating-reverse-docs-flow/references/contract.md`）に準拠し、args 全量指定・対話ゼロで単独起動できる。
 
@@ -77,7 +77,7 @@ sync のオプション: `dry-run`（整列・タグ更新なし）/ `reset-firs
 - **dry-run の無副作用対象**は「リバースコード環境の **git 管理内容**」と「基準タグ」の 2 つ。Phase 5（起動と観測）は dry-run でも実行し、静的比較が FAIL でも L1〜L5（該当画面）まで計測して診断情報を最大化する。オリジナルコード環境の `source_ref` 復元（プリフライト）と証跡（スクリーンショット等の計測成果物）の書き出しは、無副作用の例外として dry-run でも行う。node_modules・バンドラキャッシュ等 git 管理外の生成物の修復（npm ci・キャッシュ削除）は dry-run でも行う
 - **teardown の明示依頼確認**: 人間の直接起動なら AskUserQuestion で最終確認する。呼び出し元スキル経由なら args の `user-approved`（ユーザー依頼発話の引用）を必須とし、無ければ削除を実行せず status=ERROR（前提不成立）で差し戻す
 
-入力は `design-doc`（画面詳細設計書パス）のみ必須（**mode=registry 以外の全 mode 共通**。teardown でも `<scope>` 導出に使う）。`mode=registry` のみ `design-doc` の代わりに `system`・`screen_id` を必須入力とし、画面レジストリ（`~/agent-home/state/reverse-screen-registry.yml`）から `source_ref`・`verification_url` を解決して `<scope>` = `<system>-<screen_id>` を導出する。任意: `mode` / `dry-run` / `reset-first` / `user-approved`（teardown 時のユーザー依頼発話の引用）/ `scenarios`（省略時は設計書 frontmatter の `scenarios`。旧 `route`（単一パス）は後方互換で `[{path: <パス>}]` に正規化する）/ `max-loop`（既定は config.yml の値）。mode 別の必須 args 検証は Phase 1 で行い、Phase 2 以降は環境操作に徹する。
+入力は `design-doc`（画面詳細設計書パス）のみ必須（**mode=registry 以外の全 mode 共通**。teardown でも `<scope>` 導出に使う）。`mode=registry` のみ `design-doc` の代わりに `system`・`screen_id` を必須入力とし、画面レジストリ（`<docs_root>/一覧/reverse-screen-registry.yml`。docs_root は config.yml から解決する。docs_root はスキルフォルダ外のためスキル同期・上書きコピーの影響を受けない）から `source_ref`・`verification_url` を解決して `<scope>` = `<system>-<screen_id>` を導出する。任意: `mode` / `dry-run` / `reset-first` / `user-approved`（teardown 時のユーザー依頼発話の引用）/ `scenarios`（省略時は設計書 frontmatter の `scenarios`。旧 `route`（単一パス）は後方互換で `[{path: <パス>}]` に正規化する）/ `max-loop`（既定は config.yml の値）。mode 別の必須 args 検証は Phase 1 で行い、Phase 2 以降は環境操作に徹する。
 
 `mode=registry` の動作: 画面レジストリから該当 `<system>-<screen_id>` エントリの `source_ref`・`verification_url` を読む（エントリが無ければ status=ERROR で差し戻す）。`source_ref` を元にオリジナルコード環境相当の参照点を確保し、reverse 環境は起動引数 `reverse_worktree` をそのまま用いる（`mode=setup`/`sync` のような worktree 新規作成は行わず、unlocking-reverse-target-screens が既に用意した worktree を使う）。以降は `mode=sync` と同様に環境同一性チェック・基準タグ確立まで進め、返却ブロックは既存15フィールドと同型で返す（`docs_root` は画面レジストリの `design_doc_path` から補う）。
 
@@ -217,13 +217,13 @@ git tag -af "reverse-baseline/<scope>" -m "<検証日> 検証PASS: 実差分0 en
 - ポート差の許容は「計算式どおりの original→reverse 対応」のみ。数字が違うだけの行を許容すると、ポートのハードコードミスを見逃す
 - `node_modules_strategy=symlink_main` は node_modules/.vite（依存最適化キャッシュ）も両環境で共有するため、**共有キャッシュのレースコンディション**で片方の環境（どちらになるかは実行順・タイミング次第の非対称パターン）が持続的に描画失敗することがある（実測）。navigate リトライでも dev サーバープロセス再起動でも直らない場合がある。これは「独立性を諦める」穏当なトレードオフではなく、**検証結果自体を信頼不能にする（片方がランダムに壊れる）副作用**。確実な対処は該当環境の node_modules を独立 npm ci に切り替えること。だからこそ auto は npm_ci 固定で、symlink_main は明示 opt-in に限る
 - 独立性を犠牲にする `symlink_main` は auto では自動選択されない。速度が必要なら人間が明示 opt-in する（drvfs 検出時は WARN で選択肢を提示するのみ）
-- 本スキルの PASS 基準「静的実差分 0」は自身の用途（オリジナルをリバース環境へ整列コピーする検証）専用の基準。rebuilding-code-from-docs（設計書だけからの独立リライト検証）はこの `status` を直接使わず、`env_check`/`dynamic` のみで独自に PASS/FAIL を判定する（詳細は rebuilding-code-from-docs の SKILL.md Phase 7 参照）。独立リライト用途に合わせて本スキルの「静的実差分 0」基準自体を緩めないこと（整列コピー検証としての正しさが壊れる）
+- 本スキルの PASS 基準「静的実差分 0」は自身の用途（オリジナルをリバース環境へ整列コピーする検証）専用の基準。本スキルは計測事実（`static_diff` / `dynamic` / `env_check`）の報告者であり、往復検証の PASS/FAIL の意味解釈は judge（rebuilding-code-from-docs mode=judge）が単独で担う（解釈責務の規定は契約正本 orchestrating-reverse-docs-flow の `references/contract.md`）。独立リライト用途に合わせて本スキルの「静的実差分 0」基準自体を緩めないこと（整列コピー検証としての正しさが壊れる）
 
 ## 設計判断
 
 ### audit-doc-consistency.sh
 
-**必要性**: 本スキルの仕様は guide.html（正本）・SKILL.md・concept.html・config.yml の 4 ファイルに分散しており、検査項目キー（プリフライト・env_check）・config キー・返却フィールドの追従漏れが改訂のたびに発生しうる。キー突合・陳腐化表現（個数直書き・OS 依存コマンドの単独前提）・config 整合・返却ブロック契約・環境名直書き検出（命名規則の接頭辞の直後に `<system>`/`<画面ID>` の具体値が焼き込まれていないか）の 5 検査を機械化し、改訂後に必ず実行する回帰ゲートとする。
+**必要性**: 本スキルの仕様は guide.html（正本）・SKILL.md・config.yml の 3 ファイルに分散しており、検査項目キー（プリフライト・env_check）・config キー・返却フィールドの追従漏れが改訂のたびに発生しうる。キー突合・陳腐化表現（個数直書き・OS 依存コマンドの単独前提）・config 整合・返却ブロック契約・環境名直書き検出（命名規則の接頭辞の直後に `<system>`/`<画面ID>` の具体値が焼き込まれていないか）の 5 検査を機械化し、改訂後に必ず実行する回帰ゲートとする。
 
 **代替案を採用しなかった理由**:
 - Bash ツール直叩き: 4 検査 × 対象 4 ファイルの grep/突合をセッション内で都度書くとトークン消費が大きく、検査の再現性が失われる
@@ -239,5 +239,4 @@ git tag -af "reverse-baseline/<scope>" -m "<検証日> 検証PASS: 実差分0 en
 - `config.yml` — ポート計算式・サービス一覧・起動コマンド・diff 除外・L3 閾値・max_loop の可変値（本スキルフォルダ直下）
 - `config.local.yml`（同ディレクトリ・任意） — 存在する場合、`config.yml` を基底として `config.local.yml` を深いマージ（local 優先）で重ねた結果を有効値とする。実プロジェクトの絶対パス入り `projects` エントリは `config.local.yml` にのみ記載する（`.gitignore` 済みのため公開 payload に載らない）。`config.yml` 側には汎用例のみを残す
 - `references/syncing-reverse-env-guide.html` — 確定仕様（プリフライト全項目・env_check 全項目・報告書式の正）
-- `references/syncing-reverse-env-concept.html` — 設計判断（ADR）と検討過程の記録
 - `scripts/audit-doc-consistency.sh` — ドキュメント整合性監査（改訂後の回帰ゲート）

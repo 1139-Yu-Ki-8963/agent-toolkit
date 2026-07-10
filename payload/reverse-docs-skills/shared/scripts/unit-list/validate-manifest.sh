@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# generating-unit-list-for-reverse-docs: ユニットマニフェスト(screen-manifest.json 等)の独立検証(7項目)。
+# 種別別一覧スキル群(generating-<種別>-list-for-reverse-docs)共通エンジン: ユニットマニフェスト(screen-manifest.json 等)の独立検証(7項目)。
 # 抽出元(組み込みスクリプト/Claude手書き)・ユニット種別(screen/api/table/batch/report/external)を
 # 問わずマニフェスト品質を機械保証する。unit_kind=screen(デフォルト)の場合は従来と完全に同じ
 # 出力・挙動を保証する。

@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<!--
+  generating-batch-list-for-reverse-docs スキルガイド（単一ファイル自己完結型）
+
+  - 外部リソース（CDN・画像・link）は一切使わず、完全自己完結に保つ
+-->
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>generating-batch-list-for-reverse-docs スキルガイド</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 0 24px 96px;
+    font-family: system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif;
+    line-height: 1.85; color: #1a1a1a; background: #fafafa;
+    max-width: 980px; margin-inline: auto;
+  }
+  header { padding: 56px 0 24px; border-bottom: 3px solid #1a1a1a; }
+  header h1 { font-size: 1.9rem; margin: 0 0 10px; letter-spacing: 0.01em; }
+  header .skill-name {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 1.0rem; background: #1a1a1a; color: #fafafa;
+    padding: 2px 10px; border-radius: 4px; vertical-align: middle;
+  }
+  header p { margin: 6px 0 0; color: #555; }
+  .meta-table { margin-top: 16px; font-size: 0.9rem; color: #555; }
+  .meta-table td { padding: 1px 16px 1px 0; }
+
+  nav.toc {
+    margin-top: 32px; padding: 18px 22px;
+    background: #fff; border: 1px solid #e0e0e0; border-radius: 8px;
+  }
+  nav.toc .toc-title { font-weight: 700; margin-bottom: 6px; }
+  nav.toc ol { margin: 0; padding-left: 1.4em; columns: 2; column-gap: 40px; }
+  nav.toc li { margin: 2px 0; }
+  nav.toc a { color: #1a1a1a; text-decoration: none; border-bottom: 1px dotted #999; }
+  nav.toc a:hover { border-bottom-style: solid; }
+
+  section { margin-top: 64px; }
+  section > h2 {
+    font-size: 1.35rem; padding-bottom: 8px; margin-bottom: 20px;
+    border-bottom: 2px solid #1a1a1a;
+  }
+  section > h2 .sec-num {
+    display: inline-block; min-width: 2.4em; margin-right: 10px;
+    font-family: ui-monospace, monospace; font-size: 0.95rem;
+    background: #1a1a1a; color: #fafafa; text-align: center;
+    padding: 1px 8px; border-radius: 4px; vertical-align: 2px;
+  }
+  h3 { font-size: 1.05rem; margin: 32px 0 10px; }
+  .note { color: #555; font-size: 0.92rem; }
+
+  table.spec { border-collapse: collapse; width: 100%; margin: 14px 0; background: #fff; font-size: 0.93rem; }
+  table.spec th, table.spec td { border: 1px solid #d8d8d8; padding: 8px 12px; text-align: left; vertical-align: top; }
+  table.spec th { background: #f0f0ee; font-weight: 700; white-space: nowrap; }
+  table.spec td code, li code, p code, dd code, table.spec th code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.86em; background: #eeeeea; padding: 1px 5px; border-radius: 3px;
+  }
+
+  pre.flow {
+    background: #16211c; color: #d7e6dc; border-radius: 8px;
+    padding: 20px 24px; overflow-x: auto;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.82rem; line-height: 1.55;
+  }
+  pre.flow .cap { color: #8fb8a0; }
+
+  .def {
+    background: #fff; border-left: 4px solid #1a1a1a;
+    padding: 12px 18px; margin: 14px 0; border-radius: 0 6px 6px 0;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  }
+  .def dt { font-weight: 700; margin-top: 8px; }
+  .def dt:first-child { margin-top: 0; }
+  .def dd { margin: 2px 0 0 0; color: #333; }
+
+  .constraint {
+    background: #eef2f7; border: 1px solid #c8d4e3; border-radius: 8px;
+    padding: 12px 18px; margin: 16px 0; font-size: 0.93rem;
+  }
+  .constraint strong:first-child { color: #2a4a7a; }
+
+  .tag {
+    display: inline-block; font-family: ui-monospace, monospace; font-size: 0.78rem;
+    font-weight: 700; padding: 0 8px; border-radius: 3px; border: 1px solid transparent;
+  }
+  .tag.pass  { background: #e7f3e7; color: #23662a; border-color: #b9d9ba; }
+  .tag.fail  { background: #fbe9e7; color: #9c2b1a; border-color: #ecc0b8; }
+  .tag.mode  { background: #e8eef7; color: #2a4a7a; border-color: #c2d2e8; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>バッチ一覧生成スキル<br><span class="skill-name">generating-batch-list-for-reverse-docs</span></h1>
+  <p>既存コードベースからバッチ（定期実行ジョブ・トリガー起動ジョブ）の単位を洗い出し、検証済みマニフェストだけを材料に「バッチ一覧.html」を生成するスキルの確定仕様。種別はバッチ固定で、他種別（画面・API 等）は対応する種別別スキルが担う。</p>
+
+  <table class="meta-table">
+    <tr><td>対応 OS</td><td>Windows WSL2 環境</td></tr>
+    <tr><td>検証状況</td><td>整合検証・HTML生成エンジン（<code>validate-manifest.sh</code>・<code>build-unit-list.sh</code>）は画面一覧生成で実プロジェクト動作確認済み。バッチ種別のカスタム抽出はこの仕様に基づく設計段階</td></tr>
+    <tr><td>依存</td><td>jq / <code>shared/scripts/unit-list/validate-manifest.sh</code> / <code>shared/scripts/unit-list/build-unit-list.sh</code></td></tr>
+    <tr><td>関連資料</td><td><code>SKILL.md</code>, <code>references/batch-detection.md</code></td></tr>
+  </table>
+</header>
+
+<nav class="toc">
+  <div class="toc-title">目次</div>
+  <ol>
+    <li><a href="#s1">概要</a></li>
+    <li><a href="#s2">出力</a></li>
+    <li><a href="#s3">用語</a></li>
+    <li><a href="#s4">使い方（起動引数）</a></li>
+    <li><a href="#s5">動作フロー（Phase 1〜4）</a></li>
+    <li><a href="#s6">禁止事項と注意点</a></li>
+    <li><a href="#s7">関連スキル</a></li>
+  </ol>
+</nav>
+
+<section id="s1">
+  <h2><span class="sec-num">§1</span>概要</h2>
+  <p>リバース設計では、設計書を書き始める前に「このシステムにはどんなバッチが何本あるのか」という単位の正本が要る。本スキルは既存コードベースを <strong>スタック調査 → 検出戦略の宣言 → 戦略に基づく抽出 → 整合検証</strong> の順に調査し、バッチの単位にファイルをグルーピングした「バッチ一覧.html」を作成する。</p>
+  <p>仕事は一覧の作成のみで、設計書の雛形展開・生成・記入は一切行わない。バッチ種別に組み込み検出器は無く、抽出は常にカスタム抽出パス（Claude 自身がプロジェクト専用の抽出手順を設計・実行する経路）を取るが、抽出結果は決定的スクリプト <code>validate-manifest.sh</code> が抽出者非依存で機械検証するため、手書き JSON でも品質が保証される。</p>
+  <div class="constraint">
+    <strong>設計原則: 固定と可変の分離。</strong>
+    マニフェストスキーマ・整合検証・HTML 生成は決定的スクリプトに固定し、プロジェクトごとに異なる「バッチ境界の検出」だけを可変にする。汎用の正規表現を無条件に当てるのではなく、対象プロジェクト固有のバッチ規約（スケジューラ・ジョブ命名）を先に確認してから検出する。
+  </div>
+</section>
+
+<section id="s2">
+  <h2><span class="sec-num">§2</span>出力</h2>
+  <p>スキルを完走すると、以下の 2 点が生まれる。</p>
+  <div class="def">
+    <dt>バッチ一覧.html（<code>&lt;output_dir&gt;/バッチ一覧/バッチ一覧.html</code>）</dt>
+    <dd>そのシステムに存在するバッチの全量を 1 冊にまとめた一覧。ジョブごとに推定名・起動方式（定期実行かトリガー起動か）・主識別子（ジョブ名や cron エントリ名）・実体ファイル・検出の確からしさが読める。設計書を「バッチ 1 本につき 1 冊」で書き分けるための単位の正本として機能し、起動方式を確定できなかったものは未解決として区別されているため、調査の残りも一目で分かる。</dd>
+    <dt>埋め込みマニフェスト JSON</dt>
+    <dd>一覧 HTML の中に埋め込まれた機械可読データ。整合検証（<code>validate-manifest.sh</code>）を通過した内容だけが埋め込まれるため、後続工程（facts 抽出・設計書執筆）がこの JSON を読み直せば、一覧と食い違わない単位情報を機械的に取り出せる。</dd>
+  </div>
+</section>
+
+<section id="s3">
+  <h2><span class="sec-num">§3</span>用語</h2>
+  <dl class="def">
+    <dt>バッチ（ユニット種別 batch）</dt>
+    <dd>画面遷移を持たない自動処理の総称。cron 等で時刻起動される定期実行ジョブと、イベント・キュー投入・CLI コマンドで起動されるトリガー起動ジョブの両方を含む。</dd>
+    <dt>マニフェスト</dt>
+    <dd>検出したバッチ単位を列挙した JSON。配列キーは <code>units</code>。各行は <code>unitKey</code>（意味キー）・<code>kind</code>（<code>scheduled</code> / <code>triggered</code> / <code>unresolved</code>）・<code>identifier</code>・<code>sourceFile</code>・<code>confidence</code> を持つ（スキーマ全文は <code>references/batch-detection.md</code>）。</dd>
+    <dt>検出戦略宣言</dt>
+    <dd>Phase 1 の調査結果を固めた JSON（<code>unitKind</code> / <code>extractionMethod: "custom"</code> / <code>unitIdRegex</code> / <code>excludePatterns</code> / <code>approvedByUser</code> / <code>notes</code>）。ユーザー承認（<code>approvedByUser: true</code>）が抽出開始の前提条件で、整合検証がその存在を機械確認する。</dd>
+    <dt>カスタム抽出パス</dt>
+    <dd>Claude 自身が戦略宣言に沿って Bash/Grep/Read で抽出手順を実行し、スキーマ準拠のマニフェストを書き出す経路。バッチ種別ではこの経路のみを使う（組み込み検出器なし）。</dd>
+    <dt>整合検証</dt>
+    <dd><code>validate-manifest.sh</code> によるマニフェストの機械検査。スキーマ・重複キー・未解決の隔離を、抽出者に依らない同一基準で判定する。</dd>
+  </dl>
+</section>
+
+<section id="s4">
+  <h2><span class="sec-num">§4</span>使い方（起動引数）</h2>
+  <table class="spec">
+    <tr><th>引数</th><th>内容</th></tr>
+    <tr><td><code>source_dir</code></td><td>探索対象のソースコードディレクトリ。対象プロジェクトの実コードルート（例: <code>backend/src</code>）を指定する。モノレポでは対象アプリのディレクトリのみを渡す（自動判別なし）</td></tr>
+    <tr><td><code>output_dir</code></td><td>出力先ディレクトリ。この直下に <code>バッチ一覧/バッチ一覧.html</code> が作られる</td></tr>
+  </table>
+  <p class="note">種別は batch 固定のため、種別を選ぶ引数は無い。工程全体は orchestrating-reverse-docs-flow が案内するが、本スキルは上記 2 引数だけで単独起動できる。</p>
+</section>
+
+<section id="s5">
+  <h2><span class="sec-num">§5</span>動作フロー（Phase 1〜4）</h2>
+<pre class="flow"><span class="cap">── バッチ一覧が生まれるまで ───────────────────────────────</span>
+
+ Phase 1  スタック・バッチ規約の特定
+          依存定義からスケジューラ特定 → バッチ定義の所在列挙
+          → 識別要素（ジョブ名・cron 式・入出力）調査 → 除外確定
+          → 検出戦略宣言（ユーザー承認）
+              │
+              ▼
+ Phase 2  戦略に基づく抽出（カスタム抽出パスのみ）
+          宣言した手順で走査し、マニフェスト JSON を書き出す
+          0 件検出はハード停止（バッチを捏造しない）
+              │
+              ▼
+ Phase 3  整合検証（機械実行）                 ┌─ FAIL: 修正して再検証
+          validate-manifest.sh --unit-kind batch ┤   （3 回失敗で Phase 2 へ差し戻し）
+              │ 全項目 PASS                    └───────────────
+              ▼
+ Phase 4  バッチ一覧.html 生成
+          build-unit-list.sh（内部で validate を再実行）
+          → &lt;output_dir&gt;/バッチ一覧/バッチ一覧.html</pre>
+
+  <table class="spec">
+    <tr><th>Phase</th><th>完了条件</th></tr>
+    <tr><td>Phase 1</td><td>スケジューラ・バッチ定義所在・識別要素・除外パターンの調査完了。検出戦略宣言がユーザー承認済み</td></tr>
+    <tr><td>Phase 2</td><td>スキーマ準拠のマニフェストが 1 件以上確定、または 0 件検出を報告して停止している</td></tr>
+    <tr><td>Phase 3</td><td><code>validate-manifest.sh --unit-kind batch</code> が全項目 <span class="tag pass">PASS</span>。<span class="tag fail">FAIL</span> 時の修正ループは 3 回以内</td></tr>
+    <tr><td>Phase 4</td><td>バッチ一覧.html が生成され、埋め込み JSON がマニフェストと一致している</td></tr>
+  </table>
+  <p class="note">エンジンスクリプトはスキルフォルダ相対の <code>../../../shared/scripts/unit-list/</code> 配下を参照する。正本リポジトリと公開先はディレクトリレイアウトが同一のため、この相対参照は両環境で成立する。進捗は Phase 1〜4 のタスク登録（TaskCreate/TaskUpdate）で管理する。</p>
+</section>
+
+<section id="s6">
+  <h2><span class="sec-num">§6</span>禁止事項と注意点</h2>
+  <table class="spec">
+    <tr><th>項目</th><th>内容</th></tr>
+    <tr><td>手作業プレースホルダ置換の禁止</td><td>HTML は必ず <code>build-unit-list.sh</code> 経由の決定的処理で生成する。手動置換による誤データ混入（画面種別で <code>entryFile=None</code> が 10 件混入した実害）を根絶するための固定ルール</td></tr>
+    <tr><td>0 件検出時のハード停止</td><td>1 件も検出できなかったら停止して報告する。その場で手動リストを聞き出して即興確定させない（誤った境界の混入防止）</td></tr>
+    <tr><td>設計書はスコープ外</td><td>設計書の雛形展開・生成・記入は行わない。成果物はバッチ一覧.html のみ</td></tr>
+    <tr><td>コメント内定義の除去</td><td>ソース解析時はコメントアウトされたジョブ定義・import 文を除去してから抽出する（コメント内の定義を実在として誤検出した実害あり）</td></tr>
+    <tr><td>動的なジョブ名・cron 式</td><td>変数結合等で動的に組み立てられるものは静的走査で確定できない。<code>confidence: low</code> または <code>unresolved</code> として可視化し、断定しない</td></tr>
+    <tr><td>jq 依存</td><td><code>validate-manifest.sh</code>・<code>build-unit-list.sh</code> は jq に依存する。未導入環境では事前に導入する</td></tr>
+  </table>
+</section>
+
+<section id="s7">
+  <h2><span class="sec-num">§7</span>関連スキル</h2>
+  <table class="spec">
+    <tr><th>スキル</th><th>関係</th></tr>
+    <tr><td><code>orchestrating-reverse-docs-flow</code></td><td>工程全体の案内役。本スキルは status（DONE / ERROR）・artifacts・unit_list_html・embedded_json_ref・unit_kind（batch 固定）を返す契約で組み込まれる</td></tr>
+    <tr><td>種別別一覧スキル（画面・API・テーブル・帳票・外部連携）</td><td>兄弟スキル。同じエンジン（<code>validate-manifest.sh</code> / <code>build-unit-list.sh</code>）を共有し、種別ごとの検出戦略だけが異なる</td></tr>
+    <tr><td><code>extracting-unit-facts-from-code</code> ほか後続工程</td><td>本スキルが確定した単位（埋め込み JSON）を入力として facts 抽出・設計書執筆に進む</td></tr>
+  </table>
+</section>
+
+</body>
+</html>

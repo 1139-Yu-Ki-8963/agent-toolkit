@@ -402,7 +402,7 @@
   <table class="spec">
     <tr><th>計測</th><th>算出方法</th></tr>
     <tr><td>import diff</td><td>両ファイルから <code>^\s*import </code> 行を抽出→ソート→<code>diff</code> の差分行数（<code>^[&lt;&gt;]</code> 行の数）</td></tr>
-    <tr><td>style diff</td><td><code>className</code> / <code>style=</code> 属性・<code>const .*Style</code> 系変数・16 進カラーコード（<code>#[0-9a-fA-F]{3,8}</code>）・<code>px</code>/<code>rem</code>/<code>em</code>/<code>vh</code>/<code>vw</code> を含む数値行を抽出→ソート→diff の差分行数</td></tr>
+    <tr><td>style diff</td><td><code>className</code> / <code>style=</code> 属性の値部分・16 進カラーコード（<code>#[0-9a-fA-F]{3,8}</code>）・<code>px</code>/<code>rem</code>/<code>em</code>/<code>vh</code>/<code>vw</code> 等の数値を含む行を抽出→ソート→diff の差分行数</td></tr>
     <tr><td>契約突合</td><td>生成物と原本それぞれから 6 カテゴリ（export名・定数値・ハンドラ名・型名・状態変数名・API呼出先）を抽出して集合化→集合同士を比較→完全一致なら <code>contract_match=YES</code>、1 件でも差異があれば <code>contract_match=NO</code></td></tr>
     <tr><td>実質 diff（20行以下）</td><td>コメント行（<code>^\s*//</code>・<code>^\s*/\*</code>・<code>^\s*\*</code>）と空行を除外した上での diff 差分行数。契約突合が対象外とするロジック差分の安全網</td></tr>
     <tr><td>全体 diff</td><td><code>diff &lt;original&gt; &lt;generated&gt;</code> の差分行数（参考値。合格判定には使わない）</td></tr>
@@ -454,6 +454,7 @@
     <tr><td>references/ng-classification.md</td><td>検出シグナル→失敗クラス→章（役割キー）帰着のマッピング</td></tr>
     <tr><td>起動引数 chapter_map_path</td><td>章の役割キー→節キーワード対応表（正本。管理者が配布）</td></tr>
     <tr><td>起動引数 audit_script_path</td><td>実装契約章のファイル分割表取得・内部整合性監査</td></tr>
+    <tr><td>起動引数 scaffold_script_path</td><td>P1 の画面ディレクトリ構造健全性確認（--verify。実体: shared/scripts/scaffold-screen.sh。正本はこの1本のみ）</td></tr>
     <tr><td>起動引数 template_root 起点の <code>画面/詳細設計/画面詳細設計書.md</code></td><td>章の役割キー（16 種、既定 §1〜§16）テンプレート</td></tr>
     <tr><td>起動引数 template_root 起点の <code>画面/詳細設計/単体テスト観点表.md</code></td><td>単体テスト観点表テンプレート</td></tr>
     <tr><td>失敗クラス台帳</td><td>ファイル単位検証・画面単位検証 共通の正本（テンプレ昇格条件に合致した場合に追記。所在は管理者経由で取得する）</td></tr>

@@ -55,7 +55,7 @@ projects: {}
 #       domain_tag: ""   # 任意。reference_screenが属する業務ドメインの識別ラベル
 #     handoff:
 #       unlock_record_dir: "<FILL:開通証跡の置き場>"
-#       screen_registry_path: "~/agent-home/state/reverse-screen-registry.yml"  # contract.md正本と一致させる
+#       screen_registry_path: "<docs_root>/一覧/reverse-screen-registry.yml"  # <docs_root>は起動引数docs_rootの実値に置き換える。スキルフォルダ外のため同期・上書きコピーの影響を受けない。contract.md正本と一致させる
 #       registration_procedure: "既定はcontract.md準拠。差分があれば記載"
 #     prohibitions: []          # 例: ["本番DBへ接続しない"]
 #     known_gotchas: []         # 例: [{symptom: "...", cause: "...", workaround: "..."}]

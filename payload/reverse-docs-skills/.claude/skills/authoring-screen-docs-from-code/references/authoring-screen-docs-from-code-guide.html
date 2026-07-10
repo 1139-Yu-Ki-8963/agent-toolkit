@@ -108,7 +108,7 @@
   <table class="meta-table">
     <tr><td>対応 OS</td><td>Windows WSL2 環境</td></tr>
     <tr><td>検証状況</td><td>サンプルプロジェクトで動作確認済み</td></tr>
-    <tr><td>依存</td><td>shared/scripts/seal-facts.sh（Phase 2封印検証）、scripts/check-fact-coverage.sh（Phase 5完全性ゲート）、shared/scripts/audit-consistency.sh（Phase 5内部整合性）</td></tr>
+    <tr><td>依存</td><td>shared/scripts/scaffold-screen.sh（Phase 1スキャフォールディング。起動引数scaffold_script_pathで受領）、shared/scripts/seal-facts.sh（Phase 2封印検証）、scripts/check-fact-coverage.sh（Phase 5完全性ゲート）、shared/scripts/audit-consistency.sh（Phase 5内部整合性）</td></tr>
     <tr><td>関連資料</td><td><code>SKILL.md</code>, <code>references/phase-details.md</code>, <code>references/writing-rules.md</code></td></tr>
   </table>
 </header>
@@ -176,6 +176,7 @@
     <tr><td>template_root</td><td>必須</td><td>テンプレート原本ルート</td></tr>
     <tr><td>chapter_map_path</td><td>必須</td><td>章役割キー対応表</td></tr>
     <tr><td>audit_script_path</td><td>必須</td><td>内部整合性監査スクリプト</td></tr>
+    <tr><td>scaffold_script_path</td><td>必須</td><td>スキャフォールディングスクリプト（実体: shared/scripts/scaffold-screen.sh。正本はこの1本のみ）</td></tr>
     <tr><td>facts_ref</td><td>必須</td><td>封印済み facts ディレクトリの絶対パス</td></tr>
     <tr><td>common_docs_root</td><td>必須</td><td>プロジェクト共通文書ルートの絶対パス</td></tr>
     <tr><td>mode</td><td>必須</td><td><code>file</code> または <code>screen</code></td></tr>
@@ -203,8 +204,9 @@
   <h2><span class="sec-num">§6</span>動作フロー（Phase 1〜6）</h2>
   <pre class="flow"><span class="cap">Phase 1: preflight（起動引数検収・スキャフォールディング）</span>
   必須引数を検収する(screen_dir/docs_root/template_root/chapter_map_path/
-   audit_script_path/facts_ref/common_docs_root/mode/target_file_path)
-  画面ディレクトリ未存在ならscaffold-screen.shで展開、既存なら--verifyで健全性確認
+   audit_script_path/scaffold_script_path/facts_ref/common_docs_root/mode/target_file_path)
+  画面ディレクトリ未存在ならscaffold_script_path(実体: shared/scripts/scaffold-screen.sh)で展開、
+   既存なら--verifyで健全性確認
   完了条件: 必須引数が揃い、画面ディレクトリの構造健全性を確認済み
 
 <span class="cap">Phase 2: 封印検証と facts 読込</span>

@@ -1,6 +1,6 @@
 # orchestrating-reverse-docs-flow 契約正本
 
-この契約は管理者スキル orchestrating-reverse-docs-flow が正本を持つ。子スキル9つ（surveying-architecture-for-reverse-docs / generating-unit-list-for-reverse-docs / compiling-project-common-docs / syncing-reverse-env / unlocking-reverse-target-screens / extracting-unit-facts-from-code / authoring-screen-docs-from-code / rebuilding-screen-unit-from-docs / rebuilding-code-from-docs）は自分の SKILL.md 内で「この契約に準拠する」と宣言するのみで、contract.md 自体は読まず args だけで動く。管理者は各子スキルの返却ブロックを本契約の共通サブセットで検収し、状態判定表に従って次工程を機械的に決定する。これにより管理者と子スキルの間には契約書という単一の仲介点だけが存在し、子スキル同士が互いの内部仕様を知る必要がない完全仲介方式が成立する。
+この契約は管理者スキル orchestrating-reverse-docs-flow が正本を持つ。子スキル14個（surveying-architecture-for-reverse-docs / 種別別一覧スキル6つ（`generating-<種別>-list-for-reverse-docs`、例: generating-screen-list-for-reverse-docs） / compiling-project-common-docs / syncing-reverse-env / unlocking-reverse-target-screens / extracting-unit-facts-from-code / authoring-screen-docs-from-code / rebuilding-screen-unit-from-docs / rebuilding-code-from-docs）は自分の SKILL.md 内で「この契約に準拠する」と宣言するのみで、contract.md 自体は読まず args だけで動く。管理者は各子スキルの返却ブロックを本契約の共通サブセットで検収し、状態判定表に従って次工程を機械的に決定する。これにより管理者と子スキルの間には契約書という単一の仲介点だけが存在し、子スキル同士が互いの内部仕様を知る必要がない完全仲介方式が成立する。
 
 ## 返却ブロック共通サブセット
 
@@ -22,7 +22,7 @@
 - status: `調査確定 | 中断`
 - 拡張: survey_doc_path（調査書の絶対パス。`artifacts[0]` と同値）、unit_kinds_present（実在判定が「実在する」だった画面・API・テーブル・バッチ・帳票・外部連携の一覧）
 
-### generating-unit-list-for-reverse-docs
+### generating-<種別>-list-for-reverse-docs（種別別一覧スキル6つ共通）
 
 - status: `DONE | ERROR`
 - 拡張: unit_list_html（= artifacts[0]）、embedded_json_ref（HTML内埋め込みマニフェストJSONへの参照）、unit_kind（生成した種別）
@@ -80,15 +80,15 @@
 各子スキルが単独起動で受け取る引数の全量。単独起動時はユーザーが同じ args を手渡しすれば動く。
 
 - surveying-architecture-for-reverse-docs: target_repo_path, docs_root, template_root, target_branch（任意）, source_ref（任意）, mode（`survey`|`revise`、既定 `survey`）, revise_findings（mode=revise 時のみ必須）
-- generating-unit-list-for-reverse-docs: source_dir, output_dir, unit_kind
+- generating-<種別>-list-for-reverse-docs（種別別一覧スキル6つ共通）: source_dir, output_dir（unit_kind はスキル名で固定されるため引数に無い）
 - compiling-project-common-docs: target_repo_path, docs_root, template_root, survey_doc_path, mode（`v0`|`append`、既定 `v0`）, append_findings（mode=append 時のみ必須）
 - syncing-reverse-env: design-doc, mode（setup|sync|teardown）, dry-run, reset-first, user-approved, scenarios, max-loop（既存契約のまま）
 - unlocking-reverse-target-screens: system, screen_id, reverse_worktree, ports, docs_root, user-approved
 - 注記: 通常経路では `unlocking-reverse-target-screens` が内部から本モードを起動する。管理者が本行を直接使うのは、`unlocking-reverse-target-screens` が `status=UNLOCKED`（部分完了）で差し戻した場合の救済経路のみ
 - syncing-reverse-env (mode=registry): system, screen_id, reverse_worktree, ports, user-approved
 - extracting-unit-facts-from-code: target_repo_path, target_file_paths, screen_dir, profile（`screen` のみ実装）, survey_doc_path, run_id（任意、既定 `extract-1`）
-- authoring-screen-docs-from-code: screen_dir, docs_root, template_root, chapter_map_path, audit_script_path, facts_ref, common_docs_root, mode, target_file_path（mode=file時）, screenshot_dir（任意・補助情報源）, registry値（任意・補助情報源）
-- rebuilding-screen-unit-from-docs: screen_dir, target_file_path, docs_root, template_root, audit_script_path, chapter_map_path, env_block, user-approved
+- authoring-screen-docs-from-code: screen_dir, docs_root, template_root, chapter_map_path, audit_script_path, scaffold_script_path（管理者が shared/scripts/scaffold-screen.sh を解決して渡す。audit_script_path と同型）, facts_ref, common_docs_root, mode, target_file_path（mode=file時）, screenshot_dir（任意・補助情報源）, registry値（任意・補助情報源）
+- rebuilding-screen-unit-from-docs: screen_dir, target_file_path, docs_root, template_root, audit_script_path, scaffold_script_path（管理者が shared/scripts/scaffold-screen.sh を解決して渡す。audit_script_path と同型）, chapter_map_path, env_block, user-approved
 - rebuilding-code-from-docs (mode=implement): screen_dir, scope, reverse_worktree, ports, baseline_tag_status, docs_root, template_root, audit_script_path, chapter_map_path, user-approved, saved_test_paths（上流 rebuilding-screen-unit-from-docs が保存した単体テストコードのパス一覧。管理者が転送する。上流未実施の画面では省略可）
 - rebuilding-code-from-docs (mode=judge): screen_dir, compare_result, reverse_worktree, freeze_commit（Phase 8 の compare_request から管理者が保持して転送する。scripts/check-freeze.sh の入力に使う）
 
@@ -101,7 +101,7 @@
 | 状態キー | 実在判定 | 次に起動する子スキル | 渡す主要 args |
 |---|---|---|---|
 | アーキ未調査 | `<docs_root>/プロジェクト共通/アーキテクチャ調査書.md` が不在、または `check-architecture-survey.sh` の再実行が exit 1 | surveying-architecture-for-reverse-docs | target_repo_path, docs_root, template_root, mode（調査書が不在なら survey。調査書はあるが再実行 exit 1 なら revise・revise_findings必須）（期待返却 調査確定） |
-| 一覧未生成 | unit_kinds_present のいずれかの実在種別について `一覧/<種別ラベル>一覧/<種別ラベル>一覧.html` が不在、または excluded-kinds.json が不在 | generating-unit-list-for-reverse-docs | source_dir, output_dir, unit_kind（不在種別ごとに起動） |
+| 一覧未生成 | unit_kinds_present のいずれかの実在種別について `一覧/<種別ラベル>一覧/<種別ラベル>一覧.html` が不在、または excluded-kinds.json が不在 | generating-<種別>-list-for-reverse-docs（種別別一覧スキル） | source_dir, output_dir（不在種別ごとに対応スキルを起動） |
 | 共通未採録 | プロジェクト共通の7文書（規約4種・共通設計書・メッセージ定義書・DESIGN.md）のいずれか不在、または `check-common-docs.sh` が exit 1 | compiling-project-common-docs | target_repo_path, docs_root, template_root, survey_doc_path, mode（7文書が未採録なら v0。NG帰着(c)差し戻し時のみ append・append_findings必須）（期待返却 採録v0確定） |
 | 画面未開通 | 画面一覧HTML有・画面が未開通（設計書も基準タグも無い新規画面） | unlocking-reverse-target-screens（内部で基準タグ確立まで完走。`UNLOCKED`差し戻し時のみ管理者がsyncing-reverse-env（mode=registry）を直接起動） | system, screen_id, reverse_worktree, ports, docs_root, user-approved（期待返却 BASELINE-ESTABLISHED） |
 | 事実未封印 | `<screen_dir>/検証記録/facts/*/facts.lock` が不在、または `seal-facts.sh verify` が exit 1 | extracting-unit-facts-from-code | target_repo_path, target_file_paths, screen_dir, profile=screen, survey_doc_path, run_id（期待返却 封印済み） |
@@ -119,7 +119,24 @@
 
 設計書未著述/ファイル単位未検証は任意工程である。設計書が揃い、当該ファイルについて検証記録が1件も無い、または検証記録があり直近の `status` が再現一致の画面は、ファイル単位工程を実行済み・不要のいずれとしてもスキップし基準未確立/往復未検証から開始してよい（実在しない検証記録を「未検証」と誤読しない）。
 
-一覧が生成・検証された種別のうち画面（screen）以外は、facts抽出以降の工程（extracting-unit-facts-from-codeから往復検証まで）が現時点で未対応であり、一覧確立の時点で工程が止まる。これは excluded-kinds.json の「対象外」（アーキテクチャ調査書で実在しないと判定された種別。後述の3状態の区別を参照）とは別の状態である。「対象外＝そもそも実在しない」のに対し、「一覧はあるが後続未対応＝実在し一覧化済みだがfacts抽出に進めない」という違いがある。
+### 種別ループ
+
+管理者は excluded-kinds.json の presentKinds に記載された各種別についてループする。種別ごとの進み方は次のとおり。
+
+- screen: 画面単位でユニット反復（画面未開通〜ファイル単位未検証）〜基準確立〜往復検証を回す
+- screen 以外（api / table / batch / report / external）: facts抽出以降の工程（extracting-unit-facts-from-code から往復検証まで）が現時点で未対応のため、一覧確立をもって「後続未対応」の終端状態として記録する
+
+「後続未対応」は excluded-kinds.json の「対象外」（アーキテクチャ調査書で実在しないと判定された種別。後述の3状態の区別を参照）とは別の状態である。「対象外＝そもそも実在しない」のに対し、「後続未対応＝実在し一覧化済みだが facts 抽出に進めない」という違いがある。
+
+管理者の最終報告（Goal）には、全6種別の到達状態レポートを必ず含める。到達状態は次の3値で記す。
+
+| 到達状態 | 意味 |
+|---|---|
+| 生成済み | 一覧が生成・検証済み（screen はさらに画面単位の反復工程へ進む） |
+| 対象外 | アーキテクチャ調査書で実在しないと判定（excluded-kinds.json に記載） |
+| 後続未対応 | 実在し一覧化済みだが、facts抽出以降の工程が未対応のため一覧確立の時点で終端 |
+
+この種別ループは既存10状態の判定を変更しない（screen 以外の種別は一覧確立後に新しい状態へ遷移せず、終端状態の記録のみを行う）。
 
 ### §16未解消の扱い（補足）
 
@@ -137,11 +154,21 @@ judge（rebuilding-code-from-docs mode=judge）が `status=FAIL` を返した場
 
 (a)・(b) はスキル資産（reference・プロファイル）そのものの改訂を要するため、管理者が代わりに再実行しても解消しない。(c) のみ、管理者が既存の子スキルを再起動するだけで自動的に解消できる。
 
+## テスト・判定の責務分界
+
+### E2Eテストの責務
+
+E2E（RT-/SM-/IT-/CMP- 系）テストは、作成とベースライン実測を rebuilding-code-from-docs（mode=implement）が担い、実行を syncing-reverse-env の dynamic 検査が担う。この分担は compare_request.scenarios_ready（implement 返却の拡張フィールド）と syncing-reverse-env の scenarios 引数に整合する確定済みの正式仕様であり、未解決の設計課題ではない。
+
+### compare_result.status の解釈責務
+
+syncing-reverse-env は計測事実（static_diff / dynamic / env_check）の報告者であり、往復検証の PASS / FAIL の意味解釈は judge（rebuilding-code-from-docs mode=judge）が単独で担う。管理者は syncing-reverse-env の返却 status を往復検証の合否として扱わず、judge の返却 status のみを合否の正とする。
+
 ## 画面レジストリ
 
-`unlocking-reverse-target-screens` が開通を完了した画面の記帳台帳。原則は管理者が読み書きを担うが、`unlocking-reverse-target-screens` のみ例外として自ら記帳し自ら `syncing-reverse-env(mode=registry)` を起動して基準タグ確立まで進める（理由: 開通の事実を知るのは本スキルだけであり、管理者が能動的に検知できないため）。他の子スキルはこのファイルに直接触れない。
+`unlocking-reverse-target-screens` が開通を完了した画面の記帳台帳。原則は管理者が読み書きを担うが、`unlocking-reverse-target-screens` は自ら記帳し自ら `syncing-reverse-env(mode=registry)` を起動して基準タグ確立まで進める。これは完全仲介方式の例外ではなく、基準タグ確立まで単独完走するという設計要件に基づく意図した正式仕様である（理由: 開通の事実を知るのは本スキルだけであり、管理者が能動的に検知できないため）。他の子スキルはこのファイルに直接触れない。
 
-- 正本ファイル: `~/agent-home/state/reverse-screen-registry.yml`（スキルフォルダ外。スキル同期・上書きコピーの影響を受けない）
+- 正本ファイル: `<docs_root>/一覧/reverse-screen-registry.yml`（スキルフォルダ外の設計書リポジトリ側。スキル同期・上書きコピーの影響を受けない）
 - キー: `<system>-<screen_id>`
 - 値: `source_ref` / `verification_url` / `design_doc_path` / `status`（`unlocked` | `baseline-established`）
 - 管理者は unlocking-reverse-target-screens の返却が `status=BASELINE-ESTABLISHED` であれば追加の記帳作業は不要（既に完了済み）。`status=UNLOCKED`（部分完了）で差し戻された場合のみ、管理者が本ファイルへ記帳し（status=`unlocked`）、続けて syncing-reverse-env を `mode=registry` で起動して基準タグ確立まで進める。確立後は本ファイルの該当エントリの `status` を `baseline-established` に更新する

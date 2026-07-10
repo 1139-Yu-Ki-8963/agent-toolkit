@@ -4,7 +4,7 @@
 # Usage: build-screen-list.sh <manifest.json> <output-html-path>
 #
 # detect-screens.sh (および整合検証フェーズ) が出力するマニフェストJSONを
-# 厳密な契約として扱い、assets/screen-list-template.html を土台に決定的にHTMLを
+# 厳密な契約として扱い、shared/templates/unit-list/screen-list-template.html を土台に決定的にHTMLを
 # 生成する。Claudeによる手作業のプレースホルダ置換は一切行わない(データ混入防止)。
 #
 # 入力JSONスキーマ(契約):
@@ -72,7 +72,7 @@ if ! "$SCRIPT_DIR/validate-manifest.sh" "$MANIFEST"; then
   exit 1
 fi
 
-TEMPLATE="$SCRIPT_DIR/../assets/screen-list-template.html"
+TEMPLATE="$SCRIPT_DIR/../../templates/unit-list/screen-list-template.html"
 if [ ! -f "$TEMPLATE" ]; then
   echo "ERROR: template not found: $TEMPLATE" >&2
   exit 1

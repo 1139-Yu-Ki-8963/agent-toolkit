@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<!--
+  generating-external-list-for-reverse-docs スキルガイド（単一ファイル自己完結型）
+
+  - 外部リソース（CDN・画像・link）は一切使わず、完全自己完結に保つ
+-->
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>generating-external-list-for-reverse-docs スキルガイド</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 0 24px 96px;
+    font-family: system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif;
+    line-height: 1.85; color: #1a1a1a; background: #fafafa;
+    max-width: 980px; margin-inline: auto;
+  }
+  header { padding: 56px 0 24px; border-bottom: 3px solid #1a1a1a; }
+  header h1 { font-size: 1.9rem; margin: 0 0 10px; letter-spacing: 0.01em; }
+  header .skill-name {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 1.0rem; background: #1a1a1a; color: #fafafa;
+    padding: 2px 10px; border-radius: 4px; vertical-align: middle;
+  }
+  header p { margin: 6px 0 0; color: #555; }
+  .meta-table { margin-top: 16px; font-size: 0.9rem; color: #555; }
+  .meta-table td { padding: 1px 16px 1px 0; }
+
+  nav.toc {
+    margin-top: 32px; padding: 18px 22px;
+    background: #fff; border: 1px solid #e0e0e0; border-radius: 8px;
+  }
+  nav.toc .toc-title { font-weight: 700; margin-bottom: 6px; }
+  nav.toc ol { margin: 0; padding-left: 1.4em; columns: 2; column-gap: 40px; }
+  nav.toc li { margin: 2px 0; }
+  nav.toc a { color: #1a1a1a; text-decoration: none; border-bottom: 1px dotted #999; }
+  nav.toc a:hover { border-bottom-style: solid; }
+
+  section { margin-top: 64px; }
+  section > h2 {
+    font-size: 1.35rem; padding-bottom: 8px; margin-bottom: 20px;
+    border-bottom: 2px solid #1a1a1a;
+  }
+  section > h2 .sec-num {
+    display: inline-block; min-width: 2.4em; margin-right: 10px;
+    font-family: ui-monospace, monospace; font-size: 0.95rem;
+    background: #1a1a1a; color: #fafafa; text-align: center;
+    padding: 1px 8px; border-radius: 4px; vertical-align: 2px;
+  }
+  h3 { font-size: 1.05rem; margin: 32px 0 10px; }
+  .note { color: #555; font-size: 0.92rem; }
+
+  table.spec { border-collapse: collapse; width: 100%; margin: 14px 0; background: #fff; font-size: 0.93rem; }
+  table.spec th, table.spec td { border: 1px solid #d8d8d8; padding: 8px 12px; text-align: left; vertical-align: top; }
+  table.spec th { background: #f0f0ee; font-weight: 700; white-space: nowrap; }
+  table.spec td code, li code, p code, dd code, table.spec th code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.86em; background: #eeeeea; padding: 1px 5px; border-radius: 3px;
+  }
+
+  pre.flow {
+    background: #16211c; color: #d7e6dc; border-radius: 8px;
+    padding: 20px 24px; overflow-x: auto;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.82rem; line-height: 1.55;
+  }
+  pre.flow .cap { color: #8fb8a0; }
+
+  .def {
+    background: #fff; border-left: 4px solid #1a1a1a;
+    padding: 12px 18px; margin: 14px 0; border-radius: 0 6px 6px 0;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  }
+  .def dt { font-weight: 700; margin-top: 8px; }
+  .def dt:first-child { margin-top: 0; }
+  .def dd { margin: 2px 0 0 0; color: #333; }
+
+  .constraint {
+    background: #eef2f7; border: 1px solid #c8d4e3; border-radius: 8px;
+    padding: 12px 18px; margin: 16px 0; font-size: 0.93rem;
+  }
+  .constraint strong:first-child { color: #2a4a7a; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>外部連携一覧生成スキル<br><span class="skill-name">generating-external-list-for-reverse-docs</span></h1>
+  <p>既存コードベースを調査し、外部連携（API クライアント・webhook ハンドラ・メッセージキュー連携等）の単位にファイルをグルーピングして「外部連携一覧.html」を作成するスキルの確定仕様。リバース設計の工程で、設計書をどの単位で書くかを決める判断材料を作る。</p>
+
+  <table class="meta-table">
+    <tr><td>対応 OS</td><td>Windows WSL2 環境</td></tr>
+    <tr><td>検証状況</td><td>分割元スキル generating-unit-list-for-reverse-docs の external 種別動作（カスタム抽出パス）を踏襲。分割後の単独スキルとしての実機検証は未実施</td></tr>
+    <tr><td>依存</td><td>jq / <code>../../../shared/scripts/unit-list/validate-manifest.sh</code> / <code>../../../shared/scripts/unit-list/build-unit-list.sh</code>（スキルフォルダ相対）</td></tr>
+    <tr><td>関連資料</td><td><code>SKILL.md</code>, <code>references/external-detection.md</code></td></tr>
+  </table>
+</header>
+
+<nav class="toc">
+  <div class="toc-title">目次</div>
+  <ol>
+    <li><a href="#s1">概要</a></li>
+    <li><a href="#s2">出力</a></li>
+    <li><a href="#s3">用語</a></li>
+    <li><a href="#s4">使い方（起動引数と返却）</a></li>
+    <li><a href="#s5">動作フロー</a></li>
+    <li><a href="#s6">検出対象と境界の判断基準</a></li>
+    <li><a href="#s7">制約・禁止事項</a></li>
+    <li><a href="#s8">関連スキル・資料</a></li>
+  </ol>
+</nav>
+
+<section id="s1">
+  <h2><span class="sec-num">§1</span>概要</h2>
+  <p>リバース設計では、設計書を書き始める前に「対象システムに外部連携がいくつあり、それぞれどのファイル群で実装されているか」の正本が要る。本スキルはこの正本となる<strong>外部連携一覧.html</strong> を、スタック調査 → 検出戦略の宣言 → 戦略に基づく抽出 → 整合検証、の 4 段階で作成する。</p>
+  <p>ユニット種別（画面・API・テーブル・バッチ・帳票・外部連携）を 1 つの引数で切り替えていた旧スキル（generating-unit-list-for-reverse-docs）から、外部連携専用に分割したものが本スキルである。種別引数は持たず、<code>unit_kind</code> は常に <code>external</code> として動く。</p>
+  <p>外部連携には機械的な組み込み検出器が存在しない。抽出は Claude 自身がプロジェクトごとに設計するカスタム抽出パスのみだが、抽出結果のマニフェスト JSON は決定的スクリプト <code>validate-manifest.sh</code> が抽出者非依存で機械検証し、HTML 生成も決定的スクリプト <code>build-unit-list.sh</code> に固定する。手作業の混入余地を検証と生成の両側で塞ぐ設計である。</p>
+  <div class="constraint">
+    <strong>本スキルの仕事は外部連携一覧.html の作成のみ。</strong>設計書の雛形展開・生成・記入は一切行わない（後続工程の担当）。
+  </div>
+</section>
+
+<section id="s2">
+  <h2><span class="sec-num">§2</span>出力</h2>
+  <p>このスキルを実行すると、以下の 2 点が生まれる。</p>
+  <div class="def">
+    <dt>外部連携一覧.html（<code>&lt;output_dir&gt;/外部連携一覧/</code> 配下）</dt>
+    <dd>対象システムの外部連携を 1 行 1 ユニットで一覧化した HTML。連携先の識別子・送信/受信の区分（client/webhook）・主ファイルと構成ファイル群・検出の確からしさ（confidence）が読み取れる。設計書を「どの連携単位で何冊書くか」を決める正本になる。</dd>
+    <dt>検証済みマニフェスト JSON（HTML に埋め込み）</dt>
+    <dd>一覧の元データ。ユーザー承認済みの検出戦略宣言と、<code>validate-manifest.sh</code> の全項目 PASS を経た内容だけが埋め込まれる。後続工程はこの埋め込み JSON を機械的に参照できる。</dd>
+  </div>
+</section>
+
+<section id="s3">
+  <h2><span class="sec-num">§3</span>用語</h2>
+  <dl class="def">
+    <dt>外部連携（external ユニット）</dt>
+    <dd>プロセス外・組織外のシステムとの通信を担う実装単位。API クライアント・SDK 統合・キュー発行（送信側）と、webhook ハンドラ・キューコンシューマ（受信側）を含む。自プロジェクト内の別モジュール呼び出しは含めない。</dd>
+    <dt>検出戦略宣言</dt>
+    <dd>Phase 1 の調査結果をまとめ、ユーザー承認（<code>approvedByUser: true</code>）を取った JSON。連携の識別パターン・除外パターン・抽出手順の方針を固定し、以後の抽出はこの宣言に沿ってのみ行う。</dd>
+    <dt>マニフェスト</dt>
+    <dd>抽出結果の JSON。配列キーは <code>units</code>（<code>screens</code> は画面種別専用の後方互換キーで、本スキルでは使わない）。スキーマは <code>references/external-detection.md</code> が正本。</dd>
+    <dt>カスタム抽出パス</dt>
+    <dd>組み込み検出器を使わず、Claude 自身が戦略宣言に沿って Bash/Grep/Read で連携単位を収集し、スキーマ準拠のマニフェストを書き出す抽出経路。外部連携はこの経路のみを使う。</dd>
+    <dt>整合検証</dt>
+    <dd><code>validate-manifest.sh --unit-kind external</code> による機械検証。スキーマ・重複キー・unresolved 隔離などを抽出者非依存で検査し、通過しないマニフェストからは HTML を生成できない。</dd>
+  </dl>
+</section>
+
+<section id="s4">
+  <h2><span class="sec-num">§4</span>使い方（起動引数と返却）</h2>
+  <h3>起動引数（2 つのみ）</h3>
+  <table class="spec">
+    <tr><th>引数</th><th>内容</th></tr>
+    <tr><td><code>source_dir</code></td><td>探索対象のソースコードディレクトリ。対象プロジェクトの実コードルート（例: <code>backend/src</code>）を指定する。モノレポでは対象アプリのディレクトリのみを渡す（自動判別なし）</td></tr>
+    <tr><td><code>output_dir</code></td><td>外部連携一覧.html の書き出し先ディレクトリ。この配下に <code>外部連携一覧/</code> フォルダが作られる</td></tr>
+  </table>
+  <p class="note">旧スキルにあった <code>unit_kind</code> 引数は持たない（external 固定）。他種別の一覧が必要な場合は対応する種別別一覧スキルを使う。</p>
+
+  <h3>返却（orchestrating-reverse-docs-flow の契約準拠）</h3>
+  <table class="spec">
+    <tr><th>キー</th><th>内容</th></tr>
+    <tr><td><code>status</code></td><td><code>DONE</code> / <code>ERROR</code></td></tr>
+    <tr><td><code>artifacts</code></td><td>生成した外部連携一覧.html のパス</td></tr>
+    <tr><td><code>unit_list_html</code></td><td>artifacts[0] の汎用名</td></tr>
+    <tr><td><code>embedded_json_ref</code></td><td>HTML 内に埋め込んだマニフェスト JSON への参照</td></tr>
+    <tr><td><code>unit_kind</code></td><td><code>external</code>（固定値）</td></tr>
+  </table>
+</section>
+
+<section id="s5">
+  <h2><span class="sec-num">§5</span>動作フロー</h2>
+  <p>Phase 1〜4 で進む。開始時に TaskCreate で 4 つの Phase タスクを登録し、進行に合わせて TaskUpdate で更新する。</p>
+<pre class="flow"><span class="cap">── 動作フロー（Phase 1〜4）─────────────────────────────</span>
+
+Phase 1  スタック・連携規約の特定
+         依存ライブラリ → 連携定義の所在 → 識別パターン → 除外パターン
+         └─▶ 検出戦略宣言（unitKind=external）をユーザー承認で確定
+                     │
+Phase 2  戦略に基づく抽出（カスタム抽出パスのみ）
+         宣言どおりに連携単位を収集し、マニフェストJSONを書き出す
+         0件なら報告してハード停止（連携を捏造しない）
+                     │
+Phase 3  整合検証（機械実行）
+         validate-manifest.sh --unit-kind external ─ 全項目PASSまで
+         3回FAILしたら Phase 2 の抽出手順へ差し戻し
+                     │
+Phase 4  外部連携一覧.html 生成
+         build-unit-list.sh（内部でvalidate再実行）
+         └─▶ &lt;output_dir&gt;/外部連携一覧/外部連携一覧.html</pre>
+
+  <table class="spec">
+    <tr><th>Phase</th><th>完了条件</th></tr>
+    <tr><td>Phase 1</td><td>調査 4 項目（スタック・所在・識別パターン・除外パターン）が完了し、検出戦略宣言がユーザー承認済み</td></tr>
+    <tr><td>Phase 2</td><td>スキーマ準拠のマニフェスト（配列キー <code>units</code>）が 1 件以上確定、または 0 件検出を報告して停止している</td></tr>
+    <tr><td>Phase 3</td><td><code>validate-manifest.sh --unit-kind external</code> が全項目 PASS（FAIL 時の修正ループは 3 回以内）</td></tr>
+    <tr><td>Phase 4</td><td>外部連携一覧.html が生成され、埋め込み JSON がマニフェストと一致している</td></tr>
+  </table>
+</section>
+
+<section id="s6">
+  <h2><span class="sec-num">§6</span>検出対象と境界の判断基準</h2>
+  <table class="spec">
+    <tr><th>調査対象</th><th>検出手法</th></tr>
+    <tr><td>外部連携定義の所在</td><td>API クライアントラッパー、SDK 統合コード、webhook ハンドラ、メッセージキューコンシューマ</td></tr>
+    <tr><td>プロトコル</td><td>REST/GraphQL/gRPC/SOAP/WebSocket/メッセージキュー</td></tr>
+    <tr><td>認証方式</td><td>API キー/OAuth/証明書</td></tr>
+    <tr><td>除外パターン</td><td>モック・スタブ</td></tr>
+  </table>
+  <h3>境界の判断基準</h3>
+  <ul>
+    <li>数えるのは「プロセス外・組織外のシステムとの通信」を担う単位のみ。自プロジェクト内の別モジュール呼び出しは含めない</li>
+    <li>同一連携先に対する複数ファイル（クライアント本体・型定義・設定）は 1 ユニットにまとめ、<code>files</code> に列挙する</li>
+    <li>送信（<code>kind: client</code>）と受信（<code>kind: webhook</code>）は区別する。確定できないものは <code>unresolved</code> に隔離する</li>
+  </ul>
+  <p class="note">調査項目の Step 別詳細とマニフェストスキーマの正本は <code>references/external-detection.md</code> を参照。</p>
+</section>
+
+<section id="s7">
+  <h2><span class="sec-num">§7</span>制約・禁止事項</h2>
+  <table class="spec">
+    <tr><th>制約</th><th>理由</th></tr>
+    <tr><td>HTML の手作業組み立て・プレースホルダの手動置換の禁止</td><td>過去に <code>entryFile=None</code> の混入という実害が発生した。生成は必ず <code>build-unit-list.sh</code> 経由の決定的処理で行う</td></tr>
+    <tr><td>0 件検出時のハード停止</td><td>AskUserQuestion で手動リストを聞き出して誤った境界を即興確定させない。連携を捏造しない</td></tr>
+    <tr><td>設計書の雛形展開・生成・記入はスコープ外</td><td>本スキルの成果物は外部連携一覧.html のみ。設計書は後続工程が担う</td></tr>
+    <tr><td>Phase 1 の調査省略の禁止</td><td>汎用の識別パターンを無条件に当てると境界を取り違える。プロジェクト固有の連携規約を先に確認する</td></tr>
+    <tr><td>モック・スタブの除外</td><td>テスト用の偽クライアントを実連携として数えない。Phase 1 の除外パターンで先に隔離する</td></tr>
+  </table>
+  <p class="note">エンジンスクリプト（<code>validate-manifest.sh</code> / <code>build-unit-list.sh</code>）は jq に依存する。未インストール環境では事前に導入する。スクリプトはスキルフォルダ相対 <code>../../../shared/scripts/unit-list/</code> で参照する（正本リポジトリと公開先はレイアウト同一のため両環境で成立する）。</p>
+</section>
+
+<section id="s8">
+  <h2><span class="sec-num">§8</span>関連スキル・資料</h2>
+  <table class="spec">
+    <tr><th>関連</th><th>関係</th></tr>
+    <tr><td><code>orchestrating-reverse-docs-flow</code></td><td>工程全体の案内役。本スキルはその一工程（外部連携一覧の生成）を担い、単独起動もできる</td></tr>
+    <tr><td>種別別一覧スキル群（画面・API・テーブル・バッチ・帳票）</td><td>他ユニット種別の一覧生成はそれぞれの専用スキルが担う。本スキルは external のみ</td></tr>
+    <tr><td><code>references/external-detection.md</code></td><td>外部連携の調査項目・マニフェストスキーマの正本</td></tr>
+    <tr><td><code>SKILL.md</code></td><td>本スキルの実行仕様の正本（Phase 別の完了条件・返却契約を含む）</td></tr>
+  </table>
+</section>
+
+</body>
+</html>
