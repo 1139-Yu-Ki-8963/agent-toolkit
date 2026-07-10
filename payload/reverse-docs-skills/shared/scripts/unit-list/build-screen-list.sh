@@ -52,6 +52,159 @@
 
 set -euo pipefail
 
+# --- --self-test モード ---
+# render_template()の単一パス置換が、埋め込み値中の他マーカー文字列衝突・
+# バックスラッシュ・山括弧を含む自由記述フィールドでも誤爆しないことを検証する。
+self_test() {
+  local script_path="$0"
+  local script_dir
+  script_dir="$(cd "$(dirname "$script_path")" && pwd)"
+  local tmp rc=0
+  tmp="$(mktemp -d "${TMPDIR:-/tmp}/build-screen-list-self-test.XXXXXX")"
+  trap 'rm -rf "$tmp"' RETURN
+
+  mkdir -p "$tmp/src/screens"
+  cat > "$tmp/src/screens/Home.tsx" <<'EOF'
+export function Home() { return null; }
+EOF
+
+  extract_manifest_json() {
+    sed -n '/<script type="application\/json" id="screen-manifest">/,/<\/script>/p' "$1" | sed '1d;$d'
+  }
+
+  # --- ケースa: バックスラッシュ(正規表現風 \d+)を含む detectionMethod ---
+  local manifest_a="$tmp/manifest-a.json"
+  jq -n \
+    --arg sourceDir "$tmp/src" \
+    --arg entryFile "$tmp/src/screens/Home.tsx" \
+    --arg detectionMethod 'route-regex:/home/\d+' \
+    '{
+      generatedAt: "2026-01-01T00:00:00Z",
+      sourceDir: $sourceDir,
+      strategy: {extractionMethod: "custom", approvedByUser: true, screenIdRegex: null, excludePatterns: []},
+      detectionSummary: {screenCount: 1, clusterCount: 0, sharedScreenCount: 0, embeddedCandidateCount: 0, unresolvedCount: 0},
+      screens: [
+        {
+          screenKey: "home-screen",
+          kind: "route",
+          route: "/home",
+          entryFile: $entryFile,
+          detectionMethod: $detectionMethod,
+          confidence: "high"
+        }
+      ]
+    }' > "$manifest_a"
+
+  local out_a="$tmp/out-a.html"
+  if bash "$script_path" "$manifest_a" "$out_a" >/dev/null 2>&1; then
+    local embedded_a="$tmp/embedded-a.json"
+    local expected_a="$tmp/expected-a.json"
+    extract_manifest_json "$out_a" | jq -c -S . > "$embedded_a" 2>/dev/null || true
+    jq -c -S . "$manifest_a" > "$expected_a"
+    if diff -q "$embedded_a" "$expected_a" >/dev/null 2>&1; then
+      echo "  [PASS] ケースa: バックスラッシュ(\\d+)を含むdetectionMethodでも埋め込みJSONが原本と完全一致"
+    else
+      echo "  [FAIL] ケースa: バックスラッシュを含むdetectionMethodで埋め込みJSONが原本と不一致(誤爆の疑い)" >&2
+      rc=1
+    fi
+  else
+    echo "  [FAIL] ケースa: 生成コマンド自体が失敗した" >&2
+    rc=1
+  fi
+
+  # --- ケースb: 山括弧+実マーカー文字列そのものを含む diagnostics ---
+  local manifest_b="$tmp/manifest-b.json"
+  jq -n \
+    --arg sourceDir "$tmp/src" \
+    --arg entryFile "$tmp/src/screens/Home.tsx" \
+    --arg diag '<span>要確認</span>{{GENERATED_AT}}<!--SCREEN_MANIFEST_JSON-->' \
+    '{
+      generatedAt: "2026-01-01T00:00:00Z",
+      sourceDir: $sourceDir,
+      strategy: {extractionMethod: "custom", approvedByUser: true, screenIdRegex: null, excludePatterns: []},
+      detectionSummary: {screenCount: 1, clusterCount: 0, sharedScreenCount: 0, embeddedCandidateCount: 0, unresolvedCount: 0},
+      screens: [
+        {
+          screenKey: "home-screen",
+          kind: "route",
+          route: "/home",
+          entryFile: $entryFile,
+          detectionMethod: "manual",
+          confidence: "high"
+        }
+      ],
+      diagnostics: [$diag]
+    }' > "$manifest_b"
+
+  local out_b="$tmp/out-b.html"
+  if bash "$script_path" "$manifest_b" "$out_b" >/dev/null 2>&1; then
+    local embedded_b="$tmp/embedded-b.json"
+    local expected_b="$tmp/expected-b.json"
+    extract_manifest_json "$out_b" | jq -c -S . > "$embedded_b" 2>/dev/null || true
+    jq -c -S . "$manifest_b" > "$expected_b"
+    if diff -q "$embedded_b" "$expected_b" >/dev/null 2>&1; then
+      echo "  [PASS] ケースb: 山括弧+実マーカー文字列衝突を含むdiagnosticsでも埋め込みJSONが原本と完全一致"
+    else
+      echo "  [FAIL] ケースb: 山括弧+マーカー文字列衝突で埋め込みJSONが原本と不一致(誤爆の疑い)" >&2
+      rc=1
+    fi
+  else
+    echo "  [FAIL] ケースb: 生成コマンド自体が失敗した" >&2
+    rc=1
+  fi
+
+  # --- 回帰確認: 通常マニフェストの可視テーブル出力と machine gate(validate-manifest.sh)への影響なし ---
+  local manifest_normal="$tmp/manifest-normal.json"
+  jq -n \
+    --arg sourceDir "$tmp/src" \
+    --arg entryFile "$tmp/src/screens/Home.tsx" \
+    '{
+      generatedAt: "2026-01-01T00:00:00Z",
+      sourceDir: $sourceDir,
+      strategy: {extractionMethod: "custom", approvedByUser: true, screenIdRegex: null, excludePatterns: []},
+      detectionSummary: {screenCount: 1, clusterCount: 0, sharedScreenCount: 0, embeddedCandidateCount: 0, unresolvedCount: 0},
+      screens: [
+        {
+          screenKey: "home-screen",
+          kind: "route",
+          route: "/home",
+          entryFile: $entryFile,
+          detectionMethod: "manual",
+          confidence: "high"
+        }
+      ]
+    }' > "$manifest_normal"
+
+  local out_normal="$tmp/out-normal.html"
+  local regression_ok=1
+  if ! bash "$script_path" "$manifest_normal" "$out_normal" >/dev/null 2>&1; then
+    regression_ok=0
+  elif ! grep -q '<code>/home</code>' "$out_normal"; then
+    regression_ok=0
+  elif ! bash "$script_dir/validate-manifest.sh" "$manifest_normal" >/dev/null 2>&1; then
+    regression_ok=0
+  fi
+
+  if [ "$regression_ok" -eq 1 ]; then
+    echo "  [PASS] 回帰確認: 可視テーブル内容は維持されvalidate-manifest.shも引き続きPASS"
+  else
+    echo "  [FAIL] 回帰確認: 可視テーブル内容またはvalidate-manifest.shのPASSに退行が発生した" >&2
+    rc=1
+  fi
+
+  if [ "$rc" -eq 0 ]; then
+    echo "self-test 全項目 PASS"
+  else
+    echo "self-test FAIL" >&2
+  fi
+  return "$rc"
+}
+
+if [ "${1:-}" = "--self-test" ]; then
+  self_test
+  exit $?
+fi
+
 MANIFEST="${1:?Usage: build-screen-list.sh <manifest.json> <output-html-path>}"
 OUTPUT_HTML="${2:?Usage: build-screen-list.sh <manifest.json> <output-html-path>}"
 
@@ -83,6 +236,46 @@ mkdir -p "$(dirname "$OUTPUT_HTML")"
 # --- HTMLエスケープ(& < > のみ。& を最初に処理する) ---
 html_escape() {
   printf '%s' "$1" | sed 's/&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g'
+}
+
+# render_template <template> <marker1> <value1> [<marker2> <value2> ...]
+#
+# 単一パス方式のプレースホルダ置換。テンプレートの「まだ処理していない残り」だけを
+# 走査対象にし、一度確定した出力(地の文または埋め込み済みの値)は二度とプレースホルダの
+# パターンマッチ対象にしない。値の中身に他マーカーの文字列が偶然含まれていても誤爆しない。
+# 対になる build-unit-list.sh / build-screen-list.sh の同名関数と実装を同期させること。
+render_template() {
+  local template="$1"; shift
+  local -a keys=() vals=()
+  while [ $# -gt 0 ]; do
+    keys+=("$1"); vals+=("$2"); shift 2
+  done
+
+  local rest="$template" result="" i n=${#keys[@]}
+  local best_idx best_prefix candidate
+
+  while :; do
+    best_idx=-1
+    best_prefix=""
+    for ((i = 0; i < n; i++)); do
+      case "$rest" in
+        *"${keys[$i]}"*)
+          candidate="${rest%%"${keys[$i]}"*}"
+          if [ "$best_idx" -eq -1 ] || [ "${#candidate}" -lt "${#best_prefix}" ]; then
+            best_idx=$i
+            best_prefix="$candidate"
+          fi
+          ;;
+      esac
+    done
+    [ "$best_idx" -eq -1 ] && break
+    result="${result}${best_prefix}${vals[$best_idx]}"
+    rest="${rest#"${best_prefix}"}"
+    rest="${rest#"${keys[$best_idx]}"}"
+  done
+
+  result="${result}${rest}"
+  printf '%s' "$result"
 }
 
 # --- メタ情報・サマリ集計をマニフェストから抽出 ---
@@ -242,23 +435,24 @@ fi
 
 screen_manifest_json="$(cat "$MANIFEST")"
 
-# --- テンプレートへの注入(単純文字列置換。パターン中に glob 特殊文字は無いため安全) ---
-out="$(cat "$TEMPLATE")"
-out="${out//"{{GENERATED_AT}}"/$(html_escape "$generated_at")}"
-out="${out//"{{SOURCE_DIR}}"/$(html_escape "$source_dir")}"
-out="${out//"{{EXTRACTION_METHOD}}"/$(html_escape "$extraction_method")}"
-out="${out//"{{DETECTION_METHOD}}"/$(html_escape "$detection_method")}"
-out="${out//"{{TILE_SCREEN_COUNT}}"/$tile_screen_count}"
-out="${out//"{{TILE_CLUSTER_COUNT}}"/$tile_cluster_count}"
-out="${out//"{{TILE_SHARED_SCREEN_COUNT}}"/$tile_shared_screen_count}"
-out="${out//"{{TILE_EMBEDDED_COUNT}}"/$tile_embedded_count}"
-out="${out//"{{TILE_UNRESOLVED_COUNT}}"/$tile_unresolved_count}"
-out="${out//"<!--SCREEN_TABLE_ROWS-->"/$screen_rows}"
-out="${out//"<!--UNRESOLVED_SECTION-->"/$unresolved_section}"
-out="${out//"<!--DIAGNOSTICS-->"/$diagnostics_html}"
-# マニフェストJSONの埋め込みは他マーカーの置換完了後に最後へ回す
+# --- テンプレートへの注入(単一パス方式。render_template()参照) ---
+# マニフェストJSONのマーカーはテンプレート内で物理的に最後に出現するため、
+# 単一パスのdocument-order走査により自動的に最後に処理される
 # (JSON内容に他マーカー文字列が偶然含まれた場合の誤爆を避けるため)
-out="${out//"<!--SCREEN_MANIFEST_JSON-->"/$screen_manifest_json}"
+out="$(render_template "$(cat "$TEMPLATE")" \
+  "{{GENERATED_AT}}" "$(html_escape "$generated_at")" \
+  "{{SOURCE_DIR}}" "$(html_escape "$source_dir")" \
+  "{{EXTRACTION_METHOD}}" "$(html_escape "$extraction_method")" \
+  "{{DETECTION_METHOD}}" "$(html_escape "$detection_method")" \
+  "{{TILE_SCREEN_COUNT}}" "$tile_screen_count" \
+  "{{TILE_CLUSTER_COUNT}}" "$tile_cluster_count" \
+  "{{TILE_SHARED_SCREEN_COUNT}}" "$tile_shared_screen_count" \
+  "{{TILE_EMBEDDED_COUNT}}" "$tile_embedded_count" \
+  "{{TILE_UNRESOLVED_COUNT}}" "$tile_unresolved_count" \
+  "<!--SCREEN_TABLE_ROWS-->" "$screen_rows" \
+  "<!--UNRESOLVED_SECTION-->" "$unresolved_section" \
+  "<!--DIAGNOSTICS-->" "$diagnostics_html" \
+  "<!--SCREEN_MANIFEST_JSON-->" "$screen_manifest_json")"
 
 printf '%s\n' "$out" > "$OUTPUT_HTML"
 
