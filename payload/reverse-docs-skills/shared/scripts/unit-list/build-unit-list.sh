@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# generating-unit-list-for-reverse-docs: 種別対応HTML一覧生成ディスパッチャ。
+# 種別別一覧スキル群(generating-<種別>-list-for-reverse-docs)共通エンジン: 種別対応HTML一覧生成ディスパッチャ。
 # unit_kind=screen なら build-screen-list.sh に委譲、他種別は汎用テンプレートから生成する。
 #
 # Usage: build-unit-list.sh <manifest.json> <output-html-path> [--unit-kind <kind>]
@@ -10,7 +10,7 @@
 #
 # unit_kind=screen 以外の場合:
 #   1. validate-manifest.sh <manifest.json> --unit-kind <kind> で検証(PASSしない限り生成しない)
-#   2. assets/unit-list-template.html を土台に、jqでマニフェストJSONをパースして
+#   2. shared/templates/unit-list/unit-list-template.html を土台に、jqでマニフェストJSONをパースして
 #      プレースホルダ・注入マーカーを機械的に置換し、決定的にHTMLを生成する
 #
 # 汎用マニフェストの入力JSONスキーマ(契約。詳細は references/kind-detection-strategies.md):
@@ -90,7 +90,7 @@ case "$UNIT_KIND" in
   *) echo "ERROR: unknown unit_kind: $UNIT_KIND" >&2; exit 1 ;;
 esac
 
-TEMPLATE="$SCRIPT_DIR/../assets/unit-list-template.html"
+TEMPLATE="$SCRIPT_DIR/../../templates/unit-list/unit-list-template.html"
 if [ ! -f "$TEMPLATE" ]; then
   echo "ERROR: template not found: $TEMPLATE" >&2
   exit 1

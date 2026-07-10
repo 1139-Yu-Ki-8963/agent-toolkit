@@ -582,7 +582,7 @@
     bundler_cache_dirs:                        # 整列後に削除するキャッシュ（§8-4 手順⑤）
       - node_modules/.vite
       - node_modules/.cache
-    artifacts_root: "~/agent-home/sessions/reverse-env"  # 証跡ルート（scope/実行日時で分離。§9）
+    artifacts_root: null            # 証跡ルート。null（既定）なら設計書リポジトリ内 &lt;画面ディレクトリ&gt;/検証記録/ に同梱（実行日時で分離。§9）
     l3_threshold_percent: 0.1   # L3 視覚比較の許容差分画素率
     max_loop: 3                 # 収束ループ上限の既定値
     tag_namespace: reverse-baseline
@@ -909,7 +909,7 @@
                    # MCP・node-script とも利用不能のため動的検証未実施。
                    # 静的一致のみでは PASS を判定できない</pre>
   <p class="note"><code>hint</code> は「差分ファイル → 設計書章マップの対応推定」であり、呼び出し元（orchestrating-reverse-docs-flow が仲介）の設計書修正ループの入力になる。<code>status=INCOMPLETE</code> 時は内訳（DESIGN-INCOMPLETE / DYNAMIC-UNVERIFIED）と対処方針も <code>hint</code> に記す。</p>
-  <p class="note"><code>artifacts</code> の保存規約: <code>&lt;artifacts_root&gt;/&lt;scope&gt;/&lt;実行日時&gt;/</code> 配下に scenario 別のサブディレクトリを作成して保存する（<code>artifacts_root</code> は config.yml、既定 <code>~/agent-home/sessions/reverse-env</code>）。</p>
+  <p class="note"><code>artifacts</code> の保存規約: <code>artifacts_root</code>（config.yml）が null（既定）の場合は設計書リポジトリ内 <code>&lt;画面ディレクトリ&gt;/検証記録/&lt;実行日時&gt;/</code> 配下、明示指定時は <code>&lt;artifacts_root&gt;/&lt;scope&gt;/&lt;実行日時&gt;/</code> 配下に、scenario 別のサブディレクトリを作成して保存する。</p>
 
   <h3>ユーザー向け定型文（検証後の報告）</h3>
   <p>ポートと起動手順は config.yml、確認 URL のパスは設計書 frontmatter の <code>scenarios[].path</code>（<code>query</code>/<code>path_params</code> 展開後）、判定と証跡は実行結果から埋める。アプリ依存は起動手順だけなので、定型文の形は全アプリ共通。</p>

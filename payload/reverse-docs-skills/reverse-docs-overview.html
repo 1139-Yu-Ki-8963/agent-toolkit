@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<!--
+  リバース工程全体ガイド（単一ファイル自己完結型）
+
+  - 外部リソース（CDN・画像・link）は一切使わず、完全自己完結に保つ
+  - スキル個別の確定仕様は各 .claude/skills/<name>/references/<name>-guide.html を正本とする
+  - 納品物ツリーの構成と実装状況（Cycle 番号）の正本は shared/references/納品物フォルダ体系.md
+-->
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>リバース工程全体ガイド</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 0 24px 96px;
+    font-family: system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif;
+    line-height: 1.85; color: #1a1a1a; background: #fafafa;
+    max-width: 1080px; margin-inline: auto;
+  }
+  header { padding: 56px 0 24px; border-bottom: 3px solid #1a1a1a; }
+  header h1 { font-size: 1.9rem; margin: 0 0 10px; letter-spacing: 0.01em; }
+  header p { margin: 6px 0 0; color: #555; }
+  .meta-table { margin-top: 16px; font-size: 0.9rem; color: #555; }
+  .meta-table td { padding: 1px 16px 1px 0; vertical-align: top; }
+
+  nav.toc {
+    margin-top: 32px; padding: 18px 22px;
+    background: #fff; border: 1px solid #e0e0e0; border-radius: 8px;
+  }
+  nav.toc .toc-title { font-weight: 700; margin-bottom: 6px; }
+  nav.toc ol { margin: 0; padding-left: 1.4em; columns: 2; column-gap: 40px; }
+  nav.toc li { margin: 2px 0; }
+  nav.toc a { color: #1a1a1a; text-decoration: none; border-bottom: 1px dotted #999; }
+  nav.toc a:hover { border-bottom-style: solid; }
+
+  section { margin-top: 64px; }
+  section > h2 {
+    font-size: 1.35rem; padding-bottom: 8px; margin-bottom: 20px;
+    border-bottom: 2px solid #1a1a1a;
+  }
+  section > h2 .sec-num {
+    display: inline-block; min-width: 2.4em; margin-right: 10px;
+    font-family: ui-monospace, monospace; font-size: 0.95rem;
+    background: #1a1a1a; color: #fafafa; text-align: center;
+    padding: 1px 8px; border-radius: 4px; vertical-align: 2px;
+  }
+  h3 { font-size: 1.05rem; margin: 32px 0 10px; }
+  .note { color: #555; font-size: 0.92rem; }
+
+  table.spec { border-collapse: collapse; width: 100%; margin: 14px 0; background: #fff; font-size: 0.93rem; }
+  table.spec th, table.spec td { border: 1px solid #d8d8d8; padding: 8px 12px; text-align: left; vertical-align: top; }
+  table.spec th { background: #f0f0ee; font-weight: 700; white-space: nowrap; }
+  table.spec td code, li code, p code, dd code, table.spec th code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.86em; background: #eeeeea; padding: 1px 5px; border-radius: 3px;
+  }
+  table.spec a { color: #1a1a1a; }
+
+  .def {
+    background: #fff; border-left: 4px solid #1a1a1a;
+    padding: 12px 18px; margin: 14px 0; border-radius: 0 6px 6px 0;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  }
+  .def dt { font-weight: 700; margin-top: 8px; }
+  .def dt:first-child { margin-top: 0; }
+  .def dd { margin: 2px 0 0 0; color: #333; }
+
+  .tag {
+    display: inline-block; font-family: ui-monospace, monospace; font-size: 0.78rem;
+    font-weight: 700; padding: 0 8px; border-radius: 3px; border: 1px solid transparent;
+    white-space: nowrap;
+  }
+  .tag.done { background: #e7f3e7; color: #23662a; border-color: #b9d9ba; }
+  .tag.listonly { background: #e8eef7; color: #2a4a7a; border-color: #c2d2e8; }
+  .tag.planned { background: #fdf3d7; color: #7a5d10; border-color: #e8d59a; }
+
+  /* §1 工程フロー図（縦積み・成果物の積み上がり） */
+  .flowgrid { display: grid; grid-template-columns: minmax(260px, 34%) 1fr; gap: 0 18px; margin: 20px 0; }
+  .flowstep {
+    background: #fff; border: 2px solid #334155; border-radius: 10px;
+    padding: 10px 14px; margin: 0 0 34px; position: relative;
+  }
+  .flowstep .stepname { font-weight: 700; }
+  .flowstep .stepskill {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.78rem; color: #2a4a7a; display: block; margin-top: 2px; word-break: break-all;
+  }
+  .flowstep.loop { border-color: #2f855a; background: #f4faf6; }
+  .flowstep::after {
+    content: "▼"; position: absolute; left: 50%; bottom: -28px;
+    transform: translateX(-50%); color: #475569; font-size: 0.85rem;
+  }
+  .flowstep.last::after { content: none; }
+  .flowgain {
+    background: #fffdf6; border: 1px dashed #d97706; border-radius: 10px;
+    padding: 10px 14px; margin: 0 0 34px; font-size: 0.88rem; color: #6b4e0d;
+  }
+  .flowgain .gainlabel { font-weight: 700; color: #b45309; font-size: 0.8rem; display: block; }
+  .flowgain code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.84em; background: #f7efd9; padding: 1px 5px; border-radius: 3px;
+  }
+  .flowgain.none { border-style: dotted; border-color: #94a3b8; color: #64748b; background: #f8fafc; }
+  .flowgain.none code { background: #eef2f6; }
+  .substeps { margin: 8px 0 0; padding-left: 0; list-style: none; }
+  .substeps li {
+    border-left: 3px solid #2f855a; padding: 2px 10px; margin: 6px 0;
+    background: #fff; border-radius: 0 6px 6px 0; font-size: 0.88rem;
+  }
+
+  /* §3 納品物ツリー */
+  ul.tree, ul.tree ul { list-style: none; margin: 0; padding-left: 22px; }
+  ul.tree { background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; padding: 16px 20px 16px 26px; font-size: 0.9rem; }
+  ul.tree li { position: relative; padding: 1px 0 1px 14px; }
+  ul.tree li::before {
+    content: ""; position: absolute; left: 0; top: 0; bottom: 0;
+    border-left: 1px solid #c9c9c9;
+  }
+  ul.tree li::after {
+    content: ""; position: absolute; left: 0; top: 0.95em; width: 10px;
+    border-top: 1px solid #c9c9c9;
+  }
+  ul.tree > li:last-child::before, ul.tree ul > li:last-child::before { height: 0.95em; bottom: auto; }
+  ul.tree .node { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.92em; }
+  ul.tree .dir { font-weight: 700; }
+  ul.tree .by { color: #64748b; font-size: 0.86em; margin-left: 8px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>リバース工程全体ガイド</h1>
+  <p>既存コードから設計書一式を復元し、その設計書だけでコードを再現できることを証明するまでの全工程を 1 枚で俯瞰する。スキルを 1 つずつ実行するたびに <code>docs_root</code>（設計書一式の置き場ルート）へ成果物が積み上がり、最後に納品一覧が完成する。</p>
+
+  <table class="meta-table">
+    <tr><td>正本</td><td>このファイル（<code>reverse-docs-overview.html</code>）</td></tr>
+    <tr><td>更新契機</td><td>スキル構成・契約（contract.md）変更時</td></tr>
+    <tr><td>対象読者</td><td>リバース設計の利用者・保守者</td></tr>
+    <tr><td>関連文書</td><td><code>README.md</code>・<code>.claude/skills/orchestrating-reverse-docs-flow/references/contract.md</code>・<code>shared/references/リバース工程設計.md</code></td></tr>
+  </table>
+</header>
+
+<nav class="toc">
+  <div class="toc-title">目次</div>
+  <ol>
+    <li><a href="#s1">工程フロー図（成果物の積み上がり）</a></li>
+    <li><a href="#s2">スキル→成果物対応表</a></li>
+    <li><a href="#s3">納品物ツリー最終形</a></li>
+    <li><a href="#s4">種別×工程の実装状況</a></li>
+    <li><a href="#s5">責務境界の確定事項</a></li>
+  </ol>
+</nav>
+
+<section id="s1">
+  <h2><span class="sec-num">§1</span>工程フロー図（成果物の積み上がり）</h2>
+  <p>指揮役（<code>orchestrating-reverse-docs-flow</code>）が左列の工程を上から順に進める。各工程が完了するたびに、右列の成果物が <code>docs_root</code> に増える。緑枠の「ユニット反復」は画面 1 つごとに繰り返す。</p>
+  <p class="note">本文書で使う「facts」は、原本コードから抽出した宣言的契約の事実表（項目・分岐・呼び出しの数まで数え上げた一次資料）を指す。「基準タグ」は、2 環境の完全一致を証明できた時点のコミットに打つ git タグ <code>reverse-baseline/&lt;scope&gt;</code> を指す。</p>
+
+  <div class="flowgrid">
+    <div>
+      <div class="flowstep">
+        <span class="stepname">アーキテクチャ調査</span>
+        <span class="stepskill">surveying-architecture-for-reverse-docs</span>
+      </div>
+    </div>
+    <div class="flowgain"><span class="gainlabel">docs_root に増えるもの</span><code>プロジェクト共通/アーキテクチャ調査書.md</code>（実在する種別の判定を含む・機械検証で確定）</div>
+
+    <div>
+      <div class="flowstep">
+        <span class="stepname">一覧生成（6 種別）</span>
+        <span class="stepskill">generating-&lt;種別&gt;-list-for-reverse-docs ×6</span>
+      </div>
+    </div>
+    <div class="flowgain"><span class="gainlabel">docs_root に増えるもの</span><code>一覧/&lt;種別&gt;一覧/&lt;種別&gt;一覧.html</code>（実在種別ぶん）と <code>一覧/excluded-kinds.json</code>（対象外種別の記録）</div>
+
+    <div>
+      <div class="flowstep">
+        <span class="stepname">共通採録</span>
+        <span class="stepskill">compiling-project-common-docs</span>
+      </div>
+    </div>
+    <div class="flowgain"><span class="gainlabel">docs_root に増えるもの</span><code>プロジェクト共通/</code> の 7 文書（規約 4 種・共通設計書・メッセージ定義書・DESIGN.md）</div>
+
+    <div>
+      <div class="flowstep">
+        <span class="stepname">環境 setup</span>
+        <span class="stepskill">syncing-reverse-env（mode=setup）</span>
+      </div>
+    </div>
+    <div class="flowgain none"><span class="gainlabel">docs_root には増えない</span>オリジナルコード環境・リバースコード環境の 2 worktree と固定ポートが確立する（対象コードリポジトリ側の資産）</div>
+
+    <div>
+      <div class="flowstep loop">
+        <span class="stepname">ユニット反復（画面 1 つごと）</span>
+        <ul class="substeps">
+          <li>開通 <span class="stepskill">unlocking-reverse-target-screens</span></li>
+          <li>facts 抽出 <span class="stepskill">extracting-unit-facts-from-code</span></li>
+          <li>設計書執筆 <span class="stepskill">authoring-screen-docs-from-code</span></li>
+          <li>ファイル単位検証 <span class="stepskill">rebuilding-screen-unit-from-docs</span></li>
+        </ul>
+      </div>
+    </div>
+    <div class="flowgain"><span class="gainlabel">docs_root に増えるもの</span>
+      <code>一覧/reverse-screen-registry.yml</code>（開通の記帳）／
+      <code>画面/screen-&lt;画面ID&gt;/検証記録/facts/</code>（封印済み facts）／
+      <code>詳細設計/画面詳細設計書.md</code>・<code>DESIGN.md</code>・観点表／
+      <code>検証記録/単体-&lt;ファイル名&gt;/</code> と <code>テスト項目書/テストコード/単体/</code>（修正指示書・保存済み単体テストコード）
+    </div>
+
+    <div>
+      <div class="flowstep">
+        <span class="stepname">基準確立</span>
+        <span class="stepskill">syncing-reverse-env（mode=setup → sync）</span>
+      </div>
+    </div>
+    <div class="flowgain none"><span class="gainlabel">docs_root には増えない</span>基準タグ <code>reverse-baseline/&lt;scope&gt;</code> が対象コードリポジトリに確立する（設計書検証の土台）</div>
+
+    <div>
+      <div class="flowstep">
+        <span class="stepname">再実装</span>
+        <span class="stepskill">rebuilding-code-from-docs（mode=implement）</span>
+      </div>
+    </div>
+    <div class="flowgain none"><span class="gainlabel">docs_root には増えない</span>設計書だけを見た再実装コードがリバースコード環境に入り、凍結コミット（freeze_commit）で固定される</div>
+
+    <div>
+      <div class="flowstep">
+        <span class="stepname">比較</span>
+        <span class="stepskill">syncing-reverse-env（mode=sync, dry-run）</span>
+      </div>
+    </div>
+    <div class="flowgain"><span class="gainlabel">増えるもの</span>比較結果ブロック（静的差分・動的比較・環境同一性）と証跡ディレクトリ。整列・基準タグ更新は行わない</div>
+
+    <div>
+      <div class="flowstep">
+        <span class="stepname">判定</span>
+        <span class="stepskill">rebuilding-code-from-docs（mode=judge）</span>
+      </div>
+    </div>
+    <div class="flowgain"><span class="gainlabel">docs_root に増えるもの</span><code>画面/screen-&lt;画面ID&gt;/検証記録/&lt;timestamp&gt;/修正指示書.md</code>・<code>最終報告.md</code>。不一致は NG 帰着 3 系統（<code>shared/references/リバース工程設計.md</code>）へ配線する</div>
+
+    <div>
+      <div class="flowstep last">
+        <span class="stepname">基準タグ本番</span>
+        <span class="stepskill">syncing-reverse-env（mode=sync 本番）</span>
+      </div>
+    </div>
+    <div class="flowgain"><span class="gainlabel">完成する状態</span>判定 PASS を受けて基準タグを本番更新。この画面について「設計書はコードを完全に再現できる品質である」と主張できる状態になり、§3 の納品物ツリーが 1 画面ぶん完成する</div>
+  </div>
+</section>
+
+<section id="s2">
+  <h2><span class="sec-num">§2</span>スキル→成果物対応表</h2>
+  <p>指揮役が仲介する子スキル 14 個の一覧。状態キーは指揮役の状態判定表（contract.md）で当該スキルの起動条件となる状態、返却 status は各スキルが返す判定値、主成果物は完了時に確立する代表的な生成物を示す。個別ガイドがあるスキルはスキル名からたどれる。</p>
+  <table class="spec">
+    <tr><th>スキル</th><th>状態キー</th><th>返却 status</th><th>主成果物</th></tr>
+    <tr>
+      <td><a href=".claude/skills/surveying-architecture-for-reverse-docs/references/surveying-architecture-for-reverse-docs-guide.html"><code>surveying-architecture-for-reverse-docs</code></a></td>
+      <td>アーキ未調査</td>
+      <td><code>調査確定 | 中断</code></td>
+      <td>アーキテクチャ調査書.md（実在種別の判定つき）</td>
+    </tr>
+    <tr>
+      <td><a href=".claude/skills/generating-screen-list-for-reverse-docs/references/generating-screen-list-for-reverse-docs-guide.html"><code>generating-screen-list-for-reverse-docs</code></a></td>
+      <td>一覧未生成</td>
+      <td><code>DONE | ERROR</code></td>
+      <td>一覧/画面一覧/画面一覧.html</td>
+    </tr>
+    <tr>
+      <td><a href=".claude/skills/generating-api-list-for-reverse-docs/references/generating-api-list-for-reverse-docs-guide.html"><code>generating-api-list-for-reverse-docs</code></a></td>
+      <td>一覧未生成</td>
+      <td><code>DONE | ERROR</code></td>
+      <td>一覧/API一覧/API一覧.html</td>
+    </tr>
+    <tr>
+      <td><a href=".claude/skills/generating-table-list-for-reverse-docs/references/generating-table-list-for-reverse-docs-guide.html"><code>generating-table-list-for-reverse-docs</code></a></td>
+      <td>一覧未生成</td>
+      <td><code>DONE | ERROR</code></td>
+      <td>一覧/テーブル一覧/テーブル一覧.html</td>
+    </tr>
+    <tr>
+      <td><a href=".claude/skills/generating-batch-list-for-reverse-docs/references/generating-batch-list-for-reverse-docs-guide.html"><code>generating-batch-list-for-reverse-docs</code></a></td>
+      <td>一覧未生成</td>
+      <td><code>DONE | ERROR</code></td>
+      <td>一覧/バッチ一覧/バッチ一覧.html</td>
+    </tr>
+    <tr>
+      <td><a href=".claude/skills/generating-report-list-for-reverse-docs/references/generating-report-list-for-reverse-docs-guide.html"><code>generating-report-list-for-reverse-docs</code></a></td>
+      <td>一覧未生成</td>
+      <td><code>DONE | ERROR</code></td>
+      <td>一覧/帳票一覧/帳票一覧.html</td>
+    </tr>
+    <tr>
+      <td><a href=".claude/skills/generating-external-list-for-reverse-docs/references/generating-external-list-for-reverse-docs-guide.html"><code>generating-external-list-for-reverse-docs</code></a></td>
+      <td>一覧未生成</td>
+      <td><code>DONE | ERROR</code></td>
+      <td>一覧/外部連携一覧/外部連携一覧.html</td>
+    </tr>
+    <tr>
+      <td><a href=".claude/skills/compiling-project-common-docs/references/compiling-project-common-docs-guide.html"><code>compiling-project-common-docs</code></a></td>
+      <td>共通未採録（NG 帰着 (c) 時は往復未検証から再入）</td>
+      <td><code>採録v0確定 | 追記完了 | 中断</code></td>
+      <td>プロジェクト共通/ の 7 文書（規約 4 種・共通設計書・メッセージ定義書・DESIGN.md）</td>
+    </tr>
+    <tr>
+      <td><a href=".claude/skills/unlocking-reverse-target-screens/references/unlocking-reverse-target-screens-guide.html"><code>unlocking-reverse-target-screens</code></a></td>
+      <td>画面未開通</td>
+      <td><code>BASELINE-ESTABLISHED | UNLOCKED | BLOCKED | ERROR</code></td>
+      <td>画面レジストリ記帳（reverse-screen-registry.yml）＋基準タグ確立まで単独完走</td>
+    </tr>
+    <tr>
+      <td><a href=".claude/skills/extracting-unit-facts-from-code/references/extracting-unit-facts-from-code-guide.html"><code>extracting-unit-facts-from-code</code></a></td>
+      <td>事実未封印</td>
+      <td><code>封印済み | 中断</code></td>
+      <td>封印済み facts 一式（facts.lock つき・独立再計数ゲート通過済み）</td>
+    </tr>
+    <tr>
+      <td><a href=".claude/skills/authoring-screen-docs-from-code/references/authoring-screen-docs-from-code-guide.html"><code>authoring-screen-docs-from-code</code></a></td>
+      <td>設計書未著述</td>
+      <td><code>AUTHORED | BLOCKED</code></td>
+      <td>画面詳細設計書.md（fact 網羅検査・整合監査の通過記録つき）</td>
+    </tr>
+    <tr>
+      <td><a href=".claude/skills/rebuilding-screen-unit-from-docs/references/rebuilding-screen-unit-from-docs-guide.html"><code>rebuilding-screen-unit-from-docs</code></a></td>
+      <td>ファイル単位未検証</td>
+      <td><code>差し戻し | 再現一致 | 再現不一致</code></td>
+      <td>ファイル単位の検証記録・修正指示書.md・保存済み単体テストコード（saved_test_paths）</td>
+    </tr>
+    <tr>
+      <td><a href=".claude/skills/syncing-reverse-env/references/syncing-reverse-env-guide.html"><code>syncing-reverse-env</code></a></td>
+      <td>基準未確立・検証完了（比較は往復未検証の中間工程）</td>
+      <td><code>PASS | FAIL | ERROR | INCOMPLETE</code></td>
+      <td>2 環境（worktree・固定ポート）・比較結果ブロック・基準タグ <code>reverse-baseline/&lt;scope&gt;</code></td>
+    </tr>
+    <tr>
+      <td><a href=".claude/skills/rebuilding-code-from-docs/references/rebuilding-code-from-docs-guide.html"><code>rebuilding-code-from-docs</code></a></td>
+      <td>往復未検証</td>
+      <td>implement: <code>NEED-COMPARE | INTERNAL-CONTRADICTION | ERROR | BLOCKED</code><br>judge: <code>PASS | FAIL | DESIGN-INCOMPLETE | DYNAMIC-UNVERIFIED</code></td>
+      <td>再実装コード（凍結コミット）・修正指示書.md・最終報告.md</td>
+    </tr>
+  </table>
+  <p class="note">指揮役 <code>orchestrating-reverse-docs-flow</code> 自身は状態判定と検収・配線に徹する（<a href=".claude/skills/orchestrating-reverse-docs-flow/references/orchestrating-reverse-docs-flow-guide.html">指揮役ガイド</a>）。成果物では <code>一覧/excluded-kinds.json</code> の書き出しのみ指揮役が担う。</p>
+</section>
+
+<section id="s3">
+  <h2><span class="sec-num">§3</span>納品物ツリー最終形</h2>
+  <p><code>docs_root</code> 配下の最終形。各行の薄い文字は生成スキル、右端は実装状況。実装状況の凡例は次のとおり（Cycle 番号の正本は <code>shared/references/納品物フォルダ体系.md</code>）。</p>
+  <p>
+    <span class="tag done">済</span> 現行スキルで生成できる ／
+    <span class="tag planned">段階計画 Cycle 1〜3</span> API・テーブル・バッチ・帳票・外部連携の詳細設計書群（未実装）／
+    <span class="tag planned">段階計画 Cycle 4</span> 上位抽象化スキルが担う基本設計・要件定義文書群（未実装）
+  </p>
+  <ul class="tree">
+    <li><span class="node dir">&lt;docs_root&gt;/</span>
+      <ul>
+        <li><span class="node dir">一覧/</span>
+          <ul>
+            <li><span class="node">画面一覧/画面一覧.html</span><span class="by">generating-screen-list-for-reverse-docs</span> <span class="tag done">済</span></li>
+            <li><span class="node">API一覧/API一覧.html</span><span class="by">generating-api-list-for-reverse-docs</span> <span class="tag done">済</span></li>
+            <li><span class="node">テーブル一覧/テーブル一覧.html</span><span class="by">generating-table-list-for-reverse-docs</span> <span class="tag done">済</span></li>
+            <li><span class="node">バッチ一覧/バッチ一覧.html</span><span class="by">generating-batch-list-for-reverse-docs</span> <span class="tag done">済</span></li>
+            <li><span class="node">帳票一覧/帳票一覧.html</span><span class="by">generating-report-list-for-reverse-docs</span> <span class="tag done">済</span></li>
+            <li><span class="node">外部連携一覧/外部連携一覧.html</span><span class="by">generating-external-list-for-reverse-docs</span> <span class="tag done">済</span></li>
+            <li><span class="node">reverse-screen-registry.yml</span><span class="by">unlocking-reverse-target-screens（記帳）</span> <span class="tag done">済</span></li>
+            <li><span class="node">excluded-kinds.json</span><span class="by">orchestrating-reverse-docs-flow</span> <span class="tag done">済</span></li>
+          </ul>
+        </li>
+        <li><span class="node dir">プロジェクト共通/</span>
+          <ul>
+            <li><span class="node">規約/（コーディング・命名・ディレクトリ構成・コンポーネント設計の 4 種）</span><span class="by">compiling-project-common-docs</span> <span class="tag done">済</span></li>
+            <li><span class="node">共通設計書.md ・ メッセージ定義書.md ・ DESIGN.md</span><span class="by">compiling-project-common-docs</span> <span class="tag done">済</span></li>
+            <li><span class="node">アーキテクチャ調査書.md</span><span class="by">surveying-architecture-for-reverse-docs</span> <span class="tag done">済</span></li>
+            <li><span class="node">基盤設計.md ・ UI共通設計.md ・ データ設計.md</span><span class="by">上位抽象化スキル（基本設計）</span> <span class="tag planned">段階計画 Cycle 4</span></li>
+            <li><span class="node">機能要件一覧.md ・ 帳票要件.md ・ バッチ要件.md ・ 外部連携要件.md ・ ビジネス概要.md</span><span class="by">上位抽象化スキル（要件定義）</span> <span class="tag planned">段階計画 Cycle 4</span></li>
+          </ul>
+        </li>
+        <li><span class="node dir">画面/screen-&lt;画面ID&gt;/</span>
+          <ul>
+            <li><span class="node">詳細設計/画面詳細設計書.md ・ DESIGN.md</span><span class="by">authoring-screen-docs-from-code</span> <span class="tag done">済</span></li>
+            <li><span class="node">詳細設計/単体テスト観点表.md ・ 結合テスト観点表.md</span><span class="by">検証系スキル</span> <span class="tag done">済</span></li>
+            <li><span class="node">基本設計/画面基本設計書.md</span><span class="by">上位抽象化スキル（基本設計）</span> <span class="tag planned">段階計画 Cycle 4</span></li>
+            <li><span class="node">テスト項目書/（仕様書 3 種＋テストコード/単体/）</span><span class="by">検証系スキル・rebuilding-screen-unit-from-docs</span> <span class="tag done">済</span></li>
+            <li><span class="node">検証記録/facts/ ・ 単体-&lt;ファイル名&gt;/ ・ &lt;timestamp&gt;/（修正指示書.md・最終報告.md）</span><span class="by">extracting-unit-facts-from-code・rebuilding-screen-unit-from-docs・rebuilding-code-from-docs</span> <span class="tag done">済</span></li>
+          </ul>
+        </li>
+        <li><span class="node dir">API/api-&lt;API-ID&gt;/</span>
+          <ul>
+            <li><span class="node">詳細設計/API詳細設計書.md</span><span class="by">詳細設計執筆スキル</span> <span class="tag planned">段階計画 Cycle 1〜3</span></li>
+          </ul>
+        </li>
+        <li><span class="node dir">テーブル/table-&lt;テーブルID&gt;/</span>
+          <ul>
+            <li><span class="node">詳細設計/テーブル定義書.md</span><span class="by">詳細設計執筆スキル</span> <span class="tag planned">段階計画 Cycle 1〜3</span></li>
+          </ul>
+        </li>
+        <li><span class="node dir">バッチ/batch-&lt;バッチID&gt;/</span>
+          <ul>
+            <li><span class="node">詳細設計/バッチ詳細設計書.md</span><span class="by">詳細設計執筆スキル</span> <span class="tag planned">段階計画 Cycle 1〜3</span></li>
+            <li><span class="node">基本設計/バッチ基本設計書.md</span><span class="by">上位抽象化スキル（基本設計）</span> <span class="tag planned">段階計画 Cycle 4</span></li>
+          </ul>
+        </li>
+        <li><span class="node dir">帳票/report-&lt;帳票ID&gt;/</span>
+          <ul>
+            <li><span class="node">詳細設計/帳票詳細設計書.md</span><span class="by">詳細設計執筆スキル</span> <span class="tag planned">段階計画 Cycle 1〜3</span></li>
+            <li><span class="node">基本設計/帳票基本設計書.md</span><span class="by">上位抽象化スキル（基本設計）</span> <span class="tag planned">段階計画 Cycle 4</span></li>
+          </ul>
+        </li>
+        <li><span class="node dir">外部連携/exif-&lt;連携ID&gt;/</span>
+          <ul>
+            <li><span class="node">詳細設計/外部連携詳細設計書.md</span><span class="by">詳細設計執筆スキル</span> <span class="tag planned">段階計画 Cycle 1〜3</span></li>
+            <li><span class="node">基本設計/外部連携基本設計書.md</span><span class="by">上位抽象化スキル（基本設計）</span> <span class="tag planned">段階計画 Cycle 4</span></li>
+          </ul>
+        </li>
+      </ul>
+    </li>
+  </ul>
+  <p class="note">ツリーの構成正本は <code>shared/references/納品物フォルダ体系.md</code>。本節はそこへ検証記録の内訳（facts・ファイル単位検証記録。contract.md が定めるパス）を重ねた読み替え図である。</p>
+</section>
+
+<section id="s4">
+  <h2><span class="sec-num">§4</span>種別×工程の実装状況</h2>
+  <p>6 種別（アーキテクチャ調査書の実在判定対象）ごとに、4 工程がどこまで実装済みかを示す。現況列の「一覧のみ」は、一覧化までは済んでいるが facts 抽出以降の工程が未対応で止まる状態を指す（対象外種別＝そもそも実在しない、とは別の状態）。</p>
+  <table class="spec">
+    <tr><th>種別</th><th>現況</th><th>一覧生成</th><th>facts 抽出</th><th>設計書執筆</th><th>往復検証</th></tr>
+    <tr><td>画面（screen）</td><td><span class="tag done">済</span></td><td><span class="tag done">済</span></td><td><span class="tag done">済</span></td><td><span class="tag done">済</span></td><td><span class="tag done">済</span></td></tr>
+    <tr><td>API（api）</td><td><span class="tag listonly">一覧のみ</span></td><td><span class="tag done">済</span></td><td><span class="tag planned">段階計画</span></td><td><span class="tag planned">段階計画</span></td><td><span class="tag planned">段階計画</span></td></tr>
+    <tr><td>テーブル（table）</td><td><span class="tag listonly">一覧のみ</span></td><td><span class="tag done">済</span></td><td><span class="tag planned">段階計画</span></td><td><span class="tag planned">段階計画</span></td><td><span class="tag planned">段階計画</span></td></tr>
+    <tr><td>バッチ（batch）</td><td><span class="tag listonly">一覧のみ</span></td><td><span class="tag done">済</span></td><td><span class="tag planned">段階計画</span></td><td><span class="tag planned">段階計画</span></td><td><span class="tag planned">段階計画</span></td></tr>
+    <tr><td>帳票（report）</td><td><span class="tag listonly">一覧のみ</span></td><td><span class="tag done">済</span></td><td><span class="tag planned">段階計画</span></td><td><span class="tag planned">段階計画</span></td><td><span class="tag planned">段階計画</span></td></tr>
+    <tr><td>外部連携（external）</td><td><span class="tag listonly">一覧のみ</span></td><td><span class="tag done">済</span></td><td><span class="tag planned">段階計画</span></td><td><span class="tag planned">段階計画</span></td><td><span class="tag planned">段階計画</span></td></tr>
+  </table>
+  <p class="note">facts 抽出スキルは <code>profile=screen</code> のみ実装しており、他プロファイル指定時は <code>status=中断</code> を返す。画面以外の種別は一覧確立の時点で工程が止まる（contract.md の状態判定表に明文化済み）。</p>
+</section>
+
+<section id="s5">
+  <h2><span class="sec-num">§5</span>責務境界の確定事項</h2>
+  <p>工程をまたいで迷いやすい「どちらのスキルが持つか」の確定事項。ここに挙げた 6 点は仕様として確定しており、変更する場合は contract.md と各スキルガイドを同時に改訂する。</p>
+  <div class="def">
+    <dt>scaffold の正本</dt>
+    <dd>画面の骨組み生成スクリプトの正本は <code>shared/scripts/scaffold-screen.sh</code> の 1 本のみ。利用側スキルは引数渡しで呼び出し、複製・改変版を持たない。</dd>
+    <dt>単体テスト正本の一本化</dt>
+    <dd>単体テストコードの正本は、ファイル単位検証（rebuilding-screen-unit-from-docs）が保存した <code>saved_test_paths</code>（設計書リポジトリの <code>テスト項目書/テストコード/単体/</code> 配下）の 1 系統のみ。画面単位検証（rebuilding-code-from-docs）はこれを対象コードリポジトリへ配置して実行するだけで、単体テストコードの新規作成は行わない。</dd>
+    <dt>E2E の責務分離</dt>
+    <dd>E2E（画面を実際に操作して端から端まで通す試験）は、作成が rebuilding-code-from-docs（mode=implement）、実行が syncing-reverse-env の動的比較。作る側と走らせる側を分けることで、試験内容が比較判定に引きずられない。</dd>
+    <dt>status の解釈権</dt>
+    <dd>syncing-reverse-env の返す PASS / FAIL は計測事実（一致したか）であり、意味の解釈（設計書の欠落か・許容差分か）は rebuilding-code-from-docs（mode=judge）が持つ。計測と解釈を混ぜない。</dd>
+    <dt>unlocking の単独完走</dt>
+    <dd>unlocking-reverse-target-screens が画面レジストリ記帳から <code>syncing-reverse-env（mode=registry）</code> 起動・基準タグ確立まで単独で完走するのは意図した正式仕様。開通の事実を知るのは本スキルだけであり、指揮役が能動的に検知できないため。</dd>
+    <dt>画面レジストリの正本</dt>
+    <dd>開通済み画面の記帳台帳の正本は <code>&lt;docs_root&gt;/一覧/reverse-screen-registry.yml</code>。設計書リポジトリ側に置くため、スキル同期・上書きコピーの影響を受けない。unlocking 以外の子スキルは直接触れない。</dd>
+  </div>
+</section>
+
+</body>
+</html>

@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<!--
+  generating-table-list-for-reverse-docs スキルガイド（単一ファイル自己完結型）
+
+  - 外部リソース（CDN・画像・link）は一切使わず、完全自己完結に保つ
+  - 視覚言語は syncing-reverse-env-guide.html に合わせる
+-->
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>generating-table-list-for-reverse-docs スキルガイド</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 0 24px 96px;
+    font-family: system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif;
+    line-height: 1.85; color: #1a1a1a; background: #fafafa;
+    max-width: 980px; margin-inline: auto;
+  }
+  header { padding: 56px 0 24px; border-bottom: 3px solid #1a1a1a; }
+  header h1 { font-size: 1.9rem; margin: 0 0 10px; letter-spacing: 0.01em; }
+  header .skill-name {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 1.0rem; background: #1a1a1a; color: #fafafa;
+    padding: 2px 10px; border-radius: 4px; vertical-align: middle;
+  }
+  header p { margin: 6px 0 0; color: #555; }
+  .meta-table { margin-top: 16px; font-size: 0.9rem; color: #555; }
+  .meta-table td { padding: 1px 16px 1px 0; }
+
+  nav.toc {
+    margin-top: 32px; padding: 18px 22px;
+    background: #fff; border: 1px solid #e0e0e0; border-radius: 8px;
+  }
+  nav.toc .toc-title { font-weight: 700; margin-bottom: 6px; }
+  nav.toc ol { margin: 0; padding-left: 1.4em; columns: 2; column-gap: 40px; }
+  nav.toc li { margin: 2px 0; }
+  nav.toc a { color: #1a1a1a; text-decoration: none; border-bottom: 1px dotted #999; }
+  nav.toc a:hover { border-bottom-style: solid; }
+
+  section { margin-top: 64px; }
+  section > h2 {
+    font-size: 1.35rem; padding-bottom: 8px; margin-bottom: 20px;
+    border-bottom: 2px solid #1a1a1a;
+  }
+  section > h2 .sec-num {
+    display: inline-block; min-width: 2.4em; margin-right: 10px;
+    font-family: ui-monospace, monospace; font-size: 0.95rem;
+    background: #1a1a1a; color: #fafafa; text-align: center;
+    padding: 1px 8px; border-radius: 4px; vertical-align: 2px;
+  }
+  h3 { font-size: 1.05rem; margin: 32px 0 10px; }
+  .note { color: #555; font-size: 0.92rem; }
+
+  table.spec { border-collapse: collapse; width: 100%; margin: 14px 0; background: #fff; font-size: 0.93rem; }
+  table.spec th, table.spec td { border: 1px solid #d8d8d8; padding: 8px 12px; text-align: left; vertical-align: top; }
+  table.spec th { background: #f0f0ee; font-weight: 700; white-space: nowrap; }
+  table.spec td code, li code, p code, dd code, table.spec th code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.86em; background: #eeeeea; padding: 1px 5px; border-radius: 3px;
+  }
+
+  pre.flow {
+    background: #16211c; color: #d7e6dc; border-radius: 8px;
+    padding: 20px 24px; overflow-x: auto;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.82rem; line-height: 1.55;
+  }
+  pre.flow .cap { color: #8fb8a0; }
+
+  .def {
+    background: #fff; border-left: 4px solid #1a1a1a;
+    padding: 12px 18px; margin: 14px 0; border-radius: 0 6px 6px 0;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  }
+  .def dt { font-weight: 700; margin-top: 8px; }
+  .def dt:first-child { margin-top: 0; }
+  .def dd { margin: 2px 0 0 0; color: #333; }
+
+  .constraint {
+    background: #eef2f7; border: 1px solid #c8d4e3; border-radius: 8px;
+    padding: 12px 18px; margin: 16px 0; font-size: 0.93rem;
+  }
+  .constraint strong:first-child { color: #2a4a7a; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>テーブル一覧生成スキル<br><span class="skill-name">generating-table-list-for-reverse-docs</span></h1>
+  <p>既存コードベースからテーブル定義（マイグレーション・ORM モデル・SQL DDL）を調査し、テーブル単位の一覧である「テーブル一覧.html」を機械検証付きで生成するスキルの確定仕様。</p>
+
+  <div class="def">
+    <dt>こんな人向け</dt>
+    <dd>
+      リバースエンジニアリング設計で DB スキーマの全体像を先に確定したい人 ／
+      設計書を書き始める前にテーブルの総数と境界を正確に把握したい人
+    </dd>
+    <dt>こんな場面で使う</dt>
+    <dd>
+      リバース設計の初期工程でテーブル一覧を確立する時 ／
+      マイグレーションが積み重なったプロジェクトで「実テーブルは何個あるか」を機械的に数えたい時
+    </dd>
+  </div>
+
+  <table class="meta-table">
+    <tr><td>対応 OS</td><td>Windows WSL2 環境</td></tr>
+    <tr><td>検証状況</td><td>旧統合一覧スキル（unit_kind=table。現在は種別別6スキルへ分割済み）から分割。エンジンスクリプト（validate-manifest.sh / build-unit-list.sh）は分割元でサンプルプロジェクトの動作確認済み。分割後スキル単体の実機検証は未実施</td></tr>
+    <tr><td>依存</td><td>jq ／ <code>shared/scripts/unit-list/validate-manifest.sh</code>・<code>build-unit-list.sh</code>（スキルフォルダ相対 <code>../../../shared/scripts/unit-list/</code>）</td></tr>
+    <tr><td>関連資料</td><td><code>SKILL.md</code>, <code>references/table-detection.md</code></td></tr>
+  </table>
+</header>
+
+<nav class="toc">
+  <div class="toc-title">目次</div>
+  <ol>
+    <li><a href="#s1">概要</a></li>
+    <li><a href="#s2">出力</a></li>
+    <li><a href="#s3">用語</a></li>
+    <li><a href="#s4">動作フロー</a></li>
+    <li><a href="#s5">制約と禁止事項</a></li>
+    <li><a href="#s6">関連スキル・規約</a></li>
+  </ol>
+</nav>
+
+<section id="s1">
+  <h2><span class="sec-num">§1</span>概要</h2>
+  <p>リバースエンジニアリング設計では、設計書を書き始める前に「対象は全部で何個あるか」の正本が要る。本スキルはテーブル種別（DB テーブル・ビュー）専任の一覧生成係として、既存コードベースを調査し、<strong>テーブル一覧.html</strong> を機械検証付きで作成する。</p>
+  <p>調査は場当たりに行わない。スタック調査（どの ORM・マイグレーションツールか）→ 検出戦略の宣言（何をどう数えるかのユーザー承認）→ 戦略に基づく抽出 → 整合検証、の順で進み、検証を通過したマニフェストだけが一覧 HTML になる。</p>
+  <pre class="flow"><span class="cap">── 処理の全体像 ──────────────────────────────</span>
+
+  対象コードベース
+       │  Phase 1  スタック・テーブル規約の特定（ORM / マイグレーション / SQL DDL）
+       ▼
+  検出戦略宣言 ──── AskUserQuestion でユーザー承認
+       │  Phase 2  戦略に沿ったカスタム抽出（Claude 自身が実行）
+       ▼
+  マニフェスト JSON（配列キー units）
+       │  Phase 3  validate-manifest.sh --unit-kind table で機械検証
+       ▼
+  検証済みマニフェスト
+       │  Phase 4  build-unit-list.sh（内部で validate 再実行）
+       ▼
+  &lt;output_dir&gt;/テーブル一覧/テーブル一覧.html</pre>
+  <p class="note">画面種別と違い、テーブル種別に組み込み検出器はない。抽出は常にカスタム抽出パス（Claude 自身が戦略宣言に沿って実行）だが、整合検証と HTML 生成は決定的スクリプトに固定されるため、成果物の品質は抽出者に依存しない。</p>
+</section>
+
+<section id="s2">
+  <h2><span class="sec-num">§2</span>出力</h2>
+  <p>スキルを実行すると、以下の 2 点が生まれる。</p>
+  <div class="def">
+    <dt>テーブル一覧.html（<code>&lt;output_dir&gt;/テーブル一覧/</code> 配下）</dt>
+    <dd>対象コードベースに存在するテーブル・ビューの全量を 1 行 1 ユニットで示す一覧。各行にはテーブル名（主識別子）・定義ファイルの所在・関連マイグレーション・検出の確からしさが記載され、後続工程が「どの単位で設計書を 1 冊ずつ書くか」を判断する正本になる。検証を通過したマニフェストだけから生成されるため、根拠のない行は混入しない。</dd>
+    <dt>埋め込みマニフェスト JSON</dt>
+    <dd>一覧 HTML の中に、生成の元になったマニフェスト JSON がそのまま埋め込まれる。読んだ人は「この一覧がどの戦略（走査対象・除外パターン）で、いつ、何件検出されたか」を HTML 単体で追跡でき、機械処理（後続スキルからの参照）にも使える。</dd>
+  </div>
+  <p class="note">設計書そのもの（テーブル定義書等）の雛形展開・生成・記入は行わない。本スキルの成果物は一覧のみ。</p>
+</section>
+
+<section id="s3">
+  <h2><span class="sec-num">§3</span>用語</h2>
+  <dl class="def">
+    <dt>ユニット（テーブル種別）</dt>
+    <dd>一覧の 1 行に対応する管理単位。実テーブル（<code>kind: table</code>）・ビュー（<code>kind: view</code>）・集約できない独立マイグレーション（<code>kind: migration</code>）・実体を特定できないもの（<code>kind: unresolved</code>）の 4 区分を持つ。</dd>
+    <dt>マニフェスト</dt>
+    <dd>抽出結果を保持する JSON。配列キーは <code>units</code>。スキーマの全量は <code>references/table-detection.md</code> を参照。</dd>
+    <dt>検出戦略宣言</dt>
+    <dd>Phase 1 の調査結果をまとめた JSON（<code>unitKind: "table"</code>・<code>extractionMethod: "custom"</code>・<code>unitIdRegex</code>・<code>excludePatterns</code> 等）。AskUserQuestion でユーザー承認（<code>approvedByUser: true</code>）を得てから抽出に進む。</dd>
+    <dt>カスタム抽出パス</dt>
+    <dd>Claude 自身が戦略宣言に沿ってプロジェクト専用の抽出手順を設計・実行する経路。テーブル種別はこの経路のみ（組み込み検出器なし）。</dd>
+    <dt>整合検証</dt>
+    <dd><code>validate-manifest.sh</code> によるマニフェストの機械検査。抽出者が誰か（どの経路か）に依存せず同一基準で検査し、通過しないマニフェストは一覧 HTML にならない。</dd>
+  </dl>
+</section>
+
+<section id="s4">
+  <h2><span class="sec-num">§4</span>動作フロー</h2>
+  <p>起動引数は <code>source_dir</code>（探索対象）と <code>output_dir</code>（書き出し先）の 2 つ。種別は table に固定されているため、種別を選ぶ引数はない。開始時に TaskCreate で Phase 1〜4 のタスクを登録し、進捗を TaskUpdate で更新する。</p>
+  <table class="spec">
+    <tr><th>Phase</th><th>内容</th><th>完了条件</th></tr>
+    <tr>
+      <td><strong>Phase 1</strong><br>スタック・テーブル規約の特定</td>
+      <td>ORM・マイグレーションツール（Prisma/TypeORM/Knex/Alembic 等）の確定、テーブル定義の正本（マイグレーション／モデル／SQL DDL）の特定、命名パターン・除外パターンの調査、検出戦略宣言の作成</td>
+      <td>戦略宣言 JSON がユーザー承認済み</td>
+    </tr>
+    <tr>
+      <td><strong>Phase 2</strong><br>戦略に基づく抽出</td>
+      <td>宣言した手順（マイグレーション走査・モデル解析・<code>CREATE TABLE</code>/<code>CREATE VIEW</code> 抽出等）を Claude 自身が実行し、マニフェスト JSON を出力</td>
+      <td>1 件以上の検出を確認済み。0 件なら報告して停止</td>
+    </tr>
+    <tr>
+      <td><strong>Phase 3</strong><br>整合検証（機械実行）</td>
+      <td><code>validate-manifest.sh &lt;manifest&gt; --unit-kind table</code> を実行。FAIL は修正して再実行（3 回失敗で Phase 2 へ差し戻し）</td>
+      <td>全項目 PASS（exit 0）</td>
+    </tr>
+    <tr>
+      <td><strong>Phase 4</strong><br>一覧 HTML 生成</td>
+      <td><code>build-unit-list.sh &lt;manifest&gt; &lt;output_dir&gt;/テーブル一覧/テーブル一覧.html --unit-kind table</code> を実行。build 側が内部で validate を再実行</td>
+      <td>HTML 生成済み・埋め込み JSON がマニフェストと一致</td>
+    </tr>
+  </table>
+  <p class="note">エンジンスクリプトはスキルフォルダ相対 <code>../../../shared/scripts/unit-list/</code> で参照する。正本リポジトリと公開先はディレクトリレイアウトが同一のため、この相対参照は両環境でそのまま成立する。</p>
+
+  <h3>返却（呼び出し元との契約）</h3>
+  <table class="spec">
+    <tr><th>キー</th><th>内容</th></tr>
+    <tr><td><code>status</code></td><td><code>DONE | ERROR</code></td></tr>
+    <tr><td><code>artifacts</code></td><td>生成したテーブル一覧.html のパス</td></tr>
+    <tr><td><code>unit_list_html</code></td><td>artifacts[0] の汎用名</td></tr>
+    <tr><td><code>embedded_json_ref</code></td><td>HTML 内に埋め込んだマニフェスト JSON への参照</td></tr>
+    <tr><td><code>unit_kind</code></td><td><code>table</code>（固定値）</td></tr>
+  </table>
+</section>
+
+<section id="s5">
+  <h2><span class="sec-num">§5</span>制約と禁止事項</h2>
+  <div class="constraint">
+    <strong>手作業でのプレースホルダ置換は禁止。</strong>
+    一覧 HTML は必ず <code>build-unit-list.sh</code> 経由の決定的処理で生成する。手動置換による <code>entryFile=None</code> 等のデータ混入が実害として発生した経緯があるため。
+  </div>
+  <div class="constraint">
+    <strong>0 件検出はハード停止。</strong>
+    テーブルが 1 件も検出できなかった場合はユーザーに報告して停止する。AskUserQuestion で手動リストを聞き出してテーブルを捏造しない。
+  </div>
+  <div class="constraint">
+    <strong>設計書の雛形展開はスコープ外。</strong>
+    本スキルの成果物はテーブル一覧.html のみ。テーブル定義書等の雛形展開・生成・記入は一切行わない。
+  </div>
+  <h3>抽出時の落とし穴</h3>
+  <table class="spec">
+    <tr><th>落とし穴</th><th>対処</th></tr>
+    <tr><td>マイグレーションと ORM モデルの二重計上</td><td>どちらを正本とするかを Phase 1 で確定してから抽出する</td></tr>
+    <tr><td>create → alter の積み重ねを別テーブルと誤認</td><td>テーブル単位に集約し、<code>files</code> に関連マイグレーションを列挙する</td></tr>
+    <tr><td>コメントアウトされた DDL の誤検出</td><td>コメント（<code>-- CREATE TABLE ...</code> 等）を除去してから抽出する</td></tr>
+    <tr><td>jq 未インストール環境での検証・生成失敗</td><td>validate/build 両スクリプトが jq に依存するため事前に導入する</td></tr>
+  </table>
+</section>
+
+<section id="s6">
+  <h2><span class="sec-num">§6</span>関連スキル・規約</h2>
+  <table class="spec">
+    <tr><th>関連</th><th>関係</th></tr>
+    <tr><td><code>orchestrating-reverse-docs-flow</code></td><td>工程全体の案内役。本スキルはその一工程（テーブル一覧の確立）を担い、単独起動もできる</td></tr>
+    <tr><td>他の種別別一覧スキル（画面・API・バッチ・帳票・外部連携）</td><td>同じエンジンスクリプトを共用する兄弟スキル。種別が違う一覧はそちらに任せる</td></tr>
+    <tr><td><code>references/table-detection.md</code></td><td>Phase 1 の調査項目とマニフェストスキーマの正本</td></tr>
+  </table>
+</section>
+
+</body>
+</html>

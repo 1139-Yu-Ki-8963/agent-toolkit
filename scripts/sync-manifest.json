@@ -2,6 +2,8 @@
   "mappings": [
     { "mode": "mirror", "src": "~/Projects/reverse-docs-skills/.claude/skills", "dst": "payload/reverse-docs-skills/.claude/skills" },
     { "mode": "mirror", "src": "~/Projects/reverse-docs-skills/shared", "dst": "payload/reverse-docs-skills/shared" },
+    { "mode": "file", "src": "~/Projects/reverse-docs-skills/README.md", "dst": "payload/reverse-docs-skills/README.md" },
+    { "mode": "file", "src": "~/Projects/reverse-docs-skills/reverse-docs-overview.html", "dst": "payload/reverse-docs-skills/reverse-docs-overview.html" },
     { "mode": "mirror", "src": "~/agent-home/state", "dst": "payload/agent-home/state" },
     { "mode": "mirror", "src": "~/agent-home/skills/managing-agent-configs", "dst": "payload/agent-home/skills/managing-agent-configs" },
     { "mode": "file", "src": "~/.claude/rules/always/agent-config/review/check-managing-review.sh", "dst": "payload/agent-home/skills/managing-agent-configs/scripts/managing-review-gate.sh" },

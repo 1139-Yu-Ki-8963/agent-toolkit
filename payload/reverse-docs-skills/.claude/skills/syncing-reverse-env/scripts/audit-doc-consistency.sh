@@ -3,28 +3,25 @@
 #
 # 用途:
 #   確定仕様の正本 syncing-reverse-env-guide.html と、SKILL.md・
-#   syncing-reverse-env-concept.html・config.yml の間で、キー名・陳腐化表現・
+#   config.yml の間で、キー名・陳腐化表現・
 #   返却フィールドの整合を機械的に検査する。仕様追従の抜け（typo・記述漏れ・
 #   古い記述の残存）を早期検出するためのスキルローカル監査スクリプト。
 #
 # 検査内容（5 項目。「1」はキー突合単独、「2」は陳腐化 grep を FAIL/WARN の
 #   2 系統に分けて出力するため、実行結果は 6 行になる）:
 #   1. キー突合      : guide.html のプリフライト表（9 キー）・env_check 表
-#                       （13 キー）を抽出し、SKILL.md / concept.html 内で
+#                       （13 キー）を抽出し、SKILL.md 内で
 #                       「キー: ...」の形式により明示的に列挙されているキー名が
 #                       すべて guide のキー集合に含まれるかを確認する（typo 検出）。
-#                       方向は「SKILL/concept で言及されたキー ⊆ guide の
+#                       方向は「SKILL で言及されたキー ⊆ guide の
 #                       キー集合」のみで、guide の全キーの言及は要求しない。
 #   2a. 陳腐化表現(個数語): 「7 項目」「10 項目」「10/10」の残存を検出する
 #                       （1 件でもあれば FAIL）。旧仕様（固定 7/10 項目時代）の
 #                       記述が現行の「全項目」表現に追従できていない兆候。
-#   2b. 陳腐化表現(lsof): 現行仕様を記述するファイル（guide.html と ADR 記録の
-#                       concept.html を除く）に「lsof 単独前提」の行が残存して
-#                       いれば WARN する（block はしない）。「lsof / ss」の
-#                       併記行は WSL2 対応のフォールバック表記であり正しい
-#                       記述のため除外する。concept.html は構想時点の凍結記録・
-#                       設計判断（ADR）として lsof に言及するのが正当なため
-#                       検査対象外とする。
+#   2b. 陳腐化表現(lsof): 現行仕様を記述するファイル（guide.html を除く）に
+#                       「lsof 単独前提」の行が残存していれば WARN する
+#                       （block はしない）。「lsof / ss」の併記行は WSL2 対応の
+#                       フォールバック表記であり正しい記述のため除外する。
 #   3. config 整合   : config.yml の defaults 直下キー（ports / services /
 #                       launch / l3_threshold_percent / max_loop /
 #                       tag_namespace / diff_exclude / install_command /
@@ -46,7 +43,7 @@
 #                       判定文字列は source_repo / config.yml から実行時に解決し、
 #                       具体値をファイルに焼き込まないことを保証する。
 #
-# 引数: なし（本スクリプト自身の配置場所からスキルフォルダ・agent-home を
+# 引数: なし（本スクリプト自身の配置場所からスキルフォルダ・skills ルートを
 #   相対的に解決する。実行時の cwd に依存しない）
 #
 # 実行方法:
@@ -63,14 +60,13 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SKILL_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
-AGENT_HOME="$(cd "${SKILL_DIR}/../.." && pwd)"
+SKILLS_ROOT="$(cd "${SKILL_DIR}/.." && pwd)"
 
 GUIDE="${SKILL_DIR}/references/syncing-reverse-env-guide.html"
-CONCEPT="${SKILL_DIR}/references/syncing-reverse-env-concept.html"
 SKILL_MD="${SKILL_DIR}/SKILL.md"
 CONFIG_YML="${SKILL_DIR}/config.yml"
 
-for f in "$GUIDE" "$CONCEPT" "$SKILL_MD" "$CONFIG_YML"; do
+for f in "$GUIDE" "$SKILL_MD" "$CONFIG_YML"; do
   if [ ! -f "$f" ]; then
     echo "エラー: 対象ファイルが存在しません: $f" >&2
     exit 1
@@ -101,7 +97,10 @@ preflight_keys="$(
     | sed -E 's#<td>[0-9]+</td><td>([a-z0-9-]+)</td>#\1#'
 )"
 env_keys="$(
-  awk '/7-2\. 環境同一性チェック/{flag=1} flag{print} flag && /<\/table>/{exit}' "$GUIDE" \
+  # 見出し番号（7-2 / 8-2 等）は guide.html の改訂で章番号ごと繰り下がることが
+  # あるため、番号に依存せず <h3> 見出し文言「環境同一性チェック」で一致させる
+  # （本文中の <pre> フロー図等にも同じ文言が現れるため、<h3> タグ限定で誤爆を防ぐ）。
+  awk '/<h3>[^<]*環境同一性チェック/{flag=1} flag{print} flag && /<\/table>/{exit}' "$GUIDE" \
     | grep -oE '<td>[0-9]+</td><td>[a-z0-9-]+</td>' \
     | sed -E 's#<td>[0-9]+</td><td>([a-z0-9-]+)</td>#\1#'
 )"
@@ -119,7 +118,7 @@ if [ "$env_count" -ne 13 ]; then
   key_check_details+=("guide.html の env_check キー数が想定外: ${env_count} 件（期待 13 件）")
 fi
 
-# SKILL.md / concept.html 内で「キー: A 〜 Z」のように明示的に列挙されている
+# SKILL.md 内で「キー: A 〜 Z」のように明示的に列挙されている
 # キー名だけを対象にする（無関係な kebab-case 語 = ブランチ名・スキル名等の
 # 誤検出を避けるため、「キー:」直後の範囲に限定して抽出する）。
 collect_mentioned_keys() {
@@ -143,10 +142,9 @@ check_doc_keys() {
 }
 
 check_doc_keys "SKILL.md" "$SKILL_MD"
-check_doc_keys "concept.html" "$CONCEPT"
 
 if [ "${#key_check_details[@]}" -eq 0 ]; then
-  report_pass "キー突合: guide.html プリフライト ${preflight_count} キー・env_check ${env_count} キーを抽出。SKILL.md/concept.html の明示的キー列挙はすべて guide のキー集合に含まれる"
+  report_pass "キー突合: guide.html プリフライト ${preflight_count} キー・env_check ${env_count} キーを抽出。SKILL.md の明示的キー列挙はすべて guide のキー集合に含まれる"
 else
   report_fail "キー突合" "${key_check_details[@]}"
 fi
@@ -155,7 +153,7 @@ fi
 # 2. 陳腐化 grep
 # ---------------------------------------------------------------------------
 
-TARGET_DIRS=("${AGENT_HOME}/skills/syncing-reverse-env")
+TARGET_DIRS=("${SKILLS_ROOT}/syncing-reverse-env")
 
 stale_hits="$(
   grep -rnE '7 項目|10 項目|10/10' "${TARGET_DIRS[@]}" \
@@ -169,8 +167,8 @@ else
   report_fail "陳腐化表現(個数語): 「7 項目」「10 項目」「10/10」が残存" "${stale_lines[@]}"
 fi
 
-# lsof: 現行仕様ファイルでの lsof 単独前提を WARN（guide.html と ADR 記録の
-# concept.html は対象外。「lsof / ss」併記のフォールバック表記は許容）
+# lsof: 現行仕様ファイルでの lsof 単独前提を WARN（guide.html は対象外。
+# 「lsof / ss」併記のフォールバック表記は許容）
 lsof_files="$(
   grep -rl 'lsof' "${TARGET_DIRS[@]}" \
     --include='*.md' --include='*.html' --include='*.yml' 2>/dev/null || true
@@ -180,7 +178,6 @@ lsof_warn_lines=()
 while IFS= read -r f; do
   [ -z "$f" ] && continue
   [ "$f" = "$GUIDE" ] && continue
-  [ "$f" = "$CONCEPT" ] && continue
   matches="$(grep -n 'lsof' "$f" | grep -v 'lsof / ss' || true)"
   if [ -n "$matches" ]; then
     while IFS= read -r m; do

@@ -12,8 +12,8 @@ set -euo pipefail
 #   docs_root     設計書展開先ルート（呼び出し元スキルが起動引数として渡す）
 #   画面ID        画面識別子（例: monthly-report）
 #   画面名        日本語の画面名（省略時は画面IDをそのまま使う）
-#   template_root テンプレート原本ルート（省略時は既定値
-#                 `~/reverse-docs-skills/shared/templates/リバース検証` を使う）
+#   template_root テンプレート原本ルート（省略時はスクリプト位置基準の既定値
+#                 `<スクリプトのあるディレクトリ>/../templates/リバース検証` を使う）
 #
 # 処理:
 #   1. template_root（引数指定 or 既定値）からテンプレートを特定
@@ -61,7 +61,8 @@ fi
 docs_root="${1:?引数1 docs_root が必要です}"
 screen_id="${2:?引数2 画面ID が必要です}"
 screen_name="${3:-$screen_id}"
-template_root="${4:-$HOME/reverse-docs-skills/shared/templates/リバース検証}"
+script_dir="$(cd "$(dirname "$0")" && pwd)"
+template_root="${4:-$script_dir/../templates/リバース検証}"
 today="$(date +%Y-%m-%d)"
 
 # 禁止文字バリデーション（sed 展開先の破壊・部分生成物の混入を防ぐ）

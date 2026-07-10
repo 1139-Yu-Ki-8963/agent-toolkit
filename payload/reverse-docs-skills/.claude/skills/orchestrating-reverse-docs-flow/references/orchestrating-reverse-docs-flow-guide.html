@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!--
   orchestrating-reverse-docs-flow スキルガイド
-  リバース設計書往復検証フローの進行係（管理者）。子スキル4つを完全仲介方式で統括する。
+  リバース設計書往復検証フローの進行係（管理者）。子スキル14を完全仲介方式で統括する。
   正本: skills/orchestrating-reverse-docs-flow/SKILL.md および references/contract.md。
 -->
 <html lang="ja">
@@ -126,7 +126,7 @@
   <table class="meta-table">
     <tr><td>対応 OS</td><td>Windows WSL2 環境（統括対象の子スキル群と同一環境）</td></tr>
     <tr><td>検証状況</td><td>SKILL.md を正本として整理（個別の実機検証記録なし）</td></tr>
-    <tr><td>依存</td><td>ツール: Read, Bash, Grep, Glob, AskUserQuestion, TaskCreate, TaskUpdate, Skill, Agent ／ 子スキル: generating-unit-list-for-reverse-docs, syncing-reverse-env, rebuilding-screen-unit-from-docs, rebuilding-code-from-docs</td></tr>
+    <tr><td>依存</td><td>ツール: Read, Bash, Grep, Glob, AskUserQuestion, TaskCreate, TaskUpdate, Skill, Agent ／ 子スキル: surveying-architecture-for-reverse-docs, 種別別一覧生成スキル6種（generating-screen-list-for-reverse-docs / generating-api-list-for-reverse-docs / generating-table-list-for-reverse-docs / generating-batch-list-for-reverse-docs / generating-report-list-for-reverse-docs / generating-external-list-for-reverse-docs）, compiling-project-common-docs, syncing-reverse-env, unlocking-reverse-target-screens, extracting-unit-facts-from-code, authoring-screen-docs-from-code, rebuilding-screen-unit-from-docs, rebuilding-code-from-docs</td></tr>
     <tr><td>関連資料</td><td><code>SKILL.md</code>、<code>references/contract.md</code>（返却ブロック契約・args仕様・状態判定表の正本）、<code>references/chapter-map.md</code>、<code>assets/リバース検証/</code>、<code>scripts/audit-consistency.sh</code></td></tr>
   </table>
 </header>
@@ -157,8 +157,14 @@
     返却ブロックの <code>status</code> で検収 → 次工程決定、というループで工程全体を統括する。
   </p>
   <p>
-    子スキル4つ（<code>generating-unit-list-for-reverse-docs</code> / <code>syncing-reverse-env</code> /
-    <code>rebuilding-screen-unit-from-docs</code> / <code>rebuilding-code-from-docs</code>）は互いを知らず、
+    子スキル14（<code>surveying-architecture-for-reverse-docs</code>、種別別一覧生成スキル6種
+    〈<code>generating-screen-list-for-reverse-docs</code> / <code>generating-api-list-for-reverse-docs</code> /
+    <code>generating-table-list-for-reverse-docs</code> / <code>generating-batch-list-for-reverse-docs</code> /
+    <code>generating-report-list-for-reverse-docs</code> / <code>generating-external-list-for-reverse-docs</code>〉、
+    <code>compiling-project-common-docs</code>、<code>syncing-reverse-env</code>、
+    <code>unlocking-reverse-target-screens</code>、<code>extracting-unit-facts-from-code</code>、
+    <code>authoring-screen-docs-from-code</code>、<code>rebuilding-screen-unit-from-docs</code>、
+    <code>rebuilding-code-from-docs</code>）は互いを知らず、
     工程間の受け渡しはすべて本スキルが仲介する（完全仲介方式）。契約の正本は <code>references/contract.md</code>。
   </p>
 
@@ -176,6 +182,8 @@
   <div class="def">
     <dt>全画面の設計書一式</dt>
     <dd>対象アプリケーションのすべての画面について、コードの事実に基づいた詳細設計書が揃い、「設計書だけからコードを再構築→元と一致」の往復検証に合格した状態。新規参画者がコードを読まなくても画面仕様を把握できるドキュメント群が最終成果物になる。</dd>
+    <dt>全6種別の到達状態レポート</dt>
+    <dd>最終報告に、画面・API・テーブル・バッチ・帳票・外部連携の6種別それぞれの到達状態が「生成済み / 対象外 / 後続未対応」の3値で記載される。screen 以外の種別は facts抽出以降の工程が現時点で未対応のため、一覧確立をもって「後続未対応」として終端記録される。</dd>
   </div>
 </section>
 
@@ -197,12 +205,12 @@
       <tr>
         <td><code>S0</code> 画面未列挙</td>
         <td>画面一覧HTMLが不在</td>
-        <td>generating-unit-list-for-reverse-docs</td>
+        <td>不在種別に対応する種別別一覧生成スキル（6種。対応表は <code>references/contract.md</code> の「一覧生成スキル群（6スキル）」）</td>
       </tr>
       <tr>
         <td><code>S0u</code> 画面未開通</td>
         <td>画面一覧HTML有・画面が未開通（設計書も基準タグも無い新規画面）</td>
-        <td>unlocking-reverse-target-screens → syncing-reverse-env（mode=registry）</td>
+        <td>unlocking-reverse-target-screens（内部で基準タグ確立まで単独完走する意図した正式仕様。UNLOCKED 差し戻し時のみ管理者が syncing-reverse-env（mode=registry）を直接起動）</td>
       </tr>
       <tr>
         <td><code>S1a</code> 設計書未著述</td>
@@ -331,7 +339,7 @@
     </thead>
     <tbody>
       <tr><td>Phase 1</td><td>状態判定。実在判定を決定木の順に確認し S0/S0u/S1a/S1b/S2/S3/S4 を確定。必要な工程だけを 1 つずつ TaskCreate（一括登録禁止）</td><td>常時</td></tr>
-      <tr><td>Phase 2</td><td>①画面一覧生成。<code>generating-unit-list-for-reverse-docs</code> を <code>source_dir</code>・<code>output_dir</code> 指定で起動</td><td>S0 時のみ</td></tr>
+      <tr><td>Phase 2</td><td>①一覧生成。不在の種別ごとに、対応する種別別一覧生成スキル（6種）を <code>source_dir</code>・<code>output_dir</code> 指定で起動（unit_kind は各スキルの固定値のため渡さない）</td><td>S0 時のみ</td></tr>
       <tr><td>Phase 3</td><td>②setup（環境ブロック取得）。<code>syncing-reverse-env</code> を <code>design-doc</code>・<code>mode=setup</code> で起動し env_block を抽出</td><td>常時</td></tr>
       <tr><td>Phase 4</td><td>③ファイル単位検証。(a)S0u画面未開通なら <code>unlocking-reverse-target-screens</code>→<code>syncing-reverse-env</code>(registry)。(b)S1a設計書未著述なら <code>authoring-screen-docs-from-code</code> を起動。(c)S1bファイル単位未検証なら <code>rebuilding-screen-unit-from-docs</code> を対象ファイル1件ごとに繰り返し起動。白紙化のため事前にユーザー承認を取得。status=差し戻し なら(b)へ戻す</td><td>S1a/S1b（任意工程）</td></tr>
       <tr><td>Phase 5</td><td>②sync（基準確立）。<code>syncing-reverse-env</code> を <code>design-doc</code>・<code>mode=sync</code> で起動し <code>baseline_tag</code> を確立</td><td>S2 時のみ</td></tr>
@@ -347,6 +355,13 @@
     ④（<code>rebuilding-code-from-docs</code>）は <code>mode</code> で2分割される（<code>implement</code>=比較要求を返して停止 / <code>judge</code>=比較結果を受け取り判定）。
     管理者がこの2回を別々に起動し、間に②sync dry-run（Phase 7）を挟む。
   </div>
+
+  <div class="constraint">
+    <strong>種別ループ</strong><br>
+    管理者は excluded-kinds.json の presentKinds に記載された各種別についてループする。screen のみユニット反復〜基準確立〜往復検証へ進む。
+    screen 以外（api / table / batch / report / external）は facts抽出以降の工程が現時点で未対応のため、一覧確立をもって「後続未対応」の終端状態として記録する。
+    最終報告には全6種別の到達状態（生成済み / 対象外 / 後続未対応 の3値）を必ず含める（正本は <code>references/contract.md</code> の「種別ループ」）。
+  </div>
 </section>
 
 <!-- ===== §5 サブエージェント委任仕様 ===== -->
@@ -360,7 +375,7 @@
       <tr><th>呼び出し箇所</th><th>invocation</th><th>args骨格</th><th>期待返却 status</th></tr>
     </thead>
     <tbody>
-      <tr><td>Phase 2</td><td>generating-unit-list-for-reverse-docs</td><td>source_dir, output_dir</td><td><span class="tag pass">DONE</span></td></tr>
+      <tr><td>Phase 2</td><td>不在種別に対応する種別別一覧生成スキル（6種）</td><td>source_dir, output_dir</td><td><span class="tag pass">DONE</span></td></tr>
       <tr><td>Phase 3</td><td>syncing-reverse-env</td><td>design-doc, mode=setup</td><td><span class="tag pass">PASS</span>（env_block抽出）</td></tr>
       <tr><td>Phase 4（S1a）</td><td>authoring-screen-docs-from-code</td><td>screen_dir, docs_root, template_root, chapter_map_path, audit_script_path, target_repo_path, target_branch, source_ref, mode, target_file_path</td><td><span class="tag pass">AUTHORED</span></td></tr>
       <tr><td>Phase 4（S1b）</td><td>rebuilding-screen-unit-from-docs</td><td>screen_dir, target_file_path, 資産paths, env_block, user-approved</td><td><span class="tag pass">再現一致</span></td></tr>
@@ -415,9 +430,9 @@
     </thead>
     <tbody>
       <tr>
-        <td>generating-unit-list-for-reverse-docs</td>
-        <td><code>DONE | ERROR</code></td>
-        <td>screen_list_html（= artifacts[0]）、embedded_json_ref（HTML内埋め込みマニフェストJSONへの参照）</td>
+        <td>一覧生成スキル群（6スキル）</td>
+        <td><code>DONE | ERROR</code>（6スキル共通）</td>
+        <td>unit_list_html（= artifacts[0]）、embedded_json_ref（HTML内埋め込みマニフェストJSONへの参照）、unit_kind（各スキルの固定値として返る）。unit_kind=screen のみ screen_list_html を unit_list_html のエイリアスとして維持</td>
       </tr>
       <tr>
         <td>syncing-reverse-env</td>
@@ -465,7 +480,7 @@
       <tr><th>子スキル</th><th>args</th></tr>
     </thead>
     <tbody>
-      <tr><td>generating-unit-list-for-reverse-docs</td><td>source_dir, output_dir</td></tr>
+      <tr><td>各一覧生成スキル（6スキル共通）</td><td>source_dir, output_dir（unit_kind は各スキルの固定値のため args に含めない）</td></tr>
       <tr><td>syncing-reverse-env</td><td>design-doc, mode（setup|sync|teardown）, dry-run, reset-first, user-approved, scenarios, max-loop（既存契約のまま）</td></tr>
       <tr><td>authoring-screen-docs-from-code</td><td>screen_dir, docs_root, template_root, chapter_map_path, audit_script_path, target_repo_path, target_branch, source_ref, mode, target_file_path（mode=file時）, screenshot_dir（任意）, registry値（任意）</td></tr>
       <tr><td>rebuilding-screen-unit-from-docs</td><td>screen_dir, target_file_path, docs_root, template_root, audit_script_path, chapter_map_path, env_block, user-approved</td></tr>
@@ -535,7 +550,7 @@
       <tr><td>Phase 7</td><td>比較結果ブロックが省略なく取得済み</td></tr>
       <tr><td>Phase 8</td><td>PASS / FAIL いずれかに確定している</td></tr>
       <tr><td>Phase 9</td><td>基準タグが更新済み、または依頼時は teardown が完了している</td></tr>
-      <tr><td><strong>Goal</strong></td><td><strong>全対象画面が status=PASS で基準タグ確立、または NG分類済み修正指示書が保存されている</strong></td></tr>
+      <tr><td><strong>Goal</strong></td><td><strong>全対象画面が status=PASS で基準タグ確立、または NG分類済み修正指示書が保存されている。かつ、最終報告に全6種別の到達状態レポート（生成済み / 対象外 / 後続未対応 の3値）が含まれている</strong></td></tr>
     </tbody>
   </table>
 </section>
@@ -551,7 +566,7 @@
       <tr><th>子スキル</th><th>役割</th></tr>
     </thead>
     <tbody>
-      <tr><td>generating-unit-list-for-reverse-docs</td><td>①画面一覧生成（S0 時に起動）</td></tr>
+      <tr><td>一覧生成スキル群（6スキル・種別別）</td><td>①一覧生成（S0 時に不在種別ごとに起動。対応表は <code>references/contract.md</code>）</td></tr>
       <tr><td>syncing-reverse-env</td><td>②環境同期（setup / sync / sync,dry-run / teardown）</td></tr>
       <tr><td>rebuilding-screen-unit-from-docs</td><td>③ファイル単位検証（S1 任意工程）</td></tr>
       <tr><td>rebuilding-code-from-docs</td><td>④画面単位検証（implement / judge の2モード分割）</td></tr>
@@ -576,6 +591,7 @@
       <tr><td><code>assets/リバース検証/</code></td><td>移設済みの共有資産（テンプレート一式）</td></tr>
       <tr><td><code>scripts/audit-consistency.sh</code></td><td>工程間ゲート</td></tr>
       <tr><td><code>references/chapter-map.md</code></td><td>章役割キー対応表</td></tr>
+      <tr><td><code>&lt;docs_root&gt;/一覧/reverse-screen-registry.yml</code></td><td>画面レジストリ正本（docs_root はスキルフォルダ外のため、スキル同期・上書きコピーの影響を受けない）</td></tr>
     </tbody>
   </table>
 </section>
