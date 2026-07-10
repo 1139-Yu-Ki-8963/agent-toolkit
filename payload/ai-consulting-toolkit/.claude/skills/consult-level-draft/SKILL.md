@@ -145,12 +145,12 @@ Write で `clients/<案件名>/レベル軌道下書き_<YYYYMMDD>.md` として
 ## Gotchas
 
 - 判定レベル（上限）を推測で確定しない。4軸評価が済むまでは全課題「保留」で扱う
-- 本下書きは合意文書ではない。現在地・目標の合意は consult-level-agree が担う
+- 本下書きは合意文書ではない。現在地・目標の合意は consult-level-agree が担う。WBS展開の入力にもならない（合意結果は consult-level-agree がレベル合意記録として書き出す）
 - 課題キーは連番禁止。課題受付簿のキーをそのまま使う
 
 ## 完了報告
 
-`completion-report-format.md` の作業報告型の骨格に従い、以下を追加で記載する。
+`.claude/skills/shared/references/completion-report-format.md` の作業報告型の骨格に従い、以下を追加で記載する。
 
 - 出力したレベル軌道下書きのパス
 - 課題数

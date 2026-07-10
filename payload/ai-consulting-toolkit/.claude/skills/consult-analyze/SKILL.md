@@ -3,7 +3,7 @@ name: consult-analyze
 description: 顧客リポジトリの解析レポートHTMLを生成する。技術構成・規約状況・テスト分布を可視化する。 TRIGGER when: 「リポジトリを解析」「プロジェクト解析」「構成を見せて」と言われた時。 SKIP: 解析済みで規約整備のみの場合（→consult-repo-rules）。
 invocation: consult-analyze
 type: transform
-allowed-tools: Read, Write, Bash, Glob, AskUserQuestion
+allowed-tools: Read, Write, Bash, Glob
 ---
 
 # プロジェクト解析レポートの生成（consult-analyze）
@@ -147,8 +147,9 @@ Edit で Step 4-1 の所見を Step 3-3 で出力したHTMLの所見セクショ
 - 所見は検出事実のみを書く。推測・評価の断定（「品質が低い」等）は書かない
 - コンサル環境の固有情報（利用者名・内部パス）をレポートHTMLに書かない
 - `analyze-report-template.html` の `<style>` とズーム script は変更しない。プレースホルダ置換のみ行う
+- レポート HTML に consult- で始まる名称・環境固有のパスを含めない（`.claude/skills/shared/references/customer-output-checklist.md` の自問チェックに従う）。
 
 ## 完了報告
 
-- `completion-report-format.md` の作業報告型骨格に従う
+- `.claude/skills/shared/references/completion-report-format.md` の作業報告型骨格に従う
 - 固有の検証行として、生成したレポートHTMLのパス・検出した所見件数・品質基盤の有無サマリの3点を追加する
