@@ -1,0 +1,12 @@
+{
+  "names": [
+    "flow-config",
+    "flow-context.yml",
+    ".flow-progress.json",
+    ".port-slot",
+    ".investigation-checklist.md"
+  ],
+  "pathSuffixes": [
+    ".claude/markers"
+  ]
+}

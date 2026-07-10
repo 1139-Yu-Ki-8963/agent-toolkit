@@ -67,9 +67,10 @@ commit 前に `payload/agent-home/skills/managing-agent-configs/scripts/manage-p
 ### インターフェース
 
 ```
-node scripts/sync-payload.mjs --list    # manifest の全マッピングを表示
-node scripts/sync-payload.mjs --check   # 乖離検知（書き込みなし）。乖離があれば exit 1
-node scripts/sync-payload.mjs --apply   # 乖離を正本の内容で payload に反映（manual は書かない）
+node scripts/sync-payload.mjs --list             # manifest の全マッピングを表示
+node scripts/sync-payload.mjs --check            # 乖離検知（書き込みなし）。乖離があれば exit 1
+node scripts/sync-payload.mjs --check-artifacts  # payload/ 配下の禁止アーティファクト残存を検知
+node scripts/sync-payload.mjs --apply            # 乖離を正本の内容で payload に反映（manual は書かない）
 ```
 
 ### manifest のモード
@@ -122,3 +123,68 @@ fail-safe で素通りします（乖離検知不能なため block しない）
 
 **廃棄条件**: payload の配布方式が別の仕組み（パッケージ配布・別リポジトリ分離等）に置き換
 わった時。
+
+---
+
+## payload禁止アーティファクト機構（配布してはいけない実行時生成物の除外）
+
+正本側には正当に存在するが payload には決して同梱してはいけないファイル種別
+（`orchestrating-dev-flow` の `flow-context.yml` 等、プロジェクトローカルな実行時生成物）
+が mirror 経由で payload に混入する事故が発生した。`scripts/payload-artifacts.json`
+に禁止パターンの正本を持ち、`sync-payload.mjs` の mirror コピーと独立スキャン
+（`--check-artifacts`）の両方でこれを弾く。
+
+### 禁止パターンデータファイル
+
+`scripts/payload-artifacts.json` の `names`（パスの各セグメントとの完全一致）/
+`pathSuffixes`（相対パス末尾一致）に追加することで、今後同種の事故パターンを
+機械的に除外できる。
+
+### mirror コピー時の除外（予防）
+
+`sync-payload.mjs` は mirror の src 側 walk 結果からのみ禁止パターンを除外する
+（dst 側は除外しない非対称設計）。これにより新規混入を防ぎつつ、既に payload に
+紛れ込んでいるファイルは "extra" drift として `--check`/`--apply` の通常経路で
+検知・削除される。
+
+### 独立スキャン（是正・保険）
+
+`node scripts/sync-payload.mjs --check-artifacts` は manifest と無関係に
+`payload/` 配下全体を走査し、禁止パターンへの一致を検出する（exit 1）。
+manual mapping 経由や手動コピーでの混入も捕捉する。
+
+### commit 時 block（`[PAYLOAD-ARTIFACTS-BLOCK]`）
+
+`scripts/check-payload-artifacts.sh`（PreToolUse(Bash)）が `git commit` 実行前に
+`--check-artifacts` を走らせ、該当があれば exit 2 で block する。
+
+1. stderr の FOUND 一覧を確認する
+2. 該当ファイルを payload/ から削除する（`git rm`）
+3. 正本側の mirror mapping が構造的に混入源になっている場合は
+   `scripts/payload-artifacts.json` にパターンを追加する
+4. 緊急口（常用禁止）: `CLAUDE_PAYLOAD_ARTIFACTS_SKIP=1 git commit ...`
+
+### 設計判断
+
+**必要性**: `flow-context.yml` は「元プロジェクトには正当に存在するが配布物としては
+不適切」というファイル種別であり、`sync-payload.mjs --check` の乖離検知（正本と
+一致しているか）では原理的に検知できない（正本側にも存在するため乖離ではない）。
+種別そのものを禁止する別レイヤーが必要であり、`scripts/check-payload-artifacts.sh`
+（commit 時 block）と `sync-payload.mjs --check-artifacts`（独立スキャン）を新設した。
+
+**代替案を採用しなかった理由**:
+- `EXCLUDE_NAMES`/`EXCLUDE_SUFFIXES` への追記（既存の対称除外の流用）:
+  対称除外だと dst に既に存在する漏洩ファイルを検知・削除できない
+  （比較対象から両側とも外れて黙って放置される）ため不採用
+- `--check` への統合: 「正本との乖離」と「配布可否の種別判定」は原因・対処が異なり、
+  統合すると block メッセージの意味が曖昧になるため独立コマンドに分離
+- `sync-manifest.json` の mapping 側で個別に除外設定を持たせる:
+  mapping ごとに除外リストが分散し、新しい禁止パターンを見つけるたびに全 mapping
+  を確認する必要が生じる。単一の正本データファイルに集約する方が保守しやすい
+
+**保守責任者**: 人手（ユーザー）。新しいプロジェクトローカル実行時生成物のパターンを
+発見した場合は `scripts/payload-artifacts.json` に追加する。
+
+**廃棄条件**: payload の配布方式が別の仕組みに置き換わった時、または
+`orchestrating-dev-flow` 等の実行時生成物がプロジェクト固有 gitignore で完全に
+隔離され mirror 元に一切出現しなくなった時。
