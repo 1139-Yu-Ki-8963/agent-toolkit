@@ -11,7 +11,6 @@
 | `CHECK_CMD` | 対象1件が完了しているかを判定するシェル条件式。`$TARGET` と `$MARKER` を参照できる（例: `grep -q -F -- "$MARKER" "$TARGET" 2>/dev/null`） | なし（必須） |
 | `LOG` | 実行ログの出力先絶対パス | なし（必須） |
 | `WAIT_SECONDS` | limit 検知時の待機秒数 | 3600（60分） |
-| `MAX_LAPS` | 最大周回数 | 10 |
 | `FAIL_LIMIT_K` | 同一対象の連続失敗上限 | 3 |
 | `MODEL` | `claude -p` に渡すモデル名 | 安価モデル（例: haiku 系） |
 | `ALLOWED_TOOLS` | `--allowedTools` に渡すツール一覧（カンマ区切り） | Phase 1 で確定した編集許可範囲に対応するツール |
@@ -29,7 +28,6 @@ TARGETS_FILE="__TARGETS_FILE__"
 MARKER="__MARKER__"
 LOG="__LOG__"
 WAIT_SECONDS=__WAIT_SECONDS__
-MAX_LAPS=__MAX_LAPS__
 FAIL_LIMIT_K=__FAIL_LIMIT_K__
 MODEL="__MODEL__"
 ALLOWED_TOOLS="__ALLOWED_TOOLS__"
@@ -56,8 +54,10 @@ inc_fail_count() {
   echo "$cur"
 }
 
+# 周回ループには意図的に上限を設けていない。要件「残ゼロまで継続」を文字通り満たすため。
+# 暴走防止は対象単位のFAIL_LIMIT_Kのみで担保する（全対象が成功またはfailedリスト行きで確定すればremaining=0になり自然終了する）。
 lap=0
-while [ "$lap" -lt "$MAX_LAPS" ]; do
+while :; do
   lap=$((lap + 1))
   remaining=0
   progressed=0
@@ -118,7 +118,7 @@ echo "$BG_PID"
 
 置換手順:
 
-1. `__TARGETS_FILE__` `__MARKER__` `__LOG__` `__WAIT_SECONDS__` `__MAX_LAPS__` `__FAIL_LIMIT_K__` `__MODEL__` `__ALLOWED_TOOLS__` `__FAILED_LIST__` `__FAIL_COUNTS__` を Phase 1 の確定値で置換する
+1. `__TARGETS_FILE__` `__MARKER__` `__LOG__` `__WAIT_SECONDS__` `__FAIL_LIMIT_K__` `__MODEL__` `__ALLOWED_TOOLS__` `__FAILED_LIST__` `__FAIL_COUNTS__` を Phase 1 の確定値で置換する
 2. `__CHECK_CMD__` を Phase 1 で確定した成否判定コマンド（`$TARGET` と `$MARKER` を参照するシェル条件式）で置換する
 3. `__PER_ITEM_PROMPT__` を §4 のテンプレートを埋めた文字列で置換する。プロンプト内の `\$TARGET` は実行時に `check_done` と同じ `$TARGET` へ展開されるよう、スクリプト側の `PROMPT="${PROMPT//\$TARGET/$TARGET}"` 行で対応する
 4. 置換済みの全文を1個の Bash ツール呼び出しとして実行する。事前にファイルへ保存しない

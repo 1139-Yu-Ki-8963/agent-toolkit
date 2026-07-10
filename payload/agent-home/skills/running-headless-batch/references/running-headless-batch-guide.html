@@ -204,7 +204,7 @@
   <table class="spec">
     <tr><th>Step</th><th>内容</th><th>使用ツール</th></tr>
     <tr><td>Step 1-1</td><td>対象定義（ファイル一覧/リスト）・マーカー文字列と付与位置・編集してよい範囲を確定する</td><td>AskUserQuestion</td></tr>
-    <tr><td>Step 1-2</td><td>使用モデル・limit待機間隔・ログ出力先・最大周回数・連続失敗上限Kを確認する</td><td>AskUserQuestion</td></tr>
+    <tr><td>Step 1-2</td><td>使用モデル・limit待機間隔・ログ出力先・連続失敗上限Kを確認する</td><td>AskUserQuestion</td></tr>
   </table>
 
   <h3>Phase 2: 対象一覧の生成と正規化</h3>
@@ -259,8 +259,8 @@
         </marker>
       </defs>
       <rect x="10" y="10" width="740" height="60" rx="6" fill="#f0f0ee" stroke="#1a1a1a" stroke-width="1.5"/>
-      <text x="380" y="35" text-anchor="middle" font-size="13" font-family="sans-serif">周回ループ（反復条件: 未処理残 &gt; 0／上限: 最大周回数）</text>
-      <text x="380" y="55" text-anchor="middle" font-size="11" fill="#555" font-family="sans-serif">停止: 残ゼロ（収束）／最大周回到達（リソース上限）／全残件failed化（発散検知）</text>
+      <text x="380" y="35" text-anchor="middle" font-size="13" font-family="sans-serif">周回ループ（反復条件: 未処理残 &gt; 0／上限なし＝意図的）</text>
+      <text x="380" y="55" text-anchor="middle" font-size="11" fill="#555" font-family="sans-serif">停止条件は2パターン: (1)収束停止＝残ゼロ (2)発散検知＝対象単位のFAIL_LIMIT_K連続失敗退避</text>
 
       <rect x="40" y="90" width="680" height="60" rx="6" fill="#eef2f7" stroke="#2a4a7a" stroke-width="1.5"/>
       <text x="380" y="115" text-anchor="middle" font-size="13" font-family="sans-serif">対象ループ（対象一覧を1件ずつ処理）</text>
@@ -277,7 +277,7 @@
 
   <table class="spec">
     <tr><th>層</th><th>反復条件</th><th>上限・停止条件</th></tr>
-    <tr><td>周回ループ</td><td>未処理残 &gt; 0</td><td>上限: 最大周回数（既定10）。停止: 残ゼロ・最大周回到達・全残件failed化</td></tr>
+    <tr><td>周回ループ</td><td>未処理残 &gt; 0</td><td>上限なし（意図的。要件「残ゼロまで継続」に基づく）。停止条件は2パターン: (1)収束停止＝残ゼロ (2)発散検知（対象単位）＝FAIL_LIMIT_K連続失敗退避</td></tr>
     <tr><td>対象ループ</td><td>対象一覧を先頭から1件ずつ処理</td><td>マーカー既存ならスキップ。K回連続失敗でfailed退避</td></tr>
     <tr><td>limit待機</td><td>limit文言検知時</td><td>待機間隔だけsleepしてから処理を再開。当該対象は次周回で再試行</td></tr>
   </table>
