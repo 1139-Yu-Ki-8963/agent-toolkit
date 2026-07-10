@@ -53,6 +53,7 @@ payload/
 | スキル | 担当 |
 |---|---|
 | [`managing-agent-configs`](payload/agent-home/skills/managing-agent-configs/SKILL.md) | エージェント構成 5 種（スキル・フック・ルール・ルーティン・サブエージェント）のライフサイクル管理（作成・観点ベース静的レビュー・実機検証）。スキルガイドを [`references/managing-agent-configs-guide.html`](payload/agent-home/skills/managing-agent-configs/references/managing-agent-configs-guide.html) に同梱 |
+| [`running-headless-batch`](payload/agent-home/skills/running-headless-batch/SKILL.md) | `claude -p`（対話画面を介さず1回の呼び出しで完結する実行方式）による無人バッチループの構築・起動。数十件以上の対象に1件=1呼び出しで処理し、マーカー冪等性・limit耐性・残ゼロまで継続する3要件を満たす。スキルガイドを [`references/running-headless-batch-guide.html`](payload/agent-home/skills/running-headless-batch/references/running-headless-batch-guide.html) に同梱 |
 
 サブエージェント 6 体（`brain` / `researcher` / `reviewer` / `worker-sonnet` / `worker-haiku` / `investigator`）を `payload/claude-config/agents/` に、画面基本設計テンプレート一式を `payload/agent-home/templates/project-docs/` に、textlint 設定と link-checker の仕組みを `payload/agent-home/tools/linter/` に同梱しています。
 
