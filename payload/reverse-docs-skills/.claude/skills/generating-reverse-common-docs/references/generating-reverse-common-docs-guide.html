@@ -109,7 +109,7 @@
 
 <header>
   <h1>プロジェクト共通採録スキル<br><span class="skill-name">generating-reverse-common-docs</span></h1>
-  <p>アーキテクチャ調査書を前提に、対象リポジトリのコードから層化サンプリングでプロジェクト共通7文書のv0を採録する。実装済みコードに現に存在する規約・共通仕様の事実だけを記録し、理想論は書かない。</p>
+  <p>アーキテクチャ調査書を前提に、対象リポジトリのコードから層化サンプリングでプロジェクト共通10文書のv0を採録する。実装済みコードに現に存在する規約・共通仕様の事実だけを記録し、理想論は書かない。</p>
 
   <div class="def">
     <dt>こんな人向け</dt>
@@ -186,8 +186,8 @@
   <table class="spec">
     <tr><th>引数</th><th>必須</th><th>内容</th></tr>
     <tr><td>target_repo_path</td><td>必須</td><td>対象リポジトリの絶対パス</td></tr>
-    <tr><td>docs_root</td><td>必須</td><td>出力先ルート。7文書は <code>&lt;docs_root&gt;/プロジェクト共通/</code> 配下に出力する</td></tr>
-    <tr><td>template_root</td><td>必須</td><td>テンプレ一式のルート。<code>&lt;template_root&gt;/プロジェクト共通/</code> の既存テンプレ7文書を雛形に使う</td></tr>
+    <tr><td>docs_root</td><td>必須</td><td>出力先ルート。10文書は <code>&lt;docs_root&gt;/プロジェクト共通/</code> 配下に出力する</td></tr>
+    <tr><td>template_root</td><td>必須</td><td>テンプレ一式のルート。<code>&lt;template_root&gt;/プロジェクト共通/</code> の既存テンプレ10文書を雛形に使う</td></tr>
     <tr><td>survey_doc_path</td><td>必須</td><td>アーキテクチャ調査書のパス（ディレクトリ責務マップを層化サンプリングの層定義に使う）</td></tr>
     <tr><td>mode</td><td>任意（既定 v0）</td><td>v0（新規）／append（NG帰着(c)の追記。append_findings を受け取り該当文書へ追記して全ゲートを再実行）</td></tr>
     <tr><td>append_findings</td><td>mode=append 時のみ必須</td><td>差し戻し元が指摘した欠落挙動・欠落文書の一覧</td></tr>
@@ -213,9 +213,9 @@
   target_repo_path・template_root・survey_doc_pathの実在を確認する
   調査書内「ユニット種別判定」節と「ディレクトリ責務マップ」節の
   実在をgrepで確認する(調査書ゲートの再実行はしない)
-  docs_root/プロジェクト共通/規約/を作成しテンプレ7文書を複製する
-  完了条件: テンプレ7文書複製済み・調査書の2節実在確認済み
-   (mode=append時は既存8文書と指摘文書の特定済み)
+  docs_root/プロジェクト共通/規約/を作成しテンプレ10文書を複製する
+  完了条件: テンプレ10文書複製済み・調査書の2節実在確認済み
+   (mode=append時は既存11文書と指摘文書の特定済み)
 
 <span class="cap">Phase 2: 層化サンプリング</span>
   調査書のディレクトリ責務マップの各層ごとに
