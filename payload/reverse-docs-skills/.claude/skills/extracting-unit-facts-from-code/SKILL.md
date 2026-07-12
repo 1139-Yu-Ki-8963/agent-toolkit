@@ -44,7 +44,7 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, TaskCreate, TaskUpdate]
 
 ## 設計原則
 
-- **読み取り専用**: 対象リポジトリへの書き込み・変更は一切行わない。出力は `screen_dir` 配下のみ
+- **読み取り専用**: 対象リポジトリへの書き込み・変更は一切行わない。出力は `<verification_dir>/screen-<画面ID>/facts/<run_id>/` のみ。設計書ルート（docs）配下には何も出力しない
 - **原本事実主義**: 推測・要約での補完を禁止する。コードに存在しない事実を書かない。全項目に原本の `file:line` 根拠を付ける
 - **独立再計数による検証**: 抽出者（Phase 2）と検証者（Phase 3 の `recount-facts.sh`）を分離する。検証者は facts.yml を読まずにまずコードから件数を独立算出し、その後に突合する
 - **封印による改ざん検知**: 確定した facts.yml は正規化ハッシュで封印し、以降の改変を機械検知できる状態にする
@@ -103,7 +103,7 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, TaskCreate, TaskUpdate]
 | Phase 4 | `seal-facts.sh verify` が `exit 0` |
 | Phase 5 | 2回の正規化出力の diff が空 |
 | Phase 6 | `status` 確定（`封印済み` \| `中断` \| `共通文書帰着`） |
-| **Goal** | 対象ユニットの原本コードから抽出したfactsが独立再計数・封印・再現性検証のすべてを通過し、執筆工程が原本を読まずに済む品質で `screen_dir` 配下に確定していること |
+| **Goal** | 対象ユニットの原本コードから抽出したfactsが独立再計数・封印・再現性検証のすべてを通過し、執筆工程が原本を読まずに済む品質で `<verification_dir>/screen-<画面ID>/facts/<run_id>/` 配下に確定していること |
 
 ## 返却ブロック
 
