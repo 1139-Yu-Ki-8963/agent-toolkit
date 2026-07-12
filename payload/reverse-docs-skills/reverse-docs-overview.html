@@ -205,10 +205,14 @@
     </div>
     <div class="flowgain"><span class="gainlabel">docs_root に増えるもの</span>
       <code>一覧/reverse-screen-registry.yml</code>（開通の記帳）／
-      <code>画面/screen-&lt;画面ID&gt;/検証記録/facts/</code>（封印済み facts）／
+      <code>詳細設計/original.png</code>（開通時点の画面キャプチャ）／
       <code>基本設計/画面基本設計書.md</code>／
       <code>詳細設計/画面詳細設計書.md</code>・<code>DESIGN.md</code>・観点表／
-      <code>検証記録/単体-&lt;ファイル名&gt;/</code> と <code>テスト項目書/テストコード/単体/</code>（修正指示書・保存済み単体テストコード）
+      <code>テスト項目書/テストコード/単体/</code>（保存済み単体テストコード）
+    </div>
+    <div class="flowgain"><span class="gainlabel">verification/ に増えるもの（docs_root の外）</span>
+      <code>verification/screen-&lt;画面ID&gt;/facts/</code>（封印済み facts）／
+      <code>verification/screen-&lt;画面ID&gt;/単体-&lt;ファイル名&gt;/</code>（ファイル単位検証の修正指示書）
     </div>
 
     <div>
@@ -241,7 +245,7 @@
         <span class="stepskill">rebuilding-code-from-docs（mode=judge）</span>
       </div>
     </div>
-    <div class="flowgain"><span class="gainlabel">docs_root に増えるもの</span><code>画面/screen-&lt;画面ID&gt;/検証記録/&lt;timestamp&gt;/修正指示書.md</code>・<code>最終報告.md</code>。不一致は NG 帰着 3 系統（<code>shared/references/リバース工程設計.md</code>）へ配線する</div>
+    <div class="flowgain"><span class="gainlabel">verification/ に増えるもの（docs_root の外）</span><code>verification/screen-&lt;画面ID&gt;/&lt;timestamp&gt;/修正指示書.md</code>・<code>最終報告.md</code>。不一致は NG 帰着 3 系統（<code>shared/references/リバース工程設計.md</code>）へ配線する</div>
 
     <div>
       <div class="flowstep last">
@@ -393,10 +397,10 @@
         <li><span class="node dir">画面/screen-&lt;画面ID&gt;/</span>
           <ul>
             <li><span class="node">詳細設計/画面詳細設計書.md ・ DESIGN.md</span><span class="by">generating-reverse-detailed-design</span> <span class="tag done">済</span></li>
+            <li><span class="node">詳細設計/original.png ・ rebuilt.png</span><span class="by">画面開通スキル・rebuilding-code-from-docs（往復検証 PASS 後）</span> <span class="tag done">済</span></li>
             <li><span class="node">詳細設計/単体テスト観点表.md ・ 結合テスト観点表.md</span><span class="by">検証系スキル</span> <span class="tag done">済</span></li>
             <li><span class="node">基本設計/画面基本設計書.md</span><span class="by">generating-reverse-basic-design</span> <span class="tag done">済</span></li>
             <li><span class="node">テスト項目書/（仕様書 3 種＋テストコード/単体/）</span><span class="by">検証系スキル・rebuilding-screen-unit-from-docs</span> <span class="tag done">済</span></li>
-            <li><span class="node">検証記録/facts/ ・ 単体-&lt;ファイル名&gt;/ ・ &lt;timestamp&gt;/（修正指示書.md・最終報告.md）</span><span class="by">extracting-unit-facts-from-code・rebuilding-screen-unit-from-docs・rebuilding-code-from-docs</span> <span class="tag done">済</span></li>
           </ul>
         </li>
         <li><span class="node dir">API/api-&lt;API-ID&gt;/</span>
@@ -430,7 +434,7 @@
       </ul>
     </li>
   </ul>
-  <p class="note">ツリーの構成正本は <code>shared/references/納品物フォルダ体系.md</code>。本節はそこへ検証記録の内訳（facts・ファイル単位検証記録。contract.md が定めるパス）を重ねた読み替え図である。</p>
+  <p class="note">ツリーの構成正本は <code>shared/references/納品物フォルダ体系.md</code>。検証記録（facts・ファイル単位検証記録・往復検証の証跡）は納品物ではないため <code>docs_root</code> の外、<code>docs_root</code> と同階層の <code>verification/</code> フォルダに格納する。パスの詳細は同ファイルの「検証記録（verification/）」節を参照。</p>
 </section>
 
 <section id="s4">

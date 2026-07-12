@@ -14,9 +14,11 @@
 <docs_root>/
 ├── 一覧/                  # 種別ごとの目録（画面一覧.html 等6種）+ excluded-kinds.json + 画面レジストリ
 ├── プロジェクト共通/      # アーキテクチャ調査書 + 規約4種 + 共通設計書 + メッセージ定義書 + DESIGN.md
-├── 画面/screen-<ID>/      # 詳細設計（画面詳細設計書.md 等）+ テスト項目書 + 検証記録（facts・往復検証の証跡）
+├── 画面/screen-<ID>/      # 詳細設計（画面詳細設計書.md・original.png・rebuilt.png 等）+ 基本設計 + テスト項目書
 └── API/ テーブル/ バッチ/ 帳票/ 外部連携/   # 各種別の詳細設計置き場（現時点は一覧確立まで）
 ```
+
+検証記録（facts・往復検証の証跡）は納品物ではないため `docs_root` の外に配置する。`docs_root` と同階層の `verification/` フォルダに移動した（詳細は [納品物フォルダ体系.md](shared/references/納品物フォルダ体系.md) を参照）。
 
 スキルを 1 つ実行するごとに増える成果物の対応（標準の実行順）:
 
@@ -26,11 +28,11 @@
 | generating-<種別>-list-for-reverse-docs（実在種別ごと） | `一覧/<種別>一覧/<種別>一覧.html`。全種別確定後に指揮役が `一覧/excluded-kinds.json` を書き出す |
 | unlocking-reverse-target-screens | `一覧/reverse-screen-registry.yml` への記帳と、対象コード側の基準タグ（`reverse-baseline/<scope>`） |
 | generating-reverse-common-docs | `プロジェクト共通/` の 7 文書 v0（規約 4 種・共通設計書・メッセージ定義書・DESIGN.md） |
-| extracting-unit-facts-from-code | `画面/screen-<ID>/検証記録/facts/<run_id>/`（facts 一式 + 封印 facts.lock） |
+| extracting-unit-facts-from-code | `verification/screen-<ID>/facts/<run_id>/`（facts 一式 + 封印 facts.lock） |
 | generating-reverse-basic-design | `画面/screen-<ID>/基本設計/画面基本設計書.md` |
-| generating-reverse-detailed-design | `画面/screen-<ID>/詳細設計/画面詳細設計書.md`・`DESIGN.md` |
-| rebuilding-screen-unit-from-docs | `検証記録/単体-<対象ファイル>/` の検証記録と `テスト項目書/テストコード/単体/` の最終テストコード |
-| rebuilding-code-from-docs + syncing-reverse-env | `検証記録/<timestamp>/修正指示書.md`・`最終報告.md`、判定 PASS 時は基準タグの本番更新 |
+| generating-reverse-detailed-design | `画面/screen-<ID>/詳細設計/画面詳細設計書.md`・`DESIGN.md`・`original.png`（画面キャプチャ） |
+| rebuilding-screen-unit-from-docs | `verification/screen-<ID>/単体-<対象ファイル>/` の検証記録と `テスト項目書/テストコード/単体/` の最終テストコード |
+| rebuilding-code-from-docs + syncing-reverse-env | `verification/screen-<ID>/<timestamp>/修正指示書.md`・`最終報告.md`、判定 PASS 時は基準タグの本番更新と `詳細設計/rebuilt.png`（画面キャプチャ）の更新 |
 
 ## スキル一覧
 

@@ -103,7 +103,11 @@ TaskCreate で本前提ゲートを含む全Phase分のタスクを1つずつ登
 
 `syncing-reverse-env` へ渡す `reverse_worktree` は、呼び出し前に命名規則（`reverse-code-<scope>` / `feature/reverse-code-<scope>`）に従い自ら用意する。既存のworktreeがあれば再利用し、新規作成はしない。並列実行時は「並列実行時の運用規約」節で定義する作業コピーとは別物であることに注意する。起動引数 `ports` は前提ゲートで自ら起動したdevサーバー専用の値であり、`syncing-reverse-env` が管理する環境のポートは同スキルの `config.yml` 計算式が常に正となる。両者に食い違いが生じても異常ではなく、完了報告にその旨を記す。`Skill` で `syncing-reverse-env` を `mode=registry`・`system`・`screen_id`・`reverse_worktree`・`ports`・`user-approved` で起動する。
 
-返却 `status=PASS` なら、画面レジストリの該当エントリを `status=baseline-established` に更新し、`git tag -l "reverse-baseline/<scope>"` 等の決定的コマンド出力でタグ確立を確認する（自然文の自己申告で完了と判定しない）。確認できたら `status=BASELINE-ESTABLISHED` で返却する（返却フィールドに `baseline_tag` を追加し、`syncing-reverse-env` の返却値をそのまま転記する）。返却が `PASS` 以外（`FAIL`/`ERROR`/`INCOMPLETE`）の場合は、画面レジストリを `status=unlocked` のまま残し、`status=UNLOCKED`（部分完了）で hint に理由を記して差し戻す。返却が `status=ERROR` かつポートスロット上限（`max_slots`）到達が理由の場合は `status=BLOCKED` とし、hint に「(a) 並行検証の要否再確認」「(b) baseline-established済み環境のteardown可否」「(c) 上限拡張要否のユーザー確認」の3点を記す。
+返却 `status=PASS` なら、画面レジストリの該当エントリを `status=baseline-established` に更新し、`git tag -l "reverse-baseline/<scope>"` 等の決定的コマンド出力でタグ確立を確認する（自然文の自己申告で完了と判定しない）。
+
+開通完了後、Playwright で対象画面のスクリーンショットを撮影し `<docs_root>/画面/screen-<screen_id>/詳細設計/original.png` として保存する。これは基本設計書・詳細設計書の画面キャプチャとして参照される。撮影には syncing-reverse-env の既存 Playwright 設定（viewport・loading 待機条件）を流用する。
+
+確認できたら `status=BASELINE-ESTABLISHED` で返却する（返却フィールドに `baseline_tag` を追加し、`syncing-reverse-env` の返却値をそのまま転記する）。返却が `PASS` 以外（`FAIL`/`ERROR`/`INCOMPLETE`）の場合は、画面レジストリを `status=unlocked` のまま残し、`status=UNLOCKED`（部分完了）で hint に理由を記して差し戻す。返却が `status=ERROR` かつポートスロット上限（`max_slots`）到達が理由の場合は `status=BLOCKED` とし、hint に「(a) 並行検証の要否再確認」「(b) baseline-established済み環境のteardown可否」「(c) 上限拡張要否のユーザー確認」の3点を記す。
 
 基準確立が完了した時点で、並行して `status=baseline-established` にある環境数が `syncing-reverse-env` の容量上限（`max_slots` 等）に近づいていないか確認する。近づいている場合は、次の画面の開通に着手する前に、拡張または整理（teardown可能な環境の有無）の要否をユーザーに確認する。この確認は、上限到達により `syncing-reverse-env` が `status=ERROR` を返してから対処する前段落のhint（(a)〜(c)）とは異なり、ERROR発生そのものを未然に防ぐための予防的な位置付けである。ここで拡張・整理を済ませておけば、後続画面の着手時に前段落のhintで同じ判断をやり直す必要はない。
 
