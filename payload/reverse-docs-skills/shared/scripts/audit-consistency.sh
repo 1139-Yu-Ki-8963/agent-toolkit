@@ -42,9 +42,10 @@ self_test() {
   tmp="$(mktemp -d -p "${TMPDIR:-/tmp}")"
 
   make_fixture() {
-    local dir="$1" p16_body="$2"
-    mkdir -p "$dir"
-    cat > "$dir/画面詳細設計書.md" <<MDEOF
+    local dir="$1" p16_body="$2" subpath="${3:-画面詳細設計書.md}"
+    local target="$dir/$subpath"
+    mkdir -p "$(dirname "$target")"
+    cat > "$target" <<MDEOF
 ---
 unit_test_sheet: ./none.md
 integration_test_sheet: ./none.md
@@ -107,6 +108,62 @@ MDEOF
 |---|---|---|---|---|
 | foo-issue | `2026-01-01` | 何らかの確認事項 | §15 | 実装完了 |'
 
+  # フィクスチャ d: ネスト構造（詳細設計/画面詳細設計書.md 配下配置）
+  make_fixture "$tmp/d" '| キー | 起票日 | 内容 | 暫定扱いにしている § | 解消条件 | 状態 |
+|---|---|---|---|---|---|
+| foo-issue | `2026-01-01` | 何らかの確認事項 | §15 | 実装完了 | 解消済み |' "詳細設計/画面詳細設計書.md"
+
+  # フィクスチャ e: §15.1 に「実体形状」列を追加した5列構成（配置ディレクトリ列が
+  # 5番目ではなく6番目に位置ずれする）。配置ディレクトリ未記入行を1件含める。
+  mkdir -p "$tmp/e"
+  cat > "$tmp/e/画面詳細設計書.md" <<'MDEOF'
+---
+unit_test_sheet: ./none.md
+integration_test_sheet: ./none.md
+---
+
+## 章マップ
+
+| 役割キー | § |
+|---|---|
+| 機能一覧 | §2 |
+| 実装契約 | §15 |
+| 要確認事項 | §16 |
+
+## §2 機能一覧
+
+| キー | 内容 |
+|---|---|
+| foo-view | 表示 |
+
+## §15 実装契約
+
+### 15.1 ファイル分割と export 一覧
+
+| ファイルパス | export 名 | 種別 | 実体形状 | 配置ディレクトリ |
+|---|---|---|---|---|
+| components/Foo.tsx | Foo | コンポーネント | 関数コンポーネント | components/ |
+| utils/bar.ts | bar | ユーティリティ | 関数 | <配置ディレクトリ> |
+
+### 15.2 型定義
+
+| 型名 | フィールド名 | 型 | 必須/任意 |
+|---|---|---|---|
+| `FooValues` | `name` | `string` | 必須 |
+
+### 15.3 依存（import）一覧
+
+| モジュール | import 内容 | 種別 |
+|---|---|---|
+| `./Foo` | `Foo` | 内部 |
+
+## §16 要確認事項一覧
+
+| キー | 起票日 | 内容 | 暫定扱いにしている § | 解消条件 | 状態 |
+|---|---|---|---|---|---|
+| foo-issue | `2026-01-01` | 何らかの確認事項 | §15 | 実装完了 | 解消済み |
+MDEOF
+
   # ケース1: 検査g陽性（§15.2テーブル型名抽出 + §15.3内部import解決）
   if out_a="$(bash "$script_path" "$tmp/a" 2>&1)"; then rc_a=0; else rc_a=$?; fi
   if printf '%s' "$out_a" | grep -q "内部 import はすべて §15.1/§15.2 に対応が見つかりました"; then
@@ -151,6 +208,27 @@ MDEOF
     fail=1
   fi
 
+  # ケース6: ネスト構造（詳細設計/画面詳細設計書.md 配下配置）でも監査が完走する
+  if out_d="$(bash "$script_path" "$tmp/d" 2>&1)"; then rc_d=0; else rc_d=$?; fi
+  if [ "$rc_d" -eq 0 ] \
+     && printf '%s' "$out_d" | grep -qF "対象設計書: $tmp/d/詳細設計/画面詳細設計書.md" \
+     && printf '%s' "$out_d" | grep -q "要確認事項一覧はすべて解消済みです"; then
+    echo "[PASS] ネスト構造陽性: 詳細設計/画面詳細設計書.md 配下配置でも監査が完走し設計書を正しく解決する"
+  else
+    echo "[FAIL] ネスト構造陽性: 詳細設計/画面詳細設計書.md 配下配置での監査完走に失敗（exit=${rc_d}）"
+    fail=1
+  fi
+
+  # ケース7: 検査f陽性（§15.1 に「実体形状」列が追加され配置ディレクトリ列の位置が
+  # ずれても、未記入行を正しく検出できる＝列固定でなくヘッダー名で解決している）
+  if out_e="$(bash "$script_path" "$tmp/e" 2>&1)"; then rc_e=0; else rc_e=$?; fi
+  if printf '%s' "$out_e" | grep -q "utils/bar.ts (配置ディレクトリ未記入)"; then
+    echo "[PASS] 検査f陽性: 実体形状列追加による配置ディレクトリ列の位置ずれでも未記入行を正しく検出する"
+  else
+    echo "[FAIL] 検査f陽性: 実体形状列追加時に配置ディレクトリ未記入行を検出できません（列固定の回帰の疑い、exit=${rc_e}）"
+    fail=1
+  fi
+
   rm -rf "$tmp"
 
   if [ "$fail" -ne 0 ]; then
@@ -183,14 +261,18 @@ if [ ! -d "$SCREEN_DIR" ]; then
   exit 1
 fi
 
-# 設計書の特定: 画面詳細設計書.md を第一候補とし、無ければ frontmatter に
-# `type: screen-detail-design` を持つ .md を探す。観点表にも doc_id があるため
-# 「doc_id を含む最初の .md」では観点表を誤選択しうる（実証済みバグ）。
+# 設計書の特定: 詳細設計/画面詳細設計書.md（ネスト構造）を第一候補、
+# 直下の画面詳細設計書.md を第二候補とし、無ければ frontmatter に
+# `type: screen-detail-design` を持つ .md を探す（詳細設計/配下→直下の順）。
+# 観点表にも doc_id があるため「doc_id を含む最初の .md」では観点表を
+# 誤選択しうる（実証済みバグ）。
 DESIGN_DOC=""
-if [ -f "$SCREEN_DIR/画面詳細設計書.md" ]; then
+if [ -f "$SCREEN_DIR/詳細設計/画面詳細設計書.md" ]; then
+  DESIGN_DOC="$SCREEN_DIR/詳細設計/画面詳細設計書.md"
+elif [ -f "$SCREEN_DIR/画面詳細設計書.md" ]; then
   DESIGN_DOC="$SCREEN_DIR/画面詳細設計書.md"
 else
-  for cand in "$SCREEN_DIR"/*.md; do
+  for cand in "$SCREEN_DIR"/詳細設計/*.md "$SCREEN_DIR"/*.md; do
     if [ -f "$cand" ] && grep -qE '^type: *screen-detail-design *$' "$cand" 2>/dev/null; then
       DESIGN_DOC="$cand"
       break
@@ -201,6 +283,7 @@ if [ -z "$DESIGN_DOC" ]; then
   echo "エラー: 設計書を特定できません（画面詳細設計書.md が無く、type: screen-detail-design を持つ .md も見つかりません）: $SCREEN_DIR" >&2
   exit 1
 fi
+DESIGN_DIR="$(dirname "$DESIGN_DOC")"
 
 # --- frontmatter から観点表パスを取得 ---
 frontmatter_value() {
@@ -423,22 +506,22 @@ WARNINGS=0
 
 UNIT_SHEET_REL="$(frontmatter_value unit_test_sheet)"
 INTEG_SHEET_REL="$(frontmatter_value integration_test_sheet)"
-UNIT_SHEET="$(resolve_rel_path "$SCREEN_DIR" "$UNIT_SHEET_REL" || true)"
-INTEG_SHEET="$(resolve_rel_path "$SCREEN_DIR" "$INTEG_SHEET_REL" || true)"
+UNIT_SHEET="$(resolve_rel_path "$DESIGN_DIR" "$UNIT_SHEET_REL" || true)"
+INTEG_SHEET="$(resolve_rel_path "$DESIGN_DIR" "$INTEG_SHEET_REL" || true)"
 
 # operation_test_spec は任意キー（L5 操作シーケンス突合が無い画面には存在しない）。
 # インラインコメント除去は frontmatter_value() 内で共通化済み。
 OPTEST_SPEC_REL="$(frontmatter_value operation_test_spec)"
-OPTEST_SPEC="$(resolve_rel_path "$SCREEN_DIR" "$OPTEST_SPEC_REL" || true)"
+OPTEST_SPEC="$(resolve_rel_path "$DESIGN_DIR" "$OPTEST_SPEC_REL" || true)"
 
 # unit_test_spec / integration_test_spec / design_md は任意キー。検査 j・m（テスト仕様書
 # 空殻検出・DESIGN.md 実測欄検出）が使う。
 UNIT_SPEC_REL="$(frontmatter_value unit_test_spec)"
 INTEG_SPEC_REL="$(frontmatter_value integration_test_spec)"
-UNIT_SPEC="$(resolve_rel_path "$SCREEN_DIR" "$UNIT_SPEC_REL" || true)"
-INTEG_SPEC="$(resolve_rel_path "$SCREEN_DIR" "$INTEG_SPEC_REL" || true)"
+UNIT_SPEC="$(resolve_rel_path "$DESIGN_DIR" "$UNIT_SPEC_REL" || true)"
+INTEG_SPEC="$(resolve_rel_path "$DESIGN_DIR" "$INTEG_SPEC_REL" || true)"
 DESIGN_MD_REL="$(frontmatter_value design_md)"
-DESIGN_MD="$(resolve_rel_path "$SCREEN_DIR" "$DESIGN_MD_REL" || true)"
+DESIGN_MD="$(resolve_rel_path "$DESIGN_DIR" "$DESIGN_MD_REL" || true)"
 
 # --- (a) 機能一覧章 × 観点表 の機能キー集合突合（両方向一致） ---
 echo ""
@@ -690,15 +773,24 @@ SPLIT_15_1="$(printf '%s\n' "$CONTRACT_BODY" | awk '
 ')"
 HDR_15_1="$(printf '%s\n' "$SPLIT_15_1" | awk '/^\|/{print; exit}')"
 if printf '%s' "$HDR_15_1" | grep -q '配置ディレクトリ'; then
-  BAD_15_1="$(printf '%s\n' "$SPLIT_15_1" | awk '
-    BEGIN { row=0 }
+  # 配置ディレクトリ列の位置はヘッダーから動的に解決する（列固定禁止。
+  # §15.1 に「実体形状」列が追加される等、列構成が変わっても追従できるようにする）。
+  BAD_15_1="$(printf '%s\n' "$SPLIT_15_1" | awk -v hdr="$HDR_15_1" '
+    BEGIN {
+      hn = split(hdr, hcols, "|")
+      for (i = 1; i <= hn; i++) {
+        v = hcols[i]; gsub(/^[ \t]+|[ \t]+$/, "", v)
+        if (v == "配置ディレクトリ") dir_col = i
+      }
+      row = 0
+    }
     /^\|/ {
       row++
       if (row == 1) next
       if (row == 2 && $0 ~ /^\|[ \t:|\-]+$/) next
       n = split($0, cols, "|")
       p = cols[2]; gsub(/^[ \t]+|[ \t]+$/, "", p)
-      d = cols[5]; gsub(/^[ \t]+|[ \t]+$/, "", d)
+      d = cols[dir_col]; gsub(/^[ \t]+|[ \t]+$/, "", d)
       if (d == "" || d ~ /^<.*>$/) print "    - "p" (配置ディレクトリ未記入)"
     }
   ')"
