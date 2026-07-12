@@ -194,6 +194,10 @@ headless_approved_ops: [白紙化, 再実装, タグ更新, 環境撤去]
 
 rebuilding-code-from-docsのPhase2が実行するaudit-consistency.shは§16要確認事項一覧の未解消行数をWARNとして記録する（既定）。既定挙動では管理者の状態判定・次工程遷移に影響しない。管理者が往復検証着手前に§16のゼロ解消を強制したい場合のみ、AUDIT_STRICT_P16=1を設定した上でaudit-consistency.shを実行するようrebuilding-code-from-docsへ指示する（この場合はexit 1となり、Phase2は「内部矛盾あり」としてPhase8へ直行する既存の分岐がそのまま適用される）。
 
+### 基本設計・詳細設計の並列起動
+
+Phase 6 の (b-2) generating-reverse-basic-design と (c) generating-reverse-detailed-design は Agent(run_in_background: true) で並列起動する。両スキルは互いの成果物を参照しない（SKILL.md「予想を裏切る挙動」節で明文化済み）。合流条件は両方の完了ステータス受領。(d) rebuilding-screen-unit-from-docs の `status=差し戻し` は詳細設計のみへ戻す（基本設計への差し戻しは発生しない）。
+
 ## 画面完了の定義
 
 画面が「完了」したと判定するには、対象ファイル集合の完全性を満たす必要がある。

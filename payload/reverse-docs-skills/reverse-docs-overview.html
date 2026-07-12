@@ -157,6 +157,7 @@
   <h2><span class="sec-num">§1</span>工程フロー図（成果物の積み上がり）</h2>
   <p>指揮役（<code>orchestrating-reverse-docs-flow</code>）が左列の工程を上から順に進める。各工程が完了するたびに、右列の成果物が <code>docs_root</code> に増える。緑枠の「ユニット反復」は画面 1 つごとに繰り返す。</p>
   <p class="note">本文書で使う「facts」は、原本コードから抽出した宣言的契約の事実表（項目・分岐・呼び出しの数まで数え上げた一次資料）を指す。「基準タグ」は、2 環境の完全一致を証明できた時点のコミットに打つ git タグ <code>reverse-baseline/&lt;scope&gt;</code> を指す。</p>
+  <p class="note">Phase 0（ヒアリング）で対象パス・出力先・画面スコープを確定後、Phase 1 で状態判定を行い全工程をタスク一覧として一括登録する（マニフェスト先出し方式）。基本設計と詳細設計は並列実行する。</p>
 
   <div class="flowgrid">
     <div>
@@ -197,7 +198,7 @@
         <ul class="substeps">
           <li>開通 <span class="stepskill">unlocking-reverse-target-screens</span></li>
           <li>facts 抽出 <span class="stepskill">extracting-unit-facts-from-code</span></li>
-          <li>設計書執筆 <span class="stepskill">generating-reverse-detailed-design</span></li>
+          <li>基本設計 ‖ 詳細設計（並列） <span class="stepskill">generating-reverse-basic-design ‖ generating-reverse-detailed-design</span></li>
           <li>ファイル単位検証 <span class="stepskill">rebuilding-screen-unit-from-docs</span></li>
         </ul>
       </div>
@@ -205,6 +206,7 @@
     <div class="flowgain"><span class="gainlabel">docs_root に増えるもの</span>
       <code>一覧/reverse-screen-registry.yml</code>（開通の記帳）／
       <code>画面/screen-&lt;画面ID&gt;/検証記録/facts/</code>（封印済み facts）／
+      <code>基本設計/画面基本設計書.md</code>／
       <code>詳細設計/画面詳細設計書.md</code>・<code>DESIGN.md</code>・観点表／
       <code>検証記録/単体-&lt;ファイル名&gt;/</code> と <code>テスト項目書/テストコード/単体/</code>（修正指示書・保存済み単体テストコード）
     </div>
@@ -253,7 +255,7 @@
 
 <section id="s2">
   <h2><span class="sec-num">§2</span>スキル→成果物対応表</h2>
-  <p>指揮役が仲介する子スキル 14 個の一覧。状態キーは指揮役の状態判定表（contract.md）で当該スキルの起動条件となる状態、返却 status は各スキルが返す判定値、主成果物は完了時に確立する代表的な生成物を示す。個別ガイドがあるスキルはスキル名からたどれる。</p>
+  <p>指揮役が仲介する子スキル 16 個の一覧。状態キーは指揮役の状態判定表（contract.md）で当該スキルの起動条件となる状態、返却 status は各スキルが返す判定値、主成果物は完了時に確立する代表的な生成物を示す。個別ガイドがあるスキルはスキル名からたどれる。</p>
   <table class="spec">
     <tr><th>スキル</th><th>状態キー</th><th>返却 status</th><th>主成果物</th></tr>
     <tr>
@@ -317,6 +319,12 @@
       <td>封印済み facts 一式（facts.lock つき・独立再計数ゲート通過済み）</td>
     </tr>
     <tr>
+      <td><a href=".claude/skills/generating-reverse-basic-design/references/generating-reverse-basic-design-guide.html"><code>generating-reverse-basic-design</code></a></td>
+      <td>基本設計未著述</td>
+      <td><code>基本設計著述完了 | 基本設計著述失敗</code></td>
+      <td>画面基本設計書.md</td>
+    </tr>
+    <tr>
       <td><a href=".claude/skills/generating-reverse-detailed-design/references/generating-reverse-detailed-design-guide.html"><code>generating-reverse-detailed-design</code></a></td>
       <td>設計書未著述</td>
       <td><code>AUTHORED | BLOCKED</code></td>
@@ -339,6 +347,12 @@
       <td>往復未検証</td>
       <td>implement: <code>NEED-COMPARE | INTERNAL-CONTRADICTION | ERROR | BLOCKED</code><br>judge: <code>PASS | FAIL | DESIGN-INCOMPLETE | DYNAMIC-UNVERIFIED</code></td>
       <td>再実装コード（凍結コミット）・修正指示書.md・最終報告.md</td>
+    </tr>
+    <tr>
+      <td>（Phase 4.5）</td>
+      <td>running-reverse-screen-batch</td>
+      <td>完了報告</td>
+      <td>画面バッチ実行ログ</td>
     </tr>
   </table>
   <p class="note">指揮役 <code>orchestrating-reverse-docs-flow</code> 自身は状態判定と検収・配線に徹する（<a href=".claude/skills/orchestrating-reverse-docs-flow/references/orchestrating-reverse-docs-flow-guide.html">指揮役ガイド</a>）。成果物では <code>一覧/excluded-kinds.json</code> の書き出しのみ指揮役が担う。</p>
@@ -380,7 +394,7 @@
           <ul>
             <li><span class="node">詳細設計/画面詳細設計書.md ・ DESIGN.md</span><span class="by">generating-reverse-detailed-design</span> <span class="tag done">済</span></li>
             <li><span class="node">詳細設計/単体テスト観点表.md ・ 結合テスト観点表.md</span><span class="by">検証系スキル</span> <span class="tag done">済</span></li>
-            <li><span class="node">基本設計/画面基本設計書.md</span><span class="by">上位抽象化スキル（基本設計）</span> <span class="tag planned">段階計画 Cycle 4</span></li>
+            <li><span class="node">基本設計/画面基本設計書.md</span><span class="by">generating-reverse-basic-design</span> <span class="tag done">済</span></li>
             <li><span class="node">テスト項目書/（仕様書 3 種＋テストコード/単体/）</span><span class="by">検証系スキル・rebuilding-screen-unit-from-docs</span> <span class="tag done">済</span></li>
             <li><span class="node">検証記録/facts/ ・ 単体-&lt;ファイル名&gt;/ ・ &lt;timestamp&gt;/（修正指示書.md・最終報告.md）</span><span class="by">extracting-unit-facts-from-code・rebuilding-screen-unit-from-docs・rebuilding-code-from-docs</span> <span class="tag done">済</span></li>
           </ul>
