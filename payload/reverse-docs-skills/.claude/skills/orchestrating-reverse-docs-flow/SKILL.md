@@ -75,11 +75,11 @@ Step 0-1 の回答に基づき実行モードを決定する:
 
 ### Phase 1.5: 並列一覧生成（Phase 1 でアーキ未調査が解消された後）
 
-Phase 1 の状態判定で「一覧未生成」に到達した場合、従来の逐次起動に代わり Agent ツールで 6 つの一覧生成スキルを並列起動する。
+Phase 1 の状態判定で「一覧未生成」に到達した場合、従来の逐次起動に代わり Agent ツールで一覧生成スキルを並列起動する。ただし起動対象は Phase 2 で確定した unit_kinds_present に含まれる種別のみに限定する。
 
-#### Step 1.5-1: 6 一覧スキルを並列起動する
+#### Step 1.5-1: unit_kinds_present に含まれる種別のみ一覧スキルを並列起動する
 
-Agent ツールで以下の 6 スキルを同時に起動する（run_in_background: true で並列実行）:
+Phase 2 で確定した unit_kinds_present を参照し、実在種別に対応する一覧生成スキルのみを Agent ツールで同時に起動する（run_in_background: true で並列実行）。対応する一覧生成スキルは以下の 6 種類だが、unit_kinds_present に含まれない種別は起動せず、Step 1.5-2 の excluded-kinds.json への対象外記録のみを行う:
 
 1. generating-screen-list-for-reverse-docs
 2. generating-api-list-for-reverse-docs
@@ -90,7 +90,7 @@ Agent ツールで以下の 6 スキルを同時に起動する（run_in_backgro
 
 各エージェントには source_dir・output_dir を args として渡す（Phase 3・`references/contract.md` の args 仕様と統一。unit_kind はスキル名で固定されるため引数に含まない）。
 
-**完了**: 6 スキルすべてが完了し、各種別の一覧HTMLが生成されている。失敗したスキルがある場合はエラー内容を報告し、残りの正常完了分で続行するか判断する。
+**完了**: unit_kinds_present に含まれる種別のスキルすべてが完了し、各種別の一覧HTMLが生成されている。失敗したスキルがある場合はエラー内容を報告し、残りの正常完了分で続行するか判断する。
 
 #### Step 1.5-2: excluded-kinds.json を確認する
 
