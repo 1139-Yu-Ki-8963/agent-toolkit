@@ -4,7 +4,7 @@
 
 ## 概要
 
-このリポジトリは、指揮役スキル 1 つと子スキル 14 個（一覧生成 6 + 工程 8）で構成される。既存コードベースを走査して一覧・共通文書・詳細設計書を積み上げ、最後に「設計書だけからコードを再生成し、原本と機械突合する」往復検証で設計書の品質を保証する。再生成コードが原本と一致しなければ設計書のどこかに欠落がある、という考え方により、設計書の完成度を主観ではなく機械判定（画面描画・内容・ARIA・画素差分・console・操作の各一致）で確定させる。
+このリポジトリは、指揮役スキル 1 つと子スキル 15 個（一覧生成 6 + 工程 9）で構成される。既存コードベースを走査して一覧・共通文書・詳細設計書を積み上げ、最後に「設計書だけからコードを再生成し、原本と機械突合する」往復検証で設計書の品質を保証する。再生成コードが原本と一致しなければ設計書のどこかに欠落がある、という考え方により、設計書の完成度を主観ではなく機械判定（画面描画・内容・ARIA・画素差分・console・操作の各一致）で確定させる。
 
 ## 成果物の最終形
 
@@ -25,15 +25,16 @@
 | surveying-architecture-for-reverse-docs | `プロジェクト共通/アーキテクチャ調査書.md`（機械検証済み） |
 | generating-<種別>-list-for-reverse-docs（実在種別ごと） | `一覧/<種別>一覧/<種別>一覧.html`。全種別確定後に指揮役が `一覧/excluded-kinds.json` を書き出す |
 | unlocking-reverse-target-screens | `一覧/reverse-screen-registry.yml` への記帳と、対象コード側の基準タグ（`reverse-baseline/<scope>`） |
-| compiling-project-common-docs | `プロジェクト共通/` の 7 文書 v0（規約 4 種・共通設計書・メッセージ定義書・DESIGN.md） |
+| generating-reverse-common-docs | `プロジェクト共通/` の 7 文書 v0（規約 4 種・共通設計書・メッセージ定義書・DESIGN.md） |
 | extracting-unit-facts-from-code | `画面/screen-<ID>/検証記録/facts/<run_id>/`（facts 一式 + 封印 facts.lock） |
-| authoring-screen-docs-from-code | `画面/screen-<ID>/詳細設計/画面詳細設計書.md`・`DESIGN.md` |
+| generating-reverse-basic-design | `画面/screen-<ID>/基本設計/画面基本設計書.md` |
+| generating-reverse-detailed-design | `画面/screen-<ID>/詳細設計/画面詳細設計書.md`・`DESIGN.md` |
 | rebuilding-screen-unit-from-docs | `検証記録/単体-<対象ファイル>/` の検証記録と `テスト項目書/テストコード/単体/` の最終テストコード |
 | rebuilding-code-from-docs + syncing-reverse-env | `検証記録/<timestamp>/修正指示書.md`・`最終報告.md`、判定 PASS 時は基準タグの本番更新 |
 
 ## スキル一覧
 
-指揮役 1 + 一覧生成 6 + 工程 8 の計 15 スキル。
+指揮役 1 + 一覧生成 6 + 工程 9 の計 16 スキル。
 
 | スキル名 | 役割 | 主成果物 |
 |---|---|---|
@@ -47,9 +48,10 @@
 | surveying-architecture-for-reverse-docs | 対象リポジトリの前提調査を機械検証付きで確定 | アーキテクチャ調査書.md |
 | unlocking-reverse-target-screens | 設計書が無い画面をモック API で開通させ基準タグ確立まで単独完走 | 画面レジストリ記帳・基準タグ |
 | syncing-reverse-env | リバース元と設計書の 2 環境同期・比較・基準タグ操作 | 基準タグ・比較結果ブロック |
-| compiling-project-common-docs | 層化サンプリングでプロジェクト共通 7 文書の v0 を採録 | プロジェクト共通/ 7 文書 |
+| generating-reverse-common-docs | 層化サンプリングでプロジェクト共通 7 文書の v0 を採録 | プロジェクト共通/ 7 文書 |
 | extracting-unit-facts-from-code | 原本コードから宣言的契約の事実表（facts）を抽出し封印 | facts 一式 + facts.lock |
-| authoring-screen-docs-from-code | 封印済み facts と共通文書から画面詳細設計書を執筆 | 画面詳細設計書.md・DESIGN.md |
+| generating-reverse-basic-design | 封印済み facts と共通文書から業務語彙のみで画面基本設計書を執筆 | 画面基本設計書.md |
+| generating-reverse-detailed-design | 封印済み facts と共通文書から画面詳細設計書を執筆 | 画面詳細設計書.md・DESIGN.md |
 | rebuilding-screen-unit-from-docs | 設計書だけから 1 ファイルを再生成し原本と突合（ファイル単位検証） | 検証記録・最終テストコード |
 | rebuilding-code-from-docs | 設計書だけから画面単位で再実装し比較・判定（implement / judge の 2 モード） | 修正指示書.md・最終報告.md |
 
@@ -70,10 +72,10 @@
 
 ## 全体の流れ
 
-指揮役は成果物の実在から現在の状態を判定し（10 状態）、次に起動する子スキルを機械的に決める。判定は次の順に降りる決定木で行う。
+指揮役は成果物の実在から現在の状態を判定し（11 状態）、次に起動する子スキルを機械的に決める。判定は次の順に降りる決定木で行う。
 
 ```
-アーキ未調査 → 一覧未生成 → 共通未採録 → 画面未開通 → 事実未封印
+アーキ未調査 → 一覧未生成 → 共通未採録 → 画面未開通 → 事実未封印 → 基本設計未著述
   → 設計書未著述 → ファイル単位未検証（任意工程） → 基準未確立
   → 往復未検証 → 検証完了
 ```
@@ -85,7 +87,7 @@
                                                                         │
      ┌──────────────────────────────────────────────────────────────────┘
      ▼
-facts 抽出・封印 ─→ 設計書執筆 ─→（任意）ファイル単位検証
+facts 抽出・封印 ─→ 基本設計書執筆 ─→ 詳細設計書執筆 ─→（任意）ファイル単位検証
      ─→ 往復検証（再実装 → 環境比較 → 判定） ─→ PASS: 基準タグ更新
                                               └─→ FAIL: NG 帰着 3 系統へ差し戻し
 ```
@@ -125,7 +127,7 @@ Skill(orchestrating-reverse-docs-flow)
 | Cycle | 状態 | 内容 |
 |---|---|---|
 | Cycle 0 | 完了 | 一覧スキル 6 分割・契約明文化・責務確定・README/全体ガイド整備 |
-| Cycle 1 | 未着手 | API 縦貫。extracting-unit-facts-from-code の profile=api 追加・facts-schema 拡張 → authoring-screen-docs-from-code の API 章マップ → 画面レンダリング比較に代わる検証方式（スキーマ差分・HTTP 応答突合）の設計 |
+| Cycle 1 | 未着手 | API 縦貫。extracting-unit-facts-from-code の profile=api 追加・facts-schema 拡張 → generating-reverse-detailed-design の API 章マップ → 画面レンダリング比較に代わる検証方式（スキーマ差分・HTTP 応答突合）の設計 |
 | Cycle 2 | 未着手 | テーブル・バッチ。テーブルはスキーマ静的比較、バッチは実行契約の facts |
 | Cycle 3 | 未着手 | 帳票・外部連携。帳票レイアウト・外部連携契約 |
 | Cycle 4 | 未着手 | 上位抽象化スキル。基本設計・要件定義文書群（[納品物フォルダ体系.md](shared/references/納品物フォルダ体系.md) の未実装担当分） |
@@ -148,9 +150,10 @@ Skill(orchestrating-reverse-docs-flow)
 - [アーキテクチャ調査（surveying-architecture-for-reverse-docs）](.claude/skills/surveying-architecture-for-reverse-docs/references/surveying-architecture-for-reverse-docs-guide.html)
 - [画面開通（unlocking-reverse-target-screens）](.claude/skills/unlocking-reverse-target-screens/references/unlocking-reverse-target-screens-guide.html)
 - [環境同期（syncing-reverse-env）](.claude/skills/syncing-reverse-env/references/syncing-reverse-env-guide.html)
-- [共通採録（compiling-project-common-docs）](.claude/skills/compiling-project-common-docs/references/compiling-project-common-docs-guide.html)
+- [共通採録（generating-reverse-common-docs）](.claude/skills/generating-reverse-common-docs/references/generating-reverse-common-docs-guide.html)
 - [facts 抽出（extracting-unit-facts-from-code）](.claude/skills/extracting-unit-facts-from-code/references/extracting-unit-facts-from-code-guide.html)
-- [設計書執筆（authoring-screen-docs-from-code）](.claude/skills/authoring-screen-docs-from-code/references/authoring-screen-docs-from-code-guide.html)
+- [基本設計書執筆（generating-reverse-basic-design）](.claude/skills/generating-reverse-basic-design/references/generating-reverse-basic-design-guide.html)
+- [設計書執筆（generating-reverse-detailed-design）](.claude/skills/generating-reverse-detailed-design/references/generating-reverse-detailed-design-guide.html)
 - [ファイル単位検証（rebuilding-screen-unit-from-docs）](.claude/skills/rebuilding-screen-unit-from-docs/references/rebuilding-screen-unit-from-docs-guide.html)
 - [画面単位検証（rebuilding-code-from-docs）](.claude/skills/rebuilding-code-from-docs/references/rebuilding-code-from-docs-guide.html)
 - [画面一覧生成（generating-screen-list-for-reverse-docs）](.claude/skills/generating-screen-list-for-reverse-docs/references/generating-screen-list-for-reverse-docs-guide.html)

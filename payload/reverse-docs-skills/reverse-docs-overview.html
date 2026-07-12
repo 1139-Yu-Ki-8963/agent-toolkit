@@ -178,7 +178,7 @@
     <div>
       <div class="flowstep">
         <span class="stepname">共通採録</span>
-        <span class="stepskill">compiling-project-common-docs</span>
+        <span class="stepskill">generating-reverse-common-docs</span>
       </div>
     </div>
     <div class="flowgain"><span class="gainlabel">docs_root に増えるもの</span><code>プロジェクト共通/</code> の 7 文書（規約 4 種・共通設計書・メッセージ定義書・DESIGN.md）</div>
@@ -197,7 +197,7 @@
         <ul class="substeps">
           <li>開通 <span class="stepskill">unlocking-reverse-target-screens</span></li>
           <li>facts 抽出 <span class="stepskill">extracting-unit-facts-from-code</span></li>
-          <li>設計書執筆 <span class="stepskill">authoring-screen-docs-from-code</span></li>
+          <li>設計書執筆 <span class="stepskill">generating-reverse-detailed-design</span></li>
           <li>ファイル単位検証 <span class="stepskill">rebuilding-screen-unit-from-docs</span></li>
         </ul>
       </div>
@@ -299,7 +299,7 @@
       <td>一覧/外部連携一覧/外部連携一覧.html</td>
     </tr>
     <tr>
-      <td><a href=".claude/skills/compiling-project-common-docs/references/compiling-project-common-docs-guide.html"><code>compiling-project-common-docs</code></a></td>
+      <td><a href=".claude/skills/generating-reverse-common-docs/references/generating-reverse-common-docs-guide.html"><code>generating-reverse-common-docs</code></a></td>
       <td>共通未採録（NG 帰着 (c) 時は往復未検証から再入）</td>
       <td><code>採録v0確定 | 追記完了 | 中断</code></td>
       <td>プロジェクト共通/ の 7 文書（規約 4 種・共通設計書・メッセージ定義書・DESIGN.md）</td>
@@ -317,7 +317,7 @@
       <td>封印済み facts 一式（facts.lock つき・独立再計数ゲート通過済み）</td>
     </tr>
     <tr>
-      <td><a href=".claude/skills/authoring-screen-docs-from-code/references/authoring-screen-docs-from-code-guide.html"><code>authoring-screen-docs-from-code</code></a></td>
+      <td><a href=".claude/skills/generating-reverse-detailed-design/references/generating-reverse-detailed-design-guide.html"><code>generating-reverse-detailed-design</code></a></td>
       <td>設計書未著述</td>
       <td><code>AUTHORED | BLOCKED</code></td>
       <td>画面詳細設計書.md（fact 網羅検査・整合監査の通過記録つき）</td>
@@ -369,8 +369,8 @@
         </li>
         <li><span class="node dir">プロジェクト共通/</span>
           <ul>
-            <li><span class="node">規約/（コーディング・命名・ディレクトリ構成・コンポーネント設計の 4 種）</span><span class="by">compiling-project-common-docs</span> <span class="tag done">済</span></li>
-            <li><span class="node">共通設計書.md ・ メッセージ定義書.md ・ DESIGN.md</span><span class="by">compiling-project-common-docs</span> <span class="tag done">済</span></li>
+            <li><span class="node">規約/（コーディング・命名・ディレクトリ構成・コンポーネント設計の 4 種）</span><span class="by">generating-reverse-common-docs</span> <span class="tag done">済</span></li>
+            <li><span class="node">共通設計書.md ・ メッセージ定義書.md ・ DESIGN.md</span><span class="by">generating-reverse-common-docs</span> <span class="tag done">済</span></li>
             <li><span class="node">アーキテクチャ調査書.md</span><span class="by">surveying-architecture-for-reverse-docs</span> <span class="tag done">済</span></li>
             <li><span class="node">基盤設計.md ・ UI共通設計.md ・ データ設計.md</span><span class="by">上位抽象化スキル（基本設計）</span> <span class="tag planned">段階計画 Cycle 4</span></li>
             <li><span class="node">機能要件一覧.md ・ 帳票要件.md ・ バッチ要件.md ・ 外部連携要件.md ・ ビジネス概要.md</span><span class="by">上位抽象化スキル（要件定義）</span> <span class="tag planned">段階計画 Cycle 4</span></li>
@@ -378,7 +378,7 @@
         </li>
         <li><span class="node dir">画面/screen-&lt;画面ID&gt;/</span>
           <ul>
-            <li><span class="node">詳細設計/画面詳細設計書.md ・ DESIGN.md</span><span class="by">authoring-screen-docs-from-code</span> <span class="tag done">済</span></li>
+            <li><span class="node">詳細設計/画面詳細設計書.md ・ DESIGN.md</span><span class="by">generating-reverse-detailed-design</span> <span class="tag done">済</span></li>
             <li><span class="node">詳細設計/単体テスト観点表.md ・ 結合テスト観点表.md</span><span class="by">検証系スキル</span> <span class="tag done">済</span></li>
             <li><span class="node">基本設計/画面基本設計書.md</span><span class="by">上位抽象化スキル（基本設計）</span> <span class="tag planned">段階計画 Cycle 4</span></li>
             <li><span class="node">テスト項目書/（仕様書 3 種＋テストコード/単体/）</span><span class="by">検証系スキル・rebuilding-screen-unit-from-docs</span> <span class="tag done">済</span></li>

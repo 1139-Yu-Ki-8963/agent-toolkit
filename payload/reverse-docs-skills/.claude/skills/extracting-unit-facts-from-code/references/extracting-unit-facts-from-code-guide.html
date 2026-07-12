@@ -139,7 +139,7 @@
     <li><a href="#s8">機械ゲート（recount-facts.sh・seal-facts.sh）</a></li>
     <li><a href="#s9">返却ブロック</a></li>
     <li><a href="#s10">ループ設計</a></li>
-    <li><a href="#s11">Gotchas・重要な注意事項</a></li>
+    <li><a href="#s11">予想を裏切る挙動</a></li>
     <li><a href="#s12">関連スキル・資料</a></li>
   </ol>
 </nav>
@@ -312,7 +312,7 @@
 </section>
 
 <section id="s11">
-  <h2><span class="sec-num">§11</span>Gotchas・重要な注意事項</h2>
+  <h2><span class="sec-num">§11</span>予想を裏切る挙動</h2>
   <ul>
     <li><code>mktemp</code> は必ず <code>mktemp -d "${TMPDIR:-/tmp}/XXXXXX"</code> 形式で使う。macOS の引数なし <code>mktemp -d</code> はサンドボックス環境で失敗する実害がある</li>
     <li>再現性検証のため facts.yml に現在時刻を書かない。run_id のみを持たせ、normalize が run_id 行を除去することで2回の抽出結果を比較可能にする</li>
@@ -336,7 +336,7 @@
   <table class="spec">
     <tr><th>関連</th><th>関係</th></tr>
     <tr><td>orchestrating-reverse-docs-flow</td><td>工程全体を案内する管理者スキル。本スキルは他スキル名を参照せず単独起動できるが、返却する status / artifacts はこの管理者スキルの契約に準拠する</td></tr>
-    <tr><td>authoring-screen-docs-from-code</td><td>本スキルが確定したfactsを前提に詳細設計を執筆する下流スキル。9分類の定義移設元でもある</td></tr>
+    <tr><td>generating-reverse-detailed-design</td><td>本スキルが確定したfactsを前提に詳細設計を執筆する下流スキル。9分類の定義移設元でもある</td></tr>
     <tr><td>surveying-architecture-for-reverse-docs</td><td>本スキルが前提とするアーキテクチャ調査書（方式→プロファイル選択の根拠）を確定する上流スキル</td></tr>
     <tr><td>リバース工程設計.md</td><td>Phase/Step×スキル対応の正本。本スキルの位置づけはPhase 5 / Step 18-21</td></tr>
   </table>

@@ -1,6 +1,6 @@
 # facts.yml スキーマ正本
 
-`extracting-unit-facts-from-code` が出力する `facts.yml` の構造・必須フィールド・正規化規則を定める正本。9 分類の定義は `authoring-screen-docs-from-code` の `references/phase-details.md`（宣言的契約事実表 `fact-table.md` の9分類定義）から移設したものであり、authoring 側の `fact-table.md`（Markdown 2列表）とは別形式（YAML・evidence列付き）の独立した成果物である。
+`extracting-unit-facts-from-code` が出力する `facts.yml` の構造・必須フィールド・正規化規則を定める正本。9 分類の定義は `generating-reverse-detailed-design` の `references/phase-details.md`（宣言的契約事実表 `fact-table.md` の9分類定義）から移設したものであり、authoring 側の `fact-table.md`（Markdown 2列表）とは別形式（YAML・evidence列付き）の独立した成果物である。
 
 ## 全体構造
 
@@ -62,6 +62,10 @@ sections:
 | source_ref | 抽出時点のコミットSHA（`git -C <target_repo_path> rev-parse HEAD` で実測） |
 | route | 画面のルートパス。`value`（実測したパス文字列）と `evidence`（ルーター定義ファイルの `file:line`）を持つ |
 
+### リポジトリ参照の解決規則
+
+`source_repo`・`target_repo_path` に記録するパスは、作業複製（worktree・一時 clone・キャッシュ展開先等）のパスではなく、主リポジトリ（起動引数として渡された正本チェックアウトの絶対パス。作業複製経由で解決した場合は `git rev-parse --show-toplevel` 等で主リポジトリの実体を辿った解決値）を記録する。作業複製は実行環境側の都合であり、下流工程・監査が参照する固有値ではないため、抽出実行が作業複製上で行われた場合でも記録するパスは主リポジトリ解決値に置き換える。
+
 ## 9分類とキーの付け方
 
 `①`〜`⑨` の丸数字は分類記号であり連番 ID ではない（`always/naming/semantic-key` 規約の対象外。既存契約の分類記号として踏襲する）。各分類のセクションキー（YAML上の識別子）・ラベル・抽出粒度・キーの付け方は次の通り。
@@ -80,7 +84,7 @@ sections:
 
 各分類は「該当なし」を許容する。その場合 `items: []` とし `reason` に根拠を記す（例: `"該当なし（原本にトップレベル定数が存在しない）"`）。`items` が空で `reason` も空のセクションは不正（Phase 2 の完了条件違反）。
 
-**「該当なし」は原本に当該分類の事実が実在しない場合専用**である。原本に事実が実在するが `scripts/recount-facts.sh` の再計数パターンがそれを構造的に検知できない（Promiseチェーン形式のAPI呼出し・複数行JSX開始タグ・カスタムフック分割代入・オブジェクトリテラル定数のフィールド値・条件分岐JSXパスの外殻ラッパー等）場合は「該当なし」に該当しない。この場合に items を省略・reason へ逃がして Phase 3 を通すことは禁止する。`extracting-unit-facts-from-code` の `references/profile-screen.md`・`scripts/recount-facts.sh` 側のパターンを実在の構文に合わせて修正する（詳細は同スキルの SKILL.md Gotchas を参照）。
+**「該当なし」は原本に当該分類の事実が実在しない場合専用**である。原本に事実が実在するが `scripts/recount-facts.sh` の再計数パターンがそれを構造的に検知できない（Promiseチェーン形式のAPI呼出し・複数行JSX開始タグ・カスタムフック分割代入・オブジェクトリテラル定数のフィールド値・条件分岐JSXパスの外殻ラッパー等）場合は「該当なし」に該当しない。この場合に items を省略・reason へ逃がして Phase 3 を通すことは禁止する。`extracting-unit-facts-from-code` の `references/profile-screen.md`・`scripts/recount-facts.sh` 側のパターンを実在の構文に合わせて修正する（詳細は同スキルの SKILL.md の予想を裏切る挙動を参照）。
 
 ## 必須フィールド
 
@@ -115,4 +119,4 @@ sections:
 - `.claude/skills/extracting-unit-facts-from-code/references/profile-screen.md` — screen プロファイルの分類別抽出手順・再計数用決定的パターン
 - `.claude/skills/extracting-unit-facts-from-code/scripts/recount-facts.sh` — 本スキーマに基づく独立再計数ゲート
 - `shared/scripts/seal-facts.sh` — 本スキーマの normalize・封印・検証を担う共有スクリプト
-- `.claude/skills/authoring-screen-docs-from-code/references/phase-details.md` — 9分類定義の移設元（fact-table.md 側は本スキーマの対象外。authoring 側の改修は別工程）
+- `.claude/skills/generating-reverse-detailed-design/references/phase-details.md` — 9分類定義の移設元（fact-table.md 側は本スキーマの対象外。authoring 側の改修は別工程）

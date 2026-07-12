@@ -143,7 +143,7 @@
     <li><a href="#s6">設計原則</a></li>
     <li><a href="#s7">ガード設計</a></li>
     <li><a href="#s8">報告フォーマット</a></li>
-    <li><a href="#s9">重要な注意事項・Gotchas</a></li>
+    <li><a href="#s9">重要な注意事項・予想を裏切る挙動</a></li>
     <li><a href="#s10">関連スキル・規約</a></li>
   </ol>
 </nav>
@@ -321,7 +321,7 @@
 </section>
 
 <section id="s9">
-  <h2><span class="sec-num">§9</span>重要な注意事項・Gotchas</h2>
+  <h2><span class="sec-num">§9</span>重要な注意事項・予想を裏切る挙動</h2>
   <div class="constraint">
     <strong>コード記述はフェーズ限定</strong>: Phase 4 以外でコードを書いてはならない。Phase 3〜Phase 7 の間、オリジナルコード環境への Read は禁止（カンニング防止）。
   </div>
@@ -332,7 +332,7 @@
     <li>Phase 管理: 次の Phase に入る前に、その Phase 内の全 Step を TaskCreate で登録する。各 Step 完了時に TaskUpdate で completed にする。Phase の全 Step が completed になるまで次の Phase に進まない。一括登録（全 Phase 分を最初に登録）は禁止し、1 Phase ずつ登録する</li>
     <li>基準タグ更新は本スキルでは実行しない。管理者が比較エンジンの本番実行（非 dry-run）で行う</li>
   </ul>
-  <h3>Gotchas</h3>
+  <h3>予想を裏切る挙動</h3>
   <ul>
     <li>Phase 2 で内部矛盾を検出した場合、Phase 4 の実装は行わない。欠陥設計書からの実装検証は往復検証として無意味なため、直ちに Phase 8 の指示書作成に移る</li>
     <li>Phase 5 の発散確定は失敗ではなく手がかり。発散したエラー自体を設計書欠落候補として Phase 8 に渡す</li>

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>authoring-screen-docs-from-code スキルガイド</title>
+<title>generating-reverse-detailed-design スキルガイド</title>
 <style>
   * { box-sizing: border-box; }
   body {
@@ -95,7 +95,7 @@
 <body>
 
 <header>
-  <h1>封印済みfactsからのリバース設計書執筆スキル<br><span class="skill-name">authoring-screen-docs-from-code</span></h1>
+  <h1>封印済みfactsからのリバース設計書執筆スキル<br><span class="skill-name">generating-reverse-detailed-design</span></h1>
   <p>封印済み facts（facts.yml）とプロジェクト共通文書だけを情報源に、リバース設計書（画面詳細設計書・DESIGN.md・単体テスト観点表）を著述する執筆専任スキル。対象リポジトリの原本コードは一切 Read しない。</p>
 
   <div class="def">
@@ -127,7 +127,7 @@
     <li><a href="#s9">完全性ゲート（check-fact-coverage.sh）</a></li>
     <li><a href="#s10">返却ブロック</a></li>
     <li><a href="#s11">ループ設計</a></li>
-    <li><a href="#s12">Gotchas・重要な注意事項</a></li>
+    <li><a href="#s12">予想を裏切る挙動</a></li>
     <li><a href="#s13">関連スキル・資料</a></li>
   </ol>
 </nav>
@@ -136,7 +136,7 @@
   <h2><span class="sec-num">§1</span>概要</h2>
   <p>本スキルは体系内で唯一「原本を読まずに書く」ことが仕事の執筆役である。<strong>原本を読むのは上流の extracting-unit-facts-from-code だけ</strong>であり、本スキルはその成果物（封印済み facts.yml）とプロジェクト共通文書だけを情報源に、宣言的契約を各章のテンプレート様式へ転記・整形する。</p>
   <div class="constraint">
-    <strong>執筆専任</strong>: facts抽出（→ extracting-unit-facts-from-code）・共通文書採録（→ compiling-project-common-docs）は本スキルの範囲外。本スキルは「封印済みfactsが既にある」ことを前提に動く。
+    <strong>執筆専任</strong>: facts抽出（→ extracting-unit-facts-from-code）・共通文書採録（→ generating-reverse-common-docs）は本スキルの範囲外。本スキルは「封印済みfactsが既にある」ことを前提に動く。
   </div>
   <div class="warn">
     <strong>原本 Read 全面禁止</strong>: 本スキル実行中に対象リポジトリの原本コードを Read することは、検証の盲検性を壊す契約違反として全面禁止する。facts.yml の欠落・矛盾に気づいても自ら原本を確認せず、extracting-unit-facts-from-code への差し戻し事由として記録する。
@@ -158,7 +158,7 @@
     <dt>facts_ref</dt>
     <dd>extracting-unit-facts-from-code が確定した、封印済み facts ディレクトリの絶対パス（<code>&lt;screen_dir&gt;/検証記録/facts/&lt;run_id&gt;/</code>）。facts.yml・facts.lock・recount-report.txt を含む。</dd>
     <dt>common_docs_root</dt>
-    <dd>compiling-project-common-docs が採録したプロジェクト共通文書のルート（<code>プロジェクト共通/</code>）。本スキルの情報源のもう一方。</dd>
+    <dd>generating-reverse-common-docs が採録したプロジェクト共通文書のルート（<code>プロジェクト共通/</code>）。本スキルの情報源のもう一方。</dd>
     <dt>封印検証</dt>
     <dd><code>shared/scripts/seal-facts.sh verify &lt;facts_ref&gt;</code>による、facts.yml が封印時から改変されていないことの確認。Phase 2の必須ゲート。</dd>
     <dt>実測委譲</dt>
@@ -308,7 +308,7 @@
 </section>
 
 <section id="s12">
-  <h2><span class="sec-num">§12</span>Gotchas・重要な注意事項</h2>
+  <h2><span class="sec-num">§12</span>予想を裏切る挙動</h2>
   <ul>
     <li>原本コードのReadは全面禁止。情報源はfacts_ref配下のfacts.ymlとcommon_docs_root配下の共通文書のみ</li>
     <li>facts.ymlの字面（value列）をそのまま書き写すだけでなく、章の文脈に沿って正規化して書く。ただしfactsに無い事実を創作しない</li>
@@ -326,7 +326,7 @@
     <tr><th>関連</th><th>関係</th></tr>
     <tr><td>orchestrating-reverse-docs-flow</td><td>工程全体を案内する管理者スキル。本スキルの返却する status/artifacts はこの契約に準拠する</td></tr>
     <tr><td>extracting-unit-facts-from-code</td><td>原本コードからfacts.ymlを抽出・独立再計数・封印する上流スキル。本スキルの唯一の情報源のひとつ</td></tr>
-    <tr><td>compiling-project-common-docs</td><td>プロジェクト共通文書を採録する上流スキル。common_docs_rootの実体を提供する</td></tr>
+    <tr><td>generating-reverse-common-docs</td><td>プロジェクト共通文書を採録する上流スキル。common_docs_rootの実体を提供する</td></tr>
     <tr><td>rebuilding-screen-unit-from-docs</td><td>本スキルがAUTHOREDを返した後に起動する下流の盲検検証スキル。「差し戻し」の差し戻し先は本スキル</td></tr>
     <tr><td>shared/references/facts-schema.md</td><td>facts.ymlのスキーマ正本（9分類・必須フィールド・正規化規則）</td></tr>
   </table>
