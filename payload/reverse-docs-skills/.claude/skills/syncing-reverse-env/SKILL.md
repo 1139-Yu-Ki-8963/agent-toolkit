@@ -94,6 +94,8 @@ sync のオプション: `dry-run`（整列・タグ更新なし）/ `reset-firs
 ### Phase 1: 起動契約解決
 
 args を検証し、本スキルフォルダの `config.yml` を Read する。設計書 frontmatter から `<system>`・`<画面ID>`・`<scope>`・`source_repo`・`source_ref`・`scenarios`（`name`/`path`/`query`/`path_params`/`ready`/`assert`/`mask` を持つ画面単位の正本。旧 `route` 単一パスは `[{path: <パス>}]` に正規化）を導出する。`doc_id` が `screen-` 接頭辞を持たない場合は ERROR（前提不成立）で停止する。config.yml の `projects` 上書きはスキーマ検証する（services 非空・各 service に launch・services 数 ≤ reverse_offset。違反は ERROR）。セッション開始時（当該 mode 実行の最初の setup/sync）に `git rev-parse <source_ref>` で SHA へ解決して pin する。以後そのセッション（同一 `<system>` を対象とする一連の呼び出し）は全画面この pin 済み SHA を使い、ブランチが途中で動いても pin した SHA を使い続ける。
+作業リポジトリのローカルパスからの読み取り専用 fetch 経路: push 禁止の作業リポジトリ（worktree）からコミットを取得する場合、検証環境側リポジトリへ `git fetch <作業リポのローカル絶対パス> '+refs/heads/*:refs/remotes/worktree-origin/*'` で全ブランチを読み取り専用 fetch する。これにより push を一切前提にせず source_ref を解決できる。この手順は本流リポジトリからの通常 fetch で source_ref が解決できない場合（作業リポジトリのコミットが未 push の場合）のフォールバックとして実行する。
+
 完了条件: mode・design-doc・config 値・`<scope>`・pin 済み `source_ref` SHA がすべて確定している
 
 ### Phase 2: 環境確保 + プリフライト

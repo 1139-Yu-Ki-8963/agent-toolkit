@@ -104,8 +104,28 @@ count_export_type() {
 # 宣言行を1件として数える。
 count_const() {
   awk '
-    function count_object_fields(   depth, line, opens, closes, fieldcount) {
-      depth = 1
+    # rest（= の右辺として抽出済みのオブジェクトリテラル開始文字列）が同一行内で
+    # 閉じている場合（単一行オブジェクト定数）はgetlineせず、その場でカンマ区切り
+    # により最上位フィールド数を計算する。閉じていない場合は従来どおりgetlineで
+    # 継続行を読み進める。
+    function count_object_fields(rest,   depth, line, opens, closes, fieldcount, body, n, arr, i, tok) {
+      opens = gsub(/\{/, "{", rest)
+      closes = gsub(/\}/, "}", rest)
+      if (opens > 0 && opens == closes) {
+        body = rest
+        sub(/^[^{]*\{/, "", body)
+        sub(/\}[^}]*$/, "", body)
+        if (body ~ /^[ \t]*$/) { return 0 }
+        n = split(body, arr, ",")
+        fieldcount = 0
+        for (i = 1; i <= n; i++) {
+          tok = arr[i]
+          gsub(/^[ \t]+|[ \t]+$/, "", tok)
+          if (tok ~ /^["'"'"'`]?[A-Za-z_$][A-Za-z0-9_$]*["'"'"'`]?[ \t]*:/) fieldcount++
+        }
+        return fieldcount
+      }
+      depth = opens - closes
       fieldcount = 0
       while ((getline line) > 0) {
         if (depth == 1 && line ~ /^[ \t]*["'"'"'`]?[A-Za-z_$][A-Za-z0-9_$]*["'"'"'`]?[ \t]*:[ \t]*[^ \t]/) {
@@ -121,11 +141,21 @@ count_const() {
     /^(export[ \t]+)?const[ \t]+[A-Za-z_][A-Za-z0-9_]*/ {
       if ($0 ~ /=[ \t]*styled\./) next
       if ($0 ~ /use(State|Reducer|Ref)\(/) next
-      rest = $0
+      line = $0
+      # 型注釈がオブジェクト型で複数行にまたがる宣言（`const X: {...} = {...}`で
+      # 型注釈部分の"{"が改行を挟む場合）は、同一行に"="が現れるまで継続行を
+      # 連結してから型注釈部分をスキップし、値部分の"{"を取り出す。
+      contlines = 0
+      while (line !~ /=/ && contlines < 40) {
+        if ((getline nextline) <= 0) break
+        line = line " " nextline
+        contlines++
+      }
+      rest = line
       sub(/^(export[ \t]+)?const[ \t]+[A-Za-z_][A-Za-z0-9_]*[ \t]*(:[^=]*)?=[ \t]*/, "", rest)
       gsub(/^[ \t]+/, "", rest)
       if (rest ~ /^\{/) {
-        n = count_object_fields()
+        n = count_object_fields(rest)
         if (n > 0) { count += n } else { count += 1 }
       } else {
         count++
@@ -428,7 +458,7 @@ blank_field_stats() {
 orphan_refs() {
   facts="$1"
   shift
-  targets_re="$(printf '%s\n' "$@" | awk 'BEGIN{ORS="|"} {gsub(/[.[\]^$*+?(){}|\\]/,"\\\\&"); print}' | sed -E 's/\|$//')"
+  targets_re="$(printf '%s\n' "$@" | awk 'BEGIN{ORS="|"} {gsub(/[].[^$*+?(){}|\\]/,"\\\\&"); print}' | sed -E 's/\|$//')"
   awk -v key_ok="^($targets_re):[0-9]+\$" '
     /^sections:/ { in_sections=1; next }
     in_sections && /^      - key:[ \t]*(.*)$/ {
@@ -828,6 +858,41 @@ EOF
     echo "  [PASS] 回帰確認: スカラー定数は宣言1件のまま（1件）"
   else
     echo "  [FAIL] 回帰確認: スカラー定数の件数が変化した（実測=${scalar_const_count} 期待=1）" >&2
+    rc=1
+  fi
+
+  # 追加陽性: 単一行で完結するオブジェクト定数（`const x = { a: 1, b: 2 };`）。
+  # count_object_fields()がgetlineで次行を読み始めるため同一行内のフィールドを
+  # 見落としていた構造的欠陥の回帰確認。最上位2フィールドを検知する。
+  single_line_const_file="$tmp/single-line-const.txt"
+  cat > "$single_line_const_file" <<'EOF'
+const singleLineObj = { height: "48px", fontSize: "14px" };
+EOF
+  single_line_const_count="$(count_const "$single_line_const_file")"
+  if [ "$single_line_const_count" = "2" ]; then
+    echo "  [PASS] 追加陽性: 単一行オブジェクト定数のフィールド分解を検知（2件）"
+  else
+    echo "  [FAIL] 追加陽性: 単一行オブジェクト定数のフィールド分解を検知できない（実測=${single_line_const_count} 期待=2）" >&2
+    rc=1
+  fi
+
+  # 追加陽性: 型注釈がオブジェクト型で複数行にまたがる宣言（`const X: {...} = {...}`）。
+  # 型注釈部分の"{...}"をスキップし、値部分の"{...}"のフィールド（a・bの2件）を数える。
+  typed_multiline_const_file="$tmp/typed-multiline-const.txt"
+  cat > "$typed_multiline_const_file" <<'EOF'
+const config: {
+  a: string;
+  b: number;
+} = {
+  a: "1",
+  b: 2,
+};
+EOF
+  typed_multiline_const_count="$(count_const "$typed_multiline_const_file")"
+  if [ "$typed_multiline_const_count" = "2" ]; then
+    echo "  [PASS] 追加陽性: 型注釈が複数行にまたがる宣言の値部分フィールドを検知（2件）"
+  else
+    echo "  [FAIL] 追加陽性: 型注釈が複数行にまたがる宣言の値部分フィールドを検知できない（実測=${typed_multiline_const_count} 期待=2）" >&2
     rc=1
   fi
 

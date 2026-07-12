@@ -60,12 +60,17 @@ allowed-tools: [Bash, Read, Write, Edit, Grep, Glob, AskUserQuestion, TaskCreate
 - **Step 4**: 除外パターンを確定する。`tests`/`stories`/`mocks`等のノイズディレクトリを実際に `ls` で確認する。完了条件: `excludePatterns` 一覧が確定済み
 - **Step 5**: 検出戦略宣言を作成し、AskUserQuestionで承認を取る。宣言JSONは一時ファイルに保存する。完了条件: 戦略JSON（`unitKind: "screen"`/`extractionMethod`/`screenUnitDefinition`/`screenIdRegex`/`viewSwitchPattern`/`excludePatterns`/`approvedByUser: true`/`notes`）が保存済み
 
+### 抽出基準の明文化
+
+抽出対象はルート配線済み画面を基本とする。ルート未配線の埋め込みビュー・休眠画面は、Phase 1 の strategy 宣言で明示的に `includeUnrouted: true` を指定した場合のみ含める。含める場合は kind=`unrouted` として区分表記する。
+
 ### Phase 2: 戦略に基づく抽出
 
 - **Step 1**: 抽出方式を分岐判定する。組み込み検出器（Next.js App/Pages Router・React Router（`useRoutes`含む）・慣習ディレクトリ）がPhase 1の調査結果と適合する場合のみ組み込みパスを選べる。完了条件: `builtin-*` か `custom` かが決定済み
 - **Step 2（組み込みパス）**: `../../../shared/scripts/unit-list/detect-screens.sh <source-dir> <manifest-out> --strategy-json <strategy.json> [--screen-id-regex <re>] [--view-switch-pattern <re>] [--exclude <pattern>]` を実行する。0件ならハード停止（exit 3）。画面を捏造しない
 - **Step 2（カスタム抽出パス）**: Phase 1で宣言した手順（例: element属性の`viewId`/`pageId`から物理ファイルを組み立てる・カスタムルート配列のJSON解析等）をClaude自身がBash/Grep/Readで実行し、スキーマ準拠のマニフェストJSONをWriteする。完了条件（両パス共通）: マニフェストJSONが生成済み
 - **Step 3**: diagnosticsを確認する。entryFile集中警告等が出た場合はカスタム抽出パスへの切替を検討し、切替時はStep 1へ戻る。完了条件: diagnosticsが空、または警告を承知の上で続行と判断済み
+- **セルフチェックゲート**: Phase 2 完了後にエントリファイル実在数（`find <source_dir> -name '*.tsx' -path '*/pages/*' -o -name '*.tsx' -path '*/app/*' | wc -l` 等）と抽出件数を突合し、乖離が 20% を超える場合は警告を出力して AskUserQuestion で確認する
 
 検出結果は一時ディレクトリ（`$CLAUDE_JOB_DIR/tmp/screen-manifest.json`、未設定時は `${TMPDIR:-/tmp}/claude-job-${session}/tmp/` 配下。`${session}`はセッションIDが取得できなければ任意の一意な値でよい）に保存する。
 

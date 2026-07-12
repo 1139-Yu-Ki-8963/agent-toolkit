@@ -10,7 +10,7 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, TaskCreate, TaskUpdate]
 
 工程全体は orchestrating-reverse-docs-flow が案内する。本スキルは対象ユニットの原本コードから宣言的契約 facts を抽出し、独立再計数・封印・再現性検証を通して「執筆工程が原本を読まずに済む」品質の `facts.yml` を確定するところまでを単独で担い、単独起動できる（起動引数を渡せば動く）。後続工程（詳細設計執筆）はこの facts を前提として動くが、本スキル自体は他スキルへの依存を持たない。
 
-対象リポジトリに対しては読み取り専用で動作する。書き込み・変更は一切行わない。出力は `screen_dir` 配下の `検証記録/facts/<run_id>/` の3ファイル（`facts.yml`・`facts.lock`・`recount-report.txt`）のみ。
+対象リポジトリに対しては読み取り専用で動作する。書き込み・変更は一切行わない。出力は `<verification_dir>/screen-<画面ID>/facts/<run_id>/` の3ファイル（`facts.yml`・`facts.lock`・`recount-report.txt`）のみ。
 
 本 Stage は `profile=screen`（画面ユニット）のみを実装する。他プロファイル（API・テーブル・バッチ・帳票・外部連携）は未対応であり、指定された場合は `status=中断` を返す。
 
@@ -27,7 +27,7 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, TaskCreate, TaskUpdate]
 |---|---|---|
 | target_repo_path | 必須 | 対象リポジトリの絶対パス |
 | target_file_paths | 必須 | 対象ユニットの対象ファイル（画面本体＋直接の子コンポーネント）の、target_repo_path からの相対パス配列。ルーティング定義ファイル（複数画面の遷移情報を単一ファイルで持つもの）は対象外とし、遷移情報はプロジェクト共通文書（共通設計書）側で扱う |
-| screen_dir | 必須 | 出力先の画面ディレクトリ絶対パス。facts は `<screen_dir>/検証記録/facts/<run_id>/` に出力する |
+| screen_dir | 必須 | 出力先の画面ディレクトリ絶対パス。facts は `<verification_dir>/screen-<画面ID>/facts/<run_id>/` に出力する |
 | profile | 必須 | `screen` のみ実装。他値は `status=中断` で hint に未対応と返す |
 | survey_doc_path | 必須 | アーキテクチャ調査書のパス（方式→プロファイル選択の根拠）。本スキルは内容を読み込まず実在確認のみ行う |
 | run_id | 任意（既定 `extract-1`） | 抽出実行の識別子。出力ディレクトリ名・facts.yml内の run_id フィールドに使う |
@@ -55,7 +55,7 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, TaskCreate, TaskUpdate]
 
 ### Phase 1: 前提確認
 
-`target_repo_path`・`screen_dir`・`survey_doc_path` の実在を確認する（`test -d`/`test -f`）。`target_file_paths` 全件について `target_repo_path` 配下の実在を確認する。`profile` が `screen` であることを確認する（`screen` 以外は Phase 6 で `status=中断` とし、hint に「未対応プロファイル」と記す）。`run_id`（省略時 `extract-1`）を確定し、`<screen_dir>/検証記録/facts/<run_id>/` を作成する。
+`target_repo_path`・`screen_dir`・`survey_doc_path` の実在を確認する（`test -d`/`test -f`）。`target_file_paths` 全件について `target_repo_path` 配下の実在を確認する。`profile` が `screen` であることを確認する（`screen` 以外は Phase 6 で `status=中断` とし、hint に「未対応プロファイル」と記す）。`run_id`（省略時 `extract-1`）を確定し、`<verification_dir>/screen-<画面ID>/facts/<run_id>/` を作成する。
 
 完了条件: 全args解決済み・target_file_paths全件実在確認済み・facts出力ディレクトリ作成済み
 
@@ -132,7 +132,7 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, TaskCreate, TaskUpdate]
 ## 重要な注意事項
 
 - 対象リポジトリに対しては読み取り専用。書き込み・変更は一切行わない
-- 出力は `screen_dir` 配下の `検証記録/facts/<run_id>/` のみ（facts.yml・facts.lock・recount-report.txtの3ファイル）。対象リポジトリ側には何も生成しない
+- 出力は `<verification_dir>/screen-<画面ID>/facts/<run_id>/` のみ（facts.yml・facts.lock・recount-report.txtの3ファイル）。対象リポジトリ側には何も生成しない
 - 推測・要約での補完を禁止する。コードに存在しない事実を書かない。全項目に `file:line` 根拠が必要
 - 合格判定は `recount-facts.sh`・`seal-facts.sh` の `exit code` のみで行う。自然文の自己申告は用いない
 - `profile=screen` 以外は未対応。指定された場合は抽出を行わず `status=中断` を返す

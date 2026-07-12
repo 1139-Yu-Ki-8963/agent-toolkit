@@ -103,7 +103,6 @@ if [ "$DRY_RUN" -eq 1 ]; then
   echo "以下を展開予定です（--dry-run のため実際には書き込みません）"
   echo "  展開先: $screen_dir"
   echo "  コピー元テンプレート: $template_dir/画面/詳細設計, $template_dir/画面/テスト項目書, $template_dir/画面/基本設計"
-  echo "  検証記録ディレクトリ(空): $screen_dir/検証記録"
   if [ -d "$common_dir" ]; then
     echo "  プロジェクト共通: 既に存在するためスキップ ($common_dir)"
   else
@@ -121,7 +120,6 @@ mkdir -p "$staging"
 cp -r "$template_dir/画面/詳細設計" "$staging/"
 cp -r "$template_dir/画面/テスト項目書" "$staging/"
 cp -r "$template_dir/画面/基本設計" "$staging/"
-mkdir -p "$staging/検証記録"
 
 # プロジェクト共通テンプレートのコピー（初回のみ。docs_root 直下の共通領域なので画面ディレクトリとは別扱い）
 if [ -d "$common_dir" ]; then
