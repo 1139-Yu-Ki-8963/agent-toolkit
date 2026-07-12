@@ -1024,6 +1024,29 @@ else
   fi
 fi
 
+# --- (i-2) measurement_pending の §16 計上数（mp-接頭辞キー）と返却ブロック
+#     measurement_pending[] 件数の突合（WARN・AUDIT_EXPECTED_MP_COUNT 環境変数で
+#     期待件数を指定した場合のみ判定。未指定なら計上数の出力のみ） ---
+echo ""
+echo "[検査 i-2] §16 の measurement_pending計上数（mp-接頭辞キー）と返却ブロック measurement_pending[] 件数の突合（WARN）"
+
+if [ -n "${CONFIRM_SECNUM:-}" ]; then
+  MP_COUNT="$(extract_table_column "$CONFIRM_BODY" 1 | grep -cE '^mp-' || true)"
+  echo "  §${CONFIRM_SECNUM} 要確認事項一覧の measurement_pending計上数（mp-接頭辞）: ${MP_COUNT}"
+  if [ -n "${AUDIT_EXPECTED_MP_COUNT:-}" ]; then
+    if [ "$MP_COUNT" -eq "$AUDIT_EXPECTED_MP_COUNT" ]; then
+      echo "  §16のmeasurement_pending計上数（${MP_COUNT}）と返却ブロックmeasurement_pending[]件数（${AUDIT_EXPECTED_MP_COUNT}）は一致しています"
+    else
+      echo "  WARN: §16のmeasurement_pending計上数（${MP_COUNT}）と返却ブロックmeasurement_pending[]件数（AUDIT_EXPECTED_MP_COUNT=${AUDIT_EXPECTED_MP_COUNT}）が不一致です" >&2
+      WARNINGS=$((WARNINGS + 1))
+    fi
+  else
+    echo "  AUDIT_EXPECTED_MP_COUNT未設定のため件数突合はスキップします（計上数の出力のみ）"
+  fi
+else
+  echo "  章マップに役割キー '要確認事項' の行が見つからないため検査i-2をスキップします"
+fi
+
 # --- (j) DESIGN.md の未記入プレースホルダ検出（実測値の抽出元欄等の省略。design_md 未設定なら対象外） ---
 echo ""
 echo "[検査 j] DESIGN.md の未記入プレースホルダ検出（実測値の抽出元欄等の省略。design_md 未設定なら対象外）"
@@ -1212,6 +1235,42 @@ else
   else
     echo "  配布先の SKILL.md はすべて正本参照ヘッダを含んでいます（対象 0 件を含む）"
   fi
+fi
+
+# --- (p) frontmatter 相対パス参照の到達性チェック（WARN） ---
+echo ""
+echo "[検査 p] frontmatter 相対パス参照の到達性チェック（unit_test_sheet・integration_test_sheet・operation_test_spec・design_md・common_design_md・common_spec・messages 等。解決後パスにファイルが実在するかを検査する）"
+
+COMMON_DESIGN_MD_REL="$(frontmatter_value common_design_md)"
+COMMON_SPEC_REL="$(frontmatter_value common_spec)"
+MESSAGES_REL="$(frontmatter_value messages)"
+COMMON_DESIGN_MD="$(resolve_rel_path "$DESIGN_DIR" "$COMMON_DESIGN_MD_REL" || true)"
+COMMON_SPEC="$(resolve_rel_path "$DESIGN_DIR" "$COMMON_SPEC_REL" || true)"
+MESSAGES="$(resolve_rel_path "$DESIGN_DIR" "$MESSAGES_REL" || true)"
+
+UNREACHABLE_REFS=""
+check_ref_reachable() {
+  local label="$1" rel="$2" abs="$3"
+  [ -z "$rel" ] && return 0
+  if [ -z "$abs" ] || [ ! -f "$abs" ]; then
+    UNREACHABLE_REFS="${UNREACHABLE_REFS}${label} (${rel})
+"
+  fi
+}
+check_ref_reachable "unit_test_sheet" "$UNIT_SHEET_REL" "$UNIT_SHEET"
+check_ref_reachable "integration_test_sheet" "$INTEG_SHEET_REL" "$INTEG_SHEET"
+check_ref_reachable "operation_test_spec" "$OPTEST_SPEC_REL" "$OPTEST_SPEC"
+check_ref_reachable "design_md" "$DESIGN_MD_REL" "$DESIGN_MD"
+check_ref_reachable "common_design_md" "$COMMON_DESIGN_MD_REL" "$COMMON_DESIGN_MD"
+check_ref_reachable "common_spec" "$COMMON_SPEC_REL" "$COMMON_SPEC"
+check_ref_reachable "messages" "$MESSAGES_REL" "$MESSAGES"
+
+if [ -n "$(printf '%s' "$UNREACHABLE_REFS" | tr -d '[:space:]')" ]; then
+  echo "  WARN: frontmatter の相対パス参照が到達不能です（解決後パスにファイルが存在しません）:" >&2
+  printf '%s\n' "$UNREACHABLE_REFS" | grep . | sed 's/^/    - /' >&2
+  WARNINGS=$((WARNINGS + 1))
+else
+  echo "  frontmatter の相対パス参照はすべて到達可能です（未設定キーはスキップ）"
 fi
 
 # --- 結果集計 ---

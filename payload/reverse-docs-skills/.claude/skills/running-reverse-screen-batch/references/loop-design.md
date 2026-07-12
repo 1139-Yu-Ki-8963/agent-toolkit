@@ -24,6 +24,7 @@
 | `TEMPLATE_ROOT` | テンプレートディレクトリパス | なし（必須） |
 | `COMMON_DOCS_ROOT` | プロジェクト共通設計書パス | なし（必須） |
 | `SURVEY_DOC_PATH` | アーキテクチャ調査書パス | なし（必須） |
+| `DEADLINE` | 時限（ISO 8601日時）。未指定なら空文字（チェックスキップ） | 空（無制限） |
 
 macOS 標準の `/bin/bash`（バージョン3.2系）は連想配列を持たないため、失敗回数の管理は `awk` によるファイルベースのカウンタで行う。
 
@@ -45,6 +46,7 @@ DOCS_ROOT="__DOCS_ROOT__"
 TEMPLATE_ROOT="__TEMPLATE_ROOT__"
 COMMON_DOCS_ROOT="__COMMON_DOCS_ROOT__"
 SURVEY_DOC_PATH="__SURVEY_DOC_PATH__"
+DEADLINE="__DEADLINE__"
 
 touch "$FAILED_LIST" "$FAIL_COUNTS"
 
@@ -72,6 +74,15 @@ inc_fail_count() {
 
 lap=0
 while :; do
+  # deadline チェック（指定時のみ）
+  if [ -n "$DEADLINE" ]; then
+    now=$(date -u +%s)
+    dl=$(date -u -j -f "%Y-%m-%dT%H:%M:%S" "$DEADLINE" +%s 2>/dev/null || date -u -d "$DEADLINE" +%s 2>/dev/null)
+    if [ "$now" -ge "$dl" ]; then
+      echo "[DEADLINE] 時限到達 $(date '+%Y-%m-%d %H:%M:%S') -> 新規着手停止"
+      break
+    fi
+  fi
   lap=$((lap + 1))
   remaining=0
   progressed=0
@@ -106,6 +117,15 @@ while :; do
       if echo "$OUTPUT" | grep -qiE 'usage limit|rate limit|session limit|limit reached|limit will reset|You.ve reached'; then
         echo "[LAP $lap] limit検知(前半) screen=$TARGET -> ${WAIT_SECONDS}秒待機"
         sleep "$WAIT_SECONDS"
+        # deadline チェック（指定時のみ）
+        if [ -n "$DEADLINE" ]; then
+          now=$(date -u +%s)
+          dl=$(date -u -j -f "%Y-%m-%dT%H:%M:%S" "$DEADLINE" +%s 2>/dev/null || date -u -d "$DEADLINE" +%s 2>/dev/null)
+          if [ "$now" -ge "$dl" ]; then
+            echo "[DEADLINE] 時限到達 $(date '+%Y-%m-%d %H:%M:%S') -> 新規着手停止"
+            break
+          fi
+        fi
         continue
       fi
 
@@ -133,6 +153,15 @@ while :; do
       if echo "$OUTPUT" | grep -qiE 'usage limit|rate limit|session limit|limit reached|limit will reset|You.ve reached'; then
         echo "[LAP $lap] limit検知(後半) screen=$TARGET -> ${WAIT_SECONDS}秒待機"
         sleep "$WAIT_SECONDS"
+        # deadline チェック（指定時のみ）
+        if [ -n "$DEADLINE" ]; then
+          now=$(date -u +%s)
+          dl=$(date -u -j -f "%Y-%m-%dT%H:%M:%S" "$DEADLINE" +%s 2>/dev/null || date -u -d "$DEADLINE" +%s 2>/dev/null)
+          if [ "$now" -ge "$dl" ]; then
+            echo "[DEADLINE] 時限到達 $(date '+%Y-%m-%d %H:%M:%S') -> 新規着手停止"
+            break
+          fi
+        fi
         continue
       fi
 
@@ -171,7 +200,7 @@ echo "$BG_PID"
 
 置換手順:
 
-1. `__TARGETS_FILE__` `__MARKER_REGISTRY__` `__LOG__` `__WAIT_SECONDS__` `__FAIL_LIMIT_K__` `__MODEL__` `__ALLOWED_TOOLS__` `__FAILED_LIST__` `__FAIL_COUNTS__` `__TARGET_REPO_PATH__` `__DOCS_ROOT__` `__TEMPLATE_ROOT__` `__COMMON_DOCS_ROOT__` `__SURVEY_DOC_PATH__` を起動引数の確定値で置換する
+1. `__TARGETS_FILE__` `__MARKER_REGISTRY__` `__LOG__` `__WAIT_SECONDS__` `__FAIL_LIMIT_K__` `__MODEL__` `__ALLOWED_TOOLS__` `__FAILED_LIST__` `__FAIL_COUNTS__` `__TARGET_REPO_PATH__` `__DOCS_ROOT__` `__TEMPLATE_ROOT__` `__COMMON_DOCS_ROOT__` `__SURVEY_DOC_PATH__` `__DEADLINE__` を起動引数の確定値で置換する
 2. `__PER_ITEM_PROMPT_FIRST__` を §4 の前半テンプレートを埋めた文字列で置換する
 3. `__PER_ITEM_PROMPT_SECOND__` を §4 の後半テンプレートを埋めた文字列で置換する
 4. 置換済みの全文を1個の Bash ツール呼び出し（dangerouslyDisableSandbox: true）として実行する
