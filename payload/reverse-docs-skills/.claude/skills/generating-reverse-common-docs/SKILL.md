@@ -69,6 +69,8 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, TaskCreate, TaskUpdate]
 
 `scripts/check-common-docs.sh <docs_root>/プロジェクト共通 <target_repo_path>` を実行する。FAILした場合はPhase 3〜4に戻り、指摘された実例不足・頻度欠落・例外率欠落・未実在パス・テンプレ残存・理想論表現を修正して再実行する（上限5回。ループ設計は下表参照）。上限到達で収束しない場合は `status=中断` とし、hintに残欠落を記録する。
 
+再試行時の探索範囲拡大: check-common-docs.sh が「検出例不足」（frequency_gap / example_shortage を含む）を報告し、かつ Phase 2 のサンプリング範囲が全ディレクトリを未走査の場合、Phase 2 を scope=wider で再実行してからPhase 3-4 へ進む。全ディレクトリ走査済みの場合は「scope-exhausted」として発散検知と同等に中断する（status=中断、hint に scope-exhausted を記録）。
+
 完了条件: ゲート `exit 0`
 
 ### Phase 6: 返却

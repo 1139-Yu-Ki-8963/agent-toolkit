@@ -79,7 +79,11 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, TaskCreate, TaskUpdate]
 
 ### Phase 5: 再現性検証
 
-同じ args で抽出（Phase 2〜4 相当。ただし封印は任意）をもう1度、`mktemp -d "${TMPDIR:-/tmp}/XXXXXX"` 形式で作成した一時ディレクトリに実行する。両方の `facts.yml` を `seal-facts.sh normalize` でそれぞれ一時ファイルへ書き出し、`diff` で比較する（プロセス置換 `<(...)` はサンドボックス環境で `/dev/fd` アクセスが権限拒否される場合があるため使わない。一時ファイル経由の比較に固定する）。diffが空なら通過。diffに差分がある場合は抽出手順の非決定箇所（原本の複数箇所に解釈しうる記述・キー付けの揺れ等）を hint に記録し `status=中断` とする（この場合 Phase 2 へは戻らない。終端条件）。
+同じ args で抽出（Phase 2〜4 相当。ただし封印は任意）をもう1度、`mktemp -d "${TMPDIR:-/tmp}/XXXXXX"` 形式で作成した一時ディレクトリに実行する。両方の `facts.yml` を `seal-facts.sh normalize` でそれぞれ一時ファイルへ書き出し、`diff` で比較する（プロセス置換 `<(...)` はサンドボックス環境で `/dev/fd` アクセスが権限拒否される場合があるため使わない。一時ファイル経由の比較に固定する）。diffが空なら通過。diffに差分がある場合は以下の診断ステップで分類する:
+1. **順序差異**: diff が行の順序のみの違い（キー名・値は同一）→ seal-facts.sh の正規化不足として status=中断、hint に ordering-divergence を記録
+2. **キー命名揺れ**: 同一の事実に対して異なるキー名が付与されている → プロファイル改訂が必要として status=中断、hint に key-naming-divergence を記録
+3. **共通文書由来の解釈分岐**: 差分の原因が共通文書に記載のない規約・パターンの解釈に起因する → status=共通文書帰着、hint に不足している共通文書の観点を記録。オーケストレーターは NG帰着(c) として generating-reverse-common-docs を mode=append で再起動する
+分類できない場合は status=中断（終端条件）とする。
 
 完了条件: 2回の正規化出力の diff が空
 
@@ -98,7 +102,7 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, TaskCreate, TaskUpdate]
 | Phase 3 | `recount-facts.sh` が `exit 0` かつ recount-report.txt保存済み |
 | Phase 4 | `seal-facts.sh verify` が `exit 0` |
 | Phase 5 | 2回の正規化出力の diff が空 |
-| Phase 6 | `status` 確定（`封印済み` \| `中断`） |
+| Phase 6 | `status` 確定（`封印済み` \| `中断` \| `共通文書帰着`） |
 | **Goal** | 対象ユニットの原本コードから抽出したfactsが独立再計数・封印・再現性検証のすべてを通過し、執筆工程が原本を読まずに済む品質で `screen_dir` 配下に確定していること |
 
 ## 返却ブロック
@@ -107,7 +111,7 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, TaskCreate, TaskUpdate]
 
 | キー | 値 |
 |---|---|
-| status | `封印済み` \| `中断` |
+| status | `封印済み` \| `中断` \| `共通文書帰着` |
 | scope | `screen_dir` のbasename |
 | artifacts | `[facts.yml, facts.lock, recount-report.txtの絶対パス]` |
 | hint | 次工程への申し送り、または中断理由 |
