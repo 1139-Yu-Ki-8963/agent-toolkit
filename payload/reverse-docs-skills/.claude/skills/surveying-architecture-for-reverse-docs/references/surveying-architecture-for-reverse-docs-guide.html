@@ -138,7 +138,7 @@
     <li><a href="#s7">機械ゲート5検査</a></li>
     <li><a href="#s8">返却ブロック</a></li>
     <li><a href="#s9">ループ設計</a></li>
-    <li><a href="#s10">Gotchas・重要な注意事項</a></li>
+    <li><a href="#s10">予想を裏切る挙動</a></li>
     <li><a href="#s11">関連スキル・資料</a></li>
   </ol>
 </nav>
@@ -295,7 +295,7 @@
 </section>
 
 <section id="s10">
-  <h2><span class="sec-num">§10</span>Gotchas・重要な注意事項</h2>
+  <h2><span class="sec-num">§10</span>予想を裏切る挙動</h2>
   <ul>
     <li>記載パスの実在チェック（機械ゲート検査1）は、backtickで囲んだ「/」を含む相対パスのみを対象とする。URL（<code>://</code>）・glob（<code>*</code>/<code>?</code>）・プレースホルダ（<code>&lt;</code>/<code>&gt;</code>）・絶対パス（先頭<code>/</code>）・空白や正規表現記号を含むトークン（コマンド例・grepパターン）は対象外</li>
     <li>6種別の判定行は、種別名と判定語（「実在する」または「実在しない（」）が<strong>同一行</strong>に存在しないと機械検知されない。表のセルを分けて書くと検知漏れになる</li>

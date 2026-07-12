@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# check-common-docs.sh — プロジェクト共通7文書の機械ゲート（5検査すべて決定的）
+# check-common-docs.sh — プロジェクト共通10文書の機械ゲート（5検査すべて決定的）
 #
 # 使い方:
 #   check-common-docs.sh <common_docs_dir> <target_repo_path>
 #   check-common-docs.sh --self-test
 #
-# <common_docs_dir> は `<docs_root>/プロジェクト共通` を指す（7文書＋サンプル記録.mdの
+# <common_docs_dir> は `<docs_root>/プロジェクト共通` を指す（10文書＋サンプル記録.mdの
 # 親ディレクトリ）。
 #
 # 検査:
-#   1. 実在検査: 7文書＋サンプル記録.md（計8ファイル。規約4種は規約/サブディレクトリ）
+#   1. 実在検査: 10文書＋サンプル記録.md（計11ファイル。規約4種は規約/サブディレクトリ）
 #      すべてが実在する。
 #   2. 規則行完備性: 規約4文書内の各テーブル行のうち、backtick囲みの相対パス
 #      （「/」を含む）トークンを1件以上含む行を「規則行」とみなし、その行に
@@ -20,7 +20,7 @@ set -euo pipefail
 #   3. パス実在検査: 規約4文書内のbacktick囲み相対パス全件が target_repo_path 配下に
 #      test -e で実在する。除外規則は検査2と同じ（URL・glob・プレースホルダ・
 #      絶対パス・空白/正規表現記号を含むトークンは対象外）。
-#   4. テンプレ残存ゼロ: <実測|<FILL|TBD|TODO が8ファイルすべてで0件。
+#   4. テンプレ残存ゼロ: <実測|<FILL|TBD|TODO が11ファイルすべてで0件。
 #   5. 理想論表現ゼロ: すべきである|望ましい|べきだ|理想的には|今後は が
 #      規約4文書で0件（実装事実の記録に限る）。
 #
@@ -31,7 +31,7 @@ set -euo pipefail
 # 保守責任者: 人手（ユーザー）。検査基準・除外規則を変更した時に更新する。
 # macOS bash 3.2 互換（mapfile 不使用）。
 
-REQUIRED_FILES="規約/コーディング規約.md 規約/命名規約.md 規約/ディレクトリ構成規約.md 規約/コンポーネント設計規約.md 共通設計書.md メッセージ定義書.md DESIGN.md サンプル記録.md"
+REQUIRED_FILES="規約/コーディング規約.md 規約/命名規約.md 規約/ディレクトリ構成規約.md 規約/コンポーネント設計規約.md 共通設計書.md メッセージ定義書.md DESIGN.md 基盤設計.md UI共通設計.md データ設計.md サンプル記録.md"
 CONVENTION_FILES="規約/コーディング規約.md 規約/命名規約.md 規約/ディレクトリ構成規約.md 規約/コンポーネント設計規約.md"
 PLACEHOLDER_RE='<実測|<FILL|TBD|TODO'
 IDEAL_WORDS_RE='すべきである|望ましい|べきだ|理想的には|今後は'
@@ -64,7 +64,7 @@ is_separator_row() {
   [ -z "$stripped" ]
 }
 
-# 検査1: 実在検査（8ファイル）
+# 検査1: 実在検査（11ファイル）
 check_files_exist() {
   dir="$1"
   missing=0
@@ -75,10 +75,10 @@ check_files_exist() {
     fi
   done
   if [ "$missing" -gt 0 ]; then
-    echo "検査1失敗: プロジェクト共通8ファイル中 $missing 件が未実在です" >&2
+    echo "検査1失敗: プロジェクト共通11ファイル中 $missing 件が未実在です" >&2
     return 1
   fi
-  echo "検査1通過: 8ファイルすべて実在"
+  echo "検査1通過: 11ファイルすべて実在"
   return 0
 }
 
@@ -173,7 +173,7 @@ EOF
   return 0
 }
 
-# 検査4: テンプレ残存ゼロ（8ファイル）
+# 検査4: テンプレ残存ゼロ（11ファイル）
 check_no_placeholder() {
   dir="$1"
   hit_total=0
@@ -191,7 +191,7 @@ check_no_placeholder() {
     echo "検査4失敗: $hit_total ファイルにテンプレ残存トークンを検出" >&2
     return 1
   fi
-  echo "検査4通過: 8ファイルすべてテンプレ残存0件"
+  echo "検査4通過: 11ファイルすべてテンプレ残存0件"
   return 0
 }
 
@@ -272,6 +272,24 @@ MD
 # 共通デザインシステム（リバース版）
 
 primary色は#1a73e8。
+MD
+    cat > "$target/基盤設計.md" <<'MD'
+# 基盤設計書（リバース版）
+
+## §1 フレームワーク構成（実測）
+Reactを採用。
+MD
+    cat > "$target/UI共通設計.md" <<'MD'
+# UI共通設計書（リバース版）
+
+## §1 デザインシステム（実測）
+独自コンポーネントライブラリを使用。
+MD
+    cat > "$target/データ設計.md" <<'MD'
+# データ設計書（リバース版）
+
+## §1 データモデル概要（実測）
+ユーザーエンティティを保有。
 MD
     cat > "$target/サンプル記録.md" <<'MD'
 # サンプル記録

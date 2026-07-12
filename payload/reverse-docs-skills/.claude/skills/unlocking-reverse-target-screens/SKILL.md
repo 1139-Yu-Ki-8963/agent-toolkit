@@ -185,7 +185,7 @@ Phase 1で列挙した画面要求値とPhase 3で実装したモックデータ
 - Phase 4検証ループの収束/発散判定結果
 - Phase 5のレジストリ登録状況と`baseline_tag`（`status=BASELINE-ESTABLISHED`到達時のみ）
 
-## Gotchas
+## 予想を裏切る挙動
 
 一般的な症状別の切り分け（詰まりパターン）は `references/troubleshooting-patterns.md` を参照する。以下は同ファイルに寄せていない個別の注意点。
 

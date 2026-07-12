@@ -30,7 +30,7 @@ if [ "${1:-}" = "--verify" ]; then
   errors=0
   for req in 詳細設計/画面詳細設計書.md 詳細設計/単体テスト観点表.md 詳細設計/結合テスト観点表.md \
              詳細設計/DESIGN.md テスト項目書/単体テスト仕様書.md テスト項目書/結合テスト仕様書.md \
-             テスト項目書/操作シナリオ仕様書.md; do
+             テスト項目書/操作シナリオ仕様書.md 基本設計/画面基本設計書.md; do
     if [ ! -f "$screen_dir/$req" ]; then
       echo "エラー: 必須ファイルがありません: $screen_dir/$req" >&2
       errors=$((errors + 1))
@@ -102,7 +102,7 @@ fi
 if [ "$DRY_RUN" -eq 1 ]; then
   echo "以下を展開予定です（--dry-run のため実際には書き込みません）"
   echo "  展開先: $screen_dir"
-  echo "  コピー元テンプレート: $template_dir/画面/詳細設計, $template_dir/画面/テスト項目書"
+  echo "  コピー元テンプレート: $template_dir/画面/詳細設計, $template_dir/画面/テスト項目書, $template_dir/画面/基本設計"
   echo "  検証記録ディレクトリ(空): $screen_dir/検証記録"
   if [ -d "$common_dir" ]; then
     echo "  プロジェクト共通: 既に存在するためスキップ ($common_dir)"
@@ -120,6 +120,7 @@ rm -rf "$staging"
 mkdir -p "$staging"
 cp -r "$template_dir/画面/詳細設計" "$staging/"
 cp -r "$template_dir/画面/テスト項目書" "$staging/"
+cp -r "$template_dir/画面/基本設計" "$staging/"
 mkdir -p "$staging/検証記録"
 
 # プロジェクト共通テンプレートのコピー（初回のみ。docs_root 直下の共通領域なので画面ディレクトリとは別扱い）

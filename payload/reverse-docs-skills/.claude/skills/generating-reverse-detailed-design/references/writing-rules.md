@@ -1,4 +1,4 @@
-# authoring-screen-docs-from-code 執筆規律
+# generating-reverse-detailed-design 執筆規律
 
 facts.yml から設計書への転記を担当する際の執筆規律の正本。転記先の判定条件・字面転記と要約の境界・実測委譲の書式・禁止事項を定める。9 分類のキー付け規則自体は `shared/references/facts-schema.md` が正本であり、本ファイルでは重複定義しない。
 

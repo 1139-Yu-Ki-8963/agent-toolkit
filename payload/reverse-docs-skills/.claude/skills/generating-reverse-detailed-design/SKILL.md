@@ -1,7 +1,7 @@
 ---
-name: authoring-screen-docs-from-code
+name: generating-reverse-detailed-design
 description: "封印済みfactsと共通文書から画面詳細設計書を執筆する執筆役。 TRIGGER when: facts封印後の設計書執筆・再執筆。 SKIP: facts抽出（→extracting-unit-facts-from-code）、盲検検証（→rebuilding-screen-unit-from-docs）。"
-invocation: authoring-screen-docs-from-code
+invocation: generating-reverse-detailed-design
 type: orchestration
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent]
 ---
@@ -130,7 +130,7 @@ facts 読込・執筆（Phase 2〜4）はサブエージェントへ委任しな
 | measurement_pending | ⑨実測系として設計書に確定せず画面単位検証へ委譲した項目の一覧（拡張フィールド） |
 | hint | 次工程（検証スキル起動）への申し送り・差し戻し理由 |
 
-## Gotchas
+## 予想を裏切る挙動
 
 - 原本コードの Read は全面禁止。情報源は facts_ref 配下の facts.yml と common_docs_root 配下の共通文書のみ（設計原則4）
 - facts.yml の字面（`value` 列）をそのまま書き写すだけでなく、章の文脈に沿って正規化して書く。ただし facts に無い事実を創作しない（境界例は `references/writing-rules.md`）
@@ -140,6 +140,24 @@ facts 読込・執筆（Phase 2〜4）はサブエージェントへ委任しな
 - facts.yml 自体の誤り・欠落に気づいても本スキルは書き換えない。extracting-unit-facts-from-code への差し戻しとして hint に記録する
 - 本 SKILL.md 本文にリバース対象の固有値（対象リポジトリパス・画面 ID・BL 名）を書かない。固有値は起動引数・設計書側に置く
 - 進捗は Step 単位で TaskCreate/TaskUpdate する（一括登録しない）
+
+## テスト仕様書記入責務
+
+facts.yml と単体テスト観点表・結合テスト観点表を情報源に、著述工程はテスト仕様書3点（`テスト項目書/単体テスト仕様書.md`・`テスト項目書/結合テスト仕様書.md`・`テスト項目書/操作シナリオ仕様書.md`）の「テストケース一覧」（操作シナリオ仕様書は「シナリオ一覧表」）を記入する責務を負う。各行は観点表の観点キーと1:1または1:多で対応させ、キーは連番禁止（意味キー規約）。
+
+- 単体テスト仕様書・結合テスト仕様書: 観点表の各観点キーについて、facts.yml から読み取れる具体的な入力値・期待結果（アサーション）を記入する。facts.yml から確定できないケースは空行のまま残さず、根拠付き「該当なし」または §16 要確認事項一覧への計上のいずれかで扱う
+- 操作シナリオ仕様書: `jsx`（⑥）・`handler`（⑤）分類に操作要素（クリック・入力・選択等）が facts.yml 上に実在する画面では、最低1シナリオを定義する責務を負う。操作要素が facts.yml に実在しない画面は frontmatter の `operation_test_spec` キーを省略してよい（省略自体が「該当なし」の表明であり、別途根拠併記は不要）
+- テストコードの保存: 著述工程が facts.yml から導出した例示・雛形のテストコード断片を作成した場合は `<画面ID>/検証記録/<timestamp>/テストコード/` へ保存し、ファイル名を観点キーと対応させる（例: `<観点キー>.test.ts`）。この断片は著述工程の参考実装であり、最終的な単体テスト正本（`<画面ディレクトリ>/テスト項目書/テストコード/単体/`）の生産者は `rebuilding-screen-unit-from-docs` のみである（`shared/references/リバース工程設計.md` の責務確定「単体テスト正本」を参照）。著述工程の断片保存は正本の差し替えを意味しない
+
+## 画面横断章の業務語彙抽象化責務
+
+mode=screen が著述する画面横断章（§1 画面概要・§2 機能一覧・§4 業務ルール・§12 画面遷移・§13 非機能要件・§14 共通仕様準拠）は、§3〜§11・§15 実装契約等の実装依存章から業務語彙へ抽象化した、実装非依存の記述とする。これらの章は §15 実装契約とは異なり、原本コードの実装詳細（コード識別子・フレームワーク用語・型構文・ファイルパス・ライブラリ名）を読み手に露出させない。
+
+禁止観点（コード識別子・フレームワーク用語・型構文・ファイルパス・ライブラリ名）は audit_script_path（`shared/scripts/audit-consistency.sh`）が画面横断章のうち章マップに役割キーが登録済みの章（既定: 機能一覧・画面遷移）を対象に検査する。§15 実装契約章はこの禁止観点の対象外（実装契約章はコード識別子・型構文を記載する章のため）。
+
+## 未確定値の記載ルール
+
+未確定値はプレースホルダ文字列（`実測委譲`・`TBD`・`TODO`・`未定` 等）をリテラル記入せず、キー省略または §16 要確認事項へ回す。唯一の許容表記は `実測委譲（画面単位検証で確定）`（`measurement_pending` 由来の実測委譲。根拠の丸括弧を伴う固定書式）であり、根拠を伴わない裸の「実測委譲」は許容しない。「該当なし」と記す場合は根拠（何をどう調べて該当なしと判断したか）の併記を必須とする。DESIGN.md の雛形が要求する「実測値の抽出元」欄の省略も同様に禁止（省略は未記入プレースホルダとして扱う）。これらは audit_script_path が機械検査する。
 
 ## 設計判断
 
@@ -179,7 +197,7 @@ facts 読込・執筆（Phase 2〜4）はサブエージェントへ委任しな
 - `scripts/check-fact-coverage.sh` — Phase 5 完全性ゲート（facts.yml → 設計書の転記突合。`--self-test` 内蔵）
 - 起動引数 scaffold_script_path（Phase 1 スキャフォールディング〔テンプレート展開・--verify・--dry-run〕。実体: `shared/scripts/scaffold-screen.sh`。正本はこの1本のみ）
 - 起動引数 facts_ref（封印済み facts ディレクトリの絶対パス。実体: extracting-unit-facts-from-code が出力する `<screen_dir>/検証記録/facts/<run_id>/`）
-- 起動引数 common_docs_root（プロジェクト共通文書ルートの絶対パス。実体: compiling-project-common-docs が採録する `プロジェクト共通/`）
+- 起動引数 common_docs_root（プロジェクト共通文書ルートの絶対パス。実体: generating-reverse-common-docs が採録する `プロジェクト共通/`）
 - 起動引数 chapter_map_path（章役割キー対応表。実体: `shared/references/chapter-map.md`）
 - 起動引数 audit_script_path（内部整合性監査。実体: `shared/scripts/audit-consistency.sh`）
 - 起動引数 template_root（テンプレート原本。実体: `shared/templates/リバース検証`）

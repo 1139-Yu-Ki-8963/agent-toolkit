@@ -431,6 +431,15 @@ INTEG_SHEET="$(resolve_rel_path "$SCREEN_DIR" "$INTEG_SHEET_REL" || true)"
 OPTEST_SPEC_REL="$(frontmatter_value operation_test_spec)"
 OPTEST_SPEC="$(resolve_rel_path "$SCREEN_DIR" "$OPTEST_SPEC_REL" || true)"
 
+# unit_test_spec / integration_test_spec / design_md は任意キー。検査 j・m（テスト仕様書
+# 空殻検出・DESIGN.md 実測欄検出）が使う。
+UNIT_SPEC_REL="$(frontmatter_value unit_test_spec)"
+INTEG_SPEC_REL="$(frontmatter_value integration_test_spec)"
+UNIT_SPEC="$(resolve_rel_path "$SCREEN_DIR" "$UNIT_SPEC_REL" || true)"
+INTEG_SPEC="$(resolve_rel_path "$SCREEN_DIR" "$INTEG_SPEC_REL" || true)"
+DESIGN_MD_REL="$(frontmatter_value design_md)"
+DESIGN_MD="$(resolve_rel_path "$SCREEN_DIR" "$DESIGN_MD_REL" || true)"
+
 # --- (a) 機能一覧章 × 観点表 の機能キー集合突合（両方向一致） ---
 echo ""
 echo "[検査 a] 機能一覧章 × 観点表 の機能キーの集合突合（両方向一致）"
@@ -520,24 +529,30 @@ echo "[検査 b] 未記入プレースホルダ検出（HTML コメント外・f
 # 囲むのが標準記法（実測: テンプレート本文の 83 行がこの記法）。バッククォート
 # 区間を丸ごと検出対象から除外する実装は、この標準記法のプレースホルダを大量に
 # 見逃す（実測: 除外ありだと 99 件中 18 件しか検出できない）ため採用しない。
-PLACEHOLDER_LINES=$(awk '
-  /^```/ { in_fence=!in_fence; next }
-  in_fence { next }
-  /<!--/ { in_comment=1 }
-  {
-    line=$0
-    if (in_comment) { if (line ~ /-->/) in_comment=0; next }
-    rest=line
-    while (match(rest, /<[^\/!<>][^<>]*>/)) {
-      inner=substr(rest, RSTART+1, RLENGTH-2)
-      if (inner ~ /[^ -~]/ || inner ~ /Y{2,4}/ || inner ~ /MM-DD|HH:MM|MM:SS/ \
-          || inner ~ /^v?X\.Y/ || inner ~ /^[A-Z]+(-[A-Z]+)+$/ || inner ~ / \/ /) {
-        print NR": "line; break
+# 関数化: 検査 j（DESIGN.md への同一検出の再利用）のために切り出す。
+scan_placeholder_lines() {
+  local file="$1"
+  awk '
+    /^```/ { in_fence=!in_fence; next }
+    in_fence { next }
+    /<!--/ { in_comment=1 }
+    {
+      line=$0
+      if (in_comment) { if (line ~ /-->/) in_comment=0; next }
+      rest=line
+      while (match(rest, /<[^\/!<>][^<>]*>/)) {
+        inner=substr(rest, RSTART+1, RLENGTH-2)
+        if (inner ~ /[^ -~]/ || inner ~ /Y{2,4}/ || inner ~ /MM-DD|HH:MM|MM:SS/ \
+            || inner ~ /^v?X\.Y/ || inner ~ /^[A-Z]+(-[A-Z]+)+$/ || inner ~ / \/ /) {
+          print NR": "line; break
+        }
+        rest=substr(rest, RSTART+RLENGTH)
       }
-      rest=substr(rest, RSTART+RLENGTH)
     }
-  }
-' "$DESIGN_DOC" || true)
+  ' "$file" || true
+}
+
+PLACEHOLDER_LINES="$(scan_placeholder_lines "$DESIGN_DOC")"
 
 if [ -n "$PLACEHOLDER_LINES" ]; then
   PLACEHOLDER_COUNT=$(printf '%s\n' "$PLACEHOLDER_LINES" | grep -c .)
@@ -914,6 +929,196 @@ else
     else
       echo "  §${CONFIRM_SECNUM} 要確認事項一覧は0件です"
     fi
+  fi
+fi
+
+# --- (j) DESIGN.md の未記入プレースホルダ検出（実測値の抽出元欄等の省略。design_md 未設定なら対象外） ---
+echo ""
+echo "[検査 j] DESIGN.md の未記入プレースホルダ検出（実測値の抽出元欄等の省略。design_md 未設定なら対象外）"
+
+if [ -z "$DESIGN_MD" ]; then
+  echo "  design_md が frontmatter に未設定のため検査 j をスキップします"
+elif [ ! -f "$DESIGN_MD" ]; then
+  echo "  WARN: design_md が指すファイルが見つかりません ($DESIGN_MD_REL)" >&2
+  WARNINGS=$((WARNINGS + 1))
+else
+  DESIGN_MD_PLACEHOLDER_LINES="$(scan_placeholder_lines "$DESIGN_MD")"
+  if [ -n "$DESIGN_MD_PLACEHOLDER_LINES" ]; then
+    DESIGN_MD_PLACEHOLDER_COUNT=$(printf '%s\n' "$DESIGN_MD_PLACEHOLDER_LINES" | grep -c .)
+    echo "  違反: DESIGN.md に未記入プレースホルダが $DESIGN_MD_PLACEHOLDER_COUNT 件見つかりました（実測値の抽出元欄等の省略）:" >&2
+    printf '%s\n' "$DESIGN_MD_PLACEHOLDER_LINES" | head -20 >&2
+    VIOLATIONS=$((VIOLATIONS + 1))
+  else
+    echo "  DESIGN.md に未記入プレースホルダなし"
+  fi
+fi
+
+# --- (k) 未確定値のプレースホルダ文字列検出（根拠なしの実測委譲・TBD・TODO・未定・FIXME・PLACEHOLDER） ---
+echo ""
+echo "[検査 k] 未確定値のプレースホルダ文字列検出（根拠なしの実測委譲・TBD・TODO・未定・FIXME・PLACEHOLDER）"
+
+RAW_PLACEHOLDER_FILES="$DESIGN_DOC"
+[ -n "$DESIGN_MD" ] && [ -f "$DESIGN_MD" ] && RAW_PLACEHOLDER_FILES="$RAW_PLACEHOLDER_FILES $DESIGN_MD"
+
+# 唯一の許容表記は「実測委譲（画面単位検証で確定）」（writing-rules.md「実測委譲の書式」参照）。
+# 根拠の丸括弧を伴わない生の実測委譲・その他語彙はすべて違反とする。
+RAW_PLACEHOLDER_LINES="$(grep -nE '実測委譲|TBD|TODO|未定|FIXME|PLACEHOLDER' $RAW_PLACEHOLDER_FILES 2>/dev/null | grep -v '実測委譲（画面単位検証で確定）' || true)"
+if [ -n "$RAW_PLACEHOLDER_LINES" ]; then
+  echo "  違反: 根拠のないプレースホルダ文字列が見つかりました（唯一の許容表記は「実測委譲（画面単位検証で確定）」）:" >&2
+  printf '%s\n' "$RAW_PLACEHOLDER_LINES" >&2
+  VIOLATIONS=$((VIOLATIONS + 1))
+else
+  echo "  未確定値のプレースホルダ文字列なし"
+fi
+
+# --- (l) 「該当なし」記述の根拠併記チェック（WARN・同一行に丸括弧の根拠が無い場合に警告） ---
+echo ""
+echo "[検査 l] 「該当なし」記述の根拠併記チェック（WARN・同一行に丸括弧の根拠が無い場合に警告）"
+
+NO_GROUND_LINES="$(grep -nE '該当なし' "$DESIGN_DOC" | grep -vE '該当なし[[:space:]]*[（(]' || true)"
+if [ -n "$NO_GROUND_LINES" ]; then
+  echo "  WARN: 根拠（丸括弧書き）を伴わない「該当なし」が見つかりました:" >&2
+  printf '%s\n' "$NO_GROUND_LINES" >&2
+  WARNINGS=$((WARNINGS + 1))
+else
+  echo "  「該当なし」はすべて根拠を伴っています（該当箇所なしを含む）"
+fi
+
+# --- (m) テスト仕様書の空殻検出・draft据え置き検出・観点網羅チェック（WARN） ---
+echo ""
+echo "[検査 m] テスト仕様書の空殻検出・draft据え置き検出・観点網羅チェック（WARN）"
+
+check_spec_shell() {
+  local spec="$1" label="$2" heading="$3"
+  [ -z "$spec" ] && return 0
+  [ ! -f "$spec" ] && return 0
+  local status body rows
+  status="$(awk '/^---$/ { c++; next } c==1 && /^status:/ { sub(/^status: */, ""); sub(/[[:space:]]*#.*$/, ""); print; exit }' "$spec")"
+  body="$(extract_heading_body "$spec" "$heading")"
+  rows="$(extract_table_column "$body" 1 | grep -vE '^<.*>$|^`<.*>`$' | grep -c . || true)"
+  if [ "$rows" -eq 0 ]; then
+    echo "  WARN: ${label} が空殻です（プレースホルダのみで実データがありません）: $spec" >&2
+    WARNINGS=$((WARNINGS + 1))
+  elif [ "$status" = "draft" ]; then
+    echo "  WARN: ${label} は実データ記入済みですが status が draft のままです（テストコード実装後に implemented へ更新すること）: $spec" >&2
+    WARNINGS=$((WARNINGS + 1))
+  fi
+}
+
+check_spec_shell "$UNIT_SPEC" "単体テスト仕様書" '^## テストケース一覧'
+check_spec_shell "$INTEG_SPEC" "結合テスト仕様書" '^## テストケース一覧'
+check_spec_shell "$OPTEST_SPEC" "操作シナリオ仕様書" '^## シナリオ一覧表'
+
+check_sheet_spec_coverage() {
+  local sheet="$1" spec="$2" label="$3" heading="$4"
+  [ -f "$sheet" ] || return 0
+  local sheet_keys spec_keys saved_keys all_covered uncovered
+  sheet_keys="$(extract_sheet_keys "$sheet")"
+  [ -z "$sheet_keys" ] && return 0
+  spec_keys=""
+  if [ -n "$spec" ] && [ -f "$spec" ]; then
+    spec_keys="$(extract_table_column "$(extract_heading_body "$spec" "$heading")" 2 | sed 's/`//g' | grep -vE '^<.*>$' | sort -u)"
+  fi
+  saved_keys=""
+  if [ -d "$SCREEN_DIR/検証記録" ]; then
+    saved_keys="$(find "$SCREEN_DIR/検証記録" -type d -name 'テストコード' -exec find {} -type f \; 2>/dev/null \
+      | xargs -I{} basename {} 2>/dev/null | sed -E 's/\.[A-Za-z0-9]+$//' | sort -u)"
+  fi
+  all_covered="$(printf '%s\n%s\n' "$spec_keys" "$saved_keys" | grep . | sort -u || true)"
+  uncovered="$(comm -23 <(printf '%s\n' "$sheet_keys") <(printf '%s\n' "$all_covered") || true)"
+  if [ -n "$uncovered" ]; then
+    echo "  WARN: ${label} の観点キーのうち、テスト仕様書の具体ケース・保存済みテストコードのいずれにも対応が見つからないもの:" >&2
+    printf '%s\n' "$uncovered" | sed 's/^/    - /' >&2
+    WARNINGS=$((WARNINGS + 1))
+  fi
+}
+
+check_sheet_spec_coverage "$UNIT_SHEET" "$UNIT_SPEC" "単体テスト観点表" '^## テストケース一覧'
+check_sheet_spec_coverage "$INTEG_SHEET" "$INTEG_SPEC" "結合テスト観点表" '^## テストケース一覧'
+
+# --- (n) 画面横断章（業務語彙抽象化章）の実装依存語彙逸脱検出（WARN） ---
+echo ""
+echo "[検査 n] 画面横断章の実装依存語彙逸脱検出（コード識別子・フレームワーク用語・型構文・ファイルパス・ライブラリ名。役割キーが章マップに無い章はスキップ。WARN）"
+
+BUSINESS_ROLE_KEYS="機能一覧 画面遷移"
+BUSINESS_BODY=""
+BUSINESS_CHECKED=""
+for role in $BUSINESS_ROLE_KEYS; do
+  secnum="$(resolve_role_section "$role" || true)"
+  [ -z "$secnum" ] && continue
+  BUSINESS_BODY="${BUSINESS_BODY}
+$(extract_design_section_body "$secnum")"
+  BUSINESS_CHECKED="${BUSINESS_CHECKED} §${secnum}(${role})"
+done
+
+if [ -z "$(printf '%s' "$BUSINESS_BODY" | tr -d '[:space:]')" ]; then
+  echo "  章マップに画面横断章の役割キーが見つからないため検査 n をスキップします"
+else
+  echo "  検査対象:${BUSINESS_CHECKED}（画面概要・業務ルール・非機能要件・共通仕様準拠は章マップに役割キー未登録のため対象外）"
+  IMPL_LEAK="$(printf '%s\n' "$BUSINESS_BODY" | grep -nE '\buseState\b|\buseEffect\b|\buseReducer\b|\bProps\b|styled-components|\bReact\b|\bVue\b|\bAngular\b|\binterface [A-Z]|: *(string|number|boolean)\b|/[A-Za-z0-9_-]+\.(tsx|ts|jsx|js|css)\b' || true)"
+  if [ -n "$IMPL_LEAK" ]; then
+    echo "  WARN: 画面横断章に実装依存語彙（コード識別子・フレームワーク用語・型構文・ファイルパス）の疑いがあります:" >&2
+    printf '%s\n' "$IMPL_LEAK" | sed 's/^/    - /' >&2
+    WARNINGS=$((WARNINGS + 1))
+  else
+    echo "  画面横断章に実装依存語彙の疑いなし"
+  fi
+fi
+
+# --- (o) 配布物の正本参照ヘッダ検査（デプロイ先 SKILL.md の直接修正防止） ---
+echo ""
+echo "[検査 o] 配布物の正本参照ヘッダ検査（デプロイされた SKILL.md の frontmatter 内/直後に '# 正本: reverse-docs-skills' があるか。正本リポジトリ自体ではスキップ・WARN）"
+
+# フロントマター（1行目 --- 〜 次の ---）内、またはフロントマター終了直後5行以内に
+# '# 正本: reverse-docs-skills' があるかを判定する。1行目が --- でなければ検査対象外(NOFM)。
+check_skill_canonical_header() {
+  local file="$1" first_line fm_end check_end
+  first_line="$(head -n1 "$file")"
+  if [ "$first_line" != "---" ]; then
+    echo "NOFM"
+    return
+  fi
+  fm_end="$(awk 'NR>1 && /^---$/ {print NR; exit}' "$file")"
+  if [ -z "$fm_end" ]; then
+    echo "NOFM"
+    return
+  fi
+  check_end=$((fm_end + 5))
+  if sed -n "1,${check_end}p" "$file" | grep -q '^# 正本: reverse-docs-skills'; then
+    echo "OK"
+  else
+    echo "MISSING"
+  fi
+}
+
+REPO_ROOT_O="$(cd "$SCREEN_DIR" 2>/dev/null && git rev-parse --show-toplevel 2>/dev/null || true)"
+if [ -z "$REPO_ROOT_O" ]; then
+  echo "  git リポジトリを特定できないため検査 o をスキップします"
+elif [ -f "$REPO_ROOT_O/.claude/rules/always/publish/complete/rule.md" ]; then
+  # 正本リポジトリ（reverse-docs-skills）自体の判定は basename（worktree ではリポジトリ名と
+  # 一致しないため使えない）ではなく、正本にのみ存在し配布先へは同期されないファイル
+  # （publish-complete 規約。sync-manifest.json の同期対象は .claude/skills・shared・
+  # README.md・reverse-docs-overview.html の4点のみで .claude/rules は含まれない）の
+  # 実在をフィンガープリントとして使う。worktree でも同一リポジトリなら実在するため正しく判定できる。
+  echo "  正本リポジトリ（reverse-docs-skills）自体での実行のため検査 o をスキップします"
+elif [ ! -d "$REPO_ROOT_O/.claude/skills" ]; then
+  echo "  .claude/skills が見つからないため検査 o をスキップします"
+else
+  MISSING_HEADER_SKILLS=""
+  while IFS= read -r skill_md; do
+    [ -z "$skill_md" ] && continue
+    if [ "$(check_skill_canonical_header "$skill_md")" = "MISSING" ]; then
+      MISSING_HEADER_SKILLS="${MISSING_HEADER_SKILLS}${skill_md}
+"
+    fi
+  done < <(find "$REPO_ROOT_O/.claude/skills" -maxdepth 2 -name 'SKILL.md' 2>/dev/null)
+
+  if [ -n "$(printf '%s' "$MISSING_HEADER_SKILLS" | tr -d '[:space:]')" ]; then
+    echo "  WARN: 正本参照ヘッダ（# 正本: reverse-docs-skills）が無い SKILL.md があります（配布先での直接修正の疑い。修正は正本リポジトリ reverse-docs-skills で行うこと）:" >&2
+    printf '%s\n' "$MISSING_HEADER_SKILLS" | grep . | sed 's/^/    - /' >&2
+    WARNINGS=$((WARNINGS + 1))
+  else
+    echo "  配布先の SKILL.md はすべて正本参照ヘッダを含んでいます（対象 0 件を含む）"
   fi
 fi
 

@@ -1,29 +1,29 @@
 ---
-name: compiling-project-common-docs
-description: "対象コードから層化サンプリングでプロジェクト共通7文書のv0を採録する。 TRIGGER when: アーキテクチャ調査書確定後の共通文書採録、NG帰着(c)共通文書欠落の追記。 SKIP: facts抽出・詳細設計執筆（→extracting-unit-facts-from-code / authoring-screen-docs-from-code）。"
-invocation: compiling-project-common-docs
+name: generating-reverse-common-docs
+description: "対象コードから層化サンプリングでプロジェクト共通10文書のv0を採録する。 TRIGGER when: アーキテクチャ調査書確定後の共通文書採録、NG帰着(c)共通文書欠落の追記。 SKIP: facts抽出・詳細設計執筆（→extracting-unit-facts-from-code / generating-reverse-detailed-design）。"
+invocation: generating-reverse-common-docs
 type: orchestration
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, TaskCreate, TaskUpdate]
 ---
 
 # プロジェクト共通採録スキル
 
-工程全体は orchestrating-reverse-docs-flow が案内する。本スキルはアーキテクチャ調査書を前提に、対象リポジトリのコードから層化サンプリングで「プロジェクト共通7文書」の v0 を採録するところまでを単独で担い、単独起動できる（起動引数を渡せば動く）。後続工程（facts抽出・詳細設計執筆）はこの共通文書を前提として動くが、本スキル自体は他スキルへの依存を持たない。
+工程全体は orchestrating-reverse-docs-flow が案内する。本スキルはアーキテクチャ調査書を前提に、対象リポジトリのコードから層化サンプリングで「プロジェクト共通10文書」の v0 を採録するところまでを単独で担い、単独起動できる（起動引数を渡せば動く）。後続工程（facts抽出・詳細設計執筆）はこの共通文書を前提として動くが、本スキル自体は他スキルへの依存を持たない。
 
-対象リポジトリに対しては読み取り専用で動作する。書き込み・変更は一切行わない。出力は `docs_root` 側の8ファイル（規約4種＋共通設計書.md＋メッセージ定義書.md＋DESIGN.md＋サンプル記録.md）のみ。v0 で確定して止める（完成を狙わない）。追記は `mode=append` の別起動でのみ行う。
+対象リポジトリに対しては読み取り専用で動作する。書き込み・変更は一切行わない。出力は `docs_root` 側の11ファイル（規約4種＋共通設計書.md＋メッセージ定義書.md＋DESIGN.md＋基盤設計.md＋UI共通設計.md＋データ設計.md＋サンプル記録.md）のみ。v0 で確定して止める（完成を狙わない）。追記は `mode=append` の別起動でのみ行う。
 
 ## 使用タイミング
 
 - アーキテクチャ調査書が確定した直後、対象リポジトリに実在する規約・共通仕様の事実だけを記録した v0 を採録したいとき
-- 判定（Phase 7 / Step 27）が NG帰着(c)（共通設計書・規約4種等のプロジェクト共通文書に該当挙動の記載が無い）と判定し、該当文書へ追記したいとき（`mode=append`）
+- 判定（Phase 7 / Step 30）が NG帰着(c)（共通設計書・規約4種等のプロジェクト共通文書に該当挙動の記載が無い）と判定し、該当文書へ追記したいとき（`mode=append`）
 
 ### args（全量指定・対話ゼロ）
 
 | 引数 | 必須 | 内容 |
 |---|---|---|
 | target_repo_path | 必須 | 対象リポジトリの絶対パス |
-| docs_root | 必須 | 出力先ルート。7文書は `<docs_root>/プロジェクト共通/` 配下に出力する |
-| template_root | 必須 | テンプレ一式のルート。`<template_root>/プロジェクト共通/` の既存テンプレ7文書（`規約/コーディング規約.md`・`規約/命名規約.md`・`規約/ディレクトリ構成規約.md`・`規約/コンポーネント設計規約.md`・`共通設計書.md`・`メッセージ定義書.md`・`DESIGN.md`）を雛形に使う |
+| docs_root | 必須 | 出力先ルート。10文書は `<docs_root>/プロジェクト共通/` 配下に出力する |
+| template_root | 必須 | テンプレ一式のルート。`<template_root>/プロジェクト共通/` の既存テンプレ10文書（`規約/コーディング規約.md`・`規約/命名規約.md`・`規約/ディレクトリ構成規約.md`・`規約/コンポーネント設計規約.md`・`共通設計書.md`・`メッセージ定義書.md`・`DESIGN.md`・`基盤設計.md`・`UI共通設計.md`・`データ設計.md`）を雛形に使う |
 | survey_doc_path | 必須 | アーキテクチャ調査書のパス（ディレクトリ責務マップを層化サンプリングの層定義に使う） |
 | mode | 任意（既定 `v0`） | `v0`（新規）／`append`（NG帰着(c)の追記。`append_findings` を受け取り該当文書へ追記して全ゲート再実行） |
 | append_findings | `mode=append` 時のみ必須 | 差し戻し元が指摘した欠落挙動・欠落文書の一覧 |
@@ -43,9 +43,9 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, TaskCreate, TaskUpdate]
 
 ### Phase 1: 前提確認
 
-`target_repo_path`・`template_root`・`survey_doc_path` の実在を確認する（`test -d`/`test -f`）。調査書内「ユニット種別判定」節と「ディレクトリ責務マップ」節の実在を `grep` で確認する（調査書ゲートの再実行は行わない。既に確定済みの調査書を前提として読むのみ）。`docs_root/プロジェクト共通/規約/` ディレクトリを作成し、テンプレ7文書を出力先へ複製する。`mode=append` の場合は既存の8文書の実在を確認し、`append_findings` に列挙された指摘文書を洗い出す。
+`target_repo_path`・`template_root`・`survey_doc_path` の実在を確認する（`test -d`/`test -f`）。調査書内「ユニット種別判定」節と「ディレクトリ責務マップ」節の実在を `grep` で確認する（調査書ゲートの再実行は行わない。既に確定済みの調査書を前提として読むのみ）。`docs_root/プロジェクト共通/規約/` ディレクトリを作成し、テンプレ10文書を出力先へ複製する。`mode=append` の場合は既存の11文書の実在を確認し、`append_findings` に列挙された指摘文書を洗い出す。
 
-完了条件: テンプレ7文書複製済み、調査書の2節（ユニット種別判定・ディレクトリ責務マップ）実在確認済み（`mode=append` 時は既存8文書と指摘文書の特定済み）
+完了条件: テンプレ10文書複製済み、調査書の2節（ユニット種別判定・ディレクトリ責務マップ）実在確認済み（`mode=append` 時は既存11文書と指摘文書の特定済み）
 
 ### Phase 2: 層化サンプリング
 
@@ -61,9 +61,9 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, TaskCreate, TaskUpdate]
 
 ### Phase 4: 共通文書採録
 
-共通設計書.md（アーキテクチャ・共通処理・状態管理・通信の実装事実）・メッセージ定義書.md（コード中の実メッセージ文字列と定義箇所）・DESIGN.md（実スタイル値）を、Phase 3と同じ実例主義で採録する。理想論・あるべき仕様を書かず、既存コードに実際に存在する共通挙動のみを記載する。
+共通設計書.md（アーキテクチャ・共通処理・状態管理・通信の実装事実）・メッセージ定義書.md（コード中の実メッセージ文字列と定義箇所）・DESIGN.md（実スタイル値）・基盤設計.md（アーキテクチャ調査書§2〜§4から抽出したフレームワーク構成・ビルド設定・デプロイ構成・ディレクトリ構成方針・環境変数管理）・UI共通設計.md（アーキテクチャ調査書とコンポーネント設計規約から抽出したデザインシステム・共通コンポーネント一覧・レイアウト方針）・データ設計.md（アーキテクチャ調査書とPhase 2の層化サンプルを横断的に見て抽出したデータモデル概要・APIスキーマ・状態管理方針。facts抽出は本スキルより後続の工程であり、本Phaseの時点ではまだ存在しないため、個別ユニットのfactsではなくPhase 2のサンプルを一次情報とする）を、Phase 3と同じ実例主義で採録する。理想論・あるべき仕様を書かず、既存コードに実際に存在する共通挙動のみを記載する。
 
-完了条件: 3文書のプレースホルダ残存ゼロ
+完了条件: 6文書のプレースホルダ残存ゼロ
 
 ### Phase 5: 機械ゲート
 
@@ -73,7 +73,7 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, TaskCreate, TaskUpdate]
 
 ### Phase 6: 返却
 
-返却ブロックを出力する。`mode=v0` の場合は `status=採録v0確定` とし、`artifacts` に8文書の絶対パスを、`scope` に `target_repo_path` のbasenameを、`common_docs_root` に `プロジェクト共通/` の絶対パスを、`sample_manifest_path` にサンプル記録.mdの絶対パスを記す。`hint` には後続工程（facts抽出）への申し送りを記す。`mode=append` の場合は指摘文書のみ追記して全ゲート再実行後に `status=追記完了` を返す。上限到達で未収束の場合は `status=中断` とし、`hint` にPhase 5で未解消のまま残った検査項目・理由を記す。
+返却ブロックを出力する。`mode=v0` の場合は `status=採録v0確定` とし、`artifacts` に11文書の絶対パスを、`scope` に `target_repo_path` のbasenameを、`common_docs_root` に `プロジェクト共通/` の絶対パスを、`sample_manifest_path` にサンプル記録.mdの絶対パスを記す。`hint` には後続工程（facts抽出）への申し送りを記す。`mode=append` の場合は指摘文書のみ追記して全ゲート再実行後に `status=追記完了` を返す。上限到達で未収束の場合は `status=中断` とし、`hint` にPhase 5で未解消のまま残った検査項目・理由を記す。
 
 完了条件: `status` が確定している
 
@@ -81,13 +81,13 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, TaskCreate, TaskUpdate]
 
 | Phase | 完了条件 |
 |---|---|
-| Phase 1 | テンプレ7文書複製済み。調査書の2節実在確認済み（`mode=append` 時は既存8文書と指摘文書の特定済み） |
+| Phase 1 | テンプレ10文書複製済み。調査書の2節実在確認済み（`mode=append` 時は既存11文書と指摘文書の特定済み） |
 | Phase 2 | サンプル記録.mdに全層の選定コマンドと選定ファイル一覧が記録済み（合計20ファイル以上） |
 | Phase 3 | 全規則行が実例3件以上＋頻度＋例外率付き |
-| Phase 4 | 3文書のプレースホルダ残存ゼロ |
+| Phase 4 | 6文書のプレースホルダ残存ゼロ |
 | Phase 5 | `check-common-docs.sh` が `exit 0` |
 | Phase 6 | `status` 確定（`採録v0確定` \| `追記完了` \| `中断`） |
-| **Goal** | サンプルに現れた実装事実のみを根拠とするプロジェクト共通7文書が機械ゲート全5検査PASSの状態で `docs_root` に確定し、後続工程が前提として読み込める |
+| **Goal** | サンプルに現れた実装事実のみを根拠とするプロジェクト共通10文書が機械ゲート全5検査PASSの状態で `docs_root` に確定し、後続工程が前提として読み込める |
 
 ## 返却ブロック
 
@@ -97,7 +97,7 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, TaskCreate, TaskUpdate]
 |---|---|
 | status | `採録v0確定` \| `追記完了` \| `中断` |
 | scope | `target_repo_path` のbasename |
-| artifacts | `[8文書の絶対パス]` |
+| artifacts | `[11文書の絶対パス]` |
 | hint | 次工程への申し送り、または中断理由 |
 | common_docs_root（拡張） | `プロジェクト共通/` の絶対パス |
 | sample_manifest_path（拡張） | サンプル記録.mdの絶対パス |
@@ -116,7 +116,7 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, TaskCreate, TaskUpdate]
 ## 重要な注意事項
 
 - 対象リポジトリに対しては読み取り専用。書き込み・変更は一切行わない
-- 出力は `docs_root` 側のみ（プロジェクト共通8ファイル）。対象リポジトリ側には何も生成しない
+- 出力は `docs_root` 側のみ（プロジェクト共通11ファイル）。対象リポジトリ側には何も生成しない
 - サンプルに現れない規則を発明しない。実例3件以上・頻度・例外率が揃わない規則は書かない
 - 層化サンプリングの選定は決定的コマンド（`find`/`sort`/`head`）に固定する。乱数・目視選定を禁止する
 - v0で確定して止める。完成を狙わず、追記は `mode=append` の別起動でのみ行う
@@ -124,13 +124,13 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, TaskCreate, TaskUpdate]
 - 合格判定は `check-common-docs.sh` の `exit code` のみで行う。自然文の自己申告は用いない
 - SKILL.md本文にプロジェクト固有値（リポジトリ名・画面名・絶対パス・ユーザー名）を一切書かない。固有値はすべて起動argsで受ける
 
-## Gotchas
+## 予想を裏切る挙動
 
 - 機械ゲートの規則行完備性検査（検査2）は、規約4文書の各テーブル行のうちbacktick囲みの相対パス（「/」を含む）トークンを1件以上含む行だけを「規則行」とみなす。見出し行・区切り行はbacktickトークンを含まないため自動的に対象外になるが、意図的に規則行だけへ実例・頻度・例外率を書くこと（見出しセルに書いても検知されない）
 - 頻度は `N/M` 形式（例: `18/20`）、例外率は `%` を含む数値表記（例: `10.0%`）で、backtickの外（平文）に書く。backtick内に閉じ込めると相対パスとしても誤認識されうるため、テーブルセルの説明文として平文で記載する
 - 記載パスの実在チェック（機械ゲート検査3）は、backtickで囲んだ「/」を含む相対パスのみを対象とする。URL（`://`）・glob（`*`/`?`）・プレースホルダ（`<`/`>`）・絶対パス（先頭`/`）・空白や正規表現記号を含むトークン（コマンド例・grepパターン）は対象外
-- 理想論表現検査（検査5）は規約4文書のみを走査する。共通設計書.md・メッセージ定義書.md・DESIGN.mdは対象外だが、これらも実装事実主義の原則自体は適用する（検査対象外というだけで理想論を書いてよいわけではない）
-- テンプレ残存検査（検査4）は8ファイルすべて（規約4種＋共通設計書.md＋メッセージ定義書.md＋DESIGN.md＋サンプル記録.md）を走査する。テンプレの固定文にも検出正規表現（`<実測`/`<FILL`/`TBD`/`TODO`）に一致する語を書いてはならない
+- 理想論表現検査（検査5）は規約4文書のみを走査する。共通設計書.md・メッセージ定義書.md・DESIGN.md・基盤設計.md・UI共通設計.md・データ設計.mdは対象外だが、これらも実装事実主義の原則自体は適用する（検査対象外というだけで理想論を書いてよいわけではない）
+- テンプレ残存検査（検査4）は11ファイルすべて（規約4種＋共通設計書.md＋メッセージ定義書.md＋DESIGN.md＋基盤設計.md＋UI共通設計.md＋データ設計.md＋サンプル記録.md）を走査する。テンプレの固定文にも検出正規表現（`<実測`/`<FILL`/`TBD`/`TODO`）に一致する語を書いてはならない
 - `mode=append` は指摘文書のみ追記すればよいが、機械ゲートは全項目を再実行する。部分ゲートは存在しない
 - 発散判定（同一NG理由2連続）は上限5回を消化する前でも即中断する
 - 層あたりのk値は層内ファイル数の平方根以上・3以上10以下に丸める。全層合計20ファイル未満だとPhase 2の完了条件を満たさない（詳細は `references/sampling-rules.md`）
@@ -149,12 +149,12 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, TaskCreate, TaskUpdate]
 
 **保守責任者**: 人手（ユーザー）。検査基準・除外規則を変更した時に更新する。
 
-**廃棄条件**: プロジェクト共通7文書のフォーマットが廃止された時、または本スキルが撤回された時。
+**廃棄条件**: プロジェクト共通10文書のフォーマットが廃止された時、または本スキルが撤回された時。
 
 ## 参照資料
 
 - `~/reverse-docs-skills/.claude/skills/orchestrating-reverse-docs-flow/references/contract.md` — 返却ブロック契約・args仕様の正本
 - `references/sampling-rules.md`（本スキル同梱） — 層化サンプリングの層定義・k値の決め方・決定的選択手順・サンプル記録.mdの記載様式
-- `shared/templates/リバース検証/プロジェクト共通/`（本スキル同梱ではなくリポジトリ共有テンプレ） — 規約4種＋共通設計書.md＋メッセージ定義書.md＋DESIGN.mdの雛形
+- `shared/templates/リバース検証/プロジェクト共通/`（本スキル同梱ではなくリポジトリ共有テンプレ） — 規約4種＋共通設計書.md＋メッセージ定義書.md＋DESIGN.md＋基盤設計.md＋UI共通設計.md＋データ設計.mdの雛形
 - `shared/references/リバース工程設計.md` — Phase/Step×スキル対応の正本（本スキルの位置づけ: Phase 4 共通採録 / Step 12-16）。NG帰着3系統の(c)共通文書欠落からの差し戻し先でもある
 - `.claude/skills/surveying-architecture-for-reverse-docs/SKILL.md` — 本スキルが前提とするアーキテクチャ調査書を確定する上流スキル

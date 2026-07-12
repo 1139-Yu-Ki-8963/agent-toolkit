@@ -116,7 +116,7 @@ allowed-tools: [Bash, Read, Write, Edit, Grep, Glob, AskUserQuestion, TaskCreate
 - Phase 4のHTML手作業組み立てを禁止する。`build-unit-list.sh` を必ず経由し、プレースホルダの手動置換による `entryFile=None` 等のデータ混入を防ぐ
 - 0件検出時にAskUserQuestionで手動リストを聞き出さない。誤った境界を即興確定させない
 
-## Gotchas
+## 予想を裏切る挙動
 
 - `validate-manifest.sh`・`build-unit-list.sh` は jq に依存する。未インストール環境では事前に導入する
 - マニフェストの配列キーは `units` とする（`screens` ではない）

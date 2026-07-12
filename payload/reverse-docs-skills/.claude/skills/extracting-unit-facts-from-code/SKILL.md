@@ -1,6 +1,6 @@
 ---
 name: extracting-unit-facts-from-code
-description: "原本コードから宣言的契約factsを抽出し独立再計数・封印まで完走する。 TRIGGER when: リバース設計のfacts抽出、画面ユニットの事実表新規作成、facts欠落からの再抽出。 SKIP: 詳細設計執筆（→authoring-screen-docs-from-code）、共通文書採録（→compiling-project-common-docs）。"
+description: "原本コードから宣言的契約factsを抽出し独立再計数・封印まで完走する。 TRIGGER when: リバース設計のfacts抽出、画面ユニットの事実表新規作成、facts欠落からの再抽出。 SKIP: 詳細設計執筆（→generating-reverse-detailed-design）、共通文書採録（→generating-reverse-common-docs）。"
 invocation: extracting-unit-facts-from-code
 type: orchestration
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, TaskCreate, TaskUpdate]
@@ -19,20 +19,28 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, TaskCreate, TaskUpdate]
 ## 使用タイミング
 
 - 対象ユニット（画面）の原本コードから、後続の詳細設計執筆が参照する宣言的契約 facts を新規に抽出したいとき
-- 判定（Phase 7 / Step 27）が NG帰着(b)（事実抽出プロファイルが対象コードの挙動を捕捉できていない）と判定し、抽出プロファイルを改訂した上で再抽出したいとき
+- 判定（Phase 7 / Step 30）が NG帰着(b)（事実抽出プロファイルが対象コードの挙動を捕捉できていない）と判定し、抽出プロファイルを改訂した上で再抽出したいとき
 
 ### args（全量指定・対話ゼロ）
 
 | 引数 | 必須 | 内容 |
 |---|---|---|
 | target_repo_path | 必須 | 対象リポジトリの絶対パス |
-| target_file_paths | 必須 | 対象ユニットの対象ファイル（画面本体＋直接の子コンポーネント＋ルーター定義ファイル。route 採録のため）の、target_repo_path からの相対パス配列 |
+| target_file_paths | 必須 | 対象ユニットの対象ファイル（画面本体＋直接の子コンポーネント）の、target_repo_path からの相対パス配列。ルーティング定義ファイル（複数画面の遷移情報を単一ファイルで持つもの）は対象外とし、遷移情報はプロジェクト共通文書（共通設計書）側で扱う |
 | screen_dir | 必須 | 出力先の画面ディレクトリ絶対パス。facts は `<screen_dir>/検証記録/facts/<run_id>/` に出力する |
 | profile | 必須 | `screen` のみ実装。他値は `status=中断` で hint に未対応と返す |
 | survey_doc_path | 必須 | アーキテクチャ調査書のパス（方式→プロファイル選択の根拠）。本スキルは内容を読み込まず実在確認のみ行う |
 | run_id | 任意（既定 `extract-1`） | 抽出実行の識別子。出力ディレクトリ名・facts.yml内の run_id フィールドに使う |
 
 本スキルはユーザーに直接確認しない（AskUserQuestion不使用）。単独起動時は上表の args をユーザーから直接取得する。
+
+### 対象ファイル集合の列挙方法（target_file_paths）
+
+`target_file_paths` は、画面のエントリ（画面本体コンポーネント）から辿れる画面専有コンポーネント（当該画面からのみ import される子コンポーネント・フック・ユーティリティ）を再帰的に列挙して確定する。他画面と共有されるコンポーネントは対象外（プロジェクト共通側の対象）とする。
+
+ルーティング定義ファイル（Next.js の layout.tsx / page.tsx のルーティング階層、React Router の設定ファイル、Vue Router の設定ファイル等、複数画面の遷移を単一ファイルで定義するもの）は画面単位の対象ファイル集合に含めない。遷移情報はプロジェクト共通文書（共通設計書）が担い、各画面の設計書は共通設計書を参照する形式とする。
+
+列挙結果は `orchestrating-reverse-docs-flow` の契約（`references/contract.md` の「画面完了の定義」）における対象ファイル集合の網羅判定の入力になる。対象ファイルの一部のみを指定する場合（部分スコープ実行）は、`run_id` または facts.yml のメタ情報に対象ファイル数（n件/全m件）を記録し、完全性を欠く旨を明示する。
 
 ## 設計原則
 
@@ -127,7 +135,7 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, TaskCreate, TaskUpdate]
 - AskUserQuestionを使わない。args全量指定・対話ゼロで完走する
 - SKILL.md本文にプロジェクト固有値（リポジトリ名・画面名・絶対パス・ユーザー名）を一切書かない。固有値はすべて起動argsで受ける
 
-## Gotchas
+## 予想を裏切る挙動
 
 - `mktemp` は必ず `mktemp -d "${TMPDIR:-/tmp}/XXXXXX"` 形式で使う。macOS の引数なし `mktemp -d` はサンドボックス環境で失敗する実害がある
 - `recount-facts.sh` の各検査はfacts.yml全体を走査する。`references/profile-screen.md`・`shared/references/facts-schema.md` の記入例（`evidence: "src/screens/Foo/Foo.tsx:1"` 等）はあくまで様式説明であり、Phase 2 実行者がそのままコピーして実データとして残さないよう注意する（コピー由来の evidence は孤児参照や乖離超過の原因になる）
@@ -145,7 +153,7 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, TaskCreate, TaskUpdate]
 
 ### recount-facts.sh
 
-**必要性**: facts.yml の品質保証（抽出漏れ・空欄・孤児参照の不在）を、抽出者自身の自己申告や目視確認に委ねると、「独立再計数による検証」という本スキルの中核原則が成立しない。facts.yml を読まずにまずコードから分類別件数を独立算出し、その後突合するという二段階の検証を1本の決定的スクリプトへ固定化することで、抽出担当（人間・サブエージェント問わず）の記述品質を再現可能な基準で強制する。姉妹スキル `authoring-screen-docs-from-code` の `check-fact-coverage.sh`・`compiling-project-common-docs` の `check-common-docs.sh` と同じ設計方針（決定的grep/awkパターンによる機械ゲート・exit codeのみでの合否判定）を踏襲する。
+**必要性**: facts.yml の品質保証（抽出漏れ・空欄・孤児参照の不在）を、抽出者自身の自己申告や目視確認に委ねると、「独立再計数による検証」という本スキルの中核原則が成立しない。facts.yml を読まずにまずコードから分類別件数を独立算出し、その後突合するという二段階の検証を1本の決定的スクリプトへ固定化することで、抽出担当（人間・サブエージェント問わず）の記述品質を再現可能な基準で強制する。姉妹スキル `generating-reverse-detailed-design` の `check-fact-coverage.sh`・`generating-reverse-common-docs` の `check-common-docs.sh` と同じ設計方針（決定的grep/awkパターンによる機械ゲート・exit codeのみでの合否判定）を踏襲する。
 
 **代替案を採用しなかった理由**:
 - Bashツール直叩き: 分類別の独立再計数（import文のシンボル分解・interface/typeフィールド行の判定・useState等のジェネリクス対応・JSX開始タグの識別等）は数十行のawk/grepロジックを要し、都度手書きでは実行のたびに判定基準がブレる
@@ -158,11 +166,11 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, TaskCreate, TaskUpdate]
 
 ### seal-facts.sh
 
-**必要性**: 確定した facts.yml が後続工程（詳細設計執筆）に渡るまでの間に意図せず改変される事故を防ぐには、封印時点の内容を機械的に記録し、以降いつでも1コマンドで整合性を検証できる仕組みが要る。また Phase 5 の再現性検証（同一argsでの2回の抽出結果比較）は run_id・タイムスタンプ・空白の揺れを正規化してから比較する必要があり、この正規化ロジック（`normalize`）は封印（`seal`/`verify`）と再現性検証の両方が同一の実装を共有しなければ判定基準がズレる。`authoring-screen-docs-from-code` が後続で facts.yml の封印検証を再利用する設計（Phase 5詳細のリバース工程設計.mdの位置づけ）のため `shared/scripts/` に配置する。
+**必要性**: 確定した facts.yml が後続工程（詳細設計執筆）に渡るまでの間に意図せず改変される事故を防ぐには、封印時点の内容を機械的に記録し、以降いつでも1コマンドで整合性を検証できる仕組みが要る。また Phase 5 の再現性検証（同一argsでの2回の抽出結果比較）は run_id・タイムスタンプ・空白の揺れを正規化してから比較する必要があり、この正規化ロジック（`normalize`）は封印（`seal`/`verify`）と再現性検証の両方が同一の実装を共有しなければ判定基準がズレる。`generating-reverse-detailed-design` が後続で facts.yml の封印検証を再利用する設計（Phase 5詳細のリバース工程設計.mdの位置づけ）のため `shared/scripts/` に配置する。
 
 **代替案を採用しなかった理由**:
 - Bashツール直叩き: sha256計算・normalize・封印記録の照合を都度手書きすると、封印（seal）と検証（verify）と正規化（normalize）で異なるロジックを使ってしまう危険があり、改ざん検知の信頼性が保証できない
-- 各スキル（extracting-unit-facts-from-code・authoring-screen-docs-from-code）に同等ロジックを個別実装: 正規化規則の二重管理になり、片方だけ改訂されて判定基準がズレる実害が予見される。共有スクリプト化により単一の正本を維持する
+- 各スキル（extracting-unit-facts-from-code・generating-reverse-detailed-design）に同等ロジックを個別実装: 正規化規則の二重管理になり、片方だけ改訂されて判定基準がズレる実害が予見される。共有スクリプト化により単一の正本を維持する
 - 既存Makefile拡張・package.json scripts追加: 本スキルはプロジェクト非依存であり対象にならない
 
 **保守責任者**: 人手（ユーザー）。facts.ymlのフィールド構成・正規化規則（`shared/references/facts-schema.md`）を変更した時に同時更新する。
@@ -176,5 +184,5 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, TaskCreate, TaskUpdate]
 - `shared/references/facts-schema.md` — facts.ymlのスキーマ正本（9分類・必須フィールド・孤児参照定義・normalize規則）
 - `shared/scripts/seal-facts.sh` — facts.ymlの封印・検証・正規化を担う共有スクリプト
 - `shared/references/リバース工程設計.md` — Phase/Step×スキル対応の正本（本スキルの位置づけ: Phase 5 ユニット反復 / Step 18-21）。NG帰着3系統の(b)facts欠落からの差し戻し先でもある
-- `.claude/skills/authoring-screen-docs-from-code/references/phase-details.md` — 9分類定義の移設元（fact-table.md 側は本スキーマの対象外。authoring 側の改修は別工程）
+- `.claude/skills/generating-reverse-detailed-design/references/phase-details.md` — 9分類定義の移設元（fact-table.md 側は本スキーマの対象外。authoring 側の改修は別工程）
 - `.claude/skills/surveying-architecture-for-reverse-docs/SKILL.md` — 本スキルが前提とするアーキテクチャ調査書（方式→プロファイル選択の根拠）を確定する上流スキル

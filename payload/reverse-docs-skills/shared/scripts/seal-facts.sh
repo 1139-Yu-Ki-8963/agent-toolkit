@@ -28,6 +28,15 @@ set -euo pipefail
 # 設計判断（ADR）の正本は extracting-unit-facts-from-code の SKILL.md「## 設計判断」に記載する。
 # 保守責任者: 人手（ユーザー）。facts.ymlのフィールド構成を変更した時に更新する。
 # macOS bash 3.2 互換（mapfile 不使用）。
+#
+# ファイル単位モードとの関係（--file-scope は本スクリプトには存在しない）:
+#   本スクリプトの seal/verify/normalize はいずれも facts_dir 単位（facts.yml 全体）で
+#   ハッシュ計算・照合・正規化を行い、target_file_paths 内の個別ファイルへ限定するオプ
+#   ションは持たない。generating-reverse-detailed-design の mode=file（ファイル単位モード）
+#   が「当該ファイル由来のキーへ限定した網羅確認」を必要とする場合は、呼び出し元側
+#   （scripts/check-fact-coverage.sh 等）が facts.yml 読込後に evidence のパス部分で
+#   フィルタする。seal-facts.sh 自体への --file-scope 相当オプションの追加は本改修の
+#   対象外（スクリプト本体のロジック変更なし）。
 
 normalize_file() {
   f="$1"

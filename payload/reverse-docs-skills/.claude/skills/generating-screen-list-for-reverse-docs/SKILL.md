@@ -120,7 +120,7 @@ allowed-tools: [Bash, Read, Write, Edit, Grep, Glob, AskUserQuestion, TaskCreate
 - import グラフ解析は行わない（組み込み検出器の場合。カスタム抽出パスでは戦略宣言に沿った収集を行う）
 - 0件検出時にAskUserQuestionで手動リストを聞き出さない。誤った境界を即興確定させない
 
-## Gotchas
+## 予想を裏切る挙動
 
 - `validate-manifest.sh`・`build-unit-list.sh`（内部で呼ぶ `build-screen-list.sh` も）は jq に依存する。未インストール環境では事前に導入する
 - 組み込み検出器は `useRoutes` と2段階importまでのimport追跡に対応する。それ以外の方式（カスタムルート配列・element属性解決等）はカスタム抽出パスで対応する

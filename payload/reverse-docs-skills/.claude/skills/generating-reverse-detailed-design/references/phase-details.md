@@ -1,4 +1,4 @@
-# authoring-screen-docs-from-code 工程詳細
+# generating-reverse-detailed-design 工程詳細
 
 SKILL.md の Phase 2（封印検証と facts 読込）〜Phase 5（完全性ゲート）の詳細手順を集約する。9 分類の定義（キーの付け方・抽出粒度）は `shared/references/facts-schema.md` を正本とする（本ファイルでは重複定義しない）。転記先の判定規律・字面転記と要約の境界・実測委譲の書式は `references/writing-rules.md` を正本とする（同上）。
 
