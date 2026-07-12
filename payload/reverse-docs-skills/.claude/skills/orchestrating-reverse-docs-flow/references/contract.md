@@ -142,7 +142,7 @@
 headless_approved_ops: [白紙化, 再実装, タグ更新, 環境撤去]
 ```
 
-スロット枯渇時の自動回収: headless_approved_ops に `teardown` が含まれている場合、スロットが上限に達した時点で「基準確立済み（status=baseline-established）で最も古い環境の軽量解放（プロセス・ポートのみ解放、タグ・成果物は保持する）」を自動実行してスロットを確保する。headless_approved_ops に `teardown` が含まれていない場合は従来どおり ERROR で停止する。
+スロット枯渇時の自動回収: headless_approved_ops に `環境撤去` が含まれている場合、スロットが上限に達した時点で「基準確立済み（status=baseline-established）で最も古い環境の軽量解放（プロセス・ポートのみ解放、タグ・成果物は保持する）」を自動実行してスロットを確保する。headless_approved_ops に `環境撤去` が含まれていない場合は従来どおり ERROR で停止する。
 
 ### 盲検分離の必須要件
 
@@ -160,6 +160,7 @@ headless_approved_ops: [白紙化, 再実装, タグ更新, 環境撤去]
 
 - ヘッドレス実行では AskUserQuestion は許可指定してもモデルに提示されない（実測）
 - TaskCreate と Skill はヘッドレス実行でも利用可能（実測）
+- Agent(run_in_background: true) は headless 実行では `CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS`（既定 600 秒）でバックグラウンドプロセスが切断される（実測）。headless 時の並列起動は Skill ツールによる逐次実行に切り替える
 
 ## 状態判定表
 
