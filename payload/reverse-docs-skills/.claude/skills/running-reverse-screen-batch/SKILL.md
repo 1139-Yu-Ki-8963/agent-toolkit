@@ -15,6 +15,8 @@ claude CLI のヘッドレスモード（`claude -p`、対話画面を介さず1
 
 本スキルは orchestrating-reverse-docs-flow から args 全量指定で起動される。AskUserQuestion を発行しない（対話ゼロ契約）。
 
+無人モード（headless=true）では工程の開始・完了のたびに `<verification_dir>/progress.jsonl` へ JSON 行を追記する（形式: `{"ts":"<ISO8601>","screen_id":"<画面ID>","phase":"<工程名>","status":"started|completed|failed"}`）。呼び出し元セッションや人間はこのファイルの監視で現在工程を把握できる。
+
 ## 使用タイミング
 
 - TRIGGER: orchestrating-reverse-docs-flow の画面バッチ Phase から起動される時。画面数が4件以上で一括無人処理が適切な時
@@ -123,6 +125,7 @@ Bash ツールで残件カウントコマンドを実行する。マーカー未
 | 周回ループ | 未検証残（マーカー未付与かつfailedリスト外）> 0 | 周回数に上限なし（意図的）。停止は (1) 収束: 全画面マーカー付与済みで remaining=0 (2) 発散検知: 各画面がK回連続失敗でfailed退避。対象数有限なら必ず終了する |
 | 対象ループ | 画面一覧を先頭から1件ずつ処理。前半・後半の計2回 `claude -p` を呼び出す | `status: baseline-established` ならスキップ。前半は `status: authored` の実在、後半は `status: baseline-established` の実在で成否判定する（終了コードは使わない）。未達なら失敗カウント加算、K回でfailed退避 |
 | 環境スロット解放 | 対象画面が `baseline-established` に到達（後半完了）した直後に実施 | syncing-reverse-env の mode=teardown の軽量版（ポート・プロセスのみ解放し、baseline_tag・成果物は保持）を実行し、次画面のためにスロットを確保する |
+| スロット枯渇時の自動回収 | 前半 claude -p の画面開通で syncing-reverse-env がスロット不足 ERROR を返した場合 | headless_approved_ops に teardown が含まれていれば、基準確立済みで最も古い環境を軽量解放して再試行する。含まれていなければ failed リストへ退避する |
 | limit待機 | 出力にlimit文言パターンを検知 | 検知したらWAIT_SECONDS秒sleepして再開。当該画面は未完のまま次周回で再試行 |
 
 ## 画面1件の処理パイプライン

@@ -198,7 +198,7 @@ mode=screen が著述する画面横断章（§1 画面概要・§2 機能一覧
 - `references/writing-rules.md` — 執筆規律の正本（章マップ準拠の転記先決定・facts のキー→設計書章の対応規律・字面転記と要約の境界・実測委譲の書式・禁止事項）
 - `scripts/check-fact-coverage.sh` — Phase 5 完全性ゲート（facts.yml → 設計書の転記突合。`--self-test` 内蔵）
 - 起動引数 scaffold_script_path（Phase 1 スキャフォールディング〔テンプレート展開・--verify・--dry-run〕。実体: `shared/scripts/scaffold-screen.sh`。正本はこの1本のみ）
-- 起動引数 facts_ref（封印済み facts ディレクトリの絶対パス。実体: extracting-unit-facts-from-code が出力する `<screen_dir>/検証記録/facts/<run_id>/`）
+- 起動引数 facts_ref（封印済み facts ディレクトリの絶対パス。実体: extracting-unit-facts-from-code が出力する `<verification_dir>/screen-<画面ID>/facts/<run_id>/`）
 - 起動引数 common_docs_root（プロジェクト共通文書ルートの絶対パス。実体: generating-reverse-common-docs が採録する `プロジェクト共通/`）
 - 起動引数 chapter_map_path（章役割キー対応表。実体: `shared/references/chapter-map.md`）
 - 起動引数 audit_script_path（内部整合性監査。実体: `shared/scripts/audit-consistency.sh`）

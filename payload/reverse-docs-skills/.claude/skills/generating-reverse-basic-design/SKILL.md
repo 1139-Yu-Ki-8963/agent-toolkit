@@ -134,7 +134,7 @@ facts 読込・執筆（Phase 1〜2）はサブエージェントへ委任しな
 本スキルは orchestrating-reverse-docs-flow の契約（`references/contract.md`）に準拠し、args 全量指定で単独起動できる。
 
 - 起動引数 scaffold_script_path（Phase 1 スキャフォールディング。実体: `shared/scripts/scaffold-screen.sh`。正本はこの1本のみ）
-- 起動引数 facts_ref（封印済み facts ディレクトリの絶対パス。実体: extracting-unit-facts-from-code が出力する `<screen_dir>/検証記録/facts/<run_id>/`）
+- 起動引数 facts_ref（封印済み facts ディレクトリの絶対パス。実体: extracting-unit-facts-from-code が出力する `<verification_dir>/screen-<画面ID>/facts/<run_id>/`）
 - 起動引数 common_docs_root（プロジェクト共通文書ルートの絶対パス。実体: generating-reverse-common-docs が採録する `プロジェクト共通/`）
 - 起動引数 template_root（テンプレート原本。実体: `shared/templates/リバース検証`）
 - `shared/references/facts-schema.md` — facts.yml のスキーマ正本（9 分類・必須フィールド・正規化規則）
