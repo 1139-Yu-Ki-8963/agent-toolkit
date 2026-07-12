@@ -14,43 +14,75 @@ set -euo pipefail
 #     1箇所でもあれば転記済み扱いとする（個別キー一致は不要）。表記が無い場合のみ、他セクションと
 #     同様に個別キー一致を要求する。
 #   - 未転記が1件でもあれば exit 1（fail-closed）。全件転記済みで exit 0。
-#   - --self-test は合成フィクスチャで陽性 exit 0・陰性 exit 1 を自己検証する。
+#   - **値レベル検証**: 固定 props 値・enum 実使用値・コンポーネント宣言形状等、items[].value に
+#     具体的な値文字列を持つ facts については、キーへの言及だけでなく value 文字列自体が設計書本文に
+#     出現するかも確認する。value が見つからない場合は「値未転記」として stderr に WARN を出力する
+#     （exit code には影響しない。既存の exit 1 = 未転記キー検出 の挙動を変更しない）。
+#   - --self-test は合成フィクスチャで陽性 exit 0・陰性 exit 1・値未転記 WARN を自己検証する。
 #
 # 設計判断（ADR）の正本は本スキルの SKILL.md「## 設計判断」に記載する。
 # 保守責任者: 人手（ユーザー）。facts.yml の書式・除外分類を変更した時に更新する。
 # macOS bash 3.2 互換（mapfile 不使用）。
 
-# facts.yml から「セクション名<TAB>キー」を1行ずつ抽出する。
+# facts.yml から「セクション名<TAB>キー<TAB>値」を1行ずつ抽出する。値フィールドが
+# 無いitems（evidenceのみ等）は値列が空文字になる。
 # 固定インデント契約（shared/references/facts-schema.md）:
 #   sections配下のキー(2段目)  = 2スペース
 #   items配下の "- key:"(4段目) = 6スペース
+#   items配下の "value:"(4段目、keyと同じ項目内) = 8スペース
 extract_section_keys() {
   awk '
+    function flush_item() {
+      if (key != "") print section "\t" key "\t" value
+    }
     /^  [a-z_]+:[ \t]*$/ {
+      flush_item()
       s = $0
       sub(/^  /, "", s)
       sub(/:[ \t]*$/, "", s)
       section = s
+      key = ""
+      value = ""
       next
     }
     /^      - key:/ {
-      key = $0
-      sub(/^      - key:[ \t]*/, "", key)
-      gsub(/^"/, "", key)
-      gsub(/"$/, "", key)
-      gsub(/^[ \t]+/, "", key)
-      gsub(/[ \t]+$/, "", key)
-      if (key != "") print section "\t" key
+      flush_item()
+      k = $0
+      sub(/^      - key:[ \t]*/, "", k)
+      gsub(/^"/, "", k)
+      gsub(/"$/, "", k)
+      gsub(/^[ \t]+/, "", k)
+      gsub(/[ \t]+$/, "", k)
+      key = k
+      value = ""
+      next
     }
+    /^        value:/ {
+      v = $0
+      sub(/^        value:[ \t]*/, "", v)
+      gsub(/^"/, "", v)
+      gsub(/"$/, "", v)
+      gsub(/^[ \t]+/, "", v)
+      gsub(/[ \t]+$/, "", v)
+      value = v
+      next
+    }
+    END { flush_item() }
   ' "$1"
 }
 
 # facts.yml と設計書群を突合する。未転記があれば return 1。
+# 値レベル検証（固定props値・enum実使用値・コンポーネント宣言形状等、value
+# フィールドを持つfacts）は設計書本文への値文字列出現も確認し、見つからなければ
+# 「値未転記」としてstderrへWARNを出す（exit codeには影響しない。既存の
+# exit 1 = 未転記キー検出 の挙動は維持する）。measurement_pendingは実測委譲設計
+# のため値レベル検証の対象外とする。
 run_check() {
   facts_yml="$1"
   shift
   missing=0
   total=0
+  value_missing=0
 
   has_delegation_note=0
   for doc in "$@"; do
@@ -65,6 +97,7 @@ run_check() {
     [ -z "$row" ] && continue
     section="$(printf '%s' "$row" | cut -f1)"
     key="$(printf '%s' "$row" | cut -f2)"
+    value="$(printf '%s' "$row" | cut -f3)"
     total=$((total + 1))
 
     if [ "$section" = "measurement_pending" ] && [ "$has_delegation_note" -eq 1 ]; then
@@ -83,6 +116,20 @@ run_check() {
       echo "  未転記: ${key}（分類: ${section}）" >&2
       missing=$((missing + 1))
     fi
+
+    if [ "$section" != "measurement_pending" ] && [ -n "$value" ]; then
+      value_found=0
+      for doc in "$@"; do
+        if grep -qF -- "$value" "$doc" 2>/dev/null; then
+          value_found=1
+          break
+        fi
+      done
+      if [ "$value_found" -eq 0 ]; then
+        echo "  WARN: 値未転記: ${key} の値「${value}」が設計書本文に見当たりません（分類: ${section}）" >&2
+        value_missing=$((value_missing + 1))
+      fi
+    fi
   done <<EOF
 $rows
 EOF
@@ -90,6 +137,9 @@ EOF
   if [ "$missing" -gt 0 ]; then
     echo "完全性ゲート失敗: facts.yml $total 件中 $missing 件が設計書に未転記です（fail-closed）" >&2
     return 1
+  fi
+  if [ "$value_missing" -gt 0 ]; then
+    echo "値レベル検証: $value_missing 件の値未転記WARNがあります（exit codeには影響しません）" >&2
   fi
   echo "完全性ゲート通過: facts.yml $total 件すべてが設計書に転記済みです"
   return 0
@@ -203,6 +253,52 @@ MD
     rc=1
   else
     echo "  [PASS] 陰性2: 実測委譲表記なし・個別キー未転記で exit 1"
+  fi
+
+  # 値レベル検証フィクスチャ: キーは転記済みだが value 文字列が設計書本文に
+  # 出現しない（固定props値の値未転記）ケース。exit code は 0 のまま、
+  # stderr に「値未転記」WARN が出ることを確認する。
+  cat > "$tmp/facts-value.yml" <<'YML'
+run_id: extract-1
+profile: screen
+target_repo_path: /abs/path/to/repo
+target_file_paths:
+  - src/screens/Foo/Foo.tsx
+sections:
+  const:
+    reason: ""
+    items:
+      - key: const-max-count
+        value: "MAX_COUNT=100"
+        evidence: "src/screens/Foo/Foo.tsx:5"
+YML
+
+  cat > "$tmp/design-value-missing.md" <<'MD'
+# 画面詳細設計書
+## §10 定数・設定値
+const-max-count を使用する。
+MD
+
+  cat > "$tmp/design-value-present.md" <<'MD'
+# 画面詳細設計書
+## §10 定数・設定値
+const-max-count を使用する（MAX_COUNT=100）。
+MD
+
+  if out_value_missing="$(run_check "$tmp/facts-value.yml" "$tmp/design-value-missing.md" 2>&1)"; then rc_value_missing=0; else rc_value_missing=$?; fi
+  if [ "$rc_value_missing" -eq 0 ] && printf '%s' "$out_value_missing" | grep -q "値未転記"; then
+    echo "  [PASS] 値レベル検証陰性: キー転記済み・値未転記で WARN が出るが exit 0 のまま"
+  else
+    echo "  [FAIL] 値レベル検証陰性: 値未転記WARNが出ない、または exit 0 でない（exit=${rc_value_missing}）" >&2
+    rc=1
+  fi
+
+  if out_value_present="$(run_check "$tmp/facts-value.yml" "$tmp/design-value-present.md" 2>&1)"; then rc_value_present=0; else rc_value_present=$?; fi
+  if [ "$rc_value_present" -eq 0 ] && ! printf '%s' "$out_value_present" | grep -q "値未転記"; then
+    echo "  [PASS] 値レベル検証陽性: 値も転記済みならWARNが出ない"
+  else
+    echo "  [FAIL] 値レベル検証陽性: 値転記済みなのにWARNが出た、または exit 0 でない（exit=${rc_value_present}）" >&2
+    rc=1
   fi
 
   if [ "$rc" -eq 0 ]; then
