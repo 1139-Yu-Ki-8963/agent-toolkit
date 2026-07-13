@@ -1,0 +1,37 @@
+# コミット・ブランチ命名規約（COMMIT-BRANCH-NAMING）設計ノート（非注入サイドカー）
+# rule.md から分離した保守者向け記録。規約の挙動には影響しない。
+
+## 設計判断
+
+### naming-values.txt（サイドカー分離）
+
+**必要性**: コミット・ブランチ命名の規約値（prefix 対応表・subject ルール）の正本は従来 naming-conventions スキル（トリガー駆動）にあり、「規約の正本は rules」というアーキテクチャ宣言と矛盾していた。rules 配下に正本を置きつつ、規約値の長文表を毎セッションの常時注入から外すため、rule.md（薄い索引）と naming-values.txt（非注入サイドカー）に分離した。rules 配下の .md は深さ・ファイル名を問わず全て常時注入されることを 2026-07-03 に実測済みで、.txt 化が唯一の非注入化手段。
+
+**代替案を採用しなかった理由**:
+- rule.md に全表を記載: 常時注入されるため、commit 時にしか要らない値でコンテキストを恒常消費する
+- naming-conventions スキルを正本のまま維持: スキルはトリガー駆動でロードされるため規約の常時参照性がなく、正本は rules 側とするアーキテクチャ宣言に反する
+- references/ サブディレクトリの .md: サブディレクトリ配下の .md も注入されることを実測で確認済みのため非注入化にならない
+
+**保守責任者**: 人手（ユーザー）。prefix 種別の追加・変更時に naming-values.txt を更新する。
+
+**廃棄条件**: Claude Code 本体がコミット・ブランチ命名規則の強制を組み込んだ時、または rules 機構がサイドカーの非注入指定を公式サポートし .md のまま除外できるようになった時。
+
+### check-git-author-allowlist.sh
+
+**必要性**: git commit / git push の author name・email をこの PC の白リストと照合し、個人メールアドレスの誤混入を機械的に防ぐ。判定ロジック（コマンドセグメント分割・正規表現照合・exit 2 block）を持ち、都度の Bash 直叩きでは再現性がない。
+
+**代替案を採用しなかった理由**: Bash ツール直叩きでは commit / push の都度手動確認が必要になり抜け漏れが生じる。Makefile や package.json scripts はこの PC 全体のグローバル規約用途に馴染まない。
+
+**保守責任者**: 人手（ユーザー）。白リストの author name・email 変更時に同時更新する。
+
+**廃棄条件**: git author の統一運用を廃止した時、または本規約が撤回された時。
+
+### check-git-author-allowlist.test.sh
+
+**必要性**: check-git-author-allowlist.sh は `resolve_git_ctx_dir`（`cd <dir> &&` 前置・`-C <dir>` 明示の両方からの実行コンテキスト解決）・白リスト照合・commit と push の 2 系統の判定分岐を持つ。手動での都度検証では、前置なし通常コマンド・`cd` 前置・複数 git 呼び出し（`symbolic-ref`/`merge-base`/`log`）への `-C` 伝播を再現性を持って回帰確認できない。特に「push 対象と異なるリポジトリの履歴を誤検査する」バグは cwd 依存の暗黙動作であり、都度の Bash 直叩きでは再発を検出できない。
+
+**代替案を採用しなかった理由**: Bash ツール直叩きでは、git スタブ・fake HOME・複数ケース（前置なし commit・非白リスト author・cd 前置 push・前置なし push）の組合せを都度手書きするとトークン消費が大きく回帰テストとして機能しない。既存 Makefile 拡張や package.json scripts はこの PC 全体のグローバル規約用途に馴染まない。
+
+**保守責任者**: 人手（ユーザー）。check-git-author-allowlist.sh の判定ロジック（コンテキスト解決・白リスト照合）変更時に同時更新する。
+
+**廃棄条件**: check-git-author-allowlist.sh 廃止時、または本規約が撤回された時。

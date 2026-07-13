@@ -1,0 +1,56 @@
+# phase 突入タスクゲート（PHASE-STEP-TASK）設計ノート（非注入サイドカー）
+# rule.md から分離した保守者向け記録。規約の挙動には影響しない。
+
+## 設計判断
+
+### record-step-tasks.sh
+
+**必要性**: phase/step スキルの step タスク登録を SKILL.md の記述だけに頼ると遵守率が落ちる（15 スキル中 step 粒度の TaskCreate を明記しているのは 5 スキルのみで、残りは phase 見出しのみという実測）。PostToolUse(TaskCreate) で subject を機械検査し、形式合致のみをカウントすることで、phase 突入 gate（check-phase-entry-tasks.sh）の判定材料を作る。subject の正規表現判定・phase/step 番号の一致検証・カウンタ加算・フロー実行中判定という複数分岐があり、settings.json のインラインには収まらない。
+
+**代替案を採用しなかった理由**:
+- 各 SKILL.md への手順追記: 15 スキルへの重複展開になり保守不能。CLAUDE.md/SKILL.md の行動規範だけでは長時間セッションで破られる実績がある
+- PreToolUse(TaskCreate) で形式違反を block: タスク登録自体を止めるとフロー外の通常タスク作成まで巻き込む。カウント非加算 + phase 突入時 block の 2 段構えが過剰阻害なく同じ強制力を持つ
+- Stop hook で事後検査: タスク登録漏れの検出が phase 作業完了後になり手遅れ
+
+**保守責任者**: 人手（ユーザー）。subject 形式の変更時に正規表現を更新する。
+
+**廃棄条件**: Claude Code 本体がタスクとフロー進行の紐付けを組み込んだ時、または phase/step 構造のスキル運用を廃止した時。
+
+### check-phase-entry-tasks.sh
+
+**必要性**: 「次の phase に入る前に step タスクを登録する」義務の強制点。phase 突入の唯一の機械観測点である `update-flow-status.sh` 呼び出しを PreToolUse(Bash) で検査し、カウンタ不足なら exit 2 で block する。コマンド文字列からの引数抽出（クォート対応トークン化）・新 phase 判定（前回宣言 phase マーカーとの比較）・Phase D/I 例外・fail-safe 分岐があり、インライン化は保守不能。
+
+**代替案を採用しなかった理由**:
+- update-flow-status.sh 本体への検証追加: 同スクリプトの責務は進行宣言と Phase 順序検証であり、タスク登録の検査は責務外。また hook 側なら block メッセージを additionalContext 経路で Claude に確実に届けられる
+- PostToolUse で警告のみ: phase 突入後の警告では作業が始まってしまい、タスク分解の強制にならない
+- settings.json への直列登録: rules 系 PreToolUse(Bash) は rules-bash-runner.sh への集約が hooks-architecture 規約（9 本目として dispatch）
+
+**保守責任者**: 人手（ユーザー）。update-flow-status.sh の引数仕様変更時に同時更新する。
+
+**廃棄条件**: update-flow-status.sh が廃止・大幅変更された時、または本規約が撤回された時。
+
+### record-step-tasks.test.sh
+
+**必要性**: 形式合致カウント・phase/step 番号不一致・フロー実行中/外の advisory 分岐・subject 欠落の計 7 ケースを bash 単体で回帰検証する。JSON stdin 生成 × マーカー状態のセットアップを都度手書きすると再現性が失われる。
+
+**代替案を採用しなかった理由**:
+- Bash ツール直叩き: ケースごとの JSON 生成と集計をセッション内で都度書くとトークン消費が大きく回帰テストとして機能しない
+- 既存 Makefile ターゲット拡張: `~/.claude/` 配下には Makefile がない
+- package.json scripts 追加: グローバル規約用途でありプロジェクトに属さない
+
+**保守責任者**: 人手（ユーザー）。record-step-tasks.sh の判定変更時に同時更新する。
+
+**廃棄条件**: record-step-tasks.sh 廃止時。
+
+### check-phase-entry-tasks.test.sh
+
+**必要性**: 非対象コマンド素通り・--init 素通り・同一 phase 素通り・カウンタ不足 block・充足通過・Phase D/I 素通り・パース不能 fail-safe の計 8 ケースを回帰検証する。マーカー事前状態（last-phase・カウンタ）× コマンド文字列パターンの組合せは手動再現が困難。
+
+**代替案を採用しなかった理由**:
+- Bash ツール直叩き: 8 ケース × マーカー準備 × JSON 生成の都度手書きは再現性がない
+- 既存 Makefile ターゲット拡張: `~/.claude/` 配下には Makefile がない
+- package.json scripts 追加: グローバル規約用途でありプロジェクトに属さない
+
+**保守責任者**: 人手（ユーザー）。check-phase-entry-tasks.sh の判定変更時に同時更新する。
+
+**廃棄条件**: check-phase-entry-tasks.sh 廃止時。

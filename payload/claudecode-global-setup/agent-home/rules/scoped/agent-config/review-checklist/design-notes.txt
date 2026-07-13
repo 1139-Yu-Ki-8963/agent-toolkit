@@ -1,0 +1,58 @@
+# agent-config/review-checklist 設計判断・経緯（非注入サイドカー）
+
+## 出典・経緯（2026-07-10）
+
+統一レビュー基盤の構築過程で、構造欠陥がユーザー指摘により 3 度発覚した。
+
+1. 「rules のフォルダと専門家サブエージェントの対応がズレている」
+   — 当初はトピック分類（code-review/ ui/）と拡張子ベースのディスパッチが別軸で、
+   icon-usage の適用範囲（tsx/css 等）の一部が専門家に渡らなかった
+2. 「観点フォルダの配下にまとめないと数を数えられない」
+   — 観点・分類・横断規約を数える正本と監査が存在しなかった
+3. 「review-checklist の下はサブエージェントと 1 対 1 のフォルダになるはず。
+   txt 直置きもベストプラクティスではない」
+   — specialist frontmatter 方式はフォルダ構造と宣言の二重管理であり、
+   直置き txt は所有者となる rule.md が不在だった
+
+最終形として「第 1 階層 = 専門家と 1 対 1（フォルダ導出）・第 2 階層 = 観点・
+台帳は統治 rule のサイドカー」に確定し、本 rule がその統治を担う。
+
+## 設計判断（ADR）
+
+- 必要性: フォルダ構造・専門家・台帳の対応関係は、規約として明文化し監査で機械検証しない
+  限り再びズレる（実際に 3 度ズレた）。構造の正本とサイドカーの所有者が必要
+- 代替案を採用しなかった理由:
+  - specialist frontmatter 宣言（旧方式）: フォルダと宣言の二重管理で乖離リスクが残る。
+    フォルダ名からの導出なら構造そのものが宣言になる
+  - txt を review-checklist 直下に直置き（旧方式）: サイドカーは rule.md と同居する
+    既存原則（naming-values.txt・port-values.txt が先例）に反し、所有者不在になる
+  - 統治内容を SKILL.md（reviewing-against-rules）に書く: スキルは呼び出し時しか
+    読まれない。構造規約は該当ファイルを触る瞬間に注入される scoped rule が適所
+    （paths: review-checklist 配下 + agents/*-reviewer 配下）
+- 保守責任者: 人手（ユーザー）。ドメイン追加・分類定義の変更時は本 rule と
+  audit-review-coverage.sh を同時に更新する
+- 廃棄条件: reviewing-against-rules 基盤自体が廃止された時
+
+## always/review-checklist ミラーの追加と always-rules.txt の廃止（2026-07-11）
+
+ユーザーから「always 側にも同じように review-checklist があって良いのでは。辞書・テキスト規約は
+レビュー観点としての規約だろう」と提案を受けた。用語辞書（text-dictionary）・意味キー（当時 semantic-key、現 meaningful-key-naming）・
+略称（当時 abbreviations、現 term-explanation）の 3 規約を always/review-checklist/ へ物理移動した（always 配下はどの topic でも
+常時注入されるため、注入方式を変えずに移動できる）。
+
+これにより「フォルダ位置 = 登録」が always 側にも成立し、登録リスト always-rules.txt は廃止した。
+scoped（専門家別観点）と always（全専門家の横断観点）が対称構造になり、
+「規約は全部レビュー観点ではないのか」という問いへの答えもフォルダで表現される:
+review-checklist 配下 = 成果物の内容を縛る規約（レビュー照合対象）、
+配下外 = 行為・プロセスを縛る規約（hook が行為時に強制）または設定資産・行動規範。
+
+移動に伴う配線更新: settings.json の Stop hook パス（当時 no-abbrev-stop.sh、現 check-term-explanation.sh）、textlint 設定 2 ファイルの
+prh.yml rulePaths、pre-bash-dispatch のプロジェクト受け口パス、oradora-battle-base の実在受け口の
+git mv、全ドキュメント・エージェント定義の参照パス。
+
+## 深さ 4 の例外について
+
+rules 共通規約（managing-agent-configs/references/rules/conventions.md）はグローバル rules を
+深さ 3 固定としてきたが、review-checklist 配下のみ「topic（review-checklist）/ domain / name」の
+深さ 4 を正とする例外を設けた。専門家との 1 対 1 対応をフォルダ構造で表現するため。
+conventions.md §1 と check-items.md A2 の検出式も同時に更新済み。

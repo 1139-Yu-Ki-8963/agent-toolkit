@@ -1,0 +1,65 @@
+# code-review/standards 設計判断・経緯（非注入サイドカー）
+
+## 出典・経緯
+
+2026-07-10、レビュー機構の現状調査で次の欠陥が確認された:
+- reviewing-single-pr-with-inline-comments が観点正本として参照する
+  `~/Projects/oradora-battle-base/docs_site/00_共通/プロジェクトルール/規約・基準/コードレビュー観点.md`
+  が実在せず（docs_site は別リポジトリにのみ存在）、必須参照が構造的に失敗していた
+- コードレビュー観点のプロジェクト非依存部分に正本が存在しなかった
+
+統一レビュー基盤（観点の正本は rules・レビューは専門家サブエージェント経由・スキルは
+入口スキルを呼ぶ）の一部として、スキル同梱 references/review-checklist.md にあった
+汎用観点と壊れた参照先の想定内容を統合し、本 rule に正本化した。
+
+## 元資料からの変更点
+
+- 連番識別子（S-*/D-*/Q-*/C-*/A-*/B-*/TQ-*/JX-* 等）は semantic-key 規約
+  （記号+通し番号の禁止）に違反するため、意味見出し・箇条書きへ変換した
+- プロジェクト固有観点（oradora-battle-base の P-*: Input/Output 型禁止・null 返却禁止等、
+  docs_site ドキュメントカバレッジ表、案件特性）はグローバルに置かず、
+  プロジェクト委譲受け口（<repo>/.claude/rules/scoped/review-checklist/code/common/rule.md）へ
+  移す設計とした（受け口未整備の場合は各プロジェクトで整備する）
+
+## 設計判断（ADR）
+
+- 必要性: コードレビューの観点正本が存在せず、レビューが LLM の裁量任せになっていた。
+  作成規約と観点表を単一の rule.md に統合することで、作成時（scoped 注入）と
+  レビュー時（code-reviewer が Read）が同じ基準を参照し、二重管理による乖離を防ぐ
+- 代替案を採用しなかった理由:
+  - スキル references への配置: レビュースキル専用になり、作成時に読まれない。
+    今回の欠陥（参照切れ）の温床でもあった
+  - always 配置: 長文が全セッションに常時注入され context を圧迫する。
+    コードファイルを扱う時だけ必要な観点のため scoped が適合
+  - プロジェクトごとに全文を持つ: 汎用観点が N 重管理になり乖離する。
+    共通部分をグローバル、固有部分を受け口で合成する方式が既存規約
+    （text-dictionary・commit-branch）の委譲パターンと整合する
+- 保守責任者: 人手（ユーザー）。観点の追加・削除はユーザー判断で行う
+- 廃棄条件: コードレビュー観点の正本が別の仕組み（例: Claude Code 本体のレビュー機能の
+  観点設定）に移管された時
+
+## 既知の限界
+
+- paths は ts/tsx/js/jsx/mjs/py のみ。他言語（go/rb/java 等）を扱うプロジェクトが
+  増えた場合は paths へ追加する
+- 機械強制 hook なし。レビュー実施自体の強制は orchestrating-dev-flow の
+  レビューゲート（push / PR 作成時）が担う
+
+## review-checklist への物理集約と specialist フィールド追加（2026-07-10）
+
+`scoped/code-review/standards/` として単独運用していたところ、ユーザーから
+「rules のフォルダと専門家サブエージェントの対応がズレている」「観点フォルダの配下に
+まとめないと数を数えられない」と指摘された。実際に `scoped/ui/icon-usage/rule.md` は
+tsx/jsx/vue/css/scss にも適用範囲を持つのに、入口スキルの拡張子ベース振り分け表には
+html しか登録されておらず、該当ファイルへの icon-usage 照合が構造的に欠落していた。
+
+対応として、レビュー観点として機能する scoped rule（本 rule・html-output・icon-usage）を
+`scoped/review-checklist/` 配下へ物理集約し、各 rule.md の frontmatter に `specialist:`
+フィールドを追加した。これにより「誰が読むか」が rule 自身の宣言になり、ファイル拡張子からの
+推測に依存しなくなった。入口スキルは file×rule の全解決結果を specialist でグルーピングして
+委任するよう変更し、1 ファイルに複数 rule（例: .tsx が code 基準と icon-usage の両方）が
+適用される場合も取りこぼさない。トピック名は当初「review-criteria」としたが、意味が
+伝わりにくいとの指摘を受け「review-checklist」（観点表であることが直感的に伝わる名前）に改めた。
+
+新設した監査スクリプト（`~/agent-home/skills/reviewing-against-rules/scripts/audit-review-coverage.sh`）が
+scoped/review-checklist 配下の rule 数・specialist 実在・横断規約の参照有無を機械的に数える。

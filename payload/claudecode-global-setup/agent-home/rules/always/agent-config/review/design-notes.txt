@@ -1,0 +1,93 @@
+# managing スキル実行ゲート（MANAGING-REVIEW-GATE）設計ノート（非注入サイドカー）
+# rule.md から分離した保守者向け記録。規約の挙動には影響しない。
+
+## 設計判断
+
+### check-managing-configs-review-needed.sh
+
+**必要性**: 直近 5 日間のセッションログ調査で、managing 系スキルが呼ばれるべき 5 セッション中、全セッションでスキル未発火またはテスト未完了のまま commit されていた。スキルの TRIGGER 条件はキーワードベースだが、ファイル編集を起点とする発火経路がなかった。PostToolUse による検知と commit 時の block を組み合わせることで、レビュー・テストの完遂を構造的に保証する。スキル発火ログ参照・マーカー書き出し・passed マーカーの無効化という複数の処理を持ち、Bash ツール直叩きでは PostToolUse イベントにバインドできない。
+
+**代替案を採用しなかった理由**:
+- Bash ツール直叩き: PostToolUse イベントは harness 自動発火のため、Bash ツール経由ではファイル編集のたびに自動検知できない
+- SKILL.md の TRIGGER 条件にファイルパスパターンを追加: TRIGGER はユーザー発話のキーワードマッチであり、Write/Edit ツール起動イベントを検知できない
+- PreToolUse(Write|Edit) で block: 編集自体を妨げると作業フローが破綻する。編集は許可し、commit 時に block するのが適切
+- orchestrating-dev-flow への組み込み: フロー経由以外の直接編集を検知できない
+
+**保守責任者**: 人手（ユーザー）。新しい managed ディレクトリ追加時にファイルパターンを更新する。
+
+**廃棄条件**: Claude Code 本体が managed ディレクトリの変更検知と自動レビュー機能を組み込んだ時。
+
+## 2026-07-06 拡張（複合コマンド検知・fail-loud/fail-open・ハッシュ照合）
+
+### 検知限界（複合コマンド分割）
+
+`check-managing-configs-commit-gate.sh` のセグメント分割は `&&` / `||` / `;` / `|` / `&` と改行の単純な文字列置換に基づく。以下は検知できない既知の限界:
+
+- heredoc 内部（`git commit <<EOF ... EOF` の中身）
+- `eval "git commit ..."` のような動的構築コマンド
+- `bash -c "git commit ..."` のようなネストしたシェル起動
+
+これらは実行時までコマンド文字列が確定しないか、シェルの構文解析を要するため、正規表現ベースの静的判定では原理的に捕捉できない。将来的に対応する場合は shell parser（例: `shellcheck` の AST）の導入が必要になる。
+
+### fail-loud（commit-gate）と fail-open（review-gate）のトレードオフ
+
+commit-gate は PreToolUse（ブロック能力あり）のため lib 不在時に fail-closed（git commit 全体を block）を選んだ。managed_asset_type() が lib 内にあり、種別判定自体が lib 依存であるため、lib が無い状態では「managed ファイルかどうか」すら判定できない。判定不能を「managed ではない」とみなして通す（fail-open）と、レビュー・テスト未完了の設定ファイルが無審査で commit される恐れがあるため、インストール破損の自己申告を優先し fail-closed とした。
+
+review-gate は PostToolUse（ブロック能力なし）のため、同じ判定不能状態でも exit 2 は無意味（Write/Edit 自体は既に完了している）。fail-open で自己申告するのが唯一の選択肢。
+
+### ハッシュ照合マーカーへの移行理由
+
+旧方式（空 touch の test-passed マーカー）は「テストを一度でも通せば、その後の再編集を経てもマーカーが残り続ける」抜け穴があった（review-gate が編集検知時に rm していたが、rm 漏れ・タイミング競合のリスクが残る）。ハッシュ照合方式に変更し、commit-gate が staged 内容とマーカー記録を直接突合することで、マーカーの削除タイミングに依存しない stale 検知を実現した。
+
+### check-managing-configs-commit-gate.sh
+
+**必要性**: `git commit` 時に staged ファイルを走査し、managed ファイルのテスト完了マーカーの有無で commit を許可または block する。staged ファイルのパスパターン判定・複数スキルタイプの列挙・マーカーパス解決という複数の処理があり、settings.json のインライン command に収まらない。PreToolUse(Bash) に自動バインドすることで、commit コマンドの直前に確実に実行できる。
+
+**代替案を採用しなかった理由**:
+- Bash ツール直叩き: PreToolUse イベントにバインドできず、commit 前の自動 block が不可能
+- pre-commit git hook: `marker_path` ヘルパーの source・session_id の取得・jq による JSON 出力など Claude Code hook 固有の処理が必要で、通常の git hook では session_id を得られない
+- `permissions.deny`: コマンド引数（staged ファイルのパス）レベルの検査ができない
+
+**保守責任者**: 人手（ユーザー）。新しい managed ディレクトリ追加時にファイルパターンを更新する。
+
+**廃棄条件**: Claude Code 本体が managed ディレクトリの変更検知と自動レビュー機能を組み込んだ時。
+
+## rule.md から移設した設計判断（2026-07-07）
+
+### check-managing-configs-commit-gate.test.sh
+
+**必要性**: commit-gate はコマンド文字列の複合セグメント分割（&&/||/;/|/&・改行統一）・正規表現による git commit 語境界判定・fail-loud/fail-open の lib 存在ガード・staged ファイルのハッシュ照合という複数の分岐を持つ。手動での都度検証では、cd 前置・-C 指定・複合コマンド・改行付きコマンドといった組み合わせを再現性を持って回帰確認できない。
+
+**代替案を採用しなかった理由**:
+- Bash ツール直叩き: 12 ケース（複合コマンド判定 4 種・fail-loud 1 種・ハッシュ照合 3 種・単体判定 1 種の組合せ）を都度手書きするとトークン消費が大きく回帰テストとして機能しない
+- 既存 Makefile ターゲット拡張: `~/.claude/` 配下には Makefile が存在しない
+- package.json scripts 追加: グローバル規約用途でありプロジェクトに属さない
+
+**保守責任者**: 人手（ユーザー）。commit-gate の判定ロジック変更時（セグメント分割方式・正規表現・ハッシュ照合方式）に同時更新する。
+
+**廃棄条件**: check-managing-configs-commit-gate.sh 廃止時。
+
+### T4: report必須化（ハッシュのみ方式からの強化）
+
+**必要性**: 旧方式は managed ファイルのハッシュ列挙のみで test-passed マーカーを構成しており、review/test が実際に実行されたかを検証する手段が皆無だった。エージェントが `shasum` を叩くだけの1コマンドで、実際のテスト実施有無に関わらず同一の出力を生成でき、commit ゲートを自己申告のみで通過できる状態だった。review/test の実施内容を記した report ファイルの実在・内容（PASS宣言行）・鮮度（needed マーカーとの mtime 比較）・ハッシュ紐付け（test-passed マーカー内の REPORT_SHA256）を必須化することで、単純なコマンド一発でのなりすまし合格を防ぐ。
+
+**代替案を採用しなかった理由**:
+- ハッシュのみ方式の維持: 上記の通り検証の実体を伴わない
+- 外部プロセス（テストランナー等）の終了コードを記録する方式: managing-agent-configs のテスト対象はスキル・rule・hook等のテキスト成果物であり、決定的な単一テストランナーが存在しないため適用不可
+- サブエージェントの Agent ツール呼び出しログ（tool_uses / duration_ms）をマーカーに埋め込む方式: hook はサブエージェント呼び出しの実行時メタデータにアクセスできない（bash script はエージェント実行系から独立している）
+
+**保守責任者**: 人手（ユーザー）。report ファイルの必須フィールド・検証ロジック変更時に同時更新する。
+
+**廃棄条件**: managing-agent-configs のテスト実施を hook から機械的に検証できる別の仕組み（例: サブエージェント実行の外部証跡をhookが参照できる仕組み）が実現した時。
+
+### T5: check-managing-configs-review-needed.sh のadvisory抑制と-neededマーカーtouchの分離（2026-07-09）
+
+**必要性**: 旧実装は、セッションログに`managing-agent-configs`の発火記録がある場合、advisory通知の抑制だけでなく`-needed`マーカーのtouch処理自体もまとめてexitしてスキップしていた。このため、セッション内で一度`Skill("managing-agent-configs")`を呼んだ後は、そのセッション中ずっと`-needed`マーカーが二度と生成されず、managedファイルのcommitが恒久的にブロックされる不具合があった（実例: 2026-07-09、unlocking-reverse-target-screensスキル改訂作業中に発覚）。advisory抑制の判定をフラグに記録するだけにとどめ、`-needed`マーカーのtouchは常に実行するよう修正した。
+
+**代替案を採用しなかった理由**:
+- セッションログ判定自体の削除: advisory通知の重複抑制という本来の目的（managing-agent-configs実行中の自身のファイル編集で毎回advisoryが注入されるのを防ぐ）は正当であり、判定ロジックごと削除すると別の問題（advisory過多）を再発させる
+- 手動でのマーカー再作成: 個別セッションでの一時しのぎであり、同じ不具合が別セッションで再発する
+
+**保守責任者**: 人手（ユーザー）。advisory抑制とマーカーtouchの分離ロジックを変更する場合は、この2つの処理が独立して動作することを維持する。
+
+**廃棄条件**: check-managing-configs-review-needed.sh 廃止時。

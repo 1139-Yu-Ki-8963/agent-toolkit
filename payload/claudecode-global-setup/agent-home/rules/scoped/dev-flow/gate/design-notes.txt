@@ -1,0 +1,79 @@
+# 実装フローゲート（FLOW-GATE）設計ノート（非注入サイドカー）
+# rule.md から分離した保守者向け記録。規約の挙動には影響しない。
+
+## 設計判断
+
+### update-flow-status.sh（Phase 順序検証）
+
+**必要性**: Phase を書き込む前に `.flow-progress.json` の `phases_completed` と照合し、前提 Phase が完了していなければ exit 1 で停止する。これにより「Phase 6 だけ飛ばして Phase 7 を宣言する」ような Phase スキップを update-flow-status.sh 呼び出し時点で阻止できる。enforce-flow-gate.sh と二重防御になることで、hook が動作していない環境（テスト・CI）でも書き込み前にエラーを発生させる。Phase D / I など特殊ルートを case 文でスキップし、ルート別の順序定義（5 ルート）を関数に閉じることで、将来のルート追加時に 1 箇所の変更で済む。
+
+**代替案を採用しなかった理由**:
+- enforce-flow-gate.sh のみで検証: hook が PreToolUse(Write|Edit) に限定されており、update-flow-status.sh が Bash 経由で呼ばれる場合は hook を経由しないため、スクリプト側でも検証が必要
+- CLAUDE.md / rule.md のみ（スクリプト変更なし）: 行動規範だけでは長時間セッションで破られる実績がある
+
+**保守責任者**: 人手（ユーザー）。新ルート追加時に `get_required_phases` 関数を更新する。
+
+**廃棄条件**: orchestrating-dev-flow が廃止された時、または Phase 順序管理が Claude Code 本体に組み込まれた時。
+
+### enforce-flow-gate.sh（.flow-progress.json 直接編集防止）
+
+**必要性**: `update-flow-status.sh` に順序検証を追加しても、Claude が `.flow-progress.json` に直接 Write/Edit することで検証を回避できる経路が残る。`rel_from_root` で `.flow-progress.json` を検出して exit 2 で block することで、update-flow-status.sh 経由以外の書き換えを構造的に防止する。
+
+**代替案を採用しなかった理由**:
+- permissions.deny: ファイル名パターン（`.flow-progress.json`）でのファイルパス単位の block は permissions.deny の粒度では対応できない
+- rule.md のみ（hook なし）: Claude が直接 Edit を発行することを行動規範だけでは止められない実績がある
+
+**保守責任者**: 人手（ユーザー）。`.flow-progress.json` のファイル名変更時に更新する。
+
+**廃棄条件**: update-flow-status.sh が廃止されて別の進捗管理手段に移行した時。
+
+### enforce-flow-gate.sh（phases_completed 前提 Phase 検証）
+
+**必要性**: Phase 6 以上を宣言していても `phases_completed` に前提 Phase が記録されていない場合、実際にはフローをスキップしている。Phase 6 到達チェック（`phase_num -lt 6`）だけでは、`current_phase=6` に手動セットしつつ Planning Phase 群を飛ばす回避策を防げない。`.flow-progress.json` の `phases_completed` を照合してルート別に必須 Phase の実行を担保する。
+
+**代替案を採用しなかった理由**:
+- update-flow-status.sh の検証のみ: update-flow-status.sh を呼ばずに `.flow-progress.json` を直接操作した場合に担保できない（本 hook と合わせて二重防御とする）
+- Phase 6 チェックのみ: `current_phase` の数値だけでは途中 Phase のスキップを検出できない
+
+**保守責任者**: 人手（ユーザー）。ルートの必須 Phase 変更時に update-flow-status.sh の `get_required_phases` 関数と合わせて更新する。
+
+**廃棄条件**: orchestrating-dev-flow が廃止された時。
+
+### enforce-flow-gate.sh
+
+**必要性**: orchestrating-dev-flow を経由せずにサブエージェントが ~/Projects/ 配下のプロジェクトに直接コードを書ける問題が発生していた。既存の check-main-agent-direct-work.sh はサブエージェントを `agent_id` の有無で明示除外しており、flow-progress-gate.sh は advisory（exit 0）のみで block しない。worktree-required-check.sh は worktree 外編集を block するが、フローの Phase 進行は検査しない。これらのギャップを埋め、Phase 6 未到達でのコード書き込みを構造的に防止するための専用ゲートが必要。
+
+**代替案を採用しなかった理由**:
+- check-main-agent-direct-work.sh の修正（サブエージェント除外を撤廃）: 同 hook の責務は「メインエージェントの直接作業を委任させる」であり、フロー Phase の検査は責務外。責務を混ぜると保守が複雑化する
+- flow-progress-gate.sh を exit 2 に変更: 同 hook は git push 時のみ発火し、Write/Edit を対象としていない。matcher が異なるため統合不可
+- worktree-required-check.sh に Phase 検査を追加: 同 hook の責務は worktree 外編集の防止であり、Phase 進行の検査は責務外
+- CLAUDE.md / rule.md のみ（hook なし）: 行動規範だけでは長時間セッションで破られる実績がある
+
+**保守責任者**: 人手（ユーザー）
+
+**廃棄条件**: orchestrating-dev-flow が廃止された時、または Claude Code 本体がフロー Phase による書き込み制御を組み込んだ時
+
+### check-dev-flow-phase-gate.sh の project_root フォールバック修正（2026-07-09）
+
+**必要性**: 新規ネストディレクトリへの初回 Write（親ディレクトリがまだ存在しない場合）で `[ -d "$dir" ]` が偽になり、`$HOME/Projects/` からの最初のパスセグメントを project_name とみなす素朴なフォールバックに落ちていた。このフォールバックは `~/Projects/<repo>/` の直下構造しか想定しておらず、`~/Projects/worktrees/<repo>/<branch>/...` のようなネストしたworktree配下では project_root を `~/Projects/worktrees` という誤った値に解決し、本来59行目の `.claude/*` 除外に一致するはずのパスが誤って `[DEV-FLOW-PHASE-GATE-BLOCK]` される不具合があった（実例: 2026-07-09、worktree内の `.claude/markers/` への新規Writeで再現）。`$dir` の祖先ディレクトリを実在するまで遡ってから `git rev-parse --show-toplevel` する方式に修正した（worktreeルート自体は常に実在するため、中間ディレクトリが未作成でも正しく解決できる）。
+
+**代替案を採用しなかった理由**:
+- 素朴なフォールバックのロジックを維持しつつ例外パターンを追加: `~/Projects/worktrees/` 以外にも同様のネスト構造が将来増える可能性があり、個別パターン列挙は根本解決にならない
+- Write前に必ず親ディレクトリを事前作成する運用ルールの徹底: hook側の実装不備を運用回避に転嫁するものであり、根本原因（project_root解決ロジックの誤り）が残る
+
+**保守責任者**: 人手（ユーザー）。project_root解決ロジックを変更する場合は、中間ディレクトリ未作成のケースでも正しく解決できることを維持する。
+
+**廃棄条件**: check-dev-flow-phase-gate.sh 廃止時。
+
+### check-dev-flow-agent-gate.sh
+
+**必要性**: 2026-07-09のセッションで、PreToolUse(Agent)段階にroute確定チェックが無いため、worker-sonnet 4体がそれぞれ独自にworktreeを作成しPhaseゲートにぶつかる事象が発生した。PreToolUse(Write|Edit)の既存ゲートは「最後の砦」として機能したが、サブエージェント起動後のリソース浪費（worktree作成・flow-context.yml作成試行・auto mode classifier拒否の連鎖）を防げなかった。
+
+**代替案を採用しなかった理由**:
+- check-main-agent-direct-work.shへの統合: 同hookの責務は「メインの直接作業を委任させる」であり、フロー状態の検査は責務外（design-notes.txtに記録済み）
+- check-dev-flow-phase-gate.shのmatcher拡張（Write|Edit→Write|Edit|Agent）: Agent起動時のtool_inputにはfile_pathが無くcwd判定に切り替える必要があり、既存ロジックとの分岐が複雑になる
+- Bash直叩き: PreToolUse(Agent)イベントに自動バインドできず、毎回手動確認が必要
+
+**保守責任者**: 人手（ユーザー）
+
+**廃棄条件**: Claude Code本体がAgent起動前のフロー状態検査を標準機能として提供するようになった時

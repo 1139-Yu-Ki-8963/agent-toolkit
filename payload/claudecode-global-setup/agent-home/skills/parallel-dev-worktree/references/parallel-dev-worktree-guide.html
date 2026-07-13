@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<!--
+  parallel-dev-worktree スキルガイド（単一ファイル自己完結型）
+
+  git worktree を使った並列開発ワークフロー管理スキルの利用ガイド。
+  worktree の作成・運用・後片付け・復旧の全 Phase を解説する。
+
+  正本: skills/parallel-dev-worktree/SKILL.md
+  補足: skills/parallel-dev-worktree/references/detailed-procedures.md
+  フック: skills/parallel-dev-worktree/scripts/check-worktree-required.sh
+-->
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>parallel-dev-worktree スキルガイド</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 0 24px 96px;
+    font-family: system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif;
+    line-height: 1.85; color: #1a1a1a; background: #fafafa;
+    max-width: 980px; margin-inline: auto;
+  }
+  header { padding: 56px 0 24px; border-bottom: 3px solid #1a1a1a; }
+  header h1 { font-size: 1.9rem; margin: 0 0 10px; letter-spacing: 0.01em; }
+  header .skill-name {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 1.0rem; background: #1a1a1a; color: #fafafa;
+    padding: 2px 10px; border-radius: 4px; vertical-align: middle;
+  }
+  header p { margin: 6px 0 0; color: #555; }
+  .meta-table { margin-top: 16px; font-size: 0.9rem; color: #555; }
+  .meta-table td { padding: 1px 16px 1px 0; }
+
+  nav.toc {
+    margin-top: 32px; padding: 18px 22px;
+    background: #fff; border: 1px solid #e0e0e0; border-radius: 8px;
+  }
+  nav.toc .toc-title { font-weight: 700; margin-bottom: 6px; }
+  nav.toc ol { margin: 0; padding-left: 1.4em; columns: 2; column-gap: 40px; }
+  nav.toc li { margin: 2px 0; }
+  nav.toc a { color: #1a1a1a; text-decoration: none; border-bottom: 1px dotted #999; }
+  nav.toc a:hover { border-bottom-style: solid; }
+
+  section { margin-top: 64px; }
+  section > h2 {
+    font-size: 1.35rem; padding-bottom: 8px; margin-bottom: 20px;
+    border-bottom: 2px solid #1a1a1a;
+  }
+  section > h2 .sec-num {
+    display: inline-block; min-width: 2.4em; margin-right: 10px;
+    font-family: ui-monospace, monospace; font-size: 0.95rem;
+    background: #1a1a1a; color: #fafafa; text-align: center;
+    padding: 1px 8px; border-radius: 4px; vertical-align: 2px;
+  }
+  h3 { font-size: 1.05rem; margin: 32px 0 10px; }
+  .note { color: #555; font-size: 0.92rem; }
+
+  table.spec { border-collapse: collapse; width: 100%; margin: 14px 0; background: #fff; font-size: 0.93rem; }
+  table.spec th, table.spec td { border: 1px solid #d8d8d8; padding: 8px 12px; text-align: left; vertical-align: top; }
+  table.spec th { background: #f0f0ee; font-weight: 700; white-space: nowrap; }
+  table.spec td code, li code, p code, table.spec th code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.86em; background: #eeeeea; padding: 1px 5px; border-radius: 3px;
+  }
+
+  pre.flow {
+    background: #16211c; color: #d7e6dc; border-radius: 8px;
+    padding: 20px 24px; overflow-x: auto;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.82rem; line-height: 1.55;
+  }
+  pre.flow .cap { color: #8fb8a0; }
+
+  figure.diagram { margin: 20px 0; padding: 8px; background: #fff;
+    border: 1px solid #e0e0e0; border-radius: 8px; }
+  figure.diagram svg { width: 100%; height: auto; display: block; cursor: zoom-in; }
+  figure.diagram figcaption { padding: 8px 10px 2px; }
+
+  .zoom-overlay {
+    position: fixed; inset: 0; z-index: 1000;
+    background: rgba(15, 23, 42, 0.93);
+    overflow: auto; padding: 24px; cursor: zoom-out;
+    -webkit-overflow-scrolling: touch;
+  }
+  .zoom-overlay svg {
+    width: 1880px; max-width: none; height: auto;
+    display: block; margin: 0 auto;
+    background: #fff; border-radius: 8px;
+  }
+
+  .def {
+    background: #fff; border-left: 4px solid #1a1a1a;
+    padding: 12px 18px; margin: 14px 0; border-radius: 0 6px 6px 0;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  }
+  .def dt { font-weight: 700; margin-top: 8px; }
+  .def dt:first-child { margin-top: 0; }
+  .def dd { margin: 2px 0 0 0; color: #333; }
+
+  .constraint {
+    background: #eef2f7; border: 1px solid #c8d4e3; border-radius: 8px;
+    padding: 12px 18px; margin: 16px 0; font-size: 0.93rem;
+  }
+  .constraint strong:first-child { color: #2a4a7a; }
+
+  .tag {
+    display: inline-block; font-family: ui-monospace, monospace; font-size: 0.78rem;
+    font-weight: 700; padding: 0 8px; border-radius: 3px; border: 1px solid transparent;
+  }
+  .tag.pass  { background: #e7f3e7; color: #23662a; border-color: #b9d9ba; }
+  .tag.fail  { background: #fbe9e7; color: #9c2b1a; border-color: #ecc0b8; }
+  .tag.error { background: #fdf3d7; color: #7a5d10; border-color: #e8d59a; }
+  .tag.mode  { background: #e8eef7; color: #2a4a7a; border-color: #c2d2e8; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>並列開発ワークフロー（git worktree）<br><span class="skill-name">parallel-dev-worktree</span></h1>
+  <p>git worktree で実装用ブランチを作成・管理・復旧する。orchestrating-dev-flow の Phase 2 から呼び出されるほか、単独でも発動する。</p>
+
+  <div class="def">
+    <dt>こんな人向け</dt>
+    <dd>実装・修正・issue 解決タスクを担うエージェント。main ブランチを汚さず複数作業を並走させたい場面、または worktree の復旧が必要な場面で参照する。</dd>
+    <dt>こんな場面で使う</dt>
+    <dd>「実装して」「修正して」「直して」「対応して」「issue 解決して」と指示されたとき（規模不問）。worktree 作成・管理・復旧、wt1–wt3 不在検出、MISSING/FAIL、スロット復旧にも対応する。既存ブランチの継続作業、調査のみ、main 指定、グローバル設定（<code>~/.claude/</code>・<code>~/agent-home/</code>）対象の場合は発動しない。</dd>
+  </div>
+
+  <table class="meta-table">
+    <tr><td>対応 OS</td><td>macOS</td></tr>
+    <tr><td>検証状況</td><td>SKILL.md を正本として整理（個別の実機検証記録なし）</td></tr>
+    <tr><td>依存</td><td>Bash・Read・Write・Edit（allowed-tools）、git worktree コマンド、gh CLI（GitHub リモート時のみ）、<code>check-worktree-required.sh</code>・<code>remind-worktree-cleanup.sh</code>（scripts/）</td></tr>
+    <tr><td>関連資料</td><td><code>SKILL.md</code>、<code>references/detailed-procedures.md</code>、<code>scripts/check-worktree-required.sh</code>、<code>scripts/remind-worktree-cleanup.sh</code>、<code>scripts/worktree-required-check.test.sh</code></td></tr>
+  </table>
+</header>
+
+<nav class="toc">
+  <div class="toc-title">目次</div>
+  <ol>
+    <li><a href="#s1">概要とライフサイクル</a></li>
+  <li><a href="#s2">出力</a></li>
+    <li><a href="#s3">配置・命名規約</a></li>
+    <li><a href="#s4">共通変数の取得</a></li>
+    <li><a href="#s5">通常フロー（Phase 1–7）</a></li>
+    <li><a href="#s6">スロット運用とポート管理</a></li>
+    <li><a href="#s7">復旧モード（撤去済み・歴史的記述）</a></li>
+    <li><a href="#s8">hook による強制（worktree-required-check）</a></li>
+    <li><a href="#s9">よくある誤操作と防御</a></li>
+    <li><a href="#s10">他スキルとの連携</a></li>
+  </ol>
+</nav>
+
+<section id="s1">
+  <h2><span class="sec-num">§1</span>概要とライフサイクル</h2>
+
+  <p>このスキルは git worktree を使い、実装用ブランチをメイン作業ツリーと分離して管理する。スキルの型は <span class="tag mode">gateway</span> で、リポジトリ非依存に動作する（メインツリーのパスもデフォルトブランチ名も動的に取得する）。</p>
+
+  <h3>worktree のライフサイクル</h3>
+
+  <figure class="diagram">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 140">
+      <defs>
+        <marker id="arr" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+          <polygon points="0 0,8 3,0 6" fill="#1a1a1a"/>
+        </marker>
+      </defs>
+      <!-- boxes -->
+      <rect x="10" y="50" width="110" height="40" rx="6" fill="#f0f0ee" stroke="#1a1a1a" stroke-width="1.5"/>
+      <text x="65" y="75" text-anchor="middle" font-size="12" font-family="sans-serif">Phase 1–2</text>
+      <text x="65" y="88" text-anchor="middle" font-size="10" fill="#555" font-family="sans-serif">チェック</text>
+
+      <rect x="160" y="50" width="110" height="40" rx="6" fill="#f0f0ee" stroke="#1a1a1a" stroke-width="1.5"/>
+      <text x="215" y="75" text-anchor="middle" font-size="12" font-family="sans-serif">Phase 3</text>
+      <text x="215" y="88" text-anchor="middle" font-size="10" fill="#555" font-family="sans-serif">worktree 作成</text>
+
+      <rect x="310" y="50" width="110" height="40" rx="6" fill="#f0f0ee" stroke="#1a1a1a" stroke-width="1.5"/>
+      <text x="365" y="75" text-anchor="middle" font-size="12" font-family="sans-serif">Phase 4</text>
+      <text x="365" y="88" text-anchor="middle" font-size="10" fill="#555" font-family="sans-serif">実装・コミット</text>
+
+      <rect x="460" y="50" width="110" height="40" rx="6" fill="#f0f0ee" stroke="#1a1a1a" stroke-width="1.5"/>
+      <text x="515" y="75" text-anchor="middle" font-size="12" font-family="sans-serif">Phase 5</text>
+      <text x="515" y="88" text-anchor="middle" font-size="10" fill="#555" font-family="sans-serif">push / PR 作成</text>
+
+      <rect x="610" y="50" width="110" height="40" rx="6" fill="#e7f3e7" stroke="#23662a" stroke-width="1.5"/>
+      <text x="665" y="75" text-anchor="middle" font-size="12" font-family="sans-serif">Phase 6</text>
+      <text x="665" y="88" text-anchor="middle" font-size="10" fill="#555" font-family="sans-serif">worktree 削除</text>
+
+      <!-- arrows -->
+      <line x1="120" y1="70" x2="158" y2="70" stroke="#1a1a1a" stroke-width="1.5" marker-end="url(#arr)"/>
+      <line x1="270" y1="70" x2="308" y2="70" stroke="#1a1a1a" stroke-width="1.5" marker-end="url(#arr)"/>
+      <line x1="420" y1="70" x2="458" y2="70" stroke="#1a1a1a" stroke-width="1.5" marker-end="url(#arr)"/>
+      <line x1="570" y1="70" x2="608" y2="70" stroke="#1a1a1a" stroke-width="1.5" marker-end="url(#arr)"/>
+
+      <!-- Phase 7 loopback -->
+      <text x="515" y="130" text-anchor="middle" font-size="10" fill="#555" font-family="sans-serif">Phase 7: レビュー指摘→再作業（必要時）</text>
+      <path d="M665 90 Q665 120 515 125 Q365 130 365 90" fill="none" stroke="#999" stroke-width="1.2" stroke-dasharray="4 3" marker-end="url(#arr)"/>
+    </svg>
+    <figcaption class="note">worktree の作成から削除までの流れ。Phase 7 は PR 作成後にレビュー指摘が来た時のみ実行する。</figcaption>
+  </figure>
+
+  <h3>必ず実施する Phase / 条件付き Phase</h3>
+  <table class="spec">
+    <tr><th>Phase</th><th>必ず実施 / 条件付き</th><th>条件</th></tr>
+    <tr><td>Phase 1</td><td><span class="tag pass">必ず</span></td><td>—</td></tr>
+    <tr><td>Phase 2</td><td><span class="tag mode">条件付き</span></td><td>プロジェクト側 CLAUDE.md に「コンフリクトしたファイル」見出しがある場合のみ。それ以外は OPEN PR 存在チェックのみ</td></tr>
+    <tr><td>Phase 3</td><td><span class="tag pass">必ず</span></td><td>—</td></tr>
+    <tr><td>Phase 4</td><td><span class="tag pass">必ず</span></td><td>—</td></tr>
+    <tr><td>Phase 5</td><td><span class="tag pass">必ず</span>（GitHub 以外は push まで）</td><td>—</td></tr>
+    <tr><td>Phase 6</td><td><span class="tag pass">必ず</span></td><td>—</td></tr>
+    <tr><td>Phase 7</td><td><span class="tag mode">必要時のみ</span></td><td>レビュー指摘の修正タスク発生時</td></tr>
+  </table>
+
+  <div class="constraint">
+    <strong>適用方針:</strong> 「実装」「修正」「直して」「対応」「issue 解決」と指示された時は、規模を問わず必ず Phase 1 から実行する。SKILL.md の 1 行修正・typo fix 等の軽微変更も対象。例外はユーザーが明示的に「main で直接」「worktree 不要」と指定した時、既存 worktree 内での追加コミット時、読み取りのみの調査タスク、<code>~/.claude/</code> または <code>~/agent-home/</code> のグローバル設定リポジトリ対象の時のみ。
+  </div>
+</section>
+
+<section id="s2">
+  <h2><span class="sec-num">§2</span>出力</h2>
+  <p>本スキルの実行が完了すると、以下の 2 つの状態が確立される。</p>
+  <div class="def">
+    <dt>push 済みブランチと PR（または push のみ）</dt>
+    <dd>実装内容が origin 上のブランチへ push 済みであり、GitHub リモートの場合はレビュー可能な状態の PR が作成されている。GitHub 以外のリモートでは push 完了までで停止し、リモートの web UI での PR 作成をユーザーに促す。ローカルブランチは残すのが既定であり、レビュー指摘が来た場合は Phase 7 で再 checkout して再利用できる。</dd>
+    <dt>後片付け済みのメイン作業ツリー</dt>
+    <dd>worktree 専用に確保したポート・コンテナ等の後始末を終えたうえで <code>git worktree remove</code> が実行され、メイン作業ツリーはデフォルトブランチに戻っている。worktree 自体は畳まれるが、push 済みのブランチと変更内容は失われず、並行作業の分離状態が正常に解消されている。</dd>
+  </div>
+</section>
+
+<section id="s3">
+  <h2><span class="sec-num">§3</span>配置・命名規約</h2>
+
+  <table class="spec">
+    <tr><th>項目</th><th>ルール</th></tr>
+    <tr>
+      <td>worktree パス</td>
+      <td><code>~/Projects/worktrees/&lt;repo&gt;/&lt;branch-name&gt;/</code><br>
+      <code>&lt;repo&gt;</code> 階層でリポジトリ間のブランチ名衝突を防ぐ。スラッシュはディレクトリ階層として展開される。</td>
+    </tr>
+    <tr>
+      <td>ブランチ名</td>
+      <td>命名規約（rules: always/naming/commit-branch）の「ブランチ名」に従う。prefix: <code>feature/</code> <code>fix/</code> <code>docs/</code> <code>chore/</code> <code>refactor/</code> <code>release/</code> のいずれか + <code>&lt;slug&gt;</code>（ケバブケース・50 文字以内）。</td>
+    </tr>
+    <tr>
+      <td>WORKTREE_ROOT 上書き</td>
+      <td>環境変数 <code>PARALLEL_DEV_WORKTREE_ROOT</code> に設定すると、デフォルトの <code>~/Projects/worktrees/$REPO_NAME</code> を上書きできる（<code>detailed-procedures.md</code> 参照）。</td>
+    </tr>
+    <tr>
+      <td>slot worktree（撤去済み）</td>
+      <td>slot 運用（<code>&lt;repo&gt;/.claude/worktrees/wtN</code> + <code>.slot-pool.json</code>）は 2026-06-28 に撤去済み（歴史的記述）。全リポジトリの worktree は <code>~/Projects/worktrees/&lt;repo&gt;/&lt;branch&gt;/</code> の中央規約に一本化されている。</td>
+    </tr>
+  </table>
+
+  <div class="constraint">
+    <strong>注意:</strong> worktree パスのスラッシュはディレクトリ階層として解釈される。例えばブランチ名が <code>feature/profile-cache-headers</code> の場合、worktree パスは <code>~/Projects/worktrees/&lt;repo&gt;/feature/profile-cache-headers/</code> となる。
+  </div>
+</section>
+
+<section id="s4">
+  <h2><span class="sec-num">§4</span>共通変数の取得</h2>
+
+  <p>各 Phase で使う変数は最初に決定する。以下は SKILL.md 記載の基本形と <code>detailed-procedures.md</code> 記載の完全版をまとめたもの。</p>
+
+  <pre class="flow"><span class="cap"># 基本形（SKILL.md）</span>
+REPO=$(git rev-parse --show-toplevel)
+DEFAULT_BRANCH=$(git -C "$REPO" symbolic-ref refs/remotes/origin/HEAD --short 2>/dev/null | sed 's@^origin/@@')
+[ -z "$DEFAULT_BRANCH" ] && DEFAULT_BRANCH=main
+REPO_NAME=$(basename "$REPO")
+WORKTREE_ROOT="$HOME/Projects/worktrees/$REPO_NAME"
+HAS_GH=$(gh repo view --json url 2>/dev/null && echo yes || echo no)
+</pre>
+
+  <pre class="flow"><span class="cap"># 完全版（detailed-procedures.md）: origin/HEAD 未設定時のフォールバック込み</span>
+REPO=$(git rev-parse --show-toplevel) || { echo "ここは git リポジトリではない"; exit 1; }
+
+DEFAULT_BRANCH=$(git -C "$REPO" symbolic-ref refs/remotes/origin/HEAD --short 2>/dev/null | sed 's@^origin/@@')
+if [ -z "$DEFAULT_BRANCH" ]; then
+  git -C "$REPO" remote set-head origin --auto >/dev/null 2>&1
+  DEFAULT_BRANCH=$(git -C "$REPO" symbolic-ref refs/remotes/origin/HEAD --short 2>/dev/null | sed 's@^origin/@@')
+fi
+[ -z "$DEFAULT_BRANCH" ] && DEFAULT_BRANCH=main
+
+REPO_NAME=$(basename "$REPO")
+WORKTREE_ROOT="${PARALLEL_DEV_WORKTREE_ROOT:-$HOME/Projects/worktrees/$REPO_NAME}"
+mkdir -p "$WORKTREE_ROOT"
+
+if gh repo view --json url >/dev/null 2>&1; then
+  HAS_GH=yes
+else
+  HAS_GH=no
+fi
+</pre>
+
+  <div class="constraint">
+    <strong>注意:</strong> <code>origin/HEAD</code> が未設定の場合は <code>git remote set-head origin --auto</code> で自動設定を試みる。それでも取れない場合は <code>main</code> をフォールバックとして使い、ユーザーに通知する（<code>detailed-procedures.md</code> 参照）。
+  </div>
+</section>
+
+<section id="s5">
+  <h2><span class="sec-num">§5</span>通常フロー（Phase 1–7）</h2>
+
+  <h3>Phase 1: 着手前チェック（必ず実施）</h3>
+  <p>メイン作業ツリーで以下を並列実行する。</p>
+  <pre class="flow"><span class="cap"># 1) 作業ツリーの汚れ確認（汚れがあればユーザー確認。勝手に stash しない）</span>
+git -C "$REPO" status --short
+
+<span class="cap"># 2) 現在ブランチ確認（$DEFAULT_BRANCH 以外にいる場合は理由を確認）</span>
+git -C "$REPO" branch --show-current
+
+<span class="cap"># 3) OPEN PR 一覧取得（GitHub のみ）</span>
+gh pr list --state open --json number,title,headRefName,files --limit 30
+
+<span class="cap"># 4) origin の最新化（ローカルのデフォルトブランチには checkout・pull しない）</span>
+git -C "$REPO" fetch origin "$DEFAULT_BRANCH" --prune
+</pre>
+
+  <h3>Phase 2: コンフリクトしたファイル衝突予測（条件付き）</h3>
+  <pre class="flow"><span class="cap"># プロジェクト側 CLAUDE.md に「コンフリクトしたファイル」見出しがあるか確認</span>
+grep -nE '^#{1,3}\s*コンフリクトしたファイル' "$REPO/CLAUDE.md" 2>/dev/null
+<span class="cap"># ヒットした場合: 触る予定のファイルと OPEN PR のファイル一覧を突合する</span>
+<span class="cap"># 衝突がある場合: ユーザーに「先方 PR のマージ待ち / 並走 / 統合」のどれを取るか確認</span>
+</pre>
+
+  <h3>Phase 3: worktree 作成（必ず実施）</h3>
+  <pre class="flow"><span class="cap"># 命名規約（rules: always/naming/commit-branch）に従いブランチ名を決定する</span>
+BRANCH="feature/profile-cache-headers"
+WT="$WORKTREE_ROOT/$BRANCH"
+
+<span class="cap"># 同名ブランチ・同名パスの事前チェック（存在した場合はユーザーに提示して停止）</span>
+git -C "$REPO" show-ref --verify --quiet "refs/heads/$BRANCH" && echo "[STOP] 既に存在"
+[ -d "$WT" ] && echo "[STOP] パスが既に存在"
+
+<span class="cap"># worktree 作成（-b で新規ブランチ生成と worktree 作成を同時に行う）</span>
+git -C "$REPO" worktree add -b "$BRANCH" "$WT" "origin/$DEFAULT_BRANCH"
+</pre>
+
+  <div class="constraint">
+    <strong>Phase 3 の禁止事項:</strong> 既に同名ブランチや同名パスが存在する場合、強制削除してはならない。エラーをユーザーに提示して判断を仰ぐ。復旧手順は <code>references/detailed-procedures.md</code> を参照する。
+  </div>
+
+  <h3>Phase 4: 作業（必ず実施）</h3>
+  <pre class="flow"><span class="cap"># 以後の作業は worktree 内に閉じる</span>
+cd "$WT"
+</pre>
+  <ul>
+    <li>プロジェクト側 CLAUDE.md に「単機能フロー」「バルクフロー」「メンテナンスフロー」の定義がある場合はそのフローに従う。定義がない場合は TDD の 3 ステップ（テスト先書き→最小実装→リファクタリング）で進める。</li>
+    <li>pre-commit / pre-push フックは worktree でも自動的に効く（<code>.git</code> がリンク参照されるため）。</li>
+    <li>コミットは <code>grouping-commits</code> スキルを Skill ツールで起動して行う。</li>
+    <li>rebase 競合が発生した場合、プロジェクト側 CLAUDE.md に「コンフリクト解消プロトコル」見出しがあればそちらを参照する。</li>
+  </ul>
+
+  <h3>Phase 5: PR 作成（必ず実施）</h3>
+  <div class="constraint">
+    <strong>実行前に必ずユーザー承認を取ること:</strong> push はリモートリポジトリに変更を反映する副作用を伴う。<code>AskUserQuestion</code> ツールで「<code>git push -u origin &lt;branch&gt;</code> を実行してよいか？」を確認してから実行する。
+  </div>
+  <pre class="flow"><span class="cap"># ユーザー承認後に push</span>
+cd "$WT"
+git push -u origin "$BRANCH"
+
+<span class="cap"># GitHub リモートあり: formatting-pr スキルで本文を整形し PR 作成</span>
+<span class="cap"># GitHub 以外: ユーザーに「push のみ完了」と通知して停止</span>
+</pre>
+
+  <h3>Phase 6: 後片付け（必ず実施・PR 作成完了時点）</h3>
+  <pre class="flow">cd "$REPO"
+git -C "$REPO" worktree remove "$WT"
+git -C "$REPO" worktree prune
+git -C "$REPO" branch --show-current   <span class="cap"># → $DEFAULT_BRANCH であることを確認</span>
+</pre>
+
+  <table class="spec">
+    <tr><th>失敗メッセージ</th><th>原因</th><th>対処</th></tr>
+    <tr><td><code>contains modified or untracked files</code></td><td>未コミット変更あり</td><td><code>git status</code> で確認 → ユーザーに「コミット・stash・破棄」を選んでもらう。勝手に破棄しない</td></tr>
+    <tr><td><code>is locked</code></td><td>意図的にロックされている</td><td>ロックの理由をユーザーに確認してから <code>git worktree unlock</code> を提案する</td></tr>
+    <tr><td><code>nested worktree found</code></td><td>worktree 内にさらに worktree がある</td><td>内側の worktree を先に削除してから外側を畳む</td></tr>
+  </table>
+
+  <h3>Phase 7: レビュー指摘で再作業が必要になった時（必要時のみ）</h3>
+  <pre class="flow"><span class="cap"># 既に push 済みのブランチを再 checkout する。-b は付けない</span>
+BRANCH="feature/profile-cache-headers"
+WT="$WORKTREE_ROOT/$BRANCH"
+git -C "$REPO" fetch origin "$BRANCH"
+git -C "$REPO" worktree add "$WT" "$BRANCH"
+cd "$WT"
+<span class="cap"># 修正 → push → Phase 6 を再実行</span>
+</pre>
+
+  <div class="constraint">
+    <strong>Phase 7 の注意:</strong> 再 checkout では <code>-b</code> を付けない。<code>-b</code> は新規ブランチ作成フラグであり、既存ブランチに付けるとエラーになる。
+  </div>
+
+  <h3>非 GitHub リモートのフォールバック</h3>
+  <table class="spec">
+    <tr><th>状況</th><th>挙動</th></tr>
+    <tr><td>GitLab / Bitbucket / 自前 git サーバー</td><td>Phase 1–3 の <code>gh pr list</code> を skip。Phase 5 は <code>git push</code> で停止し、ユーザーに「リモートの web UI で PR を作成してください」と通知する</td></tr>
+    <tr><td>リモート設定なし（ローカルのみ）</td><td><code>git push</code> が失敗するため、ユーザーに「<code>git remote add origin &lt;URL&gt;</code> を実行してください」と通知する</td></tr>
+  </table>
+</section>
+
+<section id="s6">
+  <h2><span class="sec-num">§6</span>スロット運用とポート管理</h2>
+
+  <p>ポート管理規約（<code>~/.claude/rules/always/local-environment/port-management/rule.md</code>）と連携し、worktree ごとに開発サーバーのポート番号を一意に決定する。</p>
+
+  <h3>スロット割当方式</h3>
+  <p>worktree は作業ごとに名前ベース（ブランチ名準拠）で作成する。ポート計算に必要なスロット番号（1〜5）は作成時に動的に割り当てる。</p>
+
+  <table class="spec">
+    <tr><th>手順</th><th>操作</th></tr>
+    <tr><td>1</td><td><code>git worktree list</code> で現在の worktree 一覧を取得する</td></tr>
+    <tr><td>2</td><td>各 worktree の <code>.port-slot</code> ファイルで割り当て済みスロット番号を確認する</td></tr>
+    <tr><td>3</td><td>空きスロット（1〜5）のうち最小のものを割り当てる</td></tr>
+    <tr><td>4</td><td><code>&lt;worktree&gt;/.port-slot</code> にスロット番号を書き込む（1 行、数字のみ）</td></tr>
+    <tr><td>5</td><td>空きスロットがない場合はエラー（全プロジェクト合計 5 本が上限）</td></tr>
+  </table>
+
+  <h3>ポート計算式</h3>
+  <pre class="flow"><span class="cap"># ポート = プロジェクトベース + (worktree スロット × 10) + サービスオフセット</span>
+<span class="cap"># 例: kakeibo frontend, slot 2 → 8200 + (2 × 10) + 1 = 8221</span></pre>
+
+  <table class="spec">
+    <tr><th>サービスオフセット</th><th>サービス</th></tr>
+    <tr><td>+0</td><td>backend (API)</td></tr>
+    <tr><td>+1</td><td>frontend (dev server)</td></tr>
+    <tr><td>+2</td><td>docs / portal</td></tr>
+    <tr><td>+3</td><td>DB ツール（Prisma Studio 等）</td></tr>
+  </table>
+
+  <div class="constraint">
+    <strong>制約:</strong> ランダムポートでのサーバー起動は禁止。全プロジェクト合計で worktree は 5 本まで（Docker を併用する環境でのメモリ消費を考慮した設計）。worktree 削除時に該当スロットのポート範囲を一括 kill する。詳細は <code>~/.claude/rules/always/local-environment/port-management/rule.md</code> を参照。
+  </div>
+
+  <h3>slot worktree（撤去済み・歴史的記述）</h3>
+  <p><code>&lt;repo&gt;/.claude/worktrees/wtN</code> + <code>.slot-pool.json</code> による slot 運用（旧 oradora-battle-base 固有の例外）は 2026-06-28 に撤去済み。全リポジトリの worktree は <code>~/Projects/worktrees/&lt;repo&gt;/&lt;branch&gt;/</code> の中央規約に一本化されている。詳細は §6 を参照。</p>
+</section>
+
+<section id="s7">
+  <h2><span class="sec-num">§7</span>復旧モード（撤去済み・歴史的記述）</h2>
+
+  <p><code>&lt;repo&gt;/.claude/worktrees/wtN</code> + <code>.slot-pool.json</code> による slot 運用（旧 oradora-battle-base 固有の例外）は 2026-06-28 に撤去済み。全リポジトリの worktree は <code>~/Projects/worktrees/&lt;repo&gt;/&lt;branch&gt;/</code> の中央規約（本ガイド §2・§4）に一本化されており、本節に記載していた wt1〜wt3 台帳復旧手順（Phase R1〜R4）は現存する基盤に対応しない。異常発生時は §4 の Phase 6・<code>references/detailed-procedures.md</code> の通常復旧手順に従う。</p>
+</section>
+
+<section id="s8">
+  <h2><span class="sec-num">§8</span>hook による強制（worktree-required-check）</h2>
+
+  <p><code>scripts/check-worktree-required.sh</code> が PreToolUse(Write|Edit|MultiEdit|NotebookEdit) に登録されており、メイン作業ツリーへの直接編集を検出して <code>decision:block</code> で止める。</p>
+
+  <h3>block される条件</h3>
+  <table class="spec">
+    <tr><th>判定</th><th>動作</th></tr>
+    <tr><td>編集対象ファイルパスが取得できない</td><td>通過（<span class="tag pass">exit 0</span>）</td></tr>
+    <tr><td><code>/tmp/.allow-main-edit</code> が存在する</td><td>通過 + ファイルを消費（ワンショット）</td></tr>
+    <tr><td>対象が <code>~/.claude/</code> 配下</td><td>通過（グローバル設定は例外）</td></tr>
+    <tr><td>対象が <code>~/agent-home/</code> 配下</td><td>通過（agent-home は例外）</td></tr>
+    <tr><td>対象ディレクトリが存在しない</td><td>通過</td></tr>
+    <tr><td>git リポジトリ外</td><td>通過</td></tr>
+    <tr><td><code>repo/.git</code> がファイル（worktree 内）</td><td>通過</td></tr>
+    <tr><td>上記以外（メインツリーへの直接編集）</td><td><span class="tag fail">BLOCK</span> — <code>[WORKTREE-REQUIRED]</code> を注入</td></tr>
+  </table>
+
+  <h3>注入タグへの対応</h3>
+  <div class="def">
+    <dt>[WORKTREE-REQUIRED] 受信時</dt>
+    <dd>作業を中断し、<code>parallel-dev-worktree</code> スキルを発動して worktree を作成する。その後 worktree 内で作業を再開する。例外マーカー（<code>/tmp/.allow-main-edit</code>）はワンショット消費で 1 回のみ block を解除する。人間がターミナルから手動で touch する専用であり、エージェントによる touch は permissions.deny で自動拒否される。</dd>
+  </div>
+
+  <h3>remind-worktree-cleanup.sh</h3>
+  <p>Stop hook として動作する。実装フロー完了時に worktree の後片付けが未実施の場合（セッションの cwd がマージ済み・クリーンな worktree のまま）に <code>WORKTREE-CLEANUP</code> を検出し、<code>decision:block</code> で書き戻す。counter が 2 に達すると自動解除される（livelock 防止）。</p>
+</section>
+
+<section id="s9">
+  <h2><span class="sec-num">§9</span>よくある誤操作と防御</h2>
+
+  <table class="spec">
+    <tr><th>誤操作</th><th>防御・対処</th></tr>
+    <tr>
+      <td>メイン作業ツリーで <code>git pull origin main</code></td>
+      <td>Phase 1 では <code>git fetch</code> のみ。<code>pull</code> は使わない。ローカルの <code>$DEFAULT_BRANCH</code> ブランチ作業ツリーには checkout・pull しない。</td>
+    </tr>
+    <tr>
+      <td>既存 worktree がある状態で同名 <code>worktree add</code></td>
+      <td>Phase 3 の存在チェックで停止。強制削除せずユーザーに判断を仰ぐ。</td>
+    </tr>
+    <tr>
+      <td>PR 作成前に worktree を畳む</td>
+      <td>Phase 6 の発動条件を「PR 作成完了時点」に固定。</td>
+    </tr>
+    <tr>
+      <td>Phase 7 で <code>-b</code> を付けて再 checkout</td>
+      <td>Phase 7 の手順に「<code>-b</code> は付けない」と明記。付けるとエラーになる。</td>
+    </tr>
+    <tr>
+      <td>worktree 内の未コミット変更ごと <code>remove</code></td>
+      <td>Phase 6 の失敗時は <code>--force</code> で強制削除しない。ユーザーに提示して指示を仰ぐ。</td>
+    </tr>
+    <tr>
+      <td>Phase 1 で作業ツリーが汚れていたら自動 stash</td>
+      <td>ユーザー確認なしに stash しない。汚れの内容を提示して指示を仰ぐ。</td>
+    </tr>
+    <tr>
+      <td>孤児 worktree の放置</td>
+      <td><code>git worktree prune --dry-run</code> で確認後 <code>git worktree prune</code> を実行する。</td>
+    </tr>
+  </table>
+
+  <h3>デバッグコマンド</h3>
+  <pre class="flow"><span class="cap"># 現存 worktree 一覧</span>
+git -C "$REPO" worktree list
+
+<span class="cap"># 孤児 worktree のクリーンアップ（実体ディレクトリが消えているもの）</span>
+git -C "$REPO" worktree prune --dry-run
+git -C "$REPO" worktree prune
+
+<span class="cap"># .git/worktrees/ の生データ（緊急時のみ）</span>
+ls -la "$REPO/.git/worktrees/"
+</pre>
+</section>
+
+<section id="s10">
+  <h2><span class="sec-num">§10</span>他スキルとの連携</h2>
+
+  <table class="spec">
+    <tr><th>スキル</th><th>役割・連携ポイント</th></tr>
+    <tr>
+      <td>命名規約（rules: always/naming/commit-branch）</td>
+      <td>ブランチ名の prefix・slug 規約。Phase 3 でブランチ名を決定する際に参照する。本スキルでは再列挙しない。</td>
+    </tr>
+    <tr>
+      <td><code>grouping-commits</code></td>
+      <td>Phase 4 のコミット段階で Skill ツールから呼び出す。</td>
+    </tr>
+    <tr>
+      <td><code>orchestrating-dev-flow</code></td>
+      <td>統合開発フロー。Phase 2 が本スキルを呼び出す。PR 整形は同スキルの <code>references/module-formatting-pr.md</code>、レビュー指摘修正は <code>references/module-fixing-review-findings.md</code> に従う。</td>
+    </tr>
+    <tr>
+      <td><code>reviewing-single-pr-with-inline-comments</code></td>
+      <td><code>/tmp/pr-&lt;N&gt;-...</code> で PR レビュー用 worktree を切る別目的スキル。本スキルとは用途が異なり、同時に動く場面はない。</td>
+    </tr>
+    <tr>
+      <td><code>managing-github-issues</code>（verify モード）</td>
+      <td>issue ベースのブランチ（<code>issue-&lt;N&gt;</code> 形式）作業時に併用される。本スキルの <code>&lt;prefix&gt;/&lt;slug&gt;</code> 形式とは別系統。</td>
+    </tr>
+    <tr>
+      <td><code>launching-battle-base-dev-servers</code> / <code>test-e2e</code></td>
+      <td>Phase 4 でアプリ起動・E2E テストを行うタスク（UI 変更・画面追加・E2E テスト追加）の時のみ呼び出す。CWD を <code>$WT</code> に向ける。</td>
+    </tr>
+    <tr>
+      <td><code>auto-ship</code></td>
+      <td>Phase 5 の代替として使用可能。内部で <code>grouping-commits</code> / <code>formatting-pr</code> / <code>fixing-review-findings</code> を Phase 1〜5 で順に呼び、PR 作成からマージまで自走する。「PR 作成後に手動レビューを挟みたい」かどうかで本スキルの通常フローと使い分ける。</td>
+    </tr>
+  </table>
+
+  <h3>実装着手前チェックリスト</h3>
+  <ul>
+    <li><code>$REPO</code> <code>$DEFAULT_BRANCH</code> <code>$WORKTREE_ROOT</code> <code>$HAS_GH</code> を取得した</li>
+    <li>Phase 1 の 4 項目を並列実行した</li>
+    <li>ブランチ名は命名規約（rules: always/naming/commit-branch）の prefix（<code>feature/</code> 等）に従った</li>
+    <li><code>git worktree add -b "$BRANCH" "$WT" "origin/$DEFAULT_BRANCH"</code> で <code>-b</code> を付けた（Phase 7 のみ <code>-b</code> なし）</li>
+    <li>PR 作成後、<code>git worktree remove</code> で worktree を畳んだ</li>
+    <li>メイン作業ツリーが <code>$DEFAULT_BRANCH</code> に戻っていることを確認した</li>
+  </ul>
+</section>
+
+<div id="zoom-overlay" class="zoom-overlay" hidden></div>
+<script>
+  (function () {
+    var overlay = document.getElementById('zoom-overlay');
+    if (!overlay) return;
+    document.querySelectorAll('figure.diagram svg').forEach(function (svg) {
+      svg.addEventListener('click', function () {
+        overlay.innerHTML = '';
+        overlay.appendChild(svg.cloneNode(true));
+        overlay.hidden = false;
+        document.body.style.overflow = 'hidden';
+      });
+    });
+    overlay.addEventListener('click', function () {
+      overlay.hidden = true;
+      overlay.innerHTML = '';
+      document.body.style.overflow = '';
+    });
+  })();
+</script>
+
+</body>
+</html>
