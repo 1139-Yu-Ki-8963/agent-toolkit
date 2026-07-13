@@ -172,6 +172,17 @@ count_const() {
 # 実在する状態変数が code_count に現れず構造的に検知できなくなる。
 count_state() {
   awk '
+    # 分割代入パターンの括弧深度を計算する（gsubは渡された局所変数sのみを書き換え、
+    # 呼び出し元のlineには影響しない）。開き"{"/"["と閉じ"}"/"]"の差分を返す。
+    function count_brace_depth(s,   o, c, t) {
+      t = s
+      o = gsub(/\{/, "{", t)
+      o += gsub(/\[/, "[", t)
+      t = s
+      c = gsub(/\}/, "}", t)
+      c += gsub(/\]/, "]", t)
+      return o - c
+    }
     function process(   hookmatch, hookname, inner, posb, posk, posmin, i, c, lastclose, n, tok, cnt, arr) {
       if (!match(buf, /=[ \t]*use[A-Za-z0-9_]*\(/)) { return }
       hookmatch = substr(buf, RSTART, RLENGTH)
@@ -228,18 +239,35 @@ count_state() {
           indestr = 1
           buf = line
           buflines = 1
+          destr_depth = count_brace_depth(line)
           if (match(buf, /=[ \t]*use[A-Za-z0-9_]*\(/)) {
             process()
-            indestr = 0; buf = ""; buflines = 0
+            indestr = 0; buf = ""; buflines = 0; destr_depth = 0
+          } else if (destr_depth <= 0) {
+            # 文の完結判定: 分割代入パターンが同一行内で閉じ、かつ代入先がフック
+            # 呼出しでないと確定した（=単一行の非フック分割代入）。後続の無関係な
+            # 行のフック呼出しに誤って巻き込まれないよう直ちにバッファを破棄する。
+            indestr = 0; buf = ""; buflines = 0; destr_depth = 0
           }
         }
         next
       } else {
         buf = buf "\n" line
         buflines++
-        if (match(line, /=[ \t]*use[A-Za-z0-9_]*\(/) || buflines > 40) {
+        destr_depth += count_brace_depth(line)
+        if (match(line, /=[ \t]*use[A-Za-z0-9_]*\(/)) {
           process()
-          indestr = 0; buf = ""; buflines = 0
+          indestr = 0; buf = ""; buflines = 0; destr_depth = 0
+        } else if (destr_depth <= 0) {
+          # 文の完結判定: 分割代入パターンの閉じ括弧まで到達済み（深度0以下）で、
+          # かつ代入先がフック呼出しでないと確定した時点で、後続の無関係な行の
+          # フック呼出しに誤って巻き込まれないよう直ちにバッファを破棄する
+          # （旧実装は次にuse...(を含む行が現れるまで無条件に連結し続け、
+          # 無関係な後続statementのフック呼出しを誤って合算していた）。
+          indestr = 0; buf = ""; buflines = 0; destr_depth = 0
+        } else if (buflines > 40) {
+          process()
+          indestr = 0; buf = ""; buflines = 0; destr_depth = 0
         }
         next
       }
@@ -811,6 +839,62 @@ EOF
     echo "  [PASS] 追加陽性: フック単純代入がジェネリック型注釈行に続いても独立して検知（合算2件）"
   else
     echo "  [FAIL] 追加陽性: フック単純代入が独立して検知できない（実測=${simple_hook_count} 期待=2）" >&2
+    rc=1
+  fi
+
+  # 回帰確認: 分割代入バッファリングの文の完結判定。複数行に折り返した非フックの
+  # 分割代入（`const { a, b } = someRegularObject;`）は、閉じ括弧到達時点で
+  # フックでないと確定した時点で直ちにバッファを破棄しなければならない。旧実装は
+  # 次に use...( を含む行が現れるまで無条件にバッファを連結し続け、無関係な後続
+  # statement（`const location = useLocation()`）のフック呼出しを誤って合算していた
+  # （期待1件のところ実測2件になる構造的欠陥）。
+  nonhook_destructure_file="$tmp/nonhook-destructure.txt"
+  cat > "$nonhook_destructure_file" <<'EOF'
+const {
+  a,
+  b
+} = someRegularObject;
+
+const location = useLocation()
+EOF
+  nonhook_destructure_count="$(count_state "$nonhook_destructure_file")"
+  if [ "$nonhook_destructure_count" = "1" ]; then
+    echo "  [PASS] 回帰確認: 非フック分割代入の文の完結判定で後続フック呼出しとの誤合算を防止（1件）"
+  else
+    echo "  [FAIL] 回帰確認: 非フック分割代入が後続フック呼出しと誤って合算されている（実測=${nonhook_destructure_count} 期待=1）" >&2
+    rc=1
+  fi
+
+  # 回帰確認: 単一行で完結する非フック分割代入（`const { a, b } = someRegularObject;`単独行）
+  # も同様に、同一行内で深度0に到達した時点で直ちにバッファを破棄する。
+  single_line_nonhook_file="$tmp/single-line-nonhook-destructure.txt"
+  cat > "$single_line_nonhook_file" <<'EOF'
+const { a, b } = someRegularObject;
+const location = useLocation()
+EOF
+  single_line_nonhook_count="$(count_state "$single_line_nonhook_file")"
+  if [ "$single_line_nonhook_count" = "1" ]; then
+    echo "  [PASS] 回帰確認: 単一行の非フック分割代入でも後続フック呼出しとの誤合算を防止（1件）"
+  else
+    echo "  [FAIL] 回帰確認: 単一行の非フック分割代入が後続フック呼出しと誤って合算されている（実測=${single_line_nonhook_count} 期待=1）" >&2
+    rc=1
+  fi
+
+  # 回帰確認: 分割代入パターン内部にデフォルト値の"="が含まれても（例 `a = 1,`）、
+  # 括弧深度がまだ閉じていない（>0）間は文の完結と誤判定せず、正規のフック
+  # 呼出し（useFoo()）まで正しくバッファを継続できる。
+  default_value_destructure_file="$tmp/default-value-destructure.txt"
+  cat > "$default_value_destructure_file" <<'EOF'
+const {
+  a = 1,
+  b
+} = useFoo();
+EOF
+  default_value_destructure_count="$(count_state "$default_value_destructure_file")"
+  if [ "$default_value_destructure_count" = "2" ]; then
+    echo "  [PASS] 回帰確認: パターン内部のデフォルト値=を文の完結と誤判定せずフック分割代入を検知（2件）"
+  else
+    echo "  [FAIL] 回帰確認: パターン内部のデフォルト値=でフック分割代入の検知が壊れている（実測=${default_value_destructure_count} 期待=2）" >&2
     rc=1
   fi
 

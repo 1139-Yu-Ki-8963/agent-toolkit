@@ -33,9 +33,12 @@
 set -euo pipefail
 
 # --- --self-test モード ---
-# 検査g（§15.2テーブル型名抽出）・検査i（§16未解消チェック）の回帰保護。
-# 既存検査a〜fは対象外（今回無変更のため）。最小構成の画面詳細設計書.mdフィクスチャを
-# mktemp -d 配下に生成し、"$0" <dir> を呼び出して出力・終了コードを検証する。
+# 検査g（§15.2テーブル型名抽出）・検査i（§16未解消チェック）・検査q（本文相対パス
+# 参照の到達性・違反）・検査i-3（本文実測委譲件数と§16計上の突合・違反）・検査m
+# （テスト仕様書空殻検出・違反への昇格）・検査m-2（操作シナリオ仕様書fenced内実測
+# 委譲検出・違反）の回帰保護。既存検査a〜fは対象外（今回無変更のため）。最小構成の
+# 画面詳細設計書.mdフィクスチャを mktemp -d 配下に生成し、"$0" <dir> を呼び出して
+# 出力・終了コードを検証する。
 self_test() {
   local script_path="$0"
   local tmp fail=0
@@ -226,6 +229,322 @@ MDEOF
     echo "[PASS] 検査f陽性: 実体形状列追加による配置ディレクトリ列の位置ずれでも未記入行を正しく検出する"
   else
     echo "[FAIL] 検査f陽性: 実体形状列追加時に配置ディレクトリ未記入行を検出できません（列固定の回帰の疑い、exit=${rc_e}）"
+    fail=1
+  fi
+
+  # --- 検査q（本文相対パス参照の到達性）・検査i-3（実測委譲件数と§16計上の突合）用フィクスチャ ---
+  # フィクスチャ f: 本文に到達不能な相対パス参照 + 実測委譲記載（§16はmp-無し） → 検査q・検査i-3ともに違反
+  mkdir -p "$tmp/f"
+  cat > "$tmp/f/画面詳細設計書.md" <<'MDEOF'
+---
+unit_test_sheet: ./none.md
+integration_test_sheet: ./none.md
+---
+
+## 章マップ
+
+| 役割キー | § |
+|---|---|
+| 機能一覧 | §2 |
+| 実装契約 | §15 |
+| 要確認事項 | §16 |
+
+## §2 機能一覧
+
+| キー | 内容 |
+|---|---|
+| foo-view | 表示 |
+
+詳細は [欠落資料](./missing-note.md) を参照。実測委譲（画面単位検証で確定）とする。
+
+## §15 実装契約
+
+### 15.1 ファイル分割と export 一覧
+
+| ファイルパス | export 名 | 種別 | 配置ディレクトリ |
+|---|---|---|---|
+| components/Foo.tsx | Foo | コンポーネント | components/ |
+
+### 15.2 型定義
+
+| 型名 | フィールド名 | 型 | 必須/任意 |
+|---|---|---|---|
+| `FooValues` | `name` | `string` | 必須 |
+
+### 15.3 依存（import）一覧
+
+| モジュール | import 内容 | 種別 |
+|---|---|---|
+| `./Foo` | `Foo` | 内部 |
+
+## §16 要確認事項一覧
+
+| キー | 起票日 | 内容 | 暫定扱いにしている § | 解消条件 | 状態 |
+|---|---|---|---|---|---|
+| foo-issue | `2026-01-01` | 何らかの確認事項 | §15 | 実装完了 | 解消済み |
+MDEOF
+
+  # フィクスチャ g: フィクスチャfと同内容だが、参照先ファイルが実在し §16 にmp-行も
+  # 存在する → 検査q・検査i-3ともに違反なし
+  mkdir -p "$tmp/g"
+  cat > "$tmp/g/note.md" <<'EOF'
+存在するファイル
+EOF
+  cat > "$tmp/g/画面詳細設計書.md" <<'MDEOF'
+---
+unit_test_sheet: ./none.md
+integration_test_sheet: ./none.md
+---
+
+## 章マップ
+
+| 役割キー | § |
+|---|---|
+| 機能一覧 | §2 |
+| 実装契約 | §15 |
+| 要確認事項 | §16 |
+
+## §2 機能一覧
+
+| キー | 内容 |
+|---|---|
+| foo-view | 表示 |
+
+詳細は [存在資料](./note.md) を参照。実測委譲（画面単位検証で確定）とする。
+
+## §15 実装契約
+
+### 15.1 ファイル分割と export 一覧
+
+| ファイルパス | export 名 | 種別 | 配置ディレクトリ |
+|---|---|---|---|
+| components/Foo.tsx | Foo | コンポーネント | components/ |
+
+### 15.2 型定義
+
+| 型名 | フィールド名 | 型 | 必須/任意 |
+|---|---|---|---|
+| `FooValues` | `name` | `string` | 必須 |
+
+### 15.3 依存（import）一覧
+
+| モジュール | import 内容 | 種別 |
+|---|---|---|
+| `./Foo` | `Foo` | 内部 |
+
+## §16 要確認事項一覧
+
+| キー | 起票日 | 内容 | 暫定扱いにしている § | 解消条件 | 状態 |
+|---|---|---|---|---|---|
+| mp-foo | `2026-01-01` | 画面単位検証での確定待ち事項 | §15 | 実測確定 | 解消済み |
+MDEOF
+
+  # --- 検査m（テスト仕様書の空殻検出・違反）・検査m-2（fenced内実測委譲・違反）用フィクスチャ ---
+  # フィクスチャ h: unit_test_spec が空殻 + operation_test_spec のfenced内に実測委譲 → 検査m・m-2ともに違反
+  mkdir -p "$tmp/h"
+  cat > "$tmp/h/unit-test-spec.md" <<'EOF'
+---
+status: implemented
+---
+
+## テストケース一覧
+
+| キー | ケース |
+|---|---|
+EOF
+  cat > "$tmp/h/optest.md" <<'EOF'
+---
+status: implemented
+---
+
+## シナリオ一覧表
+
+| 名前 | キー |
+|---|---|
+| シナリオA | scenario-a |
+
+## サンプルコード
+
+```ts
+// 実測委譲（画面単位検証で確定）
+const value = 1;
+```
+EOF
+  cat > "$tmp/h/画面詳細設計書.md" <<'MDEOF'
+---
+unit_test_sheet: ./none.md
+integration_test_sheet: ./none.md
+unit_test_spec: ./unit-test-spec.md
+operation_test_spec: ./optest.md
+---
+
+## 章マップ
+
+| 役割キー | § |
+|---|---|
+| 機能一覧 | §2 |
+| 実装契約 | §15 |
+| 要確認事項 | §16 |
+
+## §2 機能一覧
+
+| キー | 内容 |
+|---|---|
+| foo-view | 表示 |
+
+## §15 実装契約
+
+### 15.1 ファイル分割と export 一覧
+
+| ファイルパス | export 名 | 種別 | 配置ディレクトリ |
+|---|---|---|---|
+| components/Foo.tsx | Foo | コンポーネント | components/ |
+
+### 15.2 型定義
+
+| 型名 | フィールド名 | 型 | 必須/任意 |
+|---|---|---|---|
+| `FooValues` | `name` | `string` | 必須 |
+
+### 15.3 依存（import）一覧
+
+| モジュール | import 内容 | 種別 |
+|---|---|---|
+| `./Foo` | `Foo` | 内部 |
+
+## §16 要確認事項一覧
+
+| キー | 起票日 | 内容 | 暫定扱いにしている § | 解消条件 | 状態 |
+|---|---|---|---|---|---|
+| foo-issue | `2026-01-01` | 何らかの確認事項 | §15 | 実装完了 | 解消済み |
+MDEOF
+
+  # フィクスチャ i: unit_test_spec に実データ行あり + operation_test_spec のfenced内に
+  # 実測委譲なし → 検査m・m-2ともに違反なし
+  mkdir -p "$tmp/i"
+  cat > "$tmp/i/unit-test-spec.md" <<'EOF'
+---
+status: implemented
+---
+
+## テストケース一覧
+
+| キー | ケース |
+|---|---|
+| case-1 | 何らかのケース |
+EOF
+  cat > "$tmp/i/optest.md" <<'EOF'
+---
+status: implemented
+---
+
+## シナリオ一覧表
+
+| 名前 | キー |
+|---|---|
+| シナリオA | scenario-a |
+
+## サンプルコード
+
+```ts
+const value = 1;
+```
+EOF
+  cat > "$tmp/i/画面詳細設計書.md" <<'MDEOF'
+---
+unit_test_sheet: ./none.md
+integration_test_sheet: ./none.md
+unit_test_spec: ./unit-test-spec.md
+operation_test_spec: ./optest.md
+---
+
+## 章マップ
+
+| 役割キー | § |
+|---|---|
+| 機能一覧 | §2 |
+| 実装契約 | §15 |
+| 要確認事項 | §16 |
+
+## §2 機能一覧
+
+| キー | 内容 |
+|---|---|
+| foo-view | 表示 |
+
+## §15 実装契約
+
+### 15.1 ファイル分割と export 一覧
+
+| ファイルパス | export 名 | 種別 | 配置ディレクトリ |
+|---|---|---|---|
+| components/Foo.tsx | Foo | コンポーネント | components/ |
+
+### 15.2 型定義
+
+| 型名 | フィールド名 | 型 | 必須/任意 |
+|---|---|---|---|
+| `FooValues` | `name` | `string` | 必須 |
+
+### 15.3 依存（import）一覧
+
+| モジュール | import 内容 | 種別 |
+|---|---|---|
+| `./Foo` | `Foo` | 内部 |
+
+## §16 要確認事項一覧
+
+| キー | 起票日 | 内容 | 暫定扱いにしている § | 解消条件 | 状態 |
+|---|---|---|---|---|---|
+| foo-issue | `2026-01-01` | 何らかの確認事項 | §15 | 実装完了 | 解消済み |
+MDEOF
+
+  # ケース8: 検査q陽性（本文の到達不能な相対パス参照を違反として検出する）
+  if out_f="$(bash "$script_path" "$tmp/f" 2>&1)"; then rc_f=0; else rc_f=$?; fi
+  if [ "$rc_f" -eq 1 ] && printf '%s' "$out_f" | grep -qF "missing-note.md"; then
+    echo "[PASS] 検査q陽性: 本文の到達不能な相対パス参照を違反として検出する"
+  else
+    echo "[FAIL] 検査q陽性: 本文の到達不能な相対パス参照を検出できません（exit=${rc_f}）"
+    fail=1
+  fi
+
+  # ケース9: 検査i-3陽性（本文に実測委譲の記載があるのに§16のmp-計上が0件なら違反）
+  if printf '%s' "$out_f" | grep -q "本文に実測委譲の記載が 1 件あるのに §16 の実測系計上（mp-接頭辞）が 0 件です"; then
+    echo "[PASS] 検査i-3陽性: 本文の実測委譲件数と§16計上の不一致を違反として検出する"
+  else
+    echo "[FAIL] 検査i-3陽性: 本文の実測委譲件数と§16計上の不一致を検出できません（exit=${rc_f}）"
+    fail=1
+  fi
+
+  # ケース10: 検査q・検査i-3陰性（参照先実在・mp-行実在なら違反なし）
+  if out_g="$(bash "$script_path" "$tmp/g" 2>&1)"; then rc_g=0; else rc_g=$?; fi
+  if [ "$rc_g" -eq 0 ] \
+     && printf '%s' "$out_g" | grep -q "本文の相対パス参照はすべて到達可能です" \
+     && printf '%s' "$out_g" | grep -q "本文の実測委譲件数と§16の実測系計上に矛盾なし"; then
+    echo "[PASS] 検査q・検査i-3陰性: 参照先実在・mp-行実在では違反が発生しない"
+  else
+    echo "[FAIL] 検査q・検査i-3陰性: 参照先実在・mp-行実在でも違反が発生しています（exit=${rc_g}）"
+    fail=1
+  fi
+
+  # ケース11: 検査m・検査m-2陽性（空殻テスト仕様書・fenced内実測委譲をともに違反として検出する）
+  if out_h="$(bash "$script_path" "$tmp/h" 2>&1)"; then rc_h=0; else rc_h=$?; fi
+  if [ "$rc_h" -eq 1 ] \
+     && printf '%s' "$out_h" | grep -q "違反: 単体テスト仕様書 が空殻です" \
+     && printf '%s' "$out_h" | grep -q "違反: 操作シナリオ仕様書のfenced code block内に実測委譲の記載が見つかりました"; then
+    echo "[PASS] 検査m・検査m-2陽性: 空殻テスト仕様書とfenced内実測委譲をともに違反として検出する"
+  else
+    echo "[FAIL] 検査m・検査m-2陽性: 空殻テスト仕様書またはfenced内実測委譲を検出できません（exit=${rc_h}）"
+    fail=1
+  fi
+
+  # ケース12: 検査m・検査m-2陰性（実データ行あり・fenced内実測委譲なしでは違反なし）
+  if out_i="$(bash "$script_path" "$tmp/i" 2>&1)"; then rc_i=0; else rc_i=$?; fi
+  if [ "$rc_i" -eq 0 ] \
+     && printf '%s' "$out_i" | grep -q "操作シナリオ仕様書のfenced code block内に実測委譲の記載なし"; then
+    echo "[PASS] 検査m・検査m-2陰性: 実データ行あり・fenced内実測委譲なしでは違反が発生しない"
+  else
+    echo "[FAIL] 検査m・検査m-2陰性: 実データ行あり・fenced内実測委譲なしでも違反が発生しています（exit=${rc_i}）"
     fail=1
   fi
 
@@ -1047,6 +1366,19 @@ else
   echo "  章マップに役割キー '要確認事項' の行が見つからないため検査i-2をスキップします"
 fi
 
+# --- (i-3) 本文の実測委譲件数と§16の実測系計上行数（mp-接頭辞）の突合（0計上=違反） ---
+echo ""
+echo "[検査 i-3] 本文の実測委譲件数と§16の実測系計上行数（mp-接頭辞）の突合（違反・本文に記載があるのに§16の計上が0件なら違反）"
+
+BODY_DEFER_COUNT="$(grep -cF '実測委譲（画面単位検証で確定）' "$DESIGN_DOC" || true)"
+echo "  本文の実測委譲（画面単位検証で確定）記載件数: ${BODY_DEFER_COUNT}"
+if [ "$BODY_DEFER_COUNT" -gt 0 ] && [ "${MP_COUNT:-0}" -eq 0 ]; then
+  echo "  違反: 本文に実測委譲の記載が ${BODY_DEFER_COUNT} 件あるのに §16 の実測系計上（mp-接頭辞）が 0 件です" >&2
+  VIOLATIONS=$((VIOLATIONS + 1))
+else
+  echo "  本文の実測委譲件数と§16の実測系計上に矛盾なし（本文0件、または§16に計上あり）"
+fi
+
 # --- (j) DESIGN.md の未記入プレースホルダ検出（実測値の抽出元欄等の省略。design_md 未設定なら対象外） ---
 echo ""
 echo "[検査 j] DESIGN.md の未記入プレースホルダ検出（実測値の抽出元欄等の省略。design_md 未設定なら対象外）"
@@ -1099,9 +1431,9 @@ else
   echo "  「該当なし」はすべて根拠を伴っています（該当箇所なしを含む）"
 fi
 
-# --- (m) テスト仕様書の空殻検出・draft据え置き検出・観点網羅チェック（WARN） ---
+# --- (m) テスト仕様書の空殻検出（違反）・draft据え置き検出・観点網羅チェック（WARN） ---
 echo ""
-echo "[検査 m] テスト仕様書の空殻検出・draft据え置き検出・観点網羅チェック（WARN）"
+echo "[検査 m] テスト仕様書の空殻検出（違反）・draft据え置き検出（WARN）・観点網羅チェック（WARN）"
 
 check_spec_shell() {
   local spec="$1" label="$2" heading="$3"
@@ -1112,8 +1444,8 @@ check_spec_shell() {
   body="$(extract_heading_body "$spec" "$heading")"
   rows="$(extract_table_column "$body" 1 | grep -vE '^<.*>$|^`<.*>`$' | grep -c . || true)"
   if [ "$rows" -eq 0 ]; then
-    echo "  WARN: ${label} が空殻です（プレースホルダのみで実データがありません）: $spec" >&2
-    WARNINGS=$((WARNINGS + 1))
+    echo "  違反: ${label} が空殻です（プレースホルダのみで実データがありません）: $spec" >&2
+    VIOLATIONS=$((VIOLATIONS + 1))
   elif [ "$status" = "draft" ]; then
     echo "  WARN: ${label} は実データ記入済みですが status が draft のままです（テストコード実装後に implemented へ更新すること）: $spec" >&2
     WARNINGS=$((WARNINGS + 1))
@@ -1123,6 +1455,33 @@ check_spec_shell() {
 check_spec_shell "$UNIT_SPEC" "単体テスト仕様書" '^## テストケース一覧'
 check_spec_shell "$INTEG_SPEC" "結合テスト仕様書" '^## テストケース一覧'
 check_spec_shell "$OPTEST_SPEC" "操作シナリオ仕様書" '^## シナリオ一覧表'
+
+# --- (m-2) 操作シナリオ仕様書のfenced code block内の実測委譲検出（違反） ---
+echo ""
+echo "[検査 m-2] 操作シナリオ仕様書のfenced code block内の実測委譲検出（違反・実行可能なはずのシナリオコードに未確定の実測委譲プレースホルダが混入していないか）"
+
+scan_fenced_only_defer() {
+  local file="$1"
+  awk '
+    /^```/ { in_fence=!in_fence; next }
+    in_fence && /実測委譲/ { print NR": "$0 }
+  ' "$file"
+}
+
+if [ -z "$OPTEST_SPEC_REL" ]; then
+  echo "  operation_test_spec が未設定のため検査 m-2 をスキップします（L5 は任意機能）"
+elif [ ! -f "$OPTEST_SPEC" ]; then
+  echo "  操作シナリオ仕様書が見つからないため検査 m-2 をスキップします（検査 p で到達性を報告済み）"
+else
+  FENCED_DEFER_LINES="$(scan_fenced_only_defer "$OPTEST_SPEC")"
+  if [ -n "$(printf '%s' "$FENCED_DEFER_LINES" | tr -d '[:space:]')" ]; then
+    echo "  違反: 操作シナリオ仕様書のfenced code block内に実測委譲の記載が見つかりました（実行可能コードへの未確定プレースホルダ混入）:" >&2
+    printf '%s\n' "$FENCED_DEFER_LINES" | grep . >&2
+    VIOLATIONS=$((VIOLATIONS + 1))
+  else
+    echo "  操作シナリオ仕様書のfenced code block内に実測委譲の記載なし"
+  fi
+fi
 
 check_sheet_spec_coverage() {
   local sheet="$1" spec="$2" label="$3" heading="$4"
@@ -1271,6 +1630,51 @@ if [ -n "$(printf '%s' "$UNREACHABLE_REFS" | tr -d '[:space:]')" ]; then
   WARNINGS=$((WARNINGS + 1))
 else
   echo "  frontmatter の相対パス参照はすべて到達可能です（未設定キーはスキップ）"
+fi
+
+# --- (q) 本文相対パス参照の到達性チェック（違反） ---
+echo ""
+echo "[検査 q] 本文相対パス参照の到達性チェック（違反・Markdownリンク先／スラッシュと拡張子を含むバッククォート内トークンを設計書ディレクトリ起点で解決し、不在なら違反）"
+
+# frontmatter・fenced code block を除いた本文のみを対象にする。
+extract_body_no_fence() {
+  local file="$1"
+  awk '
+    /^---$/ { c++; next }
+    c<2 { next }
+    /^```/ { in_fence=!in_fence; next }
+    in_fence { next }
+    { print }
+  ' "$file"
+}
+
+BODY_NO_FENCE="$(extract_body_no_fence "$DESIGN_DOC")"
+
+# 抽出対象: Markdownリンク `](path)` と、スラッシュ＋拡張子を含むバッククォート内トークン。
+# 外部URL・アンカーのみの参照・プレースホルダは対象外とする（狭い抽出範囲に留め誤検出を避ける）。
+BODY_PATH_REFS_RAW="$(printf '%s\n' "$BODY_NO_FENCE" | grep -oE '\]\([^)]+\)' | sed -E 's/^\]\(//; s/\)$//' || true
+printf '%s\n' "$BODY_NO_FENCE" | grep -oE '`[^`]*/[^`]*\.[A-Za-z0-9]+`' | sed -E 's/^`//; s/`$//' || true)"
+
+BODY_PATH_REFS="$(printf '%s\n' "$BODY_PATH_REFS_RAW" | sed -E 's/#.*$//' | grep -v '^https\?://' | grep -vE '^<.*>$' | grep -F '/' | grep . | sort -u || true)"
+
+UNREACHABLE_BODY_REFS=""
+if [ -n "$BODY_PATH_REFS" ]; then
+  while IFS= read -r ref; do
+    [ -z "$ref" ] && continue
+    abs="$(resolve_rel_path "$DESIGN_DIR" "$ref" || true)"
+    if [ -z "$abs" ] || [ ! -f "$abs" ]; then
+      UNREACHABLE_BODY_REFS="${UNREACHABLE_BODY_REFS}${ref}
+"
+    fi
+  done <<< "$BODY_PATH_REFS"
+fi
+
+if [ -n "$(printf '%s' "$UNREACHABLE_BODY_REFS" | tr -d '[:space:]')" ]; then
+  echo "  違反: 本文の相対パス参照が到達不能です（解決後パスにファイルが存在しません）:" >&2
+  printf '%s\n' "$UNREACHABLE_BODY_REFS" | grep . | sort -u | sed 's/^/    - /' >&2
+  VIOLATIONS=$((VIOLATIONS + 1))
+else
+  echo "  本文の相対パス参照はすべて到達可能です（参照 0 件を含む）"
 fi
 
 # --- 結果集計 ---

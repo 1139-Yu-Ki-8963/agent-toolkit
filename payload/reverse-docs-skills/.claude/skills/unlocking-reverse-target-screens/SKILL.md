@@ -172,12 +172,15 @@ Phase 1で列挙した画面要求値とPhase 3で実装したモックデータ
 - 健全性確認は自分が起動したサーバー上でのみ行う。稼働中の他エージェントの環境には触れない
 - 合格判定は自然文の自己申告でなく、決定的コマンド出力（`git tag -l` 等）で行う
 - 責務は「基準タグ確立まで」。往復検証（設計書との突合精度）自体は本スキルの対象外（それは `rebuilding-code-from-docs` の責務）
+- Playwright を実行する node スクリプトは全体タイムアウト（既定120秒）と `finally { await context.close(); await browser.close(); }` を必須とする（ブラウザプロセスの残留・ポート占有を防ぐ）
 
 ## 並列実行時の運用規約
 
 複数の実行者が同時に本スキルを走らせる場合、各実行者は `manifest.<system>.repo_and_launch.work_repo_path` から画面専用の**作業コピー**（git worktree。命名規則 `unlock-work-<system>-<screen_id>`）を用意し、その上でdevサーバーを起動する。作業コピーは専用ブランチ（`unlock/<system>-<screen_id>`）と専用ポート（起動引数 `ports` を画面ごとに変える）で他の実行者と分離する。
 
 画面レジストリへの記帳（Phase 5）のみを直列化する。記帳の直前に `<screen_registry_path>.lock` のmkdir原子ロックを取得してから記帳し、完了後に解放する（`syncing-reverse-env` の `.reverse-slot-lock.d` と同方式）。開通作業自体（前提ゲート〜Phase 4）は並列実行のままでよく、直列化の対象はレジストリ記帳のみである。
+
+**開通競合検知時の対応**: 前提ゲート着手前に、対象画面の作業コピー（`unlock-work-<system>-<screen_id>`）またはブランチ（`unlock/<system>-<screen_id>`）が既に他プロセスによって使用中（生存する devサーバープロセス・未解放ロック等）であると判明した場合、同一画面が複数レーンに重複割当されたと判断し、`status=CONFLICT-SKIPPED` として即座に処理を終了する。この場合、他プロセスの作業コピー・devサーバー・ポート等の環境には一切触れない。呼び出し元は当該画面を競合スキップとして実行レポートに記録し、失敗（failed）とは別区分で扱い失敗回数にカウントしない。
 
 ## 完了報告
 
