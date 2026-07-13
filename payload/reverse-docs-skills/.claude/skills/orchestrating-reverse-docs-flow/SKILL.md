@@ -62,7 +62,9 @@ AskUserQuestion ツールで以下の 4 項目を確定する:
 | 画面スコープ | 全画面 / 指定画面リスト / N画面制限 / 複雑度層別サンプル | 全画面 |
 | 個別スキル利用 | フル実行 / 自由記述（特定スキル名） | フル実行 |
 
-「複雑度層別サンプル」選択時は、`<docs_root>/一覧/画面一覧/複雑度プロファイル.json`（generating-screen-list-for-reverse-docs の任意Phase 5が生成）から複雑度層（例: 低・中・高）ごとに代表画面を抽出する。プロファイル未生成時は先に一覧生成スキルの `--profile` サブコマンドを起動してから抽出する。
+「複雑度層別サンプル」選択時は、`<docs_root>/一覧/画面一覧/複雑度プロファイル.json`（generating-screen-list-for-reverse-docs の任意Phase 5が生成）から複雑度層（S・M・L・XL。4層未満の実測件数ではALLに縮退）ごとに代表画面を抽出する。プロファイル未生成時は先に一覧生成スキルの `--profile` サブコマンドを起動してから抽出する。
+
+screen_ids への変換規則: 複雑度プロファイル.json の `layers[*].sampledScreenKeys`（層ごとの代表画面キー配列。ALL縮退時は `layers.ALL.sampledScreenKeys`）の和集合を screen_ids とする。
 
 **完了**: 4 項目すべてが確定済み。
 
