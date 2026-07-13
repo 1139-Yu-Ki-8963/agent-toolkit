@@ -48,9 +48,10 @@
 
 ### unlocking-reverse-target-screens
 
-- status: `BASELINE-ESTABLISHED | UNLOCKED | BLOCKED | ERROR`
+- status: `BASELINE-ESTABLISHED | UNLOCKED | BLOCKED | ERROR | CONFLICT-SKIPPED`
 - `BASELINE-ESTABLISHED`（終端成功）: 開通〜画面レジストリ記帳〜`syncing-reverse-env(mode=registry)`起動〜基準タグ確立まで完走し、決定的コマンド出力（`git tag -l "reverse-baseline/<scope>"`等）で確認済み
 - `UNLOCKED`（中間・部分完了）: 画面開通は完了したが `syncing-reverse-env(mode=registry)` がPASS以外で基準タグ未確立
+- `CONFLICT-SKIPPED`（開通競合検知）: 対象画面の作業コピー・devサーバー等が既に他プロセスによって使用中と判明し、他プロセスの環境に触れず即座に処理を終了した状態。呼び出し元はこれを競合スキップとして扱い、failed とは別区分で失敗回数にカウントしない
 - 拡張: source_ref（開通確認時点のコミットハッシュ等、追跡に使う参照）、verification_url（モックAPI経由で画面が表示確認できるURL。未実施なら「未実施」）、design_doc_path（今後の設計書の想定配置パス）、baseline_tag（`BASELINE-ESTABLISHED`時のみ確定。`syncing-reverse-env`返却の`baseline_tag`をそのまま転記）
 
 ### extracting-unit-facts-from-code（ユニット事実抽出）
@@ -90,10 +91,10 @@
 ### running-reverse-screen-batch（画面単位バッチ実行）
 
 - status: `BATCH-COMPLETE | BATCH-IN-PROGRESS | BATCH-ABORTED`
-- `BATCH-COMPLETE`: 全画面の処理が完了（成功件数 + failed リスト退避件数の合計が対象総数に一致）
+- `BATCH-COMPLETE`: 全画面の処理が完了（成功件数 + failed リスト退避件数 + conflict-skip リスト退避件数の合計が対象総数に一致）
 - `BATCH-IN-PROGRESS`: バックグラウンドループが処理中（PID 生存中）
 - `BATCH-ABORTED`: 異常終了（PID 消失かつ残件あり）
-- 拡張: failed_screens（failed リストへ退避した画面ID一覧）、remaining_count（未検証残数）、log_path（実行ログの絶対パス）
+- 拡張: failed_screens（failed リストへ退避した画面ID一覧）、conflict_skip_screens（開通競合検知により競合スキップとして退避した画面ID一覧。failed_screens とは別区分で失敗回数にカウントしない）、remaining_count（未検証残数）、log_path（実行ログの絶対パス）
 - 返却ブロック共通サブセット（status/scope/artifacts/hint）に準拠する。scope は起動対象画面群を代表する `<system>-batch` を用いる
 
 ## args 仕様
@@ -113,7 +114,7 @@
 - rebuilding-screen-unit-from-docs: screen_dir, target_file_path, docs_root, template_root, audit_script_path, scaffold_script_path（管理者が shared/scripts/scaffold-screen.sh を解決して渡す。audit_script_path と同型）, chapter_map_path, env_block, user-approved
 - rebuilding-code-from-docs (mode=implement): screen_dir, scope, reverse_worktree, ports, baseline_tag_status, docs_root, template_root, audit_script_path, chapter_map_path, user-approved, saved_test_paths（上流 rebuilding-screen-unit-from-docs が保存した単体テストコードのパス一覧。管理者が転送する。上流未実施の画面では省略可）
 - rebuilding-code-from-docs (mode=judge): screen_dir, compare_result, reverse_worktree, freeze_commit（Phase 8 の compare_request から管理者が保持して転送する。scripts/check-freeze.sh の入力に使う）
-- running-reverse-screen-batch: target_repo_path, docs_root, screen_ids, template_root, common_docs_root, survey_doc_path, model（任意、既定 `claude-sonnet-5`）, wait_seconds（任意、既定 3600）, fail_limit_k（任意、既定 3）, log_path（任意、既定 `docs_root/batch-log.txt`）
+- running-reverse-screen-batch: target_repo_path, docs_root, screen_ids, template_root, common_docs_root, survey_doc_path, model（任意、既定 `claude-sonnet-5`）, wait_seconds（任意、既定 3600）, fail_limit_k（任意、既定 3）, log_path（任意、既定 `<verification_dir>/バッチ運転記録/batch-log.txt`）
 
 注記: user-approved（白紙化承認）と docs_root は管理者が事前に解決して args で渡す（完全仲介方式のため子スキルはユーザーに直接聞かない）。
 
@@ -152,15 +153,31 @@ headless_approved_ops: [白紙化, 再実装, タグ更新, 環境撤去]
 
 無人モードの実行結果は `<verification_dir>/screen-<画面ID>/<timestamp>/実行レポート.md` に保存する。
 
+### 運転記録の標準配置
+
+running-reverse-screen-batch の実行ログ（`log_path`）・failed リストの既定配置は `<verification_dir>/バッチ運転記録/` 配下とする（既定: `<verification_dir>/バッチ運転記録/batch-log.txt`。複数レーン運用時は `<verification_dir>/バッチ運転記録/batch-log-<lane_id>.txt` / `<verification_dir>/バッチ運転記録/failed-screens-<lane_id>.txt`）。運転記録は検証記録の一種であり docs_root 配下（納品物）には置かない。
+
 ### 進捗可視化
 
 無人モード（headless=true）では工程の開始・完了のたびに `<verification_dir>/progress.jsonl` へ JSON 行を追記する（形式: `{"ts":"<ISO8601>","screen_id":"<画面ID>","phase":"<工程名>","status":"started|completed|failed"}`）。呼び出し元セッションや人間はこのファイルの監視で現在工程を把握できる。
+
+### 開通競合検知時の対応
+
+複数レーン・複数実行者が同一プロジェクトの画面群を並行処理する場合、他プロセスが同一画面の作業コピー・devサーバー・画面レジストリ等の共有資産を既に操作中であると検知することがある（開通競合）。開通競合を検知した場合は当該画面を**競合スキップ**として実行レポートに記録し、他プロセスの環境には一切触れず次の画面へ処理を続行する。競合スキップは失敗（failed）とは別区分とし、失敗回数にはカウントしない。
 
 ### 前提事実
 
 - ヘッドレス実行では AskUserQuestion は許可指定してもモデルに提示されない（実測）
 - TaskCreate と Skill はヘッドレス実行でも利用可能（実測）
 - Agent(run_in_background: true) は headless 実行では `CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS`（既定 600 秒）でバックグラウンドプロセスが切断される（実測）。headless 時の並列起動は Skill ツールによる逐次実行に切り替える
+- **無人モードでは、いかなる工程・用途でも Agent ツールのバックグラウンド起動を使用してはならない。サブエージェントは必ず同期（フォアグラウンド）起動とする**（`CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS` による切断を待つのではなく、そもそもバックグラウンド起動自体を行わない）
+
+## 共有資産の排他
+
+複数レーン・複数実行者が同一プロジェクトを並行処理する場合、以下の2種の共有資産への書き込みを排他制御する。具体コマンドは全子スキル・呼び出し元で共通のこの仕様に従う。
+
+- **ファイル排他（画面レジストリ・一覧配下・progress.jsonl）**: `flock -w 60 <ロックファイル> -c '<書き込みコマンド>'` で排他する（最大60秒待機。タイムアウトした場合は取得失敗としてリトライ、または該当画面を競合スキップとして扱う）
+- **worktree 排他（`git worktree add`/`remove`）**: 同一リポジトリへの worktree 操作は `flock -w 120 <リポジトリルート>/.reverse-worktree-ops.lock -c '<git worktree add/remove コマンド>'` で直列化する（最大120秒待機。worktree の作成・削除はファイル排他より時間を要するため待機上限を長く取る）
 
 ## 状態判定表
 
@@ -171,7 +188,7 @@ headless_approved_ops: [白紙化, 再実装, タグ更新, 環境撤去]
 | 状態キー | 実在判定 | 次に起動する子スキル | 渡す主要 args |
 |---|---|---|---|
 | アーキ未調査 | `<docs_root>/プロジェクト共通/アーキテクチャ調査書.md` が不在、または `check-architecture-survey.sh` の再実行が exit 1 | surveying-architecture-for-reverse-docs | target_repo_path, docs_root, template_root, mode（調査書が不在なら survey。調査書はあるが再実行 exit 1 なら revise・revise_findings必須）（期待返却 調査確定） |
-| 一覧未生成 | unit_kinds_present のいずれかの実在種別について `一覧/<種別ラベル>一覧/<種別ラベル>一覧.html` が不在、または excluded-kinds.json が不在 | generating-<種別>-list-for-reverse-docs（種別別一覧スキル） | source_dir, output_dir（不在種別ごとに対応スキルを起動） |
+| 一覧未生成 | unit_kinds_present のいずれかの実在種別について `一覧/<種別ラベル>一覧/<種別ラベル>一覧.html` が不在、または excluded-kinds.json に記載の対象外種別について `一覧/<種別ラベル>一覧（該当なし）.md` が不在 | generating-<種別>-list-for-reverse-docs（種別別一覧スキル） | source_dir, output_dir（不在種別ごとに対応スキルを起動） |
 | 共通未採録 | プロジェクト共通の10文書（規約4種・共通設計書・メッセージ定義書・DESIGN.md・基盤設計.md・UI共通設計.md・データ設計.md）のいずれか不在、または `check-common-docs.sh` が exit 1 | generating-reverse-common-docs | target_repo_path, docs_root, template_root, survey_doc_path, mode（10文書が未採録なら v0。NG帰着(c)差し戻し時のみ append・append_findings必須）（期待返却 採録v0確定） |
 | 画面未開通 | 画面一覧HTML有・画面が未開通（設計書も基準タグも無い新規画面） | unlocking-reverse-target-screens（内部で基準タグ確立まで完走。`UNLOCKED`差し戻し時のみ管理者がsyncing-reverse-env（mode=registry）を直接起動） | system, screen_id, reverse_worktree, ports, docs_root, user-approved（期待返却 BASELINE-ESTABLISHED） |
 | 事実未封印 | `<verification_dir>/screen-<画面ID>/facts/*/facts.lock` が不在、または `seal-facts.sh verify` が exit 1 | extracting-unit-facts-from-code | target_repo_path, target_file_paths, screen_dir, profile=screen, survey_doc_path, run_id（期待返却 封印済み） |
@@ -183,6 +200,8 @@ headless_approved_ops: [白紙化, 再実装, タグ更新, 環境撤去]
 | 検証完了 | rebuilding-code-from-docs judge が status=PASS | syncing-reverse-env（mode=sync 本番で基準タグ更新 / 依頼時 teardown。user-approved 必須） | design-doc, mode=sync, user-approved |
 
 判定は「アーキテクチャ調査書の実在 → 各種別の一覧HTML + excluded-kinds.json の実在 → プロジェクト共通10文書の実在 → 画面開通有無 → facts封印の実在 → 画面基本設計書の実在 → 設計書/対象ファイル/著者スキルの完全性ゲート成果物の実在 → 当該ファイルの検証記録の実在有無および再現一致有無 → syncing setup返却の baseline_tag → judge の直近記録および NG帰着(c)保留の有無」の順に降りる決定木で、11状態を漏れなく被覆する。「次に起動する子スキル」列は起動する子スキル名のみを記す。mode の選択・分岐条件は必ず「渡す主要 args」列または実在判定列を参照する（子スキル名に mode を併記しない）。
+
+**開通完全性ゲート**: 画面開通有無の判定に用いる画面レジストリの `verification_url` は、実レンダリング確認済みの実URL（「未実施」・エラーページ・プレースホルダでない）でなければならない。この条件を満たさない画面は画面未開通として扱い、facts封印（extracting-unit-facts-from-code）・画面基本設計書著述（generating-reverse-basic-design）・設計書著述（generating-reverse-detailed-design）のいずれにも進まず、先に⑤unlocking-reverse-target-screensによる開通完了を待つ。
 
 アーキ未調査・共通未採録はプロジェクト単位で1回だけ確定させればよく、画面ごとに繰り返さない（一覧未生成以降は画面単位の反復対象）。
 
@@ -203,6 +222,8 @@ headless_approved_ops: [白紙化, 再実装, タグ更新, 環境撤去]
 
 「後続未対応」は excluded-kinds.json の「対象外」（アーキテクチャ調査書で実在しないと判定された種別。後述の3状態の区別を参照）とは別の状態である。「対象外＝そもそも実在しない」のに対し、「後続未対応＝実在し一覧化済みだが facts 抽出に進めない」という違いがある。
 
+一覧生成は全種別について成果物を出す。unit_kinds_present に含まれる種別（present）は一覧HTMLを、含まれない種別（excluded）は `<種別>一覧（該当なし）.md`（判定理由を転記した1枚もの）を必ず生成する。成果物の実在有無だけで各種別の判定を後から復元できる状態を保つ。
+
 管理者の最終報告（Goal）には、全6種別の到達状態レポートを必ず含める。到達状態は次の3値で記す。
 
 | 到達状態 | 意味 |
@@ -210,6 +231,8 @@ headless_approved_ops: [白紙化, 再実装, タグ更新, 環境撤去]
 | 生成済み | 一覧が生成・検証済み（screen はさらに画面単位の反復工程へ進む） |
 | 対象外 | アーキテクチャ調査書で実在しないと判定（excluded-kinds.json に記載） |
 | 後続未対応 | 実在し一覧化済みだが、facts抽出以降の工程が未対応のため一覧確立の時点で終端 |
+
+管理者の最終報告には、全6種別それぞれについてアーキテクチャ調査書の実在判定（実在する／実在しない・理由）と対応する成果物パス（一覧HTML または `<種別>一覧（該当なし）.md`）を記す種別判定結果の報告義務を含める（書式は orchestrating-reverse-docs-flow SKILL.md の「報告書式（3表テンプレート）」表1を正とする）。
 
 管理者の最終報告には、無人モード（headless=true）実行時に限り、盲検分離の充足状況（同一プロセス実行か・分離実行か）も併せて記載する（正本は「無人モード仕様」の「盲検分離の必須要件」）。
 
@@ -309,7 +332,7 @@ rebuilding-code-from-docs（mode=judge）Phase 9 の凍結検証（`scripts/chec
 | 状態 | 判定方法 | 意味 |
 |---|---|---|
 | 生成済み | `一覧/<種別ラベル>一覧/<種別ラベル>一覧.html` が存在 | 一覧が生成・検証済み |
-| 対象外 | excluded-kinds.json の excludedKinds に記載あり | アーキテクチャ調査書で実在しないと判定 |
+| 対象外 | excluded-kinds.json の excludedKinds に記載あり | アーキテクチャ調査書で実在しないと判定。人間可読の成果物として `一覧/<種別ラベル>一覧（該当なし）.md` も併せて生成する |
 | 未着手 | 上記いずれにも該当しない | 一覧生成が未実施 |
 
 ## スキル資産の修正規律

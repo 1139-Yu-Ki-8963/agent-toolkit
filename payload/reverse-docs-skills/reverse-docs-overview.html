@@ -75,6 +75,7 @@
   .tag.done { background: #e7f3e7; color: #23662a; border-color: #b9d9ba; }
   .tag.listonly { background: #e8eef7; color: #2a4a7a; border-color: #c2d2e8; }
   .tag.planned { background: #fdf3d7; color: #7a5d10; border-color: #e8d59a; }
+  .tag.excluded { background: #f3e8e8; color: #7a2a2a; border-color: #e8c2c2; }
 
   /* §1 工程フロー図（縦積み・成果物の積み上がり） */
   .flowgrid { display: grid; grid-template-columns: minmax(260px, 34%) 1fr; gap: 0 18px; margin: 20px 0; }
@@ -157,7 +158,7 @@
   <h2><span class="sec-num">§1</span>工程フロー図（成果物の積み上がり）</h2>
   <p>指揮役（<code>orchestrating-reverse-docs-flow</code>）が左列の工程を上から順に進める。各工程が完了するたびに、右列の成果物が <code>docs_root</code> に増える。緑枠の「ユニット反復」は画面 1 つごとに繰り返す。</p>
   <p class="note">本文書で使う「facts」は、原本コードから抽出した宣言的契約の事実表（項目・分岐・呼び出しの数まで数え上げた一次資料）を指す。「基準タグ」は、2 環境の完全一致を証明できた時点のコミットに打つ git タグ <code>reverse-baseline/&lt;scope&gt;</code> を指す。</p>
-  <p class="note">Phase 0（ヒアリング）で対象パス・出力先・画面スコープを確定後、Phase 1 で状態判定を行い全工程をタスク一覧として一括登録する（マニフェスト先出し方式）。基本設計と詳細設計は並列実行する。</p>
+  <p class="note">Phase 0（ヒアリング）で対象パス・出力先・画面スコープを確定後、Phase 1 で状態判定を行い全工程をタスク一覧として一括登録する（マニフェスト先出し方式）。「一覧未生成」状態の解決は Phase 1.5 で、実在する種別（unit_kinds_present）の一覧生成スキルのみを Agent ツールで並列起動する。基本設計と詳細設計も同じ並列パターンで実行する。</p>
 
   <div class="flowgrid">
     <div>
@@ -172,6 +173,7 @@
       <div class="flowstep">
         <span class="stepname">一覧生成（6 種別）</span>
         <span class="stepskill">generating-&lt;種別&gt;-list-for-reverse-docs ×6</span>
+        <div class="note">Phase 1.5：実在する種別（unit_kinds_present）のみ並列起動（Agent, run_in_background）</div>
       </div>
     </div>
     <div class="flowgain"><span class="gainlabel">docs_root に増えるもの</span><code>一覧/&lt;種別&gt;一覧/&lt;種別&gt;一覧.html</code>（実在種別ぶん）と <code>一覧/excluded-kinds.json</code>（対象外種別の記録）</div>
@@ -259,7 +261,7 @@
 
 <section id="s2">
   <h2><span class="sec-num">§2</span>スキル→成果物対応表</h2>
-  <p>指揮役が仲介する子スキル 16 個の一覧。状態キーは指揮役の状態判定表（contract.md）で当該スキルの起動条件となる状態、返却 status は各スキルが返す判定値、主成果物は完了時に確立する代表的な生成物を示す。個別ガイドがあるスキルはスキル名からたどれる。</p>
+  <p>指揮役 1 つを含む全 17 スキルのうち、指揮役が仲介する子スキル 16 個の一覧。状態キーは指揮役の状態判定表（contract.md）で当該スキルの起動条件となる状態、返却 status は各スキルが返す判定値、主成果物は完了時に確立する代表的な生成物を示す。個別ガイドがあるスキルはスキル名からたどれる。</p>
   <table class="spec">
     <tr><th>スキル</th><th>状態キー</th><th>返却 status</th><th>主成果物</th></tr>
     <tr>
@@ -353,10 +355,10 @@
       <td>再実装コード（凍結コミット）・修正指示書.md・最終報告.md</td>
     </tr>
     <tr>
-      <td>（Phase 4.5）</td>
-      <td>running-reverse-screen-batch</td>
-      <td>完了報告</td>
-      <td>画面バッチ実行ログ</td>
+      <td><a href=".claude/skills/running-reverse-screen-batch/SKILL.md"><code>running-reverse-screen-batch</code></a></td>
+      <td>画面数 4 件以上（Phase 4.5・共通採録完了後の任意工程）</td>
+      <td><code>BATCH-COMPLETE | BATCH-IN-PROGRESS | BATCH-ABORTED</code></td>
+      <td>画面バッチ実行ログ（batch-log.txt）・進捗記録（progress.jsonl）</td>
     </tr>
   </table>
   <p class="note">指揮役 <code>orchestrating-reverse-docs-flow</code> 自身は状態判定と検収・配線に徹する（<a href=".claude/skills/orchestrating-reverse-docs-flow/references/orchestrating-reverse-docs-flow-guide.html">指揮役ガイド</a>）。成果物では <code>一覧/excluded-kinds.json</code> の書き出しのみ指揮役が担う。</p>
@@ -440,6 +442,13 @@
 <section id="s4">
   <h2><span class="sec-num">§4</span>種別×工程の実装状況</h2>
   <p>6 種別（アーキテクチャ調査書の実在判定対象）ごとに、4 工程がどこまで実装済みかを示す。現況列の「一覧のみ」は、一覧化までは済んでいるが facts 抽出以降の工程が未対応で止まる状態を指す（対象外種別＝そもそも実在しない、とは別の状態）。</p>
+  <p>
+    <span class="tag done">済</span> 現行スキルで生成できる ／
+    <span class="tag listonly">一覧のみ</span> 一覧化までは完了・facts 抽出以降は後続未対応 ／
+    <span class="tag planned">段階計画</span> Cycle 1〜4 で対応予定（未実装）／
+    <span class="tag excluded">対象外</span> アーキテクチャ調査書が「実在しない」と判定した種別
+  </p>
+  <p class="note">「対象外」はこの表の現況列には現れない（対象外種別はそもそも一覧生成の起動対象にならないため、6 種別すべてが揃った表は「対象外」判定が 0 件だったプロジェクトの例）。対象外種別は <code>一覧/excluded-kinds.json</code>（判定理由つき）に記録され、契約 contract.md の「3 状態の区別」（生成済み／対象外／未着手）で扱う。</p>
   <table class="spec">
     <tr><th>種別</th><th>現況</th><th>一覧生成</th><th>facts 抽出</th><th>設計書執筆</th><th>往復検証</th></tr>
     <tr><td>画面（screen）</td><td><span class="tag done">済</span></td><td><span class="tag done">済</span></td><td><span class="tag done">済</span></td><td><span class="tag done">済</span></td><td><span class="tag done">済</span></td></tr>
@@ -454,8 +463,10 @@
 
 <section id="s5">
   <h2><span class="sec-num">§5</span>責務境界の確定事項</h2>
-  <p>工程をまたいで迷いやすい「どちらのスキルが持つか」の確定事項。ここに挙げた 6 点は仕様として確定しており、変更する場合は contract.md と各スキルガイドを同時に改訂する。</p>
+  <p>工程をまたいで迷いやすい「どちらのスキルが持つか」の確定事項。ここに挙げた 7 点は仕様として確定しており、変更する場合は contract.md と各スキルガイドを同時に改訂する。</p>
   <div class="def">
+    <dt>本HTMLの保守規約</dt>
+    <dd>正本はこのファイル自身（<code>reverse-docs-overview.html</code>）。更新契機はヘッダの meta-table に記載のとおりスキル構成・契約（contract.md）変更時。§3 の実装状況タグ（<span class="tag done">済</span>／<span class="tag listonly">一覧のみ</span>／<span class="tag planned">段階計画</span>）と §4 の対象外タグ（<span class="tag excluded">対象外</span>）は、各スキル SKILL.md・contract.md の実装状況と一致させる。スキルの新設・削除・状態遷移の変更時は、本ファイルの該当タグを同一 commit 内で追従させ、陳腐化した記載を放置しない。</dd>
     <dt>scaffold の正本</dt>
     <dd>画面の骨組み生成スクリプトの正本は <code>shared/scripts/scaffold-screen.sh</code> の 1 本のみ。利用側スキルは引数渡しで呼び出し、複製・改変版を持たない。</dd>
     <dt>単体テスト正本の一本化</dt>

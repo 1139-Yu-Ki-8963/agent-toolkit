@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# check-common-docs.sh — プロジェクト共通10文書の機械ゲート（5検査すべて決定的）
+# check-common-docs.sh — プロジェクト共通10文書の機械ゲート（6検査すべて決定的）
 #
 # 使い方:
 #   check-common-docs.sh <common_docs_dir> <target_repo_path>
@@ -17,12 +17,17 @@ set -euo pipefail
 #      （「/」を含む）トークンを1件以上含む行を「規則行」とみなし、その行に
 #      ①実例パス3件以上 ②頻度（[0-9]+/[0-9]+形式） ③例外率（[0-9.]+%形式）
 #      が揃っているかを確認する。
-#   3. パス実在検査: 規約4文書内のbacktick囲み相対パス全件が target_repo_path 配下に
-#      test -e で実在する。除外規則は検査2と同じ（URL・glob・プレースホルダ・
-#      絶対パス・空白/正規表現記号を含むトークンは対象外）。
+#   3. パス実在検査: 規約4種＋共通設計書.md＋メッセージ定義書.md＋DESIGN.md内の
+#      backtick囲み相対パス全件が target_repo_path 配下に test -e で実在する。
+#      除外規則は検査2と同じ（URL・glob・プレースホルダ・絶対パス・空白/正規表現
+#      記号を含むトークンは対象外）。
 #   4. テンプレ残存ゼロ: <実測|<FILL|TBD|TODO が11ファイルすべてで0件。
 #   5. 理想論表現ゼロ: すべきである|望ましい|べきだ|理想的には|今後は が
 #      規約4文書で0件（実装事実の記録に限る）。
+#   6. メッセージ定義書規模突合: メッセージ定義書.md内の規模宣言行
+#      （「総件数: <N>件」形式）と、同ファイル内のbacktickメッセージ文字列を
+#      含むテーブル行の実測件数が一致する。宣言行が無い場合もFAILとする
+#      （カタログ規模の推測表現を禁止するための機械検証）。
 #
 #   いずれか1件でも違反があれば exit 1（fail-closed）。全件PASSでexit 0。
 #   --self-test は合成フィクスチャで陽性exit 0・陰性(検査ごと)exit 1を自己検証する。
@@ -33,10 +38,14 @@ set -euo pipefail
 
 REQUIRED_FILES="規約/コーディング規約.md 規約/命名規約.md 規約/ディレクトリ構成規約.md 規約/コンポーネント設計規約.md 共通設計書.md メッセージ定義書.md DESIGN.md 基盤設計.md UI共通設計.md データ設計.md サンプル記録.md"
 CONVENTION_FILES="規約/コーディング規約.md 規約/命名規約.md 規約/ディレクトリ構成規約.md 規約/コンポーネント設計規約.md"
+# 検査3（パス実在検査）は規約4種に加え、共通設計書・メッセージ定義書・DESIGN.mdも対象にする
+PATH_CHECK_FILES="$CONVENTION_FILES 共通設計書.md メッセージ定義書.md DESIGN.md"
+MESSAGE_DOC_FILE="メッセージ定義書.md"
 PLACEHOLDER_RE='<実測|<FILL|TBD|TODO'
 IDEAL_WORDS_RE='すべきである|望ましい|べきだ|理想的には|今後は'
 FREQ_RE='[0-9]+/[0-9]+'
 EXCEPTION_RE='[0-9]+(\.[0-9]+)?%'
+MESSAGE_SCALE_RE='総件数[:：] *[0-9]+件'
 
 # backtick囲みトークンのうち「相対パス」とみなせるもの以外を除外する判定。
 # 除外: 「/」を含まない / URL / glob / プレースホルダ / 絶対パス / 空白・正規表現記号を含む
@@ -137,13 +146,13 @@ EOF
   return 0
 }
 
-# 検査3: パス実在検査（規約4文書）
+# 検査3: パス実在検査（規約4種＋共通設計書＋メッセージ定義書＋DESIGN.md）
 check_paths_exist() {
   dir="$1"
   repo="$2"
   missing=0
   total=0
-  for f in $CONVENTION_FILES; do
+  for f in $PATH_CHECK_FILES; do
     path="$dir/$f"
     [ -f "$path" ] || continue
     tokens="$(extract_backtick_tokens "$path")"
@@ -217,7 +226,42 @@ check_no_ideal_words() {
   return 0
 }
 
-# 5検査すべてを実行し集約結果を返す。
+# 検査6: メッセージ定義書規模突合
+check_message_scale() {
+  dir="$1"
+  path="$dir/$MESSAGE_DOC_FILE"
+  if [ ! -f "$path" ]; then
+    echo "  未実在: $MESSAGE_DOC_FILE" >&2
+    echo "検査6失敗: $MESSAGE_DOC_FILE が存在しません" >&2
+    return 1
+  fi
+  declared="$(grep -oE -- "$MESSAGE_SCALE_RE" "$path" | head -n1 | grep -oE '[0-9]+' || true)"
+  if [ -z "$declared" ]; then
+    echo "  規模宣言欠落: $MESSAGE_DOC_FILE に「総件数: <N>件」形式の宣言行が見つかりません" >&2
+    echo "検査6失敗: メッセージ定義書に規模宣言がありません" >&2
+    return 1
+  fi
+  actual=0
+  while IFS= read -r line; do
+    case "$line" in
+      '|'*) : ;;
+      *) continue ;;
+    esac
+    is_separator_row "$line" && continue
+    if printf '%s' "$line" | grep -qE '`[^`]+`'; then
+      actual=$((actual + 1))
+    fi
+  done < "$path"
+  if [ "$actual" -ne "$declared" ]; then
+    echo "  規模不一致: $MESSAGE_DOC_FILE の宣言(${declared}件)と実測テーブル行数(${actual}件)が不一致です" >&2
+    echo "検査6失敗: メッセージ定義書の宣言件数と実測件数が不一致です" >&2
+    return 1
+  fi
+  echo "検査6通過: メッセージ定義書の宣言件数(${declared})と実測件数(${actual})が一致"
+  return 0
+}
+
+# 6検査すべてを実行し集約結果を返す。
 run_all_checks() {
   dir="$1"
   repo="$2"
@@ -227,6 +271,7 @@ run_all_checks() {
   check_paths_exist "$dir" "$repo" || rc=1
   check_no_placeholder "$dir" || rc=1
   check_no_ideal_words "$dir" || rc=1
+  check_message_scale "$dir" || rc=1
   return "$rc"
 }
 
@@ -265,8 +310,14 @@ MD
     cat > "$target/メッセージ定義書.md" <<'MD'
 # 共通メッセージ定義書（リバース版）
 
+総件数: 2件
+
 ## メッセージ一覧
-保存成功トーストを表示する。
+
+| メッセージ | 用途 |
+|---|---|
+| `保存に成功しました` | 保存成功トースト |
+| `保存に失敗しました` | 保存失敗トースト |
 MD
     cat > "$target/DESIGN.md" <<'MD'
 # 共通デザインシステム（リバース版）
@@ -301,7 +352,7 @@ MD
 
   rc=0
 
-  # 陽性フィクスチャ: 5検査すべてPASSする想定
+  # 陽性フィクスチャ: 6検査すべてPASSする想定
   pass_dir="$tmp/pass"
   build_docs "$pass_dir"
   if run_all_checks "$pass_dir" "$repo" >/dev/null 2>&1; then
@@ -385,6 +436,28 @@ MD
     echo "  [PASS] 検査5: 理想論表現でexit 1"
   fi
 
+  # 陰性6: 検査6のみ違反（メッセージ定義書の宣言件数と実測件数が不一致）
+  fail6_dir="$tmp/fail6"
+  build_docs "$fail6_dir"
+  cat > "$fail6_dir/メッセージ定義書.md" <<'MD'
+# 共通メッセージ定義書（リバース版）
+
+総件数: 3件
+
+## メッセージ一覧
+
+| メッセージ | 用途 |
+|---|---|
+| `保存に成功しました` | 保存成功トースト |
+| `保存に失敗しました` | 保存失敗トースト |
+MD
+  if check_message_scale "$fail6_dir" >/dev/null 2>&1; then
+    echo "  [FAIL] 検査6: 宣言件数と実測件数の不一致があるのにexit 0になった" >&2
+    rc=1
+  else
+    echo "  [PASS] 検査6: 宣言件数と実測件数の不一致でexit 1"
+  fi
+
   if [ "$rc" -eq 0 ]; then
     echo "self-test 全項目 PASS"
   else
@@ -411,7 +484,7 @@ if [ ! -d "$repo" ]; then
 fi
 
 if run_all_checks "$docs_dir" "$repo"; then
-  echo "プロジェクト共通文書ゲート: 全5検査PASS"
+  echo "プロジェクト共通文書ゲート: 全6検査PASS"
   exit 0
 else
   echo "プロジェクト共通文書ゲート: FAIL" >&2

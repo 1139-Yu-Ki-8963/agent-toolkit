@@ -211,6 +211,7 @@ git tag -af "reverse-baseline/<scope>" -m "<検証日> 検証PASS: 実差分0 en
 - 共有オリジナルは読み取り専用・`source_ref` の解決 SHA で pin し、使用中（参照カウント>0）は再チェックアウト・復元をしない
 - 共有オリジナル方式は障害ドメインが同一 system@sha を使う画面群で共有になる（1 つの dev サーバー障害が全画面に波及する）。障害隔離が要る場合は per-scope を選ぶ
 - 環境名・環境識別に使う値（worktree 名・ポート・commit ガード等の周辺スクリプトの判定文字列を含む）は、`<system>`・`<画面ID>` の具体値をスクリプトに直書きしない。スクリプトが持ってよいのは命名規則の**構造**（`original-code-<system>` / `reverse-code-<scope>` のように `<...>` を常にプレースホルダとして持つ形）だけで、具体値は `source_repo`／`config.yml` から実行時に解決する。commit ガードのような周辺フックも同様に `<system>` を解決してから判定し、解決できない環境では正当な操作の誤ブロックを避けるため素通し（fail-open）する。この規約は `audit-doc-consistency.sh` の「環境名直書き」検査が機械強制する（接頭辞 `original-code-`/`reverse-code-` の直後にプレースホルダ以外の具体値が続く記述を FAIL とする）
+- Playwright を実行する node スクリプトは全体タイムアウト（既定120秒）と `finally { await context.close(); await browser.close(); }` を必須とする（ブラウザプロセスの残留・ポート占有を防ぐ）
 
 ## 予想を裏切る挙動
 

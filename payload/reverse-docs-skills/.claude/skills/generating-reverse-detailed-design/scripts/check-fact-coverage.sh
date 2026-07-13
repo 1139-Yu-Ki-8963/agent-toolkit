@@ -14,11 +14,15 @@ set -euo pipefail
 #     1箇所でもあれば転記済み扱いとする（個別キー一致は不要）。表記が無い場合のみ、他セクションと
 #     同様に個別キー一致を要求する。
 #   - 未転記が1件でもあれば exit 1（fail-closed）。全件転記済みで exit 0。
-#   - **値レベル検証**: 固定 props 値・enum 実使用値・コンポーネント宣言形状等、items[].value に
-#     具体的な値文字列を持つ facts については、キーへの言及だけでなく value 文字列自体が設計書本文に
-#     出現するかも確認する。value が見つからない場合は「値未転記」として stderr に WARN を出力する
-#     （exit code には影響しない。既存の exit 1 = 未転記キー検出 の挙動を変更しない）。
-#   - --self-test は合成フィクスチャで陽性 exit 0・陰性 exit 1・値未転記 WARN を自己検証する。
+#   - **値レベル検証（トークン抽出方式・fail-closed）**: items[].value を全文一致で照合するのではなく、
+#     value からコード的トークン（`obj.prop` 形式のドット付き識別子、または2桁以上の数値）を
+#     `grep -oE '[A-Za-z_$][A-Za-z0-9_$]*\.[A-Za-z_$][A-Za-z0-9_$]*|[0-9]{2,}'` で抽出し、抽出前に
+#     evidence 由来のファイルパス:行番号のようなコード座標ノイズ（例: `Foo.tsx:12`）を除去する。
+#     抽出後の各トークンが設計書本文に1箇所も出現しない場合は「未転記トークン」として fail-closed
+#     （exit 1）とする。measurement_pending / style セクション、および key に
+#     `recount-false-positive` を含む項目は値レベル検証の対象外とする。
+#   - --self-test は合成フィクスチャで陽性 exit 0・陰性 exit 1（未転記キー・未転記トークン）・
+#     除外セクション/キーでの非検出・座標ノイズ除去の各ケースを自己検証する。
 #
 # 設計判断（ADR）の正本は本スキルの SKILL.md「## 設計判断」に記載する。
 # 保守責任者: 人手（ユーザー）。facts.yml の書式・除外分類を変更した時に更新する。
@@ -71,18 +75,31 @@ extract_section_keys() {
   ' "$1"
 }
 
+# evidence由来のファイルパス:行番号のようなコード座標ノイズをvalueから除去する。
+# 除去しないと「Foo.tsx」「12」のような座標断片がコード的トークンとして誤抽出され、
+# 設計書本文に転記されるはずのない座標値の不在で誤って fail-closed になる。
+strip_coordinate_noise() {
+  printf '%s' "$1" | sed -E 's#[A-Za-z0-9_./-]+\.(tsx|ts|jsx|js|css):[0-9]+##g'
+}
+
+# コード的トークン（`obj.prop` 形式のドット付き識別子、または2桁以上の数値）を抽出する。
+extract_value_tokens() {
+  printf '%s' "$1" | grep -oE '[A-Za-z_$][A-Za-z0-9_$]*\.[A-Za-z_$][A-Za-z0-9_$]*|[0-9]{2,}' || true
+}
+
 # facts.yml と設計書群を突合する。未転記があれば return 1。
-# 値レベル検証（固定props値・enum実使用値・コンポーネント宣言形状等、value
-# フィールドを持つfacts）は設計書本文への値文字列出現も確認し、見つからなければ
-# 「値未転記」としてstderrへWARNを出す（exit codeには影響しない。既存の
-# exit 1 = 未転記キー検出 の挙動は維持する）。measurement_pendingは実測委譲設計
-# のため値レベル検証の対象外とする。
+# 値レベル検証は、value からコード的トークンを抽出し、そのトークンが設計書本文に
+# 1箇所も出現しなければ「未転記トークン」としてfail-closed（exit 1）とする。
+# measurement_pending / style セクション、および key に recount-false-positive を
+# 含む項目は値レベル検証の対象外とする（measurement_pendingは実測委譲設計のため、
+# styleは値の厳密転記を要求しない設計慣行のため、recount-false-positiveは既知の
+# 誤検知回避のための明示的除外キー）。
 run_check() {
   facts_yml="$1"
   shift
   missing=0
   total=0
-  value_missing=0
+  token_missing=0
 
   has_delegation_note=0
   for doc in "$@"; do
@@ -117,17 +134,32 @@ run_check() {
       missing=$((missing + 1))
     fi
 
-    if [ "$section" != "measurement_pending" ] && [ -n "$value" ]; then
-      value_found=0
-      for doc in "$@"; do
-        if grep -qF -- "$value" "$doc" 2>/dev/null; then
-          value_found=1
-          break
-        fi
-      done
-      if [ "$value_found" -eq 0 ]; then
-        echo "  WARN: 値未転記: ${key} の値「${value}」が設計書本文に見当たりません（分類: ${section}）" >&2
-        value_missing=$((value_missing + 1))
+    if [ "$section" = "measurement_pending" ] || [ "$section" = "style" ]; then
+      continue
+    fi
+    case "$key" in
+      *recount-false-positive*) continue ;;
+    esac
+    if [ -n "$value" ]; then
+      cleaned_value="$(strip_coordinate_noise "$value")"
+      tokens="$(extract_value_tokens "$cleaned_value")"
+      if [ -n "$tokens" ]; then
+        while IFS= read -r token; do
+          [ -z "$token" ] && continue
+          token_found=0
+          for doc in "$@"; do
+            if grep -qF -- "$token" "$doc" 2>/dev/null; then
+              token_found=1
+              break
+            fi
+          done
+          if [ "$token_found" -eq 0 ]; then
+            echo "  未転記トークン: ${key} の値中のトークン「${token}」が設計書本文に見当たりません（分類: ${section}）" >&2
+            token_missing=$((token_missing + 1))
+          fi
+        done <<TOKENS
+$tokens
+TOKENS
       fi
     fi
   done <<EOF
@@ -138,10 +170,11 @@ EOF
     echo "完全性ゲート失敗: facts.yml $total 件中 $missing 件が設計書に未転記です（fail-closed）" >&2
     return 1
   fi
-  if [ "$value_missing" -gt 0 ]; then
-    echo "値レベル検証: $value_missing 件の値未転記WARNがあります（exit codeには影響しません）" >&2
+  if [ "$token_missing" -gt 0 ]; then
+    echo "完全性ゲート失敗: 値レベル検証で $token_missing 件のトークンが設計書に未転記です（fail-closed）" >&2
+    return 1
   fi
-  echo "完全性ゲート通過: facts.yml $total 件すべてが設計書に転記済みです"
+  echo "完全性ゲート通過: facts.yml $total 件すべてが設計書に転記済みです（値レベル検証含む）"
   return 0
 }
 
@@ -255,9 +288,9 @@ MD
     echo "  [PASS] 陰性2: 実測委譲表記なし・個別キー未転記で exit 1"
   fi
 
-  # 値レベル検証フィクスチャ: キーは転記済みだが value 文字列が設計書本文に
-  # 出現しない（固定props値の値未転記）ケース。exit code は 0 のまま、
-  # stderr に「値未転記」WARN が出ることを確認する。
+  # 値レベル検証（トークン抽出方式）フィクスチャ: キーは転記済みだが value 中の
+  # コード的トークン（2桁以上の数値）が設計書本文に出現しない（固定props値の
+  # 値未転記）ケース。fail-closed のため exit 1 になることを確認する。
   cat > "$tmp/facts-value.yml" <<'YML'
 run_id: extract-1
 profile: screen
@@ -285,19 +318,157 @@ MD
 const-max-count を使用する（MAX_COUNT=100）。
 MD
 
-  if out_value_missing="$(run_check "$tmp/facts-value.yml" "$tmp/design-value-missing.md" 2>&1)"; then rc_value_missing=0; else rc_value_missing=$?; fi
-  if [ "$rc_value_missing" -eq 0 ] && printf '%s' "$out_value_missing" | grep -q "値未転記"; then
-    echo "  [PASS] 値レベル検証陰性: キー転記済み・値未転記で WARN が出るが exit 0 のまま"
+  if run_check "$tmp/facts-value.yml" "$tmp/design-value-missing.md" >/dev/null 2>&1; then
+    echo "  [FAIL] 値レベル検証陰性: トークン未転記(100)なのに exit 0 になった" >&2
+    rc=1
   else
-    echo "  [FAIL] 値レベル検証陰性: 値未転記WARNが出ない、または exit 0 でない（exit=${rc_value_missing}）" >&2
+    echo "  [PASS] 値レベル検証陰性: トークン未転記(100)で exit 1（fail-closed）"
+  fi
+
+  if run_check "$tmp/facts-value.yml" "$tmp/design-value-present.md" >/dev/null 2>&1; then
+    echo "  [PASS] 値レベル検証陽性: トークン(100)転記済みで exit 0"
+  else
+    echo "  [FAIL] 値レベル検証陽性: トークン転記済みなのに非0で終了した" >&2
     rc=1
   fi
 
-  if out_value_present="$(run_check "$tmp/facts-value.yml" "$tmp/design-value-present.md" 2>&1)"; then rc_value_present=0; else rc_value_present=$?; fi
-  if [ "$rc_value_present" -eq 0 ] && ! printf '%s' "$out_value_present" | grep -q "値未転記"; then
-    echo "  [PASS] 値レベル検証陽性: 値も転記済みならWARNが出ない"
+  # ドット付き識別子トークン（obj.prop 形式）の陽性・陰性フィクスチャ。
+  cat > "$tmp/facts-dotted.yml" <<'YML'
+run_id: extract-1
+profile: screen
+target_repo_path: /abs/path/to/repo
+target_file_paths:
+  - src/screens/Foo/Foo.tsx
+sections:
+  state:
+    reason: ""
+    items:
+      - key: state-filter-location
+        value: "location.state から絞込条件を復元"
+        evidence: "src/screens/Foo/Foo.tsx:20"
+YML
+
+  cat > "$tmp/design-dotted-present.md" <<'MD'
+# 画面詳細設計書
+## §4 業務ルール
+state-filter-location は location.state を参照して絞込条件を復元する。
+MD
+
+  cat > "$tmp/design-dotted-missing.md" <<'MD'
+# 画面詳細設計書
+## §4 業務ルール
+state-filter-location は遷移元の状態から絞込条件を復元する。
+MD
+
+  if run_check "$tmp/facts-dotted.yml" "$tmp/design-dotted-present.md" >/dev/null 2>&1; then
+    echo "  [PASS] ドット付きトークン陽性: location.state 転記済みで exit 0"
   else
-    echo "  [FAIL] 値レベル検証陽性: 値転記済みなのにWARNが出た、または exit 0 でない（exit=${rc_value_present}）" >&2
+    echo "  [FAIL] ドット付きトークン陽性: 転記済みなのに非0で終了した" >&2
+    rc=1
+  fi
+
+  if run_check "$tmp/facts-dotted.yml" "$tmp/design-dotted-missing.md" >/dev/null 2>&1; then
+    echo "  [FAIL] ドット付きトークン陰性: location.state 未転記なのに exit 0 になった" >&2
+    rc=1
+  else
+    echo "  [PASS] ドット付きトークン陰性: location.state 未転記で exit 1（fail-closed）"
+  fi
+
+  # 除外セクション（measurement_pending / style）はトークン未転記でも
+  # fail-closed の対象外であることを確認する。
+  cat > "$tmp/facts-excluded-section.yml" <<'YML'
+run_id: extract-1
+profile: screen
+target_repo_path: /abs/path/to/repo
+target_file_paths:
+  - src/screens/Foo/Foo.tsx
+sections:
+  measurement_pending:
+    reason: ""
+    items:
+      - key: 初期表示-件数
+        value: "上限200件を実測委譲で確定"
+        evidence: "src/screens/Foo/Foo.tsx:12"
+  style:
+    reason: ""
+    items:
+      - key: style-max-width
+        value: "max-width: 480px"
+        evidence: "src/screens/Foo/Foo.tsx:30"
+YML
+
+  cat > "$tmp/design-excluded-section.md" <<'MD'
+# 画面詳細設計書
+## §9 領域別仕様
+初期表示件数は実測委譲（画面単位検証で確定）。
+
+## §11 スタイル方針
+style-max-width の幅で表示する。
+MD
+
+  if run_check "$tmp/facts-excluded-section.yml" "$tmp/design-excluded-section.md" >/dev/null 2>&1; then
+    echo "  [PASS] 除外セクション: measurement_pending/style はトークン未転記(200/480)でも exit 0"
+  else
+    echo "  [FAIL] 除外セクション: measurement_pending/style なのに非0で終了した" >&2
+    rc=1
+  fi
+
+  # recount-false-positive を含むキーはトークン未転記でも対象外であることを確認する。
+  cat > "$tmp/facts-excluded-key.yml" <<'YML'
+run_id: extract-1
+profile: screen
+target_repo_path: /abs/path/to/repo
+target_file_paths:
+  - src/screens/Foo/Foo.tsx
+sections:
+  const:
+    reason: ""
+    items:
+      - key: const-recount-false-positive-max
+        value: "MAX=999"
+        evidence: "src/screens/Foo/Foo.tsx:8"
+YML
+
+  cat > "$tmp/design-excluded-key.md" <<'MD'
+# 画面詳細設計書
+## §10 定数・設定値
+const-recount-false-positive-max を使用する。
+MD
+
+  if run_check "$tmp/facts-excluded-key.yml" "$tmp/design-excluded-key.md" >/dev/null 2>&1; then
+    echo "  [PASS] 除外キー: recount-false-positive を含むキーはトークン未転記(999)でも exit 0"
+  else
+    echo "  [FAIL] 除外キー: recount-false-positive を含むキーなのに非0で終了した" >&2
+    rc=1
+  fi
+
+  # コード座標ノイズ除去フィクスチャ: value に「Foo.tsx:12」のような evidence 由来の
+  # 座標断片が混入していても、それ自体をトークンとして要求しないことを確認する。
+  cat > "$tmp/facts-noise.yml" <<'YML'
+run_id: extract-1
+profile: screen
+target_repo_path: /abs/path/to/repo
+target_file_paths:
+  - src/screens/Foo/Foo.tsx
+sections:
+  const:
+    reason: ""
+    items:
+      - key: const-max-count-noisy
+        value: "src/screens/Foo/Foo.tsx:12 で MAX_COUNT=100 と定義"
+        evidence: "src/screens/Foo/Foo.tsx:12"
+YML
+
+  cat > "$tmp/design-noise.md" <<'MD'
+# 画面詳細設計書
+## §10 定数・設定値
+const-max-count-noisy を使用する（MAX_COUNT=100）。
+MD
+
+  if run_check "$tmp/facts-noise.yml" "$tmp/design-noise.md" >/dev/null 2>&1; then
+    echo "  [PASS] 座標ノイズ除去: Foo.tsx:12 断片を要求せず exit 0"
+  else
+    echo "  [FAIL] 座標ノイズ除去: 座標断片をトークンとして誤要求し非0で終了した" >&2
     rc=1
   fi
 

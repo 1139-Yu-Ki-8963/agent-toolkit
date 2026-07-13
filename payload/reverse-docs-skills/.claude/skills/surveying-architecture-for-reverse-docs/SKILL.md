@@ -57,7 +57,9 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, TaskCreate, TaskUpdate]
 
 画面・API・テーブル・バッチ・帳票・外部連携の6種別それぞれについて、Phase 2 と同様に決定的コマンドで実在を判定する。各種別の判定は「実在する」または「実在しない（理由: …）」のいずれかで必ず記録し、検出に使った再現可能な `grep`/`find` パターンを検出手がかり列に記録する。空欄・省略は禁止する。
 
-フロントエンド専用リポジトリにおけるAPI種別の判定基準: クライアント側API操作（クエリ定義・ミューテーション定義・fetch/axios ラッパー等）の目録化を指す。サーバー側エンドポイント定義（route handler）が本リポジトリに存在しないことは「API種別が実在しない」の根拠にならない。判定の再現可能なgrep/findパターンは、API操作を検出するパターン（例: `grep -r 'useQuery\|useMutation\|fetch(' src/`）を使用する。
+API種別の判定基準: 「API定義の実在」は SDL（GraphQL Schema Definition Language）・IDL（OpenAPI/Protobuf 等の Interface Definition Language）のソースファイルの検出で判定する。「サーバー側エンドポイント定義（route handler）の実装が本リポジトリに存在するか」とは別の軸であり、両者を混同しない。サーバー実装が本リポジトリに無くても、SDL/IDLソースが実在すれば「実在する」と判定する。
+
+フロントエンド専用リポジトリにおけるAPI種別の判定基準: SDL/IDLソースが対象コードリポジトリ内に見当たらない場合、クライアント側API操作（クエリ定義・ミューテーション定義・fetch/axios ラッパー等）の目録化を代替の実在根拠として指す。サーバー側エンドポイント定義（route handler）が本リポジトリに存在しないことは「API種別が実在しない」の根拠にならない。判定の再現可能なgrep/findパターンは、まずSDL/IDLソースを検出するパターン（例: `find . -name '*.graphql' -o -name '*.proto' -o -iname 'openapi*.yaml'`）を用い、見つからない場合にクライアント側API操作を検出するパターン（例: `grep -r 'useQuery\|useMutation\|fetch(' src/`）を使用する。
 
 完了条件: 6種別すべてに判定行がある（種別名と判定語が同一行に存在する）
 

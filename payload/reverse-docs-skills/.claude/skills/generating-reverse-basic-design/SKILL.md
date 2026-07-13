@@ -77,7 +77,7 @@ grep -nE 'useState|useEffect|useReducer|\bProps\b|styled-components|\bReact\b|\b
 
 **内部成果物名禁止**: 実装用語 grep の禁止パターンに `facts.yml`・`facts-schema`・`facts_ref`・内部分類名（`const_declarations`・`handler_exports`・`type_definitions` 等の facts.yml セクション名）を含める。これらは内部成果物の識別子であり、業務設計書に露出してはならない。
 
-**facts 根拠チェック**: 業務的な機能・役割の断定（「〜する機能」「〜の役割を持つ」等）は、対応する facts.yml のキーと紐づけ可能なもののみ許可する。facts に根拠がない業務断定は「要確認（現場確認事項）」として明示すること。Phase 3 のセルフチェックで、各断定記述に facts キーの根拠注記（例:「（facts: handler_exports 由来）」）があるか確認する。
+**facts 根拠チェック**: 業務的な機能・役割の断定（「〜する機能」「〜の役割を持つ」等）は、対応する facts.yml のキーと紐づけ可能なもののみ許可する。紐づけの確認は執筆者のセルフチェックで行い、本文には注記を書かない。facts に根拠が無い事項は断定せず「要確認（現場確認事項）」として明示する。
 
 **コメント残存・status 検査**: HTMLコメント（`<!-- -->`）の残存検査を行う。テンプレートの執筆指示コメントが1件でも残存していれば著述未完了として差し戻す。frontmatter の `status` が `draft` のまま残っていないことを確認する（著述完了時は `status: authored` に更新すること）。
 
