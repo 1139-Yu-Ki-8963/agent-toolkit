@@ -139,7 +139,7 @@ Bash ツールで残件カウントコマンドを実行する。マーカー未
 横展開（400画面超）では複数レーンを並列起動する。以下の排他制御を適用する:
 
 - **ファイルロック**: 画面レジストリ（reverse-screen-registry.yml）・一覧配下・progress.jsonl への書き込みは `flock <ロックファイル>` で排他する。ロック取得失敗時は 1 秒待機 × 最大 30 回リトライ
-- **worktree ロック**: 同一リポジトリへの `git worktree add/remove` は `flock <リポジトリルート>/.worktree-lock` で直列化する
+- **worktree ロック**: 同一リポジトリへの `git worktree add/remove` は `flock -w 120 <リポジトリルート>/.reverse-worktree-ops.lock` で直列化する（最大120秒待機。正本は contract.md の「worktree 排他」節）
 - **担当画面の事前分割**: 統括スキルまたは呼び出し元が画面リストをレーン数で分割し、各レーンの `screen_ids` に重複なく配分する。同一画面の複数レーン処理を禁止する
 - **ログ・failed リスト・conflict-skip リストの分離**: レーン別に `<verification_dir>/バッチ運転記録/batch-log-<lane_id>.txt` / `<verification_dir>/バッチ運転記録/failed-screens-<lane_id>.txt` / `<verification_dir>/バッチ運転記録/conflict-skip-screens-<lane_id>.txt` を使用。完了報告時にレーン別結果を統合する
 
