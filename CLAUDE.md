@@ -9,7 +9,11 @@
 |---|---|---|
 | `payload/claudecode-global-setup/agent-home/` | `~/agent-home/` | ディレクトリ全体をミラー |
 | `payload/claudecode-global-setup/claude-config/CLAUDE.md` | `~/.claude/CLAUDE.md` | 既存があれば上書きしない |
-| `payload/claudecode-global-setup/claude-config/settings-hooks.json` | `~/.claude/settings.json` | 既存の hooks セクションへ merge |
+| `payload/claudecode-global-setup/claude-config/settings-hooks.json` | `~/.claude/settings.json` | hooks・outputStyle・permissions を merge |
+| `payload/claudecode-global-setup/claude-config/statusline.py` | `~/.claude/statusline.py` | copy |
+| — | `~/.claude/rules` → `~/agent-home/rules` | symlink 作成 |
+| — | `~/.claude/skills` → `~/agent-home/skills` | symlink 作成 |
+| — | `~/.claude/agents` → `~/agent-home/agents` | symlink 作成 |
 
 設置・更新の実作業は `scripts/install.mjs` が担う。インターフェース:
 
@@ -27,7 +31,7 @@ node scripts/install.mjs --target <dir>   # テスト用: 設置先を <dir> に
 1. **前提診断**: `node scripts/install.mjs --doctor` を実行し、必須コマンドの不足や既存設定の競合を確認する
 2. **差分確認**: `node scripts/install.mjs --diff` で設置予定の一覧をユーザーに提示し、承認を得る
 3. **設置実行**: `node scripts/install.mjs --apply` を実行する
-   - `~/.claude/settings.json` は自動バックアップ後に hooks セクションを merge する
+   - `~/.claude/settings.json` は自動バックアップ後に hooks・outputStyle・permissions を merge する
    - `~/.claude/CLAUDE.md` が既存の場合は上書きせず、差分をユーザーに報告する
    - `--apply` の最後に `manage-portal.mjs generate` → `verify` を自動実行し、exit 0 を受け入れ判定とする
 4. **hook 発火スモーク**: 設置後に `~/agent-home/skills/managing-agent-configs/SKILL.md` を 1 行編集し、`[MANAGING-REVIEW-REQUIRED]` advisory が注入されることを確認する
