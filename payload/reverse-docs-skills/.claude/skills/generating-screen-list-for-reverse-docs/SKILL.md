@@ -8,7 +8,7 @@ allowed-tools: [Bash, Read, Write, Edit, Grep, Glob, AskUserQuestion, TaskCreate
 
 # 画面一覧生成スキル
 
-工程全体は orchestrating-reverse-docs-flow が案内する。本スキルは画面（unit_kind=screen 固定）の一覧生成のみを担い、単独起動できる（起動引数 source_dir・output_dir の2つを渡せば動く）。
+工程全体は orchestrating-reverse-docs-flow が案内する。本スキルは画面（unit_kind=screen 固定）の一覧生成のみを担い、単独起動できる（起動引数 source_dir・output_dir の2つを渡せば動く）。任意引数 `survey_doc_path`（アーキテクチャ調査書のパス）を渡すと、Phase 1 の共有ファイル・エイリアス調査の裏取り元として参照する（本スキルは内容を読み込まず実在確認のみ行う。渡されない場合は Phase 1 の調査のみで判断する）。
 
 既存コードベースを、スタック調査→検出戦略の宣言→戦略に基づく抽出→整合検証、の順で調査し、画面単位にファイルをグルーピングして **画面一覧.html**（画面詳細設計書.md の単位を正確に分けるための正本）を作成する。**本スキルの仕事は画面一覧.htmlの作成のみ**であり、設計書の雛形展開・生成・記入は一切行わない。
 
@@ -43,12 +43,13 @@ allowed-tools: [Bash, Read, Write, Edit, Grep, Glob, AskUserQuestion, TaskCreate
 - 出力フォルダ: `<output_dir>/画面一覧/`
 - 出力ファイル: `<output_dir>/画面一覧/画面一覧.html`
 - マニフェスト配列キー: `screens`（後方互換）
+- 任意出力ファイル（Phase 5実行時のみ）: `<output_dir>/画面一覧/複雑度プロファイル.json`
 
 ## 進捗管理（必須手順）
 
-スキル開始時に `TaskCreate` でPhase 1〜4のタスクを登録する。各Phase開始時に該当タスクを `in_progress` に、完了時に `completed` へ `TaskUpdate` で更新する。Phase 3からPhase 2へ差し戻す場合はPhase 2タスクを `in_progress` に戻す。実行環境にTaskCreate/TaskUpdateが存在しない場合は、出力先ディレクトリ内のタスク台帳ファイル（`task-ledger.md`）で同等のPhase遷移記録を代替する。
+スキル開始時に `TaskCreate` でPhase 1〜4のタスクを登録する（Phase 5は任意工程のため、複雑度プロファイリングを実行する場合のみ追加登録する）。各Phase開始時に該当タスクを `in_progress` に、完了時に `completed` へ `TaskUpdate` で更新する。Phase 3からPhase 2へ差し戻す場合はPhase 2タスクを `in_progress` に戻す。実行環境にTaskCreate/TaskUpdateが存在しない場合は、出力先ディレクトリ内のタスク台帳ファイル（`task-ledger.md`）で同等のPhase遷移記録を代替する。
 
-## 動作フロー（Phase 1〜4）
+## 動作フロー（Phase 1〜4、任意でPhase 5）
 
 ### Phase 1: スタック・画面規約の特定
 
@@ -58,7 +59,8 @@ allowed-tools: [Bash, Read, Write, Edit, Grep, Glob, AskUserQuestion, TaskCreate
 - **Step 2**: ルーティング定義の所在と方式を特定する。**定義と呼び出しが別ファイルの場合（`useRoutes(router)`等）は定義ファイルまで追跡して所在を確定する**。完了条件: `path`/`route`定義を含む実ファイルパスが列挙済み
 - **Step 3**: 画面規約を調査する（画面ID命名パターン・View切替関数・メニュー定義/画面マスタの有無）。完了条件: `screen-id-regex`/`view-switch-pattern`の候補値または「なし」が確定済み
 - **Step 4**: 除外パターンを確定する。`tests`/`stories`/`mocks`等のノイズディレクトリを実際に `ls` で確認する。完了条件: `excludePatterns` 一覧が確定済み
-- **Step 5**: 検出戦略宣言を作成し、AskUserQuestionで承認を取る。宣言JSONは一時ファイルに保存する。完了条件: 戦略JSON（`unitKind: "screen"`/`extractionMethod`/`screenUnitDefinition`/`screenIdRegex`/`viewSwitchPattern`/`excludePatterns`/`approvedByUser: true`/`notes`）が保存済み
+- **Step 5**: 共有ファイル・エイリアス調査を行う。複数画面から参照される共有ディレクトリ（`shared/`・`common/`・`components/`等のプロジェクト固有の命名）と、tsconfig/webpack/vite等のパスエイリアス設定（`@/*`等）を実際に調べる。完了条件: `sharedDirPatterns`（共有ディレクトリのglob一覧）・`pathAliases`（エイリアス→実パスの対応表）が確定済み、または対象プロジェクトに共有ディレクトリ・エイリアスが存在しない旨が確認済み
+- **Step 6**: 検出戦略宣言を作成し、AskUserQuestionで承認を取る。宣言JSONは一時ファイルに保存する。完了条件: 戦略JSON（`unitKind: "screen"`/`extractionMethod`/`screenUnitDefinition`/`screenIdRegex`/`viewSwitchPattern`/`excludePatterns`/`sharedDirPatterns`/`pathAliases`/`approvedByUser: true`/`notes`）が保存済み
 
 ### 抽出基準の明文化
 
@@ -87,19 +89,28 @@ allowed-tools: [Bash, Read, Write, Edit, Grep, Glob, AskUserQuestion, TaskCreate
 
 **手作業でのプレースホルダ置換は禁止する**（過去に `entryFile=None` の混入という実害が発生している）。HTML生成は必ずスクリプト経由の決定的処理で行う。
 
+### Phase 5（任意）: 複雑度プロファイリング
+
+`--profile` サブコマンドで複雑度プロファイル.json を生成する。orchestrating-reverse-docs-flow が画面スコープ「複雑度層別サンプル」を選択した場合、または管理者が層別サンプリングの入力として要求した場合にのみ実行する任意工程であり、Phase 1〜4（画面一覧.html生成）の完了を前提とする。プロファイル未生成時（`<output_dir>/画面一覧/複雑度プロファイル.json` が不在）は、複雑度層別サンプルを要求された時点で本Phaseを先行起動する。
+
+- **Step 1**: `--profile <manifest.json> <output-dir>/画面一覧/複雑度プロファイル.json` を実行し、画面ごとの複雑度指標（ファイル数・行数・依存ファイル数等）を機械算出する。完了条件: 複雑度プロファイル.jsonが生成済み
+
+完了条件: 複雑度プロファイル.jsonが `<output_dir>/画面一覧/複雑度プロファイル.json` に生成されている（本Phaseを実行した場合のみ）
+
 ## 完了条件
 
 | Phase | 完了条件 |
 |---|---|
-| Phase 1 | Step 1〜4の調査完了。Step 5の検出戦略宣言（`unitKind: "screen"`/screenUnitDefinition/screenIdRegex/viewSwitchPattern/excludePatterns）がユーザー承認済み |
+| Phase 1 | Step 1〜4の調査完了。Step 5の共有ファイル・エイリアス調査（sharedDirPatterns/pathAliases）完了。Step 6の検出戦略宣言（`unitKind: "screen"`/screenUnitDefinition/screenIdRegex/viewSwitchPattern/excludePatterns/sharedDirPatterns/pathAliases）がユーザー承認済み |
 | Phase 2 | Step 1で抽出方式（builtin/custom）が決定済み。Step 2でスキーマ準拠のマニフェストが1件以上確定、または0件検出をユーザーに報告して停止している。Step 3でdiagnosticsを確認済み |
 | Phase 3 | Step 1で `validate-manifest.sh --unit-kind screen` が7項目すべてPASS。Step 2のFAIL時修正ループは3回以内 |
 | Phase 4 | Step 1で画面一覧.htmlが生成され、埋め込みJSONがマニフェストと一致している |
+| Phase 5（任意） | `--profile`サブコマンド実行時のみ、複雑度プロファイル.jsonが生成されている |
 | **Goal** | 検証済みマニフェストのみからHTMLが生成され、共有/埋め込み/未解決/診断警告が可視化され、設計書単位の判断材料が揃っている |
 
 ## 返却
 
-本スキルは orchestrating-reverse-docs-flow の契約に準拠する。完了時に status（`DONE | ERROR`）と artifacts（生成した画面一覧.htmlのパス）を返す。artifacts[0] を汎用名 unit_list_html として返し、`unit_kind: screen`（固定値）を返却ブロックに含める。HTML内に埋め込んだマニフェストJSONへの参照を embedded_json_ref として併せて返す。従来互換のため screen_list_html を unit_list_html のエイリアスとして併せて返す。
+本スキルは orchestrating-reverse-docs-flow の契約に準拠する。完了時に status（`DONE | ERROR`）と artifacts（生成した画面一覧.htmlのパス）を返す。artifacts[0] を汎用名 unit_list_html として返し、`unit_kind: screen`（固定値）を返却ブロックに含める。HTML内に埋め込んだマニフェストJSONへの参照を embedded_json_ref として併せて返す。従来互換のため screen_list_html を unit_list_html のエイリアスとして併せて返す。Phase 5（複雑度プロファイリング）を実行した場合のみ、拡張フィールド complexity_profile_path（複雑度プロファイル.json の絶対パス）を併せて返す。
 
 ## ツールリファレンス
 

@@ -5,7 +5,12 @@ set -euo pipefail
 #
 # 使い方:
 #   recount-facts.sh <facts.yml> <target_repo_path> <target_file相対パス...>
+#   recount-facts.sh --recount-only <target_repo_path> <target_file相対パス...>
 #   recount-facts.sh --self-test
+#
+# --recount-only は facts.yml を介さず、①〜⑧の8分類件数とloc（対象ファイル群の
+# 合計行数）のみを「<セクション> <件数>」形式で出力する薄い出口。detect-screens.sh
+# --profile 等、突合ゲート以外の用途でコア計数関数を再利用するために設ける。
 #
 # 検査（いずれか1件でも違反があれば exit 1。fail-closed）:
 #   1. 分類別件数の乖離検査: facts.yml を読まずに①〜⑧の8分類を対象コードから独立再計数し、
@@ -1158,6 +1163,86 @@ EOF
     rc=1
   fi
 
+  # 追加陽性: --recount-only サブコマンドが8軸の再計数結果に加えてlocを
+  # 「<セクション> <件数>」形式で出力し、facts.ymlを介さないrecount_from_codeの
+  # 実測値と完全一致することを確認する。
+  expected_loc="$(wc -l < "$tmp/repo/src/screens/Foo/Foo.tsx" | tr -d ' ')"
+  expected_recount_only="$(printf '%s\n%s %s' "$actual" loc "$expected_loc")"
+  recount_only_out="$(bash "$0" --recount-only "$tmp/repo" "src/screens/Foo/Foo.tsx")"
+  if [ "$recount_only_out" = "$expected_recount_only" ]; then
+    echo "  [PASS] --recount-only: 8軸が既存実測と完全一致＋loc一致"
+  else
+    echo "  [FAIL] --recount-only: 8軸+locが既存実測と一致しない" >&2
+    echo "    実測:" >&2
+    printf '%s\n' "$recount_only_out" | sed 's/^/      /' >&2
+    echo "    期待:" >&2
+    printf '%s\n' "$expected_recount_only" | sed 's/^/      /' >&2
+    rc=1
+  fi
+
+  # 追加陽性: 2ファイル指定時のlocが加法的（各ファイルのwc -lの単純合算）であることを
+  # 確認する。連結一時ファイル方式（build_content_file）は区切り用の空行を挟むため
+  # wc -lで直接数えると水増しされるが、--recount-onlyは元ファイルごとのwc -lを
+  # 合算するためその水増しが起きない。
+  bar_file="$tmp/repo/src/screens/Foo/Bar.tsx"
+  cat > "$bar_file" <<'TSX'
+export const BAR_VALUE = 1;
+export const BAR_LABEL = "bar";
+TSX
+  loc_foo="$(wc -l < "$tmp/repo/src/screens/Foo/Foo.tsx" | tr -d ' ')"
+  loc_bar="$(wc -l < "$bar_file" | tr -d ' ')"
+  expected_loc_sum=$((loc_foo + loc_bar))
+  two_file_out="$(bash "$0" --recount-only "$tmp/repo" "src/screens/Foo/Foo.tsx" "src/screens/Foo/Bar.tsx")"
+  actual_loc_sum="$(printf '%s\n' "$two_file_out" | awk '$1=="loc"{print $2}')"
+  if [ "$actual_loc_sum" = "$expected_loc_sum" ]; then
+    echo "  [PASS] --recount-only: 2ファイルのloc加法性（${expected_loc_sum}）"
+  else
+    echo "  [FAIL] --recount-only: loc加法性が崩れている（実測=${actual_loc_sum} 期待=${expected_loc_sum}）" >&2
+    rc=1
+  fi
+
+  # 陰性: repo不在でexit 2
+  if bash "$0" --recount-only "$tmp/repo-does-not-exist" "src/screens/Foo/Foo.tsx" >/dev/null 2>&1; then
+    echo "  [FAIL] --recount-only: repo不在なのにexit 0で成功した" >&2
+    rc=1
+  else
+    repo_missing_rc=$?
+    if [ "$repo_missing_rc" = "2" ]; then
+      echo "  [PASS] --recount-only: repo不在でexit 2"
+    else
+      echo "  [FAIL] --recount-only: repo不在時のexitコードが2でない（実測=${repo_missing_rc}）" >&2
+      rc=1
+    fi
+  fi
+
+  # 陰性: 対象ファイル不在でexit 2
+  if bash "$0" --recount-only "$tmp/repo" "src/screens/Foo/NoSuchFile.tsx" >/dev/null 2>&1; then
+    echo "  [FAIL] --recount-only: ファイル不在なのにexit 0で成功した" >&2
+    rc=1
+  else
+    file_missing_rc=$?
+    if [ "$file_missing_rc" = "2" ]; then
+      echo "  [PASS] --recount-only: ファイル不在でexit 2"
+    else
+      echo "  [FAIL] --recount-only: ファイル不在時のexitコードが2でない（実測=${file_missing_rc}）" >&2
+      rc=1
+    fi
+  fi
+
+  # 陰性: 対象ファイル0件でexit 2
+  if bash "$0" --recount-only "$tmp/repo" >/dev/null 2>&1; then
+    echo "  [FAIL] --recount-only: 対象0件なのにexit 0で成功した" >&2
+    rc=1
+  else
+    zero_target_rc=$?
+    if [ "$zero_target_rc" = "2" ]; then
+      echo "  [PASS] --recount-only: 対象0件でexit 2"
+    else
+      echo "  [FAIL] --recount-only: 対象0件時のexitコードが2でない（実測=${zero_target_rc}）" >&2
+      rc=1
+    fi
+  fi
+
   if [ "$rc" -eq 0 ]; then
     echo "self-test 全項目 PASS"
   else
@@ -1169,6 +1254,40 @@ EOF
 if [ "${1:-}" = "--self-test" ]; then
   self_test
   exit $?
+fi
+
+# --recount-only: facts.ymlを介さず、対象ファイル群の8分類件数とloc（合計行数）のみを
+# 「<セクション> <件数>」形式で出力する（detect-screens.sh --profile 等、突合ゲート以外の
+# 用途でコア計数関数を再利用するための薄い出口）。
+if [ "${1:-}" = "--recount-only" ]; then
+  shift
+  repo="${1:?使い方: recount-facts.sh --recount-only <target_repo_path> <target_file相対パス...>}"
+  shift || true
+  if [ "$#" -lt 1 ]; then
+    echo "エラー: target_file相対パスを1つ以上指定してください" >&2
+    exit 2
+  fi
+  if [ ! -d "$repo" ]; then
+    echo "エラー: target_repo_path が見つかりません: $repo" >&2
+    exit 2
+  fi
+  for f in "$@"; do
+    if [ ! -f "$repo/$f" ]; then
+      echo "エラー: 対象ファイルが見つかりません: $repo/$f" >&2
+      exit 2
+    fi
+  done
+  recount_from_code "$repo" "$@"
+  # loc（合計行数）は元ファイルごとのwc -lを合算する。build_content_file が生成する
+  # 連結一時ファイルは各ファイル末尾に区切り用の空行を1行付加するため、そちらを
+  # wc -l すると件数がファイル数分水増しされる。
+  loc_total=0
+  for f in "$@"; do
+    lc="$(wc -l < "$repo/$f" | tr -d ' ')"
+    loc_total=$((loc_total + lc))
+  done
+  printf '%s %s\n' loc "$loc_total"
+  exit 0
 fi
 
 facts="${1:?使い方: recount-facts.sh <facts.yml> <target_repo_path> <target_file相対パス...>}"
