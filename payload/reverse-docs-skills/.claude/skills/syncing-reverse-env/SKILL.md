@@ -210,7 +210,7 @@ git tag -af "reverse-baseline/<scope>" -m "<検証日> 検証PASS: 実差分0 en
 - 環境固有値（allow_mnt_fs / node_modules_strategy / playwright_exec.mode / node_path）は既定 auto で自動検出されるため、WSL2 でも人間が config.yml に値を書く必要はない。projects の明示指定は auto の判定を強制的に上書きしたい時だけ使う
 - 共有オリジナルは読み取り専用・`source_ref` の解決 SHA で pin し、使用中（参照カウント>0）は再チェックアウト・復元をしない
 - 共有オリジナル方式は障害ドメインが同一 system@sha を使う画面群で共有になる（1 つの dev サーバー障害が全画面に波及する）。障害隔離が要る場合は per-scope を選ぶ
-- 環境名・環境識別に使う値（worktree 名・ポート・commit ガード等の周辺スクリプトの判定文字列を含む）は、`<system>`・`<画面ID>` の具体値をスクリプトに直書きしない。スクリプトが持ってよいのは命名規則の**構造**（`original-code-<system>` / `reverse-code-<scope>` のように `<...>` を常にプレースホルダとして持つ形）だけで、具体値は `source_repo`／`config.yml` から実行時に解決する。commit ガードのような周辺フックも同様に `<system>` を解決してから判定し、解決できない環境では正当な操作の誤ブロックを避けるため素通し（fail-open）する。この規約は `audit-doc-consistency.sh` の「環境名直書き」検査が機械強制する（接頭辞 `original-code-`/`reverse-code-` の直後にプレースホルダ以外の具体値が続く記述を FAIL とする）
+- 環境名・環境識別に使う値（worktree 名・ポート・commit ガード等の周辺スクリプトの判定文字列を含む）は、`<system>`・`<画面ID>` の具体値をスクリプトに直書きしない。スクリプトが持ってよいのは命名規則の**構造**（`original-code-<system>` / `reverse-code-<scope>` のように `<...>` を常にプレースホルダとして持つ形）だけで、具体値は `source_repo`／`config.yml` から実行時に解決する。commit ガードのような周辺フックも同様に `<system>` を解決してから判定し、解決できない環境では正当な操作の誤ブロックを避けるため素通し（fail-open）する。この規約は `audit-doc-consistency.sh` の「環境名直書き」検査が機械強制する（接頭辞 `original-code-`/`reverse-code-` の直後にプレースホルダ以外の具体値が続く記述を FAIL とする）。周辺フックの実装は `shared/scripts/check-worktree-commit-guard.sh`（worktree名の basename のみを見て commit/push を判定する同梱ガード。登録手順は RUNBOOK.md を参照）を正本とする
 - Playwright を実行する node スクリプトは全体タイムアウト（既定120秒）と `finally { await context.close(); await browser.close(); }` を必須とする（ブラウザプロセスの残留・ポート占有を防ぐ）
 
 ## 予想を裏切る挙動
@@ -237,9 +237,23 @@ git tag -af "reverse-baseline/<scope>" -m "<検証日> 検証PASS: 実差分0 en
 
 **廃棄条件**: 仕様の正本が単一ファイルに統合されキー突合が不要になった時、または本スキルが廃止された時。
 
+### shared/scripts/check-worktree-commit-guard.sh
+
+**必要性**: `original-code-*` worktree（リバース元・常に「正」）への commit や、`reverse-code-*` worktree からの `git push` は、RUNBOOK.md が定める安全柵（original 系への commit 禁止・reverse のみ commit 可で push 禁止）の違反であり、人間の目視確認だけに委ねると誤操作を防げない。worktree 名（cwd の git toplevel の basename）から機械的に許可/拒否を判定する PreToolUse(Bash) 相当のガードスクリプトとして固定化し、self-test（4系統）で判定ロジックの回帰を検証できるようにする。
+
+**代替案を採用しなかった理由**:
+- Bash ツール直叩き: worktree 名判定・commit/push サブコマンド抽出・fail-open 分岐という複数段の条件分岐を毎回手書きすると判定基準がブレる
+- 既存 Makefile 拡張・package.json scripts 追加: 本スキルはプロジェクト非依存であり対象にならない
+- Claude自身の目視確認のみ: サブエージェントが worktree を取り違えて original 系に書き込む事故を防ぐには、機械的な exit code 判定が必要
+
+**保守責任者**: 人手（ユーザー）。worktree 命名規則（`original-code-*`/`reverse-code-*`）を変更した場合は本スクリプトと RUNBOOK.md を同時に更新する。
+
+**廃棄条件**: `syncing-reverse-env` の worktree 命名規則そのものが廃止された時、または検証環境の隔離方式が worktree 以外へ移行した時。
+
 ## 参照資料
 
 - `config.yml` — ポート計算式・サービス一覧・起動コマンド・diff 除外・L3 閾値・max_loop の可変値（本スキルフォルダ直下）。`docs_root`（`projects.<system>.docs_root` での上書き）は既定 `null` だが、プロジェクト運用開始時に明示設定しておくことを推奨する。未設定のままだと `mode=registry` の画面レジストリ解決や Phase 8 返却ブロックの `docs_root` が `null` のままになり、下流工程での設計書展開先解決に支障が出る
 - `config.local.yml`（同ディレクトリ・任意） — 存在する場合、`config.yml` を基底として `config.local.yml` を深いマージ（local 優先）で重ねた結果を有効値とする。実プロジェクトの絶対パス入り `projects` エントリは `config.local.yml` にのみ記載する（`.gitignore` 済みのため公開 payload に載らない）。`config.yml` 側には汎用例のみを残す
 - `references/syncing-reverse-env-guide.html` — 確定仕様（プリフライト全項目・env_check 全項目・報告書式の正）
 - `scripts/audit-doc-consistency.sh` — ドキュメント整合性監査（改訂後の回帰ゲート）
+- `../../../shared/scripts/check-worktree-commit-guard.sh` — worktree commit/push ガード（登録手順は RUNBOOK.md を参照）

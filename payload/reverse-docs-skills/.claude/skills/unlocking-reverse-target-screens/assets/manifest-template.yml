@@ -68,3 +68,16 @@
     registration_procedure: "既定はcontract.md準拠。差分があれば記載"
   prohibitions: []          # 無ければ空配列のままでよい（<FILL:...> の必須埋め込み対象外）。例: ["本番DBへ接続しない"]
   known_gotchas: []         # 無ければ空配列のままでよい（<FILL:...> の必須埋め込み対象外）。例: [{symptom: "...", cause: "...", workaround: "..."}]
+
+  # バックエンドサービス起動情報
+  backend_services:
+    - name: "<FILL:サービス名>"
+      launch_command: "<FILL:起動コマンド。{port}プレースホルダ可>"
+      port: "<FILL:ポート番号>"
+      notes: "<FILL:備考（不要な構成なら空配列[]と理由を記載）>"
+
+  # ログイン認証情報の所在
+  login_credentials:
+    username_ref: "<FILL:ユーザー名の所在（環境変数名・設定ファイルパス等）>"
+    password_ref: "<FILL:パスワードの所在（同上）>"
+    notes: "<FILL:平文記載はプロジェクト管理者の判断。所在参照を推奨>"

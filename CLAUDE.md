@@ -1,15 +1,15 @@
 # agent-toolkit / CLAUDE.md（リポジトリ作業手順書）
 
 このファイルは **agent-toolkit リポジトリを clone して Claude Code を起動した AI 向けの手順書** です。
-配布される CLAUDE.md の実体は `payload/claude-config/CLAUDE.md` にあります（二役分離）。
+配布される CLAUDE.md の実体は `payload/claudecode-global-setup/claude-config/CLAUDE.md` にあります（二役分離）。
 
 ## 設置マッピング
 
 | payload パス | 設置先 | 備考 |
 |---|---|---|
-| `payload/agent-home/` | `~/agent-home/` | ディレクトリ全体をミラー |
-| `payload/claude-config/CLAUDE.md` | `~/.claude/CLAUDE.md` | 既存があれば上書きしない |
-| `payload/claude-config/settings-hooks.json` | `~/.claude/settings.json` | 既存の hooks セクションへ merge |
+| `payload/claudecode-global-setup/agent-home/` | `~/agent-home/` | ディレクトリ全体をミラー |
+| `payload/claudecode-global-setup/claude-config/CLAUDE.md` | `~/.claude/CLAUDE.md` | 既存があれば上書きしない |
+| `payload/claudecode-global-setup/claude-config/settings-hooks.json` | `~/.claude/settings.json` | 既存の hooks セクションへ merge |
 
 設置・更新の実作業は `scripts/install.mjs` が担う。インターフェース:
 
@@ -47,10 +47,10 @@ node scripts/install.mjs --target <dir>   # テスト用: 設置先を <dir> に
 ## このリポジトリで開発する人向け
 
 リポジトリ直下の `.claude/settings.json` に gate hook 2 本が登録済みです。managed ファイル
-（`payload/agent-home/skills/*/SKILL.md` 等）を編集すると `[MANAGING-REVIEW-REQUIRED]` が
+（`payload/claudecode-global-setup/agent-home/skills/*/SKILL.md` 等）を編集すると `[MANAGING-REVIEW-REQUIRED]` が
 advisory 注入され、テスト完了マーカーがない状態の `git commit` は exit 2 で block されます。
 
-commit 前に `payload/agent-home/skills/managing-agent-configs/scripts/manage-portal.mjs verify`
+commit 前に `payload/claudecode-global-setup/agent-home/skills/managing-agent-configs/scripts/manage-portal.mjs verify`
 を実行して 7 検査が全て PASS することを確認してから commit してください。
 
 配布物の同期元は private リポジトリの agent-home です。AT への変更は agent-home 側の正本と

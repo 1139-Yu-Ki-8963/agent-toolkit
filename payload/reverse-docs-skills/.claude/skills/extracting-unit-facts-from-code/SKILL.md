@@ -69,6 +69,8 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, TaskCreate, TaskUpdate]
 
 `scripts/recount-facts.sh <facts.yml> <target_repo_path> <target_file_paths...>` を実行する。スクリプトは facts.yml を読まずにまずコードから分類別件数を再計数し、その後 facts.yml の記載件数と突合する（乖離率5%以内・必須フィールド（key・evidence）の空欄率30%以内・孤児参照0件の3検査）。標準出力を `recount-report.txt` へ保存する（`scripts/recount-facts.sh ... | tee <facts_dir>/recount-report.txt`）。FAILした場合は Phase 2 へ戻り、指摘された乖離・空欄・孤児参照を修正して再実行する（上限3回。ループ設計は下表参照）。上限到達で収束しない場合は `status=中断` とする。
 
+facts.yml 自体を再抽出せず、既存の facts.yml に対して再計数のみをやり直したい場合（Phase 2 の抽出結果は据え置き、乖離判定だけを再実行したい場合）は `scripts/recount-facts.sh --recount-only <facts.yml> <target_repo_path> <target_file_paths...>` を呼ぶ。引数の並びは通常呼び出しと同一で、先頭に `--recount-only` を付けるだけでよい。
+
 完了条件: `recount-facts.sh` が `exit 0` かつ recount-report.txt保存済み
 
 ### Phase 4: 封印
