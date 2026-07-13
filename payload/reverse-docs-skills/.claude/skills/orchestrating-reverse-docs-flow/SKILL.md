@@ -171,7 +171,7 @@ Bash で `<verification_dir>/progress.jsonl` に phase="Phase 6" status="started
 **(b-2)(c) 基本設計・詳細設計の並列著述**: 事実封印完了（facts_ref 確定）後、管理者が並列起動前にスキャフォールディングを1回だけ実施する（`bash <scaffold_script_path> <docs_root> <画面ID> [<画面名>]` を画面ディレクトリ未存在時のみ実行。既存の場合は `--verify` のみで健全性確認する）。両スキルが個別にスキャフォールディングを実行すると並列実行時に競合するため、この1回化は管理者の責務とする。スキャフォールディング完了後、Agent ツールで以下の 2 スキルを同時に起動する（run_in_background: true、Phase 1.5 の並列パターンに準拠）:
 
 - generating-reverse-basic-design（args: screen_dir・docs_root・template_root・scaffold_script_path・facts_ref・common_docs_root・unit_kind）→ 期待 status=基本設計著述完了
-- generating-reverse-detailed-design（args: screen_dir・docs_root・template_root・chapter_map_path・audit_script_path・scaffold_script_path・facts_ref・common_docs_root・mode・target_file_path）→ 期待 status=AUTHORED。画面ディレクトリのスキャフォールディングは管理者が事前実施済みのため、本スキルは `--verify` のみを実行する
+- generating-reverse-detailed-design（args: screen_dir・docs_root・template_root・chapter_map_path・audit_script_path・scaffold_script_path・facts_ref・common_docs_root・mode・target_file_path・verification_url）→ 期待 status=AUTHORED。画面ディレクトリのスキャフォールディングは管理者が事前実施済みのため、本スキルは `--verify` のみを実行する
 
 headless=true 時は基本設計→詳細設計を Skill ツールで逐次起動する（Agent の並列起動が 600 秒で切断されるため）。対話モードでは従来どおり Agent(run_in_background: true) で並列起動する。
 
@@ -299,7 +299,7 @@ Bash で `<verification_dir>/progress.jsonl` に phase="Phase 11" status="starte
 | Phase 6（画面未開通・救済時のみ／UNLOCKED差し戻し時） | syncing-reverse-env | mode=registry, system, screen_id, reverse_worktree, ports, user-approved | PASS |
 | Phase 6（事実未封印時） | extracting-unit-facts-from-code | target_repo_path, target_file_paths, screen_dir, profile=screen, survey_doc_path, run_id | 封印済み |
 | Phase 6（基本設計未著述時） | generating-reverse-basic-design | screen_dir, docs_root, template_root, scaffold_script_path, facts_ref, common_docs_root, unit_kind | 基本設計著述完了 |
-| Phase 6（設計書未著述時） | generating-reverse-detailed-design | screen_dir, docs_root, template_root, chapter_map_path, audit_script_path, scaffold_script_path, facts_ref, common_docs_root, mode, target_file_path | AUTHORED |
+| Phase 6（設計書未著述時） | generating-reverse-detailed-design | screen_dir, docs_root, template_root, chapter_map_path, audit_script_path, scaffold_script_path, facts_ref, common_docs_root, mode, target_file_path, verification_url | AUTHORED |
 | Phase 6（ファイル単位未検証時） | rebuilding-screen-unit-from-docs | screen_dir, target_file_path, 資産paths, env_block, user-approved | 再現一致 |
 | Phase 7 | syncing-reverse-env | design-doc, mode=sync | PASS |
 | Phase 8 | rebuilding-code-from-docs | mode=implement, scope, reverse_worktree, ports, 資産paths, user-approved | NEED-COMPARE |

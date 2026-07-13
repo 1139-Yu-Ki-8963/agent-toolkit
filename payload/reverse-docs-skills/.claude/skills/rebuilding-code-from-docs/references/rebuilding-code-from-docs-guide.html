@@ -309,7 +309,7 @@
 
 <section id="s8">
   <h2><span class="sec-num">§8</span>報告フォーマット</h2>
-  <p>書式の正は <code>references/report-format.md</code>。配置先は <code>&lt;画面ディレクトリ&gt;/検証記録/&lt;timestamp&gt;/</code>（設計書リポジトリ内）。生証跡（スクリーンショット・テストログ・返却ブロック全文）も同じ <code>&lt;画面ディレクトリ&gt;/検証記録/&lt;timestamp&gt;/</code> 配下に同梱する。</p>
+  <p>書式の正は <code>references/report-format.md</code>。配置先は <code>&lt;verification_dir&gt;/screen-&lt;画面ID&gt;/&lt;timestamp&gt;/</code>（`verification_dir` は docs と同階層の `verification/`）。生証跡（スクリーンショット・テストログ・返却ブロック全文）も同じ <code>&lt;verification_dir&gt;/screen-&lt;画面ID&gt;/&lt;timestamp&gt;/</code> 配下に同梱する。</p>
   <table class="spec">
     <tr><th>成果物</th><th>作成 Phase</th><th>内容</th></tr>
     <tr><td>修正指示書</td><td>Phase 8</td><td>対象設計書パス / NG 一覧（失敗クラス・帰着章・修正指示・証跡パス）/ テンプレート改善提案</td></tr>
@@ -336,8 +336,8 @@
   <ul>
     <li>Phase 2 で内部矛盾を検出した場合、Phase 4 の実装は行わない。欠陥設計書からの実装検証は往復検証として無意味なため、直ちに Phase 8 の指示書作成に移る</li>
     <li>Phase 5 の発散確定は失敗ではなく手がかり。発散したエラー自体を設計書欠落候補として Phase 8 に渡す</li>
-    <li>検証成果物は設計書リポジトリ内 <code>&lt;画面ディレクトリ&gt;/検証記録/&lt;timestamp&gt;/</code> に置く。worktree 内には置かない（静的比較を汚すため）</li>
-    <li>生証跡（スクリーンショット・テストログ・返却ブロック全文）は <code>&lt;画面ディレクトリ&gt;/検証記録/&lt;timestamp&gt;/</code> 配下に同梱し、指示書からは同ディレクトリ内の相対パスで参照する</li>
+    <li>検証成果物は <code>&lt;verification_dir&gt;/screen-&lt;画面ID&gt;/&lt;timestamp&gt;/</code> に置く。worktree 内には置かない（静的比較を汚すため）</li>
+    <li>生証跡（スクリーンショット・テストログ・返却ブロック全文）は <code>&lt;verification_dir&gt;/screen-&lt;画面ID&gt;/&lt;timestamp&gt;/</code> 配下に同梱し、指示書からは同ディレクトリ内の相対パスで参照する</li>
   </ul>
 </section>
 

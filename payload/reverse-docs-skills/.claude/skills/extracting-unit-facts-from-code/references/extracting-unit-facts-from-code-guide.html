@@ -151,7 +151,7 @@
     <strong>単独動作</strong>: 他スキルへの依存を持たない。起動引数を渡せば単独で動く。工程全体は orchestrating-reverse-docs-flow が案内する。後続工程（詳細設計執筆）はこのfactsを前提として動く。
   </div>
   <div class="constraint">
-    <strong>読み取り専用</strong>: 対象リポジトリへの書き込み・変更は一切行わない。出力は screen_dir 配下の1ディレクトリ（検証記録/facts/&lt;run_id&gt;/）のみ。
+    <strong>読み取り専用</strong>: 対象リポジトリへの書き込み・変更は一切行わない。出力は <code>&lt;verification_dir&gt;/screen-&lt;画面ID&gt;/facts/&lt;run_id&gt;/</code> の1ディレクトリのみ。
   </div>
 </section>
 
@@ -189,7 +189,7 @@
     <tr><th>引数</th><th>必須</th><th>内容</th></tr>
     <tr><td>target_repo_path</td><td>必須</td><td>対象リポジトリの絶対パス</td></tr>
     <tr><td>target_file_paths</td><td>必須</td><td>対象ユニットの対象ファイル（画面本体＋直接の子コンポーネント）の相対パス配列</td></tr>
-    <tr><td>screen_dir</td><td>必須</td><td>出力先の画面ディレクトリ絶対パス。facts は <code>&lt;screen_dir&gt;/検証記録/facts/&lt;run_id&gt;/</code> に出力する</td></tr>
+    <tr><td>screen_dir</td><td>必須</td><td>出力先の画面ディレクトリ絶対パス。facts は <code>&lt;verification_dir&gt;/screen-&lt;画面ID&gt;/facts/&lt;run_id&gt;/</code> に出力する</td></tr>
     <tr><td>profile</td><td>必須</td><td><code>screen</code> のみ実装。他値は status=中断で未対応と返す</td></tr>
     <tr><td>survey_doc_path</td><td>必須</td><td>アーキテクチャ調査書のパス（方式→プロファイル選択の根拠。実在確認のみ）</td></tr>
     <tr><td>run_id</td><td>任意（既定 extract-1）</td><td>抽出実行の識別子。出力ディレクトリ名・facts.yml内のrun_idフィールドに使う</td></tr>
@@ -323,7 +323,7 @@
     <li>シェルスクリプト内で <code>$変数</code> の直後に全角記号を空白なしで続けると、環境によって変数名の終端誤認識が起きる場合がある。<code>${変数}</code> のブレース記法を必須にする</li>
     <li>Phase 5 の diff はプロセス置換 <code>&lt;(...)</code> ではなく一時ファイル書き出し経由の比較に固定する（サンドボックス環境で /dev/fd への書き込みが権限拒否されるケースがある）</li>
     <li>対象リポジトリに対しては読み取り専用。書き込み・変更は一切行わない</li>
-    <li>出力は screen_dir 配下のみ（検証記録/facts/&lt;run_id&gt;/ の3ファイル）。対象リポジトリ側には何も生成しない</li>
+    <li>出力は <code>&lt;verification_dir&gt;/screen-&lt;画面ID&gt;/facts/&lt;run_id&gt;/</code> 配下のみ（3ファイル）。対象リポジトリ側には何も生成しない</li>
     <li>推測・要約での補完を禁止する。コードに存在しない事実を書かない</li>
     <li>profile=screen 以外は未対応。指定された場合は抽出を行わず status=中断を返す</li>
     <li>AskUserQuestionを使わない。args全量指定・対話ゼロで完走する</li>
