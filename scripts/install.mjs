@@ -153,6 +153,38 @@ function mergeSettings(srcPath, dstPath) {
     }
   }
 
+  // outputStyle: src にあり dst になければコピー
+  if (srcJson.outputStyle && !dstJson.outputStyle) {
+    dstJson.outputStyle = srcJson.outputStyle;
+  }
+
+  // permissions: 配列フィールドをマージ、スカラーは src 優先で補完
+  if (srcJson.permissions) {
+    if (!dstJson.permissions) dstJson.permissions = {};
+    for (const key of ["allow", "deny", "ask"]) {
+      if (srcJson.permissions[key]) {
+        if (!dstJson.permissions[key]) dstJson.permissions[key] = [];
+        for (const item of srcJson.permissions[key]) {
+          if (!dstJson.permissions[key].includes(item)) {
+            dstJson.permissions[key].push(item);
+          }
+        }
+      }
+    }
+    if (srcJson.permissions.defaultMode && !dstJson.permissions.defaultMode) {
+      dstJson.permissions.defaultMode = srcJson.permissions.defaultMode;
+    }
+    if (srcJson.permissions.additionalDirectories) {
+      if (!dstJson.permissions.additionalDirectories) dstJson.permissions.additionalDirectories = [];
+      for (let dir of srcJson.permissions.additionalDirectories) {
+        dir = dir.replace(/__HOME__/g, TARGET);
+        if (!dstJson.permissions.additionalDirectories.includes(dir)) {
+          dstJson.permissions.additionalDirectories.push(dir);
+        }
+      }
+    }
+  }
+
   return { ok: true, json: dstJson, added, skipped };
 }
 
@@ -377,6 +409,32 @@ function cmdApply() {
   const skillLogDir = path.join(TARGET, "agent-home", "sessions", ".skill-log");
   fs.mkdirSync(skillLogDir, { recursive: true });
   console.log(`  [mkdir] agent-home/sessions/.skill-log/`);
+
+  // symlink: <TARGET>/.claude/rules → <TARGET>/agent-home/rules
+  //          <TARGET>/.claude/skills → <TARGET>/agent-home/skills
+  const symlinks = [
+    { link: path.join(TARGET, ".claude", "rules"), target: path.join(TARGET, "agent-home", "rules") },
+    { link: path.join(TARGET, ".claude", "skills"), target: path.join(TARGET, "agent-home", "skills") },
+  ];
+  for (const { link, target: linkTarget } of symlinks) {
+    const relTarget = path.relative(path.dirname(link), linkTarget);
+    if (fs.existsSync(link)) {
+      const stat = fs.lstatSync(link);
+      if (stat.isSymbolicLink()) {
+        const existing = fs.readlinkSync(link);
+        if (existing === relTarget) {
+          console.log(`  [skip] ${path.relative(TARGET, link)} → 既存 symlink（正常）`);
+          continue;
+        }
+        fs.unlinkSync(link);
+      } else {
+        console.log(`  [skip] ${path.relative(TARGET, link)} — 実体のため symlink 作成スキップ`);
+        continue;
+      }
+    }
+    fs.symlinkSync(relTarget, link);
+    console.log(`  [symlink] ${path.relative(TARGET, link)} → ${relTarget}`);
+  }
 
   console.log(`\n設置完了: 新規 ${copied} / 更新 ${updated} / skip ${skipped}${errors > 0 ? ` / エラー ${errors}` : ""}\n`);
 

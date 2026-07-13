@@ -1,27 +1,293 @@
 {
-  "hooks": {
-    "PostToolUse": [
-      {
-        "matcher": "Write|Edit|MultiEdit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "$HOME/agent-home/skills/managing-agent-configs/scripts/managing-review-gate.sh"
-          }
-        ]
-      }
+  "outputStyle": "fable-like",
+  "permissions": {
+    "allow": [
+      "Read",
+      "Edit",
+      "Write",
+      "NotebookEdit",
+      "Glob",
+      "Grep",
+      "LS",
+      "WebSearch",
+      "WebFetch",
+      "Agent",
+      "Skill",
+      "mcp__playwright__*",
+      "mcp__notion__*",
+      "Bash(*)"
     ],
+    "deny": [
+      "Bash(sudo:*)",
+      "Bash(git push --force:*)",
+      "Bash(git push -f:*)",
+      "Bash(git push --force-with-lease:*)",
+      "Read(**/.env*)",
+      "Read(**/id_rsa*)",
+      "Read(**/id_ed25519*)",
+      "Read(~/.ssh/**)",
+      "Read(**/*.pem)",
+      "Read(**/credentials*)",
+      "Write(**/.env*)",
+      "Write(**/secrets/**)",
+      "Bash(nc:*)",
+      "Bash(npm uninstall:*)",
+      "Bash(npm remove:*)",
+      "Bash(psql:*)",
+      "Bash(mysql:*)",
+      "Bash(mongod:*)",
+      "Bash(chown:*)",
+      "Bash(dd:*)",
+      "Bash(shutdown:*)",
+      "Bash(reboot:*)",
+      "mcp__supabase__execute_sql",
+      "Bash(python3 -c*)",
+      "Bash(python3 - *)",
+      "Bash(python3 <<*)",
+      "Bash(python -c*)",
+      "Bash(python - *)",
+      "Bash(python <<*)",
+      "Bash(gh auth login:*)",
+      "Bash(npm login:*)",
+      "Bash(docker login:*)",
+      "Bash(gcloud auth login:*)",
+      "Bash(aws configure:*)",
+      "Bash(ssh-keygen:*)",
+      "Bash(vercel login:*)",
+      "Bash(supabase login:*)",
+      "Bash(render login:*)",
+      "Bash(heroku login:*)",
+      "Bash(git commit --no-verify:*)",
+      "Bash(git push --no-verify:*)",
+      "Write(**/*.bat)",
+      "Write(**/*.zsh)",
+      "Write(**/*.fish)",
+      "Bash(rm -rf /)",
+      "Bash(rm -rf / *)",
+      "Bash(rm -rf ~)",
+      "Bash(rm -rf ~/)",
+      "Bash(rm -rf $HOME)",
+      "Bash(rm -rf $HOME/)",
+      "Bash(rm -fr /)",
+      "Bash(rm -fr / *)",
+      "Bash(rm -fr ~)",
+      "Bash(rm -fr ~/)",
+      "Bash(rm -fr $HOME)",
+      "Bash(rm -fr $HOME/)",
+      "Bash(git filter-branch:*)",
+      "Bash(git filter-repo:*)",
+      "Bash(git push --mirror:*)",
+      "Bash(chmod -R 777*)",
+      "Bash(git config --global*)",
+      "Bash(touch /tmp/.allow-*)"
+    ],
+    "ask": [
+      "Bash(git reset --hard:*)",
+      "Write(~/.claude/CLAUDE.md)",
+      "Edit(~/.claude/CLAUDE.md)"
+    ],
+    "defaultMode": "auto",
+    "additionalDirectories": [
+      "__HOME__/agent-home",
+      "__HOME__/.claude",
+      "__HOME__/Projects/worktrees"
+    ]
+  },
+  "hooks": {
     "PreToolUse": [
       {
         "matcher": "Bash",
         "hooks": [
           {
             "type": "command",
-            "command": "$HOME/agent-home/skills/managing-agent-configs/scripts/managing-commit-gate.sh"
+            "command": "~/.claude/rules/always/agent/subagent-selection/check-worker-haiku-file-change.sh",
+            "timeout": 5
           },
           {
             "type": "command",
-            "command": "$HOME/.claude/agents/worker-haiku/scripts/worker-haiku-bash-guard.sh",
+            "command": "~/.claude/rules/always/infra/pre-bash-dispatch/dispatch-pre-bash-checks.sh",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "~/.claude/rules/always/naming/commit-branch/check-git-author-allowlist.sh",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "~/.claude/rules/scoped/agent-config/hooks/rules-bash-runner.sh",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "printf '{\"systemMessage\":\"[フック発火] 命名規則: ファイル名\",\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"additionalContext\":\"[NAMING] ファイル名: デフォルトはケバブケース。ただし①規約固定でなく②機械参照されず③人間が一覧で探す読み物 の3条件を満たす場合は日本語ファイル名可（例: routines/配下のルーティン設計書）。大文字固定: SKILL.md/README.md/CLAUDE.md/CHANGELOG.md。設定ファイルはツール慣習に従う。命名の共通原則と全サーフェスの横断表: ~/.claude/rules/always/naming/common-principles/naming-values.txt\"}}'",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "~/agent-home/skills/eliciting-plan-tacit-knowledge/scripts/check-plan-draft-write-gate.sh",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit|MultiEdit|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/rules/always/placement/directory-structure/check-write-implicit-dir.sh",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "~/agent-home/skills/parallel-dev-worktree/scripts/check-worktree-required.sh",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "~/.claude/rules/scoped/agent-config/hooks/check-hooks-architecture.sh",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "~/.claude/rules/scoped/agent-config/claude-md/check-claude-md-guard.sh",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "~/.claude/rules/always/agent/subagent-selection/check-main-agent-direct-work.sh",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "Skill",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/rules/always/session/infra/skill-log-recorder.sh",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "mcp__playwright__browser_take_screenshot",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/rules/always/placement/file-guard/check-playwright-filename.sh",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "Agent",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/rules/always/agent/subagent-selection/check-evidence-checklist.sh",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "bash ~/.claude/rules/always/agent/subagent-selection/check-subagent-choice.sh",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "ExitPlanMode",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/agent-home/skills/eliciting-plan-tacit-knowledge/scripts/check-plan-tacit-knowledge-gate.sh",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '.prompt // \"\"' | grep -qiE '(skill|スキル).*(作成|作る|追加|書く|実装|設計|新しい|creat|make|add|build|write|new)|(作成|作る|追加|書く|実装|設計|新しい|creat|make|add|build|write|new).*(skill|スキル)|SKILL\\.md' && printf '{\"systemMessage\":\"[フック発火] SKILL作成ルールを注入しました\",\"hookSpecificOutput\":{\"hookEventName\":\"UserPromptSubmit\",\"additionalContext\":\"[SKILL作成ルール] frontmatterに必須3項目: name(kebab-case), description(TRIGGER when/SKIPを含む複数行), invocation(nameと同値)。配置先: ~/agent-home/skills/<name>/SKILL.md。絶対パス禁止。\"}}' || true",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/rules/always/agent/subagent-selection/suggest-subagent.sh",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/rules/always/placement/flow-context-guard/generate-flow-context.sh",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/rules/always/response/guard/check-no-deferral-post-write.sh || true",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "~/.claude/rules/always/response/guard/check-no-delegation-post-write.sh || true",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "~/.claude/rules/scoped/tooling/shell/check-sh-design-decision.sh || true",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "~/.claude/rules/always/naming/common-principles/check-identifier-naming.sh || true",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "~/.claude/rules/scoped/tooling/shell/shell-evasion-check.sh || true",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "~/.claude/rules/always/agent-config/review/check-managing-configs-review-needed.sh || true",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "~/.claude/rules/scoped/portal/page-conventions/check-portal-consistency.sh || true",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "TaskCreate",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/rules/always/gate/phase-step-task/record-step-tasks.sh || true",
             "timeout": 5
           }
         ]
@@ -32,8 +298,60 @@
         "hooks": [
           {
             "type": "command",
-            "command": "$HOME/agent-home/skills/managing-agent-configs/scripts/cleanup-session-markers.sh",
+            "command": "/bin/bash ~/.claude/rules/always/placement/file-guard/cleanup-session-markers.sh",
             "timeout": 5
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd ~ && /bin/bash ~/.claude/rules/always/response/guard/check-no-delegation-stop.sh",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "cd ~ && /bin/bash ~/.claude/rules/always/response/guard/check-no-deferral-stop.sh",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "cd ~ && /bin/bash ~/.claude/rules/always/review-checklist/term-explanation/check-term-explanation.sh",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "cd ~ && /bin/bash ~/agent-home/skills/parallel-dev-worktree/scripts/remind-worktree-cleanup.sh",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "[ -n \"$CLAUDE_PROJECT_DIR\" ] && [ -x \"$CLAUDE_PROJECT_DIR/.claude/hooks/pr-merge-guard.sh\" ] && /bin/bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/pr-merge-guard.sh\" || true",
+            "timeout": 15
+          },
+          {
+            "type": "command",
+            "command": "/bin/bash ~/.claude/rules/always/session/infra/delete-nested-claude-dir.sh || true",
+            "timeout": 3
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "nohup ~/.claude/rules/always/placement/file-guard/cleanup-stale-hook-sessions.sh >/dev/null 2>&1 & disown; exit 0",
+            "timeout": 3
+          },
+          {
+            "type": "command",
+            "command": "/bin/bash ~/.claude/rules/always/session/infra/delete-nested-claude-dir.sh || true",
+            "timeout": 3
           }
         ]
       }

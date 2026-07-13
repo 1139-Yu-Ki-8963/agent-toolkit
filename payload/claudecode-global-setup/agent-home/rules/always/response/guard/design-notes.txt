@@ -1,0 +1,94 @@
+# 応答品質ガード（RESPONSE-GUARD）設計ノート（非注入サイドカー）
+# rule.md から分離した保守者向け記録。規約の挙動には影響しない。
+
+## 設計判断
+
+### no-delegation-check.sh
+
+**必要性**: 依頼パターンの正規表現マッチを 4 つの hook（PreToolUse / PostToolUse / Stop / 単体テスト）から共有するための検出エンジン。パターンが 20 種以上あり、各 hook にインライン展開すると保守不能。
+
+**代替案を採用しなかった理由**:
+- Bash ツール直叩き: Stop hook は harness 自動起動であり Bash ツール経由では発火不可
+- パターンを rule.md に書いて Claude に判定させる: 機械的な正規表現マッチは hook が正確
+
+**保守責任者**: 人手（ユーザー）
+
+**廃棄条件**: Claude Code 本体がユーザー依頼パターンの自動検出を組み込んだ時
+
+### stop-no-delegation.sh
+
+**必要性**: 最終応答の事後検査は Stop hook でしか実現できない。PreToolUse / PostToolUse では応答全体を検査できない。
+
+**代替案を採用しなかった理由**:
+- PostToolUse のみ: テキスト出力（tool 呼び出しを伴わない応答）を検査できない
+
+**保守責任者**: 人手（ユーザー）
+
+**廃棄条件**: Claude Code 本体が応答内容の事後検査を組み込んだ時
+
+### no-delegation-pre-bash.sh
+
+**必要性**: 対話必須コマンドの発行を事前に block する必要がある。PostToolUse では実行後で手遅れ。
+
+**代替案を採用しなかった理由**:
+- `permissions.deny` のみ: コマンド引数レベルの判定ができない
+
+**保守責任者**: 人手（ユーザー）
+
+**廃棄条件**: `permissions.deny` がコマンド引数パターンマッチに対応した時
+
+### no-delegation-post-write.sh
+
+**必要性**: PR/issue body を Write した直後に依頼文を検出し、`gh pr create` 前に修正を促す。
+
+**代替案を採用しなかった理由**:
+- PreToolUse(Bash) のみ: body を Write してから `gh pr create` するまでの間に修正機会がない
+
+**保守責任者**: 人手（ユーザー）
+
+**廃棄条件**: no-delegation-check.sh 廃止時
+
+### no-deferral-check.sh
+
+**必要性**: 先送りパターンの正規表現マッチを 3 つの hook（PreToolUse / PostToolUse / Stop）から共有するための検出エンジン。パターンが 10 種以上あり例外判定（見出し直下の「なし」除外）もあるため、インライン化は保守不能。
+
+**代替案を採用しなかった理由**:
+- Bash ツール直叩き: Stop hook は harness 自動起動であり Bash ツール経由では発火不可
+- パターンを rule.md に書いて Claude に判定させる: 機械的な正規表現マッチは hook が正確
+
+**保守責任者**: 人手（ユーザー）
+
+**廃棄条件**: Claude Code 本体が先送り表現の自動検出を組み込んだ時
+
+### no-deferral-stop.sh
+
+**必要性**: 最終応答の事後検査は Stop hook でしか実現できない。
+
+**代替案を採用しなかった理由**:
+- PostToolUse のみ: テキスト出力を検査できない
+
+**保守責任者**: 人手（ユーザー）
+
+**廃棄条件**: Claude Code 本体が応答内容の事後検査を組み込んだ時
+
+### no-deferral-pre-bash.sh
+
+**必要性**: `gh pr create` の body に先送り表現が含まれたまま PR が作成されることを事前に防ぐ。
+
+**代替案を採用しなかった理由**:
+- PostToolUse のみ: PR 作成後では手遅れ
+
+**保守責任者**: 人手（ユーザー）
+
+**廃棄条件**: no-deferral-check.sh 廃止時
+
+### no-deferral-post-write.sh
+
+**必要性**: PR body を Write した直後に先送り表現を検出し、`gh pr create` 前に修正を促す。
+
+**代替案を採用しなかった理由**:
+- PreToolUse(Bash) のみ: Write から `gh` 実行までの間に修正機会がない
+
+**保守責任者**: 人手（ユーザー）
+
+**廃棄条件**: no-deferral-check.sh 廃止時

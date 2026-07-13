@@ -1,0 +1,19 @@
+# CLAUDE.md 保護規約（CLAUDE-MD-GUARD）設計ノート（非注入サイドカー）
+# rule.md から分離した保守者向け記録。規約の挙動には影響しない。
+
+## 設計判断
+
+**必要性**: エージェントが `~/.claude/CLAUDE.md` に無断追記する事例と、存在しない `§N` セクション番号を SKILL.md・hook スクリプトに埋め込む事例が繰り返し観測された（29 箇所以上確認）。ルール文書のみでの周知は遵守率ゼロのため、PreToolUse hook と permissions.ask による機械強制を導入した。
+
+**代替案を採用しなかった理由**:
+- CLAUDE.md に禁止文言を追加: 「機械強制が必要なものは hook に閉じる」と既にあり dead code になる
+- `permissions.deny` で hard block: ユーザー自身が明示的に編集指示した場合まで拒否してしまう。`permissions.ask` が適切
+- PostToolUse で §N 参照を検査: 書き込み後に検出しても既にファイルが汚染されているため、PreToolUse で事前 block する方が安全
+
+**保守責任者**: 人手（ユーザー）。hook 内パターン調整はユーザー指示のもと更新する。
+
+**廃棄条件**: CLAUDE.md のセクション番号体系が正式導入され §N 参照が有効になった時点で `[CLAUDE-MD-REF-BLOCK]` 検査を削除してよい。CLAUDE.md write block は恒久ルールとして残す。
+
+## scoped 配置の理由（2026-07-06 追記）
+
+CLAUDE.md と .claude/ 配下を開く作業中にしか違反しえない規約のため、paths 条件付き注入（**/CLAUDE.md、**/.claude/**）とする。書き込み自体の防御線は paths 非依存の permissions.ask と PreToolUse hook が担うため、規約文の常時注入は不要。

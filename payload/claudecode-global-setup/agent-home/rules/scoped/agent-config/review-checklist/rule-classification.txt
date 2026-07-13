@@ -1,0 +1,49 @@
+# 全グローバル rule のレビュー照合分類（非注入・監査専用データ）
+#
+# 所有者: 同ディレクトリの rule.md（レビュー観点フォルダ統治規約）
+#
+# 「レビュー観点はどの rule にあり、どれをレビューで照合し、どれを照合しないか」の正本。
+# audit-review-coverage.sh が、ディスク上の全 rule.md（always/ + scoped/）が
+# 「review-checklist 配下（scoped = 専門家別観点 / always = 全専門家が照合する横断観点）」
+# または「本ファイルに分類記載」のどちらかに該当することを検証する。
+# 未分類の rule が 1 件でもあれば監査 FAIL となる（新規 rule 追加時は必ずここへ分類を追記する）。
+#
+# 分類の定義:
+#   config-asset    … 設定資産（skills/rules/hooks/routines/subagents）の規約。
+#                     レビューは managing-agent-configs（create→review→test→マーカー→commit gate の
+#                     ライフサイクル一体型）が担当し、reviewing-against-rules の対象外とする。
+#                     観点が references にあるのは意図的（ゲート機構と観点が一体のため）
+#   hook-enforced   … hook・permissions が行為の瞬間（commit/push/Write/起動時）に機械強制する
+#                     プロセス・行為規約。成果物の内容観点ではないため、レビューで二重照合しない
+#   behavior        … エージェントの行動規範（常時注入が防衛線）。成果物の内容観点ではない
+#
+# レビュー観点そのものはここに載せない。場所が分類になる:
+#   scoped/review-checklist/<domain>/<観点>/ … <domain>-reviewer が担当する観点
+#   always/review-checklist/<観点>/          … 常時注入かつ全レビュー専門家が横断照合する観点
+#                                              （用語辞書・連番ID・略称。旧 always-rules.txt は廃止）
+#
+# 形式: <rule.mdの~/形式パス><TAB><分類><TAB><補足>
+
+~/.claude/rules/scoped/agent-config/review-checklist/rule.md	config-asset	レビュー観点フォルダの統治規約そのもの（本台帳の所有者）
+~/.claude/rules/always/agent-config/review/rule.md	config-asset	managing レビューゲートの枠組みそのもの
+~/.claude/rules/scoped/agent-config/claude-md/rule.md	config-asset	CLAUDE.md 保護。permissions.ask + hook
+~/.claude/rules/scoped/agent-config/hooks/rule.md	config-asset	hook 配置 4 象限。managing-agent-configs(hooks) が観点を持つ
+~/.claude/rules/scoped/agent-config/placement/rule.md	config-asset	設定層の配置決定木。managing-agent-configs が運用
+~/.claude/rules/scoped/agent-config/project-structure/rule.md	config-asset	プロジェクト標準構成の正本（3層体系・flow-values.yml スキーマ）
+~/.claude/rules/always/naming/common-principles/rule.md	hook-enforced	識別子命名。新規 .sh は hook 検査、コード内命名は review-checklist/code の「命名」基準が照合を担う
+~/.claude/rules/always/naming/commit-branch/rule.md	hook-enforced	コミット・ブランチ命名。commit/push 時に block
+~/.claude/rules/always/infra/pre-bash-dispatch/rule.md	hook-enforced	Bash 実行前ディスパッチャ本体
+~/.claude/rules/always/gate/phase-step-task/rule.md	hook-enforced	phase 突入タスクゲート
+~/.claude/rules/always/local-environment/port-management/rule.md	hook-enforced	ポート割当。起動時に block
+~/.claude/rules/always/local-environment/sandbox/rule.md	hook-enforced	サンドボックス誤診断防止。PostToolUse advisory
+~/.claude/rules/always/placement/directory-structure/rule.md	hook-enforced	mkdir 時は advisory hook のみ（block しない）。出来上がった構成の適合は reviewing-against-rules の手順「構成の照合」がレビュー時に照合する
+~/.claude/rules/always/placement/file-guard/rule.md	hook-enforced	書き出し先ガード
+~/.claude/rules/always/placement/flow-context-guard/rule.md	hook-enforced	flow-values.yml 不在検知
+~/.claude/rules/always/response/guard/rule.md	hook-enforced	操作依頼・先送り禁止。Stop hook で block
+~/.claude/rules/always/session/infra/rule.md	hook-enforced	セッション基盤のサイレント処理
+~/.claude/rules/scoped/dev-flow/gate/rule.md	hook-enforced	実装フローゲート。Write/Edit 時に block
+~/.claude/rules/scoped/dev-flow/worktree/rule.md	hook-enforced	worktree 必須化。Write/Edit 時に block
+~/.claude/rules/scoped/tooling/shell/rule.md	hook-enforced	.sh 作成方針。permissions.deny + 2 hooks が内容を担保。レビュー観点化（shell specialist 新設）は将来候補
+~/.claude/rules/scoped/portal/page-conventions/rule.md	hook-enforced	ポータル整合 hook（check-portal-consistency）の正本。agent-home ローカルから移設
+~/.claude/rules/always/agent/subagent-selection/rule.md	behavior	委任判定の行動規範
+~/.claude/rules/scoped/routines/test-completion/rule.md	behavior	ルーティンテスト完了判定の行動規範。agent-home ローカルから移設

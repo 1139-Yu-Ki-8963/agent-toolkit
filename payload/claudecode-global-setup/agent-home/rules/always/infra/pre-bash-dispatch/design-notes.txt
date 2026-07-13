@@ -1,0 +1,30 @@
+# Bash 実行前マルチディスパッチ（PRE-BASH-DISPATCH）設計ノート（非注入サイドカー）
+# rule.md から分離した保守者向け記録。規約の挙動には影響しない。
+
+## 設計判断
+
+### dispatch-pre-bash-checks.sh
+
+**必要性**: git commit / checkout / branch / switch / rebase / merge、mkdir、gh pr/issue create/comment という複数コマンドに対して、textlint・命名規則・公開可否・コンフリクトガードの 4 種類の検査を PreToolUse(Bash) で発火させる必要がある。各検査を別 hook として登録すると settings.json の hook 数が増大しタイムアウトリスクが高まる。1 スクリプトで `case` 文ディスパッチすることで、発火件数を 1 に抑えつつ複数検査を実現する。textlint は staged diff から追加行番号を perl で抽出して既存行の誤検知を排除する複雑な処理であり、インラインでは保守不能。
+
+**代替案を採用しなかった理由**:
+- 検査ごとに別 hook を登録: settings.json の PreToolUse(Bash) エントリが 4 本増え、全コマンドで直列実行される総タイムアウトが増大する
+- Bash ツール直叩き: PreToolUse イベントに自動バインドできず、コマンド実行前の block が不可能
+- `permissions.deny` のみ: コマンド引数（コミットメッセージ本文・branch 名）レベルの検査ができない
+
+**保守責任者**: 人手（ユーザー）
+
+**廃棄条件**: Claude Code 本体がコミットメッセージ命名規則・textlint を組み込んだ時、または各検査が独立 hook として分離・再設計された時。
+
+### dispatch-pre-bash-checks.test.sh
+
+**必要性**: `git commit` / `git push` の検出を前方一致からセグメント認識（`resolve_git_ctx_dir`）へ切り替えた回帰確認。通常コマンド・secret 混入・`-C` 前置・`cd &&` 前置・非対象コマンド（`git checkout` 等）という複数分岐を、実 git リポジトリを用いて再現性を持って検証する必要がある。
+
+**代替案を採用しなかった理由**:
+- Bash ツール直叩き: 6 ケース分の一時 git リポジトリ作成・secret 仕込み・assert を都度手書きするとトークン消費が大きく回帰テストとして機能しない
+- 既存 Makefile ターゲット拡張: `~/.claude/` 配下には Makefile が存在しない
+- package.json scripts 追加: グローバル規約用途でありプロジェクトに属さない
+
+**保守責任者**: 人手（ユーザー）。`dispatch-pre-bash-checks.sh` の `git commit` / `git push` 検出ロジック変更時に同時更新する。
+
+**廃棄条件**: `dispatch-pre-bash-checks.sh` 廃止時、または `git commit` / `git push` 検出方式が再度変更された時。
