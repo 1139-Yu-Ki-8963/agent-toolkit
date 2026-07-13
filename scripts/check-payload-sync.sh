@@ -32,7 +32,10 @@ command -v node >/dev/null 2>&1 || exit 0
 # 検査スコープの決定: staged の payload/<name> prefix ごとに --only 検査。
 # staged に payload/ 配下がなければ空 prefix 1 件（= 全 mapping 検査）とする。
 staged=$(git -C "$cwd" diff --cached --name-only 2>/dev/null || true)
-prefixes=$(printf '%s\n' "$staged" | grep '^payload/' | cut -d/ -f1-2 | sort -u || true)
+prefixes=$(printf '%s\n' "$staged" | grep '^payload/' | awk -F/ '{
+  if ($2=="claudecode-global-setup") { if (NF>=4) print $1"/"$2"/"$3 }
+  else print $1"/"$2
+}' | sort -u || true)
 
 run_check() {
   # $1: --only に渡す prefix（空なら全体検査）

@@ -1,0 +1,24 @@
+# 画面レジストリ: unlocking-reverse-target-screens が開通させた画面の記帳台帳。
+# 正本は orchestrating-reverse-docs-flow/references/contract.md の「画面レジストリ」節。
+# 管理者スキル(orchestrating-reverse-docs-flow)のみが読み書きする。子スキルは直接触れない。
+# skills/ 配下ではないため正本→実行環境の上書きコピー（スキル同期）の影響を受けない。
+#
+# キーは `<system>-<screen_id>`。値は以下の4フィールド:
+#   source_ref: unlocking完了時点のコミットハッシュ等、追跡に使う参照
+#   verification_url: モックAPI経由で画面が表示確認できるURL
+#   design_doc_path: 今後の設計書の想定配置パス
+#   status: unlocked（開通済み・基準タグ未確立） | baseline-established（基準タグ確立済み）
+#
+# 記入例（プレースホルダ。実データはこの下に追記する）:
+# example-system-login:
+#   source_ref: <commit-hash>
+#   verification_url: <url>
+#   design_doc_path: <path>
+#   status: unlocked
+
+screens:
+  oradora-battle-base-team-battle:
+    source_ref: 1671901a685fa20ef2d27918b119559228a25da4
+    verification_url: http://127.0.0.1:8011/team-battle
+    design_doc_path: ~/Projects/oradora-battle-base/docs/リバース検証/画面/screen-team-battle
+    status: baseline-established

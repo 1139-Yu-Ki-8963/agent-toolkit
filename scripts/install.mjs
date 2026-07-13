@@ -11,6 +11,7 @@ import { fileURLToPath } from "node:url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "..");
 const PAYLOAD = path.join(REPO_ROOT, "payload");
+const GLOBAL_SETUP = path.join(PAYLOAD, "claudecode-global-setup");
 
 // ── 引数パース ───────────────────────────────────────────────────
 
@@ -25,8 +26,8 @@ const TARGET = path.resolve(targetIdx !== -1 ? args[targetIdx + 1] : os.homedir(
 function buildMappings() {
   const mappings = [];
 
-  // payload/agent-home/** → <TARGET>/agent-home/**
-  const agentHomeSrc = path.join(PAYLOAD, "agent-home");
+  // payload/claudecode-global-setup/agent-home/** → <TARGET>/agent-home/**
+  const agentHomeSrc = path.join(GLOBAL_SETUP, "agent-home");
   for (const rel of walkFiles(agentHomeSrc)) {
     mappings.push({
       src: path.join(agentHomeSrc, rel),
@@ -45,8 +46,8 @@ function buildMappings() {
     });
   }
 
-  // payload/claude-config/** → <TARGET>/.claude/**（CLAUDE.md・settings-hooks.json は特殊挙動）
-  const claudeConfigSrc = path.join(PAYLOAD, "claude-config");
+  // payload/claudecode-global-setup/claude-config/** → <TARGET>/.claude/**（CLAUDE.md・settings-hooks.json は特殊挙動）
+  const claudeConfigSrc = path.join(GLOBAL_SETUP, "claude-config");
   for (const rel of walkFiles(claudeConfigSrc)) {
     const src = path.join(claudeConfigSrc, rel);
 

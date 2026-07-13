@@ -241,7 +241,7 @@ wbs.json のタスク名・note 欄についても `.claude/skills/shared/refere
 | Phase 5 | 出力先・タスク総数・段階数を報告した |
 | **Goal** | 実業務名で展開されたWBSを顧客共有Excelまたは内部管理wbs.jsonとして出力し、着手前提未整備のタスクが整備タスクより前に来ないこと |
 
-## Gotchas
+## 予想を裏切る挙動
 
 - `wbs-generator` の `.venv` が無いエラーが出た場合は、Phase 4 記載の手順で作成してから再実行する。手順は `python3 -m venv` での作成 → `pip install openpyxl` の順であり、省略しない
 - 目安日数はテンプレートの参考値。AI が推測で確定せず、必ず AskUserQuestion で顧客と確定する

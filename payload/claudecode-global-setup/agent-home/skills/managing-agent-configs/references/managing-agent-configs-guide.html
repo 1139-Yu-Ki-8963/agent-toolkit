@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<!--
+  managing-agent-configs スキルガイド（単一ファイル自己完結型）
+
+  - 外部リソース（CDN・画像・link）は一切使わず、完全自己完結に保つ
+  - 内容の正は同フォルダ上位の SKILL.md と references/ 各正本
+-->
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>managing-agent-configs スキルガイド</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 0 24px 96px;
+    font-family: system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif;
+    line-height: 1.85; color: #1a1a1a; background: #fafafa;
+    max-width: 980px; margin-inline: auto;
+  }
+  header { padding: 56px 0 24px; border-bottom: 3px solid #1a1a1a; }
+  header h1 { font-size: 1.9rem; margin: 0 0 10px; letter-spacing: 0.01em; }
+  header .skill-name {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 1.0rem; background: #1a1a1a; color: #fafafa;
+    padding: 2px 10px; border-radius: 4px; vertical-align: middle;
+  }
+  header p { margin: 6px 0 0; color: #555; }
+  .meta-table { margin-top: 16px; font-size: 0.9rem; color: #555; }
+  .meta-table td { padding: 1px 16px 1px 0; }
+
+  nav.toc {
+    margin-top: 32px; padding: 18px 22px;
+    background: #fff; border: 1px solid #e0e0e0; border-radius: 8px;
+  }
+  nav.toc .toc-title { font-weight: 700; margin-bottom: 6px; }
+  nav.toc ol { margin: 0; padding-left: 1.4em; columns: 2; column-gap: 40px; }
+  nav.toc li { margin: 2px 0; }
+  nav.toc a { color: #1a1a1a; text-decoration: none; border-bottom: 1px dotted #999; }
+  nav.toc a:hover { border-bottom-style: solid; }
+
+  section { margin-top: 64px; }
+  section > h2 {
+    font-size: 1.35rem; padding-bottom: 8px; margin-bottom: 20px;
+    border-bottom: 2px solid #1a1a1a;
+  }
+  section > h2 .sec-num {
+    display: inline-block; min-width: 2.4em; margin-right: 10px;
+    font-family: ui-monospace, monospace; font-size: 0.95rem;
+    background: #1a1a1a; color: #fafafa; text-align: center;
+    padding: 1px 8px; border-radius: 4px; vertical-align: 2px;
+  }
+  h3 { font-size: 1.05rem; margin: 32px 0 10px; }
+  .note { color: #555; font-size: 0.92rem; }
+
+  table.spec { border-collapse: collapse; width: 100%; margin: 14px 0; background: #fff; font-size: 0.93rem; }
+  table.spec th, table.spec td { border: 1px solid #d8d8d8; padding: 8px 12px; text-align: left; vertical-align: top; }
+  table.spec th { background: #f0f0ee; font-weight: 700; white-space: nowrap; }
+  table.spec td code, li code, p code, table.spec th code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.86em; background: #eeeeea; padding: 1px 5px; border-radius: 3px;
+  }
+
+  pre.flow {
+    background: #16211c; color: #d7e6dc; border-radius: 8px;
+    padding: 20px 24px; overflow-x: auto;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.82rem; line-height: 1.55;
+  }
+  pre.flow .cap { color: #8fb8a0; }
+
+  figure.diagram { margin: 20px 0; padding: 8px; background: #fff;
+    border: 1px solid #e0e0e0; border-radius: 8px; }
+  figure.diagram svg { width: 100%; height: auto; display: block; cursor: zoom-in; }
+  figure.diagram figcaption { padding: 8px 10px 2px; }
+
+  .zoom-overlay {
+    position: fixed; inset: 0; z-index: 1000;
+    background: rgba(15, 23, 42, 0.93);
+    overflow: auto; padding: 24px; cursor: zoom-out;
+    -webkit-overflow-scrolling: touch;
+  }
+  .zoom-overlay svg {
+    width: 1880px; max-width: none; height: auto;
+    display: block; margin: 0 auto;
+    background: #fff; border-radius: 8px;
+  }
+
+  .def {
+    background: #fff; border-left: 4px solid #1a1a1a;
+    padding: 12px 18px; margin: 14px 0; border-radius: 0 6px 6px 0;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  }
+  .def dt { font-weight: 700; margin-top: 8px; }
+  .def dt:first-child { margin-top: 0; }
+  .def dd { margin: 2px 0 0 0; color: #333; }
+
+  .constraint {
+    background: #eef2f7; border: 1px solid #c8d4e3; border-radius: 8px;
+    padding: 12px 18px; margin: 16px 0; font-size: 0.93rem;
+  }
+  .constraint strong:first-child { color: #2a4a7a; }
+
+  .tag {
+    display: inline-block; font-family: ui-monospace, monospace; font-size: 0.78rem;
+    font-weight: 700; padding: 0 8px; border-radius: 3px; border: 1px solid transparent;
+  }
+  .tag.pass  { background: #e7f3e7; color: #23662a; border-color: #b9d9ba; }
+  .tag.fail  { background: #fbe9e7; color: #9c2b1a; border-color: #ecc0b8; }
+  .tag.error { background: #fdf3d7; color: #7a5d10; border-color: #e8d59a; }
+  .tag.mode  { background: #e8eef7; color: #2a4a7a; border-color: #c2d2e8; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>アセットライフサイクル管理ハブ<br><span class="skill-name">managing-agent-configs</span></h1>
+  <p>スキル・hooks・rules・ルーティン・サブエージェントという 5 種のアセットについて、作成 → 観点ベース静的レビュー → 白紙実行者による実機検証を 1 つの動線で担うオーケストレーターのガイド。</p>
+
+  <div class="def">
+    <dt>こんな人向け</dt>
+    <dd>
+      新しいスキル・hook・rule・ルーティン・サブエージェントを作りっぱなしにしたくない人 ／
+      既存アセットを観点ベースで静的レビューしたい人 ／
+      hook や rule の発火を白紙の実行者に実機検証させたい人
+    </dd>
+    <dt>こんな場面で使う</dt>
+    <dd>
+      スキル・hook・rule・ルーティン・サブエージェントの新規作成時（create → review → test を自動連鎖） ／
+      既存アセットの品質診断・観点チェック時（review モード） ／
+      発火条件・完了報告の検証を新規サブエージェントに実機実行させたい時（test モード）
+    </dd>
+  </div>
+
+  <table class="meta-table">
+    <tr><td>対応 OS</td><td>macOS</td></tr>
+    <tr><td>検証状況</td><td>skills / hooks / rules / routines / subagents の 5 種で実動確認済み</td></tr>
+    <tr><td>依存</td><td>Agent（白紙実行者サブエージェント）/ check-managing-configs-review-needed.sh（PostToolUse advisory hook）</td></tr>
+    <tr><td>関連資料</td><td><code>SKILL.md</code>（本ガイドの正本）と <code>references/&lt;type&gt;/</code> 各 MD が各種別の正本</td></tr>
+  </table>
+</header>
+
+<nav class="toc">
+  <div class="toc-title">目次</div>
+  <ol>
+    <li><a href="#s1">概要</a></li>
+  <li><a href="#s2">出力</a></li>
+    <li><a href="#s3">対象アセット 6 種</a></li>
+    <li><a href="#s4">モードと自動連鎖</a></li>
+    <li><a href="#s5">create モード</a></li>
+    <li><a href="#s6">review モード</a></li>
+    <li><a href="#s7">test モード（白紙実行者ループ）</a></li>
+    <li><a href="#s8">hook 連携（commit gate）</a></li>
+    <li><a href="#s9">references の地図（段階的開示）</a></li>
+    <li><a href="#s10">完了報告</a></li>
+  </ol>
+</nav>
+
+<section id="s1">
+  <h2><span class="sec-num">§1</span>概要</h2>
+  <p>このスキルの核は 3 つある。① <strong>作りっぱなしを許さない</strong> — 作成したアセットは自動的に静的レビューへ、レビューが済んだら実機検証へ連鎖する。② <strong>6 種のアセットを 1 つの動線で扱う</strong> — フロー構造は共通化し、種別ごとの規約・観点・手順は <code>references/&lt;type&gt;/</code> に分離して必要時のみロードする。③ <strong>検証は白紙の実行者が行う</strong> — 書き手は自分のプロンプトの品質を客観視できないため、毎回新規のサブエージェントに実際に実行させて評価する。</p>
+  <figure class="diagram">
+<svg style="width:100%;height:auto;display:block" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 820" font-family="'Hiragino Kaku Gothic ProN','Hiragino Sans','Noto Sans JP','Yu Gothic',sans-serif">
+  <defs>
+    <marker id="mgArrDark" markerWidth="12" markerHeight="12" refX="9" refY="5" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L11,5 L0,10 Z" fill="#475569"></path>
+    </marker>
+    <marker id="mgArrGray" markerWidth="10" markerHeight="10" refX="8" refY="4" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L9,4 L0,8 Z" fill="#94A3B8"></path>
+    </marker>
+  </defs>
+
+  <rect x="0" y="0" width="1920" height="820" fill="#FFFFFF"></rect>
+
+  <text x="100" y="30" font-size="16" fill="#94A3B8">アセットライフサイクル管理ハブ</text>
+
+  <text x="960" y="88" font-size="32" font-weight="700" fill="#334155" text-anchor="middle">作りっぱなしを許さない</text>
+  <text x="960" y="124" font-size="19" fill="#64748B" text-anchor="middle">作成 → 静的レビュー → 実機検証 が既定で連鎖する</text>
+
+  <text x="230" y="188" font-size="15" fill="#94A3B8" text-anchor="middle">6 種のアセット</text>
+  <rect x="100" y="204" width="260" height="52" rx="26" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1.5"></rect>
+  <text x="230" y="238" font-size="19" font-weight="700" fill="#334155" text-anchor="middle" font-family="ui-monospace,'SF Mono',Menlo,Consolas,monospace">skills</text>
+  <rect x="100" y="272" width="260" height="52" rx="26" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1.5"></rect>
+  <text x="230" y="306" font-size="19" font-weight="700" fill="#334155" text-anchor="middle" font-family="ui-monospace,'SF Mono',Menlo,Consolas,monospace">hooks</text>
+  <rect x="100" y="340" width="260" height="52" rx="26" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1.5"></rect>
+  <text x="230" y="374" font-size="19" font-weight="700" fill="#334155" text-anchor="middle" font-family="ui-monospace,'SF Mono',Menlo,Consolas,monospace">rules</text>
+  <rect x="100" y="408" width="260" height="52" rx="26" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1.5"></rect>
+  <text x="230" y="442" font-size="19" font-weight="700" fill="#334155" text-anchor="middle" font-family="ui-monospace,'SF Mono',Menlo,Consolas,monospace">routines</text>
+  <rect x="100" y="476" width="260" height="52" rx="26" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1.5"></rect>
+  <text x="230" y="510" font-size="19" font-weight="700" fill="#334155" text-anchor="middle" font-family="ui-monospace,'SF Mono',Menlo,Consolas,monospace">subagents</text>
+  <rect x="100" y="544" width="260" height="52" rx="26" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1.5"></rect>
+  <text x="230" y="578" font-size="19" font-weight="700" fill="#334155" text-anchor="middle" font-family="ui-monospace,'SF Mono',Menlo,Consolas,monospace">workflows</text>
+
+  <line x1="360" y1="230" x2="470" y2="380" stroke="#94A3B8" stroke-width="2" marker-end="url(#mgArrGray)"></line>
+  <line x1="360" y1="298" x2="470" y2="392" stroke="#94A3B8" stroke-width="2" marker-end="url(#mgArrGray)"></line>
+  <line x1="360" y1="366" x2="470" y2="404" stroke="#94A3B8" stroke-width="2" marker-end="url(#mgArrGray)"></line>
+  <line x1="360" y1="434" x2="470" y2="416" stroke="#94A3B8" stroke-width="2" marker-end="url(#mgArrGray)"></line>
+  <line x1="360" y1="502" x2="470" y2="428" stroke="#94A3B8" stroke-width="2" marker-end="url(#mgArrGray)"></line>
+  <line x1="360" y1="570" x2="470" y2="440" stroke="#94A3B8" stroke-width="2" marker-end="url(#mgArrGray)"></line>
+
+  <rect x="480" y="350" width="210" height="120" rx="12" fill="#F1F5F9" stroke="#94A3B8" stroke-width="1.5"></rect>
+  <text x="585" y="404" font-size="22" font-weight="700" fill="#334155" text-anchor="middle">種別判定</text>
+  <text x="585" y="436" font-size="14" fill="#64748B" text-anchor="middle">発話とパスから 1 つに確定</text>
+
+  <rect x="885" y="280" width="560" height="46" rx="23" fill="#FEF6EC"></rect>
+  <text x="1165" y="311" font-size="20" font-weight="700" fill="#B45309" text-anchor="middle">自動連鎖(既定 ON)— 止めるのはユーザーが明示した時だけ</text>
+
+  <line x1="690" y1="410" x2="770" y2="410" stroke="#475569" stroke-width="3" marker-end="url(#mgArrDark)"></line>
+  <rect x="780" y="356" width="250" height="108" rx="12" fill="#E8F1FA" stroke="#2B6CB0" stroke-width="2.5"></rect>
+  <text x="905" y="404" font-size="25" font-weight="700" fill="#1E4E8C" text-anchor="middle" font-family="ui-monospace,'SF Mono',Menlo,Consolas,monospace">create</text>
+  <text x="905" y="438" font-size="15" fill="#2B6CB0" text-anchor="middle">規約に沿って作成</text>
+
+  <line x1="1030" y1="410" x2="1110" y2="410" stroke="#475569" stroke-width="3" marker-end="url(#mgArrDark)"></line>
+  <rect x="1120" y="356" width="250" height="108" rx="12" fill="#E9F6EF" stroke="#2F855A" stroke-width="2.5"></rect>
+  <text x="1245" y="404" font-size="25" font-weight="700" fill="#1F6B44" text-anchor="middle" font-family="ui-monospace,'SF Mono',Menlo,Consolas,monospace">review</text>
+  <text x="1245" y="438" font-size="15" fill="#2F855A" text-anchor="middle">観点ベース静的レビュー</text>
+
+  <line x1="1370" y1="410" x2="1450" y2="410" stroke="#475569" stroke-width="3" marker-end="url(#mgArrDark)"></line>
+  <rect x="1460" y="356" width="250" height="108" rx="12" fill="#FEF6EC" stroke="#D97706" stroke-width="2.5"></rect>
+  <text x="1585" y="404" font-size="25" font-weight="700" fill="#B45309" text-anchor="middle" font-family="ui-monospace,'SF Mono',Menlo,Consolas,monospace">test</text>
+  <text x="1585" y="438" font-size="15" fill="#B45309" text-anchor="middle">白紙実行者による実機検証</text>
+
+  <text x="1245" y="500" font-size="14" fill="#64748B" text-anchor="middle">review は full(修正あり・既定)と dry-run(hooks / rules のみ・読み取り専用)</text>
+
+  <line x1="1585" y1="464" x2="1585" y2="560" stroke="#475569" stroke-width="3" marker-end="url(#mgArrDark)"></line>
+  <rect x="780" y="570" width="930" height="60" rx="30" fill="#334155"></rect>
+  <text x="1245" y="609" font-size="20" font-weight="700" fill="#FFFFFF" text-anchor="middle">完了報告 — 種別・通過モード・件数・健全性判定を 1 報告に集約</text>
+
+  <path d="M905,464 L905,570" stroke="#94A3B8" stroke-width="2" stroke-dasharray="5 5" marker-end="url(#mgArrGray)"></path>
+  <text x="885" y="530" font-size="14" fill="#64748B" text-anchor="end">workflows のみ create 単発で終端へ</text>
+
+  <circle cx="560" cy="712" r="5" fill="#D97706"></circle>
+  <text x="578" y="719" font-size="18" fill="#475569">型別の規約・手順(<tspan font-family="ui-monospace,'SF Mono',Menlo,Consolas,monospace">references/</tspan>)は必要になった時だけロードする(段階的開示)</text>
+  <circle cx="560" cy="752" r="5" fill="#D97706"></circle>
+  <text x="578" y="759" font-size="18" fill="#475569">フロー構造は 6 種で共通、規約・観点・完了条件は種別ごとに異なる</text>
+</svg>
+    <figcaption class="note">ライフサイクルの全体図。6 種のアセットが同じ動線（create → review → test → 完了報告）を通る。図をクリックすると拡大表示できます。</figcaption>
+  </figure>
+
+  <div class="constraint"><strong>設計思想:</strong>
+    ① 作りっぱなしを許さない（create したら review → test まで自動連鎖）
+    ② 骨格（モード判定・連鎖制御・完了報告）はハブに集約し、型別の詳細は references/ に分離
+    ③ 段階的開示 — ハブ本体は「種別判定 → モード判定 → 該当 references のロード指示」のみを行う
+    ④ 6 種の統合であって画一化ではない — 共通化するのは「フロー構造」であり「内容」ではない
+  </div>
+</section>
+
+<section id="s2">
+  <h2><span class="sec-num">§2</span>出力</h2>
+  <p>create → review → test の連鎖が完了すると、以下の状態が確立される。</p>
+  <div class="def">
+    <dt>配置済みアセット</dt>
+    <dd>規約（<code>references/&lt;type&gt;/conventions.md</code>）に沿って新規配置、または既存の内容が規約準拠の形へ修正されたアセット本体（SKILL.md・hook script・rule.md・ルーティン設計書・subagent 定義等）。配置先は種別ごとの正しいディレクトリに確定している。</dd>
+    <dt>レビュー結果</dt>
+    <dd>観点別（種別ごとの <code>reviewing.md</code> が定義する観点）に検出した CRITICAL / WARN / INFO の件数と、修正が必要な箇所への対応履歴。CRITICAL が 0 件、または修正承認済みの状態になっている。</dd>
+    <dt>テスト完了マーカー</dt>
+    <dd>新規サブエージェントによる実機検証が全項目 PASS した場合にのみ書き出される、report ファイル（<code>REVIEW-TEST-VERDICT: PASS</code> 行を含む）とハッシュ照合マーカーの 2 点セット。<code>git commit</code> 時の commit gate は、この 2 点の実在・鮮度・ハッシュ一致を検証してから commit を許可する。</dd>
+    <dt>完了報告</dt>
+    <dd>対象種別・アセット名・通過モード、review 結果（CRITICAL/WARN/INFO 件数と修正件数）、test 結果（発火 PASS/FAIL 件数と停止理由）、健全性判定を 1 つの報告にまとめたもの。</dd>
+  </div>
+</section>
+
+<section id="s3">
+  <h2><span class="sec-num">§3</span>対象アセット 6 種</h2>
+  <p>ユーザー発話・対象ファイルパスから種別（asset_type）を 1 つ判定する。複数候補がある場合は質問で確認する。誤判定のまま進めると誤った references をロードしてしまうため、判定はフローの最初に置く。</p>
+  <table class="spec">
+    <tr><th>種別</th><th>判定キーワード・対象ファイル</th><th>配置先（例）</th><th>自動連鎖</th></tr>
+    <tr><td><code>skills</code></td><td>スキル・SKILL.md</td><td><code>~/.claude/skills/&lt;name&gt;/SKILL.md</code></td><td>create → review → test</td></tr>
+    <tr><td><code>hooks</code></td><td>フック・settings.json の hooks</td><td>配置判定は <code>references/hooks/conventions.md</code></td><td>create → review → test</td></tr>
+    <tr><td><code>rules</code></td><td>ルール・rules ディレクトリ</td><td><code>&lt;category&gt;-rules/rule.md</code></td><td>create → review → test</td></tr>
+    <tr><td><code>routines</code></td><td>ルーティン・cron 登録</td><td><code>&lt;project&gt;/routines/&lt;name&gt;/</code></td><td>create → review → test</td></tr>
+    <tr><td><code>subagents</code></td><td>サブエージェント・agents ディレクトリ</td><td><code>~/.claude/agents/&lt;name&gt;/&lt;name&gt;.md</code></td><td>create → review → test</td></tr>
+    <tr><td><code>workflows</code></td><td>ワークフロー・スキル連携図</td><td><code>&lt;project&gt;/skills/workflows/&lt;name&gt;.md</code></td><td><strong>create 単発</strong>（連鎖なし）</td></tr>
+  </table>
+</section>
+
+<section id="s4">
+  <h2><span class="sec-num">§4</span>モードと自動連鎖</h2>
+  <p>種別が決まったら、動詞・キーワードからモードを判定する。判定が曖昧な場合や「全部やって」の場合は create フル連鎖に倒す。</p>
+  <table class="spec">
+    <tr><th>動詞・キーワード</th><th>モード</th><th>ロードする references</th><th>連鎖</th></tr>
+    <tr><td>作る・追加・設計・改善・新規</td><td><span class="tag mode">create</span></td><td><code>conventions.md</code> + <code>creating.md</code></td><td>→ review → test</td></tr>
+    <tr><td>レビュー・監査・点検・診断</td><td><span class="tag mode">review</span></td><td><code>conventions.md</code> + <code>reviewing.md</code>（hooks / rules は <code>check-items.md</code> も）</td><td>→ test</td></tr>
+    <tr><td>テスト・発火検証・実機検証</td><td><span class="tag mode">test</span></td><td><code>conventions.md</code> + <code>testing.md</code></td><td>（終端）</td></tr>
+  </table>
+
+  <h3>共通の前段（どのモードでも最初に実行）</h3>
+  <ul>
+    <li>進捗の可視化 — 主要 Phase をタスクとして登録し、開始・完了で状態を更新する</li>
+    <li>種別判定 — §2 の表で asset_type を確定する</li>
+    <li>規約のロード — <code>references/&lt;asset_type&gt;/conventions.md</code> を読む。これが型別の正本で、読まずに作成・点検・検証を始めない</li>
+    <li>外部正本の参照 — 種別によっては設計ガイド（hooks / rules / subagents の design ドキュメント）も併読する</li>
+  </ul>
+
+  <h3>連鎖の中断制御</h3>
+  <p>各モード境界で自動連鎖する直前に、次のいずれかに該当する場合のみ質問を挟む。それ以外は連鎖を継続するのが既定動作 — 「作って → 検証なし」を許す既定はバグの温床になる。</p>
+  <ul>
+    <li>直前モードで CRITICAL 級の問題が検出され、かつ修正が未完了</li>
+    <li>直前モードがユーザーの判断待ち（自動修正の可否・配置移動の可否など）で止まった</li>
+    <li>ユーザーが事前に「作るだけ」「レビューまで」「dry-run のみ」を明示している</li>
+  </ul>
+</section>
+
+<section id="s5">
+  <h2><span class="sec-num">§5</span>create モード</h2>
+  <p>規約（conventions.md）と手順（creating.md）をロードしてから新規アセットを書く。skills 種別の要点は次のとおり。</p>
+  <table class="spec">
+    <tr><th>規律</th><th>内容</th></tr>
+    <tr><td>description 規律</td><td>説明文は 50 字以内。<code>TRIGGER when:</code> と <code>SKIP:</code> の固定キーワードを必ず含める（発動条件の解析対象）</td></tr>
+    <tr><td>文字数予算</td><td>全スキル合計の description を 2,000 字以内に維持する。超過すると起動時に後方のスキルが読み込まれなくなる</td></tr>
+    <tr><td>Type 決定木</td><td>orchestration / gateway / gate / audit / verification / reactive / reference / transform / action の 9 種から 1 つに絞る</td></tr>
+    <tr><td>フロー系の追加必須セクション</td><td>Type が orchestration / gateway、または Phase 見出し 3 つ以上のスキルは「完了条件（Goal 行つき）」「サブエージェント委任仕様」「ループ設計（反復条件・上限・停止条件）」を持つ</td></tr>
+    <tr><td>本体サイズ</td><td>SKILL.md は 500 行以下。詳細は references/ に分離（公式ドキュメントのコピーは置かない）</td></tr>
+    <tr><td>作成後チェック</td><td>スキル一覧（README）への登載・アンチパターン照合・review モードへの自動連鎖</td></tr>
+  </table>
+  <p class="note">hooks 種別は「配置の 2 軸判定（ownership × scope）」、rules 種別は「eager / lazy 判定と ADR 必須項目」、routines 種別は「実行環境判定とプロンプト形式」がそれぞれの creating.md の中心になる。</p>
+</section>
+
+<section id="s6">
+  <h2><span class="sec-num">§6</span>review モード</h2>
+  <p>既存アセットを観点ベースで静的レビューし、検出した問題をユーザーの選択（全件 / 個別 / CRITICAL のみ / スキップ）に従って修正する。skills 種別の観点は 7 カテゴリ・32 項目。</p>
+  <table class="spec">
+    <tr><th>カテゴリ</th><th>見るもの</th><th>代表例</th></tr>
+    <tr><td>A. frontmatter（9）</td><td>name / description / invocation / type / allowed-tools の規約適合</td><td>TRIGGER・SKIP の欠落は CRITICAL</td></tr>
+    <tr><td>B. description 品質（3）</td><td>発火条件の具体性・誤発火リスク・境界スキルへの誘導</td><td>「〜用」だけの抽象説明は WARN</td></tr>
+    <tr><td>C. サイズ・段階的開示（6）</td><td>500 行制限・references 分離・予想を裏切る挙動の有無</td><td>500 行超は CRITICAL</td></tr>
+    <tr><td>D. 単一責務（2）</td><td>1 スキル 1 機能・共通手順のコピペ検出</td><td>複数責務の詰め込みは分割提案</td></tr>
+    <tr><td>E. 副作用安全性（3）</td><td>push / merge / 削除系のオート発火可否</td><td>破壊的操作の自動発火は CRITICAL</td></tr>
+    <tr><td>F. ツール活用（13・フロー系のみ）</td><td>Phase 分割・完了条件・ループ設計・委任仕様</td><td>Phase の完了条件欠落は CRITICAL</td></tr>
+    <tr><td>G. 登録・整合性（3）</td><td>配置パス・一覧への登載・見出しの統一</td><td>絶対パス直書きは CRITICAL</td></tr>
+  </table>
+  <div class="constraint"><strong>健全性の目安:</strong> CRITICAL 0 件・WARN 3 件以下・INFO 制限なし・test 連鎖の発火検証が全 PASS（誤発火 0 件）。すべて満たした場合のみ「健全」と報告する。</div>
+  <p class="note">hooks / rules の review には full（修正あり・既定）と dry-run（読み取り専用・連鎖なし）の 2 系統がある。「診断」「読み取りのみ」と言われたら dry-run。</p>
+</section>
+
+<section id="s7">
+  <h2><span class="sec-num">§7</span>test モード（白紙実行者ループ）</h2>
+  <p>プロンプトの書き手はその品質を正確に判断できない。書き手が明確だと思うほど、別の実行者はつまずきやすくなる。test モードの核心は、<strong>バイアスのない実行者に指示を実際に実行させ、双方向で評価し、改善が横ばいになるまで繰り返す</strong>ことにある。</p>
+  <figure class="diagram">
+<svg style="width:100%;height:auto;display:block" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1000" font-family="'Hiragino Kaku Gothic ProN','Hiragino Sans','Noto Sans JP','Yu Gothic',sans-serif">
+  <defs>
+    <marker id="tlArrDark" markerWidth="12" markerHeight="12" refX="9" refY="5" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L11,5 L0,10 Z" fill="#475569"></path>
+    </marker>
+    <marker id="tlArrAmber" markerWidth="14" markerHeight="14" refX="10" refY="6" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L13,6 L0,12 Z" fill="#D97706"></path>
+    </marker>
+  </defs>
+
+  <rect x="0" y="0" width="1920" height="1000" fill="#FFFFFF"></rect>
+
+  <text x="100" y="30" font-size="16" fill="#94A3B8">test モードの反復構造</text>
+
+  <text x="960" y="88" font-size="30" font-weight="700" fill="#334155" text-anchor="middle">検証は、書き手ではなく白紙の実行者が行う</text>
+  <text x="960" y="124" font-size="19" fill="#64748B" text-anchor="middle">自分が書いたプロンプトを客観視することは、構造的にできない</text>
+
+  <rect x="120" y="190" width="460" height="120" rx="12" fill="#FFFFFF" stroke="#94A3B8" stroke-width="2"></rect>
+  <text x="350" y="238" font-size="21" font-weight="700" fill="#334155" text-anchor="middle">シナリオ＋要件チェックリスト</text>
+  <text x="350" y="272" font-size="14" fill="#64748B" text-anchor="middle">標準＋エッジの 2〜3 種。[critical] を 1 つ以上・後から動かさない</text>
+
+  <line x1="580" y1="250" x2="700" y2="250" stroke="#475569" stroke-width="3" marker-end="url(#tlArrDark)"></line>
+
+  <rect x="710" y="190" width="460" height="120" rx="12" fill="#E8F1FA" stroke="#2B6CB0" stroke-width="2.5"></rect>
+  <text x="940" y="238" font-size="21" font-weight="700" fill="#1E4E8C" text-anchor="middle">白紙のサブエージェント</text>
+  <text x="940" y="272" font-size="14" fill="#2B6CB0" text-anchor="middle">毎回新規に起動する（前回の学習を持ち込ませない）</text>
+
+  <line x1="1170" y1="250" x2="1290" y2="250" stroke="#475569" stroke-width="3" marker-end="url(#tlArrDark)"></line>
+
+  <rect x="1300" y="190" width="460" height="120" rx="12" fill="#FFFFFF" stroke="#94A3B8" stroke-width="2"></rect>
+  <text x="1530" y="238" font-size="21" font-weight="700" fill="#334155" text-anchor="middle">成果物＋セルフレポート</text>
+  <text x="1530" y="272" font-size="14" fill="#64748B" text-anchor="middle">トレース（4 段階）・不明瞭な点・独自補填・リトライ数</text>
+
+  <line x1="1530" y1="310" x2="1530" y2="430" stroke="#475569" stroke-width="3" marker-end="url(#tlArrDark)"></line>
+
+  <rect x="1300" y="440" width="460" height="120" rx="12" fill="#E9F6EF" stroke="#2F855A" stroke-width="2.5"></rect>
+  <text x="1530" y="488" font-size="21" font-weight="700" fill="#1F6B44" text-anchor="middle">双方向評価</text>
+  <text x="1530" y="522" font-size="14" fill="#2F855A" text-anchor="middle">成否（[critical] 全〇）・精度・Issue / Cause / General Fix Rule</text>
+
+  <line x1="1300" y1="500" x2="1180" y2="500" stroke="#475569" stroke-width="3" marker-end="url(#tlArrDark)"></line>
+
+  <rect x="710" y="440" width="460" height="120" rx="12" fill="#FFFFFF" stroke="#94A3B8" stroke-width="2"></rect>
+  <text x="940" y="488" font-size="21" font-weight="700" fill="#334155" text-anchor="middle">最小修正を適用</text>
+  <text x="940" y="522" font-size="14" fill="#64748B" text-anchor="middle">1 イテレーション 1 テーマ。失敗パターン台帳を先に参照する</text>
+
+  <path d="M710,500 Q560,500 560,380 Q560,320 700,268" fill="none" stroke="#D97706" stroke-width="3.5" marker-end="url(#tlArrAmber)"></path>
+  <text x="530" y="404" font-size="17" font-weight="700" fill="#B45309" text-anchor="end">新しい実行者で再評価</text>
+  <text x="530" y="430" font-size="14" fill="#64748B" text-anchor="end">同じ実行者を再利用しない</text>
+
+  <rect x="740" y="630" width="440" height="52" rx="26" fill="#FBE9E7"></rect>
+  <text x="960" y="664" font-size="20" font-weight="700" fill="#9C2B1A" text-anchor="middle">セルフ再読での代替は禁止</text>
+
+  <text x="960" y="754" font-size="19" font-weight="700" fill="#64748B" text-anchor="middle">ループの出口は 3 つ</text>
+  <rect x="270" y="790" width="420" height="108" rx="12" fill="#E7F3E7" stroke="#2F855A" stroke-width="1.5"></rect>
+  <text x="480" y="834" font-size="20" font-weight="700" fill="#1F6B44" text-anchor="middle">収束</text>
+  <text x="480" y="866" font-size="15" fill="#2F855A" text-anchor="middle">新しい不明瞭な点 0＋改善が横ばい、が 2 連続</text>
+  <rect x="750" y="790" width="420" height="108" rx="12" fill="#F1F5F9" stroke="#94A3B8" stroke-width="1.5"></rect>
+  <text x="960" y="834" font-size="20" font-weight="700" fill="#334155" text-anchor="middle">リソース上限</text>
+  <text x="960" y="866" font-size="15" fill="#64748B" text-anchor="middle">改善コストが見合わなくなったら出荷判断</text>
+  <rect x="1230" y="790" width="420" height="108" rx="12" fill="#FBE9E7" stroke="#ECC0B8" stroke-width="1.5"></rect>
+  <text x="1440" y="834" font-size="20" font-weight="700" fill="#9C2B1A" text-anchor="middle">発散</text>
+  <text x="1440" y="866" font-size="15" fill="#9C2B1A" text-anchor="middle">3 回改善しないなら、構造から書き直す</text>
+</svg>
+    <figcaption class="note">test モードの反復ループ。実行者は毎回白紙で起動し、評価は要件チェックリストとツール出力だけで行う。図をクリックすると拡大表示できます。</figcaption>
+  </figure>
+
+  <h3>評価軸</h3>
+  <table class="spec">
+    <tr><th>軸</th><th>取得方法</th><th>意味</th></tr>
+    <tr><td>成否</td><td>[critical] 項目がすべて 〇 のときのみ成功</td><td>最低基準</td></tr>
+    <tr><td>精度</td><td>要件チェックリストの達成率（〇=満点・×=0・部分=0.5）</td><td>部分的成功の度合い</td></tr>
+    <tr><td>ステップ数・所要時間</td><td>実行メタデータ</td><td>指示の無駄・認知負荷の代理指標</td></tr>
+    <tr><td>不明瞭な点・独自補填</td><td>実行者のセルフレポート</td><td>定性的な改善材料（こちらを主とする）</td></tr>
+  </table>
+
+  <h3>レッドフラグ（合理化に注意）</h3>
+  <ul>
+    <li>「自分で再読しても同じ効果がある」— 自分のテキストは客観視できない。必ず新しい実行者を使う</li>
+    <li>「シナリオ 1 つで十分」— 1 つだと過学習する。最低 2 つ、理想は 3 つ</li>
+    <li>「複数の不明瞭な点を一度に解消しよう」— 何が効いたか分からなくなる。1 回 1 テーマ</li>
+    <li>「同じ実行者を再利用しよう」— 前の改善を学習してしまっている</li>
+  </ul>
+</section>
+
+<section id="s8">
+  <h2><span class="sec-num">§8</span>hook 連携（commit gate）</h2>
+  <p>hooks を併用する環境では、レビュー・テストの完遂をコミット時に機械強制できる。連携は 3 つのマーカーで動く。</p>
+  <table class="spec">
+    <tr><th>マーカー</th><th>いつ書かれるか</th><th>役割</th></tr>
+    <tr><td>needed マーカー</td><td>管理対象ファイル（SKILL.md・rule.md・hook script 等）の編集を検知した時</td><td>「このセッションでレビューが必要」の印。同時に以前のテスト完了マーカーを無効化する（編集後は再テストが必要なため）</td></tr>
+    <tr><td>test-passed マーカー</td><td>test モードの全項目 PASS 時</td><td><code>git commit</code> の許可条件。commit gate（PreToolUse hook）がこのマーカーの有無で判定する</td></tr>
+    <tr><td>自動清掃</td><td>セッション終了時</td><td>マーカーは揮発領域（<code>${TMPDIR}/claude-hooks/&lt;session&gt;/</code>）に置かれ、セッション終了 hook が削除する</td></tr>
+  </table>
+  <p class="note">この機構により「レビューせずにコミットする」経路が構造的に塞がれる。hooks を使わない環境ではこの節は適用されず、連鎖の既定 ON が防衛線になる。</p>
+</section>
+
+<section id="s9">
+  <h2><span class="sec-num">§9</span>references の地図（段階的開示）</h2>
+  <p>ハブ本体（SKILL.md）は骨格だけを持ち、型別の知識は 36 ファイルの references に分離されている。ロードは「必要になってから」— これがコンテキスト消費を抑え、6 種を 1 スキルに統合しても破綻しない理由になる。</p>
+  <table class="spec">
+    <tr><th>種別</th><th>ファイル</th><th>役割</th></tr>
+    <tr><td rowspan="5">共通の型<br>（各種別にある）</td>
+        <td><code>conventions.md</code></td><td>型別規約の正本。全モードで最初に読む</td></tr>
+    <tr><td><code>creating.md</code></td><td>作成手順とチェックリスト</td></tr>
+    <tr><td><code>reviewing.md</code></td><td>観点と Phase の定義</td></tr>
+    <tr><td><code>testing.md</code></td><td>実機検証の手順と失敗パターン台帳</td></tr>
+    <tr><td><code>check-items.md</code></td><td>観点別の機械検出式（skills / hooks / rules のみ）</td></tr>
+    <tr><td rowspan="4"><code>skills</code> 固有</td>
+        <td><code>folder-structure.md</code></td><td>フォルダ構成の推奨手順</td></tr>
+    <tr><td><code>description-examples.md</code></td><td>description の書き方詳細例</td></tr>
+    <tr><td><code>anti-patterns.md</code></td><td>アンチパターン集</td></tr>
+    <tr><td><code>advanced-techniques.md</code></td><td>高度な設計テクニック</td></tr>
+    <tr><td rowspan="3"><code>hooks</code> 固有</td>
+        <td><code>event-recipes.md</code></td><td>イベント別の入出力レシピ</td></tr>
+    <tr><td><code>examples.md</code></td><td>実在フックの実例カタログ</td></tr>
+    <tr><td><code>output-schema.md</code></td><td>hook 出力 JSON スキーマの完全リファレンス</td></tr>
+    <tr><td><code>routines</code> 固有</td><td><code>cloud-operations.md</code></td><td>クラウド実行ルーティンの登録・確認・変更手順</td></tr>
+    <tr><td><code>workflows</code></td><td><code>workflow-documentation.md</code></td><td>ワークフロー文書の作成手順・テンプレート・記法（この種別はこの 1 ファイルで完結）</td></tr>
+    <tr><td>横断</td><td><code>related-and-external.md</code></td><td>外部正本・関連スキルの一覧</td></tr>
+  </table>
+  <p class="note">このほか <code>assets/</code> に型別テンプレート 3 種（手順型・条件付き知識型・強制型）を同梱しており、create モードの雛形として使う。</p>
+</section>
+
+<section id="s10">
+  <h2><span class="sec-num">§10</span>完了報告</h2>
+  <p>最終モードまで完了したら、次の項目を能動文の 1 報告にまとめる。作業ログの羅列ではなく「何がどういう状態で完了したか」を答える。</p>
+  <pre class="flow"><span class="cap">── 完了報告に含める項目 ─────────────────────────────────────</span>
+
+  対象:      種別（skills / hooks / rules / routines /
+             subagents / workflows）・アセット名・通過モード
+  create:    作成したファイルのパス
+  review:    CRITICAL / WARN / INFO の件数、修正件数、未対応件数
+  test:      発火 PASS / FAIL 件数、
+             停止理由（収束 / 発散 / リソース上限のどれか）
+  健全性:    reviewing.md の目安（CRITICAL 0・WARN 3 以下・誤発火 0）
+             に照らした判定</pre>
+</section>
+
+<div id="zoom-overlay" class="zoom-overlay" hidden></div>
+<script>
+  (function () {
+    var overlay = document.getElementById('zoom-overlay');
+    if (!overlay) return;
+    document.querySelectorAll('figure.diagram svg').forEach(function (svg) {
+      svg.addEventListener('click', function () {
+        overlay.innerHTML = '';
+        overlay.appendChild(svg.cloneNode(true));
+        overlay.hidden = false;
+        document.body.style.overflow = 'hidden';
+      });
+    });
+    overlay.addEventListener('click', function () {
+      overlay.hidden = true;
+      overlay.innerHTML = '';
+      document.body.style.overflow = '';
+    });
+  })();
+</script>
+
+</body>
+</html>
