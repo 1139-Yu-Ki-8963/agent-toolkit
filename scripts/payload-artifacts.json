@@ -4,7 +4,9 @@
     "flow-context.yml",
     ".flow-progress.json",
     ".port-slot",
-    ".investigation-checklist.md"
+    ".investigation-checklist.md",
+    "local-environment",
+    ".cc-writes"
   ],
   "pathSuffixes": [
     ".claude/markers"

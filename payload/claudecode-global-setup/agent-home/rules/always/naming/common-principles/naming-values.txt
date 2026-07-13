@@ -1,0 +1,112 @@
+# 共通命名の規約値（正本）
+#
+# 本ファイルは always/naming/common-principles/rule.md のサイドカー（非注入）。
+# 常時コンテキストに載せないため拡張子は .txt とする（rules 配下の .md は
+# 深さ・ファイル名を問わず全て常時注入されることを 2026-07-03 に実測済み）。
+
+## 多義語表
+
+文脈によって意味が変わる語の許可文脈と必須複合語。単独使用は禁止。
+
+| 語 | 許可文脈 | 必須複合語 | 禁止例（単独使用） |
+|---|---|---|---|
+| main | メインエージェント | main-agent | main（2義: agent / tree） |
+| main | メインツリー（worktree でない側） | main-tree | 同上 |
+| main | main ブランチ | main-branch | 同上 |
+| gate | フェーズ進行ゲート | phase-gate, commit-gate | gate（対象不明） |
+| guard | ファイル書き込み保護 | write-guard, file-guard | guard（対象不明） |
+| check | 識別子命名チェック | identifier-naming-check | check（何のチェックか不明） |
+| lock | 書き込みロック | write-lock, agent-home-write-lock | lock（対象不明） |
+| marker | hook 状態マーカー | hook-marker, session-marker | marker（対象不明） |
+| root | ルートディレクトリ | project-root, repo-root | root（どの root か不明） |
+| flow | 開発フロー | dev-flow, orchestration-flow | flow（どのフローか不明） |
+
+## casing 横断表
+
+| ケース | 用途 | 例 |
+|---|---|---|
+| kebab-case | ファイル名・ディレクトリ名・slug・注入タグの slug 部分・CSS クラス | check-main-agent-direct-work.sh |
+| snake_case | シェル関数名・Python 変数名・Python 関数名 | marker_path(), managed_asset_type() |
+| camelCase | TypeScript/JavaScript 変数名・関数名 | getUserById, isActive |
+| PascalCase | TypeScript/JavaScript 型名・コンポーネント名・クラス名 | UserProfile, AuthContext |
+| UPPER_SNAKE_CASE | 定数・環境変数 | CLAUDE_HOOK_DICT_RUNNING, MAX_RETRIES |
+
+## 言語選択マトリクス
+
+| 条件 | 言語 | 理由 | 例 |
+|---|---|---|---|
+| 機械参照される識別子全般 | 英語 kebab | grep・import・パス解決で一意 | check-dev-flow-phase-gate.sh |
+| 人間が一覧で探す読み物（3条件充足時） | 日本語 | 可読性優先 | ルーティン設計書.md |
+| routines/ 配下のフォルダ名 | 日本語 + 英語 slug の意図的二重化 | 人間向け表示は日本語、ID は英語 slug | PR自動レビュー/ 内に slug: pr-auto-review |
+| コミットメッセージ subject | 日本語 | commit-branch 規約の規定 | 【機能追加】ユーザー認証を追加 |
+| ブランチ slug | 英語 kebab | ツール互換性 | feature/add-user-auth |
+
+日本語ファイル名の 3 条件（commit-branch/naming-values.txt から引用）:
+1. 名前がツール・規約で固定されていない
+2. コード・他ファイルから機械的に参照されない
+3. 日本語話者が一覧を目で見て目的のファイルを探す「読み物」である
+
+## 許可略語リスト
+
+業界標準として説明なしで使用してよい略語。ここに無い略語は初出時に正式名称を併記する。
+
+API, URL, DB, PR, MR, CI, CD, MCP, CLI, SDK, JSON, YAML, HTML, CSS, HTTP, HTTPS, SSH, SSL, TLS, DNS, TCP, UDP, REST, OAuth, JWT, UUID, SHA, MD5, CORS, CRUD, DOM, IDE, npm, git, regex, stdout, stderr, stdin, env, cwd, pid, uid, MIME, UTF, ASCII, EOF, FIFO, SQL, CSV, TSV, ADR
+
+## 識別子形式表
+
+hook・タグ・マーカー・環境変数の命名形式。原則 6（派生一致）の正本。
+
+### hook ファイル名
+- 形式: `<動詞>-<対象>-<補足>.sh`（動詞前置）
+- 許可動詞: check, cleanup, delete, dispatch, record, validate, notify
+- 禁止動詞: nuke（程度不明な俗語）, scrub（同）, kill（危険語）
+
+### 注入タグ名
+- advisory: `[<SLUG>]`（slug は hook ファイル名から拡張子と動詞を除いた kebab-case を UPPER 化）
+- block: `[<SLUG>-BLOCK]`
+- skip: `[<SLUG>-SKIP]`
+- disabled: `[<SLUG>-DISABLED]`
+
+### マーカー名
+- 形式: `<slug>.<kind>`
+- kind の種類: count（カウンタ）, needed（要対応フラグ）, test-passed（テスト合格ハッシュ）, report（レポート）
+
+### 環境変数名
+- 再帰防止: `CLAUDE_HOOK_<SLUG_UPPER>_RUNNING=1`
+- 緊急口: `<SLUG_UPPER>_SKIP_REASON="<理由>"`
+
+### シェル関数名
+- 形式: snake_case の動詞句
+- 例: marker_path(), managed_asset_type(), resolve_git_ctx_dir()
+
+## サーフェス台帳
+
+25 サーフェス × 正本規約パスの索引。
+
+| サーフェス | 正本規約パス | 備考 |
+|---|---|---|
+| コミットメッセージ | always/naming/commit-branch/naming-values.txt §コミットメッセージ | hook 強制あり |
+| ブランチ名 | always/naming/commit-branch/naming-values.txt §ブランチ名 | hook 強制あり |
+| ファイル名 | always/naming/commit-branch/naming-values.txt §ファイル名 | settings.json inline advisory |
+| ディレクトリ名 | always/naming/commit-branch/naming-values.txt §ディレクトリ名 | pre-bash-dispatch advisory |
+| ドキュメント行キー | always/review-checklist/meaningful-key-naming/rule.md | hook 強制なし |
+| hook ファイル名 | 本ファイル §識別子形式表 | Phase 3 で hook 追加予定 |
+| 注入タグ名 | 本ファイル §識別子形式表 | 派生一致で自動決定 |
+| マーカー名 | 本ファイル §識別子形式表 | 派生一致で自動決定 |
+| 環境変数名 | 本ファイル §識別子形式表 | 派生一致で自動決定 |
+| シェル関数名 | 本ファイル §識別子形式表 | snake_case 動詞句 |
+| skill 名 | managing-agent-configs/references/skills/conventions.md §frontmatter | kebab-case 動名詞 |
+| skill 内 scripts 名 | managing-agent-configs/references/skills/conventions.md §命名 | 動詞前置 kebab（Phase 2 で追記） |
+| rule topic/scope 名 | managing-agent-configs/references/rules/conventions.md §構造 | depth-3 固定 |
+| routine 名 | managing-agent-configs/references/routines/conventions.md §構造 | 日本語フォルダ + 英語 slug |
+| subagent 名 | managing-agent-configs/references/subagents/conventions.md §配置 | kebab-case 役割名 |
+| tools/ ツール名 | agent-home/.claude/rules/always/placement/directory-structure/rule.md §tools | Phase 2 で追記 |
+| portal manifest id | ~/.claude/rules/scoped/portal/page-conventions/rule.md | Phase 2 で追記 |
+| portal カテゴリ id | 同上 | Phase 2 で追記 |
+| templates ファイル名 | — | Phase 2 で新設 |
+| sessions ログ名 | always/session/infra/rule.md | Phase 2 で追記 |
+| git author | always/naming/commit-branch/naming-values.txt §git author | hook 強制あり |
+| CSS クラス名 | プロジェクト側 03-naming 群 | oradora 固有 |
+| TypeScript 変数/関数名 | プロジェクト側 Biome 設定 | Phase 6 で有効化 |
+| Python 変数/関数名 | プロジェクト側 ruff 設定 | Phase 6 で有効化 |
+| 画面名・コンポーネント名 | プロジェクト側 03-naming 群 | oradora 固有 |

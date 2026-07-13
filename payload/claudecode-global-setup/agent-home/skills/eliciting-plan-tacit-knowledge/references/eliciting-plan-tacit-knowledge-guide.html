@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<!-- eliciting-plan-tacit-knowledge スキルガイド（単一ファイル自己完結型） -->
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>eliciting-plan-tacit-knowledge スキルガイド</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 0 24px 96px;
+    font-family: system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif;
+    line-height: 1.85; color: #1a1a1a; background: #fafafa;
+    max-width: 980px; margin-inline: auto;
+  }
+  header { padding: 56px 0 24px; border-bottom: 3px solid #1a1a1a; }
+  header h1 { font-size: 1.9rem; margin: 0 0 10px; letter-spacing: 0.01em; }
+  header .skill-name {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 1.0rem; background: #1a1a1a; color: #fafafa;
+    padding: 2px 10px; border-radius: 4px; vertical-align: middle;
+  }
+  header p { margin: 6px 0 0; color: #555; }
+  .meta-table { margin-top: 16px; font-size: 0.9rem; color: #555; }
+  .meta-table td { padding: 1px 16px 1px 0; }
+
+  nav.toc {
+    margin-top: 32px; padding: 18px 22px;
+    background: #fff; border: 1px solid #e0e0e0; border-radius: 8px;
+  }
+  nav.toc .toc-title { font-weight: 700; margin-bottom: 6px; }
+  nav.toc ol { margin: 0; padding-left: 1.4em; columns: 2; column-gap: 40px; }
+  nav.toc li { margin: 2px 0; }
+  nav.toc a { color: #1a1a1a; text-decoration: none; border-bottom: 1px dotted #999; }
+  nav.toc a:hover { border-bottom-style: solid; }
+
+  section { margin-top: 64px; }
+  section > h2 {
+    font-size: 1.35rem; padding-bottom: 8px; margin-bottom: 20px;
+    border-bottom: 2px solid #1a1a1a;
+  }
+  section > h2 .sec-num {
+    display: inline-block; min-width: 2.4em; margin-right: 10px;
+    font-family: ui-monospace, monospace; font-size: 0.95rem;
+    background: #1a1a1a; color: #fafafa; text-align: center;
+    padding: 1px 8px; border-radius: 4px; vertical-align: 2px;
+  }
+  h3 { font-size: 1.05rem; margin: 32px 0 10px; }
+  .note { color: #555; font-size: 0.92rem; }
+
+  table.spec { border-collapse: collapse; width: 100%; margin: 14px 0; background: #fff; font-size: 0.93rem; }
+  table.spec th, table.spec td { border: 1px solid #d8d8d8; padding: 8px 12px; text-align: left; vertical-align: top; }
+  table.spec th { background: #f0f0ee; font-weight: 700; white-space: nowrap; }
+  table.spec td code, li code, p code, table.spec th code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.86em; background: #eeeeea; padding: 1px 5px; border-radius: 3px;
+  }
+
+  pre.flow {
+    background: #16211c; color: #d7e6dc; border-radius: 8px;
+    padding: 20px 24px; overflow-x: auto;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.82rem; line-height: 1.55;
+  }
+  pre.flow .cap { color: #8fb8a0; }
+
+  figure.diagram { margin: 20px 0; padding: 8px; background: #fff;
+    border: 1px solid #e0e0e0; border-radius: 8px; }
+  figure.diagram svg { width: 100%; height: auto; display: block; cursor: zoom-in; }
+  figure.diagram figcaption { padding: 8px 10px 2px; }
+
+  .zoom-overlay {
+    position: fixed; inset: 0; z-index: 1000;
+    background: rgba(15, 23, 42, 0.93);
+    overflow: auto; padding: 24px; cursor: zoom-out;
+    -webkit-overflow-scrolling: touch;
+  }
+  .zoom-overlay svg {
+    width: 1880px; max-width: none; height: auto;
+    display: block; margin: 0 auto;
+    background: #fff; border-radius: 8px;
+  }
+
+  .def {
+    background: #fff; border-left: 4px solid #1a1a1a;
+    padding: 12px 18px; margin: 14px 0; border-radius: 0 6px 6px 0;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  }
+  .def dt { font-weight: 700; margin-top: 8px; }
+  .def dt:first-child { margin-top: 0; }
+  .def dd { margin: 2px 0 0 0; color: #333; }
+
+  .constraint {
+    background: #eef2f7; border: 1px solid #c8d4e3; border-radius: 8px;
+    padding: 12px 18px; margin: 16px 0; font-size: 0.93rem;
+  }
+  .constraint strong:first-child { color: #2a4a7a; }
+
+  .tag {
+    display: inline-block; font-family: ui-monospace, monospace; font-size: 0.78rem;
+    font-weight: 700; padding: 0 8px; border-radius: 3px; border: 1px solid transparent;
+  }
+  .tag.pass  { background: #e7f3e7; color: #23662a; border-color: #b9d9ba; }
+  .tag.fail  { background: #fbe9e7; color: #9c2b1a; border-color: #ecc0b8; }
+  .tag.error { background: #fdf3d7; color: #7a5d10; border-color: #e8d59a; }
+  .tag.mode  { background: #e8eef7; color: #2a4a7a; border-color: #c2d2e8; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>計画暗黙知の抽出ガイド<br><span class="skill-name">eliciting-plan-tacit-knowledge</span></h1>
+  <p>計画書をコンテキストゼロの弱モデルに初見読解させ、理解のズレから省略された前提（暗黙知）を抽出して計画へ明文化するスキル。</p>
+
+  <div class="def">
+    <dt>こんな人向け</dt>
+    <dd>brain や自分で立てた計画を、別の実行者（人・エージェント）に渡す前に品質を上げたい人</dd>
+    <dt>こんな場面で使う</dt>
+    <dd>計画立案後・ユーザー承認前。実装計画・移行計画・作業指示書の完成前</dd>
+  </div>
+
+  <table class="meta-table">
+    <tr><td>対応 OS</td><td>macOS（Claude Code 環境）</td></tr>
+    <tr><td>検証状況</td><td>managing-agent-configs test モードで実機検証済み</td></tr>
+    <tr><td>依存</td><td>plan-comprehension-prober サブエージェント / worker-sonnet</td></tr>
+    <tr><td>関連資料</td><td>SKILL.md（正本）</td></tr>
+  </table>
+</header>
+
+<nav class="toc">
+  <div class="toc-title">目次</div>
+  <ol>
+    <li><a href="#s1">概要</a></li>
+    <li><a href="#s2">出力</a></li>
+    <li><a href="#s3">用語</a></li>
+    <li><a href="#s4">動作フロー</a></li>
+    <li><a href="#s5">使い方</a></li>
+    <li><a href="#s6">ギャップの4分類</a></li>
+    <li><a href="#s7">サブエージェント委任仕様</a></li>
+    <li><a href="#s8">ループと収束</a></li>
+    <li><a href="#s9">予想を裏切る挙動</a></li>
+    <li><a href="#s10">関連スキル・規約</a></li>
+  </ol>
+</nav>
+
+<section id="s1">
+  <h2><span class="sec-num">§1</span>概要</h2>
+  <p>計画の書き手は自分のコンテキストを前提に記述を省略する。書き手自身は読み直しても脳内で自動補完してしまうため、省略に気づけない。コンテキストゼロの弱い読み手に計画だけを読ませると、行間を埋められず省略箇所で理解が壊れる。その壊れ方（誤読・推測・判断不能）が暗黙知の地図になる。</p>
+  <p>この検出は 3 つの成立条件がそろって初めて機能する。1 つでも欠くと検出力が落ちる。</p>
+  <table class="spec">
+    <tr><th>成立条件</th><th>実現手段</th><th>破るとどうなるか</th></tr>
+    <tr><td>読み手がコンテキストゼロ</td><td>新規サブエージェント委任（プロンプトに計画文のみ埋め込み）</td><td>メインセッションが初見読者を演じても意図を知っているため検出不能</td></tr>
+    <tr><td>読み手が弱いモデル</td><td>plan-comprehension-prober（model: haiku 固定）</td><td>強いモデルは行間を補完してしまい、暗黙知への依存が顕在化しない</td></tr>
+    <tr><td>「わからない」を言わせる形式</td><td>推測・判断不能の明示列挙を強制する 5 項目出力</td><td>曖昧な要約だけが返り、ズレの位置を特定できない</td></tr>
+  </table>
+</section>
+
+<section id="s2">
+  <h2><span class="sec-num">§2</span>出力</h2>
+  <p>このスキルを実行すると、次の 3 つが得られる。</p>
+  <div class="def">
+    <dt>ギャップ判定レポート</dt>
+    <dd>プローブの理解と本来の意図のズレを誤読・欠落・曖昧・偶然の的中の 4 分類で列挙したもの。欠落が暗黙知の本体。</dd>
+    <dt>改訂済み計画</dt>
+    <dd>抽出された暗黙知が「前提・制約（暗黙知の明文化）」節として追記され、誤読・曖昧の該当記述が書き換えられた計画。</dd>
+    <dt>再発暗黙知の候補報告</dt>
+    <dd>複数の計画で繰り返し抽出される同種の暗黙知。rules・テンプレート化の候補としてユーザーへ報告される。</dd>
+  </div>
+</section>
+
+<section id="s3">
+  <h2><span class="sec-num">§3</span>用語</h2>
+  <div class="def">
+    <dt>暗黙知</dt>
+    <dd>計画の書き手が無自覚に省略した前提・制約。</dd>
+    <dt>理解プローブ</dt>
+    <dd>コンテキストゼロの弱モデルに計画だけを読ませ理解を言語化させる検査。</dd>
+    <dt>ギャップ</dt>
+    <dd>プローブの理解と本来の意図のズレ。</dd>
+    <dt>収束</dt>
+    <dd>再プローブで新規の欠落・曖昧が 0 件になった状態。</dd>
+  </div>
+</section>
+
+<section id="s4">
+  <h2><span class="sec-num">§4</span>動作フロー</h2>
+  <pre class="flow"><span class="cap">Phase 1</span> 対象と意図ソースの確定
+  ├─ 対象計画（ファイル or 会話中テキスト）を特定
+  └─ 意図の正解ソース（元指示・issue・設計書・会話決定事項）を Read
+
+<span class="cap">Phase 2</span> 理解プローブ
+  └─ plan-comprehension-prober へ委任
+       prompt = [CHECKLIST-EXEMPT] + 計画全文ベタ書き + 5項目出力形式指示
+       ※ 意図・背景は渡さない
+
+<span class="cap">Phase 3</span> ギャップ判定（呼び出し元が「決める」）
+  └─ プローブ報告 × 意図ソースを突合し 誤読/欠落/曖昧/偶然の的中 に分類
+       → 各ギャップの修正文をこの Phase で起草・確定
+
+<span class="cap">Phase 4</span> 計画への再統合（worker-sonnet が「反映する」）
+  └─ 確定済み修正文をベタ書きで渡し、計画ファイルへ反映
+
+<span class="cap">Phase 5</span> 収束確認
+  └─ 改訂後の計画全文で Phase 2 を再実行（新規 prober 呼び出し）
+       新規の欠落+曖昧が0件 → 収束
+       残あり → Phase 3〜5 を繰り返す（最大2周）</pre>
+</section>
+
+<section id="s5">
+  <h2><span class="sec-num">§5</span>使い方</h2>
+  <p><code>/eliciting-plan-tacit-knowledge</code> で手動起動する。「暗黙知を炙り出して」「計画の前提を明文化して」と発話しても起動する。推奨実行位置は brain の計画立案後・ユーザー承認前。</p>
+  <div class="constraint">
+    <strong>制約</strong>: prober には意図・背景・補足を渡さない。混ぜた分だけ検出力が落ちる。
+  </div>
+</section>
+
+<section id="s6">
+  <h2><span class="sec-num">§6</span>ギャップの4分類</h2>
+  <table class="spec">
+    <tr><th>分類</th><th>定義</th><th>対応</th></tr>
+    <tr><td>誤読</td><td>書いてあるのに別の意味に取られた</td><td>誤解を誘導した記述を書き換える</td></tr>
+    <tr><td>欠落</td><td>書かれておらず、推測で埋められた・埋められなかった前提</td><td>明文化して追記する（暗黙知の本体）</td></tr>
+    <tr><td>曖昧</td><td>複数解釈が可能と申告された</td><td>一意になるよう書き換える</td></tr>
+    <tr><td>偶然の的中</td><td>推測したが偶然意図と一致していた</td><td>それも明文化する（次の読み手が同じ推測をする保証はない）</td></tr>
+  </table>
+</section>
+
+<section id="s7">
+  <h2><span class="sec-num">§7</span>サブエージェント委任仕様</h2>
+  <table class="spec">
+    <tr><th>呼び出し箇所</th><th>subagent_type</th><th>prompt 骨格</th><th>期待返却値</th></tr>
+    <tr>
+      <td>Phase 2 / Phase 5</td>
+      <td>plan-comprehension-prober</td>
+      <td><code>[CHECKLIST-EXEMPT]</code> + 計画全文ベタ書き + 5項目出力形式の遵守指示。意図・背景は渡さない</td>
+      <td>①目的の言い換え ②手順の再説明 ③推測で補った前提 ④判断できなかった点 ⑤最初の一手</td>
+    </tr>
+    <tr>
+      <td>Phase 4</td>
+      <td>worker-sonnet</td>
+      <td>対象ファイルパス + 確定済み修正文（変更前後の対）+ スコープ外変更の禁止 + 完了条件（grep で確認可能な基準）</td>
+      <td>反映結果と変更箇所の報告</td>
+    </tr>
+  </table>
+</section>
+
+<section id="s8">
+  <h2><span class="sec-num">§8</span>ループと収束</h2>
+  <table class="spec">
+    <tr><th>要素</th><th>内容</th></tr>
+    <tr><td>反復条件</td><td>Phase 5 で新規の欠落・曖昧が検出されたら Phase 3 → 4 → 5 を再実行する</td></tr>
+    <tr><td>上限回数</td><td>2 周</td></tr>
+    <tr><td>停止条件</td><td>収束停止（新規の欠落 + 曖昧 0 件）/ リソース上限（2 周到達）/ 発散検知（同一ギャップが 2 回連続で解消されない）</td></tr>
+  </table>
+  <p class="note">検証役（plan-comprehension-prober）と生成役（呼び出し元セッション + worker-sonnet）は分離されている。</p>
+</section>
+
+<section id="s9">
+  <h2><span class="sec-num">§9</span>予想を裏切る挙動</h2>
+  <ul>
+    <li>1 周目で「全部合っている」報告が返った場合、成功と即断せず prompt への補足情報混入を疑う（意図まで書いてあれば当然一致する）</li>
+    <li>「偶然当たった推測」も修正対象になる。合っていたから放置、は次の読み手で再発する</li>
+    <li>再プローブは毎回新規呼び出し。同一 prober へ「修正版です、再確認して」と続けると前回文脈で補完され検出力を失う</li>
+  </ul>
+</section>
+
+<section id="s10">
+  <h2><span class="sec-num">§10</span>関連スキル・規約</h2>
+  <ul>
+    <li>字句レベルの曖昧語検出（廃止済み。曖昧表現の検出は document-reviewer の照合観点に統合）。本スキルは計画全体の暗黙の前提を対象とし、対象範囲が異なる</li>
+    <li><code>reviewing-against-rules</code> — 成果物のルール照合レビュー。本スキルは計画文の理解可能性を対象とし合否は宣言しない</li>
+    <li><code>brain</code> — 計画立案。本スキルは brain が立てた計画の品質確認を担う</li>
+    <li>subagent-selection 規約（<code>~/agent-home/rules/always/agent/subagent-selection/rule.md</code>）— 4 分類体系・判断と反映の分離の正本</li>
+  </ul>
+</section>
+
+<div id="zoom-overlay" class="zoom-overlay" hidden></div>
+<script>
+  (function () {
+    var overlay = document.getElementById('zoom-overlay');
+    if (!overlay) return;
+    document.querySelectorAll('figure.diagram svg').forEach(function (svg) {
+      svg.addEventListener('click', function () {
+        overlay.innerHTML = '';
+        overlay.appendChild(svg.cloneNode(true));
+        overlay.hidden = false;
+        document.body.style.overflow = 'hidden';
+      });
+    });
+    overlay.addEventListener('click', function () {
+      overlay.hidden = true;
+      overlay.innerHTML = '';
+      document.body.style.overflow = '';
+    });
+  })();
+</script>
+
+</body>
+</html>

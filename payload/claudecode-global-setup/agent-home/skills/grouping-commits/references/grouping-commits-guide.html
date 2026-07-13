@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<!--
+  grouping-commits スキルガイド
+  正本: skills/grouping-commits/SKILL.md
+  references/ および scripts/ は本スキルに存在しない（SKILL.md のみ）
+-->
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>grouping-commits スキルガイド</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 0 24px 96px;
+    font-family: system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif;
+    line-height: 1.85; color: #1a1a1a; background: #fafafa;
+    max-width: 980px; margin-inline: auto;
+  }
+  header { padding: 56px 0 24px; border-bottom: 3px solid #1a1a1a; }
+  header h1 { font-size: 1.9rem; margin: 0 0 10px; letter-spacing: 0.01em; }
+  header .skill-name {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 1.0rem; background: #1a1a1a; color: #fafafa;
+    padding: 2px 10px; border-radius: 4px; vertical-align: middle;
+  }
+  header p { margin: 6px 0 0; color: #555; }
+  .meta-table { margin-top: 16px; font-size: 0.9rem; color: #555; }
+  .meta-table td { padding: 1px 16px 1px 0; }
+
+  nav.toc {
+    margin-top: 32px; padding: 18px 22px;
+    background: #fff; border: 1px solid #e0e0e0; border-radius: 8px;
+  }
+  nav.toc .toc-title { font-weight: 700; margin-bottom: 6px; }
+  nav.toc ol { margin: 0; padding-left: 1.4em; columns: 2; column-gap: 40px; }
+  nav.toc li { margin: 2px 0; }
+  nav.toc a { color: #1a1a1a; text-decoration: none; border-bottom: 1px dotted #999; }
+  nav.toc a:hover { border-bottom-style: solid; }
+
+  section { margin-top: 64px; }
+  section > h2 {
+    font-size: 1.35rem; padding-bottom: 8px; margin-bottom: 20px;
+    border-bottom: 2px solid #1a1a1a;
+  }
+  section > h2 .sec-num {
+    display: inline-block; min-width: 2.4em; margin-right: 10px;
+    font-family: ui-monospace, monospace; font-size: 0.95rem;
+    background: #1a1a1a; color: #fafafa; text-align: center;
+    padding: 1px 8px; border-radius: 4px; vertical-align: 2px;
+  }
+  h3 { font-size: 1.05rem; margin: 32px 0 10px; }
+  .note { color: #555; font-size: 0.92rem; }
+
+  table.spec { border-collapse: collapse; width: 100%; margin: 14px 0; background: #fff; font-size: 0.93rem; }
+  table.spec th, table.spec td { border: 1px solid #d8d8d8; padding: 8px 12px; text-align: left; vertical-align: top; }
+  table.spec th { background: #f0f0ee; font-weight: 700; white-space: nowrap; }
+  table.spec td code, li code, p code, table.spec th code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.86em; background: #eeeeea; padding: 1px 5px; border-radius: 3px;
+  }
+
+  pre.flow {
+    background: #16211c; color: #d7e6dc; border-radius: 8px;
+    padding: 20px 24px; overflow-x: auto;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.82rem; line-height: 1.55;
+  }
+  pre.flow .cap { color: #8fb8a0; }
+
+  figure.diagram { margin: 20px 0; padding: 8px; background: #fff;
+    border: 1px solid #e0e0e0; border-radius: 8px; }
+  figure.diagram svg { width: 100%; height: auto; display: block; cursor: zoom-in; }
+  figure.diagram figcaption { padding: 8px 10px 2px; }
+
+  .zoom-overlay {
+    position: fixed; inset: 0; z-index: 1000;
+    background: rgba(15, 23, 42, 0.93);
+    overflow: auto; padding: 24px; cursor: zoom-out;
+    -webkit-overflow-scrolling: touch;
+  }
+  .zoom-overlay svg {
+    width: 1880px; max-width: none; height: auto;
+    display: block; margin: 0 auto;
+    background: #fff; border-radius: 8px;
+  }
+
+  .def {
+    background: #fff; border-left: 4px solid #1a1a1a;
+    padding: 12px 18px; margin: 14px 0; border-radius: 0 6px 6px 0;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  }
+  .def dt { font-weight: 700; margin-top: 8px; }
+  .def dt:first-child { margin-top: 0; }
+  .def dd { margin: 2px 0 0 0; color: #333; }
+
+  .constraint {
+    background: #eef2f7; border: 1px solid #c8d4e3; border-radius: 8px;
+    padding: 12px 18px; margin: 16px 0; font-size: 0.93rem;
+  }
+  .constraint strong:first-child { color: #2a4a7a; }
+
+  .tag {
+    display: inline-block; font-family: ui-monospace, monospace; font-size: 0.78rem;
+    font-weight: 700; padding: 0 8px; border-radius: 3px; border: 1px solid transparent;
+  }
+  .tag.pass  { background: #e7f3e7; color: #23662a; border-color: #b9d9ba; }
+  .tag.fail  { background: #fbe9e7; color: #9c2b1a; border-color: #ecc0b8; }
+  .tag.error { background: #fdf3d7; color: #7a5d10; border-color: #e8d59a; }
+  .tag.mode  { background: #e8eef7; color: #2a4a7a; border-color: #c2d2e8; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>スマートコミット作成<br><span class="skill-name">grouping-commits</span></h1>
+  <p>変更を自動分析してグループ化し、単一目的コミットを作成するスキル。</p>
+
+  <dl class="def">
+    <dt>こんな人向け</dt>
+    <dd>複数ファイルにまたがる変更を「ドキュメント」「テスト」「UI」などの目的別に分けてコミットしたいエンジニア。コミットメッセージの命名規則を守りながら効率よく git 履歴を整理したい場面に向く。</dd>
+    <dt>こんな場面で使う</dt>
+    <dd>コミット作成が必要な場面、または複数の変更をまとめてコミットする場面。「コミットして」「まとめてコミット」等の指示が TRIGGER になる。コミット操作を伴わない確認・編集のみの場面（SKIP 条件）は対象外。</dd>
+  </dl>
+
+  <table class="meta-table">
+    <tr><td>対応 OS</td><td>macOS</td></tr>
+    <tr><td>検証状況</td><td>SKILL.md を正本として整理（個別の実機検証記録なし）</td></tr>
+    <tr><td>依存</td><td>allowed-tools: <code>Bash</code>, <code>Read</code>, <code>Write</code>, <code>Edit</code> / 外部: <code>git</code> / 連携スキル: <code>managing-github-issues</code>（verify モード）, <code>reviewing-public-readiness</code> / 命名規約: rules: always/naming/commit-branch</td></tr>
+    <tr><td>関連資料</td><td><code>SKILL.md</code></td></tr>
+  </table>
+</header>
+
+<nav class="toc">
+  <div class="toc-title">目次</div>
+  <ol>
+    <li><a href="#s1">概要</a></li>
+  <li><a href="#s2">出力</a></li>
+    <li><a href="#s3">用語と前提条件</a></li>
+    <li><a href="#s4">動作モード</a></li>
+    <li><a href="#s5">グループ化ルール</a></li>
+    <li><a href="#s6">動作フロー</a></li>
+    <li><a href="#s7">コミットメッセージ規則</a></li>
+    <li><a href="#s8">エラーハンドリング</a></li>
+    <li><a href="#s9">検証項目</a></li>
+    <li><a href="#s10">関連スキル・規約</a></li>
+  </ol>
+</nav>
+
+<section id="s1">
+  <h2><span class="sec-num">§1</span>概要</h2>
+
+  <p>
+    <code>grouping-commits</code> は、<code>git status</code> で取得した変更ファイルの一覧を自動分析し、
+    ファイルパスやファイル種別に基づいて「テスト」「ドキュメント」「UI」などの目的別グループに分類する。
+    各グループに対して単一目的コミットを順番に作成し、履歴を論理的に整理する。
+  </p>
+
+  <h3>スキルの位置づけ</h3>
+  <table class="spec">
+    <tr><th>項目</th><th>値</th></tr>
+    <tr><td>スキル名</td><td><code>grouping-commits</code></td></tr>
+    <tr><td>Category</td><td>業務自動化</td></tr>
+    <tr><td>Type</td><td>手順型（action）</td></tr>
+    <tr><td>TRIGGER</td><td>コミット作成、複数変更をまとめてコミット</td></tr>
+    <tr><td>SKIP</td><td>コミット操作なし（確認・編集のみ）</td></tr>
+  </table>
+
+  <h3>実行方針（コスト最適化）</h3>
+  <div class="constraint">
+    <strong>委譲ルール</strong>
+    グループ分けの確定後、コミット実行（<code>git add</code> / <code>git commit</code>）は
+    <strong>worker-haiku へ Agent 委譲する</strong>。
+    メインエージェントが直接実行するのはグループ分けの判断と最終確認のみ。<br>
+    ただし対象が <strong>1 グループ・数ファイルの単純ケース</strong>は委譲コストが上回るため直接実行してよい。
+  </div>
+</section>
+
+<section id="s2">
+  <h2><span class="sec-num">§2</span>出力</h2>
+  <p>実行が完了すると、以下の 2 つが確立される。</p>
+  <div class="def">
+    <dt>単一目的コミット群</dt>
+    <dd>変更ファイルをテスト・ドキュメント・設定・UI などの目的別グループに分類し、グループごとに 1 コミットとして作成したもの。コミットメッセージは日本語 prefix（<code>【テスト】</code>・<code>【ドキュメント】</code> 等）と 25 字以内の subject からなり、命名規約（rules: always/naming/commit-branch）に準拠する。ブランチ名が <code>issue-&lt;番号&gt;</code> の場合は 1 issue 範囲モードが適用され、<code>managing-github-issues</code>（verify モード）で範囲外ファイルを除外した上で全変更を 1 コミットにまとめる。</dd>
+    <dt>完了レポート</dt>
+    <dd>作成されたコミット数・各コミットのメッセージ・未コミットのファイルが残っている場合はその理由・次に推奨する操作（リモートへの push、PR 作成等）をまとめた報告。VAL-001〜VAL-004（コミット作成・機密情報の非包含・単一目的コミット・未コミットファイル）の確認結果を含む。</dd>
+  </div>
+</section>
+
+<section id="s3">
+  <h2><span class="sec-num">§3</span>用語と前提条件</h2>
+
+  <h3>用語</h3>
+  <table class="spec">
+    <tr><th>用語</th><th>意味</th></tr>
+    <tr><td>グループ</td><td>ファイルパス・種別で分類した「同一コミットにまとめる変更の集合」</td></tr>
+    <tr><td>単一目的コミット</td><td>独立して意味を持ち、1 つの目的（テスト追加・ドキュメント更新等）のみを含むコミット</td></tr>
+    <tr><td>issue-N ブランチ</td><td>名前が <code>issue-&lt;番号&gt;</code> の形式のブランチ。専用モードが適用される</td></tr>
+    <tr><td>機密ファイル</td><td><code>.env</code>, <code>credentials.json</code>, <code>.secret</code>, <code>.key</code> 等。コミット禁止</td></tr>
+    <tr><td><code>[PUBLISH-AUTHOR]</code> / <code>[PUBLISH-SAFETY]</code></td><td><code>reviewing-public-readiness</code> スキルが発行するタグ。CRITICAL 検出時はコミットを中断する</td></tr>
+  </table>
+
+  <h3>前提条件</h3>
+  <table class="spec">
+    <tr><th>キー</th><th>条件</th><th>確認コマンド</th></tr>
+    <tr>
+      <td>PRE-001</td>
+      <td>Git リポジトリ内であること</td>
+      <td><code>git rev-parse --is-inside-work-tree</code></td>
+    </tr>
+    <tr>
+      <td>PRE-002</td>
+      <td>変更ファイルが存在すること</td>
+      <td><code>git status --short</code></td>
+    </tr>
+    <tr>
+      <td>PRE-003</td>
+      <td>機密ファイル（<code>.env</code> 等）がステージングされていないこと</td>
+      <td>変更ファイル一覧から拡張子・ファイル名を目視確認</td>
+    </tr>
+    <tr>
+      <td>PRE-004</td>
+      <td>git author が許可リストのアカウントであること</td>
+      <td><code>git var GIT_AUTHOR_IDENT</code></td>
+    </tr>
+  </table>
+
+  <div class="constraint">
+    <strong>PRE-004 補足</strong>
+    許可リスト外の author を検出した場合、PreToolUse hook が <code>[GIT-AUTHOR-BLOCK]</code> を exit 2 で block する。
+    <code>~/.gitconfig</code> の <code>[user]</code> セクションを
+    <code>name = 1139-Yu-Ki-8963</code> /
+    <code>email = 63326271+1139-Yu-Ki-8963@users.noreply.github.com</code>
+    に修正する（local config・環境変数での上書きは禁止）。
+  </div>
+</section>
+
+<section id="s4">
+  <h2><span class="sec-num">§4</span>動作モード</h2>
+
+  <p>本スキルはブランチ名によって動作が切り替わる。</p>
+
+  <table class="spec">
+    <tr><th>モード</th><th>適用条件</th><th>概要</th></tr>
+    <tr>
+      <td><span class="tag mode">通常モード</span></td>
+      <td>ブランチ名が <code>issue-&lt;番号&gt;</code> でない場合</td>
+      <td>変更をファイル種別・パスで複数グループに分類し、グループごとにコミットを作成する</td>
+    </tr>
+    <tr>
+      <td><span class="tag mode">1 issue 範囲モード</span></td>
+      <td>ブランチ名が <code>issue-&lt;番号&gt;</code> の場合（ルーティンから呼ばれた場合も含む）</td>
+      <td>グルーピングを無効化し、全変更を 1 コミットにまとめる。<code>managing-github-issues</code>（verify モード）を事前に実行して範囲外ファイルを除外する</td>
+    </tr>
+  </table>
+
+  <h3>1 issue 範囲モードの判定例</h3>
+<pre class="flow"><span class="cap"># ブランチ名チェック</span>
+branch=$(git rev-parse --abbrev-ref HEAD)
+if [[ "$branch" =~ ^issue-([0-9]+)$ ]]; then
+  <span class="cap"># 1 issue 範囲モード</span>
+  <span class="cap"># → managing-github-issues（verify モード）を呼び出し</span>
+  <span class="cap"># → 🔴 NG があれば git restore --staged で除外</span>
+  <span class="cap"># → 残りを 1 コミットにまとめる</span>
+fi</pre>
+
+  <h3>1 issue 範囲モードの手順</h3>
+  <ol>
+    <li><code>managing-github-issues</code>（verify モード）を <code>git add</code> の前に実行し、staged ファイルと対象 issue の範囲を突合する</li>
+    <li>🔴 NG（ブラックリストまたは範囲外）と判定されたパスは <code>git restore --staged &lt;PATH&gt;</code> で除外する</li>
+    <li>残りのファイルを 1 コミットとしてまとめる</li>
+  </ol>
+</section>
+
+<section id="s5">
+  <h2><span class="sec-num">§5</span>グループ化ルール</h2>
+
+  <p>通常モードでは、以下のルールでファイルを分類する。Claude は変更ファイルを順にルールと照合し、最初にマッチしたグループに割り当てる。</p>
+
+  <table class="spec">
+    <tr><th>グループ</th><th>対象ファイルパターン</th><th>プレフィックス</th></tr>
+    <tr>
+      <td>テスト関連</td>
+      <td><code>__tests__/</code>, <code>*.test.ts</code>, <code>*.test.tsx</code>, <code>*.spec.ts</code></td>
+      <td><code>【テスト】</code></td>
+    </tr>
+    <tr>
+      <td>ドキュメント</td>
+      <td><code>*.md</code>, <code>docs/</code>, <code>CLAUDE.md</code>, <code>README.md</code></td>
+      <td><code>【ドキュメント】</code></td>
+    </tr>
+    <tr>
+      <td>設定ファイル</td>
+      <td><code>*.json</code>, <code>*.config.js</code>, <code>tailwind.config.js</code>, <code>.claude/</code></td>
+      <td><code>【設定変更】</code></td>
+    </tr>
+    <tr>
+      <td>UI / コンポーネント</td>
+      <td><code>src/components/</code>, <code>src/app/</code>, <code>*.tsx</code></td>
+      <td>新機能: <code>【機能追加】</code> / 修正: <code>【リファクタ】</code> / バグ: <code>【バグ修正】</code></td>
+    </tr>
+    <tr>
+      <td>ビジネスロジック</td>
+      <td><code>src/domain/</code>, <code>src/application/</code>, <code>src/infrastructure/</code></td>
+      <td>新機能: <code>【機能追加】</code> / リファクタ: <code>【リファクタ】</code> / バグ: <code>【バグ修正】</code></td>
+    </tr>
+    <tr>
+      <td>スタイル / デザイン</td>
+      <td><code>src/ui/</code>, <code>tokens.ts</code>, スタイル関連</td>
+      <td><code>【スタイル】</code> または <code>【機能追加】</code></td>
+    </tr>
+  </table>
+
+  <h3>コミットメッセージパターン例</h3>
+  <table class="spec">
+    <tr><th>グループ</th><th>操作</th><th>メッセージ例</th></tr>
+    <tr><td>テスト</td><td>新規</td><td><code>【テスト】[テスト対象]のテストを追加</code></td></tr>
+    <tr><td>テスト</td><td>修正</td><td><code>【テスト】[テスト名]の[問題点]を修正</code></td></tr>
+    <tr><td>ドキュメント</td><td>新規</td><td><code>【ドキュメント】[ドキュメント名]を追加</code></td></tr>
+    <tr><td>ドキュメント</td><td>更新</td><td><code>【ドキュメント】[更新内容]</code></td></tr>
+    <tr><td>設定</td><td>更新</td><td><code>【設定変更】[設定項目]を更新</code></td></tr>
+    <tr><td>UI</td><td>新機能</td><td><code>【機能追加】[コンポーネント名]を追加</code></td></tr>
+    <tr><td>UI</td><td>リファクタ</td><td><code>【リファクタ】[改善内容]</code></td></tr>
+    <tr><td>UI</td><td>バグ修正</td><td><code>【バグ修正】[修正内容]</code></td></tr>
+  </table>
+</section>
+
+<section id="s6">
+  <h2><span class="sec-num">§6</span>動作フロー</h2>
+
+  <figure class="diagram">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 480" font-family="ui-monospace, monospace" font-size="13">
+      <!-- Phase 1 -->
+      <rect x="20" y="20" width="720" height="90" rx="8" fill="#f0f0ee" stroke="#c8c8c8"/>
+      <text x="40" y="44" font-weight="700" fill="#1a1a1a">Phase 1: 変更状況の確認</text>
+      <text x="40" y="66" fill="#333">git rev-parse --is-inside-work-tree</text>
+      <text x="40" y="84" fill="#333">git status --short  /  git diff --cached  /  git diff</text>
+      <!-- arrow -->
+      <line x1="380" y1="110" x2="380" y2="135" stroke="#1a1a1a" stroke-width="2" marker-end="url(#arr)"/>
+      <!-- Phase 2 -->
+      <rect x="20" y="135" width="720" height="90" rx="8" fill="#e8eef7" stroke="#c2d2e8"/>
+      <text x="40" y="159" font-weight="700" fill="#2a4a7a">Phase 2: 変更のグループ化</text>
+      <text x="40" y="181" fill="#333">ブランチ名チェック → 通常モード or 1 issue 範囲モード</text>
+      <text x="40" y="199" fill="#333">ファイルパス・種別 → グループ分類 → リスト化</text>
+      <!-- arrow -->
+      <line x1="380" y1="225" x2="380" y2="250" stroke="#1a1a1a" stroke-width="2" marker-end="url(#arr)"/>
+      <!-- Phase 3 -->
+      <rect x="20" y="250" width="720" height="110" rx="8" fill="#f0f0ee" stroke="#c8c8c8"/>
+      <text x="40" y="274" font-weight="700" fill="#1a1a1a">Phase 3: コミットの実行（グループごとに繰り返す）</text>
+      <text x="40" y="296" fill="#333">1. 機密ファイル最終チェック（.env / credentials 等）</text>
+      <text x="40" y="314" fill="#333">2. git add [ファイルパス]  →  git diff --staged で確認</text>
+      <text x="40" y="332" fill="#333">3. git commit -m "【prefix】メッセージ（25 字以内）"</text>
+      <!-- arrow -->
+      <line x1="380" y1="360" x2="380" y2="385" stroke="#1a1a1a" stroke-width="2" marker-end="url(#arr)"/>
+      <!-- Phase 4 -->
+      <rect x="20" y="385" width="720" height="75" rx="8" fill="#e7f3e7" stroke="#b9d9ba"/>
+      <text x="40" y="409" font-weight="700" fill="#23662a">Phase 4: 最終確認</text>
+      <text x="40" y="431" fill="#333">git status  /  git log --oneline -5  →  完了レポート出力</text>
+      <!-- arrowhead marker -->
+      <defs>
+        <marker id="arr" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto">
+          <path d="M0,0 L8,4 L0,8 Z" fill="#1a1a1a"/>
+        </marker>
+      </defs>
+    </svg>
+    <figcaption class="note">図: grouping-commits の 4 フェーズ（SKILL.md の Phase 構成に基づく）</figcaption>
+  </figure>
+
+  <h3>Phase 3 詳細: グループごとの処理</h3>
+<pre class="flow"><span class="cap"># グループごとに以下を繰り返す</span>
+
+<span class="cap"># 1. 機密ファイル最終チェック</span>
+git status --short | grep -E '\.(env|credentials|secret|key)' || echo "機密ファイルなし"
+
+<span class="cap"># 2. ステージング</span>
+git add [ファイルパス群]
+
+<span class="cap"># 必ず差分を確認してからコミット（Gotcha: 確認なしは無関係な変更の混入リスク）</span>
+git diff --staged
+
+<span class="cap"># 3. コミット作成（25 字以内の日本語メッセージ）</span>
+git commit -m "【prefix】変更内容の説明"
+
+<span class="cap"># 4. コミット確認</span>
+git log --oneline -1</pre>
+</section>
+
+<section id="s7">
+  <h2><span class="sec-num">§7</span>コミットメッセージ規則</h2>
+
+  <p>本スキルは命名規約（rules: always/naming/commit-branch）で定義された命名規則を参照して <code>git commit -m</code> を実行する。</p>
+
+  <table class="spec">
+    <tr><th>ルール</th><th>内容</th></tr>
+    <tr><td>言語</td><td>日本語必須。ローマ字禁止</td></tr>
+    <tr><td>文字数</td><td>subject は <strong>25 字以内</strong></td></tr>
+    <tr><td>形式</td><td>1 行で完結。末尾ピリオドなし</td></tr>
+    <tr><td>prefix</td><td><code>【テスト】</code> / <code>【ドキュメント】</code> / <code>【設定変更】</code> / <code>【機能追加】</code> / <code>【リファクタ】</code> / <code>【バグ修正】</code> / <code>【スタイル】</code></td></tr>
+    <tr><td>英語 type 禁止</td><td><code>feat:</code> / <code>fix:</code> 等の英語 type は <code>[NAMING-BLOCK]</code> で exit 2 block される</td></tr>
+    <tr><td>内容</td><td>変更の「なぜ」「何を」を簡潔に記述</td></tr>
+  </table>
+
+  <div class="constraint">
+    <strong>機密ファイル絶対禁止</strong>
+    <code>.env</code>, <code>credentials.json</code> などは絶対にコミットしない。
+    <code>reviewing-public-readiness</code> スキルが PreToolUse から並行発火し、CRITICAL 検出時は本スキルのコミット作成を中断してユーザーに対処を促す。
+  </div>
+</section>
+
+<section id="s8">
+  <h2><span class="sec-num">§8</span>エラーハンドリング</h2>
+
+  <table class="spec">
+    <tr><th>状況</th><th>対処</th></tr>
+    <tr>
+      <td>コミットが失敗した場合</td>
+      <td><code>git status</code> でエラー内容を確認し、失敗理由を説明する。その後、次のグループの処理に進む</td>
+    </tr>
+    <tr>
+      <td><code>[GIT-AUTHOR-BLOCK]</code> が発火した場合</td>
+      <td>コミットを中断し、<code>~/.gitconfig</code> の <code>[user]</code> を正規アカウントに修正する</td>
+    </tr>
+    <tr>
+      <td><code>[NAMING-BLOCK]</code> が発火した場合</td>
+      <td>英語 type のコミットメッセージを日本語 prefix に変更して再試行する</td>
+    </tr>
+    <tr>
+      <td><code>reviewing-public-readiness</code> が CRITICAL を検出した場合</td>
+      <td>コミット作成を中断し、ユーザーに対処（機密ファイルの除外等）を促す</td>
+    </tr>
+    <tr>
+      <td><code>managing-github-issues</code>（verify モード）が 🔴 NG を返した場合（1 issue 範囲モード）</td>
+      <td><code>git restore --staged &lt;PATH&gt;</code> で対象パスを除外してからコミットする</td>
+    </tr>
+  </table>
+
+  <div class="constraint">
+    <strong>Gotcha</strong>
+    <code>git diff --staged</code> で差分を確認せずに <code>git commit</code> を実行すると、
+    無関係な変更が混入する可能性がある。必ずステージング後に差分を確認してからコミットすること。
+  </div>
+</section>
+
+<section id="s9">
+  <h2><span class="sec-num">§9</span>検証項目</h2>
+
+  <p>Phase 4 の完了レポートに以下の確認結果を含める。</p>
+
+  <table class="spec">
+    <tr><th>キー</th><th>確認内容</th><th>成功条件</th><th>確認方法</th></tr>
+    <tr>
+      <td>VAL-001</td>
+      <td>コミット作成の確認</td>
+      <td>想定されたグループ数のコミットが作成されている</td>
+      <td><code>git log --oneline -5</code></td>
+    </tr>
+    <tr>
+      <td>VAL-002</td>
+      <td>機密情報の非包含確認</td>
+      <td><code>.env</code>・credentials 等がコミットに含まれていない</td>
+      <td>コミット履歴と diff の確認</td>
+    </tr>
+    <tr>
+      <td>VAL-003</td>
+      <td>単一目的コミットの確認</td>
+      <td>各コミットが論理的にグループ化されている</td>
+      <td>各コミットの内容確認</td>
+    </tr>
+    <tr>
+      <td>VAL-004</td>
+      <td>未コミットファイルの確認</td>
+      <td>意図的に残されたファイル以外はすべてコミット済み。残存する場合はその理由が完了レポートに明記されている</td>
+      <td><code>git status</code></td>
+    </tr>
+  </table>
+
+  <h3>完了レポートの出力内容</h3>
+  <ul>
+    <li>作成されたコミット数</li>
+    <li>各コミットのメッセージ</li>
+    <li>未コミットのファイルが残っている場合はその理由</li>
+    <li>次の推奨操作（リモートへの push、PR 作成 等）</li>
+  </ul>
+</section>
+
+<section id="s10">
+  <h2><span class="sec-num">§10</span>関連スキル・規約</h2>
+
+  <table class="spec">
+    <tr><th>スキル / 規約</th><th>役割分担</th></tr>
+    <tr>
+      <td>命名規約（rules: always/naming/commit-branch）</td>
+      <td>コミットメッセージの正規ルール（type / subject / 25 文字制限）の定義元。本スキルはルールを参照して <code>git commit -m</code> を実行する側</td>
+    </tr>
+    <tr>
+      <td><code>reviewing-public-readiness</code></td>
+      <td>コミット作成直前に PreToolUse から並行発火（<code>[PUBLISH-AUTHOR]</code> <code>[PUBLISH-SAFETY]</code> <code>[PUBLISH-SAFETY-FULL]</code>）し、機密ファイル名・author 情報・公開リスクを警告。CRITICAL 検出時は本スキルのコミット作成を中断する</td>
+    </tr>
+    <tr>
+      <td><code>managing-github-issues</code>（verify モード）</td>
+      <td>1 issue 範囲モード時に <code>git add</code> の前に呼び出し、staged ファイルが対象 issue の範囲内かを <code>gh issue view</code> の body と突合する</td>
+    </tr>
+    <tr>
+      <td><code>pre-bash-dispatch-rules</code>（hook）</td>
+      <td><code>git commit</code> 時に <code>[NAMING-BLOCK]</code>（英語 type 検出）、<code>[TEXTLINT-BLOCK]</code>（docs 追加行の textlint）、<code>[PUBLISH-AUTHOR]</code> / <code>[PUBLISH-SAFETY]</code>（公開可否）を発火させるディスパッチャ</td>
+    </tr>
+    <tr>
+      <td><code>subagent-delegation-rules</code>（規約）</td>
+      <td>機械的な git 操作（<code>git add</code> / <code>git commit</code>）は worker-haiku へ委譲するという委任方針の根拠</td>
+    </tr>
+  </table>
+</section>
+
+<div id="zoom-overlay" class="zoom-overlay" hidden></div>
+<script>
+  (function () {
+    var overlay = document.getElementById('zoom-overlay');
+    if (!overlay) return;
+    document.querySelectorAll('figure.diagram svg').forEach(function (svg) {
+      svg.addEventListener('click', function () {
+        overlay.innerHTML = '';
+        overlay.appendChild(svg.cloneNode(true));
+        overlay.hidden = false;
+        document.body.style.overflow = 'hidden';
+      });
+    });
+    overlay.addEventListener('click', function () {
+      overlay.hidden = true;
+      overlay.innerHTML = '';
+      document.body.style.overflow = '';
+    });
+  })();
+</script>
+
+</body>
+</html>
