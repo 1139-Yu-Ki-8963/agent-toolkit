@@ -1,0 +1,107 @@
+# コミット・ブランチ命名の規約値（正本）
+#
+# 本ファイルは always/naming/commit-branch/rule.md のサイドカー（非注入）。
+# 常時コンテキストに載せないため拡張子は .txt とする（rules 配下の .md は
+# 深さ・ファイル名を問わず全て常時注入されることを 2026-07-03 に実測済み）。
+# 参照元: pre-bash-dispatch hook の [NAMING] / [NAMING-BLOCK] 対応
+
+## コミットメッセージ
+
+フォーマット: 【<type>】<subject>
+scope は任意でコロン区切り（例: 【設定変更:routine】）
+
+英語 type → 日本語 prefix 対応表:
+
+| 英語 type | 日本語 prefix |
+|---|---|
+| feat | 【機能追加】 |
+| fix | 【バグ修正】 |
+| docs | 【ドキュメント】 |
+| chore | 【設定変更】 |
+| refactor | 【リファクタ】 |
+| test | 【テスト】 |
+| style | 【スタイル】 |
+| ci | 【CI】 |
+| perf | 【パフォーマンス】 |
+| revert | 【取り消し】 |
+
+subject のルール:
+- 日本語必須（ローマ字禁止）
+- 25 文字以内
+- 末尾ピリオドなし
+
+英語 type（feat: fix: chore: 等）は禁止。hook が [NAMING-BLOCK] exit 2 で block する。
+Breaking Changes: 【機能追加!】または本文末尾に「BREAKING CHANGE: 説明」。
+
+## ブランチ名
+
+フォーマット: <prefix>/<slug>
+
+| prefix | 用途 |
+|---|---|
+| feature | 新機能開発 |
+| fix | バグ修正 |
+| docs | ドキュメント |
+| chore | 設定・雑務 |
+| refactor | リファクタリング |
+| release | リリース準備 |
+| hotfix | 緊急修正 |
+
+slug のルール:
+- ケバブケース（英数字とハイフンのみ・lowercase）
+- 全体 50 文字以内推奨
+
+## ファイル名
+
+デフォルト: ケバブケース（英数字とハイフン。スペース・大文字禁止）
+
+| 対象 | ケース | 例 |
+|---|---|---|
+| Markdown 文書（デフォルト） | ケバブケース | api-reference.md |
+| 特殊エントリポイント | 大文字固定（変更禁止） | README.md, SKILL.md, CLAUDE.md, CHANGELOG.md, LICENSE.md |
+| 設定ファイル | ツール慣習に従う（独自命名不可） | settings.json, package.json |
+| ローカル専用設定 | .local サフィックス + .gitignore 除外 | settings.local.json, .env.local |
+| 人間が一覧から探す読み物 | 日本語ファイル名 | ルーティン設計書.md |
+
+日本語ファイル名は以下 3 条件をすべて満たす場合のみ。1 つでも外れたらケバブケース英語:
+1. 名前がツール・規約で固定されていない
+2. コード・他ファイルから機械的に参照されない
+3. 日本語話者が一覧を目で見て目的のファイルを探す「読み物」である
+
+## ディレクトリ名
+
+- ケバブケース。大文字・スペース禁止。アンダースコア原則禁止（shared_scripts/ は既存例外）
+- スキルディレクトリはスキル名と完全一致
+
+予約ディレクトリ名（用途固定・転用禁止）:
+
+| 名前 | 用途 | 配置場所 |
+|---|---|---|
+| references/ | スキル固有の詳細情報 | 各スキルディレクトリ直下 |
+| scripts/ | 再利用可能な実行コード | 各スキルディレクトリ直下 |
+| assets/ | 出力用テンプレート等 | 各スキルディレクトリ直下 |
+| workflows/ | 複数スキル連携ドキュメント | ~/agent-home/skills/ 直下 |
+| shared_scripts/ | スキル間共通スクリプト | ~/agent-home/skills/ 直下 |
+
+## コミット prefix の選び方（issue ラベル × 中身マトリクス）
+
+issue ラベルを機械的に prefix へ写像せず、実際の変更内容も見て決める。
+
+判定アルゴリズム:
+1. git diff --cached --name-only で staged ファイル一覧を取得
+2. 全ファイルがドキュメント（docs 系・*.md）のみ → 【ドキュメント】を最優先
+3. 全ファイルがテスト（**/tests/・**/*.test.*）のみ → 【テスト】を最優先
+4. それ以外でラベルが bug → 【バグ修正】
+5. それ以外でラベルが enhancement / feature → 【機能追加】
+6. ラベル無しでロジック変更なし → 【リファクタ】または【設定変更】
+
+## git author 固定値
+
+このPCの全リポジトリで以下に統一する。env（~/.zshenv の GIT_AUTHOR_NAME / GIT_AUTHOR_EMAIL / GIT_COMMITTER_EMAIL）で強制するため .gitconfig の [user] セクションは不要。
+
+| 設定 | 固定値 |
+|---|---|
+| user.name | 1139-Yu-Ki-8963 |
+| user.email | 63326271+1139-Yu-Ki-8963@users.noreply.github.com |
+
+個人メールアドレスはいかなるリポジトリにも含めない。同ディレクトリの check-git-author-allowlist.sh（PreToolUse hook）が commit / push 双方で白リスト外を exit 2 で block する。

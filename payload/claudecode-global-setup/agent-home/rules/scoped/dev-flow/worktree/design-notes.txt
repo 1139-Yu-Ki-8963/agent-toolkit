@@ -1,0 +1,26 @@
+# worktree 必須運用規約（WORKTREE-REQUIRED）設計ノート（非注入サイドカー）
+# rule.md から分離した保守者向け記録。規約の挙動には影響しない。
+
+## 設計判断
+
+**必要性**: orchestrating-dev-flow は worktree 内での進捗管理（`.flow-progress.json`、`.claude/markers/` 内の `flow-status.json`）を前提としている。main ブランチで複数セッションが並行稼働すると、進捗ファイルの競合・混在が発生し、セッション跨ぎの進捗引き継ぎが破綻する。worktree を必須化することで、セッション間のファイル分離と進捗管理の整合性を保証する。
+
+**代替案を採用しなかった理由**:
+- 進捗ファイルを /tmp に配置: セッション跨ぎの進捗引き継ぎができない。worktree は複数セッションで共有するが /tmp はセッション固有
+- main ブランチに進捗ファイルを配置: 複数セッションの競合が発生する。また main を汚染する
+
+**保守責任者**: 人手（ユーザー）
+
+**廃棄条件**: orchestrating-dev-flow が廃止された時、または Claude Code 本体がセッション分離と進捗管理を組み込んだ時
+
+### worktree-required-check.sh
+
+**必要性**: メインツリーでの実装ファイル編集を PreToolUse(Write|Edit|MultiEdit|NotebookEdit) で block する。orchestrating-dev-flow の Phase 2 が worktree 作成を強制するが、Phase 2 に到達する前やフロー外での直接編集を防ぐには hook による事前 block が必要。スクリプト本体は `~/agent-home/skills/parallel-dev-worktree/scripts/` に配置されている。worktree 作成の実行エンジンである parallel-dev-worktree スキルが hook の ownership を持つため、rule 側ではなく skill 側に同居させている。
+
+**代替案を採用しなかった理由**:
+- permissions.deny: ツール名単位の deny はサブエージェントまで巻き込んで全面停止する。`~/.claude/*` や `~/agent-home/*` の例外判定ができない
+- rule.md のみ（hook なし）: 行動規範だけでは長時間セッションで破られる実績がある
+
+**保守責任者**: 人手（ユーザー）
+
+**廃棄条件**: Claude Code 本体がメインツリーへの直接編集を構造的に禁止する機能を提供した時

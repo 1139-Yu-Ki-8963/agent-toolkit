@@ -1,0 +1,81 @@
+# ファイル配置・書き出し先ガード（FILE-GUARD）設計ノート（非注入サイドカー）
+# rule.md から分離した保守者向け記録。規約の挙動には影響しない。
+
+## 設計判断
+
+### check-playwright-filename.test
+
+**必要性**: `check-playwright-filename.sh` の block/allow/regression の 3 観点を網羅的に検証するテストスクリプト。`run_case` / `run_case_env` の 2 ヘルパーで PASS/FAIL を集計し、終了コードで CI 連携できる構造になっている。10 ケース分の入力 JSON を Bash 直叩きで毎回手書きするとコマンド長・エスケープ・集計が煩雑になり、再実行性が失われる。
+
+**代替案を採用しなかった理由**:
+- Bash ツール直叩き: 都度 10 ケースを手書きするとトークン消費が大きく、集計ロジックを書くのが非現実的
+- Makefile ターゲット: hook 検証スクリプトはプロジェクト固有の Makefile と独立して動く必要があり、`~/.claude/` 配下には Makefile がない
+
+**保守責任者**: 人手（ユーザー）。`check-playwright-filename.sh` の許可ロケーション変更時に同時更新する。
+
+**廃棄条件**: `check-playwright-filename.sh` 本体が廃止された時。
+
+### launch（Playwright MCP ラッパー、不採用）
+
+**検討経緯**: 本ルール新設時（2026-07-02）に、Playwright MCP サーバーの `--output-dir` を CWD のプロジェクト名に基づいて動的に切り替えるラッパースクリプト案を記録したが、一度も実装されないまま放置されていた。2026-07-11、`--output-dir` の相対パス指定（旧 `.playwright-mcp`）がリポジトリ直下（`~/agent-home`）に誤生成する実害が発覚し、対応の過程で本節が固定集約先ルールと矛盾したまま共存していたことが判明した。ユーザーと協議し、固定の単一集約先方式を正式採用と確定し、本ラッパー案は不採用とする。
+
+**不採用の理由**:
+- 保存対象はデバッグ用の一時的なスクリーンショット・スナップショット・コンソールログであり、プロジェクトへの帰属を追跡する必要性が低い
+- ファイル名にタイムスタンプが含まれるため衝突は実質発生せず、視認性低下は許容範囲と判断した
+- ラッパースクリプトを追加すると静的設定に対して動的解決ロジックという複雑度が増える一方、得られる効用（プロジェクト別フォルダ分け）は上記の通り小さい
+- 定期清掃も不要と判断しており（2026-07-11 確認）、単一フォルダへの蓄積は許容する
+
+**採用した設計（現行）**: `~/.claude.json` の `mcpServers.playwright.args` に `--output-dir /Users/MacPro/agent-home/tools/MCP/playwright`（絶対パス）を固定指定する。相対パス指定は MCP サーバーのサブプロセス自身の起動時 CWD 基準で解決されるためリポジトリ直下に誤生成する欠陥があり、絶対パス化で解消済み。
+
+**保守責任者**: 人手（ユーザー）
+
+**再検討条件**: 出力ファイル数が視認性を損なうほど増加した場合、または特定プロジェクトの出力だけを追跡する必要が生じた場合に、本節を再度参照してラッパー案を再検討する。
+
+### check-playwright-filename
+
+**必要性**: Playwright MCP が CWD 直下に PNG を 33 枚撒いた実証ケースから、MCP ツールの `filename` パラメータを検査する PreToolUse hook が必要と判断した。既存 hook 群（hooks-architecture-check / worktree-required-check / no-root-marker-check 等）は MCP ツール引数の検査を担当しておらず、このギャップを埋める専用ガードとして導入した。
+
+**代替案を採用しなかった理由**:
+- ドキュメント追加だけでは再発する（33 枚撒いた実証ケースで証明済み）
+- `permissions.deny` は MCP ツール引数の中身（filename）を検査できず、tool 名単位の deny は Playwright 全機能停止で過剰
+- Bash ツール直叩きは PreToolUse 発火が必要な性質上運用破綻する
+
+**保守責任者**: 人手（ユーザー）。Playwright MCP の引数 schema 変更時に即座に更新する。
+
+**廃棄条件**: Playwright MCP 本体が `filename` 既定値を指定ディレクトリに固定した時、Claude Code 本体が MCP ツール引数の path 検査を組み込んだ時、または `mcp__playwright__browser_take_screenshot` 自体が廃止された時。
+
+### no-root-marker-check
+
+**必要性**: `$HOME/.claude/` ルート直下への機械生成ドットファイル書き込みを PreToolUse(Bash) で検知し exit 2 で block する。bash コマンド文字列のパターンマッチ・例外判定・livelock 防止カウンタを組み合わせた分岐が複数あり、settings.json の command インラインでは表現不可能。
+
+**代替案を採用しなかった理由**:
+- Bash ツール直叩き: PreToolUse イベントにバインドできず、毎回の Bash 発火に追従できない
+- `permissions.deny` のみ: touch コマンドのパス引数レベルの検査はできない
+
+**保守責任者**: 人手（ユーザー）。例外パターン追加時に更新する。
+
+**廃棄条件**: Claude Code 本体が hook マーカーのルート配置を構造的に禁止した時、または `$HOME/.claude/` 直下への書き込み経路が他の機構で完全に排除された時。
+
+### cleanup-session-markers
+
+**必要性**: SessionEnd イベントで `${TMPDIR:-/tmp}/claude-hooks/${session}` と worktree 内 `.claude/markers/${session}` を `rm -rf` する。session_id の取得（環境変数 3 経路 + stdin JSON フォールバック）・worktree 判定・Playwright MCP 一時ファイル清掃など複数の分岐があり、settings.json の command インラインに収める長さではない。
+
+**代替案を採用しなかった理由**:
+- Bash ツール直叩き: SessionEnd hook は stdin の event JSON だけで完結する必要があり、Bash ツール経由では発火経路がない
+- SessionStart 時の事後清掃のみ: セッション終了時の即時清掃と比べて残留時間が長くなり、ディスク汚染リスクが残る
+
+**保守責任者**: 人手（ユーザー）。マーカー書き出し先規約変更時に同時更新する。
+
+**廃棄条件**: マーカーの揮発ストレージが OS 側の機構（tmpfs 自動削除等）で保証されるようになった時、または Claude Code 本体が hook マーカーのライフサイクル管理を組み込んだ時。
+
+### cleanup-stale-hook-sessions
+
+**必要性**: SessionStart 時に fire-and-forget で起動し、(1) Superset app-state.json の消滅した cwd を null 化、(2) subagent jsonl のうち末尾 cwd が消えているものを .stale 化、(3) `/tmp/claude-hooks/` の 7 日超 orphan ディレクトリを削除する。3 軸の処理を前景 100ms 以内で完了させる必要があり、かつ SessionEnd が走らなかった場合の二重防御でもあるため、独立した .sh として分離している。
+
+**代替案を採用しなかった理由**:
+- Bash ツール直叩き: SessionStart hook は stdin JSON から自動発火する必要があり、Bash ツールでは対応できない
+- cleanup-session-markers.sh への統合: SessionStart と SessionEnd でイベントタイミングが異なり、責務軸も「orphan 掃除（Start）」と「当該セッション清掃（End）」で分かれているため統合は不適切
+
+**保守責任者**: 人手（ユーザー）。Superset の状態ファイルパス変更時に更新する。
+
+**廃棄条件**: Superset が cwd の存在確認を自前で行うようになった時、または scrub 対象となる stale cwd 問題が上流で修正された時。

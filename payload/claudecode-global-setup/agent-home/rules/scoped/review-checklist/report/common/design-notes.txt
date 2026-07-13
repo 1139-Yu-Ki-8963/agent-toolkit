@@ -1,0 +1,42 @@
+# 調査報告共通観点（REPORT-COMMON-STANDARDS）設計判断・経緯
+
+## 新設の経緯（2026-07-11）
+
+サブエージェント4分類体系（計画系/実行系/調査系/判定系）の整理後、ユーザー指摘により
+判定系 3 専門家のうち report-reviewer だけが検証観点（4観点）を自身の定義ファイルに
+ハードコードしており、以下 2 点で体系から外れていることが発覚した。
+
+1. 「観点の正本は rules、専門家は薄い執行役」の原則違反
+   （code-reviewer / document-reviewer は観点を持たず rule.md を Read する）
+2. 統治規約の「scoped/review-checklist/<domain>/ ⇄ <domain>-reviewer の 1 対 1」から
+   report-reviewer だけがドメインフォルダ無しで存在する片肺状態
+   （audit-review-coverage.sh の検証 1 はフォルダ起点のため、専門家だけが存在する
+   逆方向の欠落を検知できていなかった）
+
+対応: scoped/review-checklist/report/common/ を新設し、report-reviewer 定義から
+4観点を本 rule へ移設。report-reviewer は担当フォルダの rule を Read する薄い執行役に
+書き換えた。
+
+## paths の設計判断
+
+report ドメインの照合対象（調査報告文）は code / document と異なりディスク上の
+ファイルではなく、委任プロンプト・会話内テキストであることが多い。scoped rule は
+paths frontmatter が必須のため、調査フローで実際にファイルとして存在する
+チェックリスト（.investigation-checklist.md / investigation-checklist.md）を
+注入対象とした。これによりチェックリスト作成時（= 調査の起点）に観点が注入され、
+作成側・検証側が同一の正本を参照する。
+
+resolve-applicable-rules.sh 経由のファイルベース解決は report ドメインでは補助経路
+であり、主経路は report-reviewer への直接委任 + report-reviewer 自身による rule Read。
+この非対称は rule.md 冒頭に明記した。
+
+## investigator との関係
+
+investigator 定義の「調査の規律」は本観点の作成側表現。重複ではなく、正本を本 rule に
+一本化し、investigator 側には正本ポインタを付した（定義の自己完結性のため要約は残す）。
+
+## 出典
+
+- 4観点の原文: ~/.claude/agents/reviewer/reviewer.md（改名前）の「検証の 4 観点」
+- 体系整理の経緯: ~/.claude/rules/always/agent/subagent-selection/rule.md の
+  「サブエージェント体系（4 分類の正本）」節

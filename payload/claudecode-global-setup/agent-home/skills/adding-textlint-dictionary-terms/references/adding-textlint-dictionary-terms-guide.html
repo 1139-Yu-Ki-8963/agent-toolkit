@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<!--
+  adding-textlint-dictionary-terms スキルガイド（単一ファイル自己完結型）
+  textlint 置き換え辞書（prh.yml）への新規語彙登録手順を解説する。
+-->
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>adding-textlint-dictionary-terms スキルガイド</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 0 24px 96px;
+    font-family: system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif;
+    line-height: 1.85; color: #1a1a1a; background: #fafafa;
+    max-width: 980px; margin-inline: auto;
+  }
+  header { padding: 56px 0 24px; border-bottom: 3px solid #1a1a1a; }
+  header h1 { font-size: 1.9rem; margin: 0 0 10px; letter-spacing: 0.01em; }
+  header .skill-name {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 1.0rem; background: #1a1a1a; color: #fafafa;
+    padding: 2px 10px; border-radius: 4px; vertical-align: middle;
+  }
+  header p { margin: 6px 0 0; color: #555; }
+  .meta-table { margin-top: 16px; font-size: 0.9rem; color: #555; }
+  .meta-table td { padding: 1px 16px 1px 0; }
+
+  nav.toc {
+    margin-top: 32px; padding: 18px 22px;
+    background: #fff; border: 1px solid #e0e0e0; border-radius: 8px;
+  }
+  nav.toc .toc-title { font-weight: 700; margin-bottom: 6px; }
+  nav.toc ol { margin: 0; padding-left: 1.4em; columns: 2; column-gap: 40px; }
+  nav.toc li { margin: 2px 0; }
+  nav.toc a { color: #1a1a1a; text-decoration: none; border-bottom: 1px dotted #999; }
+  nav.toc a:hover { border-bottom-style: solid; }
+
+  section { margin-top: 64px; }
+  section > h2 {
+    font-size: 1.35rem; padding-bottom: 8px; margin-bottom: 20px;
+    border-bottom: 2px solid #1a1a1a;
+  }
+  section > h2 .sec-num {
+    display: inline-block; min-width: 2.4em; margin-right: 10px;
+    font-family: ui-monospace, monospace; font-size: 0.95rem;
+    background: #1a1a1a; color: #fafafa; text-align: center;
+    padding: 1px 8px; border-radius: 4px; vertical-align: 2px;
+  }
+  h3 { font-size: 1.05rem; margin: 32px 0 10px; }
+  .note { color: #555; font-size: 0.92rem; }
+
+  table.spec { border-collapse: collapse; width: 100%; margin: 14px 0; background: #fff; font-size: 0.93rem; }
+  table.spec th, table.spec td { border: 1px solid #d8d8d8; padding: 8px 12px; text-align: left; vertical-align: top; }
+  table.spec th { background: #f0f0ee; font-weight: 700; white-space: nowrap; }
+  table.spec td code, li code, p code, table.spec th code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.86em; background: #eeeeea; padding: 1px 5px; border-radius: 3px;
+  }
+
+  pre.flow {
+    background: #16211c; color: #d7e6dc; border-radius: 8px;
+    padding: 20px 24px; overflow-x: auto;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.82rem; line-height: 1.55;
+  }
+  pre.flow .cap { color: #8fb8a0; }
+
+  figure.diagram { margin: 20px 0; padding: 8px; background: #fff;
+    border: 1px solid #e0e0e0; border-radius: 8px; }
+  figure.diagram svg { width: 100%; height: auto; display: block; cursor: zoom-in; }
+  figure.diagram figcaption { padding: 8px 10px 2px; }
+
+  .zoom-overlay {
+    position: fixed; inset: 0; z-index: 1000;
+    background: rgba(15, 23, 42, 0.93);
+    overflow: auto; padding: 24px; cursor: zoom-out;
+    -webkit-overflow-scrolling: touch;
+  }
+  .zoom-overlay svg {
+    width: 1880px; max-width: none; height: auto;
+    display: block; margin: 0 auto;
+    background: #fff; border-radius: 8px;
+  }
+
+  .def {
+    background: #fff; border-left: 4px solid #1a1a1a;
+    padding: 12px 18px; margin: 14px 0; border-radius: 0 6px 6px 0;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  }
+  .def dt { font-weight: 700; margin-top: 8px; }
+  .def dt:first-child { margin-top: 0; }
+  .def dd { margin: 2px 0 0 0; color: #333; }
+
+  .constraint {
+    background: #eef2f7; border: 1px solid #c8d4e3; border-radius: 8px;
+    padding: 12px 18px; margin: 16px 0; font-size: 0.93rem;
+  }
+  .constraint strong:first-child { color: #2a4a7a; }
+
+  .tag {
+    display: inline-block; font-family: ui-monospace, monospace; font-size: 0.78rem;
+    font-weight: 700; padding: 0 8px; border-radius: 3px; border: 1px solid transparent;
+  }
+  .tag.pass  { background: #e7f3e7; color: #23662a; border-color: #b9d9ba; }
+  .tag.fail  { background: #fbe9e7; color: #9c2b1a; border-color: #ecc0b8; }
+  .tag.error { background: #fdf3d7; color: #7a5d10; border-color: #e8d59a; }
+  .tag.mode  { background: #e8eef7; color: #2a4a7a; border-color: #c2d2e8; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>textlint辞書への語彙登録<br><span class="skill-name">adding-textlint-dictionary-terms</span></h1>
+  <p>textlint 置き換え辞書（prh.yml）に、まだ登録されていない新しい語彙を追加するスキル。</p>
+
+  <div class="def">
+    <dt>こんな人向け</dt>
+    <dd>カタカナビジネス用語・英語バズワードを辞書に新規登録したい人</dd>
+    <dt>こんな場面で使う</dt>
+    <dd>text-dictionary/rule.md の [TEXTLINT-BLOCK] 違反時手順で、辞書に該当エントリが無い新規違反に遭遇した時。または明示的に「prh.yml登録」「辞書に登録」と言われた時。</dd>
+  </div>
+
+  <table class="meta-table">
+    <tr><td>対応 OS</td><td>macOS / Linux（bash・grep・textlint CLI）</td></tr>
+    <tr><td>検証状況</td><td>2026-07-12 managing-agent-configs review 実施済み</td></tr>
+    <tr><td>依存</td><td>~/.claude/rules/always/review-checklist/text-dictionary/prh.yml</td></tr>
+    <tr><td>関連資料</td><td>text-dictionary/rule.md</td></tr>
+  </table>
+</header>
+
+<nav class="toc">
+  <div class="toc-title">目次</div>
+  <ol>
+    <li><a href="#s1">概要</a></li>
+    <li><a href="#s2">出力</a></li>
+    <li><a href="#s3">用語</a></li>
+    <li><a href="#s4">使い方</a></li>
+    <li><a href="#s5">動作フロー</a></li>
+    <li><a href="#s6">登録先の判断</a></li>
+    <li><a href="#s7">検証内容</a></li>
+    <li><a href="#s8">対象外パターン</a></li>
+    <li><a href="#s9">関連スキル・規約</a></li>
+    <li><a href="#s10">予想を裏切る挙動</a></li>
+  </ol>
+</nav>
+
+<section id="s1">
+  <h2><span class="sec-num">§1</span>概要</h2>
+  <p>このスキルは、textlint の置き換え辞書（prh.yml）に新しい語彙を登録するワークフロー専用。既存エントリでの置換修正・textlint エラーの読み方は <code>~/.claude/rules/always/review-checklist/text-dictionary/rule.md</code> の違反時手順が完結して担う（本スキルへの委任なし）。</p>
+</section>
+
+<section id="s2">
+  <h2><span class="sec-num">§2</span>出力</h2>
+  <p>このスキルを実行すると次が得られる。</p>
+  <div class="def">
+    <dt>更新済みの prh.yml</dt>
+    <dd>新規語彙の expected（推奨置き換え）・patterns（カタカナ形・英語形）を追加した辞書ファイル</dd>
+    <dt>既存使用箇所への置換適用</dt>
+    <dd>grep で発見した既存文書内の該当語を、誤検知注意に該当しない箇所について推奨語へ置換した状態</dd>
+  </div>
+</section>
+
+<section id="s3">
+  <h2><span class="sec-num">§3</span>用語</h2>
+  <div class="def">
+    <dt>prh辞書</dt>
+    <dd>textlintのprhプラグインが読む置き換えルール集。expected（推奨表記）とpatterns（検出対象の正規表現）の対で構成される</dd>
+    <dt>グローバル辞書 / プロジェクト辞書</dt>
+    <dd>グローバル辞書は全プロジェクト共通、プロジェクト辞書は<code>&lt;repo&gt;/.claude/rules/always/review-checklist/text-dictionary/prh.yml</code>でグローバルに追加合成される（追加のみ可）</dd>
+  </div>
+</section>
+
+<section id="s4">
+  <h2><span class="sec-num">§4</span>使い方</h2>
+  <table class="spec">
+    <tr><th>Step</th><th>内容</th></tr>
+    <tr><td>Step 1</td><td>登録先の判断。全プロジェクト共通の語彙はグローバル辞書、特定プロジェクト固有の語彙はプロジェクト辞書（受け口）に登録する</td></tr>
+    <tr><td>Step 2</td><td>重複チェック。<code>prh.yml</code> を Read し、<code>expected:</code> 値で衝突がないか確認する</td></tr>
+    <tr><td>Step 3</td><td>推奨置き換えと誤検知注意の決定。推奨置き換えは2〜4候補をスラッシュ区切りで併記し、誤検知注意は確立した訳語・固有API名等の対象外条件を明記する</td></tr>
+    <tr><td>Step 4</td><td>辞書への追加。<code>prh.yml</code> の <code>rules:</code> 末尾に expected・推奨コメント・誤検知注意コメント・patterns を含む YAML ブロックを追記する</td></tr>
+    <tr><td>Step 5</td><td>既存使用箇所の調査と置換。grep で既存文書内のヒットを確認し、誤検知注意に該当しない箇所を推奨置き換えで Edit する</td></tr>
+    <tr><td>Step 6</td><td>検証とコミット。再度 grep を実行し残存が辞書自身のエントリ行・誤検知注意対象のみであることを確認し、grouping-commits で同一コミットにまとめる</td></tr>
+  </table>
+</section>
+
+<section id="s5">
+  <h2><span class="sec-num">§5</span>動作フロー</h2>
+  <pre class="flow">prh.yml に該当エントリなし
+  → Step1 登録先判断（グローバル/プロジェクト）
+  → Step2 重複チェック
+  → Step3 推奨置き換え・誤検知注意の決定
+  → Step4 prh.yml へ追加
+  → Step5 既存使用箇所を grep → 置換
+  → Step6 grep再実行で検証 → grouping-commits でコミット</pre>
+</section>
+
+<section id="s6">
+  <h2><span class="sec-num">§6</span>登録先の判断</h2>
+  <table class="spec">
+    <tr><th>種別</th><th>パス</th><th>用途</th></tr>
+    <tr><td>グローバル辞書</td><td><code>~/.claude/rules/always/review-checklist/text-dictionary/prh.yml</code></td><td>全プロジェクト共通の語彙を登録する正本</td></tr>
+    <tr><td>プロジェクト辞書</td><td><code>&lt;repo&gt;/.claude/rules/always/review-checklist/text-dictionary/prh.yml</code></td><td>特定プロジェクト固有の語彙を登録する受け口。グローバルと合成されてlintに使われる（追加のみ可・グローバル語彙の無効化は不可）</td></tr>
+  </table>
+</section>
+
+<section id="s7">
+  <h2><span class="sec-num">§7</span>検証内容</h2>
+  <div class="constraint">
+    <strong>検証項目:</strong> Step6の再grepで、残存が辞書自身のエントリ行または誤検知注意対象のみであることを確認する。
+  </div>
+</section>
+
+<section id="s8">
+  <h2><span class="sec-num">§8</span>対象外パターン</h2>
+  <p>技術略語（API・JSON・SDK 等）・ツール名（GitHub・Slack 等）・確立した訳語のない技術用語（コンテナ・リポジトリ等）は登録しない。</p>
+</section>
+
+<section id="s9">
+  <h2><span class="sec-num">§9</span>関連スキル・規約</h2>
+  <div class="def">
+    <dt>text-dictionary/rule.md</dt>
+    <dd>辞書規約・違反時の自己完結修正手順の正本</dd>
+    <dt>grouping-commits</dt>
+    <dd>辞書追加と既存置換を同一コミットにまとめる際に使うスキル</dd>
+  </div>
+</section>
+
+<section id="s10">
+  <h2><span class="sec-num">§10</span>予想を裏切る挙動</h2>
+  <p>prh.yml の YAML インデントが崩れると linter が全体をパースエラーにする。追記後は必ずインデントを目視確認する。</p>
+</section>
+
+<div id="zoom-overlay" class="zoom-overlay" hidden></div>
+<script>
+  (function () {
+    var overlay = document.getElementById('zoom-overlay');
+    if (!overlay) return;
+    document.querySelectorAll('figure.diagram svg').forEach(function (svg) {
+      svg.addEventListener('click', function () {
+        overlay.innerHTML = '';
+        overlay.appendChild(svg.cloneNode(true));
+        overlay.hidden = false;
+        document.body.style.overflow = 'hidden';
+      });
+    });
+    overlay.addEventListener('click', function () {
+      overlay.hidden = true;
+      overlay.innerHTML = '';
+      document.body.style.overflow = '';
+    });
+  })();
+</script>
+
+</body>
+</html>
