@@ -32,6 +32,7 @@
     { "mode": "file", "src": "~/agent-home/tools/linter/.textlintrc.json", "dst": "payload/claudecode-global-setup/agent-home/tools/linter/.textlintrc.json" },
     { "mode": "file", "src": "~/agent-home/tools/linter/.textlintrc.pr.json", "dst": "payload/claudecode-global-setup/agent-home/tools/linter/.textlintrc.pr.json" },
     { "mode": "file", "src": "~/agent-home/tools/linter/package.json", "dst": "payload/claudecode-global-setup/agent-home/tools/linter/package.json" },
+    { "mode": "manual", "src": "~/agent-home/ai-management-portal/architecture", "dst": "payload/claudecode-global-setup/agent-home-overview.html", "note": "1枚概要HTML。正本とは独立した配布専用ドキュメント。自動同期禁止" },
     { "mode": "mirror", "src": "~/Projects/ai-consulting-toolkit/.claude/skills", "dst": "payload/ai-consulting-toolkit/.claude/skills" },
     { "mode": "mirror", "src": "~/Projects/ai-consulting-toolkit/docs", "dst": "payload/ai-consulting-toolkit/docs" }
   ]
