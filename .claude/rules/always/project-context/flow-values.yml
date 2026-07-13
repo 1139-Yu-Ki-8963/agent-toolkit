@@ -1,0 +1,12 @@
+# プロジェクト実装フロー設定（スキーマ定義: ~/.claude/rules/scoped/agent-config/project-structure/rule.md）
+domain_glossary: null
+design_system: null
+test_conventions: null
+adr_dir: null
+design_docs: null
+portal_dir: null
+review_gates: {}
+review_agents: {}
+pr: {}
+classify: {}
+preflight: {}

@@ -31,6 +31,7 @@
 - status: `DONE | ERROR`
 - 拡張: unit_list_html（= artifacts[0]）、embedded_json_ref（HTML内埋め込みマニフェストJSONへの参照）、unit_kind（生成した種別）
 - `unit_kind=screen` の場合、screen_list_html は unit_list_html のエイリアスとして有効
+- `unit_kind=screen` かつ複雑度プロファイリング（Phase 5・`--profile`）を実行した場合のみ、拡張フィールド complexity_profile_path（複雑度プロファイル.json の絶対パス）を返す。未実行の場合は本フィールドを含めない
 
 ### generating-reverse-common-docs（プロジェクト共通採録）
 
@@ -102,7 +103,7 @@
 各子スキルが単独起動で受け取る引数の全量。単独起動時はユーザーが同じ args を手渡しすれば動く。
 
 - surveying-architecture-for-reverse-docs: target_repo_path, docs_root, template_root, target_branch（任意）, source_ref（任意）, mode（`survey`|`revise`、既定 `survey`）, revise_findings（mode=revise 時のみ必須）
-- generating-<種別>-list-for-reverse-docs（種別別一覧スキル6つ共通）: source_dir, output_dir（unit_kind はスキル名で固定されるため引数に無い）
+- generating-<種別>-list-for-reverse-docs（種別別一覧スキル6つ共通）: source_dir, output_dir（unit_kind はスキル名で固定されるため引数に無い）, survey_doc_path（任意。unit_kind=screen のみ、Phase 1 共有ファイル・エイリアス調査の裏取り元として使用。他種別は未使用）
 - generating-reverse-common-docs: target_repo_path, docs_root, template_root, survey_doc_path, mode（`v0`|`append`、既定 `v0`）, append_findings（mode=append 時のみ必須）
 - syncing-reverse-env: design-doc, mode（setup|sync|teardown）, dry-run, reset-first, user-approved, scenarios, max-loop（既存契約のまま）
 - unlocking-reverse-target-screens: system, screen_id, reverse_worktree, ports, docs_root, user-approved
