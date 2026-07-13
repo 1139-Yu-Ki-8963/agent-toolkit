@@ -1,0 +1,43 @@
+{
+  "filters": {
+    "comments": true,
+    "allowlist": {
+      "allow": [
+        "/^(参考|題名|出典|引用|例|図[0-9]*|表[0-9]*|キャプション|注|注釈|備考|補足)[:：].*$/m"
+      ]
+    }
+  },
+  "ignorePatterns": [
+    "**/.claude/**",
+    "**/docs/01_規約・標準/自動化規約/Claude実行ルール/**"
+  ],
+  "rules": {
+    "prh": {
+      "rulePaths": ["~/.claude/rules/always/review-checklist/text-dictionary/prh.yml"]
+    },
+    "@textlint-ja/textlint-rule-preset-ai-writing": true,
+    "preset-ja-technical-writing": {
+      "sentence-length": {
+        "max": 100,
+        "skipPatterns": [
+          "/```[\\s\\S]*?```/m",
+          "/\\|[^\\|]*\\|/",
+          "/^>\\s.*$/m",
+          "/^[-\\*\\+]\\s.*$/m",
+          "/^\\d+\\.\\s.*$/m",
+          "/^---+$/m"
+        ]
+      },
+      "max-ten": { "max": 3 },
+      "max-kanji-continuous-len": { "max": 8 },
+      "no-mix-dearu-desumasu": false,
+      "ja-no-mixed-period": false,
+      "ja-no-successive-word": true,
+      "ja-no-redundant-expression": true,
+      "ja-hiragana-keishikimeishi": true,
+      "ja-no-abusage": true,
+      "no-exclamation-question-mark": false,
+      "no-doubled-joshi": { "strict": false, "allow": ["は", "に", "で", "と", "を", "が"] }
+    }
+  }
+}
