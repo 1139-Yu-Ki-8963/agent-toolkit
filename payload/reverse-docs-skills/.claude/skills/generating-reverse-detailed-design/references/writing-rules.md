@@ -54,7 +54,7 @@ facts.yml の `meta` 節は以下の通り frontmatter へ転記する（`shared
 
 - `meta.source_repo` → frontmatter の `source_repo` へそのまま転記する（必須）
 - `meta.source_ref` → frontmatter の `source_ref` へそのまま転記する（必須）
-- `meta.route`（`value`）→ frontmatter の `scenarios[].path` を構成する。`ready` セレクタ等の実測系項目は facts.yml に無い値であるため断定せず、「実測委譲（画面単位検証で確定）」の注記を付けたうえで、`scenarios` に最低1件のシナリオを必ず作る。`scenarios: []` のまま `AUTHORED` を返すことを禁止する
+- `meta.route`（`value`）→ frontmatter の `scenarios[].path` を構成する。`query` / `path_params` は起動引数 `verification_url`（画面レジストリに記帳された、開通時に実レンダリング確認済みのURL。管理者が解決して渡す）から確定転記する。`ready`（描画到達判定に使う要素）は facts.yml の `jsx` セクションの分岐別ルート要素（`jsx-path-*`）から確定する。**`scenarios` 内に実測委譲プレースホルダを残すことを禁止する**（残すと基準確立・往復検証の動的比較（render-ready 判定）が実行不能になる）。確定できない場合は `AUTHORED` を返さず、hint に「開通不完全（scenarios 確定不能）」を記して管理者へ差し戻す（開通の完了が先）。`scenarios: []` のまま `AUTHORED` を返すことも禁止する
 
 ## 禁止事項
 

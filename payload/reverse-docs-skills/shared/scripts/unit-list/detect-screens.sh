@@ -24,11 +24,12 @@
 # --resolve-files <manifest-in> <source-dir> <manifest-out>:
 #   既存マニフェストの kind=route/embedded-view で entryFile が非空の画面それぞれについて、
 #   import 文を BFS(幅優先探索)で再帰的に追跡し、画面専有ファイル集合(files/fileCount)を
-#   更新する後処理サブコマンド(通常の検出フローとは独立)。strategy の以下のフィールドを読む:
-#     - sharedDirPatterns: 共有資産として除外する ERE の配列
+#   再解決する後処理サブコマンド(strategy を差し替えて再解決したい場合等に使う)。
+#   strategy の以下のフィールドを読む:
+#     - sharedDirPatterns: 共有資産として除外する ERE の配列(ソースルート相対パスに対して照合)
 #     - pathAliases: エイリアス前方一致テーブル({"@/": "src/"} 形式。値はソースルート相対)
 #     - importTraversalMaxDepth: BFS の深さ上限(未指定なら既定 6)
-#   通常の画面検出(entryFile と同一ディレクトリ直下+components/1階層)は変更しない。
+#   entryFile がディレクトリの場合(慣習ディレクトリ検出)は従来のディレクトリ収集を維持する。
 #
 # --self-test:
 #   resolve_screen_files(import 再帰追跡)と --resolve-files サブコマンドの自己診断テストを
@@ -53,8 +54,11 @@
 #   5. それでも衝突する場合、entry_file の basename(拡張子なし・小文字化)で具体化する
 #   6. ルートが `/` または静的セグメント無しの場合は `top`
 #
-# ファイル収集: エントリファイルと同一ディレクトリ直下 + 直下の components/(_components/) 1階層のみ
-# (import グラフ解析はしない。MVPスコープ外)
+# ファイル収集: entryFile がファイルの場合は import 文を BFS(幅優先探索)で再帰的に
+# 追跡し(resolve_screen_files)、strategy の sharedDirPatterns/pathAliases/
+# importTraversalMaxDepth/screenIdRegex に従って画面専有ファイル集合を解決する。
+# entryFile がディレクトリの場合(慣習ディレクトリ検出)は、エントリと同一ディレクトリ
+# 直下 + 直下の components/(_components/) 1階層のみを収集する(フォールバック互換)。
 #
 # 重複マージ: 同一 (route, entryFile) の行は 1 行にマージし、出現回数を routeDupCount として保持する。
 # 共有クラスタ: 異なる screenKey が同一 entryFile を共有する場合、sharedWith / clusterId を付与する。
@@ -80,10 +84,15 @@ set -euo pipefail
 # を裸のまま getline することはしない(必ず拡張子または/indexを付けてから
 # プローブする)。
 
+RESOLVE_COMMON_AWK_FILE="$(mktemp)"
 RESOLVE_AWK_FILE="$(mktemp)"
-trap 'rm -f "$RESOLVE_AWK_FILE"' EXIT
+RESOLVE_BATCH_AWK_FILE="$(mktemp)"
+trap 'rm -f "$RESOLVE_COMMON_AWK_FILE" "$RESOLVE_AWK_FILE" "$RESOLVE_BATCH_AWK_FILE"' EXIT
 
-cat > "$RESOLVE_AWK_FILE" <<'AWKEOF'
+# RESOLVE_COMMON_AWK_FILE: resolve_screen_files(単一画面)と
+# resolve_files_subcommand の一括BFS(9-3)が共有するヘルパー関数群。
+# 単一/一括いずれの awk 呼び出しも `-f COMMON -f 本体` の順で読み込む。
+cat > "$RESOLVE_COMMON_AWK_FILE" <<'AWKEOF'
 function try_exists(f,    line, rc) {
   rc = (getline line < f)
   close(f)
@@ -163,7 +172,11 @@ function extract_specs(file,    codeline, s, seg, spec, cnt) {
   close(file)
   return cnt
 }
+AWKEOF
 
+# RESOLVE_AWK_FILE: 単一画面のBFS本体(resolve_screen_files が使用)。
+# RESOLVE_COMMON_AWK_FILE の関数群を前提とする(呼び出し側で -f を2つ渡す)。
+cat > "$RESOLVE_AWK_FILE" <<'AWKEOF'
 BEGIN {
   # scalar 値は awk -v の escape 処理(バックスラッシュ解釈)を避けるため
   # ファイル経由で読む(screenidregex 等に \ を含む可能性への安全策)。
@@ -273,9 +286,12 @@ BEGIN {
       if (!(resolved == srcdir || index(resolved, srcdir "/") == 1)) continue
 
       # 境界(a): 共有ディレクトリパターン(ERE)一致は除外し、その先も辿らない。
+      # ソースルート相対パスに対して照合する(9-1: `^shared/` 等の ^ アンカー付き
+      # パターンが絶対パス照合では常に不一致になっていた不具合の修正)。
+      rel = (resolved == srcdir) ? "" : substr(resolved, length(srcdir) + 2)
       is_shared = 0
       for (shi = 1; shi <= n_shared; shi++) {
-        if (resolved ~ shared[shi]) { is_shared = 1; break }
+        if (rel ~ shared[shi]) { is_shared = 1; break }
       }
       if (is_shared) continue
 
@@ -302,6 +318,163 @@ BEGIN {
   }
 
   for (i = 1; i <= result_n; i++) print result[i]
+}
+AWKEOF
+
+# RESOLVE_BATCH_AWK_FILE: 複数画面分のBFSを単一awkプロセス内で連続処理する(9-3)。
+# resolve_files_subcommand が --resolve-files の対象画面をまとめて処理する際に使う。
+# srcdir/maxdepth/screenidregex/共有パターン/エイリアス表はマニフェスト単位で共通のため
+# 一度だけ読み込み、画面ごとの entry/ownscreenid のみを screensfile(TSV)から読む。
+# visited/queue/result は画面ごとに delete でリセットする(BFSの状態を画面間で共有しない)。
+# 境界(b)の「他画面entryFile集合」は自画面のentryも含めて一括で読み込む: 自画面のentryは
+# BFS開始時に既にvisitedへ登録済みのため、visited判定が境界(b)判定より必ず先に効き、
+# 自画面entryを誤って除外することはない(単一画面版の自画面除外グレップは冗長だった)。
+cat > "$RESOLVE_BATCH_AWK_FILE" <<'AWKEOF'
+BEGIN {
+  getline srcdir < paramsfile
+  getline maxdepth < paramsfile
+  getline screenidregex < paramsfile
+  close(paramsfile)
+  maxdepth += 0
+  if (maxdepth <= 0) maxdepth = 6
+
+  n_shared = 0
+  while ((getline line < sharedfile) > 0) {
+    if (line != "") { n_shared++; shared[n_shared] = line }
+  }
+  close(sharedfile)
+
+  n_alias = 0
+  while ((getline line < aliasfile) > 0) {
+    if (line == "") continue
+    split(line, ap, "\t")
+    n_alias++
+    alias_prefix[n_alias] = ap[1]
+    alias_target[n_alias] = ap[2]
+  }
+  close(aliasfile)
+
+  codeext[1] = ".tsx"; codeext[2] = ".ts"; codeext[3] = ".jsx"; codeext[4] = ".js"
+
+  n_screens = 0
+  while ((getline line < screensfile) > 0) {
+    if (line == "") continue
+    split(line, sf, "\t")
+    n_screens++
+    all_key[n_screens] = sf[1]
+    all_entry[n_screens] = sf[2]
+    all_ownid[n_screens] = sf[3]
+    others[sf[2]] = 1
+  }
+  close(screensfile)
+
+  for (sidx = 1; sidx <= n_screens; sidx++) {
+    key = all_key[sidx]
+    entry = all_entry[sidx]
+    ownscreenid = all_ownid[sidx]
+
+    delete visited
+    delete queue_file
+    delete queue_depth
+    delete result
+
+    qhead = 1; qtail = 1
+    queue_file[1] = entry
+    queue_depth[1] = 0
+    visited[entry] = 1
+    result_n = 1
+    result[1] = entry
+
+    while (qhead <= qtail) {
+      curfile = queue_file[qhead]
+      curdepth = queue_depth[qhead]
+      qhead++
+
+      if (curdepth + 0 >= maxdepth + 0) continue
+
+      n_specs = extract_specs(curfile)
+      curdir = dirname_of(curfile)
+
+      for (si = 1; si <= n_specs; si++) {
+        spec = SPECS[si]
+
+        base = ""
+        matched_ai = 0
+        matched_len = -1
+        for (ai = 1; ai <= n_alias; ai++) {
+          if (index(spec, alias_prefix[ai]) == 1 && length(alias_prefix[ai]) > matched_len) {
+            matched_len = length(alias_prefix[ai])
+            matched_ai = ai
+          }
+        }
+        if (matched_ai > 0) {
+          base = normalize_path(alias_target[matched_ai] "/" substr(spec, length(alias_prefix[matched_ai]) + 1))
+        } else if (substr(spec, 1, 1) == ".") {
+          base = normalize_path(curdir "/" spec)
+        } else {
+          continue
+        }
+
+        resolved = ""
+        if (has_any_ext(base)) {
+          if (has_code_ext(base)) {
+            if (try_exists(base)) resolved = base
+          }
+        } else {
+          for (ei = 1; ei <= 4; ei++) {
+            cand = base codeext[ei]
+            if (try_exists(cand)) { resolved = cand; break }
+          }
+          if (resolved == "") {
+            for (ei = 1; ei <= 4; ei++) {
+              cand = base "/index" codeext[ei]
+              if (try_exists(cand)) { resolved = cand; break }
+            }
+          }
+        }
+        if (resolved == "") continue
+
+        if (resolved in visited) continue
+        visited[resolved] = 1
+
+        if (!(resolved == srcdir || index(resolved, srcdir "/") == 1)) continue
+
+        # 境界(a): 9-1と同一の相対化照合。
+        rel = (resolved == srcdir) ? "" : substr(resolved, length(srcdir) + 2)
+        is_shared = 0
+        for (shi = 1; shi <= n_shared; shi++) {
+          if (rel ~ shared[shi]) { is_shared = 1; break }
+        }
+        if (is_shared) continue
+
+        if (resolved in others) continue
+
+        if (screenidregex != "") {
+          bn = resolved
+          sub(/.*\//, "", bn)
+          sub(/\.[^.]*$/, "", bn)
+          if (match(bn, screenidregex)) {
+            extracted = substr(bn, RSTART, RLENGTH)
+            if (extracted != "" && extracted != ownscreenid) continue
+          }
+        }
+
+        result_n++
+        result[result_n] = resolved
+        qtail++
+        queue_file[qtail] = resolved
+        queue_depth[qtail] = curdepth + 1
+      }
+    }
+
+    delete outseen
+    for (i = 1; i <= result_n; i++) {
+      if (!(result[i] in outseen)) {
+        outseen[result[i]] = 1
+        print key "\t" result[i]
+      }
+    }
+  }
 }
 AWKEOF
 
@@ -339,7 +512,7 @@ resolve_screen_files() {
   [ -n "$af" ] && [ -f "$af" ] || af="$empty_file"
 
   awk -v paramsfile="$params_file" -v sharedfile="$sf" -v othersfile="$of" -v aliasfile="$af" \
-    -f "$RESOLVE_AWK_FILE" | sort -u
+    -f "$RESOLVE_COMMON_AWK_FILE" -f "$RESOLVE_AWK_FILE" | sort -u
 
   rm -f "$params_file" "$empty_file"
 }
@@ -369,11 +542,14 @@ resolve_files_subcommand() {
   screen_id_regex="$(jq -r '.strategy.screenIdRegex // ""' "$manifest_in" 2>/dev/null || true)"
   [ "$screen_id_regex" = "null" ] && screen_id_regex=""
 
-  local rf_shared_file rf_alias_file rf_targets_file rf_all_entries_file rf_updates_file
+  local rf_shared_file rf_alias_file rf_screens_all_file rf_screens_valid_file
+  local rf_params_file rf_batch_result_file rf_updates_file
   rf_shared_file="$(mktemp)"
   rf_alias_file="$(mktemp)"
-  rf_targets_file="$(mktemp)"
-  rf_all_entries_file="$(mktemp)"
+  rf_screens_all_file="$(mktemp)"
+  rf_screens_valid_file="$(mktemp)"
+  rf_params_file="$(mktemp)"
+  rf_batch_result_file="$(mktemp)"
   rf_updates_file="$(mktemp)"
 
   jq -r '(.strategy.sharedDirPatterns // [])[]' "$manifest_in" > "$rf_shared_file" 2>/dev/null || true
@@ -390,64 +566,55 @@ resolve_files_subcommand() {
         printf '%s\t%s\n' "$prefix" "$abs_target"
       done > "$rf_alias_file" || true
 
-  jq -c '[.screens[] | select((.kind=="route" or .kind=="embedded-view") and .entryFile != "" and .entryFile != null)
-          | {screenKey, screenId, entryFile}]' "$manifest_in" > "$rf_targets_file"
+  # 9-3: 全対象画面の screenKey・entryFile(絶対パス化)・screenId を1回のjq呼び出しで
+  # TSVへ一括書き出しする(画面ごとのjq呼び出しをやめ、定数回のjq呼び出しに抑える)。
+  jq -r --arg srcdir "$source_dir" '
+    [.screens[] | select((.kind=="route" or .kind=="embedded-view") and .entryFile != "" and .entryFile != null)
+     | {screenKey, screenId: (.screenId // ""), entryFile}]
+    | .[]
+    | [.screenKey,
+       (if (.entryFile | startswith("/")) then .entryFile else ($srcdir + "/" + .entryFile) end),
+       .screenId]
+    | @tsv
+  ' "$manifest_in" > "$rf_screens_all_file"
 
-  : > "$rf_all_entries_file"
-  local n_targets
-  n_targets="$(jq 'length' "$rf_targets_file")"
-  local i
-  for ((i = 0; i < n_targets; i++)); do
-    local ef
-    ef="$(jq -r ".[$i].entryFile" "$rf_targets_file")"
-    case "$ef" in
-      /*) printf '%s\n' "$ef" >> "$rf_all_entries_file" ;;
-      *) printf '%s\n' "$source_dir/$ef" >> "$rf_all_entries_file" ;;
-    esac
-  done
-
-  echo '{}' > "$rf_updates_file"
-
-  local resolved_count=0
-  for ((i = 0; i < n_targets; i++)); do
-    local key entry_file own_id abs_entry
-    key="$(jq -r ".[$i].screenKey" "$rf_targets_file")"
-    entry_file="$(jq -r ".[$i].entryFile" "$rf_targets_file")"
-    own_id="$(jq -r ".[$i].screenId // \"\"" "$rf_targets_file")"
-    [ "$own_id" = "null" ] && own_id=""
-    case "$entry_file" in
-      /*) abs_entry="$entry_file" ;;
-      *) abs_entry="$source_dir/$entry_file" ;;
-    esac
-
+  local n_targets=0
+  : > "$rf_screens_valid_file"
+  while IFS=$'\t' read -r key abs_entry own_id; do
+    [ -z "$key" ] && continue
+    n_targets=$((n_targets + 1))
     if [ ! -f "$abs_entry" ]; then
       echo "WARN: --resolve-files: entryFile not found, skip: $abs_entry (screenKey=$key)" >&2
       continue
     fi
+    printf '%s\t%s\t%s\n' "$key" "$abs_entry" "$own_id" >> "$rf_screens_valid_file"
+  done < "$rf_screens_all_file"
 
-    local rf_others_file
-    rf_others_file="$(mktemp)"
-    grep -vxF "$abs_entry" "$rf_all_entries_file" > "$rf_others_file" 2>/dev/null || true
+  local resolved_count
+  resolved_count="$(grep -c . "$rf_screens_valid_file" || true)"
+  [ -z "$resolved_count" ] && resolved_count=0
 
-    local resolved
-    resolved="$(resolve_screen_files "$abs_entry" "$source_dir" "$max_depth" "$rf_shared_file" "$rf_others_file" "$screen_id_regex" "$own_id" "$rf_alias_file")"
-    rm -f "$rf_others_file"
+  {
+    printf '%s\n' "$source_dir"
+    printf '%s\n' "$max_depth"
+    printf '%s\n' "$screen_id_regex"
+  } > "$rf_params_file"
 
-    local file_count
-    file_count="$(printf '%s\n' "$resolved" | grep -c . || true)"
+  # 9-3: 全画面分のBFSを単一awkプロセスで連続処理する(画面ごとのawk起動を廃止)。
+  : > "$rf_batch_result_file"
+  if [ -s "$rf_screens_valid_file" ]; then
+    awk -v paramsfile="$rf_params_file" -v sharedfile="$rf_shared_file" -v aliasfile="$rf_alias_file" \
+      -v screensfile="$rf_screens_valid_file" \
+      -f "$RESOLVE_COMMON_AWK_FILE" -f "$RESOLVE_BATCH_AWK_FILE" > "$rf_batch_result_file"
+  fi
 
-    local rf_files_json_file
-    rf_files_json_file="$(mktemp)"
-    printf '%s\n' "$resolved" | grep -v '^$' | jq -R . | jq -s . > "$rf_files_json_file" || true
-
-    local rf_new_updates
-    rf_new_updates="$(mktemp)"
-    jq --slurpfile files "$rf_files_json_file" --arg key "$key" --argjson cnt "$file_count" \
-      '. + {($key): {files: $files[0], fileCount: $cnt}}' "$rf_updates_file" > "$rf_new_updates"
-    mv "$rf_new_updates" "$rf_updates_file"
-    rm -f "$rf_files_json_file"
-    resolved_count=$((resolved_count + 1))
-  done
+  # 9-3: 結果マージも1回のjq呼び出しで {screenKey: {files, fileCount}} を組み立てる。
+  jq -R -s '
+    split("\n") | map(select(length > 0) | split("\t") | {key: .[0], file: .[1]})
+    | group_by(.key)
+    | map({(.[0].key): {files: (map(.file) | sort), fileCount: (map(.file) | length)}})
+    | add // {}
+  ' "$rf_batch_result_file" > "$rf_updates_file"
 
   jq --slurpfile updates "$rf_updates_file" '
     .screens |= map(
@@ -456,7 +623,8 @@ resolve_files_subcommand() {
     )
   ' "$manifest_in" > "$manifest_out"
 
-  rm -f "$rf_shared_file" "$rf_alias_file" "$rf_targets_file" "$rf_all_entries_file" "$rf_updates_file"
+  rm -f "$rf_shared_file" "$rf_alias_file" "$rf_screens_all_file" "$rf_screens_valid_file" \
+    "$rf_params_file" "$rf_batch_result_file" "$rf_updates_file"
   echo "OK: --resolve-files updated $resolved_count/$n_targets screens -> $manifest_out" >&2
 }
 
@@ -470,20 +638,25 @@ resolve_files_subcommand() {
 # 処理:
 #   1. 対象は kind=route/embedded-view の画面のみ。各画面の files[] を
 #      repo-root 相対パスへ変換する(files[] が空の画面はスコア対象外として除外し、
-#      stderr に警告する)。
+#      stderr に警告 + 出力の diagnostics[] に記録する)。
 #   2. --recount-script(recount-facts.sh の --recount-only)を画面単位で1回呼び、
 #      LOC(loc行)+8軸(import/export_type/const/state/handler/jsx/style/api)を
-#      計測する。8軸の値は単純合算してaxisSumとする。
+#      計測する。8軸の値は画面ごとに axisBreakdown{8軸} として保持しつつ、
+#      単純合算してaxisSumとする。
 #   3. score = locWeight×loc + axisWeight×axisSum(重み既定 1/1、現状は固定値)。
 #   4. 四分位境界は nearest-rank-ceil 方式: q_i_rank = ceil(N×{25,50,75}/100)
 #      (整数演算: (N*pct+99)/100)をスコア昇順ソート後の1始まり順位として取り、
 #      その順位の値を境界値とする。score<=Q1→S / <=Q2→M / <=Q3→L / それ以外→XL。
-#      N<4 の場合は全画面 tier=ALL・quartiles=null に縮退する。
-#   5. 層内サンプリング: tier(層)ごとに k=ceil(sqrt(層内件数))・下限3・上限10、
+#      N<4 の場合は全画面 layer=ALL・quartiles=null・stratified=false に縮退する。
+#   5. 層内サンプリング: layer(層)ごとに k=ceil(sqrt(層内件数))・下限3・上限10、
 #      層内件数<k なら全数を対象とする。screenKey の辞書順先頭k件を採用する。
-#   6. 出力JSONを <profile-out> に書き出す。
+#      結果は layers.<層名> = {n, samplek, sampledScreenKeys[]} として出力する。
+#   6. 出力JSON(確定仕様)を <profile-out> に書き出す:
+#      screens[](axisBreakdown・layerを含む) / layers{S,M,L,XL|ALL}
+#      / n / scoreFormula{locWeight,axisWeight,axes[8]} / sourceManifest
+#      / quartileMethod:"nearest-rank-ceil" / stratified / diagnostics[]
 #
-# --profile の自己テスト4ケースは run_self_tests() 内(8-6-profile-*)に統合済み。
+# --profile の自己テストは run_self_tests() 内(8-6-profile-*)に統合済み。
 
 # ceil(sqrt(n)) を計算する(n>=0の整数)。
 sqrt_ceil() {
@@ -548,12 +721,15 @@ run_detect_screens_profile() {
   local loc_weight=1
   local axis_weight=1
 
-  local rows_tmp jsonl_tmp
+  local rows_tmp jsonl_tmp diag_tmp
   rows_tmp="$(mktemp)"
   jsonl_tmp="$(mktemp)"
-  _cleanup_detect_screens_profile_tmp() { rm -f "$rows_tmp" "$jsonl_tmp"; }
+  diag_tmp="$(mktemp)"
+  _cleanup_detect_screens_profile_tmp() { rm -f "$rows_tmp" "$jsonl_tmp" "$diag_tmp"; }
   trap '_cleanup_detect_screens_profile_tmp' RETURN
 
+  : > "$rows_tmp"
+  : > "$diag_tmp"
   while IFS= read -r row; do
     [ -z "$row" ] && continue
     local screen_key kind file_count
@@ -562,6 +738,7 @@ run_detect_screens_profile() {
     file_count="$(jq -r '.files | length' <<<"$row")"
     if [ "$file_count" -eq 0 ]; then
       echo "WARN: --profile: files[]が空のためスコア対象から除外します: $screen_key" >&2
+      printf '%s\n' "files[]が空のためスコア対象から除外: ${screen_key}" >> "$diag_tmp"
       continue
     fi
     local rel_files=()
@@ -571,27 +748,44 @@ run_detect_screens_profile() {
     done < <(jq -r '.files[]' <<<"$row")
 
     local recount_out loc=0 axis_sum=0 sec val
+    local import_cnt=0 export_type_cnt=0 const_cnt=0 state_cnt=0 handler_cnt=0 jsx_cnt=0 style_cnt=0 api_cnt=0
     recount_out="$(bash "$recount_script" --recount-only "$repo_root" "${rel_files[@]}")"
     while IFS=' ' read -r sec val; do
       [ -z "$sec" ] && continue
-      if [ "$sec" = "loc" ]; then
-        loc="$val"
-      else
-        axis_sum=$((axis_sum + val))
-      fi
+      case "$sec" in
+        loc) loc="$val" ;;
+        import) import_cnt="$val"; axis_sum=$((axis_sum + val)) ;;
+        export_type) export_type_cnt="$val"; axis_sum=$((axis_sum + val)) ;;
+        const) const_cnt="$val"; axis_sum=$((axis_sum + val)) ;;
+        state) state_cnt="$val"; axis_sum=$((axis_sum + val)) ;;
+        handler) handler_cnt="$val"; axis_sum=$((axis_sum + val)) ;;
+        jsx) jsx_cnt="$val"; axis_sum=$((axis_sum + val)) ;;
+        style) style_cnt="$val"; axis_sum=$((axis_sum + val)) ;;
+        api) api_cnt="$val"; axis_sum=$((axis_sum + val)) ;;
+        *) axis_sum=$((axis_sum + val)) ;;
+      esac
     done <<< "$recount_out"
 
     local score=$((loc_weight * loc + axis_weight * axis_sum))
-    printf '%s\t%s\t%s\t%s\t%s\n' "$screen_key" "$kind" "$loc" "$axis_sum" "$score" >> "$rows_tmp"
+    jq -n -c \
+      --arg key "$screen_key" --arg kind "$kind" \
+      --argjson loc "$loc" --argjson axisSum "$axis_sum" --argjson score "$score" \
+      --argjson importC "$import_cnt" --argjson exportC "$export_type_cnt" --argjson constC "$const_cnt" \
+      --argjson stateC "$state_cnt" --argjson handlerC "$handler_cnt" --argjson jsxC "$jsx_cnt" \
+      --argjson styleC "$style_cnt" --argjson apiC "$api_cnt" \
+      '{screenKey:$key, kind:$kind, loc:$loc, axisSum:$axisSum, score:$score,
+        axisBreakdown:{import:$importC, export_type:$exportC, const:$constC, state:$stateC,
+                        handler:$handlerC, jsx:$jsxC, style:$styleC, api:$apiC}}' >> "$rows_tmp"
   done < <(jq -c '.screens[] | select(.kind=="route" or .kind=="embedded-view")' "$manifest")
 
   local n
   n="$(wc -l < "$rows_tmp" | tr -d ' ')"
 
-  local q1="" q2="" q3="" quartiles_json="null"
+  local q1="" q2="" q3="" quartiles_json="null" stratified="false"
   if [ "$n" -ge 4 ]; then
+    stratified="true"
     local sorted_scores q1_rank q2_rank q3_rank
-    sorted_scores="$(awk -F'\t' '{print $5}' "$rows_tmp" | sort -n)"
+    sorted_scores="$(jq -r '.score' "$rows_tmp" | sort -n)"
     q1_rank=$(( (n * 25 + 99) / 100 ))
     q2_rank=$(( (n * 50 + 99) / 100 ))
     q3_rank=$(( (n * 75 + 99) / 100 ))
@@ -602,58 +796,73 @@ run_detect_screens_profile() {
   fi
 
   : > "$jsonl_tmp"
-  while IFS=$'\t' read -r screen_key kind loc axis_sum score; do
-    [ -z "$screen_key" ] && continue
-    local tier
+  while IFS= read -r row; do
+    [ -z "$row" ] && continue
+    local score layer
+    score="$(jq -r '.score' <<<"$row")"
     if [ "$n" -lt 4 ]; then
-      tier="ALL"
+      layer="ALL"
     elif [ "$score" -le "$q1" ]; then
-      tier="S"
+      layer="S"
     elif [ "$score" -le "$q2" ]; then
-      tier="M"
+      layer="M"
     elif [ "$score" -le "$q3" ]; then
-      tier="L"
+      layer="L"
     else
-      tier="XL"
+      layer="XL"
     fi
-    jq -n -c --arg key "$screen_key" --arg kind "$kind" --argjson loc "$loc" --argjson axisSum "$axis_sum" --argjson score "$score" --arg tier "$tier" \
-      '{screenKey:$key, kind:$kind, loc:$loc, axisSum:$axisSum, score:$score, tier:$tier}' >> "$jsonl_tmp"
+    jq -c --arg layer "$layer" '. + {layer:$layer}' <<<"$row" >> "$jsonl_tmp"
   done < "$rows_tmp"
 
-  local sample_json="{}"
+  local layers_json="{}"
   if [ -s "$jsonl_tmp" ]; then
-    local tiers sample_tmp
-    tiers="$(jq -r '.tier' "$jsonl_tmp" | sort -u)"
-    sample_tmp="$(mktemp)"
-    : > "$sample_tmp"
-    while IFS= read -r tier; do
-      [ -z "$tier" ] && continue
-      local tier_keys tier_n k sampled sampled_json
-      tier_keys="$(jq -r --arg t "$tier" 'select(.tier==$t) | .screenKey' "$jsonl_tmp" | sort)"
-      tier_n="$(printf '%s\n' "$tier_keys" | grep -c . || true)"
-      k="$(sqrt_ceil "$tier_n")"
+    local layer_names layer_tmp
+    layer_names="$(jq -r '.layer' "$jsonl_tmp" | sort -u)"
+    layer_tmp="$(mktemp)"
+    : > "$layer_tmp"
+    while IFS= read -r layer_name; do
+      [ -z "$layer_name" ] && continue
+      local layer_keys layer_n k sampled sampled_json
+      layer_keys="$(jq -r --arg t "$layer_name" 'select(.layer==$t) | .screenKey' "$jsonl_tmp" | sort)"
+      layer_n="$(printf '%s\n' "$layer_keys" | grep -c . || true)"
+      k="$(sqrt_ceil "$layer_n")"
       [ "$k" -lt 3 ] && k=3
       [ "$k" -gt 10 ] && k=10
-      [ "$k" -gt "$tier_n" ] && k="$tier_n"
-      sampled="$(printf '%s\n' "$tier_keys" | head -n "$k")"
+      [ "$k" -gt "$layer_n" ] && k="$layer_n"
+      sampled="$(printf '%s\n' "$layer_keys" | head -n "$k")"
       sampled_json="$(printf '%s\n' "$sampled" | jq -R -s 'split("\n") | map(select(length>0))')"
-      jq -n --arg t "$tier" --argjson keys "$sampled_json" '{($t): $keys}' >> "$sample_tmp"
-    done <<< "$tiers"
-    sample_json="$(jq -s 'add // {}' "$sample_tmp")"
-    rm -f "$sample_tmp"
+      jq -n --arg t "$layer_name" --argjson n "$layer_n" --argjson samplek "$k" --argjson keys "$sampled_json" \
+        '{($t): {n:$n, samplek:$samplek, sampledScreenKeys:$keys}}' >> "$layer_tmp"
+    done <<< "$layer_names"
+    layers_json="$(jq -s 'add // {}' "$layer_tmp")"
+    rm -f "$layer_tmp"
   fi
+
+  local manifest_abs
+  manifest_abs="$(cd "$(dirname "$manifest")" && pwd)/$(basename "$manifest")"
+
+  local diagnostics_json
+  diagnostics_json="$(jq -R -s 'split("\n") | map(select(length>0))' "$diag_tmp")"
 
   mkdir -p "$(dirname "$profile_out")"
   jq -n \
     --arg generatedAt "$(date +%Y-%m-%dT%H:%M:%S%z)" \
     --arg repoRoot "$repo_root" \
+    --arg sourceManifest "$manifest_abs" \
     --argjson locWeight "$loc_weight" \
     --argjson axisWeight "$axis_weight" \
-    --argjson screenCount "$n" \
+    --argjson n "$n" \
     --argjson quartiles "$quartiles_json" \
-    --slurpfile profiles "$jsonl_tmp" \
-    --argjson sample "$sample_json" \
-    '{generatedAt:$generatedAt, repoRoot:$repoRoot, weights:{loc:$locWeight, axis:$axisWeight}, screenCount:$screenCount, quartiles:$quartiles, profiles:$profiles, sample:$sample}' \
+    --argjson stratified "$stratified" \
+    --slurpfile screens "$jsonl_tmp" \
+    --argjson layers "$layers_json" \
+    --argjson diagnostics "$diagnostics_json" \
+    '{generatedAt:$generatedAt, repoRoot:$repoRoot, sourceManifest:$sourceManifest,
+      quartileMethod:"nearest-rank-ceil",
+      scoreFormula:{locWeight:$locWeight, axisWeight:$axisWeight,
+                    axes:["import","export_type","const","state","handler","jsx","style","api"]},
+      n:$n, quartiles:$quartiles, stratified:$stratified,
+      screens:$screens, layers:$layers, diagnostics:$diagnostics}' \
     > "$profile_out"
 
   echo "OK: profiled $n screens -> $profile_out" >&2
@@ -723,6 +932,22 @@ $t1/src/shared/Button.tsx" \
 "$t2/src/screens/foo/index.tsx" \
     "$t2_result"
   rm -f "$t2_shared_file"
+
+  # --- 陽性2b(9-1): ^アンカー付き共有パターンはソースルート相対パスで照合される ---
+  # 絶対パス照合のままだと "^shared/" は tmpdir プレフィックスのせいで常に不一致になる。
+  local t2b="$root/t2b"
+  mkdir -p "$t2b/src/screens/foo" "$t2b/src/shared"
+  printf "import { Widget } from '../../shared/Widget'\n" > "$t2b/src/screens/foo/index.tsx"
+  printf "export const Widget = () => null\n" > "$t2b/src/shared/Widget.tsx"
+  local t2b_shared_file
+  t2b_shared_file="$(mktemp)"
+  printf '^shared/\n' > "$t2b_shared_file"
+  local t2b_result
+  t2b_result="$(resolve_screen_files "$t2b/src/screens/foo/index.tsx" "$t2b/src" 6 "$t2b_shared_file" "" "" "" "")"
+  assert_set_equal "9-1-共有除外-アンカー付きパターン相対化" \
+"$t2b/src/screens/foo/index.tsx" \
+    "$t2b_result"
+  rm -f "$t2b_shared_file"
 
   # --- 陽性3: bare import 不追跡 ---
   local t3="$root/t3"
@@ -853,6 +1078,43 @@ EOF
   fi
   rm -f "$t9_manifest_in" "$t9_manifest_out"
 
+  # --- 追加(9-3): --resolve-files の複数画面一括処理(バッチBFS)の疎通確認 ---
+  # 画面foo が 他画面(bar)のentryFile と ^アンカー付き共有パターン一致のファイルを
+  # 同時にimportするフィクスチャで、境界(b)(他画面entryFile)と境界(a)(9-1の相対化
+  # 照合)がバッチ処理経路でも機能することを検証する(単一画面版のt2b/t6は
+  # resolve_screen_files直接呼び出しのみを検証しており、--resolve-filesのバッチ
+  # awk処理経路を通していなかったギャップを埋める)。
+  local t10="$root/t10"
+  mkdir -p "$t10/src/screens/foo" "$t10/src/screens/bar" "$t10/src/shared"
+  printf "import Bar from '../bar/index'\nimport { Widget } from '../../shared/Widget'\n" > "$t10/src/screens/foo/index.tsx"
+  printf "export const Bar = 1\n" > "$t10/src/screens/bar/index.tsx"
+  printf "export const Widget = () => null\n" > "$t10/src/shared/Widget.tsx"
+  local t10_manifest_in t10_manifest_out
+  t10_manifest_in="$(mktemp)"
+  t10_manifest_out="$(mktemp)"
+  cat > "$t10_manifest_in" <<EOF
+{
+  "generatedAt": null,
+  "sourceDir": "$t10/src",
+  "strategy": {"sharedDirPatterns": ["^shared/"], "importTraversalMaxDepth": 6},
+  "detectionSummary": {"method": "nextjs-app", "screenCount": 2},
+  "screens": [
+    {"screenKey": "foo", "kind": "route", "route": "/foo", "entryFile": "$t10/src/screens/foo/index.tsx", "files": [], "fileCount": 0},
+    {"screenKey": "bar", "kind": "route", "route": "/bar", "entryFile": "$t10/src/screens/bar/index.tsx", "files": [], "fileCount": 0}
+  ]
+}
+EOF
+  resolve_files_subcommand "$t10_manifest_in" "$t10/src" "$t10_manifest_out"
+  local t10_foo_files t10_bar_files
+  t10_foo_files="$(jq -r '.screens[] | select(.screenKey=="foo") | .files | sort | join(",")' "$t10_manifest_out")"
+  t10_bar_files="$(jq -r '.screens[] | select(.screenKey=="bar") | .files | sort | join(",")' "$t10_manifest_out")"
+  if [ "$t10_foo_files" = "$t10/src/screens/foo/index.tsx" ] && [ "$t10_bar_files" = "$t10/src/screens/bar/index.tsx" ]; then
+    test_report "9-3-resolve-files複数画面バッチ境界維持" 0
+  else
+    test_report "9-3-resolve-files複数画面バッチ境界維持" 1 "foo=$t10_foo_files bar=$t10_bar_files"
+  fi
+  rm -f "$t10_manifest_in" "$t10_manifest_out"
+
   # --- 既存検出の最小回帰(Next.js App Routerの最小フィクスチャで従来フローが壊れていないこと) ---
   local reg="$root/reg"
   mkdir -p "$reg/app/dashboard"
@@ -899,6 +1161,33 @@ EOF
   fi
   rm -f "$chain_manifest" "$chain_manifest_out"
 
+  # --- 追加(9-2): 通常検出フロー(2引数起動、--resolve-files を経由しない)でも
+  # BFS(import 再帰追跡)によりファイル集合が解決され、共有ディレクトリが除外されること。
+  # --strategy-json で sharedDirPatterns/pathAliases を明示しないと、合成strategyには
+  # 両フィールドが存在せず共有除外が機能しないため、必ず --strategy-json 経由で検証する。
+  local t11="$root/t11"
+  mkdir -p "$t11/app/dashboard" "$t11/shared"
+  printf "module.exports = {}\n" > "$t11/next.config.js"
+  printf "import { Widget } from '@/shared/Widget'\nexport default function Page(){return null}\n" > "$t11/app/dashboard/page.tsx"
+  printf "export const Widget = () => null\n" > "$t11/shared/Widget.tsx"
+  local t11_strategy_file t11_manifest t11_status
+  t11_strategy_file="$(mktemp)"
+  cat > "$t11_strategy_file" <<EOF
+{"sharedDirPatterns": ["^shared/"], "pathAliases": {"@/": ""}, "importTraversalMaxDepth": 6}
+EOF
+  t11_manifest="$(mktemp)"
+  t11_status=0
+  bash "$0" "$t11" "$t11_manifest" --strategy-json "$t11_strategy_file" >/dev/null 2>&1 || t11_status=$?
+  local t11_count t11_files
+  t11_count="$(jq -r '.screens[0].fileCount' "$t11_manifest" 2>/dev/null || echo -1)"
+  t11_files="$(jq -r '.screens[0].files | sort | join(",")' "$t11_manifest" 2>/dev/null || echo "")"
+  if [ "$t11_status" -eq 0 ] && [ "$t11_count" = "1" ] && [ "$t11_files" = "$t11/app/dashboard/page.tsx" ]; then
+    test_report "9-2-通常検出フローへのBFS統合-共有除外" 0
+  else
+    test_report "9-2-通常検出フローへのBFS統合-共有除外" 1 "status=$t11_status count=$t11_count files=$t11_files"
+  fi
+  rm -f "$t11_strategy_file" "$t11_manifest"
+
   # --- 追加: --profile サブコマンドの複雑度プロファイリング(8-6) ---
   build_profile_fixture_file() {
     local path="$1" fn="$2" i=0
@@ -936,10 +1225,10 @@ EOF
   bash "$0" --profile "$pmanifest" "$prepo" "$pout" --recount-script "$profile_recount_script" --repo-root "$prepo" >/dev/null 2>&1 || pstatus=$?
   if [ "$pstatus" -eq 0 ]; then
     local pt_a pt_b pt_c pt_d
-    pt_a="$(jq -r '.profiles[] | select(.screenKey=="screen-a") | .tier' "$pout")"
-    pt_b="$(jq -r '.profiles[] | select(.screenKey=="screen-b") | .tier' "$pout")"
-    pt_c="$(jq -r '.profiles[] | select(.screenKey=="screen-c") | .tier' "$pout")"
-    pt_d="$(jq -r '.profiles[] | select(.screenKey=="screen-d") | .tier' "$pout")"
+    pt_a="$(jq -r '.screens[] | select(.screenKey=="screen-a") | .layer' "$pout")"
+    pt_b="$(jq -r '.screens[] | select(.screenKey=="screen-b") | .layer' "$pout")"
+    pt_c="$(jq -r '.screens[] | select(.screenKey=="screen-c") | .layer' "$pout")"
+    pt_d="$(jq -r '.screens[] | select(.screenKey=="screen-d") | .layer' "$pout")"
     if [ "$pt_a" = "S" ] && [ "$pt_b" = "M" ] && [ "$pt_c" = "L" ] && [ "$pt_d" = "XL" ]; then
       test_report "8-6-profile-S/M/L/XL割当" 0
     else
@@ -947,6 +1236,20 @@ EOF
     fi
   else
     test_report "8-6-profile-S/M/L/XL割当" 1 "status=$pstatus"
+  fi
+
+  if [ "$pstatus" -eq 0 ]; then
+    local has_screens has_layers has_axis
+    has_screens="$(jq -r 'has("screens")' "$pout")"
+    has_layers="$(jq -r 'has("layers")' "$pout")"
+    has_axis="$(jq -r '.screens[0] | has("axisBreakdown")' "$pout")"
+    if [ "$has_screens" = "true" ] && [ "$has_layers" = "true" ] && [ "$has_axis" = "true" ]; then
+      test_report "8-6-profile-出力スキーマ確定" 0
+    else
+      test_report "8-6-profile-出力スキーマ確定" 1 "has_screens=$has_screens has_layers=$has_layers has_axis=$has_axis"
+    fi
+  else
+    test_report "8-6-profile-出力スキーマ確定" 1 "status=$pstatus"
   fi
 
   local pmanifest_small="$root/profile-manifest-small.json"
@@ -960,14 +1263,15 @@ EOF
   local pout_small="$root/profile-out-small.json" pstatus_small=0
   bash "$0" --profile "$pmanifest_small" "$prepo" "$pout_small" --recount-script "$profile_recount_script" --repo-root "$prepo" >/dev/null 2>&1 || pstatus_small=$?
   if [ "$pstatus_small" -eq 0 ]; then
-    local pts_a pts_b pts_q
-    pts_a="$(jq -r '.profiles[] | select(.screenKey=="screen-a") | .tier' "$pout_small")"
-    pts_b="$(jq -r '.profiles[] | select(.screenKey=="screen-b") | .tier' "$pout_small")"
+    local pts_a pts_b pts_q pts_stratified
+    pts_a="$(jq -r '.screens[] | select(.screenKey=="screen-a") | .layer' "$pout_small")"
+    pts_b="$(jq -r '.screens[] | select(.screenKey=="screen-b") | .layer' "$pout_small")"
     pts_q="$(jq -c '.quartiles' "$pout_small")"
-    if [ "$pts_a" = "ALL" ] && [ "$pts_b" = "ALL" ] && [ "$pts_q" = "null" ]; then
+    pts_stratified="$(jq -r '.stratified' "$pout_small")"
+    if [ "$pts_a" = "ALL" ] && [ "$pts_b" = "ALL" ] && [ "$pts_q" = "null" ] && [ "$pts_stratified" = "false" ]; then
       test_report "8-6-profile-N4未満ALL縮退" 0
     else
-      test_report "8-6-profile-N4未満ALL縮退" 1 "A=$pts_a B=$pts_b quartiles=$pts_q"
+      test_report "8-6-profile-N4未満ALL縮退" 1 "A=$pts_a B=$pts_b quartiles=$pts_q stratified=$pts_stratified"
     fi
   else
     test_report "8-6-profile-N4未満ALL縮退" 1 "status=$pstatus_small"
@@ -996,8 +1300,8 @@ EOF
   bash "$0" --profile "$pmanifest_flat" "$prepo" "$pout_flat" --recount-script "$profile_recount_script" --repo-root "$prepo" >/dev/null 2>&1 || pstatus_flat=$?
   if [ "$pstatus_flat" -eq 0 ]; then
     local ptf_count ptf_tier ptf_q1 ptf_q2 ptf_q3
-    ptf_count="$(jq -r '[.profiles[].tier] | unique | length' "$pout_flat")"
-    ptf_tier="$(jq -r '.profiles[0].tier' "$pout_flat")"
+    ptf_count="$(jq -r '[.screens[].layer] | unique | length' "$pout_flat")"
+    ptf_tier="$(jq -r '.screens[0].layer' "$pout_flat")"
     ptf_q1="$(jq -r '.quartiles.q1' "$pout_flat")"
     ptf_q2="$(jq -r '.quartiles.q2' "$pout_flat")"
     ptf_q3="$(jq -r '.quartiles.q3' "$pout_flat")"
@@ -1164,7 +1468,7 @@ TMP_KEYED="$(mktemp)"
 TMP_EMBEDDED="$(mktemp)"
 TMP_ALL="$(mktemp)"
 TMP_CLUSTERS="$(mktemp)"
-trap 'rm -f "$TMP_ROWS" "$SEEN_KEYS_FILE" "$TMP_MERGED" "$TMP_KEYED" "$TMP_EMBEDDED" "$TMP_ALL" "$TMP_CLUSTERS" "$RESOLVE_AWK_FILE"' EXIT
+trap 'rm -f "$TMP_ROWS" "$SEEN_KEYS_FILE" "$TMP_MERGED" "$TMP_KEYED" "$TMP_EMBEDDED" "$TMP_ALL" "$TMP_CLUSTERS" "$RESOLVE_COMMON_AWK_FILE" "$RESOLVE_AWK_FILE" "$RESOLVE_BATCH_AWK_FILE" "$STRATEGY_SHARED_FILE" "$STRATEGY_ALIAS_FILE" "$STRATEGY_ALL_ENTRIES_FILE"' EXIT
 
 detection_method=""
 
@@ -1610,6 +1914,39 @@ else
   strategy_json="{\"screenIdRegex\": $screen_id_regex_json, \"viewSwitchPattern\": $view_switch_pattern_json, \"extractionMethod\": \"builtin-${detection_method}\", \"approvedByUser\": false}"
 fi
 
+# --- 9-2: 通常検出フローでも import 再帰追跡(resolve_screen_files)でファイル集合を
+# 解決する。strategy の sharedDirPatterns/pathAliases/importTraversalMaxDepth/
+# screenIdRegex を読み込んで BFS に引き渡す(entryFile がディレクトリの場合の
+# 従来のディレクトリ収集はフォールバック互換として維持する)。
+STRATEGY_SHARED_FILE="$(mktemp)"
+STRATEGY_ALIAS_FILE="$(mktemp)"
+STRATEGY_ALL_ENTRIES_FILE="$(mktemp)"
+
+STRATEGY_MAX_DEPTH="$(printf '%s' "$strategy_json" | jq -r '.importTraversalMaxDepth // 6' 2>/dev/null || echo 6)"
+case "$STRATEGY_MAX_DEPTH" in ''|*[!0-9]*) STRATEGY_MAX_DEPTH=6 ;; esac
+
+# 注意: BFS境界(c)専用のローカル値。extract_screen_id() が使う既存のグローバル
+# SCREEN_ID_REGEX は書き換えない(screenId フィールドの算出ロジックへの影響を避ける)。
+STRATEGY_SCREEN_ID_REGEX="$(printf '%s' "$strategy_json" | jq -r '.screenIdRegex // ""' 2>/dev/null || echo "")"
+[ "$STRATEGY_SCREEN_ID_REGEX" = "null" ] && STRATEGY_SCREEN_ID_REGEX=""
+
+printf '%s' "$strategy_json" | jq -r '(.sharedDirPatterns // [])[]' > "$STRATEGY_SHARED_FILE" 2>/dev/null || true
+
+: > "$STRATEGY_ALIAS_FILE"
+printf '%s' "$strategy_json" | jq -r '(.pathAliases // {}) | to_entries[] | "\(.key)\t\(.value)"' 2>/dev/null \
+  | while IFS=$'\t' read -r prefix target; do
+      [ -z "$prefix" ] && continue
+      case "$target" in
+        /*) abs_target="$target" ;;
+        "") abs_target="$SOURCE_DIR" ;;
+        *) abs_target="$SOURCE_DIR/$target" ;;
+      esac
+      printf '%s\t%s\n' "$prefix" "$abs_target"
+    done > "$STRATEGY_ALIAS_FILE" || true
+
+# 境界(b)用: 全画面のentryFile集合(自画面除外は不要。visited判定が先に効くため)。
+awk -F'\t' '$5!=""{print $5}' "$TMP_ALL" | sort -u > "$STRATEGY_ALL_ENTRIES_FILE"
+
 {
   printf '{\n'
   printf '  "generatedAt": "%s",\n' "$(date +%Y-%m-%dT%H:%M:%S%z)"
@@ -1628,7 +1965,23 @@ fi
 
     files=""
     file_count=0
-    if [ -n "$entry_dir" ] && [ -d "$entry_dir" ]; then
+    if [ -n "$entry_file" ] && [ -f "$entry_file" ]; then
+      # 9-2: import 再帰追跡(BFS)で画面専有ファイル集合を解決する(通常検出フローへの統合)。
+      # screenId は extract_screen_id() が使う既存のグローバル SCREEN_ID_REGEX とは
+      # 独立に、strategy 由来の STRATEGY_SCREEN_ID_REGEX から算出する(境界(c)専用値)。
+      bfs_own_screen_id=""
+      if [ -n "$STRATEGY_SCREEN_ID_REGEX" ]; then
+        bfs_base="$(basename "$entry_file")"
+        bfs_base="${bfs_base%.*}"
+        bfs_own_screen_id="$(printf '%s' "$bfs_base" | grep -oE "$STRATEGY_SCREEN_ID_REGEX" | head -1 || true)"
+      fi
+      screen_others_file="$(mktemp)"
+      grep -vxF "$entry_file" "$STRATEGY_ALL_ENTRIES_FILE" > "$screen_others_file" 2>/dev/null || true
+      files="$(resolve_screen_files "$entry_file" "$SOURCE_DIR" "$STRATEGY_MAX_DEPTH" "$STRATEGY_SHARED_FILE" "$screen_others_file" "$STRATEGY_SCREEN_ID_REGEX" "$bfs_own_screen_id" "$STRATEGY_ALIAS_FILE")"
+      rm -f "$screen_others_file"
+      file_count="$(printf '%s\n' "$files" | grep -c . || true)"
+    elif [ -n "$entry_dir" ] && [ -d "$entry_dir" ]; then
+      # entryFile がディレクトリの場合(慣習ディレクトリ検出): 従来のディレクトリ収集を維持(フォールバック互換)。
       files="$( { find "$entry_dir" -maxdepth 1 -type f 2>/dev/null; find "$entry_dir/components" "$entry_dir/_components" -maxdepth 1 -type f 2>/dev/null; } | grep -v '^$' || true)"
       file_count="$(printf '%s\n' "$files" | grep -c . || true)"
     fi
