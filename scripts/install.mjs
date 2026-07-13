@@ -415,6 +415,7 @@ function cmdApply() {
   const symlinks = [
     { link: path.join(TARGET, ".claude", "rules"), target: path.join(TARGET, "agent-home", "rules") },
     { link: path.join(TARGET, ".claude", "skills"), target: path.join(TARGET, "agent-home", "skills") },
+    { link: path.join(TARGET, ".claude", "agents"), target: path.join(TARGET, "agent-home", "agents") },
   ];
   for (const { link, target: linkTarget } of symlinks) {
     const relTarget = path.relative(path.dirname(link), linkTarget);
