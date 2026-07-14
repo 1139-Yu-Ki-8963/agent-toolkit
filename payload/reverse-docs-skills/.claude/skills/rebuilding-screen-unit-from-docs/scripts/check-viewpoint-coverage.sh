@@ -31,6 +31,66 @@
 
 set -euo pipefail
 
+if [ "${1:-}" = "--self-test" ]; then
+  self_test() {
+    local self_path pass=0 fail=0
+    self_path="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$(basename "${BASH_SOURCE[0]}")"
+    tmp="$(mktemp -d)"
+    trap 'rm -rf "$tmp"' EXIT
+
+    cat > "$tmp/sheet.md" <<'EOF'
+## 観点表
+
+| キー | 対象 | 観点 |
+|---|---|---|
+| 金額-下限境界 | 金額検証ロジック | 境界値 |
+| api失敗-error表示 | エラー表示ロジック | 異常系 |
+EOF
+
+    mkdir -p "$tmp/test_ok"
+    cat > "$tmp/test_ok/spec.sh" <<'EOF'
+# 観点: 金額-下限境界 を検証する
+# 観点: api失敗-error表示 を検証する
+EOF
+
+    # 正常系: 全キーがテストコードで言及されていればexit0
+    if bash "$self_path" "$tmp/sheet.md" "$tmp/test_ok" >/dev/null 2>&1; then
+      echo "PASS: 全キー言及済みでexit0" >&2
+      pass=$((pass + 1))
+    else
+      echo "FAIL: 全キー言及済みでexit0" >&2
+      fail=$((fail + 1))
+    fi
+
+    mkdir -p "$tmp/test_ng"
+    cat > "$tmp/test_ng/spec.sh" <<'EOF'
+# 観点: 金額-下限境界 を検証する
+EOF
+
+    # 異常系: 未言及キーがあればexit1
+    if bash "$self_path" "$tmp/sheet.md" "$tmp/test_ng" >/dev/null 2>&1; then
+      echo "FAIL: 未言及キー検出時にexit1" >&2
+      fail=$((fail + 1))
+    else
+      echo "PASS: 未言及キー検出時にexit1" >&2
+      pass=$((pass + 1))
+    fi
+
+    # 異常系: 観点表ファイルが存在しない場合はexit1
+    if bash "$self_path" "$tmp/no-such-sheet.md" "$tmp/test_ok" >/dev/null 2>&1; then
+      echo "FAIL: 観点表ファイル不在時にexit1" >&2
+      fail=$((fail + 1))
+    else
+      echo "PASS: 観点表ファイル不在時にexit1" >&2
+      pass=$((pass + 1))
+    fi
+
+    echo "self-test: ${pass} PASS, ${fail} FAIL" >&2
+    [ "$fail" -eq 0 ]
+  }
+  if self_test; then exit 0; else exit 1; fi
+fi
+
 if [ $# -ne 2 ]; then
   echo "使い方: $0 <単体テスト観点表.md> <テストコードのパス>" >&2
   exit 1

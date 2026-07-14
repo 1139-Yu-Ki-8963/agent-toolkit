@@ -22,6 +22,49 @@ set -euo pipefail
 #   4. 全 .md の <画面ID> <画面名> プレースホルダを sed 置換
 #   5. 展開結果を tree で表示
 
+if [ "${1:-}" = "--self-test" ]; then
+  self_test() {
+    local self_path pass=0 fail=0
+    self_path="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$(basename "${BASH_SOURCE[0]}")"
+    tmp="$(mktemp -d)"
+    trap 'rm -rf "$tmp"' EXIT
+
+    # 正常系: 実テンプレートで新規展開した後、--verify が健全性をexit0で確認する
+    mkdir -p "$tmp/docs_ok"
+    if bash "$self_path" "$tmp/docs_ok" selftest-screen "セルフテスト画面" >/dev/null 2>&1 \
+       && bash "$self_path" --verify "$tmp/docs_ok" selftest-screen >/dev/null 2>&1; then
+      echo "PASS: 実テンプレート展開後にverifyがexit0" >&2
+      pass=$((pass + 1))
+    else
+      echo "FAIL: 実テンプレート展開後にverifyがexit0" >&2
+      fail=$((fail + 1))
+    fi
+
+    # 異常系: 存在しないdocs_rootを指定するとexit1
+    if bash "$self_path" "$tmp/docs_not_exist" selftest-screen2 >/dev/null 2>&1; then
+      echo "FAIL: 存在しないdocs_root指定時にexit1" >&2
+      fail=$((fail + 1))
+    else
+      echo "PASS: 存在しないdocs_root指定時にexit1" >&2
+      pass=$((pass + 1))
+    fi
+
+    # 異常系: 未展開ディレクトリへの--verifyはexit1
+    mkdir -p "$tmp/docs_empty/画面/screen-empty-screen"
+    if bash "$self_path" --verify "$tmp/docs_empty" empty-screen >/dev/null 2>&1; then
+      echo "FAIL: 未展開ディレクトリへのverifyでexit1" >&2
+      fail=$((fail + 1))
+    else
+      echo "PASS: 未展開ディレクトリへのverifyでexit1" >&2
+      pass=$((pass + 1))
+    fi
+
+    echo "self-test: ${pass} PASS, ${fail} FAIL" >&2
+    [ "$fail" -eq 0 ]
+  }
+  if self_test; then exit 0; else exit 1; fi
+fi
+
 if [ "${1:-}" = "--verify" ]; then
   shift
   docs_root="${1:?引数 docs_root が必要です}"

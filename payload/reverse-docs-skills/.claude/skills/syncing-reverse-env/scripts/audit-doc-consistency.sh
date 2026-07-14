@@ -58,6 +58,87 @@
 
 set -euo pipefail
 
+if [ "${1:-}" = "--self-test" ]; then
+  self_test() {
+    local self_path pass=0 fail=0
+    self_path="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$(basename "${BASH_SOURCE[0]}")"
+    tmp="$(mktemp -d)"
+    trap 'rm -rf "$tmp"' EXIT
+
+    # 正常系: 5検査すべてを満たす合成フィクスチャはexit0
+    mkdir -p "$tmp/good/scripts" "$tmp/good/references"
+    cp "$self_path" "$tmp/good/scripts/audit-doc-consistency.sh"
+    {
+      echo "<html><body>"
+      echo "<h3>プリフライトチェック</h3><table>"
+      for i in 1 2 3 4 5 6 7 8 9; do
+        echo "<tr><td>${i}</td><td>pf-key-${i}</td></tr>"
+      done
+      echo "</table>"
+      echo "<h3>環境同一性チェック</h3><table>"
+      for i in 1 2 3 4 5 6 7 8 9 10 11 12 13; do
+        echo "<tr><td>${i}</td><td>env-key-${i}</td></tr>"
+      done
+      echo "</table>"
+      echo "<pre>"
+      for k in ports services launch l3_threshold_percent max_loop tag_namespace \
+               diff_exclude install_command env_file_globs bundler_cache_dirs \
+               artifacts_root node_modules_strategy allow_mnt_fs playwright_exec \
+               original_sharing; do
+        echo "${k}: dummy"
+      done
+      echo "</pre>"
+      echo "<pre>"
+      for f in status scope slot ports baseline_tag static_diff dynamic env_check artifacts hint; do
+        echo "  ${f}: dummy"
+      done
+      echo "</pre>"
+      echo "</body></html>"
+    } > "$tmp/good/references/syncing-reverse-env-guide.html"
+    printf '# selftest skill\n\nダミー本文。\n' > "$tmp/good/SKILL.md"
+    printf 'defaults:\n  ports: {}\n' > "$tmp/good/config.yml"
+
+    if bash "$tmp/good/scripts/audit-doc-consistency.sh" >/dev/null 2>&1; then
+      echo "PASS: 全検査を満たす合成フィクスチャでexit0" >&2
+      pass=$((pass + 1))
+    else
+      echo "FAIL: 全検査を満たす合成フィクスチャでexit0" >&2
+      fail=$((fail + 1))
+    fi
+
+    # 異常系: キー数・キー整合が崩れた合成フィクスチャはexit1
+    mkdir -p "$tmp/bad/scripts" "$tmp/bad/references"
+    cp "$self_path" "$tmp/bad/scripts/audit-doc-consistency.sh"
+    printf '<html><body><h3>プリフライトチェック</h3><table></table></body></html>\n' \
+      > "$tmp/bad/references/syncing-reverse-env-guide.html"
+    printf '# selftest skill (broken)\n' > "$tmp/bad/SKILL.md"
+    printf 'defaults: {}\n' > "$tmp/bad/config.yml"
+
+    if bash "$tmp/bad/scripts/audit-doc-consistency.sh" >/dev/null 2>&1; then
+      echo "FAIL: 不整合フィクスチャでexit1" >&2
+      fail=$((fail + 1))
+    else
+      echo "PASS: 不整合フィクスチャでexit1" >&2
+      pass=$((pass + 1))
+    fi
+
+    # 異常系: 対象ファイル不在はexit1
+    mkdir -p "$tmp/missing/scripts"
+    cp "$self_path" "$tmp/missing/scripts/audit-doc-consistency.sh"
+    if bash "$tmp/missing/scripts/audit-doc-consistency.sh" >/dev/null 2>&1; then
+      echo "FAIL: 対象ファイル不在時にexit1" >&2
+      fail=$((fail + 1))
+    else
+      echo "PASS: 対象ファイル不在時にexit1" >&2
+      pass=$((pass + 1))
+    fi
+
+    echo "self-test: ${pass} PASS, ${fail} FAIL" >&2
+    [ "$fail" -eq 0 ]
+  }
+  if self_test; then exit 0; else exit 1; fi
+fi
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SKILL_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 SKILLS_ROOT="$(cd "${SKILL_DIR}/.." && pwd)"
