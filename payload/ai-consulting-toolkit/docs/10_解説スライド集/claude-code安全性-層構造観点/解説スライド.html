@@ -1,0 +1,247 @@
+<meta charset="utf-8">
+<title>Claude Code の安全性の仕組み</title>
+<style>
+  :root {
+    --page: #EDF0F4;
+    --surface: #FFFFFF;
+    --ink: #1C2B3A;
+    --ink-2: #55667A;
+    --ink-3: #8494A6;
+    --border: #D9E0E8;
+    --grid: #E9EDF2;
+    --critical: #C0392B;
+    --critical-soft: #FAECEA;
+    --good: #1F7A46;
+    --good-soft: #EAF4EE;
+    --tag-bg: #EDF1F6;
+    --claude: #D97757;
+    --claude-deep: #BC5B3B;
+    --claude-soft: #FBF0EA;
+    --cursor: #23282E;
+    --cursor-soft: #EFF1F4;
+    --shield: #1A6B3C;
+    --shield-soft: #E2F3E8;
+    --shield-border: #4CAF6A;
+    --platform: #546E7A;
+    --platform-soft: #ECEFF1;
+    --platform-border: #90A4AE;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: var(--page); }
+
+  .slide-viewport {
+    width: 100vw; height: 100vh;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--page); overflow: hidden;
+  }
+  .slide {
+    width: min(1060px, 96vw);
+    aspect-ratio: 16 / 9;
+    max-height: 94vh;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    box-shadow: 0 4px 24px rgba(28, 43, 58, 0.08);
+    display: flex; flex-direction: column;
+    padding: clamp(16px, 2.6vw, 32px) clamp(24px, 3.6vw, 48px);
+    gap: clamp(6px, 1.2vh, 12px);
+    font-family: system-ui, -apple-system, 'Segoe UI', 'Hiragino Sans', sans-serif;
+  }
+
+  .slide-header {
+    display: flex; flex-direction: column; gap: 3px;
+    padding-bottom: clamp(6px, 1vh, 10px);
+    border-bottom: 2px solid var(--ink);
+  }
+  .slide-eyebrow { font-size: clamp(9px, 1vw, 11px); font-weight: 700; letter-spacing: 0.12em; color: var(--ink-3); }
+  .slide-title { font-size: clamp(17px, 2.3vw, 26px); font-weight: 700; line-height: 1.25; color: var(--ink); text-wrap: balance; }
+  .slide-subtitle { font-size: clamp(9.5px, 1.15vw, 12.5px); color: var(--ink-2); }
+
+  .layers { display: flex; flex-direction: column; gap: 0; flex: 1; min-height: 0; }
+
+  .layer {
+    display: grid; grid-template-columns: clamp(100px, 14vw, 160px) 1fr;
+    gap: clamp(10px, 1.6vw, 20px); align-items: center;
+    padding: clamp(8px, 1.2vh, 14px) clamp(12px, 1.6vw, 20px);
+    border: 1.5px solid transparent;
+    position: relative;
+  }
+  .layer--permission {
+    background: var(--shield-soft); border-color: var(--shield-border);
+    border-radius: 10px 10px 0 0;
+    border-bottom: 1px dashed var(--shield-border);
+  }
+  .layer--sandbox {
+    background: var(--shield-soft); border-color: var(--shield-border);
+    border-radius: 0 0 10px 10px;
+    border-top: none;
+  }
+  .layer--wsl {
+    background: var(--platform-soft); border-color: var(--platform-border);
+    border-radius: 10px;
+  }
+
+  .layer-id { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .layer-num {
+    display: flex; align-items: center; justify-content: center;
+    width: clamp(22px, 2.6vw, 28px); height: clamp(22px, 2.6vw, 28px);
+    border-radius: 50%; font-size: clamp(10px, 1.1vw, 12px); font-weight: 700; color: #fff;
+  }
+  .layer-num--shield { background: var(--shield); }
+  .layer-num--platform { background: var(--platform); }
+
+  .layer-name { font-size: clamp(12px, 1.4vw, 15px); font-weight: 700; color: var(--ink); text-align: center; }
+  .layer-badge {
+    font-size: clamp(7.5px, 0.85vw, 9.5px); font-weight: 700;
+    padding: 2px 7px; border-radius: 3px; white-space: nowrap;
+  }
+  .layer-badge--shield { background: var(--shield); color: #fff; }
+  .layer-badge--platform { background: var(--platform); color: #fff; }
+
+  .layer-body { display: flex; flex-direction: column; gap: 4px; }
+  .layer-what { font-size: clamp(10px, 1.15vw, 12.5px); font-weight: 600; color: var(--ink); }
+  .layer-desc { font-size: clamp(9px, 1vw, 11px); color: var(--ink-2); line-height: 1.4; }
+
+  .layer-examples {
+    display: flex; gap: 6px; flex-wrap: wrap; margin-top: 2px;
+  }
+  .example-tag {
+    font-size: clamp(8px, 0.9vw, 10px); font-weight: 500;
+    padding: 2px 8px; border-radius: 4px;
+    white-space: nowrap;
+  }
+  .example-tag--shield { background: rgba(26, 107, 60, 0.1); color: var(--shield); border: 1px solid rgba(26, 107, 60, 0.25); }
+  .example-tag--platform { background: rgba(84, 110, 122, 0.1); color: var(--platform); border: 1px solid rgba(84, 110, 122, 0.25); }
+
+  .layer-impl {
+    font-size: clamp(8px, 0.85vw, 9.5px); color: var(--ink-3);
+    margin-top: 2px; font-style: italic;
+  }
+
+  .separator {
+    display: flex; align-items: center; gap: 8px;
+    padding: clamp(4px, 0.8vh, 8px) 0;
+  }
+  .separator-line { flex: 1; height: 1px; background: var(--border); }
+  .separator-text {
+    font-size: clamp(8px, 0.9vw, 10px); font-weight: 600; color: var(--ink-3);
+    white-space: nowrap; letter-spacing: 0.05em;
+  }
+  .separator-text .up { color: var(--shield); }
+  .separator-text .down { color: var(--platform); }
+
+  .step-chip {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: clamp(15px, 1.7vw, 18px); height: clamp(15px, 1.7vw, 18px);
+    border-radius: 50%; font-size: clamp(8.5px, 1vw, 10.5px); font-weight: 700; color: #fff; flex-shrink: 0;
+  }
+
+  .steps {
+    display: grid; grid-template-columns: 1fr 1fr 1fr;
+    gap: clamp(10px, 1.6vw, 20px); padding-top: clamp(6px, 1vh, 10px);
+    border-top: 1px solid var(--border);
+  }
+  .step { display: flex; gap: 8px; align-items: center; }
+  .step-text { font-size: clamp(9px, 1.05vw, 12px); line-height: 1.4; color: var(--ink-2); }
+  .step-text strong { color: var(--ink); }
+
+  @media (max-width: 620px) {
+    .slide { aspect-ratio: auto; min-height: 100vh; }
+    .layer { grid-template-columns: 1fr; }
+    .steps { grid-template-columns: 1fr; }
+  }
+</style>
+
+<div class="slide-viewport">
+  <div class="slide">
+
+    <header class="slide-header">
+      <span class="slide-eyebrow">開発ツール運用ガイド</span>
+      <h1 class="slide-title">Claude Code の安全性は 2 層 + 実行環境で成り立つ</h1>
+      <p class="slide-subtitle">Permission はツール呼び出しを、Sandbox は Bash のシステムアクセスを制御する。WSL はサンドボックスではなく実行環境。</p>
+    </header>
+
+    <div class="layers">
+
+      <div class="layer layer--permission">
+        <div class="layer-id">
+          <span class="layer-num layer-num--shield">1</span>
+          <span class="layer-name">Permission</span>
+          <span class="layer-badge layer-badge--shield">セキュリティ層</span>
+        </div>
+        <div class="layer-body">
+          <span class="layer-what">Claude のツール呼び出しを制御する</span>
+          <span class="layer-desc">Read・Write・Edit・Bash 等の各ツールに対し、allow（自動許可）/ ask（都度確認）/ deny（禁止）の 3 段階で制御する。deny は他の設定で上書きできない。</span>
+          <div class="layer-examples">
+            <span class="example-tag example-tag--shield">Write → ask</span>
+            <span class="example-tag example-tag--shield">Bash(rm -rf *) → deny</span>
+            <span class="example-tag example-tag--shield">Read → allow</span>
+          </div>
+          <span class="layer-impl">実装: Claude Code 内部の権限エンジン（settings.json で設定）</span>
+        </div>
+      </div>
+
+      <div class="layer layer--sandbox">
+        <div class="layer-id">
+          <span class="layer-num layer-num--shield">2</span>
+          <span class="layer-name">Sandbox</span>
+          <span class="layer-badge layer-badge--shield">セキュリティ層</span>
+        </div>
+        <div class="layer-body">
+          <span class="layer-what">Bash コマンドのファイル・ネットワークを OS レベルで制限する</span>
+          <span class="layer-desc">書き込み可能なディレクトリをホワイトリストで限定し、ネットワーク接続先を許可ドメインに制限する。Permission を通過した Bash コマンドにさらに適用される。</span>
+          <div class="layer-examples">
+            <span class="example-tag example-tag--shield">書込先をプロジェクト内に限定</span>
+            <span class="example-tag example-tag--shield">接続先ドメインを許可制に</span>
+          </div>
+          <span class="layer-impl">実装: macOS → Seatbelt / Linux・WSL2 → bubblewrap</span>
+        </div>
+      </div>
+
+      <div class="separator">
+        <span class="separator-line"></span>
+        <span class="separator-text"><span class="up">↑ セキュリティ層</span>　──　<span class="down">↓ 実行環境</span></span>
+        <span class="separator-line"></span>
+      </div>
+
+      <div class="layer layer--wsl">
+        <div class="layer-id">
+          <span class="layer-num layer-num--platform">3</span>
+          <span class="layer-name">WSL</span>
+          <span class="layer-badge layer-badge--platform">実行環境</span>
+        </div>
+        <div class="layer-body">
+          <span class="layer-what">Windows 上で Linux カーネル環境を提供する（≠ セキュリティ）</span>
+          <span class="layer-desc">Claude Code が動作する土台。WSL 自体はアクセス制限を行わない。WSL2 の中で Sandbox（bubblewrap）が別途動作し、ファイル・ネットワークを制限する。</span>
+          <div class="layer-examples">
+            <span class="example-tag example-tag--platform">仮想化された Linux 環境</span>
+            <span class="example-tag example-tag--platform">macOS / Linux では不要</span>
+          </div>
+          <span class="layer-impl">実装: Microsoft WSL2（Hyper-V ベースの軽量仮想化）</span>
+        </div>
+      </div>
+
+    </div>
+
+    <footer class="steps">
+      <div class="step">
+        <span class="step-chip" style="background: var(--shield);">1</span>
+        <p class="step-text"><strong>Permission</strong>— ツール呼び出しを allow / ask / deny で制御</p>
+      </div>
+      <div class="step">
+        <span class="step-chip" style="background: var(--shield);">2</span>
+        <p class="step-text"><strong>Sandbox</strong>— Bash のファイル・ネットワークを OS レベルで制限</p>
+      </div>
+      <div class="step">
+        <span class="step-chip" style="background: var(--platform);">3</span>
+        <p class="step-text"><strong>WSL</strong>— 実行環境であり、サンドボックスではない</p>
+      </div>
+    </footer>
+
+    <p style="font-size: clamp(7.5px, 0.85vw, 9.5px); color: var(--ink-3); text-align: right; margin-top: auto; padding-top: 2px;">
+      2026年7月時点の Claude Code 公式仕様に基づく。
+    </p>
+
+  </div>
+</div>
