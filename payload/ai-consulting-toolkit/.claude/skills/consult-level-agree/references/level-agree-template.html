@@ -6,7 +6,7 @@
     1. このファイルをコピーして clients/<案件名>/レベル合意_<YYYYMMDD>.html に配置する
     2. スカラープレースホルダを置換する（下記6箇所のみ）:
        {{案件名}} {{文書タイトル}}（既定: AI駆動開発 推進目標のご提案）
-       {{経緯段落}}（出典資料と課題数、ゴール案の方針、確定の進め方を書く一段落）
+       {{経緯段落}}（出典資料と課題数、今回の到達目標（案）の方針、確定の進め方を書く一段落）
        {{作成日YYYY-MM-DD}} {{案件識別子}}（ASCIIスラッグ。localStorageキー用） {{作成日YYYYMMDD}}
     3. ページ末尾の const DATA = {{ISSUES_JSON}}; を課題データのJSONオブジェクトで置換する
     4. <style> とJSエンジン部は変更しない（可変部はプレースホルダとDATAのみ）
@@ -18,11 +18,12 @@
         "name": "課題名（サイドバー項目とh2見出しに使う）",
         "quote": "顧客の相談原文。一字も変えずに載せる。無ければ空文字",
         "approach": "対応方法：＜打ち手の一文＞。",
-        "goalLevel": "L2"〜"L5",      // ゴール案のレベル。既定=判定レベル。判定レベルを超える値を書かない
-        "goalTentative": false,        // 下書き合意経路（判定レベル保留）なら true → 旗が「ゴール案（仮）」になる
+        "goalLevel": "L2"〜"L5",      // 今回の到達目標（案）のレベル。既定=min(現在レベル+1, 判定レベル)。判定レベルを超える値を書かない
+        "goalTentative": false,        // 下書き合意経路（判定レベル保留）なら true → 旗が「今回の到達目標（案・仮）」になる
         "defaultNow": null,            // 現在地の既定。診断済みの現在レベルがある場合のみ "L1"〜"L5"。それ以外は null（未確認）
         "premises": ["【AIの性能】…", "【環境】…", "…"],
-          // 前提（成立条件）。課題単位・全レベル共通表示。1件目は必ず定型文
+          // 前提（レベル2以上共通の成立条件）。課題単位・全レベル共通表示。1件目のAIの性能条件・2件目の環境条件には、
+          //   docs/11_AIツール台帳 の確認結果（サービス名・等級。未確認の場合は未確認である旨）を含めて書く
           // 「【AIの性能】一度に読み切れる文章量と読解の力が十分なAIであること。同じAIサービスにも性能の等級があり、
           //   性能が足りないとレベル2以上のどのレベルも成立しない」、2件目は「【環境】AIを利用できる環境」で始める
         "levels": {
@@ -44,8 +45,8 @@
       そのレベルの goods / tasks は他レベルと同様「そのレベルで新たに必要になるもの」だけを挙げる
     - hypos の tests（検証の測り方）には行頭タグを付けない。【検証】タグは goods / tasks の通常リスト内に
       検証系の行を混在させる場合の非チェック表示用
-    - position: 選択レベルとゴール案レベルの比較で見出しが切り替わる
-      （下=「このレベルに留まった場合」/ 同=「このレベルを目指す理由」/ 上=「今このレベルにしない理由」）に対応する本文
+    - position: 選択レベルと今回の到達目標（案）レベルの比較で見出しが切り替わる
+      （下=「レベルNに留まった場合」/ 同=「レベルNを目指す理由」/ 上=「今レベルNにしない理由」。Nは選択中のレベル番号）に対応する本文
 
   文言の規律（案件データを書くときのルール）:
     - 行頭タグの語彙: 【ログ】【環境】【アカウント・権限】【規程確認】【実例】【情報】【資料】【接続】【仕組み】
@@ -56,6 +57,14 @@
       （例: 手順書（Skill）、MCP（AIと外部サービスをつなぐ接続の仕組み）、コマンド操作ツール（CLI））
     - 「モデル」等の誤解を生む語・裸の略語を表示文言に使わない（表示は「レベル1」〜「レベル5」。「L1」等を出さない）
     - 読みにくい漢語には初出で読みを添える（例: 閾値（しきい値））
+
+  // 実行主体・費用・事例の記述規則（改善指示書 1-15）:
+  // - ガイド節に「推進側」の定義（顧客の推進担当と支援側の担当から成る体制）を記載し、
+  //   「行う作業」の実行主体の割り振りはレベル合意後のWBS展開で確定する旨の定型文を含める
+  // - 費用・契約条件を扱わない資料では、対象外である旨をガイド節に明記する
+  // - 他の現場の事例・実績に言及する場合は出所（事例集の記録の有無）を添える。
+  //   記録が確認できない場合は断定でなく保留表現（確認のうえ提示する等）で書く
+  // - 課題見出しは顧客に提示済みの課題名との一致を優先する
 
   制約:
     - 外部リソース禁止（CDN・Webフォント・外部画像・fetch は一切使わない。完全自己完結）
@@ -165,7 +174,7 @@
   .level-card:hover { border-color: var(--ink-3); }
   .level-card.goal { background: var(--good-soft); border: 2px solid var(--good); }
   .level-card.selected { box-shadow: inset 0 0 0 2px var(--ink); }
-  .goal-flag { display: inline-block; font-size: 0.8rem; font-weight: 700; color: var(--good); margin-bottom: 6px; }
+  .goal-flag { display: inline-block; font-size: 0.68rem; font-weight: 700; color: var(--good); margin-bottom: 6px; }
   .lv-name { font-size: 0.92rem; font-weight: 700; }
   .lv-no {
     display: inline-block; font-size: 0.72rem; font-weight: 700;
@@ -317,7 +326,7 @@
       <h3>進め方の考え方</h3>
       <ul>
         <li><strong>レベル定義:</strong> その課題の仕事が、各レベルでどう回るかの「姿」。やり方の一覧ではなく到達点で、レベルの違いは「人の確認がどれだけ残るか」で刻む</li>
-        <li><strong>前提（成立条件）:</strong> そのレベルが成立するために議論の余地なく必要な条件。検証するものではなく、揃っているか確認し、無ければ用意する（例: 十分な性能のAI、コード全体にAIが届く構成、データを渡せる規程）。当たり前すぎて抜けやすいのがこの層</li>
+        <li><strong>前提（レベル2以上共通の成立条件）:</strong> その課題でレベル2以上のどれを目指すにも共通して必要な、議論の余地のない条件。検証するものではなく、揃っているか確認し、無ければ用意する（例: 十分な性能のAI、コード全体にAIが届く構成、データを渡せる規程）。レベルごとに変わるものではなく、当たり前すぎて抜けやすいのがこの層</li>
         <li><strong>仮説と検証:</strong> 現状の症状の原因や、新しく入れる打ち手の効きめに仮説を置き、仮説ごとに検証方法をセットで書く（仮説→検証）。条件を1つずつ変えて測る小さな実験で確かめ、判定は同じものさし（例: 観点の網羅率）で行う</li>
         <li><strong>行う作業＝レベルを上げる具体的な行動:</strong> どの課題も仮説ごとの枠に「検証」と「解決案」を書く。解決案は打ち手を1文で書き、具体の中身や数値は「例）」として従属表示する。行のチェック（決定）が採用の合意を兼ねる</li>
         <li><strong>流れ:</strong> 前提を揃える → 症状に仮説を置く → 検証で原因を特定する → 効いた対策を基準・構成として固定する → レベルが上がる</li>
@@ -336,12 +345,12 @@
       <div class="guide-demo">
         <div class="guide-demo-item">
           <span class="level-card demo goal">
-            <span class="goal-flag">ゴール案</span>
+            <span class="goal-flag">今回の到達目標（案）</span>
             <span class="lv-name"><span class="lv-no">レベル3</span>人が承認するAI実行</span>
             <span class="lv-desc">レベルの定義の一言が入る（見本）</span>
             <span class="lv-stamps"><span class="stamp now">現在地</span><span class="stamp goal">ゴール</span></span>
           </span>
-          <p class="guide-demo-note">課題ページのレベルカードの見本。カードをクリックすると下の詳細がそのレベルに切り替わる。記録した「現在地」「ゴール」はこのようにスタンプで表示される。緑のカードと「ゴール案」の旗は推進側が提案する到達点を表す</p>
+          <p class="guide-demo-note">課題ページのレベルカードの見本。カードをクリックすると下の詳細がそのレベルに切り替わる。記録した「現在地」「ゴール」はこのようにスタンプで表示される。緑のカードと「今回の到達目標（案）」の旗は推進側が提案する到達点を表す</p>
         </div>
         <div class="guide-demo-item">
           <span class="side-item demo"><span class="side-label">課題名（見本）</span><span class="side-marks"><span class="dot now"></span><span class="dot goal"></span></span></span>
@@ -351,7 +360,7 @@
 
       <h3>記号・表記の意味</h3>
       <ul>
-        <li><strong>ゴール案（緑のカード）</strong>: 推進側が提案する到達点。現場との確認を経て確定する</li>
+        <li><strong>今回の到達目標（案）（緑のカード）</strong>: 推進側が提案する到達点。現場との確認を経て確定する</li>
         <li><strong>課題一覧の点</strong>: 灰色の点は現在地が記録済み、紺色の点はゴールが記録済みであることを表す</li>
         <li><strong>緑のチェック</strong>: 会議で「決定」した項目。行をクリックして付け外しする</li>
         <li><strong>カード下の帯</strong>: 記録した現在地からゴールまでの上げ幅を表す</li>
@@ -548,7 +557,7 @@ const STORAGE_KEY = "level-agree-{{案件識別子}}-{{作成日YYYYMMDD}}-v1";
     box.innerHTML = "";
     var list = issue.premises || [];
     if (!list.length) return;
-    box.appendChild(el("h3", null, "前提（成立条件）"));
+    box.appendChild(el("h3", null, "前提（レベル2以上共通の成立条件）"));
     box.appendChild(el("p", "premise-note", "レベル2以上のすべてのレベルで必須。揃っているかを確認し、無ければ用意する"));
     var ul = el("ul");
     list.forEach(function (p, i) {
@@ -567,7 +576,7 @@ const STORAGE_KEY = "level-agree-{{案件識別子}}-{{作成日YYYYMMDD}}-v1";
       card.type = "button";
       card.setAttribute("aria-pressed", lv === sel ? "true" : "false");
       if (lv === issue.goalLevel) {
-        card.appendChild(el("span", "goal-flag", issue.goalTentative ? "ゴール案（仮）" : "ゴール案"));
+        card.appendChild(el("span", "goal-flag", issue.goalTentative ? "今回の到達目標（案・仮）" : "今回の到達目標（案）"));
       }
       var nm = el("span", "lv-name");
       nm.appendChild(el("span", "lv-no", "レベル" + (i + 1)));
@@ -615,17 +624,18 @@ const STORAGE_KEY = "level-agree-{{案件識別子}}-{{作成日YYYYMMDD}}-v1";
     head.appendChild(el("strong", null, LEVEL_NAMES[sel]));
     panel.appendChild(head);
 
-    panel.appendChild(panelSec("このレベルでは、仕事はこうなる", el("p", null, L.how || "")));
+    var lvLabel = "レベル" + lvNum(sel);
+    panel.appendChild(panelSec(lvLabel + "では、仕事はこうなる", el("p", null, L.how || "")));
 
     var goodsUl = el("ul");
     (L.goods || []).forEach(function (g, i) {
       if (isNonToggle(g)) goodsUl.appendChild(plainRow(g));
       else goodsUl.appendChild(toggleRow(idx, g, sel + "|goods|" + i, "決定"));
     });
-    panel.appendChild(panelSec("このレベルにするために必要なもの", goodsUl));
+    panel.appendChild(panelSec(lvLabel + "にするために必要なもの", goodsUl));
 
     var work = el("div", "panel-sec");
-    work.appendChild(el("h3", null, "このレベルにするために行う作業（AI推進のタスク）"));
+    work.appendChild(el("h3", null, lvLabel + "にするために行う作業（AI推進のタスク）"));
 
     // 引き継ぎ表示: 選択レベルより下の各レベルの解決案行を集め、該当行がある下位レベルごとにboxを作る
     var selIdx = LEVEL_ORDER.indexOf(sel);
@@ -638,7 +648,7 @@ const STORAGE_KEY = "level-agree-{{案件識別子}}-{{作成日YYYYMMDD}}-v1";
         });
       });
       (LL.tasks || []).forEach(function (t, i) {
-        if (/^【解決案】/.test(String(t))) rows.push({ text: t, done: !!r.done[ll + "|tasks|" + i] });
+        if (!isNonToggle(t)) rows.push({ text: t, done: !!r.done[ll + "|tasks|" + i] });
       });
       if (!rows.length) return;
       var n2 = lvNum(ll);
@@ -651,7 +661,7 @@ const STORAGE_KEY = "level-agree-{{案件識別子}}-{{作成日YYYYMMDD}}-v1";
       work.appendChild(box);
     });
 
-    // 本体: 仮説枠があるレベル（ゴール案レベル）は枠を並べ、それ以外はtasksをそのまま並べる
+    // 本体: 仮説枠があるレベル（今回の到達目標（案）レベル）は枠を並べ、それ以外はtasksをそのまま並べる
     if ((L.hypos || []).length) {
       L.hypos.forEach(function (h, n) {
         var hb = el("div", "hypo-box");
@@ -681,10 +691,10 @@ const STORAGE_KEY = "level-agree-{{案件識別子}}-{{作成日YYYYMMDD}}-v1";
     }
     panel.appendChild(work);
 
-    // 位置づけ: 見出しは選択レベルとゴール案レベルの比較で切替
+    // 位置づけ: 見出しは選択レベルと今回の到達目標（案）レベルの比較で切替
     var gIdx = LEVEL_ORDER.indexOf(issue.goalLevel);
-    var heading = selIdx < gIdx ? "このレベルに留まった場合"
-      : (selIdx === gIdx ? "このレベルを目指す理由" : "今このレベルにしない理由");
+    var heading = selIdx < gIdx ? (lvLabel + "に留まった場合")
+      : (selIdx === gIdx ? (lvLabel + "を目指す理由") : ("今" + lvLabel + "にしない理由"));
     panel.appendChild(panelSec(heading, el("p", null, L.position || "")));
 
     if (selIdx >= 2) {
