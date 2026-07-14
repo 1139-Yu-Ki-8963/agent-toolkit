@@ -4,7 +4,6 @@
     { "mode": "mirror", "src": "~/Projects/reverse-docs-skills/shared", "dst": "payload/reverse-docs-skills/shared" },
     { "mode": "file", "src": "~/Projects/reverse-docs-skills/README.md", "dst": "payload/reverse-docs-skills/README.md" },
     { "mode": "file", "src": "~/Projects/reverse-docs-skills/reverse-docs-overview.html", "dst": "payload/reverse-docs-skills/reverse-docs-overview.html" },
-    { "mode": "mirror", "src": "~/agent-home/state", "dst": "payload/claudecode-global-setup/agent-home/state" },
     { "mode": "mirror", "src": "~/agent-home/skills/managing-agent-configs", "dst": "payload/claudecode-global-setup/agent-home/skills/managing-agent-configs" },
     { "mode": "mirror", "src": "~/agent-home/skills/parallel-dev-worktree", "dst": "payload/claudecode-global-setup/agent-home/skills/parallel-dev-worktree" },
     { "mode": "mirror", "src": "~/agent-home/skills/grouping-commits", "dst": "payload/claudecode-global-setup/agent-home/skills/grouping-commits" },
