@@ -333,8 +333,8 @@
 
     <header class="slide-header">
       <span class="slide-eyebrow">開発ツール運用ガイド</span>
-      <h1 class="slide-title">Claude Code と Cursor の使い分け</h1>
-      <p class="slide-subtitle">Claude Code には「5時間」と「週次」の 2 つの利用リミットがある。どちらかを使い切ったら Cursor に切り替え、リセット後に戻る。</p>
+      <h1 class="slide-title">リミット到達で Cursor に切り替え、作業を止めない</h1>
+      <p class="slide-subtitle">Claude Code には「5時間」と「週次」の 2 つの利用リミットがある。どちらかを使い切ったら Cursor に切り替え、リセット後に戻る運用で開発を止めない。</p>
     </header>
 
     <!-- Panel 1: 5-hour limit (intra-day) -->
@@ -366,7 +366,7 @@
           </div>
           <div class="meter">
             <div class="meter-row">
-              <span>9:00 利用開始</span>
+              <span>例: 9:00 利用開始</span>
               <span class="meter-exhausted">13:00 利用枠 使い切り</span>
             </div>
             <div class="meter-track"></div>
@@ -451,7 +451,7 @@
           </div>
           <div class="meter">
             <div class="meter-row">
-              <span>週初 利用開始</span>
+              <span>例: 週初 利用開始</span>
               <span class="meter-exhausted">週次枠 使い切り</span>
             </div>
             <div class="meter-track"></div>
@@ -518,6 +518,10 @@
         <p class="step-text"><strong>リセットで復帰</strong>— リミットが回復したら Claude Code に戻る</p>
       </div>
     </footer>
+
+    <p style="font-size: clamp(7.5px, 0.85vw, 9.5px); color: var(--ink-3); text-align: right; margin-top: auto; padding-top: 4px;">
+      2026年7月時点の Anthropic 公式仕様に基づく例示。契約プランにより数値は異なる。切替時の作業文脈は手動で引き継ぐ。
+    </p>
 
   </div>
 </div>
