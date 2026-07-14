@@ -23,6 +23,8 @@
     --opus-soft: #F2E6F7;
     --haiku: #2980B9;
     --haiku-soft: #EBF5FB;
+    --cost-high: var(--critical);
+    --cost-low: var(--good);
   }
 
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -42,14 +44,14 @@
     border-radius: 10px;
     box-shadow: 0 4px 24px rgba(28, 43, 58, 0.08);
     display: flex; flex-direction: column;
-    padding: clamp(20px, 3vw, 40px) clamp(24px, 3.6vw, 48px);
-    gap: clamp(10px, 1.8vh, 18px);
+    padding: clamp(20px, 3vw, 36px) clamp(24px, 3.6vw, 48px);
+    gap: clamp(8px, 1.4vh, 14px);
     font-family: system-ui, -apple-system, 'Segoe UI', 'Hiragino Sans', sans-serif;
   }
 
   .slide-header {
     display: flex; flex-direction: column; gap: 4px;
-    padding-bottom: clamp(8px, 1.4vh, 14px);
+    padding-bottom: clamp(6px, 1.2vh, 12px);
     border-bottom: 2px solid var(--ink);
   }
   .slide-eyebrow { font-size: clamp(9px, 1vw, 11px); font-weight: 700; letter-spacing: 0.12em; color: var(--ink-3); }
@@ -59,59 +61,54 @@
   .compare-row { display: flex; gap: clamp(12px, 2vw, 24px); flex: 1; align-items: stretch; min-height: 0; }
   .compare-card {
     flex: 1; background: var(--surface); border: 1.5px solid var(--border); border-radius: 10px;
-    padding: clamp(14px, 2vw, 20px); display: flex; flex-direction: column; gap: 10px;
+    padding: clamp(12px, 1.8vw, 18px); display: flex; flex-direction: column; gap: 8px;
+    overflow: hidden;
   }
-  .compare-card--emphasis { border-color: var(--claude); flex: 1.8; }
 
-  .card-header { display: flex; align-items: center; gap: 8px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
-  .card-header svg { flex-shrink: 0; }
+  .card-header { display: flex; align-items: center; gap: 8px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
   .tool-name { font-size: clamp(13px, 1.5vw, 16px); font-weight: 700; color: var(--ink); }
-  .card-badge {
+
+  .card-desc { font-size: clamp(9px, 1.05vw, 11.5px); color: var(--ink-2); line-height: 1.45; }
+
+  .tier-row {
+    display: flex; align-items: stretch; gap: 6px; flex: 1; min-height: 0;
+  }
+  .tier-item {
+    flex: 1; border-radius: 8px; padding: clamp(8px, 1.2vw, 12px);
+    display: flex; flex-direction: column; gap: 4px;
+  }
+  .tier-item--auto { background: var(--cursor-soft); border: 1.5px solid var(--cursor); }
+  .tier-item--api { background: var(--tag-bg); border: 1.5px solid var(--border); }
+  .tier-item--haiku { background: var(--haiku-soft); border: 1.5px solid var(--haiku); }
+  .tier-item--sonnet { background: var(--claude-soft); border: 1.5px solid var(--claude); }
+  .tier-item--opus { background: var(--opus-soft); border: 1.5px solid var(--opus); }
+
+  .tier-head { display: flex; align-items: center; gap: 5px; }
+  .tier-label { font-size: clamp(10px, 1.15vw, 12.5px); font-weight: 700; }
+  .tier-label--auto { color: var(--cursor); }
+  .tier-label--api { color: var(--ink); }
+  .tier-label--haiku { color: var(--haiku); }
+  .tier-label--sonnet { color: var(--claude-deep); }
+  .tier-label--opus { color: var(--opus); }
+
+  .cost-tag {
     margin-left: auto;
-    font-size: clamp(8px, 0.9vw, 10px); font-weight: 700;
-    padding: 2px 8px; border-radius: 4px;
+    font-size: clamp(7.5px, 0.85vw, 9.5px); font-weight: 700;
+    padding: 1px 6px; border-radius: 3px;
   }
-  .card-badge--auto { background: var(--cursor-soft); color: var(--cursor); border: 1px solid var(--cursor); }
-  .card-badge--roles { background: var(--claude-soft); color: var(--claude); border: 1px solid var(--claude); }
+  .cost-tag--low { background: var(--good-soft); color: var(--good); border: 1px solid var(--good); }
+  .cost-tag--mid { background: var(--tag-bg); color: var(--ink-2); border: 1px solid var(--border); }
+  .cost-tag--high { background: var(--critical-soft); color: var(--critical); border: 1px solid var(--critical); }
 
-  .card-desc { font-size: clamp(10px, 1.15vw, 12.5px); color: var(--ink-2); line-height: 1.5; }
+  .tier-desc { font-size: clamp(8.5px, 0.95vw, 10.5px); color: var(--ink-2); line-height: 1.4; }
+  .tier-use { font-size: clamp(8px, 0.9vw, 10px); color: var(--ink-3); line-height: 1.35; font-style: italic; margin-top: auto; }
 
-  .auto-visual {
-    flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
-    background: var(--cursor-soft); border-radius: 8px; padding: 12px;
+  .recommend {
+    display: flex; align-items: center; gap: 5px;
+    font-size: clamp(8.5px, 1vw, 11px); font-weight: 600; color: var(--good);
+    padding-top: 4px; border-top: 1px dashed var(--border); margin-top: auto;
   }
-  .auto-label { font-size: clamp(10px, 1.1vw, 12px); color: var(--ink-3); font-weight: 500; }
-
-  .tier-bar {
-    display: flex; border-radius: 8px; overflow: hidden;
-    height: clamp(36px, 6vh, 44px);
-  }
-  .tier-seg {
-    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
-    padding: 4px 6px; min-width: 0;
-  }
-  .tier-seg--opus { background: var(--opus-soft); border: 1.5px solid var(--opus); flex: 2; border-radius: 8px 0 0 8px; }
-  .tier-seg--sonnet { background: var(--claude-soft); border-top: 1.5px solid var(--claude); border-bottom: 1.5px solid var(--claude); flex: 6; }
-  .tier-seg--haiku { background: var(--haiku-soft); border: 1.5px solid var(--haiku); flex: 2; border-radius: 0 8px 8px 0; }
-  .tier-name { font-size: clamp(10px, 1.1vw, 12px); font-weight: 700; white-space: nowrap; }
-  .tier-name--opus { color: var(--opus); }
-  .tier-name--sonnet { color: var(--claude-deep); }
-  .tier-name--haiku { color: var(--haiku); }
-  .tier-pct { font-size: clamp(8px, 0.85vw, 9.5px); font-weight: 500; color: var(--ink-3); }
-
-  .tier-details { display: flex; gap: clamp(6px, 1vw, 12px); }
-  .tier-detail {
-    flex: 1; display: flex; flex-direction: column; gap: 3px;
-    padding: clamp(6px, 1vh, 10px); border-radius: 6px;
-  }
-  .tier-detail--opus { background: var(--opus-soft); }
-  .tier-detail--sonnet { background: var(--claude-soft); }
-  .tier-detail--haiku { background: var(--haiku-soft); }
-  .tier-detail-head { font-size: clamp(9px, 1vw, 11px); font-weight: 700; }
-  .tier-detail-head--opus { color: var(--opus); }
-  .tier-detail-head--sonnet { color: var(--claude-deep); }
-  .tier-detail-head--haiku { color: var(--haiku); }
-  .tier-detail-role { font-size: clamp(8px, 0.9vw, 10px); color: var(--ink-2); line-height: 1.4; }
+  .recommend svg { flex-shrink: 0; }
 
   .step-chip {
     display: inline-flex; align-items: center; justify-content: center;
@@ -121,16 +118,17 @@
 
   .steps {
     display: grid; grid-template-columns: 1fr 1fr 1fr;
-    gap: clamp(10px, 1.6vw, 20px); padding-top: clamp(8px, 1.4vh, 14px);
+    gap: clamp(10px, 1.6vw, 20px); padding-top: clamp(6px, 1vh, 10px);
     border-top: 1px solid var(--border);
   }
   .step { display: flex; gap: 8px; align-items: center; }
-  .step-text { font-size: clamp(9.5px, 1.1vw, 12.5px); line-height: 1.5; color: var(--ink-2); }
+  .step-text { font-size: clamp(9px, 1.05vw, 12px); line-height: 1.45; color: var(--ink-2); }
   .step-text strong { color: var(--ink); }
 
   @media (max-width: 620px) {
     .slide { aspect-ratio: auto; min-height: 100vh; }
     .compare-row { flex-direction: column; }
+    .tier-row { flex-direction: column; }
     .steps { grid-template-columns: 1fr; }
   }
 </style>
@@ -140,8 +138,8 @@
 
     <header class="slide-header">
       <span class="slide-eyebrow">開発ツール運用ガイド</span>
-      <h1 class="slide-title">モデルは役割で選ぶ — 全部最上位にする必要はない</h1>
-      <p class="slide-subtitle">Claude Code は判断の重さに応じて Opus・Sonnet・Haiku を使い分ける。Cursor は auto モードに一任する。</p>
+      <h1 class="slide-title">「全部最上位モデル」はコストの無駄 — 用途で選べば品質は保てる</h1>
+      <p class="slide-subtitle">Cursor も Claude Code も、モデルごとにコストが異なる。日常作業に高額モデルを使い続ける必要はない。</p>
     </header>
 
     <div class="compare-row">
@@ -154,24 +152,33 @@
             <path d="M12 12 L21 7 L21 17 L12 22 Z" fill="var(--cursor)" opacity="0.3"/>
           </svg>
           <span class="tool-name">Cursor</span>
-          <span class="card-badge card-badge--auto">auto モード</span>
         </div>
-        <p class="card-desc">モデル選択は Cursor に一任する。開発者はどのモデルが使われるかを意識しなくてよい。</p>
-        <div class="auto-visual">
-          <svg width="40" height="40" viewBox="0 0 48 48" fill="none" aria-hidden="true">
-            <circle cx="24" cy="24" r="18" stroke="var(--cursor)" stroke-width="2" stroke-dasharray="4 3" opacity="0.4"/>
-            <circle cx="24" cy="24" r="10" stroke="var(--cursor)" stroke-width="2" opacity="0.6"/>
-            <circle cx="24" cy="24" r="3" fill="var(--cursor)" opacity="0.8"/>
-            <path d="M24 6 L24 10" stroke="var(--cursor)" stroke-width="1.5" stroke-linecap="round" opacity="0.3"/>
-            <path d="M24 38 L24 42" stroke="var(--cursor)" stroke-width="1.5" stroke-linecap="round" opacity="0.3"/>
-            <path d="M6 24 L10 24" stroke="var(--cursor)" stroke-width="1.5" stroke-linecap="round" opacity="0.3"/>
-            <path d="M38 24 L42 24" stroke="var(--cursor)" stroke-width="1.5" stroke-linecap="round" opacity="0.3"/>
-          </svg>
-          <span class="auto-label">自動でモデルを選択</span>
+        <p class="card-desc">クレジットプール制。月額に含まれるクレジットの範囲内で利用し、モデルによって消費速度が異なる。</p>
+        <div class="tier-row">
+          <div class="tier-item tier-item--auto">
+            <div class="tier-head">
+              <span class="tier-label tier-label--auto">Auto モード</span>
+              <span class="cost-tag cost-tag--low">低コスト</span>
+            </div>
+            <span class="tier-desc">タスクに応じて最適なモデルを自動選択する。月額内で実質無制限に使える。</span>
+            <span class="tier-use">日常のコード補完・単純な生成</span>
+          </div>
+          <div class="tier-item tier-item--api">
+            <div class="tier-head">
+              <span class="tier-label tier-label--api">手動モデル選択</span>
+              <span class="cost-tag cost-tag--high">高コスト</span>
+            </div>
+            <span class="tier-desc">Claude・GPT 等のフロンティアモデルを指名で使う。API 実勢価格でクレジットを消費する。</span>
+            <span class="tier-use">複雑な設計判断・大規模リファクタ</span>
+          </div>
+        </div>
+        <div class="recommend">
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M2 8.5L6 12.5L14 3.5" stroke="var(--good)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          日常は Auto、要所だけ手動選択
         </div>
       </div>
 
-      <div class="compare-card compare-card--emphasis">
+      <div class="compare-card">
         <div class="card-header">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
             <g stroke="var(--claude)" stroke-width="2.6" stroke-linecap="round">
@@ -184,42 +191,37 @@
             </g>
           </svg>
           <span class="tool-name">Claude Code</span>
-          <span class="card-badge card-badge--roles">役割別選択</span>
         </div>
-        <p class="card-desc">判断の重さに応じて 3 つのモデルを使い分ける。このPCでは 10 のサブエージェントに割り当てている。</p>
-
-        <div class="tier-bar">
-          <div class="tier-seg tier-seg--opus">
-            <span class="tier-name tier-name--opus">Opus</span>
-            <span class="tier-pct">2 / 10</span>
+        <p class="card-desc">3 つのモデルを役割に応じて明示的に使い分ける。作業の重さとコストが対応している。</p>
+        <div class="tier-row">
+          <div class="tier-item tier-item--haiku">
+            <div class="tier-head">
+              <span class="tier-label tier-label--haiku">Haiku</span>
+              <span class="cost-tag cost-tag--low">低コスト</span>
+            </div>
+            <span class="tier-desc">判断不要の定型作業を高速に処理する。</span>
+            <span class="tier-use">コマンド実行・テスト起動</span>
           </div>
-          <div class="tier-seg tier-seg--sonnet">
-            <span class="tier-name tier-name--sonnet">Sonnet</span>
-            <span class="tier-pct">6 / 10</span>
+          <div class="tier-item tier-item--sonnet">
+            <div class="tier-head">
+              <span class="tier-label tier-label--sonnet">Sonnet</span>
+              <span class="cost-tag cost-tag--mid">中コスト</span>
+            </div>
+            <span class="tier-desc">大部分の開発作業をこなす汎用モデル。</span>
+            <span class="tier-use">コード修正・調査・レビュー</span>
           </div>
-          <div class="tier-seg tier-seg--haiku">
-            <span class="tier-name tier-name--haiku">Haiku</span>
-            <span class="tier-pct">2 / 10</span>
+          <div class="tier-item tier-item--opus">
+            <div class="tier-head">
+              <span class="tier-label tier-label--opus">Opus</span>
+              <span class="cost-tag cost-tag--high">高コスト</span>
+            </div>
+            <span class="tier-desc">高い判断力が必要な場面だけに投入する。</span>
+            <span class="tier-use">設計判断・計画立案</span>
           </div>
         </div>
-
-        <div class="tier-details">
-          <div class="tier-detail tier-detail--opus">
-            <span class="tier-detail-head tier-detail-head--opus">計画・高精度判定</span>
-            <span class="tier-detail-role">計画立案</span>
-            <span class="tier-detail-role">報告書の事実性検証</span>
-          </div>
-          <div class="tier-detail tier-detail--sonnet">
-            <span class="tier-detail-head tier-detail-head--sonnet">調査・実装・レビュー</span>
-            <span class="tier-detail-role">コード修正・影響分析</span>
-            <span class="tier-detail-role">外部情報検索</span>
-            <span class="tier-detail-role">コード/文書レビュー</span>
-          </div>
-          <div class="tier-detail tier-detail--haiku">
-            <span class="tier-detail-head tier-detail-head--haiku">軽量実行・弱さの活用</span>
-            <span class="tier-detail-role">コマンド実行のみ</span>
-            <span class="tier-detail-role">計画の初見読解</span>
-          </div>
+        <div class="recommend">
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M2 8.5L6 12.5L14 3.5" stroke="var(--good)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          大部分を Sonnet + Haiku、Opus は計画・判定のみ
         </div>
       </div>
 
@@ -227,21 +229,21 @@
 
     <footer class="steps">
       <div class="step">
-        <span class="step-chip" style="background: var(--cursor);">1</span>
-        <p class="step-text"><strong>auto 任せ</strong>— Cursor はモデル選択を自動化する</p>
+        <span class="step-chip" style="background: var(--good);">1</span>
+        <p class="step-text"><strong>日常はコスト効率型</strong>— Auto / Sonnet / Haiku で大部分の作業に十分</p>
       </div>
       <div class="step">
         <span class="step-chip" style="background: var(--claude);">2</span>
-        <p class="step-text"><strong>役割で使い分け</strong>— 重い判断は Opus、日常は Sonnet、軽量は Haiku</p>
+        <p class="step-text"><strong>要所だけ高性能型</strong>— 設計判断・計画立案に限定して Opus や手動選択を投入</p>
       </div>
       <div class="step">
-        <span class="step-chip" style="background: var(--good);">3</span>
-        <p class="step-text"><strong>コスト最適</strong>— 全部 Opus にせずとも品質を維持できる</p>
+        <span class="step-chip" style="background: var(--ink);">3</span>
+        <p class="step-text"><strong>コスト最適化</strong>— 品質を落とさず、利用料金を合理的に抑えられる</p>
       </div>
     </footer>
 
-    <p style="font-size: clamp(7.5px, 0.85vw, 9.5px); color: var(--ink-3); text-align: right; margin-top: auto; padding-top: 4px;">
-      2026年7月時点の仕様・構成に基づく。モデル名・性能は更新される場合がある。
+    <p style="font-size: clamp(7.5px, 0.85vw, 9.5px); color: var(--ink-3); text-align: right; margin-top: auto; padding-top: 2px;">
+      2026年7月時点の各ツール公式仕様に基づく。料金体系・モデル名は更新される場合がある。
     </p>
 
   </div>
