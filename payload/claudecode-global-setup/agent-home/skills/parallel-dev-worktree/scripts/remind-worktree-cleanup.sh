@@ -45,8 +45,8 @@ case "$cwd" in
         git -C "$cwd" merge-base --is-ancestor HEAD origin/main 2>/dev/null && merged=1
         # 実作業の未コミット差分（生成物以外）が無いか
         art='\.status\.json|PROGRESS\.md|\.worktree-ports\.env|node_modules|tsconfig\.tsbuildinfo|package-lock\.json'
-        dirty=$(git -C "$cwd" status --porcelain 2>/dev/null | grep -vE "$art" | grep -c . || echo 0)
-        if [ "$merged" = 1 ] && [ "${dirty:-0}" = 0 ]; then
+        dirty=$(git -C "$cwd" status --porcelain 2>/dev/null | grep -vE "$art" | wc -l)
+        if [ "$merged" = 1 ] && [ "${dirty:-0}" -eq 0 ]; then
           msgs="${msgs}[WORKTREE-CLEANUP] マージ済み & クリーンな worktree（${wt_root} / ブランチ ${branch}）が残っています。orchestrating-dev-flow Phase 10 に従い後片付けしてください:
   cd ${main} && git worktree remove --force ${wt_root}
   git -C ${main} branch -D ${branch}

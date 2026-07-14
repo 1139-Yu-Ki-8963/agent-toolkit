@@ -1,9 +1,11 @@
 #!/bin/bash
 # check-worktree-required.sh のテスト (issue#1578)
 #
-# ADR 0030 / 0038 C1 統一: subagent (agent_id 持ち) は本 hook で素通りし、
-# 後続 Hook 3 (check-orchestrator-cwd-write.sh) で正規判定する。
-# 指揮官セッション本体 (agent_id 無し) は従来通り block される。
+# バグ修正済み: サブエージェント (agent_id / agentId 持ち) を素通りさせる旧仕様
+# (ADR 0030 / 0038 C1 統一。後続 Hook 3 (check-orchestrator-cwd-write.sh) で
+# 正規判定する想定) は、当該 Hook が存在せずサブエージェントが無検査になる
+# バグを生んでいたため撤去済み。現行仕様では呼び出し元識別子の有無に関わらず
+# メイン作業ツリー編集は block される。
 #
 # 実行: bash worktree-required-check.test.sh
 # 戻り値: 0=全 PASS / 1=1 件以上 FAIL
@@ -72,27 +74,21 @@ assert_exit 0 "W1 通常セッションでメイン編集は exit 0 (JSON で bl
 assert_stdout_contains "W1 WORKTREE-REQUIRED ブロック出力" "WORKTREE-REQUIRED"
 assert_stdout_contains "W1 decision:block 含む" "block"
 
-# W2 (issue#1578): subagent (agent_id) + メイン作業ツリー編集 → 素通り (exit 0、JSON 出力なし)
+# W2 (issue#1578・バグ修正後): subagent (agent_id) + メイン作業ツリー編集 → block
 JSON2=$(jq -nc --arg fp "$MAIN_REPO/src/foo.txt" \
   '{agent_id:"sub-123", tool_input:{file_path:$fp}}')
 run_case w2 "$JSON2"
-assert_exit 0 "W2 subagent agent_id 持ちで素通り exit 0"
-if [ ! -s "$STDOUT_LOG" ]; then
-  pass=$((pass+1)); printf '  PASS: W2 出力なし (素通り)\n'
-else
-  fail=$((fail+1)); printf '  FAIL: W2 stdout に出力あり: %s\n' "$(cat "$STDOUT_LOG")"
-fi
+assert_exit 0 "W2 subagent agent_id 持ちでも exit 0 (JSON で block 出力)"
+assert_stdout_contains "W2 WORKTREE-REQUIRED ブロック出力" "WORKTREE-REQUIRED"
+assert_stdout_contains "W2 decision:block 含む" "block"
 
-# W3 (issue#1578): subagent (agentId キャメルケース) + メイン作業ツリー編集 → 素通り
+# W3 (issue#1578・バグ修正後): subagent (agentId キャメルケース) + メイン作業ツリー編集 → block
 JSON3=$(jq -nc --arg fp "$MAIN_REPO/src/foo.txt" \
   '{agentId:"sub-456", tool_input:{file_path:$fp}}')
 run_case w3 "$JSON3"
-assert_exit 0 "W3 subagent agentId キャメルケースで素通り exit 0"
-if [ ! -s "$STDOUT_LOG" ]; then
-  pass=$((pass+1)); printf '  PASS: W3 出力なし (素通り)\n'
-else
-  fail=$((fail+1)); printf '  FAIL: W3 stdout に出力あり\n'
-fi
+assert_exit 0 "W3 subagent agentId キャメルケースでも exit 0 (JSON で block 出力)"
+assert_stdout_contains "W3 WORKTREE-REQUIRED ブロック出力" "WORKTREE-REQUIRED"
+assert_stdout_contains "W3 decision:block 含む" "block"
 
 # W4: 通常セッション + worktree 編集 → 素通り
 JSON4=$(jq -nc --arg fp "$WT_REPO/foo.txt" \

@@ -417,7 +417,7 @@ cd "$WT"
 
   <h3>ポート計算式</h3>
   <pre class="flow"><span class="cap"># ポート = プロジェクトベース + (worktree スロット × 10) + サービスオフセット</span>
-<span class="cap"># 例: kakeibo frontend, slot 2 → 8200 + (2 × 10) + 1 = 8221</span></pre>
+<span class="cap"># 例: &lt;project&gt; frontend, slot 2 → 8200 + (2 × 10) + 1 = 8221</span></pre>
 
   <table class="spec">
     <tr><th>サービスオフセット</th><th>サービス</th></tr>
@@ -543,7 +543,7 @@ ls -la "$REPO/.git/worktrees/"
       <td>issue ベースのブランチ（<code>issue-&lt;N&gt;</code> 形式）作業時に併用される。本スキルの <code>&lt;prefix&gt;/&lt;slug&gt;</code> 形式とは別系統。</td>
     </tr>
     <tr>
-      <td><code>launching-battle-base-dev-servers</code> / <code>test-e2e</code></td>
+      <td><code>launching-&lt;project&gt;-dev-servers</code> / <code>test-e2e</code></td>
       <td>Phase 4 でアプリ起動・E2E テストを行うタスク（UI 変更・画面追加・E2E テスト追加）の時のみ呼び出す。CWD を <code>$WT</code> に向ける。</td>
     </tr>
     <tr>
