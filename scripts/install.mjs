@@ -453,9 +453,9 @@ function cmdApply() {
     process.exit(1);
   }
 
-  // ai-management-portal は縮小同梱版であり、generate は catalog 群を readFileSync
-  // する（新規作成しない）。前提ファイルが無い環境では generate/verify をスキップし、
-  // 設置自体は成功として扱う。
+  // ai-management-portal は build-portal-payload.mjs により正本から全量生成され
+  // payload に完全同梱されている。generate は catalog 群を readFileSync する
+  // （新規作成しない）。生成・検証は常に実行し、失敗時はインストールも失敗として扱う。
   console.log("ポータル generate を実行中...");
   const genResult = spawnSync("node", [manageScript, "generate"], {
     cwd: agentHome,
