@@ -207,16 +207,45 @@ function {name} { $env:CLAUDE_CONFIG_DIR = "$env:USERPROFILE\.claude-{provider}-
 
 各環境の初回認証を案内し、完了状況を確認する。
 
-### Step 5-1: 認証手順の案内
+### Step 5-1: 認証コマンドの提示と実行案内
 
-環境ごとに認証の実行手順を提示する。
+環境ごとに、ユーザーがプロンプトでそのまま実行できるコマンドをコードブロックで提示する。OAuth 認証はブラウザ操作が必須であり Claude では代行できないため、[NO-DELEGATION-ABORT] 形式で案内する。
 
-- Anthropic 環境: `source ~/.zshrc && {エイリアス名}` → ブラウザで OAuth ログイン → `/exit`
-- Bedrock (Bearer/IAM): 秘密情報設定済みなら `{エイリアス名}` → `/status` で `Provider: Amazon Bedrock` 確認 → `/exit`
-- Bedrock (SSO): `aws sso login --profile {profile}` → `{エイリアス名}` → `/status` 確認 → `/exit`
+**Anthropic 環境の場合:**
 
-**入力**: Phase 2 の全環境仕様
-**完了**: 全環境の認証手順が提示されている
+以下のコマンドをプロンプトで実行するよう案内する:
+
+    ! CLAUDE_CONFIG_DIR="$HOME/.claude-{provider}-{identifier}" claude
+
+ブラウザが開くので対象アカウントでログインし、認証完了後にセッション内で `/exit` と入力して終了する旨を添える。
+
+**Bedrock (Bearer/IAM) の場合:**
+
+秘密情報が settings.json に設定済みであれば追加認証は不要。以下のコマンドで動作確認を案内する:
+
+    ! CLAUDE_CONFIG_DIR="$HOME/.claude-{provider}-{identifier}" claude
+
+起動後 `/status` で `Provider: Amazon Bedrock` と表示されることを確認し、`/exit` で終了する旨を添える。
+
+**Bedrock (SSO) の場合:**
+
+以下の 2 コマンドを順に案内する:
+
+    ! aws sso login --profile {profile}
+
+SSO ログイン完了後:
+
+    ! CLAUDE_CONFIG_DIR="$HOME/.claude-{provider}-{identifier}" claude
+
+起動後 `/status` で確認し `/exit` で終了。
+
+[NO-DELEGATION-ABORT]
+操作: OAuth ブラウザログイン（Anthropic）/ SSO ログイン（Bedrock SSO）
+理由: ブラウザでの対話操作が必須であり Claude では代行不可
+代替案: プロンプトで `!` プレフィックスコマンドを実行しこのセッション内から起動可能
+
+**入力**: Phase 2 の全環境仕様（provider / identifier / エイリアス名 / 認証方式）
+**完了**: 全環境の実行可能なコマンドが提示され、操作手順が案内されている
 
 ### Step 5-2: 認証完了の確認
 
