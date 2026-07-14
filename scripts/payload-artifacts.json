@@ -10,5 +10,8 @@
   ],
   "pathSuffixes": [
     ".claude/markers"
+  ],
+  "forbiddenContent": [
+    "oradora-battle-base"
   ]
 }

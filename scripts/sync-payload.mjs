@@ -70,7 +70,7 @@ function isExcluded(name) {
 
 function loadForbiddenPatterns() {
   const json = JSON.parse(fs.readFileSync(ARTIFACTS_PATH, "utf8"));
-  return { names: new Set(json.names || []), pathSuffixes: json.pathSuffixes || [] };
+  return { names: new Set(json.names || []), pathSuffixes: json.pathSuffixes || [], content: json.forbiddenContent || [] };
 }
 
 const FORBIDDEN = loadForbiddenPatterns();
@@ -260,23 +260,59 @@ function cmdCheckArtifacts() {
   const payloadRoot = path.join(REPO_ROOT, "payload");
   const files = walkFiles(payloadRoot);
   const hits = files.filter((rel) => isForbiddenArtifact(rel));
+  let hasViolation = false;
 
   console.log("\n禁止アーティファクトスキャン（payload/ 配下）");
   console.log("─".repeat(70));
   if (hits.length === 0) {
     console.log("  該当なし。");
-    return;
+  } else {
+    for (const rel of hits) {
+      console.log(`  FOUND payload/${rel}`);
+    }
+    console.log("─".repeat(70));
+    console.log(
+      `禁止アーティファクトが ${hits.length} 件見つかりました。scripts/payload-artifacts.json ` +
+      `を参照し、該当ファイルを payload/ から削除してください（正本側の除外が漏れている場合は ` +
+      `sync-manifest.json の mapping 見直しも検討する）。`
+    );
+    hasViolation = true;
   }
-  for (const rel of hits) {
-    console.log(`  FOUND payload/${rel}`);
+
+  if (FORBIDDEN.content.length > 0) {
+    const contentHits = [];
+    for (const rel of files) {
+      const fullPath = path.join(payloadRoot, rel);
+      try {
+        const content = fs.readFileSync(fullPath, "utf8");
+        for (const term of FORBIDDEN.content) {
+          if (content.includes(term)) {
+            contentHits.push({ rel, term });
+            break;
+          }
+        }
+      } catch {
+        // binary files — skip
+      }
+    }
+    if (contentHits.length > 0) {
+      console.log("\n禁止コンテンツスキャン（payload/ 配下のファイル内容）");
+      console.log("─".repeat(70));
+      for (const { rel, term } of contentHits) {
+        console.log(`  FOUND payload/${rel} (term: "${term}")`);
+      }
+      console.log("─".repeat(70));
+      console.log(
+        `禁止コンテンツが ${contentHits.length} 件見つかりました。該当ファイルから` +
+        `プロジェクト固有語を除去するか、正本側で匿名化してから再同期してください。`
+      );
+      hasViolation = true;
+    }
   }
-  console.log("─".repeat(70));
-  console.log(
-    `禁止アーティファクトが ${hits.length} 件見つかりました。scripts/payload-artifacts.json ` +
-    `を参照し、該当ファイルを payload/ から削除してください（正本側の除外が漏れている場合は ` +
-    `sync-manifest.json の mapping 見直しも検討する）。`
-  );
-  process.exit(1);
+
+  if (hasViolation) {
+    process.exit(1);
+  }
 }
 
 // ── --apply ──
