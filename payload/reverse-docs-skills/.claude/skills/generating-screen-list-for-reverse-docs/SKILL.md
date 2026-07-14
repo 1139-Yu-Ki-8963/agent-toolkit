@@ -105,7 +105,7 @@ allowed-tools: [Bash, Read, Write, Edit, Grep, Glob, AskUserQuestion, TaskCreate
 
 | Phase | 完了条件 |
 |---|---|
-| Phase 1 | Step 1〜4の調査完了。Step 5の共有ファイル・エイリアス調査（sharedDirPatterns/pathAliases）完了。Step 6の検出戦略宣言（`unitKind: "screen"`/screenUnitDefinition/screenIdRegex/viewSwitchPattern/excludePatterns/sharedDirPatterns/pathAliases）がユーザー承認済み |
+| Phase 1 | Step 1〜4の調査完了。Step 5の共有ファイル・エイリアス調査（sharedDirPatterns/pathAliases）完了。Step 6の検出戦略宣言（`unitKind: "screen"`/screenUnitDefinition/screenIdRegex/viewSwitchPattern/excludePatterns/sharedDirPatterns/pathAliases/importTraversalMaxDepth）がユーザー承認済み |
 | Phase 2 | Step 1で抽出方式（builtin/custom）が決定済み。Step 2でスキーマ準拠のマニフェストが1件以上確定、または0件検出をユーザーに報告して停止している。Step 3でdiagnosticsを確認済み。セルフチェックゲート（route実在照合含む）・ルート網羅性検査ゲートをPASS済み |
 | Phase 3 | Step 1で `validate-manifest.sh --unit-kind screen` が7項目すべてPASS。Step 2のFAIL時修正ループは3回以内。Step 3のレジストリ整合検査で突合差分ゼロ（画面レジストリが存在する場合のみ） |
 | Phase 4 | Step 1で画面一覧.htmlが生成され、埋め込みJSONがマニフェストと一致している |
@@ -137,13 +137,13 @@ allowed-tools: [Bash, Read, Write, Edit, Grep, Glob, AskUserQuestion, TaskCreate
 
 - 設計書（`画面詳細設計書.md` 等）の雛形展開・生成・記入は一切行わない。本スキルの成果物は画面一覧.htmlのみ
 - Phase 4のHTML手作業組み立てを禁止する。`build-unit-list.sh` を必ず経由し、プレースホルダの手動置換による `entryFile=None` 等のデータ混入を防ぐ
-- import グラフ解析は行わない（組み込み検出器の場合。カスタム抽出パスでは戦略宣言に沿った収集を行う）
+- 組み込み検出器のファイル収集はBFS（import再帰追跡・深さ上限importTraversalMaxDepth既定6・sharedDirPatterns/pathAliases/screenIdRegexの3除外境界）で行う。拡張子解決順は「そのまま→.tsx→.ts→.jsx→.js→/index.{tsx,ts,jsx,js}」で非コード拡張子（css/json/画像等）は集合に含めない
 - 0件検出時にAskUserQuestionで手動リストを聞き出さない。誤った境界を即興確定させない
 
 ## 予想を裏切る挙動
 
 - `validate-manifest.sh`・`build-unit-list.sh`（内部で呼ぶ `build-screen-list.sh` も）は jq に依存する。未インストール環境では事前に導入する
-- 組み込み検出器は `useRoutes` と2段階importまでのimport追跡に対応する。それ以外の方式（カスタムルート配列・element属性解決等）はカスタム抽出パスで対応する
+- 組み込み検出器は `useRoutes` とBFS import再帰追跡（深さ上限importTraversalMaxDepth既定6）に対応する。それ以外の方式（カスタムルート配列・element属性解決等）はカスタム抽出パスで対応する
 - Phase 2 Step 3でentryFile集中診断が出たら、組み込みパスの継続ではなくカスタム抽出パスへの切替を検討する
 - 動的に構築されるルート文字列（変数結合等）は組み込み検出器では検出できない。静的リテラルの `path` のみが対象
 - 埋め込みビュー（`kind: embedded-view`）の検出はPhase 1で `view-switch-pattern` を指定した場合のみ有効。未指定なら検出しない

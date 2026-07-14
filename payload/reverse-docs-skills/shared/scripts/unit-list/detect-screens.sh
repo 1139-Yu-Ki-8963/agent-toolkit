@@ -260,11 +260,11 @@ BEGIN {
       # /index.{tsx,ts,jsx,js}。コード拡張子のみ追跡する(非コード拡張子=CSS/JSON/
       # 画像等は resolved を確定させない)。拡張子なしのbare specを裸のまま
       # getlineすることはしない(直上コメント参照の既知の限界回避)。
+      # 非コード拡張子(css/scss/json/画像等)は候補付与しても対応ファイルが
+      # 存在しないため resolved が空のまま=集合に含まれない(意図的除外)。
       resolved = ""
-      if (has_any_ext(base)) {
-        if (has_code_ext(base)) {
-          if (try_exists(base)) resolved = base
-        }
+      if (has_code_ext(base)) {
+        if (try_exists(base)) resolved = base
       } else {
         for (ei = 1; ei <= 4; ei++) {
           cand = base codeext[ei]
@@ -416,10 +416,8 @@ BEGIN {
         }
 
         resolved = ""
-        if (has_any_ext(base)) {
-          if (has_code_ext(base)) {
-            if (try_exists(base)) resolved = base
-          }
+        if (has_code_ext(base)) {
+          if (try_exists(base)) resolved = base
         } else {
           for (ei = 1; ei <= 4; ei++) {
             cand = base codeext[ei]
@@ -650,7 +648,7 @@ resolve_files_subcommand() {
 #      N<4 の場合は全画面 layer=ALL・quartiles=null・stratified=false に縮退する。
 #   5. 層内サンプリング: layer(層)ごとに k=ceil(sqrt(層内件数))・下限3・上限10、
 #      層内件数<k なら全数を対象とする。screenKey の辞書順先頭k件を採用する。
-#      結果は layers.<層名> = {n, samplek, sampledScreenKeys[]} として出力する。
+#      結果は layers.<層名> = {n, sampleK, sampledScreenKeys[]} として出力する。
 #   6. 出力JSON(確定仕様)を <profile-out> に書き出す:
 #      screens[](axisBreakdown・layerを含む) / layers{S,M,L,XL|ALL}
 #      / n / scoreFormula{locWeight,axisWeight,axes[8]} / sourceManifest
@@ -831,8 +829,8 @@ run_detect_screens_profile() {
       [ "$k" -gt "$layer_n" ] && k="$layer_n"
       sampled="$(printf '%s\n' "$layer_keys" | head -n "$k")"
       sampled_json="$(printf '%s\n' "$sampled" | jq -R -s 'split("\n") | map(select(length>0))')"
-      jq -n --arg t "$layer_name" --argjson n "$layer_n" --argjson samplek "$k" --argjson keys "$sampled_json" \
-        '{($t): {n:$n, samplek:$samplek, sampledScreenKeys:$keys}}' >> "$layer_tmp"
+      jq -n --arg t "$layer_name" --argjson n "$layer_n" --argjson sampleK "$k" --argjson keys "$sampled_json" \
+        '{($t): {n:$n, sampleK:$sampleK, sampledScreenKeys:$keys}}' >> "$layer_tmp"
     done <<< "$layer_names"
     layers_json="$(jq -s 'add // {}' "$layer_tmp")"
     rm -f "$layer_tmp"
@@ -867,6 +865,20 @@ run_detect_screens_profile() {
 
   echo "OK: profiled $n screens -> $profile_out" >&2
   return 0
+}
+
+# extract_route_paths() は本来 React Router 検出セクション(後方)に属するが、
+# --self-test 分岐は run_self_tests() 呼び出し後に本スクリプトを exit するため、
+# 後方定義のままだと自己テスト内(10-3)からの呼び出し時点で未定義になる。
+# そのため定義をここ(self-test セクション直前)へ前倒しする。
+extract_route_paths() {
+  # $1: 対象ファイル。path: "..." / path= "..." 形式を抽出する。
+  # 行コメント(行頭//のみ)とブロックコメント(単一行/* */)を除去してから抽出。
+  # 行中インライン//はURL等で使われるため除去しない(行頭//のみ対象)。
+  local f="$1"
+  sed -E 's|^[[:space:]]*//.*||; s|/\*[^*]*\*/||g' "$f" 2>/dev/null \
+    | grep -oE 'path[[:space:]]*[:=][[:space:]]*["'"'"'\`][^"'"'"'\`]+["'"'"'\`]' \
+    | sed -E 's/^path[[:space:]]*[:=][[:space:]]*["'"'"'\`]//; s/["'"'"'\`]$//' || true
 }
 
 # --- --self-test: resolve_screen_files / --resolve-files の自己診断 ---
@@ -1046,6 +1058,53 @@ $t7/src/screens/foo/T-001-detail.tsx" \
 "$t8/src/screens/foo/index.tsx" \
     "$t8_result"
   rm -f "$t8_shared_file"
+
+  # --- 陽性8(10-1): ドット入り非コード拡張子(.zustand)でも候補付与される ---
+  local t12="$root/t12"
+  mkdir -p "$t12/src/screens/foo"
+  printf "import { store } from './store.zustand'\n" > "$t12/src/screens/foo/index.tsx"
+  printf "export const store = {}\n" > "$t12/src/screens/foo/store.zustand.tsx"
+  local t12_result
+  t12_result="$(resolve_screen_files "$t12/src/screens/foo/index.tsx" "$t12/src" 6 "" "" "" "" "")"
+  assert_set_equal "10-1-ドット入り非コード拡張子-候補付与" \
+"$t12/src/screens/foo/index.tsx
+$t12/src/screens/foo/store.zustand.tsx" \
+    "$t12_result"
+
+  # --- 陽性9(10-1): ドット入り .data も候補付与される ---
+  local t13="$root/t13"
+  mkdir -p "$t13/src/screens/foo"
+  printf "import { data } from './foo.data'\n" > "$t13/src/screens/foo/index.tsx"
+  printf "export const data = {}\n" > "$t13/src/screens/foo/foo.data.ts"
+  local t13_result
+  t13_result="$(resolve_screen_files "$t13/src/screens/foo/index.tsx" "$t13/src" 6 "" "" "" "" "")"
+  assert_set_equal "10-1-ドット入り.data-候補付与" \
+"$t13/src/screens/foo/index.tsx
+$t13/src/screens/foo/foo.data.ts" \
+    "$t13_result"
+
+  # --- 陰性3(10-1): 非コード拡張子(CSS)は集合に含まれない ---
+  local t14="$root/t14"
+  mkdir -p "$t14/src/screens/foo"
+  printf "import './style.css'\n" > "$t14/src/screens/foo/index.tsx"
+  printf "body { color: red }\n" > "$t14/src/screens/foo/style.css"
+  local t14_result
+  t14_result="$(resolve_screen_files "$t14/src/screens/foo/index.tsx" "$t14/src" 6 "" "" "" "" "")"
+  assert_set_equal "10-1-非コード拡張子CSS-集合外" \
+"$t14/src/screens/foo/index.tsx" \
+    "$t14_result"
+
+  # --- 陰性4(10-3): コメントアウトされたルートは検出されない ---
+  local t15="$root/t15"
+  mkdir -p "$t15"
+  printf '  // { path: "/old-route", element: <OldPage /> },\n  { path: "/active-route", element: <ActivePage /> },\n' > "$t15/routes.tsx"
+  local t15_result
+  t15_result="$(extract_route_paths "$t15/routes.tsx")"
+  if [ "$t15_result" = "/active-route" ]; then
+    test_report "10-3-コメントアウトルート除外" 0
+  else
+    test_report "10-3-コメントアウトルート除外" 1 "got='$t15_result'"
+  fi
 
   # --- 追加: --resolve-files サブコマンドの疎通確認 ---
   local t9="$root/t9"
@@ -1250,6 +1309,19 @@ EOF
     fi
   else
     test_report "8-6-profile-出力スキーマ確定" 1 "status=$pstatus"
+  fi
+
+  if [ "$pstatus" -eq 0 ]; then
+    local sk_type sk_match
+    sk_type="$(jq -r '.layers | to_entries[0].value.sampleK | type' "$pout")"
+    sk_match="$(jq -r '.layers | to_entries[0].value | (.sampleK == (.sampledScreenKeys | length))' "$pout")"
+    if [ "$sk_type" = "number" ] && [ "$sk_match" = "true" ]; then
+      test_report "10-2-sampleK数値一致" 0
+    else
+      test_report "10-2-sampleK数値一致" 1 "type=$sk_type match=$sk_match"
+    fi
+  else
+    test_report "10-2-sampleK数値一致" 1 "status=$pstatus"
   fi
 
   local pmanifest_small="$root/profile-manifest-small.json"
@@ -1515,12 +1587,9 @@ if allow_method "builtin-nextjs-pages" && [ -z "$detection_method" ] && [ -d "$S
 fi
 
 # --- 3. React Router (フラット抽出 + useRoutes/createBrowserRouter の1段 import 追跡) ---
-extract_route_paths() {
-  # $1: 対象ファイル。path: "..." / path= "..." 形式を抽出する
-  local f="$1"
-  grep -oE 'path[[:space:]]*[:=][[:space:]]*["'"'"'\`][^"'"'"'\`]+["'"'"'\`]' "$f" 2>/dev/null \
-    | sed -E 's/^path[[:space:]]*[:=][[:space:]]*["'"'"'\`]//; s/["'"'"'\`]$//' || true
-}
+# extract_route_paths() の定義は --self-test (run_self_tests 内の 10-3 テスト)
+# から呼び出すため、self-test 分岐(--self-test 到達時に本箇所より前で exit する)
+# より前(--self-test セクション直前)へ移動済み。
 
 if allow_method "builtin-react-router" && [ -z "$detection_method" ]; then
   router_files="$(grep -rlE 'createBrowserRouter|createHashRouter|useRoutes|<Route\b' "$SOURCE_DIR" \
