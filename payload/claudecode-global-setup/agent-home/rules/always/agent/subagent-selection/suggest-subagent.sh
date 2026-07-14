@@ -34,6 +34,8 @@ fi
 
 [ -z "$hint" ] && exit 0
 
-printf '{"additionalContext":"[SUBAGENT-DELEGATION-HINT] %s 委任判定フローの正本: ~/.claude/rules/always/agent/subagent-selection/rule.md"}' "$hint"
+ctx="[SUBAGENT-DELEGATION-HINT] ${hint} 委任判定フローの正本: ~/.claude/rules/always/agent/subagent-selection/rule.md"
+jq -n --arg msg "[フック発火] サブエージェント委任提案" --arg ctx "$ctx" \
+  '{"systemMessage":$msg,"hookSpecificOutput":{"hookEventName":"UserPromptSubmit","additionalContext":$ctx}}'
 
 exit 0

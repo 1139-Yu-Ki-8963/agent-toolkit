@@ -3,7 +3,7 @@
 
 ## 設計判断
 
-### hooks-architecture-check
+### check-hooks-architecture
 
 **必要性**: `design/hooks.html` で言語化した hook 配置アーキ規約（flat `hooks/` バケット禁止、ownership×scope の 4 象限への配置）を機械強制するため、PreToolUse(Write|Edit|MultiEdit) で新規 hook の作成パスを検証する hook が必要。文書ルールだけでは違反が再発する（2026-06-14 に `~/agent-home/tools/hooks/` 配下に 2 ファイルを規約違反で作成した実例あり）。
 

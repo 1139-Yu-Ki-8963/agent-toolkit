@@ -3,7 +3,7 @@
 
 ## 設計判断
 
-### no-delegation-check.sh
+### shared/no-delegation-detect.sh
 
 **必要性**: 依頼パターンの正規表現マッチを 4 つの hook（PreToolUse / PostToolUse / Stop / 単体テスト）から共有するための検出エンジン。パターンが 20 種以上あり、各 hook にインライン展開すると保守不能。
 
@@ -15,7 +15,7 @@
 
 **廃棄条件**: Claude Code 本体がユーザー依頼パターンの自動検出を組み込んだ時
 
-### stop-no-delegation.sh
+### check-no-delegation-stop.sh
 
 **必要性**: 最終応答の事後検査は Stop hook でしか実現できない。PreToolUse / PostToolUse では応答全体を検査できない。
 
@@ -26,7 +26,7 @@
 
 **廃棄条件**: Claude Code 本体が応答内容の事後検査を組み込んだ時
 
-### no-delegation-pre-bash.sh
+### check-no-delegation-pre-bash.sh
 
 **必要性**: 対話必須コマンドの発行を事前に block する必要がある。PostToolUse では実行後で手遅れ。
 
@@ -37,7 +37,7 @@
 
 **廃棄条件**: `permissions.deny` がコマンド引数パターンマッチに対応した時
 
-### no-delegation-post-write.sh
+### check-no-delegation-post-write.sh
 
 **必要性**: PR/issue body を Write した直後に依頼文を検出し、`gh pr create` 前に修正を促す。
 
@@ -46,9 +46,9 @@
 
 **保守責任者**: 人手（ユーザー）
 
-**廃棄条件**: no-delegation-check.sh 廃止時
+**廃棄条件**: shared/no-delegation-detect.sh 廃止時
 
-### no-deferral-check.sh
+### shared/no-deferral-detect.sh
 
 **必要性**: 先送りパターンの正規表現マッチを 3 つの hook（PreToolUse / PostToolUse / Stop）から共有するための検出エンジン。パターンが 10 種以上あり例外判定（見出し直下の「なし」除外）もあるため、インライン化は保守不能。
 
@@ -60,7 +60,7 @@
 
 **廃棄条件**: Claude Code 本体が先送り表現の自動検出を組み込んだ時
 
-### no-deferral-stop.sh
+### check-no-deferral-stop.sh
 
 **必要性**: 最終応答の事後検査は Stop hook でしか実現できない。
 
@@ -71,7 +71,7 @@
 
 **廃棄条件**: Claude Code 本体が応答内容の事後検査を組み込んだ時
 
-### no-deferral-pre-bash.sh
+### check-no-deferral-pre-bash.sh
 
 **必要性**: `gh pr create` の body に先送り表現が含まれたまま PR が作成されることを事前に防ぐ。
 
@@ -80,9 +80,9 @@
 
 **保守責任者**: 人手（ユーザー）
 
-**廃棄条件**: no-deferral-check.sh 廃止時
+**廃棄条件**: shared/no-deferral-detect.sh 廃止時
 
-### no-deferral-post-write.sh
+### check-no-deferral-post-write.sh
 
 **必要性**: PR body を Write した直後に先送り表現を検出し、`gh pr create` 前に修正を促す。
 
@@ -91,4 +91,4 @@
 
 **保守責任者**: 人手（ユーザー）
 
-**廃棄条件**: no-deferral-check.sh 廃止時
+**廃棄条件**: shared/no-deferral-detect.sh 廃止時

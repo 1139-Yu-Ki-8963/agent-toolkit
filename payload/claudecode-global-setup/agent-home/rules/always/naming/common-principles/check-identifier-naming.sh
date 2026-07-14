@@ -42,7 +42,9 @@ basename=$(basename "$file_path" .sh)
 # Block: 禁止動詞
 case "$basename" in
   nuke-*|scrub-*|kill-*)
-    printf '{"decision":"block","reason":"禁止動詞","systemMessage":"[フック発火] 命名チェック","hookSpecificOutput":{"hookEventName":"PostToolUse","additionalContext":"[IDENTIFIER-NAMING-BLOCK] ファイル名 %s に禁止動詞（nuke/scrub/kill）が使用されています。~/.claude/rules/always/naming/common-principles/naming-values.txt の「識別子形式表」節の許可動詞リストを参照してください。"}}\n' "$basename"
+    ctx="[IDENTIFIER-NAMING-BLOCK] ファイル名 ${basename} に禁止動詞（nuke/scrub/kill）が使用されています。~/.claude/rules/always/naming/common-principles/naming-values.txt の「識別子形式表」節の許可動詞リストを参照してください。"
+    jq -n --arg ctx "$ctx" \
+      '{"decision":"block","reason":"禁止動詞","systemMessage":"[フック発火] 命名チェック","hookSpecificOutput":{"hookEventName":"PostToolUse","additionalContext":$ctx}}'
     exit 2
     ;;
 esac
@@ -50,7 +52,9 @@ esac
 # Block: 単独 main（main-agent/main-tree/main-branch は許可）
 if echo "$basename" | grep -qE '(^|-)main(-|$)'; then
   if ! echo "$basename" | grep -qE '(main-agent|main-tree|main-branch|agent-main|tree-main|branch-main)'; then
-    printf '{"decision":"block","reason":"単独main","systemMessage":"[フック発火] 命名チェック","hookSpecificOutput":{"hookEventName":"PostToolUse","additionalContext":"[IDENTIFIER-NAMING-BLOCK] ファイル名 %s に単独 main が含まれています。main-agent / main-tree / main-branch のいずれかに具体化してください。~/.claude/rules/always/naming/common-principles/naming-values.txt の「多義語表」を参照。"}}\n' "$basename"
+    ctx="[IDENTIFIER-NAMING-BLOCK] ファイル名 ${basename} に単独 main が含まれています。main-agent / main-tree / main-branch のいずれかに具体化してください。~/.claude/rules/always/naming/common-principles/naming-values.txt の「多義語表」を参照。"
+    jq -n --arg ctx "$ctx" \
+      '{"decision":"block","reason":"単独main","systemMessage":"[フック発火] 命名チェック","hookSpecificOutput":{"hookEventName":"PostToolUse","additionalContext":$ctx}}'
     exit 2
   fi
 fi
@@ -71,7 +75,9 @@ if [ -n "$content" ]; then
       fi
     done <<< "$tags"
     if [ -n "$mismatch" ]; then
-      printf '{"systemMessage":"[フック発火] 命名チェック（advisory）","hookSpecificOutput":{"hookEventName":"PostToolUse","additionalContext":"[IDENTIFIER-NAMING] ファイル名 %s のslug(%s)と注入タグ(%s)が派生一致していません。~/.claude/rules/always/naming/common-principles/rule.md 原則6（派生一致）を確認してください。"}}\n' "$basename" "$slug_upper" "$mismatch"
+      ctx="[IDENTIFIER-NAMING] ファイル名 ${basename} のslug(${slug_upper})と注入タグ(${mismatch})が派生一致していません。~/.claude/rules/always/naming/common-principles/rule.md 原則6（派生一致）を確認してください。"
+      jq -n --arg ctx "$ctx" \
+        '{"systemMessage":"[フック発火] 命名チェック（advisory）","hookSpecificOutput":{"hookEventName":"PostToolUse","additionalContext":$ctx}}'
     fi
   fi
 fi

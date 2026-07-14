@@ -40,6 +40,8 @@ block() {
   変数展開 URL（curl "\$URL" 等）は検証できないため URL を直書きすること。
   ルール詳細: ~/.claude/rules/scoped/tooling/shell/rule.md
 MSG
+  jq -n --arg ctx "[CURL-EGRESS-BLOCK] 外部ホストへの生 curl / wget を検出。~/.claude/rules/scoped/tooling/shell/rule.md を参照。" \
+    '{"systemMessage":"[フック発火] curl/wget 外部送信禁止","hookSpecificOutput":{"hookEventName":"PreToolUse","additionalContext":$ctx}}'
   exit 2
 }
 

@@ -151,12 +151,6 @@ fi
 
 # 生成した旨を通知
 repo_name="$(basename "$root")"
-cat <<JSON
-{
-  "hookSpecificOutput": {
-    "hookEventName": "PostToolUse",
-    "additionalContext": "[FLOW-CONTEXT-GENERATED] ~/Projects/${repo_name}/.claude/rules/always/project-context/ 配下（flow-values.yml・ルート直下許可リスト節を含む rule.md）をデフォルト内容で自動生成しました。プロジェクト固有の設定（domain_glossary・design_system・許可リスト用途欄等）は Skill(creating-new-project) または手動で更新してください。"
-  }
-}
-JSON
+ctx="[FLOW-CONTEXT-GENERATED] ~/Projects/${repo_name}/.claude/rules/always/project-context/ 配下（flow-values.yml・ルート直下許可リスト節を含む rule.md）をデフォルト内容で自動生成しました。プロジェクト固有の設定（domain_glossary・design_system・許可リスト用途欄等）は Skill(creating-new-project) または手動で更新してください。"
+jq -n --arg ctx "$ctx" '{"hookSpecificOutput":{"hookEventName":"PostToolUse","additionalContext":$ctx}}'
 exit 0

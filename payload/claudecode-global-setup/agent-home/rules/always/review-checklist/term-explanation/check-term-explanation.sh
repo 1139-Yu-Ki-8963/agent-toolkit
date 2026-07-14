@@ -10,7 +10,7 @@
 #       * the GLOSS_REGEX matches (full form / explanation present)
 # So "コミット SHA（ハッシュ）" or text containing "ハッシュ" passes; a bare "SHA" blocks.
 #
-# 設計判断は同ディレクトリの rule.md（## 設計判断 > check-term-explanation.sh）に記載。
+# 設計判断は同ディレクトリの design-notes.txt に記載。
 
 set -uo pipefail
 
@@ -42,7 +42,7 @@ tp=$(printf '%s' "$input" | jq -r '.transcript_path // empty' 2>/dev/null)
 [ -z "$tp" ] && exit 0
 [ ! -f "$tp" ] && exit 0
 
-last=$( { tail -r "$tp" 2>/dev/null | jq -c 'select(.type=="assistant") | .message.content[]? | select(.type=="text") | .text' 2>/dev/null | head -1; } || true )
+last=$( { { tac "$tp" 2>/dev/null || tail -r "$tp" 2>/dev/null; } | jq -c 'select(.type=="assistant") | .message.content[]? | select(.type=="text") | .text' 2>/dev/null | head -1; } || true )
 [ -z "$last" ] && exit 0
 
 # Blocklist: opaque abbreviations that almost always need a gloss in JP prose.

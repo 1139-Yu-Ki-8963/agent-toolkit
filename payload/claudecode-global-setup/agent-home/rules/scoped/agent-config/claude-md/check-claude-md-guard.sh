@@ -3,7 +3,7 @@
 #   A) ~/.claude/CLAUDE.md への直接書き込みを警告 → [CLAUDE-MD-WRITE-WARN]（block しない）
 #   B) ファイル内容に "CLAUDE.md §N / の第N章 / chapter N" パターンを block → [CLAUDE-MD-REF-BLOCK]
 # 仕様: ~/.claude/rules/scoped/agent-config/claude-md/rule.md
-# 設計判断: ~/.claude/rules/scoped/agent-config/claude-md/rule.md 内に記載
+# 設計判断: 同ディレクトリの design-notes.txt に記載
 
 set +e
 
@@ -80,20 +80,7 @@ if printf '%s' "$all_content" | grep -qE 'CLAUDE\.md[[:space:]]*(§|の第)[[:di
     exit 0
   fi
 
-  ctx="[CLAUDE-MD-REF-BLOCK]
-file=${file:-（content 内）}
-
-CLAUDE.md に §N セクションは存在しません。
-「CLAUDE.md §N」「CLAUDE.md の第N章」「CLAUDE.md chapter N」形式の参照は禁止です。
-
-修正方法:
-  1. 参照先の規約・手順が rule / skill に存在するか確認する
-  2. 存在する場合: そのファイルパスに差し替える
-     例: ~/.claude/rules/<scope>/<topic>/<name>/rule.md
-         ~/agent-home/skills/<name>/SKILL.md
-  3. 存在しない場合: 規約を rule ファイルとして作成してからパスで参照する
-
-仕様: ~/.claude/rules/scoped/agent-config/claude-md/rule.md"
+  ctx="[CLAUDE-MD-REF-BLOCK] CLAUDE.md への §N 参照を検出（file=${file:-content内}）。CLAUDE.md に章番号は存在しない。規約: ~/.claude/rules/scoped/agent-config/claude-md/rule.md"
 
   jq -n --arg ctx "$ctx" \
     '{"systemMessage":"[フック発火] CLAUDE.md ファントム §N 参照禁止","hookSpecificOutput":{"hookEventName":"PreToolUse","additionalContext":$ctx}}'

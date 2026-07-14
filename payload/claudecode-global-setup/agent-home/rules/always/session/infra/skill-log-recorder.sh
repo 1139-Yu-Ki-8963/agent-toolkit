@@ -17,7 +17,7 @@ cwd=$(printf '%s' "$input" | jq -r '.cwd // empty')
 [ -z "$cwd" ] && cwd="$PWD"
 dir="$HOME/agent-home/sessions/.skill-log"
 mkdir -p "$dir"
-printf '{"ts":"%s","skill":"%s"}\n' "$(date -u +%FT%TZ)" "$skill" >> "$dir/$session.jsonl"
+jq -nc --arg ts "$(date -u +%FT%TZ)" --arg skill "$skill" '{ts:$ts, skill:$skill}' >> "$dir/$session.jsonl"
 proj=$(git -C "$cwd" rev-parse --show-toplevel 2>/dev/null)
 [ -n "$proj" ] && [ "$skill" = "parallel-dev-worktree" ] && echo "$proj" > "$(marker_path "$cwd" "$session" impl-session)"
 exit 0

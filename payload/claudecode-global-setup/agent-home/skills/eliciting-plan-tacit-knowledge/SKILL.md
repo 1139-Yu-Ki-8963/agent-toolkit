@@ -3,7 +3,7 @@ name: eliciting-plan-tacit-knowledge
 description: |
   計画を弱モデルに初見読解させ、理解のズレから暗黙知を抽出して計画へ明文化する。
   TRIGGER when: 「暗黙知を炙り出して」「計画の前提を明文化して」「計画を初見読解で検証して」と言われた時、brain の計画立案後・ユーザー承認前の計画品質確認。
-  SKIP: 成果物のルール照合レビュー（→reviewing-against-rules）、計画の新規立案（→brain）。
+  SKIP: 成果物のルール照合レビュー（→reviewing-against-rules）、計画の新規立案（→brain。サブエージェントとして定義済み。スキルとしては未導入）。
 invocation: eliciting-plan-tacit-knowledge
 type: audit
 allowed-tools: Agent, Read, Grep, Bash

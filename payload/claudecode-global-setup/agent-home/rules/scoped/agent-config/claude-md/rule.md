@@ -45,8 +45,8 @@ CLAUDE.md chapter N ← 禁止
 | layer | 対象 | 注入タグ | 挙動 |
 |---|---|---|---|
 | permissions.ask | Write/Edit/MultiEdit(~/.claude/CLAUDE.md) | — | ユーザー承認ダイアログを表示（ゲート役） |
-| PreToolUse hook | Write\|Edit\|MultiEdit | `[CLAUDE-MD-WRITE-WARN]` | CLAUDE.md への書き込みを検知し警告（block しない） |
-| PreToolUse hook | Write\|Edit\|MultiEdit | `[CLAUDE-MD-REF-BLOCK]` | ファントム §N 参照を exit 2 で block |
+| PreToolUse hook | Write\|Edit\|MultiEdit\|NotebookEdit | `[CLAUDE-MD-WRITE-WARN]` | CLAUDE.md への書き込みを検知し警告（block しない） |
+| PreToolUse hook | Write\|Edit\|MultiEdit\|NotebookEdit | `[CLAUDE-MD-REF-BLOCK]` | ファントム §N 参照を exit 2 で block |
 
 hook スクリプト: `~/.claude/rules/scoped/agent-config/claude-md/check-claude-md-guard.sh`
 

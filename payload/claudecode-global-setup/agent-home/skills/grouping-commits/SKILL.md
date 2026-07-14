@@ -98,7 +98,7 @@ fi
 
 ```bash
 # .envファイルのチェック
-git status --short | grep -E '\.(env|credentials|secret|key)' || echo "機密ファイルなし"
+git status --short | grep -iE '\.env\b|\bcredentials\b|\bsecrets?\b|\.key$|\.pem$|\bid_rsa\b' || echo "機密ファイルなし"
 ```
 
 ## グループごとのコミット作成

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Stop hook: scan the final assistant text for deferral phrases. Block the turn
-# if found by emitting decision:block. Self-disables after 2 consecutive hits
+# if found by emitting decision:block. Self-disables after 3 consecutive hits
 # in the same session to avoid livelock.
 
 set -euo pipefail
@@ -30,7 +30,7 @@ tp=$(printf '%s' "$input" | jq -r '.transcript_path // empty' 2>/dev/null)
 [ -z "$tp" ] && exit 0
 [ ! -f "$tp" ] && exit 0
 
-last=$( { tail -r "$tp" 2>/dev/null | jq -c 'select(.type=="assistant") | .message.content[]? | select(.type=="text") | .text' 2>/dev/null | head -1; } || true )
+last=$( { { tac "$tp" 2>/dev/null || tail -r "$tp" 2>/dev/null; } | jq -c 'select(.type=="assistant") | .message.content[]? | select(.type=="text") | .text' 2>/dev/null | head -1; } || true )
 [ -z "$last" ] && exit 0
 
 PATTERN='別[[:space:]]*(PR|issue|プルリク|チケット)[[:space:]]*(で|を|に)?[[:space:]]*(対応|起票|分割|切り出|作成|作る|実装)|別途[[:space:]]*(PR|issue|チケット)|次の[[:space:]]*PR|新規[[:space:]]*issue[[:space:]]*を?[[:space:]]*(起票|作成|起こ)|残(課題|作業|タスク)|将来[[:space:]]*課題|今後の?[[:space:]]*(課題|対応)|後日[[:space:]]*対応|Phase[[:space:]]*[2-9][[:space:]]*以降|次回[[:space:]]*(対応|実装|セッション)'

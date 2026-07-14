@@ -38,6 +38,8 @@ block() {
     echo "ファイルの作成・編集・削除は worker-sonnet に委任すること。"
     echo "worker-haiku に渡してよいのはテスト・ビルド・lint 実行、git 定型操作、既存スクリプトの起動のみ。"
   } >&2
+  jq -n --arg ctx "[WORKER-HAIKU-FILE-CHANGE-BLOCK] worker-haiku のファイル変更コマンドを検出（$1）。worker-sonnet に委任すること。規約: ~/.claude/rules/always/agent/subagent-selection/rule.md" \
+    '{"systemMessage":"[フック発火] worker-haiku ファイル変更禁止","hookSpecificOutput":{"hookEventName":"PreToolUse","additionalContext":$ctx}}'
   exit 2
 }
 

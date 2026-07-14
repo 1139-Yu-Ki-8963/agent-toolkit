@@ -52,21 +52,15 @@ top_dir="${parts[0]}"
 # ルート直下ディレクトリが存在しない場合
 if [ ! -d "${cwd}/${top_dir}" ]; then
   if [ ! -f "$allowlist_file" ]; then
-    cat <<EOF
-[DIR-STRUCTURE-WRITE-GUARD]
-Write によりルート直下に新規ディレクトリ「${top_dir}」が暗黙的に作成されます。
-許可リスト（project-context/rule.md の「## ルート直下許可ディレクトリ」節、または旧専用ファイル）が存在しません: ${allowlist_file}
-~/.claude/rules/always/placement/directory-structure/rule.md を参照。
-EOF
+    ctx="[DIR-STRUCTURE-WRITE-GUARD] Write によりルート直下に新規ディレクトリ「${top_dir}」が暗黙的に作成されます。許可リスト（project-context/rule.md の「## ルート直下許可ディレクトリ」節、または旧専用ファイル）が存在しません: ${allowlist_file} ~/.claude/rules/always/placement/directory-structure/rule.md を参照。"
+    jq -n --arg ctx "$ctx" \
+      '{"systemMessage":"[フック発火] Write による暗黙ディレクトリ作成検出","hookSpecificOutput":{"hookEventName":"PreToolUse","additionalContext":$ctx}}'
   else
     allowed="$(parse_root_allowlist "$allowlist_file" 2>/dev/null || echo "")"
     if ! echo "$allowed" | grep -qxF "$top_dir"; then
-      cat <<EOF
-[DIR-STRUCTURE-WRITE-GUARD]
-Write によりルート直下に新規ディレクトリ「${top_dir}」が暗黙的に作成されます。
-このディレクトリは許可リスト（${allowlist_file}）に存在しません。
-~/.claude/rules/always/placement/directory-structure/rule.md を参照。
-EOF
+      ctx="[DIR-STRUCTURE-WRITE-GUARD] Write によりルート直下に新規ディレクトリ「${top_dir}」が暗黙的に作成されます。このディレクトリは許可リスト（${allowlist_file}）に存在しません。~/.claude/rules/always/placement/directory-structure/rule.md を参照。"
+      jq -n --arg ctx "$ctx" \
+        '{"systemMessage":"[フック発火] Write による暗黙ディレクトリ作成検出","hookSpecificOutput":{"hookEventName":"PreToolUse","additionalContext":$ctx}}'
     fi
   fi
 fi
@@ -77,12 +71,9 @@ if [ ${#parts[@]} -ge 2 ] && [ -d "${cwd}/${top_dir}" ] && [ ! -d "${cwd}/${top_
   if [ -f "$allowlist_file" ]; then
     sub_allowed="$(parse_sub_allowlist "$allowlist_file" "$top_dir" 2>/dev/null || echo "")"
     if [ -n "$sub_allowed" ] && ! echo "$sub_allowed" | grep -qxF "$sub_dir"; then
-      cat <<EOF
-[DIR-STRUCTURE-WRITE-GUARD]
-Write により「${top_dir}/」配下に新規ディレクトリ「${sub_dir}」が暗黙的に作成されます。
-このディレクトリはサブ許可リスト（${allowlist_file}）に存在しません。
-~/.claude/rules/always/placement/directory-structure/rule.md を参照。
-EOF
+      ctx="[DIR-STRUCTURE-WRITE-GUARD] Write により「${top_dir}/」配下に新規ディレクトリ「${sub_dir}」が暗黙的に作成されます。このディレクトリはサブ許可リスト（${allowlist_file}）に存在しません。~/.claude/rules/always/placement/directory-structure/rule.md を参照。"
+      jq -n --arg ctx "$ctx" \
+        '{"systemMessage":"[フック発火] Write による暗黙ディレクトリ作成検出","hookSpecificOutput":{"hookEventName":"PreToolUse","additionalContext":$ctx}}'
     fi
   fi
 fi

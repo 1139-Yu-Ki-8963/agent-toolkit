@@ -103,10 +103,27 @@ def load_flow_status(session_id):
             pass
     return None
 
-# Line 1: model / folder / branch
+# Account label: ~/.claude → メインアカウント, ~/.claude-xxx → xxx
+project_dir = data.get("workspace", {}).get("project_dir", "") or os.getcwd()
+home = os.path.expanduser("~")
+claude_home = os.path.join(home, ".claude")
+project_real = os.path.realpath(project_dir)
+claude_real = os.path.realpath(claude_home)
+if project_real == claude_real:
+    account_label = "メインアカウント"
+else:
+    claude_dir_name = os.path.basename(project_real)
+    if claude_dir_name.startswith(".claude-"):
+        account_label = claude_dir_name[len(".claude-"):]
+    else:
+        account_label = ""
+
+# Line 1: model / folder / branch / account
 line1 = f"🤖 {model} | 📂 {folder}"
 if branch:
     line1 += f" | Branch: {branch}"
+if account_label:
+    line1 += f" | {account_label}"
 
 # Line 2: session id + session name
 line2_parts = []
