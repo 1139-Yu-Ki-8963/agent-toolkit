@@ -3,15 +3,15 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>スキル一覧 — agent-toolkit</title>
+  <title>Skills 一覧 — agent-home</title>
   <link rel="stylesheet" href="../style.css" />
   <script type="module" src="../src/common/header.js"></script>
 </head>
 <body>
   <div class="cat-wrap">
     <div class="page-hero">
-      <h1>スキル一覧</h1>
-      <p>本リポジトリ <code>skills/</code> で同梱しているスキル（SKILL.md）をカテゴリ別に一覧化したものです。各行を開くとトリガーと概要を表示します。<a href="../index.html#/">← ポータルへ戻る</a></p>
+      <h1>Skills 一覧</h1>
+      <p>~/agent-home/skills で管理しているスキル（SKILL.md）をカテゴリ別に一覧化したものです。各行を開くとトリガーと概要を表示します。<a href="../index.html#/">← フロー・ポータルへ戻る</a></p>
     </div>
 
     <div class="cat-bar">
@@ -26,16 +26,25 @@
   <script type="module">
     import { CATEGORIES } from "../data/skill-categories.js";
 
-    // 以下の SKILLS 配列は node skills/managing-agent-configs/scripts/manage-portal.mjs generate が生成する。
+    // 以下の SKILLS 配列は node scripts/generate-catalog.mjs が生成する。
     // 手で編集しない。スキルの追加・削除は skills/ 実体側で行い、
     // カテゴリ割当は ../data/skill-categories.js を編集してから再生成する。
     // <!-- GEN:SKILLS -->
     const SKILLS = [
-      { id: "generating-screen-list-for-reverse-docs", cat: "dev", summary: "レガシー画面検出→画面一覧HTML生成。", trigger: "画面一覧作成。", guide: true },
-      { id: "managing-agent-configs", cat: "manage", sub: "skill", summary: "エージェント構成管理ハブ。", trigger: "スキル/ルール/ルーティン/エージェント/フック作成・レビュー・テスト。", guide: true },
-      { id: "rebuilding-code-from-docs", cat: "dev", summary: "設計書だけからコード再生成し元コードと突合、欠落発見。", trigger: "往復検証、品質検証。", guide: true },
-      { id: "rebuilding-screen-unit-from-docs", cat: "dev", summary: "設計書だけから1ファイルを再生成し元と突合、欠落発見（stage1・単体観点）。", trigger: "ファイル単位の往復検証、from-zeroの設計書品質ブートストラップ。", guide: true },
-      { id: "syncing-reverse-env", cat: "dev", summary: "リバース元/設計書2環境同期・検証・基準コミット確立。", trigger: "setup/sync/teardown・baseline操作。", guide: true },
+      { id: "adding-textlint-dictionary-terms", cat: "write", summary: "textlint置き換え辞書（prh.yml）への新規語彙登録", trigger: "「prh.yml登録」「辞書に登録」「置き換え語を追加」と言われた時、text-dictionary/rule.md の [TEXTLINT-BLOCK] 手順で辞書に該当エントリがない時", guide: true },
+      { id: "creating-new-project", cat: "dev", summary: "新規プロジェクトセットアップ（Next.js / React+Vite+FastAPI）", trigger: "「新規プロジェクト」「プロジェクト作成」「アプリ新規作成」「セットアップ」と言われた時", guide: true },
+      { id: "eliciting-plan-tacit-knowledge", cat: "meta", summary: "計画を弱モデルに初見読解させ、理解のズレから暗黙知を抽出して計画へ明文化する", trigger: "「暗黙知を炙り出して」「計画の前提を明文化して」「計画を初見読解で検証して」と言われた時、brain の計画立案後・ユーザー承認前の計画品質確認", guide: true },
+      { id: "frontend-design", cat: "design", summary: "UI/画面デザインガイド", trigger: "コンポーネント実装、LP、デザイン刷新", guide: true },
+      { id: "grading-claude-code-project", cat: "manage", sub: "skill", summary: "Claude Code設定6ドメイン診断・S〜D判定・処方箋適用", trigger: "「プロジェクト診断」「セットアップ診断」「グレード判定」「AI駆動レベル判定」と言われた時", guide: true },
+      { id: "grouping-commits", cat: "impl", sub: "pr", summary: "変更分析しグループ化・単一目的コミット作成", trigger: "「コミット分割」「変更グループ化」「まとめてコミット」と言われた時", guide: true },
+      { id: "managing-agent-configs", cat: "manage", sub: "skill", summary: "エージェント構成管理", trigger: "スキル/ルール/ルーティン/エージェント/フック作成・レビュー・テスト", guide: true },
+      { id: "managing-github-issues", cat: "impl", sub: "issue", summary: "GitHub issue の起票・選択着手・スコープ検証のモードハブ", trigger: "「issue作成」「起票」「issueにして」「issueを選んで実装」「issue一覧から着手」「スコープ検証」「issue範囲チェック」、issue-N ブランチで commit 前", guide: true },
+      { id: "orchestrating-dev-flow", cat: "impl", sub: "pr", summary: "開発オーケストレーター", trigger: "「新機能追加」「バグ修正」「リファクタ」「ドキュメント編集」「インシデント対応」と言われた時", guide: true },
+      { id: "parallel-dev-worktree", cat: "impl", sub: "pr", summary: "worktreeブランチ作成/管理/復旧", trigger: "wt1-wt3不在、MISSING/FAIL", guide: true },
+      { id: "reviewing-against-rules", cat: "review", summary: "レビューの単一入口。適用 rule を解決し、専門家に照合を委任する", trigger: "「レビューして」と成果物・差分を指定された時、他スキルのレビュー工程（PR レビュー Phase 5・開発フローのレビューゲート）から呼ばれた時、HTML・コードの完成判定時", guide: true },
+      { id: "reviewing-public-readiness", cat: "review", summary: "公開前機密漏洩スナップショット走査", trigger: "make public・[PUBLISH-*]注入", guide: true },
+      { id: "reviewing-single-pr-with-inline-comments", cat: "review", summary: "PRレビュー・コメント・修正・マージ", trigger: "差分確認、LGTM、まとめてレビュー、routine PR", guide: true },
+      { id: "subagent-investigation-checklist", cat: "meta", summary: "調査委任前チェックリスト作成", trigger: "「調査チェックリスト」「調査委任」と言われた時、investigator/report-reviewer への委任前", guide: true },
     ];
     // <!-- /GEN:SKILLS -->
 
@@ -49,11 +58,12 @@
         '<details class="fr" data-key="' + (s.id + " " + s.summary + " " + s.trigger).toLowerCase() + '">' +
           '<summary>' +
             '<span class="expbtn">+</span>' +
-            '<span class="fn">' + s.id + '</span>' +
+            '<span class="fn">' + s.summary + '</span>' +
             '<span class="fsep">—</span>' +
-            '<span class="fdesc">' + s.summary + '</span>' +
+            '<span class="fdesc">' + s.trigger + '</span>' +
           '</summary>' +
           '<div class="fdetail">' +
+            '<div class="frow"><span class="frow-label">id</span><span class="frow-val"><code>' + s.id + '</code></span></div>' +
             '<div class="fmeta">~/agent-home/skills/' + s.id + '/SKILL.md' + (s.guide ? ' <a class="fguide" href="../../skills/' + s.id + '/references/' + s.id + '-guide.html" target="_blank" rel="noopener">ガイド ↗</a>' : '') + '</div>' +
             '<div class="frow"><span class="frow-label">概要</span><span class="frow-val">' + s.summary + '</span></div>' +
             '<div class="frow"><span class="frow-label">トリガー</span><span class="frow-val"><span class="tag tag-trigger">TRIGGER</span> ' + s.trigger + '</span></div>' +
@@ -71,6 +81,7 @@
       );
     }
 
+    // カテゴリに subs があれば小カテゴリに分割、なければフラット描画
     function rowsHtml(cat, items) {
       const subs = cat.subs;
       if (!subs) return items.map(rowHtml).join("");
@@ -114,12 +125,13 @@
           d.style.display = hit ? "" : "none";
           if (hit) { secShown++; shown++; }
         });
+        // サブグループの見出しは、配下に表示行が無ければ隠す
         sec.querySelectorAll(".sub-wrap").forEach((w) => {
           const anyVisible = [...w.querySelectorAll("details.fr")].some((d) => d.style.display !== "none");
           w.style.display = anyVisible ? "" : "none";
         });
         sec.style.display = secShown > 0 ? "" : "none";
-        if (q && secShown > 0) sec.open = true;
+        if (q && secShown > 0) sec.open = true; // 絞り込み中はヒットしたカテゴリを開く
       });
       totalEl.textContent = q
         ? shown + " 件ヒット / " + SKILLS.length + " スキル"

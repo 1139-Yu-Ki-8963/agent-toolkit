@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>機械強制ワークフロー — AI マネジメントポータル</title>
+  <link rel="stylesheet" href="../style.css" />
+  <script type="module" src="../src/common/header.js"></script>
+</head>
+<body>
+  <div class="pm-page">
+    <main class="pm-main">
+      <div class="pm-hero">
+        <div>
+          <h1>機械強制ワークフロー</h1>
+          <p>hook が注入するタグと Claude の応答手順を一覧化する。実装本体は <code>~/agent-home/tools/hooks/*.sh</code> および <code>~/.claude/rules/</code> 配下にある。</p>
+        </div>
+        <a class="pm-updated" href="../index.html#/category/claude-config">← .claude 設定層</a>
+      </div>
+
+      <div class="sec-label">タグ一覧</div>
+      <div class="prose">
+        <table class="design-table">
+          <thead><tr><th>タグ</th><th>発火 hook</th><th>意味</th><th>Claude の応答</th></tr></thead>
+          <tbody>
+            <tr><td><code>[NAMING]</code></td><td>PreToolUse(Bash)</td><td>ディレクトリ・ファイル名の規約注意</td><td>ケバブケース・予約名を避けて命名する</td></tr>
+            <tr><td><code>[GIT-AUTHOR-BLOCK]</code></td><td>PreToolUse(Bash)</td><td>commit 前に author が白リスト外</td><td><code>~/.gitconfig</code> の identity を直して再 commit</td></tr>
+            <tr><td><code>[GIT-AUTHOR-PUSH-BLOCK]</code></td><td>PreToolUse(Bash)</td><td>push 前に author 不正</td><td><code>git rebase --exec 'commit --amend --reset-author'</code></td></tr>
+            <tr><td><code>[PUBLISH-AUTHOR]</code></td><td>PreToolUse(Bash)</td><td>公開操作前の author 通告</td><td>F-1 フォーマットで識別子を提示するのみ</td></tr>
+            <tr><td><code>[PUBLISH-SAFETY]</code> / <code>[PUBLISH-SAFETY-FULL]</code></td><td>PreToolUse(Bash)</td><td>公開前の機密走査</td><td>サブエージェントで 12 観点を走査・F-1 報告</td></tr>
+            <tr><td><code>[WORKTREE-REQUIRED]</code></td><td>PreToolUse(Edit/Write)</td><td>メインツリーでの編集を block</td><td>parallel-dev-worktree で worktree を作成</td></tr>
+            <tr><td><code>[FLOW-SELECT-REQUIRED]</code></td><td>UserPromptSubmit</td><td>実装系語を検出</td><td>flow-feature / flow-maintenance 等を Skill 起動</td></tr>
+            <tr><td><code>[FLOW-SELECT-BLOCK]</code></td><td>PreToolUse(Edit/Write)</td><td>実装スキル未起動の編集を block</td><td>Skill 起動後に再試行</td></tr>
+            <tr><td><code>[PLAYWRIGHT-WORKTREE-REQUIRED]</code></td><td>PreToolUse(MCP)</td><td>メインツリーでの Playwright MCP を block</td><td>worktree に移動して再試行</td></tr>
+            <tr><td><code>[PROD-SKILL-READ-REQUIRED]</code></td><td>PreToolUse(Bash) / UserPromptSubmit</td><td>本番操作前のスキル未読</td><td><project>-deploy-production を Skill 起動</td></tr>
+            <tr><td><code>[NO-DELEGATION]</code> / <code>[NO-DELEGATION-BLOCK]</code></td><td>Stop / PreToolUse(Bash) / PostToolUse</td><td>「〜してください」依頼形を検出</td><td>能動文に書き直し、代行不可なら <code>[NO-DELEGATION-ABORT]</code></td></tr>
+            <tr><td><code>[NO-DEFERRAL]</code> / <code>[NO-DEFERRAL-BLOCK]</code> / <code>[NO-DEFERRAL-RESPONSE]</code></td><td>PreToolUse(Bash) / PostToolUse(Edit) / Stop</td><td>「別 PR で対応」「将来課題」等の先送り検出</td><td>本ターン内で完遂か中止の 2 択に書き換え</td></tr>
+            <tr><td><code>[TEXTLINT]</code> / <code>[TEXTLINT-BLOCK]</code> / <code>[TEXTLINT-CLEAN]</code></td><td>PostToolUse(Edit/Write)</td><td>textlint 違反検出 / 解消</td><td>text-dictionary/rule.md の違反時手順で即修正、CLEAN 時は次工程へ</td></tr>
+            <tr><td><code>[LINT-REVIEW-NEEDED]</code></td><td>PostToolUse(Edit/Write)</td><td>auto-fix 不可の lint 残</td><td>Edit で直接修正</td></tr>
+            <tr><td><code>[TEST-FAILED]</code></td><td>PostToolUse(Bash)</td><td>テスト失敗を検出</td><td>失敗原因を特定して修正、2 連続で報告のみ</td></tr>
+            <tr><td><code>[AUTO-COMMIT]</code></td><td>Stop</td><td>worktree 内の未コミット変更 30 秒超</td><td>auto-ship スキルで Phase 1〜5 を自走</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="sec-label">代表ワークフロー: AUTO-COMMIT → auto-ship</div>
+      <div class="prose">
+        <pre class="ascii">
+[Stop hook]
+  ├ worktree 内 / HEAD attached を確認
+  ├ 直近 commit から 30 秒経過を確認
+  └ [AUTO-COMMIT] を注入
+       ↓
+[Claude が Skill: auto-ship を起動]
+  ├ Phase 1: grouping-commits でコミット
+  │     └ issue-N ブランチは managing-github-issues（verify モード）で 1 コミット化
+  ├ Phase 2: git push -u origin &lt;branch&gt;
+  │     └ [GIT-AUTHOR-PUSH-BLOCK] 時は rebase --reset-author で自動補正
+  ├ Phase 3: formatting-pr で PR 作成
+  │     └ [TEXTLINT-BLOCK] / [NO-DEFERRAL-BLOCK] 時は本文を再整形
+  ├ Phase 4: fixing-review-findings で警告・critical を修正
+  │     └ 再レビュー → 自動マージまで完遂
+  └ Phase 5: 完了報告（PR URL・merge SHA・残存指摘件数）
+       ↓
+[次の Stop で dirty なしを確認・自然停止]
+        </pre>
+      </div>
+
+      <div class="sec-label">代表ワークフロー: FLOW-SELECT</div>
+      <div class="prose">
+        <pre class="ascii">
+[UserPromptSubmit]
+  ├ 「実装」「修正」「直して」等の語を検出
+  └ [FLOW-SELECT-REQUIRED] + セッションフラグを touch
+       ↓
+[Claude が Skill: flow-feature / flow-maintenance / flow-docs / managing-github-issues（pick モード） を起動]
+       ↓
+[skill-log に発火行を追加]
+       ↓
+[PreToolUse(Edit/Write)]
+  ├ skill-log の発火行を確認 → フラグ消費
+  └ Edit/Write を通過させる
+
+例外パス:
+  ~/.claude/*  ~/agent-home/*  *.scripts/*  *.docs/*  $HOME/.claude/.allow-direct-edit
+        </pre>
+      </div>
+
+      <div class="sec-label">参照</div>
+      <div class="prose">
+        <ul>
+          <li>hook スクリプト本体: <code>~/agent-home/tools/hooks/*.sh</code>（28 本）および <code>~/.claude/rules/</code> 配下</li>
+          <li>hook 一覧: <a href="../catalog/hooks.html">hooks.html</a></li>
+          <li>hook 配置規約: <a href="../design/hooks.html">hooks-design.html</a></li>
+          <li>共通検査本体: <code>lib/no-delegation-detect.sh</code> / <code>lib/no-deferral-detect.sh</code></li>
+          <li>scheduler: <code>cron</code> + <code>~/agent-home/routines/</code>（ルーティン設計書ベース）</li>
+        </ul>
+      </div>
+
+      <div class="back-link"><a href="../index.html#/category/claude-config">← .claude 設定層へ戻る</a></div>
+    </main>
+  </div>
+</body>
+</html>

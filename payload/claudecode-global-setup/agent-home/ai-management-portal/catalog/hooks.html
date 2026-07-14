@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Hooks 一覧 — agent-home</title>
+  <link rel="stylesheet" href="../style.css" />
+  <script type="module" src="../src/common/header.js"></script>
+</head>
+<body>
+  <div class="cat-wrap">
+    <div class="page-hero">
+      <h1>Hooks 一覧</h1>
+      <p>~/.claude/settings.json に配線した hooks（実体は配置規約に従い ~/.claude/rules/&lt;rule&gt;-rules/ または ~/agent-home/skills/&lt;skill&gt;/scripts/ ほかに配置）を発火イベント別に一覧化したものです。各行を開くと matcher と挙動を表示します。<a href="../index.html#/">← フロー・ポータルへ戻る</a></p>
+    </div>
+
+    <div class="cat-bar">
+      <a class="cat-back" href="../index.html#/">← ポータル TOP</a>
+      <span class="cat-total" id="total"></span>
+      <input class="cat-filter" id="filter" type="search" placeholder="フック名・挙動で絞り込み…" autocomplete="off" />
+    </div>
+
+    <div id="list"></div>
+  </div>
+
+  <script>
+    // 発火イベント別グループ（表示順）。subs を持つグループは内部を小カテゴリに分割する。
+    const GROUPS = [
+      { id: "pre-bash", name: "PreToolUse · Bash", desc: "Bash 実行前のゲート群", tag: "tag-pre",
+        subs: [
+          { key: "pr",    label: "PR / issue 作成ゲート", tag: "tag-post" },
+          { key: "cmd",   label: "コマンド・author 強制", tag: "tag-stop" },
+          { key: "disp",  label: "ディスパッチャ",        tag: "tag-lib" },
+        ] },
+      { id: "pre-edit",   name: "PreToolUse · Write/Edit",      desc: "ファイル編集前のゲート",          tag: "tag-pre" },
+      { id: "pre-skill",  name: "PreToolUse · Skill",           desc: "スキル起動時の記録",              tag: "tag-skill" },
+      { id: "prompt",     name: "UserPromptSubmit",             desc: "プロンプト受信時の先行注入",      tag: "tag-prompt" },
+      { id: "post-edit",  name: "PostToolUse · Write/Edit",     desc: "編集後の通知・マーカー・ADR ガード", tag: "tag-post" },
+      { id: "stop",       name: "Stop",                         desc: "最終応答の書き直し強制・自走起動",tag: "tag-stop" },
+      { id: "session-end",name: "SessionEnd",                   desc: "/clear 時の要約・後処理",         tag: "tag-session" },
+      { id: "session-start",name: "SessionStart",               desc: "セッション開始時の掃除",          tag: "tag-session" },
+      { id: "subagent-stop",name: "SubagentStop",                desc: "子 subagent 停止イベントの後処理",tag: "tag-session" },
+      { id: "guard",      name: "マルチイベント物理ガード",     desc: "複数イベントで同一スクリプトを再実行する保険",          tag: "tag-stop" },
+      { id: "lib",        name: "共通検査本体（ライブラリ）",   desc: "他フックが参照する正規表現・ヘルパーの単一ソース", tag: "tag-lib" },
+      { id: "off",        name: "未配線",                       desc: "settings.json に現在未登録",      tag: "tag-off" },
+    ];
+
+    // フック定義（file, group, sub, matcher, role）
+    const HOOKS = [
+      // PreToolUse · Bash（PR / issue 作成ゲート）
+      { file: "pr-template-check.sh", path: "<<project>>/.claude/skills/formatting-pr/scripts/pr-template-check.sh", group: "pre-bash", sub: "pr", matcher: "Bash", role: "gh pr create の --body がテンプレート準拠かを検査する (<project> project hook)。" },
+      { file: "conflicted-file-check.sh", path: "<<project>>/.claude/skills/formatting-pr/scripts/conflicted-file-check.sh", group: "pre-bash", sub: "pr", matcher: "Bash", role: "gh pr create 前にコンフリクト痕跡が残るファイルを検出する (<project> project hook)。" },
+      { file: "check-no-deferral-pre-bash.sh", path: "~/.claude/rules/always/response/guard/check-no-deferral-pre-bash.sh", group: "pre-bash", sub: "pr", matcher: "Bash", role: "gh pr/issue create/comment の先送り表現を [NO-DEFERRAL-BLOCK] で中止する。" },
+      { file: "pr-spec-gate.sh", path: "<<project>>/.claude/skills/formatting-pr/scripts/pr-spec-gate.sh", group: "pre-bash", sub: "pr", matcher: "Bash", role: "backend/app 等の変更時に仕様書未更新の gh pr create を block する (<project> project hook)。" },
+      { file: "pr-e2e-gate.sh", path: "<<project>>/.claude/skills/formatting-pr/scripts/pr-e2e-gate.sh", group: "pre-bash", sub: "pr", matcher: "Bash", role: "frontend/src/pages 変更時に E2E 未実施の gh pr create を block する (<project> project hook)。" },
+      { file: "pr-progress-gate.sh", path: "<<project>>/.claude/skills/formatting-pr/scripts/pr-progress-gate.sh", group: "pre-bash", sub: "pr", matcher: "Bash", role: "PROGRESS.md（.status.json）未更新時の gh pr create を block する (<project> project hook)。" },
+      // PreToolUse · Bash（コマンド・author 強制）
+      { file: "check-issue-scope.sh", path: "~/agent-home/skills/managing-github-issues/scripts/check-issue-scope.sh", group: "pre-bash", sub: "cmd", matcher: "Bash", role: "git add -A / . / :/ を block し、範囲外ファイルの一括 stage を防ぐ。" },
+      { file: "check-git-author-allowlist.sh", path: "~/.claude/rules/always/naming/commit-branch/check-git-author-allowlist.sh", group: "pre-bash", sub: "cmd", matcher: "Bash", role: "commit/push 前に author が y__u 名義 1 件かを検証する。" },
+      { file: "check-no-delegation-pre-bash.sh", path: "~/.claude/rules/always/response/guard/check-no-delegation-pre-bash.sh", group: "pre-bash", sub: "cmd", matcher: "Bash", role: "対話必須ログイン等の依頼コマンドを [NO-DELEGATION-BLOCK] で block する。" },
+      { file: "check-claude-home-root-marker.sh", path: "~/.claude/rules/always/placement/file-guard/check-claude-home-root-marker.sh", group: "pre-bash", sub: "cmd", matcher: "Bash", role: "$HOME/.claude/ 直下にマーカードットファイルを作る touch/リダイレクトを [CLAUDE-HOME-ROOT-MARKER-BLOCK] で exit 2 する。" },
+      { file: "prod-skill-read-enforce.sh", path: "<<project>>/.claude/skills/<project>-deploy-production/scripts/prod-skill-read-enforce.sh", group: "pre-bash", sub: "cmd", matcher: "Bash", role: "本番操作の発行前に <project>-deploy-production スキル必読を強制する (<project> project hook)。" },
+      // PreToolUse · Bash（役職境界 4 hook · issue#1586）
+      { file: "check-one-slot-one-issue.sh", path: "~/.claude/rules/role-boundary-rules/check-one-slot-one-issue.sh", group: "pre-bash", sub: "cmd", matcher: "Bash", role: "slot worktree で異なる issue の draft branch 切替を [ONE-SLOT-ONE-ISSUE-BLOCK] で block する。切替元 branch に main 未マージ commit が残る場合のみ発火。" },
+      { file: "check-commander-owner-pin.sh", path: "~/.claude/rules/role-boundary-rules/check-commander-owner-pin.sh", group: "pre-bash", sub: "cmd", matcher: "Bash", role: "指揮官 (agent_id 無し) が owner worktree 外で書込・破壊系 Bash を実行したとき [COMMANDER-CWD-PIN-BLOCK] で block する。" },
+      { file: "check-slot-branch-switch-restrict.sh", path: "~/.claude/rules/role-boundary-rules/check-slot-branch-switch-restrict.sh", group: "pre-bash", sub: "cmd", matcher: "Bash", role: "slot worktree で ledger 記録の owner_task_id と異なる issue の draft branch 切替を [SLOT-BRANCH-SWITCH-BLOCK] で block する。" },
+      { file: "check-portal-worktree-pin.sh", path: "~/.claude/rules/role-boundary-rules/check-portal-worktree-pin.sh", group: "pre-bash", sub: "cmd", matcher: "Bash", role: "owner worktree で pin allowlist (main/slot/owner/SHA/agent-*) 外の branch checkout を [PORTAL-CWD-PIN-BLOCK] で block し、portal 配信元 draft 化を防ぐ。" },
+      // PreToolUse · Bash（managing スキル commit ゲート）
+      { file: "check-managing-configs-commit-gate.sh", path: "~/.claude/rules/always/agent-config/review/check-managing-configs-commit-gate.sh", group: "pre-bash", sub: "cmd", matcher: "Bash", role: "git commit 時に staged の managed ファイル（SKILL.md / rule.md / ルーティン設計書.md / hooks/*.sh）のテスト完了マーカーがなければ [MANAGING-COMMIT-BLOCK] で exit 2 する。" },
+      { file: "check-approved-sha-on-merge.sh", path: "~/.claude/rules/always/git/approved-sha/check-approved-sha-on-merge.sh", group: "pre-bash", sub: "cmd", matcher: "Bash", role: "承認後差分の無審査マージを [MERGE-APPROVAL-STALE] で block する。" },
+      { file: "check-curl-egress.sh", path: "~/.claude/rules/scoped/tooling/shell/check-curl-egress.sh", group: "pre-bash", sub: "cmd", matcher: "Bash", role: "外部ホストへの生 curl / wget を [CURL-EGRESS-BLOCK] で exit 2 する。localhost 直書き URL と call-api.sh のみ許可、変数展開 URL は fail-closed。" },
+      { file: "check-phase-entry-tasks.sh", path: "~/.claude/rules/always/gate/phase-step-task/check-phase-entry-tasks.sh", group: "pre-bash", sub: "cmd", matcher: "Bash", role: "update-flow-status.sh の新 phase 宣言時に step タスク登録数が total_steps 未満なら [PHASE-TASK-BLOCK] で exit 2 する。rules-bash-runner 経由（9 本目）。" },
+      // PreToolUse · Bash（ディスパッチャ）
+      { file: "dispatch-pre-bash-checks.sh", path: "~/.claude/rules/always/infra/pre-bash-dispatch/dispatch-pre-bash-checks.sh", group: "pre-bash", sub: "disp", matcher: "Bash", role: "Bash 実行前の共通ディスパッチャ。各種検査を振り分ける起点。" },
+      // PreToolUse · Write/Edit
+      { file: "check-worktree-required.sh", path: "~/agent-home/skills/parallel-dev-worktree/scripts/check-worktree-required.sh", group: "pre-edit", matcher: "Write|Edit|MultiEdit|NotebookEdit", role: "worktree 未作成のままの編集を [WORKTREE-REQUIRED] で block する。" },
+      { file: "check-hooks-architecture.sh", path: "~/.claude/rules/scoped/agent-config/hooks/check-hooks-architecture.sh", group: "pre-edit", matcher: "Write|Edit|MultiEdit|NotebookEdit", role: "flat hooks/ バケットへの新規 hook 作成を [HOOKS-BUCKET-FORBIDDEN] で block し、canonical 4 象限への配置を促す。" },
+      // PreToolUse · Skill
+      { file: "skill-log-recorder.sh", path: "~/.claude/rules/always/session/infra/skill-log-recorder.sh", group: "pre-skill", matcher: "Skill", role: "スキル発火を JSONL に追記し、回数の集計を可能にする。" },
+      // UserPromptSubmit
+      { file: "prod-skill-detect.sh", path: "<<project>>/.claude/skills/<project>-deploy-production/scripts/prod-skill-detect.sh", group: "prompt", matcher: "(全プロンプト)", role: "本番関連の発話を検出し PROD-SKILL-READ を先行注入する (<project> project hook)。" },
+      // PostToolUse · Write/Edit
+      { file: "check-no-deferral-post-write.sh", path: "~/.claude/rules/always/response/guard/check-no-deferral-post-write.sh", group: "post-edit", matcher: "Write|Edit|MultiEdit", role: "保存した本文の先送り表現を [NO-DEFERRAL] で次ターンへ警告する。" },
+      { file: "check-no-delegation-post-write.sh", path: "~/.claude/rules/always/response/guard/check-no-delegation-post-write.sh", group: "post-edit", matcher: "Write|Edit|MultiEdit", role: "PR/issue 本文の依頼文を [NO-DELEGATION] で通知する。" },
+      { file: "check-sh-design-decision.sh", path: "~/.claude/rules/scoped/tooling/shell/check-sh-design-decision.sh", group: "post-edit", matcher: "Write|Edit|MultiEdit", role: "新規 .sh が ADR なしで作られたとき [DESIGN-DECISION-REQUIRED] で警告する。" },
+      { file: "shell-evasion-check.sh", path: "~/.claude/rules/shell-evasion-rules/shell-evasion-check.sh", group: "post-edit", matcher: "Write|Edit|MultiEdit", role: "Makefile / package.json scripts / justfile / Taskfile に net-new で長大シェル（200 字超 / 3 連 &&）を埋め込んだら [SHELL-EVASION-DETECTED] で警告する。" },
+      { file: "check-managing-configs-review-needed.sh", path: "~/.claude/rules/always/agent-config/review/check-managing-configs-review-needed.sh", group: "post-edit", matcher: "Write|Edit|MultiEdit", role: "managed ディレクトリ（skills/*/SKILL.md, rules/*/rule.md, routines/*/ルーティン設計書.md, tools/hooks/*.sh）への書き込みを検知し [MANAGING-REVIEW-REQUIRED] で対応 managing スキル実行を advisory 注入する。needed マーカー書き出し・passed マーカー無効化を行う。" },
+      { file: "progress-marker-on-edit.sh", path: "<<project>>/.claude/skills/formatting-pr/scripts/progress-marker-on-edit.sh", group: "post-edit", matcher: "Write|Edit|MultiEdit", role: "編集が行われたセッションのマーカーを touch する (<project> project hook、pr-progress-gate.sh と対)。" },
+      { file: "record-step-tasks.sh", path: "~/.claude/rules/always/gate/phase-step-task/record-step-tasks.sh", group: "post-edit", matcher: "TaskCreate", role: "TaskCreate の subject を step 粒度規約（Phase N Step N-M: 内容）で検査し phase 別カウンタに加算。フロー中の形式違反に [STEP-TASK-FORMAT] を advisory 注入。" },
+      // Stop
+      { file: "check-no-delegation-stop.sh", path: "~/.claude/rules/always/response/guard/check-no-delegation-stop.sh", group: "stop", matcher: "(なし)", role: "最終応答の依頼文を decision:block で書き直し強制する。" },
+      { file: "check-no-deferral-stop.sh", path: "~/.claude/rules/always/response/guard/check-no-deferral-stop.sh", group: "stop", matcher: "(なし)", role: "最終応答の先送り表現を decision:block で書き直し強制する。" },
+      { file: "remind-worktree-cleanup.sh", path: "~/agent-home/skills/parallel-dev-worktree/scripts/remind-worktree-cleanup.sh", group: "stop", matcher: "(なし)", role: "マージ済み worktree の未片付け [WORKTREE-CLEANUP] と fixing-flow-frictions 未起動 [FLOW-SELFIMPROVE-PENDING] を decision:block で書き戻す（2 回到達で自動解除）。" },
+      { file: "pr-merge-guard.sh", path: "$CLAUDE_PROJECT_DIR/.claude/hooks/pr-merge-guard.sh", group: "stop", matcher: "(なし)", role: "プロジェクトに pr-merge-guard.sh があれば実行（PR マージ待ちの自走を制御する project hook）。" },
+      { file: "stop-auto-commit.sh", path: "<<project>>/.claude/skills/auto-ship/scripts/stop-auto-commit.sh", group: "stop", matcher: "(なし)", role: "未コミット変更 30 秒超で [AUTO-COMMIT] を注入し auto-ship を起動させる (<project> project hook)。" },
+      // SessionEnd
+      { file: "cleanup-session-markers.sh", path: "~/.claude/rules/session-markers-rules/cleanup-session-markers.sh", group: "session-end", matcher: "(なし)", role: "セッション ID 配下のマーカー集約ディレクトリ（${TMPDIR:-/tmp}/claude-hooks/${session} と worktree 内 .claude/markers/${session}）を rm -rf する。" },
+      // SessionStart
+      { file: "cleanup-stale-hook-sessions.sh", path: "~/.claude/rules/session-markers-rules/cleanup-stale-hook-sessions.sh", group: "session-start", matcher: "(なし)", role: "7 日超の orphan セッションマーカーを掃除する（バックグラウンド実行）。" },
+      // SubagentStop
+      { file: "notify-portal-keeper-on-subagent-stop.sh", path: "<<project>>/.claude/skills/orchestrating-dev/scripts/notify-portal-keeper-on-subagent-stop.sh", group: "subagent-stop", matcher: "(全 subagent)", role: "子 subagent 停止時に transcript から task_id/state を抽出し portal-keeper への dispatch ヒントを additionalContext に注入する (<project> project hook、issue#1577)。" },
+      // マルチイベント物理ガード
+      { file: "delete-nested-claude-dir.sh", path: "~/.claude/rules/always/session/infra/delete-nested-claude-dir.sh", group: "guard", matcher: "PostToolUse(*) / Stop / SessionStart", role: "~/.claude/.claude/ が発生したら即削除する物理ガード。Claude Code 本体が cwd=$HOME/.claude 起動時に勝手に作る project-scope settings 衝突を防ぐ。" },
+      // 共通検査本体
+      { file: "shared/no-deferral-detect.sh", path: "~/.claude/rules/always/response/guard/shared/no-deferral-detect.sh", group: "lib", matcher: "—", role: "先送り表現の禁止句正規表現の単一ソース。pre-bash/post-write/stop が参照する。" },
+      { file: "shared/no-delegation-detect.sh", path: "~/.claude/rules/always/response/guard/shared/no-delegation-detect.sh", group: "lib", matcher: "—", role: "依頼形の禁止句正規表現の単一ソース。各 no-delegation フックが参照する。" },
+      { file: "marker-path.sh", path: "~/agent-home/tools/hooks/shared/marker-path.sh", group: "lib", matcher: "—", role: "no-root-marker 規約に従い、揮発（/tmp）か worktree 内 markers/ かを判定して書き出し先パスを echo するヘルパー。" },
+      // 未配線
+      { file: "check-no-rebase-on-pr-branch.sh", path: "~/agent-home/skills/reviewing-prs/scripts/check-no-rebase-on-pr-branch.sh", group: "off", matcher: "—", role: "PR worktree での git rebase を block し git merge へ誘導する（現在 settings.json 未配線）。" },
+      { file: "check-plan-tacit-knowledge-gate.sh", path: "~/agent-home/skills/eliciting-plan-tacit-knowledge/scripts/check-plan-tacit-knowledge-gate.sh", group: "guard", matcher: "ExitPlanMode", role: "ExitPlanMode 実行前に eliciting-plan-tacit-knowledge スキルの発火有無を検査し、未発火なら [PLAN-TACIT-KNOWLEDGE-GATE-BLOCK] で exit 2 する。" },
+      { file: "check-plan-draft-write-gate.sh", path: "~/agent-home/skills/eliciting-plan-tacit-knowledge/scripts/check-plan-draft-write-gate.sh", group: "guard", matcher: "Write", role: "計画ファイル（~/.claude/plans/*.md）への最初のWriteを、eliciting-plan-tacit-knowledge の新規発火（前回ゲート通過後）が無ければ [PLAN-DRAFT-WRITE-GATE-BLOCK] で exit 2 する。通過時に発火を消費する。" },
+    ];
+
+    const root = document.getElementById("list");
+    const totalEl = document.getElementById("total");
+    const filterEl = document.getElementById("filter");
+    totalEl.textContent = HOOKS.length + " フック / " + GROUPS.length + " イベント区分";
+
+    function rowHtml(h, tag) {
+      return (
+        '<details class="fr" data-key="' + (h.file + " " + h.role + " " + h.matcher).toLowerCase() + '">' +
+          '<summary>' +
+            '<span class="expbtn">+</span>' +
+            '<span class="fn">' + h.file + '</span>' +
+            '<span class="fsep">—</span>' +
+            '<span class="fdesc">' + h.role + '</span>' +
+          '</summary>' +
+          '<div class="fdetail">' +
+            '<div class="fmeta">' + (h.path || ('~/agent-home/tools/hooks/' + h.file)) + '</div>' +
+            '<div class="frow"><span class="frow-label">matcher</span><span class="frow-val"><code>' + h.matcher + '</code></span></div>' +
+            '<div class="frow"><span class="frow-label">挙動</span><span class="frow-val">' + h.role + '</span></div>' +
+          '</div>' +
+        '</details>'
+      );
+    }
+
+    function subWrap(label, tag, items) {
+      return (
+        '<div class="sub-wrap">' +
+          '<div class="sub-divider"><span class="tag ' + tag + '">' + label + '</span><span class="sub-count">' + items.length + '</span></div>' +
+          items.map(rowHtml).join("") +
+        '</div>'
+      );
+    }
+
+    // グループに subs があれば小カテゴリに分割、なければフラット描画
+    function rowsHtml(group, items) {
+      const subs = group.subs;
+      if (!subs) return items.map(rowHtml).join("");
+      let html = "";
+      subs.forEach((g) => {
+        const members = items.filter((h) => h.sub === g.key);
+        if (members.length) html += subWrap(g.label, g.tag, members);
+      });
+      const rest = items.filter((h) => !subs.some((g) => g.key === h.sub));
+      if (rest.length) html += subWrap("その他", "tag-lib", rest);
+      return html;
+    }
+
+    function render() {
+      root.innerHTML = "";
+      GROUPS.forEach((g, i) => {
+        const items = HOOKS.filter((h) => h.group === g.id);
+        if (items.length === 0) return;
+        const sec = document.createElement("details");
+        sec.className = "cat-block";
+        sec.open = true;
+        sec.innerHTML =
+          '<summary class="cat-card">' +
+            '<span class="cat-fold"></span>' +
+            '<div class="cat-num-block"><span class="cat-number">' + String(i + 1).padStart(2, "0") + '</span></div>' +
+            '<div class="cat-body"><div class="cat-name">' + g.name + ' <span class="tag ' + g.tag + '">' + items.length + '</span></div><div class="cat-desc">' + g.desc + '</div></div>' +
+            '<span class="cat-count">' + items.length + ' hooks</span>' +
+          '</summary>' +
+          '<div class="file-rows">' + rowsHtml(g, items) + '</div>';
+        root.appendChild(sec);
+      });
+    }
+
+    function applyFilter() {
+      const q = filterEl.value.trim().toLowerCase();
+      let shown = 0;
+      root.querySelectorAll("details.cat-block").forEach((sec) => {
+        let secShown = 0;
+        sec.querySelectorAll("details.fr").forEach((d) => {
+          const hit = !q || d.dataset.key.includes(q);
+          d.style.display = hit ? "" : "none";
+          if (hit) { secShown++; shown++; }
+        });
+        sec.querySelectorAll(".sub-wrap").forEach((w) => {
+          const anyVisible = [...w.querySelectorAll("details.fr")].some((d) => d.style.display !== "none");
+          w.style.display = anyVisible ? "" : "none";
+        });
+        sec.style.display = secShown > 0 ? "" : "none";
+        if (q && secShown > 0) sec.open = true;
+      });
+      totalEl.textContent = q
+        ? shown + " 件ヒット / " + HOOKS.length + " フック"
+        : HOOKS.length + " フック / " + GROUPS.length + " イベント区分";
+    }
+
+    let t;
+    filterEl.addEventListener("input", () => { clearTimeout(t); t = setTimeout(applyFilter, 120); });
+    render();
+  </script>
+</body>
+</html>

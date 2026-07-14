@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>CLAUDE.md ルール一覧 — AI マネジメントポータル</title>
+  <link rel="stylesheet" href="../style.css" />
+  <script type="module" src="../src/common/header.js"></script>
+</head>
+<body>
+  <div class="pm-page">
+    <main class="pm-main">
+      <div class="pm-hero">
+        <div>
+          <h1>CLAUDE.md ルール一覧</h1>
+          <p>グローバル指示の番号付き節（§1〜§18、計 16 節）を趣旨・発火条件・再帰防止策の 3 軸で整理する。</p>
+        </div>
+        <a class="pm-updated" href="../index.html#/category/claude-config">← .claude 設定層</a>
+      </div>
+
+      <div class="sec-label">基本ルール（番号なし）</div>
+      <div class="prose">
+        <ul>
+          <li><b>言語</b>: 思考は英語・対話は日本語。コード識別子は英語維持</li>
+          <li><b>日本語の文体</b>: 句構造・英語直訳の回避・読み手との距離感の 3 観点</li>
+          <li><b>対話</b>: 不足時は 1 問ずつ確認。アスキーアート図示を優先</li>
+          <li><b>コーディング原則</b>: YAGNI / KISS / DRY、複雑度抑制、後方互換シム禁止、根本原因主義</li>
+        </ul>
+      </div>
+
+      <div class="sec-label">番号付きルール（16 節）</div>
+      <div class="prose">
+        <table class="design-table">
+          <thead><tr><th>§</th><th>節タイトル</th><th>発火条件</th><th>趣旨</th></tr></thead>
+          <tbody>
+            <tr><td>1</td><td>計画モード（デフォルト）</td><td>3 ステップ以上 / 設計判断要</td><td>必ずプランモードで詳細仕様を先に書く</td></tr>
+            <tr><td>2</td><td>サブエージェント戦略</td><td>探索・並行分析</td><td>1 エージェント 1 タスクで集中実行。メイン context を保護</td></tr>
+            <tr><td>4</td><td>完了前の検証</td><td>タスク完了宣言前</td><td>動作証明なしに完了としない。シニアエンジニア視点で自己点検</td></tr>
+            <tr><td>5</td><td>エレガンスの追求</td><td>非自明な変更</td><td>ハック的解を疑い、過剰設計しない範囲で再考</td></tr>
+            <tr><td>6</td><td>自律的なバグ修正</td><td>バグ報告・失敗 CI</td><td>逐一指示を求めず修正に進む</td></tr>
+            <tr><td>8</td><td>日本語文章品質</td><td><code>[TEXTLINT]</code> / <code>[TEXTLINT-BLOCK]</code></td><td>text-dictionary/rule.md の違反時手順で即修正。BLOCK 時は gh 操作を停止</td></tr>
+            <tr><td>9</td><td>公開可否レビュー</td><td><code>[PUBLISH-SAFETY*]</code> / <code>[PUBLISH-AUTHOR]</code></td><td>reviewing-public-readiness で機密混入チェック</td></tr>
+            <tr><td>11</td><td>Lint 手動修正</td><td><code>[LINT-REVIEW-NEEDED]</code></td><td>auto-fix 不可分のみ Edit で直接修正</td></tr>
+            <tr><td>12</td><td>テスト失敗の自動調査</td><td><code>[TEST-FAILED]</code></td><td>2 連続失敗で停止・通知</td></tr>
+            <tr><td>13</td><td>worktree 強制</td><td><code>[WORKTREE-REQUIRED]</code></td><td>parallel-dev-worktree で worktree 化してから編集</td></tr>
+            <tr><td>14</td><td>作業後自動コミット〜マージ</td><td><code>[AUTO-COMMIT]</code></td><td>auto-ship スキルで Phase 1〜5 を自走</td></tr>
+            <tr><td>15</td><td>ユーザー操作依頼の全面禁止</td><td>「〜してください」検出</td><td>4 層 hook + deny で代行不可なら <code>[NO-DELEGATION-ABORT]</code> 中止</td></tr>
+            <tr><td>16</td><td>残作業先送りの全面禁止 / コミット author 強制</td><td><code>[NO-DEFERRAL*]</code> / <code>[AUTHOR-*]</code></td><td>先送り表現禁止と author 識別子の白リスト統制</td></tr>
+            <tr><td>17</td><td>実装スキル起動強制</td><td><code>[FLOW-SELECT-REQUIRED]</code></td><td>Edit/Write 前に実装フロースキル（flow-feature 等）を起動</td></tr>
+            <tr><td>18</td><td>Playwright MCP の worktree 強制</td><td><code>[PLAYWRIGHT-WORKTREE-REQUIRED]</code></td><td>メインツリーでの MCP 呼び出しを block</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="sec-label">節テンプレート（共通形）</div>
+      <div class="prose">
+        <p>新規ルールを §N として追加する際は次のテンプレートに従う。</p>
+        <pre class="ascii">
+## N. ルール名（slug）
+
+PostToolUse / PreToolUse / Stop フックが `[TAG]` を含む additionalContext を注入した場合は、必ず以下を実行する。
+
+1. （Claude の手順）
+2. （並列起動・サブエージェント指示など）
+3. **再帰防止**: 同一対象に N 回連続発火した場合は事実報告のみ行い続行する
+        </pre>
+      </div>
+
+      <div class="sec-label">欠番について</div>
+      <div class="prose">
+        <p>§3・§10 は欠番。過去にあった節（タスク管理・他の自動化）の廃止に伴い番号を空けたまま運用している。再利用せず番号を温存する（既存 PR / コミット履歴での参照を壊さないため）。</p>
+      </div>
+
+      <div class="back-link"><a href="../index.html#/category/claude-config">← .claude 設定層へ戻る</a></div>
+    </main>
+  </div>
+</body>
+</html>

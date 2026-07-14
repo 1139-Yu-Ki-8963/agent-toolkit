@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Playwright 設定ガイド — agent-home</title>
+  <link rel="stylesheet" href="../style.css" />
+  <link rel="stylesheet" href="design.css" />
+  <script type="module" src="../src/common/header.js"></script>
+</head>
+<body>
+  <div class="sd-wrap">
+
+    <div class="page-hero" style="margin-bottom:20px">
+      <h1>Playwright 設定ガイド</h1>
+      <p>
+        Playwright MCP サーバーの出力先を一元管理し、プロジェクト root への散在を防止する設定と hook 強制の全体像。
+        <a href="../index.html#/category/tools">&larr; ツール設定へ</a>
+      </p>
+    </div>
+
+    <div class="sd-layout">
+
+      <nav class="sd-toc">
+        <h3>目次</h3>
+        <ul>
+          <li><a href="#s1"><span class="toc-num">&sect;1</span>背景と問題</a></li>
+          <li><a href="#s2"><span class="toc-num">&sect;2</span>出力先の設計</a></li>
+          <li><a href="#s3"><span class="toc-num">&sect;3</span>設定方法</a></li>
+          <li><a href="#s4"><span class="toc-num">&sect;4</span>hook による強制</a></li>
+          <li><a href="#s5"><span class="toc-num">&sect;5</span>新規プロジェクトへの適用</a></li>
+        </ul>
+      </nav>
+
+      <article class="sd-body">
+
+        <!-- §1 -->
+        <section class="sd-section" id="s1">
+          <h2 class="sd-h2"><span class="sec-num">&sect;1</span>背景と問題</h2>
+
+          <div class="sd-def">
+            Playwright MCP はデフォルトで CWD 直下に <code>.playwright-mcp/</code> ディレクトリを自動生成し、スクリーンショット・コンソールログ・ページスナップショットを書き出す。
+          </div>
+
+          <div class="sd-gotcha">
+            <div class="sd-gotcha-title">未設定時のリスク</div>
+            <ul>
+              <li>CWD はプロジェクトごとに異なるため、<code>.playwright-mcp/</code> が各プロジェクト root に散在する</li>
+              <li>コンソールログ・ページスナップショットが無秩序に蓄積し、ディスクを圧迫する</li>
+              <li><code>.gitignore</code> に入れ忘れると git 管理下に混入する</li>
+            </ul>
+          </div>
+        </section>
+
+        <!-- §2 -->
+        <section class="sd-section" id="s2">
+          <h2 class="sd-h2"><span class="sec-num">&sect;2</span>出力先の設計</h2>
+
+          <div class="sd-def">
+            ラッパースクリプト <code>launch.sh</code> が CWD から <code>basename</code> でプロジェクト名を取得し、
+            <code>~/agent-home/tools/MCP/playwright/&lt;project&gt;/</code> にプロジェクト別サブディレクトリを自動作成する。
+            新規プロジェクトでも追加設定は不要。
+          </div>
+
+          <div class="sd-flow">Playwright MCP サーバー
+  │
+  ├─ launch.sh ラッパー
+  │     CWD から basename でプロジェクト名を取得
+  │     ↓
+  │   ~/agent-home/tools/MCP/playwright/
+  │     ├── agent-home/
+  │     │     ├── console-*.log
+  │     │     └── page-*.yml
+  │     ├── <project>-<project>/
+  │     │     ├── screenshot-*.png
+  │     │     └── console-*.log
+  │     └── <project>/
+  │           └── ...
+  │
+  └─ browser_take_screenshot の filename 引数
+        ↓
+      hook が許可パスを検査
+        ├── ✓ ~/agent-home/tools/MCP/playwright/**
+        ├── ✓ $CLAUDE_JOB_DIR/tmp/*
+        ├── ✓ */docs/**（明示 commit 用）
+        └── ✗ それ以外 → [FILE-PLACEMENT-BLOCK]</div>
+
+          <table class="sd-table">
+            <thead>
+              <tr>
+                <th>パス</th>
+                <th>用途</th>
+                <th>指定方法</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>~/agent-home/tools/MCP/playwright/</code></td>
+                <td>MCP 自動出力</td>
+                <td><code>--output-dir</code></td>
+              </tr>
+              <tr>
+                <td><code>$CLAUDE_JOB_DIR/tmp/</code></td>
+                <td>セッション一時ファイル</td>
+                <td><code>filename</code> 引数</td>
+              </tr>
+              <tr>
+                <td><code>&lt;repo&gt;/docs/&lt;feature&gt;/screenshots/</code></td>
+                <td>commit 対象のドキュメント画像</td>
+                <td><code>filename</code> 引数</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+        <!-- §3 -->
+        <section class="sd-section" id="s3">
+          <h2 class="sd-h2"><span class="sec-num">&sect;3</span>設定方法</h2>
+
+          <h3 class="sd-h3">プラグイン設定</h3>
+
+          <div class="sd-code-label"># ~/.claude/plugins/.../playwright/.mcp.json</div>
+          <div class="sd-code">{
+  "playwright": {
+    "command": "/Users/MacPro/agent-home/tools/MCP/playwright/launch.sh",
+    "args": []
+  }
+}</div>
+
+          <h3 class="sd-h3">ラッパースクリプト</h3>
+
+          <div class="sd-code-label"># ~/agent-home/tools/MCP/playwright/launch.sh</div>
+          <div class="sd-code">#!/usr/bin/env bash
+project="$(basename "$(pwd)")"
+output_dir="$HOME/agent-home/tools/MCP/playwright/$project"
+mkdir -p "$output_dir"
+exec npx @playwright/mcp@latest --output-dir "$output_dir" "$@"</div>
+
+          <div class="sd-note">
+            CWD のプロジェクト名を取得し、サブディレクトリを自動作成する。新規プロジェクトでも追加設定不要。
+          </div>
+
+          <h3 class="sd-h3">その他の設定方法（参考）</h3>
+
+          <table class="sd-table">
+            <thead>
+              <tr>
+                <th>方法</th>
+                <th>設定箇所</th>
+                <th>備考</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>CLI 引数（採用）</strong></td>
+                <td><code>.mcp.json</code> の args</td>
+                <td>プラグイン更新時に再設定が必要</td>
+              </tr>
+              <tr>
+                <td>環境変数</td>
+                <td><code>PLAYWRIGHT_MCP_OUTPUT_DIR</code></td>
+                <td>シェル設定で永続化可能</td>
+              </tr>
+              <tr>
+                <td>設定ファイル</td>
+                <td><code>--config &lt;path&gt;</code></td>
+                <td>JSON ファイルに <code>outputDir</code> を記載</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+        <!-- §4 -->
+        <section class="sd-section" id="s4">
+          <h2 class="sd-h2"><span class="sec-num">&sect;4</span>hook による強制</h2>
+
+          <div class="sd-def">
+            <code>check-playwright-filename.sh</code> が <code>mcp__playwright__browser_take_screenshot</code> の <code>filename</code> 引数を PreToolUse で検査する。
+            <code>--output-dir</code> で制御される自動出力とは独立して、明示的な <code>filename</code> 指定を対象とする。
+          </div>
+
+          <h3 class="sd-h3">検査ロジック</h3>
+
+          <ol>
+            <li><code>filename</code> 引数がなければ通す（レスポンスのみで受け取るケース）</li>
+            <li>相対パスなら block（CWD 直下への書き込みになるため）</li>
+            <li>絶対パスで許可ロケーション外なら block</li>
+          </ol>
+
+          <h3 class="sd-h3">注入タグ</h3>
+
+          <div class="sd-code">[FILE-PLACEMENT-BLOCK] Playwright MCP の filename 引数が
+file-placement 規約に違反しています。</div>
+
+          <div class="sd-note">
+            hook は <code>browser_take_screenshot</code> のみを検査する。コンソールログやページスナップショットの自動出力は <code>--output-dir</code> で制御する。
+          </div>
+        </section>
+
+        <!-- §5 -->
+        <section class="sd-section" id="s5">
+          <h2 class="sd-h2"><span class="sec-num">&sect;5</span>新規プロジェクトへの適用</h2>
+
+          <div class="sd-def">
+            ラッパースクリプト <code>launch.sh</code> が CWD から自動的にプロジェクト名を判定し、サブディレクトリを作成する。
+            新規プロジェクトを追加しても個別設定は不要。
+          </div>
+
+          <p style="font-size:13.5px;color:var(--text-sub);line-height:1.8;margin:0 0 12px">
+            唯一必要な作業は、新規プロジェクトの <code>.gitignore</code> に <code>.playwright-mcp/</code> を追加することだ。
+            ラッパースクリプトで出力先を自動振り分けしてあっても、CWD 直下に出力が落ちてしまうケース（MCP の挙動変更など）への安全ネットとして機能する。
+          </p>
+
+          <div class="sd-gotcha">
+            <div class="sd-gotcha-title">プラグイン自動更新に注意</div>
+            <ul>
+              <li>プラグインが自動更新された場合、<code>.mcp.json</code> が初期状態に戻る可能性がある</li>
+              <li><code>command</code> が <code>launch.sh</code> を指しているか定期確認が必要</li>
+              <li>確認方法: <code>cat ~/.claude/plugins/.../playwright/.mcp.json</code> で command を目視する</li>
+            </ul>
+          </div>
+        </section>
+
+      </article>
+    </div>
+
+    <div style="text-align:center;margin-top:20px;font-size:12px;color:var(--text-muted)">
+      <a href="../index.html#/category/tools">ツール設定</a> &nbsp;&middot;&nbsp;
+      <a href="../index.html">ポータル TOP</a>
+    </div>
+  </div>
+</body>
+</html>

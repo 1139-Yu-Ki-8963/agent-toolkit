@@ -9,17 +9,18 @@ import { renderFlowDetail } from "./flow-detail.js?v=4";
 
 function getRoot() { return document.getElementById("app-main"); }
 
-// #/flow/<id> では TOP 専用要素（ヒーロー・規模サマリ）を非表示にする。
-// それ以外のルートでは元に戻す。
-function setTopElementsVisible(visible) {
-  const display = visible ? "" : "none";
+// 規模サマリ（.metric-grid とそのラベル）は TOP（#/）でのみ表示する。
+// ヒーローは #/category/<id> では維持し、#/flow/<id> でのみ非表示にする。
+function setTopElementsVisible(heroVisible, summaryVisible) {
+  const heroDisplay = heroVisible ? "" : "none";
+  const summaryDisplay = summaryVisible ? "" : "none";
   const hero = document.querySelector(".pm-hero");
   const metricGrid = document.querySelector(".metric-grid");
   const summaryLabel = Array.from(document.querySelectorAll(".sec-label"))
     .find((el) => el.textContent.trim() === "規模サマリ");
-  if (hero) hero.style.display = display;
-  if (metricGrid) metricGrid.style.display = display;
-  if (summaryLabel) summaryLabel.style.display = display;
+  if (hero) hero.style.display = heroDisplay;
+  if (metricGrid) metricGrid.style.display = summaryDisplay;
+  if (summaryLabel) summaryLabel.style.display = summaryDisplay;
 }
 
 function route() {
@@ -29,10 +30,10 @@ function route() {
   window.scrollTo?.(0, 0);
   const path = location.hash.replace(/^#/, "") || "/";
   const mCat = path.match(/^\/category\/(.+)$/);
-  if (mCat) { setTopElementsVisible(true); renderCategory(decodeURIComponent(mCat[1]), root); return; }
+  if (mCat) { setTopElementsVisible(true, false); renderCategory(decodeURIComponent(mCat[1]), root); return; }
   const mFlow = path.match(/^\/flow\/(.+)$/);
-  if (mFlow) { setTopElementsVisible(false); renderFlowDetail(decodeURIComponent(mFlow[1]), root); return; }
-  setTopElementsVisible(true);
+  if (mFlow) { setTopElementsVisible(false, false); renderFlowDetail(decodeURIComponent(mFlow[1]), root); return; }
+  setTopElementsVisible(true, true);
   renderTop(root);
 }
 

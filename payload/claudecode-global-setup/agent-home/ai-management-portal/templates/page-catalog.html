@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{{PAGE_TITLE}} — agent-home</title>
+  <link rel="stylesheet" href="../style.css" />
+  <script type="module" src="../src/common/header.js"></script>
+</head>
+<body>
+  <div class="cat-wrap">
+    <div class="page-hero">
+      <h1>{{PAGE_TITLE}}</h1>
+      <p>{{PAGE_SUMMARY}}<a href="../index.html#/">← フロー・ポータルへ戻る</a></p>
+    </div>
+
+    <div class="cat-bar">
+      <a class="cat-back" href="../index.html#/">← ポータル TOP</a>
+      <span class="cat-total" id="total"></span>
+      <input class="cat-filter" id="filter" type="search" placeholder="{{FILTER_PLACEHOLDER}}" autocomplete="off" />
+    </div>
+
+    <div id="list"></div>
+  </div>
+
+  <script>
+    const ITEMS = [ /* {{DATA}} */ ];
+
+    const root = document.getElementById("list");
+    const totalEl = document.getElementById("total");
+    const filterEl = document.getElementById("filter");
+    totalEl.textContent = ITEMS.length + " 件";
+
+    function render(items) {
+      root.innerHTML = items.map((item) => "<div>" + item + "</div>").join("");
+    }
+
+    function applyFilter() {
+      const q = filterEl.value.trim().toLowerCase();
+      const shown = q ? ITEMS.filter((item) => JSON.stringify(item).toLowerCase().includes(q)) : ITEMS;
+      render(shown);
+      totalEl.textContent = q ? shown.length + " 件ヒット / " + ITEMS.length + " 件" : ITEMS.length + " 件";
+    }
+
+    let t;
+    filterEl.addEventListener("input", () => { clearTimeout(t); t = setTimeout(applyFilter, 120); });
+    render(ITEMS);
+  </script>
+</body>
+</html>

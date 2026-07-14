@@ -1,0 +1,429 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Worktree 運用設計ガイド — agent-home</title>
+  <link rel="stylesheet" href="../style.css" />
+  <link rel="stylesheet" href="design.css" />
+  <script type="module" src="../src/common/header.js"></script>
+</head>
+<body>
+  <div class="sd-wrap">
+
+    <div class="page-hero" style="margin-bottom:20px">
+      <h1>Worktree 運用設計ガイド</h1>
+      <p>
+        git worktree の仕組みと、orchestrating-dev-flow が worktree を必須とする設計判断を解説する。
+        正本ルール: <code>~/.claude/rules/scoped/dev-flow/worktree/rule.md</code>
+        <a href="../index.html#/category/design">← 設計ガイドへ</a>
+      </p>
+    </div>
+
+    <div class="sd-layout">
+
+      <nav class="sd-toc">
+        <h3>目次</h3>
+        <ul>
+          <li><a href="#s1"><span class="toc-num">§1</span>git worktree とは</a></li>
+          <li><a href="#s2"><span class="toc-num">§2</span>なぜ worktree を使うか</a></li>
+          <li><a href="#s3"><span class="toc-num">§3</span>運用方式</a></li>
+          <li><a href="#s4"><span class="toc-num">§4</span>進捗ファイルの配置</a></li>
+          <li><a href="#s5"><span class="toc-num">§5</span>クリーンアップの仕組み</a></li>
+          <li><a href="#s6"><span class="toc-num">§6</span>設計判断（ADR）</a></li>
+          <li><a href="#s7"><span class="toc-num">§7</span>関連ルール・スキル</a></li>
+        </ul>
+        <div class="toc-sep"></div>
+        <div style="font-size:11px;color:var(--text-muted);padding:4px 8px;line-height:1.6">
+          正本: <code>~/.claude/rules/scoped/dev-flow/worktree/rule.md</code><br>
+          適用: 全プロジェクト共通<br>
+          機械強制: <code>check-worktree-required.sh</code>
+        </div>
+      </nav>
+
+      <article class="sd-body">
+
+        <!-- §1 -->
+        <section class="sd-section" id="s1">
+          <h2 class="sd-h2"><span class="sec-num">§1</span>git worktree とは</h2>
+          <div class="sd-def">
+            git の標準機能。1 つのリポジトリから<strong>複数の作業ディレクトリ</strong>を切り出す仕組み。<br>
+            通常の <code>git clone</code> がリポジトリ全体を複製するのに対し、worktree は <code>.git</code> の実体を共有し、
+            ソースコードの作業コピーだけを別ディレクトリに展開する。
+          </div>
+
+          <div class="sd-flow">リポジトリ（実体）
+  .git/                              ← 全 worktree で共有される唯一の実体
+  .git/worktrees/fix-login/          ← worktree ごとのメタデータ（HEAD・index）
+  .git/worktrees/add-api/
+  src/  package.json  ...            ← メインツリーの作業コピー
+
+worktree A: ~/Projects/worktrees/fix/login-bug/
+  .git  ← ポインタファイル（1 行: "gitdir: /.../.git/worktrees/fix-login"）
+  src/  package.json  ...            ← 独立した作業コピー
+
+worktree B: ~/Projects/worktrees/feature/add-api/
+  .git  ← ポインタファイル
+  src/  package.json  ...</div>
+
+          <h3 class="sd-h3">clone との違い</h3>
+          <table class="sd-table">
+            <thead><tr><th>項目</th><th>git clone</th><th>git worktree</th></tr></thead>
+            <tbody>
+              <tr><td><strong>.git の扱い</strong></td><td>完全に複製（独立）</td><td>共有（ポインタで参照）</td></tr>
+              <tr><td><strong>ブランチ・reflog・stash</strong></td><td>独立（push/pull で同期）</td><td>全 worktree で共通</td></tr>
+              <tr><td><strong>ディスク消費</strong></td><td>.git + ソース（全体の 2 倍）</td><td>ソース分のみ（.git の重複なし）</td></tr>
+              <tr><td><strong>同一ブランチの checkout</strong></td><td>可能</td><td>不可（1 ブランチ 1 worktree）</td></tr>
+            </tbody>
+          </table>
+
+          <h3 class="sd-h3">ディスク消費の実測値</h3>
+          <p style="font-size:13.5px;color:var(--text-sub);line-height:1.75">
+            <project>-<project>（React + Supabase）での実測。<code>node_modules</code> を除いた作業コピーのサイズ。
+          </p>
+          <table class="sd-table">
+            <thead><tr><th>対象</th><th>サイズ</th><th>備考</th></tr></thead>
+            <tbody>
+              <tr><td>メインツリー（.git 含む）</td><td>数百 MB</td><td>.git 実体 + node_modules</td></tr>
+              <tr><td>worktree 1 本</td><td>39〜52 MB</td><td>ソースコードのみ（node_modules 除外時）</td></tr>
+              <tr><td>worktree 1 本（npm install 後）</td><td>数百 MB</td><td>node_modules が支配的</td></tr>
+            </tbody>
+          </table>
+          <div class="sd-note">
+            <strong>メモリへの影響:</strong> worktree 自体はディスクのみ消費し、メモリは使わない。
+            ただし worktree 内で開発サーバー（vite / uvicorn 等）を起動すると、サーバーごとにメモリを消費する。
+            worktree 削除時にサーバープロセスを kill し忘れると、メモリとポートが残骸として蓄積する。
+          </div>
+        </section>
+
+        <!-- §2 -->
+        <section class="sd-section" id="s2">
+          <h2 class="sd-h2"><span class="sec-num">§2</span>なぜ worktree を使うか</h2>
+
+          <div class="sd-def">
+            orchestrating-dev-flow（13 Phase の開発オーケストレーター）は、
+            main ブランチ上で複数の Claude Code セッションが並行稼働する環境を前提とする。<br>
+            worktree なしでは<strong>ファイル競合・進捗混在・セッション跨ぎの破綻</strong>が発生する。
+          </div>
+
+          <h3 class="sd-h3">worktree がない場合の問題</h3>
+          <table class="sd-table">
+            <thead><tr><th>問題</th><th>具体例</th><th>worktree による解決</th></tr></thead>
+            <tbody>
+              <tr>
+                <td><strong>ファイル競合</strong></td>
+                <td>セッション A と B が同じ <code>src/api/user.ts</code> を同時編集 → 後勝ちで上書き</td>
+                <td>各 worktree が独立したファイルシステムを持つため干渉しない</td>
+              </tr>
+              <tr>
+                <td><strong>進捗ファイル混在</strong></td>
+                <td><code>.flow-progress.json</code> が 1 つだけ → セッション A の Phase 8 完了をセッション B が上書き</td>
+                <td>worktree ごとに独立した進捗ファイルを持つ</td>
+              </tr>
+              <tr>
+                <td><strong>セッション跨ぎ</strong></td>
+                <td>セッション再開時に「どこまで完了したか」を判別できない</td>
+                <td>worktree 内の <code>.flow-progress.json</code> から中断 Phase を復元</td>
+              </tr>
+              <tr>
+                <td><strong>ブランチ汚染</strong></td>
+                <td>main に直接コミットが混在し、レビューなしで本番に到達する</td>
+                <td>feature ブランチ + PR フローを強制</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <h3 class="sd-h3">設計判断（ADR）</h3>
+          <div class="sd-quote">
+            必要性: 並行セッション環境でのファイル分離と進捗管理の整合性を保証するために worktree を必須化した。
+          </div>
+          <table class="sd-table">
+            <thead><tr><th>代替案</th><th>不採用の理由</th></tr></thead>
+            <tbody>
+              <tr><td>進捗ファイルを <code>/tmp</code> に配置</td><td>セッション跨ぎの進捗引き継ぎができない。<code>/tmp</code> はセッション固有だが、worktree は複数セッションで共有する</td></tr>
+              <tr><td>main ブランチに進捗ファイルを配置</td><td>複数セッションの競合が発生する。main を汚染する</td></tr>
+              <tr><td>git clone で独立リポジトリを作成</td><td>.git 全体を複製するためディスク消費が大きい。ブランチ・stash が共有されず運用が煩雑</td></tr>
+              <tr><td>git stash で作業を切り替え</td><td>同時並行ができない。1 セッションずつの直列作業になる</td></tr>
+            </tbody>
+          </table>
+          <div class="sd-note">
+            <strong>廃棄条件:</strong> Claude Code 本体がセッション分離と進捗管理を組み込んだ時、または orchestrating-dev-flow が廃止された時。
+          </div>
+        </section>
+
+        <!-- §3 -->
+        <section class="sd-section" id="s3">
+          <h2 class="sd-h2"><span class="sec-num">§3</span>運用方式</h2>
+
+          <div class="sd-def">
+            worktree は<strong>作業ごとに名前付きで作成</strong>する。固定スロット（wt1/wt2/wt3）ではない。<br>
+            ブランチ名に基づく命名で、作業内容が名前から読み取れる。
+          </div>
+
+          <h3 class="sd-h3">作成の流れ</h3>
+          <div class="sd-flow">orchestrating-dev-flow Phase 2（ブランチ準備）
+  ↓
+Step 1: worktree 判定
+  ├ .git がファイル → 既に worktree 内（スキップ可）
+  └ .git がディレクトリ → メインツリー（作成必須）
+  ↓
+Step 2: Skill(parallel-dev-worktree) 呼び出し
+  └ git worktree add -b "&lt;branch&gt;" "&lt;path&gt;" "origin/main"
+  ↓
+Step 3: 環境確認（git status, 依存パッケージ）
+  ↓
+Step 4: 進捗ファイル初期化（.flow-progress.json）</div>
+
+          <h3 class="sd-h3">命名規則</h3>
+          <table class="sd-table">
+            <thead><tr><th>ブランチ名</th><th>worktree パス</th></tr></thead>
+            <tbody>
+              <tr><td><code>fix/login-bug</code></td><td><code>~/Projects/worktrees/fix/login-bug/</code></td></tr>
+              <tr><td><code>feature/add-api</code></td><td><code>~/Projects/worktrees/feature/add-api/</code></td></tr>
+              <tr><td><code>docs/update-readme</code></td><td><code>~/Projects/worktrees/docs/update-readme/</code></td></tr>
+            </tbody>
+          </table>
+          <div class="sd-note">
+            一部のプロジェクト（<project>-<project>）では <code>.claude/worktrees/&lt;name&gt;</code> にも配置される。
+            配置パスはプロジェクトごとに異なりうる。
+          </div>
+
+          <h3 class="sd-h3">main 直接編集が許されるケース</h3>
+          <ul>
+            <li><strong>調査・質問応答</strong> — 実装を伴わない読み取りのみの作業</li>
+            <li><strong>グローバル設定の変更</strong> — <code>~/.claude/</code> 配下の rules / settings / agents</li>
+            <li><strong>agent-home リポジトリ自体の管理</strong> — ポータル更新・スキル追加等</li>
+          </ul>
+          <div class="sd-note">
+            <code>check-worktree-required.sh</code>（PreToolUse hook）がメインツリーでの Edit/Write を block する。
+            上記の例外パス（<code>~/.claude/*</code>、<code>~/agent-home/*</code>）は hook 内で除外されている。
+          </div>
+        </section>
+
+        <!-- §4 -->
+        <section class="sd-section" id="s4">
+          <h2 class="sd-h2"><span class="sec-num">§4</span>進捗ファイルの配置</h2>
+
+          <div class="sd-def">
+            進捗管理は 2 層構造。セッション内の追跡と、セッション跨ぎの保持を分離する。<br>
+            <strong>注意:</strong> この 2 層構造は本タスク（2026-06-26）で新規設計したもの。実装はまだ行われていない。
+          </div>
+
+          <table class="sd-table">
+            <thead><tr><th>ファイル</th><th>配置先</th><th>用途</th><th>ライフサイクル</th></tr></thead>
+            <tbody>
+              <tr>
+                <td><code>flow-status.json</code></td>
+                <td><code>&lt;worktree&gt;/.claude/markers/${session}/</code></td>
+                <td>セッション内の Phase 進捗追跡</td>
+                <td>セッション終了時に <code>cleanup-session-markers.sh</code> が自動削除</td>
+              </tr>
+              <tr>
+                <td><code>.flow-progress.json</code></td>
+                <td><code>&lt;worktree&gt;/</code>（ルート直下）</td>
+                <td>セッション跨ぎの進捗保持</td>
+                <td>worktree 削除時に自動消滅。<code>.gitignore</code> で commit 対象外</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="sd-flow">セッション A で Phase 6 まで完了 → セッション終了
+  flow-status.json → 削除（cleanup-session-markers.sh）
+  .flow-progress.json → 保持（worktree ルートに残る）
+
+セッション B で同じ worktree を再開
+  .flow-progress.json を読み込み → Phase 7 から再開
+  新しい flow-status.json を作成</div>
+
+          <div class="sd-note">
+            <code>.flow-progress.json</code> は <code>.gitignore</code> に登録済み。commit に混入することはない。
+            worktree を削除すればファイルも自動消滅するため、追加のクリーンアップ処理は不要。
+          </div>
+        </section>
+
+        <!-- §5 -->
+        <section class="sd-section" id="s5">
+          <h2 class="sd-h2"><span class="sec-num">§5</span>クリーンアップの仕組み</h2>
+
+          <div class="sd-def">
+            worktree の後片付けは複数の hook・スキルが連携して行う。<br>
+            過去に残骸プロセスが 16 件蓄積した実績があり、自動化の仕組みを整備した。
+          </div>
+
+          <table class="sd-table">
+            <thead><tr><th>タイミング</th><th>仕組み</th><th>対象</th></tr></thead>
+            <tbody>
+              <tr>
+                <td><strong>セッション終了</strong></td>
+                <td><code>cleanup-session-markers.sh</code>（SessionEnd hook）</td>
+                <td><code>.claude/markers/${session}/</code> と <code>/tmp/claude-hooks/${session}/</code></td>
+              </tr>
+              <tr>
+                <td><strong>フロー完了（Phase 12）</strong></td>
+                <td><code>phase-12-post-merge-cleanup.md</code></td>
+                <td><code>.flow-progress.json</code>、worktree 本体、開発サーバープロセス</td>
+              </tr>
+              <tr>
+                <td><strong>Stop hook</strong></td>
+                <td><code>remind-worktree-cleanup.sh</code></td>
+                <td>マージ済みなのに残っている worktree を検出して通知</td>
+              </tr>
+              <tr>
+                <td><strong>セッション開始</strong></td>
+                <td><code>cleanup-stale-hook-sessions.sh</code>（SessionStart hook）</td>
+                <td><code>/tmp/claude-hooks/</code> の 7 日超 orphan ディレクトリ</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <h3 class="sd-h3">残骸蓄積の過去事例</h3>
+          <div class="sd-quote">
+            2026-06-26 のポート調査で、削除済み worktree の残骸プロセスが 16 件蓄積していた。
+            owner docs サーバーが 5 重起動、wt2 docs サーバーが 4 重起動。
+            ポート番号がランダムだったため重複検知ができず放置されていた。
+          </div>
+          <p style="font-size:13.5px;color:var(--text-sub);line-height:1.75">
+            対策として port-management-rules でポート番号を計算式ベースの一意割当に変更し、
+            remind-worktree-cleanup.sh でマージ済み worktree の残留を自動検出する仕組みを導入した。
+          </p>
+
+          <div class="sd-gotcha">
+            <div class="sd-gotcha-title">掃除し忘れのリスク</div>
+            <ul>
+              <li>worktree を手動で <code>rm -rf</code> すると <code>.git/worktrees/</code> にメタデータが残る。<code>git worktree remove</code> を使うこと</li>
+              <li>開発サーバーを起動したまま worktree を削除すると、プロセスとポートが残骸になる</li>
+              <li><code>remind-worktree-cleanup.sh</code> はマージ済みの worktree のみ検出する。マージ前の放置 worktree は検出しない</li>
+              <li>PR レビュー中の worktree は意図的に保持される。レビュー対応が長期化すると蓄積する</li>
+            </ul>
+          </div>
+        </section>
+
+        <!-- §6 -->
+        <section class="sd-section" id="s6">
+          <h2 class="sd-h2"><span class="sec-num">§6</span>設計判断（ADR）</h2>
+
+          <div class="sd-def">
+            worktree 運用で発生していた矛盾と未決事項を 2026-06-26 に解決した。<br>
+            以下はその設計判断の記録。
+          </div>
+
+          <h3 class="sd-h3">ADR-1: worktree の同時数上限</h3>
+          <table class="sd-table">
+            <thead><tr><th>項目</th><th>内容</th></tr></thead>
+            <tbody>
+              <tr><td><strong>決定</strong></td><td>全プロジェクト合計で <strong>5 本</strong>まで</td></tr>
+              <tr><td><strong>根拠</strong></td><td>Docker を併用する環境でのメモリ消費を考慮。各 worktree で開発サーバーを起動すると 1 本あたり数百 MB のメモリを消費する。Docker コンテナ（Supabase 等）との共存を前提とすると、5 本が実用上の限界</td></tr>
+              <tr><td><strong>強制方法</strong></td><td><code>.port-slot</code> ファイルによるスロット管理。空きスロット（1〜5）がない場合は worktree 作成を拒否する</td></tr>
+              <tr><td><strong>廃棄条件</strong></td><td>マシンのメモリが大幅に増設された時、または Docker を使わなくなった時に見直す</td></tr>
+            </tbody>
+          </table>
+
+          <h3 class="sd-h3">ADR-2: ポート管理と worktree 命名の統一</h3>
+          <table class="sd-table">
+            <thead><tr><th>項目</th><th>内容</th></tr></thead>
+            <tbody>
+              <tr><td><strong>旧状態</strong></td><td><code>port-management-rules</code> はスロット制（wt1/wt2/wt3）前提、実際の worktree は名前ベース。対応付けが存在しなかった</td></tr>
+              <tr><td><strong>決定</strong></td><td>worktree の命名は名前ベース（ブランチ名準拠）を維持する。ポート計算に必要なスロット番号（1〜5）は作成時に動的に割り当てる</td></tr>
+              <tr><td><strong>仕組み</strong></td><td>worktree 作成時に空きスロットの最小番号を <code>&lt;worktree&gt;/.port-slot</code> に書き込む。ポート番号はこのスロット番号から計算する</td></tr>
+              <tr><td><strong>代替案</strong></td><td>worktree 自体をスロット制（wt1〜wt5）にする案を不採用。作業内容がスロット名から読み取れず、運用上わかりにくい</td></tr>
+            </tbody>
+          </table>
+
+          <div class="sd-flow">worktree 作成時のスロット割当フロー
+
+1. git worktree list で全 worktree を列挙
+2. 各 worktree の .port-slot を読み、使用中スロットを特定
+3. 空きスロット（1〜5）の最小番号を選択
+4. 新 worktree の .port-slot に書き込み
+5. ポート = プロジェクトベース + (スロット × 10) + サービスオフセット
+
+例: fix/login-bug に slot 2 が割り当たった場合
+  backend: 8020, frontend: 8021, docs: 8022</div>
+
+          <h3 class="sd-h3">ADR-3: ポート監視</h3>
+          <table class="sd-table">
+            <thead><tr><th>項目</th><th>内容</th></tr></thead>
+            <tbody>
+              <tr><td><strong>旧状態</strong></td><td>ポート計算式は定義されていたが、監視・強制する hook がなかった</td></tr>
+              <tr><td><strong>決定</strong></td><td>現時点では hook による機械強制は行わない。<code>.port-slot</code> ファイルによるスロット割当で、ポート番号の一意性は保証される。開発サーバー起動スクリプトが <code>.port-slot</code> を読んでポート番号を決定する設計とする</td></tr>
+              <tr><td><strong>根拠</strong></td><td>サーバー起動コマンドのパターンが多様（uvicorn / vite / next dev / python -m http.server 等）で、hook による網羅的検出が困難</td></tr>
+              <tr><td><strong>廃棄条件</strong></td><td>起動スクリプトが統一され、hook でパターンマッチ可能になった時</td></tr>
+            </tbody>
+          </table>
+
+          <h3 class="sd-h3">ADR-4: 復旧スキルの対応</h3>
+          <table class="sd-table">
+            <thead><tr><th>項目</th><th>内容</th></tr></thead>
+            <tbody>
+              <tr><td><strong>旧状態</strong></td><td><code>recovering-slot-worktrees</code> がスロット制（wt1-wt3）前提で、名前ベースの worktree を復旧できなかった</td></tr>
+              <tr><td><strong>決定</strong></td><td>復旧スキルを名前ベース + <code>.port-slot</code> 方式に対応させる（未実装。改修が必要）</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <!-- §7 -->
+        <section class="sd-section" id="s7">
+          <h2 class="sd-h2"><span class="sec-num">§7</span>関連ルール・スキル</h2>
+
+          <table class="sd-table">
+            <thead><tr><th>種別</th><th>名前</th><th>役割</th></tr></thead>
+            <tbody>
+              <tr>
+                <td>Rule</td>
+                <td><code>worktree-required-rules</code></td>
+                <td>orchestrating-dev-flow 発動時の worktree 必須化規約</td>
+              </tr>
+              <tr>
+                <td>Rule</td>
+                <td><code>file-guard-rules</code></td>
+                <td>マーカー配置規約（<code>marker_path</code> ヘルパー）。進捗ファイルの配置先と整合</td>
+              </tr>
+              <tr>
+                <td>Rule</td>
+                <td><code>port-management-rules</code></td>
+                <td>ポート番号の計算式。スロット制前提のため名前ベース運用との矛盾あり</td>
+              </tr>
+              <tr>
+                <td>Skill</td>
+                <td><code>parallel-dev-worktree</code></td>
+                <td>worktree 作成・実装・PR・削除の 7 Phase ワークフロー</td>
+              </tr>
+              <tr>
+                <td>Skill</td>
+                <td><code>orchestrating-dev-flow</code></td>
+                <td>統合開発フロー。Phase 2 で worktree 作成を必須化</td>
+              </tr>
+              <tr>
+                <td>Skill</td>
+                <td><code>recovering-slot-worktrees</code></td>
+                <td>worktree の障害復旧（スロット制前提）</td>
+              </tr>
+              <tr>
+                <td>Hook</td>
+                <td><code>check-worktree-required.sh</code></td>
+                <td>メインツリーでの Edit/Write を block</td>
+              </tr>
+              <tr>
+                <td>Hook</td>
+                <td><code>remind-worktree-cleanup.sh</code></td>
+                <td>マージ済み worktree の残留を検出・通知</td>
+              </tr>
+              <tr>
+                <td>Hook</td>
+                <td><code>cleanup-session-markers.sh</code></td>
+                <td>セッション終了時のマーカー自動削除</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="sd-note">
+            正本ルール: <code>~/.claude/rules/scoped/dev-flow/worktree/rule.md</code><br>
+            設計ガイド（このファイル）: <code>~/agent-home/ai-management-portal/design/worktree.html</code>
+          </div>
+        </section>
+
+      </article>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>公開セット台帳 — agent-home</title>
+  <link rel="stylesheet" href="../style.css" />
+  <script type="module" src="../src/common/header.js"></script>
+  <style>
+    .verdict-summary {
+      display: flex; flex-wrap: wrap; gap: 10px;
+      margin: 0 0 16px;
+    }
+    .verdict-chip {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 12px; font-weight: 700;
+      padding: 5px 12px; border-radius: 999px;
+      border: 1px solid var(--border);
+      background: var(--panel-2); color: var(--text-sub);
+    }
+    .verdict-chip .n { font-size: 13px; }
+    .verdict-chip.bundle { background: var(--success-soft); color: var(--success); border-color: var(--success-border); }
+    .verdict-chip.template { background: var(--accent-soft); color: var(--accent); border-color: var(--accent-border); }
+    .verdict-chip.exclude { background: var(--panel-2); color: var(--text-muted); border-color: var(--border-strong); }
+    .verdict-chip.deprecate { background: var(--danger-soft); color: var(--danger); border-color: var(--danger-border); }
+    .verdict-chip.tbd { background: var(--gold-soft); color: var(--gold); border-color: var(--gold-border); }
+
+    .type-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 14px; }
+    .type-tab {
+      font-size: 12px; font-weight: 600;
+      padding: 5px 12px; border-radius: 999px;
+      border: 1px solid var(--border); background: var(--panel);
+      color: var(--text-sub); cursor: pointer;
+    }
+    .type-tab:hover { border-color: var(--accent); color: var(--accent); }
+    .type-tab.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+    .note-box {
+      font-size: 12.5px; color: var(--text-muted);
+      background: var(--panel-2); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); padding: 10px 14px;
+      margin: 0 0 18px;
+    }
+
+    .vbadge {
+      display: inline-block; font-size: 10.5px; font-weight: 700;
+      padding: 1px 8px; border-radius: 999px; margin-right: 8px;
+      vertical-align: middle;
+    }
+    .vbadge.bundle { background: var(--success-soft); color: var(--success); }
+    .vbadge.template { background: var(--accent-soft); color: var(--accent); }
+    .vbadge.exclude { background: var(--panel-2); color: var(--text-muted); }
+    .vbadge.deprecate { background: var(--danger-soft); color: var(--danger); }
+    .vbadge.tbd { background: var(--gold-soft); color: var(--gold); }
+
+    .item-type-tag {
+      font-size: 10.5px; color: var(--text-muted);
+      background: var(--panel-2); border: 1px solid var(--border);
+      border-radius: 999px; padding: 1px 8px; margin-right: 6px;
+    }
+  </style>
+</head>
+<body>
+  <div class="cat-wrap">
+    <div class="page-hero">
+      <h1>公開セット台帳</h1>
+      <p>グローバル設定（~/.claude + agent-home）を公開用リポジトリへ切り出す際の同梱判定を資産別に一覧化したものです。判定は監査と個別確認を踏まえた初期値であり、随時更新します。<a href="../index.html#/">← フロー・ポータルへ戻る</a></p>
+    </div>
+
+    <div class="note-box">hook は所属する規約・スキルの判定に従属するため、本台帳では独立した行を持ちません。</div>
+
+    <div class="verdict-summary" id="verdict-summary"></div>
+
+    <div class="type-tabs" id="type-tabs"></div>
+
+    <div class="cat-bar">
+      <a class="cat-back" href="../index.html#/">← ポータル TOP</a>
+      <span class="cat-total" id="total"></span>
+      <input class="cat-filter" id="filter" type="search" placeholder="資産名・理由で絞り込み…" autocomplete="off" />
+    </div>
+
+    <div id="list"></div>
+  </div>
+
+  <script>
+    // 判定データセット（type, verdict, reason, cond, href）
+    // id は資産名そのものを意味キーとする（連番禁止）
+    const ITEMS = [
+      // ── Rules（21件） ──────────────────────────────────────────
+      { id: "naming/semantic-key",        type: "rule", verdict: "bundle",   reason: "意味キー規約は普遍的な可読性規約でプロジェクト依存なし。",                                                    cond: "", href: "rules.html" },
+      { id: "agent-config/placement",     type: "rule", verdict: "bundle",   reason: "設定層配置の決定木は一律適用の正本規約。",                                                                cond: "", href: "rules.html" },
+      { id: "agent-config/hooks",         type: "rule", verdict: "bundle",   reason: "hook 配置4象限はアーキテクチャの正本で一律適用。",                                                          cond: "", href: "rules.html" },
+      { id: "agent-config/claude-md",     type: "rule", verdict: "bundle",   reason: "CLAUDE.md 保護は普遍的な資産保護規約。",                                                                  cond: "", href: "rules.html" },
+      { id: "agent-config/review",        type: "rule", verdict: "bundle",   reason: "managing-agent-configs 実行ゲートは managed ディレクトリ構造に依存する普遍規約。",                          cond: "", href: "rules.html" },
+      { id: "response/guard",             type: "rule", verdict: "bundle",   reason: "操作依頼禁止・先送り禁止は応答品質の普遍規約。",                                                            cond: "", href: "rules.html" },
+      { id: "response/abbreviations",     type: "rule", verdict: "bundle",   reason: "略称の無断使用禁止は読みやすさの普遍規約。",                                                                cond: "", href: "rules.html" },
+      { id: "agent/subagent-selection",   type: "rule", verdict: "bundle",   reason: "サブエージェント委任規範は4体制に依存するが公開セットに subagent 一式も含むため同梱。",                     cond: "", href: "rules.html" },
+      { id: "placement/file-guard",       type: "rule", verdict: "bundle",   reason: "ファイル配置・書き出し先ガードは環境に依存しない普遍規約。",                                                cond: "", href: "rules.html" },
+      { id: "infra/pre-bash-dispatch",     type: "rule", verdict: "bundle",   reason: "Bash 実行前マルチディスパッチは textlint・命名規則の共通土台。",                                           cond: "", href: "rules.html" },
+      { id: "session/infra",              type: "rule", verdict: "bundle",   reason: "スキル発火ログ記録とセルフ設定削除はセッション基盤として普遍的。",                                          cond: "", href: "rules.html" },
+      { id: "gate/flow-gate",             type: "rule", verdict: "bundle",   reason: "実装フローゲートは orchestrating-dev-flow と対の普遍規約。",                                               cond: "", href: "rules.html" },
+      { id: "gate/worktree-required",     type: "rule", verdict: "bundle",   reason: "worktree 必須運用は開発フローの普遍規約。",                                                                cond: "", href: "rules.html" },
+      { id: "tooling/shell",              type: "rule", verdict: "bundle",   reason: "スクリプト作成方針は環境に依存しない普遍規約。",                                                            cond: "", href: "rules.html" },
+      { id: "gate/phase-step-task",       type: "rule", verdict: "bundle",   reason: "フロー Phase・statusline 連動は開発フロー本体と対で同梱が必須。",                                          cond: "", href: "rules.html" },
+      { id: "naming/commit-branch",       type: "rule", verdict: "template", reason: "prefix 対応表は naming-values.txt に切り出し済みでテンプレ化しやすい。",                                    cond: "naming-values.txt を差し替え式で提供する", href: "rules.html" },
+      { id: "lint/text-dictionary",       type: "rule", verdict: "template", reason: "prh 辞書はサイドカー分離済みでテンプレ化しやすい。",                                                       cond: "prh.yml を差し替え式で提供する", href: "rules.html" },
+      { id: "placement/directory-structure", type: "rule", verdict: "template", reason: "許可リストはプロジェクト固有のディレクトリ構成に強く依存する。",                                        cond: "許可リストを空テンプレとして提供する", href: "rules.html" },
+      { id: "git/approved-sha",           type: "rule", verdict: "template", reason: "承認 SHA 検査の枠組みは汎用だが <project>-<project> 出自の記述が残る。",                                    cond: "<project> 出自の記述を design-notes に移動する", href: "rules.html" },
+      { id: "local-environment/port-management",      type: "rule", verdict: "template", reason: "計算式自体は汎用だが割当表がこのPC固有の実ポート番号を含む。",                                            cond: "port-values.txt を実値版と .template 版の2ファイルに分離する", href: "rules.html" },
+      { id: "ui/icon-usage",              type: "rule", verdict: "deprecate", reason: "特定アイコンライブラリ（Material Symbols）の強制は規約の粒度として細かすぎ、公開セットには合わない。", cond: "", href: "rules.html" },
+
+      // ── Skills（22件。初期判定・本監査未実施） ──────────────────────
+      { id: "managing-agent-configs",       type: "skill", verdict: "bundle", reason: "skills/hooks/rules/routines/subagents の統合管理ハブ。初期判定・本監査未実施。",     cond: "", href: "skills.html" },
+      { id: "adding-textlint-dictionary-terms", type: "skill", verdict: "bundle", reason: "文章品質ルールと辞書管理は普遍的。初期判定・本監査未実施。",                        cond: "", href: "skills.html" },
+      { id: "grouping-commits",             type: "skill", verdict: "bundle", reason: "コミットのグルーピング手順は普遍的。初期判定・本監査未実施。",                      cond: "", href: "skills.html" },
+      { id: "subagent-investigation-checklist", type: "skill", verdict: "bundle", reason: "調査委任チェックリストの生成は4体制に依存するが普遍的。初期判定・本監査未実施。", cond: "", href: "skills.html" },
+      { id: "reviewing-public-readiness",   type: "skill", verdict: "bundle", reason: "公開可否レビュー手順は普遍的。初期判定・本監査未実施。",                            cond: "", href: "skills.html" },
+      { id: "parallel-dev-worktree",        type: "skill", verdict: "bundle", reason: "worktree 作成・削除の実行エンジンは普遍的。初期判定・本監査未実施。",              cond: "", href: "skills.html" },
+      { id: "orchestrating-dev-flow",       type: "skill", verdict: "bundle", reason: "統合開発フローの全体設計は普遍的。初期判定・本監査未実施。",                        cond: "", href: "skills.html" },
+      { id: "reviewing-single-pr-with-inline-comments", type: "skill", verdict: "bundle", reason: "PR レビュー手順は普遍的。初期判定・本監査未実施。",                        cond: "", href: "skills.html" },
+      { id: "managing-github-issues",        type: "skill", verdict: "bundle", reason: "issue 作成・選定・スコープ検証手順（create/pick/verify モード）は普遍的。初期判定・本監査未実施。", cond: "", href: "skills.html" },
+      { id: "frontend-design",              type: "skill", verdict: "bundle", reason: "フロントエンド設計手順は普遍的。初期判定・本監査未実施。",                          cond: "", href: "skills.html" },
+      { id: "generating-screen-list-for-reverse-docs", type: "skill", verdict: "exclude", reason: "リバースドキュメント生成は個人プロジェクト固有のワークフロー。初期判定・本監査未実施。", cond: "", href: "skills.html" },
+      { id: "syncing-reverse-env",          type: "skill", verdict: "exclude", reason: "リバース環境同期は個人プロジェクト固有。初期判定・本監査未実施。",                  cond: "", href: "skills.html" },
+      { id: "rebuilding-code-from-docs",    type: "skill", verdict: "exclude", reason: "ドキュメントからのコード再構築は個人プロジェクト固有。初期判定・本監査未実施。",    cond: "", href: "skills.html" },
+      { id: "rebuilding-screen-unit-from-docs", type: "skill", verdict: "exclude", reason: "画面単位再構築は個人プロジェクト固有。初期判定・本監査未実施。",                 cond: "", href: "skills.html" },
+      { id: "orchestrating-reverse-docs-flow", type: "skill", verdict: "exclude", reason: "リバースドキュメントフロー統括は個人プロジェクト固有。初期判定・本監査未実施。",   cond: "", href: "skills.html" },
+      { id: "unlocking-reverse-target-screens", type: "skill", verdict: "exclude", reason: "対象画面ロック解除は個人プロジェクト固有。初期判定・本監査未実施。",             cond: "", href: "skills.html" },
+      { id: "launching-<project>-dev-servers", type: "skill", verdict: "exclude", reason: "<project>-<project> 専用の開発サーバー起動は個人プロジェクト固有。初期判定・本監査未実施。", cond: "", href: "skills.html" },
+      { id: "creating-new-project",         type: "skill", verdict: "tbd",   reason: "Next.js テンプレの個人色が強いか要確認。初期判定・本監査未実施。",                    cond: "テンプレ内容の個人依存度を確認する", href: "skills.html" },
+
+      // ── Subagents（6件・全 bundle） ──────────────────────────────
+      { id: "brain",         type: "subagent", verdict: "bundle", reason: "タスク分解と worker 配布を担う4体制の中核。", cond: "", href: "subagents.html" },
+      { id: "investigator",  type: "subagent", verdict: "bundle", reason: "読み取り専用の調査エージェントとして4体制に必須。", cond: "", href: "subagents.html" },
+      { id: "report-reviewer",      type: "subagent", verdict: "bundle", reason: "チェックリスト照合・PASS/FAIL 判定を担う4体制の一員。", cond: "", href: "subagents.html" },
+      { id: "worker-sonnet", type: "subagent", verdict: "bundle", reason: "文脈判断を伴う修正を担う4体制の一員。", cond: "", href: "subagents.html" },
+      { id: "worker-haiku",  type: "subagent", verdict: "bundle", reason: "コマンド実行専用の4体制の一員。", cond: "", href: "subagents.html" },
+      { id: "researcher",    type: "subagent", verdict: "bundle", reason: "外部情報収集を担う4体制の一員。", cond: "", href: "subagents.html" },
+
+      // ── Settings（1件・template） ─────────────────────────────────
+      { id: "settings.json", type: "settings", verdict: "template", reason: "ユーザー名入り deny 行があり、全自動運用 permissions の同意が個人裁量に依存する。", cond: "ユーザー名入り deny 行を変数化し、全自動運用 permissions への同意を文書化する", href: "" },
+
+      // ── 基盤（7件） ─────────────────────────────────────────────
+      { id: "statusline.py",              type: "base", verdict: "bundle",   reason: "statusline 表示ロジックは環境非依存。", cond: "", href: "" },
+      { id: "output-styles/fable-like.md", type: "base", verdict: "bundle",   reason: "出力スタイル定義は環境非依存。", cond: "", href: "output-styles.html" },
+      { id: "tools/hooks/shared/marker-path.sh + tools/call-api.sh", type: "base", verdict: "bundle", reason: "marker-path.sh は複数 hook から source される共有ライブラリ、call-api.sh は外部 API 呼び出しの正規経路ラッパー。いずれも環境非依存の基盤。", cond: "", href: "hooks.html" },
+      { id: "tools/linter/（textlint エンジン）", type: "base", verdict: "bundle", reason: "textlint 実行エンジン自体は環境非依存。", cond: "", href: "" },
+      { id: "templates/（project-docs / project-claude-rules）", type: "base", verdict: "bundle", reason: "ドキュメント・規約のテンプレート群は環境非依存。", cond: "", href: "" },
+      { id: "CLAUDE.md",                  type: "base", verdict: "template", reason: "文体・言語の指定が個人の作業スタイルに強く依存する。", cond: "文体・言語の個人値をテンプレ変数化する", href: "" },
+      { id: "ai-management-portal 自体",   type: "base", verdict: "tbd",     reason: "ポータル自体を公開セットに含めるかは要判断。", cond: "公開セットとしての位置付けを確定する", href: "" },
+
+      // ── Routines（2件） ─────────────────────────────────────────
+      { id: "個人プロジェクト向けルーティン一式（DB バックアップ・カバレッジ改善等）", type: "routine", verdict: "exclude", reason: "DB バックアップ・カバレッジ改善等は個人プロジェクト固有の定期実行タスク。", cond: "", href: "routines.html" },
+      { id: "routines/_shared",           type: "routine", verdict: "tbd",   reason: "共有ルーティン基盤の汎用度が要判断。", cond: "汎用度を確認する", href: "routines.html" },
+    ];
+
+    const TYPE_LABELS = {
+      rule: "Rules",
+      skill: "Skills",
+      subagent: "Subagents",
+      settings: "Settings",
+      base: "基盤",
+      routine: "Routines",
+    };
+    const VERDICT_LABELS = {
+      bundle: "同梱",
+      template: "テンプレ化して同梱",
+      exclude: "除外・個人用",
+      deprecate: "廃止候補",
+      tbd: "要判断",
+    };
+
+    const root = document.getElementById("list");
+    const totalEl = document.getElementById("total");
+    const filterEl = document.getElementById("filter");
+    const summaryEl = document.getElementById("verdict-summary");
+    const tabsEl = document.getElementById("type-tabs");
+
+    let activeType = "all";
+
+    function renderSummary() {
+      const counts = {};
+      for (const it of ITEMS) counts[it.verdict] = (counts[it.verdict] || 0) + 1;
+      summaryEl.innerHTML = Object.keys(VERDICT_LABELS)
+        .filter((v) => counts[v])
+        .map(
+          (v) =>
+            '<span class="verdict-chip ' + v + '">' +
+              VERDICT_LABELS[v] + ' <span class="n">' + counts[v] + '</span>' +
+            '</span>'
+        )
+        .join("");
+    }
+
+    function renderTabs() {
+      const types = ["all", ...Object.keys(TYPE_LABELS)];
+      tabsEl.innerHTML = types
+        .map((t) => {
+          const label = t === "all" ? "すべて" : TYPE_LABELS[t];
+          const cls = "type-tab" + (t === activeType ? " active" : "");
+          return '<button type="button" class="' + cls + '" data-type="' + t + '">' + label + '</button>';
+        })
+        .join("");
+      tabsEl.querySelectorAll(".type-tab").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          activeType = btn.dataset.type;
+          renderTabs();
+          applyFilter();
+        });
+      });
+    }
+
+    function rowHtml(item) {
+      const key = (item.id + " " + item.reason + " " + (item.cond || "")).toLowerCase();
+      const nameCell = item.href
+        ? '<a href="' + item.href + '">' + item.id + '</a>'
+        : item.id;
+      return (
+        '<details class="fr" data-key="' + key + '" data-type="' + item.type + '">' +
+          '<summary>' +
+            '<span class="expbtn">+</span>' +
+            '<span class="vbadge ' + item.verdict + '">' + VERDICT_LABELS[item.verdict] + '</span>' +
+            '<span class="item-type-tag">' + TYPE_LABELS[item.type] + '</span>' +
+            '<span class="fn">' + nameCell + '</span>' +
+            '<span class="fsep">—</span>' +
+            '<span class="fdesc">' + item.reason + '</span>' +
+          '</summary>' +
+          '<div class="fdetail">' +
+            '<div class="frow"><span class="frow-label">判定</span><span class="frow-val">' + VERDICT_LABELS[item.verdict] + '</span></div>' +
+            '<div class="frow"><span class="frow-label">理由</span><span class="frow-val">' + item.reason + '</span></div>' +
+            (item.cond ? '<div class="frow"><span class="frow-label">条件</span><span class="frow-val">' + item.cond + '</span></div>' : "") +
+          '</div>' +
+        '</details>'
+      );
+    }
+
+    function render() {
+      root.innerHTML = ITEMS.map(rowHtml).join("");
+    }
+
+    function applyFilter() {
+      const q = filterEl.value.trim().toLowerCase();
+      let shown = 0;
+      root.querySelectorAll("details.fr").forEach((d) => {
+        const typeHit = activeType === "all" || d.dataset.type === activeType;
+        const textHit = !q || d.dataset.key.includes(q);
+        const hit = typeHit && textHit;
+        d.style.display = hit ? "" : "none";
+        if (hit) shown++;
+      });
+      totalEl.textContent = (q || activeType !== "all")
+        ? shown + " 件ヒット / " + ITEMS.length + " 件"
+        : ITEMS.length + " 件";
+    }
+
+    let t;
+    filterEl.addEventListener("input", () => { clearTimeout(t); t = setTimeout(applyFilter, 120); });
+
+    renderSummary();
+    renderTabs();
+    render();
+    applyFilter();
+  </script>
+</body>
+</html>

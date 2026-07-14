@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Subagents 一覧 — agent-home</title>
+  <link rel="stylesheet" href="../style.css" />
+  <script type="module" src="../src/common/header.js"></script>
+</head>
+<body>
+  <div class="cat-wrap">
+    <div class="page-hero">
+      <h1>Subagents 一覧</h1>
+      <p>~/.claude/agents/ で管理しているカスタムサブエージェント定義をロール別に一覧化したものです。各行を開くとモデル・ツール・トリガー条件を表示します。<a href="../index.html#/">← フロー・ポータルへ戻る</a></p>
+    </div>
+
+    <div class="cat-bar">
+      <a class="cat-back" href="../index.html#/">← ポータル TOP</a>
+      <span class="cat-total" id="total"></span>
+      <input class="cat-filter" id="filter" type="search" placeholder="エージェント名・説明で絞り込み…" autocomplete="off" />
+    </div>
+
+    <div id="list"></div>
+  </div>
+
+  <script>
+    // カテゴリ定義（表示順）
+    const CATEGORIES = [
+      { id: "upper",    name: "上位判断", desc: "タスク分解・指示組み立て・実行結果の検証を担う" },
+      { id: "external", name: "外部調査", desc: "MCP ツールで外部情報を収集して報告する" },
+      { id: "local",    name: "ローカル作業", desc: "ローカルファイルの調査・修正・コード操作を担う" },
+      { id: "quality",  name: "品質検証", desc: "調査・実行結果の品質を検証し、事実性・証拠の有無・未確認項目を確認する" },
+    ];
+
+    // エージェント定義（id, cat, model, tools, summary, trigger, path）
+    const AGENTS = [
+      // 上位判断
+      {
+        id: "brain",
+        cat: "upper",
+        model: "claude-opus-4-8",
+        tools: "Read, Grep, Glob, Bash",
+        summary: "計画立案・タスク分解を担う計画系エージェント。worker への作業指示を組み立てる（合否判定はしない）。",
+        trigger: "タスク分解・作業指示の組み立て・複数案比較の設計判断・発散時の再計画",
+        path: "~/.claude/agents/brain/brain.md",
+      },
+      // 外部調査
+      {
+        id: "researcher",
+        cat: "external",
+        model: "claude-sonnet-5",
+        tools: "tavily, context7, deepwiki, serena, readability, WebSearch, WebFetch, Read, Grep, Glob",
+        summary: "外部MCPツールで情報を収集して報告する調査エージェント。Web検索・API仕様・ライブラリ調査。",
+        trigger: "Web検索・APIドキュメント参照・ライブラリ仕様調査・ニュース収集・エラー解決策の検索",
+        path: "~/.claude/agents/researcher/researcher.md",
+      },
+      // ローカル作業
+      {
+        id: "investigator",
+        cat: "local",
+        model: "claude-sonnet-5",
+        tools: "Read, Grep, Glob, Bash",
+        summary: "変更を伴わない調査・分析・根本原因特定を行う読み取り専用エージェント。調査チェックリストの実行を担う。",
+        trigger: "ログ・transcript の解析、セッション横断の実態調査、設計整合性の検証、根本原因の特定",
+        path: "~/.claude/agents/investigator/investigator.md",
+      },
+      {
+        id: "plan-comprehension-prober",
+        cat: "local",
+        model: "claude-haiku-4-5-20251001",
+        tools: "Read",
+        summary: "コンテキストゼロで計画文を初見読解し、理解と不明点を言語化する弱モデルの読み手。暗黙知検出器として機能する。",
+        trigger: "eliciting-plan-tacit-knowledge の理解プローブ委任（Phase 2 / Phase 5）",
+        path: "~/.claude/agents/plan-comprehension-prober/plan-comprehension-prober.md",
+      },
+      {
+        id: "worker-sonnet",
+        cat: "local",
+        model: "claude-sonnet-5",
+        tools: "Read, Write, Edit, Bash, Grep, Glob",
+        summary: "ローカルファイルの調査・修正・コード操作を行う中判断エージェント。影響範囲分析・規約チェック・判断を伴う修正。",
+        trigger: "コード調査・影響範囲分析・規約チェック・判断を伴う修正・PR分析・一括リネーム等の機械的ファイル編集",
+        path: "~/.claude/agents/worker-sonnet/worker-sonnet.md",
+      },
+      {
+        id: "worker-haiku",
+        cat: "local",
+        model: "claude-haiku-4-5-20251001",
+        tools: "Bash, Read",
+        summary: "指示にベタ書きされたコマンドを実行し結果を報告する実行専用エージェント。ファイル変更はしない。",
+        trigger: "テスト・ビルド・lint の実行、指示に明記された git 定型操作、既存スクリプトの起動",
+        path: "~/.claude/agents/worker-haiku/worker-haiku.md",
+      },
+      // 品質検証
+      {
+        id: "report-reviewer",
+        cat: "quality",
+        model: "claude-opus-4-8",
+        tools: "Read, Bash, Grep, Glob",
+        summary: "調査報告を観点正本（report/common/rule.md）とチェックリストに照合し、合否（PASS/FAIL）を宣言する判定系の専門家。観点は定義に持たず rule を Read する。",
+        trigger: "調査エージェントの報告を受け取った後、ユーザーに伝える前",
+        path: "~/.claude/agents/report-reviewer/report-reviewer.md",
+      },
+      {
+        id: "code-reviewer",
+        cat: "quality",
+        model: "claude-sonnet-5",
+        tools: "Read, Grep, Glob, Bash",
+        summary: "コード変更を rules の合格基準に照合するレビュー専門家。観点は自前で持たず、委任時に渡された rule を読む。",
+        trigger: "コード差分・コードファイルのレビュー時。reviewing-against-rules からの委任・PR レビューの Phase 5",
+        path: "~/.claude/agents/code-reviewer/code-reviewer.md",
+      },
+      {
+        id: "document-reviewer",
+        cat: "quality",
+        model: "claude-sonnet-5",
+        tools: "Read, Grep, Glob, Bash",
+        summary: "HTML・文書成果物を rules の合格基準に照合するレビュー専門家。観点は自前で持たず、委任時に渡された rule を読む。",
+        trigger: "HTML ファイル・文書成果物のレビュー時。reviewing-against-rules からの委任・単一HTML成果物の完成判定",
+        path: "~/.claude/agents/document-reviewer/document-reviewer.md",
+      },
+    ];
+
+    const root = document.getElementById("list");
+    const totalEl = document.getElementById("total");
+    const filterEl = document.getElementById("filter");
+    totalEl.textContent = AGENTS.length + " エージェント / " + CATEGORIES.length + " カテゴリ";
+
+    function rowHtml(a) {
+      return (
+        '<details class="fr" data-key="' + (a.id + " " + a.summary + " " + a.trigger).toLowerCase() + '">' +
+          '<summary>' +
+            '<span class="expbtn">+</span>' +
+            '<span class="fn">' + a.id + '</span>' +
+            '<span class="fsep">—</span>' +
+            '<span class="fdesc">' + a.summary + '</span>' +
+          '</summary>' +
+          '<div class="fdetail">' +
+            '<div class="fmeta">' + a.path + '</div>' +
+            '<div class="frow"><span class="frow-label">概要</span><span class="frow-val">' + a.summary + '</span></div>' +
+            '<div class="frow"><span class="frow-label">モデル</span><span class="frow-val"><code>' + a.model + '</code></span></div>' +
+            '<div class="frow"><span class="frow-label">ツール</span><span class="frow-val">' + a.tools + '</span></div>' +
+            '<div class="frow"><span class="frow-label">トリガー</span><span class="frow-val"><span class="tag tag-trigger">TRIGGER</span> ' + a.trigger + '</span></div>' +
+          '</div>' +
+        '</details>'
+      );
+    }
+
+    function render() {
+      root.innerHTML = "";
+      CATEGORIES.forEach((c, i) => {
+        const items = AGENTS.filter((a) => a.cat === c.id);
+        if (items.length === 0) return;
+        const sec = document.createElement("details");
+        sec.className = "cat-block";
+        sec.open = true;
+        sec.innerHTML =
+          '<summary class="cat-card">' +
+            '<span class="cat-fold"></span>' +
+            '<div class="cat-num-block"><span class="cat-number">' + String(i + 1).padStart(2, "0") + '</span></div>' +
+            '<div class="cat-body"><div class="cat-name">' + c.name + '</div><div class="cat-desc">' + c.desc + '</div></div>' +
+            '<span class="cat-count">' + items.length + ' agents</span>' +
+          '</summary>' +
+          '<div class="file-rows">' + items.map(rowHtml).join("") + '</div>';
+        root.appendChild(sec);
+      });
+    }
+
+    function applyFilter() {
+      const q = filterEl.value.trim().toLowerCase();
+      let shown = 0;
+      root.querySelectorAll("details.cat-block").forEach((sec) => {
+        let secShown = 0;
+        sec.querySelectorAll("details.fr").forEach((d) => {
+          const hit = !q || d.dataset.key.includes(q);
+          d.style.display = hit ? "" : "none";
+          if (hit) { secShown++; shown++; }
+        });
+        sec.style.display = secShown > 0 ? "" : "none";
+        if (q && secShown > 0) sec.open = true;
+      });
+      totalEl.textContent = q
+        ? shown + " 件ヒット / " + AGENTS.length + " エージェント"
+        : AGENTS.length + " エージェント / " + CATEGORIES.length + " カテゴリ";
+    }
+
+    let t;
+    filterEl.addEventListener("input", () => { clearTimeout(t); t = setTimeout(applyFilter, 120); });
+    render();
+  </script>
+</body>
+</html>

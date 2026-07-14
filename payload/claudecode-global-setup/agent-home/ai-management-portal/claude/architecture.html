@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>アーキテクチャ概要 — AI マネジメントポータル</title>
+  <link rel="stylesheet" href="../style.css" />
+  <script type="module" src="../src/common/header.js"></script>
+</head>
+<body>
+  <div class="pm-page">
+    <main class="pm-main">
+      <div class="pm-hero">
+        <div>
+          <h1>アーキテクチャ概要</h1>
+          <p><code>.claude</code> の責務と <code>agent-home</code> との分担、静的・動的の二層構造を 1 枚で把握する。</p>
+        </div>
+        <a class="pm-updated" href="../index.html#/category/claude-config">← .claude 設定層</a>
+      </div>
+
+      <div class="sec-label">位置づけ</div>
+      <div class="prose">
+        <p><code>/Users/MacPro/.claude</code> は Claude Code が起動時に読み込むユーザーグローバル設定領域。プロジェクト固有の設定は <code>&lt;project&gt;/.claude/</code> にあるが、本ポータルは PC 全体に効くグローバル側の <code>~/.claude</code> を対象にする。</p>
+        <p>責務は次の 4 つに集約する。</p>
+        <ul>
+          <li><b>設定の供給</b>: <code>CLAUDE.md</code>（全プロジェクト共通の指示）・<code>settings.json</code>（hook・permissions・env）・<code>statusline.py</code>（ステータスライン描画）</li>
+          <li><b>カスタムリソースの保管</b>: <code>agents/</code>（カスタム subagent 定義）・<code>skills/</code>（カスタム SKILL.md）・<code>plugins/</code>（プラグイン本体とキャッシュ）</li>
+          <li><b>履歴・状態の蓄積</b>: <code>sessions/</code>・<code>projects/</code>・<code>history.jsonl</code>・<code>logs/</code>・<code>file-history/</code></li>
+          <li><b>ワークスペース</b>: <code>plans/</code>（中間プラン）・<code>tasks/</code>・<code>uploads/</code>・<code>paste-cache/</code></li>
+        </ul>
+      </div>
+
+      <div class="sec-label">agent-home との分担</div>
+      <div class="prose">
+        <p><code>.claude</code> は Claude Code の標準ディレクトリ。一方、<code>~/agent-home/</code> はユーザー独自に整備した「実装本体の置き場」で、hook スクリプト（<code>tools/hooks/*.sh</code>）・スキル本体（<code>skills/&lt;name&gt;/SKILL.md</code>）・テンプレートなどを保持する。<code>.claude/settings.json</code> は hook の登録口として <code>~/agent-home/tools/hooks/*.sh</code> を参照する。</p>
+        <pre class="ascii">
+┌──────────────────────────────────────────┐
+│ ~/.claude （Claude Code 標準）              │
+│  ├ CLAUDE.md         ← グローバル指示       │
+│  ├ settings.json     ← hook・perm・env 登録 │
+│  ├ statusline.py     ← ステータス行         │
+│  ├ skills/  agents/  plugins/              │
+│  └ sessions/ projects/ logs/ ...           │
+└────────────┬─────────────────────────────┘
+             │ hook が参照
+             ▼
+┌──────────────────────────────────────────┐
+│ ~/agent-home （実装本体）                   │
+│  ├ tools/hooks/*.sh ← settings.json から発火 │
+│  ├ skills/&lt;name&gt;/SKILL.md ← Skill 本体      │
+│  ├ ai-management-portal/ ← 統合ポータル（本サイト）│
+│  └ templates/                              │
+└──────────────────────────────────────────┘
+        </pre>
+        <p>設計上の含意: <code>.claude</code> 側を編集するだけでは hook の挙動は変わらない。実装変更は <code>agent-home</code> 側の <code>.sh</code>・<code>SKILL.md</code> を編集する。</p>
+      </div>
+
+      <div class="sec-label">静的層と動的層</div>
+      <div class="prose">
+        <p><code>.claude</code> 直下のディレクトリは「人間が編集する静的層」と「ランタイムが書き込む動的層」に分かれる。git で追跡するのは前者のみで、後者は <code>.gitignore</code> で除外する設計。</p>
+        <table class="design-table">
+          <thead><tr><th>層</th><th>性質</th><th>代表ディレクトリ</th></tr></thead>
+          <tbody>
+            <tr><td>静的層</td><td>人間が編集／レビュー対象</td><td><code>skills/</code> <code>agents/</code> <code>plugins/</code> <code>rules/</code> <code>config/</code></td></tr>
+            <tr><td>半動的層</td><td>ツール起動で増減するが残しておく</td><td><code>plans/</code> <code>tasks/</code> <code>backups/</code></td></tr>
+            <tr><td>動的層</td><td>ランタイム生成・短寿命</td><td><code>sessions/</code> <code>projects/</code> <code>logs/</code> <code>cache/</code> <code>file-history/</code> <code>paste-cache/</code> <code>uploads/</code> <code>session-env/</code> <code>shell-snapshots/</code> <code>dev-flow-logs/</code> <code>jobs/</code> <code>daemon*</code></td></tr>
+          </tbody>
+        </table>
+        <p>設計ドキュメント（本ポータル）は <code>~/agent-home/ai-management-portal/</code> に統合済み。<code>~/.claude/docs/</code> は廃止。</p>
+      </div>
+
+      <div class="sec-label">起動シーケンス（概念）</div>
+      <div class="prose">
+        <pre class="ascii">
+[Claude Code 起動]
+  ↓
+[settings.json 読み込み]
+  ├ permissions（deny / allow）
+  ├ env（環境変数）
+  └ hooks（PreToolUse / PostToolUse / Stop / SessionEnd 等）
+  ↓
+[CLAUDE.md 読み込み]
+  └ §1〜§18 のグローバル指示が system prompt に追加
+  ↓
+[statusline.py 起動]
+  └ 進捗バーをステータス行に描画
+  ↓
+[セッション開始]
+  ├ skills/ から Skill が発見される
+  ├ agents/ から subagent_type が解決される
+  └ plugins/ から MCP・command が登録される
+        </pre>
+      </div>
+
+      <div class="back-link"><a href="../index.html#/category/claude-config">← .claude 設定層へ戻る</a></div>
+    </main>
+  </div>
+</body>
+</html>

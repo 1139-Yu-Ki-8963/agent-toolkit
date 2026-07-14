@@ -451,6 +451,13 @@ code { overflow-wrap: anywhere; }
   .cat-sub-desc { flex-basis: 100%; }
   .cat-sub-count { margin-left: auto; }
   .card { padding: 12px 14px; }
+  /* 一覧行（details.fr）: 説明文をタイトルの下に全幅で折り返す */
+  /* 注意: 811-813行目の基本 .fdesc { flex: 1; } と詳細度が同じだと、
+     ソース順が後の基本ルールに上書きされる（flex-basis が 0% に戻る）。
+     詳細度を上げて確実に優先させる。 */
+  details.fr > summary { flex-wrap: wrap; row-gap: 4px; }
+  details.fr > summary .fsep { display: none; }
+  details.fr > summary .fdesc { flex-basis: 100%; width: 100%; padding-left: 28px; }
 }
 
 /* ===== PM ダッシュボード（index.html）===== */

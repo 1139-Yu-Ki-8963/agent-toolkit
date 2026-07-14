@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>設定すべきツール一覧 — AI マネジメントポータル</title>
+  <link rel="stylesheet" href="../style.css" />
+  <script type="module" src="../src/common/header.js"></script>
+</head>
+<body>
+  <div class="pm-page">
+    <main class="pm-main">
+      <div class="pm-hero">
+        <div>
+          <h1>設定すべきツール一覧</h1>
+          <p>Claude Code を運用する上で設定・整備すべきツール群を横断的に一覧化する。個別の管理方法・仕様は各詳細ページを参照。</p>
+        </div>
+        <a class="pm-updated" href="../index.html#/category/claude-config">← .claude 設定層</a>
+      </div>
+
+      <div class="sec-label">早見表</div>
+      <div class="prose">
+        <table class="design-table">
+          <thead><tr><th>ツール</th><th>役割</th><th>詳細ページ</th></tr></thead>
+          <tbody>
+            <tr><td>CLAUDE.md</td><td>全プロジェクト共通の Claude への指示（system prompt 追補）。禁止事項・hook 注入タグへの対応手順の索引</td><td><a href="../design/claude-md.html">CLAUDE.md 設計ガイド</a></td></tr>
+            <tr><td>Rules</td><td>禁止事項・ふるまい規約の正本。always（常時注入）/ scoped（条件付き注入）で管理する</td><td><a href="../design/rules.html">rules 設計ガイド</a></td></tr>
+            <tr><td>Skills</td><td>トリガー駆動でロードされる作業手順書（<code>SKILL.md</code>）</td><td><a href="../design/skill.html">Skill 設計ガイド</a></td></tr>
+            <tr><td>Subagents</td><td>役割別に分離した委任先エージェント定義</td><td><a href="../design/subagent.html">Subagent 設計ガイド</a></td></tr>
+            <tr><td>Hooks</td><td>ツール実行前後に発火し、規約を機械強制するスクリプト</td><td><a href="../design/hooks.html">Hooks 設計ガイド</a></td></tr>
+            <tr><td>Output styles</td><td>Claude の応答スタイル・行動規範をまとめて差し替える設定</td><td><a href="../design/output-style.html">Output styles 設計ガイド</a></td></tr>
+            <tr><td>Statusline</td><td>セッション中の進捗・状態を描画する <code>statusline.py</code></td><td><a href="../design/statusline.html">Statusline 設計ガイド</a></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="sec-label">使い分けの目安</div>
+      <div class="prose">
+        <p>各ツールは担当する層が異なる。CLAUDE.md は「全体方針の追補」、Rules は「禁止事項」、Skills は「作業手順」、Subagents は「役割分担」、Hooks は「機械強制」、Statusline は「可視化」を担う。Output styles だけが性質を異にし、これら個別ツールとは独立に、Claude の応答スタイル・行動規範そのものをセッション単位で丸ごと差し替える。CLAUDE.md がプロジェクト規約を追補する指示であるのに対し、Output styles はシステムプロンプト全体（役割・トーン・進行規律）を切り替える点で影響範囲が異なる。</p>
+      </div>
+
+      <div class="back-link"><a href="../index.html#/category/claude-config">← .claude 設定層へ戻る</a></div>
+    </main>
+  </div>
+</body>
+</html>

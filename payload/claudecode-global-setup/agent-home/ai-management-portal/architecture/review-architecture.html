@@ -1,0 +1,481 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>レビュー基盤 仕組み解説 — agent-home</title>
+  <link rel="stylesheet" href="../style.css" />
+  <link rel="stylesheet" href="../design/design.css" />
+  <script type="module" src="../src/common/header.js"></script>
+  <style>
+    .arch-fig { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px; margin: 12px 0 18px; }
+    .arch-fig svg { width: 100%; height: auto; display: block; }
+    .arch-fig text { font-family: system-ui, -apple-system, "Hiragino Sans", sans-serif; }
+    .arch-fig figcaption { font-size: 11.5px; color: var(--text-muted); padding-top: 8px; }
+  </style>
+</head>
+<body>
+  <div class="sd-wrap">
+
+    <div class="page-hero" style="margin-bottom:20px">
+      <h1>レビュー基盤 仕組み解説</h1>
+      <p>
+        「観点はどこにあるか」「誰が照合するか」を PC 全体で 1 本化した仕組み。
+        観点の正本は rules、実行は専門家サブエージェント、スキルは入口を呼ぶだけに統一する。
+        <a href="../index.html#/">← ポータル TOP へ戻る</a>
+      </p>
+    </div>
+
+    <div class="sd-layout">
+
+      <nav class="sd-toc">
+        <h3>目次</h3>
+        <ul>
+          <li><a href="#s1"><span class="toc-num">§1</span>全体像（3 層構造）</a></li>
+          <li><a href="#s2"><span class="toc-num">§2</span>観点の正本（rules）</a></li>
+          <li><a href="#s3"><span class="toc-num">§3</span>単一入口（reviewing-against-rules）</a></li>
+          <li><a href="#s4"><span class="toc-num">§4</span>専門家サブエージェント</a></li>
+          <li><a href="#s5"><span class="toc-num">§5</span>横断規約（用語辞書・連番ID）の扱い</a></li>
+          <li><a href="#s6"><span class="toc-num">§6</span>導入前のギャップと解消内容</a></li>
+          <li><a href="#s7"><span class="toc-num">§7</span>新しいレビュー種別を追加する手順</a></li>
+        </ul>
+      </nav>
+
+      <article class="sd-body">
+
+        <!-- §1 -->
+        <section class="sd-section" id="s1">
+          <h2 class="sd-h2"><span class="sec-num">§1</span>全体像（3 層構造）</h2>
+
+          <p style="font-size:13.5px;color:var(--text-sub);line-height:1.8;margin:0 0 12px">
+            以前は「コードレビュー」「HTML レビュー」「設定資産レビュー」がそれぞれ別のスキルに観点を抱え込み、
+            観点表への参照が壊れていたり（後述 §6）、レビュー主体がスキルごとにバラバラだった。
+            本基盤は観点・入口・実行主体の 3 層に整理し、ドメインが増えても仕組みを増やさず対応する。
+          </p>
+
+          <figure class="arch-fig">
+            <svg viewBox="0 0 780 352" role="img" aria-label="レビュー基盤の3層構造と統治・監査">
+              <defs>
+                <marker id="ar1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+                  <path d="M0,0 L10,5 L0,10 z" fill="var(--text-sub)"/>
+                </marker>
+              </defs>
+              <!-- 層1: 観点の正本 -->
+              <rect x="8" y="8" width="588" height="118" rx="8" fill="var(--panel-2)" stroke="var(--border)"/>
+              <circle cx="30" cy="28" r="11" fill="var(--accent)"/>
+              <text x="30" y="32.5" text-anchor="middle" font-size="12" font-weight="700" fill="var(--inverse-fg)">1</text>
+              <text x="48" y="33" font-size="13.5" font-weight="700" fill="var(--text)">層1: 観点の正本（rules）</text>
+              <rect x="20" y="46" width="338" height="70" rx="6" fill="var(--panel)" stroke="var(--accent-border)"/>
+              <text x="32" y="66" font-size="12" font-weight="700" fill="var(--accent)">scoped/review-checklist ＝ 専門家別（6観点）</text>
+              <text x="32" y="82" font-size="11" fill="var(--text-sub)">code: common ・ ui ・ test</text>
+              <text x="32" y="97" font-size="11" fill="var(--text-sub)">document: html-output ・ common</text>
+              <text x="32" y="112" font-size="11" fill="var(--text-sub)">report: common</text>
+              <rect x="370" y="46" width="212" height="70" rx="6" fill="var(--panel)" stroke="var(--gold-border)"/>
+              <text x="382" y="66" font-size="12" font-weight="700" fill="var(--gold)">always ＝ 横断（3観点）</text>
+              <text x="382" y="86" font-size="11.5" fill="var(--text-sub)">用語辞書 ・ キー命名</text>
+              <text x="382" y="104" font-size="11.5" fill="var(--text-sub)">用語説明</text>
+              <!-- 矢印 1→2 -->
+              <line x1="180" y1="126" x2="180" y2="152" stroke="var(--text-sub)" stroke-width="2" marker-end="url(#ar1)"/>
+              <text x="196" y="144" font-size="11.5" fill="var(--text-muted)">paths 照合＋フォルダ名から担当を機械導出</text>
+              <!-- 層2: 単一入口 -->
+              <rect x="8" y="156" width="588" height="62" rx="8" fill="var(--panel-2)" stroke="var(--border)"/>
+              <circle cx="30" cy="178" r="11" fill="var(--accent)"/>
+              <text x="30" y="182.5" text-anchor="middle" font-size="12" font-weight="700" fill="var(--inverse-fg)">2</text>
+              <text x="48" y="182" font-size="13.5" font-weight="700" fill="var(--text)">層2: 単一入口 reviewing-against-rules</text>
+              <text x="48" y="204" font-size="11.5" fill="var(--text-sub)">resolve-applicable-rules.sh が〈file, rule, 専門家〉の3列を解決する</text>
+              <!-- 矢印 2→3 -->
+              <line x1="180" y1="218" x2="180" y2="244" stroke="var(--text-sub)" stroke-width="2" marker-end="url(#ar1)"/>
+              <text x="196" y="236" font-size="11.5" fill="var(--text-muted)">専門家ごとに並列委任（1ファイル複数専門家あり）</text>
+              <!-- 層3: 専門家 -->
+              <rect x="8" y="248" width="588" height="96" rx="8" fill="var(--panel-2)" stroke="var(--border)"/>
+              <circle cx="30" cy="270" r="11" fill="var(--accent)"/>
+              <text x="30" y="274.5" text-anchor="middle" font-size="12" font-weight="700" fill="var(--inverse-fg)">3</text>
+              <text x="48" y="274" font-size="13.5" font-weight="700" fill="var(--text)">層3: 専門家サブエージェント（フォルダと1対1）</text>
+              <rect x="20" y="286" width="180" height="48" rx="6" fill="var(--panel)" stroke="var(--success-border)"/>
+              <text x="30" y="306" font-size="12" font-weight="700" fill="var(--success)">code-reviewer</text>
+              <text x="30" y="324" font-size="10.5" fill="var(--text-sub)">担当 code/**・rule を Read</text>
+              <rect x="212" y="286" width="180" height="48" rx="6" fill="var(--panel)" stroke="var(--success-border)"/>
+              <text x="222" y="306" font-size="12" font-weight="700" fill="var(--success)">document-reviewer</text>
+              <text x="222" y="324" font-size="10.5" fill="var(--text-sub)">担当 document/**・横断照合</text>
+              <rect x="404" y="286" width="178" height="48" rx="6" fill="var(--panel)" stroke="var(--success-border)"/>
+              <text x="414" y="306" font-size="12" font-weight="700" fill="var(--success)">report-reviewer</text>
+              <text x="414" y="324" font-size="10.5" fill="var(--text-sub)">担当 report/**・直接委任</text>
+              <!-- 右帯: 統治・監査 -->
+              <rect x="610" y="8" width="162" height="336" rx="8" fill="var(--gold-soft)" stroke="var(--gold-border)"/>
+              <circle cx="632" cy="30" r="11" fill="var(--gold)"/>
+              <text x="632" y="34.5" text-anchor="middle" font-size="12" font-weight="700" fill="var(--inverse-fg)">4</text>
+              <text x="650" y="34" font-size="12.5" font-weight="700" fill="var(--gold)">統治・監査</text>
+              <text x="624" y="62" font-size="11" font-weight="700" fill="var(--text)">統治規約</text>
+              <text x="624" y="80" font-size="10.5" fill="var(--text-sub)">agent-config/</text>
+              <text x="624" y="96" font-size="10.5" fill="var(--text-sub)">review-checklist/</text>
+              <text x="624" y="112" font-size="10.5" fill="var(--text-sub)">rule.md ＋ 仕分け台帳</text>
+              <text x="624" y="152" font-size="11" font-weight="700" fill="var(--text)">監査スクリプト</text>
+              <text x="624" y="170" font-size="10.5" fill="var(--text-sub)">audit-review-</text>
+              <text x="624" y="186" font-size="10.5" fill="var(--text-sub)">coverage.sh</text>
+              <text x="624" y="216" font-size="10.5" fill="var(--text-sub)">・1対1の実在</text>
+              <text x="624" y="234" font-size="10.5" fill="var(--text-sub)">・観点数の集計</text>
+              <text x="624" y="252" font-size="10.5" fill="var(--text-sub)">・全 rule 分類</text>
+              <text x="624" y="270" font-size="10.5" fill="var(--text-sub)">・横断観点の参照</text>
+              <text x="624" y="304" font-size="10.5" fill="var(--danger)">欠けが 1 件でも</text>
+              <text x="624" y="320" font-size="10.5" fill="var(--danger)">あれば FAIL</text>
+              <line x1="610" y1="67" x2="596" y2="67" stroke="var(--gold)" stroke-width="1.5" stroke-dasharray="4 3"/>
+              <line x1="610" y1="187" x2="596" y2="187" stroke="var(--gold)" stroke-width="1.5" stroke-dasharray="4 3"/>
+              <line x1="610" y1="296" x2="596" y2="296" stroke="var(--gold)" stroke-width="1.5" stroke-dasharray="4 3"/>
+            </svg>
+            <figcaption>① 観点の正本 → ② 入口が解決 → ③ 専門家が照合。④ 統治規約と監査が全層のズレを機械検査する。</figcaption>
+          </figure>
+
+          <div class="sd-def">
+            設計原則は <strong>「観点は 1 箇所（rule.md）」「判定は専門家、生成役と分離」「スキルは入口だけを呼ぶ」「フォルダ構造そのものが担当宣言」</strong> の 4 点。
+            rule.md がそのまま観点表であり、作成時（scoped 注入）とレビュー時（専門家が Read）で同じ内容を参照するため、
+            観点表とは別に「レビュー用チェックリスト」を複製して持たない。担当専門家はフォルダ名
+            <code>review-checklist/&lt;domain&gt;/</code> から <code>&lt;domain&gt;-reviewer</code> として機械導出する。
+            拡張子からの推測（rule 側の適用範囲が広がった時に取りこぼす）も、frontmatter での宣言
+            （フォルダと宣言の二重管理で乖離する）も採らない。構造が唯一の正である。
+          </div>
+        </section>
+
+        <!-- §2 -->
+        <section class="sd-section" id="s2">
+          <h2 class="sd-h2"><span class="sec-num">§2</span>観点の正本（rules）</h2>
+
+          <p style="font-size:13.5px;color:var(--text-sub);line-height:1.8;margin:0 0 12px">
+            レビュー観点は <code>~/.claude/rules/scoped/review-checklist/</code> 配下に物理集約されている。
+            第 1 階層のフォルダ名が担当専門家（<code>&lt;domain&gt;-reviewer</code>）を、
+            各 rule.md の paths frontmatter が適用対象ファイルを宣言する。
+          </p>
+
+          <table class="sd-table">
+            <thead><tr><th>rule</th><th>paths（適用対象）</th><th>担当（フォルダ導出）</th></tr></thead>
+            <tbody>
+              <tr>
+                <td><a href="../catalog/rules.html">code/common</a>（コーディング共通基準）</td>
+                <td><code>**/*.ts</code> <code>*.tsx</code> <code>*.js</code> <code>*.jsx</code> <code>*.mjs</code> <code>*.py</code></td>
+                <td>code-reviewer</td>
+              </tr>
+              <tr>
+                <td><a href="../catalog/rules.html">code/ui</a>（UI実装基準・アイコン等）</td>
+                <td><code>**/*.tsx</code> <code>*.jsx</code> <code>*.vue</code> <code>*.html</code> <code>*.css</code> <code>*.scss</code></td>
+                <td>code-reviewer</td>
+              </tr>
+              <tr>
+                <td><a href="../catalog/rules.html">code/test</a>（テストコード基準）</td>
+                <td><code>**/*.test.*</code> <code>*.spec.*</code> <code>tests/**/*.py</code> <code>test_*.py</code> 等</td>
+                <td>code-reviewer</td>
+              </tr>
+              <tr>
+                <td><a href="../catalog/rules.html">document/html-output</a>（単一HTML成果物）</td>
+                <td><code>**/*.html</code></td>
+                <td>document-reviewer</td>
+              </tr>
+              <tr>
+                <td><a href="../catalog/rules.html">document/common</a>（ドキュメント共通観点）</td>
+                <td><code>docs/**/*.md</code> <code>README.md</code></td>
+                <td>document-reviewer</td>
+              </tr>
+              <tr>
+                <td><a href="../catalog/rules.html">report/common</a>（調査報告共通観点）</td>
+                <td><code>**/.investigation-checklist.md</code>（報告文自体はファイル外のため直接委任が主経路）</td>
+                <td>report-reviewer</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <p style="font-size:13px;color:var(--text-muted);line-height:1.7;margin:10px 0 0">
+            1 ファイルに複数 rule・複数専門家が該当する場合は両方を並列で委任する（§3）。
+            例: <code>.tsx</code> は code/common と code/ui の両方、<code>.html</code> は
+            code/ui（アイコン）と document/html-output の両方が該当しうる。
+          </p>
+
+          <p style="font-size:13px;color:var(--text-muted);line-height:1.7;margin:10px 0 0">
+            プロジェクト固有の観点（ドキュメントカバレッジ判定・案件特性など）はグローバル rule に書かず、
+            各リポジトリの委譲受け口 <code>&lt;repo&gt;/.claude/rules/scoped/review-checklist/code/common/rule.md</code> に追加する。
+            専門家はグローバルとプロジェクト受け口の両方を Read し、基準を合成して照合する。
+          </p>
+        </section>
+
+        <!-- §3 -->
+        <section class="sd-section" id="s3">
+          <h2 class="sd-h2"><span class="sec-num">§3</span>単一入口（reviewing-against-rules）</h2>
+
+          <p style="font-size:13.5px;color:var(--text-sub);line-height:1.8;margin:0 0 12px">
+            レビューをしたい他スキル・作業は、観点を自分で読み書きせず本スキルを呼ぶ。
+            観点の要約をプロンプトに書き写す行為（乖離の温床）を禁止している。
+          </p>
+
+          <figure class="arch-fig">
+            <svg viewBox="0 0 780 300" role="img" aria-label="レビュー実行の解決フローと修正ループ">
+              <defs>
+                <marker id="ar2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+                  <path d="M0,0 L10,5 L0,10 z" fill="var(--text-sub)"/>
+                </marker>
+                <marker id="ar2r" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+                  <path d="M0,0 L10,5 L0,10 z" fill="var(--danger)"/>
+                </marker>
+              </defs>
+              <!-- 上段: 5ステップ -->
+              <rect x="8" y="30" width="128" height="58" rx="7" fill="var(--panel-2)" stroke="var(--border)"/>
+              <circle cx="26" cy="48" r="10" fill="var(--accent)"/><text x="26" y="52.5" text-anchor="middle" font-size="11" font-weight="700" fill="var(--inverse-fg)">1</text>
+              <text x="42" y="52" font-size="12" font-weight="700" fill="var(--text)">対象の確定</text>
+              <text x="20" y="76" font-size="10.5" fill="var(--text-sub)">git diff --name-only 等</text>
+              <line x1="136" y1="59" x2="158" y2="59" stroke="var(--text-sub)" stroke-width="2" marker-end="url(#ar2)"/>
+              <rect x="160" y="30" width="140" height="58" rx="7" fill="var(--panel-2)" stroke="var(--border)"/>
+              <circle cx="178" cy="48" r="10" fill="var(--accent)"/><text x="178" y="52.5" text-anchor="middle" font-size="11" font-weight="700" fill="var(--inverse-fg)">2</text>
+              <text x="194" y="52" font-size="12" font-weight="700" fill="var(--text)">rule 解決</text>
+              <text x="172" y="76" font-size="10.5" fill="var(--text-sub)">〈file, rule, 専門家〉</text>
+              <line x1="300" y1="59" x2="322" y2="59" stroke="var(--text-sub)" stroke-width="2" marker-end="url(#ar2)"/>
+              <rect x="324" y="30" width="140" height="58" rx="7" fill="var(--panel-2)" stroke="var(--border)"/>
+              <circle cx="342" cy="48" r="10" fill="var(--accent)"/><text x="342" y="52.5" text-anchor="middle" font-size="11" font-weight="700" fill="var(--inverse-fg)">3</text>
+              <text x="358" y="52" font-size="12" font-weight="700" fill="var(--text)">グルーピング</text>
+              <text x="336" y="76" font-size="10.5" fill="var(--text-sub)">専門家の値で束ねる</text>
+              <line x1="464" y1="59" x2="486" y2="59" stroke="var(--text-sub)" stroke-width="2" marker-end="url(#ar2)"/>
+              <rect x="488" y="20" width="150" height="78" rx="7" fill="var(--panel-2)" stroke="var(--accent-border)"/>
+              <circle cx="506" cy="40" r="10" fill="var(--accent)"/><text x="506" y="44.5" text-anchor="middle" font-size="11" font-weight="700" fill="var(--inverse-fg)">4</text>
+              <text x="522" y="44" font-size="12" font-weight="700" fill="var(--text)">並列委任</text>
+              <text x="500" y="62" font-size="10.5" fill="var(--text-sub)">code-reviewer</text>
+              <text x="500" y="77" font-size="10.5" fill="var(--text-sub)">document-reviewer</text>
+              <text x="500" y="92" font-size="10" fill="var(--gold)">＋横断観点も照合</text>
+              <line x1="638" y1="59" x2="660" y2="59" stroke="var(--text-sub)" stroke-width="2" marker-end="url(#ar2)"/>
+              <rect x="662" y="24" width="110" height="70" rx="7" fill="var(--panel-2)" stroke="var(--border)"/>
+              <circle cx="680" cy="42" r="10" fill="var(--accent)"/><text x="680" y="46.5" text-anchor="middle" font-size="11" font-weight="700" fill="var(--inverse-fg)">5</text>
+              <text x="696" y="46" font-size="12" font-weight="700" fill="var(--text)">判定統合</text>
+              <text x="674" y="66" font-size="10.5" fill="var(--text-sub)">1件でも不合格</text>
+              <text x="674" y="82" font-size="10.5" fill="var(--text-sub)">→ 全体不合格</text>
+              <!-- 下段: 合否分岐 -->
+              <line x1="717" y1="94" x2="717" y2="140" stroke="var(--success)" stroke-width="2" marker-end="url(#ar2)"/>
+              <rect x="622" y="144" width="150" height="52" rx="7" fill="var(--success-soft)" stroke="var(--success-border)"/>
+              <text x="638" y="166" font-size="12" font-weight="700" fill="var(--success)">合格 → 報告</text>
+              <text x="638" y="184" font-size="10.5" fill="var(--text-sub)">判定・照合 rule・指摘要約</text>
+              <line x1="676" y1="94" x2="562" y2="148" stroke="var(--danger)" stroke-width="2" marker-end="url(#ar2r)"/>
+              <rect x="380" y="144" width="180" height="52" rx="7" fill="var(--danger-soft)" stroke="var(--danger-border)"/>
+              <text x="396" y="166" font-size="12" font-weight="700" fill="var(--danger)">不合格 → 修正委任</text>
+              <text x="396" y="184" font-size="10.5" fill="var(--text-sub)">worker-sonnet（専門家は直さない）</text>
+              <path d="M 380 170 L 300 170 Q 284 170 284 154 L 284 114 Q 284 98 300 98 L 486 98" fill="none" stroke="var(--danger)" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#ar2r)"/>
+              <rect x="240" y="216" width="320" height="30" rx="15" fill="var(--gold-soft)" stroke="var(--gold-border)"/>
+              <text x="400" y="235" text-anchor="middle" font-size="11" font-weight="700" fill="var(--gold)">ループ上限: 最大5回 ／ 同一指摘が2回連続 → ユーザーへ差し戻し</text>
+              <line x1="330" y1="196" x2="345" y2="214" stroke="var(--gold)" stroke-width="1.5" stroke-dasharray="4 3"/>
+              <!-- 導出注記 -->
+              <text x="8" y="252" font-size="10.5" fill="var(--text-muted)">rule なし → 対象外と報告（観点なしの裁量レビューをしない）／ 設定資産 → managing-agent-configs へ委譲</text>
+              <text x="8" y="270" font-size="10.5" fill="var(--text-muted)">担当専門家は rule の配置フォルダ scoped/review-checklist/&lt;domain&gt;/ から &lt;domain&gt;-reviewer として機械導出する</text>
+              <text x="8" y="288" font-size="10.5" fill="var(--text-muted)">（拡張子からの推測も frontmatter 宣言もしない）／ 解決対象はグローバル scoped rules ＋ 受け口（&lt;repo&gt;/.claude/rules/scoped/）</text>
+            </svg>
+            <figcaption>①〜⑤ が 1 巡。不合格時は worker-sonnet が修正して ④ へ戻る（破線）。</figcaption>
+          </figure>
+
+          <p style="font-size:13px;color:var(--text-muted);line-height:1.7;margin:10px 0 0">
+            設定資産（skills / rules / hooks / routines / subagents 自体）のレビューは対象外で、
+            <a href="../design/skill.html">managing-agent-configs</a> が担当する。両者は「何をレビューするか」で棲み分ける。
+          </p>
+        </section>
+
+        <!-- §4 -->
+        <section class="sd-section" id="s4">
+          <h2 class="sd-h2"><span class="sec-num">§4</span>専門家サブエージェント</h2>
+
+          <p style="font-size:13.5px;color:var(--text-sub);line-height:1.8;margin:0 0 12px">
+            粒度は「rule と 1 対 1」ではなく「ドメイン（中カテゴリ）単位」。HTML 用 rule が 3 つに増えても
+            専門家は document-reviewer の 1 体のまま。専門性はエージェント定義ではなく、委任時に渡す rule.md の中身で決まる。
+          </p>
+
+          <table class="sd-table">
+            <thead><tr><th>専門家</th><th>担当ドメイン</th><th>tools</th><th>観点の持ち方</th></tr></thead>
+            <tbody>
+              <tr>
+                <td><a href="../design/subagent.html">code-reviewer</a></td>
+                <td>コード（ts/tsx/js/jsx/mjs/py）</td>
+                <td>Read, Grep, Glob, Bash</td>
+                <td>定義に観点を書かない。委任された rule.md を Read してカテゴリごとに判定</td>
+              </tr>
+              <tr>
+                <td><a href="../design/subagent.html">document-reviewer</a></td>
+                <td>HTML・文書成果物</td>
+                <td>Read, Grep, Glob, Bash</td>
+                <td>同上。適用範囲外（アプリの一部ページ等）の判定も rule の適用範囲定義に従って行う</td>
+              </tr>
+              <tr>
+                <td><a href="../design/subagent.html">report-reviewer</a></td>
+                <td>調査報告（会話内の報告文）</td>
+                <td>Read, Bash, Grep, Glob</td>
+                <td>同上。対象がファイルでないため resolve を経由せず、report/common/rule.md を自ら Read する直接委任が主経路</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="sd-def">
+            生成役（worker-sonnet で作成・修正）と検証役（専門家で判定）を分離する。
+            これは managing-agent-configs の test モードが既に持つ原則（新規サブエージェントでの実機検証・セルフ再読禁止）を
+            コードレビュー領域にも一般化したもの。
+          </div>
+        </section>
+
+        <!-- §5 -->
+        <section class="sd-section" id="s5">
+          <h2 class="sd-h2"><span class="sec-num">§5</span>横断規約（用語辞書・連番ID）の扱い</h2>
+
+          <p style="font-size:13.5px;color:var(--text-sub);line-height:1.8;margin:0 0 12px">
+            <code>always/</code> 配下の規約（文章置き換え辞書・意味キー等）は全セッションに常時注入されるため、
+            専門家も内容自体は認識している。ただし「知っている」ことと「レビューの都度、機械的に照合する」ことは別問題で、
+            当初はこの照合が専門家の判定表に明示されておらず、しかも数える先すらなかった
+            （always/ は scoped/review-checklist/ と別階層にあるため）。
+          </p>
+
+          <p style="font-size:13.5px;color:var(--text-sub);line-height:1.8;margin:0 0 12px">
+            これらは常時注入（always）の性質を保ったまま、<code>always/review-checklist/&lt;観点&gt;/</code> へ
+            物理集約する（always 配下ならどの topic でも常時注入されるため移動可能）。scoped 側と対称の
+            「フォルダ位置 = 登録」であり、登録リストの txt は持たない。
+            専門家の動作原則には各観点への<strong>実パス参照</strong>（散文だけでなく
+            <code>~/.claude/rules/always/review-checklist/...</code> という文字列そのもの）を埋め込み、
+            <code>audit-review-coverage.sh</code> が「always/review-checklist/ 配下の各 rule → 少なくとも
+            1 つの専門家定義にその文字列が実在するか」を grep で機械照合する。
+          </p>
+
+          <table class="sd-table">
+            <thead><tr><th>横断規約</th><th>照合方法</th></tr></thead>
+            <tbody>
+              <tr>
+                <td>文章置き換え辞書（prh 辞書）</td>
+                <td><code>sed 's/&lt;[^&gt;]*&gt;//g'</code> でタグ除去後、textlint（<code>~/agent-home/tools/linter/.textlintrc.json</code>）へ標準入力で照合</td>
+              </tr>
+              <tr>
+                <td>意味キー規約（連番ID禁止）</td>
+                <td><code>grep -nE '\b[A-Z]{1,4}-[0-9]+\b'</code> を検出補助にし、UTF-8・SHA-256 等の誤検知は目視で除外</td>
+              </tr>
+              <tr>
+                <td>略称の無断使用禁止</td>
+                <td>文書成果物・UI 文言の初出略語に正式名称・説明が添えられているかを目視照合</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <p style="font-size:13.5px;color:var(--text-sub);line-height:1.8;margin:0 0 12px">
+            文章置き換え辞書（prh 辞書）と textlint の組み合わせで、docs・PR/issue 本文の語彙・文章品質を継続的に維持している。
+            既存エントリでの違反修正は上記の textlint 照合と
+            <code>~/.claude/rules/always/review-checklist/text-dictionary/rule.md</code> の違反時手順が完結して行い、
+            スキル呼び出しは発生しない。辞書に該当エントリが無い新規語彙を追加する場合のみ
+            <code>adding-textlint-dictionary-terms</code> スキル（重複チェック → prh.yml 追記 → 既存使用箇所の一括置換）を使う。
+          </p>
+
+          <h3 class="sd-h3">全 rule の分類正本（rule-classification.txt）</h3>
+
+          <p style="font-size:13.5px;color:var(--text-sub);line-height:1.8;margin:0 0 12px">
+            レビュー観点は専門家別 4 rule と横断 3 rule だけではない。グローバル rules は
+            全 28 件あり、review-checklist 配下（場所が分類）以外の全てについて「なぜレビュー照合しないか」を
+            <code>scoped/agent-config/review-checklist/rule-classification.txt</code> で分類する。
+            <code>audit-review-coverage.sh</code> はディスク上の全 rule.md がこの分類表か review-checklist 配下の
+            どちらかに存在することを検証し、<strong>未分類の rule が 1 件でもあれば FAIL</strong> する。
+            新しい rule を作ると監査が失敗するため、分類の判断（照合対象か・hook 強制で足りるか）を
+            先送りできない構造になっている。
+          </p>
+
+          <table class="sd-table">
+            <thead><tr><th>分類</th><th>意味</th><th>件数</th></tr></thead>
+            <tbody>
+              <tr><td>専門家別観点（scoped/review-checklist 配下）</td><td>フォルダ導出された &lt;domain&gt;-reviewer が rule を Read して成果物を照合</td><td>5</td></tr>
+              <tr><td>横断観点（always/review-checklist 配下）</td><td>常時注入かつ全レビュー専門家が内容を機械照合（辞書・連番ID・略称）</td><td>3</td></tr>
+              <tr><td>config-asset（台帳で分類）</td><td>設定資産の規約。managing-agent-configs（ゲート一体型）が担当</td><td>5</td></tr>
+              <tr><td>hook-enforced（台帳で分類）</td><td>hook・permissions が行為の瞬間に強制。レビューで二重照合しない</td><td>15</td></tr>
+              <tr><td>behavior（台帳で分類）</td><td>エージェント行動規範。成果物の内容観点ではない</td><td>1</td></tr>
+            </tbody>
+          </table>
+
+          <p style="font-size:13px;color:var(--text-muted);line-height:1.7;margin:10px 0 0">
+            設定資産（skills / rules / hooks 等）の観点が managing-agent-configs の references にあるのは意図的な設計判断。
+            そちらは観点照合だけでなく create → review → test → マーカー → commit gate という機械強制付き
+            ライフサイクルと観点が一体であり、専門家ディスパッチ方式に載せ替えるとゲート機構ごと作り直しになる。
+            「成果物は reviewing-against-rules、設定資産は managing-agent-configs」の 2 系統で棲み分ける。
+          </p>
+        </section>
+
+        <!-- §6 -->
+        <section class="sd-section" id="s6">
+          <h2 class="sd-h2"><span class="sec-num">§6</span>導入前のギャップと解消内容</h2>
+
+          <p style="font-size:13.5px;color:var(--text-sub);line-height:1.8;margin:0 0 12px">
+            調査で判明した主な欠陥と、本基盤での解消内容。
+          </p>
+
+          <table class="sd-table">
+            <thead><tr><th>ギャップ</th><th>解消内容</th></tr></thead>
+            <tbody>
+              <tr>
+                <td>PR レビューの観点参照先が実在しなかった（別リポジトリの存在しないパスを必須参照していた）</td>
+                <td>グローバル観点を <code>review-checklist/code/common/rule.md</code> に正本化し、reviewing-against-rules 経由の委任へ差し替え</td>
+              </tr>
+              <tr>
+                <td>「commit 直前に観点ゲートが存在確認する」という記述が、実在しないスクリプトを指していた</td>
+                <td>実在する push / PR 作成時ゲート（check-review-gate.sh）を指すよう記述を修正</td>
+              </tr>
+              <tr>
+                <td>設定資産レビューでメインが自己レビューする余地が残っていた</td>
+                <td>managing-agent-configs の review モードに「生成役と検証役の分離」を明記</td>
+              </tr>
+              <tr>
+                <td>観点表の参照切れを検知する仕組みがなかった</td>
+                <td>rules・skills 双方のレビュー観点に「参照実在チェック」を新設（バッククォート内 <code>~/</code> パスの実在検証）</td>
+              </tr>
+              <tr>
+                <td>コード観点にエッジケース・過剰設計・可読性・不要な再レンダリングが欠落していた</td>
+                <td>9 カテゴリ→14 カテゴリに段階的拡充（エッジケース・過剰設計・可読性・再レンダリング、のち公開インターフェース・依存追加・DB変更）</td>
+              </tr>
+              <tr>
+                <td>上流設計の観点（テスト品質・出来上がったディレクトリ構成の適合）がどこにも無かった</td>
+                <td>テストコード基準（code/test。検出力・網羅・独立性）を新設。構成の適合は入口スキルの手順「構成の照合」で directory-structure 許可リストと突合（mkdir hook は advisory 止まりのため、レビューが最後の防衛線）</td>
+              </tr>
+              <tr>
+                <td>rule のトピック分類（code-review/ ui/ 等）と専門家のドメイン判定（拡張子ベース）が別軸で、icon-usage が適用範囲に持つ tsx/jsx/vue/css/scss のうち html 以外が専門家に一度も渡らなかった</td>
+                <td>rule を <code>scoped/review-checklist/&lt;domain&gt;/</code> へ物理集約し、フォルダ名 = 専門家名の 1 対 1 とした。入口スキルは拡張子推測をやめ、フォルダ導出された専門家でグルーピングして委任する方式に変更</td>
+              </tr>
+              <tr>
+                <td>用語辞書・意味キー規約がレビュー観点フォルダの外（always/）にあり、専門家への参照も散文のみで、そもそも数える先が存在しなかった</td>
+                <td><code>always/review-checklist/&lt;観点&gt;/</code> へ物理集約（常時注入の性質は維持）し、専門家定義には実パス参照を追加。<code>audit-review-coverage.sh</code> がドメイン⇄専門家の 1 対 1・観点数・分類・横断観点の参照有無を機械的に数える</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+        <!-- §7 -->
+        <section class="sd-section" id="s7">
+          <h2 class="sd-h2"><span class="sec-num">§7</span>新しいレビュー種別を追加する手順</h2>
+
+          <p style="font-size:13.5px;color:var(--text-sub);line-height:1.8;margin:0 0 12px">
+            例えば「文章品質レビュー」を新設する場合の手順。
+          </p>
+
+          <figure class="arch-fig">
+            <svg viewBox="0 0 780 262" role="img" aria-label="新しいレビュー観点を追加する5手順">
+              <defs>
+                <marker id="ar3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+                  <path d="M0,0 L10,5 L0,10 z" fill="var(--text-sub)"/>
+                </marker>
+              </defs>
+              <line x1="26" y1="34" x2="26" y2="238" stroke="var(--border-strong)" stroke-width="2"/>
+              <circle cx="26" cy="30" r="12" fill="var(--accent)"/><text x="26" y="34.5" text-anchor="middle" font-size="12" font-weight="700" fill="var(--inverse-fg)">1</text>
+              <text x="48" y="26" font-size="12.5" font-weight="700" fill="var(--text)">観点 rule.md を scoped/review-checklist/&lt;domain&gt;/&lt;観点名&gt;/ に作る</text>
+              <text x="48" y="44" font-size="11" fill="var(--text-sub)">置くフォルダ＝担当専門家。paths frontmatter で適用対象ファイルを宣言する</text>
+              <circle cx="26" cy="78" r="12" fill="var(--accent)"/><text x="26" y="82.5" text-anchor="middle" font-size="12" font-weight="700" fill="var(--inverse-fg)">2</text>
+              <text x="48" y="74" font-size="12.5" font-weight="700" fill="var(--text)">既存の専門家で足りるか判定する</text>
+              <text x="48" y="92" font-size="11" fill="var(--text-sub)">足りる（例: md 文書の観点 → document/ 配下に置くだけ）／ 足りない → managing-agent-configs（種別 subagents）で新設</text>
+              <circle cx="26" cy="126" r="12" fill="var(--accent)"/><text x="26" y="130.5" text-anchor="middle" font-size="12" font-weight="700" fill="var(--inverse-fg)">3</text>
+              <text x="48" y="122" font-size="12.5" font-weight="700" fill="var(--text)">常時注入が必要な横断観点は always/review-checklist/ へ置く</text>
+              <text x="48" y="140" font-size="11" fill="var(--text-sub)">全レビュー専門家の定義に実パス参照（~/.claude/rules/always/review-checklist/...）を追記する</text>
+              <circle cx="26" cy="174" r="12" fill="var(--gold)"/><text x="26" y="178.5" text-anchor="middle" font-size="12" font-weight="700" fill="var(--inverse-fg)">4</text>
+              <text x="48" y="170" font-size="12.5" font-weight="700" fill="var(--text)">audit-review-coverage.sh を実行し全 PASS を確認する</text>
+              <text x="48" y="188" font-size="11" fill="var(--text-sub)">1対1の崩れ・未分類 rule・横断観点の参照漏れは FAIL（先送りできない）</text>
+              <circle cx="26" cy="222" r="12" fill="var(--success)"/><text x="26" y="226.5" text-anchor="middle" font-size="12" font-weight="700" fill="var(--inverse-fg)">5</text>
+              <text x="48" y="218" font-size="12.5" font-weight="700" fill="var(--text)">managing-agent-configs（rules → review → test）の連鎖を通して commit する</text>
+              <text x="48" y="236" font-size="11" fill="var(--text-sub)">テスト PASS の report ＋ ハッシュマーカーが無いと commit gate が block する</text>
+            </svg>
+            <figcaption>手順 ①〜③ で構造に乗せ、④ の監査と ⑤ のゲートが品質を機械保証する。</figcaption>
+          </figure>
+
+          <p style="font-size:13px;color:var(--text-muted);line-height:1.7;margin:10px 0 0">
+            関連: <a href="../design/rules.html">Rules 設計ガイド</a>・<a href="../design/subagent.html">Subagents 設計ガイド</a>・
+            <a href="../catalog/subagents.html">サブエージェント登録一覧</a>・<a href="../catalog/rules.html">Rules 登録一覧</a>
+          </p>
+        </section>
+
+      </article>
+    </div>
+  </div>
+</body>
+</html>

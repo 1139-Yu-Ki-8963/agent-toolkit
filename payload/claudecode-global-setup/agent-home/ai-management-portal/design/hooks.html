@@ -34,7 +34,7 @@
       <p>
         Claude Code の hook script を新規追加・移動する時に従う配置ルールと管理方針。
         スコープは「どこに置くか」「どう管理するか」のアーキテクト規約まで。個別 hook の中身の書き方は <a href="../../skills/managing-agent-configs/SKILL.md">managing-agent-configs</a> スキルが担う。
-        <a href="../index.html">← ポータルへ</a>
+        <a href="../catalog/hooks.html">← フック一覧へ</a>
       </p>
     </div>
 
@@ -56,7 +56,7 @@
         <div class="toc-sep"></div>
         <div style="font-size:11px;color:var(--text-muted);padding:4px 8px;line-height:1.6">
           対象: Claude Code hook<br>
-          関連: <a href="skill.html">Skill 設計ガイド</a>
+          関連: <a href="skill.html">Skill 設計ガイド</a> / <a href="../catalog/hooks.html">フック一覧</a>
         </div>
       </nav>
 
@@ -163,7 +163,7 @@
             <div class="quad-cell">
               <h4>skill × global</h4>
               <code>~/agent-home/skills/&lt;skill&gt;/scripts/&lt;hook&gt;.sh</code>
-              <p>例: parallel-dev-worktree skill の延長 → <code>~/agent-home/skills/parallel-dev-worktree/scripts/worktree-required-check.sh</code></p>
+              <p>例: parallel-dev-worktree skill の延長 → <code>~/agent-home/skills/parallel-dev-worktree/scripts/check-worktree-required.sh</code></p>
             </div>
             <div class="quad-cell">
               <h4>skill × project</h4>
@@ -173,7 +173,7 @@
             <div class="quad-cell">
               <h4>独立規約 × global</h4>
               <code>~/.claude/rules/&lt;rule&gt;-rules/&lt;hook&gt;.sh</code>
-              <p>例: 先送り禁止 → <code>~/.claude/rules/no-deferral-rules/no-deferral-pre-bash.sh</code></p>
+              <p>例: 先送り禁止 → <code>~/.claude/rules/no-deferral-rules/check-no-deferral-pre-bash.sh</code></p>
             </div>
             <div class="quad-cell">
               <h4>独立規約 × project</h4>
@@ -186,23 +186,23 @@
           <div class="sd-tree">~/.claude/rules/
 ├── no-deferral-rules/
 │   ├── rule.md                    ← 規約の正本（auto-load）
-│   ├── no-deferral-check.sh       ← 共通検査本体
-│   ├── no-deferral-pre-bash.sh    ← PreToolUse(Bash) hook
-│   ├── no-deferral-post-write.sh  ← PostToolUse(Write|Edit) hook
-│   ├── no-deferral-stop.sh        ← Stop hook
-│   └── no-deferral-stop.test.sh   ← テスト（任意）
-├── no-delegation-rules/
+│   ├── lib/no-deferral-detect.sh  ← 共通検査本体
+│   ├── check-no-deferral-pre-bash.sh    ← PreToolUse(Bash) hook
+│   ├── check-no-deferral-post-write.sh  ← PostToolUse(Write|Edit) hook
+│   ├── check-no-deferral-stop.sh        ← Stop hook
+│   └── check-no-deferral-stop.test.sh   ← テスト（任意）
+├── always/response/guard/
 │   └── ...
 └── hooks-architecture-rules/
     ├── rule.md
-    └── hooks-architecture-check.sh</div>
+    └── check-hooks-architecture.sh</div>
 
           <h3 class="sd-h3">skill 配下のフォルダ構造</h3>
           <div class="sd-tree">~/agent-home/skills/
 ├── parallel-dev-worktree/
 │   ├── SKILL.md
 │   └── scripts/
-│       └── worktree-required-check.sh
+│       └── check-worktree-required.sh
 └── auto-ship/
     ├── SKILL.md
     └── scripts/
@@ -218,24 +218,24 @@
               <tr><th>既存 hook</th><th>本来の置き場</th><th>分類</th></tr>
             </thead>
             <tbody>
-              <tr><td><code>worktree-required-check.sh</code></td><td><code>~/agent-home/skills/parallel-dev-worktree/scripts/</code></td><td>skill × global</td></tr>
+              <tr><td><code>check-worktree-required.sh</code></td><td><code>~/agent-home/skills/parallel-dev-worktree/scripts/</code></td><td>skill × global</td></tr>
               <tr><td><code>stop-auto-commit.sh</code></td><td><code>~/agent-home/skills/auto-ship/scripts/</code></td><td>skill × global</td></tr>
-              <tr><td><code>prod-skill-read-enforce.sh</code><br><code>prod-skill-detect.sh</code></td><td><code>~/agent-home/skills/&lt;project&gt;-deploy-production/scripts/</code></td><td>skill × global</td></tr>
-              <tr><td><code>issue-scope-check.sh</code></td><td><code>~/agent-home/skills/verifying-issue-scope/scripts/</code></td><td>skill × global</td></tr>
+              <tr><td><code>prod-skill-read-enforce.sh</code><br><code>prod-skill-detect.sh</code></td><td><code>~/agent-home/skills/<project>-deploy-production/scripts/</code></td><td>skill × global</td></tr>
+              <tr><td><code>check-issue-scope.sh</code></td><td><code>~/agent-home/skills/managing-github-issues/scripts/</code></td><td>skill × global</td></tr>
               <tr><td><code>flow-select-detect.sh</code><br><code>flow-select-enforce.sh</code></td><td><code>~/agent-home/skills/flow-feature/scripts/</code> 等</td><td>skill × global</td></tr>
-              <tr><td><code>skill-log-recorder.sh</code></td><td><code>~/.claude/rules/always/session/session-infra/</code></td><td>独立規約 × global</td></tr>
+              <tr><td><code>skill-log-recorder.sh</code></td><td><code>~/.claude/rules/always/session/infra/</code></td><td>独立規約 × global</td></tr>
               <tr><td><code>no-deferral-*.sh</code> (4 件)</td><td><code>~/.claude/rules/no-deferral-rules/</code></td><td>独立規約 × global</td></tr>
-              <tr><td><code>no-delegation-*.sh</code> (3 件)</td><td><code>~/.claude/rules/no-delegation-rules/</code></td><td>独立規約 × global</td></tr>
-              <tr><td><code>author-check.sh</code></td><td><code>~/.claude/rules/author-identity-rules/</code></td><td>独立規約 × global</td></tr>
-              <tr><td><code>no-root-marker-check.sh</code></td><td><code>~/.claude/rules/no-root-marker-rules/</code></td><td>独立規約 × global</td></tr>
-              <tr><td><code>pre-bash-dispatch.sh</code></td><td>共通基盤 → <code>~/agent-home/tools/dispatch/</code> など（hook ではない）</td><td>例外（dispatcher）</td></tr>
+              <tr><td><code>no-delegation-*.sh</code> (3 件)</td><td><code>~/.claude/rules/always/response/guard/</code></td><td>独立規約 × global</td></tr>
+              <tr><td><code>check-git-author-allowlist.sh</code></td><td><code>~/.claude/rules/author-identity-rules/</code></td><td>独立規約 × global</td></tr>
+              <tr><td><code>check-claude-home-root-marker.sh</code></td><td><code>~/.claude/rules/no-root-marker-rules/</code></td><td>独立規約 × global</td></tr>
+              <tr><td><code>dispatch-pre-bash-checks.sh</code></td><td>共通基盤 → <code>~/agent-home/tools/dispatch/</code> など（hook ではない）</td><td>例外（dispatcher）</td></tr>
             </tbody>
           </table>
         </section>
 
         <section class="sd-section" id="s6">
           <h2 class="sd-h2"><span class="sec-num">§6</span>hook の管理（一覧化）</h2>
-          <p>hook は分散配置されるが、<strong>全 hook の網羅一覧は単一の HTML ドキュメント <code>catalog/hooks.html</code> で管理する</strong>。検索性と「漏れなく把握できる」状態を担保するため。</p>
+          <p>hook は分散配置されるが、<strong>全 hook の網羅一覧は単一の HTML ドキュメント <a href="../catalog/hooks.html">hooks.html</a> で管理する</strong>。検索性と「漏れなく把握できる」状態を担保するため。</p>
 
           <h3 class="sd-h3">hooks.html に必ず登録する</h3>
           <ul>
@@ -263,7 +263,7 @@
             <tbody>
               <tr>
                 <td>事前</td>
-                <td><code>hooks-architecture-check.sh</code></td>
+                <td><code>check-hooks-architecture.sh</code></td>
                 <td><code>[HOOKS-BUCKET-FORBIDDEN]</code></td>
                 <td>PreToolUse(Write|Edit|MultiEdit) で <code>(.claude|agent-home)</code> 配下の <code>hooks/</code> セグメントに新規ファイル作成を検出すると <code>exit 2</code> でブロック。既存ファイルの編集は通す</td>
               </tr>
@@ -271,11 +271,11 @@
           </table>
 
           <h3 class="sd-h3">本 hook 自身の置き場</h3>
-          <p><code>hooks-architecture-check.sh</code> は独立規約 × global の象限なので <code>~/.claude/rules/scoped/config/hooks-architecture/</code> に置く。</p>
+          <p><code>check-hooks-architecture.sh</code> は独立規約 × global の象限なので <code>~/.claude/rules/scoped/agent-config/hooks/</code> に置く。</p>
 
-          <div class="sd-tree">~/.claude/rules/scoped/config/hooks-architecture/
+          <div class="sd-tree">~/.claude/rules/scoped/agent-config/hooks/
 ├── rule.md                       ← 本ガイドへのリンクと要点
-└── hooks-architecture-check.sh   ← PreToolUse enforcement</div>
+└── check-hooks-architecture.sh   ← PreToolUse enforcement</div>
         </section>
 
         <section class="sd-section" id="s8">
@@ -309,13 +309,13 @@
 
           <h3 class="sd-h3">ファイル命名</h3>
           <ul>
-            <li>ケバブケース固定。例: <code>worktree-required-check.sh</code></li>
+            <li>ケバブケース固定。例: <code>check-worktree-required.sh</code></li>
             <li><strong>役割を語尾に含める</strong>: <code>-check.sh</code>（検査） / <code>-enforce.sh</code>（強制） / <code>-detect.sh</code>（検出のみ） / <code>-recorder.sh</code>（記録）</li>
             <li>発火イベントを名前に含めると分散配置時に検索しやすい: <code>-pre-bash.sh</code> / <code>-post-write.sh</code> / <code>-stop.sh</code></li>
           </ul>
 
           <h3 class="sd-h3">設計判断（必須）</h3>
-          <p>新規 <code>.sh</code> 作成は <code>~/.claude/rules/</code> の security 規約（security-rules/rule.md）に従い設計判断の記録が必須。配置先の正本ドキュメント内に <code>## 設計判断</code> セクションとして記載する。</p>
+          <p>新規 <code>.sh</code> 作成は <a href="../../.claude/rules/">security-rules/rule.md</a> の規約に従い設計判断の記録が必須。配置先の正本ドキュメント内に <code>## 設計判断</code> セクションとして記載する。</p>
           <ul>
             <li>global hook → 配置先の <code>~/.claude/rules/&lt;rule&gt;-rules/rule.md</code> 内</li>
             <li>project hook → 配置先の <code>&lt;repo&gt;/.claude/rules/&lt;rule&gt;-rules/rule.md</code> または skill の <code>SKILL.md</code> 内</li>

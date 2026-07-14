@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Rules 一覧 — agent-home</title>
+  <link rel="stylesheet" href="../style.css" />
+  <script type="module" src="../src/common/header.js"></script>
+</head>
+<body>
+  <div class="cat-wrap">
+    <div class="page-hero">
+      <h1>Rules 一覧</h1>
+      <p>~/.claude/rules/ で管理しているルール（rule.md）をカテゴリ別に一覧化したものです。各行を開くとスコープと機械強制タグを表示します。<a href="../index.html#/">← フロー・ポータルへ戻る</a></p>
+    </div>
+
+    <div class="cat-bar">
+      <a class="cat-back" href="../index.html#/">← ポータル TOP</a>
+      <span class="cat-total" id="total"></span>
+      <input class="cat-filter" id="filter" type="search" placeholder="ルール名・説明で絞り込み…" autocomplete="off" />
+    </div>
+
+    <div id="list"></div>
+  </div>
+
+  <script>
+    // カテゴリ定義（表示順）
+    const CATEGORIES = [
+      { id: "protection", name: "保護・配置",       desc: "ファイル配置・hook 構成・CLAUDE.md への不正書き込みを機械強制で防ぐ" },
+      { id: "quality",    name: "品質・応答",        desc: "応答品質の2軸（操作依頼禁止・先送り禁止）とテスト完了判定" },
+      { id: "validation", name: "命名・検査",        desc: "Bash 実行前の共通ディスパッチャとスクリプト作成方針" },
+      { id: "config",     name: "設定・配置判定",    desc: "設定層の使い分けを7層・8問の決定木でガイド" },
+      { id: "infra",      name: "委任・基盤",        desc: "サブエージェント委任規範とセッション基盤の自動処理" },
+      { id: "devflow",  name: "開発フロー",        desc: "worktree 必須運用・ポート管理・先送り禁止など開発フローの制約" },
+    ];
+
+    // ルール定義（id, cat, summary, tags, path）
+    const RULES = [
+      // 保護・配置
+      { id: "CLAUDE-MD-GUARD",        cat: "protection", summary: "CLAUDE.md への無断書き込みと存在しないセクション番号参照を2層で機械強制する。",                                                                        tags: "permissions.ask + PreToolUse",                              path: "~/.claude/rules/scoped/agent-config/claude-md/rule.md" },
+      { id: "FILE-GUARD",             cat: "protection", summary: "ファイルの配置先と書き出し先を機械強制。CWD直下への撒き散らし禁止と $HOME/.claude/ 直下へのマーカー禁止の2軸。",                                       tags: "PreToolUse(Screenshot/Bash) + SessionEnd",                  path: "~/.claude/rules/always/placement/file-guard/rule.md" },
+      { id: "HOOKS-ARCHITECTURE",     cat: "protection", summary: "Hook script は rule・skill と同じフォルダに置く。flat な hooks/ バケットへの新規作成を block する。",                                               tags: "PreToolUse(Write/Edit)",                                    path: "~/.claude/rules/scoped/agent-config/hooks/rule.md" },
+      // 品質・応答
+      { id: "RESPONSE-GUARD",         cat: "quality",    summary: "応答品質を機械強制する2軸: ユーザー操作依頼禁止（NO-DELEGATION）と先送り表現禁止（NO-DEFERRAL）。",                                                   tags: "PreToolUse + PostToolUse + Stop",                           path: "~/.claude/rules/always/response/guard/rule.md" },
+      { id: "ROUTINE-TEST-COMPLETION",cat: "quality",    summary: "ルーティンテストで PASS を宣言する前に満たすべき必須条件（2連続PASS・Layer3調査・残課題ゼロ）を定義。",                                               tags: "規約のみ（hook なし）",                                     path: "~/.claude/rules/scoped/routines/test-completion/rule.md" },
+      { id: "PORTAL-PAGE-CONVENTIONS", cat: "quality",    summary: "ポータルページ構成規約。ページファミリー4分類・ツール名英語表記・並び順の正本。paths **/ai-management-portal/** で agent-home 限定注入。",                     tags: "PostToolUse(Write|Edit|MultiEdit)",                         path: "~/.claude/rules/scoped/portal/page-conventions/rule.md" },
+      { id: "CODE-REVIEW-STANDARDS",  cat: "quality",    summary: "コードレビュー共通基準。重要度3段階と14カテゴリ（セキュリティ/エッジケース/公開インターフェース/依存追加/DB変更/過剰設計等）の合格基準。担当: code-reviewer",      tags: "規約のみ（hook なし）",                                     path: "~/.claude/rules/scoped/review-checklist/code/common/rule.md" },
+      { id: "CODE-TEST-STANDARDS",    cat: "quality",    summary: "テストコード基準。検出力（弱体化/写経/恒真の禁止）・網羅（境界値/異常系）・独立性・可読性。担当: code-reviewer",                                     tags: "規約のみ（hook なし）",                                     path: "~/.claude/rules/scoped/review-checklist/code/test/rule.md" },
+      { id: "CODE-UI-STANDARDS",      cat: "quality",    summary: "UI実装基準。アイコン（Material Symbols必須・Unicode記号/絵文字禁止）等。tsx/jsx/vue/html/css/scss に適用。担当: code-reviewer",                          tags: "規約のみ（hook なし）",                                     path: "~/.claude/rules/scoped/review-checklist/code/ui/rule.md" },
+      { id: "SINGLE-HTML-OUTPUT",     cat: "quality",    summary: "単一HTML成果物の観点規約。汎用HTML化を禁止し、図解候補の全件調査・設計領域11領域・合格基準（被覆/図解/構造/体裁/自己完結）を義務付ける。担当: document-reviewer",                 tags: "規約のみ（hook なし）",                                     path: "~/.claude/rules/scoped/review-checklist/document/html-output/rule.md" },
+      { id: "DOCUMENT-COMMON-STANDARDS", cat: "quality", summary: "ドキュメント共通観点。構成・読み手第一・参照実在・鮮度整合・用語誤字。docs/**/*.md と README.md に適用。担当: document-reviewer",                        tags: "規約のみ（hook なし）",                                     path: "~/.claude/rules/scoped/review-checklist/document/common/rule.md" },
+      { id: "REPORT-COMMON-STANDARDS",   cat: "quality", summary: "調査報告共通観点。チェックリスト完了性・証拠の存在・事実と推測の分離・再現可能性の4観点と合否基準。報告文はファイル外のため report-reviewer への直接委任が主経路。担当: report-reviewer", tags: "規約のみ（hook なし）",                                     path: "~/.claude/rules/scoped/review-checklist/report/common/rule.md" },
+      { id: "REVIEW-CHECKLIST-STRUCTURE", cat: "config", summary: "レビュー観点フォルダの統治規約。scoped=専門家1対1・always=横断観点・全rule分類義務。仕分け台帳（rule-classification.txt）を所有。",           tags: "audit-review-coverage.sh で機械監査",                       path: "~/.claude/rules/scoped/agent-config/review-checklist/rule.md" },
+      // 命名・検査
+      { id: "PRE-BASH-DISPATCH",      cat: "validation", summary: "Bash実行前の共通ディスパッチャ。git commit/branch/mkdir/gh pr に対し textlint・命名規則・公開可否を検査。",                                           tags: "PreToolUse(Bash)",                                          path: "~/.claude/rules/always/infra/pre-bash-dispatch/rule.md" },
+      { id: "SECURITY",               cat: "validation", summary: "スクリプトファイル作成方針: .sh のみ許可、AI単独判断での作成禁止、設計判断（ADR）記載必須。",                                                           tags: "permissions.ask(Write **.sh)",                              path: "~/.claude/rules/scoped/tooling/shell/rule.md" },
+      { id: "MEANINGFUL-KEY-NAMING",           cat: "validation", summary: "管理簿・観点表・決定記録の行識別子に連番 ID（UT-01 等）を禁止し、内容を要約した意味語キーを必須とする。連番は AI にとって不透明なトークンのため。",                  tags: "規約のみ（hook なし）",                                     path: "~/.claude/rules/always/review-checklist/meaningful-key-naming/rule.md" },
+      // 設定・配置判定
+      { id: "CONFIG-PLACEMENT",       cat: "config",     summary: "CLAUDE.md / Rules / Skills / Subagents / Hooks / Output styles の7層を8問の決定木で使い分ける横断ガイド。",                                           tags: "規約のみ（hook なし）",                                     path: "~/.claude/rules/scoped/agent-config/placement/rule.md" },
+      { id: "PROJECT-STRUCTURE",      cat: "config",     summary: "プロジェクト標準構成規約。.claude/rules/（実体ディレクトリ）・必須 project-context 2 ファイル・flow-values.yml スキーマの正本。許可リストは project-context の節に統合。",              tags: "dev-flow ゲート + flow-context-guard で強制",               path: "~/.claude/rules/scoped/agent-config/project-structure/rule.md" },
+      // 委任・基盤
+      { id: "SUBAGENT-DELEGATION",    cat: "infra",      summary: "重い作業を適切なサブエージェント（brain/researcher/worker-sonnet/worker-haiku）に委任するための行動規範。",                                            tags: "UserPromptSubmit + PreToolUse(Write/Edit/Bash)",            path: "~/.claude/rules/always/agent/subagent-selection/rule.md" },
+      { id: "SESSION-INFRA",          cat: "infra",      summary: "セッション中のサイレント基盤処理。スキル発火ログ記録とセルフ project-settings 自動削除。",                                                               tags: "PreToolUse(Skill) + SessionStart + Stop",                   path: "~/.claude/rules/always/session/infra/rule.md" },
+      // 開発フロー
+      { id: "WORKTREE-REQUIRED",      cat: "devflow",    summary: "orchestrating-dev-flow 発動時は worktree 内での作業を必須化。main 直接編集はフロー管轄外の調査・質問のみ許可。",                                        tags: "PreToolUse(Write/Edit)",                                    path: "~/.claude/rules/scoped/dev-flow/worktree/rule.md" },
+      { id: "PHASE-STEP-TASK",        cat: "devflow",    summary: "phase/step フローで次 phase 突入前に step 単位の TaskCreate を義務化。subject 形式（Phase N Step N-M: 内容）を強制し、登録不足の phase 宣言を block。", tags: "PreToolUse(Bash) / PostToolUse(TaskCreate)",                path: "~/.claude/rules/always/gate/phase-step-task/rule.md" },
+      { id: "PORT-MANAGEMENT",        cat: "devflow",    summary: "開発サーバーのポート番号を「ベースポート + worktree スロットオフセット + サービスオフセット」の計算式で一意に決定。",                                       tags: "規約のみ（hook なし）",                                     path: "~/.claude/rules/always/local-environment/port-management/rule.md" },
+    ];
+
+    const root = document.getElementById("list");
+    const totalEl = document.getElementById("total");
+    const filterEl = document.getElementById("filter");
+    totalEl.textContent = RULES.length + " ルール / " + CATEGORIES.length + " カテゴリ";
+
+    function rowHtml(r) {
+      return (
+        '<details class="fr" data-key="' + (r.id + " " + r.summary + " " + r.tags).toLowerCase() + '">' +
+          '<summary>' +
+            '<span class="expbtn">+</span>' +
+            '<span class="fn">' + r.id + '</span>' +
+            '<span class="fsep">—</span>' +
+            '<span class="fdesc">' + r.summary + '</span>' +
+          '</summary>' +
+          '<div class="fdetail">' +
+            '<div class="fmeta">' + r.path + '</div>' +
+            '<div class="frow"><span class="frow-label">概要</span><span class="frow-val">' + r.summary + '</span></div>' +
+            '<div class="frow"><span class="frow-label">機械強制</span><span class="frow-val"><code>' + r.tags + '</code></span></div>' +
+          '</div>' +
+        '</details>'
+      );
+    }
+
+    function render() {
+      root.innerHTML = "";
+      CATEGORIES.forEach((c, i) => {
+        const items = RULES.filter((r) => r.cat === c.id);
+        if (items.length === 0) return;
+        const sec = document.createElement("details");
+        sec.className = "cat-block";
+        sec.open = true;
+        sec.innerHTML =
+          '<summary class="cat-card">' +
+            '<span class="cat-fold"></span>' +
+            '<div class="cat-num-block"><span class="cat-number">' + String(i + 1).padStart(2, "0") + '</span></div>' +
+            '<div class="cat-body"><div class="cat-name">' + c.name + '</div><div class="cat-desc">' + c.desc + '</div></div>' +
+            '<span class="cat-count">' + items.length + ' rules</span>' +
+          '</summary>' +
+          '<div class="file-rows">' + items.map(rowHtml).join("") + '</div>';
+        root.appendChild(sec);
+      });
+    }
+
+    function applyFilter() {
+      const q = filterEl.value.trim().toLowerCase();
+      let shown = 0;
+      root.querySelectorAll("details.cat-block").forEach((sec) => {
+        let secShown = 0;
+        sec.querySelectorAll("details.fr").forEach((d) => {
+          const hit = !q || d.dataset.key.includes(q);
+          d.style.display = hit ? "" : "none";
+          if (hit) { secShown++; shown++; }
+        });
+        sec.style.display = secShown > 0 ? "" : "none";
+        if (q && secShown > 0) sec.open = true;
+      });
+      totalEl.textContent = q
+        ? shown + " 件ヒット / " + RULES.length + " ルール"
+        : RULES.length + " ルール / " + CATEGORIES.length + " カテゴリ";
+    }
+
+    let t;
+    filterEl.addEventListener("input", () => { clearTimeout(t); t = setTimeout(applyFilter, 120); });
+    render();
+  </script>
+</body>
+</html>

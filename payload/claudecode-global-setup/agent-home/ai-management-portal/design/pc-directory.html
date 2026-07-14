@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ディレクトリ設計ガイド — agent-home</title>
+  <link rel="stylesheet" href="../style.css" />
+  <link rel="stylesheet" href="design.css" />
+  <script type="module" src="../src/common/header.js"></script>
+</head>
+<body>
+  <div class="sd-wrap">
+
+    <div class="page-hero" style="margin-bottom:20px">
+      <h1>ディレクトリ設計ガイド</h1>
+      <p>
+        ~/（ホーム）と agent-home の全ディレクトリの責務・管理方針を 1 枚で把握する。
+        <a href="../index.html#/">← ポータル TOP</a>
+      </p>
+    </div>
+
+    <div class="sd-layout">
+
+      <nav class="sd-toc">
+        <h3>目次</h3>
+        <ul>
+          <li><a href="#s1"><span class="toc-num">§1</span>~/ 完全マップ</a></li>
+          <li><a href="#s2"><span class="toc-num">§2</span>agent-home/ の構成</a></li>
+          <li><a href="#s3"><span class="toc-num">§3</span>~/.claude/ の構成</a></li>
+          <li><a href="#s4"><span class="toc-num">§4</span>tools/ の詳細</a></li>
+          <li><a href="#s5"><span class="toc-num">§5</span>templates/ の詳細</a></li>
+        </ul>
+      </nav>
+
+      <article class="sd-body">
+
+        <!-- §1 -->
+        <section class="sd-section" id="s1">
+          <h2 class="sd-h2"><span class="sec-num">§1</span>~/ 完全マップ</h2>
+          <div class="sd-def">
+            ユーザーのホームディレクトリ直下で AI が触りうるフォルダの一覧と責務。
+          </div>
+
+          <table class="sd-table">
+            <thead>
+              <tr><th>フォルダ</th><th>責務</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>agent-home/</code></td>
+                <td>AI エージェント用ツール・スキル・ポータルの置き場。本リポジトリ</td>
+              </tr>
+              <tr>
+                <td><code>Projects/</code></td>
+                <td>開発プロジェクトリポジトリ群</td>
+              </tr>
+              <tr>
+                <td><code>Obsidian/</code></td>
+                <td>ノート・記事管理</td>
+              </tr>
+              <tr>
+                <td><code>cloned-repos/</code></td>
+                <td>他人の GitHub リポジトリをクローンする専用の置き場</td>
+              </tr>
+              <tr>
+                <td><code>github-public/</code></td>
+                <td>自分が GitHub に公開しているリポジトリの置き場</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+        <!-- §2 -->
+        <section class="sd-section" id="s2">
+          <h2 class="sd-h2"><span class="sec-num">§2</span>agent-home/ の構成</h2>
+          <div class="sd-def">
+            agent-home リポジトリ内のサブディレクトリの責務と管理単位。
+          </div>
+
+          <table class="sd-table">
+            <thead>
+              <tr><th>ディレクトリ</th><th>責務</th><th>管理単位</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>skills/</code></td>
+                <td>Claude スキル定義（SKILL.md 群）。67 スキルを一元管理</td>
+                <td>git</td>
+              </tr>
+              <tr>
+                <td><code>routines/</code></td>
+                <td>クラウド自動実行ルーティン（日次・週次）の設計書群</td>
+                <td>git</td>
+              </tr>
+              <tr>
+                <td><code>ai-management-portal/</code></td>
+                <td>本ポータル。フロー・スキル・hook の俯瞰ダッシュボード</td>
+                <td>git</td>
+              </tr>
+              <tr>
+                <td><code>tools/linter/</code></td>
+                <td>全 AI 共通の textlint 設定と禁止用語辞書（prh.yml）</td>
+                <td>git</td>
+              </tr>
+              <tr>
+                <td><code>templates/</code></td>
+                <td>新規プロジェクトのスターターテンプレート群</td>
+                <td>git</td>
+              </tr>
+              <tr>
+                <td><code>sessions/</code></td>
+                <td>セッション履歴・skill-log の JSONL 保管</td>
+                <td>git（.gitignore 対象あり）</td>
+              </tr>
+              <tr>
+                <td><code>.claude/</code></td>
+                <td>プロジェクトスコープの Claude Code 設定（CLAUDE.md 等）</td>
+                <td>git</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+        <!-- §3 -->
+        <section class="sd-section" id="s3">
+          <h2 class="sd-h2"><span class="sec-num">§3</span>~/.claude/ の構成</h2>
+          <div class="sd-def">
+            グローバルな Claude Code 設定ディレクトリ。本ポータルの「.claude 設定」カテゴリで詳細を参照できる。
+          </div>
+
+          <table class="sd-table">
+            <thead>
+              <tr><th>ディレクトリ / ファイル</th><th>責務</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>CLAUDE.md</code></td>
+                <td>全プロジェクト共通のエージェント行動指針</td>
+              </tr>
+              <tr>
+                <td><code>rules/</code></td>
+                <td>カテゴリ別の規約（hook script 同居）</td>
+              </tr>
+              <tr>
+                <td><code>agents/</code></td>
+                <td>カスタムサブエージェント定義（4 体）</td>
+              </tr>
+              <tr>
+                <td><code>settings.json</code></td>
+                <td>グローバル hook 配線・permissions</td>
+              </tr>
+              <tr>
+                <td><code>settings.local.json</code></td>
+                <td>ローカル上書き設定</td>
+              </tr>
+              <tr>
+                <td><code>cache/</code></td>
+                <td>永続キャッシュ</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="sd-note">
+            各設定ファイルの詳細な設計ガイドは <a href="../claude/architecture.html">.claude 設定 →</a> を参照。
+          </div>
+        </section>
+
+        <!-- §4 -->
+        <section class="sd-section" id="s4">
+          <h2 class="sd-h2"><span class="sec-num">§4</span>tools/ の詳細</h2>
+
+          <table class="sd-table">
+            <thead>
+              <tr><th>ツール</th><th>概要</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>linter/</code></td>
+                <td>全 AI 共通の日本語校正ルール。prh.yml が禁止用語・置換辞書の唯一の管理場所</td>
+              </tr>
+              <tr>
+                <td><code>linter/.textlintrc.json</code></td>
+                <td>docs 追加行向け textlint 設定</td>
+              </tr>
+              <tr>
+                <td><code>linter/.textlintrc.pr.json</code></td>
+                <td>PR/issue/comment 向け textlint 設定</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+        <!-- §5 -->
+        <section class="sd-section" id="s5">
+          <h2 class="sd-h2"><span class="sec-num">§5</span>templates/ の詳細</h2>
+
+          <table class="sd-table">
+            <thead>
+              <tr><th>テンプレート</th><th>概要</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>bulk-flow/</code></td>
+                <td>Task ツールで複数エージェントを並列稼働させる開発フレームワーク</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+      </article>
+    </div>
+  </div>
+</body>
+</html>
