@@ -2,30 +2,47 @@
 set -euo pipefail
 
 # 自己完結原則の指示語検出スクリプト
-# 定義元: shared/references/self-containment-rule.md（二重管理禁止）
-# 用途: Markdown/HTML の表示テキストから文外参照の指示語を検出する
+# 定義元: shared/references/self-containment-rule.md（single source of truth）
+# 検出パターン・除外リストは RULE_FILE から実行時に読み込む（二重管理禁止）
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 RULE_FILE="$SCRIPT_DIR/../references/self-containment-rule.md"
 
-# 検出パターン（self-containment-rule.md と同一）
-PATTERN1='(この|その|あの)(レベル|課題|基準|段階|仕組み|作業|資料|一覧|文書|現場|場合|方法)'
-PATTERN2='(これ|それ|あれ)(は|が|を|により|以降|以外)'
-PATTERN3='(上記|下記|前述|先述|後述)'
-COMBINED="$PATTERN1|$PATTERN2|$PATTERN3"
-
-# 除外パターン
-EXCLUDE='その他|それぞれ|そのまま|どの|どれ|どこ'
+parse_rule_file() {
+  local rule="$1"
+  COMBINED=""
+  EXCLUDE=""
+  local in_section=0
+  while IFS= read -r line; do
+    case "$line" in
+      "## 検出パターン"*) in_section=1 ;;
+      "## "*)
+        if [ "$in_section" = 1 ]; then in_section=0; fi ;;
+    esac
+    if [ "$in_section" = 1 ]; then
+      case "$line" in
+        "- ("*)
+          local pat="${line#- }"
+          if [ -n "$COMBINED" ]; then
+            COMBINED="$COMBINED|$pat"
+          else
+            COMBINED="$pat"
+          fi ;;
+      esac
+    fi
+    case "$line" in
+      "除外:"*)
+        EXCLUDE=$(echo "${line#除外: }" | tr '／' '|' | sed 's/|引用ブロック内.*$//' | tr -d ' ') ;;
+    esac
+  done < "$rule"
+}
 
 usage() {
-  echo "Usage: $0 --check <file> | --self-test"
+  echo "Usage: $0 --check <file> | --self-test" >&2
   exit 1
 }
 
 strip_html_tags() {
-  # HTML からタグ・script・style を除去して表示テキストを抽出
-  # 見出し(h1-h6)・箇条書き(li)は除去前にMarkdown記法へ変換し、
-  # 後段の見出し・箇条書き判定（ERROR/WARNING分岐）に引き継ぐ
   sed -E '
     s/<script[^>]*>.*<\/script>//g
     s/<style[^>]*>.*<\/style>//g
@@ -34,15 +51,14 @@ strip_html_tags() {
     s/<li[^>]*>/- /g
     s/<\/li>//g
     s/<[^>]+>//g
-    s/&lt;/</g
-    s/&gt;/>/g
-    s/&amp;/\&/g
-    s/&quot;/"/g
+    s/\&lt;/</g
+    s/\&gt;/>/g
+    s/\&amp;/\&/g
+    s/\&quot;/"/g
   '
 }
 
 strip_md_blocks() {
-  # Markdown の引用ブロック・コードブロックを除外
   awk '
     /^```/ { in_code = !in_code; next }
     in_code { next }
@@ -60,10 +76,8 @@ check_file() {
   tmpfile=$(mktemp)
 
   if [ "$ext" = "html" ] || [ "$ext" = "htm" ]; then
-    # HTML: コメント内は除外、タグ除去後のテキストを検査
     sed 's/<!--.*-->//g' "$file" | strip_html_tags > "$tmpfile"
   elif [ "$ext" = "md" ]; then
-    # Markdown: コードブロック・引用ブロックを除外
     strip_md_blocks < "$file" > "$tmpfile"
   else
     cp "$file" "$tmpfile"
@@ -72,14 +86,9 @@ check_file() {
   local line_num=0
   while IFS= read -r line; do
     line_num=$((line_num + 1))
-
-    # 除外パターンに該当する語を一時的にマスク
     local masked
     masked=$(echo "$line" | sed -E "s/($EXCLUDE)/___EXCLUDED___/g")
-
-    # 検出パターンに一致するか
     if echo "$masked" | grep -qE "$COMBINED"; then
-      # 見出し・箇条書き先頭・表セルかどうか判定
       if echo "$line" | grep -qE '^(#{1,6}\s|[-*+]\s|\|)'; then
         echo "ERROR: $file:$line_num: $line" >&2
         errors=$((errors + 1))
@@ -110,7 +119,6 @@ self_test() {
   local tmpdir
   tmpdir=$(mktemp -d)
 
-  # エラーフィクスチャ 1: 見出しに指示語
   cat > "$tmpdir/err1.md" << 'FIXTURE'
 # このレベルの説明
 本文テキスト
@@ -121,7 +129,6 @@ FIXTURE
     echo "PASS: err1（見出し指示語）を検出" >&2; pass=$((pass+1))
   fi
 
-  # エラーフィクスチャ 2: 箇条書き先頭に指示語
   cat > "$tmpdir/err2.md" << 'FIXTURE'
 - その課題について
 - 正常な項目
@@ -132,7 +139,6 @@ FIXTURE
     echo "PASS: err2（箇条書き指示語）を検出" >&2; pass=$((pass+1))
   fi
 
-  # エラーフィクスチャ 3: 上記/下記
   cat > "$tmpdir/err3.md" << 'FIXTURE'
 - 上記の手順に従う
 FIXTURE
@@ -142,7 +148,6 @@ FIXTURE
     echo "PASS: err3（上記/下記）を検出" >&2; pass=$((pass+1))
   fi
 
-  # 除外フィクスチャ 1: その他
   cat > "$tmpdir/exc1.md" << 'FIXTURE'
 - その他の項目
 FIXTURE
@@ -152,7 +157,6 @@ FIXTURE
     echo "FAIL: exc1（その他）が誤検出された" >&2; fail=$((fail+1))
   fi
 
-  # 除外フィクスチャ 2: それぞれ
   cat > "$tmpdir/exc2.md" << 'FIXTURE'
 - それぞれの担当
 FIXTURE
@@ -162,7 +166,6 @@ FIXTURE
     echo "FAIL: exc2（それぞれ）が誤検出された" >&2; fail=$((fail+1))
   fi
 
-  # 除外フィクスチャ 3: そのまま
   cat > "$tmpdir/exc3.md" << 'FIXTURE'
 - そのまま使う
 FIXTURE
@@ -172,7 +175,6 @@ FIXTURE
     echo "FAIL: exc3（そのまま）が誤検出された" >&2; fail=$((fail+1))
   fi
 
-  # HTML フィクスチャ: タグ除去後に検出
   cat > "$tmpdir/err_html.html" << 'FIXTURE'
 <html><body>
 <h2>この基準について</h2>
@@ -185,6 +187,24 @@ FIXTURE
     echo "PASS: err_html（HTML見出し指示語）を検出" >&2; pass=$((pass+1))
   fi
 
+  # パターン追従テスト: RULE_FILE の内容変更に検出結果が追従するか
+  local backup
+  backup=$(cat "$RULE_FILE")
+  # 一時的に「方法」を検出パターンから削除
+  sed -i.bak 's/|方法)/)/g' "$RULE_FILE"
+  parse_rule_file "$RULE_FILE"  # 再パース
+  cat > "$tmpdir/follow.md" << 'FIXTURE'
+- この方法について
+FIXTURE
+  if check_file "$tmpdir/follow.md" 2>/dev/null; then
+    echo "PASS: follow（パターン追従: 削除した語は検出されない）" >&2; pass=$((pass+1))
+  else
+    echo "FAIL: follow（パターン追従: 削除した語がまだ検出される）" >&2; fail=$((fail+1))
+  fi
+  # RULE_FILE を復元
+  mv "$RULE_FILE.bak" "$RULE_FILE"
+  parse_rule_file "$RULE_FILE"  # 再パース
+
   rm -rf "$tmpdir"
 
   echo "---" >&2
@@ -192,7 +212,9 @@ FIXTURE
   [ "$fail" -eq 0 ]
 }
 
-# メイン
+# パターンをロード
+parse_rule_file "$RULE_FILE"
+
 case "${1:-}" in
   --check)
     [ -z "${2:-}" ] && usage
