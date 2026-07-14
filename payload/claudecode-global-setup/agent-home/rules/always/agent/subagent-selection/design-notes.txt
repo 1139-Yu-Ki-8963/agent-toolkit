@@ -25,7 +25,7 @@
 
 **保守責任者**: 人手（ユーザー）。例外パスの追加・サブエージェント体制変更時に更新する。
 
-**廃棄条件**: Claude Code 本体がメイン/サブのロール分離を組み込んだ時、または全セッションで orchestrating-dev が起動され oradora 側の role-boundary hook が代替する時。
+**廃棄条件**: Claude Code 本体がメイン/サブのロール分離を組み込んだ時、または全セッションで orchestrating-dev が起動され、特定プロジェクト側の role-boundary hook が代替する時。
 
 ### worker-haiku-bash-guard.sh
 

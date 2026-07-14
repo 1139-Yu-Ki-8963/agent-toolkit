@@ -70,7 +70,18 @@ function isExcluded(name) {
 
 function loadForbiddenPatterns() {
   const json = JSON.parse(fs.readFileSync(ARTIFACTS_PATH, "utf8"));
-  return { names: new Set(json.names || []), pathSuffixes: json.pathSuffixes || [], content: json.forbiddenContent || [] };
+  // ローカルオーバーライド（.gitignore 対象・非公開）: 固有プロジェクト名などの
+  // 検査文字列は公開リポジトリに置かず、この local ファイル側で管理する。
+  const localPath = ARTIFACTS_PATH.replace(/\.json$/, ".local.json");
+  let local = {};
+  if (fs.existsSync(localPath)) {
+    local = JSON.parse(fs.readFileSync(localPath, "utf8"));
+  }
+  return {
+    names: new Set([...(json.names || []), ...(local.names || [])]),
+    pathSuffixes: [...(json.pathSuffixes || []), ...(local.pathSuffixes || [])],
+    content: [...(json.forbiddenContent || []), ...(local.forbiddenContent || [])],
+  };
 }
 
 const FORBIDDEN = loadForbiddenPatterns();
