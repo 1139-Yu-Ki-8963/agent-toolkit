@@ -16,7 +16,7 @@
     { "mode": "file", "src": "~/agent-home/tools/hooks/shared/marker-path.sh", "dst": "payload/claudecode-global-setup/agent-home/tools/hooks/lib/marker-path.sh" },
     { "mode": "manual", "src": "~/.claude/CLAUDE.md", "dst": "payload/claudecode-global-setup/claude-config/CLAUDE.md", "note": "install用テンプレート。意図的差分あり。自動同期禁止" },
     { "mode": "manual", "src": "~/.claude/settings.json", "dst": "payload/claudecode-global-setup/claude-config/settings-hooks.json", "note": "hooks抜粋版。自動同期禁止" },
-    { "mode": "manual", "src": "~/agent-home/ai-management-portal", "dst": "payload/claudecode-global-setup/agent-home/ai-management-portal", "note": "縮小同梱版。自動同期禁止" },
+    { "mode": "build", "builder": "scripts/build-portal-payload.mjs", "dst": "payload/claudecode-global-setup/agent-home/ai-management-portal" },
     { "mode": "manual", "src": "~/agent-home/sessions/.skill-log/skill-aliases.yml", "dst": "payload/claudecode-global-setup/agent-home/sessions/.skill-log/skill-aliases.yml", "note": "同梱版が正本と異なる可能性。自動同期禁止" },
     { "mode": "file", "src": "~/.claude/statusline.py", "dst": "payload/claudecode-global-setup/claude-config/statusline.py" },
     { "mode": "mirror", "src": "~/agent-home/templates/project-docs", "dst": "payload/claudecode-global-setup/agent-home/templates/project-docs" },
