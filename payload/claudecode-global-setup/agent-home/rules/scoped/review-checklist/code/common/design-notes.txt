@@ -4,7 +4,7 @@
 
 2026-07-10、レビュー機構の現状調査で次の欠陥が確認された:
 - reviewing-single-pr-with-inline-comments が観点正本として参照する
-  `~/Projects/oradora-battle-base/docs_site/00_共通/プロジェクトルール/規約・基準/コードレビュー観点.md`
+  `~/Projects/<project>/docs_site/00_共通/プロジェクトルール/規約・基準/コードレビュー観点.md`
   が実在せず（docs_site は別リポジトリにのみ存在）、必須参照が構造的に失敗していた
 - コードレビュー観点のプロジェクト非依存部分に正本が存在しなかった
 
@@ -16,7 +16,7 @@
 
 - 連番識別子（S-*/D-*/Q-*/C-*/A-*/B-*/TQ-*/JX-* 等）は semantic-key 規約
   （記号+通し番号の禁止）に違反するため、意味見出し・箇条書きへ変換した
-- プロジェクト固有観点（oradora-battle-base の P-*: Input/Output 型禁止・null 返却禁止等、
+- プロジェクト固有観点（既存プロジェクトの P-*: Input/Output 型禁止・null 返却禁止等、
   docs_site ドキュメントカバレッジ表、案件特性）はグローバルに置かず、
   プロジェクト委譲受け口（<repo>/.claude/rules/scoped/review-checklist/code/common/rule.md）へ
   移す設計とした（受け口未整備の場合は各プロジェクトで整備する）

@@ -3,7 +3,7 @@
 
 ## 設計判断
 
-**必要性**: 複数プロジェクト（oradora-battle-base、link-keeper、kakeibo）で UI アイコンの統一が必要。Google Material Symbols Outlined は CDN 配信で依存パッケージ不要、アイコン数が豊富、全プロジェクトで共通利用できる。
+**必要性**: 複数プロジェクト（既存プロジェクト A、既存プロジェクト B、既存プロジェクト C）で UI アイコンの統一が必要。Google Material Symbols Outlined は CDN 配信で依存パッケージ不要、アイコン数が豊富、全プロジェクトで共通利用できる。
 
 **代替案を採用しなかった理由**:
 - Lucide / Heroicons: npm パッケージ依存が増える。CDN 配信の手軽さに劣る
