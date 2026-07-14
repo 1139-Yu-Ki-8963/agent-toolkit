@@ -47,7 +47,7 @@ review-checklist 配下 = 成果物の内容を縛る規約（レビュー照合
 配下外 = 行為・プロセスを縛る規約（hook が行為時に強制）または設定資産・行動規範。
 
 移動に伴う配線更新: settings.json の Stop hook パス（当時 no-abbrev-stop.sh、現 check-term-explanation.sh）、textlint 設定 2 ファイルの
-prh.yml rulePaths、pre-bash-dispatch のプロジェクト受け口パス、oradora-battle-base の実在受け口の
+prh.yml rulePaths、pre-bash-dispatch のプロジェクト受け口パス、既存プロジェクトの実在受け口の
 git mv、全ドキュメント・エージェント定義の参照パス。
 
 ## 深さ 4 の例外について

@@ -69,7 +69,7 @@ preflight: {}              # preflight 設定（skip_tools）
 ```
 
 - 旧スキーマからの変更: `source.design_docs` / `source.portal_dir` はトップレベルへ平坦化。文書だけが参照していた `test_conventions` / `review_agents` / `pr.skip_globs` を正式キーとして採録（既定 null / 空）
-- プロジェクト独自の拡張キーを追加してよい（例: oradora-battle-base の context_a / context_b）。消費者はプロジェクト内の文書・スキルに限る
+- プロジェクト独自の拡張キーを追加してよい（例: 既存プロジェクトの context_a / context_b）。消費者はプロジェクト内の文書・スキルに限る
 
 ## 機械強制
 

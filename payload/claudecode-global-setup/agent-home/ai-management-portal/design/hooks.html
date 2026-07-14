@@ -90,7 +90,7 @@
               <tr><td><code>~/agent-home/tools/hooks/</code></td><td>global flat bucket</td><td>31 ファイルが規約と無関係に同居。最大の負債源</td></tr>
               <tr><td><code>~/.claude/hooks/</code></td><td>global flat bucket</td><td>同上の構造になる前に禁止しておく</td></tr>
               <tr><td><code>~/.claude/&lt;any&gt;/hooks/</code></td><td>plugin enforcement</td><td>plugin 内 hooks は plugin 側で完結すべき。手動で増やさない</td></tr>
-              <tr><td><code>&lt;repo&gt;/.claude/hooks/</code></td><td>project flat bucket</td><td>oradora-battle-base の <code>.claude/hooks/</code> 19 ファイルが同じ負債を抱えている</td></tr>
+              <tr><td><code>&lt;repo&gt;/.claude/hooks/</code></td><td>project flat bucket</td><td>既存プロジェクトの <code>.claude/hooks/</code> 19 ファイルが同じ負債を抱えている</td></tr>
               <tr><td><code>&lt;repo&gt;/.claude/&lt;any&gt;/hooks/</code></td><td>project flat bucket</td><td>同上</td></tr>
             </tbody>
           </table>
@@ -283,7 +283,7 @@
           <p>本ガイドの導入時点で既に存在する legacy 配置:</p>
           <ul>
             <li><code>~/agent-home/tools/hooks/*.sh</code> — 31 ファイル</li>
-            <li><code>~/Projects/oradora-battle-base/.claude/hooks/*.sh</code> — 19 ファイル</li>
+            <li><code>~/Projects/&lt;project&gt;/.claude/hooks/*.sh</code> — 19 ファイル</li>
             <li><code>~/.claude/plugins/marketplaces/*/plugins/*/hooks/</code> — plugin 内</li>
           </ul>
 
