@@ -1,0 +1,992 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Claude Code 設定診断</title>
+<style>
+  :root {
+    --bg-deep: #0B1020;
+    --panel: #151B2E;
+    --border: #232D4A;
+    --text: #E8ECF5;
+    --text-muted: #8A94AD;
+
+    --s-glow: #F5C542;
+    --a-main: #F5C542;
+    --a-grad-1: #FFE9A8;
+    --a-grad-2: #D89B1D;
+    --b-main: #C0C8D8;
+    --b-grad-1: #EDF1F8;
+    --b-grad-2: #8E99B0;
+    --c-main: #C77B4A;
+    --c-grad-1: #E8A97E;
+    --c-grad-2: #8F5230;
+    --d-main: #6B7280;
+    --d-grad-1: #9CA3AF;
+    --d-grad-2: #4B5563;
+
+    --risk-safe: #3ECF8E;
+    --risk-careful: #F0C33C;
+    --risk-surgery: #E85D5D;
+  }
+
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg-deep: #F2F4FA;
+      --panel: #FFFFFF;
+      --border: #D7DCEA;
+      --text: #1B2233;
+      --text-muted: #5B6478;
+    }
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg-deep);
+    background-image: radial-gradient(circle at 50% 30%, rgba(120, 140, 220, 0.14), transparent 60%);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif;
+    line-height: 1.6;
+  }
+
+  .wrap {
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 24px 20px 80px;
+  }
+
+  /* ---------- header ---------- */
+  header.top-band {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 18px 22px;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: var(--panel);
+    margin-bottom: 28px;
+  }
+  .top-band .proj {
+    font-size: 13px;
+    color: var(--text-muted);
+    letter-spacing: 0.04em;
+  }
+  .top-band .proj strong {
+    color: var(--text);
+    font-weight: 700;
+  }
+  .top-band h1 {
+    font-size: 20px;
+    margin: 4px 0 0;
+    letter-spacing: 0.02em;
+  }
+  .top-band .date {
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+
+  h2.section-title {
+    font-size: 15px;
+    color: var(--text-muted);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin: 40px 0 16px;
+    border-left: 3px solid var(--s-glow);
+    padding-left: 10px;
+  }
+
+  /* ---------- signature: summon card ---------- */
+  .signature {
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    gap: 24px;
+    align-items: stretch;
+  }
+  @media (max-width: 760px) {
+    .signature { grid-template-columns: 1fr; }
+  }
+
+  .summon-card {
+    position: relative;
+    border-radius: 18px;
+    border: 2px solid var(--border);
+    background: var(--panel);
+    padding: 24px 20px 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    overflow: hidden;
+    perspective: 900px;
+  }
+  .summon-card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 50% 20%, rgba(199,123,74,0.28), transparent 65%);
+    pointer-events: none;
+  }
+  .summon-card .rarity-label {
+    font-size: 11px;
+    letter-spacing: 0.16em;
+    font-weight: 700;
+    margin-bottom: 10px;
+    z-index: 1;
+  }
+
+  .hex-emblem {
+    width: 156px;
+    height: 180px;
+    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+    background: linear-gradient(155deg, var(--c-grad-1), var(--c-grad-2));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1;
+    transform-style: preserve-3d;
+    animation: flip-in 0.6s ease-out 1;
+  }
+  .hex-emblem span {
+    font-size: 84px;
+    font-weight: 900;
+    font-style: italic;
+    letter-spacing: 0.02em;
+    color: #1a1108;
+    text-shadow: 0 2px 0 rgba(255,255,255,0.35);
+  }
+
+  @keyframes flip-in {
+    0%   { transform: rotateY(90deg) scale(0.7); opacity: 0; }
+    60%  { transform: rotateY(-10deg) scale(1.04); opacity: 1; }
+    100% { transform: rotateY(0deg) scale(1); opacity: 1; }
+  }
+
+  .stars {
+    z-index: 1;
+    margin-top: 14px;
+    font-size: 20px;
+    letter-spacing: 3px;
+  }
+  .stars .dim { color: var(--border); }
+
+  .summon-card .grade-caption {
+    z-index: 1;
+    margin-top: 10px;
+    font-size: 13px;
+    color: var(--text-muted);
+    text-align: center;
+  }
+
+  /* level gauge */
+  .level-gauge-panel {
+    border-radius: 18px;
+    border: 1px solid var(--border);
+    background: var(--panel);
+    padding: 22px 24px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .level-gauge-panel h3 {
+    margin: 0 0 4px;
+    font-size: 15px;
+  }
+  .level-gauge-panel .sub {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 18px;
+  }
+  .gauge-track {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 8px;
+  }
+  .gauge-step {
+    position: relative;
+    text-align: center;
+  }
+  .gauge-step .bar {
+    height: 14px;
+    border-radius: 7px;
+    background: var(--border);
+    margin-bottom: 8px;
+  }
+  .gauge-step.filled .bar {
+    background: linear-gradient(90deg, var(--c-grad-2), var(--c-grad-1));
+  }
+  .gauge-step.recommended .bar {
+    background: linear-gradient(90deg, var(--c-grad-1), var(--s-glow));
+    box-shadow: 0 0 12px rgba(245,197,66,0.6);
+  }
+  .gauge-step .num {
+    font-weight: 900;
+    font-style: italic;
+    font-size: 15px;
+  }
+  .gauge-step .label {
+    font-size: 10.5px;
+    color: var(--text-muted);
+    line-height: 1.3;
+    min-height: 32px;
+  }
+  .gauge-step.recommended .num { color: var(--s-glow); }
+  .gauge-step.recommended::after {
+    content: "現在の推奨上限";
+    position: absolute;
+    top: -22px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 9.5px;
+    color: var(--s-glow);
+    white-space: nowrap;
+    font-weight: 700;
+  }
+
+  /* ---------- rarity cards grid ---------- */
+  .rarity-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 16px;
+  }
+
+  .rcard {
+    position: relative;
+    border-radius: 14px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    padding: 16px 16px 14px;
+    overflow: hidden;
+  }
+  .rcard .rcard-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 8px;
+  }
+  .rcard .domain-name {
+    font-size: 14px;
+    font-weight: 700;
+  }
+  .rcard .grade-badge {
+    font-weight: 900;
+    font-style: italic;
+    font-size: 26px;
+    letter-spacing: 0.03em;
+    line-height: 1;
+    padding: 2px 10px;
+    border-radius: 8px;
+    color: #1a1108;
+  }
+  .rcard .stars-small {
+    font-size: 13px;
+    letter-spacing: 2px;
+    margin: 4px 0 8px;
+  }
+  .rcard .stars-small .dim { color: var(--border); }
+  .rcard .counts {
+    display: flex;
+    gap: 10px;
+    font-size: 11.5px;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+  }
+  .rcard .chip {
+    padding: 2px 8px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+  }
+  .rcard .chip.crit { border-color: var(--risk-surgery); color: var(--risk-surgery); }
+  .rcard .chip.warn { border-color: var(--risk-careful); color: var(--risk-careful); }
+  .rcard .detail {
+    font-size: 12.5px;
+    color: var(--text-muted);
+  }
+
+  /* rarity backgrounds */
+  .grade-S { background: linear-gradient(120deg, #8b5cf6, #3b82f6, #22c55e, #F5C542); background-size: 300% 300%; animation: holo-shift 6s ease-in-out infinite; }
+  .grade-A { background: linear-gradient(155deg, var(--a-grad-1), var(--a-grad-2)); }
+  .grade-B { background: linear-gradient(155deg, var(--b-grad-1), var(--b-grad-2)); }
+  .grade-C { background: linear-gradient(155deg, var(--c-grad-1), var(--c-grad-2)); }
+  .grade-D { background: linear-gradient(155deg, var(--d-grad-1), var(--d-grad-2)); }
+
+  @keyframes holo-shift {
+    0%   { background-position: 0% 50%; }
+    50%  { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+
+  /* border-* is intentionally generic (not scoped to .rcard) so the summon
+     card can share the same rarity border treatment. */
+  .border-S { border-color: var(--s-glow); box-shadow: 0 0 20px rgba(245,197,66,0.25); }
+  .border-A { border-color: var(--a-main); }
+  .border-B { border-color: var(--b-main); }
+  .border-C { border-color: var(--c-main); }
+  .border-D { border-color: var(--d-main); }
+
+  /* gtxt-* / stars-* are generic text-color helpers keyed by grade letter */
+  .stars-S, .stars-A, .gtxt-S, .gtxt-A { color: var(--a-main); }
+  .stars-B, .gtxt-B { color: var(--b-main); }
+  .stars-C, .gtxt-C { color: var(--c-main); }
+  .stars-D, .gtxt-D { color: var(--d-main); }
+
+  /* glow-* drives the hex emblem ring + outer glow per grade */
+  .glow-S { box-shadow: 0 0 0 3px var(--s-glow), 0 0 28px rgba(245,197,66,0.55); }
+  .glow-A { box-shadow: 0 0 0 3px var(--a-main), 0 0 28px rgba(245,197,66,0.55); }
+  .glow-B { box-shadow: 0 0 0 3px var(--b-main), 0 0 28px rgba(192,200,216,0.55); }
+  .glow-C { box-shadow: 0 0 0 3px var(--c-main), 0 0 28px rgba(199,123,74,0.55); }
+  .glow-D { box-shadow: 0 0 0 3px var(--d-main), 0 0 28px rgba(107,114,128,0.55); }
+
+  .rcard.border-S { box-shadow: 0 0 20px rgba(245,197,66,0.25); }
+
+  /* shine sweep for S/A rarity elements */
+  .shine {
+    position: relative;
+    overflow: hidden;
+  }
+  .shine::after {
+    content: "";
+    position: absolute;
+    top: -50%;
+    left: -60%;
+    width: 40%;
+    height: 200%;
+    background: linear-gradient(75deg, transparent, rgba(255,255,255,0.55), transparent);
+    transform: rotate(8deg);
+    animation: sweep 3.6s ease-in-out infinite;
+  }
+  @keyframes sweep {
+    0%   { left: -60%; }
+    45%  { left: 130%; }
+    100% { left: 130%; }
+  }
+
+  /* ---------- RX cards ---------- */
+  .rx-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 16px;
+  }
+  .rx-card {
+    border-radius: 14px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .rx-card .rx-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+  }
+  .rx-card h3 {
+    margin: 0;
+    font-size: 14.5px;
+  }
+  .risk-chip {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 999px;
+    color: #0B1020;
+    white-space: nowrap;
+  }
+  .risk-safe { background: var(--risk-safe); }
+  .risk-careful { background: var(--risk-careful); }
+  .risk-surgery { background: var(--risk-surgery); color: #fff; }
+
+  .rx-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+  .rx-meta b { color: var(--text); }
+
+  .rx-card textarea {
+    width: 100%;
+    min-height: 92px;
+    resize: vertical;
+    background: var(--bg-deep);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px;
+    font-size: 12px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+  .rx-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .copy-btn {
+    background: var(--s-glow);
+    color: #1a1108;
+    border: none;
+    border-radius: 8px;
+    padding: 7px 14px;
+    font-size: 12.5px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .copy-btn:active { transform: translateY(1px); }
+  .copy-btn.copied { background: var(--risk-safe); }
+
+  .rx-done {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12.5px;
+    color: var(--text-muted);
+  }
+  .rx-done input { width: 16px; height: 16px; }
+
+  /* ---------- matrix ---------- */
+  .matrix-wrap {
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: var(--panel);
+    padding: 20px;
+  }
+  .matrix {
+    display: grid;
+    grid-template-columns: 40px repeat(2, 1fr);
+    grid-template-rows: repeat(2, minmax(130px, auto)) 30px;
+    gap: 6px;
+  }
+  .matrix .axis-y {
+    grid-row: 1 / 3;
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11.5px;
+    color: var(--text-muted);
+    letter-spacing: 0.1em;
+  }
+  .matrix .cell {
+    border: 1px dashed var(--border);
+    border-radius: 10px;
+    padding: 8px;
+    position: relative;
+  }
+  .matrix .cell-label {
+    position: absolute;
+    top: 6px;
+    left: 8px;
+    font-size: 10px;
+    color: var(--text-muted);
+    letter-spacing: 0.05em;
+  }
+  .matrix .axis-x {
+    grid-column: 2 / 4;
+    text-align: center;
+    font-size: 11.5px;
+    color: var(--text-muted);
+    letter-spacing: 0.1em;
+  }
+  .matrix .rx-pin {
+    margin-top: 20px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11.5px;
+    padding: 5px 9px;
+    border-radius: 999px;
+    background: var(--bg-deep);
+    border: 1px solid var(--border);
+  }
+  .matrix .rx-pin + .rx-pin { margin-top: 6px; }
+  .matrix .rx-pin .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex: none;
+  }
+  .matrix .cell-pins {
+    display: flex;
+    flex-direction: column;
+    margin-top: 18px;
+  }
+
+  /* ---------- findings ---------- */
+  .findings {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  details.finding {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--panel);
+    padding: 12px 16px;
+  }
+  details.finding summary {
+    cursor: pointer;
+    font-size: 13.5px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    list-style: none;
+  }
+  details.finding summary::-webkit-details-marker { display: none; }
+  details.finding summary::before {
+    content: "▸";
+    color: var(--text-muted);
+    transition: transform 0.15s ease;
+  }
+  details.finding[open] summary::before { transform: rotate(90deg); }
+  .finding-body {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+    font-size: 12.5px;
+    color: var(--text-muted);
+  }
+  .finding-body pre {
+    background: var(--bg-deep);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px;
+    overflow-x: auto;
+    font-size: 11.5px;
+    color: var(--text);
+    white-space: pre-wrap;
+  }
+  .finding-body .suggest {
+    margin-top: 8px;
+    color: var(--text);
+  }
+  .finding-tag {
+    font-size: 10.5px;
+    padding: 1px 8px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+  }
+
+  .diff-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  .diff-table th, .diff-table td {
+    text-align: left;
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  .diff-table th {
+    color: var(--text-muted);
+    font-weight: 600;
+    font-size: 11.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .diff-arrow {
+    font-weight: 700;
+  }
+  .diff-empty {
+    color: var(--text-muted);
+    font-size: 13px;
+  }
+
+  .empty-note {
+    color: var(--text-muted);
+    font-size: 12.5px;
+  }
+
+  footer.foot-note {
+    margin-top: 50px;
+    text-align: center;
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .hex-emblem { animation: none; }
+    .grade-S { animation: none; }
+    .shine::after { animation: none; display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top-band">
+    <div>
+      <div class="proj" id="proj-line"></div>
+      <h1>Claude Code 設定診断</h1>
+    </div>
+    <div class="date" id="date-line"></div>
+  </header>
+
+  <h2 class="section-title">総合結果</h2>
+  <div class="signature">
+    <div class="summon-card" id="summon-card"></div>
+
+    <div class="level-gauge-panel">
+      <h3>AI駆動レベルゲージ</h3>
+      <div class="sub">現在の設定で安全に運用できる自動化レベルの推奨上限</div>
+      <div class="gauge-track" id="gauge-track"></div>
+    </div>
+  </div>
+
+  <div id="diff-section" style="display:none;">
+    <h2 class="section-title">前回との比較</h2>
+    <div class="matrix-wrap" id="diff-content"></div>
+  </div>
+
+  <h2 class="section-title">ドメイン別評価</h2>
+  <div class="rarity-grid" id="rarity-grid"></div>
+
+  <h2 class="section-title">処方箋</h2>
+  <div class="rx-grid" id="rx-grid"></div>
+
+  <h2 class="section-title">効果 × 手間マトリクス</h2>
+  <div class="matrix-wrap">
+    <div class="matrix">
+      <div class="axis-y">期待効果（大 → 小）</div>
+      <div class="cell" data-quad="big-small">
+        <div class="cell-label">効果:大 / 手間:小</div>
+        <div class="cell-pins" data-quad-pins="big-small"></div>
+      </div>
+      <div class="cell" data-quad="big-large">
+        <div class="cell-label">効果:大 / 手間:大</div>
+        <div class="cell-pins" data-quad-pins="big-large"></div>
+      </div>
+      <div class="cell" data-quad="small-small">
+        <div class="cell-label">効果:小 / 手間:小</div>
+        <div class="cell-pins" data-quad-pins="small-small"></div>
+      </div>
+      <div class="cell" data-quad="small-large">
+        <div class="cell-label">効果:小 / 手間:大</div>
+        <div class="cell-pins" data-quad-pins="small-large"></div>
+      </div>
+      <div></div>
+      <div class="axis-x">所要時間・作業量（小 → 大）</div>
+    </div>
+  </div>
+
+  <h2 class="section-title">指摘一覧</h2>
+  <div class="findings" id="findings-list"></div>
+
+  <footer class="foot-note" id="foot-note"></footer>
+</div>
+
+<script>
+/*__DIAGNOSIS_DATA__*/
+</script>
+<script>
+(function () {
+  'use strict';
+
+  var DATA = window.__DIAGNOSIS_DATA__ || {};
+  var meta = DATA.meta || {};
+  var domains = Array.isArray(DATA.domains) ? DATA.domains : [];
+  var overall = DATA.overall || { grade: 'D', stars: 1, ai_level: 1, ai_level_label: '人手のみ' };
+  var prescriptions = Array.isArray(DATA.prescriptions) ? DATA.prescriptions : [];
+  var diff = DATA.diff || null;
+
+  var GRADE_VALUE = { S: 5, A: 4, B: 3, C: 2, D: 1 };
+  var GRADE_CAPTION = {
+    S: '総合グレード<br>虹の輝き・卓越',
+    A: '総合グレード<br>金ランク・優秀',
+    B: '総合グレード<br>銀ランク・良好',
+    C: '総合グレード<br>銅ランク・改善余地あり',
+    D: '総合グレード<br>錆鉄ランク・要改善'
+  };
+  var LEVEL_LABELS = ['人手のみ', 'AI補助', '人が承認するAI実行', '例外のみ人介入', '完全自動'];
+
+  function escapeHtml(value) {
+    return String(value == null ? '' : value).replace(/[&<>"']/g, function (ch) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch];
+    });
+  }
+
+  function starMarkup(stars) {
+    var s = Math.max(0, Math.min(5, Number(stars) || 0));
+    var filled = '★'.repeat(s);
+    var dim = s < 5 ? '<span class="dim">' + '★'.repeat(5 - s) + '</span>' : '';
+    return filled + dim;
+  }
+
+  function renderHeader() {
+    var projLine = document.getElementById('proj-line');
+    var dateLine = document.getElementById('date-line');
+    projLine.innerHTML = 'プロジェクト: <strong>' + escapeHtml(meta.project || '(不明)') + '</strong>';
+    dateLine.textContent = '診断日 ' + (meta.date || '(不明)');
+  }
+
+  function renderSummon() {
+    var grade = overall.grade || 'D';
+    var stars = overall.stars || GRADE_VALUE[grade] || 1;
+    var caption = GRADE_CAPTION[grade] || GRADE_CAPTION.D;
+    var card = document.getElementById('summon-card');
+    card.className = 'summon-card border-' + grade;
+    card.innerHTML =
+      '<div class="rarity-label gtxt-' + grade + '">RARITY ' + grade + '</div>' +
+      '<div class="hex-emblem grade-' + grade + ' glow-' + grade + '"><span>' + grade + '</span></div>' +
+      '<div class="stars stars-' + grade + '">' + starMarkup(stars) + '</div>' +
+      '<div class="grade-caption">' + caption + '</div>';
+  }
+
+  function renderGauge() {
+    var level = Math.max(1, Math.min(5, Number(overall.ai_level) || 1));
+    var track = document.getElementById('gauge-track');
+    var html = '';
+    for (var i = 1; i <= 5; i++) {
+      var classes = 'gauge-step';
+      if (i <= level) classes += ' filled';
+      if (i === level) classes += ' recommended';
+      html +=
+        '<div class="' + classes + '">' +
+        '<div class="bar"></div>' +
+        '<div class="num">' + i + '</div>' +
+        '<div class="label">' + escapeHtml(LEVEL_LABELS[i - 1]) + '</div>' +
+        '</div>';
+    }
+    track.innerHTML = html;
+  }
+
+  function renderRarityGrid() {
+    var grid = document.getElementById('rarity-grid');
+    if (domains.length === 0) {
+      grid.innerHTML = '<div class="empty-note">ドメイン診断データがありません。</div>';
+      return;
+    }
+    var html = '';
+    domains.forEach(function (d) {
+      var grade = d.grade || 'D';
+      var shineClass = (grade === 'S' || grade === 'A') ? ' shine' : '';
+      var chips = '';
+      if (d.critical > 0) chips += '<span class="chip crit">CRITICAL ' + d.critical + '</span>';
+      if (d.warn > 0) chips += '<span class="chip warn">WARN ' + d.warn + '</span>';
+      if (d.info > 0) chips += '<span class="chip">INFO ' + d.info + '</span>';
+      html +=
+        '<div class="rcard border-' + grade + shineClass + '">' +
+        '<div class="rcard-top">' +
+        '<div class="domain-name">' + escapeHtml(d.label || d.id) + '</div>' +
+        '<div class="grade-badge grade-' + grade + '">' + grade + '</div>' +
+        '</div>' +
+        '<div class="stars-small stars-' + grade + '">' + starMarkup(d.stars) + '</div>' +
+        (chips ? '<div class="counts">' + chips + '</div>' : '') +
+        '<div class="detail">' + escapeHtml(d.top_finding || '指摘なし') + '</div>' +
+        '</div>';
+    });
+    grid.innerHTML = html;
+  }
+
+  function riskLabel(risk) {
+    return risk === 'safe' ? 'safe' : risk === 'surgery' ? 'surgery' : 'careful';
+  }
+
+  function storageKey(rxId) {
+    return 'consult-ai-config-doctor:' + (meta.project || 'unknown') + ':' + (meta.date || 'unknown') + ':' + rxId + ':done';
+  }
+
+  function renderRx() {
+    var grid = document.getElementById('rx-grid');
+    if (prescriptions.length === 0) {
+      grid.innerHTML = '<div class="empty-note">処方箋はありません（CRITICAL/WARN の是正提案が無いか、すべて対応済みです）。</div>';
+      return;
+    }
+    var html = '';
+    prescriptions.forEach(function (rx, i) {
+      var rxId = 'rx' + (i + 1);
+      var risk = riskLabel(rx.risk);
+      html +=
+        '<div class="rx-card" id="' + rxId + '" data-domain="' + escapeHtml(rx.domain) + '" data-time="' + (Number(rx.time_min) || 0) + '" data-expected="' + escapeHtml(rx.expected) + '">' +
+        '<div class="rx-head">' +
+        '<h3>処方箋' + (i + 1) + ': ' + escapeHtml(rx.key) + '</h3>' +
+        '<span class="risk-chip risk-' + risk + '">' + risk + '</span>' +
+        '</div>' +
+        '<div class="rx-meta">' +
+        '<span>所要時間: <b>' + (Number(rx.time_min) || 0) + '分</b></span>' +
+        '<span>ドメイン: <b>' + escapeHtml(rx.domain) + '</b></span>' +
+        '<span>期待効果: <b>' + escapeHtml(rx.expected || '(未指定)') + '</b></span>' +
+        '</div>' +
+        '<textarea readonly>' + escapeHtml(rx.prompt) + '</textarea>' +
+        '<div class="rx-actions">' +
+        '<button class="copy-btn" onclick="copyPrompt(\'' + rxId + '\', this)">プロンプトをコピー</button>' +
+        '<label class="rx-done">' +
+        '<input type="checkbox" data-rx="' + rxId + '" onchange="saveDone(this)"> 完了' +
+        '</label>' +
+        '</div>' +
+        '</div>';
+    });
+    grid.innerHTML = html;
+
+    var boxes = document.querySelectorAll('input[data-rx]');
+    boxes.forEach(function (box) {
+      var rx = box.getAttribute('data-rx');
+      try {
+        var v = localStorage.getItem(storageKey(rx));
+        if (v === '1') box.checked = true;
+      } catch (e) { /* localStorage 不可の環境は無視 */ }
+    });
+  }
+
+  function parseExpectedDelta(expected) {
+    if (typeof expected !== 'string') return 0;
+    var m = expected.match(/([SABCD])\s*(?:→|->)\s*([SABCD])/);
+    if (!m) return 0;
+    var from = GRADE_VALUE[m[1]];
+    var to = GRADE_VALUE[m[2]];
+    if (from === undefined || to === undefined) return 0;
+    return to - from;
+  }
+
+  var TIME_THRESHOLD_MIN = 20; // 手間「小」と「大」の閾値（分）
+  var EFFECT_THRESHOLD_STEP = 2; // 効果「大」と「小」の閾値（グレード段数）
+
+  function quadrantFor(rx) {
+    var bigEffect = parseExpectedDelta(rx.expected) >= EFFECT_THRESHOLD_STEP;
+    var lowEffort = (Number(rx.time_min) || 0) <= TIME_THRESHOLD_MIN;
+    if (bigEffect && lowEffort) return 'big-small';
+    if (bigEffect && !lowEffort) return 'big-large';
+    if (!bigEffect && lowEffort) return 'small-small';
+    return 'small-large';
+  }
+
+  function renderMatrix() {
+    var containers = document.querySelectorAll('[data-quad-pins]');
+    var byQuad = {};
+    containers.forEach(function (el) {
+      byQuad[el.getAttribute('data-quad-pins')] = el;
+    });
+    prescriptions.forEach(function (rx, i) {
+      var quad = quadrantFor(rx);
+      var target = byQuad[quad];
+      if (!target) return;
+      var risk = riskLabel(rx.risk);
+      var pin = document.createElement('div');
+      pin.className = 'rx-pin';
+      pin.innerHTML =
+        '<span class="dot" style="background:var(--risk-' + risk + ')"></span>処方箋' + (i + 1) + ': ' + escapeHtml(rx.key);
+      target.appendChild(pin);
+    });
+  }
+
+  function renderFindings() {
+    var list = document.getElementById('findings-list');
+    var allFindings = [];
+    domains.forEach(function (d) {
+      (d.findings || []).forEach(function (f) {
+        allFindings.push({ domainLabel: d.label || d.id, finding: f });
+      });
+    });
+    var sevOrder = { CRITICAL: 0, WARN: 1, INFO: 2 };
+    allFindings.sort(function (a, b) {
+      return (sevOrder[a.finding.severity] || 9) - (sevOrder[b.finding.severity] || 9);
+    });
+
+    if (allFindings.length === 0) {
+      list.innerHTML = '<div class="empty-note">指摘事項はありません。</div>';
+      return;
+    }
+
+    var html = '';
+    allFindings.forEach(function (item) {
+      var f = item.finding;
+      html +=
+        '<details class="finding">' +
+        '<summary>' + escapeHtml(item.domainLabel) + ' / ' + f.severity + ' — ' + escapeHtml(f.detail || f.key) +
+        ' <span class="finding-tag">' + f.severity + '</span></summary>' +
+        '<div class="finding-body">' +
+        (f.evidence ? '<div>確認内容:</div><pre>' + escapeHtml(f.evidence) + '</pre>' : '') +
+        (f.recommendation ? '<div class="suggest">提案: ' + escapeHtml(f.recommendation) + '</div>' : '') +
+        '</div>' +
+        '</details>';
+    });
+    list.innerHTML = html;
+  }
+
+  function renderDiff() {
+    var section = document.getElementById('diff-section');
+    var content = document.getElementById('diff-content');
+    if (!diff) {
+      section.style.display = 'none';
+      return;
+    }
+    section.style.display = '';
+    var changes = Array.isArray(diff.changes) ? diff.changes : [];
+    var html = '<div style="margin-bottom:10px;font-size:12.5px;color:var(--text-muted);">前回診断日: ' +
+      escapeHtml(diff.prev_date || '不明') + ' / 総合: <b style="color:var(--text)">' +
+      escapeHtml(diff.overall_from || '不明') + ' → ' + escapeHtml(diff.overall_to || '不明') + '</b></div>';
+
+    if (changes.length === 0) {
+      html += '<div class="diff-empty">ドメイン別グレードの変化はありません（変化なし）。</div>';
+    } else {
+      html += '<table class="diff-table"><thead><tr><th>ドメイン</th><th>前回</th><th>今回</th></tr></thead><tbody>';
+      changes.forEach(function (c) {
+        var domainMeta = domains.find(function (d) { return d.id === c.domain; });
+        var label = (domainMeta && domainMeta.label) || c.domain;
+        html += '<tr><td>' + escapeHtml(label) + '</td><td>' + escapeHtml(c.from) +
+          '</td><td><span class="diff-arrow">' + escapeHtml(c.to) + '</span></td></tr>';
+      });
+      html += '</tbody></table>';
+    }
+    content.innerHTML = html;
+  }
+
+  renderHeader();
+  renderSummon();
+  renderGauge();
+  renderRarityGrid();
+  renderRx();
+  renderMatrix();
+  renderFindings();
+  renderDiff();
+
+  document.getElementById('foot-note').textContent =
+    'この診断結果は consult-ai-config-doctor スキルによる自動集計です。';
+
+  window.copyPrompt = function (rxId, btn) {
+    var card = document.getElementById(rxId);
+    var textarea = card.querySelector('textarea');
+    var text = textarea.value;
+
+    function fallbackCopy() {
+      textarea.removeAttribute('readonly');
+      textarea.focus();
+      textarea.select();
+      try { document.execCommand('copy'); } catch (e) {}
+      textarea.setAttribute('readonly', 'readonly');
+    }
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).catch(fallbackCopy);
+    } else {
+      fallbackCopy();
+    }
+
+    var original = btn.textContent;
+    btn.textContent = 'コピーしました';
+    btn.classList.add('copied');
+    setTimeout(function () {
+      btn.textContent = original;
+      btn.classList.remove('copied');
+    }, 1600);
+  };
+
+  window.saveDone = function (checkbox) {
+    var rx = checkbox.getAttribute('data-rx');
+    try {
+      localStorage.setItem(storageKey(rx), checkbox.checked ? '1' : '0');
+    } catch (e) { /* localStorage 不可の環境は無視 */ }
+  };
+})();
+</script>
+</body>
+</html>
