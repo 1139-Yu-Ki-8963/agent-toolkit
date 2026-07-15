@@ -172,6 +172,18 @@ allowed-tools: [Bash, Read, Write, Edit, Grep, Glob, AskUserQuestion, TaskCreate
 
 **廃棄条件**: 種別別一覧スキル群が単一スキルに再統合された時、またはエンジンが別ツールに置き換わった時
 
+### render-template.sh（build-unit-list.sh・build-screen-list.sh 共通関数の切り出し）
+
+**必要性**: 単一パス方式のプレースホルダ置換 `render_template()` は `build-unit-list.sh` と `build-screen-list.sh` に同一実装が重複しており、修正時の追従漏れリスクがあった。`shared/scripts/render-template.sh` に単一の正本を置き、両スクリプトが `source` で参照する構成に統合した。
+
+**代替案を採用しなかった理由**:
+- 重複のまま維持: ロジック修正時に2箇所へ手動反映が必要になり、実装差異の混入リスクが高い（実際に発生していた状態）
+- Bashツール直叩き: 単一パス走査ロジックは30行超で、毎回インライン記述するとエスケープ事故が再発する
+
+**保守責任者**: 人手（ユーザー）
+
+**廃棄条件**: build-unit-list.sh・build-screen-list.sh のいずれもテンプレート置換方式を使わなくなった時
+
 ### build-screen-list.sh（build-unit-list.sh の委譲先）
 
 **必要性**: 画面一覧.html生成をClaude手作業（プレースホルダ置換）で行うと、検証なしのデータ混入が発生する（実例: `entryFile=None` が10件混入）。JSONマニフェストからHTMLへの変換を決定的スクリプトに固定化し、手作業経路を根絶する。

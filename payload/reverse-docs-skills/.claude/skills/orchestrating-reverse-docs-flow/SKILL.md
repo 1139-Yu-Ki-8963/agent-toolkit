@@ -34,6 +34,7 @@ allowed-tools: [Read, Write, Bash, Grep, Glob, AskUserQuestion, TaskCreate, Task
 | アーキ未調査 | アーキテクチャ調査書が不在、または機械ゲート再実行が失敗 | surveying-architecture-for-reverse-docs |
 | 一覧未生成 | unit_kinds_present のいずれかの種別について一覧HTMLが不在、または excluded-kinds.json が不在 | generating-<種別>-list-for-reverse-docs（不在種別に対応する種別別一覧スキル） |
 | 共通未採録 | プロジェクト共通10文書のいずれか不在、または機械ゲート再実行が失敗 | generating-reverse-common-docs（NG帰着(c)差し戻し時は mode=append） |
+| ポータル未生成 | `<target_repo_path>/project-portal/index.html` が不在 | bash shared/scripts/build-portal.sh（Phase 4.2） |
 | 画面未開通 | 画面一覧HTML有・画面が未開通（設計書も基準タグも無い新規画面） | unlocking-reverse-target-screens（内部で基準タグ確立まで完走。`UNLOCKED`差し戻し時のみ`syncing-reverse-env(registry)`を管理者が直接起動） |
 | 事実未封印 | facts.lock が不在、または封印検証が失敗 | extracting-unit-facts-from-code |
 | 基本設計未著述 | 画面基本設計書（`<screen_dir>/基本設計/画面基本設計書.md`）が不在 | generating-reverse-basic-design |
@@ -103,6 +104,23 @@ headless=true 時は Agent(run_in_background: true) を使用せず、unit_kinds
 対象外種別の判定は Phase 2 で確定済みのアーキテクチャ調査書の判定（`unit_kinds_present` に含まれない種別）をそのまま転記する。6 一覧の生成結果（一覧が空かどうか）を対象外判定の根拠として二重に評価しない（正本は `references/contract.md` の excluded-kinds.json 形式）。
 
 **完了**: excluded-kinds.json が最新状態に更新されている。
+
+### Phase 4.2: ポータル生成（共通採録完了後）
+
+Phase 4（共通採録）完了後に、リバース設計ポータルを生成する。コード行数・ファイル数の計測、各種別一覧からの件数抽出、共通文書リストの収集を行い、テンプレートからポータル HTML を出力する。
+
+#### Step 4.2-1: build-portal.sh を実行する
+
+Bash で以下を実行する:
+
+```bash
+bash shared/scripts/build-portal.sh \
+  "$target_repo_path" \
+  "$docs_root" \
+  "$target_repo_path/project-portal"
+```
+
+**完了**: `<target_repo_path>/project-portal/index.html` が存在する。
 
 ### Phase 4.5: 画面バッチ実行（共通採録完了後・画面数4件以上時）
 
@@ -396,3 +414,18 @@ Phase 1 の状態判定完了後に一括登録するタスク一覧の設計。
 - 共有資産（本スキル専有ではなくリポジトリ共通、`~/reverse-docs-skills/shared/` 配下）: `shared/templates/リバース検証/`（テンプレート一式）、`shared/scripts/audit-consistency.sh`（工程間ゲート）、`shared/scripts/scaffold-screen.sh`（画面ディレクトリのテンプレート展開。正本はこの1本のみ）、`shared/scripts/seal-facts.sh`（facts封印・検証）、`shared/references/chapter-map.md`（章役割キー対応表）、`shared/references/facts-schema.md`（facts.ymlスキーマ正本）、`shared/references/リバース工程設計.md`（Phase/Step×スキル対応の正本）。各子スキルへは template_root / audit_script_path / scaffold_script_path / chapter_map_path として絶対パスを渡す
 - 画面レジストリ: `<docs_root>/一覧/reverse-screen-registry.yml`（正本定義は references/contract.md）
 - `unlocking-reverse-target-screens/manifest.yml` — 同スキルが管理するプロジェクト固有値の正本（本スキルは関知しない）
+
+## 設計判断
+
+### build-portal / render-template
+
+**必要性**: ポータル生成はリバース設計フローの Phase 4.2 で毎回実行される。テンプレート置換ロジック（render_template）は build-unit-list.sh と build-screen-list.sh に既に重複定義されており、ポータル生成でも同じロジックが必要なため、共通関数として render-template.sh に抽出した。build-portal.sh はコード行数計測・一覧件数抽出・JSON組み立て・テンプレート置換の複合処理であり、Bash ツール直叩きでは毎回の実行でトークンを大量に浪費する。
+
+**代替案を採用しなかった理由**:
+- Bash ツール直叩き: 200行超のスクリプトを毎回トークンとして消費する。フロー内で Phase 4.2 として繰り返し呼ばれるため非効率
+- 既存 Makefile ターゲット拡張: reverse-docs-skills リポジトリに Makefile は存在しない
+- package.json scripts 追加: 同リポジトリに package.json は存在しない
+
+**保守責任者**: 人手（ユーザー）。テンプレートのプレースホルダや一覧HTMLのJSON構造を変更する場合は build-portal.sh と portal-template.html を同時に更新する
+
+**廃棄条件**: リバース設計フロー自体が廃止された時、またはポータル生成が別の仕組み（専用スキル等）に置き換えられた時

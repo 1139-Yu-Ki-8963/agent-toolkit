@@ -233,7 +233,7 @@ if [ -d "$common_dir" ]; then
 fi
 
 # --- 4. JSON 組み立て ---
-METRICS_JSON="[{\"icon\":\"code\",\"label\":\"コード行数\",\"value\":\"$(format_number "$total_lines")\",\"unit\":\"行\",\"sub\":\"<b>FE</b> $(format_number "$fe_lines") ／ <b>BE</b> $(format_number "$be_lines\")\"},{\"icon\":\"folder\",\"label\":\"ファイル数\",\"value\":\"$(format_number "$total_files")\",\"unit\":\"件\",\"sub\":\"<b>FE</b> $(format_number "$fe_files") ／ <b>BE</b> $(format_number "$be_files")\"}"
+METRICS_JSON="[{\"icon\":\"code\",\"label\":\"コード行数\",\"value\":\"$(format_number "$total_lines")\",\"unit\":\"行\",\"sub\":\"<b>FE</b> $(format_number "$fe_lines") ／ <b>BE</b> $(format_number "$be_lines")\"\"},{\"icon\":\"folder\",\"label\":\"ファイル数\",\"value\":\"$(format_number "$total_files")\",\"unit\":\"件\",\"sub\":\"<b>FE</b> $(format_number "$fe_files") ／ <b>BE</b> $(format_number "$be_files")\"}"
 
 screen_count=0
 api_count=0
