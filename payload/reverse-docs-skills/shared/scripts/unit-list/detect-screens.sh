@@ -642,17 +642,18 @@ resolve_files_subcommand() {
 #      計測する。8軸の値は画面ごとに axisBreakdown{8軸} として保持しつつ、
 #      単純合算してaxisSumとする。
 #   3. score = locWeight×loc + axisWeight×axisSum(重み既定 1/1、現状は固定値)。
-#   4. 四分位境界は nearest-rank-ceil 方式: q_i_rank = ceil(N×{25,50,75}/100)
-#      (整数演算: (N*pct+99)/100)をスコア昇順ソート後の1始まり順位として取り、
-#      その順位の値を境界値とする。score<=Q1→S / <=Q2→M / <=Q3→L / それ以外→XL。
-#      N<4 の場合は全画面 layer=ALL・quartiles=null・stratified=false に縮退する。
+#   4. 六分位境界は nearest-rank-ceil-sextile 方式: q_i_rank = ceil(N×i/6) (i=1..5)
+#      (整数演算: (N*i+5)/6)をスコア昇順ソート後の1始まり順位として取り、
+#      その順位の値を境界値とする。score<=Q1→G1 / <=Q2→G2 / <=Q3→G3 / <=Q4→G4
+#      / <=Q5→G5 / それ以外→G6。
+#      N<6 の場合は全画面 layer=ALL・quantiles=null・stratified=false に縮退する。
 #   5. 層内サンプリング: layer(層)ごとに k=ceil(sqrt(層内件数))・下限3・上限10、
 #      層内件数<k なら全数を対象とする。screenKey の辞書順先頭k件を採用する。
 #      結果は layers.<層名> = {n, sampleK, sampledScreenKeys[]} として出力する。
 #   6. 出力JSON(確定仕様)を <profile-out> に書き出す:
-#      screens[](axisBreakdown・layerを含む) / layers{S,M,L,XL|ALL}
+#      screens[](axisBreakdown・layerを含む) / layers{G1,G2,G3,G4,G5,G6|ALL}
 #      / n / scoreFormula{locWeight,axisWeight,axes[8]} / sourceManifest
-#      / quartileMethod:"nearest-rank-ceil" / stratified / diagnostics[]
+#      / quantileMethod:"nearest-rank-ceil-sextile" / stratified / diagnostics[]
 #
 # --profile の自己テストは run_self_tests() 内(8-6-profile-*)に統合済み。
 
@@ -779,18 +780,22 @@ run_detect_screens_profile() {
   local n
   n="$(wc -l < "$rows_tmp" | tr -d ' ')"
 
-  local q1="" q2="" q3="" quartiles_json="null" stratified="false"
-  if [ "$n" -ge 4 ]; then
+  local q1="" q2="" q3="" q4="" q5="" quantiles_json="null" stratified="false"
+  if [ "$n" -ge 6 ]; then
     stratified="true"
-    local sorted_scores q1_rank q2_rank q3_rank
+    local sorted_scores q1_rank q2_rank q3_rank q4_rank q5_rank
     sorted_scores="$(jq -r '.score' "$rows_tmp" | sort -n)"
-    q1_rank=$(( (n * 25 + 99) / 100 ))
-    q2_rank=$(( (n * 50 + 99) / 100 ))
-    q3_rank=$(( (n * 75 + 99) / 100 ))
+    q1_rank=$(( (n * 1 + 5) / 6 ))
+    q2_rank=$(( (n * 2 + 5) / 6 ))
+    q3_rank=$(( (n * 3 + 5) / 6 ))
+    q4_rank=$(( (n * 4 + 5) / 6 ))
+    q5_rank=$(( (n * 5 + 5) / 6 ))
     q1="$(printf '%s\n' "$sorted_scores" | sed -n "${q1_rank}p")"
     q2="$(printf '%s\n' "$sorted_scores" | sed -n "${q2_rank}p")"
     q3="$(printf '%s\n' "$sorted_scores" | sed -n "${q3_rank}p")"
-    quartiles_json="$(jq -n --argjson q1 "$q1" --argjson q2 "$q2" --argjson q3 "$q3" '{q1:$q1,q2:$q2,q3:$q3}')"
+    q4="$(printf '%s\n' "$sorted_scores" | sed -n "${q4_rank}p")"
+    q5="$(printf '%s\n' "$sorted_scores" | sed -n "${q5_rank}p")"
+    quantiles_json="$(jq -n --argjson q1 "$q1" --argjson q2 "$q2" --argjson q3 "$q3" --argjson q4 "$q4" --argjson q5 "$q5" '{q1:$q1,q2:$q2,q3:$q3,q4:$q4,q5:$q5}')"
   fi
 
   : > "$jsonl_tmp"
@@ -798,16 +803,20 @@ run_detect_screens_profile() {
     [ -z "$row" ] && continue
     local score layer
     score="$(jq -r '.score' <<<"$row")"
-    if [ "$n" -lt 4 ]; then
+    if [ "$n" -lt 6 ]; then
       layer="ALL"
     elif [ "$score" -le "$q1" ]; then
-      layer="S"
+      layer="G1"
     elif [ "$score" -le "$q2" ]; then
-      layer="M"
+      layer="G2"
     elif [ "$score" -le "$q3" ]; then
-      layer="L"
+      layer="G3"
+    elif [ "$score" -le "$q4" ]; then
+      layer="G4"
+    elif [ "$score" -le "$q5" ]; then
+      layer="G5"
     else
-      layer="XL"
+      layer="G6"
     fi
     jq -c --arg layer "$layer" '. + {layer:$layer}' <<<"$row" >> "$jsonl_tmp"
   done < "$rows_tmp"
@@ -850,16 +859,16 @@ run_detect_screens_profile() {
     --argjson locWeight "$loc_weight" \
     --argjson axisWeight "$axis_weight" \
     --argjson n "$n" \
-    --argjson quartiles "$quartiles_json" \
+    --argjson quantiles "$quantiles_json" \
     --argjson stratified "$stratified" \
     --slurpfile screens "$jsonl_tmp" \
     --argjson layers "$layers_json" \
     --argjson diagnostics "$diagnostics_json" \
     '{generatedAt:$generatedAt, repoRoot:$repoRoot, sourceManifest:$sourceManifest,
-      quartileMethod:"nearest-rank-ceil",
+      quantileMethod:"nearest-rank-ceil-sextile",
       scoreFormula:{locWeight:$locWeight, axisWeight:$axisWeight,
                     axes:["import","export_type","const","state","handler","jsx","style","api"]},
-      n:$n, quartiles:$quartiles, stratified:$stratified,
+      n:$n, quantiles:$quantiles, stratified:$stratified,
       screens:$screens, layers:$layers, diagnostics:$diagnostics}' \
     > "$profile_out"
 
@@ -1266,6 +1275,9 @@ EOF
   build_profile_fixture_file "$prepo/src/screens/ScreenB/Foo.tsx" 5
   build_profile_fixture_file "$prepo/src/screens/ScreenC/Foo.tsx" 10
   build_profile_fixture_file "$prepo/src/screens/ScreenD/Foo.tsx" 20
+  build_profile_fixture_file "$prepo/src/screens/ScreenF/Foo.tsx" 30
+  build_profile_fixture_file "$prepo/src/screens/ScreenG/Foo.tsx" 40
+  build_profile_fixture_file "$prepo/src/screens/ScreenH/Foo.tsx" 50
 
   local pmanifest="$root/profile-manifest.json"
   jq -n \
@@ -1273,39 +1285,45 @@ EOF
     --arg fb "$prepo/src/screens/ScreenB/Foo.tsx" \
     --arg fc "$prepo/src/screens/ScreenC/Foo.tsx" \
     --arg fd "$prepo/src/screens/ScreenD/Foo.tsx" \
+    --arg ff "$prepo/src/screens/ScreenF/Foo.tsx" \
+    --arg fg "$prepo/src/screens/ScreenG/Foo.tsx" \
+    --arg fh "$prepo/src/screens/ScreenH/Foo.tsx" \
     '{generatedAt:null, sourceDir:"dummy", screens:[
       {screenKey:"screen-a",kind:"route",files:[$fa]},
       {screenKey:"screen-b",kind:"route",files:[$fb]},
       {screenKey:"screen-c",kind:"route",files:[$fc]},
-      {screenKey:"screen-d",kind:"route",files:[$fd]}
+      {screenKey:"screen-d",kind:"route",files:[$fd]},
+      {screenKey:"screen-f",kind:"route",files:[$ff]},
+      {screenKey:"screen-g",kind:"route",files:[$fg]},
+      {screenKey:"screen-h",kind:"route",files:[$fh]}
     ]}' > "$pmanifest"
 
   local pout="$root/profile-out.json" pstatus=0
   bash "$0" --profile "$pmanifest" "$prepo" "$pout" --recount-script "$profile_recount_script" --repo-root "$prepo" >/dev/null 2>&1 || pstatus=$?
   if [ "$pstatus" -eq 0 ]; then
-    local pt_a pt_b pt_c pt_d
-    pt_a="$(jq -r '.screens[] | select(.screenKey=="screen-a") | .layer' "$pout")"
-    pt_b="$(jq -r '.screens[] | select(.screenKey=="screen-b") | .layer' "$pout")"
-    pt_c="$(jq -r '.screens[] | select(.screenKey=="screen-c") | .layer' "$pout")"
-    pt_d="$(jq -r '.screens[] | select(.screenKey=="screen-d") | .layer' "$pout")"
-    if [ "$pt_a" = "S" ] && [ "$pt_b" = "M" ] && [ "$pt_c" = "L" ] && [ "$pt_d" = "XL" ]; then
-      test_report "8-6-profile-S/M/L/XL割当" 0
+    local pt_n pt_stratified pt_all_g
+    pt_n="$(jq -r '.n' "$pout")"
+    pt_stratified="$(jq -r '.stratified' "$pout")"
+    pt_all_g="$(jq -r '[.screens[].layer] | all(. as $l | (["G1","G2","G3","G4","G5","G6"] | index($l)) != null)' "$pout")"
+    if [ "$pt_n" = "7" ] && [ "$pt_stratified" = "true" ] && [ "$pt_all_g" = "true" ]; then
+      test_report "12-1-profile-G1-G6割当" 0
     else
-      test_report "8-6-profile-S/M/L/XL割当" 1 "A=$pt_a B=$pt_b C=$pt_c D=$pt_d"
+      test_report "12-1-profile-G1-G6割当" 1 "n=$pt_n stratified=$pt_stratified all_g=$pt_all_g"
     fi
   else
-    test_report "8-6-profile-S/M/L/XL割当" 1 "status=$pstatus"
+    test_report "12-1-profile-G1-G6割当" 1 "status=$pstatus"
   fi
 
   if [ "$pstatus" -eq 0 ]; then
-    local has_screens has_layers has_axis
+    local has_screens has_layers has_axis has_quantiles
     has_screens="$(jq -r 'has("screens")' "$pout")"
     has_layers="$(jq -r 'has("layers")' "$pout")"
     has_axis="$(jq -r '.screens[0] | has("axisBreakdown")' "$pout")"
-    if [ "$has_screens" = "true" ] && [ "$has_layers" = "true" ] && [ "$has_axis" = "true" ]; then
+    has_quantiles="$(jq -r 'has("quantiles")' "$pout")"
+    if [ "$has_screens" = "true" ] && [ "$has_layers" = "true" ] && [ "$has_axis" = "true" ] && [ "$has_quantiles" = "true" ]; then
       test_report "8-6-profile-出力スキーマ確定" 0
     else
-      test_report "8-6-profile-出力スキーマ確定" 1 "has_screens=$has_screens has_layers=$has_layers has_axis=$has_axis"
+      test_report "8-6-profile-出力スキーマ確定" 1 "has_screens=$has_screens has_layers=$has_layers has_axis=$has_axis has_quantiles=$has_quantiles"
     fi
   else
     test_report "8-6-profile-出力スキーマ確定" 1 "status=$pstatus"
@@ -1328,25 +1346,30 @@ EOF
   jq -n \
     --arg fa "$prepo/src/screens/ScreenA/Foo.tsx" \
     --arg fb "$prepo/src/screens/ScreenB/Foo.tsx" \
+    --arg fc "$prepo/src/screens/ScreenC/Foo.tsx" \
+    --arg fd "$prepo/src/screens/ScreenD/Foo.tsx" \
+    --arg ff "$prepo/src/screens/ScreenF/Foo.tsx" \
     '{generatedAt:null, sourceDir:"dummy", screens:[
       {screenKey:"screen-a",kind:"route",files:[$fa]},
-      {screenKey:"screen-b",kind:"route",files:[$fb]}
+      {screenKey:"screen-b",kind:"route",files:[$fb]},
+      {screenKey:"screen-c",kind:"route",files:[$fc]},
+      {screenKey:"screen-d",kind:"route",files:[$fd]},
+      {screenKey:"screen-f",kind:"route",files:[$ff]}
     ]}' > "$pmanifest_small"
   local pout_small="$root/profile-out-small.json" pstatus_small=0
   bash "$0" --profile "$pmanifest_small" "$prepo" "$pout_small" --recount-script "$profile_recount_script" --repo-root "$prepo" >/dev/null 2>&1 || pstatus_small=$?
   if [ "$pstatus_small" -eq 0 ]; then
-    local pts_a pts_b pts_q pts_stratified
-    pts_a="$(jq -r '.screens[] | select(.screenKey=="screen-a") | .layer' "$pout_small")"
-    pts_b="$(jq -r '.screens[] | select(.screenKey=="screen-b") | .layer' "$pout_small")"
-    pts_q="$(jq -c '.quartiles' "$pout_small")"
+    local pts_all_all pts_q pts_stratified
+    pts_all_all="$(jq -r '[.screens[].layer] | all(. == "ALL")' "$pout_small")"
+    pts_q="$(jq -c '.quantiles' "$pout_small")"
     pts_stratified="$(jq -r '.stratified' "$pout_small")"
-    if [ "$pts_a" = "ALL" ] && [ "$pts_b" = "ALL" ] && [ "$pts_q" = "null" ] && [ "$pts_stratified" = "false" ]; then
-      test_report "8-6-profile-N4未満ALL縮退" 0
+    if [ "$pts_all_all" = "true" ] && [ "$pts_q" = "null" ] && [ "$pts_stratified" = "false" ]; then
+      test_report "12-1-profile-N6未満ALL縮退" 0
     else
-      test_report "8-6-profile-N4未満ALL縮退" 1 "A=$pts_a B=$pts_b quartiles=$pts_q stratified=$pts_stratified"
+      test_report "12-1-profile-N6未満ALL縮退" 1 "all_all=$pts_all_all quantiles=$pts_q stratified=$pts_stratified"
     fi
   else
-    test_report "8-6-profile-N4未満ALL縮退" 1 "status=$pstatus_small"
+    test_report "12-1-profile-N6未満ALL縮退" 1 "status=$pstatus_small"
   fi
 
   build_profile_fixture_file "$prepo/src/screens/ScreenE1/Foo.tsx" 5
@@ -1354,6 +1377,7 @@ EOF
   build_profile_fixture_file "$prepo/src/screens/ScreenE3/Foo.tsx" 5
   build_profile_fixture_file "$prepo/src/screens/ScreenE4/Foo.tsx" 5
   build_profile_fixture_file "$prepo/src/screens/ScreenE5/Foo.tsx" 5
+  build_profile_fixture_file "$prepo/src/screens/ScreenE6/Foo.tsx" 5
   local pmanifest_flat="$root/profile-manifest-flat.json"
   jq -n \
     --arg f1 "$prepo/src/screens/ScreenE1/Foo.tsx" \
@@ -1361,12 +1385,14 @@ EOF
     --arg f3 "$prepo/src/screens/ScreenE3/Foo.tsx" \
     --arg f4 "$prepo/src/screens/ScreenE4/Foo.tsx" \
     --arg f5 "$prepo/src/screens/ScreenE5/Foo.tsx" \
+    --arg f6 "$prepo/src/screens/ScreenE6/Foo.tsx" \
     '{generatedAt:null, sourceDir:"dummy", screens:[
       {screenKey:"screen-e1",kind:"route",files:[$f1]},
       {screenKey:"screen-e2",kind:"route",files:[$f2]},
       {screenKey:"screen-e3",kind:"route",files:[$f3]},
       {screenKey:"screen-e4",kind:"route",files:[$f4]},
-      {screenKey:"screen-e5",kind:"route",files:[$f5]}
+      {screenKey:"screen-e5",kind:"route",files:[$f5]},
+      {screenKey:"screen-e6",kind:"route",files:[$f6]}
     ]}' > "$pmanifest_flat"
   local pout_flat="$root/profile-out-flat.json" pstatus_flat=0
   bash "$0" --profile "$pmanifest_flat" "$prepo" "$pout_flat" --recount-script "$profile_recount_script" --repo-root "$prepo" >/dev/null 2>&1 || pstatus_flat=$?
@@ -1374,10 +1400,10 @@ EOF
     local ptf_count ptf_tier ptf_q1 ptf_q2 ptf_q3
     ptf_count="$(jq -r '[.screens[].layer] | unique | length' "$pout_flat")"
     ptf_tier="$(jq -r '.screens[0].layer' "$pout_flat")"
-    ptf_q1="$(jq -r '.quartiles.q1' "$pout_flat")"
-    ptf_q2="$(jq -r '.quartiles.q2' "$pout_flat")"
-    ptf_q3="$(jq -r '.quartiles.q3' "$pout_flat")"
-    if [ "$ptf_count" = "1" ] && [ "$ptf_tier" = "S" ] && [ "$ptf_q1" = "$ptf_q2" ] && [ "$ptf_q2" = "$ptf_q3" ]; then
+    ptf_q1="$(jq -r '.quantiles.q1' "$pout_flat")"
+    ptf_q2="$(jq -r '.quantiles.q2' "$pout_flat")"
+    ptf_q3="$(jq -r '.quantiles.q3' "$pout_flat")"
+    if [ "$ptf_count" = "1" ] && [ "$ptf_tier" = "G1" ] && [ "$ptf_q1" = "$ptf_q2" ] && [ "$ptf_q2" = "$ptf_q3" ]; then
       test_report "8-6-profile-全同値縮退" 0
     else
       test_report "8-6-profile-全同値縮退" 1 "tier種別数=$ptf_count tier=$ptf_tier q1=$ptf_q1 q2=$ptf_q2 q3=$ptf_q3"
@@ -1392,6 +1418,199 @@ EOF
     test_report "8-6-profile-recount-script不在でexit非0" 0
   else
     test_report "8-6-profile-recount-script不在でexit非0" 1 "status=$pbad_status"
+  fi
+
+  # --- 追加: 六分位化(sextile)の境界挙動を検証する回帰テスト群(12-2) ---
+
+  # 12-2-1: n=5(N<6)で全画面 layer=ALL・stratified=false に縮退する。
+  build_profile_fixture_file "$prepo/src/screens/ScreenNA/Foo.tsx" 3
+  build_profile_fixture_file "$prepo/src/screens/ScreenNB/Foo.tsx" 6
+  build_profile_fixture_file "$prepo/src/screens/ScreenNC/Foo.tsx" 9
+  build_profile_fixture_file "$prepo/src/screens/ScreenND/Foo.tsx" 12
+  build_profile_fixture_file "$prepo/src/screens/ScreenNE/Foo.tsx" 15
+  local pmanifest_n5="$root/profile-manifest-n5.json"
+  jq -n \
+    --arg f1 "$prepo/src/screens/ScreenNA/Foo.tsx" \
+    --arg f2 "$prepo/src/screens/ScreenNB/Foo.tsx" \
+    --arg f3 "$prepo/src/screens/ScreenNC/Foo.tsx" \
+    --arg f4 "$prepo/src/screens/ScreenND/Foo.tsx" \
+    --arg f5 "$prepo/src/screens/ScreenNE/Foo.tsx" \
+    '{generatedAt:null, sourceDir:"dummy", screens:[
+      {screenKey:"n5-a",kind:"route",files:[$f1]},
+      {screenKey:"n5-b",kind:"route",files:[$f2]},
+      {screenKey:"n5-c",kind:"route",files:[$f3]},
+      {screenKey:"n5-d",kind:"route",files:[$f4]},
+      {screenKey:"n5-e",kind:"route",files:[$f5]}
+    ]}' > "$pmanifest_n5"
+  local pout_n5="$root/profile-out-n5.json" pstatus_n5=0
+  bash "$0" --profile "$pmanifest_n5" "$prepo" "$pout_n5" --recount-script "$profile_recount_script" --repo-root "$prepo" >/dev/null 2>&1 || pstatus_n5=$?
+  if [ "$pstatus_n5" -eq 0 ]; then
+    local n5_all_all n5_stratified
+    n5_all_all="$(jq -r '[.screens[].layer] | all(. == "ALL")' "$pout_n5")"
+    n5_stratified="$(jq -r '.stratified' "$pout_n5")"
+    if [ "$n5_all_all" = "true" ] && [ "$n5_stratified" = "false" ]; then
+      test_report "12-2-profile-n5縮退" 0
+    else
+      test_report "12-2-profile-n5縮退" 1 "all_all=$n5_all_all stratified=$n5_stratified"
+    fi
+  else
+    test_report "12-2-profile-n5縮退" 1 "status=$pstatus_n5"
+  fi
+
+  # 12-2-2: n=6でスコア昇順に各層(G1〜G6)がちょうど1件ずつ割り当たる。
+  local pmanifest_n6="$root/profile-manifest-n6.json"
+  local i6 pf6
+  for i6 in 1 2 3 4 5 6; do
+    pf6="$prepo/src/screens/ScreenN6_${i6}/Foo.tsx"
+    build_profile_fixture_file "$pf6" "$i6"
+  done
+  jq -n \
+    --arg f1 "$prepo/src/screens/ScreenN6_1/Foo.tsx" \
+    --arg f2 "$prepo/src/screens/ScreenN6_2/Foo.tsx" \
+    --arg f3 "$prepo/src/screens/ScreenN6_3/Foo.tsx" \
+    --arg f4 "$prepo/src/screens/ScreenN6_4/Foo.tsx" \
+    --arg f5 "$prepo/src/screens/ScreenN6_5/Foo.tsx" \
+    --arg f6 "$prepo/src/screens/ScreenN6_6/Foo.tsx" \
+    '{generatedAt:null, sourceDir:"dummy", screens:[
+      {screenKey:"n6-1",kind:"route",files:[$f1]},
+      {screenKey:"n6-2",kind:"route",files:[$f2]},
+      {screenKey:"n6-3",kind:"route",files:[$f3]},
+      {screenKey:"n6-4",kind:"route",files:[$f4]},
+      {screenKey:"n6-5",kind:"route",files:[$f5]},
+      {screenKey:"n6-6",kind:"route",files:[$f6]}
+    ]}' > "$pmanifest_n6"
+  local pout_n6="$root/profile-out-n6.json" pstatus_n6=0
+  bash "$0" --profile "$pmanifest_n6" "$prepo" "$pout_n6" --recount-script "$profile_recount_script" --repo-root "$prepo" >/dev/null 2>&1 || pstatus_n6=$?
+  if [ "$pstatus_n6" -eq 0 ]; then
+    local n6_keys n6_each_one
+    n6_keys="$(jq -r '.layers | keys | sort | join(",")' "$pout_n6")"
+    n6_each_one="$(jq -r '[.layers[].n] | all(. == 1)' "$pout_n6")"
+    if [ "$n6_keys" = "G1,G2,G3,G4,G5,G6" ] && [ "$n6_each_one" = "true" ]; then
+      test_report "12-2-profile-n6各層1件" 0
+    else
+      test_report "12-2-profile-n6各層1件" 1 "keys=$n6_keys each_one=$n6_each_one"
+    fi
+  else
+    test_report "12-2-profile-n6各層1件" 1 "status=$pstatus_n6"
+  fi
+
+  # 12-2-3: n=7で層件数の合計が7と一致する(割当漏れ・重複割当が無い)。
+  local pmanifest_n7="$root/profile-manifest-n7.json"
+  local i7 pf7
+  for i7 in 1 2 3 4 5 6 7; do
+    pf7="$prepo/src/screens/ScreenN7_${i7}/Foo.tsx"
+    build_profile_fixture_file "$pf7" "$i7"
+  done
+  jq -n \
+    --arg f1 "$prepo/src/screens/ScreenN7_1/Foo.tsx" \
+    --arg f2 "$prepo/src/screens/ScreenN7_2/Foo.tsx" \
+    --arg f3 "$prepo/src/screens/ScreenN7_3/Foo.tsx" \
+    --arg f4 "$prepo/src/screens/ScreenN7_4/Foo.tsx" \
+    --arg f5 "$prepo/src/screens/ScreenN7_5/Foo.tsx" \
+    --arg f6 "$prepo/src/screens/ScreenN7_6/Foo.tsx" \
+    --arg f7 "$prepo/src/screens/ScreenN7_7/Foo.tsx" \
+    '{generatedAt:null, sourceDir:"dummy", screens:[
+      {screenKey:"n7-1",kind:"route",files:[$f1]},
+      {screenKey:"n7-2",kind:"route",files:[$f2]},
+      {screenKey:"n7-3",kind:"route",files:[$f3]},
+      {screenKey:"n7-4",kind:"route",files:[$f4]},
+      {screenKey:"n7-5",kind:"route",files:[$f5]},
+      {screenKey:"n7-6",kind:"route",files:[$f6]},
+      {screenKey:"n7-7",kind:"route",files:[$f7]}
+    ]}' > "$pmanifest_n7"
+  local pout_n7="$root/profile-out-n7.json" pstatus_n7=0
+  bash "$0" --profile "$pmanifest_n7" "$prepo" "$pout_n7" --recount-script "$profile_recount_script" --repo-root "$prepo" >/dev/null 2>&1 || pstatus_n7=$?
+  if [ "$pstatus_n7" -eq 0 ]; then
+    local n7_sum
+    n7_sum="$(jq -r '[.layers[].n] | add' "$pout_n7")"
+    if [ "$n7_sum" = "7" ]; then
+      test_report "12-2-profile-n7割当検証" 0
+    else
+      test_report "12-2-profile-n7割当検証" 1 "sum=$n7_sum"
+    fi
+  else
+    test_report "12-2-profile-n7割当検証" 1 "status=$pstatus_n7"
+  fi
+
+  # 12-2-4: n=12でq1<=q2<=q3<=q4<=q5(境界値の単調非減少)を検証する。
+  local pmanifest_n12="$root/profile-manifest-n12.json"
+  local i12 pf12 screens_n12
+  screens_n12=""
+  for i12 in 1 2 3 4 5 6 7 8 9 10 11 12; do
+    pf12="$prepo/src/screens/ScreenN12_${i12}/Foo.tsx"
+    build_profile_fixture_file "$pf12" "$i12"
+    screens_n12="${screens_n12}{\"screenKey\":\"n12-${i12}\",\"kind\":\"route\",\"files\":[\"${pf12}\"]},"
+  done
+  screens_n12="[${screens_n12%,}]"
+  jq -n --argjson screens "$screens_n12" '{generatedAt:null, sourceDir:"dummy", screens:$screens}' > "$pmanifest_n12"
+  local pout_n12="$root/profile-out-n12.json" pstatus_n12=0
+  bash "$0" --profile "$pmanifest_n12" "$prepo" "$pout_n12" --recount-script "$profile_recount_script" --repo-root "$prepo" >/dev/null 2>&1 || pstatus_n12=$?
+  if [ "$pstatus_n12" -eq 0 ]; then
+    local n12_monotonic
+    n12_monotonic="$(jq -r '.quantiles | (.q1 <= .q2) and (.q2 <= .q3) and (.q3 <= .q4) and (.q4 <= .q5)' "$pout_n12")"
+    if [ "$n12_monotonic" = "true" ]; then
+      test_report "12-2-profile-n12単調非減少" 0
+    else
+      test_report "12-2-profile-n12単調非減少" 1 "monotonic=$n12_monotonic quantiles=$(jq -c '.quantiles' "$pout_n12")"
+    fi
+  else
+    test_report "12-2-profile-n12単調非減少" 1 "status=$pstatus_n12"
+  fi
+
+  # 12-2-5: 同点スコアが境界を跨ぐ場合でも、二重割当・無割当が発生しない。
+  local pmanifest_tie="$root/profile-manifest-tie.json"
+  local itie pftie screens_tie tie_idx
+  screens_tie=""
+  tie_idx=0
+  for itie in 1 1 2 2 3 3 4 4; do
+    tie_idx=$((tie_idx + 1))
+    pftie="$prepo/src/screens/ScreenTie_${tie_idx}/Foo.tsx"
+    build_profile_fixture_file "$pftie" "$itie"
+    screens_tie="${screens_tie}{\"screenKey\":\"tie-${tie_idx}\",\"kind\":\"route\",\"files\":[\"${pftie}\"]},"
+  done
+  screens_tie="[${screens_tie%,}]"
+  jq -n --argjson screens "$screens_tie" '{generatedAt:null, sourceDir:"dummy", screens:$screens}' > "$pmanifest_tie"
+  local pout_tie="$root/profile-out-tie.json" pstatus_tie=0
+  bash "$0" --profile "$pmanifest_tie" "$prepo" "$pout_tie" --recount-script "$profile_recount_script" --repo-root "$prepo" >/dev/null 2>&1 || pstatus_tie=$?
+  if [ "$pstatus_tie" -eq 0 ]; then
+    local tie_sum tie_no_null
+    tie_sum="$(jq -r '[.layers[].n] | add' "$pout_tie")"
+    tie_no_null="$(jq -r '[.screens[] | select(.layer == null)] | length' "$pout_tie")"
+    if [ "$tie_sum" = "8" ] && [ "$tie_no_null" = "0" ]; then
+      test_report "12-2-profile-同点境界" 0
+    else
+      test_report "12-2-profile-同点境界" 1 "sum=$tie_sum no_null_violations=$tie_no_null"
+    fi
+  else
+    test_report "12-2-profile-同点境界" 1 "status=$pstatus_tie"
+  fi
+
+  # 12-2-6: n=250の大規模データで層件数の合計がnと一致し、G1〜G6が全て非空になる。
+  local pmanifest_big="$root/profile-manifest-big.json"
+  local ibig pfbig screens_big_tmp
+  screens_big_tmp="$(mktemp)"
+  : > "$screens_big_tmp"
+  for ibig in $(seq 1 250); do
+    pfbig="$prepo/src/screens/ScreenBig_${ibig}/Foo.tsx"
+    build_profile_fixture_file "$pfbig" "$ibig"
+    printf '{"screenKey":"big-%s","kind":"route","files":["%s"]}\n' "$ibig" "$pfbig" >> "$screens_big_tmp"
+  done
+  jq -s '{generatedAt:null, sourceDir:"dummy", screens:.}' "$screens_big_tmp" > "$pmanifest_big"
+  rm -f "$screens_big_tmp"
+  local pout_big="$root/profile-out-big.json" pstatus_big=0
+  bash "$0" --profile "$pmanifest_big" "$prepo" "$pout_big" --recount-script "$profile_recount_script" --repo-root "$prepo" >/dev/null 2>&1 || pstatus_big=$?
+  if [ "$pstatus_big" -eq 0 ]; then
+    local big_n big_sum big_all_nonempty
+    big_n="$(jq -r '.n' "$pout_big")"
+    big_sum="$(jq -r '[.layers[].n] | add' "$pout_big")"
+    big_all_nonempty="$(jq -r '(["G1","G2","G3","G4","G5","G6"] - (.layers | keys)) | length == 0' "$pout_big")"
+    if [ "$big_n" = "250" ] && [ "$big_sum" = "250" ] && [ "$big_all_nonempty" = "true" ]; then
+      test_report "12-2-profile-n250大規模" 0
+    else
+      test_report "12-2-profile-n250大規模" 1 "n=$big_n sum=$big_sum all_nonempty=$big_all_nonempty"
+    fi
+  else
+    test_report "12-2-profile-n250大規模" 1 "status=$pstatus_big"
   fi
 
   rm -rf "$root"

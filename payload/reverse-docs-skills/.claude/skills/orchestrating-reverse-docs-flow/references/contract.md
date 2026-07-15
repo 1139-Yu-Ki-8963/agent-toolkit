@@ -349,6 +349,22 @@ rebuilding-code-from-docs（mode=judge）Phase 9 の凍結検証（`scripts/chec
 
 実走中に不具合を発見した場合は、実行環境で応急処置した内容を正本リポジトリに持ち帰り、正本で修正してから再配布する。実行環境のみに留まる修正は次回配布で上書き消失する。
 
+## 設計判断
+
+### check-runbook-presence.sh
+
+**必要性**: `RUNBOOK.md`（運転規約）は本契約文書・`syncing-reverse-env/SKILL.md`・`shared/scripts/check-worktree-commit-guard.sh` の複数箇所から相互参照されており、`RUNBOOK.md` 側の見出し構成変更や参照元の記述変更が起きると死に参照（存在しない見出しの参照・削除済みファイルへの言及）が発生しうる。これを目視レビューだけに委ねると見落としが発生するため、実在・5 見出しの構造・各参照元での言及有無を機械的に突合する self-test を固定化する。
+
+**代替案を採用しなかった理由**:
+- Bash ツール直叩き: 5 項目の突合を毎回手書きすると条件がぶれて回帰検証ができない
+- 既存 Makefile ターゲット拡張: 本リポジトリに Makefile は存在せず、新規導入は本チェック専用の依存を増やすだけになる
+- package.json scripts 追加: 同様に本リポジトリはビルド設定を持たない
+
+**保守責任者**: 人手（ユーザー）。`RUNBOOK.md` の見出し構成、または参照元 3 ファイル（contract.md・syncing-reverse-env/SKILL.md・check-worktree-commit-guard.sh）の記述を変更した場合は本スクリプトも同時に更新する。
+
+**廃棄条件**: `RUNBOOK.md` が廃止された時、または相互参照の整合性検査を別の機構（textlint 等）に統合した時。
+
 ## 関連
 
 - `RUNBOOK.md` — 運転規約（推奨配置・起動規約・安全柵・無人モード厳守事項）
+- `../../../shared/scripts/check-runbook-presence.sh` — RUNBOOK.md の実在・構造・死に参照解消を検査する self-test スクリプト

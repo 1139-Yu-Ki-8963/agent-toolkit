@@ -22,6 +22,47 @@
 
 set -euo pipefail
 
+if [ "${1:-}" = "--self-test" ]; then
+  _pass=0 _fail=0
+  _check() {
+    local name="$1" ok="$2"
+    if [ "$ok" = "1" ]; then echo "PASS: $name"; _pass=$((_pass+1))
+    else echo "FAIL: $name"; _fail=$((_fail+1)); fi
+  }
+
+  _tmp="$(mktemp -d)"
+  trap 'rm -rf "$_tmp"' EXIT
+
+  # 正常系: HEAD が凍結ハッシュと一致
+  git -C "$_tmp" init -q
+  echo "dummy" > "$_tmp/file.txt"
+  git -C "$_tmp" add .
+  git -C "$_tmp" commit -q -m "frozen commit"
+  _frozen="$(git -C "$_tmp" rev-parse HEAD)"
+  _result=0
+  bash "$0" "$_tmp" "$_frozen" 2>/dev/null || _result=$?
+  if [ "$_result" -eq 0 ]; then _ok1=1; else _ok1=0; fi
+  _check "HEAD一致で凍結検証PASS" "$_ok1"
+
+  # 異常系: HEAD が凍結ハッシュと不一致
+  echo "change" >> "$_tmp/file.txt"
+  git -C "$_tmp" add .
+  git -C "$_tmp" commit -q -m "post-freeze commit"
+  _result2=0
+  bash "$0" "$_tmp" "$_frozen" 2>/dev/null || _result2=$?
+  if [ "$_result2" -ne 0 ]; then _ok2=1; else _ok2=0; fi
+  _check "HEAD不一致で凍結検証FAIL" "$_ok2"
+
+  # 異常系: 引数不足
+  _result3=0
+  bash "$0" 2>/dev/null || _result3=$?
+  if [ "$_result3" -ne 0 ]; then _ok3=1; else _ok3=0; fi
+  _check "引数不足でexit非0" "$_ok3"
+
+  echo "self-test: $_pass PASS, $_fail FAIL"
+  if [ "$_fail" -eq 0 ]; then exit 0; else exit 1; fi
+fi
+
 WORKTREE_PATH="${1:-}"
 FROZEN_HASH="${2:-}"
 
