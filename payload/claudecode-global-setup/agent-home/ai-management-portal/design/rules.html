@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>rules 設計ガイド — agent-home</title>
+  <title>Rules 設計ガイド — agent-home</title>
   <link rel="stylesheet" href="../style.css" />
   <link rel="stylesheet" href="design.css" />
   <script type="module" src="../src/common/header.js"></script>
@@ -16,11 +16,11 @@
   <div class="sd-wrap">
 
     <div class="page-hero" style="margin-bottom:20px">
-      <h1>rules 設計ガイド</h1>
+      <h1>Rules 設計ガイド</h1>
       <p>
         <code>~/.claude/rules/</code> 配下にカテゴリ別の規約を育てる方針と、配置・命名・hook 連携・paths 戦略のルール集。
         関連スクリプト（hook script・検査スクリプト）も rules フォルダに同居させる。
-        <a href="../index.html#/category/catalog">← カタログへ</a>
+        <a href="../index.html#/category/registry">← 登録一覧へ</a>
       </p>
     </div>
 
@@ -139,7 +139,7 @@
             <thead><tr><th>項目</th><th>例</th></tr></thead>
             <tbody>
               <tr><td>機械強制と pair の規約</td><td>「ルート直下マーカー禁止」「<code>.sh</code> 作成時 ADR 必須」</td></tr>
-              <tr><td>hook が注入する <code>[<TAG>]</code> への対応手順</td><td><code>[NO-ROOT-MARKER-BLOCK]</code> → 書き出し先を <code>${TMPDIR}/claude-hooks/${session}/</code> に変更</td></tr>
+              <tr><td>hook が注入する <code>[<TAG>]</code> への対応手順</td><td><code>[CLAUDE-HOME-ROOT-MARKER-BLOCK]</code> → 書き出し先を <code>${TMPDIR}/claude-hooks/${session}/</code> に変更</td></tr>
               <tr><td>例外ホワイトリスト</td><td>「<code>/tmp/claude-hooks/**</code> は block しない」</td></tr>
               <tr><td>違反の背景・なぜ禁止か</td><td>「過去 821 件のドットファイル蓄積を引き起こした」</td></tr>
               <tr><td>カテゴリ別の長文ルール</td><td>security / hooks-architecture / no-root-marker / naming など</td></tr>
@@ -326,7 +326,7 @@ paths:
           <table class="sd-table">
             <thead><tr><th>項目</th><th>規約</th></tr></thead>
             <tbody>
-              <tr><td>タグ名</td><td>大文字ハイフン区切り（例: <code>[NO-ROOT-MARKER-BLOCK]</code>）</td></tr>
+              <tr><td>タグ名</td><td>大文字ハイフン区切り（例: <code>[CLAUDE-HOME-ROOT-MARKER-BLOCK]</code>）</td></tr>
               <tr><td>タグと rule.md の対応</td><td>1:1。<code>[FOO-BLOCK]</code> なら <code>rules/foo*.md</code> に対応手順がある</td></tr>
               <tr><td>additionalContext の長さ</td><td>短文（300 字以内）。詳細手順は書かず、タグ＋短い指示＋rule.md への path</td></tr>
               <tr><td>修正手順の所在</td><td>rule.md 本体に書く（既に launch 時にロード済みなので Claude が即参照できる）</td></tr>
@@ -334,7 +334,7 @@ paths:
           </table>
 
           <h3 class="sd-h3">hook 側に書く内容</h3>
-          <div class="sd-code-label">例: rules/no-root-marker-rules/no-root-marker-check.sh</div>
+          <div class="sd-code-label">例: rules/always/placement/file-guard/check-claude-home-root-marker.sh</div>
           <div class="sd-code">#!/bin/sh
 cmd=$(jq -r '.tool_input.command')
 if echo "$cmd" | grep -qE 'touch \"?\$HOME/\.claude/\.[a-z-]+'; then
@@ -342,7 +342,7 @@ if echo "$cmd" | grep -qE 'touch \"?\$HOME/\.claude/\.[a-z-]+'; then
 {
   "hookSpecificOutput": {
     "hookEventName": "PreToolUse",
-    "additionalContext": "[NO-ROOT-MARKER-BLOCK] ルート直下マーカー禁止。書き出し先を \${TMPDIR}/claude-hooks/\${session}/<name> に変更。詳細: ~/.claude/rules/no-root-marker.md"
+    "additionalContext": "[CLAUDE-HOME-ROOT-MARKER-BLOCK] ルート直下マーカー禁止。書き出し先を \${TMPDIR}/claude-hooks/\${session}/<name> に変更。詳細: ~/.claude/rules/no-root-marker.md"
   },
   "permissionDecision": "deny"
 }
@@ -406,8 +406,8 @@ fi</div>
               <tr><td>カテゴリ（フォルダ・ファイル）</td><td>kebab-case</td><td><code>no-root-marker</code>, <code>hooks-architecture</code></td></tr>
               <tr><td>フォルダ形式</td><td><code><category>-rules/</code></td><td><code>hooks-architecture-rules/</code></td></tr>
               <tr><td>規約本体</td><td><code>rule.md</code> または <code><category>.md</code></td><td><code>rule.md</code>（フォルダ形式時）</td></tr>
-              <tr><td>hook script</td><td>kebab-case + <code>.sh</code></td><td><code>no-root-marker-check.sh</code></td></tr>
-              <tr><td>注入タグ</td><td>UPPER-HYPHEN</td><td><code>[NO-ROOT-MARKER-BLOCK]</code></td></tr>
+              <tr><td>hook script</td><td>kebab-case + <code>.sh</code></td><td><code>check-claude-home-root-marker.sh</code></td></tr>
+              <tr><td>注入タグ</td><td>UPPER-HYPHEN</td><td><code>[CLAUDE-HOME-ROOT-MARKER-BLOCK]</code></td></tr>
             </tbody>
           </table>
 
@@ -461,11 +461,11 @@ paths:                             # 任意。常時必要なら省略
   no-root-marker.md                    … 単一ファイル形式
   hooks-architecture-rules/            … フォルダ形式
     rule.md                            … 規約本体
-    hooks-architecture-check.sh        … PreToolUse hook
+    check-hooks-architecture.sh        … PreToolUse hook
     README.md                          … 任意
   no-root-marker-rules/                … フォルダ形式（hook 同居版）
     rule.md
-    no-root-marker-check.sh
+    check-claude-home-root-marker.sh
     cleanup-session-markers.sh
   ※ 設計判断は各 rule.md 内に ## 設計判断 セクションとして記載（独立 ADR ファイルは廃止）</div>
         </section>

@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>スキル利用頻度 — agent-home</title>
+  <link rel="stylesheet" href="../style.css" />
+  <script type="module" src="../src/common/header.js"></script>
+</head>
+<body>
+  <div class="cat-wrap">
+    <div class="page-hero">
+      <h1>スキル利用頻度</h1>
+      <p>~/agent-home/sessions/.skill-log の Skill ツール起動回数を集計し、発火健全性の観点で診断したものです。<a href="../index.html#/">← フロー・ポータルへ戻る</a></p>
+    </div>
+
+    <div class="usage-note">
+      <strong>注意</strong>：skill-log は <b>Skill ツール経由の起動のみ</b>を記録します。0 回＝不要ではありません。hook・CLAUDE.md・cron・上位スキルからの間接起動はカウントされないため、診断は回数だけでなく間接起動・上位代替・トリガー健全性を加味しています。
+    </div>
+
+    <div class="cat-bar">
+      <a class="cat-back" href="../index.html#/">← ポータル TOP</a>
+      <span class="cat-total" id="total"></span>
+      <input class="cat-filter" id="filter" type="search" placeholder="スキル名・理由で絞り込み…" autocomplete="off" />
+    </div>
+
+    <div id="list"></div>
+  </div>
+
+  <script type="module">
+    import { SKILL_USAGE, USAGE_SNAPSHOT } from "../data/skill-usage.js";
+
+    // 診断グループ（表示順：改善＝要対応を先頭に）
+    const DIAGS = [
+      { key: "improve", label: "発火改善", tag: "tag-stop",
+        desc: "呼ばれるべきが呼ばれていない（トリガー不全 / 上位スキルが代替）。トリガー改善・統合で是正する" },
+      { key: "merge", label: "統合検討", tag: "tag-prompt",
+        desc: "機能が重複し、他スキルへ統合できる候補" },
+      { key: "keep", label: "維持", tag: "tag-skill",
+        desc: "高頻度、または hook / CLAUDE / cron で間接起動される（カウント過少を含む）" },
+    ];
+
+    const root = document.getElementById("list");
+    const totalEl = document.getElementById("total");
+    const filterEl = document.getElementById("filter");
+    totalEl.textContent = SKILL_USAGE.length + " スキル / スナップショット " + USAGE_SNAPSHOT;
+
+    function rowHtml(s) {
+      const why = s.why ? '<div class="frow"><span class="frow-label">理由</span><span class="frow-val">' + s.why + '</span></div>' : "";
+      const nClass = s.n === 0 ? "u-zero" : (s.n < 5 ? "u-low" : "u-ok");
+      return (
+        '<details class="fr" data-key="' + (s.id + " " + (s.why || "")).toLowerCase() + '">' +
+          '<summary>' +
+            '<span class="expbtn">+</span>' +
+            '<span class="fn">' + s.id + '</span>' +
+            '<span class="u-count ' + nClass + '">' + s.n + ' 回</span>' +
+            '<span class="u-last">' + s.last + '</span>' +
+          '</summary>' +
+          '<div class="fdetail">' +
+            '<div class="fmeta">~/agent-home/skills/' + s.id + '/SKILL.md</div>' +
+            '<div class="frow"><span class="frow-label">起動回数</span><span class="frow-val">' + s.n + ' 回（最終 ' + s.last + '）</span></div>' +
+            why +
+          '</div>' +
+        '</details>'
+      );
+    }
+
+    function render() {
+      root.innerHTML = "";
+      DIAGS.forEach((d, i) => {
+        const items = SKILL_USAGE.filter((s) => s.diag === d.key);
+        if (items.length === 0) return;
+        const sec = document.createElement("details");
+        sec.className = "cat-block";
+        sec.open = true;
+        sec.innerHTML =
+          '<summary class="cat-card">' +
+            '<span class="cat-fold"></span>' +
+            '<div class="cat-num-block"><span class="cat-number">' + String(i + 1).padStart(2, "0") + '</span></div>' +
+            '<div class="cat-body"><div class="cat-name">' + d.label + ' <span class="tag ' + d.tag + '">' + items.length + '</span></div><div class="cat-desc">' + d.desc + '</div></div>' +
+            '<span class="cat-count">' + items.length + ' skills</span>' +
+          '</summary>' +
+          '<div class="file-rows">' + items.map(rowHtml).join("") + '</div>';
+        root.appendChild(sec);
+      });
+    }
+
+    function applyFilter() {
+      const q = filterEl.value.trim().toLowerCase();
+      let shown = 0;
+      root.querySelectorAll("details.cat-block").forEach((sec) => {
+        let secShown = 0;
+        sec.querySelectorAll("details.fr").forEach((dt) => {
+          const hit = !q || dt.dataset.key.includes(q);
+          dt.style.display = hit ? "" : "none";
+          if (hit) { secShown++; shown++; }
+        });
+        sec.style.display = secShown > 0 ? "" : "none";
+        if (q && secShown > 0) sec.open = true;
+      });
+      totalEl.textContent = q
+        ? shown + " 件ヒット / " + SKILL_USAGE.length + " スキル"
+        : SKILL_USAGE.length + " スキル / スナップショット " + USAGE_SNAPSHOT;
+    }
+
+    let t;
+    filterEl.addEventListener("input", () => { clearTimeout(t); t = setTimeout(applyFilter, 120); });
+    render();
+  </script>
+</body>
+</html>

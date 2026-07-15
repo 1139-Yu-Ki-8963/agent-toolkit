@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Subagent 設計ガイド — agent-home</title>
+  <title>Subagents 設計ガイド — agent-home</title>
   <link rel="stylesheet" href="../style.css" />
   <link rel="stylesheet" href="design.css" />
   <script type="module" src="../src/common/header.js"></script>
@@ -20,11 +20,11 @@
 
     <!-- Hero -->
     <div class="page-hero" style="margin-bottom:20px">
-      <h1>Subagent 設計ガイド</h1>
+      <h1>Subagents 設計ガイド</h1>
       <p>
         カスタムサブエージェント（<code>~/.claude/agents/</code>）を設計・作成するときに従う定義とルール集。
         4 役割の使い分け・frontmatter 仕様・references 構造・品質基準を一覧で参照できる。
-        <a href="../index.html#/category/catalog">← カタログへ</a>
+        <a href="../index.html#/category/registry">← 登録一覧へ</a>
       </p>
     </div>
 
@@ -47,6 +47,7 @@
           <li><a href="#s11"><span class="toc-num">§11</span>Skill との連携</a></li>
           <li><a href="#s12"><span class="toc-num">§12</span>品質チェックリスト</a></li>
           <li><a href="#s13"><span class="toc-num">§13</span>調査チェックリストパイプライン</a></li>
+          <li><a href="#s14"><span class="toc-num">§14</span>計画暗黙知プローブ</a></li>
         </ul>
         <div class="toc-sep"></div>
         <div style="font-size:11px;color:var(--text-muted);padding:4px 8px;line-height:1.6">
@@ -169,7 +170,7 @@ Q3. 作業に判断が必要か？
             <div class="sd-gotcha-title">判定の注意点</div>
             <ul>
               <li>「判断が必要か」で迷ったら <strong>worker-sonnet に倒す</strong>。haiku に判断タスクを渡すと品質が崩壊する</li>
-              <li>brain は <strong>自分では実装しない</strong>。計画を立てて worker に渡すか、worker の結果を検証するだけ</li>
+              <li>brain は <strong>自分では実装しない</strong>。計画を立てて worker に渡すだけ（合否判定は判定系 *-reviewer の役割）</li>
               <li>researcher は <strong>ローカルファイルの修正を行わない</strong>。情報収集に特化する</li>
             </ul>
           </div>
@@ -313,7 +314,7 @@ model: &lt;opus | sonnet | haiku&gt;
             <thead><tr><th>役割パターン</th><th>推奨ツールセット</th><th>禁止ツール</th></tr></thead>
             <tbody>
               <tr>
-                <td><span class="agent-badge agent-brain">計画・検証系</span></td>
+                <td><span class="agent-badge agent-brain">計画系</span></td>
                 <td><code>Read, Grep, Glob, Bash</code></td>
                 <td>Write, Edit（計画者は書かない）</td>
               </tr>
@@ -584,7 +585,7 @@ Step 2: 調査実行
   各 finding に証拠（コマンド出力）を添付して報告。
 
 Step 3: レビュー
-  Agent(subagent_type: "reviewer") にチェックリスト + 調査結果を渡す。
+  Agent(subagent_type: "report-reviewer") にチェックリスト + 調査結果を渡す。
   レビュアーが 4 観点（完了性・証拠・事実性・再現性）で検証し PASS / FAIL を返す。
   FAIL なら Step 2 に戻る（最大 2 回）。</div>
 
@@ -605,7 +606,7 @@ Step 3: レビュー
 
           <h3 class="sd-h3">機械強制</h3>
           <div class="sd-def">
-            <strong>PreToolUse(Agent) hook: <code>check-investigation-checklist.sh</code></strong><br>
+            <strong>PreToolUse(Agent) hook: <code>check-evidence-checklist.sh</code></strong><br>
             調査・レビュー系の Agent 委任で prompt 内に <code>## 調査チェックリスト</code> がなければ
             <code>[CHECKLIST-MISSING]</code> で exit 2 block。<br>
             例外: worker-haiku / routine-worker / <code>[CHECKLIST-EXEMPT]</code> 明示。
@@ -616,7 +617,7 @@ Step 3: レビュー
             <thead><tr><th>ファイル</th><th>役割</th></tr></thead>
             <tbody>
               <tr>
-                <td><code>~/.claude/rules/always/agent/subagent-delegation/rule.md</code></td>
+                <td><code>~/.claude/rules/always/agent/subagent-selection/rule.md</code></td>
                 <td>委任規約本体（パイプライン定義）</td>
               </tr>
               <tr>
@@ -624,15 +625,77 @@ Step 3: レビュー
                 <td>チェックリスト作成スキル</td>
               </tr>
               <tr>
-                <td><code>~/.claude/agents/reviewer/reviewer.md</code></td>
+                <td><code>~/.claude/agents/report-reviewer/report-reviewer.md</code></td>
                 <td>レビュアーエージェント定義</td>
               </tr>
               <tr>
-                <td><code>~/.claude/rules/always/agent/subagent-delegation/check-investigation-checklist.sh</code></td>
+                <td><code>~/.claude/rules/always/agent/subagent-selection/check-evidence-checklist.sh</code></td>
                 <td>hook スクリプト</td>
               </tr>
             </tbody>
           </table>
+        </section>
+
+        <!-- §14 -->
+        <section class="sd-section" id="s14">
+          <h2 class="sd-h2"><span class="sec-num">§14</span>計画暗黙知プローブ</h2>
+          <div class="sd-def">
+            計画の書き手（上位モデル・人間）が無自覚に省略した前提（暗黙知）を、
+            コンテキストゼロの弱モデル（<code>plan-comprehension-prober</code> / Haiku）に計画だけを読ませて検出する仕組み。
+          </div>
+
+          <h3>原理</h3>
+          <p>
+            書き手は自分のコンテキストを前提に記述を省略する。書き手自身が読み直しても脳内で自動補完してしまうため、省略には気づけない。
+            コンテキストゼロの弱い読み手に計画だけを読ませると、行間を埋められず省略箇所で理解が壊れる。
+            壊れ方（誤読・推測・判断不能）が暗黙知の地図になる。
+          </p>
+
+          <h3>構成要素</h3>
+          <table class="sd-table">
+            <thead><tr><th>要素</th><th>役割</th></tr></thead>
+            <tbody>
+              <tr><td><code>plan-comprehension-prober</code></td><td>Haiku 固定のサブエージェント。計画文のみを受け取り、5 項目形式（目的の言い換え・手順の再説明・推測で補った前提・判断できなかった点・最初の一手）で理解を言語化する</td></tr>
+              <tr><td><code>eliciting-plan-tacit-knowledge</code></td><td>オーケストレーションスキル。プローブ委任 → ギャップ 4 分類（誤読・欠落・曖昧・偶然の的中）→ 計画への再統合 → 収束確認（最大 2 周）を制御する</td></tr>
+              <tr><td><code>check-plan-draft-write-gate.sh</code></td><td>PreToolUse(Write) hook。計画ファイルへの最初の永続化をスキル発火前に block する</td></tr>
+              <tr><td><code>check-plan-tacit-knowledge-gate.sh</code></td><td>PreToolUse(ExitPlanMode) hook。計画の承認提出をスキル再発火前に block する。Write 版と消費カウンタを共有し、1 計画サイクルで 2 回の検証を強制する</td></tr>
+            </tbody>
+          </table>
+
+          <h3>機械強制のフロー</h3>
+          <pre class="sd-pre">
+計画を組み立てる
+  ↓
+計画ファイルへ Write ← ❶ check-plan-draft-write-gate（未発火なら block）
+  ↓
+Skill(eliciting-plan-tacit-knowledge) → prober が初見読解 → ギャップ修正
+  ↓
+Write 通過（消費カウンタ更新）
+  ↓
+Edit で計画を修正
+  ↓
+ExitPlanMode ← ❷ check-plan-tacit-knowledge-gate（再発火なしなら block）
+  ↓
+Skill(eliciting-plan-tacit-knowledge) → 修正後計画を再プローブ
+  ↓
+ExitPlanMode 通過 → ユーザーに承認 UI</pre>
+
+          <h3>成立条件</h3>
+          <table class="sd-table">
+            <thead><tr><th>条件</th><th>実現手段</th><th>破ると</th></tr></thead>
+            <tbody>
+              <tr><td>読み手がコンテキストゼロ</td><td>新規 Agent 委任（計画文のみ埋め込み）</td><td>意図を知っている読み手は省略に気づけない</td></tr>
+              <tr><td>読み手が弱いモデル</td><td>Haiku 固定</td><td>強いモデルは行間を補完してしまう</td></tr>
+              <tr><td>「わからない」を言わせる</td><td>推測・判断不能の明示列挙を 5 項目形式で強制</td><td>曖昧な要約だけが返る</td></tr>
+            </tbody>
+          </table>
+
+          <h3>保証と限界</h3>
+          <ul>
+            <li><strong>保証</strong>: 計画ファイルへの最初の永続化と承認提出の 2 地点で、暗黙知チェックの通過を機械的に強制する</li>
+            <li><strong>限界</strong>: スキル実行自体が Agent 呼び出し（計画全文を prompt に埋め込む）としてトランスクリプトに現れるため、計画内容の露出経路を完全には塞げない</li>
+            <li><strong>限界</strong>: plan mode を経由しない計画立案（brain サブエージェント呼び出し等）は対象外</li>
+          </ul>
         </section>
 
       </article>

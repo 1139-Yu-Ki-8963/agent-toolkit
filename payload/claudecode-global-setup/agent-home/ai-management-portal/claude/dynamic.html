@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>動的データ・状態 — AI マネジメントポータル</title>
+  <link rel="stylesheet" href="../style.css" />
+  <script type="module" src="../src/common/header.js"></script>
+</head>
+<body>
+  <div class="pm-page">
+    <main class="pm-main">
+      <div class="pm-hero">
+        <div>
+          <h1>動的データ・状態</h1>
+          <p>ランタイムで成長するファイル群を、寿命・保持目的・削除可否で分類する。<code>.gitignore</code> で除外する対象の判定材料に使う。</p>
+        </div>
+        <a class="pm-updated" href="../index.html#/category/claude-config">← .claude 設定層</a>
+      </div>
+
+      <div class="sec-label">分類表</div>
+      <div class="prose">
+        <table class="design-table">
+          <thead><tr><th>対象</th><th>寿命</th><th>保持目的</th><th>削除可否</th></tr></thead>
+          <tbody>
+            <tr><td><code>sessions/</code></td><td>セッション単位</td><td>transcript・要約の再参照</td><td>古いものは整理可</td></tr>
+            <tr><td><code>projects/</code></td><td>プロジェクト単位</td><td>プロジェクト別の状態保持</td><td>該当プロジェクト削除時のみ</td></tr>
+            <tr><td><code>history.jsonl</code></td><td>長期</td><td>全セッション横断の操作履歴</td><td>原則保持</td></tr>
+            <tr><td><code>logs/</code></td><td>短〜中期</td><td>ランタイムログ</td><td>定期 rotate 可</td></tr>
+            <tr><td><code>dev-flow-logs/</code></td><td>中期</td><td>FLOW-SELECT の発火痕跡</td><td>分析後に削除可</td></tr>
+            <tr><td><code>file-history/</code></td><td>中期</td><td>Edit/Write の前後差分</td><td>diff 確認後は整理可</td></tr>
+            <tr><td><code>cache/</code></td><td>短期</td><td>汎用キャッシュ</td><td>いつでも削除可</td></tr>
+            <tr><td><code>paste-cache/</code></td><td>短期</td><td>貼り付け画像・テキスト</td><td>セッション終了で削除可</td></tr>
+            <tr><td><code>uploads/</code></td><td>短期</td><td>セッション内アップロード</td><td>セッション終了で削除可</td></tr>
+            <tr><td><code>shell-snapshots/</code></td><td>短期</td><td>Bash の状態スナップショット</td><td>セッション終了で削除可</td></tr>
+            <tr><td><code>session-env/</code></td><td>セッション単位</td><td>セッション固有の env</td><td>セッション終了で削除可</td></tr>
+            <tr><td><code>jobs/</code></td><td>セッション〜短期</td><td>background bash・workflow の状態</td><td>完了後に整理可</td></tr>
+            <tr><td><code>tasks/</code></td><td>セッション単位</td><td>TaskCreate のスナップショット</td><td>セッション終了で整理可</td></tr>
+            <tr><td><code>backups/</code></td><td>長期</td><td>設定変更の roll-back 用</td><td>世代管理で整理</td></tr>
+            <tr><td><code>daemon.log</code> / <code>daemon.status.json</code> / <code>daemon-auth-*</code></td><td>常駐</td><td>daemon の状態と認証情報</td><td>daemon 終了で再生成</td></tr>
+            <tr><td><code>gh-pr-status-cache.json</code> / <code>mcp-needs-auth-cache.json</code></td><td>短〜中期</td><td>外部 API 呼び出しの結果キャッシュ</td><td>いつでも削除可</td></tr>
+            <tr><td><code>hook-skip.log</code></td><td>中期</td><td>hook スキップの観測</td><td>分析後に削除可</td></tr>
+            <tr><td><code>.manual-coverage-*</code>（マーカー）</td><td>短期</td><td>カバレッジ既読フラグ</td><td>セッション終了で削除可</td></tr>
+            <tr><td><code>.in-progress-flow-*</code>（マーカー）</td><td>セッション単位</td><td>flow-select 進行中フラグ</td><td>セッション終了で削除可</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="sec-label">git で追跡する／しない</div>
+      <div class="prose">
+        <p>本リポジトリは <code>.gitignore</code> で動的層を一括除外する設計。新規の動的ファイルを生むツールを追加した場合は <code>.gitignore</code> に追記し、誤コミットを防ぐ。</p>
+        <ul>
+          <li><b>追跡する</b>: <code>CLAUDE.md</code>・<code>settings.json</code>・<code>statusline.py</code>・<code>README.md</code>・<code>agents/</code>・<code>skills/</code>・<code>plugins/</code>・<code>rules/</code>・<code>config/</code></li>
+          <li><b>追跡しない</b>: 上表の「動的データ・キャッシュ・マーカー」全般</li>
+        </ul>
+        <p>設計ドキュメント（本ポータル）は <code>~/agent-home/ai-management-portal/</code> に統合済みのため、<code>~/.claude/</code> では git 追跡の対象外となった。</p>
+      </div>
+
+      <div class="sec-label">cleanup の指針</div>
+      <div class="prose">
+        <ul>
+          <li>容量肥大化が気になった時点で <code>cache/</code>・<code>paste-cache/</code>・<code>uploads/</code>・<code>shell-snapshots/</code> を実 <code>rm</code> で削除する（CLAUDE.md セキュリティ節）</li>
+          <li>古い <code>sessions/</code> / <code>projects/</code> は要約だけ残して transcript を整理する</li>
+          <li><code>backups/</code> は世代管理（直近 N 世代のみ残す）</li>
+          <li>worktree 由来の残骸は <code>git worktree remove &lt;path&gt;</code> で畳む（<code>mv _trash</code> 退避は廃止）</li>
+        </ul>
+      </div>
+
+      <div class="back-link"><a href="../index.html#/category/claude-config">← .claude 設定層へ戻る</a></div>
+    </main>
+  </div>
+</body>
+</html>

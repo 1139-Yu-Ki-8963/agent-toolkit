@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>置き換え辞書一覧 — agent-home</title>
+  <link rel="stylesheet" href="../style.css" />
+  <script type="module" src="../src/common/header.js"></script>
+</head>
+<body>
+  <div class="cat-wrap">
+    <div class="page-hero">
+      <h1>置き換え辞書一覧</h1>
+      <p>textlint の prh 辞書（<code>~/.claude/rules/always/review-checklist/text-dictionary/prh.yml</code> とプロジェクト辞書）に登録されている置き換えルールをカテゴリ別に一覧化したものです。辞書は「読み手第一」「比喩の借用禁止」「番号に意味を負わせない」「正式名称主義」という 4 原則の検出網であり、原則自体が正本です。詳細は正本 <code>~/.claude/rules/always/review-checklist/text-dictionary/rule.md</code> を参照してください。<a href="../index.html#/">← フロー・ポータルへ戻る</a></p>
+    </div>
+
+    <div class="cat-bar">
+      <a class="cat-back" href="../index.html#/">← ポータル TOP</a>
+      <span class="cat-total" id="total"></span>
+      <input class="cat-filter" id="filter" type="search" placeholder="検出パターン・推奨語・注記で絞り込み…" autocomplete="off" />
+    </div>
+
+    <div id="list"></div>
+  </div>
+
+  <script type="module">
+    import { CATEGORIES } from "../data/dictionary-categories.js";
+
+    // 以下の DICTIONARIES 配列は node skills/managing-agent-configs/scripts/manage-portal.mjs generate が
+    // ~/.claude/rules/always/review-checklist/text-dictionary/prh.yml とプロジェクト側 prh.yml から自動生成する。
+    // 手で編集しない。辞書エントリの追加・削除は prh.yml 実体側で行い、
+    // カテゴリ定義は ../data/dictionary-categories.js を編集してから再生成する。
+    // <!-- GEN:DICTIONARIES -->
+    const DICTIONARIES = [
+      { expected: "唯一の情報源", patterns: ["/SSOT/i","/Single Source of Truth/i"], note: "唯一の情報源 / 一元管理", caution: "", category: "katakana-business", scope: "global" },
+      { expected: "推奨手順", patterns: ["/ベストプラクティス/i","/Best Practices/i"], note: "推奨手順 / 定石 / 良い方法", caution: "技術コミュニティで定着した慣用表現として使う場合は許容", category: "katakana-business", scope: "global" },
+      { expected: "活用する", patterns: ["/レバレッジ(?!取引)/i"], note: "活用する / 最大限に使う", caution: "金融文脈の「レバレッジ取引」は対象外", category: "katakana-business", scope: "global" },
+      { expected: "詳しく掘り下げる", patterns: ["/ディープダイブ/i","/Deep Dive/i"], note: "詳しく掘り下げる / 詳細分析", caution: "", category: "katakana-business", scope: "global" },
+      { expected: "関係者", patterns: ["/ステークホルダー/i","/Stakeholder/i"], note: "関係者 / 利害関係者", caution: "", category: "katakana-business", scope: "global" },
+      { expected: "相乗効果", patterns: ["/シナジー/i","/Synergy/i"], note: "相乗効果", caution: "", category: "katakana-business", scope: "global" },
+      { expected: "課題", patterns: ["/ペインポイント/i","/Pain Points/i"], note: "課題 / 悩み / 問題点", caution: "", category: "katakana-business", scope: "global" },
+      { expected: "認識合わせ", patterns: ["/アライメント/i","/アラインする/i"], note: "認識合わせ / 方向統一", caution: "機械学習の「アラインメント」は対象外", category: "katakana-business", scope: "global" },
+      { expected: "拡張しやすい", patterns: ["/スケーラブル/i","/Scalable/i"], note: "拡張しやすい / 拡張性がある", caution: "", category: "katakana-business", scope: "global" },
+      { expected: "導入", patterns: ["/オンボーディング/i","/Onboarding/i"], note: "導入 / 受け入れ / 初期設定", caution: "", category: "katakana-business", scope: "global" },
+      { expected: "着手しやすい施策", patterns: ["/ローハンギングフルーツ/i","/Low-hanging Fruit/i"], note: "着手しやすい施策 / すぐ手が届く課題", caution: "", category: "katakana-business", scope: "global" },
+      { expected: "余力", patterns: ["/バンドウィズ/i"], note: "余力 / 対応可能な時間", caution: "ネットワーク帯域の意味なら対象外", category: "katakana-business", scope: "global" },
+      { expected: "合意", patterns: ["/バイイン/i","/Buy-in/i"], note: "合意 / 賛同を得る / 承認", caution: "", category: "katakana-business", scope: "global" },
+      { expected: "具体的なやること", patterns: ["/アクションアイテム/i","/Action Items/i"], note: "具体的なやること / 次のステップ", caution: "", category: "katakana-business", scope: "global" },
+      { expected: "学び", patterns: ["/テイクアウェイ/i","/Takeaway/i"], note: "学び / 得られた教訓 / 要点", caution: "飲食店の持ち帰りの意味なら対象外", category: "katakana-business", scope: "global" },
+      { expected: "即効策", patterns: ["/クイックウィン/i","/Quick Win/i"], note: "即効策 / 短期成果", caution: "", category: "katakana-business", scope: "global" },
+      { expected: "計画表", patterns: ["/ロードマップ/i","/Roadmap/i"], note: "計画表 / 工程表", caution: "", category: "katakana-business", scope: "global" },
+      { expected: "節目", patterns: ["/マイルストーン/i","/Milestone/i"], note: "節目 / 中間目標", caution: "", category: "katakana-business", scope: "global" },
+      { expected: "制約箇所", patterns: ["/ボトルネック/i","/Bottleneck/i"], note: "制約箇所 / 制約", caution: "", category: "katakana-business", scope: "global" },
+      { expected: "将来像", patterns: ["/ビジョン/i","/Vision/i"], note: "将来像 / 方向性 / 構想", caution: "", category: "katakana-business", scope: "global" },
+      { expected: "要約", patterns: ["/サマリー/i","/サマリ(?!ー)/i"], note: "要約 / 概要 / まとめ", caution: "固有名詞として使われる場合は対象外", category: "katakana-business", scope: "global" },
+      { expected: "妨げ", patterns: ["/ブロッカー/i","/Blocker/i"], note: "妨げ / 障害 / 進行を阻む要因", caution: "「広告ブロッカー」「ポップアップブロッカー」のような UI/ネットワーク技術用語は対象外", category: "katakana-business", scope: "global" },
+      { expected: "方法", patterns: ["/アプローチ/i","/Approach/i"], note: "方法 / 方策 / やり方", caution: "", category: "katakana-business", scope: "global" },
+      { expected: "兼ね合い", patterns: ["/トレードオフ/i","/Trade-off/i"], note: "兼ね合い / 妥協点 / 得失", caution: "", category: "katakana-business", scope: "global" },
+      { expected: "範囲", patterns: ["/スコープ/i"], note: "範囲 / 対象範囲", caution: "プログラミングの「変数スコープ」「レキシカルスコープ」等、言語仕様上の scope は対象外", category: "katakana-business", scope: "global" },
+      { expected: "抽出する", patterns: ["/ピックアップ/i"], note: "抽出する / 選び出す / 拾い上げる", caution: "配車サービス・楽器の「ピックアップ」(電気信号変換器) など、 固有名詞・物理デバイス名としての用法は対象外", category: "katakana-business", scope: "global" },
+      { expected: "予算", patterns: ["/バジェット/i"], note: "予算 / 費用枠", caution: "メモリバジェットなどハードウェア・ゲーム開発文脈での技術用語は対象外", category: "katakana-business", scope: "global" },
+      { expected: "知識", patterns: ["/ナレッジ/i"], note: "知識 / 知見", caution: "「ナレッジベース」「ナレッジグラフ」など固有名詞・製品名として確立している場合は対象外", category: "katakana-business", scope: "global" },
+      { expected: "仕組み", patterns: ["/メカニズム/i","/Mechanism/i"], note: "仕組み / 手順 / 構造", caution: "生物学・物理学の専門用語（免疫メカニズム等）は対象外", category: "katakana-business", scope: "global" },
+      { expected: "追跡可能性", patterns: ["/トレーサビリティ/i","/[Tt]raceability/i"], note: "追跡可能性 / 追跡性", caution: "ISO 規格・物流・製造業の専門用語としての「トレーサビリティ」は対象外", category: "katakana-business", scope: "global" },
+      { expected: "短所", patterns: ["/デメリット/i"], note: "短所 / 欠点 / 不利な点", caution: "", category: "katakana-business", scope: "global" },
+      { expected: "可能な限り", patterns: ["/ベストエフォート(?!型)/i"], note: "可能な限り / 最善努力", caution: "ネットワーク QoS の「ベストエフォート型サービス」のような RFC 由来の技術用語は対象外", category: "katakana-business", scope: "global" },
+      { expected: "時系列", patterns: ["/タイムライン/i","/Timeline/i"], note: "時系列 / 経過", caution: "SNS のタイムライン UI、Git のコミットタイムラインなど固有機能名は対象外", category: "katakana-business", scope: "global" },
+      { expected: "追加対応", patterns: ["/フォローアップ/i","/Follow.?up/i"], note: "追加対応 / 後続作業 / 追跡確認", caution: "医療・看護分野の「フォローアップ診察」など専門用語として定着した用法は対象外", category: "katakana-business", scope: "global" },
+      { expected: "先回りして行動する", patterns: ["/プロアクティブ/i","/Proactive/i"], note: "先回りして行動する / 事前対応の", caution: "control theory / reactive system の技術文脈は対象外", category: "katakana-business", scope: "global" },
+      { expected: "段階", patterns: ["/フェーズ/i"], note: "段階 / 工程", caution: "Phase 番号付きの技術ラベル（Phase 1, Phase 2 等）は /phase\\s*\\d+/ 別エントリで対応済み", category: "katakana-business", scope: "global" },
+      { expected: "指針", patterns: ["/ガイドライン/i","/Guideline/i"], note: "指針 / 方針", caution: "法令・ISO 規格などの固有名詞として定着している「ガイドライン」は対象外", category: "katakana-business", scope: "global" },
+      { expected: "知見", patterns: ["/ノウハウ/i"], note: "知見 / 実践知識", caution: "固有名詞・製品名・ビジネス英語としての \"know-how\" (ハイフン付き英語) は対象外", category: "katakana-business", scope: "global" },
+      { expected: "達成指標", patterns: ["/KPI/i"], note: "達成指標 / 業績指標", caution: "", category: "abbreviations", scope: "global" },
+      { expected: "投資対効果", patterns: ["/ROI/i"], note: "投資対効果 / 費用対効果", caution: "", category: "abbreviations", scope: "global" },
+      { expected: "目標と成果指標", patterns: ["/OKR/i"], note: "目標と成果指標 / 目標管理指標", caution: "", category: "abbreviations", scope: "global" },
+      { expected: "アーキテクチャ決定記録", patterns: ["/\\bADR\\b/"], note: "アーキテクチャ決定記録", caution: "小文字 adr のコード識別子・パス名は対象外（大文字 ADR のみ検出）", category: "abbreviations", scope: "global" },
+      { expected: "実装", patterns: ["/\\bimpl\\b(?![-_.\\/])/i"], note: "実装", caution: "impl-flow.html 等のファイル名・識別子（ハイフン・アンダースコア・ドット・スラッシュ連結）は対象外", category: "abbreviations", scope: "global" },
+      { expected: "些細な", patterns: ["/\\btrivial\\b/i"], note: "些細な / 単純な", caution: "数学の trivial solution（自明解）等の専門用語文脈は対象外", category: "abbreviations", scope: "global" },
+      { expected: "条件分岐", patterns: ["決定木"], note: "条件分岐", caution: "", category: "loanword-metaphor", scope: "global" },
+      { expected: "起動前チェック", patterns: ["プリフライト"], note: "起動前チェック", caution: "", category: "loanword-metaphor", scope: "global" },
+      { expected: "単一目的の", patterns: ["/アトミック/i"], note: "不可分な / 単一目的の / 分割不能な / 最小単位の", caution: "データベース ACID の「原子性」、std::atomic 等プログラミング言語の構文・API 名は対象外", category: "loanword-metaphor", scope: "global" },
+      { expected: "正式サポート", patterns: ["/一級市民サポート/i","/一級市民扱い(?!.*として扱)/i","/ファーストクラスサポート/i"], note: "正式サポート / 公式サポート / 手厚いサポート（日本語パターン）", caution: "プログラミング言語で「関数が一級市民として扱われる」等、 CS の first-class citizen 概念を説明する文脈は対象外", category: "loanword-metaphor", scope: "global" },
+      { expected: "正式サポート", patterns: ["/first-class support/i"], note: "正式サポート（英語パターン。日本語と混在させると prh フラグ競合でクラッシュするため分離）", caution: "", category: "loanword-metaphor", scope: "global" },
+      { expected: "コンフリクトしている", patterns: ["/傷んだ/"], note: "コンフリクトしている", caution: "", category: "loanword-metaphor", scope: "global" },
+      { expected: "自動判定", patterns: ["/[Cc]lassifier/","/クラシファイア/","/分類器/"], note: "自動判定 / 振り分け処理 / 判定器", caution: "GitHub の Auto mode classifier など固有機能名、機械学習の SVM 分類器・画像分類器など確立した訳語は対象外", category: "loanword-metaphor", scope: "global" },
+      { expected: "一直線の履歴", patterns: ["/\\blinear\\b(?!-)/"], note: "一直線の履歴 / 一直線にする / 直列", caution: "プロジェクト管理ツール「Linear」(大文字始まりの固有名詞)、 CSS の linear-gradient、数学・機械学習の「線形」(linear regression 等) は対象外。 小文字 linear のみ検出し、大文字始まり Linear と後続ハイフン linear- は除外する", category: "loanword-metaphor", scope: "global" },
+      { expected: "品質確認", patterns: ["/品質ゲート/","/[Qq]uality\\s*[Gg]ate/"], note: "品質確認 / 品質確認フロー", caution: "SonarQube 等の「Quality Gate」という固有機能名を文書内で指す場合は対象外", category: "claude-ci-terms", scope: "global" },
+      { expected: "事前確認", patterns: ["/軽量ゲート/"], note: "事前確認 pre-push フックの前段検査（typecheck/lint/unit test）等を「軽量ゲート」と呼ぶ表現の言い換え", caution: "", category: "claude-ci-terms", scope: "global" },
+      { expected: "補助確認", patterns: ["/補助ゲート/","/CI\\s*補助ゲート/"], note: "補助確認 CI の補助ジョブを「補助ゲート」「CI 補助ゲート」と呼ぶ表現の言い換え", caution: "", category: "claude-ci-terms", scope: "global" },
+      { expected: "lint 確認", patterns: ["/lint\\s*ゲート/","/Lint\\s*ゲート/"], note: "lint 確認", caution: "", category: "claude-ci-terms", scope: "global" },
+      { expected: "認証フロー", patterns: ["/認証ゲート/"], note: "認証フロー", caution: "「認証ゲートウェイ (gateway)」という製品名・固有名詞は対象外", category: "claude-ci-terms", scope: "global" },
+      { expected: "E2E 確認", patterns: ["/(?:e2e|E2E|E2e|e2E)\\s*ゲート/"], note: "E2E 確認", caution: "", category: "claude-ci-terms", scope: "global" },
+      { expected: "モック作成完了", patterns: ["/MOCK-READY/"], note: "モック作成完了", caution: "コード内の定数 MOCK_READY（アンダースコア）は対象外（正規表現でヒットしない）", category: "claude-ci-terms", scope: "global" },
+      { expected: "調査結果待ち", patterns: ["/findings\\s*待ち/i"], note: "調査結果待ち", caution: "", category: "claude-ci-terms", scope: "global" },
+      { expected: "整数のステップ番号", patterns: ["/(step|phase)\\s*\\d+\\.\\d+/i","/ステップ\\s*\\d+\\.\\d+/i"], note: "ステップ番号は整数で記載（step 1, step 2 など）", caution: "v1.5 などバージョン番号は step/phase が前置されないため対象外", category: "notation", scope: "global" },
+      { expected: "優先度を日本語で明示（重大な問題・警告・提案）", patterns: ["/\\bP[0-9]\\b/"], note: "重大な問題・警告・提案 など優先度を日本語で明示", caution: "P2P など複合語は \\b で除外済み。コードブロック内も自動スキップ", category: "notation", scope: "global" },
+      { expected: "フェーズ・ステップは 1 から開始", patterns: ["/(step|phase)\\s*0\\b/i","/ステップ\\s*0\\b/i"], note: "フェーズ・ステップ番号は 1 から開始する", caution: "コードブロック内の変数名・配列インデックスは対象外（自動スキップ）", category: "notation", scope: "global" },
+      { expected: "ルーティン", patterns: ["/定例/i"], note: "ルーティン", caution: "「定例会議」のような固有名詞・組織名として定着している場合は対象外", category: "official-names", scope: "global" },
+      { expected: "チームバトル期間", patterns: ["/シーズン/"], note: "チームバトル期間", caution: "コード識別子 season_id / SeasonSelector 等は英語のため対象外（正規表現でヒットしない）", category: "official-names", scope: "<project>-<project>" },
+      { expected: "敵一覧", patterns: ["/ロスター/i","/roster/i"], note: "敵一覧 / メンバー一覧 / 編成画面", caution: "スクリーンショットの実ファイル名（例: 2313_roster_01.png）は対象外", category: "official-names", scope: "<project>-<project>" },
+      { expected: "SP", patterns: ["/\\bPP\\b/"], note: "SP または EP（サイト上の正式名称を確認して使い分ける）", caution: "", category: "official-names", scope: "<project>-<project>" },
+    ];
+    // <!-- /GEN:DICTIONARIES -->
+
+    const root = document.getElementById("list");
+    const totalEl = document.getElementById("total");
+    const filterEl = document.getElementById("filter");
+
+    function scopeLabel(scope) {
+      return scope === "global" ? "グローバル" : "プロジェクト (" + scope + ")";
+    }
+
+    function scopeTagClass(scope) {
+      return scope === "global" ? "tag-skill" : "tag-post";
+    }
+
+    function updateTotal() {
+      const globalCount = DICTIONARIES.filter((d) => d.scope === "global").length;
+      const projectCount = DICTIONARIES.length - globalCount;
+      totalEl.textContent =
+        "グローバル " + globalCount + " 語 + プロジェクト " + projectCount + " 語 / " + CATEGORIES.length + " カテゴリ";
+    }
+
+    function esc(s) {
+      const div = document.createElement("div");
+      div.textContent = s == null ? "" : String(s);
+      return div.innerHTML;
+    }
+
+    function rowHtml(d) {
+      const patternsHtml = d.patterns.map((p) => "<code>" + esc(p) + "</code>").join("<br />");
+      const cautionHtml = d.caution ? esc(d.caution) : "";
+      const key = (d.expected + " " + d.patterns.join(" ") + " " + (d.note || "") + " " + (d.caution || "")).toLowerCase();
+      return (
+        '<details class="fr" data-key="' + esc(key) + '">' +
+          '<summary>' +
+            '<span class="expbtn">+</span>' +
+            '<span class="fn">' + esc(d.expected) + '</span>' +
+            '<span class="fsep">—</span>' +
+            '<span class="fdesc">' + esc(d.note || "") + '</span>' +
+          '</summary>' +
+          '<div class="fdetail">' +
+            '<table class="dict-table">' +
+              '<thead><tr><th>検出パターン</th><th>推奨語</th><th>誤検知注意</th><th>適用範囲</th></tr></thead>' +
+              '<tbody><tr>' +
+                '<td>' + patternsHtml + '</td>' +
+                '<td><strong>' + esc(d.expected) + '</strong></td>' +
+                '<td class="muted">' + cautionHtml + '</td>' +
+                '<td><span class="tag ' + scopeTagClass(d.scope) + '">' + scopeLabel(d.scope) + '</span></td>' +
+              '</tr></tbody>' +
+            '</table>' +
+          '</div>' +
+        '</details>'
+      );
+    }
+
+    function render() {
+      root.innerHTML = "";
+      CATEGORIES.forEach((c, i) => {
+        const items = DICTIONARIES.filter((d) => d.category === c.id);
+        if (items.length === 0) return;
+        const sec = document.createElement("details");
+        sec.className = "cat-block";
+        sec.open = true;
+        sec.innerHTML =
+          '<summary class="cat-card">' +
+            '<span class="cat-fold"></span>' +
+            '<div class="cat-num-block"><span class="cat-number">' + String(i + 1).padStart(2, "0") + '</span></div>' +
+            '<div class="cat-body"><div class="cat-name">' + esc(c.name) + '</div><div class="cat-desc">' + esc(c.desc) + '</div></div>' +
+            '<span class="cat-count">' + items.length + ' 語</span>' +
+          '</summary>' +
+          '<div class="file-rows">' + items.map(rowHtml).join("") + '</div>';
+        root.appendChild(sec);
+      });
+      updateTotal();
+    }
+
+    function applyFilter() {
+      const q = filterEl.value.trim().toLowerCase();
+      let shown = 0;
+      root.querySelectorAll("details.cat-block").forEach((sec) => {
+        let secShown = 0;
+        sec.querySelectorAll("details.fr").forEach((d) => {
+          const hit = !q || d.dataset.key.includes(q);
+          d.style.display = hit ? "" : "none";
+          if (hit) { secShown++; shown++; }
+        });
+        sec.style.display = secShown > 0 ? "" : "none";
+        if (q && secShown > 0) sec.open = true;
+      });
+      totalEl.textContent = q
+        ? shown + " 件ヒット / " + DICTIONARIES.length + " 語"
+        : totalEl.textContent;
+      if (!q) updateTotal();
+    }
+
+    let t;
+    filterEl.addEventListener("input", () => { clearTimeout(t); t = setTimeout(applyFilter, 120); });
+    render();
+  </script>
+</body>
+</html>

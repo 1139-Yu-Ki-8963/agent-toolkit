@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Statusline 設計ガイド — agent-home</title>
+  <link rel="stylesheet" href="../style.css" />
+  <link rel="stylesheet" href="design.css" />
+  <script type="module" src="../src/common/header.js"></script>
+</head>
+<body>
+  <div class="sd-wrap">
+
+    <!-- Hero -->
+    <div class="page-hero" style="margin-bottom:20px">
+      <h1>Statusline 設計ガイド</h1>
+      <p>
+        ターミナル下部にセッションの進捗・状態を描画する <code>statusline.py</code> の仕組みと配置場所を整理する。
+        単一ファイルの機能だが、他の設定層と同じく明文化して管理する。
+        <a href="../claude/tooling.html">← 設定すべきツール一覧へ</a>
+      </p>
+    </div>
+
+    <div class="sd-layout">
+
+      <!-- 左 TOC -->
+      <nav class="sd-toc">
+        <h3>目次</h3>
+        <ul>
+          <li><a href="#s1"><span class="toc-num">§1</span>Statusline の定義</a></li>
+          <li><a href="#s2"><span class="toc-num">§2</span>設定方法</a></li>
+          <li><a href="#s3"><span class="toc-num">§3</span>入力仕様（stdin JSON）</a></li>
+          <li><a href="#s4"><span class="toc-num">§4</span>現在の実装（4 行構成）</a></li>
+          <li><a href="#s5"><span class="toc-num">§5</span>カスタマイズ時の注意</a></li>
+        </ul>
+        <div class="toc-sep"></div>
+        <div style="font-size:11px;color:var(--text-muted);padding:4px 8px;line-height:1.6">
+          配置先: <code>~/.claude/statusline.py</code><br>
+          形式: Python スクリプト（stdin JSON → stdout テキスト）
+        </div>
+      </nav>
+
+      <!-- 本文 -->
+      <article class="sd-body">
+
+        <!-- §1 -->
+        <section class="sd-section" id="s1">
+          <h2 class="sd-h2"><span class="sec-num">§1</span>Statusline の定義</h2>
+          <div class="sd-def">
+            Statusline とは、Claude Code がターミナル下部に表示するステータス行を描画する仕組み。
+            <code>settings.json</code> の <code>statusLine</code> キーで外部コマンドを登録し、
+            そのコマンドが標準入力から受け取った JSON を元に任意のテキストを標準出力へ返す。
+          </div>
+        </section>
+
+        <!-- §2 -->
+        <section class="sd-section" id="s2">
+          <h2 class="sd-h2"><span class="sec-num">§2</span>設定方法</h2>
+          <div class="sd-code-label">settings.json</div>
+          <div class="sd-code">"statusLine": {
+  "type": "command",
+  "command": "python3 ~/.claude/statusline.py"
+}</div>
+          <ul>
+            <li><code>type: "command"</code> は、外部コマンドの標準出力をそのままステータス行として描画するモード。</li>
+            <li>コマンドはターンごとに呼び出される。</li>
+            <li>本環境での実体配置先: <code>~/.claude/statusline.py</code>。</li>
+          </ul>
+        </section>
+
+        <!-- §3 -->
+        <section class="sd-section" id="s3">
+          <h2 class="sd-h2"><span class="sec-num">§3</span>入力仕様（stdin JSON）</h2>
+          <p style="font-size:13.5px;color:var(--text-sub);margin:0 0 12px">
+            以下は本環境の <code>~/.claude/statusline.py</code> が実際に読み取っているフィールド。
+          </p>
+          <table class="sd-table">
+            <thead><tr><th>フィールド</th><th>内容</th></tr></thead>
+            <tbody>
+              <tr><td><code>model.display_name</code></td><td>使用中のモデル表示名</td></tr>
+              <tr><td><code>session_id</code></td><td>セッション ID</td></tr>
+              <tr><td><code>session_name</code></td><td>セッション名（未設定時は空）</td></tr>
+              <tr><td><code>cwd</code></td><td>現在の作業ディレクトリ</td></tr>
+              <tr><td><code>context_window.used_percentage</code></td><td>コンテキストウィンドウ使用率</td></tr>
+              <tr><td><code>rate_limits.five_hour.used_percentage</code></td><td>5 時間レート制限の使用率</td></tr>
+              <tr><td><code>rate_limits.seven_day.used_percentage</code></td><td>7 日レート制限の使用率</td></tr>
+            </tbody>
+          </table>
+          <div class="sd-note">
+            上記以外にも Claude Code 本体は追加フィールドを渡す場合があるが、本環境のスクリプトが参照しているのはこの範囲。
+          </div>
+        </section>
+
+        <!-- §4 -->
+        <section class="sd-section" id="s4">
+          <h2 class="sd-h2"><span class="sec-num">§4</span>現在の実装（4 行構成）</h2>
+          <table class="sd-table">
+            <thead><tr><th>行</th><th>内容</th></tr></thead>
+            <tbody>
+              <tr><td>Line 1</td><td>モデル名 / 現在フォルダ / Git ブランチ</td></tr>
+              <tr><td>Line 2</td><td>セッション ID（先頭 8 文字）/ セッション名</td></tr>
+              <tr><td>Line 3</td><td>コンテキスト使用率・5 時間/7 日レート制限使用率（記号で可視化）・worktree 本数</td></tr>
+              <tr><td>Line 4</td><td>full-cycle-flow の進捗（<code>flow-status.json</code> が存在する場合のみ、進捗バーを表示）</td></tr>
+            </tbody>
+          </table>
+
+          <h3 class="sd-h3">使用率の記号・色分け</h3>
+          <table class="sd-table">
+            <thead><tr><th>使用率</th><th>記号</th></tr></thead>
+            <tbody>
+              <tr><td>0〜12%</td><td>○</td></tr>
+              <tr><td>13〜37%</td><td>◔</td></tr>
+              <tr><td>38〜62%</td><td>◑</td></tr>
+              <tr><td>63〜87%</td><td>◕</td></tr>
+              <tr><td>88〜100%</td><td>●</td></tr>
+            </tbody>
+          </table>
+          <p style="font-size:13px;color:var(--text-sub);margin:0 0 12px">
+            色は 50% 未満で緑、50〜79% で黄、80% 以上で赤に変わる。worktree 本数は上限 5 に対し、4 で黄、5 以上で赤になる。
+          </p>
+        </section>
+
+        <!-- §5 -->
+        <section class="sd-section" id="s5">
+          <h2 class="sd-h2"><span class="sec-num">§5</span>カスタマイズ時の注意</h2>
+          <div class="sd-gotcha">
+            <div class="sd-gotcha-title">変更前に確認すること</div>
+            <ul>
+              <li>worktree 上限（<code>WT_MAX = 5</code>）は <a href="../claude/tooling.html">ポート管理規約</a> の worktree 5 本上限と一致させている。変更時は両方を同期する。</li>
+              <li><code>flow-status.json</code> が見つからない場合、4 行目は出力されない設計（<code>None</code> を返す）。</li>
+              <li>標準出力の各行がそのままステータス行になるため、長すぎる行はターミナル幅で折り返される。</li>
+            </ul>
+          </div>
+        </section>
+
+      </article>
+    </div>
+
+    <div data-md-skip style="text-align:center;margin-top:20px;font-size:12px;color:var(--text-muted)">
+      <a href="../claude/tooling.html">設定すべきツール一覧</a> &nbsp;·&nbsp;
+      <a href="../index.html">ポータル TOP</a>
+    </div>
+  </div>
+</body>
+</html>

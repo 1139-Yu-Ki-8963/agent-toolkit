@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>計画暗黙知プローブ 仕組み解説 — agent-home</title>
+  <link rel="stylesheet" href="../style.css" />
+  <link rel="stylesheet" href="../design/design.css" />
+  <script type="module" src="../src/common/header.js"></script>
+  <style>
+    .arch-fig { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px; margin: 12px 0 18px; }
+    .arch-fig svg { width: 100%; height: auto; display: block; }
+    .arch-fig text { font-family: system-ui, -apple-system, "Hiragino Sans", sans-serif; }
+    .arch-fig figcaption { font-size: 11.5px; color: var(--text-muted); padding-top: 8px; }
+  </style>
+</head>
+<body>
+  <div class="sd-wrap">
+
+    <div class="page-hero" style="margin-bottom:20px">
+      <h1>計画暗黙知プローブ 仕組み解説</h1>
+      <p>
+        計画の書き手が無自覚に省略した前提（暗黙知）を、コンテキストゼロの弱モデルに初見読解させて検出し、計画へ明文化する仕組み。
+        plan mode の 2 地点（Write・ExitPlanMode）で hook が機械的に強制する。
+        <a href="../index.html#/">← ポータル TOP へ戻る</a>
+      </p>
+    </div>
+
+    <div class="sd-layout">
+
+      <nav class="sd-toc">
+        <h3>目次</h3>
+        <ul>
+          <li><a href="#s1"><span class="toc-num">§1</span>解決する問題</a></li>
+          <li><a href="#s2"><span class="toc-num">§2</span>全体像（4 構成要素）</a></li>
+          <li><a href="#s3"><span class="toc-num">§3</span>機械強制フロー</a></li>
+          <li><a href="#s4"><span class="toc-num">§4</span>なぜ弱モデルに読ませるか</a></li>
+          <li><a href="#s5"><span class="toc-num">§5</span>ギャップの 4 分類</a></li>
+          <li><a href="#s6"><span class="toc-num">§6</span>消費カウンタの仕組み</a></li>
+          <li><a href="#s7"><span class="toc-num">§7</span>実運用での検出実績</a></li>
+          <li><a href="#s8"><span class="toc-num">§8</span>保証と限界</a></li>
+        </ul>
+      </nav>
+
+      <article class="sd-body">
+
+        <!-- §1 -->
+        <section class="sd-section" id="s1">
+          <h2 class="sd-h2"><span class="sec-num">§1</span>解決する問題</h2>
+          <div class="sd-def">
+            計画の書き手（上位モデル・人間）は、自分が持つコンテキストを前提に記述を省略する。
+            書き手自身が読み直しても脳内で自動補完してしまうため、省略には気づけない。
+          </div>
+          <p>
+            この仕組みが導入される前は、計画の品質チェックは Claude 自身の「発話マッチングによる自発的なスキル呼び出し」に依存していた。
+            しかし Claude は呼び出しを忘れる・省略するため、ユーザーから「仕組みとして成立させろ」との指摘を受けて hook による機械強制へ格上げされた。
+          </p>
+        </section>
+
+        <!-- §2 -->
+        <section class="sd-section" id="s2">
+          <h2 class="sd-h2"><span class="sec-num">§2</span>全体像（4 構成要素）</h2>
+          <table class="sd-table">
+            <thead><tr><th>要素</th><th>種別</th><th>役割</th></tr></thead>
+            <tbody>
+              <tr>
+                <td><code>plan-comprehension-prober</code></td>
+                <td>サブエージェント（Haiku 固定）</td>
+                <td>計画文のみを受け取り、5 項目形式（目的の言い換え・手順の再説明・推測で補った前提・判断できなかった点・最初の一手）で理解を言語化する。暗黙知の検出器</td>
+              </tr>
+              <tr>
+                <td><code>eliciting-plan-tacit-knowledge</code></td>
+                <td>スキル（audit 型）</td>
+                <td>プローブ委任 → ギャップ 4 分類 → 計画への再統合 → 収束確認（最大 2 周）を制御するオーケストレーター</td>
+              </tr>
+              <tr>
+                <td><code>check-plan-draft-write-gate.sh</code></td>
+                <td>PreToolUse(Write) hook</td>
+                <td>計画ファイル（<code>~/.claude/plans/*.md</code>）への最初の永続化をスキル発火前に block する</td>
+              </tr>
+              <tr>
+                <td><code>check-plan-tacit-knowledge-gate.sh</code></td>
+                <td>PreToolUse(ExitPlanMode) hook</td>
+                <td>計画の承認提出をスキル再発火前に block する。Write 版と消費カウンタを共有し、1 計画サイクルで 2 回の検証を強制する</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+        <!-- §3 -->
+        <section class="sd-section" id="s3">
+          <h2 class="sd-h2"><span class="sec-num">§3</span>機械強制フロー</h2>
+          <pre class="sd-pre">
+ユーザー「やって」
+  ↓
+Claude が計画を組み立てる（plan mode）
+  ↓
+計画ファイルへ Write
+  ↓
+❶ check-plan-draft-write-gate（未発火なら block）
+  ↓ block
+Claude が Skill(eliciting-plan-tacit-knowledge) を実行
+  → prober が会話テキスト上の計画を初見読解
+  → ギャップ検出 → 計画を修正
+  ↓
+Write 通過（消費カウンタ更新: 発火 1 回消費）
+  ↓
+Edit で計画を修正…
+  ↓
+ExitPlanMode（ユーザーに承認を求める）
+  ↓
+❷ check-plan-tacit-knowledge-gate（再発火なしなら block）
+  ↓ block
+Claude が再度 Skill を実行
+  → prober が修正後の計画ファイルを初見読解
+  → 残ギャップ検出 → さらに修正
+  ↓
+ExitPlanMode 通過（消費カウンタ更新: 発火 2 回消費）
+  → ユーザーに承認 UI が表示される</pre>
+          <p>
+            <strong>1 計画サイクルで最低 2 回の検証</strong>が構造的に強制される。
+            下書き前（会話テキスト経路）と承認前（計画ファイル経路）の 2 段。
+          </p>
+        </section>
+
+        <!-- §4 -->
+        <section class="sd-section" id="s4">
+          <h2 class="sd-h2"><span class="sec-num">§4</span>なぜ弱モデルに読ませるか</h2>
+          <p>
+            コンテキストゼロの弱い読み手に計画だけを読ませると、行間を埋められず省略箇所で理解が壊れる。
+            壊れ方（誤読・推測・判断不能）が暗黙知の地図になる。
+          </p>
+          <table class="sd-table">
+            <thead><tr><th>成立条件</th><th>実現手段</th><th>破るとどうなるか</th></tr></thead>
+            <tbody>
+              <tr><td>読み手がコンテキストゼロ</td><td>新規 Agent 委任（計画文のみ埋め込み）</td><td>意図を知っている読み手は省略に気づけない</td></tr>
+              <tr><td>読み手が弱いモデル</td><td>Haiku 固定</td><td>強いモデルは行間を補完してしまい、暗黙知が顕在化しない</td></tr>
+              <tr><td>「わからない」を言わせる</td><td>推測・判断不能の明示列挙を 5 項目形式で強制</td><td>曖昧な要約だけが返り、ズレの位置を特定できない</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <!-- §5 -->
+        <section class="sd-section" id="s5">
+          <h2 class="sd-h2"><span class="sec-num">§5</span>ギャップの 4 分類</h2>
+          <p>prober の報告と本来の意図を突合し、ズレを以下の 4 つに分類する。</p>
+          <table class="sd-table">
+            <thead><tr><th>分類</th><th>定義</th><th>対応</th></tr></thead>
+            <tbody>
+              <tr><td><strong>誤読</strong></td><td>書いてあるのに別の意味に取られた</td><td>誤解を誘導した記述を書き換える</td></tr>
+              <tr><td><strong>欠落</strong></td><td>書かれておらず、推測で埋められた・埋められなかった前提</td><td>明文化して追記する（暗黙知の本体）</td></tr>
+              <tr><td><strong>曖昧</strong></td><td>複数解釈が可能と申告された</td><td>一意になるよう書き換える</td></tr>
+              <tr><td><strong>偶然の的中</strong></td><td>推測したが偶然意図と一致していた</td><td>それも明文化する（次の読み手が同じ推測をする保証はない）</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <!-- §6 -->
+        <section class="sd-section" id="s6">
+          <h2 class="sd-h2"><span class="sec-num">§6</span>消費カウンタの仕組み</h2>
+          <div class="sd-def">
+            両 hook はタイムスタンプではなく<strong>発火行数の単調増加</strong>で判定する。
+            スキル発火ログ（<code>~/agent-home/sessions/.skill-log/&lt;session&gt;.jsonl</code>）の該当行数と、
+            共有マーカー（<code>plan-tacit-knowledge-gate.consumed-count</code>）に記録された消費済み行数を比較する。
+          </div>
+          <table class="sd-table">
+            <thead><tr><th>状態</th><th>判定</th></tr></thead>
+            <tbody>
+              <tr><td>発火行数 &gt; 消費済み</td><td>通過。消費カウンタを現在の発火行数に更新（発火を「消費」）。自ゲートの block 連続カウンタをリセット</td></tr>
+              <tr><td>発火行数 ≦ 消費済み</td><td>block（exit 2）。block 連続カウンタを +1</td></tr>
+              <tr><td>block 連続 3 回到達</td><td>自動解除（exit 0）。正規通過でカウンタはリセットされるため、散発的な block の累計ではなく「連続」で判定される</td></tr>
+            </tbody>
+          </table>
+          <div class="sd-gotcha">
+            <strong>なぜタイムスタンプ比較ではないか</strong>: 初版ではスキル発火 ts の最大値と前回通過時刻を比較する方式だったが、
+            実機検証でログに未来日時（2099 年等）の ts が 1 件混入すると消費機構が恒久無効化されるバグが実証された。
+            発火行数方式はクロック非依存のため、この問題が発生しない。
+          </div>
+        </section>
+
+        <!-- §7 -->
+        <section class="sd-section" id="s7">
+          <h2 class="sd-h2"><span class="sec-num">§7</span>実運用での検出実績</h2>
+          <p>設置後 2 セッションで実際に暗黙知を検出し、計画を改善した実績がある。</p>
+          <table class="sd-table">
+            <thead><tr><th>セッション</th><th>計画内容</th><th>検出例</th></tr></thead>
+            <tbody>
+              <tr>
+                <td>dce46c0b</td>
+                <td>DESIGN.md 生成ステップの復旧計画</td>
+                <td>CSS トークン抽出の優先順位が未定義 / 出力先の衝突時動作が不明 / format-spec.md の実在が未確認 → 計画に「前提・制約」節として追記</td>
+              </tr>
+              <tr>
+                <td>3d710db3</td>
+                <td>スキル改名・スコープ縮小計画</td>
+                <td>新 SKILL.md 全文が「省略」で中身不明 / 置換指示に old/new 具体文言なし → 全文明記とベタ書きペア追加</td>
+              </tr>
+            </tbody>
+          </table>
+          <p>
+            両セッションとも推測 5〜6 件・判断不能 7〜10 件を検出し、主要な指摘が計画ファイルへの Edit として反映された。
+            「仕組みが作動した」だけでなく「作動した結果、書かれていなかった前提が明文化された」ことがログの diff で確認されている。
+          </p>
+        </section>
+
+        <!-- §8 -->
+        <section class="sd-section" id="s8">
+          <h2 class="sd-h2"><span class="sec-num">§8</span>保証と限界</h2>
+          <table class="sd-table">
+            <thead><tr><th>項目</th><th>状態</th></tr></thead>
+            <tbody>
+              <tr><td>計画ファイルの初回永続化と承認提出の 2 地点で暗黙知チェックを強制</td><td>保証する</td></tr>
+              <tr><td>ユーザーの目に触れる経路をすべて塞ぐ</td><td>保証しない（スキル実行自体が Agent 呼び出しとしてトランスクリプトに現れる）</td></tr>
+              <tr><td>plan mode を経由しない計画立案（brain 直接呼び出し等）を捕捉</td><td>保証しない（ExitPlanMode / Write のみが観測点）</td></tr>
+              <tr><td>内部マーカーの意図的な改竄による迂回を防ぐ</td><td>保証しない（通常フローでの機械強制が目的であり、暗号学的な実行証明は過剰設計として不採用）</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+      </article>
+    </div>
+  </div>
+</body>
+</html>

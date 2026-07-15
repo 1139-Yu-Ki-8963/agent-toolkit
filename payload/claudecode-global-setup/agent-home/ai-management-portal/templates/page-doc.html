@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{{PAGE_TITLE}} — agent-home</title>
+  <link rel="stylesheet" href="../style.css" />
+  <!-- claude/ 配下に置く場合はこの行を ../design/design.css に変更 -->
+  <link rel="stylesheet" href="design.css" />
+  <script type="module" src="../src/common/header.js"></script>
+</head>
+<body>
+  <div class="sd-wrap">
+
+    <div class="page-hero" style="margin-bottom:20px">
+      <h1>{{PAGE_TITLE}}</h1>
+      <p>
+        {{PAGE_SUMMARY}}
+        <a href="../index.html#/">← ポータル TOP へ戻る</a>
+      </p>
+    </div>
+
+    <div class="sd-layout">
+
+      <nav class="sd-toc">
+        <h3>目次</h3>
+        <ul>
+          <li><a href="#s1"><span class="toc-num">§1</span>{{SECTION_1_TITLE}}</a></li>
+        </ul>
+      </nav>
+
+      <article class="sd-body">
+
+        <section class="sd-section" id="s1">
+          <h2 class="sd-h2"><span class="sec-num">§1</span>{{SECTION_1_TITLE}}</h2>
+          <div class="prose">
+            <p>{{SECTION_1_BODY}}</p>
+          </div>
+        </section>
+
+        <!-- OPTIONAL: ページ固有 style は design.css の link の後に置く -->
+
+      </article>
+    </div>
+  </div>
+</body>
+</html>

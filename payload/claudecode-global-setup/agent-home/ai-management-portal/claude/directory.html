@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ディレクトリ構造 — AI マネジメントポータル</title>
+  <link rel="stylesheet" href="../style.css" />
+  <script type="module" src="../src/common/header.js"></script>
+</head>
+<body>
+  <div class="pm-page">
+    <main class="pm-main">
+      <div class="pm-hero">
+        <div>
+          <h1>ディレクトリ構造</h1>
+          <p>直下 21 ディレクトリと主要ファイルの責務・寿命・参照元を 1 枚にまとめる。</p>
+        </div>
+        <a class="pm-updated" href="../index.html#/category/claude-config">← .claude 設定層</a>
+      </div>
+
+      <div class="sec-label">ツリー</div>
+      <div class="prose">
+        <pre class="ascii">
+~/.claude/
+├ CLAUDE.md            グローバル指示（§1〜§18）
+├ settings.json        hooks / permissions / env
+├ statusline.py        ステータスライン描画
+├ README.md            リポジトリ説明
+│
+├ agents/              カスタム subagent 定義（*.md）
+├ skills/              カスタム SKILL.md とアセット
+├ plugins/             プラグイン本体・マーケット定義・キャッシュ
+│
+├ rules/               追加ルール定義（forbidden-emails.txt 等）
+├ config/              補助設定（paths.conf・notification_states.json）
+├ plans/               中間プランファイル（231 件・履歴蓄積）
+├ tasks/               TaskCreate のスナップショット
+├ backups/             設定変更の自動バックアップ
+│
+├ sessions/            セッション別履歴
+├ projects/            プロジェクト別履歴
+├ session-env/         セッション固有の環境変数
+├ shell-snapshots/     シェル状態のスナップショット
+├ logs/                ランタイムログ
+├ dev-flow-logs/       実装フローの発火ログ
+├ file-history/        編集ファイルの履歴
+├ jobs/                バックグラウンドジョブの状態
+├ paste-cache/         貼り付けキャッシュ
+├ uploads/             ユーザーアップロードの一時保管
+├ cache/               汎用キャッシュ
+└ daemon* / *.json     daemon 状態・各種キャッシュ
+
+※設計ドキュメントは ~/agent-home/ai-management-portal/ に統合
+        </pre>
+      </div>
+
+      <div class="sec-label">ディレクトリ早見表</div>
+      <div class="prose">
+        <table class="design-table">
+          <thead>
+            <tr><th>名前</th><th>層</th><th>責務</th><th>主な編集者</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>agents/</code></td><td>静的</td><td>カスタム subagent の定義。<code>note-reviewer.md</code> 等の Markdown + frontmatter</td><td>人間</td></tr>
+            <tr><td><code>skills/</code></td><td>静的</td><td>カスタムスキルの SKILL.md とアセット。Skill ツールから参照</td><td>人間</td></tr>
+            <tr><td><code>plugins/</code></td><td>静的</td><td>プラグイン本体・<code>known_marketplaces.json</code>・<code>installed_plugins.json</code>・キャッシュ</td><td>plugin 管理</td></tr>
+            <tr><td><code>rules/</code></td><td>静的</td><td>外部ファイル化したルール（例: <code>forbidden-emails.txt</code>）</td><td>人間 / hook</td></tr>
+            <tr><td><code>config/</code></td><td>静的</td><td>パス定義・通知状態・サブ設定</td><td>人間</td></tr>
+            <tr><td><code>plans/</code></td><td>半動的</td><td>計画モード生成物。ファイル名は <code>&lt;番号&gt;-&lt;slug&gt;.md</code></td><td>Claude / 人間</td></tr>
+            <tr><td><code>tasks/</code></td><td>半動的</td><td>TaskCreate のスナップショットと依存メタ</td><td>Claude</td></tr>
+            <tr><td><code>backups/</code></td><td>半動的</td><td>設定の更新前バックアップ</td><td>update-config 系 hook</td></tr>
+            <tr><td><code>sessions/</code></td><td>動的</td><td>セッション別の transcript と要約</td><td>ランタイム</td></tr>
+            <tr><td><code>projects/</code></td><td>動的</td><td>プロジェクト単位の履歴と状態</td><td>ランタイム</td></tr>
+            <tr><td><code>session-env/</code></td><td>動的</td><td>セッション固有の env スナップショット</td><td>ランタイム</td></tr>
+            <tr><td><code>shell-snapshots/</code></td><td>動的</td><td>Bash ツールが生成するシェル状態</td><td>ランタイム</td></tr>
+            <tr><td><code>logs/</code></td><td>動的</td><td>各種ランタイムログ</td><td>ランタイム</td></tr>
+            <tr><td><code>dev-flow-logs/</code></td><td>動的</td><td>実装フロースキルの発火ログ</td><td>FLOW-SELECT hook</td></tr>
+            <tr><td><code>file-history/</code></td><td>動的</td><td>Edit/Write 前後の差分履歴</td><td>ランタイム</td></tr>
+            <tr><td><code>jobs/</code></td><td>動的</td><td>background bash・workflow の状態</td><td>ランタイム</td></tr>
+            <tr><td><code>paste-cache/</code></td><td>動的</td><td>貼り付け画像・テキストの一時保管</td><td>ランタイム</td></tr>
+            <tr><td><code>uploads/</code></td><td>動的</td><td>ユーザーアップロードの一時保管</td><td>ランタイム</td></tr>
+            <tr><td><code>cache/</code></td><td>動的</td><td>汎用キャッシュ</td><td>ランタイム</td></tr>
+            <tr><td><code>daemon/</code></td><td>動的</td><td>常駐 daemon のソケット・状態</td><td>daemon</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="back-link"><a href="../index.html#/category/claude-config">← .claude 設定層へ戻る</a></div>
+    </main>
+  </div>
+</body>
+</html>

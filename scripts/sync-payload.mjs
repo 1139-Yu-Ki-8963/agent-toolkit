@@ -9,6 +9,7 @@ import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
 import { fileURLToPath } from "node:url";
+import { spawnSync } from "node:child_process";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "..");
@@ -37,6 +38,12 @@ function resolveHome(p) {
   return p;
 }
 
+// builder パスは REPO_ROOT 起点の相対パス（manifest の dst と同じ規約。
+// 例: "scripts/build-portal-payload.mjs"）として解決する。
+function resolveBuilder(m) {
+  return path.resolve(REPO_ROOT, m.builder);
+}
+
 function loadManifest() {
   const text = fs.readFileSync(MANIFEST_PATH, "utf8");
   const json = JSON.parse(text);
@@ -49,7 +56,8 @@ function loadManifest() {
   }
   return mappings.map((m) => ({
     ...m,
-    srcAbs: resolveHome(m.src),
+    // build モードは src を持たず builder のみを持つ（resolveBuilder で解決）
+    srcAbs: m.src !== undefined ? resolveHome(m.src) : undefined,
     dstAbs: path.join(REPO_ROOT, m.dst),
   }));
 }
@@ -228,6 +236,31 @@ function cmdCheck() {
       continue;
     }
 
+    if (m.mode === "build") {
+      const builderAbs = resolveBuilder(m);
+      if (!fs.existsSync(builderAbs)) {
+        console.log(`  SKIP (builder missing) ${m.dst}`);
+        continue;
+      }
+      const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "sync-payload-build-"));
+      try {
+        const result = spawnSync(process.execPath, [builderAbs, tmpDir], { stdio: "inherit" });
+        if (result.status !== 0) {
+          console.log(`  ERROR (builder failed) ${m.dst}`);
+          hasDrift = true;
+          continue;
+        }
+        const { drifts } = computeMirrorDrift({ srcAbs: tmpDir, dstAbs: m.dstAbs }, new Map());
+        for (const d of drifts) {
+          console.log(`  DRIFT build ${path.join(m.dst, d.rel)} (${d.type})`);
+          hasDrift = true;
+        }
+      } finally {
+        fs.rmSync(tmpDir, { recursive: true, force: true });
+      }
+      continue;
+    }
+
     if (m.mode === "file") {
       if (!fs.existsSync(m.srcAbs)) {
         console.log(`  SKIP (source missing) ${m.dst}`);
@@ -340,6 +373,23 @@ function cmdApply() {
   for (const m of mappings) {
     if (m.mode === "manual") {
       console.log(`  SKIP (manual) ${m.dst}`);
+      continue;
+    }
+
+    if (m.mode === "build") {
+      const builderAbs = resolveBuilder(m);
+      if (!fs.existsSync(builderAbs)) {
+        console.log(`  SKIP (builder missing) ${m.dst}`);
+        skippedNoSrc++;
+        continue;
+      }
+      const result = spawnSync(process.execPath, [builderAbs], { stdio: "inherit" });
+      if (result.status !== 0) {
+        console.log(`  ERROR (builder failed) ${m.dst}`);
+        continue;
+      }
+      console.log(`  APPLIED build ${m.dst}`);
+      applied++;
       continue;
     }
 

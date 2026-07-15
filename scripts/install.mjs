@@ -453,16 +453,9 @@ function cmdApply() {
     process.exit(1);
   }
 
-  // ai-management-portal は縮小同梱版であり、generate は catalog 群を readFileSync
-  // する（新規作成しない）。前提ファイルが無い環境では generate/verify をスキップし、
-  // 設置自体は成功として扱う。
-  const portalProbe = path.join(agentHome, "ai-management-portal", "catalog", "dictionaries.html");
-  if (!fs.existsSync(portalProbe)) {
-    console.log("\n" + "─".repeat(70));
-    console.log("ポータルが完全同梱されていないため generate/verify をスキップしました。設置は完了しています。");
-    return;
-  }
-
+  // ai-management-portal は build-portal-payload.mjs により正本から全量生成され
+  // payload に完全同梱されている。generate は catalog 群を readFileSync する
+  // （新規作成しない）。生成・検証は常に実行し、失敗時はインストールも失敗として扱う。
   console.log("ポータル generate を実行中...");
   const genResult = spawnSync("node", [manageScript, "generate"], {
     cwd: agentHome,

@@ -24,7 +24,7 @@
       <p>
         エージェントへの指示を「1 回のプロンプト」から「自動で繰り返す仕組み」へ昇格させる設計原則。
         ハーネスの上に検証ループを組み、人手を介さず品質を担保する。
-        <a href="../index.html#/category/catalog">&larr; カタログへ</a>
+        <a href="../index.html#/category/registry">&larr; 登録一覧へ</a>
       </p>
     </div>
 
@@ -496,7 +496,7 @@ fixer が文脈リセットで修正 → チェック再実行</div>
               <tr>
                 <td>スケジューリング (scheduling)</td>
                 <td><code>/schedule</code>、CronCreate、ルーティン</td>
-                <td><a href="../index.html#/category/routines">ルーティン一覧</a></td>
+                <td><a href="../catalog/routines.html">Routines 一覧</a></td>
               </tr>
               <tr>
                 <td>評価役の分離</td>
@@ -512,7 +512,7 @@ fixer が文脈リセットで修正 → チェック再実行</div>
 「アサーション削除で通すな」  →  Stop hook でテスト実行を強制
 「チェック出力なしで完了するな」→  auto-ship の Phase 制御
 「同じエラー 2 連続で止めろ」 →  counter マーカーによる auto-release
-「評価役は別モデルで」       →  brain(opus) が worker の結果を検証
+「評価役は別モデルで」       →  判定系（report-reviewer=opus 等）が worker の結果を検証
 「ループの上限を決めよ」     →  CronCreate の maxRuns / budget 制御</div>
 
           <div class="sd-note">

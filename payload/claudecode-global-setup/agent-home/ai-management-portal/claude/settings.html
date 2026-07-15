@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>設定ファイル — AI マネジメントポータル</title>
+  <link rel="stylesheet" href="../style.css" />
+  <script type="module" src="../src/common/header.js"></script>
+</head>
+<body>
+  <div class="pm-page">
+    <main class="pm-main">
+      <div class="pm-hero">
+        <div>
+          <h1>設定ファイル</h1>
+          <p>直下に置く 4 本の設定ファイル（<code>CLAUDE.md</code> / <code>settings.json</code> / <code>statusline.py</code> / <code>README.md</code>）の役割と主要セクションを整理する。</p>
+        </div>
+        <a class="pm-updated" href="../index.html#/category/claude-config">← .claude 設定層</a>
+      </div>
+
+      <div class="sec-label">早見表</div>
+      <div class="prose">
+        <table class="design-table">
+          <thead><tr><th>ファイル</th><th>形式</th><th>役割</th><th>編集頻度</th></tr></thead>
+          <tbody>
+            <tr><td><code>CLAUDE.md</code></td><td>Markdown</td><td>全プロジェクト共通の Claude への指示（system prompt 追補）</td><td>中</td></tr>
+            <tr><td><code>settings.json</code></td><td>JSON</td><td>hooks・permissions・env の宣言</td><td>低〜中</td></tr>
+            <tr><td><code>statusline.py</code></td><td>Python</td><td>ステータスライン描画（進捗バー含む）</td><td>低</td></tr>
+            <tr><td><code>README.md</code></td><td>Markdown</td><td>リポジトリ説明・運用ノート</td><td>低</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="sec-label">CLAUDE.md の構造</div>
+      <div class="prose">
+        <p>CLAUDE.md は次の 3 ブロックで構成する。</p>
+        <ol>
+          <li><b>基本ルール</b>（言語・対話・コーディング原則）</li>
+          <li><b>hook 注入タグへの対応</b>（タグ別の応答手順へのポインタ）</li>
+          <li><b>メンテナンスノート</b>（陳腐化防止・dead code 検出の指針）</li>
+        </ol>
+        <p>番号付き節（§1〜§18）の詳細は <a href="rules.html">CLAUDE.md ルール一覧</a> を参照。各節は次の 3 要素を備えるテンプレート化済み: <em>趣旨</em>・<em>発火条件（hook タグ・状況）</em>・<em>Claude の手順 + 再帰防止</em>。</p>
+      </div>
+
+      <div class="sec-label">settings.json の主要キー</div>
+      <div class="prose">
+        <table class="design-table">
+          <thead><tr><th>キー</th><th>用途</th><th>備考</th></tr></thead>
+          <tbody>
+            <tr><td><code>permissions.deny</code></td><td>禁止コマンドの正規表現</td><td>対話ログイン（<code>gh auth login</code> 等）を block</td></tr>
+            <tr><td><code>permissions.allow</code></td><td>無確認実行を許可するコマンド・MCP</td><td><code>/fewer-permission-prompts</code> で蓄積</td></tr>
+            <tr><td><code>env</code></td><td>セッションに注入する環境変数</td><td>API token 等を集約</td></tr>
+            <tr><td><code>hooks.PreToolUse</code></td><td>ツール実行前のチェック</td><td>NAMING・AUTHOR・PUBLISH-SAFETY 等を注入</td></tr>
+            <tr><td><code>hooks.PostToolUse</code></td><td>ツール実行後の事後処理</td><td>TEXTLINT・AMBIGUITY-AUTO-FIX 等</td></tr>
+            <tr><td><code>hooks.UserPromptSubmit</code></td><td>ユーザー発話受信時のフラグ立て</td><td>FLOW-SELECT 検出など</td></tr>
+            <tr><td><code>hooks.Stop</code></td><td>応答終了時の整合性チェック</td><td>AUTO-COMMIT・NO-DELEGATION 等</td></tr>
+            <tr><td><code>hooks.SessionEnd</code></td><td>セッション終了時の要約・後始末</td><td>session-summary 連携</td></tr>
+            <tr><td><code>statusLine</code></td><td>ステータスライン設定</td><td><code>statusline.py</code> を起動</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="sec-label">statusline.py の責務</div>
+      <div class="prose">
+        <p>セッション中のステータス行を描画する Python スクリプト。<code>.status.json</code> から full-cycle-flow の進捗を読み取って進捗バーを表示する。</p>
+      </div>
+
+      <div class="sec-label">編集時の注意</div>
+      <div class="prose">
+        <ul>
+          <li><code>settings.json</code> は <code>~/.claude/.allow-direct-edit</code> を touch するか、<code>update-config</code> スキル経由で編集する。FLOW-SELECT の例外パスなので block はされないが、変更は <code>backups/</code> に自動退避する設計</li>
+          <li><code>CLAUDE.md</code> の冒頭に <code>&lt;!-- textlint-disable --&gt;</code> を保持する（指示文の文体を textlint 違反として扱わないため）</li>
+          <li>権限変更は <code>permissions.deny</code> を優先で固める。<code>allow</code> はあくまで「無確認実行」の許可で、deny を弱めない</li>
+        </ul>
+      </div>
+
+      <div class="back-link"><a href="../index.html#/category/claude-config">← .claude 設定層へ戻る</a></div>
+    </main>
+  </div>
+</body>
+</html>
