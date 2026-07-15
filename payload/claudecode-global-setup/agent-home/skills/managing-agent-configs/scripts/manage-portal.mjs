@@ -23,11 +23,15 @@ const SKILL_CATEGORIES_FILE = path.join(PORTAL, "data", "skill-categories.js");
 const MANIFEST_FILE = path.join(PORTAL, "data", "manifest.js");
 const SKILLS_HTML = path.join(PORTAL, "catalog", "skills.html");
 const INDEX_HTML = path.join(PORTAL, "index.html");
-const RULES_DIR = path.join(HOME_DIR, ".claude", "rules");
-const AGENTS_DIR = path.join(HOME_DIR, ".claude", "agents");
+// RULES_DIR / AGENTS_DIR / GLOBAL_PRH_FILE はスクリプト設置場所（REPO_ROOT = agent-home）から
+// 相対解決する。デプロイ後は ~/.claude/rules, ~/.claude/agents が agent-home/rules,
+// agent-home/agents への symlink になるため、os.homedir() 依存だと未インストール環境
+// （初回インストール前・別 PC）でカウントが 0 になる不具合があった。
+const RULES_DIR = path.join(REPO_ROOT, "rules");
+const AGENTS_DIR = path.join(REPO_ROOT, "agents");
 const DICTIONARY_CATEGORIES_FILE = path.join(PORTAL, "data", "dictionary-categories.js");
 const DICTIONARIES_HTML = path.join(PORTAL, "catalog", "dictionaries.html");
-const GLOBAL_PRH_FILE = path.join(HOME_DIR, ".claude", "rules", "always", "review-checklist", "text-dictionary", "prh.yml");
+const GLOBAL_PRH_FILE = path.join(REPO_ROOT, "rules", "always", "review-checklist", "text-dictionary", "prh.yml");
 const PROJECTS_ROOT = path.join(HOME_DIR, "Projects");
 const PUBLIC_SET_HTML = path.join(PORTAL, "catalog", "public-set.html");
 
