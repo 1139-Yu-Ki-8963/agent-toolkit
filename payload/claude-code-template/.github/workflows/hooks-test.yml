@@ -1,0 +1,38 @@
+# claude-code-template 本家 CI
+# 導入先にはコピーされない（init.mjs が .github を除外することで保証）
+
+name: hooks-test
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        node: [18, 22]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+
+      - name: 構文チェック（.mjs）
+        run: find .claude/hooks -name '*.mjs' -exec node --check {} +
+        shell: bash
+
+      - name: JSON 検証
+        run: |
+          for f in $(find . -name '*.json' -o -name '*.json.example'); do
+            node -e "JSON.parse(require('fs').readFileSync('$f','utf8'))" || exit 1
+          done
+        shell: bash
+
+      - name: テスト実行
+        run: find .claude/hooks/tests -name '*.test.mjs' | xargs node --test
+        shell: bash

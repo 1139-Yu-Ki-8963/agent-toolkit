@@ -1,0 +1,20 @@
+# 個人ファイル
+CLAUDE.local.md
+
+# 個人設定
+.claude/settings.local.json
+
+# hook ログ
+.claude/hooks/logs/
+
+# settings バックアップ
+.claude/settings.json.bak
+
+# 秘密情報
+.env
+.env.local
+.env.*.local
+secrets/
+*.pem
+*.p12
+*.pfx
