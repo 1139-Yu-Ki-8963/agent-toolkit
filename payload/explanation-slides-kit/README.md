@@ -1,6 +1,6 @@
 # explanation-slides-kit
 
-与えたトピックを図解入り横1枚（16:9）のスライド風解説HTMLに変換する `generating-explanation-html-slides` スキルと、生成物の品質を担保する品質コンテキストの最小セットを同梱した自己完結型キット。
+与えたトピックを横1枚（16:9）のスライド風解説HTMLに変換する `generating-explanation-html-slides` スキルと、生成物の品質を担保する品質コンテキストの最小セットを同梱した自己完結型キット。図解スライドと論証テーブルの2型に対応し、AI がテーマの性質から最適な型を自動判定する機能を搭載する。
 
 ## 導入手順
 
@@ -17,6 +17,7 @@ cp -r skills/generating-explanation-html-slides ~/.claude/skills/
 | ファイル | 役割 |
 |---|---|
 | `slide-template.html` | デザイントークン・部品カタログ（生成の正本） |
+| `argument-table-template.html` | 論証テーブル型の CSS 部品テンプレート |
 | `slide-review-checklist.md` | 観点レビュー表（合格判定の正本） |
 | `business-content-standards.md` | ビジネス提示資料の内容品質基準（メッセージ設計・論理構造・数値信頼性・読み手適合・提案の質・表現の品位の6カテゴリ23観点） |
 | `html-output-standards.md` | 単一HTML成果物の合格基準（被覆・図解・自己完結等） |
