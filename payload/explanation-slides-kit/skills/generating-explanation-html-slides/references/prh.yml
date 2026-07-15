@@ -1,0 +1,414 @@
+version: 1
+rules:
+  # ═══ カテゴリ: katakana-business（カタカナ語の平易化）═══
+  # 推奨: 唯一の情報源 / 一元管理
+  - expected: 唯一の情報源
+    patterns:
+      - /SSOT/i
+      - /Single Source of Truth/i
+
+  # 推奨: 推奨手順 / 定石 / 良い方法
+  # 誤検知注意: 技術コミュニティで定着した慣用表現として使う場合は許容
+  - expected: 推奨手順
+    patterns:
+      - /ベストプラクティス/i
+      - /Best Practices/i
+
+  # 推奨: 活用する / 最大限に使う
+  # 誤検知注意: 金融文脈の「レバレッジ取引」は対象外
+  - expected: 活用する
+    patterns:
+      - /レバレッジ(?!取引)/i
+
+  # 推奨: 詳しく掘り下げる / 詳細分析
+  - expected: 詳しく掘り下げる
+    patterns:
+      - /ディープダイブ/i
+      - /Deep Dive/i
+
+  # 推奨: 関係者 / 利害関係者
+  - expected: 関係者
+    patterns:
+      - /ステークホルダー/i
+      - /Stakeholder/i
+
+  # 推奨: 相乗効果
+  - expected: 相乗効果
+    patterns:
+      - /シナジー/i
+      - /Synergy/i
+
+  # 推奨: 課題 / 悩み / 問題点
+  - expected: 課題
+    patterns:
+      - /ペインポイント/i
+      - /Pain Points/i
+
+  # 推奨: 認識合わせ / 方向統一
+  # 誤検知注意: 機械学習の「アラインメント」は対象外
+  - expected: 認識合わせ
+    patterns:
+      - /アライメント/i
+      - /アラインする/i
+
+  # 推奨: 拡張しやすい / 拡張性がある
+  - expected: 拡張しやすい
+    patterns:
+      - /スケーラブル/i
+      - /Scalable/i
+
+  # 推奨: 導入 / 受け入れ / 初期設定
+  - expected: 導入
+    patterns:
+      - /オンボーディング/i
+      - /Onboarding/i
+
+  # 推奨: 着手しやすい施策 / すぐ手が届く課題
+  - expected: 着手しやすい施策
+    patterns:
+      - /ローハンギングフルーツ/i
+      - /Low-hanging Fruit/i
+
+  # 推奨: 余力 / 対応可能な時間
+  # 誤検知注意: ネットワーク帯域の意味なら対象外
+  - expected: 余力
+    patterns:
+      - /バンドウィズ/i
+
+  # 推奨: 合意 / 賛同を得る / 承認
+  - expected: 合意
+    patterns:
+      - /バイイン/i
+      - /Buy-in/i
+
+  # 推奨: 具体的なやること / 次のステップ
+  - expected: 具体的なやること
+    patterns:
+      - /アクションアイテム/i
+      - /Action Items/i
+
+  # 推奨: 学び / 得られた教訓 / 要点
+  # 誤検知注意: 飲食店の持ち帰りの意味なら対象外
+  - expected: 学び
+    patterns:
+      - /テイクアウェイ/i
+      - /Takeaway/i
+
+  # 推奨: 即効策 / 短期成果
+  - expected: 即効策
+    patterns:
+      - /クイックウィン/i
+      - /Quick Win/i
+
+  # 推奨: 計画表 / 工程表
+  - expected: 計画表
+    patterns:
+      - /ロードマップ/i
+      - /Roadmap/i
+
+  # 推奨: 節目 / 中間目標
+  - expected: 節目
+    patterns:
+      - /マイルストーン/i
+      - /Milestone/i
+
+  # 推奨: 制約箇所 / 制約
+  - expected: 制約箇所
+    patterns:
+      - /ボトルネック/i
+      - /Bottleneck/i
+
+  # 推奨: 将来像 / 方向性 / 構想
+  - expected: 将来像
+    patterns:
+      - /ビジョン/i
+      - /Vision/i
+
+  # 推奨: 要約 / 概要 / まとめ
+  # 誤検知注意: 固有名詞として使われる場合は対象外
+  - expected: 要約
+    patterns:
+      - /サマリー/i
+      - /サマリ(?!ー)/i
+
+  # 推奨: 妨げ / 障害 / 進行を阻む要因
+  # 誤検知注意: 「広告ブロッカー」「ポップアップブロッカー」のような UI/ネットワーク技術用語は対象外
+  - expected: 妨げ
+    patterns:
+      - /ブロッカー/i
+      - /Blocker/i
+
+  # 推奨: 方法 / 方策 / やり方
+  - expected: 方法
+    patterns:
+      - /アプローチ/i
+      - /Approach/i
+
+  # 推奨: 兼ね合い / 妥協点 / 得失
+  - expected: 兼ね合い
+    patterns:
+      - /トレードオフ/i
+      - /Trade-off/i
+
+  # 推奨: 範囲 / 対象範囲
+  # 誤検知注意: プログラミングの「変数スコープ」「レキシカルスコープ」等、言語仕様上の scope は対象外
+  - expected: 範囲
+    patterns:
+      - /スコープ/i
+
+  # 推奨: 抽出する / 選び出す / 拾い上げる
+  # 誤検知注意: 配車サービス・楽器の「ピックアップ」(電気信号変換器) など、
+  #             固有名詞・物理デバイス名としての用法は対象外
+  - expected: 抽出する
+    patterns:
+      - /ピックアップ/i
+
+  # 推奨: 予算 / 費用枠
+  # 誤検知注意: メモリバジェットなどハードウェア・ゲーム開発文脈での技術用語は対象外
+  - expected: 予算
+    patterns:
+      - /バジェット/i
+
+  # 推奨: 知識 / 知見
+  # 誤検知注意: 「ナレッジベース」「ナレッジグラフ」など固有名詞・製品名として確立している場合は対象外
+  - expected: 知識
+    patterns:
+      - /ナレッジ/i
+
+  # 推奨: 仕組み / 手順 / 構造
+  # 誤検知注意: 生物学・物理学の専門用語（免疫メカニズム等）は対象外
+  - expected: 仕組み
+    patterns:
+      - /メカニズム/i
+      - /Mechanism/i
+
+  # 推奨: 追跡可能性 / 追跡性
+  # 誤検知注意: ISO 規格・物流・製造業の専門用語としての「トレーサビリティ」は対象外
+  - expected: 追跡可能性
+    patterns:
+      - /トレーサビリティ/i
+      - /[Tt]raceability/i
+
+  # 推奨: 短所 / 欠点 / 不利な点
+  - expected: 短所
+    patterns:
+      - /デメリット/i
+
+  # 推奨: 可能な限り / 最善努力
+  # 誤検知注意: ネットワーク QoS の「ベストエフォート型サービス」のような RFC 由来の技術用語は対象外
+  - expected: 可能な限り
+    patterns:
+      - /ベストエフォート(?!型)/i
+
+  # 推奨: 時系列 / 経過
+  # 誤検知注意: SNS のタイムライン UI、Git のコミットタイムラインなど固有機能名は対象外
+  - expected: 時系列
+    patterns:
+      - /タイムライン/i
+      - /Timeline/i
+
+  # 推奨: 追加対応 / 後続作業 / 追跡確認
+  # 誤検知注意: 医療・看護分野の「フォローアップ診察」など専門用語として定着した用法は対象外
+  - expected: 追加対応
+    patterns:
+      - /フォローアップ/i
+      - /Follow.?up/i
+
+  # 推奨: 先回りして行動する / 事前対応の
+  # 誤検知注意: control theory / reactive system の技術文脈は対象外
+  - expected: 先回りして行動する
+    patterns:
+      - /プロアクティブ/i
+      - /Proactive/i
+
+  # 推奨: 段階 / 工程
+  # 誤検知注意: Phase 番号付きの技術ラベル（Phase 1, Phase 2 等）は /phase\s*\d+/ 別エントリで対応済み
+  - expected: 段階
+    patterns:
+      - /フェーズ/i
+
+  # 推奨: 指針 / 方針
+  # 誤検知注意: 法令・ISO 規格などの固有名詞として定着している「ガイドライン」は対象外
+  - expected: 指針
+    patterns:
+      - /ガイドライン/i
+      - /Guideline/i
+
+  # 推奨: 知見 / 実践知識
+  # 誤検知注意: 固有名詞・製品名・ビジネス英語としての "know-how" (ハイフン付き英語) は対象外
+  - expected: 知見
+    patterns:
+      - /ノウハウ/i
+
+  # ═══ カテゴリ: abbreviations（英字略語の日本語化）═══
+  # 推奨: 達成指標 / 業績指標
+  - expected: 達成指標
+    patterns:
+      - /KPI/i
+
+  # 推奨: 投資対効果 / 費用対効果
+  - expected: 投資対効果
+    patterns:
+      - /ROI/i
+
+  # 推奨: 目標と成果指標 / 目標管理指標
+  - expected: 目標と成果指標
+    patterns:
+      - /OKR/i
+
+  # 推奨: アーキテクチャ決定記録
+  # 誤検知注意: 小文字 adr のコード識別子・パス名は対象外（大文字 ADR のみ検出）
+  - expected: アーキテクチャ決定記録
+    patterns:
+      - /\bADR\b/
+
+  # 推奨: 実装
+  # 誤検知注意: impl-flow.html 等のファイル名・識別子（ハイフン・アンダースコア・ドット・スラッシュ連結）は対象外
+  - expected: 実装
+    patterns:
+      - /\bimpl\b(?![-_.\/])/i
+
+  # 推奨: 些細な / 単純な
+  # 誤検知注意: 数学の trivial solution（自明解）等の専門用語文脈は対象外
+  - expected: 些細な
+    patterns:
+      - /\btrivial\b/i
+
+  # ═══ カテゴリ: loanword-metaphor（比喩・直訳の是正）═══
+  # 推奨: 判定フロー
+  # 「決定木」は英語 Decision Tree の不自然な直訳。Q&A 形式の振り分け手順は「判定フロー」が自然
+  - expected: 判定フロー
+    patterns:
+      - 決定木
+
+  # 推奨: 定義
+  # 「正本」は公文書の原本を指す法律用語。ソフトウェアの文脈では「定義」が自然
+  - expected: 定義
+    patterns:
+      - 正本
+
+  # 推奨: 起動前チェック
+  # 「プリフライト」は航空用語の借用で初見では意味不明
+  - expected: 起動前チェック
+    patterns:
+      - プリフライト
+
+  # 推奨: 不可分な / 単一目的の / 分割不能な / 最小単位の
+  # 誤検知注意: データベース ACID の「原子性」、std::atomic 等プログラミング言語の構文・API 名は対象外
+  - expected: 単一目的の
+    patterns:
+      - /アトミック/i
+
+  # 推奨: 正式サポート / 公式サポート / 手厚いサポート（日本語パターン）
+  # 誤検知注意: プログラミング言語で「関数が一級市民として扱われる」等、
+  #             CS の first-class citizen 概念を説明する文脈は対象外
+  - expected: 正式サポート
+    patterns:
+      - /一級市民サポート/i
+      - /一級市民扱い(?!.*として扱)/i
+      - /ファーストクラスサポート/i
+
+  # 推奨: 正式サポート（英語パターン。日本語と混在させると prh フラグ競合でクラッシュするため分離）
+  - expected: 正式サポート
+    patterns:
+      - /first-class support/i
+
+  # 推奨: コンフリクトしている
+  - expected: コンフリクトしている
+    patterns:
+      - /傷んだ/
+
+  # 推奨: 自動判定 / 振り分け処理 / 判定器
+  # 誤検知注意: GitHub の Auto mode classifier など固有機能名、機械学習の SVM 分類器・画像分類器など確立した訳語は対象外
+  - expected: 自動判定
+    patterns:
+      - /[Cc]lassifier/
+      - /クラシファイア/
+      - /分類器/
+
+  # 推奨: 一直線の履歴 / 一直線にする / 直列
+  # 誤検知注意: プロジェクト管理ツール「Linear」(大文字始まりの固有名詞)、
+  #             CSS の linear-gradient、数学・機械学習の「線形」(linear regression 等) は対象外。
+  #             小文字 linear のみ検出し、大文字始まり Linear と後続ハイフン linear- は除外する
+  - expected: 一直線の履歴
+    patterns:
+      - /\blinear\b(?!-)/
+
+  # ═══ カテゴリ: claude-ci-terms（Claude Code・CI 用語の統一）═══
+  # 推奨: 品質確認 / 品質確認フロー
+  # 誤検知注意: SonarQube 等の「Quality Gate」という固有機能名を文書内で指す場合は対象外
+  - expected: 品質確認
+    patterns:
+      - /品質ゲート/
+      - /[Qq]uality\s*[Gg]ate/
+
+  # 推奨: 事前確認
+  # 用途: pre-push フックの前段検査（typecheck/lint/unit test）等を「軽量ゲート」と呼ぶ表現の言い換え
+  - expected: 事前確認
+    patterns:
+      - /軽量ゲート/
+
+  # 推奨: 補助確認
+  # 用途: CI の補助ジョブを「補助ゲート」「CI 補助ゲート」と呼ぶ表現の言い換え
+  - expected: 補助確認
+    patterns:
+      - /補助ゲート/
+      - /CI\s*補助ゲート/
+
+  # 推奨: lint 確認
+  - expected: lint 確認
+    patterns:
+      - /lint\s*ゲート/
+      - /Lint\s*ゲート/
+
+  # 推奨: 認証フロー
+  # 誤検知注意: 「認証ゲートウェイ (gateway)」という製品名・固有名詞は対象外
+  - expected: 認証フロー
+    patterns:
+      - /認証ゲート/
+
+  # 推奨: E2E 確認
+  - expected: E2E 確認
+    patterns:
+      - /(?:e2e|E2E|E2e|e2E)\s*ゲート/
+
+  # 推奨: モック作成完了
+  # ユーザー指摘: MOCK-READY は「作成待ちか承認待ちか分からない」。実態は作成完了（承認待ちへの移行合図）
+  # 誤検知注意: コード内の定数 MOCK_READY（アンダースコア）は対象外（正規表現でヒットしない）
+  - expected: モック作成完了
+    patterns:
+      - /MOCK-READY/
+
+  # 推奨: 調査結果待ち
+  # ユーザー指摘: 「findings 待ち」は意味が取れない。findings 単独は英文で頻出のため「待ち」連結のみ検出
+  - expected: 調査結果待ち
+    patterns:
+      - /findings\s*待ち/i
+
+  # ═══ カテゴリ: notation（記法規約）═══
+  # 推奨: ステップ番号は整数で記載（step 1, step 2 など）
+  # 誤検知注意: v1.5 などバージョン番号は step/phase が前置されないため対象外
+  - expected: 整数のステップ番号
+    patterns:
+      - /(step|phase)\s*\d+\.\d+/i
+      - /ステップ\s*\d+\.\d+/i
+
+  # 推奨: 重大な問題・警告・提案 など優先度を日本語で明示
+  # 誤検知注意: P2P など複合語は \b で除外済み。コードブロック内も自動スキップ
+  - expected: 優先度を日本語で明示（重大な問題・警告・提案）
+    patterns:
+      - /\bP[0-9]\b/
+
+  # 推奨: フェーズ・ステップ番号は 1 から開始する
+  # 誤検知注意: コードブロック内の変数名・配列インデックスは対象外（自動スキップ）
+  - expected: フェーズ・ステップは 1 から開始
+    patterns:
+      - /(step|phase)\s*0\b/i
+      - /ステップ\s*0\b/i
+
+  # ═══ カテゴリ: official-names（環境・プロジェクト固有の正式名称）═══
+  # 推奨: ルーティン
+  # 誤検知注意: 「定例会議」のような固有名詞・組織名として定着している場合は対象外
+  - expected: ルーティン
+    patterns:
+      - /定例/i
