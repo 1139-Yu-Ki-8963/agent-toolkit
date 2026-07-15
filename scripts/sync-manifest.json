@@ -9,6 +9,7 @@
     { "mode": "mirror", "src": "~/agent-home/skills/parallel-dev-worktree", "dst": "payload/claudecode-global-setup/agent-home/skills/parallel-dev-worktree" },
     { "mode": "mirror", "src": "~/agent-home/skills/grouping-commits", "dst": "payload/claudecode-global-setup/agent-home/skills/grouping-commits" },
     { "mode": "mirror", "src": "~/agent-home/skills/adding-textlint-dictionary-terms", "dst": "payload/claudecode-global-setup/agent-home/skills/adding-textlint-dictionary-terms" },
+    { "mode": "mirror", "src": "~/agent-home/skills/generating-explanation-html-slides", "dst": "payload/claudecode-global-setup/agent-home/skills/generating-explanation-html-slides" },
     { "mode": "mirror", "src": "~/agent-home/skills/subagent-investigation-checklist", "dst": "payload/claudecode-global-setup/agent-home/skills/subagent-investigation-checklist" },
     { "mode": "mirror", "src": "~/agent-home/skills/eliciting-plan-tacit-knowledge", "dst": "payload/claudecode-global-setup/agent-home/skills/eliciting-plan-tacit-knowledge" },
     { "mode": "mirror", "src": "~/agent-home/agents", "dst": "payload/claudecode-global-setup/agent-home/agents" },
