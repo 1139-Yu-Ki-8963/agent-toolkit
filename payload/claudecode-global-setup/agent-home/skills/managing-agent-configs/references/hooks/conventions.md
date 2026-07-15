@@ -129,7 +129,7 @@ PLAN-DRAFT-WRITE-GATE-BLOCK
 
 例外（誤ブロック対象外）: React の `src/hooks/`、`.husky/`、`.git/hooks/`、`node_modules/**/hooks/` は `.claude/` も `agent-home/` も経由しないため自動的に対象外。
 
-ゲート監視パスの正本は `~/agent-home/tools/hooks/shared/marker-path.sh` の `managed_asset_type()`。本表と乖離した場合は関数側を正とする。
+ゲート監視パスの正本は `~/agent-home/rules/scoped/agent-config/hooks/shared/transcript-query.sh` の `managed_asset_type()`。本表と乖離した場合は関数側を正とする。
 
 ### 配置後の必須登録
 

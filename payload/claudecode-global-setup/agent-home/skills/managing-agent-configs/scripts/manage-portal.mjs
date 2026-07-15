@@ -806,6 +806,9 @@ function checkReferencePathsExist() {
         }
 
         if (!fs.existsSync(resolved)) {
+          // ROUTINES_DIR が未同梱の環境（配布先 PC 等）では routines/ 配下への
+          // 参照は検査対象外とする（routines は同期対象外の私物ディレクトリ）
+          if (token.startsWith("routines/") && !fs.existsSync(ROUTINES_DIR)) continue;
           const rel = path.relative(REPO_ROOT, file);
           problems.push(`${rel}:${i + 1} → ${token}`);
         }
@@ -1021,13 +1024,16 @@ async function checkCountsMatch() {
     problems.push(`skills 実体数(${skillsActual}) ≠ index.html GEN:COUNT:skills(${indexGenCount})`);
   }
 
-  // routines カウント
-  const routinesActual = countRoutines();
-  const routinesMatch = indexHtml.match(/<!-- GEN:COUNT:routines -->(.*?)<!-- \/GEN:COUNT:routines -->/);
-  if (routinesMatch) {
-    const routinesGen = parseInt(routinesMatch[1], 10);
-    if (routinesActual !== routinesGen) {
-      problems.push(`routines 実体数(${routinesActual}) ≠ GEN:COUNT:routines(${routinesGen})`);
+  // routines カウント（ROUTINES_DIR が未同梱の環境ではスキップ。routines は
+  // 同期対象外の私物ディレクトリのため、不在イコール未整備ではない）
+  if (fs.existsSync(ROUTINES_DIR)) {
+    const routinesActual = countRoutines();
+    const routinesMatch = indexHtml.match(/<!-- GEN:COUNT:routines -->(.*?)<!-- \/GEN:COUNT:routines -->/);
+    if (routinesMatch) {
+      const routinesGen = parseInt(routinesMatch[1], 10);
+      if (routinesActual !== routinesGen) {
+        problems.push(`routines 実体数(${routinesActual}) ≠ GEN:COUNT:routines(${routinesGen})`);
+      }
     }
   }
 
@@ -1089,7 +1095,8 @@ async function checkCountsMatch() {
 }
 
 function checkLinksExist() {
-  const problems = [];
+  const FAILS = [];
+  const WARNS = [];
 
   // PORTAL 配下 *.html（templates/ 除外）+ REPO_ROOT/routines/index.html
   const htmlFiles = walkFiles(PORTAL, (f) => f.endsWith(".html") && !f.includes("/templates/"));
@@ -1097,6 +1104,7 @@ function checkLinksExist() {
   if (fs.existsSync(routinesIndex)) htmlFiles.push(routinesIndex);
 
   const skipPrefixes = ["#", "http:", "https:", "mailto:", "data:", "javascript:"];
+  const routinesDirExists = fs.existsSync(ROUTINES_DIR);
 
   for (const htmlFile of htmlFiles) {
     const rawContent = fs.readFileSync(htmlFile, "utf8");
@@ -1123,15 +1131,26 @@ function checkLinksExist() {
       }
       if (!exists) {
         const rel = path.relative(REPO_ROOT, htmlFile);
-        problems.push(`${rel}: リンク切れ → ${attr}`);
+        const isRoutinesLink =
+          resolved === ROUTINES_DIR || resolved.startsWith(ROUTINES_DIR + path.sep);
+        if (isRoutinesLink && !routinesDirExists) {
+          // ROUTINES_DIR が未同梱の環境（配布先 PC 等）では routines/ 配下への
+          // リンクは WARN に留める（routines は同期対象外の私物ディレクトリ）
+          WARNS.push(`${rel}: リンク切れ（routines/ 未同梱環境） → ${attr}`);
+        } else {
+          FAILS.push(`${rel}: リンク切れ → ${attr}`);
+        }
       }
     }
   }
 
+  const allProblems = FAILS.map((f) => `[FAIL] ${f}`).concat(WARNS.map((w) => `[WARN] ${w}`));
+  const status = FAILS.length > 0 ? "FAIL" : WARNS.length > 0 ? "WARN" : "PASS";
+
   return {
     key: "リンク-実在",
-    status: problems.length > 0 ? "FAIL" : "PASS",
-    problems,
+    status,
+    problems: allProblems,
   };
 }
 
@@ -1335,7 +1354,8 @@ async function checkCategoryConsistency() {
 }
 
 function checkAliasResolution() {
-  const problems = [];
+  const FAILS = [];
+  const WARNS = [];
   const aliasFile = path.join(REPO_ROOT, "sessions", ".skill-log", "skill-aliases.yml");
 
   if (!fs.existsSync(aliasFile)) {
@@ -1387,16 +1407,24 @@ function checkAliasResolution() {
     }
     const result = resolveWithCycleCheck(val, visited);
     if (result === "CYCLE") {
-      problems.push(`${key}: エイリアス循環を検出`);
+      FAILS.push(`${key}: エイリアス循環を検出`);
     } else if (result === null) {
-      problems.push(`${key} → ${val}: skills/${val}/SKILL.md が解決できない`);
+      // SKILLS_DIR（agent-home/skills/）配下で見つからないだけで、
+      // reverse-docs-skills/.claude/skills/ 等の別バンドル配下に実在する
+      // 可能性を排除できないため FAIL ではなく WARN に留める
+      WARNS.push(
+        `${key} → ${val}: skills/${val}/SKILL.md が解決できない（reverse-docs-skills 等、別バンドル配下に存在する可能性があります）`
+      );
     }
   }
 
+  const allProblems = FAILS.map((f) => `[FAIL] ${f}`).concat(WARNS.map((w) => `[WARN] ${w}`));
+  const status = FAILS.length > 0 ? "FAIL" : WARNS.length > 0 ? "WARN" : "PASS";
+
   return {
     key: "エイリアス-解決",
-    status: problems.length > 0 ? "FAIL" : "PASS",
-    problems,
+    status,
+    problems: allProblems,
   };
 }
 
