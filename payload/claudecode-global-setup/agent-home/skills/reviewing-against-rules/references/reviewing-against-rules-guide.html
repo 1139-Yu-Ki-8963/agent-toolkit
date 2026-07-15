@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<!--
+  reviewing-against-rules スキルガイド
+
+  正本: skills/reviewing-against-rules/SKILL.md
+
+  本ファイルは SKILL.md の内容のみから執筆。個別の実機検証記録はない。
+-->
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>reviewing-against-rules スキルガイド</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 0 24px 96px;
+    font-family: system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif;
+    line-height: 1.85; color: #1a1a1a; background: #fafafa;
+    max-width: 980px; margin-inline: auto;
+  }
+  header { padding: 56px 0 24px; border-bottom: 3px solid #1a1a1a; }
+  header h1 { font-size: 1.9rem; margin: 0 0 10px; letter-spacing: 0.01em; }
+  header .skill-name {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 1.0rem; background: #1a1a1a; color: #fafafa;
+    padding: 2px 10px; border-radius: 4px; vertical-align: middle;
+  }
+  header p { margin: 6px 0 0; color: #555; }
+  .meta-table { margin-top: 16px; font-size: 0.9rem; color: #555; }
+  .meta-table td { padding: 1px 16px 1px 0; }
+
+  nav.toc {
+    margin-top: 32px; padding: 18px 22px;
+    background: #fff; border: 1px solid #e0e0e0; border-radius: 8px;
+  }
+  nav.toc .toc-title { font-weight: 700; margin-bottom: 6px; }
+  nav.toc ol { margin: 0; padding-left: 1.4em; columns: 2; column-gap: 40px; }
+  nav.toc li { margin: 2px 0; }
+  nav.toc a { color: #1a1a1a; text-decoration: none; border-bottom: 1px dotted #999; }
+  nav.toc a:hover { border-bottom-style: solid; }
+
+  section { margin-top: 64px; }
+  section > h2 {
+    font-size: 1.35rem; padding-bottom: 8px; margin-bottom: 20px;
+    border-bottom: 2px solid #1a1a1a;
+  }
+  section > h2 .sec-num {
+    display: inline-block; min-width: 2.4em; margin-right: 10px;
+    font-family: ui-monospace, monospace; font-size: 0.95rem;
+    background: #1a1a1a; color: #fafafa; text-align: center;
+    padding: 1px 8px; border-radius: 4px; vertical-align: 2px;
+  }
+  h3 { font-size: 1.05rem; margin: 32px 0 10px; }
+  .note { color: #555; font-size: 0.92rem; }
+
+  table.spec { border-collapse: collapse; width: 100%; margin: 14px 0; background: #fff; font-size: 0.93rem; }
+  table.spec th, table.spec td { border: 1px solid #d8d8d8; padding: 8px 12px; text-align: left; vertical-align: top; }
+  table.spec th { background: #f0f0ee; font-weight: 700; white-space: nowrap; }
+  table.spec td code, li code, p code, table.spec th code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.86em; background: #eeeeea; padding: 1px 5px; border-radius: 3px;
+  }
+
+  pre.flow {
+    background: #16211c; color: #d7e6dc; border-radius: 8px;
+    padding: 20px 24px; overflow-x: auto;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.82rem; line-height: 1.55;
+  }
+  pre.flow .cap { color: #8fb8a0; }
+
+  figure.diagram { margin: 20px 0; padding: 8px; background: #fff;
+    border: 1px solid #e0e0e0; border-radius: 8px; }
+  figure.diagram svg { width: 100%; height: auto; display: block; cursor: zoom-in; }
+  figure.diagram figcaption { padding: 8px 10px 2px; }
+
+  .zoom-overlay {
+    position: fixed; inset: 0; z-index: 1000;
+    background: rgba(15, 23, 42, 0.93);
+    overflow: auto; padding: 24px; cursor: zoom-out;
+    -webkit-overflow-scrolling: touch;
+  }
+  .zoom-overlay svg {
+    width: 1880px; max-width: none; height: auto;
+    display: block; margin: 0 auto;
+    background: #fff; border-radius: 8px;
+  }
+
+  .def {
+    background: #fff; border-left: 4px solid #1a1a1a;
+    padding: 12px 18px; margin: 14px 0; border-radius: 0 6px 6px 0;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  }
+  .def dt { font-weight: 700; margin-top: 8px; }
+  .def dt:first-child { margin-top: 0; }
+  .def dd { margin: 2px 0 0 0; color: #333; }
+
+  .constraint {
+    background: #eef2f7; border: 1px solid #c8d4e3; border-radius: 8px;
+    padding: 12px 18px; margin: 16px 0; font-size: 0.93rem;
+  }
+  .constraint strong:first-child { color: #2a4a7a; }
+
+  .tag {
+    display: inline-block; font-family: ui-monospace, monospace; font-size: 0.78rem;
+    font-weight: 700; padding: 0 8px; border-radius: 3px; border: 1px solid transparent;
+  }
+  .tag.pass  { background: #e7f3e7; color: #23662a; border-color: #b9d9ba; }
+  .tag.fail  { background: #fbe9e7; color: #9c2b1a; border-color: #ecc0b8; }
+  .tag.error { background: #fdf3d7; color: #7a5d10; border-color: #e8d59a; }
+  .tag.mode  { background: #e8eef7; color: #2a4a7a; border-color: #c2d2e8; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>rules 照合レビューの単一入口<br><span class="skill-name">reviewing-against-rules</span></h1>
+  <p>対象ファイルから適用ルールを機械的に解決し、ドメイン別の専門家サブエージェントに照合を委任するスキル。</p>
+
+  <div class="def">
+    <dt>こんな人向け</dt>
+    <dd>成果物・差分のレビューを依頼された、または他スキルのレビュー工程（PR レビューの中の 1 段階・開発フローのレビュー工程）から呼び出された Claude。レビュー観点をその場で自作せず、既存の規約（ルール）に基づいて判定したい場合に使う。</dd>
+    <dt>こんな場面で使う</dt>
+    <dd>「レビューして」と成果物・差分を指定されたとき、他スキルのレビュー工程（PR レビューの一段階・開発フローのレビューゲート）から呼ばれたとき、HTML・コードの完成判定時。設定資産（skills / rules / hooks / routines / subagents）のレビューは対象外（<code>managing-agent-configs</code> が担当）。調査報告の事実性検証は <code>report-reviewer</code> への直接委任。公開可否チェックは <code>reviewing-public-readiness</code>。</dd>
+  </div>
+
+  <table class="meta-table">
+    <tr><td>対応 OS</td><td>macOS</td></tr>
+    <tr><td>検証状況</td><td>SKILL.md を正本として整理（個別の実機検証記録なし）</td></tr>
+    <tr><td>依存</td><td><code>scripts/resolve-applicable-rules.sh</code>。委任先サブエージェント: <code>document-reviewer</code>、<code>code-reviewer</code>、<code>worker-sonnet</code></td></tr>
+    <tr><td>関連資料</td><td><code>SKILL.md</code>、<code>~/.claude/rules/scoped/review-checklist/code/common/rule.md</code>、<code>~/.claude/rules/scoped/review-checklist/document/html-output/rule.md</code></td></tr>
+  </table>
+</header>
+
+<nav class="toc">
+  <div class="toc-title">目次</div>
+  <ol>
+    <li><a href="#s1">概要</a></li>
+    <li><a href="#s2">出力</a></li>
+    <li><a href="#s3">原則</a></li>
+    <li><a href="#s4">手順（5 ステップ）</a></li>
+    <li><a href="#s5">ドメイン判定と専門家の選択</a></li>
+    <li><a href="#s6">サブエージェント委任仕様</a></li>
+    <li><a href="#s7">完了条件</a></li>
+    <li><a href="#s8">予想を裏切る挙動</a></li>
+    <li><a href="#s9">関連スキル・規約</a></li>
+    <li><a href="#s10">よくある誤用と正しい使い方</a></li>
+  </ol>
+</nav>
+
+<section id="s1">
+  <h2><span class="sec-num">§1</span>概要</h2>
+  <p>
+    レビュー観点の正本は rules（<code>~/.claude/rules/scoped/</code> 配下の各 rule.md）にある。<code>reviewing-against-rules</code> は「対象ファイル → 適用ルールの解決 → ドメイン別専門家への委任 → 判定回収」という一連の流れを定型化し、スキルやセッションごとに観点の参照がばらつく事故（参照切れ・観点の省略・呼び出し元自身によるレビュー）を防ぐ。
+  </p>
+  <p>
+    本スキル自体は判定を行わない。判定は必ず <code>document-reviewer</code> / <code>code-reviewer</code> 等のドメイン別専門家に委ね、本スキルは「どのルールを、誰に、どう照合させるか」の配線だけを担当する。
+  </p>
+
+  <figure class="diagram">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 200">
+      <rect x="0" y="0" width="760" height="200" fill="#fff"/>
+      <rect x="10" y="30" width="150" height="140" rx="8" fill="#f0f0ee" stroke="#d8d8d8"/>
+      <text x="85" y="58" text-anchor="middle" font-size="13" font-weight="700" fill="#1a1a1a">対象確定</text>
+      <text x="85" y="82" text-anchor="middle" font-size="11" fill="#555">レビュー対象</text>
+      <text x="85" y="100" text-anchor="middle" font-size="11" fill="#555">ファイル一覧</text>
+      <text x="85" y="118" text-anchor="middle" font-size="11" fill="#555">（差分なら</text>
+      <text x="85" y="136" text-anchor="middle" font-size="11" fill="#555">git diff で取得）</text>
+
+      <line x1="160" y1="100" x2="205" y2="100" stroke="#1a1a1a" stroke-width="2" marker-end="url(#arr)"/>
+
+      <rect x="205" y="30" width="170" height="140" rx="8" fill="#e8eef7" stroke="#c2d2e8"/>
+      <text x="290" y="58" text-anchor="middle" font-size="13" font-weight="700" fill="#2a4a7a">ルール解決</text>
+      <text x="290" y="82" text-anchor="middle" font-size="11" fill="#555">resolve-applicable-</text>
+      <text x="290" y="100" text-anchor="middle" font-size="11" fill="#555">rules.sh</text>
+      <text x="290" y="118" text-anchor="middle" font-size="11" fill="#555">scoped rule の</text>
+      <text x="290" y="136" text-anchor="middle" font-size="11" fill="#555">paths 照合</text>
+
+      <line x1="375" y1="100" x2="420" y2="100" stroke="#1a1a1a" stroke-width="2" marker-end="url(#arr)"/>
+
+      <rect x="420" y="30" width="150" height="140" rx="8" fill="#fdf3d7" stroke="#e8d59a"/>
+      <text x="495" y="58" text-anchor="middle" font-size="13" font-weight="700" fill="#7a5d10">専門家委任</text>
+      <text x="495" y="82" text-anchor="middle" font-size="11" fill="#555">document-reviewer</text>
+      <text x="495" y="100" text-anchor="middle" font-size="11" fill="#555">code-reviewer</text>
+      <text x="495" y="118" text-anchor="middle" font-size="11" fill="#555">（並列起動</text>
+      <text x="495" y="136" text-anchor="middle" font-size="11" fill="#555">可）</text>
+
+      <line x1="570" y1="100" x2="615" y2="100" stroke="#1a1a1a" stroke-width="2" marker-end="url(#arr)"/>
+
+      <rect x="615" y="30" width="140" height="140" rx="8" fill="#e7f3e7" stroke="#b9d9ba"/>
+      <text x="685" y="58" text-anchor="middle" font-size="13" font-weight="700" fill="#23662a">判定回収</text>
+      <text x="685" y="82" text-anchor="middle" font-size="11" fill="#555">合格 → 報告</text>
+      <text x="685" y="100" text-anchor="middle" font-size="11" fill="#555">不合格 → 修正</text>
+      <text x="685" y="118" text-anchor="middle" font-size="11" fill="#555">委任 → 再判定</text>
+      <text x="685" y="136" text-anchor="middle" font-size="11" fill="#555">（最大 5 回）</text>
+
+      <defs>
+        <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+          <path d="M0,0 L0,6 L8,3 z" fill="#1a1a1a"/>
+        </marker>
+      </defs>
+    </svg>
+    <figcaption class="note">本スキルは配線役に徹し、レビュー観点そのものは rule.md、判定そのものは専門家サブエージェントが担う。</figcaption>
+  </figure>
+</section>
+
+<section id="s2">
+  <h2><span class="sec-num">§2</span>出力</h2>
+  <p>本スキルの実行が完了すると、以下が確立される。</p>
+  <div class="def">
+    <dt>適用ルールの解決結果</dt>
+    <dd>レビュー対象ファイルそれぞれについて、該当する rule.md の実パス一覧、またはレビュー対象外（適用ルールなし）であることが明示された状態。</dd>
+    <dt>専門家による証拠付き判定</dt>
+    <dd>適用ルールがあるファイルについて、ドメイン別専門家（<code>document-reviewer</code> または <code>code-reviewer</code>）が rule.md の基準ごとに PASS / FAIL（または対象外）と証拠を返した基準別判定表、および総合判定（合格 / 不合格・承認可 / 修正必須 / マージ不可）。</dd>
+    <dt>収束済みの修正ループ</dt>
+    <dd>不合格だった場合に <code>worker-sonnet</code> へ委任した修正と、その修正を踏まえた再判定の結果。合格またはユーザーへの差し戻しのいずれかで終端している状態。</dd>
+  </div>
+</section>
+
+<section id="s3">
+  <h2><span class="sec-num">§3</span>原則</h2>
+  <table class="spec">
+    <thead>
+      <tr><th>原則</th><th>内容</th><th>防ぐ事故</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>観点表を直接読まない</td>
+        <td>レビュー観点は専門家サブエージェントが rule.md から読む。呼び出し側（メインセッション・他スキル）が観点を要約してプロンプトに書き写すことを禁止する</td>
+        <td>要約の過程で観点が欠落・乖離する</td>
+      </tr>
+      <tr>
+        <td>メインの自己レビュー禁止</td>
+        <td>判定は必ず専門家サブエージェントが行う。生成役と検証役を分離する</td>
+        <td>自分で書いたものを自分で甘く採点する</td>
+      </tr>
+      <tr>
+        <td>適用 rule は機械的に解決する</td>
+        <td>scoped rule の <code>paths:</code> frontmatter が適用対象の宣言。手動でルールを選ばない</td>
+        <td>該当するはずのルールをうっかり見落とす、または恣意的に選ぶ</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="s4">
+  <h2><span class="sec-num">§4</span>手順（5 ステップ）</h2>
+
+  <pre class="flow"><span class="cap"># Step 1: 対象の確定</span>
+#   レビュー対象ファイル一覧を確定する
+#   PR・ブランチ差分なら git diff --name-only で取得する
+
+<span class="cap"># Step 2: 適用 rule と担当専門家の解決</span>
+scripts/resolve-applicable-rules.sh &lt;file...&gt;
+#   グローバル scoped rules と、カレントリポジトリの受け口
+#   （&lt;repo&gt;/.claude/rules/scoped/）の両方から、paths にマッチする
+#   &lt;file, rule.md実パス, specialist&gt; の組を全件得る（3列TSV）
+#   専門家の選択はファイル拡張子から推測しない。
+#   各 rule.md の frontmatter が宣言する specialist: フィールドを使う
+
+<span class="cap"># Step 3: specialist ごとにグルーピング</span>
+#   specialist 列の値ごとに &lt;file, rule&gt; の組をグルーピングする
+#   specialist が (unassigned) → 専門家未整備として警告扱い
+#   rule が (none)            → レビュー対象外と報告して終了
+#   設定資産（SKILL.md・rule.md・hook 等） → 本スキル対象外。managing-agent-configs へ
+#   複数 specialist が必要な場合 → 並列起動（1 メッセージで複数 Agent 呼び出し）
+
+<span class="cap"># Step 4: 委任</span>
+#   各専門家に次を埋め込んで委任する（文脈依存語「直前の」「例の」は禁止）
+#     - 対象ファイルの実パス一覧
+#     - Step 2 で解決した rule.md の実パス一覧
+#     - 「## 調査チェックリスト」見出し配下に
+#       「rule の全基準を確認し、基準ごとに PASS / FAIL / 対象外 + 証拠を返す」旨
+#     - 出力形式（専門家定義の出力形式に従う）と行数上限
+
+<span class="cap"># Step 5: 判定回収と後続</span>
+#   不合格・マージ不可 → worker-sonnet へ修正委任（専門家は修正しない）
+#                        → 修正後 Step 4 を再実行（最大 5 回、同一指摘の
+#                          2 回連続再発でユーザーへ差し戻し）
+#   合格             → 判定・照合 rule 一覧・指摘の要約をユーザー（または
+#                        呼び出し元スキル）へ返す</pre>
+</section>
+
+<section id="s5">
+  <h2><span class="sec-num">§5</span>rule と specialist の対応</h2>
+  <table class="spec">
+    <thead>
+      <tr><th>rule</th><th>paths（適用対象）</th><th>specialist</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>review-checklist/code</code></td>
+        <td><code>*.ts</code> <code>*.tsx</code> <code>*.js</code> <code>*.jsx</code> <code>*.mjs</code> <code>*.py</code></td>
+        <td><code>code-reviewer</code></td>
+      </tr>
+      <tr>
+        <td><code>review-checklist/document/html-output</code></td>
+        <td><code>*.html</code></td>
+        <td><code>document-reviewer</code></td>
+      </tr>
+      <tr>
+        <td><code>review-checklist/code/ui</code></td>
+        <td><code>*.tsx</code> <code>*.jsx</code> <code>*.vue</code> <code>*.html</code> <code>*.css</code> <code>*.scss</code></td>
+        <td><code>document-reviewer</code></td>
+      </tr>
+      <tr>
+        <td>設定資産（SKILL.md・rule.md・hook 等）</td>
+        <td>-</td>
+        <td>本スキル対象外。<code>managing-agent-configs</code> に委譲</td>
+      </tr>
+      <tr>
+        <td>適用 rule なし</td>
+        <td>-</td>
+        <td>レビュー対象外と報告して終了（観点なしの裁量レビューをしない）</td>
+      </tr>
+    </tbody>
+  </table>
+  <div class="constraint">
+    <strong>1 ファイル複数 specialist</strong>：<code>icon-usage</code> は <code>html-output</code> と同じ specialist（document-reviewer）だが適用範囲が html 以外にも及ぶため、<code>.tsx</code> は <code>code-reviewer</code>（review-checklist/code）と <code>document-reviewer</code>（icon-usage）の両方が該当しうる。specialist ごとに並列起動する（1 メッセージで複数 Agent 呼び出し。順次実行は無駄な待ち時間を生む）。rule 数・specialist 実在は <code>scripts/audit-review-coverage.sh</code> が機械的に数える。
+  </div>
+</section>
+
+<section id="s6">
+  <h2><span class="sec-num">§6</span>サブエージェント委任仕様</h2>
+  <table class="spec">
+    <thead>
+      <tr><th>呼び出し箇所</th><th>subagent_type</th><th>期待返却値</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>手順 4（HTML・文書照合）</td>
+        <td><code>document-reviewer</code></td>
+        <td>基準別判定表 + 総合判定（合格 / 不合格）</td>
+      </tr>
+      <tr>
+        <td>手順 4（コード照合）</td>
+        <td><code>code-reviewer</code></td>
+        <td>基準別判定表 + 総合判定（承認可 / 修正必須 / マージ不可）</td>
+      </tr>
+      <tr>
+        <td>手順 5（不合格時の修正）</td>
+        <td><code>worker-sonnet</code></td>
+        <td>修正ファイル一覧と修正内容の要約</td>
+      </tr>
+    </tbody>
+  </table>
+  <p class="note">
+    専門家に渡す rule.md の実パスは、必ず Step 2 の <code>resolve-applicable-rules.sh</code> の解決結果をそのまま使う。呼び出し側が観点を要約して渡すことは §3 の原則で禁止されている。
+  </p>
+</section>
+
+<section id="s7">
+  <h2><span class="sec-num">§7</span>完了条件</h2>
+  <div class="def">
+    <dt>適用ルールの解決が全件完了している</dt>
+    <dd>対象ファイル全件について、適用 rule の解決結果（該当 rule またはレビュー対象外）が示されている。</dd>
+    <dt>専門家判定が回収済みである</dt>
+    <dd>適用 rule があるファイルは専門家の総合判定（証拠付き）が回収されている。</dd>
+    <dt>修正ループが終端している</dt>
+    <dd>不合格 → 修正 → 再判定のループが収束（合格）、またはユーザー差し戻しで終端している。</dd>
+  </div>
+</section>
+
+<section id="s8">
+  <h2><span class="sec-num">§8</span>予想を裏切る挙動</h2>
+  <div class="constraint">
+    <strong>専門家は観点を持たない</strong>：専門家の定義自体には観点が書かれていない。rule.md のパスを渡し忘れると「照合 rule なし」で判定不能になる。これは仕様であり、観点なしレビューを許さないための設計。
+  </div>
+  <div class="constraint">
+    <strong><code>resolve-applicable-rules.sh</code> は scoped rule のみ解決する</strong>：always rule（常時注入）は全作業で既に効いているため、レビュー委任時に改めて渡す必要はない。
+  </div>
+  <div class="constraint">
+    <strong>新しいドメインの観点 rule を作った場合</strong>：例えば文章品質のような新しい観点 rule を作った場合、対応する専門家が未整備なら worker-sonnet で代替せず、専門家の新設を <code>managing-agent-configs</code>（種別 subagents）で行う。ドメイン単位 1 専門家の原則を守る（rule と 1 対 1 の専門家を増やさない）。
+  </div>
+</section>
+
+<section id="s9">
+  <h2><span class="sec-num">§9</span>関連スキル・規約</h2>
+  <table class="spec">
+    <thead>
+      <tr><th>参照先</th><th>役割</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>~/.claude/rules/scoped/review-checklist/code/common/rule.md</code></td>
+        <td>コードレビュー共通基準（観点正本）。<code>code-reviewer</code> が委任時に Read する</td>
+      </tr>
+      <tr>
+        <td><code>~/.claude/rules/scoped/review-checklist/document/html-output/rule.md</code></td>
+        <td>単一 HTML 成果物規約（観点正本）。<code>document-reviewer</code> が委任時に Read する</td>
+      </tr>
+      <tr>
+        <td><code>~/.claude/rules/scoped/review-checklist/report/common/rule.md</code></td>
+        <td>調査報告共通観点（観点正本）。照合対象がファイルでないため <code>report-reviewer</code> が直接委任時に自ら Read する</td>
+      </tr>
+      <tr>
+        <td><code>~/.claude/agents/code-reviewer/code-reviewer.md</code> / <code>~/.claude/agents/document-reviewer/document-reviewer.md</code> / <code>~/.claude/agents/report-reviewer/report-reviewer.md</code></td>
+        <td>ドメイン別専門家の定義本体</td>
+      </tr>
+      <tr>
+        <td><code>~/agent-home/skills/managing-agent-configs/SKILL.md</code></td>
+        <td>設定資産レビュー（本スキルの対象外領域）</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="s10">
+  <h2><span class="sec-num">§10</span>よくある誤用と正しい使い方</h2>
+  <table class="spec">
+    <thead>
+      <tr><th>誤用</th><th>正しい使い方</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>設定資産（SKILL.md・rule.md・hook）を本スキルでレビューしようとする</td>
+        <td><code>managing-agent-configs</code> の該当種別（skills / rules / hooks / routines / subagents）に委任する</td>
+      </tr>
+      <tr>
+        <td>調査報告の事実性（数値・再現性）を検証したい</td>
+        <td><code>report-reviewer</code> サブエージェントに直接委任する（本スキルはドメイン別専門家への配線が役割であり、事実性検証は担当しない）</td>
+      </tr>
+      <tr>
+        <td>公開前の機密混入・履歴漏洩チェックをしたい</td>
+        <td><code>reviewing-public-readiness</code> を使う（本スキルはコード・HTML の規約照合が対象であり、公開可否は別軸）</td>
+      </tr>
+      <tr>
+        <td>呼び出し側がレビュー観点を要約して専門家に渡す</td>
+        <td>rule.md の実パスをそのまま渡す。要約は §3 の原則「観点表を直接読まない」に違反する</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<div id="zoom-overlay" class="zoom-overlay" hidden></div>
+<script>
+  (function () {
+    var overlay = document.getElementById('zoom-overlay');
+    if (!overlay) return;
+    document.querySelectorAll('figure.diagram svg').forEach(function (svg) {
+      svg.addEventListener('click', function () {
+        overlay.innerHTML = '';
+        overlay.appendChild(svg.cloneNode(true));
+        overlay.hidden = false;
+        document.body.style.overflow = 'hidden';
+      });
+    });
+    overlay.addEventListener('click', function () {
+      overlay.hidden = true;
+      overlay.innerHTML = '';
+      document.body.style.overflow = '';
+    });
+  })();
+</script>
+
+</body>
+</html>

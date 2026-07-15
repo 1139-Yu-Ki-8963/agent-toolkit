@@ -13,7 +13,7 @@ allowed-tools: [Bash, Read, Write, Edit, Grep, Glob, Agent, AskUserQuestion]
 ## 設計思想
 
 - **作りっぱなしを許さない**: create したら review → test まで自動連鎖する
-- **骨格の単一正本化**: モード判定・連鎖制御・マーカー機構・完了報告の骨格は本体（このファイル）に集約し、型別の手順・観点・チェック項目は `references/<type>/` に分離する
+- **骨格の単一正本化**: モード判定・連鎖制御・完了報告の骨格は本体（このファイル）に集約し、型別の手順・観点・チェック項目は `references/<type>/` に分離する
 - **段階的開示**: 本体ハブは「種別判定 → モード判定 → 該当 references のロード指示」のみを行う。種別固有の詳細（規約・作成手順・観点・テスト手順）は各 `references/<type>/*.md` に置き、必要時のみロードする
 - **5 種の統合であって画一化ではない**: 種別ごとに配置先・観点・完了条件は異なる。共通化するのは「フロー構造」であり「内容」ではない
 
@@ -65,6 +65,15 @@ allowed-tools: [Bash, Read, Write, Edit, Grep, Glob, Agent, AskUserQuestion]
 
 連鎖をスキップしたい場合は `AskUserQuestion` で「ここで終了する／レビューまでで止める／テストまで連鎖する」を確認する。デフォルトは **テストまで連鎖**。
 
+### スキル削除時のクリーンアップ
+
+スキルを削除した場合は、以下の手順でポータル資産を更新する:
+
+1. `data/skill-categories.js` から削除対象スキルのエントリを削除する
+2. 対応するガイド HTML（`design/<スキル名>.html`）が存在すれば削除する
+3. `manage-portal.mjs generate` を実行する
+4. `manage-portal.mjs verify` が exit 0 であることを確認する
+
 ## review モード
 
 ### full モード（修正あり、既定）
@@ -89,15 +98,13 @@ allowed-tools: [Bash, Read, Write, Edit, Grep, Glob, Agent, AskUserQuestion]
 
 **重要**: test モードはセルフ再読で代替してはならない。バイアスや実機固有バグ（シェル変数展開・パイプ・エスケープ等）は新規コンテキストでしか検出できない。サブエージェントをディスパッチできない環境では「empirical evaluation skipped: dispatch unavailable」と明示してスキップする。
 
-**テスト完了マーカー（report必須・ハッシュ照合方式）**: テスト全項目 PASS の場合、reportファイル（`REVIEW-TEST-VERDICT: PASS` 行を含む）とハッシュ照合マーカーの2成果物を書き出す。commit gate はこの2つの実在・鮮度・ハッシュ一致を検証してから `git commit` を許可する。手順の詳細（reportファイル作成 / ハッシュ計算とマーカー書き出しの bash コマンド）は `references/marker-mechanism.md` を参照。
-
 ## 完了条件
 
 | モード | 完了条件 |
 |---|---|
 | create | 新規アセットを配置し、review → test まで連鎖が完了している |
 | review | 全観点の検査結果が記録され、CRITICAL が 0 件または修正承認済みである |
-| test | 対象種別の実機検証が全項目 PASS し、テスト完了マーカーが書き出されている |
+| test | 対象種別の実機検証が全項目 PASS している |
 | **Goal** | 通過した最終モードの完了条件を満たし、`skills` 種別は `manage-portal.mjs verify` が exit 0 である |
 
 ## サブエージェント委任仕様

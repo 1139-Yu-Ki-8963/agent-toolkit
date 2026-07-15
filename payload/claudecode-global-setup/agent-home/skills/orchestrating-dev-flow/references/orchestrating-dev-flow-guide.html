@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<!--
+  orchestrating-dev-flow スキルガイド
+  全実装フローを統合する開発オーケストレーター。5 ルート × 11 Phase。
+  正本: skills/orchestrating-dev-flow/SKILL.md および references/ 配下の Phase/モジュールファイル群。
+-->
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>orchestrating-dev-flow スキルガイド</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 0 24px 96px;
+    font-family: system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif;
+    line-height: 1.85; color: #1a1a1a; background: #fafafa;
+    max-width: 980px; margin-inline: auto;
+  }
+  header { padding: 56px 0 24px; border-bottom: 3px solid #1a1a1a; }
+  header h1 { font-size: 1.9rem; margin: 0 0 10px; letter-spacing: 0.01em; }
+  header .skill-name {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 1.0rem; background: #1a1a1a; color: #fafafa;
+    padding: 2px 10px; border-radius: 4px; vertical-align: middle;
+  }
+  header p { margin: 6px 0 0; color: #555; }
+  .meta-table { margin-top: 16px; font-size: 0.9rem; color: #555; }
+  .meta-table td { padding: 1px 16px 1px 0; }
+
+  nav.toc {
+    margin-top: 32px; padding: 18px 22px;
+    background: #fff; border: 1px solid #e0e0e0; border-radius: 8px;
+  }
+  nav.toc .toc-title { font-weight: 700; margin-bottom: 6px; }
+  nav.toc ol { margin: 0; padding-left: 1.4em; columns: 2; column-gap: 40px; }
+  nav.toc li { margin: 2px 0; }
+  nav.toc a { color: #1a1a1a; text-decoration: none; border-bottom: 1px dotted #999; }
+  nav.toc a:hover { border-bottom-style: solid; }
+
+  section { margin-top: 64px; }
+  section > h2 {
+    font-size: 1.35rem; padding-bottom: 8px; margin-bottom: 20px;
+    border-bottom: 2px solid #1a1a1a;
+  }
+  section > h2 .sec-num {
+    display: inline-block; min-width: 2.4em; margin-right: 10px;
+    font-family: ui-monospace, monospace; font-size: 0.95rem;
+    background: #1a1a1a; color: #fafafa; text-align: center;
+    padding: 1px 8px; border-radius: 4px; vertical-align: 2px;
+  }
+  h3 { font-size: 1.05rem; margin: 32px 0 10px; }
+  .note { color: #555; font-size: 0.92rem; }
+
+  table.spec { border-collapse: collapse; width: 100%; margin: 14px 0; background: #fff; font-size: 0.93rem; }
+  table.spec th, table.spec td { border: 1px solid #d8d8d8; padding: 8px 12px; text-align: left; vertical-align: top; }
+  table.spec th { background: #f0f0ee; font-weight: 700; white-space: nowrap; }
+  table.spec td code, li code, p code, table.spec th code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.86em; background: #eeeeea; padding: 1px 5px; border-radius: 3px;
+  }
+
+  pre.flow {
+    background: #16211c; color: #d7e6dc; border-radius: 8px;
+    padding: 20px 24px; overflow-x: auto;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.82rem; line-height: 1.55;
+  }
+  pre.flow .cap { color: #8fb8a0; }
+
+  figure.diagram { margin: 20px 0; padding: 8px; background: #fff;
+    border: 1px solid #e0e0e0; border-radius: 8px; }
+  figure.diagram svg { width: 100%; height: auto; display: block; cursor: zoom-in; }
+  figure.diagram figcaption { padding: 8px 10px 2px; }
+
+  .zoom-overlay {
+    position: fixed; inset: 0; z-index: 1000;
+    background: rgba(15, 23, 42, 0.93);
+    overflow: auto; padding: 24px; cursor: zoom-out;
+    -webkit-overflow-scrolling: touch;
+  }
+  .zoom-overlay svg {
+    width: 1880px; max-width: none; height: auto;
+    display: block; margin: 0 auto;
+    background: #fff; border-radius: 8px;
+  }
+
+  .def {
+    background: #fff; border-left: 4px solid #1a1a1a;
+    padding: 12px 18px; margin: 14px 0; border-radius: 0 6px 6px 0;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  }
+  .def dt { font-weight: 700; margin-top: 8px; }
+  .def dt:first-child { margin-top: 0; }
+  .def dd { margin: 2px 0 0 0; color: #333; }
+
+  .constraint {
+    background: #eef2f7; border: 1px solid #c8d4e3; border-radius: 8px;
+    padding: 12px 18px; margin: 16px 0; font-size: 0.93rem;
+  }
+  .constraint strong:first-child { color: #2a4a7a; }
+
+  .tag {
+    display: inline-block; font-family: ui-monospace, monospace; font-size: 0.78rem;
+    font-weight: 700; padding: 0 8px; border-radius: 3px; border: 1px solid transparent;
+  }
+  .tag.pass  { background: #e7f3e7; color: #23662a; border-color: #b9d9ba; }
+  .tag.fail  { background: #fbe9e7; color: #9c2b1a; border-color: #ecc0b8; }
+  .tag.error { background: #fdf3d7; color: #7a5d10; border-color: #e8d59a; }
+  .tag.mode  { background: #e8eef7; color: #2a4a7a; border-color: #c2d2e8; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>開発オーケストレーター<br><span class="skill-name">orchestrating-dev-flow</span></h1>
+  <p>全実装フローを統合するオーケストレーター。タスクを 5 ルートに分類し、Phase 1〜11 と専用フロー（Phase D・I1〜I7）を通じて計画から main マージまでを一貫して制御する。</p>
+
+  <dl class="def">
+    <dt>こんな人向け</dt>
+    <dd>新機能追加・バグ修正・リファクタ・ドキュメント編集・テスト追加・インシデント対応のいずれかを実行する開発者。</dd>
+    <dt>こんな場面で使う</dt>
+    <dd>実装を伴う作業の開始時。ルート判定・ブランチ準備・TDD サイクル・PR 作成・マージ後清掃を一連のフローとして実行したい場面。調査・質問のみ、agent-home 内スキル管理（→ <code>managing-agent-configs</code>）、単発コミット（→ <code>grouping-commits</code>）は対象外。</dd>
+  </dl>
+
+  <table class="meta-table">
+    <tr><td>対応 OS</td><td>macOS</td></tr>
+    <tr><td>検証状況</td><td>SKILL.md を正本として整理（個別の実機検証記録なし）</td></tr>
+    <tr><td>依存</td><td>ツール: Read, Write, Edit, Bash, Grep, Glob, Agent, AskUserQuestion, Skill ／ スクリプト: <code>scripts/update-flow-status.sh</code> ／ hook: <code>check-dev-flow-phase-gate.sh</code>（FLOW-GATE）、<code>check-worktree-required.sh</code> ／ 連携スキル: <code>parallel-dev-worktree</code>、<code>frontend-design</code>、<code>creating-new-project</code></td></tr>
+    <tr><td>関連資料</td><td><code>SKILL.md</code>、<code>references/phase-1-route-determination.md</code> 〜 <code>phase-11-*.md</code>、<code>references/incident-flow-i1-i7.md</code>、<code>references/module-preflight-check.md</code>、ほか module-* 計 11 件</td></tr>
+  </table>
+</header>
+
+<nav class="toc">
+  <div class="toc-title">目次</div>
+  <ol>
+    <li><a href="#s1">概要</a></li>
+  <li><a href="#s2">出力</a></li>
+    <li><a href="#s3">5 ルート一覧</a></li>
+    <li><a href="#s4">Phase マトリクス</a></li>
+    <li><a href="#s5">起動フローと進捗管理</a></li>
+    <li><a href="#s6">プリフライトチェック</a></li>
+    <li><a href="#s7">ルート昇格・停止点・中断</a></li>
+    <li><a href="#s8">hook 連携（FLOW-GATE）</a></li>
+    <li><a href="#s9">完了条件一覧</a></li>
+    <li><a href="#s10">関連スキル・規約</a></li>
+  </ol>
+</nav>
+
+<!-- ===== §1 概要 ===== -->
+<section id="s1">
+  <h2><span class="sec-num">§1</span>概要</h2>
+
+  <p>
+    <code>orchestrating-dev-flow</code> は開発タスクを受け取って 5 ルートのいずれかに分類し、
+    Phase 1〜11 の定型フローを通じて「計画 → 実装 → レビュー → マージ」を一貫して制御するオーケストレーター。
+    各 Phase の詳細手順は <code>references/phase-N-*.md</code> に分離されており、着手時に Read して実行する（事前一括読み込み禁止）。
+  </p>
+  <p>
+    フロー全体は <code>.claude/rules/always/project-context/flow-values.yml</code> から注入されるプロジェクト固有コンテキスト
+    （classify 閾値・ドメイン用語・設計規約・テスト規約・review gate マッピング）に基づいて動作する。
+    このファイルが存在しないプロジェクトでは <code>creating-new-project</code> スキルによるセットアップが先に必要。
+  </p>
+
+  <div class="constraint">
+    <strong>スキップ条件</strong><br>
+    調査・質問のみ ／ agent-home 内スキル・ルール・フック管理（→ <code>managing-agent-configs</code>）／ 単発コミット（→ <code>grouping-commits</code>）には本スキルを使用しない。
+  </div>
+</section>
+
+<section id="s2">
+  <h2><span class="sec-num">§2</span>出力</h2>
+  <p>フローが完走すると、選択したルートの全 Phase が完了条件を満たし、以下の状態が確立される。</p>
+  <div class="def">
+    <dt>main へのマージ済み変更</dt>
+    <dd>5 ルートのいずれかを通過し、review gate・テスト・完了チェックを経て main ブランチにマージされたコード変更。<code>config-with-review-and-verify</code> ルートではドキュメント・skills・rules・hooks 等の設定変更が対象になる。</dd>
+    <dt>完了報告</dt>
+    <dd><code>managing-agent-configs/references/skills/completion-report-format.md</code> の共通骨格（作業報告型）に従い、通過したルート識別子と完了 Phase 数を明記した報告。</dd>
+    <dt>後片付け済みの作業環境</dt>
+    <dd>Phase 10 でマージ後の worktree・feature ブランチ・使用ポートが削除され残留プロセスがない状態。Phase 11 で main ブランチが最新化されている。</dd>
+  </div>
+</section>
+
+<!-- ===== §2 5 ルート一覧 ===== -->
+<section id="s3">
+  <h2><span class="sec-num">§3</span>5 ルート一覧</h2>
+
+  <p>Phase 1 でタスク内容と <code>flow-values.yml</code> の <code>classify</code> セクションを照合し、以下のいずれか 1 つを選択する。</p>
+
+  <table class="spec">
+    <thead>
+      <tr><th>識別子</th><th>日本語名</th><th>用途</th><th>目安時間</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>feature-with-full-planning</code></td>
+        <td>機能実装（フル計画）</td>
+        <td>新機能追加・挙動変更を伴うバグ修正</td>
+        <td>60 分</td>
+      </tr>
+      <tr>
+        <td><code>feature-with-quick-delivery</code></td>
+        <td>機能修正（クイック）</td>
+        <td>変更ファイル ≤ 2 / migration なし / UI なし / API 契約なし / DB スキーマなし</td>
+        <td>20 分</td>
+      </tr>
+      <tr>
+        <td><code>config-with-review-and-verify</code></td>
+        <td>設定・ドキュメント編集</td>
+        <td>アプリコードを変えない docs・skills・rules・hooks・agents 変更</td>
+        <td>15 分</td>
+      </tr>
+      <tr>
+        <td><code>refactor-with-safety-guarantee</code></td>
+        <td>リファクタ（挙動保証）</td>
+        <td>挙動を変えない lint・deps 更新・純粋リファクタ</td>
+        <td>45 分</td>
+      </tr>
+      <tr>
+        <td><code>incident-with-emergency-path</code></td>
+        <td>本番障害復旧</td>
+        <td>P0 障害の緊急復旧（本番ダウン・データ消失等）</td>
+        <td>最速</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <figure class="diagram">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 320" font-family="system-ui,-apple-system,sans-serif" font-size="13">
+      <rect width="820" height="320" fill="#fafafa" rx="6"/>
+      <!-- タスク受信 -->
+      <rect x="330" y="14" width="160" height="36" rx="6" fill="#1a1a1a"/>
+      <text x="410" y="37" fill="#fafafa" text-anchor="middle" font-weight="700">タスク受信</text>
+      <!-- Phase 1 -->
+      <rect x="305" y="68" width="210" height="36" rx="6" fill="#e8eef7" stroke="#c2d2e8"/>
+      <text x="410" y="91" text-anchor="middle" fill="#2a4a7a" font-weight="700">Phase 1: ルート判定</text>
+      <line x1="410" y1="50" x2="410" y2="66" stroke="#1a1a1a" stroke-width="1.5" marker-end="url(#a)"/>
+      <!-- 分岐線 -->
+      <line x1="410" y1="104" x2="410" y2="128" stroke="#1a1a1a" stroke-width="1.5"/>
+      <line x1="76" y1="128" x2="744" y2="128" stroke="#1a1a1a" stroke-width="1.5"/>
+      <!-- ルート x 位置: 76, 210, 410, 610, 744 -->
+      <line x1="76"  y1="128" x2="76"  y2="146" stroke="#1a1a1a" stroke-width="1.5" marker-end="url(#a)"/>
+      <line x1="210" y1="128" x2="210" y2="146" stroke="#1a1a1a" stroke-width="1.5" marker-end="url(#a)"/>
+      <line x1="410" y1="128" x2="410" y2="146" stroke="#1a1a1a" stroke-width="1.5" marker-end="url(#a)"/>
+      <line x1="610" y1="128" x2="610" y2="146" stroke="#1a1a1a" stroke-width="1.5" marker-end="url(#a)"/>
+      <line x1="744" y1="128" x2="744" y2="146" stroke="#1a1a1a" stroke-width="1.5" marker-end="url(#a)"/>
+      <!-- フル計画 -->
+      <rect x="20"  y="148" width="112" height="50" rx="5" fill="#e7f3e7" stroke="#b9d9ba"/>
+      <text x="76"  y="170" text-anchor="middle" fill="#23662a" font-size="11" font-weight="700">フル計画</text>
+      <text x="76"  y="186" text-anchor="middle" fill="#23662a" font-size="10">Ph1-11</text>
+      <!-- クイック -->
+      <rect x="154" y="148" width="112" height="50" rx="5" fill="#e7f3e7" stroke="#b9d9ba"/>
+      <text x="210" y="170" text-anchor="middle" fill="#23662a" font-size="11" font-weight="700">クイック</text>
+      <text x="210" y="186" text-anchor="middle" fill="#23662a" font-size="10">Ph1,2,6-11</text>
+      <!-- 設定・docs -->
+      <rect x="320" y="148" width="180" height="50" rx="5" fill="#e8eef7" stroke="#c2d2e8"/>
+      <text x="410" y="170" text-anchor="middle" fill="#2a4a7a" font-size="11" font-weight="700">設定・ドキュメント</text>
+      <text x="410" y="186" text-anchor="middle" fill="#2a4a7a" font-size="10">Ph1,2,7-11 + D</text>
+      <!-- リファクタ -->
+      <rect x="554" y="148" width="112" height="50" rx="5" fill="#e7f3e7" stroke="#b9d9ba"/>
+      <text x="610" y="170" text-anchor="middle" fill="#23662a" font-size="11" font-weight="700">リファクタ</text>
+      <text x="610" y="186" text-anchor="middle" fill="#23662a" font-size="10">Ph1,2,5,7-11</text>
+      <!-- 障害復旧 -->
+      <rect x="688" y="148" width="112" height="50" rx="5" fill="#fbe9e7" stroke="#ecc0b8"/>
+      <text x="744" y="170" text-anchor="middle" fill="#9c2b1a" font-size="11" font-weight="700">障害復旧</text>
+      <text x="744" y="186" text-anchor="middle" fill="#9c2b1a" font-size="10">Ph1,2 + I1-I7</text>
+      <!-- 合流破線 -->
+      <line x1="76"  y1="198" x2="76"  y2="256" stroke="#aaa" stroke-width="1" stroke-dasharray="4,3"/>
+      <line x1="210" y1="198" x2="210" y2="256" stroke="#aaa" stroke-width="1" stroke-dasharray="4,3"/>
+      <line x1="410" y1="198" x2="410" y2="256" stroke="#aaa" stroke-width="1" stroke-dasharray="4,3"/>
+      <line x1="610" y1="198" x2="610" y2="256" stroke="#aaa" stroke-width="1" stroke-dasharray="4,3"/>
+      <line x1="744" y1="198" x2="744" y2="256" stroke="#aaa" stroke-width="1" stroke-dasharray="4,3"/>
+      <line x1="76"  y1="256" x2="744" y2="256" stroke="#aaa" stroke-width="1" stroke-dasharray="4,3"/>
+      <line x1="410" y1="256" x2="410" y2="272" stroke="#1a1a1a" stroke-width="1.5" marker-end="url(#a)"/>
+      <!-- PR・マージ -->
+      <rect x="295" y="274" width="230" height="36" rx="6" fill="#1a1a1a"/>
+      <text x="410" y="297" fill="#fafafa" text-anchor="middle" font-weight="700">PR 作成・マージ（Phase 9-11）</text>
+      <defs>
+        <marker id="a" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+          <path d="M0,0 L0,6 L8,3 z" fill="#1a1a1a"/>
+        </marker>
+      </defs>
+    </svg>
+    <figcaption class="note">5 ルートの分岐と共通合流点（Phase 9-11）。破線は各ルートが最終的に PR・マージフローに合流することを示す。</figcaption>
+  </figure>
+</section>
+
+<!-- ===== §3 Phase マトリクス ===== -->
+<section id="s4">
+  <h2><span class="sec-num">§4</span>Phase マトリクス</h2>
+
+  <p>「○」は実行あり、「簡略」は省略版で実行、「-」はスキップ。Phase 1 より前にプリフライトチェックが全ルート共通で走る。</p>
+
+  <table class="spec">
+    <thead>
+      <tr><th>Phase</th><th>名称</th><th>フル計画</th><th>クイック</th><th>設定・docs</th><th>リファクタ</th><th>障害復旧</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>前</td><td>プリフライト</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○（最小）</td></tr>
+      <tr><td>1</td><td>調査 + ルート判定</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td></tr>
+      <tr><td>2</td><td>作業ブランチ準備</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td></tr>
+      <tr><td>3</td><td>要件ヒアリング</td><td>○</td><td>-</td><td>-</td><td>-</td><td>-</td></tr>
+      <tr><td>4</td><td>仕様書 + 画面 UI モック作成</td><td>○</td><td>-</td><td>-</td><td>-</td><td>-</td></tr>
+      <tr><td>5</td><td>実装・テスト計画</td><td>○</td><td>簡略</td><td>-</td><td>○</td><td>-</td></tr>
+      <tr><td>6</td><td>テスト駆動実装（TDD）</td><td>○</td><td>○</td><td>-</td><td>-</td><td>-</td></tr>
+      <tr><td>7</td><td>完了チェック</td><td>○</td><td>○</td><td>○</td><td>○</td><td>-</td></tr>
+      <tr><td>8</td><td>プッシュ前最終確認</td><td>○</td><td>○</td><td>○</td><td>○</td><td>-</td></tr>
+      <tr><td>9</td><td>PR 作成・マージ</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td></tr>
+      <tr><td>10</td><td>マージ後片付け</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td></tr>
+      <tr><td>11</td><td>メイン同期・自己改善</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td></tr>
+      <tr><td>D</td><td>ドキュメント編集</td><td>-</td><td>-</td><td>○</td><td>-</td><td>-</td></tr>
+      <tr><td>I1〜I7</td><td>インシデント独自フロー</td><td>-</td><td>-</td><td>-</td><td>-</td><td>○</td></tr>
+    </tbody>
+  </table>
+
+  <p class="note">
+    <code>incident-with-emergency-path</code> は Phase 1-2 のみ共通。以降は I1（障害状況確認）→ I2（再現確認）→ I3（修正実装）→ I4（本番操作承認・唯一の停止点）→ I5〜I7（デプロイ・確認・事後記録）の独自フローに分岐し、Phase 9 以降で合流する。
+  </p>
+</section>
+
+<!-- ===== §4 起動フローと進捗管理 ===== -->
+<section id="s5">
+  <h2><span class="sec-num">§5</span>起動フローと進捗管理</h2>
+
+  <h3>起動直後の固定手順</h3>
+
+  <pre class="flow"><span class="cap"># 1. プリフライト</span>
+references/module-preflight-check.md を Read → go/no-go 判定
+
+<span class="cap"># 2. Phase 1: ルート確定</span>
+references/phase-1-route-determination.md を Read
+→ 「ルート判定: 本タスクは [ルート名]」とユーザーに提示
+
+<span class="cap"># 3. TaskCreate 登録（これ以前の実装ファイル編集は禁止）</span>
+該当ルートの全 Phase を TaskCreate で登録
+
+<span class="cap"># 4. Phase ファイルを着手時に Read して順次実行</span>
+Phase 2 完了後 → ScheduleWakeup(600s) で定期ヘルスチェック開始
+Phase 10 完了後 → ヘルスチェックループ停止</pre>
+
+  <div class="constraint">
+    <strong>TaskCreate 前の実装ファイル編集禁止</strong><br>
+    全 Step の TaskCreate 登録が完了するまで実装ファイルへの Write/Edit を開始してはならない。<code>enforce-flow-feature-taskcreate.sh</code> を設定しているプロジェクトでは hook が機械的にブロックする。
+  </div>
+
+  <h3>進捗ファイル</h3>
+
+  <table class="spec">
+    <thead>
+      <tr><th>ファイル</th><th>配置先</th><th>スコープ</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>flow-status.json</code></td>
+        <td><code>&lt;worktree&gt;/.claude/markers/&lt;session&gt;/</code></td>
+        <td>セッション内進捗。SessionEnd で自動削除。</td>
+      </tr>
+      <tr>
+        <td><code>.flow-progress.json</code></td>
+        <td><code>&lt;worktree&gt;/.flow-progress.json</code></td>
+        <td>セッション跨ぎ進捗。worktree 削除時に自動消滅。<code>.gitignore</code> に追加。直接 Write/Edit は FLOW-GATE で禁止。更新は <code>update-flow-status.sh</code> 経由のみ。</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>進捗更新コマンド</h3>
+
+  <pre class="flow"><span class="cap"># 各 Phase の各 Step 開始時に実行</span>
+bash ~/agent-home/skills/orchestrating-dev-flow/scripts/update-flow-status.sh \
+  &lt;phase_num&gt; "&lt;phase_name&gt;" &lt;current_step&gt; &lt;total_steps&gt; "&lt;step_name&gt;"
+
+<span class="cap"># phase_num: 1〜11 / D（Phase D）/ I（インシデント）</span></pre>
+
+  <h3>flow-values.yml から注入されるコンテキスト</h3>
+
+  <table class="spec">
+    <thead>
+      <tr><th>セクション</th><th>内容</th><th>未設定時</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><code>classify</code></td><td>ルート判定閾値（quick_max_files 等）</td><td>デフォルト値で代替</td></tr>
+      <tr><td><code>context_a</code></td><td>プロジェクト基本情報（architecture / techstack / environments 等）</td><td>スキップ</td></tr>
+      <tr><td><code>context_b</code></td><td>開発規約ファイルパス（design_rules / test_rules 等）</td><td>スキップ</td></tr>
+      <tr><td><code>review_gates</code></td><td>Phase ごとの review gate スキル名マッピング。<code>module-</code> prefix なら組み込みモジュール、それ以外はプロジェクト固有スキル名として呼び出す。</td><td>gate スキップ</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ===== §5 プリフライトチェック ===== -->
+<section id="s6">
+  <h2><span class="sec-num">§6</span>プリフライトチェック</h2>
+
+  <p>Phase 1 より前に <code>references/module-preflight-check.md</code> の手順が毎回実行される。go を返したらフローを継続する。</p>
+
+  <table class="spec">
+    <thead>
+      <tr><th>状況</th><th>判定</th><th>対処</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>flow-values.yml</code> が存在しない</td>
+        <td><span class="tag fail">no-go</span></td>
+        <td><code>Skill(creating-new-project)</code> でセットアップを案内</td>
+      </tr>
+      <tr>
+        <td><code>flow-values.yml</code> の YAML パースエラー</td>
+        <td><span class="tag fail">no-go</span></td>
+        <td>構文エラーをユーザーに報告</td>
+      </tr>
+      <tr>
+        <td>CRITICAL ツールに最終 FAIL あり</td>
+        <td><span class="tag fail">no-go</span></td>
+        <td>該当ツールのインストール方法を案内（自動修復を試みてから判定）</td>
+      </tr>
+      <tr>
+        <td>OPTIONAL ツールに FAIL あり</td>
+        <td><span class="tag error">WARN</span> → <span class="tag pass">go</span></td>
+        <td>警告のみ。フローは継続する</td>
+      </tr>
+      <tr>
+        <td>全 CRITICAL ツール PASS</td>
+        <td><span class="tag pass">go</span></td>
+        <td>次ステップへ進む</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p class="note">CRITICAL ツール: Node.js（v18+）、npm、Python（3.10+）、git、gh CLI（認証済み）。OPTIONAL ツール: textlint 設定、lychee、gitleaks、Playwright MCP。詳細は <code>references/module-preflight-check.md</code> を参照。<br>
+  <code>incident-with-emergency-path</code> では最小モード（CRITICAL のみ確認、その他の Step をスキップ）で実行する。</p>
+</section>
+
+<!-- ===== §6 ルート昇格・停止点・中断 ===== -->
+<section id="s7">
+  <h2><span class="sec-num">§7</span>ルート昇格・停止点・中断</h2>
+
+  <h3>ルート昇格</h3>
+
+  <p>以下の条件を満たした場合、即座に <code>feature-with-full-planning</code> に昇格し Phase 1 から再開する。昇格は 1 回限り。昇格後は元のルートに戻らない。</p>
+
+  <table class="spec">
+    <thead>
+      <tr><th>元ルート</th><th>昇格トリガー</th><th>チェックタイミング</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>feature-with-quick-delivery</code></td>
+        <td>classify 条件の違反（migration 追加・UI 変更・API 契約変更・DB スキーマ変更）</td>
+        <td>Phase 6 各 commit 直前</td>
+      </tr>
+      <tr>
+        <td><code>refactor-with-safety-guarantee</code></td>
+        <td>挙動変更の発見</td>
+        <td>Phase 7（完了チェック）の commit 直前</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>停止点（ユーザー承認待ち）</h3>
+
+  <p>フローを止めてユーザー承認を待つ箇所は 2 か所のみ。それ以外の Phase ではルート判定・計画策定の宣言のみ行い、待機せず次 Phase に進む。</p>
+
+  <table class="spec">
+    <thead>
+      <tr><th>ルート</th><th>停止箇所</th><th>承認内容</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><code>feature-with-full-planning</code></td><td>Phase 4（1 回のみ）</td><td>仕様確認 + 画面 UI モック承認</td></tr>
+      <tr><td><code>feature-with-quick-delivery</code></td><td>なし（全自走）</td><td>—</td></tr>
+      <tr><td><code>config-with-review-and-verify</code></td><td>なし（全自走）</td><td>—</td></tr>
+      <tr><td><code>refactor-with-safety-guarantee</code></td><td>なし（全自走）</td><td>—</td></tr>
+      <tr><td><code>incident-with-emergency-path</code></td><td>I4（本番操作承認）</td><td>不可逆操作のため例外的に停止</td></tr>
+    </tbody>
+  </table>
+
+  <h3>中断手順</h3>
+
+  <p>「やめたい」「中断して」と言われた場合、AskUserQuestion で変更破棄を確認してからクリーンアップを実行する。</p>
+
+  <table class="spec">
+    <thead>
+      <tr><th>進行状況</th><th>クリーンアップ対象</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Phase 1 まで</td><td>なし。即終了</td></tr>
+      <tr><td>Phase 2 以降</td><td>worktree 削除 + ブランチ削除 + ポート kill</td></tr>
+      <tr><td>Phase 6 以降</td><td>上記 + 未 push コミットは worktree 内に残したまま削除（復元不可を警告）</td></tr>
+      <tr><td>Phase 9 以降</td><td>上記 + PR をクローズ</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ===== §7 hook 連携（FLOW-GATE） ===== -->
+<section id="s8">
+  <h2><span class="sec-num">§8</span>hook 連携（FLOW-GATE）</h2>
+
+  <p>
+    <code>~/.claude/rules/scoped/dev-flow/gate/rule.md</code> で規定される FLOW-GATE hook が、
+    前提 Phase 未完了の状態で <code>~/Projects/</code> 配下のコードファイルへの書き込みをブロックする。サブエージェントも対象。
+  </p>
+
+  <table class="spec">
+    <thead>
+      <tr><th>hook</th><th>タイミング</th><th>タグ</th><th>挙動</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>check-dev-flow-phase-gate.sh</code></td>
+        <td>PreToolUse(Write|Edit|MultiEdit|NotebookEdit)</td>
+        <td><code>[DEV-FLOW-PHASE-GATE-BLOCK]</code></td>
+        <td>前提 Phase 未完了なら exit 2 でブロック。<code>.flow-progress.json</code> の直接編集もブロック</td>
+      </tr>
+      <tr>
+        <td><code>check-worktree-required.sh</code></td>
+        <td>PreToolUse(Write|Edit|MultiEdit|NotebookEdit)</td>
+        <td><code>[WORKTREE-REQUIRED]</code></td>
+        <td>メインツリーでの実装ファイル編集を <code>decision:block</code> でブロック</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>ルート別コード書き込み前提条件</h3>
+
+  <table class="spec">
+    <thead>
+      <tr><th>ルート</th><th><code>phases_completed</code> に必要な Phase</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><code>feature-with-full-planning</code></td><td>1, 2, 3, 4, 5</td></tr>
+      <tr><td><code>feature-with-quick-delivery</code></td><td>1, 2, 5</td></tr>
+      <tr><td><code>refactor-with-safety-guarantee</code></td><td>1, 2, 5</td></tr>
+      <tr><td><code>config-with-review-and-verify</code></td><td>通過（コードゲート不要）</td></tr>
+      <tr><td><code>incident-with-emergency-path</code></td><td>通過（緊急復旧はゲートで止めない）</td></tr>
+    </tbody>
+  </table>
+
+  <div class="constraint">
+    <strong><code>[DEV-FLOW-PHASE-GATE-BLOCK]</code> 受信時の対処</strong><br>
+    フロー未設定の場合 → <code>Skill(orchestrating-dev-flow)</code> を起動する。<br>
+    前提 Phase 未完了の場合 → block メッセージの不足 Phase を順番に実行してから書き込みを再試行する。<br>
+    <code>.flow-progress.json</code> の更新は <code>update-flow-status.sh</code> 経由のみ許可。
+  </div>
+</section>
+
+<!-- ===== §8 完了条件一覧 ===== -->
+<section id="s9">
+  <h2><span class="sec-num">§9</span>完了条件一覧</h2>
+
+  <table class="spec">
+    <thead>
+      <tr><th>Phase</th><th>完了条件</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>プリフライト</td><td><code>module-preflight-check.md</code> の手順が go を返している</td></tr>
+      <tr><td>Phase 1</td><td>flow-values.yml 全セクション読み込み済み。構造分析完了（フル計画・リファクタ）。ルートが 5 つのいずれか 1 つに確定し、ユーザーに提示済み</td></tr>
+      <tr><td>Phase 2</td><td>worktree 内で作業している。feature ブランチ作成済み。並走 PR の競合リスク確認済み。<code>.flow-progress.json</code> 初期化済み</td></tr>
+      <tr><td>Phase 3</td><td>設計ツリーの全分岐について判断が確定し、ユーザーと合意済み</td></tr>
+      <tr><td>Phase 4</td><td>説明用 YAML（core.yaml）生成済み・説明用 HTML がユーザーに承認済み。UI 変更時はモック承認済み。ExitPlanMode 通過。review gate 通過（設定時）</td></tr>
+      <tr><td>Phase 5</td><td>実装手順とテスト計画が策定済み。refactor の場合は ExitPlanMode 通過</td></tr>
+      <tr><td>Phase 6</td><td>全テスト通過。review gate 通過（設定時）。quick の再評価で昇格していない</td></tr>
+      <tr><td>Phase 7</td><td>lint エラー 0 件・型エラー 0 件・テスト全通過</td></tr>
+      <tr><td>Phase 8</td><td>diff に意図しない変更がない。review gate 通過（設定時）。push 成功</td></tr>
+      <tr><td>Phase 9</td><td>PR 作成済み・CI 通過・マージ完了</td></tr>
+      <tr><td>Phase 10</td><td>worktree 削除済み・残留プロセスなし</td></tr>
+      <tr><td>Phase 11</td><td>main ブランチ最新化済み</td></tr>
+      <tr><td>Phase D</td><td>ドキュメント編集完了・品質チェック（HTML 構文・リンク切れ・textlint）通過</td></tr>
+      <tr><td>I1〜I7</td><td>障害復旧確認済み（メトリクス正常）・修正が main にマージ済み</td></tr>
+      <tr><td><strong>Goal</strong></td><td><strong>選択した識別子の全 Phase が完了条件を満たし、変更が main にマージされている</strong></td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ===== §9 関連スキル・規約 ===== -->
+<section id="s10">
+  <h2><span class="sec-num">§10</span>関連スキル・規約</h2>
+
+  <h3>連携スキル</h3>
+
+  <table class="spec">
+    <thead>
+      <tr><th>スキル</th><th>役割・呼び出し Phase</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><code>parallel-dev-worktree</code></td><td>worktree 作成・削除・スロット管理（Phase 2 / Phase 10）</td></tr>
+      <tr><td><code>frontend-design</code></td><td>デザインガイドのロードとモック作成支援（Phase 4 UI 変更時）</td></tr>
+      <tr><td><code>creating-new-project</code></td><td>flow-values.yml 初期セットアップ（プリフライト no-go 時）</td></tr>
+      <tr><td><code>grouping-commits</code></td><td>単発コミット専用（本スキルのスキップ条件）</td></tr>
+      <tr><td><code>managing-agent-configs</code></td><td>スキル・ルール・フック管理（本スキルのスキップ条件）</td></tr>
+    </tbody>
+  </table>
+
+  <h3>参照規約</h3>
+
+  <table class="spec">
+    <thead>
+      <tr><th>規約</th><th>関連内容</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><code>flow-gate-rules/rule.md</code></td><td>FLOW-GATE hook の詳細仕様・ルート別前提条件</td></tr>
+      <tr><td><code>worktree-required-rules/rule.md</code></td><td>worktree 必須運用・メインツリー直接編集ブロック</td></tr>
+      <tr><td><code>file-guard-rules/rule.md</code></td><td><code>marker_path</code> ヘルパーと進捗ファイルの配置先規約</td></tr>
+      <tr><td><code>port-management-rules/rule.md</code></td><td>worktree スロットとポート番号計算式（削除時のポート kill と整合）</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<div id="zoom-overlay" class="zoom-overlay" hidden></div>
+<script>
+  (function () {
+    var overlay = document.getElementById('zoom-overlay');
+    if (!overlay) return;
+    document.querySelectorAll('figure.diagram svg').forEach(function (svg) {
+      svg.addEventListener('click', function () {
+        overlay.innerHTML = '';
+        overlay.appendChild(svg.cloneNode(true));
+        overlay.hidden = false;
+        document.body.style.overflow = 'hidden';
+      });
+    });
+    overlay.addEventListener('click', function () {
+      overlay.hidden = true;
+      overlay.innerHTML = '';
+      document.body.style.overflow = '';
+    });
+  })();
+</script>
+
+</body>
+</html>

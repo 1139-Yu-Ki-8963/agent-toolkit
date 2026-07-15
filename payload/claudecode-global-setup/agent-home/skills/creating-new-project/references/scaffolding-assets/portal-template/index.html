@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PM ダッシュボード — Project Portal</title>
+  <link rel="stylesheet" href="style.css" />
+  <script type="module" src="src/common/header.js"></script>
+</head>
+<body>
+  <div class="pm-page">
+    <header class="topbar">
+      <a class="brand" href="#">
+        <span class="brand-icon">📊</span>
+        <span class="brand-title">Project Portal</span>
+        <span class="brand-sub">PM ダッシュボード</span>
+      </a>
+      <nav class="topnav">
+        <a href="release-notes.html">📋 リリースノート</a>
+        <a href="mocks.html">🖼 モック履歴</a>
+      </nav>
+    </header>
+
+    <main class="pm-main">
+      <div class="pm-hero">
+        <div>
+          <h1>プロジェクト管理ダッシュボード</h1>
+          <p>品質サマリとドキュメント入口を一覧で把握する。</p>
+        </div>
+        <span class="pm-updated">更新: <span id="pm-updated-mount"></span></span>
+      </div>
+
+      <div class="sec-label">品質サマリ</div>
+      <div id="metrics-mount" class="metric-grid"></div>
+
+      <div class="sec-label">テストカバレッジ</div>
+      <div id="coverage-mount" class="metric-grid"></div>
+
+      <div class="sec-label">ドキュメント入口</div>
+      <div id="app-main" class="docs-entry-mount"></div>
+
+      <div class="pm-foot">数値は <code>data/master-tables/{metrics,coverage}.js</code> に追記することで反映されます。</div>
+    </main>
+  </div>
+  <script type="module">
+    import metrics from "./data/master-tables/metrics.js";
+    import coverage from "./data/master-tables/coverage.js";
+
+    const updatedEl = document.getElementById("pm-updated-mount");
+    if (updatedEl) updatedEl.textContent = new Date().toLocaleDateString("ja-JP");
+
+    function renderMetrics(mount, rows) {
+      if (!mount || !rows.length) return;
+      mount.innerHTML = rows.map((r) =>
+        `<div class="metric-card">
+          <div class="metric-label">${r.label}</div>
+          <div class="metric-value">${r.value}<span class="unit">${r.unit || ""}</span></div>
+          ${r.sub ? `<div class="metric-sub">${r.sub}</div>` : ""}
+        </div>`
+      ).join("");
+    }
+
+    renderMetrics(document.getElementById("metrics-mount"), metrics);
+    renderMetrics(document.getElementById("coverage-mount"), coverage);
+  </script>
+</body>
+</html>

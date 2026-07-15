@@ -17,6 +17,7 @@ export const CATEGORIES = [
     ] },
   { id: "review", name: "レビュー・公開",      desc: "PR レビューと公開可否チェック" },
   { id: "write",  name: "文章品質",            desc: "textlint・曖昧表現・用語辞書" },
+  { id: "content",name: "コンテンツ生成",      desc: "解説スライド等の顧客向け成果物生成" },
   { id: "manage", name: "スキル・フック管理",  desc: "skill / hook の作成・テスト・診断・レビュー・文書化",
     subs: [
       { key: "hook",  label: "hooks 向け",  tag: "tag-pre" },
@@ -40,8 +41,8 @@ export const SKILL_CATEGORY = {
   "reviewing-against-rules": "review",
   "adding-textlint-dictionary-terms": "write",
   "managing-agent-configs": { cat: "manage", sub: "skill" },
-  "grading-claude-code-project": { cat: "manage", sub: "skill" },
   "eliciting-plan-tacit-knowledge": "meta",
   "subagent-investigation-checklist": "meta",
   "frontend-design": "design",
+  "generating-explanation-html-slides": "content",
 };

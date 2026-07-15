@@ -1,0 +1,29 @@
+{
+  "modes": {
+    "mirror": "本リポジトリが完全正本。配備先を完全置換する（配備先の無断変更は検出して警告）",
+    "seed": "初回のみ設置。既存なら触らず、差分の報告のみ",
+    "extend": "骨格は mirror。受け口ファイルは追記可で上書きしない",
+    "derive": "派生生成物。配備後にその場の実資産から再生成する"
+  },
+  "bundle": "claudecode-global-setup",
+  "entries": [
+    { "path": "agent-home/skills", "mode": "mirror" },
+    { "path": "agent-home/rules", "mode": "mirror" },
+    { "path": "agent-home/agents", "mode": "mirror" },
+    { "path": "agent-home/templates", "mode": "mirror" },
+    { "path": "agent-home/tools/hooks/shared", "mode": "mirror" },
+    { "path": "agent-home/tools/linter", "mode": "mirror" },
+    { "path": "agent-home/sessions/.skill-log/skill-aliases.yml", "mode": "mirror" },
+    { "path": "claude-config/CLAUDE.md", "mode": "seed" },
+    { "path": "claude-config/settings-hooks.json", "mode": "extend", "note": "hooks/outputStyle/permissions をマージ。既存キーは上書きしない" },
+    { "path": "claude-config/statusline.py", "mode": "mirror" },
+    {
+      "path": "agent-home/ai-management-portal",
+      "mode": "mirror",
+      "derive": {
+        "regenerate": "manage-portal.mjs generate",
+        "targets": ["catalog/skills.html", "catalog/dictionaries.html", "index.html"]
+      }
+    }
+  ]
+}

@@ -1,0 +1,143 @@
+<!-- generated-by: dev-flow-scaffolding-project v1 -->
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>フロー実行履歴</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = {
+  darkMode: 'media',
+  theme: { extend: {} }
+}
+</script>
+<style>
+.phase-bar { position: relative; cursor: default; }
+.phase-bar:hover .tooltip { display: block; }
+.tooltip { display: none; position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%);
+  z-index: 10; white-space: nowrap; }
+.route-badge { font-size: 0.65rem; }
+</style>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-100 min-h-screen">
+<div class="max-w-4xl mx-auto px-4 py-8">
+
+  <!-- Header -->
+  <h1 class="text-2xl font-bold mb-2">フロー実行履歴</h1>
+  <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">dev-flow-scaffolding-project の実行記録</p>
+
+  <!-- Stats -->
+  <div id="stats" class="grid grid-cols-3 gap-4 mb-6"></div>
+
+  <!-- Filter -->
+  <div class="flex gap-2 flex-wrap mb-6" id="filters"></div>
+
+  <!-- Cards -->
+  <div id="cards" class="space-y-4"></div>
+</div>
+
+<script type="module">
+import history from './sample-flow-history.js';
+
+const ROUTE_LABELS = {
+  'feature-with-full-planning': '機能追加（フル計画）',
+  'refactor-with-safety-guarantee': 'リファクタ（安全保証）',
+  'config-with-review-and-verify': '設定変更（レビュー付）',
+};
+const ROUTE_COLORS = {
+  'feature-with-full-planning': 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200',
+  'refactor-with-safety-guarantee': 'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-200',
+  'config-with-review-and-verify': 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-200',
+};
+
+let activeFilter = 'all';
+
+function renderStats(data) {
+  const avg = Math.round(data.reduce((s, d) => s + d.durationMin, 0) / data.length);
+  const allPhases = data.flatMap(d => d.phases);
+  const maxPhase = allPhases.reduce((a, b) => a.durationMin > b.durationMin ? a : b, { name: '-', durationMin: 0 });
+  const el = document.getElementById('stats');
+  el.innerHTML = `
+    <div class="bg-white dark:bg-gray-800 rounded-lg p-4 text-center shadow-sm">
+      <div class="text-2xl font-bold text-blue-600 dark:text-blue-400">${data.length}</div>
+      <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">フロー実行回数</div>
+    </div>
+    <div class="bg-white dark:bg-gray-800 rounded-lg p-4 text-center shadow-sm">
+      <div class="text-2xl font-bold text-blue-600 dark:text-blue-400">${avg}<span class="text-sm font-normal ml-1">分</span></div>
+      <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">平均所要時間</div>
+    </div>
+    <div class="bg-white dark:bg-gray-800 rounded-lg p-4 text-center shadow-sm">
+      <div class="text-lg font-bold text-blue-600 dark:text-blue-400">${maxPhase.name}</div>
+      <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">最長 Phase（${maxPhase.durationMin}分）</div>
+    </div>`;
+}
+
+function renderFilters(data) {
+  const routes = ['all', ...new Set(data.map(d => d.route))];
+  const el = document.getElementById('filters');
+  el.innerHTML = routes.map(r => {
+    const label = r === 'all' ? '全件' : (ROUTE_LABELS[r] || r);
+    const active = r === activeFilter;
+    return `<button onclick="setFilter('${r}')" class="px-3 py-1 rounded-full text-sm font-medium transition-colors
+      ${active ? 'bg-blue-600 text-white' : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 shadow-sm'}">${label}</button>`;
+  }).join('');
+}
+
+function phaseBar(phases) {
+  const total = phases.reduce((s, p) => s + (p.durationMin || 0), 0) || 1;
+  return phases.map(p => {
+    const pct = total > 0 ? Math.max((p.durationMin / total) * 100, p.durationMin > 0 ? 2 : 0) : 0;
+    const isSkipped = p.status === 'skipped';
+    const hasLoop = p.loops > 0;
+    const hasNote = !!p.note;
+    const bg = isSkipped ? 'bg-gray-300 dark:bg-gray-600' : 'bg-blue-400 dark:bg-blue-500';
+    const border = hasLoop ? 'ring-2 ring-yellow-400' : '';
+    const tip = [p.name, p.durationMin > 0 ? `${p.durationMin}分` : 'スキップ', hasLoop ? `${p.loops}ループ` : '', hasNote ? p.note : ''].filter(Boolean).join(' · ');
+    return `<div class="phase-bar flex-none h-7 rounded ${bg} ${border}" style="width:${pct}%">
+      <div class="tooltip mb-1 px-2 py-1 bg-gray-900 dark:bg-gray-700 text-white text-xs rounded shadow-lg">${tip}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderCards(data) {
+  const filtered = activeFilter === 'all' ? data : data.filter(d => d.route === activeFilter);
+  renderStats(filtered);
+  renderFilters(data);
+  const el = document.getElementById('cards');
+  if (filtered.length === 0) { el.innerHTML = '<p class="text-gray-400 text-sm">該当するフローがありません。</p>'; return; }
+  el.innerHTML = filtered.map(d => {
+    const badge = ROUTE_COLORS[d.route] || 'bg-gray-100 text-gray-600';
+    const routeLabel = ROUTE_LABELS[d.route] || d.route;
+    return `
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-5">
+      <div class="flex items-start justify-between gap-3 mb-3">
+        <div class="flex items-center gap-2 flex-wrap">
+          <span class="text-xs font-mono text-gray-400 dark:text-gray-500">#${d.id}</span>
+          <span class="font-semibold text-base">${d.title}</span>
+          <span class="route-badge px-2 py-0.5 rounded-full font-medium ${badge}">${routeLabel}</span>
+        </div>
+        <div class="text-right flex-none">
+          <div class="text-lg font-bold text-blue-600 dark:text-blue-400">${d.durationMin}<span class="text-xs font-normal ml-0.5">分</span></div>
+          <div class="text-xs text-gray-400">${d.date}</div>
+        </div>
+      </div>
+      <div class="flex gap-0.5 w-full h-7">${phaseBar(d.phases)}</div>
+      <div class="mt-2 flex gap-3 text-xs text-gray-400 dark:text-gray-500">
+        <span>${d.phases.length} フェーズ</span>
+        ${d.phases.some(p => p.loops) ? `<span class="text-yellow-500">⚑ ループあり</span>` : ''}
+        ${d.phases.some(p => p.status === 'skipped') ? `<span>一部スキップ</span>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+window.setFilter = function(route) {
+  activeFilter = route;
+  renderCards(history);
+};
+
+renderCards(history);
+</script>
+</body>
+</html>
