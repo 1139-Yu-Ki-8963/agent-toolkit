@@ -56,5 +56,4 @@ export function initShareUrl() {
   } else {
     run();
   }
-  window.addEventListener("hashchange", () => setTimeout(run, 80));
 }

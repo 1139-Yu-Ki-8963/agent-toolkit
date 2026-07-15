@@ -3,7 +3,7 @@
 # 検出ロジックは lib/no-delegation-detect.sh（単一ソース）に委譲する。
 # fail-open: check が無い/エラー時は exit 0（自己ブロック事故を防ぐ）。block は rc==1 のときのみ。
 
-. "$HOME/agent-home/tools/hooks/shared/marker-path.sh"
+. "$HOME/.claude/rules/scoped/agent-config/hooks/shared/transcript-query.sh"
 
 [ -n "$CLAUDE_HOOK_NO_DELEGATION_RUNNING" ] && exit 0
 [ -n "$CLAUDE_HOOK_SUMMARY_RUNNING" ] && exit 0
@@ -36,19 +36,7 @@ rc=$?
 # 0=clean / 2=usage error → fail-open。block は検出（rc==1）のときのみ。
 [ "$rc" -eq 1 ] || exit 0
 
-session=$(printf '%s' "$input" | jq -r '.session_id // empty' 2>/dev/null)
-[ -z "$session" ] && exit 0
-cwd=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null)
-[ -z "$cwd" ] && cwd="$PWD"
-counter_file="$(marker_path "$cwd" "$session" no-delegation-stop.count)"
-hits=0
-[ -f "$counter_file" ] && hits=$(cat "$counter_file" 2>/dev/null || echo 0)
-hits=$((hits + 1))
-printf '%d' "$hits" > "$counter_file"
-
-if [ "$hits" -ge 3 ]; then
-  exit 0
-fi
+should_auto_release "$tp" "NO-DELEGATION" 3 && exit 0
 
 ctx='[NO-DELEGATION] 最終応答にユーザー操作依頼を検出。~/.claude/rules/always/response/guard/rule.md を参照。'
 jq -n --arg ctx "$ctx" '{"decision":"block","systemMessage":$ctx}'

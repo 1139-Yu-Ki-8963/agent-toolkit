@@ -37,7 +37,7 @@
       <!-- 規模サマリ（実ファイル数を集計してベタ書き） -->
       <div class="sec-label">規模サマリ</div>
       <div class="metric-grid">
-        <a class="metric-card scale" href="#/category/flow">
+        <a class="metric-card scale" href="category/flow.html">
           <div class="metric-label">掲載フロー</div>
           <div class="metric-value">31<span class="unit">本</span></div>
           <div class="metric-sub">本ポータルのフロー一覧</div>
@@ -72,7 +72,7 @@
           <div class="metric-value"><!-- GEN:COUNT:output-styles -->1<!-- /GEN:COUNT:output-styles --><span class="unit">個</span></div>
           <div class="metric-sub">~/.claude/output-styles/</div>
         </a>
-        <a class="metric-card" href="#/category/tools">
+        <a class="metric-card" href="category/tools.html">
           <div class="metric-label">ツール設定</div>
           <div class="metric-value"><!-- GEN:COUNT:tools -->1<!-- /GEN:COUNT:tools --><span class="unit">件</span></div>
           <div class="metric-sub">MCP ツール設定ガイド</div>
@@ -91,11 +91,75 @@
 
       <!-- ドキュメント入口（カテゴリカード → クリックでフロー一覧へドリルダウン） -->
       <div class="sec-label">ドキュメント入口</div>
-      <div id="app-main" class="docs-entry-mount"></div>
+      <!-- GEN:CATEGORIES -->
+        <a class="card is-category group-flow" href="category/flow.html">
+          <div class="card-head">
+            <span class="card-icon material-symbols-outlined">bolt</span>
+            <span class="card-title">フロー一覧</span>
+          </div>
+          <div class="card-desc">実装・レビュー・運用・機械強制・文章品質・観測の各フロー</div>
+          <div class="card-count">17 ツール →</div>
+        </a>
+        <a class="card is-category group-design" href="category/design.html">
+          <div class="card-head">
+            <span class="card-icon material-symbols-outlined">architecture</span>
+            <span class="card-title">設計ガイド</span>
+          </div>
+          <div class="card-desc">CLAUDE.md・Rules・Skills・Subagents・Hooks・ループの設計ルール集</div>
+          <div class="card-count">10 ツール →</div>
+        </a>
+        <a class="card is-category group-architecture" href="category/architecture.html">
+          <div class="card-head">
+            <span class="card-icon material-symbols-outlined">hub</span>
+            <span class="card-title">仕組み解説</span>
+          </div>
+          <div class="card-desc">複数の config 層・スキル・サブエージェントが繋がって1つの機構を成す仕組みの解説</div>
+          <div class="card-count">2 ツール →</div>
+        </a>
+        <a class="card is-category group-registry" href="category/registry.html">
+          <div class="card-head">
+            <span class="card-icon material-symbols-outlined">list_alt</span>
+            <span class="card-title">登録一覧</span>
+          </div>
+          <div class="card-desc">Rules・Skills・Subagents・Hooks・Output styles・Routinesの実体一覧と利用統計</div>
+          <div class="card-count">8 ツール →</div>
+        </a>
+        <a class="card is-category group-pc-config" href="category/pc-config.html">
+          <div class="card-head">
+            <span class="card-icon material-symbols-outlined">computer</span>
+            <span class="card-title">PC 設定</span>
+          </div>
+          <div class="card-desc">ディレクトリ設計・ポート管理・worktree スロット・開発環境のマシン固有設定</div>
+          <div class="card-count">1 ツール →</div>
+        </a>
+        <a class="card is-category group-tools" href="category/tools.html">
+          <div class="card-head">
+            <span class="card-icon material-symbols-outlined">handyman</span>
+            <span class="card-title">ツール設定</span>
+          </div>
+          <div class="card-desc">MCP ツール（Playwright 等）の出力先管理・設定ガイド</div>
+          <div class="card-count">1 ツール →</div>
+        </a>
+        <a class="card is-category group-claude-config" href="category/claude-config.html">
+          <div class="card-head">
+            <span class="card-icon material-symbols-outlined">settings</span>
+            <span class="card-title">.claude 設定</span>
+          </div>
+          <div class="card-desc">~/.claude のアーキテクチャ・設定・ルール・動的データを俯瞰する</div>
+          <div class="card-count">7 ツール →</div>
+        </a>
+        <a class="card is-category group-codex-config is-coming-soon" href="category/codex-config.html">
+          <div class="card-head">
+            <span class="card-icon material-symbols-outlined">build</span>
+            <span class="card-title">.codex 設定</span>
+          </div>
+          <div class="card-desc">~/.codex のアーキテクチャ・設定・hook（今後追加予定）</div>
+          <div class="card-count">準備中</div>
+        </a>
+    <!-- /GEN:CATEGORIES -->
 
       <div class="pm-foot">数値は <code>~/agent-home/skills</code> <code>tools/hooks</code> 等の実ファイル数を集計した静的値です。</div>
     </main>
   </div>
-  <script type="module" src="src/main.js"></script>
 </body>
 </html>

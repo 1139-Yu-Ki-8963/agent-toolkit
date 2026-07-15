@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>issue 選択 → 実装着手（pick モード） — AI マネジメントポータル</title>
+  <link rel="stylesheet" href="../style.css" />
+  <script type="module" src="../src/common/header.js"></script>
+</head>
+<body>
+  <div class="pm-page">
+    <main class="pm-main">
+      <div class="doc-crumbs"><a href="../index.html">TOP</a> / <a href="../category/flow.html">フロー一覧</a> / issue 選択 → 実装着手（pick モード）</div>
+      <div class="section-header">
+        <h2 class="section-title">issue 選択 → 実装着手（pick モード）</h2>
+        <span class="card-badge">起点</span>
+      </div>
+      <p class="flow-summary">GitHub issue 一覧を表形式で表示し、ユーザーが番号を選んだら flow:* ラベルで統合開発フロー（orchestrating-dev-flow）を起動する。issue から開発を始める入口。</p>
+      <div class="flow-trigger">
+        <span class="flow-trigger-label">発火タイミング</span>
+        <span class="flow-trigger-body">「イシューを見て」「issue 一覧を出して」「課題を選んで実装して」など、issue 選択から実装を始めたいとき。issue 番号が既に明示されている場合はスキップ。</span>
+      </div>
+      <div class="cat-sub-head"><h3 class="cat-sub-title">ステップ</h3><span class="cat-sub-count">4</span></div>
+      <div class="cards">
+        <div class="card is-visual group-flow flow-step">
+          <div class="card-head">
+            <span class="flow-step-no">1</span>
+            <span class="card-title">issue 一覧取得</span>
+            <span class="card-badge">managing-github-issues</span>
+          </div>
+          <div class="card-desc">gh issue list でオープン issue を取得し、番号・タイトル・ラベルを表形式で表示する。</div>
+        </div>
+        <div class="card is-visual group-flow flow-step">
+          <div class="card-head">
+            <span class="flow-step-no">2</span>
+            <span class="card-title">番号選択</span>
+            
+          </div>
+          <div class="card-desc">ユーザーが対象 issue の番号を選ぶ。</div>
+        </div>
+        <div class="card is-visual group-flow flow-step">
+          <div class="card-head">
+            <span class="flow-step-no">3</span>
+            <span class="card-title">フロー判定</span>
+            
+          </div>
+          <div class="card-desc">issue の flow:* ラベルから単機能・一括・メンテのいずれかを判定する。</div>
+        </div>
+        <div class="card is-visual group-flow flow-step">
+          <div class="card-head">
+            <span class="flow-step-no">4</span>
+            <span class="card-title">実装フロー起動</span>
+            <span class="card-badge">orchestrating-dev-flow</span>
+          </div>
+          <div class="card-desc">判定結果に応じて orchestrating-dev-flow を起動し、統合開発フローへ接続する。</div>
+        </div>
+      </div>
+      <div class="cat-sub-head"><h3 class="cat-sub-title">フロー図</h3></div>
+      <pre class="flow-diagram">gh issue list → [表示] → 番号選択 → flow:* ラベル判定 → orchestrating-dev-flow 起動</pre>
+      <div class="cat-sub-head"><h3 class="cat-sub-title">関連スキル・hook</h3></div>
+      <div class="flow-chips">
+          <span class="flow-chip">managing-github-issues</span>
+          <span class="flow-chip">orchestrating-dev-flow</span>
+          <span class="flow-chip">parallel-dev-worktree</span>
+      </div>
+      <div class="cat-sub-head"><h3 class="cat-sub-title">注意・例外</h3></div>
+      <ul class="flow-notes">
+          <li>issue 番号が既に分かっている、またはコードを直接修正する指示があるときは起動しない。</li>
+      </ul>
+      <div class="back-link"><a href="../category/flow.html">← フロー一覧へ戻る</a></div>
+    </main>
+  </div>
+</body>
+</html>

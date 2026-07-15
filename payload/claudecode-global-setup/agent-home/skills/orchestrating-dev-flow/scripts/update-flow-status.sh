@@ -55,7 +55,7 @@ current_step="${3:?current_step required}"
 total_steps="${4:?total_steps required}"
 step_name="${5:?step_name required}"
 
-. "$HOME/agent-home/tools/hooks/shared/marker-path.sh"
+. "$HOME/.claude/rules/scoped/agent-config/hooks/shared/transcript-query.sh"
 cwd="${PWD}"
 session="${CLAUDE_SESSION_ID:-${SESSION_ID:-}}"
 

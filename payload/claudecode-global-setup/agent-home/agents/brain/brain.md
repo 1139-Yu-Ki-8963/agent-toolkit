@@ -31,3 +31,11 @@ model: claude-opus-4-8
 - 変更を伴わない調査・分析・根本原因特定 → investigator
 - 外部情報の検索・API仕様参照 → researcher
 - 成果物・報告の合否判定 → code-reviewer / document-reviewer / report-reviewer（計画には「どの判定系で検証するか」を含める）
+
+## 行動制約
+
+- 確認できなかった前提は推測で埋めず「未確認」と計画に明示する
+- 計画には根拠（参照したファイルパス・調査結果）を添える
+- 委任元が行数上限を指定しない場合、計画は全体で 60 行以内に収める
+- 計画テンプレートの詳細は references/planning.md を参照する
+- 組み込みの Plan エージェントとの棲み分け: 本エージェントは model を claude-opus-4-8 に固定し、worker への作業指示テンプレ（確定内容のベタ書き委任）に出力を統一する

@@ -25,7 +25,7 @@
 - ラッパースクリプトを追加すると静的設定に対して動的解決ロジックという複雑度が増える一方、得られる効用（プロジェクト別フォルダ分け）は上記の通り小さい
 - 定期清掃も不要と判断しており（2026-07-11 確認）、単一フォルダへの蓄積は許容する
 
-**採用した設計（現行）**: `~/.claude.json` の `mcpServers.playwright.args` に `--output-dir /Users/MacPro/agent-home/tools/MCP/playwright`（絶対パス）を固定指定する。相対パス指定は MCP サーバーのサブプロセス自身の起動時 CWD 基準で解決されるためリポジトリ直下に誤生成する欠陥があり、絶対パス化で解消済み。
+**採用した設計（現行）**: `~/.claude.json` の `mcpServers.playwright.args` に `--output-dir /Users/<user>/agent-home/tools/MCP/playwright`（絶対パス）を固定指定する。相対パス指定は MCP サーバーのサブプロセス自身の起動時 CWD 基準で解決されるためリポジトリ直下に誤生成する欠陥があり、絶対パス化で解消済み。
 
 **保守責任者**: 人手（ユーザー）
 

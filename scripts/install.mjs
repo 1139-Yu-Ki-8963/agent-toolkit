@@ -5,6 +5,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
+import readline from "node:readline";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
@@ -324,7 +325,7 @@ function cmdDiff() {
 
 // ── --apply ─────────────────────────────────────────────────────
 
-function cmdApply() {
+async function cmdApply() {
   // diff サマリを先に表示
   cmdDiff();
   console.log("\n設置を開始します...\n");
@@ -444,7 +445,7 @@ function cmdApply() {
     process.exit(1);
   }
 
-  // ⑥ generate → verify（ポータルが完全同梱されている環境のみ）
+  // ⑥ 未登録スキル検出 → 確認 → generate → verify
   const agentHome = path.join(TARGET, "agent-home");
   const manageScript = path.join(agentHome, "skills", "managing-agent-configs", "scripts", "manage-portal.mjs");
 
@@ -453,34 +454,80 @@ function cmdApply() {
     process.exit(1);
   }
 
-  // ai-management-portal は build-portal-payload.mjs により正本から全量生成され
-  // payload に完全同梱されている。generate は catalog 群を readFileSync する
-  // （新規作成しない）。生成・検証は常に実行し、失敗時はインストールも失敗として扱う。
-  console.log("ポータル generate を実行中...");
-  const genResult = spawnSync("node", [manageScript, "generate"], {
+  console.log("未登録スキルを検出中...");
+  const checkResult = spawnSync("node", [manageScript, "check-unregistered"], {
     cwd: agentHome,
-    stdio: "inherit",
     encoding: "utf8",
   });
-  if (genResult.status !== 0) {
-    console.error("generate が失敗しました。");
-    process.exit(1);
+  const unregistered = JSON.parse(checkResult.stdout || "[]");
+
+  let skipVerify = false;
+
+  if (unregistered.length > 0) {
+    console.log(`\n未登録スキルが ${unregistered.length} 件見つかりました:`);
+    for (const id of unregistered) {
+      console.log(`  - ${id}`);
+    }
+    console.log(`\n(A) 全て登録して続行（カテゴリ "other" で登録 + ガイドスタブ生成）`);
+    console.log(`(B) 登録せず verify をスキップして続行`);
+    console.log(`(C) 中止`);
+
+    const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+    const answer = await new Promise((resolve) => {
+      rl.question("\n選択 [A/B/C]: ", (ans) => { rl.close(); resolve(ans.trim().toUpperCase()); });
+    });
+
+    if (answer === "C") {
+      console.error("インストールを中止しました。");
+      process.exit(1);
+    }
+
+    if (answer === "A") {
+      console.log("\n未登録スキルを登録中...");
+      const regResult = spawnSync("node", [manageScript, "register-skills", unregistered.join(",")], {
+        cwd: agentHome,
+        stdio: "inherit",
+        encoding: "utf8",
+      });
+      if (regResult.status !== 0) {
+        console.error("register-skills が失敗しました。");
+        process.exit(1);
+      }
+    } else {
+      skipVerify = true;
+    }
   }
 
-  console.log("\nポータル verify を実行中...");
-  const verResult = spawnSync("node", [manageScript, "verify"], {
-    cwd: agentHome,
-    stdio: "inherit",
-    encoding: "utf8",
-  });
+  if (!skipVerify) {
+    console.log("\nポータル generate を実行中...");
+    const genResult = spawnSync("node", [manageScript, "generate"], {
+      cwd: agentHome,
+      stdio: "inherit",
+      encoding: "utf8",
+    });
+    if (genResult.status !== 0) {
+      console.error("generate が失敗しました。");
+      process.exit(1);
+    }
+  }
 
-  // ⑦ 最終サマリ
   console.log("\n" + "─".repeat(70));
-  if (verResult.status !== 0) {
-    console.error("verify が失敗しました。インストールは不完全な状態です。");
-    process.exit(1);
+  if (skipVerify) {
+    console.log("verify をスキップしました（未登録スキルは未登録のままです）。");
+    console.log("インストール完了（verify スキップ）。");
+  } else {
+    console.log("\nポータル verify を実行中...");
+    const verResult = spawnSync("node", [manageScript, "verify"], {
+      cwd: agentHome,
+      stdio: "inherit",
+      encoding: "utf8",
+    });
+    if (verResult.status !== 0) {
+      console.error("verify が失敗しました。インストールは不完全な状態です。");
+      process.exit(1);
+    }
+    console.log("インストール完了。verify PASS。");
   }
-  console.log("インストール完了。verify PASS。");
 }
 
 // ── エントリポイント ─────────────────────────────────────────────
@@ -493,7 +540,7 @@ switch (flag) {
     cmdDiff();
     break;
   case "--apply":
-    cmdApply();
+    await cmdApply();
     break;
   default:
     console.error("使い方: node scripts/install.mjs [--doctor|--diff|--apply] [--target <dir>]");

@@ -4,7 +4,7 @@ description: |
   調査報告を rules・チェックリストに照合する判定系の専門家。
   観点は定義に持たず、担当フォルダの rule を Read して判定し、合否（PASS / FAIL）を宣言する。
   TRIGGER when: 調査エージェントの報告を受け取った後、ユーザーに伝える前。
-  SKIP: 成果物（コード・文書）の照合は code-reviewer / document-reviewer。機械的作業（テスト実行・一括編集等）の結果確認は委任元が成功条件と突合する。
+  SKIP: 成果物（コード・文書）の照合は code-reviewer / document-reviewer、顧客・社外提示資料の内容は business-content-reviewer。機械的作業（テスト実行・一括編集等）の結果確認は委任元が成功条件と突合する。
 tools: Read, Bash, Grep, Glob
 model: claude-opus-4-8
 ---
@@ -51,6 +51,8 @@ model: claude-opus-4-8
 PASS: 全 finding が証拠付きで事実確認済み
 FAIL: [不足項目・誤り項目のリスト]
 ```
+
+委任元が行数上限を指定しない場合、レポートは全体で 60 行以内に収める。
 
 ## リトライ上限
 

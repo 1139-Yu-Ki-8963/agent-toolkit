@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>WORKTREE 強制 — AI マネジメントポータル</title>
+  <link rel="stylesheet" href="../style.css" />
+  <script type="module" src="../src/common/header.js"></script>
+</head>
+<body>
+  <div class="pm-page">
+    <main class="pm-main">
+      <div class="doc-crumbs"><a href="../index.html">TOP</a> / <a href="../category/flow.html">フロー一覧</a> / WORKTREE 強制</div>
+      <div class="section-header">
+        <h2 class="section-title">WORKTREE 強制</h2>
+        <span class="card-badge">hook</span>
+      </div>
+      <p class="flow-summary">worktree が未作成のままの Write/Edit/NotebookEdit を block し、parallel-dev-worktree の Phase 1〜3 起動を促す。</p>
+      <div class="flow-trigger">
+        <span class="flow-trigger-label">発火タイミング</span>
+        <span class="flow-trigger-body">PreToolUse が [WORKTREE-REQUIRED] を注入したとき。</span>
+      </div>
+      <div class="cat-sub-head"><h3 class="cat-sub-title">ステップ</h3><span class="cat-sub-count">3</span></div>
+      <div class="cards">
+        <div class="card is-visual group-flow flow-step">
+          <div class="card-head">
+            <span class="flow-step-no">1</span>
+            <span class="card-title">ガード</span>
+            
+          </div>
+          <div class="card-desc">メイン作業ツリーでの編集を検出して block する。</div>
+        </div>
+        <div class="card is-visual group-flow flow-step">
+          <div class="card-head">
+            <span class="flow-step-no">2</span>
+            <span class="card-title">worktree 作成</span>
+            <span class="card-badge">parallel-dev-worktree</span>
+          </div>
+          <div class="card-desc">parallel-dev-worktree の Phase 1〜3 で worktree を作る。</div>
+        </div>
+        <div class="card is-visual group-flow flow-step">
+          <div class="card-head">
+            <span class="flow-step-no">3</span>
+            <span class="card-title">移動して再試行</span>
+            
+          </div>
+          <div class="card-desc">cd &quot;$WT&quot; で worktree に移動してから編集を再試行する。</div>
+        </div>
+      </div>
+      <div class="cat-sub-head"><h3 class="cat-sub-title">フロー図</h3></div>
+      <pre class="flow-diagram">編集検出 → [WORKTREE-REQUIRED] block → worktree 作成 → cd $WT → 編集再試行</pre>
+      <div class="cat-sub-head"><h3 class="cat-sub-title">関連スキル・hook</h3></div>
+      <div class="flow-chips">
+          <span class="flow-chip">parallel-dev-worktree</span>
+      </div>
+      <div class="cat-sub-head"><h3 class="cat-sub-title">注意・例外</h3></div>
+      <ul class="flow-notes">
+          <li>例外パス: ~/.claude/* ~/agent-home/* と git 管理外パス。</li>
+          <li>ユーザーが「main で直接」と明示したら touch /tmp/.allow-main-edit（ワンショット消費）。</li>
+      </ul>
+      <div class="back-link"><a href="../category/flow.html">← フロー一覧へ戻る</a></div>
+    </main>
+  </div>
+</body>
+</html>

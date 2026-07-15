@@ -14,7 +14,7 @@
 
 set -uo pipefail
 
-. "$HOME/agent-home/tools/hooks/shared/marker-path.sh"
+. "$HOME/.claude/rules/scoped/agent-config/hooks/shared/transcript-query.sh"
 
 # Recursion / summary guards (align with other response hooks)
 [ -n "${CLAUDE_HOOK_TERM_EXPLANATION_RUNNING:-}" ] && exit 0
@@ -73,20 +73,7 @@ EOF
 
 [ -z "$offenders" ] && exit 0
 
-session=$(printf '%s' "$input" | jq -r '.session_id // empty' 2>/dev/null)
-[ -z "$session" ] && exit 0
-cwd=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null)
-[ -z "$cwd" ] && cwd="$PWD"
-counter_file="$(marker_path "$cwd" "$session" term-explanation.count)"
-hits=0
-[ -f "$counter_file" ] && hits=$(cat "$counter_file" 2>/dev/null || echo 0)
-hits=$((hits + 1))
-printf '%d' "$hits" > "$counter_file"
-
-if [ "$hits" -ge 3 ]; then
-  # Livelock guard: third+ detection in same session — let it through.
-  exit 0
-fi
+should_auto_release "$tp" "TERM-EXPLANATION-BLOCK" 3 && exit 0
 
 ctx="[TERM-EXPLANATION-BLOCK] 最終応答に説明なしの略称を検出: ${offenders}。~/.claude/rules/always/review-checklist/term-explanation/rule.md を参照。"
 jq -n --arg ctx "$ctx" '{"decision":"block","systemMessage":$ctx}'

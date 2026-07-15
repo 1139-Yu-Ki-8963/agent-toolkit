@@ -85,21 +85,10 @@ case "$tool" in
     ;;
 esac
 
-# --- 再帰防止カウンタ ---
-. "$HOME/agent-home/tools/hooks/shared/marker-path.sh"
-session=$(printf '%s' "$input" | jq -r '.session_id // empty' 2>/dev/null)
-[ -z "$session" ] && exit 0
-cwd=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null)
-[ -z "$cwd" ] && cwd="$PWD"
-counter="$(marker_path "$cwd" "$session" main-agent-direct-work.count)"
-hits=0
-[ -f "$counter" ] && hits=$(cat "$counter" 2>/dev/null || echo 0)
-hits=$((hits + 1))
-printf '%d' "$hits" > "$counter"
-
-if [ "$hits" -ge 4 ]; then
-  exit 0
-fi
+# --- livelock 自動解除 ---
+. "$HOME/.claude/rules/scoped/agent-config/hooks/shared/transcript-query.sh"
+tp=$(printf '%s' "$input" | jq -r '.transcript_path // empty')
+should_auto_release "$tp" "MAIN-AGENT-DIRECT-WORK-BLOCK" 4 && exit 0
 
 # --- block ---
 ctx="[MAIN-AGENT-DIRECT-WORK-BLOCK] メインエージェントの直接作業を検出。内容が確定済みなら worker-sonnet に確定内容をベタ書きで委任する。方針が未確定なら先にメイン（大規模なら brain）で確定させてから委任する（判断と反映の分離）。~/.claude/rules/always/agent/subagent-selection/rule.md を参照。"

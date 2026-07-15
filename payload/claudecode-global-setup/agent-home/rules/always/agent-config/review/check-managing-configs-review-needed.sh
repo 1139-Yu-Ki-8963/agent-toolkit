@@ -10,12 +10,12 @@ file_path=$(printf '%s' "$input" | jq -r '.tool_input.file_path // empty' 2>/dev
 # T2: fail-open 自己申告。PostToolUse はブロック能力がないため、lib 不在時は
 # additionalContext で自己申告した上で exit 0 する（マーカー処理はスキップ）。
 # managed_asset_type() が lib 内にあるため、種別判定自体も lib 依存。
-MARKER_LIB="${MANAGING_MARKER_LIB:-$HOME/agent-home/tools/hooks/shared/marker-path.sh}"
+MARKER_LIB="${MANAGING_MARKER_LIB:-$HOME/.claude/rules/scoped/agent-config/hooks/shared/transcript-query.sh}"
 if [ ! -f "$MARKER_LIB" ]; then
   jq -n '{
     hookSpecificOutput: {
       hookEventName: "PostToolUse",
-      additionalContext: "[MANAGING-GATE-DISABLED] マーカー処理をスキップしました（marker-path.sh が見つかりません）。managed ファイルの可能性がある場合は Skill(\"managing-agent-configs\") を該当種別で実行してください。"
+      additionalContext: "[MANAGING-GATE-DISABLED] マーカー処理をスキップしました（transcript-query.sh が見つかりません）。managed ファイルの可能性がある場合は Skill(\"managing-agent-configs\") を該当種別で実行してください。"
     }
   }'
   exit 0

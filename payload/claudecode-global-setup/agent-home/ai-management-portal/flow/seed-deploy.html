@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>seed 即反映 — AI マネジメントポータル</title>
+  <link rel="stylesheet" href="../style.css" />
+  <script type="module" src="../src/common/header.js"></script>
+</head>
+<body>
+  <div class="pm-page">
+    <main class="pm-main">
+      <div class="doc-crumbs"><a href="../index.html">TOP</a> / <a href="../category/flow.html">フロー一覧</a> / seed 即反映</div>
+      <div class="section-header">
+        <h2 class="section-title">seed 即反映</h2>
+        <span class="card-badge">運用</span>
+      </div>
+      <p class="flow-summary">ローカルの supabase/seeds/*.sql 更新後、worktree→commit→push→PR 作成→マージ→git pull→supabase db reset→アプリ再起動までを自動実行する（<project>-<project> 専用）。</p>
+      <div class="flow-trigger">
+        <span class="flow-trigger-label">発火タイミング</span>
+        <span class="flow-trigger-body">「seed を反映して」「seed を更新した」「マージまでして」と言われ、supabase/seeds/*.sql に未コミット変更があるとき。seed 以外のコードも変更されている場合は parallel-dev-worktree を使う。</span>
+      </div>
+      <div class="cat-sub-head"><h3 class="cat-sub-title">ステップ</h3><span class="cat-sub-count">5</span></div>
+      <div class="cards">
+        <div class="card is-visual group-flow flow-step">
+          <div class="card-head">
+            <span class="flow-step-no">1</span>
+            <span class="card-title">worktree 作成</span>
+            <span class="card-badge">seed-deploy</span>
+          </div>
+          <div class="card-desc">seed 変更を隔離する worktree を切る。</div>
+        </div>
+        <div class="card is-visual group-flow flow-step">
+          <div class="card-head">
+            <span class="flow-step-no">2</span>
+            <span class="card-title">commit + push</span>
+            <span class="card-badge">grouping-commits</span>
+          </div>
+          <div class="card-desc">seed ファイルをコミットして push する。</div>
+        </div>
+        <div class="card is-visual group-flow flow-step">
+          <div class="card-head">
+            <span class="flow-step-no">3</span>
+            <span class="card-title">PR 作成 + マージ</span>
+            <span class="card-badge">formatting-pr</span>
+          </div>
+          <div class="card-desc">PR を作成しマージまで進める。</div>
+        </div>
+        <div class="card is-visual group-flow flow-step">
+          <div class="card-head">
+            <span class="flow-step-no">4</span>
+            <span class="card-title">DB リセット</span>
+            
+          </div>
+          <div class="card-desc">git pull 後に supabase db reset で seed を反映する。</div>
+        </div>
+        <div class="card is-visual group-flow flow-step">
+          <div class="card-head">
+            <span class="flow-step-no">5</span>
+            <span class="card-title">アプリ再起動</span>
+            
+          </div>
+          <div class="card-desc">ローカル開発アプリを再起動して反映を確認する。</div>
+        </div>
+      </div>
+      <div class="cat-sub-head"><h3 class="cat-sub-title">フロー図</h3></div>
+      <pre class="flow-diagram">worktree → commit → push → PR → マージ → git pull → supabase db reset → アプリ再起動</pre>
+      <div class="cat-sub-head"><h3 class="cat-sub-title">関連スキル・hook</h3></div>
+      <div class="flow-chips">
+          <span class="flow-chip">seed-deploy</span>
+          <span class="flow-chip">parallel-dev-worktree</span>
+          <span class="flow-chip">grouping-commits</span>
+          <span class="flow-chip">formatting-pr</span>
+      </div>
+      <div class="cat-sub-head"><h3 class="cat-sub-title">注意・例外</h3></div>
+      <ul class="flow-notes">
+          <li>seed ファイルに変更がない、または DB リセットのみ求められたときはスキップ。</li>
+      </ul>
+      <div class="back-link"><a href="../category/flow.html">← フロー一覧へ戻る</a></div>
+    </main>
+  </div>
+</body>
+</html>

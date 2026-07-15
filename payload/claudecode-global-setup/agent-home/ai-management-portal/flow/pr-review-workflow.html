@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>複数 PR 一括レビュー — AI マネジメントポータル</title>
+  <link rel="stylesheet" href="../style.css" />
+  <script type="module" src="../src/common/header.js"></script>
+</head>
+<body>
+  <div class="pm-page">
+    <main class="pm-main">
+      <div class="doc-crumbs"><a href="../index.html">TOP</a> / <a href="../category/flow.html">フロー一覧</a> / 複数 PR 一括レビュー</div>
+      <div class="section-header">
+        <h2 class="section-title">複数 PR 一括レビュー</h2>
+        <span class="card-badge">一括</span>
+      </div>
+      <p class="flow-summary">open PR 一覧から対象を選び、Reviewer（reviewing-prs）と Fixer（fixing-review-findings）のサブエージェントを並列起動して、レビュー→警告自動修正→LGTM 投稿まで完結するオーケストレーター。</p>
+      <div class="flow-trigger">
+        <span class="flow-trigger-label">発火タイミング</span>
+        <span class="flow-trigger-body">「PR を全部レビューして」「まとめてレビューして」「全 PR を LGTM まで処理して」など、複数 PR のレビューと自動修正を一括で行いたいとき。PR が 1 つで手動レビューのみなら reviewing-prs を直接使う。</span>
+      </div>
+      <div class="cat-sub-head"><h3 class="cat-sub-title">ステップ</h3><span class="cat-sub-count">4</span></div>
+      <div class="cards">
+        <div class="card is-visual group-flow flow-step">
+          <div class="card-head">
+            <span class="flow-step-no">1</span>
+            <span class="card-title">PR 一覧取得</span>
+            <span class="card-badge">pr-review-workflow</span>
+          </div>
+          <div class="card-desc">open PR を一覧し、処理対象を選ぶ。</div>
+        </div>
+        <div class="card is-visual group-flow flow-step">
+          <div class="card-head">
+            <span class="flow-step-no">2</span>
+            <span class="card-title">Reviewer 並列起動</span>
+            <span class="card-badge">reviewing-prs</span>
+          </div>
+          <div class="card-desc">PR ごとに reviewing-prs サブエージェントを並列起動する。</div>
+        </div>
+        <div class="card is-visual group-flow flow-step">
+          <div class="card-head">
+            <span class="flow-step-no">3</span>
+            <span class="card-title">結果で分岐</span>
+            <span class="card-badge">module-fixing-review-findings</span>
+          </div>
+          <div class="card-desc">重大問題あり→request-changes / 警告あり→Fixer 起動 / 問題なし→即 approve。</div>
+        </div>
+        <div class="card is-visual group-flow flow-step">
+          <div class="card-head">
+            <span class="flow-step-no">4</span>
+            <span class="card-title">結果報告</span>
+            
+          </div>
+          <div class="card-desc">全 PR の最終結果を表形式で報告する。</div>
+        </div>
+      </div>
+      <div class="cat-sub-head"><h3 class="cat-sub-title">フロー図</h3></div>
+      <pre class="flow-diagram">PR一覧 → Reviewer×N 並列 → [critical→request / warn→Fixer / clean→approve] → 表で結果報告</pre>
+      <div class="cat-sub-head"><h3 class="cat-sub-title">関連スキル・hook</h3></div>
+      <div class="flow-chips">
+          <span class="flow-chip">pr-review-workflow</span>
+          <span class="flow-chip">reviewing-prs</span>
+          <span class="flow-chip">module-fixing-review-findings</span>
+      </div>
+      <div class="cat-sub-head"><h3 class="cat-sub-title">注意・例外</h3></div>
+      <ul class="flow-notes">
+          <li>複数 PR を同時に処理できる。サブエージェントで並列度を上げる。</li>
+      </ul>
+      <div class="back-link"><a href="../category/flow.html">← フロー一覧へ戻る</a></div>
+    </main>
+  </div>
+</body>
+</html>

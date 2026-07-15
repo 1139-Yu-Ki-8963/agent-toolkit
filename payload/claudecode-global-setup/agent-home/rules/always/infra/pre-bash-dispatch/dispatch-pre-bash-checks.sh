@@ -20,7 +20,7 @@ fi
 _hook_cwd=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null)
 [ -z "$_hook_cwd" ] && _hook_cwd="$PWD"
 
-. "$HOME/agent-home/tools/hooks/shared/marker-path.sh"
+. "$HOME/.claude/rules/scoped/agent-config/hooks/shared/transcript-query.sh"
 
 resolve_textlint_config() {
   _rtc_static="$1"

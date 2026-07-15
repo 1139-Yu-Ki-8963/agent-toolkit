@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>スキル発火ログ — AI マネジメントポータル</title>
+  <link rel="stylesheet" href="../style.css" />
+  <script type="module" src="../src/common/header.js"></script>
+</head>
+<body>
+  <div class="pm-page">
+    <main class="pm-main">
+      <div class="doc-crumbs"><a href="../index.html">TOP</a> / <a href="../category/flow.html">フロー一覧</a> / スキル発火ログ</div>
+      <div class="section-header">
+        <h2 class="section-title">スキル発火ログ</h2>
+        <span class="card-badge">観測</span>
+      </div>
+      <p class="flow-summary">PreToolUse(Skill) hook がスキル起動のたびに 1 行 JSONL を追記し、いつ・どのスキルが・どれだけ使われたかを後から集計可能にする。</p>
+      <div class="flow-trigger">
+        <span class="flow-trigger-label">発火タイミング</span>
+        <span class="flow-trigger-body">Skill ツールが実行される直前。PreToolUse(matcher=Skill) が毎回発火する。</span>
+      </div>
+      <div class="cat-sub-head"><h3 class="cat-sub-title">ステップ</h3><span class="cat-sub-count">4</span></div>
+      <div class="cards">
+        <div class="card is-visual group-flow flow-step">
+          <div class="card-head">
+            <span class="flow-step-no">1</span>
+            <span class="card-title">発火</span>
+            
+          </div>
+          <div class="card-desc">Skill 実行直前に skill-log-recorder.sh（timeout 5 秒）が呼ばれる。</div>
+        </div>
+        <div class="card is-visual group-flow flow-step">
+          <div class="card-head">
+            <span class="flow-step-no">2</span>
+            <span class="card-title">抽出</span>
+            
+          </div>
+          <div class="card-desc">入力 JSON から session_id と skill 名を jq で抽出する。</div>
+        </div>
+        <div class="card is-visual group-flow flow-step">
+          <div class="card-head">
+            <span class="flow-step-no">3</span>
+            <span class="card-title">追記</span>
+            
+          </div>
+          <div class="card-desc">~/agent-home/sessions/.skill-log/{session-id}.jsonl に {ts, skill} を 1 行追記する。</div>
+        </div>
+        <div class="card is-visual group-flow flow-step">
+          <div class="card-head">
+            <span class="flow-step-no">4</span>
+            <span class="card-title">副作用</span>
+            
+          </div>
+          <div class="card-desc">parallel-dev-worktree 発火時は実装セッションマーカー .impl-session-{id} を書き込む。</div>
+        </div>
+      </div>
+      <div class="cat-sub-head"><h3 class="cat-sub-title">フロー図</h3></div>
+      <pre class="flow-diagram">Skill 呼び出し → PreToolUse skill-log-recorder.sh → session_id+skill 抽出 → {ts,skill} を JSONL 追記</pre>
+
+      <div class="cat-sub-head"><h3 class="cat-sub-title">注意・例外</h3></div>
+      <ul class="flow-notes">
+          <li>集計は grep + sort + uniq でファイルを横断して回数を出せる。</li>
+          <li>保存先: ~/agent-home/sessions/.skill-log/{session-id}.jsonl</li>
+      </ul>
+      <div class="back-link"><a href="../category/flow.html">← フロー一覧へ戻る</a></div>
+    </main>
+  </div>
+</body>
+</html>

@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>パッケージ脆弱性パッチ — AI マネジメントポータル</title>
+  <link rel="stylesheet" href="../style.css" />
+  <script type="module" src="../src/common/header.js"></script>
+</head>
+<body>
+  <div class="pm-page">
+    <main class="pm-main">
+      <div class="doc-crumbs"><a href="../index.html">TOP</a> / <a href="../catalog/routines.html">routines 一覧</a> / パッケージ脆弱性パッチ</div>
+      <div class="section-header">
+        <h2 class="section-title">パッケージ脆弱性パッチ</h2>
+        <span class="card-badge">保守</span>
+      </div>
+      <p class="flow-summary">npm audit / pip-audit で CVE 脆弱性を検出し、patch / minor の安全な更新を PR にまとめる。major 更新は手動レビュー待ちとして記録する。</p>
+      <div class="flow-trigger">
+        <span class="flow-trigger-label">発火タイミング</span>
+        <span class="flow-trigger-body">日次クラウド Routine。</span>
+      </div>
+      <div class="cat-sub-head"><h3 class="cat-sub-title">ステップ</h3><span class="cat-sub-count">4</span></div>
+      <div class="cards">
+        <div class="card is-visual group-flow flow-step">
+          <div class="card-head">
+            <span class="flow-step-no">1</span>
+            <span class="card-title">profile.md を Read</span>
+            
+          </div>
+          <div class="card-desc">パッケージマネージャと lock ファイルのパスを取得する。</div>
+        </div>
+        <div class="card is-visual group-flow flow-step">
+          <div class="card-head">
+            <span class="flow-step-no">2</span>
+            <span class="card-title">脆弱性スキャン</span>
+            
+          </div>
+          <div class="card-desc">npm audit / pip-audit で CVE を検出する。</div>
+        </div>
+        <div class="card is-visual group-flow flow-step">
+          <div class="card-head">
+            <span class="flow-step-no">3</span>
+            <span class="card-title">安全更新</span>
+            
+          </div>
+          <div class="card-desc">patch / minor レベルの更新を適用し、テストを実行する。</div>
+        </div>
+        <div class="card is-visual group-flow flow-step">
+          <div class="card-head">
+            <span class="flow-step-no">4</span>
+            <span class="card-title">PR 作成</span>
+            
+          </div>
+          <div class="card-desc">更新内容を PR にまとめる。major は記録のみ。</div>
+        </div>
+      </div>
+      <div class="cat-sub-head"><h3 class="cat-sub-title">フロー図</h3></div>
+      <pre class="flow-diagram">profile.md → 脆弱性スキャン → patch/minor 更新 → テスト → PR</pre>
+      <div class="cat-sub-head"><h3 class="cat-sub-title">関連スキル・hook</h3></div>
+      <div class="flow-chips">
+          <span class="flow-chip">managing-agent-configs</span>
+          <span class="flow-chip">parallel-dev-worktree</span>
+      </div>
+      <div class="cat-sub-head"><h3 class="cat-sub-title">注意・例外</h3></div>
+      <ul class="flow-notes">
+          <li>PR 影響度: あり（E2E 必須）。major 更新は自動適用しない。</li>
+      </ul>
+      <div class="back-link"><a href="../catalog/routines.html">← routines 一覧へ戻る</a></div>
+    </main>
+  </div>
+</body>
+</html>

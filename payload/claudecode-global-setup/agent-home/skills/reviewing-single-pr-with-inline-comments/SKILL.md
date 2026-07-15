@@ -181,8 +181,8 @@ gh pr diff NUMBER --repo OWNER/REPO   # AIレビュー用差分テキスト
 ### Phase 3: git worktree セットアップ
 
 ```bash
-WORKTREE="$HOME/Projects/oradora-battle-base-pr-NUMBER"
-PROJECT="$HOME/Projects/oradora-battle-base"
+WORKTREE="$HOME/Projects/<project>-pr-NUMBER"
+PROJECT="$HOME/Projects/<project>"
 
 # 既存 worktree があれば削除してから再作成
 git -C "$PROJECT" worktree remove "$WORKTREE" --force 2>/dev/null || true
@@ -242,7 +242,7 @@ FRONTEND_OK=$?
 | バックエンド | フロントエンド | 対応 |
 |-------------|---------------|------|
 | 稼働中 | 稼働中 | そのまま E2E 実行 |
-| 両方停止 | 両方停止 | `launching-battle-base-dev-servers` スキルでフルスタック起動後に E2E 実行 |
+| 両方停止 | 両方停止 | `launching-<project>-dev-servers` スキルでフルスタック起動後に E2E 実行 |
 | 片方のみ | — | ユーザーに状況を報告して確認 |
 
 ```bash
@@ -376,7 +376,7 @@ LGTM 本文:
 **警告指摘がない場合**:
 
 ```bash
-# Phase 7 で launching-battle-base-dev-servers を起動した場合のみ停止（既存の起動プロセスは残す）
+# Phase 7 で launching-<project>-dev-servers を起動した場合のみ停止（既存の起動プロセスは残す）
 
 git -C "$PROJECT" worktree remove "$WORKTREE" --force
 ```

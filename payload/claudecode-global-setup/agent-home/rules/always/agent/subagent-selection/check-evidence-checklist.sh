@@ -64,21 +64,10 @@ if printf '%s' "$prompt" | grep -q '## 調査チェックリスト'; then
   exit 0
 fi
 
-# --- 再帰防止カウンタ ---
-. "$HOME/agent-home/tools/hooks/shared/marker-path.sh"
-session=$(printf '%s' "$input" | jq -r '.session_id // empty' 2>/dev/null)
-[ -z "$session" ] && exit 0
-cwd=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null)
-[ -z "$cwd" ] && cwd="$PWD"
-counter="$(marker_path "$cwd" "$session" investigation-checklist.count)"
-hits=0
-[ -f "$counter" ] && hits=$(cat "$counter" 2>/dev/null || echo 0)
-hits=$((hits + 1))
-printf '%d' "$hits" > "$counter"
-
-if [ "$hits" -ge 4 ]; then
-  exit 0
-fi
+# --- livelock 自動解除 ---
+. "$HOME/.claude/rules/scoped/agent-config/hooks/shared/transcript-query.sh"
+tp=$(printf '%s' "$input" | jq -r '.transcript_path // empty')
+should_auto_release "$tp" "CHECKLIST-MISSING" 4 && exit 0
 
 # --- block ---
 ctx="[CHECKLIST-MISSING] 調査・レビュー系の Agent 委任にチェックリストがありません。Skill(subagent-investigation-checklist) を実行してチェックリストを作成し、prompt に埋め込んでください。正本: ~/.claude/rules/always/agent/subagent-selection/rule.md"

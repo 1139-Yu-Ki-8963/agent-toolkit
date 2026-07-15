@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>DB 日次バックアップ — AI マネジメントポータル</title>
+  <link rel="stylesheet" href="../style.css" />
+  <script type="module" src="../src/common/header.js"></script>
+</head>
+<body>
+  <div class="pm-page">
+    <main class="pm-main">
+      <div class="doc-crumbs"><a href="../index.html">TOP</a> / <a href="../catalog/routines.html">routines 一覧</a> / DB 日次バックアップ</div>
+      <div class="section-header">
+        <h2 class="section-title">DB 日次バックアップ</h2>
+        <span class="card-badge">DB</span>
+      </div>
+      <p class="flow-summary">本番 DB のダンプを取得し、profile で指定された保存先（orphan branch / クラウドストレージ）に配置する。</p>
+      <div class="flow-trigger">
+        <span class="flow-trigger-label">発火タイミング</span>
+        <span class="flow-trigger-body">日次クラウド Routine。</span>
+      </div>
+      <div class="cat-sub-head"><h3 class="cat-sub-title">ステップ</h3><span class="cat-sub-count">4</span></div>
+      <div class="cards">
+        <div class="card is-visual group-flow flow-step">
+          <div class="card-head">
+            <span class="flow-step-no">1</span>
+            <span class="card-title">profile.md を Read</span>
+            
+          </div>
+          <div class="card-desc">DB 接続情報と保存先を取得する。</div>
+        </div>
+        <div class="card is-visual group-flow flow-step">
+          <div class="card-head">
+            <span class="flow-step-no">2</span>
+            <span class="card-title">ダンプ取得</span>
+            
+          </div>
+          <div class="card-desc">pg_dump 等でバックアップを取得する。</div>
+        </div>
+        <div class="card is-visual group-flow flow-step">
+          <div class="card-head">
+            <span class="flow-step-no">3</span>
+            <span class="card-title">保存先配置</span>
+            
+          </div>
+          <div class="card-desc">orphan branch / クラウドストレージに配置する。</div>
+        </div>
+        <div class="card is-visual group-flow flow-step">
+          <div class="card-head">
+            <span class="flow-step-no">4</span>
+            <span class="card-title">結果ログ出力</span>
+            
+          </div>
+          <div class="card-desc">バックアップサイズと所要時間を JSONL ログに記録する。</div>
+        </div>
+      </div>
+      <div class="cat-sub-head"><h3 class="cat-sub-title">フロー図</h3></div>
+      <pre class="flow-diagram">profile.md → pg_dump → 保存先配置 → JSONL ログ出力</pre>
+      <div class="cat-sub-head"><h3 class="cat-sub-title">関連スキル・hook</h3></div>
+      <div class="flow-chips">
+          <span class="flow-chip">managing-agent-configs</span>
+          <span class="flow-chip">supabase</span>
+      </div>
+      <div class="cat-sub-head"><h3 class="cat-sub-title">注意・例外</h3></div>
+      <ul class="flow-notes">
+          <li>PR 影響度: なし（ログのみ）。</li>
+      </ul>
+      <div class="back-link"><a href="../catalog/routines.html">← routines 一覧へ戻る</a></div>
+    </main>
+  </div>
+</body>
+</html>

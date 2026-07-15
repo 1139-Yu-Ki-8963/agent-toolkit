@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>セッション要約 — AI マネジメントポータル</title>
+  <link rel="stylesheet" href="../style.css" />
+  <script type="module" src="../src/common/header.js"></script>
+</head>
+<body>
+  <div class="pm-page">
+    <main class="pm-main">
+      <div class="doc-crumbs"><a href="../index.html">TOP</a> / <a href="../category/flow.html">フロー一覧</a> / セッション要約</div>
+      <div class="section-header">
+        <h2 class="section-title">セッション要約</h2>
+        <span class="card-badge">観測</span>
+      </div>
+      <p class="flow-summary">/clear 実行時に SessionEnd hook が発火し、headless モードの別 claude プロセスがその回のセッションを Markdown で要約する。</p>
+      <div class="flow-trigger">
+        <span class="flow-trigger-label">発火タイミング</span>
+        <span class="flow-trigger-body">/clear 実行時（SessionEnd）。発動スキル一覧は skill-log を参照する。</span>
+      </div>
+      <div class="cat-sub-head"><h3 class="cat-sub-title">ステップ</h3><span class="cat-sub-count">4</span></div>
+      <div class="cards">
+        <div class="card is-visual group-flow flow-step">
+          <div class="card-head">
+            <span class="flow-step-no">1</span>
+            <span class="card-title">SessionEnd 発火</span>
+            
+          </div>
+          <div class="card-desc">/clear で SessionEnd hook が起動する（timeout 180 秒）。</div>
+        </div>
+        <div class="card is-visual group-flow flow-step">
+          <div class="card-head">
+            <span class="flow-step-no">2</span>
+            <span class="card-title">headless 要約</span>
+            
+          </div>
+          <div class="card-desc">別 claude プロセスがセッションを Markdown 要約する。</div>
+        </div>
+        <div class="card is-visual group-flow flow-step">
+          <div class="card-head">
+            <span class="flow-step-no">3</span>
+            <span class="card-title">3 項目で構成</span>
+            
+          </div>
+          <div class="card-desc">発動スキル一覧（回数付き）・主な決定事項・次回への引き継ぎ事項を書く。</div>
+        </div>
+        <div class="card is-visual group-flow flow-step">
+          <div class="card-head">
+            <span class="flow-step-no">4</span>
+            <span class="card-title">保存</span>
+            
+          </div>
+          <div class="card-desc">~/agent-home/sessions/YYYY-MM-DD/claude-code_{session-id}.md に保存する。</div>
+        </div>
+      </div>
+      <div class="cat-sub-head"><h3 class="cat-sub-title">フロー図</h3></div>
+      <pre class="flow-diagram">/clear → SessionEnd → headless claude 要約 → 3項目 Markdown → sessions/YYYY-MM-DD/ に保存</pre>
+
+      <div class="cat-sub-head"><h3 class="cat-sub-title">注意・例外</h3></div>
+      <ul class="flow-notes">
+          <li>失敗時は {session-id}.md.error にフォールバックする。</li>
+          <li>再帰防止: CLAUDE_HOOK_SUMMARY_RUNNING=1 を先頭で検知して即 exit。</li>
+      </ul>
+      <div class="back-link"><a href="../category/flow.html">← フロー一覧へ戻る</a></div>
+    </main>
+  </div>
+</body>
+</html>

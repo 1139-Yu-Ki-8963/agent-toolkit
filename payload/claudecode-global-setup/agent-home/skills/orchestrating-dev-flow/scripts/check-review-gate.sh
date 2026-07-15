@@ -47,7 +47,7 @@ gates=$(printf '%b' "$gates" | grep -v '^$' || true)
 
 [ -z "$gates" ] && exit 0
 
-. "$HOME/agent-home/tools/hooks/shared/marker-path.sh"
+. "$HOME/.claude/rules/scoped/agent-config/hooks/shared/transcript-query.sh"
 session="${CLAUDE_CODE_SESSION_ID:-${CLAUDE_SESSION_ID:-${SESSION_ID:-unknown}}}"
 
 missing=""

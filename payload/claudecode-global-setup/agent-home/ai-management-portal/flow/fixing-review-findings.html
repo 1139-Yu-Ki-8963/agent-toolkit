@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>レビュー指摘の自動修正 — AI マネジメントポータル</title>
+  <link rel="stylesheet" href="../style.css" />
+  <script type="module" src="../src/common/header.js"></script>
+</head>
+<body>
+  <div class="pm-page">
+    <main class="pm-main">
+      <div class="doc-crumbs"><a href="../index.html">TOP</a> / <a href="../category/flow.html">フロー一覧</a> / レビュー指摘の自動修正</div>
+      <div class="section-header">
+        <h2 class="section-title">レビュー指摘の自動修正</h2>
+        <span class="card-badge">fix</span>
+      </div>
+      <p class="flow-summary">レビューで挙がった警告・critical を worktree 内で自動修正し、lint/test 再実行・再レビューを経て自動マージまで進める。</p>
+      <div class="flow-trigger">
+        <span class="flow-trigger-label">発火タイミング</span>
+        <span class="flow-trigger-body">reviewing-prs / pr-review-workflow が指摘を出した後、または orchestrating-dev-flow の Phase 10 として起動されたとき。</span>
+      </div>
+      <div class="cat-sub-head"><h3 class="cat-sub-title">ステップ</h3><span class="cat-sub-count">5</span></div>
+      <div class="cards">
+        <div class="card is-visual group-flow flow-step">
+          <div class="card-head">
+            <span class="flow-step-no">1</span>
+            <span class="card-title">指摘取り込み</span>
+            <span class="card-badge">module-fixing-review-findings</span>
+          </div>
+          <div class="card-desc">レビュー結果の警告・critical を一覧化する。</div>
+        </div>
+        <div class="card is-visual group-flow flow-step">
+          <div class="card-head">
+            <span class="flow-step-no">2</span>
+            <span class="card-title">自動修正</span>
+            
+          </div>
+          <div class="card-desc">worktree 内で該当箇所を Edit で修正する。</div>
+        </div>
+        <div class="card is-visual group-flow flow-step">
+          <div class="card-head">
+            <span class="flow-step-no">3</span>
+            <span class="card-title">再検証</span>
+            
+          </div>
+          <div class="card-desc">lint/test を再実行し、修正の正しさを確認する。</div>
+        </div>
+        <div class="card is-visual group-flow flow-step">
+          <div class="card-head">
+            <span class="flow-step-no">4</span>
+            <span class="card-title">push + 再レビュー</span>
+            
+          </div>
+          <div class="card-desc">PR ブランチへ push し、再レビューを依頼する。</div>
+        </div>
+        <div class="card is-visual group-flow flow-step">
+          <div class="card-head">
+            <span class="flow-step-no">5</span>
+            <span class="card-title">自動マージ</span>
+            
+          </div>
+          <div class="card-desc">残存指摘が解消したら自動マージする。</div>
+        </div>
+      </div>
+      <div class="cat-sub-head"><h3 class="cat-sub-title">フロー図</h3></div>
+      <pre class="flow-diagram">指摘取込 → 自動修正 → lint/test 再実行 → push → 再レビュー → 自動マージ</pre>
+      <div class="cat-sub-head"><h3 class="cat-sub-title">関連スキル・hook</h3></div>
+      <div class="flow-chips">
+          <span class="flow-chip">module-fixing-review-findings</span>
+          <span class="flow-chip">reviewing-single-pr-with-inline-comments</span>
+      </div>
+      <div class="cat-sub-head"><h3 class="cat-sub-title">注意・例外</h3></div>
+      <ul class="flow-notes">
+          <li>修正不能な critical が残る場合はユーザーに事実報告して中断する。</li>
+      </ul>
+      <div class="back-link"><a href="../category/flow.html">← フロー一覧へ戻る</a></div>
+    </main>
+  </div>
+</body>
+</html>

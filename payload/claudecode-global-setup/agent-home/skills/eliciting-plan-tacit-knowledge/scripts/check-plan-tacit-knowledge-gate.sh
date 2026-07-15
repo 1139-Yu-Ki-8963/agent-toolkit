@@ -22,7 +22,7 @@ session=$(printf '%s' "$input" | jq -r '.session_id // empty' 2>/dev/null)
 cwd=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null)
 [ -z "$cwd" ] && cwd="$PWD"
 
-. "$HOME/agent-home/tools/hooks/shared/marker-path.sh"
+. "$HOME/.claude/rules/scoped/agent-config/hooks/shared/transcript-query.sh"
 
 consumed_marker="$(marker_path "$cwd" "$session" plan-tacit-knowledge-gate.consumed-count)"
 consumed=0

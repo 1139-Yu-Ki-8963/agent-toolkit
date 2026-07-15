@@ -80,9 +80,9 @@ if [ -f "$progress_file" ]; then
 fi
 
 if [ -z "$current_phase" ]; then
-  . "$HOME/agent-home/tools/hooks/shared/marker-path.sh"
   session="${CLAUDE_SESSION_ID:-${SESSION_ID:-unknown}}"
-  status_file="$(marker_path "$cwd" "$session" "flow-status.json")"
+  status_dir="${TMPDIR:-/tmp}/claude-hooks/${session}"
+  status_file="${status_dir}/flow-status.json"
   if [ -f "$status_file" ]; then
     current_phase=$(jq -r '.current_phase // empty' "$status_file" 2>/dev/null)
   fi

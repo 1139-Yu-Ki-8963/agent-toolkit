@@ -20,7 +20,7 @@ cwd=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null)
 [ -z "$cwd" ] && cwd="$PWD"
 
 # PR worktree コンテキスト判定
-# 1. cwd が *-pr-[0-9]* パターン（例: oradora-battle-base-pr-829）
+# 1. cwd が *-pr-[0-9]* パターン（例: <project>-pr-829）
 # 2. または .claude/worktrees/ 配下
 is_pr_worktree=n
 case "$cwd" in

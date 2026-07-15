@@ -49,9 +49,9 @@ exit 0
 EOF
 chmod +x "$STUB/git"
 
-# marker-path.sh ライブラリを HOMEDIR にコピー（編集禁止・実体を source する）
-mkdir -p "$HOMEDIR/agent-home/tools/hooks/shared"
-cp "${REAL_HOME:-$HOME}/agent-home/tools/hooks/shared/marker-path.sh" "$HOMEDIR/agent-home/tools/hooks/shared/marker-path.sh"
+# transcript-query.sh ライブラリを HOMEDIR にコピー（編集禁止・実体を source する）
+mkdir -p "$HOMEDIR/.claude/rules/scoped/agent-config/hooks/shared"
+cp "${REAL_HOME:-$HOME}/.claude/rules/scoped/agent-config/hooks/shared/transcript-query.sh" "$HOMEDIR/.claude/rules/scoped/agent-config/hooks/shared/transcript-query.sh"
 
 PATHX="$STUB:/usr/bin:/bin:/opt/homebrew/bin"
 

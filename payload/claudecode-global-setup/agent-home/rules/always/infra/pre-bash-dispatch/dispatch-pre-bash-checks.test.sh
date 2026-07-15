@@ -7,7 +7,7 @@
 # secret 検出等の検査が正しく発火することを確認する。
 #
 # 実マシンの実 git / node / jq / perl をそのまま使う（実 HOME を使用。
-# marker-path.sh は実配置のものをそのまま参照する）。
+# transcript-query.sh は実配置のものをそのまま参照する）。
 #
 # 実行: bash dispatch-pre-bash-checks.test.sh
 set -u
@@ -115,10 +115,10 @@ run_case b6 "git checkout -b feature/foo" "$NONREPO_CWD"
 assert_exit 0 "B6 git checkout -b で exit 0"
 assert_stdout_contains "B6 ブランチ命名 NAMING context 含む" '[NAMING] ブランチ'
 
-# dispatch-pre-bash-checks.sh は既定で $HOME/agent-home/tools/hooks/shared/marker-path.sh を source する。
+# dispatch-pre-bash-checks.sh は既定で $HOME/.claude/rules/scoped/agent-config/hooks/shared/transcript-query.sh を source する。
 # HOME=$TMPROOT を注入する B7/B8 のため、実 lib を $TMPROOT 配下にも配置する（author-check.test.sh と同じ発想）。
-mkdir -p "$TMPROOT/agent-home/tools/hooks/shared"
-cp "${HOME}/agent-home/tools/hooks/shared/marker-path.sh" "$TMPROOT/agent-home/tools/hooks/shared/marker-path.sh"
+mkdir -p "$TMPROOT/.claude/rules/scoped/agent-config/hooks/shared"
+cp "${HOME}/.claude/rules/scoped/agent-config/hooks/shared/transcript-query.sh" "$TMPROOT/.claude/rules/scoped/agent-config/hooks/shared/transcript-query.sh"
 
 # B7: HOME=$TMPROOT 注入で `cd ~/repo3 && git commit` のチルダが REPO3 (secret staged 済み) に
 # 正しく展開され、secret 検出が発火すること（回帰確認）

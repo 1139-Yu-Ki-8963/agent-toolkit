@@ -5,7 +5,7 @@
 
 set -euo pipefail
 
-. "$HOME/agent-home/tools/hooks/shared/marker-path.sh"
+. "$HOME/.claude/rules/scoped/agent-config/hooks/shared/transcript-query.sh"
 
 [ -n "${CLAUDE_HOOK_NO_DEFERRAL_RUNNING:-}" ] && exit 0
 [ -n "${CLAUDE_HOOK_SUMMARY_RUNNING:-}" ] && exit 0
@@ -37,21 +37,7 @@ PATTERN='別[[:space:]]*(PR|issue|プルリク|チケット)[[:space:]]*(で|を
 
 printf '%s' "$last" | grep -qE "$PATTERN" || exit 0
 
-session=$(printf '%s' "$input" | jq -r '.session_id // empty' 2>/dev/null)
-[ -z "$session" ] && exit 0
-cwd=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null)
-[ -z "$cwd" ] && cwd="$PWD"
-counter_file="$(marker_path "$cwd" "$session" no-deferral-stop.count)"
-hits=0
-[ -f "$counter_file" ] && hits=$(cat "$counter_file" 2>/dev/null || echo 0)
-hits=$((hits + 1))
-printf '%d' "$hits" > "$counter_file"
-
-if [ "$hits" -ge 3 ]; then
-  # Livelock guard: third+ consecutive detection in same session — let it through.
-  # Claude must report status to user manually per .claude/rules/no-deferral-rules.md.
-  exit 0
-fi
+should_auto_release "$tp" "NO-DEFERRAL-RESPONSE" 3 && exit 0
 
 ctx='[NO-DEFERRAL-RESPONSE] 最終応答に先送り表現を検出。~/.claude/rules/always/response/guard/rule.md を参照。'
 jq -n --arg ctx "$ctx" '{"decision":"block","systemMessage":$ctx}'

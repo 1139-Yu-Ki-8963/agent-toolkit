@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>NO-DELEGATION 強制 — AI マネジメントポータル</title>
+  <link rel="stylesheet" href="../style.css" />
+  <script type="module" src="../src/common/header.js"></script>
+</head>
+<body>
+  <div class="pm-page">
+    <main class="pm-main">
+      <div class="doc-crumbs"><a href="../index.html">TOP</a> / <a href="../category/flow.html">フロー一覧</a> / NO-DELEGATION 強制</div>
+      <div class="section-header">
+        <h2 class="section-title">NO-DELEGATION 強制</h2>
+        <span class="card-badge">hook</span>
+      </div>
+      <p class="flow-summary">ユーザーへの操作依頼を全面禁止する。対話必須コマンドは deny、依頼文は書き直しを強制し、ログインは token ベース代替へ誘導する。</p>
+      <div class="flow-trigger">
+        <span class="flow-trigger-label">発火タイミング</span>
+        <span class="flow-trigger-body">最終応答や PR/issue 本文に依頼文（「〜してください」等）、または対話ログイン（gh auth login 等）が含まれるとき。</span>
+      </div>
+      <div class="cat-sub-head"><h3 class="cat-sub-title">ステップ</h3><span class="cat-sub-count">4</span></div>
+      <div class="cards">
+        <div class="card is-visual group-flow flow-step">
+          <div class="card-head">
+            <span class="flow-step-no">1</span>
+            <span class="card-title">deny</span>
+            
+          </div>
+          <div class="card-desc">permissions.deny が対話必須コマンドを実行前に拒否する。</div>
+        </div>
+        <div class="card is-visual group-flow flow-step">
+          <div class="card-head">
+            <span class="flow-step-no">2</span>
+            <span class="card-title">PreToolUse 検出</span>
+            
+          </div>
+          <div class="card-desc">check-no-delegation-pre-bash.sh が [NO-DELEGATION-BLOCK] で exit 2 する。</div>
+        </div>
+        <div class="card is-visual group-flow flow-step">
+          <div class="card-head">
+            <span class="flow-step-no">3</span>
+            <span class="card-title">書き直し</span>
+            
+          </div>
+          <div class="card-desc">依頼文を削除し、Claude 自身のツールで完遂する応答へ差し替える。</div>
+        </div>
+        <div class="card is-visual group-flow flow-step">
+          <div class="card-head">
+            <span class="flow-step-no">4</span>
+            <span class="card-title">代替不能なら中止</span>
+            
+          </div>
+          <div class="card-desc">[NO-DELEGATION-ABORT] フォーマットで事実報告する。</div>
+        </div>
+      </div>
+      <div class="cat-sub-head"><h3 class="cat-sub-title">フロー図</h3></div>
+      <pre class="flow-diagram">deny → PreToolUse [NO-DELEGATION-BLOCK] → 依頼文削除 → token 代替で完遂 / [NO-DELEGATION-ABORT]</pre>
+
+      <div class="cat-sub-head"><h3 class="cat-sub-title">注意・例外</h3></div>
+      <ul class="flow-notes">
+          <li>本番接続は PROD-SKILL-READ により <project>-deploy-production 必読を強制する。</li>
+          <li>同 hook が 2 連続発火したら 3 回目の書き直しをせず事実報告する。</li>
+      </ul>
+      <div class="back-link"><a href="../category/flow.html">← フロー一覧へ戻る</a></div>
+    </main>
+  </div>
+</body>
+</html>

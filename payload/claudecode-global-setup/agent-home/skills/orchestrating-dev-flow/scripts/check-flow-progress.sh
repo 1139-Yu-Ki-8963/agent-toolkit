@@ -22,7 +22,7 @@ esac
 cwd="$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null)"
 [ -z "$cwd" ] && cwd="$PWD"
 
-. "$HOME/agent-home/tools/hooks/shared/marker-path.sh"
+. "$HOME/.claude/rules/scoped/agent-config/hooks/shared/transcript-query.sh"
 session="${CLAUDE_SESSION_ID:-${SESSION_ID:-unknown}}"
 status_file="$(marker_path "$cwd" "$session" "flow-status.json")"
 # update-flow-status.sh の sandbox フォールバック先も確認する

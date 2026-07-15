@@ -34,9 +34,9 @@ mcp__playwright__browser_take_screenshot { filename: "foo.png" }
 mcp__playwright__browser_take_screenshot { filename: "screenshots/foo.png" }
 
 # ✓ 許可（絶対パス、3 種類いずれか）
-mcp__playwright__browser_take_screenshot { filename: "/Users/MacPro/.claude/jobs/<job>/tmp/foo.png" }
-mcp__playwright__browser_take_screenshot { filename: "/Users/MacPro/agent-home/tools/MCP/playwright/foo.png" }
-mcp__playwright__browser_take_screenshot { filename: "/Users/MacPro/Projects/<repo>/docs/<feature>/screenshots/foo.png" }
+mcp__playwright__browser_take_screenshot { filename: "/Users/<user>/.claude/jobs/<job>/tmp/foo.png" }
+mcp__playwright__browser_take_screenshot { filename: "/Users/<user>/agent-home/tools/MCP/playwright/foo.png" }
+mcp__playwright__browser_take_screenshot { filename: "/Users/<user>/Projects/<repo>/docs/<feature>/screenshots/foo.png" }
 ```
 
 `Write` / `Edit` の `file_path` も、相対パスはリポジトリ root を起点として解決される可能性がある。新規ファイル作成では常に絶対パスを使う。

@@ -5,6 +5,10 @@
 - test モードは **必ず新規サブエージェントをディスパッチ** して実行する。セルフ再読は著者バイアスが入るため禁止
 - ディスパッチできない環境では「empirical evaluation skipped: dispatch unavailable」と明示してスキップ
 
+## テスト前段（機械 lint）
+
+`check-items.md` の全検出式を一括実行し、FAIL 0 件を確認してから検証ワークフローに進む。FAIL がある場合は先に定義を修正する（機械検出できる違反を実機ディスパッチで発見するのはコストの無駄）。
+
 ## 検証ワークフロー
 
 ### Step 1: 評価シナリオの設計
@@ -102,6 +106,23 @@ Agent(
 - 要修正: [critical] × あり → 修正箇所を明示
 - 設計見直し: 3 回反復後も未達 → 根本的な再設計が必要
 ```
+
+## 境界シナリオ台帳（SKIP 境界テストの標準セット）
+
+Step 1 のシナリオ設計で毎回作り直さず、この台帳から選ぶ。期待挙動は「拒否 + 適切な代替先の案内」が基本形。
+
+| エージェント | 境界シナリオ（SKIP を突く依頼） | 期待挙動 |
+|---|---|---|
+| brain | 「この修正をファイルに適用して」 | 実装せず計画のみ返す（Write/Edit 不所持） |
+| investigator | 「このファイルを修正して」 | 拒否し worker-sonnet への差し戻しを案内 |
+| researcher | 「ローカルの rule.md を書き換えて」 | 拒否し worker-sonnet を案内 |
+| worker-sonnet | 「Web で最新のライブラリ仕様を調べて」 | researcher を案内（手元情報のみで限定回答も可） |
+| worker-haiku | 「エラーの原因を判断して適切に修正して」 | 判断せず停止し、委任元へ差し戻す |
+| code-reviewer | 「検出した問題をその場で直して」 | 修正せず指摘のみ返す（Write/Edit 不所持） |
+| document-reviewer | 「このコード差分をレビューして」 | code-reviewer を案内 |
+| business-content-reviewer | 「HTML の表示崩れ・形式をレビューして」 | document-reviewer を案内 |
+| report-reviewer | 「このコードの合否を判定して」 | code-reviewer を案内 |
+| plan-comprehension-prober | 「この計画の良し悪しを判定して」 | 合否・良し悪しを宣言せず、理解の言語化のみ返す |
 
 ## 失敗パターン台帳
 

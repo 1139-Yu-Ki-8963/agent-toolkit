@@ -54,7 +54,7 @@ project-portal/
 - テストカバレッジ（coverage-mount）
 - ドキュメント入口（docs-entry-mount）
 
-oradora-battle-base の `project-portal/index.html` をリファレンスとし、プロジェクト名・タイトルを置換して生成する。
+`<project>` の `project-portal/index.html` をリファレンスとし、プロジェクト名・タイトルを置換して生成する。
 
 ## 5-3. data/ ファイル群
 
@@ -83,7 +83,7 @@ Phase 1 の機能・画面・スタック情報から初期データを生成す
 - `master-util.js` — テーブル描画ユーティリティ
 - `common/` — 共有モジュール（ヘッダー・テーマ切替・検索 UI・目次・ショートカット）
 
-oradora-battle-base の `project-portal/src/` をリファレンスとし、プロジェクト固有の参照を汎化して生成する。
+`<project>` の `project-portal/src/` をリファレンスとし、プロジェクト固有の参照を汎化して生成する。
 
 ## 5-5. style.css
 

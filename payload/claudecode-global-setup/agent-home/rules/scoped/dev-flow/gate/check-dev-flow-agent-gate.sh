@@ -34,19 +34,10 @@ progress="$root/.flow-progress.json"
 route="$(jq -r '.route // empty' "$progress" 2>/dev/null)"
 [ -n "$route" ] && exit 0
 
-# --- livelock 防止: 同一セッション3回連続blockで自動解除 ---
-session="$(printf '%s' "$input" | jq -r '.session_id // empty' 2>/dev/null)"
-if [ -n "$session" ]; then
-  . "$HOME/agent-home/tools/hooks/shared/marker-path.sh"
-  counter="$(marker_path "$cwd" "$session" "dev-flow-agent-gate.count")"
-  count=0
-  [ -f "$counter" ] && count="$(cat "$counter")"
-  count=$((count + 1))
-  printf '%s' "$count" > "$counter"
-  if [ "$count" -ge 3 ]; then
-    exit 0
-  fi
-fi
+# --- livelock 自動解除 ---
+. "$HOME/.claude/rules/scoped/agent-config/hooks/shared/transcript-query.sh"
+tp="$(printf '%s' "$input" | jq -r '.transcript_path // empty')"
+should_auto_release "$tp" "DEV-FLOW-AGENT-GATE-BLOCK" 3 && exit 0
 
 # block
 cat <<'JSON'

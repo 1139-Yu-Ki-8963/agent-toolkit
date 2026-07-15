@@ -39,18 +39,21 @@ session=$(printf '%s' "$input" | jq -r '.session_id // empty' 2>/dev/null)
 cwd=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null)
 [ -z "$cwd" ] && cwd="$PWD"
 
-. "$HOME/agent-home/tools/hooks/shared/marker-path.sh"
+. "$HOME/.claude/rules/scoped/agent-config/hooks/shared/transcript-query.sh"
+tp=$(printf '%s' "$input" | jq -r '.transcript_path // empty' 2>/dev/null)
 
-# 同一 phase 内の step 更新は素通り
-last_phase_marker="$(marker_path "$cwd" "$session" "phase-step-task-last-phase")"
+# 同一 phase 内の step 更新は素通り（transcript から最後に突入した phase を取得）
 last_phase=""
-[ -f "$last_phase_marker" ] && last_phase=$(cat "$last_phase_marker" 2>/dev/null || echo "")
+if [ -n "$tp" ] && [ -f "$tp" ]; then
+  last_phase=$(grep -o '\[PHASE-ENTERED:[0-9A-Z]*\]' "$tp" 2>/dev/null | tail -1 | sed 's/\[PHASE-ENTERED:\(.*\)\]/\1/' || true)
+fi
 [ "$phase_num" = "$last_phase" ] && exit 0
 
-# 新 phase 突入: step タスク登録数を検証
-counter="$(marker_path "$cwd" "$session" "phase-step-task-count-${phase_num}")"
+# 新 phase 突入: transcript 内の step タスク登録数を検証
 count=0
-[ -f "$counter" ] && count=$(cat "$counter" 2>/dev/null || echo 0)
+if [ -n "$tp" ] && [ -f "$tp" ]; then
+  count=$(grep -c "\[STEP-TASK-RECORDED:${phase_num}\]" "$tp" 2>/dev/null || true)
+fi
 case "$count" in ''|*[!0-9]*) count=0 ;; esac
 
 if [ "$count" -lt "$total_steps" ]; then
@@ -59,5 +62,10 @@ if [ "$count" -lt "$total_steps" ]; then
   exit 2
 fi
 
-printf '%s' "$phase_num" > "$last_phase_marker"
+jq -n --arg phase "$phase_num" '{
+  hookSpecificOutput: {
+    hookEventName: "PreToolUse",
+    additionalContext: ("[PHASE-ENTERED:" + $phase + "]")
+  }
+}'
 exit 0

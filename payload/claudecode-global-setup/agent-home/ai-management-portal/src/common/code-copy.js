@@ -47,6 +47,4 @@ export function initCodeCopy() {
   } else {
     run();
   }
-  // SPA カテゴリ遷移後にも追従させる
-  window.addEventListener("hashchange", () => setTimeout(run, 80));
 }

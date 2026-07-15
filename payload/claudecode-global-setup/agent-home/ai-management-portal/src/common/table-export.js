@@ -54,5 +54,4 @@ export function initTableExport() {
   } else {
     run();
   }
-  window.addEventListener("hashchange", () => setTimeout(run, 80));
 }

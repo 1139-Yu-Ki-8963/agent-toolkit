@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>orchestrating-dev-flow（統合実装フロー） — AI マネジメントポータル</title>
+  <link rel="stylesheet" href="../style.css" />
+  <script type="module" src="../src/common/header.js"></script>
+</head>
+<body>
+  <div class="pm-page">
+    <main class="pm-main">
+      <div class="doc-crumbs"><a href="../index.html">TOP</a> / <a href="../category/flow.html">フロー一覧</a> / orchestrating-dev-flow（統合実装フロー）</div>
+      <div class="section-header">
+        <h2 class="section-title">orchestrating-dev-flow（統合実装フロー）</h2>
+        <span class="card-badge">統合</span>
+      </div>
+      <p class="flow-summary">全実装フローを統合する開発オーケストレーター。5 ルート × 11 Phase。プロジェクト固有設定ファイル（flow-values.yml）でコンテキストを注入し、全プロジェクト共通で使える。初回は creating-new-project スキルでセットアップ。</p>
+      <div class="flow-trigger">
+        <span class="flow-trigger-label">発火タイミング</span>
+        <span class="flow-trigger-body">「実装して」「バグ直して」「リファクタして」「ドキュメント編集」「インシデント対応」等の実装を伴う依頼。プロジェクト固有設定ファイルが存在するプロジェクトで自動発動。</span>
+      </div>
+
+      <div class="cat-sub-head"><h3 class="cat-sub-title">フロー図</h3></div>
+      <pre class="flow-diagram">依頼 → Phase 1: 調査 + ルート判定
+       ├─ feature-with-full-planning    → Phase 1〜11
+       ├─ feature-with-quick-delivery    → Phase 5-6 スキップ
+       ├─ config-with-review-and-verify  → Phase D のみ
+       ├─ refactor-with-safety-guarantee → TDD なし
+       └─ incident-with-emergency-path   → I1-I7（最速）</pre>
+      <div class="cat-sub-head"><h3 class="cat-sub-title">関連スキル・hook</h3></div>
+      <div class="flow-chips">
+          <span class="flow-chip">orchestrating-dev-flow</span>
+          <span class="flow-chip">creating-new-project</span>
+          <span class="flow-chip">module-hearing-requirements</span>
+          <span class="flow-chip">phase-6-tdd-cycle</span>
+          <span class="flow-chip">SKILL.md Step 1-4（構造分析）</span>
+          <span class="flow-chip">module-generating-explainer-yaml</span>
+          <span class="flow-chip">module-generating-explainer-html</span>
+          <span class="flow-chip">module-creating-screen-mock</span>
+          <span class="flow-chip">module-formatting-pr</span>
+          <span class="flow-chip">module-fixing-review-findings</span>
+          <span class="flow-chip">module-reviewing-pre-impl</span>
+          <span class="flow-chip">module-reviewing-impl-quality</span>
+          <span class="flow-chip">module-reviewing-pre-push</span>
+          <span class="flow-chip">module-running-e2e</span>
+          <span class="flow-chip">phase-11-main-sync-and-improve</span>
+      </div>
+      <div class="cat-sub-head"><h3 class="cat-sub-title">注意・例外</h3></div>
+      <ul class="flow-notes">
+          <li>初回は creating-new-project スキルを実行してプロジェクト構造を生成する</li>
+          <li>プロジェクト固有設定ファイルがないプロジェクトではフローは起動しない</li>
+          <li>全ルートで worktree 内作業が必須</li>
+          <li>承認は方針ミスの手戻りが大きいルートでのみ（クイックは承認なし全自走）</li>
+          <li>data/*.js の並列セッションコンフリクトは機械的自動解消手順あり</li>
+      </ul>
+      <div class="back-link"><a href="../category/flow.html">← フロー一覧へ戻る</a></div>
+    </main>
+  </div>
+</body>
+</html>

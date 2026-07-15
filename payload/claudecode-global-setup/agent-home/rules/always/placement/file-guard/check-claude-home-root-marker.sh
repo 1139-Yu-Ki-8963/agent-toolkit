@@ -17,7 +17,7 @@
 
 set +e
 
-. "$HOME/agent-home/tools/hooks/shared/marker-path.sh"
+. "$HOME/.claude/rules/scoped/agent-config/hooks/shared/transcript-query.sh"
 
 input=""
 if [ ! -t 0 ]; then
@@ -63,25 +63,9 @@ EOF
 
 [ -z "$violation" ] && exit 0
 
-# livelock 防止: 同一セッション 3 回連続発火で自動解除
-session="${CLAUDE_SESSION_ID:-${CLAUDE_CODE_SESSION_ID:-}}"
-if [ -z "$session" ]; then
-  session="$(printf '%s' "$input" | grep -o '"session_id"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | sed 's/.*"\([^"]*\)"$/\1/')"
-fi
-session="${session:-nosession}"
-
-cwd="$(printf '%s' "$input" | grep -o '"cwd"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | sed 's/.*"\([^"]*\)"$/\1/')"
-[ -z "$cwd" ] && cwd="$PWD"
-
-counter="$(marker_path "$cwd" "$session" claude-home-root-marker.count)"
-hits=0
-[ -f "$counter" ] && hits=$(cat "$counter" 2>/dev/null || echo 0)
-hits=$((hits + 1))
-if [ "$hits" -ge 3 ]; then
-  rm -f "$counter" 2>/dev/null
-  exit 0
-fi
-printf '%d' "$hits" > "$counter" 2>/dev/null || true
+# livelock 自動解除
+tp="$(printf '%s' "$input" | jq -r '.transcript_path // empty' 2>/dev/null)"
+should_auto_release "$tp" "CLAUDE-HOME-ROOT-MARKER-BLOCK" 3 && exit 0
 
 cat >&2 <<MSG
 [CLAUDE-HOME-ROOT-MARKER-BLOCK] ~/.claude/ ルート直下への新規ドットファイル書き込みは禁止されています。

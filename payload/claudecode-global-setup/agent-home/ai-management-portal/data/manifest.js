@@ -1,6 +1,6 @@
 // ドキュメントポータルの目次定義。
 // agent-home の全フローをカテゴリ「フロー一覧」配下に列挙する。
-// 各 tool の href "#/flow/<id>" は同タブ内部ルート（flow-detail.js が描画する）。
+// 各 tool の href "flow/<id>.html" は静的パスで flow/ 配下のページを直接参照する。
 export const VISUAL_TOOL_GROUPS = [
   {
     id: "flow",
@@ -59,29 +59,29 @@ export const VISUAL_TOOL_GROUPS = [
     ],
     tools: [
       // --- 統合フロー ---
-      { id: "orchestrating-dev-flow", title: "orchestrating-dev-flow（統合実装フロー）", description: "5 ルート × 13 Phase の統合開発フロー", href: "#/flow/orchestrating-dev-flow", badge: "統合" },
+      { id: "orchestrating-dev-flow", title: "orchestrating-dev-flow（統合実装フロー）", description: "5 ルート × 13 Phase の統合開発フロー", href: "flow/orchestrating-dev-flow.html", badge: "統合" },
       // --- 実装・PR ---
-      { id: "managing-github-issues", title: "issue 選択 → 実装着手（pick モード）", description: "GitHub issue 一覧を表形式で表示し、番号選択から orchestrating-dev-flow を起動する。", href: "#/flow/managing-github-issues", badge: "起点" },
-      { id: "parallel-dev-worktree", title: "worktree 開発フロー", description: "origin から worktree を切って実装し、PR 作成後に畳む。規模を問わず適用。", href: "#/flow/parallel-dev-worktree", badge: "実装" },
-      { id: "grouping-commits", title: "コミット整形", description: "変更ファイルを目的別に分類し、単一目的のコミットを複数作成する。", href: "#/flow/grouping-commits", badge: "commit" },
-      { id: "formatting-pr", title: "PR 本文整形", description: "PR テンプレートに厳密準拠した本文を組み立て、gh pr create する。", href: "#/flow/formatting-pr", badge: "PR" },
-      { id: "fixing-review-findings", title: "レビュー指摘の自動修正", description: "レビューの警告・critical を worktree 内で修正し、再レビュー・自動マージまで進める。", href: "#/flow/fixing-review-findings", badge: "fix" },
+      { id: "managing-github-issues", title: "issue 選択 → 実装着手（pick モード）", description: "GitHub issue 一覧を表形式で表示し、番号選択から orchestrating-dev-flow を起動する。", href: "flow/managing-github-issues.html", badge: "起点" },
+      { id: "parallel-dev-worktree", title: "worktree 開発フロー", description: "origin から worktree を切って実装し、PR 作成後に畳む。規模を問わず適用。", href: "flow/parallel-dev-worktree.html", badge: "実装" },
+      { id: "grouping-commits", title: "コミット整形", description: "変更ファイルを目的別に分類し、単一目的のコミットを複数作成する。", href: "flow/grouping-commits.html", badge: "commit" },
+      { id: "formatting-pr", title: "PR 本文整形", description: "PR テンプレートに厳密準拠した本文を組み立て、gh pr create する。", href: "flow/formatting-pr.html", badge: "PR" },
+      { id: "fixing-review-findings", title: "レビュー指摘の自動修正", description: "レビューの警告・critical を worktree 内で修正し、再レビュー・自動マージまで進める。", href: "flow/fixing-review-findings.html", badge: "fix" },
       // --- レビュー ---
-      { id: "pr-review-workflow", title: "複数 PR 一括レビュー", description: "open PR を選び、Reviewer と Fixer のサブエージェントを並列起動して LGTM まで完結する。", href: "#/flow/pr-review-workflow", badge: "一括" },
-      { id: "reviewing-prs", title: "単一 PR レビュー", description: "差分確認・コメント投稿・インラインコメント・自動フルレビューを gh で実行する。", href: "#/flow/reviewing-prs", badge: "review" },
+      { id: "pr-review-workflow", title: "複数 PR 一括レビュー", description: "open PR を選び、Reviewer と Fixer のサブエージェントを並列起動して LGTM まで完結する。", href: "flow/pr-review-workflow.html", badge: "一括" },
+      { id: "reviewing-prs", title: "単一 PR レビュー", description: "差分確認・コメント投稿・インラインコメント・自動フルレビューを gh で実行する。", href: "flow/reviewing-prs.html", badge: "review" },
       // --- 運用 ---
-      { id: "seed-deploy", title: "seed 即反映", description: "supabase/seeds 変更を worktree→commit→PR→マージ→db reset→再起動まで自走する。", href: "#/flow/seed-deploy", badge: "運用" },
+      { id: "seed-deploy", title: "seed 即反映", description: "supabase/seeds 変更を worktree→commit→PR→マージ→db reset→再起動まで自走する。", href: "flow/seed-deploy.html", badge: "運用" },
       // --- 文章品質 ---
-      { id: "writing-quality", title: "textlint 自動修正", description: "日本語長文の保存で textlint が発火し、text-dictionary/rule.md の違反時手順で違反を即修正する。", href: "#/flow/writing-quality", badge: "品質" },
-      { id: "adding-textlint-dictionary-terms", title: "用語辞書の登録と置換", description: "カタカナ・英語バズワードを prh.yml に登録し、既存使用箇所を一括置換する。", href: "#/flow/adding-textlint-dictionary-terms", badge: "辞書" },
+      { id: "writing-quality", title: "textlint 自動修正", description: "日本語長文の保存で textlint が発火し、text-dictionary/rule.md の違反時手順で違反を即修正する。", href: "flow/writing-quality.html", badge: "品質" },
+      { id: "adding-textlint-dictionary-terms", title: "用語辞書の登録と置換", description: "カタカナ・英語バズワードを prh.yml に登録し、既存使用箇所を一括置換する。", href: "flow/adding-textlint-dictionary-terms.html", badge: "辞書" },
       // --- 機械強制（hook） ---
-      { id: "worktree-required", title: "WORKTREE 強制", description: "worktree 未作成のままの編集を block し、parallel-dev-worktree の起動を促す。", href: "#/flow/worktree-required", badge: "hook" },
-      { id: "no-delegation", title: "NO-DELEGATION 強制", description: "ユーザーへの操作依頼を禁止し、対話ログインは token 代替へ書き換えさせる。", href: "#/flow/no-delegation", badge: "hook" },
-      { id: "no-deferral", title: "NO-DEFERRAL 強制", description: "「別 PR で対応」等の先送り表現を PR/issue/応答から排除する。", href: "#/flow/no-deferral", badge: "hook" },
-      { id: "author-guard", title: "AUTHOR 強制", description: "commit/push の author を y__u 名義 1 件に限定し、逸脱を block する。", href: "#/flow/author-guard", badge: "hook" },
+      { id: "worktree-required", title: "WORKTREE 強制", description: "worktree 未作成のままの編集を block し、parallel-dev-worktree の起動を促す。", href: "flow/worktree-required.html", badge: "hook" },
+      { id: "no-delegation", title: "NO-DELEGATION 強制", description: "ユーザーへの操作依頼を禁止し、対話ログインは token 代替へ書き換えさせる。", href: "flow/no-delegation.html", badge: "hook" },
+      { id: "no-deferral", title: "NO-DEFERRAL 強制", description: "「別 PR で対応」等の先送り表現を PR/issue/応答から排除する。", href: "flow/no-deferral.html", badge: "hook" },
+      { id: "author-guard", title: "AUTHOR 強制", description: "commit/push の author を y__u 名義 1 件に限定し、逸脱を block する。", href: "flow/author-guard.html", badge: "hook" },
       // --- 観測・ログ ---
-      { id: "skill-log", title: "スキル発火ログ", description: "PreToolUse(Skill) が発火のたびに JSONL を追記し、回数を集計可能にする。", href: "#/flow/skill-log", badge: "観測" },
-      { id: "session-summary", title: "セッション要約", description: "SessionEnd で headless プロセスがセッションを Markdown 要約として残す。", href: "#/flow/session-summary", badge: "観測" },
+      { id: "skill-log", title: "スキル発火ログ", description: "PreToolUse(Skill) が発火のたびに JSONL を追記し、回数を集計可能にする。", href: "flow/skill-log.html", badge: "観測" },
+      { id: "session-summary", title: "セッション要約", description: "SessionEnd で headless プロセスがセッションを Markdown 要約として残す。", href: "flow/session-summary.html", badge: "観測" },
     ],
   },
   {

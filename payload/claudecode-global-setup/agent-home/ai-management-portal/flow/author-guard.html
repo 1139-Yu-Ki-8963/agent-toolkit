@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AUTHOR 強制 — AI マネジメントポータル</title>
+  <link rel="stylesheet" href="../style.css" />
+  <script type="module" src="../src/common/header.js"></script>
+</head>
+<body>
+  <div class="pm-page">
+    <main class="pm-main">
+      <div class="doc-crumbs"><a href="../index.html">TOP</a> / <a href="../category/flow.html">フロー一覧</a> / AUTHOR 強制</div>
+      <div class="section-header">
+        <h2 class="section-title">AUTHOR 強制</h2>
+        <span class="card-badge">hook</span>
+      </div>
+      <p class="flow-summary">commit/push の author を y__u 名義 1 件のみに限定する。PreToolUse hook と husky pre-push が二重に block する。</p>
+      <div class="flow-trigger">
+        <span class="flow-trigger-label">発火タイミング</span>
+        <span class="flow-trigger-body">commit 前に [GIT-AUTHOR-BLOCK]、push 前に [GIT-AUTHOR-PUSH-BLOCK] が注入されたとき。</span>
+      </div>
+      <div class="cat-sub-head"><h3 class="cat-sub-title">ステップ</h3><span class="cat-sub-count">2</span></div>
+      <div class="cards">
+        <div class="card is-visual group-flow flow-step">
+          <div class="card-head">
+            <span class="flow-step-no">1</span>
+            <span class="card-title">commit 前検査</span>
+            
+          </div>
+          <div class="card-desc">[GIT-AUTHOR-BLOCK] 時は ~/.gitconfig の [user] を y__u に直してから再実行する。</div>
+        </div>
+        <div class="card is-visual group-flow flow-step">
+          <div class="card-head">
+            <span class="flow-step-no">2</span>
+            <span class="card-title">push 前検査</span>
+            
+          </div>
+          <div class="card-desc">[GIT-AUTHOR-PUSH-BLOCK] 時は rebase --reset-author で author を書き換えてから再 push する。</div>
+        </div>
+      </div>
+      <div class="cat-sub-head"><h3 class="cat-sub-title">フロー図</h3></div>
+      <pre class="flow-diagram">commit → [GIT-AUTHOR-BLOCK] gitconfig 修正 / push → [GIT-AUTHOR-PUSH-BLOCK] rebase --reset-author → 再 push</pre>
+
+      <div class="cat-sub-head"><h3 class="cat-sub-title">注意・例外</h3></div>
+      <ul class="flow-notes">
+          <li>許可: name=y__u / email=y__u@users.noreply.github.com の 1 組のみ。</li>
+          <li>--no-verify による bypass、GIT_AUTHOR_* の export、-c user.email のワンショット指定は禁止。</li>
+      </ul>
+      <div class="back-link"><a href="../category/flow.html">← フロー一覧へ戻る</a></div>
+    </main>
+  </div>
+</body>
+</html>

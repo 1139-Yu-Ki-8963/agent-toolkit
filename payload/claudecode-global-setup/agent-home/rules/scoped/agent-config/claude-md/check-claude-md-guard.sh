@@ -7,7 +7,7 @@
 
 set +e
 
-. "$HOME/agent-home/tools/hooks/shared/marker-path.sh" 2>/dev/null
+. "$HOME/.claude/rules/scoped/agent-config/hooks/shared/transcript-query.sh"
 
 input=""
 if [ ! -t 0 ]; then
@@ -50,19 +50,8 @@ session="${session:-nosession}"
 cwd="$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null)"
 [ -z "$cwd" ] && cwd="$PWD"
 
-if command -v marker_path >/dev/null 2>&1; then
-  counter="$(marker_path "$cwd" "$session" claude-md-ref-block.count)"
-else
-  counter_dir="${TMPDIR:-/tmp}/claude-hooks/${session}"
-  mkdir -p "$counter_dir" 2>/dev/null || true
-  counter="${counter_dir}/claude-md-ref-block.count"
-fi
-
-hits=0
-[ -f "$counter" ] && hits="$(cat "$counter" 2>/dev/null || echo 0)"
-if [ "$hits" -ge 3 ] 2>/dev/null; then
-  exit 0
-fi
+tp="$(printf '%s' "$input" | jq -r '.transcript_path // empty' 2>/dev/null)"
+should_auto_release "$tp" "CLAUDE-MD-REF-BLOCK" 3 && exit 0
 
 # ── 検査B: ファントム §N 参照 ──────────────────────────────────────────────
 content="$(printf '%s' "$input" | jq -r '.tool_input.content // empty' 2>/dev/null)"
@@ -73,13 +62,6 @@ all_content="${content}${new_str}${multi_str}"
 [ -z "$all_content" ] && exit 0
 
 if printf '%s' "$all_content" | grep -qE 'CLAUDE\.md[[:space:]]*(§|の第)[[:digit:]]|CLAUDE\.md[[:space:]]*chapter[[:space:]]*[[:digit:]]'; then
-  hits=$((hits + 1))
-  printf '%s' "$hits" > "$counter" 2>/dev/null || true
-
-  if [ "$hits" -ge 3 ]; then
-    exit 0
-  fi
-
   ctx="[CLAUDE-MD-REF-BLOCK] CLAUDE.md への §N 参照を検出（file=${file:-content内}）。CLAUDE.md に章番号は存在しない。規約: ~/.claude/rules/scoped/agent-config/claude-md/rule.md"
 
   jq -n --arg ctx "$ctx" \

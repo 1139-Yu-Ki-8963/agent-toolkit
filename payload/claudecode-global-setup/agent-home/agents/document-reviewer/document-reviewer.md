@@ -4,7 +4,7 @@ description: |
   文書成果物（HTML・md 設計書・README）を rules の合格基準に照合する専門家。
   観点は定義に持たず、委任時に渡された rule を Read して判定する。
   TRIGGER when: HTML・md ドキュメント等の文書成果物のレビュー時。reviewing-against-rules からの委任、単一HTML成果物の完成判定。
-  SKIP: コード差分のレビューは code-reviewer。調査報告の事実性検証は report-reviewer。修正の適用は worker-sonnet。
+  SKIP: コード差分のレビューは code-reviewer。顧客・社外提示資料の内容レビューは business-content-reviewer。調査報告の事実性検証は report-reviewer。修正の適用は worker-sonnet。
 tools: Read, Grep, Glob, Bash
 model: claude-sonnet-5
 ---
@@ -45,3 +45,5 @@ model: claude-sonnet-5
 
 ## 総合判定: 合格 / 不合格（FAIL N 件）/ 判定不能項目あり（N 件・理由）
 ```
+
+委任元が行数上限を指定しない場合、レポートは全体で 60 行以内に収める。

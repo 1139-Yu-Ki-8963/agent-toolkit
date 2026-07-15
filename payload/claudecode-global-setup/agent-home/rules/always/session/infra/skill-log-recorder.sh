@@ -5,8 +5,6 @@
 # 外部化前のインラインコマンドと完全等価。
 set -u
 
-. "$HOME/agent-home/tools/hooks/shared/marker-path.sh"
-
 [ -n "${CLAUDE_HOOK_SUMMARY_RUNNING:-}" ] && exit 0
 [ -n "${CLAUDE_HOOK_FLOW_REPORT_RUNNING:-}" ] && exit 0
 input=$(cat)
@@ -18,6 +16,4 @@ cwd=$(printf '%s' "$input" | jq -r '.cwd // empty')
 dir="$HOME/agent-home/sessions/.skill-log"
 mkdir -p "$dir"
 jq -nc --arg ts "$(date -u +%FT%TZ)" --arg skill "$skill" '{ts:$ts, skill:$skill}' >> "$dir/$session.jsonl"
-proj=$(git -C "$cwd" rev-parse --show-toplevel 2>/dev/null)
-[ -n "$proj" ] && [ "$skill" = "parallel-dev-worktree" ] && echo "$proj" > "$(marker_path "$cwd" "$session" impl-session)"
 exit 0

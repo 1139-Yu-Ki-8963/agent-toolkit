@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ルーティン統計レポート — AI マネジメントポータル</title>
+  <link rel="stylesheet" href="../style.css" />
+  <script type="module" src="../src/common/header.js"></script>
+</head>
+<body>
+  <div class="pm-page">
+    <main class="pm-main">
+      <div class="doc-crumbs"><a href="../index.html">TOP</a> / <a href="../catalog/routines.html">routines 一覧</a> / ルーティン統計レポート</div>
+      <div class="section-header">
+        <h2 class="section-title">ルーティン統計レポート</h2>
+        <span class="card-badge">運用</span>
+      </div>
+      <p class="flow-summary">全ルーティンの JSONL ログを集約し、日次 Issue でサマリ・失敗詳細・週次トレンドを報告する。唯一 Issue 作成が許可されたルーティン。</p>
+      <div class="flow-trigger">
+        <span class="flow-trigger-label">発火タイミング</span>
+        <span class="flow-trigger-body">日次クラウド Routine。全ルーティンの実行後に起動する。</span>
+      </div>
+      <div class="cat-sub-head"><h3 class="cat-sub-title">ステップ</h3><span class="cat-sub-count">4</span></div>
+      <div class="cards">
+        <div class="card is-visual group-flow flow-step">
+          <div class="card-head">
+            <span class="flow-step-no">1</span>
+            <span class="card-title">profile.md を Read</span>
+            
+          </div>
+          <div class="card-desc">集約対象のログディレクトリを取得する。</div>
+        </div>
+        <div class="card is-visual group-flow flow-step">
+          <div class="card-head">
+            <span class="flow-step-no">2</span>
+            <span class="card-title">JSONL ログ集約</span>
+            
+          </div>
+          <div class="card-desc">全ルーティンのログを読み込み、成功/失敗/スキップを集計する。</div>
+        </div>
+        <div class="card is-visual group-flow flow-step">
+          <div class="card-head">
+            <span class="flow-step-no">3</span>
+            <span class="card-title">トレンド分析</span>
+            
+          </div>
+          <div class="card-desc">過去 7 日間のトレンドを算出する。</div>
+        </div>
+        <div class="card is-visual group-flow flow-step">
+          <div class="card-head">
+            <span class="flow-step-no">4</span>
+            <span class="card-title">Issue 作成</span>
+            
+          </div>
+          <div class="card-desc">サマリ・失敗詳細・トレンドを日次 Issue として起票する。</div>
+        </div>
+      </div>
+      <div class="cat-sub-head"><h3 class="cat-sub-title">フロー図</h3></div>
+      <pre class="flow-diagram">profile.md → JSONL 集約 → トレンド分析 → 日次 Issue 起票</pre>
+      <div class="cat-sub-head"><h3 class="cat-sub-title">関連スキル・hook</h3></div>
+      <div class="flow-chips">
+          <span class="flow-chip">managing-agent-configs</span>
+          <span class="flow-chip">managing-github-issues</span>
+      </div>
+      <div class="cat-sub-head"><h3 class="cat-sub-title">注意・例外</h3></div>
+      <ul class="flow-notes">
+          <li>PR 影響度: なし（Issue のみ）。唯一 Issue 作成が許可されたルーティン。</li>
+      </ul>
+      <div class="back-link"><a href="../catalog/routines.html">← routines 一覧へ戻る</a></div>
+    </main>
+  </div>
+</body>
+</html>

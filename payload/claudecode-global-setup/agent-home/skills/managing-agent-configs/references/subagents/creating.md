@@ -2,8 +2,8 @@
 
 ## 前提チェック（作成前）
 
-1. 既存 4 役割（brain / worker-sonnet / worker-haiku / researcher）で対応できないか確認
-2. `conventions.md` の 4 役割判定フローで、既存に該当しないことを確認
+1. 既存 10 体（conventions.md「役割体系」節の 4 分類）で対応できないか確認
+2. `conventions.md` の役割判定フローで、既存に該当しないことを確認
 3. 新規役割が必要な理由を 1 文で説明できるか確認
 
 ## 作成手順
@@ -23,8 +23,8 @@ description: |
   <50 字以内の責務説明。能動文で 1 文>
   TRIGGER when: <具体的なキーワード・操作名を列挙>
   SKIP: <非対象条件と代替 subagent を明示>
-tools: <comma-separated list>
-model: <opus | sonnet | haiku>
+tools: <comma-separated list。省略禁止（省略は親の全ツール継承）>
+model: <明示モデル ID。例: claude-sonnet-5。エイリアス（opus / sonnet / haiku）禁止>
 ---
 ```
 
@@ -87,3 +87,5 @@ mkdir -p ~/.claude/agents/<name>/references  # references 不要なら省略
 | 6 | 出力フォーマットが定義されている | `grep "出力" <file>` |
 | 7 | 既存 subagent との責務境界が明確 | SKIP の代替先確認 |
 | 8 | references に可変データがない | 目視確認 |
+| 9 | frontmatter が許可フィールド白リスト内 | conventions.md のフィールド表と突合 |
+| 10 | 行動制約 5 要素（禁止事項・出力固定・不明の明示・根拠要求・合否権限） | conventions.md「行動制約設計」節と突合 |

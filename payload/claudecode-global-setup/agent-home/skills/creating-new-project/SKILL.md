@@ -106,7 +106,7 @@ Phase 5（ポータル SPA）は生成ファイル数が多いため、以下を
 
 | 呼び出し箇所 | subagent_type | prompt 骨格 | 期待返却値 |
 |---|---|---|---|
-| Phase 5: index.html + style.css + src/ | worker-sonnet | プロジェクト名・機能/画面リスト・oradora-battle-base の `project-portal/` を参照元として渡し、index.html・style.css・src/ 一式を生成させる | 生成ファイルパス一覧 |
+| Phase 5: index.html + style.css + src/ | worker-sonnet | プロジェクト名・機能/画面リスト・`<project>` の `project-portal/` を参照元として渡し、index.html・style.css・src/ 一式を生成させる | 生成ファイルパス一覧 |
 | Phase 5: data/ 全体 | worker-sonnet | Phase 1 のヒアリング値（機能・画面・スタック）を渡し、manifest.js・master-tables/* を生成させる | 生成ファイルパス一覧 |
 | Phase 5: 定型ファイル | worker-haiku | sites/rules/index.html・tools/serve.py・mocks-archive/.gitkeep を定型テンプレートどおり作成させる | 作成ファイルパス一覧 |
 

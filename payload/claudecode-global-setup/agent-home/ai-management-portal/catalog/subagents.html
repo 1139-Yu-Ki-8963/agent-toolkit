@@ -11,11 +11,11 @@
   <div class="cat-wrap">
     <div class="page-hero">
       <h1>Subagents 一覧</h1>
-      <p>~/.claude/agents/ で管理しているカスタムサブエージェント定義をロール別に一覧化したものです。各行を開くとモデル・ツール・トリガー条件を表示します。<a href="../index.html#/">← フロー・ポータルへ戻る</a></p>
+      <p>~/.claude/agents/ で管理しているカスタムサブエージェント定義をロール別に一覧化したものです。各行を開くとモデル・ツール・トリガー条件を表示します。<a href="../index.html">← フロー・ポータルへ戻る</a></p>
     </div>
 
     <div class="cat-bar">
-      <a class="cat-back" href="../index.html#/">← ポータル TOP</a>
+      <a class="cat-back" href="../index.html">← ポータル TOP</a>
       <span class="cat-total" id="total"></span>
       <input class="cat-filter" id="filter" type="search" placeholder="エージェント名・説明で絞り込み…" autocomplete="off" />
     </div>
@@ -118,6 +118,15 @@
         summary: "HTML・文書成果物を rules の合格基準に照合するレビュー専門家。観点は自前で持たず、委任時に渡された rule を読む。",
         trigger: "HTML ファイル・文書成果物のレビュー時。reviewing-against-rules からの委任・単一HTML成果物の完成判定",
         path: "~/.claude/agents/document-reviewer/document-reviewer.md",
+      },
+      {
+        id: "business-content-reviewer",
+        cat: "quality",
+        model: "claude-sonnet-5",
+        tools: "Read, Grep, Glob, Bash",
+        summary: "顧客・社外提示資料の内容品質を rules の合格基準に照合する専門家。観点は自前で持たず、委任時に渡された rule を読む。",
+        trigger: "顧客提示スライドHTML・提案書・報告書等のビジネス資料の内容レビュー時。reviewing-against-rules からの委任",
+        path: "~/.claude/agents/business-content-reviewer/business-content-reviewer.md",
       },
     ];
 

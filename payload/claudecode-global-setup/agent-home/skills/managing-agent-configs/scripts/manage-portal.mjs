@@ -23,17 +23,15 @@ const SKILL_CATEGORIES_FILE = path.join(PORTAL, "data", "skill-categories.js");
 const MANIFEST_FILE = path.join(PORTAL, "data", "manifest.js");
 const SKILLS_HTML = path.join(PORTAL, "catalog", "skills.html");
 const INDEX_HTML = path.join(PORTAL, "index.html");
-// RULES_DIR / AGENTS_DIR / GLOBAL_PRH_FILE はスクリプト設置場所（REPO_ROOT = agent-home）から
-// 相対解決する。デプロイ後は ~/.claude/rules, ~/.claude/agents が agent-home/rules,
-// agent-home/agents への symlink になるため、os.homedir() 依存だと未インストール環境
-// （初回インストール前・別 PC）でカウントが 0 になる不具合があった。
-const RULES_DIR = path.join(REPO_ROOT, "rules");
-const AGENTS_DIR = path.join(REPO_ROOT, "agents");
+const RULES_DIR = path.join(HOME_DIR, ".claude", "rules");
+const AGENTS_DIR = path.join(HOME_DIR, ".claude", "agents");
 const DICTIONARY_CATEGORIES_FILE = path.join(PORTAL, "data", "dictionary-categories.js");
 const DICTIONARIES_HTML = path.join(PORTAL, "catalog", "dictionaries.html");
-const GLOBAL_PRH_FILE = path.join(REPO_ROOT, "rules", "always", "review-checklist", "text-dictionary", "prh.yml");
+const GLOBAL_PRH_FILE = path.join(HOME_DIR, ".claude", "rules", "always", "review-checklist", "text-dictionary", "prh.yml");
 const PROJECTS_ROOT = path.join(HOME_DIR, "Projects");
 const PUBLIC_SET_HTML = path.join(PORTAL, "catalog", "public-set.html");
+const CATEGORY_DIR = path.join(PORTAL, "category");
+const FLOW_DIR = path.join(PORTAL, "flow");
 
 // ── frontmatter パース ──────────────────────────────────────────
 
@@ -438,6 +436,169 @@ async function countTools() {
   return directTools + sectionTools;
 }
 
+// ── 静的ページ生成ヘルパー ────────────────────────────────────────
+
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function generateCategoryPage(group) {
+  const toolLinks = group.tools.map((t) => {
+    const isExternal = !t.href.startsWith("flow/") && !t.href.startsWith("category/");
+    const href = isExternal ? `../${t.href}` : `../${t.href}`;
+    const target = isExternal ? ' target="_blank" rel="noopener"' : '';
+    return `        <a class="card is-visual group-${group.id}" href="${href}"${target}>
+          <div class="card-head">
+            <span class="card-title">${escapeHtml(t.title)}</span>
+            ${t.badge ? `<span class="card-badge">${escapeHtml(t.badge)}</span>` : ''}
+          </div>
+          <div class="card-desc">${escapeHtml(t.description)}</div>
+        </a>`;
+  }).join("\n");
+
+  let sectionsHtml = '';
+  if (group.sections && group.sections.length > 0) {
+    const byId = new Map(group.tools.map((t) => [t.id, t]));
+    sectionsHtml = group.sections.map((sec) => {
+      const tools = (sec.toolIds || []).map((id) => byId.get(id)).filter(Boolean);
+      if (tools.length === 0) return '';
+      const cards = tools.map((t) => {
+        const href = `../${t.href}`;
+        return `          <a class="card is-visual group-${group.id}" href="${href}">
+            <div class="card-head">
+              <span class="card-title">${escapeHtml(t.title)}</span>
+              ${t.badge ? `<span class="card-badge">${escapeHtml(t.badge)}</span>` : ''}
+            </div>
+            <div class="card-desc">${escapeHtml(t.description)}</div>
+          </a>`;
+      }).join("\n");
+      return `      <section class="cat-subsection">
+        <div class="cat-sub-head">
+          <h3 class="cat-sub-title">${escapeHtml(sec.title)}</h3>
+          ${sec.sub ? `<span class="cat-sub-desc">${escapeHtml(sec.sub)}</span>` : ''}
+          <span class="cat-sub-count">${tools.length}</span>
+        </div>
+        <div class="cards">
+${cards}
+        </div>
+      </section>`;
+    }).join("\n");
+  }
+
+  return `<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>${escapeHtml(group.title)} — AI マネジメントポータル</title>
+  <link rel="stylesheet" href="../style.css" />
+  <script type="module" src="../src/common/header.js"></script>
+</head>
+<body>
+  <div class="pm-page">
+    <main class="pm-main">
+      <div class="doc-crumbs"><a href="../index.html">TOP</a> / ${escapeHtml(group.title)}</div>
+      <div class="section-header">
+        <h2 class="section-title">${escapeHtml(group.title)}</h2>
+        ${group.sub ? `<span class="section-sub">${escapeHtml(group.sub)}</span>` : ''}
+      </div>
+${sectionsHtml || `      <div class="cards">\n${toolLinks}\n      </div>`}
+      <div class="back-link"><a href="../index.html">← カテゴリ一覧へ戻る</a></div>
+    </main>
+  </div>
+</body>
+</html>
+`;
+}
+
+function generateFlowPage(def) {
+  const parentHref = def.parentCategory
+    ? `../catalog/${def.parentCategory}.html`
+    : "../category/flow.html";
+  const parentLabel = def.parentCategory
+    ? `${def.parentCategory} 一覧`
+    : "フロー一覧";
+
+  const stepsHtml = (def.steps || [])
+    .filter((s) => !s.section)
+    .map((s) => `        <div class="card is-visual group-flow flow-step">
+          <div class="card-head">
+            <span class="flow-step-no">${s.n}</span>
+            <span class="card-title">${escapeHtml(s.title)}</span>
+            ${s.skill ? `<span class="card-badge">${escapeHtml(s.skill)}</span>` : ''}
+          </div>
+          ${s.detail ? `<div class="card-desc">${escapeHtml(s.detail)}</div>` : ''}
+        </div>`).join("\n");
+
+  const skillsHtml = (def.relatedSkills || [])
+    .map((s) => `<span class="flow-chip">${escapeHtml(s)}</span>`).join("\n          ");
+
+  const notesHtml = (def.notes || [])
+    .map((n) => `<li>${escapeHtml(n)}</li>`).join("\n          ");
+
+  return `<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>${escapeHtml(def.title)} — AI マネジメントポータル</title>
+  <link rel="stylesheet" href="../style.css" />
+  <script type="module" src="../src/common/header.js"></script>
+</head>
+<body>
+  <div class="pm-page">
+    <main class="pm-main">
+      <div class="doc-crumbs"><a href="../index.html">TOP</a> / <a href="${parentHref}">${escapeHtml(parentLabel)}</a> / ${escapeHtml(def.title)}</div>
+      <div class="section-header">
+        <h2 class="section-title">${escapeHtml(def.title)}</h2>
+        ${def.badge ? `<span class="card-badge">${escapeHtml(def.badge)}</span>` : ''}
+      </div>
+${def.summary ? `      <p class="flow-summary">${escapeHtml(def.summary)}</p>` : ''}
+${def.trigger ? `      <div class="flow-trigger">
+        <span class="flow-trigger-label">発火タイミング</span>
+        <span class="flow-trigger-body">${escapeHtml(def.trigger)}</span>
+      </div>` : ''}
+${stepsHtml ? `      <div class="cat-sub-head"><h3 class="cat-sub-title">ステップ</h3><span class="cat-sub-count">${(def.steps || []).filter((s) => !s.section).length}</span></div>
+      <div class="cards">
+${stepsHtml}
+      </div>` : ''}
+${def.diagram ? `      <div class="cat-sub-head"><h3 class="cat-sub-title">フロー図</h3></div>
+      <pre class="flow-diagram">${escapeHtml(def.diagram)}</pre>` : ''}
+${skillsHtml ? `      <div class="cat-sub-head"><h3 class="cat-sub-title">関連スキル・hook</h3></div>
+      <div class="flow-chips">
+          ${skillsHtml}
+      </div>` : ''}
+${notesHtml ? `      <div class="cat-sub-head"><h3 class="cat-sub-title">注意・例外</h3></div>
+      <ul class="flow-notes">
+          ${notesHtml}
+      </ul>` : ''}
+      <div class="back-link"><a href="${parentHref}">← ${escapeHtml(parentLabel)}へ戻る</a></div>
+    </main>
+  </div>
+</body>
+</html>
+`;
+}
+
+function buildCategoryCardsHtml(groups) {
+  return groups.map((g) => {
+    const isEmpty = g.tools.length === 0;
+    return `        <a class="card is-category group-${g.id}${isEmpty ? ' is-coming-soon' : ''}" href="category/${encodeURIComponent(g.id)}.html">
+          <div class="card-head">
+            ${g.icon ? `<span class="card-icon material-symbols-outlined">${g.icon}</span>` : ''}
+            <span class="card-title">${escapeHtml(g.title)}</span>
+          </div>
+          ${g.sub ? `<div class="card-desc">${escapeHtml(g.sub)}</div>` : ''}
+          <div class="card-count">${g.tools.length > 0 ? `${g.tools.length} ツール →` : '準備中'}</div>
+        </a>`;
+  }).join("\n");
+}
+
 // ── generate サブコマンド ──────────────────────────────────────
 
 async function cmdGenerate(checkMode = false) {
@@ -542,6 +703,49 @@ async function cmdGenerate(checkMode = false) {
     console.error(`更新ファイル: ${changedFiles.join(", ")}`);
   } else {
     console.error("変更なし（既に同期済み）");
+  }
+
+  // ── 静的ページ生成 ──────────────────────────────────────────────
+
+  // VISUAL_TOOL_GROUPS を読み込み
+  const manifestMod = await import(pathToFileURL(MANIFEST_FILE).href + "?t=" + Date.now());
+  const groups = manifestMod.VISUAL_TOOL_GROUPS;
+
+  // category/<id>.html を生成
+  fs.mkdirSync(CATEGORY_DIR, { recursive: true });
+  for (const group of groups) {
+    const html = generateCategoryPage(group);
+    fs.writeFileSync(path.join(CATEGORY_DIR, `${group.id}.html`), html);
+  }
+  console.error(`カテゴリページ: ${groups.length} 件生成`);
+
+  // flow/<id>.html を生成
+  fs.mkdirSync(FLOW_DIR, { recursive: true });
+  const flowFiles = fs.readdirSync(path.join(PORTAL, "data", "flows"))
+    .filter((f) => f.endsWith(".js") && f !== "index.js");
+  let flowCount = 0;
+  for (const file of flowFiles) {
+    const mod = await import(pathToFileURL(path.join(PORTAL, "data", "flows", file)).href + "?t=" + Date.now());
+    const exportName = Object.keys(mod).find((k) => Array.isArray(mod[k]));
+    if (!exportName) continue;
+    for (const def of mod[exportName]) {
+      if (!def.id) continue;
+      const html = generateFlowPage(def);
+      fs.writeFileSync(path.join(FLOW_DIR, `${def.id}.html`), html);
+      flowCount++;
+    }
+  }
+  console.error(`フローページ: ${flowCount} 件生成`);
+
+  // index.html の GEN:CATEGORIES マーカー間にカテゴリカードを書き出す
+  let indexHtml2 = fs.readFileSync(INDEX_HTML, "utf8");
+  const catStart = "<!-- GEN:CATEGORIES -->";
+  const catEnd = "<!-- /GEN:CATEGORIES -->";
+  if (indexHtml2.includes(catStart) && indexHtml2.includes(catEnd)) {
+    const cardsHtml = buildCategoryCardsHtml(groups);
+    indexHtml2 = replaceBetweenMarkers(indexHtml2, catStart, catEnd, cardsHtml);
+    fs.writeFileSync(INDEX_HTML, indexHtml2);
+    console.error("index.html: カテゴリカードを生成");
   }
 }
 
@@ -1298,6 +1502,64 @@ function cmdServe() {
   });
 }
 
+// ── check-unregistered / register-skills サブコマンド ─────────────
+
+async function cmdCheckUnregistered() {
+  const skills = collectSkills();
+  const skillCategoryMap = await loadSkillCategoryMap();
+  const unregistered = skills
+    .filter((s) => skillCategoryMap[s.id] === undefined)
+    .map((s) => s.id);
+  console.log(JSON.stringify(unregistered));
+}
+
+async function cmdRegisterSkills(ids) {
+  const skillCategoryMap = await loadSkillCategoryMap();
+  const toAdd = ids.filter((id) => skillCategoryMap[id] === undefined);
+  if (toAdd.length === 0) {
+    console.error("追加対象のスキルはありません。");
+    return;
+  }
+
+  let catSource = fs.readFileSync(SKILL_CATEGORIES_FILE, "utf8");
+  const insertPoint = catSource.lastIndexOf("};");
+  if (insertPoint === -1) {
+    console.error("skill-categories.js の SKILL_CATEGORY 末尾 '}' が見つかりません。");
+    process.exit(1);
+  }
+  const newEntries = toAdd.map((id) => `  "${id}": "other",`).join("\n");
+  catSource = catSource.slice(0, insertPoint) + newEntries + "\n" + catSource.slice(insertPoint);
+  fs.writeFileSync(SKILL_CATEGORIES_FILE, catSource);
+  console.error(`skill-categories.js に ${toAdd.length} 件追記しました: ${toAdd.join(", ")}`);
+
+  for (const id of toAdd) {
+    const skillDir = path.join(SKILLS_DIR, id);
+    if (!fs.existsSync(skillDir)) continue;
+    const refsDir = path.join(skillDir, "references");
+    const guideFile = path.join(refsDir, `${id}-guide.html`);
+    if (fs.existsSync(guideFile)) continue;
+    fs.mkdirSync(refsDir, { recursive: true });
+    const stub = `<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>${id} スキルガイド</title>
+</head>
+<body>
+  <div class="skill-name">${id}</div>
+  <nav class="toc"></nav>
+  <p>このガイドは自動生成されたスタブです。内容を追記してください。</p>
+</body>
+</html>
+`;
+    fs.writeFileSync(guideFile, stub);
+    console.error(`ガイドスタブを生成: ${id}/references/${id}-guide.html`);
+  }
+
+  await cmdGenerate(false);
+}
+
 // ── エントリポイント ────────────────────────────────────────────
 
 const subcommand = process.argv[2];
@@ -1318,7 +1580,19 @@ switch (subcommand) {
   case "serve":
     cmdServe();
     break;
+  case "check-unregistered":
+    await cmdCheckUnregistered();
+    break;
+  case "register-skills": {
+    const ids = process.argv.slice(3).join(",").split(",").filter(Boolean);
+    if (ids.length === 0) {
+      console.error("使い方: manage-portal.mjs register-skills <id1>,<id2>,...");
+      process.exit(1);
+    }
+    await cmdRegisterSkills(ids);
+    break;
+  }
   default:
-    console.error("使い方: manage-portal.mjs <generate|check|verify|serve> [--only <key>,<key>]");
+    console.error("使い方: manage-portal.mjs <generate|check|verify|check-unregistered|register-skills|serve> [--only <key>,<key>]");
     process.exit(1);
 }

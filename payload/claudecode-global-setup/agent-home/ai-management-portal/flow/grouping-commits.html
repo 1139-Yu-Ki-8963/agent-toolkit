@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>コミット整形 — AI マネジメントポータル</title>
+  <link rel="stylesheet" href="../style.css" />
+  <script type="module" src="../src/common/header.js"></script>
+</head>
+<body>
+  <div class="pm-page">
+    <main class="pm-main">
+      <div class="doc-crumbs"><a href="../index.html">TOP</a> / <a href="../category/flow.html">フロー一覧</a> / コミット整形</div>
+      <div class="section-header">
+        <h2 class="section-title">コミット整形</h2>
+        <span class="card-badge">commit</span>
+      </div>
+      <p class="flow-summary">Git の変更を自動分析してグループ化し、関連する変更ごとに単一目的のコミットを作成する。機密ファイル混入もチェックする。</p>
+      <div class="flow-trigger">
+        <span class="flow-trigger-label">発火タイミング</span>
+        <span class="flow-trigger-body">コード変更後にコミットを作成したいとき、複数の変更をまとめて整理したいとき。コミットを行わない閲覧・編集のみのときはスキップ。</span>
+      </div>
+      <div class="cat-sub-head"><h3 class="cat-sub-title">ステップ</h3><span class="cat-sub-count">4</span></div>
+      <div class="cards">
+        <div class="card is-visual group-flow flow-step">
+          <div class="card-head">
+            <span class="flow-step-no">1</span>
+            <span class="card-title">変更分析</span>
+            <span class="card-badge">grouping-commits</span>
+          </div>
+          <div class="card-desc">変更ファイルを test/docs/chore/feat/fix/refactor/style に自動分類する。</div>
+        </div>
+        <div class="card is-visual group-flow flow-step">
+          <div class="card-head">
+            <span class="flow-step-no">2</span>
+            <span class="card-title">グループ化</span>
+            
+          </div>
+          <div class="card-desc">関連する変更を 1 つの目的にまとめる。</div>
+        </div>
+        <div class="card is-visual group-flow flow-step">
+          <div class="card-head">
+            <span class="flow-step-no">3</span>
+            <span class="card-title">機密チェック</span>
+            <span class="card-badge">reviewing-public-readiness</span>
+          </div>
+          <div class="card-desc">コミット前に機密ファイルの混入を確認する（PUBLISH-SAFETY と連携）。</div>
+        </div>
+        <div class="card is-visual group-flow flow-step">
+          <div class="card-head">
+            <span class="flow-step-no">4</span>
+            <span class="card-title">段階コミット</span>
+            
+          </div>
+          <div class="card-desc">グループごとに git add + commit する。メッセージは命名規約（rules: always/naming/commit-branch）に従う。</div>
+        </div>
+      </div>
+      <div class="cat-sub-head"><h3 class="cat-sub-title">フロー図</h3></div>
+      <pre class="flow-diagram">変更分析 → 目的別グループ化 → 機密チェック → グループごとに add+commit</pre>
+      <div class="cat-sub-head"><h3 class="cat-sub-title">関連スキル・hook</h3></div>
+      <div class="flow-chips">
+          <span class="flow-chip">grouping-commits</span>
+          <span class="flow-chip">reviewing-public-readiness</span>
+      </div>
+      <div class="cat-sub-head"><h3 class="cat-sub-title">注意・例外</h3></div>
+      <ul class="flow-notes">
+          <li>issue-&lt;番号&gt; ブランチは managing-github-issues（verify モード）経由で 1 コミット化する。</li>
+          <li>commit 時に PreToolUse hook が [NAMING] [GIT-AUTHOR-BLOCK] [PUBLISH-*] を注入する。</li>
+      </ul>
+      <div class="back-link"><a href="../category/flow.html">← フロー一覧へ戻る</a></div>
+    </main>
+  </div>
+</body>
+</html>

@@ -11,11 +11,11 @@
   <div class="cat-wrap">
     <div class="page-hero">
       <h1>Skills 一覧</h1>
-      <p>~/agent-home/skills で管理しているスキル（SKILL.md）をカテゴリ別に一覧化したものです。各行を開くとトリガーと概要を表示します。<a href="../index.html#/">← フロー・ポータルへ戻る</a></p>
+      <p>~/agent-home/skills で管理しているスキル（SKILL.md）をカテゴリ別に一覧化したものです。各行を開くとトリガーと概要を表示します。<a href="../index.html">← フロー・ポータルへ戻る</a></p>
     </div>
 
     <div class="cat-bar">
-      <a class="cat-back" href="../index.html#/">← ポータル TOP</a>
+      <a class="cat-back" href="../index.html">← ポータル TOP</a>
       <span class="cat-total" id="total"></span>
       <input class="cat-filter" id="filter" type="search" placeholder="スキル名・説明で絞り込み…" autocomplete="off" />
     </div>
@@ -35,7 +35,7 @@
       { id: "creating-new-project", cat: "dev", summary: "新規プロジェクトセットアップ（Next.js / React+Vite+FastAPI）", trigger: "「新規プロジェクト」「プロジェクト作成」「アプリ新規作成」「セットアップ」と言われた時", guide: true },
       { id: "eliciting-plan-tacit-knowledge", cat: "meta", summary: "計画を弱モデルに初見読解させ、理解のズレから暗黙知を抽出して計画へ明文化する", trigger: "「暗黙知を炙り出して」「計画の前提を明文化して」「計画を初見読解で検証して」と言われた時、brain の計画立案後・ユーザー承認前の計画品質確認", guide: true },
       { id: "frontend-design", cat: "design", summary: "UI/画面デザインガイド", trigger: "コンポーネント実装、LP、デザイン刷新", guide: true },
-      { id: "generating-explanation-html-slides", cat: "content", summary: "与えたトピックを図解入り横1枚（16:9）のスライド風解説HTMLにする", trigger: "「解説スライドを作って」「説明用HTMLにして」「スライドHTML」「図解して1枚にまとめて」と言われた時", guide: true },
+      { id: "generating-explanation-html-slides", cat: "content", summary: "与えたトピックを横1枚（16:9）のスライド風解説HTMLにする。図解型と論証テーブル型を選択可能", trigger: "「解説スライドを作って」「説明用HTMLにして」「スライドHTML」「図解して1枚にまとめて」「論証テーブルで整理して」と言われた時", guide: true },
       { id: "grouping-commits", cat: "impl", sub: "pr", summary: "変更分析しグループ化・単一目的コミット作成", trigger: "「コミット分割」「変更グループ化」「まとめてコミット」と言われた時", guide: true },
       { id: "managing-agent-configs", cat: "manage", sub: "skill", summary: "エージェント構成管理", trigger: "スキル/ルール/ルーティン/エージェント/フック作成・レビュー・テスト", guide: true },
       { id: "managing-github-issues", cat: "impl", sub: "issue", summary: "GitHub issue の起票・選択着手・スコープ検証のモードハブ", trigger: "「issue作成」「起票」「issueにして」「issueを選んで実装」「issue一覧から着手」「スコープ検証」「issue範囲チェック」、issue-N ブランチで commit 前", guide: true },

@@ -54,13 +54,13 @@ echo "[block] 違反系は exit 2"
 run_case "相対パス foo.png"              2 '{"tool_input":{"filename":"foo.png"}}'
 run_case "相対パス screenshots/foo.png"  2 '{"tool_input":{"filename":"screenshots/foo.png"}}'
 run_case "許可外絶対パス /tmp/foo.png"   2 '{"tool_input":{"filename":"/tmp/foo.png"}}'
-run_case "許可外絶対パス /Users/MacPro/agent-home/foo.png" 2 '{"tool_input":{"filename":"/Users/MacPro/agent-home/foo.png"}}'
-run_case "旧パス .playwright-mcp/ は block" 2 '{"tool_input":{"filename":"/Users/MacPro/Projects/repo/.playwright-mcp/foo.png"}}'
+run_case "許可外絶対パス /Users/<user>/agent-home/foo.png" 2 '{"tool_input":{"filename":"/Users/<user>/agent-home/foo.png"}}'
+run_case "旧パス .playwright-mcp/ は block" 2 '{"tool_input":{"filename":"/Users/<user>/Projects/repo/.playwright-mcp/foo.png"}}'
 
 echo "[allow] 正常系は exit 0"
-run_case "\$HOME/.claude/jobs/<job>/tmp/" 0 '{"tool_input":{"filename":"/Users/MacPro/.claude/jobs/abc123/tmp/foo.png"}}'
-run_case "tools/MCP/playwright/"          0 '{"tool_input":{"filename":"/Users/MacPro/agent-home/tools/MCP/playwright/foo.png"}}'
-run_case "<repo>/docs/<feature>/"         0 '{"tool_input":{"filename":"/Users/MacPro/Projects/repo/docs/login/screenshots/foo.png"}}'
+run_case "\$HOME/.claude/jobs/<job>/tmp/" 0 "{\"tool_input\":{\"filename\":\"$HOME/.claude/jobs/abc123/tmp/foo.png\"}}"
+run_case "tools/MCP/playwright/"          0 "{\"tool_input\":{\"filename\":\"$HOME/agent-home/tools/MCP/playwright/foo.png\"}}"
+run_case "<repo>/docs/<feature>/"         0 '{"tool_input":{"filename":"/Users/<user>/Projects/repo/docs/login/screenshots/foo.png"}}'
 run_case_env "CLAUDE_JOB_DIR 環境変数経由（許可）" 0 'CLAUDE_JOB_DIR=/var/lib/job' '{"tool_input":{"filename":"/var/lib/job/tmp/foo.png"}}'
 run_case_env "CLAUDE_JOB_DIR 設定済みでも対象外パスは block" 2 'CLAUDE_JOB_DIR=/var/lib/job' '{"tool_input":{"filename":"/var/lib/other/foo.png"}}'
 

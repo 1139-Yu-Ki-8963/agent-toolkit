@@ -10,7 +10,7 @@
 
 set -u
 
-. "$HOME/agent-home/tools/hooks/shared/marker-path.sh"
+. "$HOME/.claude/rules/scoped/agent-config/hooks/shared/transcript-query.sh"
 
 [ -n "${CLAUDE_HOOK_SUMMARY_RUNNING:-}" ] && exit 0
 [ -n "${CLAUDE_HOOK_AUTOCOMMIT_RUNNING:-}" ] && exit 0

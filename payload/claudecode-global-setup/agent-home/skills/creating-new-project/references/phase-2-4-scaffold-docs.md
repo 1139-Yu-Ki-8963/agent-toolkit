@@ -147,7 +147,7 @@ export default function <PageName>Page() {
 
 `scaffolding-flow-structure.md` を Read し、Step 5（DESIGN.md 生成）を実行してから、Step 7（`orchestrating-dev-flow/references/module-preflight-check.md` を Read して実行するプリフライトチェック）を実行して、3-2〜3-7 で生成した flow 前提構造（flow-values.yml・layers.yml・rules 一式）が orchestrating-dev-flow の前提条件を満たすか検証する。
 
-同ファイルの Step 1〜4・6 は 3-1〜3-7・Phase 1・Phase 5 で既に実施済みのため再実行しない。`project-portal/` は Phase 5 の手順（oradora-battle-base 参照）を正とし、同ファイル Step 3 の `scaffolding-assets/portal-template/` コピー手順は Phase 5 が未整備な場合の代替手段としてのみ使う。**Step 5（DESIGN.md 生成）は 3-1〜3-7・Phase 1・Phase 5 のいずれでも実行されないため、Step 7（プリフライトチェック）の前に Step 5 を実行する。**
+同ファイルの Step 1〜4・6 は 3-1〜3-7・Phase 1・Phase 5 で既に実施済みのため再実行しない。`project-portal/` は Phase 5 の手順（`<project>` 参照）を正とし、同ファイル Step 3 の `scaffolding-assets/portal-template/` コピー手順は Phase 5 が未整備な場合の代替手段としてのみ使う。**Step 5（DESIGN.md 生成）は 3-1〜3-7・Phase 1・Phase 5 のいずれでも実行されないため、Step 7（プリフライトチェック）の前に Step 5 を実行する。**
 
 - go → Phase 4 に進む
 - no-go → FAIL 項目を修正してから Phase 4 に進む
