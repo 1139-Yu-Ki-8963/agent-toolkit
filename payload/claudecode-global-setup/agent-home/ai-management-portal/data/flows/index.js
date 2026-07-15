@@ -3,7 +3,6 @@
 import { DEV_FLOWS } from "./dev.js";
 import { REVIEW_FLOWS } from "./review.js";
 import { OPS_FLOWS } from "./ops.js";
-import { ROUTINE_FLOWS } from "./routines.js";
 import { WRITING_FLOWS } from "./writing.js";
 import { ENFORCE_FLOWS } from "./enforce.js";
 import { OBSERVE_FLOWS } from "./observe.js";
@@ -13,7 +12,6 @@ const ALL = [
   ...DEV_FLOWS,
   ...REVIEW_FLOWS,
   ...OPS_FLOWS,
-  ...ROUTINE_FLOWS,
   ...WRITING_FLOWS,
   ...ENFORCE_FLOWS,
   ...OBSERVE_FLOWS,

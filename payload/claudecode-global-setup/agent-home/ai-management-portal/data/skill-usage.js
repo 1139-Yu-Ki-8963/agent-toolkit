@@ -69,5 +69,4 @@ export const SKILL_USAGE = [
   // 非 Render の発火改善
   { id: "syncing-design-system", n: 0, last: "-", diag: "improve", why: "Design API→React 差分反映。発火機会が稀でトリガーも曖昧" },
   { id: "documenting-workflows", n: 0, last: "-", diag: "improve", why: "関連スキル 2 つ以上追加時に発火すべき。managing-skills への吸収も検討" },
-  { id: "registering-routines", n: 1, last: "2026-05-27", diag: "improve", why: "ルーティン作成は低頻度。トリガーは妥当だが出番が稀" },
 ];

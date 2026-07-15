@@ -1024,19 +1024,6 @@ async function checkCountsMatch() {
     problems.push(`skills 実体数(${skillsActual}) ≠ index.html GEN:COUNT:skills(${indexGenCount})`);
   }
 
-  // routines カウント（ROUTINES_DIR が未同梱の環境ではスキップ。routines は
-  // 同期対象外の私物ディレクトリのため、不在イコール未整備ではない）
-  if (fs.existsSync(ROUTINES_DIR)) {
-    const routinesActual = countRoutines();
-    const routinesMatch = indexHtml.match(/<!-- GEN:COUNT:routines -->(.*?)<!-- \/GEN:COUNT:routines -->/);
-    if (routinesMatch) {
-      const routinesGen = parseInt(routinesMatch[1], 10);
-      if (routinesActual !== routinesGen) {
-        problems.push(`routines 実体数(${routinesActual}) ≠ GEN:COUNT:routines(${routinesGen})`);
-      }
-    }
-  }
-
   // hooks カウント
   const hooksActual = countHooks();
   const hooksMatch = indexHtml.match(/<!-- GEN:COUNT:hooks -->(.*?)<!-- \/GEN:COUNT:hooks -->/);
@@ -1104,7 +1091,6 @@ function checkLinksExist() {
   if (fs.existsSync(routinesIndex)) htmlFiles.push(routinesIndex);
 
   const skipPrefixes = ["#", "http:", "https:", "mailto:", "data:", "javascript:"];
-  const routinesDirExists = fs.existsSync(ROUTINES_DIR);
 
   for (const htmlFile of htmlFiles) {
     const rawContent = fs.readFileSync(htmlFile, "utf8");
@@ -1131,15 +1117,7 @@ function checkLinksExist() {
       }
       if (!exists) {
         const rel = path.relative(REPO_ROOT, htmlFile);
-        const isRoutinesLink =
-          resolved === ROUTINES_DIR || resolved.startsWith(ROUTINES_DIR + path.sep);
-        if (isRoutinesLink && !routinesDirExists) {
-          // ROUTINES_DIR が未同梱の環境（配布先 PC 等）では routines/ 配下への
-          // リンクは WARN に留める（routines は同期対象外の私物ディレクトリ）
-          WARNS.push(`${rel}: リンク切れ（routines/ 未同梱環境） → ${attr}`);
-        } else {
-          FAILS.push(`${rel}: リンク切れ → ${attr}`);
-        }
+        FAILS.push(`${rel}: リンク切れ → ${attr}`);
       }
     }
   }
