@@ -1,0 +1,294 @@
+<!--
+  argument-table-template デザイントークン+部品カタログ（論証テーブル型の正本）
+
+  使用規則:
+  1. :root のトークン値は変更しない。色は必ず var(--...) 経由で使う
+  2. このファイルは部品カタログ。SAMPLE と書かれたテキストを実データに差し替える
+  3. 外部リソース（CDN・Webフォント・外部画像・fetch）の追加は禁止
+  4. 先頭の <meta charset="utf-8"> を必ず残す
+  5. 表は5行まで。入らないときは2枚に分割する
+  6. すべての打ち手に実行主体（誰がやるか）を記載する
+  7. .slide-meta は空（子要素なし）なら非表示になる。表示する場合は日付・作成者名・ページ番号を規定の構造で入れる
+  8. 数字がない箇所は need-check クラスで「※要確認」と明記する
+-->
+<meta charset="utf-8">
+<title>SAMPLE: ページタイトル（名詞句14〜20字）</title>
+<style>
+  /* ==== デザイントークン（slide-template.html :root をそのまま使用） ==== */
+  :root {
+    --page: #EDF0F4;
+    --surface: #FFFFFF;
+    --ink: #1C2B3A;
+    --ink-2: #55667A;
+    --ink-3: #8494A6;
+    --border: #D9E0E8;
+    --grid: #E9EDF2;
+    --critical: #C0392B;
+    --critical-soft: #FAECEA;
+    --good: #1F7A46;
+    --good-soft: #EAF4EE;
+    --tag-bg: #EDF1F6;
+    --claude: #D97757;
+    --claude-deep: #BC5B3B;
+    --claude-soft: #FBF0EA;
+    --cursor: #23282E;
+    --cursor-soft: #EFF1F4;
+  }
+
+  html, body { height: 100%; overflow: hidden; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: var(--page); }
+
+  /* ==== スライド枠（16:9 固定・slide-template.html と同一） ==== */
+  .slide-viewport {
+    width: 100vw; height: 100vh;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--page); overflow: hidden;
+  }
+  .slide {
+    position: absolute;
+    top: 50%; left: 50%;
+    width: 1280px;
+    height: 720px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    box-shadow: 0 4px 24px rgba(28, 43, 58, 0.08);
+    display: flex; flex-direction: column;
+    padding: 40px 48px;
+    gap: 18px;
+    font-family: system-ui, -apple-system, 'Segoe UI', 'Hiragino Sans', sans-serif;
+    transform: translate(-50%, -50%) scale(var(--slide-scale, 1));
+    transform-origin: center center;
+  }
+
+  /* ==== ヘッダ（slide-template.html と同一） ==== */
+  .slide-header {
+    display: flex; flex-direction: column; gap: 4px;
+    padding-bottom: 14px;
+    border-bottom: 2px solid var(--ink);
+  }
+  .slide-eyebrow { font-size: 13px; font-weight: 700; letter-spacing: 0.12em; color: var(--ink-3); }
+  .slide-title { font-size: 32px; font-weight: 700; line-height: 1.25; color: var(--ink); text-wrap: balance; }
+
+  /* ==== 部品（新規）: リード帯 ====
+     採用理由: 主張を1文で先に言い切ることで、表を見なくても結論が伝わる導線を作るため。
+     ネイビー地に白文字の帯で、本文（--ink-2）や見出し（--ink）と明確に区別する。 */
+  .lead-band {
+    background: var(--ink);
+    color: #fff;
+    border-radius: 6px;
+    padding: 12px 20px;
+    font-size: 19px;
+    font-weight: 700;
+    text-align: center;
+    letter-spacing: 0.02em;
+  }
+
+  /* ==== 部品（新規）: ヘッドメッセージ ====
+     採用理由: ■付き断定文で「事実→必要性」を2〜3行に要約し、リード帯の主張を裏付ける。 */
+  .head-message { display: flex; flex-direction: column; gap: 5px; }
+  .head-message p {
+    display: flex; gap: 7px;
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 1.55;
+    color: var(--ink);
+  }
+  .head-message .mark { color: var(--claude-deep); flex-shrink: 0; }
+
+  /* ==== 部品（新規）: 論証テーブル ====
+     採用理由: 「課題→現状→打ち手」を左から右に読むだけで
+     問題・事実・対策の論理が1行で完結する構造にするため、
+     時間軸のないタイムライン部品ではなく表形式を採用した。 */
+  .argument-table {
+    width: 100%;
+    flex: 1;
+    border-collapse: collapse;
+    table-layout: fixed;
+  }
+  .argument-table caption {
+    text-align: left;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--ink-3);
+    padding-bottom: 6px;
+  }
+  .argument-table th {
+    background: var(--ink);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 700;
+    text-align: left;
+    padding: 7px 12px;
+  }
+  .argument-table th:first-child { border-top-left-radius: 6px; border-bottom-left-radius: 6px; }
+  .argument-table th:last-child { border-top-right-radius: 6px; border-bottom-right-radius: 6px; }
+  .col-issue { width: 19%; }
+  .col-fact { width: 34%; }
+  .col-action { width: 47%; }
+
+  .argument-table td {
+    vertical-align: top;
+    border-bottom: 1px solid var(--border);
+    padding: 10px 12px;
+    font-size: 12px;
+    color: var(--ink-2);
+    line-height: 1.5;
+  }
+  .argument-table tbody tr:nth-child(even) td { background: var(--tag-bg); }
+
+  .cell-issue { font-weight: 700; color: var(--ink); }
+  .cell-fact .need-check { color: var(--critical); font-weight: 700; }
+
+  .action-head {
+    display: block;
+    font-weight: 700;
+    color: var(--ink);
+    margin-bottom: 4px;
+  }
+  .action-owner {
+    font-weight: 500;
+    color: var(--ink-3);
+    font-size: 0.92em;
+  }
+  .action-list { list-style: none; display: flex; flex-direction: column; gap: 3px; }
+  .action-list li {
+    position: relative;
+    padding-left: 12px;
+  }
+  .action-list li::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 6px;
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: var(--claude);
+  }
+
+  /* ==== 部品（新規）: 出典行 ==== */
+  .source-line {
+    font-size: 11px;
+    color: var(--ink-3);
+    border-top: 1px solid var(--border);
+    padding-top: 6px;
+  }
+
+  /* ==== メタデータフッター（日付・作成者・ページ番号。空なら非表示） ==== */
+  .slide-meta {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    height: 24px;
+    padding-top: 6px;
+    border-top: 1px solid var(--border);
+    font-size: 11px;
+    color: var(--ink-3);
+  }
+  .slide-meta:empty { display: none; }
+  .slide-meta-date { font-variant-numeric: tabular-nums; }
+  .slide-meta-author { text-align: center; }
+  .slide-meta-page { text-align: right; font-variant-numeric: tabular-nums; }
+</style>
+
+<div class="slide-viewport">
+  <div class="slide">
+
+    <header class="slide-header">
+      <span class="slide-eyebrow">SAMPLE: 資料の分類名</span>
+      <h1 class="slide-title">SAMPLE: ページタイトル（名詞句14〜20字）</h1>
+    </header>
+
+    <div class="lead-band">SAMPLE: 主張を1文・30字前後で言い切る</div>
+
+    <section class="head-message">
+      <p><span class="mark">■</span><span>SAMPLE: ■付き断定文</span></p>
+      <p><span class="mark">■</span><span>SAMPLE: ■付き断定文</span></p>
+    </section>
+
+    <table class="argument-table">
+      <caption>SAMPLE: テーブルの補足タイトル</caption>
+      <colgroup>
+        <col class="col-issue"><col class="col-fact"><col class="col-action">
+      </colgroup>
+      <thead>
+        <tr>
+          <th scope="col">課題</th>
+          <th scope="col">現状</th>
+          <th scope="col">打ち手</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="cell-issue">SAMPLE: 課題名（名詞句15字以内）</td>
+          <td class="cell-fact">SAMPLE: 事実と数字<span class="need-check">※要確認</span></td>
+          <td>
+            <span class="action-head">SAMPLE: 打ち手見出し（主体：◯◯部）</span>
+            <ul class="action-list">
+              <li>SAMPLE: 具体アクション</li>
+              <li>SAMPLE: 具体アクション</li>
+              <li>SAMPLE: 具体アクション</li>
+            </ul>
+          </td>
+        </tr>
+        <tr>
+          <td class="cell-issue">SAMPLE: 課題名（名詞句15字以内）</td>
+          <td class="cell-fact">SAMPLE: 事実と数字<span class="need-check">※要確認</span></td>
+          <td>
+            <span class="action-head">SAMPLE: 打ち手見出し（主体：◯◯部）</span>
+            <ul class="action-list">
+              <li>SAMPLE: 具体アクション</li>
+              <li>SAMPLE: 具体アクション</li>
+            </ul>
+          </td>
+        </tr>
+        <tr>
+          <td class="cell-issue">SAMPLE: 課題名（名詞句15字以内）</td>
+          <td class="cell-fact">SAMPLE: 事実と数字<span class="need-check">※要確認</span></td>
+          <td>
+            <span class="action-head">SAMPLE: 打ち手見出し（主体：◯◯部）</span>
+            <ul class="action-list">
+              <li>SAMPLE: 具体アクション</li>
+              <li>SAMPLE: 具体アクション</li>
+            </ul>
+          </td>
+        </tr>
+        <tr>
+          <td class="cell-issue">SAMPLE: 課題名（名詞句15字以内）</td>
+          <td class="cell-fact">SAMPLE: 事実と数字<span class="need-check">※要確認</span></td>
+          <td>
+            <span class="action-head">SAMPLE: 打ち手見出し（主体：◯◯部）</span>
+            <ul class="action-list">
+              <li>SAMPLE: 具体アクション</li>
+              <li>SAMPLE: 具体アクション</li>
+            </ul>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p class="source-line">SAMPLE: 出典：◯◯部調べ（YYYY年M月時点）</p>
+
+    <!-- ==== 部品: メタデータフッター（空なら非表示。SAMPLE を実データに差し替える） ==== -->
+    <footer class="slide-meta">
+      <span class="slide-meta-date">SAMPLE: 2026年7月</span>
+      <span class="slide-meta-author">SAMPLE: AAA</span>
+      <span class="slide-meta-page">SAMPLE: 1</span>
+    </footer>
+
+  </div>
+</div>
+
+<!-- ==== スケーリング（常時必須・1ページでも削除禁止。削除可はページ送りスクリプトのみ） ==== -->
+<script>
+(function(){
+  function f(){
+    document.documentElement.style.setProperty(
+      '--slide-scale',
+      Math.min(innerWidth/1280, innerHeight/720)
+    );
+  }
+  addEventListener('resize', f);
+  f();
+})();
+</script>
