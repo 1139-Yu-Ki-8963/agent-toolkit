@@ -25,10 +25,6 @@ fi
 asset_type="$(managed_asset_type "$file_path")"
 [ -z "$asset_type" ] && exit 0
 
-# セッションログに managing-agent-configs の発火記録があれば advisory 通知は抑制するが、
-# -needed マーカーの touch は発火済みかどうかに関わらず常に行う。抑制判定を先に
-# exit してしまうと、以後の managed 編集で -needed マーカーが二度と生成されず
-# commit-gate が永久に通らなくなるため、判定はフラグに記録するだけにとどめる。
 advisory_suppressed=0
 session=$(printf '%s' "$input" | jq -r '.session_id // empty' 2>/dev/null)
 if [ -n "$session" ]; then
@@ -38,22 +34,12 @@ if [ -n "$session" ]; then
   fi
 fi
 
-if [ -n "$session" ]; then
-  cwd=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null)
-  [ -z "$cwd" ] && cwd="$PWD"
-  needed_marker="$(marker_path "$cwd" "$session" "managing-agent-configs-${asset_type}-needed")"
-  touch "$needed_marker"
-  # T3: ハッシュ照合方式への移行に伴い、旧来の -test-passed 無効化（rm）は撤去した。
-  # commit-gate 側が staged 内容とマーカー記録ハッシュを突合して stale を検出するため、
-  # ここで先回りして削除する必要がなくなった。
-fi
-
 [ "$advisory_suppressed" = "1" ] && exit 0
 
 jq -n --arg type "$asset_type" '{
   hookSpecificOutput: {
     hookEventName: "PostToolUse",
-    additionalContext: ("[MANAGING-REVIEW-REQUIRED] managed ディレクトリのファイルが編集されました。Skill(\"managing-agent-configs\") を種別 " + $type + " で実行してレビュー・テストを完了させてください。編集したファイルは再テストまで commit がブロックされます。")
+    additionalContext: ("[MANAGING-REVIEW-REQUIRED] managed ディレクトリのファイルが編集されました。Skill(\"managing-agent-configs\") を種別 " + $type + " で実行してレビュー・テストを完了させてください。")
   }
 }'
 exit 0

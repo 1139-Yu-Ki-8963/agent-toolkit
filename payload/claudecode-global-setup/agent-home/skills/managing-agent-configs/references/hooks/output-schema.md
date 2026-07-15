@@ -43,7 +43,7 @@ PreToolUse は exit code でツール実行を止められる。
 | 0 | 通常通過。stdout の JSON は systemMessage / additionalContext として処理される |
 | 2 | ツール実行をブロック。**stdout の JSON は使われず、stderr に書いた文字列がそのまま Claude に渡る**（systemMessage は出ない） |
 
-実例は 2 件。1 件目は settings.json の Write フックで、図記述コードブロック（Mermaid / PlantUML / dot）または PlantUML 開始マーカーを検出すると exit 2 でブロックする。2 件目は `check-managing-configs-commit-gate.sh`（`~/.claude/rules/always/agent-config/review/check-managing-configs-commit-gate.sh`、rules-bash-runner 経由）で、managed ファイルのテスト完了マーカーが無い状態での `prh.yml` commit を検知すると `[MANAGING-COMMIT-BLOCK] 理由文` を stderr に出力して exit 2 でブロックする。
+実例は 1 件。settings.json の Write フックで、図記述コードブロック（Mermaid / PlantUML / dot）または PlantUML 開始マーカーを検出すると exit 2 でブロックする。
 
 `exit 2` を選ぶ場合は JSON ではなく **stderr に直接 `[TAG] 理由文`** を書く。多用しないこと（ユーザーの操作を強制停止するため）。
 

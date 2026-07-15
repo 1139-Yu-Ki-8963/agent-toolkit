@@ -65,15 +65,6 @@ allowed-tools: [Bash, Read, Write, Edit, Grep, Glob, Agent, AskUserQuestion]
 
 連鎖をスキップしたい場合は `AskUserQuestion` で「ここで終了する／レビューまでで止める／テストまで連鎖する」を確認する。デフォルトは **テストまで連鎖**。
 
-### スキル削除時のクリーンアップ
-
-スキルを削除した場合は、以下の手順でポータル資産を更新する:
-
-1. `data/skill-categories.js` から削除対象スキルのエントリを削除する
-2. 対応するガイド HTML（`design/<スキル名>.html`）が存在すれば削除する
-3. `manage-portal.mjs generate` を実行する
-4. `manage-portal.mjs verify` が exit 0 であることを確認する
-
 ## review モード
 
 ### full モード（修正あり、既定）

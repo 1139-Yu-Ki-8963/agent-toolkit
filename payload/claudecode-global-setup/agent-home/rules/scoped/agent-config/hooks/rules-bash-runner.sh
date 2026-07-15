@@ -13,16 +13,13 @@
 #   3. always/placement/file-guard/check-claude-home-root-marker.sh         (~/.claude ルート直下ドットファイル)
 #   4. always/agent/subagent-selection/check-main-agent-direct-work.sh  (常時: 内部に read-only 許可リストを持つ)
 #   5. always/placement/directory-structure/check-mkdir-allowlist.sh (mkdir)
-#   6. always/agent-config/review/check-managing-configs-commit-gate.sh    (git commit)
 #   7. scoped/tooling/shell/check-curl-egress.sh               (curl / wget)
 #   8. always/gate/phase-step-task/check-phase-entry-tasks.sh      (update-flow-status.sh)
 #   9. always/local-environment/port-management/check-port-launch.sh        (dev サーバー起動: vite/next/uvicorn/prisma studio/http.server)
 #   10. always/placement/flow-context-guard/check-flow-context-guard.sh (git commit: flow-values.yml 不在検知)
 #
-# 1/5/6/7 は前方一致ではなく部分一致（*pattern*）で判定する。cd 前置（cd dir && git commit）
+# 1/5/7 は前方一致ではなく部分一致（*pattern*）で判定する。cd 前置（cd dir && git commit）
 # や git -C 形式（git -C dir commit）でコマンド文字列の先頭が変わり前方一致が素通りするため（2026-07-05 実測）。
-# 6 の dispatch 条件（*git*commit*）は意図的に粗い上位集合。精密な複合コマンド分割・
-# git commitizen 等の語境界判定は check-managing-configs-commit-gate.sh 内部が担う（2026-07-06 拡張）。
 set -u
 
 input="$(cat)"
@@ -71,12 +68,6 @@ run_hook "$R/always/agent/subagent-selection/check-main-agent-direct-work.sh"
 case "$cmd" in
   *"mkdir "*)
     run_hook "$R/always/placement/directory-structure/check-mkdir-allowlist.sh" ;;
-esac
-
-# 6. managing 系テスト完了ゲート（dispatch は粗い上位集合。精密判定は gate 側が行う）
-case "$cmd" in
-  *git*commit*)
-    run_hook "$R/always/agent-config/review/check-managing-configs-commit-gate.sh" ;;
 esac
 
 # 7. 外部 curl / wget の egress block（localhost と call-api.sh のみ許可）

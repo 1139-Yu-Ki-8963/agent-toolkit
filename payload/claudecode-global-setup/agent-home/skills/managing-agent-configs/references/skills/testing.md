@@ -242,7 +242,7 @@
 
 ## 整合性ゲート（機械チェック）
 
-skills 種別のテスト完了マーカー書き出しの前提条件として、以下を実行し exit 0 になることを要求する。
+テスト完了の前提条件として、以下を実行し exit 0 になることを要求する。
 
 ```bash
 node ~/agent-home/skills/managing-agent-configs/scripts/manage-portal.mjs verify

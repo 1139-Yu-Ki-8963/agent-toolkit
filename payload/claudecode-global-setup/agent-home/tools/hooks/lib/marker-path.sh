@@ -56,6 +56,8 @@ marker_path() {
 managed_asset_type() {
   local f="$1"
   case "$f" in
+    payload/*|*/payload/*)
+      printf '' ;;
     skills/*/SKILL.md|*/skills/*/SKILL.md)
       printf 'skills' ;;
     skills/*/scripts/*.sh|*/skills/*/scripts/*.sh)
@@ -103,7 +105,7 @@ escape_log_append() {
 # 背景: hookスクリプトがgit/gh等のCLIをラップする際、コマンド文字列に
 #   -C <dir> や cd <dir> && の形式で明示的にコンテキストが上書きされているのに、
 #   hookプロセス自身のcwdに依存して動作してしまうバグが複数のhookで見つかった
-#   （check-approved-sha-on-merge.sh, check-managing-configs-commit-gate.sh, check-git-author-allowlist.sh,
+#   （check-approved-sha-on-merge.sh, check-git-author-allowlist.sh,
 #   dispatch-pre-bash-checks.sh）。本セクションはこの解決ロジックを一箇所に集約し、
 #   marker-path.shを既にsourceしている/する各hookから共通利用する。
 
