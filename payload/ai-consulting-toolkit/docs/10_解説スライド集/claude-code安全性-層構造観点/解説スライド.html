@@ -27,6 +27,7 @@
     --sandbox-border: #66BB6A;
   }
 
+  html, body { height: 100%; overflow: hidden; }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { background: var(--page); }
 
@@ -36,95 +37,98 @@
     background: var(--page); overflow: hidden;
   }
   .slide {
-    width: min(1060px, 96vw);
-    aspect-ratio: 16 / 9;
-    max-height: 94vh;
+    position: absolute;
+    top: 50%; left: 50%;
+    width: 1280px;
+    height: 720px;
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: 10px;
     box-shadow: 0 4px 24px rgba(28, 43, 58, 0.08);
     display: flex; flex-direction: column;
-    padding: clamp(18px, 2.8vw, 34px) clamp(24px, 3.6vw, 48px);
-    gap: clamp(10px, 1.6vh, 16px);
+    padding: 40px 48px;
+    gap: 18px;
     font-family: system-ui, -apple-system, 'Segoe UI', 'Hiragino Sans', sans-serif;
+    transform: translate(-50%, -50%) scale(var(--slide-scale, 1));
+    transform-origin: center center;
   }
 
   .slide-header {
     display: flex; flex-direction: column; gap: 4px;
-    padding-bottom: clamp(6px, 1.2vh, 12px);
+    padding-bottom: 12px;
     border-bottom: 2px solid var(--ink);
   }
-  .slide-eyebrow { font-size: clamp(9px, 1vw, 11px); font-weight: 700; letter-spacing: 0.12em; color: var(--ink-3); }
-  .slide-title { font-size: clamp(18px, 2.5vw, 28px); font-weight: 700; line-height: 1.25; color: var(--ink); text-wrap: balance; }
-  .slide-subtitle { font-size: clamp(10px, 1.25vw, 13px); color: var(--ink-2); }
+  .slide-eyebrow { font-size: 13px; font-weight: 700; letter-spacing: 0.12em; color: var(--ink-3); }
+  .slide-title { font-size: 32px; font-weight: 700; line-height: 1.25; color: var(--ink); text-wrap: balance; }
+  .slide-subtitle { font-size: 13px; color: var(--ink-2); }
 
-  .layers { display: flex; flex-direction: column; gap: clamp(10px, 1.6vh, 16px); flex: 1; min-height: 0; }
+  .layers { display: flex; flex-direction: column; gap: 16px; flex: 1; min-height: 0; }
 
   .layer {
-    flex: 1; border-radius: 10px; padding: clamp(14px, 2vw, 22px);
-    display: flex; gap: clamp(14px, 2vw, 24px); align-items: stretch; min-height: 0;
+    flex: 1; border-radius: 10px; padding: 22px;
+    display: flex; gap: 24px; align-items: stretch; min-height: 0;
   }
   .layer--perm { background: var(--perm-soft); border: 1.5px solid var(--perm-border); }
   .layer--sandbox { background: var(--sandbox-soft); border: 1.5px solid var(--sandbox-border); }
 
   .layer-label {
     display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
-    min-width: clamp(90px, 12vw, 130px);
+    min-width: 130px;
   }
   .layer-num {
     display: flex; align-items: center; justify-content: center;
-    width: clamp(26px, 3vw, 32px); height: clamp(26px, 3vw, 32px);
-    border-radius: 50%; font-size: clamp(12px, 1.3vw, 14px); font-weight: 700; color: #fff;
+    width: 32px; height: 32px;
+    border-radius: 50%; font-size: 14px; font-weight: 700; color: #fff;
   }
   .layer-num--perm { background: var(--perm); }
   .layer-num--sandbox { background: var(--sandbox); }
 
-  .layer-name { font-size: clamp(14px, 1.6vw, 18px); font-weight: 700; color: var(--ink); text-align: center; }
+  .layer-name { font-size: 18px; font-weight: 700; color: var(--ink); text-align: center; }
 
   .layer-scope {
-    font-size: clamp(8px, 0.9vw, 10px); font-weight: 600;
+    font-size: 10px; font-weight: 600;
     padding: 2px 8px; border-radius: 4px; white-space: nowrap;
   }
   .layer-scope--perm { background: var(--perm); color: #fff; }
   .layer-scope--sandbox { background: var(--sandbox); color: #fff; }
 
   .layer-body { flex: 1; display: flex; flex-direction: column; gap: 6px; justify-content: center; }
-  .layer-what { font-size: clamp(11px, 1.3vw, 14px); font-weight: 700; color: var(--ink); }
-  .layer-desc { font-size: clamp(9.5px, 1.1vw, 12px); color: var(--ink-2); line-height: 1.45; }
+  .layer-what { font-size: 15px; font-weight: 700; color: var(--ink); }
+  .layer-desc { font-size: 12px; color: var(--ink-2); line-height: 1.45; }
 
   .layer-examples {
     display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px;
   }
   .ex {
-    font-size: clamp(9px, 1vw, 11px); font-weight: 600;
+    font-size: 13px; font-weight: 600;
     padding: 3px 10px; border-radius: 5px; white-space: nowrap;
   }
   .ex--perm { background: rgba(21, 101, 192, 0.12); color: var(--perm); border: 1px solid rgba(21, 101, 192, 0.3); }
   .ex--sandbox { background: rgba(46, 125, 50, 0.12); color: var(--sandbox); border: 1px solid rgba(46, 125, 50, 0.3); }
 
   .layer-impl {
-    font-size: clamp(8px, 0.9vw, 10px); color: var(--ink-3); margin-top: auto; font-style: italic;
+    font-size: 10px; color: var(--ink-3); margin-top: auto; font-style: italic;
   }
 
   .arrow-between {
     display: flex; align-items: center; justify-content: center; gap: 6px;
-    padding: 0 0 0 clamp(90px, 12vw, 130px);
+    padding: 0 0 0 130px;
   }
-  .arrow-text { font-size: clamp(8.5px, 0.95vw, 10.5px); font-weight: 600; color: var(--ink-3); }
+  .arrow-text { font-size: 11px; font-weight: 600; color: var(--ink-3); }
 
   .step-chip {
     display: inline-flex; align-items: center; justify-content: center;
-    width: clamp(15px, 1.7vw, 18px); height: clamp(15px, 1.7vw, 18px);
-    border-radius: 50%; font-size: clamp(8.5px, 1vw, 10.5px); font-weight: 700; color: #fff; flex-shrink: 0;
+    width: 20px; height: 20px;
+    border-radius: 50%; font-size: 11px; font-weight: 700; color: #fff; flex-shrink: 0;
   }
 
   .steps {
     display: grid; grid-template-columns: 1fr 1fr;
-    gap: clamp(12px, 2vw, 24px); padding-top: clamp(8px, 1.2vh, 12px);
+    gap: 24px; padding-top: 12px;
     border-top: 1px solid var(--border);
   }
   .step { display: flex; gap: 8px; align-items: center; }
-  .step-text { font-size: clamp(9.5px, 1.1vw, 12.5px); line-height: 1.45; color: var(--ink-2); }
+  .step-text { font-size: 13px; line-height: 1.45; color: var(--ink-2); }
   .step-text strong { color: var(--ink); }
 
   @media (max-width: 620px) {
@@ -132,6 +136,11 @@
     .layer { flex-direction: column; }
     .steps { grid-template-columns: 1fr; }
   }
+  .slide-meta { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; height: 24px; padding-top: 6px; border-top: 1px solid var(--border); font-size: 11px; color: var(--ink-3); }
+  .slide-meta:empty { display: none; }
+  .slide-meta-date { font-variant-numeric: tabular-nums; }
+  .slide-meta-author { text-align: center; }
+  .slide-meta-page { text-align: right; font-variant-numeric: tabular-nums; }
 </style>
 
 <div class="slide-viewport">
@@ -198,9 +207,24 @@
       </div>
     </footer>
 
-    <p style="font-size: clamp(7.5px, 0.85vw, 9.5px); color: var(--ink-3); text-align: right; margin-top: auto; padding-top: 2px;">
+    <p style="font-size: 9.5px; color: var(--ink-3); text-align: right; margin-top: auto; padding-top: 2px;">
       2026年7月時点の Claude Code 公式仕様に基づく。
     </p>
 
+    <footer class="slide-meta">
+      <span class="slide-meta-date">2026年7月</span>
+      <span class="slide-meta-author">AAA</span>
+      <span class="slide-meta-page">1</span>
+    </footer>
+
   </div>
 </div>
+<script>
+(function(){
+  function f(){
+    document.documentElement.style.setProperty('--slide-scale', Math.min(innerWidth/1280, innerHeight/720));
+  }
+  addEventListener('resize', f);
+  f();
+})();
+</script>
