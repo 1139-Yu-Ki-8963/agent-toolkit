@@ -28,7 +28,7 @@ const AGENTS_DIR = path.join(HOME_DIR, ".claude", "agents");
 const DICTIONARY_CATEGORIES_FILE = path.join(PORTAL, "data", "dictionary-categories.js");
 const DICTIONARIES_HTML = path.join(PORTAL, "catalog", "dictionaries.html");
 const GLOBAL_PRH_FILE = path.join(HOME_DIR, ".claude", "rules", "always", "review-checklist", "text-dictionary", "prh.yml");
-const PROJECTS_ROOT = path.join(HOME_DIR, "Projects");
+const PROJECTS_ROOT = path.join(path.dirname(REPO_ROOT), "Projects");
 const PUBLIC_SET_HTML = path.join(PORTAL, "catalog", "public-set.html");
 const CATEGORY_DIR = path.join(PORTAL, "category");
 const FLOW_DIR = path.join(PORTAL, "flow");
@@ -1578,6 +1578,12 @@ async function cmdRegisterSkills(ids) {
   <div class="skill-name">${id}</div>
   <nav class="toc"></nav>
   <p>このガイドは自動生成されたスタブです。内容を追記してください。</p>
+  <table class="meta-table">
+    <tr><td>対応 OS</td><td>（記入）</td></tr>
+    <tr><td>検証状況</td><td>（記入）</td></tr>
+    <tr><td>依存</td><td>（記入）</td></tr>
+    <tr><td>関連資料</td><td>（記入）</td></tr>
+  </table>
 </body>
 </html>
 `;
