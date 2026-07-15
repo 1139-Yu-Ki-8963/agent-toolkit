@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#1d4ed8" />
+  <title>モック履歴 — Project Portal</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="src/components.css" />
+  <script type="module" src="src/common/header.js"></script>
+  <style>
+    /* ============ アクションボタン群（ページ固有）============ */
+    .mk-card-actions {
+      margin-top: 8px;
+      display: flex; flex-wrap: wrap; gap: 8px;
+    }
+  </style>
+</head>
+<body class="pp-body">
+  <div class="pp-wrap">
+    <header class="pp-hero">
+      <a class="pp-hero-back" href="index.html"><span aria-hidden="true">←</span> PM ダッシュボード</a>
+      <h1 class="pp-hero-title">モック履歴</h1>
+      <p class="pp-hero-desc">実装前に承認されたモック HTML の一覧</p>
+    </header>
+
+    <div class="pp-filters" role="group" aria-label="表示フィルター">
+      <button type="button" class="pp-filter-btn is-active" data-filter="all">全件</button>
+      <button type="button" class="pp-filter-btn" data-filter="screen">🖥 screen のみ</button>
+      <button type="button" class="pp-filter-btn" data-filter="spec">📄 spec のみ</button>
+    </div>
+
+    <section class="pp-section">
+      <h2 class="pp-section-h">モック一覧</h2>
+      <div id="mk-mount"></div>
+    </section>
+  </div>
+
+  <script type="module">
+    import MOCKS from "./data/mocks.js";
+
+    const DAY_MS = 86_400_000;
+
+    function dayLabel(dateStr) {
+      const t = Date.parse(dateStr + "T00:00:00+09:00");
+      const diff = Math.round((Date.now() - t) / DAY_MS);
+      if (diff <= 0) return "今日";
+      if (diff === 1) return "昨日";
+      return `${diff}日前`;
+    }
+
+    const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+    function el(tag, cls, html) { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; }
+
+    let currentFilter = "all";
+
+    function filteredMocks() {
+      const list = Array.isArray(MOCKS) ? MOCKS : [];
+      if (currentFilter === "screen") return list.filter((m) => m.screenUrl);
+      if (currentFilter === "spec") return list.filter((m) => m.specUrl);
+      return list;
+    }
+
+    function groupByDate(entries) {
+      const map = new Map();
+      for (const e of entries) {
+        const key = e.date || "unknown";
+        if (!map.has(key)) map.set(key, []);
+        map.get(key).push(e);
+      }
+      return [...map.entries()];
+    }
+
+    function renderMockCard(entry) {
+      const type = entry.type || "spec";
+      const card = el("div", "pp-card");
+      card.dataset.type = type;
+
+      const typeCls = type === "screen" ? "pp-badge pp-badge-accent" : "pp-badge pp-badge-gold";
+
+      const header = el("div", "pp-card-header");
+      header.innerHTML =
+        `<span class="${typeCls}">${esc(type)}</span>` +
+        `<span class="pp-num">issue #${esc(String(entry.id))}</span>` +
+        `<span class="pp-title">${esc(entry.title)}</span>` +
+        `<span class="pp-date">${esc(entry.date || "")}</span>`;
+      card.appendChild(header);
+
+      const actions = el("div", "mk-card-actions");
+      if (entry.screenUrl) {
+        const a = el("a", "pp-btn pp-btn-accent");
+        a.href = entry.screenUrl;
+        a.target = "_blank";
+        a.rel = "noopener";
+        a.innerHTML = `🖥 画面モック`;
+        actions.appendChild(a);
+      }
+      if (entry.specUrl) {
+        const a = el("a", "pp-btn pp-btn-gold");
+        a.href = entry.specUrl;
+        a.target = "_blank";
+        a.rel = "noopener";
+        a.innerHTML = `📄 実装説明`;
+        actions.appendChild(a);
+      }
+      if (actions.childElementCount > 0) card.appendChild(actions);
+
+      return card;
+    }
+
+    const mount = document.getElementById("mk-mount");
+
+    function render() {
+      mount.innerHTML = "";
+      const list = filteredMocks();
+      if (!list.length) {
+        mount.appendChild(el("div", "pp-empty", "表示できるモックがありません"));
+        return;
+      }
+      for (const [date, items] of groupByDate(list)) {
+        const day = el("section", "pp-day");
+        const head = el("header", "pp-day-h");
+        head.appendChild(el("span", "pp-day-rel", esc(dayLabel(date))));
+        head.appendChild(el("span", "badge-date", esc(date)));
+        day.appendChild(head);
+        for (const entry of items) day.appendChild(renderMockCard(entry));
+        mount.appendChild(day);
+      }
+    }
+
+    document.querySelectorAll(".pp-filter-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        currentFilter = btn.dataset.filter;
+        document.querySelectorAll(".pp-filter-btn").forEach((b) => b.classList.remove("is-active"));
+        btn.classList.add("is-active");
+        render();
+      });
+    });
+
+    render();
+  </script>
+</body>
+</html>

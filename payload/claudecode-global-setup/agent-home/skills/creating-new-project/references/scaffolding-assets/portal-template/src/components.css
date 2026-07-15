@@ -1,0 +1,213 @@
+/* ============================================================
+   project-portal 共通コンポーネント (pp-* プレフィックス)
+   依存: style.css の CSS 変数（--panel, --accent, --gold 等）
+   ============================================================ */
+
+/* ---- ページ共通 body ---- */
+.pp-body {
+  padding-bottom: max(24px, env(safe-area-inset-bottom));
+  overscroll-behavior-y: contain;
+  -webkit-tap-highlight-color: rgba(29, 78, 216, 0.10);
+}
+
+/* ---- ページ共通ラッパー ---- */
+.pp-wrap {
+  max-width: 720px; margin: 0 auto;
+  padding:
+    max(16px, env(safe-area-inset-top))
+    max(16px, env(safe-area-inset-right))
+    24px
+    max(16px, env(safe-area-inset-left));
+}
+
+/* ---- Hero バナー ---- */
+.pp-hero {
+  background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 60%, #3b82f6 100%);
+  color: #ffffff;
+  margin: 0 -16px 16px;
+  padding: 16px 20px 18px;
+  border-radius: 0 0 18px 18px;
+  box-shadow: 0 4px 16px rgba(29, 78, 216, 0.18);
+}
+.pp-hero-back {
+  display: inline-flex; align-items: center; gap: 4px;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 13px; font-weight: 500;
+  min-height: 36px; padding: 6px 0;
+  text-decoration: none;
+}
+.pp-hero-title { font-size: 22px; font-weight: 800; margin: 4px 0 6px; line-height: 1.2; }
+.pp-hero-desc {
+  margin: 0;
+  font-size: 12.5px; line-height: 1.55;
+  color: rgba(255, 255, 255, 0.88);
+}
+
+/* ---- セクション見出し（左アクセントバー付き）---- */
+.pp-section { margin-bottom: 28px; }
+.pp-section-h {
+  display: flex; align-items: center; gap: 10px;
+  margin: 0 0 12px;
+  font-size: 13px; font-weight: 800;
+  color: var(--text); letter-spacing: 0.04em;
+}
+.pp-section-h::before {
+  content: ""; display: block; width: 4px; height: 18px;
+  background: var(--accent); border-radius: 2px;
+}
+
+/* ---- 日付グループ（full-bleed ストライプ）---- */
+.pp-day { margin-bottom: 18px; }
+.pp-day-h {
+  margin: 0 -16px 8px;
+  padding: 8px 16px;
+  background: var(--bg, #f7f8fa);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  font-size: 11.5px; font-weight: 800;
+  color: var(--text-sub); letter-spacing: 0.04em;
+  text-transform: uppercase;
+  display: flex; align-items: center; gap: 8px;
+}
+.pp-day-rel { font-weight: 800; }
+.pp-day-h .badge-date {
+  background: var(--accent-soft); color: var(--accent);
+  padding: 2px 8px; border-radius: 999px;
+  font-size: 11px; font-family: var(--mono);
+  font-weight: 700; text-transform: none; letter-spacing: 0;
+}
+
+/* ---- カード（border-left + border-radius + background: var(--panel)）---- */
+.pp-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  padding: 12px 16px;
+  margin-bottom: 8px;
+}
+.pp-card[data-type="spec"] { border-left-color: var(--gold); }
+
+.pp-card-header {
+  display: flex; align-items: center; gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* ---- バッジ（小さなピル型）---- */
+.pp-badge {
+  flex: none;
+  padding: 2px 9px; border-radius: 999px;
+  font-size: 10.5px; font-weight: 800; white-space: nowrap;
+}
+.pp-badge-accent  { background: var(--accent-soft); color: var(--accent); }
+.pp-badge-gold    { background: var(--gold-soft); color: var(--gold); }
+.pp-badge-success { background: var(--success-soft); color: var(--success); }
+.pp-badge-purple  { background: #ede9fe; color: #7c3aed; }
+
+/* ---- フィルターボタン群 ---- */
+.pp-filters {
+  display: flex; gap: 8px; flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+.pp-filter-btn {
+  appearance: none;
+  padding: 7px 16px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--panel);
+  color: var(--text-sub);
+  font-family: inherit;
+  font-size: 12.5px; font-weight: 700;
+  cursor: pointer;
+  transition: background .12s, color .12s, border-color .12s;
+  min-height: 36px;
+}
+.pp-filter-btn.active,
+.pp-filter-btn.is-active {
+  background: var(--accent-soft);
+  color: var(--accent);
+  border-color: var(--accent-border);
+}
+.pp-filter-btn:hover:not(.active):not(.is-active) { background: var(--panel-2); }
+
+/* ---- ボタン（border + border-radius + padding）---- */
+.pp-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 0.8rem; font-weight: 700;
+  text-decoration: none;
+  border: 1px solid;
+  min-height: 36px;
+  transition: background .12s, color .12s;
+}
+.pp-btn-accent {
+  border-color: var(--accent-border);
+  color: var(--accent);
+  background: transparent;
+}
+.pp-btn-accent:hover { background: var(--accent-soft); }
+.pp-btn-gold {
+  border-color: var(--gold-border);
+  color: var(--gold);
+  background: transparent;
+}
+.pp-btn-gold:hover { background: var(--gold-soft); }
+
+/* ---- 番号バッジ（mono font, accent border）---- */
+.pp-num {
+  flex: none;
+  font-family: var(--mono);
+  font-size: 12px; font-weight: 700;
+  color: var(--accent); background: var(--panel);
+  padding: 2px 8px; border-radius: 999px;
+  border: 1px solid var(--accent-border);
+  text-decoration: none;
+}
+.pp-num:hover { background: var(--accent-soft); }
+
+/* ---- タイトル（font-weight: 600, flex: 1）---- */
+.pp-title {
+  flex: 1; min-width: 0;
+  font-size: 14px; font-weight: 600;
+  color: var(--text); line-height: 1.4;
+  overflow-wrap: anywhere; word-break: break-word;
+}
+
+/* ---- 日付テキスト（font-size: 0.75rem, text-muted）---- */
+.pp-date {
+  flex: none;
+  font-family: var(--mono);
+  font-size: 0.75rem; font-weight: 600;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+/* ---- 空状態 ---- */
+.pp-empty {
+  color: var(--text-muted); font-size: 14px;
+  padding: 40px 16px; text-align: center;
+  background: var(--panel);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+}
+
+/* ---- レスポンシブ 3 ブレークポイント ---- */
+@media (max-width: 380px) {
+  .pp-wrap { padding-left: 12px; padding-right: 12px; }
+  .pp-hero { margin-left: -12px; margin-right: -12px; }
+  .pp-day-h { margin-left: -12px; margin-right: -12px; padding-left: 12px; padding-right: 12px; }
+  .pp-hero-title { font-size: 20px; }
+  .pp-title { font-size: 13.5px; }
+}
+@media (max-width: 560px) {
+  .pp-filter-btn { font-size: 12px; padding: 6px 12px; }
+  .pp-card { padding: 10px 12px; }
+}
+@media (min-width: 720px) {
+  .pp-wrap { padding-left: 28px; padding-right: 28px; }
+  .pp-hero { margin-left: -28px; margin-right: -28px; padding-left: 28px; padding-right: 28px; border-radius: 0 0 24px 24px; }
+  .pp-day-h { margin-left: -28px; margin-right: -28px; padding-left: 28px; padding-right: 28px; }
+  .pp-hero-title { font-size: 26px; }
+}

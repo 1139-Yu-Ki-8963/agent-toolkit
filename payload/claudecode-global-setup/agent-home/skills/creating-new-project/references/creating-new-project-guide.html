@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<!--
+  creating-new-project スキルガイド
+
+  Next.js プロジェクトを新規作成し、Claude Code 連携基盤・ドキュメント体系・
+  プロジェクトポータル・CI/CD・QA までを一括セットアップするスキルの解説。
+
+  正本: skills/creating-new-project/SKILL.md
+  参照: references/phase-1-hearing.md / phase-2-4-scaffold-docs.md /
+        phase-5-portal.md / phase-6-10-finalize.md /
+        scaffolding-flow-structure.md
+-->
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>creating-new-project スキルガイド</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 0 24px 96px;
+    font-family: system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif;
+    line-height: 1.85; color: #1a1a1a; background: #fafafa;
+    max-width: 980px; margin-inline: auto;
+  }
+  header { padding: 56px 0 24px; border-bottom: 3px solid #1a1a1a; }
+  header h1 { font-size: 1.9rem; margin: 0 0 10px; letter-spacing: 0.01em; }
+  header .skill-name {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 1.0rem; background: #1a1a1a; color: #fafafa;
+    padding: 2px 10px; border-radius: 4px; vertical-align: middle;
+  }
+  header p { margin: 6px 0 0; color: #555; }
+  .meta-table { margin-top: 16px; font-size: 0.9rem; color: #555; }
+  .meta-table td { padding: 1px 16px 1px 0; }
+
+  nav.toc {
+    margin-top: 32px; padding: 18px 22px;
+    background: #fff; border: 1px solid #e0e0e0; border-radius: 8px;
+  }
+  nav.toc .toc-title { font-weight: 700; margin-bottom: 6px; }
+  nav.toc ol { margin: 0; padding-left: 1.4em; columns: 2; column-gap: 40px; }
+  nav.toc li { margin: 2px 0; }
+  nav.toc a { color: #1a1a1a; text-decoration: none; border-bottom: 1px dotted #999; }
+  nav.toc a:hover { border-bottom-style: solid; }
+
+  section { margin-top: 64px; }
+  section > h2 {
+    font-size: 1.35rem; padding-bottom: 8px; margin-bottom: 20px;
+    border-bottom: 2px solid #1a1a1a;
+  }
+  section > h2 .sec-num {
+    display: inline-block; min-width: 2.4em; margin-right: 10px;
+    font-family: ui-monospace, monospace; font-size: 0.95rem;
+    background: #1a1a1a; color: #fafafa; text-align: center;
+    padding: 1px 8px; border-radius: 4px; vertical-align: 2px;
+  }
+  h3 { font-size: 1.05rem; margin: 32px 0 10px; }
+  .note { color: #555; font-size: 0.92rem; }
+
+  table.spec { border-collapse: collapse; width: 100%; margin: 14px 0; background: #fff; font-size: 0.93rem; }
+  table.spec th, table.spec td { border: 1px solid #d8d8d8; padding: 8px 12px; text-align: left; vertical-align: top; }
+  table.spec th { background: #f0f0ee; font-weight: 700; white-space: nowrap; }
+  table.spec td code, li code, p code, table.spec th code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.86em; background: #eeeeea; padding: 1px 5px; border-radius: 3px;
+  }
+
+  pre.flow {
+    background: #16211c; color: #d7e6dc; border-radius: 8px;
+    padding: 20px 24px; overflow-x: auto;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.82rem; line-height: 1.55;
+  }
+  pre.flow .cap { color: #8fb8a0; }
+
+  figure.diagram { margin: 20px 0; padding: 8px; background: #fff;
+    border: 1px solid #e0e0e0; border-radius: 8px; }
+  figure.diagram svg { width: 100%; height: auto; display: block; cursor: zoom-in; }
+  figure.diagram figcaption { padding: 8px 10px 2px; }
+
+  .zoom-overlay {
+    position: fixed; inset: 0; z-index: 1000;
+    background: rgba(15, 23, 42, 0.93);
+    overflow: auto; padding: 24px; cursor: zoom-out;
+    -webkit-overflow-scrolling: touch;
+  }
+  .zoom-overlay svg {
+    width: 1880px; max-width: none; height: auto;
+    display: block; margin: 0 auto;
+    background: #fff; border-radius: 8px;
+  }
+
+  .def {
+    background: #fff; border-left: 4px solid #1a1a1a;
+    padding: 12px 18px; margin: 14px 0; border-radius: 0 6px 6px 0;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  }
+  .def dt { font-weight: 700; margin-top: 8px; }
+  .def dt:first-child { margin-top: 0; }
+  .def dd { margin: 2px 0 0 0; color: #333; }
+
+  .constraint {
+    background: #eef2f7; border: 1px solid #c8d4e3; border-radius: 8px;
+    padding: 12px 18px; margin: 16px 0; font-size: 0.93rem;
+  }
+  .constraint strong:first-child { color: #2a4a7a; }
+
+  .tag {
+    display: inline-block; font-family: ui-monospace, monospace; font-size: 0.78rem;
+    font-weight: 700; padding: 0 8px; border-radius: 3px; border: 1px solid transparent;
+  }
+  .tag.pass  { background: #e7f3e7; color: #23662a; border-color: #b9d9ba; }
+  .tag.fail  { background: #fbe9e7; color: #9c2b1a; border-color: #ecc0b8; }
+  .tag.error { background: #fdf3d7; color: #7a5d10; border-color: #e8d59a; }
+  .tag.mode  { background: #e8eef7; color: #2a4a7a; border-color: #c2d2e8; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>新規プロジェクト一括セットアップ<br><span class="skill-name">creating-new-project</span></h1>
+  <p>Next.js プロジェクトを新規作成し、Claude Code 連携基盤・ドキュメント体系・プロジェクトポータル・CI/CD・QA までを一括セットアップするスキル。</p>
+
+  <dl class="def">
+    <dt>こんな人向け</dt>
+    <dd>新しい Web アプリを <code>~/Projects/</code> に立ち上げたい開発者。orchestrating-dev-flow で管理する開発体制を最初から整えたいチーム。</dd>
+    <dt>こんな場面で使う</dt>
+    <dd>「新しいアプリを作りたい」「新規プロジェクトを作成してほしい」「プロジェクト作成」と伝えたとき。既存プロジェクトへの機能追加（→ orchestrating-dev-flow）や agent-home 自体の管理には使わない。</dd>
+  </dl>
+
+  <table class="meta-table">
+    <tr><td>対応 OS</td><td>macOS</td></tr>
+    <tr><td>検証状況</td><td>SKILL.md を正本として整理（個別の実機検証記録なし）</td></tr>
+    <tr><td>依存</td><td>Bash, Read, Write, Edit（allowed-tools）/ Node.js / <code>gh</code> CLI 認証済み / <code>~/Projects/</code> ディレクトリ存在</td></tr>
+    <tr><td>関連資料</td><td><code>SKILL.md</code> / <code>references/phase-1-hearing.md</code> / <code>references/phase-2-4-scaffold-docs.md</code> ほか 4 件</td></tr>
+  </table>
+</header>
+
+<nav class="toc">
+  <div class="toc-title">目次</div>
+  <ol>
+    <li><a href="#s1">概要</a></li>
+  <li><a href="#s2">出力</a></li>
+    <li><a href="#s3">Phase 一覧と完了条件</a></li>
+    <li><a href="#s4">Phase 1: ヒアリング</a></li>
+    <li><a href="#s5">Phase 2〜4: スキャフォールドと基盤構築</a></li>
+    <li><a href="#s6">Phase 5: プロジェクトポータル</a></li>
+    <li><a href="#s7">Phase 6〜10: 仕上げ・検証</a></li>
+    <li><a href="#s8">サブエージェント委任仕様</a></li>
+    <li><a href="#s9">エラーハンドリングと予想を裏切る挙動</a></li>
+    <li><a href="#s10">関連スキル・規約</a></li>
+  </ol>
+</nav>
+
+<section id="s1">
+  <h2><span class="sec-num">§1</span>概要</h2>
+
+  <p>
+    <code>creating-new-project</code> は <code>~/Projects/</code> 直下に Next.js プロジェクトを生成し、
+    開発着手可能な状態まで一括で整える orchestration スキル。
+    Phase 1（ヒアリング）から Phase 10（検証）まで順次実行し、
+    Phase 5（ポータル SPA）のみサブエージェント並列委任で高速化する。
+  </p>
+
+  <figure class="diagram">
+    <svg viewBox="0 0 860 200" xmlns="http://www.w3.org/2000/svg" font-family="ui-monospace,Menlo,monospace" font-size="12">
+      <!-- Phase boxes -->
+      <rect x="10"  y="60" width="72" height="36" rx="4" fill="#f0f0ee" stroke="#aaa"/>
+      <text x="46"  y="82" text-anchor="middle" fill="#333">Phase 1</text>
+
+      <rect x="96"  y="60" width="72" height="36" rx="4" fill="#f0f0ee" stroke="#aaa"/>
+      <text x="132" y="82" text-anchor="middle" fill="#333">Phase 2–4</text>
+
+      <rect x="182" y="60" width="72" height="36" rx="4" fill="#e8eef7" stroke="#7a9fd4"/>
+      <text x="218" y="77" text-anchor="middle" fill="#2a4a7a">Phase 5</text>
+      <text x="218" y="91" text-anchor="middle" font-size="10" fill="#2a4a7a">並列委任</text>
+
+      <rect x="268" y="60" width="72" height="36" rx="4" fill="#f0f0ee" stroke="#aaa"/>
+      <text x="304" y="82" text-anchor="middle" fill="#333">Phase 6–7</text>
+
+      <rect x="354" y="60" width="72" height="36" rx="4" fill="#f0f0ee" stroke="#aaa"/>
+      <text x="390" y="82" text-anchor="middle" fill="#333">Phase 8–9</text>
+
+      <rect x="440" y="60" width="72" height="36" rx="4" fill="#e7f3e7" stroke="#b9d9ba"/>
+      <text x="476" y="77" text-anchor="middle" fill="#23662a">Phase 10</text>
+      <text x="476" y="91" text-anchor="middle" font-size="10" fill="#23662a">検証</text>
+
+      <!-- Arrows -->
+      <line x1="82"  y1="78" x2="94"  y2="78" stroke="#666" stroke-width="1.5" marker-end="url(#arr)"/>
+      <line x1="168" y1="78" x2="180" y2="78" stroke="#666" stroke-width="1.5" marker-end="url(#arr)"/>
+      <line x1="254" y1="78" x2="266" y2="78" stroke="#666" stroke-width="1.5" marker-end="url(#arr)"/>
+      <line x1="340" y1="78" x2="352" y2="78" stroke="#666" stroke-width="1.5" marker-end="url(#arr)"/>
+      <line x1="426" y1="78" x2="438" y2="78" stroke="#666" stroke-width="1.5" marker-end="url(#arr)"/>
+
+      <!-- Labels below -->
+      <text x="46"  y="115" text-anchor="middle" font-size="10" fill="#555">ヒアリング</text>
+      <text x="132" y="115" text-anchor="middle" font-size="10" fill="#555">骨格生成</text>
+      <text x="218" y="115" text-anchor="middle" font-size="10" fill="#2a4a7a">ポータル</text>
+      <text x="304" y="115" text-anchor="middle" font-size="10" fill="#555">CI/CD 他</text>
+      <text x="390" y="115" text-anchor="middle" font-size="10" fill="#555">Git/Port</text>
+      <text x="476" y="115" text-anchor="middle" font-size="10" fill="#23662a">完了確認</text>
+
+      <defs>
+        <marker id="arr" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto">
+          <path d="M0,0 L6,3 L0,6 Z" fill="#666"/>
+        </marker>
+      </defs>
+    </svg>
+    <figcaption class="note">Phase 1〜10 の実行順。Phase 5 のみサブエージェント 3 体を並列委任する。</figcaption>
+  </figure>
+
+  <h3>セットアップされる成果物</h3>
+  <table class="spec">
+    <tr><th>カテゴリ</th><th>主な生成物</th></tr>
+    <tr><td>プロジェクト骨格</td><td>Next.js App Router（または React+Vite+FastAPI）、画面別ルーティング、<code>docs/REQUIREMENTS.md</code></td></tr>
+    <tr><td>Claude Code 基盤</td><td><code>.claude/rules/</code>（domain 2 + project 4 + always/project-context・placement/directory-structure。project-context に layers.yml も含む）、<code>settings.json</code></td></tr>
+    <tr><td>ドキュメント体系</td><td><code>docs/</code> 番号付き 4 カテゴリ + 初期設計書一式</td></tr>
+    <tr><td>プロジェクトポータル</td><td><code>project-portal/</code> SPA（index.html + data/ + src/）</td></tr>
+    <tr><td>CI/CD・品質基盤</td><td><code>.github/</code>・<code>.husky/</code>・<code>.config/</code>・<code>qa/</code></td></tr>
+    <tr><td>ルート設定</td><td><code>CLAUDE.md</code>・<code>Makefile</code>・<code>.gitignore</code>・<code>.gitattributes</code></td></tr>
+    <tr><td>ポート管理</td><td><code>port-management-rules</code> へのベースポート + 割当表追記</td></tr>
+    <tr><td>Git / GitHub</td><td>初回 commit、リモート作成・push（要否を確認後）</td></tr>
+  </table>
+</section>
+
+<section id="s2">
+  <h2><span class="sec-num">§2</span>出力</h2>
+  <p>Phase 1〜10 がすべて完了すると、<code>~/Projects/&lt;project_name&gt;/</code> 配下に以下の状態が確立される。</p>
+  <div class="def">
+    <dt>開発着手可能なプロジェクト骨格</dt>
+    <dd>Next.js（または React + Vite + FastAPI）のアプリケーション本体に加え、<code>.claude/rules/</code>（domain 2 本・project 4 本・always/project-context（layers.yml 含む）・always/placement/directory-structure）・<code>docs/</code> 番号付き 4 カテゴリ・<code>project-portal/</code>・<code>.github/</code>・<code>.husky/</code>・<code>.config/</code>・<code>qa/</code>・<code>CLAUDE.md</code> 等のルート設定が一括で揃った状態。ゼロから個別に用意する手間なく、すぐに機能実装へ入れる。</dd>
+    <dt>orchestrating-dev-flow を実行できる前提構造</dt>
+    <dd>Phase 3 末尾のプリフライトチェックで go 判定済みの <code>.claude/rules/always/project-context/flow-values.yml</code> ほかの構造。以後の機能追加は本スキルではなく orchestrating-dev-flow が引き継ぐための土台となる。</dd>
+    <dt>push 済みの GitHub リポジトリ、またはローカル初期化済みの Git 履歴</dt>
+    <dd>Phase 9 の AskUserQuestion で選んだ方針に応じて、初回 commit を含むリモートリポジトリの作成・push、またはローカルのみの初期化が完了した状態。</dd>
+    <dt>Phase 10 の検証結果を反映した完了報告</dt>
+    <dd>構造検証（4 カテゴリディレクトリ・設計書一式の存在確認）・dev server 起動確認・ポータル起動確認をそれぞれ PASS/FAIL 付きで実行し、その結果をまとめた完了報告がユーザーに提示される。</dd>
+  </div>
+</section>
+
+<section id="s3">
+  <h2><span class="sec-num">§3</span>Phase 一覧と完了条件</h2>
+
+  <table class="spec">
+    <tr>
+      <th>Phase</th><th>名前</th><th>完了条件</th><th>詳細参照</th>
+    </tr>
+    <tr>
+      <td>1</td><td>ヒアリング</td>
+      <td>全ヒアリング値が非空（<code>project_name</code>・<code>purpose</code>・<code>stack</code>・<code>features[]</code>・<code>screens[]</code>・<code>user_roles[]</code>・<code>base_port</code>）</td>
+      <td><code>phase-1-hearing.md</code></td>
+    </tr>
+    <tr>
+      <td>2</td><td>スキャフォールド</td>
+      <td><code>~/Projects/&lt;name&gt;/</code> 存在、画面分の <code>page.tsx</code> が存在</td>
+      <td><code>phase-2-4-scaffold-docs.md</code></td>
+    </tr>
+    <tr>
+      <td>3</td><td>Claude Code 基盤</td>
+      <td><code>.claude/</code> に rules（domain 2 + project 4 + always/project-context 1 + always/placement/directory-structure 1 = rule.md 8 本目安）+ <code>project-context/layers.yml</code> + <code>settings.json</code></td>
+      <td><code>phase-2-4-scaffold-docs.md</code></td>
+    </tr>
+    <tr>
+      <td>4</td><td>ドキュメント体系</td>
+      <td><code>docs/</code> に 4 カテゴリ + _共通 3 ファイル + プロジェクト地図 + 設計書レビュー観点 + 機能/画面設計書</td>
+      <td><code>phase-2-4-scaffold-docs.md</code></td>
+    </tr>
+    <tr>
+      <td>5</td><td>プロジェクトポータル</td>
+      <td><code>project-portal/</code> に <code>index.html</code> + <code>data/</code> + <code>src/</code></td>
+      <td><code>phase-5-portal.md</code></td>
+    </tr>
+    <tr>
+      <td>6</td><td>CI/CD・品質基盤</td>
+      <td><code>.github/</code> + <code>.husky/</code> + <code>.config/</code> + <code>qa/</code></td>
+      <td><code>phase-6-10-finalize.md</code></td>
+    </tr>
+    <tr>
+      <td>7</td><td>ルート設定</td>
+      <td><code>CLAUDE.md</code> + <code>Makefile</code> + <code>.gitignore</code> + <code>.gitattributes</code></td>
+      <td><code>phase-6-10-finalize.md</code></td>
+    </tr>
+    <tr>
+      <td>8</td><td>ポート割当登録</td>
+      <td><code>port-management-rules</code> にベースポート + 割当表</td>
+      <td><code>phase-6-10-finalize.md</code></td>
+    </tr>
+    <tr>
+      <td>9</td><td>Git + GitHub</td>
+      <td>GitHub リポジトリ作成・push 完了（またはローカルのみで初期化完了）</td>
+      <td><code>phase-6-10-finalize.md</code></td>
+    </tr>
+    <tr>
+      <td>10</td><td>検証</td>
+      <td>dev server HTTP 200 + ポータル HTTP 200 + 構造検証全 PASS</td>
+      <td><code>phase-6-10-finalize.md</code></td>
+    </tr>
+    <tr>
+      <td><strong>Goal</strong></td><td colspan="3">全 Phase 完了。開発着手可能な状態。</td>
+    </tr>
+  </table>
+
+  <div class="constraint">
+    <strong>Phase 3 プリフライトチェック</strong><br>
+    Phase 3 完了後、<code>scaffolding-flow-structure.md</code> のプリフライトチェックで orchestrating-dev-flow 前提構造の go/no-go を検証する。
+    no-go の場合は FAIL 項目を修正してから Phase 4 に進む。no-go を無視して先に進んではならない。
+  </div>
+</section>
+
+<section id="s4">
+  <h2><span class="sec-num">§4</span>Phase 1: ヒアリング</h2>
+
+  <p>
+    AskUserQuestion を順番に発行し、プロジェクトの骨格情報を収集する。
+    収集した値は Phase 2 以降で使用する。
+  </p>
+
+  <table class="spec">
+    <tr><th>Step</th><th>収集する値</th><th>補足</th></tr>
+    <tr>
+      <td>1-1</td><td><code>project_name</code> / <code>purpose</code></td>
+      <td>kebab-case 必須（<code>^[a-z][a-z0-9]*(-[a-z0-9]+)*$</code>）。<code>~/Projects/&lt;name&gt;/</code> が未存在であることを確認する。</td>
+    </tr>
+    <tr>
+      <td>1-2</td><td><code>stack</code></td>
+      <td>Next.js のみ / Next.js + Supabase / React + Vite + FastAPI の 3 択。スタックにより FE・BE・DB・テスト・Lint の構成が変わる。</td>
+    </tr>
+    <tr>
+      <td>1-3</td><td><code>features[]</code></td>
+      <td>CRUD 管理画面 / ユーザー認証 / ダッシュボード 等。「未定」の場合は汎用テンプレート（<code>/</code> + <code>/about</code>）で進めるかを確認する。</td>
+    </tr>
+    <tr>
+      <td>1-4</td><td><code>screens[]</code></td>
+      <td>機能から画面候補を推論し AskUserQuestion で確認。name・path・feature の 3 フィールドを持つ。</td>
+    </tr>
+    <tr>
+      <td>1-5</td><td><code>user_roles[]</code></td>
+      <td>multiSelect。一般ユーザー / 管理者 / ゲスト から複数選択。</td>
+    </tr>
+    <tr>
+      <td>1-6</td><td><code>base_port</code></td>
+      <td><code>~/.claude/rules/always/local-environment/port-management/rule.md</code> を Read し、使用済みポートを抽出して未使用最小値（8000, 8100, ... 単位）を自動検出してユーザーに提示する。</td>
+    </tr>
+  </table>
+
+  <h3>スタック別の構成決定</h3>
+  <table class="spec">
+    <tr><th>スタック</th><th>FE</th><th>BE</th><th>DB</th><th>テスト</th><th>Lint</th></tr>
+    <tr><td>Next.js のみ</td><td>Next.js + TS</td><td>API Routes</td><td>—</td><td>Vitest</td><td>Biome</td></tr>
+    <tr><td>Next.js + Supabase</td><td>Next.js + TS</td><td>—</td><td>Supabase</td><td>Vitest</td><td>Biome</td></tr>
+    <tr><td>React + Vite + FastAPI</td><td>React + Vite + TS</td><td>FastAPI</td><td>Supabase</td><td>Vitest + pytest</td><td>Biome + Ruff</td></tr>
+  </table>
+</section>
+
+<section id="s5">
+  <h2><span class="sec-num">§5</span>Phase 2〜4: スキャフォールドと基盤構築</h2>
+
+  <h3>Phase 2: スキャフォールド</h3>
+
+  <pre class="flow"><span class="cap"># Next.js のみ / Next.js + Supabase の場合</span>
+cd ~/Projects
+npx create-next-app@latest &lt;project-name&gt; \
+  --typescript --tailwind --eslint --app \
+  --src-dir --import-alias "@/*" \
+  --no-turbopack --use-npm
+
+<span class="cap"># React + Vite + FastAPI の場合（frontend/backend 分離構成）</span>
+cd ~/Projects && mkdir &lt;project-name&gt; && cd &lt;project-name&gt;
+mkdir frontend backend
+cd frontend && npm create vite@latest . -- --template react-ts
+cd ../backend && python3 -m venv .venv && pip install fastapi uvicorn</pre>
+
+  <p>
+    生成後は Phase 1 の画面一覧をもとにページファイルを生成する。
+    ルーティング例: <code>/dashboard</code> → <code>src/app/dashboard/page.tsx</code>。
+    <code>docs/REQUIREMENTS.md</code> も同時に配置する。
+  </p>
+
+  <h3>Phase 3: Claude Code 基盤</h3>
+
+  <p>
+    <code>~/agent-home/templates/project-claude-rules/</code> を正本として以下のディレクトリ構成を構築する。
+    flow 系 rules（<code>loop-commit</code> / <code>session-context</code>）はスキャフォールドしない。
+    スタックに存在しないスコープ（FE のみ構成なら backend/db 等）は削除する。
+  </p>
+
+  <pre class="flow">.claude/
+├── settings.json
+└── rules/
+    ├── always/
+    │   ├── project-context/
+    │   │   ├── rule.md                     &lt;-- プロジェクト概要・設定索引（★必須）
+    │   │   ├── flow-values.yml             &lt;-- 実装フロー設定値（★必須）
+    │   │   └── layers.yml                  &lt;-- レイヤー別コマンド体系（★必須）
+    │   └── placement/directory-structure/rule.md   &lt;-- ルート直下許可リスト（★必須）
+    ├── domain/
+    │   ├── dictionary/rule.md
+    │   └── domain-constraints/rule.md
+    └── project/
+        ├── context-scope/rule.md
+        │   └── frontend/rule.md
+        └── codebase-boundary/rule.md       &lt;-- templates/project-claude-rules/project/codebase-boundary/rule.md をコピーして paths を書き換える</pre>
+
+  <div class="constraint">
+    <strong>プリフライトチェック（Phase 3 末尾）</strong><br>
+    <code>scaffolding-flow-structure.md</code> の手順に従い orchestrating-dev-flow 前提条件を検証する。
+    <span class="tag fail">no-go</span> の場合は FAIL 項目を修正してから Phase 4 に進む。
+  </div>
+
+  <h3>Phase 4: ドキュメント体系</h3>
+
+  <p>
+    <code>~/agent-home/templates/project-docs/</code> を正本として、機能・画面ごとに設計書を複製・置換する。
+  </p>
+
+  <table class="spec">
+    <tr><th>Step</th><th>テンプレート元</th><th>配置先</th><th>置換変数</th></tr>
+    <tr>
+      <td>4-2</td>
+      <td><code>01_機能基本設計/</code> の 3 ファイル</td>
+      <td><code>docs/01_機能基本設計/&lt;機能名&gt;/</code></td>
+      <td><code>doc_id</code>・<code>feature_name</code></td>
+    </tr>
+    <tr>
+      <td>4-3</td>
+      <td><code>02_画面基本設計/</code> の 4 ファイルセット + <code>_共通/</code> 3 ファイル</td>
+      <td><code>docs/02_画面基本設計/&lt;画面名&gt;/</code>、<code>docs/02_画面基本設計/_共通/</code></td>
+      <td><code>doc_id</code>・<code>target_screen</code>・<code>route</code></td>
+    </tr>
+    <tr>
+      <td>4-4</td>
+      <td><code>03_操作フロー設計/</code> の 2 ファイル</td>
+      <td><code>docs/03_操作フロー設計/&lt;フロー名&gt;/</code></td>
+      <td><code>flow_name</code></td>
+    </tr>
+    <tr>
+      <td>4-5</td>
+      <td><code>04_開発プロセス設計/プロジェクト地図.md</code></td>
+      <td><code>docs/04_開発プロセス設計/</code></td>
+      <td>プロジェクト名・モジュール一覧</td>
+    </tr>
+    <tr>
+      <td>4-6</td>
+      <td><code>設計書レビュー観点.md</code></td>
+      <td><code>docs/</code> 直下（変更なし・参照専用）</td>
+      <td>なし</td>
+    </tr>
+  </table>
+</section>
+
+<section id="s6">
+  <h2><span class="sec-num">§6</span>Phase 5: プロジェクトポータル</h2>
+
+  <p>
+    vanilla JS SPA（ビルドツール不要、ES modules + hash routing）のプロジェクト管理ポータルを構築する。
+    生成ファイル数が多いため、サブエージェント 3 体を並列委任する（§7 参照）。
+  </p>
+
+  <h3>生成するディレクトリ構成</h3>
+
+  <pre class="flow">project-portal/
+├── index.html               &lt;-- SPA エントリ
+├── style.css
+├── mocks.html
+├── mocks/
+├── release-notes.html
+├── data/
+│   ├── design-docs.js
+│   ├── mocks.js
+│   ├── page-graph.js
+│   ├── release-notes.js
+│   └── master-tables/
+│       ├── coverage.js
+│       └── metrics.js
+└── src/
+    └── common/
+        └── header.js</pre>
+
+  <p>
+    ベースは <code>references/scaffolding-assets/portal-template/</code> をまるごとコピーする。
+    コピー後に以下の箇所をプロジェクト固有の値へ書き換える。
+  </p>
+
+  <table class="spec">
+    <tr><th>ファイル</th><th>書き換え箇所</th></tr>
+    <tr><td><code>index.html</code></td><td><code>brand-title</code>（プロジェクト名）・topnav リンク</td></tr>
+    <tr><td><code>release-notes.html</code></td><td><code>&lt;title&gt;</code> のプロジェクト名・<code>STORE_KEY</code> の localStorage キー名</td></tr>
+    <tr><td><code>mocks.html</code></td><td><code>&lt;title&gt;</code> のプロジェクト名</td></tr>
+  </table>
+
+  <p>
+    追加ページも配置する:
+  </p>
+  <pre class="flow"><span class="cap"># scaffolding-assets から追加ページをコピー</span>
+cp references/scaffolding-assets/sample-review-findings.html ./project-portal/review-findings.html
+cp references/scaffolding-assets/sample-flow-history.html   ./project-portal/flow-history.html</pre>
+
+  <div class="constraint">
+    <strong>既存 project-portal/ の扱い</strong><br>
+    既存の <code>project-portal/</code> がある場合は上書きしない。差分のみ追加する。
+  </div>
+</section>
+
+<section id="s7">
+  <h2><span class="sec-num">§7</span>Phase 6〜10: 仕上げ・検証</h2>
+
+  <h3>Phase 6: CI/CD・品質基盤</h3>
+
+  <table class="spec">
+    <tr><th>ディレクトリ</th><th>主な生成物</th></tr>
+    <tr>
+      <td><code>.github/</code></td>
+      <td><code>pull_request_template.md</code>・<code>dependabot.yml</code>・<code>workflows/ci.yml</code>（docs リンク検査 lychee ジョブ含む）・ISSUE_TEMPLATE 3 種</td>
+    </tr>
+    <tr>
+      <td><code>.husky/</code></td>
+      <td><code>pre-commit</code>（<code>.claude/markers/</code> ガード + gitleaks + lint-staged）・<code>pre-push</code>（author 検証 + テスト + lint）</td>
+    </tr>
+    <tr>
+      <td><code>.config/</code></td>
+      <td><code>gitleaks.toml</code>・<code>lychee.toml</code></td>
+    </tr>
+    <tr>
+      <td><code>qa/</code></td>
+      <td><code>user-stories.md</code>（Given-When-Then 形式）・<code>qa-tracking.tsv</code></td>
+    </tr>
+    <tr>
+      <td><code>logs/</code></td>
+      <td><code>logs/flow-feature/.gitkeep</code></td>
+    </tr>
+  </table>
+
+  <h3>Phase 7: ルート設定</h3>
+  <p>
+    <code>CLAUDE.md</code>（200 行以内）・<code>Makefile</code>・<code>.gitignore</code>・<code>.gitattributes</code> を配置する。
+    <code>package.json</code> の <code>dev</code> スクリプトに Phase 1 で確定したポートを設定する。
+  </p>
+
+  <h3>Phase 8: ポート割当登録</h3>
+  <p>
+    <code>~/.claude/rules/always/local-environment/port-management/rule.md</code> を Edit し、ベースポートテーブルと割当表セクション（スタックに応じた列構成）を追加する。
+    Edit の直前に、他セッションが同ポートを既に使用していないかを再確認する（予想を裏切る挙動を参照）。
+  </p>
+
+  <h3>Phase 9: Git + GitHub</h3>
+  <pre class="flow"><span class="cap"># ローカル初期化と初回 commit</span>
+git init
+git add .
+git commit -m "【機能追加】&lt;project-name&gt; 初期スキャフォールド"
+
+<span class="cap"># その後 AskUserQuestion で GitHub リポジトリ作成の要否を確認</span>
+<span class="cap"># (A) 作成して push / (B) ローカルのみ / (C) 中止</span></pre>
+
+  <h3>Phase 10: 検証</h3>
+  <table class="spec">
+    <tr><th>検証項目</th><th>確認内容</th><th>期待値</th></tr>
+    <tr><td>構造検証</td><td>4 カテゴリディレクトリ・<code>_共通</code> 3 ファイル・プロジェクト地図・設計書レビュー観点・画面 4 ファイルセットの存在確認</td><td><span class="tag pass">PASS</span></td></tr>
+    <tr><td>dev server 起動</td><td>ポート <code>&lt;base_port&gt;+1</code> で HTTP 200</td><td><span class="tag pass">PASS</span></td></tr>
+    <tr><td>ポータル起動</td><td>ポート <code>&lt;base_port&gt;+2</code> で HTTP 200</td><td><span class="tag pass">PASS</span></td></tr>
+  </table>
+
+  <div class="constraint">
+    <strong>バックグラウンドジョブの注意</strong><br>
+    dev server / ポータル起動確認は <code>&amp;</code> + <code>kill %1</code> を使う。
+    同一シェルセッション内に他のバックグラウンドジョブが <code>%1</code> を専有している場合、誤ったプロセスを kill する可能性がある。
+  </div>
+</section>
+
+<section id="s8">
+  <h2><span class="sec-num">§8</span>サブエージェント委任仕様</h2>
+
+  <p>
+    Phase 5（ポータル SPA）は生成ファイル数が多いため、3 体のサブエージェントを並列で委任する。
+    担当領域が重ならないよう、prompt でファイルパスを明示する（重複すると書き込みが競合する）。
+    Phase 1〜4・6〜10 はメインエージェントが順次実行する。
+  </p>
+
+  <table class="spec">
+    <tr><th>担当領域</th><th>subagent_type</th><th>prompt で渡す情報</th><th>期待返却値</th></tr>
+    <tr>
+      <td>Phase 5: <code>index.html</code> + <code>style.css</code> + <code>src/</code></td>
+      <td><code>worker-sonnet</code></td>
+      <td>プロジェクト名・機能/画面リスト・<code>portal-template/</code> を参照元として渡す</td>
+      <td>生成ファイルパス一覧</td>
+    </tr>
+    <tr>
+      <td>Phase 5: <code>data/</code> 全体</td>
+      <td><code>worker-sonnet</code></td>
+      <td>Phase 1 ヒアリング値（機能・画面・スタック）を渡す</td>
+      <td>生成ファイルパス一覧</td>
+    </tr>
+    <tr>
+      <td>Phase 5: 定型ファイル</td>
+      <td><code>worker-haiku</code></td>
+      <td>定型テンプレートどおり作成する旨と対象パスを渡す</td>
+      <td>作成ファイルパス一覧</td>
+    </tr>
+  </table>
+
+  <div class="constraint">
+    <strong>ファイルパス明示の必須化</strong><br>
+    3 体の担当領域（<code>src/</code>・<code>data/</code>・定型ファイル）が重ならないよう、
+    各 prompt に具体的なファイルパスを記載する。曖昧な指示は書き込み競合を招く。
+  </div>
+</section>
+
+<section id="s9">
+  <h2><span class="sec-num">§9</span>エラーハンドリングと予想を裏切る挙動</h2>
+
+  <h3>エラーハンドリング</h3>
+  <table class="spec">
+    <tr><th>Phase</th><th>エラー</th><th>対応</th></tr>
+    <tr><td>1</td><td>プロジェクト名が重複（<code>~/Projects/&lt;name&gt;/</code> が既存）</td><td>AskUserQuestion で再入力を求める</td></tr>
+    <tr>
+      <td>2</td><td><code>create-next-app</code> 失敗</td>
+      <td>エラーログを表示し、AskUserQuestion で削除対象パスを提示・承認を得てから作成途中を <code>rm -rf</code> する</td>
+    </tr>
+    <tr><td>3</td><td>設定ファイル Write 失敗</td><td>ディスク容量・パーミッションを報告する</td></tr>
+    <tr><td>5</td><td>ポータル SPA のファイル数が多い</td><td>Phase 5 をサブエージェント並列で実行する（§7 参照）</td></tr>
+    <tr><td>8</td><td>ポート範囲が枯渇</td><td>AskUserQuestion でカスタムポート入力を求める</td></tr>
+    <tr><td>9</td><td><code>gh repo create</code> 失敗</td><td><code>gh auth status</code> で認証状態を確認し、認証切れなら報告する</td></tr>
+    <tr><td>10</td><td>dev server 起動失敗</td><td><code>lsof -i :&lt;port&gt;</code> でポート競合を診断する</td></tr>
+  </table>
+
+  <h3>予想を裏切る挙動</h3>
+  <dl class="def">
+    <dt>Phase 2 の <code>rm -rf</code> は承認必須</dt>
+    <dd>create-next-app 失敗時の復旧で <code>rm -rf</code> する前に、必ず AskUserQuestion で削除対象パスをユーザーに提示し承認を得る。無承認の <code>rm -rf</code> は禁止。</dd>
+
+    <dt>Phase 8 直前のポート重複再確認</dt>
+    <dd><code>base_port</code> は Phase 1 で動的検出するが、並行して他セッションが新規プロジェクトを作成中だと同じ値を提案しうる。Phase 8 で Edit する直前に再度重複を確認する。</dd>
+
+    <dt>プリフライト no-go を無視しない</dt>
+    <dd>Phase 3 末尾のプリフライトチェックが no-go を返した場合、Phase 4 に進んでも orchestrating-dev-flow が後続 Phase で動作しない。no-go を無視して先に進んではならない。</dd>
+
+    <dt><code>always/placement/directory-structure/rule.md</code> のスタック整合</dt>
+    <dd>スタック（FE のみ / フルスタック）で許可ディレクトリが変わる。スタック選択と生成した許可リストの不一致は、後続の <code>mkdir</code> 時に advisory ノイズを生む。</dd>
+
+    <dt>Phase 5 のサブエージェント担当重複</dt>
+    <dd>3 体の担当領域（<code>src/</code>・<code>data/</code>・定型ファイル）を prompt でファイルパス単位に明示する。重複するとファイル書き込みが競合する。</dd>
+
+    <dt>Phase 10 のバックグラウンドジョブ競合</dt>
+    <dd>dev server / ポータル起動確認は <code>&amp;</code> + <code>kill %1</code> に依存する。同一シェルセッションに他のバックグラウンドジョブが <code>%1</code> を専有していると誤ったプロセスを kill する。</dd>
+  </dl>
+</section>
+
+<section id="s10">
+  <h2><span class="sec-num">§10</span>関連スキル・規約</h2>
+
+  <table class="spec">
+    <tr><th>名前</th><th>役割</th></tr>
+    <tr>
+      <td><code>orchestrating-dev-flow</code></td>
+      <td>このスキルが生成した基盤（<code>.claude/rules/always/project-context/</code>。layers.yml を含む）を使って実際の機能開発フローを回すスキル。新規プロジェクト作成後の主要な開発エントリポイント。</td>
+    </tr>
+    <tr>
+      <td><code>parallel-dev-worktree</code></td>
+      <td>worktree 作成・削除。orchestrating-dev-flow の Phase 2（ブランチ準備）で使用する。</td>
+    </tr>
+    <tr>
+      <td><code>port-management-rules</code></td>
+      <td>ベースポート + worktree スロット + サービスオフセットの計算式でポート番号を一意決定する規約。Phase 1 のポート自動検出と Phase 8 の登録で参照する。</td>
+    </tr>
+    <tr>
+      <td><code>flow-gate-rules</code></td>
+      <td>orchestrating-dev-flow の Phase 6 未到達でのコード書き込みを block するゲート。このスキルが生成した基盤（<code>.flow-progress.json</code> 等）を前提として動作する。</td>
+    </tr>
+    <tr>
+      <td><code>worktree-required-rules</code></td>
+      <td>orchestrating-dev-flow 発動時の worktree 必須運用規約。このスキルが生成した <code>.gitignore</code> に <code>.flow-progress.json</code> と <code>.claude/markers/</code> が含まれる。</td>
+    </tr>
+  </table>
+
+  <h3>参照資料（references/）</h3>
+  <table class="spec">
+    <tr><th>ファイル</th><th>内容</th></tr>
+    <tr><td><code>project-structure-reference-model.md</code></td><td>テンプレート・設計パターンの全詳細</td></tr>
+    <tr><td><code>phase-1-hearing.md</code></td><td>ヒアリングの質問文・選択肢・バリデーション詳細</td></tr>
+    <tr><td><code>phase-2-4-scaffold-docs.md</code></td><td>Phase 2〜4 の詳細手順（コマンド・テンプレート含む）</td></tr>
+    <tr><td><code>phase-5-portal.md</code></td><td>Phase 5 プロジェクトポータルの詳細手順</td></tr>
+    <tr><td><code>phase-6-10-finalize.md</code></td><td>Phase 6〜10 の詳細手順（CI/CD・ルート設定・Git・検証）</td></tr>
+    <tr><td><code>scaffolding-flow-structure.md</code></td><td>orchestrating-dev-flow 前提条件のプリフライトチェック手順</td></tr>
+    <tr><td><code>scaffolding-assets/</code></td><td>portal-template（5 ファイル + data/ + src/ 計 8 点）、sample-review-findings.html、sample-flow-history.html ほか</td></tr>
+  </table>
+</section>
+
+<div id="zoom-overlay" class="zoom-overlay" hidden></div>
+<script>
+  (function () {
+    var overlay = document.getElementById('zoom-overlay');
+    if (!overlay) return;
+    document.querySelectorAll('figure.diagram svg').forEach(function (svg) {
+      svg.addEventListener('click', function () {
+        overlay.innerHTML = '';
+        overlay.appendChild(svg.cloneNode(true));
+        overlay.hidden = false;
+        document.body.style.overflow = 'hidden';
+      });
+    });
+    overlay.addEventListener('click', function () {
+      overlay.hidden = true;
+      overlay.innerHTML = '';
+      document.body.style.overflow = '';
+    });
+  })();
+</script>
+
+</body>
+</html>
