@@ -93,17 +93,11 @@ case "$PAGE_KIND" in
 esac
 
 # --- 4. 型別スロット ---
-declare -A SLOT_KEYS=(
-  [glossary]="categories terms"
-  [techstack]="tiles columns rows"
-  [transition]="legend nodes edges"
-  [er]="legend entities relations"
-  [env]="prerequisites steps allocations"
-)
+get_slot_keys() { case "$1" in glossary) echo "categories terms";; techstack) echo "tiles columns rows";; transition) echo "legend nodes edges";; er) echo "legend entities relations";; env) echo "prerequisites steps allocations";; esac; }
 
-if [ -n "${SLOT_KEYS[$PAGE_KIND]:-}" ]; then
+if [ -n "$(get_slot_keys "$PAGE_KIND")" ]; then
   missing_slots=""
-  for key in ${SLOT_KEYS[$PAGE_KIND]}; do
+  for key in $(get_slot_keys "$PAGE_KIND"); do
     exists="$(jq -r --arg k "$key" 'has($k)' "$MANIFEST")"
     if [ "$exists" != "true" ]; then
       missing_slots="${missing_slots}${key} "

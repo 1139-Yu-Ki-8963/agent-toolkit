@@ -7,7 +7,7 @@
 #        build-detail-page.sh --self-test
 #
 # page → (テンプレートファイル, 固定出力ファイル名) 対応は本スクリプト内の
-# PAGE_TEMPLATE/PAGE_FILENAME に固定する(build-unit-list.shの--unit-kindクロスチェックと同型)。
+# get_page_template/get_page_filename に固定する(build-unit-list.shの--unit-kindクロスチェックと同型)。
 # data JSONのpageKindと--pageの不一致、不正なJSON、不正な--page値はexit 1とし、部分出力を残さない。
 # validate-page-data.shを内部実行し、PASSしない限り生成しない。
 # 出力は<output-dir>内の一時ファイル経由のatomic move(同一ファイルシステム内でmvする)。
@@ -18,20 +18,8 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
-declare -A PAGE_TEMPLATE=(
-  [glossary]="detail-t2-dictionary.html"
-  [techstack]="detail-t3-attributes.html"
-  [transition]="detail-t4-diagram.html"
-  [er]="detail-t4-diagram.html"
-  [env]="detail-t5-procedure.html"
-)
-declare -A PAGE_FILENAME=(
-  [glossary]="用語辞書.html"
-  [techstack]="技術スタック.html"
-  [transition]="画面遷移図.html"
-  [er]="ER図.html"
-  [env]="環境実行手順.html"
-)
+get_page_template() { case "$1" in glossary) echo "detail-t2-dictionary.html";; techstack) echo "detail-t3-attributes.html";; transition) echo "detail-t4-diagram.html";; er) echo "detail-t4-diagram.html";; env) echo "detail-t5-procedure.html";; esac; }
+get_page_filename() { case "$1" in glossary) echo "用語辞書.html";; techstack) echo "技術スタック.html";; transition) echo "画面遷移図.html";; er) echo "ER図.html";; env) echo "環境実行手順.html";; esac; }
 
 # --- --self-test モード ---
 # (a) バックスラッシュ・実マーカー文字列(\d+・{{PAGE_DATA_JSON}}・<!--DETAIL_TILES-->)を含む
@@ -163,7 +151,7 @@ self_test() {
   check_page_fixture() {
     local page="$1" data_file="$2"
     local outdir="$tmp/out-$page"
-    local expected_filename="${PAGE_FILENAME[$page]}"
+    local expected_filename="$(get_page_filename "$page")"
     if ! bash "$script_path" "$data_file" "$outdir" --page "$page" >/dev/null 2>&1; then
       echo "  [FAIL] ケースd(${page}): 生成コマンド自体が失敗した" >&2
       rc=1
@@ -287,7 +275,7 @@ while [ $# -gt 0 ]; do
   esac
 done
 
-if [ -z "$PAGE" ] || [ -z "${PAGE_TEMPLATE[$PAGE]:-}" ]; then
+if [ -z "$PAGE" ] || [ -z "$(get_page_template "$PAGE")" ]; then
   echo "ERROR: --page must be one of: glossary techstack transition er env" >&2
   exit 1
 fi
@@ -318,7 +306,7 @@ if ! "$SCRIPT_DIR/validate-page-data.sh" "$DATA"; then
   exit 1
 fi
 
-TEMPLATE_FILE="${PAGE_TEMPLATE[$PAGE]}"
+TEMPLATE_FILE="$(get_page_template "$PAGE")"
 TEMPLATE="$SCRIPT_DIR/../../templates/detail-pages/$TEMPLATE_FILE"
 TOKENS_CSS_FILE="$SCRIPT_DIR/../../templates/tokens.css"
 if [ ! -f "$TEMPLATE" ]; then
@@ -326,7 +314,7 @@ if [ ! -f "$TEMPLATE" ]; then
   exit 1
 fi
 
-OUTPUT_FILENAME="${PAGE_FILENAME[$PAGE]}"
+OUTPUT_FILENAME="$(get_page_filename "$PAGE")"
 mkdir -p "$OUTPUT_DIR"
 OUTPUT_PATH="$OUTPUT_DIR/$OUTPUT_FILENAME"
 
