@@ -109,7 +109,15 @@ headless=true 時は Agent(run_in_background: true) を使用せず、unit_kinds
 
 Phase 4（共通採録）完了後に、リバース設計ポータルを生成する。コード行数・ファイル数の計測、各種別一覧からの件数抽出、共通文書リストの収集を行い、テンプレートからポータル HTML を出力する。
 
-#### Step 4.2-1: build-portal.sh を実行する
+#### Step 4.2-1: 環境調査（env-config.json 未存在時のみ）
+
+`<target_repo_path>/project-portal/env-config.json` が存在しない場合のみ、Skill ツールで surveying-local-environment を起動する。引数: `output_dir=$target_repo_path/project-portal`。
+
+#### Step 4.2-2: コード行数計測
+
+Skill ツールで counting-code-lines を起動する。引数: `target_dir=$target_repo_path`、`output_dir=$target_repo_path/project-portal`、`env_config=$target_repo_path/project-portal/env-config.json`。
+
+#### Step 4.2-3: ポータル HTML 生成
 
 Bash で以下を実行する:
 

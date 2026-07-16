@@ -41,67 +41,20 @@ fi
 PROJECT_NAME="$(basename "$TARGET_REPO")"
 GENERATED_DATE="$(date +%Y-%m-%d)"
 
-# --- 1. コード行数・ファイル数計測 ---
-count_lines() {
-  local dir="$1"
-  local pattern="$2"
-  find "$dir" \
-    -type f \( -name '*.ts' -o -name '*.tsx' -o -name '*.js' -o -name '*.jsx' \
-              -o -name '*.py' -o -name '*.sql' -o -name '*.vue' -o -name '*.svelte' \) \
-    -not -path '*/node_modules/*' \
-    -not -path '*/.git/*' \
-    -not -path '*/dist/*' \
-    -not -path '*/build/*' \
-    -not -path '*/__pycache__/*' \
-    -not -path '*/.next/*' \
-    -not -path '*/coverage/*' \
-    2>/dev/null | \
-  if [ -n "$pattern" ]; then
-    grep -E "$pattern"
-  else
-    cat
-  fi | \
-  xargs wc -l 2>/dev/null | tail -1 | awk '{print $1}'
-}
-
-count_files() {
-  local dir="$1"
-  local pattern="$2"
-  find "$dir" \
-    -type f \( -name '*.ts' -o -name '*.tsx' -o -name '*.js' -o -name '*.jsx' \
-              -o -name '*.py' -o -name '*.sql' -o -name '*.vue' -o -name '*.svelte' \) \
-    -not -path '*/node_modules/*' \
-    -not -path '*/.git/*' \
-    -not -path '*/dist/*' \
-    -not -path '*/build/*' \
-    -not -path '*/__pycache__/*' \
-    -not -path '*/.next/*' \
-    -not -path '*/coverage/*' \
-    2>/dev/null | \
-  if [ -n "$pattern" ]; then
-    grep -E "$pattern"
-  else
-    cat
-  fi | \
-  wc -l | awk '{print $1}'
-}
-
-FE_PATTERN='/(frontend|src/pages|src/components|src/app)/'
-BE_PATTERN='/(backend|api|server)/'
-
-total_lines="$(count_lines "$TARGET_REPO" "")"
-fe_lines="$(count_lines "$TARGET_REPO" "$FE_PATTERN")"
-be_lines="$(count_lines "$TARGET_REPO" "$BE_PATTERN")"
-total_files="$(count_files "$TARGET_REPO" "")"
-fe_files="$(count_files "$TARGET_REPO" "$FE_PATTERN")"
-be_files="$(count_files "$TARGET_REPO" "$BE_PATTERN")"
-
-[ -z "$total_lines" ] && total_lines=0
-[ -z "$fe_lines" ] && fe_lines=0
-[ -z "$be_lines" ] && be_lines=0
-[ -z "$total_files" ] && total_files=0
-[ -z "$fe_files" ] && fe_files=0
-[ -z "$be_files" ] && be_files=0
+# --- 1. コード計測結果の読み取り（counting-code-lines スキルが出力した JSON） ---
+CODE_METRICS="$PORTAL_DIR/code-metrics.json"
+if [ -f "$CODE_METRICS" ]; then
+  total_lines="$(jq -r '.total // 0' "$CODE_METRICS")"
+  fe_lines="$(jq -r '.fe // 0' "$CODE_METRICS")"
+  be_lines="$(jq -r '.be // 0' "$CODE_METRICS")"
+  total_files="$(jq -r '.file_count // 0' "$CODE_METRICS")"
+  fe_files="$(jq -r '.fe_files // 0' "$CODE_METRICS")"
+  be_files="$(jq -r '.be_files // 0' "$CODE_METRICS")"
+else
+  echo "WARN: code-metrics.json not found at $CODE_METRICS. Using zeros." >&2
+  total_lines=0; fe_lines=0; be_lines=0
+  total_files=0; fe_files=0; be_files=0
+fi
 
 format_number() {
   printf "%'d" "$1" 2>/dev/null || printf "%d" "$1"
