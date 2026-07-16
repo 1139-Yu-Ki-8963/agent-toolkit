@@ -18,6 +18,39 @@ TEMPLATE="$SCRIPT_DIR/../templates/portal-template.html"
 
 source "$SCRIPT_DIR/render-template.sh"
 
+# --- self-test ---
+if [ "${1:-}" = "--self-test" ]; then
+  tmpdir="$(mktemp -d)"
+  trap 'rm -rf "$tmpdir"' EXIT
+
+  # フィクスチャ: FE/BE パターンに一致しないパスに .ts ファイルを配置
+  mkdir -p "$tmpdir/repo/misc"
+  echo "const x = 1;" > "$tmpdir/repo/misc/util.ts"
+
+  # code-metrics.json（counting-code-lines スキルの出力相当）
+  mkdir -p "$tmpdir/portal"
+  cat > "$tmpdir/portal/code-metrics.json" <<'FIXTURE'
+{"total":1,"fe":0,"be":0,"file_count":1,"fe_files":0,"be_files":0,"method":"wc","measured_at":"2026-01-01T00:00:00Z"}
+FIXTURE
+
+  # docs_root（空でよい）
+  mkdir -p "$tmpdir/docs"
+
+  # 実行
+  if bash "$0" "$tmpdir/repo" "$tmpdir/docs" "$tmpdir/portal" 2>/dev/null; then
+    if [ -f "$tmpdir/portal/index.html" ]; then
+      echo "PASS: --self-test (exit 0, index.html generated)" >&2
+      exit 0
+    else
+      echo "FAIL: --self-test (exit 0 but index.html not found)" >&2
+      exit 1
+    fi
+  else
+    echo "FAIL: --self-test (non-zero exit code: $?)" >&2
+    exit 1
+  fi
+fi
+
 # --- 引数チェック ---
 if [ $# -lt 3 ]; then
   echo "Usage: $0 <target_repo_path> <docs_root> <portal_output_dir>" >&2
@@ -186,7 +219,7 @@ if [ -d "$common_dir" ]; then
 fi
 
 # --- 4. JSON 組み立て ---
-METRICS_JSON="[{\"icon\":\"code\",\"label\":\"コード行数\",\"value\":\"$(format_number "$total_lines")\",\"unit\":\"行\",\"sub\":\"<b>FE</b> $(format_number "$fe_lines") ／ <b>BE</b> $(format_number "$be_lines")\"\"},{\"icon\":\"folder\",\"label\":\"ファイル数\",\"value\":\"$(format_number "$total_files")\",\"unit\":\"件\",\"sub\":\"<b>FE</b> $(format_number "$fe_files") ／ <b>BE</b> $(format_number "$be_files")\"}"
+METRICS_JSON="[{\"icon\":\"code\",\"label\":\"コード行数\",\"value\":\"$(format_number "$total_lines")\",\"unit\":\"行\",\"sub\":\"<b>FE</b> $(format_number "$fe_lines") ／ <b>BE</b> $(format_number "$be_lines")\"},{\"icon\":\"folder\",\"label\":\"ファイル数\",\"value\":\"$(format_number "$total_files")\",\"unit\":\"件\",\"sub\":\"<b>FE</b> $(format_number "$fe_files") ／ <b>BE</b> $(format_number "$be_files")\"}"
 
 screen_count=0
 api_count=0
