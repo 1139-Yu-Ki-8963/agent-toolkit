@@ -8,7 +8,7 @@
   4. 先頭の <meta charset="utf-8"> を必ず残す
   5. 表は5行まで。入らないときは2枚に分割する
   6. すべての打ち手に実行主体（誰がやるか）を記載する
-  7. .slide-meta は空（子要素なし）なら非表示になる。表示する場合は日付・作成者名・ページ番号を規定の構造で入れる
+  7. .slide-meta は区切り線と下端余白のみを提供する。内容は入れない
   8. 数字がない箇所は need-check クラスで「※要確認」と明記する
 -->
 <meta charset="utf-8">
@@ -174,21 +174,12 @@
     padding-top: 6px;
   }
 
-  /* ==== メタデータフッター（日付・作成者・ページ番号。空なら非表示） ==== */
+  /* ==== メタデータフッター（区切り線 + 下端余白） ==== */
   .slide-meta {
-    display: grid;
-    grid-template-columns: 1fr auto 1fr;
-    align-items: center;
     height: 24px;
     padding-top: 6px;
     border-top: 1px solid var(--border);
-    font-size: 11px;
-    color: var(--ink-3);
   }
-  .slide-meta:empty { display: none; }
-  .slide-meta-date { font-variant-numeric: tabular-nums; }
-  .slide-meta-author { text-align: center; }
-  .slide-meta-page { text-align: right; font-variant-numeric: tabular-nums; }
 </style>
 
 <div class="slide-viewport">
@@ -269,12 +260,8 @@
 
     <p class="source-line">SAMPLE: 出典：◯◯部調べ（YYYY年M月時点）</p>
 
-    <!-- ==== 部品: メタデータフッター（空なら非表示。SAMPLE を実データに差し替える） ==== -->
-    <footer class="slide-meta">
-      <span class="slide-meta-date">SAMPLE: 2026年7月</span>
-      <span class="slide-meta-author">SAMPLE: AAA</span>
-      <span class="slide-meta-page">SAMPLE: 1</span>
-    </footer>
+    <!-- ==== 部品: メタデータフッター（区切り線 + 下端余白） ==== -->
+    <footer class="slide-meta"></footer>
 
   </div>
 </div>
