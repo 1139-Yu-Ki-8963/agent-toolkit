@@ -101,6 +101,7 @@ declare -A KIND_LABELS=(
   [table]="テーブル"
   [report]="帳票"
   [external]="外部連携"
+  [feature]="機能"
 )
 
 declare -A KIND_DIRS=(
@@ -110,6 +111,7 @@ declare -A KIND_DIRS=(
   [table]="テーブル一覧"
   [report]="帳票一覧"
   [external]="外部連携一覧"
+  [feature]="機能一覧"
 )
 
 declare -A KIND_ICONS=(
@@ -119,6 +121,7 @@ declare -A KIND_ICONS=(
   [table]="table_chart"
   [report]="print"
   [external]="link"
+  [feature]="category"
 )
 
 declare -A KIND_DESCS=(
@@ -128,6 +131,7 @@ declare -A KIND_DESCS=(
   [table]="全テーブルのカラム定義・型・制約・外部キーリレーションを一覧化。"
   [report]="出力帳票のフォーマット・生成条件・出力先・利用者を整理。"
   [external]="外部サービスとの連携インターフェース・プロトコル・認証方式を整理。"
+  [feature]="画面一覧を入力に導出した機能単位の一覧（派生一覧）。"
 )
 
 declare -A KIND_UNITS=(
@@ -137,6 +141,7 @@ declare -A KIND_UNITS=(
   [table]="テーブル"
   [report]="帳票"
   [external]="連携先"
+  [feature]="機能"
 )
 
 excluded_kinds=""
@@ -155,7 +160,7 @@ if [ -d "$DOCS_ROOT" ]; then
   docs_relative="$(python3 -c "import os; print(os.path.relpath('$DOCS_ROOT', '$PORTAL_DIR'))" 2>/dev/null || echo "../docs")"
 fi
 
-KINDS_ORDER="screen api batch table report external"
+KINDS_ORDER="screen api batch table report external feature"
 
 list_tools_json=""
 for kind in $KINDS_ORDER; do
@@ -256,7 +261,7 @@ fi
 list_count="$(echo "$list_tools_json" | grep -o '{' | wc -l | awk '{print $1}')"
 [ -z "$list_count" ] && list_count=0
 
-CATEGORIES_JSON="[{\"id\":\"list\",\"title\":\"一覧系資料\",\"icon\":\"list_alt\",\"sub\":\"画面・API・バッチ・テーブル・帳票・外部連携の種別一覧\",\"tools\":[$list_tools_json]}"
+CATEGORIES_JSON="[{\"id\":\"list\",\"title\":\"一覧系資料\",\"icon\":\"list_alt\",\"sub\":\"画面・API・バッチ・テーブル・帳票・外部連携・機能の種別一覧\",\"tools\":[$list_tools_json]}"
 if [ "$common_count" -gt 0 ]; then
   CATEGORIES_JSON="$CATEGORIES_JSON,{\"id\":\"common\",\"title\":\"共通文書\",\"icon\":\"library_books\",\"sub\":\"プロジェクト全体に適用される設計方針・規約\",\"tools\":[$common_tools_json]}"
 fi

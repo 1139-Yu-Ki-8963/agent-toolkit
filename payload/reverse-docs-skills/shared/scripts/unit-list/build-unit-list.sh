@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # 種別別一覧スキル群(generating-<種別>-list-for-reverse-docs)共通エンジン: 種別対応HTML一覧生成ディスパッチャ。
-# unit_kind=screen なら build-screen-list.sh に委譲、他種別は汎用テンプレートから生成する。
+# unit_kind=screen なら build-screen-list.sh、unit_kind=feature なら build-feature-list.sh に委譲、他種別は汎用テンプレートから生成する。
 #
 # Usage: build-unit-list.sh <manifest.json> <output-html-path> [--unit-kind <kind>]
 #
@@ -234,6 +234,12 @@ fi
 # --- unit_kind=screen: build-screen-list.sh に委譲(exit codeをそのまま返す) ---
 if [ "$UNIT_KIND" = "screen" ]; then
   "$SCRIPT_DIR/build-screen-list.sh" "$MANIFEST" "$OUTPUT_HTML"
+  exit $?
+fi
+
+# --- unit_kind=feature: build-feature-list.sh に委譲(exit codeをそのまま返す) ---
+if [ "$UNIT_KIND" = "feature" ]; then
+  "$SCRIPT_DIR/build-feature-list.sh" "$MANIFEST" "$OUTPUT_HTML"
   exit $?
 fi
 

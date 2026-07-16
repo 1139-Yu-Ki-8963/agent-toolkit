@@ -158,7 +158,7 @@
   <h2><span class="sec-num">§1</span>工程フロー図（成果物の積み上がり）</h2>
   <p>指揮役（<code>orchestrating-reverse-docs-flow</code>）が左列の工程を上から順に進める。各工程が完了するたびに、右列の成果物が <code>docs_root</code> に増える。緑枠の「ユニット反復」は画面 1 つごとに繰り返す。</p>
   <p class="note">本文書で使う「facts」は、原本コードから抽出した宣言的契約の事実表（項目・分岐・呼び出しの数まで数え上げた一次資料）を指す。「基準タグ」は、2 環境の完全一致を証明できた時点のコミットに打つ git タグ <code>reverse-baseline/&lt;scope&gt;</code> を指す。</p>
-  <p class="note">Phase 0（ヒアリング）で対象パス・出力先・画面スコープを確定後、Phase 1 で状態判定を行い全工程をタスク一覧として一括登録する（マニフェスト先出し方式）。「一覧未生成」状態の解決は Phase 1.5 で、実在する種別（unit_kinds_present）の一覧生成スキルのみを Agent ツールで並列起動する。基本設計と詳細設計も同じ並列パターンで実行する。</p>
+  <p class="note">Phase 0（ヒアリング）で対象パス・出力先・画面スコープを確定後、Phase 1 で状態判定を行い全工程をタスク一覧として一括登録する（マニフェスト先出し方式）。「一覧未生成」状態の解決は Phase 1.5 で、実在する種別（unit_kinds_present）の一覧生成スキルのみを Agent ツールで並列起動する。基本設計と詳細設計も同じ並列パターンで実行する。画面一覧の確立後、Phase 1.7 で機能一覧（派生一覧）を生成する。</p>
 
   <div class="flowgrid">
     <div>
@@ -261,7 +261,7 @@
 
 <section id="s2">
   <h2><span class="sec-num">§2</span>スキル→成果物対応表</h2>
-  <p>指揮役 1 つを含む全 17 スキルのうち、指揮役が仲介する子スキル 16 個の一覧。状態キーは指揮役の状態判定表（contract.md）で当該スキルの起動条件となる状態、返却 status は各スキルが返す判定値、主成果物は完了時に確立する代表的な生成物を示す。個別ガイドがあるスキルはスキル名からたどれる。</p>
+  <p>指揮役 1 つを含む全 18 スキルのうち、指揮役が仲介する子スキル 17 個の一覧。状態キーは指揮役の状態判定表（contract.md）で当該スキルの起動条件となる状態、返却 status は各スキルが返す判定値、主成果物は完了時に確立する代表的な生成物を示す。個別ガイドがあるスキルはスキル名からたどれる。</p>
   <table class="spec">
     <tr><th>スキル</th><th>状態キー</th><th>返却 status</th><th>主成果物</th></tr>
     <tr>
@@ -305,6 +305,12 @@
       <td>一覧未生成</td>
       <td><code>DONE | ERROR</code></td>
       <td>一覧/外部連携一覧/外部連携一覧.html</td>
+    </tr>
+    <tr>
+      <td><a href=".claude/skills/generating-feature-list-for-reverse-docs/references/generating-feature-list-for-reverse-docs-guide.html"><code>generating-feature-list-for-reverse-docs</code></a></td>
+      <td>派生一覧（Phase 1.7・画面一覧確立後）</td>
+      <td><code>DONE | ERROR</code></td>
+      <td>一覧/機能一覧/機能一覧.html</td>
     </tr>
     <tr>
       <td><a href=".claude/skills/generating-reverse-common-docs/references/generating-reverse-common-docs-guide.html"><code>generating-reverse-common-docs</code></a></td>
@@ -383,6 +389,7 @@
             <li><span class="node">バッチ一覧/バッチ一覧.html</span><span class="by">generating-batch-list-for-reverse-docs</span> <span class="tag done">済</span></li>
             <li><span class="node">帳票一覧/帳票一覧.html</span><span class="by">generating-report-list-for-reverse-docs</span> <span class="tag done">済</span></li>
             <li><span class="node">外部連携一覧/外部連携一覧.html</span><span class="by">generating-external-list-for-reverse-docs</span> <span class="tag done">済</span></li>
+            <li><span class="node">機能一覧/機能一覧.html</span><span class="by">generating-feature-list-for-reverse-docs（派生一覧）</span> <span class="tag done">済</span></li>
             <li><span class="node">reverse-screen-registry.yml</span><span class="by">unlocking-reverse-target-screens（記帳）</span> <span class="tag done">済</span></li>
             <li><span class="node">excluded-kinds.json</span><span class="by">orchestrating-reverse-docs-flow</span> <span class="tag done">済</span></li>
           </ul>
