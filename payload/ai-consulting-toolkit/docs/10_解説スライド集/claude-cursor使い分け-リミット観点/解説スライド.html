@@ -330,11 +330,12 @@
     .steps { grid-template-columns: 1fr; }
     .band-note { display: none; }
   }
-  .slide-meta { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; height: 24px; padding-top: 6px; border-top: 1px solid var(--border); font-size: 11px; color: var(--ink-3); }
-  .slide-meta:empty { display: none; }
-  .slide-meta-date { font-variant-numeric: tabular-nums; }
-  .slide-meta-author { text-align: center; }
-  .slide-meta-page { text-align: right; font-variant-numeric: tabular-nums; }
+  /* ==== メタデータフッター（区切り線 + 下端余白） ==== */
+  .slide-meta {
+    height: 24px;
+    padding-top: 6px;
+    border-top: 1px solid var(--border);
+  }
 </style>
 
 <div class="slide-viewport">
@@ -532,11 +533,7 @@
       2026年7月時点の Anthropic 公式仕様に基づく例示。契約プランにより数値は異なる。切替時の作業文脈は手動で引き継ぐ。
     </p>
 
-    <footer class="slide-meta">
-      <span class="slide-meta-date">2026年7月</span>
-      <span class="slide-meta-author">AAA</span>
-      <span class="slide-meta-page">1</span>
-    </footer>
+    <footer class="slide-meta"></footer>
 
   </div>
 </div>
