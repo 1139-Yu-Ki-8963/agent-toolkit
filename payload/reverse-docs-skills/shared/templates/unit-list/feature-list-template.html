@@ -45,10 +45,11 @@
   * { box-sizing: border-box; }
   body {
     margin: 0; padding: 0 24px 96px;
-    font-family: system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif;
+    font-family: "Hiragino Kaku Gothic ProN","Hiragino Sans","Yu Gothic","Meiryo",system-ui,-apple-system,sans-serif;
     line-height: 1.7; color: var(--text); background: var(--bg);
     max-width: 1180px; margin-inline: auto;
   }
+  .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
   header { padding: 40px 0 20px; border-bottom: 3px solid var(--border-strong); }
   .header-top { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
   header h1 { font-size: 1.7rem; margin: 0 0 10px; }
@@ -75,7 +76,7 @@
   }
   .toolbar .note { font-size: 0.82rem; color: var(--text-muted); }
 
-  details.module-group { margin: 18px 0; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; }
+  details.module-group { margin: 18px 0; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; min-width: 0; }
   details.module-group > summary {
     cursor: pointer; padding: 12px 16px; font-weight: 700; list-style: none;
   }
@@ -95,14 +96,16 @@
     font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
     font-size: 0.85em; background: var(--panel-2); padding: 1px 5px; border-radius: 3px;
   }
+  td code { overflow-wrap: break-word; word-break: break-all; max-width: 300px; display: inline-block; }
   .badge { display: inline-block; font-size: 0.76rem; font-weight: 700; padding: 1px 8px; border-radius: 3px; }
   .badge.high   { background: var(--success-soft); color: var(--success); }
   .badge.medium { background: var(--gold-soft); color: var(--gold); }
   .badge.low    { background: var(--accent-soft); color: var(--accent); }
 
   section.unresolved {
-    margin-top: 40px; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 16px 20px;
+    margin-top: 40px; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 16px 20px; min-width: 0;
   }
+  #category-sections { min-width: 0; }
   section.unresolved h2 { font-size: 1.05rem; margin: 0 0 10px; }
 
   footer { margin-top: 48px; font-size: 0.8rem; color: var(--text-muted); }
@@ -137,13 +140,15 @@
   <span class="note">列見出しクリックでソート</span>
 </div>
 
-<div id="category-sections">
+<div id="category-sections" class="table-wrap">
 <!--CATEGORY_SECTIONS-->
 </div>
 
 <section class="unresolved">
   <h2>要手動確認</h2>
+  <div class="table-wrap">
   <!--UNRESOLVED_SECTION-->
+  </div>
 </section>
 
 <script type="application/json" id="unit-manifest">
