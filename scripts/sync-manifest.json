@@ -20,8 +20,6 @@
     { "mode": "mirror", "src": "~/agent-home/skills/reviewing-public-readiness", "dst": "payload/claudecode-global-setup/agent-home/skills/reviewing-public-readiness" },
     { "mode": "mirror", "src": "~/agent-home/skills/reviewing-single-pr-with-inline-comments", "dst": "payload/claudecode-global-setup/agent-home/skills/reviewing-single-pr-with-inline-comments" },
     { "mode": "mirror", "src": "~/agent-home/skills/generating-explanation-html-slides", "dst": "payload/claudecode-global-setup/agent-home/skills/generating-explanation-html-slides" },
-    { "mode": "mirror", "src": "~/agent-home/skills/surveying-local-environment", "dst": "payload/claudecode-global-setup/agent-home/skills/surveying-local-environment" },
-    { "mode": "mirror", "src": "~/agent-home/skills/counting-code-lines", "dst": "payload/claudecode-global-setup/agent-home/skills/counting-code-lines" },
     { "mode": "mirror", "src": "~/agent-home/agents", "dst": "payload/claudecode-global-setup/agent-home/agents" },
     { "mode": "mirror", "src": "~/agent-home/rules", "dst": "payload/claudecode-global-setup/agent-home/rules" },
     { "mode": "file", "src": "~/agent-home/tools/hooks/shared/marker-path.sh", "dst": "payload/claudecode-global-setup/agent-home/tools/hooks/lib/marker-path.sh" },
