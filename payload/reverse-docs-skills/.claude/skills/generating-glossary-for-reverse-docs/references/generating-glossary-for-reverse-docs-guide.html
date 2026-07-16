@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<!--
+  generating-glossary-for-reverse-docs スキルガイド（単一ファイル自己完結型）
+
+  - 外部リソース（CDN・画像・link）は一切使わず、完全自己完結に保つ
+  - 視覚言語は generating-tech-stack-for-reverse-docs-guide.html に合わせる
+-->
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>generating-glossary-for-reverse-docs スキルガイド</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 0 24px 96px;
+    font-family: system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif;
+    line-height: 1.85; color: #1a1a1a; background: #fafafa;
+    max-width: 980px; margin-inline: auto;
+  }
+  header { padding: 56px 0 24px; border-bottom: 3px solid #1a1a1a; }
+  header h1 { font-size: 1.9rem; margin: 0 0 10px; letter-spacing: 0.01em; }
+  header .skill-name {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 1.0rem; background: #1a1a1a; color: #fafafa;
+    padding: 2px 10px; border-radius: 4px; vertical-align: middle;
+  }
+  header p { margin: 6px 0 0; color: #555; }
+  .meta-table { margin-top: 16px; font-size: 0.9rem; color: #555; }
+  .meta-table td { padding: 1px 16px 1px 0; }
+
+  nav.toc {
+    margin-top: 32px; padding: 18px 22px;
+    background: #fff; border: 1px solid #e0e0e0; border-radius: 8px;
+  }
+  nav.toc .toc-title { font-weight: 700; margin-bottom: 6px; }
+  nav.toc ol { margin: 0; padding-left: 1.4em; columns: 2; column-gap: 40px; }
+  nav.toc li { margin: 2px 0; }
+  nav.toc a { color: #1a1a1a; text-decoration: none; border-bottom: 1px dotted #999; }
+  nav.toc a:hover { border-bottom-style: solid; }
+
+  section { margin-top: 64px; }
+  section > h2 {
+    font-size: 1.35rem; padding-bottom: 8px; margin-bottom: 20px;
+    border-bottom: 2px solid #1a1a1a;
+  }
+  section > h2 .sec-num {
+    display: inline-block; min-width: 2.4em; margin-right: 10px;
+    font-family: ui-monospace, monospace; font-size: 0.95rem;
+    background: #1a1a1a; color: #fafafa; text-align: center;
+    padding: 1px 8px; border-radius: 4px; vertical-align: 2px;
+  }
+  h3 { font-size: 1.05rem; margin: 32px 0 10px; }
+  .note { color: #555; font-size: 0.92rem; }
+
+  table.spec { border-collapse: collapse; width: 100%; margin: 14px 0; background: #fff; font-size: 0.93rem; }
+  table.spec th, table.spec td { border: 1px solid #d8d8d8; padding: 8px 12px; text-align: left; vertical-align: top; }
+  table.spec th { background: #f0f0ee; font-weight: 700; white-space: nowrap; }
+  table.spec td code, li code, p code, dd code, table.spec th code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.86em; background: #eeeeea; padding: 1px 5px; border-radius: 3px;
+  }
+
+  pre.flow {
+    background: #16211c; color: #d7e6dc; border-radius: 8px;
+    padding: 20px 24px; overflow-x: auto;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.82rem; line-height: 1.55;
+  }
+  pre.flow .cap { color: #8fb8a0; }
+
+  .def {
+    background: #fff; border-left: 4px solid #1a1a1a;
+    padding: 12px 18px; margin: 14px 0; border-radius: 0 6px 6px 0;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  }
+  .def dt { font-weight: 700; margin-top: 8px; }
+  .def dt:first-child { margin-top: 0; }
+  .def dd { margin: 2px 0 0 0; color: #333; }
+
+  .constraint {
+    background: #eef2f7; border: 1px solid #c8d4e3; border-radius: 8px;
+    padding: 12px 18px; margin: 16px 0; font-size: 0.93rem;
+  }
+  .constraint strong:first-child { color: #2a4a7a; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>用語辞書ページ生成スキル<br><span class="skill-name">generating-glossary-for-reverse-docs</span></h1>
+  <p>プロジェクト共通文書・アーキテクチャ調査書・対象リポジトリのコード識別子を層化サンプリングで採録し、二段承認と機械検証を経て「用語辞書.html」を生成するスキルの確定仕様。</p>
+
+  <div class="def">
+    <dt>こんな人向け</dt>
+    <dd>
+      ポータルの将来ページ受け口に用語辞書カードを反映したい人 ／
+      設計文書・コードに散在する業務用語・技術用語・略語を一箇所に集約したい人
+    </dd>
+    <dt>こんな場面で使う</dt>
+    <dd>
+      プロジェクト共通文書とアーキテクチャ調査書が確定済みで、次にポータル基盤情報ページを揃えたい時 ／
+      新規参加者向けに用語の出所（文書・コード）を追跡可能な形で残したい時
+    </dd>
+  </div>
+
+  <table class="meta-table">
+    <tr><td>対応 OS</td><td>Windows WSL2 環境</td></tr>
+    <tr><td>検証状況</td><td>エンジンスクリプト（validate-page-data.sh / build-detail-page.sh）はフィクスチャでの動作確認済み。スキル単体の実機検証は未実施</td></tr>
+    <tr><td>依存</td><td>jq ／ <code>shared/scripts/detail-pages/validate-page-data.sh</code>・<code>build-detail-page.sh</code>（スキルフォルダ相対 <code>../../../shared/scripts/detail-pages/</code>）／ <code>shared/scripts/build-portal.sh</code>（任意・カード反映時）</td></tr>
+    <tr><td>関連資料</td><td><code>SKILL.md</code>, <code>references/glossary-extraction.md</code>, <code>../../../shared/scripts/detail-pages/page-data-schema.md</code></td></tr>
+  </table>
+</header>
+
+<nav class="toc">
+  <div class="toc-title">目次</div>
+  <ol>
+    <li><a href="#s1">概要</a></li>
+    <li><a href="#s2">出力</a></li>
+    <li><a href="#s3">用語</a></li>
+    <li><a href="#s4">動作フロー</a></li>
+    <li><a href="#s5">制約と禁止事項</a></li>
+    <li><a href="#s6">関連スキル・規約</a></li>
+  </ol>
+</nav>
+
+<section id="s1">
+  <h2><span class="sec-num">§1</span>概要</h2>
+  <p>リバースエンジニアリング設計のポータルには、将来ページの受け口（<code>docs_root</code> 直下に該当 HTML が実在するときだけカード化される仕組み）がある。本スキルはそのうち用語辞書（T2）専任の生成係として、プロジェクト共通文書・アーキテクチャ調査書・対象リポジトリのコード識別子を層化サンプリングで調べ、<strong>用語辞書.html</strong> を二段承認と機械検証付きで作成する。</p>
+  <p>他の detail-pages 系スキルと異なり、用語辞書には構造化された一次情報（manifest・調査書表）が存在しない。本スキルは<strong>採録型</strong>を取り、採録源に実在する記述・識別子から用語候補を構築する。語の意味を創作せず、根拠の無い語は生成せず <code>unresolved[]</code> へ退避する。</p>
+  <pre class="flow"><span class="cap">── 処理の全体像 ──────────────────────────────</span>
+
+  プロジェクト共通文書 + アーキテクチャ調査書 + コード識別子
+       │  Phase 1  採録方針（分類軸・採録源・除外パターン）の承認〈二段承認 1段目〉
+       ▼
+  文書由来候補 + コード由来候補（層化サンプリング）
+       │  Phase 2  抽出・統合（根拠なき語は unresolved へ）
+       ▼
+  用語候補一覧
+       │  Phase 3  候補一覧の取捨〈二段承認 2段目〉+ page-data.json 組み立て
+       ▼
+  page-data.json（pageKind: glossary）
+       │  Phase 4  validate-page-data.sh --target-repo で機械検証 + build-detail-page.sh
+       ▼
+  &lt;docs_root&gt;/用語辞書.html（+ 任意で build-portal.sh 再実行）</pre>
+  <p class="note">承認は 2 箇所（採録方針・候補一覧）にあり、無人実行時はいずれも既定値での自動承認として扱う（詳細は §4「無人実行時の扱い」）。</p>
+</section>
+
+<section id="s2">
+  <h2><span class="sec-num">§2</span>出力</h2>
+  <p>スキルを実行すると、以下の 2 点が生まれる。</p>
+  <div class="def">
+    <dt>用語辞書.html（<code>&lt;docs_root&gt;</code> 直下）</dt>
+    <dd>分類チップ（業務用語／技術用語／略語が既定）と検索ボックスで絞り込める用語一覧ページ。各行には定義・コード参照（<code>codeRefs[]</code>）・出所（<code>sourceRef</code>）が付き、読んだ人は語がどの文書またはどのコード識別子から採録されたかをその場で追跡できる。根拠の無い語があれば「未解決」節に理由付きで表示される。</dd>
+    <dt>埋め込み page-data JSON</dt>
+    <dd>一覧 HTML の中に、生成の元になった page-data.json がそのまま埋め込まれる。読んだ人は「いつ・どの採録源から生成されたか」を HTML 単体で追跡でき、機械処理（後続スキルからの参照）にも使える。</dd>
+  </div>
+  <p class="note">Phase 1（採録方針）・Phase 3（候補一覧）のいずれかで承認が得られない場合、本スキルは生成を行わず承認状況を報告して停止する。</p>
+</section>
+
+<section id="s3">
+  <h2><span class="sec-num">§3</span>用語</h2>
+  <dl class="def">
+    <dt>page-data.json</dt>
+    <dd>detail-pages 系 5 スキルが共有する入力 JSON。<code>pageKind</code> ごとに型別スロットを持つ。本スキルは <code>pageKind: "glossary"</code> を固定で使う。スキーマの全量は <code>page-data-schema.md</code> を参照。</dd>
+    <dt>categories / terms</dt>
+    <dd>glossary 型のスロット。<code>categories[]</code> は分類軸（既定: 業務用語／技術用語／略語）、<code>terms[]</code> は <code>{term, definition, codeRefs[], category, sourceRef}</code> 形式の用語 1 件 = 1 要素。</dd>
+    <dt>層化サンプリング</dt>
+    <dd>コード識別子の採録源を決定的な手順（<code>find</code>/<code>sort</code>/<code>head</code>）で選定する Phase 2 の処理。層定義・識別子の分解規則・除外既定は <code>glossary-extraction.md</code> を参照。</dd>
+    <dt>二段承認</dt>
+    <dd>Phase 1（採録方針）と Phase 3（候補一覧）の 2 箇所で行う承認。転記のみの他種別（techstack 等）と異なり、用語辞書は「何を採るか」と「採った結果をどう間引くか」の 2 つの意思決定を要するため。</dd>
+    <dt>unresolved</dt>
+    <dd>採録源に定義の根拠が無い語の退避先。<code>{label, reason, sourceRef?}</code> 形式。捏造せず「未解決」として可視化する。</dd>
+  </dl>
+</section>
+
+<section id="s4">
+  <h2><span class="sec-num">§4</span>動作フロー</h2>
+  <p>起動引数は <code>target_repo_path</code>・<code>docs_root</code>（必須）と <code>portal_output_dir</code>（任意）の 3 つ。種別は glossary に固定されているため、種別を選ぶ引数はない。</p>
+  <table class="spec">
+    <tr><th>Phase</th><th>内容</th><th>完了条件</th></tr>
+    <tr>
+      <td><strong>Phase 1</strong><br>採録方針の承認〈1段目〉</td>
+      <td>分類軸・採録源（3 系統の実在確認）・除外パターンを確定し AskUserQuestion で承認を取る</td>
+      <td>採録方針が承認済み、または採録源不在を報告して停止</td>
+    </tr>
+    <tr>
+      <td><strong>Phase 2</strong><br>採録</td>
+      <td>文書由来候補（全読）とコード由来候補（層化サンプリング + 識別子分解）を抽出し統合。根拠なき語は unresolved へ</td>
+      <td>terms[] と（該当あれば）unresolved[] が確定済み</td>
+    </tr>
+    <tr>
+      <td><strong>Phase 3</strong><br>候補一覧の承認〈2段目〉</td>
+      <td>HTML 化前に用語候補一覧を提示し AskUserQuestion で取捨（削除・言い換え）を受け page-data.json を組み立て</td>
+      <td>取捨結果を反映した page-data.json 保存済み</td>
+    </tr>
+    <tr>
+      <td><strong>Phase 4</strong><br>整合検証・用語辞書.html 生成</td>
+      <td><code>validate-page-data.sh --target-repo</code> で検証後 <code>build-detail-page.sh --page glossary</code> を実行。<code>portal_output_dir</code> 指定時は <code>build-portal.sh</code> を再実行</td>
+      <td>全項目 PASS。HTML 生成済み。指定時は build-portal.sh 再実行済み</td>
+    </tr>
+  </table>
+  <p class="note">エンジンスクリプトはスキルフォルダ相対 <code>../../../shared/scripts/detail-pages/</code> で参照する。</p>
+
+  <h3>無人実行時の扱い</h3>
+  <table class="spec">
+    <tr><th>承認対象</th><th>既定値</th></tr>
+    <tr><td>Phase 1（採録方針）</td><td>分類軸=業務用語/技術用語/略語の3軸、採録源=実在確認済みの3系統すべて、除外パターン=<code>glossary-extraction.md</code>「除外既定」節の値のみ</td></tr>
+    <tr><td>Phase 3（候補一覧）</td><td>Phase 2で確定した terms[] をそのまま採用（削除・言い換えなし）</td></tr>
+  </table>
+  <p class="note">両方とも自動承認した旨と適用した既定値を返却ブロックの <code>hint</code> に記録する。呼び出し元の契約（<code>contract.md</code>）への置換規則の反映は本スキルのスコープ外。</p>
+
+  <h3>返却（呼び出し元との契約）</h3>
+  <table class="spec">
+    <tr><th>キー</th><th>内容</th></tr>
+    <tr><td><code>status</code></td><td><code>DONE</code> | <code>STOPPED</code>（採録源不在）| <code>ERROR</code></td></tr>
+    <tr><td><code>artifacts</code></td><td>生成した用語辞書.html のパス（<code>STOPPED</code>/<code>ERROR</code> 時は空）</td></tr>
+    <tr><td><code>page_kind</code></td><td><code>glossary</code>（固定値）</td></tr>
+    <tr><td><code>portal_rebuilt</code></td><td>build-portal.sh 再実行の有無</td></tr>
+    <tr><td><code>hint</code></td><td>停止理由、ヘッドレス自動承認の既定値適用記録、または次工程への申し送り</td></tr>
+  </table>
+</section>
+
+<section id="s5">
+  <h2><span class="sec-num">§5</span>制約と禁止事項</h2>
+  <div class="constraint">
+    <strong>手作業でのプレースホルダ置換は禁止。</strong>
+    用語辞書.html は必ず <code>build-detail-page.sh</code> 経由の決定的処理で生成する。
+  </div>
+  <div class="constraint">
+    <strong>語の意味の創作を禁止。</strong>
+    採録源（文書・コード識別子の使用文脈）に根拠の無い定義は書かない。根拠が無い語は unresolved へ退避する。
+  </div>
+  <div class="constraint">
+    <strong>層化サンプリングは決定的コマンドに固定。</strong>
+    <code>find</code>/<code>sort</code>/<code>head</code> による決定的選定のみを使う。乱数・目視選定を禁止する。
+  </div>
+  <h3>抽出時の落とし穴</h3>
+  <table class="spec">
+    <tr><th>落とし穴</th><th>対処</th></tr>
+    <tr><td>Phase 3 の言い換え指示で採録源に無い新規事実を追加してしまう</td><td>既存記述の言い回し変更に限る。新規事実の追加指示は反映せず hint に記録する</td></tr>
+    <tr><td>フレームワーク API 名（<code>useState</code> 等）を業務用語として誤採録する</td><td><code>glossary-extraction.md</code>「除外既定」節の除外パターンを Phase 1 で確認する</td></tr>
+    <tr><td>jq 未インストール環境での検証・生成失敗</td><td>validate/build 両スクリプトが jq に依存するため事前に導入する</td></tr>
+  </table>
+</section>
+
+<section id="s6">
+  <h2><span class="sec-num">§6</span>関連スキル・規約</h2>
+  <table class="spec">
+    <tr><th>関連</th><th>関係</th></tr>
+    <tr><td><code>orchestrating-reverse-docs-flow</code></td><td>工程全体の案内役。本スキルはポータル基盤情報ページの 1 種を担い、単独起動もできる</td></tr>
+    <tr><td><code>generating-reverse-common-docs</code></td><td>本スキルのデータ源（プロジェクト共通文書）を確定する前工程。層化サンプリングの決定的手順（<code>sampling-rules.md</code>）を踏襲する</td></tr>
+    <tr><td><code>surveying-architecture-for-reverse-docs</code></td><td>本スキルのデータ源（アーキテクチャ調査書・ディレクトリ責務マップ）を確定する前工程</td></tr>
+    <tr><td>他の detail-pages 系 4 スキル（技術スタック・画面遷移図・ER図・環境実行手順）</td><td>同じエンジンスクリプト（validate-page-data.sh / build-detail-page.sh）を共用する兄弟スキル</td></tr>
+    <tr><td><code>page-data-schema.md</code></td><td>page-data.json のスキーマ正本</td></tr>
+    <tr><td><code>glossary-extraction.md</code></td><td>本スキル同梱の採録戦略ガイダンス（層定義・識別子復元規則・除外既定）</td></tr>
+  </table>
+</section>
+
+</body>
+</html>

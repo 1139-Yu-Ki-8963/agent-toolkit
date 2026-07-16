@@ -261,7 +261,7 @@
 
 <section id="s2">
   <h2><span class="sec-num">§2</span>スキル→成果物対応表</h2>
-  <p>指揮役 1 つを含む全 18 スキルのうち、指揮役が仲介する子スキル 17 個の一覧。状態キーは指揮役の状態判定表（contract.md）で当該スキルの起動条件となる状態、返却 status は各スキルが返す判定値、主成果物は完了時に確立する代表的な生成物を示す。個別ガイドがあるスキルはスキル名からたどれる。</p>
+  <p>指揮役 1 つを含む全 23 スキルのうち、指揮役が仲介する子スキル 22 個の一覧。状態キーは指揮役の状態判定表（contract.md）で当該スキルの起動条件となる状態、返却 status は各スキルが返す判定値、主成果物は完了時に確立する代表的な生成物を示す。個別ガイドがあるスキルはスキル名からたどれる。</p>
   <table class="spec">
     <tr><th>スキル</th><th>状態キー</th><th>返却 status</th><th>主成果物</th></tr>
     <tr>
@@ -366,6 +366,36 @@
       <td><code>BATCH-COMPLETE | BATCH-IN-PROGRESS | BATCH-ABORTED</code></td>
       <td>画面バッチ実行ログ（batch-log.txt）・進捗記録（progress.jsonl）</td>
     </tr>
+    <tr>
+      <td><a href=".claude/skills/generating-tech-stack-for-reverse-docs/references/generating-tech-stack-for-reverse-docs-guide.html"><code>generating-tech-stack-for-reverse-docs</code></a></td>
+      <td>基盤ページ未生成（任意）</td>
+      <td><code>DONE | ERROR</code></td>
+      <td>技術スタック.html</td>
+    </tr>
+    <tr>
+      <td><a href=".claude/skills/generating-env-guide-for-reverse-docs/references/generating-env-guide-for-reverse-docs-guide.html"><code>generating-env-guide-for-reverse-docs</code></a></td>
+      <td>基盤ページ未生成（任意）</td>
+      <td><code>DONE | ERROR</code></td>
+      <td>環境実行手順.html</td>
+    </tr>
+    <tr>
+      <td><a href=".claude/skills/generating-screen-transition-for-reverse-docs/references/generating-screen-transition-for-reverse-docs-guide.html"><code>generating-screen-transition-for-reverse-docs</code></a></td>
+      <td>基盤ページ未生成（任意）</td>
+      <td><code>DONE | ERROR</code></td>
+      <td>画面遷移図.html</td>
+    </tr>
+    <tr>
+      <td><a href=".claude/skills/generating-er-diagram-for-reverse-docs/references/generating-er-diagram-for-reverse-docs-guide.html"><code>generating-er-diagram-for-reverse-docs</code></a></td>
+      <td>基盤ページ未生成（任意）</td>
+      <td><code>DONE | ERROR</code></td>
+      <td>ER図.html</td>
+    </tr>
+    <tr>
+      <td><a href=".claude/skills/generating-glossary-for-reverse-docs/references/generating-glossary-for-reverse-docs-guide.html"><code>generating-glossary-for-reverse-docs</code></a></td>
+      <td>基盤ページ未生成（任意）</td>
+      <td><code>DONE | ERROR</code></td>
+      <td>用語辞書.html</td>
+    </tr>
   </table>
   <p class="note">指揮役 <code>orchestrating-reverse-docs-flow</code> 自身は状態判定と検収・配線に徹する（<a href=".claude/skills/orchestrating-reverse-docs-flow/references/orchestrating-reverse-docs-flow-guide.html">指揮役ガイド</a>）。成果物では <code>一覧/excluded-kinds.json</code> の書き出しのみ指揮役が担う。</p>
 </section>
@@ -440,6 +470,11 @@
             <li><span class="node">基本設計/外部連携基本設計書.md</span><span class="by">上位抽象化スキル（基本設計）</span> <span class="tag planned">段階計画 Cycle 4</span></li>
           </ul>
         </li>
+        <li><span class="node">用語辞書.html</span><span class="by">generating-glossary-for-reverse-docs</span> <span class="tag done">済</span></li>
+        <li><span class="node">技術スタック.html</span><span class="by">generating-tech-stack-for-reverse-docs</span> <span class="tag done">済</span></li>
+        <li><span class="node">画面遷移図.html</span><span class="by">generating-screen-transition-for-reverse-docs</span> <span class="tag done">済</span></li>
+        <li><span class="node">ER図.html</span><span class="by">generating-er-diagram-for-reverse-docs</span> <span class="tag done">済</span></li>
+        <li><span class="node">環境実行手順.html</span><span class="by">generating-env-guide-for-reverse-docs</span> <span class="tag done">済</span></li>
       </ul>
     </li>
   </ul>

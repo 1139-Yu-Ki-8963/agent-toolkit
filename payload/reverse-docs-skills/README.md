@@ -4,7 +4,7 @@
 
 ## 概要
 
-このリポジトリは、指揮役スキル 1 つと子スキル 17 個（一覧生成 6 + 機能一覧 1 + 工程 10）で構成される。既存コードベースを走査して一覧・共通文書・詳細設計書を積み上げ、最後に「設計書だけからコードを再生成し、原本と機械突合する」往復検証で設計書の品質を保証する。再生成コードが原本と一致しなければ設計書のどこかに欠落がある、という考え方により、設計書の完成度を主観ではなく機械判定（画面描画・内容・ARIA・画素差分・console・操作の各一致）で確定させる。
+このリポジトリは、指揮役スキル 1 つと子スキル 22 個（一覧生成 6 + 機能一覧 1 + 基盤ページ生成 5 + 工程 10）で構成される。既存コードベースを走査して一覧・共通文書・詳細設計書を積み上げ、最後に「設計書だけからコードを再生成し、原本と機械突合する」往復検証で設計書の品質を保証する。再生成コードが原本と一致しなければ設計書のどこかに欠落がある、という考え方により、設計書の完成度を主観ではなく機械判定（画面描画・内容・ARIA・画素差分・console・操作の各一致）で確定させる。
 
 ## 成果物の最終形
 
@@ -36,7 +36,7 @@
 
 ## スキル一覧
 
-指揮役 1 + 一覧生成 6 + 機能一覧 1 + 工程 10 の計 18 スキル。
+指揮役 1 + 一覧生成 6 + 機能一覧 1 + 基盤ページ生成 5 + 工程 10 の計 23 スキル。
 
 | スキル名 | 役割 | 主成果物 |
 |---|---|---|
@@ -47,6 +47,12 @@
 | generating-batch-list-for-reverse-docs | バッチの一覧生成 | バッチ一覧.html |
 | generating-report-list-for-reverse-docs | 帳票の一覧生成 | 帳票一覧.html |
 | generating-external-list-for-reverse-docs | 外部連携の一覧生成 | 外部連携一覧.html |
+| generating-feature-list-for-reverse-docs | 既存一覧を業務機能単位でグルーピングした派生一覧を生成 | 機能一覧.html |
+| generating-tech-stack-for-reverse-docs | 調査書と定義ファイルの実測突合から技術スタックページを生成 | 技術スタック.html |
+| generating-env-guide-for-reverse-docs | 調査書とローカル環境調査結果から環境実行手順ページを生成 | 環境実行手順.html |
+| generating-screen-transition-for-reverse-docs | 画面一覧マニフェストとルーティング定義から画面遷移図を生成 | 画面遷移図.html |
+| generating-er-diagram-for-reverse-docs | テーブル一覧マニフェストと FK 定義から ER 図を生成 | ER図.html |
+| generating-glossary-for-reverse-docs | 層化サンプリングによる採録から用語辞書ページを生成 | 用語辞書.html |
 | surveying-architecture-for-reverse-docs | 対象リポジトリの前提調査を機械検証付きで確定 | アーキテクチャ調査書.md |
 | unlocking-reverse-target-screens | 設計書が無い画面をモック API で開通させ基準タグ確立まで単独完走 | 画面レジストリ記帳・基準タグ |
 | syncing-reverse-env | リバース元と設計書の 2 環境同期・比較・基準タグ操作 | 基準タグ・比較結果ブロック |
@@ -167,3 +173,9 @@ Skill(orchestrating-reverse-docs-flow)
 - [バッチ一覧生成（generating-batch-list-for-reverse-docs）](.claude/skills/generating-batch-list-for-reverse-docs/references/generating-batch-list-for-reverse-docs-guide.html)
 - [帳票一覧生成（generating-report-list-for-reverse-docs）](.claude/skills/generating-report-list-for-reverse-docs/references/generating-report-list-for-reverse-docs-guide.html)
 - [外部連携一覧生成（generating-external-list-for-reverse-docs）](.claude/skills/generating-external-list-for-reverse-docs/references/generating-external-list-for-reverse-docs-guide.html)
+- [機能一覧生成（generating-feature-list-for-reverse-docs）](.claude/skills/generating-feature-list-for-reverse-docs/references/generating-feature-list-for-reverse-docs-guide.html)
+- [技術スタックページ生成（generating-tech-stack-for-reverse-docs）](.claude/skills/generating-tech-stack-for-reverse-docs/references/generating-tech-stack-for-reverse-docs-guide.html)
+- [環境実行手順ページ生成（generating-env-guide-for-reverse-docs）](.claude/skills/generating-env-guide-for-reverse-docs/references/generating-env-guide-for-reverse-docs-guide.html)
+- [画面遷移図生成（generating-screen-transition-for-reverse-docs）](.claude/skills/generating-screen-transition-for-reverse-docs/references/generating-screen-transition-for-reverse-docs-guide.html)
+- [ER図生成（generating-er-diagram-for-reverse-docs）](.claude/skills/generating-er-diagram-for-reverse-docs/references/generating-er-diagram-for-reverse-docs-guide.html)
+- [用語辞書ページ生成（generating-glossary-for-reverse-docs）](.claude/skills/generating-glossary-for-reverse-docs/references/generating-glossary-for-reverse-docs-guide.html)

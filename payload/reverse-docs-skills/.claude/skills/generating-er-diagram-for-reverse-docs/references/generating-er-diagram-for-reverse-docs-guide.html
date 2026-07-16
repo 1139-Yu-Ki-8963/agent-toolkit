@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<!--
+  generating-er-diagram-for-reverse-docs スキルガイド（単一ファイル自己完結型）
+
+  - 外部リソース（CDN・画像・link）は一切使わず、完全自己完結に保つ
+  - 視覚言語は generating-tech-stack-for-reverse-docs-guide.html に合わせる
+-->
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>generating-er-diagram-for-reverse-docs スキルガイド</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 0 24px 96px;
+    font-family: system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif;
+    line-height: 1.85; color: #1a1a1a; background: #fafafa;
+    max-width: 980px; margin-inline: auto;
+  }
+  header { padding: 56px 0 24px; border-bottom: 3px solid #1a1a1a; }
+  header h1 { font-size: 1.9rem; margin: 0 0 10px; letter-spacing: 0.01em; }
+  header .skill-name {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 1.0rem; background: #1a1a1a; color: #fafafa;
+    padding: 2px 10px; border-radius: 4px; vertical-align: middle;
+  }
+  header p { margin: 6px 0 0; color: #555; }
+  .meta-table { margin-top: 16px; font-size: 0.9rem; color: #555; }
+  .meta-table td { padding: 1px 16px 1px 0; }
+
+  nav.toc {
+    margin-top: 32px; padding: 18px 22px;
+    background: #fff; border: 1px solid #e0e0e0; border-radius: 8px;
+  }
+  nav.toc .toc-title { font-weight: 700; margin-bottom: 6px; }
+  nav.toc ol { margin: 0; padding-left: 1.4em; columns: 2; column-gap: 40px; }
+  nav.toc li { margin: 2px 0; }
+  nav.toc a { color: #1a1a1a; text-decoration: none; border-bottom: 1px dotted #999; }
+  nav.toc a:hover { border-bottom-style: solid; }
+
+  section { margin-top: 64px; }
+  section > h2 {
+    font-size: 1.35rem; padding-bottom: 8px; margin-bottom: 20px;
+    border-bottom: 2px solid #1a1a1a;
+  }
+  section > h2 .sec-num {
+    display: inline-block; min-width: 2.4em; margin-right: 10px;
+    font-family: ui-monospace, monospace; font-size: 0.95rem;
+    background: #1a1a1a; color: #fafafa; text-align: center;
+    padding: 1px 8px; border-radius: 4px; vertical-align: 2px;
+  }
+  h3 { font-size: 1.05rem; margin: 32px 0 10px; }
+  .note { color: #555; font-size: 0.92rem; }
+
+  table.spec { border-collapse: collapse; width: 100%; margin: 14px 0; background: #fff; font-size: 0.93rem; }
+  table.spec th, table.spec td { border: 1px solid #d8d8d8; padding: 8px 12px; text-align: left; vertical-align: top; }
+  table.spec th { background: #f0f0ee; font-weight: 700; white-space: nowrap; }
+  table.spec td code, li code, p code, dd code, table.spec th code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.86em; background: #eeeeea; padding: 1px 5px; border-radius: 3px;
+  }
+
+  pre.flow {
+    background: #16211c; color: #d7e6dc; border-radius: 8px;
+    padding: 20px 24px; overflow-x: auto;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.82rem; line-height: 1.55;
+  }
+  pre.flow .cap { color: #8fb8a0; }
+
+  .def {
+    background: #fff; border-left: 4px solid #1a1a1a;
+    padding: 12px 18px; margin: 14px 0; border-radius: 0 6px 6px 0;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  }
+  .def dt { font-weight: 700; margin-top: 8px; }
+  .def dt:first-child { margin-top: 0; }
+  .def dd { margin: 2px 0 0 0; color: #333; }
+
+  .constraint {
+    background: #eef2f7; border: 1px solid #c8d4e3; border-radius: 8px;
+    padding: 12px 18px; margin: 16px 0; font-size: 0.93rem;
+  }
+  .constraint strong:first-child { color: #2a4a7a; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>ER図生成スキル<br><span class="skill-name">generating-er-diagram-for-reverse-docs</span></h1>
+  <p>テーブル一覧.html に埋め込まれた manifest をエンティティの正としつつ、対象リポジトリのマイグレーション／ORM モデルから外部キーを抽出し、「ER図.html」を機械検証付きで生成するスキルの確定仕様。</p>
+
+  <div class="def">
+    <dt>こんな人向け</dt>
+    <dd>
+      ポータルの将来ページ受け口に ER 図カードを反映したい人 ／
+      テーブル一覧に載ったテーブル同士の関連を、コードの外部キー定義から機械的に裏取りしたい人
+    </dd>
+    <dt>こんな場面で使う</dt>
+    <dd>
+      テーブル一覧.html が確定済みで、次にポータル基盤情報ページを揃えたい時 ／
+      マイグレーション・ORM モデルに散らばる外部キー定義を 1 枚の図として俯瞰したい時
+    </dd>
+  </div>
+
+  <table class="meta-table">
+    <tr><td>対応 OS</td><td>Windows WSL2 環境</td></tr>
+    <tr><td>検証状況</td><td>エンジンスクリプト（validate-page-data.sh / build-detail-page.sh）とテーブル一覧の埋め込み manifest 契約（unit-manifest）はフィクスチャでの動作確認済み。スキル単体の実機検証は未実施</td></tr>
+    <tr><td>依存</td><td>jq ／ <code>shared/scripts/detail-pages/validate-page-data.sh</code>・<code>build-detail-page.sh</code>（スキルフォルダ相対 <code>../../../shared/scripts/detail-pages/</code>）／ <code>shared/scripts/build-portal.sh</code>（任意・カード反映時）</td></tr>
+    <tr><td>関連資料</td><td><code>SKILL.md</code>, <code>references/er-detection.md</code>, <code>../../../shared/scripts/detail-pages/page-data-schema.md</code></td></tr>
+  </table>
+</header>
+
+<nav class="toc">
+  <div class="toc-title">目次</div>
+  <ol>
+    <li><a href="#s1">概要</a></li>
+    <li><a href="#s2">出力</a></li>
+    <li><a href="#s3">用語</a></li>
+    <li><a href="#s4">動作フロー</a></li>
+    <li><a href="#s5">制約と禁止事項</a></li>
+    <li><a href="#s6">関連スキル・規約</a></li>
+  </ol>
+</nav>
+
+<section id="s1">
+  <h2><span class="sec-num">§1</span>概要</h2>
+  <p>リバースエンジニアリング設計のポータルには、将来ページの受け口（<code>docs_root</code> 直下に該当 HTML が実在するときだけカード化される仕組み）がある。本スキルはそのうち ER図（T4）専任の生成係として、テーブル一覧 manifest のエンティティと対象リポジトリの外部キー定義を突き合わせ、<strong>ER図.html</strong> を機械検証付きで作成する。</p>
+  <p>本スキルは判定・評価をしない。テーブル設計の良否・正規化の妥当性は問わず、外部キーとして検出できた関連のみを転記する。参照先テーブルが manifest に存在しない外部キーは捏造せず未解決として分離し、外部キーを 1 件も検出できなければ生成せず停止報告する。</p>
+  <pre class="flow"><span class="cap">── 処理の全体像 ──────────────────────────────</span>
+
+  テーブル一覧.html（script#unit-manifest）
+       │  Phase 1  前提確認 + ORM/migration種別判別 + 検出戦略の承認
+       ▼
+  対象リポジトリのマイグレーション/ORMモデル
+       │  Phase 2  manifestからentities抽出 + FK走査でrelations/unresolved振り分け
+       ▼
+  page-data.json（pageKind: er）
+       │  Phase 3  孤児relation0件の確認 + validate-page-data.sh --target-repo
+       ▼
+  検証済み page-data
+       │  Phase 4  build-detail-page.sh --page er
+       ▼
+  &lt;docs_root&gt;/ER図.html（+ 任意で build-portal.sh 再実行）</pre>
+  <p class="note">画面遷移図と同様、本スキルは「確定済みの一覧（テーブル一覧）」と「コード新規抽出（外部キー走査）」の 2 段構成を持つ。エンティティ自体は新規抽出せず、テーブル一覧 manifest をそのまま正とする。</p>
+</section>
+
+<section id="s2">
+  <h2><span class="sec-num">§2</span>出力</h2>
+  <p>スキルを実行すると、以下の 2 点が生まれる。</p>
+  <div class="def">
+    <dt>ER図.html（<code>&lt;docs_root&gt;</code> 直下）</dt>
+    <dd>テーブル一覧の各テーブルをノードとし、外部キーで検出した関連を線で結んだ図と、その下に関連の詳細（参照元／参照先／cardinality／出所）を並べた補足表を持つページ。参照先テーブルが manifest に存在しない外部キーは、図には現れず「未解決」節に理由付きで一覧表示される。</dd>
+    <dt>埋め込み page-data JSON</dt>
+    <dd>ER図.html の中に、生成の元になった page-data.json がそのまま埋め込まれる。読んだ人は「いつ・どのテーブル一覧 manifest とどの外部キー定義から生成されたか」を HTML 単体で追跡でき、機械処理（後続スキルからの参照）にも使える。</dd>
+  </div>
+  <p class="note">外部キーが 1 件も検出できない場合、本スキルは生成を行わず 0 件検出の報告のみで終わる。この場合、ER図.html は生まれない。</p>
+</section>
+
+<section id="s3">
+  <h2><span class="sec-num">§3</span>用語</h2>
+  <dl class="def">
+    <dt>page-data.json</dt>
+    <dd>detail-pages 系 5 スキルが共有する入力 JSON。<code>pageKind</code> ごとに型別スロットを持つ。本スキルは <code>pageKind: "er"</code> を固定で使う。スキーマの全量は <code>page-data-schema.md</code> を参照。</dd>
+    <dt>entities / relations</dt>
+    <dd>er 型のスロット。<code>entities[]</code> は <code>{key, label}</code> 形式のテーブルノード、<code>relations[]</code> は <code>{from, to, cardinality, sourceRef}</code> 形式の外部キー関連。<code>from</code>/<code>to</code> は <code>entities[].key</code> を参照する。</dd>
+    <dt>unresolved</dt>
+    <dd>参照先テーブルが manifest に存在しない外部キー、または cardinality を導出できない関連を分離する配列。<code>{label, reason, sourceRef}</code> 形式。</dd>
+    <dt>孤児関連</dt>
+    <dd><code>relations[].from</code>/<code>to</code> が <code>entities[].key</code> のいずれにも一致しない関連。Phase 2 の振り分けが正しく機能していれば発生しないが、Phase 3 で必ず再確認する（<code>validate-page-data.sh</code> 自体はこの整合性を検証しないため）。</dd>
+    <dt>整合検証</dt>
+    <dd><code>validate-page-data.sh --target-repo</code> による page-data.json の機械検査。<code>sourceRef</code> が対象リポジトリ上に実在するかを検査する。</dd>
+  </dl>
+</section>
+
+<section id="s4">
+  <h2><span class="sec-num">§4</span>動作フロー</h2>
+  <p>起動引数は <code>target_repo_path</code>・<code>docs_root</code>（必須）と <code>portal_output_dir</code>（任意）の 3 つ。種別は er に固定されているため、種別を選ぶ引数はない。</p>
+  <table class="spec">
+    <tr><th>Phase</th><th>内容</th><th>完了条件</th></tr>
+    <tr>
+      <td><strong>Phase 1</strong><br>前提確認 + 検出戦略宣言</td>
+      <td>テーブル一覧.html（script#unit-manifest）の実在確認（不在ならハード停止し generating-table-list-for-reverse-docs の先行実行を案内）、ORM/migration 種別の判別、検出戦略の AskUserQuestion 承認</td>
+      <td>manifest の実在確認済み・検出戦略が承認済み、または不在を報告して停止</td>
+    </tr>
+    <tr>
+      <td><strong>Phase 2</strong><br>抽出</td>
+      <td>manifest の <code>units[]</code> から <code>entities[]</code> を組み立て、FK 走査で <code>relations[]</code>/<code>unresolved[]</code> へ振り分け。0 件なら生成せず停止報告</td>
+      <td>振り分け完了で page-data.json 保存済み、または 0 件を報告して停止</td>
+    </tr>
+    <tr>
+      <td><strong>Phase 3</strong><br>整合検証</td>
+      <td>孤児関連 0 件の手動確認 + <code>validate-page-data.sh &lt;page-data.json&gt; --target-repo &lt;target_repo_path&gt;</code> を実行。FAIL は修正して再実行（3 回失敗で Phase 2 へ差し戻し）</td>
+      <td>孤児関連 0 件・全項目 PASS（exit 0）</td>
+    </tr>
+    <tr>
+      <td><strong>Phase 4</strong><br>ER図.html 生成</td>
+      <td><code>build-detail-page.sh &lt;page-data.json&gt; &lt;docs_root&gt; --page er</code> を実行。<code>portal_output_dir</code> 指定時は <code>build-portal.sh</code> を再実行しカードへ反映</td>
+      <td>HTML 生成済み。指定時は build-portal.sh 再実行済み</td>
+    </tr>
+  </table>
+  <p class="note">エンジンスクリプトはスキルフォルダ相対 <code>../../../shared/scripts/detail-pages/</code> で参照する。ORM 別 FK 検出パターンと cardinality 導出規則は <code>references/er-detection.md</code> を参照する。</p>
+
+  <h3>返却（呼び出し元との契約）</h3>
+  <table class="spec">
+    <tr><th>キー</th><th>内容</th></tr>
+    <tr><td><code>status</code></td><td><code>DONE</code> | <code>STOPPED</code>（テーブル一覧不在・FK 0 件）| <code>ERROR</code></td></tr>
+    <tr><td><code>artifacts</code></td><td>生成した ER図.html のパス（<code>STOPPED</code>/<code>ERROR</code> 時は空）</td></tr>
+    <tr><td><code>page_kind</code></td><td><code>er</code>（固定値）</td></tr>
+    <tr><td><code>portal_rebuilt</code></td><td>build-portal.sh 再実行の有無</td></tr>
+    <tr><td><code>hint</code></td><td>停止理由、または次工程への申し送り</td></tr>
+  </table>
+</section>
+
+<section id="s5">
+  <h2><span class="sec-num">§5</span>制約と禁止事項</h2>
+  <div class="constraint">
+    <strong>手作業でのプレースホルダ置換は禁止。</strong>
+    ER図.html は必ず <code>build-detail-page.sh</code> 経由の決定的処理で生成する。
+  </div>
+  <div class="constraint">
+    <strong>manifest 外参照は捏造しない。</strong>
+    参照先テーブルがテーブル一覧 manifest に存在しない外部キーは、関連として転記せず <code>unresolved[]</code> へ分離する。
+  </div>
+  <div class="constraint">
+    <strong>FK 0 件はハード停止。</strong>
+    検出戦略に沿って走査しても外部キーが 1 件も見つからない場合、生成せずに 0 件検出をユーザーへ報告して停止する。AskUserQuestion で手動関連を聞き出して即興確定しない。
+  </div>
+  <div class="constraint">
+    <strong>判定・評価は対象外。</strong>
+    テーブル設計の良否・正規化の妥当性には踏み込まない。本スキルの仕事は検出できた外部キー事実の転記のみ。
+  </div>
+  <h3>抽出時の落とし穴</h3>
+  <table class="spec">
+    <tr><th>落とし穴</th><th>対処</th></tr>
+    <tr><td>マイグレーションと ORM モデルの両方を無差別に走査し同一関連を二重検出する</td><td>テーブル一覧生成時に確定した正本と同じ側からのみ FK を抽出する</td></tr>
+    <tr><td>孤児関連（<code>from</code>/<code>to</code> が <code>entities[].key</code> に存在しない関連）が紛れ込む</td><td>Phase 2 で振り分け、Phase 3 で 0 件を再確認する（<code>validate-page-data.sh</code> はこの整合性を検証しない）</td></tr>
+    <tr><td>jq 未インストール環境での検証・生成失敗</td><td>validate/build 両スクリプトが jq に依存するため事前に導入する</td></tr>
+  </table>
+</section>
+
+<section id="s6">
+  <h2><span class="sec-num">§6</span>関連スキル・規約</h2>
+  <table class="spec">
+    <tr><th>関連</th><th>関係</th></tr>
+    <tr><td><code>orchestrating-reverse-docs-flow</code></td><td>工程全体の案内役。本スキルはポータル基盤情報ページの 1 種を担い、単独起動もできる</td></tr>
+    <tr><td><code>generating-table-list-for-reverse-docs</code></td><td>本スキルのデータ源（テーブル一覧.html の manifest）を確定する前工程。テーブル一覧不在時はこちらの先行実行が必要</td></tr>
+    <tr><td>他の detail-pages 系 4 スキル（用語辞書・技術スタック・画面遷移図・環境実行手順）</td><td>同じエンジンスクリプト（validate-page-data.sh / build-detail-page.sh）を共用する兄弟スキル</td></tr>
+    <tr><td><code>page-data-schema.md</code></td><td>page-data.json のスキーマ正本</td></tr>
+    <tr><td><code>er-detection.md</code></td><td>ORM 別 FK 検出パターンと cardinality 導出規則</td></tr>
+  </table>
+</section>
+
+</body>
+</html>

@@ -282,8 +282,8 @@ declare -A FUTURE_ICONS=(
 declare -A FUTURE_DESCS=(
   [glossary]="業務用語・技術用語・略語の定義とコード上の対応識別子の対訳。"
   [techstack]="言語・フレームワーク・主要依存パッケージのバージョンと採用箇所の整理。"
-  [transition]="画面一覧のルーティング情報から生成する画面遷移マップ。"
-  [er]="テーブル一覧の外部キー情報から生成するエンティティ関連図。"
+  [transition]="画面一覧とコード走査から生成する画面遷移マップ。"
+  [er]="テーブル一覧と外部キー定義から生成するエンティティ関連図。"
   [env]="ローカル起動手順・必須ツール・ポート割当の整理。"
 )
 FUTURE_ORDER="glossary techstack transition er env"

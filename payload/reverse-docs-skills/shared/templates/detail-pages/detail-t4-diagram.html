@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{TITLE}} — リバース設計ポータル</title>
+<!-- Material Symbols Outlined（CDN）。オフライン時はアイコン名がテキスト表示される -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200">
+<!--
+  detail-pages T4 図解型テンプレート — リバース設計スキル群(画面遷移図/ER図で共用)
+  生成: shared/scripts/detail-pages/build-detail-page.sh
+  プレースホルダ置換は build-detail-page.sh の render_template() が行う。
+  手作業によるプレースホルダ置換は禁止。生成は必ずスクリプト経由で行う。
+
+  図はclient-side描画: 埋め込みJSON(script#page-data)のnodes[]/edges[](画面遷移)または
+  entities[]/relations[](ER)から、ページ読込時にJavaScriptがSVGを構築する。図とJSONは
+  常に単一情報源。レイアウトは決定的単純アルゴリズムに限定する(判定・閾値・評価色は実装しない)。
+    - pageKind=transition: 入次数0のノードを起点とした層状配置(左→右)
+    - pageKind=er        : グリッド配置
+
+  保守注記: トークンブロック・テーマ切替(data-theme二重定義・rd-portal-theme)・
+  icons-readyガードは shared/templates/portal-template.html からの複製である。
+  同テンプレートの当該部分を変更した場合は本ファイルも同時更新すること
+  （T1一覧テンプレート群・T3テンプレートにも同種の複製あり。include化は別件）。
+
+  プレースホルダ(build-detail-page.shが注入。実際のマーカー記法は
+  scripts/detail-pages/build-detail-page.sh 冒頭コメントを正本とする。本コメントでは
+  二重置換事故を避けるため意図的に波括弧を外して記載する):
+    TITLE (ページ見出しマーカー)         : page-data.json の title
+    DESCRIPTION (ページ概要マーカー)     : page-data.json の description
+    GENERATED_AT (生成日時マーカー)      : page-data.json の generatedAt
+    PAGE_DATA_JSON (page-data埋め込みマーカー) : page-data.json の内容全体(本ファイル物理末尾のscriptタグへ注入)
+-->
+<style>
+:root,
+[data-theme="light"] {
+  --bg: #F7F5EE;
+  --panel: #FFFFFF;
+  --panel-2: #F0EDE3;
+  --border: #DAD5C5;
+  --border-strong: #BFB9A6;
+  --text: #1B1F26;
+  --text-sub: #4A4F58;
+  --text-muted: #767B85;
+  --accent: #3F4F8E;
+  --accent-2: #5A6BAE;
+  --accent-soft: #E6E9F3;
+  --accent-border: #BAC2DC;
+  --gold: #9B7A1F;
+  --gold-soft: #F5EFD9;
+  --gold-border: #DDC68A;
+  --success: #3F4F8E;
+  --success-soft: #E6E9F3;
+  --warn: #9B7A1F;
+  --danger: #9B3F2D;
+  --danger-soft: #F5E2DC;
+  --code-bg: #1B1F26;
+  --code-fg: #E8E5DC;
+  --mono: "SFMono-Regular","Menlo","Consolas",monospace;
+  --shadow-sm: 0 1px 2px rgba(27,31,38,.05), 0 1px 4px rgba(27,31,38,.04);
+  --shadow-md: 0 2px 6px rgba(27,31,38,.07), 0 8px 24px rgba(27,31,38,.06);
+  --radius: 10px;
+  --radius-sm: 6px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #15171C; --panel: #1C1F26; --panel-2: #232730;
+    --border: #353944; --border-strong: #4A4F5C;
+    --text: #E8E5DC; --text-sub: #B6B3AB; --text-muted: #888784;
+    --accent: #8FA3DB; --accent-2: #A8B8E5; --accent-soft: #2A2E47; --accent-border: #4C5680;
+    --gold: #D4B45D; --gold-soft: #3D3520; --gold-border: #7A6633;
+    --success: #8FA3DB; --success-soft: #2A2E47;
+    --warn: #D4B45D; --danger: #D4836E; --danger-soft: #3F2620;
+    --code-bg: #0E1116; --code-fg: #E8E5DC;
+  }
+}
+[data-theme="dark"] {
+  --bg: #15171C; --panel: #1C1F26; --panel-2: #232730;
+  --border: #353944; --border-strong: #4A4F5C;
+  --text: #E8E5DC; --text-sub: #B6B3AB; --text-muted: #888784;
+  --accent: #8FA3DB; --accent-2: #A8B8E5; --accent-soft: #2A2E47; --accent-border: #4C5680;
+  --gold: #D4B45D; --gold-soft: #3D3520; --gold-border: #7A6633;
+  --success: #8FA3DB; --success-soft: #2A2E47;
+  --warn: #D4B45D; --danger: #D4836E; --danger-soft: #3F2620;
+  --code-bg: #0E1116; --code-fg: #E8E5DC;
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: "Hiragino Kaku Gothic ProN","Hiragino Sans","Yu Gothic","Meiryo",system-ui,-apple-system,sans-serif;
+  background: var(--bg); color: var(--text); line-height: 1.7; font-size: 15px;
+}
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+/* アイコンフォント読込ガード:
+   フォント読込を document.fonts.check で確認できるまでアイコンを描画しない。
+   未読込のままだと ligature 名（"stacks" 等）が生テキストで露出しレイアウトを壊すため。 */
+.material-symbols-outlined { display: none; }
+.icons-ready .material-symbols-outlined {
+  display: inline-block;
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  vertical-align: middle;
+  font-size: 20px;
+}
+html:not(.icons-ready) .brand-icon { display: none; }
+
+.dp-page { display: grid; grid-template-rows: auto 1fr auto; min-height: 100vh; }
+
+.topbar {
+  display: grid; grid-template-columns: auto 1fr auto;
+  align-items: center; gap: 24px; padding: 12px 20px;
+  background: linear-gradient(180deg, var(--panel) 0%, var(--panel-2) 100%);
+  border-bottom: 1px solid var(--border);
+  position: sticky; top: 0; z-index: 10;
+}
+.brand { display: flex; align-items: baseline; gap: 8px; color: var(--text); }
+.brand:hover { text-decoration: none; }
+.brand-icon { display: inline-flex; align-items: center; }
+.brand-icon .material-symbols-outlined { font-size: 22px; color: var(--accent); }
+.brand-title { font-weight: 700; font-size: 16px; }
+.top-actions { display: flex; align-items: center; gap: 8px; }
+.top-actions button {
+  background: var(--panel-2); border: 1px solid var(--border); border-radius: var(--radius-sm);
+  color: var(--text-sub); cursor: pointer; padding: 5px 10px; font-size: 13px; font-family: inherit;
+  display: inline-flex; align-items: center; gap: 4px;
+}
+.top-actions button .material-symbols-outlined { font-size: 16px; }
+.top-actions button:hover { background: var(--accent-soft); color: var(--accent); border-color: var(--accent-border); }
+
+/* グリッドアイテムが内容幅で親を押し広げないための対策(portal-template.htmlと同一措置) */
+.dp-main { max-width: 1280px; width: 100%; min-width: 0; margin: 0 auto; padding: 24px 24px 64px; }
+
+.doc-crumbs { font-size: 12px; color: var(--text-muted); margin-bottom: 8px; }
+.doc-crumbs a { color: var(--text-sub); cursor: pointer; }
+.doc-crumbs a:hover { color: var(--accent); }
+
+.dp-hero {
+  display: flex; align-items: flex-end; justify-content: space-between; gap: 16px;
+  padding: 4px 2px 14px; border-bottom: 1px solid var(--border); margin-bottom: 20px; flex-wrap: wrap;
+}
+.dp-hero h1 { font-size: 23px; margin: 0; }
+.dp-hero p { font-size: 12.5px; color: var(--text-muted); margin: 4px 0 0; }
+.dp-updated {
+  font-size: 12px; color: var(--text-sub); background: var(--accent-soft);
+  border: 1px solid var(--accent-border); border-radius: 999px; padding: 3px 12px; white-space: nowrap;
+}
+
+.sec-label {
+  font-size: 12px; font-weight: 700; letter-spacing: 0.04em; color: var(--text-sub);
+  display: flex; align-items: center; gap: 8px; margin: 26px 0 12px;
+}
+.sec-label:first-of-type { margin-top: 6px; }
+.sec-label::before { content: ""; width: 4px; height: 14px; background: var(--accent); border-radius: 2px; }
+
+/* 凡例 */
+.legend-row { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 4px; min-width: 0; }
+.legend-item {
+  display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--text-sub);
+  background: var(--panel); border: 1px solid var(--border); border-radius: 999px; padding: 4px 12px;
+}
+.legend-symbol { font-weight: 700; color: var(--accent); }
+
+/* SVG図。図本体だけを横スクロールさせ、ページ本体は横スクロールさせない */
+.diagram-wrap {
+  overflow-x: auto; border-radius: var(--radius); border: 1px solid var(--border);
+  background: var(--panel); padding: 16px;
+}
+svg#diagram-svg { display: block; min-width: 100%; }
+.diagram-node-rect { fill: var(--accent-soft); stroke: var(--accent-border); stroke-width: 1.5; }
+.diagram-node-text { fill: var(--text); font-size: 12px; font-family: inherit; }
+.diagram-edge { stroke: var(--text-muted); stroke-width: 1.4; fill: none; }
+.diagram-arrow { fill: var(--text-muted); }
+.diagram-edge-label text { fill: var(--text-sub); font-size: 11px; font-family: inherit; }
+.diagram-empty { font-size: 13px; color: var(--text-muted); padding: 12px 4px; }
+
+/* 補足表。表本体だけを横スクロールさせ、ページ本体は横スクロールさせない */
+.table-wrap { overflow-x: auto; border-radius: var(--radius); }
+table.data-table {
+  width: 100%; min-width: 480px; border-collapse: collapse; font-size: 13px;
+  background: var(--panel); border: 1px solid var(--border);
+}
+table.data-table th {
+  text-align: left; font-size: 11.5px; font-weight: 700; color: var(--text-sub);
+  background: var(--panel-2); padding: 8px 12px; border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+table.data-table td { padding: 9px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+table.data-table tr:last-child td { border-bottom: none; }
+table.data-table code {
+  background: var(--panel-2); padding: 1px 6px; border-radius: 4px;
+  font-family: var(--mono); font-size: 11.5px; color: var(--text-sub);
+  border: 1px solid var(--border);
+}
+
+.note-box {
+  font-size: 12px; color: var(--text-sub); background: var(--panel-2);
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  padding: 8px 12px; margin: 14px 0 0;
+}
+
+.footer {
+  padding: 12px 20px; border-top: 1px solid var(--border);
+  font-size: 12px; color: var(--text-muted);
+  display: flex; gap: 20px; justify-content: center;
+}
+
+@media (max-width: 760px) {
+  .topbar { grid-template-columns: 1fr; gap: 8px; padding: 10px 14px; }
+  .dp-main { padding: 14px; }
+}
+@media (max-width: 560px) {
+  body { font-size: 14px; }
+  .dp-hero h1 { font-size: 20px; }
+  .dp-main { padding: 12px; }
+}
+
+.hidden { display: none !important; }
+</style>
+</head>
+<body>
+<div class="dp-page">
+  <header class="topbar">
+    <a class="brand" href="index.html">
+      <span class="brand-icon"><span class="material-symbols-outlined">arrow_back</span></span>
+      <span class="brand-title">{{TITLE}}</span>
+    </a>
+    <div></div>
+    <div class="top-actions">
+      <button id="theme-toggle" title="テーマ切替"><span class="material-symbols-outlined">dark_mode</span></button>
+    </div>
+  </header>
+
+  <main class="dp-main">
+    <div class="doc-crumbs"><a href="index.html">← ポータル TOP へ戻る</a></div>
+    <div class="dp-hero">
+      <div>
+        <h1>{{TITLE}}</h1>
+        <p>{{DESCRIPTION}}</p>
+      </div>
+      <span class="dp-updated">生成: {{GENERATED_AT}}</span>
+    </div>
+
+    <div class="sec-label">凡例</div>
+    <div class="legend-row" id="legend-mount"></div>
+
+    <div class="sec-label">図</div>
+    <div class="diagram-wrap">
+      <svg id="diagram-svg" xmlns="http://www.w3.org/2000/svg"></svg>
+    </div>
+
+    <div class="sec-label">補足</div>
+    <div class="table-wrap">
+      <table class="data-table" id="detail-table">
+        <thead id="detail-table-head"></thead>
+        <tbody id="detail-table-body"></tbody>
+      </table>
+    </div>
+
+    <div id="unresolved-mount"></div>
+  </main>
+
+  <footer class="footer">
+    <span>リバース設計スキル群が自動生成</span>
+  </footer>
+</div>
+
+<script type="application/json" id="page-data">
+{{PAGE_DATA_JSON}}
+</script>
+
+<script>
+(function() {
+  var data = JSON.parse(document.getElementById('page-data').textContent);
+  var kind = data.pageKind === 'er' ? 'er' : 'transition';
+
+  function el(tag, attrs, children) {
+    var node = document.createElement(tag);
+    if (attrs) Object.keys(attrs).forEach(function(k) {
+      if (k === 'html') node.innerHTML = attrs[k];
+      else node.setAttribute(k, attrs[k]);
+    });
+    if (children) {
+      if (!Array.isArray(children)) children = [children];
+      children.forEach(function(c) {
+        if (typeof c === 'string') node.appendChild(document.createTextNode(c));
+        else if (c) node.appendChild(c);
+      });
+    }
+    return node;
+  }
+
+  var SVGNS = 'http://www.w3.org/2000/svg';
+  function svgEl(tag, attrs) {
+    var node = document.createElementNS(SVGNS, tag);
+    if (attrs) Object.keys(attrs).forEach(function(k) { node.setAttribute(k, attrs[k]); });
+    return node;
+  }
+
+  // --- 凡例(legend[]) ---
+  var legendMount = document.getElementById('legend-mount');
+  var legend = data.legend || [];
+  if (legend.length === 0) {
+    legendMount.appendChild(el('div', { class: 'diagram-empty' }, '凡例なし'));
+  } else {
+    legend.forEach(function(l) {
+      legendMount.appendChild(el('div', { class: 'legend-item' }, [
+        el('span', { class: 'legend-symbol' }, l.symbol || ''),
+        el('span', null, l.meaning || '')
+      ]));
+    });
+  }
+
+  // --- ノード/エッジの取り出し(pageKindで分岐) ---
+  var keyField = kind === 'transition' ? 'unitKey' : 'key';
+  var nodesRaw = kind === 'transition' ? (data.nodes || []) : (data.entities || []);
+  var edgesRaw = kind === 'transition' ? (data.edges || []) : (data.relations || []);
+  var keys = nodesRaw.map(function(n) { return n[keyField]; });
+
+  var svg = document.getElementById('diagram-svg');
+  var diagramWrap = svg.parentNode;
+
+  if (keys.length === 0) {
+    diagramWrap.replaceChild(el('div', { class: 'diagram-empty' }, '図示できるノードがありません'), svg);
+  } else {
+    // --- 箱サイズ(ラベル長から決定的に算出) ---
+    var BOX_H = 44, MIN_W = 120, MAX_W = 220;
+    var boxW = {};
+    nodesRaw.forEach(function(n) {
+      var label = n.label || n[keyField] || '';
+      boxW[n[keyField]] = Math.max(MIN_W, Math.min(MAX_W, label.length * 9 + 28));
+    });
+
+    var COL_GAP = 260, ROW_GAP = 90, MARGIN = 40;
+    var pos = {};
+
+    if (kind === 'transition') {
+      // 層状配置: 入次数0のノードを起点(level=0)とし、辺をたどってlevelを更新する
+      var indeg = {}; keys.forEach(function(k) { indeg[k] = 0; });
+      var adj = {}; keys.forEach(function(k) { adj[k] = []; });
+      edgesRaw.forEach(function(e) {
+        if (adj[e.from] !== undefined && indeg[e.to] !== undefined) {
+          adj[e.from].push(e.to);
+          indeg[e.to]++;
+        }
+      });
+      var level = {};
+      var queue = keys.filter(function(k) { return indeg[k] === 0; });
+      var visited = {};
+      queue.forEach(function(k) { level[k] = 0; visited[k] = true; });
+      var qi = 0;
+      while (qi < queue.length) {
+        var cur = queue[qi++];
+        (adj[cur] || []).forEach(function(n) {
+          var newLevel = level[cur] + 1;
+          if (level[n] === undefined || newLevel > level[n]) level[n] = newLevel;
+          if (!visited[n]) { visited[n] = true; queue.push(n); }
+        });
+      }
+      // 入次数0起点から到達できない孤立ノード(孤立サイクル等)はlevel 0扱いとする
+      keys.forEach(function(k) { if (level[k] === undefined) level[k] = 0; });
+
+      var byLevel = {};
+      keys.forEach(function(k) {
+        var lv = level[k];
+        byLevel[lv] = byLevel[lv] || [];
+        byLevel[lv].push(k);
+      });
+      Object.keys(byLevel).forEach(function(lv) {
+        byLevel[lv].forEach(function(k, idx) {
+          pos[k] = {
+            cx: MARGIN + Number(lv) * COL_GAP + boxW[k] / 2,
+            cy: MARGIN + idx * ROW_GAP + BOX_H / 2
+          };
+        });
+      });
+    } else {
+      // グリッド配置
+      var cols = Math.max(1, Math.ceil(Math.sqrt(keys.length)));
+      keys.forEach(function(k, idx) {
+        var col = idx % cols, row = Math.floor(idx / cols);
+        pos[k] = {
+          cx: MARGIN + col * COL_GAP + boxW[k] / 2,
+          cy: MARGIN + row * ROW_GAP + BOX_H / 2
+        };
+      });
+    }
+
+    var maxX = 0, maxY = 0;
+    keys.forEach(function(k) {
+      var p = pos[k];
+      maxX = Math.max(maxX, p.cx + boxW[k] / 2);
+      maxY = Math.max(maxY, p.cy + BOX_H / 2);
+    });
+    var svgW = Math.max(600, maxX + MARGIN);
+    var svgH = Math.max(220, maxY + MARGIN);
+    svg.setAttribute('width', svgW);
+    svg.setAttribute('height', svgH);
+    svg.setAttribute('viewBox', '0 0 ' + svgW + ' ' + svgH);
+
+    // --- 矢印マーカー(遷移のみ) ---
+    if (kind === 'transition') {
+      var defs = svgEl('defs');
+      var marker = svgEl('marker', {
+        id: 'diagram-arrowhead', viewBox: '0 0 10 10', refX: '9', refY: '5',
+        markerWidth: '7', markerHeight: '7', orient: 'auto-start-reverse'
+      });
+      marker.appendChild(svgEl('path', { d: 'M 0 0 L 10 5 L 0 10 z', class: 'diagram-arrow' }));
+      defs.appendChild(marker);
+      svg.appendChild(defs);
+    }
+
+    // 中心cx/cy・半幅hw/半高hhの矩形の境界上で、方向(dx,dy)にある点を返す
+    function rectBorderPoint(cx, cy, hw, hh, dx, dy) {
+      if (dx === 0 && dy === 0) return { x: cx, y: cy };
+      var scaleX = dx !== 0 ? hw / Math.abs(dx) : Infinity;
+      var scaleY = dy !== 0 ? hh / Math.abs(dy) : Infinity;
+      var scale = Math.min(scaleX, scaleY);
+      return { x: cx + dx * scale, y: cy + dy * scale };
+    }
+
+    // --- エッジ/リレーション描画(from/toの矩形境界を結ぶ線 + ラベル) ---
+    var edgeGroup = svgEl('g', { class: 'diagram-edges' });
+    edgesRaw.forEach(function(e) {
+      var a = pos[e.from], b = pos[e.to];
+      if (!a || !b) { return; } // 未解決参照(ノード不在)は描画をスキップする
+      var dx = b.cx - a.cx, dy = b.cy - a.cy;
+      var start = rectBorderPoint(a.cx, a.cy, boxW[e.from] / 2, BOX_H / 2, dx, dy);
+      var end = rectBorderPoint(b.cx, b.cy, boxW[e.to] / 2, BOX_H / 2, -dx, -dy);
+      var line = svgEl('line', { x1: start.x, y1: start.y, x2: end.x, y2: end.y, class: 'diagram-edge' });
+      if (kind === 'transition') line.setAttribute('marker-end', 'url(#diagram-arrowhead)');
+      edgeGroup.appendChild(line);
+
+      var labelText = kind === 'transition' ? (e.trigger || '') : (e.cardinality || '');
+      if (labelText) {
+        var mx = (start.x + end.x) / 2, my = (start.y + end.y) / 2;
+        var labelG = svgEl('g', { class: 'diagram-edge-label', transform: 'translate(' + mx + ',' + my + ')' });
+        var textNode = svgEl('text', { 'text-anchor': 'middle', dy: '-4' });
+        textNode.textContent = labelText;
+        labelG.appendChild(textNode);
+        edgeGroup.appendChild(labelG);
+      }
+    });
+    svg.appendChild(edgeGroup);
+
+    // --- ノード/エンティティ描画(角丸矩形 + ラベル) ---
+    var nodeGroup = svgEl('g', { class: 'diagram-nodes' });
+    nodesRaw.forEach(function(n) {
+      var k = n[keyField];
+      var p = pos[k];
+      var w = boxW[k];
+      var g = svgEl('g', {
+        class: 'diagram-node',
+        transform: 'translate(' + (p.cx - w / 2) + ',' + (p.cy - BOX_H / 2) + ')'
+      });
+      g.appendChild(svgEl('rect', { width: w, height: BOX_H, rx: 8, ry: 8, class: 'diagram-node-rect' }));
+      var text = svgEl('text', {
+        x: w / 2, y: BOX_H / 2, 'text-anchor': 'middle', 'dominant-baseline': 'middle',
+        class: 'diagram-node-text'
+      });
+      text.textContent = n.label || k || '';
+      g.appendChild(text);
+      nodeGroup.appendChild(g);
+    });
+    svg.appendChild(nodeGroup);
+  }
+
+  // --- 補足表(edges[]/relations[]の詳細) ---
+  var theadRow;
+  if (kind === 'transition') {
+    theadRow = el('tr', null, [
+      el('th', null, '起点'), el('th', null, '終点'), el('th', null, 'トリガー'),
+      el('th', null, '出所'), el('th', null, 'confidence')
+    ]);
+  } else {
+    theadRow = el('tr', null, [
+      el('th', null, 'from'), el('th', null, 'to'),
+      el('th', null, 'カーディナリティ'), el('th', null, '出所')
+    ]);
+  }
+  document.getElementById('detail-table-head').appendChild(theadRow);
+
+  var tbody = document.getElementById('detail-table-body');
+  if (edgesRaw.length === 0) {
+    tbody.appendChild(el('tr', null, el('td', { colspan: kind === 'transition' ? '5' : '4' }, 'なし')));
+  } else {
+    edgesRaw.forEach(function(e) {
+      var tr;
+      if (kind === 'transition') {
+        tr = el('tr', null, [
+          el('td', null, e.from || ''),
+          el('td', null, e.to || ''),
+          el('td', null, e.trigger || ''),
+          el('td', null, el('code', null, e.sourceRef || '')),
+          el('td', null, e.confidence || '')
+        ]);
+      } else {
+        tr = el('tr', null, [
+          el('td', null, e.from || ''),
+          el('td', null, e.to || ''),
+          el('td', null, e.cardinality || ''),
+          el('td', null, el('code', null, e.sourceRef || ''))
+        ]);
+      }
+      tbody.appendChild(tr);
+    });
+  }
+
+  // --- 未解決節(unresolved[]) ---
+  var unresolvedMount = document.getElementById('unresolved-mount');
+  var unresolved = data.unresolved || [];
+  if (unresolved.length > 0) {
+    unresolvedMount.appendChild(el('div', { class: 'sec-label' }, '未解決'));
+    var box = el('div', { class: 'note-box' });
+    unresolved.forEach(function(u) {
+      var line = (u.label || '') + '（' + (u.reason || '') + '）';
+      box.appendChild(el('div', null, line));
+    });
+    unresolvedMount.appendChild(box);
+  }
+
+  var themeBtn = document.getElementById('theme-toggle');
+  themeBtn.addEventListener('click', function() {
+    var r = document.documentElement;
+    var next = r.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    r.setAttribute('data-theme', next);
+    try { localStorage.setItem('rd-portal-theme', next); } catch(e) {}
+  });
+  try {
+    var saved = localStorage.getItem('rd-portal-theme');
+    if (saved) document.documentElement.setAttribute('data-theme', saved);
+  } catch(e) {}
+})();
+</script>
+
+<script>
+(function() {
+  // アイコンフォント未読込フォールバック:
+  // document.fonts.check で確認できるまでアイコンを非表示のままにし、
+  // 確認できた時点でのみ <html> に icons-ready クラスを付与する。
+  function checkIcons() {
+    if (document.fonts && document.fonts.check && document.fonts.check('24px "Material Symbols Outlined"')) {
+      document.documentElement.classList.add('icons-ready');
+      return true;
+    }
+    return false;
+  }
+  if (!checkIcons()) {
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(function() { checkIcons(); });
+    }
+    var tries = 0;
+    var timer = setInterval(function() {
+      tries++;
+      if (checkIcons() || tries >= 10) clearInterval(timer);
+    }, 500);
+  }
+})();
+</script>
+</body>
+</html>

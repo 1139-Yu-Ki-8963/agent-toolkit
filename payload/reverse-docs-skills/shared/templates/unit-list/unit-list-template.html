@@ -10,6 +10,11 @@
     unit_kind=screen の場合は本テンプレートを使わず screen-list-template.html を使う
     (build-unit-list.sh が build-screen-list.sh に委譲する)。
 
+  保守注記: トークンブロック・テーマ切替(data-theme二重定義・rd-portal-theme)は
+  shared/templates/detail-pages/detail-t3-attributes.html(同portal-template.html)からの複製である。
+  同ファイルの当該部分を変更した場合は本ファイルも同時更新すること
+  (feature-list-template.html・screen-list-template.htmlにも同種の複製あり。include化は別件)。
+
   プレースホルダ(build-unit-list.shが注入。実際のマーカー記法は
   scripts/build-unit-list.sh 冒頭コメントを正本とする。本コメントでは
   二重置換事故を避けるため意図的に波括弧・HTMLコメント記法を外して記載する):
@@ -36,34 +41,93 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>{{UNIT_KIND_LABEL}}一覧</title>
 <style>
+  :root,
+  [data-theme="light"] {
+    --bg: #F7F5EE;
+    --panel: #FFFFFF;
+    --panel-2: #F0EDE3;
+    --border: #DAD5C5;
+    --border-strong: #BFB9A6;
+    --text: #1B1F26;
+    --text-sub: #4A4F58;
+    --text-muted: #767B85;
+    --accent: #3F4F8E;
+    --accent-2: #5A6BAE;
+    --accent-soft: #E6E9F3;
+    --accent-border: #BAC2DC;
+    --gold: #9B7A1F;
+    --gold-soft: #F5EFD9;
+    --gold-border: #DDC68A;
+    --success: #3F4F8E;
+    --success-soft: #E6E9F3;
+    --warn: #9B7A1F;
+    --danger: #9B3F2D;
+    --danger-soft: #F5E2DC;
+    --code-bg: #1B1F26;
+    --code-fg: #E8E5DC;
+    --mono: "SFMono-Regular","Menlo","Consolas",monospace;
+    --shadow-sm: 0 1px 2px rgba(27,31,38,.05), 0 1px 4px rgba(27,31,38,.04);
+    --shadow-md: 0 2px 6px rgba(27,31,38,.07), 0 8px 24px rgba(27,31,38,.06);
+    --radius: 10px;
+    --radius-sm: 6px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #15171C; --panel: #1C1F26; --panel-2: #232730;
+      --border: #353944; --border-strong: #4A4F5C;
+      --text: #E8E5DC; --text-sub: #B6B3AB; --text-muted: #888784;
+      --accent: #8FA3DB; --accent-2: #A8B8E5; --accent-soft: #2A2E47; --accent-border: #4C5680;
+      --gold: #D4B45D; --gold-soft: #3D3520; --gold-border: #7A6633;
+      --success: #8FA3DB; --success-soft: #2A2E47;
+      --warn: #D4B45D; --danger: #D4836E; --danger-soft: #3F2620;
+      --code-bg: #0E1116; --code-fg: #E8E5DC;
+    }
+  }
+  [data-theme="dark"] {
+    --bg: #15171C; --panel: #1C1F26; --panel-2: #232730;
+    --border: #353944; --border-strong: #4A4F5C;
+    --text: #E8E5DC; --text-sub: #B6B3AB; --text-muted: #888784;
+    --accent: #8FA3DB; --accent-2: #A8B8E5; --accent-soft: #2A2E47; --accent-border: #4C5680;
+    --gold: #D4B45D; --gold-soft: #3D3520; --gold-border: #7A6633;
+    --success: #8FA3DB; --success-soft: #2A2E47;
+    --warn: #D4B45D; --danger: #D4836E; --danger-soft: #3F2620;
+    --code-bg: #0E1116; --code-fg: #E8E5DC;
+  }
+
   * { box-sizing: border-box; }
   body {
     margin: 0; padding: 0 24px 96px;
     font-family: system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif;
-    line-height: 1.7; color: #1a1a1a; background: #fafafa;
+    line-height: 1.7; color: var(--text); background: var(--bg);
     max-width: 1180px; margin-inline: auto;
   }
-  header { padding: 40px 0 20px; border-bottom: 3px solid #1a1a1a; }
+  header { padding: 40px 0 20px; border-bottom: 3px solid var(--border-strong); }
+  .header-top { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
   header h1 { font-size: 1.7rem; margin: 0 0 10px; }
-  .meta-table { font-size: 0.88rem; color: #444; border-collapse: collapse; }
+  .theme-toggle-btn {
+    background: var(--panel-2); border: 1px solid var(--border); border-radius: var(--radius-sm);
+    color: var(--text-sub); cursor: pointer; padding: 5px 12px; font-size: 0.82rem; font-family: inherit;
+  }
+  .theme-toggle-btn:hover { background: var(--accent-soft); color: var(--accent); border-color: var(--accent-border); }
+  .meta-table { font-size: 0.88rem; color: var(--text-sub); border-collapse: collapse; }
   .meta-table td { padding: 2px 18px 2px 0; vertical-align: top; }
-  .meta-table td:first-child { color: #777; white-space: nowrap; }
+  .meta-table td:first-child { color: var(--text-muted); white-space: nowrap; }
 
   .summary-tiles { display: flex; gap: 14px; margin: 20px 0; flex-wrap: wrap; }
   .tile {
-    background: #fff; border: 1px solid #e0e0e0; border-radius: 8px;
-    padding: 10px 18px; font-size: 0.85rem; color: #555;
+    background: var(--panel); border: 1px solid var(--border); border-radius: 8px;
+    padding: 10px 18px; font-size: 0.85rem; color: var(--text-sub);
   }
-  .tile strong { display: block; font-size: 1.3rem; color: #1a1a1a; }
+  .tile strong { display: block; font-size: 1.3rem; color: var(--text); }
 
   .toolbar { display: flex; gap: 10px; margin: 24px 0 10px; align-items: center; flex-wrap: wrap; }
   .toolbar input[type="search"] {
     flex: 1; min-width: 220px; padding: 8px 12px; font-size: 0.92rem;
-    border: 1px solid #ccc; border-radius: 6px;
+    border: 1px solid var(--border); border-radius: 6px;
   }
-  .toolbar .note { font-size: 0.82rem; color: #777; }
+  .toolbar .note { font-size: 0.82rem; color: var(--text-muted); }
 
-  details.module-group { margin: 18px 0; background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; }
+  details.module-group { margin: 18px 0; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; }
   details.module-group > summary {
     cursor: pointer; padding: 12px 16px; font-weight: 700; list-style: none;
   }
@@ -73,42 +137,45 @@
 
   table.units { border-collapse: collapse; width: 100%; font-size: 0.88rem; }
   table.units th, table.units td {
-    border-top: 1px solid #eee; padding: 8px 12px; text-align: left; vertical-align: top;
+    border-top: 1px solid var(--border); padding: 8px 12px; text-align: left; vertical-align: top;
   }
   table.units th {
-    background: #f0f0ee; font-weight: 700; cursor: pointer; user-select: none; white-space: nowrap;
+    background: var(--panel-2); font-weight: 700; cursor: pointer; user-select: none; white-space: nowrap;
   }
-  table.units th:hover { background: #e6e6e2; }
+  table.units th:hover { background: var(--accent-soft); }
   table.units td code {
     font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-    font-size: 0.85em; background: #f2f2ee; padding: 1px 5px; border-radius: 3px;
+    font-size: 0.85em; background: var(--panel-2); padding: 1px 5px; border-radius: 3px;
   }
   .badge { display: inline-block; font-size: 0.76rem; font-weight: 700; padding: 1px 8px; border-radius: 3px; }
-  .badge.high   { background: #e7f3e7; color: #23662a; }
-  .badge.medium { background: #fdf3d7; color: #7a5d10; }
-  .badge.low    { background: #fbe9e7; color: #9c2b1a; }
-  .badge.kind-generic    { background: #eef2f7; color: #35507a; }
-  .badge.kind-unresolved { background: #ececec; color: #555555; }
+  .badge.high   { background: var(--success-soft); color: var(--success); }
+  .badge.medium { background: var(--gold-soft); color: var(--gold); }
+  .badge.low    { background: var(--accent-soft); color: var(--accent); }
+  .badge.kind-generic    { background: var(--accent-soft); color: var(--accent); }
+  .badge.kind-unresolved { background: var(--panel-2); color: var(--text-sub); }
 
   .diag-warn {
-    margin: 16px 0; padding: 12px 18px; background: #fdf3d7; border: 1px solid #e6c766;
-    border-radius: 8px; font-size: 0.86rem; color: #6b4f0a;
+    margin: 16px 0; padding: 12px 18px; background: var(--gold-soft); border: 1px solid var(--gold-border);
+    border-radius: 8px; font-size: 0.86rem; color: var(--gold);
   }
   .diag-warn strong { display: block; margin-bottom: 6px; }
   .diag-warn ul { margin: 0; padding-left: 20px; }
 
   section.common-files, section.unresolved {
-    margin-top: 40px; background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; padding: 16px 20px;
+    margin-top: 40px; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 16px 20px;
   }
   section.common-files h2, section.unresolved h2 { font-size: 1.05rem; margin: 0 0 10px; }
 
-  footer { margin-top: 48px; font-size: 0.8rem; color: #999; }
+  footer { margin-top: 48px; font-size: 0.8rem; color: var(--text-muted); }
 </style>
 </head>
 <body>
 
 <header>
-  <h1>{{UNIT_KIND_LABEL}}一覧</h1>
+  <div class="header-top">
+    <h1>{{UNIT_KIND_LABEL}}一覧</h1>
+    <button id="theme-toggle" class="theme-toggle-btn" type="button" title="テーマ切替">テーマ切替</button>
+  </div>
   <table class="meta-table">
     <tr><td>生成日時</td><td>{{GENERATED_AT}}</td></tr>
     <tr><td>ソースディレクトリ</td><td><code>{{SOURCE_DIR}}</code></td></tr>
@@ -202,6 +269,24 @@
         sorted.forEach(function (tr) { tbody.appendChild(tr); });
       });
     });
+  })();
+</script>
+
+<script>
+  (function () {
+    var themeBtn = document.getElementById('theme-toggle');
+    if (themeBtn) {
+      themeBtn.addEventListener('click', function () {
+        var r = document.documentElement;
+        var next = r.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+        r.setAttribute('data-theme', next);
+        try { localStorage.setItem('rd-portal-theme', next); } catch (e) {}
+      });
+    }
+    try {
+      var saved = localStorage.getItem('rd-portal-theme');
+      if (saved) document.documentElement.setAttribute('data-theme', saved);
+    } catch (e) {}
   })();
 </script>
 

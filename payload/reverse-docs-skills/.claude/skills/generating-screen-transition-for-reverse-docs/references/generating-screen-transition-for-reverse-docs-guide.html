@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<!--
+  generating-screen-transition-for-reverse-docs スキルガイド（単一ファイル自己完結型）
+
+  - 外部リソース（CDN・画像・link）は一切使わず、完全自己完結に保つ
+  - 視覚言語は generating-tech-stack-for-reverse-docs-guide.html に合わせる
+-->
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>generating-screen-transition-for-reverse-docs スキルガイド</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 0 24px 96px;
+    font-family: system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif;
+    line-height: 1.85; color: #1a1a1a; background: #fafafa;
+    max-width: 980px; margin-inline: auto;
+  }
+  header { padding: 56px 0 24px; border-bottom: 3px solid #1a1a1a; }
+  header h1 { font-size: 1.9rem; margin: 0 0 10px; letter-spacing: 0.01em; }
+  header .skill-name {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 1.0rem; background: #1a1a1a; color: #fafafa;
+    padding: 2px 10px; border-radius: 4px; vertical-align: middle;
+  }
+  header p { margin: 6px 0 0; color: #555; }
+  .meta-table { margin-top: 16px; font-size: 0.9rem; color: #555; }
+  .meta-table td { padding: 1px 16px 1px 0; }
+
+  nav.toc {
+    margin-top: 32px; padding: 18px 22px;
+    background: #fff; border: 1px solid #e0e0e0; border-radius: 8px;
+  }
+  nav.toc .toc-title { font-weight: 700; margin-bottom: 6px; }
+  nav.toc ol { margin: 0; padding-left: 1.4em; columns: 2; column-gap: 40px; }
+  nav.toc li { margin: 2px 0; }
+  nav.toc a { color: #1a1a1a; text-decoration: none; border-bottom: 1px dotted #999; }
+  nav.toc a:hover { border-bottom-style: solid; }
+
+  section { margin-top: 64px; }
+  section > h2 {
+    font-size: 1.35rem; padding-bottom: 8px; margin-bottom: 20px;
+    border-bottom: 2px solid #1a1a1a;
+  }
+  section > h2 .sec-num {
+    display: inline-block; min-width: 2.4em; margin-right: 10px;
+    font-family: ui-monospace, monospace; font-size: 0.95rem;
+    background: #1a1a1a; color: #fafafa; text-align: center;
+    padding: 1px 8px; border-radius: 4px; vertical-align: 2px;
+  }
+  h3 { font-size: 1.05rem; margin: 32px 0 10px; }
+  .note { color: #555; font-size: 0.92rem; }
+
+  table.spec { border-collapse: collapse; width: 100%; margin: 14px 0; background: #fff; font-size: 0.93rem; }
+  table.spec th, table.spec td { border: 1px solid #d8d8d8; padding: 8px 12px; text-align: left; vertical-align: top; }
+  table.spec th { background: #f0f0ee; font-weight: 700; white-space: nowrap; }
+  table.spec td code, li code, p code, dd code, table.spec th code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.86em; background: #eeeeea; padding: 1px 5px; border-radius: 3px;
+  }
+
+  pre.flow {
+    background: #16211c; color: #d7e6dc; border-radius: 8px;
+    padding: 20px 24px; overflow-x: auto;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.82rem; line-height: 1.55;
+  }
+  pre.flow .cap { color: #8fb8a0; }
+
+  .def {
+    background: #fff; border-left: 4px solid #1a1a1a;
+    padding: 12px 18px; margin: 14px 0; border-radius: 0 6px 6px 0;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  }
+  .def dt { font-weight: 700; margin-top: 8px; }
+  .def dt:first-child { margin-top: 0; }
+  .def dd { margin: 2px 0 0 0; color: #333; }
+
+  .constraint {
+    background: #eef2f7; border: 1px solid #c8d4e3; border-radius: 8px;
+    padding: 12px 18px; margin: 16px 0; font-size: 0.93rem;
+  }
+  .constraint strong:first-child { color: #2a4a7a; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>画面遷移図生成スキル<br><span class="skill-name">generating-screen-transition-for-reverse-docs</span></h1>
+  <p>画面一覧.html のマニフェストと対象リポジトリのルーティング定義を突合し、「画面遷移図.html」を機械検証付きで生成するスキルの確定仕様。</p>
+
+  <div class="def">
+    <dt>こんな人向け</dt>
+    <dd>
+      ポータルの将来ページ受け口に画面遷移図カードを反映したい人 ／
+      コードの実測から解決できた遷移だけを裏取りしたい人
+    </dd>
+    <dt>こんな場面で使う</dt>
+    <dd>
+      画面一覧.html が確定済みで、次にポータル基盤情報ページを揃えたい時 ／
+      route 情報を持たない旧形式の画面や宛先未解決の遷移を可視化したい時
+    </dd>
+  </div>
+
+  <table class="meta-table">
+    <tr><td>対応 OS</td><td>Windows WSL2 環境</td></tr>
+    <tr><td>検証状況</td><td>エンジンスクリプト（validate-page-data.sh / build-detail-page.sh）はフィクスチャでの動作確認済み。スキル単体の実機検証は未実施</td></tr>
+    <tr><td>依存</td><td>jq ／ <code>shared/scripts/detail-pages/validate-page-data.sh</code>・<code>build-detail-page.sh</code>（スキルフォルダ相対 <code>../../../shared/scripts/detail-pages/</code>）／ <code>shared/scripts/build-portal.sh</code>（任意・カード反映時）</td></tr>
+    <tr><td>関連資料</td><td><code>SKILL.md</code>, <code>references/transition-detection.md</code>, <code>../../../shared/scripts/detail-pages/page-data-schema.md</code></td></tr>
+  </table>
+</header>
+
+<nav class="toc">
+  <div class="toc-title">目次</div>
+  <ol>
+    <li><a href="#s1">概要</a></li>
+    <li><a href="#s2">出力</a></li>
+    <li><a href="#s3">用語</a></li>
+    <li><a href="#s4">動作フロー</a></li>
+    <li><a href="#s5">制約と禁止事項</a></li>
+    <li><a href="#s6">関連スキル・規約</a></li>
+  </ol>
+</nav>
+
+<section id="s1">
+  <h2><span class="sec-num">§1</span>概要</h2>
+  <p>リバースエンジニアリング設計のポータルには、将来ページの受け口（<code>docs_root</code> 直下に該当 HTML が実在するときだけカード化される仕組み）がある。本スキルはそのうち画面遷移図（T4）専任の生成係として、画面一覧.html に埋め込まれたマニフェストと対象リポジトリのルーティング定義を突合し、<strong>画面遷移図.html</strong> を機械検証付きで作成する。</p>
+  <p>本スキルは判定・評価をしない。画面設計の良否は問わず、コードの実測から解決できた遷移のみを転記する。宛先を解決できない遷移や route 情報を持たない画面（旧形式マニフェスト）は捏造せず、未解決として可視化する。</p>
+  <pre class="flow"><span class="cap">── 処理の全体像 ──────────────────────────────</span>
+
+  画面一覧.html（script#screen-manifest 埋め込み）
+       │  Phase 1  実在確認 + Router 種別判別 + 検出戦略宣言（承認）
+       ▼
+  対象リポジトリのルーティング定義（Router 定義・navigate・Link・redirect）
+       │  Phase 2  nodes 転記 + edges 抽出 + 宛先解決（未解決は分離）
+       ▼
+  page-data.json（pageKind: transition）
+       │  Phase 3  validate-page-data.sh --target-repo + 孤児 edge 検査
+       ▼
+  検証済み page-data
+       │  Phase 4  build-detail-page.sh --page transition
+       ▼
+  &lt;docs_root&gt;/画面遷移図.html（+ 任意で build-portal.sh 再実行）</pre>
+  <p class="note">テーブル一覧のような組み込み検出器はなく、Router 種別の判別からカスタム抽出パスで進める点はテーブル一覧生成スキルと同型である。</p>
+</section>
+
+<section id="s2">
+  <h2><span class="sec-num">§2</span>出力</h2>
+  <p>スキルを実行すると、以下の 2 点が生まれる。</p>
+  <div class="def">
+    <dt>画面遷移図.html（<code>&lt;docs_root&gt;</code> 直下）</dt>
+    <dd>画面をノード、遷移をエッジとした図を client-side SVG で描画するページ。図の下には各遷移の発生元・宛先・契機・出所（<code>sourceRef</code>）・confidence を補足表として一覧表示する。route 情報を持たない旧形式画面や宛先未解決の遷移は「未解決」節にまとめて表示され、読んだ人はどこまでが確定情報かをその場で判別できる。</dd>
+    <dt>埋め込み page-data JSON</dt>
+    <dd>画面遷移図.html の中に、生成の元になった page-data.json がそのまま埋め込まれる。読んだ人は「いつ・どの画面一覧・どのコード実測から生成されたか」を HTML 単体で追跡でき、機械処理（後続スキルからの参照）にも使える。</dd>
+  </div>
+  <p class="note">画面一覧.html が不在の場合、本スキルは生成を行わず先行実行の案内のみで終わる。この場合、画面遷移図.html は生まれない。</p>
+</section>
+
+<section id="s3">
+  <h2><span class="sec-num">§3</span>用語</h2>
+  <dl class="def">
+    <dt>page-data.json</dt>
+    <dd>detail-pages 系 5 スキルが共有する入力 JSON。<code>pageKind</code> ごとに型別スロットを持つ。本スキルは <code>pageKind: "transition"</code> を固定で使う。スキーマの全量は <code>page-data-schema.md</code> を参照。</dd>
+    <dt>nodes / edges</dt>
+    <dd>transition 型のスロット。<code>nodes[]</code> は <code>{unitKey, label}</code> 形式の画面 1 件 = 1 要素、<code>edges[]</code> は <code>{from, to, trigger, sourceRef, confidence}</code> 形式の遷移 1 経路 = 1 要素。<code>from</code>/<code>to</code> は <code>nodes[].unitKey</code> を参照する。</dd>
+    <dt>孤児 edge</dt>
+    <dd><code>from</code> または <code>to</code> が <code>nodes[].unitKey</code> のいずれとも一致しない <code>edges[]</code> 要素。Phase 3 で 0 件であることを機械検証する。</dd>
+    <dt>旧形式マニフェスト</dt>
+    <dd><code>route</code> フィールドを持たない画面一覧マニフェスト（過去バージョンの生成物）。該当画面は <code>nodes[]</code> から除外し <code>unresolved[]</code> へ登録する。</dd>
+    <dt>整合検証</dt>
+    <dd><code>validate-page-data.sh --target-repo</code> による page-data.json の機械検査。<code>sourceRef</code> が対象リポジトリ上に実在するかを検査する。</dd>
+  </dl>
+</section>
+
+<section id="s4">
+  <h2><span class="sec-num">§4</span>動作フロー</h2>
+  <p>起動引数は <code>target_repo_path</code>・<code>docs_root</code>（必須）と <code>portal_output_dir</code>（任意）の 3 つ。種別は transition に固定されているため、種別を選ぶ引数はない。</p>
+  <table class="spec">
+    <tr><th>Phase</th><th>内容</th><th>完了条件</th></tr>
+    <tr>
+      <td><strong>Phase 1</strong><br>前提確認・検出戦略の宣言</td>
+      <td>画面一覧.html の実在確認（不在ならハード停止し generating-screen-list-for-reverse-docs の先行実行を案内）、埋め込みマニフェストの確認、Router 種別の判別、検出戦略の AskUserQuestion 承認</td>
+      <td>実在確認済み（または停止）。Router 種別と検出戦略がユーザー承認済み</td>
+    </tr>
+    <tr>
+      <td><strong>Phase 2</strong><br>抽出</td>
+      <td><code>nodes[]</code> の転記、Router 定義・navigate・Link・redirect の走査による遷移候補の抽出、宛先の <code>unitKey</code> 解決（未解決は分離）</td>
+      <td><code>nodes[]</code>/<code>edges[]</code> 確定・page-data.json 保存済み</td>
+    </tr>
+    <tr>
+      <td><strong>Phase 3</strong><br>整合検証（機械実行）</td>
+      <td><code>validate-page-data.sh &lt;page-data.json&gt; --target-repo &lt;target_repo_path&gt;</code> の実行、孤児 edge の検査。FAIL は修正して再実行（3 回失敗で Phase 2 へ差し戻し）</td>
+      <td>全項目 PASS（exit 0）かつ孤児 edge 0 件</td>
+    </tr>
+    <tr>
+      <td><strong>Phase 4</strong><br>画面遷移図.html 生成</td>
+      <td><code>build-detail-page.sh &lt;page-data.json&gt; &lt;docs_root&gt; --page transition</code> を実行。<code>portal_output_dir</code> 指定時は <code>build-portal.sh</code> を再実行しカードへ反映</td>
+      <td>HTML 生成済み。指定時は build-portal.sh 再実行済み</td>
+    </tr>
+  </table>
+  <p class="note">エンジンスクリプトはスキルフォルダ相対 <code>../../../shared/scripts/detail-pages/</code> で参照する。</p>
+
+  <h3>返却（呼び出し元との契約）</h3>
+  <table class="spec">
+    <tr><th>キー</th><th>内容</th></tr>
+    <tr><td><code>status</code></td><td><code>DONE</code> | <code>STOPPED</code>（画面一覧.html 不在）| <code>ERROR</code></td></tr>
+    <tr><td><code>artifacts</code></td><td>生成した画面遷移図.html のパス（<code>STOPPED</code>/<code>ERROR</code> 時は空）</td></tr>
+    <tr><td><code>page_kind</code></td><td><code>transition</code>（固定値）</td></tr>
+    <tr><td><code>portal_rebuilt</code></td><td>build-portal.sh 再実行の有無</td></tr>
+    <tr><td><code>hint</code></td><td>停止理由、旧形式画面・宛先未解決件数、または次工程への申し送り</td></tr>
+  </table>
+</section>
+
+<section id="s5">
+  <h2><span class="sec-num">§5</span>制約と禁止事項</h2>
+  <div class="constraint">
+    <strong>手作業でのプレースホルダ置換は禁止。</strong>
+    画面遷移図.html は必ず <code>build-detail-page.sh</code> 経由の決定的処理で生成する。
+  </div>
+  <div class="constraint">
+    <strong>宛先未解決はハード停止せず未解決として可視化。</strong>
+    解決できない遷移・route 情報を持たない画面は <code>unresolved[]</code> へ隔離し、AskUserQuestion で手動確定しない。
+  </div>
+  <div class="constraint">
+    <strong>判定・評価は対象外。</strong>
+    画面設計の良否・遷移の妥当性には踏み込まない。本スキルの仕事はコード実測からの転記のみ。
+  </div>
+  <h3>抽出時の落とし穴</h3>
+  <table class="spec">
+    <tr><th>落とし穴</th><th>対処</th></tr>
+    <tr><td>route を持たない旧形式画面を nodes に含めてしまう</td><td>nodes[] から除外し unresolved[] へ登録する</td></tr>
+    <tr><td>変数のみで静的解決できない遷移先に無理に confidence を付ける</td><td>解決不能として unresolved[] へ回す（<code>references/transition-detection.md</code> 参照）</td></tr>
+    <tr><td>page-data の nodes[] に route を持ち込んでしまう</td><td>route は Phase 2 の解決処理でのみ使う一時情報とし、page-data には持ち込まない</td></tr>
+    <tr><td>jq 未インストール環境での検証・生成失敗</td><td>validate/build 両スクリプトが jq に依存するため事前に導入する</td></tr>
+  </table>
+</section>
+
+<section id="s6">
+  <h2><span class="sec-num">§6</span>関連スキル・規約</h2>
+  <table class="spec">
+    <tr><th>関連</th><th>関係</th></tr>
+    <tr><td><code>orchestrating-reverse-docs-flow</code></td><td>工程全体の案内役。本スキルはポータル基盤情報ページの 1 種を担い、単独起動もできる</td></tr>
+    <tr><td><code>generating-screen-list-for-reverse-docs</code></td><td>本スキルのデータ源（画面一覧.html）を確定する前工程。不在時はこちらの先行実行が必要</td></tr>
+    <tr><td>他の detail-pages 系 4 スキル（用語辞書・技術スタック・ER図・環境実行手順）</td><td>同じエンジンスクリプト（validate-page-data.sh / build-detail-page.sh）を共用する兄弟スキル</td></tr>
+    <tr><td><code>page-data-schema.md</code></td><td>page-data.json のスキーマ正本</td></tr>
+    <tr><td><code>references/transition-detection.md</code></td><td>Router 種別ごとの検出戦略ガイダンス</td></tr>
+  </table>
+</section>
+
+</body>
+</html>
