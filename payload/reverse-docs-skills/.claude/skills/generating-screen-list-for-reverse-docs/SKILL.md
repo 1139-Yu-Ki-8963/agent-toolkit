@@ -158,6 +158,13 @@ allowed-tools: [Bash, Read, Write, Edit, Grep, Glob, AskUserQuestion, TaskCreate
 - この方式は共通エンジン（`validate-manifest.sh`）を改造せず、プロジェクト側のstrategy宣言（config）で吸収する設計である
 - 出力先は `<output-dir>/画面一覧/画面一覧.html`。画面種別専用の独立フォルダを作成する
 
+## 完了報告
+
+`managing-agent-configs/references/skills/completion-report-format.md` の共通骨格（作業報告型）に従う。
+
+固有の検証行:
+- validate-manifest.sh --unit-kind screen が全項目 PASS・画面一覧.html の生成成功
+
 ## 設計判断
 
 ### エンジンスクリプトの共有配置（`shared/scripts/unit-list/`）

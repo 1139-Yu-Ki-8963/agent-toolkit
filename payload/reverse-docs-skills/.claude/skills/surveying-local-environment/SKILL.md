@@ -104,7 +104,7 @@ cloc が既にインストール済みの場合はこの案内を省略する。
 
 ## 使用タイミング
 
-- リバース設計フローの Phase 4.2（ポータル生成）で env-config.json が不在の場合
+- リバース設計フローの Phase 4A（ポータル生成）で env-config.json が不在の場合
 - 新しい PC でリバース設計を初めて実行する場合
 - ツールをインストール/削除した後に環境情報を更新したい場合（手動で env-config.json を削除してから再実行）
 
@@ -112,3 +112,14 @@ cloc が既にインストール済みの場合はこの案内を省略する。
 
 - WSL 環境では `uname -s` が `Linux` を返す。WSL 固有の判定が必要な場合は `/proc/version` に `microsoft` が含まれるかで判別できるが、本スキルでは区別しない
 - `command -v` はエイリアスも検出する。実際のバイナリが存在しない場合（エイリアスのみ）でも true を返す可能性がある
+
+## 設計判断
+
+本スキルは独自スクリプトを持たないため省略する。
+
+## 完了報告
+
+`managing-agent-configs/references/skills/completion-report-format.md` の共通骨格（作業報告型）に従う。
+
+固有の検証行:
+- env-config.json が正しい JSON で出力されている

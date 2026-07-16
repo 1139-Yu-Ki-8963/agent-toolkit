@@ -147,3 +147,7 @@ facts 読込・執筆（Phase 1〜2）はサブエージェントへ委任しな
 - 起動引数 template_root（テンプレート原本。実体: `shared/templates/リバース検証`）
 - `shared/references/facts-schema.md` — facts.yml のスキーマ正本（9 分類・必須フィールド・正規化規則）
 - `shared/templates/リバース検証/画面/基本設計/画面基本設計書.md` — 基本設計書テンプレート正本（6章固定）
+
+## 設計判断
+
+本スキルは独自スクリプトを持たないため省略する。

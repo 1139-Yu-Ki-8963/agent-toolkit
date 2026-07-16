@@ -191,6 +191,13 @@ Bash ツールで残件カウントコマンドを実行する。マーカー未
 - `references/loop-design.md` — ループ雛形・プレースホルダ定義・limit検知パターン
 - `references/gotchas.md` — 落とし穴集
 
+## 完了報告
+
+`managing-agent-configs/references/skills/completion-report-format.md` の共通骨格（作業報告型）に従う。
+
+固有の検証行:
+- 全画面が検証完了（failed/conflict-skip 分を除く）・完了報告提示済み
+
 ## 設計判断
 
 `scripts/` ディレクトリを置かない。ループ本体をディスク保存しない方針と整合させるため、雛形からその都度インライン展開する。これにより生成されたループがスキルディレクトリの存在に依存しない自己完結構造になり、スキル呼び出し元のセッションが終了した後もバックグラウンドプロセス単体で完走できる。

@@ -132,6 +132,13 @@ allowed-tools: [Bash, Read, Write, Edit, Grep, Glob, AskUserQuestion, TaskCreate
 - カスタム抽出でソースを解析する際、コメントアウトされた帳票定義・import文を除去してから抽出する（コメント内の定義を実在として誤検出した実害を防ぐ）
 - `kind` の区分値は `template`（テンプレート主体）・`generator`（生成コード主体）・`unresolved`（主ファイル未解決）の3つ（`references/report-detection.md` 参照）
 
+## 完了報告
+
+`managing-agent-configs/references/skills/completion-report-format.md` の共通骨格（作業報告型）に従う。
+
+固有の検証行:
+- validate-manifest.sh --unit-kind report が全項目 PASS・帳票一覧.html の生成成功
+
 ## 設計判断
 
 ### build-unit-list.sh（共有エンジン）

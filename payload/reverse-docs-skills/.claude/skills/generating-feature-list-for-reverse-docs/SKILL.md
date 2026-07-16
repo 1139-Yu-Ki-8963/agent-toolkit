@@ -147,6 +147,13 @@ comm -23 \
 - 出力先は `<output_dir>/機能一覧/機能一覧.html`。他種別と独立したフォルダを作成する
 - ルート定義に載らない画面(認証ガード内で条件レンダリングされるログイン画面等)は前段の画面一覧の抽出品質に依存する。画面一覧に無い画面は本スキルでは補完しない(画面一覧側の再生成で対処する)
 
+## 完了報告
+
+`managing-agent-configs/references/skills/completion-report-format.md` の共通骨格（作業報告型）に従う。
+
+固有の検証行:
+- validate 全項目 PASS・related 参照実在検査 PASS・機能一覧.html の生成成功
+
 ## 設計判断
 
 ### build-feature-list.sh / feature-list-template.html

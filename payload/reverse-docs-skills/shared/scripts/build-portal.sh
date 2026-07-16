@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+command -v jq >/dev/null 2>&1 || { echo "ERROR: jq is required but not installed" >&2; exit 1; }
+
 # build-portal.sh — リバース設計ポータルを生成する
 #
 # Usage:
@@ -15,6 +17,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 TEMPLATE="$SCRIPT_DIR/../templates/portal-template.html"
+TOKENS_CSS_FILE="$SCRIPT_DIR/../templates/tokens.css"
 
 source "$SCRIPT_DIR/render-template.sh"
 
@@ -77,6 +80,21 @@ FIXTURE2
     exit 1
   fi
 
+  echo "--- ケース3: FUTURE_PAGES 実在チェック ---"
+  test3_dir="$(mktemp -d)"
+  test3_docs="$test3_dir/docs"
+  test3_portal="$test3_dir/portal"
+  mkdir -p "$test3_docs" "$test3_portal"
+  echo '{"total":100,"fe":50,"be":50,"file_count":10}' > "$test3_docs/code-metrics.json"
+  echo '<html><body>test glossary</body></html>' > "$test3_docs/用語辞書.html"
+  "$SCRIPT_DIR/build-portal.sh" "$test3_dir" "$test3_docs" "$test3_portal" 2>/dev/null
+  if grep -q "用語辞書" "$test3_portal/index.html" && grep -q "プロジェクト基盤情報" "$test3_portal/index.html"; then
+    echo "PASS: --self-test ケース3（FUTURE_PAGES 実在チェック, 用語辞書カード出現）"
+  else
+    echo "FAIL: --self-test ケース3" >&2; rm -rf "$test3_dir"; exit 1
+  fi
+  rm -rf "$test3_dir"
+
   exit 0
 fi
 
@@ -124,55 +142,11 @@ else
 fi
 
 # --- 2. 一覧件数の抽出（規模側の kinds データもここで同時に収集し重複計測を避ける） ---
-declare -A KIND_LABELS=(
-  [screen]="画面"
-  [api]="API"
-  [batch]="バッチ"
-  [table]="テーブル"
-  [report]="帳票"
-  [external]="外部連携"
-  [feature]="機能"
-)
-
-declare -A KIND_DIRS=(
-  [screen]="画面一覧"
-  [api]="API一覧"
-  [batch]="バッチ一覧"
-  [table]="テーブル一覧"
-  [report]="帳票一覧"
-  [external]="外部連携一覧"
-  [feature]="機能一覧"
-)
-
-declare -A KIND_ICONS=(
-  [screen]="monitor"
-  [api]="api"
-  [batch]="schedule"
-  [table]="table_chart"
-  [report]="print"
-  [external]="link"
-  [feature]="category"
-)
-
-declare -A KIND_DESCS=(
-  [screen]="全画面のルートパス・コンポーネント構成・複雑度プロファイルを一覧化。"
-  [api]="全エンドポイントのパス・HTTPメソッド・リクエスト/レスポンス型・認証要否を網羅。"
-  [batch]="定期実行ジョブのスケジュール・入出力・依存関係・実行頻度を整理。"
-  [table]="全テーブルのカラム定義・型・制約・外部キーリレーションを一覧化。"
-  [report]="出力帳票のフォーマット・生成条件・出力先・利用者を整理。"
-  [external]="外部サービスとの連携インターフェース・プロトコル・認証方式を整理。"
-  [feature]="画面一覧を入力に導出した機能単位の一覧（派生一覧）。"
-)
-
-declare -A KIND_UNITS=(
-  [screen]="画面"
-  [api]="エンドポイント"
-  [batch]="ジョブ"
-  [table]="テーブル"
-  [report]="帳票"
-  [external]="連携先"
-  [feature]="機能"
-)
+get_kind_label() { case "$1" in screen) echo "画面";; api) echo "API";; batch) echo "バッチ";; table) echo "テーブル";; report) echo "帳票";; external) echo "外部連携";; feature) echo "機能";; esac; }
+get_kind_dir() { case "$1" in screen) echo "画面一覧";; api) echo "API一覧";; batch) echo "バッチ一覧";; table) echo "テーブル一覧";; report) echo "帳票一覧";; external) echo "外部連携一覧";; feature) echo "機能一覧";; esac; }
+get_kind_icon() { case "$1" in screen) echo "monitor";; api) echo "api";; batch) echo "schedule";; table) echo "table_chart";; report) echo "print";; external) echo "link";; feature) echo "category";; esac; }
+get_kind_desc() { case "$1" in screen) echo "全画面のルートパス・コンポーネント構成・複雑度プロファイルを一覧化。";; api) echo "全エンドポイントのパス・HTTPメソッド・リクエスト/レスポンス型・認証要否を網羅。";; batch) echo "定期実行ジョブのスケジュール・入出力・依存関係・実行頻度を整理。";; table) echo "全テーブルのカラム定義・型・制約・外部キーリレーションを一覧化。";; report) echo "出力帳票のフォーマット・生成条件・出力先・利用者を整理。";; external) echo "外部サービスとの連携インターフェース・プロトコル・認証方式を整理。";; feature) echo "画面一覧を入力に導出した機能単位の一覧（派生一覧）。";; esac; }
+get_kind_unit() { case "$1" in screen) echo "画面";; api) echo "エンドポイント";; batch) echo "ジョブ";; table) echo "テーブル";; report) echo "帳票";; external) echo "連携先";; feature) echo "機能";; esac; }
 
 excluded_kinds=""
 excluded_json="$DOCS_ROOT/一覧/excluded-kinds.json"
@@ -199,11 +173,11 @@ for kind in $KINDS_ORDER; do
     continue
   fi
 
-  label="${KIND_LABELS[$kind]}"
-  dir_name="${KIND_DIRS[$kind]}"
-  icon="${KIND_ICONS[$kind]}"
-  desc="${KIND_DESCS[$kind]}"
-  unit="${KIND_UNITS[$kind]}"
+  label="$(get_kind_label "$kind")"
+  dir_name="$(get_kind_dir "$kind")"
+  icon="$(get_kind_icon "$kind")"
+  desc="$(get_kind_desc "$kind")"
+  unit="$(get_kind_unit "$kind")"
   html_file="$DOCS_ROOT/$dir_name/${label}一覧.html"
   unit_count=0
 
@@ -258,42 +232,18 @@ if [ -d "$common_dir" ]; then
 fi
 
 # --- 4. 将来ページ受け口（FUTURE_PAGES）: docs_root 直下に該当 HTML が実在する場合のみカード化 ---
-declare -A FUTURE_LABELS=(
-  [glossary]="用語辞書"
-  [techstack]="技術スタック"
-  [transition]="画面遷移図"
-  [er]="ER図"
-  [env]="環境・実行手順"
-)
-declare -A FUTURE_FILES=(
-  [glossary]="用語辞書.html"
-  [techstack]="技術スタック.html"
-  [transition]="画面遷移図.html"
-  [er]="ER図.html"
-  [env]="環境実行手順.html"
-)
-declare -A FUTURE_ICONS=(
-  [glossary]="dictionary"
-  [techstack]="stacks"
-  [transition]="account_tree"
-  [er]="schema"
-  [env]="terminal"
-)
-declare -A FUTURE_DESCS=(
-  [glossary]="業務用語・技術用語・略語の定義とコード上の対応識別子の対訳。"
-  [techstack]="言語・フレームワーク・主要依存パッケージのバージョンと採用箇所の整理。"
-  [transition]="画面一覧とコード走査から生成する画面遷移マップ。"
-  [er]="テーブル一覧と外部キー定義から生成するエンティティ関連図。"
-  [env]="ローカル起動手順・必須ツール・ポート割当の整理。"
-)
+get_future_label() { case "$1" in glossary) echo "用語辞書";; techstack) echo "技術スタック";; transition) echo "画面遷移図";; er) echo "ER図";; env) echo "環境・実行手順";; esac; }
+get_future_file() { case "$1" in glossary) echo "用語辞書.html";; techstack) echo "技術スタック.html";; transition) echo "画面遷移図.html";; er) echo "ER図.html";; env) echo "環境実行手順.html";; esac; }
+get_future_icon() { case "$1" in glossary) echo "dictionary";; techstack) echo "stacks";; transition) echo "account_tree";; er) echo "schema";; env) echo "terminal";; esac; }
+get_future_desc() { case "$1" in glossary) echo "業務用語・技術用語・略語の定義とコード上の対応識別子の対訳。";; techstack) echo "言語・フレームワーク・主要依存パッケージのバージョンと採用箇所の整理。";; transition) echo "画面一覧とコード走査から生成する画面遷移マップ。";; er) echo "テーブル一覧と外部キー定義から生成するエンティティ関連図。";; env) echo "ローカル起動手順・必須ツール・ポート割当の整理。";; esac; }
 FUTURE_ORDER="glossary techstack transition er env"
 
 future_tools_json=""
 for key in $FUTURE_ORDER; do
-  label="${FUTURE_LABELS[$key]}"
-  file="${FUTURE_FILES[$key]}"
-  icon="${FUTURE_ICONS[$key]}"
-  desc="${FUTURE_DESCS[$key]}"
+  label="$(get_future_label "$key")"
+  file="$(get_future_file "$key")"
+  icon="$(get_future_icon "$key")"
+  desc="$(get_future_desc "$key")"
   html_file="$DOCS_ROOT/$file"
 
   if [ -f "$html_file" ]; then
@@ -367,12 +317,17 @@ CATEGORIES_JSON="$CATEGORIES_JSON]"
 mkdir -p "$PORTAL_DIR"
 
 template_content="$(cat "$TEMPLATE")"
-output="$(render_template "$template_content" \
-  "{{PROJECT_NAME}}" "$PROJECT_NAME" \
-  "{{GENERATED_DATE}}" "$GENERATED_DATE" \
-  "{{METRICS_JSON}}" "$METRICS_JSON" \
-  "{{CATEGORIES_JSON}}" "$CATEGORIES_JSON" \
-)"
+render_args=(
+  "{{PROJECT_NAME}}" "$PROJECT_NAME"
+  "{{GENERATED_DATE}}" "$GENERATED_DATE"
+  "{{METRICS_JSON}}" "$METRICS_JSON"
+  "{{CATEGORIES_JSON}}" "$CATEGORIES_JSON"
+)
+# トークンCSS注入（tokens.css が存在する場合のみ）
+if [ -f "$TOKENS_CSS_FILE" ]; then
+  render_args+=("/* TOKENS_CSS */" "$(cat "$TOKENS_CSS_FILE")")
+fi
+output="$(render_template "$template_content" "${render_args[@]}")"
 
 printf '%s' "$output" > "$PORTAL_DIR/index.html"
 echo "OK: wrote $PORTAL_DIR/index.html" >&2

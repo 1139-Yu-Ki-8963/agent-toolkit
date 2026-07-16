@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<!--
+  running-reverse-screen-batch スキルガイド（単一ファイル自己完結型）
+
+  - 外部リソース（CDN・画像・link）は一切使わず、完全自己完結に保つ
+  - 視覚言語は generating-tech-stack-for-reverse-docs-guide.html に合わせる
+-->
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>running-reverse-screen-batch スキルガイド</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 0 24px 96px;
+    font-family: system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif;
+    line-height: 1.85; color: #1a1a1a; background: #fafafa;
+    max-width: 980px; margin-inline: auto;
+  }
+  header { padding: 56px 0 24px; border-bottom: 3px solid #1a1a1a; }
+  header h1 { font-size: 1.9rem; margin: 0 0 10px; letter-spacing: 0.01em; }
+  header .skill-name {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 1.0rem; background: #1a1a1a; color: #fafafa;
+    padding: 2px 10px; border-radius: 4px; vertical-align: middle;
+  }
+  header p { margin: 6px 0 0; color: #555; }
+  .meta-table { margin-top: 16px; font-size: 0.9rem; color: #555; }
+  .meta-table td { padding: 1px 16px 1px 0; }
+
+  nav.toc {
+    margin-top: 32px; padding: 18px 22px;
+    background: #fff; border: 1px solid #e0e0e0; border-radius: 8px;
+  }
+  nav.toc .toc-title { font-weight: 700; margin-bottom: 6px; }
+  nav.toc ol { margin: 0; padding-left: 1.4em; columns: 2; column-gap: 40px; }
+  nav.toc li { margin: 2px 0; }
+  nav.toc a { color: #1a1a1a; text-decoration: none; border-bottom: 1px dotted #999; }
+  nav.toc a:hover { border-bottom-style: solid; }
+
+  section { margin-top: 64px; }
+  section > h2 {
+    font-size: 1.35rem; padding-bottom: 8px; margin-bottom: 20px;
+    border-bottom: 2px solid #1a1a1a;
+  }
+  section > h2 .sec-num {
+    display: inline-block; min-width: 2.4em; margin-right: 10px;
+    font-family: ui-monospace, monospace; font-size: 0.95rem;
+    background: #1a1a1a; color: #fafafa; text-align: center;
+    padding: 1px 8px; border-radius: 4px; vertical-align: 2px;
+  }
+  h3 { font-size: 1.05rem; margin: 32px 0 10px; }
+  .note { color: #555; font-size: 0.92rem; }
+
+  table.spec { border-collapse: collapse; width: 100%; margin: 14px 0; background: #fff; font-size: 0.93rem; }
+  table.spec th, table.spec td { border: 1px solid #d8d8d8; padding: 8px 12px; text-align: left; vertical-align: top; }
+  table.spec th { background: #f0f0ee; font-weight: 700; white-space: nowrap; }
+  table.spec td code, li code, p code, dd code, table.spec th code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.86em; background: #eeeeea; padding: 1px 5px; border-radius: 3px;
+  }
+
+  pre.flow {
+    background: #16211c; color: #d7e6dc; border-radius: 8px;
+    padding: 20px 24px; overflow-x: auto;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.82rem; line-height: 1.55;
+  }
+  pre.flow .cap { color: #8fb8a0; }
+
+  .def {
+    background: #fff; border-left: 4px solid #1a1a1a;
+    padding: 12px 18px; margin: 14px 0; border-radius: 0 6px 6px 0;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  }
+  .def dt { font-weight: 700; margin-top: 8px; }
+  .def dt:first-child { margin-top: 0; }
+  .def dd { margin: 2px 0 0 0; color: #333; }
+
+  .constraint {
+    background: #eef2f7; border: 1px solid #c8d4e3; border-radius: 8px;
+    padding: 12px 18px; margin: 16px 0; font-size: 0.93rem;
+  }
+  .constraint strong:first-child { color: #2a4a7a; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>画面単位リバース検証バッチスキル<br><span class="skill-name">running-reverse-screen-batch</span></h1>
+  <p>画面単位のリバース設計検証を claude CLI のヘッドレスモード（<code>claude -p</code>、対話画面を介さず1回の呼び出しで完結する実行方式）による無人バッチループで実行するスキルの確定仕様。</p>
+
+  <div class="def">
+    <dt>こんな人向け</dt>
+    <dd>
+      対象画面が4件以上あり、通常セッションでの逐次処理では時間がかかりすぎる人 ／
+      orchestrating-reverse-docs-flow の画面バッチ Phase から機械的に呼び出す立場の人
+    </dd>
+    <dt>こんな場面で使う</dt>
+    <dd>
+      画面開通・共通採録が完了し、残り画面をまとめて facts 封印〜往復検証まで通したい時 ／
+      夜間などの無人運転で残ゼロまで自動継続させたい時
+    </dd>
+  </div>
+
+  <table class="meta-table">
+    <tr><td>対応 OS</td><td>Windows WSL2 環境</td></tr>
+    <tr><td>検証状況</td><td>統括スキルの画面バッチ Phase から起動される無人バッチ実行。対話ゼロ契約</td></tr>
+    <tr><td>依存</td><td>claude CLI（<code>claude -p</code> ヘッドレスモード）、orchestrating-reverse-docs-flow（起動元）</td></tr>
+    <tr><td>関連資料</td><td>orchestrating-reverse-docs-flow SKILL.md、<code>references/gotchas.md</code>、<code>references/loop-design.md</code></td></tr>
+  </table>
+</header>
+
+<nav class="toc">
+  <div class="toc-title">目次</div>
+  <ol>
+    <li><a href="#s1">概要</a></li>
+    <li><a href="#s2">出力</a></li>
+    <li><a href="#s3">用語</a></li>
+    <li><a href="#s4">実行フロー</a></li>
+    <li><a href="#s5">注意事項</a></li>
+    <li><a href="#s6">関連スキル・規約</a></li>
+  </ol>
+</nav>
+
+<section id="s1">
+  <h2><span class="sec-num">§1</span>概要</h2>
+  <p>画面単位のリバース設計検証（facts 封印〜設計書著述〜コード再生成〜往復検証）は、通常セッションでは1画面ずつの逐次処理になる。対象画面数が多いプロジェクトでは、この逐次処理が全体の完了を大きく遅らせる。本スキルは <code>claude -p</code> の無人バッチループにより、1画面=1呼び出しの単位で全対象画面を機械的に処理し続ける係である。</p>
+  <p>マーカー冪等性（同じ画面を再実行しても安全に再開できる性質）・limit 耐性（API 利用上限に達しても待機して再開する性質）・残ゼロまで継続、の3要件を満たす設計になっている。orchestrating-reverse-docs-flow から args 全量指定で起動され、AskUserQuestion を一切発行しない対話ゼロ契約を前提とする。</p>
+  <pre class="flow"><span class="cap">── 処理の全体像 ──────────────────────────────</span>
+
+  target_repo_path / docs_root / screen_ids 等の args
+       │  Phase 1  引数検証 + 対象画面一覧生成
+       ▼
+  batch-targets.txt（1行1画面ID）
+       │  Phase 2  単発ドライラン（1画面で前半・後半の完走確認）
+       ▼
+  ドライラン合格
+       │  Phase 3  無人ループ起動（nohup + disown でバックグラウンド化）
+       ▼
+  周回ループ（claude -p を画面ごとに前半・後半の計2回呼び出す）
+       │  Phase 4  監視と完了確認（残件カウント）
+       ▼
+  全画面が検証完了 / failed退避 / conflict-skip退避のいずれかで確定
+       │  Phase 5  完了報告
+       ▼
+  verification_dir 配下の検証結果 + バッチ運転記録 + progress.jsonl</pre>
+  <p class="note">盲検分離（原本コードを読む工程と設計書のみで判定する工程を別プロセスに分離する要件）を満たすため、1画面につき claude -p を前半（著述）・後半（ファイル単位盲検検証・往復検証）の2回に分けて呼び出す。</p>
+</section>
+
+<section id="s2">
+  <h2><span class="sec-num">§2</span>出力</h2>
+  <p>スキルを実行すると、以下の3点が生まれる。</p>
+  <div class="def">
+    <dt>全画面の検証結果（<code>verification_dir</code> 配下）</dt>
+    <dd>各画面の facts 封印・設計書著述・コード再生成・往復検証の結果が画面ごとに蓄積される。前半完了で画面レジストリの <code>status</code> が <code>authored</code>、後半完了で <code>baseline-established</code> になり、どこまで検証が進んだ画面かをレジストリから一目で追跡できる。</dd>
+    <dt>バッチ運転記録（<code>&lt;verification_dir&gt;/バッチ運転記録/</code> 配下）</dt>
+    <dd><code>batch-log.txt</code>（全画面の実行ログ）・<code>failed-screens.txt</code>（連続失敗で退避した画面のリスト）・<code>conflict-skip-screens.txt</code>（他プロセスとの競合でスキップした画面のリスト）の3ファイルが生まれ、読んだ人はどの画面が正常完了しどの画面に人手の追跡が必要かをこの3点だけで判断できる。</dd>
+    <dt>progress.jsonl（<code>&lt;verification_dir&gt;/progress.jsonl</code>）</dt>
+    <dd>各画面の工程開始・完了・失敗を <code>{"ts":"...","screen_id":"...","phase":"...","status":"started|completed|failed"}</code> 形式で1行ずつ追記したログ。呼び出し元セッションや人間はこのファイルを監視するだけで、バックグラウンドで動くバッチの現在工程をリアルタイムに把握できる。</dd>
+  </div>
+  <p class="note">周回ループに上限はない（意図的な設計判断）。停止するのは全画面確定（収束）または画面ごとの連続失敗上限到達（発散検知）のいずれかであり、対象画面数が有限である限り必ず有限回で終了する。</p>
+</section>
+
+<section id="s3">
+  <h2><span class="sec-num">§3</span>用語</h2>
+  <dl class="def">
+    <dt>マーカー冪等性</dt>
+    <dd>同じ画面を再実行しても安全に再開できる性質。成否判定は画面レジストリの <code>status</code>（<code>authored</code> / <code>baseline-established</code>）の grep で行い、終了コードは判定に使わない。</dd>
+    <dt>limit耐性</dt>
+    <dd>API 利用上限（limit）に達しても処理を打ち切らず、既定の待機秒数（<code>wait_seconds</code>）だけ sleep してから同じ画面を再試行する性質。</dd>
+    <dt>盲検分離</dt>
+    <dd>原本コードを読む工程（前半: 著述）と設計書のみで判定する工程（後半: ファイル単位盲検検証・往復検証）を別プロセスに分離する要件。前半で読んだ原本コードの情報が後半のコンテキストに混入しないよう、1画面につき claude -p を2回に分けて呼び出す。</dd>
+    <dt>レーン</dt>
+    <dd><code>lane_id</code> で識別される並列実行単位。横展開（400画面超）で複数レーンを並列起動する際に用い、ログ・failed リスト・conflict-skip リストをレーン別に分離する。</dd>
+    <dt>conflict-skip</dt>
+    <dd>他プロセスが同一画面の作業コピー・dev サーバー等を使用中で開通できなかった場合の退避区分。失敗（failed）とは別区分で扱われ、連続失敗カウント（<code>fail_limit_k</code>）には加算しない。</dd>
+  </dl>
+</section>
+
+<section id="s4">
+  <h2><span class="sec-num">§4</span>実行フロー</h2>
+  <p>起動引数は <code>target_repo_path</code>・<code>docs_root</code>・<code>screen_ids</code>・<code>template_root</code>・<code>common_docs_root</code>・<code>survey_doc_path</code> が必須。<code>model</code>・<code>wait_seconds</code>・<code>fail_limit_k</code>・<code>log_path</code>・<code>lane_id</code>・<code>deadline</code> は任意。</p>
+  <table class="spec">
+    <tr><th>Phase</th><th>内容</th><th>完了条件</th></tr>
+    <tr>
+      <td><strong>Phase 1</strong><br>引数検証と対象一覧生成</td>
+      <td>全必須引数の存在と参照先パスの実在を確認。<code>screen_ids</code> が "all" の場合は画面一覧HTMLのマニフェストから全画面IDを抽出し、<code>batch-targets.txt</code> に書き出す</td>
+      <td>対象画面一覧ファイルが生成され、総数と既検証数が確認済み</td>
+    </tr>
+    <tr>
+      <td><strong>Phase 2</strong><br>単発ドライラン</td>
+      <td>対象一覧の先頭1画面だけをフォアグラウンド実行し、前半（著述、status=authored）・後半（ファイル単位盲検検証・往復検証、status=baseline-established）の両工程を1画面分だけ完走させて確認する</td>
+      <td>前半・後半の両工程完走とマーカー付与を確認済み。合格前は Phase 3 に進むことを禁止</td>
+    </tr>
+    <tr>
+      <td><strong>Phase 3</strong><br>無人ループ起動</td>
+      <td><code>references/loop-design.md</code> の雛形にパラメータを反映し、<code>nohup bash -c '...' &gt;&gt; ログ 2&gt;&amp;1 &amp; disown</code> 構造でバックグラウンド起動する</td>
+      <td>PID の生存確認が取れ、監視コマンド（<code>tail -f &lt;ログ&gt;</code>）が報告済み</td>
+    </tr>
+    <tr>
+      <td><strong>Phase 4</strong><br>監視と完了確認</td>
+      <td>マーカー未付与かつ failed リスト・conflict-skip リスト外の画面数（残件）を計算する</td>
+      <td>全画面が検証完了、または failed / conflict-skip リストへの退避で確定している</td>
+    </tr>
+    <tr>
+      <td><strong>Phase 5</strong><br>完了報告</td>
+      <td>最終の残件数・failed件数・conflict-skip件数・実周回数を再カウントし報告する。failed・conflict-skip の画面ID一覧を添える</td>
+      <td>完了報告提示済み</td>
+    </tr>
+  </table>
+  <p class="note">Phase 3 で使うループ本体はディスク保存せず、Phase 実行のたびに雛形からインライン展開する。これにより生成されたループはスキルディレクトリの存在に依存せず、呼び出し元セッション終了後もバックグラウンドプロセス単体で完走できる。</p>
+</section>
+
+<section id="s5">
+  <h2><span class="sec-num">§5</span>注意事項</h2>
+  <div class="constraint">
+    <strong><code>--worktree</code> フラグは存在しない。</strong>
+    claude CLI 2.1.206 時点で未実装のため、worktree が必要な場合は呼び出し側が事前に <code>git worktree add</code> を実行してから <code>claude -p</code> の cwd をそこに向ける。
+  </div>
+  <div class="constraint">
+    <strong>バックグラウンドシェルは寿命が短い。</strong>
+    メインセッションが最終結果を返した直後にシェル自体が終了する仕様があるため、<code>nohup</code> + <code>disown</code> でプロセスをシェルの生死から切り離し、起動10秒後に <code>kill -0</code> で生存確認する。
+  </div>
+  <div class="constraint">
+    <strong>サンドボックスの外向き接続制限に必ず当たる。</strong>
+    <code>claude -p</code> は Anthropic API への外向き接続が必要なため、起動コマンドは dangerouslyDisableSandbox: true を常時使用する。「Not logged in」と表示されても実際は認証済みで、単に接続がサンドボックスに拒否されているだけのケースがある。
+  </div>
+  <div class="constraint">
+    <strong>終了コードは信用しない。</strong>
+    <code>claude -p</code> が正常終了しても対象画面の検証が未完了なケースがあるため、成否判定は必ず画面レジストリの <code>status</code> チェックで行う。
+  </div>
+  <h3>その他の落とし穴</h3>
+  <table class="spec">
+    <tr><th>落とし穴</th><th>対処</th></tr>
+    <tr><td>画面ID一覧との文字列比較・レジストリ検索が原因不明に失敗する（CRLF・エンコーディング混入）</td><td>Phase 1 の一覧生成で <code>tr -d '\r'</code>・空行除去による正規化を省略しない</td></tr>
+    <tr><td><code>~/.claude/projects/</code> が肥大化し Claude Code の起動が遅くなる</td><td><code>--no-session-persistence</code> を必ず付ける</td></tr>
+    <tr><td>1周回あたりの所要時間が長い（画面数 × 実測60分程度）</td><td>想定時間を事前に計算し、夜間運転で余裕を持たせる。Mac のスリープ無効を確認する</td></tr>
+    <tr><td>macOS 標準 bash（3.2系）で <code>declare -A</code> が <code>invalid option</code> で落ちる</td><td>連想配列を使わず、<code>awk</code> によるファイルベースのカウンタで失敗回数を管理する</td></tr>
+    <tr><td>周回ループに上限がなく暴走に見える</td><td>意図的な設計判断。暴走防止は画面単位の <code>FAIL_LIMIT_K</code> のみで担保し、対象数が有限であるため必ず有限回で終了する</td></tr>
+  </table>
+</section>
+
+<section id="s6">
+  <h2><span class="sec-num">§6</span>関連スキル・規約</h2>
+  <table class="spec">
+    <tr><th>関連</th><th>関係</th></tr>
+    <tr><td><code>orchestrating-reverse-docs-flow</code></td><td>工程全体の案内役。画面数4件以上の画面バッチ Phase から本スキルを起動する</td></tr>
+    <tr><td><code>unlocking-reverse-target-screens</code> / <code>extracting-unit-facts-from-code</code> / <code>generating-reverse-basic-design</code> / <code>generating-reverse-detailed-design</code></td><td>前半（著述）で順に呼び出す子スキル群</td></tr>
+    <tr><td><code>rebuilding-screen-unit-from-docs</code> / <code>syncing-reverse-env</code> / <code>rebuilding-code-from-docs</code></td><td>後半（ファイル単位盲検検証・往復検証）で順に呼び出す子スキル群</td></tr>
+    <tr><td><code>references/loop-design.md</code></td><td>ループ雛形・プレースホルダ定義・limit検知パターンの正本</td></tr>
+    <tr><td><code>references/gotchas.md</code></td><td>落とし穴集（本ガイド §5 の元資料）</td></tr>
+  </table>
+</section>
+
+</body>
+</html>

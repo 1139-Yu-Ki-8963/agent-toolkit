@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<!--
+  surveying-local-environment スキルガイド（単一ファイル自己完結型）
+
+  - 外部リソース（CDN・画像・link）は一切使わず、完全自己完結に保つ
+  - 視覚言語は generating-tech-stack-for-reverse-docs-guide.html に合わせる
+-->
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>surveying-local-environment スキルガイド</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 0 24px 96px;
+    font-family: system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif;
+    line-height: 1.85; color: #1a1a1a; background: #fafafa;
+    max-width: 980px; margin-inline: auto;
+  }
+  header { padding: 56px 0 24px; border-bottom: 3px solid #1a1a1a; }
+  header h1 { font-size: 1.9rem; margin: 0 0 10px; letter-spacing: 0.01em; }
+  header .skill-name {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 1.0rem; background: #1a1a1a; color: #fafafa;
+    padding: 2px 10px; border-radius: 4px; vertical-align: middle;
+  }
+  header p { margin: 6px 0 0; color: #555; }
+  .meta-table { margin-top: 16px; font-size: 0.9rem; color: #555; }
+  .meta-table td { padding: 1px 16px 1px 0; }
+
+  nav.toc {
+    margin-top: 32px; padding: 18px 22px;
+    background: #fff; border: 1px solid #e0e0e0; border-radius: 8px;
+  }
+  nav.toc .toc-title { font-weight: 700; margin-bottom: 6px; }
+  nav.toc ol { margin: 0; padding-left: 1.4em; columns: 2; column-gap: 40px; }
+  nav.toc li { margin: 2px 0; }
+  nav.toc a { color: #1a1a1a; text-decoration: none; border-bottom: 1px dotted #999; }
+  nav.toc a:hover { border-bottom-style: solid; }
+
+  section { margin-top: 64px; }
+  section > h2 {
+    font-size: 1.35rem; padding-bottom: 8px; margin-bottom: 20px;
+    border-bottom: 2px solid #1a1a1a;
+  }
+  section > h2 .sec-num {
+    display: inline-block; min-width: 2.4em; margin-right: 10px;
+    font-family: ui-monospace, monospace; font-size: 0.95rem;
+    background: #1a1a1a; color: #fafafa; text-align: center;
+    padding: 1px 8px; border-radius: 4px; vertical-align: 2px;
+  }
+  h3 { font-size: 1.05rem; margin: 32px 0 10px; }
+  .note { color: #555; font-size: 0.92rem; }
+
+  table.spec { border-collapse: collapse; width: 100%; margin: 14px 0; background: #fff; font-size: 0.93rem; }
+  table.spec th, table.spec td { border: 1px solid #d8d8d8; padding: 8px 12px; text-align: left; vertical-align: top; }
+  table.spec th { background: #f0f0ee; font-weight: 700; white-space: nowrap; }
+  table.spec td code, li code, p code, dd code, table.spec th code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.86em; background: #eeeeea; padding: 1px 5px; border-radius: 3px;
+  }
+
+  pre.flow {
+    background: #16211c; color: #d7e6dc; border-radius: 8px;
+    padding: 20px 24px; overflow-x: auto;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.82rem; line-height: 1.55;
+  }
+  pre.flow .cap { color: #8fb8a0; }
+
+  .def {
+    background: #fff; border-left: 4px solid #1a1a1a;
+    padding: 12px 18px; margin: 14px 0; border-radius: 0 6px 6px 0;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  }
+  .def dt { font-weight: 700; margin-top: 8px; }
+  .def dt:first-child { margin-top: 0; }
+  .def dd { margin: 2px 0 0 0; color: #333; }
+
+  .constraint {
+    background: #eef2f7; border: 1px solid #c8d4e3; border-radius: 8px;
+    padding: 12px 18px; margin: 16px 0; font-size: 0.93rem;
+  }
+  .constraint strong:first-child { color: #2a4a7a; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>ローカル環境調査スキル<br><span class="skill-name">surveying-local-environment</span></h1>
+  <p>実行環境の OS・パッケージ管理ツール・必要ツールの有無を調査し、env-config.json を生成するスキルの確定仕様。</p>
+
+  <table class="meta-table">
+    <tr><td>対応 OS</td><td>Windows WSL2 環境</td></tr>
+    <tr><td>検証状況</td><td>surveying-local-environment スキルとして独立動作確認済み</td></tr>
+    <tr><td>依存</td><td>bash、jq</td></tr>
+    <tr><td>関連資料</td><td><code>orchestrating-reverse-docs-flow</code> SKILL.md（Phase 4A から起動）</td></tr>
+  </table>
+</header>
+
+<nav class="toc">
+  <div class="toc-title">目次</div>
+  <ol>
+    <li><a href="#s1">概要</a></li>
+    <li><a href="#s2">出力</a></li>
+  </ol>
+</nav>
+
+<section id="s1">
+  <h2><span class="sec-num">§1</span>概要</h2>
+  <p>本スキルは、実行対象 PC の OS 種別・パッケージ管理ツール・開発ツール（cloc／node／python3／jq／git）のインストール有無を調査し、<strong>env-config.json</strong> に出力する。他のスキル（counting-code-lines 等）はこの env-config.json を読み込み、ツールの有無に応じて処理方式を分岐する。</p>
+  <p>cloc が未インストールの場合は計測精度が低下するため、パッケージ管理ツールに応じたインストールコマンドを組み立てて案内する。既に env-config.json が存在する場合は再調査せず、削除してからの再実行を促して終了する。</p>
+  <pre class="flow"><span class="cap">── 処理の全体像 ──────────────────────────────</span>
+
+  output_dir（出力先ディレクトリ）
+       │  Phase 1  出力先の確認（env-config.json 既存なら削除案内で終了）
+       ▼
+  実行環境（uname / command -v 等）
+       │  Phase 2  環境調査（OS・アーキテクチャ・パッケージ管理ツール・各種ツール有無）
+       ▼
+  env-config.json（Phase 3）
+       │  Phase 4  cloc 未インストール時のインストール案内（該当時のみ）
+       ▼
+  他スキル（counting-code-lines 等）からの参照</pre>
+</section>
+
+<section id="s2">
+  <h2><span class="sec-num">§2</span>出力</h2>
+  <p>スキルを実行すると、以下の 1 点が生まれる。</p>
+  <div class="def">
+    <dt>env-config.json（<code>output_dir</code> 直下）</dt>
+    <dd>OS 種別 <code>os</code>・アーキテクチャ <code>arch</code>・検出したパッケージ管理ツール <code>pkg_manager</code>、cloc／node／python3／jq／git それぞれの真偽値を持つ <code>tools</code>、cloc 未インストール時のインストールコマンドを持つ <code>install_commands</code>、調査時刻 <code>surveyed_at</code> を持つ構造化 JSON。読んだ人はこの 1 ファイルだけで、実行環境がどの計測方式（cloc／フォールバック）を選べるかを判断でき、後続スキルはこれを読んで自動的に処理方式を切り替えられる。</dd>
+  </div>
+</section>
+
+</body>
+</html>

@@ -248,8 +248,23 @@ if [ "${1:-}" = "--self-test" ]; then
   exit $?
 fi
 
-MANIFEST="${1:?Usage: build-feature-list.sh <manifest.json> <output-html-path>}"
-OUTPUT_HTML="${2:?Usage: build-feature-list.sh <manifest.json> <output-html-path>}"
+MANIFEST="${1:?Usage: build-feature-list.sh <manifest.json> <output-html-path> [--portal-dir <path>]}"
+OUTPUT_HTML="${2:?Usage: build-feature-list.sh <manifest.json> <output-html-path> [--portal-dir <path>]}"
+shift 2 || true
+
+PORTAL_DIR_ARG=""
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --portal-dir)
+      PORTAL_DIR_ARG="${2:-}"
+      shift 2
+      ;;
+    *)
+      echo "ERROR: unknown argument: $1" >&2
+      exit 1
+      ;;
+  esac
+done
 
 if ! command -v jq >/dev/null 2>&1; then
   echo "ERROR: jq is required but not found in PATH" >&2
@@ -269,6 +284,7 @@ if ! "$SCRIPT_DIR/validate-manifest.sh" "$MANIFEST" --unit-kind feature; then
 fi
 
 TEMPLATE="$SCRIPT_DIR/../../templates/unit-list/feature-list-template.html"
+TOKENS_CSS_FILE="$SCRIPT_DIR/../../templates/tokens.css"
 if [ ! -f "$TEMPLATE" ]; then
   echo "ERROR: template not found: $TEMPLATE" >&2
   exit 1
@@ -409,20 +425,34 @@ fi
 
 unit_manifest_json="$(cat "$MANIFEST")"
 
+# --- ポータルへの相対パス算出(--portal-dir 未指定時は無効リンク"#") ---
+if [ -n "$PORTAL_DIR_ARG" ]; then
+  portal_relative="$(python3 -c "import os; print(os.path.relpath('$PORTAL_DIR_ARG', '$(dirname "$OUTPUT_HTML")'))" 2>/dev/null || echo "..")/index.html"
+else
+  portal_relative="#"
+fi
+
 # --- テンプレートへの注入(単一パス方式。render_template()参照) ---
 # マニフェストJSONのマーカーはテンプレート内で物理的に最後に出現するため、
 # 単一パスのdocument-order走査により自動的に最後に処理される
 # (JSON内容に他マーカー文字列が偶然含まれた場合の誤爆を避けるため)
-out="$(render_template "$(cat "$TEMPLATE")" \
-  "{{GENERATED_AT}}" "$(html_escape "$generated_at")" \
-  "{{SOURCE_DIR}}" "$(html_escape "$source_dir")" \
-  "{{EXTRACTION_METHOD}}" "$(html_escape "$extraction_method")" \
-  "{{CATEGORY_COUNT}}" "$category_count" \
-  "{{UNIT_COUNT}}" "$tile_unit_count" \
-  "{{UNRESOLVED_COUNT}}" "$tile_unresolved_count" \
-  "<!--CATEGORY_SECTIONS-->" "$category_sections" \
-  "<!--UNRESOLVED_SECTION-->" "$unresolved_section" \
-  "{{MANIFEST_JSON}}" "$unit_manifest_json")"
+render_args=(
+  "{{GENERATED_AT}}" "$(html_escape "$generated_at")"
+  "{{SOURCE_DIR}}" "$(html_escape "$source_dir")"
+  "{{EXTRACTION_METHOD}}" "$(html_escape "$extraction_method")"
+  "{{CATEGORY_COUNT}}" "$category_count"
+  "{{UNIT_COUNT}}" "$tile_unit_count"
+  "{{UNRESOLVED_COUNT}}" "$tile_unresolved_count"
+  "<!--CATEGORY_SECTIONS-->" "$category_sections"
+  "<!--UNRESOLVED_SECTION-->" "$unresolved_section"
+  "{{PORTAL_RELATIVE}}" "$portal_relative"
+  "{{MANIFEST_JSON}}" "$unit_manifest_json"
+)
+# トークンCSS注入（tokens.css が存在する場合のみ）
+if [ -f "$TOKENS_CSS_FILE" ]; then
+  render_args+=("/* TOKENS_CSS */" "$(cat "$TOKENS_CSS_FILE")")
+fi
+out="$(render_template "$(cat "$TEMPLATE")" "${render_args[@]}")"
 
 printf '%s\n' "$out" > "$OUTPUT_HTML"
 

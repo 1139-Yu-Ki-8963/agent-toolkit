@@ -81,7 +81,7 @@
 
 ## 全体の流れ
 
-Phase 0（ヒアリング）で対象パス・出力先・画面スコープを確定後、以下の状態機械で進行する。Phase 1.5 では 6 一覧を Agent 並列実行し、Phase 4.5 では画面数 4 件以上の場合に running-reverse-screen-batch で無人バッチ実行する。基本設計と詳細設計は facts 封印後に並列著述する。
+Phase 0（ヒアリング）で対象パス・出力先・画面スコープを確定後、以下の状態機械で進行する。Phase 1B では 6 一覧を Agent 並列実行し、Phase 4C では画面数 4 件以上の場合に running-reverse-screen-batch で無人バッチ実行する。基本設計と詳細設計は facts 封印後に並列著述する。
 
 指揮役は成果物の実在から現在の状態を判定し（11 状態）、次に起動する子スキルを機械的に決める。判定は次の順に降りる決定木で行う。
 
@@ -179,3 +179,4 @@ Skill(orchestrating-reverse-docs-flow)
 - [画面遷移図生成（generating-screen-transition-for-reverse-docs）](.claude/skills/generating-screen-transition-for-reverse-docs/references/generating-screen-transition-for-reverse-docs-guide.html)
 - [ER図生成（generating-er-diagram-for-reverse-docs）](.claude/skills/generating-er-diagram-for-reverse-docs/references/generating-er-diagram-for-reverse-docs-guide.html)
 - [用語辞書ページ生成（generating-glossary-for-reverse-docs）](.claude/skills/generating-glossary-for-reverse-docs/references/generating-glossary-for-reverse-docs-guide.html)
+- [画面単位リバース検証バッチ（running-reverse-screen-batch）](.claude/skills/running-reverse-screen-batch/references/running-reverse-screen-batch-guide.html)

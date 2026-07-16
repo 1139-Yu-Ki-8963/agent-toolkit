@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<!--
+  counting-code-lines スキルガイド（単一ファイル自己完結型）
+
+  - 外部リソース（CDN・画像・link）は一切使わず、完全自己完結に保つ
+  - 視覚言語は generating-tech-stack-for-reverse-docs-guide.html に合わせる
+-->
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>counting-code-lines スキルガイド</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 0 24px 96px;
+    font-family: system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif;
+    line-height: 1.85; color: #1a1a1a; background: #fafafa;
+    max-width: 980px; margin-inline: auto;
+  }
+  header { padding: 56px 0 24px; border-bottom: 3px solid #1a1a1a; }
+  header h1 { font-size: 1.9rem; margin: 0 0 10px; letter-spacing: 0.01em; }
+  header .skill-name {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 1.0rem; background: #1a1a1a; color: #fafafa;
+    padding: 2px 10px; border-radius: 4px; vertical-align: middle;
+  }
+  header p { margin: 6px 0 0; color: #555; }
+  .meta-table { margin-top: 16px; font-size: 0.9rem; color: #555; }
+  .meta-table td { padding: 1px 16px 1px 0; }
+
+  nav.toc {
+    margin-top: 32px; padding: 18px 22px;
+    background: #fff; border: 1px solid #e0e0e0; border-radius: 8px;
+  }
+  nav.toc .toc-title { font-weight: 700; margin-bottom: 6px; }
+  nav.toc ol { margin: 0; padding-left: 1.4em; columns: 2; column-gap: 40px; }
+  nav.toc li { margin: 2px 0; }
+  nav.toc a { color: #1a1a1a; text-decoration: none; border-bottom: 1px dotted #999; }
+  nav.toc a:hover { border-bottom-style: solid; }
+
+  section { margin-top: 64px; }
+  section > h2 {
+    font-size: 1.35rem; padding-bottom: 8px; margin-bottom: 20px;
+    border-bottom: 2px solid #1a1a1a;
+  }
+  section > h2 .sec-num {
+    display: inline-block; min-width: 2.4em; margin-right: 10px;
+    font-family: ui-monospace, monospace; font-size: 0.95rem;
+    background: #1a1a1a; color: #fafafa; text-align: center;
+    padding: 1px 8px; border-radius: 4px; vertical-align: 2px;
+  }
+  h3 { font-size: 1.05rem; margin: 32px 0 10px; }
+  .note { color: #555; font-size: 0.92rem; }
+
+  table.spec { border-collapse: collapse; width: 100%; margin: 14px 0; background: #fff; font-size: 0.93rem; }
+  table.spec th, table.spec td { border: 1px solid #d8d8d8; padding: 8px 12px; text-align: left; vertical-align: top; }
+  table.spec th { background: #f0f0ee; font-weight: 700; white-space: nowrap; }
+  table.spec td code, li code, p code, dd code, table.spec th code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.86em; background: #eeeeea; padding: 1px 5px; border-radius: 3px;
+  }
+
+  pre.flow {
+    background: #16211c; color: #d7e6dc; border-radius: 8px;
+    padding: 20px 24px; overflow-x: auto;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.82rem; line-height: 1.55;
+  }
+  pre.flow .cap { color: #8fb8a0; }
+
+  .def {
+    background: #fff; border-left: 4px solid #1a1a1a;
+    padding: 12px 18px; margin: 14px 0; border-radius: 0 6px 6px 0;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  }
+  .def dt { font-weight: 700; margin-top: 8px; }
+  .def dt:first-child { margin-top: 0; }
+  .def dd { margin: 2px 0 0 0; color: #333; }
+
+  .constraint {
+    background: #eef2f7; border: 1px solid #c8d4e3; border-radius: 8px;
+    padding: 12px 18px; margin: 16px 0; font-size: 0.93rem;
+  }
+  .constraint strong:first-child { color: #2a4a7a; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>コード行数計測スキル<br><span class="skill-name">counting-code-lines</span></h1>
+  <p>対象ディレクトリのコード行数・ファイル数を FE/BE 別に計測し、code-metrics.json を機械的に生成するスキルの確定仕様。</p>
+
+  <table class="meta-table">
+    <tr><td>対応 OS</td><td>Windows WSL2 環境</td></tr>
+    <tr><td>検証状況</td><td>counting-code-lines スキルとして独立動作確認済み</td></tr>
+    <tr><td>依存</td><td>cloc（推奨。不在時は wc -l へフォールバック）、jq</td></tr>
+    <tr><td>関連資料</td><td><code>orchestrating-reverse-docs-flow</code> SKILL.md（Phase 4A から起動）</td></tr>
+  </table>
+</header>
+
+<nav class="toc">
+  <div class="toc-title">目次</div>
+  <ol>
+    <li><a href="#s1">概要</a></li>
+    <li><a href="#s2">出力</a></li>
+  </ol>
+</nav>
+
+<section id="s1">
+  <h2><span class="sec-num">§1</span>概要</h2>
+  <p>本スキルは、対象リポジトリのソースコード行数（total／FE／BE 別）・ファイル数・テスト件数を計測し、<strong>code-metrics.json</strong> を生成する。<code>env-config.json</code>（surveying-local-environment の出力）を参照して cloc の有無を判定し、cloc がインストール済みならそちらを優先、不在なら <code>find</code> + <code>wc -l</code> によるフォールバック計測に切り替える。</p>
+  <p>テストの計数は 2 段階で行う。まずテストファイル（<code>*.test.ts</code> / <code>*.spec.ts</code> / <code>test_*.py</code> 等）を列挙し、次にその内容から <code>it(</code> / <code>test(</code> / <code>def test_</code> の出現数を grep で数える。テストファイルを先に絞り込んでから計数することで、テスト以外のファイル内の偶発的な文字列一致を防ぐ。</p>
+  <pre class="flow"><span class="cap">── 処理の全体像 ──────────────────────────────</span>
+
+  target_dir（計測対象ディレクトリ）
+       │  Phase 1  前提確認（target_dir 存在確認・env_config 有無確認）
+       ▼
+  env-config.json（tools.cloc の有無）
+       │  Phase 2  計測方式の決定（cloc 方式 / wc -l 方式）
+       ▼
+       │  Phase 3  コード行数の計測
+       │  Phase 4  FE/BE 分離（パスパターン判定）
+       │  Phase 5  テスト計測（テストファイル列挙 → it/test/def test_ を計数）
+       ▼
+  code-metrics.json（Phase 6）</pre>
+</section>
+
+<section id="s2">
+  <h2><span class="sec-num">§2</span>出力</h2>
+  <p>スキルを実行すると、以下の 1 点が生まれる。</p>
+  <div class="def">
+    <dt>code-metrics.json（<code>output_dir</code> 直下）</dt>
+    <dd>コード行数の <code>total</code>／<code>fe</code>／<code>be</code>、ファイル数の <code>file_count</code>（<code>fe_files</code>／<code>be_files</code> 内訳付き）、計測方式を示す <code>method</code>（<code>"cloc"</code> または <code>"wc"</code>）、計測時刻 <code>measured_at</code>、計測時のコミットハッシュ <code>commit</code>（git 管理外なら <code>null</code>）、テスト件数と FE/BE・ファイル数の内訳を持つ <code>tests</code>、直前計測との比較用 <code>previous</code>（初回計測時は <code>null</code>）を持つ構造化 JSON。読んだ人はこの 1 ファイルだけで、コード規模がどの計測方式でいつ測られ、前回計測からどう推移したかを追跡できる。</dd>
+  </div>
+</section>
+
+</body>
+</html>

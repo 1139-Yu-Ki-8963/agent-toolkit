@@ -144,6 +144,13 @@ API種別の判定基準: 「API定義の実在」は SDL（GraphQL Schema Defin
 - 意図的にサンプリング対象外とするディレクトリは§4内の「対象外ディレクトリ」サブセクションに除外理由付きで記録する。対象外ディレクトリが無い場合はサブセクションごと削除する（空テーブルやプレースホルダを残すと検査4に抵触する）
 - §4の`.`（プロジェクトルート）行が網羅済みとするのはルート直下の直接ファイルのみ。子ディレクトリは`.`行では網羅されず、個別行・層の親行・対象外ディレクトリ表のいずれかへの記載が必要
 
+## 完了報告
+
+`managing-agent-configs/references/skills/completion-report-format.md` の共通骨格（作業報告型）に従う。
+
+固有の検証行:
+- check-architecture-survey.sh が exit 0・status（調査確定/中断）の確定
+
 ## 設計判断
 
 ### check-architecture-survey.sh

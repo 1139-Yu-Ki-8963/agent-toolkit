@@ -126,3 +126,14 @@ allowed-tools: [Bash, Read, Write, Edit, Grep, Glob, AskUserQuestion, TaskCreate
 - 自プロジェクト内の別モジュール呼び出しは外部連携ではない。境界は「プロセス外・組織外のシステムとの通信」に置く
 - マニフェストの配列キーは `screens` ではなく `units` とする（`screens` は画面種別専用の後方互換キー）
 - 出力先は `<output_dir>/外部連携一覧/外部連携一覧.html`。他種別と混在させない
+
+## 完了報告
+
+`managing-agent-configs/references/skills/completion-report-format.md` の共通骨格（作業報告型）に従う。
+
+固有の検証行:
+- validate-manifest.sh --unit-kind external が全項目 PASS・外部連携一覧.html の生成成功
+
+## 設計判断
+
+本スキルは独自スクリプトを持たないため省略する。

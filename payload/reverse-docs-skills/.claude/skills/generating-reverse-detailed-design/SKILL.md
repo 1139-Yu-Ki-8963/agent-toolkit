@@ -169,6 +169,13 @@ mode=screen が著述する画面横断章（§1 画面概要・§2 機能一覧
 
 未確定値はプレースホルダ文字列（`実測委譲`・`TBD`・`TODO`・`未定` 等）をリテラル記入せず、キー省略または §16 要確認事項へ回す。唯一の許容表記は `実測委譲（画面単位検証で確定）`（`measurement_pending` 由来の実測委譲。根拠の丸括弧を伴う固定書式）であり、根拠を伴わない裸の「実測委譲」は許容しない。「該当なし」と記す場合は根拠（何をどう調べて該当なしと判断したか）の併記を必須とする。DESIGN.md の雛形が要求する「実測値の抽出元」欄の省略も同様に禁止（省略は未記入プレースホルダとして扱う）。これらは audit_script_path が機械検査する。
 
+## 完了報告
+
+`managing-agent-configs/references/skills/completion-report-format.md` の共通骨格（作業報告型）に従う。
+
+固有の検証行:
+- check-fact-coverage.sh が exit 0・audit-consistency.sh 違反 0 件
+
 ## 設計判断
 
 ### check-fact-coverage.sh

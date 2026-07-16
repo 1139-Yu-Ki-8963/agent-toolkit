@@ -119,6 +119,13 @@ allowed-tools: [Bash, Read, Write, Edit, Grep, Glob, AskUserQuestion, TaskCreate
 - 出力先は `<output_dir>/バッチ一覧/バッチ一覧.html`。種別ごとに独立したフォルダを作成する
 - 設計書の雛形展開・生成は行わない（本スキルのスコープ外）
 
+## 完了報告
+
+`managing-agent-configs/references/skills/completion-report-format.md` の共通骨格（作業報告型）に従う。
+
+固有の検証行:
+- validate-manifest.sh --unit-kind batch が全項目 PASS・バッチ一覧.html の生成成功
+
 ## 設計判断
 
 ### build-unit-list.sh（共有エンジン）

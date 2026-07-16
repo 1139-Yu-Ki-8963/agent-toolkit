@@ -320,6 +320,7 @@ fi
 
 TEMPLATE_FILE="${PAGE_TEMPLATE[$PAGE]}"
 TEMPLATE="$SCRIPT_DIR/../../templates/detail-pages/$TEMPLATE_FILE"
+TOKENS_CSS_FILE="$SCRIPT_DIR/../../templates/tokens.css"
 if [ ! -f "$TEMPLATE" ]; then
   echo "ERROR: template not found: $TEMPLATE" >&2
   exit 1
@@ -345,11 +346,17 @@ PAGE_DATA_JSON="$(cat "$DATA")"
 # page-dataのJSONはテンプレート内で物理的に最後に出現するため、単一パスの
 # document-order走査により自動的に最後に処理される(JSON内容に他マーカー文字列が
 # 偶然含まれた場合の誤爆を避けるため)。
-out="$(render_template "$(cat "$TEMPLATE")" \
-  "{{TITLE}}" "$(html_escape "$TITLE")" \
-  "{{DESCRIPTION}}" "$(html_escape "$DESCRIPTION")" \
-  "{{GENERATED_AT}}" "$(html_escape "$GENERATED_AT")" \
-  "{{PAGE_DATA_JSON}}" "$PAGE_DATA_JSON")"
+render_args=(
+  "{{TITLE}}" "$(html_escape "$TITLE")"
+  "{{DESCRIPTION}}" "$(html_escape "$DESCRIPTION")"
+  "{{GENERATED_AT}}" "$(html_escape "$GENERATED_AT")"
+  "{{PAGE_DATA_JSON}}" "$PAGE_DATA_JSON"
+)
+# トークンCSS注入（tokens.css が存在する場合のみ）
+if [ -f "$TOKENS_CSS_FILE" ]; then
+  render_args+=("/* TOKENS_CSS */" "$(cat "$TOKENS_CSS_FILE")")
+fi
+out="$(render_template "$(cat "$TEMPLATE")" "${render_args[@]}")"
 
 TMP_OUT="$(mktemp "$OUTPUT_DIR/.build-detail-page.XXXXXX")"
 printf '%s\n' "$out" > "$TMP_OUT"

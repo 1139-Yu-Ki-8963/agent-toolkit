@@ -223,6 +223,13 @@ git tag -af "reverse-baseline/<scope>" -m "<検証日> 検証PASS: 実差分0 en
 - 独立性を犠牲にする `symlink_main` は auto では自動選択されない。速度が必要なら人間が明示 opt-in する（drvfs 検出時は WARN で選択肢を提示するのみ）
 - 本スキルの PASS 基準「静的実差分 0」は自身の用途（オリジナルをリバース環境へ整列コピーする検証）専用の基準。本スキルは計測事実（`static_diff` / `dynamic` / `env_check`）の報告者であり、往復検証の PASS/FAIL の意味解釈は judge（rebuilding-code-from-docs mode=judge）が単独で担う（解釈責務の規定は契約正本 orchestrating-reverse-docs-flow の `references/contract.md`）。独立リライト用途に合わせて本スキルの「静的実差分 0」基準自体を緩めないこと（整列コピー検証としての正しさが壊れる）
 
+## 完了報告
+
+`managing-agent-configs/references/skills/completion-report-format.md` の共通骨格（作業報告型）に従う。
+
+固有の検証行:
+- status が PASS/FAIL/DESIGN-INCOMPLETE/ERROR/DYNAMIC-UNVERIFIED のいずれかに確定
+
 ## 設計判断
 
 ### audit-doc-consistency.sh

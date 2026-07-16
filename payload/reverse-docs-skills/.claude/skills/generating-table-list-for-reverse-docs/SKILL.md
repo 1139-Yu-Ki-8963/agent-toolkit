@@ -125,6 +125,13 @@ allowed-tools: [Bash, Read, Write, Edit, Grep, Glob, AskUserQuestion, TaskCreate
 - マイグレーションは同一テーブルに対して複数存在しうる（create → alter の積み重ね）。テーブル単位に集約し、`files` に関連マイグレーションを列挙する。alter だけを独立テーブルとして数えない
 - 設計書の雛形展開・生成は行わない（本スキルのスコープ外）
 
+## 完了報告
+
+`managing-agent-configs/references/skills/completion-report-format.md` の共通骨格（作業報告型）に従う。
+
+固有の検証行:
+- validate-manifest.sh --unit-kind table が全項目 PASS・テーブル一覧.html の生成成功
+
 ## 設計判断
 
 ### エンジンスクリプトの共用（validate-manifest.sh / build-unit-list.sh）

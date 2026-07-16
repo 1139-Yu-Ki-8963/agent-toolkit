@@ -140,6 +140,13 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, TaskCreate, TaskUpdate]
 - 層あたりのk値は層内ファイル数の平方根以上・3以上10以下に丸める。全層合計20ファイル未満だとPhase 2の完了条件を満たさない（詳細は `references/sampling-rules.md`）
 - ディレクトリ責務マップの行が「共有ファイル」型（責務列が `共有ファイル（` で始まる）の場合はこの限りでない。対象そのものが単一ファイルのため N=1・k=1固定として扱う（詳細は `references/sampling-rules.md`「共有ファイル行の扱い」）
 
+## 完了報告
+
+`managing-agent-configs/references/skills/completion-report-format.md` の共通骨格（作業報告型）に従う。
+
+固有の検証行:
+- check-common-docs.sh が exit 0・プレースホルダ残存ゼロ
+
 ## 設計判断
 
 ### check-common-docs.sh
