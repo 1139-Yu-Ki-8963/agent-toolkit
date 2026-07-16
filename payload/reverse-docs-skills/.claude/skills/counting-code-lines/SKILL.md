@@ -79,7 +79,20 @@ find "$target_dir" \
 
 ファイル数も同じパターンで分類する。
 
-### Phase 5: code-metrics.json の出力
+### Phase 5: テスト計測
+
+テストファイルを以下のパターンで列挙する。除外規則は Phase 3 の wc -l 方式と同じである。除外対象は `node_modules` / `.git` / `dist` / `build` / `__pycache__` / `.next` / `coverage` である。
+
+- `*.test.ts` / `*.test.tsx` / `*.spec.ts` / `*.spec.tsx`
+- `test_*.py` / `*_test.py`
+
+列挙したテストファイルに対して、ファイル内容から `it(` / `test(` / `def test_` の出現数を grep で計数する。テストファイルを先に列挙してから計数することで、テスト以外のファイル内の偶発的な文字列一致を防ぐ。FE/BE の内訳は Phase 4 と同じ判定パスをそのまま適用する。判定パスは、パスに `backend/` `api/` `server/` を含めば BE とする。パスに `frontend/` `src/pages/` `src/components/` `src/app/` を含めば FE とする。テストファイル数も同じ判定パスで分類する。
+
+### Phase 6: code-metrics.json の出力
+
+Write 前に `$output_dir/code-metrics.json` が既存であれば読み込む。`total` の値を `previous.total` として、`tests.count` の値を `previous.tests_count` として、`measured_at` の値を `previous.measured_at` として転記する。ファイル不在時、すなわち初回計測時は `previous` を `null` にする。デフォルト値は作らない。
+
+`git -C "$target_dir" rev-parse HEAD` で計測時のコミットハッシュを取得し `commit` に記録する（`target_dir` が git 管理外の場合は `null`）。
 
 計測結果を JSON 形式で `$output_dir/code-metrics.json` に Write する。
 
@@ -92,11 +105,14 @@ find "$target_dir" \
   "fe_files": 371,
   "be_files": 141,
   "method": "cloc",
-  "measured_at": "<ISO8601 タイムスタンプ>"
+  "measured_at": "<ISO8601 タイムスタンプ>",
+  "commit": "<git rev-parse HEAD の値 | null>",
+  "tests": { "count": 128, "fe": 84, "be": 44, "files": 37 },
+  "previous": { "total": 66210, "tests_count": 120, "measured_at": "<前回計測時の ISO8601 タイムスタンプ>" }
 }
 ```
 
-`method` は `"cloc"` または `"wc"` を記録する。
+`method` は `"cloc"` または `"wc"` を記録する。`previous` はファイル不在（初回計測）時のみ `null` を記録する。
 
 ## 完了条件
 
@@ -106,8 +122,9 @@ find "$target_dir" \
 | Phase 2 | 計測方式（cloc/wc）が決定済み |
 | Phase 3 | コード行数の計測が完了 |
 | Phase 4 | FE/BE の分離が完了 |
-| Phase 5 | code-metrics.json が出力先に存在する |
-| **Goal** | code-metrics.json が正しい JSON で出力され、total/fe/be/file_count の値が妥当である |
+| Phase 5 | テスト計測（件数・FE/BE 内訳・ファイル数）が完了 |
+| Phase 6 | code-metrics.json が出力先に存在する |
+| **Goal** | code-metrics.json が正しい JSON で出力され、total/fe/be/file_count/tests/commit/previous の値が妥当である |
 
 ## 使用タイミング
 
@@ -119,3 +136,5 @@ find "$target_dir" \
 - cloc と wc -l で同じコードベースを計測すると 20〜40% の差が出る。cloc はコメント行・空行を除外するため小さい値になる。`method` フィールドで計測方式を記録しているので、消費側は方式を考慮して表示できる
 - FE/BE のパターンに一致しないファイル（設定ファイル・テストファイル等）は total にのみ計上される。そのため `total ≠ fe + be` になりうる
 - 大規模リポジトリ（10万行超）では cloc の実行に数十秒かかる場合がある
+- `it.each` / パラメタライズドテスト / `describe.each` は展開後の実行時ケース数ではなく 1 件として計数される。グロブ・grep ベースの静的計数のため、実行時に動的展開されるケース数までは追跡しない
+- テスト以外の種類のファイル（ドキュメント・スクリプト等）に書かれた `it(` / `test(` / `def test_` 相当の文字列は計数されない。テストファイル名パターンに一致するファイルのみが計数対象

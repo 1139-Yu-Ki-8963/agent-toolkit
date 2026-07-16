@@ -15,7 +15,7 @@
   プレースホルダ一覧:
     {{PROJECT_NAME}}     — プロジェクト名（basename target_repo_path）
     {{GENERATED_DATE}}   — 生成日（date +%Y-%m-%d）
-    {{METRICS_JSON}}     — 解析サマリ JSON 配列
+    {{METRICS_JSON}}     — 解析サマリ JSON オブジェクト（scale/tests/freshness/previous の構造化データ）
     {{CATEGORIES_JSON}}  — カテゴリ・ツール JSON 配列
 -->
 <style>
@@ -81,11 +81,20 @@ body {
 }
 a { color: var(--accent); text-decoration: none; }
 a:hover { text-decoration: underline; }
-.material-symbols-outlined {
+
+/* アイコンフォント読込ガード:
+   フォント読込を document.fonts.check で確認できるまでアイコンを描画しない。
+   未読込のままだと ligature 名（"stacks" 等）が生テキストで露出しレイアウトを壊すため。 */
+.material-symbols-outlined { display: none; }
+.icons-ready .material-symbols-outlined {
+  display: inline-block;
   font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
   vertical-align: middle;
   font-size: 20px;
 }
+/* フォントが来ないときはアイコン用の空き箱ごと畳む（空白のガタつき防止） */
+html:not(.icons-ready) .card-icon,
+html:not(.icons-ready) .brand-icon { display: none; }
 
 .pm-page { display: grid; grid-template-rows: auto 1fr auto; min-height: 100vh; }
 
@@ -115,7 +124,7 @@ a:hover { text-decoration: underline; }
 .top-actions button .material-symbols-outlined { font-size: 16px; }
 .top-actions button:hover { background: var(--accent-soft); color: var(--accent); border-color: var(--accent-border); }
 
-.pm-main { max-width: 1280px; width: 100%; margin: 0 auto; padding: 24px 24px 64px; }
+.pm-main { max-width: 1280px; width: 100%; min-width: 0; margin: 0 auto; padding: 24px 24px 64px; }
 
 .pm-hero {
   display: flex; align-items: flex-end; justify-content: space-between; gap: 16px;
@@ -148,6 +157,15 @@ a:hover { text-decoration: underline; }
 .metric-value .unit { font-size: 13px; font-weight: 600; color: var(--text-muted); margin-left: 3px; }
 .metric-sub { font-size: 11.5px; color: var(--text-muted); margin-top: 5px; }
 .metric-sub b { color: var(--text-sub); font-weight: 700; }
+a.metric-card { display: block; color: var(--text); cursor: pointer; transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease; }
+a.metric-card:hover, a.metric-card:focus-visible { transform: translateY(-2px); box-shadow: var(--shadow-md); border-color: var(--accent); text-decoration: none; outline: none; }
+
+.count-tags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 7px; }
+.count-tag {
+  font-size: 11px; color: var(--text-sub); background: var(--panel-2);
+  border: 1px solid var(--border); border-radius: 999px; padding: 1px 9px; white-space: nowrap;
+}
+.count-tag b { font-family: var(--mono); font-weight: 800; color: var(--text); }
 
 .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
 .card {
@@ -168,11 +186,13 @@ a:hover { text-decoration: underline; }
 .card-count { font-size: 11px; color: var(--text-muted); margin-top: 6px; }
 
 .card.is-category { border-left: 4px solid var(--accent); }
-.card.group-list   { border-left-color: #2563eb; }
-.card.group-common { border-left-color: #059669; }
+.card.group-list    { border-left-color: #2563eb; }
+.card.group-common  { border-left-color: #059669; }
+.card.group-project { border-left-color: #7C3AED; }
 .card.is-tool { border-left: 4px solid var(--accent-2); }
-.card.is-tool.group-list   { border-left-color: #2563eb; }
-.card.is-tool.group-common { border-left-color: #059669; }
+.card.is-tool.group-list    { border-left-color: #2563eb; }
+.card.is-tool.group-common  { border-left-color: #059669; }
+.card.is-tool.group-project { border-left-color: #7C3AED; }
 
 .section-header {
   display: flex; align-items: baseline; gap: 10px;
@@ -198,6 +218,35 @@ a:hover { text-decoration: underline; }
   font-family: inherit;
 }
 .search-box:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+
+.table-wrap { overflow-x: auto; border-radius: var(--radius); }
+table.data-table {
+  width: 100%; min-width: 640px; border-collapse: collapse; font-size: 13px;
+  background: var(--panel); border: 1px solid var(--border);
+}
+table.data-table th {
+  text-align: left; font-size: 11.5px; font-weight: 700; color: var(--text-sub);
+  background: var(--panel-2); padding: 8px 12px; border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+table.data-table td { padding: 9px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+table.data-table tr:last-child td { border-bottom: none; }
+table.data-table code {
+  background: var(--panel-2); padding: 1px 6px; border-radius: 4px;
+  font-family: var(--mono); font-size: 11.5px; color: var(--text-sub);
+  border: 1px solid var(--border);
+}
+.cell-main { font-weight: 700; }
+.cell-sub { font-size: 11.5px; color: var(--text-muted); }
+.val-cell { font-family: var(--mono); font-weight: 800; font-size: 14px; white-space: nowrap; }
+.val-cell .unit { font-size: 11px; color: var(--text-muted); font-weight: 600; margin-left: 2px; }
+
+.note-box {
+  font-size: 12px; color: var(--text-sub); background: var(--panel-2);
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  padding: 8px 12px; margin: 14px 0 0;
+}
+.scale-fresh { font-size: 11.5px; color: var(--text-muted); margin-top: 10px; }
 
 .footer {
   padding: 12px 20px; border-top: 1px solid var(--border);
@@ -238,6 +287,7 @@ a:hover { text-decoration: underline; }
       <span class="brand-sub">リバース設計ポータル</span>
     </a>
     <nav class="topnav">
+      <a href="#/summary"><span class="material-symbols-outlined">monitoring</span> 解析サマリ</a>
       <a href="アーキテクチャ調査書.html"><span class="material-symbols-outlined">domain</span> アーキテクチャ調査書</a>
     </nav>
     <div class="top-actions">
@@ -296,15 +346,48 @@ a:hover { text-decoration: underline; }
     return node;
   }
 
+  function fmtNum(n) {
+    return Number(n).toLocaleString('en-US');
+  }
+
+  function deltaText(curr, prev) {
+    if (prev === null || prev === undefined) return '—';
+    var d = curr - prev;
+    return (d > 0 ? '+' : '') + d;
+  }
+
   var metricsMount = document.getElementById('metrics-mount');
-  metrics.forEach(function(m) {
-    var valueHtml = m.unit ? m.value + '<span class="unit">' + m.unit + '</span>' : m.value;
-    var card = el('div', { class: 'metric-card' });
-    card.appendChild(el('div', { class: 'metric-label', html: matIcon(m.icon, 14) + '<span>' + m.label + '</span>' }));
-    card.appendChild(el('div', { class: 'metric-value', html: valueHtml }));
-    card.appendChild(el('div', { class: 'metric-sub', html: m.sub }));
-    metricsMount.appendChild(card);
-  });
+  (function renderDigestCards() {
+    var scale = metrics.scale;
+    var tests = metrics.tests;
+
+    var scaleCard = el('a', { class: 'metric-card', href: '#/summary' });
+    scaleCard.appendChild(el('div', { class: 'metric-label', html: matIcon('code', 14) + '<span>規模</span>' }));
+    scaleCard.appendChild(el('div', { class: 'metric-value', html: fmtNum(scale.total) + '<span class="unit">行</span>' }));
+    var scaleTags = el('div', { class: 'count-tags' });
+    ['screen', 'feature', 'api', 'table'].forEach(function(kind) {
+      var k = scale.kinds.filter(function(x) { return x.kind === kind; })[0];
+      if (k) scaleTags.appendChild(el('span', { class: 'count-tag', html: k.label + ' <b>' + fmtNum(k.count) + '</b>' }));
+    });
+    scaleCard.appendChild(scaleTags);
+    scaleCard.appendChild(el('div', { class: 'metric-sub' }, '全 ' + scale.kinds.length + ' 種別の内訳 → 明細へ'));
+    metricsMount.appendChild(scaleCard);
+
+    var testsCard = el('a', { class: 'metric-card', href: '#/summary' });
+    testsCard.appendChild(el('div', { class: 'metric-label', html: matIcon('science', 14) + '<span>テスト</span>' }));
+    if (tests) {
+      testsCard.appendChild(el('div', { class: 'metric-value', html: fmtNum(tests.count) + '<span class="unit">件</span>' }));
+      var testTags = el('div', { class: 'count-tags' });
+      testTags.appendChild(el('span', { class: 'count-tag', html: 'FE <b>' + fmtNum(tests.fe) + '</b>' }));
+      testTags.appendChild(el('span', { class: 'count-tag', html: 'BE <b>' + fmtNum(tests.be) + '</b>' }));
+      testsCard.appendChild(testTags);
+      testsCard.appendChild(el('div', { class: 'metric-sub' }, '密度・前回比は計算式付きで明細へ'));
+    } else {
+      testsCard.appendChild(el('div', { class: 'metric-value' }, '—'));
+      testsCard.appendChild(el('div', { class: 'metric-sub' }, '未計測 — counting-code-lines の拡張後に表示'));
+    }
+    metricsMount.appendChild(testsCard);
+  })();
 
   var root = document.getElementById('app-main');
 
@@ -365,8 +448,79 @@ a:hover { text-decoration: underline; }
     });
   }
 
+  function renderSummary() {
+    root.innerHTML = '';
+    var scale = metrics.scale;
+    var tests = metrics.tests;
+    var freshness = metrics.freshness;
+    var previous = metrics.previous;
+    var measuredText = freshness.measured_at + (freshness.note ? '・' + freshness.note : '');
+
+    root.appendChild(el('div', { class: 'doc-crumbs', html: '<a data-nav="#/">TOP</a> / 解析サマリ' }));
+    root.appendChild(el('div', { class: 'section-header' }, [
+      el('h2', { class: 'section-title', html: matIcon('monitoring', 18) + ' 解析サマリ' }),
+      el('span', { class: 'section-sub' }, '計測値と規模の明細。事実の記録のみで、数値の出所となる計算・条件を併記する。'),
+    ]));
+
+    root.appendChild(el('div', { class: 'sec-label' }, '計測値（テスト）'));
+    if (tests) {
+      var densityText = tests.density + '<span class="unit">件/千行</span>';
+      var testsWrap = el('div', { class: 'table-wrap' });
+      var testsTable = el('table', { class: 'data-table', html:
+        '<thead><tr><th>指標</th><th>値</th><th>前回比</th><th>計算・条件</th><th>計測時点</th></tr></thead>' +
+        '<tbody>' +
+        '<tr><td class="cell-main">テスト件数</td>' +
+          '<td class="val-cell">' + fmtNum(tests.count) + '<span class="unit">件</span></td>' +
+          '<td class="cell-sub">' + deltaText(tests.count, previous ? previous.tests_count : null) + '</td>' +
+          '<td>it / test ブロックと def test_ 関数を計数（FE ' + fmtNum(tests.fe) + ' ／ BE ' + fmtNum(tests.be) + '）</td>' +
+          '<td class="cell-sub">' + measuredText + '</td></tr>' +
+        '<tr><td class="cell-main">テストファイル数</td>' +
+          '<td class="val-cell">' + fmtNum(tests.files) + '<span class="unit">件</span></td>' +
+          '<td class="cell-sub">—</td>' +
+          '<td>*.test.ts(x) / *.spec.ts(x) / test_*.py / *_test.py に一致するファイルを計数</td>' +
+          '<td class="cell-sub">' + measuredText + '</td></tr>' +
+        '<tr><td class="cell-main">テスト密度</td>' +
+          '<td class="val-cell">' + densityText + '</td>' +
+          '<td class="cell-sub">—</td>' +
+          '<td>テスト ' + fmtNum(tests.count) + ' 件 ÷ コード ' + (scale.total / 1000).toFixed(1) + ' 千行</td>' +
+          '<td class="cell-sub">' + measuredText + '</td></tr>' +
+        '</tbody>'
+      });
+      testsWrap.appendChild(testsTable);
+      root.appendChild(testsWrap);
+    } else {
+      root.appendChild(el('div', { class: 'note-box' }, '未計測 — counting-code-lines の拡張後に表示'));
+    }
+
+    root.appendChild(el('div', { class: 'sec-label' }, '規模'));
+    var scaleRowsHtml =
+      '<tr><td class="cell-main">コード行数</td>' +
+        '<td class="val-cell">' + fmtNum(scale.total) + '<span class="unit">行</span></td>' +
+        '<td>FE ' + fmtNum(scale.fe) + ' ／ BE ' + fmtNum(scale.be) + '・' + fmtNum(scale.files) + ' ファイル</td>' +
+        '<td><code>code-metrics.json</code></td></tr>';
+    scale.kinds.forEach(function(k) {
+      var isInternal = k.href.indexOf('#') === 0;
+      var linkAttr = isInternal ? '' : ' target="_blank" rel="noopener"';
+      scaleRowsHtml += '<tr><td class="cell-main">' + k.label + '</td>' +
+        '<td class="val-cell">' + fmtNum(k.count) + '</td>' +
+        '<td>' + k.unit + '</td>' +
+        '<td><a href="' + k.href + '"' + linkAttr + '>' + k.label + '一覧ページ →</a></td></tr>';
+    });
+    var scaleWrap = el('div', { class: 'table-wrap' });
+    var scaleTable = el('table', { class: 'data-table', html:
+      '<thead><tr><th>種別</th><th>件数</th><th>内訳・補足</th><th>一覧ページ</th></tr></thead>' +
+      '<tbody>' + scaleRowsHtml + '</tbody>'
+    });
+    scaleWrap.appendChild(scaleTable);
+    root.appendChild(scaleWrap);
+    root.appendChild(el('div', { class: 'scale-fresh' }, '計測時点: ' + measuredText));
+
+    root.appendChild(el('div', { class: 'back-link' }, el('a', { 'data-nav': '#/' }, '← TOP へ戻る')));
+  }
+
   function route() {
     var path = location.hash.replace(/^#/, '') || '/';
+    if (path === '/summary') { renderSummary(); window.scrollTo(0, 0); return; }
     var m = path.match(/^\/category\/(.+)$/);
     if (m) renderCategory(decodeURIComponent(m[1]));
     else renderTop();
@@ -398,6 +552,31 @@ a:hover { text-decoration: underline; }
     if (e.key === '/' && si && document.activeElement !== si) { e.preventDefault(); si.focus(); }
     if (e.key === 'Escape' && si) { si.value = ''; si.blur(); si.dispatchEvent(new Event('input')); }
   });
+})();
+</script>
+
+<script>
+(function() {
+  // アイコンフォント未読込フォールバック:
+  // document.fonts.check で確認できるまでアイコンを非表示のままにし、
+  // 確認できた時点でのみ <html> に icons-ready クラスを付与する。
+  function checkIcons() {
+    if (document.fonts && document.fonts.check && document.fonts.check('24px "Material Symbols Outlined"')) {
+      document.documentElement.classList.add('icons-ready');
+      return true;
+    }
+    return false;
+  }
+  if (!checkIcons()) {
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(function() { checkIcons(); });
+    }
+    var tries = 0;
+    var timer = setInterval(function() {
+      tries++;
+      if (checkIcons() || tries >= 10) clearInterval(timer);
+    }, 500);
+  }
 })();
 </script>
 </body>

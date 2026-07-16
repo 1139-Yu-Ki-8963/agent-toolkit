@@ -8,9 +8,9 @@ set -euo pipefail
 #
 # 処理:
 #   1. 対象リポジトリのコード行数・ファイル数を計測（FE/BE分離）
-#   2. 各種別の一覧HTMLから件数を抽出
-#   3. 共通文書リストを収集
-#   4. METRICS_JSON / CATEGORIES_JSON を組み立て
+#   2. 各種別の一覧HTMLから件数を抽出（規模側の kinds と一覧カードで共用）
+#   3. 共通文書リスト・将来ページ受け口（FUTURE_PAGES）を収集
+#   4. METRICS_JSON（構造化: scale/tests/freshness/previous）/ CATEGORIES_JSON を組み立て
 #   5. テンプレートのプレースホルダを置換して出力
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -21,34 +21,63 @@ source "$SCRIPT_DIR/render-template.sh"
 # --- self-test ---
 if [ "${1:-}" = "--self-test" ]; then
   tmpdir="$(mktemp -d)"
-  trap 'rm -rf "$tmpdir"' EXIT
+  tmpdir2="$(mktemp -d)"
+  trap 'rm -rf "$tmpdir" "$tmpdir2"' EXIT
 
-  # フィクスチャ: FE/BE パターンに一致しないパスに .ts ファイルを配置
+  # ケース1: 旧スキーマ互換（既存フィクスチャそのまま。tests/commit/previous なし）
   mkdir -p "$tmpdir/repo/misc"
   echo "const x = 1;" > "$tmpdir/repo/misc/util.ts"
 
-  # code-metrics.json（counting-code-lines スキルの出力相当）
   mkdir -p "$tmpdir/portal"
   cat > "$tmpdir/portal/code-metrics.json" <<'FIXTURE'
 {"total":1,"fe":0,"be":0,"file_count":1,"fe_files":0,"be_files":0,"method":"wc","measured_at":"2026-01-01T00:00:00Z"}
 FIXTURE
 
-  # docs_root（空でよい）
   mkdir -p "$tmpdir/docs"
 
-  # 実行
+  case1_pass=0
   if bash "$0" "$tmpdir/repo" "$tmpdir/docs" "$tmpdir/portal" 2>/dev/null; then
     if [ -f "$tmpdir/portal/index.html" ]; then
-      echo "PASS: --self-test (exit 0, index.html generated)" >&2
-      exit 0
-    else
-      echo "FAIL: --self-test (exit 0 but index.html not found)" >&2
-      exit 1
+      echo "PASS: --self-test ケース1（旧スキーマ互換, exit 0, index.html generated）" >&2
+      case1_pass=1
     fi
-  else
-    echo "FAIL: --self-test (non-zero exit code: $?)" >&2
+  fi
+  if [ "$case1_pass" -ne 1 ]; then
+    echo "FAIL: --self-test ケース1（旧スキーマ互換）" >&2
     exit 1
   fi
+
+  # ケース2: 新スキーマ + git 管理フィクスチャ（tests/commit/previous あり）
+  mkdir -p "$tmpdir2/repo"
+  git -C "$tmpdir2/repo" init -q
+  git -C "$tmpdir2/repo" config user.email "test@example.com"
+  git -C "$tmpdir2/repo" config user.name "Test"
+  echo "const x = 1;" > "$tmpdir2/repo/util.ts"
+  git -C "$tmpdir2/repo" add -A
+  git -C "$tmpdir2/repo" commit -q -m "initial"
+  commit_hash="$(git -C "$tmpdir2/repo" rev-parse HEAD)"
+
+  mkdir -p "$tmpdir2/portal"
+  cat > "$tmpdir2/portal/code-metrics.json" <<FIXTURE2
+{"total":1000,"fe":600,"be":400,"file_count":10,"fe_files":6,"be_files":4,"method":"wc","measured_at":"2026-07-16T00:00:00Z","commit":"$commit_hash","tests":{"count":20,"fe":12,"be":8,"files":5},"previous":{"total":900,"tests_count":15,"measured_at":"2026-07-01T00:00:00Z"}}
+FIXTURE2
+
+  mkdir -p "$tmpdir2/docs"
+
+  case2_pass=0
+  if bash "$0" "$tmpdir2/repo" "$tmpdir2/docs" "$tmpdir2/portal" 2>/dev/null; then
+    out="$tmpdir2/portal/index.html"
+    if [ -f "$out" ] && [ "$(grep -c '{{' "$out" || true)" -eq 0 ] && grep -q '"scale"' "$out"; then
+      echo "PASS: --self-test ケース2（新スキーマ + git 管理, exit 0, 未解決プレースホルダなし, scale 含む）" >&2
+      case2_pass=1
+    fi
+  fi
+  if [ "$case2_pass" -ne 1 ]; then
+    echo "FAIL: --self-test ケース2（新スキーマ + git 管理）" >&2
+    exit 1
+  fi
+
+  exit 0
 fi
 
 # --- 引数チェック ---
@@ -81,19 +110,20 @@ if [ -f "$CODE_METRICS" ]; then
   fe_lines="$(jq -r '.fe // 0' "$CODE_METRICS")"
   be_lines="$(jq -r '.be // 0' "$CODE_METRICS")"
   total_files="$(jq -r '.file_count // 0' "$CODE_METRICS")"
-  fe_files="$(jq -r '.fe_files // 0' "$CODE_METRICS")"
-  be_files="$(jq -r '.be_files // 0' "$CODE_METRICS")"
+  measured_at="$(jq -r '.measured_at // empty' "$CODE_METRICS")"
+  commit_field="$(jq -r '.commit // empty' "$CODE_METRICS")"
+  tests_raw="$(jq -c '.tests // null' "$CODE_METRICS")"
+  previous_json="$(jq -c '.previous // null' "$CODE_METRICS")"
 else
   echo "WARN: code-metrics.json not found at $CODE_METRICS. Using zeros." >&2
-  total_lines=0; fe_lines=0; be_lines=0
-  total_files=0; fe_files=0; be_files=0
+  total_lines=0; fe_lines=0; be_lines=0; total_files=0
+  measured_at=""
+  commit_field=""
+  tests_raw="null"
+  previous_json="null"
 fi
 
-format_number() {
-  printf "%'d" "$1" 2>/dev/null || printf "%d" "$1"
-}
-
-# --- 2. 一覧件数の抽出 ---
+# --- 2. 一覧件数の抽出（規模側の kinds データもここで同時に収集し重複計測を避ける） ---
 declare -A KIND_LABELS=(
   [screen]="画面"
   [api]="API"
@@ -163,6 +193,7 @@ fi
 KINDS_ORDER="screen api batch table report external feature"
 
 list_tools_json=""
+kinds_json="[]"
 for kind in $KINDS_ORDER; do
   if is_excluded "$kind"; then
     continue
@@ -191,6 +222,9 @@ for kind in $KINDS_ORDER; do
 
   [ -n "$list_tools_json" ] && list_tools_json="$list_tools_json,"
   list_tools_json="$list_tools_json{\"title\":\"${label}一覧\",\"icon\":\"$icon\",\"href\":\"$href\",\"desc\":\"$desc\",\"count\":\"$count_text\"}"
+
+  kinds_json="$(jq -n -c --argjson arr "$kinds_json" --arg kind "$kind" --arg label "$label" --argjson count "$unit_count" --arg unit "$unit" --arg href "$href" \
+    '$arr + [{kind:$kind,label:$label,count:$count,unit:$unit,href:$href}]')"
 done
 
 # --- 3. 共通文書リストの収集 ---
@@ -223,51 +257,113 @@ if [ -d "$common_dir" ]; then
   done < <(find "$common_dir" -name '*.md' -type f 2>/dev/null | sort)
 fi
 
-# --- 4. JSON 組み立て ---
-METRICS_JSON="[{\"icon\":\"code\",\"label\":\"コード行数\",\"value\":\"$(format_number "$total_lines")\",\"unit\":\"行\",\"sub\":\"<b>FE</b> $(format_number "$fe_lines") ／ <b>BE</b> $(format_number "$be_lines")\"},{\"icon\":\"folder\",\"label\":\"ファイル数\",\"value\":\"$(format_number "$total_files")\",\"unit\":\"件\",\"sub\":\"<b>FE</b> $(format_number "$fe_files") ／ <b>BE</b> $(format_number "$be_files")\"}"
+# --- 4. 将来ページ受け口（FUTURE_PAGES）: docs_root 直下に該当 HTML が実在する場合のみカード化 ---
+declare -A FUTURE_LABELS=(
+  [glossary]="用語辞書"
+  [techstack]="技術スタック"
+  [transition]="画面遷移図"
+  [er]="ER図"
+  [env]="環境・実行手順"
+)
+declare -A FUTURE_FILES=(
+  [glossary]="用語辞書.html"
+  [techstack]="技術スタック.html"
+  [transition]="画面遷移図.html"
+  [er]="ER図.html"
+  [env]="環境実行手順.html"
+)
+declare -A FUTURE_ICONS=(
+  [glossary]="dictionary"
+  [techstack]="stacks"
+  [transition]="account_tree"
+  [er]="schema"
+  [env]="terminal"
+)
+declare -A FUTURE_DESCS=(
+  [glossary]="業務用語・技術用語・略語の定義とコード上の対応識別子の対訳。"
+  [techstack]="言語・フレームワーク・主要依存パッケージのバージョンと採用箇所の整理。"
+  [transition]="画面一覧のルーティング情報から生成する画面遷移マップ。"
+  [er]="テーブル一覧の外部キー情報から生成するエンティティ関連図。"
+  [env]="ローカル起動手順・必須ツール・ポート割当の整理。"
+)
+FUTURE_ORDER="glossary techstack transition er env"
 
-screen_count=0
-api_count=0
-table_count=0
-for kind in screen api table; do
-  label="${KIND_LABELS[$kind]}"
-  dir_name="${KIND_DIRS[$kind]}"
-  html_file="$DOCS_ROOT/$dir_name/${label}一覧.html"
+future_tools_json=""
+for key in $FUTURE_ORDER; do
+  label="${FUTURE_LABELS[$key]}"
+  file="${FUTURE_FILES[$key]}"
+  icon="${FUTURE_ICONS[$key]}"
+  desc="${FUTURE_DESCS[$key]}"
+  html_file="$DOCS_ROOT/$file"
+
   if [ -f "$html_file" ]; then
-    manifest_json="$(sed -n 's/.*<script[^>]*id="unit-manifest"[^>]*type="application\/json"[^>]*>\(.*\)<\/script>.*/\1/p' "$html_file" 2>/dev/null || true)"
-    if [ -z "$manifest_json" ]; then
-      manifest_json="$(sed -n 's/.*<script[^>]*type="application\/json"[^>]*id="unit-manifest"[^>]*>\(.*\)<\/script>.*/\1/p' "$html_file" 2>/dev/null || true)"
-    fi
-    if [ -n "$manifest_json" ]; then
-      cnt="$(echo "$manifest_json" | jq -r '.detectionSummary.unitCount // 0' 2>/dev/null || echo 0)"
-      case "$kind" in
-        screen) screen_count=$cnt ;;
-        api) api_count=$cnt ;;
-        table) table_count=$cnt ;;
-      esac
-    fi
+    href="$docs_relative/$file"
+    [ -n "$future_tools_json" ] && future_tools_json="$future_tools_json,"
+    future_tools_json="$future_tools_json{\"title\":\"$label\",\"icon\":\"$icon\",\"href\":\"$href\",\"desc\":\"$desc\",\"count\":\"詳細を見る ↗\"}"
   fi
 done
 
-METRICS_JSON="$METRICS_JSON,{\"icon\":\"monitor\",\"label\":\"画面\",\"value\":\"$screen_count\",\"unit\":\"\",\"sub\":\"検出済み画面コンポーネント\"}"
-METRICS_JSON="$METRICS_JSON,{\"icon\":\"api\",\"label\":\"API\",\"value\":\"$api_count\",\"unit\":\"\",\"sub\":\"エンドポイント\"}"
-METRICS_JSON="$METRICS_JSON,{\"icon\":\"table_chart\",\"label\":\"テーブル\",\"value\":\"$table_count\",\"unit\":\"\",\"sub\":\"マイグレーション定義\"}"
-METRICS_JSON="$METRICS_JSON]"
+# --- 5. テスト計測・鮮度・前回値の JSON 化 ---
+if [ "$tests_raw" != "null" ]; then
+  tests_count="$(echo "$tests_raw" | jq -r '.count // 0')"
+  if [ "$total_lines" -gt 0 ]; then
+    density="$(awk -v c="$tests_count" -v t="$total_lines" 'BEGIN{printf "%.1f", c / (t/1000)}')"
+  else
+    density="0.0"
+  fi
+  tests_json="$(echo "$tests_raw" | jq -c --argjson density "$density" '. + {density:$density}')"
+else
+  tests_json="null"
+fi
+
+freshness_behind="null"
+freshness_note=""
+if [ -n "$commit_field" ] && git -C "$TARGET_REPO" rev-parse --git-dir >/dev/null 2>&1; then
+  if behind_count="$(git -C "$TARGET_REPO" rev-list --count "${commit_field}..HEAD" 2>/dev/null)"; then
+    freshness_behind="$behind_count"
+    if [ "$behind_count" -eq 0 ]; then
+      freshness_note="最新コミットと一致"
+    else
+      freshness_note="計測後 ${behind_count} コミット・要再計測"
+    fi
+  else
+    # 計測時コミットが履歴に不在（rebase・squash 等で失われた場合）。
+    # 事実の表示のみであり合否の判断はしない（再計測を行うかは人・フロー再実行に委ねる）。
+    freshness_note="計測時コミットが履歴に不在・要再計測"
+  fi
+else
+  # git 管理外、または commit フィールド欠落。measured_at のみが手がかり。
+  freshness_note=""
+fi
+freshness_json="$(jq -n --arg measured_at "$measured_at" --argjson behind "$freshness_behind" --arg note "$freshness_note" \
+  '{measured_at:$measured_at, behind:$behind, note:$note}')"
+
+# --- 6. JSON 組み立て ---
+scale_json="$(jq -n --argjson total "$total_lines" --argjson fe "$fe_lines" --argjson be "$be_lines" --argjson files "$total_files" --argjson kinds "$kinds_json" \
+  '{total:$total, fe:$fe, be:$be, files:$files, kinds:$kinds}')"
+
+METRICS_JSON="$(jq -n --argjson scale "$scale_json" --argjson tests "$tests_json" --argjson freshness "$freshness_json" --argjson previous "$previous_json" \
+  '{scale:$scale, tests:$tests, freshness:$freshness, previous:$previous}')"
 
 common_count=0
 if [ -n "$common_tools_json" ]; then
   common_count="$(echo "$common_tools_json" | grep -o '{' | wc -l | awk '{print $1}')"
 fi
-list_count="$(echo "$list_tools_json" | grep -o '{' | wc -l | awk '{print $1}')"
-[ -z "$list_count" ] && list_count=0
+future_count=0
+if [ -n "$future_tools_json" ]; then
+  future_count="$(echo "$future_tools_json" | grep -o '{' | wc -l | awk '{print $1}')"
+fi
 
 CATEGORIES_JSON="[{\"id\":\"list\",\"title\":\"一覧系資料\",\"icon\":\"list_alt\",\"sub\":\"画面・API・バッチ・テーブル・帳票・外部連携・機能の種別一覧\",\"tools\":[$list_tools_json]}"
+if [ "$future_count" -gt 0 ]; then
+  CATEGORIES_JSON="$CATEGORIES_JSON,{\"id\":\"project\",\"title\":\"プロジェクト基盤情報\",\"icon\":\"domain\",\"sub\":\"プロジェクトの前提を横断的にまとめた資料\",\"tools\":[$future_tools_json]}"
+fi
 if [ "$common_count" -gt 0 ]; then
   CATEGORIES_JSON="$CATEGORIES_JSON,{\"id\":\"common\",\"title\":\"共通文書\",\"icon\":\"library_books\",\"sub\":\"プロジェクト全体に適用される設計方針・規約\",\"tools\":[$common_tools_json]}"
 fi
 CATEGORIES_JSON="$CATEGORIES_JSON]"
 
-# --- 5. テンプレート置換・出力 ---
+# --- 7. テンプレート置換・出力 ---
 mkdir -p "$PORTAL_DIR"
 
 template_content="$(cat "$TEMPLATE")"
