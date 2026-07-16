@@ -53,3 +53,14 @@
 ```
 
 `<本リポジトリの配置パス>` は実行環境ごとの配置先（§1 推奨配置を参照）に置き換える。ガードスクリプト自体の許可・拒否判定はスクリプト本体の self-test を参照。
+
+## 依存 agent-home スキル
+
+orchestrating-reverse-docs-flow が Skill ツールで呼び出す agent-home スキル。公開完遂フロー手順1.5 で agent-toolkit の sync-manifest.json への登録有無を検査する。
+
+| スキル名 |
+|---|
+| surveying-local-environment |
+| counting-code-lines |
+
+新しい agent-home スキルを追加した場合はこの表にも追記する。
