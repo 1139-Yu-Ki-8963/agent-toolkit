@@ -22,7 +22,8 @@
   --danger-soft: #F5E2DC;
   --code-bg: #1B1F26;
   --code-fg: #E8E5DC;
-  --mono: "SFMono-Regular","Menlo","Consolas",monospace;
+  --font-body: "Hiragino Kaku Gothic ProN","Hiragino Sans","Noto Sans JP","BIZ UDPGothic","Yu Gothic","Meiryo",system-ui,-apple-system,sans-serif;
+  --mono: "SFMono-Regular","Menlo","Cascadia Code","Consolas",monospace;
   --shadow-sm: 0 1px 2px rgba(27,31,38,.05), 0 1px 4px rgba(27,31,38,.04);
   --shadow-md: 0 2px 6px rgba(27,31,38,.07), 0 8px 24px rgba(27,31,38,.06);
   --radius: 10px;

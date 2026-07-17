@@ -95,6 +95,28 @@ FIXTURE2
   fi
   rm -rf "$test3_dir"
 
+  echo "--- ケース4: BOM付き・frontmatter付きmdファイルからのタイトル抽出 ---"
+  test4_dir="$(mktemp -d)"
+  test4_repo="$test4_dir/repo"
+  test4_docs="$test4_dir/docs"
+  test4_portal="$test4_dir/portal"
+  mkdir -p "$test4_repo" "$test4_docs/プロジェクト共通" "$test4_portal"
+  printf '\xEF\xBB\xBF# BOM付き見出し\n本文' > "$test4_docs/プロジェクト共通/bom-test.md"
+  printf -- '---\ntitle: frontmatter\n---\n# FM後の見出し\n本文' > "$test4_docs/プロジェクト共通/fm-test.md"
+  "$SCRIPT_DIR/build-portal.sh" "$test4_repo" "$test4_docs" "$test4_portal" 2>/dev/null
+  bom_ok=0
+  fm_ok=0
+  grep -q 'BOM付き見出し' "$test4_portal/index.html" 2>/dev/null && bom_ok=1
+  grep -q 'FM後の見出し' "$test4_portal/index.html" 2>/dev/null && fm_ok=1
+  if [ "$bom_ok" = "1" ] && [ "$fm_ok" = "1" ]; then
+    echo "PASS: --self-test ケース4（BOM付き・frontmatter付きmdからのタイトル抽出）"
+  else
+    echo "FAIL: --self-test ケース4（BOM付き・frontmatter付きmdからのタイトル抽出, bom=$bom_ok fm=$fm_ok）" >&2
+    rm -rf "$test4_dir"
+    exit 1
+  fi
+  rm -rf "$test4_dir"
+
   exit 0
 fi
 
@@ -216,7 +238,7 @@ common_tools_json=""
 common_dir="$DOCS_ROOT/プロジェクト共通"
 if [ -d "$common_dir" ]; then
   while IFS= read -r md_file; do
-    title="$(head -1 "$md_file" | sed 's/^#\+ *//' 2>/dev/null || true)"
+    title="$(sed -e '1s/^\xEF\xBB\xBF//' "$md_file" | grep -m1 '^#' | sed 's/^#\+ *//' 2>/dev/null || true)"
     if [ -z "$title" ]; then
       title="$(basename "$md_file" .md)"
     fi

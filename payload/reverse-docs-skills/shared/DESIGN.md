@@ -74,4 +74,4 @@
 | `screen-list-template.html` | 一覧型（画面一覧、検索・ソート付き） |
 | `feature-list-template.html` | 一覧型（機能一覧、検索・ソート付き） |
 
-本文フォントは `"Hiragino Kaku Gothic ProN","Hiragino Sans","Yu Gothic","Meiryo",system-ui,-apple-system,sans-serif`、一覧系テンプレートのみ `system-ui,-apple-system,"Hiragino Sans","Noto Sans JP",sans-serif` を使う。コード表示は `--mono`（`SFMono-Regular,Menlo,Consolas,monospace`）で統一する。
+本文フォントは `"Hiragino Kaku Gothic ProN","Hiragino Sans","Noto Sans JP","BIZ UDPGothic","Yu Gothic","Meiryo",system-ui,-apple-system,sans-serif`、一覧系テンプレートのみ `system-ui,-apple-system,"Hiragino Sans","Noto Sans JP",sans-serif` を使う。コード表示は `--mono`（`SFMono-Regular,Menlo,Consolas,monospace`）で統一する。
