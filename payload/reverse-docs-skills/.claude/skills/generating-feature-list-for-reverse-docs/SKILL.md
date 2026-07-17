@@ -45,9 +45,9 @@ feature 種別に組み込み検出器はない。抽出は **カスタム抽出
 
 ## 進捗管理(必須手順)
 
-スキル開始時に `TaskCreate` で Phase 1〜5 のタスクを登録する。各 Phase 開始時に該当タスクを `in_progress` に、完了時に `completed` へ `TaskUpdate` で更新する。Phase 4 から Phase 2〜3 へ差し戻す場合は該当タスクを `in_progress` に戻す。実行環境に TaskCreate/TaskUpdate が存在しない場合は、出力先ディレクトリ内のタスク台帳ファイル(`task-ledger.md`)で同等の Phase 遷移記録を代替する。
+スキル開始時に `TaskCreate` で Phase 1〜6 のタスクを登録する。各 Phase 開始時に該当タスクを `in_progress` に、完了時に `completed` へ `TaskUpdate` で更新する。Phase 5 から Phase 2〜4 へ差し戻す場合は該当タスクを `in_progress` に戻す。実行環境に TaskCreate/TaskUpdate が存在しない場合は、出力先ディレクトリ内のタスク台帳ファイル(`task-ledger.md`)で同等の Phase 遷移記録を代替する。
 
-## 動作フロー(Phase 1〜5)
+## 動作フロー(Phase 1〜6)
 
 グルーピング規約の詳細は `references/feature-detection.md` を参照する。
 
@@ -62,28 +62,52 @@ feature 種別に組み込み検出器はない。抽出は **カスタム抽出
 - **Step 2**: APIプレフィックス/tags(③)・ディレクトリ構造(④)で裏取りし、競合があれば feature-detection.md の競合解決フローに従う。完了条件: 全画面が大分類候補に割当済み、または割当根拠ゼロとして unresolved 候補に分類済み
 - **Step 3**: 大分類が細分化しすぎる場合(機能1件のみの大分類が過半、または大分類数が10超)、`references/feature-detection.md` の「大分類の統合規則」に従い上位の業務領域へ統合する。境界(機能の分割)は変えない。完了条件: 大分類数が目安(5〜10)に収まっている、または収まらない理由が記録済み
 
-### Phase 3: 機能の導出と関連付け
+### Phase 3: 画面→機能グルーピング + 完全性ゲート(Stage 1)
 
-- **Step 1**: 大分類内で画面群を機能単位(同一業務対象への操作一式。CRUD集約)に分割する。完了条件: 全画面がいずれかの機能の relatedScreens または unresolved に載っている(取りこぼしゼロ)
-- **Step 2**: related* を突合する。関連APIは画面 entryFile から辿れるデータ取得コードの endpoint を API一覧の identifier に照合、関連テーブルは API sourceFile の参照モデルをテーブル一覧に照合。解決できないものは空のままとし推測で埋めない。完了条件: 各機能の relatedScreens/relatedApis/relatedTables・confidence が確定済み
-- **Step 3**: スキーマ準拠のマニフェスト JSON を一時ディレクトリ(`$CLAUDE_JOB_DIR/tmp/feature-manifest.json`、未設定時は `${TMPDIR:-/tmp}/claude-job-${session}/tmp/` 配下)に Write する。機能を捏造しない。完了条件: マニフェスト JSON が生成済み
-
-### Phase 4: 戦略・構成のユーザー承認
-
-- **Step 1**: 大分類と機能の構成案(unresolved 行を含む)を AskUserQuestion で提示する。応答は (A) 構成案どおり承認 / (B) 修正指示(大分類・機能の統合/分割・unresolved の割当指示)の2系統で受け、(B) なら該当部分の Phase 2〜3 を再実行して再提示する。承認で `strategy.approvedByUser: true` をマニフェストに記録する。unresolved 行に割当指示がなければ unresolved のまま出力してよい(人間への引き継ぎ事項であり、残置もスキル完了とみなす)。完了条件: approvedByUser: true が記録済み
-
-### Phase 5: 検証とHTML生成(機械実行)
-
-- **Step 1**: `../../../shared/scripts/unit-list/validate-manifest.sh <manifest.json> --unit-kind feature` を実行する。FAIL 時は指摘に応じて修正し再実行(3回失敗で Phase 3 へ差し戻し)。完了条件: 全項目 PASS
-- **Step 2**: related* 参照実在の jq 自前検査を実行する(validate-manifest.sh の参照整合検査は screen 専用のため本スキルが担う)。不在参照が出力されたら Phase 3 Step 2 へ差し戻す。完了条件: 3種の comm 出力がすべて空
+- **Step 1**: 大分類内で画面群を機能単位(同一業務対象への操作一式。CRUD集約)に分割する。完了条件: グルーピングが完了し各画面に機能が割り当てられている
+- **Step 2(完全性ゲート)**: 画面一覧の全 screenKey が「いずれかの機能の relatedScreens」または「unresolved 行」に載っているかを機械検査する。未割当が1件でもあれば Step 1 へ差し戻す
 
 ```bash
-# relatedScreens ⊆ 画面一覧 screens[].screenKey(relatedApis/relatedTables も対応一覧の units[].unitKey で同型。
+# 未割当の screenKey を検出(空なら PASS、非空なら Step 1 へ差し戻し)
+comm -13 \
+  <(jq -r '.units[] | .relatedScreens[]?' feature-manifest.json | sort -u) \
+  <(jq -r '.screens[].screenKey' screen-manifest.json | sort -u)
+```
+
+- **Step 3**: スキーマ準拠のマニフェスト JSON を一時ディレクトリ(`$CLAUDE_JOB_DIR/tmp/feature-manifest.json`、未設定時は `${TMPDIR:-/tmp}/claude-job-${session}/tmp/` 配下)に Write する。この時点で `relatedApis`・`relatedTables` は空配列とする。機能を捏造しない。完了条件: マニフェスト JSON が生成済みで完全性ゲート PASS
+
+### Phase 4: API紐付け + テーブル紐付け(Stage 2 + Stage 3)
+
+Phase 1 で特定したプロジェクト固有の API 呼び出しパターンと ORM/モデル参照パターンを使い、構造化された手順で related* を埋める。手順の詳細は `references/feature-detection.md` の「Stage 2: API紐付け手順」「Stage 3: テーブル紐付け手順」を参照する。
+
+- **Step 1(Stage 2: API紐付け)**: 各機能の relatedScreens に含まれる画面について、画面マニフェストの `files[]`(なければ `entryFile` にフォールバック)から API 呼び出しパターンを grep し、API一覧マニフェストの `units[].identifier` に照合する。一致した `unitKey` を当該機能の `relatedApis` に記録する。照合できない endpoint は残余リストに記録し、パスパラメータ差異等の曖昧一致のみ Claude が裁定する(推測禁止)。完了条件: 全機能の relatedApis が確定済み(空配列を含む)
+- **Step 2(Stage 3: テーブル紐付け)**: Step 1 で紐付いた API unitKey について、API一覧マニフェストの `units[].sourceFile` からモデル/テーブル参照を grep し、テーブル一覧マニフェストの `units[].unitKey` に照合する。一致した `unitKey` を当該機能の `relatedTables` に記録する。照合できない参照は残余リストに記録し Claude が裁定する。完了条件: 全機能の relatedTables が確定済み(空配列を含む)
+- **Step 3(組み立て)**: Stage 2・Stage 3 の結果をマニフェスト JSON にマージする。各機能の confidence を確定する。完了条件: マニフェスト JSON の relatedApis・relatedTables・confidence が全機能分記録済み
+
+Stage 2 → Stage 3 の実行順はデータ依存(Stage 3 は Stage 2 の出力する API unitKey を入力とする)により固定。ただし各画面・各 API の処理は独立しておりサブエージェント並列委任が可能。API一覧またはテーブル一覧が未生成の場合、該当する related* は空配列のまま PASS とする。
+
+### Phase 5: 戦略・構成のユーザー承認
+
+- **Step 1**: 大分類と機能の構成案(unresolved 行・relatedApis・relatedTables を含む)を AskUserQuestion で提示する。応答は (A) 構成案どおり承認 / (B) 修正指示(大分類・機能の統合/分割・unresolved の割当指示・related* の修正)の2系統で受け、(B) なら該当部分の Phase 2〜4 を再実行して再提示する。承認で `strategy.approvedByUser: true` をマニフェストに記録する。unresolved 行に割当指示がなければ unresolved のまま出力してよい(人間への引き継ぎ事項であり、残置もスキル完了とみなす)。完了条件: approvedByUser: true が記録済み
+
+### Phase 6: 検証とHTML生成(機械実行)
+
+- **Step 1**: `../../../shared/scripts/unit-list/validate-manifest.sh <manifest.json> --unit-kind feature` を実行する。FAIL 時は指摘に応じて修正し再実行(3回失敗で Phase 3 へ差し戻し)。完了条件: 全項目 PASS
+- **Step 2**: 両方向の参照検査を実行する。いずれかが非空なら該当 Phase へ差し戻す
+
+```bash
+# Gate A(既存): dangling reference — relatedScreens の参照先が画面一覧に実在するか
+# (relatedApis/relatedTables も対応一覧の units[].unitKey で同型。
 # 参照先一覧が未生成の種別は related* が空配列のため自動的に PASS)
 comm -23 \
   <(jq -r '.units[] | .relatedScreens[]?' feature-manifest.json | sort -u) \
   <(jq -r '.screens[].screenKey' screen-manifest.json | sort -u)
-# 出力が空 = PASS。1行でも出力があれば不在参照 = FAIL
+
+# Gate B(新設): completeness — 画面一覧の全 screenKey が機能に割り当て済みか
+comm -13 \
+  <(jq -r '.units[] | .relatedScreens[]?' feature-manifest.json | sort -u) \
+  <(jq -r '.screens[].screenKey' screen-manifest.json | sort -u)
+# Gate A・B いずれも空 = PASS。1行でも出力があれば FAIL
 ```
 
 - **Step 3**: `../../../shared/scripts/unit-list/build-unit-list.sh <manifest.json> <output_dir>/機能一覧/機能一覧.html --unit-kind feature` を実行する。build 側が内部で validate を再実行するため、検証を経ない manifest からは生成できない。完了条件: HTML 生成済み
@@ -94,11 +118,12 @@ comm -23 \
 
 | Phase | 完了条件 |
 |---|---|
-| Phase 1 | 画面一覧マニフェスト抽出済み・inputManifests 確定・手がかり①〜④の抽出元が列挙済み |
+| Phase 1 | 画面一覧マニフェスト抽出済み・inputManifests 確定・手がかり①〜④の抽出元が列挙済み・API/テーブル grep パターン特定済み |
 | Phase 2 | 候補表が作成済みで全画面が大分類候補または unresolved 候補に分類済み |
-| Phase 3 | 全画面が relatedScreens または unresolved に載り、マニフェスト JSON が生成済み |
-| Phase 4 | 構成案がユーザー承認済み(approvedByUser: true) |
-| Phase 5 | validate 全項目 PASS・related* 参照実在検査 PASS・機能一覧.html 生成済み |
+| Phase 3 | 全画面が relatedScreens または unresolved に載り(完全性ゲート PASS)、マニフェスト JSON が生成済み(relatedApis/relatedTables は空配列) |
+| Phase 4 | 全機能の relatedApis・relatedTables・confidence が確定済み |
+| Phase 5 | 構成案がユーザー承認済み(approvedByUser: true) |
+| Phase 6 | validate 全項目 PASS・Gate A(dangling) PASS・Gate B(completeness) PASS・機能一覧.html 生成済み |
 | **Goal** | 検証済みマニフェストのみから HTML が生成され、大分類ごとの機能と関連画面・API・テーブルの対応、および要手動確認が可視化されている |
 
 ## 返却
