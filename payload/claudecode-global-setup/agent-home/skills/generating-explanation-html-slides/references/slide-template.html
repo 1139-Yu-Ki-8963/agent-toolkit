@@ -4,14 +4,32 @@
   使用規則:
   1. :root のトークン値は変更しない。色は必ず var(--...) 経由で使い、hex を部品側に手書きしない
      （例外: 実在ツールの識別色を追加する場合のみ、:root への追記として許可）
-  2. このファイルは「そのまま埋める」テンプレートではなく部品カタログ。
-     必要な部品だけをコピーし、SAMPLE と書かれたテキスト・数値・幅(%)を実データに差し替える
+  2. このカタログは型別3ページ構成（1: 段階比較・対比型 / 2: 時系列型 / 3: 層構造型）。
+     生成時は Step 2-1 で選んだ図の型に対応するページの部品だけをコピーし、
+     SAMPLE と書かれたテキスト・数値・幅(%)を実データに差し替える。
+     ページ送り部品（.pager とそのスクリプト）は複数ページのスライドを作る場合のみ残す。
+     1ページ構成なら該当ページの中身だけを .slide 直下に展開し、他ページと pager を削除する。
   3. 外部リソース（CDN・Webフォント・外部画像・fetch）の追加は禁止。図は inline SVG のみ
   4. 先頭の <meta charset="utf-8"> を必ず残す
   5. 1ページ構成でもスケーリング <script> は削除しない。削除してよいのはページ送り部品（.pager とそのスクリプト）のみ
   6. 実在ツールのマークは「実物ロゴを想起させる簡略SVG」を自作する
      （収載例: Claude=放射状マーク / Cursor=立方体。新しいツールも同じ密度で描く）
   7. .slide-meta は区切り線と下端余白のみを提供する。内容は入れない
+
+  部品一覧（部品名 → 用途1行）:
+  - slide-header / slide-eyebrow / slide-title / slide-subtitle: 全ページ共通のヘッダ（分類名・タイトル・結論1文）
+  - stage-card（--critical/--partial/--good）+ stage-arrow: 段階・成熟度の比較（1ページ目）
+  - tree / tree-line / tree-tag: ディレクトリ・ファイル構成の図示（1ページ目カード内）
+  - status-row（status-ok/status-ng）: 利点・欠点の列挙（✓/✕、1ページ目カード内）
+  - panel / panel-head / lane / axis: 時間軸パネルの骨格（2ページ目）
+  - band（band-main/band-alt/band-return）+ meter + event-line/event-badge: 時系列の帯・変化の引き金（2ページ目）
+  - layer-band（--critical/--partial/--good）+ arrow-between: 層・積層構造の全幅帯と層間の接続注記（3ページ目）
+  - step-chip（--main/--critical/--good/--partial）: 図中と本文で対応させる番号チップ（全ページ共通）
+  - steps / step / step-text: 図の要約をフッタで示すステップ一覧（1・2ページ目）
+  - source-line: 出典の明記（3ページ目）
+  - compare-row / compare-card: 時間構造を持たない対比の代替部品（時間軸なしで並べたい場合）
+  - pager: 複数ページのページ送りUI（1ページ構成では削除）
+  - slide-meta: 区切り線+下端余白のみのメタデータフッター
 -->
 <meta charset="utf-8">
 <title>SAMPLE: スライドタイトル</title>
@@ -132,6 +150,7 @@
   .step-chip--main { background: var(--claude); }
   .step-chip--critical { background: var(--critical); }
   .step-chip--good { background: var(--good); }
+  .step-chip--partial { background: var(--ink-3); }  /* 中間段階・第2層など「進行中/中立」を表す番号 */
 
   /* ==== メーター（消費・進捗。「使い切り」は必ず100%まで塗り右端を警告色にする） ==== */
   .meter { display: flex; flex-direction: column; gap: 3px; }
@@ -163,6 +182,102 @@
   .compare-list li { font-size: 13px; line-height: 1.5; color: var(--ink-2); padding-left: 14px; position: relative; }
   .compare-list li::before { content: ''; position: absolute; left: 0; top: 7px; width: 6px; height: 6px; border-radius: 50%; background: var(--border); }
 
+  /* ==== 段階・対比カード（段階/成熟度の比較。上辺色で警告→中立→推奨を示す） ==== */
+  .stages-grid {
+    display: grid;
+    grid-template-columns: 1fr 28px 1fr 28px 1fr;
+    flex: 1;
+    min-height: 0;
+    align-items: stretch;
+  }
+  .stage-arrow { display: flex; align-items: center; justify-content: center; }
+  .stage-card {
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 14px;
+    display: flex; flex-direction: column;
+    gap: 6px;
+    overflow: hidden;
+  }
+  .stage-card--critical { border-top: 3.5px solid var(--critical); }  /* 警告・現状の段階 */
+  .stage-card--partial  { border-top: 3.5px solid var(--ink-3); }     /* 中間の段階 */
+  .stage-card--good     { border-top: 3.5px solid var(--good); }      /* 推奨・到達段階 */
+  .stage-head { display: flex; align-items: center; gap: 8px; }
+  .stage-head h2 { font-size: 15px; font-weight: 700; color: var(--ink); line-height: 1.3; }
+  .stage-desc { font-size: 12px; color: var(--ink-2); line-height: 1.4; }
+
+  /* ==== ディレクトリ・ファイル構成のツリー表現（等幅フォント） ==== */
+  .tree {
+    background: var(--tag-bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 12px;
+    font-family: 'SF Mono', 'Cascadia Code', 'Consolas', 'Menlo', monospace;
+    font-size: 11.5px;
+    line-height: 1.7;
+    color: var(--ink-2);
+    flex: 1;
+    overflow: hidden;
+  }
+  .tree-line { display: flex; align-items: baseline; gap: 4px; white-space: nowrap; }
+  .tree-indent { color: var(--ink-3); user-select: none; }
+  .tree-folder { color: var(--ink); font-weight: 600; }
+  .tree-note { font-size: 10px; color: var(--ink-3); font-family: system-ui, sans-serif; }
+  .tree-tag {
+    font-family: system-ui, -apple-system, 'Segoe UI', 'Hiragino Sans', sans-serif;
+    font-size: 10px; font-weight: 600;
+    padding: 1px 6px;
+    border-radius: 3px;
+    margin-left: auto;
+    flex-shrink: 0;
+  }
+  .tree-tag--critical { background: var(--critical-soft); color: var(--critical); }
+  .tree-tag--good     { background: var(--good-soft); color: var(--good); }
+  .tree-tag--accent   { background: var(--ink); color: #fff; }
+
+  /* ==== 利点・欠点の列挙（✓/✕） ==== */
+  .stage-status { display: flex; flex-direction: column; gap: 4px; }
+  .status-row {
+    display: flex; align-items: flex-start; gap: 6px;
+    font-size: 12px; line-height: 1.3;
+    padding: 4px 8px;
+    border-radius: 4px;
+  }
+  .status-ng { background: var(--critical-soft); color: var(--critical); }
+  .status-ok { background: var(--good-soft); color: var(--good); }
+  .status-icon { font-weight: 700; flex-shrink: 0; width: 1em; text-align: center; }
+
+  /* ==== 層・積層構造（全幅帯。上辺ではなく左辺の色で層の位置づけを示す） ==== */
+  .layer-stack { display: flex; flex-direction: column; gap: 16px; flex: 1; min-height: 0; justify-content: center; }
+  .layer-band {
+    display: flex; align-items: center; gap: 20px;
+    padding: 20px 26px;
+    border-radius: 10px;
+    background: var(--tag-bg);
+    border: 1.5px solid var(--border);
+    border-left: 5px solid var(--ink-3);
+  }
+  .layer-band--critical { background: var(--critical-soft); border-color: var(--critical); border-left-color: var(--critical); }  /* 警告・制限層 */
+  .layer-band--partial  { border-left-color: var(--ink-3); }     /* 中間層（背景は既定の --tag-bg のまま） */
+  .layer-band--good     { background: var(--good-soft); border-color: var(--good); border-left-color: var(--good); }      /* 最終・保護層 */
+  .layer-body { flex: 1; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+  .layer-body h3 { font-size: 16px; font-weight: 700; color: var(--ink); }
+  .layer-desc { font-size: 12px; color: var(--ink-2); line-height: 1.5; }
+  .layer-examples { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
+  .ex { font-size: 11px; font-weight: 600; padding: 2px 9px; border-radius: 5px; background: var(--surface); border: 1px solid var(--border); color: var(--ink-2); white-space: nowrap; }
+
+  /* ==== 層間の接続注記（層構造で「AがBを通過してからCが適用される」等を1行で説明） ==== */
+  .arrow-between { display: flex; align-items: center; justify-content: center; gap: 6px; }
+  .arrow-text { font-size: 11px; font-weight: 600; color: var(--ink-3); }
+
+  /* ==== 出典行 ==== */
+  .source-line {
+    font-size: 11px;
+    color: var(--ink-3);
+    border-top: 1px solid var(--border);
+    padding-top: 6px;
+  }
+
   /* ==== フッタ: ステップ要約（図中の番号チップと同番号・同色で対応させる） ==== */
   .steps { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; padding-top: 14px; border-top: 1px solid var(--border); }
   .step { display: flex; gap: 8px; align-items: center; }
@@ -193,137 +308,354 @@
 <div class="slide-viewport">
   <div class="slide">
 
-    <!-- ==== 部品: ヘッダ ==== -->
-    <header class="slide-header">
-      <span class="slide-eyebrow">SAMPLE: 資料の分類名</span>
-      <h1 class="slide-title">SAMPLE: 伝えたい結論が読み取れるタイトル</h1>
-      <p class="slide-subtitle">SAMPLE: 結論の1文。図を読む前に要点が分かる文にする。</p>
-    </header>
+    <!-- ==== ページ1: 段階比較・対比型 ==== -->
+    <section class="slide-page is-active">
 
-    <!-- ==== 部品: タイムラインパネル（時間の説明はこの型。横軸=時間） ==== -->
-    <section class="panel">
-      <div class="panel-head">
-        <span class="panel-tag">SAMPLE: 区分名</span>
-        <h2>SAMPLE: このパネルの見出し</h2>
-        <span class="panel-note">SAMPLE: 仕組みの補足（右上）</span>
+      <header class="slide-header">
+        <span class="slide-eyebrow">SAMPLE: 資料の分類名</span>
+        <h1 class="slide-title">SAMPLE: 段階を経て理想状態に至る結論タイトル</h1>
+        <p class="slide-subtitle">SAMPLE: 3段階の比較から読み取れる結論を1文で。</p>
+      </header>
+
+      <div class="stages-grid">
+
+        <article class="stage-card stage-card--critical">
+          <div class="stage-head">
+            <span class="step-chip step-chip--critical">1</span>
+            <h2>SAMPLE: 初期段階の見出し</h2>
+          </div>
+          <p class="stage-desc">SAMPLE: 初期段階の状態を1文で</p>
+          <div class="tree">
+            <div class="tree-line"><span>SAMPLE: 対象ファイル</span><span class="tree-tag tree-tag--critical">SAMPLE: 肥大化</span></div>
+            <div class="tree-line"><span class="tree-indent">├─</span> SAMPLE: 要素A</div>
+            <div class="tree-line"><span class="tree-indent">├─</span> SAMPLE: 要素B</div>
+            <div class="tree-line"><span class="tree-indent">├─</span> SAMPLE: 要素C</div>
+            <div class="tree-line"><span class="tree-indent">└─</span> SAMPLE: …すべてここに</div>
+          </div>
+          <div class="stage-status">
+            <div class="status-row status-ng"><span class="status-icon">✕</span><span>SAMPLE: 欠点の説明1</span></div>
+            <div class="status-row status-ng"><span class="status-icon">✕</span><span>SAMPLE: 欠点の説明2</span></div>
+          </div>
+        </article>
+
+        <div class="stage-arrow">
+          <svg width="16" height="28" viewBox="0 0 16 28" fill="none">
+            <path d="M2 2 L14 14 L2 26" stroke="var(--ink-3)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+
+        <article class="stage-card stage-card--partial">
+          <div class="stage-head">
+            <span class="step-chip step-chip--partial">2</span>
+            <h2>SAMPLE: 中間段階の見出し</h2>
+          </div>
+          <p class="stage-desc">SAMPLE: 中間段階の状態を1文で</p>
+          <div class="tree">
+            <div class="tree-line"><span>SAMPLE: 対象フォルダ</span><span class="tree-tag tree-tag--good">SAMPLE: 索引のみ</span></div>
+            <div class="tree-line"><span class="tree-folder">SAMPLE: 分類1/</span><span class="tree-tag tree-tag--critical">SAMPLE: 毎回全件</span></div>
+            <div class="tree-line"><span class="tree-indent">&nbsp; ├─</span> SAMPLE: 子要素1a</div>
+            <div class="tree-line"><span class="tree-folder">SAMPLE: 分類2/</span><span class="tree-tag tree-tag--good">SAMPLE: 呼出時のみ</span></div>
+            <div class="tree-line"><span class="tree-indent">&nbsp; └─</span> SAMPLE: 子要素2a</div>
+          </div>
+          <div class="stage-status">
+            <div class="status-row status-ok"><span class="status-icon">✓</span><span>SAMPLE: 改善点1</span></div>
+            <div class="status-row status-ng"><span class="status-icon">✕</span><span>SAMPLE: 残る課題1</span></div>
+          </div>
+        </article>
+
+        <div class="stage-arrow">
+          <svg width="16" height="28" viewBox="0 0 16 28" fill="none">
+            <path d="M2 2 L14 14 L2 26" stroke="var(--ink-3)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+
+        <article class="stage-card stage-card--good">
+          <div class="stage-head">
+            <span class="step-chip step-chip--good">3</span>
+            <h2>SAMPLE: 到達段階の見出し</h2>
+          </div>
+          <p class="stage-desc">SAMPLE: 到達段階の状態を1文で</p>
+          <div class="tree">
+            <div class="tree-line"><span>SAMPLE: 対象フォルダ</span><span class="tree-tag tree-tag--good">SAMPLE: 索引のみ</span></div>
+            <div class="tree-line"><span class="tree-folder">SAMPLE: 常時区分/</span><span class="tree-tag tree-tag--good">SAMPLE: 常時</span></div>
+            <div class="tree-line"><span class="tree-indent">&nbsp; └─</span> SAMPLE: 適用範囲a</div>
+            <div class="tree-line"><span class="tree-folder">SAMPLE: 条件区分/</span><span class="tree-tag tree-tag--accent">SAMPLE: パス条件</span></div>
+            <div class="tree-line"><span class="tree-indent">&nbsp; └─</span> SAMPLE: 適用範囲b <span class="tree-note">SAMPLE: 対象限定</span></div>
+          </div>
+          <div class="stage-status">
+            <div class="status-row status-ok"><span class="status-icon">✓</span><span>SAMPLE: 利点1</span></div>
+            <div class="status-row status-ok"><span class="status-icon">✓</span><span>SAMPLE: 利点2</span></div>
+          </div>
+        </article>
+
       </div>
 
-      <div class="lane">
-        <!-- 変化の引き金: イベント線（%位置は例示数値の検算結果に合わせる） -->
-        <div class="event-line" style="left: 40%;"></div>
-        <div class="event-line event-line--good" style="left: 50%;"></div>
-
-        <!-- 主役の帯 + メーター（使い切りは100%+警告色） -->
-        <div class="band band-main" style="left: 0; width: 40%;">
-          <div class="band-head">
-            <span class="step-chip step-chip--main">1</span>
-            <!-- 収載例: Claude の放射状マーク（実物ロゴ想起の簡略SVG） -->
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <g stroke="var(--claude)" stroke-width="2.6" stroke-linecap="round">
-                <line x1="15.5" y1="12" x2="22" y2="12"/><line x1="15.03" y1="13.75" x2="20.66" y2="17"/>
-                <line x1="13.75" y1="15.03" x2="17" y2="20.66"/><line x1="12" y1="15.5" x2="12" y2="22"/>
-                <line x1="10.25" y1="15.03" x2="7" y2="20.66"/><line x1="8.97" y1="13.75" x2="3.34" y2="17"/>
-                <line x1="8.5" y1="12" x2="2" y2="12"/><line x1="8.97" y1="10.25" x2="3.34" y2="7"/>
-                <line x1="10.25" y1="8.97" x2="7" y2="3.34"/><line x1="12" y1="8.5" x2="12" y2="2"/>
-                <line x1="13.75" y1="8.97" x2="17" y2="3.34"/><line x1="15.03" y1="10.25" x2="20.66" y2="7"/>
-              </g>
-            </svg>
-            <span class="tool-name">SAMPLE: ツール名</span>
-          </div>
-          <div class="meter">
-            <div class="meter-row">
-              <span>SAMPLE: 開始ラベル</span>
-              <span class="meter-exhausted">SAMPLE: 使い切りラベル</span>
-            </div>
-            <div class="meter-track"></div>
-          </div>
+      <footer class="steps">
+        <div class="step">
+          <span class="step-chip step-chip--critical">1</span>
+          <p class="step-text"><strong>SAMPLE: 初期段階</strong>— 補足1文</p>
         </div>
-
-        <!-- 狭い帯（幅12%未満）は band-narrow で縦積みにする -->
-        <div class="band band-alt band-narrow" style="left: 40%; width: 10%;">
-          <div class="band-head">
-            <span class="step-chip step-chip--critical">2</span>
-            <!-- 収載例: Cursor の立方体マーク -->
-            <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M12 2 L21 7 L12 12 L3 7 Z" fill="var(--cursor)" opacity="0.9"/>
-              <path d="M3 7 L12 12 L12 22 L3 17 Z" fill="var(--cursor)" opacity="0.55"/>
-              <path d="M12 12 L21 7 L21 17 L12 22 Z" fill="var(--cursor)" opacity="0.3"/>
-            </svg>
-          </div>
-          <span class="tool-name">SAMPLE: 短い名</span>
+        <div class="step">
+          <span class="step-chip step-chip--partial">2</span>
+          <p class="step-text"><strong>SAMPLE: 中間段階</strong>— 補足1文</p>
         </div>
-
-        <!-- 復帰の帯（破線） -->
-        <div class="band band-return" style="left: 50%; width: 50%;">
-          <div class="band-head">
-            <span class="tool-name" style="font-size: 13px;">SAMPLE: 復帰ラベル</span>
-          </div>
-          <span class="band-note">SAMPLE: 復帰後の状態</span>
+        <div class="step">
+          <span class="step-chip step-chip--good">3</span>
+          <p class="step-text"><strong>SAMPLE: 到達段階</strong>— 補足1文</p>
         </div>
+      </footer>
 
-        <!-- イベントバッジ（近接時は左寄せ/右寄せ transform で重なり回避） -->
-        <div class="event-badge" style="left: 40%; transform: translate(calc(-100% + 14px), -55%);">
-          <span class="step-chip step-chip--critical" style="width:14px;height:14px;font-size:8.5px;">2</span>
-          SAMPLE: 引き金 → 切り替え
-        </div>
-        <div class="event-badge event-badge--good" style="left: 50%; transform: translate(-14px, -55%);">
-          <span class="step-chip step-chip--good" style="width:14px;height:14px;font-size:8.5px;">3</span>
-          SAMPLE: 回復 → 復帰
-        </div>
-      </div>
-
-      <!-- 軸 型A: 境界ラベル（時刻） -->
-      <div class="axis">
-        <span style="left: 0;">SAMPLE: 9時</span>
-        <span style="left: 20%;">11時</span>
-        <span style="left: 40%;">13時</span>
-        <span style="left: 60%;">15時</span>
-        <span style="left: 80%;">17時</span>
-        <span style="left: 100%;">19時</span>
-      </div>
-
-      <!-- 軸 型B: セグメント中央ラベル（曜日。営業日の説明なら土日を入れない）
-      <div class="axis axis-segment">
-        <span>月</span><span>火</span><span>水</span><span>木</span><span>金</span>
-        <span class="axis-emphasis">翌週 月</span>
-      </div>
-      -->
     </section>
 
-    <!-- ==== 部品: フッタのステップ要約（図中チップと同番号・同色） ==== -->
-    <footer class="steps">
-      <div class="step">
-        <span class="step-chip step-chip--main">1</span>
-        <p class="step-text"><strong>SAMPLE: ステップ名</strong>— 補足1文</p>
-      </div>
-      <div class="step">
-        <span class="step-chip step-chip--critical">2</span>
-        <p class="step-text"><strong>SAMPLE: ステップ名</strong>— 補足1文</p>
-      </div>
-      <div class="step">
-        <span class="step-chip step-chip--good">3</span>
-        <p class="step-text"><strong>SAMPLE: ステップ名</strong>— 補足1文</p>
-      </div>
-    </footer>
+    <!-- ==== ページ2: 時系列型 ==== -->
+    <section class="slide-page">
 
-    <!-- ==== 部品: メタデータフッター（区切り線 + 下端余白） ==== -->
+      <header class="slide-header">
+        <span class="slide-eyebrow">SAMPLE: 資料の分類名</span>
+        <h1 class="slide-title">SAMPLE: 時間経過にともなう切り替えを説明する結論タイトル</h1>
+        <p class="slide-subtitle">SAMPLE: 結論の1文。図を読む前に要点が分かる文にする。</p>
+      </header>
+
+      <section class="panel">
+        <div class="panel-head">
+          <span class="panel-tag">SAMPLE: 区分名</span>
+          <h2>SAMPLE: このパネルの見出し</h2>
+          <span class="panel-note">SAMPLE: 仕組みの補足（右上）</span>
+        </div>
+
+        <div class="lane">
+          <!-- 変化の引き金: イベント線（%位置は例示数値の検算結果に合わせる） -->
+          <div class="event-line" style="left: 40%;"></div>
+          <div class="event-line event-line--good" style="left: 50%;"></div>
+
+          <!-- 主役の帯 + メーター（使い切りは100%+警告色） -->
+          <div class="band band-main" style="left: 0; width: 40%;">
+            <div class="band-head">
+              <span class="step-chip step-chip--main">1</span>
+              <!-- 収載例: Claude の放射状マーク（実物ロゴ想起の簡略SVG） -->
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <g stroke="var(--claude)" stroke-width="2.6" stroke-linecap="round">
+                  <line x1="15.5" y1="12" x2="22" y2="12"/><line x1="15.03" y1="13.75" x2="20.66" y2="17"/>
+                  <line x1="13.75" y1="15.03" x2="17" y2="20.66"/><line x1="12" y1="15.5" x2="12" y2="22"/>
+                  <line x1="10.25" y1="15.03" x2="7" y2="20.66"/><line x1="8.97" y1="13.75" x2="3.34" y2="17"/>
+                  <line x1="8.5" y1="12" x2="2" y2="12"/><line x1="8.97" y1="10.25" x2="3.34" y2="7"/>
+                  <line x1="10.25" y1="8.97" x2="7" y2="3.34"/><line x1="12" y1="8.5" x2="12" y2="2"/>
+                  <line x1="13.75" y1="8.97" x2="17" y2="3.34"/><line x1="15.03" y1="10.25" x2="20.66" y2="7"/>
+                </g>
+              </svg>
+              <span class="tool-name">SAMPLE: ツール名</span>
+            </div>
+            <div class="meter">
+              <div class="meter-row">
+                <span>SAMPLE: 開始ラベル</span>
+                <span class="meter-exhausted">SAMPLE: 使い切りラベル</span>
+              </div>
+              <div class="meter-track"></div>
+            </div>
+          </div>
+
+          <!-- 狭い帯（幅12%未満）は band-narrow で縦積みにする -->
+          <div class="band band-alt band-narrow" style="left: 40%; width: 10%;">
+            <div class="band-head">
+              <span class="step-chip step-chip--critical">2</span>
+              <!-- 収載例: Cursor の立方体マーク -->
+              <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 2 L21 7 L12 12 L3 7 Z" fill="var(--cursor)" opacity="0.9"/>
+                <path d="M3 7 L12 12 L12 22 L3 17 Z" fill="var(--cursor)" opacity="0.55"/>
+                <path d="M12 12 L21 7 L21 17 L12 22 Z" fill="var(--cursor)" opacity="0.3"/>
+              </svg>
+            </div>
+            <span class="tool-name">SAMPLE: 短い名</span>
+          </div>
+
+          <!-- 復帰の帯（破線） -->
+          <div class="band band-return" style="left: 50%; width: 50%;">
+            <div class="band-head">
+              <span class="tool-name" style="font-size: 13px;">SAMPLE: 復帰ラベル</span>
+            </div>
+            <span class="band-note">SAMPLE: 復帰後の状態</span>
+          </div>
+
+          <!-- イベントバッジ（近接時は左寄せ/右寄せ transform で重なり回避） -->
+          <div class="event-badge" style="left: 40%; transform: translate(calc(-100% + 14px), -55%);">
+            <span class="step-chip step-chip--critical" style="width:14px;height:14px;font-size:8.5px;">2</span>
+            SAMPLE: 引き金 → 切り替え
+          </div>
+          <div class="event-badge event-badge--good" style="left: 50%; transform: translate(-14px, -55%);">
+            <span class="step-chip step-chip--good" style="width:14px;height:14px;font-size:8.5px;">3</span>
+            SAMPLE: 回復 → 復帰
+          </div>
+        </div>
+
+        <!-- 軸 型A: 境界ラベル（時刻） -->
+        <div class="axis">
+          <span style="left: 0;">SAMPLE: 9時</span>
+          <span style="left: 20%;">SAMPLE: 11時</span>
+          <span style="left: 40%;">SAMPLE: 13時</span>
+          <span style="left: 60%;">SAMPLE: 15時</span>
+          <span style="left: 80%;">SAMPLE: 17時</span>
+          <span style="left: 100%;">SAMPLE: 19時</span>
+        </div>
+
+        <!-- 軸 型B: セグメント中央ラベル（曜日。営業日の説明なら土日を入れない。実例は2段目のパネルを参照） -->
+      </section>
+
+      <!-- 2段目パネル: 異なる時間スケールは軸を混ぜずパネルを分ける（週単位のサンプル） -->
+      <section class="panel">
+        <div class="panel-head">
+          <span class="panel-tag">SAMPLE: 区分名B</span>
+          <h2>SAMPLE: 週単位で見たこのパネルの見出し</h2>
+          <span class="panel-note">SAMPLE: 異なる時間スケールは軸を混ぜずパネルを分ける</span>
+        </div>
+
+        <div class="lane" style="background-size: 16.667% 100%;">
+          <!-- 変化の引き金: イベント線（%位置は例示数値の検算結果に合わせる） -->
+          <div class="event-line" style="left: 50%;"></div>
+          <div class="event-line event-line--good" style="left: 83.333%;"></div>
+
+          <!-- 主役の帯 + メーター（使い切りは100%+警告色） -->
+          <div class="band band-main" style="left: 0; width: 50%;">
+            <div class="band-head">
+              <span class="step-chip step-chip--main">1</span>
+              <span class="tool-name">SAMPLE: ツール名</span>
+            </div>
+            <div class="meter">
+              <div class="meter-row">
+                <span>SAMPLE: 週初 利用開始</span>
+                <span class="meter-exhausted">SAMPLE: 週次枠 使い切り</span>
+              </div>
+              <div class="meter-track"></div>
+            </div>
+          </div>
+
+          <div class="band band-alt" style="left: 50%; width: 33.333%;">
+            <div class="band-head">
+              <span class="step-chip step-chip--critical">2</span>
+              <span class="tool-name">SAMPLE: 短い名</span>
+            </div>
+            <span class="band-note">SAMPLE: 週末まで作業を継続</span>
+          </div>
+
+          <!-- 復帰の帯（破線） -->
+          <div class="band band-return" style="left: 83.333%; width: 16.667%;">
+            <div class="band-head">
+              <span class="tool-name" style="font-size: 13px;">SAMPLE: 復帰ラベル</span>
+            </div>
+            <span class="band-note">SAMPLE: 復帰後の状態</span>
+          </div>
+
+          <!-- イベントバッジ -->
+          <div class="event-badge" style="left: 50%;">
+            <span class="step-chip step-chip--critical" style="width:14px;height:14px;font-size:8.5px;">2</span>
+            SAMPLE: 週次上限到達 → 切り替え
+          </div>
+          <div class="event-badge event-badge--good" style="left: 83.333%;">
+            <span class="step-chip step-chip--good" style="width:14px;height:14px;font-size:8.5px;">3</span>
+            SAMPLE: 週次リセット → 復帰
+          </div>
+        </div>
+
+        <!-- 軸 型B: セグメント中央ラベル（曜日。時間スケールが異なるので型Aではなく型Bを使う） -->
+        <div class="axis axis-segment">
+          <span>SAMPLE: 月</span><span>SAMPLE: 火</span><span>SAMPLE: 水</span><span>SAMPLE: 木</span><span>SAMPLE: 金</span>
+          <span class="axis-emphasis">SAMPLE: 翌週 月</span>
+        </div>
+      </section>
+
+      <footer class="steps">
+        <div class="step">
+          <span class="step-chip step-chip--main">1</span>
+          <p class="step-text"><strong>SAMPLE: ステップ名</strong>— 補足1文</p>
+        </div>
+        <div class="step">
+          <span class="step-chip step-chip--critical">2</span>
+          <p class="step-text"><strong>SAMPLE: ステップ名</strong>— 補足1文</p>
+        </div>
+        <div class="step">
+          <span class="step-chip step-chip--good">3</span>
+          <p class="step-text"><strong>SAMPLE: ステップ名</strong>— 補足1文</p>
+        </div>
+      </footer>
+
+    </section>
+
+    <!-- ==== ページ3: 層構造型 ==== -->
+    <section class="slide-page">
+
+      <header class="slide-header">
+        <span class="slide-eyebrow">SAMPLE: 資料の分類名</span>
+        <h1 class="slide-title">SAMPLE: 層が積み重なって働く仕組みを説明する結論タイトル</h1>
+        <p class="slide-subtitle">SAMPLE: 結論の1文。各層の役割分担が一目で伝わる説明にする。</p>
+      </header>
+
+      <div class="layer-stack">
+
+        <div class="layer-band layer-band--critical">
+          <span class="step-chip step-chip--critical">1</span>
+          <div class="layer-body">
+            <h3>SAMPLE: 第1層の見出し</h3>
+            <p class="layer-desc">SAMPLE: 第1層が担う役割を1文で説明する。</p>
+            <div class="layer-examples">
+              <span class="ex">SAMPLE: 具体例1</span>
+              <span class="ex">SAMPLE: 具体例2</span>
+              <span class="ex">SAMPLE: 具体例3</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="arrow-between">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M8 2 L8 14 M4 10 L8 14 L12 10" stroke="var(--ink-3)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span class="arrow-text">SAMPLE: 第1層を通過したものに第2層が適用される</span>
+        </div>
+
+        <div class="layer-band layer-band--partial">
+          <span class="step-chip step-chip--partial">2</span>
+          <div class="layer-body">
+            <h3>SAMPLE: 第2層の見出し</h3>
+            <p class="layer-desc">SAMPLE: 第2層が担う役割を1文で説明する。</p>
+            <div class="layer-examples">
+              <span class="ex">SAMPLE: 具体例4</span>
+              <span class="ex">SAMPLE: 具体例5</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="arrow-between">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M8 2 L8 14 M4 10 L8 14 L12 10" stroke="var(--ink-3)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span class="arrow-text">SAMPLE: 第2層を通過したものに第3層が適用される</span>
+        </div>
+
+        <div class="layer-band layer-band--good">
+          <span class="step-chip step-chip--good">3</span>
+          <div class="layer-body">
+            <h3>SAMPLE: 第3層の見出し</h3>
+            <p class="layer-desc">SAMPLE: 第3層が担う役割を1文で説明する。</p>
+            <div class="layer-examples">
+              <span class="ex">SAMPLE: 具体例6</span>
+              <span class="ex">SAMPLE: 具体例7</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <p class="source-line">SAMPLE: 出典：◯◯部調べ（YYYY年M月時点）</p>
+
+    </section>
+
+    <!-- ==== 部品: メタデータフッター（区切り線 + 下端余白。全ページ共通で最後に1回だけ表示） ==== -->
     <footer class="slide-meta"></footer>
 
   </div>
-</div>
 
-<!-- ==== 複数ページ構成の骨格（使う場合は上の .slide の中身を .slide-page で包み、ページ数分並べる） ====
-<div class="slide-viewport">
-  <div class="slide">
-    <section class="slide-page is-active"> …1ページ目のヘッダ+パネル+フッタ… </section>
-    <section class="slide-page"> …2ページ目… </section>
-  </div>
+  <!-- ==== 部品: ページ送り（1ページ構成にする場合は他ページと合わせて削除） ==== -->
   <nav class="pager">
     <button type="button" data-pager-prev aria-label="前のページ">←</button>
-    <span class="pager-count"><span data-pager-current>1</span> / <span data-pager-total>2</span></span>
+    <span class="pager-count"><span data-pager-current>1</span> / <span data-pager-total>3</span></span>
     <button type="button" data-pager-next aria-label="次のページ">→</button>
   </nav>
 </div>
+
 <script>
 (function () {
   var pages = Array.prototype.slice.call(document.querySelectorAll('.slide-page'));
@@ -350,7 +682,6 @@
   render();
 })();
 </script>
-==== -->
 
 <!-- ==== スケーリング（常時必須・1ページでも削除禁止。削除可はページ送りスクリプトのみ） ==== -->
 <script>

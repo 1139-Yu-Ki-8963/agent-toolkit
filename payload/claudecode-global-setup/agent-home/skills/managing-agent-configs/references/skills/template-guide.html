@@ -141,8 +141,13 @@
   <table class="meta-table">
     <tr><td>対応 OS</td><td>{{meta-os}}</td></tr>
     <tr><td>検証状況</td><td>{{meta-verified}}</td></tr>
-    <tr><td>依存</td><td>{{meta-deps}}</td></tr>
-    <tr><td>関連資料</td><td>{{meta-related}}</td></tr>
+    <!-- 記入ガイド: 何をもって検証済みとするかを日付付きで書く（例: managing-agent-configs の review・test 実行済み（YYYY-MM-DD: 観点レビュー CRITICAL 0件・発火検証 PASS））。未検証の場合のみ「未検証」と明記 -->
+    <tr><td>使用ツール</td><td>{{meta-tools}}</td></tr>
+    <!-- 記入ガイド: allowed-tools の羅列にしない。Claude Code 標準ツールは各1行説明付きで書く -->
+    <tr><td>外部依存</td><td>{{meta-external-deps}}</td></tr>
+    <!-- 記入ガイド: 無ければ行ごと削除 -->
+    <tr><td>参照ファイル</td><td>{{meta-refs}}</td></tr>
+    <!-- 記入ガイド: SKILL.md 1語のみの行は書かない（情報量ゼロ）。無ければ行ごと削除 -->
   </table>
 </header>
 

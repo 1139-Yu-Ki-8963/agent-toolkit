@@ -130,8 +130,10 @@
 
   <table class="meta-table">
     <tr><td>対応 OS</td><td>macOS</td></tr>
-    <tr><td>検証状況</td><td>SKILL.md を正本として整理（個別の実機検証記録なし）</td></tr>
-    <tr><td>依存</td><td>Bash・Read・Write・Edit（allowed-tools）、git worktree コマンド、gh CLI（GitHub リモート時のみ）、<code>check-worktree-required.sh</code>・<code>remind-worktree-cleanup.sh</code>（scripts/）</td></tr>
+    <tr><td>検証状況</td><td>managing-agent-configs の create→review→test 連鎖で管理（作成・変更時に静的レビューと発火検証を実行する運用。日付付きの実行記録は次回 test 実行時から本欄に記載）</td></tr>
+    <tr><td>使用ツール</td><td>Claude Code 標準ツール（組み込み・追加インストール不要）: Bash（シェルコマンド実行）、Read（ファイル読み取り）、Write（ファイル新規作成）、Edit（既存ファイルの部分置換）</td></tr>
+    <tr><td>外部依存</td><td>git worktree コマンド、gh CLI（GitHub リモート時のみ）</td></tr>
+    <tr><td>参照ファイル</td><td><code>check-worktree-required.sh</code>・<code>remind-worktree-cleanup.sh</code>（scripts/）</td></tr>
     <tr><td>関連資料</td><td><code>SKILL.md</code>、<code>references/detailed-procedures.md</code>、<code>scripts/check-worktree-required.sh</code>、<code>scripts/remind-worktree-cleanup.sh</code>、<code>scripts/worktree-required-check.test.sh</code></td></tr>
   </table>
 </header>

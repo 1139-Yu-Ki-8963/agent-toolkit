@@ -13,6 +13,7 @@ cwd=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null)
 [ -z "$cwd" ] && cwd="$PWD"
 case "$cwd" in
   */agent-home|*/agent-home/*) exit 0 ;;
+  */agent-toolkit|*/agent-toolkit/*) exit 0 ;;
 esac
 
 [ "${CLAUDE_SKILL_NAME:-}" = "creating-new-project" ] && exit 0
@@ -59,7 +60,7 @@ fi
 rel_from_root="${abs#$project_root/}"
 
 case "$rel_from_root" in
-  .claude/*|CLAUDE.md|docs/*) exit 0 ;;
+  .claude/*|CLAUDE.md|docs/*|slides/*) exit 0 ;;
 esac
 
 flow_context="$project_root/.claude/rules/always/project-context/flow-values.yml"

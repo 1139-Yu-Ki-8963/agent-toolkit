@@ -2,7 +2,8 @@
 <!--
   generating-explanation-html-slides スキルガイド
   正本: skills/generating-explanation-html-slides/SKILL.md
-  参照: references/slide-template.html（デザイントークン+部品カタログ）、
+  参照: references/slide-template.html（デザイントークン+部品カタログ・図解型）、
+        references/argument-table-template.html（論証テーブル型の部品テンプレート）、
         references/slide-review-checklist.md（観点レビュー表）
 -->
 <html lang="ja">
@@ -110,6 +111,37 @@
   .tag.error { background: #fdf3d7; color: #7a5d10; border-color: #e8d59a; }
   .tag.mode  { background: #e8eef7; color: #2a4a7a; border-color: #c2d2e8; }
 </style>
+<style>
+/* 本ガイド固有の追加スタイル（テンプレ準拠検査は第1ブロックのみを照合） */
+  .template-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 20px 0;
+  }
+  @media (max-width: 700px) {
+    .template-grid { grid-template-columns: 1fr; }
+  }
+  figure.template-preview {
+    margin: 0; padding: 8px; background: #fff;
+    border: 1px solid #e0e0e0; border-radius: 8px;
+  }
+  figure.template-preview .preview-label {
+    display: inline-block; font-size: 0.78rem; font-weight: 700; color: #2a4a7a;
+    background: #e8eef7; border: 1px solid #c2d2e8; border-radius: 3px;
+    padding: 1px 8px; margin-bottom: 6px;
+  }
+  figure.template-preview .preview-frame-wrap {
+    cursor: zoom-in; border: 1px solid #e0e0e0; border-radius: 6px;
+    overflow: hidden; background: #EDF0F4;
+  }
+  figure.template-preview iframe {
+    width: 100%; aspect-ratio: 16 / 9; border: 0; display: block; pointer-events: none;
+  }
+  figure.template-preview figcaption { padding: 8px 4px 2px; }
+  .zoom-overlay iframe {
+    width: min(1600px, 94vw); aspect-ratio: 16 / 9; border: 0;
+    display: block; margin: 0 auto; cursor: default;
+    background: #fff; border-radius: 8px;
+  }
+</style>
 </head>
 <body>
 
@@ -121,14 +153,15 @@
     <dt>こんな人向け</dt>
     <dd>仕組み・比較・段階などを図解1枚で相手に説明したい人。他のモデル・別セッションでも同水準の解説HTMLを再現できるよう、デザインと品質判定をテンプレートと観点レビュー表に固定してある。</dd>
     <dt>こんな場面で使う</dt>
-    <dd>「解説スライドを作って」「説明用HTMLにして」「スライドHTML」「図解して1枚にまとめて」と言われた場面。合意済み課題のレベル目標を1枚に図解する場合も本スキルを使う。解決事例の登録・リポジトリ解析レポート・レベル合意HTMLそのものの生成は対象外（別スキルの担当）。</dd>
+    <dd>「解説スライドを作って」「説明用HTMLにして」「スライドHTML」「図解して1枚にまとめて」「論証テーブルで整理して」と言われた場面。図解型と論証テーブル型の2型があり、Step 1-1 で選択する。リポジトリ解析レポート・データ分析レポート等の非スライド成果物は対象外（別スキルの担当）。</dd>
   </dl>
 
   <table class="meta-table">
-    <tr><td>対応 OS</td><td>macOS</td></tr>
-    <tr><td>検証状況</td><td>SKILL.md を正本として整理（個別の実機検証記録なし）</td></tr>
-    <tr><td>依存</td><td>allowed-tools: <code>Read</code>, <code>Write</code>, <code>Edit</code>, <code>Bash</code>, <code>AskUserQuestion</code> / 外部: Playwright 等のブラウザツール（レンダリング検証） / 参照: <code>references/slide-template.html</code>, <code>references/slide-review-checklist.md</code></td></tr>
-    <tr><td>関連資料</td><td><code>SKILL.md</code></td></tr>
+    <tr><td>対応 OS</td><td>macOS / Windows（動作確認済み）</td></tr>
+    <tr><td>検証状況</td><td>managing-agent-configs の review・test 実行済み（2026-07-16: 観点レビュー CRITICAL 0 件・発火検証 PASS・整合性ゲート exit 0）</td></tr>
+    <tr><td>使用ツール</td><td>Claude Code 標準ツール（組み込み・追加インストール不要）: <code>Read</code>（ファイル読み取り）・<code>Write</code>（ファイル新規作成）・<code>Edit</code>（既存ファイルの部分置換）・<code>Bash</code>（シェルコマンド実行）・<code>AskUserQuestion</code>（選択式のユーザー確認）</td></tr>
+    <tr><td>外部依存</td><td>Playwright 等のブラウザ操作ツール（Phase 4 の実描画検証に使用）</td></tr>
+    <tr><td>参照ファイル</td><td><code>references/slide-template.html</code>・<code>references/argument-table-template.html</code>（部品カタログ）・<code>references/slide-review-checklist.md</code>（観点レビュー表）</td></tr>
   </table>
 </header>
 
@@ -138,7 +171,7 @@
     <li><a href="#s1">概要</a></li>
     <li><a href="#s2">出力</a></li>
     <li><a href="#s3">用語</a></li>
-    <li><a href="#s4">ヒアリング5カテゴリ</a></li>
+    <li><a href="#s4">スライド型とヒアリング5カテゴリ</a></li>
     <li><a href="#s5">Phase構成と動作フロー</a></li>
     <li><a href="#s6">HTML生成の厳守事項</a></li>
     <li><a href="#s7">観点レビュー表と検証</a></li>
@@ -153,8 +186,9 @@
 
   <p>
     <code>generating-explanation-html-slides</code> は、与えたトピックを横1枚（16:9）のスライド風解説HTMLに変換する実行スキル。
+    図解型と論証テーブル型の2型があり、Step 1-1 でどちらを使うか選択する。
     図はすべて inline SVG で自作し、外部リソース（CDN・Webフォント・外部画像・fetch）は一切参照しない自己完結型の単一HTMLとして出力する。
-    観点レビュー表による検査に全行 PASS したものだけを蓄積簿 <code>docs/10_解説スライド集/</code> に登録する。
+    観点レビュー表による検査に全行 PASS したものだけを、プロジェクトに応じた出力先ディレクトリの蓄積簿（例: <code>docs/解説スライド集/</code>）に登録する。
   </p>
 
   <h3>スキルの位置づけ</h3>
@@ -162,14 +196,14 @@
     <tr><th>項目</th><th>値</th></tr>
     <tr><td>スキル名</td><td><code>generating-explanation-html-slides</code></td></tr>
     <tr><td>Type</td><td>transform（入力トピックを成果物HTMLへ変換）</td></tr>
-    <tr><td>TRIGGER</td><td>「解説スライドを作って」「説明用HTMLにして」「スライドHTML」「図解して1枚にまとめて」</td></tr>
-    <tr><td>SKIP</td><td>解決事例の登録（→consult-case）、リポジトリ解析レポート（→consult-analyze）、レベル合意HTMLそのものの生成（→consult-level-agree）</td></tr>
+    <tr><td>TRIGGER</td><td>「解説スライドを作って」「説明用HTMLにして」「スライドHTML」「図解して1枚にまとめて」「論証テーブルで整理して」</td></tr>
+    <tr><td>SKIP</td><td>リポジトリ解析レポート、データ分析レポート等の非スライド成果物</td></tr>
   </table>
 
   <div class="constraint">
-    <strong>consult-level-agree からの引き継ぎ</strong>
-    consult-level-agree から起動された場合、レベル合意HTML・業務棚卸し表・軌道記述（合意済みのL1〜L5説明文）を Read し、
-    ヒアリング5カテゴリの初期値として使う。Phase 1 のユーザー確認は初期値の修正要否のみに短縮できる。
+    <strong>外部スキルからの引き継ぎ</strong>
+    外部スキルから引き継ぎ情報（業務棚卸し表・軌道記述等）が渡された場合、それらをヒアリング5カテゴリの初期値として使う。
+    この場合、Phase 1 のユーザー確認は初期値の修正要否のみに短縮できる。
   </div>
 </section>
 
@@ -178,11 +212,30 @@
   <p>実行が完了すると、以下が確立される。</p>
   <div class="def">
     <dt>解説スライドHTML</dt>
-    <dd>横1枚（16:9）の自己完結型HTML。汎用スライドは <code>docs/10_解説スライド集/&lt;スライドキー&gt;/解説スライド.html</code>、案件固有スライドは <code>clients/&lt;案件名&gt;/レベル目標_&lt;課題キー&gt;_&lt;YYYYMMDD&gt;.html</code> に保存される。観点レビュー表の全行 PASS が保存の前提条件。</dd>
+    <dd>横1枚（16:9）の自己完結型HTML。汎用スライドは出力先ディレクトリ内 <code>&lt;スライドキー&gt;/解説スライド.html</code>（例: <code>docs/解説スライド集/&lt;スライドキー&gt;/解説スライド.html</code>）、案件固有スライドは <code>clients/&lt;案件名&gt;/レベル目標_&lt;課題キー&gt;_&lt;YYYYMMDD&gt;.html</code> に保存される。観点レビュー表の全行 PASS が保存の前提条件。</dd>
     <dt>蓄積簿への登録行（汎用スライドのみ）</dt>
-    <dd><code>docs/10_解説スライド集/解説スライド集.md</code> のスライド一覧表に、スライドキー・説明対象・提示する課題の例・相対リンク・登録日が1行追記される。案件固有スライドは顧客固有情報を含むため登録対象外。</dd>
+    <dd>出力先ディレクトリの蓄積簿（例: <code>docs/解説スライド集/解説スライド集.md</code>）のスライド一覧表に、スライドキー・説明対象・提示する課題の例・相対リンク・登録日が1行追記される。案件固有スライドは顧客固有情報を含むため登録対象外。</dd>
     <dt>検査記録</dt>
-    <dd>観点レビュー表の照合結果（全行の判定）・反復回数と各回の修正内容・タスク限定の観点（このスライド固有の検査事項）を記載したMarkdown。汎用スライドは <code>docs/10_解説スライド集/&lt;スライドキー&gt;/検査記録.md</code>、案件固有スライドは <code>clients/&lt;案件名&gt;/検査記録_レベル目標_&lt;課題キー&gt;_&lt;YYYYMMDD&gt;.md</code> に保存される。</dd>
+    <dd>観点レビュー表の照合結果（全行の判定）・反復回数と各回の修正内容・タスク限定の観点（このスライド固有の検査事項）を記載したMarkdown。汎用スライドは出力先ディレクトリ内 <code>&lt;スライドキー&gt;/検査記録.md</code>（例: <code>docs/解説スライド集/&lt;スライドキー&gt;/検査記録.md</code>）、案件固有スライドは <code>clients/&lt;案件名&gt;/検査記録_レベル目標_&lt;課題キー&gt;_&lt;YYYYMMDD&gt;.md</code> に保存される。</dd>
+  </div>
+
+  <h3>登録テンプレートの実例</h3>
+  <p>スキルが Phase 3（Step 3-1）で実際に読み込む部品カタログの実物。図中はクリックで拡大表示できる。</p>
+  <div class="template-grid">
+    <figure class="template-preview">
+      <span class="preview-label">図解型</span>
+      <div class="preview-frame-wrap" data-zoom-src="slide-template.html">
+        <iframe src="slide-template.html" loading="lazy" title="図解型テンプレートのプレビュー"></iframe>
+      </div>
+      <figcaption class="note">部品カタログの実物（SAMPLEデータ入り）。生成時は必要な部品だけをコピーして実データに差し替える。プレビュー表示にはスキルフォルダ内の同名ファイルが必要（相対参照）。</figcaption>
+    </figure>
+    <figure class="template-preview">
+      <span class="preview-label">論証テーブル型</span>
+      <div class="preview-frame-wrap" data-zoom-src="argument-table-template.html">
+        <iframe src="argument-table-template.html" loading="lazy" title="論証テーブル型テンプレートのプレビュー"></iframe>
+      </div>
+      <figcaption class="note">論証テーブル型の部品カタログの実物（SAMPLEデータ入り）。生成時は必要な部品だけをコピーして実データに差し替える。プレビュー表示にはスキルフォルダ内の同名ファイルが必要（相対参照）。</figcaption>
+    </figure>
   </div>
 </section>
 
@@ -192,19 +245,34 @@
   <table class="spec">
     <tr><th>用語</th><th>意味</th></tr>
     <tr><td>スライドキー</td><td>蓄積簿での識別子。連番禁止・内容を要約した意味語（例: <code>claude-cursor使い分け-リミット観点</code>）</td></tr>
-    <tr><td>汎用スライド</td><td>顧客名・案件情報を含まないスライド。<code>docs/10_解説スライド集/</code>に保存し蓄積簿に登録する</td></tr>
+    <tr><td>汎用スライド</td><td>顧客名・案件情報を含まないスライド。出力先ディレクトリ（例: <code>docs/解説スライド集/</code>）に保存し蓄積簿に登録する</td></tr>
     <tr><td>案件固有スライド</td><td>顧客名・案件情報を含むスライド。<code>clients/&lt;案件名&gt;/</code>に保存し蓄積簿登録は対象外</td></tr>
-    <tr><td>観点レビュー表</td><td><code>references/slide-review-checklist.md</code>。合格判定の正本。全行 PASS が保存の前提</td></tr>
-    <tr><td>部品カタログ</td><td><code>references/slide-template.html</code>。デザイントークン・構造部品を定義した生成の正本</td></tr>
+    <tr><td>観点レビュー表</td><td><code>references/slide-review-checklist.md</code>。合格判定の正本。図解型は <code>slide-template.html</code>、論証テーブル型は <code>argument-table-template.html</code> の構造に対応した型固有観点を含む。全行 PASS が保存の前提</td></tr>
+    <tr><td>部品カタログ</td><td><code>references/slide-template.html</code>（図解型）・<code>references/argument-table-template.html</code>（論証テーブル型）。デザイントークン・構造部品を定義した生成の正本</td></tr>
     <tr><td>タスク限定の観点</td><td>個別スライド固有の検査事項（例: リミットの因果条件）。共通化基準を満たさず観点レビュー表には昇格しないが、検査記録.mdに保持され次回更新時の再検査項目になる</td></tr>
   </table>
 </section>
 
 <section id="s4">
-  <h2><span class="sec-num">§4</span>ヒアリング5カテゴリ</h2>
+  <h2><span class="sec-num">§4</span>スライド型とヒアリング5カテゴリ</h2>
 
   <p>Phase 1 で最も重要な工程。5カテゴリすべてに回答（または仮置きの明示）が揃うまで次の Phase に進まない。ヒアリング不足のまま生成すると「正しく見えるが仕組みと矛盾する」欠陥（因果矛盾・数値矛盾）の温床になる。</p>
 
+  <h3>Step 1-1: スライド型の選択</h3>
+  <p>ユーザーの依頼文からスライド型を判定する。ユーザーが型を明示している場合はその型で進める。明示がない場合は次の判定ロジックで自動選択し、結果を AskUserQuestion で確認する。</p>
+  <table class="spec">
+    <tr><th>テーマの性質</th><th>判定結果</th></tr>
+    <tr><td>時間経過・プロセス・サイクル・推移を含む</td><td>図解</td></tr>
+    <tr><td>複数対象の比較・優劣</td><td>図解</td></tr>
+    <tr><td>手順・分岐</td><td>図解</td></tr>
+    <tr><td>成熟度・段階</td><td>図解</td></tr>
+    <tr><td>課題の整理と対策の提示</td><td>論証テーブル</td></tr>
+    <tr><td>論点を根拠付きで並列整理</td><td>論証テーブル</td></tr>
+    <tr><td>上記に明確に当てはまらない</td><td>AskUserQuestion で確認</td></tr>
+  </table>
+  <p class="note">AskUserQuestion の選択肢は (A) 図解スライド／(B) 論証テーブル／(C) AI が判定した型で進める、の3択。</p>
+
+  <h3>Step 1-2: ヒアリング5カテゴリの整理</h3>
   <table class="spec">
     <tr><th>カテゴリ</th><th>確認する内容</th><th>図への反映先</th></tr>
     <tr><td>説明対象</td><td>仕組みの事実。因果関係・数値条件・例外（例: 枠は開始から5時間で回復する）</td><td>例示数値の検算・イベント線の位置</td></tr>
@@ -214,7 +282,7 @@
     <tr><td>制約</td><td>ページ数（既定1）・含める/除く内容・業務文脈の範囲（営業日のみ等）</td><td>軸の範囲・パネル構成</td></tr>
   </table>
 
-  <h3>充足ゴール3判定（Step 1-2）</h3>
+  <h3>充足ゴール3判定（Step 1-3）</h3>
   <ol>
     <li>図の型が選べるか（結論と説明対象の性質が分かっている）</li>
     <li>例示数値の検算ができるか（仕組みの因果・数値条件が引き出せている）</li>
@@ -230,12 +298,12 @@
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 620" font-family="ui-monospace, monospace" font-size="12">
       <rect x="20" y="10" width="720" height="70" rx="8" fill="#f0f0ee" stroke="#c8c8c8"/>
       <text x="40" y="32" font-weight="700" fill="#1a1a1a">Phase 1: 要件ヒアリング</text>
-      <text x="40" y="52" fill="#333">5カテゴリ充足 → 充足3判定 → スライドキー確定</text>
+      <text x="40" y="52" fill="#333">型選択 → 5カテゴリ充足 → 充足3判定 → スライドキー確定</text>
       <line x1="380" y1="80" x2="380" y2="100" stroke="#1a1a1a" stroke-width="2" marker-end="url(#arr)"/>
 
       <rect x="20" y="100" width="720" height="70" rx="8" fill="#e8eef7" stroke="#c2d2e8"/>
       <text x="40" y="122" font-weight="700" fill="#2a4a7a">Phase 2: 構造設計（ツール不使用）</text>
-      <text x="40" y="142" fill="#333">図の型選択 → 軸・パネル分割 → 例示数値検算 → 読み順設計</text>
+      <text x="40" y="142" fill="#333">図解:型選択/軸/パネル・論証テーブル:列構成/行 → 検算 → 読み順/リード帯起草</text>
       <line x1="380" y1="170" x2="380" y2="190" stroke="#1a1a1a" stroke-width="2" marker-end="url(#arr)"/>
 
       <rect x="20" y="190" width="720" height="70" rx="8" fill="#f0f0ee" stroke="#c8c8c8"/>
@@ -265,14 +333,14 @@
         </marker>
       </defs>
     </svg>
-    <figcaption class="note">図: generating-explanation-html-slides の 6 Phase（SKILL.md の Phase 構成に基づく）</figcaption>
+    <figcaption class="note">図: generating-explanation-html-slides の 6 Phase（SKILL.md の Phase 構成に基づく）。Phase 2 は図解型と論証テーブル型で Step の内容が分岐する。</figcaption>
   </figure>
 
   <h3>Phase別の完了条件</h3>
   <table class="spec">
     <tr><th>Phase</th><th>完了条件</th></tr>
-    <tr><td>Phase 1</td><td>ヒアリング5カテゴリが充足（または仮置き明示）し、充足ゴール3判定が可、スライドキーが確定していること</td></tr>
-    <tr><td>Phase 2</td><td>図の型・軸・パネル分割・番号・例示数値が言語化されていること</td></tr>
+    <tr><td>Phase 1</td><td>スライド型が確定し、ヒアリング5カテゴリが充足（または仮置き明示）し、充足ゴール3判定が可、スライドキーが確定していること</td></tr>
+    <tr><td>Phase 2</td><td>図解型は図の型・軸・パネル分割・番号・例示数値、論証テーブル型は列構成・行内容・論理検算・リード帯が言語化されていること</td></tr>
     <tr><td>Phase 3</td><td>自己完結の単一HTMLが生成されていること</td></tr>
     <tr><td>Phase 4</td><td>観点レビュー表の全行が PASS になっていること</td></tr>
     <tr><td>Phase 5</td><td>汎用スライドはスライド・蓄積簿・検査記録の3点、案件固有スライドはスライド・検査記録の2点が保存されていること</td></tr>
@@ -287,12 +355,29 @@
   <table class="spec">
     <tr><th>項目</th><th>規則</th></tr>
     <tr><td>文字コード</td><td>先頭に <code>&lt;meta charset="utf-8"&gt;</code> を置く</td></tr>
-    <tr><td>デザイントークン</td><td><code>:root</code> は変更しない。色は必ずトークン経由（ツール識別色の追加のみ、トークン定義への追記として許可）</td></tr>
+    <tr><td>デザイントークン</td><td><code>:root</code> は変更しない。色は必ずトークン経由で使い、hex を本文に手書きしない（ツール識別色の追加のみ、トークン定義への追記として許可）</td></tr>
     <tr><td>図の描画</td><td>すべて inline SVG。外部リソース（CDN・Webフォント・外部画像・fetch）は一切参照しない</td></tr>
     <tr><td>実在ツール・製品</td><td>実物ロゴを想起させる簡略SVGマーク+名称で描く。抽象図形の発明は禁止</td></tr>
     <tr><td>変化の引き金</td><td>上限到達・締切・承認等はイベント線+バッジの構造部品で描く</td></tr>
     <tr><td>極端な状態</td><td>「尽きた・満杯・ゼロ」等はメーター100%+警告色で描く</td></tr>
     <tr><td>複数ページ</td><td>テンプレートのページ送り部品を使う（1ページなら削除）</td></tr>
+    <tr><td>スライド寸法</td><td>1280×720px 固定。<code>.slide</code> 内に <code>clamp()</code> / <code>vw</code> / <code>vh</code> を使わない（<code>transform: scale()</code> が全体スケーリングを担う）</td></tr>
+    <tr><td>スケーリング用 script</td><td>常時必須。1ページ構成でも削除しない（削除可はページ送りスクリプトのみ）</td></tr>
+    <tr><td>メタデータフッター</td><td><code>.slide-meta</code> は区切り線と下端余白のみを提供する。内容は入れない</td></tr>
+    <tr><td>段階・対比</td><td>stage-card 部品（上辺色 critical/partial/good）+ status-row（✓/✕）で描く</td></tr>
+    <tr><td>ディレクトリ構成</td><td>tree 部品（等幅+tree-tag）で描く。箇条書きで代替しない</td></tr>
+    <tr><td>層・積層</td><td>layer-band 部品（全幅帯+番号チップ）で描く</td></tr>
+  </table>
+
+  <h3>論証テーブル型の追加厳守事項</h3>
+  <table class="spec">
+    <tr><th>項目</th><th>規則</th></tr>
+    <tr><td>リード帯</td><td>ネイビー地（<code>--ink</code>）に白文字で、主張を1文で言い切る</td></tr>
+    <tr><td>ヘッドメッセージ</td><td>■マーク付き2〜3行で、事実→必要性を断定する</td></tr>
+    <tr><td>テーブルヘッダー</td><td>ネイビー地（<code>--ink</code>）に白文字</td></tr>
+    <tr><td>実行主体</td><td>すべての打ち手に実行主体（誰がやるか）を明記する</td></tr>
+    <tr><td>出典行</td><td>テーブル下部に1行で記載する（社内データなら「出典：◯◯部調べ」の形）</td></tr>
+    <tr><td>※要確認</td><td>数字がない箇所は赤字（<code>--critical</code>）で「※要確認」と明記する</td></tr>
   </table>
 
   <div class="constraint">
@@ -304,23 +389,181 @@
 <section id="s7">
   <h2><span class="sec-num">§7</span>観点レビュー表と検証</h2>
 
-  <p>Phase 4 で <code>references/slide-review-checklist.md</code> を Read し、全観点キーについて PASS / NG を記録する。表示検査の観点はスクリーンショットを見て判定し、特に「文字切れ-全数目視」は全テキスト要素を1つずつ確認する。</p>
+  <p>Phase 4 で <code>references/slide-review-checklist.md</code>・<code>references/business-content-standards.md</code>・<code>references/customer-output-checklist.md</code> を順に照合する。表示検査の観点はスクリーンショットを見て判定し、特に「文字切れ-全数目視」は全テキスト要素を1つずつ確認する。</p>
 
+  <h3>観点の全体像</h3>
+  <figure class="diagram">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" font-family="system-ui, -apple-system, 'Hiragino Sans', sans-serif" font-size="12">
+      <rect x="100" y="30" width="1080" height="50" rx="6" fill="#1C2B3A"/>
+      <text x="130" y="63" font-size="20" font-weight="700" fill="#FFFFFF">観点レビュー: 4層の検査網</text>
+
+      <!-- 入力ノード -->
+      <rect x="100" y="140" width="110" height="340" rx="8" fill="#EDF1F6" stroke="#D9E0E8"/>
+      <text x="115" y="290" font-size="13" font-weight="700" fill="#1C2B3A">生成した</text>
+      <text x="115" y="308" font-size="13" font-weight="700" fill="#1C2B3A">スライド</text>
+      <text x="115" y="326" font-size="13" font-weight="700" fill="#1C2B3A">HTML</text>
+
+      <!-- 第1層 -->
+      <rect x="230" y="140" width="190" height="340" rx="8" fill="#FFFFFF" stroke="#D9E0E8"/>
+      <text x="245" y="170" font-size="18" font-weight="700" fill="#1C2B3A">第1層</text>
+      <text x="245" y="192" font-size="12" font-weight="700" fill="#1C2B3A">表示・技術の</text>
+      <text x="245" y="208" font-size="12" font-weight="700" fill="#1C2B3A">共通観点</text>
+      <text x="245" y="232" font-size="12" fill="#55667A">9観点・全型適用</text>
+      <text x="245" y="250" font-size="12" fill="#55667A">実描画スクリーン</text>
+      <text x="245" y="266" font-size="12" fill="#55667A">ショットで判定</text>
+      <text x="245" y="292" font-size="12" fill="#8494A6">例:</text>
+      <text x="245" y="310" font-size="12" fill="#8494A6">文字切れ-全数目視</text>
+      <text x="245" y="328" font-size="12" fill="#8494A6">自己完結-外部参照</text>
+      <text x="245" y="344" font-size="12" fill="#8494A6">なし</text>
+      <text x="245" y="362" font-size="12" fill="#8494A6">寸法-固定1280x720</text>
+
+      <!-- 第2層 -->
+      <rect x="440" y="140" width="190" height="340" rx="8" fill="#FFFFFF" stroke="#D9E0E8"/>
+      <text x="455" y="170" font-size="18" font-weight="700" fill="#1C2B3A">第2層</text>
+      <text x="455" y="192" font-size="12" font-weight="700" fill="#1C2B3A">型固有の構造・</text>
+      <text x="455" y="208" font-size="12" font-weight="700" fill="#1C2B3A">意味観点</text>
+      <text x="455" y="232" font-size="12" fill="#55667A">図解8観点/論証</text>
+      <text x="455" y="250" font-size="12" fill="#55667A">テーブル7観点</text>
+      <text x="455" y="266" font-size="12" fill="#55667A">型に応じて片方</text>
+      <text x="455" y="282" font-size="12" fill="#55667A">を照合</text>
+      <text x="455" y="306" font-size="12" fill="#8494A6">例:</text>
+      <text x="455" y="324" font-size="12" fill="#8494A6">例示数値-検算整合</text>
+      <text x="455" y="342" font-size="12" fill="#8494A6">列役割-分離</text>
+
+      <!-- 第3層 -->
+      <rect x="650" y="140" width="190" height="340" rx="8" fill="#FFFFFF" stroke="#D9E0E8"/>
+      <text x="665" y="170" font-size="18" font-weight="700" fill="#1C2B3A">第3層</text>
+      <text x="665" y="192" font-size="12" font-weight="700" fill="#1C2B3A">ビジネス内容</text>
+      <text x="665" y="208" font-size="12" font-weight="700" fill="#1C2B3A">品質</text>
+      <text x="665" y="232" font-size="12" fill="#55667A">6カテゴリ24観点</text>
+      <text x="665" y="250" font-size="12" fill="#55667A">主張・数値・読み</text>
+      <text x="665" y="266" font-size="12" fill="#55667A">手適合を照合</text>
+      <text x="665" y="290" font-size="12" fill="#8494A6">例:</text>
+      <text x="665" y="308" font-size="12" fill="#8494A6">タイトル-主張文</text>
+      <text x="665" y="326" font-size="12" fill="#8494A6">数値-出所明示</text>
+
+      <!-- 第4層 -->
+      <rect x="860" y="140" width="190" height="340" rx="8" fill="#FFFFFF" stroke="#D9E0E8"/>
+      <text x="875" y="170" font-size="18" font-weight="700" fill="#1C2B3A">第4層</text>
+      <text x="875" y="192" font-size="12" font-weight="700" fill="#1C2B3A">顧客提示前</text>
+      <text x="875" y="208" font-size="12" font-weight="700" fill="#1C2B3A">チェック</text>
+      <text x="875" y="232" font-size="12" fill="#55667A">機密・固有情報の</text>
+      <text x="875" y="248" font-size="12" fill="#55667A">最終自問</text>
+      <text x="875" y="272" font-size="12" fill="#8494A6">例:</text>
+      <text x="875" y="290" font-size="12" fill="#8494A6">内部スキル名の</text>
+      <text x="875" y="306" font-size="12" fill="#8494A6">混入確認</text>
+
+      <!-- 出力ノード -->
+      <rect x="1070" y="140" width="110" height="340" rx="8" fill="#EAF4EE" stroke="#1F7A46"/>
+      <text x="1085" y="284" font-size="13" font-weight="700" fill="#1F7A46">全行PASS</text>
+      <text x="1085" y="302" font-size="12" fill="#1F7A46">→ 保存・</text>
+      <text x="1085" y="320" font-size="12" fill="#1F7A46">蓄積簿登録</text>
+
+      <!-- 矢印 -->
+      <line x1="210" y1="310" x2="230" y2="310" stroke="#1C2B3A" stroke-width="2" marker-end="url(#arr2)"/>
+      <line x1="420" y1="310" x2="440" y2="310" stroke="#1C2B3A" stroke-width="2" marker-end="url(#arr2)"/>
+      <line x1="630" y1="310" x2="650" y2="310" stroke="#1C2B3A" stroke-width="2" marker-end="url(#arr2)"/>
+      <line x1="840" y1="310" x2="860" y2="310" stroke="#1C2B3A" stroke-width="2" marker-end="url(#arr2)"/>
+      <line x1="1050" y1="310" x2="1070" y2="310" stroke="#1C2B3A" stroke-width="2" marker-end="url(#arr2)"/>
+
+      <!-- NG時のループ -->
+      <rect x="230" y="560" width="820" height="70" rx="8" fill="#FAECEA" stroke="#C0392B"/>
+      <text x="250" y="588" font-size="13" font-weight="700" fill="#C0392B">NG時のループ（Step 4-1〜4-3・上限5回）</text>
+      <text x="250" y="610" font-size="12" fill="#55667A">NG → 原因特定・修正（Edit） → 再描画 → 再照合 → 全行PASSで終了</text>
+      <path d="M 1050 560 L 1050 530 L 230 530 L 230 560" fill="none" stroke="#C0392B" stroke-width="2" stroke-dasharray="4 3" marker-end="url(#arr2)"/>
+
+      <defs>
+        <marker id="arr2" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto">
+          <path d="M0,0 L8,4 L0,8 Z" fill="#1C2B3A"/>
+        </marker>
+      </defs>
+    </svg>
+    <figcaption class="note">図: Phase 4〜保存までの検査網。第1・2層は <code>references/slide-review-checklist.md</code>、第3層は <code>references/business-content-standards.md</code>、第4層は <code>references/customer-output-checklist.md</code> が正本。</figcaption>
+  </figure>
+
+  <h3>共通観点（全型に適用）</h3>
+  <p>スライドの表示品質・技術的な自己完結性を守るための検査。実描画スクリーンショットを見て全9観点を判定する。</p>
   <table class="spec">
-    <tr><th>Step</th><th>使用ツール</th><th>内容</th></tr>
-    <tr><td>4-1 実描画とスクリーンショット</td><td>Bash（一時HTTPサーバの起動・停止）、Playwright 等のブラウザツール（スクリーンショット取得）</td><td>1280px 幅で実描画を確認する</td></tr>
-    <tr><td>4-2 観点レビュー表の全行照合</td><td>Read</td><td>全観点キーの PASS / NG を記録。出力前に顧客向け成果物チェックも実施</td></tr>
-    <tr><td>4-3 NG修正と再検証</td><td>Edit</td><td>原因を直し Step 4-1 から再実行。ループ設計の上限・停止条件に従う</td></tr>
+    <tr><th>観点キー</th><th>検査内容</th><th>NG例</th></tr>
+    <tr><td>文字切れ-全数目視</td><td>全テキスト要素に切れ・重なり・はみ出しがないか（1要素ずつ確認）</td><td>幅の狭い帯で「Cursor」の右端が <code>overflow: hidden</code> で欠ける</td></tr>
+    <tr><td>自己完結-外部参照なし</td><td>CDN・Webフォント・外部画像・fetch の参照が1つもないか</td><td>Google Fonts の link タグが残っている</td></tr>
+    <tr><td>文字コード-charset明記</td><td>先頭に <code>&lt;meta charset="utf-8"&gt;</code> があるか</td><td>charset なしでローカル配信すると日本語が文字化けする</td></tr>
+    <tr><td>配色-ビジネス基調</td><td>白面+ネイビー系が基調で、彩度の高い色が識別・警告・回復に限定されているか</td><td>ダークモード配色・装飾目的の多色使い</td></tr>
+    <tr><td>比率-スライド16対9</td><td>16:9 比率で 1280px 幅表示時にレイアウトが崩れないか</td><td>縦に溢れてスクロールが発生する・要素が枠外に出る</td></tr>
+    <tr><td>内部名称-混入なし</td><td>スライド内に consult- で始まる内部スキル名・内部パスが無いか</td><td>ヘッダに consult-slide 等の内部スキル名や内部ファイルパスがそのまま表示されている</td></tr>
+    <tr><td>寸法-固定1280x720</td><td><code>.slide</code> の width/height が 1280px/720px 固定であること</td><td><code>min()</code> や <code>aspect-ratio</code> による可変寸法</td></tr>
+    <tr><td>単位-固定px限定</td><td><code>.slide</code> 内に <code>vw</code>/<code>vh</code>/<code>clamp()</code> が存在しないこと（検証: <code>grep -nE 'vw|vh|clamp\(' file</code>）</td><td><code>.slide</code> 内に <code>clamp(9px, 1vw, 11px)</code> が残っている</td></tr>
+    <tr><td>フッタ-区切り線</td><td>メタデータフッター（<code>.slide-meta</code>）が区切り線+下端余白として存在し、内容が空であること</td><td>フッター内にテキスト（日付・作成者名・ページ番号等）が残っている</td></tr>
   </table>
 
-  <h3>観点の育成（Step 6-2）</h3>
-  <p>生成〜報告で受けたレビュー指摘・修正で言語化された原則のうち、次の昇格基準3つを満たすものを観点レビュー表に Edit で追記する。</p>
+  <h3>図解スライド固有の観点</h3>
+  <p>図解型のみ照合する。構造・意味の整合（因果表現・時間軸割当・数値検算など）を守るための検査。</p>
+  <table class="spec">
+    <tr><th>観点キー</th><th>検査内容</th><th>NG例</th></tr>
+    <tr><td>因果-構造表現</td><td>変化の引き金（上限到達・締切・承認等）がイベント線・バッジ等の構造部品で描かれているか</td><td>2つのカードを矢印でつなぎ、引き金は矢印上の小さなラベルだけ</td></tr>
+    <tr><td>識別子-実物想起</td><td>実在ツール・製品が実物ロゴを想起させる形+色+名称で描かれているか</td><td>六角形・角丸四角など発明した抽象図形にツール名を添えただけ</td></tr>
+    <tr><td>状態-極端表現</td><td>「尽きた・満杯・ゼロ」等の状態がメーター100%+警告色で極端に描かれているか</td><td>「使い切った」の説明なのにゲージが72%で止まっている</td></tr>
+    <tr><td>時間-軸割当</td><td>時間経過を含む説明で横軸が時間になっているか</td><td>週次サイクルの説明なのに横軸がツールの並置になっている</td></tr>
+    <tr><td>時間スケール-図分離</td><td>異なる時間スケール（時間単位/週単位等）がパネル分割されているか</td><td>5時間の話と1週間の話が1本の軸に混在している</td></tr>
+    <tr><td>例示数値-検算整合</td><td>図中の具体値が説明対象の仕組みと矛盾しないか（検算済みか）</td><td>開始から5時間でリセットされる枠なのに、5時間使い切ってから切り替える時系列</td></tr>
+    <tr><td>読み順-番号対応</td><td>図中のステップ番号チップと本文要約の番号・色が一致しているか</td><td>図に番号がない、または本文と番号の意味がずれている</td></tr>
+    <tr><td>軸範囲-業務文脈</td><td>時間軸の範囲が業務文脈に合っているか（営業日のみ・業務時間帯等）</td><td>ビジネス資料の週次説明に土日が含まれている</td></tr>
+  </table>
+
+  <h3>論証テーブル固有の観点</h3>
+  <p>論証テーブル型のみ照合する。列の役割分離・打ち手の具体性・出典明示など、表としての論理整合を守るための検査。</p>
+  <table class="spec">
+    <tr><th>観点キー</th><th>検査内容</th><th>NG例</th></tr>
+    <tr><td>列役割-分離</td><td>「課題」列に対策、「現状」列に意見が混入していないか</td><td>課題列に「〜を導入すべき」と対策を記載</td></tr>
+    <tr><td>打ち手-主体明記</td><td>すべての打ち手に実行主体（誰がやるか）が入っているか</td><td>「マニュアル化を推進」だけで主体なし</td></tr>
+    <tr><td>リード帯-結論自足</td><td>リード帯+ヘッドメッセージだけ読めば表を見なくても結論が分かるか</td><td>リード帯が「ナレッジ管理について」というラベル型</td></tr>
+    <tr><td>行数-上限遵守</td><td>5行以内か。超える場合は分割案を提示しているか</td><td>8行詰め込みで読めない</td></tr>
+    <tr><td>打ち手-具体性</td><td>「〜の推進」「〜の強化」で終わる曖昧な打ち手がないか</td><td>「DX推進の強化」で具体アクションなし</td></tr>
+    <tr><td>現状-事実限定</td><td>現状列が事実と数字だけか（意見・評価が混入していないか）</td><td>「対応が不十分である」という評価文</td></tr>
+    <tr><td>出典-明示</td><td>データの出所が出典行に記載されているか</td><td>数字があるが出典なし</td></tr>
+  </table>
+  <p class="note">正本は <code>references/slide-review-checklist.md</code>。乖離時は正本が正。</p>
+
+  <h3>内容品質（第3層）の要約</h3>
+  <p><code>references/business-content-standards.md</code> の6カテゴリを要約する。顧客・社外へ提示する目的の資料にのみ適用され（適用ゲート）、該当しない資料は全観点「対象外」として即 PASS になる。</p>
+  <table class="spec">
+    <tr><th>カテゴリ</th><th>観点数</th><th>代表観点キーと検査内容の要旨</th></tr>
+    <tr><td>メッセージ設計</td><td>4</td><td>タイトル-主張文（タイトルが主張の1文になっているか）／結論-単一性（1枚の主張が1つに絞られているか）</td></tr>
+    <tr><td>論理構造</td><td>5</td><td>主張-根拠対応（根拠なき断言がないか）／前提-明示（結論が依存する前提が明示されているか）</td></tr>
+    <tr><td>数値・事実の信頼性</td><td>4</td><td>数値-出所明示（数値に出所の注記があるか）／推定-事実区別（試算と実績を区別しているか）</td></tr>
+    <tr><td>読み手適合</td><td>3</td><td>語彙-読み手整合（説明なしの専門用語がないか）／反論-先回り（読み手の懸念に先回りしているか）</td></tr>
+    <tr><td>提案の質</td><td>4</td><td>提案-顧客文脈接続（当該顧客の状況に接続した記述か）／実行-主体明示（実行主体と最初の一歩が判別できるか）</td></tr>
+    <tr><td>表現の品位</td><td>4</td><td>誇大-表現禁止（裏付けのない強調語がないか）／指示語-自己完結（文外参照の指示語を使っていないか）</td></tr>
+  </table>
+  <p class="note">全24観点の転記はしない。正本は <code>references/business-content-standards.md</code>。「読み手適合」「提案の質」は想定読み手・顧客文脈が入力されている場合のみ照合し、未提供時は「判定不能」と記録する。</p>
+
+  <h3>顧客提示前チェック（第4層）の要旨</h3>
+  <p>顧客に渡す・見せる出力（HTML・Excel・依頼文書・報告表）を出す前の最終自問。機械検査では拾いきれない「内部運用の痕跡」（内部スキル名・固有パス・内部管理語彙など）が表示テキストに紛れていないかを人が最後に確認する層で、1つでも該当したら生成元の Phase に戻って修正し再チェックする。</p>
+  <ul>
+    <li>consult- で始まる内部スキル名・特定PC固有のパスを含めていないか</li>
+    <li>根拠のない数値・頻度・時刻を断定していないか</li>
+    <li>作業用の内部分類・記号見出し（①②③・判定ラベル等）をそのまま出していないか</li>
+    <li>内部の記録ファイル名（拡張子付き）・内部の管理語彙（正本・転記等）が表示テキストに出ていないか</li>
+    <li>パネル見出し・セクション見出しに文外参照の指示語（「このレベル」等）を使っていないか</li>
+  </ul>
+  <p class="note">正本は <code>references/customer-output-checklist.md</code>。案件固有スライドは顧客に渡る成果物のため必須、汎用スライドにも同チェックを適用する。</p>
+
+  <h3>観点の2層構造と育成サイクル（Step 6-2）</h3>
+  <p>観点は2層で管理する。<code>references/slide-review-checklist.md</code> が全スライド共通の観点の正本（第1層）、各スライドの検査記録.md がタスク限定の観点を保持する（第2層）。</p>
+  <p>育成サイクルは次の4手順で回す。</p>
+  <ol>
+    <li>生成したスライドを観点レビュー表で照合し、ユーザーレビューを受ける</li>
+    <li>受けた指摘・修正ループで見つけた欠陥を原則として言語化する</li>
+    <li>昇格判定: 次の3基準をすべて満たすものだけを観点レビュー表に Edit で追記する</li>
+    <li>満たさない指摘は検査記録.md にタスク限定の観点として保持する（次回このスライドを更新する時の再検査項目にする）</li>
+  </ol>
+  <p>昇格基準3つ:</p>
   <ol>
     <li>別トピックのスライドでも再発しうる（タスク非依存）</li>
     <li>意味語キー + 検査内容 + NG例の形式で書ける</li>
     <li>実描画またはファイル検査（grep 等）で機械的・目視的に検査可能</li>
   </ol>
-  <p class="note">満たさない指摘は検査記録.mdのタスク限定観点として保持する（捨てない）。観点レビュー表の既存観点の削除は禁止（検査の弱体化になるため）。</p>
+  <p class="note">満たさない指摘は検査記録.mdのタスク限定観点として保持する（捨てない）。観点レビュー表の既存観点の削除は禁止（検査の弱体化になるため。表現の具体化・NG例の追加は可）。</p>
 </section>
 
 <section id="s8">
@@ -338,11 +581,12 @@
 <section id="s9">
   <h2><span class="sec-num">§9</span>保存先とファイル命名</h2>
 
+  <p class="note">出力先ディレクトリはプロジェクトに応じたパス。以下は一例（<code>docs/解説スライド集/</code>）。</p>
   <table class="spec">
     <tr><th>成果物</th><th>汎用スライド</th><th>案件固有スライド</th></tr>
-    <tr><td>スライドHTML</td><td><code>docs/10_解説スライド集/&lt;スライドキー&gt;/解説スライド.html</code></td><td><code>clients/&lt;案件名&gt;/レベル目標_&lt;課題キー&gt;_&lt;YYYYMMDD&gt;.html</code></td></tr>
-    <tr><td>蓄積簿登録</td><td><code>docs/10_解説スライド集/解説スライド集.md</code> に1行追記</td><td>対象外（顧客固有情報のため）</td></tr>
-    <tr><td>検査記録</td><td><code>docs/10_解説スライド集/&lt;スライドキー&gt;/検査記録.md</code></td><td><code>clients/&lt;案件名&gt;/検査記録_レベル目標_&lt;課題キー&gt;_&lt;YYYYMMDD&gt;.md</code></td></tr>
+    <tr><td>スライドHTML</td><td>出力先ディレクトリ内 <code>&lt;スライドキー&gt;/解説スライド.html</code>（例: <code>docs/解説スライド集/&lt;スライドキー&gt;/解説スライド.html</code>）</td><td><code>clients/&lt;案件名&gt;/レベル目標_&lt;課題キー&gt;_&lt;YYYYMMDD&gt;.html</code></td></tr>
+    <tr><td>蓄積簿登録</td><td>出力先ディレクトリの蓄積簿（例: <code>docs/解説スライド集/解説スライド集.md</code>）に1行追記</td><td>対象外（顧客固有情報のため）</td></tr>
+    <tr><td>検査記録</td><td>出力先ディレクトリ内 <code>&lt;スライドキー&gt;/検査記録.md</code>（例: <code>docs/解説スライド集/&lt;スライドキー&gt;/検査記録.md</code>）</td><td><code>clients/&lt;案件名&gt;/検査記録_レベル目標_&lt;課題キー&gt;_&lt;YYYYMMDD&gt;.md</code></td></tr>
   </table>
 
   <div class="constraint">
@@ -356,11 +600,10 @@
 
   <table class="spec">
     <tr><th>スキル / 規約</th><th>役割分担</th></tr>
-    <tr><td>consult-level-agree</td><td>合意済みレベル軌道を確定するスキル。ここから起動された場合、レベル合意HTML等がヒアリング5カテゴリの初期値になる</td></tr>
-    <tr><td>consult-case</td><td>解決事例の登録を担当（本スキルのSKIP対象）</td></tr>
-    <tr><td>consult-analyze</td><td>リポジトリ解析レポートを担当（本スキルのSKIP対象）</td></tr>
-    <tr><td>単一HTML成果物規約（review-checklist/document/html-output）</td><td>被覆・図解・自己完結性など単一HTML成果物としての合格基準。本スキルの成果物にも適用される</td></tr>
-    <tr><td>ビジネス提示資料の内容品質基準（review-checklist/business-content/common）</td><td>顧客・社外へ提示する資料の内容品質（主張・論理・数値・読み手適合）。顧客提示前提のスライドに適用される</td></tr>
+    <tr><td>外部スキルからの引き継ぎ</td><td>業務棚卸し表・軌道記述等をこのスキルに渡す外部スキル全般。渡された情報はヒアリング5カテゴリの初期値として使う</td></tr>
+    <tr><td>単一HTML成果物規約（review-checklist/document/html-output）</td><td>被覆・図解・自己完結性など単一HTML成果物としての合格基準。<code>references/html-output-standards.md</code> に対応し、本スキルの成果物にも適用される</td></tr>
+    <tr><td>ビジネス提示資料の内容品質基準（review-checklist/business-content/common）</td><td>顧客・社外へ提示する資料の内容品質（主張・論理・数値・読み手適合）。<code>references/business-content-standards.md</code> に対応し、顧客提示前提のスライドに適用される</td></tr>
+    <tr><td>顧客提示前チェック</td><td><code>references/customer-output-checklist.md</code>。内部スキル名・固有パス等の混入を出力前に自問する最終確認</td></tr>
     <tr><td>意味キー規約（review-checklist/meaningful-key-naming）</td><td>スライドキー・観点キーの連番禁止・意味語キー命名の根拠</td></tr>
   </table>
 </section>
@@ -378,7 +621,19 @@
         document.body.style.overflow = 'hidden';
       });
     });
-    overlay.addEventListener('click', function () {
+    document.querySelectorAll('figure.template-preview .preview-frame-wrap').forEach(function (wrap) {
+      wrap.addEventListener('click', function () {
+        var src = wrap.getAttribute('data-zoom-src');
+        overlay.innerHTML = '';
+        var frame = document.createElement('iframe');
+        frame.src = src;
+        overlay.appendChild(frame);
+        overlay.hidden = false;
+        document.body.style.overflow = 'hidden';
+      });
+    });
+    overlay.addEventListener('click', function (e) {
+      if (e.target !== overlay) return;
       overlay.hidden = true;
       overlay.innerHTML = '';
       document.body.style.overflow = '';

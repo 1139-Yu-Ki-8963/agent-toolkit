@@ -1229,7 +1229,7 @@ function checkGuideTemplate() {
     }
 
     // 6. meta-table に 4 行の必須項目
-    const metaRequired = ["対応 OS", "検証状況", "依存", "関連資料"];
+    const metaRequired = ["対応 OS", "検証状況", "使用ツール"];
     for (const req of metaRequired) {
       if (!content.includes(req)) {
         FAILS.push(`${id}: meta-table に「${req}」が欠落`);
@@ -1559,8 +1559,9 @@ async function cmdRegisterSkills(ids) {
   <table class="meta-table">
     <tr><td>対応 OS</td><td>（記入）</td></tr>
     <tr><td>検証状況</td><td>（記入）</td></tr>
-    <tr><td>依存</td><td>（記入）</td></tr>
-    <tr><td>関連資料</td><td>（記入）</td></tr>
+    <tr><td>使用ツール</td><td>（記入。Claude Code 標準ツールは各1行説明付きで書く）</td></tr>
+    <tr><td>外部依存</td><td>（記入。無ければ行ごと削除）</td></tr>
+    <tr><td>参照ファイル</td><td>（記入。無ければ行ごと削除）</td></tr>
   </table>
 </body>
 </html>
