@@ -232,9 +232,9 @@ table.data-table code {
   if (steps.length === 0) {
     stepsBody.appendChild(el('tr', null, el('td', { colspan: '3' }, 'なし')));
   } else {
-    steps.forEach(function(s) {
+    steps.forEach(function(s, idx) {
       stepsBody.appendChild(el('tr', null, [
-        el('td', null, el('span', { class: 'step-order' }, String(s.order != null ? s.order : ''))),
+        el('td', null, el('span', { class: 'step-order' }, String(idx + 1))),
         el('td', null, el('code', null, s.command || '')),
         el('td', null, s.note || '')
       ]));

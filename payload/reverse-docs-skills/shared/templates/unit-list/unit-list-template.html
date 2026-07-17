@@ -46,7 +46,7 @@
   * { box-sizing: border-box; }
   body {
     margin: 0; padding: 0 24px 96px;
-    font-family: "Hiragino Kaku Gothic ProN","Hiragino Sans","Yu Gothic","Meiryo",system-ui,-apple-system,sans-serif;
+    font-family: var(--font-body);
     line-height: 1.7; color: var(--text); background: var(--bg);
     max-width: 1180px; margin-inline: auto;
   }
@@ -85,17 +85,57 @@
   details.module-group > summary::before { content: "▸ "; }
   details.module-group[open] > summary::before { content: "▾ "; }
 
-  table.units { border-collapse: collapse; width: 100%; font-size: 0.88rem; }
-  table.units th, table.units td {
-    border-top: 1px solid var(--border); padding: 8px 12px; text-align: left; vertical-align: top;
+  table.units, table.screens {
+    table-layout: fixed; width: 100%; min-width: 900px; border-collapse: collapse; font-size: 0.88rem;
+    overflow: hidden;
+  }
+  table.units th, table.screens th {
+    border-top: 1px solid var(--border); padding: 8px 10px; text-align: left; vertical-align: top;
+    white-space: normal; overflow: visible; font-size: 0.8em;
+  }
+  table.units td, table.screens td {
+    border-top: 1px solid var(--border); padding: 8px 10px; text-align: left; vertical-align: top;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
   table.units th {
-    background: var(--panel-2); font-weight: 700; cursor: pointer; user-select: none; white-space: nowrap;
+    background: var(--panel-2); font-weight: 700; cursor: pointer; user-select: none;
   }
-  table.units th:hover { background: var(--accent-soft); }
+  table.units th:hover, table.screens th:hover { background: var(--accent-soft); cursor: pointer; }
   table.units td code {
-    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-family: var(--mono);
     font-size: 0.85em; background: var(--panel-2); padding: 1px 5px; border-radius: 3px;
+  }
+
+  /* 列幅の明示指定（unit-list: 9列） */
+  table.units th:nth-child(1) { width: 7%; }   /* ID */
+  table.units th:nth-child(2) { width: 12%; }  /* キー */
+  table.units th:nth-child(3) { width: 7%; }   /* 区分 */
+  table.units th:nth-child(4) { width: 14%; }  /* 名 */
+  table.units th:nth-child(5) { width: 18%; }  /* 識別子 */
+  table.units th:nth-child(6) { width: 10%; }  /* 検出方式 */
+  table.units th:nth-child(7) { width: 9%; }   /* confidence */
+  table.units th:nth-child(8) { width: 8%; }   /* ファイル数 */
+  table.units th:nth-child(9) { width: 15%; }  /* 主ファイル */
+
+  /* 数値列は右揃え＋等幅数字 */
+  table.units td:nth-child(7),
+  table.units td:nth-child(8) {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* コード系列はモノスペース */
+  table.units td:nth-child(5),
+  table.units td:nth-child(9) {
+    font-family: var(--mono);
+    font-size: 0.8em;
+  }
+
+  /* ホバーで全文表示 */
+  table.units td:hover, table.screens td:hover {
+    overflow: visible;
+    white-space: normal;
+    word-break: break-all;
   }
   td code { overflow-wrap: break-word; word-break: break-all; max-width: 300px; display: inline-block; }
   .badge { display: inline-block; font-size: 0.76rem; font-weight: 700; padding: 1px 8px; border-radius: 3px; }
@@ -118,6 +158,12 @@
   section.common-files h2, section.unresolved h2 { font-size: 1.05rem; margin: 0 0 10px; }
 
   footer { margin-top: 48px; font-size: 0.8rem; color: var(--text-muted); }
+
+  .pagination { display: flex; gap: 8px; align-items: center; justify-content: center; margin: 16px 0; font-size: 0.85rem; }
+  .pagination button { background: var(--panel-2); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text-sub); cursor: pointer; padding: 4px 10px; font-family: inherit; font-size: 0.82rem; }
+  .pagination button:hover { background: var(--accent-soft); color: var(--accent); border-color: var(--accent-border); }
+  .pagination button:disabled { opacity: 0.4; cursor: not-allowed; }
+  .pagination .page-info { color: var(--text-muted); }
 </style>
 </head>
 <body>
@@ -172,6 +218,14 @@
   </div>
 </details>
 
+<div class="pagination" id="pagination">
+  <button id="page-first" title="先頭">≪</button>
+  <button id="page-prev" title="前">＜</button>
+  <span id="page-info" class="page-info"></span>
+  <button id="page-next" title="次">＞</button>
+  <button id="page-last" title="最後">≫</button>
+</div>
+
 <section class="unresolved">
   <h2>要手動確認</h2>
   <div class="table-wrap">
@@ -200,33 +254,84 @@
     var table = document.getElementById('unit-table');
     if (!table) return;
     var tbody = table.querySelector('tbody');
-    var rows = Array.prototype.slice.call(tbody.querySelectorAll('tr'));
+    var allRows = Array.prototype.slice.call(tbody.querySelectorAll('tr'));
+
+    var PAGE_SIZE = 50;
+    var currentPage = 0;
+    var sortCol = -1;
+    var sortAsc = true;
+
+    var pagEl = document.getElementById('pagination');
+    var pageInfo = document.getElementById('page-info');
+    var btnFirst = document.getElementById('page-first');
+    var btnPrev = document.getElementById('page-prev');
+    var btnNext = document.getElementById('page-next');
+    var btnLast = document.getElementById('page-last');
+
+    function renderPage() {
+      var q = search ? search.value.trim().toLowerCase() : '';
+      var visible = allRows.filter(function (tr) {
+        return !q || tr.textContent.toLowerCase().indexOf(q) !== -1;
+      });
+
+      if (sortCol >= 0) {
+        visible.sort(function (a, b) {
+          var av = a.children[sortCol].textContent.trim();
+          var bv = b.children[sortCol].textContent.trim();
+          var an = parseFloat(av), bn = parseFloat(bv);
+          var cmp = (!isNaN(an) && !isNaN(bn)) ? (an - bn) : av.localeCompare(bv, 'ja');
+          return sortAsc ? cmp : -cmp;
+        });
+      }
+
+      var totalPages = Math.max(1, Math.ceil(visible.length / PAGE_SIZE));
+      if (currentPage >= totalPages) currentPage = totalPages - 1;
+      if (currentPage < 0) currentPage = 0;
+      var start = currentPage * PAGE_SIZE;
+      var end = start + PAGE_SIZE;
+
+      allRows.forEach(function (tr) { tr.style.display = 'none'; });
+      visible.forEach(function (tr, i) {
+        tr.style.display = (i >= start && i < end) ? '' : 'none';
+        tbody.appendChild(tr);
+      });
+
+      if (pagEl) pagEl.style.display = visible.length <= PAGE_SIZE ? 'none' : '';
+      if (pageInfo) pageInfo.textContent = (currentPage + 1) + ' / ' + totalPages + '（' + visible.length + '件）';
+      if (btnFirst) btnFirst.disabled = currentPage === 0;
+      if (btnPrev) btnPrev.disabled = currentPage === 0;
+      if (btnNext) btnNext.disabled = currentPage >= totalPages - 1;
+      if (btnLast) btnLast.disabled = currentPage >= totalPages - 1;
+    }
 
     if (search) {
       search.addEventListener('input', function () {
-        var q = search.value.trim().toLowerCase();
-        rows.forEach(function (tr) {
-          var hit = tr.textContent.toLowerCase().indexOf(q) !== -1;
-          tr.style.display = hit ? '' : 'none';
-        });
+        currentPage = 0;
+        renderPage();
       });
     }
 
     table.querySelectorAll('th[data-key]').forEach(function (th, colIndex) {
       th.addEventListener('click', function () {
-        var asc = th.getAttribute('data-asc') !== 'true';
+        if (sortCol === colIndex) { sortAsc = !sortAsc; } else { sortCol = colIndex; sortAsc = true; }
         table.querySelectorAll('th[data-key]').forEach(function (t) { t.removeAttribute('data-asc'); });
-        th.setAttribute('data-asc', asc);
-        var sorted = rows.slice().sort(function (a, b) {
-          var av = a.children[colIndex].textContent.trim();
-          var bv = b.children[colIndex].textContent.trim();
-          var an = parseFloat(av), bn = parseFloat(bv);
-          var cmp = (!isNaN(an) && !isNaN(bn)) ? (an - bn) : av.localeCompare(bv, 'ja');
-          return asc ? cmp : -cmp;
-        });
-        sorted.forEach(function (tr) { tbody.appendChild(tr); });
+        th.setAttribute('data-asc', sortAsc);
+        currentPage = 0;
+        renderPage();
       });
     });
+
+    if (btnFirst) btnFirst.addEventListener('click', function () { currentPage = 0; renderPage(); });
+    if (btnPrev) btnPrev.addEventListener('click', function () { currentPage--; renderPage(); });
+    if (btnNext) btnNext.addEventListener('click', function () { currentPage++; renderPage(); });
+    if (btnLast) btnLast.addEventListener('click', function () {
+      var q = search ? search.value.trim().toLowerCase() : '';
+      var cnt = allRows.filter(function (tr) { return !q || tr.textContent.toLowerCase().indexOf(q) !== -1; }).length;
+      currentPage = Math.max(0, Math.ceil(cnt / PAGE_SIZE) - 1);
+      renderPage();
+    });
+
+    renderPage();
   })();
 </script>
 

@@ -58,8 +58,10 @@
 
 ## 5. アイコン仕様
 
-- Material Symbols Outlined を CDN 経由で読み込む
-- CDN 到達不可時のオフラインフォールバックを用意し、アイコン欠落時もレイアウトが崩れないようにする
+- アイコンは全てインライン SVG で実装する（CDN 不使用・自己完結）
+- `portal-template.html` の `matIcon()` 関数が約30種の SVG path データを保持し、アイコン名から SVG 要素を生成する
+- 詳細ページテンプレートは戻る矢印（arrow_back）のみをインライン SVG で直接埋め込む
+- 外部フォントやCDNに一切依存しないため、オフライン環境でも全アイコンが表示される
 
 ## 6. テンプレート構成と対応するページ型
 
@@ -74,4 +76,4 @@
 | `screen-list-template.html` | 一覧型（画面一覧、検索・ソート付き） |
 | `feature-list-template.html` | 一覧型（機能一覧、検索・ソート付き） |
 
-本文フォントは `"Hiragino Kaku Gothic ProN","Hiragino Sans","Noto Sans JP","BIZ UDPGothic","Yu Gothic","Meiryo",system-ui,-apple-system,sans-serif`、一覧系テンプレートのみ `system-ui,-apple-system,"Hiragino Sans","Noto Sans JP",sans-serif` を使う。コード表示は `--mono`（`SFMono-Regular,Menlo,Consolas,monospace`）で統一する。
+本文フォントは全テンプレート共通で `var(--font-body)` を使用する（実値は `tokens.css` の `--font-body` で定義: `"Hiragino Kaku Gothic ProN","Hiragino Sans","Noto Sans JP","BIZ UDPGothic","Yu Gothic","Meiryo",system-ui,-apple-system,sans-serif`）。コード表示は `var(--mono)`（`"SFMono-Regular","Menlo","Cascadia Code","Consolas",monospace`）で統一する。
