@@ -178,20 +178,30 @@ for kind in $KINDS_ORDER; do
   icon="$(get_kind_icon "$kind")"
   desc="$(get_kind_desc "$kind")"
   unit="$(get_kind_unit "$kind")"
-  html_file="$DOCS_ROOT/$dir_name/${label}一覧.html"
+  html_file="$DOCS_ROOT/一覧/$dir_name/${label}一覧.html"
   unit_count=0
 
   if [ -f "$html_file" ]; then
-    manifest_json="$(sed -n 's/.*<script[^>]*id="unit-manifest"[^>]*type="application\/json"[^>]*>\(.*\)<\/script>.*/\1/p' "$html_file" 2>/dev/null || true)"
-    if [ -z "$manifest_json" ]; then
-      manifest_json="$(sed -n 's/.*<script[^>]*type="application\/json"[^>]*id="unit-manifest"[^>]*>\(.*\)<\/script>.*/\1/p' "$html_file" 2>/dev/null || true)"
+    # 画面一覧は screen-manifest、他種別は unit-manifest
+    if [ "$kind" = "screen" ]; then
+      manifest_id="screen-manifest"
+      count_field="screenCount"
+    else
+      manifest_id="unit-manifest"
+      count_field="unitCount"
     fi
+    # 複数行 JSON 対応: awk で script タグ間の内容を抽出（コメント内の誤マッチ防止のため type 属性も要求）
+    manifest_json="$(awk -v id="$manifest_id" '
+      /type="application\/json"/ && /id="'"$manifest_id"'"/ { found=1; sub(/.*>/, ""); if (/<\/script>/) { sub(/<\/script>.*/, ""); print; found=0; next } }
+      found && /<\/script>/ { sub(/<\/script>.*/, ""); print; found=0; next }
+      found { print }
+    ' "$html_file" 2>/dev/null || true)"
     if [ -n "$manifest_json" ]; then
-      unit_count="$(echo "$manifest_json" | jq -r '.detectionSummary.unitCount // 0' 2>/dev/null || echo 0)"
+      unit_count="$(echo "$manifest_json" | jq -r ".detectionSummary.$count_field // 0" 2>/dev/null || echo 0)"
     fi
   fi
 
-  href="$docs_relative/$dir_name/${label}一覧.html"
+  href="$docs_relative/一覧/$dir_name/${label}一覧.html"
   count_text="$unit_count $unit →"
 
   [ -n "$list_tools_json" ] && list_tools_json="$list_tools_json,"
