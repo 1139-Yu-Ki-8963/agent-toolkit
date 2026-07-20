@@ -177,10 +177,11 @@ rules:
 
   # 推奨: 仕組み / 手順 / 構造
   # 誤検知注意: 生物学・物理学の専門用語（免疫メカニズム等）は対象外
+  # 誤検知注意: コード識別子（"mechanisms" キー・s.mechanisms 等）は対象外
   - expected: 仕組み
     patterns:
       - /メカニズム/i
-      - /Mechanism/i
+      - /(?<!["'.\w-])mechanisms?(?!["':.\w-])/i
 
   # 推奨: 追跡可能性 / 追跡性
   # 誤検知注意: ISO 規格・物流・製造業の専門用語としての「トレーサビリティ」は対象外
@@ -412,3 +413,66 @@ rules:
   - expected: ルーティン
     patterns:
       - /定例/i
+
+  # ═══ サブカテゴリ: 製品名の表記統制（誤表記 → 公式表記）═══
+  # 推奨: Claude Code
+  # 誤検知注意: タグ語彙値 claude-code（ハイフン形）・URL は patterns に含めないため対象外
+  # フラグ混在（i 付き / なし）は prh の RegExp 結合でクラッシュするため、i 付きパターンのみ別ブロックに分離する
+  - expected: Claude Code
+    patterns:
+      - /claudecode/i
+
+  - expected: Claude Code
+    patterns:
+      - /CLAUDE CODE/
+      - /Claude code/
+      - /claude Code/
+      - /claude code/
+
+  # 推奨: GitHub
+  # 誤検知注意: 環境変数名 GITHUB_*・URL 中の小文字 github は patterns に含めないため対象外
+  - expected: GitHub
+    patterns:
+      - /Github/
+      - /gitHub/
+
+  # 推奨: GitHub Pages
+  - expected: GitHub Pages
+    patterns:
+      - /Github [Pp]ages/
+      - /github [Pp]ages/
+      - /GitHub pages/
+
+  # 推奨: GitHub Copilot
+  # 誤検知注意: タグ語彙値 github-copilot（ハイフン形）は対象外
+  - expected: GitHub Copilot
+    patterns:
+      - /Github [Cc]opilot/
+      - /github [Cc]opilot/
+      - /GitHub copilot/
+
+  # 推奨: Cursor
+  # 誤検知注意: CSS プロパティ cursor:・小文字識別子は対象外（全大文字のみ検出）
+  - expected: Cursor
+    patterns:
+      - /CURSOR/
+
+  # 推奨: Codex CLI
+  # 誤検知注意: タグ語彙値 codex 単体は対象外（CLI 併記時のみ検出）
+  - expected: Codex CLI
+    patterns:
+      - /Codex cli/
+      - /codex cli/
+      - /codex CLI/
+      - /CodexCLI/
+      - /CODEX CLI/
+
+  # 推奨: Gemini CLI
+  # 誤検知注意: タグ語彙値 gemini-cli（ハイフン形）は対象外
+  - expected: Gemini CLI
+    patterns:
+      - /Gemini cli/
+      - /gemini cli/
+      - /gemini CLI/
+      - /GeminiCLI/
+      - /GEMINI CLI/

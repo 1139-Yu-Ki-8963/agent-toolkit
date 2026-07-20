@@ -138,5 +138,82 @@ validate-manifest.sh の非screen汎用分岐（`units`/`unitKey`/`identifier`/`
 
 1. `validate-manifest.sh <manifest.json> --unit-kind feature` の7項目検証（機械実行）
 2. related* 参照実在の jq 自前検査（validate-manifest.sh の参照整合検査は screen 専用のため、本種別ではスキルの Phase 5 が実施する）。検査内容: relatedScreens の各値が画面一覧マニフェストの `screens[].screenKey` に、relatedApis / relatedTables の各値が対応一覧の `units[].unitKey` に実在すること（形式チェックではなく実在照合）
-3. 完全性検査: 画面一覧の全 screenKey が「いずれかの機能の relatedScreens または unresolved 行」に載っていること（取りこぼしゼロ）
+3. 完全性ゲート（機械強制）: 画面一覧の全 screenKey が「いずれかの機能の relatedScreens または unresolved 行」に載っていること（取りこぼしゼロ）。Phase 3 Step 2 と Phase 6 Step 2(Gate B) の2箇所で `comm -13` により機械検査する。Phase 3 は早期検知（ユーザー承認前に全画面割り当て済みを保証）、Phase 6 は最終防衛線（Phase 4 の API/テーブル紐付け中に relatedScreens が意図せず変更された場合の安全網）
 4. API取りこぼし検査（任意・API一覧が入力にある場合）: API一覧の全 unitKey が「いずれかの機能の relatedApis」に載っているかを確認し、載らない API は「画面を持たないバックエンド機能」の候補として機能行の追加を検討するか、割当根拠ゼロなら unresolved として記録する
+
+## Stage 2: API紐付け手順
+
+Phase 4 Step 1 が従う API 紐付けの詳細手順。
+
+### 入力
+
+- 機能マニフェスト（Phase 3 出力。relatedScreens が確定済み、relatedApis は空配列）
+- 画面マニフェスト（screens[].screenKey, files[], entryFile）
+- API一覧マニフェスト（units[].unitKey, identifier, sourceFile）。未生成の場合は本 Stage をスキップし relatedApis は空配列のまま
+
+### files[] フォールバック
+
+画面マニフェストの `files[]` は `detect-screens.sh --resolve-files` が BFS import 追跡で算出した画面専有ファイル集合である。
+
+| files[] の状態 | 処理 |
+|---|---|
+| 非空 | files[] 全ファイルを grep 対象とする |
+| 空（BFS 未実行または結果が空） | entryFile のみを grep 対象とする。import 先のモジュール内の API 呼び出しを見逃す可能性がある |
+| entryFile も空 | 当該画面の API 紐付けをスキップし relatedApis は空のまま |
+
+files[] が空の画面が多い場合は、画面一覧スキルの `--resolve-files` サブコマンドで files[] を再生成してから本 Stage を実行することを推奨する。
+
+### grep パターンの識別
+
+API 呼び出しパターンはプロジェクト固有であり、Phase 1 Step 2 で特定する。代表的なパターン:
+
+| フレームワーク | grep パターン例 |
+|---|---|
+| fetch | `fetch\s*\(["'\x60][^"'\x60]*["'\x60]` |
+| axios | `axios\.\(get\|post\|put\|delete\|patch\)` |
+| 生成クライアント | プロジェクト固有の API クライアントメソッド名 |
+| tRPC | `trpc\.\w+\.\(query\|mutate\|useQuery\|useMutation\)` |
+| GraphQL | `gql\x60[^$]*\x60` または `use\(Query\|Mutation\)` |
+
+Phase 1 で特定したパターンを Phase 4 でそのまま適用する。パターンが不明な場合は `grep -rn 'fetch\|axios\|api' <files>` で広く拾い、ノイズを手動で除去する。
+
+### 照合と残余裁定
+
+1. grep で抽出した endpoint 文字列を正規化する（ベース URL 除去、パスのみ抽出）
+2. 正規化した endpoint を API一覧マニフェストの `units[].identifier` と完全一致で照合する
+3. 完全一致しない endpoint は残余リストに記録する
+4. 残余について Claude が曖昧一致を裁定する: パスパラメータの表記差異（`/users/:id` vs `/users/${id}` vs `/users/[id]`）のみ許容する。それ以外の推測は禁止
+5. 裁定後も一致しない endpoint は空のままとし、当該機能の notes に「未照合 API endpoint: ...」として記録する
+
+### 出力
+
+各機能の `relatedApis` に一致した API unitKey の配列を記録する。
+
+## Stage 3: テーブル紐付け手順
+
+Phase 4 Step 2 が従うテーブル紐付けの詳細手順。Stage 2 の出力（紐付いた API unitKey の集合）を入力とする。
+
+### 入力
+
+- Stage 2 で relatedApis に記録された API unitKey の集合
+- API一覧マニフェスト（units[].unitKey, sourceFile）
+- テーブル一覧マニフェスト（units[].unitKey, identifier）。未生成の場合は本 Stage をスキップし relatedTables は空配列のまま
+
+### 処理手順
+
+1. relatedApis に含まれる各 API unitKey について、API一覧マニフェストの `units[].sourceFile` を取得する
+2. sourceFile から ORM モデル import・テーブル名参照を grep する
+
+| ORM/方式 | grep パターン例 |
+|---|---|
+| Prisma | `prisma\.\w+\.\(findMany\|findUnique\|create\|update\|delete\)` → モデル名抽出 |
+| TypeORM | `@Entity\|getRepository\|\.find\|\.save` → エンティティ名抽出 |
+| Sequelize | `define\|Model\.init\|belongsTo\|hasMany` → モデル名抽出 |
+| 生SQL | `FROM\s+\w+\|INSERT\s+INTO\s+\w+\|UPDATE\s+\w+` → テーブル名抽出 |
+
+3. 抽出したモデル名/テーブル名をテーブル一覧マニフェストの `units[].unitKey` または `units[].identifier` と照合する
+4. ORM モデル名と DB テーブル名が異なる場合（例: `User` モデル → `users` テーブル）は、複数形化・スネークケース化を試みて照合する。それでも一致しない場合は Claude が裁定する（推測禁止）
+
+### 出力
+
+各機能の `relatedTables` に一致したテーブル unitKey の配列を記録する。1つの API が複数テーブルを参照する場合はすべて記録する。

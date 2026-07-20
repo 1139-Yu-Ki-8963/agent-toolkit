@@ -5,6 +5,7 @@ description: |
   TRIGGER when: <具体的なキーワード・操作名>
   SKIP: <非発動条件>
 invocation: <name と同値>
+execution: <未定>
 allowed-tools: Read, Grep, Glob
 # user-invocable: false  # コマンドとして叩く意味がない純粋背景知識の場合のみ
 ---

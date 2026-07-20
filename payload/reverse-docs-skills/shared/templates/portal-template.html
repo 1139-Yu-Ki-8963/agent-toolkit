@@ -4,8 +4,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>リバース設計ポータル — {{PROJECT_NAME}}</title>
-<!-- Material Symbols Outlined（CDN）。オフライン時はアイコン名がテキスト表示される -->
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200">
 <!--
   ポータルテンプレート — リバース設計スキル群
   生成: shared/scripts/build-portal.sh
@@ -15,7 +13,7 @@
   プレースホルダ一覧:
     {{PROJECT_NAME}}     — プロジェクト名（basename target_repo_path）
     {{GENERATED_DATE}}   — 生成日（date +%Y-%m-%d）
-    {{METRICS_JSON}}     — 解析サマリ JSON オブジェクト（scale/tests/freshness/previous の構造化データ）
+    {{METRICS_JSON}}     — 解析要約 JSON オブジェクト（scale/tests/freshness/previous の構造化データ）
     {{CATEGORIES_JSON}}  — カテゴリ・ツール JSON 配列
 -->
 <style>
@@ -25,25 +23,11 @@
 html { -webkit-text-size-adjust: 100%; }
 html, body { margin: 0; padding: 0; }
 body {
-  font-family: "Hiragino Kaku Gothic ProN","Hiragino Sans","Yu Gothic","Meiryo",system-ui,-apple-system,sans-serif;
+  font-family: var(--font-body);
   background: var(--bg); color: var(--text); line-height: 1.7; font-size: 15px;
 }
 a { color: var(--accent); text-decoration: none; }
 a:hover { text-decoration: underline; }
-
-/* アイコンフォント読込ガード:
-   フォント読込を document.fonts.check で確認できるまでアイコンを描画しない。
-   未読込のままだと ligature 名（"stacks" 等）が生テキストで露出しレイアウトを壊すため。 */
-.material-symbols-outlined { display: none; }
-.icons-ready .material-symbols-outlined {
-  display: inline-block;
-  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
-  vertical-align: middle;
-  font-size: 20px;
-}
-/* フォントが来ないときはアイコン用の空き箱ごと畳む（空白のガタつき防止） */
-html:not(.icons-ready) .card-icon,
-html:not(.icons-ready) .brand-icon { display: none; }
 
 .pm-page { display: grid; grid-template-rows: auto 1fr auto; min-height: 100vh; }
 
@@ -57,20 +41,17 @@ html:not(.icons-ready) .brand-icon { display: none; }
 .brand { display: flex; align-items: baseline; gap: 8px; color: var(--text); }
 .brand:hover { text-decoration: none; }
 .brand-icon { display: inline-flex; align-items: center; }
-.brand-icon .material-symbols-outlined { font-size: 22px; color: var(--accent); }
 .brand-title { font-weight: 700; font-size: 16px; }
 .brand-sub { font-size: 11px; color: var(--text-muted); }
 .topnav { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
 .topnav a { color: var(--text-sub); font-weight: 500; font-size: 13px; padding: 4px 6px; border-radius: 4px; display: inline-flex; align-items: center; gap: 4px; }
 .topnav a:hover { background: var(--accent-soft); color: var(--accent); text-decoration: none; }
-.topnav a .material-symbols-outlined { font-size: 14px; }
 .top-actions { display: flex; align-items: center; gap: 8px; }
 .top-actions button {
   background: var(--panel-2); border: 1px solid var(--border); border-radius: var(--radius-sm);
-  color: var(--text-sub); cursor: pointer; padding: 5px 10px; font-size: 13px; font-family: inherit;
+  color: var(--text-sub); cursor: pointer; padding: 8px 16px; font-size: 13px; font-family: inherit;
   display: inline-flex; align-items: center; gap: 4px;
 }
-.top-actions button .material-symbols-outlined { font-size: 16px; }
 .top-actions button:hover { background: var(--accent-soft); color: var(--accent); border-color: var(--accent-border); }
 
 .pm-main { max-width: 1280px; width: 100%; min-width: 0; margin: 0 auto; padding: 24px 24px 64px; }
@@ -92,7 +73,7 @@ html:not(.icons-ready) .brand-icon { display: none; }
 }
 .sec-label::before { content: ""; width: 4px; height: 14px; background: var(--accent); border-radius: 2px; }
 
-.metric-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(168px, 1fr)); gap: 14px; margin-bottom: 30px; }
+.metric-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(168px, 1fr)); gap: 14px; margin-bottom: 30px; max-width: 600px; }
 .metric-card {
   background: var(--panel); border: 1px solid var(--border);
   border-radius: var(--radius); padding: 14px 16px 13px; box-shadow: var(--shadow-sm);
@@ -101,7 +82,6 @@ html:not(.icons-ready) .brand-icon { display: none; }
   display: flex; align-items: center; gap: 6px;
   font-size: 11.5px; font-weight: 700; letter-spacing: 0.02em; color: var(--text-sub); margin-bottom: 4px;
 }
-.metric-label .material-symbols-outlined { font-size: 14px; color: var(--accent); }
 .metric-value { font-size: 28px; font-weight: 800; line-height: 1.15; font-family: var(--mono); color: var(--text); }
 .metric-value .unit { font-size: 13px; font-weight: 600; color: var(--text-muted); margin-left: 3px; }
 .metric-sub { font-size: 11.5px; color: var(--text-muted); margin-top: 5px; }
@@ -116,10 +96,10 @@ a.metric-card:hover, a.metric-card:focus-visible { transform: translateY(-2px); 
 }
 .count-tag b { font-family: var(--mono); font-weight: 800; color: var(--text); }
 
-.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; }
 .card {
   display: block; background: var(--panel); border: 1px solid var(--border);
-  border-radius: var(--radius); padding: 14px 16px; color: var(--text);
+  border-radius: var(--radius); padding: 16px 20px; color: var(--text);
   transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
   box-shadow: var(--shadow-sm);
 }
@@ -129,7 +109,6 @@ a.metric-card:hover, a.metric-card:focus-visible { transform: translateY(-2px); 
 }
 .card-head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
 .card-icon { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; flex-shrink: 0; }
-.card-icon .material-symbols-outlined { font-size: 20px; color: var(--accent-2); }
 .card-title { font-weight: 700; font-size: 14.5px; flex: 1; }
 .card-desc { font-size: 12.5px; color: var(--text-sub); line-height: 1.6; }
 .card-count { font-size: 11px; color: var(--text-muted); margin-top: 6px; }
@@ -149,7 +128,6 @@ a.metric-card:hover, a.metric-card:focus-visible { transform: translateY(-2px); 
   border-bottom: 2px solid var(--accent-soft);
 }
 .section-title { font-size: 16px; font-weight: 700; margin: 0; color: var(--text); display: flex; align-items: center; gap: 6px; }
-.section-title .material-symbols-outlined { font-size: 18px; }
 .section-sub { font-size: 12px; color: var(--text-muted); }
 
 .doc-crumbs { font-size: 12px; color: var(--text-muted); margin-bottom: 8px; }
@@ -231,16 +209,16 @@ table.data-table code {
 <div class="pm-page">
   <header class="topbar">
     <a class="brand" href="#">
-      <span class="brand-icon"><span class="material-symbols-outlined">description</span></span>
+      <span class="brand-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:middle"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zM13 9V3.5L18.5 9H13z"/></svg></span>
       <span class="brand-title">{{PROJECT_NAME}}</span>
       <span class="brand-sub">リバース設計ポータル</span>
     </a>
     <nav class="topnav">
-      <a href="#/summary"><span class="material-symbols-outlined">monitoring</span> 解析サマリ</a>
-      <a href="アーキテクチャ調査書.html"><span class="material-symbols-outlined">domain</span> アーキテクチャ調査書</a>
+      <a href="#/summary"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:middle"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/></svg> 解析要約</a>
+      <a href="アーキテクチャ調査書.html"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:middle"><path d="M12 7V3H2v18h20V7H12zM6 19H4v-2h2v2zm0-4H4v-2h2v2zm0-4H4V9h2v2zm0-4H4V5h2v2zm4 12H8v-2h2v2zm0-4H8v-2h2v2zm0-4H8V9h2v2zm0-4H8V5h2v2zm10 12h-8v-2h2v-2h-2v-2h2v-2h-2V9h8v10zm-2-8h-2v2h2v-2zm0 4h-2v2h2v-2z"/></svg> アーキテクチャ調査書</a>
     </nav>
     <div class="top-actions">
-      <button id="theme-toggle" title="テーマ切替"><span class="material-symbols-outlined">dark_mode</span></button>
+      <button id="theme-toggle" title="テーマ切替">ライト</button>
     </div>
   </header>
 
@@ -253,7 +231,7 @@ table.data-table code {
       <span class="pm-updated">生成: {{GENERATED_DATE}}</span>
     </div>
 
-    <div class="sec-label">解析サマリ</div>
+    <div class="sec-label">解析要約</div>
     <div class="metric-grid" id="metrics-mount"></div>
 
     <div class="sec-label">ドキュメント入口</div>
@@ -276,7 +254,38 @@ table.data-table code {
 
   function matIcon(name, size) {
     size = size || 20;
-    return '<span class="material-symbols-outlined" style="font-size:' + size + 'px">' + name + '</span>';
+    var paths = {
+      description: 'M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zM13 9V3.5L18.5 9H13z',
+      monitoring: 'M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z',
+      domain: 'M12 7V3H2v18h20V7H12zM6 19H4v-2h2v2zm0-4H4v-2h2v2zm0-4H4V9h2v2zm0-4H4V5h2v2zm4 12H8v-2h2v2zm0-4H8v-2h2v2zm0-4H8V9h2v2zm0-4H8V5h2v2zm10 12h-8v-2h2v-2h-2v-2h2v-2h-2V9h8v10zm-2-8h-2v2h2v-2zm0 4h-2v2h2v-2z',
+      monitor: 'M20 3H4c-1.1 0-2 .9-2 2v11c0 1.1.9 2 2 2h3l-1 1v2h12v-2l-1-1h3c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 13H4V5h16v11z',
+      api: 'M14 12l-2 2-2-2 2-2 2 2zm-2-6l2.12 2.12 2.5-2.5L12 1 7.38 5.62l2.5 2.5L12 6zm-6 6l2.12-2.12-2.5-2.5L1 12l4.62 4.62 2.5-2.5L6 12zm12 0l-2.12 2.12 2.5 2.5L23 12l-4.62-4.62-2.5 2.5L18 12zm-6 6l-2.12-2.12-2.5 2.5L12 23l4.62-4.62-2.5-2.5L12 18z',
+      schedule: 'M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z',
+      table_chart: 'M10 10.02h5V21h-5zM17 21h3c1.1 0 2-.9 2-2v-9h-5v11zm3-18H4c-1.1 0-2 .9-2 2v3h20V5c0-1.1-.9-2-2-2zM3 21c0 1.1.9 2 2 2h3V10H3v11z',
+      print: 'M19 8H5c-1.66 0-3 1.34-3 3v6h4v4h12v-4h4v-6c0-1.66-1.34-3-3-3zm-3 11H8v-5h8v5zm3-7c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm-1-9H6v4h12V3z',
+      link: 'M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z',
+      category: 'M12 2l-5.5 9h11zm0 3.84L13.93 9h-3.87zM17.5 13c-2.49 0-4.5 2.01-4.5 4.5s2.01 4.5 4.5 4.5 4.5-2.01 4.5-4.5-2.01-4.5-4.5-4.5zm0 7c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5zM3 21.5h8v-8H3v8zm2-6h4v4H5v-4z',
+      stacks: 'M11.99 18.54l-7.37-5.73L3 14.07l9 7 9-7-1.63-1.27-7.38 5.74zM12 16l7.36-5.73L21 9l-9-7-9 7 1.63 1.27L12 16z',
+      terminal: 'M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 14H4V8h16v12zm-2-1h-6v-2h6v2zM7.5 17l-1.41-1.41L8.67 13l-2.59-2.59L7.5 9l4 4-4 4z',
+      library_books: 'M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-1 9h-4v4h-2v-4H9V9h4V5h2v4h4v2z',
+      code: 'M9.4 16.6L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0l4.6-4.6-4.6-4.6L16 6l6 6-6 6-1.4-1.4z',
+      science: 'M13 11.33L18 18H6l5-6.67V6h2m2-2H9v5.33L4 16v2c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2v-2l-5-6.67V4z',
+      list_alt: 'M19 5v14H5V5h14m1.1-2H3.9c-.5 0-.9.4-.9.9v16.2c0 .4.4.9.9.9h16.2c.4 0 .9-.5.9-.9V3.9c0-.5-.5-.9-.9-.9zM11 7h6v2h-6V7zm0 4h6v2h-6v-2zm0 4h6v2h-6zM7 7h2v2H7zm0 4h2v2H7zm0 4h2v2H7z',
+      dictionary: 'M18 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM9 4h2v5l-1-.75L9 9V4zm9 16H6V4h1v9l3-2.25L13 13V4h5v16z',
+      account_tree: 'M22 11V3h-7v3H9V3H2v8h7V8h2v10h4v3h7v-8h-7v3h-2V8h2v3h7zM7 9H4V5h3v4zm10 6h3v4h-3v-4zm0-10h3v4h-3V5z',
+      schema: 'M14 9v2h-3V9H8.5V7H2v4h6.5V9h1v6H6.5v-2H2v4h4.5v-2h3v2H14v-2h3.5v2H22V7h-4.5v2H14zm-2 0H6.5V7H4v2h2.5v2H4v2h2.5v-2H12V9zm6.5 6H20v-2h-1.5v2zm0-6H20V7h-1.5v2z',
+      arrow_back: 'M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z',
+      rule: 'M16.54 11L13 7.46l1.41-1.41 2.12 2.12 4.24-4.24 1.41 1.41L16.54 11zM11 7H2v2h9V7zm10 6.41L19.59 12 17 14.59 14.41 12 13 13.41 15.59 16 13 18.59 14.41 20 17 17.41 19.59 20 21 18.59 18.41 16 21 13.41zM11 15H2v2h9v-2z',
+      error: 'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z',
+      sync: 'M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z',
+      lock: 'M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z',
+      architecture: 'M6.5 10h-2v7h2v-7zm6 0h-2v7h2v-7zm8.5 9H2v2h19v-2zm-2.5-9h-2v7h2v-7zM11.5 1L2 6v2h19V6l-9.5-5z',
+      storage: 'M2 20h20v-4H2v4zm2-3h2v2H4v-2zM2 4v4h20V4H2zm4 3H4V5h2v2zm-4 7h20v-4H2v4zm2-3h2v2H4v-2z',
+      desktop_windows: 'M21 2H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h7l-2 3v1h8v-1l-2-3h7c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H3V4h18v12z',
+      chat: 'M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 9h12v2H6V9zm8 5H6v-2h8v2zm4-6H6V6h12v2z'
+    };
+    var p = paths[name] || paths.description;
+    return '<svg width="' + size + '" height="' + size + '" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:middle"><path d="' + p + '"/></svg>';
   }
 
   function el(tag, attrs, children) {
@@ -405,9 +414,9 @@ table.data-table code {
     var previous = metrics.previous;
     var measuredText = freshness.measured_at + (freshness.note ? '・' + freshness.note : '');
 
-    root.appendChild(el('div', { class: 'doc-crumbs', html: '<a data-nav="#/">TOP</a> / 解析サマリ' }));
+    root.appendChild(el('div', { class: 'doc-crumbs', html: '<a data-nav="#/">TOP</a> / 解析要約' }));
     root.appendChild(el('div', { class: 'section-header' }, [
-      el('h2', { class: 'section-title', html: matIcon('monitoring', 18) + ' 解析サマリ' }),
+      el('h2', { class: 'section-title', html: matIcon('monitoring', 18) + ' 解析要約' }),
       el('span', { class: 'section-sub' }, '計測値と規模の明細。事実の記録のみで、数値の出所となる計算・条件を併記する。'),
     ]));
 
@@ -489,11 +498,16 @@ table.data-table code {
     var r = document.documentElement;
     var next = r.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
     r.setAttribute('data-theme', next);
+    themeBtn.textContent = next === 'dark' ? 'ダーク' : 'ライト';
     try { localStorage.setItem('rd-portal-theme', next); } catch(e) {}
   });
   try {
     var saved = localStorage.getItem('rd-portal-theme');
-    if (saved) document.documentElement.setAttribute('data-theme', saved);
+    if (saved) {
+      document.documentElement.setAttribute('data-theme', saved);
+      var tb = document.getElementById('theme-toggle');
+      if (tb) tb.textContent = saved === 'dark' ? 'ダーク' : 'ライト';
+    }
   } catch(e) {}
 
   document.addEventListener('keydown', function(e) {
@@ -501,31 +515,6 @@ table.data-table code {
     if (e.key === '/' && si && document.activeElement !== si) { e.preventDefault(); si.focus(); }
     if (e.key === 'Escape' && si) { si.value = ''; si.blur(); si.dispatchEvent(new Event('input')); }
   });
-})();
-</script>
-
-<script>
-(function() {
-  // アイコンフォント未読込フォールバック:
-  // document.fonts.check で確認できるまでアイコンを非表示のままにし、
-  // 確認できた時点でのみ <html> に icons-ready クラスを付与する。
-  function checkIcons() {
-    if (document.fonts && document.fonts.check && document.fonts.check('24px "Material Symbols Outlined"')) {
-      document.documentElement.classList.add('icons-ready');
-      return true;
-    }
-    return false;
-  }
-  if (!checkIcons()) {
-    if (document.fonts && document.fonts.ready) {
-      document.fonts.ready.then(function() { checkIcons(); });
-    }
-    var tries = 0;
-    var timer = setInterval(function() {
-      tries++;
-      if (checkIcons() || tries >= 10) clearInterval(timer);
-    }, 500);
-  }
 })();
 </script>
 </body>

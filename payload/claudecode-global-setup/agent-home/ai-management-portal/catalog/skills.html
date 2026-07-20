@@ -6,6 +6,10 @@
   <title>Skills 一覧 — agent-home</title>
   <link rel="stylesheet" href="../style.css" />
   <script type="module" src="../src/common/header.js"></script>
+  <style>
+    .tag-main { background: #7c3aed; color: #fff; }
+    .tag-sub { background: #059669; color: #fff; }
+  </style>
 </head>
 <body>
   <div class="cat-wrap">
@@ -32,6 +36,7 @@
     // <!-- GEN:SKILLS -->
     const SKILLS = [
       { id: "adding-textlint-dictionary-terms", cat: "write", summary: "textlint置き換え辞書（prh.yml）への新規語彙登録", trigger: "「prh.yml登録」「辞書に登録」「置き換え語を追加」と言われた時、text-dictionary/rule.md の [TEXTLINT-BLOCK] 手順で辞書に該当エントリがない時", guide: true },
+      { id: "adversarial-verification", cat: "meta", summary: "成果物に独立の懐疑者が反証を試み、採否判断と修正反映まで行う", trigger: "「敵対的検証して」「反証して」と言われた時、計画のユーザー承認前（ExitPlanMode 前）、PR 作成前（gh pr create 前）、設計書・調査報告・社外提示物の提示前", guide: true },
       { id: "creating-new-project", cat: "dev", summary: "新規プロジェクトセットアップ（Next.js / React+Vite+FastAPI）", trigger: "「新規プロジェクト」「プロジェクト作成」「アプリ新規作成」「セットアップ」と言われた時", guide: true },
       { id: "eliciting-plan-tacit-knowledge", cat: "meta", summary: "計画を弱モデルに初見読解させ、理解のズレから暗黙知を抽出して計画へ明文化する", trigger: "「暗黙知を炙り出して」「計画の前提を明文化して」「計画を初見読解で検証して」と言われた時、brain の計画立案後・ユーザー承認前の計画品質確認", guide: true },
       { id: "frontend-design", cat: "design", summary: "UI/画面デザインガイド", trigger: "コンポーネント実装、LP、デザイン刷新", guide: true },
@@ -39,8 +44,11 @@
       { id: "grouping-commits", cat: "impl", sub: "pr", summary: "変更分析しグループ化・単一目的コミット作成", trigger: "「コミット分割」「変更グループ化」「まとめてコミット」と言われた時", guide: true },
       { id: "managing-agent-configs", cat: "manage", sub: "skill", summary: "エージェント構成管理", trigger: "スキル/ルール/ルーティン/エージェント/フック作成・レビュー・テスト", guide: true },
       { id: "managing-github-issues", cat: "impl", sub: "issue", summary: "GitHub issue の起票・選択着手・スコープ検証のモードハブ", trigger: "「issue作成」「起票」「issueにして」「issueを選んで実装」「issue一覧から着手」「スコープ検証」「issue範囲チェック」、issue-N ブランチで commit 前", guide: true },
+      { id: "managing-review-sets", cat: "review", summary: "レビュープロファイルに従い品質検証を一元実行するエンジン", trigger: "Skill(\"managing-review-sets\") で呼ばれた時、計画提示前、成果物提示前、実装後レビュー時", guide: true },
+      { id: "managing-session-workflow", cat: "manage", summary: "セッション開始時に状態を読み取り、適切なスキルへ誘導する管理スキル", trigger: "SessionStart hook の advisory 注入を受けた時、セッション冒頭で手動起動された時", guide: true },
       { id: "orchestrating-dev-flow", cat: "impl", sub: "pr", summary: "開発オーケストレーター", trigger: "「新機能追加」「バグ修正」「リファクタ」「ドキュメント編集」「インシデント対応」と言われた時", guide: true },
       { id: "parallel-dev-worktree", cat: "impl", sub: "pr", summary: "worktreeブランチ作成/管理/復旧", trigger: "wt1-wt3不在、MISSING/FAIL", guide: true },
+      { id: "presenting-plan-with-artifacts", cat: "flow", summary: "計画の品質検証と視覚的な成果物提示を EnterPlanMode 前に 100% 強制するゲート", trigger: "EnterPlanMode の直前（PreToolUse hook で自動発火）、計画をユーザーに提示する前", guide: true },
       { id: "reviewing-against-rules", cat: "review", summary: "レビューの単一入口。適用 rule を解決し、専門家に照合を委任する", trigger: "「レビューして」と成果物・差分を指定された時、他スキルのレビュー工程（PR レビュー Phase 5・開発フローのレビューゲート）から呼ばれた時、HTML・コードの完成判定時", guide: true },
       { id: "reviewing-public-readiness", cat: "review", summary: "公開前機密漏洩スナップショット走査", trigger: "make public・[PUBLISH-*]注入", guide: true },
       { id: "reviewing-single-pr-with-inline-comments", cat: "review", summary: "PRレビュー・コメント・修正・マージ", trigger: "差分確認、LGTM、まとめてレビュー、routine PR", guide: true },
@@ -59,6 +67,7 @@
           '<summary>' +
             '<span class="expbtn">+</span>' +
             '<span class="fn">' + s.summary + '</span>' +
+            (s.exec === "main" ? '<span class="tag tag-main">メインセッション</span>' : '<span class="tag tag-sub">サブエージェント可</span>') +
             '<span class="fsep">—</span>' +
             '<span class="fdesc">' + s.trigger + '</span>' +
           '</summary>' +

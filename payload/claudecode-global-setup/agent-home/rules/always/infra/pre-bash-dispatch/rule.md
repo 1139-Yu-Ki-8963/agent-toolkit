@@ -7,6 +7,7 @@ PreToolUse(Bash) で git / gh / mkdir コマンドを検出し、命名規則・
 | コマンドパターン | 検査内容 | 注入タグ | block/advisory |
 |---|---|---|---|
 | `git commit *` | docs 追加行の textlint | `[TEXTLINT-BLOCK]` | exit 2 で block |
+| `git commit *` | staged .html 追加行の prh 語彙 lint（文体ルール対象外。辞書カタログ `ai-management-portal/catalog/dictionaries.html` は自己言及の誤検知のため対象外） | `[TEXTLINT-BLOCK]` | exit 2 で block |
 | `git commit *` | 英語 type（`feat:` 等）のコミットメッセージ命名 | `[NAMING-BLOCK]` | exit 2 で block |
 | `git commit *` | 命名規則リマインド・公開可否・機密ファイル検出 | `[NAMING]` `[PUBLISH-AUTHOR]` `[PUBLISH-SAFETY-FULL]` `[PUBLISH-SAFETY]` | advisory（exit 0） |
 | `git commit *` | staged 追加行の API トークン/秘密鍵らしき文字列検出 | `[SECRET-BLOCK]` | exit 2 で block |
@@ -25,7 +26,7 @@ PreToolUse(Bash) で git / gh / mkdir コマンドを検出し、命名規則・
 
 | timing | スクリプト | 注入タグ | 挙動 |
 |---|---|---|---|
-| PreToolUse(Bash) | `dispatch-pre-bash-checks.sh` | `[TEXTLINT-BLOCK]` | docs 追加行または PR/issue 本文に textlint 違反があれば exit 2 で block |
+| PreToolUse(Bash) | `dispatch-pre-bash-checks.sh` | `[TEXTLINT-BLOCK]` | docs 追加行・staged .html 追加行（prh 語彙のみ）、または PR/issue 本文に textlint 違反があれば exit 2 で block |
 | PreToolUse(Bash) | `dispatch-pre-bash-checks.sh` | `[NAMING-BLOCK]` | 英語 type コミットメッセージを exit 2 で block |
 | PreToolUse(Bash) | `dispatch-pre-bash-checks.sh` | `[SECRET-BLOCK]` | commit の staged 追加行、または push 対象の未 push コミット追加行に API トークン/秘密鍵らしき文字列があれば exit 2 で block |
 | PreToolUse(Bash) | `dispatch-pre-bash-checks.sh` | `[NAMING]` | 命名規則リマインドを advisory 注入（block なし） |
@@ -41,6 +42,7 @@ PreToolUse(Bash) で git / gh / mkdir コマンドを検出し、命名規則・
 2. 対象ファイルの該当行を `~/agent-home/tools/linter/.textlintrc.json` のルールに沿って修正する
 3. 既存行（diff に含まれない行）は対象外。追加・変更行のみ修正する
 4. `git add` で修正をステージし直してから再度 `git commit` する
+5. 対象が .html の場合は文体ルールではなく prh 辞書（`~/.claude/rules/always/review-checklist/text-dictionary/prh.yml`）の expected 値への置換のみで修正する
 
 ### `[TEXTLINT-BLOCK]` 受信（gh pr create / gh issue create）
 

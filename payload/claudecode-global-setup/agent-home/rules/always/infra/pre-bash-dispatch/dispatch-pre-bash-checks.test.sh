@@ -131,6 +131,36 @@ run_case b8 "git -C ~/repo3 commit -m x" "$NONREPO_CWD" "HOME=$TMPROOT"
 assert_exit 2 "B8 git -C ~/repo3 (チルダ展開) で secret 検出発火 → exit 2"
 assert_stderr_contains "B8 [SECRET-BLOCK] タグ含む" "[SECRET-BLOCK]"
 
+# node 解決（本テストの HTML lint ケース用。無ければ SKIP 扱い）
+_TEST_NODE=""
+for _p in /opt/homebrew/bin/node /usr/local/bin/node; do
+  [ -x "$_p" ] && _TEST_NODE="$_p" && break
+done
+[ -z "$_TEST_NODE" ] && _TEST_NODE="$(command -v node 2>/dev/null)"
+
+if [ -n "$_TEST_NODE" ]; then
+  # B9: staged .html の追加行に prh 違反表記（Github）があれば exit 2 で block
+  # 注記: このケースは prh.yml の GitHub 表記統制エントリ（/Github/ パターン）に依存する。
+  REPO9="$TMPROOT/repo9"
+  make_repo "$REPO9"
+  printf '<html><body>Github を使う説明。</body></html>\n' > "$REPO9/page.html"
+  git -C "$REPO9" add page.html
+  run_case htmllint-違反行block 'git commit -m "test"' "$REPO9"
+  assert_exit 2 "htmllint-違反行block staged .html の prh 違反行で exit 2"
+  assert_stdout_contains "htmllint-違反行block [TEXTLINT-BLOCK] タグ含む" "[TEXTLINT-BLOCK]"
+
+  # B10: staged .html の追加行が正しい表記（GitHub Pages / Claude Code）のみなら exit 0
+  REPO10="$TMPROOT/repo10"
+  make_repo "$REPO10"
+  printf '<html><body>GitHub Pages と Claude Code を使う。</body></html>\n' > "$REPO10/clean.html"
+  git -C "$REPO10" add clean.html
+  run_case htmllint-正表記素通り 'git commit -m "test"' "$REPO10"
+  assert_exit 0 "htmllint-正表記素通り staged .html の正表記のみで exit 0"
+else
+  echo "  SKIP: htmllint-違反行block (node 未検出)"
+  echo "  SKIP: htmllint-正表記素通り (node 未検出)"
+fi
+
 echo ""
 echo "=== result: ${pass} passed, ${fail} failed ==="
 [ "$fail" -eq 0 ]

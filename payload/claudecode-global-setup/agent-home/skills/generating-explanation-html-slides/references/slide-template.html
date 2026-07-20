@@ -145,7 +145,7 @@
   .step-chip {
     display: inline-flex; align-items: center; justify-content: center;
     width: 20px; height: 20px;
-    border-radius: 50%; font-size: 11px; font-weight: 700; color: #fff; flex-shrink: 0;
+    border-radius: 50%; font-size: 11px; font-weight: 700; color: var(--surface); flex-shrink: 0;
   }
   .step-chip--main { background: var(--claude); }
   .step-chip--critical { background: var(--critical); }
@@ -233,10 +233,10 @@
   }
   .tree-tag--critical { background: var(--critical-soft); color: var(--critical); }
   .tree-tag--good     { background: var(--good-soft); color: var(--good); }
-  .tree-tag--accent   { background: var(--ink); color: #fff; }
+  .tree-tag--accent   { background: var(--ink); color: var(--surface); }
 
   /* ==== 利点・欠点の列挙（✓/✕） ==== */
-  .stage-status { display: flex; flex-direction: column; gap: 4px; }
+  .stage-status { display: flex; flex-direction: column; gap: 4px; margin-top: auto; }
   .status-row {
     display: flex; align-items: flex-start; gap: 6px;
     font-size: 12px; line-height: 1.3;

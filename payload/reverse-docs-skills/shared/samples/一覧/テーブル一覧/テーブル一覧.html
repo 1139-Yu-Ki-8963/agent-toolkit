@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<!--
+  <ラベル>一覧.HTML の静的シェル(テンプレート)
+
+  使い方(種別別一覧スキル群 generating-<種別>-list-for-reverse-docs。unit_kind=screen 以外):
+    scripts/build-unit-list.sh <manifest.json> <output-html-path> --unit-kind <kind> を実行する。
+    build-unit-list.sh が本テンプレートを土台に、jqでマニフェストJSONをパースして
+    プレースホルダ・注入マーカーを機械的に置換し、決定的にHTMLを生成する。
+    Claude(手作業)によるプレースホルダ置換は禁止。生成は必ずスクリプト経由で行う。
+    unit_kind=screen の場合は本テンプレートを使わず screen-list-template.html を使う
+    (build-unit-list.sh が build-screen-list.sh に委譲する)。
+
+  保守注記: トークンブロック・テーマ切替(data-theme二重定義・rd-portal-theme)は
+  shared/templates/detail-pages/detail-t3-attributes.html(同portal-template.html)からの複製である。
+  同ファイルの当該部分を変更した場合は本ファイルも同時更新すること
+  (feature-list-template.html・screen-list-template.htmlにも同種の複製あり。include化は別件)。
+
+  プレースホルダ(build-unit-list.shが注入。実際のマーカー記法は
+  scripts/build-unit-list.sh 冒頭コメントを正本とする。本コメントでは
+  二重置換事故を避けるため意図的に波括弧・HTMLコメント記法を外して記載する):
+    UNIT_KIND_LABEL (種別ラベルマーカー)        : screen=画面/api=API/table=テーブル/batch=バッチ/report=帳票/external=外部連携
+    GENERATED_AT (生成日時マーカー)             : ISO8601 生成日時
+    SOURCE_DIR (ソースディレクトリマーカー)     : 探索対象ソースディレクトリ(絶対パス)
+    EXTRACTION_METHOD (抽出方式マーカー)        : strategy.extractionMethod
+    UNIT_COUNT (ユニット数タイルマーカー)       : detectionSummary.unitCount
+    UNRESOLVED_COUNT (要確認数タイルマーカー)   : detectionSummary.unresolvedCount
+    UNIT_TABLE_ROWS (ユニットテーブル行マーカー): kind!=unresolved の行を1ユニットごとに挿入
+    UNRESOLVED_SECTION (要手動確認セクションマーカー) : kind=unresolved の一覧テーブル、0件なら「なし」の文言
+    MANIFEST_JSON (マニフェストJSON埋め込みマーカー) : manifest.json の内容をそのまま埋め込み(二重管理・ドリフト禁止)
+
+  テーブル列順(固定・全9列): <ラベル>ID / <ラベル>キー / 区分 / <ラベル>名 / 識別子 / 検出方式 / confidence / 構成ファイル数 / 主ファイル
+
+  制約:
+    - 外部リソース(CDN・フォント・画像)は一切使わない。単一ファイル自己完結
+    - <script id="unit-manifest"> の中身は確定結果(manifest.json)と完全に一致させる
+    - 本テンプレートは<ラベル>一覧.HTMLの生成のみを対象とする。設計書の雛形展開・生成は本スキルの範囲外
+-->
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>テーブル一覧</title>
+<style>
+  :root,
+[data-theme="light"] {
+  --bg: #FFFFFF;
+  --panel: #FFFFFF;
+  --panel-2: #F0EDE3;
+  --border: #DAD5C5;
+  --border-strong: #BFB9A6;
+  --text: #1B1F26;
+  --text-sub: #4A4F58;
+  --text-muted: #767B85;
+  --accent: #3F4F8E;
+  --accent-2: #5A6BAE;
+  --accent-soft: #E6E9F3;
+  --accent-border: #BAC2DC;
+  --gold: #9B7A1F;
+  --gold-soft: #F5EFD9;
+  --gold-border: #DDC68A;
+  --success: #3F4F8E;
+  --success-soft: #E6E9F3;
+  --warn: #9B7A1F;
+  --danger: #9B3F2D;
+  --danger-soft: #F5E2DC;
+  --code-bg: #1B1F26;
+  --code-fg: #E8E5DC;
+  --font-body: "Hiragino Kaku Gothic ProN","Hiragino Sans","Noto Sans JP","BIZ UDPGothic","Yu Gothic","Meiryo",system-ui,-apple-system,sans-serif;
+  --mono: "SFMono-Regular","Menlo","Cascadia Code","Consolas",monospace;
+  --shadow-sm: 0 1px 3px rgba(27,31,38,.07), 0 2px 6px rgba(27,31,38,.05);
+  --shadow-md: 0 2px 8px rgba(27,31,38,.09), 0 8px 24px rgba(27,31,38,.07);
+  --radius: 10px;
+  --radius-sm: 6px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #15171C; --panel: #1C1F26; --panel-2: #232730;
+    --border: #353944; --border-strong: #4A4F5C;
+    --text: #E8E5DC; --text-sub: #B6B3AB; --text-muted: #888784;
+    --accent: #8FA3DB; --accent-2: #A8B8E5; --accent-soft: #2A2E47; --accent-border: #4C5680;
+    --gold: #D4B45D; --gold-soft: #3D3520; --gold-border: #7A6633;
+    --success: #8FA3DB; --success-soft: #2A2E47;
+    --warn: #D4B45D; --danger: #D4836E; --danger-soft: #3F2620;
+    --code-bg: #0E1116; --code-fg: #E8E5DC;
+  }
+}
+[data-theme="dark"] {
+  --bg: #15171C; --panel: #1C1F26; --panel-2: #232730;
+  --border: #353944; --border-strong: #4A4F5C;
+  --text: #E8E5DC; --text-sub: #B6B3AB; --text-muted: #888784;
+  --accent: #8FA3DB; --accent-2: #A8B8E5; --accent-soft: #2A2E47; --accent-border: #4C5680;
+  --gold: #D4B45D; --gold-soft: #3D3520; --gold-border: #7A6633;
+  --success: #8FA3DB; --success-soft: #2A2E47;
+  --warn: #D4B45D; --danger: #D4836E; --danger-soft: #3F2620;
+  --code-bg: #0E1116; --code-fg: #E8E5DC;
+}
+
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 0 24px 96px;
+    font-family: var(--font-body);
+    line-height: 1.7; color: var(--text); background: var(--bg);
+    max-width: 1180px; margin-inline: auto;
+  }
+  .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  header { padding: 40px 0 20px; border-bottom: 3px solid var(--border-strong); }
+  .header-top { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+  header h1 { font-size: 1.7rem; margin: 0 0 10px; }
+  .theme-toggle-btn {
+    background: var(--panel-2); border: 1px solid var(--border); border-radius: var(--radius-sm);
+    color: var(--text-sub); cursor: pointer; padding: 5px 12px; font-size: 0.82rem; font-family: inherit;
+  }
+  .theme-toggle-btn:hover { background: var(--accent-soft); color: var(--accent); border-color: var(--accent-border); }
+  .meta-table { font-size: 0.88rem; color: var(--text-sub); border-collapse: collapse; }
+  .meta-table td { padding: 2px 18px 2px 0; vertical-align: top; }
+  .meta-table td:first-child { color: var(--text-muted); white-space: nowrap; }
+
+  .summary-tiles { display: flex; gap: 14px; margin: 20px 0; flex-wrap: wrap; }
+  .tile {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 8px;
+    padding: 10px 18px; font-size: 0.85rem; color: var(--text-sub);
+  }
+  .tile strong { display: block; font-size: 1.3rem; color: var(--text); }
+
+  .toolbar { display: flex; gap: 10px; margin: 24px 0 10px; align-items: center; flex-wrap: wrap; }
+  .toolbar input[type="search"] {
+    flex: 1; min-width: 220px; padding: 8px 12px; font-size: 0.92rem;
+    border: 1px solid var(--border); border-radius: 6px;
+  }
+  .toolbar .note { font-size: 0.82rem; color: var(--text-muted); }
+
+  details.module-group { margin: 18px 0; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; min-width: 0; }
+  details.module-group > summary {
+    cursor: pointer; padding: 12px 16px; font-weight: 700; list-style: none;
+  }
+  details.module-group > summary::-webkit-details-marker { display: none; }
+  details.module-group > summary::before { content: "▸ "; }
+  details.module-group[open] > summary::before { content: "▾ "; }
+
+  table.units, table.screens {
+    table-layout: fixed; width: 100%; min-width: 900px; border-collapse: collapse; font-size: 0.88rem;
+    overflow: hidden;
+  }
+  table.units th, table.screens th {
+    border-top: 1px solid var(--border); padding: 8px 10px; text-align: left; vertical-align: top;
+    white-space: normal; overflow: visible; font-size: 0.8em;
+  }
+  table.units td, table.screens td {
+    border-top: 1px solid var(--border); padding: 8px 10px; text-align: left; vertical-align: top;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  table.units th {
+    background: var(--panel-2); font-weight: 700; cursor: pointer; user-select: none;
+  }
+  table.units th:hover, table.screens th:hover { background: var(--accent-soft); cursor: pointer; }
+  table.units td code {
+    font-family: var(--mono);
+    font-size: 0.85em; background: var(--panel-2); padding: 1px 5px; border-radius: 3px;
+  }
+
+  /* 列幅の明示指定（unit-list: 9列） */
+  table.units th:nth-child(1) { width: 7%; }   /* ID */
+  table.units th:nth-child(2) { width: 12%; }  /* キー */
+  table.units th:nth-child(3) { width: 7%; }   /* 区分 */
+  table.units th:nth-child(4) { width: 14%; }  /* 名 */
+  table.units th:nth-child(5) { width: 18%; }  /* 識別子 */
+  table.units th:nth-child(6) { width: 10%; }  /* 検出方式 */
+  table.units th:nth-child(7) { width: 9%; }   /* confidence */
+  table.units th:nth-child(8) { width: 8%; }   /* ファイル数 */
+  table.units th:nth-child(9) { width: 15%; }  /* 主ファイル */
+
+  /* 数値列は右揃え＋等幅数字 */
+  table.units td:nth-child(7),
+  table.units td:nth-child(8) {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* コード系列はモノスペース */
+  table.units td:nth-child(5),
+  table.units td:nth-child(9) {
+    font-family: var(--mono);
+    font-size: 0.8em;
+  }
+
+  /* ホバーで全文表示 */
+  table.units td:hover, table.screens td:hover {
+    overflow: visible;
+    white-space: normal;
+    word-break: break-all;
+  }
+  td code { overflow-wrap: break-word; word-break: break-all; max-width: 300px; display: inline-block; }
+  .badge { display: inline-block; font-size: 0.76rem; font-weight: 700; padding: 1px 8px; border-radius: 3px; }
+  .badge.high   { background: var(--success-soft); color: var(--success); }
+  .badge.medium { background: var(--gold-soft); color: var(--gold); }
+  .badge.low    { background: var(--accent-soft); color: var(--accent); }
+  .badge.kind-generic    { background: var(--accent-soft); color: var(--accent); }
+  .badge.kind-unresolved { background: var(--panel-2); color: var(--text-sub); }
+
+  .diag-warn {
+    margin: 16px 0; padding: 12px 18px; background: var(--gold-soft); border: 1px solid var(--gold-border);
+    border-radius: 8px; font-size: 0.86rem; color: var(--gold);
+  }
+  .diag-warn strong { display: block; margin-bottom: 6px; }
+  .diag-warn ul { margin: 0; padding-left: 20px; }
+
+  section.common-files, section.unresolved {
+    margin-top: 40px; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 16px 20px; min-width: 0;
+  }
+  section.common-files h2, section.unresolved h2 { font-size: 1.05rem; margin: 0 0 10px; }
+
+  footer { margin-top: 48px; font-size: 0.8rem; color: var(--text-muted); }
+
+  .pagination { display: flex; gap: 8px; align-items: center; justify-content: center; margin: 16px 0; font-size: 0.85rem; }
+  .pagination button { background: var(--panel-2); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text-sub); cursor: pointer; padding: 4px 10px; font-family: inherit; font-size: 0.82rem; }
+  .pagination button:hover { background: var(--accent-soft); color: var(--accent); border-color: var(--accent-border); }
+  .pagination button:disabled { opacity: 0.4; cursor: not-allowed; }
+  .pagination .page-info { color: var(--text-muted); }
+</style>
+</head>
+<body>
+
+<header>
+  <nav class="back-link" style="margin: 16px 0 0; font-size: 0.85rem;">
+    <a href="../../index.html" style="color: var(--text-sub); text-decoration: none; border-bottom: 1px dotted var(--text-muted);">← ポータルへ戻る</a>
+  </nav>
+  <div class="header-top">
+    <h1>テーブル一覧</h1>
+    <button id="theme-toggle" class="theme-toggle-btn" type="button" title="テーマ切替">テーマ切替</button>
+  </div>
+  <table class="meta-table">
+    <tr><td>生成日時</td><td>2026-07-20 00:00</td></tr>
+    <tr><td>ソースディレクトリ</td><td><code>database/migrations</code></td></tr>
+    <tr><td>種別</td><td>テーブル</td></tr>
+    <tr><td>抽出方式</td><td>マイグレーションファイルの静的解析</td></tr>
+  </table>
+
+  <div class="summary-tiles">
+    <div class="tile"><strong>15</strong>検出テーブル数</div>
+    <div class="tile"><strong>0</strong>要手動確認数</div>
+  </div>
+</header>
+
+<div class="toolbar">
+  <input type="search" id="unit-search" placeholder="キー・識別子で絞り込み">
+  <span class="note">列見出しクリックでソート</span>
+</div>
+
+<details class="module-group" open>
+  <summary>テーブル一覧</summary>
+  <div class="table-wrap">
+  <table class="units" id="unit-table">
+    <thead>
+      <tr>
+        <th data-key="unitId">テーブルID</th>
+        <th data-key="unitKey">テーブルキー</th>
+        <th data-key="kind">区分</th>
+        <th data-key="unitNameGuess">テーブル名</th>
+        <th data-key="identifier">識別子</th>
+        <th data-key="detectionMethod">検出方式</th>
+        <th data-key="confidence">confidence</th>
+        <th data-key="fileCount">構成ファイル数</th>
+        <th data-key="sourceFile">主ファイル</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td>table-users</td><td>users</td><td>マスタ</td><td>ユーザー</td><td>users</td><td>migration</td><td>HIGH</td><td>1</td><td>001_create_users.sql</td></tr>
+<tr><td>table-sessions</td><td>sessions</td><td>トランザクション</td><td>セッション</td><td>sessions</td><td>migration</td><td>HIGH</td><td>1</td><td>002_create_sessions.sql</td></tr>
+<tr><td>table-settings</td><td>settings</td><td>マスタ</td><td>設定</td><td>settings</td><td>migration</td><td>HIGH</td><td>1</td><td>003_create_settings.sql</td></tr>
+    </tbody>
+  </table>
+  </div>
+</details>
+
+<div class="pagination" id="pagination">
+  <button id="page-first" title="先頭">≪</button>
+  <button id="page-prev" title="前">＜</button>
+  <span id="page-info" class="page-info"></span>
+  <button id="page-next" title="次">＞</button>
+  <button id="page-last" title="最後">≫</button>
+</div>
+
+<section class="unresolved">
+  <h2>要手動確認</h2>
+  <div class="table-wrap">
+  
+  </div>
+</section>
+
+<section class="common-files">
+  <h2>共通ファイル・未分類（参考情報）</h2>
+  <p class="note">本スキルは import グラフ解析を行わないため、共通ファイルのクロス参照分離は非対応。必要に応じて手動確認する。</p>
+</section>
+
+<script type="application/json" id="unit-manifest">
+{"detectionSummary":{"unitCount":15,"unresolvedCount":0},"units":[]}
+</script>
+
+<footer>種別別一覧スキル（generating-&lt;種別&gt;-list-for-reverse-docs）により生成。手編集は次回再生成で上書きされる。</footer>
+
+<script>
+  (function () {
+    var manifestEl = document.getElementById('unit-manifest');
+    var manifest = {};
+    try { manifest = JSON.parse(manifestEl.textContent); } catch (e) { /* ignore */ }
+
+    var search = document.getElementById('unit-search');
+    var table = document.getElementById('unit-table');
+    if (!table) return;
+    var tbody = table.querySelector('tbody');
+    var allRows = Array.prototype.slice.call(tbody.querySelectorAll('tr'));
+
+    var PAGE_SIZE = 50;
+    var currentPage = 0;
+    var sortCol = -1;
+    var sortAsc = true;
+
+    var pagEl = document.getElementById('pagination');
+    var pageInfo = document.getElementById('page-info');
+    var btnFirst = document.getElementById('page-first');
+    var btnPrev = document.getElementById('page-prev');
+    var btnNext = document.getElementById('page-next');
+    var btnLast = document.getElementById('page-last');
+
+    function renderPage() {
+      var q = search ? search.value.trim().toLowerCase() : '';
+      var visible = allRows.filter(function (tr) {
+        return !q || tr.textContent.toLowerCase().indexOf(q) !== -1;
+      });
+
+      if (sortCol >= 0) {
+        visible.sort(function (a, b) {
+          var av = a.children[sortCol].textContent.trim();
+          var bv = b.children[sortCol].textContent.trim();
+          var an = parseFloat(av), bn = parseFloat(bv);
+          var cmp = (!isNaN(an) && !isNaN(bn)) ? (an - bn) : av.localeCompare(bv, 'ja');
+          return sortAsc ? cmp : -cmp;
+        });
+      }
+
+      var totalPages = Math.max(1, Math.ceil(visible.length / PAGE_SIZE));
+      if (currentPage >= totalPages) currentPage = totalPages - 1;
+      if (currentPage < 0) currentPage = 0;
+      var start = currentPage * PAGE_SIZE;
+      var end = start + PAGE_SIZE;
+
+      allRows.forEach(function (tr) { tr.style.display = 'none'; });
+      visible.forEach(function (tr, i) {
+        tr.style.display = (i >= start && i < end) ? '' : 'none';
+        tbody.appendChild(tr);
+      });
+
+      if (pagEl) pagEl.style.display = visible.length <= PAGE_SIZE ? 'none' : '';
+      if (pageInfo) pageInfo.textContent = (currentPage + 1) + ' / ' + totalPages + '（' + visible.length + '件）';
+      if (btnFirst) btnFirst.disabled = currentPage === 0;
+      if (btnPrev) btnPrev.disabled = currentPage === 0;
+      if (btnNext) btnNext.disabled = currentPage >= totalPages - 1;
+      if (btnLast) btnLast.disabled = currentPage >= totalPages - 1;
+    }
+
+    if (search) {
+      search.addEventListener('input', function () {
+        currentPage = 0;
+        renderPage();
+      });
+    }
+
+    table.querySelectorAll('th[data-key]').forEach(function (th, colIndex) {
+      th.addEventListener('click', function () {
+        if (sortCol === colIndex) { sortAsc = !sortAsc; } else { sortCol = colIndex; sortAsc = true; }
+        table.querySelectorAll('th[data-key]').forEach(function (t) { t.removeAttribute('data-asc'); });
+        th.setAttribute('data-asc', sortAsc);
+        currentPage = 0;
+        renderPage();
+      });
+    });
+
+    if (btnFirst) btnFirst.addEventListener('click', function () { currentPage = 0; renderPage(); });
+    if (btnPrev) btnPrev.addEventListener('click', function () { currentPage--; renderPage(); });
+    if (btnNext) btnNext.addEventListener('click', function () { currentPage++; renderPage(); });
+    if (btnLast) btnLast.addEventListener('click', function () {
+      var q = search ? search.value.trim().toLowerCase() : '';
+      var cnt = allRows.filter(function (tr) { return !q || tr.textContent.toLowerCase().indexOf(q) !== -1; }).length;
+      currentPage = Math.max(0, Math.ceil(cnt / PAGE_SIZE) - 1);
+      renderPage();
+    });
+
+    renderPage();
+  })();
+</script>
+
+<script>
+  (function () {
+    var themeBtn = document.getElementById('theme-toggle');
+    if (themeBtn) {
+      themeBtn.addEventListener('click', function () {
+        var r = document.documentElement;
+        var next = r.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+        r.setAttribute('data-theme', next);
+        try { localStorage.setItem('rd-portal-theme', next); } catch (e) {}
+      });
+    }
+    try {
+      var saved = localStorage.getItem('rd-portal-theme');
+      if (saved) document.documentElement.setAttribute('data-theme', saved);
+    } catch (e) {}
+  })();
+</script>
+
+</body>
+</html>

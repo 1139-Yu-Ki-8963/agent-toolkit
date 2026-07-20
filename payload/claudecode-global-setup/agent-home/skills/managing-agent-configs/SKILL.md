@@ -2,6 +2,7 @@
 name: managing-agent-configs
 description: "エージェント構成管理。 TRIGGER when: スキル/ルール/ルーティン/エージェント/フック作成・レビュー・テスト。 SKIP: 命名規則、settings.json の hooks 以外の一般設定変更（→rules: always/naming/commit-branch/rule.md）。"
 invocation: managing-agent-configs
+execution: main-session
 type: orchestration
 allowed-tools: [Bash, Read, Write, Edit, Grep, Glob, Agent, AskUserQuestion]
 ---

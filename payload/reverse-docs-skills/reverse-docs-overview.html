@@ -188,6 +188,24 @@
 
     <div>
       <div class="flowstep">
+        <span class="stepname">環境調査</span>
+        <span class="stepskill">surveying-local-environment</span>
+        <div class="note">Phase 4A Step 4A-1：PC の OS・ツール有無を調査し env-config.json に出力</div>
+      </div>
+    </div>
+    <div class="flowgain none"><span class="gainlabel">docs_root には増えない</span><code>env-config.json</code> が生成される（ポータル生成の前提データ）</div>
+
+    <div>
+      <div class="flowstep">
+        <span class="stepname">コード行数計測</span>
+        <span class="stepskill">counting-code-lines</span>
+        <div class="note">Phase 4A Step 4A-2：コード行数・テスト件数を計測し code-metrics.json に出力</div>
+      </div>
+    </div>
+    <div class="flowgain none"><span class="gainlabel">docs_root には増えない</span><code>code-metrics.json</code> が生成される（ポータルのメトリクスカード表示用）</div>
+
+    <div>
+      <div class="flowstep">
         <span class="stepname">環境 setup</span>
         <span class="stepskill">syncing-reverse-env（mode=setup）</span>
       </div>
@@ -261,7 +279,7 @@
 
 <section id="s2">
   <h2><span class="sec-num">§2</span>スキル→成果物対応表</h2>
-  <p>指揮役 1 つを含む全 23 スキルのうち、指揮役が仲介する子スキル 22 個の一覧。状態キーは指揮役の状態判定表（contract.md）で当該スキルの起動条件となる状態、返却 status は各スキルが返す判定値、主成果物は完了時に確立する代表的な生成物を示す。個別ガイドがあるスキルはスキル名からたどれる。</p>
+  <p>指揮役 1 つを含む全 25 スキルのうち、指揮役が仲介する子スキル 24 個の一覧。状態キーは指揮役の状態判定表（contract.md）で当該スキルの起動条件となる状態、返却 status は各スキルが返す判定値、主成果物は完了時に確立する代表的な生成物を示す。個別ガイドがあるスキルはスキル名からたどれる。</p>
   <table class="spec">
     <tr><th>スキル</th><th>状態キー</th><th>返却 status</th><th>主成果物</th></tr>
     <tr>
@@ -395,6 +413,18 @@
       <td>基盤ページ未生成（任意）</td>
       <td><code>DONE | ERROR</code></td>
       <td>用語辞書.html</td>
+    </tr>
+    <tr>
+      <td><code>counting-code-lines</code></td>
+      <td>ポータル生成用計測（Phase 4A）</td>
+      <td>（status 契約なし・完了報告型）</td>
+      <td>code-metrics.json（コード行数・テスト件数の計測結果）</td>
+    </tr>
+    <tr>
+      <td><code>surveying-local-environment</code></td>
+      <td>環境調査（Phase 4A）</td>
+      <td>（status 契約なし・完了報告型）</td>
+      <td>env-config.json（PC の OS・ツール有無の調査結果）</td>
     </tr>
   </table>
   <p class="note">指揮役 <code>orchestrating-reverse-docs-flow</code> 自身は状態判定と検収・配線に徹する（<a href=".claude/skills/orchestrating-reverse-docs-flow/references/orchestrating-reverse-docs-flow-guide.html">指揮役ガイド</a>）。成果物では <code>一覧/excluded-kinds.json</code> の書き出しのみ指揮役が担う。</p>

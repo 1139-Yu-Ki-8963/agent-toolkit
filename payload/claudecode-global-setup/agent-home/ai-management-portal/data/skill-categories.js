@@ -27,6 +27,7 @@ export const CATEGORIES = [
   { id: "design", name: "デザイン・フロント",  desc: "UI 構築とデザインシステム" },
   { id: "dev",    name: "テスト・起動",        desc: "ローカル起動と E2E" },
   { id: "routine",name: "ルーティン",          desc: "cron で定期実行する監視" },
+  { id: "flow",   name: "計画提示フロー",      desc: "計画提示ゲート等、フロー制御専用スキル" },
 ];
 
 // スキル id → カテゴリ対応。値は文字列（cat のみ）か { cat, sub } オブジェクト。
@@ -41,8 +42,12 @@ export const SKILL_CATEGORY = {
   "reviewing-against-rules": "review",
   "adding-textlint-dictionary-terms": "write",
   "managing-agent-configs": { cat: "manage", sub: "skill" },
+  "managing-session-workflow": "manage",
+  "adversarial-verification": "meta",
   "eliciting-plan-tacit-knowledge": "meta",
   "subagent-investigation-checklist": "meta",
   "frontend-design": "design",
   "generating-explanation-html-slides": "content",
+  "managing-review-sets": "review",
+  "presenting-plan-with-artifacts": "flow",
 };

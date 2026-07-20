@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<!--
+  機能一覧.HTML の静的シェル(テンプレート)
+
+  使い方(generating-feature-list-for-reverse-docs):
+    scripts/build-feature-list.sh <manifest.json> <output-html-path> を実行する。
+    build-feature-list.sh が本テンプレートを土台に、jqでマニフェストJSONをパースして
+    プレースホルダ・注入マーカーを機械的に置換し、決定的にHTMLを生成する。
+    Claude(手作業)によるプレースホルダ置換は禁止。生成は必ずスクリプト経由で行う。
+    build-unit-list.sh から unit_kind=feature として本テンプレートに委譲される。
+
+  保守注記: トークンブロック・テーマ切替(data-theme二重定義・rd-portal-theme)は
+  shared/templates/detail-pages/detail-t3-attributes.html(同portal-template.html)からの複製である。
+  同ファイルの当該部分を変更した場合は本ファイルも同時更新すること
+  (unit-list-template.html・screen-list-template.htmlにも同種の複製あり。include化は別件)。
+
+  プレースホルダ(build-feature-list.shが注入。実際のマーカー記法は
+  scripts/build-feature-list.sh 冒頭コメントを正本とする。本コメントでは
+  二重置換事故を避けるため意図的に波括弧・HTMLコメント記法を外して記載する):
+    GENERATED_AT (生成日時マーカー)             : ISO8601 生成日時
+    SOURCE_DIR (ソースディレクトリマーカー)     : 探索対象ソースディレクトリ(絶対パス)
+    EXTRACTION_METHOD (抽出方式マーカー)        : strategy.extractionMethod
+    CATEGORY_COUNT (大分類数タイルマーカー)     : 検出された大分類の数
+    UNIT_COUNT (検出機能数タイルマーカー)       : detectionSummary.unitCount
+    UNRESOLVED_COUNT (要確認数タイルマーカー)   : detectionSummary.unresolvedCount
+    CATEGORY_SECTIONS (大分類セクションマーカー): 大分類ごとの details.module-group + table を丸ごと挿入
+    UNRESOLVED_SECTION (要手動確認セクションマーカー) : kind=unresolved の一覧テーブル、0件なら「なし」の文言
+    MANIFEST_JSON (マニフェストJSON埋め込みマーカー) : manifest.json の内容をそのまま埋め込み(二重管理・ドリフト禁止)
+
+  テーブル列順(固定・全10列): 機能ID / 機能キー / 機能名 / 概要 / 関連画面 / 関連API / 関連テーブル / confidence / 検出方式 / 主ファイル
+
+  制約:
+    - 外部リソース(CDN・フォント・画像)は一切使わない。単一ファイル自己完結
+    - <script id="unit-manifest"> の中身は確定結果(manifest.json)と完全に一致させる
+    - 本テンプレートは機能一覧.HTMLの生成のみを対象とする。設計書の雛形展開・生成は本スキルの範囲外
+-->
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>機能一覧</title>
+<style>
+  :root,
+[data-theme="light"] {
+  --bg: #FFFFFF;
+  --panel: #FFFFFF;
+  --panel-2: #F0EDE3;
+  --border: #DAD5C5;
+  --border-strong: #BFB9A6;
+  --text: #1B1F26;
+  --text-sub: #4A4F58;
+  --text-muted: #767B85;
+  --accent: #3F4F8E;
+  --accent-2: #5A6BAE;
+  --accent-soft: #E6E9F3;
+  --accent-border: #BAC2DC;
+  --gold: #9B7A1F;
+  --gold-soft: #F5EFD9;
+  --gold-border: #DDC68A;
+  --success: #3F4F8E;
+  --success-soft: #E6E9F3;
+  --warn: #9B7A1F;
+  --danger: #9B3F2D;
+  --danger-soft: #F5E2DC;
+  --code-bg: #1B1F26;
+  --code-fg: #E8E5DC;
+  --font-body: "Hiragino Kaku Gothic ProN","Hiragino Sans","Noto Sans JP","BIZ UDPGothic","Yu Gothic","Meiryo",system-ui,-apple-system,sans-serif;
+  --mono: "SFMono-Regular","Menlo","Cascadia Code","Consolas",monospace;
+  --shadow-sm: 0 1px 3px rgba(27,31,38,.07), 0 2px 6px rgba(27,31,38,.05);
+  --shadow-md: 0 2px 8px rgba(27,31,38,.09), 0 8px 24px rgba(27,31,38,.07);
+  --radius: 10px;
+  --radius-sm: 6px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #15171C; --panel: #1C1F26; --panel-2: #232730;
+    --border: #353944; --border-strong: #4A4F5C;
+    --text: #E8E5DC; --text-sub: #B6B3AB; --text-muted: #888784;
+    --accent: #8FA3DB; --accent-2: #A8B8E5; --accent-soft: #2A2E47; --accent-border: #4C5680;
+    --gold: #D4B45D; --gold-soft: #3D3520; --gold-border: #7A6633;
+    --success: #8FA3DB; --success-soft: #2A2E47;
+    --warn: #D4B45D; --danger: #D4836E; --danger-soft: #3F2620;
+    --code-bg: #0E1116; --code-fg: #E8E5DC;
+  }
+}
+[data-theme="dark"] {
+  --bg: #15171C; --panel: #1C1F26; --panel-2: #232730;
+  --border: #353944; --border-strong: #4A4F5C;
+  --text: #E8E5DC; --text-sub: #B6B3AB; --text-muted: #888784;
+  --accent: #8FA3DB; --accent-2: #A8B8E5; --accent-soft: #2A2E47; --accent-border: #4C5680;
+  --gold: #D4B45D; --gold-soft: #3D3520; --gold-border: #7A6633;
+  --success: #8FA3DB; --success-soft: #2A2E47;
+  --warn: #D4B45D; --danger: #D4836E; --danger-soft: #3F2620;
+  --code-bg: #0E1116; --code-fg: #E8E5DC;
+}
+
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 0 24px 96px;
+    font-family: var(--font-body);
+    line-height: 1.7; color: var(--text); background: var(--bg);
+    max-width: 1180px; margin-inline: auto;
+  }
+  .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  header { padding: 40px 0 20px; border-bottom: 3px solid var(--border-strong); }
+  .header-top { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+  header h1 { font-size: 1.7rem; margin: 0 0 10px; }
+  .theme-toggle-btn {
+    background: var(--panel-2); border: 1px solid var(--border); border-radius: var(--radius-sm);
+    color: var(--text-sub); cursor: pointer; padding: 5px 12px; font-size: 0.82rem; font-family: inherit;
+  }
+  .theme-toggle-btn:hover { background: var(--accent-soft); color: var(--accent); border-color: var(--accent-border); }
+  .meta-table { font-size: 0.88rem; color: var(--text-sub); border-collapse: collapse; }
+  .meta-table td { padding: 2px 18px 2px 0; vertical-align: top; }
+  .meta-table td:first-child { color: var(--text-muted); white-space: nowrap; }
+
+  .summary-tiles { display: flex; gap: 14px; margin: 20px 0; flex-wrap: wrap; }
+  .tile {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 8px;
+    padding: 10px 18px; font-size: 0.85rem; color: var(--text-sub);
+  }
+  .tile strong { display: block; font-size: 1.3rem; color: var(--text); }
+
+  .toolbar { display: flex; gap: 10px; margin: 24px 0 10px; align-items: center; flex-wrap: wrap; }
+  .toolbar input[type="search"] {
+    flex: 1; min-width: 220px; padding: 8px 12px; font-size: 0.92rem;
+    border: 1px solid var(--border); border-radius: 6px;
+  }
+  .toolbar .note { font-size: 0.82rem; color: var(--text-muted); }
+
+  details.module-group { margin: 18px 0; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; min-width: 0; }
+  details.module-group > summary {
+    cursor: pointer; padding: 12px 16px; font-weight: 700; list-style: none;
+  }
+  details.module-group > summary::-webkit-details-marker { display: none; }
+  details.module-group > summary::before { content: "▸ "; }
+  details.module-group[open] > summary::before { content: "▾ "; }
+
+  table.units {
+    table-layout: fixed; width: 100%; min-width: 1000px; border-collapse: collapse; font-size: 0.88rem;
+    overflow: hidden;
+  }
+  table.units th {
+    border-top: 1px solid var(--border); padding: 8px 10px; text-align: left; vertical-align: top;
+    white-space: normal; overflow: visible; font-size: 0.8em;
+  }
+  table.units td {
+    border-top: 1px solid var(--border); padding: 8px 10px; text-align: left; vertical-align: top;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  table.units th {
+    background: var(--panel-2); font-weight: 700; cursor: pointer; user-select: none;
+  }
+  table.units th:hover { background: var(--accent-soft); cursor: pointer; }
+  table.units td code {
+    font-family: var(--mono);
+    font-size: 0.85em; background: var(--panel-2); padding: 1px 5px; border-radius: 3px;
+  }
+
+  /* 列幅の明示指定（feature-list: 10列） */
+  table.units th:nth-child(1) { width: 6%; }   /* 機能ID */
+  table.units th:nth-child(2) { width: 9%; }   /* 機能キー */
+  table.units th:nth-child(3) { width: 11%; }  /* 機能名 */
+  table.units th:nth-child(4) { width: 18%; }  /* 概要 */
+  table.units th:nth-child(5) { width: 9%; }   /* 関連画面 */
+  table.units th:nth-child(6) { width: 9%; }   /* 関連API */
+  table.units th:nth-child(7) { width: 9%; }   /* 関連テーブル */
+  table.units th:nth-child(8) { width: 8%; }   /* confidence */
+  table.units th:nth-child(9) { width: 8%; }   /* 検出方式 */
+  table.units th:nth-child(10) { width: 13%; } /* 主ファイル */
+
+  /* 数値列は右揃え＋等幅数字 */
+  table.units td:nth-child(8) {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* コード系列はモノスペース */
+  table.units td:nth-child(2),
+  table.units td:nth-child(10) {
+    font-family: var(--mono);
+    font-size: 0.8em;
+  }
+
+  /* ホバーで全文表示 */
+  table.units td:hover {
+    overflow: visible;
+    white-space: normal;
+    word-break: break-all;
+  }
+  td code { overflow-wrap: break-word; word-break: break-all; max-width: 300px; display: inline-block; }
+  .badge { display: inline-block; font-size: 0.76rem; font-weight: 700; padding: 1px 8px; border-radius: 3px; }
+  .badge.high   { background: var(--success-soft); color: var(--success); }
+  .badge.medium { background: var(--gold-soft); color: var(--gold); }
+  .badge.low    { background: var(--accent-soft); color: var(--accent); }
+
+  section.unresolved {
+    margin-top: 40px; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 16px 20px; min-width: 0;
+  }
+  #category-sections { min-width: 0; }
+  section.unresolved h2 { font-size: 1.05rem; margin: 0 0 10px; }
+
+  footer { margin-top: 48px; font-size: 0.8rem; color: var(--text-muted); }
+
+  .pagination { display: flex; gap: 8px; align-items: center; justify-content: center; margin: 16px 0; font-size: 0.85rem; }
+  .pagination button { background: var(--panel-2); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text-sub); cursor: pointer; padding: 4px 10px; font-family: inherit; font-size: 0.82rem; }
+  .pagination button:hover { background: var(--accent-soft); color: var(--accent); border-color: var(--accent-border); }
+  .pagination button:disabled { opacity: 0.4; cursor: not-allowed; }
+  .pagination .page-info { color: var(--text-muted); }
+</style>
+</head>
+<body>
+
+<header>
+  <nav class="back-link" style="margin: 16px 0 0; font-size: 0.85rem;">
+    <a href="../../index.html" style="color: var(--text-sub); text-decoration: none; border-bottom: 1px dotted var(--text-muted);">← ポータルへ戻る</a>
+  </nav>
+  <div class="header-top">
+    <h1>機能一覧</h1>
+    <button id="theme-toggle" class="theme-toggle-btn" type="button" title="テーマ切替">テーマ切替</button>
+  </div>
+  <table class="meta-table">
+    <tr><td>生成日時</td><td>2026-07-20 00:00</td></tr>
+    <tr><td>ソースディレクトリ</td><td><code>src</code></td></tr>
+    <tr><td>種別</td><td>機能（派生一覧）</td></tr>
+    <tr><td>抽出方式</td><td>画面一覧からの派生分析</td></tr>
+  </table>
+
+  <div class="summary-tiles">
+    <div class="tile"><strong>3</strong>大分類数</div>
+    <div class="tile"><strong>18</strong>検出機能数</div>
+    <div class="tile"><strong>0</strong>要手動確認数</div>
+  </div>
+</header>
+
+<div class="toolbar">
+  <input type="search" id="unit-search" placeholder="キー・概要で絞り込み">
+  <span class="note">列見出しクリックでソート</span>
+</div>
+
+<div id="category-sections" class="table-wrap">
+<details open><summary class="cat-header"><span class="cat-name">認証</span><span class="cat-count">2 機能</span></summary>
+<div class="table-wrap"><table class="data-table">
+<thead><tr><th>機能ID</th><th>機能キー</th><th>機能名</th><th>概要</th><th>関連画面</th><th>関連API</th><th>関連テーブル</th><th>confidence</th><th>検出方式</th><th>主ファイル</th></tr></thead>
+<tbody>
+<tr><td>feat-login</td><td>login</td><td>ログイン</td><td>メール・パスワードによるユーザー認証</td><td>ログイン画面</td><td>POST /api/auth/login</td><td>users, sessions</td><td>HIGH</td><td>画面派生</td><td>LoginPage.tsx</td></tr>
+<tr><td>feat-logout</td><td>logout</td><td>ログアウト</td><td>セッション破棄と画面遷移</td><td>全画面共通</td><td>DELETE /api/auth/session</td><td>sessions</td><td>HIGH</td><td>画面派生</td><td>useAuth.ts</td></tr>
+</tbody></table></div></details>
+<details open><summary class="cat-header"><span class="cat-name">設定管理</span><span class="cat-count">1 機能</span></summary>
+<div class="table-wrap"><table class="data-table">
+<thead><tr><th>機能ID</th><th>機能キー</th><th>機能名</th><th>概要</th><th>関連画面</th><th>関連API</th><th>関連テーブル</th><th>confidence</th><th>検出方式</th><th>主ファイル</th></tr></thead>
+<tbody>
+<tr><td>feat-profile</td><td>profile-edit</td><td>プロフィール編集</td><td>ユーザー情報の表示と更新</td><td>プロフィール</td><td>PUT /api/settings</td><td>users</td><td>HIGH</td><td>画面派生</td><td>ProfilePage.tsx</td></tr>
+</tbody></table></div></details>
+</div>
+
+<section class="unresolved">
+  <h2>要手動確認</h2>
+  <div class="table-wrap">
+  
+  </div>
+</section>
+
+<script type="application/json" id="unit-manifest">
+{"detectionSummary":{"unitCount":18,"unresolvedCount":0},"units":[]}
+</script>
+
+<footer>generating-feature-list-for-reverse-docsにより生成。手編集は次回再生成で上書きされる。</footer>
+
+<script>
+  (function () {
+    var manifestEl = document.getElementById('unit-manifest');
+    var manifest = {};
+    try { manifest = JSON.parse(manifestEl.textContent); } catch (e) { /* ignore */ }
+
+    var search = document.getElementById('unit-search');
+    var PAGE_SIZE = 50;
+    var tableStates = [];
+
+    function renderPage(state) {
+      var q = search ? search.value.trim().toLowerCase() : '';
+      var visible = state.allRows.filter(function (tr) {
+        return !q || tr.textContent.toLowerCase().indexOf(q) !== -1;
+      });
+
+      if (state.sortCol >= 0) {
+        visible.sort(function (a, b) {
+          var av = a.children[state.sortCol].textContent.trim();
+          var bv = b.children[state.sortCol].textContent.trim();
+          var an = parseFloat(av), bn = parseFloat(bv);
+          var cmp = (!isNaN(an) && !isNaN(bn)) ? (an - bn) : av.localeCompare(bv, 'ja');
+          return state.sortAsc ? cmp : -cmp;
+        });
+      }
+
+      var totalPages = Math.max(1, Math.ceil(visible.length / PAGE_SIZE));
+      if (state.currentPage >= totalPages) state.currentPage = totalPages - 1;
+      if (state.currentPage < 0) state.currentPage = 0;
+      var start = state.currentPage * PAGE_SIZE;
+      var end = start + PAGE_SIZE;
+
+      state.allRows.forEach(function (tr) { tr.style.display = 'none'; });
+      visible.forEach(function (tr, i) {
+        tr.style.display = (i >= start && i < end) ? '' : 'none';
+        state.tbody.appendChild(tr);
+      });
+
+      state.pagEl.style.display = visible.length <= PAGE_SIZE ? 'none' : '';
+      state.pageInfo.textContent = (state.currentPage + 1) + ' / ' + totalPages + '（' + visible.length + '件）';
+      state.btnFirst.disabled = state.currentPage === 0;
+      state.btnPrev.disabled = state.currentPage === 0;
+      state.btnNext.disabled = state.currentPage >= totalPages - 1;
+      state.btnLast.disabled = state.currentPage >= totalPages - 1;
+    }
+
+    document.querySelectorAll('table.units').forEach(function (table) {
+      var tbody = table.querySelector('tbody');
+      if (!tbody) return;
+      var allRows = Array.prototype.slice.call(tbody.querySelectorAll('tr'));
+
+      var pagEl = document.createElement('div');
+      pagEl.className = 'pagination';
+      pagEl.innerHTML =
+        '<button type="button" class="page-first" title="先頭">≪</button>' +
+        '<button type="button" class="page-prev" title="前">＜</button>' +
+        '<span class="page-info"></span>' +
+        '<button type="button" class="page-next" title="次">＞</button>' +
+        '<button type="button" class="page-last" title="最後">≫</button>';
+      table.parentNode.insertBefore(pagEl, table.nextSibling);
+
+      var state = {
+        table: table,
+        tbody: tbody,
+        allRows: allRows,
+        currentPage: 0,
+        sortCol: -1,
+        sortAsc: true,
+        pagEl: pagEl,
+        pageInfo: pagEl.querySelector('.page-info'),
+        btnFirst: pagEl.querySelector('.page-first'),
+        btnPrev: pagEl.querySelector('.page-prev'),
+        btnNext: pagEl.querySelector('.page-next'),
+        btnLast: pagEl.querySelector('.page-last')
+      };
+      tableStates.push(state);
+
+      state.btnFirst.addEventListener('click', function () { state.currentPage = 0; renderPage(state); });
+      state.btnPrev.addEventListener('click', function () { state.currentPage--; renderPage(state); });
+      state.btnNext.addEventListener('click', function () { state.currentPage++; renderPage(state); });
+      state.btnLast.addEventListener('click', function () {
+        var q = search ? search.value.trim().toLowerCase() : '';
+        var cnt = state.allRows.filter(function (tr) { return !q || tr.textContent.toLowerCase().indexOf(q) !== -1; }).length;
+        state.currentPage = Math.max(0, Math.ceil(cnt / PAGE_SIZE) - 1);
+        renderPage(state);
+      });
+
+      table.querySelectorAll('th[data-key]').forEach(function (th, colIndex) {
+        th.addEventListener('click', function () {
+          if (state.sortCol === colIndex) { state.sortAsc = !state.sortAsc; } else { state.sortCol = colIndex; state.sortAsc = true; }
+          table.querySelectorAll('th[data-key]').forEach(function (t) { t.removeAttribute('data-asc'); });
+          th.setAttribute('data-asc', state.sortAsc);
+          state.currentPage = 0;
+          renderPage(state);
+        });
+      });
+    });
+
+    if (search) {
+      search.addEventListener('input', function () {
+        tableStates.forEach(function (state) { state.currentPage = 0; renderPage(state); });
+      });
+    }
+
+    tableStates.forEach(function (state) { renderPage(state); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var themeBtn = document.getElementById('theme-toggle');
+    if (themeBtn) {
+      themeBtn.addEventListener('click', function () {
+        var r = document.documentElement;
+        var next = r.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+        r.setAttribute('data-theme', next);
+        try { localStorage.setItem('rd-portal-theme', next); } catch (e) {}
+      });
+    }
+    try {
+      var saved = localStorage.getItem('rd-portal-theme');
+      if (saved) document.documentElement.setAttribute('data-theme', saved);
+    } catch (e) {}
+  })();
+</script>
+
+</body>
+</html>

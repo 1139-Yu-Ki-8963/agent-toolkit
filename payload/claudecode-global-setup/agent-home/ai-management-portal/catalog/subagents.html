@@ -74,6 +74,15 @@
         path: "~/.claude/agents/plan-comprehension-prober/plan-comprehension-prober.md",
       },
       {
+        id: "adversarial-verifier",
+        cat: "local",
+        model: "claude-fable-5",
+        tools: "Read, Grep, Glob, Bash",
+        summary: "成果物を「誤りがある」前提で反証を試み、証拠付きの反証所見を返す独立検証者。合否（PASS/FAIL）は宣言しない。",
+        trigger: "adversarial-verification スキルの検証委任（Phase 2 / Phase 5）、「敵対的検証して」、計画・PR 差分・設計書の提示前検証",
+        path: "~/.claude/agents/adversarial-verifier/adversarial-verifier.md",
+      },
+      {
         id: "worker-sonnet",
         cat: "local",
         model: "claude-sonnet-5",

@@ -36,7 +36,7 @@
 
 `TRIGGER when:` / `SKIP:` は**本環境のローカル慣行**（呼び出し元 Claude が委任判定に使う書式統一）であり、公式の予約語ではない。公式は description 全文を自動委任のマッチング材料として使い、「use proactively」等の書き方を推奨している。本環境で書式を統一する理由は、subagent-selection 規約の委任判定フローとレビュー観点 C（責務境界）が TRIGGER / SKIP の構造を前提に機械照合するため。
 
-## 役割体系（10 エージェント・4 分類）
+## 役割体系（11 エージェント・4 分類）
 
 subagent-selection 規約（`~/.claude/rules/always/agent/subagent-selection/rule.md`）の 4 分類と対応する。
 
@@ -44,12 +44,12 @@ subagent-selection 規約（`~/.claude/rules/always/agent/subagent-selection/rul
 |---|---|---|
 | 計画系 | brain | claude-opus-4-8 |
 | 実行系 | worker-sonnet / worker-haiku | claude-sonnet-5 / claude-haiku-4-5-20251001 |
-| 調査系 | investigator / researcher / plan-comprehension-prober | claude-sonnet-5 / claude-sonnet-5 / claude-haiku-4-5-20251001 |
+| 調査系 | investigator / researcher / plan-comprehension-prober / adversarial-verifier | claude-sonnet-5 / claude-sonnet-5 / claude-haiku-4-5-20251001 / claude-fable-5 |
 | 判定系 | code-reviewer / document-reviewer / business-content-reviewer / report-reviewer | claude-sonnet-5 / claude-sonnet-5 / claude-sonnet-5 / claude-opus-4-8 |
 
 ### 役割判定フロー（委任先の選定）
 
-Q1〜Q4 は「作業を誰に委任するか」の判定であり、到達役割は 5 種（brain / researcher / investigator / worker-sonnet / worker-haiku）。判定系 4 体はこのフローでは選ばず、成果物・報告の合否判定という後段の工程で reviewing-against-rules / report-reviewer 経由で呼ばれる。plan-comprehension-prober は eliciting-plan-tacit-knowledge スキル専用の読み手で、このフローには登場しない。
+Q1〜Q4 は「作業を誰に委任するか」の判定であり、到達役割は 5 種（brain / researcher / investigator / worker-sonnet / worker-haiku）。判定系 4 体はこのフローでは選ばず、成果物・報告の合否判定という後段の工程で reviewing-against-rules / report-reviewer 経由で呼ばれる。plan-comprehension-prober は eliciting-plan-tacit-knowledge スキル専用の読み手、adversarial-verifier は adversarial-verification スキル専用の反証役で、いずれもこのフローには登場しない。
 
 ```
 Q1. タスクの分解・計画立案が必要か？（結果検証は判定系へ。brain は合否判定をしない）
@@ -71,7 +71,7 @@ Q4. ファイルの作成・編集、または文脈判断が必要か？
           （コマンド実行と結果報告のみ。ファイル変更は一切させない）
 ```
 
-新規役割を追加するのは、既存 10 体で不足する専門性がある場合のみ。組み込みエージェント（Plan / Explore / claude-code-guide / general-purpose）と責務が重なる場合は、重複を許容する理由（model 固定・ツール制限・出力形式の統一等）を定義本文に書く。
+新規役割を追加するのは、既存 11 体で不足する専門性がある場合のみ。組み込みエージェント（Plan / Explore / claude-code-guide / general-purpose）と責務が重なる場合は、重複を許容する理由（model 固定・ツール制限・出力形式の統一等）を定義本文に書く。
 
 ## ツール選択基準
 
@@ -123,4 +123,4 @@ MCP ツールに依存する subagent は、定義 md 内に前提 MCP サーバ
 
 ## 既存エージェントの一覧
 
-既存 10 体の一覧と分類は本ファイル「役割体系」節が一次情報。カタログ表示は `~/agent-home/ai-management-portal/catalog/subagents.html` を参照（正本 4 点突合の対象。レビュー観点 C7）。
+既存 11 体の一覧と分類は本ファイル「役割体系」節が一次情報。カタログ表示は `~/agent-home/ai-management-portal/catalog/subagents.html` を参照（正本 4 点突合の対象。レビュー観点 C7）。

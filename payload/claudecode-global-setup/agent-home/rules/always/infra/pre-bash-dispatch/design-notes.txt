@@ -28,3 +28,10 @@
 **保守責任者**: 人手（ユーザー）。`dispatch-pre-bash-checks.sh` の `git commit` / `git push` 検出ロジック変更時に同時更新する。
 
 **廃棄条件**: `dispatch-pre-bash-checks.sh` 廃止時、または `git commit` / `git push` 検出方式が再度変更された時。
+
+## HTML 追加行の prh lint 拡張（2026-07-17）
+
+- 必要性: 公開成果物 HTML（カタログ index.html・スライド HTML）が textlint 検査の対象外で、公式製品名の表記ブレ（実測: CLAUDE CODE 全大文字 1 件）が機械検出されない穴があった。docs/*.md と PR 本文のみの検査では、成果物の主力である HTML を守れない。
+- 代替案を採用しなかった理由: textlint-plugin-html の導入は依存追加とマークアップ由来の誤検知検証を要する。文体ルール込みの .textlintrc.json 適用は HTML のマークアップ行が sentence-length 等に誤爆する。staged 内容を .txt として prh 語彙のみで lint する方式が、既存の追加行フィルタ機構をそのまま流用でき最小差分。
+- 保守責任者: 人手（ユーザー）。prh エントリの追加は adding-textlint-dictionary-terms スキル経由。
+- 廃棄条件: textlint-plugin-html を正式導入し HTML を構文認識で lint するようになった時。

@@ -137,6 +137,83 @@ if [ -n "$RGCD_MATCHED_SEG" ]; then
     [ "$_cfg" != "$_dld/.textlintrc.json" ] && rm -f "$_cfg"
   fi
 
+  # ── HTML ファイルの textlint（prh 語彙のみ・追加行限定）──────
+  # 文体ルール（.textlintrc.json）はマークアップ行に誤検知するため適用しない。
+  # HTML パーサ plugin は未導入のため、staged 内容を .txt として prh 辞書のみで lint する。
+  # 辞書カタログ自身（prh エントリの検出パターン文字列を内容に持つ）は自己言及で必ず違反するため除外
+  _htmlf=$(
+    git_in_ctx diff --cached --name-only --diff-filter=ACM 2>/dev/null \
+      | grep -E '\.html$' \
+      | grep -vE '(^|/)node_modules/' \
+      | grep -vE '(^|/)ai-management-portal/catalog/dictionaries\.html$' \
+      || true
+  )
+
+  if [ -n "$_htmlf" ] && [ -n "$_node" ]; then
+    _haccf=$(mktemp /tmp/htmlacc_XXXXXX)
+    _hcfg=$(resolve_textlint_config "$_dld/.textlintrc.pr.json" "$_git_ctx_dir")
+
+    while IFS= read -r _f; do
+      [ -z "$_f" ] && continue
+
+      _ADDED=$(
+        git_in_ctx diff --cached -U0 -- "$_f" 2>/dev/null \
+          | perl -ne '
+              if (/^@@ .* \+(\d+)(?:,(\d+))? @@/) {
+                my $s = $1;
+                my $c = defined $2 ? $2 : 1;
+                for (my $i = 0; $i < $c; $i++) {
+                  print +($s + $i), " "
+                }
+              }
+            '
+      )
+      [ -z "$_ADDED" ] && continue
+
+      _tmp=$(mktemp /tmp/htmllint_XXXXXX.txt)
+      git_in_ctx show ":$_f" > "$_tmp" 2>/dev/null
+
+      ADDED="$_ADDED" \
+        "$_node" \
+          "$_dld/node_modules/textlint/bin/textlint.js" \
+          --config "$_hcfg" \
+          "$_tmp" \
+          --format compact \
+          2>/dev/null \
+        | grep "Error -" \
+        | ADDED="$_ADDED" perl -ne '
+            BEGIN { %s = map { $_ => 1 } split /\s+/, $ENV{ADDED} }
+            if (/line (\d+)/ && $s{$1}) { print }
+          ' \
+        | sed "s|$_tmp|$_f|" \
+        >> "$_haccf"
+
+      rm -f "$_tmp"
+    done < <(printf '%s\n' "$_htmlf")
+
+    if [ -s "$_haccf" ]; then
+      _r=$(cat "$_haccf")
+      rm -f "$_haccf"
+      [ "$_hcfg" != "$_dld/.textlintrc.pr.json" ] && rm -f "$_hcfg"
+      jq -n --arg r "$_r" \
+        '{
+          "systemMessage": "[textlint] HTML 追加行に語彙ルール違反",
+          "hookSpecificOutput": {
+            "hookEventName": "PreToolUse",
+            "additionalContext": (
+              "[TEXTLINT-BLOCK]\nfile=<HTML 差分>\n"
+              + $r
+              + "\n\nHTML の追加・変更行に語彙ルール違反があります（prh 辞書のみ・文体ルール対象外・新規行のみ）。~/.claude/rules/always/review-checklist/text-dictionary/prh.yml の該当エントリの expected 値に従って修正してから再 commit してください。"
+            )
+          }
+        }'
+      exit 2
+    fi
+
+    rm -f "$_haccf"
+    [ "$_hcfg" != "$_dld/.textlintrc.pr.json" ] && rm -f "$_hcfg"
+  fi
+
   # ── 英語 type による命名規則チェック (-m フラグ版) ──────────
   if printf '%s' "$cmd" \
       | grep -qE -- '-m[[:space:]]+"(feat|fix|docs|chore|refactor|test|style|ci|perf|revert)(\([^)]+\))?!?:'; then

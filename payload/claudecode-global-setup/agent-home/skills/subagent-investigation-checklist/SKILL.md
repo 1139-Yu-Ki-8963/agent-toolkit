@@ -2,6 +2,7 @@
 name: subagent-investigation-checklist
 description: "調査委任前チェックリスト作成。 TRIGGER when: 「調査チェックリスト」「調査委任」と言われた時、investigator/report-reviewer への委任前。 SKIP: worker-haiku/routine-worker への委任時。"
 invocation: subagent-investigation-checklist
+execution: subagent-compatible
 type: transform
 allowed-tools: Read, Write, Bash
 ---

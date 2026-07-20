@@ -2,6 +2,7 @@
 name: adding-textlint-dictionary-terms
 description: "textlint置き換え辞書（prh.yml）への新規語彙登録。 TRIGGER when: 「prh.yml登録」「辞書に登録」「置き換え語を追加」と言われた時、text-dictionary/rule.md の [TEXTLINT-BLOCK] 手順で辞書に該当エントリがない時。 SKIP: 既存エントリでの単純な置換修正（→rules側で完遂。text-dictionary/rule.md の違反時手順を直接実行）。"
 invocation: adding-textlint-dictionary-terms
+execution: subagent-compatible
 type: action
 allowed-tools: ["Read", "Write", "Edit", "Bash", "Grep", "Glob"]
 ---

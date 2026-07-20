@@ -2,6 +2,7 @@
 name: grouping-commits
 description: "変更分析しグループ化・単一目的コミット作成。 TRIGGER when: 「コミット分割」「変更グループ化」「まとめてコミット」と言われた時。 SKIP: コミット操作なし（→ rules: always/naming/commit-branch）。"
 invocation: grouping-commits
+execution: subagent-compatible
 type: action
 allowed-tools: ["Bash", "Read", "Write", "Edit"]
 ---

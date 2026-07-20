@@ -35,3 +35,7 @@
 **保守責任者**: 人手（ユーザー）。check-git-author-allowlist.sh の判定ロジック（コンテキスト解決・白リスト照合）変更時に同時更新する。
 
 **廃棄条件**: check-git-author-allowlist.sh 廃止時、または本規約が撤回された時。
+
+## 既知の限界: シェル変数経由の -C パスで email 空と誤判定（2026-07-17 実測）
+
+check-git-author-allowlist.sh はコマンド文字列を静的解析して git の文脈ディレクトリを解決するため、`git -C "$WT" commit` のようにシェル変数でリポジトリパスを渡すと解決に失敗し、実効 author 設定（~/.gitconfig に正しい値あり）を読めず「author email が空」として fail-closed で block する。同日のセッションで 2 回実測（worker-haiku への委任コマンドが変数展開前の文字列として渡ったケース）。回避策: git commit / push を含む委任コマンドはシェル変数を使わずリテラルパスで書く。fail-open 化（解決不能時に hook cwd へフォールバック）は author 検査の迂回口になりうるため未採用。恒久修正する場合は managing-agent-configs（種別 rules）で本 hook とテストを同時に更新する。

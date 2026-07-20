@@ -95,6 +95,72 @@ FIXTURE2
   fi
   rm -rf "$test3_dir"
 
+  echo "--- ケース4: BOM付き・frontmatter付きmdファイルからのタイトル抽出 ---"
+  test4_dir="$(mktemp -d)"
+  test4_repo="$test4_dir/repo"
+  test4_docs="$test4_dir/docs"
+  test4_portal="$test4_dir/portal"
+  mkdir -p "$test4_repo" "$test4_docs/プロジェクト共通" "$test4_portal"
+  printf '\xEF\xBB\xBF# BOM付き見出し\n本文' > "$test4_docs/プロジェクト共通/bom-test.md"
+  printf -- '---\ntitle: frontmatter\n---\n# FM後の見出し\n本文' > "$test4_docs/プロジェクト共通/fm-test.md"
+  "$SCRIPT_DIR/build-portal.sh" "$test4_repo" "$test4_docs" "$test4_portal" 2>/dev/null
+  bom_ok=0
+  fm_ok=0
+  grep -q 'BOM付き見出し' "$test4_portal/index.html" 2>/dev/null && bom_ok=1
+  grep -q 'FM後の見出し' "$test4_portal/index.html" 2>/dev/null && fm_ok=1
+  if [ "$bom_ok" = "1" ] && [ "$fm_ok" = "1" ]; then
+    echo "PASS: --self-test ケース4（BOM付き・frontmatter付きmdからのタイトル抽出）"
+  else
+    echo "FAIL: --self-test ケース4（BOM付き・frontmatter付きmdからのタイトル抽出, bom=$bom_ok fm=$fm_ok）" >&2
+    rm -rf "$test4_dir"
+    exit 1
+  fi
+  rm -rf "$test4_dir"
+
+  echo "--- ケース5: 共通文書 .md → .html 変換 ---"
+  test5_dir="$(mktemp -d)"
+  test5_repo="$test5_dir/repo"
+  test5_docs="$test5_dir/docs"
+  test5_portal="$test5_dir/portal"
+  mkdir -p "$test5_repo" "$test5_docs/プロジェクト共通" "$test5_portal"
+  printf '# テスト文書\n\n本文テスト。\n\n| 列1 | 列2 |\n|---|---|\n| A | B |\n' > "$test5_docs/プロジェクト共通/test-doc.md"
+  "$SCRIPT_DIR/build-portal.sh" "$test5_repo" "$test5_docs" "$test5_portal" 2>/dev/null
+  if [ ! -f "$test5_docs/プロジェクト共通/test-doc.html" ]; then
+    echo "FAIL: ケース5 — test-doc.html が生成されていない" >&2; rm -rf "$test5_dir"; exit 1
+  fi
+  if ! grep -q 'テスト文書' "$test5_docs/プロジェクト共通/test-doc.html"; then
+    echo "FAIL: ケース5 — test-doc.html にタイトルが含まれていない" >&2; rm -rf "$test5_dir"; exit 1
+  fi
+  if ! grep -q 'test-doc.html' "$test5_portal/index.html"; then
+    echo "FAIL: ケース5 — ポータルのリンク先が .html になっていない" >&2; rm -rf "$test5_dir"; exit 1
+  fi
+  if grep -q 'test-doc\.md"' "$test5_portal/index.html"; then
+    echo "FAIL: ケース5 — ポータルにまだ .md リンクが残っている" >&2; rm -rf "$test5_dir"; exit 1
+  fi
+  echo "PASS: --self-test ケース5（共通文書 .md → .html 変換）"
+  rm -rf "$test5_dir"
+
+  echo "--- ケース6: frontmatter 付き md → html で frontmatter が本文に表示されない ---"
+  test6_dir="$(mktemp -d)"
+  test6_repo="$test6_dir/repo"
+  test6_docs="$test6_dir/docs"
+  test6_portal="$test6_dir/portal"
+  mkdir -p "$test6_repo" "$test6_docs/プロジェクト共通" "$test6_portal"
+  printf -- '---\ndoc_id: test-doc\ntype: design\nstatus: traced\n---\n# テスト見出し\n\n本文テスト。' > "$test6_docs/プロジェクト共通/fm-body-test.md"
+  "$0" "$test6_repo" "$test6_docs" "$test6_portal" 2>/dev/null
+  if grep -q 'doc_id:' "$test6_docs/プロジェクト共通/fm-body-test.html" 2>/dev/null; then
+    echo "FAIL: ケース6 — frontmatter が HTML 本文に残留" >&2
+    rm -rf "$test6_dir"
+    exit 1
+  fi
+  if ! grep -q 'テスト見出し' "$test6_docs/プロジェクト共通/fm-body-test.html" 2>/dev/null; then
+    echo "FAIL: ケース6 — 見出しが消失" >&2
+    rm -rf "$test6_dir"
+    exit 1
+  fi
+  echo "PASS: --self-test ケース6（frontmatter 除去）"
+  rm -rf "$test6_dir"
+
   exit 0
 fi
 
@@ -214,13 +280,36 @@ done
 # --- 3. 共通文書リストの収集 ---
 common_tools_json=""
 common_dir="$DOCS_ROOT/プロジェクト共通"
+COMMON_DOC_TEMPLATE_FILE="$SCRIPT_DIR/../templates/common-doc-template.html"
+
+html_escape() {
+  printf '%s' "$1" | sed 's/&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g'
+}
+
 if [ -d "$common_dir" ]; then
   while IFS= read -r md_file; do
-    title="$(head -1 "$md_file" | sed 's/^#\+ *//' 2>/dev/null || true)"
+    title="$(sed -e '1s/^\xEF\xBB\xBF//' "$md_file" | grep -m1 '^#' | sed 's/^#\+ *//' 2>/dev/null || true)"
     if [ -z "$title" ]; then
       title="$(basename "$md_file" .md)"
     fi
-    rel_href="$docs_relative/プロジェクト共通/$(basename "$md_file")"
+
+    # .md → .html 変換
+    html_basename="$(basename "$md_file" .md).html"
+    html_file="$(dirname "$md_file")/$html_basename"
+    if [ -f "$COMMON_DOC_TEMPLATE_FILE" ]; then
+      md_content="$(sed -e '1s/^\xEF\xBB\xBF//' "$md_file" | awk 'NR==1 && /^---$/ {skip=1; next} skip && /^---$/ {skip=0; next} !skip')"
+      local_render_args=(
+        "{{DOC_TITLE}}" "$(html_escape "$title")"
+      )
+      if [ -f "$TOKENS_CSS_FILE" ]; then
+        local_render_args+=("/* TOKENS_CSS */" "$(cat "$TOKENS_CSS_FILE")")
+      fi
+      local_render_args+=("{{DOC_MARKDOWN}}" "$md_content")
+      doc_html="$(render_template "$(cat "$COMMON_DOC_TEMPLATE_FILE")" "${local_render_args[@]}")"
+      printf '%s\n' "$doc_html" > "$html_file"
+    fi
+
+    rel_href="$docs_relative/プロジェクト共通/$html_basename"
 
     doc_icon="description"
     case "$title" in

@@ -260,6 +260,7 @@ source "$(cd "$(dirname "$0")/.." && pwd)/render-template.sh"
 # --- メタ情報・サマリ集計をマニフェストから抽出 ---
 generated_at="$(jq -r '.generatedAt // ""' "$MANIFEST")"
 source_dir="$(jq -r '.sourceDir // ""' "$MANIFEST")"
+source_dir_display="$(basename "$source_dir")"
 extraction_method="$(jq -r '.strategy.extractionMethod // ""' "$MANIFEST")"
 detection_method="$(jq -r '.detectionSummary.method // ""' "$MANIFEST")"
 tile_screen_count="$(jq -r '.detectionSummary.screenCount // 0' "$MANIFEST")"
@@ -427,7 +428,7 @@ fi
 # (JSON内容に他マーカー文字列が偶然含まれた場合の誤爆を避けるため)
 render_args=(
   "{{GENERATED_AT}}" "$(html_escape "$generated_at")"
-  "{{SOURCE_DIR}}" "$(html_escape "$source_dir")"
+  "{{SOURCE_DIR}}" "$(html_escape "$source_dir_display")"
   "{{EXTRACTION_METHOD}}" "$(html_escape "$extraction_method")"
   "{{DETECTION_METHOD}}" "$(html_escape "$detection_method")"
   "{{TILE_SCREEN_COUNT}}" "$tile_screen_count"

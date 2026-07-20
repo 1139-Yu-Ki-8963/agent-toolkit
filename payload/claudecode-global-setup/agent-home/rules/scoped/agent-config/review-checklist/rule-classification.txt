@@ -46,4 +46,7 @@
 ~/.claude/rules/scoped/tooling/shell/rule.md	hook-enforced	.sh 作成方針。permissions.deny + 2 hooks が内容を担保。レビュー観点化（shell specialist 新設）は将来候補
 ~/.claude/rules/scoped/portal/page-conventions/rule.md	hook-enforced	ポータル整合 hook（check-portal-consistency）の正本。agent-home ローカルから移設
 ~/.claude/rules/always/agent/subagent-selection/rule.md	behavior	委任判定の行動規範
+~/.claude/rules/always/agent/coding-principles/rule.md	behavior	コーディング姿勢の行動規範（常時注入が防衛線）
+~/.claude/rules/always/agent/global-config-change/rule.md	behavior	グローバル設定資産の変更運用規約（起票運用の行動規範）
+~/.claude/rules/always/response/language/rule.md	behavior	応答言語・日本語文体の行動規範
 ~/.claude/rules/scoped/routines/test-completion/rule.md	behavior	ルーティンテスト完了判定の行動規範。agent-home ローカルから移設

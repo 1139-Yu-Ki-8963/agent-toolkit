@@ -5,6 +5,7 @@ description: |
   TRIGGER when: <具体的なキーワード・操作名>
   SKIP: <非発動条件>
 invocation: <name と同値>
+execution: <未定>
 allowed-tools: Agent, Read, Grep, Bash, Edit
 ---
 
