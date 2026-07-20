@@ -1,47 +1,106 @@
 <!DOCTYPE html>
 <!--
-  <ラベル>一覧.HTML の静的シェル(テンプレート)
+  画面一覧.HTML の静的シェル(テンプレート)
 
-  使い方(種別別一覧スキル群 generating-<種別>-list-for-reverse-docs。unit_kind=screen 以外):
-    scripts/build-unit-list.sh <manifest.json> <output-html-path> --unit-kind <kind> を実行する。
-    build-unit-list.sh が本テンプレートを土台に、jqでマニフェストJSONをパースして
+  使い方(generating-screen-list-for-reverse-docs Phase 4):
+    scripts/build-screen-list.sh <manifest.json> <output-html-path> を実行する。
+    build-screen-list.sh が本テンプレートを土台に、jqでマニフェストJSONをパースして
     プレースホルダ・注入マーカーを機械的に置換し、決定的にHTMLを生成する。
     Claude(手作業)によるプレースホルダ置換は禁止。生成は必ずスクリプト経由で行う。
-    unit_kind=screen の場合は本テンプレートを使わず screen-list-template.html を使う
-    (build-unit-list.sh が build-screen-list.sh に委譲する)。
 
   保守注記: トークンブロック・テーマ切替(data-theme二重定義・rd-portal-theme)は
   shared/templates/detail-pages/detail-t3-attributes.html(同portal-template.html)からの複製である。
   同ファイルの当該部分を変更した場合は本ファイルも同時更新すること
-  (feature-list-template.html・screen-list-template.htmlにも同種の複製あり。include化は別件)。
+  (unit-list-template.html・feature-list-template.htmlにも同種の複製あり。include化は別件)。
 
-  プレースホルダ(build-unit-list.shが注入。実際のマーカー記法は
-  scripts/build-unit-list.sh 冒頭コメントを正本とする。本コメントでは
+  プレースホルダ(build-screen-list.shが注入。実際のマーカー記法は
+  scripts/build-screen-list.sh 冒頭コメントを正本とする。本コメントでは
   二重置換事故を避けるため意図的に波括弧・HTMLコメント記法を外して記載する):
-    UNIT_KIND_LABEL (種別ラベルマーカー)        : screen=画面/api=API/table=テーブル/batch=バッチ/report=帳票/external=外部連携
-    GENERATED_AT (生成日時マーカー)             : ISO8601 生成日時
+    GENERATED_AT (生成日時マーカー)            : ISO8601 生成日時
     SOURCE_DIR (ソースディレクトリマーカー)     : 探索対象ソースディレクトリ(絶対パス)
-    EXTRACTION_METHOD (抽出方式マーカー)        : strategy.extractionMethod
-    UNIT_COUNT (ユニット数タイルマーカー)       : detectionSummary.unitCount
-    UNRESOLVED_COUNT (要確認数タイルマーカー)   : detectionSummary.unresolvedCount
-    UNIT_TABLE_ROWS (ユニットテーブル行マーカー): kind!=unresolved の行を1ユニットごとに挿入
+    EXTRACTION_METHOD (抽出方式マーカー)        : strategy.extractionMethod(組み込みスクリプト/Claude手書き等の抽出方式)
+    DETECTION_METHOD (検出方式マーカー)         : detectionSummary.method
+    TILE_SCREEN_COUNT (画面数タイルマーカー)    : detectionSummary.screenCount
+    TILE_CLUSTER_COUNT (クラスタ数タイルマーカー): detectionSummary.clusterCount
+    TILE_SHARED_SCREEN_COUNT (共有画面数タイルマーカー): detectionSummary.sharedScreenCount
+    TILE_EMBEDDED_COUNT (埋め込み候補数タイルマーカー)  : detectionSummary.embeddedCandidateCount
+    TILE_UNRESOLVED_COUNT (要確認数タイルマーカー)      : detectionSummary.unresolvedCount
+    SCREEN_TABLE_ROWS (画面テーブル行マーカー)  : kind=route/embedded-view の行を1画面ごとに挿入
     UNRESOLVED_SECTION (要手動確認セクションマーカー) : kind=unresolved の一覧テーブル、0件なら「なし」の文言
-    MANIFEST_JSON (マニフェストJSON埋め込みマーカー) : manifest.json の内容をそのまま埋め込み(二重管理・ドリフト禁止)
+    SCREEN_MANIFEST_JSON (マニフェストJSON埋め込みマーカー) : manifest.json の内容をそのまま埋め込み(二重管理・ドリフト禁止)
+    DIAGNOSTICS (診断・警告マーカー)            : diagnostics配列を警告リストとして表示。空配列なら何も出力しない
 
-  テーブル列順(固定・全9列): <ラベル>ID / <ラベル>キー / 区分 / <ラベル>名 / 識別子 / 検出方式 / confidence / 構成ファイル数 / 主ファイル
+  テーブル列順(固定・全11列): 画面ID / 画面キー / 区分 / 画面名 / ルート / 検出方式 / confidence / 共有 / 埋め込み元 / 構成ファイル数 / 主ファイル
+    - 共有列: sharedWithの各キーをmanifest内で引き、screenId(欠落時はキー):routeのペアを列挙。
+      メンバーのscreenIdが1件でも取れれば詳細表示を優先し、全メンバーがscreenId欠落の場合のみ
+      「N件: キー一覧」表示にフォールバックする
+    - 埋め込み元列: kind=embedded-view の行はembeddedIn(親画面キー)を表示。kind=routeは「—」
 
   制約:
     - 外部リソース(CDN・フォント・画像)は一切使わない。単一ファイル自己完結
-    - <script id="unit-manifest"> の中身は確定結果(manifest.json)と完全に一致させる
-    - 本テンプレートは<ラベル>一覧.HTMLの生成のみを対象とする。設計書の雛形展開・生成は本スキルの範囲外
+    - <script id="screen-manifest"> の中身は Phase 2 の確定結果(manifest.json)と完全に一致させる
+    - 本テンプレートは画面一覧.HTMLの生成のみを対象とする。設計書の雛形展開・生成は本スキルの範囲外
 -->
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>{{UNIT_KIND_LABEL}}一覧</title>
+<title>画面一覧</title>
 <style>
-  /* TOKENS_CSS */
+  :root,
+[data-theme="light"] {
+  --bg: #FAFAFA;
+  --panel: #FFFFFF;
+  --panel-2: #F0EDE3;
+  --border: #DAD5C5;
+  --border-strong: #BFB9A6;
+  --text: #1B1F26;
+  --text-sub: #4A4F58;
+  --text-muted: #767B85;
+  --accent: #3F4F8E;
+  --accent-2: #5A6BAE;
+  --accent-soft: #E6E9F3;
+  --accent-border: #BAC2DC;
+  --gold: #9B7A1F;
+  --gold-soft: #F5EFD9;
+  --gold-border: #DDC68A;
+  --success: #3F4F8E;
+  --success-soft: #E6E9F3;
+  --warn: #9B7A1F;
+  --danger: #9B3F2D;
+  --danger-soft: #F5E2DC;
+  --code-bg: #1B1F26;
+  --code-fg: #E8E5DC;
+  --font-body: "Hiragino Kaku Gothic ProN","Hiragino Sans","Noto Sans JP","BIZ UDPGothic","Yu Gothic","Meiryo",system-ui,-apple-system,sans-serif;
+  --mono: "SFMono-Regular","Menlo","Cascadia Code","Consolas",monospace;
+  --shadow-sm: 0 1px 2px rgba(27,31,38,.05), 0 1px 4px rgba(27,31,38,.04);
+  --shadow-md: 0 2px 6px rgba(27,31,38,.07), 0 8px 24px rgba(27,31,38,.06);
+  --radius: 10px;
+  --radius-sm: 6px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #15171C; --panel: #1C1F26; --panel-2: #232730;
+    --border: #353944; --border-strong: #4A4F5C;
+    --text: #E8E5DC; --text-sub: #B6B3AB; --text-muted: #888784;
+    --accent: #8FA3DB; --accent-2: #A8B8E5; --accent-soft: #2A2E47; --accent-border: #4C5680;
+    --gold: #D4B45D; --gold-soft: #3D3520; --gold-border: #7A6633;
+    --success: #8FA3DB; --success-soft: #2A2E47;
+    --warn: #D4B45D; --danger: #D4836E; --danger-soft: #3F2620;
+    --code-bg: #0E1116; --code-fg: #E8E5DC;
+  }
+}
+[data-theme="dark"] {
+  --bg: #15171C; --panel: #1C1F26; --panel-2: #232730;
+  --border: #353944; --border-strong: #4A4F5C;
+  --text: #E8E5DC; --text-sub: #B6B3AB; --text-muted: #888784;
+  --accent: #8FA3DB; --accent-2: #A8B8E5; --accent-soft: #2A2E47; --accent-border: #4C5680;
+  --gold: #D4B45D; --gold-soft: #3D3520; --gold-border: #7A6633;
+  --success: #8FA3DB; --success-soft: #2A2E47;
+  --warn: #D4B45D; --danger: #D4836E; --danger-soft: #3F2620;
+  --code-bg: #0E1116; --code-fg: #E8E5DC;
+}
+
 
   * { box-sizing: border-box; }
   body {
@@ -85,59 +144,70 @@
   details.module-group > summary::before { content: "▸ "; }
   details.module-group[open] > summary::before { content: "▾ "; }
 
-  table.units, table.screens {
-    table-layout: fixed; width: 100%; min-width: 900px; border-collapse: collapse; font-size: 0.88rem;
+  table.screens {
+    table-layout: fixed; width: 100%; min-width: 1100px; border-collapse: collapse; font-size: 0.88rem;
     overflow: hidden;
   }
-  table.units th, table.screens th {
+  table.screens th {
     border-top: 1px solid var(--border); padding: 8px 10px; text-align: left; vertical-align: top;
     white-space: normal; overflow: visible; font-size: 0.8em;
   }
-  table.units td, table.screens td {
+  table.screens td {
     border-top: 1px solid var(--border); padding: 8px 10px; text-align: left; vertical-align: top;
-    overflow-wrap: break-word; word-break: break-all; white-space: normal;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
-  table.units th {
+  table.screens th {
     background: var(--panel-2); font-weight: 700; cursor: pointer; user-select: none;
   }
-  table.units th:hover, table.screens th:hover { background: var(--accent-soft); cursor: pointer; }
-  table.units td code {
+  table.screens th:hover { background: var(--accent-soft); cursor: pointer; }
+  table.screens td code {
     font-family: var(--mono);
     font-size: 0.85em; background: var(--panel-2); padding: 1px 5px; border-radius: 3px;
   }
 
-  /* 列幅の明示指定（unit-list: 9列） */
-  table.units th:nth-child(1) { width: 8%; }   /* ID */
-  table.units th:nth-child(2) { width: 12%; }  /* キー */
-  table.units th:nth-child(3) { width: 7%; }   /* 区分 */
-  table.units th:nth-child(4) { width: 14%; }  /* 名 */
-  table.units th:nth-child(5) { width: 18%; }  /* 識別子 */
-  table.units th:nth-child(6) { width: 10%; }  /* 検出方式 */
-  table.units th:nth-child(7) { width: 9%; }   /* confidence */
-  table.units th:nth-child(8) { width: 8%; }   /* ファイル数 */
-  table.units th:nth-child(9) { width: 16%; }  /* 主ファイル */
+  /* 列幅の明示指定（screen-list: 11列） */
+  table.screens th:nth-child(1) { width: 6%; }   /* 画面ID */
+  table.screens th:nth-child(2) { width: 9%; }   /* 画面キー */
+  table.screens th:nth-child(3) { width: 6%; }   /* 区分 */
+  table.screens th:nth-child(4) { width: 11%; }  /* 画面名 */
+  table.screens th:nth-child(5) { width: 14%; }  /* ルート */
+  table.screens th:nth-child(6) { width: 8%; }   /* 検出方式 */
+  table.screens th:nth-child(7) { width: 7%; }   /* confidence */
+  table.screens th:nth-child(8) { width: 9%; }   /* 共有 */
+  table.screens th:nth-child(9) { width: 9%; }   /* 埋め込み元 */
+  table.screens th:nth-child(10) { width: 8%; }  /* 構成ファイル数 */
+  table.screens th:nth-child(11) { width: 13%; } /* 主ファイル */
 
   /* 数値列は右揃え＋等幅数字 */
-  table.units td:nth-child(7),
-  table.units td:nth-child(8) {
+  table.screens td:nth-child(7),
+  table.screens td:nth-child(10) {
     text-align: right;
     font-variant-numeric: tabular-nums;
   }
 
   /* コード系列はモノスペース */
-  table.units td:nth-child(5),
-  table.units td:nth-child(9) {
+  table.screens td:nth-child(5),
+  table.screens td:nth-child(11) {
     font-family: var(--mono);
     font-size: 0.8em;
   }
 
-  td code { overflow-wrap: break-word; word-break: break-all; }
+  /* ホバーで全文表示 */
+  table.screens td:hover {
+    overflow: visible;
+    white-space: normal;
+    word-break: break-all;
+  }
+  td code { overflow-wrap: break-word; word-break: break-all; max-width: 300px; display: inline-block; }
   .badge { display: inline-block; font-size: 0.76rem; font-weight: 700; padding: 1px 8px; border-radius: 3px; }
   .badge.high   { background: var(--success-soft); color: var(--success); }
   .badge.medium { background: var(--gold-soft); color: var(--gold); }
   .badge.low    { background: var(--accent-soft); color: var(--accent); }
-  .badge.kind-generic    { background: var(--accent-soft); color: var(--accent); }
+  .badge.kind-route      { background: var(--accent-soft); color: var(--accent); }
+  .badge.kind-embedded   { background: var(--gold-soft); color: var(--gold); }
   .badge.kind-unresolved { background: var(--panel-2); color: var(--text-sub); }
+
+  .dup-note { display: block; font-size: 0.76rem; color: var(--gold); margin-top: 2px; }
 
   .diag-warn {
     margin: 16px 0; padding: 12px 18px; background: var(--gold-soft); border: 1px solid var(--gold-border);
@@ -164,49 +234,59 @@
 
 <header>
   <nav class="back-link" style="margin: 16px 0 0; font-size: 0.85rem;">
-    <a href="{{PORTAL_RELATIVE}}" style="color: var(--text-sub); text-decoration: none; border-bottom: 1px dotted var(--text-muted);">← ポータルへ戻る</a>
+    <a href="../../index.html" style="color: var(--text-sub); text-decoration: none; border-bottom: 1px dotted var(--text-muted);">← ポータルへ戻る</a>
   </nav>
   <div class="header-top">
-    <h1>{{UNIT_KIND_LABEL}}一覧</h1>
+    <h1>画面一覧</h1>
     <button id="theme-toggle" class="theme-toggle-btn" type="button" title="テーマ切替">テーマ切替</button>
   </div>
   <table class="meta-table">
-    <tr><td>生成日時</td><td>{{GENERATED_AT}}</td></tr>
-    <tr><td>ソースディレクトリ</td><td><code>{{SOURCE_DIR}}</code></td></tr>
-    <tr><td>種別</td><td>{{UNIT_KIND_LABEL}}</td></tr>
-    <tr><td>抽出方式</td><td>{{EXTRACTION_METHOD}}</td></tr>
+    <tr><td>生成日時</td><td>2026-07-20 00:00</td></tr>
+    <tr><td>ソースディレクトリ</td><td><code>src/pages</code></td></tr>
+    <tr><td>抽出方式</td><td>静的解析（ルーティング定義 + ファイル走査）</td></tr>
+    <tr><td>検出方式</td><td>React Router v6 のルーティング定義から自動検出</td></tr>
   </table>
 
   <div class="summary-tiles">
-    <div class="tile"><strong>{{UNIT_COUNT}}</strong>検出{{UNIT_KIND_LABEL}}数</div>
-    <div class="tile"><strong>{{UNRESOLVED_COUNT}}</strong>要手動確認数</div>
+    <div class="tile"><strong>12</strong>検出画面数</div>
+    <div class="tile"><strong>4</strong>共有クラスタ数（2画面が関与）</div>
+    <div class="tile"><strong>1</strong>埋め込みビュー候補数</div>
+    <div class="tile"><strong>0</strong>要手動確認数</div>
   </div>
 </header>
 
+
+
 <div class="toolbar">
-  <input type="search" id="unit-search" placeholder="キー・識別子で絞り込み">
+  <input type="search" id="screen-search" placeholder="画面キー・ルートで絞り込み">
   <span class="note">列見出しクリックでソート</span>
 </div>
 
 <details class="module-group" open>
-  <summary>{{UNIT_KIND_LABEL}}一覧</summary>
+  <summary>画面一覧</summary>
   <div class="table-wrap">
-  <table class="units" id="unit-table">
+  <table class="screens" id="screen-table">
     <thead>
       <tr>
-        <th data-key="unitId">{{UNIT_KIND_LABEL}}ID</th>
-        <th data-key="unitKey">{{UNIT_KIND_LABEL}}キー</th>
+        <th data-key="screenId">画面ID</th>
+        <th data-key="screenKey">画面キー</th>
         <th data-key="kind">区分</th>
-        <th data-key="unitNameGuess">{{UNIT_KIND_LABEL}}名</th>
-        <th data-key="identifier">識別子</th>
+        <th data-key="screenNameGuess">画面名</th>
+        <th data-key="route">ルート</th>
         <th data-key="detectionMethod">検出方式</th>
         <th data-key="confidence">confidence</th>
+        <th data-key="sharedWith">共有</th>
+        <th data-key="embeddedIn">埋め込み元</th>
         <th data-key="fileCount">構成ファイル数</th>
-        <th data-key="sourceFile">主ファイル</th>
+        <th data-key="entryFile">主ファイル</th>
       </tr>
     </thead>
     <tbody>
-      <!--UNIT_TABLE_ROWS-->
+      <tr><td>screen-home</td><td>home</td><td>独立</td><td>ホーム画面</td><td>/</td><td>routing</td><td>HIGH</td><td>—</td><td>—</td><td>5</td><td>HomePage.tsx</td></tr>
+<tr><td>screen-login</td><td>login</td><td>独立</td><td>ログイン画面</td><td>/login</td><td>routing</td><td>HIGH</td><td>—</td><td>—</td><td>3</td><td>LoginPage.tsx</td></tr>
+<tr><td>screen-settings</td><td>settings</td><td>独立</td><td>設定画面</td><td>/settings</td><td>routing</td><td>HIGH</td><td>—</td><td>—</td><td>4</td><td>SettingsPage.tsx</td></tr>
+<tr><td>screen-dashboard</td><td>dashboard</td><td>独立</td><td>ダッシュボード</td><td>/dashboard</td><td>routing</td><td>HIGH</td><td>—</td><td>—</td><td>6</td><td>DashboardPage.tsx</td></tr>
+<tr><td>screen-profile</td><td>profile</td><td>独立</td><td>プロフィール</td><td>/profile</td><td>routing</td><td>MEDIUM</td><td>—</td><td>—</td><td>3</td><td>ProfilePage.tsx</td></tr>
     </tbody>
   </table>
   </div>
@@ -223,7 +303,7 @@
 <section class="unresolved">
   <h2>要手動確認</h2>
   <div class="table-wrap">
-  <!--UNRESOLVED_SECTION-->
+  
   </div>
 </section>
 
@@ -232,20 +312,20 @@
   <p class="note">本スキルは import グラフ解析を行わないため、共通ファイルのクロス参照分離は非対応。必要に応じて手動確認する。</p>
 </section>
 
-<script type="application/json" id="unit-manifest">
-{{MANIFEST_JSON}}
+<script type="application/json" id="screen-manifest">
+{"detectionSummary": {"screenCount": 12, "clusterCount": 4, "sharedScreenCount": 2, "embeddedCount": 1, "unresolvedCount": 0}, "screens": [{"screenId": "screen-home", "screenKey": "home", "classification": "独立", "screenName": "ホーム画面", "route": "/", "detectionMethod": "routing", "confidence": "HIGH", "sharedWith": null, "embeddedIn": null, "fileCount": 5, "mainFile": "HomePage.tsx"}]}
 </script>
 
-<footer>種別別一覧スキル（generating-&lt;種別&gt;-list-for-reverse-docs）により生成。手編集は次回再生成で上書きされる。</footer>
+<footer>generating-screen-list-for-reverse-docs により生成。手編集は次回再生成で上書きされる。</footer>
 
 <script>
   (function () {
-    var manifestEl = document.getElementById('unit-manifest');
+    var manifestEl = document.getElementById('screen-manifest');
     var manifest = {};
     try { manifest = JSON.parse(manifestEl.textContent); } catch (e) { /* ignore */ }
 
-    var search = document.getElementById('unit-search');
-    var table = document.getElementById('unit-table');
+    var search = document.getElementById('screen-search');
+    var table = document.getElementById('screen-table');
     if (!table) return;
     var tbody = table.querySelector('tbody');
     var allRows = Array.prototype.slice.call(tbody.querySelectorAll('tr'));

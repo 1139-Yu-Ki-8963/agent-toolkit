@@ -140,6 +140,27 @@ FIXTURE2
   echo "PASS: --self-test ケース5（共通文書 .md → .html 変換）"
   rm -rf "$test5_dir"
 
+  echo "--- ケース6: frontmatter 付き md → html で frontmatter が本文に表示されない ---"
+  test6_dir="$(mktemp -d)"
+  test6_repo="$test6_dir/repo"
+  test6_docs="$test6_dir/docs"
+  test6_portal="$test6_dir/portal"
+  mkdir -p "$test6_repo" "$test6_docs/プロジェクト共通" "$test6_portal"
+  printf -- '---\ndoc_id: test-doc\ntype: design\nstatus: traced\n---\n# テスト見出し\n\n本文テスト。' > "$test6_docs/プロジェクト共通/fm-body-test.md"
+  "$0" "$test6_repo" "$test6_docs" "$test6_portal" 2>/dev/null
+  if grep -q 'doc_id:' "$test6_docs/プロジェクト共通/fm-body-test.html" 2>/dev/null; then
+    echo "FAIL: ケース6 — frontmatter が HTML 本文に残留" >&2
+    rm -rf "$test6_dir"
+    exit 1
+  fi
+  if ! grep -q 'テスト見出し' "$test6_docs/プロジェクト共通/fm-body-test.html" 2>/dev/null; then
+    echo "FAIL: ケース6 — 見出しが消失" >&2
+    rm -rf "$test6_dir"
+    exit 1
+  fi
+  echo "PASS: --self-test ケース6（frontmatter 除去）"
+  rm -rf "$test6_dir"
+
   exit 0
 fi
 
@@ -276,7 +297,7 @@ if [ -d "$common_dir" ]; then
     html_basename="$(basename "$md_file" .md).html"
     html_file="$(dirname "$md_file")/$html_basename"
     if [ -f "$COMMON_DOC_TEMPLATE_FILE" ]; then
-      md_content="$(cat "$md_file")"
+      md_content="$(sed -e '1s/^\xEF\xBB\xBF//' "$md_file" | awk 'NR==1 && /^---$/ {skip=1; next} skip && /^---$/ {skip=0; next} !skip')"
       local_render_args=(
         "{{DOC_TITLE}}" "$(html_escape "$title")"
       )

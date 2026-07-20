@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>技術スタック — リバース設計ポータル</title>
+<!--
+  detail-pages T3 属性表型テンプレート — リバース設計スキル群
+  生成: shared/scripts/detail-pages/build-detail-page.sh
+  プレースホルダ置換は build-detail-page.sh の render_template() が行う。
+  手作業によるプレースホルダ置換は禁止。生成は必ずスクリプト経由で行う。
+
+  保守注記: トークンブロック・テーマ切替(data-theme二重定義・rd-portal-theme)は
+  shared/templates/portal-template.html からの複製である。
+  同テンプレートの当該部分を変更した場合は本ファイルも同時更新すること
+  （T1一覧テンプレート群にも同種の複製あり。include化は別件）。
+
+  プレースホルダ(build-detail-page.shが注入。実際のマーカー記法は
+  scripts/detail-pages/build-detail-page.sh 冒頭コメントを正本とする。本コメントでは
+  二重置換事故を避けるため意図的に波括弧を外して記載する):
+    TITLE (ページ見出しマーカー)         : page-data.json の title
+    DESCRIPTION (ページ概要マーカー)     : page-data.json の description
+    GENERATED_AT (生成日時マーカー)      : page-data.json の generatedAt
+    PAGE_DATA_JSON (page-data埋め込みマーカー) : page-data.json の内容全体(本ファイル物理末尾のscriptタグへ注入)
+-->
+<style>
+:root,
+[data-theme="light"] {
+  --bg: #FAFAFA;
+  --panel: #FFFFFF;
+  --panel-2: #F0EDE3;
+  --border: #DAD5C5;
+  --border-strong: #BFB9A6;
+  --text: #1B1F26;
+  --text-sub: #4A4F58;
+  --text-muted: #767B85;
+  --accent: #3F4F8E;
+  --accent-2: #5A6BAE;
+  --accent-soft: #E6E9F3;
+  --accent-border: #BAC2DC;
+  --gold: #9B7A1F;
+  --gold-soft: #F5EFD9;
+  --gold-border: #DDC68A;
+  --success: #3F4F8E;
+  --success-soft: #E6E9F3;
+  --warn: #9B7A1F;
+  --danger: #9B3F2D;
+  --danger-soft: #F5E2DC;
+  --code-bg: #1B1F26;
+  --code-fg: #E8E5DC;
+  --font-body: "Hiragino Kaku Gothic ProN","Hiragino Sans","Noto Sans JP","BIZ UDPGothic","Yu Gothic","Meiryo",system-ui,-apple-system,sans-serif;
+  --mono: "SFMono-Regular","Menlo","Cascadia Code","Consolas",monospace;
+  --shadow-sm: 0 1px 2px rgba(27,31,38,.05), 0 1px 4px rgba(27,31,38,.04);
+  --shadow-md: 0 2px 6px rgba(27,31,38,.07), 0 8px 24px rgba(27,31,38,.06);
+  --radius: 10px;
+  --radius-sm: 6px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #15171C; --panel: #1C1F26; --panel-2: #232730;
+    --border: #353944; --border-strong: #4A4F5C;
+    --text: #E8E5DC; --text-sub: #B6B3AB; --text-muted: #888784;
+    --accent: #8FA3DB; --accent-2: #A8B8E5; --accent-soft: #2A2E47; --accent-border: #4C5680;
+    --gold: #D4B45D; --gold-soft: #3D3520; --gold-border: #7A6633;
+    --success: #8FA3DB; --success-soft: #2A2E47;
+    --warn: #D4B45D; --danger: #D4836E; --danger-soft: #3F2620;
+    --code-bg: #0E1116; --code-fg: #E8E5DC;
+  }
+}
+[data-theme="dark"] {
+  --bg: #15171C; --panel: #1C1F26; --panel-2: #232730;
+  --border: #353944; --border-strong: #4A4F5C;
+  --text: #E8E5DC; --text-sub: #B6B3AB; --text-muted: #888784;
+  --accent: #8FA3DB; --accent-2: #A8B8E5; --accent-soft: #2A2E47; --accent-border: #4C5680;
+  --gold: #D4B45D; --gold-soft: #3D3520; --gold-border: #7A6633;
+  --success: #8FA3DB; --success-soft: #2A2E47;
+  --warn: #D4B45D; --danger: #D4836E; --danger-soft: #3F2620;
+  --code-bg: #0E1116; --code-fg: #E8E5DC;
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: var(--font-body);
+  background: var(--bg); color: var(--text); line-height: 1.7; font-size: 15px;
+}
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+.dp-page { display: grid; grid-template-rows: auto 1fr auto; min-height: 100vh; }
+
+.topbar {
+  display: grid; grid-template-columns: auto 1fr auto;
+  align-items: center; gap: 24px; padding: 12px 20px;
+  background: linear-gradient(180deg, var(--panel) 0%, var(--panel-2) 100%);
+  border-bottom: 1px solid var(--border);
+  position: sticky; top: 0; z-index: 10;
+}
+.brand { display: flex; align-items: baseline; gap: 8px; color: var(--text); }
+.brand:hover { text-decoration: none; }
+.brand-icon { display: inline-flex; align-items: center; }
+.brand-title { font-weight: 700; font-size: 16px; }
+.top-actions { display: flex; align-items: center; gap: 8px; }
+.top-actions button {
+  background: var(--panel-2); border: 1px solid var(--border); border-radius: var(--radius-sm);
+  color: var(--text-sub); cursor: pointer; padding: 8px 16px; font-size: 13px; font-family: inherit;
+  display: inline-flex; align-items: center; gap: 4px;
+}
+.top-actions button:hover { background: var(--accent-soft); color: var(--accent); border-color: var(--accent-border); }
+
+/* グリッドアイテムが内容幅で親を押し広げないための対策(portal-template.htmlと同一措置) */
+.dp-main { max-width: 1280px; width: 100%; min-width: 0; margin: 0 auto; padding: 24px 24px 64px; }
+
+.doc-crumbs { font-size: 12px; color: var(--text-muted); margin-bottom: 8px; }
+.doc-crumbs a { color: var(--text-sub); cursor: pointer; }
+.doc-crumbs a:hover { color: var(--accent); }
+
+.dp-hero {
+  display: flex; align-items: flex-end; justify-content: space-between; gap: 16px;
+  padding: 4px 2px 14px; border-bottom: 1px solid var(--border); margin-bottom: 20px; flex-wrap: wrap;
+}
+.dp-hero h1 { font-size: 23px; margin: 0; }
+.dp-hero p { font-size: 12.5px; color: var(--text-muted); margin: 4px 0 0; }
+.dp-updated {
+  font-size: 12px; color: var(--text-sub); background: var(--accent-soft);
+  border: 1px solid var(--accent-border); border-radius: 999px; padding: 3px 12px; white-space: nowrap;
+}
+
+.sec-label {
+  font-size: 12px; font-weight: 700; letter-spacing: 0.04em; color: var(--text-sub);
+  display: flex; align-items: center; gap: 8px; margin: 6px 0 12px;
+}
+.sec-label::before { content: ""; width: 4px; height: 14px; background: var(--accent); border-radius: 2px; }
+
+/* 要約タイル列。min-width:0 でグリッドアイテムが内容幅で押し広げないようにする */
+.tile-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(168px, 1fr)); gap: 14px; margin-bottom: 30px; min-width: 0; }
+.tile-card {
+  background: var(--panel); border: 1px solid var(--border); min-width: 0;
+  border-radius: var(--radius); padding: 14px 16px 13px; box-shadow: var(--shadow-sm);
+}
+.tile-label { font-size: 11.5px; font-weight: 700; letter-spacing: 0.02em; color: var(--text-sub); margin-bottom: 4px; }
+.tile-value { font-size: 24px; font-weight: 800; line-height: 1.15; font-family: var(--mono); color: var(--text); overflow-wrap: break-word; }
+.tile-note { font-size: 11.5px; color: var(--text-muted); margin-top: 5px; }
+
+/* 明細表。表本体だけを横スクロールさせ、ページ本体は横スクロールさせない */
+.table-wrap { overflow-x: auto; border-radius: var(--radius); }
+table.data-table {
+  width: 100%; min-width: 480px; border-collapse: collapse; font-size: 13px;
+  background: var(--panel); border: 1px solid var(--border);
+}
+table.data-table th {
+  text-align: left; font-size: 11.5px; font-weight: 700; color: var(--text-sub);
+  background: var(--panel-2); padding: 8px 12px; border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+table.data-table td { padding: 9px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+table.data-table tr:last-child td { border-bottom: none; }
+table.data-table code {
+  background: var(--panel-2); padding: 1px 6px; border-radius: 4px;
+  font-family: var(--mono); font-size: 11.5px; color: var(--text-sub);
+  border: 1px solid var(--border);
+}
+
+.note-box {
+  font-size: 12px; color: var(--text-sub); background: var(--panel-2);
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  padding: 8px 12px; margin: 14px 0 0;
+}
+
+.footer {
+  padding: 12px 20px; border-top: 1px solid var(--border);
+  font-size: 12px; color: var(--text-muted);
+  display: flex; gap: 20px; justify-content: center;
+}
+
+@media (max-width: 760px) {
+  .topbar { grid-template-columns: 1fr; gap: 8px; padding: 10px 14px; }
+  .dp-main { padding: 14px; }
+  .tile-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+}
+@media (max-width: 560px) {
+  body { font-size: 14px; }
+  .dp-hero h1 { font-size: 20px; }
+  .dp-main { padding: 12px; }
+  .tile-grid { grid-template-columns: 1fr 1fr; }
+}
+
+.hidden { display: none !important; }
+</style>
+</head>
+<body>
+<div class="dp-page">
+  <header class="topbar">
+    <a class="brand" href="index.html">
+      <span class="brand-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:middle"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg></span>
+      <span class="brand-title">技術スタック</span>
+    </a>
+    <div></div>
+    <div class="top-actions">
+      <button id="theme-toggle" title="テーマ切替">ライト</button>
+    </div>
+  </header>
+
+  <main class="dp-main">
+    <div class="doc-crumbs"><a href="index.html">← ポータル TOP へ戻る</a></div>
+    <div class="dp-hero">
+      <div>
+        <h1>技術スタック</h1>
+        <p>言語・フレームワーク・主要依存パッケージのバージョンと採用箇所</p>
+      </div>
+      <span class="dp-updated">生成: 2026-07-20</span>
+    </div>
+
+    <div class="sec-label">要約</div>
+    <div class="tile-grid" id="tiles-mount"></div>
+
+    <div class="sec-label">明細</div>
+    <div class="table-wrap">
+      <table class="data-table" id="detail-table">
+        <thead id="detail-table-head"></thead>
+        <tbody id="detail-table-body"></tbody>
+      </table>
+    </div>
+
+    <div id="unresolved-mount"></div>
+  </main>
+
+  <footer class="footer">
+    <span>リバース設計スキル群が自動生成</span>
+  </footer>
+</div>
+
+<script type="application/json" id="page-data">
+{
+  "pageKind": "techstack",
+  "title": "技術スタック",
+  "description": "言語・フレームワーク・主要依存パッケージのバージョンと採用箇所",
+  "generatedAt": "2026-07-20",
+  "portalRelative": "../index.html",
+  "tiles": [
+    {"label": "言語", "value": "2", "note": "TypeScript + Python"},
+    {"label": "FW", "value": "2", "note": "React + FastAPI"},
+    {"label": "DB", "value": "1", "note": "PostgreSQL"}
+  ],
+  "columns": {"item": "項目", "value": "値", "sourceRef": "出所"},
+  "rows": [
+    {"item": "フロントエンド言語", "value": "TypeScript 5.4", "sourceRef": "tsconfig.json"},
+    {"item": "フロントエンド FW", "value": "React 19.0", "sourceRef": "package.json"},
+    {"item": "ビルドツール", "value": "Vite 6.0", "sourceRef": "package.json"},
+    {"item": "バックエンド言語", "value": "Python 3.11", "sourceRef": "pyproject.toml"},
+    {"item": "バックエンド FW", "value": "FastAPI 0.115", "sourceRef": "pyproject.toml"},
+    {"item": "データベース", "value": "PostgreSQL 17", "sourceRef": "docker-compose.yml"},
+    {"item": "ORM", "value": "SQLModel 0.0.22", "sourceRef": "pyproject.toml"},
+    {"item": "テストFE", "value": "Vitest 3.0", "sourceRef": "package.json"},
+    {"item": "テストBE", "value": "pytest 8.3", "sourceRef": "pyproject.toml"}
+  ],
+  "unresolved": []
+}
+</script>
+
+<script>
+(function() {
+  var data = JSON.parse(document.getElementById('page-data').textContent);
+
+  function el(tag, attrs, children) {
+    var node = document.createElement(tag);
+    if (attrs) Object.keys(attrs).forEach(function(k) {
+      if (k === 'html') node.innerHTML = attrs[k];
+      else node.setAttribute(k, attrs[k]);
+    });
+    if (children) {
+      if (!Array.isArray(children)) children = [children];
+      children.forEach(function(c) {
+        if (typeof c === 'string') node.appendChild(document.createTextNode(c));
+        else if (c) node.appendChild(c);
+      });
+    }
+    return node;
+  }
+
+  // --- 要約タイル(tiles[]) ---
+  var tilesMount = document.getElementById('tiles-mount');
+  (data.tiles || []).forEach(function(t) {
+    var card = el('div', { class: 'tile-card' });
+    card.appendChild(el('div', { class: 'tile-label' }, t.label || ''));
+    card.appendChild(el('div', { class: 'tile-value' }, String(t.value != null ? t.value : '')));
+    if (t.note) card.appendChild(el('div', { class: 'tile-note' }, t.note));
+    tilesMount.appendChild(card);
+  });
+
+  // --- 明細表(columns + rows[]) ---
+  var columns = data.columns || { item: '項目', value: '値', sourceRef: '出所' };
+  var theadRow = el('tr', null, [
+    el('th', null, columns.item || '項目'),
+    el('th', null, columns.value || '値'),
+    el('th', null, columns.sourceRef || '出所')
+  ]);
+  document.getElementById('detail-table-head').appendChild(theadRow);
+
+  var tbody = document.getElementById('detail-table-body');
+  var rows = data.rows || [];
+  if (rows.length === 0) {
+    tbody.appendChild(el('tr', null, el('td', { colspan: '3' }, 'なし')));
+  } else {
+    rows.forEach(function(r) {
+      tbody.appendChild(el('tr', null, [
+        el('td', null, String(r.item != null ? r.item : '')),
+        el('td', null, String(r.value != null ? r.value : '')),
+        el('td', null, el('code', null, String(r.sourceRef != null ? r.sourceRef : '')))
+      ]));
+    });
+  }
+
+  // --- 未解決節(unresolved[]) ---
+  var unresolvedMount = document.getElementById('unresolved-mount');
+  var unresolved = data.unresolved || [];
+  if (unresolved.length > 0) {
+    unresolvedMount.appendChild(el('div', { class: 'sec-label' }, '未解決'));
+    var box = el('div', { class: 'note-box' });
+    unresolved.forEach(function(u) {
+      var line = (u.label || '') + '（' + (u.reason || '') + '）';
+      box.appendChild(el('div', null, line));
+    });
+    unresolvedMount.appendChild(box);
+  }
+
+  var themeBtn = document.getElementById('theme-toggle');
+  themeBtn.addEventListener('click', function() {
+    var r = document.documentElement;
+    var next = r.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    r.setAttribute('data-theme', next);
+    themeBtn.textContent = next === 'dark' ? 'ダーク' : 'ライト';
+    try { localStorage.setItem('rd-portal-theme', next); } catch(e) {}
+  });
+  try {
+    var saved = localStorage.getItem('rd-portal-theme');
+    if (saved) {
+      document.documentElement.setAttribute('data-theme', saved);
+      var tb = document.getElementById('theme-toggle');
+      if (tb) tb.textContent = saved === 'dark' ? 'ダーク' : 'ライト';
+    }
+  } catch(e) {}
+})();
+</script>
+</body>
+</html>

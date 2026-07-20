@@ -39,9 +39,62 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>{{UNIT_KIND_LABEL}}一覧</title>
+<title>API一覧</title>
 <style>
-  /* TOKENS_CSS */
+  :root,
+[data-theme="light"] {
+  --bg: #FAFAFA;
+  --panel: #FFFFFF;
+  --panel-2: #F0EDE3;
+  --border: #DAD5C5;
+  --border-strong: #BFB9A6;
+  --text: #1B1F26;
+  --text-sub: #4A4F58;
+  --text-muted: #767B85;
+  --accent: #3F4F8E;
+  --accent-2: #5A6BAE;
+  --accent-soft: #E6E9F3;
+  --accent-border: #BAC2DC;
+  --gold: #9B7A1F;
+  --gold-soft: #F5EFD9;
+  --gold-border: #DDC68A;
+  --success: #3F4F8E;
+  --success-soft: #E6E9F3;
+  --warn: #9B7A1F;
+  --danger: #9B3F2D;
+  --danger-soft: #F5E2DC;
+  --code-bg: #1B1F26;
+  --code-fg: #E8E5DC;
+  --font-body: "Hiragino Kaku Gothic ProN","Hiragino Sans","Noto Sans JP","BIZ UDPGothic","Yu Gothic","Meiryo",system-ui,-apple-system,sans-serif;
+  --mono: "SFMono-Regular","Menlo","Cascadia Code","Consolas",monospace;
+  --shadow-sm: 0 1px 2px rgba(27,31,38,.05), 0 1px 4px rgba(27,31,38,.04);
+  --shadow-md: 0 2px 6px rgba(27,31,38,.07), 0 8px 24px rgba(27,31,38,.06);
+  --radius: 10px;
+  --radius-sm: 6px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #15171C; --panel: #1C1F26; --panel-2: #232730;
+    --border: #353944; --border-strong: #4A4F5C;
+    --text: #E8E5DC; --text-sub: #B6B3AB; --text-muted: #888784;
+    --accent: #8FA3DB; --accent-2: #A8B8E5; --accent-soft: #2A2E47; --accent-border: #4C5680;
+    --gold: #D4B45D; --gold-soft: #3D3520; --gold-border: #7A6633;
+    --success: #8FA3DB; --success-soft: #2A2E47;
+    --warn: #D4B45D; --danger: #D4836E; --danger-soft: #3F2620;
+    --code-bg: #0E1116; --code-fg: #E8E5DC;
+  }
+}
+[data-theme="dark"] {
+  --bg: #15171C; --panel: #1C1F26; --panel-2: #232730;
+  --border: #353944; --border-strong: #4A4F5C;
+  --text: #E8E5DC; --text-sub: #B6B3AB; --text-muted: #888784;
+  --accent: #8FA3DB; --accent-2: #A8B8E5; --accent-soft: #2A2E47; --accent-border: #4C5680;
+  --gold: #D4B45D; --gold-soft: #3D3520; --gold-border: #7A6633;
+  --success: #8FA3DB; --success-soft: #2A2E47;
+  --warn: #D4B45D; --danger: #D4836E; --danger-soft: #3F2620;
+  --code-bg: #0E1116; --code-fg: #E8E5DC;
+}
+
 
   * { box-sizing: border-box; }
   body {
@@ -95,7 +148,7 @@
   }
   table.units td, table.screens td {
     border-top: 1px solid var(--border); padding: 8px 10px; text-align: left; vertical-align: top;
-    overflow-wrap: break-word; word-break: break-all; white-space: normal;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
   table.units th {
     background: var(--panel-2); font-weight: 700; cursor: pointer; user-select: none;
@@ -107,7 +160,7 @@
   }
 
   /* 列幅の明示指定（unit-list: 9列） */
-  table.units th:nth-child(1) { width: 8%; }   /* ID */
+  table.units th:nth-child(1) { width: 7%; }   /* ID */
   table.units th:nth-child(2) { width: 12%; }  /* キー */
   table.units th:nth-child(3) { width: 7%; }   /* 区分 */
   table.units th:nth-child(4) { width: 14%; }  /* 名 */
@@ -115,7 +168,7 @@
   table.units th:nth-child(6) { width: 10%; }  /* 検出方式 */
   table.units th:nth-child(7) { width: 9%; }   /* confidence */
   table.units th:nth-child(8) { width: 8%; }   /* ファイル数 */
-  table.units th:nth-child(9) { width: 16%; }  /* 主ファイル */
+  table.units th:nth-child(9) { width: 15%; }  /* 主ファイル */
 
   /* 数値列は右揃え＋等幅数字 */
   table.units td:nth-child(7),
@@ -131,7 +184,13 @@
     font-size: 0.8em;
   }
 
-  td code { overflow-wrap: break-word; word-break: break-all; }
+  /* ホバーで全文表示 */
+  table.units td:hover, table.screens td:hover {
+    overflow: visible;
+    white-space: normal;
+    word-break: break-all;
+  }
+  td code { overflow-wrap: break-word; word-break: break-all; max-width: 300px; display: inline-block; }
   .badge { display: inline-block; font-size: 0.76rem; font-weight: 700; padding: 1px 8px; border-radius: 3px; }
   .badge.high   { background: var(--success-soft); color: var(--success); }
   .badge.medium { background: var(--gold-soft); color: var(--gold); }
@@ -164,22 +223,22 @@
 
 <header>
   <nav class="back-link" style="margin: 16px 0 0; font-size: 0.85rem;">
-    <a href="{{PORTAL_RELATIVE}}" style="color: var(--text-sub); text-decoration: none; border-bottom: 1px dotted var(--text-muted);">← ポータルへ戻る</a>
+    <a href="../../index.html" style="color: var(--text-sub); text-decoration: none; border-bottom: 1px dotted var(--text-muted);">← ポータルへ戻る</a>
   </nav>
   <div class="header-top">
-    <h1>{{UNIT_KIND_LABEL}}一覧</h1>
+    <h1>API一覧</h1>
     <button id="theme-toggle" class="theme-toggle-btn" type="button" title="テーマ切替">テーマ切替</button>
   </div>
   <table class="meta-table">
-    <tr><td>生成日時</td><td>{{GENERATED_AT}}</td></tr>
-    <tr><td>ソースディレクトリ</td><td><code>{{SOURCE_DIR}}</code></td></tr>
-    <tr><td>種別</td><td>{{UNIT_KIND_LABEL}}</td></tr>
-    <tr><td>抽出方式</td><td>{{EXTRACTION_METHOD}}</td></tr>
+    <tr><td>生成日時</td><td>2026-07-20 00:00</td></tr>
+    <tr><td>ソースディレクトリ</td><td><code>src/api</code></td></tr>
+    <tr><td>種別</td><td>API</td></tr>
+    <tr><td>抽出方式</td><td>ルーティング定義の静的解析</td></tr>
   </table>
 
   <div class="summary-tiles">
-    <div class="tile"><strong>{{UNIT_COUNT}}</strong>検出{{UNIT_KIND_LABEL}}数</div>
-    <div class="tile"><strong>{{UNRESOLVED_COUNT}}</strong>要手動確認数</div>
+    <div class="tile"><strong>28</strong>検出API数</div>
+    <div class="tile"><strong>0</strong>要手動確認数</div>
   </div>
 </header>
 
@@ -189,15 +248,15 @@
 </div>
 
 <details class="module-group" open>
-  <summary>{{UNIT_KIND_LABEL}}一覧</summary>
+  <summary>API一覧</summary>
   <div class="table-wrap">
   <table class="units" id="unit-table">
     <thead>
       <tr>
-        <th data-key="unitId">{{UNIT_KIND_LABEL}}ID</th>
-        <th data-key="unitKey">{{UNIT_KIND_LABEL}}キー</th>
+        <th data-key="unitId">APIID</th>
+        <th data-key="unitKey">APIキー</th>
         <th data-key="kind">区分</th>
-        <th data-key="unitNameGuess">{{UNIT_KIND_LABEL}}名</th>
+        <th data-key="unitNameGuess">API名</th>
         <th data-key="identifier">識別子</th>
         <th data-key="detectionMethod">検出方式</th>
         <th data-key="confidence">confidence</th>
@@ -206,7 +265,9 @@
       </tr>
     </thead>
     <tbody>
-      <!--UNIT_TABLE_ROWS-->
+      <tr><td>api-users-get</td><td>users-get</td><td>REST</td><td>ユーザー一覧取得</td><td>GET /api/users</td><td>decorator</td><td>HIGH</td><td>2</td><td>users.py</td></tr>
+<tr><td>api-auth-login</td><td>auth-login</td><td>REST</td><td>ログイン</td><td>POST /api/auth/login</td><td>decorator</td><td>HIGH</td><td>3</td><td>auth.py</td></tr>
+<tr><td>api-settings-update</td><td>settings-update</td><td>REST</td><td>設定更新</td><td>PUT /api/settings</td><td>decorator</td><td>HIGH</td><td>2</td><td>settings.py</td></tr>
     </tbody>
   </table>
   </div>
@@ -223,7 +284,7 @@
 <section class="unresolved">
   <h2>要手動確認</h2>
   <div class="table-wrap">
-  <!--UNRESOLVED_SECTION-->
+  
   </div>
 </section>
 
@@ -233,7 +294,7 @@
 </section>
 
 <script type="application/json" id="unit-manifest">
-{{MANIFEST_JSON}}
+{"detectionSummary":{"unitCount":28,"unresolvedCount":0},"units":[{"unitId":"api-users-get","unitKey":"users-get","classification":"REST","unitName":"ユーザー一覧取得","identifier":"GET /api/users","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"mainFile":"users.py"}]}
 </script>
 
 <footer>種別別一覧スキル（generating-&lt;種別&gt;-list-for-reverse-docs）により生成。手編集は次回再生成で上書きされる。</footer>
