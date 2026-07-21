@@ -1,6 +1,6 @@
 # profile-screen: screen プロファイルの抽出手順と再計数パターン
 
-`extracting-unit-facts-from-code` の `profile=screen` 専用リファレンス。Phase 2（抽出）の分類別手順と、Phase 3（独立再計数ゲート）で `scripts/recount-facts.sh` が用いる決定的パターンを1つの表に集約する。両者は同じ対象（①〜⑧の8分類。⑨は再計数の対象外）を独立に数えることで、抽出漏れを機械検知する。
+`extracting-unit-facts-from-code` の `profile=screen` 専用リファレンス。Phase 2（抽出）の分類別手順と、Phase 3（独立再計数ゲート）で `scripts/recount-facts.sh` が用いる決定的パターンを1つの表に集約する。両者は同じ対象（①〜⑧・⑩〜⑫の11分類。⑨は再計数の対象外）を独立に数えることで、抽出漏れを機械検知する。
 
 スキーマ本体（YAML構造・必須フィールド・孤児参照定義・normalize規則）は `shared/references/facts-schema.md` を正本とする。本ファイルは「どう抽出するか」「どう独立再計数するか」の手順のみを持つ。
 
@@ -17,6 +17,9 @@
 | ⑦スタイル実測値 | styled 定数のプロパティ・数値・色を1事実ずつキー化する（`style-<定数名>-<プロパティ>-<値>`） | `= styled.` を含む行数を数える |
 | ⑧API呼出 | BL呼び出し名・契機・リクエスト/レスポンス形を1事実ずつキー化する（`api-<BL名>-req`/`-res`）。await・Promiseチェーンいずれも伴わない直接呼出し（呼出し形式: レシーバ経由のドット連結 / レシーバを介さない裸の関数呼出し × 代入形式: 単純識別子への代入 / 波括弧の分割代入の2軸4パターン）も対象に含める | `await <識別子>(` パターンの出現数と `.then(` パターンの出現数を合算する（Promiseチェーン形式 `foo(...).then().catch().finally()` は起点の `.then(` 1件のみを数え、`.catch`/`.finally` は継続部として数えない）。さらに直接呼出し4パターン（呼出し形式×代入形式）を加算する |
 | ⑨実測系（再計数対象外） | 初期表示値・DOM配置順・要素位置等を断定せず一覧化のみ行う（`初期表示-件数` 等）。key・evidence のみ記録し value は書かない | 独立再計数の対象外。空欄率検査（key・evidence）と孤児参照検査のみ本セクションにも適用する |
+| ⑩local_type | 非exportの type/interface 宣言を1型=1事実ずつキー化する（宣言形式（type/interface）と全フィールド（名前・型・省略可否）をliteral列挙。フィールドは個別itemに分解しない）（`local-type-<型名>`） | 行頭が `type` または `interface` の宣言行数を数える（正規表現: `^(type|interface)[[:blank:]]`）。`export` で始まる行は②が担当するため対象外とする |
+| ⑪effect_trigger | useEffect/useLayoutEffectの呼び出しを1呼出=1事実ずつキー化する（依存配列literal・実行内容1行要約・cleanup有無を記録）（`effect-<主処理名>-<契機>`） | `(useEffect|useLayoutEffect)[[:blank:]]*\(` に一致する呼び出しの出現数を数える |
+| ⑫error_handling | throw文・catch節・window.alert等のエラー処理を1箇所=1事実ずつキー化する（メッセージliteralと処理内容。メッセージ定数は「定数キー→実文言→生成APIシグネチャ」まで含める）（`error-<文脈>-<種別>`） | `throw[[:blank:]]`・`catch[[:blank:]]*\(`・`window\.alert[[:blank:]]*\(` の出現数を合算する |
 
 ## ⑥JSX構造の採録規律（属性値・文言粒度）
 

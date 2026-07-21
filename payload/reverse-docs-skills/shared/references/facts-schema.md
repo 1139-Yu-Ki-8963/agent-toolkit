@@ -66,21 +66,48 @@ sections:
 
 `source_repo`・`target_repo_path` に記録するパスは、作業複製（worktree・一時 clone・キャッシュ展開先等）のパスではなく、主リポジトリ（起動引数として渡された正本チェックアウトの絶対パス。作業複製経由で解決した場合は `git rev-parse --show-toplevel` 等で主リポジトリの実体を辿った解決値）を記録する。作業複製は実行環境側の都合であり、下流工程・監査が参照する固有値ではないため、抽出実行が作業複製上で行われた場合でも記録するパスは主リポジトリ解決値に置き換える。
 
-## 9分類とキーの付け方
+## 12分類とキーの付け方
 
-`①`〜`⑨` の丸数字は分類記号であり連番 ID ではない（`always/naming/semantic-key` 規約の対象外。既存契約の分類記号として踏襲する）。各分類のセクションキー（YAML上の識別子）・ラベル・抽出粒度・キーの付け方は次の通り。
+`①`〜`⑫` の丸数字は分類記号であり連番 ID ではない（`always/naming/semantic-key` 規約の対象外。既存契約の分類記号として踏襲する）。各分類のセクションキー（YAML上の識別子）・ラベル・抽出粒度・キーの付け方は次の通り。
 
 | 分類記号 | セクションキー | ラベル | 抽出粒度（原本から拾う事実） | キーの付け方の例 |
 |---|---|---|---|---|
 | ① | import | import | モジュール名 + import 名（named/default/type/namespace）。副作用 import も含む | `import-react-useState`・`import-styled-components` |
-| ② | export_type | export・型 | export 名、interface/type の全フィールド（フィールド名・型・省略可否）。型宣言を伴わない export は事実欄に「型定義なし・リテラル推論型」と明記する | `export-ReportTable`・`type-ReportRow-id` |
+| ② | export_type | export・型 | export 名、interface/type の全フィールド（フィールド名・型・省略可否）。型宣言を伴わない export は事実欄に「型定義なし・リテラル推論型」と明記する。enum はメンバごとにキーを分解する | `export-ReportTable`・`type-ReportRow-id` |
 | ③ | const | 定数 | 定数名と値（リテラル・enum・as const）。オブジェクト/enum 型はフィールドごとにキーを分解する（最上位1階層のみ。フィールド値自体がオブジェクト/配列でも内部までは再帰的に分解しない）。フィールドのevidenceは当該フィールド行のfile:line | `const-MAX_ROWS-100`（スカラー）・`const-cardStyle-height`（オブジェクトのフィールド分解） |
 | ④ | state | 状態変数 | useState/useReducer/useRef/store 参照の変数名・型・初期値リテラル | `state-rows-empty` |
-| ⑤ | handler | イベントハンドラ | ハンドラ名・発火要素・処理1行要約 | `handler-onRowClick-遷移` |
+| ⑤ | handler | イベントハンドラ | ハンドラ名・発火要素・処理1行要約。関数宣言単位（1宣言=1item）。全ての関数本体を全文literalで含める | `handler-onRowClick-遷移` |
 | ⑥ | jsx | JSX構造 | コンポーネントのネスト構造。全文字列リテラル・全propsの具体値・className・見出しレベル等の具体粒度は references/profile-screen.md の「⑥JSX構造の採録規律」を正本とする。条件分岐（早期return・三項演算子・&&）で複数パスが生成される場合、パスごとのルート要素を独立キーで採録する（jsx-path-<パス識別子>-<ルート要素名>） | `jsx-Table-Row-Cell`（ネスト）・`jsx-path-loading-div`（パス別ルート） |
-| ⑦ | style | スタイル実測値 | styled 定数名と数値・色（実測値。DESIGN.md が正） | `style-Wrapper-padding-16` |
+| ⑦ | style | スタイル実測値 | styled 定数名と数値・色（実測値。DESIGN.md が正）。inline sx（`sx={{`）も style として計上する | `style-Wrapper-padding-16` |
 | ⑧ | api | API呼出 | BL 名・契機・リクエスト/レスポンス形 | `api-fetchReport-req` |
 | ⑨ | measurement_pending | 実測系（実測委譲・転記対象外） | 初期表示値・DOM配置順・要素位置・レイアウト。断定せず一覧化のみ | `初期表示-件数` |
+
+### ⑩ local_type
+
+非exportの type / interface 宣言。1型=1item。
+
+- **セクションキー**: `local_type`
+- **key規約**: `local-type-<型名>`
+- **value**: 宣言形式（type/interface）と全フィールド（名前・型・省略可否）をliteral列挙。フィールドは個別itemに分解しない
+- **recount計数**: 行頭が `type` または `interface` の宣言行数（`export` で始まる行は②が担当し対象外）
+
+### ⑪ effect_trigger
+
+useEffect / useLayoutEffect の呼び出し。1呼出=1item。
+
+- **セクションキー**: `effect_trigger`
+- **key規約**: `effect-<主処理名>-<契機>`
+- **value**: 依存配列literal・実行内容1行要約・cleanup有無
+- **recount計数**: `useEffect` または `useLayoutEffect` の呼び出し出現数
+
+### ⑫ error_handling
+
+throw文・catch節・window.alert等のエラー処理。1箇所=1item。
+
+- **セクションキー**: `error_handling`
+- **key規約**: `error-<文脈>-<種別>`
+- **value**: メッセージliteralと処理内容。メッセージ定数は「定数キー→実文言→生成APIシグネチャ」まで含める。GraphQLエラー参照パス・文字列加工もliteral
+- **recount計数**: throw + catch + window.alert の出現数合算
 
 各分類は「該当なし」を許容する。その場合 `items: []` とし `reason` に根拠を記す（例: `"該当なし（原本にトップレベル定数が存在しない）"`）。`items` が空で `reason` も空のセクションは不正（Phase 2 の完了条件違反）。
 

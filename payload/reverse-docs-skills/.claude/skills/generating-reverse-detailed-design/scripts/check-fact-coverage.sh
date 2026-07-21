@@ -82,6 +82,13 @@ strip_coordinate_noise() {
   printf '%s' "$1" | sed -E 's#[A-Za-z0-9_./-]+\.(tsx|ts|jsx|js|css):[0-9]+##g'
 }
 
+# facts.yml の複数行literal（value内の改行保持形式）が `\n`（バックスラッシュ+nの2文字）
+# エスケープとして保存されている場合、トークン抽出時にこれを跨いで前後の識別子が連結し
+# 「nfoo.bar」のような存在しない偽トークンが生成される。空白へ置換して連結を断つ。
+strip_newline_escapes() {
+  printf '%s' "$1" | sed -E 's/\\n/ /g'
+}
+
 # コード的トークン（`obj.prop` 形式のドット付き識別子、または2桁以上の数値）を抽出する。
 extract_value_tokens() {
   printf '%s' "$1" | grep -oE '[A-Za-z_$][A-Za-z0-9_$]*\.[A-Za-z_$][A-Za-z0-9_$]*|[0-9]{2,}' || true
@@ -142,6 +149,7 @@ run_check() {
     esac
     if [ -n "$value" ]; then
       cleaned_value="$(strip_coordinate_noise "$value")"
+      cleaned_value="$(strip_newline_escapes "$cleaned_value")"
       tokens="$(extract_value_tokens "$cleaned_value")"
       if [ -n "$tokens" ]; then
         while IFS= read -r token; do
@@ -469,6 +477,39 @@ MD
     echo "  [PASS] 座標ノイズ除去: Foo.tsx:12 断片を要求せず exit 0"
   else
     echo "  [FAIL] 座標ノイズ除去: 座標断片をトークンとして誤要求し非0で終了した" >&2
+    rc=1
+  fi
+
+  # \n エスケープ除去フィクスチャ: value が複数行literalの改行保持形式（`\n`エスケープ、
+  # バックスラッシュ+nの2文字）を含む場合、\n を跨いで前後の識別子が連結し
+  # 「nfoo.bar」のような存在しない偽トークンが抽出されるバグが無いことを確認する。
+  # store.save と foo.bar が個別に転記済みであれば exit 0 になり、偽トークン
+  # 「nfoo.bar」は要求されない。
+  cat > "$tmp/facts-newline-escape.yml" <<'YML'
+run_id: extract-1
+profile: screen
+target_repo_path: /abs/path/to/repo
+target_file_paths:
+  - src/screens/Foo/Foo.tsx
+sections:
+  handler:
+    reason: ""
+    items:
+      - key: handler-store-save
+        value: "store.save\nfoo.bar"
+        evidence: "src/screens/Foo/Foo.tsx:40"
+YML
+
+  cat > "$tmp/design-newline-escape.md" <<'MD'
+# 画面詳細設計書
+## §5 イベントハンドラ
+handler-store-save は store.save と foo.bar を呼び出す。
+MD
+
+  if run_check "$tmp/facts-newline-escape.yml" "$tmp/design-newline-escape.md" >/dev/null 2>&1; then
+    echo "  [PASS] \\n エスケープ除去: store.save/foo.bar 転記済み・偽トークン nfoo.bar 非要求で exit 0"
+  else
+    echo "  [FAIL] \\n エスケープ除去: 偽トークン nfoo.bar を要求し非0で終了した" >&2
     rc=1
   fi
 

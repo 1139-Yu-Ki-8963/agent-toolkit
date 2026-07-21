@@ -658,6 +658,7 @@ extract_table_column() {
       n = split($0, cols, "|")
       v = cols[col+1]
       gsub(/^[ \t]+|[ \t]+$/, "", v)
+      gsub(/\x60/, "", v)
       if (v != "" && v !~ /^-+$/) print v
     }
   '
@@ -1409,7 +1410,14 @@ RAW_PLACEHOLDER_FILES="$DESIGN_DOC"
 
 # 唯一の許容表記は「実測委譲（画面単位検証で確定）」（writing-rules.md「実測委譲の書式」参照）。
 # 根拠の丸括弧を伴わない生の実測委譲・その他語彙はすべて違反とする。
-RAW_PLACEHOLDER_LINES="$(grep -nE '実測委譲|TBD|TODO|未定|FIXME|PLACEHOLDER' $RAW_PLACEHOLDER_FILES 2>/dev/null | grep -v '実測委譲（画面単位検証で確定）' || true)"
+RAW_PLACEHOLDER_LINES="$(awk '
+  FNR==1 { in_fence=0 }
+  /^```/ { in_fence=!in_fence; next }
+  in_fence { next }
+  /<!-- fact:/ { next }
+  /実測委譲（画面単位検証で確定）/ { next }
+  /実測委譲|TBD|TODO|未定|FIXME|PLACEHOLDER/ { print FILENAME":"FNR":"$0 }
+' $RAW_PLACEHOLDER_FILES 2>/dev/null || true)"
 if [ -n "$RAW_PLACEHOLDER_LINES" ]; then
   echo "  違反: 根拠のないプレースホルダ文字列が見つかりました（唯一の許容表記は「実測委譲（画面単位検証で確定）」）:" >&2
   printf '%s\n' "$RAW_PLACEHOLDER_LINES" >&2

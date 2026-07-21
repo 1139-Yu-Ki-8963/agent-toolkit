@@ -52,7 +52,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-ALL_SECTIONS="import export_type const state handler jsx style api measurement_pending"
+ALL_SECTIONS="import export_type const state handler jsx style api measurement_pending local_type effect_trigger error_handling"
 
 have_yq() { command -v yq >/dev/null 2>&1; }
 have_pyyaml() { command -v python3 >/dev/null 2>&1 && python3 -c 'import yaml' >/dev/null 2>&1; }
@@ -110,7 +110,7 @@ extract_items() { # $1=facts.yml $2=対象セクション名 -> key\x01value\x01
   ' "$1"
 }
 
-# 全9分類のアイテム総数（facts全キー突合の基準値）
+# 全12分類のアイテム総数（facts全キー突合の基準値）
 total_fact_items() { # $1=facts.yml
   local total=0 sec n
   for sec in $ALL_SECTIONS; do
@@ -147,8 +147,15 @@ insert_table_rows() { # $1=infile $2=anchor(ERE) $3=rows_file $4=outfile
       }
       if (state == 2) {
         if (nrows > 0) { for (i = 1; i <= nrows; i++) print rows[i] }
-        else print
         state = 3
+      }
+      if (state == 3) {
+        if ($0 ~ /^\|/) {
+          if (nrows == 0 && $0 ~ /<[^>]+>/) print
+          next
+        }
+        state = 4
+        print
         next
       }
       print
@@ -215,7 +222,7 @@ build_rows_import() {
     name="$(key_token "$key" 2)"; [ -z "$name" ] && name="$(mk_marker 15 モジュール)"
     content="$value"; [ -z "$content" ] && content="$(mk_marker 15 import内容)"
     kind="$(mk_marker 15 種別)"
-    printf '| `%s` | %s | %s |\n' "$(esc_cell "$name")" "$(esc_cell "$content")" "$kind"
+    printf '| `%s` | %s | %s | <!-- fact:%s -->\n' "$(esc_cell "$name")" "$(esc_cell "$content")" "$kind" "$key"
   done < <(extract_items "$1" import)
 }
 
@@ -231,7 +238,7 @@ build_rows_export_file() { # §15.1（export-* キー。type-* 以外すべて�
     kind="$(mk_marker 15 種別)"
     shape="$(mk_marker 15 実体形状)"
     dir="$(mk_marker 15 配置ディレクトリ)"
-    printf '| `%s` | `%s` | %s | %s | %s |\n' "$(esc_cell "$filepath")" "$(esc_cell "$ename")" "$kind" "$shape" "$dir"
+    printf '| %s | %s | %s | %s | %s | <!-- fact:%s -->\n' "$(esc_cell "$filepath")" "$(esc_cell "$ename")" "$kind" "$shape" "$dir" "$key"
   done < <(extract_items "$1" export_type)
 }
 
@@ -247,7 +254,7 @@ build_rows_export_type() { # §15.2（type-* キーのみ）
     fname="$(key_token "$key" 3)"; [ -z "$fname" ] && fname="$(mk_marker 15 フィールド名)"
     ftype="$value"; [ -z "$ftype" ] && ftype="$(mk_marker 15 型)"
     req="$(mk_marker 15 必須任意)"
-    printf '| `%s` | `%s` | %s | %s |\n' "$(esc_cell "$tname")" "$(esc_cell "$fname")" "$(esc_cell "$ftype")" "$req"
+    printf '| `%s` | `%s` | %s | %s | <!-- fact:%s -->\n' "$(esc_cell "$tname")" "$(esc_cell "$fname")" "$(esc_cell "$ftype")" "$req" "$key"
   done < <(extract_items "$1" export_type)
 }
 
@@ -259,7 +266,7 @@ build_rows_const() {
     val="$value"; [ -z "$val" ] && val="$(mk_marker 10 値)"
     [ -n "$evidence" ] && val="${val}（${evidence}）"
     usage="$(mk_marker 10 用途)"
-    printf '| `%s` | %s | %s |\n' "$(esc_cell "$name")" "$(esc_cell "$val")" "$usage"
+    printf '| `%s` | %s | %s | <!-- fact:%s -->\n' "$(esc_cell "$name")" "$(esc_cell "$val")" "$usage" "$key"
   done < <(extract_items "$1" const)
 }
 
@@ -271,7 +278,7 @@ build_rows_state() {
     type_col="$(mk_marker 5 型)"
     init="$value"; [ -z "$init" ] && init="$(mk_marker 5 初期値)"
     role="$(mk_marker 5 役割)"
-    printf '| `%s` | %s | %s | %s |\n' "$(esc_cell "$name")" "$type_col" "$(esc_cell "$init")" "$role"
+    printf '| `%s` | %s | %s | %s | <!-- fact:%s -->\n' "$(esc_cell "$name")" "$type_col" "$(esc_cell "$init")" "$role" "$key"
   done < <(extract_items "$1" state)
 }
 
@@ -282,7 +289,7 @@ build_rows_handler() {
     name="$(key_token "$key" 2)"; [ -z "$name" ] && name="$key"
     trigger="$(mk_marker 8 発火要素)"
     summary="$value"; [ -z "$summary" ] && summary="$(mk_marker 8 処理概要)"
-    printf '| `%s` | %s | %s |\n' "$(esc_cell "$name")" "$trigger" "$(esc_cell "$summary")"
+    printf '| `%s` | %s | %s | <!-- fact:%s -->\n' "$(esc_cell "$name")" "$trigger" "$(esc_cell "$summary")" "$key"
   done < <(extract_items "$1" handler)
 }
 
@@ -291,7 +298,7 @@ build_rows_jsx() { # §3.2 DOM配置順序（リスト本文のみ。連番はin
     [ -z "$key" ] && continue
     local purpose
     purpose="$value"; [ -z "$purpose" ] && purpose="$(mk_marker 3 目的)"
-    printf '`%s` — %s\n' "$(esc_cell "$key")" "$(esc_cell "$purpose")"
+    printf '`%s` — %s <!-- fact:%s -->\n' "$(esc_cell "$key")" "$(esc_cell "$purpose")" "$key"
   done < <(extract_items "$1" jsx)
 }
 
@@ -303,7 +310,7 @@ build_rows_style() {
     pattern="$(mk_marker 3 適用パターン)"
     ref="DESIGN.md > ${key}"
     [ -n "$value" ] && ref="${ref}（実測値: ${value}）"
-    printf '| `%s` | %s | %s |\n' "$(esc_cell "$area")" "$pattern" "$(esc_cell "$ref")"
+    printf '| `%s` | %s | %s | <!-- fact:%s -->\n' "$(esc_cell "$area")" "$pattern" "$(esc_cell "$ref")" "$key"
   done < <(extract_items "$1" style)
 }
 
@@ -316,7 +323,7 @@ build_rows_api() {
     method="$(mk_marker 7 メソッド)"
     endpoint="$(mk_marker 7 エンドポイント)"
     trigger="$value"; [ -z "$trigger" ] && trigger="$(mk_marker 7 呼び出し契機)"
-    printf '| %s | `%s` | %s | %s | %s |\n' "$no_col" "$(esc_cell "$name")" "$method" "$endpoint" "$(esc_cell "$trigger")"
+    printf '| %s | `%s` | %s | %s | %s | <!-- fact:%s -->\n' "$no_col" "$(esc_cell "$name")" "$method" "$endpoint" "$(esc_cell "$trigger")" "$key"
   done < <(extract_items "$1" api)
 }
 
@@ -329,7 +336,7 @@ build_rows_measurement_pending() { # §16
     content="実測委譲（画面単位検証で確定）"
     pending_ch="$(mk_marker 16 暫定扱いにしている§)"
     resolve="$(mk_marker 16 解消条件)"
-    printf '| `%s` | %s | %s | %s | %s | 未解消 |\n' "$(esc_cell "$kcol")" "$filed" "$content" "$pending_ch" "$resolve"
+    printf '| `%s` | %s | %s | %s | %s | 未解消 | <!-- fact:%s -->\n' "$(esc_cell "$kcol")" "$filed" "$content" "$pending_ch" "$resolve" "$key"
   done < <(extract_items "$1" measurement_pending)
 }
 
@@ -342,7 +349,7 @@ build_rows_dataflow_trigger() { # §6.4
     kind="$(mk_marker 6 種別)"
     summary="$(mk_marker 6 処理概要)"
     [ -n "$evidence" ] && summary="${summary}（evidence: ${evidence}）"
-    printf '| `%s` | %s | %s |\n' "$(esc_cell "$name")" "$kind" "$(esc_cell "$summary")"
+    printf '| `%s` | %s | %s | <!-- fact:%s -->\n' "$(esc_cell "$name")" "$kind" "$(esc_cell "$summary")" "$key"
   done < <(extract_items "$1" handler)
 }
 
@@ -355,8 +362,51 @@ build_rows_transition_list() { # §12.1
     cond="$(mk_marker 12 条件)"
     param="$(mk_marker 12 パラメータ)"
     [ -n "$evidence" ] && param="${param}（evidence: ${evidence}）"
-    printf '| %s | %s | %s | %s |\n' "$dest" "$method" "$(esc_cell "$cond")" "$(esc_cell "$param")"
+    printf '| %s | %s | %s | %s | <!-- fact:%s -->\n' "$dest" "$method" "$(esc_cell "$cond")" "$(esc_cell "$param")" "$key"
   done < <(extract_items "$1" handler)
+}
+
+# 新3分類（⑩⑪⑫）: local_type/effect_trigger/error_handling は key 命名規約から
+# 名前・文脈を復元し、value は最も適合する単一カラムへそのまま転記する（他分類と同じ設計方針）。
+
+build_rows_local_type() { # §15.2（type-*以外のローカル型定義。key: local-type-<型名>）
+  while IFS=$'\x01' read -r key value evidence; do
+    [ -z "$key" ] && continue
+    local tname decl_kind fields
+    tname="$(key_token "$key" 3)"; [ -z "$tname" ] && tname="$(mk_marker 15 型名)"
+    case "$value" in
+      interface*) decl_kind="interface" ;;
+      type*) decl_kind="type" ;;
+      *) decl_kind="$(mk_marker 15 宣言形式)" ;;
+    esac
+    fields="$value"; [ -z "$fields" ] && fields="$(mk_marker 15 フィールド一覧)"
+    printf '| `%s` | %s | %s | <!-- fact:%s -->\n' "$(esc_cell "$tname")" "$decl_kind" "$(esc_cell "$fields")" "$key"
+  done < <(extract_items "$1" local_type)
+}
+
+build_rows_effect_trigger() { # §6.4（key: effect-<主処理名>-<契機>）
+  while IFS=$'\x01' read -r key value evidence; do
+    [ -z "$key" ] && continue
+    local name deps cleanup
+    name="$(key_token "$key" 2)"; [ -z "$name" ] && name="$key"
+    deps="$value"; [ -z "$deps" ] && deps="$(mk_marker 6 依存配列)"
+    case "$value" in
+      *cleanup*|*クリーンアップ*) cleanup="あり" ;;
+      *) cleanup="$(mk_marker 6 cleanup有無)" ;;
+    esac
+    printf '| `%s` | %s | %s | <!-- fact:%s -->\n' "$(esc_cell "$name")" "$(esc_cell "$deps")" "$cleanup" "$key"
+  done < <(extract_items "$1" effect_trigger)
+}
+
+build_rows_error_handling() { # §11.2（key: error-<文脈>-<種別>）
+  while IFS=$'\x01' read -r key value evidence; do
+    [ -z "$key" ] && continue
+    local ctx msg action
+    ctx="$(key_token "$key" 2)"; [ -z "$ctx" ] && ctx="$key"
+    msg="$value"; [ -z "$msg" ] && msg="$(mk_marker 11 メッセージ)"
+    action="$(mk_marker 11 処理内容)"
+    printf '| `%s` | %s | %s | <!-- fact:%s -->\n' "$(esc_cell "$ctx")" "$(esc_cell "$msg")" "$action" "$key"
+  done < <(extract_items "$1" error_handling)
 }
 
 # ---- Pass1: 転記 ----
@@ -377,10 +427,19 @@ pass1_insert() { # $1=facts.yml $2=in_md $3=out_md $4=workdir
   build_rows_measurement_pending "$facts" > "$workdir/rows_mp.txt"
   build_rows_dataflow_trigger "$facts" > "$workdir/rows_dataflow.txt"
   build_rows_transition_list "$facts" > "$workdir/rows_transition.txt"
+  build_rows_local_type "$facts" > "$workdir/rows_local_type.txt"
+  build_rows_effect_trigger "$facts" > "$workdir/rows_effect_trigger.txt"
+  build_rows_error_handling "$facts" > "$workdir/rows_error_handling.txt"
+
+  # §15.2・§6.4 は既存分類（export_type / handler由来dataflow_trigger）と新分類が同一アンカーへ
+  # 転記するため、insert_table_rows呼び出しを1アンカー1回に保つ目的で事前に結合する
+  # （2回呼ぶと2回目が1回目の挿入行を上書き消去してしまうため）。
+  cat "$workdir/rows_export_type.txt" "$workdir/rows_local_type.txt" > "$workdir/rows_type_combined.txt"
+  cat "$workdir/rows_dataflow.txt" "$workdir/rows_effect_trigger.txt" > "$workdir/rows_dataflow_combined.txt"
 
   nxt="$workdir/step01.md"; insert_table_rows "$cur" '^### 15\.3 依存' "$workdir/rows_import.txt" "$nxt"; cur="$nxt"
   nxt="$workdir/step02.md"; insert_table_rows "$cur" '^### 15\.1 ファイル分割' "$workdir/rows_export_file.txt" "$nxt"; cur="$nxt"
-  nxt="$workdir/step03.md"; insert_table_rows "$cur" '^### 15\.2 型定義' "$workdir/rows_export_type.txt" "$nxt"; cur="$nxt"
+  nxt="$workdir/step03.md"; insert_table_rows "$cur" '^### 15\.2 型定義' "$workdir/rows_type_combined.txt" "$nxt"; cur="$nxt"
   nxt="$workdir/step04.md"; insert_table_rows "$cur" '^### 10\.1 文字列定数' "$workdir/rows_const.txt" "$nxt"; cur="$nxt"
   nxt="$workdir/step05.md"; insert_table_rows "$cur" '^### 5\.3 メイン画面の状態変数' "$workdir/rows_state.txt" "$nxt"; cur="$nxt"
   nxt="$workdir/step06.md"; insert_table_rows "$cur" '^### 8\.1 メイン画面イベント' "$workdir/rows_handler.txt" "$nxt"; cur="$nxt"
@@ -388,8 +447,9 @@ pass1_insert() { # $1=facts.yml $2=in_md $3=out_md $4=workdir
   nxt="$workdir/step08.md"; insert_table_rows "$cur" '^### 3\.6 スタイル適用パターン' "$workdir/rows_style.txt" "$nxt"; cur="$nxt"
   nxt="$workdir/step09.md"; insert_table_rows "$cur" '^### 7\.1 API' "$workdir/rows_api.txt" "$nxt"; cur="$nxt"
   nxt="$workdir/step10.md"; insert_table_rows "$cur" '^## §16' "$workdir/rows_mp.txt" "$nxt"; cur="$nxt"
-  nxt="$workdir/step11.md"; insert_table_rows "$cur" '^### 6\.4 データ更新トリガーの分類' "$workdir/rows_dataflow.txt" "$nxt"; cur="$nxt"
+  nxt="$workdir/step11.md"; insert_table_rows "$cur" '^### 6\.4 データ更新トリガーの分類' "$workdir/rows_dataflow_combined.txt" "$nxt"; cur="$nxt"
   nxt="$workdir/step12.md"; insert_table_rows "$cur" '^### 12\.1 遷移先一覧' "$workdir/rows_transition.txt" "$nxt"; cur="$nxt"
+  nxt="$workdir/step13.md"; insert_table_rows "$cur" '^### 11\.2 エラーメッセージ' "$workdir/rows_error_handling.txt" "$nxt"; cur="$nxt"
 
   cp "$cur" "$out_md"
 }
@@ -509,7 +569,7 @@ main() {
   local total_facts rows_total remaining n
   total_facts="$(total_fact_items "$facts")"
   rows_total=0
-  for f in rows_import rows_const rows_state rows_handler rows_jsx rows_style rows_api rows_mp; do
+  for f in rows_import rows_const rows_state rows_handler rows_jsx rows_style rows_api rows_mp rows_local_type rows_effect_trigger rows_error_handling; do
     n="$(grep -c . "$workdir/${f}.txt" 2>/dev/null || true)"; [ -z "$n" ] && n=0
     rows_total=$((rows_total + n))
   done
@@ -612,6 +672,24 @@ sections:
     items:
       - key: 初期表示-件数
         evidence: "src/screens/Foo/Foo.tsx:24"
+  local_type:
+    reason: ""
+    items:
+      - key: local-type-RowState
+        value: "type宣言。フィールド: id: string（必須）, selected: boolean（必須）"
+        evidence: "src/screens/Foo/Foo.tsx:6"
+  effect_trigger:
+    reason: ""
+    items:
+      - key: effect-syncRows-rows変更時
+        value: "依存配列: [rows]。rows変更時に選択状態をクリアする。cleanupなし"
+        evidence: "src/screens/Foo/Foo.tsx:10"
+  error_handling:
+    reason: ""
+    items:
+      - key: error-fetchReport-catch
+        value: "「レポートの取得に失敗しました」を表示してリトライボタンを出す"
+        evidence: "src/screens/Foo/Foo.tsx:22"
 YML
 
   if bash "$SCRIPT_DIR/prefill-design-from-facts.sh" "$facts" "$design_md" > "$tmp/summary.json" 2> "$tmp/stderr.log"; then
@@ -630,10 +708,11 @@ YML
   }
 
   # 陽性: 各分類が対応章の表へ転記されること
-  if extract_section "$design_md" '^### 5\.3' | grep -q '初期値は空配列'; then
-    echo "  [PASS] 陽性: state が §5.3 の表へ転記された"
+  if extract_section "$design_md" '^### 5\.3' | grep -q '初期値は空配列' \
+    && extract_section "$design_md" '^### 5\.3' | grep -q '<!-- fact:state-rows-empty -->'; then
+    echo "  [PASS] 陽性: state が §5.3 の表へfactキー付きで転記された"
   else
-    echo "  [FAIL] 陽性: state が §5.3 の表へ転記されていない" >&2
+    echo "  [FAIL] 陽性: state が §5.3 の表へfactキー付きで転記されていない" >&2
     rc=1
   fi
 
@@ -671,6 +750,30 @@ YML
     echo "  [PASS] 陽性: measurement_pending が §16 へ固定書式で計上された"
   else
     echo "  [FAIL] 陽性: measurement_pending が §16 へ正しく計上されていない" >&2
+    rc=1
+  fi
+
+  if extract_section "$design_md" '^### 15\.2' | grep -q 'RowState' \
+    && extract_section "$design_md" '^### 15\.2' | grep -q '<!-- fact:local-type-RowState -->'; then
+    echo "  [PASS] 陽性: local_type が §15.2 の表へ転記された"
+  else
+    echo "  [FAIL] 陽性: local_type が §15.2 の表へ転記されていない" >&2
+    rc=1
+  fi
+
+  if extract_section "$design_md" '^### 6\.4' | grep -q '選択状態をクリアする' \
+    && extract_section "$design_md" '^### 6\.4' | grep -q '<!-- fact:effect-syncRows-rows変更時 -->'; then
+    echo "  [PASS] 陽性: effect_trigger が §6.4 の表へ転記された"
+  else
+    echo "  [FAIL] 陽性: effect_trigger が §6.4 の表へ転記されていない" >&2
+    rc=1
+  fi
+
+  if extract_section "$design_md" '^### 11\.2' | grep -q 'レポートの取得に失敗しました' \
+    && extract_section "$design_md" '^### 11\.2' | grep -q '<!-- fact:error-fetchReport-catch -->'; then
+    echo "  [PASS] 陽性: error_handling が §11.2 の表へ転記された"
+  else
+    echo "  [FAIL] 陽性: error_handling が §11.2 の表へ転記されていない" >&2
     rc=1
   fi
 

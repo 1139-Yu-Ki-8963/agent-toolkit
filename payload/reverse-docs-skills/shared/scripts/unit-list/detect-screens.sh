@@ -2040,6 +2040,48 @@ extract_screen_id() {
   printf '%s' "$base" | grep -oE "$SCREEN_ID_REGEX" | head -1 || true
 }
 
+# 画面の階層分類を判定する
+classify_screen() {
+  local screen_key="$1" entry_file="$2" detection_method="$3"
+  local screen_type="unknown" account_group="unknown" account_sub_type="common"
+  local has_template="false" is_processing_endpoint="false"
+
+  # Level 1: システムアカウント種別(detectionMethodのconfグループから判定)
+  case "$detection_method" in
+    *WWW2_PAGE*|*www2*) account_group="user" ;;
+    *OPE_PAGE*|*ope*|*OPE2*) account_group="admin" ;;
+    *EDT*|*edt*) account_group="editor" ;;
+    *WWW_PAGE*|*www*) account_group="report" ;;
+    *MAIN*|*main*) account_group="feature_phone" ;;
+  esac
+
+  # Level 3: 画面種別(entryFileのパスとファイル名パターンから推定)
+  local basename_lower
+  basename_lower="$(basename "$entry_file" 2>/dev/null | tr '[:upper:]' '[:lower:]')"
+  case "$basename_lower" in
+    *list*|*index*|*search*) screen_type="list" ;;
+    *detail*|*show*|*view*) screen_type="detail" ;;
+    *edit*|*form*|*input*|*new*|*create*|*update*) screen_type="form" ;;
+    *confirm*) screen_type="confirm" ;;
+    *complete*|*done*|*finish*) screen_type="complete" ;;
+    *error*|*404*|*500*) screen_type="error" ;;
+    *top*|*home*|*dashboard*) screen_type="top" ;;
+  esac
+
+  # hasTemplate: テンプレートファイルの存在推定(entryFileの拡張子がhtml等)
+  case "$entry_file" in
+    *.html|*.htm|*.tt|*.tx) has_template="true" ;;
+  esac
+
+  # isProcessingEndpoint: テンプレートなし+リダイレクト/処理のみのハンドラ
+  if [ "$has_template" = "false" ] && [ "$screen_type" = "unknown" ]; then
+    is_processing_endpoint="true"
+    screen_type="processing_endpoint"
+  fi
+
+  printf '%s\t%s\t%s\t%s\t%s' "$screen_type" "$account_group" "$account_sub_type" "$has_template" "$is_processing_endpoint"
+}
+
 # --- 既に route 画面の entryFile として検出済みの basename(拡張子なし)集合 ---
 ROUTE_ENTRY_BASENAMES="$(awk -F'\t' '$2=="route"{n=$5; sub(/.*\//,"",n); sub(/\.[^.]*$/,"",n); if (n!="") print n}' "$TMP_KEYED" | sort -u)"
 
@@ -2313,6 +2355,9 @@ awk -F'\t' '$5!=""{print $5}' "$TMP_ALL" | sort -u > "$STRATEGY_ALL_ENTRIES_FILE
       detection_method_field="embedded-view-heuristic"
     fi
 
+    IFS=$'\t' read -r classify_screen_type classify_account_group classify_account_sub_type classify_has_template classify_is_processing_endpoint \
+      <<< "$(classify_screen "$key" "$entry_file" "$detection_method_field")"
+
     [ "$first" -eq 1 ] || printf ',\n'
     first=0
     printf '    {\n'
@@ -2333,7 +2378,14 @@ awk -F'\t' '$5!=""{print $5}' "$TMP_ALL" | sort -u > "$STRATEGY_ALL_ENTRIES_FILE
     printf '      "sharedWith": %s,\n' "$shared_with_json"
     printf '      "clusterId": %s,\n' "$cluster_id_json"
     printf '      "embeddedIn": %s,\n' "$embedded_in_json"
-    printf '      "routeDupCount": %d\n' "$dupcount"
+    printf '      "routeDupCount": %d,\n' "$dupcount"
+    printf '      "screenType": "%s",\n' "$(json_escape "$classify_screen_type")"
+    printf '      "accountGroup": "%s",\n' "$(json_escape "$classify_account_group")"
+    printf '      "accountSubType": "%s",\n' "$(json_escape "$classify_account_sub_type")"
+    printf '      "hasTemplate": %s,\n' "$classify_has_template"
+    printf '      "isProcessingEndpoint": %s,\n' "$classify_is_processing_endpoint"
+    printf '      "parentScreen": null,\n'
+    printf '      "childComponents": []\n'
     printf '    }'
   done < "$TMP_ALL"
   printf '\n  ]\n'

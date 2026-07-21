@@ -33,8 +33,8 @@ DEVIATION_THRESHOLD_NUM=5
 DEVIATION_THRESHOLD_DEN=100
 BLANK_RATE_THRESHOLD_NUM=30
 BLANK_RATE_THRESHOLD_DEN=100
-SECTIONS="import export_type const state handler jsx style api"
-ALL_SECTIONS="import export_type const state handler jsx style api measurement_pending"
+SECTIONS="import export_type const state handler jsx style api local_type effect_trigger error_handling"
+ALL_SECTIONS="import export_type const state handler jsx style api measurement_pending local_type effect_trigger error_handling"
 
 # ---- コード側の分類別独立再計数（facts.yml を読まない） ----
 #
@@ -99,6 +99,9 @@ count_export_type() {
     /^(export[ \t]+)?(interface|type)[ \t]+[A-Za-z_][A-Za-z0-9_]*.*\{[ \t]*$/ { intype=1; next }
     intype && /^[ \t]*\}[ \t]*;?[ \t]*$/ { intype=0; next }
     intype && /^[ \t]*[A-Za-z_][A-Za-z0-9_]*\??:[ \t]*[^ \t]/ { count++ }
+    /^export[ \t]+enum[ \t]/ { inenum=1; next }
+    inenum && /^}/ { inenum=0; next }
+    inenum && /^[ \t]*[A-Za-z_]/ { count++ }
     END { print count+0 }
   ' "$1"
 }
@@ -282,7 +285,11 @@ count_state() {
 }
 
 count_handler() {
-  { grep -oE '(^|[^A-Za-z0-9_])on[A-Z][A-Za-z0-9]*=\{' "$1" | wc -l | tr -d ' '; } || true
+  awk '
+    /^function[ \t]+[a-z]/ { count++ }
+    /^const[ \t]+[a-z][A-Za-z0-9_]*[ \t]*=[ \t]*(async[ \t]+)?\(/ && /\)[ \t]*=>/ { count++ }
+    END { print count+0 }
+  ' "$1"
 }
 
 # JSX開始タグは属性を複数行に折り返すと `<Header` の直後が改行になり、従来の
@@ -311,7 +318,29 @@ count_jsx() {
 }
 
 count_style() {
-  { grep -cE '=[ \t]*styled\.' "$1" || true; }
+  local styled_count sx_count
+  styled_count="$(grep -cE '=[ \t]*styled\.' "$1" 2>/dev/null || true)"
+  sx_count="$(grep -cE 'sx=\{\{' "$1" 2>/dev/null || true)"
+  echo $(( styled_count + sx_count ))
+}
+
+count_local_type() {
+  awk '
+    /^(type|interface)[[:blank:]]/ && !/^export/ { count++ }
+    END { print count+0 }
+  ' "$1"
+}
+
+count_effect_trigger() {
+  { grep -cE '(^|[^A-Za-z0-9_])(useEffect|useLayoutEffect)[[:blank:]]*\(' "$1" 2>/dev/null || true; }
+}
+
+count_error_handling() {
+  local throw_count catch_count alert_count
+  throw_count="$(grep -cE '(^|[^A-Za-z0-9_])throw[[:blank:]]' "$1" 2>/dev/null || true)"
+  catch_count="$(grep -cE '(^|[^A-Za-z0-9_])catch[[:blank:]]*\(' "$1" 2>/dev/null || true)"
+  alert_count="$(grep -cE 'window\.alert[[:blank:]]*\(' "$1" 2>/dev/null || true)"
+  echo $(( throw_count + catch_count + alert_count ))
 }
 
 # await を伴わない Promise チェーン形式（`api.foo(...).then(...).catch(...)`）のAPI呼出しは
@@ -408,7 +437,7 @@ build_content_file() {
   printf '%s' "$tmpfile"
 }
 
-# コード側の分類別件数を「<セクション> <件数>」の形式で全8行出力する。
+# コード側の分類別件数を「<セクション> <件数>」の形式で全11行出力する。
 recount_from_code() {
   repo="$1"
   shift
@@ -422,6 +451,9 @@ recount_from_code() {
   printf '%s %s\n' jsx "$(count_jsx "$contentfile")"
   printf '%s %s\n' style "$(count_style "$contentfile")"
   printf '%s %s\n' api "$(count_api "$contentfile")"
+  printf '%s %s\n' local_type "$(count_local_type "$contentfile")"
+  printf '%s %s\n' effect_trigger "$(count_effect_trigger "$contentfile")"
+  printf '%s %s\n' error_handling "$(count_error_handling "$contentfile")"
 }
 
 # ---- facts.yml 側の解析 ----
@@ -1160,6 +1192,193 @@ EOF
     echo "  [PASS] 直接呼出しパターン: レシーバ経由呼出し×分割代入を検知（1件）"
   else
     echo "  [FAIL] 直接呼出しパターン: レシーバ経由呼出し×分割代入を検知できない（実測=${receiver_destructure_count} 期待=1）" >&2
+    rc=1
+  fi
+
+  # 追加陽性: export enumの宣言+メンバ分解（宣言1+メンバ3=4件）。
+  export_enum_file="$tmp/export-enum.txt"
+  cat > "$export_enum_file" <<'EOF'
+export enum Status {
+  Active,
+  Inactive,
+  Pending,
+}
+EOF
+  export_enum_count="$(count_export_type "$export_enum_file")"
+  if [ "$export_enum_count" = "4" ]; then
+    echo "  [PASS] 追加陽性: export enumの宣言+メンバ分解を検知（宣言1+メンバ3=4件）"
+  else
+    echo "  [FAIL] 追加陽性: export enumの宣言+メンバ分解を検知できない（実測=${export_enum_count} 期待=4）" >&2
+    rc=1
+  fi
+
+  # local_type: 非exportのtype/interface宣言を宣言単位で検知する（陽性）。
+  local_type_pos_file="$tmp/local-type-pos.txt"
+  cat > "$local_type_pos_file" <<'EOF'
+type LocalRow = {
+  id: string;
+};
+
+interface LocalProps {
+  label: string;
+}
+EOF
+  local_type_pos_count="$(count_local_type "$local_type_pos_file")"
+  if [ "$local_type_pos_count" = "2" ]; then
+    echo "  [PASS] local_type陽性: 非exportのtype/interface宣言を検知（2件）"
+  else
+    echo "  [FAIL] local_type陽性: 非exportのtype/interface宣言を検知できない（実測=${local_type_pos_count} 期待=2）" >&2
+    rc=1
+  fi
+
+  # local_type: export付きのtype/interfaceは対象外（陰性）。
+  local_type_neg_file="$tmp/local-type-neg.txt"
+  cat > "$local_type_neg_file" <<'EOF'
+export type ExportedRow = {
+  id: string;
+};
+
+export interface ExportedProps {
+  label: string;
+}
+EOF
+  local_type_neg_count="$(count_local_type "$local_type_neg_file")"
+  if [ "$local_type_neg_count" = "0" ]; then
+    echo "  [PASS] local_type陰性: export付きtype/interfaceを除外（0件）"
+  else
+    echo "  [FAIL] local_type陰性: export付きtype/interfaceが誤って計上された（実測=${local_type_neg_count} 期待=0）" >&2
+    rc=1
+  fi
+
+  # effect_trigger: useEffect/useLayoutEffectの呼出しを検知する（陽性）。
+  effect_trigger_pos_file="$tmp/effect-trigger-pos.txt"
+  cat > "$effect_trigger_pos_file" <<'EOF'
+useEffect(() => {
+  doSomething();
+}, []);
+useLayoutEffect(() => {
+  measure();
+}, []);
+EOF
+  effect_trigger_pos_count="$(count_effect_trigger "$effect_trigger_pos_file")"
+  if [ "$effect_trigger_pos_count" = "2" ]; then
+    echo "  [PASS] effect_trigger陽性: useEffect/useLayoutEffectを検知（2件）"
+  else
+    echo "  [FAIL] effect_trigger陽性: useEffect/useLayoutEffectを検知できない（実測=${effect_trigger_pos_count} 期待=2）" >&2
+    rc=1
+  fi
+
+  # effect_trigger: useEffect系フックが存在しない場合は0件（陰性）。
+  effect_trigger_neg_file="$tmp/effect-trigger-neg.txt"
+  cat > "$effect_trigger_neg_file" <<'EOF'
+const value = useMemo(() => compute(), []);
+const [open, setOpen] = useState(false);
+EOF
+  effect_trigger_neg_count="$(count_effect_trigger "$effect_trigger_neg_file")"
+  if [ "$effect_trigger_neg_count" = "0" ]; then
+    echo "  [PASS] effect_trigger陰性: useEffect系フック不在で0件"
+  else
+    echo "  [FAIL] effect_trigger陰性: useEffect系フックが存在しないのに誤検知した（実測=${effect_trigger_neg_count} 期待=0）" >&2
+    rc=1
+  fi
+
+  # error_handling: throw+catch+alertの合算3件を検知する（陽性）。
+  error_handling_pos_file="$tmp/error-handling-pos.txt"
+  cat > "$error_handling_pos_file" <<'EOF'
+function foo() {
+  try {
+    doSomething();
+  } catch (err) {
+    window.alert('error');
+    throw err;
+  }
+}
+EOF
+  error_handling_pos_count="$(count_error_handling "$error_handling_pos_file")"
+  if [ "$error_handling_pos_count" = "3" ]; then
+    echo "  [PASS] error_handling陽性: throw+catch+alertの合算を検知（3件）"
+  else
+    echo "  [FAIL] error_handling陽性: throw+catch+alertの合算を検知できない（実測=${error_handling_pos_count} 期待=3）" >&2
+    rc=1
+  fi
+
+  # error_handling: throw/catch/alertがいずれも無ければ0件（陰性）。
+  error_handling_neg_file="$tmp/error-handling-neg.txt"
+  cat > "$error_handling_neg_file" <<'EOF'
+function foo() {
+  doSomething();
+  return true;
+}
+EOF
+  error_handling_neg_count="$(count_error_handling "$error_handling_neg_file")"
+  if [ "$error_handling_neg_count" = "0" ]; then
+    echo "  [PASS] error_handling陰性: throw/catch/alert不在で0件"
+  else
+    echo "  [FAIL] error_handling陰性: throw/catch/alertが存在しないのに誤検知した（実測=${error_handling_neg_count} 期待=0）" >&2
+    rc=1
+  fi
+
+  # style: inline sx={{...}}の加算を検知する（陽性）。
+  style_sx_pos_file="$tmp/style-sx-pos.txt"
+  cat > "$style_sx_pos_file" <<'EOF'
+  <Box sx={{ padding: 2 }}>
+    <Text>Hello</Text>
+  </Box>
+EOF
+  style_sx_pos_count="$(count_style "$style_sx_pos_file")"
+  if [ "$style_sx_pos_count" = "1" ]; then
+    echo "  [PASS] style陽性: inline sxの加算を検知（1件）"
+  else
+    echo "  [FAIL] style陽性: inline sxの加算を検知できない（実測=${style_sx_pos_count} 期待=1）" >&2
+    rc=1
+  fi
+
+  # style: styled./sxのいずれも無ければ0件（陰性）。
+  style_sx_neg_file="$tmp/style-sx-neg.txt"
+  cat > "$style_sx_neg_file" <<'EOF'
+  <Box>
+    <Text>Hello</Text>
+  </Box>
+EOF
+  style_sx_neg_count="$(count_style "$style_sx_neg_file")"
+  if [ "$style_sx_neg_count" = "0" ]; then
+    echo "  [PASS] style陰性: styled./sx不在で0件"
+  else
+    echo "  [FAIL] style陰性: styled./sxが存在しないのに誤検知した（実測=${style_sx_neg_count} 期待=0）" >&2
+    rc=1
+  fi
+
+  # handler: 関数宣言+アロー関数const宣言を検知する（陽性）。
+  handler_decl_pos_file="$tmp/handler-decl-pos.txt"
+  cat > "$handler_decl_pos_file" <<'EOF'
+function handleClick(event) {
+  doSomething(event);
+}
+
+const handleSubmit = (event) => {
+  doSomethingElse(event);
+};
+EOF
+  handler_decl_pos_count="$(count_handler "$handler_decl_pos_file")"
+  if [ "$handler_decl_pos_count" = "2" ]; then
+    echo "  [PASS] handler陽性: function宣言+アロー関数const宣言を検知（2件）"
+  else
+    echo "  [FAIL] handler陽性: 関数宣言単位での検知に失敗（実測=${handler_decl_pos_count} 期待=2）" >&2
+    rc=1
+  fi
+
+  # handler: JSXバインディング（onClick={handleClick}）は宣言ではないため0件（陰性）。
+  handler_decl_neg_file="$tmp/handler-decl-neg.txt"
+  cat > "$handler_decl_neg_file" <<'EOF'
+<Button onClick={handleClick}>
+  Submit
+</Button>
+EOF
+  handler_decl_neg_count="$(count_handler "$handler_decl_neg_file")"
+  if [ "$handler_decl_neg_count" = "0" ]; then
+    echo "  [PASS] handler陰性: JSXバインディングは宣言でないため0件"
+  else
+    echo "  [FAIL] handler陰性: JSXバインディングを誤って宣言として計上した（実測=${handler_decl_neg_count} 期待=0）" >&2
     rc=1
   fi
 
