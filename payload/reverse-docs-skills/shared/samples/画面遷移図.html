@@ -228,6 +228,11 @@ table.data-table code {
 .wf-self-link { border: 1px solid var(--self-tag); border-radius: 4px; padding: 4px 8px; font-size: 12px; color: var(--self-tag); display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
 .wf-placeholder { height: 8px; background: repeating-linear-gradient(90deg, var(--border) 0, var(--border) 4px, transparent 4px, transparent 8px); border-radius: 2px; margin: 4px 0; }
 .wf-link-row { display: flex; flex-direction: column; gap: 4px; margin-top: 8px; }
+.wf-text-ph { height: 5px; background: var(--border); border-radius: 2px; margin: 3px 0; opacity: .4; }
+.wf-img-rect { width: 100%; height: 32px; background: var(--panel-2); border: 1px solid var(--border); border-radius: 4px; margin: 6px 0; }
+.wf-two-col { display: grid; grid-template-columns: 48px 1fr; gap: 8px; align-items: start; margin: 6px 0; }
+.wf-img-circle { width: 44px; height: 44px; border-radius: 50%; background: var(--panel-2); border: 1px solid var(--border); }
+.wf-meta-lines { display: flex; flex-direction: column; gap: 3px; }
 .badge { display: inline-flex; width: 18px; height: 18px; border-radius: 50%; font-size: 10px; font-weight: 700; align-items: center; justify-content: center; flex-shrink: 0; }
 .wf-nav-item .badge { background: var(--nav-tag); color: #fff; }
 .wf-link .badge { background: var(--highlight); color: #fff; }
@@ -812,6 +817,16 @@ table.data-table code {
         wfBody.appendChild(wfNav);
       }
       if (specificEdges.length > 0) {
+        // メインコンテンツエリアの模式表現(アイコン + メタ情報行のプレースホルダ)
+        wfBody.appendChild(el('div', { class: 'wf-two-col' }, [
+          el('div', { class: 'wf-img-circle' }),
+          el('div', { class: 'wf-meta-lines' }, [
+            el('div', { class: 'wf-text-ph', style: 'width:70%' }),
+            el('div', { class: 'wf-text-ph', style: 'width:92%' }),
+            el('div', { class: 'wf-text-ph', style: 'width:52%' })
+          ])
+        ]));
+
         var sectionMap = {};
         var sectionOrder = [];
         specificEdges.forEach(function(e) {
@@ -820,7 +835,15 @@ table.data-table code {
           sectionMap[sec].push(e);
         });
         sectionOrder.forEach(function(sec, idx) {
-          if (idx > 0) wfBody.appendChild(el('div', { class: 'wf-placeholder' }));
+          if (idx === 0) {
+            wfBody.appendChild(el('div', { class: 'wf-img-rect' }));
+          } else {
+            var phCount = 2 + (idx % 2);
+            for (var p = 0; p < phCount; p++) {
+              var w = 60 + ((idx * 5 + p * 7) % 21);
+              wfBody.appendChild(el('div', { class: 'wf-text-ph', style: 'width:' + w + '%' }));
+            }
+          }
           var profile = el('div', { class: 'wf-profile' });
           profile.appendChild(el('div', { class: 'wf-section-label' }, sec));
           sectionMap[sec].forEach(function(e) {
@@ -913,15 +936,27 @@ table.data-table code {
   });
   var groupNames = Object.keys(groupMap).sort();
 
+  // 実グループ(unitKeyが'/'を含み複数画面が同一グループに属す)があるときだけoptgroupを使う。
+  // グループ情報がないデータ(全ノードが自分自身だけのグループ)では画面名のフラットリストにする。
+  var hasRealGroups = groupNames.some(function(g) { return groupMap[g].length > 1; });
+
   var select = el('select', { id: 'view-select' });
   select.appendChild(el('option', { value: '__overview__' }, '概要: グループ間の遷移数'));
-  groupNames.forEach(function(g) {
-    var optgroup = el('optgroup', { label: g + '（' + groupMap[g].length + '図）' });
-    groupMap[g].forEach(function(k) {
-      optgroup.appendChild(el('option', { value: k }, nodeLabel(k) + ' からの遷移 [' + outDegree[k] + '件]'));
+  if (hasRealGroups) {
+    groupNames.forEach(function(g) {
+      var optgroup = el('optgroup', { label: g + '（' + groupMap[g].length + '図）' });
+      groupMap[g].forEach(function(k) {
+        optgroup.appendChild(el('option', { value: k }, nodeLabel(k) + ' からの遷移 [' + outDegree[k] + '件]'));
+      });
+      select.appendChild(optgroup);
     });
-    select.appendChild(optgroup);
-  });
+  } else {
+    normalNodes.slice().sort(function(a, b) {
+      return nodeLabel(a).localeCompare(nodeLabel(b), 'ja');
+    }).forEach(function(k) {
+      select.appendChild(el('option', { value: k }, nodeLabel(k) + ' からの遷移 [' + outDegree[k] + '件]'));
+    });
+  }
 
   var prevBtn = el('button', { class: 'nav-btn', id: 'view-prev', type: 'button' }, '← 前');
   var nextBtn = el('button', { class: 'nav-btn', id: 'view-next', type: 'button' }, '次 →');
