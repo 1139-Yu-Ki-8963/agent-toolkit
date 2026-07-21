@@ -39,7 +39,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>バッチ一覧</title>
+<title>外部連携一覧</title>
 <style>
   :root,
 [data-theme="light"] {
@@ -286,17 +286,17 @@
     <a href="../../index.html" style="color: var(--text-sub); text-decoration: none; border-bottom: 1px dotted var(--text-muted);">← ポータルへ戻る</a>
   </nav>
   <div class="header-top">
-    <h1>バッチ一覧</h1>
+    <h1>外部連携一覧</h1>
   </div>
   <table class="meta-table">
     <tr><td>生成日時</td><td>2026-07-20 00:00</td></tr>
-    <tr><td>ソースディレクトリ</td><td><code>src/jobs</code></td></tr>
-    <tr><td>種別</td><td>バッチ</td></tr>
-    <tr><td>抽出方式</td><td>ジョブ定義ファイルの走査</td></tr>
+    <tr><td>ソースディレクトリ</td><td><code>src/integrations</code></td></tr>
+    <tr><td>種別</td><td>外部連携</td></tr>
+    <tr><td>抽出方式</td><td>連携クライアント定義の走査</td></tr>
   </table>
 
   <div class="summary-tiles">
-    <div class="tile"><strong>10</strong>検出バッチ数</div>
+    <div class="tile"><strong>6</strong>検出外部連携数</div>
     <div class="tile"><strong>0</strong>要手動確認数</div>
   </div>
 </section>
@@ -308,15 +308,15 @@
 </div>
 
 <details class="module-group" open>
-  <summary>バッチ一覧</summary>
+  <summary>外部連携一覧</summary>
   <div class="table-wrap">
   <table class="units" id="unit-table">
     <thead>
       <tr>
-        <th data-key="unitId">バッチID</th>
-        <th data-key="unitKey">バッチキー</th>
+        <th data-key="unitId">外部連携ID</th>
+        <th data-key="unitKey">外部連携キー</th>
         <th data-key="kind">区分</th>
-        <th data-key="unitNameGuess">バッチ名</th>
+        <th data-key="unitNameGuess">外部連携名</th>
         <th data-key="identifier">識別子</th>
         <th data-key="detectionMethod">検出方式</th>
         <th data-key="confidence">confidence</th>
@@ -325,16 +325,12 @@
       </tr>
     </thead>
     <tbody>
-      <tr><td>batch-cleanup</td><td>cleanup</td><td>定期</td><td>データクリーンアップ</td><td>cleanup_job</td><td>cron-config</td><td>HIGH</td><td>2</td><td>src/jobs/cleanup.py</td></tr>
-<tr><td>batch-daily-report</td><td>daily-report</td><td>定期</td><td>日次レポート生成</td><td>daily_report</td><td>cron-config</td><td>HIGH</td><td>3</td><td>src/jobs/daily_report.py</td></tr>
-<tr><td>batch-weekly-digest</td><td>weekly-digest</td><td>定期</td><td>週次ダイジェスト送信</td><td>weekly_digest</td><td>cron-config</td><td>HIGH</td><td>2</td><td>src/jobs/weekly_digest.py</td></tr>
-<tr><td>batch-session-cleanup</td><td>session-cleanup</td><td>定期</td><td>期限切れセッション削除</td><td>session_cleanup</td><td>cron-config</td><td>HIGH</td><td>1</td><td>src/jobs/session_cleanup.py</td></tr>
-<tr><td>batch-notification-send</td><td>notification-send</td><td>定期</td><td>通知一括送信</td><td>notification_batch_send</td><td>cron-config</td><td>HIGH</td><td>3</td><td>src/jobs/notification_send.py</td></tr>
-<tr><td>batch-data-export</td><td>data-export</td><td>手動</td><td>データエクスポート</td><td>data_export</td><td>script</td><td>MEDIUM</td><td>4</td><td>src/jobs/data_export.py</td></tr>
-<tr><td>batch-backup</td><td>db-backup</td><td>定期</td><td>データベースバックアップ</td><td>db_backup</td><td>cron-config</td><td>HIGH</td><td>2</td><td>src/jobs/db_backup.py</td></tr>
-<tr><td>batch-sync-external</td><td>sync-external</td><td>手動</td><td>外部データ同期</td><td>sync_external_data</td><td>script</td><td>MEDIUM</td><td>2</td><td>src/jobs/sync_external.py</td></tr>
-<tr><td>batch-cache-warmup</td><td>cache-warmup</td><td>定期</td><td>キャッシュウォームアップ</td><td>cache_warmup</td><td>cron-config</td><td>HIGH</td><td>1</td><td>src/jobs/cache_warmup.py</td></tr>
-<tr><td>batch-audit-archive</td><td>audit-archive</td><td>定期</td><td>監査ログアーカイブ</td><td>audit_log_archive</td><td>cron-config</td><td>HIGH</td><td>2</td><td>src/jobs/audit_archive.py</td></tr>
+      <tr><td>ext-payment-gateway</td><td>payment-gateway</td><td>API連携</td><td>決済ゲートウェイ送信</td><td>payment_gateway_client</td><td>sdk-import</td><td>HIGH</td><td>3</td><td>src/integrations/payment_gateway.py</td></tr>
+<tr><td>ext-mail-delivery</td><td>mail-delivery</td><td>API連携</td><td>メール配信送信</td><td>mail_delivery_client</td><td>sdk-import</td><td>HIGH</td><td>2</td><td>src/integrations/mail_delivery.py</td></tr>
+<tr><td>ext-address-verify</td><td>address-verify</td><td>API連携</td><td>住所検証送信</td><td>address_verify_client</td><td>http-call</td><td>MEDIUM</td><td>1</td><td>src/integrations/address_verify.py</td></tr>
+<tr><td>ext-sales-sftp</td><td>sales-sftp</td><td>ファイル連携</td><td>売上データSFTP受信</td><td>sales_sftp_receiver</td><td>config-scan</td><td>HIGH</td><td>2</td><td>src/integrations/sales_sftp.py</td></tr>
+<tr><td>ext-order-webhook</td><td>order-webhook</td><td>API連携</td><td>Webhook受注受信</td><td>order_webhook_handler</td><td>route-scan</td><td>HIGH</td><td>2</td><td>src/integrations/order_webhook.py</td></tr>
+<tr><td>ext-sso-auth</td><td>sso-auth</td><td>API連携</td><td>SSO認証連携</td><td>sso_auth_client</td><td>sdk-import</td><td>HIGH</td><td>3</td><td>src/integrations/sso_auth.py</td></tr>
     </tbody>
   </table>
   </div>
@@ -361,17 +357,13 @@
 </section>
 
 <script type="application/json" id="unit-manifest">
-{"generatedAt":"2026-07-20T00:00:00+09:00","sourceDir":"src/jobs","unitKind":"batch","strategy":{"extractionMethod":"static-analysis","approvedByUser":true},"detectionSummary":{"unitCount":10,"unresolvedCount":0},"units":[
-{"unitId":"batch-cleanup","unitKey":"cleanup","kind":"定期","unitNameGuess":"データクリーンアップ","identifier":"cleanup_job","detectionMethod":"cron-config","confidence":"HIGH","fileCount":2,"sourceFile":"src/jobs/cleanup.py","schedule":{"cron":"0 4 * * *","readable":"毎日 4:00"},"targetTables":["sessions","files"],"downstreamJobs":[],"execMethod":"python -m jobs.cleanup"},
-{"unitId":"batch-daily-report","unitKey":"daily-report","kind":"定期","unitNameGuess":"日次レポート生成","identifier":"daily_report","detectionMethod":"cron-config","confidence":"HIGH","fileCount":3,"sourceFile":"src/jobs/daily_report.py","schedule":{"cron":"0 6 * * *","readable":"毎日 6:00"},"targetTables":["posts","users","audit-logs"],"downstreamJobs":["weekly-digest"],"execMethod":"python -m jobs.daily_report"},
-{"unitId":"batch-weekly-digest","unitKey":"weekly-digest","kind":"定期","unitNameGuess":"週次ダイジェスト送信","identifier":"weekly_digest","detectionMethod":"cron-config","confidence":"HIGH","fileCount":2,"sourceFile":"src/jobs/weekly_digest.py","schedule":{"cron":"0 7 * * 1","readable":"毎週月曜 7:00"},"targetTables":["posts","notifications"],"downstreamJobs":[],"execMethod":"python -m jobs.weekly_digest"},
-{"unitId":"batch-session-cleanup","unitKey":"session-cleanup","kind":"定期","unitNameGuess":"期限切れセッション削除","identifier":"session_cleanup","detectionMethod":"cron-config","confidence":"HIGH","fileCount":1,"sourceFile":"src/jobs/session_cleanup.py","schedule":{"cron":"*/30 * * * *","readable":"30分ごと"},"targetTables":["sessions"],"downstreamJobs":[],"execMethod":"python -m jobs.session_cleanup"},
-{"unitId":"batch-notification-send","unitKey":"notification-send","kind":"定期","unitNameGuess":"通知一括送信","identifier":"notification_batch_send","detectionMethod":"cron-config","confidence":"HIGH","fileCount":3,"sourceFile":"src/jobs/notification_send.py","schedule":{"cron":"*/5 * * * *","readable":"5分ごと"},"targetTables":["notifications","users"],"downstreamJobs":[],"execMethod":"python -m jobs.notification_send"},
-{"unitId":"batch-data-export","unitKey":"data-export","kind":"手動","unitNameGuess":"データエクスポート","identifier":"data_export","detectionMethod":"script","confidence":"MEDIUM","fileCount":4,"sourceFile":"src/jobs/data_export.py","targetTables":["users","posts","comments"],"downstreamJobs":[],"execMethod":"python -m jobs.data_export --format csv"},
-{"unitId":"batch-backup","unitKey":"db-backup","kind":"定期","unitNameGuess":"データベースバックアップ","identifier":"db_backup","detectionMethod":"cron-config","confidence":"HIGH","fileCount":2,"sourceFile":"src/jobs/db_backup.py","schedule":{"cron":"0 2 * * *","readable":"毎日 2:00"},"targetTables":["users","posts","audit-logs"],"downstreamJobs":["audit-archive"],"execMethod":"python -m jobs.db_backup"},
-{"unitId":"batch-sync-external","unitKey":"sync-external","kind":"手動","unitNameGuess":"外部データ同期","identifier":"sync_external_data","detectionMethod":"script","confidence":"MEDIUM","fileCount":2,"sourceFile":"src/jobs/sync_external.py","targetTables":["users","organizations"],"downstreamJobs":[],"execMethod":"python -m jobs.sync_external --source crm"},
-{"unitId":"batch-cache-warmup","unitKey":"cache-warmup","kind":"定期","unitNameGuess":"キャッシュウォームアップ","identifier":"cache_warmup","detectionMethod":"cron-config","confidence":"HIGH","fileCount":1,"sourceFile":"src/jobs/cache_warmup.py","schedule":{"cron":"0 5 * * *","readable":"毎日 5:00"},"targetTables":["posts","categories"],"downstreamJobs":[],"execMethod":"python -m jobs.cache_warmup"},
-{"unitId":"batch-audit-archive","unitKey":"audit-archive","kind":"定期","unitNameGuess":"監査ログアーカイブ","identifier":"audit_log_archive","detectionMethod":"cron-config","confidence":"HIGH","fileCount":2,"sourceFile":"src/jobs/audit_archive.py","schedule":{"cron":"0 3 1 * *","readable":"毎月1日 3:00"},"targetTables":["audit-logs"],"downstreamJobs":[],"execMethod":"python -m jobs.audit_archive"}
+{"generatedAt":"2026-07-20T00:00:00+09:00","sourceDir":"src/integrations","unitKind":"external","strategy":{"extractionMethod":"static-analysis","approvedByUser":true},"detectionSummary":{"unitCount":6,"unresolvedCount":0},"units":[
+{"unitId":"ext-payment-gateway","unitKey":"payment-gateway","kind":"API連携","unitNameGuess":"決済ゲートウェイ送信","identifier":"payment_gateway_client","detectionMethod":"sdk-import","confidence":"HIGH","fileCount":3,"sourceFile":"src/integrations/payment_gateway.py","direction":"送信","protocol":"REST","authMethod":"APIキー"},
+{"unitId":"ext-mail-delivery","unitKey":"mail-delivery","kind":"API連携","unitNameGuess":"メール配信送信","identifier":"mail_delivery_client","detectionMethod":"sdk-import","confidence":"HIGH","fileCount":2,"sourceFile":"src/integrations/mail_delivery.py","direction":"送信","protocol":"REST","authMethod":"APIキー"},
+{"unitId":"ext-address-verify","unitKey":"address-verify","kind":"API連携","unitNameGuess":"住所検証送信","identifier":"address_verify_client","detectionMethod":"http-call","confidence":"MEDIUM","fileCount":1,"sourceFile":"src/integrations/address_verify.py","direction":"送信","protocol":"REST","authMethod":"Basic"},
+{"unitId":"ext-sales-sftp","unitKey":"sales-sftp","kind":"ファイル連携","unitNameGuess":"売上データSFTP受信","identifier":"sales_sftp_receiver","detectionMethod":"config-scan","confidence":"HIGH","fileCount":2,"sourceFile":"src/integrations/sales_sftp.py","direction":"受信","protocol":"SFTP","authMethod":"Basic"},
+{"unitId":"ext-order-webhook","unitKey":"order-webhook","kind":"API連携","unitNameGuess":"Webhook受注受信","identifier":"order_webhook_handler","detectionMethod":"route-scan","confidence":"HIGH","fileCount":2,"sourceFile":"src/integrations/order_webhook.py","direction":"受信","protocol":"Webhook","authMethod":"APIキー"},
+{"unitId":"ext-sso-auth","unitKey":"sso-auth","kind":"API連携","unitNameGuess":"SSO認証連携","identifier":"sso_auth_client","detectionMethod":"sdk-import","confidence":"HIGH","fileCount":3,"sourceFile":"src/integrations/sso_auth.py","direction":"送信","protocol":"REST","authMethod":"OAuth2"}
 ]}
 </script>
 
@@ -455,8 +447,17 @@
       return null;
     }
 
-    function renderValue(td, fieldName, v) {
+    function renderValue(td, fieldName, v, u) {
       if (!hasValue(v)) return;
+      /* 出力契機=バッチ はバッチ一覧への相互参照リンクにする（relatedBatch を ?q= に渡す） */
+      if (fieldName === 'trigger' && String(v) === 'バッチ') {
+        var batchLink = document.createElement('a');
+        batchLink.className = 'opt-tag';
+        batchLink.href = '../バッチ一覧/バッチ一覧.html?q=' + encodeURIComponent((u && u.relatedBatch) ? String(u.relatedBatch) : '');
+        batchLink.textContent = String(v);
+        td.appendChild(batchLink);
+        return;
+      }
       if (Array.isArray(v)) {
         var linkBase = linkMap[fieldName];
         v.forEach(function (item) {
@@ -505,7 +506,7 @@
       bodyRows.forEach(function (tr) {
         var td = document.createElement('td');
         var u = findUnit(tr);
-        if (u) renderValue(td, f[0], u[f[0]]);
+        if (u) renderValue(td, f[0], u[f[0]], u);
         tr.appendChild(td);
       });
     });
@@ -630,7 +631,7 @@
     var COL_COUNT = headerCells.length;
     /* チップ対象列は列見出し名で指定する（任意列スクリプトが追加した列も対象にできる） */
     var CHIP_COLUMNS = ['区分', 'confidence'];
-    var EXTRA_CHIP_COLUMNS = { api: ['メソッド', '認証'], batch: [] };
+    var EXTRA_CHIP_COLUMNS = { api: ['メソッド', '認証'], batch: [], report: ['出力形式', '出力契機'], external: ['方向', 'プロトコル'] };
     (EXTRA_CHIP_COLUMNS[manifest.unitKind] || []).forEach(function (name) {
       if (CHIP_COLUMNS.indexOf(name) === -1) CHIP_COLUMNS.push(name);
     });

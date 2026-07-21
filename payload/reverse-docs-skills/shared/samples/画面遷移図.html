@@ -120,6 +120,7 @@ a:hover { text-decoration: underline; }
 .brand:hover { text-decoration: none; }
 .brand-icon { display: inline-flex; align-items: center; }
 .brand-title { font-weight: 700; font-size: 16px; }
+.brand-sub { font-size: 11px; color: var(--text-muted, #6c757d); }
 .top-actions { display: flex; align-items: center; gap: 8px; }
 .top-actions button {
   background: var(--panel-2); border: 1px solid var(--border); border-radius: var(--radius-sm);
@@ -364,6 +365,61 @@ table.data-table code {
 .flow-nav { margin-bottom: 16px; }
 .flow-nav select { width: 100%; padding: 8px 12px; font-size: 13px; font-family: inherit; background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text); }
 
+/* 動線カバレッジ要約 */
+.flow-coverage {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 18px;
+  margin-bottom: 12px;
+  font-size: 13px;
+  line-height: 1.7;
+}
+.flow-coverage-headline { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
+.flow-coverage-row { color: var(--text-sub); padding-left: 4px; }
+.flow-coverage-check { margin-top: 4px; color: var(--text-sub); }
+.flow-coverage-check.flow-coverage-error { color: var(--danger, #c0392b); font-weight: 700; }
+
+/* 動線未カバー一覧(details/summaryで折りたたみ) */
+.flow-uncovered { margin-bottom: 20px; }
+.flow-uncovered > summary { cursor: pointer; font-size: 13px; font-weight: 600; padding: 8px 0; }
+.flow-uncovered > summary:hover { color: var(--accent); }
+.flow-uncovered-body { font-size: 13px; padding: 4px 0 4px 4px; }
+
+/* 動線カテゴリ(details/summaryで折りたたみ。初期表示は閉じた状態。開いた時に遅延レンダリング) */
+.flow-category {
+  border-left: 3px solid var(--text-muted);
+  border-radius: 0 var(--radius) var(--radius) 0;
+  background: var(--panel);
+  padding: 14px 20px;
+  margin-bottom: 16px;
+}
+.flow-category > summary {
+  cursor: pointer;
+  list-style: none;
+}
+.flow-category > summary::-webkit-details-marker { display: none; }
+.flow-category > summary::before { content: '▶ '; font-size: 11px; color: var(--text-muted); }
+.flow-category[open] > summary::before { content: '▼ '; }
+.flow-category[open] > summary { margin-bottom: 12px; }
+.flow-category-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.flow-category-title {
+  font-size: 17px;
+  font-weight: 700;
+}
+.flow-category-badge {
+  font-size: 11px;
+  color: var(--text-muted);
+  background: var(--panel-2);
+  padding: 2px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+}
+
 /* 動線グループ(details/summaryで折りたたみ。初期表示は閉じた状態) */
 .flow-group {
   border-left: 3px solid var(--accent);
@@ -465,11 +521,12 @@ table.data-table code {
 <div class="dp-page">
   <header class="topbar">
     <a class="brand" href="index.html">
-      <span class="brand-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:middle"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg></span>
-      <span class="brand-title">画面遷移図</span>
+      <span class="brand-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:middle"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zM13 9V3.5L18.5 9H13z"/></svg></span>
+      <span class="brand-title"></span>
+      <span class="brand-sub">設計ポータル</span>
     </a>
     <div class="header-meta">
-      <span class="dp-updated">更新: 2026-07-22</span>
+      <span class="pm-updated">更新: 2026-07-22</span>
     </div>
     <div class="top-actions">
       <button id="theme-toggle" title="テーマ切替">ライト</button>
@@ -520,59 +577,70 @@ table.data-table code {
   "description": "画面一覧とルーティング定義から生成した画面遷移マップ",
   "generatedAt": "2026-07-22",
   "legend": [],
+  "flowCategories": [
+    {"name": "メイン", "source": "url-segment", "screenCount": 1},
+    {"name": "商品", "source": "url-segment", "screenCount": 13},
+    {"name": "注文", "source": "url-segment", "screenCount": 8},
+    {"name": "出品", "source": "url-segment", "screenCount": 8},
+    {"name": "アカウント", "source": "url-segment", "screenCount": 6},
+    {"name": "管理画面", "source": "account-group", "screenCount": 4},
+    {"name": "サポート", "source": "url-segment", "screenCount": 6},
+    {"name": "認証", "source": "url-segment", "screenCount": 4},
+    {"name": "その他", "source": "fallback", "screenCount": 2}
+  ],
   "nodes": [
-    {"unitKey": "top", "label": "トップページ"},
-    {"unitKey": "search", "label": "検索結果"},
-    {"unitKey": "category-search", "label": "カテゴリ検索"},
-    {"unitKey": "brand-search", "label": "ブランド検索"},
-    {"unitKey": "price-search", "label": "価格帯検索"},
-    {"unitKey": "product-detail", "label": "商品詳細"},
-    {"unitKey": "product-compare", "label": "商品比較"},
-    {"unitKey": "product-review-form", "label": "レビュー投稿"},
-    {"unitKey": "product-inquiry", "label": "商品お問い合わせ"},
-    {"unitKey": "review-list", "label": "レビュー一覧"},
-    {"unitKey": "seller-profile", "label": "出品者プロフィール"},
-    {"unitKey": "related-products", "label": "関連商品一覧"},
-    {"unitKey": "favorites", "label": "お気に入り一覧"},
-    {"unitKey": "fav-add-done", "label": "お気に入り追加完了"},
-    {"unitKey": "cart", "label": "カート"},
-    {"unitKey": "coupon-apply", "label": "クーポン適用"},
-    {"unitKey": "shipping-select", "label": "配送先選択"},
-    {"unitKey": "payment-select", "label": "支払い方法選択"},
-    {"unitKey": "order-confirm", "label": "注文確認"},
-    {"unitKey": "order-complete", "label": "注文完了"},
-    {"unitKey": "order-history", "label": "注文履歴"},
-    {"unitKey": "order-detail", "label": "注文詳細"},
-    {"unitKey": "sell-top", "label": "出品トップ"},
-    {"unitKey": "sell-photo", "label": "写真登録"},
-    {"unitKey": "sell-price", "label": "価格設定"},
-    {"unitKey": "sell-confirm", "label": "出品確認"},
-    {"unitKey": "sell-complete", "label": "出品完了"},
-    {"unitKey": "sell-edit", "label": "出品編集"},
-    {"unitKey": "sell-withdraw", "label": "出品取り下げ"},
-    {"unitKey": "sell-management", "label": "販売管理"},
-    {"unitKey": "account-settings", "label": "アカウント設定"},
-    {"unitKey": "profile-edit", "label": "プロフィール編集"},
-    {"unitKey": "password-change", "label": "パスワード変更"},
-    {"unitKey": "withdraw", "label": "退会確認"},
-    {"unitKey": "notification-settings", "label": "通知設定"},
-    {"unitKey": "point-history", "label": "ポイント履歴"},
-    {"unitKey": "admin-dashboard", "label": "管理ダッシュボード"},
-    {"unitKey": "admin-users", "label": "ユーザー管理"},
-    {"unitKey": "admin-products", "label": "商品管理"},
-    {"unitKey": "admin-sales", "label": "売上管理"},
-    {"unitKey": "message-list", "label": "メッセージ一覧"},
-    {"unitKey": "message-detail", "label": "メッセージ詳細"},
-    {"unitKey": "help", "label": "ヘルプセンター"},
-    {"unitKey": "faq", "label": "FAQ"},
-    {"unitKey": "contact-form", "label": "お問い合わせフォーム"},
-    {"unitKey": "report-form", "label": "通報フォーム"},
-    {"unitKey": "login", "label": "ログイン"},
-    {"unitKey": "register", "label": "新規登録"},
-    {"unitKey": "register-confirm", "label": "登録確認"},
-    {"unitKey": "register-complete", "label": "登録完了"},
-    {"unitKey": "legacy-mypage", "label": "旧マイページ"},
-    {"unitKey": "legacy-search", "label": "旧検索画面"}
+    {"unitKey": "top", "label": "トップページ", "category": "メイン", "categorySrc": "url-segment"},
+    {"unitKey": "search", "label": "検索結果", "category": "商品", "categorySrc": "url-segment"},
+    {"unitKey": "category-search", "label": "カテゴリ検索", "category": "商品", "categorySrc": "url-segment"},
+    {"unitKey": "brand-search", "label": "ブランド検索", "category": "商品", "categorySrc": "url-segment"},
+    {"unitKey": "price-search", "label": "価格帯検索", "category": "商品", "categorySrc": "url-segment"},
+    {"unitKey": "product-detail", "label": "商品詳細", "category": "商品", "categorySrc": "url-segment"},
+    {"unitKey": "product-compare", "label": "商品比較", "category": "商品", "categorySrc": "url-segment"},
+    {"unitKey": "product-review-form", "label": "レビュー投稿", "category": "商品", "categorySrc": "url-segment"},
+    {"unitKey": "product-inquiry", "label": "商品お問い合わせ", "category": "商品", "categorySrc": "url-segment"},
+    {"unitKey": "review-list", "label": "レビュー一覧", "category": "商品", "categorySrc": "url-segment"},
+    {"unitKey": "seller-profile", "label": "出品者プロフィール", "category": "商品", "categorySrc": "url-segment"},
+    {"unitKey": "related-products", "label": "関連商品一覧", "category": "商品", "categorySrc": "url-segment"},
+    {"unitKey": "favorites", "label": "お気に入り一覧", "category": "商品", "categorySrc": "url-segment"},
+    {"unitKey": "fav-add-done", "label": "お気に入り追加完了", "category": "商品", "categorySrc": "url-segment"},
+    {"unitKey": "cart", "label": "カート", "category": "注文", "categorySrc": "url-segment"},
+    {"unitKey": "coupon-apply", "label": "クーポン適用", "category": "注文", "categorySrc": "url-segment"},
+    {"unitKey": "shipping-select", "label": "配送先選択", "category": "注文", "categorySrc": "url-segment"},
+    {"unitKey": "payment-select", "label": "支払い方法選択", "category": "注文", "categorySrc": "url-segment"},
+    {"unitKey": "order-confirm", "label": "注文確認", "category": "注文", "categorySrc": "url-segment"},
+    {"unitKey": "order-complete", "label": "注文完了", "category": "注文", "categorySrc": "url-segment"},
+    {"unitKey": "order-history", "label": "注文履歴", "category": "注文", "categorySrc": "url-segment"},
+    {"unitKey": "order-detail", "label": "注文詳細", "category": "注文", "categorySrc": "url-segment"},
+    {"unitKey": "sell-top", "label": "出品トップ", "category": "出品", "categorySrc": "url-segment"},
+    {"unitKey": "sell-photo", "label": "写真登録", "category": "出品", "categorySrc": "url-segment"},
+    {"unitKey": "sell-price", "label": "価格設定", "category": "出品", "categorySrc": "url-segment"},
+    {"unitKey": "sell-confirm", "label": "出品確認", "category": "出品", "categorySrc": "url-segment"},
+    {"unitKey": "sell-complete", "label": "出品完了", "category": "出品", "categorySrc": "url-segment"},
+    {"unitKey": "sell-edit", "label": "出品編集", "category": "出品", "categorySrc": "url-segment"},
+    {"unitKey": "sell-withdraw", "label": "出品取り下げ", "category": "出品", "categorySrc": "url-segment"},
+    {"unitKey": "sell-management", "label": "販売管理", "category": "出品", "categorySrc": "url-segment"},
+    {"unitKey": "account-settings", "label": "アカウント設定", "category": "アカウント", "categorySrc": "url-segment"},
+    {"unitKey": "profile-edit", "label": "プロフィール編集", "category": "アカウント", "categorySrc": "url-segment"},
+    {"unitKey": "password-change", "label": "パスワード変更", "category": "アカウント", "categorySrc": "url-segment"},
+    {"unitKey": "withdraw", "label": "退会確認", "category": "アカウント", "categorySrc": "url-segment"},
+    {"unitKey": "notification-settings", "label": "通知設定", "category": "アカウント", "categorySrc": "url-segment"},
+    {"unitKey": "point-history", "label": "ポイント履歴", "category": "アカウント", "categorySrc": "url-segment"},
+    {"unitKey": "admin-dashboard", "label": "管理ダッシュボード", "category": "管理画面", "categorySrc": "account-group"},
+    {"unitKey": "admin-users", "label": "ユーザー管理", "category": "管理画面", "categorySrc": "account-group"},
+    {"unitKey": "admin-products", "label": "商品管理", "category": "管理画面", "categorySrc": "account-group"},
+    {"unitKey": "admin-sales", "label": "売上管理", "category": "管理画面", "categorySrc": "account-group"},
+    {"unitKey": "message-list", "label": "メッセージ一覧", "category": "サポート", "categorySrc": "url-segment"},
+    {"unitKey": "message-detail", "label": "メッセージ詳細", "category": "サポート", "categorySrc": "url-segment"},
+    {"unitKey": "help", "label": "ヘルプセンター", "category": "サポート", "categorySrc": "url-segment"},
+    {"unitKey": "faq", "label": "FAQ", "category": "サポート", "categorySrc": "url-segment"},
+    {"unitKey": "contact-form", "label": "お問い合わせフォーム", "category": "サポート", "categorySrc": "url-segment"},
+    {"unitKey": "report-form", "label": "通報フォーム", "category": "サポート", "categorySrc": "url-segment"},
+    {"unitKey": "login", "label": "ログイン", "category": "認証", "categorySrc": "url-segment"},
+    {"unitKey": "register", "label": "新規登録", "category": "認証", "categorySrc": "url-segment"},
+    {"unitKey": "register-confirm", "label": "登録確認", "category": "認証", "categorySrc": "url-segment"},
+    {"unitKey": "register-complete", "label": "登録完了", "category": "認証", "categorySrc": "url-segment"},
+    {"unitKey": "legacy-mypage", "label": "旧マイページ", "category": "その他", "categorySrc": "fallback"},
+    {"unitKey": "legacy-search", "label": "旧検索画面", "category": "その他", "categorySrc": "fallback"}
   ],
   "edges": [
     {"from": "top", "to": "search", "trigger": "検索する", "sourceRef": "top.html:20", "confidence": "HIGH", "section": "メイン", "triggerType": "フォーム送信"},
@@ -1437,15 +1505,34 @@ table.data-table code {
     });
   }
 
+  // --- 動線のカテゴリ判定(グループキーノードのcategoryフィールドを使う) ---
+  // グループキー = パス中、最初に現れる非共通ナビノード(全て共通ナビなら null)。
+  // categoryOfKey(null) は「共通遷移」という専用カテゴリに集約する。
+  function categoryOfKey(k) {
+    if (k === null) return '共通遷移';
+    var n = nodeByKey[k];
+    return (n && n.category) || 'その他';
+  }
+  function flowGroupKey(path) {
+    for (var pi = 1; pi < path.length; pi++) {
+      if (!commonNavSet[path[pi]]) return path[pi];
+    }
+    return null;
+  }
+
   // --- 動線別モード(入次数0の起点から、分岐点ごとに複数の動線を自動生成) ---
   // 起点(入次数0のノード)からの最長パスを1本たどるだけでは、起点が1つしかない
   // 構成(例: ログイン起点のみ)で動線が1本しか出ない。分岐点(固有遷移が複数ある
   // ノード)ごとに未選択の候補へも動線を伸ばし、複数の動線グループを生成する。
   function computeFlows() {
     var MAX_DEPTH = 20;
-    var MAX_FLOWS = 400;
+    var MAX_FLOWS_PER_CATEGORY = 50;
+    // 全体上限は撤廃(カテゴリごと上限に置換)。ただし無限ループ防止用の
+    // 内部安全弁として十分大きい値を残す(業務上の上限とは別物)。
+    var HARD_SAFETY_CAP = 5000;
     var origins = keys.filter(function(k) { return inDegree[k] === 0 && outDegree[k] > 0; });
     var flows = [];
+    var categoryCounts = {};
 
     // cur から未訪問ノードへ、confidence最上位の候補を選びながら末端まで歩く。
     // path/visitedへ直接追記し、たどった辺の配列を返す。
@@ -1475,17 +1562,20 @@ table.data-table code {
     var queue = [];
 
     function pushFlow(origin, path, edges) {
-      if (path.length <= 1 || flows.length >= MAX_FLOWS) return;
+      if (path.length <= 1 || flows.length >= HARD_SAFETY_CAP) return;
       var sig = path.join('>');
       if (seenPaths[sig]) return;
+      var cat = categoryOfKey(flowGroupKey(path));
+      if ((categoryCounts[cat] || 0) >= MAX_FLOWS_PER_CATEGORY) return;
       seenPaths[sig] = true;
-      var flow = { origin: origin, path: path, edges: edges };
+      categoryCounts[cat] = (categoryCounts[cat] || 0) + 1;
+      var flow = { origin: origin, path: path, edges: edges, category: cat };
       flows.push(flow);
       queue.push(flow);
     }
 
     origins.forEach(function(origin) {
-      if (flows.length >= MAX_FLOWS) return;
+      if (flows.length >= HARD_SAFETY_CAP) return;
       var mainPath = [origin];
       var mainVisited = {};
       mainVisited[origin] = true;
@@ -1500,9 +1590,9 @@ table.data-table code {
     // 扱いになりうる)はそのままでは使わない。共通ナビかつ遷移先を持たない
     // 行き止まり(ヘルプ等)だけを、動線として価値が薄いため除外する。
     var qi = 0;
-    while (qi < queue.length && flows.length < MAX_FLOWS) {
+    while (qi < queue.length && flows.length < HARD_SAFETY_CAP) {
       var base = queue[qi++];
-      for (var i = 0; i < base.edges.length && flows.length < MAX_FLOWS; i++) {
+      for (var i = 0; i < base.edges.length && flows.length < HARD_SAFETY_CAP; i++) {
         var node = base.path[i];
         var prefixVisited = {};
         for (var j = 0; j <= i; j++) prefixVisited[base.path[j]] = true;
@@ -1512,7 +1602,7 @@ table.data-table code {
           return true;
         });
         candidates.forEach(function(alt) {
-          if (flows.length >= MAX_FLOWS) return;
+          if (flows.length >= HARD_SAFETY_CAP) return;
           if (alt === base.edges[i]) return;
           // 分岐点(base.path[i])までの経路をそのまま引き継ぎ、そこから alt へ分岐する。
           var branchPath = base.path.slice(0, i + 1).concat([alt.to]);
@@ -1548,7 +1638,27 @@ table.data-table code {
     return endLabel + 'への遷移';
   }
 
-  // --- 動線グループ化(起点の次のノードをキーに集約。共通ナビへの分岐は「共通遷移」に集約) ---
+  // --- 個別動線(flow-strip)のDOM構築 ---
+  function buildFlowStrip(flow) {
+    var terminalKey = flow.path[flow.path.length - 1];
+    var strip = el('div', { class: 'flow-strip' });
+    strip.appendChild(el('div', { class: 'flow-title' }, nodeLabel(flow.path[0]) + ' → ' + nodeLabel(terminalKey) + '（' + flow.path.length + 'ステップ）'));
+    var steps = el('div', { class: 'flow-steps' });
+    flow.path.forEach(function(k, idx) {
+      if (idx > 0) steps.appendChild(el('span', { class: 'flow-arrow' }, '→'));
+      var cardChildren = [el('div', { class: 'flow-step-name' }, nodeLabel(k))];
+      if (idx < flow.edges.length) cardChildren.push(el('div', { class: 'flow-step-action' }, flow.edges[idx].trigger || ''));
+      var card = el('div', { class: 'flow-step-card', 'data-key': k }, cardChildren);
+      card.addEventListener('click', function() { switchToScreenMode(k); });
+      steps.appendChild(card);
+    });
+    strip.appendChild(steps);
+    return strip;
+  }
+
+  // --- 動線グループ化(カテゴリ階層 > 起点の次のノードをキーに集約。共通ナビへの分岐は「共通遷移」に集約) ---
+  // カテゴリはグループキーノードのcategoryフィールドから決まる(categoryOfKey)。
+  // カテゴリの<details>は開いた時に初めて内部の動線グループDOMを生成する(遅延レンダリング)。
   function renderFlowMode(flowList, nodeMap) {
     var container = document.getElementById('flow-content');
     var select = document.getElementById('flow-select');
@@ -1560,68 +1670,98 @@ table.data-table code {
       return;
     }
 
-    var groups = {};
-    var groupOrder = [];
-    var groupTitle = {};
+    // カテゴリ -> グループキー(node単位) -> flows[] の2階層に集約する。
+    var categories = {};
+    var categoryOrder = [];
     flowList.forEach(function(flow) {
-      // path[1]から順にたどり、最初の非共通ナビノードをグループキーにする。
-      // 全て共通ナビの場合のみ「共通遷移」に集約する。グループキー自体は集約用の
-      // 識別子であり、表示名(シナリオ名)はderiveScenarioNameで別途導出する。
-      var key = null;
-      for (var pi = 1; pi < flow.path.length; pi++) {
-        if (!commonNavSet[flow.path[pi]]) { key = flow.path[pi]; break; }
-      }
+      var key = flowGroupKey(flow.path);
       var groupKey = key === null ? '__common__' : key;
-      if (!groups[groupKey]) {
-        groups[groupKey] = [];
-        groupOrder.push(groupKey);
-        groupTitle[groupKey] = key === null ? '共通遷移' : deriveScenarioName(flow, nodeMap);
+      var cat = flow.category || categoryOfKey(key);
+      if (!categories[cat]) {
+        categories[cat] = { order: [], groups: {}, titles: {} };
+        categoryOrder.push(cat);
       }
-      groups[groupKey].push(flow);
+      var bucket = categories[cat];
+      if (!bucket.groups[groupKey]) {
+        bucket.groups[groupKey] = [];
+        bucket.order.push(groupKey);
+        bucket.titles[groupKey] = key === null ? '共通遷移' : deriveScenarioName(flow, nodeMap);
+      }
+      bucket.groups[groupKey].push(flow);
     });
     // 同一グループ内はパスの長さ順にソート
-    groupOrder.forEach(function(groupKey) {
-      groups[groupKey].sort(function(a, b) { return a.path.length - b.path.length; });
-    });
-
-    select.appendChild(el('option', { value: '' }, '全グループ表示'));
-    groupOrder.forEach(function(groupKey) {
-      select.appendChild(el('option', { value: groupKey }, groupTitle[groupKey] + '（' + groups[groupKey].length + '動線）'));
-    });
-
-    // グループは<details>/<summary>で構築し、初期表示は折りたたんだ状態にする
-    groupOrder.forEach(function(groupKey) {
-      var details = el('details', { class: 'flow-group', 'data-group': groupKey });
-      var summary = el('summary', { class: 'flow-group-header' }, [
-        el('span', { class: 'flow-group-title' }, groupTitle[groupKey]),
-        el('span', { class: 'flow-group-badge' }, groups[groupKey].length + '動線')
-      ]);
-      details.appendChild(summary);
-      groups[groupKey].forEach(function(flow) {
-        var terminalKey = flow.path[flow.path.length - 1];
-        var strip = el('div', { class: 'flow-strip' });
-        strip.appendChild(el('div', { class: 'flow-title' }, nodeLabel(flow.path[0]) + ' → ' + nodeLabel(terminalKey) + '（' + flow.path.length + 'ステップ）'));
-        var steps = el('div', { class: 'flow-steps' });
-        flow.path.forEach(function(k, idx) {
-          if (idx > 0) steps.appendChild(el('span', { class: 'flow-arrow' }, '→'));
-          var cardChildren = [el('div', { class: 'flow-step-name' }, nodeLabel(k))];
-          if (idx < flow.edges.length) cardChildren.push(el('div', { class: 'flow-step-action' }, flow.edges[idx].trigger || ''));
-          var card = el('div', { class: 'flow-step-card', 'data-key': k }, cardChildren);
-          card.addEventListener('click', function() { switchToScreenMode(k); });
-          steps.appendChild(card);
-        });
-        strip.appendChild(steps);
-        details.appendChild(strip);
+    categoryOrder.forEach(function(cat) {
+      var bucket = categories[cat];
+      bucket.order.forEach(function(groupKey) {
+        bucket.groups[groupKey].sort(function(a, b) { return a.path.length - b.path.length; });
       });
-      container.appendChild(details);
+    });
+    // カテゴリは50音/アルファベット順。「共通遷移」「その他」は末尾に固定する。
+    categoryOrder.sort(function(a, b) {
+      if (a === b) return 0;
+      if (a === '共通遷移') return 1;
+      if (b === '共通遷移') return -1;
+      if (a === 'その他') return 1;
+      if (b === 'その他') return -1;
+      return a.localeCompare(b, 'ja');
+    });
+
+    function categoryTotal(cat) {
+      var total = 0;
+      categories[cat].order.forEach(function(gk) { total += categories[cat].groups[gk].length; });
+      return total;
+    }
+
+    select.appendChild(el('option', { value: '' }, '全カテゴリ表示'));
+    categoryOrder.forEach(function(cat) {
+      select.appendChild(el('option', { value: cat }, cat + '（' + categoryTotal(cat) + '動線）'));
+    });
+
+    // カテゴリは<details>/<summary>で構築し、初期表示は折りたたんだ状態にする。
+    // 内部の動線グループDOMは初めて開いた時にだけ生成する(遅延レンダリング)。
+    var renderCategoryBodyMap = {};
+    categoryOrder.forEach(function(cat) {
+      var bucket = categories[cat];
+      var catDetails = el('details', { class: 'flow-category', 'data-category': cat });
+      var catSummary = el('summary', { class: 'flow-category-header' }, [
+        el('span', { class: 'flow-category-title' }, cat),
+        el('span', { class: 'flow-category-badge' }, categoryTotal(cat) + '動線')
+      ]);
+      catDetails.appendChild(catSummary);
+      var rendered = false;
+      function renderCategoryBody() {
+        if (rendered) return;
+        rendered = true;
+        bucket.order.forEach(function(groupKey) {
+          var details = el('details', { class: 'flow-group', 'data-group': groupKey });
+          var summary = el('summary', { class: 'flow-group-header' }, [
+            el('span', { class: 'flow-group-title' }, bucket.titles[groupKey]),
+            el('span', { class: 'flow-group-badge' }, bucket.groups[groupKey].length + '動線')
+          ]);
+          details.appendChild(summary);
+          bucket.groups[groupKey].forEach(function(flow) {
+            details.appendChild(buildFlowStrip(flow));
+          });
+          catDetails.appendChild(details);
+        });
+      }
+      renderCategoryBodyMap[cat] = renderCategoryBody;
+      catDetails.addEventListener('toggle', function() {
+        if (catDetails.open) renderCategoryBody();
+      });
+      container.appendChild(catDetails);
     });
 
     select.addEventListener('change', function() {
       var val = select.value;
-      container.querySelectorAll('.flow-group').forEach(function(g) {
-        var match = (!val || g.getAttribute('data-group') === val);
-        g.style.display = match ? '' : 'none';
-        if (val && match) g.open = true;
+      container.querySelectorAll('.flow-category').forEach(function(c) {
+        var cat = c.getAttribute('data-category');
+        var match = (!val || cat === val);
+        c.style.display = match ? '' : 'none';
+        if (val && match) {
+          c.open = true;
+          renderCategoryBodyMap[cat]();
+        }
       });
     });
   }
@@ -1629,9 +1769,49 @@ table.data-table code {
   var flows = computeFlows();
   var nodeMap = {};
   keys.forEach(function(k) { nodeMap[k] = nodeLabel(k); });
+
+  // --- 動線カバレッジ要約(全画面 = 動線カバー ∪ 未接続 ∪ 動線未カバー の完全分割検証) ---
+  var coveredSet = {};
+  flows.forEach(function(flow) { flow.path.forEach(function(k) { coveredSet[k] = true; }); });
+  var coveredCount = Object.keys(coveredSet).length;
+  var totalCount = keys.length;
+  var unconnectedCount = isolatedNodes.length;
+  var uncoveredKeys = keys.filter(function(k) {
+    return !coveredSet[k] && (outDegree[k] + inDegree[k]) > 0;
+  });
+  var uncoveredCount = uncoveredKeys.length;
+  var sumOk = (coveredCount + unconnectedCount + uncoveredCount) === totalCount;
+  var coveragePct = totalCount > 0 ? Math.round((coveredCount / totalCount) * 1000) / 10 : 0;
+
+  var coverageBox = el('div', { class: 'flow-coverage' });
+  coverageBox.appendChild(el('div', { class: 'flow-coverage-headline' },
+    '動線カバレッジ: ' + coveredCount + ' / ' + totalCount + ' 画面（' + coveragePct + '%）'));
+  coverageBox.appendChild(el('div', { class: 'flow-coverage-row' }, '├ 動線でカバー: ' + coveredCount));
+  coverageBox.appendChild(el('div', { class: 'flow-coverage-row' }, '├ 未接続画面: ' + unconnectedCount + '（未接続モードで確認）'));
+  coverageBox.appendChild(el('div', { class: 'flow-coverage-row' }, '└ 動線未カバー: ' + uncoveredCount));
+  coverageBox.appendChild(el('div', { class: 'flow-coverage-check' + (sumOk ? '' : ' flow-coverage-error') },
+    sumOk
+      ? '検証: ' + coveredCount + ' + ' + unconnectedCount + ' + ' + uncoveredCount + ' = ' + totalCount + ' ✓'
+      : '⚠ 検証エラー: 分割が不完全です（' + coveredCount + ' + ' + unconnectedCount + ' + ' + uncoveredCount + ' ≠ ' + totalCount + '）'));
+
+  var uncoveredBody = el('div', { class: 'flow-uncovered-body' });
+  if (uncoveredCount === 0) {
+    uncoveredBody.appendChild(el('div', { class: 'note-box' }, 'なし'));
+  } else {
+    uncoveredKeys.forEach(function(k) {
+      uncoveredBody.appendChild(el('div', null, nodeLabel(k) + '（' + k + '）'));
+    });
+  }
+  var uncoveredDetails = el('details', { class: 'flow-uncovered' }, [
+    el('summary', null, '動線未カバー画面（' + uncoveredCount + '件）'),
+    uncoveredBody
+  ]);
+
   var flowSelect = el('select', { id: 'flow-select' });
   var flowContent = el('div', { id: 'flow-content' });
   var modeFlow = el('div', { id: 'mode-flow', class: 'hidden' }, [
+    coverageBox,
+    uncoveredDetails,
     el('div', { class: 'flow-nav' }, flowSelect),
     flowContent
   ]);

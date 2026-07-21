@@ -11,7 +11,9 @@
 #   4. 型別スロット      : pageKind別の必須キー(page-data-schema.mdの「型別スロット」節が正)の存在
 #   5. 孤児参照(transition/erのみ): edges[].from/.to が nodes[].unitKey に、relations[].from/.to が
 #      entities[].key にすべて存在すること(unresolved[]記載の参照は解決不能を明示する別経路のため対象外)
-#   6. sourceRef実在・行番号(--target-repo指定時のみ):
+#   6. categorySrc整合性(transitionのみ): nodes[]にcategoryを持つノードが1件以上あれば、
+#      全ノードのcategorySrcが非空であること(片方だけ付与された中途半端な状態を検出)
+#   7. sourceRef実在・行番号(--target-repo指定時のみ):
 #      ネスト位置を問わず全 .sourceRef 値について、パス部分(":"より前。文書参照形式.md#は対象外)の
 #      test -f 実在確認と、行番号付与時はそのファイルの総行数(wc -l)以内であることを検証する
 #
@@ -155,7 +157,25 @@ case "$PAGE_KIND" in
     ;;
 esac
 
-# --- 6. sourceRef実在・行番号(--target-repo指定時のみ) ---
+# --- 6. categorySrc整合性(transitionのみ) ---
+# nodes[]にcategoryを持つノードが1件以上あれば、全ノードのcategorySrcが
+# 非空であることを検査する(片方だけ付与された中途半端な状態を検出する)。
+if [ "$PAGE_KIND" = "transition" ]; then
+  has_category="$(jq -r '[(.nodes // [])[]? | select((.category // "") != "")] | length > 0' "$MANIFEST")"
+  if [ "$has_category" = "true" ]; then
+    missing_category_src="$(jq -r '[(.nodes // [])[]? | select((.categorySrc // "") == "") | .unitKey] | join(",")' "$MANIFEST")"
+    if [ -n "$missing_category_src" ]; then
+      overall_fail=1
+      echo "[FAIL] categorySrc整合性 — categoryを持つノードがある一方、categorySrcが空のノードがあります: ${missing_category_src}" >&2
+    else
+      echo "[PASS] categorySrc整合性 — categoryを持つ全ノードのcategorySrcが非空" >&2
+    fi
+  else
+    echo "[PASS] categorySrc整合性 — categoryを持つノードなし(検査対象外)" >&2
+  fi
+fi
+
+# --- 7. sourceRef実在・行番号(--target-repo指定時のみ) ---
 if [ -n "$TARGET_REPO" ]; then
   if [ ! -d "$TARGET_REPO" ]; then
     overall_fail=1

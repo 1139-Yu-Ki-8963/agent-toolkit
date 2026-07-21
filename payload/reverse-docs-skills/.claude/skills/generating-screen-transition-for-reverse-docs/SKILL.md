@@ -58,7 +58,15 @@ allowed-tools: [Bash, Read, Write, Grep, Glob, AskUserQuestion, TaskCreate, Task
   - **`section`**: sourceRef の行を含む最も近い親セクション要素から推定する。探索優先順位: (1) `<section>`/`<article>` 内の直近の見出し（h2〜h4）テキスト (2) `<nav>` の aria-label 属性値 (3) `<form>` の legend テキストまたは直前の見出し (4) 直近の祖先 `<div>` のクラス名から意味を推定。いずれにも該当しない場合は省略する
   - **`triggerType`**: 要素の種類から判定する。`<a>`/`<Link>`/`router-link` → 「リンク遷移」、`<form>` submit/`<button type="submit">` → 「フォーム送信」、`redirect()`/`navigate()`/`router.push()` → 「リダイレクト」、上記以外 → 省略（テンプレート側で「リンク遷移」にフォールバック）
 - **Step 3** — 各候補の `to`（route 文字列）を `nodes[]` 転記元の `route` 値と突合し `unitKey` へ解決する。解決できた候補は `from`/`to` を `unitKey` に置き換え `edges[]` へ追加する。解決できない候補（動的セグメント不一致・外部 URL・存在しない route）は `edges[]` に含めない。代わりに `unresolved[]` へ `{label: "<sourceRef> の遷移", reason: "宛先未解決", sourceRef}` として登録する。完了条件: `edges[]` が全件解決済みで確定している
-- **Step 4** — page-data.json を組み立てる。`pageKind: "transition"`、`legend[]`（凡例。空配列可）、`nodes[]`、`edges[]`、`unresolved[]` を埋める。完了条件: page-data.json を一時ディレクトリへ保存済み
+- **Step 4** — カテゴリ分類。全ノードに `category` / `categorySrc` を付与する（未分類 0 件が完了条件。「その他」への割り当ても分類済みとして扱う）。
+  1. **ルーティング定義のグループ構造**（優先度1）: ルーティング定義ファイルの分割（`conf/pages_*.conf` 等）・グループ・セクションコメントを Read し、グループ→カテゴリ名の対応表を作る。1画面が複数グループに該当する場合は定義順で先に出現した方を採用する
+  2. **URL 第1セグメント + 対訳**（優先度2）: 優先度1で分類できない画面は route の第1セグメントで分類する。対訳はセグメント配下のテンプレート `<title>` の最頻出名詞（2文字以上）→ メニューのリンクテキスト → セグメント名そのまま、の順で取得する（grep は `-a` 付き）
+  3. **accountGroup**（優先度3）: 残りは screen-manifest の `accountGroup` で分類する（例: `admin` → 「管理画面」）
+  4. **フォールバック**: 全てに該当しない画面は「その他」（`categorySrc: "fallback"`）
+  5. `flowCategories[]` 要約（`name`/`source`/`screenCount`）を組み立てる
+
+  カテゴリ名はコードから取れた名詞のみを使う。動詞句への加工・創作はしない。完了条件: 全ノードの `category`/`categorySrc` が確定し `flowCategories[]` が組み立て済み
+- **Step 5** — page-data.json を組み立てる。`pageKind: "transition"`、`legend[]`（凡例。空配列可）、`nodes[]`（`category`/`categorySrc` 込み）、`edges[]`、`unresolved[]`、`flowCategories[]` を埋める。完了条件: page-data.json を一時ディレクトリへ保存済み
 
 page-data.json の保存先は `$CLAUDE_JOB_DIR/tmp/screen-transition-page-data.json` とする。未設定時は `${TMPDIR:-/tmp}/claude-job-${session}/tmp/` 配下に置く。
 
@@ -70,7 +78,7 @@ page-data.json の保存先は `$CLAUDE_JOB_DIR/tmp/screen-transition-page-data.
   ../../../shared/scripts/detail-pages/validate-page-data.sh <page-data.json> --target-repo <target_repo_path>
   ```
 
-- **Step 2** — Step 1 が FAIL したら `[FAIL]` 項目名で分岐する。「孤児参照」FAIL の場合は該当 edge を `edges[]` から外し `unresolved[]` へ差し戻して Phase 2 Step 3 へ戻る。その他の FAIL（`sourceRef` 実在等）は該当箇所を修正し Step 1 を再実行する。3 回失敗したら Phase 2 Step 4（page-data 組み立て）へ差し戻す。完了条件: `validate-page-data.sh` が exit 0（孤児参照検査を含め全項目 PASS）
+- **Step 2** — Step 1 が FAIL したら `[FAIL]` 項目名で分岐する。「孤児参照」FAIL の場合は該当 edge を `edges[]` から外し `unresolved[]` へ差し戻して Phase 2 Step 3 へ戻る。その他の FAIL（`sourceRef` 実在等）は該当箇所を修正し Step 1 を再実行する。3 回失敗したら Phase 2 Step 5（page-data 組み立て）へ差し戻す。完了条件: `validate-page-data.sh` が exit 0（孤児参照検査を含め全項目 PASS）
 
 ### Phase 4: 画面遷移図.html 生成
 
@@ -93,7 +101,7 @@ page-data.json の保存先は `$CLAUDE_JOB_DIR/tmp/screen-transition-page-data.
 | Phase | 完了条件 |
 |---|---|
 | Phase 1 | 画面一覧.html の実在確認済み（または不在を報告して停止）。Router 種別と検出戦略がユーザー承認済み |
-| Phase 2 | `nodes[]`／`edges[]` が確定し page-data.json を保存済み。route 空文字画面・宛先未解決の遷移は `unresolved[]` へ隔離済み |
+| Phase 2 | `nodes[]`／`edges[]` が確定し page-data.json を保存済み。全ノードの `category`/`categorySrc` が確定済み。route 空文字画面・宛先未解決の遷移は `unresolved[]` へ隔離済み |
 | Phase 3 | `validate-page-data.sh --target-repo` が全項目 PASS（孤児参照検査含む） |
 | Phase 4 | `<docs_root>/画面遷移図.html` が生成され、指定時は `build-portal.sh` の再実行が完了している |
 | **Goal** | 画面一覧マニフェストとコードの実測から解決できた遷移のみから画面遷移図.html が生成され、route空文字画面・宛先未解決の遷移は捏造せず可視化されている |
@@ -117,8 +125,8 @@ page-data.json の保存先は `$CLAUDE_JOB_DIR/tmp/screen-transition-page-data.
 | 反復対象 | Phase 3 Step 1 が FAIL → Step 2 の分岐（孤児参照は Phase 2 Step 3、その他はその場）で修正して再実行 |
 | 上限回数 | 3 回 |
 | 収束停止 | `validate-page-data.sh` が exit 0（孤児参照検査含め全項目 PASS） |
-| 発散検知 | 同一検査項目の同一 FAIL が 2 回連続で再発した場合は即座に Phase 2 Step 4 へ差し戻す |
-| リソース上限 | 3 回失敗で Phase 2 Step 4（page-data 組み立て）へ差し戻す |
+| 発散検知 | 同一検査項目の同一 FAIL が 2 回連続で再発した場合は即座に Phase 2 Step 5 へ差し戻す |
+| リソース上限 | 3 回失敗で Phase 2 Step 5（page-data 組み立て）へ差し戻す |
 
 ## 重要な注意事項
 

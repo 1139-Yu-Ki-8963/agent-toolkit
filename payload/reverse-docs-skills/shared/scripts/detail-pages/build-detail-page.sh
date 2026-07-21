@@ -220,7 +220,7 @@ self_test() {
     title: "画面遷移図",
     description: "self-test用フィクスチャ",
     legend: [{symbol: "□", meaning: "画面"}],
-    nodes: [{unitKey: "home", label: "ホーム"}, {unitKey: "detail", label: "詳細"}],
+    nodes: [{unitKey: "home", label: "ホーム", category: "メイン", categorySrc: "url-segment"}, {unitKey: "detail", label: "詳細", category: "メイン", categorySrc: "url-segment"}],
     edges: [{from: "home", to: "detail", trigger: "クリック", sourceRef: "src/router.tsx:10", confidence: "high", section: "メインコンテンツ", triggerType: "リンク遷移"}],
     unresolved: [{label: "旧画面(route欠落)", reason: "旧形式manifestのためroute情報なし", sourceRef: "src/legacy/old-screen.tsx"}]
   }' > "$data_transition"
@@ -391,6 +391,7 @@ html_escape() {
 # render_template — 共通関数を source（shared/scripts/render-template.sh）
 source "$(cd "$(dirname "$0")/.." && pwd)/render-template.sh"
 
+PROJECT_NAME="$(jq -r '.projectName // ""' "$DATA")"
 TITLE="$(jq -r '.title // ""' "$DATA")"
 DESCRIPTION="$(jq -r '.description // ""' "$DATA")"
 GENERATED_AT="$(jq -r '.generatedAt // ""' "$DATA")"
@@ -430,6 +431,7 @@ RELATED_ENTITIES_HTML="$(jq -r '
 # document-order走査により自動的に最後に処理される(JSON内容に他マーカー文字列が
 # 偶然含まれた場合の誤爆を避けるため)。
 render_args=(
+  "{{PROJECT_NAME}}" "$(html_escape "$PROJECT_NAME")"
   "{{TITLE}}" "$(html_escape "$TITLE")"
   "{{DESCRIPTION}}" "$(html_escape "$DESCRIPTION")"
   "{{GENERATED_AT}}" "$(html_escape "$GENERATED_AT")"

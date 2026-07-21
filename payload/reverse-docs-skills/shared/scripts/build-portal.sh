@@ -417,6 +417,7 @@ if [ -d "$common_dir" ]; then
     if [ -f "$COMMON_DOC_TEMPLATE_FILE" ]; then
       md_content="$(sed -e '1s/^\xEF\xBB\xBF//' "$md_file" | awk 'NR==1 && /^---$/ {skip=1; next} skip && /^---$/ {skip=0; next} !skip')"
       local_render_args=(
+        "{{PROJECT_NAME}}" "$PROJECT_NAME"
         "{{DOC_TITLE}}" "$(html_escape "$title")"
         "{{GENERATED_DATE}}" "$GENERATED_DATE"
         "{{COMMIT_SHORT}}" "$COMMIT_SHORT"

@@ -11,6 +11,7 @@ detail-pages 系（用語辞書 / 技術スタック / 画面遷移図 / ER図 /
 | title | string | 必須 | ページ見出し |
 | description | string | 必須 | ページ概要（1〜2 文） |
 | unresolved | array | 任意 | 未解決項目の配列。要素は `{ "label": string, "reason": string, "sourceRef"?: string }`。省略時は空扱い |
+| flowCategories | array（transition のみ・任意） | 任意 | 動線カテゴリの要約。要素は `{ "name": string, "source": string, "screenCount": number }`。`categories[]`（glossary の分類軸）とは別物のため `flowCategories` と命名する |
 | （型別スロット） | object | 必須 | pageKind に応じたキーをトップレベルへ直接持つ（下記「型別スロット」参照） |
 
 ## sourceRef の形式
@@ -51,6 +52,13 @@ detail-pages 系（用語辞書 / 技術スタック / 画面遷移図 / ER図 /
 | edges | array（transition のみ） | `{ "from": string, "to": string, "trigger": string, "sourceRef": string, "confidence": string }` の配列。`from`/`to` は `nodes[].unitKey` を参照する |
 | entities | array（er のみ） | `{ "key": string, "label": string }` の配列。SVG 描画時のノードキーは `key` |
 | relations | array（er のみ） | `{ "from": string, "to": string, "cardinality": string, "sourceRef": string }` の配列。`from`/`to` は `entities[].key` を参照する |
+
+`nodes[]` は上記に加え、次の任意フィールドを持つ。
+
+| キー | 型 | 内容 |
+|---|---|---|
+| category | string（任意） | 動線カテゴリ名。未設定の場合はテンプレート側で「その他」に集約 |
+| categorySrc | string（任意） | カテゴリの導出元。`routing-group` \| `url-segment` \| `account-group` \| `fallback` のいずれか |
 
 `edges[]` は上記に加え、次の任意フィールドを持つ。
 

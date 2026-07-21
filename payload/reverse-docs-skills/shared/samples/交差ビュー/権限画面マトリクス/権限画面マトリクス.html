@@ -6,13 +6,15 @@
     「このロールはどの画面を見られるか」「権限設定に漏れはないか」
 
   本ファイルは shared/templates/matrix/permission-screen-matrix-template.html に
-  ブログ系サンプルアプリ(users/posts/sessions・ロール: 管理者/一般/ゲスト)の
+  ブログ系サンプルアプリ(users/posts/sessions・ロール: 管理者/運用担当/編集者/一般/ゲスト)の
   実データを注入した完成例である。
 
   表構造:
-    行 = 画面(画面名 + ルート表示) / 列 = ロール / セル = 閲覧可否
+    行 = 画面(画面名 + ルート表示) / 列 = ロール(縦書きヘッダ・1列目は sticky 固定) / セル = 閲覧可否
     ○ = 閲覧可(success色) / — = 不可(muted色) / ? = 権限未設定(警告色)
     列ヘッダ(ロール名)クリックでそのロールが閲覧可の行だけに絞り込み(再クリックで解除)
+    ロール選択チップ(テーブル上部)で選択ロールの列だけ表示(未選択=全列表示・複数選択可)
+    URLSearchParams の q を検索窓に反映する受け口あり(?q=キーワード)
 
   保守注記: トークンブロック・テーマ切替(data-theme二重定義・rd-portal-theme)は
   shared/templates/detail-pages/detail-t3-attributes.html(同portal-template.html)からの複製である。
@@ -135,6 +137,26 @@
   }
   .toolbar .note { font-size: 0.82rem; color: var(--text-muted); }
 
+  /* ロール選択チップ: 選択ロールの列だけ表示(未選択=全列表示・複数選択可) */
+  .role-chips { display: flex; gap: 8px; flex-wrap: wrap; margin: 0 0 10px; }
+  .role-chip {
+    border: 1px solid var(--border); background: var(--panel); color: var(--text-sub);
+    border-radius: 999px; padding: 3px 12px; font-size: 0.82rem; cursor: pointer; font-family: inherit;
+  }
+  .role-chip:hover { border-color: var(--accent-border); color: var(--accent); }
+  .role-chip.chip-active {
+    background: var(--accent-soft); border-color: var(--accent-border);
+    color: var(--accent); font-weight: 700;
+  }
+
+  /* コピーボタン(一覧ページと同じ inline SVG 方式) */
+  .copy-btn {
+    background: none; border: none; cursor: pointer; padding: 1px 3px;
+    color: var(--text-muted); opacity: .35; vertical-align: middle;
+  }
+  tr:hover .copy-btn, .copy-btn:focus { opacity: 1; }
+  .copy-btn:hover { color: var(--accent); }
+
   table.matrix {
     width: 100%; min-width: 640px; border-collapse: collapse; font-size: 0.88rem;
   }
@@ -144,15 +166,22 @@
   table.matrix thead th {
     background: var(--panel-2); font-weight: 700; font-size: 0.8em;
   }
+  /* ロール列ヘッダ: 縦書きで列幅を詰める(ロール数が増えても横幅が線形にしか伸びない) */
   table.matrix thead th.role-col {
     cursor: pointer; user-select: none; text-align: center; white-space: nowrap;
+    height: 130px; min-width: 34px; max-width: 44px;
+    vertical-align: bottom; padding: 8px 4px;
+  }
+  table.matrix thead th.role-col span {
+    writing-mode: vertical-rl; transform: rotate(180deg);
+    white-space: nowrap; pointer-events: none;
   }
   table.matrix thead th.role-col:hover { background: var(--accent-soft); }
   table.matrix thead th.role-col.filter-active {
     background: var(--accent-soft); color: var(--accent);
     box-shadow: inset 0 -3px 0 var(--accent);
   }
-  table.matrix td.cell-perm { text-align: center; font-weight: 700; }
+  table.matrix td.cell-perm { text-align: center; font-weight: 700; padding: 7px 6px; }
   table.matrix td .perm-yes { color: var(--success); }
   table.matrix td .perm-no { color: var(--text-muted); font-weight: 400; }
   table.matrix td .perm-unset {
@@ -164,6 +193,14 @@
     padding: 1px 5px; border-radius: 3px; overflow-wrap: break-word; word-break: break-all;
   }
   table.matrix td .screen-name { display: block; }
+
+  /* 1列目(画面名)は sticky で固定(crud-matrix-template.html と同方式) */
+  table.matrix th.screen-col, table.matrix td.screen-col {
+    position: sticky; left: 0; z-index: 2;
+    background: var(--panel);
+    border-right: 2px solid var(--border-strong);
+  }
+  table.matrix thead th.screen-col { z-index: 3; background: var(--panel-2); }
   table.matrix tbody tr:nth-child(even) {
     background: color-mix(in srgb, var(--panel-2) 40%, transparent);
   }
@@ -174,17 +211,50 @@
   .legend .perm-unset { color: var(--warn); font-weight: 700; }
 
   footer { margin-top: 48px; font-size: 0.8rem; color: var(--text-muted); }
+/* ─── 統一ヘッダー ─── */
+.topbar {
+  display: grid; grid-template-columns: auto 1fr auto;
+  align-items: center; gap: 24px; padding: 12px 20px;
+  background: linear-gradient(180deg, var(--panel, #fff) 0%, var(--panel-2, #f8f9fa) 100%);
+  border-bottom: 1px solid var(--border, #dee2e6);
+  position: sticky; top: 0; z-index: 10;
+}
+.brand { display: flex; align-items: baseline; gap: 8px; color: var(--text, #212529); text-decoration: none; }
+.brand:hover { text-decoration: none; }
+.brand-icon { display: inline-flex; align-items: center; }
+.brand-title { font-weight: 700; font-size: 16px; }
+.brand-sub { font-size: 11px; color: var(--text-muted, #6c757d); }
+.header-meta { font-size: 12px; color: var(--text-muted, #6c757d); display: flex; align-items: center; gap: 8px; }
+.top-actions { display: flex; align-items: center; gap: 8px; }
+.top-actions button {
+  background: var(--panel-2, #f8f9fa); border: 1px solid var(--border, #dee2e6); border-radius: var(--radius-sm, 6px);
+  color: var(--text-sub, #495057); cursor: pointer; padding: 8px 16px; font-size: 13px; font-family: inherit;
+  display: inline-flex; align-items: center; gap: 4px;
+}
+.top-actions button:hover { background: var(--accent-soft, #e8f4fd); color: var(--accent, #0969da); border-color: var(--accent-border, #0969da); }
 </style>
 </head>
 <body>
 
-<header>
+<header class="topbar">
+  <a class="brand" href="../../index.html">
+    <span class="brand-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:middle"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zM13 9V3.5L18.5 9H13z"/></svg></span>
+    <span class="brand-title">サンプルプロジェクト</span>
+    <span class="brand-sub">設計ポータル</span>
+  </a>
+  <div class="header-meta">
+    <span class="pm-updated">更新: 2026-07-21 · コミット番号: 89178e6</span>
+  </div>
+  <div class="top-actions">
+    <button id="theme-toggle" title="テーマ切替">ライト</button>
+  </div>
+</header>
+<section class="page-hero">
   <nav class="back-link" style="margin: 16px 0 0; font-size: 0.85rem;">
     <a href="../../index.html" style="color: var(--text-sub); text-decoration: none; border-bottom: 1px dotted var(--text-muted);">← ポータルへ戻る</a>
   </nav>
   <div class="header-top">
     <h1>権限×画面マトリクス</h1>
-    <button id="theme-toggle" class="theme-toggle-btn" type="button" title="テーマ切替">テーマ切替</button>
   </div>
   <table class="meta-table">
     <tr><td>生成日時</td><td>2026-07-20 00:00</td></tr>
@@ -195,18 +265,22 @@
   <div class="summary-tiles" id="summary-tiles">
     <!-- JSがmatrix-manifestからロール別閲覧可能画面数・権限未設定数タイルを描画する -->
   </div>
-</header>
+</section>
 
 <div class="toolbar">
   <input type="search" id="matrix-search" placeholder="画面名・ルートで絞り込み">
   <span class="note">ロール列見出しクリックでそのロールが閲覧可の画面だけに絞り込み（再クリックで解除）</span>
 </div>
 
+<div class="role-chips" id="role-chips">
+  <!-- JSがロール名チップを描画する。選択したロールの列だけ表示（未選択=全列表示・複数選択可） -->
+</div>
+
 <div class="table-wrap">
   <table class="matrix" id="matrix-table">
     <thead>
       <tr id="matrix-head-row">
-        <th>画面</th>
+        <th class="screen-col">画面</th>
         <!-- JSがロール列ヘッダを描画する -->
       </tr>
     </thead>
@@ -221,26 +295,26 @@
 {
   "generatedAt": "2026-07-20T00:00:00+09:00",
   "dataSource": "画面一覧マニフェスト + ルートガード定義（src/routes/guards.ts の静的解析）",
-  "roles": ["管理者", "一般", "ゲスト"],
+  "roles": ["管理者", "運用担当", "編集者", "一般", "ゲスト"],
   "screens": [
-    { "screenId": "screen-home",          "screenName": "ホーム画面",           "route": "/",                        "permissions": { "管理者": true,  "一般": true,  "ゲスト": false } },
-    { "screenId": "screen-login",         "screenName": "ログイン画面",         "route": "/login",                   "permissions": { "管理者": true,  "一般": true,  "ゲスト": true } },
-    { "screenId": "screen-signup",        "screenName": "新規登録画面",         "route": "/signup",                  "permissions": { "管理者": true,  "一般": true,  "ゲスト": true } },
-    { "screenId": "screen-forgot-pw",     "screenName": "パスワードリセット",   "route": "/forgot-password",         "permissions": { "管理者": true,  "一般": true,  "ゲスト": true } },
-    { "screenId": "screen-dashboard",     "screenName": "ダッシュボード",       "route": "/dashboard",               "permissions": { "管理者": true,  "一般": true,  "ゲスト": false } },
-    { "screenId": "screen-profile",       "screenName": "プロフィール",         "route": "/profile",                 "permissions": { "管理者": true,  "一般": true,  "ゲスト": false } },
-    { "screenId": "screen-settings",      "screenName": "設定画面",             "route": "/settings",                "permissions": { "管理者": true,  "一般": true,  "ゲスト": false } },
-    { "screenId": "screen-users-list",    "screenName": "ユーザー一覧",         "route": "/admin/users",             "permissions": { "管理者": true,  "一般": false, "ゲスト": false } },
-    { "screenId": "screen-users-detail",  "screenName": "ユーザー詳細",         "route": "/admin/users/:userId",     "permissions": { "管理者": true,  "一般": false, "ゲスト": false } },
-    { "screenId": "screen-users-edit",    "screenName": "ユーザー編集",         "route": "/admin/users/:userId/edit","permissions": { "管理者": true,  "一般": false, "ゲスト": false } },
-    { "screenId": "screen-roles",         "screenName": "ロール管理",           "route": "/admin/roles",             "permissions": { "管理者": true,  "一般": false, "ゲスト": false } },
-    { "screenId": "screen-posts-list",    "screenName": "投稿一覧",             "route": "/posts",                   "permissions": { "管理者": true,  "一般": true,  "ゲスト": false } },
-    { "screenId": "screen-post-detail",   "screenName": "投稿詳細",             "route": "/posts/:postId",           "permissions": { "管理者": true,  "一般": true,  "ゲスト": false } },
-    { "screenId": "screen-post-editor",   "screenName": "投稿エディタ",         "route": "/posts/:postId/edit",      "permissions": { "管理者": true,  "一般": true,  "ゲスト": false } },
-    { "screenId": "screen-notifications", "screenName": "通知一覧",             "route": "/notifications",           "permissions": { "管理者": true,  "一般": true,  "ゲスト": false } },
-    { "screenId": "screen-search",        "screenName": "検索結果",             "route": "/search",                  "permissions": { "管理者": true,  "一般": true,  "ゲスト": false } },
+    { "screenId": "screen-home",          "screenName": "ホーム画面",           "route": "/",                        "permissions": { "管理者": true,  "運用担当": true,  "編集者": true,  "一般": true,  "ゲスト": false } },
+    { "screenId": "screen-login",         "screenName": "ログイン画面",         "route": "/login",                   "permissions": { "管理者": true,  "運用担当": true,  "編集者": true,  "一般": true,  "ゲスト": true } },
+    { "screenId": "screen-signup",        "screenName": "新規登録画面",         "route": "/signup",                  "permissions": { "管理者": true,  "運用担当": true,  "編集者": true,  "一般": true,  "ゲスト": true } },
+    { "screenId": "screen-forgot-pw",     "screenName": "パスワードリセット",   "route": "/forgot-password",         "permissions": { "管理者": true,  "運用担当": true,  "編集者": true,  "一般": true,  "ゲスト": true } },
+    { "screenId": "screen-dashboard",     "screenName": "ダッシュボード",       "route": "/dashboard",               "permissions": { "管理者": true,  "運用担当": true,  "編集者": true,  "一般": true,  "ゲスト": false } },
+    { "screenId": "screen-profile",       "screenName": "プロフィール",         "route": "/profile",                 "permissions": { "管理者": true,  "運用担当": true,  "編集者": true,  "一般": true,  "ゲスト": false } },
+    { "screenId": "screen-settings",      "screenName": "設定画面",             "route": "/settings",                "permissions": { "管理者": true,  "運用担当": true,  "編集者": true,  "一般": true,  "ゲスト": false } },
+    { "screenId": "screen-users-list",    "screenName": "ユーザー一覧",         "route": "/admin/users",             "permissions": { "管理者": true,  "運用担当": true,  "編集者": false, "一般": false, "ゲスト": false } },
+    { "screenId": "screen-users-detail",  "screenName": "ユーザー詳細",         "route": "/admin/users/:userId",     "permissions": { "管理者": true,  "運用担当": true,  "編集者": false, "一般": false, "ゲスト": false } },
+    { "screenId": "screen-users-edit",    "screenName": "ユーザー編集",         "route": "/admin/users/:userId/edit","permissions": { "管理者": true,  "運用担当": false, "編集者": false, "一般": false, "ゲスト": false } },
+    { "screenId": "screen-roles",         "screenName": "ロール管理",           "route": "/admin/roles",             "permissions": { "管理者": true,  "運用担当": false, "編集者": false, "一般": false, "ゲスト": false } },
+    { "screenId": "screen-posts-list",    "screenName": "投稿一覧",             "route": "/posts",                   "permissions": { "管理者": true,  "運用担当": true,  "編集者": true,  "一般": true,  "ゲスト": false } },
+    { "screenId": "screen-post-detail",   "screenName": "投稿詳細",             "route": "/posts/:postId",           "permissions": { "管理者": true,  "運用担当": true,  "編集者": true,  "一般": true,  "ゲスト": false } },
+    { "screenId": "screen-post-editor",   "screenName": "投稿エディタ",         "route": "/posts/:postId/edit",      "permissions": { "管理者": true,  "運用担当": false, "編集者": true,  "一般": true,  "ゲスト": false } },
+    { "screenId": "screen-notifications", "screenName": "通知一覧",             "route": "/notifications",           "permissions": { "管理者": true,  "運用担当": true,  "編集者": true,  "一般": true,  "ゲスト": false } },
+    { "screenId": "screen-search",        "screenName": "検索結果",             "route": "/search",                  "permissions": { "管理者": true,  "運用担当": true,  "編集者": true,  "一般": true,  "ゲスト": false } },
     { "screenId": "screen-report-viewer", "screenName": "レポート閲覧",         "route": "/reports/:reportId",       "permissions": null },
-    { "screenId": "screen-sidebar-nav",   "screenName": "サイドバーナビ",       "route": null,                       "permissions": { "管理者": true,  "一般": true,  "ゲスト": false } }
+    { "screenId": "screen-sidebar-nav",   "screenName": "サイドバーナビ",       "route": null,                       "permissions": { "管理者": true,  "運用担当": true,  "編集者": true,  "一般": true,  "ゲスト": false } }
   ]
 }
 </script>
@@ -265,6 +339,47 @@
     function permOf(screen, role) {
       if (!screen.permissions) return null; /* 権限未設定 */
       return screen.permissions[role] === true;
+    }
+
+    /* コピーボタン(一覧ページと同じ inline SVG 方式) */
+    var COPY_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>';
+    var CHECK_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+
+    function fallbackCopy(text) {
+      var ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand('copy'); } catch (e) { /* ignore */ }
+      document.body.removeChild(ta);
+    }
+
+    function copyCellText(text, btn) {
+      function showDone() {
+        btn.innerHTML = CHECK_SVG;
+        setTimeout(function () { btn.innerHTML = COPY_SVG; }, 1200);
+      }
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(showDone, function () { fallbackCopy(text); showDone(); });
+      } else {
+        fallbackCopy(text);
+        showDone();
+      }
+    }
+
+    function buildCopyBtn(text) {
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'copy-btn';
+      btn.setAttribute('aria-label', 'コピー');
+      btn.innerHTML = COPY_SVG;
+      btn.addEventListener('click', function (ev) {
+        ev.stopPropagation();
+        copyCellText(text, btn);
+      });
+      return btn;
     }
 
     /* 集計タイル: ロールごとの閲覧可能画面数 + 権限未設定数 */
@@ -296,7 +411,9 @@
     roles.forEach(function (r) {
       var th = document.createElement('th');
       th.className = 'role-col';
-      th.textContent = r;
+      var label = document.createElement('span');
+      label.textContent = r;
+      th.appendChild(label);
       th.setAttribute('data-role', r);
       th.title = 'クリックで「' + r + 'が閲覧可」の画面だけに絞り込み';
       th.addEventListener('click', function () {
@@ -314,9 +431,11 @@
     screens.forEach(function (s) {
       var tr = document.createElement('tr');
       var tdScreen = document.createElement('td');
+      tdScreen.className = 'screen-col';
       var name = document.createElement('span');
       name.className = 'screen-name';
       name.textContent = s.screenName;
+      name.appendChild(buildCopyBtn(s.screenName));
       tdScreen.appendChild(name);
       var route = document.createElement('code');
       route.className = 'route';
@@ -349,6 +468,44 @@
     }
 
     if (search) search.addEventListener('input', applyFilter);
+
+    /* URLSearchParams の q を検索窓に反映する受け口(?q=キーワード) */
+    try {
+      var qParam = new URLSearchParams(location.search).get('q');
+      if (qParam && search) { search.value = qParam; applyFilter(); }
+    } catch (e) { /* ignore */ }
+
+    /* ロール選択チップ: 選択したロールの列だけ表示(未選択=全列表示・複数選択可) */
+    var chipsWrap = document.getElementById('role-chips');
+    var selectedRoles = {};
+    function applyCols() {
+      var anySelected = roles.some(function (r) { return selectedRoles[r]; });
+      roles.forEach(function (r, i) {
+        var show = !anySelected || !!selectedRoles[r];
+        var colIdx = i + 1; /* 0列目=画面名 */
+        var th = headRow.children[colIdx];
+        if (th) th.style.display = show ? '' : 'none';
+        rows.forEach(function (row) {
+          var td = row.tr.children[colIdx];
+          if (td) td.style.display = show ? '' : 'none';
+        });
+      });
+    }
+    if (chipsWrap) {
+      roles.forEach(function (r) {
+        var chip = document.createElement('button');
+        chip.type = 'button';
+        chip.className = 'role-chip';
+        chip.textContent = r;
+        chip.title = '「' + r + '」の列だけ表示（複数選択可。未選択=全列表示）';
+        chip.addEventListener('click', function () {
+          selectedRoles[r] = !selectedRoles[r];
+          chip.classList.toggle('chip-active', !!selectedRoles[r]);
+          applyCols();
+        });
+        chipsWrap.appendChild(chip);
+      });
+    }
   })();
 </script>
 
@@ -358,17 +515,22 @@
   (function () {
     var themeBtn = document.getElementById('theme-toggle');
     if (themeBtn) {
-      themeBtn.addEventListener('click', function () {
+      themeBtn.addEventListener('click', function() {
         var r = document.documentElement;
         var next = r.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
         r.setAttribute('data-theme', next);
-        try { localStorage.setItem('rd-portal-theme', next); } catch (e) {}
+        themeBtn.textContent = next === 'dark' ? 'ダーク' : 'ライト';
+        try { localStorage.setItem('rd-portal-theme', next); } catch(e) {}
       });
     }
     try {
       var saved = localStorage.getItem('rd-portal-theme');
-      if (saved) document.documentElement.setAttribute('data-theme', saved);
-    } catch (e) {}
+      if (saved) {
+        document.documentElement.setAttribute('data-theme', saved);
+        var tb = document.getElementById('theme-toggle');
+        if (tb) tb.textContent = saved === 'dark' ? 'ダーク' : 'ライト';
+      }
+    } catch(e) {}
   })();
 </script>
 

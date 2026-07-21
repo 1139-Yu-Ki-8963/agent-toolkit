@@ -248,15 +248,20 @@ if [ "${1:-}" = "--self-test" ]; then
   exit $?
 fi
 
-MANIFEST="${1:?Usage: build-feature-list.sh <manifest.json> <output-html-path> [--portal-dir <path>]}"
-OUTPUT_HTML="${2:?Usage: build-feature-list.sh <manifest.json> <output-html-path> [--portal-dir <path>]}"
+MANIFEST="${1:?Usage: build-feature-list.sh <manifest.json> <output-html-path> [--portal-dir <path>] [--project-name <name>]}"
+OUTPUT_HTML="${2:?Usage: build-feature-list.sh <manifest.json> <output-html-path> [--portal-dir <path>] [--project-name <name>]}"
 shift 2 || true
 
 PORTAL_DIR_ARG=""
+PROJECT_NAME_ARG=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --portal-dir)
       PORTAL_DIR_ARG="${2:-}"
+      shift 2
+      ;;
+    --project-name)
+      PROJECT_NAME_ARG="${2:-}"
       shift 2
       ;;
     *)
@@ -438,6 +443,7 @@ fi
 # 単一パスのdocument-order走査により自動的に最後に処理される
 # (JSON内容に他マーカー文字列が偶然含まれた場合の誤爆を避けるため)
 render_args=(
+  "{{PROJECT_NAME}}" "$(html_escape "$PROJECT_NAME_ARG")"
   "{{GENERATED_AT}}" "$(html_escape "$generated_at")"
   "{{SOURCE_DIR}}" "$(html_escape "$source_dir_display")"
   "{{EXTRACTION_METHOD}}" "$(html_escape "$extraction_method")"

@@ -16,6 +16,9 @@
 | relatedApis | string[] | 任意 | この画面が呼ぶ API の unitKey 配列 | 画面コンポーネント内の fetch / axios / API クライアント呼び出し |
 | designDocStatus | string | 任意 | 設計書の着手状態。`着手済` / `未着手` の 2 値 | 設計書リポジトリ側の該当フォルダ有無 |
 | category | string | 任意 | 画面区分（`管理` / `一般` 等） | ルート prefix（`/admin` 等）とディレクトリ構成 |
+| designDocPath | string | 任意 | 設計書への相対パス。designDocStatus=着手済 かつ本フィールドありで設計書リンクを描画 | 設計書リポジトリの該当フォルダ |
+| sourceHash | string | 任意 | 画面ユニットの原本ソース連結ハッシュ（sha256 先頭12桁） | 原本コードの走査 |
+| designDocSourceHash | string | 任意 | 設計書生成時に記録した sourceHash。sourceHash と不一致なら一覧に陳腐化バッジを表示 | 設計書生成工程の記録 |
 
 ### apis（API）
 

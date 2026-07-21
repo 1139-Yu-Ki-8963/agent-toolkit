@@ -283,6 +283,7 @@ if [ -z "$generated_at" ]; then
 fi
 data_source="$(jq -r '.dataSource // ""' "$DATA_JSON")"
 [ -z "$data_source" ] && data_source="—"
+project_name="$(jq -r '.projectName // ""' "$DATA_JSON")"
 
 matrix_json="$(cat "$DATA_JSON")"
 
@@ -295,6 +296,7 @@ mkdir -p "$(dirname "$OUTPUT_HTML")"
 out="$(render_template "$(cat "$TEMPLATE")" \
   "{{GENERATED_AT}}" "$(html_escape "$generated_at")" \
   "{{DATA_SOURCE}}" "$(html_escape "$data_source")" \
+  "{{PROJECT_NAME}}" "$(html_escape "$project_name")" \
   "$JSON_MARKER" "$matrix_json")"
 
 printf '%s\n' "$out" > "$OUTPUT_HTML"
