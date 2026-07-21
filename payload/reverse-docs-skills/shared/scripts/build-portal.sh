@@ -406,7 +406,7 @@ html_escape() {
 
 if [ -d "$common_dir" ]; then
   while IFS= read -r md_file; do
-    title="$(sed -e '1s/^\xEF\xBB\xBF//' "$md_file" | grep -m1 '^#' | sed 's/^#\+ *//' 2>/dev/null || true)"
+    title="$(sed -e '1s/^\xEF\xBB\xBF//' "$md_file" | grep -m1 '^#' | sed 's/^##* *//' 2>/dev/null || true)"
     if [ -z "$title" ]; then
       title="$(basename "$md_file" .md)"
     fi

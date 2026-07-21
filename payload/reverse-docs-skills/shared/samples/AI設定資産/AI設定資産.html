@@ -224,7 +224,7 @@
 </header>
 <section class="page-hero">
   <nav class="back-link" style="margin: 16px 0 0; font-size: 0.85rem;">
-    <a href="../../index.html" style="color: var(--text-sub); text-decoration: none; border-bottom: 1px dotted var(--text-muted);">← ポータルへ戻る</a>
+    <a href="../index.html" style="color: var(--text-sub); text-decoration: none; border-bottom: 1px dotted var(--text-muted);">← ポータルへ戻る</a>
   </nav>
   <div class="header-top">
     <h1>AI設定資産</h1>
@@ -497,6 +497,13 @@
       });
     }
     if (search) search.addEventListener('input', applyFilter);
+
+    /* URLSearchParams の q を検索窓に反映する受け口(?q=キーワード) */
+    try {
+      var qParam = new URLSearchParams(location.search).get('q');
+      if (qParam && search) { search.value = qParam; }
+    } catch (e) { /* ignore */ }
+
     applyFilter();
   })();
 </script>
