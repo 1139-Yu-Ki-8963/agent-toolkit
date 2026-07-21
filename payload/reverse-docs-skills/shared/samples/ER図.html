@@ -966,13 +966,19 @@ table.data-table code {
     renderCrumbs([selClusterLbl, selEntity.label]);
     renderActions([
       { label: '選択解除', onClick: function() {
-          state.mode = 'expand';
-          state.expandedId = selClusterId === 'isolated'
-            ? (clustersInfo.clusters[0] ? clustersInfo.clusters[0].id : null)
-            : selClusterId;
+          if (selClusterId === 'isolated') {
+            state.mode = 'clusters';
+          } else {
+            state.mode = 'expand';
+            state.expandedId = selClusterId;
+          }
           render();
         } },
-      { label: '全体に戻る', onClick: function() { state.mode = 'clusters'; render(); } }
+      { label: '全体に戻る', onClick: function() { state.mode = 'clusters'; render(); } },
+      { label: 'テーブル詳細で見る', onClick: function() {
+          state.tdSelectedKey = selKey;
+          switchTab('tableDetail');
+        } }
     ]);
 
     var relLines = [];
@@ -1193,10 +1199,8 @@ table.data-table code {
   }
 
   function render() {
-    if (state.mode !== lastMode) {
-      canvasEl.innerHTML = '';
-      detailNodeCache = null;
-    }
+    canvasEl.innerHTML = '';
+    detailNodeCache = null;
     lastMode = state.mode;
     updateStats();
     if (state.mode === 'clusters') renderClusters();
