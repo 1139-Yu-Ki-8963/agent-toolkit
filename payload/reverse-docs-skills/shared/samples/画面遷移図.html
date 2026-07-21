@@ -263,6 +263,63 @@ table.data-table code {
 .row-badge.common { background: var(--nav-tag); }
 .row-badge.self { background: var(--self-tag); }
 
+/* 選択コンポーネント詳細カード */
+.detail-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  margin-bottom: 16px;
+  min-height: 60px;
+}
+.detail-card-empty {
+  font-size: 13px;
+  color: var(--text-muted);
+  padding: 12px 0;
+  text-align: center;
+}
+.detail-card-badge {
+  display: inline-flex;
+  width: 24px; height: 24px;
+  border-radius: 50%;
+  font-size: 12px; font-weight: 700;
+  align-items: center; justify-content: center;
+  color: #fff;
+  margin-right: 8px;
+  vertical-align: middle;
+}
+.detail-card-badge.specific { background: var(--highlight); }
+.detail-card-badge.common { background: var(--nav-tag); }
+.detail-card-badge.self { background: var(--self-tag); }
+.detail-card-title {
+  font-size: 15px;
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+.detail-card dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 12px;
+  font-size: 13px;
+}
+.detail-card dt {
+  color: var(--text-muted);
+  font-weight: 600;
+  font-size: 12px;
+  white-space: nowrap;
+}
+.detail-card dd {
+  margin: 0;
+}
+.detail-card dd code {
+  font-family: var(--mono);
+  font-size: 11.5px;
+  background: var(--panel-2);
+  padding: 1px 5px;
+  border-radius: 3px;
+  color: var(--text-sub);
+}
+
 /* 種別タグ */
 .tag { display: inline-block; font-size: 11px; font-weight: 600; padding: 1px 8px; border-radius: 999px; }
 .tag-specific { color: var(--highlight); background: var(--highlight-soft); border: 1px solid var(--highlight-border); }
@@ -755,10 +812,40 @@ table.data-table code {
   });
 
   // --- コンポーネント選択(クリックでハイライト) ---
+  var currentViewEdges = [];
   function onItemClick(ev) {
     var badge = parseInt(ev.currentTarget.getAttribute('data-badge'));
     selectedBadge = (selectedBadge === badge) ? null : badge;
     applySelection();
+  }
+  function updateDetailCard(badge) {
+    var card = document.getElementById('detail-card');
+    if (!card) return;
+    card.innerHTML = '';
+    if (badge === null) {
+      card.appendChild(el('div', { class: 'detail-card-empty' }, 'ワイヤーフレーム内のコンポーネントを選択してください'));
+      return;
+    }
+    var edge = null;
+    currentViewEdges.forEach(function(e) { if (e.__badge === badge) edge = e; });
+    if (!edge) return;
+
+    var title = el('div', { class: 'detail-card-title' }, [
+      el('span', { class: 'detail-card-badge ' + CLASS_ROW_BADGE[edge.__cls] }, String(edge.__badge)),
+      edge.trigger || nodeLabel(edge.to)
+    ]);
+    card.appendChild(title);
+
+    var dl = el('dl');
+    dl.appendChild(el('dt', null, '遷移先'));
+    dl.appendChild(el('dd', null, [nodeLabel(edge.to) + ' ', el('code', null, edge.to || '')]));
+    dl.appendChild(el('dt', null, '種別'));
+    dl.appendChild(el('dd', null, CLASS_TAG_LABEL[edge.__cls]));
+    dl.appendChild(el('dt', null, 'トリガー'));
+    dl.appendChild(el('dd', null, edge.triggerType || 'リンク遷移'));
+    dl.appendChild(el('dt', null, '記載箇所'));
+    dl.appendChild(el('dd', null, el('code', null, edge.sourceRef || '')));
+    card.appendChild(dl);
   }
   function applySelection() {
     var items = document.querySelectorAll('[data-badge]');
@@ -787,12 +874,14 @@ table.data-table code {
         row.style.background = '';
       }
     });
+    updateDetailCard(selectedBadge);
   }
 
   // --- split-view(1画面分)構築 ---
   function buildSplitView(key) {
     var node = nodeByKey[key];
     var edges = sortedOutEdges[key] || [];
+    currentViewEdges = edges;
     var commonEdges = edges.filter(function(e) { return e.__cls === 'common'; });
     var specificEdges = edges.filter(function(e) { return e.__cls === 'specific'; });
     var selfEdges = edges.filter(function(e) { return e.__cls === 'self'; });
@@ -906,7 +995,11 @@ table.data-table code {
       });
     }
 
+    var detailCard = el('div', { class: 'detail-card', id: 'detail-card' });
+    detailCard.appendChild(el('div', { class: 'detail-card-empty' }, 'ワイヤーフレーム内のコンポーネントを選択してください'));
+
     var tablePanel = el('div', { class: 'table-panel' }, [
+      detailCard,
       el('div', { class: 'table-panel-header' }, ['遷移先一覧', el('span', { class: 'count' }, edges.length + '件')]),
       el('div', { class: 'legend-row' }, [
         el('div', { class: 'legend-item' }, [el('div', { class: 'legend-swatch page-specific' }), '画面固有（' + specificEdges.length + '件）']),
@@ -916,7 +1009,7 @@ table.data-table code {
       el('table', { class: 'trans-table' }, [
         el('thead', null, el('tr', null, [
           el('th'), el('th', null, 'UIの要素'), el('th', null, '遷移先'),
-          el('th', null, '種別'), el('th', null, 'トリガー'), el('th', null, '出所')
+          el('th', null, '種別'), el('th', null, 'トリガー'), el('th', null, '記載箇所')
         ])),
         tbody2
       ])
