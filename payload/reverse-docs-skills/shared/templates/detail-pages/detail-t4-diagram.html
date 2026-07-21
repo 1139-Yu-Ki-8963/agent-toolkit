@@ -295,6 +295,32 @@ table.data-table code {
 /* 概要ビュー(グループ間の遷移数マトリクス) */
 .overview-table th, .overview-table td { text-align: center; }
 .overview-table th:first-child, .overview-table td:first-child { text-align: left; white-space: nowrap; }
+
+/* モード切り替えタブ(画面別/動線別/未接続) */
+.mode-tabs { display: flex; gap: 0; margin-bottom: 16px; border-bottom: 2px solid var(--border); }
+.mode-tab { background: none; border: none; border-bottom: 2px solid transparent; margin-bottom: -2px; padding: 8px 20px; font-size: 14px; font-weight: 600; color: var(--text-muted); cursor: pointer; font-family: inherit; }
+.mode-tab:hover { color: var(--text); }
+.mode-tab.active { color: var(--text); border-bottom-color: var(--accent); }
+
+/* 動線別モード */
+.flow-strip { margin-bottom: 24px; }
+.flow-title { font-size: 15px; font-weight: 700; margin-bottom: 10px; }
+.flow-steps { display: flex; gap: 4px; overflow-x: auto; padding-bottom: 8px; align-items: stretch; }
+.flow-step { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+.flow-step-num { font-size: 11px; font-weight: 700; color: var(--accent); width: 20px; text-align: center; }
+.flow-step-card { background: var(--panel); border: 1px solid var(--border); border-radius: 6px; padding: 10px 14px; min-width: 120px; cursor: pointer; transition: box-shadow .15s; }
+.flow-step-card:hover { box-shadow: 0 0 0 2px var(--accent); }
+.flow-step-name { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+.flow-step-action { font-size: 11px; color: var(--text-muted); }
+.flow-step-arrow { font-size: 16px; color: var(--text-muted); }
+.flow-nav { margin-bottom: 16px; }
+.flow-nav select { width: 100%; padding: 8px 12px; font-size: 13px; font-family: inherit; background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text); }
+
+/* 未接続モード */
+.unconnected-summary { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+.unconnected-count { font-size: 28px; font-weight: 700; }
+.unconnected-label { font-size: 14px; color: var(--text-muted); }
+.unconnected-ok { font-size: 14px; color: var(--accent); padding: 24px 0; text-align: center; }
 </style>
 </head>
 <body>
@@ -650,6 +676,15 @@ table.data-table code {
   var CLASS_TAG_LABEL = { common: '共通', specific: '固有', self: '自己ループ' };
   var CLASS_TAG_CLASS = { common: 'tag-nav', specific: 'tag-specific', self: 'tag-self' };
   var CLASS_ROW_BADGE = { common: 'common', specific: 'specific', self: 'self' };
+  var CIRCLED_NUMS = ['①','②','③','④','⑤','⑥','⑦','⑧','⑨','⑩','⑪','⑫','⑬','⑭','⑮','⑯','⑰','⑱','⑲','⑳'];
+  function circleNum(n) { return CIRCLED_NUMS[n - 1] || ('(' + n + ')'); }
+  function confRank(c) {
+    c = (c || '').toString().toUpperCase();
+    if (c === 'HIGH') return 3;
+    if (c === 'MEDIUM') return 2;
+    if (c === 'LOW') return 1;
+    return 0;
+  }
 
   // --- ノード分類(中央ナビゲーション画面/未接続画面/通常画面) ---
   var outEdges = {}, outDegree = {}, inDegree = {};
@@ -972,15 +1007,38 @@ table.data-table code {
     }
   });
 
-  mount.appendChild(el('div', { class: 'sec-label' }, '画面遷移'));
-  mount.appendChild(viewNav);
-  mount.appendChild(viewContent);
+  // --- モード切り替えタブ(画面別/動線別/未接続) ---
+  function setMode(mode) {
+    ['screen', 'flow', 'unconnected'].forEach(function(m) {
+      var modeEl = document.getElementById('mode-' + m);
+      if (modeEl) modeEl.classList.toggle('hidden', m !== mode);
+    });
+    document.querySelectorAll('.mode-tab').forEach(function(t) {
+      t.classList.toggle('active', t.getAttribute('data-mode') === mode);
+    });
+  }
+  function buildModeTab(modeKey, label, isActive) {
+    var b = el('button', { class: 'mode-tab' + (isActive ? ' active' : ''), type: 'button', 'data-mode': modeKey }, label);
+    b.addEventListener('click', function() { setMode(modeKey); });
+    return b;
+  }
+  var modeTabs = el('div', { class: 'mode-tabs' }, [
+    buildModeTab('screen', '画面別', true),
+    buildModeTab('flow', '動線別', false),
+    buildModeTab('unconnected', '未接続', false)
+  ]);
+
+  // --- 画面別モード ---
+  var modeScreen = el('div', { id: 'mode-screen' });
+  modeScreen.appendChild(el('div', { class: 'sec-label' }, '画面遷移'));
+  modeScreen.appendChild(viewNav);
+  modeScreen.appendChild(viewContent);
   renderView('__overview__');
 
   // --- 中央ナビゲーション画面セクション ---
-  mount.appendChild(el('div', { class: 'sec-label' }, '中央ナビゲーション画面（' + hubNodes.length + '件）'));
+  modeScreen.appendChild(el('div', { class: 'sec-label' }, '中央ナビゲーション画面（' + hubNodes.length + '件）'));
   if (hubNodes.length === 0) {
-    mount.appendChild(el('div', { class: 'note-box' }, 'なし'));
+    modeScreen.appendChild(el('div', { class: 'note-box' }, 'なし'));
   } else {
     hubNodes.forEach(function(k) {
       var edges = sortedOutEdges[k] || [];
@@ -996,7 +1054,7 @@ table.data-table code {
           ]));
         });
       }
-      mount.appendChild(el('details', { class: 'iso-group' }, [
+      modeScreen.appendChild(el('details', { class: 'iso-group' }, [
         el('summary', null, nodeLabel(k) + '（' + edges.length + '件の遷移先）'),
         el('table', { class: 'data-table' }, [
           el('thead', null, el('tr', null, [el('th', null, '遷移先'), el('th', null, 'ラベル'), el('th', null, 'トリガー')])),
@@ -1006,11 +1064,96 @@ table.data-table code {
     });
   }
 
-  // --- 未接続画面一覧セクション ---
-  mount.appendChild(el('div', { class: 'sec-label' }, '未接続画面一覧（' + isolatedNodes.length + '件）'));
-  mount.appendChild(el('div', { class: 'note-box' }, '遷移が静的に検出されなかった画面の一覧'));
+  // --- 動線別モード(入次数0の起点からの最長パスを自動生成) ---
+  function computeFlows() {
+    var MAX_DEPTH = 20;
+    var origins = keys.filter(function(k) { return inDegree[k] === 0 && outDegree[k] > 0; });
+    var flows = [];
+    origins.forEach(function(origin) {
+      var path = [origin];
+      var edgesUsed = [];
+      var visited = {};
+      visited[origin] = true;
+      var cur = origin;
+      for (var step = 0; step < MAX_DEPTH; step++) {
+        var candidates = (outEdges[cur] || []).filter(function(e) {
+          return e.from !== e.to && !visited[e.to];
+        });
+        if (candidates.length === 0) break;
+        var best = candidates[0];
+        candidates.forEach(function(e) {
+          if (confRank(e.confidence) > confRank(best.confidence)) best = e;
+        });
+        edgesUsed.push(best);
+        cur = best.to;
+        path.push(cur);
+        visited[cur] = true;
+      }
+      if (path.length > 1) flows.push({ origin: origin, path: path, edges: edgesUsed });
+    });
+    return flows;
+  }
+
+  function switchToScreenMode(key) {
+    select.value = key;
+    renderView(select.value);
+    setMode('screen');
+  }
+
+  function buildFlowStrip(flow, idx) {
+    var terminalKey = flow.path[flow.path.length - 1];
+    var stepCount = flow.path.length - 1;
+    var strip = el('div', { class: 'flow-strip', id: 'flow-' + idx });
+    strip.appendChild(el('div', { class: 'flow-title' }, nodeLabel(flow.origin) + ' → ' + nodeLabel(terminalKey) + '（' + stepCount + 'ステップ）'));
+    var stepsWrap = el('div', { class: 'flow-steps' });
+    flow.path.forEach(function(k, i) {
+      var action = i < flow.edges.length ? ((flow.edges[i].trigger || nodeLabel(flow.edges[i].to)) + ' →') : '';
+      var cardChildren = [el('div', { class: 'flow-step-name' }, nodeLabel(k))];
+      if (action) cardChildren.push(el('div', { class: 'flow-step-action' }, action));
+      var card = el('div', { class: 'flow-step-card', 'data-key': k }, cardChildren);
+      card.addEventListener('click', function() { switchToScreenMode(k); });
+      stepsWrap.appendChild(el('div', { class: 'flow-step' }, [
+        el('div', { class: 'flow-step-num' }, circleNum(i + 1)),
+        card
+      ]));
+    });
+    strip.appendChild(stepsWrap);
+    return strip;
+  }
+
+  var flows = computeFlows();
+  var flowSelect = el('select', { id: 'flow-select' });
+  flowSelect.appendChild(el('option', { value: '' }, '動線を選択...'));
+  flows.forEach(function(flow, idx) {
+    var terminalKey = flow.path[flow.path.length - 1];
+    flowSelect.appendChild(el('option', { value: 'flow-' + idx }, nodeLabel(flow.origin) + ' → ' + nodeLabel(terminalKey)));
+  });
+  flowSelect.addEventListener('change', function() {
+    if (!flowSelect.value) return;
+    var target = document.getElementById(flowSelect.value);
+    if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+
+  var flowContent = el('div', { id: 'flow-content' });
+  if (flows.length === 0) {
+    flowContent.appendChild(el('div', { class: 'diagram-empty' }, '動線を生成できる画面がありません'));
+  } else {
+    flows.forEach(function(flow, idx) { flowContent.appendChild(buildFlowStrip(flow, idx)); });
+  }
+  var modeFlow = el('div', { id: 'mode-flow', class: 'hidden' }, [
+    el('div', { class: 'flow-nav' }, flowSelect),
+    flowContent
+  ]);
+
+  // --- 未接続モード(入出次数0の画面一覧) ---
+  var modeUnconnected = el('div', { id: 'mode-unconnected', class: 'hidden' });
+  modeUnconnected.appendChild(el('div', { class: 'unconnected-summary' }, [
+    el('span', { class: 'unconnected-count' }, isolatedNodes.length + '件'),
+    el('span', { class: 'unconnected-label' }, '遷移が静的に検出されなかった画面')
+  ]));
+  var unconnectedContent = el('div', { id: 'unconnected-content' });
   if (isolatedNodes.length === 0) {
-    mount.appendChild(el('div', { class: 'diagram-empty' }, 'なし'));
+    unconnectedContent.appendChild(el('div', { class: 'unconnected-ok' }, '全画面の遷移が検出済みです'));
   } else {
     var isoGroupMap = {};
     isolatedNodes.forEach(function(k) {
@@ -1024,7 +1167,7 @@ table.data-table code {
       list.forEach(function(k) {
         tbody5.appendChild(el('tr', null, [el('td', null, el('code', null, k)), el('td', null, nodeLabel(k))]));
       });
-      mount.appendChild(el('details', { class: 'iso-group' }, [
+      unconnectedContent.appendChild(el('details', { class: 'iso-group' }, [
         el('summary', null, g + '（' + list.length + '件）'),
         el('table', { class: 'data-table' }, [
           el('thead', null, el('tr', null, [el('th', null, 'unitKey'), el('th', null, 'ラベル')])),
@@ -1033,6 +1176,12 @@ table.data-table code {
       ]));
     });
   }
+  modeUnconnected.appendChild(unconnectedContent);
+
+  mount.appendChild(modeTabs);
+  mount.appendChild(modeScreen);
+  mount.appendChild(modeFlow);
+  mount.appendChild(modeUnconnected);
   }
 
   // --- 未解決節(unresolved[]) ---
