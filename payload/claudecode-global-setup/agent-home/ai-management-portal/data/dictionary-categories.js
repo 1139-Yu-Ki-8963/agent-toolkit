@@ -14,4 +14,5 @@ export const CATEGORIES = [
   { id: "claude-ci-terms", name: "Claude Code・CI 用語の統一", desc: "hook・CI の検査類を「確認」系の呼称に統一する" },
   { id: "notation", name: "記法規約", desc: "番号・優先度の書き方（P0 禁止・ステップは 1 始まりの整数）" },
   { id: "official-names", name: "環境・プロジェクト固有の正式名称", desc: "この環境・各プロジェクトの正式名称に統一する（プロジェクト辞書含む）" },
+  { id: "filename-normalization", name: "ファイル名正規化", desc: "ファイル名の表記ゆれ・不正な文字を正規の命名規約に統一する" },
 ];

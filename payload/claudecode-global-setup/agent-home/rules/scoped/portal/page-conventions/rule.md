@@ -186,3 +186,43 @@ CLAUDE.md → Rules → Skills → Subagents → Hooks → Output styles → Sta
 - `~/agent-home/.claude/rules/always/placement/directory-structure/rule.md` — agent-home 直下の許可ディレクトリ一覧（`ai-management-portal` を含む）
 - `~/agent-home/skills/managing-agent-configs/SKILL.md` — hooks/rules 種別のレビュー時に `~/agent-home/ai-management-portal/design/hooks.html` 等を外部定義として参照する
 - `~/.claude/rules/always/lint/text-dictionary/rule.md` / `~/.claude/rules/always/agent-config/review/rule.md` — 本ファイルが踏襲した記述形式（rule.md 本体 + 機械強制表 + 違反検知時手順 + 設計判断）の参照元
+
+## 共通レビュー観点（全ポータル共通）
+
+全ポータルサイト（ai-management-portal / reverse-docs-skills ポータル等）に共通で適用するレビュー観点。portal-reviewer サブエージェントがこの観点で照合する。
+
+### 構造（4項目）
+
+| キー | 観点 | 合格基準 |
+|---|---|---|
+| header-unified | ヘッダーが全ページで統一構造か | ブランド名・更新日時・コミット番号・テーマ切替の4要素が全ページに存在 |
+| no-duplicate-info | 同一情報の重複表示がないか | 日時・プロジェクト名がヘッダーとヒーローに二重表示されていない |
+| footer-exists | フッターが存在するか | 生成元の情報が記載されたフッター要素が存在 |
+| meta-format | メタ情報の表示形式 | 「更新: YYYY-MM-DD · コミット番号: XXXXXXX」形式で統一 |
+
+### UX（5項目）
+
+| キー | 観点 | 合格基準 |
+|---|---|---|
+| top-search | TOPページに検索機能があるか | カテゴリを開かずに資料を検索できる |
+| same-tab-nav | 全リンクが同一タブ遷移か | target="_blank" が残存していない |
+| breadcrumb-top | パンくず・戻る導線がページ上部にあるか | 末尾配置のみは不可 |
+| category-order | カテゴリの表示順序が論理的か | 基盤→規約→成果物の依存順 |
+| subgroup | カテゴリ内にサブグループがあるか | 関連カードが近接配置されている |
+
+### 視覚（4項目）
+
+| キー | 観点 | 合格基準 |
+|---|---|---|
+| color-tokens | カテゴリ色がCSS変数で管理されているか | ダークモードでも適切に変化する |
+| breakpoint-unified | ブレークポイントが全ページで統一か | 同一の値が使われている |
+| no-fouc | テーマ切替時にちらつきがないか | 初回ロードで一瞬別テーマが見えない |
+| meta-display | メタ情報表示が統一か | 全ページで同じ形式・位置 |
+
+### a11y（3項目）
+
+| キー | 観点 | 合格基準 |
+|---|---|---|
+| search-aria | 検索入力にaria-labelがあるか | placeholder だけでなく aria-label が設定されている |
+| theme-aria | テーマ切替にaria-pressedがあるか | 状態が反映されている |
+| icon-aria | アイコンにaria-hiddenがあるか | 装飾アイコンに aria-hidden="true" が設定されている |

@@ -476,3 +476,9 @@ rules:
       - /gemini CLI/
       - /GeminiCLI/
       - /GEMINI CLI/
+
+  # ═══ カテゴリ: filename-normalization（ファイル名の正式表記統一）═══
+  # 推奨: AGENTS.md
+  - expected: AGENTS.md
+    patterns:
+      - AGENT.md

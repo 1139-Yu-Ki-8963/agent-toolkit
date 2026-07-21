@@ -1,35 +1,41 @@
 :root {
-  /* ニュートラル（zinc 系無彩色）+ teal アクセント基調パレット */
-  --bg: #fafafa;
+  /* reverse-docs-skills と統一したニュートラル + 藍アクセント基調パレット */
+  /* Windows フォント上書き防止 */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-synthesis: none;
+  --bg: #FFFFFF;
   --panel: #ffffff;
-  --panel-2: #f4f4f5;
-  --border: #e4e4e7;
-  --border-strong: #d4d4d8;
-  --text: #18181b;
-  --text-sub: #3f3f46;
-  --text-muted: #71717a;
-  --accent: #0f766e;
-  --accent-soft: #f0fdfa;
-  --accent-border: #99f6e4;
-  --inverse-bg: #18181b;
-  --inverse-fg: #fafafa;
-  --chip-bg: #f4f4f5;
-  --chip-fg: #3f3f46;
-  --gold: #a16207;
-  --gold-soft: #fdf6e3;
-  --gold-border: #e3c98a;
+  --panel-2: #F0EDE3;
+  --border: #DAD5C5;
+  --border-strong: #BFB9A6;
+  --text: #1B1F26;
+  --text-sub: #4A4F58;
+  --text-muted: #767B85;
+  --accent: #3F4F8E;
+  --accent-soft: #E6E9F3;
+  --accent-border: #BAC2DC;
+  --inverse-bg: #1B1F26;
+  --inverse-fg: #FFFFFF;
+  --chip-bg: #F0EDE3;
+  --chip-fg: #4A4F58;
+  --gold: #9B7A1F;
+  --gold-soft: #F5EFD9;
+  --gold-border: #DDC68A;
   --success: #16a34a;
   --success-soft: #f0fdf4;
   --success-border: #bbf7d0;
-  --warn: #a16207;
-  --danger: #dc2626;
-  --danger-soft: #fef2f2;
+  --warn: #9B7A1F;
+  --danger: #9B3F2D;
+  --danger-soft: #F5E2DC;
   --danger-border: #fecaca;
-  --code-bg: #0f172a;
-  --code-fg: #e2e8f0;
+  --code-bg: #1B1F26;
+  --code-fg: #E8E5DC;
+  --font-body: "Hiragino Kaku Gothic ProN","Hiragino Sans","Noto Sans JP","BIZ UDPGothic","Yu Gothic","Meiryo",system-ui,-apple-system,sans-serif;
   --mono: "SFMono-Regular", "Menlo", "Consolas", monospace;
-  --shadow-sm: 0 1px 2px rgba(31, 41, 55, 0.04), 0 1px 4px rgba(31, 41, 55, 0.04);
-  --shadow-md: 0 2px 6px rgba(31, 41, 55, 0.06), 0 8px 24px rgba(31, 41, 55, 0.06);
+  --shadow-sm: 0 1px 3px rgba(27,31,38,.07), 0 2px 6px rgba(27,31,38,.05);
+  --shadow-md: 0 2px 8px rgba(27,31,38,.09), 0 8px 24px rgba(27,31,38,.07);
   --radius: 10px;
   --radius-sm: 6px;
   --content-max: 1200px;
@@ -37,33 +43,33 @@
 
 /* Dark theme */
 :root[data-theme="dark"] {
-  --bg: #121214;
-  --panel: #1b1b1e;
-  --panel-2: #232327;
-  --border: #2e2e33;
-  --border-strong: #45454c;
-  --text: #ededf0;
-  --text-sub: #b6b6bd;
-  --text-muted: #8e8e96;
-  --accent: #2dd4bf;
-  --accent-soft: rgba(45,212,191,0.12);
-  --accent-border: rgba(45,212,191,0.35);
-  --inverse-bg: #232327;
-  --inverse-fg: #ededf0;
-  --chip-bg: #232327;
-  --chip-fg: #b6b6bd;
-  --gold: #d29922;
-  --gold-soft: rgba(210,153,34,0.1);
-  --gold-border: rgba(210,153,34,0.3);
+  --bg: #15171C;
+  --panel: #1C1F26;
+  --panel-2: #232730;
+  --border: #353944;
+  --border-strong: #4A4F5C;
+  --text: #E8E5DC;
+  --text-sub: #B6B3AB;
+  --text-muted: #888784;
+  --accent: #8FA3DB;
+  --accent-soft: #2A2E47;
+  --accent-border: #4C5680;
+  --inverse-bg: #232730;
+  --inverse-fg: #E8E5DC;
+  --chip-bg: #232730;
+  --chip-fg: #B6B3AB;
+  --gold: #D4B45D;
+  --gold-soft: #3D3520;
+  --gold-border: #7A6633;
   --success: #3fb950;
   --success-soft: rgba(63,185,80,0.1);
   --success-border: rgba(63,185,80,0.32);
-  --warn: #d29922;
-  --danger: #f85149;
-  --danger-soft: rgba(248,81,73,0.1);
+  --warn: #D4B45D;
+  --danger: #D4836E;
+  --danger-soft: #3F2620;
   --danger-border: rgba(248,81,73,0.32);
-  --code-bg: #0d1117;
-  --code-fg: #e6edf3;
+  --code-bg: #0E1116;
+  --code-fg: #E8E5DC;
   --shadow-sm: 0 1px 2px rgba(0,0,0,0.2);
   --shadow-md: 0 2px 6px rgba(0,0,0,0.3);
 }
@@ -72,7 +78,7 @@
 html { -webkit-text-size-adjust: 100%; }
 html, body { margin: 0; padding: 0; }
 body {
-  font-family: "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Yu Gothic", "Meiryo", system-ui, -apple-system, sans-serif;
+  font-family: var(--font-body);
   background: var(--bg);
   color: var(--text);
   line-height: 1.7;

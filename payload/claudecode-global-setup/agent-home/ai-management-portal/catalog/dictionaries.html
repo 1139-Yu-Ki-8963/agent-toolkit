@@ -105,6 +105,7 @@
       { expected: "Cursor", patterns: ["/CURSOR/"], note: "Cursor", caution: "CSS プロパティ cursor:・小文字識別子は対象外（全大文字のみ検出）", category: "official-names", scope: "global" },
       { expected: "Codex CLI", patterns: ["/Codex cli/","/codex cli/","/codex CLI/","/CodexCLI/","/CODEX CLI/"], note: "Codex CLI", caution: "タグ語彙値 codex 単体は対象外（CLI 併記時のみ検出）", category: "official-names", scope: "global" },
       { expected: "Gemini CLI", patterns: ["/Gemini cli/","/gemini cli/","/gemini CLI/","/GeminiCLI/","/GEMINI CLI/"], note: "Gemini CLI", caution: "タグ語彙値 gemini-cli（ハイフン形）は対象外", category: "official-names", scope: "global" },
+      { expected: "AGENTS.md", patterns: ["AGENT.md"], note: "AGENTS.md", caution: "", category: "filename-normalization", scope: "global" },
       { expected: "チームバトル期間", patterns: ["/シーズン/"], note: "チームバトル期間", caution: "コード識別子 season_id / SeasonSelector 等は英語のため対象外（正規表現でヒットしない）", category: "official-names", scope: "<project>-<project>" },
       { expected: "敵一覧", patterns: ["/ロスター/i","/roster/i"], note: "敵一覧 / メンバー一覧 / 編成画面", caution: "スクリーンショットの実ファイル名（例: 2313_roster_01.png）は対象外", category: "official-names", scope: "<project>-<project>" },
       { expected: "SP", patterns: ["/\\bPP\\b/"], note: "SP または EP（サイト上の正式名称を確認して使い分ける）", caution: "", category: "official-names", scope: "<project>-<project>" },
