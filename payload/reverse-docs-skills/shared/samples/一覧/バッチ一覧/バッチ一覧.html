@@ -147,7 +147,7 @@
     white-space: normal; overflow: visible; font-size: 0.8em;
   }
   table.units td, table.screens td {
-    border-top: 1px solid var(--border); padding: 8px 10px; text-align: left; vertical-align: top;
+    border-top: 1px solid var(--border); padding: 6px 8px; text-align: left; vertical-align: top;
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
   table.units th {
@@ -160,15 +160,15 @@
   }
 
   /* 列幅の明示指定（unit-list: 9列） */
-  table.units th:nth-child(1) { width: 7%; }   /* ID */
-  table.units th:nth-child(2) { width: 12%; }  /* キー */
-  table.units th:nth-child(3) { width: 7%; }   /* 区分 */
-  table.units th:nth-child(4) { width: 14%; }  /* 名 */
-  table.units th:nth-child(5) { width: 18%; }  /* 識別子 */
-  table.units th:nth-child(6) { width: 10%; }  /* 検出方式 */
-  table.units th:nth-child(7) { width: 9%; }   /* confidence */
-  table.units th:nth-child(8) { width: 8%; }   /* ファイル数 */
-  table.units th:nth-child(9) { width: 15%; }  /* 主ファイル */
+  table.units th:nth-child(1) { width: 6%; }   /* ID */
+  table.units th:nth-child(2) { width: 8%; }   /* キー */
+  table.units th:nth-child(3) { width: 5%; }   /* 区分 */
+  table.units th:nth-child(4) { width: 10%; }  /* 名 */
+  table.units th:nth-child(5) { width: 22%; }  /* 識別子 */
+  table.units th:nth-child(6) { width: 6%; }   /* 検出方式 */
+  table.units th:nth-child(7) { width: 5%; }   /* confidence */
+  table.units th:nth-child(8) { width: 4%; }   /* ファイル数 */
+  table.units th:nth-child(9) { width: 34%; }  /* 主ファイル */
 
   /* 数値列は右揃え＋等幅数字 */
   table.units td:nth-child(7),
@@ -182,6 +182,17 @@
   table.units td:nth-child(9) {
     font-family: var(--mono);
     font-size: 0.8em;
+  }
+
+  /* ゼブラストライプ */
+  table.units tbody tr:nth-child(even),
+  table.screens tbody tr:nth-child(even) {
+    background: color-mix(in srgb, var(--panel-2) 40%, transparent);
+  }
+  /* 行ホバー */
+  table.units tbody tr:hover,
+  table.screens tbody tr:hover {
+    background: var(--accent-soft);
   }
 
   /* ホバーで全文表示 */
@@ -237,7 +248,7 @@
   </table>
 
   <div class="summary-tiles">
-    <div class="tile"><strong>3</strong>検出バッチ数</div>
+    <div class="tile"><strong>10</strong>検出バッチ数</div>
     <div class="tile"><strong>0</strong>要手動確認数</div>
   </div>
 </header>
@@ -265,9 +276,16 @@
       </tr>
     </thead>
     <tbody>
-      <tr><td>batch-cleanup</td><td>cleanup</td><td>定期</td><td>データクリーンアップ</td><td>cleanup_job</td><td>cron-config</td><td>HIGH</td><td>2</td><td>cleanup.py</td></tr>
-<tr><td>batch-report</td><td>daily-report</td><td>定期</td><td>日次レポート生成</td><td>daily_report</td><td>cron-config</td><td>HIGH</td><td>3</td><td>report.py</td></tr>
-<tr><td>batch-sync</td><td>data-sync</td><td>手動</td><td>外部データ同期</td><td>sync_external</td><td>script</td><td>MEDIUM</td><td>2</td><td>sync.py</td></tr>
+      <tr><td>batch-cleanup</td><td>cleanup</td><td>定期</td><td>データクリーンアップ</td><td>cleanup_job</td><td>cron-config</td><td>HIGH</td><td>2</td><td>src/jobs/cleanup.py</td></tr>
+<tr><td>batch-daily-report</td><td>daily-report</td><td>定期</td><td>日次レポート生成</td><td>daily_report</td><td>cron-config</td><td>HIGH</td><td>3</td><td>src/jobs/daily_report.py</td></tr>
+<tr><td>batch-weekly-digest</td><td>weekly-digest</td><td>定期</td><td>週次ダイジェスト送信</td><td>weekly_digest</td><td>cron-config</td><td>HIGH</td><td>2</td><td>src/jobs/weekly_digest.py</td></tr>
+<tr><td>batch-session-cleanup</td><td>session-cleanup</td><td>定期</td><td>期限切れセッション削除</td><td>session_cleanup</td><td>cron-config</td><td>HIGH</td><td>1</td><td>src/jobs/session_cleanup.py</td></tr>
+<tr><td>batch-notification-send</td><td>notification-send</td><td>定期</td><td>通知一括送信</td><td>notification_batch_send</td><td>cron-config</td><td>HIGH</td><td>3</td><td>src/jobs/notification_send.py</td></tr>
+<tr><td>batch-data-export</td><td>data-export</td><td>手動</td><td>データエクスポート</td><td>data_export</td><td>script</td><td>MEDIUM</td><td>4</td><td>src/jobs/data_export.py</td></tr>
+<tr><td>batch-backup</td><td>db-backup</td><td>定期</td><td>データベースバックアップ</td><td>db_backup</td><td>cron-config</td><td>HIGH</td><td>2</td><td>src/jobs/db_backup.py</td></tr>
+<tr><td>batch-sync-external</td><td>sync-external</td><td>手動</td><td>外部データ同期</td><td>sync_external_data</td><td>script</td><td>MEDIUM</td><td>2</td><td>src/jobs/sync_external.py</td></tr>
+<tr><td>batch-cache-warmup</td><td>cache-warmup</td><td>定期</td><td>キャッシュウォームアップ</td><td>cache_warmup</td><td>cron-config</td><td>HIGH</td><td>1</td><td>src/jobs/cache_warmup.py</td></tr>
+<tr><td>batch-audit-archive</td><td>audit-archive</td><td>定期</td><td>監査ログアーカイブ</td><td>audit_log_archive</td><td>cron-config</td><td>HIGH</td><td>2</td><td>src/jobs/audit_archive.py</td></tr>
     </tbody>
   </table>
   </div>
@@ -294,7 +312,7 @@
 </section>
 
 <script type="application/json" id="unit-manifest">
-{"detectionSummary":{"unitCount":3,"unresolvedCount":0},"units":[]}
+{"detectionSummary":{"unitCount":10,"unresolvedCount":0},"units":[]}
 </script>
 
 <footer>種別別一覧スキル（generating-&lt;種別&gt;-list-for-reverse-docs）により生成。手編集は次回再生成で上書きされる。</footer>

@@ -93,7 +93,7 @@
     white-space: normal; overflow: visible; font-size: 0.8em;
   }
   table.units td {
-    border-top: 1px solid var(--border); padding: 8px 10px; text-align: left; vertical-align: top;
+    border-top: 1px solid var(--border); padding: 6px 8px; text-align: left; vertical-align: top;
     overflow-wrap: break-word; word-break: break-all; white-space: normal;
   }
   table.units th {
@@ -106,16 +106,16 @@
   }
 
   /* 列幅の明示指定（feature-list: 10列） */
-  table.units th:nth-child(1) { width: 6%; }   /* 機能ID */
-  table.units th:nth-child(2) { width: 9%; }   /* 機能キー */
-  table.units th:nth-child(3) { width: 11%; }  /* 機能名 */
-  table.units th:nth-child(4) { width: 18%; }  /* 概要 */
-  table.units th:nth-child(5) { width: 9%; }   /* 関連画面 */
-  table.units th:nth-child(6) { width: 9%; }   /* 関連API */
-  table.units th:nth-child(7) { width: 9%; }   /* 関連テーブル */
-  table.units th:nth-child(8) { width: 8%; }   /* confidence */
-  table.units th:nth-child(9) { width: 8%; }   /* 検出方式 */
-  table.units th:nth-child(10) { width: 14%; } /* 主ファイル */
+  table.units th:nth-child(1) { width: 5%; }   /* 機能ID */
+  table.units th:nth-child(2) { width: 7%; }   /* 機能キー */
+  table.units th:nth-child(3) { width: 8%; }   /* 機能名 */
+  table.units th:nth-child(4) { width: 22%; }  /* 概要 */
+  table.units th:nth-child(5) { width: 8%; }   /* 関連画面 */
+  table.units th:nth-child(6) { width: 10%; }  /* 関連API */
+  table.units th:nth-child(7) { width: 7%; }   /* 関連テーブル */
+  table.units th:nth-child(8) { width: 5%; }   /* confidence */
+  table.units th:nth-child(9) { width: 5%; }   /* 検出方式 */
+  table.units th:nth-child(10) { width: 23%; } /* 主ファイル */
 
   /* 数値列は右揃え＋等幅数字 */
   table.units td:nth-child(8) {
@@ -128,6 +128,15 @@
   table.units td:nth-child(10) {
     font-family: var(--mono);
     font-size: 0.8em;
+  }
+
+  /* ゼブラストライプ */
+  table.units tbody tr:nth-child(even) {
+    background: color-mix(in srgb, var(--panel-2) 40%, transparent);
+  }
+  /* 行ホバー */
+  table.units tbody tr:hover {
+    background: var(--accent-soft);
   }
 
   td code { overflow-wrap: break-word; word-break: break-all; }

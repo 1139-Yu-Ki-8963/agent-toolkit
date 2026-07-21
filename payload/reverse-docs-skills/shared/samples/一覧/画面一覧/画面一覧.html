@@ -153,7 +153,7 @@
     white-space: normal; overflow: visible; font-size: 0.8em;
   }
   table.screens td {
-    border-top: 1px solid var(--border); padding: 8px 10px; text-align: left; vertical-align: top;
+    border-top: 1px solid var(--border); padding: 6px 8px; text-align: left; vertical-align: top;
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
   table.screens th {
@@ -166,17 +166,17 @@
   }
 
   /* 列幅の明示指定（screen-list: 11列） */
-  table.screens th:nth-child(1) { width: 6%; }   /* 画面ID */
-  table.screens th:nth-child(2) { width: 9%; }   /* 画面キー */
-  table.screens th:nth-child(3) { width: 6%; }   /* 区分 */
-  table.screens th:nth-child(4) { width: 11%; }  /* 画面名 */
-  table.screens th:nth-child(5) { width: 14%; }  /* ルート */
-  table.screens th:nth-child(6) { width: 8%; }   /* 検出方式 */
-  table.screens th:nth-child(7) { width: 7%; }   /* confidence */
-  table.screens th:nth-child(8) { width: 9%; }   /* 共有 */
-  table.screens th:nth-child(9) { width: 9%; }   /* 埋め込み元 */
-  table.screens th:nth-child(10) { width: 8%; }  /* 構成ファイル数 */
-  table.screens th:nth-child(11) { width: 13%; } /* 主ファイル */
+  table.screens th:nth-child(1) { width: 5%; }   /* 画面ID */
+  table.screens th:nth-child(2) { width: 7%; }   /* 画面キー */
+  table.screens th:nth-child(3) { width: 4%; }   /* 区分 */
+  table.screens th:nth-child(4) { width: 9%; }   /* 画面名 */
+  table.screens th:nth-child(5) { width: 16%; }  /* ルート */
+  table.screens th:nth-child(6) { width: 5%; }   /* 検出方式 */
+  table.screens th:nth-child(7) { width: 5%; }   /* confidence */
+  table.screens th:nth-child(8) { width: 6%; }   /* 共有 */
+  table.screens th:nth-child(9) { width: 6%; }   /* 埋め込み元 */
+  table.screens th:nth-child(10) { width: 4%; }  /* 構成ファイル数 */
+  table.screens th:nth-child(11) { width: 33%; } /* 主ファイル */
 
   /* 数値列は右揃え＋等幅数字 */
   table.screens td:nth-child(7),
@@ -190,6 +190,15 @@
   table.screens td:nth-child(11) {
     font-family: var(--mono);
     font-size: 0.8em;
+  }
+
+  /* ゼブラストライプ */
+  table.screens tbody tr:nth-child(even) {
+    background: color-mix(in srgb, var(--panel-2) 40%, transparent);
+  }
+  /* 行ホバー */
+  table.screens tbody tr:hover {
+    background: var(--accent-soft);
   }
 
   /* ホバーで全文表示 */
@@ -248,8 +257,8 @@
   </table>
 
   <div class="summary-tiles">
-    <div class="tile"><strong>12</strong>検出画面数</div>
-    <div class="tile"><strong>4</strong>共有クラスタ数（2画面が関与）</div>
+    <div class="tile"><strong>18</strong>検出画面数</div>
+    <div class="tile"><strong>1</strong>共有クラスタ数（2画面が関与）</div>
     <div class="tile"><strong>1</strong>埋め込みビュー候補数</div>
     <div class="tile"><strong>0</strong>要手動確認数</div>
   </div>
@@ -282,11 +291,24 @@
       </tr>
     </thead>
     <tbody>
-      <tr><td>screen-home</td><td>home</td><td>独立</td><td>ホーム画面</td><td>/</td><td>routing</td><td>HIGH</td><td>—</td><td>—</td><td>5</td><td>HomePage.tsx</td></tr>
-<tr><td>screen-login</td><td>login</td><td>独立</td><td>ログイン画面</td><td>/login</td><td>routing</td><td>HIGH</td><td>—</td><td>—</td><td>3</td><td>LoginPage.tsx</td></tr>
-<tr><td>screen-settings</td><td>settings</td><td>独立</td><td>設定画面</td><td>/settings</td><td>routing</td><td>HIGH</td><td>—</td><td>—</td><td>4</td><td>SettingsPage.tsx</td></tr>
-<tr><td>screen-dashboard</td><td>dashboard</td><td>独立</td><td>ダッシュボード</td><td>/dashboard</td><td>routing</td><td>HIGH</td><td>—</td><td>—</td><td>6</td><td>DashboardPage.tsx</td></tr>
-<tr><td>screen-profile</td><td>profile</td><td>独立</td><td>プロフィール</td><td>/profile</td><td>routing</td><td>MEDIUM</td><td>—</td><td>—</td><td>3</td><td>ProfilePage.tsx</td></tr>
+      <tr><td>screen-home</td><td>home</td><td>独立</td><td>ホーム画面</td><td><code>/</code></td><td>routing</td><td><span class="badge high">HIGH</span></td><td>—</td><td>—</td><td>5</td><td><code>src/pages/HomePage.tsx</code></td></tr>
+<tr><td>screen-login</td><td>login</td><td>独立</td><td>ログイン画面</td><td><code>/login</code></td><td>routing</td><td><span class="badge high">HIGH</span></td><td>—</td><td>—</td><td>3</td><td><code>src/pages/auth/LoginPage.tsx</code></td></tr>
+<tr><td>screen-signup</td><td>signup</td><td>独立</td><td>新規登録画面</td><td><code>/signup</code></td><td>routing</td><td><span class="badge high">HIGH</span></td><td>—</td><td>—</td><td>4</td><td><code>src/pages/auth/SignupPage.tsx</code></td></tr>
+<tr><td>screen-forgot-pw</td><td>forgot-password</td><td>独立</td><td>パスワードリセット</td><td><code>/forgot-password</code></td><td>routing</td><td><span class="badge high">HIGH</span></td><td>—</td><td>—</td><td>2</td><td><code>src/pages/auth/ForgotPasswordPage.tsx</code></td></tr>
+<tr><td>screen-dashboard</td><td>dashboard</td><td>独立</td><td>ダッシュボード</td><td><code>/dashboard</code></td><td>routing</td><td><span class="badge high">HIGH</span></td><td>—</td><td>—</td><td>8</td><td><code>src/pages/DashboardPage.tsx</code></td></tr>
+<tr><td>screen-profile</td><td>profile</td><td>独立</td><td>プロフィール</td><td><code>/profile</code></td><td>routing</td><td><span class="badge high">HIGH</span></td><td>—</td><td>—</td><td>3</td><td><code>src/pages/settings/ProfilePage.tsx</code></td></tr>
+<tr><td>screen-settings</td><td>settings</td><td>独立</td><td>設定画面</td><td><code>/settings</code></td><td>routing</td><td><span class="badge high">HIGH</span></td><td>—</td><td>—</td><td>4</td><td><code>src/pages/settings/SettingsPage.tsx</code></td></tr>
+<tr><td>screen-users-list</td><td>users-list</td><td>共有</td><td>ユーザー一覧</td><td><code>/admin/users</code></td><td>routing</td><td><span class="badge high">HIGH</span></td><td>screen-users-detail: /admin/users/:id</td><td>—</td><td>6</td><td><code>src/pages/admin/UsersListPage.tsx</code></td></tr>
+<tr><td>screen-users-detail</td><td>users-detail</td><td>共有</td><td>ユーザー詳細</td><td><code>/admin/users/:userId</code></td><td>routing</td><td><span class="badge high">HIGH</span></td><td>screen-users-list: /admin/users</td><td>—</td><td>5</td><td><code>src/pages/admin/UserDetailPage.tsx</code></td></tr>
+<tr><td>screen-users-edit</td><td>users-edit</td><td>独立</td><td>ユーザー編集</td><td><code>/admin/users/:userId/edit</code></td><td>routing</td><td><span class="badge medium">MEDIUM</span></td><td>—</td><td>—</td><td>4</td><td><code>src/pages/admin/UserEditPage.tsx</code></td></tr>
+<tr><td>screen-roles</td><td>roles</td><td>独立</td><td>ロール管理</td><td><code>/admin/roles</code></td><td>routing</td><td><span class="badge high">HIGH</span></td><td>—</td><td>—</td><td>3</td><td><code>src/pages/admin/RolesPage.tsx</code></td></tr>
+<tr><td>screen-posts-list</td><td>posts-list</td><td>独立</td><td>投稿一覧</td><td><code>/posts</code></td><td>routing</td><td><span class="badge high">HIGH</span></td><td>—</td><td>—</td><td>4</td><td><code>src/pages/posts/PostsListPage.tsx</code></td></tr>
+<tr><td>screen-post-detail</td><td>post-detail</td><td>独立</td><td>投稿詳細</td><td><code>/posts/:postId</code></td><td>routing</td><td><span class="badge high">HIGH</span></td><td>—</td><td>—</td><td>5</td><td><code>src/pages/posts/PostDetailPage.tsx</code></td></tr>
+<tr><td>screen-post-editor</td><td>post-editor</td><td>独立</td><td>投稿エディタ</td><td><code>/posts/:postId/edit</code></td><td>routing</td><td><span class="badge medium">MEDIUM</span></td><td>—</td><td>—</td><td>7</td><td><code>src/pages/posts/PostEditorPage.tsx</code></td></tr>
+<tr><td>screen-notifications</td><td>notifications</td><td>独立</td><td>通知一覧</td><td><code>/notifications</code></td><td>routing</td><td><span class="badge high">HIGH</span></td><td>—</td><td>—</td><td>3</td><td><code>src/pages/NotificationsPage.tsx</code></td></tr>
+<tr><td>screen-search</td><td>search</td><td>独立</td><td>検索結果</td><td><code>/search</code></td><td>routing</td><td><span class="badge medium">MEDIUM</span></td><td>—</td><td>—</td><td>2</td><td><code>src/pages/SearchResultsPage.tsx</code></td></tr>
+<tr><td>screen-report-viewer</td><td>report-viewer</td><td>独立</td><td>レポート閲覧</td><td><code>/reports/:reportId</code></td><td>routing</td><td><span class="badge high">HIGH</span></td><td>—</td><td>—</td><td>4</td><td><code>src/pages/reports/ReportViewerPage.tsx</code></td></tr>
+<tr><td>screen-sidebar-nav</td><td>sidebar-nav</td><td>埋め込み</td><td>サイドバーナビ</td><td>—</td><td>file-scan</td><td><span class="badge medium">MEDIUM</span></td><td>—</td><td>screen-dashboard</td><td>2</td><td><code>src/components/layout/SidebarNav.tsx</code></td></tr>
     </tbody>
   </table>
   </div>
@@ -313,7 +335,7 @@
 </section>
 
 <script type="application/json" id="screen-manifest">
-{"detectionSummary": {"screenCount": 12, "clusterCount": 4, "sharedScreenCount": 2, "embeddedCount": 1, "unresolvedCount": 0}, "screens": [{"screenId": "screen-home", "screenKey": "home", "classification": "独立", "screenName": "ホーム画面", "route": "/", "detectionMethod": "routing", "confidence": "HIGH", "sharedWith": null, "embeddedIn": null, "fileCount": 5, "mainFile": "HomePage.tsx"}]}
+{"detectionSummary": {"screenCount": 18, "clusterCount": 1, "sharedScreenCount": 2, "embeddedCount": 1, "unresolvedCount": 0}, "screens": [{"screenId": "screen-home", "screenKey": "home", "classification": "独立", "screenName": "ホーム画面", "route": "/", "detectionMethod": "routing", "confidence": "HIGH", "sharedWith": null, "embeddedIn": null, "fileCount": 5, "mainFile": "HomePage.tsx"}]}
 </script>
 
 <footer>generating-screen-list-for-reverse-docs により生成。手編集は次回再生成で上書きされる。</footer>

@@ -100,7 +100,7 @@
     white-space: normal; overflow: visible; font-size: 0.8em;
   }
   table.screens td {
-    border-top: 1px solid var(--border); padding: 8px 10px; text-align: left; vertical-align: top;
+    border-top: 1px solid var(--border); padding: 6px 8px; text-align: left; vertical-align: top;
     overflow-wrap: break-word; word-break: break-all; white-space: normal;
   }
   table.screens th {
@@ -113,17 +113,17 @@
   }
 
   /* 列幅の明示指定（screen-list: 11列） */
-  table.screens th:nth-child(1) { width: 8%; }   /* 画面ID */
-  table.screens th:nth-child(2) { width: 9%; }   /* 画面キー */
-  table.screens th:nth-child(3) { width: 6%; }   /* 区分 */
-  table.screens th:nth-child(4) { width: 11%; }  /* 画面名 */
-  table.screens th:nth-child(5) { width: 14%; }  /* ルート */
-  table.screens th:nth-child(6) { width: 8%; }   /* 検出方式 */
-  table.screens th:nth-child(7) { width: 7%; }   /* confidence */
-  table.screens th:nth-child(8) { width: 9%; }   /* 共有 */
-  table.screens th:nth-child(9) { width: 9%; }   /* 埋め込み元 */
-  table.screens th:nth-child(10) { width: 8%; }  /* 構成ファイル数 */
-  table.screens th:nth-child(11) { width: 14%; } /* 主ファイル */
+  table.screens th:nth-child(1) { width: 5%; }   /* 画面ID */
+  table.screens th:nth-child(2) { width: 7%; }   /* 画面キー */
+  table.screens th:nth-child(3) { width: 4%; }   /* 区分 */
+  table.screens th:nth-child(4) { width: 9%; }   /* 画面名 */
+  table.screens th:nth-child(5) { width: 16%; }  /* ルート */
+  table.screens th:nth-child(6) { width: 5%; }   /* 検出方式 */
+  table.screens th:nth-child(7) { width: 5%; }   /* confidence */
+  table.screens th:nth-child(8) { width: 6%; }   /* 共有 */
+  table.screens th:nth-child(9) { width: 6%; }   /* 埋め込み元 */
+  table.screens th:nth-child(10) { width: 4%; }  /* 構成ファイル数 */
+  table.screens th:nth-child(11) { width: 33%; } /* 主ファイル */
 
   /* 数値列は右揃え＋等幅数字 */
   table.screens td:nth-child(7),
@@ -137,6 +137,15 @@
   table.screens td:nth-child(11) {
     font-family: var(--mono);
     font-size: 0.8em;
+  }
+
+  /* ゼブラストライプ */
+  table.screens tbody tr:nth-child(even) {
+    background: color-mix(in srgb, var(--panel-2) 40%, transparent);
+  }
+  /* 行ホバー */
+  table.screens tbody tr:hover {
+    background: var(--accent-soft);
   }
 
   td code { overflow-wrap: break-word; word-break: break-all; }

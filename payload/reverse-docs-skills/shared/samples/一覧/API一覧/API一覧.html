@@ -147,7 +147,7 @@
     white-space: normal; overflow: visible; font-size: 0.8em;
   }
   table.units td, table.screens td {
-    border-top: 1px solid var(--border); padding: 8px 10px; text-align: left; vertical-align: top;
+    border-top: 1px solid var(--border); padding: 6px 8px; text-align: left; vertical-align: top;
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
   table.units th {
@@ -160,15 +160,15 @@
   }
 
   /* 列幅の明示指定（unit-list: 9列） */
-  table.units th:nth-child(1) { width: 7%; }   /* ID */
-  table.units th:nth-child(2) { width: 12%; }  /* キー */
-  table.units th:nth-child(3) { width: 7%; }   /* 区分 */
-  table.units th:nth-child(4) { width: 14%; }  /* 名 */
-  table.units th:nth-child(5) { width: 18%; }  /* 識別子 */
-  table.units th:nth-child(6) { width: 10%; }  /* 検出方式 */
-  table.units th:nth-child(7) { width: 9%; }   /* confidence */
-  table.units th:nth-child(8) { width: 8%; }   /* ファイル数 */
-  table.units th:nth-child(9) { width: 15%; }  /* 主ファイル */
+  table.units th:nth-child(1) { width: 6%; }   /* ID */
+  table.units th:nth-child(2) { width: 8%; }   /* キー */
+  table.units th:nth-child(3) { width: 5%; }   /* 区分 */
+  table.units th:nth-child(4) { width: 10%; }  /* 名 */
+  table.units th:nth-child(5) { width: 22%; }  /* 識別子 */
+  table.units th:nth-child(6) { width: 6%; }   /* 検出方式 */
+  table.units th:nth-child(7) { width: 5%; }   /* confidence */
+  table.units th:nth-child(8) { width: 4%; }   /* ファイル数 */
+  table.units th:nth-child(9) { width: 34%; }  /* 主ファイル */
 
   /* 数値列は右揃え＋等幅数字 */
   table.units td:nth-child(7),
@@ -182,6 +182,17 @@
   table.units td:nth-child(9) {
     font-family: var(--mono);
     font-size: 0.8em;
+  }
+
+  /* ゼブラストライプ */
+  table.units tbody tr:nth-child(even),
+  table.screens tbody tr:nth-child(even) {
+    background: color-mix(in srgb, var(--panel-2) 40%, transparent);
+  }
+  /* 行ホバー */
+  table.units tbody tr:hover,
+  table.screens tbody tr:hover {
+    background: var(--accent-soft);
   }
 
   /* ホバーで全文表示 */
@@ -237,7 +248,7 @@
   </table>
 
   <div class="summary-tiles">
-    <div class="tile"><strong>28</strong>検出API数</div>
+    <div class="tile"><strong>18</strong>検出API数</div>
     <div class="tile"><strong>0</strong>要手動確認数</div>
   </div>
 </header>
@@ -265,9 +276,24 @@
       </tr>
     </thead>
     <tbody>
-      <tr><td>api-users-get</td><td>users-get</td><td>REST</td><td>ユーザー一覧取得</td><td>GET /api/users</td><td>decorator</td><td>HIGH</td><td>2</td><td>users.py</td></tr>
-<tr><td>api-auth-login</td><td>auth-login</td><td>REST</td><td>ログイン</td><td>POST /api/auth/login</td><td>decorator</td><td>HIGH</td><td>3</td><td>auth.py</td></tr>
-<tr><td>api-settings-update</td><td>settings-update</td><td>REST</td><td>設定更新</td><td>PUT /api/settings</td><td>decorator</td><td>HIGH</td><td>2</td><td>settings.py</td></tr>
+      <tr><td>api-users-list</td><td>users-list</td><td>REST</td><td>ユーザー一覧取得</td><td>GET /api/users</td><td>decorator</td><td>HIGH</td><td>2</td><td>src/api/users.py</td></tr>
+<tr><td>api-users-create</td><td>users-create</td><td>REST</td><td>ユーザー新規作成</td><td>POST /api/users</td><td>decorator</td><td>HIGH</td><td>2</td><td>src/api/users.py</td></tr>
+<tr><td>api-users-get</td><td>users-get</td><td>REST</td><td>ユーザー詳細取得</td><td>GET /api/users/:userId</td><td>decorator</td><td>HIGH</td><td>2</td><td>src/api/users.py</td></tr>
+<tr><td>api-users-update</td><td>users-update</td><td>REST</td><td>ユーザー更新</td><td>PUT /api/users/:userId</td><td>decorator</td><td>HIGH</td><td>2</td><td>src/api/users.py</td></tr>
+<tr><td>api-users-delete</td><td>users-delete</td><td>REST</td><td>ユーザー削除</td><td>DELETE /api/users/:userId</td><td>decorator</td><td>HIGH</td><td>2</td><td>src/api/users.py</td></tr>
+<tr><td>api-auth-login</td><td>auth-login</td><td>REST</td><td>ログイン</td><td>POST /api/auth/login</td><td>decorator</td><td>HIGH</td><td>3</td><td>src/api/auth.py</td></tr>
+<tr><td>api-auth-logout</td><td>auth-logout</td><td>REST</td><td>ログアウト</td><td>DELETE /api/auth/session</td><td>decorator</td><td>HIGH</td><td>2</td><td>src/api/auth.py</td></tr>
+<tr><td>api-auth-refresh</td><td>auth-refresh</td><td>REST</td><td>トークン更新</td><td>POST /api/auth/refresh</td><td>decorator</td><td>MEDIUM</td><td>2</td><td>src/api/auth.py</td></tr>
+<tr><td>api-posts-list</td><td>posts-list</td><td>REST</td><td>投稿一覧取得</td><td>GET /api/posts</td><td>decorator</td><td>HIGH</td><td>2</td><td>src/api/posts.py</td></tr>
+<tr><td>api-posts-create</td><td>posts-create</td><td>REST</td><td>投稿作成</td><td>POST /api/posts</td><td>decorator</td><td>HIGH</td><td>3</td><td>src/api/posts.py</td></tr>
+<tr><td>api-posts-get</td><td>posts-get</td><td>REST</td><td>投稿詳細取得</td><td>GET /api/posts/:postId</td><td>decorator</td><td>HIGH</td><td>2</td><td>src/api/posts.py</td></tr>
+<tr><td>api-posts-update</td><td>posts-update</td><td>REST</td><td>投稿更新</td><td>PUT /api/posts/:postId</td><td>decorator</td><td>HIGH</td><td>2</td><td>src/api/posts.py</td></tr>
+<tr><td>api-posts-delete</td><td>posts-delete</td><td>REST</td><td>投稿削除</td><td>DELETE /api/posts/:postId</td><td>decorator</td><td>HIGH</td><td>2</td><td>src/api/posts.py</td></tr>
+<tr><td>api-comments-create</td><td>comments-create</td><td>REST</td><td>コメント投稿</td><td>POST /api/posts/:postId/comments</td><td>decorator</td><td>HIGH</td><td>2</td><td>src/api/comments.py</td></tr>
+<tr><td>api-settings-get</td><td>settings-get</td><td>REST</td><td>設定取得</td><td>GET /api/settings</td><td>decorator</td><td>HIGH</td><td>2</td><td>src/api/settings.py</td></tr>
+<tr><td>api-settings-update</td><td>settings-update</td><td>REST</td><td>設定更新</td><td>PUT /api/settings</td><td>decorator</td><td>HIGH</td><td>2</td><td>src/api/settings.py</td></tr>
+<tr><td>api-notifications-list</td><td>notifications-list</td><td>REST</td><td>通知一覧取得</td><td>GET /api/notifications</td><td>decorator</td><td>HIGH</td><td>2</td><td>src/api/notifications.py</td></tr>
+<tr><td>api-files-upload</td><td>files-upload</td><td>REST</td><td>ファイルアップロード</td><td>POST /api/files/upload</td><td>decorator</td><td>MEDIUM</td><td>3</td><td>src/api/files.py</td></tr>
     </tbody>
   </table>
   </div>
@@ -294,7 +320,7 @@
 </section>
 
 <script type="application/json" id="unit-manifest">
-{"detectionSummary":{"unitCount":28,"unresolvedCount":0},"units":[{"unitId":"api-users-get","unitKey":"users-get","classification":"REST","unitName":"ユーザー一覧取得","identifier":"GET /api/users","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"mainFile":"users.py"}]}
+{"detectionSummary":{"unitCount":18,"unresolvedCount":0},"units":[{"unitId":"api-users-get","unitKey":"users-get","classification":"REST","unitName":"ユーザー一覧取得","identifier":"GET /api/users","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"mainFile":"users.py"}]}
 </script>
 
 <footer>種別別一覧スキル（generating-&lt;種別&gt;-list-for-reverse-docs）により生成。手編集は次回再生成で上書きされる。</footer>
