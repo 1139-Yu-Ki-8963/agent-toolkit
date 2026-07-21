@@ -470,12 +470,13 @@ if [ -n "$future_tools_json" ]; then
   future_count="$(echo "$future_tools_json" | grep -o '{' | wc -l | awk '{print $1}')"
 fi
 
-CATEGORIES_JSON="[{\"id\":\"list\",\"title\":\"一覧系資料\",\"icon\":\"list_alt\",\"sub\":\"画面・API・バッチ・テーブル・帳票・外部連携・機能の種別一覧\",\"tools\":[$list_tools_json]}"
+CATEGORIES_JSON="["
 if [ "$future_count" -gt 0 ]; then
-  CATEGORIES_JSON="$CATEGORIES_JSON,{\"id\":\"project\",\"title\":\"プロジェクト基盤情報\",\"icon\":\"domain\",\"sub\":\"プロジェクトの前提を横断的にまとめた資料\",\"tools\":[$future_tools_json]}"
+  CATEGORIES_JSON="$CATEGORIES_JSON{\"id\":\"project\",\"title\":\"プロジェクト基盤情報\",\"icon\":\"domain\",\"sub\":\"プロジェクトの前提を横断的にまとめた資料\",\"tools\":[$future_tools_json]},"
 fi
+CATEGORIES_JSON="$CATEGORIES_JSON{\"id\":\"list\",\"title\":\"一覧系資料\",\"icon\":\"list_alt\",\"sub\":\"画面・API・バッチ・テーブル・帳票・外部連携・機能の種別一覧\",\"tools\":[$list_tools_json]}"
 if [ "$common_count" -gt 0 ]; then
-  CATEGORIES_JSON="$CATEGORIES_JSON,{\"id\":\"common\",\"title\":\"共通文書\",\"icon\":\"library_books\",\"sub\":\"プロジェクト全体に適用される設計方針・規約\",\"tools\":[$common_tools_json]}"
+  CATEGORIES_JSON="$CATEGORIES_JSON,{\"id\":\"common\",\"title\":\"プロジェクト規約\",\"icon\":\"library_books\",\"sub\":\"プロジェクト全体に適用される設計方針・規約\",\"tools\":[$common_tools_json]}"
 fi
 CATEGORIES_JSON="$CATEGORIES_JSON]"
 
