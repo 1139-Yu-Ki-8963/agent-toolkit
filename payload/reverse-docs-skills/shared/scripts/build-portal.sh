@@ -161,6 +161,66 @@ FIXTURE2
   echo "PASS: --self-test ケース6（frontmatter 除去）"
   rm -rf "$test6_dir"
 
+  echo "--- ケース7: 複数行 unit-manifest JSON からの件数抽出 ---"
+  test7_dir="$(mktemp -d)"
+  test7_repo="$test7_dir/repo"
+  test7_docs="$test7_dir/docs"
+  test7_portal="$test7_dir/portal"
+  mkdir -p "$test7_repo" "$test7_docs/一覧/API一覧" "$test7_portal"
+  cat > "$test7_docs/一覧/API一覧/API一覧.html" <<'TEST7HTML'
+<!DOCTYPE html><html><head><title>API一覧</title></head><body>
+<script type="application/json" id="unit-manifest">
+{
+  "detectionSummary": {
+    "unitCount": 5,
+    "analyzedFiles": 10
+  },
+  "units": []
+}
+</script>
+</body></html>
+TEST7HTML
+  echo '{"total":100,"fe":50,"be":50,"file_count":10}' > "$test7_portal/code-metrics.json"
+  "$SCRIPT_DIR/build-portal.sh" "$test7_repo" "$test7_docs" "$test7_portal" 2>/dev/null
+  if tr -d ' \n' < "$test7_portal/index.html" | grep -q '"kind":"api".*"count":5'; then
+    echo "PASS: --self-test ケース7（複数行 unit-manifest JSON からの件数抽出, count=5）"
+  else
+    echo "FAIL: --self-test ケース7（複数行 unit-manifest JSON からの件数抽出）" >&2
+    rm -rf "$test7_dir"
+    exit 1
+  fi
+  rm -rf "$test7_dir"
+
+  echo "--- ケース8: screen-manifest + screenCount からの件数抽出 ---"
+  test8_dir="$(mktemp -d)"
+  test8_repo="$test8_dir/repo"
+  test8_docs="$test8_dir/docs"
+  test8_portal="$test8_dir/portal"
+  mkdir -p "$test8_repo" "$test8_docs/一覧/画面一覧" "$test8_portal"
+  cat > "$test8_docs/一覧/画面一覧/画面一覧.html" <<'TEST8HTML'
+<!DOCTYPE html><html><head><title>画面一覧</title></head><body>
+<script type="application/json" id="screen-manifest">
+{
+  "detectionSummary": {
+    "screenCount": 12,
+    "analyzedFiles": 20
+  },
+  "screens": []
+}
+</script>
+</body></html>
+TEST8HTML
+  echo '{"total":100,"fe":50,"be":50,"file_count":10}' > "$test8_portal/code-metrics.json"
+  "$SCRIPT_DIR/build-portal.sh" "$test8_repo" "$test8_docs" "$test8_portal" 2>/dev/null
+  if tr -d ' \n' < "$test8_portal/index.html" | grep -q '"kind":"screen".*"count":12'; then
+    echo "PASS: --self-test ケース8（screen-manifest + screenCount からの件数抽出, count=12）"
+  else
+    echo "FAIL: --self-test ケース8（screen-manifest + screenCount からの件数抽出）" >&2
+    rm -rf "$test8_dir"
+    exit 1
+  fi
+  rm -rf "$test8_dir"
+
   exit 0
 fi
 

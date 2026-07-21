@@ -52,9 +52,9 @@ detail-pages 系（用語辞書 / 技術スタック / 画面遷移図 / ER図 /
 | entities | array（er のみ） | `{ "key": string, "label": string }` の配列。SVG 描画時のノードキーは `key` |
 | relations | array（er のみ） | `{ "from": string, "to": string, "cardinality": string, "sourceRef": string }` の配列。`from`/`to` は `entities[].key` を参照する |
 
-テンプレート挙動: SVG は埋め込み JSON から client-side で構築する（サーバー側ではノード・エッジ要素を生成しない。静的 HTML の `<svg>` は空要素）。レイアウトは pageKind で分岐する。
+テンプレート挙動: `transition` は埋め込み JSON からワイヤーフレーム + 遷移先テーブルの split-view 形式で client-side 構築する（画面ごとの表示を画面選択ドロップダウン + 前後ボタンで切り替える）。`er` は SVG を埋め込み JSON から client-side で構築する（サーバー側ではノード・エッジ要素を生成しない。静的 HTML の `<svg>` は空要素）。レイアウトは pageKind で分岐する。
 
-- `transition`: `edges[]` から入次数を計算し、入次数 0 のノードを起点とした層状配置（左→右。1 レイヤ = 1 列）。孤立サイクル等で入次数 0 ノードから到達できないノードは層 0 に配置する
+- `transition`: 画面ごとの split-view 表示。エッジを出現率 30% 以上で「共通ナビゲーション」と判定し、画面固有（橙）/ 共通ナビ（青）/ 自己ループ（緑）の 3 層に分類する。出次数がしきい値（`MAX_EDGES_PER_VIEW`）超のノードは中央ナビゲーション画面として折りたたみ表示、入出次数 0 のノードは未接続画面一覧として分離表示する
 - `er`: `entities[]` の出現順にグリッド配置（列数 = `ceil(sqrt(件数))`）
 
 矢印（`marker-end`）は `transition` のみに付与する。エッジ/リレーションのラベルは `transition` が `trigger`、`er` が `cardinality`。`from`/`to` が `nodes`/`entities` に存在しないエッジは描画をスキップする（データ不整合時のフェイルセーフ。`unresolved[]` での明示が本来の解決手段）。図の下には `edges[]`/`relations[]` の詳細（`from`/`to`/ラベル/`sourceRef`/`confidence`〈transition のみ〉）を補足表として一覧表示する。大規模時は `.diagram-wrap` 内で横スクロールし、ページ本体は横スクロールしない。

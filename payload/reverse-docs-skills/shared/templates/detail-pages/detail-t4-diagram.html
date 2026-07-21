@@ -10,11 +10,14 @@
   プレースホルダ置換は build-detail-page.sh の render_template() が行う。
   手作業によるプレースホルダ置換は禁止。生成は必ずスクリプト経由で行う。
 
-  図はclient-side描画: 埋め込みJSON(script#page-data)のnodes[]/edges[](画面遷移)または
-  entities[]/relations[](ER)から、ページ読込時にJavaScriptがSVGを構築する。図とJSONは
-  常に単一情報源。レイアウトは決定的単純アルゴリズムに限定する(判定・閾値・評価色は実装しない)。
-    - pageKind=transition: 入次数0のノードを起点とした層状配置(左→右)
-    - pageKind=er        : グリッド配置
+  埋め込みJSON(script#page-data)のnodes[]/edges[](画面遷移)またはentities[]/relations[]
+  (ER)から、ページ読込時にJavaScriptがDOMを構築する。図(表示)とJSONは常に単一情報源。
+    - pageKind=transition: ワイヤーフレーム+遷移先テーブルのsplit-view形式。画面選択UI
+      (ドロップダウン+前後ボタン)で画面ごとのビューを切り替える。エッジは共通ナビ判定
+      (出現率30%以上)により画面固有/共通ナビ/自己ループの3層に分類する。出次数がしきい値
+      (MAX_EDGES_PER_VIEW)超のノードは中央ナビゲーション画面として別セクションに、
+      入出次数0のノードは未接続画面一覧として別セクションに折りたたみ表示する。
+    - pageKind=er        : グリッド配置のSVG描画(変更なし)
 
   保守注記: トークンブロック・テーマ切替(data-theme二重定義・rd-portal-theme)は
   shared/templates/portal-template.html からの複製である。
@@ -151,6 +154,84 @@ table.data-table code {
 }
 
 .hidden { display: none !important; }
+
+/* split-view (transition) */
+.split-view { display: grid; grid-template-columns: 360px 1fr; gap: 20px; align-items: start; }
+.wireframe-panel { position: sticky; top: 24px; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; }
+@media (max-width: 800px) {
+  .split-view { grid-template-columns: 1fr; }
+  .wireframe-panel { position: static; }
+}
+
+/* ワイヤーフレーム構成パーツ */
+.wf-titlebar { padding: 10px 14px; border-bottom: 1px solid var(--border); font-weight: 700; font-size: 14px; display: flex; justify-content: space-between; align-items: center; }
+.wf-page-id { font-size: 11px; color: var(--text-muted); font-weight: 400; font-family: var(--mono); }
+.wf-body { padding: 12px 14px; }
+.wf-section-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin: 10px 0 6px; }
+.wf-section-label:first-child { margin-top: 0; }
+.wf-nav { display: flex; flex-direction: column; gap: 4px; }
+.wf-nav-item { border: 1px dashed var(--nav-tag); border-radius: 4px; padding: 4px 8px; font-size: 12px; color: var(--nav-tag); display: flex; justify-content: space-between; align-items: center; }
+.wf-profile { background: var(--panel-2); border-radius: 6px; padding: 8px 10px; margin: 8px 0; }
+.wf-link { border: 1px solid var(--highlight-border); border-radius: 4px; padding: 4px 8px; font-size: 12px; color: var(--text); display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+.wf-self-link { border: 1px solid var(--self-tag); border-radius: 4px; padding: 4px 8px; font-size: 12px; color: var(--self-tag); display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+.wf-placeholder { height: 8px; background: repeating-linear-gradient(90deg, var(--border) 0, var(--border) 4px, transparent 4px, transparent 8px); border-radius: 2px; margin: 4px 0; }
+.wf-link-row { display: flex; flex-direction: column; gap: 4px; margin-top: 8px; }
+.badge { display: inline-flex; width: 18px; height: 18px; border-radius: 50%; font-size: 10px; font-weight: 700; align-items: center; justify-content: center; flex-shrink: 0; }
+.wf-nav-item .badge { background: var(--nav-tag); color: #fff; }
+.wf-link .badge { background: var(--highlight); color: #fff; }
+.wf-self-link .badge { background: var(--self-tag); color: #fff; }
+
+/* 3層配色 */
+:root {
+  --highlight: #D97B1A; --highlight-soft: rgba(217,123,26,0.12); --highlight-border: rgba(217,123,26,0.5);
+  --nav-tag: #7B8BBF; --nav-tag-soft: #ECEEF6;
+  --self-tag: #6B9B6B; --self-tag-soft: #E8F0E8;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --highlight: #E8943A; --highlight-soft: rgba(232,148,58,0.15); --highlight-border: rgba(232,148,58,0.5); --nav-tag: #8E9ED0; --nav-tag-soft: rgba(142,158,208,0.15); --self-tag: #7DB87D; --self-tag-soft: rgba(125,184,125,0.15); }
+}
+:root[data-theme="dark"] { --highlight: #E8943A; --highlight-soft: rgba(232,148,58,0.15); --highlight-border: rgba(232,148,58,0.5); --nav-tag: #8E9ED0; --nav-tag-soft: rgba(142,158,208,0.15); --self-tag: #7DB87D; --self-tag-soft: rgba(125,184,125,0.15); }
+:root[data-theme="light"] { --highlight: #D97B1A; --highlight-soft: rgba(217,123,26,0.12); --highlight-border: rgba(217,123,26,0.5); --nav-tag: #7B8BBF; --nav-tag-soft: #ECEEF6; --self-tag: #6B9B6B; --self-tag-soft: #E8F0E8; }
+
+/* 遷移先テーブル */
+.table-panel { min-width: 0; }
+.table-panel-header { font-size: 14px; font-weight: 700; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+.table-panel-header .count { font-size: 12px; font-weight: 400; color: var(--text-muted); }
+.trans-table { width: 100%; border-collapse: collapse; font-size: 13px; background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); }
+.trans-table th { text-align: left; font-size: 11.5px; font-weight: 700; color: var(--text-sub); background: var(--panel-2); padding: 8px 10px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+.trans-table td { padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+.trans-table tr:last-child td { border-bottom: none; }
+.row-badge { display: inline-flex; width: 20px; height: 20px; border-radius: 50%; font-size: 10px; font-weight: 700; align-items: center; justify-content: center; color: #fff; }
+.row-badge.specific { background: var(--highlight); }
+.row-badge.common { background: var(--nav-tag); }
+.row-badge.self { background: var(--self-tag); }
+
+/* 種別タグ */
+.tag { display: inline-block; font-size: 11px; font-weight: 600; padding: 1px 8px; border-radius: 999px; }
+.tag-specific { color: var(--highlight); background: var(--highlight-soft); border: 1px solid var(--highlight-border); }
+.tag-nav { color: var(--nav-tag); background: var(--nav-tag-soft); border: 1px solid var(--nav-tag); }
+.tag-self { color: var(--self-tag); background: var(--self-tag-soft); border: 1px solid var(--self-tag); }
+
+/* 凡例スウォッチ */
+.legend-swatch { width: 12px; height: 12px; border-radius: 3px; }
+.legend-swatch.page-specific { background: var(--highlight); }
+.legend-swatch.common-nav { background: var(--nav-tag); }
+.legend-swatch.self-loop { background: var(--self-tag); }
+
+/* 画面選択ナビ */
+.view-nav { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+.view-nav select { flex: 1; min-width: 200px; padding: 8px 12px; font-size: 13px; font-family: inherit; background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text); }
+.nav-btn { background: var(--panel-2); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text-sub); cursor: pointer; padding: 8px 16px; font-size: 13px; font-family: inherit; }
+.nav-btn:hover { background: var(--accent-soft); color: var(--accent); }
+
+/* 折りたたみ(中央ナビゲーション画面/未接続画面一覧) */
+.iso-group { margin-bottom: 8px; }
+.iso-group summary { cursor: pointer; font-size: 13px; font-weight: 600; padding: 8px 0; }
+.iso-group summary:hover { color: var(--accent); }
+
+/* 概要ビュー(グループ間の遷移数マトリクス) */
+.overview-table th, .overview-table td { text-align: center; }
+.overview-table th:first-child, .overview-table td:first-child { text-align: left; white-space: nowrap; }
 </style>
 </head>
 <body>
@@ -179,18 +260,22 @@ table.data-table code {
     <div class="sec-label">凡例</div>
     <div class="legend-row" id="legend-mount"></div>
 
-    <div class="sec-label">図</div>
-    <div class="diagram-wrap">
-      <svg id="diagram-svg" xmlns="http://www.w3.org/2000/svg"></svg>
+    <div id="er-sections">
+      <div class="sec-label">図</div>
+      <div class="diagram-wrap">
+        <svg id="diagram-svg" xmlns="http://www.w3.org/2000/svg"></svg>
+      </div>
+
+      <div class="sec-label">補足</div>
+      <div class="table-wrap">
+        <table class="data-table" id="detail-table">
+          <thead id="detail-table-head"></thead>
+          <tbody id="detail-table-body"></tbody>
+        </table>
+      </div>
     </div>
 
-    <div class="sec-label">補足</div>
-    <div class="table-wrap">
-      <table class="data-table" id="detail-table">
-        <thead id="detail-table-head"></thead>
-        <tbody id="detail-table-body"></tbody>
-      </table>
-    </div>
+    <div id="transition-mount" class="hidden"></div>
 
     <div id="unresolved-mount"></div>
   </main>
@@ -252,6 +337,8 @@ table.data-table code {
   var edgesRaw = kind === 'transition' ? (data.edges || []) : (data.relations || []);
   var keys = nodesRaw.map(function(n) { return n[keyField]; });
 
+  if (kind === 'er') {
+  // --- ER: 既存のSVGグリッド配置 + 補足表描画(変更なし) ---
   var svg = document.getElementById('diagram-svg');
   var diagramWrap = svg.parentNode;
 
@@ -439,6 +526,313 @@ table.data-table code {
       }
       tbody.appendChild(tr);
     });
+  }
+
+  } else {
+  // --- transition: split-view(ワイヤーフレーム+遷移先テーブル) ---
+  document.getElementById('er-sections').classList.add('hidden');
+  var mount = document.getElementById('transition-mount');
+  mount.classList.remove('hidden');
+
+  var MAX_EDGES_PER_VIEW = 10;
+  var COMMON_NAV_RATE = 0.3;
+  var TRIGGER_KIND_LABEL = 'リンク遷移';
+
+  var nodeByKey = {};
+  nodesRaw.forEach(function(n) { nodeByKey[n[keyField]] = n; });
+
+  // 未解決参照(ノード不在)は集計・描画から除外する(ERパスと同じフェイルセーフ)
+  var edgesResolved = edgesRaw.filter(function(e) {
+    return nodeByKey[e.from] !== undefined && nodeByKey[e.to] !== undefined;
+  });
+
+  function groupName(key) {
+    var idx = (key || '').indexOf('/');
+    return idx >= 0 ? key.substring(0, idx) : (key || '');
+  }
+  function nodeLabel(key) {
+    var n = nodeByKey[key];
+    return (n && n.label) || key || '';
+  }
+
+  // --- 共通ナビゲーション判定(出現率 >= 30%) ---
+  var fromSet = {};
+  edgesResolved.forEach(function(e) { fromSet[e.from] = true; });
+  var totalFromScreens = Object.keys(fromSet).length;
+  var toFromSet = {};
+  edgesResolved.forEach(function(e) {
+    toFromSet[e.to] = toFromSet[e.to] || {};
+    toFromSet[e.to][e.from] = true;
+  });
+  var commonNavSet = {};
+  keys.forEach(function(k) {
+    var distinctFrom = toFromSet[k] ? Object.keys(toFromSet[k]).length : 0;
+    var rate = distinctFrom / Math.max(1, totalFromScreens);
+    if (rate >= COMMON_NAV_RATE) commonNavSet[k] = true;
+  });
+
+  function classify(e) {
+    if (e.from === e.to) return 'self';
+    if (commonNavSet[e.to]) return 'common';
+    return 'specific';
+  }
+  var CLASS_ORDER = { common: 0, specific: 1, self: 2 };
+  var CLASS_TAG_LABEL = { common: '共通', specific: '固有', self: '自己ループ' };
+  var CLASS_TAG_CLASS = { common: 'tag-nav', specific: 'tag-specific', self: 'tag-self' };
+  var CLASS_ROW_BADGE = { common: 'common', specific: 'specific', self: 'self' };
+
+  // --- ノード分類(中央ナビゲーション画面/未接続画面/通常画面) ---
+  var outEdges = {}, outDegree = {}, inDegree = {};
+  keys.forEach(function(k) { outEdges[k] = []; outDegree[k] = 0; inDegree[k] = 0; });
+  edgesResolved.forEach(function(e) {
+    outEdges[e.from].push(e);
+    outDegree[e.from]++;
+    inDegree[e.to]++;
+  });
+
+  var hubNodes = [], isolatedNodes = [], normalNodes = [];
+  keys.forEach(function(k) {
+    if (outDegree[k] > MAX_EDGES_PER_VIEW) hubNodes.push(k);
+    else if (outDegree[k] + inDegree[k] === 0) isolatedNodes.push(k);
+    else normalNodes.push(k);
+  });
+
+  // --- 画面ごとのソート済みエッジ(共通->固有->自己ループ)+通し番号 ---
+  var sortedOutEdges = {};
+  keys.forEach(function(k) {
+    var list = outEdges[k].slice().sort(function(a, b) {
+      return CLASS_ORDER[classify(a)] - CLASS_ORDER[classify(b)];
+    });
+    list.forEach(function(e, idx) { e.__badge = idx + 1; e.__cls = classify(e); });
+    sortedOutEdges[k] = list;
+  });
+
+  // --- split-view(1画面分)構築 ---
+  function buildSplitView(key) {
+    var node = nodeByKey[key];
+    var edges = sortedOutEdges[key] || [];
+    var commonEdges = edges.filter(function(e) { return e.__cls === 'common'; });
+    var specificEdges = edges.filter(function(e) { return e.__cls === 'specific'; });
+    var selfEdges = edges.filter(function(e) { return e.__cls === 'self'; });
+
+    var wfBody = el('div', { class: 'wf-body' });
+    if (edges.length === 0) {
+      wfBody.appendChild(el('div', { class: 'diagram-empty' }, '遷移先なし'));
+    } else {
+      if (commonEdges.length > 0) {
+        wfBody.appendChild(el('div', { class: 'wf-section-label' }, 'ヘッダー共通リンク'));
+        var wfNav = el('div', { class: 'wf-nav' });
+        commonEdges.forEach(function(e) {
+          wfNav.appendChild(el('div', { class: 'wf-nav-item' }, [
+            (e.trigger || nodeLabel(e.to)),
+            el('span', { class: 'badge' }, String(e.__badge))
+          ]));
+        });
+        wfBody.appendChild(wfNav);
+      }
+      if (specificEdges.length > 0) {
+        var wfProfile = el('div', { class: 'wf-profile' });
+        wfProfile.appendChild(el('div', { class: 'wf-section-label' }, '固有リンク'));
+        specificEdges.forEach(function(e) {
+          wfProfile.appendChild(el('div', { class: 'wf-link' }, [
+            (e.trigger || nodeLabel(e.to)),
+            el('span', { class: 'badge' }, String(e.__badge))
+          ]));
+        });
+        wfProfile.appendChild(el('div', { class: 'wf-placeholder' }));
+        wfBody.appendChild(wfProfile);
+      }
+      if (selfEdges.length > 0) {
+        var wfLinkRow = el('div', { class: 'wf-link-row' });
+        selfEdges.forEach(function(e) {
+          wfLinkRow.appendChild(el('div', { class: 'wf-self-link' }, [
+            (e.trigger || nodeLabel(e.to)),
+            el('span', { class: 'badge' }, String(e.__badge))
+          ]));
+        });
+        wfBody.appendChild(wfLinkRow);
+      }
+    }
+
+    var wireframePanel = el('div', { class: 'wireframe-panel' }, [
+      el('div', { class: 'wf-titlebar' }, [
+        el('span', null, node.label || key),
+        el('span', { class: 'wf-page-id' }, key)
+      ]),
+      wfBody
+    ]);
+
+    var tbody2 = el('tbody');
+    if (edges.length === 0) {
+      tbody2.appendChild(el('tr', null, el('td', { colspan: '6' }, 'なし')));
+    } else {
+      edges.forEach(function(e) {
+        tbody2.appendChild(el('tr', null, [
+          el('td', null, el('span', { class: 'row-badge ' + CLASS_ROW_BADGE[e.__cls] }, String(e.__badge))),
+          el('td', null, e.trigger || nodeLabel(e.to)),
+          el('td', null, [nodeLabel(e.to), el('br'), el('code', { class: 'src' }, e.to || '')]),
+          el('td', null, el('span', { class: 'tag ' + CLASS_TAG_CLASS[e.__cls] }, CLASS_TAG_LABEL[e.__cls])),
+          el('td', null, TRIGGER_KIND_LABEL),
+          el('td', null, el('code', { class: 'src' }, e.sourceRef || ''))
+        ]));
+      });
+    }
+
+    var tablePanel = el('div', { class: 'table-panel' }, [
+      el('div', { class: 'table-panel-header' }, ['遷移先一覧', el('span', { class: 'count' }, edges.length + '件')]),
+      el('div', { class: 'legend-row' }, [
+        el('div', { class: 'legend-item' }, [el('div', { class: 'legend-swatch page-specific' }), '画面固有（' + specificEdges.length + '件）']),
+        el('div', { class: 'legend-item' }, [el('div', { class: 'legend-swatch common-nav' }), '共通ナビ（' + commonEdges.length + '件）']),
+        el('div', { class: 'legend-item' }, [el('div', { class: 'legend-swatch self-loop' }), '自己ループ（' + selfEdges.length + '件）'])
+      ]),
+      el('table', { class: 'trans-table' }, [
+        el('thead', null, el('tr', null, [
+          el('th'), el('th', null, 'UIの要素'), el('th', null, '遷移先'),
+          el('th', null, '種別'), el('th', null, 'トリガー'), el('th', null, '出所')
+        ])),
+        tbody2
+      ])
+    ]);
+
+    return el('div', { class: 'split-view' }, [wireframePanel, tablePanel]);
+  }
+
+  // --- ドロップダウン(画面選択UI)構築(グループ = unitKeyの最初のスラッシュまで) ---
+  var groupOf = {};
+  normalNodes.forEach(function(k) { groupOf[k] = groupName(k); });
+  var groupMap = {};
+  normalNodes.forEach(function(k) {
+    var g = groupOf[k];
+    groupMap[g] = groupMap[g] || [];
+    groupMap[g].push(k);
+  });
+  var groupNames = Object.keys(groupMap).sort();
+
+  var select = el('select', { id: 'view-select' });
+  select.appendChild(el('option', { value: '__overview__' }, '概要: グループ間の遷移数'));
+  groupNames.forEach(function(g) {
+    var optgroup = el('optgroup', { label: g + '（' + groupMap[g].length + '図）' });
+    groupMap[g].forEach(function(k) {
+      optgroup.appendChild(el('option', { value: k }, nodeLabel(k) + ' からの遷移 [' + outDegree[k] + '件]'));
+    });
+    select.appendChild(optgroup);
+  });
+
+  var prevBtn = el('button', { class: 'nav-btn', id: 'view-prev', type: 'button' }, '← 前');
+  var nextBtn = el('button', { class: 'nav-btn', id: 'view-next', type: 'button' }, '次 →');
+  var viewNav = el('div', { class: 'view-nav' }, [select, prevBtn, nextBtn]);
+  var viewContent = el('div', { id: 'view-content' });
+
+  function buildOverviewView() {
+    var wrap = el('div');
+    if (edgesResolved.length === 0) {
+      wrap.appendChild(el('div', { class: 'diagram-empty' }, '遷移がありません'));
+      return wrap;
+    }
+    var allGroups = {};
+    keys.forEach(function(k) { allGroups[groupName(k)] = true; });
+    var gList = Object.keys(allGroups).sort();
+    var matrix = {};
+    gList.forEach(function(g1) { matrix[g1] = {}; gList.forEach(function(g2) { matrix[g1][g2] = 0; }); });
+    edgesResolved.forEach(function(e) {
+      var g1 = groupName(e.from), g2 = groupName(e.to);
+      matrix[g1][g2]++;
+    });
+    var theadRow2 = el('tr', null, [el('th', null, '元＼先')].concat(gList.map(function(g) { return el('th', null, g); })));
+    var tbody3 = el('tbody');
+    gList.forEach(function(g1) {
+      tbody3.appendChild(el('tr', null, [el('td', null, g1)].concat(gList.map(function(g2) {
+        return el('td', null, String(matrix[g1][g2]));
+      }))));
+    });
+    wrap.appendChild(el('table', { class: 'data-table overview-table' }, [el('thead', null, theadRow2), tbody3]));
+    return wrap;
+  }
+
+  function renderView(key) {
+    viewContent.innerHTML = '';
+    if (!key || key === '__overview__' || !nodeByKey[key]) {
+      viewContent.appendChild(buildOverviewView());
+    } else {
+      viewContent.appendChild(buildSplitView(key));
+    }
+  }
+
+  select.addEventListener('change', function() { renderView(select.value); });
+  prevBtn.addEventListener('click', function() {
+    if (select.selectedIndex > 0) {
+      select.selectedIndex -= 1;
+      renderView(select.value);
+    }
+  });
+  nextBtn.addEventListener('click', function() {
+    if (select.selectedIndex < select.options.length - 1) {
+      select.selectedIndex += 1;
+      renderView(select.value);
+    }
+  });
+
+  mount.appendChild(el('div', { class: 'sec-label' }, '画面遷移'));
+  mount.appendChild(viewNav);
+  mount.appendChild(viewContent);
+  renderView('__overview__');
+
+  // --- 中央ナビゲーション画面セクション ---
+  mount.appendChild(el('div', { class: 'sec-label' }, '中央ナビゲーション画面（' + hubNodes.length + '件）'));
+  if (hubNodes.length === 0) {
+    mount.appendChild(el('div', { class: 'note-box' }, 'なし'));
+  } else {
+    hubNodes.forEach(function(k) {
+      var edges = sortedOutEdges[k] || [];
+      var tbody4 = el('tbody');
+      if (edges.length === 0) {
+        tbody4.appendChild(el('tr', null, el('td', { colspan: '3' }, 'なし')));
+      } else {
+        edges.forEach(function(e) {
+          tbody4.appendChild(el('tr', null, [
+            el('td', null, el('code', null, e.to || '')),
+            el('td', null, nodeLabel(e.to)),
+            el('td', null, e.trigger || '')
+          ]));
+        });
+      }
+      mount.appendChild(el('details', { class: 'iso-group' }, [
+        el('summary', null, nodeLabel(k) + '（' + edges.length + '件の遷移先）'),
+        el('table', { class: 'data-table' }, [
+          el('thead', null, el('tr', null, [el('th', null, '遷移先'), el('th', null, 'ラベル'), el('th', null, 'トリガー')])),
+          tbody4
+        ])
+      ]));
+    });
+  }
+
+  // --- 未接続画面一覧セクション ---
+  mount.appendChild(el('div', { class: 'sec-label' }, '未接続画面一覧（' + isolatedNodes.length + '件）'));
+  mount.appendChild(el('div', { class: 'note-box' }, '遷移が静的に検出されなかった画面の一覧'));
+  if (isolatedNodes.length === 0) {
+    mount.appendChild(el('div', { class: 'diagram-empty' }, 'なし'));
+  } else {
+    var isoGroupMap = {};
+    isolatedNodes.forEach(function(k) {
+      var g = groupName(k);
+      isoGroupMap[g] = isoGroupMap[g] || [];
+      isoGroupMap[g].push(k);
+    });
+    Object.keys(isoGroupMap).sort().forEach(function(g) {
+      var list = isoGroupMap[g];
+      var tbody5 = el('tbody');
+      list.forEach(function(k) {
+        tbody5.appendChild(el('tr', null, [el('td', null, el('code', null, k)), el('td', null, nodeLabel(k))]));
+      });
+      mount.appendChild(el('details', { class: 'iso-group' }, [
+        el('summary', null, g + '（' + list.length + '件）'),
+        el('table', { class: 'data-table' }, [
+          el('thead', null, el('tr', null, [el('th', null, 'unitKey'), el('th', null, 'ラベル')])),
+          tbody5
+        ])
+      ]));
+    });
+  }
   }
 
   // --- 未解決節(unresolved[]) ---
