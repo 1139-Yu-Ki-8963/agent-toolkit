@@ -52,6 +52,13 @@ detail-pages 系（用語辞書 / 技術スタック / 画面遷移図 / ER図 /
 | entities | array（er のみ） | `{ "key": string, "label": string }` の配列。SVG 描画時のノードキーは `key` |
 | relations | array（er のみ） | `{ "from": string, "to": string, "cardinality": string, "sourceRef": string }` の配列。`from`/`to` は `entities[].key` を参照する |
 
+`edges[]` は上記に加え、次の任意フィールドを持つ。
+
+| キー | 型 | 内容 |
+|---|---|---|
+| section | string（任意） | UI要素が所属するセクション名。スキルがコード走査時に親要素構造から推定。未設定の場合はテンプレート側で「その他」に集約 |
+| triggerType | string（任意） | 遷移の種別。「リンク遷移」「フォーム送信」「リダイレクト」の3値。未設定の場合はテンプレート側で「リンク遷移」にフォールバック |
+
 テンプレート挙動: `transition` は埋め込み JSON からワイヤーフレーム + 遷移先テーブルの split-view 形式で client-side 構築する（画面ごとの表示を画面選択ドロップダウン + 前後ボタンで切り替える）。`er` は SVG を埋め込み JSON から client-side で構築する（サーバー側ではノード・エッジ要素を生成しない。静的 HTML の `<svg>` は空要素）。レイアウトは pageKind で分岐する。
 
 - `transition`: 画面ごとの split-view 表示。エッジを出現率 30% 以上で「共通ナビゲーション」と判定し、画面固有（橙）/ 共通ナビ（青）/ 自己ループ（緑）の 3 層に分類する。出次数がしきい値（`MAX_EDGES_PER_VIEW`）超のノードは中央ナビゲーション画面として折りたたみ表示、入出次数 0 のノードは未接続画面一覧として分離表示する

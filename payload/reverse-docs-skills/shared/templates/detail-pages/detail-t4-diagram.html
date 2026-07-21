@@ -536,7 +536,7 @@ table.data-table code {
 
   var MAX_EDGES_PER_VIEW = 10;
   var COMMON_NAV_RATE = 0.3;
-  var TRIGGER_KIND_LABEL = 'リンク遷移';
+  var selectedBadge = null;
 
   var nodeByKey = {};
   nodesRaw.forEach(function(n) { nodeByKey[n[keyField]] = n; });
@@ -607,6 +607,41 @@ table.data-table code {
     sortedOutEdges[k] = list;
   });
 
+  // --- コンポーネント選択(クリックでハイライト) ---
+  function onItemClick(ev) {
+    var badge = parseInt(ev.currentTarget.getAttribute('data-badge'));
+    selectedBadge = (selectedBadge === badge) ? null : badge;
+    applySelection();
+  }
+  function applySelection() {
+    var items = document.querySelectorAll('[data-badge]');
+    items.forEach(function(item) {
+      var b = parseInt(item.getAttribute('data-badge'));
+      if (selectedBadge === null) {
+        item.style.boxShadow = '';
+        item.style.outline = '';
+      } else if (b === selectedBadge) {
+        item.style.boxShadow = '0 0 0 2px var(--accent)';
+      } else {
+        item.style.boxShadow = '';
+      }
+    });
+    var rows = document.querySelectorAll('#detail-table-body tr, .trans-table tbody tr');
+    rows.forEach(function(row) {
+      var b = parseInt(row.getAttribute('data-badge'));
+      if (selectedBadge === null) {
+        row.style.opacity = '';
+        row.style.background = '';
+      } else if (b === selectedBadge) {
+        row.style.opacity = '1';
+        row.style.background = 'var(--accent-soft)';
+      } else {
+        row.style.opacity = '0.3';
+        row.style.background = '';
+      }
+    });
+  }
+
   // --- split-view(1画面分)構築 ---
   function buildSplitView(key) {
     var node = nodeByKey[key];
@@ -623,43 +658,69 @@ table.data-table code {
         wfBody.appendChild(el('div', { class: 'wf-section-label' }, 'ヘッダー共通リンク'));
         var wfNav = el('div', { class: 'wf-nav' });
         commonEdges.forEach(function(e) {
-          wfNav.appendChild(el('div', { class: 'wf-nav-item' }, [
-            (e.trigger || nodeLabel(e.to)),
+          var item = el('div', { class: 'wf-nav-item' }, [
+            el('span', null, e.trigger || nodeLabel(e.to)),
             el('span', { class: 'badge' }, String(e.__badge))
-          ]));
+          ]);
+          item.setAttribute('data-badge', e.__badge);
+          item.style.cursor = 'pointer';
+          item.addEventListener('click', onItemClick);
+          wfNav.appendChild(item);
         });
         wfBody.appendChild(wfNav);
       }
       if (specificEdges.length > 0) {
-        var wfProfile = el('div', { class: 'wf-profile' });
-        wfProfile.appendChild(el('div', { class: 'wf-section-label' }, '固有リンク'));
+        var sectionMap = {};
+        var sectionOrder = [];
         specificEdges.forEach(function(e) {
-          wfProfile.appendChild(el('div', { class: 'wf-link' }, [
-            (e.trigger || nodeLabel(e.to)),
-            el('span', { class: 'badge' }, String(e.__badge))
-          ]));
+          var sec = e.section || 'その他';
+          if (!sectionMap[sec]) { sectionMap[sec] = []; sectionOrder.push(sec); }
+          sectionMap[sec].push(e);
         });
-        wfProfile.appendChild(el('div', { class: 'wf-placeholder' }));
-        wfBody.appendChild(wfProfile);
+        sectionOrder.forEach(function(sec, idx) {
+          if (idx > 0) wfBody.appendChild(el('div', { class: 'wf-placeholder' }));
+          var profile = el('div', { class: 'wf-profile' });
+          profile.appendChild(el('div', { class: 'wf-section-label' }, sec));
+          sectionMap[sec].forEach(function(e) {
+            var item = el('div', { class: 'wf-link' }, [
+              el('span', null, e.trigger || nodeLabel(e.to)),
+              el('span', { class: 'badge' }, String(e.__badge))
+            ]);
+            item.setAttribute('data-badge', e.__badge);
+            item.style.cursor = 'pointer';
+            item.addEventListener('click', onItemClick);
+            profile.appendChild(item);
+          });
+          wfBody.appendChild(profile);
+        });
       }
       if (selfEdges.length > 0) {
         var wfLinkRow = el('div', { class: 'wf-link-row' });
         selfEdges.forEach(function(e) {
-          wfLinkRow.appendChild(el('div', { class: 'wf-self-link' }, [
-            (e.trigger || nodeLabel(e.to)),
+          var item = el('div', { class: 'wf-self-link' }, [
+            el('span', null, e.trigger || nodeLabel(e.to)),
             el('span', { class: 'badge' }, String(e.__badge))
-          ]));
+          ]);
+          item.setAttribute('data-badge', e.__badge);
+          item.style.cursor = 'pointer';
+          item.addEventListener('click', onItemClick);
+          wfLinkRow.appendChild(item);
         });
         wfBody.appendChild(wfLinkRow);
       }
     }
+
+    var selectAllBtn = el('button', { class: 'nav-btn', id: 'select-all-btn', type: 'button', style: 'flex:1;font-size:12px;padding:6px 0;' }, 'すべて表示');
+    selectAllBtn.addEventListener('click', function() { selectedBadge = null; applySelection(); });
+    var selectAllRow = el('div', { style: 'padding:6px 14px 10px;border-top:1px solid var(--border);display:flex;gap:6px;' }, selectAllBtn);
 
     var wireframePanel = el('div', { class: 'wireframe-panel' }, [
       el('div', { class: 'wf-titlebar' }, [
         el('span', null, node.label || key),
         el('span', { class: 'wf-page-id' }, key)
       ]),
-      wfBody
+      wfBody,
+      selectAllRow
     ]);
 
     var tbody2 = el('tbody');
@@ -667,14 +728,16 @@ table.data-table code {
       tbody2.appendChild(el('tr', null, el('td', { colspan: '6' }, 'なし')));
     } else {
       edges.forEach(function(e) {
-        tbody2.appendChild(el('tr', null, [
+        var tr2 = el('tr', null, [
           el('td', null, el('span', { class: 'row-badge ' + CLASS_ROW_BADGE[e.__cls] }, String(e.__badge))),
           el('td', null, e.trigger || nodeLabel(e.to)),
           el('td', null, [nodeLabel(e.to), el('br'), el('code', { class: 'src' }, e.to || '')]),
           el('td', null, el('span', { class: 'tag ' + CLASS_TAG_CLASS[e.__cls] }, CLASS_TAG_LABEL[e.__cls])),
-          el('td', null, TRIGGER_KIND_LABEL),
+          el('td', null, e.triggerType || 'リンク遷移'),
           el('td', null, el('code', { class: 'src' }, e.sourceRef || ''))
-        ]));
+        ]);
+        tr2.setAttribute('data-badge', e.__badge);
+        tbody2.appendChild(tr2);
       });
     }
 
@@ -751,6 +814,7 @@ table.data-table code {
 
   function renderView(key) {
     viewContent.innerHTML = '';
+    selectedBadge = null;
     if (!key || key === '__overview__' || !nodeByKey[key]) {
       viewContent.appendChild(buildOverviewView());
     } else {
@@ -792,7 +856,7 @@ table.data-table code {
           tbody4.appendChild(el('tr', null, [
             el('td', null, el('code', null, e.to || '')),
             el('td', null, nodeLabel(e.to)),
-            el('td', null, e.trigger || '')
+            el('td', null, e.triggerType || 'リンク遷移')
           ]));
         });
       }

@@ -126,8 +126,8 @@ self_test() {
     legend: [{symbol: "□", meaning: "画面"}],
     nodes: [{unitKey: "home", label: "ホーム"}, {unitKey: "detail", label: "詳細"}],
     edges: [
-      {from: "home", to: "detail", trigger: "クリック", sourceRef: "src/router.tsx:10", confidence: "high"},
-      {from: "home", to: "ghost", trigger: "存在しない遷移", sourceRef: "src/router.tsx:20", confidence: "low"}
+      {from: "home", to: "detail", trigger: "クリック", sourceRef: "src/router.tsx:10", confidence: "high", section: "メインコンテンツ", triggerType: "リンク遷移"},
+      {from: "home", to: "ghost", trigger: "存在しない遷移", sourceRef: "src/router.tsx:20", confidence: "low", section: "メインコンテンツ", triggerType: "リンク遷移"}
     ],
     unresolved: []
   }' > "$data_orphan"
@@ -210,7 +210,7 @@ self_test() {
     description: "self-test用フィクスチャ",
     legend: [{symbol: "□", meaning: "画面"}],
     nodes: [{unitKey: "home", label: "ホーム"}, {unitKey: "detail", label: "詳細"}],
-    edges: [{from: "home", to: "detail", trigger: "クリック", sourceRef: "src/router.tsx:10", confidence: "high"}],
+    edges: [{from: "home", to: "detail", trigger: "クリック", sourceRef: "src/router.tsx:10", confidence: "high", section: "メインコンテンツ", triggerType: "リンク遷移"}],
     unresolved: [{label: "旧画面(route欠落)", reason: "旧形式manifestのためroute情報なし", sourceRef: "src/legacy/old-screen.tsx"}]
   }' > "$data_transition"
   check_page_fixture transition "$data_transition"

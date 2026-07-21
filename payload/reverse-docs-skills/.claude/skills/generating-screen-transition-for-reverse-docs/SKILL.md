@@ -55,6 +55,8 @@ allowed-tools: [Bash, Read, Write, Grep, Glob, AskUserQuestion, TaskCreate, Task
 
 - **Step 1** — `screens[]` から、`kind` が `route` または `embedded-view` で `route` が空文字列でない画面を選ぶ。選んだ画面を `nodes[]` へ転記する（`unitKey` = `screenKey`、`label` = `screenNameGuess`）。`route` が空文字列の画面は `nodes[]` に含めない。代わりに `unresolved[]` へ、理由「routeが空文字列のため遷移解決不能」を添えて登録する。完了条件: `nodes[]` と route 空文字画面の `unresolved[]` 登録が確定済み
 - **Step 2** — Phase 1 で宣言した戦略に沿って、Router 定義・`navigate()`・`<Link>`・`redirect` を Grep/Read で走査する。走査対象から遷移候補を洗い出す。各候補には `from`（発生元画面の `unitKey`）・`to`（遷移先 route）・`trigger`（契機）・`sourceRef`（file:line）・`confidence` の 5 項目を記録する。完了条件: 遷移候補一覧が確定済み
+  - **`section`**: sourceRef の行を含む最も近い親セクション要素から推定する。探索優先順位: (1) `<section>`/`<article>` 内の直近の見出し（h2〜h4）テキスト (2) `<nav>` の aria-label 属性値 (3) `<form>` の legend テキストまたは直前の見出し (4) 直近の祖先 `<div>` のクラス名から意味を推定。いずれにも該当しない場合は省略する
+  - **`triggerType`**: 要素の種類から判定する。`<a>`/`<Link>`/`router-link` → 「リンク遷移」、`<form>` submit/`<button type="submit">` → 「フォーム送信」、`redirect()`/`navigate()`/`router.push()` → 「リダイレクト」、上記以外 → 省略（テンプレート側で「リンク遷移」にフォールバック）
 - **Step 3** — 各候補の `to`（route 文字列）を `nodes[]` 転記元の `route` 値と突合し `unitKey` へ解決する。解決できた候補は `from`/`to` を `unitKey` に置き換え `edges[]` へ追加する。解決できない候補（動的セグメント不一致・外部 URL・存在しない route）は `edges[]` に含めない。代わりに `unresolved[]` へ `{label: "<sourceRef> の遷移", reason: "宛先未解決", sourceRef}` として登録する。完了条件: `edges[]` が全件解決済みで確定している
 - **Step 4** — page-data.json を組み立てる。`pageKind: "transition"`、`legend[]`（凡例。空配列可）、`nodes[]`、`edges[]`、`unresolved[]` を埋める。完了条件: page-data.json を一時ディレクトリへ保存済み
 
