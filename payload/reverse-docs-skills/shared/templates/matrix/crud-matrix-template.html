@@ -177,6 +177,14 @@
     box-shadow: inset 0 0 0 999px color-mix(in srgb, var(--accent) 16%, transparent);
   }
 
+  /* ?q= 指定時の該当テーブル列ハイライト(JSが .q-hit を付与。has-c/has-d の強調色が優先) */
+  table.crud td.q-hit, table.crud th.q-hit { background: var(--accent-soft); }
+
+  /* 行ヘッダセルのコピーボタン(一覧ページと同じ inline SVG 方式) */
+  .copy-btn { background: none; border: none; cursor: pointer; padding: 1px 3px; color: var(--text-muted); opacity: .35; vertical-align: middle; }
+  tr:hover .copy-btn, .copy-btn:focus { opacity: 1; }
+  .copy-btn:hover { color: var(--accent); }
+
   footer { margin-top: 48px; font-size: 0.8rem; color: var(--text-muted); }
 </style>
 </head>
@@ -294,6 +302,61 @@
         });
       });
     }
+
+    /* ?q= 受け口: テーブル一覧「CRUD図参照」リンクからの遷移。検索窓へ反映して絞り込みを発火し、
+       q がテーブル物理名に一致する場合は該当列を .q-hit でハイライトする */
+    var initialQ = (new URLSearchParams(location.search).get('q') || '').trim();
+    if (initialQ && search) {
+      search.value = initialQ;
+      search.dispatchEvent(new Event('input'));
+      var qLower = initialQ.toLowerCase();
+      tables.forEach(function (t, i) {
+        if (String(t.physicalName).toLowerCase() !== qLower) return;
+        var colIdx = i + 1;
+        var headRow = thead.querySelector('tr');
+        if (headRow && headRow.children[colIdx]) headRow.children[colIdx].classList.add('q-hit');
+        Array.prototype.forEach.call(tbody.querySelectorAll('tr'), function (tr) {
+          if (tr.children[colIdx]) tr.children[colIdx].classList.add('q-hit');
+        });
+      });
+    }
+
+    /* 行ヘッダ(機能名)セルのコピーボタン(一覧ページと同じ inline SVG 方式) */
+    var COPY_ICON = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>';
+    var CHECK_ICON = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+    function fallbackCopy(text) {
+      var ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand('copy'); } catch (e) {}
+      document.body.removeChild(ta);
+    }
+    function copyText(text, done) {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(done, function () { fallbackCopy(text); done(); });
+      } else {
+        fallbackCopy(text);
+        done();
+      }
+    }
+    Array.prototype.forEach.call(tbody.querySelectorAll('td.feature-name'), function (td) {
+      var text = td.textContent.trim();
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'copy-btn';
+      btn.setAttribute('aria-label', 'コピー');
+      btn.innerHTML = COPY_ICON;
+      btn.addEventListener('click', function () {
+        copyText(text, function () {
+          btn.innerHTML = CHECK_ICON;
+          setTimeout(function () { btn.innerHTML = COPY_ICON; }, 1200);
+        });
+      });
+      td.appendChild(btn);
+    });
 
     /* hover で行・列を同時ハイライト(同列セルに class 付与) */
     function clearHl() {

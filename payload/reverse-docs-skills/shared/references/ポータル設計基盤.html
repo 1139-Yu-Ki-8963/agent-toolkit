@@ -268,67 +268,68 @@
         <span class="legend-item"><span style="color:var(--critical);font-weight:700;">✕</span> 未実装（既存マニフェストのデータのまま、テンプレート改修だけで対応可）</span>
         <span class="legend-item"><span style="color:var(--partial);font-weight:700;">△</span> 未実装（マニフェスト等データ源の拡張が必要）</span>
       </div>
+      <p style="font-size:10px;color:var(--ink-3);line-height:1.4;">✓の詳細な実装状況はスキーマ拡張仕様書（manifest-schema-extensions.md）を参照</p>
 
       <div class="page-ops">
         <div class="page-card">
           <div class="page-card-title">全画面共通 <span class="page-card-who">全読者</span></div>
           <div class="page-card-ops">
             <div class="page-op"><span class="page-op-icon ok">✓</span> テキスト検索 / ソート / テーマ切替 / ページネーション</div>
-            <div class="page-op"><span class="page-op-icon ng">✕</span> パス・URL・識別子のコピーボタン</div>
-            <div class="page-op"><span class="page-op-icon ng">✕</span> 区分値でのフィルタチップ（ワンクリック絞り込み）</div>
-            <div class="page-op"><span class="page-op-icon ng">✕</span> 行クリックで詳細展開（hover 非依存・タッチ対応）</div>
-            <div class="page-op"><span class="page-op-icon ng">✕</span> 埋め込み JSON から CSV エクスポート</div>
-            <div class="page-op"><span class="page-op-icon ng">✕</span> 関連エンティティへの相互参照リンク</div>
+            <div class="page-op"><span class="page-op-icon ok">✓</span> パス・URL・識別子のコピーボタン（全セル対応）</div>
+            <div class="page-op"><span class="page-op-icon ok">✓</span> 区分値でのフィルタチップ（ワンクリック絞り込み）</div>
+            <div class="page-op"><span class="page-op-icon ok">✓</span> 行クリックで詳細展開（hover 非依存・タッチ対応）</div>
+            <div class="page-op"><span class="page-op-icon ok">✓</span> 埋め込み JSON から CSV エクスポート</div>
+            <div class="page-op"><span class="page-op-icon ok">✓</span> 関連エンティティへの相互参照リンク</div>
           </div>
         </div>
 
         <div class="page-card">
           <div class="page-card-title">画面一覧 <span class="page-card-who">開発者・QA</span></div>
           <div class="page-card-ops">
-            <div class="page-op"><span class="page-op-icon ng">✕</span> 「この URL は何の画面か」→ ルート検索 + コピー</div>
-            <div class="page-op"><span class="page-op-icon ng">✕</span> 「管理画面はいくつあるか」→ ルート prefix フィルタ</div>
-            <div class="page-op"><span class="page-op-icon need">△</span> 「この画面の設計書はあるか」→ 設計書状態列 + リンク</div>
-            <div class="page-op"><span class="page-op-icon need">△</span> 「この画面が呼ぶ API は」→ 関連 API 列</div>
-            <div class="page-op"><span class="page-op-icon need">△</span> 「誰が見られる画面か」→ 必要権限列（詳細は権限×画面へ）</div>
+            <div class="page-op"><span class="page-op-icon ok">✓</span> 「この URL は何の画面か」→ ルート検索 + コピー</div>
+            <div class="page-op"><span class="page-op-icon ok">✓</span> 「管理画面はいくつあるか」→ ルート prefix フィルタ</div>
+            <div class="page-op"><span class="page-op-icon ok">✓</span> 「この画面の設計書はあるか」→ 設計書状態列 + リンク</div>
+            <div class="page-op"><span class="page-op-icon ok">✓</span> 「この画面が呼ぶ API は」→ 関連 API 列</div>
+            <div class="page-op"><span class="page-op-icon ok">✓</span> 「誰が見られる画面か」→ 必要権限列（詳細は権限×画面へ）</div>
           </div>
         </div>
 
         <div class="page-card">
           <div class="page-card-title">API一覧 <span class="page-card-who">開発者</span></div>
           <div class="page-card-ops">
-            <div class="page-op"><span class="page-op-icon need">△</span> 「DELETE 系だけ見たい」→ メソッド独立列 + フィルタ</div>
-            <div class="page-op"><span class="page-op-icon need">△</span> 「認証がいるか」→ 認証要否列</div>
-            <div class="page-op"><span class="page-op-icon need">△</span> 「誰が呼んでいるか」→ 呼び出し元画面列</div>
-            <div class="page-op"><span class="page-op-icon need">△</span> 「何を受け取り何を返すか」→ I/O 概要列</div>
+            <div class="page-op"><span class="page-op-icon ok">✓</span> 「DELETE 系だけ見たい」→ メソッド独立列 + フィルタ</div>
+            <div class="page-op"><span class="page-op-icon ok">✓</span> 「認証がいるか」→ 認証要否列</div>
+            <div class="page-op"><span class="page-op-icon ok">✓</span> 「誰が呼んでいるか」→ 呼び出し元画面列</div>
+            <div class="page-op"><span class="page-op-icon ok">✓</span> 「何を受け取り何を返すか」→ I/O 概要列</div>
           </div>
         </div>
 
         <div class="page-card">
           <div class="page-card-title">テーブル一覧 <span class="page-card-who">開発者・DBA</span></div>
           <div class="page-card-ops">
-            <div class="page-op"><span class="page-op-icon ng">✕</span> 「マスタだけ見たい」→ 区分フィルタチップ</div>
-            <div class="page-op"><span class="page-op-icon need">△</span> 「どこを参照しているか」→ FK 参照先列</div>
-            <div class="page-op"><span class="page-op-icon need">△</span> 「構造の概要は」→ カラム数・主要カラム列</div>
+            <div class="page-op"><span class="page-op-icon ok">✓</span> 「マスタだけ見たい」→ 区分フィルタチップ</div>
+            <div class="page-op"><span class="page-op-icon ok">✓</span> 「どこを参照しているか」→ FK 参照先列</div>
+            <div class="page-op"><span class="page-op-icon ok">✓</span> 「構造の概要は」→ カラム数・主要カラム列</div>
             <div class="page-op"><span class="page-op-icon ng">✕</span> 「関連を図で見たい」→ ER図の該当部分へリンク</div>
-            <div class="page-op"><span class="page-op-icon need">△</span> 「誰が書き込むか」→ CRUD図の該当行へリンク</div>
+            <div class="page-op"><span class="page-op-icon ok">✓</span> 「誰が書き込むか」→ CRUD図の該当行へリンク</div>
           </div>
         </div>
 
         <div class="page-card">
           <div class="page-card-title">バッチ一覧 <span class="page-card-who">運用担当</span></div>
           <div class="page-card-ops">
-            <div class="page-op"><span class="page-op-icon need">△</span> 「いつ動くか」→ スケジュール列（cron 式 + 平易表記）</div>
-            <div class="page-op"><span class="page-op-icon need">△</span> 「失敗したら何に影響するか」→ 対象テーブル・後続ジョブ列</div>
-            <div class="page-op"><span class="page-op-icon need">△</span> 「手動で再実行できるか」→ 実行方法列</div>
+            <div class="page-op"><span class="page-op-icon ok">✓</span> 「いつ動くか」→ スケジュール列（cron 式 + 平易表記）</div>
+            <div class="page-op"><span class="page-op-icon ok">✓</span> 「失敗したら何に影響するか」→ 対象テーブル・後続ジョブ列</div>
+            <div class="page-op"><span class="page-op-icon ok">✓</span> 「手動で再実行できるか」→ 実行方法列</div>
           </div>
         </div>
 
         <div class="page-card">
           <div class="page-card-title">機能一覧 <span class="page-card-who">PM・レビュアー</span></div>
           <div class="page-card-ops">
-            <div class="page-op"><span class="page-op-icon ng">✕</span> 「この業務ドメインの機能は」→ カテゴリフィルタ</div>
-            <div class="page-op"><span class="page-op-icon ng">✕</span> 「実現手段を追いたい」→ 関連画面・API・テーブルへのリンク</div>
-            <div class="page-op"><span class="page-op-icon need">△</span> 「操作の強さを知りたい」→ 参照系/更新系/削除系の区分列</div>
+            <div class="page-op"><span class="page-op-icon ok">✓</span> 「この業務ドメインの機能は」→ カテゴリフィルタ</div>
+            <div class="page-op"><span class="page-op-icon ok">✓</span> 「実現手段を追いたい」→ 関連画面・API・テーブルへのリンク</div>
+            <div class="page-op"><span class="page-op-icon ok">✓</span> 「操作の強さを知りたい」→ 参照系/更新系/削除系の区分列</div>
           </div>
         </div>
 
@@ -357,10 +358,10 @@
         <div class="page-card">
           <div class="page-card-title">帳票 / 外部連携 / 設計書 <span class="page-card-who">運用・開発者</span></div>
           <div class="page-card-ops">
-            <div class="page-op"><span class="page-op-icon need">△</span> 帳票: 出力形式・出力トリガー（画面/バッチ）列</div>
-            <div class="page-op"><span class="page-op-icon need">△</span> 外部連携: 方向（送/受）・プロトコル・認証方式列</div>
-            <div class="page-op"><span class="page-op-icon ng">✕</span> 設計書: 一覧からの直接リンク</div>
-            <div class="page-op"><span class="page-op-icon need">△</span> 設計書: 原本コード変更時の陳腐化検知バッジ</div>
+            <div class="page-op"><span class="page-op-icon ok">✓</span> 帳票: 出力形式・出力トリガー（画面/バッチ）列</div>
+            <div class="page-op"><span class="page-op-icon ok">✓</span> 外部連携: 方向（送/受）・プロトコル・認証方式列</div>
+            <div class="page-op"><span class="page-op-icon ok">✓</span> 設計書: 一覧からの直接リンク</div>
+            <div class="page-op"><span class="page-op-icon ok">✓</span> 設計書: 原本コード変更時の陳腐化検知バッジ</div>
           </div>
         </div>
       </div>
@@ -388,6 +389,7 @@
             <tr><td style="text-align:left">ダッシュボード</td><td class="hit">○</td><td class="hit">○</td><td class="miss">—</td></tr>
             <tr><td style="text-align:left">ログイン</td><td class="hit">○</td><td class="hit">○</td><td class="hit">○</td></tr>
           </table>
+          <p class="matrix-q" style="font-size:9px;color:var(--ink-3)">ロール数対応: 縦書きヘッダ + 1列目固定 + ロール選択チップで20ロール規模まで実用</p>
           <div class="matrix-user">
             <span class="ex">レビュアー: 権限漏れの監査</span>
             <span class="ex">QA: ロール別テスト計画</span>

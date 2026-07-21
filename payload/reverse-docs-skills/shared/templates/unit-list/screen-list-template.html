@@ -38,6 +38,9 @@
     - 任意列(クライアント描画): manifest の category / permissions / relatedApis / designDocStatus に
       値が1件でもあるフィールドだけ、任意列スクリプトが末尾へ「画面区分 / 必要権限 / 関連API / 設計書」列を
       追加する。全フィールドが空なら列を追加しない(後方互換)。既存11列のインデックスは変えない
+    - 設計書列の補助フィールド(任意): designDocPath(設計書への相対パス。designDocStatus=着手済かつ
+      パスありなら着手済バッジをリンク化) / sourceHash・designDocSourceHash(両方存在して不一致なら
+      danger色の「陳腐化」バッジを併記)
 
   制約:
     - 外部リソース(CDN・フォント・画像)は一切使わない。単一ファイル自己完結
@@ -192,6 +195,8 @@
   .chip { font-size: .78rem; padding: 2px 10px; border-radius: 999px; border: 1px solid var(--border); background: var(--panel); color: var(--text-sub); cursor: pointer; }
   .chip[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent); border-color: var(--accent-border); font-weight: 700; }
   .chip-clear { margin-left: auto; }
+  .chip-col-label { font-size: .72rem; color: var(--text-muted); align-self: center; margin-left: 6px; }
+  .chip-col-label:first-child { margin-left: 0; }
 
   /* 追加UI: 行クリック展開 */
   tr.row-detail > td { background: var(--panel-2); font-size: .82rem; white-space: normal; }
@@ -339,7 +344,11 @@
       '.opt-badge.danger{background:var(--danger-soft);color:var(--danger);}' +
       '.opt-badge.success{background:var(--success-soft);color:var(--success);}' +
       '.opt-badge.gold{background:var(--gold-soft);color:var(--gold);}' +
-      '.opt-muted{color:var(--text-muted);}';
+      '.opt-muted{color:var(--text-muted);}' +
+      'a.opt-tag{color:inherit;text-decoration:none;cursor:pointer;}' +
+      'a.opt-tag:hover{text-decoration:underline;color:var(--accent);}' +
+      'a.opt-badge-link{text-decoration:none;}' +
+      'a.opt-badge-link:hover .opt-badge{text-decoration:underline;}';
     document.head.appendChild(style);
 
     var byId = {};
@@ -349,20 +358,28 @@
       if (it.screenKey) byKey[it.screenKey] = it;
     });
 
-    function appendTag(td, text) {
-      var span = document.createElement('span');
-      span.className = 'opt-tag';
-      span.textContent = text;
-      td.appendChild(span);
+    function appendTag(td, text, href) {
+      var el = href ? document.createElement('a') : document.createElement('span');
+      el.className = 'opt-tag';
+      el.textContent = text;
+      if (href) el.href = href;
+      td.appendChild(el);
     }
 
-    function renderValue(td, field, v) {
+    function renderValue(td, field, v, item) {
       if (isArray(v)) {
         if (!v.length) {
           td.textContent = field.emptyLabel || '';
           return;
         }
-        v.forEach(function (item) { appendTag(td, String(item)); });
+        v.forEach(function (entry) {
+          var entryText = String(entry);
+          var href = null;
+          if (field.key === 'relatedApis' && entryText && entryText !== '—') {
+            href = '../API一覧/API一覧.html?q=' + encodeURIComponent(entryText);
+          }
+          appendTag(td, entryText, href);
+        });
         return;
       }
       if (typeof v === 'boolean') {
@@ -384,7 +401,23 @@
         var badge = document.createElement('span');
         badge.className = 'opt-badge ' + (text === '未着手' ? 'danger' : 'success');
         badge.textContent = text;
-        td.appendChild(badge);
+        if (text === '着手済' && item && typeof item.designDocPath === 'string' && item.designDocPath) {
+          var link = document.createElement('a');
+          link.className = 'opt-badge-link';
+          link.href = item.designDocPath;
+          link.appendChild(badge);
+          td.appendChild(link);
+        } else {
+          td.appendChild(badge);
+        }
+        if (item && item.sourceHash && item.designDocSourceHash && item.sourceHash !== item.designDocSourceHash) {
+          var stale = document.createElement('span');
+          stale.className = 'opt-badge danger';
+          stale.style.marginLeft = '4px';
+          stale.textContent = '陳腐化';
+          stale.title = '原本ハッシュ(sourceHash)と設計書生成時ハッシュ(designDocSourceHash)が不一致';
+          td.appendChild(stale);
+        }
         return;
       }
       td.textContent = text;
@@ -404,7 +437,7 @@
       active.forEach(function (field) {
         var td = document.createElement('td');
         if (item && hasValue(item[field.key], field)) {
-          renderValue(td, field, item[field.key]);
+          renderValue(td, field, item[field.key], item);
         }
         tr.appendChild(td);
       });
@@ -437,8 +470,7 @@
     var btnLast = document.getElementById('page-last');
 
     /* ===== 追加UI: コピーボタン / フィルタチップ / 行クリック展開 / CSVエクスポート ===== */
-    var COPY_COLS = [4, 10];  /* 5列目: ルート / 11列目: 主ファイル */
-    var CHIP_COLS = [2, 6];   /* 3列目: 区分 / 7列目: confidence */
+    var CHIP_COLUMNS = ['区分', 'confidence', '画面区分'];  /* 列見出し名で指定。任意列(画面区分)は存在する時だけチップ化 */
     var COL_COUNT = table.querySelectorAll('thead th').length;
     var headerLabels = Array.prototype.map.call(table.querySelectorAll('thead th'), function (th) { return th.textContent.trim(); });
     var chipState = {};
@@ -470,20 +502,26 @@
       }
     }
 
+    function makeCopyBtn(getText) {
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'copy-btn';
+      btn.setAttribute('aria-label', 'コピー');
+      btn.innerHTML = COPY_SVG;
+      btn.addEventListener('click', function (ev) {
+        ev.stopPropagation();
+        ev.preventDefault();
+        copyCellText(getText(), btn);
+      });
+      return btn;
+    }
+
+    /* 全セルコピー: 値のあるセル(空・「—」以外)すべてに付ける */
     allRows.forEach(function (tr) {
-      COPY_COLS.forEach(function (ci) {
-        var td = tr.children[ci];
-        if (!td) return;
-        var btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = 'copy-btn';
-        btn.setAttribute('aria-label', 'コピー');
-        btn.innerHTML = COPY_SVG;
-        btn.addEventListener('click', function (ev) {
-          ev.stopPropagation();
-          copyCellText(td.textContent.trim(), btn);
-        });
-        td.appendChild(btn);
+      Array.prototype.forEach.call(tr.children, function (td) {
+        var cellText = td.textContent.trim();
+        if (!cellText || cellText === '—') return;
+        td.appendChild(makeCopyBtn(function () { return td.textContent.trim(); }));
       });
     });
 
@@ -493,12 +531,19 @@
     var chipClear = document.createElement('button');
     if (toolbarEl) toolbarEl.parentNode.insertBefore(chipBar, toolbarEl.nextSibling);
 
-    CHIP_COLS.forEach(function (ci) {
+    CHIP_COLUMNS.forEach(function (colLabel) {
+      var ci = headerLabels.indexOf(colLabel);
+      if (ci === -1) return;
       var values = [];
       allRows.forEach(function (tr) {
         var v = tr.children[ci] ? tr.children[ci].textContent.trim() : '';
-        if (v && values.indexOf(v) === -1) values.push(v);
+        if (v && v !== '—' && values.indexOf(v) === -1) values.push(v);
       });
+      if (!values.length) return;
+      var colTag = document.createElement('span');
+      colTag.className = 'chip-col-label';
+      colTag.textContent = colLabel;
+      chipBar.appendChild(colTag);
       values.forEach(function (v) {
         var chip = document.createElement('button');
         chip.type = 'button';
@@ -589,7 +634,11 @@
           var dt = document.createElement('dt');
           dt.textContent = label;
           var dd = document.createElement('dd');
-          dd.textContent = tr.children[i] ? tr.children[i].textContent.trim() : '';
+          var val = tr.children[i] ? tr.children[i].textContent.trim() : '';
+          dd.textContent = val;
+          if (val && val !== '—') {
+            dd.appendChild(makeCopyBtn(function () { return val; }));
+          }
           dl.appendChild(dt);
           dl.appendChild(dd);
         });
@@ -657,6 +706,11 @@
         currentPage = 0;
         renderPage();
       });
+      /* URLクエリ q での絞り込み受け口: <ページ>.html?q=<語> で絞り込み済み状態を開ける */
+      try {
+        var qParam = new URLSearchParams(location.search).get('q');
+        if (qParam) search.value = qParam;
+      } catch (e) { /* ignore */ }
     }
 
     table.querySelectorAll('th[data-key]').forEach(function (th, colIndex) {

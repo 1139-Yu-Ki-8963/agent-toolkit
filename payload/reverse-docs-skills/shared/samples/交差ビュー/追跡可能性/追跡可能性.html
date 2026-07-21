@@ -188,6 +188,15 @@
   .ex.ex-table { font-family: var(--mono); }
   .cell-empty { color: var(--text-muted); }
 
+  /* chip を一覧ページへの ?q= リンクにする(見た目は span 時代のまま) */
+  a.ex { text-decoration: none; cursor: pointer; }
+  a.ex:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* 行ヘッダセルのコピーボタン(一覧ページと同じ inline SVG 方式) */
+  .copy-btn { background: none; border: none; cursor: pointer; padding: 1px 3px; color: var(--text-muted); opacity: .35; vertical-align: middle; }
+  tr:hover .copy-btn, .copy-btn:focus { opacity: 1; }
+  .copy-btn:hover { color: var(--accent); }
+
   .badge-orphan {
     display: inline-block; font-size: 0.74rem; font-weight: 700; padding: 1px 8px; border-radius: 3px;
     background: var(--gold-soft); color: var(--warn); border: 1px solid var(--gold-border);
@@ -395,31 +404,34 @@
     addTile(tables.length, 'テーブル数');
     addTile(orphanCount, '孤立テーブル数', orphanCount > 0);
 
-    /* --- chip 生成ヘルパー --- */
+    /* --- chip 生成ヘルパー(対応する一覧ページへの ?q= リンク) --- */
     function apiChip(apiId) {
       var a = apiById[apiId];
-      var span = document.createElement('span');
-      span.className = 'ex ex-api';
-      span.textContent = a ? a.endpoint : apiId;
-      if (a) span.title = a.apiName;
-      return span;
+      var chip = document.createElement('a');
+      chip.className = 'ex ex-api';
+      chip.textContent = a ? a.endpoint : apiId;
+      if (a) chip.title = a.apiName;
+      chip.href = '../../一覧/API一覧/API一覧.html?q=' + encodeURIComponent(a ? a.endpoint : apiId);
+      return chip;
     }
     function tableChip(tableId) {
       var t = tableById[tableId];
-      var span = document.createElement('span');
-      span.className = 'ex ex-table';
-      span.textContent = t ? t.tableName : tableId;
-      if (t && t.logicalName) span.title = t.logicalName;
-      return span;
+      var chip = document.createElement('a');
+      chip.className = 'ex ex-table';
+      chip.textContent = t ? t.tableName : tableId;
+      if (t && t.logicalName) chip.title = t.logicalName;
+      chip.href = '../../一覧/テーブル一覧/テーブル一覧.html?q=' + encodeURIComponent(t ? t.tableName : tableId);
+      return chip;
     }
     function screenChip(screenId) {
       var s = null;
       for (var i = 0; i < screens.length; i++) { if (screens[i].screenId === screenId) { s = screens[i]; break; } }
-      var span = document.createElement('span');
-      span.className = 'ex';
-      span.textContent = s ? s.screenName : screenId;
-      if (s && s.route) span.title = s.route;
-      return span;
+      var chip = document.createElement('a');
+      chip.className = 'ex';
+      chip.textContent = s ? s.screenName : screenId;
+      if (s && s.route) chip.title = s.route;
+      chip.href = '../../一覧/画面一覧/画面一覧.html?q=' + encodeURIComponent(s ? s.screenName : screenId);
+      return chip;
     }
     function fillChips(td, ids, maker) {
       if (!ids || ids.length === 0) {
@@ -432,6 +444,42 @@
       ids.forEach(function (id) { td.appendChild(maker(id)); });
     }
 
+    /* --- 行ヘッダセルのコピーボタン(一覧ページと同じ inline SVG 方式) --- */
+    var COPY_ICON = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>';
+    var CHECK_ICON = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+    function fallbackCopy(text) {
+      var ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand('copy'); } catch (e) {}
+      document.body.removeChild(ta);
+    }
+    function copyText(text, done) {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(done, function () { fallbackCopy(text); done(); });
+      } else {
+        fallbackCopy(text);
+        done();
+      }
+    }
+    function makeCopyBtn(text) {
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'copy-btn';
+      btn.setAttribute('aria-label', 'コピー');
+      btn.innerHTML = COPY_ICON;
+      btn.addEventListener('click', function () {
+        copyText(text, function () {
+          btn.innerHTML = CHECK_ICON;
+          setTimeout(function () { btn.innerHTML = COPY_ICON; }, 1200);
+        });
+      });
+      return btn;
+    }
+
     /* --- 画面起点モード: 行=画面 / 列=画面・呼び出しAPI一覧・使用テーブル一覧 --- */
     var screenBody = document.getElementById('screen-body');
     var screenRows = [];
@@ -442,6 +490,7 @@
       var name = document.createElement('span');
       name.className = 'unit-name';
       name.textContent = s.screenName;
+      name.appendChild(makeCopyBtn(s.screenName));
       tdScreen.appendChild(name);
       var route = document.createElement('code');
       route.className = 'route';
@@ -474,6 +523,7 @@
       code.className = 'route';
       code.textContent = t.tableName;
       name.appendChild(code);
+      name.appendChild(makeCopyBtn(t.tableName));
       if (screensOfTable[t.tableId].length === 0) {
         var badge = document.createElement('span');
         badge.className = 'badge-orphan';
@@ -530,6 +580,13 @@
       });
     }
     if (search) search.addEventListener('input', applyFilter);
+
+    /* ?q= 受け口: 一覧ページの相互参照リンクからの遷移。検索窓へ反映して絞り込みを発火する */
+    var initialQ = (new URLSearchParams(location.search).get('q') || '').trim();
+    if (initialQ && search) {
+      search.value = initialQ;
+      applyFilter();
+    }
   })();
 </script>
 

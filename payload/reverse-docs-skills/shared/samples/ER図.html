@@ -265,6 +265,57 @@ table.data-table code {
 
 .empty-note { font-size: 13px; color: var(--text-muted); padding: 12px 4px; }
 
+/* --- タブ切替 --- */
+.er-tab-bar { display: flex; gap: 0; border-bottom: 1px solid var(--border); margin-bottom: 0; padding: 0; }
+.er-tab {
+  background: none; border: none; border-bottom: 3px solid transparent;
+  padding: 10px 20px; font-size: 13px; font-family: inherit; color: var(--text-sub); cursor: pointer;
+}
+.er-tab.is-active { border-bottom-color: var(--accent); color: var(--accent); font-weight: 700; }
+.er-tab:hover { color: var(--accent); }
+.er-tab-panel { display: block; }
+.er-tab-panel.hidden { display: none; }
+
+/* --- テーブル詳細タブ --- */
+.td-layout {
+  display: grid; grid-template-columns: 240px 1fr; min-height: 600px;
+  border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; background: var(--panel);
+}
+.td-sidebar { border-right: 1px solid var(--border); overflow-y: auto; max-height: 80vh; }
+.td-sidebar-search { padding: 12px; border-bottom: 1px solid var(--border); }
+.td-sidebar-search input {
+  width: 100%; padding: 8px 10px; border: 1px solid var(--border); border-radius: var(--radius-sm);
+  background: var(--panel); color: var(--text); font-size: 13px; font-family: inherit;
+}
+.td-sidebar-item { padding: 10px 14px; border-bottom: 1px solid var(--border); cursor: pointer; font-size: 13px; color: var(--text-sub); }
+.td-sidebar-item .td-si-label { font-weight: 600; color: var(--text); font-size: 12.5px; }
+.td-sidebar-item .td-si-key { font-family: var(--mono); font-size: 10.5px; color: var(--text-muted); }
+.td-sidebar-item.is-active { background: var(--accent-soft); border-left: 3px solid var(--accent); }
+.td-sidebar-item:hover { background: var(--panel-2); }
+.td-canvas-wrap { overflow: auto; padding: 16px; }
+.td-canvas { position: relative; }
+.td-card {
+  position: absolute; left: 0; top: 0; border-radius: var(--radius); background: var(--panel);
+  font-size: 12px; box-shadow: var(--shadow-sm); transition: transform 300ms ease-out;
+}
+.td-card-selected { border: 3px double var(--accent); background: var(--accent-soft); }
+.td-card-related { border: 1px solid var(--border); cursor: pointer; }
+.td-card-related:hover { border-color: var(--accent-border); box-shadow: var(--shadow-md); }
+.td-card-header { padding: 10px 14px; border-bottom: 1px solid var(--border); }
+.td-card-label { font-weight: 700; font-size: 14px; color: var(--text); }
+.td-card-key { font-family: var(--mono); font-size: 11px; color: var(--text-sub); margin-top: 2px; }
+.td-col-row { padding: 3px 14px; font-size: 11.5px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--border); }
+.td-col-row:last-child { border-bottom: none; }
+.td-col-name { font-family: var(--mono); color: var(--text); min-width: 120px; }
+.td-col-type { font-family: var(--mono); color: var(--text-muted); flex: 1; }
+.td-col-badges { display: flex; gap: 3px; }
+.td-badge { font-size: 9px; padding: 1px 5px; border-radius: 3px; font-weight: 600; }
+.td-badge-pk { background: var(--gold-soft); color: var(--gold); border: 1px solid var(--gold-border); }
+.td-badge-fk { background: var(--accent-soft); color: var(--accent); border: 1px solid var(--accent-border); }
+.td-badge-uq { background: var(--panel-2); color: var(--text-sub); border: 1px solid var(--border); }
+.td-badge-null { background: var(--panel-2); color: var(--text-muted); border: 1px solid var(--border); }
+.td-col-more { padding: 6px 14px; font-size: 11px; color: var(--text-muted); text-align: center; }
+
 @media (max-width: 760px) {
   .topbar { grid-template-columns: 1fr; gap: 8px; padding: 10px 14px; }
   .dp-main { padding: 14px; }
@@ -301,18 +352,39 @@ table.data-table code {
       <span class="dp-updated">生成: 2026-07-20</span>
     </div>
 
-    <div class="er-toolbar" id="er-toolbar">
-      <div class="er-search"><input type="text" id="er-search-input" placeholder="テーブル名で検索"></div>
-      <div class="er-stats" id="er-stats"></div>
-      <div class="er-crumbs" id="er-crumbs"></div>
-      <div class="er-toolbar-actions" id="er-actions"></div>
+    <div class="er-tab-bar" id="er-tab-bar">
+      <button class="er-tab is-active" data-tab="relation">関連図</button>
+      <button class="er-tab" data-tab="tableDetail">テーブル詳細</button>
     </div>
 
-    <div class="er-canvas-wrap">
-      <div class="er-canvas" id="er-canvas"></div>
+    <div class="er-tab-panel" id="panel-relation">
+      <div class="er-toolbar" id="er-toolbar">
+        <div class="er-search"><input type="text" id="er-search-input" placeholder="テーブル名で検索"></div>
+        <div class="er-stats" id="er-stats"></div>
+        <div class="er-crumbs" id="er-crumbs"></div>
+        <div class="er-toolbar-actions" id="er-actions"></div>
+      </div>
+
+      <div class="er-canvas-wrap">
+        <div class="er-canvas" id="er-canvas"></div>
+      </div>
+
+      <div id="detail-table-section" class="detail-table-section" style="display:none;"></div>
     </div>
 
-    <div id="detail-table-section" class="detail-table-section" style="display:none;"></div>
+    <div class="er-tab-panel hidden" id="panel-tableDetail">
+      <div class="td-layout">
+        <aside class="td-sidebar">
+          <div class="td-sidebar-search">
+            <input type="text" id="td-search-input" placeholder="テーブル名で検索">
+          </div>
+          <div id="td-sidebar-list"></div>
+        </aside>
+        <div class="td-canvas-wrap">
+          <div class="td-canvas" id="td-canvas"></div>
+        </div>
+      </div>
+    </div>
   </main>
 
   <footer class="footer">
@@ -328,22 +400,66 @@ table.data-table code {
   "generatedAt": "2026-07-20",
   "legend": [],
   "entities": [
-    {"key": "users", "label": "ユーザー"},
+    {"key": "users", "label": "ユーザー", "columns": [
+      {"name": "id", "type": "BIGINT", "pk": true},
+      {"name": "role_id", "type": "BIGINT", "fk": true},
+      {"name": "email", "type": "VARCHAR(255)", "unique": true},
+      {"name": "password_hash", "type": "VARCHAR(255)"},
+      {"name": "display_name", "type": "VARCHAR(100)"},
+      {"name": "status", "type": "VARCHAR(20)"},
+      {"name": "created_at", "type": "TIMESTAMP"},
+      {"name": "updated_at", "type": "TIMESTAMP", "nullable": true}
+    ]},
     {"key": "sessions", "label": "セッション"},
     {"key": "profiles", "label": "プロフィール"},
-    {"key": "roles", "label": "ロール"},
+    {"key": "roles", "label": "ロール", "columns": [
+      {"name": "id", "type": "BIGINT", "pk": true},
+      {"name": "name", "type": "VARCHAR(50)", "unique": true},
+      {"name": "description", "type": "VARCHAR(200)", "nullable": true},
+      {"name": "is_system", "type": "BOOLEAN"},
+      {"name": "created_at", "type": "TIMESTAMP"}
+    ]},
     {"key": "permissions", "label": "権限"},
-    {"key": "orders", "label": "注文"},
+    {"key": "orders", "label": "注文", "columns": [
+      {"name": "id", "type": "BIGINT", "pk": true},
+      {"name": "user_id", "type": "BIGINT", "fk": true},
+      {"name": "coupon_id", "type": "BIGINT", "fk": true, "nullable": true},
+      {"name": "order_number", "type": "VARCHAR(50)", "unique": true},
+      {"name": "status", "type": "VARCHAR(20)"},
+      {"name": "total_amount", "type": "DECIMAL(12,2)"},
+      {"name": "ordered_at", "type": "TIMESTAMP"},
+      {"name": "created_at", "type": "TIMESTAMP"},
+      {"name": "updated_at", "type": "TIMESTAMP", "nullable": true}
+    ]},
     {"key": "order_items", "label": "注文明細"},
     {"key": "shipping_addresses", "label": "配送先"},
     {"key": "order_history", "label": "注文履歴"},
     {"key": "coupons", "label": "クーポン"},
-    {"key": "products", "label": "商品"},
+    {"key": "products", "label": "商品", "columns": [
+      {"name": "id", "type": "BIGINT", "pk": true},
+      {"name": "category_id", "type": "BIGINT", "fk": true},
+      {"name": "name", "type": "VARCHAR(200)"},
+      {"name": "description", "type": "TEXT", "nullable": true},
+      {"name": "price", "type": "DECIMAL(10,2)"},
+      {"name": "stock_quantity", "type": "INT"},
+      {"name": "is_active", "type": "BOOLEAN"},
+      {"name": "created_at", "type": "TIMESTAMP"},
+      {"name": "updated_at", "type": "TIMESTAMP", "nullable": true}
+    ]},
     {"key": "categories", "label": "カテゴリ"},
     {"key": "product_images", "label": "商品画像"},
     {"key": "product_tags", "label": "商品タグ"},
     {"key": "tags", "label": "タグ"},
-    {"key": "invoices", "label": "請求書"},
+    {"key": "invoices", "label": "請求書", "columns": [
+      {"name": "id", "type": "BIGINT", "pk": true},
+      {"name": "order_id", "type": "BIGINT", "fk": true},
+      {"name": "invoice_number", "type": "VARCHAR(50)", "unique": true},
+      {"name": "amount", "type": "DECIMAL(12,2)"},
+      {"name": "tax_amount", "type": "DECIMAL(12,2)"},
+      {"name": "status", "type": "VARCHAR(20)"},
+      {"name": "issued_at", "type": "TIMESTAMP"},
+      {"name": "due_date", "type": "DATE", "nullable": true}
+    ]},
     {"key": "payments", "label": "支払い"},
     {"key": "plans", "label": "プラン"},
     {"key": "subscriptions", "label": "契約"},
@@ -1089,6 +1205,265 @@ table.data-table code {
   });
 
   render();
+
+  // --- テーブル詳細タブ ---
+  state.tab = 'relation';
+  state.tdSelectedKey = null;
+  state.tdSearchTerm = '';
+
+  function switchTab(tabId) {
+    state.tab = tabId;
+    document.getElementById('panel-relation').classList.toggle('hidden', tabId !== 'relation');
+    document.getElementById('panel-tableDetail').classList.toggle('hidden', tabId !== 'tableDetail');
+    var tabs = document.querySelectorAll('.er-tab');
+    for (var i = 0; i < tabs.length; i++) {
+      tabs[i].classList.toggle('is-active', tabs[i].getAttribute('data-tab') === tabId);
+    }
+    if (tabId === 'tableDetail') renderTableDetail();
+  }
+
+  var tabButtons = document.querySelectorAll('.er-tab');
+  for (var ti = 0; ti < tabButtons.length; ti++) {
+    (function(btn) {
+      btn.addEventListener('click', function() { switchTab(btn.getAttribute('data-tab')); });
+    })(tabButtons[ti]);
+  }
+
+  function renderTableDetail() {
+    var tdCanvas = document.getElementById('td-canvas');
+    tdCanvas.innerHTML = '';
+
+    // サイドバー描画
+    var sidebarList = document.getElementById('td-sidebar-list');
+    sidebarList.innerHTML = '';
+    var sortedEntities = entities.slice().sort(function(a, b) {
+      return a.label < b.label ? -1 : a.label > b.label ? 1 : 0;
+    });
+    var term = normalize(state.tdSearchTerm);
+    sortedEntities.forEach(function(e) {
+      if (term && normalize(e.key).indexOf(term) === -1 && normalize(e.label).indexOf(term) === -1) return;
+      var item = el('div', { class: 'td-sidebar-item' + (state.tdSelectedKey === e.key ? ' is-active' : '') });
+      item.appendChild(el('div', { class: 'td-si-label' }, e.label));
+      item.appendChild(el('div', { class: 'td-si-key' }, e.key));
+      item.addEventListener('click', function() {
+        state.tdSelectedKey = e.key;
+        renderTableDetail();
+      });
+      sidebarList.appendChild(item);
+    });
+
+    if (!state.tdSelectedKey) {
+      tdCanvas.appendChild(el('div', { style: 'padding:40px;color:var(--text-muted);font-size:13px;text-align:center;' }, 'サイドバーからテーブルを選択'));
+      return;
+    }
+
+    var selKey = state.tdSelectedKey;
+    var selEntity = entitiesByKey[selKey];
+    if (!selEntity) return;
+    var selClusterId = clusterByKey[selKey] || 'isolated';
+
+    // 関連テーブル収集
+    var relLines = [];
+    graph.relations.forEach(function(r) {
+      var otherKey = null;
+      if (r.from === selKey) otherKey = r.to;
+      else if (r.to === selKey) otherKey = r.from;
+      if (!otherKey) return;
+      var sameCluster = (clusterByKey[otherKey] || 'isolated') === selClusterId;
+      relLines.push({ otherKey: otherKey, cardinality: r.cardinality, sourceRef: r.sourceRef, sameCluster: sameCluster, from: r.from, to: r.to });
+    });
+
+    var relatedKeys = {};
+    relLines.forEach(function(rl) { relatedKeys[rl.otherKey] = true; });
+    var relatedSame = [], relatedOther = [];
+    Object.keys(relatedKeys).sort(keyAsc).forEach(function(k) {
+      if ((clusterByKey[k] || 'isolated') === selClusterId) relatedSame.push(k);
+      else relatedOther.push(k);
+    });
+
+    var otherByCluster = {};
+    relatedOther.forEach(function(k) {
+      var cid = clusterByKey[k] || 'isolated';
+      otherByCluster[cid] = otherByCluster[cid] || [];
+      otherByCluster[cid].push(k);
+    });
+
+    // カード高さ計算
+    function cardHeight(e, maxCols) {
+      var cols = (e.columns || []);
+      var shown = maxCols ? Math.min(cols.length, maxCols) : cols.length;
+      var hasMore = maxCols && cols.length > maxCols;
+      return 48 + shown * 24 + (hasMore ? 24 : 0) + (cols.length === 0 ? 0 : 4);
+    }
+
+    var CARD_W = 220;
+    var GAP_X = 160, GAP_Y = 50;
+    var selH = cardHeight(selEntity);
+    var CANVAS_W = 1140;
+
+    // ★中央位置
+    var centerX = CANVAS_W / 2, centerY = 0; // centerY は後で算出
+
+    // 同クラスタ上部
+    var CARDS_PER_ROW = 4;
+    var sameRows = Math.ceil(Math.max(1, relatedSame.length) / CARDS_PER_ROW);
+    var sameBlockH = sameRows * 60 + (sameRows - 1) * GAP_Y + 60;
+    var topY = 80;
+    centerY = topY + sameBlockH + 40;
+
+    var positions = {};
+    positions[selKey] = { x: centerX, y: centerY, w: CARD_W, h: selH };
+
+    relatedSame.forEach(function(k, i) {
+      var row = Math.floor(i / CARDS_PER_ROW);
+      var col = i % CARDS_PER_ROW;
+      var rowCount = Math.min(CARDS_PER_ROW, relatedSame.length - row * CARDS_PER_ROW);
+      var startX = centerX - (rowCount - 1) * GAP_X / 2;
+      var e = entitiesByKey[k];
+      var h = cardHeight(e, 5);
+      positions[k] = { x: startX + col * GAP_X, y: topY + row * (60 + GAP_Y), w: CARD_W, h: h };
+    });
+
+    // 他クラスタ下部
+    var bottomY = centerY + selH + 60;
+    var otherClusterIds = Object.keys(otherByCluster).sort();
+    var groupGap = 240;
+    var groupStartX = centerX - (otherClusterIds.length - 1) * groupGap / 2;
+    otherClusterIds.forEach(function(cid, gi) {
+      var members = otherByCluster[cid];
+      var gx = groupStartX + gi * groupGap;
+      var startX = gx - (members.length - 1) * GAP_X / 2;
+      members.forEach(function(k, i) {
+        var e = entitiesByKey[k];
+        var h = cardHeight(e, 5);
+        positions[k] = { x: startX + i * GAP_X, y: bottomY, w: CARD_W, h: h };
+      });
+    });
+
+    // キャンバスサイズ算出
+    var allPositions = Object.keys(positions).map(function(k) { return positions[k]; });
+    var maxY = 0;
+    allPositions.forEach(function(p) { if (p.y + p.h > maxY) maxY = p.y + p.h; });
+    var CANVAS_H = Math.max(600, maxY + 80);
+    tdCanvas.style.width = CANVAS_W + 'px';
+    tdCanvas.style.height = CANVAS_H + 'px';
+
+    // SVG 線描画
+    var svg = svgEl('svg', { width: CANVAS_W, height: CANVAS_H, style: 'position:absolute;left:0;top:0;pointer-events:none;overflow:visible;' });
+    var defs = svgEl('defs');
+    var marker = svgEl('marker', { id: 'arrowhead-td', viewBox: '0 0 10 10', refX: '9', refY: '5', markerWidth: '6', markerHeight: '6', orient: 'auto-start-reverse' });
+    marker.appendChild(svgEl('path', { d: 'M 0 0 L 10 5 L 0 10 z', fill: 'var(--text-muted)' }));
+    defs.appendChild(marker);
+    svg.appendChild(defs);
+
+    relLines.forEach(function(rl) {
+      var p = positions[rl.otherKey];
+      var sp = positions[selKey];
+      if (!p || !sp) return;
+      var line = svgEl('line', {
+        x1: sp.x, y1: sp.y + sp.h / 2, x2: p.x, y2: p.y + p.h / 2,
+        class: 'pipe-line ' + (rl.sameCluster ? 'same-cluster' : 'cross-cluster'),
+        'marker-end': 'url(#arrowhead-td)',
+        style: 'pointer-events:stroke;'
+      });
+      var titleEl = svgEl('title');
+      titleEl.textContent = rl.sourceRef || '';
+      line.appendChild(titleEl);
+      svg.appendChild(line);
+      if (rl.cardinality) {
+        var mx = (sp.x + p.x) / 2, my = (sp.y + sp.h / 2 + p.y + p.h / 2) / 2;
+        var t = svgEl('text', { x: mx, y: my - 6, class: 'er-edge-label', 'text-anchor': 'middle' });
+        t.textContent = rl.cardinality;
+        svg.appendChild(t);
+      }
+    });
+    tdCanvas.appendChild(svg);
+
+    // クラスタ点線囲い
+    function drawGroupBox(keys, label, canvas) {
+      if (keys.length === 0) return;
+      var xs = keys.map(function(k) { return positions[k].x; });
+      var ys = keys.map(function(k) { return positions[k].y; });
+      var hs = keys.map(function(k) { return positions[k].h; });
+      var minX = Math.min.apply(null, xs) - CARD_W / 2 - 20;
+      var maxX = Math.max.apply(null, xs) + CARD_W / 2 + 20;
+      var minY = Math.min.apply(null, ys) - 30;
+      var maxH = 0;
+      keys.forEach(function(k, i) { if (ys[i] + hs[i] > maxH) maxH = ys[i] + hs[i]; });
+      var maxY = maxH + 10;
+      var box = el('div', {
+        class: 'group-box',
+        style: 'transform:translate(' + minX + 'px,' + minY + 'px);width:' + (maxX - minX) + 'px;height:' + (maxY - minY) + 'px;'
+      });
+      box.appendChild(el('span', { class: 'gb-label' }, label));
+      canvas.appendChild(box);
+    }
+
+    if (relatedSame.length > 0) {
+      var sameLabel = selClusterId === 'isolated' ? '孤立テーブル' : clusterLabel(selClusterId);
+      drawGroupBox(relatedSame, sameLabel, tdCanvas);
+    }
+    otherClusterIds.forEach(function(cid) {
+      var label = cid === 'isolated' ? '孤立テーブル' : clusterLabel(cid);
+      drawGroupBox(otherByCluster[cid], label, tdCanvas);
+    });
+
+    // カード描画関数
+    function buildCard(e, isSelected, maxCols) {
+      var cls = 'td-card ' + (isSelected ? 'td-card-selected' : 'td-card-related');
+      var p = positions[e.key];
+      var card = el('div', {
+        class: cls,
+        style: 'transform:translate(' + (p.x - CARD_W / 2) + 'px,' + p.y + 'px);width:' + CARD_W + 'px;'
+      });
+      var header = el('div', { class: 'td-card-header' });
+      header.appendChild(el('div', { class: 'td-card-label' }, e.label));
+      header.appendChild(el('div', { class: 'td-card-key' }, e.key));
+      card.appendChild(header);
+
+      var cols = e.columns || [];
+      var shown = maxCols ? cols.slice(0, maxCols) : cols;
+      shown.forEach(function(c) {
+        var row = el('div', { class: 'td-col-row' });
+        row.appendChild(el('span', { class: 'td-col-name' }, c.name));
+        row.appendChild(el('span', { class: 'td-col-type' }, c.type));
+        var badges = el('span', { class: 'td-col-badges' });
+        if (c.pk) badges.appendChild(el('span', { class: 'td-badge td-badge-pk' }, 'PK'));
+        if (c.fk) badges.appendChild(el('span', { class: 'td-badge td-badge-fk' }, 'FK'));
+        if (c.unique) badges.appendChild(el('span', { class: 'td-badge td-badge-uq' }, 'UQ'));
+        if (c.nullable) badges.appendChild(el('span', { class: 'td-badge td-badge-null' }, 'NULL'));
+        row.appendChild(badges);
+        card.appendChild(row);
+      });
+      if (maxCols && cols.length > maxCols) {
+        card.appendChild(el('div', { class: 'td-col-more' }, '+' + (cols.length - maxCols) + '列'));
+      }
+      if (!isSelected) {
+        card.addEventListener('click', function() {
+          state.tdSelectedKey = e.key;
+          renderTableDetail();
+        });
+      }
+      return card;
+    }
+
+    // ★カード
+    tdCanvas.appendChild(buildCard(selEntity, true, null));
+
+    // 関連カード
+    relatedSame.concat(relatedOther).forEach(function(k) {
+      tdCanvas.appendChild(buildCard(entitiesByKey[k], false, 5));
+    });
+  }
+
+  // テーブル詳細タブの検索
+  var tdSearchInput = document.getElementById('td-search-input');
+  if (tdSearchInput) {
+    tdSearchInput.addEventListener('input', function() {
+      state.tdSearchTerm = tdSearchInput.value;
+      renderTableDetail();
+    });
+  }
 
   var themeBtn = document.getElementById('theme-toggle');
   themeBtn.addEventListener('click', function() {
