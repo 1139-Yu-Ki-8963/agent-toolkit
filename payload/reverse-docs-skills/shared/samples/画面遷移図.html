@@ -354,10 +354,6 @@ table.data-table code {
 .iso-group summary { cursor: pointer; font-size: 13px; font-weight: 600; padding: 8px 0; }
 .iso-group summary:hover { color: var(--accent); }
 
-/* 概要ビュー(グループ間の遷移数マトリクス) */
-.overview-table th, .overview-table td { text-align: center; }
-.overview-table th:first-child, .overview-table td:first-child { text-align: left; white-space: nowrap; }
-
 /* モード切り替えタブ(画面別/動線別/未接続) */
 .mode-tabs { display: flex; gap: 4px; margin-bottom: 20px; border-bottom: 1px solid var(--border); }
 .mode-tab { background: none; border: none; border-bottom: 2px solid transparent; margin-bottom: -1px; padding: 10px 18px; font-size: 14px; font-weight: 600; color: var(--text-muted); cursor: pointer; font-family: inherit; transition: color .15s, border-color .15s; }
@@ -368,7 +364,7 @@ table.data-table code {
 .flow-nav { margin-bottom: 16px; }
 .flow-nav select { width: 100%; padding: 8px 12px; font-size: 13px; font-family: inherit; background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text); }
 
-/* 動線グループ */
+/* 動線グループ(details/summaryで折りたたみ。初期表示は閉じた状態) */
 .flow-group {
   border-left: 3px solid var(--accent);
   border-radius: 0 var(--radius) var(--radius) 0;
@@ -376,6 +372,14 @@ table.data-table code {
   padding: 16px 20px;
   margin-bottom: 20px;
 }
+.flow-group > summary {
+  cursor: pointer;
+  list-style: none;
+}
+.flow-group > summary::-webkit-details-marker { display: none; }
+.flow-group > summary::before { content: '▶ '; font-size: 10px; color: var(--text-muted); }
+.flow-group[open] > summary::before { content: '▼ '; }
+.flow-group[open] > summary { margin-bottom: 12px; }
 .flow-group-header {
   display: flex;
   justify-content: space-between;
@@ -465,7 +469,7 @@ table.data-table code {
       <span class="brand-title">画面遷移図</span>
     </a>
     <div class="header-meta">
-      <span class="dp-updated">更新: 2026-07-21</span>
+      <span class="dp-updated">更新: 2026-07-22</span>
     </div>
     <div class="top-actions">
       <button id="theme-toggle" title="テーマ切替">ライト</button>
@@ -514,104 +518,263 @@ table.data-table code {
   "pageKind": "transition",
   "title": "画面遷移図",
   "description": "画面一覧とルーティング定義から生成した画面遷移マップ",
-  "generatedAt": "2026-07-21",
+  "generatedAt": "2026-07-22",
   "legend": [],
   "nodes": [
     {"unitKey": "top", "label": "トップページ"},
     {"unitKey": "search", "label": "検索結果"},
+    {"unitKey": "category-search", "label": "カテゴリ検索"},
+    {"unitKey": "brand-search", "label": "ブランド検索"},
+    {"unitKey": "price-search", "label": "価格帯検索"},
     {"unitKey": "product-detail", "label": "商品詳細"},
+    {"unitKey": "product-compare", "label": "商品比較"},
+    {"unitKey": "product-review-form", "label": "レビュー投稿"},
+    {"unitKey": "product-inquiry", "label": "商品お問い合わせ"},
+    {"unitKey": "review-list", "label": "レビュー一覧"},
+    {"unitKey": "seller-profile", "label": "出品者プロフィール"},
+    {"unitKey": "related-products", "label": "関連商品一覧"},
+    {"unitKey": "favorites", "label": "お気に入り一覧"},
+    {"unitKey": "fav-add-done", "label": "お気に入り追加完了"},
     {"unitKey": "cart", "label": "カート"},
+    {"unitKey": "coupon-apply", "label": "クーポン適用"},
+    {"unitKey": "shipping-select", "label": "配送先選択"},
+    {"unitKey": "payment-select", "label": "支払い方法選択"},
     {"unitKey": "order-confirm", "label": "注文確認"},
     {"unitKey": "order-complete", "label": "注文完了"},
     {"unitKey": "order-history", "label": "注文履歴"},
     {"unitKey": "order-detail", "label": "注文詳細"},
-    {"unitKey": "favorites", "label": "お気に入り一覧"},
-    {"unitKey": "seller-profile", "label": "出品者プロフィール"},
-    {"unitKey": "review-list", "label": "レビュー一覧"},
-    {"unitKey": "help", "label": "ヘルプセンター"},
-    {"unitKey": "account-settings", "label": "アカウント設定"},
-    {"unitKey": "profile-edit", "label": "プロフィール編集"},
-    {"unitKey": "report-form", "label": "通報フォーム"},
-    {"unitKey": "fav-add-done", "label": "お気に入り追加完了"},
-    {"unitKey": "related-products", "label": "関連商品一覧"},
-    {"unitKey": "password-change", "label": "パスワード変更"},
-    {"unitKey": "withdraw", "label": "退会確認"},
-    {"unitKey": "login", "label": "ログイン"},
-    {"unitKey": "legacy-mypage", "label": "旧マイページ"},
-    {"unitKey": "legacy-search", "label": "旧検索画面"},
-    {"unitKey": "register", "label": "新規登録"},
-    {"unitKey": "register-confirm", "label": "登録確認"},
-    {"unitKey": "register-complete", "label": "登録完了"},
     {"unitKey": "sell-top", "label": "出品トップ"},
     {"unitKey": "sell-photo", "label": "写真登録"},
     {"unitKey": "sell-price", "label": "価格設定"},
     {"unitKey": "sell-confirm", "label": "出品確認"},
-    {"unitKey": "sell-complete", "label": "出品完了"}
+    {"unitKey": "sell-complete", "label": "出品完了"},
+    {"unitKey": "sell-edit", "label": "出品編集"},
+    {"unitKey": "sell-withdraw", "label": "出品取り下げ"},
+    {"unitKey": "sell-management", "label": "販売管理"},
+    {"unitKey": "account-settings", "label": "アカウント設定"},
+    {"unitKey": "profile-edit", "label": "プロフィール編集"},
+    {"unitKey": "password-change", "label": "パスワード変更"},
+    {"unitKey": "withdraw", "label": "退会確認"},
+    {"unitKey": "notification-settings", "label": "通知設定"},
+    {"unitKey": "point-history", "label": "ポイント履歴"},
+    {"unitKey": "admin-dashboard", "label": "管理ダッシュボード"},
+    {"unitKey": "admin-users", "label": "ユーザー管理"},
+    {"unitKey": "admin-products", "label": "商品管理"},
+    {"unitKey": "admin-sales", "label": "売上管理"},
+    {"unitKey": "message-list", "label": "メッセージ一覧"},
+    {"unitKey": "message-detail", "label": "メッセージ詳細"},
+    {"unitKey": "help", "label": "ヘルプセンター"},
+    {"unitKey": "faq", "label": "FAQ"},
+    {"unitKey": "contact-form", "label": "お問い合わせフォーム"},
+    {"unitKey": "report-form", "label": "通報フォーム"},
+    {"unitKey": "login", "label": "ログイン"},
+    {"unitKey": "register", "label": "新規登録"},
+    {"unitKey": "register-confirm", "label": "登録確認"},
+    {"unitKey": "register-complete", "label": "登録完了"},
+    {"unitKey": "legacy-mypage", "label": "旧マイページ"},
+    {"unitKey": "legacy-search", "label": "旧検索画面"}
   ],
   "edges": [
+    {"from": "top", "to": "search", "trigger": "検索する", "sourceRef": "top.html:20", "confidence": "HIGH", "section": "メイン", "triggerType": "フォーム送信"},
+    {"from": "top", "to": "category-search", "trigger": "カテゴリから探す", "sourceRef": "top.html:24", "confidence": "HIGH", "section": "メイン", "triggerType": "リンク遷移"},
+    {"from": "top", "to": "brand-search", "trigger": "ブランドから探す", "sourceRef": "top.html:28", "confidence": "HIGH", "section": "メイン", "triggerType": "リンク遷移"},
+    {"from": "top", "to": "price-search", "trigger": "価格帯から探す", "sourceRef": "top.html:32", "confidence": "HIGH", "section": "メイン", "triggerType": "リンク遷移"},
+    {"from": "top", "to": "product-detail", "trigger": "おすすめ商品", "sourceRef": "top.html:35", "confidence": "HIGH", "section": "おすすめ", "triggerType": "リンク遷移"},
+    {"from": "top", "to": "favorites", "trigger": "お気に入り", "sourceRef": "top.html:46", "confidence": "HIGH", "section": "マイページ", "triggerType": "リンク遷移"},
+    {"from": "top", "to": "order-history", "trigger": "注文履歴", "sourceRef": "top.html:42", "confidence": "HIGH", "section": "マイページ", "triggerType": "リンク遷移"},
+    {"from": "top", "to": "account-settings", "trigger": "アカウント設定", "sourceRef": "top.html:50", "confidence": "HIGH", "section": "マイページ", "triggerType": "リンク遷移"},
+    {"from": "top", "to": "sell-top", "trigger": "出品する", "sourceRef": "top.html:60", "confidence": "HIGH", "section": "メインメニュー", "triggerType": "リンク遷移"},
+    {"from": "top", "to": "register", "trigger": "新規登録", "sourceRef": "top.html:55", "confidence": "HIGH", "section": "認証", "triggerType": "リンク遷移"},
+    {"from": "top", "to": "message-list", "trigger": "メッセージ", "sourceRef": "top.html:63", "confidence": "HIGH", "section": "マイページ", "triggerType": "リンク遷移"},
+    {"from": "top", "to": "help", "trigger": "ヘルプ", "sourceRef": "top.html:16", "confidence": "HIGH", "section": "フッター", "triggerType": "リンク遷移"},
+
+    {"from": "search", "to": "product-detail", "trigger": "商品を見る", "sourceRef": "search.html:30", "confidence": "HIGH", "section": "検索結果", "triggerType": "リンク遷移"},
+    {"from": "search", "to": "search", "trigger": "ページ送り", "sourceRef": "search.html:45", "confidence": "HIGH", "section": "検索結果", "triggerType": "リンク遷移"},
+    {"from": "search", "to": "category-search", "trigger": "カテゴリで絞り込む", "sourceRef": "search.html:50", "confidence": "HIGH", "section": "絞り込み", "triggerType": "リンク遷移"},
+    {"from": "search", "to": "brand-search", "trigger": "ブランドで絞り込む", "sourceRef": "search.html:54", "confidence": "HIGH", "section": "絞り込み", "triggerType": "リンク遷移"},
+    {"from": "search", "to": "price-search", "trigger": "価格帯で絞り込む", "sourceRef": "search.html:58", "confidence": "HIGH", "section": "絞り込み", "triggerType": "リンク遷移"},
+    {"from": "search", "to": "top", "trigger": "トップ", "sourceRef": "search.html:8", "confidence": "HIGH", "section": "ヘッダー", "triggerType": "リンク遷移"},
+    {"from": "search", "to": "help", "trigger": "ヘルプ", "sourceRef": "search.html:16", "confidence": "HIGH", "section": "ヘッダー", "triggerType": "リンク遷移"},
+
+    {"from": "category-search", "to": "product-detail", "trigger": "商品を見る", "sourceRef": "category-search.html:22", "confidence": "HIGH", "section": "検索結果", "triggerType": "リンク遷移"},
+    {"from": "category-search", "to": "brand-search", "trigger": "ブランドを追加で絞り込む", "sourceRef": "category-search.html:28", "confidence": "MEDIUM", "section": "絞り込み", "triggerType": "リンク遷移"},
+    {"from": "category-search", "to": "price-search", "trigger": "価格帯を追加で絞り込む", "sourceRef": "category-search.html:32", "confidence": "MEDIUM", "section": "絞り込み", "triggerType": "リンク遷移"},
+    {"from": "category-search", "to": "top", "trigger": "トップ", "sourceRef": "category-search.html:8", "confidence": "HIGH", "section": "ヘッダー", "triggerType": "リンク遷移"},
+    {"from": "category-search", "to": "search", "trigger": "検索", "sourceRef": "category-search.html:12", "confidence": "HIGH", "section": "ヘッダー", "triggerType": "リンク遷移"},
+
+    {"from": "brand-search", "to": "product-detail", "trigger": "商品を見る", "sourceRef": "brand-search.html:22", "confidence": "HIGH", "section": "検索結果", "triggerType": "リンク遷移"},
+    {"from": "brand-search", "to": "price-search", "trigger": "価格帯を追加で絞り込む", "sourceRef": "brand-search.html:28", "confidence": "MEDIUM", "section": "絞り込み", "triggerType": "リンク遷移"},
+    {"from": "brand-search", "to": "category-search", "trigger": "カテゴリを追加で絞り込む", "sourceRef": "brand-search.html:32", "confidence": "MEDIUM", "section": "絞り込み", "triggerType": "リンク遷移"},
+    {"from": "brand-search", "to": "top", "trigger": "トップ", "sourceRef": "brand-search.html:8", "confidence": "HIGH", "section": "ヘッダー", "triggerType": "リンク遷移"},
+    {"from": "brand-search", "to": "search", "trigger": "検索", "sourceRef": "brand-search.html:12", "confidence": "HIGH", "section": "ヘッダー", "triggerType": "リンク遷移"},
+
+    {"from": "price-search", "to": "product-detail", "trigger": "商品を見る", "sourceRef": "price-search.html:22", "confidence": "HIGH", "section": "検索結果", "triggerType": "リンク遷移"},
+    {"from": "price-search", "to": "category-search", "trigger": "カテゴリを追加で絞り込む", "sourceRef": "price-search.html:26", "confidence": "MEDIUM", "section": "絞り込み", "triggerType": "リンク遷移"},
+    {"from": "price-search", "to": "brand-search", "trigger": "ブランドを追加で絞り込む", "sourceRef": "price-search.html:30", "confidence": "MEDIUM", "section": "絞り込み", "triggerType": "リンク遷移"},
+    {"from": "price-search", "to": "top", "trigger": "トップ", "sourceRef": "price-search.html:8", "confidence": "HIGH", "section": "ヘッダー", "triggerType": "リンク遷移"},
+    {"from": "price-search", "to": "search", "trigger": "検索", "sourceRef": "price-search.html:12", "confidence": "HIGH", "section": "ヘッダー", "triggerType": "リンク遷移"},
+
     {"from": "product-detail", "to": "review-list", "trigger": "レビュー一覧を見る", "sourceRef": "product.html:42", "confidence": "HIGH", "section": "商品情報", "triggerType": "リンク遷移"},
     {"from": "product-detail", "to": "seller-profile", "trigger": "出品者を見る", "sourceRef": "product.html:48", "confidence": "HIGH", "section": "商品情報", "triggerType": "リンク遷移"},
     {"from": "product-detail", "to": "cart", "trigger": "カートに追加", "sourceRef": "product.html:63", "confidence": "HIGH", "section": "購入操作", "triggerType": "フォーム送信"},
     {"from": "product-detail", "to": "fav-add-done", "trigger": "お気に入りに追加", "sourceRef": "product.html:71", "confidence": "HIGH", "section": "購入操作", "triggerType": "フォーム送信"},
     {"from": "product-detail", "to": "related-products", "trigger": "関連商品を見る", "sourceRef": "product.html:89", "confidence": "HIGH", "section": "関連", "triggerType": "リンク遷移"},
+    {"from": "product-detail", "to": "product-compare", "trigger": "商品を比較する", "sourceRef": "product.html:92", "confidence": "MEDIUM", "section": "関連", "triggerType": "リンク遷移"},
+    {"from": "product-detail", "to": "product-review-form", "trigger": "レビューを書く", "sourceRef": "product.html:94", "confidence": "MEDIUM", "section": "商品情報", "triggerType": "リンク遷移"},
+    {"from": "product-detail", "to": "product-inquiry", "trigger": "商品について問い合わせる", "sourceRef": "product.html:96", "confidence": "MEDIUM", "section": "商品情報", "triggerType": "リンク遷移"},
     {"from": "product-detail", "to": "report-form", "trigger": "この商品を通報", "sourceRef": "product.html:95", "confidence": "MEDIUM", "section": "関連", "triggerType": "リンク遷移"},
     {"from": "product-detail", "to": "top", "trigger": "トップ", "sourceRef": "product.html:8", "confidence": "HIGH", "section": "ヘッダー", "triggerType": "リンク遷移"},
     {"from": "product-detail", "to": "search", "trigger": "検索", "sourceRef": "product.html:12", "confidence": "HIGH", "section": "ヘッダー", "triggerType": "リンク遷移"},
     {"from": "product-detail", "to": "help", "trigger": "ヘルプ", "sourceRef": "product.html:16", "confidence": "HIGH", "section": "ヘッダー", "triggerType": "リンク遷移"},
     {"from": "product-detail", "to": "product-detail", "trigger": "別の商品を表示", "sourceRef": "product.html:102", "confidence": "HIGH", "section": null, "triggerType": "リンク遷移"},
-    {"from": "cart", "to": "order-confirm", "trigger": "注文手続きへ", "sourceRef": "cart.html:35", "confidence": "HIGH", "section": "カート操作", "triggerType": "フォーム送信"},
+    {"from": "product-detail", "to": "message-list", "trigger": "出品者にメッセージを送る", "sourceRef": "product.html:105", "confidence": "MEDIUM", "section": "商品情報", "triggerType": "リンク遷移"},
+
+    {"from": "product-compare", "to": "product-detail", "trigger": "商品詳細に戻る", "sourceRef": "product-compare.html:18", "confidence": "HIGH", "section": "比較", "triggerType": "リンク遷移"},
+    {"from": "product-compare", "to": "cart", "trigger": "比較商品をカートに追加", "sourceRef": "product-compare.html:24", "confidence": "MEDIUM", "section": "比較", "triggerType": "フォーム送信"},
+    {"from": "product-compare", "to": "top", "trigger": "トップ", "sourceRef": "product-compare.html:8", "confidence": "HIGH", "section": "ヘッダー", "triggerType": "リンク遷移"},
+
+    {"from": "product-review-form", "to": "review-list", "trigger": "投稿する", "sourceRef": "product-review-form.html:20", "confidence": "HIGH", "section": "レビュー投稿", "triggerType": "フォーム送信"},
+    {"from": "product-review-form", "to": "product-detail", "trigger": "商品詳細に戻る", "sourceRef": "product-review-form.html:26", "confidence": "HIGH", "section": "レビュー投稿", "triggerType": "リンク遷移"},
+
+    {"from": "product-inquiry", "to": "product-detail", "trigger": "商品詳細に戻る", "sourceRef": "product-inquiry.html:18", "confidence": "HIGH", "section": "問い合わせ", "triggerType": "リンク遷移"},
+    {"from": "product-inquiry", "to": "message-list", "trigger": "送信して確認する", "sourceRef": "product-inquiry.html:24", "confidence": "MEDIUM", "section": "問い合わせ", "triggerType": "フォーム送信"},
+
+    {"from": "review-list", "to": "product-detail", "trigger": "商品詳細に戻る", "sourceRef": "review-list.html:15", "confidence": "HIGH", "section": "レビュー", "triggerType": "リンク遷移"},
+    {"from": "review-list", "to": "product-review-form", "trigger": "レビューを書く", "sourceRef": "review-list.html:20", "confidence": "MEDIUM", "section": "レビュー", "triggerType": "リンク遷移"},
+
+    {"from": "seller-profile", "to": "product-detail", "trigger": "出品商品を見る", "sourceRef": "seller-profile.html:20", "confidence": "HIGH", "section": "出品者情報", "triggerType": "リンク遷移"},
+    {"from": "seller-profile", "to": "report-form", "trigger": "この出品者を通報", "sourceRef": "seller-profile.html:26", "confidence": "MEDIUM", "section": "出品者情報", "triggerType": "リンク遷移"},
+    {"from": "seller-profile", "to": "message-list", "trigger": "メッセージを送る", "sourceRef": "seller-profile.html:30", "confidence": "MEDIUM", "section": "出品者情報", "triggerType": "リンク遷移"},
+
+    {"from": "related-products", "to": "product-detail", "trigger": "商品を見る", "sourceRef": "related-products.html:14", "confidence": "HIGH", "section": "関連商品", "triggerType": "リンク遷移"},
+    {"from": "related-products", "to": "top", "trigger": "トップ", "sourceRef": "related-products.html:8", "confidence": "HIGH", "section": "ヘッダー", "triggerType": "リンク遷移"},
+
+    {"from": "favorites", "to": "product-detail", "trigger": "商品を見る", "sourceRef": "favorites.html:22", "confidence": "HIGH", "section": "お気に入り", "triggerType": "リンク遷移"},
+    {"from": "favorites", "to": "favorites", "trigger": "お気に入りから削除", "sourceRef": "favorites.html:30", "confidence": "HIGH", "section": "お気に入り", "triggerType": "フォーム送信"},
+    {"from": "favorites", "to": "top", "trigger": "トップ", "sourceRef": "favorites.html:8", "confidence": "HIGH", "section": "ヘッダー", "triggerType": "リンク遷移"},
+    {"from": "favorites", "to": "search", "trigger": "検索", "sourceRef": "favorites.html:12", "confidence": "HIGH", "section": "ヘッダー", "triggerType": "リンク遷移"},
+    {"from": "favorites", "to": "related-products", "trigger": "関連商品を見る", "sourceRef": "favorites.html:34", "confidence": "MEDIUM", "section": "お気に入り", "triggerType": "リンク遷移"},
+
+    {"from": "fav-add-done", "to": "favorites", "trigger": "お気に入り一覧を見る", "sourceRef": "fav-add-done.html:12", "confidence": "HIGH", "section": "完了", "triggerType": "リンク遷移"},
+    {"from": "fav-add-done", "to": "product-detail", "trigger": "商品に戻る", "sourceRef": "fav-add-done.html:16", "confidence": "HIGH", "section": "完了", "triggerType": "リンク遷移"},
+
+    {"from": "cart", "to": "coupon-apply", "trigger": "クーポンを使う", "sourceRef": "cart.html:32", "confidence": "MEDIUM", "section": "カート操作", "triggerType": "リンク遷移"},
+    {"from": "cart", "to": "order-confirm", "trigger": "クーポンなしで進む", "sourceRef": "cart.html:35", "confidence": "HIGH", "section": "カート操作", "triggerType": "フォーム送信"},
     {"from": "cart", "to": "cart", "trigger": "商品を削除", "sourceRef": "cart.html:42", "confidence": "HIGH", "section": "カート操作", "triggerType": "フォーム送信"},
     {"from": "cart", "to": "product-detail", "trigger": "商品名リンク", "sourceRef": "cart.html:28", "confidence": "HIGH", "section": "カート内容", "triggerType": "リンク遷移"},
     {"from": "cart", "to": "top", "trigger": "買い物を続ける", "sourceRef": "cart.html:50", "confidence": "HIGH", "section": "カート操作", "triggerType": "リンク遷移"},
-    {"from": "cart", "to": "top", "trigger": "トップ", "sourceRef": "cart.html:8", "confidence": "HIGH", "section": "ヘッダー", "triggerType": "リンク遷移"},
     {"from": "cart", "to": "search", "trigger": "検索", "sourceRef": "cart.html:12", "confidence": "HIGH", "section": "ヘッダー", "triggerType": "リンク遷移"},
     {"from": "cart", "to": "help", "trigger": "ヘルプ", "sourceRef": "cart.html:16", "confidence": "HIGH", "section": "ヘッダー", "triggerType": "リンク遷移"},
+
+    {"from": "coupon-apply", "to": "shipping-select", "trigger": "配送先を選ぶ", "sourceRef": "coupon-apply.html:20", "confidence": "HIGH", "section": "購入手続き", "triggerType": "フォーム送信"},
+    {"from": "coupon-apply", "to": "cart", "trigger": "カートに戻る", "sourceRef": "coupon-apply.html:26", "confidence": "HIGH", "section": "購入手続き", "triggerType": "リンク遷移"},
+
+    {"from": "shipping-select", "to": "payment-select", "trigger": "支払い方法を選ぶ", "sourceRef": "shipping-select.html:20", "confidence": "HIGH", "section": "購入手続き", "triggerType": "フォーム送信"},
+    {"from": "shipping-select", "to": "cart", "trigger": "カートに戻る", "sourceRef": "shipping-select.html:26", "confidence": "HIGH", "section": "購入手続き", "triggerType": "リンク遷移"},
+
+    {"from": "payment-select", "to": "order-confirm", "trigger": "確認画面へ", "sourceRef": "payment-select.html:20", "confidence": "HIGH", "section": "購入手続き", "triggerType": "フォーム送信"},
+    {"from": "payment-select", "to": "shipping-select", "trigger": "配送先に戻る", "sourceRef": "payment-select.html:26", "confidence": "HIGH", "section": "購入手続き", "triggerType": "リンク遷移"},
+
     {"from": "order-confirm", "to": "order-complete", "trigger": "注文を確定する", "sourceRef": "order-confirm.html:45", "confidence": "HIGH", "section": "注文確認", "triggerType": "フォーム送信"},
     {"from": "order-confirm", "to": "cart", "trigger": "カートに戻る", "sourceRef": "order-confirm.html:52", "confidence": "HIGH", "section": "注文確認", "triggerType": "リンク遷移"},
     {"from": "order-confirm", "to": "top", "trigger": "トップ", "sourceRef": "order-confirm.html:8", "confidence": "HIGH", "section": "ヘッダー", "triggerType": "リンク遷移"},
     {"from": "order-confirm", "to": "search", "trigger": "検索", "sourceRef": "order-confirm.html:12", "confidence": "HIGH", "section": "ヘッダー", "triggerType": "リンク遷移"},
     {"from": "order-confirm", "to": "help", "trigger": "ヘルプ", "sourceRef": "order-confirm.html:16", "confidence": "HIGH", "section": "ヘッダー", "triggerType": "リンク遷移"},
+
     {"from": "order-complete", "to": "order-history", "trigger": "注文履歴を見る", "sourceRef": "order-complete.html:30", "confidence": "HIGH", "section": "完了アクション", "triggerType": "リンク遷移"},
     {"from": "order-complete", "to": "top", "trigger": "トップへ戻る", "sourceRef": "order-complete.html:35", "confidence": "HIGH", "section": "完了アクション", "triggerType": "リンク遷移"},
+
     {"from": "order-history", "to": "order-detail", "trigger": "注文詳細を見る", "sourceRef": "orders.html:28", "confidence": "HIGH", "section": "注文一覧", "triggerType": "リンク遷移"},
     {"from": "order-history", "to": "cart", "trigger": "再注文する", "sourceRef": "orders.html:35", "confidence": "HIGH", "section": "注文一覧", "triggerType": "フォーム送信"},
     {"from": "order-history", "to": "top", "trigger": "トップ", "sourceRef": "orders.html:8", "confidence": "HIGH", "section": "ヘッダー", "triggerType": "リンク遷移"},
     {"from": "order-history", "to": "search", "trigger": "検索", "sourceRef": "orders.html:12", "confidence": "HIGH", "section": "ヘッダー", "triggerType": "リンク遷移"},
     {"from": "order-history", "to": "help", "trigger": "ヘルプ", "sourceRef": "orders.html:16", "confidence": "HIGH", "section": "ヘッダー", "triggerType": "リンク遷移"},
-    {"from": "favorites", "to": "product-detail", "trigger": "商品を見る", "sourceRef": "favorites.html:22", "confidence": "HIGH", "section": "お気に入り", "triggerType": "リンク遷移"},
-    {"from": "favorites", "to": "favorites", "trigger": "お気に入りから削除", "sourceRef": "favorites.html:30", "confidence": "HIGH", "section": "お気に入り", "triggerType": "フォーム送信"},
-    {"from": "favorites", "to": "top", "trigger": "トップ", "sourceRef": "favorites.html:8", "confidence": "HIGH", "section": "ヘッダー", "triggerType": "リンク遷移"},
-    {"from": "favorites", "to": "search", "trigger": "検索", "sourceRef": "favorites.html:12", "confidence": "HIGH", "section": "ヘッダー", "triggerType": "リンク遷移"},
-    {"from": "favorites", "to": "help", "trigger": "ヘルプ", "sourceRef": "favorites.html:16", "confidence": "HIGH", "section": "ヘッダー", "triggerType": "リンク遷移"},
+    {"from": "order-history", "to": "message-list", "trigger": "問い合わせる", "sourceRef": "orders.html:40", "confidence": "MEDIUM", "section": "注文一覧", "triggerType": "リンク遷移"},
+
+    {"from": "order-detail", "to": "order-history", "trigger": "注文履歴に戻る", "sourceRef": "order-detail.html:14", "confidence": "HIGH", "section": "注文詳細", "triggerType": "リンク遷移"},
+    {"from": "order-detail", "to": "report-form", "trigger": "問題を報告する", "sourceRef": "order-detail.html:20", "confidence": "MEDIUM", "section": "注文詳細", "triggerType": "リンク遷移"},
+    {"from": "order-detail", "to": "message-list", "trigger": "出品者に連絡する", "sourceRef": "order-detail.html:24", "confidence": "MEDIUM", "section": "注文詳細", "triggerType": "リンク遷移"},
+    {"from": "order-detail", "to": "seller-profile", "trigger": "出品者プロフィールを見る", "sourceRef": "order-detail.html:28", "confidence": "MEDIUM", "section": "注文詳細", "triggerType": "リンク遷移"},
+
+    {"from": "sell-top", "to": "sell-photo", "trigger": "写真を登録", "sourceRef": "sell.html:20", "confidence": "HIGH", "section": "出品手順", "triggerType": "リンク遷移"},
+    {"from": "sell-top", "to": "sell-management", "trigger": "出品状況を確認する", "sourceRef": "sell.html:26", "confidence": "MEDIUM", "section": "出品手順", "triggerType": "リンク遷移"},
+    {"from": "sell-top", "to": "top", "trigger": "トップ", "sourceRef": "sell.html:8", "confidence": "HIGH", "section": "ヘッダー", "triggerType": "リンク遷移"},
+
+    {"from": "sell-photo", "to": "sell-price", "trigger": "価格を設定", "sourceRef": "sell-photo.html:35", "confidence": "HIGH", "section": "出品手順", "triggerType": "リンク遷移"},
+    {"from": "sell-photo", "to": "sell-top", "trigger": "出品トップに戻る", "sourceRef": "sell-photo.html:40", "confidence": "HIGH", "section": "出品手順", "triggerType": "リンク遷移"},
+
+    {"from": "sell-price", "to": "sell-confirm", "trigger": "確認へ", "sourceRef": "sell-price.html:28", "confidence": "HIGH", "section": "出品手順", "triggerType": "フォーム送信"},
+    {"from": "sell-price", "to": "sell-photo", "trigger": "写真登録に戻る", "sourceRef": "sell-price.html:32", "confidence": "HIGH", "section": "出品手順", "triggerType": "リンク遷移"},
+
+    {"from": "sell-confirm", "to": "sell-complete", "trigger": "出品する", "sourceRef": "sell-confirm.html:22", "confidence": "HIGH", "section": "確認", "triggerType": "フォーム送信"},
+    {"from": "sell-confirm", "to": "sell-price", "trigger": "価格設定に戻る", "sourceRef": "sell-confirm.html:26", "confidence": "HIGH", "section": "確認", "triggerType": "リンク遷移"},
+
+    {"from": "sell-complete", "to": "sell-management", "trigger": "出品管理へ", "sourceRef": "sell-complete.html:18", "confidence": "HIGH", "section": "完了", "triggerType": "リンク遷移"},
+    {"from": "sell-complete", "to": "top", "trigger": "トップへ戻る", "sourceRef": "sell-complete.html:22", "confidence": "HIGH", "section": "完了", "triggerType": "リンク遷移"},
+
+    {"from": "sell-management", "to": "sell-edit", "trigger": "出品を編集する", "sourceRef": "sell-management.html:20", "confidence": "HIGH", "section": "販売管理", "triggerType": "リンク遷移"},
+    {"from": "sell-management", "to": "sell-withdraw", "trigger": "出品を取り下げる", "sourceRef": "sell-management.html:26", "confidence": "MEDIUM", "section": "販売管理", "triggerType": "リンク遷移"},
+    {"from": "sell-management", "to": "order-detail", "trigger": "注文詳細を見る", "sourceRef": "sell-management.html:32", "confidence": "MEDIUM", "section": "販売管理", "triggerType": "リンク遷移"},
+    {"from": "sell-management", "to": "top", "trigger": "トップ", "sourceRef": "sell-management.html:8", "confidence": "HIGH", "section": "ヘッダー", "triggerType": "リンク遷移"},
+
+    {"from": "sell-edit", "to": "sell-management", "trigger": "管理画面に戻る", "sourceRef": "sell-edit.html:14", "confidence": "HIGH", "section": "出品編集", "triggerType": "リンク遷移"},
+    {"from": "sell-withdraw", "to": "sell-management", "trigger": "管理画面に戻る", "sourceRef": "sell-withdraw.html:14", "confidence": "HIGH", "section": "出品取り下げ", "triggerType": "リンク遷移"},
+
     {"from": "account-settings", "to": "profile-edit", "trigger": "プロフィール編集", "sourceRef": "account.html:25", "confidence": "HIGH", "section": "アカウント", "triggerType": "リンク遷移"},
     {"from": "account-settings", "to": "password-change", "trigger": "パスワード変更", "sourceRef": "account.html:32", "confidence": "HIGH", "section": "セキュリティ", "triggerType": "リンク遷移"},
-    {"from": "account-settings", "to": "withdraw", "trigger": "退会する", "sourceRef": "account.html:40", "confidence": "MEDIUM", "section": "セキュリティ", "triggerType": "リンク遷移"},
+    {"from": "account-settings", "to": "notification-settings", "trigger": "通知設定", "sourceRef": "account.html:36", "confidence": "HIGH", "section": "アカウント", "triggerType": "リンク遷移"},
+    {"from": "account-settings", "to": "point-history", "trigger": "ポイント履歴を見る", "sourceRef": "account.html:40", "confidence": "MEDIUM", "section": "アカウント", "triggerType": "リンク遷移"},
+    {"from": "account-settings", "to": "withdraw", "trigger": "退会する", "sourceRef": "account.html:44", "confidence": "MEDIUM", "section": "セキュリティ", "triggerType": "リンク遷移"},
     {"from": "account-settings", "to": "top", "trigger": "トップ", "sourceRef": "account.html:8", "confidence": "HIGH", "section": "ヘッダー", "triggerType": "リンク遷移"},
     {"from": "account-settings", "to": "search", "trigger": "検索", "sourceRef": "account.html:12", "confidence": "HIGH", "section": "ヘッダー", "triggerType": "リンク遷移"},
     {"from": "account-settings", "to": "help", "trigger": "ヘルプ", "sourceRef": "account.html:16", "confidence": "HIGH", "section": "ヘッダー", "triggerType": "リンク遷移"},
-    {"from": "top", "to": "search", "trigger": "検索する", "sourceRef": "top.html:20", "confidence": "HIGH", "section": "メイン", "triggerType": "フォーム送信"},
-    {"from": "top", "to": "product-detail", "trigger": "おすすめ商品", "sourceRef": "top.html:35", "confidence": "HIGH", "section": "おすすめ", "triggerType": "リンク遷移"},
-    {"from": "top", "to": "order-history", "trigger": "注文履歴", "sourceRef": "top.html:42", "confidence": "HIGH", "section": "マイページ", "triggerType": "リンク遷移"},
-    {"from": "top", "to": "favorites", "trigger": "お気に入り", "sourceRef": "top.html:46", "confidence": "HIGH", "section": "マイページ", "triggerType": "リンク遷移"},
-    {"from": "top", "to": "account-settings", "trigger": "アカウント設定", "sourceRef": "top.html:50", "confidence": "HIGH", "section": "マイページ", "triggerType": "リンク遷移"},
-    {"from": "top", "to": "help", "trigger": "ヘルプ", "sourceRef": "top.html:16", "confidence": "HIGH", "section": "フッター", "triggerType": "リンク遷移"},
-    {"from": "search", "to": "product-detail", "trigger": "商品を見る", "sourceRef": "search.html:30", "confidence": "HIGH", "section": "検索結果", "triggerType": "リンク遷移"},
-    {"from": "search", "to": "search", "trigger": "ページ送り", "sourceRef": "search.html:45", "confidence": "HIGH", "section": "検索結果", "triggerType": "リンク遷移"},
-    {"from": "search", "to": "top", "trigger": "トップ", "sourceRef": "search.html:8", "confidence": "HIGH", "section": "ヘッダー", "triggerType": "リンク遷移"},
-    {"from": "search", "to": "help", "trigger": "ヘルプ", "sourceRef": "search.html:16", "confidence": "HIGH", "section": "ヘッダー", "triggerType": "リンク遷移"},
+    {"from": "account-settings", "to": "message-list", "trigger": "メッセージを確認する", "sourceRef": "account.html:48", "confidence": "MEDIUM", "section": "アカウント", "triggerType": "リンク遷移"},
+
+    {"from": "profile-edit", "to": "account-settings", "trigger": "設定に戻る", "sourceRef": "profile-edit.html:14", "confidence": "HIGH", "section": "プロフィール編集", "triggerType": "リンク遷移"},
+    {"from": "password-change", "to": "account-settings", "trigger": "設定に戻る", "sourceRef": "password-change.html:14", "confidence": "HIGH", "section": "パスワード変更", "triggerType": "リンク遷移"},
+    {"from": "notification-settings", "to": "account-settings", "trigger": "設定に戻る", "sourceRef": "notification-settings.html:14", "confidence": "HIGH", "section": "通知設定", "triggerType": "リンク遷移"},
+    {"from": "point-history", "to": "account-settings", "trigger": "設定に戻る", "sourceRef": "point-history.html:14", "confidence": "HIGH", "section": "ポイント履歴", "triggerType": "リンク遷移"},
+
+    {"from": "withdraw", "to": "top", "trigger": "退会を完了する", "sourceRef": "withdraw.html:20", "confidence": "MEDIUM", "section": "退会", "triggerType": "フォーム送信"},
+    {"from": "withdraw", "to": "account-settings", "trigger": "退会をやめる", "sourceRef": "withdraw.html:26", "confidence": "HIGH", "section": "退会", "triggerType": "リンク遷移"},
+    {"from": "withdraw", "to": "help", "trigger": "退会前にヘルプを見る", "sourceRef": "withdraw.html:30", "confidence": "MEDIUM", "section": "退会", "triggerType": "リンク遷移"},
+
+    {"from": "admin-dashboard", "to": "admin-users", "trigger": "ユーザー管理へ", "sourceRef": "admin-dashboard.html:20", "confidence": "HIGH", "section": "管理メニュー", "triggerType": "リンク遷移"},
+    {"from": "admin-dashboard", "to": "admin-products", "trigger": "商品管理へ", "sourceRef": "admin-dashboard.html:24", "confidence": "HIGH", "section": "管理メニュー", "triggerType": "リンク遷移"},
+    {"from": "admin-dashboard", "to": "admin-sales", "trigger": "売上管理へ", "sourceRef": "admin-dashboard.html:28", "confidence": "HIGH", "section": "管理メニュー", "triggerType": "リンク遷移"},
+    {"from": "admin-dashboard", "to": "top", "trigger": "トップ", "sourceRef": "admin-dashboard.html:8", "confidence": "HIGH", "section": "ヘッダー", "triggerType": "リンク遷移"},
+
+    {"from": "admin-users", "to": "admin-dashboard", "trigger": "ダッシュボードに戻る", "sourceRef": "admin-users.html:14", "confidence": "HIGH", "section": "ユーザー管理", "triggerType": "リンク遷移"},
+    {"from": "admin-products", "to": "admin-dashboard", "trigger": "ダッシュボードに戻る", "sourceRef": "admin-products.html:14", "confidence": "HIGH", "section": "商品管理", "triggerType": "リンク遷移"},
+    {"from": "admin-sales", "to": "admin-dashboard", "trigger": "ダッシュボードに戻る", "sourceRef": "admin-sales.html:14", "confidence": "HIGH", "section": "売上管理", "triggerType": "リンク遷移"},
+
+    {"from": "message-list", "to": "message-detail", "trigger": "メッセージを開く", "sourceRef": "message-list.html:18", "confidence": "HIGH", "section": "メッセージ", "triggerType": "リンク遷移"},
+    {"from": "message-list", "to": "top", "trigger": "トップ", "sourceRef": "message-list.html:8", "confidence": "HIGH", "section": "ヘッダー", "triggerType": "リンク遷移"},
+
+    {"from": "message-detail", "to": "message-list", "trigger": "一覧に戻る", "sourceRef": "message-detail.html:14", "confidence": "HIGH", "section": "メッセージ", "triggerType": "リンク遷移"},
+    {"from": "message-detail", "to": "product-detail", "trigger": "商品を確認する", "sourceRef": "message-detail.html:18", "confidence": "MEDIUM", "section": "メッセージ", "triggerType": "リンク遷移"},
+
+    {"from": "help", "to": "faq", "trigger": "FAQを見る", "sourceRef": "help.html:18", "confidence": "HIGH", "section": "ヘルプ", "triggerType": "リンク遷移"},
+    {"from": "help", "to": "contact-form", "trigger": "お問い合わせする", "sourceRef": "help.html:24", "confidence": "HIGH", "section": "ヘルプ", "triggerType": "リンク遷移"},
+    {"from": "help", "to": "top", "trigger": "トップ", "sourceRef": "help.html:8", "confidence": "HIGH", "section": "ヘッダー", "triggerType": "リンク遷移"},
+
+    {"from": "faq", "to": "help", "trigger": "ヘルプに戻る", "sourceRef": "faq.html:14", "confidence": "HIGH", "section": "FAQ", "triggerType": "リンク遷移"},
+    {"from": "faq", "to": "contact-form", "trigger": "解決しない場合は問い合わせ", "sourceRef": "faq.html:20", "confidence": "MEDIUM", "section": "FAQ", "triggerType": "リンク遷移"},
+
+    {"from": "contact-form", "to": "help", "trigger": "送信完了、ヘルプに戻る", "sourceRef": "contact-form.html:20", "confidence": "HIGH", "section": "お問い合わせ", "triggerType": "フォーム送信"},
+
+    {"from": "report-form", "to": "product-detail", "trigger": "商品詳細に戻る", "sourceRef": "report-form.html:14", "confidence": "HIGH", "section": "通報", "triggerType": "リンク遷移"},
+
     {"from": "login", "to": "top", "trigger": "ログイン成功", "sourceRef": "auth.ts:15", "confidence": "HIGH", "section": "認証", "triggerType": "リダイレクト"},
-    {"from": "top", "to": "register", "trigger": "新規登録", "sourceRef": "top.html:55", "confidence": "HIGH", "section": "認証", "triggerType": "リンク遷移"},
+
     {"from": "register", "to": "register-confirm", "trigger": "確認へ進む", "sourceRef": "register.html:30", "confidence": "HIGH", "section": "登録フォーム", "triggerType": "フォーム送信"},
     {"from": "register-confirm", "to": "register-complete", "trigger": "登録する", "sourceRef": "register-confirm.html:25", "confidence": "HIGH", "section": "確認", "triggerType": "フォーム送信"},
-    {"from": "register-complete", "to": "top", "trigger": "トップへ", "sourceRef": "register-complete.html:15", "confidence": "HIGH", "section": "完了", "triggerType": "リンク遷移"},
-    {"from": "top", "to": "sell-top", "trigger": "出品する", "sourceRef": "top.html:60", "confidence": "HIGH", "section": "メインメニュー", "triggerType": "リンク遷移"},
-    {"from": "sell-top", "to": "sell-photo", "trigger": "写真を登録", "sourceRef": "sell.html:20", "confidence": "HIGH", "section": "出品手順", "triggerType": "リンク遷移"},
-    {"from": "sell-photo", "to": "sell-price", "trigger": "価格を設定", "sourceRef": "sell-photo.html:35", "confidence": "HIGH", "section": "出品手順", "triggerType": "リンク遷移"},
-    {"from": "sell-price", "to": "sell-confirm", "trigger": "確認へ", "sourceRef": "sell-price.html:28", "confidence": "HIGH", "section": "出品手順", "triggerType": "フォーム送信"},
-    {"from": "sell-confirm", "to": "sell-complete", "trigger": "出品する", "sourceRef": "sell-confirm.html:22", "confidence": "HIGH", "section": "確認", "triggerType": "フォーム送信"}
+    {"from": "register-confirm", "to": "register", "trigger": "内容を修正する", "sourceRef": "register-confirm.html:30", "confidence": "MEDIUM", "section": "確認", "triggerType": "リンク遷移"},
+    {"from": "register-complete", "to": "top", "trigger": "トップへ", "sourceRef": "register-complete.html:15", "confidence": "HIGH", "section": "完了", "triggerType": "リンク遷移"}
   ],
   "unresolved": [
-    {"label": "旧マイページ（route欠落）", "reason": "旧形式manifestのためroute情報なし", "sourceRef": "legacy/mypage.tsx"}
+    {"label": "旧マイページ（route欠落）", "reason": "旧形式manifestのためroute情報なし", "sourceRef": "legacy/mypage.tsx"},
+    {"label": "旧検索画面（route欠落）", "reason": "旧形式manifestのためroute情報なし", "sourceRef": "legacy/search.tsx"}
   ]
 }
 </script>
@@ -1172,7 +1335,6 @@ table.data-table code {
   var hasRealGroups = groupNames.some(function(g) { return groupMap[g].length > 1; });
 
   var select = el('select', { id: 'view-select' });
-  select.appendChild(el('option', { value: '__overview__' }, '概要: グループ間の遷移数'));
   if (hasRealGroups) {
     groupNames.forEach(function(g) {
       var optgroup = el('optgroup', { label: g + '（' + groupMap[g].length + '図）' });
@@ -1194,37 +1356,11 @@ table.data-table code {
   var viewNav = el('div', { class: 'view-nav' }, [select, prevBtn, nextBtn]);
   var viewContent = el('div', { id: 'view-content' });
 
-  function buildOverviewView() {
-    var wrap = el('div');
-    if (edgesResolved.length === 0) {
-      wrap.appendChild(el('div', { class: 'diagram-empty' }, '遷移がありません'));
-      return wrap;
-    }
-    var allGroups = {};
-    keys.forEach(function(k) { allGroups[groupName(k)] = true; });
-    var gList = Object.keys(allGroups).sort();
-    var matrix = {};
-    gList.forEach(function(g1) { matrix[g1] = {}; gList.forEach(function(g2) { matrix[g1][g2] = 0; }); });
-    edgesResolved.forEach(function(e) {
-      var g1 = groupName(e.from), g2 = groupName(e.to);
-      matrix[g1][g2]++;
-    });
-    var theadRow2 = el('tr', null, [el('th', null, '元＼先')].concat(gList.map(function(g) { return el('th', null, g); })));
-    var tbody3 = el('tbody');
-    gList.forEach(function(g1) {
-      tbody3.appendChild(el('tr', null, [el('td', null, g1)].concat(gList.map(function(g2) {
-        return el('td', null, String(matrix[g1][g2]));
-      }))));
-    });
-    wrap.appendChild(el('table', { class: 'data-table overview-table' }, [el('thead', null, theadRow2), tbody3]));
-    return wrap;
-  }
-
   function renderView(key) {
     viewContent.innerHTML = '';
     selectedBadge = null;
-    if (!key || key === '__overview__' || !nodeByKey[key]) {
-      viewContent.appendChild(buildOverviewView());
+    if (!key || !nodeByKey[key]) {
+      viewContent.appendChild(el('div', { class: 'diagram-empty' }, '表示できる画面がありません'));
     } else {
       viewContent.appendChild(buildSplitView(key));
     }
@@ -1270,7 +1406,7 @@ table.data-table code {
   modeScreen.appendChild(el('div', { class: 'sec-label' }, '画面遷移'));
   modeScreen.appendChild(viewNav);
   modeScreen.appendChild(viewContent);
-  renderView('__overview__');
+  renderView(select.options.length > 0 ? select.options[0].value : null);
 
   // --- 中央ナビゲーション画面セクション ---
   modeScreen.appendChild(el('div', { class: 'sec-label' }, '中央ナビゲーション画面（' + hubNodes.length + '件）'));
@@ -1307,7 +1443,7 @@ table.data-table code {
   // ノード)ごとに未選択の候補へも動線を伸ばし、複数の動線グループを生成する。
   function computeFlows() {
     var MAX_DEPTH = 20;
-    var MAX_FLOWS = 30;
+    var MAX_FLOWS = 400;
     var origins = keys.filter(function(k) { return inDegree[k] === 0 && outDegree[k] > 0; });
     var flows = [];
 
@@ -1398,6 +1534,20 @@ table.data-table code {
     setMode('screen');
   }
 
+  // --- 動線グループの表示名(ユーザー操作シナリオ名)を導出 ---
+  // グループへ到達する最初の固有(非共通ナビ)エッジのtriggerをそのままシナリオ名とし、
+  // triggerが無い場合のみ終点ラベルから「〜への遷移」を組み立てる。
+  function deriveScenarioName(flow, nodeMap) {
+    var triggerEdge = null;
+    for (var ei = 0; ei < flow.edges.length; ei++) {
+      if (!commonNavSet[flow.edges[ei].to]) { triggerEdge = flow.edges[ei]; break; }
+    }
+    var trigger = triggerEdge ? (triggerEdge.trigger || '') : '';
+    var endLabel = nodeMap[flow.path[flow.path.length - 1]] || '';
+    if (trigger) return trigger;
+    return endLabel + 'への遷移';
+  }
+
   // --- 動線グループ化(起点の次のノードをキーに集約。共通ナビへの分岐は「共通遷移」に集約) ---
   function renderFlowMode(flowList, nodeMap) {
     var container = document.getElementById('flow-content');
@@ -1412,34 +1562,42 @@ table.data-table code {
 
     var groups = {};
     var groupOrder = [];
+    var groupTitle = {};
     flowList.forEach(function(flow) {
       // path[1]から順にたどり、最初の非共通ナビノードをグループキーにする。
-      // 全て共通ナビの場合のみ「共通遷移」に集約する。
+      // 全て共通ナビの場合のみ「共通遷移」に集約する。グループキー自体は集約用の
+      // 識別子であり、表示名(シナリオ名)はderiveScenarioNameで別途導出する。
       var key = null;
       for (var pi = 1; pi < flow.path.length; pi++) {
         if (!commonNavSet[flow.path[pi]]) { key = flow.path[pi]; break; }
       }
-      var groupName = key === null ? '共通遷移' : (nodeMap[key] || key);
-      if (!groups[groupName]) { groups[groupName] = []; groupOrder.push(groupName); }
-      groups[groupName].push(flow);
+      var groupKey = key === null ? '__common__' : key;
+      if (!groups[groupKey]) {
+        groups[groupKey] = [];
+        groupOrder.push(groupKey);
+        groupTitle[groupKey] = key === null ? '共通遷移' : deriveScenarioName(flow, nodeMap);
+      }
+      groups[groupKey].push(flow);
     });
     // 同一グループ内はパスの長さ順にソート
-    groupOrder.forEach(function(name) {
-      groups[name].sort(function(a, b) { return a.path.length - b.path.length; });
+    groupOrder.forEach(function(groupKey) {
+      groups[groupKey].sort(function(a, b) { return a.path.length - b.path.length; });
     });
 
     select.appendChild(el('option', { value: '' }, '全グループ表示'));
-    groupOrder.forEach(function(name) {
-      select.appendChild(el('option', { value: name }, name + '（' + groups[name].length + '動線）'));
+    groupOrder.forEach(function(groupKey) {
+      select.appendChild(el('option', { value: groupKey }, groupTitle[groupKey] + '（' + groups[groupKey].length + '動線）'));
     });
 
-    groupOrder.forEach(function(name) {
-      var group = el('div', { class: 'flow-group', 'data-group': name });
-      group.appendChild(el('div', { class: 'flow-group-header' }, [
-        el('span', { class: 'flow-group-title' }, name),
-        el('span', { class: 'flow-group-badge' }, groups[name].length + '動線')
-      ]));
-      groups[name].forEach(function(flow) {
+    // グループは<details>/<summary>で構築し、初期表示は折りたたんだ状態にする
+    groupOrder.forEach(function(groupKey) {
+      var details = el('details', { class: 'flow-group', 'data-group': groupKey });
+      var summary = el('summary', { class: 'flow-group-header' }, [
+        el('span', { class: 'flow-group-title' }, groupTitle[groupKey]),
+        el('span', { class: 'flow-group-badge' }, groups[groupKey].length + '動線')
+      ]);
+      details.appendChild(summary);
+      groups[groupKey].forEach(function(flow) {
         var terminalKey = flow.path[flow.path.length - 1];
         var strip = el('div', { class: 'flow-strip' });
         strip.appendChild(el('div', { class: 'flow-title' }, nodeLabel(flow.path[0]) + ' → ' + nodeLabel(terminalKey) + '（' + flow.path.length + 'ステップ）'));
@@ -1453,15 +1611,17 @@ table.data-table code {
           steps.appendChild(card);
         });
         strip.appendChild(steps);
-        group.appendChild(strip);
+        details.appendChild(strip);
       });
-      container.appendChild(group);
+      container.appendChild(details);
     });
 
     select.addEventListener('change', function() {
       var val = select.value;
       container.querySelectorAll('.flow-group').forEach(function(g) {
-        g.style.display = (!val || g.getAttribute('data-group') === val) ? '' : 'none';
+        var match = (!val || g.getAttribute('data-group') === val);
+        g.style.display = match ? '' : 'none';
+        if (val && match) g.open = true;
       });
     });
   }

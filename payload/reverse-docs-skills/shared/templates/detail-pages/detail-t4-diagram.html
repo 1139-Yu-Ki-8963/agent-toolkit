@@ -292,10 +292,6 @@ table.data-table code {
 .iso-group summary { cursor: pointer; font-size: 13px; font-weight: 600; padding: 8px 0; }
 .iso-group summary:hover { color: var(--accent); }
 
-/* 概要ビュー(グループ間の遷移数マトリクス) */
-.overview-table th, .overview-table td { text-align: center; }
-.overview-table th:first-child, .overview-table td:first-child { text-align: left; white-space: nowrap; }
-
 /* モード切り替えタブ(画面別/動線別/未接続) */
 .mode-tabs { display: flex; gap: 4px; margin-bottom: 20px; border-bottom: 1px solid var(--border); }
 .mode-tab { background: none; border: none; border-bottom: 2px solid transparent; margin-bottom: -1px; padding: 10px 18px; font-size: 14px; font-weight: 600; color: var(--text-muted); cursor: pointer; font-family: inherit; transition: color .15s, border-color .15s; }
@@ -306,7 +302,7 @@ table.data-table code {
 .flow-nav { margin-bottom: 16px; }
 .flow-nav select { width: 100%; padding: 8px 12px; font-size: 13px; font-family: inherit; background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text); }
 
-/* 動線グループ */
+/* 動線グループ(details/summaryで折りたたみ。初期表示は閉じた状態) */
 .flow-group {
   border-left: 3px solid var(--accent);
   border-radius: 0 var(--radius) var(--radius) 0;
@@ -314,6 +310,14 @@ table.data-table code {
   padding: 16px 20px;
   margin-bottom: 20px;
 }
+.flow-group > summary {
+  cursor: pointer;
+  list-style: none;
+}
+.flow-group > summary::-webkit-details-marker { display: none; }
+.flow-group > summary::before { content: '▶ '; font-size: 10px; color: var(--text-muted); }
+.flow-group[open] > summary::before { content: '▼ '; }
+.flow-group[open] > summary { margin-bottom: 12px; }
 .flow-group-header {
   display: flex;
   justify-content: space-between;
@@ -1007,7 +1011,6 @@ table.data-table code {
   var hasRealGroups = groupNames.some(function(g) { return groupMap[g].length > 1; });
 
   var select = el('select', { id: 'view-select' });
-  select.appendChild(el('option', { value: '__overview__' }, '概要: グループ間の遷移数'));
   if (hasRealGroups) {
     groupNames.forEach(function(g) {
       var optgroup = el('optgroup', { label: g + '（' + groupMap[g].length + '図）' });
@@ -1029,37 +1032,11 @@ table.data-table code {
   var viewNav = el('div', { class: 'view-nav' }, [select, prevBtn, nextBtn]);
   var viewContent = el('div', { id: 'view-content' });
 
-  function buildOverviewView() {
-    var wrap = el('div');
-    if (edgesResolved.length === 0) {
-      wrap.appendChild(el('div', { class: 'diagram-empty' }, '遷移がありません'));
-      return wrap;
-    }
-    var allGroups = {};
-    keys.forEach(function(k) { allGroups[groupName(k)] = true; });
-    var gList = Object.keys(allGroups).sort();
-    var matrix = {};
-    gList.forEach(function(g1) { matrix[g1] = {}; gList.forEach(function(g2) { matrix[g1][g2] = 0; }); });
-    edgesResolved.forEach(function(e) {
-      var g1 = groupName(e.from), g2 = groupName(e.to);
-      matrix[g1][g2]++;
-    });
-    var theadRow2 = el('tr', null, [el('th', null, '元＼先')].concat(gList.map(function(g) { return el('th', null, g); })));
-    var tbody3 = el('tbody');
-    gList.forEach(function(g1) {
-      tbody3.appendChild(el('tr', null, [el('td', null, g1)].concat(gList.map(function(g2) {
-        return el('td', null, String(matrix[g1][g2]));
-      }))));
-    });
-    wrap.appendChild(el('table', { class: 'data-table overview-table' }, [el('thead', null, theadRow2), tbody3]));
-    return wrap;
-  }
-
   function renderView(key) {
     viewContent.innerHTML = '';
     selectedBadge = null;
-    if (!key || key === '__overview__' || !nodeByKey[key]) {
-      viewContent.appendChild(buildOverviewView());
+    if (!key || !nodeByKey[key]) {
+      viewContent.appendChild(el('div', { class: 'diagram-empty' }, '表示できる画面がありません'));
     } else {
       viewContent.appendChild(buildSplitView(key));
     }
@@ -1105,7 +1082,7 @@ table.data-table code {
   modeScreen.appendChild(el('div', { class: 'sec-label' }, '画面遷移'));
   modeScreen.appendChild(viewNav);
   modeScreen.appendChild(viewContent);
-  renderView('__overview__');
+  renderView(select.options.length > 0 ? select.options[0].value : null);
 
   // --- 中央ナビゲーション画面セクション ---
   modeScreen.appendChild(el('div', { class: 'sec-label' }, '中央ナビゲーション画面（' + hubNodes.length + '件）'));
@@ -1142,7 +1119,7 @@ table.data-table code {
   // ノード)ごとに未選択の候補へも動線を伸ばし、複数の動線グループを生成する。
   function computeFlows() {
     var MAX_DEPTH = 20;
-    var MAX_FLOWS = 30;
+    var MAX_FLOWS = 400;
     var origins = keys.filter(function(k) { return inDegree[k] === 0 && outDegree[k] > 0; });
     var flows = [];
 
@@ -1233,6 +1210,20 @@ table.data-table code {
     setMode('screen');
   }
 
+  // --- 動線グループの表示名(ユーザー操作シナリオ名)を導出 ---
+  // グループへ到達する最初の固有(非共通ナビ)エッジのtriggerをそのままシナリオ名とし、
+  // triggerが無い場合のみ終点ラベルから「〜への遷移」を組み立てる。
+  function deriveScenarioName(flow, nodeMap) {
+    var triggerEdge = null;
+    for (var ei = 0; ei < flow.edges.length; ei++) {
+      if (!commonNavSet[flow.edges[ei].to]) { triggerEdge = flow.edges[ei]; break; }
+    }
+    var trigger = triggerEdge ? (triggerEdge.trigger || '') : '';
+    var endLabel = nodeMap[flow.path[flow.path.length - 1]] || '';
+    if (trigger) return trigger;
+    return endLabel + 'への遷移';
+  }
+
   // --- 動線グループ化(起点の次のノードをキーに集約。共通ナビへの分岐は「共通遷移」に集約) ---
   function renderFlowMode(flowList, nodeMap) {
     var container = document.getElementById('flow-content');
@@ -1247,34 +1238,42 @@ table.data-table code {
 
     var groups = {};
     var groupOrder = [];
+    var groupTitle = {};
     flowList.forEach(function(flow) {
       // path[1]から順にたどり、最初の非共通ナビノードをグループキーにする。
-      // 全て共通ナビの場合のみ「共通遷移」に集約する。
+      // 全て共通ナビの場合のみ「共通遷移」に集約する。グループキー自体は集約用の
+      // 識別子であり、表示名(シナリオ名)はderiveScenarioNameで別途導出する。
       var key = null;
       for (var pi = 1; pi < flow.path.length; pi++) {
         if (!commonNavSet[flow.path[pi]]) { key = flow.path[pi]; break; }
       }
-      var groupName = key === null ? '共通遷移' : (nodeMap[key] || key);
-      if (!groups[groupName]) { groups[groupName] = []; groupOrder.push(groupName); }
-      groups[groupName].push(flow);
+      var groupKey = key === null ? '__common__' : key;
+      if (!groups[groupKey]) {
+        groups[groupKey] = [];
+        groupOrder.push(groupKey);
+        groupTitle[groupKey] = key === null ? '共通遷移' : deriveScenarioName(flow, nodeMap);
+      }
+      groups[groupKey].push(flow);
     });
     // 同一グループ内はパスの長さ順にソート
-    groupOrder.forEach(function(name) {
-      groups[name].sort(function(a, b) { return a.path.length - b.path.length; });
+    groupOrder.forEach(function(groupKey) {
+      groups[groupKey].sort(function(a, b) { return a.path.length - b.path.length; });
     });
 
     select.appendChild(el('option', { value: '' }, '全グループ表示'));
-    groupOrder.forEach(function(name) {
-      select.appendChild(el('option', { value: name }, name + '（' + groups[name].length + '動線）'));
+    groupOrder.forEach(function(groupKey) {
+      select.appendChild(el('option', { value: groupKey }, groupTitle[groupKey] + '（' + groups[groupKey].length + '動線）'));
     });
 
-    groupOrder.forEach(function(name) {
-      var group = el('div', { class: 'flow-group', 'data-group': name });
-      group.appendChild(el('div', { class: 'flow-group-header' }, [
-        el('span', { class: 'flow-group-title' }, name),
-        el('span', { class: 'flow-group-badge' }, groups[name].length + '動線')
-      ]));
-      groups[name].forEach(function(flow) {
+    // グループは<details>/<summary>で構築し、初期表示は折りたたんだ状態にする
+    groupOrder.forEach(function(groupKey) {
+      var details = el('details', { class: 'flow-group', 'data-group': groupKey });
+      var summary = el('summary', { class: 'flow-group-header' }, [
+        el('span', { class: 'flow-group-title' }, groupTitle[groupKey]),
+        el('span', { class: 'flow-group-badge' }, groups[groupKey].length + '動線')
+      ]);
+      details.appendChild(summary);
+      groups[groupKey].forEach(function(flow) {
         var terminalKey = flow.path[flow.path.length - 1];
         var strip = el('div', { class: 'flow-strip' });
         strip.appendChild(el('div', { class: 'flow-title' }, nodeLabel(flow.path[0]) + ' → ' + nodeLabel(terminalKey) + '（' + flow.path.length + 'ステップ）'));
@@ -1288,15 +1287,17 @@ table.data-table code {
           steps.appendChild(card);
         });
         strip.appendChild(steps);
-        group.appendChild(strip);
+        details.appendChild(strip);
       });
-      container.appendChild(group);
+      container.appendChild(details);
     });
 
     select.addEventListener('change', function() {
       var val = select.value;
       container.querySelectorAll('.flow-group').forEach(function(g) {
-        g.style.display = (!val || g.getAttribute('data-group') === val) ? '' : 'none';
+        var match = (!val || g.getAttribute('data-group') === val);
+        g.style.display = match ? '' : 'none';
+        if (val && match) g.open = true;
       });
     });
   }

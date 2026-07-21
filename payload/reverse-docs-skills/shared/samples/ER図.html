@@ -233,11 +233,35 @@ a:hover { text-decoration: underline; }
   font-size: 10.5px; color: var(--text-muted);
 }
 
-.pipe-line { fill: none; stroke-dasharray: 4 8; animation: pipe-flow 1.5s linear infinite; }
-.pipe-line.same-cluster { stroke: var(--accent); stroke-width: 1.6; }
-.pipe-line.cross-cluster { stroke: var(--gold); stroke-width: 1.6; }
-.pipe-line:hover { stroke-width: 3.2; }
+.pipe-line { fill: none; stroke-width: 1.6; }
+.pipe-line.same-cluster { stroke: var(--accent); }
+.pipe-line.cross-cluster { stroke: var(--gold); }
+.pipe-line:hover { stroke-width: 3; stroke-dasharray: 4 8; animation: pipe-flow 1.5s linear infinite; }
 @keyframes pipe-flow { to { stroke-dashoffset: -12; } }
+
+.detail-table-section { margin-top: 20px; }
+.detail-table-section .sec-label {
+  font-size: 12px; font-weight: 700; letter-spacing: 0.04em; color: var(--text-sub);
+  display: flex; align-items: center; gap: 8px; margin: 0 0 12px;
+}
+.detail-table-section .sec-label::before {
+  content: ""; width: 4px; height: 14px; background: var(--accent); border-radius: 2px;
+}
+.table-wrap { overflow-x: auto; border-radius: var(--radius); }
+table.data-table {
+  width: 100%; min-width: 480px; border-collapse: collapse; font-size: 13px;
+  background: var(--panel); border: 1px solid var(--border);
+}
+table.data-table th {
+  text-align: left; font-size: 11.5px; font-weight: 700; color: var(--text-sub);
+  background: var(--panel-2); padding: 8px 12px; border-bottom: 1px solid var(--border); white-space: nowrap;
+}
+table.data-table td { padding: 9px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+table.data-table tr:last-child td { border-bottom: none; }
+table.data-table code {
+  background: var(--panel-2); padding: 1px 6px; border-radius: 4px;
+  font-family: var(--mono); font-size: 11.5px; color: var(--text-sub); border: 1px solid var(--border);
+}
 
 .empty-note { font-size: 13px; color: var(--text-muted); padding: 12px 4px; }
 
@@ -287,6 +311,8 @@ a:hover { text-decoration: underline; }
     <div class="er-canvas-wrap">
       <div class="er-canvas" id="er-canvas"></div>
     </div>
+
+    <div id="detail-table-section" class="detail-table-section" style="display:none;"></div>
   </main>
 
   <footer class="footer">
@@ -587,6 +613,8 @@ a:hover { text-decoration: underline; }
 
   // --- 状態0: クラスタカード一覧 ---
   function renderClusters() {
+    var dts = document.getElementById('detail-table-section');
+    if (dts) dts.style.display = 'none';
     renderCrumbs(null);
     renderActions([]);
     var term = normalize(state.searchTerm);
@@ -690,6 +718,8 @@ a:hover { text-decoration: underline; }
 
   // --- 状態1: クラスタ展開 ---
   function renderExpand() {
+    var dts = document.getElementById('detail-table-section');
+    if (dts) dts.style.display = 'none';
     var CANVAS_W = 1180, CANVAS_H = 760;
     canvasEl.style.width = CANVAS_W + 'px';
     canvasEl.style.height = CANVAS_H + 'px';
@@ -906,13 +936,22 @@ a:hover { text-decoration: underline; }
     var overlay = el('div', { class: 'detail-overlay' });
 
     var svg = svgEl('svg', { width: CANVAS_W, height: CANVAS_H, style: 'position:absolute;left:0;top:0;pointer-events:none;overflow:visible;' });
+    var defs = svgEl('defs');
+    var marker = svgEl('marker', {
+      id: 'arrowhead', viewBox: '0 0 10 10', refX: '9', refY: '5',
+      markerWidth: '6', markerHeight: '6', orient: 'auto-start-reverse'
+    });
+    marker.appendChild(svgEl('path', { d: 'M 0 0 L 10 5 L 0 10 z', fill: 'var(--text-muted)' }));
+    defs.appendChild(marker);
+    svg.appendChild(defs);
     relLines.forEach(function(rl) {
       var p = positions[rl.otherKey];
       if (!p) return;
       var line = svgEl('line', {
         x1: centerX, y1: centerY, x2: p.x, y2: p.y,
         class: 'pipe-line ' + (rl.sameCluster ? 'same-cluster' : 'cross-cluster'),
-        style: 'pointer-events:stroke;'
+        style: 'pointer-events:stroke;',
+        'marker-end': 'url(#arrowhead)'
       });
       var titleNode = svgEl('title', {});
       titleNode.textContent = rl.sourceRef || '';
@@ -996,6 +1035,40 @@ a:hover { text-decoration: underline; }
         detailNodeCache[k].style.display = 'none';
       }
     });
+
+    var tableSection = document.getElementById('detail-table-section');
+    tableSection.style.display = '';
+    tableSection.innerHTML = '';
+    tableSection.appendChild(el('div', { class: 'sec-label' }, selEntity.label + ' のリレーション'));
+    var tableWrap = el('div', { class: 'table-wrap' });
+    var tbl = el('table', { class: 'data-table' });
+    var thead = el('thead');
+    thead.appendChild(el('tr', null, [
+      el('th', null, '方向'), el('th', null, '相手テーブル'),
+      el('th', null, 'カーディナリティ'), el('th', null, '出所')
+    ]));
+    tbl.appendChild(thead);
+    var tbdy = el('tbody');
+    if (relLines.length === 0) {
+      tbdy.appendChild(el('tr', null, el('td', { colspan: '4' }, 'なし')));
+    } else {
+      relLines.forEach(function(rl) {
+        var dir = '→参照';
+        graph.relations.forEach(function(r) {
+          if (r.to === selKey && r.from === rl.otherKey) dir = '←被参照';
+        });
+        var oe = entitiesByKey[rl.otherKey];
+        tbdy.appendChild(el('tr', null, [
+          el('td', null, dir),
+          el('td', null, oe ? oe.label + '（' + rl.otherKey + '）' : rl.otherKey),
+          el('td', null, rl.cardinality || ''),
+          el('td', null, el('code', null, rl.sourceRef || ''))
+        ]));
+      });
+    }
+    tbl.appendChild(tbdy);
+    tableWrap.appendChild(tbl);
+    tableSection.appendChild(tableWrap);
   }
 
   function render() {
