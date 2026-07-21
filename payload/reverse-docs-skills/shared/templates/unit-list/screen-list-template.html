@@ -178,6 +178,30 @@
   .pagination button:hover { background: var(--accent-soft); color: var(--accent); border-color: var(--accent-border); }
   .pagination button:disabled { opacity: 0.4; cursor: not-allowed; }
   .pagination .page-info { color: var(--text-muted); }
+
+  /* 追加UI: コピーボタン */
+  .copy-btn { background: none; border: none; cursor: pointer; padding: 1px 3px; color: var(--text-muted); opacity: .35; vertical-align: middle; }
+  tr:hover .copy-btn, .copy-btn:focus { opacity: 1; }
+  .copy-btn:hover { color: var(--accent); }
+
+  /* 追加UI: フィルタチップ */
+  .filter-chips { display: flex; gap: 6px; flex-wrap: wrap; margin: 4px 0 8px; }
+  .chip { font-size: .78rem; padding: 2px 10px; border-radius: 999px; border: 1px solid var(--border); background: var(--panel); color: var(--text-sub); cursor: pointer; }
+  .chip[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent); border-color: var(--accent-border); font-weight: 700; }
+  .chip-clear { margin-left: auto; }
+
+  /* 追加UI: 行クリック展開 */
+  tr.row-detail > td { background: var(--panel-2); font-size: .82rem; white-space: normal; }
+  .row-detail dl { display: grid; grid-template-columns: max-content 1fr; gap: 2px 12px; margin: 4px 0; }
+  .row-detail dt { color: var(--text-muted); }
+  .row-detail dd { margin: 0; word-break: break-all; }
+
+  /* 追加UI: CSVエクスポート */
+  .csv-btn {
+    background: var(--panel-2); border: 1px solid var(--border); border-radius: var(--radius-sm);
+    color: var(--text-sub); cursor: pointer; padding: 5px 12px; font-size: 0.82rem; font-family: inherit;
+  }
+  .csv-btn:hover { background: var(--accent-soft); color: var(--accent); border-color: var(--accent-border); }
 </style>
 </head>
 <body>
@@ -288,12 +312,124 @@
     var btnNext = document.getElementById('page-next');
     var btnLast = document.getElementById('page-last');
 
-    function renderPage() {
+    /* ===== 追加UI: コピーボタン / フィルタチップ / 行クリック展開 / CSVエクスポート ===== */
+    var COPY_COLS = [4, 10];  /* 5列目: ルート / 11列目: 主ファイル */
+    var CHIP_COLS = [2, 6];   /* 3列目: 区分 / 7列目: confidence */
+    var COL_COUNT = table.querySelectorAll('thead th').length;
+    var headerLabels = Array.prototype.map.call(table.querySelectorAll('thead th'), function (th) { return th.textContent.trim(); });
+    var chipState = {};
+
+    var COPY_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>';
+    var CHECK_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+
+    function fallbackCopy(text) {
+      var ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand('copy'); } catch (e) { /* ignore */ }
+      document.body.removeChild(ta);
+    }
+
+    function copyCellText(text, btn) {
+      function showDone() {
+        btn.innerHTML = CHECK_SVG;
+        setTimeout(function () { btn.innerHTML = COPY_SVG; }, 1200);
+      }
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(showDone, function () { fallbackCopy(text); showDone(); });
+      } else {
+        fallbackCopy(text);
+        showDone();
+      }
+    }
+
+    allRows.forEach(function (tr) {
+      COPY_COLS.forEach(function (ci) {
+        var td = tr.children[ci];
+        if (!td) return;
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'copy-btn';
+        btn.setAttribute('aria-label', 'コピー');
+        btn.innerHTML = COPY_SVG;
+        btn.addEventListener('click', function (ev) {
+          ev.stopPropagation();
+          copyCellText(td.textContent.trim(), btn);
+        });
+        td.appendChild(btn);
+      });
+    });
+
+    var toolbarEl = document.querySelector('.toolbar');
+    var chipBar = document.createElement('div');
+    chipBar.className = 'filter-chips';
+    var chipClear = document.createElement('button');
+    if (toolbarEl) toolbarEl.parentNode.insertBefore(chipBar, toolbarEl.nextSibling);
+
+    CHIP_COLS.forEach(function (ci) {
+      var values = [];
+      allRows.forEach(function (tr) {
+        var v = tr.children[ci] ? tr.children[ci].textContent.trim() : '';
+        if (v && values.indexOf(v) === -1) values.push(v);
+      });
+      values.forEach(function (v) {
+        var chip = document.createElement('button');
+        chip.type = 'button';
+        chip.className = 'chip';
+        chip.textContent = v;
+        chip.setAttribute('aria-pressed', 'false');
+        chip.addEventListener('click', function () {
+          var pressed = chip.getAttribute('aria-pressed') === 'true';
+          chip.setAttribute('aria-pressed', pressed ? 'false' : 'true');
+          if (!chipState[ci]) chipState[ci] = {};
+          if (pressed) { delete chipState[ci][v]; } else { chipState[ci][v] = true; }
+          currentPage = 0;
+          renderPage();
+        });
+        chipBar.appendChild(chip);
+      });
+    });
+
+    chipClear.type = 'button';
+    chipClear.className = 'chip chip-clear';
+    chipClear.textContent = 'クリア';
+    chipClear.style.display = 'none';
+    chipClear.addEventListener('click', function () {
+      chipState = {};
+      Array.prototype.forEach.call(chipBar.querySelectorAll('.chip[aria-pressed="true"]'), function (c) {
+        c.setAttribute('aria-pressed', 'false');
+      });
+      currentPage = 0;
+      renderPage();
+    });
+    chipBar.appendChild(chipClear);
+
+    function hasChipSelection() {
+      for (var k in chipState) {
+        if (Object.keys(chipState[k]).length > 0) return true;
+      }
+      return false;
+    }
+
+    function matchesChips(tr) {
+      for (var k in chipState) {
+        var selected = Object.keys(chipState[k]);
+        if (selected.length === 0) continue;
+        var v = tr.children[k] ? tr.children[k].textContent.trim() : '';
+        if (selected.indexOf(v) === -1) return false;
+      }
+      return true;
+    }
+
+    function computeVisible() {
       var q = search ? search.value.trim().toLowerCase() : '';
       var visible = allRows.filter(function (tr) {
-        return !q || tr.textContent.toLowerCase().indexOf(q) !== -1;
+        if (q && tr.textContent.toLowerCase().indexOf(q) === -1) return false;
+        return matchesChips(tr);
       });
-
       if (sortCol >= 0) {
         visible.sort(function (a, b) {
           var av = a.children[sortCol].textContent.trim();
@@ -303,6 +439,74 @@
           return sortAsc ? cmp : -cmp;
         });
       }
+      return visible;
+    }
+
+    function closeDetailRows() {
+      Array.prototype.forEach.call(tbody.querySelectorAll('tr.row-detail'), function (r) {
+        r.parentNode.removeChild(r);
+      });
+    }
+
+    allRows.forEach(function (tr) {
+      tr.addEventListener('click', function (ev) {
+        if (ev.target.closest && ev.target.closest('.copy-btn,a,button')) return;
+        var next = tr.nextElementSibling;
+        if (next && next.classList.contains('row-detail')) {
+          next.parentNode.removeChild(next);
+          return;
+        }
+        var detail = document.createElement('tr');
+        detail.className = 'row-detail';
+        var td = document.createElement('td');
+        td.colSpan = COL_COUNT;
+        var dl = document.createElement('dl');
+        headerLabels.forEach(function (label, i) {
+          var dt = document.createElement('dt');
+          dt.textContent = label;
+          var dd = document.createElement('dd');
+          dd.textContent = tr.children[i] ? tr.children[i].textContent.trim() : '';
+          dl.appendChild(dt);
+          dl.appendChild(dd);
+        });
+        td.appendChild(dl);
+        detail.appendChild(td);
+        tr.parentNode.insertBefore(detail, tr.nextSibling);
+      });
+    });
+
+    var csvBtn = document.createElement('button');
+    csvBtn.type = 'button';
+    csvBtn.className = 'csv-btn';
+    csvBtn.textContent = 'CSV';
+    csvBtn.title = '絞り込み後の全行をCSVダウンロード';
+    if (toolbarEl) toolbarEl.appendChild(csvBtn);
+    csvBtn.addEventListener('click', function () {
+      function csvEscape(v) {
+        return /[",\n\r]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v;
+      }
+      var lines = [headerLabels.map(csvEscape).join(',')];
+      computeVisible().forEach(function (tr) {
+        lines.push(Array.prototype.map.call(tr.children, function (td) {
+          return csvEscape(td.textContent.trim());
+        }).join(','));
+      });
+      var blob = new Blob(['\uFEFF' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = document.title + '.csv';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+    });
+    /* ===== 追加UIここまで ===== */
+
+    function renderPage() {
+      closeDetailRows();
+      chipClear.style.display = hasChipSelection() ? '' : 'none';
+      var visible = computeVisible();
 
       var totalPages = Math.max(1, Math.ceil(visible.length / PAGE_SIZE));
       if (currentPage >= totalPages) currentPage = totalPages - 1;
@@ -345,9 +549,7 @@
     if (btnPrev) btnPrev.addEventListener('click', function () { currentPage--; renderPage(); });
     if (btnNext) btnNext.addEventListener('click', function () { currentPage++; renderPage(); });
     if (btnLast) btnLast.addEventListener('click', function () {
-      var q = search ? search.value.trim().toLowerCase() : '';
-      var cnt = allRows.filter(function (tr) { return !q || tr.textContent.toLowerCase().indexOf(q) !== -1; }).length;
-      currentPage = Math.max(0, Math.ceil(cnt / PAGE_SIZE) - 1);
+      currentPage = Math.max(0, Math.ceil(computeVisible().length / PAGE_SIZE) - 1);
       renderPage();
     });
 

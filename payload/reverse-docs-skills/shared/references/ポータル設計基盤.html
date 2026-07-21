@@ -1,0 +1,484 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>プロジェクトポータル 設計基盤</title>
+<style>
+  :root {
+    --page: #EDF0F4;
+    --surface: #FFFFFF;
+    --ink: #1C2B3A;
+    --ink-2: #55667A;
+    --ink-3: #8494A6;
+    --border: #D9E0E8;
+    --grid: #E9EDF2;
+    --critical: #C0392B;
+    --critical-soft: #FAECEA;
+    --good: #1F7A46;
+    --good-soft: #EAF4EE;
+    --partial: #B8860B;
+    --partial-soft: #FFF8E1;
+    --tag-bg: #EDF1F6;
+  }
+  html, body { height: 100%; overflow: hidden; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: var(--page); }
+
+  .slide-viewport {
+    width: 100vw; height: 100vh;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--page); overflow: hidden;
+  }
+  .slide {
+    position: absolute; top: 50%; left: 50%;
+    width: 1280px; height: 720px;
+    background: var(--surface);
+    border: 1px solid var(--border); border-radius: 10px;
+    box-shadow: 0 4px 24px rgba(28,43,58,.08);
+    display: flex; flex-direction: column;
+    padding: 32px 40px 20px;
+    gap: 12px;
+    font-family: system-ui, -apple-system, 'Segoe UI', 'Hiragino Sans', sans-serif;
+    transform: translate(-50%,-50%) scale(var(--slide-scale,1));
+    transform-origin: center center;
+  }
+
+  .slide-header { display: flex; flex-direction: column; gap: 2px; padding-bottom: 10px; border-bottom: 2px solid var(--ink); }
+  .slide-eyebrow { font-size: 11px; font-weight: 700; letter-spacing: .12em; color: var(--ink-3); }
+  .slide-title { font-size: 26px; font-weight: 700; line-height: 1.25; color: var(--ink); }
+  .slide-subtitle { font-size: 13px; color: var(--ink-2); }
+
+  .slide-page { display: none; flex-direction: column; flex: 1; min-height: 0; gap: 10px; }
+  .slide-page.is-active { display: flex; }
+
+  .two-col { display: flex; gap: 24px; flex: 1; min-height: 0; }
+  .col-left { flex: 0 0 440px; display: flex; flex-direction: column; gap: 10px; }
+  .col-right { flex: 1; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+
+  .layer-band {
+    display: flex; align-items: flex-start; gap: 14px;
+    padding: 12px 16px; border-radius: 8px;
+    background: var(--tag-bg); border: 1.5px solid var(--border);
+    border-left: 4px solid var(--ink-3);
+  }
+  .layer-band--good { background: var(--good-soft); border-color: var(--good); border-left-color: var(--good); }
+  .layer-band--critical { background: var(--critical-soft); border-color: var(--critical); border-left-color: var(--critical); }
+  .layer-body { flex: 1; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+  .layer-body h2 { font-size: 13px; font-weight: 700; color: var(--ink); }
+  .layer-desc { font-size: 11px; color: var(--ink-2); line-height: 1.5; }
+  .layer-examples { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 2px; }
+  .ex { font-size: 10px; font-weight: 600; padding: 1px 7px; border-radius: 4px; background: var(--surface); border: 1px solid var(--border); color: var(--ink-2); white-space: nowrap; }
+
+  .step-chip {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 18px; height: 18px; border-radius: 50%;
+    font-size: 10px; font-weight: 700; color: var(--surface); flex-shrink: 0;
+  }
+  .step-chip--good { background: var(--good); }
+  .step-chip--partial { background: var(--ink-3); }
+  .step-chip--critical { background: var(--critical); }
+
+  .hierarchy { display: flex; flex-direction: column; gap: 6px; flex: 1; }
+  .h-section { background: var(--tag-bg); border: 1px solid var(--border); border-radius: 6px; padding: 8px 12px; }
+  .h-section--planned { border-style: dashed; border-color: var(--partial); background: var(--partial-soft); }
+  .h-section-title { font-size: 11px; font-weight: 700; color: var(--ink); margin-bottom: 4px; display: flex; align-items: center; gap: 6px; }
+  .h-badge { font-size: 10px; font-weight: 600; padding: 1px 6px; border-radius: 3px; background: var(--ink); color: var(--surface); }
+  .h-badge--planned { background: var(--partial); }
+  .h-items { display: flex; flex-wrap: wrap; gap: 4px; }
+  .h-item {
+    font-size: 10px; padding: 3px 8px; border-radius: 4px;
+    background: var(--surface); border: 1px solid var(--border); color: var(--ink-2);
+    white-space: nowrap;
+  }
+  .h-item--top { background: var(--ink); color: var(--surface); border-color: var(--ink); font-weight: 700; font-size: 11px; padding: 4px 10px; }
+
+  .page-ops { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; flex: 1; min-height: 0; }
+  .page-card {
+    background: var(--tag-bg); border: 1px solid var(--border); border-radius: 6px;
+    padding: 8px 10px; display: flex; flex-direction: column; gap: 4px;
+    overflow: hidden;
+  }
+  .page-card-title { font-size: 11px; font-weight: 700; color: var(--ink); border-bottom: 1px solid var(--border); padding-bottom: 3px; display: flex; justify-content: space-between; align-items: baseline; }
+  .page-card-who { font-size: 9px; font-weight: 600; color: var(--ink-3); }
+  .page-card-ops { display: flex; flex-direction: column; gap: 2px; }
+  .page-op { font-size: 10px; color: var(--ink-2); line-height: 1.4; display: flex; gap: 4px; align-items: flex-start; }
+  .page-op-icon { flex-shrink: 0; font-weight: 700; width: 12px; }
+  .page-op-icon.ok { color: var(--good); }
+  .page-op-icon.ng { color: var(--critical); }
+  .page-op-icon.need { color: var(--partial); }
+
+  /* Page 3: マトリクス設計 */
+  .matrix-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; flex: 1; min-height: 0; }
+  .matrix-card {
+    background: var(--surface); border: 1.5px solid var(--border); border-radius: 8px;
+    padding: 10px 12px; display: flex; flex-direction: column; gap: 6px;
+    overflow: hidden;
+  }
+  .matrix-card--planned { border-color: var(--partial); border-style: dashed; }
+  .matrix-head { display: flex; align-items: center; gap: 8px; }
+  .matrix-head h2 { font-size: 13px; font-weight: 700; color: var(--ink); }
+  .matrix-formula { font-size: 10px; font-weight: 600; color: var(--surface); background: var(--ink); padding: 2px 8px; border-radius: 4px; white-space: nowrap; }
+  .matrix-q { font-size: 10.5px; color: var(--ink-2); line-height: 1.45; }
+  .matrix-q strong { color: var(--ink); }
+  .mini-matrix { border-collapse: collapse; font-size: 9px; margin-top: 2px; }
+  .mini-matrix th, .mini-matrix td {
+    border: 1px solid var(--border); padding: 2px 6px; text-align: center;
+    color: var(--ink-2); white-space: nowrap;
+  }
+  .mini-matrix th { background: var(--tag-bg); font-weight: 700; color: var(--ink); }
+  .mini-matrix td.hit { background: var(--good-soft); color: var(--good); font-weight: 700; }
+  .mini-matrix td.miss { color: var(--ink-3); }
+  .mini-matrix td.crud { background: var(--good-soft); color: var(--good); font-weight: 700; font-size: 8.5px; }
+  .matrix-user { display: flex; gap: 4px; flex-wrap: wrap; margin-top: auto; }
+
+  .slide-meta { height: 16px; padding-top: 4px; border-top: 1px solid var(--border); }
+
+  .pager { position: fixed; bottom: 14px; right: 20px; display: flex; align-items: center; gap: 10px; }
+  .pager button { width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--border); background: var(--surface); color: var(--ink); font-size: 14px; cursor: pointer; }
+  .pager button:disabled { opacity: .35; cursor: default; }
+  .pager-count { font-size: 11px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+
+  .legend { display: flex; gap: 12px; align-items: center; padding: 4px 0; }
+  .legend-item { display: flex; align-items: center; gap: 3px; font-size: 10px; color: var(--ink-3); }
+</style>
+
+<div class="slide-viewport">
+  <div class="slide">
+
+    <!-- ====== Page 1: コンセプトと全画面構成 ====== -->
+    <section class="slide-page is-active">
+      <header class="slide-header">
+        <span class="slide-eyebrow">PROJECT PORTAL</span>
+        <h1 class="slide-title">プロジェクトポータル<wbr> 設計基盤</h1>
+        <p class="slide-subtitle">プロジェクトに<wbr>恒久的に残る<wbr>参照サイトとして、<wbr>各画面の<wbr>操作期待を<wbr>明文化し<wbr>実装の<wbr>全体像を<wbr>確立する</p>
+      </header>
+
+      <div class="two-col">
+        <div class="col-left">
+          <div class="layer-band layer-band--good">
+            <span class="step-chip step-chip--good">1</span>
+            <div class="layer-body">
+              <h2>コンセプト</h2>
+              <p class="layer-desc">プロジェクトの<wbr>設計情報を<wbr>一元参照する<wbr>恒久サイト。<wbr>リバース工程は<wbr>初回生成の<wbr>きっかけにすぎない。<wbr>Markdown では<wbr>実現できない<wbr>検索・フィルタ・ソート・図解・折りたたみを<wbr>HTML で<wbr>提供する。</p>
+            </div>
+          </div>
+
+          <div class="layer-band">
+            <span class="step-chip step-chip--partial">2</span>
+            <div class="layer-body">
+              <h2>読者（4種）</h2>
+              <div class="layer-examples">
+                <span class="ex">新規参画の開発者</span>
+                <span class="ex">レビュアー・アーキテクト</span>
+                <span class="ex">QA・運用担当</span>
+                <span class="ex">AI エージェント</span>
+              </div>
+              <p class="layer-desc" style="margin-top:3px">開発者は<wbr>構成把握と<wbr>パスのコピー、<wbr>レビュアーは<wbr>網羅性と<wbr>権限の監査、<wbr>QA は<wbr>影響範囲の特定、<wbr>AI は<wbr>埋め込み JSON からの<wbr>機械的読み取り。</p>
+            </div>
+          </div>
+
+          <div class="layer-band layer-band--critical">
+            <span class="step-chip step-chip--critical">3</span>
+            <div class="layer-body">
+              <h2>技術制約</h2>
+              <div class="layer-examples">
+                <span class="ex">単一ファイル自己完結</span>
+                <span class="ex">外部リソースなし</span>
+                <span class="ex">ダークモード対応</span>
+                <span class="ex">決定的生成</span>
+              </div>
+              <p class="layer-desc">ビルドスクリプトが<wbr>マニフェスト JSON から<wbr>テンプレートに<wbr>注入する<wbr>決定的生成。<wbr>手編集は<wbr>次回再生成で<wbr>上書きされる。</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-right">
+          <div style="font-size:12px;font-weight:700;color:var(--ink);margin-bottom:2px;">全画面構成（現行3層 + 構想中の交差ビュー層）</div>
+
+          <div class="hierarchy">
+            <div style="text-align:center;">
+              <span class="h-item h-item--top">index.html（ポータルトップ）</span>
+            </div>
+
+            <div class="h-section">
+              <div class="h-section-title"><span class="h-badge">7種</span> 種別一覧 — 1行 = 1エンティティの<wbr>フラット表</div>
+              <div class="h-items">
+                <span class="h-item">画面一覧</span>
+                <span class="h-item">API一覧</span>
+                <span class="h-item">テーブル一覧</span>
+                <span class="h-item">バッチ一覧</span>
+                <span class="h-item">帳票一覧</span>
+                <span class="h-item">外部連携一覧</span>
+                <span class="h-item">機能一覧</span>
+              </div>
+            </div>
+
+            <div class="h-section">
+              <div class="h-section-title"><span class="h-badge">5種</span> 基盤ページ — 図解・参照情報</div>
+              <div class="h-items">
+                <span class="h-item">画面遷移図（画面別/動線別/未接続の3モード）</span>
+                <span class="h-item">ER図</span>
+                <span class="h-item">技術スタック</span>
+                <span class="h-item">環境構築手順</span>
+                <span class="h-item">用語辞書</span>
+              </div>
+            </div>
+
+            <div class="h-section h-section--planned">
+              <div class="h-section-title"><span class="h-badge h-badge--planned">構想中</span> 交差ビュー — 行 × 列 = 関係の<wbr>マトリクス</div>
+              <div class="h-items">
+                <span class="h-item">権限×画面マトリクス</span>
+                <span class="h-item">権限×機能マトリクス（CRUD）</span>
+                <span class="h-item">CRUD図（機能×テーブル）</span>
+                <span class="h-item">トレーサビリティ（画面→API→テーブル）</span>
+              </div>
+            </div>
+
+            <div class="h-section h-section--planned">
+              <div class="h-section-title"><span class="h-badge h-badge--planned">構想中</span> AI設定資産 — AI駆動開発の<wbr>設定を<wbr>人間と<wbr>AIが<wbr>俯瞰する</div>
+              <div class="h-items">
+                <span class="h-item">rules一覧（block/advisory・注入タグ）</span>
+                <span class="h-item">skills一覧（トリガー・フェーズ）</span>
+                <span class="h-item">サブエージェント一覧</span>
+                <span class="h-item">hooks一覧（timing×挙動）</span>
+                <span class="h-item">CLAUDE.md・flow-values</span>
+              </div>
+            </div>
+
+            <div class="h-section">
+              <div class="h-section-title"><span class="h-badge">画面毎</span> 設計書</div>
+              <div class="h-items">
+                <span class="h-item">基本設計書</span>
+                <span class="h-item">詳細設計書</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="slide-meta"></div>
+    </section>
+
+    <!-- ====== Page 2: 一覧ページの操作期待 ====== -->
+    <section class="slide-page">
+      <header class="slide-header">
+        <span class="slide-eyebrow">機能充足度</span>
+        <h1 class="slide-title">一覧ページの<wbr>操作期待と<wbr>実装状況</h1>
+      </header>
+
+      <div class="legend">
+        <span class="legend-item"><span style="color:var(--good);font-weight:700;">✓</span> 実装済み</span>
+        <span class="legend-item"><span style="color:var(--critical);font-weight:700;">✕</span> 未実装（既存マニフェストのデータのまま、テンプレート改修だけで対応可）</span>
+        <span class="legend-item"><span style="color:var(--partial);font-weight:700;">△</span> 未実装（マニフェスト等データ源の拡張が必要）</span>
+      </div>
+
+      <div class="page-ops">
+        <div class="page-card">
+          <div class="page-card-title">全画面共通 <span class="page-card-who">全読者</span></div>
+          <div class="page-card-ops">
+            <div class="page-op"><span class="page-op-icon ok">✓</span> テキスト検索 / ソート / テーマ切替 / ページネーション</div>
+            <div class="page-op"><span class="page-op-icon ng">✕</span> パス・URL・識別子のコピーボタン</div>
+            <div class="page-op"><span class="page-op-icon ng">✕</span> 区分値でのフィルタチップ（ワンクリック絞り込み）</div>
+            <div class="page-op"><span class="page-op-icon ng">✕</span> 行クリックで詳細展開（hover 非依存・タッチ対応）</div>
+            <div class="page-op"><span class="page-op-icon ng">✕</span> 埋め込み JSON から CSV エクスポート</div>
+            <div class="page-op"><span class="page-op-icon ng">✕</span> 関連エンティティへの相互参照リンク</div>
+          </div>
+        </div>
+
+        <div class="page-card">
+          <div class="page-card-title">画面一覧 <span class="page-card-who">開発者・QA</span></div>
+          <div class="page-card-ops">
+            <div class="page-op"><span class="page-op-icon ng">✕</span> 「この URL は何の画面か」→ ルート検索 + コピー</div>
+            <div class="page-op"><span class="page-op-icon ng">✕</span> 「管理画面はいくつあるか」→ ルート prefix フィルタ</div>
+            <div class="page-op"><span class="page-op-icon need">△</span> 「この画面の設計書はあるか」→ 設計書状態列 + リンク</div>
+            <div class="page-op"><span class="page-op-icon need">△</span> 「この画面が呼ぶ API は」→ 関連 API 列</div>
+            <div class="page-op"><span class="page-op-icon need">△</span> 「誰が見られる画面か」→ 必要権限列（詳細は権限×画面へ）</div>
+          </div>
+        </div>
+
+        <div class="page-card">
+          <div class="page-card-title">API一覧 <span class="page-card-who">開発者</span></div>
+          <div class="page-card-ops">
+            <div class="page-op"><span class="page-op-icon need">△</span> 「DELETE 系だけ見たい」→ メソッド独立列 + フィルタ</div>
+            <div class="page-op"><span class="page-op-icon need">△</span> 「認証がいるか」→ 認証要否列</div>
+            <div class="page-op"><span class="page-op-icon need">△</span> 「誰が呼んでいるか」→ 呼び出し元画面列</div>
+            <div class="page-op"><span class="page-op-icon need">△</span> 「何を受け取り何を返すか」→ I/O 概要列</div>
+          </div>
+        </div>
+
+        <div class="page-card">
+          <div class="page-card-title">テーブル一覧 <span class="page-card-who">開発者・DBA</span></div>
+          <div class="page-card-ops">
+            <div class="page-op"><span class="page-op-icon ng">✕</span> 「マスタだけ見たい」→ 区分フィルタチップ</div>
+            <div class="page-op"><span class="page-op-icon need">△</span> 「どこを参照しているか」→ FK 参照先列</div>
+            <div class="page-op"><span class="page-op-icon need">△</span> 「構造の概要は」→ カラム数・主要カラム列</div>
+            <div class="page-op"><span class="page-op-icon ng">✕</span> 「関連を図で見たい」→ ER図の該当部分へリンク</div>
+            <div class="page-op"><span class="page-op-icon need">△</span> 「誰が書き込むか」→ CRUD図の該当行へリンク</div>
+          </div>
+        </div>
+
+        <div class="page-card">
+          <div class="page-card-title">バッチ一覧 <span class="page-card-who">運用担当</span></div>
+          <div class="page-card-ops">
+            <div class="page-op"><span class="page-op-icon need">△</span> 「いつ動くか」→ スケジュール列（cron 式 + 平易表記）</div>
+            <div class="page-op"><span class="page-op-icon need">△</span> 「失敗したら何に影響するか」→ 対象テーブル・後続ジョブ列</div>
+            <div class="page-op"><span class="page-op-icon need">△</span> 「手動で再実行できるか」→ 実行方法列</div>
+          </div>
+        </div>
+
+        <div class="page-card">
+          <div class="page-card-title">機能一覧 <span class="page-card-who">PM・レビュアー</span></div>
+          <div class="page-card-ops">
+            <div class="page-op"><span class="page-op-icon ng">✕</span> 「この業務ドメインの機能は」→ カテゴリフィルタ</div>
+            <div class="page-op"><span class="page-op-icon ng">✕</span> 「実現手段を追いたい」→ 関連画面・API・テーブルへのリンク</div>
+            <div class="page-op"><span class="page-op-icon need">△</span> 「操作の強さを知りたい」→ 参照系/更新系/削除系の区分列</div>
+          </div>
+        </div>
+
+        <div class="page-card">
+          <div class="page-card-title">画面遷移図 / ER図 <span class="page-card-who">開発者・レビュアー</span></div>
+          <div class="page-card-ops">
+            <div class="page-op"><span class="page-op-icon ok">✓</span> 遷移図: 画面別 / 動線別 / 未接続の 3 モード切替</div>
+            <div class="page-op"><span class="page-op-icon ok">✓</span> ER図: FK 定義からのテーブル関連図の機械生成</div>
+            <div class="page-op"><span class="page-op-icon ng">✕</span> 両図: 特定ノードへのフォーカス（1 画面/1 テーブル中心表示）</div>
+            <div class="page-op"><span class="page-op-icon ng">✕</span> 両図: ノード上のルート・テーブル名コピー</div>
+            <div class="page-op"><span class="page-op-icon need">△</span> 遷移図: 権限別の遷移ビュー（ロールで到達可能な動線のみ）</div>
+          </div>
+        </div>
+
+        <div class="page-card">
+          <div class="page-card-title">AI設定資産（構想中） <span class="page-card-who">AI・開発者</span></div>
+          <div class="page-card-ops">
+            <div class="page-op"><span class="page-op-icon need">△</span> 「このプロジェクトで効く rules は」→ rules 一覧（block/advisory・注入タグ・違反時手順）</div>
+            <div class="page-op"><span class="page-op-icon need">△</span> 「使えるスキルとトリガーは」→ skills 一覧（TRIGGER/SKIP・フェーズ構成）</div>
+            <div class="page-op"><span class="page-op-icon need">△</span> 「委任できるサブエージェントは」→ サブエージェント一覧（分類・合否宣言可否）</div>
+            <div class="page-op"><span class="page-op-icon need">△</span> 「どの hook が何を block するか」→ hooks 一覧（timing × matcher × 挙動）</div>
+            <div class="page-op"><span class="page-op-icon need">△</span> CLAUDE.md・flow-values.yml の設定索引</div>
+          </div>
+        </div>
+
+        <div class="page-card">
+          <div class="page-card-title">帳票 / 外部連携 / 設計書 <span class="page-card-who">運用・開発者</span></div>
+          <div class="page-card-ops">
+            <div class="page-op"><span class="page-op-icon need">△</span> 帳票: 出力形式・出力トリガー（画面/バッチ）列</div>
+            <div class="page-op"><span class="page-op-icon need">△</span> 外部連携: 方向（送/受）・プロトコル・認証方式列</div>
+            <div class="page-op"><span class="page-op-icon ng">✕</span> 設計書: 一覧からの直接リンク</div>
+            <div class="page-op"><span class="page-op-icon need">△</span> 設計書: 原本コード変更時の陳腐化検知バッジ</div>
+          </div>
+        </div>
+      </div>
+      <div class="slide-meta"></div>
+    </section>
+
+    <!-- ====== Page 3: 交差ビュー（マトリクス）の設計 ====== -->
+    <section class="slide-page">
+      <header class="slide-header">
+        <span class="slide-eyebrow">交差ビュー設計</span>
+        <h1 class="slide-title">フラット表では<wbr>答えられない<wbr>質問に<wbr>マトリクスで<wbr>答える</h1>
+        <p class="slide-subtitle">一覧は「1行 = 1エンティティ」。<wbr>2つの<wbr>エンティティの<wbr>関係を<wbr>問う質問には<wbr>「行 × 列 = 関係」の<wbr>専用ページが<wbr>必要</p>
+      </header>
+
+      <div class="matrix-grid">
+        <div class="matrix-card matrix-card--planned">
+          <div class="matrix-head">
+            <h2>権限×画面マトリクス</h2>
+            <span class="matrix-formula">画面 × ロール = 閲覧可否</span>
+          </div>
+          <p class="matrix-q"><strong>答える質問:</strong> 「このロールは<wbr>どの画面を<wbr>見られるか」「権限設定に<wbr>漏れは<wbr>ないか」</p>
+          <table class="mini-matrix">
+            <tr><th>画面</th><th>管理者</th><th>一般</th><th>ゲスト</th></tr>
+            <tr><td style="text-align:left">ユーザー管理</td><td class="hit">○</td><td class="miss">—</td><td class="miss">—</td></tr>
+            <tr><td style="text-align:left">ダッシュボード</td><td class="hit">○</td><td class="hit">○</td><td class="miss">—</td></tr>
+            <tr><td style="text-align:left">ログイン</td><td class="hit">○</td><td class="hit">○</td><td class="hit">○</td></tr>
+          </table>
+          <div class="matrix-user">
+            <span class="ex">レビュアー: 権限漏れの監査</span>
+            <span class="ex">QA: ロール別テスト計画</span>
+          </div>
+        </div>
+
+        <div class="matrix-card matrix-card--planned">
+          <div class="matrix-head">
+            <h2>権限×機能マトリクス</h2>
+            <span class="matrix-formula">機能 × ロール = C/R/U/D</span>
+          </div>
+          <p class="matrix-q"><strong>答える質問:</strong> 「画面は<wbr>見えるが、<wbr>編集・削除まで<wbr>できるのは<wbr>誰か」。<wbr>閲覧可否より<wbr>1 段深い<wbr>操作レベルの<wbr>権限を<wbr>示す</p>
+          <table class="mini-matrix">
+            <tr><th>機能</th><th>管理者</th><th>一般</th></tr>
+            <tr><td style="text-align:left">投稿管理</td><td class="crud">CRUD</td><td class="crud">CRU—</td></tr>
+            <tr><td style="text-align:left">ユーザー招待</td><td class="crud">C———</td><td class="miss">————</td></tr>
+          </table>
+          <p class="matrix-q" style="font-size:9px;color:var(--ink-3)">表記: 4桁固定で C/R/U/D の順。許可しない操作は「—」</p>
+          <div class="matrix-user">
+            <span class="ex">レビュアー: 操作権限の監査</span>
+            <span class="ex">開発者: ガード実装の確認</span>
+          </div>
+        </div>
+
+        <div class="matrix-card matrix-card--planned">
+          <div class="matrix-head">
+            <h2>CRUD図</h2>
+            <span class="matrix-formula">機能 × テーブル = C/R/U/D</span>
+          </div>
+          <p class="matrix-q"><strong>答える質問:</strong> 「このテーブルに<wbr>書き込むのは<wbr>どの機能か」「テーブル変更の<wbr>影響範囲は<wbr>どこまでか」。<wbr>設計書の<wbr>古典的成果物</p>
+          <table class="mini-matrix">
+            <tr><th>機能＼テーブル</th><th>users</th><th>posts</th><th>sessions</th></tr>
+            <tr><td style="text-align:left">ログイン</td><td class="crud">R</td><td class="miss">—</td><td class="crud">C</td></tr>
+            <tr><td style="text-align:left">投稿作成</td><td class="crud">R</td><td class="crud">C</td><td class="crud">R</td></tr>
+          </table>
+          <div class="matrix-user">
+            <span class="ex">開発者: 影響範囲分析</span>
+            <span class="ex">アーキテクト: 責務の偏り検出</span>
+          </div>
+        </div>
+
+        <div class="matrix-card matrix-card--planned">
+          <div class="matrix-head">
+            <h2>トレーサビリティ</h2>
+            <span class="matrix-formula">画面 → API → テーブルの連鎖</span>
+          </div>
+          <p class="matrix-q"><strong>答える質問:</strong> 「この画面を<wbr>変えたら<wbr>何に波及するか」「このテーブルは<wbr>どの画面から<wbr>使われているか」。<wbr>順方向・逆方向の<wbr>両方向で<wbr>追跡できること</p>
+          <table class="mini-matrix">
+            <tr><th>画面</th><th>API</th><th>テーブル</th></tr>
+            <tr><td style="text-align:left">ログイン画面</td><td style="text-align:left">POST /api/auth/login</td><td style="text-align:left">users, sessions</td></tr>
+            <tr><td style="text-align:left">投稿エディタ</td><td style="text-align:left">POST /api/posts</td><td style="text-align:left">posts, tags</td></tr>
+          </table>
+          <p class="matrix-q" style="font-size:9px;color:var(--ink-3)">逆引き例: users ← [POST /api/auth/login] ← [ログイン画面]。テーブル起点の逆方向ビューも同一データから表示する</p>
+          <div class="matrix-user">
+            <span class="ex">QA: テスト範囲の確定</span>
+            <span class="ex">AI: 変更影響の機械的読み取り</span>
+          </div>
+        </div>
+      </div>
+
+      <p style="font-size:10.5px;color:var(--ink-2);line-height:1.5;"><strong style="color:var(--ink)">配置の設計判断:</strong> 交差ビューは一覧ページの列に押し込まず、画面遷移図・ER図と同格の独立ページとする。前提としてマニフェスト JSON への権限情報・API-テーブル対応の追加（スキーマ拡張）が必要。</p>
+      <div class="slide-meta"></div>
+    </section>
+
+  </div>
+</div>
+
+<div class="pager">
+  <button id="pg-prev" disabled>◀</button>
+  <span class="pager-count"><span id="pg-cur">1</span> / <span id="pg-tot">3</span></span>
+  <button id="pg-next">▶</button>
+</div>
+
+<script>
+(function(){
+  var pages=document.querySelectorAll('.slide-page'),cur=0;
+  function show(n){pages.forEach(function(p,i){p.classList.toggle('is-active',i===n)});cur=n;
+    document.getElementById('pg-cur').textContent=n+1;
+    document.getElementById('pg-prev').disabled=n===0;
+    document.getElementById('pg-next').disabled=n===pages.length-1;}
+  document.getElementById('pg-prev').addEventListener('click',function(){if(cur>0)show(cur-1)});
+  document.getElementById('pg-next').addEventListener('click',function(){if(cur<pages.length-1)show(cur+1)});
+  document.addEventListener('keydown',function(e){if(e.key==='ArrowRight'&&cur<pages.length-1)show(cur+1);if(e.key==='ArrowLeft'&&cur>0)show(cur-1)});
+})();
+</script>
+
+<script>
+(function(){
+  function fit(){var s=document.querySelector('.slide');if(!s)return;
+    var sx=window.innerWidth/1280,sy=window.innerHeight/720;
+    s.style.setProperty('--slide-scale',Math.min(sx,sy,1.5));}
+  fit();window.addEventListener('resize',fit);
+})();
+</script>

@@ -169,6 +169,19 @@
   .pagination button:hover { background: var(--accent-soft); color: var(--accent); border-color: var(--accent-border); }
   .pagination button:disabled { opacity: 0.4; cursor: not-allowed; }
   .pagination .page-info { color: var(--text-muted); }
+
+  /* 一覧UI追加機能（コピーボタン・フィルタチップ・行クリック展開・CSVエクスポート） */
+  .copy-btn { background: none; border: none; cursor: pointer; padding: 1px 3px; color: var(--text-muted); opacity: .35; vertical-align: middle; }
+  tr:hover .copy-btn, .copy-btn:focus { opacity: 1; }
+  .copy-btn:hover { color: var(--accent); }
+  .filter-chips { display: flex; gap: 6px; flex-wrap: wrap; margin: 4px 0 8px; }
+  .chip { font-size: .78rem; padding: 2px 10px; border-radius: 999px; border: 1px solid var(--border); background: var(--panel); color: var(--text-sub); cursor: pointer; }
+  .chip[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent); border-color: var(--accent-border); font-weight: 700; }
+  tr.row-detail > td { background: var(--panel-2); font-size: .82rem; white-space: normal; }
+  .row-detail dl { display: grid; grid-template-columns: max-content 1fr; gap: 2px 12px; margin: 4px 0; }
+  .row-detail dt { color: var(--text-muted); }
+  .row-detail dd { margin: 0; word-break: break-all; }
+  .csv-btn { white-space: nowrap; }
 </style>
 </head>
 <body>
@@ -197,6 +210,7 @@
 <div class="toolbar">
   <input type="search" id="unit-search" placeholder="キー・識別子で絞り込み">
   <span class="note">列見出しクリックでソート</span>
+  <button id="csv-export" class="theme-toggle-btn csv-btn" type="button" title="絞り込み適用後の全行をCSVダウンロード">CSV</button>
 </div>
 
 <details class="module-group" open>
@@ -275,8 +289,9 @@
 
     function renderPage() {
       var q = search ? search.value.trim().toLowerCase() : '';
+      closeAllDetails();
       var visible = allRows.filter(function (tr) {
-        return !q || tr.textContent.toLowerCase().indexOf(q) !== -1;
+        return rowMatches(tr, q);
       });
 
       if (sortCol >= 0) {
@@ -331,10 +346,192 @@
     if (btnNext) btnNext.addEventListener('click', function () { currentPage++; renderPage(); });
     if (btnLast) btnLast.addEventListener('click', function () {
       var q = search ? search.value.trim().toLowerCase() : '';
-      var cnt = allRows.filter(function (tr) { return !q || tr.textContent.toLowerCase().indexOf(q) !== -1; }).length;
+      var cnt = allRows.filter(function (tr) { return rowMatches(tr, q); }).length;
       currentPage = Math.max(0, Math.ceil(cnt / PAGE_SIZE) - 1);
       renderPage();
     });
+
+    /* ===== 一覧UI追加機能: フィルタチップ / コピーボタン / 行クリック展開 / CSVエクスポート ===== */
+    var headerCells = Array.prototype.slice.call(table.querySelectorAll('thead th'));
+    var COL_COUNT = headerCells.length;
+    var CHIP_COLS = [2, 6];   /* 区分 / confidence */
+    var COPY_COLS = [4, 8];   /* 識別子 / 主ファイル */
+    var chipFilters = {};
+
+    function rowMatches(tr, q) {
+      if (q && tr.textContent.toLowerCase().indexOf(q) === -1) return false;
+      for (var i = 0; i < CHIP_COLS.length; i++) {
+        var col = CHIP_COLS[i];
+        var sel = chipFilters[col];
+        if (sel && sel.size > 0) {
+          var cell = tr.children[col];
+          if (!cell || !sel.has(cell.textContent.trim())) return false;
+        }
+      }
+      return true;
+    }
+
+    function closeAllDetails() {
+      Array.prototype.slice.call(tbody.querySelectorAll('tr.row-detail')).forEach(function (tr) {
+        tr.parentNode.removeChild(tr);
+      });
+      allRows.forEach(function (tr) { tr.removeAttribute('data-expanded'); });
+    }
+
+    /* --- フィルタチップ --- */
+    var chipBar = document.createElement('div');
+    chipBar.className = 'filter-chips';
+    var toolbarEl = document.querySelector('.toolbar');
+    if (toolbarEl) toolbarEl.parentNode.insertBefore(chipBar, toolbarEl.nextSibling);
+
+    var chipClearBtn = document.createElement('button');
+    chipClearBtn.type = 'button';
+    chipClearBtn.className = 'chip chip-clear';
+    chipClearBtn.textContent = 'クリア';
+    chipClearBtn.style.marginLeft = 'auto';
+    chipClearBtn.style.display = 'none';
+    chipClearBtn.addEventListener('click', function () {
+      CHIP_COLS.forEach(function (c) { chipFilters[c].clear(); });
+      Array.prototype.slice.call(chipBar.querySelectorAll('.chip[aria-pressed]')).forEach(function (b) {
+        b.setAttribute('aria-pressed', 'false');
+      });
+      updateChipClearBtn();
+      currentPage = 0;
+      renderPage();
+    });
+
+    function updateChipClearBtn() {
+      var any = CHIP_COLS.some(function (c) { return chipFilters[c].size > 0; });
+      chipClearBtn.style.display = any ? '' : 'none';
+    }
+
+    CHIP_COLS.forEach(function (col) {
+      chipFilters[col] = new Set();
+      var values = [];
+      allRows.forEach(function (tr) {
+        var cell = tr.children[col];
+        var v = cell ? cell.textContent.trim() : '';
+        if (v && values.indexOf(v) === -1) values.push(v);
+      });
+      values.forEach(function (v) {
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'chip';
+        b.setAttribute('aria-pressed', 'false');
+        b.textContent = v;
+        b.addEventListener('click', function () {
+          var pressed = b.getAttribute('aria-pressed') === 'true';
+          if (pressed) { chipFilters[col].delete(v); } else { chipFilters[col].add(v); }
+          b.setAttribute('aria-pressed', String(!pressed));
+          updateChipClearBtn();
+          currentPage = 0;
+          renderPage();
+        });
+        chipBar.appendChild(b);
+      });
+    });
+    chipBar.appendChild(chipClearBtn);
+
+    /* --- コピーボタン --- */
+    var COPY_ICON = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>';
+    var CHECK_ICON = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+
+    function fallbackCopy(text) {
+      var ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand('copy'); } catch (e) {}
+      document.body.removeChild(ta);
+    }
+
+    function copyText(text, done) {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(done, function () { fallbackCopy(text); done(); });
+      } else {
+        fallbackCopy(text);
+        done();
+      }
+    }
+
+    allRows.forEach(function (tr) {
+      COPY_COLS.forEach(function (col) {
+        var td = tr.children[col];
+        if (!td) return;
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'copy-btn';
+        btn.setAttribute('aria-label', 'コピー');
+        btn.innerHTML = COPY_ICON;
+        btn.addEventListener('click', function () {
+          var text = td.textContent.trim();
+          copyText(text, function () {
+            btn.innerHTML = CHECK_ICON;
+            setTimeout(function () { btn.innerHTML = COPY_ICON; }, 1200);
+          });
+        });
+        td.appendChild(btn);
+      });
+    });
+
+    /* --- 行クリック展開 --- */
+    allRows.forEach(function (tr) {
+      tr.addEventListener('click', function (ev) {
+        if (ev.target.closest('.copy-btn,a,button')) return;
+        var next = tr.nextElementSibling;
+        if (next && next.classList.contains('row-detail')) {
+          next.parentNode.removeChild(next);
+          tr.removeAttribute('data-expanded');
+          return;
+        }
+        var detail = document.createElement('tr');
+        detail.className = 'row-detail';
+        var td = document.createElement('td');
+        td.colSpan = COL_COUNT;
+        var dl = document.createElement('dl');
+        headerCells.forEach(function (th, i) {
+          var dt = document.createElement('dt');
+          dt.textContent = th.textContent.trim();
+          var dd = document.createElement('dd');
+          var cell = tr.children[i];
+          dd.textContent = cell ? cell.textContent.trim() : '';
+          dl.appendChild(dt);
+          dl.appendChild(dd);
+        });
+        td.appendChild(dl);
+        detail.appendChild(td);
+        tr.parentNode.insertBefore(detail, tr.nextSibling);
+        tr.setAttribute('data-expanded', 'true');
+      });
+    });
+
+    /* --- CSVエクスポート --- */
+    var csvBtn = document.getElementById('csv-export');
+    if (csvBtn) {
+      csvBtn.addEventListener('click', function () {
+        var q = search ? search.value.trim().toLowerCase() : '';
+        var rows = allRows.filter(function (tr) { return rowMatches(tr, q); });
+        function csvEscape(v) {
+          return /[",\r\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v;
+        }
+        var lines = [headerCells.map(function (th) { return csvEscape(th.textContent.trim()); }).join(',')];
+        rows.forEach(function (tr) {
+          lines.push(Array.prototype.slice.call(tr.children).map(function (td) {
+            return csvEscape(td.textContent.trim());
+          }).join(','));
+        });
+        var blob = new Blob(['\uFEFF' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+        var a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = document.title + '.csv';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
+      });
+    }
 
     renderPage();
   })();

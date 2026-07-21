@@ -158,6 +158,23 @@
   .pagination button:hover { background: var(--accent-soft); color: var(--accent); border-color: var(--accent-border); }
   .pagination button:disabled { opacity: 0.4; cursor: not-allowed; }
   .pagination .page-info { color: var(--text-muted); }
+
+  /* 一覧UI拡張（コピーボタン・フィルタチップ・行クリック展開・CSVエクスポート） */
+  .copy-btn { background: none; border: none; cursor: pointer; padding: 1px 3px; color: var(--text-muted); opacity: .35; vertical-align: middle; }
+  tr:hover .copy-btn, .copy-btn:focus { opacity: 1; }
+  .copy-btn:hover { color: var(--accent); }
+  .filter-chips { display: flex; gap: 6px; flex-wrap: wrap; margin: 4px 0 8px; align-items: center; }
+  .chip { font-size: .78rem; padding: 2px 10px; border-radius: 999px; border: 1px solid var(--border); background: var(--panel); color: var(--text-sub); cursor: pointer; font-family: inherit; }
+  .chip[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent); border-color: var(--accent-border); font-weight: 700; }
+  tr.row-detail > td { background: var(--panel-2); font-size: .82rem; white-space: normal; }
+  .row-detail dl { display: grid; grid-template-columns: max-content 1fr; gap: 2px 12px; margin: 4px 0; }
+  .row-detail dt { color: var(--text-muted); }
+  .row-detail dd { margin: 0; word-break: break-all; }
+  .csv-btn {
+    background: var(--panel-2); border: 1px solid var(--border); border-radius: var(--radius-sm);
+    color: var(--text-sub); cursor: pointer; padding: 5px 12px; font-size: 0.82rem; font-family: inherit;
+  }
+  .csv-btn:hover { background: var(--accent-soft); color: var(--accent); border-color: var(--accent-border); }
 </style>
 </head>
 <body>
@@ -216,9 +233,229 @@
     var PAGE_SIZE = 50;
     var tableStates = [];
 
+    /* ===== 一覧UI拡張（コピーボタン・フィルタチップ・行クリック展開・CSVエクスポート） ===== */
+    var COPY_COLS = [5, 9];   /* 関連API・主ファイル（0始まり） */
+    var CONF_COL = 7;         /* confidence 列（0始まり） */
+    var chipSelected = { confidence: {}, category: {} };
+    var chipBar = null, chipClearBtn = null;
+
+    var COPY_SVG = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>';
+    var CHECK_SVG = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"></path></svg>';
+
+    function legacyCopy(text) {
+      var ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand('copy'); } catch (e) { /* ignore */ }
+      document.body.removeChild(ta);
+    }
+    function copyText(text, done) {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(done, function () { legacyCopy(text); done(); });
+      } else {
+        legacyCopy(text);
+        done();
+      }
+    }
+    function addCopyButtons(row) {
+      COPY_COLS.forEach(function (idx) {
+        var td = row.children[idx];
+        if (!td || td.querySelector('.copy-btn')) return;
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'copy-btn';
+        btn.setAttribute('aria-label', 'コピー');
+        btn.innerHTML = COPY_SVG;
+        btn.addEventListener('click', function () {
+          btn.remove();
+          var text = td.textContent.trim();
+          td.appendChild(btn);
+          copyText(text, function () {
+            btn.innerHTML = CHECK_SVG;
+            setTimeout(function () { btn.innerHTML = COPY_SVG; }, 1200);
+          });
+        });
+        td.appendChild(btn);
+      });
+    }
+
+    function selectedKeys(map) {
+      return Object.keys(map).filter(function (k) { return map[k]; });
+    }
+    function rowMatchesChips(tr) {
+      var conf = selectedKeys(chipSelected.confidence);
+      if (conf.length) {
+        var cell = tr.children[CONF_COL];
+        var v = cell ? cell.textContent.trim() : '';
+        if (conf.indexOf(v) === -1) return false;
+      }
+      return true;
+    }
+    function categoryOf(table) {
+      var det = table.closest ? table.closest('details') : null;
+      if (!det) return '';
+      var nameEl = det.querySelector('summary .cat-name');
+      return nameEl ? nameEl.textContent.trim() : '';
+    }
+    function applyCategoryFilter() {
+      var cats = selectedKeys(chipSelected.category);
+      Array.prototype.slice.call(document.querySelectorAll('#category-sections details')).forEach(function (det) {
+        var nameEl = det.querySelector('summary .cat-name');
+        var name = nameEl ? nameEl.textContent.trim() : '';
+        det.style.display = (cats.length && cats.indexOf(name) === -1) ? 'none' : '';
+      });
+    }
+    function updateChipClearBtn() {
+      if (!chipClearBtn) return;
+      var any = selectedKeys(chipSelected.confidence).length || selectedKeys(chipSelected.category).length;
+      chipClearBtn.style.display = any ? '' : 'none';
+    }
+    function rerenderAll() {
+      applyCategoryFilter();
+      tableStates.forEach(function (state) { state.currentPage = 0; renderPage(state); });
+      updateChipClearBtn();
+    }
+    function makeChip(group, value) {
+      var chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'chip';
+      chip.textContent = value;
+      chip.setAttribute('aria-pressed', 'false');
+      chip.addEventListener('click', function () {
+        var on = chip.getAttribute('aria-pressed') === 'true';
+        chip.setAttribute('aria-pressed', on ? 'false' : 'true');
+        chipSelected[group][value] = !on;
+        rerenderAll();
+      });
+      return chip;
+    }
+    function buildChipBar() {
+      var toolbar = document.querySelector('.toolbar');
+      if (!toolbar) return;
+      var cats = [];
+      Array.prototype.slice.call(document.querySelectorAll('#category-sections details summary .cat-name')).forEach(function (el) {
+        var v = el.textContent.trim();
+        if (v && cats.indexOf(v) === -1) cats.push(v);
+      });
+      var confs = [];
+      tableStates.forEach(function (state) {
+        state.allRows.forEach(function (tr) {
+          var cell = tr.children[CONF_COL];
+          var v = cell ? cell.textContent.trim() : '';
+          if (v && confs.indexOf(v) === -1) confs.push(v);
+        });
+      });
+      if (!cats.length && !confs.length) return;
+      chipBar = document.createElement('div');
+      chipBar.className = 'filter-chips';
+      cats.forEach(function (v) { chipBar.appendChild(makeChip('category', v)); });
+      confs.forEach(function (v) { chipBar.appendChild(makeChip('confidence', v)); });
+      chipClearBtn = document.createElement('button');
+      chipClearBtn.type = 'button';
+      chipClearBtn.className = 'chip chip-clear';
+      chipClearBtn.textContent = 'クリア';
+      chipClearBtn.style.marginLeft = 'auto';
+      chipClearBtn.style.display = 'none';
+      chipClearBtn.addEventListener('click', function () {
+        chipSelected = { confidence: {}, category: {} };
+        Array.prototype.slice.call(chipBar.querySelectorAll('.chip[aria-pressed]')).forEach(function (c) { c.setAttribute('aria-pressed', 'false'); });
+        rerenderAll();
+      });
+      chipBar.appendChild(chipClearBtn);
+      toolbar.parentNode.insertBefore(chipBar, toolbar.nextSibling);
+    }
+
+    function removeDetailRows(tbody) {
+      Array.prototype.slice.call(tbody.querySelectorAll('tr.row-detail')).forEach(function (tr) {
+        tr.parentNode.removeChild(tr);
+      });
+    }
+    function bindRowExpansion(state) {
+      var headers = Array.prototype.slice.call(state.table.querySelectorAll('thead th')).map(function (th) {
+        return th.textContent.trim();
+      });
+      state.tbody.addEventListener('click', function (ev) {
+        if (ev.target.closest && ev.target.closest('.copy-btn,a,button')) return;
+        var tr = ev.target.closest ? ev.target.closest('tr') : null;
+        if (!tr || tr.classList.contains('row-detail') || tr.parentNode !== state.tbody) return;
+        var next = tr.nextElementSibling;
+        if (next && next.classList.contains('row-detail')) {
+          next.parentNode.removeChild(next);
+          return;
+        }
+        var detail = document.createElement('tr');
+        detail.className = 'row-detail';
+        var td = document.createElement('td');
+        td.colSpan = headers.length || tr.children.length;
+        var dl = document.createElement('dl');
+        Array.prototype.slice.call(tr.children).forEach(function (cell, i) {
+          var dt = document.createElement('dt');
+          dt.textContent = headers[i] || ('列' + (i + 1));
+          var dd = document.createElement('dd');
+          dd.textContent = cell.textContent.trim();
+          dl.appendChild(dt);
+          dl.appendChild(dd);
+        });
+        td.appendChild(dl);
+        detail.appendChild(td);
+        tr.parentNode.insertBefore(detail, tr.nextSibling);
+      });
+    }
+
+    function csvEscape(v) {
+      if (/[",\n\r]/.test(v)) return '"' + v.replace(/"/g, '""') + '"';
+      return v;
+    }
+    function exportCsv() {
+      var q = search ? search.value.trim().toLowerCase() : '';
+      var cats = selectedKeys(chipSelected.category);
+      var lines = [];
+      var headerDone = false;
+      tableStates.forEach(function (state) {
+        var catName = categoryOf(state.table);
+        if (cats.length && catName !== '' && cats.indexOf(catName) === -1) return;
+        if (!headerDone) {
+          var heads = Array.prototype.slice.call(state.table.querySelectorAll('thead th')).map(function (th) { return th.textContent.trim(); });
+          lines.push(['カテゴリ'].concat(heads).map(csvEscape).join(','));
+          headerDone = true;
+        }
+        state.allRows.forEach(function (tr) {
+          if (!rowMatchesChips(tr)) return;
+          if (q && tr.textContent.toLowerCase().indexOf(q) === -1) return;
+          var cells = Array.prototype.slice.call(tr.children).map(function (td) { return td.textContent.trim(); });
+          lines.push([catName].concat(cells).map(csvEscape).join(','));
+        });
+      });
+      var blob = new Blob(['\uFEFF' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = document.title + '.csv';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
+    }
+    function buildCsvButton() {
+      var toolbar = document.querySelector('.toolbar');
+      if (!toolbar) return;
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'csv-btn';
+      btn.textContent = 'CSV';
+      btn.title = 'CSVエクスポート（フィルタ・検索適用後の全行）';
+      btn.addEventListener('click', exportCsv);
+      toolbar.appendChild(btn);
+    }
+    /* ===== 一覧UI拡張ここまで ===== */
+
     function renderPage(state) {
+      removeDetailRows(state.tbody);
       var q = search ? search.value.trim().toLowerCase() : '';
       var visible = state.allRows.filter(function (tr) {
+        if (!rowMatchesChips(tr)) return false;
         return !q || tr.textContent.toLowerCase().indexOf(q) !== -1;
       });
 
@@ -252,7 +489,7 @@
       state.btnLast.disabled = state.currentPage >= totalPages - 1;
     }
 
-    document.querySelectorAll('table.units').forEach(function (table) {
+    document.querySelectorAll('table.units, table.data-table').forEach(function (table) {
       var tbody = table.querySelector('tbody');
       if (!tbody) return;
       var allRows = Array.prototype.slice.call(tbody.querySelectorAll('tr'));
@@ -283,12 +520,15 @@
       };
       tableStates.push(state);
 
+      allRows.forEach(addCopyButtons);
+      bindRowExpansion(state);
+
       state.btnFirst.addEventListener('click', function () { state.currentPage = 0; renderPage(state); });
       state.btnPrev.addEventListener('click', function () { state.currentPage--; renderPage(state); });
       state.btnNext.addEventListener('click', function () { state.currentPage++; renderPage(state); });
       state.btnLast.addEventListener('click', function () {
         var q = search ? search.value.trim().toLowerCase() : '';
-        var cnt = state.allRows.filter(function (tr) { return !q || tr.textContent.toLowerCase().indexOf(q) !== -1; }).length;
+        var cnt = state.allRows.filter(function (tr) { return rowMatchesChips(tr) && (!q || tr.textContent.toLowerCase().indexOf(q) !== -1); }).length;
         state.currentPage = Math.max(0, Math.ceil(cnt / PAGE_SIZE) - 1);
         renderPage(state);
       });
@@ -310,6 +550,8 @@
       });
     }
 
+    buildChipBar();
+    buildCsvButton();
     tableStates.forEach(function (state) { renderPage(state); });
   })();
 </script>

@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<!--
+  権限×機能マトリクス.HTML の静的シェル(テンプレート)
+
+  答える質問: 「画面は見えるが、編集・削除までできるのは誰か」。
+  閲覧可否より1段深い操作レベル(CRUD)の権限を、行=機能 × 列=ロールの交差ビューで示す。
+
+  使い方:
+    将来のビルドスクリプトがプレースホルダ・注入マーカーを機械的に置換して生成する。
+    Claude(手作業)によるプレースホルダ置換は禁止。生成は必ずスクリプト経由で行う。
+
+  プレースホルダ(二重置換事故を避けるため、マーカーの実記法は注入箇所のコメント・波括弧を正とする):
+    GENERATED_AT (生成日時マーカー)       : ISO8601 生成日時
+    DATA_SOURCE (データ源マーカー)        : マトリクスの導出元(機能一覧マニフェスト等)
+    MATRIX_JSON (マトリクスJSON埋め込みマーカー) :
+      <script type="application/json" id="matrix-manifest"> の中身として
+      { "roles": [{"key","name"}...], "functions": [{"functionKey","functionName","category","permissions":{roleKey:"CRUD|CRU-|..."}}...] }
+      形式の JSON をそのまま埋め込む(二重管理・ドリフト禁止)。
+      permissions の値は C/R/U/D の4桁固定。許可しない桁は "-"(ASCIIハイフン)で表現し、描画時に「—」へ変換する。
+
+  保守注記: トークンブロック・テーマ切替(data-theme二重定義・rd-portal-theme)は
+  shared/templates/tokens.css(同 shared/templates/unit-list/unit-list-template.html のトークン注入結果)からの複製である。
+  同ファイルの当該部分を変更した場合は本ファイルも同時更新すること。
+
+  制約:
+    - 外部リソース(CDN・フォント・画像)は一切使わない。単一ファイル自己完結
+    - <script id="matrix-manifest"> の中身は確定結果のマトリクスJSONと完全に一致させる
+-->
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>権限×機能マトリクス</title>
+<style>
+  /* ===== テーマトークン =====
+     保守注記: 本ブロックとテーマ切替スクリプトは shared/templates/tokens.css
+     (unit-list-template.html への注入結果と同一)からの複製である。
+     同ファイルの当該部分を変更した場合は本ファイルも同時更新すること。 */
+  :root,
+  [data-theme="light"] {
+    /* Windows フォント上書き防止 */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    font-synthesis: none;
+    --bg: #FFFFFF;
+    --panel: #FFFFFF;
+    --panel-2: #F0EDE3;
+    --border: #DAD5C5;
+    --border-strong: #BFB9A6;
+    --text: #1B1F26;
+    --text-sub: #4A4F58;
+    --text-muted: #767B85;
+    --accent: #3F4F8E;
+    --accent-2: #5A6BAE;
+    --accent-soft: #E6E9F3;
+    --accent-border: #BAC2DC;
+    --gold: #9B7A1F;
+    --gold-soft: #F5EFD9;
+    --gold-border: #DDC68A;
+    --success: #3F4F8E;
+    --success-soft: #E6E9F3;
+    --warn: #9B7A1F;
+    --danger: #9B3F2D;
+    --danger-soft: #F5E2DC;
+    --code-bg: #1B1F26;
+    --code-fg: #E8E5DC;
+    --cat-list: #2563eb;
+    --cat-common: #059669;
+    --cat-project: #7C3AED;
+    --font-body: "Hiragino Kaku Gothic ProN","Hiragino Sans","Noto Sans JP","BIZ UDPGothic","Yu Gothic","Meiryo",system-ui,-apple-system,sans-serif;
+    --mono: "SFMono-Regular","Menlo","Cascadia Code","Consolas",monospace;
+    --shadow-sm: 0 1px 3px rgba(27,31,38,.07), 0 2px 6px rgba(27,31,38,.05);
+    --shadow-md: 0 2px 8px rgba(27,31,38,.09), 0 8px 24px rgba(27,31,38,.07);
+    --radius: 10px;
+    --radius-sm: 6px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #15171C; --panel: #1C1F26; --panel-2: #232730;
+      --border: #353944; --border-strong: #4A4F5C;
+      --text: #E8E5DC; --text-sub: #B6B3AB; --text-muted: #888784;
+      --accent: #8FA3DB; --accent-2: #A8B8E5; --accent-soft: #2A2E47; --accent-border: #4C5680;
+      --gold: #D4B45D; --gold-soft: #3D3520; --gold-border: #7A6633;
+      --success: #8FA3DB; --success-soft: #2A2E47;
+      --warn: #D4B45D; --danger: #D4836E; --danger-soft: #3F2620;
+      --code-bg: #0E1116; --code-fg: #E8E5DC;
+      --cat-list: #60A5FA; --cat-common: #34D399; --cat-project: #A78BFA;
+    }
+  }
+  [data-theme="dark"] {
+    --bg: #15171C; --panel: #1C1F26; --panel-2: #232730;
+    --border: #353944; --border-strong: #4A4F5C;
+    --text: #E8E5DC; --text-sub: #B6B3AB; --text-muted: #888784;
+    --accent: #8FA3DB; --accent-2: #A8B8E5; --accent-soft: #2A2E47; --accent-border: #4C5680;
+    --gold: #D4B45D; --gold-soft: #3D3520; --gold-border: #7A6633;
+    --success: #8FA3DB; --success-soft: #2A2E47;
+    --warn: #D4B45D; --danger: #D4836E; --danger-soft: #3F2620;
+    --code-bg: #0E1116; --code-fg: #E8E5DC;
+    --cat-list: #60A5FA; --cat-common: #34D399; --cat-project: #A78BFA;
+  }
+  /* ===== テーマトークンここまで ===== */
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 0 24px 96px;
+    font-family: var(--font-body);
+    line-height: 1.7; color: var(--text); background: var(--bg);
+    max-width: 1180px; margin-inline: auto;
+  }
+  .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  header { padding: 40px 0 20px; border-bottom: 3px solid var(--border-strong); }
+  .header-top { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+  header h1 { font-size: 1.7rem; margin: 0 0 10px; }
+  .theme-toggle-btn {
+    background: var(--panel-2); border: 1px solid var(--border); border-radius: var(--radius-sm);
+    color: var(--text-sub); cursor: pointer; padding: 5px 12px; font-size: 0.82rem; font-family: inherit;
+  }
+  .theme-toggle-btn:hover { background: var(--accent-soft); color: var(--accent); border-color: var(--accent-border); }
+  .meta-table { font-size: 0.88rem; color: var(--text-sub); border-collapse: collapse; }
+  .meta-table td { padding: 2px 18px 2px 0; vertical-align: top; }
+  .meta-table td:first-child { color: var(--text-muted); white-space: nowrap; }
+  .meta-table code {
+    font-family: var(--mono); font-size: 0.85em;
+    background: var(--panel-2); padding: 1px 5px; border-radius: 3px;
+  }
+  .lead-question { margin: 14px 0 0; font-size: 0.9rem; color: var(--text-sub); }
+
+  .summary-tiles { display: flex; gap: 14px; margin: 20px 0; flex-wrap: wrap; }
+  .tile {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 8px;
+    padding: 10px 18px; font-size: 0.85rem; color: var(--text-sub);
+  }
+  .tile strong { display: block; font-size: 1.3rem; color: var(--text); }
+
+  .toolbar { display: flex; gap: 10px; margin: 24px 0 10px; align-items: center; flex-wrap: wrap; }
+  .toolbar input[type="search"] {
+    flex: 1; min-width: 220px; padding: 8px 12px; font-size: 0.92rem;
+    border: 1px solid var(--border); border-radius: 6px;
+    background: var(--panel); color: var(--text); font-family: inherit;
+  }
+  .toolbar .note { font-size: 0.82rem; color: var(--text-muted); }
+
+  table.matrix {
+    width: 100%; min-width: 640px; border-collapse: collapse; font-size: 0.88rem;
+  }
+  table.matrix th, table.matrix td {
+    border-top: 1px solid var(--border); padding: 7px 10px; text-align: left; vertical-align: top;
+  }
+  table.matrix thead th {
+    background: var(--panel-2); font-weight: 700; font-size: 0.8em; white-space: nowrap;
+  }
+  table.matrix thead th.role-col {
+    cursor: pointer; user-select: none; text-align: center;
+  }
+  table.matrix thead th.role-col:hover { background: var(--accent-soft); }
+  table.matrix thead th.role-col.role-active {
+    background: var(--accent-soft); color: var(--accent);
+    box-shadow: inset 0 -2px 0 var(--accent);
+  }
+  table.matrix td.cat-cell { color: var(--text-sub); font-size: 0.85em; white-space: nowrap; }
+  table.matrix td.perm-cell {
+    font-family: var(--mono); text-align: center; letter-spacing: 0.22em;
+    font-size: 0.92em; white-space: nowrap;
+  }
+  .perm-on  { color: var(--success); font-weight: 700; }
+  .perm-off { color: var(--text-muted); }
+  table.matrix tbody tr:nth-child(even) {
+    background: color-mix(in srgb, var(--panel-2) 40%, transparent);
+  }
+  table.matrix tbody tr:hover { background: var(--accent-soft); }
+
+  .legend {
+    margin: 10px 0 0; font-size: 0.82rem; color: var(--text-muted);
+  }
+  .legend code { font-family: var(--mono); }
+
+  footer { margin-top: 48px; font-size: 0.8rem; color: var(--text-muted); }
+</style>
+</head>
+<body>
+
+<header>
+  <nav class="back-link" style="margin: 16px 0 0; font-size: 0.85rem;">
+    <a href="../../index.html" style="color: var(--text-sub); text-decoration: none; border-bottom: 1px dotted var(--text-muted);">← ポータルへ戻る</a>
+  </nav>
+  <div class="header-top">
+    <h1>権限×機能マトリクス</h1>
+    <button id="theme-toggle" class="theme-toggle-btn" type="button" title="テーマ切替">テーマ切替</button>
+  </div>
+  <table class="meta-table">
+    <tr><td>生成日時</td><td>{{GENERATED_AT}}</td></tr>
+    <tr><td>データ源</td><td><code>{{DATA_SOURCE}}</code></td></tr>
+    <tr><td>種別</td><td>権限×機能マトリクス（交差ビュー）</td></tr>
+  </table>
+  <p class="lead-question">答える質問: 「画面は見えるが、編集・削除までできるのは誰か」。閲覧可否より1段深い、操作レベル（CRUD）の権限を示す。</p>
+
+  <div class="summary-tiles">
+    <div class="tile"><strong id="tile-function-count">0</strong>機能数</div>
+    <div class="tile"><strong id="tile-role-count">0</strong>ロール数</div>
+    <div class="tile"><strong id="tile-delete-count">0</strong>D(削除)権限の組合せ数</div>
+  </div>
+</header>
+
+<div class="toolbar">
+  <input type="search" id="matrix-search" placeholder="機能名・カテゴリで絞り込み">
+  <span class="note">ロール列見出しクリックで、そのロールに権限がある行だけに絞り込み（再クリックで解除）</span>
+</div>
+
+<div class="table-wrap">
+  <table class="matrix" id="matrix-table">
+    <thead><tr id="matrix-head-row"></tr></thead>
+    <tbody id="matrix-body"></tbody>
+  </table>
+</div>
+
+<p class="legend">表記凡例: 4桁固定で C(作成)/R(閲覧)/U(更新)/D(削除) の順。許可しない操作は —</p>
+
+<script type="application/json" id="matrix-manifest">
+<!--MATRIX_JSON-->
+</script>
+
+<footer>権限×機能マトリクス生成スキルにより生成。手編集は次回再生成で上書きされる。</footer>
+
+<script>
+  (function () {
+    var manifestEl = document.getElementById('matrix-manifest');
+    var manifest = { roles: [], functions: [] };
+    try { manifest = JSON.parse(manifestEl.textContent); } catch (e) { /* プレースホルダ未注入時は空描画 */ }
+    var roles = manifest.roles || [];
+    var functions = manifest.functions || [];
+
+    var headRow = document.getElementById('matrix-head-row');
+    var tbody = document.getElementById('matrix-body');
+    var search = document.getElementById('matrix-search');
+    var activeRole = null; // 絞り込み中のロール key
+
+    function hasAnyPermission(permString) {
+      return /[CRUD]/.test(permString || '');
+    }
+
+    /* ヘッダ行の構築 */
+    function buildHead() {
+      headRow.innerHTML = '';
+      var thName = document.createElement('th');
+      thName.textContent = '機能名';
+      headRow.appendChild(thName);
+      var thCat = document.createElement('th');
+      thCat.textContent = 'カテゴリ';
+      headRow.appendChild(thCat);
+      roles.forEach(function (role) {
+        var th = document.createElement('th');
+        th.className = 'role-col';
+        th.textContent = role.name;
+        th.title = 'クリックで「' + role.name + '」に権限がある行だけに絞り込み';
+        th.setAttribute('data-role', role.key);
+        th.addEventListener('click', function () {
+          activeRole = (activeRole === role.key) ? null : role.key;
+          headRow.querySelectorAll('th.role-col').forEach(function (t) { t.classList.remove('role-active'); });
+          if (activeRole) th.classList.add('role-active');
+          render();
+        });
+        headRow.appendChild(th);
+      });
+    }
+
+    /* CRUD 4桁固定セルの構築（許可= perm-on / 不許可「—」= perm-off） */
+    function buildPermCell(permString) {
+      var td = document.createElement('td');
+      td.className = 'perm-cell';
+      var order = ['C', 'R', 'U', 'D'];
+      var s = String(permString || '----');
+      for (var i = 0; i < 4; i++) {
+        var span = document.createElement('span');
+        if (s.charAt(i) === order[i]) {
+          span.className = 'perm-on';
+          span.textContent = order[i];
+        } else {
+          span.className = 'perm-off';
+          span.textContent = '—';
+        }
+        td.appendChild(span);
+      }
+      return td;
+    }
+
+    function render() {
+      var q = search ? search.value.trim().toLowerCase() : '';
+      tbody.innerHTML = '';
+      functions.forEach(function (fn) {
+        var haystack = (fn.functionName + ' ' + fn.functionKey + ' ' + fn.category).toLowerCase();
+        if (q && haystack.indexOf(q) === -1) return;
+        if (activeRole && !hasAnyPermission((fn.permissions || {})[activeRole])) return;
+        var tr = document.createElement('tr');
+        var tdName = document.createElement('td');
+        tdName.textContent = fn.functionName;
+        tr.appendChild(tdName);
+        var tdCat = document.createElement('td');
+        tdCat.className = 'cat-cell';
+        tdCat.textContent = fn.category;
+        tr.appendChild(tdCat);
+        roles.forEach(function (role) {
+          tr.appendChild(buildPermCell((fn.permissions || {})[role.key]));
+        });
+        tbody.appendChild(tr);
+      });
+    }
+
+    /* summary-tiles（機能数・ロール数・D権限の組合せ数） */
+    function renderTiles() {
+      var deleteCount = 0;
+      functions.forEach(function (fn) {
+        roles.forEach(function (role) {
+          var p = (fn.permissions || {})[role.key] || '';
+          if (p.charAt(3) === 'D') deleteCount++;
+        });
+      });
+      document.getElementById('tile-function-count').textContent = functions.length;
+      document.getElementById('tile-role-count').textContent = roles.length;
+      document.getElementById('tile-delete-count').textContent = deleteCount;
+    }
+
+    if (search) search.addEventListener('input', render);
+
+    buildHead();
+    renderTiles();
+    render();
+  })();
+</script>
+
+<script>
+  /* 保守注記: テーマ切替(rd-portal-theme localStorage 連携)は
+     shared/templates/unit-list/unit-list-template.html 末尾のスクリプトからの複製である。
+     同ファイルの当該部分を変更した場合は本ファイルも同時更新すること。 */
+  (function () {
+    var themeBtn = document.getElementById('theme-toggle');
+    if (themeBtn) {
+      themeBtn.addEventListener('click', function () {
+        var r = document.documentElement;
+        var next = r.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+        r.setAttribute('data-theme', next);
+        try { localStorage.setItem('rd-portal-theme', next); } catch (e) {}
+      });
+    }
+    try {
+      var saved = localStorage.getItem('rd-portal-theme');
+      if (saved) document.documentElement.setAttribute('data-theme', saved);
+    } catch (e) {}
+  })();
+</script>
+
+</body>
+</html>

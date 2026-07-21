@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<!--
+  AI設定資産.HTML (サンプル)
+
+  答える質問: 「このプロジェクトで効く rules は何か」「使えるスキルは」
+  「委任できるサブエージェントは」「どの hook が何を block するか」。
+  プロジェクトに適用される AI 設定資産(rules / skills / サブエージェント / hooks)を
+  4 セクションの一覧で示す。
+
+  本ファイルは shared/templates/ai-assets/ai-assets-template.html にサンプルデータを
+  注入した生成結果の例。データは reverse-docs-skills プロジェクト自身の実資産
+  (.claude/rules・.claude/settings.json・.claude/skills・グローバルサブエージェント定義)に基づく。
+
+  保守注記: トークンブロック・テーマ切替(data-theme二重定義・rd-portal-theme)は
+  shared/templates/tokens.css(同 shared/templates/unit-list/unit-list-template.html のトークン注入結果)からの複製である。
+  同ファイルの当該部分を変更した場合は本ファイルも同時更新すること。
+
+  制約:
+    - 外部リソース(CDN・フォント・画像)は一切使わない。単一ファイル自己完結
+    - <script id="matrix-manifest"> の中身は確定結果の設定資産JSONと完全に一致させる
+-->
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI設定資産</title>
+<style>
+  /* ===== テーマトークン =====
+     保守注記: 本ブロックとテーマ切替スクリプトは shared/templates/tokens.css
+     (unit-list-template.html への注入結果と同一)からの複製である。
+     同ファイルの当該部分を変更した場合は本ファイルも同時更新すること。 */
+  :root,
+  [data-theme="light"] {
+    /* Windows フォント上書き防止 */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    font-synthesis: none;
+    --bg: #FFFFFF;
+    --panel: #FFFFFF;
+    --panel-2: #F0EDE3;
+    --border: #DAD5C5;
+    --border-strong: #BFB9A6;
+    --text: #1B1F26;
+    --text-sub: #4A4F58;
+    --text-muted: #767B85;
+    --accent: #3F4F8E;
+    --accent-2: #5A6BAE;
+    --accent-soft: #E6E9F3;
+    --accent-border: #BAC2DC;
+    --gold: #9B7A1F;
+    --gold-soft: #F5EFD9;
+    --gold-border: #DDC68A;
+    --success: #3F4F8E;
+    --success-soft: #E6E9F3;
+    --warn: #9B7A1F;
+    --danger: #9B3F2D;
+    --danger-soft: #F5E2DC;
+    --code-bg: #1B1F26;
+    --code-fg: #E8E5DC;
+    --cat-list: #2563eb;
+    --cat-common: #059669;
+    --cat-project: #7C3AED;
+    --font-body: "Hiragino Kaku Gothic ProN","Hiragino Sans","Noto Sans JP","BIZ UDPGothic","Yu Gothic","Meiryo",system-ui,-apple-system,sans-serif;
+    --mono: "SFMono-Regular","Menlo","Cascadia Code","Consolas",monospace;
+    --shadow-sm: 0 1px 3px rgba(27,31,38,.07), 0 2px 6px rgba(27,31,38,.05);
+    --shadow-md: 0 2px 8px rgba(27,31,38,.09), 0 8px 24px rgba(27,31,38,.07);
+    --radius: 10px;
+    --radius-sm: 6px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #15171C; --panel: #1C1F26; --panel-2: #232730;
+      --border: #353944; --border-strong: #4A4F5C;
+      --text: #E8E5DC; --text-sub: #B6B3AB; --text-muted: #888784;
+      --accent: #8FA3DB; --accent-2: #A8B8E5; --accent-soft: #2A2E47; --accent-border: #4C5680;
+      --gold: #D4B45D; --gold-soft: #3D3520; --gold-border: #7A6633;
+      --success: #8FA3DB; --success-soft: #2A2E47;
+      --warn: #D4B45D; --danger: #D4836E; --danger-soft: #3F2620;
+      --code-bg: #0E1116; --code-fg: #E8E5DC;
+      --cat-list: #60A5FA; --cat-common: #34D399; --cat-project: #A78BFA;
+    }
+  }
+  [data-theme="dark"] {
+    --bg: #15171C; --panel: #1C1F26; --panel-2: #232730;
+    --border: #353944; --border-strong: #4A4F5C;
+    --text: #E8E5DC; --text-sub: #B6B3AB; --text-muted: #888784;
+    --accent: #8FA3DB; --accent-2: #A8B8E5; --accent-soft: #2A2E47; --accent-border: #4C5680;
+    --gold: #D4B45D; --gold-soft: #3D3520; --gold-border: #7A6633;
+    --success: #8FA3DB; --success-soft: #2A2E47;
+    --warn: #D4B45D; --danger: #D4836E; --danger-soft: #3F2620;
+    --code-bg: #0E1116; --code-fg: #E8E5DC;
+    --cat-list: #60A5FA; --cat-common: #34D399; --cat-project: #A78BFA;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 0 24px 96px;
+    font-family: var(--font-body);
+    line-height: 1.7; color: var(--text); background: var(--bg);
+    max-width: 1180px; margin-inline: auto;
+  }
+  .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  header { padding: 40px 0 20px; border-bottom: 3px solid var(--border-strong); }
+  .header-top { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+  header h1 { font-size: 1.7rem; margin: 0 0 10px; }
+  .theme-toggle-btn {
+    background: var(--panel-2); border: 1px solid var(--border); border-radius: var(--radius-sm);
+    color: var(--text-sub); cursor: pointer; padding: 5px 12px; font-size: 0.82rem; font-family: inherit;
+  }
+  .theme-toggle-btn:hover { background: var(--accent-soft); color: var(--accent); border-color: var(--accent-border); }
+  .meta-table { font-size: 0.88rem; color: var(--text-sub); border-collapse: collapse; }
+  .meta-table td { padding: 2px 18px 2px 0; vertical-align: top; }
+  .meta-table td:first-child { color: var(--text-muted); white-space: nowrap; }
+  .meta-table code {
+    font-family: var(--mono); font-size: 0.85em;
+    background: var(--panel-2); padding: 1px 5px; border-radius: 3px;
+  }
+  .lead-question { margin: 14px 0 0; font-size: 0.9rem; color: var(--text-sub); }
+
+  .summary-tiles { display: flex; gap: 14px; margin: 20px 0; flex-wrap: wrap; }
+  .tile {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 8px;
+    padding: 10px 18px; font-size: 0.85rem; color: var(--text-sub);
+  }
+  .tile strong { display: block; font-size: 1.3rem; color: var(--text); }
+
+  .toolbar { display: flex; gap: 10px; margin: 24px 0 10px; align-items: center; flex-wrap: wrap; }
+  .toolbar input[type="search"] {
+    flex: 1; min-width: 220px; padding: 8px 12px; font-size: 0.92rem;
+    border: 1px solid var(--border); border-radius: 6px;
+    background: var(--panel); color: var(--text); font-family: inherit;
+  }
+  .toolbar .note { font-size: 0.82rem; color: var(--text-muted); }
+
+  details.module-group { margin: 18px 0; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; min-width: 0; }
+  details.module-group > summary {
+    cursor: pointer; padding: 12px 16px; font-weight: 700; list-style: none;
+  }
+  details.module-group > summary::-webkit-details-marker { display: none; }
+  details.module-group > summary::before { content: "▸ "; }
+  details.module-group[open] > summary::before { content: "▾ "; }
+  details.module-group > summary .count { font-weight: 400; font-size: 0.82rem; color: var(--text-muted); margin-left: 8px; }
+
+  table.assets {
+    width: 100%; min-width: 760px; border-collapse: collapse; font-size: 0.88rem;
+  }
+  table.assets th, table.assets td {
+    border-top: 1px solid var(--border); padding: 7px 10px; text-align: left; vertical-align: top;
+    overflow-wrap: break-word; word-break: break-word;
+  }
+  table.assets thead th {
+    background: var(--panel-2); font-weight: 700; font-size: 0.8em; white-space: nowrap;
+  }
+  table.assets td code {
+    font-family: var(--mono); font-size: 0.85em;
+    background: var(--panel-2); padding: 1px 5px; border-radius: 3px;
+  }
+  table.assets tbody tr:nth-child(even) {
+    background: color-mix(in srgb, var(--panel-2) 40%, transparent);
+  }
+  table.assets tbody tr:hover { background: var(--accent-soft); }
+
+  .badge { display: inline-block; font-size: 0.76rem; font-weight: 700; padding: 1px 8px; border-radius: 3px; white-space: nowrap; }
+  .badge.danger  { background: var(--danger-soft); color: var(--danger); }   /* block */
+  .badge.gold    { background: var(--gold-soft); color: var(--gold); }       /* advisory */
+  .badge.neutral { background: var(--panel-2); color: var(--text-sub); }     /* なし・不可 等 */
+  .badge.accent  { background: var(--accent-soft); color: var(--accent); }   /* 階層・分類・可 等 */
+
+  .empty-note { padding: 10px 16px 16px; font-size: 0.85rem; color: var(--text-muted); }
+
+  footer { margin-top: 48px; font-size: 0.8rem; color: var(--text-muted); }
+</style>
+</head>
+<body>
+
+<header>
+  <nav class="back-link" style="margin: 16px 0 0; font-size: 0.85rem;">
+    <a href="../../index.html" style="color: var(--text-sub); text-decoration: none; border-bottom: 1px dotted var(--text-muted);">← ポータルへ戻る</a>
+  </nav>
+  <div class="header-top">
+    <h1>AI設定資産</h1>
+    <button id="theme-toggle" class="theme-toggle-btn" type="button" title="テーマ切替">テーマ切替</button>
+  </div>
+  <table class="meta-table">
+    <tr><td>生成日時</td><td>2026-07-21T10:00:00+09:00</td></tr>
+    <tr><td>データ源</td><td><code>.claude/rules/ ・ .claude/settings.json ・ .claude/skills/ ・ グローバルサブエージェント定義</code></td></tr>
+    <tr><td>種別</td><td>AI設定資産（rules / skills / サブエージェント / hooks）</td></tr>
+  </table>
+  <p class="lead-question">答える質問: 「このプロジェクトで効く rules は何か」「使えるスキルは」「委任できるサブエージェントは」「どの hook が何を block するか」。</p>
+
+  <div class="summary-tiles">
+    <div class="tile"><strong id="tile-rules-count">0</strong>rules数</div>
+    <div class="tile"><strong id="tile-skills-count">0</strong>skills数</div>
+    <div class="tile"><strong id="tile-subagents-count">0</strong>サブエージェント数</div>
+    <div class="tile"><strong id="tile-hooks-count">0</strong>hooks数</div>
+  </div>
+</header>
+
+<div class="toolbar">
+  <input type="search" id="assets-search" placeholder="名前・タグ・概要で絞り込み（全セクション横断）">
+  <span class="note">block は danger バッジ、advisory は gold バッジ</span>
+</div>
+
+<details class="module-group" open id="section-rules">
+  <summary>rules一覧<span class="count" data-count></span></summary>
+  <div class="table-wrap">
+  <table class="assets" id="rules-table">
+    <thead>
+      <tr>
+        <th>ルール名</th>
+        <th>階層</th>
+        <th>強制</th>
+        <th>注入タグ</th>
+        <th>概要</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+  </div>
+  <p class="empty-note" hidden data-empty>該当なし</p>
+</details>
+
+<details class="module-group" open id="section-skills">
+  <summary>skills一覧<span class="count" data-count></span></summary>
+  <div class="table-wrap">
+  <table class="assets" id="skills-table">
+    <thead>
+      <tr>
+        <th>スキル名</th>
+        <th>種別</th>
+        <th>トリガー</th>
+        <th>概要</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+  </div>
+  <p class="empty-note" hidden data-empty>該当なし</p>
+</details>
+
+<details class="module-group" open id="section-subagents">
+  <summary>サブエージェント一覧<span class="count" data-count></span></summary>
+  <div class="table-wrap">
+  <table class="assets" id="subagents-table">
+    <thead>
+      <tr>
+        <th>名前</th>
+        <th>分類</th>
+        <th>合否宣言</th>
+        <th>主ツール</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+  </div>
+  <p class="empty-note" hidden data-empty>該当なし</p>
+</details>
+
+<details class="module-group" open id="section-hooks">
+  <summary>hooks一覧<span class="count" data-count></span></summary>
+  <div class="table-wrap">
+  <table class="assets" id="hooks-table">
+    <thead>
+      <tr>
+        <th>スクリプト</th>
+        <th>timing</th>
+        <th>対象(matcher)</th>
+        <th>注入タグ</th>
+        <th>挙動</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+  </div>
+  <p class="empty-note" hidden data-empty>該当なし</p>
+</details>
+
+<script type="application/json" id="matrix-manifest">
+{
+  "rules": [
+    {"ruleName": "公開完遂ガード（PUBLISH-COMPLETE）", "layer": "always", "enforcement": "block", "tags": ["[PUBLISH-COMPLETE-BLOCK]", "[PUBLISH-SYNC-REQUIRED]"], "summary": "正本 commit → payload 同期 → agent-toolkit の origin/main へ統合 push まで完遂してから完了報告させる。Stop で block、git commit 後の同期検査は advisory"},
+    {"ruleName": "スキルガイド HTML 統一規約（SKILL-GUIDE-HTML）", "layer": "always", "enforcement": "なし", "tags": [], "summary": ".claude/skills/*/references/*-guide.html のメタテーブル必須 4 行と出力セクション（§2）の構成を統一する行動規範"},
+    {"ruleName": "プロジェクトコンテキスト（PROJECT-CONTEXT）", "layer": "always", "enforcement": "なし", "tags": [], "summary": "プロジェクト概要・技術スタック・設定索引・ルート直下許可ディレクトリ（shared のみ）の定義"}
+  ],
+  "skills": [
+    {"skillName": "orchestrating-reverse-docs-flow", "category": "指揮", "trigger": "リバース検証の進行・工程統括・画面一覧から基準確立まで", "summary": "リバース設計書往復検証フロー全体を統括する指揮役スキル"},
+    {"skillName": "generating-screen-list-for-reverse-docs", "category": "一覧生成", "trigger": "画面一覧作成・画面の洗い出し", "summary": "既存コードベースから画面単位の一覧フォルダ・画面一覧 HTML を生成する"},
+    {"skillName": "generating-api-list-for-reverse-docs", "category": "一覧生成", "trigger": "API一覧作成・エンドポイント一覧", "summary": "API 一覧フォルダ・API一覧 HTML を生成する（unit_kind=api 専用）"},
+    {"skillName": "generating-table-list-for-reverse-docs", "category": "一覧生成", "trigger": "テーブル一覧作成・スキーマ一覧", "summary": "テーブル種別専用の一覧フォルダ・一覧 HTML を生成する"},
+    {"skillName": "generating-feature-list-for-reverse-docs", "category": "一覧生成", "trigger": "機能一覧作成・業務機能の横断目録", "summary": "機能一覧フォルダ・機能一覧 HTML を生成する（unit_kind=feature 専用・派生一覧）"},
+    {"skillName": "generating-er-diagram-for-reverse-docs", "category": "基盤ページ生成", "trigger": "ER図生成・テーブル関連図作成", "summary": "ER図.html をテーブル一覧 manifest とマイグレーション/モデルの FK 定義から機械生成する"},
+    {"skillName": "surveying-architecture-for-reverse-docs", "category": "工程", "trigger": "リバース設計着手前の前提調査", "summary": "既存リポジトリを走査しアーキテクチャ調査書を機械検証付きで確定する"},
+    {"skillName": "extracting-unit-facts-from-code", "category": "工程", "trigger": "リバース設計の facts 抽出・事実表新規作成", "summary": "原本コードから宣言的契約 facts を抽出し独立再計数・封印まで完走する"},
+    {"skillName": "generating-reverse-detailed-design", "category": "工程", "trigger": "facts 封印後の設計書執筆・再執筆", "summary": "封印済み facts と共通文書から画面詳細設計書を執筆する執筆役"},
+    {"skillName": "rebuilding-code-from-docs", "category": "工程", "trigger": "往復品質検証", "summary": "設計書だけから画面単位でコードを再生成し原本と突合して欠落を発見する"}
+  ],
+  "subagents": [
+    {"name": "brain", "classification": "計画系", "verdict": "不可", "mainTools": "計画立案・タスク分解・作業指示の組み立て（実行・合否判定はしない）"},
+    {"name": "worker-sonnet", "classification": "実行系", "verdict": "不可", "mainTools": "Write / Edit / Bash（確定済み内容のファイル反映）"},
+    {"name": "worker-haiku", "classification": "実行系", "verdict": "不可", "mainTools": "Bash（コマンド実行と結果報告のみ。編集ツールなし）"},
+    {"name": "investigator", "classification": "調査系", "verdict": "不可", "mainTools": "Read / Grep（読み取り専用のローカル事実収集）"},
+    {"name": "researcher", "classification": "調査系", "verdict": "不可", "mainTools": "Web 検索・外部ドキュメント収集"},
+    {"name": "code-reviewer", "classification": "判定系", "verdict": "可", "mainTools": "Read / Grep + rules 照合（コード成果物の PASS / FAIL 宣言）"},
+    {"name": "document-reviewer", "classification": "判定系", "verdict": "可", "mainTools": "Read / Grep + rules 照合（文書成果物の PASS / FAIL 宣言）"},
+    {"name": "report-reviewer", "classification": "判定系", "verdict": "可", "mainTools": "チェックリスト照合 + 事実性検証（調査報告の PASS / FAIL 宣言）"}
+  ],
+  "hooks": [
+    {"script": "check-publish-complete.sh", "timing": "Stop", "matcher": "—（全応答終了時）", "tags": ["[PUBLISH-COMPLETE-BLOCK]"], "behavior": "block", "summary": "正本-未コミット検査。git status が空でなければ完了報告を止める（3 回連続で自動解除）"},
+    {"script": "check-publish-sync-gate.sh", "timing": "PostToolUse", "matcher": "Bash（git commit 成功直後）", "tags": ["[PUBLISH-SYNC-REQUIRED]"], "behavior": "advisory", "summary": "main-未反映検査。payload/reverse-docs-skills と正本の不一致を通知する（block なし）"}
+  ]
+}
+</script>
+
+<footer>AI設定資産ページ生成スキルにより生成。手編集は次回再生成で上書きされる。</footer>
+
+<script>
+  (function () {
+    var manifestEl = document.getElementById('matrix-manifest');
+    var manifest = { rules: [], skills: [], subagents: [], hooks: [] };
+    try { manifest = JSON.parse(manifestEl.textContent); } catch (e) { /* プレースホルダ未注入時は空描画 */ }
+    var rules = manifest.rules || [];
+    var skills = manifest.skills || [];
+    var subagents = manifest.subagents || [];
+    var hooks = manifest.hooks || [];
+
+    function el(tag, className, text) {
+      var node = document.createElement(tag);
+      if (className) node.className = className;
+      if (text != null) node.textContent = text;
+      return node;
+    }
+
+    /* 強制・挙動バッジ: block=danger / advisory=gold / それ以外=neutral */
+    function enforcementBadge(value) {
+      var v = String(value || 'なし');
+      var cls = v === 'block' ? 'badge danger' : (v === 'advisory' ? 'badge gold' : 'badge neutral');
+      return el('span', cls, v);
+    }
+
+    function tagCell(tags) {
+      var td = el('td');
+      var list = tags || [];
+      if (list.length === 0) { td.textContent = '—'; return td; }
+      list.forEach(function (t, i) {
+        if (i > 0) td.appendChild(document.createTextNode(' '));
+        td.appendChild(el('code', null, t));
+      });
+      return td;
+    }
+
+    function buildRulesRow(r) {
+      var tr = el('tr');
+      tr.appendChild(el('td', null, r.ruleName || ''));
+      var tdLayer = el('td');
+      tdLayer.appendChild(el('span', 'badge accent', r.layer || ''));
+      tr.appendChild(tdLayer);
+      var tdEnf = el('td');
+      tdEnf.appendChild(enforcementBadge(r.enforcement));
+      tr.appendChild(tdEnf);
+      tr.appendChild(tagCell(r.tags));
+      tr.appendChild(el('td', null, r.summary || ''));
+      return tr;
+    }
+
+    function buildSkillsRow(s) {
+      var tr = el('tr');
+      var tdName = el('td');
+      tdName.appendChild(el('code', null, s.skillName || ''));
+      tr.appendChild(tdName);
+      var tdCat = el('td');
+      tdCat.appendChild(el('span', 'badge accent', s.category || ''));
+      tr.appendChild(tdCat);
+      tr.appendChild(el('td', null, s.trigger || ''));
+      tr.appendChild(el('td', null, s.summary || ''));
+      return tr;
+    }
+
+    function buildSubagentsRow(a) {
+      var tr = el('tr');
+      var tdName = el('td');
+      tdName.appendChild(el('code', null, a.name || ''));
+      tr.appendChild(tdName);
+      var tdCls = el('td');
+      tdCls.appendChild(el('span', 'badge accent', a.classification || ''));
+      tr.appendChild(tdCls);
+      var tdVerdict = el('td');
+      tdVerdict.appendChild(el('span', a.verdict === '可' ? 'badge gold' : 'badge neutral', a.verdict || '不可'));
+      tr.appendChild(tdVerdict);
+      tr.appendChild(el('td', null, a.mainTools || ''));
+      return tr;
+    }
+
+    function buildHooksRow(h) {
+      var tr = el('tr');
+      var tdScript = el('td');
+      tdScript.appendChild(el('code', null, h.script || ''));
+      tr.appendChild(tdScript);
+      tr.appendChild(el('td', null, h.timing || ''));
+      tr.appendChild(el('td', null, h.matcher || '—'));
+      tr.appendChild(tagCell(h.tags));
+      var tdBehavior = el('td');
+      tdBehavior.appendChild(enforcementBadge(h.behavior));
+      if (h.summary) {
+        tdBehavior.appendChild(document.createTextNode(' '));
+        tdBehavior.appendChild(el('span', null, h.summary));
+      }
+      tr.appendChild(tdBehavior);
+      return tr;
+    }
+
+    var sections = [
+      { detailsId: 'section-rules', tableId: 'rules-table', data: rules, build: buildRulesRow },
+      { detailsId: 'section-skills', tableId: 'skills-table', data: skills, build: buildSkillsRow },
+      { detailsId: 'section-subagents', tableId: 'subagents-table', data: subagents, build: buildSubagentsRow },
+      { detailsId: 'section-hooks', tableId: 'hooks-table', data: hooks, build: buildHooksRow }
+    ];
+
+    sections.forEach(function (sec) {
+      var tbody = document.getElementById(sec.tableId).querySelector('tbody');
+      sec.data.forEach(function (item) { tbody.appendChild(sec.build(item)); });
+    });
+
+    /* summary-tiles */
+    document.getElementById('tile-rules-count').textContent = rules.length;
+    document.getElementById('tile-skills-count').textContent = skills.length;
+    document.getElementById('tile-subagents-count').textContent = subagents.length;
+    document.getElementById('tile-hooks-count').textContent = hooks.length;
+
+    /* 全セクション横断のテキスト検索 */
+    var search = document.getElementById('assets-search');
+    function applyFilter() {
+      var q = search ? search.value.trim().toLowerCase() : '';
+      sections.forEach(function (sec) {
+        var details = document.getElementById(sec.detailsId);
+        var tbody = document.getElementById(sec.tableId).querySelector('tbody');
+        var rows = Array.prototype.slice.call(tbody.querySelectorAll('tr'));
+        var visibleCount = 0;
+        rows.forEach(function (tr) {
+          var hit = !q || tr.textContent.toLowerCase().indexOf(q) !== -1;
+          tr.style.display = hit ? '' : 'none';
+          if (hit) visibleCount++;
+        });
+        var countEl = details.querySelector('[data-count]');
+        if (countEl) countEl.textContent = '（' + visibleCount + ' / ' + rows.length + '件）';
+        var emptyEl = details.querySelector('[data-empty]');
+        if (emptyEl) emptyEl.hidden = visibleCount !== 0;
+      });
+    }
+    if (search) search.addEventListener('input', applyFilter);
+    applyFilter();
+  })();
+</script>
+
+<script>
+  /* 保守注記: テーマ切替(rd-portal-theme)は shared/templates/tokens.css を注入した
+     unit-list-template.html 末尾のテーマ切替スクリプトからの複製である。
+     同ファイルの当該部分を変更した場合は本ファイルも同時更新すること。 */
+  (function () {
+    var themeBtn = document.getElementById('theme-toggle');
+    if (themeBtn) {
+      themeBtn.addEventListener('click', function () {
+        var r = document.documentElement;
+        var next = r.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+        r.setAttribute('data-theme', next);
+        try { localStorage.setItem('rd-portal-theme', next); } catch (e) {}
+      });
+    }
+    try {
+      var saved = localStorage.getItem('rd-portal-theme');
+      if (saved) document.documentElement.setAttribute('data-theme', saved);
+    } catch (e) {}
+  })();
+</script>
+
+</body>
+</html>

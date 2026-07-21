@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<!--
+  AI設定資産.HTML の静的シェル(テンプレート)
+
+  答える質問: 「このプロジェクトで効く rules は何か」「使えるスキルは」
+  「委任できるサブエージェントは」「どの hook が何を block するか」。
+  プロジェクトに適用される AI 設定資産(rules / skills / サブエージェント / hooks)を
+  4 セクションの一覧で示す。
+
+  使い方:
+    将来のビルドスクリプトがプレースホルダ・注入マーカーを機械的に置換して生成する。
+    Claude(手作業)によるプレースホルダ置換は禁止。生成は必ずスクリプト経由で行う。
+
+  プレースホルダ(二重置換事故を避けるため、マーカーの実記法は注入箇所のコメント・波括弧を正とする):
+    GENERATED_AT (生成日時マーカー)  : ISO8601 生成日時
+    DATA_SOURCE (データ源マーカー)   : 一覧の導出元(.claude/rules・.claude/settings.json・.claude/skills 等)
+    ASSETS_JSON (設定資産JSON埋め込みマーカー) :
+      <script type="application/json" id="matrix-manifest"> の中身として
+      {
+        "rules":     [{"ruleName","layer":"always|scoped","enforcement":"block|advisory|なし","tags":["[TAG]"...],"summary"}...],
+        "skills":    [{"skillName","category","trigger","summary"}...],
+        "subagents": [{"name","classification":"計画系|実行系|調査系|判定系","verdict":"可|不可","mainTools"}...],
+        "hooks":     [{"script","timing","matcher","tags":["[TAG]"...],"behavior":"block|advisory","summary"}...]
+      }
+      形式の JSON をそのまま埋め込む(二重管理・ドリフト禁止)。
+      enforcement / behavior の "block" は danger バッジ、"advisory" は gold バッジで描画される。
+
+  保守注記: トークンブロック・テーマ切替(data-theme二重定義・rd-portal-theme)は
+  shared/templates/tokens.css(同 shared/templates/unit-list/unit-list-template.html のトークン注入結果)からの複製である。
+  同ファイルの当該部分を変更した場合は本ファイルも同時更新すること。
+
+  制約:
+    - 外部リソース(CDN・フォント・画像)は一切使わない。単一ファイル自己完結
+    - <script id="matrix-manifest"> の中身は確定結果の設定資産JSONと完全に一致させる
+-->
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI設定資産</title>
+<style>
+  /* ===== テーマトークン =====
+     保守注記: 本ブロックとテーマ切替スクリプトは shared/templates/tokens.css
+     (unit-list-template.html への注入結果と同一)からの複製である。
+     同ファイルの当該部分を変更した場合は本ファイルも同時更新すること。 */
+  :root,
+  [data-theme="light"] {
+    /* Windows フォント上書き防止 */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    font-synthesis: none;
+    --bg: #FFFFFF;
+    --panel: #FFFFFF;
+    --panel-2: #F0EDE3;
+    --border: #DAD5C5;
+    --border-strong: #BFB9A6;
+    --text: #1B1F26;
+    --text-sub: #4A4F58;
+    --text-muted: #767B85;
+    --accent: #3F4F8E;
+    --accent-2: #5A6BAE;
+    --accent-soft: #E6E9F3;
+    --accent-border: #BAC2DC;
+    --gold: #9B7A1F;
+    --gold-soft: #F5EFD9;
+    --gold-border: #DDC68A;
+    --success: #3F4F8E;
+    --success-soft: #E6E9F3;
+    --warn: #9B7A1F;
+    --danger: #9B3F2D;
+    --danger-soft: #F5E2DC;
+    --code-bg: #1B1F26;
+    --code-fg: #E8E5DC;
+    --cat-list: #2563eb;
+    --cat-common: #059669;
+    --cat-project: #7C3AED;
+    --font-body: "Hiragino Kaku Gothic ProN","Hiragino Sans","Noto Sans JP","BIZ UDPGothic","Yu Gothic","Meiryo",system-ui,-apple-system,sans-serif;
+    --mono: "SFMono-Regular","Menlo","Cascadia Code","Consolas",monospace;
+    --shadow-sm: 0 1px 3px rgba(27,31,38,.07), 0 2px 6px rgba(27,31,38,.05);
+    --shadow-md: 0 2px 8px rgba(27,31,38,.09), 0 8px 24px rgba(27,31,38,.07);
+    --radius: 10px;
+    --radius-sm: 6px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #15171C; --panel: #1C1F26; --panel-2: #232730;
+      --border: #353944; --border-strong: #4A4F5C;
+      --text: #E8E5DC; --text-sub: #B6B3AB; --text-muted: #888784;
+      --accent: #8FA3DB; --accent-2: #A8B8E5; --accent-soft: #2A2E47; --accent-border: #4C5680;
+      --gold: #D4B45D; --gold-soft: #3D3520; --gold-border: #7A6633;
+      --success: #8FA3DB; --success-soft: #2A2E47;
+      --warn: #D4B45D; --danger: #D4836E; --danger-soft: #3F2620;
+      --code-bg: #0E1116; --code-fg: #E8E5DC;
+      --cat-list: #60A5FA; --cat-common: #34D399; --cat-project: #A78BFA;
+    }
+  }
+  [data-theme="dark"] {
+    --bg: #15171C; --panel: #1C1F26; --panel-2: #232730;
+    --border: #353944; --border-strong: #4A4F5C;
+    --text: #E8E5DC; --text-sub: #B6B3AB; --text-muted: #888784;
+    --accent: #8FA3DB; --accent-2: #A8B8E5; --accent-soft: #2A2E47; --accent-border: #4C5680;
+    --gold: #D4B45D; --gold-soft: #3D3520; --gold-border: #7A6633;
+    --success: #8FA3DB; --success-soft: #2A2E47;
+    --warn: #D4B45D; --danger: #D4836E; --danger-soft: #3F2620;
+    --code-bg: #0E1116; --code-fg: #E8E5DC;
+    --cat-list: #60A5FA; --cat-common: #34D399; --cat-project: #A78BFA;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 0 24px 96px;
+    font-family: var(--font-body);
+    line-height: 1.7; color: var(--text); background: var(--bg);
+    max-width: 1180px; margin-inline: auto;
+  }
+  .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  header { padding: 40px 0 20px; border-bottom: 3px solid var(--border-strong); }
+  .header-top { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+  header h1 { font-size: 1.7rem; margin: 0 0 10px; }
+  .theme-toggle-btn {
+    background: var(--panel-2); border: 1px solid var(--border); border-radius: var(--radius-sm);
+    color: var(--text-sub); cursor: pointer; padding: 5px 12px; font-size: 0.82rem; font-family: inherit;
+  }
+  .theme-toggle-btn:hover { background: var(--accent-soft); color: var(--accent); border-color: var(--accent-border); }
+  .meta-table { font-size: 0.88rem; color: var(--text-sub); border-collapse: collapse; }
+  .meta-table td { padding: 2px 18px 2px 0; vertical-align: top; }
+  .meta-table td:first-child { color: var(--text-muted); white-space: nowrap; }
+  .meta-table code {
+    font-family: var(--mono); font-size: 0.85em;
+    background: var(--panel-2); padding: 1px 5px; border-radius: 3px;
+  }
+  .lead-question { margin: 14px 0 0; font-size: 0.9rem; color: var(--text-sub); }
+
+  .summary-tiles { display: flex; gap: 14px; margin: 20px 0; flex-wrap: wrap; }
+  .tile {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 8px;
+    padding: 10px 18px; font-size: 0.85rem; color: var(--text-sub);
+  }
+  .tile strong { display: block; font-size: 1.3rem; color: var(--text); }
+
+  .toolbar { display: flex; gap: 10px; margin: 24px 0 10px; align-items: center; flex-wrap: wrap; }
+  .toolbar input[type="search"] {
+    flex: 1; min-width: 220px; padding: 8px 12px; font-size: 0.92rem;
+    border: 1px solid var(--border); border-radius: 6px;
+    background: var(--panel); color: var(--text); font-family: inherit;
+  }
+  .toolbar .note { font-size: 0.82rem; color: var(--text-muted); }
+
+  details.module-group { margin: 18px 0; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; min-width: 0; }
+  details.module-group > summary {
+    cursor: pointer; padding: 12px 16px; font-weight: 700; list-style: none;
+  }
+  details.module-group > summary::-webkit-details-marker { display: none; }
+  details.module-group > summary::before { content: "▸ "; }
+  details.module-group[open] > summary::before { content: "▾ "; }
+  details.module-group > summary .count { font-weight: 400; font-size: 0.82rem; color: var(--text-muted); margin-left: 8px; }
+
+  table.assets {
+    width: 100%; min-width: 760px; border-collapse: collapse; font-size: 0.88rem;
+  }
+  table.assets th, table.assets td {
+    border-top: 1px solid var(--border); padding: 7px 10px; text-align: left; vertical-align: top;
+    overflow-wrap: break-word; word-break: break-word;
+  }
+  table.assets thead th {
+    background: var(--panel-2); font-weight: 700; font-size: 0.8em; white-space: nowrap;
+  }
+  table.assets td code {
+    font-family: var(--mono); font-size: 0.85em;
+    background: var(--panel-2); padding: 1px 5px; border-radius: 3px;
+  }
+  table.assets tbody tr:nth-child(even) {
+    background: color-mix(in srgb, var(--panel-2) 40%, transparent);
+  }
+  table.assets tbody tr:hover { background: var(--accent-soft); }
+
+  .badge { display: inline-block; font-size: 0.76rem; font-weight: 700; padding: 1px 8px; border-radius: 3px; white-space: nowrap; }
+  .badge.danger  { background: var(--danger-soft); color: var(--danger); }   /* block */
+  .badge.gold    { background: var(--gold-soft); color: var(--gold); }       /* advisory */
+  .badge.neutral { background: var(--panel-2); color: var(--text-sub); }     /* なし・不可 等 */
+  .badge.accent  { background: var(--accent-soft); color: var(--accent); }   /* 階層・分類・可 等 */
+
+  .empty-note { padding: 10px 16px 16px; font-size: 0.85rem; color: var(--text-muted); }
+
+  footer { margin-top: 48px; font-size: 0.8rem; color: var(--text-muted); }
+</style>
+</head>
+<body>
+
+<header>
+  <nav class="back-link" style="margin: 16px 0 0; font-size: 0.85rem;">
+    <a href="../../index.html" style="color: var(--text-sub); text-decoration: none; border-bottom: 1px dotted var(--text-muted);">← ポータルへ戻る</a>
+  </nav>
+  <div class="header-top">
+    <h1>AI設定資産</h1>
+    <button id="theme-toggle" class="theme-toggle-btn" type="button" title="テーマ切替">テーマ切替</button>
+  </div>
+  <table class="meta-table">
+    <tr><td>生成日時</td><td>{{GENERATED_AT}}</td></tr>
+    <tr><td>データ源</td><td><code>{{DATA_SOURCE}}</code></td></tr>
+    <tr><td>種別</td><td>AI設定資産（rules / skills / サブエージェント / hooks）</td></tr>
+  </table>
+  <p class="lead-question">答える質問: 「このプロジェクトで効く rules は何か」「使えるスキルは」「委任できるサブエージェントは」「どの hook が何を block するか」。</p>
+
+  <div class="summary-tiles">
+    <div class="tile"><strong id="tile-rules-count">0</strong>rules数</div>
+    <div class="tile"><strong id="tile-skills-count">0</strong>skills数</div>
+    <div class="tile"><strong id="tile-subagents-count">0</strong>サブエージェント数</div>
+    <div class="tile"><strong id="tile-hooks-count">0</strong>hooks数</div>
+  </div>
+</header>
+
+<div class="toolbar">
+  <input type="search" id="assets-search" placeholder="名前・タグ・概要で絞り込み（全セクション横断）">
+  <span class="note">block は danger バッジ、advisory は gold バッジ</span>
+</div>
+
+<details class="module-group" open id="section-rules">
+  <summary>rules一覧<span class="count" data-count></span></summary>
+  <div class="table-wrap">
+  <table class="assets" id="rules-table">
+    <thead>
+      <tr>
+        <th>ルール名</th>
+        <th>階層</th>
+        <th>強制</th>
+        <th>注入タグ</th>
+        <th>概要</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+  </div>
+  <p class="empty-note" hidden data-empty>該当なし</p>
+</details>
+
+<details class="module-group" open id="section-skills">
+  <summary>skills一覧<span class="count" data-count></span></summary>
+  <div class="table-wrap">
+  <table class="assets" id="skills-table">
+    <thead>
+      <tr>
+        <th>スキル名</th>
+        <th>種別</th>
+        <th>トリガー</th>
+        <th>概要</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+  </div>
+  <p class="empty-note" hidden data-empty>該当なし</p>
+</details>
+
+<details class="module-group" open id="section-subagents">
+  <summary>サブエージェント一覧<span class="count" data-count></span></summary>
+  <div class="table-wrap">
+  <table class="assets" id="subagents-table">
+    <thead>
+      <tr>
+        <th>名前</th>
+        <th>分類</th>
+        <th>合否宣言</th>
+        <th>主ツール</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+  </div>
+  <p class="empty-note" hidden data-empty>該当なし</p>
+</details>
+
+<details class="module-group" open id="section-hooks">
+  <summary>hooks一覧<span class="count" data-count></span></summary>
+  <div class="table-wrap">
+  <table class="assets" id="hooks-table">
+    <thead>
+      <tr>
+        <th>スクリプト</th>
+        <th>timing</th>
+        <th>対象(matcher)</th>
+        <th>注入タグ</th>
+        <th>挙動</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+  </div>
+  <p class="empty-note" hidden data-empty>該当なし</p>
+</details>
+
+<script type="application/json" id="matrix-manifest">
+<!--ASSETS_JSON-->
+</script>
+
+<footer>AI設定資産ページ生成スキルにより生成。手編集は次回再生成で上書きされる。</footer>
+
+<script>
+  (function () {
+    var manifestEl = document.getElementById('matrix-manifest');
+    var manifest = { rules: [], skills: [], subagents: [], hooks: [] };
+    try { manifest = JSON.parse(manifestEl.textContent); } catch (e) { /* プレースホルダ未注入時は空描画 */ }
+    var rules = manifest.rules || [];
+    var skills = manifest.skills || [];
+    var subagents = manifest.subagents || [];
+    var hooks = manifest.hooks || [];
+
+    function el(tag, className, text) {
+      var node = document.createElement(tag);
+      if (className) node.className = className;
+      if (text != null) node.textContent = text;
+      return node;
+    }
+
+    /* 強制・挙動バッジ: block=danger / advisory=gold / それ以外=neutral */
+    function enforcementBadge(value) {
+      var v = String(value || 'なし');
+      var cls = v === 'block' ? 'badge danger' : (v === 'advisory' ? 'badge gold' : 'badge neutral');
+      return el('span', cls, v);
+    }
+
+    function tagCell(tags) {
+      var td = el('td');
+      var list = tags || [];
+      if (list.length === 0) { td.textContent = '—'; return td; }
+      list.forEach(function (t, i) {
+        if (i > 0) td.appendChild(document.createTextNode(' '));
+        td.appendChild(el('code', null, t));
+      });
+      return td;
+    }
+
+    function buildRulesRow(r) {
+      var tr = el('tr');
+      tr.appendChild(el('td', null, r.ruleName || ''));
+      var tdLayer = el('td');
+      tdLayer.appendChild(el('span', 'badge accent', r.layer || ''));
+      tr.appendChild(tdLayer);
+      var tdEnf = el('td');
+      tdEnf.appendChild(enforcementBadge(r.enforcement));
+      tr.appendChild(tdEnf);
+      tr.appendChild(tagCell(r.tags));
+      tr.appendChild(el('td', null, r.summary || ''));
+      return tr;
+    }
+
+    function buildSkillsRow(s) {
+      var tr = el('tr');
+      var tdName = el('td');
+      tdName.appendChild(el('code', null, s.skillName || ''));
+      tr.appendChild(tdName);
+      var tdCat = el('td');
+      tdCat.appendChild(el('span', 'badge accent', s.category || ''));
+      tr.appendChild(tdCat);
+      tr.appendChild(el('td', null, s.trigger || ''));
+      tr.appendChild(el('td', null, s.summary || ''));
+      return tr;
+    }
+
+    function buildSubagentsRow(a) {
+      var tr = el('tr');
+      var tdName = el('td');
+      tdName.appendChild(el('code', null, a.name || ''));
+      tr.appendChild(tdName);
+      var tdCls = el('td');
+      tdCls.appendChild(el('span', 'badge accent', a.classification || ''));
+      tr.appendChild(tdCls);
+      var tdVerdict = el('td');
+      tdVerdict.appendChild(el('span', a.verdict === '可' ? 'badge gold' : 'badge neutral', a.verdict || '不可'));
+      tr.appendChild(tdVerdict);
+      tr.appendChild(el('td', null, a.mainTools || ''));
+      return tr;
+    }
+
+    function buildHooksRow(h) {
+      var tr = el('tr');
+      var tdScript = el('td');
+      tdScript.appendChild(el('code', null, h.script || ''));
+      tr.appendChild(tdScript);
+      tr.appendChild(el('td', null, h.timing || ''));
+      tr.appendChild(el('td', null, h.matcher || '—'));
+      tr.appendChild(tagCell(h.tags));
+      var tdBehavior = el('td');
+      tdBehavior.appendChild(enforcementBadge(h.behavior));
+      if (h.summary) {
+        tdBehavior.appendChild(document.createTextNode(' '));
+        tdBehavior.appendChild(el('span', null, h.summary));
+      }
+      tr.appendChild(tdBehavior);
+      return tr;
+    }
+
+    var sections = [
+      { detailsId: 'section-rules', tableId: 'rules-table', data: rules, build: buildRulesRow },
+      { detailsId: 'section-skills', tableId: 'skills-table', data: skills, build: buildSkillsRow },
+      { detailsId: 'section-subagents', tableId: 'subagents-table', data: subagents, build: buildSubagentsRow },
+      { detailsId: 'section-hooks', tableId: 'hooks-table', data: hooks, build: buildHooksRow }
+    ];
+
+    sections.forEach(function (sec) {
+      var tbody = document.getElementById(sec.tableId).querySelector('tbody');
+      sec.data.forEach(function (item) { tbody.appendChild(sec.build(item)); });
+    });
+
+    /* summary-tiles */
+    document.getElementById('tile-rules-count').textContent = rules.length;
+    document.getElementById('tile-skills-count').textContent = skills.length;
+    document.getElementById('tile-subagents-count').textContent = subagents.length;
+    document.getElementById('tile-hooks-count').textContent = hooks.length;
+
+    /* 全セクション横断のテキスト検索 */
+    var search = document.getElementById('assets-search');
+    function applyFilter() {
+      var q = search ? search.value.trim().toLowerCase() : '';
+      sections.forEach(function (sec) {
+        var details = document.getElementById(sec.detailsId);
+        var tbody = document.getElementById(sec.tableId).querySelector('tbody');
+        var rows = Array.prototype.slice.call(tbody.querySelectorAll('tr'));
+        var visibleCount = 0;
+        rows.forEach(function (tr) {
+          var hit = !q || tr.textContent.toLowerCase().indexOf(q) !== -1;
+          tr.style.display = hit ? '' : 'none';
+          if (hit) visibleCount++;
+        });
+        var countEl = details.querySelector('[data-count]');
+        if (countEl) countEl.textContent = '（' + visibleCount + ' / ' + rows.length + '件）';
+        var emptyEl = details.querySelector('[data-empty]');
+        if (emptyEl) emptyEl.hidden = visibleCount !== 0;
+      });
+    }
+    if (search) search.addEventListener('input', applyFilter);
+    applyFilter();
+  })();
+</script>
+
+<script>
+  /* 保守注記: テーマ切替(rd-portal-theme)は shared/templates/tokens.css を注入した
+     unit-list-template.html 末尾のテーマ切替スクリプトからの複製である。
+     同ファイルの当該部分を変更した場合は本ファイルも同時更新すること。 */
+  (function () {
+    var themeBtn = document.getElementById('theme-toggle');
+    if (themeBtn) {
+      themeBtn.addEventListener('click', function () {
+        var r = document.documentElement;
+        var next = r.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+        r.setAttribute('data-theme', next);
+        try { localStorage.setItem('rd-portal-theme', next); } catch (e) {}
+      });
+    }
+    try {
+      var saved = localStorage.getItem('rd-portal-theme');
+      if (saved) document.documentElement.setAttribute('data-theme', saved);
+    } catch (e) {}
+  })();
+</script>
+
+</body>
+</html>
