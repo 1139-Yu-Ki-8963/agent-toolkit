@@ -446,12 +446,10 @@ table.data-table code {
         '<td>FE ' + fmtNum(scale.fe) + ' ／ BE ' + fmtNum(scale.be) + '・' + fmtNum(scale.files) + ' ファイル</td>' +
         '<td><code>code-metrics.json</code></td></tr>';
     scale.kinds.forEach(function(k) {
-      var isInternal = k.href.indexOf('#') === 0;
-      var linkAttr = isInternal ? '' : ' target="_blank" rel="noopener"';
       scaleRowsHtml += '<tr><td class="cell-main">' + k.label + '</td>' +
         '<td class="val-cell">' + fmtNum(k.count) + '</td>' +
         '<td>' + k.unit + '</td>' +
-        '<td><a href="' + k.href + '"' + linkAttr + '>' + k.label + '一覧ページ →</a></td></tr>';
+        '<td><a href="' + k.href + '">' + k.label + '一覧ページ →</a></td></tr>';
     });
     var scaleWrap = el('div', { class: 'table-wrap' });
     var scaleTable = el('table', { class: 'data-table', html:
