@@ -3,7 +3,7 @@ set -euo pipefail
 
 command -v jq >/dev/null 2>&1 || { echo "ERROR: jq is required but not installed" >&2; exit 1; }
 
-# build-portal.sh — リバース設計ポータルを生成する
+# build-portal.sh — 設計ポータルを生成する
 #
 # Usage:
 #   bash shared/scripts/build-portal.sh <target_repo_path> <docs_root> <portal_output_dir>
@@ -186,6 +186,13 @@ fi
 
 PROJECT_NAME="$(basename "$TARGET_REPO")"
 GENERATED_DATE="$(date +%Y-%m-%d)"
+
+# 対象リポジトリの短縮コミット SHA（git 管理外は空文字）
+if git -C "$TARGET_REPO" rev-parse --git-dir >/dev/null 2>&1; then
+  COMMIT_SHORT=" · $(git -C "$TARGET_REPO" rev-parse --short HEAD)"
+else
+  COMMIT_SHORT=""
+fi
 
 # --- 1. コード計測結果の読み取り（counting-code-lines スキルが出力した JSON） ---
 CODE_METRICS="$PORTAL_DIR/code-metrics.json"
@@ -419,6 +426,7 @@ template_content="$(cat "$TEMPLATE")"
 render_args=(
   "{{PROJECT_NAME}}" "$PROJECT_NAME"
   "{{GENERATED_DATE}}" "$GENERATED_DATE"
+  "{{COMMIT_SHORT}}" "$COMMIT_SHORT"
   "{{METRICS_JSON}}" "$METRICS_JSON"
   "{{CATEGORIES_JSON}}" "$CATEGORIES_JSON"
 )

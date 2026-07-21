@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>リバース設計ポータル — sample-project</title>
+<title>sample-project — 設計ポータル</title>
 <!--
   ポータルテンプレート — リバース設計スキル群
   生成: shared/scripts/build-portal.sh
@@ -13,7 +13,7 @@
   プレースホルダ一覧:
     sample-project     — プロジェクト名（basename target_repo_path）
     2026-07-20   — 生成日（date +%Y-%m-%d）
-    {"scale": {"total": 12000, "fe": 7200, "be": 4800, "files": 42, "kinds": [{"kind": "screen", "label": "画面", "count": 12, "unit": "画面", "href": "一覧/画面一覧/画面一覧.html"}, {"kind": "api", "label": "API", "count": 28, "unit": "エンドポイント", "href": "一覧/API一覧/API一覧.html"}, {"kind": "table", "label": "テーブル", "count": 15, "unit": "テーブル", "href": "一覧/テーブル一覧/テーブル一覧.html"}, {"kind": "batch", "label": "バッチ", "count": 3, "unit": "ジョブ", "href": "一覧/バッチ一覧/バッチ一覧.html"}, {"kind": "feature", "label": "機能", "count": 18, "unit": "機能", "href": "一覧/機能一覧/機能一覧.html"}]}, "tests": {"count": 85, "fe": 52, "be": 33, "files": 18, "density": 7.1}, "freshness": {"measured_at": "2026-07-20T00:00:00Z", "behind": 0, "note": "サンプルデータ"}, "previous": {"total": 11000, "tests_count": 72, "measured_at": "2026-07-01T00:00:00Z"}}     — 解析要約 JSON オブジェクト（scale/tests/freshness/previous の構造化データ）
+    {"scale": {"total": 12000, "fe": 7200, "be": 4800, "files": 42, "kinds": [{"kind": "screen", "label": "画面", "count": 12, "unit": "画面", "href": "一覧/画面一覧/画面一覧.html"}, {"kind": "api", "label": "API", "count": 28, "unit": "エンドポイント", "href": "一覧/API一覧/API一覧.html"}, {"kind": "table", "label": "テーブル", "count": 15, "unit": "テーブル", "href": "一覧/テーブル一覧/テーブル一覧.html"}, {"kind": "batch", "label": "バッチ", "count": 3, "unit": "ジョブ", "href": "一覧/バッチ一覧/バッチ一覧.html"}, {"kind": "feature", "label": "機能", "count": 18, "unit": "機能", "href": "一覧/機能一覧/機能一覧.html"}]}, "tests": {"count": 85, "fe": 52, "be": 33, "files": 18, "density": 7.1}, "freshness": {"measured_at": "2026-07-20T00:00:00Z", "behind": 0, "note": "サンプルデータ"}, "previous": {"total": 11000, "tests_count": 72, "measured_at": "2026-07-01T00:00:00Z"}}     — 解析概要 JSON オブジェクト（scale/tests/freshness/previous の構造化データ）
     [{"id": "list", "title": "一覧系資料", "icon": "list_alt", "sub": "画面・API・バッチ・テーブル・機能の種別一覧", "tools": [{"title": "画面一覧", "icon": "monitor", "href": "一覧/画面一覧/画面一覧.html", "desc": "全画面のルートパス・コンポーネント構成・複雑度プロファイルを一覧化。", "count": "12 画面 →"}, {"title": "API一覧", "icon": "api", "href": "一覧/API一覧/API一覧.html", "desc": "全エンドポイントのパス・HTTPメソッド・リクエスト/レスポンス型・認証要否を網羅。", "count": "28 エンドポイント →"}, {"title": "テーブル一覧", "icon": "table_chart", "href": "一覧/テーブル一覧/テーブル一覧.html", "desc": "全テーブルのカラム定義・型・制約・外部キーリレーションを一覧化。", "count": "15 テーブル →"}, {"title": "バッチ一覧", "icon": "schedule", "href": "一覧/バッチ一覧/バッチ一覧.html", "desc": "定期実行ジョブのスケジュール・入出力・依存関係・実行頻度を整理。", "count": "3 ジョブ →"}, {"title": "機能一覧", "icon": "category", "href": "一覧/機能一覧/機能一覧.html", "desc": "画面一覧を入力に導出した機能単位の一覧（派生一覧）。", "count": "18 機能 →"}]}, {"id": "project", "title": "プロジェクト基盤情報", "icon": "domain", "sub": "プロジェクトの前提を横断的にまとめた資料", "tools": [{"title": "用語辞書", "icon": "dictionary", "href": "用語辞書.html", "desc": "業務用語・技術用語・略語の定義とコード上の対応識別子の対訳。", "count": "詳細を見る ↗"}, {"title": "技術スタック", "icon": "stacks", "href": "技術スタック.html", "desc": "言語・フレームワーク・主要依存パッケージのバージョンと採用箇所の整理。", "count": "詳細を見る ↗"}, {"title": "画面遷移図", "icon": "account_tree", "href": "画面遷移図.html", "desc": "画面一覧とコード走査から生成する画面遷移マップ。", "count": "詳細を見る ↗"}, {"title": "ER図", "icon": "schema", "href": "ER図.html", "desc": "テーブル一覧と外部キー定義から生成するエンティティ関連図。", "count": "詳細を見る ↗"}, {"title": "環境・実行手順", "icon": "terminal", "href": "環境実行手順.html", "desc": "ローカル起動手順・必須ツール・ポート割当の整理。", "count": "詳細を見る ↗"}]}, {"id": "common", "title": "共通文書", "icon": "library_books", "sub": "プロジェクト全体に適用される設計方針・規約", "tools": [{"title": "コーディング規約", "icon": "rule", "href": "プロジェクト共通/コーディング規約.html", "desc": "", "count": "別タブで開く ↗"}, {"title": "命名規約", "icon": "rule", "href": "プロジェクト共通/命名規約.html", "desc": "", "count": "別タブで開く ↗"}, {"title": "共通設計書", "icon": "architecture", "href": "プロジェクト共通/共通設計書.html", "desc": "", "count": "別タブで開く ↗"}]}]  — カテゴリ・ツール JSON 配列
 -->
 <style>
@@ -82,7 +82,7 @@ body {
 a { color: var(--accent); text-decoration: none; }
 a:hover { text-decoration: underline; }
 
-.pm-page { display: grid; grid-template-rows: auto 1fr auto; min-height: 100vh; }
+.pm-page { display: grid; grid-template-rows: auto 1fr; min-height: 100vh; }
 
 .topbar {
   display: grid; grid-template-columns: auto 1fr auto;
@@ -228,13 +228,6 @@ table.data-table code {
 }
 .scale-fresh { font-size: 11.5px; color: var(--text-muted); margin-top: 10px; }
 
-.footer {
-  padding: 12px 20px; border-top: 1px solid var(--border);
-  font-size: 12px; color: var(--text-muted);
-  display: flex; gap: 20px; justify-content: center;
-}
-.footer code { background: var(--panel-2); padding: 1px 6px; border-radius: 4px; font-family: var(--mono); font-size: 11px; }
-
 @media (max-width: 900px) {
   .cards { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
 }
@@ -264,10 +257,10 @@ table.data-table code {
     <a class="brand" href="#">
       <span class="brand-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:middle"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zM13 9V3.5L18.5 9H13z"/></svg></span>
       <span class="brand-title">sample-project</span>
-      <span class="brand-sub">リバース設計ポータル</span>
+      <span class="brand-sub">設計ポータル</span>
     </a>
     <nav class="topnav">
-      <a href="#/summary"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:middle"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/></svg> 解析要約</a>
+      <a href="#/summary"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:middle"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/></svg> 解析概要</a>
       <a href="アーキテクチャ調査書.html"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:middle"><path d="M12 7V3H2v18h20V7H12zM6 19H4v-2h2v2zm0-4H4v-2h2v2zm0-4H4V9h2v2zm0-4H4V5h2v2zm4 12H8v-2h2v2zm0-4H8v-2h2v2zm0-4H8V9h2v2zm0-4H8V5h2v2zm10 12h-8v-2h2v-2h-2v-2h2v-2h-2V9h8v10zm-2-8h-2v2h2v-2zm0 4h-2v2h2v-2z"/></svg> アーキテクチャ調査書</a>
     </nav>
     <div class="top-actions">
@@ -279,22 +272,17 @@ table.data-table code {
     <div class="pm-hero">
       <div>
         <h1>sample-project</h1>
-        <p>コードから抽出した一覧系資料と共通文書の入口。</p>
+        <p>設計情報と技術資産を一元管理するポータル。</p>
       </div>
-      <span class="pm-updated">生成: 2026-07-20</span>
+      <span class="pm-updated">更新: 2026-07-20</span>
     </div>
 
-    <div class="sec-label">解析要約</div>
+    <div class="sec-label">解析概要</div>
     <div class="metric-grid" id="metrics-mount"></div>
 
-    <div class="sec-label">ドキュメント入口</div>
+    <div class="sec-label">資料カテゴリ</div>
     <div id="app-main"></div>
   </main>
-
-  <footer class="footer">
-    <span>リバース設計スキル群が自動生成</span>
-    <span>出力先: <code>project-portal/index.html</code></span>
-  </footer>
 </div>
 
 <script type="application/json" id="portal-metrics">{"scale": {"total": 12000, "fe": 7200, "be": 4800, "files": 42, "kinds": [{"kind": "screen", "label": "画面", "count": 12, "unit": "画面", "href": "一覧/画面一覧/画面一覧.html"}, {"kind": "api", "label": "API", "count": 28, "unit": "エンドポイント", "href": "一覧/API一覧/API一覧.html"}, {"kind": "table", "label": "テーブル", "count": 15, "unit": "テーブル", "href": "一覧/テーブル一覧/テーブル一覧.html"}, {"kind": "batch", "label": "バッチ", "count": 3, "unit": "ジョブ", "href": "一覧/バッチ一覧/バッチ一覧.html"}, {"kind": "feature", "label": "機能", "count": 18, "unit": "機能", "href": "一覧/機能一覧/機能一覧.html"}]}, "tests": {"count": 85, "fe": 52, "be": 33, "files": 18, "density": 7.1}, "freshness": {"measured_at": "2026-07-20T00:00:00Z", "behind": 0, "note": "サンプルデータ"}, "previous": {"total": 11000, "tests_count": 72, "measured_at": "2026-07-01T00:00:00Z"}}</script>
@@ -381,7 +369,7 @@ table.data-table code {
       if (k) scaleTags.appendChild(el('span', { class: 'count-tag', html: k.label + ' <b>' + fmtNum(k.count) + '</b>' }));
     });
     scaleCard.appendChild(scaleTags);
-    scaleCard.appendChild(el('div', { class: 'metric-sub' }, '全 ' + scale.kinds.length + ' 種別の内訳 → 明細へ'));
+    scaleCard.appendChild(el('div', { class: 'metric-sub' }, '全 ' + scale.kinds.length + ' 種別の内訳 →'));
     metricsMount.appendChild(scaleCard);
 
     var testsCard = el('a', { class: 'metric-card', href: '#/summary' });
@@ -392,10 +380,10 @@ table.data-table code {
       testTags.appendChild(el('span', { class: 'count-tag', html: 'FE <b>' + fmtNum(tests.fe) + '</b>' }));
       testTags.appendChild(el('span', { class: 'count-tag', html: 'BE <b>' + fmtNum(tests.be) + '</b>' }));
       testsCard.appendChild(testTags);
-      testsCard.appendChild(el('div', { class: 'metric-sub' }, '密度・前回比は計算式付きで明細へ'));
+      testsCard.appendChild(el('div', { class: 'metric-sub' }, '計算式・前回比を含む →'));
     } else {
       testsCard.appendChild(el('div', { class: 'metric-value' }, '—'));
-      testsCard.appendChild(el('div', { class: 'metric-sub' }, '未計測 — counting-code-lines の拡張後に表示'));
+      testsCard.appendChild(el('div', { class: 'metric-sub' }, '未計測'));
     }
     metricsMount.appendChild(testsCard);
   })();
@@ -467,9 +455,9 @@ table.data-table code {
     var previous = metrics.previous;
     var measuredText = freshness.measured_at + (freshness.note ? '・' + freshness.note : '');
 
-    root.appendChild(el('div', { class: 'doc-crumbs', html: '<a data-nav="#/">TOP</a> / 解析要約' }));
+    root.appendChild(el('div', { class: 'doc-crumbs', html: '<a data-nav="#/">TOP</a> / 解析概要' }));
     root.appendChild(el('div', { class: 'section-header' }, [
-      el('h2', { class: 'section-title', html: matIcon('monitoring', 18) + ' 解析要約' }),
+      el('h2', { class: 'section-title', html: matIcon('monitoring', 18) + ' 解析概要' }),
       el('span', { class: 'section-sub' }, '計測値と規模の明細。事実の記録のみで、数値の出所となる計算・条件を併記する。'),
     ]));
 
@@ -500,7 +488,7 @@ table.data-table code {
       testsWrap.appendChild(testsTable);
       root.appendChild(testsWrap);
     } else {
-      root.appendChild(el('div', { class: 'note-box' }, '未計測 — counting-code-lines の拡張後に表示'));
+      root.appendChild(el('div', { class: 'note-box' }, '未計測'));
     }
 
     root.appendChild(el('div', { class: 'sec-label' }, '規模'));
