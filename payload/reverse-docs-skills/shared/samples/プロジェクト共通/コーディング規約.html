@@ -3,52 +3,41 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>コーディング規約</title>
+<title># コーディング規約（リバース版）</title>
 <style>
   :root,
-  [data-theme="light"] {
-    --bg: #FFFFFF;
-    --panel: #FFFFFF;
-    --panel-2: #F0EDE3;
-    --border: #DAD5C5;
-    --border-strong: #BFB9A6;
-    --text: #1B1F26;
-    --text-sub: #4A4F58;
-    --text-muted: #767B85;
-    --accent: #3F4F8E;
-    --accent-2: #5A6BAE;
-    --accent-soft: #E6E9F3;
-    --accent-border: #BAC2DC;
-    --gold: #9B7A1F;
-    --gold-soft: #F5EFD9;
-    --gold-border: #DDC68A;
-    --success: #3F4F8E;
-    --success-soft: #E6E9F3;
-    --warn: #9B7A1F;
-    --danger: #9B3F2D;
-    --danger-soft: #F5E2DC;
-    --code-bg: #1B1F26;
-    --code-fg: #E8E5DC;
-    --font-body: "Hiragino Kaku Gothic ProN","Hiragino Sans","Noto Sans JP","BIZ UDPGothic","Yu Gothic","Meiryo",system-ui,-apple-system,sans-serif;
-    --mono: "SFMono-Regular","Menlo","Cascadia Code","Consolas",monospace;
-    --shadow-sm: 0 1px 3px rgba(27,31,38,.07), 0 2px 6px rgba(27,31,38,.05);
-    --shadow-md: 0 2px 8px rgba(27,31,38,.09), 0 8px 24px rgba(27,31,38,.07);
-    --radius: 10px;
-    --radius-sm: 6px;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) {
-      --bg: #15171C; --panel: #1C1F26; --panel-2: #232730;
-      --border: #353944; --border-strong: #4A4F5C;
-      --text: #E8E5DC; --text-sub: #B6B3AB; --text-muted: #888784;
-      --accent: #8FA3DB; --accent-2: #A8B8E5; --accent-soft: #2A2E47; --accent-border: #4C5680;
-      --gold: #D4B45D; --gold-soft: #3D3520; --gold-border: #7A6633;
-      --success: #8FA3DB; --success-soft: #2A2E47;
-      --warn: #D4B45D; --danger: #D4836E; --danger-soft: #3F2620;
-      --code-bg: #0E1116; --code-fg: #E8E5DC;
-    }
-  }
-  [data-theme="dark"] {
+[data-theme="light"] {
+  --bg: #FFFFFF;
+  --panel: #FFFFFF;
+  --panel-2: #F0EDE3;
+  --border: #DAD5C5;
+  --border-strong: #BFB9A6;
+  --text: #1B1F26;
+  --text-sub: #4A4F58;
+  --text-muted: #767B85;
+  --accent: #3F4F8E;
+  --accent-2: #5A6BAE;
+  --accent-soft: #E6E9F3;
+  --accent-border: #BAC2DC;
+  --gold: #9B7A1F;
+  --gold-soft: #F5EFD9;
+  --gold-border: #DDC68A;
+  --success: #3F4F8E;
+  --success-soft: #E6E9F3;
+  --warn: #9B7A1F;
+  --danger: #9B3F2D;
+  --danger-soft: #F5E2DC;
+  --code-bg: #1B1F26;
+  --code-fg: #E8E5DC;
+  --font-body: "Hiragino Kaku Gothic ProN","Hiragino Sans","Noto Sans JP","BIZ UDPGothic","Yu Gothic","Meiryo",system-ui,-apple-system,sans-serif;
+  --mono: "SFMono-Regular","Menlo","Cascadia Code","Consolas",monospace;
+  --shadow-sm: 0 1px 3px rgba(27,31,38,.07), 0 2px 6px rgba(27,31,38,.05);
+  --shadow-md: 0 2px 8px rgba(27,31,38,.09), 0 8px 24px rgba(27,31,38,.07);
+  --radius: 10px;
+  --radius-sm: 6px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
     --bg: #15171C; --panel: #1C1F26; --panel-2: #232730;
     --border: #353944; --border-strong: #4A4F5C;
     --text: #E8E5DC; --text-sub: #B6B3AB; --text-muted: #888784;
@@ -58,6 +47,17 @@
     --warn: #D4B45D; --danger: #D4836E; --danger-soft: #3F2620;
     --code-bg: #0E1116; --code-fg: #E8E5DC;
   }
+}
+[data-theme="dark"] {
+  --bg: #15171C; --panel: #1C1F26; --panel-2: #232730;
+  --border: #353944; --border-strong: #4A4F5C;
+  --text: #E8E5DC; --text-sub: #B6B3AB; --text-muted: #888784;
+  --accent: #8FA3DB; --accent-2: #A8B8E5; --accent-soft: #2A2E47; --accent-border: #4C5680;
+  --gold: #D4B45D; --gold-soft: #3D3520; --gold-border: #7A6633;
+  --success: #8FA3DB; --success-soft: #2A2E47;
+  --warn: #D4B45D; --danger: #D4836E; --danger-soft: #3F2620;
+  --code-bg: #0E1116; --code-fg: #E8E5DC;
+}
 
   * { box-sizing: border-box; }
   body {
@@ -117,7 +117,7 @@
 <header class="topbar">
   <a class="brand" href="index.html">
     <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:middle"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
-    <span>コーディング規約</span>
+    <span># コーディング規約（リバース版）</span>
   </a>
   <div></div>
   <div><button id="theme-toggle" title="テーマ切替">ライト</button></div>
@@ -128,26 +128,9 @@
 <footer class="footer">共通文書ビューア — build-portal.sh により自動生成</footer>
 
 <script type="text/plain" id="doc-md">
-# コーディング規約
+# コーディング規約（リバース版）
 
-## 1. 命名規則
-
-- 変数名・関数名はキャメルケース（`getUserName`）
-- コンポーネント名はパスカルケース（`UserCard`）
-- 定数は大文字スネークケース（`MAX_RETRY_COUNT`）
-- ファイル名はケバブケース（`user-card.tsx`）
-
-## 2. インポート順序
-
-1. Node.js 組み込みモジュール
-2. 外部パッケージ
-3. 内部モジュール（`@/` エイリアス）
-4. 相対パスのモジュール
-
-## 3. コメント
-
-- コードの「なぜ」を書く。「何」はコードで表現する
-- TODO コメントには issue 番号を付ける（`// TODO(#123): ...`）
+本文書はリバースエンジニアリングにより抽出されたコーディング規約のサンプルです。
 </script>
 
 <script>
@@ -155,7 +138,7 @@
   var src = document.getElementById('doc-md').textContent;
 
   // frontmatter 除去
-  src = src.replace(/^---[\s\S]*?---\s*/, '');
+  src = src.replace(/^\s*---[\s\S]*?---\s*/, '');
 
   var lines = src.split('\n');
   var html = [];
