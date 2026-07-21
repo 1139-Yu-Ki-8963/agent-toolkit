@@ -139,7 +139,62 @@
 | build-matrix-data.sh | 拡張済みマニフェスト群（screen / api 必須、table / feature 任意） | permission-matrix.json・crud-matrix.json・traceability.json | ソースコードは読まず、拡張フィールド（permissions / method / relatedApis / targetTables）からの jq 導出のみで 3 ファイルを合成 |
 | extract-ai-assets.sh | リポジトリの `.claude/` 配下（rules / skills / agents / settings.json）と CLAUDE.md・flow-values.yml | AI設定資産ページ用 JSON（rules / skills / subagents / hooks + 設定索引） | rule.md の機械強制表・SKILL.md frontmatter・hooks 登録の grep/sed 抽出でマニフェスト形式に正規化 |
 
-いずれも検出根拠が弱い値は出力しない fail-safe 方針で、抽出できないフィールドは任意フィールドの欠落として扱う。方式の詳細（grep パターン）は各スクリプトのヘッダコメントが正本であり、本表は索引のみを担う。
+いずれも検出根拠が弱い値は出力しない fail-safe 方針で、抽出できないフィールドは任意フィールドの欠落として扱う。推定・検出ルールは次節「抽出の推定・検出ルール（仕様）」に仕様として記載し、スクリプト実装と同時更新で一致を保つ。本表は索引のみを担う。
+
+## 抽出の推定・検出ルール（仕様）
+
+本節は ground-truth 作成者が抽出スクリプト本体を読まずに期待値を書けるようにするための仕様である。スクリプトのパターンを変更した場合は本節を同時更新する。記載対象は期待値の正誤判定に直結するルールに限り、フィールドの全量は「種別ごとの追加フィールド定義」を参照する。キーは連番禁止。内容を要約した意味語で付ける（番号からは情報を得られないため）。
+
+### screens（画面）
+
+| ルールキー | 対象フィールド | 仕様 |
+|---|---|---|
+| category-ルートprefix判定 | category | route が `/admin` そのもの、または `/admin/...` 始まりなら「管理」。それ以外の非空 route なら「一般」。route 不在（unresolved 等）なら欠落 |
+| permissions-認可イディオム検出 | permissions | 構成ファイル（files[] があればそれ、無ければ entryFile / sourceFile / mainFile）内から次のイディオムに一致する箇所のロール名を収集する: `requireRole('x')` / `requireRole("x")`、`hasRole('x')` / `hasRole("x")`、`roles: ['x', 'y']` / `roles: ["x"]`、`@RolesAllowed("x")` / `@RolesAllowed({"x","y"})` |
+| permissions-管理画面admin推定 | permissions | ロール検出なし ∧ category=管理 → `["admin"]` を推定値として付与する |
+| permissions-一般画面空配列 | permissions | category=一般 ∧ ロール検出なし → `[]`（全員可）を付与する。category 不明 ∧ 検出なしなら欠落 |
+
+### apis（API）
+
+| ルールキー | 対象フィールド | 仕様 |
+|---|---|---|
+| method-識別子先頭語判定 | method | identifier の先頭語（空白区切り）が GET / POST / PUT / PATCH / DELETE に完全一致する場合のみ採用する。トリガは identifier の先頭語であり、ソース内のデコレータ（`@app.get` 等）は判定根拠ではない。一致しなければ欠落 |
+| authRequired-判定窓 | authRequired | identifier のパス部（先頭メソッド語を除去した残り）を sourceFile 内で固定文字列検索し、最初のヒット行の前 3 行〜後 20 行を「エンドポイント近傍窓」として判定する |
+| authRequired-肯定パターン | authRequired | 窓内に `Depends(get_current_user` / `@login_required` / `requireAuth` / `verify_token` / `IsAuthenticated` のいずれかがあれば true |
+| authRequired-否定パターン | authRequired | 窓内に単語境界付きで `AllowAny` / `public` のいずれかがあれば false |
+| authRequired-検出不能時欠落 | authRequired | パス部がソースにヒットしない、または肯定・否定のどちらのパターンも無い場合はフィールド自体を付けない（false と推定しない） |
+
+### tables（テーブル）
+
+| ルールキー | 対象フィールド | 仕様 |
+|---|---|---|
+| fk-references採取 | foreignKeys | CREATE TABLE ブロック内の `REFERENCES <table>`（カラムインライン・FOREIGN KEY 句の両方）と、sourceFile 内の同一行完結 `ALTER TABLE <対象テーブル> ... REFERENCES <table>` 行から参照先物理名を採取する |
+| fk-unitKey解決 | foreignKeys | 採取した参照先物理名をマニフェスト内 identifier と大文字小文字無視で突合して unitKey へ解決する。解決できない参照先は捨て、1 件も解決できなければフィールド自体を付けない |
+
+### batches（バッチ）
+
+| ルールキー | 対象フィールド | 仕様 |
+|---|---|---|
+| cron-式抽出 | schedule.cron | --cron-file 内で identifier（不在時は unitKey）を含む行から、5 フィールドの cron 式（パターン `[0-9*,/-]+` がスペース区切りで 5 連続）を抽出する。ヒットしなければ schedule 自体が欠落 |
+| cron-平易表記変換 | schedule.readable | 基本パターンのみ変換する: 分・時が数値 ∧ 日=月=曜=`*` → 「毎日 H:MM」、曜日 0-6 → 「毎週X曜 H:MM」、日が数値 → 「毎月D日 H:MM」、分=`*/N` ∧ 他=`*` → 「N分ごと」。変換不能なら cron 式をそのまま readable に入れる |
+
+### reports（帳票）
+
+| ルールキー | 対象フィールド | 仕様 |
+|---|---|---|
+| format-ライブラリ検出 | format | sourceFile 内を grep する: `reportlab` / `fpdf` / `pdf`（大文字小文字無視）→ PDF、`csv.writer` / `to_csv` → CSV、`openpyxl` / `xlsxwriter`（大文字小文字無視）→ Excel |
+| format-単一形式限定 | format | ちょうど 1 形式にヒットした場合のみ出力する。複数形式に同時ヒット・0 件はどちらも欠落 |
+
+### externals（外部連携）
+
+| ルールキー | 対象フィールド | 仕様 |
+|---|---|---|
+| direction-送信パターン | direction | `requests.(get\|post\|put\|patch\|delete)` / `httpx` / `fetch(` / `axios` / `paramiko` / `SFTPClient` のいずれかにヒットで送信候補 |
+| direction-受信パターン | direction | `@app.(get\|post\|put\|patch\|delete)` / `@router.(get\|post\|put\|patch\|delete)` / `@app.route` のいずれかにヒットで受信候補 |
+| direction-片側ヒット限定 | direction | 送信のみヒット → 送信、受信のみヒット → 受信。両方ヒット・どちらも 0 件は欠落 |
+| protocol-優先順判定 | protocol | 先勝ちで判定する: `paramiko` / `sftp`（大文字小文字無視）→ SFTP、`webhook`（大文字小文字無視）→ Webhook、`requests.` / `httpx` / `fetch(` / `axios` / `urllib` → REST。どれにもヒットしなければ欠落 |
+| protocol-webhook文字列必須 | protocol | protocol=Webhook の判定にはソース内の `webhook` 文字列一致が必要である。受信方向の REST エンドポイントというだけでは Webhook と判定しない |
+| authMethod-優先順判定 | authMethod | 先勝ちで判定する: `Authorization.*Bearer` / `OAuth` → OAuth2、`api_key` / `X-API-Key` / `apikey`（大文字小文字無視）→ APIキー、`HTTPBasicAuth` / `basic_auth`（大文字小文字無視）→ Basic。どれにもヒットしなければ欠落 |
 
 ## 影響を受けるビルドスクリプト
 
