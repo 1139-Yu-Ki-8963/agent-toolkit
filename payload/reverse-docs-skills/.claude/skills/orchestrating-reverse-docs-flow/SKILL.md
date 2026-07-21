@@ -55,7 +55,7 @@ allowed-tools: [Read, Write, Bash, Grep, Glob, AskUserQuestion, TaskCreate, Task
 | 一覧未生成 | unit_kinds_present のいずれかの種別について一覧HTMLが不在、または excluded-kinds.json が不在 | generating-<種別>-list-for-reverse-docs（不在種別に対応する種別別一覧スキル） |
 | 共通未採録 | プロジェクト共通10文書のいずれか不在、または機械ゲート再実行が失敗 | generating-reverse-common-docs（NG帰着(c)差し戻し時は mode=append） |
 | ポータル未生成 | `<target_repo_path>/project-portal/index.html` が不在 | bash shared/scripts/build-portal.sh（Phase 4A） |
-| 基盤ページ未生成（任意） | 用語辞書.html・技術スタック.html・画面遷移図.html・ER図.html・環境実行手順.html のいずれかが docs_root 直下に不在。任意工程のためデータ源未整備時はスキップしてよい（Phase 4B） | generating-tech-stack-for-reverse-docs / generating-env-guide-for-reverse-docs / generating-screen-transition-for-reverse-docs / generating-er-diagram-for-reverse-docs / generating-glossary-for-reverse-docs（不在ページに対応するスキルのみ） |
+| 基盤ページ未生成（任意） | 用語辞書.html・技術スタック.html・画面遷移図.html・ER図.html・環境構築手順.html のいずれかが docs_root 直下に不在。任意工程のためデータ源未整備時はスキップしてよい（Phase 4B） | generating-tech-stack-for-reverse-docs / generating-env-guide-for-reverse-docs / generating-screen-transition-for-reverse-docs / generating-er-diagram-for-reverse-docs / generating-glossary-for-reverse-docs（不在ページに対応するスキルのみ） |
 | 画面未開通 | 画面一覧HTML有・画面が未開通（設計書も基準タグも無い新規画面） | unlocking-reverse-target-screens（内部で基準タグ確立まで完走。`UNLOCKED`差し戻し時のみ`syncing-reverse-env(registry)`を管理者が直接起動） |
 | 事実未封印 | facts.lock が不在、または封印検証が失敗 | extracting-unit-facts-from-code |
 | 基本設計未著述 | 画面基本設計書（`<screen_dir>/基本設計/画面基本設計書.md`）が不在 | generating-reverse-basic-design |
@@ -169,7 +169,7 @@ bash shared/scripts/build-portal.sh \
 
 ### Phase 4B: 基盤情報ページ生成（任意）
 
-ポータル生成完了後、任意工程として基盤情報ページ5枚（用語辞書・技術スタック・画面遷移図・ER図・環境実行手順）を生成する。データ源（画面一覧・テーブル一覧・調査書等）が未整備のページはスキップしてよい。
+ポータル生成完了後、任意工程として基盤情報ページ5枚（用語辞書・技術スタック・画面遷移図・ER図・環境構築手順）を生成する。データ源（画面一覧・テーブル一覧・調査書等）が未整備のページはスキップしてよい。
 
 #### Step 4B-1: 基盤ページ生成スキルを任意で起動する
 
@@ -510,7 +510,7 @@ Phase 1 の状態判定完了後に一括登録するタスク一覧の設計。
 
 ### build-detail-page.sh / validate-page-data.sh
 
-**必要性**: 基盤ページ5枚（用語辞書・技術スタック・画面遷移図・ER図・環境実行手順）は、生成スキルが抽出した page-data.json をテンプレ4本へ流し込む処理を共通で必要とする。この流し込みロジックを各スキルに複製すると、`build-portal.sh` の FUTURE_FILES と出力ファイル名がスキルごとにずれる事故が起こりうる。`build-detail-page.sh` は page 種別 → テンプレ・固定出力ファイル名の対応表を1箇所に固定し、FUTURE_FILES との一致を機械保証する。`validate-page-data.sh` は埋め込みJSONの `jq -S` 一致・マーカー衝突・未解決 `{{` の残存・sourceRef の実在確認を、抽出者（各スキル）非依存で検証する。いずれも複数の決定的処理を含み、Bash ツール直叩きでは self-test を持てず回帰検証ができない。
+**必要性**: 基盤ページ5枚（用語辞書・技術スタック・画面遷移図・ER図・環境構築手順）は、生成スキルが抽出した page-data.json をテンプレ4本へ流し込む処理を共通で必要とする。この流し込みロジックを各スキルに複製すると、`build-portal.sh` の FUTURE_FILES と出力ファイル名がスキルごとにずれる事故が起こりうる。`build-detail-page.sh` は page 種別 → テンプレ・固定出力ファイル名の対応表を1箇所に固定し、FUTURE_FILES との一致を機械保証する。`validate-page-data.sh` は埋め込みJSONの `jq -S` 一致・マーカー衝突・未解決 `{{` の残存・sourceRef の実在確認を、抽出者（各スキル）非依存で検証する。いずれも複数の決定的処理を含み、Bash ツール直叩きでは self-test を持てず回帰検証ができない。
 
 **代替案を採用しなかった理由**:
 - Bash ツール直叩き: 5スキル × 生成のたびに同じ流し込み・検証手順を手書きすると条件がぶれ、FUTURE_FILES との不一致を機械的に検知できない

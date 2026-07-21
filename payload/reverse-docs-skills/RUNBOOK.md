@@ -90,6 +90,6 @@ bash shared/scripts/detail-pages/build-detail-page.sh <page-data.json> <output-d
 | techstack | 技術スタック.html | techstack |
 | transition | 画面遷移図.html | transition |
 | er | ER図.html | er |
-| env | 環境実行手順.html | env |
+| env | 環境構築手順.html | env |
 
 `page-data.json` は各スキル（`generating-*-for-reverse-docs`）が生成する中間データであり、テンプレートとは独立して管理される。テンプレートのみ変更した場合は、同じ `page-data.json` を入力として再生成すれば更新が反映される。

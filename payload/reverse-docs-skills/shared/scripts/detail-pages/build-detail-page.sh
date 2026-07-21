@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# detail-pages系(用語辞書/技術スタック/画面遷移図/ER図/環境実行手順)共通ビルダー。
+# detail-pages系(用語辞書/技術スタック/画面遷移図/ER図/環境構築手順)共通ビルダー。
 # page-data.json + --page 指定から、対応するテンプレートへ描画したHTMLを固定ファイル名で
 # <output-dir> 直下に書き出す。出力ファイル名は build-portal.sh の FUTURE_FILES と同値。
 #
@@ -19,7 +19,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 get_page_template() { case "$1" in glossary) echo "detail-t2-dictionary.html";; techstack) echo "detail-t3-attributes.html";; transition) echo "detail-t4-diagram.html";; er) echo "detail-t4-diagram.html";; env) echo "detail-t5-procedure.html";; esac; }
-get_page_filename() { case "$1" in glossary) echo "用語辞書.html";; techstack) echo "技術スタック.html";; transition) echo "画面遷移図.html";; er) echo "ER図.html";; env) echo "環境実行手順.html";; esac; }
+get_page_filename() { case "$1" in glossary) echo "用語辞書.html";; techstack) echo "技術スタック.html";; transition) echo "画面遷移図.html";; er) echo "ER図.html";; env) echo "環境構築手順.html";; esac; }
 
 # --- --self-test モード ---
 # (a) バックスラッシュ・実マーカー文字列(\d+・{{PAGE_DATA_JSON}}・<!--DETAIL_TILES-->)を含む
@@ -232,7 +232,7 @@ self_test() {
   jq -n '{
     pageKind: "env",
     generatedAt: "2026-01-01T00:00:00Z",
-    title: "環境実行手順",
+    title: "環境構築手順",
     description: "self-test用フィクスチャ",
     prerequisites: [{name: "Node.js", note: "v18以上"}],
     steps: [

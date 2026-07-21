@@ -137,7 +137,7 @@ page-data.json の保存先は `$CLAUDE_JOB_DIR/tmp/er-page-data.json` とする
 
 ### エンジンスクリプトの共用（validate-page-data.sh / build-detail-page.sh）
 
-**必要性**: page-data.json の整合検証と HTML 生成は pageKind 非依存の決定的処理であり、5 種別（用語辞書・技術スタック・画面遷移図・ER図・環境実行手順）に共通する。`shared/scripts/detail-pages/` の単一実装を全種別スキルが相対パスで共用することで、スキーマ変更時の同期漏れを防ぐ。
+**必要性**: page-data.json の整合検証と HTML 生成は pageKind 非依存の決定的処理であり、5 種別（用語辞書・技術スタック・画面遷移図・ER図・環境構築手順）に共通する。`shared/scripts/detail-pages/` の単一実装を全種別スキルが相対パスで共用することで、スキーマ変更時の同期漏れを防ぐ。
 
 **代替案を採用しなかった理由**:
 - スキルフォルダ内への複製: スキーマ変更時に種別数ぶんの同期漏れリスクが生じる

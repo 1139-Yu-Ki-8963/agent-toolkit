@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# detail-pages系(用語辞書/技術スタック/画面遷移図/ER図/環境実行手順)共通エンジン:
+# detail-pages系(用語辞書/技術スタック/画面遷移図/ER図/環境構築手順)共通エンジン:
 # page-data.json の独立検証。正本スキーマは同ディレクトリの page-data-schema.md。
 #
 # Usage: validate-page-data.sh <page-data.json> [--target-repo <path>]

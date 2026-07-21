@@ -49,7 +49,7 @@
 | generating-external-list-for-reverse-docs | 外部連携の一覧生成 | 外部連携一覧.html |
 | generating-feature-list-for-reverse-docs | 既存一覧を業務機能単位でグルーピングした派生一覧を生成 | 機能一覧.html |
 | generating-tech-stack-for-reverse-docs | 調査書と定義ファイルの実測突合から技術スタックページを生成 | 技術スタック.html |
-| generating-env-guide-for-reverse-docs | 調査書とローカル環境調査結果から環境実行手順ページを生成 | 環境実行手順.html |
+| generating-env-guide-for-reverse-docs | 調査書とローカル環境調査結果から環境構築手順ページを生成 | 環境構築手順.html |
 | generating-screen-transition-for-reverse-docs | 画面一覧マニフェストとルーティング定義から画面遷移図を生成 | 画面遷移図.html |
 | generating-er-diagram-for-reverse-docs | テーブル一覧マニフェストと FK 定義から ER 図を生成 | ER図.html |
 | generating-glossary-for-reverse-docs | 層化サンプリングによる採録から用語辞書ページを生成 | 用語辞書.html |
@@ -175,7 +175,7 @@ Skill(orchestrating-reverse-docs-flow)
 - [外部連携一覧生成（generating-external-list-for-reverse-docs）](.claude/skills/generating-external-list-for-reverse-docs/references/generating-external-list-for-reverse-docs-guide.html)
 - [機能一覧生成（generating-feature-list-for-reverse-docs）](.claude/skills/generating-feature-list-for-reverse-docs/references/generating-feature-list-for-reverse-docs-guide.html)
 - [技術スタックページ生成（generating-tech-stack-for-reverse-docs）](.claude/skills/generating-tech-stack-for-reverse-docs/references/generating-tech-stack-for-reverse-docs-guide.html)
-- [環境実行手順ページ生成（generating-env-guide-for-reverse-docs）](.claude/skills/generating-env-guide-for-reverse-docs/references/generating-env-guide-for-reverse-docs-guide.html)
+- [環境構築手順ページ生成（generating-env-guide-for-reverse-docs）](.claude/skills/generating-env-guide-for-reverse-docs/references/generating-env-guide-for-reverse-docs-guide.html)
 - [画面遷移図生成（generating-screen-transition-for-reverse-docs）](.claude/skills/generating-screen-transition-for-reverse-docs/references/generating-screen-transition-for-reverse-docs-guide.html)
 - [ER図生成（generating-er-diagram-for-reverse-docs）](.claude/skills/generating-er-diagram-for-reverse-docs/references/generating-er-diagram-for-reverse-docs-guide.html)
 - [用語辞書ページ生成（generating-glossary-for-reverse-docs）](.claude/skills/generating-glossary-for-reverse-docs/references/generating-glossary-for-reverse-docs-guide.html)

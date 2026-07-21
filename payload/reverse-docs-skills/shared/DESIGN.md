@@ -71,7 +71,7 @@
 | `detail-t2-dictionary.html` | 対訳辞書型（用語辞書） |
 | `detail-t3-attributes.html` | 属性表型（技術スタック） |
 | `detail-t4-diagram.html` | 図解型（画面遷移図・ER 図、client-side SVG） |
-| `detail-t5-procedure.html` | 手順型（環境実行手順） |
+| `detail-t5-procedure.html` | 手順型（環境構築手順） |
 | `unit-list-template.html` | 一覧型（単位一覧、検索・ソート付き） |
 | `screen-list-template.html` | 一覧型（画面一覧、検索・ソート付き） |
 | `feature-list-template.html` | 一覧型（機能一覧、検索・ソート付き） |
