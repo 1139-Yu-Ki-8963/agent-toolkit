@@ -303,18 +303,90 @@ table.data-table code {
 .mode-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
 
 /* 動線別モード */
-.flow-strip { margin-bottom: 24px; }
-.flow-title { font-size: 15px; font-weight: 700; margin-bottom: 10px; }
-.flow-steps { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 8px; align-items: center; }
-.flow-step { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
-.flow-step:not(:last-child)::after { content: "→"; font-size: 16px; color: var(--text-muted); flex-shrink: 0; }
-.flow-step-num { font-size: 11px; font-weight: 700; color: var(--accent); width: 20px; text-align: center; }
-.flow-step-card { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 14px; min-width: 120px; cursor: pointer; transition: box-shadow .15s; }
-.flow-step-card:hover { box-shadow: 0 0 0 2px var(--accent); }
-.flow-step-name { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
-.flow-step-action { font-size: 11px; color: var(--text-muted); }
 .flow-nav { margin-bottom: 16px; }
 .flow-nav select { width: 100%; padding: 8px 12px; font-size: 13px; font-family: inherit; background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text); }
+
+/* 動線グループ */
+.flow-group {
+  border-left: 3px solid var(--accent);
+  border-radius: 0 var(--radius) var(--radius) 0;
+  background: var(--panel);
+  padding: 16px 20px;
+  margin-bottom: 20px;
+}
+.flow-group-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.flow-group-title {
+  font-size: 16px;
+  font-weight: 700;
+}
+.flow-group-badge {
+  font-size: 11px;
+  color: var(--text-muted);
+  background: var(--panel-2);
+  padding: 2px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+}
+
+/* 個別動線 */
+.flow-strip {
+  border-bottom: 1px solid var(--border);
+  padding: 12px 0;
+}
+.flow-strip:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+.flow-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-sub);
+  margin-bottom: 8px;
+}
+.flow-steps {
+  display: flex;
+  gap: 0;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  align-items: center;
+}
+.flow-step-card {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 12px;
+  min-width: 100px;
+  max-width: 160px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: box-shadow .15s;
+}
+.flow-step-card:hover {
+  box-shadow: 0 0 0 2px var(--accent);
+}
+.flow-step-name {
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.flow-step-action {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+.flow-arrow {
+  color: var(--text-muted);
+  font-size: 14px;
+  padding: 0 6px;
+  flex-shrink: 0;
+}
 
 /* 未接続モード */
 .unconnected-summary { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; padding: 14px 16px; background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); }
@@ -1161,46 +1233,79 @@ table.data-table code {
     setMode('screen');
   }
 
-  function buildFlowStrip(flow, idx) {
-    var terminalKey = flow.path[flow.path.length - 1];
-    var stepCount = flow.path.length - 1;
-    var strip = el('div', { class: 'flow-strip', id: 'flow-' + idx });
-    strip.appendChild(el('div', { class: 'flow-title' }, nodeLabel(flow.origin) + ' → ' + nodeLabel(terminalKey) + '（' + stepCount + 'ステップ）'));
-    var stepsWrap = el('div', { class: 'flow-steps' });
-    flow.path.forEach(function(k, i) {
-      var action = i < flow.edges.length ? ((flow.edges[i].trigger || nodeLabel(flow.edges[i].to)) + ' →') : '';
-      var cardChildren = [el('div', { class: 'flow-step-name' }, nodeLabel(k))];
-      if (action) cardChildren.push(el('div', { class: 'flow-step-action' }, action));
-      var card = el('div', { class: 'flow-step-card', 'data-key': k }, cardChildren);
-      card.addEventListener('click', function() { switchToScreenMode(k); });
-      stepsWrap.appendChild(el('div', { class: 'flow-step' }, [
-        el('div', { class: 'flow-step-num' }, circleNum(i + 1)),
-        card
-      ]));
+  // --- 動線グループ化(起点の次のノードをキーに集約。共通ナビへの分岐は「共通遷移」に集約) ---
+  function renderFlowMode(flowList, nodeMap) {
+    var container = document.getElementById('flow-content');
+    var select = document.getElementById('flow-select');
+    container.innerHTML = '';
+    select.innerHTML = '';
+
+    if (flowList.length === 0) {
+      container.appendChild(el('div', { class: 'diagram-empty' }, '動線を生成できる画面がありません'));
+      return;
+    }
+
+    var groups = {};
+    var groupOrder = [];
+    flowList.forEach(function(flow) {
+      // path[1]から順にたどり、最初の非共通ナビノードをグループキーにする。
+      // 全て共通ナビの場合のみ「共通遷移」に集約する。
+      var key = null;
+      for (var pi = 1; pi < flow.path.length; pi++) {
+        if (!commonNavSet[flow.path[pi]]) { key = flow.path[pi]; break; }
+      }
+      var groupName = key === null ? '共通遷移' : (nodeMap[key] || key);
+      if (!groups[groupName]) { groups[groupName] = []; groupOrder.push(groupName); }
+      groups[groupName].push(flow);
     });
-    strip.appendChild(stepsWrap);
-    return strip;
+    // 同一グループ内はパスの長さ順にソート
+    groupOrder.forEach(function(name) {
+      groups[name].sort(function(a, b) { return a.path.length - b.path.length; });
+    });
+
+    select.appendChild(el('option', { value: '' }, '全グループ表示'));
+    groupOrder.forEach(function(name) {
+      select.appendChild(el('option', { value: name }, name + '（' + groups[name].length + '動線）'));
+    });
+
+    groupOrder.forEach(function(name) {
+      var group = el('div', { class: 'flow-group', 'data-group': name });
+      group.appendChild(el('div', { class: 'flow-group-header' }, [
+        el('span', { class: 'flow-group-title' }, name),
+        el('span', { class: 'flow-group-badge' }, groups[name].length + '動線')
+      ]));
+      groups[name].forEach(function(flow) {
+        var terminalKey = flow.path[flow.path.length - 1];
+        var strip = el('div', { class: 'flow-strip' });
+        strip.appendChild(el('div', { class: 'flow-title' }, nodeLabel(flow.path[0]) + ' → ' + nodeLabel(terminalKey) + '（' + flow.path.length + 'ステップ）'));
+        var steps = el('div', { class: 'flow-steps' });
+        flow.path.forEach(function(k, idx) {
+          if (idx > 0) steps.appendChild(el('span', { class: 'flow-arrow' }, '→'));
+          var cardChildren = [el('div', { class: 'flow-step-name' }, nodeLabel(k))];
+          if (idx < flow.edges.length) cardChildren.push(el('div', { class: 'flow-step-action' }, flow.edges[idx].trigger || ''));
+          var card = el('div', { class: 'flow-step-card', 'data-key': k }, cardChildren);
+          card.addEventListener('click', function() { switchToScreenMode(k); });
+          steps.appendChild(card);
+        });
+        strip.appendChild(steps);
+        group.appendChild(strip);
+      });
+      container.appendChild(group);
+    });
+
+    select.addEventListener('change', function() {
+      var val = select.value;
+      container.querySelectorAll('.flow-group').forEach(function(g) {
+        g.style.display = (!val || g.getAttribute('data-group') === val) ? '' : 'none';
+      });
+    });
   }
 
   var flows = computeFlows();
+  var nodeMap = {};
+  keys.forEach(function(k) { nodeMap[k] = nodeLabel(k); });
   var flowSelect = el('select', { id: 'flow-select' });
-  flowSelect.appendChild(el('option', { value: '' }, '動線を選択...'));
-  flows.forEach(function(flow, idx) {
-    var terminalKey = flow.path[flow.path.length - 1];
-    flowSelect.appendChild(el('option', { value: 'flow-' + idx }, nodeLabel(flow.origin) + ' → ' + nodeLabel(terminalKey)));
-  });
-  flowSelect.addEventListener('change', function() {
-    if (!flowSelect.value) return;
-    var target = document.getElementById(flowSelect.value);
-    if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  });
-
   var flowContent = el('div', { id: 'flow-content' });
-  if (flows.length === 0) {
-    flowContent.appendChild(el('div', { class: 'diagram-empty' }, '動線を生成できる画面がありません'));
-  } else {
-    flows.forEach(function(flow, idx) { flowContent.appendChild(buildFlowStrip(flow, idx)); });
-  }
   var modeFlow = el('div', { id: 'mode-flow', class: 'hidden' }, [
     el('div', { class: 'flow-nav' }, flowSelect),
     flowContent
@@ -1243,6 +1348,7 @@ table.data-table code {
   mount.appendChild(modeScreen);
   mount.appendChild(modeFlow);
   mount.appendChild(modeUnconnected);
+  renderFlowMode(flows, nodeMap);
   }
 
   // --- 未解決節(unresolved[]) ---
