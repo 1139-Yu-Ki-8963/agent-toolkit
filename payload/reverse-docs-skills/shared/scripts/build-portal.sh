@@ -342,6 +342,24 @@ for kind in $KINDS_ORDER; do
 
   kinds_json="$(jq -n -c --argjson arr "$kinds_json" --arg kind "$kind" --arg label "$label" --argjson count "$unit_count" --arg unit "$unit" --arg href "$href" \
     '$arr + [{kind:$kind,label:$label,count:$count,unit:$unit,href:$href}]')"
+
+  if [ "$kind" = "screen" ]; then
+    transition_file="$DOCS_ROOT/画面遷移図.html"
+    if [ -f "$transition_file" ]; then
+      transition_href="$docs_relative/画面遷移図.html"
+      [ -n "$list_tools_json" ] && list_tools_json="$list_tools_json,"
+      list_tools_json="$list_tools_json{\"title\":\"画面遷移図\",\"icon\":\"account_tree\",\"href\":\"$transition_href\",\"desc\":\"画面一覧とコード走査から生成する画面遷移マップ。\",\"count\":\"詳細を見る\"}"
+    fi
+  fi
+
+  if [ "$kind" = "table" ]; then
+    er_file="$DOCS_ROOT/ER図.html"
+    if [ -f "$er_file" ]; then
+      er_href="$docs_relative/ER図.html"
+      [ -n "$list_tools_json" ] && list_tools_json="$list_tools_json,"
+      list_tools_json="$list_tools_json{\"title\":\"ER図\",\"icon\":\"schema\",\"href\":\"$er_href\",\"desc\":\"テーブル一覧と外部キー定義から生成するエンティティ関連図。\",\"count\":\"詳細を見る\"}"
+    fi
+  fi
 done
 
 # --- 3. 共通文書リストの収集 ---
@@ -402,7 +420,7 @@ get_future_label() { case "$1" in glossary) echo "用語辞書";; techstack) ech
 get_future_file() { case "$1" in glossary) echo "用語辞書.html";; techstack) echo "技術スタック.html";; transition) echo "画面遷移図.html";; er) echo "ER図.html";; env) echo "環境実行手順.html";; esac; }
 get_future_icon() { case "$1" in glossary) echo "dictionary";; techstack) echo "stacks";; transition) echo "account_tree";; er) echo "schema";; env) echo "terminal";; esac; }
 get_future_desc() { case "$1" in glossary) echo "業務用語・技術用語・略語の定義とコード上の対応識別子の対訳。";; techstack) echo "言語・フレームワーク・主要依存パッケージのバージョンと採用箇所の整理。";; transition) echo "画面一覧とコード走査から生成する画面遷移マップ。";; er) echo "テーブル一覧と外部キー定義から生成するエンティティ関連図。";; env) echo "環境構築・必須ツール・ポート割当の整理。";; esac; }
-FUTURE_ORDER="techstack env transition er glossary"
+FUTURE_ORDER="techstack env glossary"
 
 future_tools_json=""
 for key in $FUTURE_ORDER; do
@@ -474,10 +492,10 @@ CATEGORIES_JSON="["
 if [ "$future_count" -gt 0 ]; then
   CATEGORIES_JSON="$CATEGORIES_JSON{\"id\":\"project\",\"title\":\"プロジェクト基盤情報\",\"icon\":\"domain\",\"sub\":\"プロジェクトの前提を横断的にまとめた資料\",\"tools\":[$future_tools_json]},"
 fi
-CATEGORIES_JSON="$CATEGORIES_JSON{\"id\":\"list\",\"title\":\"一覧系資料\",\"icon\":\"list_alt\",\"sub\":\"画面・API・バッチ・テーブル・帳票・外部連携・機能の種別一覧\",\"tools\":[$list_tools_json]}"
 if [ "$common_count" -gt 0 ]; then
-  CATEGORIES_JSON="$CATEGORIES_JSON,{\"id\":\"common\",\"title\":\"プロジェクト規約\",\"icon\":\"library_books\",\"sub\":\"プロジェクト全体に適用される設計方針・規約\",\"tools\":[$common_tools_json]}"
+  CATEGORIES_JSON="$CATEGORIES_JSON{\"id\":\"common\",\"title\":\"プロジェクト規約\",\"icon\":\"library_books\",\"sub\":\"プロジェクト全体に適用される設計方針・規約\",\"tools\":[$common_tools_json]},"
 fi
+CATEGORIES_JSON="$CATEGORIES_JSON{\"id\":\"list\",\"title\":\"一覧・設計図\",\"icon\":\"list_alt\",\"sub\":\"画面・API・テーブル等の種別一覧と、画面遷移図・ER図\",\"tools\":[$list_tools_json]}"
 CATEGORIES_JSON="$CATEGORIES_JSON]"
 
 # --- 7. テンプレート置換・出力 ---
