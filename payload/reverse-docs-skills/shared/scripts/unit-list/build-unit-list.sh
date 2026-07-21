@@ -194,12 +194,13 @@ if [ "${1:-}" = "--self-test" ]; then
   exit $?
 fi
 
-MANIFEST="${1:?Usage: build-unit-list.sh <manifest.json> <output-html-path> [--unit-kind <kind>] [--portal-dir <path>]}"
-OUTPUT_HTML="${2:?Usage: build-unit-list.sh <manifest.json> <output-html-path> [--unit-kind <kind>] [--portal-dir <path>]}"
+MANIFEST="${1:?Usage: build-unit-list.sh <manifest.json> <output-html-path> [--unit-kind <kind>] [--portal-dir <path>] [--project-name <name>]}"
+OUTPUT_HTML="${2:?Usage: build-unit-list.sh <manifest.json> <output-html-path> [--unit-kind <kind>] [--portal-dir <path>] [--project-name <name>]}"
 shift 2 || true
 
 UNIT_KIND_ARG=""
 PORTAL_DIR_ARG=""
+PROJECT_NAME_ARG=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --unit-kind)
@@ -208,6 +209,10 @@ while [ $# -gt 0 ]; do
       ;;
     --portal-dir)
       PORTAL_DIR_ARG="${2:-}"
+      shift 2
+      ;;
+    --project-name)
+      PROJECT_NAME_ARG="${2:-}"
       shift 2
       ;;
     *)
@@ -238,21 +243,19 @@ fi
 
 # --- unit_kind=screen: build-screen-list.sh に委譲(exit codeをそのまま返す) ---
 if [ "$UNIT_KIND" = "screen" ]; then
-  if [ -n "$PORTAL_DIR_ARG" ]; then
-    "$SCRIPT_DIR/build-screen-list.sh" "$MANIFEST" "$OUTPUT_HTML" --portal-dir "$PORTAL_DIR_ARG"
-  else
-    "$SCRIPT_DIR/build-screen-list.sh" "$MANIFEST" "$OUTPUT_HTML"
-  fi
+  delegate_args=("$MANIFEST" "$OUTPUT_HTML")
+  [ -n "$PORTAL_DIR_ARG" ] && delegate_args+=(--portal-dir "$PORTAL_DIR_ARG")
+  [ -n "$PROJECT_NAME_ARG" ] && delegate_args+=(--project-name "$PROJECT_NAME_ARG")
+  "$SCRIPT_DIR/build-screen-list.sh" "${delegate_args[@]}"
   exit $?
 fi
 
 # --- unit_kind=feature: build-feature-list.sh に委譲(exit codeをそのまま返す) ---
 if [ "$UNIT_KIND" = "feature" ]; then
-  if [ -n "$PORTAL_DIR_ARG" ]; then
-    "$SCRIPT_DIR/build-feature-list.sh" "$MANIFEST" "$OUTPUT_HTML" --portal-dir "$PORTAL_DIR_ARG"
-  else
-    "$SCRIPT_DIR/build-feature-list.sh" "$MANIFEST" "$OUTPUT_HTML"
-  fi
+  delegate_args=("$MANIFEST" "$OUTPUT_HTML")
+  [ -n "$PORTAL_DIR_ARG" ] && delegate_args+=(--portal-dir "$PORTAL_DIR_ARG")
+  [ -n "$PROJECT_NAME_ARG" ] && delegate_args+=(--project-name "$PROJECT_NAME_ARG")
+  "$SCRIPT_DIR/build-feature-list.sh" "${delegate_args[@]}"
   exit $?
 fi
 
@@ -389,6 +392,7 @@ fi
 # 単一パスのdocument-order走査により自動的に最後に処理される
 # (JSON内容に他マーカー文字列が偶然含まれた場合の誤爆を避けるため)
 render_args=(
+  "{{PROJECT_NAME}}" "$(html_escape "$PROJECT_NAME_ARG")"
   "{{UNIT_KIND_LABEL}}" "$label_esc"
   "{{GENERATED_AT}}" "$(html_escape "$generated_at")"
   "{{SOURCE_DIR}}" "$(html_escape "$source_dir_display")"

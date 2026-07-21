@@ -391,6 +391,7 @@ html_escape() {
 # render_template — 共通関数を source（shared/scripts/render-template.sh）
 source "$(cd "$(dirname "$0")/.." && pwd)/render-template.sh"
 
+PROJECT_NAME="$(jq -r '.projectName // ""' "$DATA")"
 TITLE="$(jq -r '.title // ""' "$DATA")"
 DESCRIPTION="$(jq -r '.description // ""' "$DATA")"
 GENERATED_AT="$(jq -r '.generatedAt // ""' "$DATA")"
@@ -430,6 +431,7 @@ RELATED_ENTITIES_HTML="$(jq -r '
 # document-order走査により自動的に最後に処理される(JSON内容に他マーカー文字列が
 # 偶然含まれた場合の誤爆を避けるため)。
 render_args=(
+  "{{PROJECT_NAME}}" "$(html_escape "$PROJECT_NAME")"
   "{{TITLE}}" "$(html_escape "$TITLE")"
   "{{DESCRIPTION}}" "$(html_escape "$DESCRIPTION")"
   "{{GENERATED_AT}}" "$(html_escape "$GENERATED_AT")"

@@ -93,6 +93,8 @@ a:hover { text-decoration: underline; }
 .brand:hover { text-decoration: none; }
 .brand-icon { display: inline-flex; align-items: center; }
 .brand-title { font-weight: 700; font-size: 16px; }
+.brand-sub { font-size: 11px; color: var(--text-muted, #6c757d); }
+.header-meta { font-size: 12px; color: var(--text-muted, #6c757d); display: flex; align-items: center; gap: 8px; }
 .top-actions { display: flex; align-items: center; gap: 8px; }
 .top-actions button {
   background: var(--panel-2); border: 1px solid var(--border); border-radius: var(--radius-sm);
@@ -333,10 +335,13 @@ table.data-table code {
 <div class="dp-page">
   <header class="topbar">
     <a class="brand" href="index.html">
-      <span class="brand-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:middle"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg></span>
-      <span class="brand-title">ER図</span>
+      <span class="brand-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:middle"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zM13 9V3.5L18.5 9H13z"/></svg></span>
+      <span class="brand-title">サンプルプロジェクト</span>
+      <span class="brand-sub">設計ポータル</span>
     </a>
-    <div></div>
+    <div class="header-meta">
+      <span class="pm-updated">更新: 2026-07-21 · コミット番号: 89178e6</span>
+    </div>
     <div class="top-actions">
       <button id="theme-toggle" title="テーマ切替">ライト</button>
     </div>
@@ -1297,7 +1302,7 @@ table.data-table code {
     }
 
     var CARD_W = 220;
-    var GAP_X = 160, GAP_Y = 50;
+    var GAP_X = 250, GAP_Y = 50;
     var selH = cardHeight(selEntity);
     var CANVAS_W = 1140;
 
@@ -1306,9 +1311,24 @@ table.data-table code {
 
     // 同クラスタ上部
     var CARDS_PER_ROW = 4;
-    var sameRows = Math.ceil(Math.max(1, relatedSame.length) / CARDS_PER_ROW);
-    var sameBlockH = sameRows * 60 + (sameRows - 1) * GAP_Y + 60;
     var topY = 80;
+
+    var sameRowHeights = [];
+    relatedSame.forEach(function(k, i) {
+      var row = Math.floor(i / CARDS_PER_ROW);
+      var e = entitiesByKey[k];
+      var h = cardHeight(e, 5);
+      if (!sameRowHeights[row]) sameRowHeights[row] = 0;
+      if (h > sameRowHeights[row]) sameRowHeights[row] = h;
+    });
+
+    var sameRowY = [topY];
+    for (var ri = 1; ri < sameRowHeights.length; ri++) {
+      sameRowY[ri] = sameRowY[ri - 1] + sameRowHeights[ri - 1] + GAP_Y;
+    }
+    var sameBlockH = sameRowHeights.length > 0
+      ? sameRowY[sameRowY.length - 1] + sameRowHeights[sameRowHeights.length - 1] - topY + 60
+      : 60;
     centerY = topY + sameBlockH + 40;
 
     var positions = {};
@@ -1321,13 +1341,13 @@ table.data-table code {
       var startX = centerX - (rowCount - 1) * GAP_X / 2;
       var e = entitiesByKey[k];
       var h = cardHeight(e, 5);
-      positions[k] = { x: startX + col * GAP_X, y: topY + row * (60 + GAP_Y), w: CARD_W, h: h };
+      positions[k] = { x: startX + col * GAP_X, y: sameRowY[row], w: CARD_W, h: h };
     });
 
     // 他クラスタ下部
     var bottomY = centerY + selH + 60;
     var otherClusterIds = Object.keys(otherByCluster).sort();
-    var groupGap = 240;
+    var groupGap = GAP_X;
     var groupStartX = centerX - (otherClusterIds.length - 1) * groupGap / 2;
     otherClusterIds.forEach(function(cid, gi) {
       var members = otherByCluster[cid];

@@ -58,6 +58,7 @@ a:hover { text-decoration: underline; }
 .brand:hover { text-decoration: none; }
 .brand-icon { display: inline-flex; align-items: center; }
 .brand-title { font-weight: 700; font-size: 16px; }
+.brand-sub { font-size: 11px; color: var(--text-muted, #6c757d); }
 .top-actions { display: flex; align-items: center; gap: 8px; }
 .top-actions button {
   background: var(--panel-2); border: 1px solid var(--border); border-radius: var(--radius-sm);
@@ -403,11 +404,12 @@ table.data-table code {
 <div class="dp-page">
   <header class="topbar">
     <a class="brand" href="index.html">
-      <span class="brand-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:middle"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg></span>
-      <span class="brand-title">{{TITLE}}</span>
+      <span class="brand-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:middle"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zM13 9V3.5L18.5 9H13z"/></svg></span>
+      <span class="brand-title">{{PROJECT_NAME}}</span>
+      <span class="brand-sub">設計ポータル</span>
     </a>
     <div class="header-meta">
-      <span class="dp-updated">更新: {{GENERATED_AT}}{{COMMIT_SHORT}}</span>
+      <span class="pm-updated">更新: {{GENERATED_AT}}{{COMMIT_SHORT}}</span>
     </div>
     <div class="top-actions">
       <button id="theme-toggle" title="テーマ切替">ライト</button>
