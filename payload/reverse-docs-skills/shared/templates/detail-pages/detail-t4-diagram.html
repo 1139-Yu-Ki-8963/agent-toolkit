@@ -530,6 +530,12 @@ table.data-table code {
 
   } else {
   // --- transition: split-view(ワイヤーフレーム+遷移先テーブル) ---
+  // transition では旧凡例(legend[])を非表示にする(3層カラー凡例がテーブルパネル内にある)
+  var oldLegendMount = document.getElementById('legend-mount');
+  if (oldLegendMount) oldLegendMount.style.display = 'none';
+  var oldLegendLabel = oldLegendMount ? oldLegendMount.previousElementSibling : null;
+  if (oldLegendLabel && oldLegendLabel.classList.contains('sec-label')) oldLegendLabel.style.display = 'none';
+
   document.getElementById('er-sections').classList.add('hidden');
   var mount = document.getElementById('transition-mount');
   mount.classList.remove('hidden');
