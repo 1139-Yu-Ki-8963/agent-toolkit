@@ -376,8 +376,17 @@
       return null;
     }
 
-    function renderValue(td, fieldName, v) {
+    function renderValue(td, fieldName, v, u) {
       if (!hasValue(v)) return;
+      /* 出力契機=バッチ はバッチ一覧への相互参照リンクにする（relatedBatch を ?q= に渡す） */
+      if (fieldName === 'trigger' && String(v) === 'バッチ') {
+        var batchLink = document.createElement('a');
+        batchLink.className = 'opt-tag';
+        batchLink.href = '../バッチ一覧/バッチ一覧.html?q=' + encodeURIComponent((u && u.relatedBatch) ? String(u.relatedBatch) : '');
+        batchLink.textContent = String(v);
+        td.appendChild(batchLink);
+        return;
+      }
       if (Array.isArray(v)) {
         var linkBase = linkMap[fieldName];
         v.forEach(function (item) {
@@ -426,7 +435,7 @@
       bodyRows.forEach(function (tr) {
         var td = document.createElement('td');
         var u = findUnit(tr);
-        if (u) renderValue(td, f[0], u[f[0]]);
+        if (u) renderValue(td, f[0], u[f[0]], u);
         tr.appendChild(td);
       });
     });
@@ -551,7 +560,7 @@
     var COL_COUNT = headerCells.length;
     /* チップ対象列は列見出し名で指定する（任意列スクリプトが追加した列も対象にできる） */
     var CHIP_COLUMNS = ['区分', 'confidence'];
-    var EXTRA_CHIP_COLUMNS = { api: ['メソッド', '認証'], batch: [] };
+    var EXTRA_CHIP_COLUMNS = { api: ['メソッド', '認証'], batch: [], report: ['出力形式', '出力契機'], external: ['方向', 'プロトコル'] };
     (EXTRA_CHIP_COLUMNS[manifest.unitKind] || []).forEach(function (name) {
       if (CHIP_COLUMNS.indexOf(name) === -1) CHIP_COLUMNS.push(name);
     });

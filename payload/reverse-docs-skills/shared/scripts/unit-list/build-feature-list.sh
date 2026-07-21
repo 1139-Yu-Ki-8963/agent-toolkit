@@ -326,6 +326,7 @@ row_html() {
 
   unit_id="$(jq -r '.unitId // empty' <<<"$row")"
   [ -z "$unit_id" ] && unit_id="—"
+  local confidence_class
   unit_key="$(jq -r '.unitKey // ""' <<<"$row")"
   unit_name="$(jq -r '.unitNameGuess // ""' <<<"$row")"
   summary="$(jq -r '.summary // ""' <<<"$row")"
@@ -347,7 +348,10 @@ row_html() {
   printf '<td>%s</td>\n' "$(html_escape "$related_screens")"
   printf '<td>%s</td>\n' "$(html_escape "$related_apis")"
   printf '<td>%s</td>\n' "$(html_escape "$related_tables")"
-  printf '<td><span class="badge %s">%s</span></td>\n' "$(html_escape "$confidence")" "$(html_escape "$confidence")"
+  # CSSのバッジ色クラス(.badge.high/.medium/.low)は小文字定義のため、
+  # confidence表記が大文字(HIGH等)のマニフェストでも色が付くようclassのみ小文字化する
+  confidence_class="$(printf '%s' "$confidence" | tr '[:upper:]' '[:lower:]')"
+  printf '<td><span class="badge %s">%s</span></td>\n' "$(html_escape "$confidence_class")" "$(html_escape "$confidence")"
   printf '<td>%s</td>\n' "$(html_escape "$detection_method")"
   printf '<td><code>%s</code></td>\n' "$(html_escape "$source_file")"
   printf '</tr>\n'
@@ -391,9 +395,11 @@ if [ -n "$categories" ]; then
       cat_rows="${cat_rows}$(row_html "$row")"
     done < <(jq -c --arg cat "$cat" '.units[] | select(.kind != "unresolved") | select((.category // "未分類") == $cat)' "$MANIFEST")
 
+    # summary内の .cat-name / .cat-count span は一覧制御JS(カテゴリチップ・
+    # カテゴリフィルタ・CSVのカテゴリ列)が参照する契約構造。省略するとチップが出ない
     category_sections="$(cat <<EOF
 ${category_sections}<details class="module-group" open>
-<summary>${cat_esc}（${cat_feature_count}機能）</summary>
+<summary class="cat-header"><span class="cat-name">${cat_esc}</span><span class="cat-count">${cat_feature_count} 機能</span></summary>
 <table class="units">
 $(thead_html)
 <tbody>

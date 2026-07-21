@@ -43,6 +43,11 @@
 <style>
   :root,
 [data-theme="light"] {
+  /* Windows フォント上書き防止 */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-synthesis: none;
   --bg: #FFFFFF;
   --panel: #FFFFFF;
   --panel-2: #F0EDE3;
@@ -65,6 +70,9 @@
   --danger-soft: #F5E2DC;
   --code-bg: #1B1F26;
   --code-fg: #E8E5DC;
+  --cat-list: #2563eb;
+  --cat-common: #059669;
+  --cat-project: #7C3AED;
   --font-body: "Hiragino Kaku Gothic ProN","Hiragino Sans","Noto Sans JP","BIZ UDPGothic","Yu Gothic","Meiryo",system-ui,-apple-system,sans-serif;
   --mono: "SFMono-Regular","Menlo","Cascadia Code","Consolas",monospace;
   --shadow-sm: 0 1px 3px rgba(27,31,38,.07), 0 2px 6px rgba(27,31,38,.05);
@@ -82,6 +90,7 @@
     --success: #8FA3DB; --success-soft: #2A2E47;
     --warn: #D4B45D; --danger: #D4836E; --danger-soft: #3F2620;
     --code-bg: #0E1116; --code-fg: #E8E5DC;
+    --cat-list: #60A5FA; --cat-common: #34D399; --cat-project: #A78BFA;
   }
 }
 [data-theme="dark"] {
@@ -93,8 +102,8 @@
   --success: #8FA3DB; --success-soft: #2A2E47;
   --warn: #D4B45D; --danger: #D4836E; --danger-soft: #3F2620;
   --code-bg: #0E1116; --code-fg: #E8E5DC;
+  --cat-list: #60A5FA; --cat-common: #34D399; --cat-project: #A78BFA;
 }
-
 
   * { box-sizing: border-box; }
   body {
@@ -148,7 +157,7 @@
   }
   table.units td, table.screens td {
     border-top: 1px solid var(--border); padding: 6px 8px; text-align: left; vertical-align: top;
-    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    overflow-wrap: break-word; word-break: break-all; white-space: normal;
   }
   table.units th {
     background: var(--panel-2); font-weight: 700; cursor: pointer; user-select: none;
@@ -195,13 +204,7 @@
     background: var(--accent-soft);
   }
 
-  /* ホバーで全文表示 */
-  table.units td:hover, table.screens td:hover {
-    overflow: visible;
-    white-space: normal;
-    word-break: break-all;
-  }
-  td code { overflow-wrap: break-word; word-break: break-all; max-width: 300px; display: inline-block; }
+  td code { overflow-wrap: break-word; word-break: break-all; }
   .badge { display: inline-block; font-size: 0.76rem; font-weight: 700; padding: 1px 8px; border-radius: 3px; }
   .badge.high   { background: var(--success-soft); color: var(--success); }
   .badge.medium { background: var(--gold-soft); color: var(--gold); }
@@ -289,10 +292,10 @@
     <h1>API一覧</h1>
   </div>
   <table class="meta-table">
-    <tr><td>生成日時</td><td>2026-07-20 00:00</td></tr>
-    <tr><td>ソースディレクトリ</td><td><code>src/api</code></td></tr>
+    <tr><td>生成日時</td><td>2026-07-20T00:00:00+09:00</td></tr>
+    <tr><td>ソースディレクトリ</td><td><code>api</code></td></tr>
     <tr><td>種別</td><td>API</td></tr>
-    <tr><td>抽出方式</td><td>ルーティング定義の静的解析</td></tr>
+    <tr><td>抽出方式</td><td>static-analysis</td></tr>
   </table>
 
   <div class="summary-tiles">
@@ -325,24 +328,187 @@
       </tr>
     </thead>
     <tbody>
-      <tr><td>api-users-list</td><td>users-list</td><td>REST</td><td>ユーザー一覧取得</td><td>GET /api/users</td><td>decorator</td><td>HIGH</td><td>2</td><td>src/api/users.py</td></tr>
-<tr><td>api-users-create</td><td>users-create</td><td>REST</td><td>ユーザー新規作成</td><td>POST /api/users</td><td>decorator</td><td>HIGH</td><td>2</td><td>src/api/users.py</td></tr>
-<tr><td>api-users-get</td><td>users-get</td><td>REST</td><td>ユーザー詳細取得</td><td>GET /api/users/:userId</td><td>decorator</td><td>HIGH</td><td>2</td><td>src/api/users.py</td></tr>
-<tr><td>api-users-update</td><td>users-update</td><td>REST</td><td>ユーザー更新</td><td>PUT /api/users/:userId</td><td>decorator</td><td>HIGH</td><td>2</td><td>src/api/users.py</td></tr>
-<tr><td>api-users-delete</td><td>users-delete</td><td>REST</td><td>ユーザー削除</td><td>DELETE /api/users/:userId</td><td>decorator</td><td>HIGH</td><td>2</td><td>src/api/users.py</td></tr>
-<tr><td>api-auth-login</td><td>auth-login</td><td>REST</td><td>ログイン</td><td>POST /api/auth/login</td><td>decorator</td><td>HIGH</td><td>3</td><td>src/api/auth.py</td></tr>
-<tr><td>api-auth-logout</td><td>auth-logout</td><td>REST</td><td>ログアウト</td><td>DELETE /api/auth/session</td><td>decorator</td><td>HIGH</td><td>2</td><td>src/api/auth.py</td></tr>
-<tr><td>api-auth-refresh</td><td>auth-refresh</td><td>REST</td><td>トークン更新</td><td>POST /api/auth/refresh</td><td>decorator</td><td>MEDIUM</td><td>2</td><td>src/api/auth.py</td></tr>
-<tr><td>api-posts-list</td><td>posts-list</td><td>REST</td><td>投稿一覧取得</td><td>GET /api/posts</td><td>decorator</td><td>HIGH</td><td>2</td><td>src/api/posts.py</td></tr>
-<tr><td>api-posts-create</td><td>posts-create</td><td>REST</td><td>投稿作成</td><td>POST /api/posts</td><td>decorator</td><td>HIGH</td><td>3</td><td>src/api/posts.py</td></tr>
-<tr><td>api-posts-get</td><td>posts-get</td><td>REST</td><td>投稿詳細取得</td><td>GET /api/posts/:postId</td><td>decorator</td><td>HIGH</td><td>2</td><td>src/api/posts.py</td></tr>
-<tr><td>api-posts-update</td><td>posts-update</td><td>REST</td><td>投稿更新</td><td>PUT /api/posts/:postId</td><td>decorator</td><td>HIGH</td><td>2</td><td>src/api/posts.py</td></tr>
-<tr><td>api-posts-delete</td><td>posts-delete</td><td>REST</td><td>投稿削除</td><td>DELETE /api/posts/:postId</td><td>decorator</td><td>HIGH</td><td>2</td><td>src/api/posts.py</td></tr>
-<tr><td>api-comments-create</td><td>comments-create</td><td>REST</td><td>コメント投稿</td><td>POST /api/posts/:postId/comments</td><td>decorator</td><td>HIGH</td><td>2</td><td>src/api/comments.py</td></tr>
-<tr><td>api-settings-get</td><td>settings-get</td><td>REST</td><td>設定取得</td><td>GET /api/settings</td><td>decorator</td><td>HIGH</td><td>2</td><td>src/api/settings.py</td></tr>
-<tr><td>api-settings-update</td><td>settings-update</td><td>REST</td><td>設定更新</td><td>PUT /api/settings</td><td>decorator</td><td>HIGH</td><td>2</td><td>src/api/settings.py</td></tr>
-<tr><td>api-notifications-list</td><td>notifications-list</td><td>REST</td><td>通知一覧取得</td><td>GET /api/notifications</td><td>decorator</td><td>HIGH</td><td>2</td><td>src/api/notifications.py</td></tr>
-<tr><td>api-files-upload</td><td>files-upload</td><td>REST</td><td>ファイルアップロード</td><td>POST /api/files/upload</td><td>decorator</td><td>MEDIUM</td><td>3</td><td>src/api/files.py</td></tr>
+      <tr>
+<td>api-users-list</td>
+<td><code>users-list</code></td>
+<td><span class="badge kind-generic">REST</span></td>
+<td>ユーザー一覧取得</td>
+<td><code>GET /api/users</code></td>
+<td>decorator</td>
+<td><span class="badge high">HIGH</span></td>
+<td>2</td>
+<td><code>src/api/users.py</code></td>
+</tr><tr>
+<td>api-users-create</td>
+<td><code>users-create</code></td>
+<td><span class="badge kind-generic">REST</span></td>
+<td>ユーザー新規作成</td>
+<td><code>POST /api/users</code></td>
+<td>decorator</td>
+<td><span class="badge high">HIGH</span></td>
+<td>2</td>
+<td><code>src/api/users.py</code></td>
+</tr><tr>
+<td>api-users-get</td>
+<td><code>users-get</code></td>
+<td><span class="badge kind-generic">REST</span></td>
+<td>ユーザー詳細取得</td>
+<td><code>GET /api/users/:userId</code></td>
+<td>decorator</td>
+<td><span class="badge high">HIGH</span></td>
+<td>2</td>
+<td><code>src/api/users.py</code></td>
+</tr><tr>
+<td>api-users-update</td>
+<td><code>users-update</code></td>
+<td><span class="badge kind-generic">REST</span></td>
+<td>ユーザー更新</td>
+<td><code>PUT /api/users/:userId</code></td>
+<td>decorator</td>
+<td><span class="badge high">HIGH</span></td>
+<td>2</td>
+<td><code>src/api/users.py</code></td>
+</tr><tr>
+<td>api-users-delete</td>
+<td><code>users-delete</code></td>
+<td><span class="badge kind-generic">REST</span></td>
+<td>ユーザー削除</td>
+<td><code>DELETE /api/users/:userId</code></td>
+<td>decorator</td>
+<td><span class="badge high">HIGH</span></td>
+<td>2</td>
+<td><code>src/api/users.py</code></td>
+</tr><tr>
+<td>api-auth-login</td>
+<td><code>auth-login</code></td>
+<td><span class="badge kind-generic">REST</span></td>
+<td>ログイン</td>
+<td><code>POST /api/auth/login</code></td>
+<td>decorator</td>
+<td><span class="badge high">HIGH</span></td>
+<td>3</td>
+<td><code>src/api/auth.py</code></td>
+</tr><tr>
+<td>api-auth-logout</td>
+<td><code>auth-logout</code></td>
+<td><span class="badge kind-generic">REST</span></td>
+<td>ログアウト</td>
+<td><code>DELETE /api/auth/session</code></td>
+<td>decorator</td>
+<td><span class="badge high">HIGH</span></td>
+<td>2</td>
+<td><code>src/api/auth.py</code></td>
+</tr><tr>
+<td>api-auth-refresh</td>
+<td><code>auth-refresh</code></td>
+<td><span class="badge kind-generic">REST</span></td>
+<td>トークン更新</td>
+<td><code>POST /api/auth/refresh</code></td>
+<td>decorator</td>
+<td><span class="badge medium">MEDIUM</span></td>
+<td>2</td>
+<td><code>src/api/auth.py</code></td>
+</tr><tr>
+<td>api-posts-list</td>
+<td><code>posts-list</code></td>
+<td><span class="badge kind-generic">REST</span></td>
+<td>投稿一覧取得</td>
+<td><code>GET /api/posts</code></td>
+<td>decorator</td>
+<td><span class="badge high">HIGH</span></td>
+<td>2</td>
+<td><code>src/api/posts.py</code></td>
+</tr><tr>
+<td>api-posts-create</td>
+<td><code>posts-create</code></td>
+<td><span class="badge kind-generic">REST</span></td>
+<td>投稿作成</td>
+<td><code>POST /api/posts</code></td>
+<td>decorator</td>
+<td><span class="badge high">HIGH</span></td>
+<td>3</td>
+<td><code>src/api/posts.py</code></td>
+</tr><tr>
+<td>api-posts-get</td>
+<td><code>posts-get</code></td>
+<td><span class="badge kind-generic">REST</span></td>
+<td>投稿詳細取得</td>
+<td><code>GET /api/posts/:postId</code></td>
+<td>decorator</td>
+<td><span class="badge high">HIGH</span></td>
+<td>2</td>
+<td><code>src/api/posts.py</code></td>
+</tr><tr>
+<td>api-posts-update</td>
+<td><code>posts-update</code></td>
+<td><span class="badge kind-generic">REST</span></td>
+<td>投稿更新</td>
+<td><code>PUT /api/posts/:postId</code></td>
+<td>decorator</td>
+<td><span class="badge high">HIGH</span></td>
+<td>2</td>
+<td><code>src/api/posts.py</code></td>
+</tr><tr>
+<td>api-posts-delete</td>
+<td><code>posts-delete</code></td>
+<td><span class="badge kind-generic">REST</span></td>
+<td>投稿削除</td>
+<td><code>DELETE /api/posts/:postId</code></td>
+<td>decorator</td>
+<td><span class="badge high">HIGH</span></td>
+<td>2</td>
+<td><code>src/api/posts.py</code></td>
+</tr><tr>
+<td>api-comments-create</td>
+<td><code>comments-create</code></td>
+<td><span class="badge kind-generic">REST</span></td>
+<td>コメント投稿</td>
+<td><code>POST /api/posts/:postId/comments</code></td>
+<td>decorator</td>
+<td><span class="badge high">HIGH</span></td>
+<td>2</td>
+<td><code>src/api/comments.py</code></td>
+</tr><tr>
+<td>api-settings-get</td>
+<td><code>settings-get</code></td>
+<td><span class="badge kind-generic">REST</span></td>
+<td>設定取得</td>
+<td><code>GET /api/settings</code></td>
+<td>decorator</td>
+<td><span class="badge high">HIGH</span></td>
+<td>2</td>
+<td><code>src/api/settings.py</code></td>
+</tr><tr>
+<td>api-settings-update</td>
+<td><code>settings-update</code></td>
+<td><span class="badge kind-generic">REST</span></td>
+<td>設定更新</td>
+<td><code>PUT /api/settings</code></td>
+<td>decorator</td>
+<td><span class="badge high">HIGH</span></td>
+<td>2</td>
+<td><code>src/api/settings.py</code></td>
+</tr><tr>
+<td>api-notifications-list</td>
+<td><code>notifications-list</code></td>
+<td><span class="badge kind-generic">REST</span></td>
+<td>通知一覧取得</td>
+<td><code>GET /api/notifications</code></td>
+<td>decorator</td>
+<td><span class="badge high">HIGH</span></td>
+<td>2</td>
+<td><code>src/api/notifications.py</code></td>
+</tr><tr>
+<td>api-files-upload</td>
+<td><code>files-upload</code></td>
+<td><span class="badge kind-generic">REST</span></td>
+<td>ファイルアップロード</td>
+<td><code>POST /api/files/upload</code></td>
+<td>decorator</td>
+<td><span class="badge medium">MEDIUM</span></td>
+<td>3</td>
+<td><code>src/api/files.py</code></td>
+</tr>
     </tbody>
   </table>
   </div>
@@ -359,7 +525,7 @@
 <section class="unresolved">
   <h2>要手動確認</h2>
   <div class="table-wrap">
-  
+  <p class="note">なし</p>
   </div>
 </section>
 
@@ -471,8 +637,17 @@
       return null;
     }
 
-    function renderValue(td, fieldName, v) {
+    function renderValue(td, fieldName, v, u) {
       if (!hasValue(v)) return;
+      /* 出力契機=バッチ はバッチ一覧への相互参照リンクにする（relatedBatch を ?q= に渡す） */
+      if (fieldName === 'trigger' && String(v) === 'バッチ') {
+        var batchLink = document.createElement('a');
+        batchLink.className = 'opt-tag';
+        batchLink.href = '../バッチ一覧/バッチ一覧.html?q=' + encodeURIComponent((u && u.relatedBatch) ? String(u.relatedBatch) : '');
+        batchLink.textContent = String(v);
+        td.appendChild(batchLink);
+        return;
+      }
       if (Array.isArray(v)) {
         var linkBase = linkMap[fieldName];
         v.forEach(function (item) {
@@ -521,7 +696,7 @@
       bodyRows.forEach(function (tr) {
         var td = document.createElement('td');
         var u = findUnit(tr);
-        if (u) renderValue(td, f[0], u[f[0]]);
+        if (u) renderValue(td, f[0], u[f[0]], u);
         tr.appendChild(td);
       });
     });
@@ -646,7 +821,7 @@
     var COL_COUNT = headerCells.length;
     /* チップ対象列は列見出し名で指定する（任意列スクリプトが追加した列も対象にできる） */
     var CHIP_COLUMNS = ['区分', 'confidence'];
-    var EXTRA_CHIP_COLUMNS = { api: ['メソッド', '認証'], batch: [] };
+    var EXTRA_CHIP_COLUMNS = { api: ['メソッド', '認証'], batch: [], report: ['出力形式', '出力契機'], external: ['方向', 'プロトコル'] };
     (EXTRA_CHIP_COLUMNS[manifest.unitKind] || []).forEach(function (name) {
       if (CHIP_COLUMNS.indexOf(name) === -1) CHIP_COLUMNS.push(name);
     });

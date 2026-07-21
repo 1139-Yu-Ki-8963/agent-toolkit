@@ -55,6 +55,11 @@
 <style>
   :root,
 [data-theme="light"] {
+  /* Windows フォント上書き防止 */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-synthesis: none;
   --bg: #FFFFFF;
   --panel: #FFFFFF;
   --panel-2: #F0EDE3;
@@ -77,6 +82,9 @@
   --danger-soft: #F5E2DC;
   --code-bg: #1B1F26;
   --code-fg: #E8E5DC;
+  --cat-list: #2563eb;
+  --cat-common: #059669;
+  --cat-project: #7C3AED;
   --font-body: "Hiragino Kaku Gothic ProN","Hiragino Sans","Noto Sans JP","BIZ UDPGothic","Yu Gothic","Meiryo",system-ui,-apple-system,sans-serif;
   --mono: "SFMono-Regular","Menlo","Cascadia Code","Consolas",monospace;
   --shadow-sm: 0 1px 3px rgba(27,31,38,.07), 0 2px 6px rgba(27,31,38,.05);
@@ -94,6 +102,7 @@
     --success: #8FA3DB; --success-soft: #2A2E47;
     --warn: #D4B45D; --danger: #D4836E; --danger-soft: #3F2620;
     --code-bg: #0E1116; --code-fg: #E8E5DC;
+    --cat-list: #60A5FA; --cat-common: #34D399; --cat-project: #A78BFA;
   }
 }
 [data-theme="dark"] {
@@ -105,8 +114,8 @@
   --success: #8FA3DB; --success-soft: #2A2E47;
   --warn: #D4B45D; --danger: #D4836E; --danger-soft: #3F2620;
   --code-bg: #0E1116; --code-fg: #E8E5DC;
+  --cat-list: #60A5FA; --cat-common: #34D399; --cat-project: #A78BFA;
 }
-
 
   * { box-sizing: border-box; }
   body {
@@ -160,7 +169,7 @@
   }
   table.screens td {
     border-top: 1px solid var(--border); padding: 6px 8px; text-align: left; vertical-align: top;
-    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    overflow-wrap: break-word; word-break: break-all; white-space: normal;
   }
   table.screens th {
     background: var(--panel-2); font-weight: 700; cursor: pointer; user-select: none;
@@ -207,13 +216,7 @@
     background: var(--accent-soft);
   }
 
-  /* ホバーで全文表示 */
-  table.screens td:hover {
-    overflow: visible;
-    white-space: normal;
-    word-break: break-all;
-  }
-  td code { overflow-wrap: break-word; word-break: break-all; max-width: 300px; display: inline-block; }
+  td code { overflow-wrap: break-word; word-break: break-all; }
   .badge { display: inline-block; font-size: 0.76rem; font-weight: 700; padding: 1px 8px; border-radius: 3px; }
   .badge.high   { background: var(--success-soft); color: var(--success); }
   .badge.medium { background: var(--gold-soft); color: var(--gold); }
@@ -315,8 +318,8 @@
     <h1>画面一覧</h1>
   </div>
   <table class="meta-table">
-    <tr><td>生成日時</td><td>2026-07-20 00:00</td></tr>
-    <tr><td>ソースディレクトリ</td><td><code>src/pages</code></td></tr>
+    <tr><td>生成日時</td><td>2026-07-20T00:00:00+09:00</td></tr>
+    <tr><td>ソースディレクトリ</td><td><code>src</code></td></tr>
     <tr><td>抽出方式</td><td>静的解析（ルーティング定義 + ファイル走査）</td></tr>
     <tr><td>検出方式</td><td>React Router v6 のルーティング定義から自動検出</td></tr>
   </table>
@@ -356,24 +359,223 @@
       </tr>
     </thead>
     <tbody>
-      <tr><td>screen-home</td><td>home</td><td>独立</td><td>ホーム画面</td><td><code>/</code></td><td>routing</td><td><span class="badge high">HIGH</span></td><td>—</td><td>—</td><td>5</td><td><code>src/pages/HomePage.tsx</code></td></tr>
-<tr><td>screen-login</td><td>login</td><td>独立</td><td>ログイン画面</td><td><code>/login</code></td><td>routing</td><td><span class="badge high">HIGH</span></td><td>—</td><td>—</td><td>3</td><td><code>src/pages/auth/LoginPage.tsx</code></td></tr>
-<tr><td>screen-signup</td><td>signup</td><td>独立</td><td>新規登録画面</td><td><code>/signup</code></td><td>routing</td><td><span class="badge high">HIGH</span></td><td>—</td><td>—</td><td>4</td><td><code>src/pages/auth/SignupPage.tsx</code></td></tr>
-<tr><td>screen-forgot-pw</td><td>forgot-password</td><td>独立</td><td>パスワードリセット</td><td><code>/forgot-password</code></td><td>routing</td><td><span class="badge high">HIGH</span></td><td>—</td><td>—</td><td>2</td><td><code>src/pages/auth/ForgotPasswordPage.tsx</code></td></tr>
-<tr><td>screen-dashboard</td><td>dashboard</td><td>独立</td><td>ダッシュボード</td><td><code>/dashboard</code></td><td>routing</td><td><span class="badge high">HIGH</span></td><td>—</td><td>—</td><td>8</td><td><code>src/pages/DashboardPage.tsx</code></td></tr>
-<tr><td>screen-profile</td><td>profile</td><td>独立</td><td>プロフィール</td><td><code>/profile</code></td><td>routing</td><td><span class="badge high">HIGH</span></td><td>—</td><td>—</td><td>3</td><td><code>src/pages/settings/ProfilePage.tsx</code></td></tr>
-<tr><td>screen-settings</td><td>settings</td><td>独立</td><td>設定画面</td><td><code>/settings</code></td><td>routing</td><td><span class="badge high">HIGH</span></td><td>—</td><td>—</td><td>4</td><td><code>src/pages/settings/SettingsPage.tsx</code></td></tr>
-<tr><td>screen-users-list</td><td>users-list</td><td>共有</td><td>ユーザー一覧</td><td><code>/admin/users</code></td><td>routing</td><td><span class="badge high">HIGH</span></td><td>screen-users-detail: /admin/users/:id</td><td>—</td><td>6</td><td><code>src/pages/admin/UsersListPage.tsx</code></td></tr>
-<tr><td>screen-users-detail</td><td>users-detail</td><td>共有</td><td>ユーザー詳細</td><td><code>/admin/users/:userId</code></td><td>routing</td><td><span class="badge high">HIGH</span></td><td>screen-users-list: /admin/users</td><td>—</td><td>5</td><td><code>src/pages/admin/UserDetailPage.tsx</code></td></tr>
-<tr><td>screen-users-edit</td><td>users-edit</td><td>独立</td><td>ユーザー編集</td><td><code>/admin/users/:userId/edit</code></td><td>routing</td><td><span class="badge medium">MEDIUM</span></td><td>—</td><td>—</td><td>4</td><td><code>src/pages/admin/UserEditPage.tsx</code></td></tr>
-<tr><td>screen-roles</td><td>roles</td><td>独立</td><td>ロール管理</td><td><code>/admin/roles</code></td><td>routing</td><td><span class="badge high">HIGH</span></td><td>—</td><td>—</td><td>3</td><td><code>src/pages/admin/RolesPage.tsx</code></td></tr>
-<tr><td>screen-posts-list</td><td>posts-list</td><td>独立</td><td>投稿一覧</td><td><code>/posts</code></td><td>routing</td><td><span class="badge high">HIGH</span></td><td>—</td><td>—</td><td>4</td><td><code>src/pages/posts/PostsListPage.tsx</code></td></tr>
-<tr><td>screen-post-detail</td><td>post-detail</td><td>独立</td><td>投稿詳細</td><td><code>/posts/:postId</code></td><td>routing</td><td><span class="badge high">HIGH</span></td><td>—</td><td>—</td><td>5</td><td><code>src/pages/posts/PostDetailPage.tsx</code></td></tr>
-<tr><td>screen-post-editor</td><td>post-editor</td><td>独立</td><td>投稿エディタ</td><td><code>/posts/:postId/edit</code></td><td>routing</td><td><span class="badge medium">MEDIUM</span></td><td>—</td><td>—</td><td>7</td><td><code>src/pages/posts/PostEditorPage.tsx</code></td></tr>
-<tr><td>screen-notifications</td><td>notifications</td><td>独立</td><td>通知一覧</td><td><code>/notifications</code></td><td>routing</td><td><span class="badge high">HIGH</span></td><td>—</td><td>—</td><td>3</td><td><code>src/pages/NotificationsPage.tsx</code></td></tr>
-<tr><td>screen-search</td><td>search</td><td>独立</td><td>検索結果</td><td><code>/search</code></td><td>routing</td><td><span class="badge medium">MEDIUM</span></td><td>—</td><td>—</td><td>2</td><td><code>src/pages/SearchResultsPage.tsx</code></td></tr>
-<tr><td>screen-report-viewer</td><td>report-viewer</td><td>独立</td><td>レポート閲覧</td><td><code>/reports/:reportId</code></td><td>routing</td><td><span class="badge high">HIGH</span></td><td>—</td><td>—</td><td>4</td><td><code>src/pages/reports/ReportViewerPage.tsx</code></td></tr>
-<tr><td>screen-sidebar-nav</td><td>sidebar-nav</td><td>埋め込み</td><td>サイドバーナビ</td><td>—</td><td>file-scan</td><td><span class="badge medium">MEDIUM</span></td><td>—</td><td>screen-dashboard</td><td>2</td><td><code>src/components/layout/SidebarNav.tsx</code></td></tr>
+      <tr>
+<td>screen-home</td>
+<td><code>home</code></td>
+<td><span class="badge kind-route">ルート</span></td>
+<td>ホーム画面</td>
+<td><code>/</code></td>
+<td>routing</td>
+<td><span class="badge high">HIGH</span></td>
+<td>—</td>
+<td>—</td>
+<td>5</td>
+<td><code>pages/HomePage.tsx</code></td>
+</tr><tr>
+<td>screen-login</td>
+<td><code>login</code></td>
+<td><span class="badge kind-route">ルート</span></td>
+<td>ログイン画面</td>
+<td><code>/login</code></td>
+<td>routing</td>
+<td><span class="badge high">HIGH</span></td>
+<td>—</td>
+<td>—</td>
+<td>3</td>
+<td><code>pages/auth/LoginPage.tsx</code></td>
+</tr><tr>
+<td>screen-signup</td>
+<td><code>signup</code></td>
+<td><span class="badge kind-route">ルート</span></td>
+<td>新規登録画面</td>
+<td><code>/signup</code></td>
+<td>routing</td>
+<td><span class="badge high">HIGH</span></td>
+<td>—</td>
+<td>—</td>
+<td>4</td>
+<td><code>pages/auth/SignupPage.tsx</code></td>
+</tr><tr>
+<td>screen-forgot-pw</td>
+<td><code>forgot-password</code></td>
+<td><span class="badge kind-route">ルート</span></td>
+<td>パスワードリセット</td>
+<td><code>/forgot-password</code></td>
+<td>routing</td>
+<td><span class="badge high">HIGH</span></td>
+<td>—</td>
+<td>—</td>
+<td>2</td>
+<td><code>pages/auth/ForgotPasswordPage.tsx</code></td>
+</tr><tr>
+<td>screen-dashboard</td>
+<td><code>dashboard</code></td>
+<td><span class="badge kind-route">ルート</span></td>
+<td>ダッシュボード</td>
+<td><code>/dashboard</code></td>
+<td>routing</td>
+<td><span class="badge high">HIGH</span></td>
+<td>—</td>
+<td>—</td>
+<td>8</td>
+<td><code>pages/DashboardPage.tsx</code></td>
+</tr><tr>
+<td>screen-profile</td>
+<td><code>profile</code></td>
+<td><span class="badge kind-route">ルート</span></td>
+<td>プロフィール</td>
+<td><code>/profile</code></td>
+<td>routing</td>
+<td><span class="badge high">HIGH</span></td>
+<td>—</td>
+<td>—</td>
+<td>3</td>
+<td><code>pages/settings/ProfilePage.tsx</code></td>
+</tr><tr>
+<td>screen-settings</td>
+<td><code>settings</code></td>
+<td><span class="badge kind-route">ルート</span></td>
+<td>設定画面</td>
+<td><code>/settings</code></td>
+<td>routing</td>
+<td><span class="badge high">HIGH</span></td>
+<td>—</td>
+<td>—</td>
+<td>4</td>
+<td><code>pages/settings/SettingsPage.tsx</code></td>
+</tr><tr>
+<td>screen-users-list</td>
+<td><code>users-list</code></td>
+<td><span class="badge kind-route">ルート</span></td>
+<td>ユーザー一覧</td>
+<td><code>/admin/users</code></td>
+<td>routing</td>
+<td><span class="badge high">HIGH</span></td>
+<td>screen-users-detail: /admin/users/:userId</td>
+<td>—</td>
+<td>6</td>
+<td><code>pages/admin/UsersListPage.tsx</code></td>
+</tr><tr>
+<td>screen-users-detail</td>
+<td><code>users-detail</code></td>
+<td><span class="badge kind-route">ルート</span></td>
+<td>ユーザー詳細</td>
+<td><code>/admin/users/:userId</code></td>
+<td>routing</td>
+<td><span class="badge high">HIGH</span></td>
+<td>screen-users-list: /admin/users</td>
+<td>—</td>
+<td>5</td>
+<td><code>pages/admin/UserDetailPage.tsx</code></td>
+</tr><tr>
+<td>screen-users-edit</td>
+<td><code>users-edit</code></td>
+<td><span class="badge kind-route">ルート</span></td>
+<td>ユーザー編集</td>
+<td><code>/admin/users/:userId/edit</code></td>
+<td>routing</td>
+<td><span class="badge medium">MEDIUM</span></td>
+<td>—</td>
+<td>—</td>
+<td>4</td>
+<td><code>pages/admin/UserEditPage.tsx</code></td>
+</tr><tr>
+<td>screen-roles</td>
+<td><code>roles</code></td>
+<td><span class="badge kind-route">ルート</span></td>
+<td>ロール管理</td>
+<td><code>/admin/roles</code></td>
+<td>routing</td>
+<td><span class="badge high">HIGH</span></td>
+<td>—</td>
+<td>—</td>
+<td>3</td>
+<td><code>pages/admin/RolesPage.tsx</code></td>
+</tr><tr>
+<td>screen-posts-list</td>
+<td><code>posts-list</code></td>
+<td><span class="badge kind-route">ルート</span></td>
+<td>投稿一覧</td>
+<td><code>/posts</code></td>
+<td>routing</td>
+<td><span class="badge high">HIGH</span></td>
+<td>—</td>
+<td>—</td>
+<td>4</td>
+<td><code>pages/posts/PostsListPage.tsx</code></td>
+</tr><tr>
+<td>screen-post-detail</td>
+<td><code>post-detail</code></td>
+<td><span class="badge kind-route">ルート</span></td>
+<td>投稿詳細</td>
+<td><code>/posts/:postId</code></td>
+<td>routing</td>
+<td><span class="badge high">HIGH</span></td>
+<td>—</td>
+<td>—</td>
+<td>5</td>
+<td><code>pages/posts/PostDetailPage.tsx</code></td>
+</tr><tr>
+<td>screen-post-editor</td>
+<td><code>post-editor</code></td>
+<td><span class="badge kind-route">ルート</span></td>
+<td>投稿エディタ</td>
+<td><code>/posts/:postId/edit</code></td>
+<td>routing</td>
+<td><span class="badge medium">MEDIUM</span></td>
+<td>—</td>
+<td>—</td>
+<td>7</td>
+<td><code>pages/posts/PostEditorPage.tsx</code></td>
+</tr><tr>
+<td>screen-notifications</td>
+<td><code>notifications</code></td>
+<td><span class="badge kind-route">ルート</span></td>
+<td>通知一覧</td>
+<td><code>/notifications</code></td>
+<td>routing</td>
+<td><span class="badge high">HIGH</span></td>
+<td>—</td>
+<td>—</td>
+<td>3</td>
+<td><code>pages/NotificationsPage.tsx</code></td>
+</tr><tr>
+<td>screen-search</td>
+<td><code>search</code></td>
+<td><span class="badge kind-route">ルート</span></td>
+<td>検索結果</td>
+<td><code>/search</code></td>
+<td>routing</td>
+<td><span class="badge medium">MEDIUM</span></td>
+<td>—</td>
+<td>—</td>
+<td>2</td>
+<td><code>pages/SearchResultsPage.tsx</code></td>
+</tr><tr>
+<td>screen-report-viewer</td>
+<td><code>report-viewer</code></td>
+<td><span class="badge kind-route">ルート</span></td>
+<td>レポート閲覧</td>
+<td><code>/reports/:reportId</code></td>
+<td>routing</td>
+<td><span class="badge high">HIGH</span></td>
+<td>—</td>
+<td>—</td>
+<td>4</td>
+<td><code>pages/reports/ReportViewerPage.tsx</code></td>
+</tr><tr>
+<td>screen-sidebar-nav</td>
+<td><code>sidebar-nav</code></td>
+<td><span class="badge kind-embedded">埋め込みビュー</span></td>
+<td>サイドバーナビ</td>
+<td>—</td>
+<td>file-scan</td>
+<td><span class="badge medium">MEDIUM</span></td>
+<td>—</td>
+<td><code>dashboard</code></td>
+<td>2</td>
+<td><code>components/layout/SidebarNav.tsx</code></td>
+</tr>
     </tbody>
   </table>
   </div>
@@ -390,7 +592,7 @@
 <section class="unresolved">
   <h2>要手動確認</h2>
   <div class="table-wrap">
-  
+  <p class="note">なし</p>
   </div>
 </section>
 
@@ -402,28 +604,387 @@
 <script type="application/json" id="screen-manifest">
 {
   "generatedAt": "2026-07-20T00:00:00+09:00",
-  "sourceDir": "src/pages",
-  "strategy": {"extractionMethod": "静的解析（ルーティング定義 + ファイル走査）", "approvedByUser": true},
-  "detectionSummary": {"method": "React Router v6 のルーティング定義から自動検出", "screenCount": 18, "clusterCount": 1, "sharedScreenCount": 2, "embeddedCandidateCount": 1, "unresolvedCount": 0},
+  "sourceDir": "src",
+  "strategy": {
+    "extractionMethod": "静的解析（ルーティング定義 + ファイル走査）",
+    "approvedByUser": true
+  },
+  "detectionSummary": {
+    "method": "React Router v6 のルーティング定義から自動検出",
+    "screenCount": 18,
+    "clusterCount": 1,
+    "sharedScreenCount": 2,
+    "embeddedCandidateCount": 1,
+    "unresolvedCount": 0
+  },
   "screens": [
-    {"screenId": "screen-home", "screenKey": "home", "kind": "route", "screenNameGuess": "ホーム画面", "route": "/", "detectionMethod": "routing", "confidence": "HIGH", "sharedWith": null, "embeddedIn": null, "fileCount": 5, "entryFile": "src/pages/HomePage.tsx", "category": "一般", "permissions": [], "relatedApis": ["posts-list", "notifications-list"], "designDocStatus": "着手済", "designDocPath": "../../プロジェクト共通/共通設計書.html", "sourceHash": "a1b2c3d4e5f6", "designDocSourceHash": "a1b2c3d4e5f6"},
-    {"screenId": "screen-login", "screenKey": "login", "kind": "route", "screenNameGuess": "ログイン画面", "route": "/login", "detectionMethod": "routing", "confidence": "HIGH", "sharedWith": null, "embeddedIn": null, "fileCount": 3, "entryFile": "src/pages/auth/LoginPage.tsx", "category": "一般", "permissions": [], "relatedApis": ["auth-login"], "designDocStatus": "着手済"},
-    {"screenId": "screen-signup", "screenKey": "signup", "kind": "route", "screenNameGuess": "新規登録画面", "route": "/signup", "detectionMethod": "routing", "confidence": "HIGH", "sharedWith": null, "embeddedIn": null, "fileCount": 4, "entryFile": "src/pages/auth/SignupPage.tsx", "category": "一般", "permissions": [], "relatedApis": ["users-create", "auth-login"], "designDocStatus": "未着手"},
-    {"screenId": "screen-forgot-pw", "screenKey": "forgot-password", "kind": "route", "screenNameGuess": "パスワードリセット", "route": "/forgot-password", "detectionMethod": "routing", "confidence": "HIGH", "sharedWith": null, "embeddedIn": null, "fileCount": 2, "entryFile": "src/pages/auth/ForgotPasswordPage.tsx", "category": "一般", "permissions": [], "relatedApis": [], "designDocStatus": "未着手"},
-    {"screenId": "screen-dashboard", "screenKey": "dashboard", "kind": "route", "screenNameGuess": "ダッシュボード", "route": "/dashboard", "detectionMethod": "routing", "confidence": "HIGH", "sharedWith": null, "embeddedIn": null, "fileCount": 8, "entryFile": "src/pages/DashboardPage.tsx", "category": "一般", "permissions": [], "relatedApis": ["posts-list", "notifications-list", "users-get"], "designDocStatus": "着手済", "sourceHash": "f6e5d4c3b2a1", "designDocSourceHash": "000000000000"},
-    {"screenId": "screen-profile", "screenKey": "profile", "kind": "route", "screenNameGuess": "プロフィール", "route": "/profile", "detectionMethod": "routing", "confidence": "HIGH", "sharedWith": null, "embeddedIn": null, "fileCount": 3, "entryFile": "src/pages/settings/ProfilePage.tsx", "category": "一般", "permissions": [], "relatedApis": ["users-get", "users-update"], "designDocStatus": "未着手"},
-    {"screenId": "screen-settings", "screenKey": "settings", "kind": "route", "screenNameGuess": "設定画面", "route": "/settings", "detectionMethod": "routing", "confidence": "HIGH", "sharedWith": null, "embeddedIn": null, "fileCount": 4, "entryFile": "src/pages/settings/SettingsPage.tsx", "category": "一般", "permissions": [], "relatedApis": ["settings-get", "settings-update"], "designDocStatus": "未着手"},
-    {"screenId": "screen-users-list", "screenKey": "users-list", "kind": "route", "screenNameGuess": "ユーザー一覧", "route": "/admin/users", "detectionMethod": "routing", "confidence": "HIGH", "sharedWith": ["users-detail"], "embeddedIn": null, "fileCount": 6, "entryFile": "src/pages/admin/UsersListPage.tsx", "category": "管理", "permissions": ["admin"], "relatedApis": ["users-list"], "designDocStatus": "未着手"},
-    {"screenId": "screen-users-detail", "screenKey": "users-detail", "kind": "route", "screenNameGuess": "ユーザー詳細", "route": "/admin/users/:userId", "detectionMethod": "routing", "confidence": "HIGH", "sharedWith": ["users-list"], "embeddedIn": null, "fileCount": 5, "entryFile": "src/pages/admin/UserDetailPage.tsx", "category": "管理", "permissions": ["admin"], "relatedApis": ["users-get"], "designDocStatus": "未着手"},
-    {"screenId": "screen-users-edit", "screenKey": "users-edit", "kind": "route", "screenNameGuess": "ユーザー編集", "route": "/admin/users/:userId/edit", "detectionMethod": "routing", "confidence": "MEDIUM", "sharedWith": null, "embeddedIn": null, "fileCount": 4, "entryFile": "src/pages/admin/UserEditPage.tsx", "category": "管理", "permissions": ["admin"], "relatedApis": ["users-get", "users-update"], "designDocStatus": "未着手"},
-    {"screenId": "screen-roles", "screenKey": "roles", "kind": "route", "screenNameGuess": "ロール管理", "route": "/admin/roles", "detectionMethod": "routing", "confidence": "HIGH", "sharedWith": null, "embeddedIn": null, "fileCount": 3, "entryFile": "src/pages/admin/RolesPage.tsx", "category": "管理", "permissions": ["admin"], "relatedApis": ["users-list"], "designDocStatus": "未着手"},
-    {"screenId": "screen-posts-list", "screenKey": "posts-list", "kind": "route", "screenNameGuess": "投稿一覧", "route": "/posts", "detectionMethod": "routing", "confidence": "HIGH", "sharedWith": null, "embeddedIn": null, "fileCount": 4, "entryFile": "src/pages/posts/PostsListPage.tsx", "category": "一般", "permissions": [], "relatedApis": ["posts-list"], "designDocStatus": "未着手"},
-    {"screenId": "screen-post-detail", "screenKey": "post-detail", "kind": "route", "screenNameGuess": "投稿詳細", "route": "/posts/:postId", "detectionMethod": "routing", "confidence": "HIGH", "sharedWith": null, "embeddedIn": null, "fileCount": 5, "entryFile": "src/pages/posts/PostDetailPage.tsx", "category": "一般", "permissions": [], "relatedApis": ["posts-get", "comments-create"], "designDocStatus": "未着手"},
-    {"screenId": "screen-post-editor", "screenKey": "post-editor", "kind": "route", "screenNameGuess": "投稿エディタ", "route": "/posts/:postId/edit", "detectionMethod": "routing", "confidence": "MEDIUM", "sharedWith": null, "embeddedIn": null, "fileCount": 7, "entryFile": "src/pages/posts/PostEditorPage.tsx", "category": "一般", "permissions": [], "relatedApis": ["posts-get", "posts-update", "files-upload"], "designDocStatus": "未着手"},
-    {"screenId": "screen-notifications", "screenKey": "notifications", "kind": "route", "screenNameGuess": "通知一覧", "route": "/notifications", "detectionMethod": "routing", "confidence": "HIGH", "sharedWith": null, "embeddedIn": null, "fileCount": 3, "entryFile": "src/pages/NotificationsPage.tsx", "category": "一般", "permissions": [], "relatedApis": ["notifications-list"], "designDocStatus": "未着手"},
-    {"screenId": "screen-search", "screenKey": "search", "kind": "route", "screenNameGuess": "検索結果", "route": "/search", "detectionMethod": "routing", "confidence": "MEDIUM", "sharedWith": null, "embeddedIn": null, "fileCount": 2, "entryFile": "src/pages/SearchResultsPage.tsx", "category": "一般", "permissions": [], "relatedApis": ["posts-list"], "designDocStatus": "未着手"},
-    {"screenId": "screen-report-viewer", "screenKey": "report-viewer", "kind": "route", "screenNameGuess": "レポート閲覧", "route": "/reports/:reportId", "detectionMethod": "routing", "confidence": "HIGH", "sharedWith": null, "embeddedIn": null, "fileCount": 4, "entryFile": "src/pages/reports/ReportViewerPage.tsx", "category": "一般", "permissions": [], "relatedApis": [], "designDocStatus": "未着手"},
-    {"screenId": "screen-sidebar-nav", "screenKey": "sidebar-nav", "kind": "embedded-view", "screenNameGuess": "サイドバーナビ", "route": null, "detectionMethod": "file-scan", "confidence": "MEDIUM", "sharedWith": null, "embeddedIn": "dashboard", "fileCount": 2, "entryFile": "src/components/layout/SidebarNav.tsx", "category": "一般", "permissions": [], "relatedApis": ["notifications-list"], "designDocStatus": "未着手"}
+    {
+      "screenId": "screen-home",
+      "screenKey": "home",
+      "kind": "route",
+      "screenNameGuess": "ホーム画面",
+      "route": "/",
+      "detectionMethod": "routing",
+      "confidence": "HIGH",
+      "sharedWith": null,
+      "embeddedIn": null,
+      "fileCount": 5,
+      "entryFile": "pages/HomePage.tsx",
+      "category": "一般",
+      "permissions": [],
+      "relatedApis": [
+        "posts-list",
+        "notifications-list"
+      ],
+      "designDocStatus": "着手済",
+      "designDocPath": "../../プロジェクト共通/共通設計書.html",
+      "sourceHash": "a1b2c3d4e5f6",
+      "designDocSourceHash": "a1b2c3d4e5f6"
+    },
+    {
+      "screenId": "screen-login",
+      "screenKey": "login",
+      "kind": "route",
+      "screenNameGuess": "ログイン画面",
+      "route": "/login",
+      "detectionMethod": "routing",
+      "confidence": "HIGH",
+      "sharedWith": null,
+      "embeddedIn": null,
+      "fileCount": 3,
+      "entryFile": "pages/auth/LoginPage.tsx",
+      "category": "一般",
+      "permissions": [],
+      "relatedApis": [
+        "auth-login"
+      ],
+      "designDocStatus": "着手済"
+    },
+    {
+      "screenId": "screen-signup",
+      "screenKey": "signup",
+      "kind": "route",
+      "screenNameGuess": "新規登録画面",
+      "route": "/signup",
+      "detectionMethod": "routing",
+      "confidence": "HIGH",
+      "sharedWith": null,
+      "embeddedIn": null,
+      "fileCount": 4,
+      "entryFile": "pages/auth/SignupPage.tsx",
+      "category": "一般",
+      "permissions": [],
+      "relatedApis": [
+        "users-create",
+        "auth-login"
+      ],
+      "designDocStatus": "未着手"
+    },
+    {
+      "screenId": "screen-forgot-pw",
+      "screenKey": "forgot-password",
+      "kind": "route",
+      "screenNameGuess": "パスワードリセット",
+      "route": "/forgot-password",
+      "detectionMethod": "routing",
+      "confidence": "HIGH",
+      "sharedWith": null,
+      "embeddedIn": null,
+      "fileCount": 2,
+      "entryFile": "pages/auth/ForgotPasswordPage.tsx",
+      "category": "一般",
+      "permissions": [],
+      "relatedApis": [],
+      "designDocStatus": "未着手"
+    },
+    {
+      "screenId": "screen-dashboard",
+      "screenKey": "dashboard",
+      "kind": "route",
+      "screenNameGuess": "ダッシュボード",
+      "route": "/dashboard",
+      "detectionMethod": "routing",
+      "confidence": "HIGH",
+      "sharedWith": null,
+      "embeddedIn": null,
+      "fileCount": 8,
+      "entryFile": "pages/DashboardPage.tsx",
+      "category": "一般",
+      "permissions": [],
+      "relatedApis": [
+        "posts-list",
+        "notifications-list",
+        "users-get"
+      ],
+      "designDocStatus": "着手済",
+      "sourceHash": "f6e5d4c3b2a1",
+      "designDocSourceHash": "000000000000"
+    },
+    {
+      "screenId": "screen-profile",
+      "screenKey": "profile",
+      "kind": "route",
+      "screenNameGuess": "プロフィール",
+      "route": "/profile",
+      "detectionMethod": "routing",
+      "confidence": "HIGH",
+      "sharedWith": null,
+      "embeddedIn": null,
+      "fileCount": 3,
+      "entryFile": "pages/settings/ProfilePage.tsx",
+      "category": "一般",
+      "permissions": [],
+      "relatedApis": [
+        "users-get",
+        "users-update"
+      ],
+      "designDocStatus": "未着手"
+    },
+    {
+      "screenId": "screen-settings",
+      "screenKey": "settings",
+      "kind": "route",
+      "screenNameGuess": "設定画面",
+      "route": "/settings",
+      "detectionMethod": "routing",
+      "confidence": "HIGH",
+      "sharedWith": null,
+      "embeddedIn": null,
+      "fileCount": 4,
+      "entryFile": "pages/settings/SettingsPage.tsx",
+      "category": "一般",
+      "permissions": [],
+      "relatedApis": [
+        "settings-get",
+        "settings-update"
+      ],
+      "designDocStatus": "未着手"
+    },
+    {
+      "screenId": "screen-users-list",
+      "screenKey": "users-list",
+      "kind": "route",
+      "screenNameGuess": "ユーザー一覧",
+      "route": "/admin/users",
+      "detectionMethod": "routing",
+      "confidence": "HIGH",
+      "sharedWith": [
+        "users-detail"
+      ],
+      "embeddedIn": null,
+      "fileCount": 6,
+      "entryFile": "pages/admin/UsersListPage.tsx",
+      "category": "管理",
+      "permissions": [
+        "admin"
+      ],
+      "relatedApis": [
+        "users-list"
+      ],
+      "designDocStatus": "未着手",
+      "clusterId": "users-cluster"
+    },
+    {
+      "screenId": "screen-users-detail",
+      "screenKey": "users-detail",
+      "kind": "route",
+      "screenNameGuess": "ユーザー詳細",
+      "route": "/admin/users/:userId",
+      "detectionMethod": "routing",
+      "confidence": "HIGH",
+      "sharedWith": [
+        "users-list"
+      ],
+      "embeddedIn": null,
+      "fileCount": 5,
+      "entryFile": "pages/admin/UserDetailPage.tsx",
+      "category": "管理",
+      "permissions": [
+        "admin"
+      ],
+      "relatedApis": [
+        "users-get"
+      ],
+      "designDocStatus": "未着手",
+      "clusterId": "users-cluster"
+    },
+    {
+      "screenId": "screen-users-edit",
+      "screenKey": "users-edit",
+      "kind": "route",
+      "screenNameGuess": "ユーザー編集",
+      "route": "/admin/users/:userId/edit",
+      "detectionMethod": "routing",
+      "confidence": "MEDIUM",
+      "sharedWith": null,
+      "embeddedIn": null,
+      "fileCount": 4,
+      "entryFile": "pages/admin/UserEditPage.tsx",
+      "category": "管理",
+      "permissions": [
+        "admin"
+      ],
+      "relatedApis": [
+        "users-get",
+        "users-update"
+      ],
+      "designDocStatus": "未着手"
+    },
+    {
+      "screenId": "screen-roles",
+      "screenKey": "roles",
+      "kind": "route",
+      "screenNameGuess": "ロール管理",
+      "route": "/admin/roles",
+      "detectionMethod": "routing",
+      "confidence": "HIGH",
+      "sharedWith": null,
+      "embeddedIn": null,
+      "fileCount": 3,
+      "entryFile": "pages/admin/RolesPage.tsx",
+      "category": "管理",
+      "permissions": [
+        "admin"
+      ],
+      "relatedApis": [
+        "users-list"
+      ],
+      "designDocStatus": "未着手"
+    },
+    {
+      "screenId": "screen-posts-list",
+      "screenKey": "posts-list",
+      "kind": "route",
+      "screenNameGuess": "投稿一覧",
+      "route": "/posts",
+      "detectionMethod": "routing",
+      "confidence": "HIGH",
+      "sharedWith": null,
+      "embeddedIn": null,
+      "fileCount": 4,
+      "entryFile": "pages/posts/PostsListPage.tsx",
+      "category": "一般",
+      "permissions": [],
+      "relatedApis": [
+        "posts-list"
+      ],
+      "designDocStatus": "未着手"
+    },
+    {
+      "screenId": "screen-post-detail",
+      "screenKey": "post-detail",
+      "kind": "route",
+      "screenNameGuess": "投稿詳細",
+      "route": "/posts/:postId",
+      "detectionMethod": "routing",
+      "confidence": "HIGH",
+      "sharedWith": null,
+      "embeddedIn": null,
+      "fileCount": 5,
+      "entryFile": "pages/posts/PostDetailPage.tsx",
+      "category": "一般",
+      "permissions": [],
+      "relatedApis": [
+        "posts-get",
+        "comments-create"
+      ],
+      "designDocStatus": "未着手"
+    },
+    {
+      "screenId": "screen-post-editor",
+      "screenKey": "post-editor",
+      "kind": "route",
+      "screenNameGuess": "投稿エディタ",
+      "route": "/posts/:postId/edit",
+      "detectionMethod": "routing",
+      "confidence": "MEDIUM",
+      "sharedWith": null,
+      "embeddedIn": null,
+      "fileCount": 7,
+      "entryFile": "pages/posts/PostEditorPage.tsx",
+      "category": "一般",
+      "permissions": [],
+      "relatedApis": [
+        "posts-get",
+        "posts-update",
+        "files-upload"
+      ],
+      "designDocStatus": "未着手"
+    },
+    {
+      "screenId": "screen-notifications",
+      "screenKey": "notifications",
+      "kind": "route",
+      "screenNameGuess": "通知一覧",
+      "route": "/notifications",
+      "detectionMethod": "routing",
+      "confidence": "HIGH",
+      "sharedWith": null,
+      "embeddedIn": null,
+      "fileCount": 3,
+      "entryFile": "pages/NotificationsPage.tsx",
+      "category": "一般",
+      "permissions": [],
+      "relatedApis": [
+        "notifications-list"
+      ],
+      "designDocStatus": "未着手"
+    },
+    {
+      "screenId": "screen-search",
+      "screenKey": "search",
+      "kind": "route",
+      "screenNameGuess": "検索結果",
+      "route": "/search",
+      "detectionMethod": "routing",
+      "confidence": "MEDIUM",
+      "sharedWith": null,
+      "embeddedIn": null,
+      "fileCount": 2,
+      "entryFile": "pages/SearchResultsPage.tsx",
+      "category": "一般",
+      "permissions": [],
+      "relatedApis": [
+        "posts-list"
+      ],
+      "designDocStatus": "未着手"
+    },
+    {
+      "screenId": "screen-report-viewer",
+      "screenKey": "report-viewer",
+      "kind": "route",
+      "screenNameGuess": "レポート閲覧",
+      "route": "/reports/:reportId",
+      "detectionMethod": "routing",
+      "confidence": "HIGH",
+      "sharedWith": null,
+      "embeddedIn": null,
+      "fileCount": 4,
+      "entryFile": "pages/reports/ReportViewerPage.tsx",
+      "category": "一般",
+      "permissions": [],
+      "relatedApis": [],
+      "designDocStatus": "未着手"
+    },
+    {
+      "screenId": "screen-sidebar-nav",
+      "screenKey": "sidebar-nav",
+      "kind": "embedded-view",
+      "screenNameGuess": "サイドバーナビ",
+      "route": null,
+      "detectionMethod": "file-scan",
+      "confidence": "MEDIUM",
+      "sharedWith": null,
+      "embeddedIn": "dashboard",
+      "fileCount": 2,
+      "entryFile": "components/layout/SidebarNav.tsx",
+      "category": "一般",
+      "permissions": [],
+      "relatedApis": [
+        "notifications-list"
+      ],
+      "designDocStatus": "未着手"
+    }
   ],
   "diagnostics": []
 }

@@ -1,9 +1,12 @@
 <!DOCTYPE html>
 <!--
-  CRUD図.HTML サンプル(交差ビュー: 機能×テーブル)
+  CRUD図.HTML の静的シェル(テンプレート)
 
-  shared/templates/matrix/crud-matrix-template.html に実データを注入した完成形サンプル。
-  データドメインは既存サンプル(一覧/機能一覧・一覧/テーブル一覧)のブログ系アプリと一致させている。
+  使い方(交差ビュー: 機能×テーブル):
+    将来のビルドスクリプトが本テンプレートを土台に、機能一覧・テーブル一覧の
+    マニフェストJSONを突合してプレースホルダ・注入マーカーを機械的に置換し、
+    決定的にHTMLを生成する。
+    Claude(手作業)によるプレースホルダ置換は禁止。生成は必ずスクリプト経由で行う。
 
   保守注記: トークンブロック・テーマ切替(data-theme二重定義・rd-portal-theme)は
   shared/templates/detail-pages/detail-t3-attributes.html(同portal-template.html)からの複製である。
@@ -11,9 +14,23 @@
   (unit-list-template.html・feature-list-template.html・screen-list-template.htmlにも
   同種の複製あり。include化は別件)。
 
+  プレースホルダ(将来のビルドスクリプトが注入する。手作業置換禁止。本コメントでは
+  二重置換事故を避けるため意図的に波括弧・HTMLコメント記法を外して記載する):
+    GENERATED_AT (生成日時マーカー)   : ISO8601 生成日時
+    DATA_SOURCE (データ源マーカー)    : 突合元の機能一覧・テーブル一覧マニフェストのパス
+    MATRIX_JSON (マトリクスJSON埋め込みマーカー・HTMLコメント形式) :
+      script#matrix-manifest に交差ビューJSONをそのまま埋め込む(二重管理・ドリフト禁止)。
+      形式: { "tables": [{"physicalName","logicalName"}...],
+              "features": [{"featureId","featureName","cells":{"<物理名>":"CRUD文字列"}}...] }
+
   答える質問:
     - このテーブルに書き込むのはどの機能か
     - テーブル変更の影響範囲はどこまでか
+
+  制約:
+    - 外部リソース(CDN・フォント・画像)は一切使わない。単一ファイル自己完結
+    - 行=機能 / 列=テーブル(縦書きヘッダ) / セル=C/R/U/D の組合せ文字列(空なら空欄)
+    - 描画はJSが script#matrix-manifest のJSONから行う。HTML側に行を直書きしない
 -->
 <html lang="ja">
 <head>

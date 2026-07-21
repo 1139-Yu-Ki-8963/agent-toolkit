@@ -1,13 +1,26 @@
 <!DOCTYPE html>
 <!--
-  権限×画面マトリクス.HTML(サンプル)
+  権限×画面マトリクス.HTML の静的シェル(テンプレート)
 
   答える質問:
     「このロールはどの画面を見られるか」「権限設定に漏れはないか」
 
-  本ファイルは shared/templates/matrix/permission-screen-matrix-template.html に
-  ブログ系サンプルアプリ(users/posts/sessions・ロール: 管理者/運用担当/編集者/一般/ゲスト)の
-  実データを注入した完成例である。
+  使い方:
+    プレースホルダ・注入マーカーは将来のビルドスクリプトが注入する。手作業置換禁止。
+    ビルドスクリプトがマトリクスマニフェストJSONをパースし、以下のマーカーを
+    機械的に置換して決定的にHTMLを生成する。
+
+  プレースホルダ(二重置換事故を避けるため本コメントでは波括弧・HTMLコメント記法を
+  意図的に外して記載する):
+    GENERATED_AT (生成日時マーカー)   : ISO8601 生成日時
+    DATA_SOURCE (データ源マーカー)    : 画面一覧マニフェスト・権限定義の取得元
+    MATRIX_JSON (マトリクスJSON埋め込みマーカー) :
+      script#matrix-manifest の中身として manifest JSON をそのまま埋め込む
+      (二重管理・ドリフト禁止)。構造:
+        roles: ロール名の配列(列順)
+        screens: [{ screenId, screenName, route,
+                    permissions: { <ロール名>: true|false } | null }]
+        permissions が null の画面は「権限未設定」(? 表示・警告色)として扱う
 
   表構造:
     行 = 画面(画面名 + ルート表示) / 列 = ロール(縦書きヘッダ・1列目は sticky 固定) / セル = 閲覧可否
@@ -257,8 +270,8 @@
     <h1>権限×画面マトリクス</h1>
   </div>
   <table class="meta-table">
-    <tr><td>生成日時</td><td>2026-07-20 00:00</td></tr>
-    <tr><td>データ源</td><td>画面一覧マニフェスト + ルートガード定義（<code>src/routes/guards.ts</code> の静的解析）</td></tr>
+    <tr><td>生成日時</td><td>2026-07-20T00:00:00+09:00</td></tr>
+    <tr><td>データ源</td><td>画面一覧マニフェスト + ルートガード定義（src/routes/guards.ts の静的解析）</td></tr>
     <tr><td>種別</td><td>交差ビュー（権限×画面マトリクス）</td></tr>
   </table>
 

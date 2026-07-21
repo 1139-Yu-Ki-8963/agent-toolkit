@@ -43,6 +43,11 @@
 <style>
   :root,
 [data-theme="light"] {
+  /* Windows フォント上書き防止 */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-synthesis: none;
   --bg: #FFFFFF;
   --panel: #FFFFFF;
   --panel-2: #F0EDE3;
@@ -65,6 +70,9 @@
   --danger-soft: #F5E2DC;
   --code-bg: #1B1F26;
   --code-fg: #E8E5DC;
+  --cat-list: #2563eb;
+  --cat-common: #059669;
+  --cat-project: #7C3AED;
   --font-body: "Hiragino Kaku Gothic ProN","Hiragino Sans","Noto Sans JP","BIZ UDPGothic","Yu Gothic","Meiryo",system-ui,-apple-system,sans-serif;
   --mono: "SFMono-Regular","Menlo","Cascadia Code","Consolas",monospace;
   --shadow-sm: 0 1px 3px rgba(27,31,38,.07), 0 2px 6px rgba(27,31,38,.05);
@@ -82,6 +90,7 @@
     --success: #8FA3DB; --success-soft: #2A2E47;
     --warn: #D4B45D; --danger: #D4836E; --danger-soft: #3F2620;
     --code-bg: #0E1116; --code-fg: #E8E5DC;
+    --cat-list: #60A5FA; --cat-common: #34D399; --cat-project: #A78BFA;
   }
 }
 [data-theme="dark"] {
@@ -93,8 +102,8 @@
   --success: #8FA3DB; --success-soft: #2A2E47;
   --warn: #D4B45D; --danger: #D4836E; --danger-soft: #3F2620;
   --code-bg: #0E1116; --code-fg: #E8E5DC;
+  --cat-list: #60A5FA; --cat-common: #34D399; --cat-project: #A78BFA;
 }
-
 
   * { box-sizing: border-box; }
   body {
@@ -148,7 +157,7 @@
   }
   table.units td, table.screens td {
     border-top: 1px solid var(--border); padding: 6px 8px; text-align: left; vertical-align: top;
-    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    overflow-wrap: break-word; word-break: break-all; white-space: normal;
   }
   table.units th {
     background: var(--panel-2); font-weight: 700; cursor: pointer; user-select: none;
@@ -195,13 +204,7 @@
     background: var(--accent-soft);
   }
 
-  /* ホバーで全文表示 */
-  table.units td:hover, table.screens td:hover {
-    overflow: visible;
-    white-space: normal;
-    word-break: break-all;
-  }
-  td code { overflow-wrap: break-word; word-break: break-all; max-width: 300px; display: inline-block; }
+  td code { overflow-wrap: break-word; word-break: break-all; }
   .badge { display: inline-block; font-size: 0.76rem; font-weight: 700; padding: 1px 8px; border-radius: 3px; }
   .badge.high   { background: var(--success-soft); color: var(--success); }
   .badge.medium { background: var(--gold-soft); color: var(--gold); }
@@ -289,10 +292,10 @@
     <h1>テーブル一覧</h1>
   </div>
   <table class="meta-table">
-    <tr><td>生成日時</td><td>2026-07-20 00:00</td></tr>
-    <tr><td>ソースディレクトリ</td><td><code>database/migrations</code></td></tr>
+    <tr><td>生成日時</td><td>2026-07-20T00:00:00+09:00</td></tr>
+    <tr><td>ソースディレクトリ</td><td><code>migrations</code></td></tr>
     <tr><td>種別</td><td>テーブル</td></tr>
-    <tr><td>抽出方式</td><td>マイグレーションファイルの静的解析</td></tr>
+    <tr><td>抽出方式</td><td>static-analysis</td></tr>
   </table>
 
   <div class="summary-tiles">
@@ -325,22 +328,167 @@
       </tr>
     </thead>
     <tbody>
-      <tr><td>table-users</td><td>users</td><td>マスタ</td><td>ユーザー</td><td>users</td><td>migration</td><td>HIGH</td><td>1</td><td>001_create_users.sql</td></tr>
-<tr><td>table-sessions</td><td>sessions</td><td>トランザクション</td><td>セッション</td><td>sessions</td><td>migration</td><td>HIGH</td><td>1</td><td>002_create_sessions.sql</td></tr>
-<tr><td>table-settings</td><td>settings</td><td>マスタ</td><td>設定</td><td>app_settings</td><td>migration</td><td>HIGH</td><td>1</td><td>003_create_settings.sql</td></tr>
-<tr><td>table-roles</td><td>roles</td><td>マスタ</td><td>ロール</td><td>roles</td><td>migration</td><td>HIGH</td><td>1</td><td>004_create_roles.sql</td></tr>
-<tr><td>table-permissions</td><td>permissions</td><td>マスタ</td><td>権限</td><td>permissions</td><td>migration</td><td>HIGH</td><td>1</td><td>005_create_permissions.sql</td></tr>
-<tr><td>table-user-roles</td><td>user-roles</td><td>関連</td><td>ユーザーロール紐付</td><td>user_roles</td><td>migration</td><td>HIGH</td><td>1</td><td>006_create_user_roles.sql</td></tr>
-<tr><td>table-posts</td><td>posts</td><td>トランザクション</td><td>投稿</td><td>posts</td><td>migration</td><td>HIGH</td><td>2</td><td>007_create_posts.sql</td></tr>
-<tr><td>table-comments</td><td>comments</td><td>トランザクション</td><td>コメント</td><td>comments</td><td>migration</td><td>HIGH</td><td>1</td><td>008_create_comments.sql</td></tr>
-<tr><td>table-categories</td><td>categories</td><td>マスタ</td><td>カテゴリ</td><td>categories</td><td>migration</td><td>HIGH</td><td>1</td><td>009_create_categories.sql</td></tr>
-<tr><td>table-tags</td><td>tags</td><td>マスタ</td><td>タグ</td><td>tags</td><td>migration</td><td>HIGH</td><td>1</td><td>010_create_tags.sql</td></tr>
-<tr><td>table-post-tags</td><td>post-tags</td><td>関連</td><td>投稿タグ紐付</td><td>post_tags</td><td>migration</td><td>HIGH</td><td>1</td><td>011_create_post_tags.sql</td></tr>
-<tr><td>table-notifications</td><td>notifications</td><td>トランザクション</td><td>通知</td><td>notifications</td><td>migration</td><td>HIGH</td><td>2</td><td>012_create_notifications.sql</td></tr>
-<tr><td>table-audit-logs</td><td>audit-logs</td><td>トランザクション</td><td>監査ログ</td><td>audit_logs</td><td>migration</td><td>HIGH</td><td>1</td><td>013_create_audit_logs.sql</td></tr>
-<tr><td>table-files</td><td>files</td><td>トランザクション</td><td>ファイル</td><td>uploaded_files</td><td>migration</td><td>MEDIUM</td><td>1</td><td>014_create_files.sql</td></tr>
-<tr><td>table-organizations</td><td>organizations</td><td>マスタ</td><td>組織</td><td>organizations</td><td>migration</td><td>HIGH</td><td>1</td><td>015_create_organizations.sql</td></tr>
-<tr><td>table-org-members</td><td>org-members</td><td>関連</td><td>組織メンバー紐付</td><td>organization_members</td><td>migration</td><td>HIGH</td><td>1</td><td>016_create_org_members.sql</td></tr>
+      <tr>
+<td>table-users</td>
+<td><code>users</code></td>
+<td><span class="badge kind-generic">マスタ</span></td>
+<td>ユーザー</td>
+<td><code>users</code></td>
+<td>migration</td>
+<td><span class="badge high">HIGH</span></td>
+<td>1</td>
+<td><code>001_create_users.sql</code></td>
+</tr><tr>
+<td>table-sessions</td>
+<td><code>sessions</code></td>
+<td><span class="badge kind-generic">トランザクション</span></td>
+<td>セッション</td>
+<td><code>sessions</code></td>
+<td>migration</td>
+<td><span class="badge high">HIGH</span></td>
+<td>1</td>
+<td><code>002_create_sessions.sql</code></td>
+</tr><tr>
+<td>table-settings</td>
+<td><code>settings</code></td>
+<td><span class="badge kind-generic">マスタ</span></td>
+<td>設定</td>
+<td><code>app_settings</code></td>
+<td>migration</td>
+<td><span class="badge high">HIGH</span></td>
+<td>1</td>
+<td><code>003_create_settings.sql</code></td>
+</tr><tr>
+<td>table-roles</td>
+<td><code>roles</code></td>
+<td><span class="badge kind-generic">マスタ</span></td>
+<td>ロール</td>
+<td><code>roles</code></td>
+<td>migration</td>
+<td><span class="badge high">HIGH</span></td>
+<td>1</td>
+<td><code>004_create_roles.sql</code></td>
+</tr><tr>
+<td>table-permissions</td>
+<td><code>permissions</code></td>
+<td><span class="badge kind-generic">マスタ</span></td>
+<td>権限</td>
+<td><code>permissions</code></td>
+<td>migration</td>
+<td><span class="badge high">HIGH</span></td>
+<td>1</td>
+<td><code>005_create_permissions.sql</code></td>
+</tr><tr>
+<td>table-user-roles</td>
+<td><code>user-roles</code></td>
+<td><span class="badge kind-generic">関連</span></td>
+<td>ユーザーロール紐付</td>
+<td><code>user_roles</code></td>
+<td>migration</td>
+<td><span class="badge high">HIGH</span></td>
+<td>1</td>
+<td><code>006_create_user_roles.sql</code></td>
+</tr><tr>
+<td>table-posts</td>
+<td><code>posts</code></td>
+<td><span class="badge kind-generic">トランザクション</span></td>
+<td>投稿</td>
+<td><code>posts</code></td>
+<td>migration</td>
+<td><span class="badge high">HIGH</span></td>
+<td>2</td>
+<td><code>007_create_posts.sql</code></td>
+</tr><tr>
+<td>table-comments</td>
+<td><code>comments</code></td>
+<td><span class="badge kind-generic">トランザクション</span></td>
+<td>コメント</td>
+<td><code>comments</code></td>
+<td>migration</td>
+<td><span class="badge high">HIGH</span></td>
+<td>1</td>
+<td><code>008_create_comments.sql</code></td>
+</tr><tr>
+<td>table-categories</td>
+<td><code>categories</code></td>
+<td><span class="badge kind-generic">マスタ</span></td>
+<td>カテゴリ</td>
+<td><code>categories</code></td>
+<td>migration</td>
+<td><span class="badge high">HIGH</span></td>
+<td>1</td>
+<td><code>009_create_categories.sql</code></td>
+</tr><tr>
+<td>table-tags</td>
+<td><code>tags</code></td>
+<td><span class="badge kind-generic">マスタ</span></td>
+<td>タグ</td>
+<td><code>tags</code></td>
+<td>migration</td>
+<td><span class="badge high">HIGH</span></td>
+<td>1</td>
+<td><code>010_create_tags.sql</code></td>
+</tr><tr>
+<td>table-post-tags</td>
+<td><code>post-tags</code></td>
+<td><span class="badge kind-generic">関連</span></td>
+<td>投稿タグ紐付</td>
+<td><code>post_tags</code></td>
+<td>migration</td>
+<td><span class="badge high">HIGH</span></td>
+<td>1</td>
+<td><code>011_create_post_tags.sql</code></td>
+</tr><tr>
+<td>table-notifications</td>
+<td><code>notifications</code></td>
+<td><span class="badge kind-generic">トランザクション</span></td>
+<td>通知</td>
+<td><code>notifications</code></td>
+<td>migration</td>
+<td><span class="badge high">HIGH</span></td>
+<td>2</td>
+<td><code>012_create_notifications.sql</code></td>
+</tr><tr>
+<td>table-audit-logs</td>
+<td><code>audit-logs</code></td>
+<td><span class="badge kind-generic">トランザクション</span></td>
+<td>監査ログ</td>
+<td><code>audit_logs</code></td>
+<td>migration</td>
+<td><span class="badge high">HIGH</span></td>
+<td>1</td>
+<td><code>013_create_audit_logs.sql</code></td>
+</tr><tr>
+<td>table-files</td>
+<td><code>files</code></td>
+<td><span class="badge kind-generic">トランザクション</span></td>
+<td>ファイル</td>
+<td><code>uploaded_files</code></td>
+<td>migration</td>
+<td><span class="badge medium">MEDIUM</span></td>
+<td>1</td>
+<td><code>014_create_files.sql</code></td>
+</tr><tr>
+<td>table-organizations</td>
+<td><code>organizations</code></td>
+<td><span class="badge kind-generic">マスタ</span></td>
+<td>組織</td>
+<td><code>organizations</code></td>
+<td>migration</td>
+<td><span class="badge high">HIGH</span></td>
+<td>1</td>
+<td><code>015_create_organizations.sql</code></td>
+</tr><tr>
+<td>table-org-members</td>
+<td><code>org-members</code></td>
+<td><span class="badge kind-generic">関連</span></td>
+<td>組織メンバー紐付</td>
+<td><code>organization_members</code></td>
+<td>migration</td>
+<td><span class="badge high">HIGH</span></td>
+<td>1</td>
+<td><code>016_create_org_members.sql</code></td>
+</tr>
     </tbody>
   </table>
   </div>
@@ -357,7 +505,7 @@
 <section class="unresolved">
   <h2>要手動確認</h2>
   <div class="table-wrap">
-  
+  <p class="note">なし</p>
   </div>
 </section>
 
@@ -467,8 +615,17 @@
       return null;
     }
 
-    function renderValue(td, fieldName, v) {
+    function renderValue(td, fieldName, v, u) {
       if (!hasValue(v)) return;
+      /* 出力契機=バッチ はバッチ一覧への相互参照リンクにする（relatedBatch を ?q= に渡す） */
+      if (fieldName === 'trigger' && String(v) === 'バッチ') {
+        var batchLink = document.createElement('a');
+        batchLink.className = 'opt-tag';
+        batchLink.href = '../バッチ一覧/バッチ一覧.html?q=' + encodeURIComponent((u && u.relatedBatch) ? String(u.relatedBatch) : '');
+        batchLink.textContent = String(v);
+        td.appendChild(batchLink);
+        return;
+      }
       if (Array.isArray(v)) {
         var linkBase = linkMap[fieldName];
         v.forEach(function (item) {
@@ -517,7 +674,7 @@
       bodyRows.forEach(function (tr) {
         var td = document.createElement('td');
         var u = findUnit(tr);
-        if (u) renderValue(td, f[0], u[f[0]]);
+        if (u) renderValue(td, f[0], u[f[0]], u);
         tr.appendChild(td);
       });
     });
@@ -642,7 +799,7 @@
     var COL_COUNT = headerCells.length;
     /* チップ対象列は列見出し名で指定する（任意列スクリプトが追加した列も対象にできる） */
     var CHIP_COLUMNS = ['区分', 'confidence'];
-    var EXTRA_CHIP_COLUMNS = { api: ['メソッド', '認証'], batch: [] };
+    var EXTRA_CHIP_COLUMNS = { api: ['メソッド', '認証'], batch: [], report: ['出力形式', '出力契機'], external: ['方向', 'プロトコル'] };
     (EXTRA_CHIP_COLUMNS[manifest.unitKind] || []).forEach(function (name) {
       if (CHIP_COLUMNS.indexOf(name) === -1) CHIP_COLUMNS.push(name);
     });

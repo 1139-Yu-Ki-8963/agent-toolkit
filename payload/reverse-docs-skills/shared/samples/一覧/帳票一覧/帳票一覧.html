@@ -43,6 +43,11 @@
 <style>
   :root,
 [data-theme="light"] {
+  /* Windows フォント上書き防止 */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-synthesis: none;
   --bg: #FFFFFF;
   --panel: #FFFFFF;
   --panel-2: #F0EDE3;
@@ -65,6 +70,9 @@
   --danger-soft: #F5E2DC;
   --code-bg: #1B1F26;
   --code-fg: #E8E5DC;
+  --cat-list: #2563eb;
+  --cat-common: #059669;
+  --cat-project: #7C3AED;
   --font-body: "Hiragino Kaku Gothic ProN","Hiragino Sans","Noto Sans JP","BIZ UDPGothic","Yu Gothic","Meiryo",system-ui,-apple-system,sans-serif;
   --mono: "SFMono-Regular","Menlo","Cascadia Code","Consolas",monospace;
   --shadow-sm: 0 1px 3px rgba(27,31,38,.07), 0 2px 6px rgba(27,31,38,.05);
@@ -82,6 +90,7 @@
     --success: #8FA3DB; --success-soft: #2A2E47;
     --warn: #D4B45D; --danger: #D4836E; --danger-soft: #3F2620;
     --code-bg: #0E1116; --code-fg: #E8E5DC;
+    --cat-list: #60A5FA; --cat-common: #34D399; --cat-project: #A78BFA;
   }
 }
 [data-theme="dark"] {
@@ -93,8 +102,8 @@
   --success: #8FA3DB; --success-soft: #2A2E47;
   --warn: #D4B45D; --danger: #D4836E; --danger-soft: #3F2620;
   --code-bg: #0E1116; --code-fg: #E8E5DC;
+  --cat-list: #60A5FA; --cat-common: #34D399; --cat-project: #A78BFA;
 }
-
 
   * { box-sizing: border-box; }
   body {
@@ -148,7 +157,7 @@
   }
   table.units td, table.screens td {
     border-top: 1px solid var(--border); padding: 6px 8px; text-align: left; vertical-align: top;
-    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    overflow-wrap: break-word; word-break: break-all; white-space: normal;
   }
   table.units th {
     background: var(--panel-2); font-weight: 700; cursor: pointer; user-select: none;
@@ -195,13 +204,7 @@
     background: var(--accent-soft);
   }
 
-  /* ホバーで全文表示 */
-  table.units td:hover, table.screens td:hover {
-    overflow: visible;
-    white-space: normal;
-    word-break: break-all;
-  }
-  td code { overflow-wrap: break-word; word-break: break-all; max-width: 300px; display: inline-block; }
+  td code { overflow-wrap: break-word; word-break: break-all; }
   .badge { display: inline-block; font-size: 0.76rem; font-weight: 700; padding: 1px 8px; border-radius: 3px; }
   .badge.high   { background: var(--success-soft); color: var(--success); }
   .badge.medium { background: var(--gold-soft); color: var(--gold); }
@@ -289,10 +292,10 @@
     <h1>帳票一覧</h1>
   </div>
   <table class="meta-table">
-    <tr><td>生成日時</td><td>2026-07-20 00:00</td></tr>
-    <tr><td>ソースディレクトリ</td><td><code>src/reports</code></td></tr>
+    <tr><td>生成日時</td><td>2026-07-20T00:00:00+09:00</td></tr>
+    <tr><td>ソースディレクトリ</td><td><code>reports</code></td></tr>
     <tr><td>種別</td><td>帳票</td></tr>
-    <tr><td>抽出方式</td><td>帳票テンプレート定義の走査</td></tr>
+    <tr><td>抽出方式</td><td>static-analysis</td></tr>
   </table>
 
   <div class="summary-tiles">
@@ -325,14 +328,87 @@
       </tr>
     </thead>
     <tbody>
-      <tr><td>report-invoice</td><td>invoice</td><td>定型</td><td>請求書</td><td>invoice_report</td><td>template-scan</td><td>HIGH</td><td>3</td><td>src/reports/invoice.py</td></tr>
-<tr><td>report-monthly-sales</td><td>monthly-sales</td><td>定型</td><td>月次売上レポート</td><td>monthly_sales_report</td><td>template-scan</td><td>HIGH</td><td>2</td><td>src/reports/monthly_sales.py</td></tr>
-<tr><td>report-user-roster</td><td>user-roster</td><td>随時</td><td>ユーザー名簿</td><td>user_roster</td><td>query-scan</td><td>MEDIUM</td><td>2</td><td>src/reports/user_roster.py</td></tr>
-<tr><td>report-audit-trail</td><td>audit-trail</td><td>定型</td><td>監査証跡</td><td>audit_trail_report</td><td>template-scan</td><td>HIGH</td><td>2</td><td>src/reports/audit_trail.py</td></tr>
-<tr><td>report-post-stats</td><td>post-stats</td><td>随時</td><td>投稿統計</td><td>post_stats</td><td>query-scan</td><td>MEDIUM</td><td>1</td><td>src/reports/post_stats.py</td></tr>
-<tr><td>report-inventory</td><td>inventory</td><td>随時</td><td>在庫一覧</td><td>inventory_list</td><td>query-scan</td><td>MEDIUM</td><td>2</td><td>src/reports/inventory.py</td></tr>
-<tr><td>report-org-summary</td><td>org-summary</td><td>定型</td><td>組織別集計</td><td>org_summary_report</td><td>template-scan</td><td>HIGH</td><td>3</td><td>src/reports/org_summary.py</td></tr>
-<tr><td>report-annual</td><td>annual-report</td><td>定型</td><td>年次報告</td><td>annual_report</td><td>template-scan</td><td>HIGH</td><td>4</td><td>src/reports/annual.py</td></tr>
+      <tr>
+<td>report-invoice</td>
+<td><code>invoice</code></td>
+<td><span class="badge kind-generic">定型</span></td>
+<td>請求書</td>
+<td><code>invoice_report</code></td>
+<td>template-scan</td>
+<td><span class="badge high">HIGH</span></td>
+<td>3</td>
+<td><code>src/reports/invoice.py</code></td>
+</tr><tr>
+<td>report-monthly-sales</td>
+<td><code>monthly-sales</code></td>
+<td><span class="badge kind-generic">定型</span></td>
+<td>月次売上レポート</td>
+<td><code>monthly_sales_report</code></td>
+<td>template-scan</td>
+<td><span class="badge high">HIGH</span></td>
+<td>2</td>
+<td><code>src/reports/monthly_sales.py</code></td>
+</tr><tr>
+<td>report-user-roster</td>
+<td><code>user-roster</code></td>
+<td><span class="badge kind-generic">随時</span></td>
+<td>ユーザー名簿</td>
+<td><code>user_roster</code></td>
+<td>query-scan</td>
+<td><span class="badge medium">MEDIUM</span></td>
+<td>2</td>
+<td><code>src/reports/user_roster.py</code></td>
+</tr><tr>
+<td>report-audit-trail</td>
+<td><code>audit-trail</code></td>
+<td><span class="badge kind-generic">定型</span></td>
+<td>監査証跡</td>
+<td><code>audit_trail_report</code></td>
+<td>template-scan</td>
+<td><span class="badge high">HIGH</span></td>
+<td>2</td>
+<td><code>src/reports/audit_trail.py</code></td>
+</tr><tr>
+<td>report-post-stats</td>
+<td><code>post-stats</code></td>
+<td><span class="badge kind-generic">随時</span></td>
+<td>投稿統計</td>
+<td><code>post_stats</code></td>
+<td>query-scan</td>
+<td><span class="badge medium">MEDIUM</span></td>
+<td>1</td>
+<td><code>src/reports/post_stats.py</code></td>
+</tr><tr>
+<td>report-inventory</td>
+<td><code>inventory</code></td>
+<td><span class="badge kind-generic">随時</span></td>
+<td>在庫一覧</td>
+<td><code>inventory_list</code></td>
+<td>query-scan</td>
+<td><span class="badge medium">MEDIUM</span></td>
+<td>2</td>
+<td><code>src/reports/inventory.py</code></td>
+</tr><tr>
+<td>report-org-summary</td>
+<td><code>org-summary</code></td>
+<td><span class="badge kind-generic">定型</span></td>
+<td>組織別集計</td>
+<td><code>org_summary_report</code></td>
+<td>template-scan</td>
+<td><span class="badge high">HIGH</span></td>
+<td>3</td>
+<td><code>src/reports/org_summary.py</code></td>
+</tr><tr>
+<td>report-annual</td>
+<td><code>annual-report</code></td>
+<td><span class="badge kind-generic">定型</span></td>
+<td>年次報告</td>
+<td><code>annual_report</code></td>
+<td>template-scan</td>
+<td><span class="badge high">HIGH</span></td>
+<td>4</td>
+<td><code>src/reports/annual.py</code></td>
+</tr>
     </tbody>
   </table>
   </div>
@@ -349,7 +425,7 @@
 <section class="unresolved">
   <h2>要手動確認</h2>
   <div class="table-wrap">
-  
+  <p class="note">なし</p>
   </div>
 </section>
 

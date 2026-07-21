@@ -1,22 +1,28 @@
 <!DOCTYPE html>
 <!--
-  追跡可能性（画面→API→テーブル連鎖）.HTML(サンプル)
+  追跡可能性（画面→API→テーブル連鎖）.HTML の静的シェル(テンプレート)
 
   答える質問:
     「この画面を変えたら何に波及するか」「このテーブルはどの画面から使われているか」
 
-  本ファイルは shared/templates/matrix/traceability-template.html に
-  ブログ系サンプルアプリ(users/posts/sessions・ロール: 管理者/一般/ゲスト)の
-  実データを注入した完成例である。画面18・API18・テーブル16で構成し、
-  audit_logs を意図的な孤立テーブル(どの画面からも未使用)として含む。
+  使い方:
+    プレースホルダ・注入マーカーは将来のビルドスクリプトが注入する。手作業置換禁止。
+    ビルドスクリプトが追跡可能性マニフェストJSONをパースし、以下のマーカーを
+    機械的に置換して決定的にHTMLを生成する。
 
-  manifest 構造(script#matrix-manifest。二重管理・ドリフト禁止):
-    screens: [{ screenId, screenName, route, apis: [apiId, ...] }]
-    apis:    [{ apiId, apiName, endpoint, tables: [tableId, ...] }]
-    tables:  [{ tableId, tableName, logicalName }]
-  画面→テーブルの対応は screens[].apis と apis[].tables から JS が導出する。
-  画面起点・テーブル起点(逆引き)の両モードとも同一のこの manifest から描画する
-  (二重データ禁止)。
+  プレースホルダ(二重置換事故を避けるため本コメントでは波括弧・HTMLコメント記法を
+  意図的に外して記載する):
+    GENERATED_AT (生成日時マーカー)   : ISO8601 生成日時
+    DATA_SOURCE (データ源マーカー)    : 画面一覧・API一覧・テーブル一覧マニフェストの取得元
+    MATRIX_JSON (マニフェストJSON埋め込みマーカー) :
+      script#matrix-manifest の中身として manifest JSON をそのまま埋め込む
+      (二重管理・ドリフト禁止)。構造:
+        screens: [{ screenId, screenName, route, apis: [apiId, ...] }]
+        apis:    [{ apiId, apiName, endpoint, tables: [tableId, ...] }]
+        tables:  [{ tableId, tableName, logicalName }]
+      画面→テーブルの対応は screens[].apis と apis[].tables から JS が導出する。
+      画面起点・テーブル起点(逆引き)の両モードとも同一のこの manifest から描画する
+      (二重データ禁止)。
 
   表構造(2モード切替):
     画面起点モード     : 行 = 画面 / 列 = 画面・呼び出しAPI一覧・使用テーブル一覧
@@ -252,8 +258,8 @@
     <h1>追跡可能性（画面→API→テーブル）</h1>
   </div>
   <table class="meta-table">
-    <tr><td>生成日時</td><td>2026-07-20 00:00</td></tr>
-    <tr><td>データ源</td><td>画面一覧・API一覧・テーブル一覧マニフェスト + APIハンドラ（<code>src/api</code> のクエリ静的解析）</td></tr>
+    <tr><td>生成日時</td><td>2026-07-20T00:00:00+09:00</td></tr>
+    <tr><td>データ源</td><td>画面一覧・API一覧・テーブル一覧マニフェスト + APIハンドラ（src/api のクエリ静的解析）</td></tr>
     <tr><td>種別</td><td>交差ビュー（追跡可能性：画面→API→テーブル連鎖）</td></tr>
   </table>
 
@@ -309,6 +315,8 @@
 
 <script type="application/json" id="matrix-manifest">
 {
+  "generatedAt": "2026-07-20T00:00:00+09:00",
+  "dataSource": "画面一覧・API一覧・テーブル一覧マニフェスト + APIハンドラ（src/api のクエリ静的解析）",
   "screens": [
     { "screenId": "screen-home", "screenName": "ホーム画面", "route": "/", "apis": ["api-posts-list", "api-notifications-list"] },
     { "screenId": "screen-login", "screenName": "ログイン画面", "route": "/login", "apis": ["api-auth-login"] },

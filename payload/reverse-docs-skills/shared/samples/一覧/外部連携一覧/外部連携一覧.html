@@ -43,6 +43,11 @@
 <style>
   :root,
 [data-theme="light"] {
+  /* Windows フォント上書き防止 */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-synthesis: none;
   --bg: #FFFFFF;
   --panel: #FFFFFF;
   --panel-2: #F0EDE3;
@@ -65,6 +70,9 @@
   --danger-soft: #F5E2DC;
   --code-bg: #1B1F26;
   --code-fg: #E8E5DC;
+  --cat-list: #2563eb;
+  --cat-common: #059669;
+  --cat-project: #7C3AED;
   --font-body: "Hiragino Kaku Gothic ProN","Hiragino Sans","Noto Sans JP","BIZ UDPGothic","Yu Gothic","Meiryo",system-ui,-apple-system,sans-serif;
   --mono: "SFMono-Regular","Menlo","Cascadia Code","Consolas",monospace;
   --shadow-sm: 0 1px 3px rgba(27,31,38,.07), 0 2px 6px rgba(27,31,38,.05);
@@ -82,6 +90,7 @@
     --success: #8FA3DB; --success-soft: #2A2E47;
     --warn: #D4B45D; --danger: #D4836E; --danger-soft: #3F2620;
     --code-bg: #0E1116; --code-fg: #E8E5DC;
+    --cat-list: #60A5FA; --cat-common: #34D399; --cat-project: #A78BFA;
   }
 }
 [data-theme="dark"] {
@@ -93,8 +102,8 @@
   --success: #8FA3DB; --success-soft: #2A2E47;
   --warn: #D4B45D; --danger: #D4836E; --danger-soft: #3F2620;
   --code-bg: #0E1116; --code-fg: #E8E5DC;
+  --cat-list: #60A5FA; --cat-common: #34D399; --cat-project: #A78BFA;
 }
-
 
   * { box-sizing: border-box; }
   body {
@@ -148,7 +157,7 @@
   }
   table.units td, table.screens td {
     border-top: 1px solid var(--border); padding: 6px 8px; text-align: left; vertical-align: top;
-    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    overflow-wrap: break-word; word-break: break-all; white-space: normal;
   }
   table.units th {
     background: var(--panel-2); font-weight: 700; cursor: pointer; user-select: none;
@@ -195,13 +204,7 @@
     background: var(--accent-soft);
   }
 
-  /* ホバーで全文表示 */
-  table.units td:hover, table.screens td:hover {
-    overflow: visible;
-    white-space: normal;
-    word-break: break-all;
-  }
-  td code { overflow-wrap: break-word; word-break: break-all; max-width: 300px; display: inline-block; }
+  td code { overflow-wrap: break-word; word-break: break-all; }
   .badge { display: inline-block; font-size: 0.76rem; font-weight: 700; padding: 1px 8px; border-radius: 3px; }
   .badge.high   { background: var(--success-soft); color: var(--success); }
   .badge.medium { background: var(--gold-soft); color: var(--gold); }
@@ -289,10 +292,10 @@
     <h1>外部連携一覧</h1>
   </div>
   <table class="meta-table">
-    <tr><td>生成日時</td><td>2026-07-20 00:00</td></tr>
-    <tr><td>ソースディレクトリ</td><td><code>src/integrations</code></td></tr>
+    <tr><td>生成日時</td><td>2026-07-20T00:00:00+09:00</td></tr>
+    <tr><td>ソースディレクトリ</td><td><code>integrations</code></td></tr>
     <tr><td>種別</td><td>外部連携</td></tr>
-    <tr><td>抽出方式</td><td>連携クライアント定義の走査</td></tr>
+    <tr><td>抽出方式</td><td>static-analysis</td></tr>
   </table>
 
   <div class="summary-tiles">
@@ -325,12 +328,67 @@
       </tr>
     </thead>
     <tbody>
-      <tr><td>ext-payment-gateway</td><td>payment-gateway</td><td>API連携</td><td>決済ゲートウェイ送信</td><td>payment_gateway_client</td><td>sdk-import</td><td>HIGH</td><td>3</td><td>src/integrations/payment_gateway.py</td></tr>
-<tr><td>ext-mail-delivery</td><td>mail-delivery</td><td>API連携</td><td>メール配信送信</td><td>mail_delivery_client</td><td>sdk-import</td><td>HIGH</td><td>2</td><td>src/integrations/mail_delivery.py</td></tr>
-<tr><td>ext-address-verify</td><td>address-verify</td><td>API連携</td><td>住所検証送信</td><td>address_verify_client</td><td>http-call</td><td>MEDIUM</td><td>1</td><td>src/integrations/address_verify.py</td></tr>
-<tr><td>ext-sales-sftp</td><td>sales-sftp</td><td>ファイル連携</td><td>売上データSFTP受信</td><td>sales_sftp_receiver</td><td>config-scan</td><td>HIGH</td><td>2</td><td>src/integrations/sales_sftp.py</td></tr>
-<tr><td>ext-order-webhook</td><td>order-webhook</td><td>API連携</td><td>Webhook受注受信</td><td>order_webhook_handler</td><td>route-scan</td><td>HIGH</td><td>2</td><td>src/integrations/order_webhook.py</td></tr>
-<tr><td>ext-sso-auth</td><td>sso-auth</td><td>API連携</td><td>SSO認証連携</td><td>sso_auth_client</td><td>sdk-import</td><td>HIGH</td><td>3</td><td>src/integrations/sso_auth.py</td></tr>
+      <tr>
+<td>ext-payment-gateway</td>
+<td><code>payment-gateway</code></td>
+<td><span class="badge kind-generic">API連携</span></td>
+<td>決済ゲートウェイ送信</td>
+<td><code>payment_gateway_client</code></td>
+<td>sdk-import</td>
+<td><span class="badge high">HIGH</span></td>
+<td>3</td>
+<td><code>src/integrations/payment_gateway.py</code></td>
+</tr><tr>
+<td>ext-mail-delivery</td>
+<td><code>mail-delivery</code></td>
+<td><span class="badge kind-generic">API連携</span></td>
+<td>メール配信送信</td>
+<td><code>mail_delivery_client</code></td>
+<td>sdk-import</td>
+<td><span class="badge high">HIGH</span></td>
+<td>2</td>
+<td><code>src/integrations/mail_delivery.py</code></td>
+</tr><tr>
+<td>ext-address-verify</td>
+<td><code>address-verify</code></td>
+<td><span class="badge kind-generic">API連携</span></td>
+<td>住所検証送信</td>
+<td><code>address_verify_client</code></td>
+<td>http-call</td>
+<td><span class="badge medium">MEDIUM</span></td>
+<td>1</td>
+<td><code>src/integrations/address_verify.py</code></td>
+</tr><tr>
+<td>ext-sales-sftp</td>
+<td><code>sales-sftp</code></td>
+<td><span class="badge kind-generic">ファイル連携</span></td>
+<td>売上データSFTP受信</td>
+<td><code>sales_sftp_receiver</code></td>
+<td>config-scan</td>
+<td><span class="badge high">HIGH</span></td>
+<td>2</td>
+<td><code>src/integrations/sales_sftp.py</code></td>
+</tr><tr>
+<td>ext-order-webhook</td>
+<td><code>order-webhook</code></td>
+<td><span class="badge kind-generic">API連携</span></td>
+<td>Webhook受注受信</td>
+<td><code>order_webhook_handler</code></td>
+<td>route-scan</td>
+<td><span class="badge high">HIGH</span></td>
+<td>2</td>
+<td><code>src/integrations/order_webhook.py</code></td>
+</tr><tr>
+<td>ext-sso-auth</td>
+<td><code>sso-auth</code></td>
+<td><span class="badge kind-generic">API連携</span></td>
+<td>SSO認証連携</td>
+<td><code>sso_auth_client</code></td>
+<td>sdk-import</td>
+<td><span class="badge high">HIGH</span></td>
+<td>3</td>
+<td><code>src/integrations/sso_auth.py</code></td>
+</tr>
     </tbody>
   </table>
   </div>
@@ -347,7 +405,7 @@
 <section class="unresolved">
   <h2>要手動確認</h2>
   <div class="table-wrap">
-  
+  <p class="note">なし</p>
   </div>
 </section>
 

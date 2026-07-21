@@ -336,7 +336,8 @@ row_html() {
   printf '<td>%s</td>\n' "$(html_escape "$unit_name")"
   printf '<td><code>%s</code></td>\n' "$(html_escape "$identifier")"
   printf '<td>%s</td>\n' "$(html_escape "$detection_method")"
-  printf '<td><span class="badge %s">%s</span></td>\n' "$(html_escape "$confidence")" "$(html_escape "$confidence")"
+  # confidence バッジの class はCSS定義(.high/.medium/.low)に合わせ小文字化する(表示ラベルは原文のまま)
+  printf '<td><span class="badge %s">%s</span></td>\n' "$(html_escape "$(printf '%s' "$confidence" | tr '[:upper:]' '[:lower:]')")" "$(html_escape "$confidence")"
   printf '<td>%s</td>\n' "$(html_escape "$file_count")"
   printf '<td><code>%s</code></td>\n' "$(html_escape "$source_file")"
   printf '</tr>\n'

@@ -42,6 +42,11 @@
 <style>
   :root,
 [data-theme="light"] {
+  /* Windows フォント上書き防止 */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-synthesis: none;
   --bg: #FFFFFF;
   --panel: #FFFFFF;
   --panel-2: #F0EDE3;
@@ -64,6 +69,9 @@
   --danger-soft: #F5E2DC;
   --code-bg: #1B1F26;
   --code-fg: #E8E5DC;
+  --cat-list: #2563eb;
+  --cat-common: #059669;
+  --cat-project: #7C3AED;
   --font-body: "Hiragino Kaku Gothic ProN","Hiragino Sans","Noto Sans JP","BIZ UDPGothic","Yu Gothic","Meiryo",system-ui,-apple-system,sans-serif;
   --mono: "SFMono-Regular","Menlo","Cascadia Code","Consolas",monospace;
   --shadow-sm: 0 1px 3px rgba(27,31,38,.07), 0 2px 6px rgba(27,31,38,.05);
@@ -81,6 +89,7 @@
     --success: #8FA3DB; --success-soft: #2A2E47;
     --warn: #D4B45D; --danger: #D4836E; --danger-soft: #3F2620;
     --code-bg: #0E1116; --code-fg: #E8E5DC;
+    --cat-list: #60A5FA; --cat-common: #34D399; --cat-project: #A78BFA;
   }
 }
 [data-theme="dark"] {
@@ -92,8 +101,8 @@
   --success: #8FA3DB; --success-soft: #2A2E47;
   --warn: #D4B45D; --danger: #D4836E; --danger-soft: #3F2620;
   --code-bg: #0E1116; --code-fg: #E8E5DC;
+  --cat-list: #60A5FA; --cat-common: #34D399; --cat-project: #A78BFA;
 }
-
 
   * { box-sizing: border-box; }
   body {
@@ -147,7 +156,7 @@
   }
   table.units td {
     border-top: 1px solid var(--border); padding: 6px 8px; text-align: left; vertical-align: top;
-    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    overflow-wrap: break-word; word-break: break-all; white-space: normal;
   }
   table.units th {
     background: var(--panel-2); font-weight: 700; cursor: pointer; user-select: none;
@@ -192,13 +201,7 @@
     background: var(--accent-soft);
   }
 
-  /* ホバーで全文表示 */
-  table.units td:hover {
-    overflow: visible;
-    white-space: normal;
-    word-break: break-all;
-  }
-  td code { overflow-wrap: break-word; word-break: break-all; max-width: 300px; display: inline-block; }
+  td code { overflow-wrap: break-word; word-break: break-all; }
   .badge { display: inline-block; font-size: 0.76rem; font-weight: 700; padding: 1px 8px; border-radius: 3px; }
   .badge.high   { background: var(--success-soft); color: var(--success); }
   .badge.medium { background: var(--gold-soft); color: var(--gold); }
@@ -283,10 +286,10 @@
     <h1>機能一覧</h1>
   </div>
   <table class="meta-table">
-    <tr><td>生成日時</td><td>2026-07-20 00:00</td></tr>
+    <tr><td>生成日時</td><td>2026-07-20T00:00:00+09:00</td></tr>
     <tr><td>ソースディレクトリ</td><td><code>src</code></td></tr>
     <tr><td>種別</td><td>機能（派生一覧）</td></tr>
-    <tr><td>抽出方式</td><td>画面一覧からの派生分析</td></tr>
+    <tr><td>抽出方式</td><td>static-analysis</td></tr>
   </table>
 
   <div class="summary-tiles">
@@ -302,48 +305,249 @@
 </div>
 
 <div id="category-sections" class="table-wrap">
-<details open><summary class="cat-header"><span class="cat-name">認証・セキュリティ</span><span class="cat-count">4 機能</span></summary>
-<div class="table-wrap"><table class="data-table">
-<thead><tr><th>機能ID</th><th>機能キー</th><th>機能名</th><th>概要</th><th>関連画面</th><th>関連API</th><th>関連テーブル</th><th>confidence</th><th>検出方式</th><th>主ファイル</th></tr></thead>
+<details class="module-group" open>
+<summary class="cat-header"><span class="cat-name">認証・セキュリティ</span><span class="cat-count">4 機能</span></summary>
+<table class="units">
+<thead>
+<tr>
+<th data-key="unitId">機能ID</th><th data-key="unitKey">機能キー</th><th data-key="unitNameGuess">機能名</th>
+<th data-key="summary">概要</th><th data-key="relatedScreens">関連画面</th><th data-key="relatedApis">関連API</th>
+<th data-key="relatedTables">関連テーブル</th><th data-key="confidence">confidence</th>
+<th data-key="detectionMethod">検出方式</th><th data-key="sourceFile">主ファイル</th>
+</tr>
+</thead>
 <tbody>
-<tr><td>feat-login</td><td>login</td><td>ログイン</td><td>メール・パスワードによるユーザー認証とセッション発行</td><td>ログイン画面</td><td>POST /api/auth/login</td><td>users, sessions</td><td>HIGH</td><td>画面派生</td><td>src/pages/auth/LoginPage.tsx</td></tr>
-<tr><td>feat-logout</td><td>logout</td><td>ログアウト</td><td>セッション破棄とログイン画面への遷移</td><td>全画面共通</td><td>DELETE /api/auth/session</td><td>sessions</td><td>HIGH</td><td>画面派生</td><td>src/hooks/useAuth.ts</td></tr>
-<tr><td>feat-signup</td><td>signup</td><td>新規登録</td><td>メールアドレスとパスワードによるアカウント作成</td><td>新規登録画面</td><td>POST /api/users</td><td>users</td><td>HIGH</td><td>画面派生</td><td>src/pages/auth/SignupPage.tsx</td></tr>
-<tr><td>feat-password-reset</td><td>password-reset</td><td>パスワードリセット</td><td>メール送信によるパスワード再設定フロー</td><td>パスワードリセット</td><td>POST /api/auth/reset-password</td><td>users</td><td>MEDIUM</td><td>画面派生</td><td>src/pages/auth/ForgotPasswordPage.tsx</td></tr>
-</tbody></table></div></details>
-<details open><summary class="cat-header"><span class="cat-name">ユーザー管理</span><span class="cat-count">4 機能</span></summary>
-<div class="table-wrap"><table class="data-table">
-<thead><tr><th>機能ID</th><th>機能キー</th><th>機能名</th><th>概要</th><th>関連画面</th><th>関連API</th><th>関連テーブル</th><th>confidence</th><th>検出方式</th><th>主ファイル</th></tr></thead>
+<tr>
+<td>feat-login</td>
+<td><code>login</code></td>
+<td>ログイン</td>
+<td>メール・パスワードによるユーザー認証とセッション発行</td>
+<td>ログイン画面</td>
+<td>POST /api/auth/login</td>
+<td>users, sessions</td>
+<td><span class="badge high">HIGH</span></td>
+<td>画面派生</td>
+<td><code>src/pages/auth/LoginPage.tsx</code></td>
+</tr><tr>
+<td>feat-logout</td>
+<td><code>logout</code></td>
+<td>ログアウト</td>
+<td>セッション破棄とログイン画面への遷移</td>
+<td>全画面共通</td>
+<td>DELETE /api/auth/session</td>
+<td>sessions</td>
+<td><span class="badge high">HIGH</span></td>
+<td>画面派生</td>
+<td><code>src/hooks/useAuth.ts</code></td>
+</tr><tr>
+<td>feat-signup</td>
+<td><code>signup</code></td>
+<td>新規登録</td>
+<td>メールアドレスとパスワードによるアカウント作成</td>
+<td>新規登録画面</td>
+<td>POST /api/users</td>
+<td>users</td>
+<td><span class="badge high">HIGH</span></td>
+<td>画面派生</td>
+<td><code>src/pages/auth/SignupPage.tsx</code></td>
+</tr><tr>
+<td>feat-password-reset</td>
+<td><code>password-reset</code></td>
+<td>パスワードリセット</td>
+<td>メール送信によるパスワード再設定フロー</td>
+<td>パスワードリセット</td>
+<td>POST /api/auth/reset-password</td>
+<td>users</td>
+<td><span class="badge medium">MEDIUM</span></td>
+<td>画面派生</td>
+<td><code>src/pages/auth/ForgotPasswordPage.tsx</code></td>
+</tr>
+</tbody>
+</table>
+</details><details class="module-group" open>
+<summary class="cat-header"><span class="cat-name">ユーザー管理</span><span class="cat-count">4 機能</span></summary>
+<table class="units">
+<thead>
+<tr>
+<th data-key="unitId">機能ID</th><th data-key="unitKey">機能キー</th><th data-key="unitNameGuess">機能名</th>
+<th data-key="summary">概要</th><th data-key="relatedScreens">関連画面</th><th data-key="relatedApis">関連API</th>
+<th data-key="relatedTables">関連テーブル</th><th data-key="confidence">confidence</th>
+<th data-key="detectionMethod">検出方式</th><th data-key="sourceFile">主ファイル</th>
+</tr>
+</thead>
 <tbody>
-<tr><td>feat-profile-edit</td><td>profile-edit</td><td>プロフィール編集</td><td>表示名・アバター・連絡先情報の表示と更新</td><td>プロフィール</td><td>PUT /api/users/:userId</td><td>users</td><td>HIGH</td><td>画面派生</td><td>src/pages/settings/ProfilePage.tsx</td></tr>
-<tr><td>feat-user-list</td><td>user-list</td><td>ユーザー一覧表示</td><td>管理者向けユーザー一覧の検索・絞り込み・ページネーション</td><td>ユーザー一覧</td><td>GET /api/users</td><td>users, roles</td><td>HIGH</td><td>画面派生</td><td>src/pages/admin/UsersListPage.tsx</td></tr>
-<tr><td>feat-user-invite</td><td>user-invite</td><td>ユーザー招待</td><td>メールアドレス指定による新規ユーザーの招待</td><td>ユーザー一覧</td><td>POST /api/users</td><td>users</td><td>MEDIUM</td><td>画面派生</td><td>src/pages/admin/UsersListPage.tsx</td></tr>
-<tr><td>feat-role-assign</td><td>role-assign</td><td>ロール割当</td><td>ユーザーへのロール付与・変更・剥奪</td><td>ユーザー詳細</td><td>PUT /api/users/:userId</td><td>user_roles, roles</td><td>HIGH</td><td>画面派生</td><td>src/pages/admin/UserDetailPage.tsx</td></tr>
-</tbody></table></div></details>
-<details open><summary class="cat-header"><span class="cat-name">コンテンツ管理</span><span class="cat-count">5 機能</span></summary>
-<div class="table-wrap"><table class="data-table">
-<thead><tr><th>機能ID</th><th>機能キー</th><th>機能名</th><th>概要</th><th>関連画面</th><th>関連API</th><th>関連テーブル</th><th>confidence</th><th>検出方式</th><th>主ファイル</th></tr></thead>
+<tr>
+<td>feat-profile-edit</td>
+<td><code>profile-edit</code></td>
+<td>プロフィール編集</td>
+<td>表示名・アバター・連絡先情報の表示と更新</td>
+<td>プロフィール</td>
+<td>PUT /api/users/:userId</td>
+<td>users</td>
+<td><span class="badge high">HIGH</span></td>
+<td>画面派生</td>
+<td><code>src/pages/settings/ProfilePage.tsx</code></td>
+</tr><tr>
+<td>feat-user-list</td>
+<td><code>user-list</code></td>
+<td>ユーザー一覧表示</td>
+<td>管理者向けユーザー一覧の検索・絞り込み・ページネーション</td>
+<td>ユーザー一覧</td>
+<td>GET /api/users</td>
+<td>users, roles</td>
+<td><span class="badge high">HIGH</span></td>
+<td>画面派生</td>
+<td><code>src/pages/admin/UsersListPage.tsx</code></td>
+</tr><tr>
+<td>feat-user-invite</td>
+<td><code>user-invite</code></td>
+<td>ユーザー招待</td>
+<td>メールアドレス指定による新規ユーザーの招待</td>
+<td>ユーザー一覧</td>
+<td>POST /api/users</td>
+<td>users</td>
+<td><span class="badge medium">MEDIUM</span></td>
+<td>画面派生</td>
+<td><code>src/pages/admin/UsersListPage.tsx</code></td>
+</tr><tr>
+<td>feat-role-assign</td>
+<td><code>role-assign</code></td>
+<td>ロール割当</td>
+<td>ユーザーへのロール付与・変更・剥奪</td>
+<td>ユーザー詳細</td>
+<td>PUT /api/users/:userId</td>
+<td>user_roles, roles</td>
+<td><span class="badge high">HIGH</span></td>
+<td>画面派生</td>
+<td><code>src/pages/admin/UserDetailPage.tsx</code></td>
+</tr>
+</tbody>
+</table>
+</details><details class="module-group" open>
+<summary class="cat-header"><span class="cat-name">コンテンツ管理</span><span class="cat-count">5 機能</span></summary>
+<table class="units">
+<thead>
+<tr>
+<th data-key="unitId">機能ID</th><th data-key="unitKey">機能キー</th><th data-key="unitNameGuess">機能名</th>
+<th data-key="summary">概要</th><th data-key="relatedScreens">関連画面</th><th data-key="relatedApis">関連API</th>
+<th data-key="relatedTables">関連テーブル</th><th data-key="confidence">confidence</th>
+<th data-key="detectionMethod">検出方式</th><th data-key="sourceFile">主ファイル</th>
+</tr>
+</thead>
 <tbody>
-<tr><td>feat-post-create</td><td>post-create</td><td>投稿作成</td><td>リッチテキストエディタによる投稿の新規作成と公開</td><td>投稿エディタ</td><td>POST /api/posts</td><td>posts, tags, post_tags</td><td>HIGH</td><td>画面派生</td><td>src/pages/posts/PostEditorPage.tsx</td></tr>
-<tr><td>feat-post-edit</td><td>post-edit</td><td>投稿編集</td><td>既存投稿の内容編集・タグ変更・下書き保存</td><td>投稿エディタ</td><td>PUT /api/posts/:postId</td><td>posts, tags, post_tags</td><td>HIGH</td><td>画面派生</td><td>src/pages/posts/PostEditorPage.tsx</td></tr>
-<tr><td>feat-post-delete</td><td>post-delete</td><td>投稿削除</td><td>投稿の論理削除と関連コメントの連鎖処理</td><td>投稿詳細</td><td>DELETE /api/posts/:postId</td><td>posts, comments</td><td>HIGH</td><td>画面派生</td><td>src/pages/posts/PostDetailPage.tsx</td></tr>
-<tr><td>feat-comment</td><td>comment</td><td>コメント投稿</td><td>投稿へのコメント追加と通知連携</td><td>投稿詳細</td><td>POST /api/posts/:postId/comments</td><td>comments, notifications</td><td>HIGH</td><td>画面派生</td><td>src/pages/posts/PostDetailPage.tsx</td></tr>
-<tr><td>feat-file-upload</td><td>file-upload</td><td>ファイル添付</td><td>投稿へのファイルアップロードとプレビュー表示</td><td>投稿エディタ</td><td>POST /api/files/upload</td><td>uploaded_files</td><td>MEDIUM</td><td>画面派生</td><td>src/components/FileUploader.tsx</td></tr>
-</tbody></table></div></details>
-<details open><summary class="cat-header"><span class="cat-name">通知・レポート</span><span class="cat-count">3 機能</span></summary>
-<div class="table-wrap"><table class="data-table">
-<thead><tr><th>機能ID</th><th>機能キー</th><th>機能名</th><th>概要</th><th>関連画面</th><th>関連API</th><th>関連テーブル</th><th>confidence</th><th>検出方式</th><th>主ファイル</th></tr></thead>
+<tr>
+<td>feat-post-create</td>
+<td><code>post-create</code></td>
+<td>投稿作成</td>
+<td>リッチテキストエディタによる投稿の新規作成と公開</td>
+<td>投稿エディタ</td>
+<td>POST /api/posts</td>
+<td>posts, tags, post_tags</td>
+<td><span class="badge high">HIGH</span></td>
+<td>画面派生</td>
+<td><code>src/pages/posts/PostEditorPage.tsx</code></td>
+</tr><tr>
+<td>feat-post-edit</td>
+<td><code>post-edit</code></td>
+<td>投稿編集</td>
+<td>既存投稿の内容編集・タグ変更・下書き保存</td>
+<td>投稿エディタ</td>
+<td>PUT /api/posts/:postId</td>
+<td>posts, tags, post_tags</td>
+<td><span class="badge high">HIGH</span></td>
+<td>画面派生</td>
+<td><code>src/pages/posts/PostEditorPage.tsx</code></td>
+</tr><tr>
+<td>feat-post-delete</td>
+<td><code>post-delete</code></td>
+<td>投稿削除</td>
+<td>投稿の論理削除と関連コメントの連鎖処理</td>
+<td>投稿詳細</td>
+<td>DELETE /api/posts/:postId</td>
+<td>posts, comments</td>
+<td><span class="badge high">HIGH</span></td>
+<td>画面派生</td>
+<td><code>src/pages/posts/PostDetailPage.tsx</code></td>
+</tr><tr>
+<td>feat-comment</td>
+<td><code>comment</code></td>
+<td>コメント投稿</td>
+<td>投稿へのコメント追加と通知連携</td>
+<td>投稿詳細</td>
+<td>POST /api/posts/:postId/comments</td>
+<td>comments, notifications</td>
+<td><span class="badge high">HIGH</span></td>
+<td>画面派生</td>
+<td><code>src/pages/posts/PostDetailPage.tsx</code></td>
+</tr><tr>
+<td>feat-file-upload</td>
+<td><code>file-upload</code></td>
+<td>ファイル添付</td>
+<td>投稿へのファイルアップロードとプレビュー表示</td>
+<td>投稿エディタ</td>
+<td>POST /api/files/upload</td>
+<td>uploaded_files</td>
+<td><span class="badge medium">MEDIUM</span></td>
+<td>画面派生</td>
+<td><code>src/components/FileUploader.tsx</code></td>
+</tr>
+</tbody>
+</table>
+</details><details class="module-group" open>
+<summary class="cat-header"><span class="cat-name">通知・レポート</span><span class="cat-count">3 機能</span></summary>
+<table class="units">
+<thead>
+<tr>
+<th data-key="unitId">機能ID</th><th data-key="unitKey">機能キー</th><th data-key="unitNameGuess">機能名</th>
+<th data-key="summary">概要</th><th data-key="relatedScreens">関連画面</th><th data-key="relatedApis">関連API</th>
+<th data-key="relatedTables">関連テーブル</th><th data-key="confidence">confidence</th>
+<th data-key="detectionMethod">検出方式</th><th data-key="sourceFile">主ファイル</th>
+</tr>
+</thead>
 <tbody>
-<tr><td>feat-notification-list</td><td>notification-list</td><td>通知一覧表示</td><td>未読・既読の通知一覧表示と一括既読処理</td><td>通知一覧</td><td>GET /api/notifications</td><td>notifications</td><td>HIGH</td><td>画面派生</td><td>src/pages/NotificationsPage.tsx</td></tr>
-<tr><td>feat-notification-settings</td><td>notification-settings</td><td>通知設定</td><td>通知種別ごとの受信可否と配信チャネル設定</td><td>設定画面</td><td>PUT /api/settings</td><td>settings</td><td>MEDIUM</td><td>画面派生</td><td>src/pages/settings/SettingsPage.tsx</td></tr>
-<tr><td>feat-report-view</td><td>report-view</td><td>レポート閲覧</td><td>集計データのグラフ表示とCSVダウンロード</td><td>レポート閲覧</td><td>GET /api/reports/:reportId</td><td>posts, comments, audit_logs</td><td>HIGH</td><td>画面派生</td><td>src/pages/reports/ReportViewerPage.tsx</td></tr>
-</tbody></table></div></details>
+<tr>
+<td>feat-notification-list</td>
+<td><code>notification-list</code></td>
+<td>通知一覧表示</td>
+<td>未読・既読の通知一覧表示と一括既読処理</td>
+<td>通知一覧</td>
+<td>GET /api/notifications</td>
+<td>notifications</td>
+<td><span class="badge high">HIGH</span></td>
+<td>画面派生</td>
+<td><code>src/pages/NotificationsPage.tsx</code></td>
+</tr><tr>
+<td>feat-notification-settings</td>
+<td><code>notification-settings</code></td>
+<td>通知設定</td>
+<td>通知種別ごとの受信可否と配信チャネル設定</td>
+<td>設定画面</td>
+<td>PUT /api/settings</td>
+<td>settings</td>
+<td><span class="badge medium">MEDIUM</span></td>
+<td>画面派生</td>
+<td><code>src/pages/settings/SettingsPage.tsx</code></td>
+</tr><tr>
+<td>feat-report-view</td>
+<td><code>report-view</code></td>
+<td>レポート閲覧</td>
+<td>集計データのグラフ表示とCSVダウンロード</td>
+<td>レポート閲覧</td>
+<td>GET /api/reports/:reportId</td>
+<td>posts, comments, audit_logs</td>
+<td><span class="badge high">HIGH</span></td>
+<td>画面派生</td>
+<td><code>src/pages/reports/ReportViewerPage.tsx</code></td>
+</tr>
+</tbody>
+</table>
+</details>
 </div>
 
 <section class="unresolved">
   <h2>要手動確認</h2>
   <div class="table-wrap">
-  
+  <p class="note">なし</p>
   </div>
 </section>
 
@@ -371,7 +575,7 @@
 <footer>generating-feature-list-for-reverse-docsにより生成。手編集は次回再生成で上書きされる。</footer>
 
 <script>
-  /* 任意列描画（マニフェストスキーマ拡張。仕様正本: shared/references/manifest-schema-extensions.md）
+  /* 任意列描画（マニフェストスキーマ拡張。仕様定義: shared/references/manifest-schema-extensions.md）
      一覧制御スクリプトより前に実行し、copy/chips/CSV 初期化前に追加セルを存在させる。
      マニフェストに対象フィールドが 1 件も無ければ何も追加しない（後方互換）。 */
   (function () {

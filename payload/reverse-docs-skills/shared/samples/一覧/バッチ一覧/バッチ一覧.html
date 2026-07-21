@@ -43,6 +43,11 @@
 <style>
   :root,
 [data-theme="light"] {
+  /* Windows フォント上書き防止 */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-synthesis: none;
   --bg: #FFFFFF;
   --panel: #FFFFFF;
   --panel-2: #F0EDE3;
@@ -65,6 +70,9 @@
   --danger-soft: #F5E2DC;
   --code-bg: #1B1F26;
   --code-fg: #E8E5DC;
+  --cat-list: #2563eb;
+  --cat-common: #059669;
+  --cat-project: #7C3AED;
   --font-body: "Hiragino Kaku Gothic ProN","Hiragino Sans","Noto Sans JP","BIZ UDPGothic","Yu Gothic","Meiryo",system-ui,-apple-system,sans-serif;
   --mono: "SFMono-Regular","Menlo","Cascadia Code","Consolas",monospace;
   --shadow-sm: 0 1px 3px rgba(27,31,38,.07), 0 2px 6px rgba(27,31,38,.05);
@@ -82,6 +90,7 @@
     --success: #8FA3DB; --success-soft: #2A2E47;
     --warn: #D4B45D; --danger: #D4836E; --danger-soft: #3F2620;
     --code-bg: #0E1116; --code-fg: #E8E5DC;
+    --cat-list: #60A5FA; --cat-common: #34D399; --cat-project: #A78BFA;
   }
 }
 [data-theme="dark"] {
@@ -93,8 +102,8 @@
   --success: #8FA3DB; --success-soft: #2A2E47;
   --warn: #D4B45D; --danger: #D4836E; --danger-soft: #3F2620;
   --code-bg: #0E1116; --code-fg: #E8E5DC;
+  --cat-list: #60A5FA; --cat-common: #34D399; --cat-project: #A78BFA;
 }
-
 
   * { box-sizing: border-box; }
   body {
@@ -148,7 +157,7 @@
   }
   table.units td, table.screens td {
     border-top: 1px solid var(--border); padding: 6px 8px; text-align: left; vertical-align: top;
-    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    overflow-wrap: break-word; word-break: break-all; white-space: normal;
   }
   table.units th {
     background: var(--panel-2); font-weight: 700; cursor: pointer; user-select: none;
@@ -195,13 +204,7 @@
     background: var(--accent-soft);
   }
 
-  /* ホバーで全文表示 */
-  table.units td:hover, table.screens td:hover {
-    overflow: visible;
-    white-space: normal;
-    word-break: break-all;
-  }
-  td code { overflow-wrap: break-word; word-break: break-all; max-width: 300px; display: inline-block; }
+  td code { overflow-wrap: break-word; word-break: break-all; }
   .badge { display: inline-block; font-size: 0.76rem; font-weight: 700; padding: 1px 8px; border-radius: 3px; }
   .badge.high   { background: var(--success-soft); color: var(--success); }
   .badge.medium { background: var(--gold-soft); color: var(--gold); }
@@ -289,10 +292,10 @@
     <h1>バッチ一覧</h1>
   </div>
   <table class="meta-table">
-    <tr><td>生成日時</td><td>2026-07-20 00:00</td></tr>
-    <tr><td>ソースディレクトリ</td><td><code>src/jobs</code></td></tr>
+    <tr><td>生成日時</td><td>2026-07-20T00:00:00+09:00</td></tr>
+    <tr><td>ソースディレクトリ</td><td><code>jobs</code></td></tr>
     <tr><td>種別</td><td>バッチ</td></tr>
-    <tr><td>抽出方式</td><td>ジョブ定義ファイルの走査</td></tr>
+    <tr><td>抽出方式</td><td>static-analysis</td></tr>
   </table>
 
   <div class="summary-tiles">
@@ -325,16 +328,107 @@
       </tr>
     </thead>
     <tbody>
-      <tr><td>batch-cleanup</td><td>cleanup</td><td>定期</td><td>データクリーンアップ</td><td>cleanup_job</td><td>cron-config</td><td>HIGH</td><td>2</td><td>src/jobs/cleanup.py</td></tr>
-<tr><td>batch-daily-report</td><td>daily-report</td><td>定期</td><td>日次レポート生成</td><td>daily_report</td><td>cron-config</td><td>HIGH</td><td>3</td><td>src/jobs/daily_report.py</td></tr>
-<tr><td>batch-weekly-digest</td><td>weekly-digest</td><td>定期</td><td>週次ダイジェスト送信</td><td>weekly_digest</td><td>cron-config</td><td>HIGH</td><td>2</td><td>src/jobs/weekly_digest.py</td></tr>
-<tr><td>batch-session-cleanup</td><td>session-cleanup</td><td>定期</td><td>期限切れセッション削除</td><td>session_cleanup</td><td>cron-config</td><td>HIGH</td><td>1</td><td>src/jobs/session_cleanup.py</td></tr>
-<tr><td>batch-notification-send</td><td>notification-send</td><td>定期</td><td>通知一括送信</td><td>notification_batch_send</td><td>cron-config</td><td>HIGH</td><td>3</td><td>src/jobs/notification_send.py</td></tr>
-<tr><td>batch-data-export</td><td>data-export</td><td>手動</td><td>データエクスポート</td><td>data_export</td><td>script</td><td>MEDIUM</td><td>4</td><td>src/jobs/data_export.py</td></tr>
-<tr><td>batch-backup</td><td>db-backup</td><td>定期</td><td>データベースバックアップ</td><td>db_backup</td><td>cron-config</td><td>HIGH</td><td>2</td><td>src/jobs/db_backup.py</td></tr>
-<tr><td>batch-sync-external</td><td>sync-external</td><td>手動</td><td>外部データ同期</td><td>sync_external_data</td><td>script</td><td>MEDIUM</td><td>2</td><td>src/jobs/sync_external.py</td></tr>
-<tr><td>batch-cache-warmup</td><td>cache-warmup</td><td>定期</td><td>キャッシュウォームアップ</td><td>cache_warmup</td><td>cron-config</td><td>HIGH</td><td>1</td><td>src/jobs/cache_warmup.py</td></tr>
-<tr><td>batch-audit-archive</td><td>audit-archive</td><td>定期</td><td>監査ログアーカイブ</td><td>audit_log_archive</td><td>cron-config</td><td>HIGH</td><td>2</td><td>src/jobs/audit_archive.py</td></tr>
+      <tr>
+<td>batch-cleanup</td>
+<td><code>cleanup</code></td>
+<td><span class="badge kind-generic">定期</span></td>
+<td>データクリーンアップ</td>
+<td><code>cleanup_job</code></td>
+<td>cron-config</td>
+<td><span class="badge high">HIGH</span></td>
+<td>2</td>
+<td><code>src/jobs/cleanup.py</code></td>
+</tr><tr>
+<td>batch-daily-report</td>
+<td><code>daily-report</code></td>
+<td><span class="badge kind-generic">定期</span></td>
+<td>日次レポート生成</td>
+<td><code>daily_report</code></td>
+<td>cron-config</td>
+<td><span class="badge high">HIGH</span></td>
+<td>3</td>
+<td><code>src/jobs/daily_report.py</code></td>
+</tr><tr>
+<td>batch-weekly-digest</td>
+<td><code>weekly-digest</code></td>
+<td><span class="badge kind-generic">定期</span></td>
+<td>週次ダイジェスト送信</td>
+<td><code>weekly_digest</code></td>
+<td>cron-config</td>
+<td><span class="badge high">HIGH</span></td>
+<td>2</td>
+<td><code>src/jobs/weekly_digest.py</code></td>
+</tr><tr>
+<td>batch-session-cleanup</td>
+<td><code>session-cleanup</code></td>
+<td><span class="badge kind-generic">定期</span></td>
+<td>期限切れセッション削除</td>
+<td><code>session_cleanup</code></td>
+<td>cron-config</td>
+<td><span class="badge high">HIGH</span></td>
+<td>1</td>
+<td><code>src/jobs/session_cleanup.py</code></td>
+</tr><tr>
+<td>batch-notification-send</td>
+<td><code>notification-send</code></td>
+<td><span class="badge kind-generic">定期</span></td>
+<td>通知一括送信</td>
+<td><code>notification_batch_send</code></td>
+<td>cron-config</td>
+<td><span class="badge high">HIGH</span></td>
+<td>3</td>
+<td><code>src/jobs/notification_send.py</code></td>
+</tr><tr>
+<td>batch-data-export</td>
+<td><code>data-export</code></td>
+<td><span class="badge kind-generic">手動</span></td>
+<td>データエクスポート</td>
+<td><code>data_export</code></td>
+<td>script</td>
+<td><span class="badge medium">MEDIUM</span></td>
+<td>4</td>
+<td><code>src/jobs/data_export.py</code></td>
+</tr><tr>
+<td>batch-backup</td>
+<td><code>db-backup</code></td>
+<td><span class="badge kind-generic">定期</span></td>
+<td>データベースバックアップ</td>
+<td><code>db_backup</code></td>
+<td>cron-config</td>
+<td><span class="badge high">HIGH</span></td>
+<td>2</td>
+<td><code>src/jobs/db_backup.py</code></td>
+</tr><tr>
+<td>batch-sync-external</td>
+<td><code>sync-external</code></td>
+<td><span class="badge kind-generic">手動</span></td>
+<td>外部データ同期</td>
+<td><code>sync_external_data</code></td>
+<td>script</td>
+<td><span class="badge medium">MEDIUM</span></td>
+<td>2</td>
+<td><code>src/jobs/sync_external.py</code></td>
+</tr><tr>
+<td>batch-cache-warmup</td>
+<td><code>cache-warmup</code></td>
+<td><span class="badge kind-generic">定期</span></td>
+<td>キャッシュウォームアップ</td>
+<td><code>cache_warmup</code></td>
+<td>cron-config</td>
+<td><span class="badge high">HIGH</span></td>
+<td>1</td>
+<td><code>src/jobs/cache_warmup.py</code></td>
+</tr><tr>
+<td>batch-audit-archive</td>
+<td><code>audit-archive</code></td>
+<td><span class="badge kind-generic">定期</span></td>
+<td>監査ログアーカイブ</td>
+<td><code>audit_log_archive</code></td>
+<td>cron-config</td>
+<td><span class="badge high">HIGH</span></td>
+<td>2</td>
+<td><code>src/jobs/audit_archive.py</code></td>
+</tr>
     </tbody>
   </table>
   </div>
@@ -351,7 +445,7 @@
 <section class="unresolved">
   <h2>要手動確認</h2>
   <div class="table-wrap">
-  
+  <p class="note">なし</p>
   </div>
 </section>
 
@@ -455,8 +549,17 @@
       return null;
     }
 
-    function renderValue(td, fieldName, v) {
+    function renderValue(td, fieldName, v, u) {
       if (!hasValue(v)) return;
+      /* 出力契機=バッチ はバッチ一覧への相互参照リンクにする（relatedBatch を ?q= に渡す） */
+      if (fieldName === 'trigger' && String(v) === 'バッチ') {
+        var batchLink = document.createElement('a');
+        batchLink.className = 'opt-tag';
+        batchLink.href = '../バッチ一覧/バッチ一覧.html?q=' + encodeURIComponent((u && u.relatedBatch) ? String(u.relatedBatch) : '');
+        batchLink.textContent = String(v);
+        td.appendChild(batchLink);
+        return;
+      }
       if (Array.isArray(v)) {
         var linkBase = linkMap[fieldName];
         v.forEach(function (item) {
@@ -505,7 +608,7 @@
       bodyRows.forEach(function (tr) {
         var td = document.createElement('td');
         var u = findUnit(tr);
-        if (u) renderValue(td, f[0], u[f[0]]);
+        if (u) renderValue(td, f[0], u[f[0]], u);
         tr.appendChild(td);
       });
     });
@@ -630,7 +733,7 @@
     var COL_COUNT = headerCells.length;
     /* チップ対象列は列見出し名で指定する（任意列スクリプトが追加した列も対象にできる） */
     var CHIP_COLUMNS = ['区分', 'confidence'];
-    var EXTRA_CHIP_COLUMNS = { api: ['メソッド', '認証'], batch: [] };
+    var EXTRA_CHIP_COLUMNS = { api: ['メソッド', '認証'], batch: [], report: ['出力形式', '出力契機'], external: ['方向', 'プロトコル'] };
     (EXTRA_CHIP_COLUMNS[manifest.unitKind] || []).forEach(function (name) {
       if (CHIP_COLUMNS.indexOf(name) === -1) CHIP_COLUMNS.push(name);
     });

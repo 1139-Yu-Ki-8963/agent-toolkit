@@ -269,7 +269,11 @@ source "$(cd "$(dirname "$0")/.." && pwd)/render-template.sh"
 # --- メタ情報・サマリ集計をマニフェストから抽出 ---
 generated_at="$(jq -r '.generatedAt // ""' "$MANIFEST")"
 source_dir="$(jq -r '.sourceDir // ""' "$MANIFEST")"
-source_dir_display="$(basename "$source_dir")"
+# 表示用: 絶対パスはマシン固有パスの漏洩防止でbasenameに丸め、相対パスはそのまま表示する
+case "$source_dir" in
+  /*) source_dir_display="$(basename "$source_dir")" ;;
+  *)  source_dir_display="$source_dir" ;;
+esac
 extraction_method="$(jq -r '.strategy.extractionMethod // ""' "$MANIFEST")"
 detection_method="$(jq -r '.detectionSummary.method // ""' "$MANIFEST")"
 tile_screen_count="$(jq -r '.detectionSummary.screenCount // 0' "$MANIFEST")"
@@ -325,7 +329,7 @@ row_html() {
         (.sharedWith // []) as $sw
         | $sw | map(
             ($lookup[.] // {"screenId":null,"route":null}) as $m
-            | ((if $m.screenId != null then $m.screenId else . end) + ":" + ($m.route // ""))
+            | ((if $m.screenId != null then $m.screenId else . end) + ": " + ($m.route // ""))
           ) | join(", ")
       ' <<<"$row")"
       shared_text="$(html_escape "$shared_detail")"
@@ -363,9 +367,14 @@ row_html() {
   printf '<td><code>%s</code></td>\n' "$(html_escape "$screen_key")"
   printf '<td><span class="badge %s">%s</span></td>\n' "$kind_class" "$kind_label"
   printf '<td>%s</td>\n' "$(html_escape "$screen_name")"
-  printf '<td><code>%s</code>%s</td>\n' "$(html_escape "$route")" "$dup_note"
+  if [ -n "$route" ]; then
+    printf '<td><code>%s</code>%s</td>\n' "$(html_escape "$route")" "$dup_note"
+  else
+    printf '<td>—%s</td>\n' "$dup_note"
+  fi
   printf '<td>%s</td>\n' "$(html_escape "$detection_method_row")"
-  printf '<td><span class="badge %s">%s</span></td>\n' "$(html_escape "$confidence")" "$(html_escape "$confidence")"
+  # badge CSSクラス(.badge.high等)は小文字定義のため、confidence値の大文字小文字に依らずクラスは小文字化する
+  printf '<td><span class="badge %s">%s</span></td>\n' "$(html_escape "$(printf '%s' "$confidence" | tr '[:upper:]' '[:lower:]')")" "$(html_escape "$confidence")"
   printf '<td>%s</td>\n' "$shared_text"
   printf '<td>%s</td>\n' "$embedded_text"
   printf '<td>%s</td>\n' "$(html_escape "$file_count")"

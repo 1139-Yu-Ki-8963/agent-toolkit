@@ -1,15 +1,29 @@
 <!DOCTYPE html>
 <!--
-  AI設定資産.HTML (サンプル)
+  AI設定資産.HTML の静的シェル(テンプレート)
 
   答える質問: 「このプロジェクトで効く rules は何か」「使えるスキルは」
   「委任できるサブエージェントは」「どの hook が何を block するか」。
   プロジェクトに適用される AI 設定資産(rules / skills / サブエージェント / hooks)を
   4 セクションの一覧で示す。
 
-  本ファイルは shared/templates/ai-assets/ai-assets-template.html にサンプルデータを
-  注入した生成結果の例。データは reverse-docs-skills プロジェクト自身の実資産
-  (.claude/rules・.claude/settings.json・.claude/skills・グローバルサブエージェント定義)に基づく。
+  使い方:
+    将来のビルドスクリプトがプレースホルダ・注入マーカーを機械的に置換して生成する。
+    Claude(手作業)によるプレースホルダ置換は禁止。生成は必ずスクリプト経由で行う。
+
+  プレースホルダ(二重置換事故を避けるため、マーカーの実記法は注入箇所のコメント・波括弧を正とする):
+    GENERATED_AT (生成日時マーカー)  : ISO8601 生成日時
+    DATA_SOURCE (データ源マーカー)   : 一覧の導出元(.claude/rules・.claude/settings.json・.claude/skills 等)
+    ASSETS_JSON (設定資産JSON埋め込みマーカー) :
+      <script type="application/json" id="matrix-manifest"> の中身として
+      {
+        "rules":     [{"ruleName","layer":"always|scoped","enforcement":"block|advisory|なし","tags":["[TAG]"...],"summary"}...],
+        "skills":    [{"skillName","category","trigger","summary"}...],
+        "subagents": [{"name","classification":"計画系|実行系|調査系|判定系","verdict":"可|不可","mainTools"}...],
+        "hooks":     [{"script","timing","matcher","tags":["[TAG]"...],"behavior":"block|advisory","summary"}...]
+      }
+      形式の JSON をそのまま埋め込む(二重管理・ドリフト禁止)。
+      enforcement / behavior の "block" は danger バッジ、"advisory" は gold バッジで描画される。
 
   保守注記: トークンブロック・テーマ切替(data-theme二重定義・rd-portal-theme)は
   shared/templates/tokens.css(同 shared/templates/unit-list/unit-list-template.html のトークン注入結果)からの複製である。
@@ -311,6 +325,8 @@
 
 <script type="application/json" id="matrix-manifest">
 {
+  "generatedAt": "2026-07-21T10:00:00+09:00",
+  "dataSource": ".claude/rules/ ・ .claude/settings.json ・ .claude/skills/ ・ グローバルサブエージェント定義",
   "rules": [
     {"ruleName": "公開完遂ガード（PUBLISH-COMPLETE）", "layer": "always", "enforcement": "block", "tags": ["[PUBLISH-COMPLETE-BLOCK]", "[PUBLISH-SYNC-REQUIRED]"], "summary": "正本 commit → payload 同期 → agent-toolkit の origin/main へ統合 push まで完遂してから完了報告させる。Stop で block、git commit 後の同期検査は advisory"},
     {"ruleName": "スキルガイド HTML 統一規約（SKILL-GUIDE-HTML）", "layer": "always", "enforcement": "なし", "tags": [], "summary": ".claude/skills/*/references/*-guide.html のメタテーブル必須 4 行と出力セクション（§2）の構成を統一する行動規範"},

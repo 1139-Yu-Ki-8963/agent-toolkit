@@ -1,16 +1,35 @@
 <!DOCTYPE html>
 <!--
-  権限×機能マトリクス.HTML（サンプル。ブログ系アプリ・16機能×5ロール）
+  権限×機能マトリクス.HTML の静的シェル(テンプレート)
+
+  答える質問: 「画面は見えるが、編集・削除までできるのは誰か」。
+  閲覧可否より1段深い操作レベル(CRUD)の権限を、行=機能 × 列=ロールの交差ビューで示す。
 
   UI構造:
     列 = ロール(縦書きヘッダ) / 1列目(機能名)は sticky 固定 + コピーボタン
     ロール選択チップ(テーブル上部)で選択ロールの列だけ表示(未選択=全列表示・複数選択可)
     URLSearchParams の q を検索窓に反映する受け口あり(?q=キーワード)
 
+  使い方:
+    将来のビルドスクリプトがプレースホルダ・注入マーカーを機械的に置換して生成する。
+    Claude(手作業)によるプレースホルダ置換は禁止。生成は必ずスクリプト経由で行う。
+
+  プレースホルダ(二重置換事故を避けるため、マーカーの実記法は注入箇所のコメント・波括弧を正とする):
+    GENERATED_AT (生成日時マーカー)       : ISO8601 生成日時
+    DATA_SOURCE (データ源マーカー)        : マトリクスの導出元(機能一覧マニフェスト等)
+    MATRIX_JSON (マトリクスJSON埋め込みマーカー) :
+      <script type="application/json" id="matrix-manifest"> の中身として
+      { "roles": [{"key","name"}...], "functions": [{"functionKey","functionName","category","permissions":{roleKey:"CRUD|CRU-|..."}}...] }
+      形式の JSON をそのまま埋め込む(二重管理・ドリフト禁止)。
+      permissions の値は C/R/U/D の4桁固定。許可しない桁は "-"(ASCIIハイフン)で表現し、描画時に「—」へ変換する。
+
   保守注記: トークンブロック・テーマ切替(data-theme二重定義・rd-portal-theme)は
   shared/templates/tokens.css(同 shared/templates/unit-list/unit-list-template.html のトークン注入結果)からの複製である。
   同ファイルの当該部分を変更した場合は本ファイルも同時更新すること。
-  本サンプルの構造正本は shared/templates/matrix/permission-function-matrix-template.html。
+
+  制約:
+    - 外部リソース(CDN・フォント・画像)は一切使わない。単一ファイル自己完結
+    - <script id="matrix-manifest"> の中身は確定結果のマトリクスJSONと完全に一致させる
 -->
 <html lang="ja">
 <head>
@@ -245,7 +264,7 @@
   </div>
   <table class="meta-table">
     <tr><td>生成日時</td><td>2026-07-20 00:00</td></tr>
-    <tr><td>データ源</td><td><code>一覧/機能一覧/機能一覧.html</code>（16機能）＋ ロール定義（roles / user_roles）</td></tr>
+    <tr><td>データ源</td><td><code>一覧/機能一覧/機能一覧.html</code></td></tr>
     <tr><td>種別</td><td>権限×機能マトリクス（交差ビュー）</td></tr>
   </table>
   <p class="lead-question">答える質問: 「画面は見えるが、編集・削除までできるのは誰か」。閲覧可否より1段深い、操作レベル（CRUD）の権限を示す。</p>
@@ -329,7 +348,7 @@
   (function () {
     var manifestEl = document.getElementById('matrix-manifest');
     var manifest = { roles: [], functions: [] };
-    try { manifest = JSON.parse(manifestEl.textContent); } catch (e) { /* ignore */ }
+    try { manifest = JSON.parse(manifestEl.textContent); } catch (e) { /* プレースホルダ未注入時は空描画 */ }
     var roles = manifest.roles || [];
     var functions = manifest.functions || [];
 
