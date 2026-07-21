@@ -280,6 +280,7 @@ get_kind_dir() { case "$1" in screen) echo "画面一覧";; api) echo "API一覧
 get_kind_icon() { case "$1" in screen) echo "monitor";; api) echo "api";; batch) echo "schedule";; table) echo "table_chart";; report) echo "print";; external) echo "link";; feature) echo "category";; esac; }
 get_kind_desc() { case "$1" in screen) echo "全画面のルートパス・コンポーネント構成・複雑度プロファイルを一覧化。";; api) echo "全エンドポイントのパス・HTTPメソッド・リクエスト/レスポンス型・認証要否を網羅。";; batch) echo "定期実行ジョブのスケジュール・入出力・依存関係・実行頻度を整理。";; table) echo "全テーブルのカラム定義・型・制約・外部キーリレーションを一覧化。";; report) echo "出力帳票のフォーマット・生成条件・出力先・利用者を整理。";; external) echo "外部サービスとの連携インターフェース・プロトコル・認証方式を整理。";; feature) echo "画面一覧を入力に導出した機能単位の一覧（派生一覧）。";; esac; }
 get_kind_unit() { case "$1" in screen) echo "画面";; api) echo "エンドポイント";; batch) echo "ジョブ";; table) echo "テーブル";; report) echo "帳票";; external) echo "連携先";; feature) echo "機能";; esac; }
+get_kind_group() { case "$1" in screen) echo "画面";; api) echo "API";; batch) echo "バッチ";; table) echo "データ";; report) echo "帳票";; external) echo "外部連携";; feature) echo "機能";; esac; }
 
 excluded_kinds=""
 excluded_json="$DOCS_ROOT/一覧/excluded-kinds.json"
@@ -311,6 +312,7 @@ for kind in $KINDS_ORDER; do
   icon="$(get_kind_icon "$kind")"
   desc="$(get_kind_desc "$kind")"
   unit="$(get_kind_unit "$kind")"
+  group="$(get_kind_group "$kind")"
   html_file="$DOCS_ROOT/一覧/$dir_name/${label}一覧.html"
   unit_count=0
 
@@ -338,7 +340,7 @@ for kind in $KINDS_ORDER; do
   count_text="$unit_count $unit →"
 
   [ -n "$list_tools_json" ] && list_tools_json="$list_tools_json,"
-  list_tools_json="$list_tools_json{\"title\":\"${label}一覧\",\"icon\":\"$icon\",\"href\":\"$href\",\"desc\":\"$desc\",\"count\":\"$count_text\"}"
+  list_tools_json="$list_tools_json{\"title\":\"${label}一覧\",\"group\":\"$group\",\"icon\":\"$icon\",\"href\":\"$href\",\"desc\":\"$desc\",\"count\":\"$count_text\"}"
 
   kinds_json="$(jq -n -c --argjson arr "$kinds_json" --arg kind "$kind" --arg label "$label" --argjson count "$unit_count" --arg unit "$unit" --arg href "$href" \
     '$arr + [{kind:$kind,label:$label,count:$count,unit:$unit,href:$href}]')"
@@ -348,7 +350,7 @@ for kind in $KINDS_ORDER; do
     if [ -f "$transition_file" ]; then
       transition_href="$docs_relative/画面遷移図.html"
       [ -n "$list_tools_json" ] && list_tools_json="$list_tools_json,"
-      list_tools_json="$list_tools_json{\"title\":\"画面遷移図\",\"icon\":\"account_tree\",\"href\":\"$transition_href\",\"desc\":\"画面一覧とコード走査から生成する画面遷移マップ。\",\"count\":\"詳細を見る\"}"
+      list_tools_json="$list_tools_json{\"title\":\"画面遷移図\",\"group\":\"画面\",\"icon\":\"account_tree\",\"href\":\"$transition_href\",\"desc\":\"画面一覧とコード走査から生成する画面遷移マップ。\",\"count\":\"詳細を見る\"}"
     fi
   fi
 
@@ -357,7 +359,7 @@ for kind in $KINDS_ORDER; do
     if [ -f "$er_file" ]; then
       er_href="$docs_relative/ER図.html"
       [ -n "$list_tools_json" ] && list_tools_json="$list_tools_json,"
-      list_tools_json="$list_tools_json{\"title\":\"ER図\",\"icon\":\"schema\",\"href\":\"$er_href\",\"desc\":\"テーブル一覧と外部キー定義から生成するエンティティ関連図。\",\"count\":\"詳細を見る\"}"
+      list_tools_json="$list_tools_json{\"title\":\"ER図\",\"group\":\"データ\",\"icon\":\"schema\",\"href\":\"$er_href\",\"desc\":\"テーブル一覧と外部キー定義から生成するエンティティ関連図。\",\"count\":\"詳細を見る\"}"
     fi
   fi
 done

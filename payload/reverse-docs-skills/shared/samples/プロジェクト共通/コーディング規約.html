@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title># コーディング規約（リバース版）</title>
+<title># コーディング規約</title>
 <style>
   :root,
 [data-theme="light"] {
@@ -118,10 +118,10 @@
 <header class="topbar">
   <a class="brand" href="index.html">
     <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:middle"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
-    <span># コーディング規約（リバース版）</span>
+    <span># コーディング規約</span>
   </a>
   <div class="header-meta">
-    <span class="pm-updated">更新: 2026-07-21 · コミット番号: 6f465b7</span>
+    <span class="pm-updated">更新: 2026-07-21 · コミット番号: fa0b132</span>
   </div>
   <div><button id="theme-toggle" title="テーマ切替">ライト</button></div>
 </header>
@@ -131,9 +131,31 @@
 <footer class="footer">共通文書ビューア — build-portal.sh により自動生成</footer>
 
 <script type="text/plain" id="doc-md">
-# コーディング規約（リバース版）
+# コーディング規約
 
-本文書はリバースエンジニアリングにより抽出されたコーディング規約のサンプルです。
+## 命名規則
+
+- 変数名・関数名はキャメルケース（`getUserName`）
+- クラス名はパスカルケース（`UserService`）
+- 定数は大文字スネークケース（`MAX_RETRY_COUNT`）
+- ファイル名はケバブケース（`user-service.ts`）
+
+## インデント・フォーマット
+
+- インデントはスペース2つ
+- 行末セミコロン必須（TypeScript）
+- 1行は120文字以内
+
+## コメント
+
+- 関数には JSDoc 形式でコメントを付与する
+- TODO コメントには担当者と期限を記載する（`// TODO(yamada): 2026-08 までに対応`）
+
+## エラー処理
+
+- try-catch は最小限のスコープで使用する
+- エラーログには操作コンテキスト（ユーザーID・リクエストID）を含める
+- ユーザー向けエラーメッセージと内部ログは分離する
 </script>
 
 <script>

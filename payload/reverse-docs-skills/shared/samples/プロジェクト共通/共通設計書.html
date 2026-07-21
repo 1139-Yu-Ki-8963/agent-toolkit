@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title># 共通設計書（リバース版）</title>
+<title># 共通設計書</title>
 <style>
   :root,
 [data-theme="light"] {
@@ -118,10 +118,10 @@
 <header class="topbar">
   <a class="brand" href="index.html">
     <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:middle"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
-    <span># 共通設計書（リバース版）</span>
+    <span># 共通設計書</span>
   </a>
   <div class="header-meta">
-    <span class="pm-updated">更新: 2026-07-21 · コミット番号: 6f465b7</span>
+    <span class="pm-updated">更新: 2026-07-21 · コミット番号: fa0b132</span>
   </div>
   <div><button id="theme-toggle" title="テーマ切替">ライト</button></div>
 </header>
@@ -131,9 +131,34 @@
 <footer class="footer">共通文書ビューア — build-portal.sh により自動生成</footer>
 
 <script type="text/plain" id="doc-md">
-# 共通設計書（リバース版）
+# 共通設計書
 
-本文書はリバースエンジニアリングにより抽出された共通設計書のサンプルです。
+## 認証・認可
+
+- 認証方式: JWT（アクセストークン + リフレッシュトークン）
+- アクセストークン有効期限: 30分
+- リフレッシュトークン有効期限: 7日
+- 権限モデル: RBAC（ロールベースアクセス制御）
+
+## ログ設計
+
+- ログレベル: ERROR / WARN / INFO / DEBUG
+- 構造化ログ（JSON形式）を標準出力に出力
+- リクエストIDをヘッダー `X-Request-Id` で伝搬
+
+## エラーコード体系
+
+| コード範囲 | 意味 |
+|---|---|
+| 1000-1999 | 認証・認可エラー |
+| 2000-2999 | バリデーションエラー |
+| 3000-3999 | ビジネスロジックエラー |
+| 9000-9999 | システムエラー |
+
+## 共通レスポンス形式
+
+正常時: `{ "data": {...}, "meta": { "requestId": "..." } }`
+異常時: `{ "error": { "code": 1001, "message": "..." }, "meta": { "requestId": "..." } }`
 </script>
 
 <script>

@@ -96,6 +96,18 @@ a.metric-card:hover, a.metric-card:focus-visible { transform: translateY(-2px); 
 .count-tag b { font-family: var(--mono); font-weight: 800; color: var(--text); }
 
 .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; }
+.tool-group-label {
+  grid-column: 1 / -1;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-sub);
+  padding: 8px 0 2px;
+  border-bottom: 1px solid var(--border);
+  margin-top: 8px;
+}
+.tool-group-label:first-child { margin-top: 0; }
 .card {
   display: block; background: var(--panel); border: 1px solid var(--border);
   border-radius: var(--radius); padding: 16px 20px; color: var(--text);
@@ -366,7 +378,12 @@ table.data-table code {
     root.appendChild(searchWrap);
 
     var grid = el('div', { class: 'cards', id: 'detail-grid' });
+    var currentGroup = '';
     cat.tools.forEach(function(tool) {
+      if (cat.id === 'list' && tool.group && tool.group !== currentGroup) {
+        currentGroup = tool.group;
+        grid.appendChild(el('div', { class: 'tool-group-label' }, currentGroup));
+      }
       var attrs = { class: 'card is-tool group-' + cat.id, href: tool.href };
       var card = el('a', attrs);
       card.appendChild(el('div', { class: 'card-head', html:
