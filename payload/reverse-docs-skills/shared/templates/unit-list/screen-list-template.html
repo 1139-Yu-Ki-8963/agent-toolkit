@@ -35,6 +35,9 @@
       メンバーのscreenIdが1件でも取れれば詳細表示を優先し、全メンバーがscreenId欠落の場合のみ
       「N件: キー一覧」表示にフォールバックする
     - 埋め込み元列: kind=embedded-view の行はembeddedIn(親画面キー)を表示。kind=routeは「—」
+    - 任意列(クライアント描画): manifest の category / permissions / relatedApis / designDocStatus に
+      値が1件でもあるフィールドだけ、任意列スクリプトが末尾へ「画面区分 / 必要権限 / 関連API / 設計書」列を
+      追加する。全フィールドが空なら列を追加しない(後方互換)。既存11列のインデックスは変えない
 
   制約:
     - 外部リソース(CDN・フォント・画像)は一切使わない。単一ファイル自己完結
@@ -287,6 +290,127 @@
 </script>
 
 <footer>generating-screen-list-for-reverse-docs により生成。手編集は次回再生成で上書きされる。</footer>
+
+<script>
+  (function () {
+    /* 任意列描画: manifest 追加フィールド(category / permissions / relatedApis / designDocStatus)のうち
+       値が1件でもあるフィールドだけ列を末尾に追加する。既存列のインデックスは変えない。
+       一覧制御スクリプトより先に実行し、追加セルが copy / chips / CSV の初期化前に存在する状態を作る。 */
+    var manifestEl = document.getElementById('screen-manifest');
+    if (!manifestEl) return;
+    var manifest;
+    try { manifest = JSON.parse(manifestEl.textContent); } catch (e) { return; }
+    var items = (manifest && manifest.screens) || [];
+    if (!items.length) return;
+
+    var FIELDS = [
+      { key: 'category', label: '画面区分' },
+      { key: 'permissions', label: '必要権限', emptyLabel: '全員' },
+      { key: 'relatedApis', label: '関連API' },
+      { key: 'designDocStatus', label: '設計書' }
+    ];
+
+    function isArray(v) {
+      return Object.prototype.toString.call(v) === '[object Array]';
+    }
+
+    function hasValue(v, field) {
+      if (v === null || v === undefined) return false;
+      if (isArray(v)) return v.length > 0 || !!field.emptyLabel;
+      if (typeof v === 'string') return v !== '';
+      return true;
+    }
+
+    var active = FIELDS.filter(function (f) {
+      return items.some(function (it) { return hasValue(it[f.key], f); });
+    });
+    if (!active.length) return;
+
+    var table = document.getElementById('screen-table');
+    if (!table) return;
+    var headRow = table.querySelector('thead tr');
+    var bodyRows = table.querySelectorAll('tbody tr');
+    if (!headRow || !bodyRows.length) return;
+
+    var style = document.createElement('style');
+    style.textContent =
+      '.opt-tag{display:inline-block;font-size:.72rem;padding:1px 6px;border-radius:4px;background:var(--panel-2);margin:1px 3px 1px 0;}' +
+      '.opt-badge{display:inline-block;font-size:.76rem;font-weight:700;padding:1px 8px;border-radius:3px;}' +
+      '.opt-badge.danger{background:var(--danger-soft);color:var(--danger);}' +
+      '.opt-badge.success{background:var(--success-soft);color:var(--success);}' +
+      '.opt-badge.gold{background:var(--gold-soft);color:var(--gold);}' +
+      '.opt-muted{color:var(--text-muted);}';
+    document.head.appendChild(style);
+
+    var byId = {};
+    var byKey = {};
+    items.forEach(function (it) {
+      if (it.screenId) byId[it.screenId] = it;
+      if (it.screenKey) byKey[it.screenKey] = it;
+    });
+
+    function appendTag(td, text) {
+      var span = document.createElement('span');
+      span.className = 'opt-tag';
+      span.textContent = text;
+      td.appendChild(span);
+    }
+
+    function renderValue(td, field, v) {
+      if (isArray(v)) {
+        if (!v.length) {
+          td.textContent = field.emptyLabel || '';
+          return;
+        }
+        v.forEach(function (item) { appendTag(td, String(item)); });
+        return;
+      }
+      if (typeof v === 'boolean') {
+        var flag = document.createElement('span');
+        if (v) { flag.className = 'opt-badge gold'; flag.textContent = '要'; }
+        else { flag.className = 'opt-muted'; flag.textContent = '不要'; }
+        td.appendChild(flag);
+        return;
+      }
+      if (v && typeof v === 'object') {
+        var sched = document.createElement('span');
+        sched.textContent = v.readable || '';
+        if (v.cron) sched.title = v.cron;
+        td.appendChild(sched);
+        return;
+      }
+      var text = String(v);
+      if (field.key === 'designDocStatus' && (text === '未着手' || text === '着手済')) {
+        var badge = document.createElement('span');
+        badge.className = 'opt-badge ' + (text === '未着手' ? 'danger' : 'success');
+        badge.textContent = text;
+        td.appendChild(badge);
+        return;
+      }
+      td.textContent = text;
+    }
+
+    active.forEach(function (field) {
+      var th = document.createElement('th');
+      th.setAttribute('data-key', field.key);
+      th.textContent = field.label;
+      headRow.appendChild(th);
+    });
+
+    Array.prototype.forEach.call(bodyRows, function (tr) {
+      var idText = tr.children[0] ? tr.children[0].textContent.trim() : '';
+      var keyText = tr.children[1] ? tr.children[1].textContent.trim() : '';
+      var item = byId[idText] || byKey[keyText] || null;
+      active.forEach(function (field) {
+        var td = document.createElement('td');
+        if (item && hasValue(item[field.key], field)) {
+          renderValue(td, field, item[field.key]);
+        }
+        tr.appendChild(td);
+      });
+    });
+  })();
+</script>
 
 <script>
   (function () {

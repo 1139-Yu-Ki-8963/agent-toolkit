@@ -334,10 +334,145 @@
 </section>
 
 <script type="application/json" id="unit-manifest">
-{"detectionSummary":{"unitCount":18,"unresolvedCount":0},"units":[{"unitId":"api-users-get","unitKey":"users-get","classification":"REST","unitName":"ユーザー一覧取得","identifier":"GET /api/users","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"mainFile":"users.py"}]}
+{"generatedAt":"2026-07-20T00:00:00+09:00","sourceDir":"src/api","unitKind":"api","strategy":{"extractionMethod":"static-analysis","approvedByUser":true},"detectionSummary":{"unitCount":18,"unresolvedCount":0},"units":[
+{"unitId":"api-users-list","unitKey":"users-list","kind":"REST","unitNameGuess":"ユーザー一覧取得","identifier":"GET /api/users","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/users.py","method":"GET","authRequired":true,"callers":["users-list"],"ioSummary":"検索・ページング条件を受け取りユーザーの配列を返す"},
+{"unitId":"api-users-create","unitKey":"users-create","kind":"REST","unitNameGuess":"ユーザー新規作成","identifier":"POST /api/users","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/users.py","method":"POST","authRequired":true,"callers":["users-list"],"ioSummary":"ユーザー登録情報を受け取り作成したユーザーを返す"},
+{"unitId":"api-users-get","unitKey":"users-get","kind":"REST","unitNameGuess":"ユーザー詳細取得","identifier":"GET /api/users/:userId","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/users.py","method":"GET","authRequired":true,"callers":["users-detail","users-edit"],"ioSummary":"userId を受け取りユーザー詳細を返す"},
+{"unitId":"api-users-update","unitKey":"users-update","kind":"REST","unitNameGuess":"ユーザー更新","identifier":"PUT /api/users/:userId","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/users.py","method":"PUT","authRequired":true,"callers":["users-edit"],"ioSummary":"更新内容を受け取り更新後のユーザーを返す"},
+{"unitId":"api-users-delete","unitKey":"users-delete","kind":"REST","unitNameGuess":"ユーザー削除","identifier":"DELETE /api/users/:userId","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/users.py","method":"DELETE","authRequired":true,"callers":["users-detail"],"ioSummary":"userId を受け取り削除結果を返す"},
+{"unitId":"api-auth-login","unitKey":"auth-login","kind":"REST","unitNameGuess":"ログイン","identifier":"POST /api/auth/login","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/auth.py","method":"POST","authRequired":false,"callers":["login"],"ioSummary":"メールとパスワードを受け取りトークンを返す"},
+{"unitId":"api-auth-logout","unitKey":"auth-logout","kind":"REST","unitNameGuess":"ログアウト","identifier":"DELETE /api/auth/session","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/auth.py","method":"DELETE","authRequired":true,"callers":["sidebar-nav"],"ioSummary":"セッショントークンを受け取り破棄結果を返す"},
+{"unitId":"api-auth-refresh","unitKey":"auth-refresh","kind":"REST","unitNameGuess":"トークン更新","identifier":"POST /api/auth/refresh","detectionMethod":"decorator","confidence":"MEDIUM","fileCount":2,"sourceFile":"src/api/auth.py","method":"POST","authRequired":false,"callers":[],"ioSummary":"リフレッシュトークンを受け取り新しいトークンを返す"},
+{"unitId":"api-posts-list","unitKey":"posts-list","kind":"REST","unitNameGuess":"投稿一覧取得","identifier":"GET /api/posts","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/posts.py","method":"GET","authRequired":true,"callers":["posts-list","search"],"ioSummary":"ページング条件を受け取り投稿の配列を返す"},
+{"unitId":"api-posts-create","unitKey":"posts-create","kind":"REST","unitNameGuess":"投稿作成","identifier":"POST /api/posts","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/posts.py","method":"POST","authRequired":true,"callers":["post-editor"],"ioSummary":"投稿内容を受け取り作成した投稿を返す"},
+{"unitId":"api-posts-get","unitKey":"posts-get","kind":"REST","unitNameGuess":"投稿詳細取得","identifier":"GET /api/posts/:postId","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/posts.py","method":"GET","authRequired":true,"callers":["post-detail","post-editor"],"ioSummary":"postId を受け取り投稿詳細を返す"},
+{"unitId":"api-posts-update","unitKey":"posts-update","kind":"REST","unitNameGuess":"投稿更新","identifier":"PUT /api/posts/:postId","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/posts.py","method":"PUT","authRequired":true,"callers":["post-editor"],"ioSummary":"更新内容を受け取り更新後の投稿を返す"},
+{"unitId":"api-posts-delete","unitKey":"posts-delete","kind":"REST","unitNameGuess":"投稿削除","identifier":"DELETE /api/posts/:postId","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/posts.py","method":"DELETE","authRequired":true,"callers":["post-detail"],"ioSummary":"postId を受け取り削除結果を返す"},
+{"unitId":"api-comments-create","unitKey":"comments-create","kind":"REST","unitNameGuess":"コメント投稿","identifier":"POST /api/posts/:postId/comments","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/comments.py","method":"POST","authRequired":true,"callers":["post-detail"],"ioSummary":"コメント本文を受け取り作成したコメントを返す"},
+{"unitId":"api-settings-get","unitKey":"settings-get","kind":"REST","unitNameGuess":"設定取得","identifier":"GET /api/settings","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/settings.py","method":"GET","authRequired":true,"callers":["settings","profile"],"ioSummary":"認証済みユーザーの設定一覧を返す"},
+{"unitId":"api-settings-update","unitKey":"settings-update","kind":"REST","unitNameGuess":"設定更新","identifier":"PUT /api/settings","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/settings.py","method":"PUT","authRequired":true,"callers":["settings"],"ioSummary":"設定の変更内容を受け取り更新後の設定を返す"},
+{"unitId":"api-notifications-list","unitKey":"notifications-list","kind":"REST","unitNameGuess":"通知一覧取得","identifier":"GET /api/notifications","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/notifications.py","method":"GET","authRequired":true,"callers":["notifications"],"ioSummary":"未読条件を受け取り通知の配列を返す"},
+{"unitId":"api-files-upload","unitKey":"files-upload","kind":"REST","unitNameGuess":"ファイルアップロード","identifier":"POST /api/files/upload","detectionMethod":"decorator","confidence":"MEDIUM","fileCount":3,"sourceFile":"src/api/files.py","method":"POST","authRequired":true,"callers":["post-editor","profile"],"ioSummary":"ファイル本体を受け取り保存先情報を返す"}
+]}
 </script>
 
 <footer>種別別一覧スキル（generating-&lt;種別&gt;-list-for-reverse-docs）により生成。手編集は次回再生成で上書きされる。</footer>
+
+<script>
+  /* 任意列描画（shared/references/manifest-schema-extensions.md 準拠）
+     埋め込みマニフェストの unitKind 別対象フィールドのうち、units 内で1件でも値を持つ
+     フィールドだけを thead 末尾・各行末尾に列追加する。既存列のインデックスは変えないため、
+     後続の一覧制御スクリプト（コピー列・チップ列・CSV・行展開）はそのまま機能する。
+     対象フィールドがマニフェストに全く無い場合は何も追加しない（後方互換）。 */
+  (function () {
+    var optManifestEl = document.getElementById('unit-manifest');
+    if (!optManifestEl) return;
+    var optManifest;
+    try { optManifest = JSON.parse(optManifestEl.textContent); } catch (e) { return; }
+    if (!optManifest) return;
+    var optUnits = optManifest.units || optManifest.screens || [];
+    if (!optUnits.length) return;
+
+    var FIELD_SETS = {
+      api:      [['method', 'メソッド'], ['authRequired', '認証'], ['callers', '呼び出し元画面'], ['ioSummary', 'I/O概要']],
+      table:    [['foreignKeys', 'FK参照先'], ['columnCount', 'カラム数'], ['mainColumns', '主要カラム']],
+      batch:    [['schedule', 'スケジュール'], ['targetTables', '対象テーブル'], ['downstreamJobs', '後続ジョブ'], ['execMethod', '実行方法']],
+      report:   [['format', '出力形式'], ['trigger', '出力契機']],
+      external: [['direction', '方向'], ['protocol', 'プロトコル'], ['authMethod', '認証方式']]
+    };
+    var fields = FIELD_SETS[optManifest.unitKind];
+    if (!fields) return;
+
+    function hasValue(v) {
+      if (v === undefined || v === null || v === '') return false;
+      if (Array.isArray(v)) return v.length > 0;
+      return true;
+    }
+    var activeFields = fields.filter(function (f) {
+      return optUnits.some(function (u) { return hasValue(u[f[0]]); });
+    });
+    if (!activeFields.length) return;
+
+    var optTable = document.getElementById('unit-table');
+    if (!optTable) return;
+    var headRow = optTable.querySelector('thead tr');
+    if (!headRow) return;
+    var bodyRows = Array.prototype.slice.call(optTable.querySelectorAll('tbody tr'));
+
+    var optStyle = document.createElement('style');
+    optStyle.textContent =
+      '.opt-tag{display:inline-block;font-size:.72rem;padding:1px 6px;border-radius:4px;background:var(--panel-2);margin:1px 3px 1px 0;}' +
+      '.badge.doc-danger{background:var(--danger-soft);color:var(--danger);}' +
+      '.badge.doc-success{background:var(--success-soft);color:var(--success);}' +
+      '.opt-muted{color:var(--text-muted);}';
+    document.head.appendChild(optStyle);
+
+    var byId = {};
+    var byKey = {};
+    optUnits.forEach(function (u) {
+      var id = (u.unitId !== undefined && u.unitId !== null) ? u.unitId : u.screenId;
+      var key = (u.unitKey !== undefined && u.unitKey !== null) ? u.unitKey : u.screenKey;
+      if (id !== undefined && id !== null) byId[String(id)] = u;
+      if (key !== undefined && key !== null) byKey[String(key)] = u;
+    });
+
+    function findUnit(tr) {
+      var idTxt = tr.children[0] ? tr.children[0].textContent.trim() : '';
+      if (idTxt && byId[idTxt]) return byId[idTxt];
+      var keyTxt = tr.children[1] ? tr.children[1].textContent.trim() : '';
+      if (keyTxt && byKey[keyTxt]) return byKey[keyTxt];
+      return null;
+    }
+
+    function renderValue(td, fieldName, v) {
+      if (!hasValue(v)) return;
+      if (Array.isArray(v)) {
+        v.forEach(function (item) {
+          var tag = document.createElement('span');
+          tag.className = 'opt-tag';
+          tag.textContent = String(item);
+          td.appendChild(tag);
+        });
+        return;
+      }
+      if (typeof v === 'boolean') {
+        var flag = document.createElement('span');
+        if (v) { flag.className = 'badge medium'; flag.textContent = '要'; }
+        else { flag.className = 'opt-muted'; flag.textContent = '不要'; }
+        td.appendChild(flag);
+        return;
+      }
+      if (typeof v === 'object') {
+        td.textContent = (v.readable !== undefined && v.readable !== null) ? String(v.readable) : '';
+        if (v.cron) td.title = String(v.cron);
+        return;
+      }
+      if (fieldName === 'designDocStatus') {
+        var docBadge = document.createElement('span');
+        docBadge.className = 'badge ' + (String(v) === '未着手' ? 'doc-danger' : 'doc-success');
+        docBadge.textContent = String(v);
+        td.appendChild(docBadge);
+        return;
+      }
+      td.textContent = String(v);
+    }
+
+    activeFields.forEach(function (f) {
+      var th = document.createElement('th');
+      th.setAttribute('data-key', f[0]);
+      th.style.width = '140px';
+      th.textContent = f[1];
+      headRow.appendChild(th);
+      bodyRows.forEach(function (tr) {
+        var td = document.createElement('td');
+        var u = findUnit(tr);
+        if (u) renderValue(td, f[0], u[f[0]]);
+        tr.appendChild(td);
+      });
+    });
+    optTable.style.minWidth = (900 + activeFields.length * 140) + 'px';
+  })();
+</script>
 
 <script>
   (function () {

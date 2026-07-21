@@ -2,7 +2,7 @@
 
 ## 目的と背景
 
-ポータル設計基盤の 2 ページ目で「△＝マニフェスト等データ源の拡張が必要」と分類した機能は、既存マニフェスト（screen-manifest / unit-manifest）が持つ最小フィールドだけでは実現できない。本仕様は、一覧ページの△機能（設計書状態列・関連 API 列・認証要否列・スケジュール列等）と交差ビュー 4 ページ（権限×画面・権限×機能・CRUD 図・トレーサビリティ）が必要とするデータを、種別ごとの追加フィールドと新規データファイルとして定義する。
+ポータル設計基盤の 2 ページ目で「△＝マニフェスト等データ源の拡張が必要」と分類した機能は、既存マニフェスト（screen-manifest / unit-manifest）が持つ最小フィールドだけでは実現できない。本仕様は、一覧ページの△機能（設計書状態列・関連 API 列・認証要否列・スケジュール列等）と交差ビュー 4 ページ（権限×画面・権限×機能・CRUD 図・追跡可能性）が必要とするデータを、種別ごとの追加フィールドと新規データファイルとして定義する。
 
 ## 種別ごとの追加フィールド定義
 
@@ -129,13 +129,26 @@ build-*.sh の実在ファイルは以下の 5 本（`.claude/skills/*/scripts/`
 
 | スクリプト | 配置 | 影響内容 |
 |---|---|---|
-| build-portal.sh | shared/scripts/ | AI 設定資産ページ・交差ビュー 4 ページへの導線カード追加。件数抽出の対象拡大 |
-| build-unit-list.sh | shared/scripts/unit-list/ | apis / tables / batches / reports / externals の追加フィールドを列として描画（欠落時は列非表示） |
-| build-screen-list.sh | shared/scripts/unit-list/ | permissions / relatedApis / designDocStatus / category 列の追加と陳腐化バッジ表示 |
-| build-feature-list.sh | shared/scripts/unit-list/ | operationClass 区分列の追加 |
-| build-detail-page.sh | shared/scripts/detail-pages/ | 詳細ページへの関連エンティティ（relatedApis / callers / targetTables 等）の相互参照表示 |
-| validate-manifest.sh | shared/scripts/unit-list/ | 追加フィールドの型検査（存在する場合のみ検査。不在はエラーにしない） |
+| build-portal.sh | shared/scripts/ | 交差ビュー・AI設定資産への導線カードを実装済み（ファイル不在時は非表示） |
+| build-unit-list.sh | shared/scripts/unit-list/ | 行生成は無改修。任意列はテンプレート内 JS が埋め込みマニフェストから描画する（欠落時は列非表示） |
+| build-screen-list.sh | shared/scripts/unit-list/ | 行生成は無改修。任意列はテンプレート内 JS が埋め込みマニフェストから描画する（欠落時は列非表示） |
+| build-feature-list.sh | shared/scripts/unit-list/ | 行生成は無改修。任意列はテンプレート内 JS が埋め込みマニフェストから描画する（欠落時は列非表示） |
+| build-detail-page.sh | shared/scripts/detail-pages/ | 関連エンティティ相互参照を実装済み（フィールド不在時は現行出力と一致） |
+| validate-manifest.sh | shared/scripts/unit-list/ | 追加フィールドの型検査を実装済み（存在する場合のみ検査） |
+| build-matrix-pages.sh | shared/scripts/matrix/ | 新設。交差ビュー4ページ + AI設定資産ページの生成（テンプレートへの JSON 埋め込みとメタ置換） |
 
 ## 段階的移行方針
 
 追加フィールドはすべて任意とする。既存マニフェストは無改修のまま妥当（validate-manifest.sh の必須キー集合は変更しない）。ビルドスクリプトはフィールド欠落時に該当列を非表示にし、交差ビュー用 JSON が不在なら該当ページを生成しない。これにより、旧マニフェストのプロジェクトでも現行ポータルがそのまま成立し、フィールドを埋めたプロジェクトから順に△機能が有効になる。
+
+## 設計判断
+
+### build-matrix-pages.sh
+
+- 必要性: 交差ビュー 4 ページと AI 設定資産ページのテンプレートはプレースホルダマーカーを持ち、決定的生成には既存一覧と同じマーカー置換エンジンが必要。5 ページ分の生成をページ種別引数で束ねることで、既存 build-unit-list.sh のディスパッチャ方式と対称になる
+- 代替案を採用しなかった理由:
+  - Bash ツール直叩き: マーカー置換の誤爆対策と検証を毎回手書きするのは非現実的
+  - build-unit-list.sh への統合: unit-manifest 契約と交差ビュー JSON はスキーマが別物で、検証ロジックの混在は複雑度を上げる
+  - Makefile 追加: 本リポジトリにビルド設定が存在しない
+- 保守責任者: 人手（ユーザー）
+- 廃棄条件: 交差ビューページが廃止された時、またはポータル生成が単一エンジンに統合された時

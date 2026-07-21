@@ -35,6 +35,9 @@
       メンバーのscreenIdが1件でも取れれば詳細表示を優先し、全メンバーがscreenId欠落の場合のみ
       「N件: キー一覧」表示にフォールバックする
     - 埋め込み元列: kind=embedded-view の行はembeddedIn(親画面キー)を表示。kind=routeは「—」
+    - 任意列(クライアント描画): manifest の category / permissions / relatedApis / designDocStatus に
+      値が1件でもあるフィールドだけ、任意列スクリプトが末尾へ「画面区分 / 必要権限 / 関連API / 設計書」列を
+      追加する。全フィールドが空なら列を追加しない(後方互換)。既存11列のインデックスは変えない
 
   制約:
     - 外部リソース(CDN・フォント・画像)は一切使わない。単一ファイル自己完結
@@ -359,10 +362,157 @@
 </section>
 
 <script type="application/json" id="screen-manifest">
-{"detectionSummary": {"screenCount": 18, "clusterCount": 1, "sharedScreenCount": 2, "embeddedCount": 1, "unresolvedCount": 0}, "screens": [{"screenId": "screen-home", "screenKey": "home", "classification": "独立", "screenName": "ホーム画面", "route": "/", "detectionMethod": "routing", "confidence": "HIGH", "sharedWith": null, "embeddedIn": null, "fileCount": 5, "mainFile": "HomePage.tsx"}]}
+{
+  "generatedAt": "2026-07-20T00:00:00+09:00",
+  "sourceDir": "src/pages",
+  "strategy": {"extractionMethod": "静的解析（ルーティング定義 + ファイル走査）", "approvedByUser": true},
+  "detectionSummary": {"method": "React Router v6 のルーティング定義から自動検出", "screenCount": 18, "clusterCount": 1, "sharedScreenCount": 2, "embeddedCandidateCount": 1, "unresolvedCount": 0},
+  "screens": [
+    {"screenId": "screen-home", "screenKey": "home", "kind": "route", "screenNameGuess": "ホーム画面", "route": "/", "detectionMethod": "routing", "confidence": "HIGH", "sharedWith": null, "embeddedIn": null, "fileCount": 5, "entryFile": "src/pages/HomePage.tsx", "category": "一般", "permissions": [], "relatedApis": ["posts-list", "notifications-list"], "designDocStatus": "着手済"},
+    {"screenId": "screen-login", "screenKey": "login", "kind": "route", "screenNameGuess": "ログイン画面", "route": "/login", "detectionMethod": "routing", "confidence": "HIGH", "sharedWith": null, "embeddedIn": null, "fileCount": 3, "entryFile": "src/pages/auth/LoginPage.tsx", "category": "一般", "permissions": [], "relatedApis": ["auth-login"], "designDocStatus": "着手済"},
+    {"screenId": "screen-signup", "screenKey": "signup", "kind": "route", "screenNameGuess": "新規登録画面", "route": "/signup", "detectionMethod": "routing", "confidence": "HIGH", "sharedWith": null, "embeddedIn": null, "fileCount": 4, "entryFile": "src/pages/auth/SignupPage.tsx", "category": "一般", "permissions": [], "relatedApis": ["users-create", "auth-login"], "designDocStatus": "未着手"},
+    {"screenId": "screen-forgot-pw", "screenKey": "forgot-password", "kind": "route", "screenNameGuess": "パスワードリセット", "route": "/forgot-password", "detectionMethod": "routing", "confidence": "HIGH", "sharedWith": null, "embeddedIn": null, "fileCount": 2, "entryFile": "src/pages/auth/ForgotPasswordPage.tsx", "category": "一般", "permissions": [], "relatedApis": [], "designDocStatus": "未着手"},
+    {"screenId": "screen-dashboard", "screenKey": "dashboard", "kind": "route", "screenNameGuess": "ダッシュボード", "route": "/dashboard", "detectionMethod": "routing", "confidence": "HIGH", "sharedWith": null, "embeddedIn": null, "fileCount": 8, "entryFile": "src/pages/DashboardPage.tsx", "category": "一般", "permissions": [], "relatedApis": ["posts-list", "notifications-list", "users-get"], "designDocStatus": "着手済"},
+    {"screenId": "screen-profile", "screenKey": "profile", "kind": "route", "screenNameGuess": "プロフィール", "route": "/profile", "detectionMethod": "routing", "confidence": "HIGH", "sharedWith": null, "embeddedIn": null, "fileCount": 3, "entryFile": "src/pages/settings/ProfilePage.tsx", "category": "一般", "permissions": [], "relatedApis": ["users-get", "users-update"], "designDocStatus": "未着手"},
+    {"screenId": "screen-settings", "screenKey": "settings", "kind": "route", "screenNameGuess": "設定画面", "route": "/settings", "detectionMethod": "routing", "confidence": "HIGH", "sharedWith": null, "embeddedIn": null, "fileCount": 4, "entryFile": "src/pages/settings/SettingsPage.tsx", "category": "一般", "permissions": [], "relatedApis": ["settings-get", "settings-update"], "designDocStatus": "未着手"},
+    {"screenId": "screen-users-list", "screenKey": "users-list", "kind": "route", "screenNameGuess": "ユーザー一覧", "route": "/admin/users", "detectionMethod": "routing", "confidence": "HIGH", "sharedWith": ["users-detail"], "embeddedIn": null, "fileCount": 6, "entryFile": "src/pages/admin/UsersListPage.tsx", "category": "管理", "permissions": ["admin"], "relatedApis": ["users-list"], "designDocStatus": "未着手"},
+    {"screenId": "screen-users-detail", "screenKey": "users-detail", "kind": "route", "screenNameGuess": "ユーザー詳細", "route": "/admin/users/:userId", "detectionMethod": "routing", "confidence": "HIGH", "sharedWith": ["users-list"], "embeddedIn": null, "fileCount": 5, "entryFile": "src/pages/admin/UserDetailPage.tsx", "category": "管理", "permissions": ["admin"], "relatedApis": ["users-get"], "designDocStatus": "未着手"},
+    {"screenId": "screen-users-edit", "screenKey": "users-edit", "kind": "route", "screenNameGuess": "ユーザー編集", "route": "/admin/users/:userId/edit", "detectionMethod": "routing", "confidence": "MEDIUM", "sharedWith": null, "embeddedIn": null, "fileCount": 4, "entryFile": "src/pages/admin/UserEditPage.tsx", "category": "管理", "permissions": ["admin"], "relatedApis": ["users-get", "users-update"], "designDocStatus": "未着手"},
+    {"screenId": "screen-roles", "screenKey": "roles", "kind": "route", "screenNameGuess": "ロール管理", "route": "/admin/roles", "detectionMethod": "routing", "confidence": "HIGH", "sharedWith": null, "embeddedIn": null, "fileCount": 3, "entryFile": "src/pages/admin/RolesPage.tsx", "category": "管理", "permissions": ["admin"], "relatedApis": ["users-list"], "designDocStatus": "未着手"},
+    {"screenId": "screen-posts-list", "screenKey": "posts-list", "kind": "route", "screenNameGuess": "投稿一覧", "route": "/posts", "detectionMethod": "routing", "confidence": "HIGH", "sharedWith": null, "embeddedIn": null, "fileCount": 4, "entryFile": "src/pages/posts/PostsListPage.tsx", "category": "一般", "permissions": [], "relatedApis": ["posts-list"], "designDocStatus": "未着手"},
+    {"screenId": "screen-post-detail", "screenKey": "post-detail", "kind": "route", "screenNameGuess": "投稿詳細", "route": "/posts/:postId", "detectionMethod": "routing", "confidence": "HIGH", "sharedWith": null, "embeddedIn": null, "fileCount": 5, "entryFile": "src/pages/posts/PostDetailPage.tsx", "category": "一般", "permissions": [], "relatedApis": ["posts-get", "comments-create"], "designDocStatus": "未着手"},
+    {"screenId": "screen-post-editor", "screenKey": "post-editor", "kind": "route", "screenNameGuess": "投稿エディタ", "route": "/posts/:postId/edit", "detectionMethod": "routing", "confidence": "MEDIUM", "sharedWith": null, "embeddedIn": null, "fileCount": 7, "entryFile": "src/pages/posts/PostEditorPage.tsx", "category": "一般", "permissions": [], "relatedApis": ["posts-get", "posts-update", "files-upload"], "designDocStatus": "未着手"},
+    {"screenId": "screen-notifications", "screenKey": "notifications", "kind": "route", "screenNameGuess": "通知一覧", "route": "/notifications", "detectionMethod": "routing", "confidence": "HIGH", "sharedWith": null, "embeddedIn": null, "fileCount": 3, "entryFile": "src/pages/NotificationsPage.tsx", "category": "一般", "permissions": [], "relatedApis": ["notifications-list"], "designDocStatus": "未着手"},
+    {"screenId": "screen-search", "screenKey": "search", "kind": "route", "screenNameGuess": "検索結果", "route": "/search", "detectionMethod": "routing", "confidence": "MEDIUM", "sharedWith": null, "embeddedIn": null, "fileCount": 2, "entryFile": "src/pages/SearchResultsPage.tsx", "category": "一般", "permissions": [], "relatedApis": ["posts-list"], "designDocStatus": "未着手"},
+    {"screenId": "screen-report-viewer", "screenKey": "report-viewer", "kind": "route", "screenNameGuess": "レポート閲覧", "route": "/reports/:reportId", "detectionMethod": "routing", "confidence": "HIGH", "sharedWith": null, "embeddedIn": null, "fileCount": 4, "entryFile": "src/pages/reports/ReportViewerPage.tsx", "category": "一般", "permissions": [], "relatedApis": [], "designDocStatus": "未着手"},
+    {"screenId": "screen-sidebar-nav", "screenKey": "sidebar-nav", "kind": "embedded-view", "screenNameGuess": "サイドバーナビ", "route": null, "detectionMethod": "file-scan", "confidence": "MEDIUM", "sharedWith": null, "embeddedIn": "dashboard", "fileCount": 2, "entryFile": "src/components/layout/SidebarNav.tsx", "category": "一般", "permissions": [], "relatedApis": ["notifications-list"], "designDocStatus": "未着手"}
+  ],
+  "diagnostics": []
+}
 </script>
 
 <footer>generating-screen-list-for-reverse-docs により生成。手編集は次回再生成で上書きされる。</footer>
+
+<script>
+  (function () {
+    /* 任意列描画: manifest 追加フィールド(category / permissions / relatedApis / designDocStatus)のうち
+       値が1件でもあるフィールドだけ列を末尾に追加する。既存列のインデックスは変えない。
+       一覧制御スクリプトより先に実行し、追加セルが copy / chips / CSV の初期化前に存在する状態を作る。 */
+    var manifestEl = document.getElementById('screen-manifest');
+    if (!manifestEl) return;
+    var manifest;
+    try { manifest = JSON.parse(manifestEl.textContent); } catch (e) { return; }
+    var items = (manifest && manifest.screens) || [];
+    if (!items.length) return;
+
+    var FIELDS = [
+      { key: 'category', label: '画面区分' },
+      { key: 'permissions', label: '必要権限', emptyLabel: '全員' },
+      { key: 'relatedApis', label: '関連API' },
+      { key: 'designDocStatus', label: '設計書' }
+    ];
+
+    function isArray(v) {
+      return Object.prototype.toString.call(v) === '[object Array]';
+    }
+
+    function hasValue(v, field) {
+      if (v === null || v === undefined) return false;
+      if (isArray(v)) return v.length > 0 || !!field.emptyLabel;
+      if (typeof v === 'string') return v !== '';
+      return true;
+    }
+
+    var active = FIELDS.filter(function (f) {
+      return items.some(function (it) { return hasValue(it[f.key], f); });
+    });
+    if (!active.length) return;
+
+    var table = document.getElementById('screen-table');
+    if (!table) return;
+    var headRow = table.querySelector('thead tr');
+    var bodyRows = table.querySelectorAll('tbody tr');
+    if (!headRow || !bodyRows.length) return;
+
+    var style = document.createElement('style');
+    style.textContent =
+      '.opt-tag{display:inline-block;font-size:.72rem;padding:1px 6px;border-radius:4px;background:var(--panel-2);margin:1px 3px 1px 0;}' +
+      '.opt-badge{display:inline-block;font-size:.76rem;font-weight:700;padding:1px 8px;border-radius:3px;}' +
+      '.opt-badge.danger{background:var(--danger-soft);color:var(--danger);}' +
+      '.opt-badge.success{background:var(--success-soft);color:var(--success);}' +
+      '.opt-badge.gold{background:var(--gold-soft);color:var(--gold);}' +
+      '.opt-muted{color:var(--text-muted);}';
+    document.head.appendChild(style);
+
+    var byId = {};
+    var byKey = {};
+    items.forEach(function (it) {
+      if (it.screenId) byId[it.screenId] = it;
+      if (it.screenKey) byKey[it.screenKey] = it;
+    });
+
+    function appendTag(td, text) {
+      var span = document.createElement('span');
+      span.className = 'opt-tag';
+      span.textContent = text;
+      td.appendChild(span);
+    }
+
+    function renderValue(td, field, v) {
+      if (isArray(v)) {
+        if (!v.length) {
+          td.textContent = field.emptyLabel || '';
+          return;
+        }
+        v.forEach(function (item) { appendTag(td, String(item)); });
+        return;
+      }
+      if (typeof v === 'boolean') {
+        var flag = document.createElement('span');
+        if (v) { flag.className = 'opt-badge gold'; flag.textContent = '要'; }
+        else { flag.className = 'opt-muted'; flag.textContent = '不要'; }
+        td.appendChild(flag);
+        return;
+      }
+      if (v && typeof v === 'object') {
+        var sched = document.createElement('span');
+        sched.textContent = v.readable || '';
+        if (v.cron) sched.title = v.cron;
+        td.appendChild(sched);
+        return;
+      }
+      var text = String(v);
+      if (field.key === 'designDocStatus' && (text === '未着手' || text === '着手済')) {
+        var badge = document.createElement('span');
+        badge.className = 'opt-badge ' + (text === '未着手' ? 'danger' : 'success');
+        badge.textContent = text;
+        td.appendChild(badge);
+        return;
+      }
+      td.textContent = text;
+    }
+
+    active.forEach(function (field) {
+      var th = document.createElement('th');
+      th.setAttribute('data-key', field.key);
+      th.textContent = field.label;
+      headRow.appendChild(th);
+    });
+
+    Array.prototype.forEach.call(bodyRows, function (tr) {
+      var idText = tr.children[0] ? tr.children[0].textContent.trim() : '';
+      var keyText = tr.children[1] ? tr.children[1].textContent.trim() : '';
+      var item = byId[idText] || byKey[keyText] || null;
+      active.forEach(function (field) {
+        var td = document.createElement('td');
+        if (item && hasValue(item[field.key], field)) {
+          renderValue(td, field, item[field.key]);
+        }
+        tr.appendChild(td);
+      });
+    });
+  })();
+</script>
 
 <script>
   (function () {

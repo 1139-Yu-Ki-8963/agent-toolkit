@@ -13,6 +13,12 @@
 # 出力は<output-dir>内の一時ファイル経由のatomic move(同一ファイルシステム内でmvする)。
 #
 # 正本スキーマ: shared/scripts/detail-pages/page-data-schema.md
+#
+# 関連エンティティ(スキーマ拡張フィールド。shared/references/manifest-schema-extensions.md):
+# page-data内の任意の要素が relatedApis/callers/targetTables/foreignKeys/downstreamJobs の
+# いずれか(非空配列)を持つ場合のみ、テンプレートの受け口マーカー <!--RELATED_ENTITIES--> を
+# 「関連エンティティ」セクションHTMLへ置換する。全て不在なら空文字へ置換され、マーカーは
+# <div id="unresolved-mount"> と同一行に置いてあるため現行出力と完全一致する(後方互換)。
 
 set -euo pipefail
 
@@ -33,6 +39,11 @@ get_page_filename() { case "$1" in glossary) echo "用語辞書.html";; techstac
 # (d) glossary/transition/er/env の4種別それぞれについて、ファイル名対応(PAGE_FILENAME)・
 #     埋め込みJSON完全一致・未解決{{なしを検証する(techstackはケースa/bで検証済み。
 #     5種別全てのPASS行が出揃うことを条件とする)
+# (e) 関連エンティティ(スキーマ拡張フィールド)の有/無:
+#     有: 拡張フィールド(relatedApis/targetTables/downstreamJobs)を持つtransitionフィクスチャで
+#         「関連エンティティ」セクションと日本語ラベル+値一覧が出力されることを検証する
+#     無: 拡張フィールドを持たないケースaの出力に「関連エンティティ」文字列・
+#         未置換マーカー(RELATED_ENTITIES)が含まれないことを検証する(後方互換の証拠)
 self_test() {
   local script_path="$0"
   local script_dir
@@ -244,6 +255,61 @@ self_test() {
   }' > "$data_env"
   check_page_fixture env "$data_env"
 
+  # --- ケースe: 関連エンティティ(スキーマ拡張フィールド)の有/無 ---
+  local data_rel="$tmp/page-data-rel.json"
+  jq -n '{
+    pageKind: "transition",
+    generatedAt: "2026-01-01T00:00:00Z",
+    title: "画面遷移図",
+    description: "self-test用フィクスチャ(関連エンティティ有)",
+    legend: [{symbol: "□", meaning: "画面"}],
+    nodes: [
+      {unitKey: "home", label: "ホーム", relatedApis: ["api-users-list", "api-posts-list"]},
+      {unitKey: "batch-view", label: "バッチ確認", targetTables: ["users"], downstreamJobs: ["job-cleanup"]}
+    ],
+    edges: [{from: "home", to: "batch-view", trigger: "クリック", sourceRef: "src/router.tsx:10", confidence: "high", section: "メインコンテンツ", triggerType: "リンク遷移"}],
+    unresolved: []
+  }' > "$data_rel"
+
+  local outdir_rel="$tmp/out-rel"
+  local out_rel_html="$outdir_rel/画面遷移図.html"
+  if bash "$script_path" "$data_rel" "$outdir_rel" --page transition >/dev/null 2>&1 && [ -f "$out_rel_html" ]; then
+    local outside_rel="$tmp/outside-rel.html"
+    sed '/<script type="application\/json" id="page-data">/,/<\/script>/d' "$out_rel_html" > "$outside_rel"
+    if grep -qF '関連エンティティ' "$outside_rel" \
+       && grep -qF '<li>関連API: api-users-list、api-posts-list</li>' "$outside_rel" \
+       && grep -qF '<li>対象テーブル: users</li>' "$outside_rel" \
+       && grep -qF '<li>後続ジョブ: job-cleanup</li>' "$outside_rel"; then
+      echo "  [PASS] ケースe(有): 拡張フィールドありで関連エンティティセクション(日本語ラベル+値一覧)が出力される"
+    else
+      echo "  [FAIL] ケースe(有): 関連エンティティセクションまたはラベル+値一覧が出力されていない" >&2
+      rc=1
+    fi
+    local embedded_rel="$tmp/embedded-rel.json"
+    local expected_rel="$tmp/expected-rel.json"
+    extract_page_data_json "$out_rel_html" | jq -c -S . > "$embedded_rel" 2>/dev/null || true
+    jq -c -S . "$data_rel" > "$expected_rel"
+    if diff -q "$embedded_rel" "$expected_rel" >/dev/null 2>&1; then
+      echo "  [PASS] ケースe(有): 拡張フィールド込みの埋め込みJSONが原本と完全一致"
+    else
+      echo "  [FAIL] ケースe(有): 埋め込みJSONが原本と不一致" >&2
+      rc=1
+    fi
+  else
+    echo "  [FAIL] ケースe(有): 生成コマンド自体が失敗した" >&2
+    rc=1
+  fi
+
+  local out_a_html="$outdir_a/技術スタック.html"
+  if [ -f "$out_a_html" ] \
+     && ! grep -qF '関連エンティティ' "$out_a_html" \
+     && ! grep -qF 'RELATED_ENTITIES' "$out_a_html"; then
+    echo "  [PASS] ケースe(無): 拡張フィールド無しの出力に「関連エンティティ」・未置換マーカーが含まれない(後方互換)"
+  else
+    echo "  [FAIL] ケースe(無): 拡張フィールド無しの出力に「関連エンティティ」または未置換マーカーが残存" >&2
+    rc=1
+  fi
+
   if [ "$rc" -eq 0 ]; then
     echo "self-test 全項目 PASS"
   else
@@ -330,6 +396,35 @@ DESCRIPTION="$(jq -r '.description // ""' "$DATA")"
 GENERATED_AT="$(jq -r '.generatedAt // ""' "$DATA")"
 PAGE_DATA_JSON="$(cat "$DATA")"
 
+# --- 関連エンティティ(スキーマ拡張フィールド)セクションの生成 ---
+# page-data内の全オブジェクトを走査し、拡張フィールド(非空配列)を1つ以上持つ要素ごとに
+# 「フィールドの日本語ラベル + 値の一覧」を列挙する。該当要素が0件なら空文字(後方互換)。
+# 値・名称は jq の @html でエスケープする。
+RELATED_ENTITIES_HTML="$(jq -r '
+  [["relatedApis","関連API"],
+   ["callers","呼び出し元画面"],
+   ["targetTables","対象テーブル"],
+   ["foreignKeys","FK参照先テーブル"],
+   ["downstreamJobs","後続ジョブ"]] as $fields
+  | [.. | objects
+      | . as $o
+      | [$fields[] | select((($o[.[0]] | type) == "array") and (($o[.[0]] | length) > 0))] as $present
+      | select(($present | length) > 0)
+      | {name: ($o.label // $o.unitKey // $o.key // $o.term // $o.item // $o.name // "(名称不明)"),
+         present: $present, obj: $o}
+    ] as $units
+  | if ($units | length) == 0 then "" else
+      "<section class=\"related-entities\">\n      <div class=\"sec-label\">関連エンティティ</div>\n"
+      + ([$units[]
+          | .obj as $o
+          | "      <div class=\"related-entity\">\n        <div class=\"related-entity-name\"><strong>\(.name | tostring | @html)</strong></div>\n        <ul>\n"
+            + ([.present[] | "          <li>\(.[1]): \([$o[.[0]][] | tostring] | join("、") | @html)</li>\n"] | join(""))
+            + "        </ul>\n      </div>\n"
+         ] | join(""))
+      + "    </section>\n    "
+    end
+' "$DATA")"
+
 # --- テンプレートへの注入(単一パス方式。render_template()参照) ---
 # page-dataのJSONはテンプレート内で物理的に最後に出現するため、単一パスの
 # document-order走査により自動的に最後に処理される(JSON内容に他マーカー文字列が
@@ -339,6 +434,7 @@ render_args=(
   "{{DESCRIPTION}}" "$(html_escape "$DESCRIPTION")"
   "{{GENERATED_AT}}" "$(html_escape "$GENERATED_AT")"
   "{{COMMIT_SHORT}}" ""
+  "<!--RELATED_ENTITIES-->" "$RELATED_ENTITIES_HTML"
   "{{PAGE_DATA_JSON}}" "$PAGE_DATA_JSON"
 )
 # トークンCSS注入（tokens.css が存在する場合のみ）

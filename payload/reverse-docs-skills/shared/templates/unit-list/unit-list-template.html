@@ -264,6 +264,122 @@
 <footer>種別別一覧スキル（generating-&lt;種別&gt;-list-for-reverse-docs）により生成。手編集は次回再生成で上書きされる。</footer>
 
 <script>
+  /* 任意列描画（shared/references/manifest-schema-extensions.md 準拠）
+     埋め込みマニフェストの unitKind 別対象フィールドのうち、units 内で1件でも値を持つ
+     フィールドだけを thead 末尾・各行末尾に列追加する。既存列のインデックスは変えないため、
+     後続の一覧制御スクリプト（コピー列・チップ列・CSV・行展開）はそのまま機能する。
+     対象フィールドがマニフェストに全く無い場合は何も追加しない（後方互換）。 */
+  (function () {
+    var optManifestEl = document.getElementById('unit-manifest');
+    if (!optManifestEl) return;
+    var optManifest;
+    try { optManifest = JSON.parse(optManifestEl.textContent); } catch (e) { return; }
+    if (!optManifest) return;
+    var optUnits = optManifest.units || optManifest.screens || [];
+    if (!optUnits.length) return;
+
+    var FIELD_SETS = {
+      api:      [['method', 'メソッド'], ['authRequired', '認証'], ['callers', '呼び出し元画面'], ['ioSummary', 'I/O概要']],
+      table:    [['foreignKeys', 'FK参照先'], ['columnCount', 'カラム数'], ['mainColumns', '主要カラム']],
+      batch:    [['schedule', 'スケジュール'], ['targetTables', '対象テーブル'], ['downstreamJobs', '後続ジョブ'], ['execMethod', '実行方法']],
+      report:   [['format', '出力形式'], ['trigger', '出力契機']],
+      external: [['direction', '方向'], ['protocol', 'プロトコル'], ['authMethod', '認証方式']]
+    };
+    var fields = FIELD_SETS[optManifest.unitKind];
+    if (!fields) return;
+
+    function hasValue(v) {
+      if (v === undefined || v === null || v === '') return false;
+      if (Array.isArray(v)) return v.length > 0;
+      return true;
+    }
+    var activeFields = fields.filter(function (f) {
+      return optUnits.some(function (u) { return hasValue(u[f[0]]); });
+    });
+    if (!activeFields.length) return;
+
+    var optTable = document.getElementById('unit-table');
+    if (!optTable) return;
+    var headRow = optTable.querySelector('thead tr');
+    if (!headRow) return;
+    var bodyRows = Array.prototype.slice.call(optTable.querySelectorAll('tbody tr'));
+
+    var optStyle = document.createElement('style');
+    optStyle.textContent =
+      '.opt-tag{display:inline-block;font-size:.72rem;padding:1px 6px;border-radius:4px;background:var(--panel-2);margin:1px 3px 1px 0;}' +
+      '.badge.doc-danger{background:var(--danger-soft);color:var(--danger);}' +
+      '.badge.doc-success{background:var(--success-soft);color:var(--success);}' +
+      '.opt-muted{color:var(--text-muted);}';
+    document.head.appendChild(optStyle);
+
+    var byId = {};
+    var byKey = {};
+    optUnits.forEach(function (u) {
+      var id = (u.unitId !== undefined && u.unitId !== null) ? u.unitId : u.screenId;
+      var key = (u.unitKey !== undefined && u.unitKey !== null) ? u.unitKey : u.screenKey;
+      if (id !== undefined && id !== null) byId[String(id)] = u;
+      if (key !== undefined && key !== null) byKey[String(key)] = u;
+    });
+
+    function findUnit(tr) {
+      var idTxt = tr.children[0] ? tr.children[0].textContent.trim() : '';
+      if (idTxt && byId[idTxt]) return byId[idTxt];
+      var keyTxt = tr.children[1] ? tr.children[1].textContent.trim() : '';
+      if (keyTxt && byKey[keyTxt]) return byKey[keyTxt];
+      return null;
+    }
+
+    function renderValue(td, fieldName, v) {
+      if (!hasValue(v)) return;
+      if (Array.isArray(v)) {
+        v.forEach(function (item) {
+          var tag = document.createElement('span');
+          tag.className = 'opt-tag';
+          tag.textContent = String(item);
+          td.appendChild(tag);
+        });
+        return;
+      }
+      if (typeof v === 'boolean') {
+        var flag = document.createElement('span');
+        if (v) { flag.className = 'badge medium'; flag.textContent = '要'; }
+        else { flag.className = 'opt-muted'; flag.textContent = '不要'; }
+        td.appendChild(flag);
+        return;
+      }
+      if (typeof v === 'object') {
+        td.textContent = (v.readable !== undefined && v.readable !== null) ? String(v.readable) : '';
+        if (v.cron) td.title = String(v.cron);
+        return;
+      }
+      if (fieldName === 'designDocStatus') {
+        var docBadge = document.createElement('span');
+        docBadge.className = 'badge ' + (String(v) === '未着手' ? 'doc-danger' : 'doc-success');
+        docBadge.textContent = String(v);
+        td.appendChild(docBadge);
+        return;
+      }
+      td.textContent = String(v);
+    }
+
+    activeFields.forEach(function (f) {
+      var th = document.createElement('th');
+      th.setAttribute('data-key', f[0]);
+      th.style.width = '140px';
+      th.textContent = f[1];
+      headRow.appendChild(th);
+      bodyRows.forEach(function (tr) {
+        var td = document.createElement('td');
+        var u = findUnit(tr);
+        if (u) renderValue(td, f[0], u[f[0]]);
+        tr.appendChild(td);
+      });
+    });
+    optTable.style.minWidth = (900 + activeFields.length * 140) + 'px';
+  })();
+</script>
+
+<script>
   (function () {
     var manifestEl = document.getElementById('unit-manifest');
     var manifest = {};

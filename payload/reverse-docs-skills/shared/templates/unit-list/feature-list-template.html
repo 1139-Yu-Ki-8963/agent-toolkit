@@ -224,6 +224,119 @@
 <footer>generating-feature-list-for-reverse-docsにより生成。手編集は次回再生成で上書きされる。</footer>
 
 <script>
+  /* 任意列描画（マニフェストスキーマ拡張。仕様定義: shared/references/manifest-schema-extensions.md）
+     一覧制御スクリプトより前に実行し、copy/chips/CSV 初期化前に追加セルを存在させる。
+     マニフェストに対象フィールドが 1 件も無ければ何も追加しない（後方互換）。 */
+  (function () {
+    var manifestEl = document.getElementById('unit-manifest');
+    var manifest = {};
+    try { manifest = JSON.parse(manifestEl.textContent); } catch (e) { return; }
+    var units = manifest.units || manifest.screens || [];
+    if (!units.length) return;
+
+    /* 対象フィールド定義（feature: operationClass のみ） */
+    var OPTIONAL_FIELDS = [
+      { key: 'operationClass', label: '操作区分' }
+    ];
+    /* 文字列値 → バッジ色クラスの対応（該当しない文字列はそのまま表示） */
+    var ENUM_BADGES = {
+      operationClass: { '参照系': 'accent', '更新系': 'gold', '削除系': 'danger' },
+      designDocStatus: { '未着手': 'danger', '着手済': 'success' }
+    };
+
+    function hasValue(v) {
+      if (v === null || v === undefined || v === '') return false;
+      if (Array.isArray(v)) return v.length > 0;
+      return true;
+    }
+    /* 配列内で 1 件でも値を持つフィールドだけ列を追加する */
+    var active = OPTIONAL_FIELDS.filter(function (f) {
+      return units.some(function (u) { return hasValue(u[f.key]); });
+    });
+    if (!active.length) return;
+
+    var style = document.createElement('style');
+    style.textContent =
+      '.opt-tag { display: inline-block; font-size: .72rem; padding: 1px 6px; border-radius: 4px; background: var(--panel-2); margin: 1px 3px 1px 0; }' +
+      '.opt-badge { display: inline-block; font-size: .76rem; font-weight: 700; padding: 1px 8px; border-radius: 3px; }' +
+      '.opt-badge.accent { background: var(--accent-soft); color: var(--accent); }' +
+      '.opt-badge.gold { background: var(--gold-soft); color: var(--gold); }' +
+      '.opt-badge.success { background: var(--success-soft); color: var(--success); }' +
+      '.opt-badge.danger { background: var(--danger-soft); color: var(--danger); }' +
+      '.opt-muted { color: var(--text-muted); }';
+    document.head.appendChild(style);
+
+    /* 行照合: 1列目テキスト = unitId/screenId。null の要素は 2列目 = unitKey/screenKey で照合 */
+    var byId = {}, byKey = {};
+    units.forEach(function (u) {
+      var id = (u.unitId !== undefined) ? u.unitId : u.screenId;
+      var key = (u.unitKey !== undefined) ? u.unitKey : u.screenKey;
+      if (id !== null && id !== undefined && id !== '') byId[String(id)] = u;
+      else if (key !== null && key !== undefined && key !== '') byKey[String(key)] = u;
+    });
+
+    function renderValue(td, field, value) {
+      if (!hasValue(value)) return;
+      var badgeMap = ENUM_BADGES[field.key];
+      if (badgeMap && typeof value === 'string' && badgeMap[value]) {
+        var b = document.createElement('span');
+        b.className = 'opt-badge ' + badgeMap[value];
+        b.textContent = value;
+        td.appendChild(b);
+        return;
+      }
+      if (Array.isArray(value)) {
+        value.forEach(function (v) {
+          var t = document.createElement('span');
+          t.className = 'opt-tag';
+          t.textContent = String(v);
+          td.appendChild(t);
+        });
+        return;
+      }
+      if (typeof value === 'boolean') {
+        var span = document.createElement('span');
+        span.className = value ? 'opt-badge gold' : 'opt-muted';
+        span.textContent = value ? '要' : '不要';
+        td.appendChild(span);
+        return;
+      }
+      if (typeof value === 'object') {
+        var s = document.createElement('span');
+        s.textContent = (value.readable !== undefined) ? String(value.readable) : JSON.stringify(value);
+        if (value.cron) s.title = value.cron;
+        td.appendChild(s);
+        return;
+      }
+      td.textContent = String(value);
+    }
+
+    /* 全テーブルを走査（カテゴリごとの複数テーブル対応）。thead 末尾に th、各行末尾に td を追加。
+       既存列のインデックスは変えない。照合できない行は空セルで列数だけ揃える */
+    document.querySelectorAll('table.units, table.data-table').forEach(function (table) {
+      var headRow = table.querySelector('thead tr');
+      var tbody = table.querySelector('tbody');
+      if (!headRow || !tbody) return;
+      active.forEach(function (field) {
+        var th = document.createElement('th');
+        th.textContent = field.label;
+        headRow.appendChild(th);
+      });
+      Array.prototype.slice.call(tbody.querySelectorAll('tr')).forEach(function (tr) {
+        var idText = tr.children[0] ? tr.children[0].textContent.trim() : '';
+        var keyText = tr.children[1] ? tr.children[1].textContent.trim() : '';
+        var unit = byId[idText] || byKey[keyText] || null;
+        active.forEach(function (field) {
+          var td = document.createElement('td');
+          if (unit) renderValue(td, field, unit[field.key]);
+          tr.appendChild(td);
+        });
+      });
+    });
+  })();
+</script>
+
+<script>
   (function () {
     var manifestEl = document.getElementById('unit-manifest');
     var manifest = {};

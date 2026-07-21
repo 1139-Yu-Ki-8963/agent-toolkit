@@ -12,7 +12,7 @@
 # screenKey/route/entryFile/screenIdRegex を使う。screen以外は units・unitKey/identifier/
 # sourceFile/unitIdRegex を使う。
 #
-# 検査項目(全7項目。結果は [PASS]/[FAIL] 項目名 — 詳細 の形式でstderrへ列挙):
+# 検査項目(全8項目。結果は [PASS]/[FAIL] 項目名 — 詳細 の形式でstderrへ列挙):
 #   1. schema-必須フィールド    : トップレベル必須キー + 各要素の必須キーの存在
 #                                  (screen: generatedAt,sourceDir,strategy,detectionSummary,screens /
 #                                   screenKey,kind,route,entryFile,confidence。
@@ -40,8 +40,19 @@
 #                                  (screen: screenCount/clusterCount/sharedScreenCount/embeddedCandidateCount/
 #                                   unresolvedCount。screen以外: unitCount/unresolvedCount のみ。
 #                                   --fix出力に対しては修正後の値で検査)
+#   8. 任意フィールド-型         : スキーマ拡張(shared/references/manifest-schema-extensions.md
+#                                   「種別ごとの追加フィールド定義」が正本)の任意フィールドが要素に
+#                                   存在する場合のみ型を検査する(不在はエラーにしない。後方互換):
+#                                   - 文字列配列: permissions/relatedApis/callers/foreignKeys/
+#                                     mainColumns/targetTables/downstreamJobs
+#                                   - boolean: authRequired / 数値: columnCount
+#                                   - 文字列: method/ioSummary/designDocStatus/category/format/
+#                                     trigger/direction/protocol/authMethod/execMethod/operationClass
+#                                   - object({cron, readable}を持つ): schedule
+#                                   - 2値制約: designDocStatus(着手済/未着手)・trigger(画面/バッチ)・
+#                                     direction(送信/受信)
 #
-# 全7項目PASSでexit 0。1件でもFAILがあればexit 1(--fixで解消された項目4はPASS扱い)。
+# 全8項目PASSでexit 0。1件でもFAILがあればexit 1(--fixで解消された項目4はPASS扱い)。
 
 set -uo pipefail
 
@@ -396,8 +407,59 @@ run_validate() {
   fi
 
   # ---------------------------------------------------------------------------
+  # 8. 任意フィールド-型
+  #    スキーマ拡張の任意フィールドが要素に存在する場合のみ型を検査する。
+  #    フィールド不在はエラーにしない(後方互換)。既存の必須キー集合には影響しない。
+  #    jqがエラー終了した場合はfail-closedで即FAILとする(誤PASS防止)。
+  # ---------------------------------------------------------------------------
+  local type_issues type_jq_rc
+  type_issues="$(jq -r --arg items "$ITEMS_KEY" --arg keyfield "$ITEM_KEY_FIELD" '
+    def is_str_arr: (type == "array") and (all(.[]?; type == "string"));
+    [ .[$items][]? |
+      (.[$keyfield] // "?") as $k
+      | (
+          [ ("permissions","relatedApis","callers","foreignKeys","mainColumns","targetTables","downstreamJobs") as $f
+            | select(has($f)) | select((.[$f] | is_str_arr) | not)
+            | $f + "が文字列配列でない" ]
+        + [ select(has("authRequired")) | select((.authRequired | type) != "boolean")
+            | "authRequiredがbooleanでない" ]
+        + [ select(has("columnCount")) | select((.columnCount | type) != "number")
+            | "columnCountが数値でない" ]
+        + [ ("method","ioSummary","designDocStatus","category","format","trigger","direction","protocol","authMethod","execMethod","operationClass") as $f
+            | select(has($f)) | select((.[$f] | type) != "string")
+            | $f + "が文字列でない" ]
+        + [ select(has("schedule"))
+            | select(((.schedule | type) != "object") or (((.schedule | has("cron")) and (.schedule | has("readable"))) | not))
+            | "scheduleが{cron, readable}を持つobjectでない" ]
+        + [ select(has("designDocStatus") and ((.designDocStatus | type) == "string"))
+            | .designDocStatus as $v | select((["着手済","未着手"] | index($v)) == null)
+            | "designDocStatusが2値(着手済/未着手)外" ]
+        + [ select(has("trigger") and ((.trigger | type) == "string"))
+            | .trigger as $v | select((["画面","バッチ"] | index($v)) == null)
+            | "triggerが2値(画面/バッチ)外" ]
+        + [ select(has("direction") and ((.direction | type) == "string"))
+            | .direction as $v | select((["送信","受信"] | index($v)) == null)
+            | "directionが2値(送信/受信)外" ]
+        ) as $errs
+      | select(($errs | length) > 0)
+      | $k + ":" + ($errs | join(","))
+    ] | join("; ")
+  ' "$MANIFEST" 2>/dev/null)"
+  type_jq_rc=$?
+
+  if [ "$type_jq_rc" -ne 0 ]; then
+    overall_fail=1
+    echo "[FAIL] 任意フィールド-型 — jq評価エラー(rc=${type_jq_rc})。マニフェスト構造を確認してください" >&2
+  elif [ -n "$type_issues" ]; then
+    overall_fail=1
+    echo "[FAIL] 任意フィールド-型 — 型違反: ${type_issues}" >&2
+  else
+    echo "[PASS] 任意フィールド-型 — 拡張任意フィールドの型違反0件" >&2
+  fi
+
+  # ---------------------------------------------------------------------------
   if [ "$overall_fail" -eq 0 ]; then
-    echo "[OK] validate-manifest: 全7項目PASS" >&2
+    echo "[OK] validate-manifest: 全8項目PASS" >&2
     return 0
   fi
 
@@ -451,7 +513,7 @@ EOF
 JSON
 
   if run_validate "$screen_pass" "" "screen" >/dev/null 2>&1; then
-    echo "  [PASS] screen陽性: 既定unitKind(screen)で全7項目PASS"
+    echo "  [PASS] screen陽性: 既定unitKind(screen)で全8項目PASS"
   else
     echo "  [FAIL] screen陽性: 正当なscreenマニフェストがFAILした" >&2
     rc=1
@@ -508,7 +570,7 @@ EOF
 JSON
 
   if run_validate "$api_pass" "" "api" >/dev/null 2>&1; then
-    echo "  [PASS] api陽性: unitKind=apiで全7項目PASS"
+    echo "  [PASS] api陽性: unitKind=apiで全8項目PASS"
   else
     echo "  [FAIL] api陽性: 正当なapiマニフェストがFAILした" >&2
     rc=1
@@ -541,6 +603,32 @@ JSON
   else
     echo "  [FAIL] api --fix: --fix指定時もFAILした" >&2
     rc=1
+  fi
+
+  # ---- 検査8(任意フィールド-型)の確認 ----
+  # 正常系: スキーマ拡張の任意フィールド(正しい型)を付与してもPASSのまま
+  local api_ext_pass="$tmp/api-ext-pass.json"
+  jq '.units[0] += {
+        "method": "GET",
+        "authRequired": true,
+        "callers": ["home-screen"],
+        "ioSummary": "ユーザー一覧を返す"
+      }' "$api_pass" > "$api_ext_pass"
+  if run_validate "$api_ext_pass" "" "api" >/dev/null 2>&1; then
+    echo "  [PASS] 拡張フィールド陽性: 正しい型の任意フィールド付きでも全8項目PASS"
+  else
+    echo "  [FAIL] 拡張フィールド陽性: 正しい型の任意フィールドがFAILした" >&2
+    rc=1
+  fi
+
+  # 型違反系: authRequiredが文字列・callersが文字列配列でない場合はFAIL
+  local api_ext_bad="$tmp/api-ext-bad.json"
+  jq '.units[0] += {"authRequired": "yes", "callers": [1, 2]}' "$api_pass" > "$api_ext_bad"
+  if run_validate "$api_ext_bad" "" "api" >/dev/null 2>&1; then
+    echo "  [FAIL] 拡張フィールド陰性: 型違反(authRequired文字列/callers数値配列)なのにPASSした" >&2
+    rc=1
+  else
+    echo "  [PASS] 拡張フィールド陰性: 型違反でFAIL"
   fi
 
   if [ "$rc" -eq 0 ]; then

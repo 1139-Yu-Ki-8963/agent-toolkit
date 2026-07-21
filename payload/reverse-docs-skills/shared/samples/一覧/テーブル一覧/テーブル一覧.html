@@ -332,10 +332,143 @@
 </section>
 
 <script type="application/json" id="unit-manifest">
-{"detectionSummary":{"unitCount":16,"unresolvedCount":0},"units":[]}
+{"generatedAt":"2026-07-20T00:00:00+09:00","sourceDir":"database/migrations","unitKind":"table","strategy":{"extractionMethod":"static-analysis","approvedByUser":true},"detectionSummary":{"unitCount":16,"unresolvedCount":0},"units":[
+{"unitId":"table-users","unitKey":"users","kind":"マスタ","unitNameGuess":"ユーザー","identifier":"users","detectionMethod":"migration","confidence":"HIGH","fileCount":1,"sourceFile":"001_create_users.sql","foreignKeys":[],"columnCount":10,"mainColumns":["id","email","name","status"]},
+{"unitId":"table-sessions","unitKey":"sessions","kind":"トランザクション","unitNameGuess":"セッション","identifier":"sessions","detectionMethod":"migration","confidence":"HIGH","fileCount":1,"sourceFile":"002_create_sessions.sql","foreignKeys":["users"],"columnCount":6,"mainColumns":["id","user_id","token","expires_at"]},
+{"unitId":"table-settings","unitKey":"settings","kind":"マスタ","unitNameGuess":"設定","identifier":"app_settings","detectionMethod":"migration","confidence":"HIGH","fileCount":1,"sourceFile":"003_create_settings.sql","foreignKeys":["users"],"columnCount":5,"mainColumns":["id","user_id","key","value"]},
+{"unitId":"table-roles","unitKey":"roles","kind":"マスタ","unitNameGuess":"ロール","identifier":"roles","detectionMethod":"migration","confidence":"HIGH","fileCount":1,"sourceFile":"004_create_roles.sql","foreignKeys":[],"columnCount":4,"mainColumns":["id","name","description"]},
+{"unitId":"table-permissions","unitKey":"permissions","kind":"マスタ","unitNameGuess":"権限","identifier":"permissions","detectionMethod":"migration","confidence":"HIGH","fileCount":1,"sourceFile":"005_create_permissions.sql","foreignKeys":[],"columnCount":4,"mainColumns":["id","code","name"]},
+{"unitId":"table-user-roles","unitKey":"user-roles","kind":"関連","unitNameGuess":"ユーザーロール紐付","identifier":"user_roles","detectionMethod":"migration","confidence":"HIGH","fileCount":1,"sourceFile":"006_create_user_roles.sql","foreignKeys":["users","roles"],"columnCount":4,"mainColumns":["id","user_id","role_id"]},
+{"unitId":"table-posts","unitKey":"posts","kind":"トランザクション","unitNameGuess":"投稿","identifier":"posts","detectionMethod":"migration","confidence":"HIGH","fileCount":2,"sourceFile":"007_create_posts.sql","foreignKeys":["users","categories"],"columnCount":11,"mainColumns":["id","author_id","title","status"]},
+{"unitId":"table-comments","unitKey":"comments","kind":"トランザクション","unitNameGuess":"コメント","identifier":"comments","detectionMethod":"migration","confidence":"HIGH","fileCount":1,"sourceFile":"008_create_comments.sql","foreignKeys":["posts","users"],"columnCount":6,"mainColumns":["id","post_id","author_id","body"]},
+{"unitId":"table-categories","unitKey":"categories","kind":"マスタ","unitNameGuess":"カテゴリ","identifier":"categories","detectionMethod":"migration","confidence":"HIGH","fileCount":1,"sourceFile":"009_create_categories.sql","foreignKeys":[],"columnCount":5,"mainColumns":["id","slug","name"]},
+{"unitId":"table-tags","unitKey":"tags","kind":"マスタ","unitNameGuess":"タグ","identifier":"tags","detectionMethod":"migration","confidence":"HIGH","fileCount":1,"sourceFile":"010_create_tags.sql","foreignKeys":[],"columnCount":4,"mainColumns":["id","slug","name"]},
+{"unitId":"table-post-tags","unitKey":"post-tags","kind":"関連","unitNameGuess":"投稿タグ紐付","identifier":"post_tags","detectionMethod":"migration","confidence":"HIGH","fileCount":1,"sourceFile":"011_create_post_tags.sql","foreignKeys":["posts","tags"],"columnCount":4,"mainColumns":["id","post_id","tag_id"]},
+{"unitId":"table-notifications","unitKey":"notifications","kind":"トランザクション","unitNameGuess":"通知","identifier":"notifications","detectionMethod":"migration","confidence":"HIGH","fileCount":2,"sourceFile":"012_create_notifications.sql","foreignKeys":["users"],"columnCount":8,"mainColumns":["id","user_id","type","read_at"]},
+{"unitId":"table-audit-logs","unitKey":"audit-logs","kind":"トランザクション","unitNameGuess":"監査ログ","identifier":"audit_logs","detectionMethod":"migration","confidence":"HIGH","fileCount":1,"sourceFile":"013_create_audit_logs.sql","foreignKeys":["users"],"columnCount":9,"mainColumns":["id","actor_id","action","created_at"]},
+{"unitId":"table-files","unitKey":"files","kind":"トランザクション","unitNameGuess":"ファイル","identifier":"uploaded_files","detectionMethod":"migration","confidence":"MEDIUM","fileCount":1,"sourceFile":"014_create_files.sql","foreignKeys":["users"],"columnCount":8,"mainColumns":["id","owner_id","path","mime_type"]},
+{"unitId":"table-organizations","unitKey":"organizations","kind":"マスタ","unitNameGuess":"組織","identifier":"organizations","detectionMethod":"migration","confidence":"HIGH","fileCount":1,"sourceFile":"015_create_organizations.sql","foreignKeys":[],"columnCount":7,"mainColumns":["id","slug","name"]},
+{"unitId":"table-org-members","unitKey":"org-members","kind":"関連","unitNameGuess":"組織メンバー紐付","identifier":"organization_members","detectionMethod":"migration","confidence":"HIGH","fileCount":1,"sourceFile":"016_create_org_members.sql","foreignKeys":["organizations","users"],"columnCount":5,"mainColumns":["id","organization_id","user_id","role"]}
+]}
 </script>
 
 <footer>種別別一覧スキル（generating-&lt;種別&gt;-list-for-reverse-docs）により生成。手編集は次回再生成で上書きされる。</footer>
+
+<script>
+  /* 任意列描画（shared/references/manifest-schema-extensions.md 準拠）
+     埋め込みマニフェストの unitKind 別対象フィールドのうち、units 内で1件でも値を持つ
+     フィールドだけを thead 末尾・各行末尾に列追加する。既存列のインデックスは変えないため、
+     後続の一覧制御スクリプト（コピー列・チップ列・CSV・行展開）はそのまま機能する。
+     対象フィールドがマニフェストに全く無い場合は何も追加しない（後方互換）。 */
+  (function () {
+    var optManifestEl = document.getElementById('unit-manifest');
+    if (!optManifestEl) return;
+    var optManifest;
+    try { optManifest = JSON.parse(optManifestEl.textContent); } catch (e) { return; }
+    if (!optManifest) return;
+    var optUnits = optManifest.units || optManifest.screens || [];
+    if (!optUnits.length) return;
+
+    var FIELD_SETS = {
+      api:      [['method', 'メソッド'], ['authRequired', '認証'], ['callers', '呼び出し元画面'], ['ioSummary', 'I/O概要']],
+      table:    [['foreignKeys', 'FK参照先'], ['columnCount', 'カラム数'], ['mainColumns', '主要カラム']],
+      batch:    [['schedule', 'スケジュール'], ['targetTables', '対象テーブル'], ['downstreamJobs', '後続ジョブ'], ['execMethod', '実行方法']],
+      report:   [['format', '出力形式'], ['trigger', '出力契機']],
+      external: [['direction', '方向'], ['protocol', 'プロトコル'], ['authMethod', '認証方式']]
+    };
+    var fields = FIELD_SETS[optManifest.unitKind];
+    if (!fields) return;
+
+    function hasValue(v) {
+      if (v === undefined || v === null || v === '') return false;
+      if (Array.isArray(v)) return v.length > 0;
+      return true;
+    }
+    var activeFields = fields.filter(function (f) {
+      return optUnits.some(function (u) { return hasValue(u[f[0]]); });
+    });
+    if (!activeFields.length) return;
+
+    var optTable = document.getElementById('unit-table');
+    if (!optTable) return;
+    var headRow = optTable.querySelector('thead tr');
+    if (!headRow) return;
+    var bodyRows = Array.prototype.slice.call(optTable.querySelectorAll('tbody tr'));
+
+    var optStyle = document.createElement('style');
+    optStyle.textContent =
+      '.opt-tag{display:inline-block;font-size:.72rem;padding:1px 6px;border-radius:4px;background:var(--panel-2);margin:1px 3px 1px 0;}' +
+      '.badge.doc-danger{background:var(--danger-soft);color:var(--danger);}' +
+      '.badge.doc-success{background:var(--success-soft);color:var(--success);}' +
+      '.opt-muted{color:var(--text-muted);}';
+    document.head.appendChild(optStyle);
+
+    var byId = {};
+    var byKey = {};
+    optUnits.forEach(function (u) {
+      var id = (u.unitId !== undefined && u.unitId !== null) ? u.unitId : u.screenId;
+      var key = (u.unitKey !== undefined && u.unitKey !== null) ? u.unitKey : u.screenKey;
+      if (id !== undefined && id !== null) byId[String(id)] = u;
+      if (key !== undefined && key !== null) byKey[String(key)] = u;
+    });
+
+    function findUnit(tr) {
+      var idTxt = tr.children[0] ? tr.children[0].textContent.trim() : '';
+      if (idTxt && byId[idTxt]) return byId[idTxt];
+      var keyTxt = tr.children[1] ? tr.children[1].textContent.trim() : '';
+      if (keyTxt && byKey[keyTxt]) return byKey[keyTxt];
+      return null;
+    }
+
+    function renderValue(td, fieldName, v) {
+      if (!hasValue(v)) return;
+      if (Array.isArray(v)) {
+        v.forEach(function (item) {
+          var tag = document.createElement('span');
+          tag.className = 'opt-tag';
+          tag.textContent = String(item);
+          td.appendChild(tag);
+        });
+        return;
+      }
+      if (typeof v === 'boolean') {
+        var flag = document.createElement('span');
+        if (v) { flag.className = 'badge medium'; flag.textContent = '要'; }
+        else { flag.className = 'opt-muted'; flag.textContent = '不要'; }
+        td.appendChild(flag);
+        return;
+      }
+      if (typeof v === 'object') {
+        td.textContent = (v.readable !== undefined && v.readable !== null) ? String(v.readable) : '';
+        if (v.cron) td.title = String(v.cron);
+        return;
+      }
+      if (fieldName === 'designDocStatus') {
+        var docBadge = document.createElement('span');
+        docBadge.className = 'badge ' + (String(v) === '未着手' ? 'doc-danger' : 'doc-success');
+        docBadge.textContent = String(v);
+        td.appendChild(docBadge);
+        return;
+      }
+      td.textContent = String(v);
+    }
+
+    activeFields.forEach(function (f) {
+      var th = document.createElement('th');
+      th.setAttribute('data-key', f[0]);
+      th.style.width = '140px';
+      th.textContent = f[1];
+      headRow.appendChild(th);
+      bodyRows.forEach(function (tr) {
+        var td = document.createElement('td');
+        var u = findUnit(tr);
+        if (u) renderValue(td, f[0], u[f[0]]);
+        tr.appendChild(td);
+      });
+    });
+    optTable.style.minWidth = (900 + activeFields.length * 140) + 'px';
+  })();
+</script>
 
 <script>
   (function () {
