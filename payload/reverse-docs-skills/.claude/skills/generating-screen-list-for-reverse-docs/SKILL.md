@@ -140,6 +140,10 @@ allowed-tools: [Bash, Read, Write, Edit, Grep, Glob, AskUserQuestion, TaskCreate
 - 組み込み検出器のファイル収集はBFS（import再帰追跡・深さ上限importTraversalMaxDepth既定6・sharedDirPatterns/pathAliases/screenIdRegexの3除外境界）で行う。拡張子解決順は「そのまま→.tsx→.ts→.jsx→.js→/index.{tsx,ts,jsx,js}」で非コード拡張子（css/json/画像等）は集合に含めない
 - 0件検出時にAskUserQuestionで手動リストを聞き出さない。誤った境界を即興確定させない
 
+## テンプレート/コード分析時の注意
+
+対象リポジトリのソースファイルが非UTF-8のレガシーエンコーディング（日本語の2バイト系文字コード等）で記述されている場合、GNU grep はこれらをバイナリファイルとして扱い、一致行があっても無出力で終了する。テンプレートやハンドラコードに対する全ての grep 呼び出しに `-a`（`--text`）フラグを付与すること。
+
 ## 予想を裏切る挙動
 
 - `validate-manifest.sh`・`build-unit-list.sh`（内部で呼ぶ `build-screen-list.sh` も）は jq に依存する。未インストール環境では事前に導入する

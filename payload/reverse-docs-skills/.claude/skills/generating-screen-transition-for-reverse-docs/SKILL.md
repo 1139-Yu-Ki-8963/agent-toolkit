@@ -127,6 +127,10 @@ page-data.json の保存先は `$CLAUDE_JOB_DIR/tmp/screen-transition-page-data.
 - Phase 4 の HTML 手作業組み立てを禁止する。`build-detail-page.sh` を必ず経由する
 - 対象リポジトリへの書き込み・変更は一切行わない。出力は `docs_root` 配下の画面遷移図.html のみ
 
+## テンプレート/コード分析時の注意
+
+対象リポジトリのソースファイルが非UTF-8のレガシーエンコーディング（日本語の2バイト系文字コード等）で記述されている場合、GNU grep はこれらをバイナリファイルとして扱い、一致行があっても無出力で終了する。テンプレートやハンドラコードに対する全ての grep 呼び出しに `-a`（`--text`）フラグを付与すること。
+
 ## 予想を裏切る挙動
 
 - 出力先は `<docs_root>` 直下（画面一覧のような種別専用フォルダは作らない）。`build-detail-page.sh` の `--page transition` 固定出力名仕様に従う

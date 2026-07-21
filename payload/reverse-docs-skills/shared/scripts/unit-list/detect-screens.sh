@@ -589,7 +589,7 @@ resolve_files_subcommand() {
   done < "$rf_screens_all_file"
 
   local resolved_count
-  resolved_count="$(grep -c . "$rf_screens_valid_file" || true)"
+  resolved_count="$(grep -ac . "$rf_screens_valid_file" || true)"
   [ -z "$resolved_count" ] && resolved_count=0
 
   {
@@ -831,7 +831,7 @@ run_detect_screens_profile() {
       [ -z "$layer_name" ] && continue
       local layer_keys layer_n k sampled sampled_json
       layer_keys="$(jq -r --arg t "$layer_name" 'select(.layer==$t) | .screenKey' "$jsonl_tmp" | sort)"
-      layer_n="$(printf '%s\n' "$layer_keys" | grep -c . || true)"
+      layer_n="$(printf '%s\n' "$layer_keys" | grep -ac . || true)"
       k="$(sqrt_ceil "$layer_n")"
       [ "$k" -lt 3 ] && k=3
       [ "$k" -gt 10 ] && k=10
@@ -886,8 +886,17 @@ extract_route_paths() {
   # 行中インライン//はURL等で使われるため除去しない(行頭//のみ対象)。
   local f="$1"
   sed -E 's|^[[:space:]]*//.*||; s|/\*[^*]*\*/||g' "$f" 2>/dev/null \
-    | grep -oE 'path[[:space:]]*[:=][[:space:]]*["'"'"'\`][^"'"'"'\`]+["'"'"'\`]' \
+    | grep -aoE 'path[[:space:]]*[:=][[:space:]]*["'"'"'\`][^"'"'"'\`]+["'"'"'\`]' \
     | sed -E 's/^path[[:space:]]*[:=][[:space:]]*["'"'"'\`]//; s/["'"'"'\`]$//' || true
+}
+
+# 1-8: screenNameGuess の OK マーカー除去(末尾スペース区切り型・括弧付き型のみ。
+# 業務用語としての OK(「決済OK着地」等、末尾以外や語の一部に現れるもの)は維持する)。
+# extract_route_paths() と同様の理由(--self-test は run_self_tests() 呼び出し後に
+# 本スクリプトを exit するため、後方定義のままだと自己テスト内からの呼び出し時点で
+# 未定義になる)で、定義をここ(self-test セクション直前)へ前倒しする。
+strip_ok_marker() {
+  printf '%s' "$1" | sed -E 's/[[:space:]]+OK[[:space:]]*$//; s/\(OK\)[[:space:]]*$//' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//'
 }
 
 # --- --self-test: resolve_screen_files / --resolve-files の自己診断 ---
@@ -908,8 +917,8 @@ test_report() {
 assert_set_equal() {
   local name="$1" expected="$2" actual="$3"
   local exp_sorted act_sorted
-  exp_sorted="$(printf '%s\n' "$expected" | grep -v '^$' | sort -u || true)"
-  act_sorted="$(printf '%s\n' "$actual" | grep -v '^$' | sort -u || true)"
+  exp_sorted="$(printf '%s\n' "$expected" | grep -av '^$' | sort -u || true)"
+  act_sorted="$(printf '%s\n' "$actual" | grep -av '^$' | sort -u || true)"
   if [ "$exp_sorted" = "$act_sorted" ]; then
     test_report "$name" 0
   else
@@ -1221,8 +1230,8 @@ EOF
   chain_count="$(jq -r '.screens[0].fileCount' "$chain_manifest_out" 2>/dev/null || echo -1)"
   chain_files="$(jq -r '.screens[0].files | sort | join(",")' "$chain_manifest_out" 2>/dev/null || echo "")"
   if [ "$chain_status" -eq 0 ] && [ "$chain_count" = "2" ] \
-    && printf '%s' "$chain_files" | grep -qF "$chain/app/dashboard/page.tsx" \
-    && printf '%s' "$chain_files" | grep -qF "$chain/app/shared/Widget.tsx"; then
+    && printf '%s' "$chain_files" | grep -aqF "$chain/app/dashboard/page.tsx" \
+    && printf '%s' "$chain_files" | grep -aqF "$chain/app/shared/Widget.tsx"; then
     test_report "8-4-builtin検出からresolve-files連結" 0
   else
     test_report "8-4-builtin検出からresolve-files連結" 1 "status=$chain_status count=$chain_count files=$chain_files"
@@ -1613,6 +1622,56 @@ EOF
     test_report "12-2-profile-n250大規模" 1 "status=$pstatus_big"
   fi
 
+  # --- 1-8: screenNameGuess の OK マーカー除去 ---
+  local ok_t1 ok_t2 ok_t3 ok_t4
+  ok_t1="$(strip_ok_marker "トップ OK")"
+  if [ "$ok_t1" = "トップ" ]; then
+    test_report "1-8-OKマーカー除去-末尾スペース区切り" 0
+  else
+    test_report "1-8-OKマーカー除去-末尾スペース区切り" 1 "got='$ok_t1'"
+  fi
+
+  ok_t2="$(strip_ok_marker "トップ(OK)")"
+  if [ "$ok_t2" = "トップ" ]; then
+    test_report "1-8-OKマーカー除去-括弧付き" 0
+  else
+    test_report "1-8-OKマーカー除去-括弧付き" 1 "got='$ok_t2'"
+  fi
+
+  ok_t3="$(strip_ok_marker "docomo(sp)決済OK着地")"
+  if [ "$ok_t3" = "docomo(sp)決済OK着地" ]; then
+    test_report "1-8-OKマーカー除去-業務用語維持-着地" 0
+  else
+    test_report "1-8-OKマーカー除去-業務用語維持-着地" 1 "got='$ok_t3'"
+  fi
+
+  ok_t4="$(strip_ok_marker "OK処理")"
+  if [ "$ok_t4" = "OK処理" ]; then
+    test_report "1-8-OKマーカー除去-業務用語維持-先頭" 0
+  else
+    test_report "1-8-OKマーカー除去-業務用語維持-先頭" 1 "got='$ok_t4'"
+  fi
+
+  # --- 1-8-5: screenNameGuess → nodes[].label 転記への連動確認
+  # (generating-screen-transition-for-reverse-docs の Step 1 は label = screenNameGuess を
+  #  そのまま転記する規約のため、ここでは detect-screens.sh の実出力 JSON の
+  #  screenNameGuess フィールド自体に OK 除去が反映されることを検証する) ---
+  local ok5="$root/ok5"
+  mkdir -p "$ok5/app/トップ-OK"
+  printf "module.exports = {}\n" > "$ok5/next.config.js"
+  printf "export default function Page() { return null }\n" > "$ok5/app/トップ-OK/page.tsx"
+  local ok5_manifest ok5_status ok5_name
+  ok5_manifest="$(mktemp)"
+  ok5_status=0
+  bash "$0" "$ok5" "$ok5_manifest" >/dev/null 2>&1 || ok5_status=$?
+  ok5_name="$(jq -r '.screens[0].screenNameGuess' "$ok5_manifest" 2>/dev/null || echo "")"
+  if [ "$ok5_status" -eq 0 ] && [ "$ok5_name" = "トップ" ]; then
+    test_report "1-8-OKマーカー除去-JSON出力screenNameGuess反映(label転記元)" 0
+  else
+    test_report "1-8-OKマーカー除去-JSON出力screenNameGuess反映(label転記元)" 1 "status=$ok5_status name='$ok5_name'"
+  fi
+  rm -f "$ok5_manifest"
+
   rm -rf "$root"
 
   echo "self-test: ${PASS_COUNT} PASS, ${FAIL_COUNT} FAIL" >&2
@@ -1720,7 +1779,7 @@ fi
 # 慣習的な src/pages/ ディレクトリを Next.js Pages Router と誤判定した実害への対策。
 FORCED_METHOD=""
 if [ -n "$STRATEGY_JSON_FILE" ]; then
-  FORCED_METHOD="$(grep -o '"extractionMethod"[[:space:]]*:[[:space:]]*"[^"]*"' "$STRATEGY_JSON_FILE" 2>/dev/null \
+  FORCED_METHOD="$(grep -ao '"extractionMethod"[[:space:]]*:[[:space:]]*"[^"]*"' "$STRATEGY_JSON_FILE" 2>/dev/null \
     | head -1 | sed -E 's/.*"extractionMethod"[[:space:]]*:[[:space:]]*"([^"]*)".*/\1/' || true)"
   case "$FORCED_METHOD" in
     builtin-nextjs-app|builtin-nextjs-pages|builtin-react-router|builtin-fallback) ;;
@@ -1765,7 +1824,7 @@ detection_method=""
 
 # --- 1. Next.js App Router ---
 if allow_method "builtin-nextjs-app" && [ -d "$SOURCE_DIR/app" ]; then
-  pagefiles="$(find "$SOURCE_DIR/app" -type f \( -name "page.tsx" -o -name "page.jsx" -o -name "page.js" \) 2>/dev/null | grep -v node_modules | grep -Ev "$EXCLUDE_REGEX" || true)"
+  pagefiles="$(find "$SOURCE_DIR/app" -type f \( -name "page.tsx" -o -name "page.jsx" -o -name "page.js" \) 2>/dev/null | grep -av node_modules | grep -aEv "$EXCLUDE_REGEX" || true)"
   if [ -n "$pagefiles" ]; then
     detection_method="nextjs-app"
     while IFS= read -r pagefile; do
@@ -1785,11 +1844,11 @@ fi
 # --- 2. Next.js Pages Router ---
 if allow_method "builtin-nextjs-pages" && [ -z "$detection_method" ] && [ -d "$SOURCE_DIR/pages" ]; then
   pagefiles="$(find "$SOURCE_DIR/pages" -type f \( -name "*.tsx" -o -name "*.jsx" -o -name "*.js" \) 2>/dev/null \
-    | grep -v node_modules \
-    | grep -Ev '/_app\.[jt]sx?$' \
-    | grep -Ev '/_document\.[jt]sx?$' \
-    | grep -Ev '/api/' \
-    | grep -Ev "$EXCLUDE_REGEX" || true)"
+    | grep -av node_modules \
+    | grep -aEv '/_app\.[jt]sx?$' \
+    | grep -aEv '/_document\.[jt]sx?$' \
+    | grep -aEv '/api/' \
+    | grep -aEv "$EXCLUDE_REGEX" || true)"
   if [ -n "$pagefiles" ]; then
     detection_method="nextjs-pages"
     while IFS= read -r pagefile; do
@@ -1811,9 +1870,9 @@ fi
 # より前(--self-test セクション直前)へ移動済み。
 
 if allow_method "builtin-react-router" && [ -z "$detection_method" ]; then
-  router_files="$(grep -rlE 'createBrowserRouter|createHashRouter|useRoutes|<Route\b' "$SOURCE_DIR" \
+  router_files="$(grep -arlE 'createBrowserRouter|createHashRouter|useRoutes|<Route\b' "$SOURCE_DIR" \
     --include='*.tsx' --include='*.jsx' --include='*.ts' --include='*.js' 2>/dev/null \
-    | grep -v node_modules | grep -Ev "$EXCLUDE_REGEX" || true)"
+    | grep -av node_modules | grep -aEv "$EXCLUDE_REGEX" || true)"
   if [ -n "$router_files" ]; then
     detection_method="react-router"
     while IFS= read -r rf; do
@@ -1823,21 +1882,21 @@ if allow_method "builtin-react-router" && [ -z "$detection_method" ]; then
       if [ -z "$routes" ]; then
         # 2段階追跡: useRoutes(識別子) / createBrowserRouter(識別子) のように
         # 引数がインライン配列ではなく識別子の場合、import 元を1段だけ辿って定義ファイルを解決する
-        ident="$(grep -oE '(useRoutes|createBrowserRouter)\([[:space:]]*[A-Za-z_$][A-Za-z0-9_$]*[[:space:]]*\)' "$rf" 2>/dev/null \
+        ident="$(grep -aoE '(useRoutes|createBrowserRouter)\([[:space:]]*[A-Za-z_$][A-Za-z0-9_$]*[[:space:]]*\)' "$rf" 2>/dev/null \
           | head -1 | sed -E 's/^(useRoutes|createBrowserRouter)\([[:space:]]*//; s/[[:space:]]*\)$//' || true)"
         if [ -n "$ident" ]; then
-          import_line="$(grep -E "^import[[:space:]].*\\b${ident}\\b.*from" "$rf" 2>/dev/null | head -1 || true)"
+          import_line="$(grep -aE "^import[[:space:]].*\\b${ident}\\b.*from" "$rf" 2>/dev/null | head -1 || true)"
           if [ -n "$import_line" ]; then
-            import_path="$(printf '%s' "$import_line" | grep -oE "['\"][^'\"]+['\"]" | head -1 | sed "s/^['\"]//; s/['\"]\$//" || true)"
+            import_path="$(printf '%s' "$import_line" | grep -aoE "['\"][^'\"]+['\"]" | head -1 | sed "s/^['\"]//; s/['\"]\$//" || true)"
             if [ -n "$import_path" ]; then
               import_base="$(basename "$import_path")"
               import_base="${import_base%.*}"
               target_file="$(find "$SOURCE_DIR" -type f \( -iname "${import_base}.tsx" -o -iname "${import_base}.jsx" -o -iname "${import_base}.ts" -o -iname "${import_base}.js" \) 2>/dev/null \
-                | grep -v node_modules | grep -Ev "$EXCLUDE_REGEX" | head -1 || true)"
+                | grep -av node_modules | grep -aEv "$EXCLUDE_REGEX" | head -1 || true)"
               if [ -z "$target_file" ]; then
                 # import 先がディレクトリ(index.{tsx,jsx,ts,js})の場合のフォールバック解決
                 target_dir="$(find "$SOURCE_DIR" -type d -iname "$import_base" 2>/dev/null \
-                  | grep -v node_modules | grep -Ev "$EXCLUDE_REGEX" | head -1 || true)"
+                  | grep -av node_modules | grep -aEv "$EXCLUDE_REGEX" | head -1 || true)"
                 if [ -n "$target_dir" ]; then
                   target_file="$(find "$target_dir" -maxdepth 1 -type f \( -iname "index.tsx" -o -iname "index.jsx" -o -iname "index.ts" -o -iname "index.js" \) 2>/dev/null | head -1 || true)"
                 fi
@@ -1865,9 +1924,9 @@ fi
 # --- 4. フォールバック: 慣習ディレクトリ ---
 if allow_method "builtin-fallback" && [ -z "$detection_method" ]; then
   for conv in pages screens views; do
-    conv_dir="$(find "$SOURCE_DIR" -maxdepth 4 -type d -iname "$conv" 2>/dev/null | grep -v node_modules | grep -Ev "$EXCLUDE_REGEX" | head -1 || true)"
+    conv_dir="$(find "$SOURCE_DIR" -maxdepth 4 -type d -iname "$conv" 2>/dev/null | grep -av node_modules | grep -aEv "$EXCLUDE_REGEX" | head -1 || true)"
     if [ -n "$conv_dir" ]; then
-      entries="$(find "$conv_dir" -mindepth 1 -maxdepth 1 2>/dev/null | grep -Ev "$EXCLUDE_REGEX" || true)"
+      entries="$(find "$conv_dir" -mindepth 1 -maxdepth 1 2>/dev/null | grep -aEv "$EXCLUDE_REGEX" || true)"
       [ -z "$entries" ] && continue
       detection_method="fallback-directory"
       while IFS= read -r entry; do
@@ -1950,7 +2009,7 @@ key_from_tail() {
 
 # seen_keys は連想配列(bash4+専用)を使わず、改行区切りファイル($SEEN_KEYS_FILE)で管理する(bash3.2互換)
 key_seen() {
-  grep -qxF "$1" "$SEEN_KEYS_FILE" 2>/dev/null
+  grep -aqxF "$1" "$SEEN_KEYS_FILE" 2>/dev/null
 }
 mark_seen() {
   printf '%s\n' "$1" >> "$SEEN_KEYS_FILE"
@@ -2037,7 +2096,7 @@ extract_screen_id() {
   local base
   base="$(basename "$file")"
   base="${base%.*}"
-  printf '%s' "$base" | grep -oE "$SCREEN_ID_REGEX" | head -1 || true
+  printf '%s' "$base" | grep -aoE "$SCREEN_ID_REGEX" | head -1 || true
 }
 
 # 画面の階層分類を判定する
@@ -2097,21 +2156,21 @@ if [ -n "$VIEW_SWITCH_PATTERN" ]; then
   while IFS=$'\t' read -r entry_file parent_keys; do
     [ -f "$entry_file" ] || continue
     first_parent="${parent_keys%%,*}"
-    matching_lines="$(grep -E "$VIEW_SWITCH_PATTERN" "$entry_file" 2>/dev/null || true)"
+    matching_lines="$(grep -aE "$VIEW_SWITCH_PATTERN" "$entry_file" 2>/dev/null || true)"
     [ -z "$matching_lines" ] && continue
-    comps="$(printf '%s\n' "$matching_lines" | grep -oE '<[A-Z][A-Za-z0-9]*' | sed 's/^<//' | sort -u || true)"
+    comps="$(printf '%s\n' "$matching_lines" | grep -aoE '<[A-Z][A-Za-z0-9]*' | sed 's/^<//' | sort -u || true)"
     [ -z "$comps" ] && continue
     while IFS= read -r comp; do
       [ -z "$comp" ] && continue
-      if printf '%s\n' "$ROUTE_ENTRY_BASENAMES" | grep -qxF "$comp"; then
+      if printf '%s\n' "$ROUTE_ENTRY_BASENAMES" | grep -aqxF "$comp"; then
         continue
       fi
-      import_line="$(grep -E "^import.*${comp}.*from" "$entry_file" 2>/dev/null | head -1 || true)"
+      import_line="$(grep -aE "^import.*${comp}.*from" "$entry_file" 2>/dev/null | head -1 || true)"
       import_path=""
       if [ -n "$import_line" ]; then
-        import_path="$(printf '%s' "$import_line" | grep -oE "['\"][^'\"]+['\"]" | head -1 | sed "s/^['\"]//; s/['\"]\$//" || true)"
+        import_path="$(printf '%s' "$import_line" | grep -aoE "['\"][^'\"]+['\"]" | head -1 | sed "s/^['\"]//; s/['\"]\$//" || true)"
       fi
-      found_file="$(find "$SOURCE_DIR" -type f \( -iname "${comp}.tsx" -o -iname "${comp}.jsx" -o -iname "${comp}.ts" -o -iname "${comp}.js" \) 2>/dev/null | grep -v node_modules | grep -Ev "$EXCLUDE_REGEX" | head -1 || true)"
+      found_file="$(find "$SOURCE_DIR" -type f \( -iname "${comp}.tsx" -o -iname "${comp}.jsx" -o -iname "${comp}.ts" -o -iname "${comp}.js" \) 2>/dev/null | grep -av node_modules | grep -aEv "$EXCLUDE_REGEX" | head -1 || true)"
       if [ -n "$found_file" ]; then
         resolved="$found_file"
       elif [ -n "$import_path" ]; then
@@ -2234,7 +2293,7 @@ view_switch_pattern_json="null"
 
 # --- strategy フィールド(--strategy-json 指定時はファイル内容をそのまま埋め込む) ---
 if [ -n "$STRATEGY_JSON_FILE" ]; then
-  strategy_brace_count="$(grep -c '{' "$STRATEGY_JSON_FILE" || true)"
+  strategy_brace_count="$(grep -ac '{' "$STRATEGY_JSON_FILE" || true)"
   if [ -z "$strategy_brace_count" ] || [ "$strategy_brace_count" -eq 0 ]; then
     echo "ERROR: --strategy-json file is empty or invalid: $STRATEGY_JSON_FILE" >&2
     exit 1
@@ -2303,19 +2362,19 @@ awk -F'\t' '$5!=""{print $5}' "$TMP_ALL" | sort -u > "$STRATEGY_ALL_ENTRIES_FILE
       if [ -n "$STRATEGY_SCREEN_ID_REGEX" ]; then
         bfs_base="$(basename "$entry_file")"
         bfs_base="${bfs_base%.*}"
-        bfs_own_screen_id="$(printf '%s' "$bfs_base" | grep -oE "$STRATEGY_SCREEN_ID_REGEX" | head -1 || true)"
+        bfs_own_screen_id="$(printf '%s' "$bfs_base" | grep -aoE "$STRATEGY_SCREEN_ID_REGEX" | head -1 || true)"
       fi
       screen_others_file="$(mktemp)"
-      grep -vxF "$entry_file" "$STRATEGY_ALL_ENTRIES_FILE" > "$screen_others_file" 2>/dev/null || true
+      grep -avxF "$entry_file" "$STRATEGY_ALL_ENTRIES_FILE" > "$screen_others_file" 2>/dev/null || true
       files="$(resolve_screen_files "$entry_file" "$SOURCE_DIR" "$STRATEGY_MAX_DEPTH" "$STRATEGY_SHARED_FILE" "$screen_others_file" "$STRATEGY_SCREEN_ID_REGEX" "$bfs_own_screen_id" "$STRATEGY_ALIAS_FILE")"
       rm -f "$screen_others_file"
-      file_count="$(printf '%s\n' "$files" | grep -c . || true)"
+      file_count="$(printf '%s\n' "$files" | grep -ac . || true)"
     elif [ -n "$entry_dir" ] && [ -d "$entry_dir" ]; then
       # entryFile がディレクトリの場合(慣習ディレクトリ検出): 従来のディレクトリ収集を維持(フォールバック互換)。
-      files="$( { find "$entry_dir" -maxdepth 1 -type f 2>/dev/null; find "$entry_dir/components" "$entry_dir/_components" -maxdepth 1 -type f 2>/dev/null; } | grep -v '^$' || true)"
-      file_count="$(printf '%s\n' "$files" | grep -c . || true)"
+      files="$( { find "$entry_dir" -maxdepth 1 -type f 2>/dev/null; find "$entry_dir/components" "$entry_dir/_components" -maxdepth 1 -type f 2>/dev/null; } | grep -av '^$' || true)"
+      file_count="$(printf '%s\n' "$files" | grep -ac . || true)"
     fi
-    files_json="$(printf '%s\n' "$files" | grep -v '^$' | while IFS= read -r f; do printf '      "%s"' "$(json_escape "$f")"; echo; done | paste -sd, - 2>/dev/null || true)"
+    files_json="$(printf '%s\n' "$files" | grep -av '^$' | while IFS= read -r f; do printf '      "%s"' "$(json_escape "$f")"; echo; done | paste -sd, - 2>/dev/null || true)"
 
     screen_id="$(extract_screen_id "$entry_file")"
     screen_id_json="null"
@@ -2329,6 +2388,7 @@ awk -F'\t' '$5!=""{print $5}' "$TMP_ALL" | sort -u > "$STRATEGY_ALL_ENTRIES_FILE
       name_guess="$(basename "$entry_file" 2>/dev/null | sed -E 's/[-_]/ /g')"
     fi
     name_guess="$(printf '%s' "$name_guess" | sed -E 's/ +/ /g; s/^ //; s/ $//')"
+    name_guess="$(strip_ok_marker "$name_guess")"
 
     shared_with_json="[]"
     cluster_id_json="null"
@@ -2337,8 +2397,8 @@ awk -F'\t' '$5!=""{print $5}' "$TMP_ALL" | sort -u > "$STRATEGY_ALL_ENTRIES_FILE
       if [ -n "$cluster_line" ]; then
         cluster_keys="$(printf '%s' "$cluster_line" | cut -d "$(printf '\t')" -f2)"
         cluster_id_val="$(printf '%s' "$cluster_line" | cut -d "$(printf '\t')" -f3)"
-        others="$(printf '%s\n' "$cluster_keys" | tr ',' '\n' | grep -vxF "$key" || true)"
-        others_json="$(printf '%s\n' "$others" | grep -v '^$' | while IFS= read -r ok; do printf '"%s"' "$(json_escape "$ok")"; echo; done | paste -sd, - 2>/dev/null || true)"
+        others="$(printf '%s\n' "$cluster_keys" | tr ',' '\n' | grep -avxF "$key" || true)"
+        others_json="$(printf '%s\n' "$others" | grep -av '^$' | while IFS= read -r ok; do printf '"%s"' "$(json_escape "$ok")"; echo; done | paste -sd, - 2>/dev/null || true)"
         if [ -n "$others_json" ]; then
           shared_with_json="[${others_json}]"
         fi

@@ -157,8 +157,8 @@ table.data-table code {
 .hidden { display: none !important; }
 
 /* split-view (transition) */
-.split-view { display: grid; grid-template-columns: 360px 1fr; gap: 20px; align-items: start; }
-.wireframe-panel { position: sticky; top: 24px; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; }
+.split-view { display: grid; grid-template-columns: 380px 1fr; gap: 24px; align-items: start; }
+.wireframe-panel { position: sticky; top: 24px; background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow-sm); }
 @media (max-width: 800px) {
   .split-view { grid-template-columns: 1fr; }
   .wireframe-panel { position: static; }
@@ -297,30 +297,30 @@ table.data-table code {
 .overview-table th:first-child, .overview-table td:first-child { text-align: left; white-space: nowrap; }
 
 /* モード切り替えタブ(画面別/動線別/未接続) */
-.mode-tabs { display: flex; gap: 0; margin-bottom: 16px; border-bottom: 2px solid var(--border); }
-.mode-tab { background: none; border: none; border-bottom: 2px solid transparent; margin-bottom: -2px; padding: 8px 20px; font-size: 14px; font-weight: 600; color: var(--text-muted); cursor: pointer; font-family: inherit; }
-.mode-tab:hover { color: var(--text); }
-.mode-tab.active { color: var(--text); border-bottom-color: var(--accent); }
+.mode-tabs { display: flex; gap: 4px; margin-bottom: 20px; border-bottom: 1px solid var(--border); }
+.mode-tab { background: none; border: none; border-bottom: 2px solid transparent; margin-bottom: -1px; padding: 10px 18px; font-size: 14px; font-weight: 600; color: var(--text-muted); cursor: pointer; font-family: inherit; transition: color .15s, border-color .15s; }
+.mode-tab:hover { color: var(--text-sub); }
+.mode-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
 
 /* 動線別モード */
 .flow-strip { margin-bottom: 24px; }
 .flow-title { font-size: 15px; font-weight: 700; margin-bottom: 10px; }
-.flow-steps { display: flex; gap: 4px; overflow-x: auto; padding-bottom: 8px; align-items: stretch; }
-.flow-step { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+.flow-steps { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 8px; align-items: center; }
+.flow-step { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.flow-step:not(:last-child)::after { content: "→"; font-size: 16px; color: var(--text-muted); flex-shrink: 0; }
 .flow-step-num { font-size: 11px; font-weight: 700; color: var(--accent); width: 20px; text-align: center; }
-.flow-step-card { background: var(--panel); border: 1px solid var(--border); border-radius: 6px; padding: 10px 14px; min-width: 120px; cursor: pointer; transition: box-shadow .15s; }
+.flow-step-card { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 14px; min-width: 120px; cursor: pointer; transition: box-shadow .15s; }
 .flow-step-card:hover { box-shadow: 0 0 0 2px var(--accent); }
 .flow-step-name { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
 .flow-step-action { font-size: 11px; color: var(--text-muted); }
-.flow-step-arrow { font-size: 16px; color: var(--text-muted); }
 .flow-nav { margin-bottom: 16px; }
 .flow-nav select { width: 100%; padding: 8px 12px; font-size: 13px; font-family: inherit; background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text); }
 
 /* 未接続モード */
-.unconnected-summary { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
-.unconnected-count { font-size: 28px; font-weight: 700; }
+.unconnected-summary { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; padding: 14px 16px; background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); }
+.unconnected-count { font-size: 28px; font-weight: 700; color: var(--accent); }
 .unconnected-label { font-size: 14px; color: var(--text-muted); }
-.unconnected-ok { font-size: 14px; color: var(--accent); padding: 24px 0; text-align: center; }
+.unconnected-ok { font-size: 14px; color: var(--accent); padding: 32px 0; text-align: center; background: var(--accent-soft); border: 1px solid var(--accent-border); border-radius: var(--radius); }
 </style>
 </head>
 <body>
