@@ -249,7 +249,7 @@ GENERATED_DATE="$(date +%Y-%m-%d)"
 
 # 対象リポジトリの短縮コミット SHA（git 管理外は空文字）
 if git -C "$TARGET_REPO" rev-parse --git-dir >/dev/null 2>&1; then
-  COMMIT_SHORT=" · $(git -C "$TARGET_REPO" rev-parse --short HEAD)"
+  COMMIT_SHORT=" · コミット番号: $(git -C "$TARGET_REPO" rev-parse --short HEAD)"
 else
   COMMIT_SHORT=""
 fi
@@ -385,6 +385,8 @@ if [ -d "$common_dir" ]; then
       md_content="$(sed -e '1s/^\xEF\xBB\xBF//' "$md_file" | awk 'NR==1 && /^---$/ {skip=1; next} skip && /^---$/ {skip=0; next} !skip')"
       local_render_args=(
         "{{DOC_TITLE}}" "$(html_escape "$title")"
+        "{{GENERATED_DATE}}" "$GENERATED_DATE"
+        "{{COMMIT_SHORT}}" "$COMMIT_SHORT"
       )
       if [ -f "$TOKENS_CSS_FILE" ]; then
         local_render_args+=("/* TOKENS_CSS */" "$(cat "$TOKENS_CSS_FILE")")

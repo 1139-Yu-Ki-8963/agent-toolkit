@@ -56,6 +56,7 @@ a:hover { text-decoration: underline; }
   display: inline-flex; align-items: center; gap: 4px;
 }
 .top-actions button:hover { background: var(--accent-soft); color: var(--accent); border-color: var(--accent-border); }
+.header-meta { font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 8px; }
 
 /* グリッドアイテムが内容幅で親を押し広げないための対策(portal-template.htmlと同一措置) */
 .dp-main { max-width: 1280px; width: 100%; min-width: 0; margin: 0 auto; padding: 24px 24px 64px; }
@@ -144,7 +145,9 @@ table.data-table code {
       <span class="brand-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:middle"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg></span>
       <span class="brand-title">{{TITLE}}</span>
     </a>
-    <div></div>
+    <div class="header-meta">
+      <span class="pm-updated">更新: {{GENERATED_AT}}{{COMMIT_SHORT}}</span>
+    </div>
     <div class="top-actions">
       <button id="theme-toggle" title="テーマ切替">ライト</button>
     </div>

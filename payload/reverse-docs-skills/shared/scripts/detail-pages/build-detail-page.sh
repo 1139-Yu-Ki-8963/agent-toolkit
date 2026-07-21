@@ -338,6 +338,7 @@ render_args=(
   "{{TITLE}}" "$(html_escape "$TITLE")"
   "{{DESCRIPTION}}" "$(html_escape "$DESCRIPTION")"
   "{{GENERATED_AT}}" "$(html_escape "$GENERATED_AT")"
+  "{{COMMIT_SHORT}}" ""
   "{{PAGE_DATA_JSON}}" "$PAGE_DATA_JSON"
 )
 # トークンCSS注入（tokens.css が存在する場合のみ）

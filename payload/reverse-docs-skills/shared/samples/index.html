@@ -13,7 +13,7 @@
   プレースホルダ一覧:
     サンプルプロジェクト     — プロジェクト名（basename target_repo_path）
     2026-07-21   — 更新日（date +%Y-%m-%d）
-     · 8a2440c     — 対象リポジトリの短縮コミット SHA（git 管理外は空文字。区切り文字 " · " 込み）
+     · コミット番号: 6f465b7     — 対象リポジトリの短縮コミット SHA（git 管理外は空文字。区切り文字 " · " 込み）
     {
   "scale": {
     "total": 15000,
@@ -171,9 +171,7 @@ a:hover { text-decoration: underline; }
 .brand-icon { display: inline-flex; align-items: center; }
 .brand-title { font-weight: 700; font-size: 16px; }
 .brand-sub { font-size: 11px; color: var(--text-muted); }
-.topnav { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
-.topnav a { color: var(--text-sub); font-weight: 500; font-size: 13px; padding: 4px 6px; border-radius: 4px; display: inline-flex; align-items: center; gap: 4px; }
-.topnav a:hover { background: var(--accent-soft); color: var(--accent); text-decoration: none; }
+.header-meta { font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 8px; }
 .top-actions { display: flex; align-items: center; gap: 8px; }
 .top-actions button {
   background: var(--panel-2); border: 1px solid var(--border); border-radius: var(--radius-sm);
@@ -308,7 +306,6 @@ table.data-table code {
 }
 @media (max-width: 760px) {
   .topbar { grid-template-columns: 1fr; gap: 8px; padding: 10px 14px; }
-  .topnav { justify-content: flex-start; }
   .pm-main { padding: 14px; }
   .search-box { width: 100%; }
   .metric-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
@@ -319,7 +316,6 @@ table.data-table code {
   .pm-hero h1 { font-size: 20px; }
   .pm-main { padding: 12px; }
   .card { padding: 12px 14px; }
-  .topnav { gap: 8px; font-size: 12px; flex-wrap: wrap; }
   .metric-grid { grid-template-columns: 1fr 1fr; }
 }
 
@@ -334,10 +330,9 @@ table.data-table code {
       <span class="brand-title">サンプルプロジェクト</span>
       <span class="brand-sub">設計ポータル</span>
     </a>
-    <nav class="topnav">
-      <a href="#/summary"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:middle"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/></svg> 解析概要</a>
-      <a href="アーキテクチャ調査書.html"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:middle"><path d="M12 7V3H2v18h20V7H12zM6 19H4v-2h2v2zm0-4H4v-2h2v2zm0-4H4V9h2v2zm0-4H4V5h2v2zm4 12H8v-2h2v2zm0-4H8v-2h2v2zm0-4H8V9h2v2zm0-4H8V5h2v2zm10 12h-8v-2h2v-2h-2v-2h2v-2h-2V9h8v10zm-2-8h-2v2h2v-2zm0 4h-2v2h2v-2z"/></svg> アーキテクチャ調査書</a>
-    </nav>
+    <div class="header-meta">
+      <span class="pm-updated">更新: 2026-07-21 · コミット番号: 6f465b7</span>
+    </div>
     <div class="top-actions">
       <button id="theme-toggle" title="テーマ切替">ライト</button>
     </div>
@@ -349,7 +344,7 @@ table.data-table code {
         <h1>サンプルプロジェクト</h1>
         <p>設計情報と技術資産を一元管理するポータル。</p>
       </div>
-      <span class="pm-updated">更新: 2026-07-21 · 8a2440c</span>
+      <span class="pm-updated">更新: 2026-07-21 · コミット番号: 6f465b7</span>
     </div>
 
     <div class="sec-label">解析概要</div>
@@ -574,9 +569,7 @@ table.data-table code {
 
     var grid = el('div', { class: 'cards', id: 'detail-grid' });
     cat.tools.forEach(function(tool) {
-      var isInternal = tool.href.indexOf('#') === 0;
       var attrs = { class: 'card is-tool group-' + cat.id, href: tool.href };
-      if (!isInternal) { attrs.target = '_blank'; attrs.rel = 'noopener'; }
       var card = el('a', attrs);
       card.appendChild(el('div', { class: 'card-head', html:
         '<span class="card-icon">' + matIcon(tool.icon) + '</span>' +
