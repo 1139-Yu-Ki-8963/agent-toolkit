@@ -1210,17 +1210,21 @@ table.data-table code {
     });
   }
 
-  // --- 動線別モード(入次数0の起点からの最長パスを自動生成) ---
+  // --- 動線別モード(入次数0の起点から、分岐点ごとに複数の動線を自動生成) ---
+  // 起点(入次数0のノード)からの最長パスを1本たどるだけでは、起点が1つしかない
+  // 構成(例: ログイン起点のみ)で動線が1本しか出ない。分岐点(固有遷移が複数ある
+  // ノード)ごとに未選択の候補へも動線を伸ばし、複数の動線グループを生成する。
   function computeFlows() {
     var MAX_DEPTH = 20;
+    var MAX_FLOWS = 30;
     var origins = keys.filter(function(k) { return inDegree[k] === 0 && outDegree[k] > 0; });
     var flows = [];
-    origins.forEach(function(origin) {
-      var path = [origin];
+
+    // cur から未訪問ノードへ、confidence最上位の候補を選びながら末端まで歩く。
+    // path/visitedへ直接追記し、たどった辺の配列を返す。
+    function greedyWalk(path, visited) {
       var edgesUsed = [];
-      var visited = {};
-      visited[origin] = true;
-      var cur = origin;
+      var cur = path[path.length - 1];
       for (var step = 0; step < MAX_DEPTH; step++) {
         var candidates = (outEdges[cur] || []).filter(function(e) {
           return e.from !== e.to && !visited[e.to];
@@ -1235,8 +1239,65 @@ table.data-table code {
         path.push(cur);
         visited[cur] = true;
       }
-      if (path.length > 1) flows.push({ origin: origin, path: path, edges: edgesUsed });
+      return edgesUsed;
+    }
+
+    // 生成済みの動線を分岐元キューへ積み、各動線の経路上の分岐点をさらに
+    // 展開する(分岐から生まれた動線自身の分岐点も再帰的にたどる)。
+    var seenPaths = {};
+    var queue = [];
+
+    function pushFlow(origin, path, edges) {
+      if (path.length <= 1 || flows.length >= MAX_FLOWS) return;
+      var sig = path.join('>');
+      if (seenPaths[sig]) return;
+      seenPaths[sig] = true;
+      var flow = { origin: origin, path: path, edges: edges };
+      flows.push(flow);
+      queue.push(flow);
+    }
+
+    origins.forEach(function(origin) {
+      if (flows.length >= MAX_FLOWS) return;
+      var mainPath = [origin];
+      var mainVisited = {};
+      mainVisited[origin] = true;
+      var mainEdges = greedyWalk(mainPath, mainVisited);
+      pushFlow(origin, mainPath, mainEdges);
     });
+
+    // 主経路・各分岐路それぞれの分岐点について、選ばれなかった候補ごとに
+    // 別の動線を生成する。同一パス内では visited 集合で訪問済みノードへの
+    // 再訪(ヘッダーのtop/search等への戻り)を除外済みのため、commonNavSet
+    // (画面別モードの表分類用。cart/product-detail等の主要画面も「共通」
+    // 扱いになりうる)はそのままでは使わない。共通ナビかつ遷移先を持たない
+    // 行き止まり(ヘルプ等)だけを、動線として価値が薄いため除外する。
+    var qi = 0;
+    while (qi < queue.length && flows.length < MAX_FLOWS) {
+      var base = queue[qi++];
+      for (var i = 0; i < base.edges.length && flows.length < MAX_FLOWS; i++) {
+        var node = base.path[i];
+        var prefixVisited = {};
+        for (var j = 0; j <= i; j++) prefixVisited[base.path[j]] = true;
+        var candidates = (outEdges[node] || []).filter(function(e) {
+          if (e.from === e.to || prefixVisited[e.to]) return false;
+          if (classify(e) === 'common' && outDegree[e.to] === 0) return false;
+          return true;
+        });
+        candidates.forEach(function(alt) {
+          if (flows.length >= MAX_FLOWS) return;
+          if (alt === base.edges[i]) return;
+          // 分岐点(base.path[i])までの経路をそのまま引き継ぎ、そこから alt へ分岐する。
+          var branchPath = base.path.slice(0, i + 1).concat([alt.to]);
+          var branchEdges = base.edges.slice(0, i).concat([alt]);
+          var branchVisited = {};
+          for (var vk in prefixVisited) branchVisited[vk] = prefixVisited[vk];
+          branchVisited[alt.to] = true;
+          var restEdges = greedyWalk(branchPath, branchVisited);
+          pushFlow(base.origin, branchPath, branchEdges.concat(restEdges));
+        });
+      }
+    }
     return flows;
   }
 
