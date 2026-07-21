@@ -905,7 +905,7 @@ table.data-table code {
     groupNames.forEach(function(g) {
       var optgroup = el('optgroup', { label: g + '（' + groupMap[g].length + '図）' });
       groupMap[g].forEach(function(k) {
-        optgroup.appendChild(el('option', { value: k }, nodeLabel(k) + ' からの遷移 [' + outDegree[k] + '件]'));
+        optgroup.appendChild(el('option', { value: k }, nodeLabel(k) + ' [' + outDegree[k] + '件]'));
       });
       select.appendChild(optgroup);
     });
@@ -913,7 +913,7 @@ table.data-table code {
     normalNodes.slice().sort(function(a, b) {
       return nodeLabel(a).localeCompare(nodeLabel(b), 'ja');
     }).forEach(function(k) {
-      select.appendChild(el('option', { value: k }, nodeLabel(k) + ' からの遷移 [' + outDegree[k] + '件]'));
+      select.appendChild(el('option', { value: k }, nodeLabel(k) + ' [' + outDegree[k] + '件]'));
     });
   }
 

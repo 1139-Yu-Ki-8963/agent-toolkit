@@ -35,6 +35,11 @@
 <style>
 :root,
 [data-theme="light"] {
+  /* Windows フォント上書き防止 */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-synthesis: none;
   --bg: #FFFFFF;
   --panel: #FFFFFF;
   --panel-2: #F0EDE3;
@@ -57,6 +62,9 @@
   --danger-soft: #F5E2DC;
   --code-bg: #1B1F26;
   --code-fg: #E8E5DC;
+  --cat-list: #2563eb;
+  --cat-common: #059669;
+  --cat-project: #7C3AED;
   --font-body: "Hiragino Kaku Gothic ProN","Hiragino Sans","Noto Sans JP","BIZ UDPGothic","Yu Gothic","Meiryo",system-ui,-apple-system,sans-serif;
   --mono: "SFMono-Regular","Menlo","Cascadia Code","Consolas",monospace;
   --shadow-sm: 0 1px 3px rgba(27,31,38,.07), 0 2px 6px rgba(27,31,38,.05);
@@ -74,6 +82,7 @@
     --success: #8FA3DB; --success-soft: #2A2E47;
     --warn: #D4B45D; --danger: #D4836E; --danger-soft: #3F2620;
     --code-bg: #0E1116; --code-fg: #E8E5DC;
+    --cat-list: #60A5FA; --cat-common: #34D399; --cat-project: #A78BFA;
   }
 }
 [data-theme="dark"] {
@@ -85,6 +94,7 @@
   --success: #8FA3DB; --success-soft: #2A2E47;
   --warn: #D4B45D; --danger: #D4836E; --danger-soft: #3F2620;
   --code-bg: #0E1116; --code-fg: #E8E5DC;
+  --cat-list: #60A5FA; --cat-common: #34D399; --cat-project: #A78BFA;
 }
 
 * { box-sizing: border-box; }
@@ -1041,7 +1051,7 @@ table.data-table code {
     groupNames.forEach(function(g) {
       var optgroup = el('optgroup', { label: g + '（' + groupMap[g].length + '図）' });
       groupMap[g].forEach(function(k) {
-        optgroup.appendChild(el('option', { value: k }, nodeLabel(k) + ' からの遷移 [' + outDegree[k] + '件]'));
+        optgroup.appendChild(el('option', { value: k }, nodeLabel(k) + ' [' + outDegree[k] + '件]'));
       });
       select.appendChild(optgroup);
     });
@@ -1049,7 +1059,7 @@ table.data-table code {
     normalNodes.slice().sort(function(a, b) {
       return nodeLabel(a).localeCompare(nodeLabel(b), 'ja');
     }).forEach(function(k) {
-      select.appendChild(el('option', { value: k }, nodeLabel(k) + ' からの遷移 [' + outDegree[k] + '件]'));
+      select.appendChild(el('option', { value: k }, nodeLabel(k) + ' [' + outDegree[k] + '件]'));
     });
   }
 
