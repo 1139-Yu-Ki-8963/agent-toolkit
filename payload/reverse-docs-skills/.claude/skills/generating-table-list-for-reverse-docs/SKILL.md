@@ -34,7 +34,7 @@ allowed-tools: [Bash, Read, Write, Edit, Grep, Glob, AskUserQuestion, TaskCreate
 - 既存コードベースのテーブル一覧（DB スキーマの一覧）を作りたいとき
 - 起動引数: ソースコードディレクトリ（探索対象）・出力先ディレクトリ（テーブル一覧.htmlの書き出し先）の2つ
 
-出力先は `<output_dir>/テーブル一覧/テーブル一覧.html` に固定する。
+出力先は `<output_dir>/一覧/テーブル一覧/テーブル一覧.html` に固定する。
 
 ## 進捗管理（必須手順）
 
@@ -69,7 +69,7 @@ allowed-tools: [Bash, Read, Write, Edit, Grep, Glob, AskUserQuestion, TaskCreate
 
 ### Phase 4: テーブル一覧.html 生成
 
-- **Step 1**: `../../../shared/scripts/unit-list/build-unit-list.sh <manifest.json> <output_dir>/テーブル一覧/テーブル一覧.html --unit-kind table` を実行する。build側が内部でvalidateを再実行するため、検証を経ないmanifestからは生成できない。完了条件: HTML生成済み
+- **Step 1**: `../../../shared/scripts/unit-list/build-unit-list.sh <manifest.json> <output_dir>/一覧/テーブル一覧/テーブル一覧.html --unit-kind table --portal-dir <output_dir>` を実行する。`--portal-dir` にはポータル（`index.html`）の配置先＝納品物ルート（output_dir=docs_root）を渡し、「ポータルへ戻る」リンクを実在パスに解決させる。build側が内部でvalidateを再実行するため、検証を経ないmanifestからは生成できない。完了条件: HTML生成済み
 
 **手作業でのプレースホルダ置換は禁止する**（過去に `entryFile=None` の混入という実害が発生している）。HTML生成は必ずスクリプト経由の決定的処理で行う。
 
@@ -120,7 +120,7 @@ allowed-tools: [Bash, Read, Write, Edit, Grep, Glob, AskUserQuestion, TaskCreate
 
 - `validate-manifest.sh`・`build-unit-list.sh` は jq に依存する。未インストール環境では事前に導入する
 - マニフェストの配列キーは `units` とする（`screens` ではない）
-- 出力先は `<output_dir>/テーブル一覧/テーブル一覧.html`。テーブル種別専用の独立フォルダを作成する
+- 出力先は `<output_dir>/一覧/テーブル一覧/テーブル一覧.html`。テーブル種別専用の独立フォルダを作成する
 - カスタム抽出でソースを解析する際、コメントアウトされた定義（`-- CREATE TABLE ...`・コメント内のモデル宣言等）を除去してから抽出する（コメント内の定義を実在として誤検出した実害を防ぐ）
 - マイグレーションは同一テーブルに対して複数存在しうる（create → alter の積み重ね）。テーブル単位に集約し、`files` に関連マイグレーションを列挙する。alter だけを独立テーブルとして数えない
 - 設計書の雛形展開・生成は行わない（本スキルのスコープ外）

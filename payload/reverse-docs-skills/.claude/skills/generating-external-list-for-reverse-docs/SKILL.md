@@ -36,7 +36,7 @@ allowed-tools: [Bash, Read, Write, Edit, Grep, Glob, AskUserQuestion, TaskCreate
 
 ## 出力先
 
-`<output_dir>/外部連携一覧/外部連携一覧.html`。外部連携専用の独立フォルダを作成する。
+`<output_dir>/一覧/外部連携一覧/外部連携一覧.html`。外部連携専用の独立フォルダを作成する。
 
 ## 進捗管理（必須手順）
 
@@ -71,7 +71,7 @@ allowed-tools: [Bash, Read, Write, Edit, Grep, Glob, AskUserQuestion, TaskCreate
 
 ### Phase 4: 外部連携一覧.html 生成
 
-- **Step 1**: `../../../shared/scripts/unit-list/build-unit-list.sh <manifest.json> <output_dir>/外部連携一覧/外部連携一覧.html --unit-kind external` を実行する。build側が内部でvalidateを再実行するため、検証を経ないmanifestからは生成できない。完了条件: HTML生成済み
+- **Step 1**: `../../../shared/scripts/unit-list/build-unit-list.sh <manifest.json> <output_dir>/一覧/外部連携一覧/外部連携一覧.html --unit-kind external --portal-dir <output_dir>` を実行する。`--portal-dir` にはポータル（`index.html`）の配置先＝納品物ルート（output_dir=docs_root）を渡し、「ポータルへ戻る」リンクを実在パスに解決させる。build側が内部でvalidateを再実行するため、検証を経ないmanifestからは生成できない。完了条件: HTML生成済み
 
 **手作業でのプレースホルダ置換は禁止する**（過去に `entryFile=None` の混入という実害が発生している）。HTML生成は必ずスクリプト経由の決定的処理で行う。
 
@@ -125,7 +125,7 @@ allowed-tools: [Bash, Read, Write, Edit, Grep, Glob, AskUserQuestion, TaskCreate
 - モック・スタブ（テスト用の偽クライアント等）を実連携として数えない。Phase 1 Step 4の除外パターンで先に隔離する
 - 自プロジェクト内の別モジュール呼び出しは外部連携ではない。境界は「プロセス外・組織外のシステムとの通信」に置く
 - マニフェストの配列キーは `screens` ではなく `units` とする（`screens` は画面種別専用の後方互換キー）
-- 出力先は `<output_dir>/外部連携一覧/外部連携一覧.html`。他種別と混在させない
+- 出力先は `<output_dir>/一覧/外部連携一覧/外部連携一覧.html`。他種別と混在させない
 
 ## 完了報告
 

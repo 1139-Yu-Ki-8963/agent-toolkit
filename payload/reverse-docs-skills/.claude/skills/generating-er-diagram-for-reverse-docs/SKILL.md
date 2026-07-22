@@ -18,7 +18,7 @@ allowed-tools: [Bash, Read, Write, Grep, Glob, AskUserQuestion, TaskCreate, Task
 - 起動引数: `target_repo_path`（対象リポジトリの絶対パス）・`docs_root`（テーブル一覧.html 所在 / ER図.html 出力先）・`portal_output_dir`（任意）
 - `portal_output_dir` を指定した場合、生成後に `build-portal.sh` を再実行してカードへ反映する
 
-出力先は `<docs_root>/ER図.html` に固定する（`build-portal.sh` の `FUTURE_FILES` と同値）。前提となるテーブル一覧.html は `<docs_root>/テーブル一覧/テーブル一覧.html` を既定パスとする。
+出力先は `<docs_root>/ER図.html` に固定する（`build-portal.sh` の `FUTURE_FILES` と同値）。前提となるテーブル一覧.html は `<docs_root>/一覧/テーブル一覧/テーブル一覧.html`（正本レイアウト）を既定パスとする。不在の場合のみ後方互換として旧レイアウト `<docs_root>/テーブル一覧/テーブル一覧.html` も探索する。
 
 ## 設計原則
 
@@ -47,7 +47,7 @@ allowed-tools: [Bash, Read, Write, Grep, Glob, AskUserQuestion, TaskCreate, Task
 
 ### Phase 1: 前提確認 + 検出戦略宣言
 
-- **Step 1** — `<docs_root>/テーブル一覧/テーブル一覧.html` の実在を確認する。あわせて `<script type="application/json" id="unit-manifest">` の埋め込みも確認する。不在ならハード停止する。この場合 `generating-table-list-for-reverse-docs` の先行実行を案内して終了する。完了条件: manifest の実在確認済み、または不在を報告して停止している
+- **Step 1** — `<docs_root>/一覧/テーブル一覧/テーブル一覧.html`（正本レイアウト。不在時のみ後方互換で `<docs_root>/テーブル一覧/テーブル一覧.html`）の実在を確認する。あわせて `<script type="application/json" id="unit-manifest">` の埋め込みも確認する。不在ならハード停止する。この場合 `generating-table-list-for-reverse-docs` の先行実行を案内して終了する。完了条件: manifest の実在確認済み、または不在を報告して停止している
 - **Step 2** — `target_repo_path` の定義ファイル・依存関係から ORM/マイグレーション種別（SQLAlchemy／Prisma／生 SQL migration 等）を判別する。判別手法は `references/er-detection.md` の調査対象・検出手法を参照する。完了条件: 種別が特定済み、または特定不能の根拠（推定経路）が記録済み
 - **Step 3** — 検出戦略（走査対象ファイル・FK 検出パターン・除外パターン）を宣言し、AskUserQuestion で承認を取る。宣言内容は一時ファイルに保存する。完了条件: 検出戦略（ORM 種別・走査対象・除外パターン・`approvedByUser: true`）が保存済み
 

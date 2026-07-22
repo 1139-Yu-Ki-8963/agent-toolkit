@@ -11,7 +11,9 @@
 #         マイグレーション SQL のディレクトリ
 #   出力: units[] 各要素へ、抽出できたフィールドだけを追加した拡張マニフェスト JSON。
 #         スキーマ正本: shared/references/manifest-schema-extensions.md「tables(テーブル)」節
-#           - foreignKeys: string[] — FK 参照先テーブルの unitKey 配列
+#           - foreignKeys: string[] — FK 参照先テーブルの unitKey 配列。
+#             空配列 [] は「REFERENCES を走査した結果 FK ゼロ件」という正の観測を意味し、
+#             フィールド欠落は「走査自体ができなかった(sourceFile 不在等)」を意味する
 #           - columnCount: number  — カラム定義行数(制約行は除外)
 #           - mainColumns: string[] — カラム定義の先頭 5 列の物理名
 #         検出根拠が弱い値は出力しない(誤った値より欠落を優先する fail-safe。
@@ -31,7 +33,8 @@
 #      grep -oiE 'references[[:space:]]+[^[:space:](,;]+' で採取し、加えて sourceFile 内の
 #      同一行完結 `ALTER TABLE <対象テーブル> ... REFERENCES <table>` 行からも採取する。
 #      参照先物理名をマニフェスト内 identifier と大文字小文字無視で突合して unitKey へ解決し、
-#      解決できない参照先は捨てる。1 件も解決できなければフィールド自体を付けない
+#      解決できない参照先は捨てる。走査できたユニットには解決結果が 0 件でも foreignKeys: [] を
+#      明示出力する(空配列=FK なし観測済み、欠落=走査不能)
 #
 # sourceFile の解決: 記載パスが実在すればそれを使い、無ければ <migrations-dir>/ 相対で解決する。
 # それでも不在のユニット、および kind=unresolved のユニットは抽出せずそのまま出力する。
@@ -103,8 +106,8 @@ collect_fk_targets() {
 
 # --- --self-test モード ---
 # mktemp -d にフィクスチャ(users 5列 / posts 6列+FK の SQL と最小 table マニフェスト)を生成し、
-# foreignKeys の unitKey 解決・columnCount・mainColumns・既存フィールド不変・
-# validate-manifest.sh PASS を検証する。
+# foreignKeys の unitKey 解決・FK なしテーブルの foreignKeys: [] 明示出力・columnCount・
+# mainColumns・既存フィールド不変・validate-manifest.sh PASS を検証する。
 self_test() {
   local script_path="$0" script_dir
   script_dir="$(cd "$(dirname "$script_path")" && pwd)"
@@ -167,8 +170,8 @@ EOF
   if jq -e '.units[] | select(.unitKey=="users-master")
       | .columnCount == 5
         and .mainColumns == ["id","email","name","created_at","updated_at"]
-        and (has("foreignKeys") | not)' "$out" >/dev/null 2>&1; then
-    echo "  [PASS] users: columnCount=5・mainColumns 先頭5列・foreignKeys 欠落(FK なし)"
+        and .foreignKeys == []' "$out" >/dev/null 2>&1; then
+    echo "  [PASS] users: columnCount=5・mainColumns 先頭5列・foreignKeys=[](FK なし観測済み)"
   else
     echo "  [FAIL] users: columnCount/mainColumns/foreignKeys が期待値と不一致" >&2
     rc=1
@@ -273,7 +276,8 @@ while IFS= read -r row; do
     fi
   fi
 
-  # foreignKeys(identifier 突合で unitKey へ解決できたものだけ。0 件ならフィールドを付けない)
+  # foreignKeys(identifier 突合で unitKey へ解決できたものだけ。走査済みのため
+  # 0 件でも [] を明示出力する。空配列=FK なし観測済み、欠落=走査不能)
   fk_keys='[]'
   while IFS= read -r target; do
     [ -z "$target" ] && continue
@@ -281,9 +285,7 @@ while IFS= read -r row; do
     [ -z "$resolved" ] && continue
     fk_keys="$(jq -c --arg k "$resolved" 'if index($k) then . else . + [$k] end' <<<"$fk_keys")"
   done < <(collect_fk_targets "$block" "$file" "$identifier")
-  if [ "$fk_keys" != "[]" ]; then
-    add="$(jq -c --argjson f "$fk_keys" '. + {foreignKeys: $f}' <<<"$add")"
-  fi
+  add="$(jq -c --argjson f "$fk_keys" '. + {foreignKeys: $f}' <<<"$add")"
 
   if [ "$add" != "{}" ]; then
     jq -c -n --arg k "$unit_key" --argjson a "$add" '{key: $k, value: $a}' >> "$PATCHES"

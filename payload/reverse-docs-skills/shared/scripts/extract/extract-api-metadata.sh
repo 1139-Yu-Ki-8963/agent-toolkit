@@ -26,23 +26,31 @@
 #   既存フィールドと衝突した場合は既存値を保持する(上書きしない)。
 #   出力は validate-manifest.sh <output.json> --unit-kind api で検証可能。
 #
-# 検出ヒューリスティック一覧(すべて grep/sed ベース):
+# 検査範囲(関数ブロック):
+#   authRequired / targetTables / ioSummary の検査範囲は、当該エンドポイントの「関数ブロック」に
+#   限定する。関数ブロック = identifier の method+path に合致するルートデコレータ行
+#   (@router.get("/path") 等。path は閉じ引用符付きで突合)から、次のデコレータ行の直前
+#   またはファイル末尾まで。同一ルーターファイル内の別エンドポイントの認証依存・テーブル参照を
+#   誤帰属させないための範囲限定(F2 再照合で実測された混線の修正)。
+#   デコレータ行を特定できない場合(非デコレータ方式のルーティング等)は従来のファイル単位
+#   検査へフォールバックし、その旨を stderr に WARN 出力する(fail-safe)。
+#
+# 検出ヒューリスティック一覧(すべて grep/sed/awk ベース):
 #   1. method       : identifier の先頭語(空白区切り)が GET/POST/PUT/PATCH/DELETE に完全一致する
 #                     場合のみ採用。それ以外は付けない
-#   2. authRequired : identifier のパス部(先頭メソッド語を除去した残り)を sourceFile 内で
-#                     grep -nF し、最初のヒット行の前 3 行〜後 20 行を「エンドポイント近傍窓」とする。
-#                     窓内に認証パターン
+#   2. authRequired : 関数ブロック内(フォールバック時はパス部の最初のヒット行の前 3 行〜後 20 行)に
+#                     認証パターン
 #                       Depends(get_current_user / @login_required / requireAuth / verify_token / IsAuthenticated
-#                     があれば true。窓内に認証除外パターン(単語境界付き)
+#                     があれば true。認証除外パターン(単語境界付き)
 #                       AllowAny / public
-#                     があれば false。パス部がヒットしない・どちらのパターンも無い場合は付けない
+#                     があれば false。検査範囲が取れない・どちらのパターンも無い場合は付けない
 #   3. callers      : --screen-manifest の screens[](または units[])の relatedApis[] が、この API の
 #                     unitKey / identifier / パス部のいずれかに一致する要素の screenKey を収集。
 #                     0 件なら付けない
 #   4. targetTables : --table-manifest の各ユニット(kind=unresolved を除く)の identifier(物理名)を
-#                     sourceFile 全体で grep -qwF(単語境界・固定文字列)し、ヒットしたテーブルの
-#                     unitKey を収集。0 件なら付けない
-#   5. ioSummary    : エンドポイント近傍窓内から
+#                     関数ブロック内(フォールバック時は sourceFile 全体)で grep -qwF(単語境界・
+#                     固定文字列)し、ヒットしたテーブルの unitKey を収集。0 件なら付けない
+#   5. ioSummary    : 関数ブロック(フォールバック時はエンドポイント近傍窓)内から
 #                       出力: response_model=<Name>(FastAPI) または ): Promise<Name>(TypeScript)
 #                       入力: 型注釈 : <Name> のうち接尾辞 Create/Update/Request/Input/Payload/Body/Form/Schema
 #                             を持つもの(Pydantic リクエストモデル風)
@@ -90,24 +98,50 @@ def ping():
     return {"ok": True}
 EOF
 
-  # APIマニフェスト(2 ユニット)
+  # 同一ファイルに認証あり/なしエンドポイントが混在 + 別テーブル参照(関数ブロック帰属を検証):
+  #   GET /api/posts      : 認証あり(get_current_user)。posts + orders を参照
+  #   GET /api/posts/{id} : 認証除外(AllowAny)。posts のみ参照
+  # ファイル単位検査だと detail に authRequired=true と orders が誤帰属する(F2 実測の再現)
+  cat > "$tmp/src/api/posts.py" <<'EOF'
+from fastapi import APIRouter, Depends
+router = APIRouter()
+
+@router.get("/api/posts", response_model=PostList)
+def list_posts(current_user=Depends(get_current_user), db: Session = Depends(get_db)):
+    rows = db.execute("SELECT p.id FROM posts p JOIN orders o ON o.post_id = p.id")
+    return rows
+
+@router.get("/api/posts/{id}", response_model=PostDetail, dependencies=[AllowAny])
+def get_post(id: int, db: Session = Depends(get_db)):
+    row = db.execute("SELECT id, title FROM posts WHERE id = :id")
+    return row
+EOF
+
+  # APIマニフェスト(4 ユニット)
   local api_manifest="$tmp/api-manifest.json"
   jq -n \
     --arg sourceDir "$tmp/src" \
     --arg usersFile "$tmp/src/api/users.py" \
     --arg pingFile "$tmp/src/api/ping.py" \
+    --arg postsFile "$tmp/src/api/posts.py" \
     '{
       generatedAt: "2026-01-01T00:00:00Z",
       sourceDir: $sourceDir,
       unitKind: "api",
       strategy: {extractionMethod: "custom", approvedByUser: true, unitIdRegex: null, excludePatterns: []},
-      detectionSummary: {unitCount: 2, unresolvedCount: 0},
+      detectionSummary: {unitCount: 4, unresolvedCount: 0},
       units: [
         {unitKey: "users-list", kind: "endpoint", identifier: "GET /api/users",
          unitNameGuess: "ユーザー一覧取得", sourceFile: $usersFile,
          confidence: "high", fileCount: 1, detectionMethod: "manual"},
         {unitKey: "ping", kind: "endpoint", identifier: "POST /api/ping",
          unitNameGuess: "疎通確認", sourceFile: $pingFile,
+         confidence: "high", fileCount: 1, detectionMethod: "manual"},
+        {unitKey: "posts-list", kind: "endpoint", identifier: "GET /api/posts",
+         unitNameGuess: "投稿一覧取得", sourceFile: $postsFile,
+         confidence: "high", fileCount: 1, detectionMethod: "manual"},
+        {unitKey: "posts-detail", kind: "endpoint", identifier: "GET /api/posts/{id}",
+         unitNameGuess: "投稿詳細取得", sourceFile: $postsFile,
          confidence: "high", fileCount: 1, detectionMethod: "manual"}
       ]
     }' > "$api_manifest"
@@ -122,13 +156,14 @@ EOF
     ]
   }' > "$screen_manifest"
 
-  # テーブルマニフェスト(users テーブル)
+  # テーブルマニフェスト(users / orders / posts テーブル)
   local table_manifest="$tmp/table-manifest.json"
   jq -n '{
     unitKind: "table",
     units: [
       {unitKey: "users", kind: "table", identifier: "users"},
-      {unitKey: "orders", kind: "table", identifier: "orders"}
+      {unitKey: "orders", kind: "table", identifier: "orders"},
+      {unitKey: "posts", kind: "table", identifier: "posts"}
     ]
   }' > "$table_manifest"
 
@@ -158,6 +193,16 @@ EOF
   check "method: POST /api/ping から POST を抽出" '.units[1].method == "POST"'
   check "fail-safe: 根拠の無い authRequired/callers/targetTables/ioSummary は欠落" \
     '.units[1] | (has("authRequired") or has("callers") or has("targetTables") or has("ioSummary")) | not'
+  check "混在ファイル posts-list: 自ブロックの get_current_user で authRequired=true" \
+    '.units[2].authRequired == true'
+  check "混在ファイル posts-list: 自ブロック参照の posts+orders のみ帰属" \
+    '.units[2].targetTables == ["orders", "posts"]'
+  check "混在ファイル posts-detail: AllowAny で authRequired=false(隣の認証を誤帰属しない)" \
+    '.units[3].authRequired == false'
+  check "混在ファイル posts-detail: targetTables は posts のみ(orders が混入しない)" \
+    '.units[3].targetTables == ["posts"]'
+  check "混在ファイル posts-detail: 自ブロックの response_model=PostDetail から ioSummary 生成" \
+    '.units[3].ioSummary == "なし → PostDetail"'
 
   # 既存フィールド無変更: 追加フィールドを除去すると入力と完全一致する
   local stripped="$tmp/stripped.json" expected="$tmp/expected.json"
@@ -239,7 +284,7 @@ resolve_source_file() {
 }
 
 # identifier のパス部を sourceFile 内で grep -nF し、最初のヒット行の前3行〜後20行を出力する。
-# ヒットしない場合は何も出力しない
+# ヒットしない場合は何も出力しない(endpoint_block が取れない場合のフォールバック専用)
 endpoint_window() {
   local src="$1" path="$2"
   local line start
@@ -248,6 +293,35 @@ endpoint_window() {
   [ -z "$line" ] && return 0
   start=$(( line > 3 ? line - 3 : 1 ))
   sed -n "${start},$((line + 20))p" "$src"
+}
+
+# 当該エンドポイントの関数ブロックを出力する。
+# 開始行 = method(小文字)+path に合致するルートデコレータ行(path は閉じ引用符付きの固定文字列で
+# 突合し、"/api/posts" が "/api/posts/{id}" のデコレータへ前方一致ヒットする誤帰属を防ぐ)。
+# 終了行 = 次のデコレータ行の直前、またはファイル末尾。
+# 特定できない場合は何も出力せず exit 1(呼び出し側でファイル単位へフォールバック)
+endpoint_block() {
+  local src="$1" path="$2" method="$3"
+  [ -z "$path" ] && return 1
+  awk -v path="$path" -v method="$method" '
+    function is_decorator(l) { return l ~ /^[[:space:]]*@[A-Za-z_][A-Za-z0-9_.]*[[:space:]]*\(/ }
+    { lines[NR] = $0 }
+    END {
+      lm = tolower(method)
+      start = 0
+      for (i = 1; i <= NR; i++) {
+        if (!is_decorator(lines[i])) continue
+        if (index(lines[i], path "\"") == 0 && index(lines[i], path "\x27") == 0) continue
+        if (lm != "" && index(tolower(lines[i]), lm "(") == 0) continue
+        start = i; break
+      }
+      if (start == 0) exit 1
+      for (i = start; i <= NR; i++) {
+        if (i > start && is_decorator(lines[i])) exit 0
+        print lines[i]
+      }
+    }
+  ' "$src"
 }
 
 patches_jsonl="$(mktemp "${TMPDIR:-/tmp}/extract-api-patches.XXXXXX")"
@@ -272,18 +346,26 @@ while IFS= read -r row; do
       ;;
   esac
 
-  # --- エンドポイント近傍窓(authRequired / ioSummary 共用) ---
+  # --- 検査範囲の決定: 関数ブロック(正)→ 近傍窓(フォールバック) ---
+  # block が取れた場合は authRequired / targetTables / ioSummary をブロック内に限定する
+  # (同一ファイル内の別エンドポイントの認証・テーブル参照の誤帰属防止)
+  block=""
   window=""
   if [ -n "$src_file" ]; then
-    window="$(endpoint_window "$src_file" "$api_path" || true)"
+    block="$(endpoint_block "$src_file" "$api_path" "$method" || true)"
+    if [ -z "$block" ]; then
+      echo "WARN: 関数ブロックを特定できないため従来のファイル単位検査にフォールバック: ${identifier} (${src_file})" >&2
+      window="$(endpoint_window "$src_file" "$api_path" || true)"
+    fi
   fi
+  scan="${block:-$window}"
 
-  # --- 2. authRequired: 近傍窓内の認証/認証除外パターン ---
+  # --- 2. authRequired: 検査範囲内の認証/認証除外パターン ---
   auth=""
-  if [ -n "$window" ]; then
-    if printf '%s\n' "$window" | grep -qE -- "$AUTH_POSITIVE_ERE"; then
+  if [ -n "$scan" ]; then
+    if printf '%s\n' "$scan" | grep -qE -- "$AUTH_POSITIVE_ERE"; then
       auth="true"
-    elif printf '%s\n' "$window" | grep -qE -- "$AUTH_NEGATIVE_ERE"; then
+    elif printf '%s\n' "$scan" | grep -qE -- "$AUTH_NEGATIVE_ERE"; then
       auth="false"
     fi
   fi
@@ -298,7 +380,7 @@ while IFS= read -r row; do
          | .screenKey // empty ]' "$SCREEN_MANIFEST")"
   fi
 
-  # --- 4. targetTables: テーブル物理名の sourceFile 全体 grep ---
+  # --- 4. targetTables: テーブル物理名の grep(関数ブロック内。フォールバック時はファイル全体) ---
   tables_json="[]"
   if [ -n "$TABLE_MANIFEST" ] && [ -n "$src_file" ]; then
     while IFS= read -r trow; do
@@ -308,23 +390,26 @@ while IFS= read -r row; do
       if [ -z "$t_key" ] || [ -z "$t_ident" ]; then
         continue
       fi
-      if grep -qwF -- "$t_ident" "$src_file" 2>/dev/null; then
-        tables_json="$(jq -c --arg k "$t_key" '. + [$k]' <<<"$tables_json")"
+      if [ -n "$block" ]; then
+        printf '%s\n' "$block" | grep -qwF -- "$t_ident" || continue
+      else
+        grep -qwF -- "$t_ident" "$src_file" 2>/dev/null || continue
       fi
+      tables_json="$(jq -c --arg k "$t_key" '. + [$k]' <<<"$tables_json")"
     done < <(jq -c '(.units // [])[] | select(.kind != "unresolved")' "$TABLE_MANIFEST")
   fi
 
-  # --- 5. ioSummary: 近傍窓内のレスポンス/リクエストモデル名 ---
+  # --- 5. ioSummary: 検査範囲内のレスポンス/リクエストモデル名 ---
   io_summary=""
-  if [ -n "$window" ]; then
-    resp="$(printf '%s\n' "$window" \
+  if [ -n "$scan" ]; then
+    resp="$(printf '%s\n' "$scan" \
       | sed -nE 's/.*response_model *= *([A-Za-z_][A-Za-z0-9_]*).*/\1/p' | head -1)"
     if [ -z "$resp" ]; then
-      resp="$(printf '%s\n' "$window" \
+      resp="$(printf '%s\n' "$scan" \
         | sed -nE 's/.*\) *: *Promise<([A-Za-z_][A-Za-z0-9_]*)>.*/\1/p' | head -1)"
     fi
     if [ -n "$resp" ]; then
-      req="$(printf '%s\n' "$window" \
+      req="$(printf '%s\n' "$scan" \
         | sed -nE 's/.*: *([A-Z][A-Za-z0-9_]*(Create|Update|Request|Input|Payload|Body|Form|Schema))([^A-Za-z0-9_].*)?$/\1/p' | head -1)"
       io_summary="${req:-なし} → ${resp}"
     fi

@@ -58,6 +58,8 @@ set -euo pipefail
 # 5 page-type それぞれの最小フィクスチャで生成を実行し、出力 HTML 内の埋め込み JSON が
 # 原本フィクスチャと完全一致することを diff で検証する。build-unit-list.sh の self-test と
 # 同じ誤爆対策観点として、マーカー文字列衝突・バックスラッシュを含む値もフィクスチャに含める。
+# さらに build-matrix-data.sh の実出力を入力とする連結ケースで、独立フィクスチャでは
+# 検出できない両スクリプト間のスキーマドリフトを検証する。
 self_test() {
   local script_path="$0"
   local tmp rc=0
@@ -158,6 +160,70 @@ self_test() {
                summary: "英語typeコミットをblockする"}]
     }' > "$tmp/fixture-ai-assets.json"
   run_case "ai-assets(バックスラッシュ入り)" "ai-assets" "$tmp/fixture-ai-assets.json"
+
+  # --- 連結ケース: build-matrix-data.sh の実出力を入力として 3 ページ生成 ---
+  # 両スクリプトが独立フィクスチャで単体 PASS してもスキーマドリフトで連結が壊れる
+  # 盲点を塞ぐ(2026-07 実測: crud / traceability が必須キー不一致で生成失敗)。
+  # build-matrix-data.sh の通常モードはマニフェストの JSON 妥当性のみ検査するため、
+  # ソースファイル実体なしの最小マニフェストで連結できる。
+  local data_script chain_dir
+  data_script="$(cd "$(dirname "$script_path")/../extract" 2>/dev/null && pwd)/build-matrix-data.sh"
+  chain_dir="$tmp/chain"
+  if [ ! -f "$data_script" ]; then
+    echo "  [FAIL] 連結ケース: build-matrix-data.sh が見つからない: $data_script" >&2
+    rc=1
+  else
+    mkdir -p "$chain_dir"
+    jq -n '{
+      generatedAt: "2026-01-01T00:00:00Z", sourceDir: "/nonexistent",
+      strategy: {extractionMethod: "custom", approvedByUser: true, screenIdRegex: null, excludePatterns: []},
+      detectionSummary: {screenCount: 2, clusterCount: 0, sharedScreenCount: 0, embeddedCandidateCount: 0, unresolvedCount: 0},
+      screens: [
+        {screenKey: "user-admin", kind: "route", route: "/admin/users", entryFile: "a.tsx",
+         confidence: "high", permissions: ["admin"], relatedApis: ["users-list"], sourceHash: "abcdef123456"},
+        {screenKey: "home", kind: "route", route: "/", entryFile: "b.tsx", confidence: "high"}
+      ]
+    }' > "$chain_dir/screen-manifest.json"
+    jq -n '{
+      generatedAt: "2026-01-01T00:00:00Z", sourceDir: "/nonexistent", unitKind: "api",
+      strategy: {extractionMethod: "custom", approvedByUser: true, unitIdRegex: null, excludePatterns: []},
+      detectionSummary: {unitCount: 1, unresolvedCount: 0},
+      units: [
+        {unitKey: "users-list", kind: "endpoint", identifier: "GET /api/users", sourceFile: "api.py",
+         confidence: "high", method: "GET", targetTables: ["users"]}
+      ]
+    }' > "$chain_dir/api-manifest.json"
+    jq -n '{
+      generatedAt: "2026-01-01T00:00:00Z", sourceDir: "/nonexistent", unitKind: "table",
+      strategy: {extractionMethod: "custom", approvedByUser: true, unitIdRegex: null, excludePatterns: []},
+      detectionSummary: {unitCount: 2, unresolvedCount: 0},
+      units: [
+        {unitKey: "users", kind: "table", identifier: "users", sourceFile: "001.sql", confidence: "high"},
+        {unitKey: "audit-logs", kind: "table", identifier: "audit_logs", sourceFile: "002.sql", confidence: "high"}
+      ]
+    }' > "$chain_dir/table-manifest.json"
+    jq -n '{
+      generatedAt: "2026-01-01T00:00:00Z", sourceDir: "/nonexistent", unitKind: "feature",
+      strategy: {extractionMethod: "custom", approvedByUser: true, unitIdRegex: null, excludePatterns: []},
+      detectionSummary: {unitCount: 1, unresolvedCount: 0},
+      units: [
+        {unitKey: "user-management", kind: "feature", identifier: "user-management", sourceFile: "f.py",
+         confidence: "high", relatedApis: ["users-list"]}
+      ]
+    }' > "$chain_dir/feature-manifest.json"
+    if ! bash "$data_script" "$chain_dir/data" \
+        --screen-manifest "$chain_dir/screen-manifest.json" \
+        --api-manifest "$chain_dir/api-manifest.json" \
+        --table-manifest "$chain_dir/table-manifest.json" \
+        --feature-manifest "$chain_dir/feature-manifest.json" >/dev/null 2>&1; then
+      echo "  [FAIL] 連結ケース: build-matrix-data.sh の実行自体が失敗した" >&2
+      rc=1
+    else
+      run_case "連結(permission-screen): data実出力から生成" "permission-screen" "$chain_dir/data/permission-matrix.json"
+      run_case "連結(crud): data実出力から生成" "crud" "$chain_dir/data/crud-matrix.json"
+      run_case "連結(traceability): data実出力から生成" "traceability" "$chain_dir/data/traceability.json"
+    fi
+  fi
 
   # --- 検証の負ケース: 必須キー欠落は非0 exitすること ---
   jq -n '{generatedAt: "2026-01-01T00:00:00Z", dataSource: "x", tables: []}' \

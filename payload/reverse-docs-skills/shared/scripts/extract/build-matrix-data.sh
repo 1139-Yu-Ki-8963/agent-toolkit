@@ -18,28 +18,46 @@
 #
 # 出力契約: <output-dir>/permission-matrix.json・crud-matrix.json・traceability.json の
 #   3 ファイル(スキーマは manifest-schema-extensions.md「交差ビュー用の新規データファイル
-#   定義」に完全準拠)。
+#   定義」に完全準拠。同スキーマは shared/templates/matrix/ の各テンプレート内 JS が
+#   参照するトップレベルキー・フィールド名と一致させている。二重管理・ドリフト禁止)。
 #
-# 導出規則(fail-safe: 根拠フィールドが欠落した要素は出力に含めず、理由を stderr へ出す):
+# 導出規則(fail-safe: 根拠フィールドが欠落した要素は誤った権限・アクセスを出力せず、
+#   理由を stderr へ出す):
 #   1. permission-matrix.json
 #      - roles: --roles 指定値。未指定なら全 screens の permissions に現れるロール集合
 #        + 暗黙ロール member/guest の和集合(重複除去・アルファベット順で決定的)
-#      - screens[].access: permissions フィールドを持つ画面のみ対象。permissions が
-#        空配列なら全ロール true(全員可)、非空なら該当ロールを含む時のみ true。
-#        permissions 未抽出の画面は誤った全許可を出さないため行ごと除外する
+#      - screens[]: 全画面を出力する。screenId/screenName は screenKey、route は
+#        route(無ければ空文字)。permissions フィールドを持つ画面は
+#        {ロール: 真偽値} オブジェクト(空配列なら全ロール true、非空なら該当ロールを
+#        含む時のみ true)。permissions 未抽出の画面は誤った全許可を出さないため
+#        permissions: null(権限未設定)として出力する
 #      - features[].crud: feature.relatedApis の API 群の method から C=POST / R=GET /
 #        U=PUT・PATCH / D=DELETE を合成(文字は常に C→R→U→D 順)。ロール別には、その
 #        API を relatedApis に持つ画面のいずれかにそのロールがアクセス可能な場合のみ
 #        権限ありとする。feature-manifest 不在、または relatedApis を持つ feature が
 #        0 件なら features は空配列とし、理由を stderr へ出す
 #   2. crud-matrix.json: api.targetTables × api.method から C/R/U/D を合成。
-#      feature-manifest があれば feature 単位(relatedApis 経由)に集約、無ければ API 単位
-#      (rows[].featureKey に api の unitKey を使い、その旨をトップレベル note フィールド
-#      に記録)。method・targetTables のいずれかが欠落した API は行の根拠に含めない
-#   3. traceability.json: screens[].relatedApis → 各 API の targetTables を連結した
-#      chains。relatedApis を持つ画面のみ対象。API が api-manifest に見つからない、
-#      または targetTables 欠落の場合は tables を空配列とする。sourceHash は screen の
-#      sourceHash をそのまま転記(無ければキー自体を省略)
+#      - features[]: feature-manifest があれば feature 単位(relatedApis 経由)に集約
+#        (featureId=unitKey / featureName=identifier)、無ければ API 単位(featureId に
+#        api の unitKey を使い、その旨をトップレベル note フィールドに記録)。
+#        method・targetTables のいずれかが欠落した API は行の根拠に含めない
+#      - tables[]: table-manifest があれば全 units を収載順に
+#        {physicalName=identifier, logicalName(あれば転記)}、無ければ features[].cells
+#        に現れるテーブル名の集合(アルファベット順)
+#      - cells のキーは table-manifest で解決した physicalName(未収載・不在時は
+#        targetTables の unitKey をそのまま使う)
+#   3. traceability.json: 画面→API→テーブルの連鎖を screens/apis/tables の 3 配列で
+#      出力する(画面→テーブルの対応はテンプレート JS が screens[].apis と
+#      apis[].tables から導出する)。
+#      - screens[]: relatedApis を持つ画面のみ(screenId/screenName=screenKey、
+#        apis=relatedApis)。sourceHash は screen の sourceHash をそのまま転記
+#        (無ければキー自体を省略)
+#      - apis[]: 全 API units(apiId/apiName=unitKey、endpoint=identifier、
+#        tables=targetTables。無ければ空配列)
+#      - tables[]: table-manifest があれば全 units を収載順に
+#        {tableId=unitKey, tableName=identifier, logicalName(あれば転記)}、無ければ
+#        apis[].tables に現れる unitKey の集合(アルファベット順)
+#   - 3 ファイル共通: dataSource に入力マニフェストのパスを記録する
 #   - table-manifest 指定時: apis の targetTables に table-manifest 未収載の unitKey が
 #     あれば stderr へ警告する(出力内容は変えない)
 
@@ -47,10 +65,10 @@ set -euo pipefail
 
 # ---------------------------------------------------------------------------
 # --self-test モード
-# 最小の拡張済みマニフェスト群(画面2・API2・テーブル2・機能1)をフィクスチャ生成し、
+# 最小の拡張済みマニフェスト群(画面3・API2・テーブル2・機能1)をフィクスチャ生成し、
 # (1) フィクスチャ自体が validate-manifest.sh で PASS すること
-# (2) 3 ファイルの導出結果が期待値(access の真偽値・CRUD 文字列・chains の連結整合・
-#     sourceHash 転記)に一致すること
+# (2) 3 ファイルの導出結果が期待値(permissions の真偽値/null・CRUD 文字列と物理名解決・
+#     screens/apis/tables の連結整合・sourceHash 転記)に一致すること
 # (3) feature-manifest 無しのフォールバック(API 単位 + note)と --roles 明示指定
 # を jq で検証する。
 # ---------------------------------------------------------------------------
@@ -89,12 +107,14 @@ self_test() {
     generatedAt: "2026-01-01T00:00:00Z",
     sourceDir: $sourceDir,
     strategy: {extractionMethod: "custom", approvedByUser: true, screenIdRegex: null, excludePatterns: []},
-    detectionSummary: {screenCount: 2, clusterCount: 0, sharedScreenCount: 0, embeddedCandidateCount: 0, unresolvedCount: 0},
+    detectionSummary: {screenCount: 3, clusterCount: 0, sharedScreenCount: 0, embeddedCandidateCount: 0, unresolvedCount: 0},
     screens: [
       {screenKey: "user-admin", kind: "route", route: "/admin/users", entryFile: "screens/UserAdmin.tsx",
        confidence: "high", permissions: ["admin"], relatedApis: ["users-list", "user-delete"], sourceHash: "abcdef123456"},
       {screenKey: "home", kind: "route", route: "/", entryFile: "screens/Home.tsx",
-       confidence: "high", permissions: [], relatedApis: ["users-list"]}
+       confidence: "high", permissions: [], relatedApis: ["users-list"]},
+      {screenKey: "legacy-report", kind: "route", route: "/legacy/report", entryFile: "screens/Home.tsx",
+       confidence: "low"}
     ]
   }' > "$sm"
 
@@ -123,7 +143,7 @@ self_test() {
     strategy: {extractionMethod: "custom", approvedByUser: true, unitIdRegex: null, excludePatterns: []},
     detectionSummary: {unitCount: 2, unresolvedCount: 0},
     units: [
-      {unitKey: "users", kind: "table", identifier: "users", sourceFile: $sf1, confidence: "high"},
+      {unitKey: "users", kind: "table", identifier: "users", sourceFile: $sf1, confidence: "high", logicalName: "ユーザー"},
       {unitKey: "audit-logs", kind: "table", identifier: "audit_logs", sourceFile: $sf2, confidence: "high"}
     ]
   }' > "$tm"
@@ -162,45 +182,63 @@ self_test() {
   assert "ケースa: 3ファイルがすべて生成される" \
     bash -c "[ -f '$pm' ] && [ -f '$cm' ] && [ -f '$tr_json' ]"
 
-  # permission-matrix: roles・access真偽値・feature CRUD
+  # permission-matrix: roles・permissions真偽値/null・feature CRUD
   assert "permission-matrix: roles が検出ロール+暗黙member/guest" \
     jq -e '.roles == ["admin","guest","member"]' "$pm"
-  assert "permission-matrix: access の値はすべて真偽値" \
-    jq -e '[.screens[].access[]] | length > 0 and all(type == "boolean")' "$pm"
-  assert "permission-matrix: admin限定画面は admin のみ true" \
-    jq -e '(.screens[] | select(.screenKey == "user-admin") | .access) == {"admin": true, "guest": false, "member": false}' "$pm"
+  assert "permission-matrix: 全画面(permissions未抽出含む)が screens に出力される" \
+    jq -e '.screens | length == 3' "$pm"
+  assert "permission-matrix: admin限定画面は admin のみ true(screenId/screenName/route 付き)" \
+    jq -e '.screens[] | select(.screenId == "user-admin")
+           | .screenName == "user-admin" and .route == "/admin/users"
+             and .permissions == {"admin": true, "guest": false, "member": false}' "$pm"
   assert "permission-matrix: permissions空配列の画面は全ロール true" \
-    jq -e '.screens[] | select(.screenKey == "home") | .access | to_entries | all(.value == true)' "$pm"
+    jq -e '.screens[] | select(.screenId == "home") | .permissions | to_entries | all(.value == true)' "$pm"
+  assert "permission-matrix: permissions未抽出の画面は permissions:null(権限未設定)" \
+    jq -e '(.screens[] | select(.screenId == "legacy-report") | .permissions) == null' "$pm"
   assert "permission-matrix: feature CRUD(admin=RD/member=R/guest=R)" \
     jq -e '.features == [{"unitKey": "user-management", "crud": {"admin": "RD", "guest": "R", "member": "R"}}]' "$pm"
 
-  # crud-matrix: feature単位集約・CRUD文字の合成
-  assert "crud-matrix: feature単位で users=RD / audit-logs=D" \
-    jq -e '.rows == [{"featureKey": "user-management", "tables": {"users": "RD", "audit-logs": "D"}}]' "$cm"
+  # crud-matrix: tables列(物理名解決)・feature単位集約・CRUD文字の合成
+  assert "crud-matrix: tables は table-manifest 全収載(physicalName=identifier/logicalName転記)" \
+    jq -e '.tables == [{"physicalName": "users", "logicalName": "ユーザー"}, {"physicalName": "audit_logs"}]' "$cm"
+  assert "crud-matrix: feature単位で users=RD / audit_logs=D(cells キーは物理名)" \
+    jq -e '.features == [{"featureId": "user-management", "featureName": "user-management",
+                          "cells": {"users": "RD", "audit_logs": "D"}}]' "$cm"
   assert "crud-matrix: feature-manifest 指定時は note を持たない" \
     jq -e 'has("note") | not' "$cm"
 
-  # traceability: 連結整合・sourceHash転記
-  assert "traceability: relatedApis を持つ画面2件が chains になる" \
-    jq -e '.chains | length == 2' "$tr_json"
-  assert "traceability: user-admin の chain(API 2本・tables 連結・sourceHash 転記)" \
-    jq -e '.chains[] | select(.screenKey == "user-admin")
-           | .sourceHash == "abcdef123456"
-             and (.apis | length == 2)
-             and ((.apis[] | select(.unitKey == "user-delete") | .tables) == ["users", "audit-logs"])' "$tr_json"
+  # traceability: screens/apis/tables 3配列・連結整合・sourceHash転記
+  assert "traceability: relatedApis を持つ画面2件が screens になる" \
+    jq -e '.screens | length == 2' "$tr_json"
+  assert "traceability: user-admin の連鎖(apis 2本・route・sourceHash 転記)" \
+    jq -e '.screens[] | select(.screenId == "user-admin")
+           | .screenName == "user-admin" and .route == "/admin/users"
+             and .sourceHash == "abcdef123456"
+             and .apis == ["users-list", "user-delete"]' "$tr_json"
   assert "traceability: sourceHash 無しの画面はキー自体を省略" \
-    jq -e '.chains[] | select(.screenKey == "home")
-           | (has("sourceHash") | not) and (.apis == [{"unitKey": "users-list", "tables": ["users"]}])' "$tr_json"
+    jq -e '.screens[] | select(.screenId == "home")
+           | (has("sourceHash") | not) and (.apis == ["users-list"])' "$tr_json"
+  assert "traceability: apis は endpoint=identifier / tables=targetTables" \
+    jq -e '(.apis | length == 2)
+           and ((.apis[] | select(.apiId == "user-delete"))
+                == {"apiId": "user-delete", "apiName": "user-delete",
+                    "endpoint": "DELETE /api/users/:id", "tables": ["users", "audit-logs"]})' "$tr_json"
+  assert "traceability: tables は table-manifest 全収載(tableId=unitKey/tableName=identifier)" \
+    jq -e '.tables == [{"tableId": "users", "tableName": "users", "logicalName": "ユーザー"},
+                       {"tableId": "audit-logs", "tableName": "audit_logs"}]' "$tr_json"
 
   # --- ケースb: feature-manifest 無し(API単位フォールバック + note) ---
   local out2="$tmp/out2"
   assert "ケースb: feature-manifest 無しでも生成コマンドが成功" \
     bash "$script_path" "$out2" --screen-manifest "$sm" --api-manifest "$am"
-  assert "ケースb: crud-matrix は API 単位(featureKey=unitKey)+ note 記録" \
+  assert "ケースb: crud-matrix は API 単位(featureId=unitKey)+ note 記録" \
     jq -e 'has("note")
-           and (.rows | length == 2)
-           and ((.rows[] | select(.featureKey == "users-list") | .tables) == {"users": "R"})
-           and ((.rows[] | select(.featureKey == "user-delete") | .tables) == {"users": "D", "audit-logs": "D"})' \
+           and (.features | length == 2)
+           and ((.features[] | select(.featureId == "users-list") | .cells) == {"users": "R"})
+           and ((.features[] | select(.featureId == "user-delete") | .cells) == {"users": "D", "audit-logs": "D"})' \
+    "$out2/crud-matrix.json"
+  assert "ケースb: table-manifest 無しの tables は cells 出現テーブルの集合" \
+    jq -e '.tables == [{"physicalName": "audit-logs"}, {"physicalName": "users"}]' \
     "$out2/crud-matrix.json"
   assert "ケースb: permission-matrix の features は空配列" \
     jq -e '.features == []' "$out2/permission-matrix.json"
@@ -211,7 +249,7 @@ self_test() {
     bash "$script_path" "$out3" --screen-manifest "$sm" --api-manifest "$am" --roles "admin, editor"
   assert "ケースc: roles は指定値のみ(トリム済み)" \
     jq -e '.roles == ["admin", "editor"]
-           and ((.screens[] | select(.screenKey == "user-admin") | .access) == {"admin": true, "editor": false})' \
+           and ((.screens[] | select(.screenId == "user-admin") | .permissions) == {"admin": true, "editor": false})' \
     "$out3/permission-matrix.json"
 
   if [ "$rc" -eq 0 ]; then
@@ -296,6 +334,19 @@ else
   HAS_FEATURES=false
 fi
 
+if [ -n "$TABLE_MANIFEST" ]; then
+  TABLE_UNITS="$(jq -c '.units // []' "$TABLE_MANIFEST")"
+  HAS_TABLES=true
+else
+  TABLE_UNITS='[]'
+  HAS_TABLES=false
+fi
+
+# dataSource: 各ファイルの導出に使った入力マニフェストのパス(メタ表示用)
+DS_PERMISSION="$SCREEN_MANIFEST + $API_MANIFEST${FEATURE_MANIFEST:+ + $FEATURE_MANIFEST}"
+DS_CRUD="$API_MANIFEST${FEATURE_MANIFEST:+ + $FEATURE_MANIFEST}${TABLE_MANIFEST:+ + $TABLE_MANIFEST}"
+DS_TRACE="$SCREEN_MANIFEST + $API_MANIFEST${TABLE_MANIFEST:+ + $TABLE_MANIFEST}"
+
 # roles: --roles 指定値(カンマ区切り・前後空白トリム)。未指定なら検出ロール + member/guest
 if [ -n "$ROLES_CSV" ]; then
   ROLES_JSON="$(printf '%s' "$ROLES_CSV" | jq -R -c 'split(",") | map(gsub("^\\s+|\\s+$"; "")) | map(select(length > 0))')"
@@ -307,7 +358,7 @@ fi
 total_screens="$(jq 'length' <<<"$ALL_SCREENS")"
 perm_screens_count="$(jq 'length' <<<"$PERM_SCREENS")"
 if [ "$perm_screens_count" -lt "$total_screens" ]; then
-  echo "NOTE: permissions 未抽出の画面 $((total_screens - perm_screens_count)) 件を permission-matrix の screens から除外しました(fail-safe)" >&2
+  echo "NOTE: permissions 未抽出の画面 $((total_screens - perm_screens_count)) 件は permission-matrix で permissions: null(権限未設定)として出力しました(fail-safe: 誤った全許可を出さない)" >&2
 fi
 
 feat_with_apis="$(jq '[.[] | select(((.relatedApis // []) | length) > 0)] | length' <<<"$FEATURE_UNITS")"
@@ -352,19 +403,26 @@ JQ_DEFS='
 # ---------------------------------------------------------------------------
 jq -n \
   --arg generatedAt "$GENERATED_AT" \
+  --arg dataSource "$DS_PERMISSION" \
   --argjson roles "$ROLES_JSON" \
+  --argjson allScreens "$ALL_SCREENS" \
   --argjson screens "$PERM_SCREENS" \
   --argjson apis "$API_UNITS" \
   --argjson features "$FEATURE_UNITS" \
   "$JQ_DEFS"'
   {
     generatedAt: $generatedAt,
+    dataSource: $dataSource,
     roles: $roles,
     screens: [
-      $screens[]
-      | .permissions as $p
-      | { screenKey: .screenKey,
-          access: ([ $roles[] | {key: ., value: role_access($p; .)} ] | from_entries) }
+      $allScreens[]
+      | { screenId: .screenKey,
+          screenName: .screenKey,
+          route: (.route // ""),
+          permissions: (if has("permissions")
+                        then (.permissions as $p
+                              | [ $roles[] | {key: ., value: role_access($p; .)} ] | from_entries)
+                        else null end) }
     ],
     features: [
       $features[]
@@ -392,12 +450,15 @@ echo "OK: wrote $OUTPUT_DIR/permission-matrix.json" >&2
 # ---------------------------------------------------------------------------
 jq -n \
   --arg generatedAt "$GENERATED_AT" \
+  --arg dataSource "$DS_CRUD" \
   --argjson apis "$API_UNITS" \
   --argjson features "$FEATURE_UNITS" \
+  --argjson tableUnits "$TABLE_UNITS" \
   --argjson hasFeatures "$HAS_FEATURES" \
+  --argjson hasTables "$HAS_TABLES" \
   "$JQ_DEFS"'
-  { generatedAt: $generatedAt,
-    rows: (
+  ([ $tableUnits[] | {key: .unitKey, value: (.identifier // .unitKey)} ] | from_entries) as $phys
+  | (
       if $hasFeatures then
         [ $features[]
           | select(((.relatedApis // []) | length) > 0)
@@ -407,23 +468,34 @@ jq -n \
                | (.method | method_letter) as $l
                | select($l != "")
                | .targetTables[] as $t
-               | {table: $t, letter: $l} ]) as $cells
+               | {table: ($phys[$t] // $t), letter: $l} ]) as $cells
           | select(($cells | length) > 0)
-          | { featureKey: $f.unitKey,
-              tables: ($cells | group_by(.table)
-                       | map({key: .[0].table, value: ([.[].letter] | unique | crud_str)})
-                       | from_entries) } ]
+          | { featureId: $f.unitKey,
+              featureName: ($f.identifier // $f.unitKey),
+              cells: ($cells | group_by(.table)
+                      | map({key: .[0].table, value: ([.[].letter] | unique | crud_str)})
+                      | from_entries) } ]
       else
         [ $apis[]
           | select(has("method") and has("targetTables"))
           | (.method | method_letter) as $l
           | select($l != "")
           | select((.targetTables | length) > 0)
-          | { featureKey: .unitKey,
-              tables: ([.targetTables[] | {key: ., value: $l}] | from_entries) } ]
+          | { featureId: .unitKey,
+              featureName: (.identifier // .unitKey),
+              cells: ([.targetTables[] | {key: ($phys[.] // .), value: $l}] | from_entries) } ]
       end
-    ) }
-  + (if $hasFeatures then {} else {note: "feature-manifest未指定のためAPI単位で集約(featureKeyはAPIのunitKey)"} end)
+    ) as $featureRows
+  | { generatedAt: $generatedAt,
+      dataSource: $dataSource,
+      tables: (if $hasTables
+               then [ $tableUnits[]
+                      | {physicalName: (.identifier // .unitKey)}
+                        + (if has("logicalName") then {logicalName: .logicalName} else {} end) ]
+               else ([ $featureRows[].cells | keys[] ] | unique | map({physicalName: .}))
+               end),
+      features: $featureRows }
+  + (if $hasFeatures then {} else {note: "feature-manifest未指定のためAPI単位で集約(featureIdはAPIのunitKey)"} end)
   ' > "$OUTPUT_DIR/crud-matrix.json"
 echo "OK: wrote $OUTPUT_DIR/crud-matrix.json" >&2
 
@@ -432,18 +504,35 @@ echo "OK: wrote $OUTPUT_DIR/crud-matrix.json" >&2
 # ---------------------------------------------------------------------------
 jq -n \
   --arg generatedAt "$GENERATED_AT" \
+  --arg dataSource "$DS_TRACE" \
   --argjson screens "$ALL_SCREENS" \
   --argjson apis "$API_UNITS" \
+  --argjson tableUnits "$TABLE_UNITS" \
+  --argjson hasTables "$HAS_TABLES" \
   '
   { generatedAt: $generatedAt,
-    chains: [
+    dataSource: $dataSource,
+    screens: [
       $screens[]
       | select(((.relatedApis // []) | length) > 0)
-      | { screenKey: .screenKey,
-          apis: [ .relatedApis[] as $k
-                  | ([ $apis[] | select(.unitKey == $k) ] | first) as $a
-                  | { unitKey: $k, tables: ($a.targetTables // []) } ] }
+      | { screenId: .screenKey,
+          screenName: .screenKey,
+          route: (.route // ""),
+          apis: .relatedApis }
         + (if ((.sourceHash // "") | length) > 0 then {sourceHash: .sourceHash} else {} end)
-    ] }
+    ],
+    apis: [
+      $apis[]
+      | { apiId: .unitKey,
+          apiName: .unitKey,
+          endpoint: (.identifier // .unitKey),
+          tables: (.targetTables // []) }
+    ],
+    tables: (if $hasTables
+             then [ $tableUnits[]
+                    | {tableId: .unitKey, tableName: (.identifier // .unitKey)}
+                      + (if has("logicalName") then {logicalName: .logicalName} else {} end) ]
+             else ([ $apis[] | .targetTables // [] | .[] ] | unique | map({tableId: ., tableName: .}))
+             end) }
   ' > "$OUTPUT_DIR/traceability.json"
 echo "OK: wrote $OUTPUT_DIR/traceability.json" >&2

@@ -1,8 +1,18 @@
 #!/usr/bin/env bash
 # test-e2e-portal.sh — ポータル静的 E2E テスト
 #
-# Usage: test-e2e-portal.sh <samples-dir>
+# Usage: test-e2e-portal.sh <portal-root-dir>
 #   引数省略時はスクリプト位置から ../samples を解決する。
+#
+# レイアウト方針（正本準拠の強制が本テストの役割）:
+#   - 一覧ページは 2 レイアウトを許容する。「<root>/一覧/<種別一覧>/<種別一覧>.html」
+#     （サンプル配置）と「<root>/<種別一覧>/<種別一覧>.html」（統括フロー生成配置）の
+#     両方を探索し、見つかった方を検査対象にする。検出レイアウトはヘッダ行で出力する
+#   - ポータル index の正本は「<root>/index.html」の 1 つのみ。<root>/../project-portal/
+#     等の正本外配置は探索しない（正本外に置かれた場合はリンク解決 FAIL のままとする。
+#     正本準拠を強制するのがこのテストの役割であり、探索を広げて救済しない）
+#   - AI設定資産・交差ビューのページは存在する場合のみ検査する（不在は SKIP 行を出す。
+#     生成フローが未対応のページを FAIL にしない）
 #
 # 検査項目（ケースキーは意味語。連番禁止）:
 #   リンク-戻る解決   各ページの「ポータルへ戻る」リンク href が実在ファイルを指すか
@@ -15,7 +25,7 @@
 #   退行-縦書き       マトリクス3ページに rotate(180deg) が無く text-orientation が有ること
 #   構造-タグ開閉     table/script/details の開閉数一致（HTMLコメント除外）
 #
-# 出力: 「[PASS|FAIL] <ケースキー> <ページ名> — 詳細」+ 末尾サマリ。FAIL があれば exit 1。
+# 出力: 「[PASS|FAIL|SKIP] <ケースキー> <ページ名> — 詳細」+ 末尾サマリ。FAIL があれば exit 1。
 # 依存: bash / jq / perl（macOS 標準）
 
 set -uo pipefail
@@ -34,11 +44,13 @@ trap 'rm -rf "$TMP_DIR"' EXIT
 
 TOTAL=0
 FAILS=0
+SKIPS=0
 
-report() { # report <PASS|FAIL> <ケースキー> <ページ名> <詳細>
+report() { # report <PASS|FAIL|SKIP> <ケースキー> <ページ名> <詳細>
   local st="$1" key="$2" page="$3" detail="$4"
   TOTAL=$((TOTAL + 1))
   [ "$st" = "FAIL" ] && FAILS=$((FAILS + 1))
+  [ "$st" = "SKIP" ] && SKIPS=$((SKIPS + 1))
   echo "[$st] $key $page — $detail"
 }
 
@@ -53,10 +65,22 @@ while IFS= read -r f; do
   ALL_PAGES+=("$f")
 done < <(find "$SAMPLES_DIR" -name '*.html' | LC_ALL=C sort)
 
+# 一覧ページの探索: 「一覧/<種別一覧>/」（サンプル配置）と「<種別一覧>/」（生成配置）の
+# 両レイアウトを種別ごとに探索し、見つかった方を検査対象にする（ヘッダ方針コメント参照）
+LIST_TYPES=(画面一覧 機能一覧 API一覧 テーブル一覧 バッチ一覧 帳票一覧 外部連携一覧)
 LIST_PAGES=()
-for f in "${ALL_PAGES[@]}"; do
-  case "$f" in */一覧/*) LIST_PAGES+=("$f") ;; esac
+NESTED_COUNT=0
+FLAT_COUNT=0
+for t in "${LIST_TYPES[@]}"; do
+  if [ -f "$SAMPLES_DIR/一覧/$t/$t.html" ]; then
+    LIST_PAGES+=("$SAMPLES_DIR/一覧/$t/$t.html")
+    NESTED_COUNT=$((NESTED_COUNT + 1))
+  elif [ -f "$SAMPLES_DIR/$t/$t.html" ]; then
+    LIST_PAGES+=("$SAMPLES_DIR/$t/$t.html")
+    FLAT_COUNT=$((FLAT_COUNT + 1))
+  fi
 done
+echo "# 一覧レイアウト検出: 一覧/<種別一覧>/ 形式 ${NESTED_COUNT} 件・<種別一覧>/ 形式 ${FLAT_COUNT} 件（計 ${#LIST_PAGES[@]}/${#LIST_TYPES[@]} 種別）"
 
 CROSS_PAGES=()
 for f in "${ALL_PAGES[@]}"; do
@@ -220,9 +244,16 @@ for f in "${LIST_PAGES[@]}"; do
     report PASS "機能-必須JS" "$page" "copy-btn/filter-chips/row-detail/csv/URLSearchParams すべて存在"
   fi
 done
-for f in "${CROSS_PAGES[@]}" "$AI_PAGE"; do
-  [ -f "$f" ] || { report FAIL "機能-必須JS" "$(rel "$f")" "ファイルが存在しない"; continue; }
+# 交差ビュー・AI設定資産は存在する場合のみ検査（不在は SKIP。生成フロー未対応を FAIL にしない）
+if [ "${#CROSS_PAGES[@]}" -eq 0 ]; then
+  report SKIP "機能-必須JS" "交差ビュー" "ページ不在（生成フロー未対応のため検査対象外）"
+fi
+for f in ${CROSS_PAGES[@]+"${CROSS_PAGES[@]}"} "$AI_PAGE"; do
   page="$(rel "$f")"
+  if [ ! -f "$f" ]; then
+    report SKIP "機能-必須JS" "$page" "ページ不在（生成フロー未対応のため検査対象外）"
+    continue
+  fi
   if grep -q "URLSearchParams" "$f"; then
     report PASS "機能-必須JS" "$page" "URLSearchParams 存在"
   else
@@ -267,7 +298,10 @@ for f in "${LIST_PAGES[@]}"; do
 done
 
 # ---- 検査キー: 退行-縦書き ----
-for f in "${MATRIX_PAGES[@]}"; do
+if [ "${#MATRIX_PAGES[@]}" -eq 0 ]; then
+  report SKIP "退行-縦書き" "交差ビュー" "マトリクスページ不在（生成フロー未対応のため検査対象外）"
+fi
+for f in ${MATRIX_PAGES[@]+"${MATRIX_PAGES[@]}"}; do
   page="$(rel "$f")"
   probs=""
   grep -q 'rotate(180deg)' "$f" && probs="$probs rotate(180deg)が残存"
@@ -283,8 +317,10 @@ done
 for f in "${ALL_PAGES[@]}"; do
   page="$(rel "$f")"
   stripped="$TMP_DIR/stripped.html"
-  # HTML コメントに加え、JS の行頭 // コメント（タグ名への言及があり得る）も除外する
-  perl -0777 -pe 's/<!--.*?-->//gs' "$f" | grep -vE '^[[:space:]]*//' > "$stripped"
+  # HTML コメントに加え、JS の行頭 // コメント（タグ名への言及があり得る）も除外する。
+  # <script type="text/plain"> の中身はブラウザが解釈しないリテラル文である。
+  # 中身のリテラル <script 等を開閉カウントに含めないよう、開閉タグだけ残して除去する
+  perl -0777 -pe 's/<!--.*?-->//gs; s{(<script[^>]*type="text/plain"[^>]*>).*?(?=</script>)}{$1}gs' "$f" | grep -vE '^[[:space:]]*//' > "$stripped"
   probs=""
   for tag in table script details; do
     open="$(grep -oE "<${tag}[ >]" "$stripped" | wc -l | tr -d ' ')"
@@ -299,6 +335,6 @@ for f in "${ALL_PAGES[@]}"; do
 done
 
 # ---- サマリ ----
-echo "合計 ${TOTAL} 件 / FAIL ${FAILS} 件"
+echo "合計 ${TOTAL} 件 / FAIL ${FAILS} 件 / SKIP ${SKIPS} 件"
 [ "$FAILS" -eq 0 ] || exit 1
 exit 0

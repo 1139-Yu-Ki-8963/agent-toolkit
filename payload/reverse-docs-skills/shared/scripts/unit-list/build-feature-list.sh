@@ -437,11 +437,13 @@ fi
 
 unit_manifest_json="$(cat "$MANIFEST")"
 
-# --- ポータルへの相対パス算出(--portal-dir 未指定時は無効リンク"#") ---
+# --- ポータルへの相対パス算出(--portal-dir 未指定時は正本レイアウトの既定値) ---
+# 正本レイアウト: <docs_root>/index.html と <docs_root>/一覧/<種別>一覧/<種別>一覧.html。
+# 一覧HTMLから見たポータルは2階層上のため、未指定時は ../../index.html を既定とする。
 if [ -n "$PORTAL_DIR_ARG" ]; then
   portal_relative="$(python3 -c "import os; print(os.path.relpath('$PORTAL_DIR_ARG', '$(dirname "$OUTPUT_HTML")'))" 2>/dev/null || echo "..")/index.html"
 else
-  portal_relative="#"
+  portal_relative="../../index.html"
 fi
 
 # --- テンプレートへの注入(単一パス方式。render_template()参照) ---

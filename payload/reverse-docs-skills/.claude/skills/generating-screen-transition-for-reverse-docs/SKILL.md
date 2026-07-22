@@ -18,7 +18,7 @@ allowed-tools: [Bash, Read, Write, Grep, Glob, AskUserQuestion, TaskCreate, Task
 - 起動引数: `target_repo_path`（調査対象リポジトリの絶対パス）・`docs_root`（画面一覧.html の所在かつ出力先）・`portal_output_dir`（任意）
 - `portal_output_dir` を指定した場合、生成後に `build-portal.sh` を再実行してカードへ反映する
 
-出力先は `<docs_root>/画面遷移図.html` に固定する（`build-portal.sh` の `FUTURE_FILES` と同値）。前提となる画面一覧.html は `<docs_root>/画面一覧/画面一覧.html` に固定で存在することを見に行く。
+出力先は `<docs_root>/画面遷移図.html` に固定する（`build-portal.sh` の `FUTURE_FILES` と同値）。前提となる画面一覧.html は `<docs_root>/一覧/画面一覧/画面一覧.html`（正本レイアウト）を見に行く。不在の場合のみ後方互換として旧レイアウト `<docs_root>/画面一覧/画面一覧.html` も探索する。
 
 ## 設計原則: 固定と可変の分離
 
@@ -46,7 +46,7 @@ allowed-tools: [Bash, Read, Write, Grep, Glob, AskUserQuestion, TaskCreate, Task
 
 ### Phase 1: 前提確認・検出戦略の宣言
 
-- **Step 1** — `<docs_root>/画面一覧/画面一覧.html` の実在を確認する。不在ならハード停止する。この場合 `generating-screen-list-for-reverse-docs` の先行実行を案内して終了する。完了条件: 実在確認済み、または不在を報告して停止している
+- **Step 1** — `<docs_root>/一覧/画面一覧/画面一覧.html`（正本レイアウト。不在時のみ後方互換で `<docs_root>/画面一覧/画面一覧.html`）の実在を確認する。いずれも不在ならハード停止する。この場合 `generating-screen-list-for-reverse-docs` の先行実行を案内して終了する。完了条件: 実在確認済み、または不在を報告して停止している
 - **Step 2** — 画面一覧.html 内の `<script type="application/json" id="screen-manifest">` を抽出する。`screens[]` の件数・`route` の値が空文字列の画面の件数を確認する（`validate-manifest.sh` は `route` キー自体の欠落を許さないため、実際に起こるのは空文字）。完了条件: `screens[]` 件数と route 空文字件数が確定済み
 - **Step 3** — `target_repo_path` の定義ファイル（`package.json` の依存関係・import 文の形跡）から Router 種別を判別する。候補は React Router・Next.js App Router・Next.js Pages Router・Vue Router 等。完了条件: Router 種別が特定済み、または特定不能の根拠（推定経路）が記録済み
 - **Step 4** — 検出戦略宣言を作成する。内容は `routerKind`・抽出対象 API（`navigate`・`<Link>`・`redirect` 等のうち実在するもの）・confidence 判定基準の 3 点。AskUserQuestion で承認を取り、宣言 JSON は一時ファイルに保存する。完了条件: 戦略 JSON が保存済みかつユーザー承認済み

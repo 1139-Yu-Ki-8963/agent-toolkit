@@ -140,6 +140,41 @@ FIXTURE2
   echo "PASS: --self-test ケース5（共通文書 .md → .html 変換）"
   rm -rf "$test5_dir"
 
+  echo "--- ケース5b: サブディレクトリ配下の共通文書リンクがパスを保持する ---"
+  test5b_dir="$(mktemp -d)"
+  test5b_repo="$test5b_dir/repo"
+  test5b_docs="$test5b_dir/docs"
+  test5b_portal="$test5b_dir/portal"
+  mkdir -p "$test5b_repo" "$test5b_docs/プロジェクト共通/規約" "$test5b_portal"
+  printf '# サブ規約\n\n本文。\n' > "$test5b_docs/プロジェクト共通/規約/sub-rule.md"
+  "$SCRIPT_DIR/build-portal.sh" "$test5b_repo" "$test5b_docs" "$test5b_portal" 2>/dev/null
+  if [ ! -f "$test5b_docs/プロジェクト共通/規約/sub-rule.html" ]; then
+    echo "FAIL: ケース5b — サブディレクトリ内に sub-rule.html が生成されていない" >&2; rm -rf "$test5b_dir"; exit 1
+  fi
+  if ! grep -q 'プロジェクト共通/規約/sub-rule.html' "$test5b_portal/index.html"; then
+    echo "FAIL: ケース5b — ポータルのリンクが 規約/ サブディレクトリを保持していない" >&2; rm -rf "$test5b_dir"; exit 1
+  fi
+  echo "PASS: --self-test ケース5b（サブディレクトリ配下の共通文書リンク解決）"
+  rm -rf "$test5b_dir"
+
+  echo "--- ケース5c: 共通文書の戻るリンクが出力先の深さに応じた相対パスになる ---"
+  test5c_dir="$(mktemp -d)"
+  test5c_repo="$test5c_dir/repo"
+  test5c_docs="$test5c_dir/docs"
+  mkdir -p "$test5c_repo" "$test5c_docs/プロジェクト共通/規約"
+  printf '# 深さ1文書\n\n本文。\n' > "$test5c_docs/プロジェクト共通/depth1-doc.md"
+  printf '# 深さ2規約\n\n本文。\n' > "$test5c_docs/プロジェクト共通/規約/depth2-rule.md"
+  # 正本レイアウト: ポータル = docs ルートの index.html
+  "$SCRIPT_DIR/build-portal.sh" "$test5c_repo" "$test5c_docs" "$test5c_docs" 2>/dev/null
+  if ! grep -q 'href="\.\./index\.html"' "$test5c_docs/プロジェクト共通/depth1-doc.html"; then
+    echo "FAIL: ケース5c — 深さ1の戻るリンクが ../index.html でない" >&2; rm -rf "$test5c_dir"; exit 1
+  fi
+  if ! grep -q 'href="\.\./\.\./index\.html"' "$test5c_docs/プロジェクト共通/規約/depth2-rule.html"; then
+    echo "FAIL: ケース5c — 深さ2の戻るリンクが ../../index.html でない" >&2; rm -rf "$test5c_dir"; exit 1
+  fi
+  echo "PASS: --self-test ケース5c（戻るリンクの深さ別相対パス計算）"
+  rm -rf "$test5c_dir"
+
   echo "--- ケース6: frontmatter 付き md → html で frontmatter が本文に表示されない ---"
   test6_dir="$(mktemp -d)"
   test6_repo="$test6_dir/repo"
@@ -310,6 +345,32 @@ TEST8HTML
   fi
   rm -rf "$test9_dir"
 
+  echo "--- ケース10: 旧レイアウト（docs_root 直下の一覧）への後方互換探索 ---"
+  test10_dir="$(mktemp -d)"
+  test10_repo="$test10_dir/repo"
+  test10_docs="$test10_dir/docs"
+  test10_portal="$test10_dir/portal"
+  mkdir -p "$test10_repo" "$test10_docs/API一覧" "$test10_portal"
+  cat > "$test10_docs/API一覧/API一覧.html" <<'TEST10HTML'
+<!DOCTYPE html><html><head><title>API一覧</title></head><body>
+<script type="application/json" id="unit-manifest">
+{"detectionSummary":{"unitCount":7,"analyzedFiles":10},"units":[]}
+</script>
+</body></html>
+TEST10HTML
+  echo '{"total":100,"fe":50,"be":50,"file_count":10}' > "$test10_portal/code-metrics.json"
+  "$SCRIPT_DIR/build-portal.sh" "$test10_repo" "$test10_docs" "$test10_portal" 2>/dev/null
+  if tr -d ' \n' < "$test10_portal/index.html" | grep -q '"kind":"api".*"count":7' \
+     && grep -q 'API一覧/API一覧.html' "$test10_portal/index.html" \
+     && ! grep -q '一覧/API一覧/API一覧.html' "$test10_portal/index.html"; then
+    echo "PASS: --self-test ケース10（旧レイアウト後方互換探索, count=7, リンクも旧レイアウトを指す）"
+  else
+    echo "FAIL: --self-test ケース10（旧レイアウト後方互換探索）" >&2
+    rm -rf "$test10_dir"
+    exit 1
+  fi
+  rm -rf "$test10_dir"
+
   exit 0
 fi
 
@@ -402,7 +463,14 @@ for kind in $KINDS_ORDER; do
   desc="$(get_kind_desc "$kind")"
   unit="$(get_kind_unit "$kind")"
   group="$(get_kind_group "$kind")"
-  html_file="$DOCS_ROOT/一覧/$dir_name/${label}一覧.html"
+  # 正本レイアウト: <docs_root>/一覧/<種別>一覧/<種別>一覧.html
+  # 後方互換: 旧レイアウト（<docs_root>/<種別>一覧/<種別>一覧.html）にも実在すれば採用する
+  list_rel_path="一覧/$dir_name/${label}一覧.html"
+  html_file="$DOCS_ROOT/$list_rel_path"
+  if [ ! -f "$html_file" ] && [ -f "$DOCS_ROOT/$dir_name/${label}一覧.html" ]; then
+    list_rel_path="$dir_name/${label}一覧.html"
+    html_file="$DOCS_ROOT/$list_rel_path"
+  fi
   unit_count=0
 
   if [ -f "$html_file" ]; then
@@ -425,7 +493,7 @@ for kind in $KINDS_ORDER; do
     fi
   fi
 
-  href="$docs_relative/一覧/$dir_name/${label}一覧.html"
+  href="$docs_relative/$list_rel_path"
   count_text="$unit_count $unit →"
 
   [ -n "$list_tools_json" ] && list_tools_json="$list_tools_json,"
@@ -473,6 +541,10 @@ if [ -d "$common_dir" ]; then
     html_basename="$(basename "$md_file" .md).html"
     html_file="$(dirname "$md_file")/$html_basename"
     if [ -f "$COMMON_DOC_TEMPLATE_FILE" ]; then
+      # 戻るリンク: 出力先の深さに応じてポータル index.html への相対パスを計算する
+      # （深さ1: ../index.html、深さ2: ../../index.html。固定文字列だと深さ2で1段足りない）
+      portal_index_rel="$(python3 -c "import os,sys; print(os.path.relpath(sys.argv[1], sys.argv[2]))" "$PORTAL_DIR" "$(dirname "$md_file")" 2>/dev/null || echo "..")"
+      portal_index_href="$portal_index_rel/index.html"
       md_content="$(sed -e '1s/^\xEF\xBB\xBF//' "$md_file" | awk 'NR==1 && /^---$/ {skip=1; next} skip && /^---$/ {skip=0; next} !skip' | awk '
         in_comment {
           buf[++n] = $0
@@ -496,6 +568,7 @@ if [ -d "$common_dir" ]; then
         "{{DOC_TITLE}}" "$(html_escape "$title")"
         "{{GENERATED_DATE}}" "$GENERATED_DATE"
         "{{COMMIT_SHORT}}" "$COMMIT_SHORT"
+        "{{PORTAL_INDEX_HREF}}" "$portal_index_href"
       )
       if [ -f "$TOKENS_CSS_FILE" ]; then
         local_render_args+=("/* TOKENS_CSS */" "$(cat "$TOKENS_CSS_FILE")")
@@ -505,7 +578,9 @@ if [ -d "$common_dir" ]; then
       printf '%s\n' "$doc_html" > "$html_file"
     fi
 
-    rel_href="$docs_relative/プロジェクト共通/$html_basename"
+    # サブディレクトリ（規約/ 等）配下の共通文書もリンクを実在パスへ解決する（basename だけにしない）
+    rel_subpath="${md_file#"$common_dir"/}"
+    rel_href="$docs_relative/プロジェクト共通/${rel_subpath%.md}.html"
 
     doc_icon="description"
     case "$title" in

@@ -32,14 +32,14 @@ feature 種別に組み込み検出器はない。抽出は **カスタム抽出
 ## 使用タイミング
 
 - 既存コードベースの機能一覧(業務機能の横断目録)を作りたいとき
-- 前提: 画面一覧(`<output_dir>/画面一覧/画面一覧.html`)が生成済みであること
+- 前提: 画面一覧(`<output_dir>/一覧/画面一覧/画面一覧.html`)が生成済みであること
 - 起動引数: `source_dir`(ソースコードディレクトリ)・`output_dir`(一覧の出力先。既存6種と同じ)・`survey_doc_path`(任意。アーキテクチャ調査書。ルート定義等の所在特定の参考)
 
 ## 出力
 
 | 項目 | 値 |
 |---|---|
-| 出力フォルダ | `<output_dir>/機能一覧/` |
+| 出力フォルダ | `<output_dir>/一覧/機能一覧/` |
 | 出力ファイル | `機能一覧.html` |
 | マニフェスト配列キー | `units` |
 
@@ -53,7 +53,7 @@ feature 種別に組み込み検出器はない。抽出は **カスタム抽出
 
 ### Phase 1: 入力収集
 
-- **Step 1**: `<output_dir>` 配下に実在する一覧HTMLを機械的に列挙し、各HTML内の埋め込みマニフェスト(画面一覧は `<script type="application/json" id="screen-manifest">`、他種別は `id="unit-manifest"`)から JSON を抽出する。**画面一覧は必須**。不在なら status=ERROR で停止し、hint に「先に generating-screen-list-for-reverse-docs を実行」と記録する。実在した一覧のパスをすべて `strategy.inputManifests` に記録する(ユーザー指示は不要)。完了条件: 画面一覧マニフェストが抽出済みで、inputManifests が確定している
+- **Step 1**: `<output_dir>/一覧/` 配下に実在する一覧HTMLを機械的に列挙し、各HTML内の埋め込みマニフェスト(画面一覧は `<script type="application/json" id="screen-manifest">`、他種別は `id="unit-manifest"`)から JSON を抽出する。**画面一覧は必須**。不在なら status=ERROR で停止し、hint に「先に generating-screen-list-for-reverse-docs を実行」と記録する。実在した一覧のパスをすべて `strategy.inputManifests` に記録する(ユーザー指示は不要)。完了条件: 画面一覧マニフェストが抽出済みで、inputManifests が確定している
 - **Step 2**: `source_dir` からルート定義・ナビメニュー・バックエンドルーターの prefix/tags・ディレクトリ構造を Grep/Read で特定する。survey_doc_path があれば所在特定の参考にする。完了条件: 手がかり①〜④(feature-detection.md の優先度表)の抽出元ファイルが列挙済み
 
 ### Phase 2: 大分類候補の導出
@@ -110,7 +110,7 @@ comm -13 \
 # Gate A・B いずれも空 = PASS。1行でも出力があれば FAIL
 ```
 
-- **Step 3**: `../../../shared/scripts/unit-list/build-unit-list.sh <manifest.json> <output_dir>/機能一覧/機能一覧.html --unit-kind feature` を実行する。build 側が内部で validate を再実行するため、検証を経ない manifest からは生成できない。完了条件: HTML 生成済み
+- **Step 3**: `../../../shared/scripts/unit-list/build-unit-list.sh <manifest.json> <output_dir>/一覧/機能一覧/機能一覧.html --unit-kind feature --portal-dir <output_dir>` を実行する。`--portal-dir` にはポータル（`index.html`）の配置先＝納品物ルート（output_dir=docs_root）を渡し、「ポータルへ戻る」リンクを実在パスに解決させる。build 側が内部で validate を再実行するため、検証を経ない manifest からは生成できない。完了条件: HTML 生成済み
 
 **手作業でのプレースホルダ置換は禁止する**。HTML 生成は必ずスクリプト経由の決定的処理で行う。
 
@@ -169,7 +169,7 @@ comm -13 \
 - validate-manifest.sh は related* の参照実在を検査しない(参照整合検査は screen 専用)。Phase 5 Step 2 の jq 自前検査を省略すると不在参照が成果物に混入する
 - detectionSummary.unitCount は units 配列の全要素数(unresolved 含む)。機能数として報告する場合は kind=feature 行のみを数える
 - マニフェストの配列キーは `screens` ではなく `units` とする
-- 出力先は `<output_dir>/機能一覧/機能一覧.html`。他種別と独立したフォルダを作成する
+- 出力先は `<output_dir>/一覧/機能一覧/機能一覧.html`。他種別と独立したフォルダを作成する
 - ルート定義に載らない画面(認証ガード内で条件レンダリングされるログイン画面等)は前段の画面一覧の抽出品質に依存する。画面一覧に無い画面は本スキルでは補完しない(画面一覧側の再生成で対処する)
 
 ## 完了報告

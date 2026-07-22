@@ -33,7 +33,7 @@
 
 | フィールド名 | 型 | 必須/任意 | 説明 | 抽出元の想定 |
 |---|---|---|---|---|
-| foreignKeys | string[] | 任意 | FK 参照先テーブルの unitKey 配列 | マイグレーション・モデルの FK 定義（ER 図生成と同一の抽出元） |
+| foreignKeys | string[] | 任意 | FK 参照先テーブルの unitKey 配列。空配列 [] は「REFERENCES を走査した結果 FK ゼロ件」という正の観測を意味し、フィールド欠落は「走査自体ができなかった（sourceFile 不在等）」を意味する | マイグレーション・モデルの FK 定義（ER 図生成と同一の抽出元） |
 | columnCount | number | 任意 | カラム数 | マイグレーション・スキーマ定義 |
 | mainColumns | string[] | 任意 | 主要カラム名の配列（PK・業務キー中心に 5 個程度） | 同上 |
 
@@ -71,16 +71,20 @@
 
 ## 交差ビュー用の新規データファイル定義
 
-一覧フォルダと同階層に置く 3 ファイル。いずれも該当データが揃った時のみ生成する（不在時は交差ビューページを生成しない）。
+一覧フォルダと同階層に置く 3 ファイル。いずれも該当データが揃った時のみ生成する（不在時は交差ビューページを生成しない）。フィールド名は shared/templates/matrix/ の各テンプレート内 JS が参照する名前と一致させる（描画側との二重管理・ドリフト禁止。build-matrix-pages.sh の必須トップレベルキー検査も本定義と同一）。`dataSource` は導出に使った入力マニフェストのパス（メタ表示用）。
 
 ### permission-matrix.json（権限×画面・権限×機能）
 
 ```json
 {
   "generatedAt": "2026-07-21T00:00:00+09:00",
+  "dataSource": "screen-manifest.json + api-manifest.json + feature-manifest.json",
   "roles": ["admin", "member", "guest"],
   "screens": [
-    {"screenKey": "user-admin", "access": {"admin": true, "member": false, "guest": false}}
+    {"screenId": "user-admin", "screenName": "user-admin", "route": "/admin/users",
+     "permissions": {"admin": true, "member": false, "guest": false}},
+    {"screenId": "legacy-report", "screenName": "legacy-report", "route": "/legacy/report",
+     "permissions": null}
   ],
   "features": [
     {"unitKey": "user-management", "crud": {"admin": "CRUD", "member": "R", "guest": ""}}
@@ -88,33 +92,51 @@
 }
 ```
 
+- `screenId` / `screenName` は screen-manifest の screenKey。`permissions` が `null` の画面は permissions 未抽出（権限未設定として警告表示。誤った全許可を出さない fail-safe）
+
 ### crud-matrix.json（機能×テーブル）
 
 ```json
 {
   "generatedAt": "2026-07-21T00:00:00+09:00",
-  "rows": [
-    {"featureKey": "user-management", "tables": {"users": "CRUD", "audit_logs": "C"}}
+  "dataSource": "api-manifest.json + feature-manifest.json + table-manifest.json",
+  "tables": [
+    {"physicalName": "users", "logicalName": "ユーザー"},
+    {"physicalName": "audit_logs"}
+  ],
+  "features": [
+    {"featureId": "user-management", "featureName": "user-management",
+     "cells": {"users": "CRUD", "audit_logs": "C"}}
   ]
 }
 ```
+
+- `tables[]` は table-manifest の全 units（physicalName=identifier。logicalName はあれば転記）。table-manifest 不在時は cells に現れるテーブル名の集合。`cells` のキーは physicalName
+- feature-manifest 不在時は API 単位で集約し（featureId=API の unitKey）、その旨をトップレベル `note` に記録する
 
 ### traceability.json（画面-API-テーブル対応）
 
 ```json
 {
   "generatedAt": "2026-07-21T00:00:00+09:00",
-  "chains": [
-    {
-      "screenKey": "user-admin",
-      "apis": [{"unitKey": "delete-user", "tables": ["users", "audit_logs"]}],
-      "sourceHash": "sha256の先頭12桁"
-    }
+  "dataSource": "screen-manifest.json + api-manifest.json + table-manifest.json",
+  "screens": [
+    {"screenId": "user-admin", "screenName": "user-admin", "route": "/admin/users",
+     "apis": ["delete-user"], "sourceHash": "sha256の先頭12桁"}
+  ],
+  "apis": [
+    {"apiId": "delete-user", "apiName": "delete-user",
+     "endpoint": "DELETE /api/users/:id", "tables": ["users", "audit-logs"]}
+  ],
+  "tables": [
+    {"tableId": "users", "tableName": "users", "logicalName": "ユーザー"},
+    {"tableId": "audit-logs", "tableName": "audit_logs"}
   ]
 }
 ```
 
-`sourceHash` は画面ユニットの原本ソース連結ハッシュ。設計書生成時の値と比較し、不一致なら一覧ページに陳腐化バッジを表示する。
+- 画面→テーブルの対応は `screens[].apis` と `apis[].tables` からテンプレート JS が導出する（二重データ禁止）。`tables[]` は table-manifest の全 units（不在時は apis[].tables に現れる unitKey の集合）。どの画面からも使われないテーブルは描画側で「孤立」バッジになるため、全テーブルの収載が前提
+- `sourceHash` は画面ユニットの原本ソース連結ハッシュ。設計書生成時の値と比較し、不一致なら一覧ページに陳腐化バッジを表示する
 
 ## AI設定資産ページのデータ源
 
@@ -153,6 +175,7 @@
 | permissions-認可イディオム検出 | permissions | 構成ファイル（files[] があればそれ、無ければ entryFile / sourceFile / mainFile）内から次のイディオムに一致する箇所のロール名を収集する: `requireRole('x')` / `requireRole("x")`、`hasRole('x')` / `hasRole("x")`、`roles: ['x', 'y']` / `roles: ["x"]`、`@RolesAllowed("x")` / `@RolesAllowed({"x","y"})` |
 | permissions-管理画面admin推定 | permissions | ロール検出なし ∧ category=管理 → `["admin"]` を推定値として付与する |
 | permissions-一般画面空配列 | permissions | category=一般 ∧ ロール検出なし → `[]`（全員可）を付与する。category 不明 ∧ 検出なしなら欠落 |
+| relatedApis-パス一致限界 | relatedApis | 構成ファイル内の fetch パス文字列と api-manifest のパス部の一致で紐付ける。パス一致ベースであり HTTP method は判別しない。同一パスで method 違いの API が複数ある場合は全て付与される（過剰付与側に倒れる）。GET しか呼ばない画面に同パスの POST API も紐付く点は既知の限界として期待値作成時に考慮する |
 
 ### apis（API）
 
@@ -169,7 +192,7 @@
 | ルールキー | 対象フィールド | 仕様 |
 |---|---|---|
 | fk-references採取 | foreignKeys | CREATE TABLE ブロック内の `REFERENCES <table>`（カラムインライン・FOREIGN KEY 句の両方）と、sourceFile 内の同一行完結 `ALTER TABLE <対象テーブル> ... REFERENCES <table>` 行から参照先物理名を採取する |
-| fk-unitKey解決 | foreignKeys | 採取した参照先物理名をマニフェスト内 identifier と大文字小文字無視で突合して unitKey へ解決する。解決できない参照先は捨て、1 件も解決できなければフィールド自体を付けない |
+| fk-unitKey解決 | foreignKeys | 採取した参照先物理名をマニフェスト内 identifier と大文字小文字無視で突合して unitKey へ解決する。解決できない参照先は捨てる。走査できたユニットには解決結果が 0 件でも foreignKeys: [] を明示出力する（空配列=FK なし観測済み、欠落=走査不能） |
 
 ### batches（バッチ）
 

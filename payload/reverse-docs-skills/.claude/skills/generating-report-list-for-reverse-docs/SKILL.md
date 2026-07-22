@@ -38,7 +38,7 @@ allowed-tools: [Bash, Read, Write, Edit, Grep, Glob, AskUserQuestion, TaskCreate
 
 | 項目 | 値 |
 |---|---|
-| 出力フォルダ | `<output_dir>/帳票一覧/` |
+| 出力フォルダ | `<output_dir>/一覧/帳票一覧/` |
 | 出力ファイル | `帳票一覧.html` |
 | マニフェスト配列キー | `units` |
 
@@ -74,7 +74,7 @@ allowed-tools: [Bash, Read, Write, Edit, Grep, Glob, AskUserQuestion, TaskCreate
 
 ### Phase 4: 帳票一覧.html 生成
 
-- **Step 1**: `../../../shared/scripts/unit-list/build-unit-list.sh <manifest.json> <output_dir>/帳票一覧/帳票一覧.html --unit-kind report` を実行する。build側が内部でvalidateを再実行するため、検証を経ないmanifestからは生成できない。完了条件: HTML生成済み
+- **Step 1**: `../../../shared/scripts/unit-list/build-unit-list.sh <manifest.json> <output_dir>/一覧/帳票一覧/帳票一覧.html --unit-kind report --portal-dir <output_dir>` を実行する。`--portal-dir` にはポータル（`index.html`）の配置先＝納品物ルート（output_dir=docs_root）を渡し、「ポータルへ戻る」リンクを実在パスに解決させる。build側が内部でvalidateを再実行するため、検証を経ないmanifestからは生成できない。完了条件: HTML生成済み
 
 **手作業でのプレースホルダ置換は禁止する**（過去に `entryFile=None` の混入という実害が発生している）。HTML生成は必ずスクリプト経由の決定的処理で行う。
 
@@ -128,7 +128,7 @@ allowed-tools: [Bash, Read, Write, Edit, Grep, Glob, AskUserQuestion, TaskCreate
 - `validate-manifest.sh`・`build-unit-list.sh` は jq に依存する。未インストール環境では事前に導入する
 - 帳票には組み込み検出器が存在しない。カスタム抽出パスのみを使う
 - マニフェストの配列キーは `units`（`screens` ではない）
-- 出力先は `<output_dir>/帳票一覧/帳票一覧.html`。帳票専用の独立フォルダを作成する
+- 出力先は `<output_dir>/一覧/帳票一覧/帳票一覧.html`。帳票専用の独立フォルダを作成する
 - カスタム抽出でソースを解析する際、コメントアウトされた帳票定義・import文を除去してから抽出する（コメント内の定義を実在として誤検出した実害を防ぐ）
 - `kind` の区分値は `template`（テンプレート主体）・`generator`（生成コード主体）・`unresolved`（主ファイル未解決）の3つ（`references/report-detection.md` 参照）
 

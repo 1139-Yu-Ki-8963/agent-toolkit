@@ -18,8 +18,13 @@
 #              - grep -Ei 'openpyxl|xlsxwriter'       → Excel
 #            ちょうど 1 形式にヒットした場合のみ出力する(複数形式ヒット・0 件は根拠が
 #            弱いため付けない = fail-safe)
-#   trigger: sourceFile のパスに jobs/・batch/・batches/ セグメントが含まれれば「バッチ」、
-#            それ以外は「画面」(パスは常に得られるため kind!=unresolved の全行に付与)
+#   trigger: 2 段判定(パスは常に得られるため kind!=unresolved の全行に付与)
+#            (a) sourceFile のパスに jobs/・batch/・batches/ セグメントが含まれれば「バッチ」
+#            (b) それ以外は、<source-dir> 内の jobs 系ディレクトリ(jobs/・batch/・batches/)の
+#                ファイルから当該モジュールが import されているかを grep し、
+#                されていれば「バッチ」、いなければ「画面」
+#                (バッチから import される帳票モジュール、例: app/reports/sales_csv.py を
+#                 app/jobs/daily_report.py が import しているケースの誤判定を防ぐ)
 #
 # 出力 JSON は unit-list/validate-manifest.sh --unit-kind report で検証可能であること
 # (self-test 内で validate-manifest.sh も実行して PASS を確認する)。
@@ -27,9 +32,9 @@
 set -euo pipefail
 
 # --- --self-test モード ---
-# mktemp -d に最小フィクスチャ(PDF 帳票 / CSV 出力 / 複数形式混在の 3 本)を生成し、
-# format の値・複数ヒット時の欠落(fail-safe)・trigger の 2 値判定・既存フィールドの不変・
-# validate-manifest.sh の PASS を検証する。
+# mktemp -d に最小フィクスチャ(PDF 帳票 / CSV 出力 / 複数形式混在 / jobs から import される
+# バッチ帳票の 4 本)を生成し、format の値・複数ヒット時の欠落(fail-safe)・trigger の
+# 2 段判定(パス判定 + import 判定)・既存フィールドの不変・validate-manifest.sh の PASS を検証する。
 self_test() {
   local script_path="$0"
   local script_dir
@@ -38,7 +43,7 @@ self_test() {
   tmp="$(mktemp -d "${TMPDIR:-/tmp}/extract-report-self-test.XXXXXX")"
   trap 'rm -rf "$tmp"' RETURN
 
-  mkdir -p "$tmp/src/jobs" "$tmp/src/views"
+  mkdir -p "$tmp/src/jobs" "$tmp/src/views" "$tmp/src/reports"
   cat > "$tmp/src/jobs/sales_report.py" <<'EOF'
 from reportlab.pdfgen import canvas
 
@@ -56,6 +61,17 @@ from fpdf import FPDF
 def export(df, buf):
     df.to_csv(buf)
 EOF
+  # jobs 配下ではないが、jobs のバッチから import される帳票モジュール(trigger=バッチ 期待)
+  cat > "$tmp/src/reports/sales_csv.py" <<'EOF'
+def export(df, buf):
+    df.to_csv(buf)
+EOF
+  cat > "$tmp/src/jobs/daily_report.py" <<'EOF'
+from reports.sales_csv import export
+
+def run():
+    export(None, None)
+EOF
 
   local manifest="$tmp/report-manifest.json"
   jq -n --arg sourceDir "$tmp/src" '{
@@ -63,7 +79,7 @@ EOF
     sourceDir: $sourceDir,
     unitKind: "report",
     strategy: {extractionMethod: "custom", approvedByUser: true, unitIdRegex: null, excludePatterns: []},
-    detectionSummary: {unitCount: 3, unresolvedCount: 0},
+    detectionSummary: {unitCount: 4, unresolvedCount: 0},
     units: [
       {unitKey: "sales-report", kind: "report", identifier: "jobs/sales_report.py",
        unitNameGuess: "売上帳票", sourceFile: "jobs/sales_report.py", confidence: "high",
@@ -73,6 +89,9 @@ EOF
        fileCount: 1, detectionMethod: "manual"},
       {unitKey: "mixed-output", kind: "report", identifier: "views/mixed_output.py",
        unitNameGuess: "混在出力", sourceFile: "views/mixed_output.py", confidence: "medium",
+       fileCount: 1, detectionMethod: "manual"},
+      {unitKey: "sales-csv", kind: "report", identifier: "reports/sales_csv.py",
+       unitNameGuess: "売上CSV", sourceFile: "reports/sales_csv.py", confidence: "high",
        fileCount: 1, detectionMethod: "manual"}
     ]
   }' > "$manifest"
@@ -99,8 +118,10 @@ EOF
   check "format: 複数形式ヒットではフィールドを付けない(fail-safe)" \
     '.units[2] | has("format") | not'
   check "trigger: jobs/配下はバッチ" '.units[0].trigger == "バッチ"'
-  check "trigger: jobs/batch配下以外は画面" \
+  check "trigger: jobs/batch配下以外かつjobsからのimportなしは画面" \
     '.units[1].trigger == "画面" and .units[2].trigger == "画面"'
+  check "trigger: jobs配下外でもjobsのバッチからimportされる帳票はバッチ" \
+    '.units[3].trigger == "バッチ" and .units[3].format == "CSV"'
 
   # 既存フィールド不変: 追加フィールドを取り除くと入力と完全一致する
   jq -S 'del(.units[].format, .units[].trigger)' "$out" > "$tmp/stripped.json"
@@ -166,6 +187,53 @@ resolve_path() {
   esac
 }
 
+# --- ERE メタ文字エスケープ ---
+escape_ere() { printf '%s' "$1" | sed -E 's/[.[\^$*+?(){}|\\]/\\&/g'; }
+
+# --- trigger 判定(b 段): jobs 系ディレクトリのファイルから import されているか ---
+# $1 = sourceFile(source-dir 相対 or 絶対の .py パス)。import されていれば exit 0。
+imported_from_jobs_dirs() {
+  local rel="$1"
+  rel="${rel#"${SOURCE_DIR%/}/"}"
+  local mod="${rel%.py}"
+  [ "$mod" = "$rel" ] && return 1   # .py 以外は import 判定不能 → 画面扱い
+  local base="${mod##*/}"
+  [ -z "$base" ] && return 1
+
+  local jobs_dirs=()
+  while IFS= read -r d; do
+    [ -n "$d" ] && jobs_dirs+=("$d")
+  done < <(find "$SOURCE_DIR" -type d \( -name jobs -o -name batch -o -name batches \) 2>/dev/null)
+  [ "${#jobs_dirs[@]}" -eq 0 ] && return 1
+
+  local base_esc dotted alts="" s
+  base_esc="$(escape_ere "$base")"
+  dotted="$(printf '%s' "$mod" | tr '/' '.')"
+
+  # ドット区切りサフィックス(2 セグメント以上)を alternation に集める
+  # 例: app.reports.sales_csv → app\.reports\.sales_csv|reports\.sales_csv
+  s="$dotted"
+  while [ "${s#*.}" != "$s" ]; do
+    alts="${alts:+$alts|}$(escape_ere "$s")"
+    s="${s#*.}"
+  done
+
+  # パターン1: import a.b.c / from a.b.c import x(ドット付きモジュール参照)
+  if [ -n "$alts" ] && \
+     grep -rqE "(^|[^A-Za-z0-9_.])(${alts})([^A-Za-z0-9_]|\$)" "${jobs_dirs[@]}" 2>/dev/null; then
+    return 0
+  fi
+
+  # パターン2: from <...親ディレクトリ名> import <...base...> / トップレベルは from|import <base>
+  local parent="${mod%/*}" pat2
+  if [ "$parent" != "$mod" ] && [ -n "$parent" ]; then
+    pat2="from[[:space:]]+([A-Za-z0-9_.]*\\.)?$(escape_ere "${parent##*/}")[[:space:]]+import[[:space:]]+(.*[^A-Za-z0-9_])?${base_esc}([^A-Za-z0-9_]|\$)"
+  else
+    pat2="(^|[^A-Za-z0-9_.])(from|import)[[:space:]]+${base_esc}([^A-Za-z0-9_]|\$)"
+  fi
+  grep -rqE "$pat2" "${jobs_dirs[@]}" 2>/dev/null
+}
+
 mkdir -p "$(dirname "$OUTPUT_JSON")"
 
 units_tmp="$(mktemp "${TMPDIR:-/tmp}/extract-report-units.XXXXXX")"
@@ -204,11 +272,18 @@ while IFS= read -r row; do
     fi
   fi
 
-  # --- trigger: sourceFile のパスセグメントで 2 値判定 ---
+  # --- trigger: 2 段判定。(a) パスが jobs 系配下 → バッチ
+  #     (b) それ以外は jobs 系ディレクトリからの import 有無で バッチ / 画面 ---
   if [ -n "$source_file" ]; then
     case "/$source_file" in
       */jobs/* | */batch/* | */batches/*) trigger="バッチ" ;;
-      *) trigger="画面" ;;
+      *)
+        if imported_from_jobs_dirs "$source_file"; then
+          trigger="バッチ"
+        else
+          trigger="画面"
+        fi
+        ;;
     esac
     aug="$(jq --arg t "$trigger" '. + {trigger: $t}' <<<"$aug")"
   fi
