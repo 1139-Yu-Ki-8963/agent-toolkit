@@ -53,6 +53,12 @@ detail-pages 系（用語辞書 / 技術スタック / 画面遷移図 / ER図 /
 | entities | array（er のみ） | `{ "key": string, "label": string }` の配列。SVG 描画時のノードキーは `key` |
 | relations | array（er のみ） | `{ "from": string, "to": string, "cardinality": string, "sourceRef": string }` の配列。`from`/`to` は `entities[].key` を参照する |
 
+`entities[]` は上記に加え、次の任意フィールドを持つ（ER図専用）。
+
+| キー | 型 | 内容 |
+|---|---|---|
+| columns | array（任意） | `{ "name": string, "type": string, "pk"?: boolean, "fk"?: boolean, "unique"?: boolean, "nullable"?: boolean }` の配列。テーブルのカラム定義。省略時はテンプレート側でカラム明細を表示しない |
+
 `nodes[]` は上記に加え、次の任意フィールドを持つ。
 
 | キー | 型 | 内容 |

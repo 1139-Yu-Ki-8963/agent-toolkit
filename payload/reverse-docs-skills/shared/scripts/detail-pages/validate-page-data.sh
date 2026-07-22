@@ -16,15 +16,90 @@
 #   7. sourceRef実在・行番号(--target-repo指定時のみ):
 #      ネスト位置を問わず全 .sourceRef 値について、パス部分(":"より前。文書参照形式.md#は対象外)の
 #      test -f 実在確認と、行番号付与時はそのファイルの総行数(wc -l)以内であることを検証する
+#   8. columns型検証(erのみ): entities[].columns[]が存在する場合、name/typeがstring、
+#      pk/fk/unique/nullableがboolean(いずれも存在時のみ)であることを検証する
 #
 # 違反は該当値の page-data.json 内での行番号(grep -nF で特定。特定不能時は「不明」)付きでstderrへ
 # [PASS]/[FAIL] 項目名 — 詳細 の形式で列挙する。1件でもFAILがあればexit 1。全項目PASSでexit 0。
+#
+# Usage: validate-page-data.sh --self-test で回帰テストを実行する。
 
 set -uo pipefail
 
 if ! command -v jq >/dev/null 2>&1; then
   echo "ERROR: jq is required but not found in PATH" >&2
   exit 1
+fi
+
+# --- --self-test モード ---
+# (a) entities[].columns[]の型が正しいerフィクスチャで、本体がPASS(exit 0)することを検証する
+# (b) columns[]内のいずれかのフィールド型が不正なerフィクスチャで、本体がFAIL(exit 1)することを検証する
+self_test() {
+  local script_path="$0"
+  local tmp rc=0
+  tmp="$(mktemp -d "${TMPDIR:-/tmp}/validate-page-data-self-test.XXXXXX")"
+  trap 'rm -rf "$tmp"' RETURN
+
+  local data_ok="$tmp/page-data-columns-ok.json"
+  jq -n '{
+    pageKind: "er",
+    generatedAt: "2026-01-01T00:00:00Z",
+    title: "ER図",
+    description: "self-test用フィクスチャ(columns正常系)",
+    legend: [],
+    entities: [
+      {key: "users", label: "ユーザー", columns: [
+        {name: "id", type: "BIGINT", pk: true},
+        {name: "role_id", type: "BIGINT", fk: true, nullable: true},
+        {name: "email", type: "VARCHAR(255)", unique: true}
+      ]},
+      {key: "roles", label: "ロール"}
+    ],
+    relations: [{from: "users", to: "roles", cardinality: "N:1", sourceRef: "migrations/001_init.sql:1"}],
+    unresolved: []
+  }' > "$data_ok"
+
+  if bash "$script_path" "$data_ok" >/dev/null 2>&1; then
+    echo "  [PASS] ケースa: columns[]の型が正しいerフィクスチャでPASS"
+  else
+    echo "  [FAIL] ケースa: columns[]の型が正しいerフィクスチャが誤ってFAILした" >&2
+    rc=1
+  fi
+
+  local data_bad="$tmp/page-data-columns-bad.json"
+  jq -n '{
+    pageKind: "er",
+    generatedAt: "2026-01-01T00:00:00Z",
+    title: "ER図",
+    description: "self-test用フィクスチャ(columns型不正)",
+    legend: [],
+    entities: [
+      {key: "users", label: "ユーザー", columns: [
+        {name: "id", type: "BIGINT", pk: "yes"}
+      ]}
+    ],
+    relations: [],
+    unresolved: []
+  }' > "$data_bad"
+
+  if bash "$script_path" "$data_bad" >/dev/null 2>&1; then
+    echo "  [FAIL] ケースb: columns[]の型が不正なerフィクスチャが誤ってPASSした" >&2
+    rc=1
+  else
+    echo "  [PASS] ケースb: columns[]の型が不正なerフィクスチャで正しくFAIL"
+  fi
+
+  if [ "$rc" -eq 0 ]; then
+    echo "self-test 全項目 PASS"
+  else
+    echo "self-test FAIL" >&2
+  fi
+  return "$rc"
+}
+
+if [ "${1:-}" = "--self-test" ]; then
+  self_test
+  exit $?
 fi
 
 MANIFEST="${1:-}"
@@ -241,6 +316,34 @@ if [ -n "$TARGET_REPO" ]; then
     if [ "$ref_fail" -eq 0 ]; then
       echo "[PASS] sourceRef実在・行番号 — --target-repo(${TARGET_REPO})基点ですべて検証済み" >&2
     fi
+  fi
+fi
+
+# --- 8. columns型検証(erのみ・entities[].columns[]が存在する場合) ---
+if [ "$PAGE_KIND" = "er" ]; then
+  columns_errors="$(jq -r '
+    [(.entities // [])[]? | . as $e | ($e.columns // [])[]? as $c
+      | [
+          (if ($c | has("name")) and (($c.name | type) != "string") then "name" else empty end),
+          (if ($c | has("type")) and (($c.type | type) != "string") then "type" else empty end),
+          (if ($c | has("pk")) and (($c.pk | type) != "boolean") then "pk" else empty end),
+          (if ($c | has("fk")) and (($c.fk | type) != "boolean") then "fk" else empty end),
+          (if ($c | has("unique")) and (($c.unique | type) != "boolean") then "unique" else empty end),
+          (if ($c | has("nullable")) and (($c.nullable | type) != "boolean") then "nullable" else empty end)
+        ] as $bad
+      | select(($bad | length) > 0)
+      | "\($e.key // "?"):\($c.name // "?") 不正フィールド=\($bad | join(","))"
+    ]
+    | .[]
+  ' "$MANIFEST" 2>/dev/null)"
+  if [ -n "$columns_errors" ]; then
+    overall_fail=1
+    while IFS= read -r err; do
+      [ -z "$err" ] && continue
+      echo "[FAIL] columns型検証 — ${err}" >&2
+    done <<< "$columns_errors"
+  else
+    echo "[PASS] columns型検証 — entities[].columns[]の型はすべて正しい(該当データなしを含む)" >&2
   fi
 fi
 

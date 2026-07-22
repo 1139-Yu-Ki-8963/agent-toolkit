@@ -24,7 +24,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
-get_page_template() { case "$1" in glossary) echo "detail-t2-dictionary.html";; techstack) echo "detail-t3-attributes.html";; transition) echo "detail-t4-diagram.html";; er) echo "detail-t4-diagram.html";; env) echo "detail-t5-procedure.html";; esac; }
+get_page_template() { case "$1" in glossary) echo "detail-t2-dictionary.html";; techstack) echo "detail-t3-attributes.html";; transition) echo "detail-t4-diagram.html";; er) echo "detail-t6-er.html";; env) echo "detail-t5-procedure.html";; esac; }
 get_page_filename() { case "$1" in glossary) echo "用語辞書.html";; techstack) echo "技術スタック.html";; transition) echo "画面遷移図.html";; er) echo "ER図.html";; env) echo "環境構築手順.html";; esac; }
 
 # --- --self-test モード ---

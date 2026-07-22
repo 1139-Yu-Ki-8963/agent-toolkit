@@ -10,10 +10,11 @@ allowed-tools: [Read, Write, Bash, Grep, Glob, AskUserQuestion, TaskCreate, Task
 
 リバース設計書往復検証フローの進行係（管理者）。自分では検証・比較・実装を行わず、状態判定 → 子スキルを args 全量指定で Skill 起動 → 返却ブロックの status で検収 → 次工程決定、というループで工程全体を統括する。
 
-子スキル22個は互いを知らず、工程間の受け渡しはすべて本スキルが仲介する（完全仲介方式）。契約の定義は `references/contract.md`。内訳は以下のとおり。
+子スキル23個は互いを知らず、工程間の受け渡しはすべて本スキルが仲介する（完全仲介方式）。契約の定義は `references/contract.md`。内訳は以下のとおり。
 
 - 一覧生成6: 種別別一覧スキル（`generating-<種別>-list-for-reverse-docs`、例: generating-screen-list-for-reverse-docs）
 - 機能一覧1: generating-feature-list-for-reverse-docs（派生一覧）
+- 交差ビュー生成1: generating-cross-views-for-reverse-docs（派生補完。機能一覧確立後に交差ビュー4ページ+AI設定資産ページを生成）
 - 基盤ページ生成5:
   - generating-tech-stack-for-reverse-docs
   - generating-env-guide-for-reverse-docs
@@ -142,6 +143,22 @@ Phase 1B（または Phase 3）で画面一覧HTMLが確立した後に、機能
 
 画面一覧HTMLが存在するのに `一覧/機能一覧/機能一覧.html` が不在の場合、状態判定の13状態には追加せず、本 Phase を再実行して補完する（派生一覧は13状態の判定フローの対象外）。
 
+### Phase 1D: 交差ビュー生成（Phase 1C 完了後・派生補完）
+
+Phase 1C（機能一覧生成・派生一覧）が完了した後に、交差ビュー生成スキル（generating-cross-views-for-reverse-docs）を起動して交差ビュー4ページ（権限画面マトリクス・権限機能マトリクス・CRUD図・追跡可能性）とAI設定資産ページを生成する。交差ビューは既存一覧（画面・API・テーブル・機能）の派生補完であり、機能一覧と同様に unit_kinds_present の存在判定対象外のため、種別の実在判定は行わない。
+
+#### Step 1D-1: 交差ビュー生成スキルを起動する
+
+`<output_dir>/一覧/画面一覧/画面一覧.html` と `<output_dir>/一覧/API一覧/API一覧.html` の両方が存在する場合のみ、Skill ツールで generating-cross-views-for-reverse-docs を target_repo_path・docs_root（・任意で portal_output_dir）で起動する。いずれか不在の場合は本 Phase をスキップする（両一覧の確立後に再実行する）。
+
+返却 status=DONE なら生成済みページ（generated_pages）を確認して次工程へ進む。status=STOPPED/ERROR なら hint を確認しユーザーに報告する。permission-function（権限機能マトリクス）はデータ形状ギャップにより未生成のまま skipped_pages に記録される場合があるが、これは既知の制約でありエラー扱いしない（詳細は generating-cross-views-for-reverse-docs/SKILL.md の「予想を裏切る挙動」参照）。
+
+**完了**: 生成可能な交差ビューページ・AI設定資産ページが存在する（画面一覧/API一覧不在によるスキップ時はスキップ理由が記録されている）。
+
+#### 再実行判定
+
+画面一覧HTML・API一覧HTMLが両方存在するのに交差ビュー・AI設定資産ページが1つも存在しない場合、状態判定の13状態には追加せず、本 Phase を再実行して補完する（派生補完は13状態の判定フローの対象外）。
+
 ### Phase 4A: ポータル生成（共通採録完了後）
 
 Phase 4（共通採録）完了後に、リバース設計ポータルを生成する。コード行数・ファイル数の計測、各種別一覧からの件数抽出、共通文書リストの収集を行い、テンプレートからポータル HTML を出力する。
@@ -227,7 +244,7 @@ Bash で `<verification_dir>/progress.jsonl` に phase="Phase 3" status="started
 3. `unit_kinds_present` に含まれる各種別について、`一覧/<種別ラベル>一覧/<種別ラベル>一覧.html` の実在を確認する
 4. 不在の種別ごとに、対応する種別別一覧スキル generating-<種別>-list-for-reverse-docs（例: screen なら generating-screen-list-for-reverse-docs）を Skill で `source_dir`・`output_dir` 指定で起動する（種別はスキル名に固定されるため unit_kind 引数は渡さない）
 5. 返却 status=DONE なら次の種別へ進む。status=ERROR なら hint を確認しユーザーに報告する
-6. 全種別の一覧が揃ったら（生成済みまたは対象外）、Phase 1C（機能一覧生成・派生一覧）を実行してから Phase 4 へ進む
+6. 全種別の一覧が揃ったら（生成済みまたは対象外）、Phase 1C（機能一覧生成・派生一覧）を実行し、続けて Phase 1D（交差ビュー生成・派生補完）を実行してから Phase 4 へ進む
 
 一覧生成は全種別について成果物を出す。`unit_kinds_present` に含まれる種別（present）は一覧HTMLを、含まれない種別は `<種別>一覧（該当なし）.md` を必ず生成する（成果物の実在有無だけで「対象外」の判定を後から復元できるようにするため）。
 
@@ -313,6 +330,7 @@ Bash で `<verification_dir>/progress.jsonl` に phase="Phase 11" status="starte
 | Phase 2 | survey_doc_path が確定している（アーキ未調査時のみ） |
 | Phase 3 | unit_kinds_present の全種別について一覧HTMLが存在し、excluded-kinds.json が存在する（一覧未生成時のみ） |
 | Phase 1C | 機能一覧.html が存在する（画面一覧確立後。派生一覧のため unit_kinds_present の判定対象外） |
+| Phase 1D | 生成可能な交差ビューページ・AI設定資産ページが存在する（機能一覧確立後。派生補完のため unit_kinds_present の判定対象外） |
 | Phase 4 | common_docs_root が確定している（共通未採録時のみ） |
 | Phase 5 | env_block の7フィールドが確定している |
 | Phase 6 | 画面未開通/事実未封印/基本設計未著述/設計書未著述/ファイル単位未検証 対象の全ファイルが再現一致または NG 分類済み（対象が無ければ直行） |
@@ -389,6 +407,7 @@ feature（機能一覧）は派生一覧であり、実在判定（unit_kinds_pr
 | Phase 2（アーキ未調査時） | surveying-architecture-for-reverse-docs | target_repo_path, docs_root, template_root, mode | 調査確定 |
 | Phase 3（一覧未生成時） | generating-<種別>-list-for-reverse-docs（不在種別ごとに対応スキル） | source_dir, output_dir | DONE |
 | Phase 1C（画面一覧確立後） | generating-feature-list-for-reverse-docs | source_dir, output_dir | DONE |
+| Phase 1D（機能一覧確立後） | generating-cross-views-for-reverse-docs | target_repo_path, docs_root, portal_output_dir（任意） | DONE |
 | Phase 4（共通未採録時） | generating-reverse-common-docs | target_repo_path, docs_root, template_root, survey_doc_path, mode | 採録v0確定 |
 | Phase 5 | syncing-reverse-env | design-doc, mode=setup | PASS（env_block抽出） |
 | Phase 6（画面未開通時） | unlocking-reverse-target-screens | system, screen_id, reverse_worktree, ports, docs_root, user-approved | BASELINE-ESTABLISHED |
@@ -442,6 +461,7 @@ Phase 1 の状態判定完了後に一括登録するタスク一覧の設計。
 
 - Phase 1B（6一覧並列）は「Phase 1B: 一覧生成-画面」「Phase 1B: 一覧生成-API」…と種別分展開し、全て同一並列グループ
 - Phase 1C（機能一覧）は「Phase 1C: 機能一覧生成」の1タスクとして登録する（派生一覧のため種別展開しない）
+- Phase 1D（交差ビュー生成）は「Phase 1D: 交差ビュー生成」の1タスクとして登録する（派生補完のため種別展開しない）
 - Phase 4C（画面バッチ）使用時は Phase 6〜10 を「Phase 4C: 画面バッチ実行」1タスクに集約する
 - 差し戻し発生時は差し戻し先工程を新規 TaskCreate で末尾に追加（既存タスクの状態は変更しない）
 - headless=true 時もタスク一覧は同じ形式で生成する（進捗の可視化用途。実行制御は per-item prompt が担う）

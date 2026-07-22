@@ -1,0 +1,1401 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{TITLE}} — リバース設計ポータル</title>
+<!--
+  detail-pages T6 ER図専用テンプレート — リバース設計スキル群
+  生成: shared/scripts/detail-pages/build-detail-page.sh
+  プレースホルダ置換は build-detail-page.sh の render_template() が行う。
+  手作業によるプレースホルダ置換は禁止。生成は必ずスクリプト経由で行う。
+
+  埋め込みJSON(script#page-data)のentities[]/relations[]から、ページ読込時に
+  JavaScriptがDOMを構築する。クラスタカード一覧(状態0)→クラスタ展開(状態1)→
+  テーブル詳細(状態2)の3段階を1画面内の状態遷移で実現するインタラクティブER図。
+  クラスタ化はFK接続グラフの連結成分を決定的アルゴリズムで算出し、巨大成分は
+  出次数上位3ノードのハブ分割で分解する(乱数・物理シミュレーション不使用)。
+  「テーブル詳細」タブでは entities[].columns[](PK/FK/UQ/NULLバッジ)を検索可能な
+  サイドバー付きで表示する。アニメーションはCSS transitionのみ(transform/opacity)。
+
+  保守注記: トークンブロック・テーマ切替(data-theme二重定義・rd-portal-theme)は
+  shared/templates/portal-template.html からの複製である。
+  同テンプレートの当該部分を変更した場合は本ファイルも同時更新すること
+  （T1一覧テンプレート群・T2〜T5テンプレートにも同種の複製あり。include化は別件）。
+
+  プレースホルダ(build-detail-page.shが注入。実際のマーカー記法は
+  scripts/detail-pages/build-detail-page.sh 冒頭コメントを定義とする。本コメントでは
+  二重置換事故を避けるため意図的に波括弧を外して記載する):
+    TITLE (ページ見出しマーカー)         : page-data.json の title
+    DESCRIPTION (ページ概要マーカー)     : page-data.json の description
+    GENERATED_AT (生成日時マーカー)      : page-data.json の generatedAt
+    PAGE_DATA_JSON (page-data埋め込みマーカー) : page-data.json の内容全体(本ファイル物理末尾のscriptタグへ注入)
+-->
+<style>
+/* TOKENS_CSS */
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: var(--font-body);
+  background: var(--bg); color: var(--text); line-height: 1.7; font-size: 15px;
+}
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+.dp-page { display: grid; grid-template-rows: auto 1fr auto; min-height: 100vh; }
+
+.topbar {
+  display: grid; grid-template-columns: auto 1fr auto;
+  align-items: center; gap: 24px; padding: 12px 20px;
+  background: linear-gradient(180deg, var(--panel) 0%, var(--panel-2) 100%);
+  border-bottom: 1px solid var(--border);
+  position: sticky; top: 0; z-index: 10;
+}
+.brand { display: flex; align-items: baseline; gap: 8px; color: var(--text); }
+.brand:hover { text-decoration: none; }
+.brand-icon { display: inline-flex; align-items: center; }
+.brand-title { font-weight: 700; font-size: 16px; }
+.brand-sub { font-size: 11px; color: var(--text-muted, #6c757d); }
+.header-meta { font-size: 12px; color: var(--text-muted, #6c757d); display: flex; align-items: center; gap: 8px; }
+.top-actions { display: flex; align-items: center; gap: 8px; }
+.top-actions button {
+  background: var(--panel-2); border: 1px solid var(--border); border-radius: var(--radius-sm);
+  color: var(--text-sub); cursor: pointer; padding: 8px 16px; font-size: 13px; font-family: inherit;
+  display: inline-flex; align-items: center; gap: 4px;
+}
+.top-actions button:hover { background: var(--accent-soft); color: var(--accent); border-color: var(--accent-border); }
+
+.dp-main { max-width: 1280px; width: 100%; min-width: 0; margin: 0 auto; padding: 24px 24px 64px; }
+
+.doc-crumbs { font-size: 12px; color: var(--text-muted); margin-bottom: 8px; }
+.doc-crumbs a { color: var(--text-sub); cursor: pointer; }
+.doc-crumbs a:hover { color: var(--accent); }
+
+.dp-hero {
+  display: flex; align-items: flex-end; justify-content: space-between; gap: 16px;
+  padding: 4px 2px 14px; border-bottom: 1px solid var(--border); margin-bottom: 20px; flex-wrap: wrap;
+}
+.dp-hero h1 { font-size: 23px; margin: 0; }
+.dp-hero p { font-size: 12.5px; color: var(--text-muted); margin: 4px 0 0; }
+
+.sec-label {
+  font-size: 12px; font-weight: 700; letter-spacing: 0.04em; color: var(--text-sub);
+  display: flex; align-items: center; gap: 8px; margin: 26px 0 12px;
+}
+.sec-label:first-of-type { margin-top: 6px; }
+.sec-label::before { content: ""; width: 4px; height: 14px; background: var(--accent); border-radius: 2px; }
+
+.note-box {
+  font-size: 12px; color: var(--text-sub); background: var(--panel-2);
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  padding: 8px 12px; margin: 14px 0 0;
+}
+
+.footer {
+  padding: 12px 20px; border-top: 1px solid var(--border);
+  font-size: 12px; color: var(--text-muted);
+  display: flex; gap: 20px; justify-content: center;
+}
+
+/* --- ツールバー --- */
+.er-toolbar {
+  display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+  margin-bottom: 14px; padding: 10px 4px;
+}
+.er-search input {
+  width: 240px; padding: 8px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm);
+  background: var(--panel); color: var(--text); font-size: 13px; font-family: inherit;
+}
+.er-stats { font-size: 12px; color: var(--text-sub); background: var(--panel-2); border: 1px solid var(--border); border-radius: 999px; padding: 4px 12px; white-space: nowrap; }
+.er-crumbs { flex: 1; font-size: 12.5px; color: var(--text-muted); min-width: 120px; }
+.er-crumbs b { color: var(--text); font-weight: 700; }
+.er-toolbar-actions { display: flex; gap: 8px; margin-left: auto; }
+.er-toolbar-actions button {
+  background: var(--panel-2); border: 1px solid var(--border); border-radius: var(--radius-sm);
+  color: var(--text-sub); cursor: pointer; padding: 7px 14px; font-size: 12.5px; font-family: inherit;
+}
+.er-toolbar-actions button:hover { background: var(--accent-soft); color: var(--accent); border-color: var(--accent-border); }
+
+/* --- 図キャンバス --- */
+.er-canvas-wrap {
+  overflow: auto; border-radius: var(--radius); border: 1px solid var(--border);
+  background: var(--panel); padding: 16px;
+}
+.er-canvas { position: relative; }
+
+/* 状態0: クラスタカード */
+.cluster-card {
+  position: absolute; left: 0; top: 0; border: 1px solid var(--border); border-radius: var(--radius);
+  background: var(--panel-2); padding: 14px 16px; cursor: pointer;
+  transition: transform 400ms ease-out, opacity 400ms ease-out, border-color 200ms;
+  box-shadow: var(--shadow-sm); opacity: 0; overflow: hidden;
+}
+.cluster-card.is-visible { opacity: 1; }
+.cluster-card.is-dimmed.is-visible { opacity: .28; }
+.cluster-card:hover { border-color: var(--accent-border); box-shadow: var(--shadow-md); }
+.cluster-card h3 { margin: 0 0 6px; font-size: 14.5px; }
+.cluster-card .cc-meta { font-size: 11.5px; color: var(--text-muted); margin-bottom: 8px; }
+.cluster-card .cc-hub { font-size: 12px; color: var(--accent); margin-bottom: 6px; }
+.cluster-card .cc-members { font-size: 11px; color: var(--text-sub); line-height: 1.6; }
+
+.iso-card {
+  position: absolute; left: 0; top: 0; border: 1px dashed var(--border-strong); border-radius: var(--radius);
+  background: var(--panel); padding: 12px 16px; opacity: 0;
+  transition: transform 400ms ease-out, opacity 400ms ease-out;
+}
+.iso-card.is-visible { opacity: 1; }
+.iso-card.is-dimmed.is-visible { opacity: .28; }
+.iso-card h3 { margin: 0 0 8px; font-size: 13px; color: var(--text-sub); }
+.iso-list { display: flex; flex-wrap: wrap; gap: 6px; }
+.iso-chip { font-size: 11.5px; background: var(--panel-2); border: 1px solid var(--border); border-radius: 999px; padding: 3px 10px; color: var(--text-sub); }
+
+.cluster-link-line { stroke: var(--border-strong); stroke-width: 1.4; fill: none; }
+.cluster-link-label { font-size: 10.5px; fill: var(--text-muted); font-family: inherit; }
+
+/* 状態1: クラスタ展開 */
+.er-expand-hub {
+  position: absolute; left: 0; top: 0; border: 2px solid var(--accent-border); border-radius: var(--radius);
+  background: var(--accent-soft); padding: 10px 14px; text-align: center;
+  transition: transform 400ms ease-out, opacity 400ms ease-out;
+}
+.er-expand-hub .eh-label { font-weight: 700; font-size: 13px; color: var(--accent); }
+.table-chip {
+  position: absolute; left: 0; top: 0; border: 1px solid var(--border); border-radius: 999px;
+  background: var(--panel); padding: 6px 14px; font-size: 12px; color: var(--text-sub); cursor: pointer;
+  transition: transform 400ms ease-out, opacity 400ms ease-out, border-color 200ms; white-space: nowrap;
+}
+.table-chip:hover { border-color: var(--accent-border); color: var(--accent); background: var(--accent-soft); }
+.tc-fk { color: var(--text-muted); font-size: 10.5px; margin-left: 4px; }
+.side-pill {
+  position: absolute; left: 0; top: 0; border: 1px solid var(--border); border-radius: 999px;
+  background: var(--panel-2); padding: 6px 14px; font-size: 12px; color: var(--text-sub); cursor: pointer;
+  transition: transform 400ms ease-out, opacity 400ms ease-out, border-color 200ms;
+}
+.side-pill:hover { border-color: var(--accent-border); color: var(--accent); }
+
+.er-edge-line { stroke: var(--text-muted); stroke-width: 1.4; fill: none; }
+.er-edge-line.is-external { stroke-dasharray: 5 5; stroke: var(--gold); }
+.er-edge-label { font-size: 10.5px; fill: var(--text-sub); font-family: inherit; }
+
+/* 状態2: テーブル詳細 */
+.detail-overlay { position: absolute; left: 0; top: 0; width: 100%; height: 100%; }
+.detail-card {
+  position: absolute; left: 0; top: 0; border: 3px double var(--accent); border-radius: var(--radius);
+  background: var(--accent-soft); padding: 14px 18px; text-align: center; z-index: 5;
+  transition: transform 300ms ease-out, opacity 300ms ease-out;
+}
+.detail-card .dc-label { font-weight: 700; font-size: 15px; color: var(--text); }
+.detail-card .dc-key { font-family: var(--mono); font-size: 11px; color: var(--text-sub); margin-top: 2px; }
+.detail-card .dc-count { font-size: 11px; color: var(--accent); margin-top: 6px; }
+
+.related-card {
+  position: absolute; left: 0; top: 0; border: 1px solid var(--border); border-radius: var(--radius-sm);
+  background: var(--panel); padding: 8px 12px; font-size: 12px; text-align: center; cursor: pointer;
+  transition: transform 300ms ease-out, opacity 300ms ease-out, border-color 200ms;
+  min-width: 100px; max-width: 140px; width: auto;
+}
+.related-card:hover { border-color: var(--accent-border); }
+
+.dot-node {
+  position: absolute; left: 0; top: 0; width: 10px; height: 10px; border-radius: 50%;
+  background: var(--text-muted); opacity: .25; cursor: pointer;
+  transition: transform 300ms ease-out, opacity 300ms ease-out;
+}
+.dot-node:hover { opacity: .7; }
+
+.group-box {
+  position: absolute; left: 0; top: 0; border: 1px dashed var(--border-strong); border-radius: var(--radius);
+  transition: transform 300ms ease-out, opacity 300ms ease-out;
+}
+.group-box .gb-label {
+  position: absolute; top: -9px; left: 10px; background: var(--panel); padding: 0 6px;
+  font-size: 10.5px; color: var(--text-muted);
+}
+
+.pipe-line { fill: none; stroke-width: 1.6; }
+.pipe-line.same-cluster { stroke: var(--accent); }
+.pipe-line.cross-cluster { stroke: var(--gold); }
+.pipe-line:hover { stroke-width: 3; stroke-dasharray: 4 8; animation: pipe-flow 1.5s cubic-bezier(0,0,1,1) infinite; }
+@keyframes pipe-flow { to { stroke-dashoffset: -12; } }
+
+.detail-table-section { margin-top: 20px; }
+.detail-table-section .sec-label {
+  font-size: 12px; font-weight: 700; letter-spacing: 0.04em; color: var(--text-sub);
+  display: flex; align-items: center; gap: 8px; margin: 0 0 12px;
+}
+.detail-table-section .sec-label::before {
+  content: ""; width: 4px; height: 14px; background: var(--accent); border-radius: 2px;
+}
+.table-wrap { overflow-x: auto; border-radius: var(--radius); }
+table.data-table {
+  width: 100%; min-width: 480px; border-collapse: collapse; font-size: 13px;
+  background: var(--panel); border: 1px solid var(--border);
+}
+table.data-table th {
+  text-align: left; font-size: 11.5px; font-weight: 700; color: var(--text-sub);
+  background: var(--panel-2); padding: 8px 12px; border-bottom: 1px solid var(--border); white-space: nowrap;
+}
+table.data-table td { padding: 9px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+table.data-table tr:last-child td { border-bottom: none; }
+table.data-table code {
+  background: var(--panel-2); padding: 1px 6px; border-radius: 4px;
+  font-family: var(--mono); font-size: 11.5px; color: var(--text-sub); border: 1px solid var(--border);
+}
+
+.empty-note { font-size: 13px; color: var(--text-muted); padding: 12px 4px; }
+
+/* --- タブ切替 --- */
+.er-tab-bar { display: flex; gap: 0; border-bottom: 1px solid var(--border); margin-bottom: 0; padding: 0; }
+.er-tab {
+  background: none; border: none; border-bottom: 3px solid transparent;
+  padding: 10px 20px; font-size: 13px; font-family: inherit; color: var(--text-sub); cursor: pointer;
+}
+.er-tab.is-active { border-bottom-color: var(--accent); color: var(--accent); font-weight: 700; }
+.er-tab:hover { color: var(--accent); }
+.er-tab-panel { display: block; }
+.er-tab-panel.hidden { display: none; }
+
+/* --- テーブル詳細タブ --- */
+.td-layout {
+  display: grid; grid-template-columns: 240px 1fr; min-height: 600px;
+  border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; background: var(--panel);
+}
+.td-sidebar { border-right: 1px solid var(--border); overflow-y: auto; max-height: 80vh; }
+.td-sidebar-search { padding: 12px; border-bottom: 1px solid var(--border); }
+.td-sidebar-search input {
+  width: 100%; padding: 8px 10px; border: 1px solid var(--border); border-radius: var(--radius-sm);
+  background: var(--panel); color: var(--text); font-size: 13px; font-family: inherit;
+}
+.td-sidebar-item { padding: 10px 14px; border-bottom: 1px solid var(--border); cursor: pointer; font-size: 13px; color: var(--text-sub); }
+.td-sidebar-item .td-si-label { font-weight: 600; color: var(--text); font-size: 12.5px; }
+.td-sidebar-item .td-si-key { font-family: var(--mono); font-size: 10.5px; color: var(--text-muted); }
+.td-sidebar-item.is-active { background: var(--accent-soft); border-left: 3px solid var(--accent); }
+.td-sidebar-item:hover { background: var(--panel-2); }
+.td-canvas-wrap { overflow: auto; padding: 16px; }
+.td-canvas { position: relative; }
+.td-card {
+  position: absolute; left: 0; top: 0; border-radius: var(--radius); background: var(--panel);
+  font-size: 12px; box-shadow: var(--shadow-sm); transition: transform 300ms ease-out;
+}
+.td-card-selected { border: 3px double var(--accent); background: var(--accent-soft); }
+.td-card-related { border: 1px solid var(--border); cursor: pointer; }
+.td-card-related:hover { border-color: var(--accent-border); box-shadow: var(--shadow-md); }
+.td-card-header { padding: 10px 14px; border-bottom: 1px solid var(--border); }
+.td-card-label { font-weight: 700; font-size: 14px; color: var(--text); }
+.td-card-key { font-family: var(--mono); font-size: 11px; color: var(--text-sub); margin-top: 2px; }
+.td-col-row { padding: 3px 14px; font-size: 11.5px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--border); }
+.td-col-row:last-child { border-bottom: none; }
+.td-col-name { font-family: var(--mono); color: var(--text); min-width: 120px; }
+.td-col-type { font-family: var(--mono); color: var(--text-muted); flex: 1; }
+.td-col-badges { display: flex; gap: 3px; }
+.td-badge { font-size: 9px; padding: 1px 5px; border-radius: 3px; font-weight: 600; }
+.td-badge-pk { background: var(--gold-soft); color: var(--gold); border: 1px solid var(--gold-border); }
+.td-badge-fk { background: var(--accent-soft); color: var(--accent); border: 1px solid var(--accent-border); }
+.td-badge-uq { background: var(--panel-2); color: var(--text-sub); border: 1px solid var(--border); }
+.td-badge-null { background: var(--panel-2); color: var(--text-muted); border: 1px solid var(--border); }
+.td-col-more { padding: 6px 14px; font-size: 11px; color: var(--text-muted); text-align: center; }
+
+@media (max-width: 760px) {
+  .topbar { grid-template-columns: 1fr; gap: 8px; padding: 10px 14px; }
+  .dp-main { padding: 14px; }
+}
+@media (max-width: 560px) {
+  body { font-size: 14px; }
+  .dp-hero h1 { font-size: 20px; }
+  .dp-main { padding: 12px; }
+}
+
+.hidden { display: none !important; }
+</style>
+</head>
+<body>
+<div class="dp-page">
+  <header class="topbar">
+    <a class="brand" href="index.html">
+      <span class="brand-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:middle"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zM13 9V3.5L18.5 9H13z"/></svg></span>
+      <span class="brand-title">{{PROJECT_NAME}}</span>
+      <span class="brand-sub">設計ポータル</span>
+    </a>
+    <div class="header-meta">
+      <span class="pm-updated">更新: {{GENERATED_AT}}{{COMMIT_SHORT}}</span>
+    </div>
+    <div class="top-actions">
+      <button id="theme-toggle" title="テーマ切替">ライト</button>
+    </div>
+  </header>
+
+  <main class="dp-main">
+    <div class="doc-crumbs"><a href="index.html">← ポータル TOP へ戻る</a></div>
+    <div class="dp-hero">
+      <div>
+        <h1>{{TITLE}}</h1>
+        <p>{{DESCRIPTION}}</p>
+      </div>
+    </div>
+
+    <div class="er-tab-bar" id="er-tab-bar">
+      <button class="er-tab is-active" data-tab="relation">関連図</button>
+      <button class="er-tab" data-tab="tableDetail">テーブル詳細</button>
+    </div>
+
+    <div class="er-tab-panel" id="panel-relation">
+      <div class="er-toolbar" id="er-toolbar">
+        <div class="er-search"><input type="text" id="er-search-input" placeholder="テーブル名で検索"></div>
+        <div class="er-stats" id="er-stats"></div>
+        <div class="er-crumbs" id="er-crumbs"></div>
+        <div class="er-toolbar-actions" id="er-actions"></div>
+      </div>
+
+      <div class="er-canvas-wrap">
+        <div class="er-canvas" id="er-canvas"></div>
+      </div>
+
+      <div id="detail-table-section" class="detail-table-section" style="display:none;"></div>
+    </div>
+
+    <div class="er-tab-panel hidden" id="panel-tableDetail">
+      <div class="td-layout">
+        <aside class="td-sidebar">
+          <div class="td-sidebar-search">
+            <input type="text" id="td-search-input" placeholder="テーブル名で検索">
+          </div>
+          <div id="td-sidebar-list"></div>
+        </aside>
+        <div class="td-canvas-wrap">
+          <div class="td-canvas" id="td-canvas"></div>
+        </div>
+      </div>
+    </div>
+
+    <!--RELATED_ENTITIES--><div id="unresolved-mount"></div>
+  </main>
+
+  <footer class="footer">
+    <span>リバース設計スキル群が自動生成</span>
+  </footer>
+</div>
+
+<script type="application/json" id="page-data">
+{{PAGE_DATA_JSON}}
+</script>
+
+<script>
+(function() {
+  var data = JSON.parse(document.getElementById('page-data').textContent);
+  var entities = data.entities || [];
+  var relationsRaw = data.relations || [];
+
+  var SVGNS = 'http://www.w3.org/2000/svg';
+
+  function el(tag, attrs, children) {
+    var node = document.createElement(tag);
+    if (attrs) Object.keys(attrs).forEach(function(k) {
+      if (k === 'html') node.innerHTML = attrs[k];
+      else node.setAttribute(k, attrs[k]);
+    });
+    if (children) {
+      if (!Array.isArray(children)) children = [children];
+      children.forEach(function(c) {
+        if (typeof c === 'string') node.appendChild(document.createTextNode(c));
+        else if (c) node.appendChild(c);
+      });
+    }
+    return node;
+  }
+
+  function svgEl(tag, attrs) {
+    var node = document.createElementNS(SVGNS, tag);
+    if (attrs) Object.keys(attrs).forEach(function(k) { node.setAttribute(k, attrs[k]); });
+    return node;
+  }
+
+  function keyAsc(a, b) { return a < b ? -1 : (a > b ? 1 : 0); }
+
+  // 全角英数字を半角化し小文字化する(検索の正規化)
+  function normalize(s) {
+    return (s || '').replace(/[Ａ-Ｚａ-ｚ０-９]/g, function(ch) {
+      return String.fromCharCode(ch.charCodeAt(0) - 0xFEE0);
+    }).toLowerCase();
+  }
+
+  // 中心cx/cy・半幅hw/半高hhの矩形の境界上で、方向(dx,dy)にある点を返す
+  function rectBorderPoint(cx, cy, hw, hh, dx, dy) {
+    if (dx === 0 && dy === 0) return { x: cx, y: cy };
+    var scaleX = dx !== 0 ? hw / Math.abs(dx) : Infinity;
+    var scaleY = dy !== 0 ? hh / Math.abs(dy) : Infinity;
+    var scale = Math.min(scaleX, scaleY);
+    return { x: cx + dx * scale, y: cy + dy * scale };
+  }
+
+  var entitiesByKey = {};
+  entities.forEach(function(e) { entitiesByKey[e.key] = e; });
+
+  // --- グラフ構築(出次数・入次数・無向隣接) ---
+  function computeGraph() {
+    var outDeg = {}, inDeg = {}, deg = {}, adj = {};
+    entities.forEach(function(e) { outDeg[e.key] = 0; inDeg[e.key] = 0; deg[e.key] = 0; adj[e.key] = []; });
+    var relations = relationsRaw.filter(function(r) { return adj[r.from] !== undefined && adj[r.to] !== undefined; });
+    relations.forEach(function(r) {
+      outDeg[r.from]++; inDeg[r.to]++; deg[r.from]++; deg[r.to]++;
+      adj[r.from].push(r.to);
+      adj[r.to].push(r.from);
+    });
+    return { outDeg: outDeg, inDeg: inDeg, deg: deg, adj: adj, relations: relations };
+  }
+
+  // --- クラスタ化(連結成分 + 巨大成分のハブ分割) ---
+  function computeClusters(graph) {
+    var outDeg = graph.outDeg, adj = graph.adj, deg = graph.deg;
+    var isolatedKeys = entities.filter(function(e) { return deg[e.key] === 0; })
+      .map(function(e) { return e.key; }).sort(keyAsc);
+    var connectedKeys = entities.filter(function(e) { return deg[e.key] > 0; })
+      .map(function(e) { return e.key; }).sort(keyAsc);
+
+    function bfsDistances(start) {
+      var dist = {}; dist[start] = 0;
+      var q = [start];
+      while (q.length) {
+        var cur = q.shift();
+        (adj[cur] || []).forEach(function(n) {
+          if (dist[n] === undefined) { dist[n] = dist[cur] + 1; q.push(n); }
+        });
+      }
+      return dist;
+    }
+    function byOutdegDescKeyAsc(a, b) {
+      if (outDeg[b] - outDeg[a] !== 0) return outDeg[b] - outDeg[a];
+      return keyAsc(a, b);
+    }
+
+    var visited = {};
+    var components = [];
+    connectedKeys.forEach(function(startKey) {
+      if (visited[startKey]) return;
+      var comp = []; var q = [startKey]; visited[startKey] = true;
+      while (q.length) {
+        var cur = q.shift(); comp.push(cur);
+        (adj[cur] || []).forEach(function(n) { if (!visited[n]) { visited[n] = true; q.push(n); } });
+      }
+      comp.sort(keyAsc);
+      components.push(comp);
+    });
+
+    var totalCount = entities.length;
+    var clusters = [];
+
+    components.forEach(function(comp) {
+      if (totalCount > 0 && comp.length / totalCount > 0.6) {
+        // 巨大成分: 出次数上位3ノードを除去→再連結成分→各成分を最寄りハブ(BFS距離・key昇順でタイブレーク)に割当
+        var sortedByOutdeg = comp.slice().sort(byOutdegDescKeyAsc);
+        var hubKeys = sortedByOutdeg.slice(0, 3).sort(keyAsc);
+        var hubSet = {}; hubKeys.forEach(function(h) { hubSet[h] = true; });
+        var hubDist = {};
+        hubKeys.forEach(function(h) { hubDist[h] = bfsDistances(h); });
+
+        var remainderKeys = comp.filter(function(k) { return !hubSet[k]; });
+        var remainderSet = {}; remainderKeys.forEach(function(k) { remainderSet[k] = true; });
+        var remVisited = {};
+        var remComponents = [];
+        remainderKeys.forEach(function(startKey) {
+          if (remVisited[startKey]) return;
+          var rc = []; var q = [startKey]; remVisited[startKey] = true;
+          while (q.length) {
+            var cur = q.shift(); rc.push(cur);
+            (adj[cur] || []).forEach(function(n) {
+              if (hubSet[n]) return;
+              if (!remainderSet[n]) return;
+              if (!remVisited[n]) { remVisited[n] = true; q.push(n); }
+            });
+          }
+          rc.sort(keyAsc);
+          remComponents.push(rc);
+        });
+
+        var hubMembers = {}; hubKeys.forEach(function(h) { hubMembers[h] = [h]; });
+        remComponents.forEach(function(rc) {
+          var bestHub = null, bestDist = Infinity;
+          hubKeys.forEach(function(h) {
+            var d = Infinity;
+            rc.forEach(function(node) {
+              var nd = hubDist[h][node];
+              if (nd !== undefined && nd < d) d = nd;
+            });
+            if (d < bestDist) { bestDist = d; bestHub = h; }
+          });
+          if (bestHub === null) bestHub = hubKeys[0];
+          hubMembers[bestHub] = hubMembers[bestHub].concat(rc);
+        });
+
+        hubKeys.forEach(function(h) {
+          clusters.push({ id: 'cluster:' + h, hubKey: h, members: hubMembers[h].slice().sort(keyAsc) });
+        });
+      } else {
+        var hub = comp.slice().sort(byOutdegDescKeyAsc)[0];
+        clusters.push({ id: 'cluster:' + hub, hubKey: hub, members: comp.slice().sort(keyAsc) });
+      }
+    });
+
+    clusters.sort(function(a, b) {
+      if (b.members.length - a.members.length !== 0) return b.members.length - a.members.length;
+      return keyAsc(a.hubKey, b.hubKey);
+    });
+
+    return { clusters: clusters, isolatedKeys: isolatedKeys };
+  }
+
+  var graph = computeGraph();
+  var clustersInfo = computeClusters(graph);
+  var clusterByKey = {};
+  clustersInfo.clusters.forEach(function(c) { c.members.forEach(function(k) { clusterByKey[k] = c.id; }); });
+  var clusterById = {};
+  clustersInfo.clusters.forEach(function(c) { clusterById[c.id] = c; });
+
+  function clusterLabel(clusterOrId) {
+    var c = typeof clusterOrId === 'string' ? clusterById[clusterOrId] : clusterOrId;
+    if (!c) return '孤立テーブル';
+    return entitiesByKey[c.hubKey].label + '周辺';
+  }
+
+  function computeClusterLinks() {
+    var counts = {};
+    graph.relations.forEach(function(r) {
+      var ca = clusterByKey[r.from], cb = clusterByKey[r.to];
+      if (!ca || !cb || ca === cb) return;
+      var k = ca < cb ? ca + '|' + cb : cb + '|' + ca;
+      counts[k] = (counts[k] || 0) + 1;
+    });
+    return counts;
+  }
+
+  function clusterInternalRelCount(cluster) {
+    var set = {}; cluster.members.forEach(function(k) { set[k] = true; });
+    var n = 0;
+    graph.relations.forEach(function(r) { if (set[r.from] && set[r.to]) n++; });
+    return n;
+  }
+
+  // --- DOM要素 ---
+  var canvasEl = document.getElementById('er-canvas');
+  var statsEl = document.getElementById('er-stats');
+  var crumbsEl = document.getElementById('er-crumbs');
+  var actionsEl = document.getElementById('er-actions');
+  var searchInput = document.getElementById('er-search-input');
+
+  var state = { mode: 'clusters', expandedId: null, selectedKey: null, searchTerm: '' };
+  var lastMode = null;
+  var detailNodeCache = null;
+
+  function updateStats() {
+    statsEl.textContent = 'テーブル ' + entities.length + '件 / リレーション ' + graph.relations.length + '件';
+  }
+
+  function renderCrumbs(parts) {
+    crumbsEl.innerHTML = '';
+    if (!parts || parts.length === 0) return;
+    parts.forEach(function(p, i) {
+      if (i > 0) crumbsEl.appendChild(document.createTextNode(' > '));
+      crumbsEl.appendChild(el('b', null, p));
+    });
+  }
+
+  function renderActions(defs) {
+    actionsEl.innerHTML = '';
+    defs.forEach(function(d) {
+      var btn = el('button', {}, d.label);
+      btn.addEventListener('click', d.onClick);
+      actionsEl.appendChild(btn);
+    });
+  }
+
+  // --- 状態0: クラスタカード一覧 ---
+  function renderClusters() {
+    var dts = document.getElementById('detail-table-section');
+    if (dts) dts.style.display = 'none';
+    renderCrumbs(null);
+    renderActions([]);
+    var term = normalize(state.searchTerm);
+    var clusters = clustersInfo.clusters;
+    var MARGIN = 30, CARD_W = 300, CARD_H = 210, GAP_X = 50, GAP_Y = 40;
+    var cols = Math.min(3, Math.ceil(Math.sqrt(clusters.length || 1)));
+    var rows = Math.ceil((clusters.length || 1) / cols) || 1;
+
+    var positions = {};
+    clusters.forEach(function(c, idx) {
+      var col = idx % cols, row = Math.floor(idx / cols);
+      positions[c.id] = {
+        x: MARGIN + col * (CARD_W + GAP_X),
+        y: MARGIN + row * (CARD_H + GAP_Y),
+        w: CARD_W, h: CARD_H
+      };
+    });
+
+    var isoY = MARGIN + rows * (CARD_H + GAP_Y);
+    var gridW = MARGIN * 2 + cols * CARD_W + (cols - 1) * GAP_X;
+    var isoH = 90;
+    var hasIso = clustersInfo.isolatedKeys.length > 0;
+    var canvasH = isoY + (hasIso ? isoH + MARGIN : MARGIN);
+
+    canvasEl.style.width = gridW + 'px';
+    canvasEl.style.height = canvasH + 'px';
+
+    if (clusters.length === 0 && !hasIso) {
+      canvasEl.appendChild(el('div', { class: 'empty-note' }, 'テーブルがありません'));
+      return;
+    }
+
+    var svg = svgEl('svg', { width: gridW, height: canvasH, style: 'position:absolute;left:0;top:0;pointer-events:none;' });
+    var links = computeClusterLinks();
+    Object.keys(links).sort().forEach(function(k) {
+      var parts = k.split('|');
+      var pa = positions[parts[0]], pb = positions[parts[1]];
+      if (!pa || !pb) return;
+      var acx = pa.x + pa.w / 2, acy = pa.y + pa.h / 2;
+      var bcx = pb.x + pb.w / 2, bcy = pb.y + pb.h / 2;
+      var dx = bcx - acx, dy = bcy - acy;
+      var start = rectBorderPoint(acx, acy, pa.w / 2, pa.h / 2, dx, dy);
+      var end = rectBorderPoint(bcx, bcy, pb.w / 2, pb.h / 2, -dx, -dy);
+      svg.appendChild(svgEl('line', { x1: start.x, y1: start.y, x2: end.x, y2: end.y, class: 'cluster-link-line' }));
+      var mx = (start.x + end.x) / 2, my = (start.y + end.y) / 2;
+      var labelNode = svgEl('text', { x: mx, y: my - 4, class: 'cluster-link-label', 'text-anchor': 'middle' });
+      labelNode.textContent = links[k] + '件';
+      svg.appendChild(labelNode);
+    });
+    canvasEl.appendChild(svg);
+
+    var fadeTargets = [];
+
+    clusters.forEach(function(c) {
+      var p = positions[c.id];
+      var hub = entitiesByKey[c.hubKey];
+      var matched = !term || c.members.some(function(k) {
+        var e = entitiesByKey[k];
+        return normalize(e.key).indexOf(term) !== -1 || normalize(e.label).indexOf(term) !== -1;
+      });
+      var card = el('div', {
+        class: 'cluster-card' + (matched ? '' : ' is-dimmed'),
+        style: 'transform:translate(' + p.x + 'px,' + p.y + 'px);width:' + p.w + 'px;height:' + p.h + 'px;'
+      });
+      card.appendChild(el('h3', null, hub.label + '周辺'));
+      card.appendChild(el('div', { class: 'cc-meta' }, 'テーブル' + c.members.length + '件 / リレーション' + clusterInternalRelCount(c) + '件'));
+      card.appendChild(el('div', { class: 'cc-hub' }, 'ハブ: ' + hub.label));
+      card.appendChild(el('div', { class: 'cc-members' }, c.members.map(function(k) { return entitiesByKey[k].label; }).join('、')));
+      card.addEventListener('click', function() {
+        state.mode = 'expand';
+        state.expandedId = c.id;
+        render();
+      });
+      canvasEl.appendChild(card);
+      fadeTargets.push(card);
+    });
+
+    if (hasIso) {
+      var isoMatched = !term || clustersInfo.isolatedKeys.some(function(k) {
+        var e = entitiesByKey[k];
+        return normalize(e.key).indexOf(term) !== -1 || normalize(e.label).indexOf(term) !== -1;
+      });
+      var isoCard = el('div', {
+        class: 'iso-card' + (isoMatched ? '' : ' is-dimmed'),
+        style: 'transform:translate(' + MARGIN + 'px,' + isoY + 'px);width:' + (gridW - MARGIN * 2) + 'px;height:' + isoH + 'px;'
+      });
+      isoCard.appendChild(el('h3', null, '孤立テーブル（FK 0本）'));
+      var list = el('div', { class: 'iso-list' });
+      clustersInfo.isolatedKeys.forEach(function(k) {
+        list.appendChild(el('span', { class: 'iso-chip' }, entitiesByKey[k].label));
+      });
+      isoCard.appendChild(list);
+      canvasEl.appendChild(isoCard);
+      fadeTargets.push(isoCard);
+    }
+
+    requestAnimationFrame(function() {
+      fadeTargets.forEach(function(n) { n.classList.add('is-visible'); });
+    });
+  }
+
+  // --- 状態1: クラスタ展開 ---
+  function renderExpand() {
+    var dts = document.getElementById('detail-table-section');
+    if (dts) dts.style.display = 'none';
+    var CANVAS_W = 1180, CANVAS_H = 760;
+    canvasEl.style.width = CANVAS_W + 'px';
+    canvasEl.style.height = CANVAS_H + 'px';
+
+    var cluster = clusterById[state.expandedId];
+    if (!cluster) { state.mode = 'clusters'; render(); return; }
+    renderCrumbs([clusterLabel(cluster)]);
+    renderActions([{ label: '閉じる', onClick: function() { state.mode = 'clusters'; render(); } }]);
+
+    var leftW = CANVAS_W * 0.6;
+    var hubX = leftW / 2, hubY = CANVAS_H / 2;
+    var others = cluster.members.filter(function(k) { return k !== cluster.hubKey; })
+      .sort(function(a, b) {
+        if (graph.outDeg[b] - graph.outDeg[a] !== 0) return graph.outDeg[b] - graph.outDeg[a];
+        return keyAsc(a, b);
+      });
+    var n = others.length;
+    var radius = Math.min(leftW, CANVAS_H) / 2 - 90;
+    var positions = {};
+    positions[cluster.hubKey] = { x: hubX, y: hubY };
+    others.forEach(function(k, i) {
+      var angle = (-90 + (n > 0 ? i * (360 / n) : 0)) * Math.PI / 180;
+      positions[k] = { x: hubX + radius * Math.cos(angle), y: hubY + radius * Math.sin(angle) };
+    });
+
+    var otherClusters = clustersInfo.clusters.filter(function(c) { return c.id !== cluster.id; });
+    var pillPositions = {};
+    var pillX = CANVAS_W - 170;
+    var pillGap = Math.max(46, (CANVAS_H - 60) / Math.max(1, otherClusters.length));
+    otherClusters.forEach(function(c, i) {
+      pillPositions[c.id] = { x: pillX, y: 40 + i * pillGap + pillGap / 2 };
+    });
+
+    var svg = svgEl('svg', { width: CANVAS_W, height: CANVAS_H, style: 'position:absolute;left:0;top:0;pointer-events:none;' });
+
+    var memberSet = {}; cluster.members.forEach(function(k) { memberSet[k] = true; });
+    graph.relations.forEach(function(r, idx) {
+      var inA = !!memberSet[r.from], inB = !!memberSet[r.to];
+      if (inA && inB) {
+        var a = positions[r.from], b = positions[r.to];
+        if (!a || !b) return;
+        svg.appendChild(svgEl('line', { x1: a.x, y1: a.y, x2: b.x, y2: b.y, class: 'er-edge-line' }));
+        if (r.cardinality) {
+          var mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+          var t = svgEl('text', { x: mx, y: my - 4, class: 'er-edge-label', 'text-anchor': 'middle' });
+          t.textContent = r.cardinality;
+          svg.appendChild(t);
+        }
+      } else if (inA !== inB) {
+        var innerKey = inA ? r.from : r.to;
+        var outerKey = inA ? r.to : r.from;
+        var outerClusterId = clusterByKey[outerKey];
+        var innerPos = positions[innerKey];
+        var pill = pillPositions[outerClusterId];
+        if (!innerPos || !pill) return;
+        var jitter = (idx % 3 - 1) * 8;
+        svg.appendChild(svgEl('line', {
+          x1: innerPos.x, y1: innerPos.y, x2: pill.x, y2: pill.y + jitter,
+          class: 'er-edge-line is-external'
+        }));
+      }
+    });
+    canvasEl.appendChild(svg);
+
+    var hubEl = el('div', {
+      class: 'er-expand-hub',
+      style: 'transform:translate(' + (hubX - 70) + 'px,' + (hubY - 30) + 'px);width:140px;'
+    });
+    hubEl.appendChild(el('div', { class: 'eh-label' }, entitiesByKey[cluster.hubKey].label));
+    hubEl.appendChild(el('div', { class: 'tc-fk' }, 'FK ' + (graph.outDeg[cluster.hubKey] + graph.inDeg[cluster.hubKey]) + '件'));
+    hubEl.style.cursor = 'pointer';
+    hubEl.addEventListener('click', function() {
+      state.mode = 'detail';
+      state.selectedKey = cluster.hubKey;
+      render();
+    });
+    canvasEl.appendChild(hubEl);
+
+    others.forEach(function(k) {
+      var p = positions[k];
+      var e = entitiesByKey[k];
+      var chip = el('div', {
+        class: 'table-chip',
+        style: 'transform:translate(' + (p.x - 60) + 'px,' + (p.y - 16) + 'px);width:120px;text-align:center;'
+      });
+      chip.appendChild(document.createTextNode(e.label));
+      chip.appendChild(el('span', { class: 'tc-fk' }, (graph.outDeg[k] + graph.inDeg[k]) + '件'));
+      chip.addEventListener('click', function() {
+        state.mode = 'detail';
+        state.selectedKey = k;
+        render();
+      });
+      canvasEl.appendChild(chip);
+    });
+
+    otherClusters.forEach(function(c) {
+      var p = pillPositions[c.id];
+      var pill = el('div', {
+        class: 'side-pill',
+        style: 'transform:translate(' + p.x + 'px,' + (p.y - 14) + 'px);width:150px;text-align:center;'
+      });
+      pill.textContent = clusterLabel(c) + '（' + c.members.length + '）';
+      pill.addEventListener('click', function() {
+        state.expandedId = c.id;
+        render();
+      });
+      canvasEl.appendChild(pill);
+    });
+  }
+
+  // --- 状態2: テーブル詳細 ---
+  function renderDetail() {
+    var CANVAS_W = 1180, CANVAS_H = 760;
+    canvasEl.style.width = CANVAS_W + 'px';
+    canvasEl.style.height = CANVAS_H + 'px';
+
+    var selKey = state.selectedKey;
+    var selEntity = entitiesByKey[selKey];
+    if (!selEntity) { state.mode = 'clusters'; render(); return; }
+    var selClusterId = clusterByKey[selKey] || 'isolated';
+    var selClusterLbl = selClusterId === 'isolated' ? '孤立テーブル' : clusterLabel(selClusterId);
+
+    renderCrumbs([selClusterLbl, selEntity.label]);
+    renderActions([
+      { label: '選択解除', onClick: function() {
+          if (selClusterId === 'isolated') {
+            state.mode = 'clusters';
+          } else {
+            state.mode = 'expand';
+            state.expandedId = selClusterId;
+          }
+          render();
+        } },
+      { label: '全体に戻る', onClick: function() { state.mode = 'clusters'; render(); } },
+      { label: 'テーブル詳細で見る', onClick: function() {
+          state.tdSelectedKey = selKey;
+          switchTab('tableDetail');
+        } }
+    ]);
+
+    var relLines = [];
+    graph.relations.forEach(function(r) {
+      var otherKey = null;
+      if (r.from === selKey) otherKey = r.to;
+      else if (r.to === selKey) otherKey = r.from;
+      if (!otherKey) return;
+      var sameCluster = (clusterByKey[otherKey] || 'isolated') === selClusterId;
+      relLines.push({ otherKey: otherKey, cardinality: r.cardinality, sourceRef: r.sourceRef, sameCluster: sameCluster });
+    });
+    var relatedKeys = {};
+    relLines.forEach(function(rl) { relatedKeys[rl.otherKey] = true; });
+
+    var relatedSame = [], relatedOther = [];
+    Object.keys(relatedKeys).sort(keyAsc).forEach(function(k) {
+      if ((clusterByKey[k] || 'isolated') === selClusterId) relatedSame.push(k); else relatedOther.push(k);
+    });
+
+    var otherByCluster = {};
+    relatedOther.forEach(function(k) {
+      var cid = clusterByKey[k] || 'isolated';
+      otherByCluster[cid] = otherByCluster[cid] || [];
+      otherByCluster[cid].push(k);
+    });
+
+    var dotKeys = entities.map(function(e) { return e.key; })
+      .filter(function(k) { return k !== selKey && !relatedKeys[k]; })
+      .sort(keyAsc);
+
+    var centerX = CANVAS_W / 2, centerY = CANVAS_H / 2;
+    var positions = {};
+    positions[selKey] = { x: centerX, y: centerY };
+
+    // 同クラスタ関連カード: 1行あたり最大4枚で折り返し
+    var CARDS_PER_ROW = 4;
+    var CARD_GAP = 160;
+    var ROW_GAP = 50;
+    var sameRows = Math.ceil(relatedSame.length / CARDS_PER_ROW);
+    var topY = centerY - 200 - (sameRows - 1) * ROW_GAP;
+    relatedSame.forEach(function(k, i) {
+      var row = Math.floor(i / CARDS_PER_ROW);
+      var col = i % CARDS_PER_ROW;
+      var rowCount = Math.min(CARDS_PER_ROW, relatedSame.length - row * CARDS_PER_ROW);
+      var startX = centerX - (rowCount - 1) * CARD_GAP / 2;
+      positions[k] = { x: startX + col * CARD_GAP, y: topY + row * ROW_GAP };
+    });
+
+    var bottomY = centerY + 230;
+    var otherClusterIds = Object.keys(otherByCluster).sort();
+    var groupGap = 220;
+    var groupStartX = centerX - (otherClusterIds.length - 1) * groupGap / 2;
+    otherClusterIds.forEach(function(cid, gi) {
+      var members = otherByCluster[cid];
+      var gx = groupStartX + gi * groupGap;
+      var startX = gx - (members.length - 1) * 70;
+      members.forEach(function(k, i) {
+        positions[k] = { x: startX + i * 140, y: bottomY };
+      });
+    });
+
+    var dotRadius = Math.min(CANVAS_W, CANVAS_H) / 2 - 40;
+    var dn = dotKeys.length;
+    dotKeys.forEach(function(k, i) {
+      var angle = (dn > 0 ? i * (360 / dn) : 0) * Math.PI / 180;
+      positions[k] = { x: centerX + dotRadius * Math.cos(angle), y: centerY + dotRadius * Math.sin(angle) };
+    });
+
+    // 配置計算後に実際のキャンバス高さを算出
+    var allYs = Object.keys(positions).map(function(k) { return positions[k].y; });
+    var usedMinY = Math.min.apply(null, allYs);
+    var usedMaxY = Math.max.apply(null, allYs);
+    CANVAS_H = Math.max(760, usedMaxY - usedMinY + 200);
+    canvasEl.style.height = CANVAS_H + 'px';
+    // Y座標を中央寄せし直す(上端マージン100px確保)
+    var yOffset = 100 - usedMinY;
+    Object.keys(positions).forEach(function(k) { positions[k].y += yOffset; });
+    centerY += yOffset;
+
+    var oldOverlay = canvasEl.querySelector('.detail-overlay');
+    if (oldOverlay) canvasEl.removeChild(oldOverlay);
+    var overlay = el('div', { class: 'detail-overlay' });
+
+    var svg = svgEl('svg', { width: CANVAS_W, height: CANVAS_H, style: 'position:absolute;left:0;top:0;pointer-events:none;overflow:visible;' });
+    var defs = svgEl('defs');
+    var marker = svgEl('marker', {
+      id: 'arrowhead', viewBox: '0 0 10 10', refX: '9', refY: '5',
+      markerWidth: '6', markerHeight: '6', orient: 'auto-start-reverse'
+    });
+    marker.appendChild(svgEl('path', { d: 'M 0 0 L 10 5 L 0 10 z', fill: 'var(--text-muted)' }));
+    defs.appendChild(marker);
+    svg.appendChild(defs);
+    relLines.forEach(function(rl) {
+      var p = positions[rl.otherKey];
+      if (!p) return;
+      var line = svgEl('line', {
+        x1: centerX, y1: centerY, x2: p.x, y2: p.y,
+        class: 'pipe-line ' + (rl.sameCluster ? 'same-cluster' : 'cross-cluster'),
+        style: 'pointer-events:stroke;',
+        'marker-end': 'url(#arrowhead)'
+      });
+      var titleNode = svgEl('title', {});
+      titleNode.textContent = rl.sourceRef || '';
+      line.appendChild(titleNode);
+      svg.appendChild(line);
+      if (rl.cardinality) {
+        var mx = (centerX + p.x) / 2, my = (centerY + p.y) / 2;
+        var t = svgEl('text', { x: mx, y: my - 4, class: 'er-edge-label', 'text-anchor': 'middle' });
+        t.textContent = rl.cardinality;
+        svg.appendChild(t);
+      }
+    });
+    overlay.appendChild(svg);
+
+    if (relatedSame.length > 0) {
+      var xsSame = relatedSame.map(function(k) { return positions[k].x; });
+      var ysSame = relatedSame.map(function(k) { return positions[k].y; });
+      var minXs = Math.min.apply(null, xsSame) - 75, maxXs = Math.max.apply(null, xsSame) + 75;
+      var minYs = Math.min.apply(null, ysSame) - 28, maxYs = Math.max.apply(null, ysSame) + 28;
+      var boxSame = el('div', {
+        class: 'group-box',
+        style: 'transform:translate(' + minXs + 'px,' + minYs + 'px);width:' + (maxXs - minXs) + 'px;height:' + (maxYs - minYs) + 'px;'
+      });
+      boxSame.appendChild(el('span', { class: 'gb-label' }, selClusterLbl));
+      overlay.appendChild(boxSame);
+    }
+    otherClusterIds.forEach(function(cid) {
+      var members = otherByCluster[cid];
+      var xs = members.map(function(k) { return positions[k].x; });
+      var ys = members.map(function(k) { return positions[k].y; });
+      var minX = Math.min.apply(null, xs) - 75, maxX = Math.max.apply(null, xs) + 75;
+      var minY = Math.min.apply(null, ys) - 28, maxY = Math.max.apply(null, ys) + 28;
+      var label = cid === 'isolated' ? '孤立テーブル' : clusterLabel(cid);
+      var box = el('div', {
+        class: 'group-box',
+        style: 'transform:translate(' + minX + 'px,' + minY + 'px);width:' + (maxX - minX) + 'px;height:' + (maxY - minY) + 'px;'
+      });
+      box.appendChild(el('span', { class: 'gb-label' }, label));
+      overlay.appendChild(box);
+    });
+
+    var centerCard = el('div', {
+      class: 'detail-card',
+      style: 'transform:translate(' + (centerX - 90) + 'px,' + (centerY - 40) + 'px);width:180px;'
+    });
+    centerCard.appendChild(el('div', { class: 'dc-label' }, selEntity.label));
+    centerCard.appendChild(el('div', { class: 'dc-key' }, selEntity.key));
+    centerCard.appendChild(el('div', { class: 'dc-count' }, 'リレーション ' + relLines.length + '本'));
+    overlay.appendChild(centerCard);
+
+    canvasEl.appendChild(overlay);
+
+    if (!detailNodeCache) detailNodeCache = {};
+    var allOtherKeys = entities.map(function(e) { return e.key; }).filter(function(k) { return k !== selKey; });
+    allOtherKeys.forEach(function(k) {
+      var p = positions[k];
+      var e = entitiesByKey[k];
+      var isRelated = !!relatedKeys[k];
+      var node = detailNodeCache[k];
+      if (!node) {
+        node = document.createElement('div');
+        node.addEventListener('click', function() { state.selectedKey = k; render(); });
+        detailNodeCache[k] = node;
+        canvasEl.appendChild(node);
+      }
+      node.style.display = '';
+      if (isRelated) {
+        node.className = 'related-card';
+        node.style.transform = 'translate(' + (p.x - 60) + 'px,' + (p.y - 18) + 'px)';
+        node.title = '';
+        node.textContent = e.label;
+      } else {
+        node.className = 'dot-node';
+        node.style.transform = 'translate(' + (p.x - 5) + 'px,' + (p.y - 5) + 'px)';
+        node.title = e.label;
+        node.textContent = '';
+      }
+    });
+    Object.keys(detailNodeCache).forEach(function(k) {
+      if (k === selKey && detailNodeCache[k]) {
+        detailNodeCache[k].style.display = 'none';
+      }
+    });
+
+    var tableSection = document.getElementById('detail-table-section');
+    tableSection.style.display = '';
+    tableSection.innerHTML = '';
+    tableSection.appendChild(el('div', { class: 'sec-label' }, selEntity.label + ' のリレーション'));
+    var tableWrap = el('div', { class: 'table-wrap' });
+    var tbl = el('table', { class: 'data-table' });
+    var thead = el('thead');
+    thead.appendChild(el('tr', null, [
+      el('th', null, '方向'), el('th', null, '相手テーブル'),
+      el('th', null, 'カーディナリティ'), el('th', null, '出所')
+    ]));
+    tbl.appendChild(thead);
+    var tbdy = el('tbody');
+    if (relLines.length === 0) {
+      tbdy.appendChild(el('tr', null, el('td', { colspan: '4' }, 'なし')));
+    } else {
+      relLines.forEach(function(rl) {
+        var dir = '→参照';
+        graph.relations.forEach(function(r) {
+          if (r.to === selKey && r.from === rl.otherKey) dir = '←被参照';
+        });
+        var oe = entitiesByKey[rl.otherKey];
+        tbdy.appendChild(el('tr', null, [
+          el('td', null, dir),
+          el('td', null, oe ? oe.label + '（' + rl.otherKey + '）' : rl.otherKey),
+          el('td', null, rl.cardinality || ''),
+          el('td', null, el('code', null, rl.sourceRef || ''))
+        ]));
+      });
+    }
+    tbl.appendChild(tbdy);
+    tableWrap.appendChild(tbl);
+    tableSection.appendChild(tableWrap);
+  }
+
+  function render() {
+    canvasEl.innerHTML = '';
+    detailNodeCache = null;
+    lastMode = state.mode;
+    updateStats();
+    if (state.mode === 'clusters') renderClusters();
+    else if (state.mode === 'expand') renderExpand();
+    else renderDetail();
+  }
+
+  searchInput.addEventListener('input', function() {
+    state.searchTerm = searchInput.value;
+    if (state.mode === 'clusters') render();
+  });
+
+  render();
+
+  // --- テーブル詳細タブ ---
+  state.tab = 'relation';
+  state.tdSelectedKey = null;
+  state.tdSearchTerm = '';
+
+  function switchTab(tabId) {
+    state.tab = tabId;
+    document.getElementById('panel-relation').classList.toggle('hidden', tabId !== 'relation');
+    document.getElementById('panel-tableDetail').classList.toggle('hidden', tabId !== 'tableDetail');
+    var tabs = document.querySelectorAll('.er-tab');
+    for (var i = 0; i < tabs.length; i++) {
+      tabs[i].classList.toggle('is-active', tabs[i].getAttribute('data-tab') === tabId);
+    }
+    if (tabId === 'tableDetail') renderTableDetail();
+  }
+
+  var tabButtons = document.querySelectorAll('.er-tab');
+  for (var ti = 0; ti < tabButtons.length; ti++) {
+    (function(btn) {
+      btn.addEventListener('click', function() { switchTab(btn.getAttribute('data-tab')); });
+    })(tabButtons[ti]);
+  }
+
+  function renderTableDetail() {
+    var tdCanvas = document.getElementById('td-canvas');
+    tdCanvas.innerHTML = '';
+
+    // サイドバー描画
+    var sidebarList = document.getElementById('td-sidebar-list');
+    sidebarList.innerHTML = '';
+    var sortedEntities = entities.slice().sort(function(a, b) {
+      return a.label < b.label ? -1 : a.label > b.label ? 1 : 0;
+    });
+    var term = normalize(state.tdSearchTerm);
+    sortedEntities.forEach(function(e) {
+      if (term && normalize(e.key).indexOf(term) === -1 && normalize(e.label).indexOf(term) === -1) return;
+      var item = el('div', { class: 'td-sidebar-item' + (state.tdSelectedKey === e.key ? ' is-active' : '') });
+      item.appendChild(el('div', { class: 'td-si-label' }, e.label));
+      item.appendChild(el('div', { class: 'td-si-key' }, e.key));
+      item.addEventListener('click', function() {
+        state.tdSelectedKey = e.key;
+        renderTableDetail();
+      });
+      sidebarList.appendChild(item);
+    });
+
+    if (!state.tdSelectedKey) {
+      tdCanvas.appendChild(el('div', { style: 'padding:40px;color:var(--text-muted);font-size:13px;text-align:center;' }, 'サイドバーからテーブルを選択'));
+      return;
+    }
+
+    var selKey = state.tdSelectedKey;
+    var selEntity = entitiesByKey[selKey];
+    if (!selEntity) return;
+    var selClusterId = clusterByKey[selKey] || 'isolated';
+
+    // 関連テーブル収集
+    var relLines = [];
+    graph.relations.forEach(function(r) {
+      var otherKey = null;
+      if (r.from === selKey) otherKey = r.to;
+      else if (r.to === selKey) otherKey = r.from;
+      if (!otherKey) return;
+      var sameCluster = (clusterByKey[otherKey] || 'isolated') === selClusterId;
+      relLines.push({ otherKey: otherKey, cardinality: r.cardinality, sourceRef: r.sourceRef, sameCluster: sameCluster, from: r.from, to: r.to });
+    });
+
+    var relatedKeys = {};
+    relLines.forEach(function(rl) { relatedKeys[rl.otherKey] = true; });
+    var relatedSame = [], relatedOther = [];
+    Object.keys(relatedKeys).sort(keyAsc).forEach(function(k) {
+      if ((clusterByKey[k] || 'isolated') === selClusterId) relatedSame.push(k);
+      else relatedOther.push(k);
+    });
+
+    var otherByCluster = {};
+    relatedOther.forEach(function(k) {
+      var cid = clusterByKey[k] || 'isolated';
+      otherByCluster[cid] = otherByCluster[cid] || [];
+      otherByCluster[cid].push(k);
+    });
+
+    // カード高さ計算
+    function cardHeight(e, maxCols) {
+      var cols = (e.columns || []);
+      var shown = maxCols ? Math.min(cols.length, maxCols) : cols.length;
+      var hasMore = maxCols && cols.length > maxCols;
+      return 48 + shown * 24 + (hasMore ? 24 : 0) + (cols.length === 0 ? 0 : 4);
+    }
+
+    var CARD_W = 220;
+    var GAP_X = 250, GAP_Y = 50;
+    var selH = cardHeight(selEntity);
+    var CANVAS_W = 1140;
+
+    // ★中央位置
+    var centerX = CANVAS_W / 2, centerY = 0; // centerY は後で算出
+
+    // 同クラスタ上部
+    var CARDS_PER_ROW = 4;
+    var topY = 80;
+
+    var sameRowHeights = [];
+    relatedSame.forEach(function(k, i) {
+      var row = Math.floor(i / CARDS_PER_ROW);
+      var e = entitiesByKey[k];
+      var h = cardHeight(e, 5);
+      if (!sameRowHeights[row]) sameRowHeights[row] = 0;
+      if (h > sameRowHeights[row]) sameRowHeights[row] = h;
+    });
+
+    var sameRowY = [topY];
+    for (var ri = 1; ri < sameRowHeights.length; ri++) {
+      sameRowY[ri] = sameRowY[ri - 1] + sameRowHeights[ri - 1] + GAP_Y;
+    }
+    var sameBlockH = sameRowHeights.length > 0
+      ? sameRowY[sameRowY.length - 1] + sameRowHeights[sameRowHeights.length - 1] - topY + 60
+      : 60;
+    centerY = topY + sameBlockH + 40;
+
+    var positions = {};
+    positions[selKey] = { x: centerX, y: centerY, w: CARD_W, h: selH };
+
+    relatedSame.forEach(function(k, i) {
+      var row = Math.floor(i / CARDS_PER_ROW);
+      var col = i % CARDS_PER_ROW;
+      var rowCount = Math.min(CARDS_PER_ROW, relatedSame.length - row * CARDS_PER_ROW);
+      var startX = centerX - (rowCount - 1) * GAP_X / 2;
+      var e = entitiesByKey[k];
+      var h = cardHeight(e, 5);
+      positions[k] = { x: startX + col * GAP_X, y: sameRowY[row], w: CARD_W, h: h };
+    });
+
+    // 他クラスタ下部
+    var bottomY = centerY + selH + 60;
+    var otherClusterIds = Object.keys(otherByCluster).sort();
+    var groupGap = GAP_X;
+    var groupStartX = centerX - (otherClusterIds.length - 1) * groupGap / 2;
+    otherClusterIds.forEach(function(cid, gi) {
+      var members = otherByCluster[cid];
+      var gx = groupStartX + gi * groupGap;
+      var startX = gx - (members.length - 1) * GAP_X / 2;
+      members.forEach(function(k, i) {
+        var e = entitiesByKey[k];
+        var h = cardHeight(e, 5);
+        positions[k] = { x: startX + i * GAP_X, y: bottomY, w: CARD_W, h: h };
+      });
+    });
+
+    // キャンバスサイズ算出
+    var allPositions = Object.keys(positions).map(function(k) { return positions[k]; });
+    var maxY = 0;
+    allPositions.forEach(function(p) { if (p.y + p.h > maxY) maxY = p.y + p.h; });
+    var CANVAS_H = Math.max(600, maxY + 80);
+    tdCanvas.style.width = CANVAS_W + 'px';
+    tdCanvas.style.height = CANVAS_H + 'px';
+
+    // SVG 線描画
+    var svg = svgEl('svg', { width: CANVAS_W, height: CANVAS_H, style: 'position:absolute;left:0;top:0;pointer-events:none;overflow:visible;' });
+    var defs = svgEl('defs');
+    var marker = svgEl('marker', { id: 'arrowhead-td', viewBox: '0 0 10 10', refX: '9', refY: '5', markerWidth: '6', markerHeight: '6', orient: 'auto-start-reverse' });
+    marker.appendChild(svgEl('path', { d: 'M 0 0 L 10 5 L 0 10 z', fill: 'var(--text-muted)' }));
+    defs.appendChild(marker);
+    svg.appendChild(defs);
+
+    relLines.forEach(function(rl) {
+      var p = positions[rl.otherKey];
+      var sp = positions[selKey];
+      if (!p || !sp) return;
+      var line = svgEl('line', {
+        x1: sp.x, y1: sp.y + sp.h / 2, x2: p.x, y2: p.y + p.h / 2,
+        class: 'pipe-line ' + (rl.sameCluster ? 'same-cluster' : 'cross-cluster'),
+        'marker-end': 'url(#arrowhead-td)',
+        style: 'pointer-events:stroke;'
+      });
+      var titleEl = svgEl('title');
+      titleEl.textContent = rl.sourceRef || '';
+      line.appendChild(titleEl);
+      svg.appendChild(line);
+      if (rl.cardinality) {
+        var mx = (sp.x + p.x) / 2, my = (sp.y + sp.h / 2 + p.y + p.h / 2) / 2;
+        var t = svgEl('text', { x: mx, y: my - 6, class: 'er-edge-label', 'text-anchor': 'middle' });
+        t.textContent = rl.cardinality;
+        svg.appendChild(t);
+      }
+    });
+    tdCanvas.appendChild(svg);
+
+    // クラスタ点線囲い
+    function drawGroupBox(keys, label, canvas) {
+      if (keys.length === 0) return;
+      var xs = keys.map(function(k) { return positions[k].x; });
+      var ys = keys.map(function(k) { return positions[k].y; });
+      var hs = keys.map(function(k) { return positions[k].h; });
+      var minX = Math.min.apply(null, xs) - CARD_W / 2 - 20;
+      var maxX = Math.max.apply(null, xs) + CARD_W / 2 + 20;
+      var minY = Math.min.apply(null, ys) - 30;
+      var maxH = 0;
+      keys.forEach(function(k, i) { if (ys[i] + hs[i] > maxH) maxH = ys[i] + hs[i]; });
+      var maxY = maxH + 10;
+      var box = el('div', {
+        class: 'group-box',
+        style: 'transform:translate(' + minX + 'px,' + minY + 'px);width:' + (maxX - minX) + 'px;height:' + (maxY - minY) + 'px;'
+      });
+      box.appendChild(el('span', { class: 'gb-label' }, label));
+      canvas.appendChild(box);
+    }
+
+    if (relatedSame.length > 0) {
+      var sameLabel = selClusterId === 'isolated' ? '孤立テーブル' : clusterLabel(selClusterId);
+      drawGroupBox(relatedSame, sameLabel, tdCanvas);
+    }
+    otherClusterIds.forEach(function(cid) {
+      var label = cid === 'isolated' ? '孤立テーブル' : clusterLabel(cid);
+      drawGroupBox(otherByCluster[cid], label, tdCanvas);
+    });
+
+    // カード描画関数
+    function buildCard(e, isSelected, maxCols) {
+      var cls = 'td-card ' + (isSelected ? 'td-card-selected' : 'td-card-related');
+      var p = positions[e.key];
+      var card = el('div', {
+        class: cls,
+        style: 'transform:translate(' + (p.x - CARD_W / 2) + 'px,' + p.y + 'px);width:' + CARD_W + 'px;'
+      });
+      var header = el('div', { class: 'td-card-header' });
+      header.appendChild(el('div', { class: 'td-card-label' }, e.label));
+      header.appendChild(el('div', { class: 'td-card-key' }, e.key));
+      card.appendChild(header);
+
+      var cols = e.columns || [];
+      var shown = maxCols ? cols.slice(0, maxCols) : cols;
+      shown.forEach(function(c) {
+        var row = el('div', { class: 'td-col-row' });
+        row.appendChild(el('span', { class: 'td-col-name' }, c.name));
+        row.appendChild(el('span', { class: 'td-col-type' }, c.type));
+        var badges = el('span', { class: 'td-col-badges' });
+        if (c.pk) badges.appendChild(el('span', { class: 'td-badge td-badge-pk' }, 'PK'));
+        if (c.fk) badges.appendChild(el('span', { class: 'td-badge td-badge-fk' }, 'FK'));
+        if (c.unique) badges.appendChild(el('span', { class: 'td-badge td-badge-uq' }, 'UQ'));
+        if (c.nullable) badges.appendChild(el('span', { class: 'td-badge td-badge-null' }, 'NULL'));
+        row.appendChild(badges);
+        card.appendChild(row);
+      });
+      if (maxCols && cols.length > maxCols) {
+        card.appendChild(el('div', { class: 'td-col-more' }, '+' + (cols.length - maxCols) + '列'));
+      }
+      if (!isSelected) {
+        card.addEventListener('click', function() {
+          state.tdSelectedKey = e.key;
+          renderTableDetail();
+        });
+      }
+      return card;
+    }
+
+    // ★カード
+    tdCanvas.appendChild(buildCard(selEntity, true, null));
+
+    // 関連カード
+    relatedSame.concat(relatedOther).forEach(function(k) {
+      tdCanvas.appendChild(buildCard(entitiesByKey[k], false, 5));
+    });
+  }
+
+  // テーブル詳細タブの検索
+  var tdSearchInput = document.getElementById('td-search-input');
+  if (tdSearchInput) {
+    tdSearchInput.addEventListener('input', function() {
+      state.tdSearchTerm = tdSearchInput.value;
+      renderTableDetail();
+    });
+  }
+
+  // --- 未解決節(unresolved[]) ---
+  var unresolvedMount = document.getElementById('unresolved-mount');
+  var unresolved = data.unresolved || [];
+  if (unresolved.length > 0) {
+    unresolvedMount.appendChild(el('div', { class: 'sec-label' }, '未解決'));
+    var box = el('div', { class: 'note-box' });
+    unresolved.forEach(function(u) {
+      var line = (u.label || '') + '（' + (u.reason || '') + '）';
+      box.appendChild(el('div', null, line));
+    });
+    unresolvedMount.appendChild(box);
+  }
+
+  var themeBtn = document.getElementById('theme-toggle');
+  themeBtn.addEventListener('click', function() {
+    var r = document.documentElement;
+    var next = r.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    r.setAttribute('data-theme', next);
+    themeBtn.textContent = next === 'dark' ? 'ダーク' : 'ライト';
+    try { localStorage.setItem('rd-portal-theme', next); } catch(e) {}
+  });
+  try {
+    var saved = localStorage.getItem('rd-portal-theme');
+    if (saved) {
+      document.documentElement.setAttribute('data-theme', saved);
+      var tb = document.getElementById('theme-toggle');
+      if (tb) tb.textContent = saved === 'dark' ? 'ダーク' : 'ライト';
+    }
+  } catch(e) {}
+})();
+</script>
+</body>
+</html>
