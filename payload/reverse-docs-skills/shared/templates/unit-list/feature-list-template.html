@@ -105,17 +105,17 @@
     font-size: 0.85em; background: var(--panel-2); padding: 1px 5px; border-radius: 3px;
   }
 
-  /* 列幅の明示指定（feature-list: 10列） */
-  table.units th:nth-child(1) { width: 5%; }   /* 機能ID */
-  table.units th:nth-child(2) { width: 7%; }   /* 機能キー */
-  table.units th:nth-child(3) { width: 8%; }   /* 機能名 */
-  table.units th:nth-child(4) { width: 22%; }  /* 概要 */
-  table.units th:nth-child(5) { width: 8%; }   /* 関連画面 */
-  table.units th:nth-child(6) { width: 10%; }  /* 関連API */
-  table.units th:nth-child(7) { width: 7%; }   /* 関連テーブル */
-  table.units th:nth-child(8) { width: 5%; }   /* confidence */
-  table.units th:nth-child(9) { width: 5%; }   /* 検出方式 */
-  table.units th:nth-child(10) { width: 23%; } /* 主ファイル */
+  /* 列幅の明示指定（data-key属性でシェブロン列挿入に影響されない。キー名はbuild-feature-list.sh準拠） */
+  table.units th[data-key="unitId"] { width: 5%; }
+  table.units th[data-key="unitKey"] { width: 7%; }
+  table.units th[data-key="unitNameGuess"] { width: 8%; }
+  table.units th[data-key="summary"] { width: 22%; }
+  table.units th[data-key="relatedScreens"] { width: 8%; }
+  table.units th[data-key="relatedApis"] { width: 10%; }
+  table.units th[data-key="relatedTables"] { width: 7%; }
+  table.units th[data-key="confidence"] { width: 5%; }
+  table.units th[data-key="detectionMethod"] { width: 5%; }
+  table.units th[data-key="sourceFile"] { width: 23%; }
 
   /* 数値列は右揃え＋等幅数字 */
   table.units td:nth-child(8) {
@@ -804,6 +804,15 @@
         });
       });
     });
+
+    // nth-child オフセット補正: シェブロン列挿入で全列+1シフト
+    var fixStyle = document.createElement('style');
+    fixStyle.textContent =
+      'table.units td:nth-child(8){text-align:left;font-variant-numeric:normal;}' +
+      'table.units td:nth-child(2),table.units td:nth-child(10){font-family:inherit;font-size:inherit;}' +
+      'table.units td:nth-child(9){text-align:right;font-variant-numeric:tabular-nums;}' +
+      'table.units td:nth-child(3),table.units td:nth-child(11){font-family:var(--mono);font-size:0.8em;}';
+    document.head.appendChild(fixStyle);
 
     if (search) {
       search.addEventListener('input', function () {
