@@ -307,9 +307,28 @@ table.data-table code {
   line-height: 1.7;
 }
 .flow-coverage-headline { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
-.flow-coverage-row { color: var(--text-sub); padding-left: 4px; }
-.flow-coverage-check { margin-top: 4px; color: var(--text-sub); }
-.flow-coverage-check.flow-coverage-error { color: var(--danger, #c0392b); font-weight: 700; }
+.cov-stats { display: flex; gap: 10px; margin: 10px 0; flex-wrap: wrap; }
+.cov-stat {
+  flex: 1; min-width: 100px; text-align: center;
+  background: var(--panel-2); border: 1px solid var(--border); border-radius: var(--radius-sm);
+  padding: 10px 8px;
+}
+.cov-stat-value { font-size: 22px; font-weight: 700; color: var(--text); }
+.cov-stat-label { font-size: 11.5px; color: var(--text-muted); margin-top: 2px; }
+.cov-bar {
+  height: 8px; background: var(--panel-2); border: 1px solid var(--border);
+  border-radius: 999px; overflow: hidden; margin-top: 4px;
+}
+.cov-bar-fill { height: 100%; background: var(--accent); border-radius: 999px; transition: width .2s; }
+.flow-coverage-check { margin-top: 10px; color: var(--text-sub); }
+.flow-coverage-check.flow-coverage-error {
+  color: var(--highlight);
+  font-weight: 700;
+  background: var(--highlight-soft);
+  border: 1px solid var(--highlight-border);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+}
 
 /* 動線未カバー一覧(details/summaryで折りたたみ) */
 .flow-uncovered { margin-bottom: 20px; }
@@ -317,7 +336,8 @@ table.data-table code {
 .flow-uncovered > summary:hover { color: var(--accent); }
 .flow-uncovered-body { font-size: 13px; padding: 4px 0 4px 4px; }
 
-/* 動線カテゴリ(details/summaryで折りたたみ。初期表示は閉じた状態。開いた時に遅延レンダリング) */
+/* 動線カテゴリ(details/summaryで折りたたみ。初期表示は閉じた状態。開いた時に遅延レンダリング。
+   開閉インジケータはブラウザ既定のディスクロージャ三角に委ねる(Unicode記号の独自定義はしない)) */
 .flow-category {
   border-left: 3px solid var(--text-muted);
   border-radius: 0 var(--radius) var(--radius) 0;
@@ -327,11 +347,7 @@ table.data-table code {
 }
 .flow-category > summary {
   cursor: pointer;
-  list-style: none;
 }
-.flow-category > summary::-webkit-details-marker { display: none; }
-.flow-category > summary::before { content: '▶ '; font-size: 11px; color: var(--text-muted); }
-.flow-category[open] > summary::before { content: '▼ '; }
 .flow-category[open] > summary { margin-bottom: 12px; }
 .flow-category-header {
   display: flex;
@@ -351,55 +367,30 @@ table.data-table code {
   border: 1px solid var(--border);
 }
 
-/* 動線グループ(details/summaryで折りたたみ。初期表示は閉じた状態) */
-.flow-group {
-  border-left: 3px solid var(--accent);
-  border-radius: 0 var(--radius) var(--radius) 0;
+/* 動線カード(個別動線1本 = 1カード。ヘッダーに動線名+ステップ数バッジ、ボディにステップのフロー表示) */
+.flow-card {
   background: var(--panel);
-  padding: 16px 20px;
-  margin-bottom: 20px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 18px;
+  margin-bottom: 12px;
 }
-.flow-group > summary {
-  cursor: pointer;
-  list-style: none;
-}
-.flow-group > summary::-webkit-details-marker { display: none; }
-.flow-group > summary::before { content: '▶ '; font-size: 10px; color: var(--text-muted); }
-.flow-group[open] > summary::before { content: '▼ '; }
-.flow-group[open] > summary { margin-bottom: 12px; }
-.flow-group-header {
+.flow-card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 12px;
+  gap: 8px;
+  margin-bottom: 10px;
 }
-.flow-group-title {
-  font-size: 16px;
-  font-weight: 700;
-}
-.flow-group-badge {
+.flow-card-title { font-size: 13px; font-weight: 600; color: var(--text-sub); }
+.flow-card-badge {
   font-size: 11px;
   color: var(--text-muted);
   background: var(--panel-2);
   padding: 2px 10px;
   border-radius: 999px;
   border: 1px solid var(--border);
-}
-
-/* 個別動線 */
-.flow-strip {
-  border-bottom: 1px solid var(--border);
-  padding: 12px 0;
-}
-.flow-strip:last-child {
-  border-bottom: none;
-  padding-bottom: 0;
-}
-.flow-title {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-sub);
-  margin-bottom: 8px;
+  white-space: nowrap;
 }
 .flow-steps {
   display: flex;
@@ -408,7 +399,7 @@ table.data-table code {
   padding-bottom: 4px;
   align-items: center;
 }
-.flow-step-card {
+.flow-node {
   background: var(--panel-2);
   border: 1px solid var(--border);
   border-radius: 6px;
@@ -419,10 +410,10 @@ table.data-table code {
   flex-shrink: 0;
   transition: box-shadow .15s;
 }
-.flow-step-card:hover {
+.flow-node:hover {
   box-shadow: 0 0 0 2px var(--accent);
 }
-.flow-step-name {
+.flow-node-name {
   font-size: 12px;
   font-weight: 600;
   margin-bottom: 2px;
@@ -430,13 +421,13 @@ table.data-table code {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.flow-step-action {
+.flow-node-action {
   font-size: 10px;
   color: var(--text-muted);
 }
-.flow-arrow {
-  color: var(--text-muted);
-  font-size: 14px;
+.flow-edge {
+  display: inline-flex;
+  align-items: center;
   padding: 0 6px;
   flex-shrink: 0;
 }
@@ -929,6 +920,10 @@ table.data-table code {
     });
   }
 
+  // 初期表示は未選択(placeholder)を先頭に固定する
+  var placeholder = el('option', { value: '', disabled: true, selected: true }, '画面を選択してください');
+  select.insertBefore(placeholder, select.firstChild);
+
   var fullSelectHTML = select.innerHTML;
 
   // --- 画面名検索(全角英数を半角化+小文字化して比較する簡易正規化) ---
@@ -940,6 +935,7 @@ table.data-table code {
 
   function rebuildSelectOptions(query) {
     select.innerHTML = '';
+    select.appendChild(placeholder);
     if (hasRealGroups) {
       groupNames.forEach(function(g) {
         var filtered = groupMap[g].filter(function(k) {
@@ -973,7 +969,11 @@ table.data-table code {
     } else {
       rebuildSelectOptions(query);
     }
-    if (select.options.length === 0) {
+    var realOptionCount = 0;
+    for (var oi = 0; oi < select.options.length; oi++) {
+      if (select.options[oi].value !== '') realOptionCount++;
+    }
+    if (realOptionCount === 0) {
       viewContent.innerHTML = '';
       viewContent.appendChild(el('div', { class: 'diagram-empty' }, '該当する画面がありません'));
       return;
@@ -1016,13 +1016,14 @@ table.data-table code {
       if (found) {
         renderView(key);
       } else {
-        // 不正キー: 先頭画面にフォールバック
+        // 不正キー: 未選択状態(placeholder)にフォールバック
         select.selectedIndex = 0;
-        renderView(select.value);
+        renderView('');
       }
-    } else if (mode === 'screen' && !key && select.options.length > 0) {
+    } else if (mode === 'screen' && !key) {
+      // 初期表示: placeholder(画面を選択してください)を選択したまま維持する
       select.selectedIndex = 0;
-      renderView(select.value);
+      renderView('');
     }
     // 履歴操作
     var hashStr = '#mode=' + mode;
@@ -1038,7 +1039,9 @@ table.data-table code {
   function renderView(key) {
     viewContent.innerHTML = '';
     selectedBadge = null;
-    if (!key || !nodeByKey[key]) {
+    if (!key) {
+      viewContent.appendChild(el('div', { class: 'diagram-empty' }, '上のドロップダウンから画面を選択すると、ワイヤーフレームと遷移先の一覧が表示されます。'));
+    } else if (!nodeByKey[key]) {
       viewContent.appendChild(el('div', { class: 'diagram-empty' }, '表示できる画面がありません'));
     } else {
       viewContent.appendChild(buildSplitView(key));
@@ -1046,14 +1049,20 @@ table.data-table code {
   }
 
   select.addEventListener('change', function() { applyState('screen', select.value, 'push'); });
+  // placeholder(index 0)は選択範囲から除外する
   prevBtn.addEventListener('click', function() {
-    if (select.selectedIndex > 0) {
+    if (select.selectedIndex > 1) {
       select.selectedIndex -= 1;
       applyState('screen', select.value, 'push');
     }
   });
   nextBtn.addEventListener('click', function() {
-    if (select.selectedIndex < select.options.length - 1) {
+    if (select.selectedIndex === 0) {
+      if (select.options.length > 1) {
+        select.selectedIndex = 1;
+        applyState('screen', select.value, 'push');
+      }
+    } else if (select.selectedIndex < select.options.length - 1) {
       select.selectedIndex += 1;
       applyState('screen', select.value, 'push');
     }
@@ -1241,22 +1250,31 @@ table.data-table code {
     return endLabel + 'への遷移';
   }
 
-  // --- 個別動線(flow-strip)のDOM構築 ---
-  function buildFlowStrip(flow) {
-    var terminalKey = flow.path[flow.path.length - 1];
-    var strip = el('div', { class: 'flow-strip' });
-    strip.appendChild(el('div', { class: 'flow-title' }, nodeLabel(flow.path[0]) + ' → ' + nodeLabel(terminalKey) + '（' + flow.path.length + 'ステップ）'));
+  // --- 動線接続アイコン(SVG。Unicode三角記号は使わない) ---
+  var FLOW_EDGE_SVG = '<svg viewBox="0 0 16 10" width="16" height="10"><path d="M0,5 L10,5" fill="none" stroke="var(--text-muted)" stroke-width="1.5"/><polygon points="10,2 16,5 10,8" fill="var(--text-muted)"/></svg>';
+
+  // --- 個別動線(flow-card)のDOM構築 ---
+  function buildFlowCard(flow, nodeMap) {
+    var groupKeyOfFlow = flowGroupKey(flow.path);
+    var title = groupKeyOfFlow === null ? '共通遷移' : deriveScenarioName(flow, nodeMap);
+    var card = el('div', { class: 'flow-card' });
+    card.appendChild(el('div', { class: 'flow-card-header' }, [
+      el('span', { class: 'flow-card-title' }, title),
+      el('span', { class: 'flow-card-badge' }, flow.path.length + 'ステップ')
+    ]));
+    var body = el('div', { class: 'flow-card-body' });
     var steps = el('div', { class: 'flow-steps' });
     flow.path.forEach(function(k, idx) {
-      if (idx > 0) steps.appendChild(el('span', { class: 'flow-arrow' }, '→'));
-      var cardChildren = [el('div', { class: 'flow-step-name' }, nodeLabel(k))];
-      if (idx < flow.edges.length) cardChildren.push(el('div', { class: 'flow-step-action' }, flow.edges[idx].trigger || ''));
-      var card = el('div', { class: 'flow-step-card', 'data-key': k }, cardChildren);
-      card.addEventListener('click', function() { switchToScreenMode(k); });
-      steps.appendChild(card);
+      if (idx > 0) steps.appendChild(el('span', { class: 'flow-edge', html: FLOW_EDGE_SVG }));
+      var nodeChildren = [el('div', { class: 'flow-node-name' }, nodeLabel(k))];
+      if (idx < flow.edges.length) nodeChildren.push(el('div', { class: 'flow-node-action' }, flow.edges[idx].trigger || ''));
+      var node = el('div', { class: 'flow-node', 'data-key': k }, nodeChildren);
+      node.addEventListener('click', function() { switchToScreenMode(k); });
+      steps.appendChild(node);
     });
-    strip.appendChild(steps);
-    return strip;
+    body.appendChild(steps);
+    card.appendChild(body);
+    return card;
   }
 
   // --- 動線グループ化(カテゴリ階層 > 起点の次のノードをキーに集約。共通ナビへの分岐は「共通遷移」に集約) ---
@@ -1273,7 +1291,7 @@ table.data-table code {
       return;
     }
 
-    // カテゴリ -> グループキー(node単位) -> flows[] の2階層に集約する。
+    // カテゴリ -> グループキー(node単位) -> flows[] の2階層に集約する(表示は動線カード単位)。
     var categories = {};
     var categoryOrder = [];
     flowList.forEach(function(flow) {
@@ -1281,14 +1299,13 @@ table.data-table code {
       var groupKey = key === null ? '__common__' : key;
       var cat = flow.category || categoryOfKey(key);
       if (!categories[cat]) {
-        categories[cat] = { order: [], groups: {}, titles: {} };
+        categories[cat] = { order: [], groups: {} };
         categoryOrder.push(cat);
       }
       var bucket = categories[cat];
       if (!bucket.groups[groupKey]) {
         bucket.groups[groupKey] = [];
         bucket.order.push(groupKey);
-        bucket.titles[groupKey] = key === null ? '共通遷移' : deriveScenarioName(flow, nodeMap);
       }
       bucket.groups[groupKey].push(flow);
     });
@@ -1336,16 +1353,9 @@ table.data-table code {
         if (rendered) return;
         rendered = true;
         bucket.order.forEach(function(groupKey) {
-          var details = el('details', { class: 'flow-group', 'data-group': groupKey });
-          var summary = el('summary', { class: 'flow-group-header' }, [
-            el('span', { class: 'flow-group-title' }, bucket.titles[groupKey]),
-            el('span', { class: 'flow-group-badge' }, bucket.groups[groupKey].length + '動線')
-          ]);
-          details.appendChild(summary);
           bucket.groups[groupKey].forEach(function(flow) {
-            details.appendChild(buildFlowStrip(flow));
+            catDetails.appendChild(buildFlowCard(flow, nodeMap));
           });
-          catDetails.appendChild(details);
         });
       }
       renderCategoryBodyMap[cat] = renderCategoryBody;
@@ -1387,15 +1397,26 @@ table.data-table code {
   var coveragePct = totalCount > 0 ? Math.round((coveredCount / totalCount) * 1000) / 10 : 0;
 
   var coverageBox = el('div', { class: 'flow-coverage' });
-  coverageBox.appendChild(el('div', { class: 'flow-coverage-headline' },
-    '動線カバレッジ: ' + coveredCount + ' / ' + totalCount + ' 画面（' + coveragePct + '%）'));
-  coverageBox.appendChild(el('div', { class: 'flow-coverage-row' }, '├ 動線でカバー: ' + coveredCount));
-  coverageBox.appendChild(el('div', { class: 'flow-coverage-row' }, '├ 未接続画面: ' + unconnectedCount + '（未接続モードで確認）'));
-  coverageBox.appendChild(el('div', { class: 'flow-coverage-row' }, '└ 動線未カバー: ' + uncoveredCount));
+  coverageBox.appendChild(el('div', { class: 'flow-coverage-headline' }, '動線カバレッジ: ' + coveragePct + '%'));
+  coverageBox.appendChild(el('div', { class: 'cov-stats' }, [
+    el('div', { class: 'cov-stat' }, [
+      el('div', { class: 'cov-stat-value' }, String(coveredCount)),
+      el('div', { class: 'cov-stat-label' }, 'カバー済み')
+    ]),
+    el('div', { class: 'cov-stat' }, [
+      el('div', { class: 'cov-stat-value' }, String(uncoveredCount)),
+      el('div', { class: 'cov-stat-label' }, '未カバー')
+    ]),
+    el('div', { class: 'cov-stat' }, [
+      el('div', { class: 'cov-stat-value' }, String(totalCount)),
+      el('div', { class: 'cov-stat-label' }, '全画面')
+    ])
+  ]));
+  coverageBox.appendChild(el('div', { class: 'cov-bar' }, el('div', { class: 'cov-bar-fill', style: 'width:' + coveragePct + '%' })));
   coverageBox.appendChild(el('div', { class: 'flow-coverage-check' + (sumOk ? '' : ' flow-coverage-error') },
     sumOk
-      ? '検証: ' + coveredCount + ' + ' + unconnectedCount + ' + ' + uncoveredCount + ' = ' + totalCount + ' ✓'
-      : '⚠ 検証エラー: 分割が不完全です（' + coveredCount + ' + ' + unconnectedCount + ' + ' + uncoveredCount + ' ≠ ' + totalCount + '）'));
+      ? '内訳: 動線でカバー ' + coveredCount + ' + 未接続画面 ' + unconnectedCount + '（未接続モードで確認） + 動線未カバー ' + uncoveredCount + ' = 全 ' + totalCount + ' 画面 ✓'
+      : '⚠ 警告: 分割が不完全です（' + coveredCount + ' + ' + unconnectedCount + ' + ' + uncoveredCount + ' ≠ ' + totalCount + '）'));
 
   var uncoveredBody = el('div', { class: 'flow-uncovered-body' });
   if (uncoveredCount === 0) {
