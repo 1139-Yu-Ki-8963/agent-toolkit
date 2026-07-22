@@ -161,6 +161,64 @@ FIXTURE2
   echo "PASS: --self-test ケース6（frontmatter 除去）"
   rm -rf "$test6_dir"
 
+  echo "--- ケース6b: 単一行 HTML コメントの除去 ---"
+  test6b_dir="$(mktemp -d)"
+  test6b_repo="$test6b_dir/repo"
+  test6b_docs="$test6b_dir/docs"
+  test6b_portal="$test6b_dir/portal"
+  mkdir -p "$test6b_repo" "$test6b_docs/プロジェクト共通" "$test6b_portal"
+  printf '# 見出し\n\n本文前。\n\n<!-- このコメントは除去される -->\n\n本文後。' > "$test6b_docs/プロジェクト共通/comment-single-test.md"
+  "$0" "$test6b_repo" "$test6b_docs" "$test6b_portal" 2>/dev/null
+  if grep -q 'このコメントは除去される' "$test6b_docs/プロジェクト共通/comment-single-test.html" 2>/dev/null; then
+    echo "FAIL: ケース6b — 単一行コメントが HTML に残留" >&2
+    rm -rf "$test6b_dir"
+    exit 1
+  fi
+  if ! grep -q '本文前' "$test6b_docs/プロジェクト共通/comment-single-test.html" 2>/dev/null || ! grep -q '本文後' "$test6b_docs/プロジェクト共通/comment-single-test.html" 2>/dev/null; then
+    echo "FAIL: ケース6b — コメント以外の本文が消失" >&2
+    rm -rf "$test6b_dir"
+    exit 1
+  fi
+  echo "PASS: --self-test ケース6b（単一行 HTML コメントの除去）"
+  rm -rf "$test6b_dir"
+
+  echo "--- ケース6c: 複数行 HTML コメントブロックの除去 ---"
+  test6c_dir="$(mktemp -d)"
+  test6c_repo="$test6c_dir/repo"
+  test6c_docs="$test6c_dir/docs"
+  test6c_portal="$test6c_dir/portal"
+  mkdir -p "$test6c_repo" "$test6c_docs/プロジェクト共通" "$test6c_portal"
+  printf '# 見出し\n\n<!--\nブロック内テキスト\n-->\n\n本文。' > "$test6c_docs/プロジェクト共通/comment-block-test.md"
+  "$0" "$test6c_repo" "$test6c_docs" "$test6c_portal" 2>/dev/null
+  if grep -q 'ブロック内テキスト' "$test6c_docs/プロジェクト共通/comment-block-test.html" 2>/dev/null; then
+    echo "FAIL: ケース6c — 複数行コメントブロックが HTML に残留" >&2
+    rm -rf "$test6c_dir"
+    exit 1
+  fi
+  if ! grep -q '本文。' "$test6c_docs/プロジェクト共通/comment-block-test.html" 2>/dev/null; then
+    echo "FAIL: ケース6c — コメント以外の本文が消失" >&2
+    rm -rf "$test6c_dir"
+    exit 1
+  fi
+  echo "PASS: --self-test ケース6c（複数行 HTML コメントブロックの除去）"
+  rm -rf "$test6c_dir"
+
+  echo "--- ケース6d: 行内コメントは除去しない ---"
+  test6d_dir="$(mktemp -d)"
+  test6d_repo="$test6d_dir/repo"
+  test6d_docs="$test6d_dir/docs"
+  test6d_portal="$test6d_dir/portal"
+  mkdir -p "$test6d_repo" "$test6d_docs/プロジェクト共通" "$test6d_portal"
+  printf '# 見出し\n\nテキスト <!-- コメント --> テキスト' > "$test6d_docs/プロジェクト共通/comment-inline-test.md"
+  "$0" "$test6d_repo" "$test6d_docs" "$test6d_portal" 2>/dev/null
+  if ! grep -q 'テキスト <!-- コメント --> テキスト' "$test6d_docs/プロジェクト共通/comment-inline-test.html" 2>/dev/null; then
+    echo "FAIL: ケース6d — 行内コメントを含む行が変化した" >&2
+    rm -rf "$test6d_dir"
+    exit 1
+  fi
+  echo "PASS: --self-test ケース6d（行内コメントは除去しない）"
+  rm -rf "$test6d_dir"
+
   echo "--- ケース7: 複数行 unit-manifest JSON からの件数抽出 ---"
   test7_dir="$(mktemp -d)"
   test7_repo="$test7_dir/repo"
@@ -415,7 +473,24 @@ if [ -d "$common_dir" ]; then
     html_basename="$(basename "$md_file" .md).html"
     html_file="$(dirname "$md_file")/$html_basename"
     if [ -f "$COMMON_DOC_TEMPLATE_FILE" ]; then
-      md_content="$(sed -e '1s/^\xEF\xBB\xBF//' "$md_file" | awk 'NR==1 && /^---$/ {skip=1; next} skip && /^---$/ {skip=0; next} !skip')"
+      md_content="$(sed -e '1s/^\xEF\xBB\xBF//' "$md_file" | awk 'NR==1 && /^---$/ {skip=1; next} skip && /^---$/ {skip=0; next} !skip' | awk '
+        in_comment {
+          buf[++n] = $0
+          if ($0 ~ /-->/) { in_comment = 0; n = 0; next }
+          next
+        }
+        /^<!--/ {
+          if ($0 ~ /-->/) { next }
+          in_comment = 1
+          n = 1
+          buf[1] = $0
+          next
+        }
+        { print }
+        END {
+          if (in_comment) { for (i = 1; i <= n; i++) print buf[i] }
+        }
+      ')"
       local_render_args=(
         "{{PROJECT_NAME}}" "$PROJECT_NAME"
         "{{DOC_TITLE}}" "$(html_escape "$title")"

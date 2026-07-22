@@ -1672,6 +1672,55 @@ EOF
   fi
   rm -f "$ok5_manifest"
 
+  # --- 追加: screenNameGuess の親セグメント補足(異リソース同名対策) ---
+  # 葉ディレクトリ名(edit)が複数リソースで重複しても、親セグメント(users/orders)を
+  # 結合することで screenNameGuess が識別可能な個別値になることを検証する。
+  local tname="$root/tname"
+  mkdir -p "$tname/app/users/edit" "$tname/app/orders/edit"
+  printf "module.exports = {}\n" > "$tname/next.config.js"
+  printf "export default function Page() { return null }\n" > "$tname/app/users/edit/page.tsx"
+  printf "export default function Page() { return null }\n" > "$tname/app/orders/edit/page.tsx"
+  local tname_manifest tname_status tname_users tname_orders
+  tname_manifest="$(mktemp)"
+  tname_status=0
+  bash "$0" "$tname" "$tname_manifest" >/dev/null 2>&1 || tname_status=$?
+  tname_users="$(jq -r '.screens[] | select(.route=="/users/edit") | .screenNameGuess' "$tname_manifest" 2>/dev/null || echo "")"
+  tname_orders="$(jq -r '.screens[] | select(.route=="/orders/edit") | .screenNameGuess' "$tname_manifest" 2>/dev/null || echo "")"
+  if [ "$tname_status" -eq 0 ] && [ "$tname_users" = "users edit" ] && [ "$tname_orders" = "orders edit" ] && [ "$tname_users" != "$tname_orders" ]; then
+    test_report "1-8-6-screenNameGuess親セグメント補足-異リソース同名" 0
+  else
+    test_report "1-8-6-screenNameGuess親セグメント補足-異リソース同名" 1 "status=$tname_status users='$tname_users' orders='$tname_orders'"
+  fi
+  rm -f "$tname_manifest"
+
+  # --- 追加: screenNameGuess の共有クラスタ個別値化(一律"(共有: ..."上書きの廃止) ---
+  # 同一 entryFile(router.tsx)を参照する2ルートがクラスタを形成しても、
+  # screenNameGuess が screenKey 由来の個別値になり、"(共有: " での一律上書きにならないことを検証する。
+  local tshared="$root/tshared"
+  mkdir -p "$tshared"
+  printf '%s\n' \
+    'import { createBrowserRouter } from "react-router-dom"' \
+    '' \
+    'export const router = createBrowserRouter([' \
+    '  { path: "/alpha", element: <AlphaPage /> },' \
+    '  { path: "/beta", element: <BetaPage /> },' \
+    '])' > "$tshared/router.tsx"
+  local tshared_manifest tshared_status tshared_alpha tshared_beta tshared_alpha_shared tshared_beta_shared
+  tshared_manifest="$(mktemp)"
+  tshared_status=0
+  bash "$0" "$tshared" "$tshared_manifest" >/dev/null 2>&1 || tshared_status=$?
+  tshared_alpha="$(jq -r '.screens[] | select(.route=="/alpha") | .screenNameGuess' "$tshared_manifest" 2>/dev/null || echo "")"
+  tshared_beta="$(jq -r '.screens[] | select(.route=="/beta") | .screenNameGuess' "$tshared_manifest" 2>/dev/null || echo "")"
+  case "$tshared_alpha" in "(共有: "*) tshared_alpha_shared=1 ;; *) tshared_alpha_shared=0 ;; esac
+  case "$tshared_beta" in "(共有: "*) tshared_beta_shared=1 ;; *) tshared_beta_shared=0 ;; esac
+  if [ "$tshared_status" -eq 0 ] && [ "$tshared_alpha_shared" -eq 0 ] && [ "$tshared_beta_shared" -eq 0 ] \
+    && [ -n "$tshared_alpha" ] && [ -n "$tshared_beta" ] && [ "$tshared_alpha" != "$tshared_beta" ]; then
+    test_report "1-8-7-screenNameGuess共有クラスタ個別値化" 0
+  else
+    test_report "1-8-7-screenNameGuess共有クラスタ個別値化" 1 "status=$tshared_status alpha='$tshared_alpha' beta='$tshared_beta'"
+  fi
+  rm -f "$tshared_manifest"
+
   rm -rf "$root"
 
   echo "self-test: ${PASS_COUNT} PASS, ${FAIL_COUNT} FAIL" >&2
@@ -2383,9 +2432,22 @@ awk -F'\t' '$5!=""{print $5}' "$TMP_ALL" | sort -u > "$STRATEGY_ALL_ENTRIES_FILE
     if [ "$kind" = "embedded-view" ]; then
       name_guess="$(printf '%s' "$key" | sed 's/-/ /g')"
     elif [ -n "$entry_dir" ]; then
-      name_guess="$(basename "$entry_dir" | sed -E 's/[-_]/ /g')"
+      # 親セグメントを1つ含めて識別可能名にする(異リソース間の葉ディレクトリ名重複対策)。
+      name_guess_parent="$(basename "$(dirname "$entry_dir")" 2>/dev/null)"
+      name_guess_leaf="$(basename "$entry_dir")"
+      case "$name_guess_parent" in
+        app|.|"") name_guess="$name_guess_leaf" ;;
+        *) name_guess="$name_guess_parent $name_guess_leaf" ;;
+      esac
+      name_guess="$(printf '%s' "$name_guess" | sed -E 's/[-_]/ /g')"
     else
-      name_guess="$(basename "$entry_file" 2>/dev/null | sed -E 's/[-_]/ /g')"
+      name_guess_parent="$(basename "$(dirname "$entry_file")" 2>/dev/null)"
+      name_guess_leaf="$(basename "$entry_file" 2>/dev/null)"
+      case "$name_guess_parent" in
+        app|.|"") name_guess="$name_guess_leaf" ;;
+        *) name_guess="$name_guess_parent $name_guess_leaf" ;;
+      esac
+      name_guess="$(printf '%s' "$name_guess" | sed -E 's/[-_]/ /g')"
     fi
     name_guess="$(printf '%s' "$name_guess" | sed -E 's/ +/ /g; s/^ //; s/ $//')"
     name_guess="$(strip_ok_marker "$name_guess")"
@@ -2403,7 +2465,13 @@ awk -F'\t' '$5!=""{print $5}' "$TMP_ALL" | sort -u > "$STRATEGY_ALL_ENTRIES_FILE
           shared_with_json="[${others_json}]"
         fi
         cluster_id_json="\"$(json_escape "$cluster_id_val")\""
-        name_guess="(共有: $(basename "$entry_file"))"
+        # screenKey の識別子部分(最後の / 以降。無ければキー全体)を個別値として保持する。
+        # screenKey が空の場合のみ一律の共有表記へフォールバックする。
+        if [ -n "$key" ]; then
+          name_guess="${key##*/}"
+        else
+          name_guess="(共有: $(basename "$entry_file"))"
+        fi
       fi
     fi
 

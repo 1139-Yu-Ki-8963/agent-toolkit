@@ -957,14 +957,28 @@ table.data-table code {
       }
       if (specificEdges.length > 0) {
         // メインコンテンツエリアの模式表現(アイコン + メタ情報行のプレースホルダ)
-        wfBody.appendChild(el('div', { class: 'wf-two-col' }, [
-          el('div', { class: 'wf-img-circle' }),
-          el('div', { class: 'wf-meta-lines' }, [
-            el('div', { class: 'wf-text-ph', style: 'width:70%' }),
-            el('div', { class: 'wf-text-ph', style: 'width:92%' }),
-            el('div', { class: 'wf-text-ph', style: 'width:52%' })
-          ])
-        ]));
+        var sectionKeySet = {};
+        specificEdges.forEach(function(e) {
+          sectionKeySet[e.section || 'その他'] = true;
+        });
+        var sectionKeyCount = Object.keys(sectionKeySet).length;
+        var hasFormTrigger = edges.some(function(e) { return e.triggerType === 'form'; });
+        var metaWidths;
+        if (sectionKeyCount <= 1) {
+          metaWidths = [80, 60];
+        } else if (sectionKeyCount <= 3) {
+          metaWidths = [90, 70, 50];
+        } else {
+          metaWidths = [95, 80, 65, 45];
+        }
+        var wfTwoColChildren = [];
+        if (hasFormTrigger) {
+          wfTwoColChildren.push(el('div', { class: 'wf-img-circle' }));
+        }
+        wfTwoColChildren.push(el('div', { class: 'wf-meta-lines' }, metaWidths.map(function(w) {
+          return el('div', { class: 'wf-text-ph', style: 'width:' + w + '%' });
+        })));
+        wfBody.appendChild(el('div', { class: 'wf-two-col' }, wfTwoColChildren));
 
         var sectionMap = {};
         var sectionOrder = [];
@@ -977,9 +991,17 @@ table.data-table code {
           if (idx === 0) {
             wfBody.appendChild(el('div', { class: 'wf-img-rect' }));
           } else {
-            var phCount = 2 + (idx % 2);
+            var phCount;
+            if (edges.length <= 3) {
+              phCount = 1;
+            } else if (edges.length <= 8) {
+              phCount = 2;
+            } else {
+              phCount = 3;
+            }
+            var sectionEdges = sectionMap[sec];
+            var w = Math.min(95, 50 + sectionEdges.length * 5);
             for (var p = 0; p < phCount; p++) {
-              var w = 60 + ((idx * 5 + p * 7) % 21);
               wfBody.appendChild(el('div', { class: 'wf-text-ph', style: 'width:' + w + '%' }));
             }
           }
