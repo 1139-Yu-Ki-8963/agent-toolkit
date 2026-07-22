@@ -168,6 +168,10 @@ headless_approved_ops: [白紙化, 再実装, タグ更新, 環境撤去]
 
 「原本コードを読む工程（Phase 6 の extracting/authoring）」と「設計書のみから再実装・判定する工程（Phase 8-10 の rebuilding/judge）」は、無人モードでは別プロセス（別のヘッドレス呼び出し）に分離する。同一プロセス内で両工程を連続実行することを禁止する。ファイル単位盲検検証（rebuilding-screen-unit-from-docs）は、無人モードでは任意工程ではなく必須工程として扱う。
 
+### Phase 6 以降の実行主体（headless）
+
+無人（headless）実行では、Phase 6 以降の画面単位工程を自セッション内のサブエージェント委任で実行してはならない。サブエージェントは Agent 起動ツールを持たず、rebuilding-screen-unit-from-docs 等の内部委任を要する工程がネスト不可で失敗するため。無人実行の Phase 6 以降は running-reverse-screen-batch（画面ごとに独立の claude -p を起動する無人バッチ）へ委譲する。
+
 ### 実行レポート
 
 無人モードの実行結果は `<verification_dir>/screen-<画面ID>/<timestamp>/実行レポート.md` に保存する。

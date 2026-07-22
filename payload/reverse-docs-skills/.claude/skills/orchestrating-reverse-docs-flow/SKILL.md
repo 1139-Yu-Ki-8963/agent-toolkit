@@ -502,6 +502,7 @@ Phase 1 の状態判定完了後に一括登録するタスク一覧の設計。
 - 画面未開通で画面が未開通の場合、`unlocking-reverse-target-screens` を1回起動するだけで開通〜レジストリ記帳〜基準タグ確立まで完了する。内部で `syncing-reverse-env(mode=registry)` を自ら呼ぶこの構成は、完全仲介方式の例外ではなく、基準タグ確立まで単独完走するという設計要件に基づく意図した正式仕様である。`status=UNLOCKED` で部分完了のまま差し戻された場合のみ、管理者が記帳と `syncing-reverse-env(mode=registry)` 起動を代行する
 - 事実未封印〜ファイル単位未検証の間は、extracting-unit-facts-from-code（原本を読む唯一の役）→ generating-reverse-basic-design（基本設計未著述・著述。原本を読まず facts のみを読む）／ generating-reverse-detailed-design（設計書未著述・著述。原本を読まず facts のみを読む）→ rebuilding-screen-unit-from-docs（ファイル単位未検証・盲検検証。facts も原本も読まない）の順で情報アクセス規律が段階的に狭まる。基本設計と詳細設計は互いに独立した成果物であり、一方が他方を参照しない。これらのスキルを同一スキルに同居させない設計。rebuilding が status=差し戻し を返したら detailed-design の著述へ戻る
 - judge FAIL 時の NG帰着(c)共通文書欠落は管理者が generating-reverse-common-docs を mode=append で自動再起動できるが、(a)執筆規律不足・(b)facts欠落 はスキル資産（reference・プロファイル）の改訂を要するため、管理者は自動配線せずユーザーに報告する（`references/contract.md` の「NG帰着3系統の配線」）
+- 2026-07-22 実測: 無人セッション内のサブエージェント経由で Phase 6 を実行し、ファイル検証工程のネスト委任不可で画面が failed 終端した
 
 ## 参照資料
 
