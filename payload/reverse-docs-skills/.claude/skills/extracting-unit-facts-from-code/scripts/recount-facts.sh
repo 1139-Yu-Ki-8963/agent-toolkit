@@ -286,8 +286,8 @@ count_state() {
 
 count_handler() {
   awk '
-    /^function[ \t]+[a-z]/ { count++ }
-    /^const[ \t]+[a-z][A-Za-z0-9_]*[ \t]*=[ \t]*(async[ \t]+)?\(/ && /\)[ \t]*=>/ { count++ }
+    /^[ \t]*function[ \t]+[a-z]/ { count++ }
+    /^[ \t]*const[ \t]+[a-z][A-Za-z0-9_]*[ \t]*=[ \t]*(async[ \t]+)?\(/ && /\)[ \t]*=>/ { count++ }
     END { print count+0 }
   ' "$1"
 }
@@ -1364,6 +1364,30 @@ EOF
     echo "  [PASS] handler陽性: function宣言+アロー関数const宣言を検知（2件）"
   else
     echo "  [FAIL] handler陽性: 関数宣言単位での検知に失敗（実測=${handler_decl_pos_count} 期待=2）" >&2
+    rc=1
+  fi
+
+  # handler: コンポーネント関数本体にインデントされた宣言（function宣言+アロー関数const宣言）
+  # も行頭アンカーの誤検知漏れなく検知する（陽性）。
+  handler_decl_indent_file="$tmp/handler-decl-indent.txt"
+  cat > "$handler_decl_indent_file" <<'EOF'
+export function Foo() {
+  function handleClick(event) {
+    doSomething(event);
+  }
+
+  const handleSubmit = (event) => {
+    doSomethingElse(event);
+  };
+
+  return null;
+}
+EOF
+  handler_decl_indent_count="$(count_handler "$handler_decl_indent_file")"
+  if [ "$handler_decl_indent_count" = "2" ]; then
+    echo "  [PASS] handler陽性: インデントされたfunction宣言+アロー関数const宣言を検知（2件）"
+  else
+    echo "  [FAIL] handler陽性: インデント定義の検知に失敗（実測=${handler_decl_indent_count} 期待=2）" >&2
     rc=1
   fi
 
