@@ -5,19 +5,18 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{{TITLE}} — リバース設計ポータル</title>
 <!--
-  detail-pages T4 図解型テンプレート — リバース設計スキル群(画面遷移図/ER図で共用)
+  detail-pages T4 図解型テンプレート — 画面遷移図専用テンプレート（ER図は detail-t6-er.html に分離済み）
   生成: shared/scripts/detail-pages/build-detail-page.sh
   プレースホルダ置換は build-detail-page.sh の render_template() が行う。
   手作業によるプレースホルダ置換は禁止。生成は必ずスクリプト経由で行う。
 
-  埋め込みJSON(script#page-data)のnodes[]/edges[](画面遷移)またはentities[]/relations[]
-  (ER)から、ページ読込時にJavaScriptがDOMを構築する。図(表示)とJSONは常に単一情報源。
+  埋め込みJSON(script#page-data)のnodes[]/edges[](画面遷移)から、ページ読込時にJavaScriptが
+  DOMを構築する。図(表示)とJSONは常に単一情報源。
     - pageKind=transition: ワイヤーフレーム+遷移先テーブルのsplit-view形式。画面選択UI
       (ドロップダウン+前後ボタン)で画面ごとのビューを切り替える。エッジは共通ナビ判定
       (出現率30%以上)により画面固有/共通ナビ/自己ループの3層に分類する。出次数がしきい値
       (MAX_EDGES_PER_VIEW)超のノードは中央ナビゲーション画面として別セクションに、
       入出次数0のノードは未接続画面一覧として別セクションに折りたたみ表示する。
-    - pageKind=er        : グリッド配置のSVG描画(変更なし)
 
   保守注記: トークンブロック・テーマ切替(data-theme二重定義・rd-portal-theme)は
   shared/templates/portal-template.html からの複製である。
@@ -588,6 +587,9 @@ table.data-table code {
     return e.triggerType === 'ブラウザバック' && (!e.to || e.to === '');
   });
 
+  // 階層区切りは '/' のみ。'-' は kebab-case の単語区切りであり階層区切りではないため分割しない。
+  // ハイフン分割を導入すると category-search → category, brand-search → brand のように
+  // 無関係な画面が語頭一致で誤グループ化される。'/' 非包含データは hasRealGroups がフラット一覧へフォールバック済み。
   function groupName(key) {
     var idx = (key || '').indexOf('/');
     return idx >= 0 ? key.substring(0, idx) : (key || '');
@@ -939,6 +941,50 @@ table.data-table code {
   var viewNav = el('div', { class: 'view-nav' }, [select, prevBtn, nextBtn]);
   var viewContent = el('div', { id: 'view-content' });
 
+  // --- 履歴/URL連動(ハッシュ #mode=<mode>&screen=<key>) ---
+  function parseHash() {
+    var hash = location.hash.replace(/^#/, '');
+    var params = {};
+    hash.split('&').forEach(function(pair) {
+      var kv = pair.split('=');
+      if (kv.length === 2) params[kv[0]] = decodeURIComponent(kv[1]);
+    });
+    return { mode: params.mode || 'screen', key: params.screen || '' };
+  }
+
+  function applyState(mode, key, historyAction) {
+    // モード切替
+    if (mode === 'screen' || mode === 'flow' || mode === 'unconnected') {
+      setMode(mode);
+    }
+    // 画面選択(screenモードのみ)
+    if (mode === 'screen' && key) {
+      var found = false;
+      for (var i = 0; i < select.options.length; i++) {
+        if (select.options[i].value === key) { found = true; select.selectedIndex = i; break; }
+      }
+      if (found) {
+        renderView(key);
+      } else {
+        // 不正キー: 先頭画面にフォールバック
+        select.selectedIndex = 0;
+        renderView(select.value);
+      }
+    } else if (mode === 'screen' && !key && select.options.length > 0) {
+      select.selectedIndex = 0;
+      renderView(select.value);
+    }
+    // 履歴操作
+    var hashStr = '#mode=' + mode;
+    if (mode === 'screen' && select.value) hashStr += '&screen=' + encodeURIComponent(select.value);
+    if (historyAction === 'push') {
+      history.pushState(null, '', hashStr);
+    } else if (historyAction === 'replace') {
+      history.replaceState(null, '', hashStr);
+    }
+    // 'none' の場合は何もしない(ブラウザの戻る/進む操作からの呼び出し)
+  }
+
   function renderView(key) {
     viewContent.innerHTML = '';
     selectedBadge = null;
@@ -949,17 +995,17 @@ table.data-table code {
     }
   }
 
-  select.addEventListener('change', function() { renderView(select.value); });
+  select.addEventListener('change', function() { applyState('screen', select.value, 'push'); });
   prevBtn.addEventListener('click', function() {
     if (select.selectedIndex > 0) {
       select.selectedIndex -= 1;
-      renderView(select.value);
+      applyState('screen', select.value, 'push');
     }
   });
   nextBtn.addEventListener('click', function() {
     if (select.selectedIndex < select.options.length - 1) {
       select.selectedIndex += 1;
-      renderView(select.value);
+      applyState('screen', select.value, 'push');
     }
   });
 
@@ -975,7 +1021,7 @@ table.data-table code {
   }
   function buildModeTab(modeKey, label, isActive) {
     var b = el('button', { class: 'mode-tab' + (isActive ? ' active' : ''), type: 'button', 'data-mode': modeKey }, label);
-    b.addEventListener('click', function() { setMode(modeKey); });
+    b.addEventListener('click', function() { applyState(modeKey, select.value, 'push'); });
     return b;
   }
   var modeTabs = el('div', { class: 'mode-tabs' }, [
@@ -989,7 +1035,13 @@ table.data-table code {
   modeScreen.appendChild(el('div', { class: 'sec-label' }, '画面遷移'));
   modeScreen.appendChild(viewNav);
   modeScreen.appendChild(viewContent);
-  renderView(select.options.length > 0 ? select.options[0].value : null);
+  var initialState = parseHash();
+  applyState(initialState.mode, initialState.key, 'replace');
+
+  window.addEventListener('popstate', function() {
+    var state = parseHash();
+    applyState(state.mode, state.key, 'none');
+  });
 
   // --- 中央ナビゲーション画面セクション ---
   modeScreen.appendChild(el('div', { class: 'sec-label' }, '中央ナビゲーション画面（' + hubNodes.length + '件）'));
@@ -1137,9 +1189,7 @@ table.data-table code {
   }
 
   function switchToScreenMode(key) {
-    select.value = key;
-    renderView(select.value);
-    setMode('screen');
+    applyState('screen', key, 'push');
   }
 
   // --- 動線グループの表示名(ユーザー操作シナリオ名)を導出 ---
