@@ -259,11 +259,11 @@ sections:
     reason: ""
     items:
       - key: local-type-ItemRow
-        value: "type ItemRow = ItemListResponse['items'][number]"
-        evidence: "ItemListPage.tsx:20"
+        value: "/** 画面内でのみ使うアイテム表示行の型（ローカル型定義）。 */\ntype ItemRow = ItemListResponse['items'][number]"
+        evidence: "ItemListPage.tsx:19-20"
       - key: local-type-SearchFormState
-        value: "type SearchFormState = { keyword: string; }"
-        evidence: "ItemListPage.tsx:23-25"
+        value: "/** 検索フォームの入力値をまとめるローカル型定義。 */\ntype SearchFormState = { keyword: string; }"
+        evidence: "ItemListPage.tsx:22-25"
       - key: local-type-ColumnConfig
         value: "type ColumnConfig = { key: string; label: string; width: number; sortable: boolean; }"
         evidence: "ItemListColumns.tsx:8-13"

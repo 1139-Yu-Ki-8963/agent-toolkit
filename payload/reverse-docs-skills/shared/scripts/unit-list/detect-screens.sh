@@ -2176,6 +2176,9 @@ classify_screen() {
       case "$detection_method" in
         $map_pattern) account_group="$map_value"; break ;;
       esac
+      case "$route_path" in
+        $map_pattern) account_group="$map_value"; break ;;
+      esac
     done < "$ACCOUNT_GROUP_MAP_FILE"
   else
     account_group="$detection_method"
@@ -2217,9 +2220,10 @@ classify_screen() {
     *.html|*.htm|*.tt|*.tx|*.tsx|*.jsx|*.vue|*.svelte) has_template="true" ;;
   esac
 
-  # unknown かつテンプレートありは未分類扱い
+  # unknown かつテンプレートありは、テンプレート実体がありUIを持つが一覧でも
+  # フォームでもエラーでもない画面として、最も汎用的な detail(詳細/参照画面)へ倒す
   if [ "$screen_type" = "unknown" ] && [ "$has_template" = "true" ]; then
-    screen_type="other"
+    screen_type="detail"
   fi
 
   # isProcessingEndpoint: テンプレートなし+リダイレクト/処理のみのハンドラ
