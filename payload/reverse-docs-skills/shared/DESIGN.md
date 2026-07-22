@@ -6,24 +6,31 @@
 |---|---|---|---|
 | `--bg` | #FFFFFF | #15171C | ページ背景 |
 | `--panel` | #FFFFFF | #1C1F26 | カード・パネル背景 |
-| `--panel-2` | #F0EDE3 | #232730 | パネル内の副背景 |
-| `--border` | #DAD5C5 | #353944 | 標準境界線 |
-| `--border-strong` | #BFB9A6 | #4A4F5C | 強調境界線 |
+| `--panel-2` | #F6F8FA | #21262D | パネル内の副背景 |
+| `--border` | #D1D9E0 | #30363D | 標準境界線 |
+| `--border-strong` | #AFB8C1 | #484F58 | 強調境界線 |
 | `--text` | #1B1F26 | #E8E5DC | 本文文字 |
 | `--text-sub` | #4A4F58 | #B6B3AB | 補足文字 |
 | `--text-muted` | #767B85 | #888784 | 弱文字（キャプション等） |
-| `--accent` | #3F4F8E | #8FA3DB | アクセント（主） |
-| `--accent-2` | #5A6BAE | #A8B8E5 | アクセント（副） |
-| `--accent-soft` | #E6E9F3 | #2A2E47 | アクセント背景 |
-| `--accent-border` | #BAC2DC | #4C5680 | アクセント境界線 |
-| `--gold` | #9B7A1F | #D4B45D | ゴールド（主） |
-| `--gold-soft` | #F5EFD9 | #3D3520 | ゴールド背景 |
-| `--gold-border` | #DDC68A | #7A6633 | ゴールド境界線 |
-| `--success` | #3F4F8E | #8FA3DB | `--accent` の別名 |
-| `--success-soft` | #E6E9F3 | #2A2E47 | `--accent-soft` の別名 |
-| `--warn` | #9B7A1F | #D4B45D | `--gold` の別名 |
-| `--danger` | #9B3F2D | #D4836E | 危険色（主） |
-| `--danger-soft` | #F5E2DC | #3F2620 | 危険色の背景 |
+| `--accent` | #0969DA | #58A6FF | アクセント（主） |
+| `--accent-2` | #218BFF | #79C0FF | アクセント（副） |
+| `--accent-soft` | #DDF4FF | #132D4B | アクセント背景 |
+| `--accent-border` | #54AEFF | #1F6FEB | アクセント境界線 |
+| `--gold` | #BC4C00 | #DB6D28 | ゴールド（主） |
+| `--gold-soft` | #FFF1E5 | #311D08 | ゴールド背景 |
+| `--gold-border` | #D18A5A | #7A3E0D | ゴールド境界線 |
+| `--success` | #1A7F37 | #3FB950 | `--accent` の別名 |
+| `--success-soft` | #DAFBE1 | #0D2818 | `--accent-soft` の別名 |
+| `--warn` | #BC4C00 | #DB6D28 | `--gold` の別名 |
+| `--danger` | #CF222E | #F85149 | 危険色（主） |
+| `--danger-soft` | #FFEBE9 | #3D1214 | 危険色の背景 |
+| `--highlight` | #D97B1A | #E8943A | 画面遷移図の「画面固有」色 |
+| `--highlight-soft` | rgba(217,123,26,0.12) | rgba(232,148,58,0.15) | `--highlight` の背景 |
+| `--highlight-border` | rgba(217,123,26,0.5) | rgba(232,148,58,0.5) | `--highlight` の境界線 |
+| `--nav-tag` | #7B8BBF | #8E9ED0 | 画面遷移図の「共通ナビ」色 |
+| `--nav-tag-soft` | #ECEEF6 | rgba(142,158,208,0.15) | `--nav-tag` の背景 |
+| `--self-tag` | #6B9B6B | #7DB87D | 画面遷移図の「自己ループ」色 |
+| `--self-tag-soft` | #E8F0E8 | rgba(125,184,125,0.15) | `--self-tag` の背景 |
 | `--code-bg` | #1B1F26 | #0E1116 | コードブロック背景 |
 | `--code-fg` | #E8E5DC | #E8E5DC | コードブロック文字 |
 | `--mono` | （共通） | （共通） | 等幅フォント指定 |
@@ -41,6 +48,7 @@
 - `--accent`（`--success` を含む）: 主要な操作要素・強調リンク・選択状態
 - `--gold`（`--warn` を含む）: 副次的な強調・注意喚起の見出し帯
 - `--danger`: 破壊的操作（削除等）のボタン・警告テキスト
+- `--highlight`・`--nav-tag`・`--self-tag`: `detail-t4-diagram.html`（画面遷移図）専用の3層配色。遷移先を画面固有／共通ナビ／自己ループの3種に分類する着色にのみ使用する
 
 数値の閾値によって色を切り替える判定ロジックは持たない。色は固定的な役割割り当てであり、状態評価の結果ではない。
 

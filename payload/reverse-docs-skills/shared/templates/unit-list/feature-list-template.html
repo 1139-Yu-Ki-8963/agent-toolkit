@@ -169,10 +169,14 @@
   .chip-group-label { font-size: .72rem; color: var(--text-muted); }
   a.opt-tag { display: inline-block; font-size: .72rem; padding: 1px 6px; border-radius: 4px; background: var(--panel-2); margin: 1px 3px 1px 0; color: inherit; text-decoration: none; }
   a.opt-tag:hover { text-decoration: underline; color: var(--accent); }
-  tr.row-detail > td { background: var(--panel-2); font-size: .82rem; white-space: normal; }
+  tr.row-detail > td { background: var(--panel-2); font-size: .82rem; white-space: normal; border-left: 3px solid var(--accent); }
   .row-detail dl { display: grid; grid-template-columns: max-content 1fr; gap: 2px 12px; margin: 4px 0; }
   .row-detail dt { color: var(--text-muted); }
   .row-detail dd { margin: 0; word-break: break-all; }
+  table.units tbody tr, table.screens tbody tr { cursor: pointer; }
+  .expand-cell { transition: color 0.15s; }
+  tr:hover .expand-cell { color: var(--accent); }
+  tr[data-expanded="true"] .chevron svg { transform: rotate(90deg); }
   .csv-btn {
     background: var(--panel-2); border: 1px solid var(--border); border-radius: var(--radius-sm);
     color: var(--text-sub); cursor: pointer; padding: 5px 12px; font-size: 0.82rem; font-family: inherit;
@@ -719,6 +723,29 @@
       var tbody = table.querySelector('tbody');
       if (!tbody) return;
       var allRows = Array.prototype.slice.call(tbody.querySelectorAll('tr'));
+
+      /* ===== 展開インジケータ（シェブロン列） ===== */
+      (function () {
+        var headRow = table.querySelector('thead tr');
+        if (headRow) {
+          var chTh = document.createElement('th');
+          chTh.style.width = '32px';
+          chTh.style.padding = '8px 4px';
+          headRow.insertBefore(chTh, headRow.firstChild);
+        }
+        var CHEVRON_SVG = '<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" style="vertical-align:middle;transition:transform .15s"><path d="M6.22 3.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042L9.94 8 6.22 4.28a.75.75 0 0 1 0-1.06Z"/></svg>';
+        allRows.forEach(function (tr) {
+          var chTd = document.createElement('td');
+          chTd.style.width = '32px';
+          chTd.style.textAlign = 'center';
+          chTd.style.color = 'var(--text-muted)';
+          chTd.style.padding = '8px 4px';
+          chTd.className = 'expand-cell';
+          chTd.innerHTML = '<span class="chevron">' + CHEVRON_SVG + '</span>';
+          tr.insertBefore(chTd, tr.firstChild);
+        });
+      })();
+
       /* 列見出し名 → 列インデックス（任意列スクリプト適用後の thead を参照） */
       var colIndex = {};
       Array.prototype.slice.call(table.querySelectorAll('thead th')).forEach(function (th, i) {
@@ -766,7 +793,8 @@
         renderPage(state);
       });
 
-      table.querySelectorAll('th[data-key]').forEach(function (th, colIndex) {
+      table.querySelectorAll('th[data-key]').forEach(function (th) {
+        var colIndex = Array.prototype.indexOf.call(th.parentNode.children, th);
         th.addEventListener('click', function () {
           if (state.sortCol === colIndex) { state.sortAsc = !state.sortAsc; } else { state.sortCol = colIndex; state.sortAsc = true; }
           table.querySelectorAll('th[data-key]').forEach(function (t) { t.removeAttribute('data-asc'); });
