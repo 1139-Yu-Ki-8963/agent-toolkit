@@ -1,0 +1,296 @@
+run_id: gold-standard-1
+profile: screen
+target_repo_path: shared/references/gold-standard/original
+target_file_paths:
+  - ItemListPage.tsx
+  - ItemListColumns.tsx
+  - ItemListPage.gql.ts
+meta:
+  source_repo: shared/references/gold-standard/original
+  source_ref: gold-standard
+  route:
+    value: "/items"
+    evidence: "ItemListPage.tsx:53"
+sections:
+  import:
+    reason: ""
+    items:
+      - key: import-react-useEffect
+        value: "import { useEffect, useState } from 'react';"
+        evidence: "ItemListPage.tsx:1"
+      - key: import-react-useState
+        value: "import { useEffect, useState } from 'react';"
+        evidence: "ItemListPage.tsx:1"
+      - key: import-react-router-useNavigate
+        value: "import { useNavigate } from 'react-router-dom';"
+        evidence: "ItemListPage.tsx:2"
+      - key: import-mui-Box
+        value: "import Box from '@mui/material/Box';"
+        evidence: "ItemListPage.tsx:3"
+      - key: import-mui-Button
+        value: "import Button from '@mui/material/Button';"
+        evidence: "ItemListPage.tsx:4"
+      - key: import-mui-CircularProgress
+        value: "import CircularProgress from '@mui/material/CircularProgress';"
+        evidence: "ItemListPage.tsx:5"
+      - key: import-mui-Table
+        value: "import Table from '@mui/material/Table';"
+        evidence: "ItemListPage.tsx:6"
+      - key: import-mui-TableBody
+        value: "import TableBody from '@mui/material/TableBody';"
+        evidence: "ItemListPage.tsx:7"
+      - key: import-mui-TableCell
+        value: "import TableCell from '@mui/material/TableCell';"
+        evidence: "ItemListPage.tsx:8"
+      - key: import-mui-TableContainer
+        value: "import TableContainer from '@mui/material/TableContainer';"
+        evidence: "ItemListPage.tsx:9"
+      - key: import-mui-TableRow
+        value: "import TableRow from '@mui/material/TableRow';"
+        evidence: "ItemListPage.tsx:10"
+      - key: import-mui-TextField
+        value: "import TextField from '@mui/material/TextField';"
+        evidence: "ItemListPage.tsx:11"
+      - key: import-mui-Typography
+        value: "import Typography from '@mui/material/Typography';"
+        evidence: "ItemListPage.tsx:12"
+      - key: import-mui-Paper
+        value: "import Paper from '@mui/material/Paper';"
+        evidence: "ItemListPage.tsx:13"
+      - key: import-ItemListColumns-columns
+        value: "import { columns, HeaderCell, sortItemsByKey, SortDirection } from './ItemListColumns';"
+        evidence: "ItemListPage.tsx:15"
+      - key: import-ItemListColumns-HeaderCell
+        value: "import { columns, HeaderCell, sortItemsByKey, SortDirection } from './ItemListColumns';"
+        evidence: "ItemListPage.tsx:15"
+      - key: import-ItemListColumns-sortItemsByKey
+        value: "import { columns, HeaderCell, sortItemsByKey, SortDirection } from './ItemListColumns';"
+        evidence: "ItemListPage.tsx:15"
+      - key: import-ItemListColumns-SortDirection
+        value: "import { columns, HeaderCell, sortItemsByKey, SortDirection } from './ItemListColumns';"
+        evidence: "ItemListPage.tsx:15"
+      - key: import-gql-ITEM_LIST_QUERY
+        value: "import { ITEM_LIST_QUERY, DELETE_ITEM_MUTATION } from './ItemListPage.gql';"
+        evidence: "ItemListPage.tsx:16"
+      - key: import-gql-DELETE_ITEM_MUTATION
+        value: "import { ITEM_LIST_QUERY, DELETE_ITEM_MUTATION } from './ItemListPage.gql';"
+        evidence: "ItemListPage.tsx:16"
+      - key: import-type-ItemListResponse
+        value: "import type { ItemListResponse, ItemListVariables } from './ItemListPage.gql';"
+        evidence: "ItemListPage.tsx:17"
+      - key: import-type-ItemListVariables
+        value: "import type { ItemListResponse, ItemListVariables } from './ItemListPage.gql';"
+        evidence: "ItemListPage.tsx:17"
+      - key: import-styled
+        value: "import { styled } from '@mui/material/styles';"
+        evidence: "ItemListColumns.tsx:1"
+      - key: import-columns-TableCell
+        value: "import TableCell from '@mui/material/TableCell';"
+        evidence: "ItemListColumns.tsx:2"
+  export_type:
+    reason: ""
+    items:
+      - key: export-ItemListPage-default
+        value: "export default function ItemListPage()"
+        evidence: "ItemListPage.tsx:53"
+      - key: export-columns
+        value: "export const columns: ColumnConfig[]"
+        evidence: "ItemListColumns.tsx:25"
+      - key: export-sortItemsByKey
+        value: "export function sortItemsByKey<T extends SortableItem>(items: T[], key: string, direction: SortDirection): T[]"
+        evidence: "ItemListColumns.tsx:39"
+      - key: export-HeaderCell
+        value: "export const HeaderCell = styled(TableCell)(({ theme }) => ({...}))"
+        evidence: "ItemListColumns.tsx:56"
+      - key: export-SortDirection
+        value: "export { SortDirection }"
+        evidence: "ItemListColumns.tsx:62"
+      - key: type-SortDirection-Asc
+        value: "Asc = 'asc'"
+        evidence: "ItemListColumns.tsx:20"
+      - key: type-SortDirection-Desc
+        value: "Desc = 'desc'"
+        evidence: "ItemListColumns.tsx:21"
+      - key: export-ColumnConfig
+        value: "export type { ColumnConfig }"
+        evidence: "ItemListColumns.tsx:63"
+      - key: type-ItemListResponse
+        value: "export type ItemListResponse = { items: { id: string; code: string; name: string; category: string; quantity: number; updatedAt: string; }[]; totalCount: number; }"
+        evidence: "ItemListPage.gql.ts:2"
+      - key: type-ItemListVariables
+        value: "export type ItemListVariables = { keyword: string; limit: number; offset: number; }"
+        evidence: "ItemListPage.gql.ts:14"
+      - key: type-DeleteItemVariables
+        value: "export type DeleteItemVariables = { id: string; }"
+        evidence: "ItemListPage.gql.ts:21"
+      - key: export-ITEM_LIST_QUERY
+        value: "export const ITEM_LIST_QUERY = /* GraphQL */ `query ItemList($keyword: String, $limit: Int!, $offset: Int!) { items(keyword: $keyword, limit: $limit, offset: $offset) { id\ncode\nname\ncategory\nquantity\nupdatedAt } totalCount(keyword: $keyword) }`"
+        evidence: "ItemListPage.gql.ts:26"
+      - key: export-DELETE_ITEM_MUTATION
+        value: "export const DELETE_ITEM_MUTATION = /* GraphQL */ `mutation DeleteItem($id: ID!) { deleteItem(id: $id) { id } }`"
+        evidence: "ItemListPage.gql.ts:40"
+  const:
+    reason: ""
+    items:
+      - key: const-PAGE_SIZE-20
+        value: "20"
+        evidence: "ItemListPage.tsx:27"
+      - key: const-columns-code
+        value: "{ key: 'code', label: 'コード', width: 120, sortable: true }"
+        evidence: "ItemListColumns.tsx:26"
+      - key: const-columns-name
+        value: "{ key: 'name', label: '名称', width: 240, sortable: true }"
+        evidence: "ItemListColumns.tsx:27"
+      - key: const-columns-category
+        value: "{ key: 'category', label: '区分', width: 140, sortable: true }"
+        evidence: "ItemListColumns.tsx:28"
+      - key: const-columns-quantity
+        value: "{ key: 'quantity', label: '数量', width: 100, sortable: true }"
+        evidence: "ItemListColumns.tsx:29"
+      - key: const-columns-updatedAt
+        value: "{ key: 'updatedAt', label: '更新日時', width: 180, sortable: true }"
+        evidence: "ItemListColumns.tsx:30"
+  state:
+    reason: ""
+    items:
+      - key: state-items-empty
+        value: "useState<ItemRow[]>([])"
+        evidence: "ItemListPage.tsx:55"
+      - key: state-loading-true
+        value: "useState(true)"
+        evidence: "ItemListPage.tsx:56"
+      - key: state-error-null
+        value: "useState<string | null>(null)"
+        evidence: "ItemListPage.tsx:57"
+      - key: state-form-keyword
+        value: "useState<SearchFormState>({ keyword: '' })"
+        evidence: "ItemListPage.tsx:58"
+      - key: state-navigate
+        value: "useNavigate()"
+        evidence: "ItemListPage.tsx:54"
+  handler:
+    reason: ""
+    items:
+      - key: handler-fetchItemList-API
+        value: "async function fetchItemList(variables: ItemListVariables): Promise<ItemListResponse> {\n  const response = await fetch('/api/graphql', {\n    method: 'POST',\n    headers: { 'Content-Type': 'application/json' },\n    body: JSON.stringify({ query: ITEM_LIST_QUERY, variables }),\n  });\n  if (!response.ok) {\n    throw new Error(`一覧の取得に失敗しました（status: ${response.status}）`);\n  }\n  const body = await response.json();\n  return body.data as ItemListResponse;\n}"
+        evidence: "ItemListPage.tsx:29-40"
+      - key: handler-deleteItem-API
+        value: "async function deleteItem(id: string): Promise<void> {\n  const response = await fetch('/api/graphql', {\n    method: 'POST',\n    headers: { 'Content-Type': 'application/json' },\n    body: JSON.stringify({ query: DELETE_ITEM_MUTATION, variables: { id } }),\n  });\n  if (!response.ok) {\n    throw new Error(`削除に失敗しました（status: ${response.status}）`);\n  }\n}"
+        evidence: "ItemListPage.tsx:42-51"
+      - key: handler-handleSearchSubmit-検索
+        value: "const handleSearchSubmit = async (event: React.FormEvent<HTMLFormElement>) => {\n  event.preventDefault();\n  try {\n    setLoading(true);\n    const result = await fetchItemList({ keyword: form.keyword, limit: PAGE_SIZE, offset: 0 });\n    setItems(result.items);\n  } catch (err) {\n    window.alert(err instanceof Error ? err.message : '検索に失敗しました');\n  } finally {\n    setLoading(false);\n  }\n}"
+        evidence: "ItemListPage.tsx:88-99"
+      - key: handler-handleAddClick-遷移
+        value: "const handleAddClick = () => navigate('/items/new')"
+        evidence: "ItemListPage.tsx:101"
+      - key: handler-handleRowClick-遷移
+        value: "const handleRowClick = (id: string) => navigate(`/items/${id}`)"
+        evidence: "ItemListPage.tsx:102"
+      - key: handler-handleDeleteClick-削除
+        value: "const handleDeleteClick = async (id: string) => {\n  try {\n    await deleteItem(id);\n    setItems((prev) => prev.filter((item) => item.id !== id));\n  } catch (err) {\n    window.alert(err instanceof Error ? err.message : '削除でエラーが発生しました');\n  }\n}"
+        evidence: "ItemListPage.tsx:103-110"
+      - key: handler-sortItemsByKey-ソート
+        value: "export function sortItemsByKey<T extends SortableItem>(items: T[], key: string, direction: SortDirection): T[] {\n  const sorted = [...items].sort((a, b) => {\n    const left = a[key];\n    const right = b[key];\n    if (left === right) { return 0; }\n    return left > right ? 1 : -1;\n  });\n  return direction === SortDirection.Desc ? sorted.reverse() : sorted;\n}"
+        evidence: "ItemListColumns.tsx:39-53"
+  jsx:
+    reason: ""
+    items:
+      - key: jsx-Box-root
+        value: "Box sx={{ padding: 3 }}"
+        evidence: "ItemListPage.tsx:113"
+      - key: jsx-Typography-h1
+        value: "Typography variant=\"h5\" component=\"h1\" sx={{ marginBottom: 2 }} 文言「アイテム一覧」"
+        evidence: "ItemListPage.tsx:114-116"
+      - key: jsx-form-search
+        value: "Box component=\"form\" onSubmit={handleSearchSubmit} sx={{ display: 'flex', gap: 2, marginBottom: 2, alignItems: 'center' }}"
+        evidence: "ItemListPage.tsx:118-121"
+      - key: jsx-TextField-keyword
+        value: "TextField label=\"キーワード\" size=\"small\" value={form.keyword} onChange={(event) => setForm({ keyword: event.target.value })}"
+        evidence: "ItemListPage.tsx:123-128"
+      - key: jsx-Button-submit
+        value: "Button type=\"submit\" variant=\"contained\" 文言「検索」"
+        evidence: "ItemListPage.tsx:129-131"
+      - key: jsx-Button-add
+        value: "Button variant=\"outlined\" onClick={handleAddClick} 文言「新規追加」"
+        evidence: "ItemListPage.tsx:132-134"
+      - key: jsx-path-error-Typography
+        value: "Typography color=\"error\" sx={{ marginBottom: 2 }} 条件={error}"
+        evidence: "ItemListPage.tsx:137-141"
+      - key: jsx-path-loading-CircularProgress
+        value: "CircularProgress size={24} 条件={loading}"
+        evidence: "ItemListPage.tsx:143-144"
+      - key: jsx-TableContainer-Paper
+        value: "TableContainer component={Paper} sx={{ '& .MuiTableCell-root': { fontSize: '0.875rem', padding: '8px 16px' }, '& .MuiTableRow-root:hover': { backgroundColor: 'action.hover', cursor: 'pointer' } }}"
+        evidence: "ItemListPage.tsx:146-158"
+      - key: jsx-Table-header
+        value: "Table size=\"small\" > TableBody > TableRow > columns.map((column) => HeaderCell key={column.key} sx={{ width: column.width }} 文言={column.label}) + HeaderCell sx={{ width: 80 }} 文言「操作」"
+        evidence: "ItemListPage.tsx:159-168"
+      - key: jsx-Table-row
+        value: "items.map((item) => TableRow key={item.id} onClick={() => handleRowClick(item.id)} > TableCell{item.code} TableCell{item.name} TableCell{item.category} TableCell{item.quantity} TableCell{item.updatedAt} TableCell > Button size=\"small\" color=\"error\" onClick={event.stopPropagation + handleDeleteClick(item.id)} 文言「削除」)"
+        evidence: "ItemListPage.tsx:169-189"
+  style:
+    reason: ""
+    items:
+      - key: style-HeaderCell-fontWeight-bold
+        value: "fontWeight: theme.typography.fontWeightBold"
+        evidence: "ItemListColumns.tsx:57"
+      - key: style-HeaderCell-backgroundColor-grey100
+        value: "backgroundColor: theme.palette.grey[100]"
+        evidence: "ItemListColumns.tsx:58"
+      - key: style-HeaderCell-whiteSpace-nowrap
+        value: "whiteSpace: 'nowrap'"
+        evidence: "ItemListColumns.tsx:59"
+  api:
+    reason: ""
+    items:
+      - key: api-fetchItemList-req
+        value: "fetch('/api/graphql', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ query: ITEM_LIST_QUERY, variables }) })"
+        evidence: "ItemListPage.tsx:30-34"
+      - key: api-fetchItemList-res
+        value: "response.json() → body.data as ItemListResponse"
+        evidence: "ItemListPage.tsx:38-39"
+      - key: api-deleteItem-req
+        value: "fetch('/api/graphql', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ query: DELETE_ITEM_MUTATION, variables: { id } }) })"
+        evidence: "ItemListPage.tsx:43-47"
+  measurement_pending:
+    reason: "該当なし（合成コードのため実測委譲対象の動的値が存在しない）"
+    items: []
+  local_type:
+    reason: ""
+    items:
+      - key: local-type-ItemRow
+        value: "type ItemRow = ItemListResponse['items'][number]"
+        evidence: "ItemListPage.tsx:20"
+      - key: local-type-SearchFormState
+        value: "type SearchFormState = { keyword: string; }"
+        evidence: "ItemListPage.tsx:23-25"
+      - key: local-type-ColumnConfig
+        value: "type ColumnConfig = { key: string; label: string; width: number; sortable: boolean; }"
+        evidence: "ItemListColumns.tsx:8-13"
+      - key: local-type-SortableItem
+        value: "type SortableItem = Record<string, string | number>"
+        evidence: "ItemListColumns.tsx:33"
+  effect_trigger:
+    reason: ""
+    items:
+      - key: effect-load-keyword変更
+        value: "依存配列: [form.keyword]\n実行内容: fetchItemList呼出しでアイテム一覧を取得しsortItemsByKeyでソート\ncleanup: cancelled = true"
+        evidence: "ItemListPage.tsx:60-86"
+  error_handling:
+    reason: ""
+    items:
+      - key: error-fetchItemList-throw
+        value: "throw new Error(`一覧の取得に失敗しました（status: ${response.status}）`)"
+        evidence: "ItemListPage.tsx:36-37"
+      - key: error-deleteItem-throw
+        value: "throw new Error(`削除に失敗しました（status: ${response.status}）`)"
+        evidence: "ItemListPage.tsx:49-50"
+      - key: error-handleSearchSubmit-alert
+        value: "window.alert(err instanceof Error ? err.message : '検索に失敗しました')"
+        evidence: "ItemListPage.tsx:95"
+      - key: error-handleDeleteClick-alert
+        value: "window.alert(err instanceof Error ? err.message : '削除でエラーが発生しました')"
+        evidence: "ItemListPage.tsx:108"
+      - key: error-useEffect-catch
+        value: "setError(err instanceof Error ? err.message : '不明なエラーが発生しました')"
+        evidence: "ItemListPage.tsx:72-74"
