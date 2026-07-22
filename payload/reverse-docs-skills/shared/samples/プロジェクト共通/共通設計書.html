@@ -74,7 +74,10 @@
     margin: 0; padding: 0;
     font-family: var(--font-body);
     line-height: 1.7; color: var(--text); background: var(--bg);
+    height: 100vh; overflow: hidden; display: flex; flex-direction: column;
   }
+  .topbar { flex-shrink: 0; }
+  .footer { flex-shrink: 0; }
   .topbar {
     display: grid; grid-template-columns: auto 1fr auto;
     align-items: center; gap: 12px;
@@ -93,6 +96,7 @@
   .header-meta { font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 8px; }
   .doc-main {
     max-width: 860px; margin: 0 auto; padding: 32px 24px 96px;
+    flex: 1; min-height: 0; overflow-y: auto;
   }
   .doc-main h1 { font-size: 1.6rem; margin: 32px 0 16px; padding-bottom: 8px; border-bottom: 2px solid var(--border-strong); color: var(--text); }
   .doc-main h2 { font-size: 1.3rem; margin: 28px 0 12px; padding-bottom: 6px; border-bottom: 1px solid var(--border); color: var(--text); }
