@@ -39,6 +39,18 @@ Phase 1（Router 種別の特定・検出戦略の宣言）で調査すべき対
 | Vue Router | `router.back()`, `router.go(-N)`, `this.$router.go(-1)` | |
 | 汎用(フレームワーク非依存) | `history.back()`, `history.go(-N)`, `window.history.back()` | |
 
+### アプリの戻るボタンとの区別
+
+`history.back()` / `router.back()` を呼ぶ場合のみ triggerType を「ブラウザバック」にする。以下はブラウザバックではなく、別のパターンとして検出する。
+
+| パターン | 検出例 | 記録方法 |
+|---|---|---|
+| 遷移先固定の戻りリンク | `<a href="/cart">カートに戻る</a>`、`<Link to="/products">一覧に戻る</Link>` | triggerType「リンク遷移」、`to` に固定先 |
+| 遷移先が動的に変わる戻りボタン | `navigate(returnUrl)`、`router.push(query.from \|\| '/default')` | 条件ごとに別 edge を作成。triggerType「リダイレクト」、`to` にそれぞれの遷移先、`condition` に「〇〇から遷移した場合」 |
+
+- `returnUrl` / `from` / `redirect` 等のクエリパラメータやステートで遷移先を振り分けるコードは、パターン2（動的な戻りボタン）として検出する
+- コード上で `history.back()` と `navigate(returnUrl)` の両方が条件分岐で使い分けられている場合は、それぞれ別の edge として記録する
+
 ## 条件付き遷移(ガード)の検出パターン
 
 既存の `triggerType`(通常は「リダイレクト」)をそのまま使い、`condition` フィールドに発動条件を自由記述で記録する。ガード専用の `triggerType` は追加しない。
