@@ -2159,7 +2159,7 @@ extract_screen_id() {
 
 # 画面の階層分類を判定する
 classify_screen() {
-  local screen_key="$1" entry_file="$2" detection_method="$3"
+  local screen_key="$1" entry_file="$2" detection_method="$3" route_path="$4"
   local screen_type="unknown" account_group="unknown" account_sub_type="common"
   local has_template="false" is_processing_endpoint="false"
   local parent_screen="null"
@@ -2178,7 +2178,14 @@ classify_screen() {
       esac
     done < "$ACCOUNT_GROUP_MAP_FILE"
   else
-    account_group="$detection_method"
+    # フォールバック: ルートパスから基本区別
+    if echo "$route_path" | grep -qiE '(/admin/|/admin$|/manage/|/management/)'; then
+      account_group="admin"
+    elif echo "$route_path" | grep -qiE '(/api/|/internal/|/system/)'; then
+      account_group="system"
+    else
+      account_group="user"
+    fi
   fi
 
   # Level 2: 権限区分(entryFileの権限チェックパターンから推定)
@@ -2214,7 +2221,7 @@ classify_screen() {
 
   # hasTemplate: テンプレートファイルの存在推定(entryFileの拡張子がhtml等)
   case "$entry_file" in
-    *.html|*.htm|*.tt|*.tx) has_template="true" ;;
+    *.html|*.htm|*.tt|*.tx|*.tsx|*.jsx|*.vue|*.svelte) has_template="true" ;;
   esac
 
   # isProcessingEndpoint: テンプレートなし+リダイレクト/処理のみのハンドラ
@@ -2223,12 +2230,26 @@ classify_screen() {
     screen_type="processing_endpoint"
   fi
 
-  # parentScreen: モーダル呼出しパターンから親画面を推定
-  if [ -f "$entry_file" ]; then
-    local modal_ref
-    modal_ref=$(grep -aoE '(onclick|window\.open|showModal|openDialog)\s*[\(=]\s*['"'"'"][^'"'"'"]*['"'"'"]' "$entry_file" 2>/dev/null | head -1 | grep -oE '[A-Za-z0-9_-]+' | tail -1)
-    if [ -n "$modal_ref" ]; then
-      parent_screen="\"$modal_ref\""
+  # parentScreen: モーダル判定(ファイル名 or 開閉ハンドラの有無)から親画面を推定
+  local entry_basename
+  entry_basename="$basename_lower"
+  local is_modal=false
+  if echo "$entry_basename" | grep -qiE '(modal|dialog|popup|drawer)'; then
+    is_modal=true
+  elif [ -f "$entry_file" ] && grep -aqiE '(isOpen|isVisible|showModal|onClose|handleClose)' "$entry_file" 2>/dev/null; then
+    is_modal=true
+  fi
+
+  if [ "$is_modal" = true ]; then
+    # 同じディレクトリの親画面(モーダルでないファイル)を探す
+    local parent_dir
+    parent_dir=$(dirname "$entry_file")
+    local parent_candidate
+    parent_candidate=$(find "$parent_dir" -maxdepth 1 -name "*.tsx" -o -name "*.ts" -o -name "*.html" | grep -viE '(modal|dialog|popup|drawer)' | head -1)
+    if [ -n "$parent_candidate" ]; then
+      local parent_key
+      parent_key=$(basename "$parent_candidate" | sed 's/\.[^.]*$//' | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/-/g')
+      parent_screen="\"$parent_key\""
     fi
   fi
 
@@ -2529,7 +2550,7 @@ awk -F'\t' '$5!=""{print $5}' "$TMP_ALL" | sort -u > "$STRATEGY_ALL_ENTRIES_FILE
     fi
 
     IFS=$'\t' read -r classify_screen_type classify_account_group classify_account_sub_type classify_has_template classify_is_processing_endpoint classify_parent_screen \
-      <<< "$(classify_screen "$key" "$entry_file" "$detection_method_field")"
+      <<< "$(classify_screen "$key" "$entry_file" "$detection_method_field" "$route")"
 
     [ "$first" -eq 1 ] || printf ',\n'
     first=0
