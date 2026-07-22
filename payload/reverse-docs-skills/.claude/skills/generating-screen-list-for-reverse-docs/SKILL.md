@@ -79,6 +79,56 @@ allowed-tools: [Bash, Read, Write, Edit, Grep, Glob, AskUserQuestion, TaskCreate
 
 検出結果は一時ディレクトリ（`$CLAUDE_JOB_DIR/tmp/screen-manifest.json`、未設定時は `${TMPDIR:-/tmp}/claude-job-${session}/tmp/` 配下。`${session}`はセッションIDが取得できなければ任意の一意な値でよい）に保存する。
 
+### Phase 2B: 画面種別の階層分類
+
+Phase 2 で抽出したマニフェストの各画面に、コード分析に基づく階層分類を付与する。分類はラベルのキーワードマッチではなく、テンプレート実体の有無・構造・サーバサイドのルーティング実装・リダイレクト処理の有無等のコード分析に基づいて行う。
+
+#### 4階層の分類体系
+
+- **Level 1（システム区分）**: 利用者向け・管理・その他の系統など、システムの利用者系統による区分
+- **Level 2（利用者権限区分。該当する場合）**: 権限や契約種別による区分。該当しない画面は「共通」とする
+- **Level 3（画面種別。8種）**: トップ/ダッシュボード・一覧画面・詳細/参照画面・入力/フォーム画面・確認画面・完了画面・エラー画面・処理エンドポイント（UIなし）
+- **Level 4（画面に紐づくコンポーネント。3種）**: モーダルダイアログ・ポップアップ・インラインフォーム
+
+Level 1・2 の分類値はプロジェクトごとに異なるため、スキル本書にハードコードしない。スキルは設定ファイルのグループ定義・ルーティング定義・ディレクトリ構成から分類値の候補を機械抽出し、確定値はプロジェクト側の設定受け口（プロジェクト文書）へ委譲する方式とする。Level 3・4 の種別（8種・3種）は業務・技術に依存しない普遍的な画面分類であるため固定する。
+
+#### 分類の判定根拠（コード分析で取得すべき情報）
+
+| 判定対象 | 判定方法 | 根拠となるコード |
+|---|---|---|
+| 画面の系統・ルーティング | 画面がどのルーティング定義に属するか | サーバサイドのルーティング実装 |
+| UIの有無 | 対応するテンプレート実体が存在するか | テンプレート実体の有無（パス規約はアーキテクチャ調査書から導出） |
+| 画面種別 | テンプレートのDOM構造（`<form>` の有無、`<table>` の有無、リスト構造等） | テンプレートのDOM構造 |
+| 親画面との紐付け | モーダルを呼び出す `onclick` / `window.open` / `showModal` 等の参照元 | モーダルの呼出し参照元 |
+| 利用者権限区分 | 権限や契約種別を判定する条件分岐の有無 | 権限チェックの条件分岐 |
+| 処理エンドポイント判定 | テンプレートがなくリダイレクトのみ行うハンドラか | テンプレートなし＋リダイレクトのみ→処理エンドポイント |
+
+具体の検出パターン（ファイルパス規約・設定変数名・権限判定の実装形）はプロジェクトのアーキテクチャ調査書から導出する。
+
+#### screen-manifest JSON に追加するフィールド
+
+| フィールド | 型 | 説明 | 例 |
+|---|---|---|---|
+| screenType | 文字列 | Level 3 の画面種別（8種のいずれか） | `"detail"` |
+| accountGroup | 文字列 | Level 1 のシステム区分 | `"admin"` / `"user"` |
+| accountSubType | 文字列 | Level 2 の利用者権限区分 | `"common"` |
+| hasTemplate | 真偽値 | 対応するテンプレート実体の有無 | `true` |
+| parentScreen | 文字列またはnull | 親画面のキー | `null` |
+| childComponents | 文字列配列 | 紐づくコンポーネントキーの配列 | `["list-orders-detail-modal"]` |
+| isProcessingEndpoint | 真偽値 | 処理エンドポイント（UIを持たない）か否か | `false` |
+
+#### Step 2B-1: 分類の実行
+
+Phase 1 の調査結果とアーキテクチャ調査書（`survey_doc_path`）を参照し、マニフェストの各画面に上記フィールドを付与する。具体の検出パターン（ファイルパス規約・設定変数名・権限判定の実装形）はプロジェクトのアーキテクチャ調査書から導出する。
+
+#### Step 2B-2: 分類結果の検証
+
+- 全エントリに `screenType` フィールドが存在し、値が Level 3 の8種のいずれかであること
+- `hasTemplate: false` かつ `isProcessingEndpoint: true` の画面が、テンプレート実体が実在しないことと一致すること
+- `parentScreen` が非 null の画面について、その `parentScreen` が `screen-manifest` 内に実在すること（孤児参照がないこと）
+
+完了条件: マニフェストの全エントリに分類フィールドが付与され、検証項目がすべてPASS
+
 ### Phase 3: 整合検証（機械実行）
 
 - **Step 1**: `../../../shared/scripts/unit-list/validate-manifest.sh <manifest.json> --unit-kind screen` を実行する。7項目検証が動く。完了条件: 全項目PASS
@@ -107,6 +157,7 @@ allowed-tools: [Bash, Read, Write, Edit, Grep, Glob, AskUserQuestion, TaskCreate
 |---|---|
 | Phase 1 | Step 1〜4の調査完了。Step 5の共有ファイル・エイリアス調査（sharedDirPatterns/pathAliases）完了。Step 6の検出戦略宣言（`unitKind: "screen"`/screenUnitDefinition/screenIdRegex/viewSwitchPattern/excludePatterns/sharedDirPatterns/pathAliases/importTraversalMaxDepth）がユーザー承認済み |
 | Phase 2 | Step 1で抽出方式（builtin/custom）が決定済み。Step 2でスキーマ準拠のマニフェストが1件以上確定、または0件検出をユーザーに報告して停止している。Step 3でdiagnosticsを確認済み。セルフチェックゲート（route実在照合含む）・ルート網羅性検査ゲートをPASS済み |
+| Phase 2B | マニフェストの全エントリに screenType・accountGroup・hasTemplate・parentScreen・isProcessingEndpoint が付与され、検証項目がすべてPASS |
 | Phase 3 | Step 1で `validate-manifest.sh --unit-kind screen` が7項目すべてPASS。Step 2のFAIL時修正ループは3回以内。Step 3のレジストリ整合検査で突合差分ゼロ（画面レジストリが存在する場合のみ） |
 | Phase 4 | Step 1で画面一覧.htmlが生成され、埋め込みJSONがマニフェストと一致している |
 | Phase 5（任意） | `--profile`サブコマンド実行時のみ、複雑度プロファイル.jsonが生成されている |
