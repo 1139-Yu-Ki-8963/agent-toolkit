@@ -2178,14 +2178,7 @@ classify_screen() {
       esac
     done < "$ACCOUNT_GROUP_MAP_FILE"
   else
-    # フォールバック: ルートパスから基本区別
-    if echo "$route_path" | grep -qiE '(/admin/|/admin$|/manage/|/management/)'; then
-      account_group="admin"
-    elif echo "$route_path" | grep -qiE '(/api/|/internal/|/system/)'; then
-      account_group="system"
-    else
-      account_group="user"
-    fi
+    account_group="$detection_method"
   fi
 
   # Level 2: 権限区分(entryFileの権限チェックパターンから推定)
@@ -2223,6 +2216,11 @@ classify_screen() {
   case "$entry_file" in
     *.html|*.htm|*.tt|*.tx|*.tsx|*.jsx|*.vue|*.svelte) has_template="true" ;;
   esac
+
+  # unknown かつテンプレートありは未分類扱い
+  if [ "$screen_type" = "unknown" ] && [ "$has_template" = "true" ]; then
+    screen_type="other"
+  fi
 
   # isProcessingEndpoint: テンプレートなし+リダイレクト/処理のみのハンドラ
   if [ "$has_template" = "false" ] && [ "$screen_type" = "unknown" ]; then
@@ -2585,5 +2583,18 @@ awk -F'\t' '$5!=""{print $5}' "$TMP_ALL" | sort -u > "$STRATEGY_ALL_ENTRIES_FILE
   printf '\n  ]\n'
   printf '}\n'
 } > "$MANIFEST_OUT"
+
+# childComponents 後処理: parentScreen の逆引きで実値を埋める
+if command -v jq >/dev/null 2>&1 && [ -f "$MANIFEST_OUT" ]; then
+  tmp_manifest="${MANIFEST_OUT}.childcomp"
+  jq '
+    .screens as $all |
+    .screens |= [
+      .[] |
+      . as $s |
+      .childComponents = [$all[] | select(.parentScreen == $s.screenKey) | .screenKey]
+    ]
+  ' "$MANIFEST_OUT" > "$tmp_manifest" 2>/dev/null && mv "$tmp_manifest" "$MANIFEST_OUT"
+fi
 
 echo "OK: detected $screen_count screens ($cluster_count clusters, $embedded_candidate_count embedded, $unresolved_count unresolved) via $detection_method -> $MANIFEST_OUT" >&2
