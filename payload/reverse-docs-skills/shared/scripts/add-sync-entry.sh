@@ -53,9 +53,7 @@ if grep -q "$SKILL_NAME" "$MANIFEST"; then
   exit 0
 fi
 
-sed -i '' '/agent-home\/agents/i\
-    { "mode": "mirror", "src": "~/agent-home/skills/'"$SKILL_NAME"'", "dst": "payload/claudecode-global-setup/agent-home/skills/'"$SKILL_NAME"'" },
-' "$MANIFEST"
+awk -v skill="$SKILL_NAME" '/agent-home\/agents/{printf "    { \"mode\": \"mirror\", \"src\": \"~/agent-home/skills/%s\", \"dst\": \"payload/claudecode-global-setup/agent-home/skills/%s\" },\n", skill, skill}{print}' "$MANIFEST" > "${MANIFEST}.tmp" && mv "${MANIFEST}.tmp" "$MANIFEST"
 
 if jq . "$MANIFEST" > /dev/null 2>&1; then
   echo "OK: added $SKILL_NAME to sync-manifest.json" >&2

@@ -109,6 +109,24 @@ throw文・catch節・window.alert等のエラー処理。1箇所=1item。
 - **value**: メッセージliteralと処理内容。メッセージ定数は「定数キー→実文言→生成APIシグネチャ」まで含める。GraphQLエラー参照パス・文字列加工もliteral
 - **recount計数**: throw + catch + window.alert の出現数合算
 
+## 抽出規律（全分類共通）
+
+### (iii) 複数行valueの改行 `\n` エスケープ保持
+
+複数行literal（関数本体・gql本文・型定義・複数行import）はvalue内で改行を `\n` エスケープとして保持する（YAML二重引用符スカラー。物理行は1行のまま＝固定インデント解析と互換）。1行へのsquash/`...` による省略をvalueのいかなる部分でも全面禁止する（盲検再構築者に `{ ... }` の自力再構成を強いるため⑤⑧のvalue不足に該当する）。位置情報（行番号・行範囲 `L227-251` 等・file:line）はvalueに書かずevidenceフィールド専用とする。
+
+### (iv) 構成順序
+
+②export itemのvalueに、当ファイルの上位レベル宣言とコンポーネント内宣言の出現順列（種別+名前）をぶら下げる（例 `import群 → type Props → styled Wrapper → const formStyle → function useItemSummary { state:data → state:list → effect:fetch → useMemo:result → return }`）。全宣言・全effectを漏れなく列挙する（自己検査: 構成順序のエントリ数＝コードの宣言数）。1行宣言（派生const等）は式literalを併記する。呼出しは全引数literal（`...` 省略禁止を構成順序にも適用する）。
+
+### (v) 複数ファイルユニットの所属ファイル識別接尾辞
+
+対象が複数ファイルの場合、③state・⑤handler・⑪effect_trigger・⑦styleの全itemのkeyに所属ファイル識別接尾辞（`-page`・`-columns`・`-bl`・`-gql` 等、ユニット内で一意な短識別子）を付ける。どのファイルに属するかkeyから機械判別できないitemを禁止する。
+
+### (vi) 行網羅自己検査
+
+Phase 2（抽出）完了前に、対象ファイルごとに原本の非空・非コメント行のうち、factsの全value（`\n` を実改行へ展開したliteral群）のいずれにも含まれない行を機械列挙し（展開済みliteralを連結した照合ファイルの `grep -Fxv` 突合等）、0行であること（漏れ0）を確認してから抽出を完了する。漏れ行があれば該当宣言・関数・構成順序エントリのvalueを補完する。
+
 各分類は「該当なし」を許容する。その場合 `items: []` とし `reason` に根拠を記す（例: `"該当なし（原本にトップレベル定数が存在しない）"`）。`items` が空で `reason` も空のセクションは不正（Phase 2 の完了条件違反）。
 
 **「該当なし」は原本に当該分類の事実が実在しない場合専用**である。原本に事実が実在するが `scripts/recount-facts.sh` の再計数パターンがそれを構造的に検知できない（Promiseチェーン形式のAPI呼出し・複数行JSX開始タグ・カスタムフック分割代入・オブジェクトリテラル定数のフィールド値・条件分岐JSXパスの外殻ラッパー等）場合は「該当なし」に該当しない。この場合に items を省略・reason へ逃がして Phase 3 を通すことは禁止する。`extracting-unit-facts-from-code` の `references/profile-screen.md`・`scripts/recount-facts.sh` 側のパターンを実在の構文に合わせて修正する（詳細は同スキルの SKILL.md の予想を裏切る挙動を参照）。
