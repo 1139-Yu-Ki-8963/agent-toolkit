@@ -124,7 +124,13 @@ case "$PAGE_KIND" in
   transition)
     orphan_refs="$(jq -r '
       ([(.nodes // [])[]?.unitKey] | map(select(. != null))) as $keys
-      | [(.edges // [])[]? | select(((.from as $f | $keys | index($f)) == null) or ((.to as $t | $keys | index($t)) == null))]
+      | [(.edges // [])[]? | select(
+          ((.from as $f | $keys | index($f)) == null)
+          or (
+            ((.triggerType // "") != "ブラウザバック" or (.to // "") != "")
+            and ((.to as $t | $keys | index($t)) == null)
+          )
+        )]
       | .[] | "\(.from)->\(.to)"
     ' "$MANIFEST" 2>/dev/null)"
     if [ -n "$orphan_refs" ]; then

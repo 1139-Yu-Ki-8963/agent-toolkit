@@ -734,7 +734,7 @@ table.data-table code {
       if (kind === 'transition') {
         tr = el('tr', null, [
           el('td', null, e.from || ''),
-          el('td', null, e.to || ''),
+          el('td', null, e.triggerType === 'ブラウザバック' ? '(前画面)' : (e.to || '')),
           el('td', null, e.trigger || ''),
           el('td', null, el('code', null, e.sourceRef || '')),
           el('td', null, e.confidence || '')
@@ -773,6 +773,10 @@ table.data-table code {
   // 未解決参照(ノード不在)は集計・描画から除外する(ERパスと同じフェイルセーフ)
   var edgesResolved = edgesRaw.filter(function(e) {
     return nodeByKey[e.from] !== undefined && nodeByKey[e.to] !== undefined;
+  });
+
+  var browserBackEdges = edgesRaw.filter(function(e) {
+    return e.triggerType === 'ブラウザバック' && (!e.to || e.to === '');
   });
 
   function groupName(key) {
@@ -827,6 +831,12 @@ table.data-table code {
     outDegree[e.from]++;
     inDegree[e.to]++;
   });
+  browserBackEdges.forEach(function(e) {
+    if (outEdges[e.from] !== undefined) {
+      outEdges[e.from].push(e);
+      outDegree[e.from]++;
+    }
+  });
 
   var hubNodes = [], isolatedNodes = [], normalNodes = [];
   keys.forEach(function(k) {
@@ -871,12 +881,18 @@ table.data-table code {
     card.appendChild(title);
 
     var dl = el('dl');
+    var toDisplay = edge.triggerType === 'ブラウザバック' ? '(前画面)' : nodeLabel(edge.to);
+    var toCode = edge.triggerType === 'ブラウザバック' ? '' : (edge.to || '');
     dl.appendChild(el('dt', null, '遷移先'));
-    dl.appendChild(el('dd', null, [nodeLabel(edge.to) + ' ', el('code', null, edge.to || '')]));
+    dl.appendChild(el('dd', null, [toDisplay + ' ', el('code', null, toCode)]));
     dl.appendChild(el('dt', null, '種別'));
     dl.appendChild(el('dd', null, CLASS_TAG_LABEL[edge.__cls]));
     dl.appendChild(el('dt', null, 'トリガー'));
     dl.appendChild(el('dd', null, edge.triggerType || 'リンク遷移'));
+    if (edge.condition) {
+      dl.appendChild(el('dt', null, '条件'));
+      dl.appendChild(el('dd', null, edge.condition));
+    }
     dl.appendChild(el('dt', null, '記載箇所'));
     dl.appendChild(el('dd', null, el('code', null, edge.sourceRef || '')));
     card.appendChild(dl);
@@ -1013,15 +1029,18 @@ table.data-table code {
 
     var tbody2 = el('tbody');
     if (edges.length === 0) {
-      tbody2.appendChild(el('tr', null, el('td', { colspan: '6' }, 'なし')));
+      tbody2.appendChild(el('tr', null, el('td', { colspan: '7' }, 'なし')));
     } else {
       edges.forEach(function(e) {
+        var toLabel = e.triggerType === 'ブラウザバック' ? '(前画面)' : nodeLabel(e.to);
+        var toCode = e.triggerType === 'ブラウザバック' ? '' : (e.to || '');
         var tr2 = el('tr', null, [
           el('td', null, el('span', { class: 'row-badge ' + CLASS_ROW_BADGE[e.__cls] }, String(e.__badge))),
-          el('td', null, e.trigger || nodeLabel(e.to)),
-          el('td', null, [nodeLabel(e.to), el('br'), el('code', { class: 'src' }, e.to || '')]),
+          el('td', null, e.trigger || toLabel),
+          el('td', null, [toLabel, el('br'), el('code', { class: 'src' }, toCode)]),
           el('td', null, el('span', { class: 'tag ' + CLASS_TAG_CLASS[e.__cls] }, CLASS_TAG_LABEL[e.__cls])),
           el('td', null, e.triggerType || 'リンク遷移'),
+          el('td', null, e.condition || ''),
           el('td', null, el('code', { class: 'src' }, e.sourceRef || ''))
         ]);
         tr2.setAttribute('data-badge', e.__badge);
@@ -1043,7 +1062,7 @@ table.data-table code {
       el('table', { class: 'trans-table' }, [
         el('thead', null, el('tr', null, [
           el('th'), el('th', null, 'UIの要素'), el('th', null, '遷移先'),
-          el('th', null, '種別'), el('th', null, 'トリガー'), el('th', null, '記載箇所')
+          el('th', null, '種別'), el('th', null, 'トリガー'), el('th', null, '条件'), el('th', null, '記載箇所')
         ])),
         tbody2
       ])
@@ -1150,20 +1169,23 @@ table.data-table code {
       var edges = sortedOutEdges[k] || [];
       var tbody4 = el('tbody');
       if (edges.length === 0) {
-        tbody4.appendChild(el('tr', null, el('td', { colspan: '3' }, 'なし')));
+        tbody4.appendChild(el('tr', null, el('td', { colspan: '4' }, 'なし')));
       } else {
         edges.forEach(function(e) {
+          var hubToCode = e.triggerType === 'ブラウザバック' ? '' : (e.to || '');
+          var hubToLabel = e.triggerType === 'ブラウザバック' ? '(前画面)' : nodeLabel(e.to);
           tbody4.appendChild(el('tr', null, [
-            el('td', null, el('code', null, e.to || '')),
-            el('td', null, nodeLabel(e.to)),
-            el('td', null, e.triggerType || 'リンク遷移')
+            el('td', null, el('code', null, hubToCode)),
+            el('td', null, hubToLabel),
+            el('td', null, e.triggerType || 'リンク遷移'),
+            el('td', null, e.condition || '')
           ]));
         });
       }
       modeScreen.appendChild(el('details', { class: 'iso-group' }, [
         el('summary', null, nodeLabel(k) + '（' + edges.length + '件の遷移先）'),
         el('table', { class: 'data-table' }, [
-          el('thead', null, el('tr', null, [el('th', null, '遷移先'), el('th', null, 'ラベル'), el('th', null, 'トリガー')])),
+          el('thead', null, el('tr', null, [el('th', null, '遷移先'), el('th', null, 'ラベル'), el('th', null, 'トリガー'), el('th', null, '条件')])),
           tbody4
         ])
       ]));

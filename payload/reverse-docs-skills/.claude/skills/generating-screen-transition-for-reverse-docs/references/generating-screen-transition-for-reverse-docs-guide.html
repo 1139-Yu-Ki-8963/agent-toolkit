@@ -151,7 +151,7 @@
   <p>スキルを実行すると、以下の 2 点が生まれる。</p>
   <div class="def">
     <dt>画面遷移図.html（<code>&lt;docs_root&gt;</code> 直下）</dt>
-    <dd>画面をノード、遷移をエッジとした図を client-side SVG で描画するページ。図の下には各遷移の発生元・宛先・契機・出所（<code>sourceRef</code>）・confidence を補足表として一覧表示する。route 情報を持たない旧形式画面や宛先未解決の遷移は「未解決」節にまとめて表示され、読んだ人はどこまでが確定情報かをその場で判別できる。</dd>
+    <dd>画面ごとのワイヤーフレームと遷移先テーブルを左右に並べた split-view 形式で、client-side JavaScript が埋め込み JSON から構築するページ。上部の「画面別 / 動線別 / 未接続」3 タブで表示を切り替え、画面別タブでは選択ドロップダウンと前後ボタンで画面を移動する。遷移エッジは画面固有（橙）・共通ナビゲーション（青）・自己ループ（緑）の 3 層に色分けして遷移先テーブルに表示し、出次数がしきい値（<code>MAX_EDGES_PER_VIEW</code>）を超えるノードは中央ナビゲーション画面として、入出次数 0 のノードは未接続画面一覧として、それぞれ折りたたみ表示される。読んだ人はどこまでが確定情報かをその場で判別できる。</dd>
     <dt>埋め込み page-data JSON</dt>
     <dd>画面遷移図.html の中に、生成の元になった page-data.json がそのまま埋め込まれる。読んだ人は「いつ・どの画面一覧・どのコード実測から生成されたか」を HTML 単体で追跡でき、機械処理（後続スキルからの参照）にも使える。</dd>
   </div>
@@ -164,7 +164,7 @@
     <dt>page-data.json</dt>
     <dd>detail-pages 系 5 スキルが共有する入力 JSON。<code>pageKind</code> ごとに型別スロットを持つ。本スキルは <code>pageKind: "transition"</code> を固定で使う。スキーマの全量は <code>page-data-schema.md</code> を参照。</dd>
     <dt>nodes / edges</dt>
-    <dd>transition 型のスロット。<code>nodes[]</code> は <code>{unitKey, label}</code> 形式の画面 1 件 = 1 要素、<code>edges[]</code> は <code>{from, to, trigger, sourceRef, confidence}</code> 形式の遷移 1 経路 = 1 要素。<code>from</code>/<code>to</code> は <code>nodes[].unitKey</code> を参照する。</dd>
+    <dd>transition 型のスロット。<code>nodes[]</code> は <code>{unitKey, label}</code> 形式の画面 1 件 = 1 要素、<code>edges[]</code> は <code>{from, to, trigger, sourceRef, confidence}</code> 形式の遷移 1 経路 = 1 要素。<code>from</code>/<code>to</code> は <code>nodes[].unitKey</code> を参照する。<code>nodes[]</code> は任意フィールドとして動線カテゴリ名 <code>category</code> と、その導出元（<code>routing-group</code> / <code>url-segment</code> / <code>account-group</code> / <code>fallback</code>）を示す <code>categorySrc</code> を持つ。<code>edges[]</code> は任意フィールドとして UI 上の所属セクション名 <code>section</code>、遷移種別（「リンク遷移」「フォーム送信」「リダイレクト」「ブラウザバック」の4値）を示す <code>triggerType</code>、遷移が発火する条件の自由記述 <code>condition</code> を持つ。</dd>
     <dt>孤児 edge</dt>
     <dd><code>from</code> または <code>to</code> が <code>nodes[].unitKey</code> のいずれとも一致しない <code>edges[]</code> 要素。Phase 3 で 0 件であることを機械検証する。</dd>
     <dt>旧形式マニフェスト</dt>
@@ -186,8 +186,8 @@
     </tr>
     <tr>
       <td><strong>Phase 2</strong><br>抽出</td>
-      <td><code>nodes[]</code> の転記、Router 定義・navigate・Link・redirect の走査による遷移候補の抽出、宛先の <code>unitKey</code> 解決（未解決は分離）</td>
-      <td><code>nodes[]</code>/<code>edges[]</code> 確定・page-data.json 保存済み</td>
+      <td><code>nodes[]</code> の転記、Router 定義・navigate・Link・redirect の走査による遷移候補の抽出、宛先の <code>unitKey</code> 解決（未解決は分離）、全ノードへの <code>category</code>/<code>categorySrc</code> 付与（カテゴリ分類）</td>
+      <td><code>nodes[]</code>/<code>edges[]</code> 確定・全ノードのカテゴリ分類済み・page-data.json 保存済み</td>
     </tr>
     <tr>
       <td><strong>Phase 3</strong><br>整合検証（機械実行）</td>
@@ -234,6 +234,8 @@
     <tr><td>変数のみで静的解決できない遷移先に無理に confidence を付ける</td><td>解決不能として unresolved[] へ回す（<code>references/transition-detection.md</code> 参照）</td></tr>
     <tr><td>page-data の nodes[] に route を持ち込んでしまう</td><td>route は Phase 2 の解決処理でのみ使う一時情報とし、page-data には持ち込まない</td></tr>
     <tr><td>jq 未インストール環境での検証・生成失敗</td><td>validate/build 両スクリプトが jq に依存するため事前に導入する</td></tr>
+    <tr><td>ブラウザバック edge の to を既存画面に無理に解決する</td><td>to を空文字列にし triggerType を「ブラウザバック」にする</td></tr>
+    <tr><td>ガード条件を triggerType として新設する</td><td>既存の triggerType（リダイレクト等）を使い condition フィールドに条件を記述する</td></tr>
   </table>
 </section>
 

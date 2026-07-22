@@ -381,7 +381,7 @@ for kind in $KINDS_ORDER; do
     if [ -f "$transition_file" ]; then
       transition_href="$docs_relative/画面遷移図.html"
       [ -n "$list_tools_json" ] && list_tools_json="$list_tools_json,"
-      list_tools_json="$list_tools_json{\"title\":\"画面遷移図\",\"group\":\"画面\",\"icon\":\"account_tree\",\"href\":\"$transition_href\",\"desc\":\"画面一覧とコード走査から生成する画面遷移マップ。\",\"count\":\"詳細を見る\"}"
+      list_tools_json="$list_tools_json{\"title\":\"画面遷移図\",\"group\":\"画面\",\"icon\":\"account_tree\",\"href\":\"$transition_href\",\"desc\":\"画面一覧とコード走査から生成する画面遷移マップ。ブラウザバック・条件付き遷移に対応。\",\"count\":\"詳細を見る\"}"
     fi
   fi
 
@@ -455,7 +455,7 @@ fi
 get_future_label() { case "$1" in glossary) echo "用語辞書";; techstack) echo "技術スタック";; transition) echo "画面遷移図";; er) echo "ER図";; env) echo "環境構築手順";; esac; }
 get_future_file() { case "$1" in glossary) echo "用語辞書.html";; techstack) echo "技術スタック.html";; transition) echo "画面遷移図.html";; er) echo "ER図.html";; env) echo "環境構築手順.html";; esac; }
 get_future_icon() { case "$1" in glossary) echo "dictionary";; techstack) echo "stacks";; transition) echo "account_tree";; er) echo "schema";; env) echo "terminal";; esac; }
-get_future_desc() { case "$1" in glossary) echo "業務用語・技術用語・略語の定義とコード上の対応識別子の対訳。";; techstack) echo "言語・フレームワーク・主要依存パッケージのバージョンと採用箇所の整理。";; transition) echo "画面一覧とコード走査から生成する画面遷移マップ。";; er) echo "テーブル一覧と外部キー定義から生成するエンティティ関連図。";; env) echo "環境構築・必須ツール・ポート割当の整理。";; esac; }
+get_future_desc() { case "$1" in glossary) echo "業務用語・技術用語・略語の定義とコード上の対応識別子の対訳。";; techstack) echo "言語・フレームワーク・主要依存パッケージのバージョンと採用箇所の整理。";; transition) echo "画面一覧とコード走査から生成する画面遷移マップ。ブラウザバック・条件付き遷移に対応。";; er) echo "テーブル一覧と外部キー定義から生成するエンティティ関連図。";; env) echo "環境構築・必須ツール・ポート割当の整理。";; esac; }
 FUTURE_ORDER="techstack env glossary"
 
 future_tools_json=""

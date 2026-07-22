@@ -27,3 +27,28 @@ Phase 1（Router 種別の特定・検出戦略の宣言）で調査すべき対
 - 変数のみで構成され静的解決できない遷移先（`navigate(path)` の `path` が関数引数由来等）は、宛先未解決として `unresolved[]` へ回す。confidence を無理に付けて `edges[]` に含めない
 - コメントアウトされた遷移呼び出し（`// navigate('/old')` 等）は抽出前に除去する
 - 同一発生元・同一宛先への遷移が複数箇所（条件分岐によるボタン違い等）で発火する場合は、`trigger` を分けて別々の `edges[]` 要素として記録する（1 遷移経路 = 1 edge）
+
+## ブラウザバック検出パターン
+
+`triggerType` を「ブラウザバック」、`to` を空文字列にする。遷移先はランタイム依存で静的に確定しないため、`unresolved[]` にはせず `edges[]` に含める(発生元は確定しているため)。
+
+| Router 種別 | 検出パターン | 備考 |
+|---|---|---|
+| React Router(v6 系) | `navigate(-1)`, `navigate(-N)` | `useNavigate()` が返す関数の引数が負数 |
+| Next.js(App / Pages 共通) | `router.back()`, `window.history.back()` | `useRouter()` のメソッド |
+| Vue Router | `router.back()`, `router.go(-N)`, `this.$router.go(-1)` | |
+| 汎用(フレームワーク非依存) | `history.back()`, `history.go(-N)`, `window.history.back()` | |
+
+## 条件付き遷移(ガード)の検出パターン
+
+既存の `triggerType`(通常は「リダイレクト」)をそのまま使い、`condition` フィールドに発動条件を自由記述で記録する。ガード専用の `triggerType` は追加しない。
+
+| Router 種別 | 検出パターン | condition 記載例 |
+|---|---|---|
+| React Router(v6 系) | `<Navigate>` inside conditional render, `redirect()` in `loader` | "未認証の場合" |
+| Next.js App Router | `redirect()` inside `middleware.ts`, conditional in Server Component | "未認証の場合" |
+| Next.js Pages Router | `getServerSideProps` の `redirect` | "セッション無効の場合" |
+| Vue Router | `beforeEach` / `beforeEnter` ガード内の `next('/login')` | "認証トークン期限切れの場合" |
+
+- `condition` はコードのガード条件を日本語で要約する自由記述
+- 同一 `from`/`to` でも条件が異なれば別の edge として記録する
