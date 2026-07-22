@@ -419,16 +419,16 @@ run_validate() {
       (.[$keyfield] // "?") as $k
       | (
           [ ("permissions","relatedApis","callers","foreignKeys","mainColumns","targetTables","downstreamJobs") as $f
-            | select(has($f)) | select((.[$f] | is_str_arr) | not)
+            | select(has($f) and (.[$f] != null)) | select((.[$f] | is_str_arr) | not)
             | $f + "が文字列配列でない" ]
-        + [ select(has("authRequired")) | select((.authRequired | type) != "boolean")
+        + [ select(has("authRequired") and (.authRequired != null)) | select((.authRequired | type) != "boolean")
             | "authRequiredがbooleanでない" ]
-        + [ select(has("columnCount")) | select((.columnCount | type) != "number")
+        + [ select(has("columnCount") and (.columnCount != null)) | select((.columnCount | type) != "number")
             | "columnCountが数値でない" ]
         + [ ("method","ioSummary","designDocStatus","category","format","trigger","direction","protocol","authMethod","execMethod","operationClass") as $f
-            | select(has($f)) | select((.[$f] | type) != "string")
+            | select(has($f) and (.[$f] != null)) | select((.[$f] | type) != "string")
             | $f + "が文字列でない" ]
-        + [ select(has("schedule"))
+        + [ select(has("schedule") and (.schedule != null))
             | select(((.schedule | type) != "object") or (((.schedule | has("cron")) and (.schedule | has("readable"))) | not))
             | "scheduleが{cron, readable}を持つobjectでない" ]
         + [ select(has("designDocStatus") and ((.designDocStatus | type) == "string"))
@@ -629,6 +629,16 @@ JSON
     rc=1
   else
     echo "  [PASS] 拡張フィールド陰性: 型違反でFAIL"
+  fi
+
+  # null陽性系: 任意フィールドが明示的nullを持つユニットで型検査がエラーにならないこと
+  local api_ext_null="$tmp/api-ext-null.json"
+  jq '.units[0] += {"category": null, "authRequired": null, "columnCount": null}' "$api_pass" > "$api_ext_null"
+  if run_validate "$api_ext_null" "" "api" >/dev/null 2>&1; then
+    echo "  [PASS] 拡張フィールドnull陽性: 任意フィールドが明示的nullでも全8項目PASS"
+  else
+    echo "  [FAIL] 拡張フィールドnull陽性: 任意フィールドの明示的nullがFAILした" >&2
+    rc=1
   fi
 
   if [ "$rc" -eq 0 ]; then
