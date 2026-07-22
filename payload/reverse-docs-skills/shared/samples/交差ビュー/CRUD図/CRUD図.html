@@ -94,12 +94,12 @@
 
   * { box-sizing: border-box; }
   body {
-    margin: 0; padding: 0 24px 96px;
+    margin: 0; padding: 0 24px 0;
     font-family: var(--font-body);
-    line-height: 1.7; color: var(--text); background: var(--bg);
+    line-height: 1.7; color: var(--text); background: var(--bg); height: 100vh; overflow: hidden; display: flex; flex-direction: column;
     max-width: 1180px; margin-inline: auto;
   }
-  .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .table-wrap { overflow-x: auto; overflow-y: auto; flex: 1; min-height: 0; -webkit-overflow-scrolling: touch; }
   header { padding: 40px 0 20px; border-bottom: 3px solid var(--border-strong); }
   .header-top { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
   header h1 { font-size: 1.7rem; margin: 0 0 10px; }

@@ -24,7 +24,6 @@ check_file() {
     return
   fi
 
-  # --- カラーシステム ---
   local old_l; old_l=$(grep -cE "$OLD_COLORS_LIGHT" "$f" 2>/dev/null || true)
   [ "$old_l" -eq 0 ] && pass "色トークン-旧値禁止（ライト）" || fail "色トークン-旧値禁止（ライト）: ${old_l}件"
 
@@ -39,7 +38,6 @@ check_file() {
     fail "テーマ-ダーク定義"
   fi
 
-  # --- 全画面フィット ---
   grep -q 'height: 100vh' "$f" 2>/dev/null && pass "全画面-高さ固定" || fail "全画面-高さ固定"
   grep -q 'min-height: 100vh' "$f" 2>/dev/null && fail "全画面-min-height禁止（残存）" || pass "全画面-min-height禁止"
 
@@ -61,9 +59,10 @@ check_file() {
     skip "sticky-thead（テーブルなし）"
   fi
 
-  # --- 一覧ページ固有 ---
   if grep -qE 'id="unit-manifest"|id="screen-manifest"' "$f" 2>/dev/null; then
-    local th_count; th_count=$(sed -n '/<thead/,/<\/thead/p' "$f" | grep -co '<th' || true)
+    # 最初の thead のみカウント
+    local th_count
+    th_count=$(sed -n '/<thead/,/<\/thead/{p;/<\/thead/q;}' "$f" | grep -co '<th' || true)
     [ "$th_count" -le 5 ] && pass "一覧-列数上限（${th_count}列）" || fail "一覧-列数上限（${th_count}列）"
 
     if grep -q 'detail-group-label' "$f" 2>/dev/null && grep -q 'evidence' "$f" 2>/dev/null; then
@@ -72,7 +71,16 @@ check_file() {
       fail "一覧-展開グループ分離"
     fi
 
-    grep -q '<details.*class="module-group"' "$f" 2>/dev/null && fail "一覧-details禁止（残存）" || pass "一覧-details禁止"
+    if grep -q '<details.*class="module-group"' "$f" 2>/dev/null; then
+      if grep -q 'unitKind.*feature' "$f" 2>/dev/null; then
+        pass "一覧-details禁止（feature-listカテゴリ別は許可）"
+      else
+        fail "一覧-details禁止（残存）"
+      fi
+    else
+      pass "一覧-details禁止"
+    fi
+
     grep -q 'class="common-files"' "$f" 2>/dev/null && fail "一覧-common-files禁止" || pass "一覧-common-files禁止"
 
     if grep -qE 'unresolved.*(empty|has-items)' "$f" 2>/dev/null; then
