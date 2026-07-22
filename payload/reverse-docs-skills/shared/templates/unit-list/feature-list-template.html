@@ -89,7 +89,6 @@
 
   table.units {
     table-layout: fixed; width: 100%; min-width: 1000px; border-collapse: collapse; font-size: 0.88rem;
-    overflow: hidden;
   }
   table.units th {
     border-top: 1px solid var(--border); padding: 8px 10px; text-align: left; vertical-align: top;
@@ -619,7 +618,7 @@
       relatedApis: '../API一覧/API一覧.html',
       relatedTables: '../テーブル一覧/テーブル一覧.html'
     };
-    var DETAIL_EVIDENCE_FIELDS = [
+    var EVIDENCE_FIELDS = [
       ['confidence', 'confidence'],
       ['detectionMethod', '検出方式'],
       ['fileCount', '構成ファイル数'],
@@ -723,7 +722,7 @@
         var inner = document.createElement('div');
         inner.className = 'detail-inner';
         inner.appendChild(buildDetailGroup('仕様', false, DETAIL_SPEC_FIELDS, unit));
-        inner.appendChild(buildDetailGroup('エビデンス（検出メタデータ）', true, DETAIL_EVIDENCE_FIELDS, unit));
+        inner.appendChild(buildDetailGroup('エビデンス（検出メタデータ）', true, EVIDENCE_FIELDS, unit));
         td.appendChild(inner);
         detail.appendChild(td);
         tr.parentNode.insertBefore(detail, tr.nextSibling);

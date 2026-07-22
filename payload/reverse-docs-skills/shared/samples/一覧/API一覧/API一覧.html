@@ -160,7 +160,6 @@
 
   table.units, table.screens {
     table-layout: fixed; width: 100%; min-width: 900px; border-collapse: collapse; font-size: 0.88rem;
-    overflow: hidden;
   }
   table.units th, table.screens th {
     border-top: 1px solid var(--border); padding: 8px 10px; text-align: left; vertical-align: top;
@@ -897,6 +896,14 @@
       report:   [['format', '出力形式'], ['trigger', '出力契機']],
       external: [['direction', '方向'], ['protocol', 'プロトコル'], ['authMethod', '認証方式']]
     };
+    var EVIDENCE_FIELDS = [
+      ['confidence', 'confidence'],
+      ['detectionMethod', '検出方式'],
+      ['fileCount', '構成ファイル数'],
+      ['sourceFile', '主ファイル'],
+      ['unitId', (manifest.unitKind || '') + 'ID'],
+      ['unitKey', (manifest.unitKind || '') + 'キー']
+    ];
 
     var detailById = {};
     var detailByKey = {};
@@ -1004,15 +1011,7 @@
           inner.appendChild(buildDetailGroup('仕様', false, specFields, unit));
         }
 
-        var evidenceFields = [
-          ['confidence', 'confidence'],
-          ['detectionMethod', '検出方式'],
-          ['fileCount', '構成ファイル数'],
-          ['sourceFile', '主ファイル'],
-          ['unitId', (manifest.unitKind || '') + 'ID'],
-          ['unitKey', (manifest.unitKind || '') + 'キー']
-        ];
-        inner.appendChild(buildDetailGroup('エビデンス（検出メタデータ）', true, evidenceFields, unit));
+        inner.appendChild(buildDetailGroup('エビデンス（検出メタデータ）', true, EVIDENCE_FIELDS, unit));
 
         td.appendChild(inner);
         detail.appendChild(td);
