@@ -5,19 +5,18 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>画面遷移図 — リバース設計ポータル</title>
 <!--
-  detail-pages T4 図解型テンプレート — リバース設計スキル群(画面遷移図/ER図で共用)
+  detail-pages T4 図解型テンプレート — 画面遷移図専用テンプレート（ER図は detail-t6-er.html に分離済み）
   生成: shared/scripts/detail-pages/build-detail-page.sh
   プレースホルダ置換は build-detail-page.sh の render_template() が行う。
   手作業によるプレースホルダ置換は禁止。生成は必ずスクリプト経由で行う。
 
-  埋め込みJSON(script#page-data)のnodes[]/edges[](画面遷移)またはentities[]/relations[]
-  (ER)から、ページ読込時にJavaScriptがDOMを構築する。図(表示)とJSONは常に単一情報源。
+  埋め込みJSON(script#page-data)のnodes[]/edges[](画面遷移)から、ページ読込時にJavaScriptが
+  DOMを構築する。図(表示)とJSONは常に単一情報源。
     - pageKind=transition: ワイヤーフレーム+遷移先テーブルのsplit-view形式。画面選択UI
       (ドロップダウン+前後ボタン)で画面ごとのビューを切り替える。エッジは共通ナビ判定
       (出現率30%以上)により画面固有/共通ナビ/自己ループの3層に分類する。出次数がしきい値
       (MAX_EDGES_PER_VIEW)超のノードは中央ナビゲーション画面として別セクションに、
       入出次数0のノードは未接続画面一覧として別セクションに折りたたみ表示する。
-    - pageKind=er        : グリッド配置のSVG描画(変更なし)
 
   保守注記: トークンブロック・テーマ切替(data-theme二重定義・rd-portal-theme)は
   shared/templates/portal-template.html からの複製である。
@@ -60,6 +59,13 @@
   --warn: #BC4C00;
   --danger: #CF222E;
   --danger-soft: #FFEBE9;
+  --highlight: #D97B1A;
+  --highlight-soft: rgba(217,123,26,0.12);
+  --highlight-border: rgba(217,123,26,0.5);
+  --nav-tag: #7B8BBF;
+  --nav-tag-soft: #ECEEF6;
+  --self-tag: #6B9B6B;
+  --self-tag-soft: #E8F0E8;
   --code-bg: #1B1F26;
   --code-fg: #E8E5DC;
   --cat-list: #2563eb;
@@ -81,6 +87,9 @@
     --gold: #DB6D28; --gold-soft: #311D08; --gold-border: #7A3E0D;
     --success: #3FB950; --success-soft: #0D2818;
     --warn: #DB6D28; --danger: #F85149; --danger-soft: #3D1214;
+    --highlight: #E8943A; --highlight-soft: rgba(232,148,58,0.15); --highlight-border: rgba(232,148,58,0.5);
+    --nav-tag: #8E9ED0; --nav-tag-soft: rgba(142,158,208,0.15);
+    --self-tag: #7DB87D; --self-tag-soft: rgba(125,184,125,0.15);
     --code-bg: #0E1116; --code-fg: #E8E5DC;
     --cat-list: #60A5FA; --cat-common: #34D399; --cat-project: #A78BFA;
   }
@@ -93,6 +102,9 @@
   --gold: #DB6D28; --gold-soft: #311D08; --gold-border: #7A3E0D;
   --success: #3FB950; --success-soft: #0D2818;
   --warn: #DB6D28; --danger: #F85149; --danger-soft: #3D1214;
+  --highlight: #E8943A; --highlight-soft: rgba(232,148,58,0.15); --highlight-border: rgba(232,148,58,0.5);
+  --nav-tag: #8E9ED0; --nav-tag-soft: rgba(142,158,208,0.15);
+  --self-tag: #7DB87D; --self-tag-soft: rgba(125,184,125,0.15);
   --code-bg: #0E1116; --code-fg: #E8E5DC;
   --cat-list: #60A5FA; --cat-common: #34D399; --cat-project: #A78BFA;
 }
@@ -200,6 +212,10 @@ table.data-table code {
   border: 1px solid var(--border); border-radius: var(--radius-sm);
   padding: 8px 12px; margin: 14px 0 0;
 }
+.unresolved-box {
+  background: var(--danger-soft); border: 1px solid var(--danger); color: var(--danger);
+  border-radius: 8px; padding: 12px 16px; margin: 8px 0;
+}
 
 .footer {
   padding: 12px 20px; border-top: 1px solid var(--border);
@@ -250,17 +266,7 @@ table.data-table code {
 .wf-link .badge { background: var(--highlight); color: #fff; }
 .wf-self-link .badge { background: var(--self-tag); color: #fff; }
 
-/* 3層配色 */
-:root {
-  --highlight: #D97B1A; --highlight-soft: rgba(217,123,26,0.12); --highlight-border: rgba(217,123,26,0.5);
-  --nav-tag: #7B8BBF; --nav-tag-soft: #ECEEF6;
-  --self-tag: #6B9B6B; --self-tag-soft: #E8F0E8;
-}
-@media (prefers-color-scheme: dark) {
-  :root { --highlight: #E8943A; --highlight-soft: rgba(232,148,58,0.15); --highlight-border: rgba(232,148,58,0.5); --nav-tag: #8E9ED0; --nav-tag-soft: rgba(142,158,208,0.15); --self-tag: #7DB87D; --self-tag-soft: rgba(125,184,125,0.15); }
-}
-:root[data-theme="dark"] { --highlight: #E8943A; --highlight-soft: rgba(232,148,58,0.15); --highlight-border: rgba(232,148,58,0.5); --nav-tag: #8E9ED0; --nav-tag-soft: rgba(142,158,208,0.15); --self-tag: #7DB87D; --self-tag-soft: rgba(125,184,125,0.15); }
-:root[data-theme="light"] { --highlight: #D97B1A; --highlight-soft: rgba(217,123,26,0.12); --highlight-border: rgba(217,123,26,0.5); --nav-tag: #7B8BBF; --nav-tag-soft: #ECEEF6; --self-tag: #6B9B6B; --self-tag-soft: #E8F0E8; }
+/* 3層配色トークン(--highlight/--nav-tag/--self-tag)は tokens.css に集約(DESIGN.md 参照) */
 
 /* 遷移先テーブル */
 .table-panel { min-width: 0; }
@@ -347,6 +353,7 @@ table.data-table code {
 /* 画面選択ナビ */
 .view-nav { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
 .view-nav select { flex: 1; min-width: 200px; padding: 8px 12px; font-size: 13px; font-family: inherit; background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text); }
+.view-search-input { width: 160px; padding: 8px 12px; font-size: 13px; font-family: inherit; background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text); }
 .nav-btn { background: var(--panel-2); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text-sub); cursor: pointer; padding: 8px 16px; font-size: 13px; font-family: inherit; }
 .nav-btn:hover { background: var(--accent-soft); color: var(--accent); }
 
@@ -2465,6 +2472,9 @@ table.data-table code {
     return e.triggerType === 'ブラウザバック' && (!e.to || e.to === '');
   });
 
+  // 階層区切りは '/' のみ。'-' は kebab-case の単語区切りであり階層区切りではないため分割しない。
+  // ハイフン分割を導入すると category-search → category, brand-search → brand のように
+  // 無関係な画面が語頭一致で誤グループ化される。'/' 非包含データは hasRealGroups がフラット一覧へフォールバック済み。
   function groupName(key) {
     var idx = (key || '').indexOf('/');
     return idx >= 0 ? key.substring(0, idx) : (key || '');
@@ -2722,7 +2732,7 @@ table.data-table code {
       }
     }
 
-    var selectAllBtn = el('button', { class: 'nav-btn', id: 'select-all-btn', type: 'button', style: 'flex:1;font-size:12px;padding:6px 0;' }, 'すべて表示');
+    var selectAllBtn = el('button', { class: 'nav-btn', id: 'select-all-btn', type: 'button', style: 'flex:1;font-size:12px;padding:6px 0;' }, '絞り込み解除');
     selectAllBtn.addEventListener('click', function() { selectedBadge = null; applySelection(); });
     var selectAllRow = el('div', { style: 'padding:6px 14px 10px;border-top:1px solid var(--border);display:flex;gap:6px;' }, selectAllBtn);
 
@@ -2811,10 +2821,111 @@ table.data-table code {
     });
   }
 
+  var fullSelectHTML = select.innerHTML;
+
+  // --- 画面名検索(全角英数を半角化+小文字化して比較する簡易正規化) ---
+  function normalize(s) {
+    return (s || '').toString().toLowerCase().replace(/[！-～]/g, function(c) {
+      return String.fromCharCode(c.charCodeAt(0) - 0xFEE0);
+    }).trim();
+  }
+
+  function rebuildSelectOptions(query) {
+    select.innerHTML = '';
+    if (hasRealGroups) {
+      groupNames.forEach(function(g) {
+        var filtered = groupMap[g].filter(function(k) {
+          return normalize(nodeLabel(k)).indexOf(query) !== -1 || normalize(k).indexOf(query) !== -1;
+        });
+        if (filtered.length === 0) return;
+        var optgroup = el('optgroup', { label: g + '（' + filtered.length + '図）' });
+        filtered.forEach(function(k) {
+          optgroup.appendChild(el('option', { value: k }, nodeLabel(k) + ' [' + outDegree[k] + '件]'));
+        });
+        select.appendChild(optgroup);
+      });
+    } else {
+      normalNodes.slice().filter(function(k) {
+        return normalize(nodeLabel(k)).indexOf(query) !== -1 || normalize(k).indexOf(query) !== -1;
+      }).sort(function(a, b) {
+        return nodeLabel(a).localeCompare(nodeLabel(b), 'ja');
+      }).forEach(function(k) {
+        select.appendChild(el('option', { value: k }, nodeLabel(k) + ' [' + outDegree[k] + '件]'));
+      });
+    }
+  }
+
+  var searchInputWrap = el('span', { html: '<input type="text" id="view-search" class="view-search-input" placeholder="画面名で検索">' });
+  var searchInput = searchInputWrap.firstChild;
+  searchInput.addEventListener('input', function() {
+    var currentValue = select.value;
+    var query = normalize(searchInput.value);
+    if (!query) {
+      select.innerHTML = fullSelectHTML;
+    } else {
+      rebuildSelectOptions(query);
+    }
+    if (select.options.length === 0) {
+      viewContent.innerHTML = '';
+      viewContent.appendChild(el('div', { class: 'diagram-empty' }, '該当する画面がありません'));
+      return;
+    }
+    var found = false;
+    for (var i = 0; i < select.options.length; i++) {
+      if (select.options[i].value === currentValue) { select.selectedIndex = i; found = true; break; }
+    }
+    if (!found) select.selectedIndex = 0;
+    renderView(select.value);
+  });
+
   var prevBtn = el('button', { class: 'nav-btn', id: 'view-prev', type: 'button' }, '← 前');
   var nextBtn = el('button', { class: 'nav-btn', id: 'view-next', type: 'button' }, '次 →');
-  var viewNav = el('div', { class: 'view-nav' }, [select, prevBtn, nextBtn]);
+  var viewNav = el('div', { class: 'view-nav' }, [searchInput, select, prevBtn, nextBtn]);
   var viewContent = el('div', { id: 'view-content' });
+
+  // --- 履歴/URL連動(ハッシュ #mode=<mode>&screen=<key>) ---
+  function parseHash() {
+    var hash = location.hash.replace(/^#/, '');
+    var params = {};
+    hash.split('&').forEach(function(pair) {
+      var kv = pair.split('=');
+      if (kv.length === 2) params[kv[0]] = decodeURIComponent(kv[1]);
+    });
+    return { mode: params.mode || 'screen', key: params.screen || '' };
+  }
+
+  function applyState(mode, key, historyAction) {
+    // モード切替
+    if (mode === 'screen' || mode === 'flow' || mode === 'unconnected') {
+      setMode(mode);
+    }
+    // 画面選択(screenモードのみ)
+    if (mode === 'screen' && key) {
+      var found = false;
+      for (var i = 0; i < select.options.length; i++) {
+        if (select.options[i].value === key) { found = true; select.selectedIndex = i; break; }
+      }
+      if (found) {
+        renderView(key);
+      } else {
+        // 不正キー: 先頭画面にフォールバック
+        select.selectedIndex = 0;
+        renderView(select.value);
+      }
+    } else if (mode === 'screen' && !key && select.options.length > 0) {
+      select.selectedIndex = 0;
+      renderView(select.value);
+    }
+    // 履歴操作
+    var hashStr = '#mode=' + mode;
+    if (mode === 'screen' && select.value) hashStr += '&screen=' + encodeURIComponent(select.value);
+    if (historyAction === 'push') {
+      history.pushState(null, '', hashStr);
+    } else if (historyAction === 'replace') {
+      history.replaceState(null, '', hashStr);
+    }
+    // 'none' の場合は何もしない(ブラウザの戻る/進む操作からの呼び出し)
+  }
 
   function renderView(key) {
     viewContent.innerHTML = '';
@@ -2826,17 +2937,17 @@ table.data-table code {
     }
   }
 
-  select.addEventListener('change', function() { renderView(select.value); });
+  select.addEventListener('change', function() { applyState('screen', select.value, 'push'); });
   prevBtn.addEventListener('click', function() {
     if (select.selectedIndex > 0) {
       select.selectedIndex -= 1;
-      renderView(select.value);
+      applyState('screen', select.value, 'push');
     }
   });
   nextBtn.addEventListener('click', function() {
     if (select.selectedIndex < select.options.length - 1) {
       select.selectedIndex += 1;
-      renderView(select.value);
+      applyState('screen', select.value, 'push');
     }
   });
 
@@ -2852,7 +2963,7 @@ table.data-table code {
   }
   function buildModeTab(modeKey, label, isActive) {
     var b = el('button', { class: 'mode-tab' + (isActive ? ' active' : ''), type: 'button', 'data-mode': modeKey }, label);
-    b.addEventListener('click', function() { setMode(modeKey); });
+    b.addEventListener('click', function() { applyState(modeKey, select.value, 'push'); });
     return b;
   }
   var modeTabs = el('div', { class: 'mode-tabs' }, [
@@ -2866,10 +2977,18 @@ table.data-table code {
   modeScreen.appendChild(el('div', { class: 'sec-label' }, '画面遷移'));
   modeScreen.appendChild(viewNav);
   modeScreen.appendChild(viewContent);
-  renderView(select.options.length > 0 ? select.options[0].value : null);
+  var initialState = parseHash();
+  applyState(initialState.mode, initialState.key, 'replace');
+
+  window.addEventListener('popstate', function() {
+    var state = parseHash();
+    applyState(state.mode, state.key, 'none');
+  });
 
   // --- 中央ナビゲーション画面セクション ---
   modeScreen.appendChild(el('div', { class: 'sec-label' }, '中央ナビゲーション画面（' + hubNodes.length + '件）'));
+  modeScreen.appendChild(el('div', { class: 'legend-row' }, el('div', { class: 'legend-item' },
+    '出次数が ' + MAX_EDGES_PER_VIEW + ' 件を超え、多数の画面から参照される中継画面。')));
   if (hubNodes.length === 0) {
     modeScreen.appendChild(el('div', { class: 'note-box' }, 'なし'));
   } else {
@@ -3014,9 +3133,7 @@ table.data-table code {
   }
 
   function switchToScreenMode(key) {
-    select.value = key;
-    renderView(select.value);
-    setMode('screen');
+    applyState('screen', key, 'push');
   }
 
   // --- 動線グループの表示名(ユーザー操作シナリオ名)を導出 ---
@@ -3267,7 +3384,7 @@ table.data-table code {
   var unresolved = data.unresolved || [];
   if (unresolved.length > 0) {
     unresolvedMount.appendChild(el('div', { class: 'sec-label' }, '未解決'));
-    var box = el('div', { class: 'note-box' });
+    var box = el('div', { class: 'unresolved-box' });
     unresolved.forEach(function(u) {
       var line = (u.label || '') + '（' + (u.reason || '') + '）';
       box.appendChild(el('div', null, line));
