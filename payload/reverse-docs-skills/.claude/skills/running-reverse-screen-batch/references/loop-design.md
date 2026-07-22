@@ -50,14 +50,29 @@ DEADLINE="__DEADLINE__"
 
 touch "$FAILED_LIST" "$FAIL_COUNTS"
 
+# レジストリのマップキーは `<system>-<screen_id>:`（正本: orchestrating-reverse-docs-flow の
+# references/contract.md 「画面レジストリ」節）。system は本スクリプトが既に持つ
+# TARGET_REPO_PATH のディレクトリ名から導出する（manifest.yml の system キーがリポジトリ
+# ディレクトリ名と一致する運用を前提とする既知の制約。一致しないプロジェクトでは要調整）。
+SYSTEM="$(basename "$TARGET_REPO_PATH")"
+
+registry_block() {
+  local target="$1"
+  awk -v key="  ${SYSTEM}-${target}:" '
+    $0 == key { infield=1; next }
+    infield && /^  [^ ]/ { exit }
+    infield { print }
+  ' "$MARKER_REGISTRY" 2>/dev/null
+}
+
 check_authored() {
   TARGET="$1"
-  grep -A5 "screen_id: $TARGET" "$MARKER_REGISTRY" 2>/dev/null | grep -qE "status: (authored|baseline-established)"
+  registry_block "$TARGET" | grep -qE "status: (authored|baseline-established)"
 }
 
 check_baseline() {
   TARGET="$1"
-  grep -A5 "screen_id: $TARGET" "$MARKER_REGISTRY" 2>/dev/null | grep -qE "status: baseline-established"
+  registry_block "$TARGET" | grep -qE "status: baseline-established"
 }
 
 get_fail_count() {
