@@ -15,7 +15,7 @@
     - pageKind=transition: ワイヤーフレーム+遷移先テーブルのsplit-view形式。画面選択UI
       (ドロップダウン+前後ボタン)で画面ごとのビューを切り替える。エッジは共通ナビ判定
       (出現率30%以上)により画面固有/共通ナビ/自己ループの3層に分類する。出次数がしきい値
-      (MAX_EDGES_PER_VIEW)超のノードは中央ナビゲーション画面として別セクションに、
+      (MAX_EDGES_PER_VIEW)超のノードはハブ画面として別セクションに、
       入出次数0のノードは未接続画面一覧として別セクションに折りたたみ表示する。
 
   保守注記: トークンブロック・テーマ切替(data-theme二重定義・rd-portal-theme)は
@@ -282,7 +282,7 @@ table.data-table code {
 .nav-btn { background: var(--panel-2); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text-sub); cursor: pointer; padding: 8px 16px; font-size: 13px; font-family: inherit; }
 .nav-btn:hover { background: var(--accent-soft); color: var(--accent); }
 
-/* 折りたたみ(中央ナビゲーション画面/未接続画面一覧) */
+/* 折りたたみ(ハブ画面/未接続画面一覧) */
 .iso-group { margin-bottom: 8px; }
 .iso-group summary { cursor: pointer; font-size: 13px; font-weight: 600; padding: 8px 0; }
 .iso-group summary:hover { color: var(--accent); }
@@ -629,7 +629,7 @@ table.data-table code {
     return 0;
   }
 
-  // --- ノード分類(中央ナビゲーション画面/未接続画面/通常画面) ---
+  // --- ノード分類(ハブ画面/未接続画面/通常画面) ---
   var outEdges = {}, outDegree = {}, inDegree = {};
   keys.forEach(function(k) { outEdges[k] = []; outDegree[k] = 0; inDegree[k] = 0; });
   edgesResolved.forEach(function(e) {
@@ -1095,10 +1095,10 @@ table.data-table code {
     applyState(state.mode, state.key, 'none');
   });
 
-  // --- 中央ナビゲーション画面セクション ---
-  modeScreen.appendChild(el('div', { class: 'sec-label' }, '中央ナビゲーション画面（' + hubNodes.length + '件）'));
+  // --- ハブ画面セクション ---
+  modeScreen.appendChild(el('div', { class: 'sec-label' }, 'ハブ画面（' + hubNodes.length + '件）'));
   modeScreen.appendChild(el('div', { class: 'legend-row' }, el('div', { class: 'legend-item' },
-    '出次数が ' + MAX_EDGES_PER_VIEW + ' 件を超え、多数の画面から参照される中継画面。')));
+    '出次数が ' + MAX_EDGES_PER_VIEW + ' 件を超え、多数の画面から参照されるハブ画面。')));
   if (hubNodes.length === 0) {
     modeScreen.appendChild(el('div', { class: 'note-box' }, 'なし'));
   } else {
@@ -1155,6 +1155,23 @@ table.data-table code {
     // 内部安全弁として十分大きい値を残す(業務上の上限とは別物)。
     var HARD_SAFETY_CAP = 5000;
     var origins = keys.filter(function(k) { return inDegree[k] === 0 && outDegree[k] > 0; });
+    if (origins.length === 0) {
+      // 共通ナビへの戻りエッジを除外して疑似入次数を再計算
+      var hubSet = {};
+      hubNodes.forEach(function(k) { hubSet[k] = true; });
+      var pseudoInDegree = {};
+      keys.forEach(function(k) { pseudoInDegree[k] = 0; });
+      edgesResolved.forEach(function(e) {
+        if (!hubSet[e.to]) pseudoInDegree[e.to] = (pseudoInDegree[e.to] || 0) + 1;
+      });
+      origins = keys.filter(function(k) { return pseudoInDegree[k] === 0 && outDegree[k] > 0; });
+    }
+    if (origins.length === 0) {
+      // それでも空なら入次数が最小のノード群を起点とする
+      var minIn = Infinity;
+      keys.forEach(function(k) { if (outDegree[k] > 0 && inDegree[k] < minIn) minIn = inDegree[k]; });
+      origins = keys.filter(function(k) { return inDegree[k] === minIn && outDegree[k] > 0; });
+    }
     var flows = [];
     var categoryCounts = {};
 
