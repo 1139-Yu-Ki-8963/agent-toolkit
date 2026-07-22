@@ -120,14 +120,17 @@
   --cat-list: #60A5FA; --cat-common: #34D399; --cat-project: #A78BFA;
 }
 
+  html { height: 100%; }
   * { box-sizing: border-box; }
   body {
-    margin: 0; padding: 0 24px 96px;
+    margin: 0; padding: 0 24px 0;
     font-family: var(--font-body);
     line-height: 1.7; color: var(--text); background: var(--bg);
     max-width: 1180px; margin-inline: auto;
+    height: 100%; overflow: hidden; display: flex; flex-direction: column;
   }
-  .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; max-height: 70vh; overflow-y: auto; }
+  .table-area { flex: 1; min-height: 0; overflow-y: auto; }
+  .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
   table.units thead { position: sticky; top: 0; z-index: 3; }
   header { padding: 40px 0 20px; border-bottom: 3px solid var(--border-strong); }
   .header-top { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
@@ -225,10 +228,13 @@
   .diag-warn strong { display: block; margin-bottom: 6px; }
   .diag-warn ul { margin: 0; padding-left: 20px; }
 
-  section.unresolved { margin-top: 24px; background: var(--danger-soft); border: 1px solid var(--danger); color: var(--danger); border-radius: 8px; padding: 12px 16px; }
-  section.unresolved h2 { font-size: 0.95rem; margin: 0 0 8px; color: var(--danger); }
+  section.unresolved { margin-top: 24px; border-radius: 8px; padding: 12px 16px; min-width: 0; }
+  section.unresolved.empty { background: var(--panel-2); border: 1px solid var(--border); color: var(--text-muted); }
+  section.unresolved.empty h2 { color: var(--text-muted); font-size: 0.95rem; margin: 0; }
+  section.unresolved.has-items { background: var(--danger-soft); border: 1px solid var(--danger); color: var(--danger); }
+  section.unresolved.has-items h2 { color: var(--danger); font-size: 0.95rem; margin: 0 0 8px; }
 
-  footer { margin-top: 48px; font-size: 0.8rem; color: var(--text-muted); }
+  footer { flex-shrink: 0; padding: 8px 0; font-size: 0.75rem; color: var(--text-muted); text-align: center; border-top: 1px solid var(--border); }
 
   .pagination { display: flex; gap: 8px; align-items: center; justify-content: center; margin: 16px 0; font-size: 0.85rem; }
   .pagination button { background: var(--panel-2); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text-sub); cursor: pointer; padding: 4px 10px; font-family: inherit; font-size: 0.82rem; }
@@ -284,6 +290,15 @@
   display: inline-flex; align-items: center; gap: 4px;
 }
 .top-actions button:hover { background: var(--accent-soft, #e8f4fd); color: var(--accent, #0969da); border-color: var(--accent-border, #0969da); }
+.topbar { flex-shrink: 0; }
+.page-hero.compact { padding: 12px 0 8px; flex-shrink: 0; }
+.page-hero.compact .header-top { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.page-hero.compact h1 { font-size: 1.3rem; margin: 0; }
+.page-hero.compact .summary-tiles { margin: 0; gap: 8px; }
+.page-hero.compact .tile { padding: 4px 12px; font-size: 0.78rem; }
+.page-hero.compact .tile strong { font-size: 1rem; display: inline; margin-right: 4px; }
+.page-hero.compact .meta-inline { font-size: 0.75rem; color: var(--text-muted); margin: 2px 0 0; }
+.toolbar-area { flex-shrink: 0; padding: 8px 0; }
 </style>
 </head>
 <body>
@@ -291,7 +306,7 @@
 <header class="topbar">
   <a class="brand" href="../../index.html">
     <span class="brand-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:middle"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zM13 9V3.5L18.5 9H13z"/></svg></span>
-    <span class="brand-title">サンプルプロジェクト</span>
+    <span class="brand-title"></span>
     <span class="brand-sub">設計ポータル</span>
   </a>
   <div class="header-meta">
@@ -301,32 +316,29 @@
     <button id="theme-toggle" title="テーマ切替">ライト</button>
   </div>
 </header>
-<section class="page-hero">
+<section class="page-hero compact">
   <nav class="back-link" style="margin: 16px 0 0; font-size: 0.85rem;">
     <a href="../../index.html" style="color: var(--text-sub); text-decoration: none; border-bottom: 1px dotted var(--text-muted);">← ポータルへ戻る</a>
   </nav>
   <div class="header-top">
     <h1>テーブル一覧</h1>
+    <div class="summary-tiles">
+      <div class="tile"><strong>16</strong>検出テーブル数</div>
+      <div class="tile"><strong>0</strong>要手動確認数</div>
+    </div>
   </div>
-  <table class="meta-table">
-    <tr><td>生成日時</td><td>2026-07-20T00:00:00+09:00</td></tr>
-    <tr><td>ソースディレクトリ</td><td><code>migrations</code></td></tr>
-    <tr><td>種別</td><td>テーブル</td></tr>
-    <tr><td>抽出方式</td><td>static-analysis</td></tr>
-  </table>
-
-  <div class="summary-tiles">
-    <div class="tile"><strong>16</strong>検出テーブル数</div>
-    <div class="tile"><strong>0</strong>要手動確認数</div>
-  </div>
+  <p class="meta-inline">生成: 2026-07-20T00:00:00+09:00 | ソース: <code>fixtures</code> | 抽出: static-analysis</p>
 </section>
 
-<div class="toolbar">
-  <input type="search" id="unit-search" placeholder="キー・識別子で絞り込み">
-  <span class="note">列見出しクリックでソート</span>
-  <button id="csv-export" class="theme-toggle-btn csv-btn" type="button" title="絞り込み適用後の全行をCSVダウンロード">CSV</button>
+<div class="toolbar-area">
+  <div class="toolbar">
+    <input type="search" id="unit-search" placeholder="キー・識別子で絞り込み">
+    <span class="note">列見出しクリックでソート</span>
+    <button id="csv-export" class="theme-toggle-btn csv-btn" type="button" title="絞り込み適用後の全行をCSVダウンロード">CSV</button>
+  </div>
 </div>
 
+<div class="table-area">
 <section class="module-group">
   <h2>テーブル一覧</h2>
   <div class="table-wrap">
@@ -417,32 +429,352 @@
   <button id="page-last" title="最後">≫</button>
 </div>
 
-<section class="unresolved">
+<section class="unresolved empty">
   <h2>要手動確認</h2>
   <div class="table-wrap">
   <p class="note">なし</p>
   </div>
 </section>
+</div>
 
 <script type="application/json" id="unit-manifest">
-{"generatedAt":"2026-07-20T00:00:00+09:00","sourceDir":"database/migrations","unitKind":"table","strategy":{"extractionMethod":"static-analysis","approvedByUser":true},"detectionSummary":{"unitCount":16,"unresolvedCount":0},"units":[
-{"unitId":"table-users","unitKey":"users","kind":"マスタ","unitNameGuess":"ユーザー","identifier":"users","detectionMethod":"migration","confidence":"HIGH","fileCount":1,"sourceFile":"001_create_users.sql","foreignKeys":[],"columnCount":10,"mainColumns":["id","email","name","status"]},
-{"unitId":"table-sessions","unitKey":"sessions","kind":"トランザクション","unitNameGuess":"セッション","identifier":"sessions","detectionMethod":"migration","confidence":"HIGH","fileCount":1,"sourceFile":"002_create_sessions.sql","foreignKeys":["users"],"columnCount":6,"mainColumns":["id","user_id","token","expires_at"]},
-{"unitId":"table-settings","unitKey":"settings","kind":"マスタ","unitNameGuess":"設定","identifier":"app_settings","detectionMethod":"migration","confidence":"HIGH","fileCount":1,"sourceFile":"003_create_settings.sql","foreignKeys":["users"],"columnCount":5,"mainColumns":["id","user_id","key","value"]},
-{"unitId":"table-roles","unitKey":"roles","kind":"マスタ","unitNameGuess":"ロール","identifier":"roles","detectionMethod":"migration","confidence":"HIGH","fileCount":1,"sourceFile":"004_create_roles.sql","foreignKeys":[],"columnCount":4,"mainColumns":["id","name","description"]},
-{"unitId":"table-permissions","unitKey":"permissions","kind":"マスタ","unitNameGuess":"権限","identifier":"permissions","detectionMethod":"migration","confidence":"HIGH","fileCount":1,"sourceFile":"005_create_permissions.sql","foreignKeys":[],"columnCount":4,"mainColumns":["id","code","name"]},
-{"unitId":"table-user-roles","unitKey":"user-roles","kind":"関連","unitNameGuess":"ユーザーロール紐付","identifier":"user_roles","detectionMethod":"migration","confidence":"HIGH","fileCount":1,"sourceFile":"006_create_user_roles.sql","foreignKeys":["users","roles"],"columnCount":4,"mainColumns":["id","user_id","role_id"]},
-{"unitId":"table-posts","unitKey":"posts","kind":"トランザクション","unitNameGuess":"投稿","identifier":"posts","detectionMethod":"migration","confidence":"HIGH","fileCount":2,"sourceFile":"007_create_posts.sql","foreignKeys":["users","categories"],"columnCount":11,"mainColumns":["id","author_id","title","status"]},
-{"unitId":"table-comments","unitKey":"comments","kind":"トランザクション","unitNameGuess":"コメント","identifier":"comments","detectionMethod":"migration","confidence":"HIGH","fileCount":1,"sourceFile":"008_create_comments.sql","foreignKeys":["posts","users"],"columnCount":6,"mainColumns":["id","post_id","author_id","body"]},
-{"unitId":"table-categories","unitKey":"categories","kind":"マスタ","unitNameGuess":"カテゴリ","identifier":"categories","detectionMethod":"migration","confidence":"HIGH","fileCount":1,"sourceFile":"009_create_categories.sql","foreignKeys":[],"columnCount":5,"mainColumns":["id","slug","name"]},
-{"unitId":"table-tags","unitKey":"tags","kind":"マスタ","unitNameGuess":"タグ","identifier":"tags","detectionMethod":"migration","confidence":"HIGH","fileCount":1,"sourceFile":"010_create_tags.sql","foreignKeys":[],"columnCount":4,"mainColumns":["id","slug","name"]},
-{"unitId":"table-post-tags","unitKey":"post-tags","kind":"関連","unitNameGuess":"投稿タグ紐付","identifier":"post_tags","detectionMethod":"migration","confidence":"HIGH","fileCount":1,"sourceFile":"011_create_post_tags.sql","foreignKeys":["posts","tags"],"columnCount":4,"mainColumns":["id","post_id","tag_id"]},
-{"unitId":"table-notifications","unitKey":"notifications","kind":"トランザクション","unitNameGuess":"通知","identifier":"notifications","detectionMethod":"migration","confidence":"HIGH","fileCount":2,"sourceFile":"012_create_notifications.sql","foreignKeys":["users"],"columnCount":8,"mainColumns":["id","user_id","type","read_at"]},
-{"unitId":"table-audit-logs","unitKey":"audit-logs","kind":"トランザクション","unitNameGuess":"監査ログ","identifier":"audit_logs","detectionMethod":"migration","confidence":"HIGH","fileCount":1,"sourceFile":"013_create_audit_logs.sql","foreignKeys":["users"],"columnCount":9,"mainColumns":["id","actor_id","action","created_at"]},
-{"unitId":"table-files","unitKey":"files","kind":"トランザクション","unitNameGuess":"ファイル","identifier":"uploaded_files","detectionMethod":"migration","confidence":"MEDIUM","fileCount":1,"sourceFile":"014_create_files.sql","foreignKeys":["users"],"columnCount":8,"mainColumns":["id","owner_id","path","mime_type"]},
-{"unitId":"table-organizations","unitKey":"organizations","kind":"マスタ","unitNameGuess":"組織","identifier":"organizations","detectionMethod":"migration","confidence":"HIGH","fileCount":1,"sourceFile":"015_create_organizations.sql","foreignKeys":[],"columnCount":7,"mainColumns":["id","slug","name"]},
-{"unitId":"table-org-members","unitKey":"org-members","kind":"関連","unitNameGuess":"組織メンバー紐付","identifier":"organization_members","detectionMethod":"migration","confidence":"HIGH","fileCount":1,"sourceFile":"016_create_org_members.sql","foreignKeys":["organizations","users"],"columnCount":5,"mainColumns":["id","organization_id","user_id","role"]}
-]}
+{
+  "generatedAt": "2026-07-20T00:00:00+09:00",
+  "sourceDir": "shared/samples/一覧/テーブル一覧/fixtures",
+  "unitKind": "table",
+  "strategy": {
+    "extractionMethod": "static-analysis",
+    "approvedByUser": true
+  },
+  "detectionSummary": {
+    "unitCount": 16,
+    "unresolvedCount": 0
+  },
+  "units": [
+    {
+      "unitId": "table-users",
+      "unitKey": "users",
+      "kind": "マスタ",
+      "unitNameGuess": "ユーザー",
+      "identifier": "users",
+      "detectionMethod": "migration",
+      "confidence": "HIGH",
+      "fileCount": 1,
+      "sourceFile": "001_create_users.sql",
+      "foreignKeys": [],
+      "columnCount": 10,
+      "mainColumns": [
+        "id",
+        "email",
+        "name",
+        "status"
+      ]
+    },
+    {
+      "unitId": "table-sessions",
+      "unitKey": "sessions",
+      "kind": "トランザクション",
+      "unitNameGuess": "セッション",
+      "identifier": "sessions",
+      "detectionMethod": "migration",
+      "confidence": "HIGH",
+      "fileCount": 1,
+      "sourceFile": "002_create_sessions.sql",
+      "foreignKeys": [
+        "users"
+      ],
+      "columnCount": 6,
+      "mainColumns": [
+        "id",
+        "user_id",
+        "token",
+        "expires_at"
+      ]
+    },
+    {
+      "unitId": "table-settings",
+      "unitKey": "settings",
+      "kind": "マスタ",
+      "unitNameGuess": "設定",
+      "identifier": "app_settings",
+      "detectionMethod": "migration",
+      "confidence": "HIGH",
+      "fileCount": 1,
+      "sourceFile": "003_create_settings.sql",
+      "foreignKeys": [
+        "users"
+      ],
+      "columnCount": 5,
+      "mainColumns": [
+        "id",
+        "user_id",
+        "key",
+        "value"
+      ]
+    },
+    {
+      "unitId": "table-roles",
+      "unitKey": "roles",
+      "kind": "マスタ",
+      "unitNameGuess": "ロール",
+      "identifier": "roles",
+      "detectionMethod": "migration",
+      "confidence": "HIGH",
+      "fileCount": 1,
+      "sourceFile": "004_create_roles.sql",
+      "foreignKeys": [],
+      "columnCount": 4,
+      "mainColumns": [
+        "id",
+        "name",
+        "description"
+      ]
+    },
+    {
+      "unitId": "table-permissions",
+      "unitKey": "permissions",
+      "kind": "マスタ",
+      "unitNameGuess": "権限",
+      "identifier": "permissions",
+      "detectionMethod": "migration",
+      "confidence": "HIGH",
+      "fileCount": 1,
+      "sourceFile": "005_create_permissions.sql",
+      "foreignKeys": [],
+      "columnCount": 4,
+      "mainColumns": [
+        "id",
+        "code",
+        "name"
+      ]
+    },
+    {
+      "unitId": "table-user-roles",
+      "unitKey": "user-roles",
+      "kind": "関連",
+      "unitNameGuess": "ユーザーロール紐付",
+      "identifier": "user_roles",
+      "detectionMethod": "migration",
+      "confidence": "HIGH",
+      "fileCount": 1,
+      "sourceFile": "006_create_user_roles.sql",
+      "foreignKeys": [
+        "users",
+        "roles"
+      ],
+      "columnCount": 4,
+      "mainColumns": [
+        "id",
+        "user_id",
+        "role_id"
+      ]
+    },
+    {
+      "unitId": "table-posts",
+      "unitKey": "posts",
+      "kind": "トランザクション",
+      "unitNameGuess": "投稿",
+      "identifier": "posts",
+      "detectionMethod": "migration",
+      "confidence": "HIGH",
+      "fileCount": 2,
+      "sourceFile": "007_create_posts.sql",
+      "foreignKeys": [
+        "users",
+        "categories"
+      ],
+      "columnCount": 11,
+      "mainColumns": [
+        "id",
+        "author_id",
+        "title",
+        "status"
+      ]
+    },
+    {
+      "unitId": "table-comments",
+      "unitKey": "comments",
+      "kind": "トランザクション",
+      "unitNameGuess": "コメント",
+      "identifier": "comments",
+      "detectionMethod": "migration",
+      "confidence": "HIGH",
+      "fileCount": 1,
+      "sourceFile": "008_create_comments.sql",
+      "foreignKeys": [
+        "posts",
+        "users"
+      ],
+      "columnCount": 6,
+      "mainColumns": [
+        "id",
+        "post_id",
+        "author_id",
+        "body"
+      ]
+    },
+    {
+      "unitId": "table-categories",
+      "unitKey": "categories",
+      "kind": "マスタ",
+      "unitNameGuess": "カテゴリ",
+      "identifier": "categories",
+      "detectionMethod": "migration",
+      "confidence": "HIGH",
+      "fileCount": 1,
+      "sourceFile": "009_create_categories.sql",
+      "foreignKeys": [],
+      "columnCount": 5,
+      "mainColumns": [
+        "id",
+        "slug",
+        "name"
+      ]
+    },
+    {
+      "unitId": "table-tags",
+      "unitKey": "tags",
+      "kind": "マスタ",
+      "unitNameGuess": "タグ",
+      "identifier": "tags",
+      "detectionMethod": "migration",
+      "confidence": "HIGH",
+      "fileCount": 1,
+      "sourceFile": "010_create_tags.sql",
+      "foreignKeys": [],
+      "columnCount": 4,
+      "mainColumns": [
+        "id",
+        "slug",
+        "name"
+      ]
+    },
+    {
+      "unitId": "table-post-tags",
+      "unitKey": "post-tags",
+      "kind": "関連",
+      "unitNameGuess": "投稿タグ紐付",
+      "identifier": "post_tags",
+      "detectionMethod": "migration",
+      "confidence": "HIGH",
+      "fileCount": 1,
+      "sourceFile": "011_create_post_tags.sql",
+      "foreignKeys": [
+        "posts",
+        "tags"
+      ],
+      "columnCount": 4,
+      "mainColumns": [
+        "id",
+        "post_id",
+        "tag_id"
+      ]
+    },
+    {
+      "unitId": "table-notifications",
+      "unitKey": "notifications",
+      "kind": "トランザクション",
+      "unitNameGuess": "通知",
+      "identifier": "notifications",
+      "detectionMethod": "migration",
+      "confidence": "HIGH",
+      "fileCount": 2,
+      "sourceFile": "012_create_notifications.sql",
+      "foreignKeys": [
+        "users"
+      ],
+      "columnCount": 8,
+      "mainColumns": [
+        "id",
+        "user_id",
+        "type",
+        "read_at"
+      ]
+    },
+    {
+      "unitId": "table-audit-logs",
+      "unitKey": "audit-logs",
+      "kind": "トランザクション",
+      "unitNameGuess": "監査ログ",
+      "identifier": "audit_logs",
+      "detectionMethod": "migration",
+      "confidence": "HIGH",
+      "fileCount": 1,
+      "sourceFile": "013_create_audit_logs.sql",
+      "foreignKeys": [
+        "users"
+      ],
+      "columnCount": 9,
+      "mainColumns": [
+        "id",
+        "actor_id",
+        "action",
+        "created_at"
+      ]
+    },
+    {
+      "unitId": "table-files",
+      "unitKey": "files",
+      "kind": "トランザクション",
+      "unitNameGuess": "ファイル",
+      "identifier": "uploaded_files",
+      "detectionMethod": "migration",
+      "confidence": "MEDIUM",
+      "fileCount": 1,
+      "sourceFile": "014_create_files.sql",
+      "foreignKeys": [
+        "users"
+      ],
+      "columnCount": 8,
+      "mainColumns": [
+        "id",
+        "owner_id",
+        "path",
+        "mime_type"
+      ]
+    },
+    {
+      "unitId": "table-organizations",
+      "unitKey": "organizations",
+      "kind": "マスタ",
+      "unitNameGuess": "組織",
+      "identifier": "organizations",
+      "detectionMethod": "migration",
+      "confidence": "HIGH",
+      "fileCount": 1,
+      "sourceFile": "015_create_organizations.sql",
+      "foreignKeys": [],
+      "columnCount": 7,
+      "mainColumns": [
+        "id",
+        "slug",
+        "name"
+      ]
+    },
+    {
+      "unitId": "table-org-members",
+      "unitKey": "org-members",
+      "kind": "関連",
+      "unitNameGuess": "組織メンバー紐付",
+      "identifier": "organization_members",
+      "detectionMethod": "migration",
+      "confidence": "HIGH",
+      "fileCount": 1,
+      "sourceFile": "016_create_org_members.sql",
+      "foreignKeys": [
+        "organizations",
+        "users"
+      ],
+      "columnCount": 5,
+      "mainColumns": [
+        "id",
+        "organization_id",
+        "user_id",
+        "role"
+      ]
+    }
+  ]
+}
 </script>
 
 <footer>種別別一覧スキル（generating-&lt;種別&gt;-list-for-reverse-docs）により生成。手編集は次回再生成で上書きされる。</footer>

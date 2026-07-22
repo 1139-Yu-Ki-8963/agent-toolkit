@@ -45,14 +45,17 @@
 <style>
   /* TOKENS_CSS */
 
+  html { height: 100%; }
   * { box-sizing: border-box; }
   body {
-    margin: 0; padding: 0 24px 96px;
+    margin: 0; padding: 0 24px 0;
     font-family: var(--font-body);
     line-height: 1.7; color: var(--text); background: var(--bg);
     max-width: 1180px; margin-inline: auto;
+    height: 100%; overflow: hidden; display: flex; flex-direction: column;
   }
-  .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; max-height: 70vh; overflow-y: auto; }
+  .table-area { flex: 1; min-height: 0; overflow-y: auto; }
+  .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
   table.units thead { position: sticky; top: 0; z-index: 3; }
   header { padding: 40px 0 20px; border-bottom: 3px solid var(--border-strong); }
   .header-top { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
@@ -150,10 +153,13 @@
   .diag-warn strong { display: block; margin-bottom: 6px; }
   .diag-warn ul { margin: 0; padding-left: 20px; }
 
-  section.unresolved { margin-top: 24px; background: var(--danger-soft); border: 1px solid var(--danger); color: var(--danger); border-radius: 8px; padding: 12px 16px; }
-  section.unresolved h2 { font-size: 0.95rem; margin: 0 0 8px; color: var(--danger); }
+  section.unresolved { margin-top: 24px; border-radius: 8px; padding: 12px 16px; min-width: 0; }
+  section.unresolved.empty { background: var(--panel-2); border: 1px solid var(--border); color: var(--text-muted); }
+  section.unresolved.empty h2 { color: var(--text-muted); font-size: 0.95rem; margin: 0; }
+  section.unresolved.has-items { background: var(--danger-soft); border: 1px solid var(--danger); color: var(--danger); }
+  section.unresolved.has-items h2 { color: var(--danger); font-size: 0.95rem; margin: 0 0 8px; }
 
-  footer { margin-top: 48px; font-size: 0.8rem; color: var(--text-muted); }
+  footer { flex-shrink: 0; padding: 8px 0; font-size: 0.75rem; color: var(--text-muted); text-align: center; border-top: 1px solid var(--border); }
 
   .pagination { display: flex; gap: 8px; align-items: center; justify-content: center; margin: 16px 0; font-size: 0.85rem; }
   .pagination button { background: var(--panel-2); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text-sub); cursor: pointer; padding: 4px 10px; font-family: inherit; font-size: 0.82rem; }
@@ -209,6 +215,15 @@
   display: inline-flex; align-items: center; gap: 4px;
 }
 .top-actions button:hover { background: var(--accent-soft, #e8f4fd); color: var(--accent, #0969da); border-color: var(--accent-border, #0969da); }
+.topbar { flex-shrink: 0; }
+.page-hero.compact { padding: 12px 0 8px; flex-shrink: 0; }
+.page-hero.compact .header-top { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.page-hero.compact h1 { font-size: 1.3rem; margin: 0; }
+.page-hero.compact .summary-tiles { margin: 0; gap: 8px; }
+.page-hero.compact .tile { padding: 4px 12px; font-size: 0.78rem; }
+.page-hero.compact .tile strong { font-size: 1rem; display: inline; margin-right: 4px; }
+.page-hero.compact .meta-inline { font-size: 0.75rem; color: var(--text-muted); margin: 2px 0 0; }
+.toolbar-area { flex-shrink: 0; padding: 8px 0; }
 </style>
 </head>
 <body>
@@ -226,32 +241,29 @@
     <button id="theme-toggle" title="テーマ切替">ライト</button>
   </div>
 </header>
-<section class="page-hero">
+<section class="page-hero compact">
   <nav class="back-link" style="margin: 16px 0 0; font-size: 0.85rem;">
     <a href="{{PORTAL_RELATIVE}}" style="color: var(--text-sub); text-decoration: none; border-bottom: 1px dotted var(--text-muted);">← ポータルへ戻る</a>
   </nav>
   <div class="header-top">
     <h1>{{UNIT_KIND_LABEL}}一覧</h1>
+    <div class="summary-tiles">
+      <div class="tile"><strong>{{UNIT_COUNT}}</strong>検出{{UNIT_KIND_LABEL}}数</div>
+      <div class="tile"><strong>{{UNRESOLVED_COUNT}}</strong>要手動確認数</div>
+    </div>
   </div>
-  <table class="meta-table">
-    <tr><td>生成日時</td><td>{{GENERATED_AT}}</td></tr>
-    <tr><td>ソースディレクトリ</td><td><code>{{SOURCE_DIR}}</code></td></tr>
-    <tr><td>種別</td><td>{{UNIT_KIND_LABEL}}</td></tr>
-    <tr><td>抽出方式</td><td>{{EXTRACTION_METHOD}}</td></tr>
-  </table>
-
-  <div class="summary-tiles">
-    <div class="tile"><strong>{{UNIT_COUNT}}</strong>検出{{UNIT_KIND_LABEL}}数</div>
-    <div class="tile"><strong>{{UNRESOLVED_COUNT}}</strong>要手動確認数</div>
-  </div>
+  <p class="meta-inline">生成: {{GENERATED_AT}} | ソース: <code>{{SOURCE_DIR}}</code> | 抽出: {{EXTRACTION_METHOD}}</p>
 </section>
 
-<div class="toolbar">
-  <input type="search" id="unit-search" placeholder="キー・識別子で絞り込み">
-  <span class="note">列見出しクリックでソート</span>
-  <button id="csv-export" class="theme-toggle-btn csv-btn" type="button" title="絞り込み適用後の全行をCSVダウンロード">CSV</button>
+<div class="toolbar-area">
+  <div class="toolbar">
+    <input type="search" id="unit-search" placeholder="キー・識別子で絞り込み">
+    <span class="note">列見出しクリックでソート</span>
+    <button id="csv-export" class="theme-toggle-btn csv-btn" type="button" title="絞り込み適用後の全行をCSVダウンロード">CSV</button>
+  </div>
 </div>
 
+<div class="table-area">
 <section class="module-group">
   <h2>{{UNIT_KIND_LABEL}}一覧</h2>
   <div class="table-wrap">
@@ -278,12 +290,13 @@
   <button id="page-last" title="最後">≫</button>
 </div>
 
-<section class="unresolved">
+<section class="unresolved {{UNRESOLVED_CLASS}}">
   <h2>要手動確認</h2>
   <div class="table-wrap">
   <!--UNRESOLVED_SECTION-->
   </div>
 </section>
+</div>
 
 <script type="application/json" id="unit-manifest">
 {{MANIFEST_JSON}}

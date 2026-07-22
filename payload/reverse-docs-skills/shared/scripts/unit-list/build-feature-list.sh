@@ -407,6 +407,7 @@ done < <(jq -c '.units[] | select(.kind == "unresolved")' "$MANIFEST")
 
 if [ -z "$unresolved_rows" ]; then
   unresolved_section='<p class="note">なし</p>'
+  unresolved_class="empty"
 else
   unresolved_section="$(cat <<EOF
 <table class="units" id="unresolved-table">
@@ -417,6 +418,7 @@ ${unresolved_rows}
 </table>
 EOF
 )"
+  unresolved_class="has-items"
 fi
 
 unit_manifest_json="$(cat "$MANIFEST")"
@@ -444,6 +446,8 @@ render_args=(
   "{{UNRESOLVED_COUNT}}" "$tile_unresolved_count"
   "<!--CATEGORY_SECTIONS-->" "$category_sections"
   "<!--UNRESOLVED_SECTION-->" "$unresolved_section"
+  "{{UNRESOLVED_CLASS}}" "$unresolved_class"
+  "{{UNRESOLVED_CLASS}}" "$unresolved_class"
   "{{PORTAL_RELATIVE}}" "$portal_relative"
   "{{MANIFEST_JSON}}" "$unit_manifest_json"
 )

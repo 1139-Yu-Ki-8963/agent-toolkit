@@ -333,6 +333,7 @@ fi
 
 if [ -z "$unresolved_rows" ]; then
   unresolved_section='<p class="note">なし</p>'
+  unresolved_class="empty"
 else
   unresolved_section="$(cat <<EOF
 <table class="screens" id="unresolved-table">
@@ -347,6 +348,7 @@ ${unresolved_rows}
 </table>
 EOF
 )"
+  unresolved_class="has-items"
 fi
 
 # --- diagnostics(警告)一覧をHTML断片へ整形。空なら何も出力しない ---
@@ -390,6 +392,8 @@ render_args=(
   "{{TILE_UNRESOLVED_COUNT}}" "$tile_unresolved_count"
   "<!--SCREEN_TABLE_ROWS-->" "$screen_rows"
   "<!--UNRESOLVED_SECTION-->" "$unresolved_section"
+  "{{UNRESOLVED_CLASS}}" "$unresolved_class"
+  "{{UNRESOLVED_CLASS}}" "$unresolved_class"
   "<!--DIAGNOSTICS-->" "$diagnostics_html"
   "{{PORTAL_RELATIVE}}" "$portal_relative"
   "<!--SCREEN_MANIFEST_JSON-->" "$screen_manifest_json"
