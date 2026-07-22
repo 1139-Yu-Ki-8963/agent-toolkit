@@ -118,7 +118,7 @@ body {
 a { color: var(--accent); text-decoration: none; }
 a:hover { text-decoration: underline; }
 
-.dp-page { display: grid; grid-template-rows: auto 1fr auto; min-height: 100vh; }
+.dp-page { display: grid; grid-template-rows: auto 1fr auto; height: 100vh; overflow: hidden; }
 
 .topbar {
   display: grid; grid-template-columns: auto 1fr auto;
@@ -142,7 +142,7 @@ a:hover { text-decoration: underline; }
 .header-meta { font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 8px; }
 
 /* グリッドアイテムが内容幅で親を押し広げないための対策(portal-template.htmlと同一措置) */
-.dp-main { max-width: 1280px; width: 100%; min-width: 0; margin: 0 auto; padding: 24px 24px 64px; }
+.dp-main { max-width: 1280px; width: 100%; min-width: 0; margin: 0 auto; padding: 24px 24px 64px; overflow-y: auto; min-height: 0; }
 
 .doc-crumbs { font-size: 12px; color: var(--text-muted); margin-bottom: 8px; }
 .doc-crumbs a { color: var(--text-sub); cursor: pointer; }
