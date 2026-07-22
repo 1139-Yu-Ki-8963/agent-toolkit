@@ -3,7 +3,7 @@
 #
 # Usage: detect-screens.sh <source-dir> <manifest-out-path> \
 #          [--screen-id-regex <ERE>] [--view-switch-pattern <ERE>] \
-#          [--exclude <ERE>] [--strategy-json <file>]
+#          [--exclude <ERE>] [--strategy-json <file>] [--account-group-map <file>]
 #        detect-screens.sh --profile <manifest> <source-dir> <profile-out> \
 #          --recount-script <path> --repo-root <path>
 #        detect-screens.sh --self-test
@@ -20,6 +20,10 @@
 # --strategy-json <file>:
 #   指定した JSON ファイルの中身をマニフェストの "strategy" フィールドにそのまま埋め込む。
 #   未指定時は screenIdRegex/viewSwitchPattern/extractionMethod/approvedByUser を自動合成する。
+# --account-group-map <file>:
+#   classify_screen() の accountGroup 判定に使う外部設定ファイル(グロブパターン\t分類値の
+#   TSV、1行1パターン、detectionMethod に対して上から順に最初に一致した行を採用)。
+#   未指定/ファイル不在の場合は detectionMethod の値をそのまま accountGroup とする。
 #
 # --resolve-files <manifest-in> <source-dir> <manifest-out>:
 #   既存マニフェストの kind=route/embedded-view で entryFile が非空の画面それぞれについて、
@@ -1759,6 +1763,7 @@ SCREEN_ID_REGEX=""
 VIEW_SWITCH_PATTERN=""
 EXCLUDE_PATTERN=""
 STRATEGY_JSON_FILE=""
+ACCOUNT_GROUP_MAP_FILE=""
 POSITIONAL=()
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -1776,6 +1781,10 @@ while [ $# -gt 0 ]; do
       ;;
     --strategy-json)
       STRATEGY_JSON_FILE="${2:-}"
+      shift 2
+      ;;
+    --account-group-map)
+      ACCOUNT_GROUP_MAP_FILE="${2:-}"
       shift 2
       ;;
     --)
@@ -1797,7 +1806,7 @@ while [ $# -gt 0 ]; do
 done
 
 if [ "${#POSITIONAL[@]}" -lt 2 ]; then
-  echo "Usage: detect-screens.sh <source-dir> <manifest-out-path> [--screen-id-regex <ERE>] [--view-switch-pattern <ERE>] [--exclude <ERE>] [--strategy-json <file>]" >&2
+  echo "Usage: detect-screens.sh <source-dir> <manifest-out-path> [--screen-id-regex <ERE>] [--view-switch-pattern <ERE>] [--exclude <ERE>] [--strategy-json <file>] [--account-group-map <file>]" >&2
   exit 1
 fi
 SOURCE_DIR="${POSITIONAL[0]}"
@@ -2156,13 +2165,21 @@ classify_screen() {
   local parent_screen="null"
 
   # Level 1: システムアカウント種別(detectionMethodのconfグループから判定)
-  case "$detection_method" in
-    *WWW2_PAGE*|*www2*) account_group="user" ;;
-    *OPE_PAGE*|*ope*|*OPE2*) account_group="admin" ;;
-    *EDT*|*edt*) account_group="editor" ;;
-    *WWW_PAGE*|*www*) account_group="report" ;;
-    *MAIN*|*main*) account_group="feature_phone" ;;
-  esac
+  # --account-group-map で指定した外部ファイル(グロブパターン\t分類値のTSV、
+  # 1行1パターン、上から順に最初に一致した行を採用)から読み込む。
+  # ファイル未指定/不在の場合はdetectionMethodの値をそのままaccountGroupとする
+  # (プロジェクト固有の分類値をスキル本体にハードコードしないためのフォールバック)。
+  if [ -n "$ACCOUNT_GROUP_MAP_FILE" ] && [ -f "$ACCOUNT_GROUP_MAP_FILE" ]; then
+    local map_pattern map_value
+    while IFS=$'\t' read -r map_pattern map_value; do
+      [ -z "$map_pattern" ] && continue
+      case "$detection_method" in
+        $map_pattern) account_group="$map_value"; break ;;
+      esac
+    done < "$ACCOUNT_GROUP_MAP_FILE"
+  else
+    account_group="$detection_method"
+  fi
 
   # Level 2: 権限区分(entryFileの権限チェックパターンから推定)
   if [ -f "$entry_file" ]; then
