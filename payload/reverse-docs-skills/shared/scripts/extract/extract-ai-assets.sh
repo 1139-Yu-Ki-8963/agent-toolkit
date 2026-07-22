@@ -319,16 +319,13 @@ run_extract() {
 }
 
 # --- --self-test モード ---
-# 1) mktemp フィクスチャリポジトリで各セクションの抽出値を jq 検証
-# 2) 本リポジトリ(このスクリプトが属する extraction-engines worktree)を実走査し、
-#    rules 3件以上・hooks 1件以上・jq パース可能・サンプルページの埋め込みマニフェストと
-#    キー構成が一致(各セクションのオブジェクトキーが許容集合の範囲内)することを検証
+# 1) mktemp フィクスチャリポジトリ(fixture-repo)で各セクションの抽出値を jq 検証
+# 2) 別の mktemp 合成フィクスチャリポジトリ(fixture-repo-b)で
+#    rules 3件・hooks 1件・skills 1件の既知件数と、出力スキーマの
+#    トップレベルキー・各セクションのフィールドキーが許容集合の範囲内であることを検証
+#    (実行環境の実資産・サンプル HTML には依存しない)
 self_test() {
   local script_path="$0"
-  local script_dir
-  script_dir="$(cd "$(dirname "$script_path")" && pwd)"
-  local repo_root
-  repo_root="$(cd "$script_dir/../../.." && pwd)"
   local tmp rc=0
   tmp="$(mktemp -d "${TMPDIR:-/tmp}/extract-ai-assets-self-test.XXXXXX")"
   trap 'rm -rf "$tmp"' RETURN
@@ -464,49 +461,122 @@ EOF
     rc=1
   fi
 
-  # --- ケースb: 実リポジトリ抽出(件数 + サンプルとのキー構成一致) ---
-  local out_real="$tmp/real-out.json"
-  local sample_html="$repo_root/shared/samples/AI設定資産/AI設定資産.html"
-  if bash "$script_path" "$repo_root" "$out_real" >/dev/null 2>&1 && jq -e . "$out_real" >/dev/null 2>&1; then
+  # --- ケースb: 合成フィクスチャ抽出(既知件数 + スキーマ検証) ---
+  # 実行環境の実資産・サンプル HTML に依存せず、rules 3件(block/advisory/なし各1)・
+  # skills 1件(Phase 1件)・hooks 1件の最小合成フィクスチャで検証する。
+  local fx_b="$tmp/fixture-repo-b"
+  mkdir -p "$fx_b/.claude/rules/always/rule-a" \
+           "$fx_b/.claude/rules/always/rule-b" \
+           "$fx_b/.claude/rules/scoped/rule-c" \
+           "$fx_b/.claude/skills/skill-a" \
+           "$fx_b/.claude/agents"
+
+  cat > "$fx_b/.claude/rules/always/rule-a/rule.md" <<'EOF'
+# 規約A（RULE-A）
+
+ケースb検証用の最小 block 規約。
+
+## 機械強制
+
+| timing | スクリプト | 注入タグ | 挙動 |
+|---|---|---|---|
+| PreToolUse(Bash) | `check-rule-a.sh` | `[RULE-A-BLOCK]` | 違反を exit 2 で block |
+EOF
+
+  cat > "$fx_b/.claude/rules/always/rule-b/rule.md" <<'EOF'
+# 規約B（RULE-B）
+
+ケースb検証用の最小 advisory 規約。
+
+## 機械強制
+
+| timing | スクリプト | 注入タグ | 挙動 |
+|---|---|---|---|
+| PostToolUse(Write) | `check-rule-b.sh` | `[RULE-B]` | advisory 注入(block なし) |
+EOF
+
+  cat > "$fx_b/.claude/rules/scoped/rule-c/rule.md" <<'EOF'
+# 規約C（RULE-C）
+
+ケースb検証用の機械強制を持たない規約。
+
+## 機械強制
+
+現時点では hook による機械強制なし。
+EOF
+
+  cat > "$fx_b/.claude/skills/skill-a/SKILL.md" <<'EOF'
+---
+name: skill-a
+description: |
+  ケースb検証用の最小スキル。
+  TRIGGER when: セルフテスト実行時。
+  SKIP: 本番利用。
+---
+
+# スキルA
+
+## Phase 1: 準備
+EOF
+
+  cat > "$fx_b/.claude/agents/agent-a.md" <<'EOF'
+---
+name: agent-a
+description: ケースb検証用の最小サブエージェント
+---
+EOF
+
+  cat > "$fx_b/.claude/hook-b.sh" <<'EOF'
+#!/usr/bin/env bash
+# フィクスチャ hook: [HOOK-B] を exit 2 で注入する
+exit 0
+EOF
+
+  cat > "$fx_b/.claude/settings.json" <<'EOF'
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {"type": "command", "command": "$CLAUDE_PROJECT_DIR/.claude/hook-b.sh"}
+        ]
+      }
+    ]
+  }
+}
+EOF
+
+  local out_b="$tmp/out-b.json"
+  if bash "$script_path" "$fx_b" "$out_b" >/dev/null 2>&1 && jq -e . "$out_b" >/dev/null 2>&1; then
     local rules_n hooks_n skills_n
-    rules_n="$(jq '.rules | length' "$out_real")"
-    hooks_n="$(jq '.hooks | length' "$out_real")"
-    skills_n="$(jq '.skills | length' "$out_real")"
-    if [ "$rules_n" -ge 3 ] && [ "$hooks_n" -ge 1 ]; then
-      echo "  [PASS] ケースb-件数: 実リポジトリで rules=${rules_n}件(3以上) / hooks=${hooks_n}件(1以上) / skills=${skills_n}件"
+    rules_n="$(jq '.rules | length' "$out_b")"
+    hooks_n="$(jq '.hooks | length' "$out_b")"
+    skills_n="$(jq '.skills | length' "$out_b")"
+    if [ "$rules_n" -eq 3 ] && [ "$hooks_n" -eq 1 ] && [ "$skills_n" -eq 1 ]; then
+      echo "  [PASS] ケースb-件数: 合成フィクスチャで rules=${rules_n} / hooks=${hooks_n} / skills=${skills_n}"
     else
-      echo "  [FAIL] ケースb-件数: rules=${rules_n} / hooks=${hooks_n} が下限未満" >&2
+      echo "  [FAIL] ケースb-件数: rules=${rules_n}(期待3) / hooks=${hooks_n}(期待1) / skills=${skills_n}(期待1)" >&2
       rc=1
     fi
 
-    # サンプルページの埋め込みマニフェストとキー構成を突合:
-    # - 4 セクションのキーがともに存在し配列である
-    # - 各セクションの行キーが許容集合(サンプルのキー + schema 拡張仕様の phaseCount)の範囲内
-    if [ -f "$sample_html" ]; then
-      local sample_json="$tmp/sample-manifest.json"
-      sed -n '/^<script type="application\/json" id="matrix-manifest">/,/<\/script>/p' "$sample_html" \
-        | sed '1d;$d' > "$sample_json"
-      local keys_ok
-      keys_ok="$(jq -r --slurpfile sample "$sample_json" '
-        ($sample[0] | keys | sort) as $sampleSections
-        | (keys | contains($sampleSections)) and
-          ([.rules[]     | keys[]] - ["ruleName","layer","enforcement","tags","summary"] == []) and
-          ([.skills[]    | keys[]] - ["skillName","category","trigger","summary","phaseCount"] == []) and
-          ([.subagents[] | keys[]] - ["name","classification","verdict","mainTools"] == []) and
-          ([.hooks[]     | keys[]] - ["script","timing","matcher","tags","behavior","summary"] == [])
-      ' "$out_real")"
-      if [ "$keys_ok" = "true" ]; then
-        echo "  [PASS] ケースb-スキーマ: 4 セクション構成と行キーがサンプル埋め込みマニフェストと一致"
-      else
-        echo "  [FAIL] ケースb-スキーマ: サンプル埋め込みマニフェストとキー構成が不一致" >&2
-        rc=1
-      fi
+    # スキーマ検査: サンプル HTML には依存せず、トップレベルキーとフィールドキーをリテラルで検証
+    local schema_ok
+    schema_ok="$(jq '
+      (keys | sort) == ["dataSource","generatedAt","hooks","rules","skills","subagents"] and
+      ([.rules[]     | keys[]] - ["ruleName","layer","enforcement","tags","summary"] == []) and
+      ([.skills[]    | keys[]] - ["skillName","category","trigger","summary","phaseCount"] == []) and
+      ([.subagents[] | keys[]] - ["name","classification","verdict","mainTools"] == []) and
+      ([.hooks[]     | keys[]] - ["script","timing","matcher","tags","behavior","summary"] == [])
+    ' "$out_b")"
+    if [ "$schema_ok" = "true" ]; then
+      echo "  [PASS] ケースb-スキーマ: 全セクション・全フィールドが許容集合内"
     else
-      echo "  [FAIL] ケースb-スキーマ: サンプル HTML が見つからない: $sample_html" >&2
+      echo "  [FAIL] ケースb-スキーマ: フィールド不整合" >&2
       rc=1
     fi
   else
-    echo "  [FAIL] ケースb: 実リポジトリ抽出の実行または JSON パースに失敗" >&2
+    echo "  [FAIL] ケースb: 合成フィクスチャ抽出の実行または JSON パースに失敗" >&2
     rc=1
   fi
 

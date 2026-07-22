@@ -2153,6 +2153,7 @@ classify_screen() {
   local screen_key="$1" entry_file="$2" detection_method="$3"
   local screen_type="unknown" account_group="unknown" account_sub_type="common"
   local has_template="false" is_processing_endpoint="false"
+  local parent_screen="null"
 
   # Level 1: システムアカウント種別(detectionMethodのconfグループから判定)
   case "$detection_method" in
@@ -2162,6 +2163,15 @@ classify_screen() {
     *WWW_PAGE*|*www*) account_group="report" ;;
     *MAIN*|*main*) account_group="feature_phone" ;;
   esac
+
+  # Level 2: 権限区分(entryFileの権限チェックパターンから推定)
+  if [ -f "$entry_file" ]; then
+    local role_match
+    role_match=$(grep -aoE '(requireRole|hasRole|roles:|@RolesAllowed)\s*[\(\[="'"'"']\s*[A-Za-z_]+' "$entry_file" 2>/dev/null | head -1 | grep -oE '[A-Za-z_]+$')
+    if [ -n "$role_match" ]; then
+      account_sub_type="$role_match"
+    fi
+  fi
 
   # Level 3: 画面種別(entryFileのパスとファイル名パターンから推定)
   local basename_lower
@@ -2176,6 +2186,15 @@ classify_screen() {
     *top*|*home*|*dashboard*) screen_type="top" ;;
   esac
 
+  # screenType の DOM 補完: ファイル名から判定できない場合、テンプレートのDOM構造から推定
+  if [ "$screen_type" = "unknown" ] && [ -f "$entry_file" ]; then
+    if grep -aqE '<form[\s>]' "$entry_file" 2>/dev/null; then
+      screen_type="form"
+    elif grep -aqE '<table[\s>]' "$entry_file" 2>/dev/null; then
+      screen_type="list"
+    fi
+  fi
+
   # hasTemplate: テンプレートファイルの存在推定(entryFileの拡張子がhtml等)
   case "$entry_file" in
     *.html|*.htm|*.tt|*.tx) has_template="true" ;;
@@ -2187,7 +2206,16 @@ classify_screen() {
     screen_type="processing_endpoint"
   fi
 
-  printf '%s\t%s\t%s\t%s\t%s' "$screen_type" "$account_group" "$account_sub_type" "$has_template" "$is_processing_endpoint"
+  # parentScreen: モーダル呼出しパターンから親画面を推定
+  if [ -f "$entry_file" ]; then
+    local modal_ref
+    modal_ref=$(grep -aoE '(onclick|window\.open|showModal|openDialog)\s*[\(=]\s*['"'"'"][^'"'"'"]*['"'"'"]' "$entry_file" 2>/dev/null | head -1 | grep -oE '[A-Za-z0-9_-]+' | tail -1)
+    if [ -n "$modal_ref" ]; then
+      parent_screen="\"$modal_ref\""
+    fi
+  fi
+
+  printf '%s\t%s\t%s\t%s\t%s\t%s' "$screen_type" "$account_group" "$account_sub_type" "$has_template" "$is_processing_endpoint" "$parent_screen"
 }
 
 # --- 既に route 画面の entryFile として検出済みの basename(拡張子なし)集合 ---
@@ -2483,7 +2511,7 @@ awk -F'\t' '$5!=""{print $5}' "$TMP_ALL" | sort -u > "$STRATEGY_ALL_ENTRIES_FILE
       detection_method_field="embedded-view-heuristic"
     fi
 
-    IFS=$'\t' read -r classify_screen_type classify_account_group classify_account_sub_type classify_has_template classify_is_processing_endpoint \
+    IFS=$'\t' read -r classify_screen_type classify_account_group classify_account_sub_type classify_has_template classify_is_processing_endpoint classify_parent_screen \
       <<< "$(classify_screen "$key" "$entry_file" "$detection_method_field")"
 
     [ "$first" -eq 1 ] || printf ',\n'
@@ -2512,7 +2540,7 @@ awk -F'\t' '$5!=""{print $5}' "$TMP_ALL" | sort -u > "$STRATEGY_ALL_ENTRIES_FILE
     printf '      "accountSubType": "%s",\n' "$(json_escape "$classify_account_sub_type")"
     printf '      "hasTemplate": %s,\n' "$classify_has_template"
     printf '      "isProcessingEndpoint": %s,\n' "$classify_is_processing_endpoint"
-    printf '      "parentScreen": null,\n'
+    printf '      "parentScreen": %s,\n' "$classify_parent_screen"
     printf '      "childComponents": []\n'
     printf '    }'
   done < "$TMP_ALL"

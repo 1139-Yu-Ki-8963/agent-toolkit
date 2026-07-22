@@ -19,6 +19,13 @@
 | designDocPath | string | 任意 | 設計書への相対パス。designDocStatus=着手済 かつ本フィールドありで設計書リンクを描画 | 設計書リポジトリの該当フォルダ |
 | sourceHash | string | 任意 | 画面ユニットの原本ソース連結ハッシュ（sha256 先頭12桁） | 原本コードの走査 |
 | designDocSourceHash | string | 任意 | 設計書生成時に記録した sourceHash。sourceHash と不一致なら一覧に陳腐化バッジを表示 | 設計書生成工程の記録 |
+| screenType | string | 任意 | 画面種別（Level 3 分類。8 種: top/list/detail/form/confirm/complete/error/processing_endpoint） | コード分析（DOM 構造・テンプレート有無）で判定 |
+| accountGroup | string | 任意 | システム区分（Level 1 分類。プロジェクトの設定グループ定義から機械抽出） | detectionMethod のグループ名から判定 |
+| accountSubType | string | 任意 | 利用者権限区分（Level 2 分類。権限チェック条件分岐の有無で判定。該当なしは `common`） | エントリファイル内の権限チェック grep |
+| hasTemplate | boolean | 任意 | テンプレート実体の有無（拡張子 `.html`/`.htm`/`.tt`/`.tx` で判定） | テンプレートファイルの実在確認 |
+| parentScreen | string | 任意 | 親画面のキー（モーダル・ポップアップの呼出し元。該当なしは null） | `onclick`/`window.open`/`showModal` の参照元 grep |
+| childComponents | string[] | 任意 | 紐づくコンポーネントキーの配列（parentScreen の逆引き） | parentScreen フィールドの逆引き集約 |
+| isProcessingEndpoint | boolean | 任意 | 処理エンドポイント（UI を持たない）か否か（hasTemplate=false かつ screenType=unknown で判定） | テンプレート不在かつリダイレクトのみ |
 
 ### apis（API）
 
