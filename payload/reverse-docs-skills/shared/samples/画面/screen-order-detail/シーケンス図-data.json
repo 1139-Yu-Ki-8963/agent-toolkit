@@ -1,0 +1,30 @@
+{
+  "screenId": "screen-order-detail",
+  "screenLabel": "注文詳細",
+  "generatedAt": "2026-07-23T00:00:00Z",
+  "operations": [
+    {
+      "key": "detail-load",
+      "label": "詳細表示",
+      "handler": "handler-useOrderDetailState-初期表示",
+      "steps": [
+        {"seq": 1, "from": "screen", "to": "api", "label": "GET /api/orders/ORD-2026-00042", "sourceRef": "pages/OrderDetailPage.tsx:41"},
+        {"seq": 2, "from": "api", "to": "table", "label": "SELECT orders, order_items, shipping_addresses WHERE order_id = 'ORD-2026-00042'", "sourceRef": "server/api/order-detail.ts:20"},
+        {"seq": 3, "from": "table", "to": "api", "label": "注文詳細レコードを返却", "sourceRef": "server/api/order-detail.ts:27"},
+        {"seq": 4, "from": "api", "to": "screen", "label": "200 OK { orderId, items, shippingAddress, status, statusHistory } → 画面描画", "kind": "return", "sourceRef": "pages/OrderDetailPage.tsx:47"}
+      ]
+    },
+    {
+      "key": "status-update",
+      "label": "ステータス更新",
+      "handler": "handler-onStatusUpdateSubmit-確定操作",
+      "steps": [
+        {"seq": 1, "from": "screen", "to": "api", "label": "PATCH /api/orders/ORD-2026-00042/status { nextStatus: 'shipped', comment }", "sourceRef": "components/StatusUpdatePanel.tsx:35"},
+        {"seq": 2, "from": "api", "to": "table", "label": "UPDATE orders SET status='shipped' WHERE order_id='ORD-2026-00042'", "sourceRef": "server/api/order-status.ts:16"},
+        {"seq": 3, "from": "api", "to": "table", "label": "INSERT INTO order_status_history (order_id, status, comment)", "sourceRef": "server/api/order-status.ts:22"},
+        {"seq": 4, "from": "table", "to": "api", "label": "更新後のステータス・履歴を返却", "sourceRef": "server/api/order-status.ts:26"},
+        {"seq": 5, "from": "api", "to": "screen", "label": "200 OK { status, updatedAt, statusHistory } → バッジ・履歴を再描画", "kind": "return", "sourceRef": "components/StatusUpdatePanel.tsx:41"}
+      ]
+    }
+  ]
+}

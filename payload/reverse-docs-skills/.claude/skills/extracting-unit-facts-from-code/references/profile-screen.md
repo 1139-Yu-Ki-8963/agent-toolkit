@@ -21,6 +21,14 @@
 | ⑪effect_trigger | useEffect/useLayoutEffectの呼び出しを1呼出=1事実ずつキー化する（依存配列literal・実行内容1行要約・cleanup有無を記録）（`effect-<主処理名>-<契機>`） | `(useEffect|useLayoutEffect)[[:blank:]]*\(` に一致する呼び出しの出現数を数える |
 | ⑫error_handling | throw文・catch節・window.alert等のエラー処理を1箇所=1事実ずつキー化する（メッセージliteralと処理内容。メッセージ定数は「定数キー→実文言→生成APIシグネチャ」まで含める）（`error-<文脈>-<種別>`） | `throw[[:blank:]]`・`catch[[:blank:]]*\(`・`window\.alert[[:blank:]]*\(` の出現数を合算する |
 
+## ⑤ハンドラのcall_order採録手順
+
+シーケンス図生成の定義元として、⑤handlerの各itemに任意フィールド `call_order` を採録する（フィールド仕様は `shared/references/facts-schema.md` の「call_order（⑤handlerの任意フィールド）」節が正本）。
+
+- ハンドラ本体のliteralから API 呼び出し（⑧api分類に採録した BL 呼び出し）をソース出現順に抽出し、`call_order` 形式（`<連番>:<api分類のkey>@<file:line>; ...`）で記録する
+- 呼び出しが無ければ `call_order` を省略する（空文字は書かない）
+- 参照するkeyは同一facts.ymlの⑧api分類のkeyと一致させる
+
 ## ⑥JSX構造の採録規律（属性値・文言粒度）
 
 ⑥JSX構造の抽出粒度は「ネスト構造のみ」から以下の粒度へ拡張する。上表の Phase 2 抽出手順に追加で適用する。往復検証（rebuilding-code-from-docs との往復）で発生した NG（Header の `backTo` 値・装飾テキストの具体文言・見出し区画の欠落・props/className/アイコン種別の未採録）を踏まえた強化である。

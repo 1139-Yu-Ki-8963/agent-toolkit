@@ -1,0 +1,29 @@
+{
+  "screenId": "screen-sales-dashboard",
+  "screenLabel": "売上ダッシュボード",
+  "generatedAt": "2026-07-23T00:00:00Z",
+  "operations": [
+    {
+      "key": "period-change",
+      "label": "期間変更（期間適用ボタン押下）",
+      "handler": "handler-onPeriodApply-期間適用",
+      "steps": [
+        {"seq": 1, "from": "screen", "to": "screen", "label": "開始日・終了日のバリデーション（範囲366日以内）"},
+        {"seq": 2, "from": "screen", "to": "api", "label": "GET /api/sales/summary?from=...&to=...&granularity=...", "sourceRef": "pages/dashboard/SalesDashboardPage.tsx:64"},
+        {"seq": 3, "from": "api", "to": "table", "label": "SELECT SUM(amount), COUNT(*) FROM orders WHERE confirmed_at BETWEEN ...", "sourceRef": "server/api/sales.ts:28"},
+        {"seq": 4, "from": "api", "to": "screen", "label": "200 OK → サマリ・推移グラフ・内訳を更新", "kind": "return"}
+      ]
+    },
+    {
+      "key": "recalculate-click",
+      "label": "再集計ボタン押下",
+      "handler": "handler-onRecalculate-再集計",
+      "steps": [
+        {"seq": 1, "from": "screen", "to": "api", "label": "POST /api/sales/recalculate", "sourceRef": "pages/dashboard/SalesDashboardPage.tsx:91"},
+        {"seq": 2, "from": "api", "to": "table", "label": "直近注文データを再集計しSUM/COUNTを再計算", "sourceRef": "server/api/sales.ts:55"},
+        {"seq": 3, "from": "table", "to": "api", "label": "再計算後の集計値を返却"},
+        {"seq": 4, "from": "api", "to": "screen", "label": "200 OK → 最終再集計日時を更新し完了トースト表示", "kind": "return"}
+      ]
+    }
+  ]
+}

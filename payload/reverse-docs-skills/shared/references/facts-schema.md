@@ -109,6 +109,19 @@ throw文・catch節・window.alert等のエラー処理。1箇所=1item。
 - **value**: メッセージliteralと処理内容。メッセージ定数は「定数キー→実文言→生成APIシグネチャ」まで含める。GraphQLエラー参照パス・文字列加工もliteral
 - **recount計数**: throw + catch + window.alert の出現数合算
 
+### call_order（⑤handlerの任意フィールド）
+
+シーケンス図生成の定義元として、handler item に API 呼び出し順序を持たせる任意フィールド。
+
+- **所属**: ⑤handlerの各itemに追加できる任意フィールド（新規セクションではない）
+- **型**: 1行の文字列（YAMLスカラー）。複数行・ネスト配列は禁止
+- **形式**: `"<連番>:<api分類のkey>@<file:line>; <連番>:<api分類のkey>@<file:line>"`（セミコロン+スペース区切り・連番は1始まり・呼び出しソース順）
+- **例**: `call_order: "1:api-postOrder-req@src/screens/Order/Order.tsx:42; 2:api-fetchList-req@src/screens/Order/Order.tsx:50"`
+- **省略条件**: API呼び出しを含まないハンドラでは省略する（空文字は書かない）
+- **参照整合**: 参照先は同一facts.ymlの⑧api分類のkeyと一致させる
+- **配置段**: value・evidenceと同じ5段目（item直下）のスカラー行として置く
+- **設計理由**: ネスト配列にしないのは固定インデント契約（`scripts/recount-facts.sh` のawk行解析）への波及を避けるため。5段目のスカラー行追加は `- key:` 行カウント（4段目）に影響しない
+
 ## 抽出規律（全分類共通）
 
 ### (iii) 複数行valueの改行 `\n` エスケープ保持

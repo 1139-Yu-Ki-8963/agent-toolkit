@@ -159,18 +159,18 @@ fi
 # --- 3. pageKind値 ---
 PAGE_KIND="$(jq -r '.pageKind // ""' "$MANIFEST")"
 case "$PAGE_KIND" in
-  glossary|techstack|transition|er|env)
+  glossary|techstack|transition|er|env|entity-state)
     echo "[PASS] pageKind値 — '${PAGE_KIND}'は許可値" >&2
     ;;
   *)
     overall_fail=1
     ln="$(line_of "\"pageKind\"")"
-    echo "[FAIL] pageKind値 — 不正な値: '${PAGE_KIND}'(行番号: ${ln:-不明})。glossary|techstack|transition|er|envのいずれかである必要があります" >&2
+    echo "[FAIL] pageKind値 — 不正な値: '${PAGE_KIND}'(行番号: ${ln:-不明})。glossary|techstack|transition|er|env|entity-stateのいずれかである必要があります" >&2
     ;;
 esac
 
 # --- 4. 型別スロット ---
-get_slot_keys() { case "$1" in glossary) echo "categories terms";; techstack) echo "tiles columns rows";; transition) echo "legend nodes edges";; er) echo "legend entities relations";; env) echo "prerequisites steps allocations";; esac; }
+get_slot_keys() { case "$1" in glossary) echo "categories terms";; techstack) echo "tiles columns rows";; transition) echo "legend nodes edges";; er) echo "legend entities relations";; env) echo "prerequisites steps allocations";; entity-state) echo "legend nodes edges";; esac; }
 
 if [ -n "$(get_slot_keys "$PAGE_KIND")" ]; then
   missing_slots=""
@@ -234,6 +234,23 @@ case "$PAGE_KIND" in
       done <<< "$orphan_refs"
     else
       echo "[PASS] 孤児参照 — relations[].from/.toはすべてentities[].keyに存在" >&2
+    fi
+    ;;
+  entity-state)
+    orphan_refs="$(jq -r '
+      ([(.nodes // [])[]?.key] | map(select(. != null))) as $keys
+      | [(.edges // [])[]? | select(((.from as $f | $keys | index($f)) == null) or ((.to as $t | $keys | index($t)) == null))]
+      | .[] | "\(.from)->\(.to)"
+    ' "$MANIFEST" 2>/dev/null)"
+    if [ -n "$orphan_refs" ]; then
+      overall_fail=1
+      while IFS= read -r ref; do
+        [ -z "$ref" ] && continue
+        ln="$(line_of "\"${ref%%->*}\"")"
+        echo "[FAIL] 孤児参照 — edgeの参照先がnodes[].keyに存在しません: ${ref}(行番号: ${ln:-不明})" >&2
+      done <<< "$orphan_refs"
+    else
+      echo "[PASS] 孤児参照 — edges[].from/.toはすべてnodes[].keyに存在" >&2
     fi
     ;;
 esac

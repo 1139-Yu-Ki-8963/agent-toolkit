@@ -329,7 +329,7 @@
     <span class="brand-sub">設計ポータル</span>
   </a>
   <div class="header-meta">
-    <span class="pm-updated">更新: 2026-07-20T00:00:00+09:00</span>
+    <span class="pm-updated">更新: 2026-07-23T00:00:00+09:00</span>
   </div>
   <div class="top-actions">
     <button id="theme-toggle" title="テーマ切替">ライト</button>
@@ -342,7 +342,7 @@
   <div class="header-top">
     <h1>画面一覧</h1>
     <div class="summary-tiles">
-      <div class="tile"><strong>18</strong>検出画面数</div>
+      <div class="tile"><strong>44</strong>検出画面数</div>
       <div class="tile"><strong>1</strong>共有クラスタ数（2画面が関与）</div>
       <div class="tile"><strong>1</strong>埋め込みビュー候補数</div>
       <div class="tile"><strong>0</strong>要手動確認数</div>
@@ -444,6 +444,110 @@
 <td>サイドバーナビ</td>
 <td>—</td>
 <td><span class="badge kind-embedded">埋め込みビュー</span></td>
+</tr><tr data-screen-id="screen-order-list" data-screen-key="order-list">
+<td>注文一覧</td>
+<td><code>/orders</code></td>
+<td><span class="badge kind-route">ルート</span></td>
+</tr><tr data-screen-id="screen-order-detail" data-screen-key="order-detail">
+<td>注文詳細</td>
+<td><code>/orders/:orderId</code></td>
+<td><span class="badge kind-route">ルート</span></td>
+</tr><tr data-screen-id="screen-order-confirm" data-screen-key="order-confirm">
+<td>注文確定</td>
+<td><code>/orders/:orderId/confirm</code></td>
+<td><span class="badge kind-route">ルート</span></td>
+</tr><tr data-screen-id="screen-order-cancel" data-screen-key="order-cancel">
+<td>注文キャンセル</td>
+<td><code>/orders/:orderId/cancel</code></td>
+<td><span class="badge kind-route">ルート</span></td>
+</tr><tr data-screen-id="screen-order-search" data-screen-key="order-search">
+<td>注文検索</td>
+<td><code>/orders/search</code></td>
+<td><span class="badge kind-route">ルート</span></td>
+</tr><tr data-screen-id="screen-shipment-list" data-screen-key="shipment-list">
+<td>出荷一覧</td>
+<td><code>/shipments</code></td>
+<td><span class="badge kind-route">ルート</span></td>
+</tr><tr data-screen-id="screen-member-list" data-screen-key="member-list">
+<td>会員一覧</td>
+<td><code>/members</code></td>
+<td><span class="badge kind-route">ルート</span></td>
+</tr><tr data-screen-id="screen-member-detail" data-screen-key="member-detail">
+<td>会員詳細</td>
+<td><code>/members/:memberId</code></td>
+<td><span class="badge kind-route">ルート</span></td>
+</tr><tr data-screen-id="screen-member-edit" data-screen-key="member-edit">
+<td>会員編集</td>
+<td><code>/members/:memberId/edit</code></td>
+<td><span class="badge kind-route">ルート</span></td>
+</tr><tr data-screen-id="screen-member-suspend" data-screen-key="member-suspend">
+<td>会員休会・退会</td>
+<td><code>/members/:memberId/suspend</code></td>
+<td><span class="badge kind-route">ルート</span></td>
+</tr><tr data-screen-id="screen-product-list" data-screen-key="product-list">
+<td>商品一覧</td>
+<td><code>/products</code></td>
+<td><span class="badge kind-route">ルート</span></td>
+</tr><tr data-screen-id="screen-product-detail" data-screen-key="product-detail">
+<td>商品詳細</td>
+<td><code>/products/:productId</code></td>
+<td><span class="badge kind-route">ルート</span></td>
+</tr><tr data-screen-id="screen-product-edit" data-screen-key="product-edit">
+<td>商品編集</td>
+<td><code>/products/:productId/edit</code></td>
+<td><span class="badge kind-route">ルート</span></td>
+</tr><tr data-screen-id="screen-product-inventory" data-screen-key="product-inventory">
+<td>在庫管理</td>
+<td><code>/products/:productId/inventory</code></td>
+<td><span class="badge kind-route">ルート</span></td>
+</tr><tr data-screen-id="screen-product-category" data-screen-key="product-category">
+<td>商品カテゴリ管理</td>
+<td><code>/products/categories</code></td>
+<td><span class="badge kind-route">ルート</span></td>
+</tr><tr data-screen-id="screen-invoice-list" data-screen-key="invoice-list">
+<td>請求一覧</td>
+<td><code>/invoices</code></td>
+<td><span class="badge kind-route">ルート</span></td>
+</tr><tr data-screen-id="screen-invoice-detail" data-screen-key="invoice-detail">
+<td>請求詳細</td>
+<td><code>/invoices/:invoiceId</code></td>
+<td><span class="badge kind-route">ルート</span></td>
+</tr><tr data-screen-id="screen-payment-list" data-screen-key="payment-list">
+<td>支払い一覧</td>
+<td><code>/payments</code></td>
+<td><span class="badge kind-route">ルート</span></td>
+</tr><tr data-screen-id="screen-refund-list" data-screen-key="refund-list">
+<td>返金一覧</td>
+<td><code>/refunds</code></td>
+<td><span class="badge kind-route">ルート</span></td>
+</tr><tr data-screen-id="screen-sales-dashboard" data-screen-key="sales-dashboard">
+<td>売上ダッシュボード</td>
+<td><code>/reports/sales</code></td>
+<td><span class="badge kind-route">ルート</span></td>
+</tr><tr data-screen-id="screen-sales-report" data-screen-key="sales-report">
+<td>売上レポート出力</td>
+<td><code>/reports/sales/export</code></td>
+<td><span class="badge kind-route">ルート</span></td>
+</tr><tr data-screen-id="screen-inventory-report" data-screen-key="inventory-report">
+<td>在庫レポート</td>
+<td><code>/reports/inventory</code></td>
+<td><span class="badge kind-route">ルート</span></td>
+</tr><tr data-screen-id="screen-coupon-list" data-screen-key="coupon-list">
+<td>クーポン一覧</td>
+<td><code>/settings/coupons</code></td>
+<td><span class="badge kind-route">ルート</span></td>
+</tr><tr data-screen-id="screen-coupon-edit" data-screen-key="coupon-edit">
+<td>クーポン編集</td>
+<td><code>/settings/coupons/:couponId/edit</code></td>
+<td><span class="badge kind-route">ルート</span></td>
+</tr><tr data-screen-id="screen-campaign-list" data-screen-key="campaign-list">
+<td>キャンペーン一覧</td>
+<td><code>/settings/campaigns</code></td>
+<td><span class="badge kind-route">ルート</span></td>
+</tr><tr data-screen-id="screen-notification-settings" data-screen-key="notification-settings">
+<td>通知設定</td>
+<td><code>/settings/notifications</code></td>
+<td><span class="badge kind-route">ルート</span></td>
 </tr>
     </tbody>
   </table>
@@ -468,7 +572,7 @@
 
 <script type="application/json" id="screen-manifest">
 {
-  "generatedAt": "2026-07-20T00:00:00+09:00",
+  "generatedAt": "2026-07-23T00:00:00+09:00",
   "sourceDir": "shared/samples/一覧/画面一覧/fixtures",
   "strategy": {
     "extractionMethod": "静的解析（ルーティング定義 + ファイル走査）",
@@ -476,7 +580,7 @@
   },
   "detectionSummary": {
     "method": "React Router v6 のルーティング定義から自動検出",
-    "screenCount": 18,
+    "screenCount": 44,
     "clusterCount": 1,
     "sharedScreenCount": 2,
     "embeddedCandidateCount": 1,
@@ -847,6 +951,561 @@
       "permissions": [],
       "relatedApis": [
         "notifications-list"
+      ],
+      "designDocStatus": "未着手"
+    },
+    {
+      "screenId": "screen-order-list",
+      "screenKey": "order-list",
+      "kind": "route",
+      "screenNameGuess": "注文一覧",
+      "route": "/orders",
+      "detectionMethod": "routing",
+      "confidence": "HIGH",
+      "sharedWith": null,
+      "embeddedIn": null,
+      "fileCount": 6,
+      "entryFile": "pages/orders/OrderListPage.tsx",
+      "category": "注文",
+      "permissions": [
+        "admin"
+      ],
+      "relatedApis": [
+        "orders-list"
+      ],
+      "designDocStatus": "着手済",
+      "designDocPath": "../../画面/screen-order-list/基本設計/画面基本設計書.html"
+    },
+    {
+      "screenId": "screen-order-detail",
+      "screenKey": "order-detail",
+      "kind": "route",
+      "screenNameGuess": "注文詳細",
+      "route": "/orders/:orderId",
+      "detectionMethod": "routing",
+      "confidence": "HIGH",
+      "sharedWith": null,
+      "embeddedIn": null,
+      "fileCount": 5,
+      "entryFile": "pages/orders/OrderDetailPage.tsx",
+      "category": "注文",
+      "permissions": [
+        "admin"
+      ],
+      "relatedApis": [
+        "orders-get",
+        "shipments-get"
+      ],
+      "designDocStatus": "着手済",
+      "designDocPath": "../../画面/screen-order-detail/基本設計/画面基本設計書.html"
+    },
+    {
+      "screenId": "screen-order-confirm",
+      "screenKey": "order-confirm",
+      "kind": "route",
+      "screenNameGuess": "注文確定",
+      "route": "/orders/:orderId/confirm",
+      "detectionMethod": "routing",
+      "confidence": "MEDIUM",
+      "sharedWith": null,
+      "embeddedIn": null,
+      "fileCount": 3,
+      "entryFile": "pages/orders/OrderConfirmPage.tsx",
+      "category": "注文",
+      "permissions": [
+        "admin"
+      ],
+      "relatedApis": [
+        "orders-confirm"
+      ],
+      "designDocStatus": "未着手"
+    },
+    {
+      "screenId": "screen-order-cancel",
+      "screenKey": "order-cancel",
+      "kind": "route",
+      "screenNameGuess": "注文キャンセル",
+      "route": "/orders/:orderId/cancel",
+      "detectionMethod": "routing",
+      "confidence": "MEDIUM",
+      "sharedWith": null,
+      "embeddedIn": null,
+      "fileCount": 2,
+      "entryFile": "pages/orders/OrderCancelPage.tsx",
+      "category": "注文",
+      "permissions": [
+        "admin"
+      ],
+      "relatedApis": [
+        "orders-cancel"
+      ],
+      "designDocStatus": "未着手"
+    },
+    {
+      "screenId": "screen-order-search",
+      "screenKey": "order-search",
+      "kind": "route",
+      "screenNameGuess": "注文検索",
+      "route": "/orders/search",
+      "detectionMethod": "routing",
+      "confidence": "MEDIUM",
+      "sharedWith": null,
+      "embeddedIn": null,
+      "fileCount": 3,
+      "entryFile": "pages/orders/OrderSearchPage.tsx",
+      "category": "注文",
+      "permissions": [
+        "admin"
+      ],
+      "relatedApis": [
+        "orders-list"
+      ],
+      "designDocStatus": "未着手"
+    },
+    {
+      "screenId": "screen-shipment-list",
+      "screenKey": "shipment-list",
+      "kind": "route",
+      "screenNameGuess": "出荷一覧",
+      "route": "/shipments",
+      "detectionMethod": "routing",
+      "confidence": "HIGH",
+      "sharedWith": null,
+      "embeddedIn": null,
+      "fileCount": 4,
+      "entryFile": "pages/shipments/ShipmentListPage.tsx",
+      "category": "注文",
+      "permissions": [
+        "admin"
+      ],
+      "relatedApis": [
+        "shipments-list"
+      ],
+      "designDocStatus": "未着手"
+    },
+    {
+      "screenId": "screen-member-list",
+      "screenKey": "member-list",
+      "kind": "route",
+      "screenNameGuess": "会員一覧",
+      "route": "/members",
+      "detectionMethod": "routing",
+      "confidence": "HIGH",
+      "sharedWith": null,
+      "embeddedIn": null,
+      "fileCount": 6,
+      "entryFile": "pages/members/MemberListPage.tsx",
+      "category": "会員",
+      "permissions": [
+        "admin"
+      ],
+      "relatedApis": [
+        "members-list"
+      ],
+      "designDocStatus": "未着手"
+    },
+    {
+      "screenId": "screen-member-detail",
+      "screenKey": "member-detail",
+      "kind": "route",
+      "screenNameGuess": "会員詳細",
+      "route": "/members/:memberId",
+      "detectionMethod": "routing",
+      "confidence": "HIGH",
+      "sharedWith": null,
+      "embeddedIn": null,
+      "fileCount": 5,
+      "entryFile": "pages/members/MemberDetailPage.tsx",
+      "category": "会員",
+      "permissions": [
+        "admin"
+      ],
+      "relatedApis": [
+        "members-get"
+      ],
+      "designDocStatus": "未着手"
+    },
+    {
+      "screenId": "screen-member-edit",
+      "screenKey": "member-edit",
+      "kind": "route",
+      "screenNameGuess": "会員編集",
+      "route": "/members/:memberId/edit",
+      "detectionMethod": "routing",
+      "confidence": "HIGH",
+      "sharedWith": null,
+      "embeddedIn": null,
+      "fileCount": 4,
+      "entryFile": "pages/members/MemberEditPage.tsx",
+      "category": "会員",
+      "permissions": [
+        "admin"
+      ],
+      "relatedApis": [
+        "members-get",
+        "members-update"
+      ],
+      "designDocStatus": "着手済",
+      "designDocPath": "../../画面/screen-member-edit/基本設計/画面基本設計書.html"
+    },
+    {
+      "screenId": "screen-member-suspend",
+      "screenKey": "member-suspend",
+      "kind": "route",
+      "screenNameGuess": "会員休会・退会",
+      "route": "/members/:memberId/suspend",
+      "detectionMethod": "routing",
+      "confidence": "MEDIUM",
+      "sharedWith": null,
+      "embeddedIn": null,
+      "fileCount": 3,
+      "entryFile": "pages/members/MemberSuspendPage.tsx",
+      "category": "会員",
+      "permissions": [
+        "admin"
+      ],
+      "relatedApis": [
+        "members-suspend"
+      ],
+      "designDocStatus": "未着手"
+    },
+    {
+      "screenId": "screen-product-list",
+      "screenKey": "product-list",
+      "kind": "route",
+      "screenNameGuess": "商品一覧",
+      "route": "/products",
+      "detectionMethod": "routing",
+      "confidence": "HIGH",
+      "sharedWith": null,
+      "embeddedIn": null,
+      "fileCount": 6,
+      "entryFile": "pages/products/ProductListPage.tsx",
+      "category": "商品",
+      "permissions": [
+        "admin"
+      ],
+      "relatedApis": [
+        "products-list"
+      ],
+      "designDocStatus": "未着手"
+    },
+    {
+      "screenId": "screen-product-detail",
+      "screenKey": "product-detail",
+      "kind": "route",
+      "screenNameGuess": "商品詳細",
+      "route": "/products/:productId",
+      "detectionMethod": "routing",
+      "confidence": "HIGH",
+      "sharedWith": null,
+      "embeddedIn": null,
+      "fileCount": 5,
+      "entryFile": "pages/products/ProductDetailPage.tsx",
+      "category": "商品",
+      "permissions": [
+        "admin"
+      ],
+      "relatedApis": [
+        "products-get"
+      ],
+      "designDocStatus": "未着手"
+    },
+    {
+      "screenId": "screen-product-edit",
+      "screenKey": "product-edit",
+      "kind": "route",
+      "screenNameGuess": "商品編集",
+      "route": "/products/:productId/edit",
+      "detectionMethod": "routing",
+      "confidence": "HIGH",
+      "sharedWith": null,
+      "embeddedIn": null,
+      "fileCount": 5,
+      "entryFile": "pages/products/ProductEditPage.tsx",
+      "category": "商品",
+      "permissions": [
+        "admin"
+      ],
+      "relatedApis": [
+        "products-get",
+        "products-update"
+      ],
+      "designDocStatus": "未着手"
+    },
+    {
+      "screenId": "screen-product-inventory",
+      "screenKey": "product-inventory",
+      "kind": "route",
+      "screenNameGuess": "在庫管理",
+      "route": "/products/:productId/inventory",
+      "detectionMethod": "routing",
+      "confidence": "MEDIUM",
+      "sharedWith": null,
+      "embeddedIn": null,
+      "fileCount": 3,
+      "entryFile": "pages/products/ProductInventoryPage.tsx",
+      "category": "商品",
+      "permissions": [
+        "admin"
+      ],
+      "relatedApis": [
+        "inventory-get",
+        "inventory-update"
+      ],
+      "designDocStatus": "未着手"
+    },
+    {
+      "screenId": "screen-product-category",
+      "screenKey": "product-category",
+      "kind": "route",
+      "screenNameGuess": "商品カテゴリ管理",
+      "route": "/products/categories",
+      "detectionMethod": "routing",
+      "confidence": "MEDIUM",
+      "sharedWith": null,
+      "embeddedIn": null,
+      "fileCount": 3,
+      "entryFile": "pages/products/ProductCategoryPage.tsx",
+      "category": "商品",
+      "permissions": [
+        "admin"
+      ],
+      "relatedApis": [
+        "categories-list"
+      ],
+      "designDocStatus": "未着手"
+    },
+    {
+      "screenId": "screen-invoice-list",
+      "screenKey": "invoice-list",
+      "kind": "route",
+      "screenNameGuess": "請求一覧",
+      "route": "/invoices",
+      "detectionMethod": "routing",
+      "confidence": "HIGH",
+      "sharedWith": null,
+      "embeddedIn": null,
+      "fileCount": 5,
+      "entryFile": "pages/billing/InvoiceListPage.tsx",
+      "category": "請求",
+      "permissions": [
+        "admin"
+      ],
+      "relatedApis": [
+        "invoices-list"
+      ],
+      "designDocStatus": "未着手"
+    },
+    {
+      "screenId": "screen-invoice-detail",
+      "screenKey": "invoice-detail",
+      "kind": "route",
+      "screenNameGuess": "請求詳細",
+      "route": "/invoices/:invoiceId",
+      "detectionMethod": "routing",
+      "confidence": "HIGH",
+      "sharedWith": null,
+      "embeddedIn": null,
+      "fileCount": 4,
+      "entryFile": "pages/billing/InvoiceDetailPage.tsx",
+      "category": "請求",
+      "permissions": [
+        "admin"
+      ],
+      "relatedApis": [
+        "invoices-get"
+      ],
+      "designDocStatus": "未着手"
+    },
+    {
+      "screenId": "screen-payment-list",
+      "screenKey": "payment-list",
+      "kind": "route",
+      "screenNameGuess": "支払い一覧",
+      "route": "/payments",
+      "detectionMethod": "routing",
+      "confidence": "HIGH",
+      "sharedWith": null,
+      "embeddedIn": null,
+      "fileCount": 4,
+      "entryFile": "pages/billing/PaymentListPage.tsx",
+      "category": "請求",
+      "permissions": [
+        "admin"
+      ],
+      "relatedApis": [
+        "payments-list"
+      ],
+      "designDocStatus": "未着手"
+    },
+    {
+      "screenId": "screen-refund-list",
+      "screenKey": "refund-list",
+      "kind": "route",
+      "screenNameGuess": "返金一覧",
+      "route": "/refunds",
+      "detectionMethod": "routing",
+      "confidence": "MEDIUM",
+      "sharedWith": null,
+      "embeddedIn": null,
+      "fileCount": 3,
+      "entryFile": "pages/billing/RefundListPage.tsx",
+      "category": "請求",
+      "permissions": [
+        "admin"
+      ],
+      "relatedApis": [
+        "refunds-list"
+      ],
+      "designDocStatus": "未着手"
+    },
+    {
+      "screenId": "screen-sales-dashboard",
+      "screenKey": "sales-dashboard",
+      "kind": "route",
+      "screenNameGuess": "売上ダッシュボード",
+      "route": "/reports/sales",
+      "detectionMethod": "routing",
+      "confidence": "HIGH",
+      "sharedWith": null,
+      "embeddedIn": null,
+      "fileCount": 6,
+      "entryFile": "pages/reports/SalesDashboardPage.tsx",
+      "category": "レポート",
+      "permissions": [
+        "admin"
+      ],
+      "relatedApis": [
+        "reports-sales"
+      ],
+      "designDocStatus": "着手済",
+      "designDocPath": "../../画面/screen-sales-dashboard/基本設計/画面基本設計書.html"
+    },
+    {
+      "screenId": "screen-sales-report",
+      "screenKey": "sales-report",
+      "kind": "route",
+      "screenNameGuess": "売上レポート出力",
+      "route": "/reports/sales/export",
+      "detectionMethod": "routing",
+      "confidence": "MEDIUM",
+      "sharedWith": null,
+      "embeddedIn": null,
+      "fileCount": 3,
+      "entryFile": "pages/reports/SalesReportPage.tsx",
+      "category": "レポート",
+      "permissions": [
+        "admin"
+      ],
+      "relatedApis": [
+        "reports-sales-export"
+      ],
+      "designDocStatus": "未着手"
+    },
+    {
+      "screenId": "screen-inventory-report",
+      "screenKey": "inventory-report",
+      "kind": "route",
+      "screenNameGuess": "在庫レポート",
+      "route": "/reports/inventory",
+      "detectionMethod": "routing",
+      "confidence": "MEDIUM",
+      "sharedWith": null,
+      "embeddedIn": null,
+      "fileCount": 3,
+      "entryFile": "pages/reports/InventoryReportPage.tsx",
+      "category": "レポート",
+      "permissions": [
+        "admin"
+      ],
+      "relatedApis": [
+        "reports-inventory"
+      ],
+      "designDocStatus": "未着手"
+    },
+    {
+      "screenId": "screen-coupon-list",
+      "screenKey": "coupon-list",
+      "kind": "route",
+      "screenNameGuess": "クーポン一覧",
+      "route": "/settings/coupons",
+      "detectionMethod": "routing",
+      "confidence": "HIGH",
+      "sharedWith": null,
+      "embeddedIn": null,
+      "fileCount": 4,
+      "entryFile": "pages/settings/CouponListPage.tsx",
+      "category": "設定",
+      "permissions": [
+        "admin"
+      ],
+      "relatedApis": [
+        "coupons-list"
+      ],
+      "designDocStatus": "未着手"
+    },
+    {
+      "screenId": "screen-coupon-edit",
+      "screenKey": "coupon-edit",
+      "kind": "route",
+      "screenNameGuess": "クーポン編集",
+      "route": "/settings/coupons/:couponId/edit",
+      "detectionMethod": "routing",
+      "confidence": "MEDIUM",
+      "sharedWith": null,
+      "embeddedIn": null,
+      "fileCount": 3,
+      "entryFile": "pages/settings/CouponEditPage.tsx",
+      "category": "設定",
+      "permissions": [
+        "admin"
+      ],
+      "relatedApis": [
+        "coupons-get",
+        "coupons-update"
+      ],
+      "designDocStatus": "未着手"
+    },
+    {
+      "screenId": "screen-campaign-list",
+      "screenKey": "campaign-list",
+      "kind": "route",
+      "screenNameGuess": "キャンペーン一覧",
+      "route": "/settings/campaigns",
+      "detectionMethod": "routing",
+      "confidence": "MEDIUM",
+      "sharedWith": null,
+      "embeddedIn": null,
+      "fileCount": 4,
+      "entryFile": "pages/settings/CampaignListPage.tsx",
+      "category": "設定",
+      "permissions": [
+        "admin"
+      ],
+      "relatedApis": [
+        "campaigns-list"
+      ],
+      "designDocStatus": "未着手"
+    },
+    {
+      "screenId": "screen-notification-settings",
+      "screenKey": "notification-settings",
+      "kind": "route",
+      "screenNameGuess": "通知設定",
+      "route": "/settings/notifications",
+      "detectionMethod": "routing",
+      "confidence": "MEDIUM",
+      "sharedWith": null,
+      "embeddedIn": null,
+      "fileCount": 2,
+      "entryFile": "pages/settings/NotificationSettingsPage.tsx",
+      "category": "設定",
+      "permissions": [
+        "admin"
+      ],
+      "relatedApis": [
+        "notification-settings-get"
       ],
       "designDocStatus": "未着手"
     }

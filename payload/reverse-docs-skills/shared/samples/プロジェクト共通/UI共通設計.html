@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UI共通設計書（リバース版）</title>
+<style>
+  :root,
+[data-theme="light"] {
+  /* Windows フォント上書き防止 */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-synthesis: none;
+  --bg: #FFFFFF;
+  --panel: #FFFFFF;
+  --panel-2: #F6F8FA;
+  --border: #D1D9E0;
+  --border-strong: #AFB8C1;
+  --text: #1B1F26;
+  --text-sub: #4A4F58;
+  --text-muted: #767B85;
+  --accent: #0969DA;
+  --accent-2: #218BFF;
+  --accent-soft: #DDF4FF;
+  --accent-border: #54AEFF;
+  --gold: #BC4C00;
+  --gold-soft: #FFF1E5;
+  --gold-border: #D18A5A;
+  --success: #1A7F37;
+  --success-soft: #DAFBE1;
+  --warn: #BC4C00;
+  --danger: #CF222E;
+  --danger-soft: #FFEBE9;
+  --highlight: #D97B1A;
+  --highlight-soft: rgba(217,123,26,0.12);
+  --highlight-border: rgba(217,123,26,0.5);
+  --nav-tag: #7B8BBF;
+  --nav-tag-soft: #ECEEF6;
+  --self-tag: #6B9B6B;
+  --self-tag-soft: #E8F0E8;
+  --code-bg: #1B1F26;
+  --code-fg: #E8E5DC;
+  --cat-list: #2563eb;
+  --cat-common: #059669;
+  --cat-project: #7C3AED;
+  --font-body: "Hiragino Kaku Gothic ProN","Hiragino Sans","Noto Sans JP","BIZ UDPGothic","Yu Gothic","Meiryo",system-ui,-apple-system,sans-serif;
+  --mono: "SFMono-Regular","Menlo","Cascadia Code","Consolas",monospace;
+  --shadow-sm: 0 1px 3px rgba(27,31,38,.07), 0 2px 6px rgba(27,31,38,.05);
+  --shadow-md: 0 2px 8px rgba(27,31,38,.09), 0 8px 24px rgba(27,31,38,.07);
+  --radius: 10px;
+  --radius-sm: 6px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #15171C; --panel: #1C1F26; --panel-2: #21262D;
+    --border: #30363D; --border-strong: #484F58;
+    --text: #E8E5DC; --text-sub: #B6B3AB; --text-muted: #888784;
+    --accent: #58A6FF; --accent-2: #79C0FF; --accent-soft: #132D4B; --accent-border: #1F6FEB;
+    --gold: #DB6D28; --gold-soft: #311D08; --gold-border: #7A3E0D;
+    --success: #3FB950; --success-soft: #0D2818;
+    --warn: #DB6D28; --danger: #F85149; --danger-soft: #3D1214;
+    --highlight: #E8943A; --highlight-soft: rgba(232,148,58,0.15); --highlight-border: rgba(232,148,58,0.5);
+    --nav-tag: #8E9ED0; --nav-tag-soft: rgba(142,158,208,0.15);
+    --self-tag: #7DB87D; --self-tag-soft: rgba(125,184,125,0.15);
+    --code-bg: #0E1116; --code-fg: #E8E5DC;
+    --cat-list: #60A5FA; --cat-common: #34D399; --cat-project: #A78BFA;
+  }
+}
+[data-theme="dark"] {
+  --bg: #15171C; --panel: #1C1F26; --panel-2: #21262D;
+  --border: #30363D; --border-strong: #484F58;
+  --text: #E8E5DC; --text-sub: #B6B3AB; --text-muted: #888784;
+  --accent: #58A6FF; --accent-2: #79C0FF; --accent-soft: #132D4B; --accent-border: #1F6FEB;
+  --gold: #DB6D28; --gold-soft: #311D08; --gold-border: #7A3E0D;
+  --success: #3FB950; --success-soft: #0D2818;
+  --warn: #DB6D28; --danger: #F85149; --danger-soft: #3D1214;
+  --highlight: #E8943A; --highlight-soft: rgba(232,148,58,0.15); --highlight-border: rgba(232,148,58,0.5);
+  --nav-tag: #8E9ED0; --nav-tag-soft: rgba(142,158,208,0.15);
+  --self-tag: #7DB87D; --self-tag-soft: rgba(125,184,125,0.15);
+  --code-bg: #0E1116; --code-fg: #E8E5DC;
+  --cat-list: #60A5FA; --cat-common: #34D399; --cat-project: #A78BFA;
+}
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 0;
+    font-family: var(--font-body);
+    line-height: 1.7; color: var(--text); background: var(--bg);
+  }
+  .topbar {
+    display: grid; grid-template-columns: auto 1fr auto;
+    align-items: center; gap: 12px;
+    padding: 10px 20px;
+    background: var(--panel); border-bottom: 1px solid var(--border);
+    position: sticky; top: 0; z-index: 10;
+  }
+  .brand { display: flex; align-items: center; gap: 8px; color: var(--text); text-decoration: none; font-weight: 700; font-size: 0.95rem; }
+  .brand:hover { color: var(--accent); }
+  .brand-sub { font-size: 11px; font-weight: 400; color: var(--text-muted, #6c757d); }
+  #theme-toggle {
+    background: var(--panel-2); border: 1px solid var(--border); border-radius: var(--radius-sm);
+    color: var(--text-sub); cursor: pointer; padding: 4px 12px; font-family: inherit; font-size: 0.82rem;
+  }
+  #theme-toggle:hover { background: var(--accent-soft); color: var(--accent); border-color: var(--accent-border); }
+  .header-meta { font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 8px; }
+  .doc-main {
+    max-width: 860px; margin: 0 auto; padding: 32px 24px 96px;
+  }
+  .doc-main h1 { font-size: 1.6rem; margin: 32px 0 16px; padding-bottom: 8px; border-bottom: 2px solid var(--border-strong); color: var(--text); }
+  .doc-main h2 { font-size: 1.3rem; margin: 28px 0 12px; padding-bottom: 6px; border-bottom: 1px solid var(--border); color: var(--text); }
+  .doc-main h3 { font-size: 1.1rem; margin: 24px 0 8px; color: var(--text); }
+  .doc-main h4 { font-size: 1rem; margin: 20px 0 6px; color: var(--text-sub); }
+  .doc-main p { margin: 8px 0; }
+  .doc-main ul, .doc-main ol { padding-left: 24px; margin: 8px 0; }
+  .doc-main li { margin: 4px 0; }
+  .doc-main code {
+    background: var(--code-bg); color: var(--code-fg); padding: 1px 6px;
+    border-radius: 4px; font-family: var(--mono); font-size: 0.85em;
+  }
+  .doc-main blockquote {
+    border-left: 3px solid var(--accent-border); margin: 12px 0; padding: 8px 16px;
+    background: var(--panel); color: var(--text-sub); font-size: 0.95rem;
+  }
+  .doc-main table { border-collapse: collapse; width: 100%; margin: 12px 0; font-size: 0.9rem; }
+  .doc-main th { background: var(--panel); font-weight: 700; text-align: left; }
+  .doc-main th, .doc-main td { padding: 8px 12px; border: 1px solid var(--border); }
+  .doc-main hr { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
+  .doc-main pre { background: var(--code-bg); color: var(--code-fg); padding: 12px 16px; border-radius: var(--radius-sm); overflow-x: auto; font-family: var(--mono); font-size: 0.85em; line-height: 1.5; }
+  .footer {
+    padding: 12px 20px; border-top: 1px solid var(--border);
+    font-size: 12px; color: var(--text-muted);
+    display: flex; gap: 20px; justify-content: center;
+  }
+  @media (max-width: 760px) {
+    .topbar { grid-template-columns: 1fr; gap: 8px; padding: 10px 14px; }
+    .doc-main { padding: 14px; }
+  }
+</style>
+</head>
+<body>
+<header class="topbar">
+  <a class="brand" href="../index.html">
+    <span class="brand-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:middle"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zM13 9V3.5L18.5 9H13z"/></svg></span>
+    <span class="brand-title">サンプルプロジェクト</span>
+    <span class="brand-sub">設計ポータル</span>
+  </a>
+  <div class="header-meta">
+    <span class="pm-updated">更新: 2026-07-23</span>
+  </div>
+  <div class="top-actions">
+    <button id="theme-toggle" title="テーマ切替">ライト</button>
+  </div>
+</header>
+
+<main class="doc-main" id="doc-content"></main>
+
+<footer class="footer">共通文書ビューア — build-portal.sh により自動生成</footer>
+
+<script type="text/plain" id="doc-md">
+
+# UI共通設計書（リバース版）
+
+本書は複数のレガシー画面から抽出した、UI の設計方針を上位から俯瞰する記録である。あるべき UI 設計を新たに構想するのではなく、既存コードに実際に存在する共通方針のみを記載する。個々の状態・操作規則の詳細は `./共通設計書.md`、数値・色・フォントは `./DESIGN.md` を正とし、本書はそれらの要約・俯瞰に徹する。
+
+## 本書に書かないもの
+
+| 書かない内容 | 正の置き場 |
+|---|---|
+| 共通状態・操作規則の詳細（loading/empty/error 等） | `./共通設計書.md`（§1〜§3） |
+| 数値・色・フォント（共通） | `./DESIGN.md` |
+| 数値・色・フォント（画面固有差分） | 各画面の `../画面/詳細設計/DESIGN.md` |
+| UI 文言 | `./メッセージ定義書.md` |
+| コンポーネント実装規則（props 命名・分割方針等） | `./規約/コンポーネント設計規約.md` |
+| 画面固有のレイアウト | 各画面詳細設計書 |
+
+---
+
+## §1 デザインシステム（実測）
+
+| 項目 | 内容 | 根拠パス |
+|---|---|---|
+| 使用ライブラリ・デザインシステム | 独自実装のコンポーネントライブラリ（社内製 `@ec-admin/ui`） | `package.json` |
+| バージョン | 2.4.0 | `package.json` |
+
+---
+
+## §2 共通コンポーネント一覧（実測）
+
+| コンポーネント | 用途 | 使用画面数（頻度） | 根拠パス |
+|---|---|---|---|
+| DataTable | 一覧画面の表形式表示（ソート・ページング内蔵） | 22/44 | `src/components/common/DataTable.tsx` |
+| ConfirmDialog | 確定・削除等の破壊的操作前の確認ダイアログ | 18/44 | `src/components/common/ConfirmDialog.tsx` |
+| StatusBadge | 注文・請求・会員等の状態値をバッジ表示 | 30/44 | `src/components/common/StatusBadge.tsx` |
+| Toast | 操作結果の通知トースト表示 | 44/44 | `src/components/common/Toast.tsx` |
+
+---
+
+## §3 レイアウト方針（実測）
+
+| 要素 | 実装済みの原則 | 根拠パス |
+|---|---|---|
+| グリッドシステム | CSS Grid による 12 カラム構成 | `src/styles/grid.css` |
+| ブレークポイント | 768px（タブレット）/ 1280px（デスクトップ）の 2 段階 | `src/styles/breakpoints.ts` |
+
+---
+
+## §4 テーマ・スタイル管理（実測）
+
+| 項目 | 内容 | 根拠パス |
+|---|---|---|
+| CSS 設計方針 | CSS Modules（コンポーネント単位で `*.module.css` を併置） | `src/components/common/DataTable.module.css` |
+| テーマ切替の有無 | ライト/ダークの 2 テーマ切替あり | `src/contexts/ThemeContext.tsx` |
+| レスポンシブ対応方針 | 管理画面のためデスクトップファースト（モバイル最適化は対象外） | `src/styles/breakpoints.ts` |
+
+---
+
+## §5 アクセシビリティ方針（実測）
+
+| 項目 | 内容 | 根拠パス |
+|---|---|---|
+| WAI-ARIA 対応 | モーダル・トーストに `aria-live` / `aria-modal` 属性を付与 | `src/components/common/Modal.tsx` |
+| キーボード操作対応 | Tab キーによるフォーカス移動、Esc キーでモーダルを閉じる（詳細は `./共通設計書.md` §2 参照） | `src/components/common/Modal.tsx` |
+
+---
+
+## §6 画面横断 UI 状態（実測）
+
+| 状態名 | 保持場所（store/context等） | 影響範囲（画面・コンポーネント） | 初期値 | 根拠パス |
+|---|---|---|---|---|
+| テーマ設定 | localStorage（キー: `theme-preference`） | 全 44 画面の共通レイアウト | light | `src/contexts/ThemeContext.tsx` |
+| 通知トースト | Zustand ストア（`toastStore`） | 全画面共通ヘッダー配下の Toast コンポーネント | 空配列 | `src/stores/toastStore.ts` |
+| モーダル開閉状態 | `ModalContext`（React Context） | 一覧・編集系の約 20 画面 | closed | `src/contexts/ModalContext.tsx` |
+| サイドバー開閉 | localStorage（キー: `sidebar-collapsed`） | 全 44 画面の共通レイアウト | false（展開） | `src/components/layout/SidebarNav.tsx` |
+
+---
+
+## traced の条件
+
+- 全節の実測値が既存コードまたは `./共通設計書.md`・`./DESIGN.md` からの要約で埋まっていること
+- コード内に実在しない項目は「実在しない（理由: …）」で埋めること（空欄・省略は禁止）
+</script>
+
+<script>
+(function () {
+  var src = document.getElementById('doc-md').textContent;
+
+  // frontmatter 除去
+  src = src.replace(/^\s*---[\s\S]*?---\s*/, '');
+
+  var lines = src.split('\n');
+  var html = [];
+  var inTable = false;
+  var inList = false;
+  var listType = '';
+  var inBlockquote = false;
+
+  function escHtml(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+  function inlineFormat(s) {
+    s = escHtml(s);
+    s = s.replace(/`([^`]+)`/g, '<code>$1</code>');
+    s = s.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+    s = s.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+    return s;
+  }
+
+  function closeList() {
+    if (inList) { html.push(listType === 'ul' ? '</ul>' : '</ol>'); inList = false; }
+  }
+  function closeBlockquote() {
+    if (inBlockquote) { html.push('</blockquote>'); inBlockquote = false; }
+  }
+  function closeTable() {
+    if (inTable) { html.push('</tbody></table>'); inTable = false; }
+  }
+
+  for (var i = 0; i < lines.length; i++) {
+    var line = lines[i];
+    var trimmed = line.trim();
+
+    // 空行
+    if (!trimmed) { closeList(); closeBlockquote(); continue; }
+
+    // 見出し
+    var hm = trimmed.match(/^(#{1,6})\s+(.*)$/);
+    if (hm) { closeList(); closeBlockquote(); closeTable(); var lv = hm[1].length; html.push('<h' + lv + '>' + inlineFormat(hm[2]) + '</h' + lv + '>'); continue; }
+
+    // 水平線
+    if (/^---+$/.test(trimmed) || /^\*\*\*+$/.test(trimmed)) { closeList(); closeBlockquote(); closeTable(); html.push('<hr>'); continue; }
+
+    // テーブル
+    if (trimmed.indexOf('|') !== -1 && trimmed.charAt(0) === '|') {
+      closeList(); closeBlockquote();
+      var cells = trimmed.split('|').filter(function(c,j,a){ return j > 0 && j < a.length - 1; });
+      if (/^[\s|:-]+$/.test(trimmed)) continue; // separator 行
+      if (!inTable) {
+        html.push('<table><thead><tr>');
+        cells.forEach(function(c) { html.push('<th>' + inlineFormat(c.trim()) + '</th>'); });
+        html.push('</tr></thead><tbody>');
+        inTable = true;
+      } else {
+        html.push('<tr>');
+        cells.forEach(function(c) { html.push('<td>' + inlineFormat(c.trim()) + '</td>'); });
+        html.push('</tr>');
+      }
+      continue;
+    } else { closeTable(); }
+
+    // 引用
+    if (trimmed.charAt(0) === '>') {
+      closeList(); closeTable();
+      if (!inBlockquote) { html.push('<blockquote>'); inBlockquote = true; }
+      html.push('<p>' + inlineFormat(trimmed.substring(1).trim()) + '</p>');
+      continue;
+    } else { closeBlockquote(); }
+
+    // 番号付きリスト
+    var olm = trimmed.match(/^(\d+)\.\s+(.*)$/);
+    if (olm) {
+      closeTable(); closeBlockquote();
+      if (!inList || listType !== 'ol') { closeList(); html.push('<ol>'); inList = true; listType = 'ol'; }
+      html.push('<li>' + inlineFormat(olm[2]) + '</li>');
+      continue;
+    }
+
+    // 箇条書き
+    if (trimmed.charAt(0) === '-' && trimmed.charAt(1) === ' ') {
+      closeTable(); closeBlockquote();
+      if (!inList || listType !== 'ul') { closeList(); html.push('<ul>'); inList = true; listType = 'ul'; }
+      html.push('<li>' + inlineFormat(trimmed.substring(2)) + '</li>');
+      continue;
+    }
+
+    // 通常段落
+    closeList(); closeTable(); closeBlockquote();
+    html.push('<p>' + inlineFormat(trimmed) + '</p>');
+  }
+  closeList(); closeTable(); closeBlockquote();
+
+  document.getElementById('doc-content').innerHTML = html.join('\n');
+})();
+</script>
+
+<script>
+(function () {
+  var themeBtn = document.getElementById('theme-toggle');
+  if (themeBtn) {
+    themeBtn.addEventListener('click', function () {
+      var r = document.documentElement;
+      var next = r.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+      r.setAttribute('data-theme', next);
+      themeBtn.textContent = next === 'dark' ? 'ダーク' : 'ライト';
+      try { localStorage.setItem('rd-portal-theme', next); } catch (e) {}
+    });
+  }
+  try {
+    var saved = localStorage.getItem('rd-portal-theme');
+    if (saved) {
+      document.documentElement.setAttribute('data-theme', saved);
+      var tb = document.getElementById('theme-toggle');
+      if (tb) tb.textContent = saved === 'dark' ? 'ダーク' : 'ライト';
+    }
+  } catch (e) {}
+})();
+</script>
+</body>
+</html>

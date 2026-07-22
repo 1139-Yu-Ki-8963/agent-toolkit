@@ -1,0 +1,29 @@
+{
+  "screenId": "screen-order-list",
+  "screenLabel": "注文一覧",
+  "generatedAt": "2026-07-23T00:00:00Z",
+  "operations": [
+    {
+      "key": "search-exec",
+      "label": "検索実行",
+      "handler": "handler-onSearchSubmit-検索",
+      "steps": [
+        {"seq": 1, "from": "screen", "to": "api", "label": "GET /api/orders?keyword=&status=confirmed&dateFrom=2026-07-01&dateTo=2026-07-23", "sourceRef": "pages/OrderListPage.tsx:64"},
+        {"seq": 2, "from": "api", "to": "table", "label": "SELECT orders WHERE status='confirmed' AND ordered_at BETWEEN ...", "sourceRef": "server/api/orders.ts:31"},
+        {"seq": 3, "from": "table", "to": "api", "label": "注文レコード一覧を返却", "sourceRef": "server/api/orders.ts:38"},
+        {"seq": 4, "from": "api", "to": "screen", "label": "200 OK { items, totalCount } → 一覧再描画", "kind": "return", "sourceRef": "pages/OrderListPage.tsx:70"}
+      ]
+    },
+    {
+      "key": "csv-export",
+      "label": "CSV出力",
+      "handler": "handler-onExportClick-CSV出力",
+      "steps": [
+        {"seq": 1, "from": "screen", "to": "api", "label": "GET /api/orders/export?keyword=&status=confirmed", "sourceRef": "components/OrderPagination.tsx:22"},
+        {"seq": 2, "from": "api", "to": "table", "label": "SELECT orders WHERE status='confirmed' (出力対象抽出)", "sourceRef": "server/api/orders-export.ts:18"},
+        {"seq": 3, "from": "table", "to": "api", "label": "抽出結果を返却", "sourceRef": "server/api/orders-export.ts:24"},
+        {"seq": 4, "from": "api", "to": "screen", "label": "200 OK { downloadUrl, expiresAt } → ダウンロードリンク表示", "kind": "return", "sourceRef": "components/OrderPagination.tsx:29"}
+      ]
+    }
+  ]
+}

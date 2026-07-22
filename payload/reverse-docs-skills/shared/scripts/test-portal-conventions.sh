@@ -24,6 +24,9 @@ check_file() {
     return
   fi
 
+  local is_doc_viewer=0
+  grep -q 'class="doc-main"' "$f" 2>/dev/null && is_doc_viewer=1
+
   local old_l; old_l=$(grep -cE "$OLD_COLORS_LIGHT" "$f" 2>/dev/null || true)
   [ "$old_l" -eq 0 ] && pass "色トークン-旧値禁止（ライト）" || fail "色トークン-旧値禁止（ライト）: ${old_l}件"
 
@@ -38,25 +41,33 @@ check_file() {
     fail "テーマ-ダーク定義"
   fi
 
-  grep -q 'height: 100vh' "$f" 2>/dev/null && pass "全画面-高さ固定" || fail "全画面-高さ固定"
-  grep -q 'min-height: 100vh' "$f" 2>/dev/null && fail "全画面-min-height禁止（残存）" || pass "全画面-min-height禁止"
-
-  if grep -qE 'overflow:\s*hidden|overflow: hidden' "$f" 2>/dev/null; then
-    pass "全画面-overflow制御"
+  if [ "$is_doc_viewer" -eq 1 ]; then
+    skip "全画面-高さ固定（文書ビューア型は適用除外）"
+    skip "全画面-min-height禁止（文書ビューア型は適用除外）"
+    skip "全画面-overflow制御（文書ビューア型は適用除外）"
+    skip "全画面-スクロール領域（文書ビューア型は適用除外）"
+    skip "sticky-thead（文書ビューア型は適用除外）"
   else
-    fail "全画面-overflow制御"
-  fi
+    grep -q 'height: 100vh' "$f" 2>/dev/null && pass "全画面-高さ固定" || fail "全画面-高さ固定"
+    grep -q 'min-height: 100vh' "$f" 2>/dev/null && fail "全画面-min-height禁止（残存）" || pass "全画面-min-height禁止"
 
-  if grep -qE 'overflow-y:\s*auto|overflow-y: auto' "$f" 2>/dev/null; then
-    pass "全画面-スクロール領域"
-  else
-    fail "全画面-スクロール領域"
-  fi
+    if grep -qE 'overflow:\s*hidden|overflow: hidden' "$f" 2>/dev/null; then
+      pass "全画面-overflow制御"
+    else
+      fail "全画面-overflow制御"
+    fi
 
-  if grep -q '<table' "$f" 2>/dev/null; then
-    grep -qE 'position:\s*sticky' "$f" 2>/dev/null && pass "sticky-thead" || fail "sticky-thead"
-  else
-    skip "sticky-thead（テーブルなし）"
+    if grep -qE 'overflow-y:\s*auto|overflow-y: auto' "$f" 2>/dev/null; then
+      pass "全画面-スクロール領域"
+    else
+      fail "全画面-スクロール領域"
+    fi
+
+    if grep -q '<table' "$f" 2>/dev/null; then
+      grep -qE 'position:\s*sticky' "$f" 2>/dev/null && pass "sticky-thead" || fail "sticky-thead"
+    else
+      skip "sticky-thead（テーブルなし）"
+    fi
   fi
 
   if grep -qE 'id="unit-manifest"|id="screen-manifest"' "$f" 2>/dev/null; then

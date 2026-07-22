@@ -1,0 +1,30 @@
+{
+  "screenId": "screen-member-edit",
+  "screenLabel": "会員編集",
+  "generatedAt": "2026-07-23T00:00:00Z",
+  "operations": [
+    {
+      "key": "save-click",
+      "label": "保存ボタン押下",
+      "handler": "handler-onSave-保存",
+      "steps": [
+        {"seq": 1, "from": "screen", "to": "api", "label": "PUT /api/members/:id", "sourceRef": "pages/members/MemberEditPage.tsx:88"},
+        {"seq": 2, "from": "api", "to": "table", "label": "UPDATE members SET name, email, phone, address, member_type, member_status", "sourceRef": "server/api/members.ts:44"},
+        {"seq": 3, "from": "table", "to": "api", "label": "更新後レコードを返却"},
+        {"seq": 4, "from": "api", "to": "screen", "label": "200 OK → 会員詳細へ遷移し完了トースト表示", "kind": "return"}
+      ]
+    },
+    {
+      "key": "delete-click",
+      "label": "削除ボタン押下",
+      "handler": "handler-onDeleteConfirm-削除",
+      "steps": [
+        {"seq": 1, "from": "screen", "to": "screen", "label": "削除確認ダイアログでの承認"},
+        {"seq": 2, "from": "screen", "to": "api", "label": "DELETE /api/members/:id", "sourceRef": "pages/members/MemberEditPage.tsx:112"},
+        {"seq": 3, "from": "api", "to": "table", "label": "出荷待ち注文の残存件数を確認", "sourceRef": "server/api/members.ts:61"},
+        {"seq": 4, "from": "table", "to": "api", "label": "残存0件を確認しDELETE FROM members実行"},
+        {"seq": 5, "from": "api", "to": "screen", "label": "200 OK → 会員一覧へ遷移し削除完了トースト表示", "kind": "return"}
+      ]
+    }
+  ]
+}

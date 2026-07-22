@@ -12,8 +12,8 @@
 
   プレースホルダ一覧:
     サンプルプロジェクト     — プロジェクト名（basename target_repo_path）
-    2026-07-21   — 更新日（date +%Y-%m-%d）
-     · コミット番号: 89178e6     — 対象リポジトリの短縮コミット SHA（git 管理外は空文字。区切り文字 " · " 込み）
+    2026-07-23   — 更新日（date +%Y-%m-%d）
+         — 対象リポジトリの短縮コミット SHA（git 管理外は空文字。区切り文字 " · " 込み）
     {
   "scale": {
     "total": 15000,
@@ -24,28 +24,28 @@
       {
         "kind": "screen",
         "label": "画面",
-        "count": 12,
+        "count": 44,
         "unit": "画面",
         "href": "./一覧/画面一覧/画面一覧.html"
       },
       {
         "kind": "api",
         "label": "API",
-        "count": 28,
+        "count": 141,
         "unit": "エンドポイント",
         "href": "./一覧/API一覧/API一覧.html"
       },
       {
         "kind": "batch",
         "label": "バッチ",
-        "count": 3,
+        "count": 10,
         "unit": "ジョブ",
         "href": "./一覧/バッチ一覧/バッチ一覧.html"
       },
       {
         "kind": "table",
         "label": "テーブル",
-        "count": 15,
+        "count": 16,
         "unit": "テーブル",
         "href": "./一覧/テーブル一覧/テーブル一覧.html"
       },
@@ -66,7 +66,7 @@
       {
         "kind": "feature",
         "label": "機能",
-        "count": 18,
+        "count": 16,
         "unit": "機能",
         "href": "./一覧/機能一覧/機能一覧.html"
       }
@@ -81,8 +81,8 @@
   },
   "freshness": {
     "measured_at": "2026-07-21T00:00:00Z",
-    "behind": 0,
-    "note": "最新コミットと一致"
+    "behind": null,
+    "note": ""
   },
   "previous": {
     "total": 14200,
@@ -90,7 +90,7 @@
     "measured_at": "2026-07-14T00:00:00Z"
   }
 }     — 解析概要 JSON オブジェクト（scale/tests/freshness/previous の構造化データ）
-    [{"id":"project","title":"プロジェクト基盤情報","icon":"domain","sub":"プロジェクトの前提を横断的にまとめた資料","tools":[{"title":"技術スタック","icon":"stacks","href":"./技術スタック.html","desc":"言語・フレームワーク・主要依存パッケージのバージョンと採用箇所の整理。","count":"詳細を見る"},{"title":"環境構築手順","icon":"terminal","href":"./環境構築手順.html","desc":"環境構築・必須ツール・ポート割当の整理。","count":"詳細を見る"},{"title":"用語辞書","icon":"dictionary","href":"./用語辞書.html","desc":"業務用語・技術用語・略語の定義とコード上の対応識別子の対訳。","count":"詳細を見る"},{"title":"AI設定資産","icon":"storage","href":"./AI設定資産/AI設定資産.html","desc":"rules・skills・サブエージェント・hooks の俯瞰。","count":"23 件 →"}]},{"id":"common","title":"プロジェクト規約","icon":"library_books","sub":"プロジェクト全体に適用される設計方針・規約","tools":[{"title":"コーディング規約","icon":"rule","href":"./プロジェクト共通/コーディング規約.html","desc":"","count":"詳細を見る"},{"title":"共通設計書","icon":"architecture","href":"./プロジェクト共通/共通設計書.html","desc":"","count":"詳細を見る"},{"title":"命名規約","icon":"rule","href":"./プロジェクト共通/命名規約.html","desc":"","count":"詳細を見る"}]},{"id":"list","title":"一覧・設計図","icon":"list_alt","sub":"画面・API・テーブル等の種別一覧と、画面遷移図・ER図","tools":[{"title":"画面一覧","group":"画面","icon":"monitor","href":"./一覧/画面一覧/画面一覧.html","desc":"全画面のルートパス・コンポーネント構成・複雑度プロファイルを一覧化。","count":"12 画面 →"},{"title":"画面遷移図","group":"画面","icon":"account_tree","href":"./画面遷移図.html","desc":"画面一覧とコード走査から生成する画面遷移マップ。","count":"詳細を見る"},{"title":"API一覧","group":"API","icon":"api","href":"./一覧/API一覧/API一覧.html","desc":"全エンドポイントのパス・HTTPメソッド・リクエスト/レスポンス型・認証要否を網羅。","count":"28 エンドポイント →"},{"title":"バッチ一覧","group":"バッチ","icon":"schedule","href":"./一覧/バッチ一覧/バッチ一覧.html","desc":"定期実行ジョブのスケジュール・入出力・依存関係・実行頻度を整理。","count":"3 ジョブ →"},{"title":"テーブル一覧","group":"データ","icon":"table_chart","href":"./一覧/テーブル一覧/テーブル一覧.html","desc":"全テーブルのカラム定義・型・制約・外部キーリレーションを一覧化。","count":"15 テーブル →"},{"title":"ER図","group":"データ","icon":"schema","href":"./ER図.html","desc":"テーブル一覧と外部キー定義から生成するエンティティ関連図。","count":"詳細を見る"},{"title":"帳票一覧","group":"帳票","icon":"print","href":"./一覧/帳票一覧/帳票一覧.html","desc":"帳票の出力形式・出力契機の一覧。","count":"8 帳票 →"},{"title":"外部連携一覧","group":"外部連携","icon":"link","href":"./一覧/外部連携一覧/外部連携一覧.html","desc":"連携先の方向・プロトコル・認証方式の一覧。","count":"6 連携先 →"},{"title":"機能一覧","group":"機能","icon":"category","href":"./一覧/機能一覧/機能一覧.html","desc":"画面一覧を入力に導出した機能単位の一覧（派生一覧）。","count":"18 機能 →"}]},{"id":"cross","title":"交差ビュー","icon":"schema","sub":"行×列で2つの対象の関係を示す。一覧では答えられない交差の質問に答える","tools":[{"title":"権限×画面マトリクス","icon":"lock","href":"./交差ビュー/権限画面マトリクス/権限画面マトリクス.html","desc":"ロール別の閲覧可否。権限漏れの監査に使う。","count":"17 画面 →"},{"title":"権限×機能マトリクス","icon":"category","href":"./交差ビュー/権限機能マトリクス/権限機能マトリクス.html","desc":"機能ごとの CRUD 操作権限。","count":"16 機能 →"},{"title":"CRUD図","icon":"table_chart","href":"./交差ビュー/CRUD図/CRUD図.html","desc":"機能×テーブルの作成・読取・更新・削除対応。影響範囲分析に使う。","count":"16 機能 →"},{"title":"追跡可能性","icon":"sync","href":"./交差ビュー/追跡可能性/追跡可能性.html","desc":"画面→API→テーブルの連鎖。変更の波及先を両方向に追跡。","count":"18 画面 →"}]}]  — カテゴリ・ツール JSON 配列
+    [{"id":"project","title":"プロジェクト基盤情報","icon":"domain","sub":"プロジェクトの前提を横断的にまとめた資料","tools":[{"title":"技術スタック","icon":"stacks","href":"./技術スタック.html","desc":"言語・フレームワーク・主要依存パッケージのバージョンと採用箇所の整理。","count":"詳細を見る"},{"title":"環境構築手順","icon":"terminal","href":"./環境構築手順.html","desc":"環境構築・必須ツール・ポート割当の整理。","count":"詳細を見る"},{"title":"用語辞書","icon":"dictionary","href":"./用語辞書.html","desc":"業務用語・技術用語・略語の定義とコード上の対応識別子の対訳。","count":"詳細を見る"},{"title":"状態遷移図","icon":"sync","href":"./状態遷移図.html","desc":"データ設計の状態遷移表から生成するエンティティ状態遷移図。","count":"詳細を見る"}]},{"id":"common","title":"プロジェクト規約","icon":"library_books","sub":"プロジェクト全体に適用される設計方針・規約","tools":[{"title":"コーディング規約","icon":"rule","href":"./プロジェクト共通/コーディング規約.html","desc":"","count":"詳細を見る"},{"title":"データ設計書（リバース版）","icon":"architecture","href":"./プロジェクト共通/データ設計.html","desc":"","count":"詳細を見る"},{"title":"共通設計書","icon":"architecture","href":"./プロジェクト共通/共通設計書.html","desc":"","count":"詳細を見る"},{"title":"命名規約","icon":"rule","href":"./プロジェクト共通/命名規約.html","desc":"","count":"詳細を見る"},{"title":"基盤設計書（リバース版）","icon":"architecture","href":"./プロジェクト共通/基盤設計.html","desc":"","count":"詳細を見る"},{"title":"UI共通設計書（リバース版）","icon":"architecture","href":"./プロジェクト共通/UI共通設計.html","desc":"","count":"詳細を見る"}]},{"id":"list","title":"一覧・設計図","icon":"list_alt","sub":"画面・API・テーブル等の種別一覧と、画面遷移図・ER図","tools":[{"title":"画面一覧","group":"画面","icon":"monitor","href":"./一覧/画面一覧/画面一覧.html","desc":"全画面のルートパス・コンポーネント構成・複雑度プロファイルを一覧化。","count":"44 画面 →"},{"title":"画面遷移図","group":"画面","icon":"account_tree","href":"./画面遷移図.html","desc":"画面一覧とコード走査から生成する画面遷移マップ。ブラウザバック・条件付き遷移に対応。","count":"詳細を見る"},{"title":"API一覧","group":"API","icon":"api","href":"./一覧/API一覧/API一覧.html","desc":"全エンドポイントのパス・HTTPメソッド・リクエスト/レスポンス型・認証要否を網羅。","count":"141 エンドポイント →"},{"title":"バッチ一覧","group":"バッチ","icon":"schedule","href":"./一覧/バッチ一覧/バッチ一覧.html","desc":"定期実行ジョブのスケジュール・入出力・依存関係・実行頻度を整理。","count":"10 ジョブ →"},{"title":"テーブル一覧","group":"データ","icon":"table_chart","href":"./一覧/テーブル一覧/テーブル一覧.html","desc":"全テーブルのカラム定義・型・制約・外部キーリレーションを一覧化。","count":"16 テーブル →"},{"title":"ER図","group":"データ","icon":"schema","href":"./ER図.html","desc":"テーブル一覧と外部キー定義から生成するエンティティ関連図。","count":"詳細を見る"},{"title":"帳票一覧","group":"帳票","icon":"print","href":"./一覧/帳票一覧/帳票一覧.html","desc":"出力帳票のフォーマット・生成条件・出力先・利用者を整理。","count":"8 帳票 →"},{"title":"外部連携一覧","group":"外部連携","icon":"link","href":"./一覧/外部連携一覧/外部連携一覧.html","desc":"外部サービスとの連携インターフェース・プロトコル・認証方式を整理。","count":"6 連携先 →"},{"title":"機能一覧","group":"機能","icon":"category","href":"./一覧/機能一覧/機能一覧.html","desc":"画面一覧を入力に導出した機能単位の一覧（派生一覧）。","count":"16 機能 →"}]},{"id":"cross","title":"交差ビュー","icon":"grid_view","sub":"画面・機能・テーブル・権限の関係を行×列で示すマトリクス","tools":[{"title":"権限画面マトリクス","icon":"lock","href":"./交差ビュー/権限画面マトリクス/権限画面マトリクス.html","desc":"ロール×画面の行×列で閲覧可否の関係を示すマトリクス。","count":"詳細を見る"},{"title":"権限機能マトリクス","icon":"key","href":"./交差ビュー/権限機能マトリクス/権限機能マトリクス.html","desc":"ロール×機能の行×列で操作可否（CRUD）の関係を示すマトリクス。","count":"詳細を見る"},{"title":"CRUD図","icon":"grid_on","href":"./交差ビュー/CRUD図/CRUD図.html","desc":"機能×テーブルの行×列でCRUD操作の関係を示すマトリクス。","count":"詳細を見る"},{"title":"追跡可能性","icon":"route","href":"./交差ビュー/追跡可能性/追跡可能性.html","desc":"画面-API-テーブルの対応連鎖を行×列で追跡する対応表。","count":"詳細を見る"}]},{"id":"ai","title":"AI設定資産","icon":"smart_toy","sub":"rules・skills・サブエージェント・hooks の設定を俯瞰する資料","tools":[{"title":"AI設定資産","icon":"smart_toy","href":"./AI設定資産/AI設定資産.html","desc":"rules・skills・サブエージェント・hooks の設定資産の俯瞰。","count":"詳細を見る"}]}]  — カテゴリ・ツール JSON 配列
 -->
 <style>
 :root,
@@ -120,6 +120,13 @@
   --warn: #BC4C00;
   --danger: #CF222E;
   --danger-soft: #FFEBE9;
+  --highlight: #D97B1A;
+  --highlight-soft: rgba(217,123,26,0.12);
+  --highlight-border: rgba(217,123,26,0.5);
+  --nav-tag: #7B8BBF;
+  --nav-tag-soft: #ECEEF6;
+  --self-tag: #6B9B6B;
+  --self-tag-soft: #E8F0E8;
   --code-bg: #1B1F26;
   --code-fg: #E8E5DC;
   --cat-list: #2563eb;
@@ -141,6 +148,9 @@
     --gold: #DB6D28; --gold-soft: #311D08; --gold-border: #7A3E0D;
     --success: #3FB950; --success-soft: #0D2818;
     --warn: #DB6D28; --danger: #F85149; --danger-soft: #3D1214;
+    --highlight: #E8943A; --highlight-soft: rgba(232,148,58,0.15); --highlight-border: rgba(232,148,58,0.5);
+    --nav-tag: #8E9ED0; --nav-tag-soft: rgba(142,158,208,0.15);
+    --self-tag: #7DB87D; --self-tag-soft: rgba(125,184,125,0.15);
     --code-bg: #0E1116; --code-fg: #E8E5DC;
     --cat-list: #60A5FA; --cat-common: #34D399; --cat-project: #A78BFA;
   }
@@ -153,6 +163,9 @@
   --gold: #DB6D28; --gold-soft: #311D08; --gold-border: #7A3E0D;
   --success: #3FB950; --success-soft: #0D2818;
   --warn: #DB6D28; --danger: #F85149; --danger-soft: #3D1214;
+  --highlight: #E8943A; --highlight-soft: rgba(232,148,58,0.15); --highlight-border: rgba(232,148,58,0.5);
+  --nav-tag: #8E9ED0; --nav-tag-soft: rgba(142,158,208,0.15);
+  --self-tag: #7DB87D; --self-tag-soft: rgba(125,184,125,0.15);
   --code-bg: #0E1116; --code-fg: #E8E5DC;
   --cat-list: #60A5FA; --cat-common: #34D399; --cat-project: #A78BFA;
 }
@@ -353,7 +366,7 @@ table.data-table code {
       <span class="brand-sub">設計ポータル</span>
     </a>
     <div class="header-meta">
-      <span class="pm-updated">更新: 2026-07-21 · コミット番号: 89178e6</span>
+      <span class="pm-updated">更新: 2026-07-23</span>
     </div>
     <div class="top-actions">
       <button id="theme-toggle" title="テーマ切替">ライト</button>
@@ -386,28 +399,28 @@ table.data-table code {
       {
         "kind": "screen",
         "label": "画面",
-        "count": 12,
+        "count": 44,
         "unit": "画面",
         "href": "./一覧/画面一覧/画面一覧.html"
       },
       {
         "kind": "api",
         "label": "API",
-        "count": 28,
+        "count": 141,
         "unit": "エンドポイント",
         "href": "./一覧/API一覧/API一覧.html"
       },
       {
         "kind": "batch",
         "label": "バッチ",
-        "count": 3,
+        "count": 10,
         "unit": "ジョブ",
         "href": "./一覧/バッチ一覧/バッチ一覧.html"
       },
       {
         "kind": "table",
         "label": "テーブル",
-        "count": 15,
+        "count": 16,
         "unit": "テーブル",
         "href": "./一覧/テーブル一覧/テーブル一覧.html"
       },
@@ -428,7 +441,7 @@ table.data-table code {
       {
         "kind": "feature",
         "label": "機能",
-        "count": 18,
+        "count": 16,
         "unit": "機能",
         "href": "./一覧/機能一覧/機能一覧.html"
       }
@@ -443,8 +456,8 @@ table.data-table code {
   },
   "freshness": {
     "measured_at": "2026-07-21T00:00:00Z",
-    "behind": 0,
-    "note": "最新コミットと一致"
+    "behind": null,
+    "note": ""
   },
   "previous": {
     "total": 14200,
@@ -452,7 +465,7 @@ table.data-table code {
     "measured_at": "2026-07-14T00:00:00Z"
   }
 }</script>
-<script type="application/json" id="portal-categories">[{"id":"project","title":"プロジェクト基盤情報","icon":"domain","sub":"プロジェクトの前提を横断的にまとめた資料","tools":[{"title":"技術スタック","icon":"stacks","href":"./技術スタック.html","desc":"言語・フレームワーク・主要依存パッケージのバージョンと採用箇所の整理。","count":"詳細を見る"},{"title":"環境構築手順","icon":"terminal","href":"./環境構築手順.html","desc":"環境構築・必須ツール・ポート割当の整理。","count":"詳細を見る"},{"title":"用語辞書","icon":"dictionary","href":"./用語辞書.html","desc":"業務用語・技術用語・略語の定義とコード上の対応識別子の対訳。","count":"詳細を見る"},{"title":"AI設定資産","icon":"storage","href":"./AI設定資産/AI設定資産.html","desc":"rules・skills・サブエージェント・hooks の俯瞰。","count":"23 件 →"}]},{"id":"common","title":"プロジェクト規約","icon":"library_books","sub":"プロジェクト全体に適用される設計方針・規約","tools":[{"title":"コーディング規約","icon":"rule","href":"./プロジェクト共通/コーディング規約.html","desc":"","count":"詳細を見る"},{"title":"共通設計書","icon":"architecture","href":"./プロジェクト共通/共通設計書.html","desc":"","count":"詳細を見る"},{"title":"命名規約","icon":"rule","href":"./プロジェクト共通/命名規約.html","desc":"","count":"詳細を見る"}]},{"id":"list","title":"一覧・設計図","icon":"list_alt","sub":"画面・API・テーブル等の種別一覧と、画面遷移図・ER図","tools":[{"title":"画面一覧","group":"画面","icon":"monitor","href":"./一覧/画面一覧/画面一覧.html","desc":"全画面のルートパス・コンポーネント構成・複雑度プロファイルを一覧化。","count":"12 画面 →"},{"title":"画面遷移図","group":"画面","icon":"account_tree","href":"./画面遷移図.html","desc":"画面一覧とコード走査から生成する画面遷移マップ。","count":"詳細を見る"},{"title":"API一覧","group":"API","icon":"api","href":"./一覧/API一覧/API一覧.html","desc":"全エンドポイントのパス・HTTPメソッド・リクエスト/レスポンス型・認証要否を網羅。","count":"28 エンドポイント →"},{"title":"バッチ一覧","group":"バッチ","icon":"schedule","href":"./一覧/バッチ一覧/バッチ一覧.html","desc":"定期実行ジョブのスケジュール・入出力・依存関係・実行頻度を整理。","count":"3 ジョブ →"},{"title":"テーブル一覧","group":"データ","icon":"table_chart","href":"./一覧/テーブル一覧/テーブル一覧.html","desc":"全テーブルのカラム定義・型・制約・外部キーリレーションを一覧化。","count":"15 テーブル →"},{"title":"ER図","group":"データ","icon":"schema","href":"./ER図.html","desc":"テーブル一覧と外部キー定義から生成するエンティティ関連図。","count":"詳細を見る"},{"title":"帳票一覧","group":"帳票","icon":"print","href":"./一覧/帳票一覧/帳票一覧.html","desc":"帳票の出力形式・出力契機の一覧。","count":"8 帳票 →"},{"title":"外部連携一覧","group":"外部連携","icon":"link","href":"./一覧/外部連携一覧/外部連携一覧.html","desc":"連携先の方向・プロトコル・認証方式の一覧。","count":"6 連携先 →"},{"title":"機能一覧","group":"機能","icon":"category","href":"./一覧/機能一覧/機能一覧.html","desc":"画面一覧を入力に導出した機能単位の一覧（派生一覧）。","count":"18 機能 →"}]},{"id":"cross","title":"交差ビュー","icon":"schema","sub":"行×列で2つの対象の関係を示す。一覧では答えられない交差の質問に答える","tools":[{"title":"権限×画面マトリクス","icon":"lock","href":"./交差ビュー/権限画面マトリクス/権限画面マトリクス.html","desc":"ロール別の閲覧可否。権限漏れの監査に使う。","count":"17 画面 →"},{"title":"権限×機能マトリクス","icon":"category","href":"./交差ビュー/権限機能マトリクス/権限機能マトリクス.html","desc":"機能ごとの CRUD 操作権限。","count":"16 機能 →"},{"title":"CRUD図","icon":"table_chart","href":"./交差ビュー/CRUD図/CRUD図.html","desc":"機能×テーブルの作成・読取・更新・削除対応。影響範囲分析に使う。","count":"16 機能 →"},{"title":"追跡可能性","icon":"sync","href":"./交差ビュー/追跡可能性/追跡可能性.html","desc":"画面→API→テーブルの連鎖。変更の波及先を両方向に追跡。","count":"18 画面 →"}]}]</script>
+<script type="application/json" id="portal-categories">[{"id":"project","title":"プロジェクト基盤情報","icon":"domain","sub":"プロジェクトの前提を横断的にまとめた資料","tools":[{"title":"技術スタック","icon":"stacks","href":"./技術スタック.html","desc":"言語・フレームワーク・主要依存パッケージのバージョンと採用箇所の整理。","count":"詳細を見る"},{"title":"環境構築手順","icon":"terminal","href":"./環境構築手順.html","desc":"環境構築・必須ツール・ポート割当の整理。","count":"詳細を見る"},{"title":"用語辞書","icon":"dictionary","href":"./用語辞書.html","desc":"業務用語・技術用語・略語の定義とコード上の対応識別子の対訳。","count":"詳細を見る"},{"title":"状態遷移図","icon":"sync","href":"./状態遷移図.html","desc":"データ設計の状態遷移表から生成するエンティティ状態遷移図。","count":"詳細を見る"}]},{"id":"common","title":"プロジェクト規約","icon":"library_books","sub":"プロジェクト全体に適用される設計方針・規約","tools":[{"title":"コーディング規約","icon":"rule","href":"./プロジェクト共通/コーディング規約.html","desc":"","count":"詳細を見る"},{"title":"データ設計書（リバース版）","icon":"architecture","href":"./プロジェクト共通/データ設計.html","desc":"","count":"詳細を見る"},{"title":"共通設計書","icon":"architecture","href":"./プロジェクト共通/共通設計書.html","desc":"","count":"詳細を見る"},{"title":"命名規約","icon":"rule","href":"./プロジェクト共通/命名規約.html","desc":"","count":"詳細を見る"},{"title":"基盤設計書（リバース版）","icon":"architecture","href":"./プロジェクト共通/基盤設計.html","desc":"","count":"詳細を見る"},{"title":"UI共通設計書（リバース版）","icon":"architecture","href":"./プロジェクト共通/UI共通設計.html","desc":"","count":"詳細を見る"}]},{"id":"list","title":"一覧・設計図","icon":"list_alt","sub":"画面・API・テーブル等の種別一覧と、画面遷移図・ER図","tools":[{"title":"画面一覧","group":"画面","icon":"monitor","href":"./一覧/画面一覧/画面一覧.html","desc":"全画面のルートパス・コンポーネント構成・複雑度プロファイルを一覧化。","count":"44 画面 →"},{"title":"画面遷移図","group":"画面","icon":"account_tree","href":"./画面遷移図.html","desc":"画面一覧とコード走査から生成する画面遷移マップ。ブラウザバック・条件付き遷移に対応。","count":"詳細を見る"},{"title":"API一覧","group":"API","icon":"api","href":"./一覧/API一覧/API一覧.html","desc":"全エンドポイントのパス・HTTPメソッド・リクエスト/レスポンス型・認証要否を網羅。","count":"141 エンドポイント →"},{"title":"バッチ一覧","group":"バッチ","icon":"schedule","href":"./一覧/バッチ一覧/バッチ一覧.html","desc":"定期実行ジョブのスケジュール・入出力・依存関係・実行頻度を整理。","count":"10 ジョブ →"},{"title":"テーブル一覧","group":"データ","icon":"table_chart","href":"./一覧/テーブル一覧/テーブル一覧.html","desc":"全テーブルのカラム定義・型・制約・外部キーリレーションを一覧化。","count":"16 テーブル →"},{"title":"ER図","group":"データ","icon":"schema","href":"./ER図.html","desc":"テーブル一覧と外部キー定義から生成するエンティティ関連図。","count":"詳細を見る"},{"title":"帳票一覧","group":"帳票","icon":"print","href":"./一覧/帳票一覧/帳票一覧.html","desc":"出力帳票のフォーマット・生成条件・出力先・利用者を整理。","count":"8 帳票 →"},{"title":"外部連携一覧","group":"外部連携","icon":"link","href":"./一覧/外部連携一覧/外部連携一覧.html","desc":"外部サービスとの連携インターフェース・プロトコル・認証方式を整理。","count":"6 連携先 →"},{"title":"機能一覧","group":"機能","icon":"category","href":"./一覧/機能一覧/機能一覧.html","desc":"画面一覧を入力に導出した機能単位の一覧（派生一覧）。","count":"16 機能 →"}]},{"id":"cross","title":"交差ビュー","icon":"grid_view","sub":"画面・機能・テーブル・権限の関係を行×列で示すマトリクス","tools":[{"title":"権限画面マトリクス","icon":"lock","href":"./交差ビュー/権限画面マトリクス/権限画面マトリクス.html","desc":"ロール×画面の行×列で閲覧可否の関係を示すマトリクス。","count":"詳細を見る"},{"title":"権限機能マトリクス","icon":"key","href":"./交差ビュー/権限機能マトリクス/権限機能マトリクス.html","desc":"ロール×機能の行×列で操作可否（CRUD）の関係を示すマトリクス。","count":"詳細を見る"},{"title":"CRUD図","icon":"grid_on","href":"./交差ビュー/CRUD図/CRUD図.html","desc":"機能×テーブルの行×列でCRUD操作の関係を示すマトリクス。","count":"詳細を見る"},{"title":"追跡可能性","icon":"route","href":"./交差ビュー/追跡可能性/追跡可能性.html","desc":"画面-API-テーブルの対応連鎖を行×列で追跡する対応表。","count":"詳細を見る"}]},{"id":"ai","title":"AI設定資産","icon":"smart_toy","sub":"rules・skills・サブエージェント・hooks の設定を俯瞰する資料","tools":[{"title":"AI設定資産","icon":"smart_toy","href":"./AI設定資産/AI設定資産.html","desc":"rules・skills・サブエージェント・hooks の設定資産の俯瞰。","count":"詳細を見る"}]}]</script>
 
 <script>
 (function() {

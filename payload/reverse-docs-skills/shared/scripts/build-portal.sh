@@ -530,6 +530,30 @@ html_escape() {
   printf '%s' "$1" | sed 's/&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g'
 }
 
+# md 本文の前処理（BOM 除去・frontmatter スキップ・HTML コメント除去）
+# 共通文書ループ・画面設計書ループの両方から使う共通関数。挙動は従来のインライン処理と同一。
+prepare_md_content() {
+  local file="$1"
+  sed -e '1s/^\xEF\xBB\xBF//' "$file" | awk 'NR==1 && /^---$/ {skip=1; next} skip && /^---$/ {skip=0; next} !skip' | awk '
+    in_comment {
+      buf[++n] = $0
+      if ($0 ~ /-->/) { in_comment = 0; n = 0; next }
+      next
+    }
+    /^<!--/ {
+      if ($0 ~ /-->/) { next }
+      in_comment = 1
+      n = 1
+      buf[1] = $0
+      next
+    }
+    { print }
+    END {
+      if (in_comment) { for (i = 1; i <= n; i++) print buf[i] }
+    }
+  '
+}
+
 if [ -d "$common_dir" ]; then
   while IFS= read -r md_file; do
     title="$(sed -e '1s/^\xEF\xBB\xBF//' "$md_file" | grep -m1 '^#' | sed 's/^##* *//' 2>/dev/null || true)"
@@ -545,24 +569,7 @@ if [ -d "$common_dir" ]; then
       # （深さ1: ../index.html、深さ2: ../../index.html。固定文字列だと深さ2で1段足りない）
       portal_index_rel="$(python3 -c "import os,sys; print(os.path.relpath(sys.argv[1], sys.argv[2]))" "$PORTAL_DIR" "$(dirname "$md_file")" 2>/dev/null || echo "..")"
       portal_index_href="$portal_index_rel/index.html"
-      md_content="$(sed -e '1s/^\xEF\xBB\xBF//' "$md_file" | awk 'NR==1 && /^---$/ {skip=1; next} skip && /^---$/ {skip=0; next} !skip' | awk '
-        in_comment {
-          buf[++n] = $0
-          if ($0 ~ /-->/) { in_comment = 0; n = 0; next }
-          next
-        }
-        /^<!--/ {
-          if ($0 ~ /-->/) { next }
-          in_comment = 1
-          n = 1
-          buf[1] = $0
-          next
-        }
-        { print }
-        END {
-          if (in_comment) { for (i = 1; i <= n; i++) print buf[i] }
-        }
-      ')"
+      md_content="$(prepare_md_content "$md_file")"
       local_render_args=(
         "{{PROJECT_NAME}}" "$PROJECT_NAME"
         "{{DOC_TITLE}}" "$(html_escape "$title")"
@@ -601,12 +608,81 @@ if [ -d "$common_dir" ]; then
   done < <(find "$common_dir" -name '*.md' -type f 2>/dev/null | sort)
 fi
 
+# --- 3.5. 画面設計書の変換 ---
+SCREEN_DOC_TEMPLATE_FILE="$SCRIPT_DIR/../templates/screen-doc-template.html"
+screen_list_dir="$DOCS_ROOT/一覧/画面一覧"
+
+if [ -d "$DOCS_ROOT/画面" ] && [ -f "$SCREEN_DOC_TEMPLATE_FILE" ]; then
+  for screen_dir in "$DOCS_ROOT"/画面/screen-*/; do
+    [ -d "$screen_dir" ] || continue
+
+    base_md="${screen_dir}基本設計/画面基本設計書.md"
+    detail_md="${screen_dir}詳細設計/画面詳細設計書.md"
+
+    for target_md in "$base_md" "$detail_md"; do
+      [ -f "$target_md" ] || continue
+
+      title="$(sed -e '1s/^\xEF\xBB\xBF//' "$target_md" | grep -m1 '^#' | sed 's/^##* *//' 2>/dev/null || true)"
+      if [ -z "$title" ]; then
+        title="$(basename "$target_md" .md)"
+      fi
+
+      html_basename="$(basename "$target_md" .md).html"
+      html_file="$(dirname "$target_md")/$html_basename"
+      md_content="$(prepare_md_content "$target_md")"
+
+      # 戻るリンク（ブランド）: 出力先の深さに応じてポータル index.html への相対パスを計算する
+      portal_index_rel="$(python3 -c "import os,sys; print(os.path.relpath(sys.argv[1], sys.argv[2]))" "$PORTAL_DIR" "$(dirname "$target_md")" 2>/dev/null || echo "..")"
+      portal_index_href="$portal_index_rel/index.html"
+
+      # 戻るリンク（doc-nav）: 出力先フォルダ → 画面一覧.html への相対パス
+      screen_index_rel="$(python3 -c "import os,sys; print(os.path.relpath(sys.argv[1], sys.argv[2]))" "$screen_list_dir" "$(dirname "$target_md")" 2>/dev/null || echo "../..")"
+      screen_index_href="$screen_index_rel/画面一覧.html"
+
+      doc_nav="<a class=\"back-link\" href=\"$screen_index_href\">← 画面一覧へ戻る</a>"
+      if [ -f "$base_md" ]; then
+        if [ "$target_md" = "$base_md" ]; then
+          doc_nav="$doc_nav<span class=\"doc-tab active\">基本設計</span>"
+        else
+          doc_nav="$doc_nav<a class=\"doc-tab\" href=\"../基本設計/画面基本設計書.html\">基本設計</a>"
+        fi
+      fi
+      if [ -f "$detail_md" ]; then
+        if [ "$target_md" = "$detail_md" ]; then
+          doc_nav="$doc_nav<span class=\"doc-tab active\">詳細設計</span>"
+        else
+          doc_nav="$doc_nav<a class=\"doc-tab\" href=\"../詳細設計/画面詳細設計書.html\">詳細設計</a>"
+        fi
+      fi
+      if [ -f "${screen_dir}シーケンス図.html" ]; then
+        doc_nav="$doc_nav<a class=\"doc-tab\" href=\"../シーケンス図.html\">シーケンス図</a>"
+      fi
+
+      screen_render_args=(
+        "{{PROJECT_NAME}}" "$PROJECT_NAME"
+        "{{DOC_TITLE}}" "$(html_escape "$title")"
+        "{{GENERATED_DATE}}" "$GENERATED_DATE"
+        "{{COMMIT_SHORT}}" "$COMMIT_SHORT"
+        "{{PORTAL_INDEX_HREF}}" "$portal_index_href"
+        "{{DOC_NAV}}" "$doc_nav"
+      )
+      if [ -f "$TOKENS_CSS_FILE" ]; then
+        screen_render_args+=("/* TOKENS_CSS */" "$(cat "$TOKENS_CSS_FILE")")
+      fi
+      screen_render_args+=("{{DOC_MARKDOWN}}" "$md_content")
+
+      screen_doc_html="$(render_template "$(cat "$SCREEN_DOC_TEMPLATE_FILE")" "${screen_render_args[@]}")"
+      printf '%s\n' "$screen_doc_html" > "$html_file"
+    done
+  done
+fi
+
 # --- 4. 将来ページ受け口（FUTURE_PAGES）: docs_root 直下に該当 HTML が実在する場合のみカード化 ---
-get_future_label() { case "$1" in glossary) echo "用語辞書";; techstack) echo "技術スタック";; transition) echo "画面遷移図";; er) echo "ER図";; env) echo "環境構築手順";; esac; }
-get_future_file() { case "$1" in glossary) echo "用語辞書.html";; techstack) echo "技術スタック.html";; transition) echo "画面遷移図.html";; er) echo "ER図.html";; env) echo "環境構築手順.html";; esac; }
-get_future_icon() { case "$1" in glossary) echo "dictionary";; techstack) echo "stacks";; transition) echo "account_tree";; er) echo "schema";; env) echo "terminal";; esac; }
-get_future_desc() { case "$1" in glossary) echo "業務用語・技術用語・略語の定義とコード上の対応識別子の対訳。";; techstack) echo "言語・フレームワーク・主要依存パッケージのバージョンと採用箇所の整理。";; transition) echo "画面一覧とコード走査から生成する画面遷移マップ。ブラウザバック・条件付き遷移に対応。";; er) echo "テーブル一覧と外部キー定義から生成するエンティティ関連図。";; env) echo "環境構築・必須ツール・ポート割当の整理。";; esac; }
-FUTURE_ORDER="techstack env glossary"
+get_future_label() { case "$1" in glossary) echo "用語辞書";; techstack) echo "技術スタック";; transition) echo "画面遷移図";; er) echo "ER図";; env) echo "環境構築手順";; entity-state) echo "状態遷移図";; esac; }
+get_future_file() { case "$1" in glossary) echo "用語辞書.html";; techstack) echo "技術スタック.html";; transition) echo "画面遷移図.html";; er) echo "ER図.html";; env) echo "環境構築手順.html";; entity-state) echo "状態遷移図.html";; esac; }
+get_future_icon() { case "$1" in glossary) echo "dictionary";; techstack) echo "stacks";; transition) echo "account_tree";; er) echo "schema";; env) echo "terminal";; entity-state) echo "sync";; esac; }
+get_future_desc() { case "$1" in glossary) echo "業務用語・技術用語・略語の定義とコード上の対応識別子の対訳。";; techstack) echo "言語・フレームワーク・主要依存パッケージのバージョンと採用箇所の整理。";; transition) echo "画面一覧とコード走査から生成する画面遷移マップ。ブラウザバック・条件付き遷移に対応。";; er) echo "テーブル一覧と外部キー定義から生成するエンティティ関連図。";; env) echo "環境構築・必須ツール・ポート割当の整理。";; entity-state) echo "データ設計の状態遷移表から生成するエンティティ状態遷移図。";; esac; }
+FUTURE_ORDER="techstack env glossary entity-state"
 
 future_tools_json=""
 for key in $FUTURE_ORDER; do

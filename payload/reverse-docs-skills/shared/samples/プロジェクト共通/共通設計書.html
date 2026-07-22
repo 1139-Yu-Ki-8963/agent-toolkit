@@ -32,6 +32,13 @@
   --warn: #BC4C00;
   --danger: #CF222E;
   --danger-soft: #FFEBE9;
+  --highlight: #D97B1A;
+  --highlight-soft: rgba(217,123,26,0.12);
+  --highlight-border: rgba(217,123,26,0.5);
+  --nav-tag: #7B8BBF;
+  --nav-tag-soft: #ECEEF6;
+  --self-tag: #6B9B6B;
+  --self-tag-soft: #E8F0E8;
   --code-bg: #1B1F26;
   --code-fg: #E8E5DC;
   --cat-list: #2563eb;
@@ -53,6 +60,9 @@
     --gold: #DB6D28; --gold-soft: #311D08; --gold-border: #7A3E0D;
     --success: #3FB950; --success-soft: #0D2818;
     --warn: #DB6D28; --danger: #F85149; --danger-soft: #3D1214;
+    --highlight: #E8943A; --highlight-soft: rgba(232,148,58,0.15); --highlight-border: rgba(232,148,58,0.5);
+    --nav-tag: #8E9ED0; --nav-tag-soft: rgba(142,158,208,0.15);
+    --self-tag: #7DB87D; --self-tag-soft: rgba(125,184,125,0.15);
     --code-bg: #0E1116; --code-fg: #E8E5DC;
     --cat-list: #60A5FA; --cat-common: #34D399; --cat-project: #A78BFA;
   }
@@ -65,6 +75,9 @@
   --gold: #DB6D28; --gold-soft: #311D08; --gold-border: #7A3E0D;
   --success: #3FB950; --success-soft: #0D2818;
   --warn: #DB6D28; --danger: #F85149; --danger-soft: #3D1214;
+  --highlight: #E8943A; --highlight-soft: rgba(232,148,58,0.15); --highlight-border: rgba(232,148,58,0.5);
+  --nav-tag: #8E9ED0; --nav-tag-soft: rgba(142,158,208,0.15);
+  --self-tag: #7DB87D; --self-tag-soft: rgba(125,184,125,0.15);
   --code-bg: #0E1116; --code-fg: #E8E5DC;
   --cat-list: #60A5FA; --cat-common: #34D399; --cat-project: #A78BFA;
 }
@@ -74,10 +87,7 @@
     margin: 0; padding: 0;
     font-family: var(--font-body);
     line-height: 1.7; color: var(--text); background: var(--bg);
-    height: 100vh; overflow: hidden; display: flex; flex-direction: column;
   }
-  .topbar { flex-shrink: 0; }
-  .footer { flex-shrink: 0; }
   .topbar {
     display: grid; grid-template-columns: auto 1fr auto;
     align-items: center; gap: 12px;
@@ -96,7 +106,6 @@
   .header-meta { font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 8px; }
   .doc-main {
     max-width: 860px; margin: 0 auto; padding: 32px 24px 96px;
-    flex: 1; min-height: 0; overflow-y: auto;
   }
   .doc-main h1 { font-size: 1.6rem; margin: 32px 0 16px; padding-bottom: 8px; border-bottom: 2px solid var(--border-strong); color: var(--text); }
   .doc-main h2 { font-size: 1.3rem; margin: 28px 0 12px; padding-bottom: 6px; border-bottom: 1px solid var(--border); color: var(--text); }
@@ -137,7 +146,7 @@
     <span class="brand-sub">設計ポータル</span>
   </a>
   <div class="header-meta">
-    <span class="pm-updated">更新: 2026-07-21 · コミット番号: 89178e6</span>
+    <span class="pm-updated">更新: 2026-07-23</span>
   </div>
   <div class="top-actions">
     <button id="theme-toggle" title="テーマ切替">ライト</button>

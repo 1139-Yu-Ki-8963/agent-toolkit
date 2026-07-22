@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<!--
+  generating-sequence-diagram-for-reverse-docs スキルガイド（単一ファイル自己完結型）
+
+  - 外部リソース（CDN・画像・link）は一切使わず、完全自己完結に保つ
+  - .claude/rules/always/skill-guide/html/rule.md（スキルガイド HTML 統一規約）準拠
+-->
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>generating-sequence-diagram-for-reverse-docs スキルガイド</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 0 24px 96px;
+    font-family: system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif;
+    line-height: 1.85; color: #1a1a1a; background: #fafafa;
+    max-width: 980px; margin-inline: auto;
+  }
+  header { padding: 56px 0 24px; border-bottom: 3px solid #1a1a1a; }
+  header h1 { font-size: 1.9rem; margin: 0 0 10px; letter-spacing: 0.01em; }
+  header .skill-name {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 1.0rem; background: #1a1a1a; color: #fafafa;
+    padding: 2px 10px; border-radius: 4px; vertical-align: middle;
+  }
+  header p { margin: 6px 0 0; color: #555; }
+  .meta-table { margin-top: 16px; font-size: 0.9rem; color: #555; }
+  .meta-table td { padding: 1px 16px 1px 0; }
+
+  nav.toc {
+    margin-top: 32px; padding: 18px 22px;
+    background: #fff; border: 1px solid #e0e0e0; border-radius: 8px;
+  }
+  nav.toc .toc-title { font-weight: 700; margin-bottom: 6px; }
+  nav.toc ol { margin: 0; padding-left: 1.4em; columns: 2; column-gap: 40px; }
+  nav.toc li { margin: 2px 0; }
+  nav.toc a { color: #1a1a1a; text-decoration: none; border-bottom: 1px dotted #999; }
+  nav.toc a:hover { border-bottom-style: solid; }
+
+  section { margin-top: 64px; }
+  section > h2 {
+    font-size: 1.35rem; padding-bottom: 8px; margin-bottom: 20px;
+    border-bottom: 2px solid #1a1a1a;
+  }
+  section > h2 .sec-num {
+    display: inline-block; min-width: 2.4em; margin-right: 10px;
+    font-family: ui-monospace, monospace; font-size: 0.95rem;
+    background: #1a1a1a; color: #fafafa; text-align: center;
+    padding: 1px 8px; border-radius: 4px; vertical-align: 2px;
+  }
+  h3 { font-size: 1.05rem; margin: 32px 0 10px; }
+  .note { color: #555; font-size: 0.92rem; }
+
+  table.spec { border-collapse: collapse; width: 100%; margin: 14px 0; background: #fff; font-size: 0.93rem; }
+  table.spec th, table.spec td { border: 1px solid #d8d8d8; padding: 8px 12px; text-align: left; vertical-align: top; }
+  table.spec th { background: #f0f0ee; font-weight: 700; white-space: nowrap; }
+  table.spec td code, li code, p code, table.spec th code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.86em; background: #eeeeea; padding: 1px 5px; border-radius: 3px;
+  }
+
+  pre.flow {
+    background: #16211c; color: #d7e6dc; border-radius: 8px;
+    padding: 20px 24px; overflow-x: auto;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.82rem; line-height: 1.55;
+  }
+  pre.flow .cap { color: #8fb8a0; }
+
+  .def {
+    background: #fff; border-left: 4px solid #1a1a1a;
+    padding: 12px 18px; margin: 14px 0; border-radius: 0 6px 6px 0;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  }
+  .def dt { font-weight: 700; margin-top: 8px; }
+  .def dt:first-child { margin-top: 0; }
+  .def dd { margin: 2px 0 0 0; color: #333; }
+
+  .constraint {
+    background: #eef2f7; border: 1px solid #c8d4e3; border-radius: 8px;
+    padding: 12px 18px; margin: 16px 0; font-size: 0.93rem;
+  }
+  .constraint strong:first-child { color: #2a4a7a; }
+
+  .tag {
+    display: inline-block; font-family: ui-monospace, monospace; font-size: 0.78rem;
+    font-weight: 700; padding: 0 8px; border-radius: 3px; border: 1px solid transparent;
+  }
+  .tag.pass  { background: #e7f3e7; color: #23662a; border-color: #b9d9ba; }
+  .tag.fail  { background: #fbe9e7; color: #9c2b1a; border-color: #ecc0b8; }
+  .tag.error { background: #fdf3d7; color: #7a5d10; border-color: #e8d59a; }
+  .tag.mode  { background: #e8eef7; color: #2a4a7a; border-color: #c2d2e8; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>シーケンス図生成スキル<br><span class="skill-name">generating-sequence-diagram-for-reverse-docs</span></h1>
+  <p>画面ごとの操作（ボタン押下・フォーム送信等）を選ぶと、画面→API→テーブル の呼び出し順序を表示するシーケンス図を機械生成するスキルの確定仕様。facts の call_order、または手書き page-data に記録された事実のみを転記する。</p>
+
+  <div class="def">
+    <dt>こんな人向け</dt>
+    <dd>
+      リバース設計で画面操作ごとの呼び出し順序を図として確立したい人 ／
+      extracting-unit-facts-from-code の call_order をシーケンス図として可視化したい人
+    </dd>
+    <dt>こんな場面で使う</dt>
+    <dd>
+      対象画面の facts.yml（call_order 記載済み）または手書き page-data があるとき ／
+      画面基本設計書・詳細設計書に並ぶシーケンス図タブを追加したい時
+    </dd>
+  </div>
+
+  <table class="meta-table">
+    <tr><td>対応 OS</td><td>Windows WSL2 環境</td></tr>
+    <tr><td>検証状況</td><td>self-test・fixture による実挙動確認済み（2026-07-23）</td></tr>
+    <tr><td>依存</td><td><code>render-template.sh</code> / <code>screen-sequence-template.html</code> / シーケンス図-data.json または facts の call_order</td></tr>
+    <tr><td>関連資料</td><td><code>generating-entity-state-for-reverse-docs</code>, <code>shared/references/facts-schema.md</code></td></tr>
+  </table>
+</header>
+
+<nav class="toc">
+  <div class="toc-title">目次</div>
+  <ol>
+    <li><a href="#s1">概要</a></li>
+    <li><a href="#s2">出力</a></li>
+    <li><a href="#s3">使用タイミング</a></li>
+    <li><a href="#s4">用語・page-data の形状</a></li>
+    <li><a href="#s5">Phase 手順</a></li>
+    <li><a href="#s6">重要な注意事項・予想を裏切る挙動</a></li>
+    <li><a href="#s7">関連スキル・規約</a></li>
+  </ol>
+</nav>
+
+<section id="s1">
+  <h2><span class="sec-num">§1</span>概要</h2>
+  <p>画面ごとの操作（ボタン押下・フォーム送信等）を選ぶと、画面→API→テーブル の呼び出し順序を表示するシーケンス図を生成する。<strong>本スキルは pageKind 体系（用語辞書・技術スタック・画面遷移図・ER図・環境構築手順・状態遷移図）には属さない</strong>。1 pageKind = 1 固定ファイル名という pageKind 契約に対し、シーケンス図は画面ごとに複数生成される画面別ページであり、出力先も <code>画面/screen-&lt;ID&gt;/</code> 配下に画面ごとに存在するため、<code>shared/scripts/detail-pages/</code> の共通エンジン（<code>validate-page-data.sh</code> / <code>build-detail-page.sh</code>）は使わない。</p>
+  <p class="note">判定・評価はしない。呼び出し順序や処理内容の良否には踏み込まず、facts（call_order）または手書き page-data に記録された事実のみを転記する。</p>
+</section>
+
+<section id="s2">
+  <h2><span class="sec-num">§2</span>出力</h2>
+  <p>本スキルを実行すると、対象画面 1 つにつき以下の 1 点が生まれる。</p>
+  <div class="def">
+    <dt>シーケンス図.html</dt>
+    <dd><code>&lt;docs_root&gt;/画面/screen-&lt;ID&gt;/</code> 直下に固定生成される、当該画面の操作単位（ボタン押下・フォーム送信等）を選択式で切り替えられるシーケンス図ページ。固定 3 本のレーン（<code>screen</code>=画面 / <code>api</code>=API / <code>table</code>=テーブル）上に、facts の call_order または手書き page-data から機械変換した呼び出し順序を、根拠パス（sourceRef）付きで表示する。画面基本設計書・詳細設計書と同じ体裁の doc-nav を持ち、3 種の設計書間をタブで行き来できる。</dd>
+  </div>
+</section>
+
+<section id="s3">
+  <h2><span class="sec-num">§3</span>使用タイミング</h2>
+  <table class="spec">
+    <tr><th>区分</th><th>内容</th></tr>
+    <tr><td>前提</td><td>対象画面の facts.yml（<code>extracting-unit-facts-from-code</code> が確定済み）または手書きの page-data がある画面について、シーケンス図を生成・更新したいとき</td></tr>
+    <tr><td>起動引数</td><td><code>docs_root</code>（<code>画面/screen-&lt;ID&gt;/</code> の所在）・対象画面 ID（複数可）</td></tr>
+    <tr><td>出力先</td><td>各画面ディレクトリ直下の <code>&lt;docs_root&gt;/画面/screen-&lt;ID&gt;/シーケンス図.html</code> に固定（<code>build-portal.sh</code> の DOC_NAV 判定と同値。基本設計・詳細設計フォルダの 1 階層上）</td></tr>
+  </table>
+</section>
+
+<section id="s4">
+  <h2><span class="sec-num">§4</span>用語・page-data の形状</h2>
+  <p>各画面の page-data（<code>&lt;docs_root&gt;/画面/screen-&lt;ID&gt;/シーケンス図-data.json</code>）は以下の形状を持つ。</p>
+  <pre class="flow"><span class="cap">── シーケンス図-data.json の形状 ─────────────────────────</span>
+{
+  "screenId": "screen-order-list",
+  "screenLabel": "注文一覧",
+  "generatedAt": "ISO8601",
+  "operations": [
+    {
+      "key": "save-click",
+      "label": "保存ボタン押下",
+      "handler": "handler-onSave-保存",
+      "steps": [
+        {"seq": 1, "from": "screen", "to": "api", "label": "POST /orders", "sourceRef": "src/screens/Order.tsx:42"},
+        {"seq": 2, "from": "api", "to": "table", "label": "INSERT orders", "sourceRef": "server/orders.ts:10"},
+        {"seq": 3, "from": "api", "to": "screen", "label": "201 Created → 一覧再取得", "kind": "return"}
+      ]
+    }
+  ]
+}</pre>
+  <table class="spec">
+    <tr><th>用語</th><th>内容</th></tr>
+    <tr><td>レーン（ライフライン）</td><td>固定 3 本: <code>screen</code>=画面 / <code>api</code>=API / <code>table</code>=テーブル。<code>steps[].from</code>/<code>to</code> はこの 3 値のみ</td></tr>
+    <tr><td><code>kind: "return"</code></td><td>破線で描画されるステップ。省略時は実線</td></tr>
+    <tr><td><code>sourceRef</code></td><td>任意。無いステップはテンプレート側で根拠列を空表示する</td></tr>
+    <tr><td>call_order</td><td>facts.yml の⑤handler item が持つ任意フィールド。形式 <code>"&lt;連番&gt;:&lt;api分類のkey&gt;@&lt;file:line&gt;; ..."</code>。<code>shared/references/facts-schema.md</code> が定義元</td></tr>
+  </table>
+</section>
+
+<section id="s5">
+  <h2><span class="sec-num">§5</span>Phase 手順</h2>
+  <p>スキル開始時に <code>TaskCreate</code> で Phase 1〜3 のタスクを登録する。各 Phase 開始時に該当タスクを <code>in_progress</code> に、完了時に <code>completed</code> へ <code>TaskUpdate</code> で更新する。</p>
+  <table class="spec">
+    <tr><th>Phase</th><th>内容</th><th>完了条件</th></tr>
+    <tr><td>1. page-data の確保</td><td>Step 1: シーケンス図-data.json の実在確認。Step 2: 不在画面は facts.yml の call_order を持つ handler のみ機械変換（call_order が 1 件もない画面はスキップし報告）。Step 3: jq で必須キー・from/to の 3 値・seq 連番を検証</td><td>対象画面ごとに実在確認済み・jq 検証通過済み、または変換不能を報告済み</td></tr>
+    <tr><td>2. DOC_NAV の組み立て</td><td>戻るリンク・基本設計タブ・詳細設計タブ・シーケンス図タブ（自ページ）を、実在するタブのみで組み立てる（<code>build-portal.sh</code> セクション 3.5 と同一判定）</td><td>対象画面ごとに doc_nav 文字列が確定済み</td></tr>
+    <tr><td>3. HTML 生成</td><td><code>render-template.sh</code> の <code>render_template</code> 関数を Bash から source して <code>シーケンス図.html</code> を生成。<code>portal_output_dir</code> 指定時は <code>build-portal.sh</code> を再実行</td><td>対象画面すべてで <code>シーケンス図.html</code> が生成済み</td></tr>
+  </table>
+  <p class="note"><strong>手作業でのプレースホルダ置換（sed・perl 直書き等）は禁止する</strong>。<code>render_template</code> は最短前方一致で置換するため、値の中に他プレースホルダ文字列が偶然含まれても誤爆しない。新規 <code>.sh</code> スクリプトファイルは作らない。</p>
+</section>
+
+<section id="s6">
+  <h2><span class="sec-num">§6</span>重要な注意事項・予想を裏切る挙動</h2>
+  <div class="constraint">
+    <strong>判定・評価はしない。</strong>呼び出し順序や処理内容の良否には踏み込まず、facts（call_order）または手書き page-data に記録された事実のみを転記する。call_order を持つ handler が 0 件の画面で、AskUserQuestion を使って手動でステップを聞き出さない。<code>shared/scripts/detail-pages/</code> 配下・<code>extracting-unit-facts-from-code</code> 配下・<code>seal-facts.sh</code> は変更しない（別スキルの管轄）。
+  </div>
+  <table class="spec">
+    <tr><th>予想を裏切る挙動</th><th>内容</th></tr>
+    <tr><td>出力先の階層</td><td>テンプレート名（<code>シーケンス図.html</code>）が pageKind の <code>FUTURE_FILES</code> と同名でも、<code>docs_root</code> 直下ではなく画面ごとのフォルダ（<code>画面/screen-&lt;ID&gt;/</code>）直下になる。pageKind 体系の「1 pageKind = 1 固定ファイル名」契約はここでは適用されない</td></tr>
+    <tr><td>DOC_NAV の担当分担</td><td><code>build-portal.sh</code> は画面設計書（基本設計・詳細設計）側の DOC_NAV にのみシーケンス図タブを追加する。シーケンス図.html 自体の DOC_NAV は本スキルの Phase 2/3 が組み立てる（<code>build-portal.sh</code> の担当範囲外）</td></tr>
+  </table>
+</section>
+
+<section id="s7">
+  <h2><span class="sec-num">§7</span>関連スキル・規約</h2>
+  <table class="spec">
+    <tr><th>名前</th><th>関係</th></tr>
+    <tr><td>extracting-unit-facts-from-code</td><td>facts.yml（⑤handler の call_order）を確定させる先行スキル。本スキルは call_order を読み取るのみで書き換えない</td></tr>
+    <tr><td>generating-entity-state-for-reverse-docs</td><td>同じくポータルの将来ページ受け口を担う単独起動可能なスキル。エンジンスクリプト（<code>build-detail-page.sh</code>）は共用しない（シーケンス図は画面ごとの複数生成のため別エンジン）</td></tr>
+    <tr><td>orchestrating-reverse-docs-flow</td><td>工程全体の呼び出し元</td></tr>
+    <tr><td>shared/references/facts-schema.md</td><td>call_order（⑤handler の任意フィールド）の形式を定義している</td></tr>
+    <tr><td>shared/templates/screen-sequence-template.html</td><td>シーケンス図.html のテンプレート本体</td></tr>
+  </table>
+</section>
+
+</body>
+</html>

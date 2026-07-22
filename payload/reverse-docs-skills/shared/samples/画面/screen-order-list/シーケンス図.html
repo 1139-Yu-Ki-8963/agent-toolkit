@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>注文一覧 のシーケンス図</title>
+<style>
+  :root,
+[data-theme="light"] {
+  /* Windows フォント上書き防止 */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-synthesis: none;
+  --bg: #FFFFFF;
+  --panel: #FFFFFF;
+  --panel-2: #F6F8FA;
+  --border: #D1D9E0;
+  --border-strong: #AFB8C1;
+  --text: #1B1F26;
+  --text-sub: #4A4F58;
+  --text-muted: #767B85;
+  --accent: #0969DA;
+  --accent-2: #218BFF;
+  --accent-soft: #DDF4FF;
+  --accent-border: #54AEFF;
+  --gold: #BC4C00;
+  --gold-soft: #FFF1E5;
+  --gold-border: #D18A5A;
+  --success: #1A7F37;
+  --success-soft: #DAFBE1;
+  --warn: #BC4C00;
+  --danger: #CF222E;
+  --danger-soft: #FFEBE9;
+  --highlight: #D97B1A;
+  --highlight-soft: rgba(217,123,26,0.12);
+  --highlight-border: rgba(217,123,26,0.5);
+  --nav-tag: #7B8BBF;
+  --nav-tag-soft: #ECEEF6;
+  --self-tag: #6B9B6B;
+  --self-tag-soft: #E8F0E8;
+  --code-bg: #1B1F26;
+  --code-fg: #E8E5DC;
+  --cat-list: #2563eb;
+  --cat-common: #059669;
+  --cat-project: #7C3AED;
+  --font-body: "Hiragino Kaku Gothic ProN","Hiragino Sans","Noto Sans JP","BIZ UDPGothic","Yu Gothic","Meiryo",system-ui,-apple-system,sans-serif;
+  --mono: "SFMono-Regular","Menlo","Cascadia Code","Consolas",monospace;
+  --shadow-sm: 0 1px 3px rgba(27,31,38,.07), 0 2px 6px rgba(27,31,38,.05);
+  --shadow-md: 0 2px 8px rgba(27,31,38,.09), 0 8px 24px rgba(27,31,38,.07);
+  --radius: 10px;
+  --radius-sm: 6px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #15171C; --panel: #1C1F26; --panel-2: #21262D;
+    --border: #30363D; --border-strong: #484F58;
+    --text: #E8E5DC; --text-sub: #B6B3AB; --text-muted: #888784;
+    --accent: #58A6FF; --accent-2: #79C0FF; --accent-soft: #132D4B; --accent-border: #1F6FEB;
+    --gold: #DB6D28; --gold-soft: #311D08; --gold-border: #7A3E0D;
+    --success: #3FB950; --success-soft: #0D2818;
+    --warn: #DB6D28; --danger: #F85149; --danger-soft: #3D1214;
+    --highlight: #E8943A; --highlight-soft: rgba(232,148,58,0.15); --highlight-border: rgba(232,148,58,0.5);
+    --nav-tag: #8E9ED0; --nav-tag-soft: rgba(142,158,208,0.15);
+    --self-tag: #7DB87D; --self-tag-soft: rgba(125,184,125,0.15);
+    --code-bg: #0E1116; --code-fg: #E8E5DC;
+    --cat-list: #60A5FA; --cat-common: #34D399; --cat-project: #A78BFA;
+  }
+}
+[data-theme="dark"] {
+  --bg: #15171C; --panel: #1C1F26; --panel-2: #21262D;
+  --border: #30363D; --border-strong: #484F58;
+  --text: #E8E5DC; --text-sub: #B6B3AB; --text-muted: #888784;
+  --accent: #58A6FF; --accent-2: #79C0FF; --accent-soft: #132D4B; --accent-border: #1F6FEB;
+  --gold: #DB6D28; --gold-soft: #311D08; --gold-border: #7A3E0D;
+  --success: #3FB950; --success-soft: #0D2818;
+  --warn: #DB6D28; --danger: #F85149; --danger-soft: #3D1214;
+  --highlight: #E8943A; --highlight-soft: rgba(232,148,58,0.15); --highlight-border: rgba(232,148,58,0.5);
+  --nav-tag: #8E9ED0; --nav-tag-soft: rgba(142,158,208,0.15);
+  --self-tag: #7DB87D; --self-tag-soft: rgba(125,184,125,0.15);
+  --code-bg: #0E1116; --code-fg: #E8E5DC;
+  --cat-list: #60A5FA; --cat-common: #34D399; --cat-project: #A78BFA;
+}
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 0;
+    font-family: var(--font-body);
+    line-height: 1.7; color: var(--text); background: var(--bg);
+  }
+  .topbar {
+    display: grid; grid-template-columns: auto 1fr auto;
+    align-items: center; gap: 12px;
+    padding: 10px 20px;
+    background: var(--panel); border-bottom: 1px solid var(--border);
+    position: sticky; top: 0; z-index: 10;
+  }
+  .brand { display: flex; align-items: center; gap: 8px; color: var(--text); text-decoration: none; font-weight: 700; font-size: 0.95rem; }
+  .brand:hover { color: var(--accent); }
+  .brand-sub { font-size: 11px; font-weight: 400; color: var(--text-muted, #6c757d); }
+  #theme-toggle {
+    background: var(--panel-2); border: 1px solid var(--border); border-radius: var(--radius-sm);
+    color: var(--text-sub); cursor: pointer; padding: 4px 12px; font-family: inherit; font-size: 0.82rem;
+  }
+  #theme-toggle:hover { background: var(--accent-soft); color: var(--accent); border-color: var(--accent-border); }
+  .header-meta { font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 8px; }
+  .doc-nav { max-width: 960px; margin: 0 auto; padding: 12px 24px 0; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; border-bottom: 2px solid var(--border); }
+  .doc-nav .back-link { margin-right: auto; font-size: 12px; color: var(--text-sub); text-decoration: none; }
+  .doc-nav .back-link:hover { color: var(--accent); }
+  .doc-tab { padding: 5px 16px; border: 1px solid var(--border); border-bottom: none; border-radius: 6px 6px 0 0; font-size: 13px; text-decoration: none; color: var(--text-sub); background: var(--panel); }
+  .doc-tab.active { color: var(--accent); font-weight: 700; border-color: var(--accent); background: var(--bg); }
+  .doc-main {
+    max-width: 960px; margin: 0 auto; padding: 32px 24px 96px;
+  }
+  .doc-main h1 { font-size: 1.6rem; margin: 32px 0 16px; padding-bottom: 8px; border-bottom: 2px solid var(--border-strong); color: var(--text); }
+  .doc-main p.lead { margin: 0 0 20px; color: var(--text-sub); font-size: 0.95rem; }
+  .op-selector { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+  .op-selector label { font-size: 0.9rem; color: var(--text-sub); }
+  #operation-select {
+    font-family: inherit; font-size: 0.9rem; padding: 6px 10px;
+    border: 1px solid var(--border); border-radius: var(--radius-sm);
+    background: var(--panel); color: var(--text);
+  }
+  .diagram-wrap {
+    overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius-sm);
+    background: var(--panel); margin-bottom: 20px;
+  }
+  #sequence-svg { display: block; }
+  .lane-label { font-size: 12px; font-weight: 700; fill: var(--text); }
+  .lane-line { stroke: var(--border-strong); stroke-width: 1.5; }
+  .step-arrow { stroke: var(--accent); stroke-width: 1.6; fill: none; }
+  .step-arrow.return { stroke: var(--text-muted); stroke-dasharray: 5 4; }
+  .step-label { font-size: 11.5px; fill: var(--text-sub); }
+  .step-label.return { fill: var(--text-muted); }
+  .empty-message { padding: 24px; text-align: center; color: var(--text-muted); font-size: 0.95rem; }
+  table.steps-table { border-collapse: collapse; width: 100%; margin: 12px 0; font-size: 0.88rem; }
+  table.steps-table th { background: var(--panel-2); font-weight: 700; text-align: left; }
+  table.steps-table th, table.steps-table td { padding: 8px 12px; border: 1px solid var(--border); }
+  table.steps-table td.ref { font-family: var(--mono); font-size: 0.82em; color: var(--text-muted); }
+  .footer {
+    padding: 12px 20px; border-top: 1px solid var(--border);
+    font-size: 12px; color: var(--text-muted);
+    display: flex; gap: 20px; justify-content: center;
+  }
+  @media (max-width: 760px) {
+    .topbar { grid-template-columns: 1fr; gap: 8px; padding: 10px 14px; }
+    .doc-main { padding: 14px; }
+  }
+</style>
+</head>
+<body>
+<header class="topbar">
+  <a class="brand" href="../../index.html">
+    <span class="brand-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:middle"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zM13 9V3.5L18.5 9H13z"/></svg></span>
+    <span class="brand-title">サンプルプロジェクト</span>
+    <span class="brand-sub">設計ポータル</span>
+  </a>
+  <div class="header-meta">
+    <span class="pm-updated">更新: 2026-07-23</span>
+  </div>
+  <div class="top-actions">
+    <button id="theme-toggle" title="テーマ切替">ライト</button>
+  </div>
+</header>
+<nav class="doc-nav"><a class="back-link" href="../../一覧/画面一覧/画面一覧.html">← 画面一覧へ戻る</a><a class="doc-tab" href="基本設計/画面基本設計書.html">基本設計</a><a class="doc-tab" href="詳細設計/画面詳細設計書.html">詳細設計</a><span class="doc-tab active">シーケンス図</span></nav>
+
+<main class="doc-main">
+  <h1>注文一覧 のシーケンス図</h1>
+  <p class="lead">操作を選ぶと 画面→API→テーブル の呼び出し順序を表示する。</p>
+
+  <div class="op-selector">
+    <label for="operation-select">操作</label>
+    <select id="operation-select"></select>
+  </div>
+
+  <div class="diagram-wrap">
+    <svg id="sequence-svg" xmlns="http://www.w3.org/2000/svg"></svg>
+  </div>
+
+  <table class="steps-table" id="steps-table">
+    <thead>
+      <tr><th>順序</th><th>区間</th><th>内容</th><th>根拠</th></tr>
+    </thead>
+    <tbody id="steps-table-body"></tbody>
+  </table>
+
+  <div class="empty-message" id="empty-message" style="display:none">操作データなし</div>
+</main>
+
+<footer class="footer">シーケンス図ビューア — generating-sequence-diagram-for-reverse-docs により自動生成</footer>
+
+<script type="application/json" id="page-data">
+{
+  "screenId": "screen-order-list",
+  "screenLabel": "注文一覧",
+  "generatedAt": "2026-07-23T00:00:00Z",
+  "operations": [
+    {
+      "key": "search-exec",
+      "label": "検索実行",
+      "handler": "handler-onSearchSubmit-検索",
+      "steps": [
+        {"seq": 1, "from": "screen", "to": "api", "label": "GET /api/orders?keyword=&status=confirmed&dateFrom=2026-07-01&dateTo=2026-07-23", "sourceRef": "pages/OrderListPage.tsx:64"},
+        {"seq": 2, "from": "api", "to": "table", "label": "SELECT orders WHERE status='confirmed' AND ordered_at BETWEEN ...", "sourceRef": "server/api/orders.ts:31"},
+        {"seq": 3, "from": "table", "to": "api", "label": "注文レコード一覧を返却", "sourceRef": "server/api/orders.ts:38"},
+        {"seq": 4, "from": "api", "to": "screen", "label": "200 OK { items, totalCount } → 一覧再描画", "kind": "return", "sourceRef": "pages/OrderListPage.tsx:70"}
+      ]
+    },
+    {
+      "key": "csv-export",
+      "label": "CSV出力",
+      "handler": "handler-onExportClick-CSV出力",
+      "steps": [
+        {"seq": 1, "from": "screen", "to": "api", "label": "GET /api/orders/export?keyword=&status=confirmed", "sourceRef": "components/OrderPagination.tsx:22"},
+        {"seq": 2, "from": "api", "to": "table", "label": "SELECT orders WHERE status='confirmed' (出力対象抽出)", "sourceRef": "server/api/orders-export.ts:18"},
+        {"seq": 3, "from": "table", "to": "api", "label": "抽出結果を返却", "sourceRef": "server/api/orders-export.ts:24"},
+        {"seq": 4, "from": "api", "to": "screen", "label": "200 OK { downloadUrl, expiresAt } → ダウンロードリンク表示", "kind": "return", "sourceRef": "components/OrderPagination.tsx:29"}
+      ]
+    }
+  ]
+}
+</script>
+
+<script>
+(function () {
+  var LANES = ['screen', 'api', 'table'];
+  var LANE_LABELS = { screen: '画面', api: 'API', table: 'テーブル' };
+  var LANE_PITCH = 240;
+  var LANE_MARGIN = 90;
+  var ROW_HEIGHT = 56;
+  var TOP_PADDING = 46;
+  var BOTTOM_PADDING = 24;
+
+  var raw = document.getElementById('page-data').textContent;
+  var data = {};
+  try { data = JSON.parse(raw); } catch (e) { data = { operations: [] }; }
+  var operations = data.operations || [];
+
+  var select = document.getElementById('operation-select');
+  var svg = document.getElementById('sequence-svg');
+  var tbody = document.getElementById('steps-table-body');
+  var emptyMsg = document.getElementById('empty-message');
+  var diagramWrap = document.querySelector('.diagram-wrap');
+  var table = document.getElementById('steps-table');
+
+  function escHtml(s) {
+    return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  function laneX(laneKey) {
+    var idx = LANES.indexOf(laneKey);
+    if (idx === -1) idx = 0;
+    return LANE_MARGIN + idx * LANE_PITCH;
+  }
+
+  function svgEl(tag, attrs) {
+    var el = document.createElementNS('http://www.w3.org/2000/svg', tag);
+    for (var k in attrs) { el.setAttribute(k, attrs[k]); }
+    return el;
+  }
+
+  function renderOperation(op) {
+    svg.innerHTML = '';
+    tbody.innerHTML = '';
+
+    var steps = (op && op.steps) || [];
+    var height = TOP_PADDING + steps.length * ROW_HEIGHT + BOTTOM_PADDING;
+    var width = LANE_MARGIN * 2 + (LANES.length - 1) * LANE_PITCH;
+
+    svg.setAttribute('width', width);
+    svg.setAttribute('height', height);
+    svg.setAttribute('viewBox', '0 0 ' + width + ' ' + height);
+
+    var defs = svgEl('defs', {});
+    var marker = svgEl('marker', {
+      id: 'seq-arrowhead', viewBox: '0 0 10 10', refX: 9, refY: 5,
+      markerWidth: 7, markerHeight: 7, orient: 'auto-start-reverse'
+    });
+    var arrowPath = svgEl('path', { d: 'M 0 0 L 10 5 L 0 10 z', fill: 'var(--accent)' });
+    marker.appendChild(arrowPath);
+    defs.appendChild(marker);
+    svg.appendChild(defs);
+
+    // レーン縦線 + ラベル
+    LANES.forEach(function (laneKey) {
+      var x = laneX(laneKey);
+      var line = svgEl('line', {
+        x1: x, y1: TOP_PADDING - 20, x2: x, y2: height - BOTTOM_PADDING + 6,
+        class: 'lane-line'
+      });
+      svg.appendChild(line);
+      var label = svgEl('text', { x: x, y: TOP_PADDING - 28, class: 'lane-label', 'text-anchor': 'middle' });
+      label.textContent = LANE_LABELS[laneKey] || laneKey;
+      svg.appendChild(label);
+    });
+
+    // ステップ矢印
+    steps.forEach(function (step, i) {
+      var y = TOP_PADDING + i * ROW_HEIGHT + ROW_HEIGHT / 2;
+      var x1 = laneX(step.from);
+      var x2 = laneX(step.to);
+      var isReturn = step.kind === 'return';
+
+      if (x1 === x2) {
+        // 自己ループ（同一レーン内の呼び出し）
+        var loopPath = svgEl('path', {
+          d: 'M ' + x1 + ' ' + (y - 10) + ' q 36 0 0 20',
+          class: 'step-arrow' + (isReturn ? ' return' : ''),
+          'marker-end': 'url(#seq-arrowhead)'
+        });
+        svg.appendChild(loopPath);
+      } else {
+        var line = svgEl('line', {
+          x1: x1, y1: y, x2: x2, y2: y,
+          class: 'step-arrow' + (isReturn ? ' return' : ''),
+          'marker-end': 'url(#seq-arrowhead)'
+        });
+        svg.appendChild(line);
+      }
+
+      var midX = (x1 + x2) / 2;
+      var text = svgEl('text', {
+        x: midX, y: y - 8, class: 'step-label' + (isReturn ? ' return' : ''),
+        'text-anchor': 'middle'
+      });
+      text.textContent = (step.seq != null ? step.seq + '. ' : '') + (step.label || '');
+      svg.appendChild(text);
+    });
+
+    // steps 一覧表
+    steps.forEach(function (step) {
+      var tr = document.createElement('tr');
+      var fromLabel = LANE_LABELS[step.from] || step.from;
+      var toLabel = LANE_LABELS[step.to] || step.to;
+      var refCell = step.sourceRef ? escHtml(step.sourceRef) : '';
+      tr.innerHTML =
+        '<td>' + escHtml(step.seq) + '</td>' +
+        '<td>' + escHtml(fromLabel) + ' → ' + escHtml(toLabel) + (step.kind === 'return' ? '（応答）' : '') + '</td>' +
+        '<td>' + escHtml(step.label) + '</td>' +
+        '<td class="ref">' + refCell + '</td>';
+      tbody.appendChild(tr);
+    });
+  }
+
+  if (!operations.length) {
+    if (diagramWrap) diagramWrap.style.display = 'none';
+    if (table) table.style.display = 'none';
+    var selectorEl = document.querySelector('.op-selector');
+    if (selectorEl) selectorEl.style.display = 'none';
+    emptyMsg.style.display = 'block';
+  } else {
+    operations.forEach(function (op, i) {
+      var opt = document.createElement('option');
+      opt.value = String(i);
+      opt.textContent = op.label || op.key || ('操作' + (i + 1));
+      select.appendChild(opt);
+    });
+    select.addEventListener('change', function () {
+      renderOperation(operations[Number(select.value)]);
+    });
+    renderOperation(operations[0]);
+  }
+})();
+</script>
+
+<script>
+(function () {
+  var themeBtn = document.getElementById('theme-toggle');
+  if (themeBtn) {
+    themeBtn.addEventListener('click', function () {
+      var r = document.documentElement;
+      var next = r.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+      r.setAttribute('data-theme', next);
+      themeBtn.textContent = next === 'dark' ? 'ダーク' : 'ライト';
+      try { localStorage.setItem('rd-portal-theme', next); } catch (e) {}
+    });
+  }
+  try {
+    var saved = localStorage.getItem('rd-portal-theme');
+    if (saved) {
+      document.documentElement.setAttribute('data-theme', saved);
+      var tb = document.getElementById('theme-toggle');
+      if (tb) tb.textContent = saved === 'dark' ? 'ダーク' : 'ライト';
+    }
+  } catch (e) {}
+})();
+</script>
+</body>
+</html>

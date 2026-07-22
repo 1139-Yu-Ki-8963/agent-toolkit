@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>データ設計書（リバース版）</title>
+<style>
+  :root,
+[data-theme="light"] {
+  /* Windows フォント上書き防止 */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-synthesis: none;
+  --bg: #FFFFFF;
+  --panel: #FFFFFF;
+  --panel-2: #F6F8FA;
+  --border: #D1D9E0;
+  --border-strong: #AFB8C1;
+  --text: #1B1F26;
+  --text-sub: #4A4F58;
+  --text-muted: #767B85;
+  --accent: #0969DA;
+  --accent-2: #218BFF;
+  --accent-soft: #DDF4FF;
+  --accent-border: #54AEFF;
+  --gold: #BC4C00;
+  --gold-soft: #FFF1E5;
+  --gold-border: #D18A5A;
+  --success: #1A7F37;
+  --success-soft: #DAFBE1;
+  --warn: #BC4C00;
+  --danger: #CF222E;
+  --danger-soft: #FFEBE9;
+  --highlight: #D97B1A;
+  --highlight-soft: rgba(217,123,26,0.12);
+  --highlight-border: rgba(217,123,26,0.5);
+  --nav-tag: #7B8BBF;
+  --nav-tag-soft: #ECEEF6;
+  --self-tag: #6B9B6B;
+  --self-tag-soft: #E8F0E8;
+  --code-bg: #1B1F26;
+  --code-fg: #E8E5DC;
+  --cat-list: #2563eb;
+  --cat-common: #059669;
+  --cat-project: #7C3AED;
+  --font-body: "Hiragino Kaku Gothic ProN","Hiragino Sans","Noto Sans JP","BIZ UDPGothic","Yu Gothic","Meiryo",system-ui,-apple-system,sans-serif;
+  --mono: "SFMono-Regular","Menlo","Cascadia Code","Consolas",monospace;
+  --shadow-sm: 0 1px 3px rgba(27,31,38,.07), 0 2px 6px rgba(27,31,38,.05);
+  --shadow-md: 0 2px 8px rgba(27,31,38,.09), 0 8px 24px rgba(27,31,38,.07);
+  --radius: 10px;
+  --radius-sm: 6px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #15171C; --panel: #1C1F26; --panel-2: #21262D;
+    --border: #30363D; --border-strong: #484F58;
+    --text: #E8E5DC; --text-sub: #B6B3AB; --text-muted: #888784;
+    --accent: #58A6FF; --accent-2: #79C0FF; --accent-soft: #132D4B; --accent-border: #1F6FEB;
+    --gold: #DB6D28; --gold-soft: #311D08; --gold-border: #7A3E0D;
+    --success: #3FB950; --success-soft: #0D2818;
+    --warn: #DB6D28; --danger: #F85149; --danger-soft: #3D1214;
+    --highlight: #E8943A; --highlight-soft: rgba(232,148,58,0.15); --highlight-border: rgba(232,148,58,0.5);
+    --nav-tag: #8E9ED0; --nav-tag-soft: rgba(142,158,208,0.15);
+    --self-tag: #7DB87D; --self-tag-soft: rgba(125,184,125,0.15);
+    --code-bg: #0E1116; --code-fg: #E8E5DC;
+    --cat-list: #60A5FA; --cat-common: #34D399; --cat-project: #A78BFA;
+  }
+}
+[data-theme="dark"] {
+  --bg: #15171C; --panel: #1C1F26; --panel-2: #21262D;
+  --border: #30363D; --border-strong: #484F58;
+  --text: #E8E5DC; --text-sub: #B6B3AB; --text-muted: #888784;
+  --accent: #58A6FF; --accent-2: #79C0FF; --accent-soft: #132D4B; --accent-border: #1F6FEB;
+  --gold: #DB6D28; --gold-soft: #311D08; --gold-border: #7A3E0D;
+  --success: #3FB950; --success-soft: #0D2818;
+  --warn: #DB6D28; --danger: #F85149; --danger-soft: #3D1214;
+  --highlight: #E8943A; --highlight-soft: rgba(232,148,58,0.15); --highlight-border: rgba(232,148,58,0.5);
+  --nav-tag: #8E9ED0; --nav-tag-soft: rgba(142,158,208,0.15);
+  --self-tag: #7DB87D; --self-tag-soft: rgba(125,184,125,0.15);
+  --code-bg: #0E1116; --code-fg: #E8E5DC;
+  --cat-list: #60A5FA; --cat-common: #34D399; --cat-project: #A78BFA;
+}
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 0;
+    font-family: var(--font-body);
+    line-height: 1.7; color: var(--text); background: var(--bg);
+  }
+  .topbar {
+    display: grid; grid-template-columns: auto 1fr auto;
+    align-items: center; gap: 12px;
+    padding: 10px 20px;
+    background: var(--panel); border-bottom: 1px solid var(--border);
+    position: sticky; top: 0; z-index: 10;
+  }
+  .brand { display: flex; align-items: center; gap: 8px; color: var(--text); text-decoration: none; font-weight: 700; font-size: 0.95rem; }
+  .brand:hover { color: var(--accent); }
+  .brand-sub { font-size: 11px; font-weight: 400; color: var(--text-muted, #6c757d); }
+  #theme-toggle {
+    background: var(--panel-2); border: 1px solid var(--border); border-radius: var(--radius-sm);
+    color: var(--text-sub); cursor: pointer; padding: 4px 12px; font-family: inherit; font-size: 0.82rem;
+  }
+  #theme-toggle:hover { background: var(--accent-soft); color: var(--accent); border-color: var(--accent-border); }
+  .header-meta { font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 8px; }
+  .doc-main {
+    max-width: 860px; margin: 0 auto; padding: 32px 24px 96px;
+  }
+  .doc-main h1 { font-size: 1.6rem; margin: 32px 0 16px; padding-bottom: 8px; border-bottom: 2px solid var(--border-strong); color: var(--text); }
+  .doc-main h2 { font-size: 1.3rem; margin: 28px 0 12px; padding-bottom: 6px; border-bottom: 1px solid var(--border); color: var(--text); }
+  .doc-main h3 { font-size: 1.1rem; margin: 24px 0 8px; color: var(--text); }
+  .doc-main h4 { font-size: 1rem; margin: 20px 0 6px; color: var(--text-sub); }
+  .doc-main p { margin: 8px 0; }
+  .doc-main ul, .doc-main ol { padding-left: 24px; margin: 8px 0; }
+  .doc-main li { margin: 4px 0; }
+  .doc-main code {
+    background: var(--code-bg); color: var(--code-fg); padding: 1px 6px;
+    border-radius: 4px; font-family: var(--mono); font-size: 0.85em;
+  }
+  .doc-main blockquote {
+    border-left: 3px solid var(--accent-border); margin: 12px 0; padding: 8px 16px;
+    background: var(--panel); color: var(--text-sub); font-size: 0.95rem;
+  }
+  .doc-main table { border-collapse: collapse; width: 100%; margin: 12px 0; font-size: 0.9rem; }
+  .doc-main th { background: var(--panel); font-weight: 700; text-align: left; }
+  .doc-main th, .doc-main td { padding: 8px 12px; border: 1px solid var(--border); }
+  .doc-main hr { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
+  .doc-main pre { background: var(--code-bg); color: var(--code-fg); padding: 12px 16px; border-radius: var(--radius-sm); overflow-x: auto; font-family: var(--mono); font-size: 0.85em; line-height: 1.5; }
+  .footer {
+    padding: 12px 20px; border-top: 1px solid var(--border);
+    font-size: 12px; color: var(--text-muted);
+    display: flex; gap: 20px; justify-content: center;
+  }
+  @media (max-width: 760px) {
+    .topbar { grid-template-columns: 1fr; gap: 8px; padding: 10px 14px; }
+    .doc-main { padding: 14px; }
+  }
+</style>
+</head>
+<body>
+<header class="topbar">
+  <a class="brand" href="../index.html">
+    <span class="brand-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:middle"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zM13 9V3.5L18.5 9H13z"/></svg></span>
+    <span class="brand-title">サンプルプロジェクト</span>
+    <span class="brand-sub">設計ポータル</span>
+  </a>
+  <div class="header-meta">
+    <span class="pm-updated">更新: 2026-07-23</span>
+  </div>
+  <div class="top-actions">
+    <button id="theme-toggle" title="テーマ切替">ライト</button>
+  </div>
+</header>
+
+<main class="doc-main" id="doc-content"></main>
+
+<footer class="footer">共通文書ビューア — build-portal.sh により自動生成</footer>
+
+<script type="text/plain" id="doc-md">
+
+# データ設計書（リバース版）
+
+本書はアーキテクチャ調査書および層化サンプル（`./サンプル記録.md` 参照）から抽出した、データ関連の実装方針を横断的に整理した記録である。あるべきデータ設計を新たに構想するのではなく、既存コードに実際に存在する方針のみを記載する。個々のテーブル・API の詳細設計は、対応する詳細設計書（未整備の場合は「実在しない（理由: 詳細設計工程未着手）」）を正とし、本書ではプロジェクト横断の方針のみを記載する。
+
+## 本書に書かないもの
+
+| 書かない内容 | 正の置き場 |
+|---|---|
+| 個別テーブルのカラム定義 | 各テーブル定義書（未整備の場合は本書に記載せず「実在しない」で明記） |
+| 個別 API のリクエスト/レスポンス詳細 | 各 API 詳細設計書（未整備の場合は本書に記載せず「実在しない」で明記） |
+| 画面固有のデータ取得ロジック | 各画面詳細設計書 |
+| UI 表示上の状態（loading/empty/error） | `./共通設計書.md`（§1） |
+
+---
+
+## §1 データモデル概要（実測）
+
+| エンティティ | 概要 | 根拠パス |
+|---|---|---|
+| 注文（Order） | 会員が確定した購入単位。明細行（OrderItem）を子に持つ | `server/models/order.ts` |
+| 会員（Member） | EC サイトの購入者アカウント | `server/models/member.ts` |
+| 商品（Product） | 販売対象。SKU 単位で在庫と紐づく | `server/models/product.ts` |
+| 在庫（Inventory） | SKU ごとの引当可能数量 | `server/models/inventory.ts` |
+| 請求（Invoice） | 注文確定後に発行される請求単位 | `server/models/invoice.ts` |
+| 支払い（Payment） | 決済代行サービス経由の決済記録 | `server/models/payment.ts` |
+| 出荷（Shipment） | 注文に対する配送手配単位 | `server/models/shipment.ts` |
+| 返品（Return） | 出荷済み注文に対する返品申請 | `server/models/return.ts` |
+| クーポン（Coupon） | 割引条件を持つ販促コード | `server/models/coupon.ts` |
+| レビュー（Review） | 会員が商品に投稿する評価コメント | `server/models/review.ts` |
+| 問い合わせ（Inquiry） | 会員からのサポート問い合わせ | `server/models/inquiry.ts` |
+| キャンペーン（Campaign） | 期間限定の販促施策 | `server/models/campaign.ts` |
+
+---
+
+## §2 API スキーマ（実測）
+
+| 項目 | 内容 | 根拠パス |
+|---|---|---|
+| エンドポイント体系 | `/api/<リソース名複数形>/:id` 形式の RESTful パターン（例: `/api/orders/:id`, `/api/members/:id`） | `server/routes/orders.ts` |
+| リクエスト/レスポンス設計方針 | 共通エンベロープ形式。正常時 `{ "data": {...}, "meta": { "requestId": "..." } }`、異常時 `{ "error": { "code": ..., "message": "..." }, "meta": {...} }` | `server/middleware/responseEnvelope.ts` |
+
+---
+
+## §3 状態管理方針（実測）
+
+| 項目 | 内容 | 根拠パス |
+|---|---|---|
+| 状態管理ライブラリ | Zustand | `package.json` |
+| ストア構成方針 | ドメイン別にストアを分割（`orderStore` / `memberStore` / `productStore` / `authStore` 等） | `src/stores/` |
+
+---
+
+## §4 データフロー（実測）
+
+| 項目 | 内容 | 根拠パス |
+|---|---|---|
+| 取得・変換・表示の流れ | React Query で API 取得 → レスポンスを正規化 → 必要に応じて Zustand ストアへ格納 → コンポーネントが購読して表示 | `src/hooks/useOrders.ts` |
+
+---
+
+## §5 キャッシュ戦略（実測）
+
+| 項目 | 内容 | 根拠パス |
+|---|---|---|
+| キャッシュ方式 | React Query のインメモリキャッシュ（`staleTime` を各クエリごとに個別設定） | `src/lib/queryClient.ts` |
+| 無効化戦略 | mutation 成功時に対応するクエリキーを `invalidateQueries` で無効化 | `src/hooks/useOrderMutations.ts` |
+
+---
+
+## §6 状態遷移表（実測）
+
+| エンティティ | 状態 | 遷移前 | 契機 | 遷移後 | 根拠パス |
+|---|---|---|---|---|---|
+| 注文 | 確定 | 下書き | 注文確認画面の確定操作 | 確定 | `src/pages/orders/OrderConfirmPage.tsx` |
+| 注文 | 出荷済 | 確定 | 出荷バッチ（日次） | 出荷済 | `server/batch/shipOrders.ts` |
+| 注文 | キャンセル | 確定 | POST /api/orders/:id/cancel | キャンセル | `server/routes/orders.ts` |
+| 注文 | 返金済 | 出荷済 | 返品受理後の返金処理 | 返金済 | `server/services/refundService.ts` |
+| 請求 | 発行済 | 下書き | 請求書発行バッチ（月次） | 発行済 | `server/batch/generateInvoices.ts` |
+| 請求 | 入金済 | 発行済 | 入金確認画面の消込操作 | 入金済 | `src/pages/billing/PaymentReconcilePage.tsx` |
+| 請求 | 延滞 | 発行済 | 支払期日超過チェックバッチ（日次） | 延滞 | `server/batch/checkOverdueInvoices.ts` |
+| 請求 | 入金済 | 延滞 | 入金確認画面の消込操作 | 入金済 | `src/pages/billing/PaymentReconcilePage.tsx` |
+| 会員 | 休会 | 有効 | マイページの休会申請操作 | 休会 | `src/pages/mypage/SuspendAccountPage.tsx` |
+| 会員 | 有効 | 休会 | マイページの再開操作 | 有効 | `src/pages/mypage/ResumeAccountPage.tsx` |
+| 会員 | 凍結 | 有効 | POST /api/admin/members/:id/freeze | 凍結 | `server/routes/adminMembers.ts` |
+| 会員 | 退会 | 有効 | 退会手続き画面の退会確定操作 | 退会 | `src/pages/mypage/WithdrawPage.tsx` |
+| 出荷 | 出荷済 | 準備中 | 出荷バッチ（日次） | 出荷済 | `server/batch/shipOrders.ts` |
+| 出荷 | 配送中 | 出荷済 | 配送業者連携 Webhook 受信 | 配送中 | `server/webhooks/carrierStatus.ts` |
+| 出荷 | 配達完了 | 配送中 | 配送業者連携 Webhook 受信 | 配達完了 | `server/webhooks/carrierStatus.ts` |
+| 返品 | 承認済 | 申請中 | 返品申請画面の承認操作（管理者） | 承認済 | `src/pages/admin/ReturnApprovePage.tsx` |
+| 返品 | 返送済 | 承認済 | 返送受領登録画面の受領操作 | 返送済 | `src/pages/admin/ReturnReceivePage.tsx` |
+| 返品 | 完了 | 返送済 | 返金処理完了通知バッチ（日次） | 完了 | `server/batch/completeReturns.ts` |
+| 在庫 | 残りわずか | 在庫あり | 在庫数更新バッチ（在庫閾値チェック・日次） | 残りわずか | `server/batch/checkStockThreshold.ts` |
+| 在庫 | 在庫切れ | 残りわずか | POST /api/orders/:id/confirm（在庫引当処理） | 在庫切れ | `server/services/inventoryService.ts` |
+| 在庫 | 在庫あり | 在庫切れ | 入荷登録画面の入荷確定操作 | 在庫あり | `src/pages/admin/StockInPage.tsx` |
+| クーポン | 公開中 | 下書き | クーポン編集画面の公開操作 | 公開中 | `src/pages/admin/CouponEditPage.tsx` |
+| クーポン | 停止中 | 公開中 | クーポン一覧画面の停止操作 | 停止中 | `src/pages/admin/CouponListPage.tsx` |
+| クーポン | 公開中 | 停止中 | クーポン一覧画面の再開操作 | 公開中 | `src/pages/admin/CouponListPage.tsx` |
+| クーポン | 失効 | 公開中 | クーポン有効期限チェックバッチ（日次） | 失効 | `server/batch/expireCoupons.ts` |
+| レビュー | 公開 | 審査待ち | レビュー審査画面の承認操作 | 公開 | `src/pages/admin/ReviewModerationPage.tsx` |
+| レビュー | 非公開 | 審査待ち | レビュー審査画面の却下操作 | 非公開 | `src/pages/admin/ReviewModerationPage.tsx` |
+| レビュー | 非公開 | 公開 | POST /api/admin/reviews/:id/hide | 非公開 | `server/routes/adminReviews.ts` |
+| 問い合わせ | 対応中 | 未対応 | 問い合わせ詳細画面の担当者アサイン操作 | 対応中 | `src/pages/admin/InquiryDetailPage.tsx` |
+| 問い合わせ | 保留 | 対応中 | 問い合わせ詳細画面の保留操作 | 保留 | `src/pages/admin/InquiryDetailPage.tsx` |
+| 問い合わせ | 対応中 | 保留 | 問い合わせ詳細画面の再開操作 | 対応中 | `src/pages/admin/InquiryDetailPage.tsx` |
+| 問い合わせ | 解決済 | 対応中 | 問い合わせ詳細画面のクローズ操作 | 解決済 | `src/pages/admin/InquiryDetailPage.tsx` |
+| キャンペーン | 実施中 | 計画中 | キャンペーン開始バッチ（日次・開始日到来） | 実施中 | `server/batch/startCampaigns.ts` |
+| キャンペーン | 一時停止 | 実施中 | キャンペーン管理画面の一時停止操作 | 一時停止 | `src/pages/admin/CampaignManagePage.tsx` |
+| キャンペーン | 実施中 | 一時停止 | キャンペーン管理画面の再開操作 | 実施中 | `src/pages/admin/CampaignManagePage.tsx` |
+| キャンペーン | 終了 | 実施中 | キャンペーン終了バッチ（日次・終了日到来） | 終了 | `server/batch/endCampaigns.ts` |
+| 支払い | 承認済 | 未処理 | 決済代行サービスからの Webhook 受信（承認通知） | 承認済 | `server/webhooks/paymentGateway.ts` |
+| 支払い | 決済完了 | 承認済 | 決済確定バッチ（日次） | 決済完了 | `server/batch/settlePayments.ts` |
+| 支払い | 失敗 | 未処理 | 決済代行サービスからの Webhook 受信（拒否通知） | 失敗 | `server/webhooks/paymentGateway.ts` |
+| 支払い | 未処理 | 失敗 | 支払い再試行画面の再実行操作 | 未処理 | `src/pages/checkout/PaymentRetryPage.tsx` |
+| 商品公開 | 公開 | 下書き | 商品編集画面の公開操作 | 公開 | `src/pages/admin/ProductEditPage.tsx` |
+| 商品公開 | 公開停止 | 公開 | 商品一覧画面の公開停止操作 | 公開停止 | `src/pages/admin/ProductListPage.tsx` |
+| 商品公開 | 公開 | 公開停止 | 商品一覧画面の再公開操作 | 公開 | `src/pages/admin/ProductListPage.tsx` |
+
+記入規則: キーは連番禁止。状態・契機は業務語彙で書く。根拠パスは対象リポジトリからの相対パス。
+
+---
+
+## traced の条件
+
+- 全節の実測値がアーキテクチャ調査書または層化サンプルからの抽出結果で埋まっていること
+- コード内に実在しない項目は「実在しない（理由: …）」で埋めること（空欄・省略は禁止）
+</script>
+
+<script>
+(function () {
+  var src = document.getElementById('doc-md').textContent;
+
+  // frontmatter 除去
+  src = src.replace(/^\s*---[\s\S]*?---\s*/, '');
+
+  var lines = src.split('\n');
+  var html = [];
+  var inTable = false;
+  var inList = false;
+  var listType = '';
+  var inBlockquote = false;
+
+  function escHtml(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+  function inlineFormat(s) {
+    s = escHtml(s);
+    s = s.replace(/`([^`]+)`/g, '<code>$1</code>');
+    s = s.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+    s = s.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+    return s;
+  }
+
+  function closeList() {
+    if (inList) { html.push(listType === 'ul' ? '</ul>' : '</ol>'); inList = false; }
+  }
+  function closeBlockquote() {
+    if (inBlockquote) { html.push('</blockquote>'); inBlockquote = false; }
+  }
+  function closeTable() {
+    if (inTable) { html.push('</tbody></table>'); inTable = false; }
+  }
+
+  for (var i = 0; i < lines.length; i++) {
+    var line = lines[i];
+    var trimmed = line.trim();
+
+    // 空行
+    if (!trimmed) { closeList(); closeBlockquote(); continue; }
+
+    // 見出し
+    var hm = trimmed.match(/^(#{1,6})\s+(.*)$/);
+    if (hm) { closeList(); closeBlockquote(); closeTable(); var lv = hm[1].length; html.push('<h' + lv + '>' + inlineFormat(hm[2]) + '</h' + lv + '>'); continue; }
+
+    // 水平線
+    if (/^---+$/.test(trimmed) || /^\*\*\*+$/.test(trimmed)) { closeList(); closeBlockquote(); closeTable(); html.push('<hr>'); continue; }
+
+    // テーブル
+    if (trimmed.indexOf('|') !== -1 && trimmed.charAt(0) === '|') {
+      closeList(); closeBlockquote();
+      var cells = trimmed.split('|').filter(function(c,j,a){ return j > 0 && j < a.length - 1; });
+      if (/^[\s|:-]+$/.test(trimmed)) continue; // separator 行
+      if (!inTable) {
+        html.push('<table><thead><tr>');
+        cells.forEach(function(c) { html.push('<th>' + inlineFormat(c.trim()) + '</th>'); });
+        html.push('</tr></thead><tbody>');
+        inTable = true;
+      } else {
+        html.push('<tr>');
+        cells.forEach(function(c) { html.push('<td>' + inlineFormat(c.trim()) + '</td>'); });
+        html.push('</tr>');
+      }
+      continue;
+    } else { closeTable(); }
+
+    // 引用
+    if (trimmed.charAt(0) === '>') {
+      closeList(); closeTable();
+      if (!inBlockquote) { html.push('<blockquote>'); inBlockquote = true; }
+      html.push('<p>' + inlineFormat(trimmed.substring(1).trim()) + '</p>');
+      continue;
+    } else { closeBlockquote(); }
+
+    // 番号付きリスト
+    var olm = trimmed.match(/^(\d+)\.\s+(.*)$/);
+    if (olm) {
+      closeTable(); closeBlockquote();
+      if (!inList || listType !== 'ol') { closeList(); html.push('<ol>'); inList = true; listType = 'ol'; }
+      html.push('<li>' + inlineFormat(olm[2]) + '</li>');
+      continue;
+    }
+
+    // 箇条書き
+    if (trimmed.charAt(0) === '-' && trimmed.charAt(1) === ' ') {
+      closeTable(); closeBlockquote();
+      if (!inList || listType !== 'ul') { closeList(); html.push('<ul>'); inList = true; listType = 'ul'; }
+      html.push('<li>' + inlineFormat(trimmed.substring(2)) + '</li>');
+      continue;
+    }
+
+    // 通常段落
+    closeList(); closeTable(); closeBlockquote();
+    html.push('<p>' + inlineFormat(trimmed) + '</p>');
+  }
+  closeList(); closeTable(); closeBlockquote();
+
+  document.getElementById('doc-content').innerHTML = html.join('\n');
+})();
+</script>
+
+<script>
+(function () {
+  var themeBtn = document.getElementById('theme-toggle');
+  if (themeBtn) {
+    themeBtn.addEventListener('click', function () {
+      var r = document.documentElement;
+      var next = r.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+      r.setAttribute('data-theme', next);
+      themeBtn.textContent = next === 'dark' ? 'ダーク' : 'ライト';
+      try { localStorage.setItem('rd-portal-theme', next); } catch (e) {}
+    });
+  }
+  try {
+    var saved = localStorage.getItem('rd-portal-theme');
+    if (saved) {
+      document.documentElement.setAttribute('data-theme', saved);
+      var tb = document.getElementById('theme-toggle');
+      if (tb) tb.textContent = saved === 'dark' ? 'ダーク' : 'ライト';
+    }
+  } catch (e) {}
+})();
+</script>
+</body>
+</html>

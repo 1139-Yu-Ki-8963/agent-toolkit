@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<!--
+  generating-entity-state-for-reverse-docs スキルガイド（単一ファイル自己完結型）
+
+  - 外部リソース（CDN・画像・link）は一切使わず、完全自己完結に保つ
+  - .claude/rules/always/skill-guide/html/rule.md（スキルガイド HTML 統一規約）準拠
+-->
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>generating-entity-state-for-reverse-docs スキルガイド</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 0 24px 96px;
+    font-family: system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif;
+    line-height: 1.85; color: #1a1a1a; background: #fafafa;
+    max-width: 980px; margin-inline: auto;
+  }
+  header { padding: 56px 0 24px; border-bottom: 3px solid #1a1a1a; }
+  header h1 { font-size: 1.9rem; margin: 0 0 10px; letter-spacing: 0.01em; }
+  header .skill-name {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 1.0rem; background: #1a1a1a; color: #fafafa;
+    padding: 2px 10px; border-radius: 4px; vertical-align: middle;
+  }
+  header p { margin: 6px 0 0; color: #555; }
+  .meta-table { margin-top: 16px; font-size: 0.9rem; color: #555; }
+  .meta-table td { padding: 1px 16px 1px 0; }
+
+  nav.toc {
+    margin-top: 32px; padding: 18px 22px;
+    background: #fff; border: 1px solid #e0e0e0; border-radius: 8px;
+  }
+  nav.toc .toc-title { font-weight: 700; margin-bottom: 6px; }
+  nav.toc ol { margin: 0; padding-left: 1.4em; columns: 2; column-gap: 40px; }
+  nav.toc li { margin: 2px 0; }
+  nav.toc a { color: #1a1a1a; text-decoration: none; border-bottom: 1px dotted #999; }
+  nav.toc a:hover { border-bottom-style: solid; }
+
+  section { margin-top: 64px; }
+  section > h2 {
+    font-size: 1.35rem; padding-bottom: 8px; margin-bottom: 20px;
+    border-bottom: 2px solid #1a1a1a;
+  }
+  section > h2 .sec-num {
+    display: inline-block; min-width: 2.4em; margin-right: 10px;
+    font-family: ui-monospace, monospace; font-size: 0.95rem;
+    background: #1a1a1a; color: #fafafa; text-align: center;
+    padding: 1px 8px; border-radius: 4px; vertical-align: 2px;
+  }
+  h3 { font-size: 1.05rem; margin: 32px 0 10px; }
+  .note { color: #555; font-size: 0.92rem; }
+
+  table.spec { border-collapse: collapse; width: 100%; margin: 14px 0; background: #fff; font-size: 0.93rem; }
+  table.spec th, table.spec td { border: 1px solid #d8d8d8; padding: 8px 12px; text-align: left; vertical-align: top; }
+  table.spec th { background: #f0f0ee; font-weight: 700; white-space: nowrap; }
+  table.spec td code, li code, p code, table.spec th code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.86em; background: #eeeeea; padding: 1px 5px; border-radius: 3px;
+  }
+
+  pre.flow {
+    background: #16211c; color: #d7e6dc; border-radius: 8px;
+    padding: 20px 24px; overflow-x: auto;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.82rem; line-height: 1.55;
+  }
+  pre.flow .cap { color: #8fb8a0; }
+
+  .def {
+    background: #fff; border-left: 4px solid #1a1a1a;
+    padding: 12px 18px; margin: 14px 0; border-radius: 0 6px 6px 0;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  }
+  .def dt { font-weight: 700; margin-top: 8px; }
+  .def dt:first-child { margin-top: 0; }
+  .def dd { margin: 2px 0 0 0; color: #333; }
+
+  .constraint {
+    background: #eef2f7; border: 1px solid #c8d4e3; border-radius: 8px;
+    padding: 12px 18px; margin: 16px 0; font-size: 0.93rem;
+  }
+  .constraint strong:first-child { color: #2a4a7a; }
+
+  .tag {
+    display: inline-block; font-family: ui-monospace, monospace; font-size: 0.78rem;
+    font-weight: 700; padding: 0 8px; border-radius: 3px; border: 1px solid transparent;
+  }
+  .tag.pass  { background: #e7f3e7; color: #23662a; border-color: #b9d9ba; }
+  .tag.fail  { background: #fbe9e7; color: #9c2b1a; border-color: #ecc0b8; }
+  .tag.error { background: #fdf3d7; color: #7a5d10; border-color: #e8d59a; }
+  .tag.mode  { background: #e8eef7; color: #2a4a7a; border-color: #c2d2e8; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>状態遷移図生成スキル<br><span class="skill-name">generating-entity-state-for-reverse-docs</span></h1>
+  <p>データ設計.md の §6 状態遷移表を唯一の一次情報として、エンティティの状態遷移図（状態遷移図.html）を機械生成するスキルの確定仕様。表に記載のない遷移は捏造せず、判定・評価も行わない。</p>
+
+  <div class="def">
+    <dt>こんな人向け</dt>
+    <dd>
+      リバース設計でエンティティの状態遷移を図として確立したい人 ／
+      データ設計.md §6 状態遷移表をポータルの状態遷移図カードに反映したい人
+    </dd>
+    <dt>こんな場面で使う</dt>
+    <dd>
+      generating-reverse-common-docs でデータ設計.md §6 状態遷移表の採録が終わった直後 ／
+      状態遷移図.html を単独で再生成・更新したい時
+    </dd>
+  </div>
+
+  <table class="meta-table">
+    <tr><td>対応 OS</td><td>Windows WSL2 環境</td></tr>
+    <tr><td>検証状況</td><td>self-test・fixture による実挙動確認済み（2026-07-23）</td></tr>
+    <tr><td>依存</td><td><code>build-detail-page.sh</code> / <code>validate-page-data.sh</code> / データ設計.md の状態遷移表章</td></tr>
+    <tr><td>関連資料</td><td><code>generating-sequence-diagram-for-reverse-docs</code>, <code>shared/scripts/detail-pages/page-data-schema.md</code></td></tr>
+  </table>
+</header>
+
+<nav class="toc">
+  <div class="toc-title">目次</div>
+  <ol>
+    <li><a href="#s1">概要</a></li>
+    <li><a href="#s2">出力</a></li>
+    <li><a href="#s3">使用タイミング</a></li>
+    <li><a href="#s4">用語</a></li>
+    <li><a href="#s5">Phase 手順</a></li>
+    <li><a href="#s6">ループ設計</a></li>
+    <li><a href="#s7">重要な注意事項・予想を裏切る挙動</a></li>
+    <li><a href="#s8">関連スキル・規約</a></li>
+  </ol>
+</nav>
+
+<section id="s1">
+  <h2><span class="sec-num">§1</span>概要</h2>
+  <p>工程全体は orchestrating-reverse-docs-flow が案内する。本スキルはポータルの将来ページ受け口のうち状態遷移図（T7）のみを担い、単独起動できる（起動引数を渡せば動く）。</p>
+  <p>データ設計.md の §6 状態遷移表（生成済み。generating-reverse-common-docs が採録する）をエンティティの状態遷移の正とする。表の各行を機械的に nodes/edges へ変換し、状態遷移図.html として書き出す。<strong>本スキルは判定・評価を一切行わない</strong>。状態遷移表に記載された遷移のみを転記し、記載がない状態遷移を推測・補完しない。状態遷移表が未採録、または該当章に行が 1 件もない場合は、生成せず事実として停止報告する。</p>
+  <table class="spec">
+    <tr><th>設計原則</th><th>内容</th></tr>
+    <tr><td>抽出元は単一</td><td>データ設計.md の §6 状態遷移表 1 箇所のみを一次情報とする。対象リポジトリへの新規走査は行わない（根拠パスの実在検証のみ <code>--target-repo</code> で行う）</td></tr>
+    <tr><td>表外の遷移は捏造しない</td><td>状態遷移表に記載がない状態・遷移をコード調査や推測で補わない</td></tr>
+    <tr><td>行 0 件は停止</td><td>§6 状態遷移表に行が 1 件もない場合、page-data を生成せずユーザーへ報告して停止する</td></tr>
+    <tr><td>固定と可変の分離</td><td>整合検証（<code>validate-page-data.sh</code>）と HTML 生成（<code>build-detail-page.sh</code>）は決定的スクリプトに固定する。抽出（表の行→nodes/edges への変換）は Claude 自身が Bash/Read で行う</td></tr>
+  </table>
+</section>
+
+<section id="s2">
+  <h2><span class="sec-num">§2</span>出力</h2>
+  <p>本スキルを実行すると、以下の 1 点が生まれる。</p>
+  <div class="def">
+    <dt>状態遷移図.html</dt>
+    <dd><code>&lt;docs_root&gt;</code> 直下に固定生成される、エンティティごとの状態遷移図ページ。データ設計.md §6 状態遷移表の各行を nodes（状態）・edges（遷移。契機と根拠パス付き）に機械変換し、検証済みの page-data から <code>build-detail-page.sh</code> が決定的に組み立てる。エンティティ絞り込みセレクタで画面を切り替えながら、どの状態からどの契機でどの状態へ遷移するかを、根拠パス付きで確認できる。</dd>
+  </div>
+</section>
+
+<section id="s3">
+  <h2><span class="sec-num">§3</span>使用タイミング</h2>
+  <table class="spec">
+    <tr><th>区分</th><th>内容</th></tr>
+    <tr><td>前提</td><td>データ設計.md の §6 状態遷移表が確定済みで、ポータルに状態遷移図カードを追加したいとき</td></tr>
+    <tr><td>起動引数</td><td><code>target_repo_path</code>（対象リポジトリの絶対パス。根拠パスの実在検証に使用）・<code>docs_root</code>（データ設計.md 所在 / 状態遷移図.html 出力先）・<code>portal_output_dir</code>（任意）</td></tr>
+    <tr><td>出力先</td><td><code>&lt;docs_root&gt;/状態遷移図.html</code> に固定（<code>build-detail-page.sh</code> の <code>get_page_filename</code> と同値）</td></tr>
+    <tr><td>前提ファイル既定パス</td><td><code>&lt;docs_root&gt;/プロジェクト共通/データ設計.md</code></td></tr>
+  </table>
+  <p class="note"><code>portal_output_dir</code> を指定した場合、生成後に <code>build-portal.sh</code> を再実行する。ただし状態遷移図（entity-state）のポータルカード受け口は本スキル作成時点で <code>build-portal.sh</code> に未配線であり、再実行してもカードが増えないことがある（別途の配線作業を要する。本スキルの責務外）。</p>
+</section>
+
+<section id="s4">
+  <h2><span class="sec-num">§4</span>用語</h2>
+  <dl class="def">
+    <dt>状態遷移表</dt>
+    <dd>データ設計.md §6 の表。列はエンティティ／状態／遷移前／契機／遷移後／根拠パス。本スキルが参照する唯一の一次情報。</dd>
+    <dt>nodes</dt>
+    <dd><code>(エンティティ, 状態)</code> の組を集めた一覧。<code>key</code> は <code>&lt;エンティティ&gt;.&lt;状態&gt;</code>（例: <code>注文.下書き</code>）、<code>label</code> は状態名そのもの、<code>entity</code> はエンティティ名。</dd>
+    <dt>edges</dt>
+    <dd>表の各行を 1 edge に変換したもの。<code>from</code>/<code>to</code> は <code>nodes[].key</code>、<code>trigger</code> は契機列の値、<code>sourceRef</code> は根拠パス列の値。</dd>
+    <dt>孤児参照</dt>
+    <dd><code>edges[].from</code>/<code>to</code> が <code>nodes[].key</code> に存在しない状態。<code>validate-page-data.sh</code> が機械検査する。</dd>
+  </dl>
+</section>
+
+<section id="s5">
+  <h2><span class="sec-num">§5</span>Phase 手順</h2>
+  <p>スキル開始時に <code>TaskCreate</code> で Phase 1〜4 のタスクを登録する。各 Phase 開始時に該当タスクを <code>in_progress</code> に、完了時に <code>completed</code> へ <code>TaskUpdate</code> で更新する。</p>
+  <table class="spec">
+    <tr><th>Phase</th><th>内容</th><th>完了条件</th></tr>
+    <tr><td>1. 前提確認</td><td>データ設計.md §6 状態遷移表の実在確認。データ行数の確認（プレースホルダ行のみは 0 件扱い）</td><td>表の実在・データ行 1 件以上を確認済み（または不在・0 件を報告して停止）</td></tr>
+    <tr><td>2. 抽出</td><td>Step 1: nodes 組み立て（状態列 + 遷移前/遷移後からの補完）。Step 2: edges 組み立て。Step 3: page-data.json 組み立て（<code>pageKind: "entity-state"</code>、legend/nodes/edges/unresolved）</td><td>表の全行から nodes[]・edges[] へ変換済み</td></tr>
+    <tr><td>3. 整合検証</td><td><code>validate-page-data.sh &lt;page-data.json&gt; --target-repo &lt;target_repo_path&gt;</code> を実行。孤児参照検査を含む</td><td><code>validate-page-data.sh --target-repo</code> が全項目 PASS</td></tr>
+    <tr><td>4. HTML 生成</td><td><code>build-detail-page.sh &lt;page-data.json&gt; &lt;docs_root&gt; --page entity-state</code> を実行。<code>portal_output_dir</code> 指定時は <code>build-portal.sh</code> を再実行</td><td><code>&lt;docs_root&gt;/状態遷移図.html</code> が生成済み</td></tr>
+  </table>
+  <p class="note">page-data.json の保存先は <code>$CLAUDE_JOB_DIR/tmp/entity-state-page-data.json</code>（未設定時は <code>${TMPDIR:-/tmp}/claude-job-${session}/tmp/</code> 配下）。手作業でのプレースホルダ置換は禁止し、HTML 生成は必ず <code>build-detail-page.sh</code> 経由の決定的処理で行う。</p>
+</section>
+
+<section id="s6">
+  <h2><span class="sec-num">§6</span>ループ設計</h2>
+  <table class="spec">
+    <tr><th>要素</th><th>内容</th></tr>
+    <tr><td>反復対象</td><td>Phase 3 Step 1 が FAIL → Step 2 の分岐で修正して再実行</td></tr>
+    <tr><td>上限回数</td><td>3 回</td></tr>
+    <tr><td>収束停止</td><td><code>validate-page-data.sh</code> が exit 0（孤児参照検査含め全項目 PASS）</td></tr>
+    <tr><td>発散検知</td><td>同一検査項目の同一 FAIL が 2 回連続で再発した場合は即座に Phase 2 Step 1（nodes 組み立て）へ差し戻す</td></tr>
+    <tr><td>リソース上限</td><td>3 回失敗で Phase 2 Step 1 へ差し戻す</td></tr>
+  </table>
+</section>
+
+<section id="s7">
+  <h2><span class="sec-num">§7</span>重要な注意事項・予想を裏切る挙動</h2>
+  <div class="constraint">
+    <strong>判定・評価はしない。</strong>状態設計の良否・遷移の妥当性には一切踏み込まず、状態遷移表に記載された遷移の事実のみを転記する。状態遷移表に記載がない遷移を AskUserQuestion で聞き出さない。対象リポジトリへの書き込み・変更は一切行わない。<code>shared/scripts/build-portal.sh</code> は本スキルの責務外であり編集しない。
+  </div>
+  <table class="spec">
+    <tr><th>予想を裏切る挙動</th><th>内容</th></tr>
+    <tr><td>出力先の階層</td><td><code>&lt;docs_root&gt;</code> 直下（「状態遷移図」のような種別専用フォルダは作らない）。<code>build-detail-page.sh</code> の <code>--page entity-state</code> 固定出力名仕様に従う</td></tr>
+    <tr><td>nodes.key の複合形式</td><td><code>&lt;エンティティ&gt;.&lt;状態&gt;</code> 形式に固定する（ER図の <code>entities[].key</code> のような単一識別子ではなく、複数エンティティを横断する状態名の衝突を避けるための複合キー）</td></tr>
+    <tr><td>自己遷移の扱い</td><td><code>from</code>/<code>to</code> が同一状態を指す行があってもそのまま転記する。孤児参照には該当しない</td></tr>
+    <tr><td><code>portal_output_dir</code> 未指定時</td><td><code>build-portal.sh</code> を実行しない。生成済み状態遷移図.html はそのまま残り、entity-state のカード受け口が配線された時点で次回ポータル生成時にカード化される</td></tr>
+  </table>
+</section>
+
+<section id="s8">
+  <h2><span class="sec-num">§8</span>関連スキル・規約</h2>
+  <table class="spec">
+    <tr><th>名前</th><th>関係</th></tr>
+    <tr><td>generating-reverse-common-docs</td><td>データ設計.md §6 状態遷移表を先行採録する。本スキルの前提入力を確定させる</td></tr>
+    <tr><td>generating-sequence-diagram-for-reverse-docs</td><td>同じくポータルの将来ページ受け口を担う単独起動可能なスキル。エンジンスクリプト（<code>build-detail-page.sh</code>）は共用しない（シーケンス図は画面ごとの複数生成のため別エンジン）</td></tr>
+    <tr><td>orchestrating-reverse-docs-flow</td><td>工程全体の呼び出し元。§9 相当の返却ブロック（status / artifacts / page_kind / portal_rebuilt / hint）が本スキルとのインターフェース</td></tr>
+    <tr><td>shared/scripts/detail-pages/page-data-schema.md</td><td>page-data.json のスキーマ（T7: entity-state 節）を定義している</td></tr>
+  </table>
+</section>
+
+</body>
+</html>

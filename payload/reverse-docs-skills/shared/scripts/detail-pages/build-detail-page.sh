@@ -3,7 +3,7 @@
 # page-data.json + --page 指定から、対応するテンプレートへ描画したHTMLを固定ファイル名で
 # <output-dir> 直下に書き出す。出力ファイル名は build-portal.sh の FUTURE_FILES と同値。
 #
-# Usage: build-detail-page.sh <page-data.json> <output-dir> --page glossary|techstack|transition|er|env
+# Usage: build-detail-page.sh <page-data.json> <output-dir> --page glossary|techstack|transition|er|env|entity-state
 #        build-detail-page.sh --self-test
 #
 # page → (テンプレートファイル, 固定出力ファイル名) 対応は本スクリプト内の
@@ -24,8 +24,8 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
-get_page_template() { case "$1" in glossary) echo "detail-t2-dictionary.html";; techstack) echo "detail-t3-attributes.html";; transition) echo "detail-t4-diagram.html";; er) echo "detail-t6-er.html";; env) echo "detail-t5-procedure.html";; esac; }
-get_page_filename() { case "$1" in glossary) echo "用語辞書.html";; techstack) echo "技術スタック.html";; transition) echo "画面遷移図.html";; er) echo "ER図.html";; env) echo "環境構築手順.html";; esac; }
+get_page_template() { case "$1" in glossary) echo "detail-t2-dictionary.html";; techstack) echo "detail-t3-attributes.html";; transition) echo "detail-t4-diagram.html";; er) echo "detail-t6-er.html";; env) echo "detail-t5-procedure.html";; entity-state) echo "detail-t7-entity-state.html";; esac; }
+get_page_filename() { case "$1" in glossary) echo "用語辞書.html";; techstack) echo "技術スタック.html";; transition) echo "画面遷移図.html";; er) echo "ER図.html";; env) echo "環境構築手順.html";; entity-state) echo "状態遷移図.html";; esac; }
 
 # --- --self-test モード ---
 # (a) バックスラッシュ・実マーカー文字列(\d+・{{PAGE_DATA_JSON}}・<!--DETAIL_TILES-->)を含む
@@ -36,9 +36,9 @@ get_page_filename() { case "$1" in glossary) echo "用語辞書.html";; techstac
 #     build-detail-page.sh自体もpageKind不一致データをexit 1で拒否することを検証する。
 #     加えて、存在しないtoを1本混ぜたtransitionの孤児edgeが、validate-page-data.shの
 #     孤児参照検査でFAILし、build-detail-page.sh自体もexit 1で拒否することを検証する
-# (d) glossary/transition/er/env の4種別それぞれについて、ファイル名対応(PAGE_FILENAME)・
+# (d) glossary/transition/er/env/entity-state の5種別それぞれについて、ファイル名対応(PAGE_FILENAME)・
 #     埋め込みJSON完全一致・未解決{{なしを検証する(techstackはケースa/bで検証済み。
-#     5種別全てのPASS行が出揃うことを条件とする)
+#     6種別全てのPASS行が出揃うことを条件とする)
 # (e) 関連エンティティ(スキーマ拡張フィールド)の有/無:
 #     有: 拡張フィールド(relatedApis/targetTables/downstreamJobs)を持つtransitionフィクスチャで
 #         「関連エンティティ」セクションと日本語ラベル+値一覧が出力されることを検証する
@@ -255,6 +255,26 @@ self_test() {
   }' > "$data_env"
   check_page_fixture env "$data_env"
 
+  local data_entity_state="$tmp/page-data-entity-state.json"
+  jq -n '{
+    pageKind: "entity-state",
+    generatedAt: "2026-01-01T00:00:00Z",
+    title: "状態遷移図",
+    description: "self-test用フィクスチャ",
+    legend: [{symbol: "→", meaning: "状態遷移"}],
+    nodes: [
+      {key: "注文.下書き", label: "下書き", entity: "注文"},
+      {key: "注文.確定", label: "確定", entity: "注文"},
+      {key: "顧客.仮登録", label: "仮登録", entity: "顧客"}
+    ],
+    edges: [
+      {from: "注文.下書き", to: "注文.確定", trigger: "確定ボタン", sourceRef: "src/order.ts:10", entity: "注文"},
+      {from: "注文.確定", to: "注文.下書き", trigger: "編集に戻す", sourceRef: "src/order.ts:20", entity: "注文"}
+    ],
+    unresolved: []
+  }' > "$data_entity_state"
+  check_page_fixture entity-state "$data_entity_state"
+
   # --- ケースe: 関連エンティティ(スキーマ拡張フィールド)の有/無 ---
   local data_rel="$tmp/page-data-rel.json"
   jq -n '{
@@ -323,8 +343,8 @@ if [ "${1:-}" = "--self-test" ]; then
   exit $?
 fi
 
-DATA="${1:?Usage: build-detail-page.sh <page-data.json> <output-dir> --page glossary|techstack|transition|er|env}"
-OUTPUT_DIR="${2:?Usage: build-detail-page.sh <page-data.json> <output-dir> --page glossary|techstack|transition|er|env}"
+DATA="${1:?Usage: build-detail-page.sh <page-data.json> <output-dir> --page glossary|techstack|transition|er|env|entity-state}"
+OUTPUT_DIR="${2:?Usage: build-detail-page.sh <page-data.json> <output-dir> --page glossary|techstack|transition|er|env|entity-state}"
 shift 2 || true
 
 PAGE=""
@@ -342,7 +362,7 @@ while [ $# -gt 0 ]; do
 done
 
 if [ -z "$PAGE" ] || [ -z "$(get_page_template "$PAGE")" ]; then
-  echo "ERROR: --page must be one of: glossary techstack transition er env" >&2
+  echo "ERROR: --page must be one of: glossary techstack transition er env entity-state" >&2
   exit 1
 fi
 

@@ -48,7 +48,7 @@ allowed-tools: [Read, Write, Bash, Grep, Glob, AskUserQuestion, TaskCreate, Task
 
 ## 基本ワークフロー
 
-成果物の実在から現在の状態を判定し、次に起動する子スキルを機械的に決定する。状態一覧（13状態）は下表のとおり。詳細な実在判定基準・args・返却フィールドの定義は `references/contract.md` の状態判定表を参照。
+成果物の実在から現在の状態を判定し、次に起動する子スキルを機械的に決定する。状態一覧（15状態）は下表のとおり。詳細な実在判定基準・args・返却フィールドの定義は `references/contract.md` の状態判定表を参照。
 
 | 状態キー | 判定の要点 | 次に起動する子スキル |
 |---|---|---|
@@ -57,6 +57,8 @@ allowed-tools: [Read, Write, Bash, Grep, Glob, AskUserQuestion, TaskCreate, Task
 | 共通未採録 | プロジェクト共通10文書のいずれか不在、または機械ゲート再実行が失敗 | generating-reverse-common-docs（NG帰着(c)差し戻し時は mode=append） |
 | ポータル未生成 | `<docs_root>/index.html` が不在 | bash shared/scripts/build-portal.sh（Phase 4A） |
 | 基盤ページ未生成（任意） | 用語辞書.html・技術スタック.html・画面遷移図.html・ER図.html・環境構築手順.html のいずれかが docs_root 直下に不在。任意工程のためデータ源未整備時はスキップしてよい（Phase 4B） | generating-tech-stack-for-reverse-docs / generating-env-guide-for-reverse-docs / generating-screen-transition-for-reverse-docs / generating-er-diagram-for-reverse-docs / generating-glossary-for-reverse-docs（不在ページに対応するスキルのみ） |
+| 状態遷移図未生成（任意） | 状態遷移図.html が docs_root 直下に不在。任意工程のためデータ源未整備時はスキップしてよい | generating-entity-state-for-reverse-docs |
+| シーケンス図未生成（任意） | 画面フォルダのシーケンス図.html が不在。任意工程のためデータ源未整備時はスキップしてよい | generating-sequence-diagram-for-reverse-docs |
 | 画面未開通 | 画面一覧HTML有・画面が未開通（設計書も基準タグも無い新規画面） | unlocking-reverse-target-screens（内部で基準タグ確立まで完走。`UNLOCKED`差し戻し時のみ`syncing-reverse-env(registry)`を管理者が直接起動） |
 | 事実未封印 | facts.lock が不在、または封印検証が失敗 | extracting-unit-facts-from-code |
 | 基本設計未著述 | 画面基本設計書（`<screen_dir>/基本設計/画面基本設計書.md`）が不在 | generating-reverse-basic-design |
