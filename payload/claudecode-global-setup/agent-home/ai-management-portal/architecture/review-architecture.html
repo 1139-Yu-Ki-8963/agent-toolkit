@@ -313,7 +313,7 @@
           <h2 class="sd-h2"><span class="sec-num">§5</span>横断規約（用語辞書・連番ID）の扱い</h2>
 
           <p style="font-size:13.5px;color:var(--text-sub);line-height:1.8;margin:0 0 12px">
-            <code>always/</code> 配下の規約（文章置き換え辞書・意味キー等）は全セッションに常時注入されるため、
+            <code>always/</code> 配下の規約（文章置き換え辞書・内容要約キー等）は全セッションに常時注入されるため、
             専門家も内容自体は認識している。ただし「知っている」ことと「レビューの都度、機械的に照合する」ことは別問題で、
             当初はこの照合が専門家の判定表に明示されておらず、しかも数える先すらなかった
             （always/ は scoped/review-checklist/ と別階層にあるため）。
@@ -337,7 +337,7 @@
                 <td><code>sed 's/&lt;[^&gt;]*&gt;//g'</code> でタグ除去後、textlint（<code>~/agent-home/tools/linter/.textlintrc.json</code>）へ標準入力で照合</td>
               </tr>
               <tr>
-                <td>意味キー規約（連番ID禁止）</td>
+                <td>内容要約キー規約（連番ID禁止）</td>
                 <td><code>grep -nE '\b[A-Z]{1,4}-[0-9]+\b'</code> を検出補助にし、UTF-8・SHA-256 等の誤検知は目視で除外</td>
               </tr>
               <tr>
@@ -426,7 +426,7 @@
                 <td>rule を <code>scoped/review-checklist/&lt;domain&gt;/</code> へ物理集約し、フォルダ名 = 専門家名の 1 対 1 とした。入口スキルは拡張子推測をやめ、フォルダ導出された専門家でグルーピングして委任する方式に変更</td>
               </tr>
               <tr>
-                <td>用語辞書・意味キー規約がレビュー観点フォルダの外（always/）にあり、専門家への参照も散文のみで、そもそも数える先が存在しなかった</td>
+                <td>用語辞書・内容要約キー規約がレビュー観点フォルダの外（always/）にあり、専門家への参照も散文のみで、そもそも数える先が存在しなかった</td>
                 <td><code>always/review-checklist/&lt;観点&gt;/</code> へ物理集約（常時注入の性質は維持）し、専門家定義には実パス参照を追加。<code>audit-review-coverage.sh</code> がドメイン⇄専門家の 1 対 1・観点数・分類・横断観点の参照有無を機械的に数える</td>
               </tr>
             </tbody>

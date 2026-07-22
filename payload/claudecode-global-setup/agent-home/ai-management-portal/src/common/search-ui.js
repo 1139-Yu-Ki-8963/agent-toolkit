@@ -2,6 +2,7 @@
 // "/" キー押下でモーダルを開き、即時候補を出す。Enter で遷移、Esc で閉じる。
 
 import { loadIndex, search, buildPortalUrl } from "./search-index.js";
+import { matIcon } from "./icons.js";
 
 function buildEntryUrl(entry) {
   return buildPortalUrl(entry.path);
@@ -31,7 +32,7 @@ function ensureStyle() {
     .dp-search-overlay.is-open { display: flex; }
     .dp-search-modal { width: min(720px, calc(100% - 32px)); max-height: calc(100vh - 160px); background: var(--panel, #fff); color: var(--text, #1f2937); border: 1px solid var(--border, #e5e7eb); border-radius: 12px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); display: flex; flex-direction: column; overflow: hidden; }
     .dp-search-input-row { display: flex; align-items: center; gap: 10px; padding: 14px 18px; border-bottom: 1px solid var(--border, #e5e7eb); }
-    .dp-search-input-row .material-symbols-outlined { font-size: 22px; color: var(--text-muted, #6b7280); }
+    .dp-search-input-row .dp-icon svg { width: 22px; height: 22px; }
     .dp-search-input { flex: 1; background: transparent; color: inherit; border: 0; outline: none; font: inherit; font-size: 16px; padding: 4px 0; }
     .dp-search-hint { font-size: 11px; color: var(--text-muted, #6b7280); border: 1px solid var(--border, #e5e7eb); border-radius: 4px; padding: 1px 6px; }
     .dp-search-results { overflow-y: auto; padding: 6px 0; }
@@ -61,8 +62,8 @@ function buildModal() {
   const inputRow = document.createElement("div");
   inputRow.className = "dp-search-input-row";
   const icon = document.createElement("span");
-  icon.className = "material-symbols-outlined";
-  icon.textContent = "search";
+  icon.className = "dp-icon";
+  icon.innerHTML = matIcon("search", 22);
   icon.setAttribute("aria-hidden", "true");
   icon.setAttribute("translate", "no");
   const input = document.createElement("input");

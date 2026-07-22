@@ -1,20 +1,20 @@
 ---
 version: alpha
 name: AI Management Portal
-description: Internal dashboard design system for agent-home operations (skills, hooks, rules, routines) with a zinc neutral base and a single teal accent.
+description: Internal dashboard design system for agent-home operations (skills, hooks, rules, routines) with a zinc neutral base and a GitHub-style blue accent (#0969DA).
 colors:
   primary: "#18181b"
   secondary: "#3f3f46"
   muted: "#71717a"
-  tertiary: "#0f766e"
-  accent-soft: "#f0fdfa"
+  tertiary: "#0969DA"
+  accent-soft: "#DDF4FF"
   neutral: "#fafafa"
   surface: "#ffffff"
-  surface-variant: "#f4f4f5"
-  border: "#e4e4e7"
-  success: "#16a34a"
-  gold: "#a16207"
-  danger: "#dc2626"
+  surface-variant: "#F6F8FA"
+  border: "#D1D9E0"
+  success: "#1A7F37"
+  gold: "#BC4C00"
+  danger: "#CF222E"
   code-bg: "#0f172a"
   code-fg: "#e2e8f0"
 typography:

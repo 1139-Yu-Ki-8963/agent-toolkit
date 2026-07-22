@@ -11,6 +11,7 @@ import { initShareUrl } from "./share-url.js";
 import { initToc } from "./toc.js";
 import { makeBtn, findPortalRoot } from "./controls.js";
 import { initPageActions } from "./page-actions.js";
+import { matIcon, replaceIconSpans } from "./icons.js";
 
 const ICON_MAP_THEME = { light: "dark_mode", dark: "light_mode" };
 const LABEL_MAP_THEME = { light: "ダーク表示", dark: "ライト表示" };
@@ -22,14 +23,6 @@ const NAV_LINKS = [
   { path: "catalog/rules.html", label: "ルール一覧" },
   { path: "catalog/subagents.html", label: "エージェント一覧" },
 ];
-
-function ensureMaterialSymbols() {
-  if (document.querySelector('link[href*="Material+Symbols+Outlined"]')) return;
-  const link = document.createElement("link");
-  link.rel = "stylesheet";
-  link.href = "https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,400,0..1,-25..0";
-  document.head.appendChild(link);
-}
 
 function findHostHeader() {
   return document.querySelector(".hd-inner, .topbar, .pt-topbar, .ds-topbar, header > nav, header");
@@ -82,8 +75,7 @@ function setNavOpen(nav, toggle, open) {
   nav.classList.toggle("is-open", open);
   toggle.setAttribute("aria-expanded", open ? "true" : "false");
   toggle.setAttribute("aria-label", open ? "メニューを閉じる" : "メニューを開く");
-  const icon = toggle.querySelector(".material-symbols-outlined");
-  if (icon) icon.textContent = open ? "close" : "menu";
+  toggle.innerHTML = matIcon(open ? "close" : "menu", 22);
   document.body.classList.toggle("nav-open-lock", open);
 }
 
@@ -95,7 +87,7 @@ function ensureNavToggle(header, nav) {
   toggle.setAttribute("aria-expanded", "false");
   toggle.setAttribute("aria-controls", nav.id);
   toggle.setAttribute("aria-label", "メニューを開く");
-  toggle.innerHTML = `<span class="material-symbols-outlined">menu</span>`;
+  toggle.innerHTML = matIcon("menu", 22);
 
   toggle.addEventListener("click", () => {
     setNavOpen(nav, toggle, !nav.classList.contains("is-open"));
@@ -140,7 +132,7 @@ function mountControls() {
     onClick: () => {
       cycleTheme();
       const cur = getCurrentTheme();
-      themeCtl.iconEl.textContent = ICON_MAP_THEME[cur];
+      themeCtl.iconEl.innerHTML = matIcon(ICON_MAP_THEME[cur], 18);
       themeCtl.labelEl && (themeCtl.labelEl.textContent = LABEL_MAP_THEME[cur]);
     },
   });
@@ -164,7 +156,6 @@ function mountControls() {
 
 function init() {
   initTheme();
-  ensureMaterialSymbols();
   mountControls();
   initPageActions();
   initShortcuts();
@@ -172,6 +163,7 @@ function init() {
   initTableExport();
   initShareUrl();
   initToc();
+  replaceIconSpans(document);
 }
 
 if (document.readyState === "loading") {

@@ -1,5 +1,5 @@
 :root {
-  /* reverse-docs-skills と統一したニュートラル + 藍アクセント基調パレット */
+  /* reverse-docs-skills と統一した GitHub 系ブルーアクセント基調パレット */
   /* Windows フォント上書き防止 */
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -7,33 +7,34 @@
   font-synthesis: none;
   --bg: #FFFFFF;
   --panel: #ffffff;
-  --panel-2: #F0EDE3;
-  --border: #DAD5C5;
-  --border-strong: #BFB9A6;
+  --panel-2: #F6F8FA;
+  --border: #D1D9E0;
+  --border-strong: #AFB8C1;
   --text: #1B1F26;
   --text-sub: #4A4F58;
   --text-muted: #767B85;
-  --accent: #3F4F8E;
-  --accent-soft: #E6E9F3;
-  --accent-border: #BAC2DC;
+  --accent: #0969DA;
+  --accent-soft: #DDF4FF;
+  --accent-border: #54AEFF;
+  --accent-2: #218BFF;
   --inverse-bg: #1B1F26;
   --inverse-fg: #FFFFFF;
-  --chip-bg: #F0EDE3;
+  --chip-bg: #F6F8FA;
   --chip-fg: #4A4F58;
-  --gold: #9B7A1F;
-  --gold-soft: #F5EFD9;
-  --gold-border: #DDC68A;
-  --success: #16a34a;
-  --success-soft: #f0fdf4;
+  --gold: #BC4C00;
+  --gold-soft: #FFF1E5;
+  --gold-border: #D18A5A;
+  --success: #1A7F37;
+  --success-soft: #DAFBE1;
   --success-border: #bbf7d0;
-  --warn: #9B7A1F;
-  --danger: #9B3F2D;
-  --danger-soft: #F5E2DC;
+  --warn: #BC4C00;
+  --danger: #CF222E;
+  --danger-soft: #FFEBE9;
   --danger-border: #fecaca;
   --code-bg: #1B1F26;
   --code-fg: #E8E5DC;
   --font-body: "Hiragino Kaku Gothic ProN","Hiragino Sans","Noto Sans JP","BIZ UDPGothic","Yu Gothic","Meiryo",system-ui,-apple-system,sans-serif;
-  --mono: "SFMono-Regular", "Menlo", "Consolas", monospace;
+  --mono: "SFMono-Regular", "Menlo", "Cascadia Code", "Consolas", monospace;
   --shadow-sm: 0 1px 3px rgba(27,31,38,.07), 0 2px 6px rgba(27,31,38,.05);
   --shadow-md: 0 2px 8px rgba(27,31,38,.09), 0 8px 24px rgba(27,31,38,.07);
   --radius: 10px;
@@ -42,31 +43,68 @@
 }
 
 /* Dark theme */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    /* ダークテーマ変数は [data-theme="dark"] ブロックと同一 */
+    --bg: #15171C;
+    --panel: #1C1F26;
+    --panel-2: #21262D;
+    --border: #30363D;
+    --border-strong: #484F58;
+    --text: #E8E5DC;
+    --text-sub: #B6B3AB;
+    --text-muted: #888784;
+    --accent: #58A6FF;
+    --accent-soft: #132D4B;
+    --accent-border: #1F6FEB;
+    --accent-2: #79C0FF;
+    --inverse-bg: #232730;
+    --inverse-fg: #E8E5DC;
+    --chip-bg: #21262D;
+    --chip-fg: #B6B3AB;
+    --gold: #DB6D28;
+    --gold-soft: #311D08;
+    --gold-border: #7A3E0D;
+    --success: #3fb950;
+    --success-soft: #0D2818;
+    --success-border: rgba(63,185,80,0.32);
+    --warn: #DB6D28;
+    --danger: #F85149;
+    --danger-soft: #3D1214;
+    --danger-border: rgba(248,81,73,0.32);
+    --code-bg: #0E1116;
+    --code-fg: #E8E5DC;
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.2);
+    --shadow-md: 0 2px 6px rgba(0,0,0,0.3);
+  }
+}
+
 :root[data-theme="dark"] {
   --bg: #15171C;
   --panel: #1C1F26;
-  --panel-2: #232730;
-  --border: #353944;
-  --border-strong: #4A4F5C;
+  --panel-2: #21262D;
+  --border: #30363D;
+  --border-strong: #484F58;
   --text: #E8E5DC;
   --text-sub: #B6B3AB;
   --text-muted: #888784;
-  --accent: #8FA3DB;
-  --accent-soft: #2A2E47;
-  --accent-border: #4C5680;
+  --accent: #58A6FF;
+  --accent-soft: #132D4B;
+  --accent-border: #1F6FEB;
+  --accent-2: #79C0FF;
   --inverse-bg: #232730;
   --inverse-fg: #E8E5DC;
-  --chip-bg: #232730;
+  --chip-bg: #21262D;
   --chip-fg: #B6B3AB;
-  --gold: #D4B45D;
-  --gold-soft: #3D3520;
-  --gold-border: #7A6633;
+  --gold: #DB6D28;
+  --gold-soft: #311D08;
+  --gold-border: #7A3E0D;
   --success: #3fb950;
-  --success-soft: rgba(63,185,80,0.1);
+  --success-soft: #0D2818;
   --success-border: rgba(63,185,80,0.32);
-  --warn: #D4B45D;
-  --danger: #D4836E;
-  --danger-soft: #3F2620;
+  --warn: #DB6D28;
+  --danger: #F85149;
+  --danger-soft: #3D1214;
   --danger-border: rgba(248,81,73,0.32);
   --code-bg: #0E1116;
   --code-fg: #E8E5DC;
@@ -899,12 +937,14 @@ details.fr[open] .expbtn { transform: rotate(45deg); }
 }
 
 /* ===== 共通コントロール（旧 src/common/header.js ensureStyle() 注入 CSS を移管） ===== */
-.material-symbols-outlined { font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24; font-size: inherit; vertical-align: middle; line-height: 1; }
+.material-symbols-outlined { font-size: 0; vertical-align: middle; line-height: 1; display: inline-flex; align-items: center; }
+.dp-icon { display: inline-flex; align-items: center; justify-content: center; vertical-align: middle; line-height: 1; }
+.dp-icon svg, .material-symbols-outlined svg { fill: currentColor; vertical-align: middle; }
 .dp-controls { display: inline-flex; align-items: center; gap: 6px; }
 .dp-page-actions { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 18px; }
 .dp-btn { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; background: transparent; color: var(--text-sub); border: 1px solid var(--border); border-radius: 6px; cursor: pointer; font: inherit; font-size: 12px; line-height: 1; }
 .dp-btn:hover { border-color: var(--accent); color: var(--accent); }
-.dp-btn .material-symbols-outlined { font-size: 18px; }
+.dp-btn .dp-icon svg { width: 18px; height: 18px; }
 .dp-btn-label { font-size: 12px; }
 :root[data-theme="dark"] body { background: var(--bg); color: var(--text); }
 
@@ -924,7 +964,7 @@ details.fr[open] .expbtn { transform: rotate(45deg); }
   padding: 0;
 }
 .nav-toggle:hover { border-color: var(--accent); color: var(--accent); }
-.nav-toggle .material-symbols-outlined { font-size: 22px; }
+.nav-toggle svg { width: 22px; height: 22px; }
 body.nav-open-lock { overflow: hidden; }
 @media (max-width: 768px) { .nav-toggle { display: inline-flex; } }
 

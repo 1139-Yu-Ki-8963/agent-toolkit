@@ -47,7 +47,7 @@
           <li><a href="#s11"><span class="toc-num">§11</span>Skill との連携</a></li>
           <li><a href="#s12"><span class="toc-num">§12</span>品質チェックリスト</a></li>
           <li><a href="#s13"><span class="toc-num">§13</span>調査チェックリストパイプライン</a></li>
-          <li><a href="#s14"><span class="toc-num">§14</span>計画暗黙知プローブ</a></li>
+          <li><a href="#s14"><span class="toc-num">§14</span>計画暗黙知の炙り出し</a></li>
         </ul>
         <div class="toc-sep"></div>
         <div style="font-size:11px;color:var(--text-muted);padding:4px 8px;line-height:1.6">
@@ -638,7 +638,7 @@ Step 3: レビュー
 
         <!-- §14 -->
         <section class="sd-section" id="s14">
-          <h2 class="sd-h2"><span class="sec-num">§14</span>計画暗黙知プローブ</h2>
+          <h2 class="sd-h2"><span class="sec-num">§14</span>計画暗黙知の炙り出し</h2>
           <div class="sd-def">
             計画の書き手（上位モデル・人間）が無自覚に省略した前提（暗黙知）を、
             コンテキストゼロの弱モデル（<code>plan-comprehension-prober</code> / Haiku）に計画だけを読ませて検出する仕組み。
@@ -656,7 +656,7 @@ Step 3: レビュー
             <thead><tr><th>要素</th><th>役割</th></tr></thead>
             <tbody>
               <tr><td><code>plan-comprehension-prober</code></td><td>Haiku 固定のサブエージェント。計画文のみを受け取り、5 項目形式（目的の言い換え・手順の再説明・推測で補った前提・判断できなかった点・最初の一手）で理解を言語化する</td></tr>
-              <tr><td><code>eliciting-plan-tacit-knowledge</code></td><td>オーケストレーションスキル。プローブ委任 → ギャップ 4 分類（誤読・欠落・曖昧・偶然の的中）→ 計画への再統合 → 収束確認（最大 2 周）を制御する</td></tr>
+              <tr><td><code>eliciting-plan-tacit-knowledge</code></td><td>オーケストレーションスキル。暗黙知の炙り出し委任 → ギャップ 4 分類（誤読・欠落・曖昧・偶然の的中）→ 計画への再統合 → 収束確認（最大 2 周）を制御する</td></tr>
               <tr><td><code>check-plan-draft-write-gate.sh</code></td><td>PreToolUse(Write) hook。計画ファイルへの最初の永続化をスキル発火前に block する</td></tr>
               <tr><td><code>check-plan-tacit-knowledge-gate.sh</code></td><td>PreToolUse(ExitPlanMode) hook。計画の承認提出をスキル再発火前に block する。Write 版と消費カウンタを共有し、1 計画サイクルで 2 回の検証を強制する</td></tr>
             </tbody>
@@ -676,7 +676,7 @@ Edit で計画を修正
   ↓
 ExitPlanMode ← ❷ check-plan-tacit-knowledge-gate（再発火なしなら block）
   ↓
-Skill(eliciting-plan-tacit-knowledge) → 修正後計画を再プローブ
+Skill(eliciting-plan-tacit-knowledge) → 修正後計画を再度炙り出し
   ↓
 ExitPlanMode 通過 → ユーザーに承認 UI</pre>
 

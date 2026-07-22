@@ -1,6 +1,8 @@
 // ai-management-portal 共通: ボタン生成・フラッシュ表示・portalRoot 解決の共有ヘルパー。
 // header.js と page-actions.js の両方から import する（循環 import 回避のための分離）。
 
+import { matIcon } from "./icons.js";
+
 export function makeBtn({ iconName, ariaLabel, labelText, onClick }) {
   const btn = document.createElement("button");
   btn.type = "button";
@@ -8,10 +10,9 @@ export function makeBtn({ iconName, ariaLabel, labelText, onClick }) {
   btn.setAttribute("aria-label", ariaLabel);
   btn.title = ariaLabel;
   const ic = document.createElement("span");
-  ic.className = "material-symbols-outlined";
+  ic.className = "dp-icon";
   ic.setAttribute("aria-hidden", "true");
-  ic.setAttribute("translate", "no");
-  ic.textContent = iconName;
+  ic.innerHTML = matIcon(iconName, 18);
   btn.appendChild(ic);
   if (labelText) {
     const lab = document.createElement("span");
