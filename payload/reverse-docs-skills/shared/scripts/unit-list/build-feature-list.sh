@@ -222,7 +222,7 @@ EOF
     regression_ok=0
   elif ! grep -q '在庫データを外部システムと同期する' "$out_normal"; then
     regression_ok=0
-  elif ! grep -q '<td>user-list-screen</td>' "$out_normal"; then
+  elif ! grep -q 'data-unit-key="user-list-view"' "$out_normal"; then
     regression_ok=0
   elif ! bash "$script_dir/validate-manifest.sh" "$manifest_normal" --unit-kind feature >/dev/null 2>&1; then
     regression_ok=0
@@ -321,39 +321,26 @@ tile_unresolved_count="$(jq -r '.detectionSummary.unresolvedCount // 0' "$MANIFE
 # 同じ「1行分のJSONを丸ごと受け取りjqで各フィールドを引く」方式に統一する。
 row_html() {
   local row="$1"
-  local unit_id unit_key unit_name summary related_screens related_apis related_tables
-  local confidence detection_method source_file
+  local unit_id unit_key unit_name summary kind
+  local kind_class kind_label
 
   unit_id="$(jq -r '.unitId // empty' <<<"$row")"
-  [ -z "$unit_id" ] && unit_id="—"
-  local confidence_class
   unit_key="$(jq -r '.unitKey // ""' <<<"$row")"
   unit_name="$(jq -r '.unitNameGuess // ""' <<<"$row")"
   summary="$(jq -r '.summary // ""' <<<"$row")"
-  related_screens="$(jq -r '(.relatedScreens // []) | join(", ")' <<<"$row")"
-  [ -z "$related_screens" ] && related_screens="—"
-  related_apis="$(jq -r '(.relatedApis // []) | join(", ")' <<<"$row")"
-  [ -z "$related_apis" ] && related_apis="—"
-  related_tables="$(jq -r '(.relatedTables // []) | join(", ")' <<<"$row")"
-  [ -z "$related_tables" ] && related_tables="—"
-  confidence="$(jq -r '.confidence // ""' <<<"$row")"
-  detection_method="$(jq -r '.detectionMethod // ""' <<<"$row")"
-  source_file="$(jq -r '.sourceFile // ""' <<<"$row")"
+  kind="$(jq -r '.kind // ""' <<<"$row")"
 
-  printf '<tr>\n'
-  printf '<td>%s</td>\n' "$(html_escape "$unit_id")"
-  printf '<td><code>%s</code></td>\n' "$(html_escape "$unit_key")"
+  case "$kind" in
+    unresolved) kind_class="kind-unresolved"; kind_label="要確認" ;;
+    *)          kind_class="kind-generic";    kind_label="機能" ;;
+  esac
+
+  # unitId/unitKey は表示列から外したが、展開行JSのユニット特定(findUnit等)のため
+  # trの data-unit-id / data-unit-key 属性として保持する(3セルの制約には抵触しない)。
+  printf '<tr data-unit-id="%s" data-unit-key="%s">\n' "$(html_escape "$unit_id")" "$(html_escape "$unit_key")"
   printf '<td>%s</td>\n' "$(html_escape "$unit_name")"
   printf '<td>%s</td>\n' "$(html_escape "$summary")"
-  printf '<td>%s</td>\n' "$(html_escape "$related_screens")"
-  printf '<td>%s</td>\n' "$(html_escape "$related_apis")"
-  printf '<td>%s</td>\n' "$(html_escape "$related_tables")"
-  # CSSのバッジ色クラス(.badge.high/.medium/.low)は小文字定義のため、
-  # confidence表記が大文字(HIGH等)のマニフェストでも色が付くようclassのみ小文字化する
-  confidence_class="$(printf '%s' "$confidence" | tr '[:upper:]' '[:lower:]')"
-  printf '<td><span class="badge %s">%s</span></td>\n' "$(html_escape "$confidence_class")" "$(html_escape "$confidence")"
-  printf '<td>%s</td>\n' "$(html_escape "$detection_method")"
-  printf '<td><code>%s</code></td>\n' "$(html_escape "$source_file")"
+  printf '<td><span class="badge %s">%s</span></td>\n' "$kind_class" "$kind_label"
   printf '</tr>\n'
 }
 
@@ -361,10 +348,7 @@ thead_html() {
   cat <<'EOF'
 <thead>
 <tr>
-<th data-key="unitId">機能ID</th><th data-key="unitKey">機能キー</th><th data-key="unitNameGuess">機能名</th>
-<th data-key="summary">概要</th><th data-key="relatedScreens">関連画面</th><th data-key="relatedApis">関連API</th>
-<th data-key="relatedTables">関連テーブル</th><th data-key="confidence">confidence</th>
-<th data-key="detectionMethod">検出方式</th><th data-key="sourceFile">主ファイル</th>
+<th data-key="unitNameGuess">機能名</th><th data-key="summary">概要</th><th data-key="kind">区分</th>
 </tr>
 </thead>
 EOF

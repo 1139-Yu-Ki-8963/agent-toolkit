@@ -30,14 +30,14 @@
     SCREEN_MANIFEST_JSON (マニフェストJSON埋め込みマーカー) : manifest.json の内容をそのまま埋め込み(二重管理・ドリフト禁止)
     DIAGNOSTICS (診断・警告マーカー)            : diagnostics配列を警告リストとして表示。空配列なら何も出力しない
 
-  テーブル列順(固定・全11列): 画面ID / 画面キー / 区分 / 画面名 / ルート / 検出方式 / confidence / 共有 / 埋め込み元 / 構成ファイル数 / 主ファイル
-    - 共有列: sharedWithの各キーをmanifest内で引き、screenId(欠落時はキー):routeのペアを列挙。
-      メンバーのscreenIdが1件でも取れれば詳細表示を優先し、全メンバーがscreenId欠落の場合のみ
-      「N件: キー一覧」表示にフォールバックする
-    - 埋め込み元列: kind=embedded-view の行はembeddedIn(親画面キー)を表示。kind=routeは「—」
+  テーブル列順(固定・全3列): 画面名 / ルート / 区分(任意列はクライアント側FIELDSが動的追加)。
+    - 行の<tr>には data-screen-id / data-screen-key 属性を持たせ、展開行JSがマニフェストJSONから
+      該当画面を引けるようにする(不可視属性のため3列制約には抵触しない)
+    - sharedWith(共有画面キー一覧) / embeddedIn(埋め込み元) / routeDupCount(route定義箇所数) は
+      表示列から外し、展開行の「仕様」グループでマニフェストJSONから直接表示する
     - 任意列(クライアント描画): manifest の category / permissions / relatedApis / designDocStatus に
       値が1件でもあるフィールドだけ、任意列スクリプトが末尾へ「画面区分 / 必要権限 / 関連API / 設計書」列を
-      追加する。全フィールドが空なら列を追加しない(後方互換)。既存11列のインデックスは変えない
+      追加する。全フィールドが空なら列を追加しない(後方互換)
     - 設計書列の補助フィールド(任意): designDocPath(設計書への相対パス。designDocStatus=着手済かつ
       パスありなら着手済バッジをリンク化) / sourceHash・designDocSourceHash(両方存在して不一致なら
       danger色の「陳腐化」バッジを併記)
@@ -80,6 +80,13 @@
   --warn: #BC4C00;
   --danger: #CF222E;
   --danger-soft: #FFEBE9;
+  --highlight: #D97B1A;
+  --highlight-soft: rgba(217,123,26,0.12);
+  --highlight-border: rgba(217,123,26,0.5);
+  --nav-tag: #7B8BBF;
+  --nav-tag-soft: #ECEEF6;
+  --self-tag: #6B9B6B;
+  --self-tag-soft: #E8F0E8;
   --code-bg: #1B1F26;
   --code-fg: #E8E5DC;
   --cat-list: #2563eb;
@@ -101,6 +108,9 @@
     --gold: #DB6D28; --gold-soft: #311D08; --gold-border: #7A3E0D;
     --success: #3FB950; --success-soft: #0D2818;
     --warn: #DB6D28; --danger: #F85149; --danger-soft: #3D1214;
+    --highlight: #E8943A; --highlight-soft: rgba(232,148,58,0.15); --highlight-border: rgba(232,148,58,0.5);
+    --nav-tag: #8E9ED0; --nav-tag-soft: rgba(142,158,208,0.15);
+    --self-tag: #7DB87D; --self-tag-soft: rgba(125,184,125,0.15);
     --code-bg: #0E1116; --code-fg: #E8E5DC;
     --cat-list: #60A5FA; --cat-common: #34D399; --cat-project: #A78BFA;
   }
@@ -113,6 +123,9 @@
   --gold: #DB6D28; --gold-soft: #311D08; --gold-border: #7A3E0D;
   --success: #3FB950; --success-soft: #0D2818;
   --warn: #DB6D28; --danger: #F85149; --danger-soft: #3D1214;
+  --highlight: #E8943A; --highlight-soft: rgba(232,148,58,0.15); --highlight-border: rgba(232,148,58,0.5);
+  --nav-tag: #8E9ED0; --nav-tag-soft: rgba(142,158,208,0.15);
+  --self-tag: #7DB87D; --self-tag-soft: rgba(125,184,125,0.15);
   --code-bg: #0E1116; --code-fg: #E8E5DC;
   --cat-list: #60A5FA; --cat-common: #34D399; --cat-project: #A78BFA;
 }
@@ -124,7 +137,8 @@
     line-height: 1.7; color: var(--text); background: var(--bg);
     max-width: 1180px; margin-inline: auto;
   }
-  .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; max-height: 70vh; overflow-y: auto; }
+  table.screens thead { position: sticky; top: 0; z-index: 3; }
   header { padding: 40px 0 20px; border-bottom: 3px solid var(--border-strong); }
   .header-top { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
   header h1 { font-size: 1.7rem; margin: 0 0 10px; }
@@ -151,13 +165,8 @@
   }
   .toolbar .note { font-size: 0.82rem; color: var(--text-muted); }
 
-  details.module-group { margin: 18px 0; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; min-width: 0; }
-  details.module-group > summary {
-    cursor: pointer; padding: 12px 16px; font-weight: 700; list-style: none;
-  }
-  details.module-group > summary::-webkit-details-marker { display: none; }
-  details.module-group > summary::before { content: "▸ "; }
-  details.module-group[open] > summary::before { content: "▾ "; }
+  section.module-group { margin: 18px 0; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 16px 20px; min-width: 0; }
+  section.module-group h2 { font-size: 1.05rem; margin: 0 0 12px; }
 
   table.screens {
     table-layout: fixed; width: 100%; min-width: 1100px; border-collapse: collapse; font-size: 0.88rem;
@@ -180,31 +189,25 @@
     font-size: 0.85em; background: var(--panel-2); padding: 1px 5px; border-radius: 3px;
   }
 
-  /* 列幅の明示指定（screen-list: 11列） */
-  table.screens th:nth-child(1) { width: 5%; }   /* 画面ID */
-  table.screens th:nth-child(2) { width: 7%; }   /* 画面キー */
-  table.screens th:nth-child(3) { width: 5%; }   /* 区分 */
-  table.screens th:nth-child(4) { width: 9%; }   /* 画面名 */
-  table.screens th:nth-child(5) { width: 16%; }  /* ルート */
-  table.screens th:nth-child(6) { width: 5%; }   /* 検出方式 */
-  table.screens th:nth-child(7) { width: 5%; }   /* confidence */
-  table.screens th:nth-child(8) { width: 6%; }   /* 共有 */
-  table.screens th:nth-child(9) { width: 6%; }   /* 埋め込み元 */
-  table.screens th:nth-child(10) { width: 5%; }  /* 構成ファイル数 */
-  table.screens th:nth-child(11) { width: 31%; } /* 主ファイル */
+  /* 列幅の明示指定（data-key属性でシェブロン列挿入に影響されない） */
+  table.screens th[data-key="screenNameGuess"] { width: 25%; }
+  table.screens th[data-key="route"] { width: 45%; }
+  table.screens th[data-key="kind"] { width: 10%; }
 
-  /* 数値列は右揃え＋等幅数字 */
-  table.screens td:nth-child(7),
-  table.screens td:nth-child(10) {
-    text-align: right;
-    font-variant-numeric: tabular-nums;
+  /* 固定列（シェブロン列・画面名列・ルート列）: 横スクロール時も左端に固定する */
+  table.screens thead th:nth-child(1), table.screens tbody td:nth-child(1) {
+    position: sticky; left: 0; z-index: 2; background: var(--panel);
   }
-
-  /* コード系列はモノスペース */
-  table.screens td:nth-child(5),
-  table.screens td:nth-child(11) {
-    font-family: var(--mono);
-    font-size: 0.8em;
+  table.screens thead th:nth-child(2), table.screens tbody td:nth-child(2) {
+    position: sticky; left: 32px; z-index: 2; background: var(--panel);
+  }
+  table.screens thead th:nth-child(3), table.screens tbody td:nth-child(3) {
+    position: sticky; left: calc(32px + 25%); z-index: 2; background: var(--panel);
+  }
+  table.screens thead th:nth-child(1),
+  table.screens thead th:nth-child(2),
+  table.screens thead th:nth-child(3) {
+    background: var(--panel-2); z-index: 4;
   }
 
   /* ゼブラストライプ */
@@ -234,10 +237,8 @@
   .diag-warn strong { display: block; margin-bottom: 6px; }
   .diag-warn ul { margin: 0; padding-left: 20px; }
 
-  section.common-files, section.unresolved {
-    margin-top: 40px; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 16px 20px; min-width: 0;
-  }
-  section.common-files h2, section.unresolved h2 { font-size: 1.05rem; margin: 0 0 10px; }
+  section.unresolved { margin-top: 24px; background: var(--danger-soft); border: 1px solid var(--danger); color: var(--danger); border-radius: 8px; padding: 12px 16px; }
+  section.unresolved h2 { font-size: 0.95rem; margin: 0 0 8px; color: var(--danger); }
 
   footer { margin-top: 48px; font-size: 0.8rem; color: var(--text-muted); }
 
@@ -261,10 +262,23 @@
   .chip-col-label:first-child { margin-left: 0; }
 
   /* 追加UI: 行クリック展開 */
-  tr.row-detail > td { background: var(--panel-2); font-size: .82rem; white-space: normal; }
+  tr.row-detail > td { background: var(--panel-2); font-size: .82rem; white-space: normal; border-left: 3px solid var(--accent); }
   .row-detail dl { display: grid; grid-template-columns: max-content 1fr; gap: 2px 12px; margin: 4px 0; }
   .row-detail dt { color: var(--text-muted); }
   .row-detail dd { margin: 0; word-break: break-all; }
+  table.units tbody tr, table.screens tbody tr { cursor: pointer; }
+  .expand-cell { transition: color 0.15s; }
+  tr:hover .expand-cell { color: var(--accent); }
+  tr[data-expanded="true"] .chevron svg { transform: rotate(90deg); }
+
+  .detail-inner { padding: 12px 16px 14px 20px; }
+  .detail-group { margin-bottom: 12px; }
+  .detail-group:last-child { margin-bottom: 0; }
+  .detail-group-label { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.06em; color: var(--text-muted); margin-bottom: 6px; padding-bottom: 4px; border-bottom: 1px solid var(--border); }
+  .detail-group-label.evidence { color: var(--gold); border-bottom-color: var(--gold-soft); }
+  .detail-grid { display: grid; grid-template-columns: max-content 1fr; gap: 3px 14px; }
+  .detail-grid dt { color: var(--text-muted); font-size: 0.78rem; white-space: nowrap; }
+  .detail-grid dd { margin: 0; font-size: 0.84rem; word-break: break-all; }
 
   /* 追加UI: CSVエクスポート */
   .csv-btn {
@@ -339,247 +353,95 @@
   <span class="note">列見出しクリックでソート</span>
 </div>
 
-<details class="module-group" open>
-  <summary>画面一覧</summary>
+<section class="module-group">
+  <h2>画面一覧</h2>
   <div class="table-wrap">
   <table class="screens" id="screen-table">
     <thead>
       <tr>
-        <th data-key="screenId">画面ID</th>
-        <th data-key="screenKey">画面キー</th>
-        <th data-key="kind">区分</th>
         <th data-key="screenNameGuess">画面名</th>
         <th data-key="route">ルート</th>
-        <th data-key="detectionMethod">検出方式</th>
-        <th data-key="confidence">confidence</th>
-        <th data-key="sharedWith">共有</th>
-        <th data-key="embeddedIn">埋め込み元</th>
-        <th data-key="fileCount">構成ファイル数</th>
-        <th data-key="entryFile">主ファイル</th>
+        <th data-key="kind">区分</th>
       </tr>
     </thead>
     <tbody>
-      <tr>
-<td>screen-home</td>
-<td><code>home</code></td>
-<td><span class="badge kind-route">ルート</span></td>
+      <tr data-screen-id="screen-home" data-screen-key="home">
 <td>ホーム画面</td>
 <td><code>/</code></td>
-<td>routing</td>
-<td><span class="badge high">HIGH</span></td>
-<td>—</td>
-<td>—</td>
-<td>5</td>
-<td><code>pages/HomePage.tsx</code></td>
-</tr><tr>
-<td>screen-login</td>
-<td><code>login</code></td>
 <td><span class="badge kind-route">ルート</span></td>
+</tr><tr data-screen-id="screen-login" data-screen-key="login">
 <td>ログイン画面</td>
 <td><code>/login</code></td>
-<td>routing</td>
-<td><span class="badge high">HIGH</span></td>
-<td>—</td>
-<td>—</td>
-<td>3</td>
-<td><code>pages/auth/LoginPage.tsx</code></td>
-</tr><tr>
-<td>screen-signup</td>
-<td><code>signup</code></td>
 <td><span class="badge kind-route">ルート</span></td>
+</tr><tr data-screen-id="screen-signup" data-screen-key="signup">
 <td>新規登録画面</td>
 <td><code>/signup</code></td>
-<td>routing</td>
-<td><span class="badge high">HIGH</span></td>
-<td>—</td>
-<td>—</td>
-<td>4</td>
-<td><code>pages/auth/SignupPage.tsx</code></td>
-</tr><tr>
-<td>screen-forgot-pw</td>
-<td><code>forgot-password</code></td>
 <td><span class="badge kind-route">ルート</span></td>
+</tr><tr data-screen-id="screen-forgot-pw" data-screen-key="forgot-password">
 <td>パスワードリセット</td>
 <td><code>/forgot-password</code></td>
-<td>routing</td>
-<td><span class="badge high">HIGH</span></td>
-<td>—</td>
-<td>—</td>
-<td>2</td>
-<td><code>pages/auth/ForgotPasswordPage.tsx</code></td>
-</tr><tr>
-<td>screen-dashboard</td>
-<td><code>dashboard</code></td>
 <td><span class="badge kind-route">ルート</span></td>
+</tr><tr data-screen-id="screen-dashboard" data-screen-key="dashboard">
 <td>ダッシュボード</td>
 <td><code>/dashboard</code></td>
-<td>routing</td>
-<td><span class="badge high">HIGH</span></td>
-<td>—</td>
-<td>—</td>
-<td>8</td>
-<td><code>pages/DashboardPage.tsx</code></td>
-</tr><tr>
-<td>screen-profile</td>
-<td><code>profile</code></td>
 <td><span class="badge kind-route">ルート</span></td>
+</tr><tr data-screen-id="screen-profile" data-screen-key="profile">
 <td>プロフィール</td>
 <td><code>/profile</code></td>
-<td>routing</td>
-<td><span class="badge high">HIGH</span></td>
-<td>—</td>
-<td>—</td>
-<td>3</td>
-<td><code>pages/settings/ProfilePage.tsx</code></td>
-</tr><tr>
-<td>screen-settings</td>
-<td><code>settings</code></td>
 <td><span class="badge kind-route">ルート</span></td>
+</tr><tr data-screen-id="screen-settings" data-screen-key="settings">
 <td>設定画面</td>
 <td><code>/settings</code></td>
-<td>routing</td>
-<td><span class="badge high">HIGH</span></td>
-<td>—</td>
-<td>—</td>
-<td>4</td>
-<td><code>pages/settings/SettingsPage.tsx</code></td>
-</tr><tr>
-<td>screen-users-list</td>
-<td><code>users-list</code></td>
 <td><span class="badge kind-route">ルート</span></td>
+</tr><tr data-screen-id="screen-users-list" data-screen-key="users-list">
 <td>ユーザー一覧</td>
 <td><code>/admin/users</code></td>
-<td>routing</td>
-<td><span class="badge high">HIGH</span></td>
-<td>screen-users-detail: /admin/users/:userId</td>
-<td>—</td>
-<td>6</td>
-<td><code>pages/admin/UsersListPage.tsx</code></td>
-</tr><tr>
-<td>screen-users-detail</td>
-<td><code>users-detail</code></td>
 <td><span class="badge kind-route">ルート</span></td>
+</tr><tr data-screen-id="screen-users-detail" data-screen-key="users-detail">
 <td>ユーザー詳細</td>
 <td><code>/admin/users/:userId</code></td>
-<td>routing</td>
-<td><span class="badge high">HIGH</span></td>
-<td>screen-users-list: /admin/users</td>
-<td>—</td>
-<td>5</td>
-<td><code>pages/admin/UserDetailPage.tsx</code></td>
-</tr><tr>
-<td>screen-users-edit</td>
-<td><code>users-edit</code></td>
 <td><span class="badge kind-route">ルート</span></td>
+</tr><tr data-screen-id="screen-users-edit" data-screen-key="users-edit">
 <td>ユーザー編集</td>
 <td><code>/admin/users/:userId/edit</code></td>
-<td>routing</td>
-<td><span class="badge medium">MEDIUM</span></td>
-<td>—</td>
-<td>—</td>
-<td>4</td>
-<td><code>pages/admin/UserEditPage.tsx</code></td>
-</tr><tr>
-<td>screen-roles</td>
-<td><code>roles</code></td>
 <td><span class="badge kind-route">ルート</span></td>
+</tr><tr data-screen-id="screen-roles" data-screen-key="roles">
 <td>ロール管理</td>
 <td><code>/admin/roles</code></td>
-<td>routing</td>
-<td><span class="badge high">HIGH</span></td>
-<td>—</td>
-<td>—</td>
-<td>3</td>
-<td><code>pages/admin/RolesPage.tsx</code></td>
-</tr><tr>
-<td>screen-posts-list</td>
-<td><code>posts-list</code></td>
 <td><span class="badge kind-route">ルート</span></td>
+</tr><tr data-screen-id="screen-posts-list" data-screen-key="posts-list">
 <td>投稿一覧</td>
 <td><code>/posts</code></td>
-<td>routing</td>
-<td><span class="badge high">HIGH</span></td>
-<td>—</td>
-<td>—</td>
-<td>4</td>
-<td><code>pages/posts/PostsListPage.tsx</code></td>
-</tr><tr>
-<td>screen-post-detail</td>
-<td><code>post-detail</code></td>
 <td><span class="badge kind-route">ルート</span></td>
+</tr><tr data-screen-id="screen-post-detail" data-screen-key="post-detail">
 <td>投稿詳細</td>
 <td><code>/posts/:postId</code></td>
-<td>routing</td>
-<td><span class="badge high">HIGH</span></td>
-<td>—</td>
-<td>—</td>
-<td>5</td>
-<td><code>pages/posts/PostDetailPage.tsx</code></td>
-</tr><tr>
-<td>screen-post-editor</td>
-<td><code>post-editor</code></td>
 <td><span class="badge kind-route">ルート</span></td>
+</tr><tr data-screen-id="screen-post-editor" data-screen-key="post-editor">
 <td>投稿エディタ</td>
 <td><code>/posts/:postId/edit</code></td>
-<td>routing</td>
-<td><span class="badge medium">MEDIUM</span></td>
-<td>—</td>
-<td>—</td>
-<td>7</td>
-<td><code>pages/posts/PostEditorPage.tsx</code></td>
-</tr><tr>
-<td>screen-notifications</td>
-<td><code>notifications</code></td>
 <td><span class="badge kind-route">ルート</span></td>
+</tr><tr data-screen-id="screen-notifications" data-screen-key="notifications">
 <td>通知一覧</td>
 <td><code>/notifications</code></td>
-<td>routing</td>
-<td><span class="badge high">HIGH</span></td>
-<td>—</td>
-<td>—</td>
-<td>3</td>
-<td><code>pages/NotificationsPage.tsx</code></td>
-</tr><tr>
-<td>screen-search</td>
-<td><code>search</code></td>
 <td><span class="badge kind-route">ルート</span></td>
+</tr><tr data-screen-id="screen-search" data-screen-key="search">
 <td>検索結果</td>
 <td><code>/search</code></td>
-<td>routing</td>
-<td><span class="badge medium">MEDIUM</span></td>
-<td>—</td>
-<td>—</td>
-<td>2</td>
-<td><code>pages/SearchResultsPage.tsx</code></td>
-</tr><tr>
-<td>screen-report-viewer</td>
-<td><code>report-viewer</code></td>
 <td><span class="badge kind-route">ルート</span></td>
+</tr><tr data-screen-id="screen-report-viewer" data-screen-key="report-viewer">
 <td>レポート閲覧</td>
 <td><code>/reports/:reportId</code></td>
-<td>routing</td>
-<td><span class="badge high">HIGH</span></td>
-<td>—</td>
-<td>—</td>
-<td>4</td>
-<td><code>pages/reports/ReportViewerPage.tsx</code></td>
-</tr><tr>
-<td>screen-sidebar-nav</td>
-<td><code>sidebar-nav</code></td>
-<td><span class="badge kind-embedded">埋め込みビュー</span></td>
+<td><span class="badge kind-route">ルート</span></td>
+</tr><tr data-screen-id="screen-sidebar-nav" data-screen-key="sidebar-nav">
 <td>サイドバーナビ</td>
 <td>—</td>
-<td>file-scan</td>
-<td><span class="badge medium">MEDIUM</span></td>
-<td>—</td>
-<td><code>dashboard</code></td>
-<td>2</td>
-<td><code>components/layout/SidebarNav.tsx</code></td>
+<td><span class="badge kind-embedded">埋め込みビュー</span></td>
 </tr>
     </tbody>
   </table>
   </div>
-</details>
+</section>
 
 <div class="pagination" id="pagination">
   <button id="page-first" title="先頭">≪</button>
@@ -594,11 +456,6 @@
   <div class="table-wrap">
   <p class="note">なし</p>
   </div>
-</section>
-
-<section class="common-files">
-  <h2>共通ファイル・未分類（参考情報）</h2>
-  <p class="note">本スキルは import グラフ解析を行わないため、共通ファイルのクロス参照分離は非対応。必要に応じて手動確認する。</p>
 </section>
 
 <script type="application/json" id="screen-manifest">
@@ -1127,8 +984,8 @@
     });
 
     Array.prototype.forEach.call(bodyRows, function (tr) {
-      var idText = tr.children[0] ? tr.children[0].textContent.trim() : '';
-      var keyText = tr.children[1] ? tr.children[1].textContent.trim() : '';
+      var idText = tr.getAttribute('data-screen-id') || '';
+      var keyText = tr.getAttribute('data-screen-key') || '';
       var item = byId[idText] || byKey[keyText] || null;
       active.forEach(function (field) {
         var td = document.createElement('td');
@@ -1165,8 +1022,31 @@
     var btnNext = document.getElementById('page-next');
     var btnLast = document.getElementById('page-last');
 
+    /* ===== 展開インジケータ（シェブロン列） ===== */
+    (function () {
+      var headRow = table.querySelector('thead tr');
+      if (headRow) {
+        var chTh = document.createElement('th');
+        chTh.style.width = '32px';
+        chTh.style.padding = '8px 4px';
+        headRow.insertBefore(chTh, headRow.firstChild);
+      }
+      var CHEVRON_SVG = '<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" style="vertical-align:middle;transition:transform .15s"><path d="M6.22 3.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042L9.94 8 6.22 4.28a.75.75 0 0 1 0-1.06Z"/></svg>';
+      allRows.forEach(function (tr) {
+        var chTd = document.createElement('td');
+        chTd.style.width = '32px';
+        chTd.style.textAlign = 'center';
+        chTd.style.color = 'var(--text-muted)';
+        chTd.style.padding = '8px 4px';
+        chTd.className = 'expand-cell';
+        chTd.innerHTML = '<span class="chevron">' + CHEVRON_SVG + '</span>';
+        tr.insertBefore(chTd, tr.firstChild);
+      });
+
+    })();
+
     /* ===== 追加UI: コピーボタン / フィルタチップ / 行クリック展開 / CSVエクスポート ===== */
-    var CHIP_COLUMNS = ['区分', 'confidence', '画面区分'];  /* 列見出し名で指定。任意列(画面区分)は存在する時だけチップ化 */
+    var CHIP_COLUMNS = ['区分', '画面区分'];  /* 列見出し名で指定。任意列(画面区分)は存在する時だけチップ化 */
     var COL_COUNT = table.querySelectorAll('thead th').length;
     var headerLabels = Array.prototype.map.call(table.querySelectorAll('thead th'), function (th) { return th.textContent.trim(); });
     var chipState = {};
@@ -1313,34 +1193,128 @@
       });
     }
 
+    /* --- 行クリック展開: マニフェストJSONを直接参照し「仕様」「エビデンス」2グループに分離表示 ---
+       画面は種別(kind=route/embedded-view)による項目差がないため、仕様グループはunitKind別マップではなく
+       固定のフラットなフィールド一覧(sharedWith・embeddedIn・routeDupCount)を使う。 */
+    var DETAIL_SPEC_FIELDS = [
+      ['sharedWith', '共有画面'],
+      ['embeddedIn', '埋め込み元'],
+      ['routeDupCount', 'route定義箇所数']
+    ];
+    var EVIDENCE_FIELDS = [
+      ['confidence', 'confidence'],
+      ['detectionMethod', '検出方式'],
+      ['fileCount', '構成ファイル数'],
+      ['entryFile', '主ファイル'],
+      ['screenId', '画面ID'],
+      ['screenKey', '画面キー']
+    ];
+
+    var detailById = {};
+    var detailByKey = {};
+    (manifest.screens || []).forEach(function (s) {
+      if (s.screenId !== undefined && s.screenId !== null) detailById[String(s.screenId)] = s;
+      if (s.screenKey !== undefined && s.screenKey !== null) detailByKey[String(s.screenKey)] = s;
+    });
+
+    function findDetailScreen(tr) {
+      var idAttr = tr.getAttribute('data-screen-id') || '';
+      if (idAttr && detailById[idAttr]) return detailById[idAttr];
+      var keyAttr = tr.getAttribute('data-screen-key') || '';
+      if (keyAttr && detailByKey[keyAttr]) return detailByKey[keyAttr];
+      return null;
+    }
+
+    function detailHasValue(v) {
+      if (v === undefined || v === null || v === '') return false;
+      if (Array.isArray(v)) return v.length > 0;
+      if (typeof v === 'number') return v > 1 || v === 0;
+      return true;
+    }
+
+    function renderConfidenceValue(dd, v) {
+      if (!detailHasValue(v)) { dd.textContent = '—'; return; }
+      var badge = document.createElement('span');
+      var cls = String(v).toLowerCase();
+      badge.className = 'badge ' + (cls === 'high' || cls === 'medium' || cls === 'low' ? cls : 'medium');
+      badge.textContent = String(v);
+      dd.appendChild(badge);
+    }
+
+    function renderDetailValue(dd, fieldName, v) {
+      if (fieldName === 'routeDupCount') {
+        if (!v || v <= 1) { dd.textContent = '—'; return; }
+        dd.textContent = String(v) + ' 箇所';
+        return;
+      }
+      if (!detailHasValue(v)) { dd.textContent = '—'; return; }
+      if (Array.isArray(v)) {
+        v.forEach(function (item) {
+          var tag = document.createElement('span');
+          tag.className = 'opt-tag';
+          tag.textContent = String(item);
+          dd.appendChild(tag);
+        });
+        return;
+      }
+      if (fieldName === 'entryFile') {
+        var code = document.createElement('code');
+        code.textContent = String(v);
+        dd.appendChild(code);
+        return;
+      }
+      dd.textContent = String(v);
+    }
+
+    function buildDetailGroup(labelText, isEvidence, fieldPairs, item) {
+      var group = document.createElement('div');
+      group.className = 'detail-group';
+      var label = document.createElement('div');
+      label.className = 'detail-group-label' + (isEvidence ? ' evidence' : '');
+      label.textContent = labelText;
+      group.appendChild(label);
+      var dl = document.createElement('dl');
+      dl.className = 'detail-grid';
+      fieldPairs.forEach(function (pair) {
+        var fieldName = pair[0], fieldLabel = pair[1];
+        var dt = document.createElement('dt');
+        dt.textContent = fieldLabel;
+        var dd = document.createElement('dd');
+        var val = item ? item[fieldName] : undefined;
+        if (fieldName === 'confidence') { renderConfidenceValue(dd, val); }
+        else { renderDetailValue(dd, fieldName, val); }
+        if (dd.textContent !== '—' && dd.textContent !== '' ) {
+          dd.appendChild(makeCopyBtn((function (v) { return function () { return v; }; })(dd.textContent)));
+        }
+        dl.appendChild(dt);
+        dl.appendChild(dd);
+      });
+      group.appendChild(dl);
+      return group;
+    }
+
     allRows.forEach(function (tr) {
       tr.addEventListener('click', function (ev) {
         if (ev.target.closest && ev.target.closest('.copy-btn,a,button')) return;
         var next = tr.nextElementSibling;
         if (next && next.classList.contains('row-detail')) {
           next.parentNode.removeChild(next);
+          tr.removeAttribute('data-expanded');
           return;
         }
+        var item = findDetailScreen(tr);
         var detail = document.createElement('tr');
         detail.className = 'row-detail';
         var td = document.createElement('td');
         td.colSpan = COL_COUNT;
-        var dl = document.createElement('dl');
-        headerLabels.forEach(function (label, i) {
-          var dt = document.createElement('dt');
-          dt.textContent = label;
-          var dd = document.createElement('dd');
-          var val = tr.children[i] ? tr.children[i].textContent.trim() : '';
-          dd.textContent = val;
-          if (val && val !== '—') {
-            dd.appendChild(makeCopyBtn(function () { return val; }));
-          }
-          dl.appendChild(dt);
-          dl.appendChild(dd);
-        });
-        td.appendChild(dl);
+        var inner = document.createElement('div');
+        inner.className = 'detail-inner';
+        inner.appendChild(buildDetailGroup('仕様', false, DETAIL_SPEC_FIELDS, item));
+        inner.appendChild(buildDetailGroup('エビデンス（検出メタデータ）', true, EVIDENCE_FIELDS, item));
+        td.appendChild(inner);
         detail.appendChild(td);
         tr.parentNode.insertBefore(detail, tr.nextSibling);
+        tr.setAttribute('data-expanded', 'true');
       });
     });
 
@@ -1409,7 +1383,8 @@
       } catch (e) { /* ignore */ }
     }
 
-    table.querySelectorAll('th[data-key]').forEach(function (th, colIndex) {
+    table.querySelectorAll('th[data-key]').forEach(function (th) {
+      var colIndex = Array.prototype.indexOf.call(th.parentNode.children, th);
       th.addEventListener('click', function () {
         if (sortCol === colIndex) { sortAsc = !sortAsc; } else { sortCol = colIndex; sortAsc = true; }
         table.querySelectorAll('th[data-key]').forEach(function (t) { t.removeAttribute('data-asc'); });

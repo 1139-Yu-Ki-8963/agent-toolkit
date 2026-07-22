@@ -310,36 +310,26 @@ tile_unresolved_count="$(jq -r '.detectionSummary.unresolvedCount // 0' "$MANIFE
 # 同じ「1行分のJSONを丸ごと受け取りjqで各フィールドを引く」方式に統一する。
 row_html() {
   local row="$1"
-  local unit_id unit_key kind unit_name identifier detection_method confidence file_count source_file
+  local unit_id unit_key kind unit_name identifier
   local kind_class kind_label
 
   unit_id="$(jq -r '.unitId // empty' <<<"$row")"
-  [ -z "$unit_id" ] && unit_id="—"
   unit_key="$(jq -r '.unitKey // ""' <<<"$row")"
   kind="$(jq -r '.kind // ""' <<<"$row")"
   unit_name="$(jq -r '.unitNameGuess // ""' <<<"$row")"
   identifier="$(jq -r '.identifier // ""' <<<"$row")"
-  detection_method="$(jq -r '.detectionMethod // ""' <<<"$row")"
-  confidence="$(jq -r '.confidence // ""' <<<"$row")"
-  file_count="$(jq -r '.fileCount // 0' <<<"$row")"
-  source_file="$(jq -r '.sourceFile // ""' <<<"$row")"
 
   case "$kind" in
     unresolved) kind_class="kind-unresolved"; kind_label="要確認" ;;
     *)          kind_class="kind-generic";    kind_label="$(html_escape "$kind")" ;;
   esac
 
-  printf '<tr>\n'
-  printf '<td>%s</td>\n' "$(html_escape "$unit_id")"
-  printf '<td><code>%s</code></td>\n' "$(html_escape "$unit_key")"
-  printf '<td><span class="badge %s">%s</span></td>\n' "$kind_class" "$kind_label"
+  # unitId/unitKey は表示列から外したが、展開行JSのユニット特定(findUnit等)のため
+  # trの data-unit-id / data-unit-key 属性として保持する(3セルの制約には抵触しない)。
+  printf '<tr data-unit-id="%s" data-unit-key="%s">\n' "$(html_escape "$unit_id")" "$(html_escape "$unit_key")"
   printf '<td>%s</td>\n' "$(html_escape "$unit_name")"
   printf '<td><code>%s</code></td>\n' "$(html_escape "$identifier")"
-  printf '<td>%s</td>\n' "$(html_escape "$detection_method")"
-  # confidence バッジの class はCSS定義(.high/.medium/.low)に合わせ小文字化する(表示ラベルは原文のまま)
-  printf '<td><span class="badge %s">%s</span></td>\n' "$(html_escape "$(printf '%s' "$confidence" | tr '[:upper:]' '[:lower:]')")" "$(html_escape "$confidence")"
-  printf '<td>%s</td>\n' "$(html_escape "$file_count")"
-  printf '<td><code>%s</code></td>\n' "$(html_escape "$source_file")"
+  printf '<td><span class="badge %s">%s</span></td>\n' "$kind_class" "$kind_label"
   printf '</tr>\n'
 }
 
@@ -357,7 +347,7 @@ while IFS= read -r row; do
 done < <(jq -c '.units[]' "$MANIFEST")
 
 if [ -z "$unit_rows" ]; then
-  unit_rows='<tr><td colspan="9">なし</td></tr>'
+  unit_rows='<tr><td colspan="3">なし</td></tr>'
 fi
 
 if [ -z "$unresolved_rows" ]; then
@@ -367,8 +357,7 @@ else
 <table class="units" id="unresolved-table">
 <thead>
 <tr>
-<th>${label_esc}ID</th><th>${label_esc}キー</th><th>区分</th><th>${label_esc}名</th><th>識別子</th>
-<th>検出方式</th><th>confidence</th><th>構成ファイル数</th><th>主ファイル</th>
+<th>${label_esc}名</th><th>識別子</th><th>区分</th>
 </tr>
 </thead>
 <tbody>

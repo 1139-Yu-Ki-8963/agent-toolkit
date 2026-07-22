@@ -27,7 +27,9 @@
     UNRESOLVED_SECTION (要手動確認セクションマーカー) : kind=unresolved の一覧テーブル、0件なら「なし」の文言
     MANIFEST_JSON (マニフェストJSON埋め込みマーカー) : manifest.json の内容をそのまま埋め込み(二重管理・ドリフト禁止)
 
-  テーブル列順(固定・全10列): 機能ID / 機能キー / 機能名 / 概要 / 関連画面 / 関連API / 関連テーブル / confidence / 検出方式 / 主ファイル
+  テーブル列順(固定・全3列): 機能名 / 概要 / 区分(任意列はクライアント側OPTIONAL_FIELDSが動的追加)。
+  行の<tr>には data-unit-id / data-unit-key 属性を持たせ、展開行JSがマニフェストJSONから
+  該当機能を引けるようにする(不可視属性のため3列制約には抵触しない)。カテゴリ別<details>は残す。
 
   制約:
     - 外部リソース(CDN・フォント・画像)は一切使わない。単一ファイル自己完結
@@ -49,7 +51,8 @@
     line-height: 1.7; color: var(--text); background: var(--bg);
     max-width: 1180px; margin-inline: auto;
   }
-  .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; max-height: 70vh; overflow-y: auto; }
+  table.units thead { position: sticky; top: 0; z-index: 3; }
   header { padding: 40px 0 20px; border-bottom: 3px solid var(--border-strong); }
   .header-top { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
   header h1 { font-size: 1.7rem; margin: 0 0 10px; }
@@ -106,28 +109,24 @@
   }
 
   /* 列幅の明示指定（data-key属性でシェブロン列挿入に影響されない。キー名はbuild-feature-list.sh準拠） */
-  table.units th[data-key="unitId"] { width: 5%; }
-  table.units th[data-key="unitKey"] { width: 7%; }
-  table.units th[data-key="unitNameGuess"] { width: 8%; }
-  table.units th[data-key="summary"] { width: 22%; }
-  table.units th[data-key="relatedScreens"] { width: 8%; }
-  table.units th[data-key="relatedApis"] { width: 10%; }
-  table.units th[data-key="relatedTables"] { width: 7%; }
-  table.units th[data-key="confidence"] { width: 5%; }
-  table.units th[data-key="detectionMethod"] { width: 5%; }
-  table.units th[data-key="sourceFile"] { width: 23%; }
+  table.units th[data-key="unitNameGuess"] { width: 25%; }
+  table.units th[data-key="summary"] { width: 45%; }
+  table.units th[data-key="kind"] { width: 10%; }
 
-  /* 数値列は右揃え＋等幅数字 */
-  table.units td:nth-child(8) {
-    text-align: right;
-    font-variant-numeric: tabular-nums;
+  /* 固定列（シェブロン列・機能名列・概要列）: 横スクロール時も左端に固定する */
+  table.units thead th:nth-child(1), table.units tbody td:nth-child(1) {
+    position: sticky; left: 0; z-index: 2; background: var(--panel);
   }
-
-  /* コード系列はモノスペース */
-  table.units td:nth-child(2),
-  table.units td:nth-child(10) {
-    font-family: var(--mono);
-    font-size: 0.8em;
+  table.units thead th:nth-child(2), table.units tbody td:nth-child(2) {
+    position: sticky; left: 32px; z-index: 2; background: var(--panel);
+  }
+  table.units thead th:nth-child(3), table.units tbody td:nth-child(3) {
+    position: sticky; left: calc(32px + 25%); z-index: 2; background: var(--panel);
+  }
+  table.units thead th:nth-child(1),
+  table.units thead th:nth-child(2),
+  table.units thead th:nth-child(3) {
+    background: var(--panel-2); z-index: 4;
   }
 
   /* ゼブラストライプ */
@@ -145,11 +144,9 @@
   .badge.medium { background: var(--gold-soft); color: var(--gold); }
   .badge.low    { background: var(--accent-soft); color: var(--accent); }
 
-  section.unresolved {
-    margin-top: 40px; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 16px 20px; min-width: 0;
-  }
+  section.unresolved { margin-top: 24px; background: var(--danger-soft); border: 1px solid var(--danger); color: var(--danger); border-radius: 8px; padding: 12px 16px; }
   #category-sections { min-width: 0; }
-  section.unresolved h2 { font-size: 1.05rem; margin: 0 0 10px; }
+  section.unresolved h2 { font-size: 0.95rem; margin: 0 0 8px; color: var(--danger); }
 
   footer { margin-top: 48px; font-size: 0.8rem; color: var(--text-muted); }
 
@@ -177,6 +174,15 @@
   .expand-cell { transition: color 0.15s; }
   tr:hover .expand-cell { color: var(--accent); }
   tr[data-expanded="true"] .chevron svg { transform: rotate(90deg); }
+
+  .detail-inner { padding: 12px 16px 14px 20px; }
+  .detail-group { margin-bottom: 12px; }
+  .detail-group:last-child { margin-bottom: 0; }
+  .detail-group-label { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.06em; color: var(--text-muted); margin-bottom: 6px; padding-bottom: 4px; border-bottom: 1px solid var(--border); }
+  .detail-group-label.evidence { color: var(--gold); border-bottom-color: var(--gold-soft); }
+  .detail-grid { display: grid; grid-template-columns: max-content 1fr; gap: 3px 14px; }
+  .detail-grid dt { color: var(--text-muted); font-size: 0.78rem; white-space: nowrap; }
+  .detail-grid dd { margin: 0; font-size: 0.84rem; word-break: break-all; }
   .csv-btn {
     background: var(--panel-2); border: 1px solid var(--border); border-radius: var(--radius-sm);
     color: var(--text-sub); cursor: pointer; padding: 5px 12px; font-size: 0.82rem; font-family: inherit;
@@ -363,8 +369,8 @@
         headRow.appendChild(th);
       });
       Array.prototype.slice.call(tbody.querySelectorAll('tr')).forEach(function (tr) {
-        var idText = tr.children[0] ? tr.children[0].textContent.trim() : '';
-        var keyText = tr.children[1] ? tr.children[1].textContent.trim() : '';
+        var idText = tr.getAttribute('data-unit-id') || '';
+        var keyText = tr.getAttribute('data-unit-key') || '';
         var unit = byId[idText] || byKey[keyText] || null;
         active.forEach(function (field) {
           var td = document.createElement('td');
@@ -430,7 +436,7 @@
 
     /* ===== 一覧UI拡張（コピーボタン・フィルタチップ・行クリック展開・CSVエクスポート） ===== */
     /* チップ対象の列見出し名（任意列スクリプトが追加した列も指定できる） */
-    var CHIP_COLUMNS = ['confidence', '操作区分'];
+    var CHIP_COLUMNS = ['区分', '操作区分'];
     var chipSelected = { category: {} };
     CHIP_COLUMNS.forEach(function (c) { chipSelected[c] = {}; });
     var chipBar = null, chipClearBtn = null;
@@ -601,10 +607,104 @@
         tr.parentNode.removeChild(tr);
       });
     }
-    function bindRowExpansion(state) {
-      var headers = Array.prototype.slice.call(state.table.querySelectorAll('thead th')).map(function (th) {
-        return th.textContent.trim();
+
+    /* --- 行クリック展開: マニフェストJSONを直接参照し「仕様」「エビデンス」2グループに分離表示 --- */
+    var DETAIL_SPEC_FIELDS = [
+      ['relatedScreens', '関連画面'],
+      ['relatedApis', '関連API'],
+      ['relatedTables', '関連テーブル']
+    ];
+    var DETAIL_LINK_TARGETS = {
+      relatedScreens: '../画面一覧/画面一覧.html',
+      relatedApis: '../API一覧/API一覧.html',
+      relatedTables: '../テーブル一覧/テーブル一覧.html'
+    };
+    var DETAIL_EVIDENCE_FIELDS = [
+      ['confidence', 'confidence'],
+      ['detectionMethod', '検出方式'],
+      ['fileCount', '構成ファイル数'],
+      ['sourceFile', '主ファイル'],
+      ['unitId', (manifest.unitKind || '') + 'ID'],
+      ['unitKey', (manifest.unitKind || '') + 'キー']
+    ];
+    var detailById = {}, detailByKey = {};
+    (manifest.units || []).forEach(function (u) {
+      if (u.unitId !== undefined && u.unitId !== null) detailById[String(u.unitId)] = u;
+      if (u.unitKey !== undefined && u.unitKey !== null) detailByKey[String(u.unitKey)] = u;
+    });
+    function findDetailUnit(tr) {
+      var idAttr = tr.getAttribute('data-unit-id') || '';
+      if (idAttr && detailById[idAttr]) return detailById[idAttr];
+      var keyAttr = tr.getAttribute('data-unit-key') || '';
+      if (keyAttr && detailByKey[keyAttr]) return detailByKey[keyAttr];
+      return null;
+    }
+    function detailHasValue(v) {
+      if (v === undefined || v === null || v === '') return false;
+      if (Array.isArray(v)) return v.length > 0;
+      return true;
+    }
+    function renderConfidenceValue(dd, v) {
+      if (!detailHasValue(v)) { dd.textContent = '—'; return; }
+      var badge = document.createElement('span');
+      var cls = String(v).toLowerCase();
+      badge.className = 'badge ' + (cls === 'high' || cls === 'medium' || cls === 'low' ? cls : 'medium');
+      badge.textContent = String(v);
+      dd.appendChild(badge);
+    }
+    function renderDetailValue(dd, fieldName, v) {
+      if (!detailHasValue(v)) { dd.textContent = '—'; return; }
+      if (Array.isArray(v)) {
+        var linkBase = DETAIL_LINK_TARGETS[fieldName];
+        v.forEach(function (item) {
+          var text = String(item);
+          var el;
+          if (linkBase && text && text !== '—') {
+            el = document.createElement('a');
+            el.href = linkBase + '?q=' + encodeURIComponent(text);
+          } else {
+            el = document.createElement('span');
+          }
+          el.className = 'opt-tag';
+          el.textContent = text;
+          dd.appendChild(el);
+        });
+        return;
+      }
+      if (fieldName === 'sourceFile') {
+        var code = document.createElement('code');
+        code.textContent = String(v);
+        dd.appendChild(code);
+        return;
+      }
+      dd.textContent = String(v);
+    }
+    function buildDetailGroup(labelText, isEvidence, fieldPairs, unit) {
+      var group = document.createElement('div');
+      group.className = 'detail-group';
+      var label = document.createElement('div');
+      label.className = 'detail-group-label' + (isEvidence ? ' evidence' : '');
+      label.textContent = labelText;
+      group.appendChild(label);
+      var dl = document.createElement('dl');
+      dl.className = 'detail-grid';
+      fieldPairs.forEach(function (pair) {
+        var fieldName = pair[0], fieldLabel = pair[1];
+        var dt = document.createElement('dt');
+        dt.textContent = fieldLabel;
+        var dd = document.createElement('dd');
+        var val = unit ? unit[fieldName] : undefined;
+        if (fieldName === 'confidence') { renderConfidenceValue(dd, val); }
+        else { renderDetailValue(dd, fieldName, val); }
+        if (copyableValue(dd)) dd.appendChild(makeCopyBtn(dd));
+        dl.appendChild(dt);
+        dl.appendChild(dd);
       });
+      group.appendChild(dl);
+      return group;
+    }
+
+    function bindRowExpansion(state) {
       state.tbody.addEventListener('click', function (ev) {
         if (ev.target.closest && ev.target.closest('.copy-btn,a,button')) return;
         var tr = ev.target.closest ? ev.target.closest('tr') : null;
@@ -612,25 +712,22 @@
         var next = tr.nextElementSibling;
         if (next && next.classList.contains('row-detail')) {
           next.parentNode.removeChild(next);
+          tr.removeAttribute('data-expanded');
           return;
         }
+        var unit = findDetailUnit(tr);
         var detail = document.createElement('tr');
         detail.className = 'row-detail';
         var td = document.createElement('td');
-        td.colSpan = headers.length || tr.children.length;
-        var dl = document.createElement('dl');
-        Array.prototype.slice.call(tr.children).forEach(function (cell, i) {
-          var dt = document.createElement('dt');
-          dt.textContent = headers[i] || ('列' + (i + 1));
-          var dd = document.createElement('dd');
-          dd.textContent = cellText(cell);
-          if (copyableValue(cell)) dd.appendChild(makeCopyBtn(dd));
-          dl.appendChild(dt);
-          dl.appendChild(dd);
-        });
-        td.appendChild(dl);
+        td.colSpan = tr.children.length;
+        var inner = document.createElement('div');
+        inner.className = 'detail-inner';
+        inner.appendChild(buildDetailGroup('仕様', false, DETAIL_SPEC_FIELDS, unit));
+        inner.appendChild(buildDetailGroup('エビデンス（検出メタデータ）', true, DETAIL_EVIDENCE_FIELDS, unit));
+        td.appendChild(inner);
         detail.appendChild(td);
         tr.parentNode.insertBefore(detail, tr.nextSibling);
+        tr.setAttribute('data-expanded', 'true');
       });
     }
 
@@ -804,15 +901,6 @@
         });
       });
     });
-
-    // nth-child オフセット補正: シェブロン列挿入で全列+1シフト
-    var fixStyle = document.createElement('style');
-    fixStyle.textContent =
-      'table.units td:nth-child(8){text-align:left;font-variant-numeric:normal;}' +
-      'table.units td:nth-child(2),table.units td:nth-child(10){font-family:inherit;font-size:inherit;}' +
-      'table.units td:nth-child(9){text-align:right;font-variant-numeric:tabular-nums;}' +
-      'table.units td:nth-child(3),table.units td:nth-child(11){font-family:var(--mono);font-size:0.8em;}';
-    document.head.appendChild(fixStyle);
 
     if (search) {
       search.addEventListener('input', function () {
