@@ -175,7 +175,7 @@ Bash ツールで残件カウントコマンドを実行する。マーカー未
 
 - **中間マーカー判定（前半完了）**: 画面レジストリ（`<docs_root>/一覧/reverse-screen-registry.yml`）内の当該画面エントリで `status` が `authored`
 - **完了マーカー判定（後半完了）**: 同エントリで `status` が `baseline-established`
-- **CHECK_CMD**: 画面レジストリファイルを読み、当該 screen_id のブロック内に `status: baseline-established` が存在するかを grep で判定する（`verification-pass` は廃止済み。旧値が残る台帳の読み替え手順は `orchestrating-reverse-docs-flow` の `references/contract.md` の「レジストリ移行手順」を参照）
+- **CHECK_CMD**: 画面レジストリファイルを読み、`<system>-<screen_id>:` キー（正本: `orchestrating-reverse-docs-flow` の `references/contract.md` 「画面レジストリ」節。system は `target_repo_path` のディレクトリ名から導出する）のブロック内に `status: baseline-established` が存在するかを grep で判定する（`verification-pass` は廃止済み。旧値が残る台帳の読み替え手順は `orchestrating-reverse-docs-flow` の `references/contract.md` の「レジストリ移行手順」を参照）
 
 ## 予想を裏切る挙動
 

@@ -269,91 +269,23 @@ source "$(cd "$(dirname "$0")/.." && pwd)/render-template.sh"
 # --- メタ情報・サマリ集計をマニフェストから抽出 ---
 generated_at="$(jq -r '.generatedAt // ""' "$MANIFEST")"
 source_dir="$(jq -r '.sourceDir // ""' "$MANIFEST")"
-# 表示用: 絶対パスはマシン固有パスの漏洩防止でbasenameに丸め、相対パスはそのまま表示する
-case "$source_dir" in
-  /*) source_dir_display="$(basename "$source_dir")" ;;
-  *)  source_dir_display="$source_dir" ;;
-esac
-extraction_method="$(jq -r '.strategy.extractionMethod // ""' "$MANIFEST")"
-detection_method="$(jq -r '.detectionSummary.method // ""' "$MANIFEST")"
 tile_screen_count="$(jq -r '.detectionSummary.screenCount // 0' "$MANIFEST")"
 tile_cluster_count="$(jq -r '.detectionSummary.clusterCount // 0' "$MANIFEST")"
 tile_shared_screen_count="$(jq -r '.detectionSummary.sharedScreenCount // 0' "$MANIFEST")"
 tile_embedded_count="$(jq -r '.detectionSummary.embeddedCandidateCount // 0' "$MANIFEST")"
 tile_unresolved_count="$(jq -r '.detectionSummary.unresolvedCount // 0' "$MANIFEST")"
 
-# --- sharedWithキー -> {screenId, route} の逆引きテーブル(manifest全体から1回だけ構築) ---
-shared_lookup_json="$(jq -c '
-  [ .screens[]? | {key: (.screenKey // ""), screenId: (.screenId // null), route: (.route // "")} ]
-  | map({(.key): {screenId: .screenId, route: .route}}) | add // {}
-' "$MANIFEST")"
-
 # --- 1画面分の <tr> を生成する ---
 row_html() {
   local row="$1"
-  local screen_id screen_key kind screen_name route detection_method_row confidence
-  local file_count entry_file route_dup_count shared_count shared_text
-  local dup_note kind_class kind_label embedded_in embedded_text shared_mode shared_detail
+  local screen_id screen_key kind screen_name route
+  local kind_class kind_label
 
   screen_id="$(jq -r '.screenId // empty' <<<"$row")"
-  [ -z "$screen_id" ] && screen_id="—"
   screen_key="$(jq -r '.screenKey // ""' <<<"$row")"
   kind="$(jq -r '.kind // ""' <<<"$row")"
   screen_name="$(jq -r '.screenNameGuess // ""' <<<"$row")"
   route="$(jq -r '.route // ""' <<<"$row")"
-  detection_method_row="$(jq -r '.detectionMethod // ""' <<<"$row")"
-  confidence="$(jq -r '.confidence // ""' <<<"$row")"
-  file_count="$(jq -r '.fileCount // 0' <<<"$row")"
-  entry_file="$(jq -r '.entryFile // ""' <<<"$row")"
-  route_dup_count="$(jq -r '.routeDupCount // 1' <<<"$row")"
-  shared_count="$(jq -r '(.sharedWith // []) | length' <<<"$row")"
-  embedded_in="$(jq -r '
-    (.embeddedIn // "") as $e
-    | if ($e | type) == "array" then ($e | map(tostring) | join(", "))
-      elif ($e | type) == "string" then $e
-      else "" end
-  ' <<<"$row")"
-
-  # --- 共有列: sharedWithの各キーをmanifestから引き、screenId(なければキー):routeの
-  #     詳細を優先表示する。全メンバーがscreenId欠落の場合のみ「N件: キー一覧」にフォールバック ---
-  if [ "$shared_count" -eq 0 ]; then
-    shared_text="—"
-  else
-    shared_mode="$(jq -r --argjson lookup "$shared_lookup_json" '
-      (.sharedWith // []) as $sw
-      | ($sw | map($lookup[.].screenId) | map(select(. != null)) | length) as $with_id
-      | if $with_id > 0 then "detail" else "fallback" end
-    ' <<<"$row")"
-    if [ "$shared_mode" = "detail" ]; then
-      shared_detail="$(jq -r --argjson lookup "$shared_lookup_json" '
-        (.sharedWith // []) as $sw
-        | $sw | map(
-            ($lookup[.] // {"screenId":null,"route":null}) as $m
-            | ((if $m.screenId != null then $m.screenId else . end) + ": " + ($m.route // ""))
-          ) | join(", ")
-      ' <<<"$row")"
-      shared_text="$(html_escape "$shared_detail")"
-    else
-      shared_text="${shared_count}件: $(html_escape "$(jq -r '(.sharedWith // []) | join(", ")' <<<"$row")")"
-    fi
-  fi
-
-  # 埋め込み元・親画面列: embeddedIn が非空なら kind を問わず表示する。
-  # kind=="embedded-view" に限定しない理由: 独立ルートを持ちつつ他画面からも
-  # 呼ばれる二重の性質の画面(kind=route で embeddedIn を持つ)で親が空欄になるため。
-  # embeddedIn は「値があれば表示」という普遍的な表示ルールで扱う(kindは表示可否の判断材料にしない)。
-  # この制限は過去に繰り返し再導入されたため、変更しないこと。route画面で embeddedIn が
-  # null/空の通常ケースは $embedded_in が空になり「—」表示のままで挙動は変わらない。
-  if [ -n "$embedded_in" ]; then
-    embedded_text="<code>$(html_escape "$embedded_in")</code>"
-  else
-    embedded_text="—"
-  fi
-
-  dup_note=""
-  if [ "$route_dup_count" -gt 1 ]; then
-    dup_note="<span class=\"dup-note\">route定義${route_dup_count}箇所</span>"
-  fi
 
   case "$kind" in
     route)          kind_class="kind-route";      kind_label="ルート" ;;
@@ -362,23 +294,16 @@ row_html() {
     *)               kind_class="kind-unresolved"; kind_label="$(html_escape "$kind")" ;;
   esac
 
-  printf '<tr>\n'
-  printf '<td>%s</td>\n' "$(html_escape "$screen_id")"
-  printf '<td><code>%s</code></td>\n' "$(html_escape "$screen_key")"
-  printf '<td><span class="badge %s">%s</span></td>\n' "$kind_class" "$kind_label"
+  # screenId/screenKey は表示列から外したが、展開行JSのユニット特定(findUnit等)のため
+  # trの data-screen-id / data-screen-key 属性として保持する(3セルの制約には抵触しない)。
+  printf '<tr data-screen-id="%s" data-screen-key="%s">\n' "$(html_escape "$screen_id")" "$(html_escape "$screen_key")"
   printf '<td>%s</td>\n' "$(html_escape "$screen_name")"
   if [ -n "$route" ]; then
-    printf '<td><code>%s</code>%s</td>\n' "$(html_escape "$route")" "$dup_note"
+    printf '<td><code>%s</code></td>\n' "$(html_escape "$route")"
   else
-    printf '<td>—%s</td>\n' "$dup_note"
+    printf '<td>—</td>\n'
   fi
-  printf '<td>%s</td>\n' "$(html_escape "$detection_method_row")"
-  # badge CSSクラス(.badge.high等)は小文字定義のため、confidence値の大文字小文字に依らずクラスは小文字化する
-  printf '<td><span class="badge %s">%s</span></td>\n' "$(html_escape "$(printf '%s' "$confidence" | tr '[:upper:]' '[:lower:]')")" "$(html_escape "$confidence")"
-  printf '<td>%s</td>\n' "$shared_text"
-  printf '<td>%s</td>\n' "$embedded_text"
-  printf '<td>%s</td>\n' "$(html_escape "$file_count")"
-  printf '<td><code>%s</code></td>\n' "$(html_escape "$entry_file")"
+  printf '<td><span class="badge %s">%s</span></td>\n' "$kind_class" "$kind_label"
   printf '</tr>\n'
 }
 
@@ -396,18 +321,18 @@ while IFS= read -r row; do
 done < <(jq -c '.screens[]' "$MANIFEST")
 
 if [ -z "$screen_rows" ]; then
-  screen_rows='<tr><td colspan="11">なし</td></tr>'
+  screen_rows='<tr><td colspan="3">なし</td></tr>'
 fi
 
 if [ -z "$unresolved_rows" ]; then
   unresolved_section='<p class="note">なし</p>'
+  unresolved_class="empty"
 else
   unresolved_section="$(cat <<EOF
 <table class="screens" id="unresolved-table">
 <thead>
 <tr>
-<th>画面ID</th><th>画面キー</th><th>区分</th><th>画面名</th><th>ルート</th>
-<th>検出方式</th><th>confidence</th><th>共有</th><th>埋め込み元</th><th>構成ファイル数</th><th>主ファイル</th>
+<th>画面名</th><th>ルート</th><th>区分</th>
 </tr>
 </thead>
 <tbody>
@@ -416,6 +341,7 @@ ${unresolved_rows}
 </table>
 EOF
 )"
+  unresolved_class="has-items"
 fi
 
 # --- diagnostics(警告)一覧をHTML断片へ整形。空なら何も出力しない ---
@@ -449,9 +375,6 @@ fi
 render_args=(
   "{{PROJECT_NAME}}" "$(html_escape "$PROJECT_NAME_ARG")"
   "{{GENERATED_AT}}" "$(html_escape "$generated_at")"
-  "{{SOURCE_DIR}}" "$(html_escape "$source_dir_display")"
-  "{{EXTRACTION_METHOD}}" "$(html_escape "$extraction_method")"
-  "{{DETECTION_METHOD}}" "$(html_escape "$detection_method")"
   "{{TILE_SCREEN_COUNT}}" "$tile_screen_count"
   "{{TILE_CLUSTER_COUNT}}" "$tile_cluster_count"
   "{{TILE_SHARED_SCREEN_COUNT}}" "$tile_shared_screen_count"
@@ -459,6 +382,8 @@ render_args=(
   "{{TILE_UNRESOLVED_COUNT}}" "$tile_unresolved_count"
   "<!--SCREEN_TABLE_ROWS-->" "$screen_rows"
   "<!--UNRESOLVED_SECTION-->" "$unresolved_section"
+  "{{UNRESOLVED_CLASS}}" "$unresolved_class"
+  "{{UNRESOLVED_CLASS}}" "$unresolved_class"
   "<!--DIAGNOSTICS-->" "$diagnostics_html"
   "{{PORTAL_RELATIVE}}" "$portal_relative"
   "<!--SCREEN_MANIFEST_JSON-->" "$screen_manifest_json"

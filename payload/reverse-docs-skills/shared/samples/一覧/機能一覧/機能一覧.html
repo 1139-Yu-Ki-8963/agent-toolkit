@@ -18,8 +18,6 @@
   scripts/build-feature-list.sh 冒頭コメントを正本とする。本コメントでは
   二重置換事故を避けるため意図的に波括弧・HTMLコメント記法を外して記載する):
     GENERATED_AT (生成日時マーカー)             : ISO8601 生成日時
-    SOURCE_DIR (ソースディレクトリマーカー)     : 探索対象ソースディレクトリ(絶対パス)
-    EXTRACTION_METHOD (抽出方式マーカー)        : strategy.extractionMethod
     CATEGORY_COUNT (大分類数タイルマーカー)     : 検出された大分類の数
     UNIT_COUNT (検出機能数タイルマーカー)       : detectionSummary.unitCount
     UNRESOLVED_COUNT (要確認数タイルマーカー)   : detectionSummary.unresolvedCount
@@ -27,7 +25,9 @@
     UNRESOLVED_SECTION (要手動確認セクションマーカー) : kind=unresolved の一覧テーブル、0件なら「なし」の文言
     MANIFEST_JSON (マニフェストJSON埋め込みマーカー) : manifest.json の内容をそのまま埋め込み(二重管理・ドリフト禁止)
 
-  テーブル列順(固定・全10列): 機能ID / 機能キー / 機能名 / 概要 / 関連画面 / 関連API / 関連テーブル / confidence / 検出方式 / 主ファイル
+  テーブル列順(固定・全3列): 機能名 / 概要 / 区分(任意列はクライアント側OPTIONAL_FIELDSが動的追加)。
+  行の<tr>には data-unit-id / data-unit-key 属性を持たせ、展開行JSがマニフェストJSONから
+  該当機能を引けるようにする(不可視属性のため3列制約には抵触しない)。カテゴリ別<details>は残す。
 
   制約:
     - 外部リソース(CDN・フォント・画像)は一切使わない。単一ファイル自己完結
@@ -67,6 +67,13 @@
   --warn: #BC4C00;
   --danger: #CF222E;
   --danger-soft: #FFEBE9;
+  --highlight: #D97B1A;
+  --highlight-soft: rgba(217,123,26,0.12);
+  --highlight-border: rgba(217,123,26,0.5);
+  --nav-tag: #7B8BBF;
+  --nav-tag-soft: #ECEEF6;
+  --self-tag: #6B9B6B;
+  --self-tag-soft: #E8F0E8;
   --code-bg: #1B1F26;
   --code-fg: #E8E5DC;
   --cat-list: #2563eb;
@@ -88,6 +95,9 @@
     --gold: #DB6D28; --gold-soft: #311D08; --gold-border: #7A3E0D;
     --success: #3FB950; --success-soft: #0D2818;
     --warn: #DB6D28; --danger: #F85149; --danger-soft: #3D1214;
+    --highlight: #E8943A; --highlight-soft: rgba(232,148,58,0.15); --highlight-border: rgba(232,148,58,0.5);
+    --nav-tag: #8E9ED0; --nav-tag-soft: rgba(142,158,208,0.15);
+    --self-tag: #7DB87D; --self-tag-soft: rgba(125,184,125,0.15);
     --code-bg: #0E1116; --code-fg: #E8E5DC;
     --cat-list: #60A5FA; --cat-common: #34D399; --cat-project: #A78BFA;
   }
@@ -100,18 +110,25 @@
   --gold: #DB6D28; --gold-soft: #311D08; --gold-border: #7A3E0D;
   --success: #3FB950; --success-soft: #0D2818;
   --warn: #DB6D28; --danger: #F85149; --danger-soft: #3D1214;
+  --highlight: #E8943A; --highlight-soft: rgba(232,148,58,0.15); --highlight-border: rgba(232,148,58,0.5);
+  --nav-tag: #8E9ED0; --nav-tag-soft: rgba(142,158,208,0.15);
+  --self-tag: #7DB87D; --self-tag-soft: rgba(125,184,125,0.15);
   --code-bg: #0E1116; --code-fg: #E8E5DC;
   --cat-list: #60A5FA; --cat-common: #34D399; --cat-project: #A78BFA;
 }
 
+  html { height: 100vh; }
   * { box-sizing: border-box; }
   body {
-    margin: 0; padding: 0 24px 96px;
+    margin: 0; padding: 0 24px 0;
     font-family: var(--font-body);
     line-height: 1.7; color: var(--text); background: var(--bg);
     max-width: 1180px; margin-inline: auto;
+    height: 100%; overflow: hidden; display: flex; flex-direction: column;
   }
+  .table-area { flex: 1; min-height: 0; overflow-y: auto; }
   .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  table.units thead { position: sticky; top: 0; z-index: 3; }
   header { padding: 40px 0 20px; border-bottom: 3px solid var(--border-strong); }
   .header-top { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
   header h1 { font-size: 1.7rem; margin: 0 0 10px; }
@@ -148,7 +165,6 @@
 
   table.units {
     table-layout: fixed; width: 100%; min-width: 1000px; border-collapse: collapse; font-size: 0.88rem;
-    overflow: hidden;
   }
   table.units th {
     border-top: 1px solid var(--border); padding: 8px 10px; text-align: left; vertical-align: top;
@@ -167,29 +183,25 @@
     font-size: 0.85em; background: var(--panel-2); padding: 1px 5px; border-radius: 3px;
   }
 
-  /* 列幅の明示指定（feature-list: 10列） */
-  table.units th:nth-child(1) { width: 5%; }   /* 機能ID */
-  table.units th:nth-child(2) { width: 7%; }   /* 機能キー */
-  table.units th:nth-child(3) { width: 8%; }   /* 機能名 */
-  table.units th:nth-child(4) { width: 22%; }  /* 概要 */
-  table.units th:nth-child(5) { width: 8%; }   /* 関連画面 */
-  table.units th:nth-child(6) { width: 10%; }  /* 関連API */
-  table.units th:nth-child(7) { width: 7%; }   /* 関連テーブル */
-  table.units th:nth-child(8) { width: 5%; }   /* confidence */
-  table.units th:nth-child(9) { width: 5%; }   /* 検出方式 */
-  table.units th:nth-child(10) { width: 23%; } /* 主ファイル */
+  /* 列幅の明示指定（data-key属性でシェブロン列挿入に影響されない。キー名はbuild-feature-list.sh準拠） */
+  table.units th[data-key="unitNameGuess"] { width: 25%; }
+  table.units th[data-key="summary"] { width: 45%; }
+  table.units th[data-key="kind"] { width: 10%; }
 
-  /* 数値列は右揃え＋等幅数字 */
-  table.units td:nth-child(8) {
-    text-align: right;
-    font-variant-numeric: tabular-nums;
+  /* 固定列（シェブロン列・機能名列・概要列）: 横スクロール時も左端に固定する */
+  table.units thead th:nth-child(1), table.units tbody td:nth-child(1) {
+    position: sticky; left: 0; z-index: 2; background: var(--panel);
   }
-
-  /* コード系列はモノスペース */
-  table.units td:nth-child(2),
-  table.units td:nth-child(10) {
-    font-family: var(--mono);
-    font-size: 0.8em;
+  table.units thead th:nth-child(2), table.units tbody td:nth-child(2) {
+    position: sticky; left: 32px; z-index: 2; background: var(--panel);
+  }
+  table.units thead th:nth-child(3), table.units tbody td:nth-child(3) {
+    position: sticky; left: calc(32px + 25%); z-index: 2; background: var(--panel);
+  }
+  table.units thead th:nth-child(1),
+  table.units thead th:nth-child(2),
+  table.units thead th:nth-child(3) {
+    background: var(--panel-2); z-index: 4;
   }
 
   /* ゼブラストライプ */
@@ -207,13 +219,14 @@
   .badge.medium { background: var(--gold-soft); color: var(--gold); }
   .badge.low    { background: var(--accent-soft); color: var(--accent); }
 
-  section.unresolved {
-    margin-top: 40px; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 16px 20px; min-width: 0;
-  }
+  section.unresolved { margin-top: 24px; border-radius: 8px; padding: 12px 16px; min-width: 0; }
+  section.unresolved.empty { background: var(--panel-2); border: 1px solid var(--border); color: var(--text-muted); }
+  section.unresolved.empty h2 { color: var(--text-muted); font-size: 0.95rem; margin: 0; }
+  section.unresolved.has-items { background: var(--danger-soft); border: 1px solid var(--danger); color: var(--danger); }
+  section.unresolved.has-items h2 { color: var(--danger); font-size: 0.95rem; margin: 0 0 8px; }
   #category-sections { min-width: 0; }
-  section.unresolved h2 { font-size: 1.05rem; margin: 0 0 10px; }
 
-  footer { margin-top: 48px; font-size: 0.8rem; color: var(--text-muted); }
+  footer { flex-shrink: 0; padding: 8px 0; font-size: 0.75rem; color: var(--text-muted); text-align: center; border-top: 1px solid var(--border); }
 
   .pagination { display: flex; gap: 8px; align-items: center; justify-content: center; margin: 16px 0; font-size: 0.85rem; }
   .pagination button { background: var(--panel-2); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text-sub); cursor: pointer; padding: 4px 10px; font-family: inherit; font-size: 0.82rem; }
@@ -231,10 +244,23 @@
   .chip-group-label { font-size: .72rem; color: var(--text-muted); }
   a.opt-tag { display: inline-block; font-size: .72rem; padding: 1px 6px; border-radius: 4px; background: var(--panel-2); margin: 1px 3px 1px 0; color: inherit; text-decoration: none; }
   a.opt-tag:hover { text-decoration: underline; color: var(--accent); }
-  tr.row-detail > td { background: var(--panel-2); font-size: .82rem; white-space: normal; }
+  tr.row-detail > td { background: var(--panel-2); font-size: .82rem; white-space: normal; border-left: 3px solid var(--accent); }
   .row-detail dl { display: grid; grid-template-columns: max-content 1fr; gap: 2px 12px; margin: 4px 0; }
   .row-detail dt { color: var(--text-muted); }
   .row-detail dd { margin: 0; word-break: break-all; }
+  table.units tbody tr, table.screens tbody tr { cursor: pointer; }
+  .expand-cell { transition: color 0.15s; }
+  tr:hover .expand-cell { color: var(--accent); }
+  tr[data-expanded="true"] .chevron svg { transform: rotate(90deg); }
+
+  .detail-inner { padding: 12px 16px 14px 20px; }
+  .detail-group { margin-bottom: 12px; }
+  .detail-group:last-child { margin-bottom: 0; }
+  .detail-group-label { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.06em; color: var(--text-muted); margin-bottom: 6px; padding-bottom: 4px; border-bottom: 1px solid var(--border); }
+  .detail-group-label.evidence { color: var(--gold); border-bottom-color: var(--gold-soft); }
+  .detail-grid { display: grid; grid-template-columns: max-content 1fr; gap: 3px 14px; }
+  .detail-grid dt { color: var(--text-muted); font-size: 0.78rem; white-space: nowrap; }
+  .detail-grid dd { margin: 0; font-size: 0.84rem; word-break: break-all; }
   .csv-btn {
     background: var(--panel-2); border: 1px solid var(--border); border-radius: var(--radius-sm);
     color: var(--text-sub); cursor: pointer; padding: 5px 12px; font-size: 0.82rem; font-family: inherit;
@@ -261,6 +287,15 @@
   display: inline-flex; align-items: center; gap: 4px;
 }
 .top-actions button:hover { background: var(--accent-soft, #e8f4fd); color: var(--accent, #0969da); border-color: var(--accent-border, #0969da); }
+.topbar { flex-shrink: 0; }
+.page-hero.compact { padding: 12px 0 8px; flex-shrink: 0; }
+.page-hero.compact .header-top { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.page-hero.compact h1 { font-size: 1.3rem; margin: 0; }
+.page-hero.compact .summary-tiles { margin: 0; gap: 8px; }
+.page-hero.compact .tile { padding: 4px 12px; font-size: 0.78rem; }
+.page-hero.compact .tile strong { font-size: 1rem; display: inline; margin-right: 4px; }
+.page-hero.compact .meta-inline { font-size: 0.75rem; color: var(--text-muted); margin: 2px 0 0; }
+.toolbar-area { flex-shrink: 0; padding: 8px 0; }
 </style>
 </head>
 <body>
@@ -268,7 +303,7 @@
 <header class="topbar">
   <a class="brand" href="../../index.html">
     <span class="brand-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:middle"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zM13 9V3.5L18.5 9H13z"/></svg></span>
-    <span class="brand-title">サンプルプロジェクト</span>
+    <span class="brand-title"></span>
     <span class="brand-sub">設計ポータル</span>
   </a>
   <div class="header-meta">
@@ -278,89 +313,54 @@
     <button id="theme-toggle" title="テーマ切替">ライト</button>
   </div>
 </header>
-<section class="page-hero">
+<section class="page-hero compact">
   <nav class="back-link" style="margin: 16px 0 0; font-size: 0.85rem;">
     <a href="../../index.html" style="color: var(--text-sub); text-decoration: none; border-bottom: 1px dotted var(--text-muted);">← ポータルへ戻る</a>
   </nav>
   <div class="header-top">
     <h1>機能一覧</h1>
-  </div>
-  <table class="meta-table">
-    <tr><td>生成日時</td><td>2026-07-20T00:00:00+09:00</td></tr>
-    <tr><td>ソースディレクトリ</td><td><code>src</code></td></tr>
-    <tr><td>種別</td><td>機能（派生一覧）</td></tr>
-    <tr><td>抽出方式</td><td>static-analysis</td></tr>
-  </table>
-
-  <div class="summary-tiles">
-    <div class="tile"><strong>4</strong>大分類数</div>
-    <div class="tile"><strong>16</strong>検出機能数</div>
-    <div class="tile"><strong>0</strong>要手動確認数</div>
+    <div class="summary-tiles">
+      <div class="tile"><strong>4</strong>大分類数</div>
+      <div class="tile"><strong>16</strong>検出機能数</div>
+      <div class="tile"><strong>0</strong>要手動確認数</div>
+    </div>
   </div>
 </section>
 
-<div class="toolbar">
-  <input type="search" id="unit-search" placeholder="キー・概要で絞り込み">
-  <span class="note">列見出しクリックでソート</span>
+<div class="toolbar-area">
+  <div class="toolbar">
+    <input type="search" id="unit-search" placeholder="キー・概要で絞り込み">
+    <span class="note">列見出しクリックでソート</span>
+  </div>
 </div>
 
+<div class="table-area">
 <div id="category-sections" class="table-wrap">
 <details class="module-group" open>
 <summary class="cat-header"><span class="cat-name">認証・セキュリティ</span><span class="cat-count">4 機能</span></summary>
 <table class="units">
 <thead>
 <tr>
-<th data-key="unitId">機能ID</th><th data-key="unitKey">機能キー</th><th data-key="unitNameGuess">機能名</th>
-<th data-key="summary">概要</th><th data-key="relatedScreens">関連画面</th><th data-key="relatedApis">関連API</th>
-<th data-key="relatedTables">関連テーブル</th><th data-key="confidence">confidence</th>
-<th data-key="detectionMethod">検出方式</th><th data-key="sourceFile">主ファイル</th>
+<th data-key="unitNameGuess">機能名</th><th data-key="summary">概要</th><th data-key="kind">区分</th>
 </tr>
 </thead>
 <tbody>
-<tr>
-<td>feat-login</td>
-<td><code>login</code></td>
+<tr data-unit-id="feat-login" data-unit-key="login">
 <td>ログイン</td>
 <td>メール・パスワードによるユーザー認証とセッション発行</td>
-<td>ログイン画面</td>
-<td>POST /api/auth/login</td>
-<td>users, sessions</td>
-<td><span class="badge high">HIGH</span></td>
-<td>画面派生</td>
-<td><code>src/pages/auth/LoginPage.tsx</code></td>
-</tr><tr>
-<td>feat-logout</td>
-<td><code>logout</code></td>
+<td><span class="badge kind-generic">機能</span></td>
+</tr><tr data-unit-id="feat-logout" data-unit-key="logout">
 <td>ログアウト</td>
 <td>セッション破棄とログイン画面への遷移</td>
-<td>全画面共通</td>
-<td>DELETE /api/auth/session</td>
-<td>sessions</td>
-<td><span class="badge high">HIGH</span></td>
-<td>画面派生</td>
-<td><code>src/hooks/useAuth.ts</code></td>
-</tr><tr>
-<td>feat-signup</td>
-<td><code>signup</code></td>
+<td><span class="badge kind-generic">機能</span></td>
+</tr><tr data-unit-id="feat-signup" data-unit-key="signup">
 <td>新規登録</td>
 <td>メールアドレスとパスワードによるアカウント作成</td>
-<td>新規登録画面</td>
-<td>POST /api/users</td>
-<td>users</td>
-<td><span class="badge high">HIGH</span></td>
-<td>画面派生</td>
-<td><code>src/pages/auth/SignupPage.tsx</code></td>
-</tr><tr>
-<td>feat-password-reset</td>
-<td><code>password-reset</code></td>
+<td><span class="badge kind-generic">機能</span></td>
+</tr><tr data-unit-id="feat-password-reset" data-unit-key="password-reset">
 <td>パスワードリセット</td>
 <td>メール送信によるパスワード再設定フロー</td>
-<td>パスワードリセット</td>
-<td>POST /api/auth/reset-password</td>
-<td>users</td>
-<td><span class="badge medium">MEDIUM</span></td>
-<td>画面派生</td>
-<td><code>src/pages/auth/ForgotPasswordPage.tsx</code></td>
+<td><span class="badge kind-generic">機能</span></td>
 </tr>
 </tbody>
 </table>
@@ -369,57 +369,26 @@
 <table class="units">
 <thead>
 <tr>
-<th data-key="unitId">機能ID</th><th data-key="unitKey">機能キー</th><th data-key="unitNameGuess">機能名</th>
-<th data-key="summary">概要</th><th data-key="relatedScreens">関連画面</th><th data-key="relatedApis">関連API</th>
-<th data-key="relatedTables">関連テーブル</th><th data-key="confidence">confidence</th>
-<th data-key="detectionMethod">検出方式</th><th data-key="sourceFile">主ファイル</th>
+<th data-key="unitNameGuess">機能名</th><th data-key="summary">概要</th><th data-key="kind">区分</th>
 </tr>
 </thead>
 <tbody>
-<tr>
-<td>feat-profile-edit</td>
-<td><code>profile-edit</code></td>
+<tr data-unit-id="feat-profile-edit" data-unit-key="profile-edit">
 <td>プロフィール編集</td>
 <td>表示名・アバター・連絡先情報の表示と更新</td>
-<td>プロフィール</td>
-<td>PUT /api/users/:userId</td>
-<td>users</td>
-<td><span class="badge high">HIGH</span></td>
-<td>画面派生</td>
-<td><code>src/pages/settings/ProfilePage.tsx</code></td>
-</tr><tr>
-<td>feat-user-list</td>
-<td><code>user-list</code></td>
+<td><span class="badge kind-generic">機能</span></td>
+</tr><tr data-unit-id="feat-user-list" data-unit-key="user-list">
 <td>ユーザー一覧表示</td>
 <td>管理者向けユーザー一覧の検索・絞り込み・ページネーション</td>
-<td>ユーザー一覧</td>
-<td>GET /api/users</td>
-<td>users, roles</td>
-<td><span class="badge high">HIGH</span></td>
-<td>画面派生</td>
-<td><code>src/pages/admin/UsersListPage.tsx</code></td>
-</tr><tr>
-<td>feat-user-invite</td>
-<td><code>user-invite</code></td>
+<td><span class="badge kind-generic">機能</span></td>
+</tr><tr data-unit-id="feat-user-invite" data-unit-key="user-invite">
 <td>ユーザー招待</td>
 <td>メールアドレス指定による新規ユーザーの招待</td>
-<td>ユーザー一覧</td>
-<td>POST /api/users</td>
-<td>users</td>
-<td><span class="badge medium">MEDIUM</span></td>
-<td>画面派生</td>
-<td><code>src/pages/admin/UsersListPage.tsx</code></td>
-</tr><tr>
-<td>feat-role-assign</td>
-<td><code>role-assign</code></td>
+<td><span class="badge kind-generic">機能</span></td>
+</tr><tr data-unit-id="feat-role-assign" data-unit-key="role-assign">
 <td>ロール割当</td>
 <td>ユーザーへのロール付与・変更・剥奪</td>
-<td>ユーザー詳細</td>
-<td>PUT /api/users/:userId</td>
-<td>user_roles, roles</td>
-<td><span class="badge high">HIGH</span></td>
-<td>画面派生</td>
-<td><code>src/pages/admin/UserDetailPage.tsx</code></td>
+<td><span class="badge kind-generic">機能</span></td>
 </tr>
 </tbody>
 </table>
@@ -428,68 +397,30 @@
 <table class="units">
 <thead>
 <tr>
-<th data-key="unitId">機能ID</th><th data-key="unitKey">機能キー</th><th data-key="unitNameGuess">機能名</th>
-<th data-key="summary">概要</th><th data-key="relatedScreens">関連画面</th><th data-key="relatedApis">関連API</th>
-<th data-key="relatedTables">関連テーブル</th><th data-key="confidence">confidence</th>
-<th data-key="detectionMethod">検出方式</th><th data-key="sourceFile">主ファイル</th>
+<th data-key="unitNameGuess">機能名</th><th data-key="summary">概要</th><th data-key="kind">区分</th>
 </tr>
 </thead>
 <tbody>
-<tr>
-<td>feat-post-create</td>
-<td><code>post-create</code></td>
+<tr data-unit-id="feat-post-create" data-unit-key="post-create">
 <td>投稿作成</td>
 <td>リッチテキストエディタによる投稿の新規作成と公開</td>
-<td>投稿エディタ</td>
-<td>POST /api/posts</td>
-<td>posts, tags, post_tags</td>
-<td><span class="badge high">HIGH</span></td>
-<td>画面派生</td>
-<td><code>src/pages/posts/PostEditorPage.tsx</code></td>
-</tr><tr>
-<td>feat-post-edit</td>
-<td><code>post-edit</code></td>
+<td><span class="badge kind-generic">機能</span></td>
+</tr><tr data-unit-id="feat-post-edit" data-unit-key="post-edit">
 <td>投稿編集</td>
 <td>既存投稿の内容編集・タグ変更・下書き保存</td>
-<td>投稿エディタ</td>
-<td>PUT /api/posts/:postId</td>
-<td>posts, tags, post_tags</td>
-<td><span class="badge high">HIGH</span></td>
-<td>画面派生</td>
-<td><code>src/pages/posts/PostEditorPage.tsx</code></td>
-</tr><tr>
-<td>feat-post-delete</td>
-<td><code>post-delete</code></td>
+<td><span class="badge kind-generic">機能</span></td>
+</tr><tr data-unit-id="feat-post-delete" data-unit-key="post-delete">
 <td>投稿削除</td>
 <td>投稿の論理削除と関連コメントの連鎖処理</td>
-<td>投稿詳細</td>
-<td>DELETE /api/posts/:postId</td>
-<td>posts, comments</td>
-<td><span class="badge high">HIGH</span></td>
-<td>画面派生</td>
-<td><code>src/pages/posts/PostDetailPage.tsx</code></td>
-</tr><tr>
-<td>feat-comment</td>
-<td><code>comment</code></td>
+<td><span class="badge kind-generic">機能</span></td>
+</tr><tr data-unit-id="feat-comment" data-unit-key="comment">
 <td>コメント投稿</td>
 <td>投稿へのコメント追加と通知連携</td>
-<td>投稿詳細</td>
-<td>POST /api/posts/:postId/comments</td>
-<td>comments, notifications</td>
-<td><span class="badge high">HIGH</span></td>
-<td>画面派生</td>
-<td><code>src/pages/posts/PostDetailPage.tsx</code></td>
-</tr><tr>
-<td>feat-file-upload</td>
-<td><code>file-upload</code></td>
+<td><span class="badge kind-generic">機能</span></td>
+</tr><tr data-unit-id="feat-file-upload" data-unit-key="file-upload">
 <td>ファイル添付</td>
 <td>投稿へのファイルアップロードとプレビュー表示</td>
-<td>投稿エディタ</td>
-<td>POST /api/files/upload</td>
-<td>uploaded_files</td>
-<td><span class="badge medium">MEDIUM</span></td>
-<td>画面派生</td>
-<td><code>src/components/FileUploader.tsx</code></td>
+<td><span class="badge kind-generic">機能</span></td>
 </tr>
 </tbody>
 </table>
@@ -498,78 +429,431 @@
 <table class="units">
 <thead>
 <tr>
-<th data-key="unitId">機能ID</th><th data-key="unitKey">機能キー</th><th data-key="unitNameGuess">機能名</th>
-<th data-key="summary">概要</th><th data-key="relatedScreens">関連画面</th><th data-key="relatedApis">関連API</th>
-<th data-key="relatedTables">関連テーブル</th><th data-key="confidence">confidence</th>
-<th data-key="detectionMethod">検出方式</th><th data-key="sourceFile">主ファイル</th>
+<th data-key="unitNameGuess">機能名</th><th data-key="summary">概要</th><th data-key="kind">区分</th>
 </tr>
 </thead>
 <tbody>
-<tr>
-<td>feat-notification-list</td>
-<td><code>notification-list</code></td>
+<tr data-unit-id="feat-notification-list" data-unit-key="notification-list">
 <td>通知一覧表示</td>
 <td>未読・既読の通知一覧表示と一括既読処理</td>
-<td>通知一覧</td>
-<td>GET /api/notifications</td>
-<td>notifications</td>
-<td><span class="badge high">HIGH</span></td>
-<td>画面派生</td>
-<td><code>src/pages/NotificationsPage.tsx</code></td>
-</tr><tr>
-<td>feat-notification-settings</td>
-<td><code>notification-settings</code></td>
+<td><span class="badge kind-generic">機能</span></td>
+</tr><tr data-unit-id="feat-notification-settings" data-unit-key="notification-settings">
 <td>通知設定</td>
 <td>通知種別ごとの受信可否と配信チャネル設定</td>
-<td>設定画面</td>
-<td>PUT /api/settings</td>
-<td>settings</td>
-<td><span class="badge medium">MEDIUM</span></td>
-<td>画面派生</td>
-<td><code>src/pages/settings/SettingsPage.tsx</code></td>
-</tr><tr>
-<td>feat-report-view</td>
-<td><code>report-view</code></td>
+<td><span class="badge kind-generic">機能</span></td>
+</tr><tr data-unit-id="feat-report-view" data-unit-key="report-view">
 <td>レポート閲覧</td>
 <td>集計データのグラフ表示とCSVダウンロード</td>
-<td>レポート閲覧</td>
-<td>GET /api/reports/:reportId</td>
-<td>posts, comments, audit_logs</td>
-<td><span class="badge high">HIGH</span></td>
-<td>画面派生</td>
-<td><code>src/pages/reports/ReportViewerPage.tsx</code></td>
+<td><span class="badge kind-generic">機能</span></td>
 </tr>
 </tbody>
 </table>
 </details>
 </div>
 
-<section class="unresolved">
+<section class="unresolved empty">
   <h2>要手動確認</h2>
   <div class="table-wrap">
   <p class="note">なし</p>
   </div>
 </section>
+</div>
 
 <script type="application/json" id="unit-manifest">
-{"generatedAt":"2026-07-20T00:00:00+09:00","sourceDir":"src","unitKind":"feature","strategy":{"extractionMethod":"static-analysis","approvedByUser":true},"detectionSummary":{"unitCount":16,"unresolvedCount":0},"units":[
-{"unitId":"feat-login","unitKey":"login","kind":"feature","identifier":"POST /api/auth/login","unitNameGuess":"ログイン","summary":"メール・パスワードによるユーザー認証とセッション発行","category":"認証・セキュリティ","relatedScreens":["ログイン画面"],"relatedApis":["POST /api/auth/login"],"relatedTables":["users","sessions"],"sourceFile":"src/pages/auth/LoginPage.tsx","confidence":"HIGH","fileCount":1,"detectionMethod":"画面派生","operationClass":"更新系"},
-{"unitId":"feat-logout","unitKey":"logout","kind":"feature","identifier":"DELETE /api/auth/session","unitNameGuess":"ログアウト","summary":"セッション破棄とログイン画面への遷移","category":"認証・セキュリティ","relatedScreens":["全画面共通"],"relatedApis":["DELETE /api/auth/session"],"relatedTables":["sessions"],"sourceFile":"src/hooks/useAuth.ts","confidence":"HIGH","fileCount":1,"detectionMethod":"画面派生","operationClass":"削除系"},
-{"unitId":"feat-signup","unitKey":"signup","kind":"feature","identifier":"POST /api/users","unitNameGuess":"新規登録","summary":"メールアドレスとパスワードによるアカウント作成","category":"認証・セキュリティ","relatedScreens":["新規登録画面"],"relatedApis":["POST /api/users"],"relatedTables":["users"],"sourceFile":"src/pages/auth/SignupPage.tsx","confidence":"HIGH","fileCount":1,"detectionMethod":"画面派生","operationClass":"更新系"},
-{"unitId":"feat-password-reset","unitKey":"password-reset","kind":"feature","identifier":"POST /api/auth/reset-password","unitNameGuess":"パスワードリセット","summary":"メール送信によるパスワード再設定フロー","category":"認証・セキュリティ","relatedScreens":["パスワードリセット"],"relatedApis":["POST /api/auth/reset-password"],"relatedTables":["users"],"sourceFile":"src/pages/auth/ForgotPasswordPage.tsx","confidence":"MEDIUM","fileCount":1,"detectionMethod":"画面派生","operationClass":"更新系"},
-{"unitId":"feat-profile-edit","unitKey":"profile-edit","kind":"feature","identifier":"PUT /api/users/:userId","unitNameGuess":"プロフィール編集","summary":"表示名・アバター・連絡先情報の表示と更新","category":"ユーザー管理","relatedScreens":["プロフィール"],"relatedApis":["PUT /api/users/:userId"],"relatedTables":["users"],"sourceFile":"src/pages/settings/ProfilePage.tsx","confidence":"HIGH","fileCount":1,"detectionMethod":"画面派生","operationClass":"更新系"},
-{"unitId":"feat-user-list","unitKey":"user-list","kind":"feature","identifier":"GET /api/users","unitNameGuess":"ユーザー一覧表示","summary":"管理者向けユーザー一覧の検索・絞り込み・ページネーション","category":"ユーザー管理","relatedScreens":["ユーザー一覧"],"relatedApis":["GET /api/users"],"relatedTables":["users","roles"],"sourceFile":"src/pages/admin/UsersListPage.tsx","confidence":"HIGH","fileCount":1,"detectionMethod":"画面派生","operationClass":"参照系"},
-{"unitId":"feat-user-invite","unitKey":"user-invite","kind":"feature","identifier":"POST /api/users","unitNameGuess":"ユーザー招待","summary":"メールアドレス指定による新規ユーザーの招待","category":"ユーザー管理","relatedScreens":["ユーザー一覧"],"relatedApis":["POST /api/users"],"relatedTables":["users"],"sourceFile":"src/pages/admin/UsersListPage.tsx","confidence":"MEDIUM","fileCount":1,"detectionMethod":"画面派生","operationClass":"更新系"},
-{"unitId":"feat-role-assign","unitKey":"role-assign","kind":"feature","identifier":"PUT /api/users/:userId","unitNameGuess":"ロール割当","summary":"ユーザーへのロール付与・変更・剥奪","category":"ユーザー管理","relatedScreens":["ユーザー詳細"],"relatedApis":["PUT /api/users/:userId"],"relatedTables":["user_roles","roles"],"sourceFile":"src/pages/admin/UserDetailPage.tsx","confidence":"HIGH","fileCount":1,"detectionMethod":"画面派生","operationClass":"更新系"},
-{"unitId":"feat-post-create","unitKey":"post-create","kind":"feature","identifier":"POST /api/posts","unitNameGuess":"投稿作成","summary":"リッチテキストエディタによる投稿の新規作成と公開","category":"コンテンツ管理","relatedScreens":["投稿エディタ"],"relatedApis":["POST /api/posts"],"relatedTables":["posts","tags","post_tags"],"sourceFile":"src/pages/posts/PostEditorPage.tsx","confidence":"HIGH","fileCount":1,"detectionMethod":"画面派生","operationClass":"更新系"},
-{"unitId":"feat-post-edit","unitKey":"post-edit","kind":"feature","identifier":"PUT /api/posts/:postId","unitNameGuess":"投稿編集","summary":"既存投稿の内容編集・タグ変更・下書き保存","category":"コンテンツ管理","relatedScreens":["投稿エディタ"],"relatedApis":["PUT /api/posts/:postId"],"relatedTables":["posts","tags","post_tags"],"sourceFile":"src/pages/posts/PostEditorPage.tsx","confidence":"HIGH","fileCount":1,"detectionMethod":"画面派生","operationClass":"更新系"},
-{"unitId":"feat-post-delete","unitKey":"post-delete","kind":"feature","identifier":"DELETE /api/posts/:postId","unitNameGuess":"投稿削除","summary":"投稿の論理削除と関連コメントの連鎖処理","category":"コンテンツ管理","relatedScreens":["投稿詳細"],"relatedApis":["DELETE /api/posts/:postId"],"relatedTables":["posts","comments"],"sourceFile":"src/pages/posts/PostDetailPage.tsx","confidence":"HIGH","fileCount":1,"detectionMethod":"画面派生","operationClass":"削除系"},
-{"unitId":"feat-comment","unitKey":"comment","kind":"feature","identifier":"POST /api/posts/:postId/comments","unitNameGuess":"コメント投稿","summary":"投稿へのコメント追加と通知連携","category":"コンテンツ管理","relatedScreens":["投稿詳細"],"relatedApis":["POST /api/posts/:postId/comments"],"relatedTables":["comments","notifications"],"sourceFile":"src/pages/posts/PostDetailPage.tsx","confidence":"HIGH","fileCount":1,"detectionMethod":"画面派生","operationClass":"更新系"},
-{"unitId":"feat-file-upload","unitKey":"file-upload","kind":"feature","identifier":"POST /api/files/upload","unitNameGuess":"ファイル添付","summary":"投稿へのファイルアップロードとプレビュー表示","category":"コンテンツ管理","relatedScreens":["投稿エディタ"],"relatedApis":["POST /api/files/upload"],"relatedTables":["uploaded_files"],"sourceFile":"src/components/FileUploader.tsx","confidence":"MEDIUM","fileCount":1,"detectionMethod":"画面派生","operationClass":"更新系"},
-{"unitId":"feat-notification-list","unitKey":"notification-list","kind":"feature","identifier":"GET /api/notifications","unitNameGuess":"通知一覧表示","summary":"未読・既読の通知一覧表示と一括既読処理","category":"通知・レポート","relatedScreens":["通知一覧"],"relatedApis":["GET /api/notifications"],"relatedTables":["notifications"],"sourceFile":"src/pages/NotificationsPage.tsx","confidence":"HIGH","fileCount":1,"detectionMethod":"画面派生","operationClass":"参照系"},
-{"unitId":"feat-notification-settings","unitKey":"notification-settings","kind":"feature","identifier":"PUT /api/settings","unitNameGuess":"通知設定","summary":"通知種別ごとの受信可否と配信チャネル設定","category":"通知・レポート","relatedScreens":["設定画面"],"relatedApis":["PUT /api/settings"],"relatedTables":["settings"],"sourceFile":"src/pages/settings/SettingsPage.tsx","confidence":"MEDIUM","fileCount":1,"detectionMethod":"画面派生","operationClass":"更新系"},
-{"unitId":"feat-report-view","unitKey":"report-view","kind":"feature","identifier":"GET /api/reports/:reportId","unitNameGuess":"レポート閲覧","summary":"集計データのグラフ表示とCSVダウンロード","category":"通知・レポート","relatedScreens":["レポート閲覧"],"relatedApis":["GET /api/reports/:reportId"],"relatedTables":["posts","comments","audit_logs"],"sourceFile":"src/pages/reports/ReportViewerPage.tsx","confidence":"HIGH","fileCount":1,"detectionMethod":"画面派生","operationClass":"参照系"}
-]}
+{
+  "generatedAt": "2026-07-20T00:00:00+09:00",
+  "sourceDir": "shared/samples/一覧/機能一覧/fixtures",
+  "unitKind": "feature",
+  "strategy": {
+    "extractionMethod": "static-analysis",
+    "approvedByUser": true
+  },
+  "detectionSummary": {
+    "unitCount": 16,
+    "unresolvedCount": 0
+  },
+  "units": [
+    {
+      "unitId": "feat-login",
+      "unitKey": "login",
+      "kind": "feature",
+      "identifier": "POST /api/auth/login",
+      "unitNameGuess": "ログイン",
+      "summary": "メール・パスワードによるユーザー認証とセッション発行",
+      "category": "認証・セキュリティ",
+      "relatedScreens": [
+        "ログイン画面"
+      ],
+      "relatedApis": [
+        "POST /api/auth/login"
+      ],
+      "relatedTables": [
+        "users",
+        "sessions"
+      ],
+      "sourceFile": "src/pages/auth/LoginPage.tsx",
+      "confidence": "HIGH",
+      "fileCount": 1,
+      "detectionMethod": "画面派生",
+      "operationClass": "更新系"
+    },
+    {
+      "unitId": "feat-logout",
+      "unitKey": "logout",
+      "kind": "feature",
+      "identifier": "DELETE /api/auth/session",
+      "unitNameGuess": "ログアウト",
+      "summary": "セッション破棄とログイン画面への遷移",
+      "category": "認証・セキュリティ",
+      "relatedScreens": [
+        "全画面共通"
+      ],
+      "relatedApis": [
+        "DELETE /api/auth/session"
+      ],
+      "relatedTables": [
+        "sessions"
+      ],
+      "sourceFile": "src/hooks/useAuth.ts",
+      "confidence": "HIGH",
+      "fileCount": 1,
+      "detectionMethod": "画面派生",
+      "operationClass": "削除系"
+    },
+    {
+      "unitId": "feat-signup",
+      "unitKey": "signup",
+      "kind": "feature",
+      "identifier": "POST /api/users",
+      "unitNameGuess": "新規登録",
+      "summary": "メールアドレスとパスワードによるアカウント作成",
+      "category": "認証・セキュリティ",
+      "relatedScreens": [
+        "新規登録画面"
+      ],
+      "relatedApis": [
+        "POST /api/users"
+      ],
+      "relatedTables": [
+        "users"
+      ],
+      "sourceFile": "src/pages/auth/SignupPage.tsx",
+      "confidence": "HIGH",
+      "fileCount": 1,
+      "detectionMethod": "画面派生",
+      "operationClass": "更新系"
+    },
+    {
+      "unitId": "feat-password-reset",
+      "unitKey": "password-reset",
+      "kind": "feature",
+      "identifier": "POST /api/auth/reset-password",
+      "unitNameGuess": "パスワードリセット",
+      "summary": "メール送信によるパスワード再設定フロー",
+      "category": "認証・セキュリティ",
+      "relatedScreens": [
+        "パスワードリセット"
+      ],
+      "relatedApis": [
+        "POST /api/auth/reset-password"
+      ],
+      "relatedTables": [
+        "users"
+      ],
+      "sourceFile": "src/pages/auth/ForgotPasswordPage.tsx",
+      "confidence": "MEDIUM",
+      "fileCount": 1,
+      "detectionMethod": "画面派生",
+      "operationClass": "更新系"
+    },
+    {
+      "unitId": "feat-profile-edit",
+      "unitKey": "profile-edit",
+      "kind": "feature",
+      "identifier": "PUT /api/users/:userId",
+      "unitNameGuess": "プロフィール編集",
+      "summary": "表示名・アバター・連絡先情報の表示と更新",
+      "category": "ユーザー管理",
+      "relatedScreens": [
+        "プロフィール"
+      ],
+      "relatedApis": [
+        "PUT /api/users/:userId"
+      ],
+      "relatedTables": [
+        "users"
+      ],
+      "sourceFile": "src/pages/settings/ProfilePage.tsx",
+      "confidence": "HIGH",
+      "fileCount": 1,
+      "detectionMethod": "画面派生",
+      "operationClass": "更新系"
+    },
+    {
+      "unitId": "feat-user-list",
+      "unitKey": "user-list",
+      "kind": "feature",
+      "identifier": "GET /api/users",
+      "unitNameGuess": "ユーザー一覧表示",
+      "summary": "管理者向けユーザー一覧の検索・絞り込み・ページネーション",
+      "category": "ユーザー管理",
+      "relatedScreens": [
+        "ユーザー一覧"
+      ],
+      "relatedApis": [
+        "GET /api/users"
+      ],
+      "relatedTables": [
+        "users",
+        "roles"
+      ],
+      "sourceFile": "src/pages/admin/UsersListPage.tsx",
+      "confidence": "HIGH",
+      "fileCount": 1,
+      "detectionMethod": "画面派生",
+      "operationClass": "参照系"
+    },
+    {
+      "unitId": "feat-user-invite",
+      "unitKey": "user-invite",
+      "kind": "feature",
+      "identifier": "POST /api/users",
+      "unitNameGuess": "ユーザー招待",
+      "summary": "メールアドレス指定による新規ユーザーの招待",
+      "category": "ユーザー管理",
+      "relatedScreens": [
+        "ユーザー一覧"
+      ],
+      "relatedApis": [
+        "POST /api/users"
+      ],
+      "relatedTables": [
+        "users"
+      ],
+      "sourceFile": "src/pages/admin/UsersListPage.tsx",
+      "confidence": "MEDIUM",
+      "fileCount": 1,
+      "detectionMethod": "画面派生",
+      "operationClass": "更新系"
+    },
+    {
+      "unitId": "feat-role-assign",
+      "unitKey": "role-assign",
+      "kind": "feature",
+      "identifier": "PUT /api/users/:userId",
+      "unitNameGuess": "ロール割当",
+      "summary": "ユーザーへのロール付与・変更・剥奪",
+      "category": "ユーザー管理",
+      "relatedScreens": [
+        "ユーザー詳細"
+      ],
+      "relatedApis": [
+        "PUT /api/users/:userId"
+      ],
+      "relatedTables": [
+        "user_roles",
+        "roles"
+      ],
+      "sourceFile": "src/pages/admin/UserDetailPage.tsx",
+      "confidence": "HIGH",
+      "fileCount": 1,
+      "detectionMethod": "画面派生",
+      "operationClass": "更新系"
+    },
+    {
+      "unitId": "feat-post-create",
+      "unitKey": "post-create",
+      "kind": "feature",
+      "identifier": "POST /api/posts",
+      "unitNameGuess": "投稿作成",
+      "summary": "リッチテキストエディタによる投稿の新規作成と公開",
+      "category": "コンテンツ管理",
+      "relatedScreens": [
+        "投稿エディタ"
+      ],
+      "relatedApis": [
+        "POST /api/posts"
+      ],
+      "relatedTables": [
+        "posts",
+        "tags",
+        "post_tags"
+      ],
+      "sourceFile": "src/pages/posts/PostEditorPage.tsx",
+      "confidence": "HIGH",
+      "fileCount": 1,
+      "detectionMethod": "画面派生",
+      "operationClass": "更新系"
+    },
+    {
+      "unitId": "feat-post-edit",
+      "unitKey": "post-edit",
+      "kind": "feature",
+      "identifier": "PUT /api/posts/:postId",
+      "unitNameGuess": "投稿編集",
+      "summary": "既存投稿の内容編集・タグ変更・下書き保存",
+      "category": "コンテンツ管理",
+      "relatedScreens": [
+        "投稿エディタ"
+      ],
+      "relatedApis": [
+        "PUT /api/posts/:postId"
+      ],
+      "relatedTables": [
+        "posts",
+        "tags",
+        "post_tags"
+      ],
+      "sourceFile": "src/pages/posts/PostEditorPage.tsx",
+      "confidence": "HIGH",
+      "fileCount": 1,
+      "detectionMethod": "画面派生",
+      "operationClass": "更新系"
+    },
+    {
+      "unitId": "feat-post-delete",
+      "unitKey": "post-delete",
+      "kind": "feature",
+      "identifier": "DELETE /api/posts/:postId",
+      "unitNameGuess": "投稿削除",
+      "summary": "投稿の論理削除と関連コメントの連鎖処理",
+      "category": "コンテンツ管理",
+      "relatedScreens": [
+        "投稿詳細"
+      ],
+      "relatedApis": [
+        "DELETE /api/posts/:postId"
+      ],
+      "relatedTables": [
+        "posts",
+        "comments"
+      ],
+      "sourceFile": "src/pages/posts/PostDetailPage.tsx",
+      "confidence": "HIGH",
+      "fileCount": 1,
+      "detectionMethod": "画面派生",
+      "operationClass": "削除系"
+    },
+    {
+      "unitId": "feat-comment",
+      "unitKey": "comment",
+      "kind": "feature",
+      "identifier": "POST /api/posts/:postId/comments",
+      "unitNameGuess": "コメント投稿",
+      "summary": "投稿へのコメント追加と通知連携",
+      "category": "コンテンツ管理",
+      "relatedScreens": [
+        "投稿詳細"
+      ],
+      "relatedApis": [
+        "POST /api/posts/:postId/comments"
+      ],
+      "relatedTables": [
+        "comments",
+        "notifications"
+      ],
+      "sourceFile": "src/pages/posts/PostDetailPage.tsx",
+      "confidence": "HIGH",
+      "fileCount": 1,
+      "detectionMethod": "画面派生",
+      "operationClass": "更新系"
+    },
+    {
+      "unitId": "feat-file-upload",
+      "unitKey": "file-upload",
+      "kind": "feature",
+      "identifier": "POST /api/files/upload",
+      "unitNameGuess": "ファイル添付",
+      "summary": "投稿へのファイルアップロードとプレビュー表示",
+      "category": "コンテンツ管理",
+      "relatedScreens": [
+        "投稿エディタ"
+      ],
+      "relatedApis": [
+        "POST /api/files/upload"
+      ],
+      "relatedTables": [
+        "uploaded_files"
+      ],
+      "sourceFile": "src/components/FileUploader.tsx",
+      "confidence": "MEDIUM",
+      "fileCount": 1,
+      "detectionMethod": "画面派生",
+      "operationClass": "更新系"
+    },
+    {
+      "unitId": "feat-notification-list",
+      "unitKey": "notification-list",
+      "kind": "feature",
+      "identifier": "GET /api/notifications",
+      "unitNameGuess": "通知一覧表示",
+      "summary": "未読・既読の通知一覧表示と一括既読処理",
+      "category": "通知・レポート",
+      "relatedScreens": [
+        "通知一覧"
+      ],
+      "relatedApis": [
+        "GET /api/notifications"
+      ],
+      "relatedTables": [
+        "notifications"
+      ],
+      "sourceFile": "src/pages/NotificationsPage.tsx",
+      "confidence": "HIGH",
+      "fileCount": 1,
+      "detectionMethod": "画面派生",
+      "operationClass": "参照系"
+    },
+    {
+      "unitId": "feat-notification-settings",
+      "unitKey": "notification-settings",
+      "kind": "feature",
+      "identifier": "PUT /api/settings",
+      "unitNameGuess": "通知設定",
+      "summary": "通知種別ごとの受信可否と配信チャネル設定",
+      "category": "通知・レポート",
+      "relatedScreens": [
+        "設定画面"
+      ],
+      "relatedApis": [
+        "PUT /api/settings"
+      ],
+      "relatedTables": [
+        "settings"
+      ],
+      "sourceFile": "src/pages/settings/SettingsPage.tsx",
+      "confidence": "MEDIUM",
+      "fileCount": 1,
+      "detectionMethod": "画面派生",
+      "operationClass": "更新系"
+    },
+    {
+      "unitId": "feat-report-view",
+      "unitKey": "report-view",
+      "kind": "feature",
+      "identifier": "GET /api/reports/:reportId",
+      "unitNameGuess": "レポート閲覧",
+      "summary": "集計データのグラフ表示とCSVダウンロード",
+      "category": "通知・レポート",
+      "relatedScreens": [
+        "レポート閲覧"
+      ],
+      "relatedApis": [
+        "GET /api/reports/:reportId"
+      ],
+      "relatedTables": [
+        "posts",
+        "comments",
+        "audit_logs"
+      ],
+      "sourceFile": "src/pages/reports/ReportViewerPage.tsx",
+      "confidence": "HIGH",
+      "fileCount": 1,
+      "detectionMethod": "画面派生",
+      "operationClass": "参照系"
+    }
+  ]
+}
 </script>
 
 <footer>generating-feature-list-for-reverse-docsにより生成。手編集は次回再生成で上書きされる。</footer>
@@ -674,8 +958,8 @@
         headRow.appendChild(th);
       });
       Array.prototype.slice.call(tbody.querySelectorAll('tr')).forEach(function (tr) {
-        var idText = tr.children[0] ? tr.children[0].textContent.trim() : '';
-        var keyText = tr.children[1] ? tr.children[1].textContent.trim() : '';
+        var idText = tr.getAttribute('data-unit-id') || '';
+        var keyText = tr.getAttribute('data-unit-key') || '';
         var unit = byId[idText] || byKey[keyText] || null;
         active.forEach(function (field) {
           var td = document.createElement('td');
@@ -741,7 +1025,7 @@
 
     /* ===== 一覧UI拡張（コピーボタン・フィルタチップ・行クリック展開・CSVエクスポート） ===== */
     /* チップ対象の列見出し名（任意列スクリプトが追加した列も指定できる） */
-    var CHIP_COLUMNS = ['confidence', '操作区分'];
+    var CHIP_COLUMNS = ['区分', '操作区分'];
     var chipSelected = { category: {} };
     CHIP_COLUMNS.forEach(function (c) { chipSelected[c] = {}; });
     var chipBar = null, chipClearBtn = null;
@@ -912,10 +1196,104 @@
         tr.parentNode.removeChild(tr);
       });
     }
-    function bindRowExpansion(state) {
-      var headers = Array.prototype.slice.call(state.table.querySelectorAll('thead th')).map(function (th) {
-        return th.textContent.trim();
+
+    /* --- 行クリック展開: マニフェストJSONを直接参照し「仕様」「エビデンス」2グループに分離表示 --- */
+    var DETAIL_SPEC_FIELDS = [
+      ['relatedScreens', '関連画面'],
+      ['relatedApis', '関連API'],
+      ['relatedTables', '関連テーブル']
+    ];
+    var DETAIL_LINK_TARGETS = {
+      relatedScreens: '../画面一覧/画面一覧.html',
+      relatedApis: '../API一覧/API一覧.html',
+      relatedTables: '../テーブル一覧/テーブル一覧.html'
+    };
+    var EVIDENCE_FIELDS = [
+      ['confidence', 'confidence'],
+      ['detectionMethod', '検出方式'],
+      ['fileCount', '構成ファイル数'],
+      ['sourceFile', '主ファイル'],
+      ['unitId', (manifest.unitKind || '') + 'ID'],
+      ['unitKey', (manifest.unitKind || '') + 'キー']
+    ];
+    var detailById = {}, detailByKey = {};
+    (manifest.units || []).forEach(function (u) {
+      if (u.unitId !== undefined && u.unitId !== null) detailById[String(u.unitId)] = u;
+      if (u.unitKey !== undefined && u.unitKey !== null) detailByKey[String(u.unitKey)] = u;
+    });
+    function findDetailUnit(tr) {
+      var idAttr = tr.getAttribute('data-unit-id') || '';
+      if (idAttr && detailById[idAttr]) return detailById[idAttr];
+      var keyAttr = tr.getAttribute('data-unit-key') || '';
+      if (keyAttr && detailByKey[keyAttr]) return detailByKey[keyAttr];
+      return null;
+    }
+    function detailHasValue(v) {
+      if (v === undefined || v === null || v === '') return false;
+      if (Array.isArray(v)) return v.length > 0;
+      return true;
+    }
+    function renderConfidenceValue(dd, v) {
+      if (!detailHasValue(v)) { dd.textContent = '—'; return; }
+      var badge = document.createElement('span');
+      var cls = String(v).toLowerCase();
+      badge.className = 'badge ' + (cls === 'high' || cls === 'medium' || cls === 'low' ? cls : 'medium');
+      badge.textContent = String(v);
+      dd.appendChild(badge);
+    }
+    function renderDetailValue(dd, fieldName, v) {
+      if (!detailHasValue(v)) { dd.textContent = '—'; return; }
+      if (Array.isArray(v)) {
+        var linkBase = DETAIL_LINK_TARGETS[fieldName];
+        v.forEach(function (item) {
+          var text = String(item);
+          var el;
+          if (linkBase && text && text !== '—') {
+            el = document.createElement('a');
+            el.href = linkBase + '?q=' + encodeURIComponent(text);
+          } else {
+            el = document.createElement('span');
+          }
+          el.className = 'opt-tag';
+          el.textContent = text;
+          dd.appendChild(el);
+        });
+        return;
+      }
+      if (fieldName === 'sourceFile') {
+        var code = document.createElement('code');
+        code.textContent = String(v);
+        dd.appendChild(code);
+        return;
+      }
+      dd.textContent = String(v);
+    }
+    function buildDetailGroup(labelText, isEvidence, fieldPairs, unit) {
+      var group = document.createElement('div');
+      group.className = 'detail-group';
+      var label = document.createElement('div');
+      label.className = 'detail-group-label' + (isEvidence ? ' evidence' : '');
+      label.textContent = labelText;
+      group.appendChild(label);
+      var dl = document.createElement('dl');
+      dl.className = 'detail-grid';
+      fieldPairs.forEach(function (pair) {
+        var fieldName = pair[0], fieldLabel = pair[1];
+        var dt = document.createElement('dt');
+        dt.textContent = fieldLabel;
+        var dd = document.createElement('dd');
+        var val = unit ? unit[fieldName] : undefined;
+        if (fieldName === 'confidence') { renderConfidenceValue(dd, val); }
+        else { renderDetailValue(dd, fieldName, val); }
+        if (copyableValue(dd)) dd.appendChild(makeCopyBtn(dd));
+        dl.appendChild(dt);
+        dl.appendChild(dd);
       });
+      group.appendChild(dl);
+      return group;
+    }
+
+    function bindRowExpansion(state) {
       state.tbody.addEventListener('click', function (ev) {
         if (ev.target.closest && ev.target.closest('.copy-btn,a,button')) return;
         var tr = ev.target.closest ? ev.target.closest('tr') : null;
@@ -923,25 +1301,22 @@
         var next = tr.nextElementSibling;
         if (next && next.classList.contains('row-detail')) {
           next.parentNode.removeChild(next);
+          tr.removeAttribute('data-expanded');
           return;
         }
+        var unit = findDetailUnit(tr);
         var detail = document.createElement('tr');
         detail.className = 'row-detail';
         var td = document.createElement('td');
-        td.colSpan = headers.length || tr.children.length;
-        var dl = document.createElement('dl');
-        Array.prototype.slice.call(tr.children).forEach(function (cell, i) {
-          var dt = document.createElement('dt');
-          dt.textContent = headers[i] || ('列' + (i + 1));
-          var dd = document.createElement('dd');
-          dd.textContent = cellText(cell);
-          if (copyableValue(cell)) dd.appendChild(makeCopyBtn(dd));
-          dl.appendChild(dt);
-          dl.appendChild(dd);
-        });
-        td.appendChild(dl);
+        td.colSpan = tr.children.length;
+        var inner = document.createElement('div');
+        inner.className = 'detail-inner';
+        inner.appendChild(buildDetailGroup('仕様', false, DETAIL_SPEC_FIELDS, unit));
+        inner.appendChild(buildDetailGroup('エビデンス（検出メタデータ）', true, EVIDENCE_FIELDS, unit));
+        td.appendChild(inner);
         detail.appendChild(td);
         tr.parentNode.insertBefore(detail, tr.nextSibling);
+        tr.setAttribute('data-expanded', 'true');
       });
     }
 
@@ -1034,6 +1409,29 @@
       var tbody = table.querySelector('tbody');
       if (!tbody) return;
       var allRows = Array.prototype.slice.call(tbody.querySelectorAll('tr'));
+
+      /* ===== 展開インジケータ（シェブロン列） ===== */
+      (function () {
+        var headRow = table.querySelector('thead tr');
+        if (headRow) {
+          var chTh = document.createElement('th');
+          chTh.style.width = '32px';
+          chTh.style.padding = '8px 4px';
+          headRow.insertBefore(chTh, headRow.firstChild);
+        }
+        var CHEVRON_SVG = '<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" style="vertical-align:middle;transition:transform .15s"><path d="M6.22 3.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042L9.94 8 6.22 4.28a.75.75 0 0 1 0-1.06Z"/></svg>';
+        allRows.forEach(function (tr) {
+          var chTd = document.createElement('td');
+          chTd.style.width = '32px';
+          chTd.style.textAlign = 'center';
+          chTd.style.color = 'var(--text-muted)';
+          chTd.style.padding = '8px 4px';
+          chTd.className = 'expand-cell';
+          chTd.innerHTML = '<span class="chevron">' + CHEVRON_SVG + '</span>';
+          tr.insertBefore(chTd, tr.firstChild);
+        });
+      })();
+
       /* 列見出し名 → 列インデックス（任意列スクリプト適用後の thead を参照） */
       var colIndex = {};
       Array.prototype.slice.call(table.querySelectorAll('thead th')).forEach(function (th, i) {
@@ -1081,7 +1479,8 @@
         renderPage(state);
       });
 
-      table.querySelectorAll('th[data-key]').forEach(function (th, colIndex) {
+      table.querySelectorAll('th[data-key]').forEach(function (th) {
+        var colIndex = Array.prototype.indexOf.call(th.parentNode.children, th);
         th.addEventListener('click', function () {
           if (state.sortCol === colIndex) { state.sortAsc = !state.sortAsc; } else { state.sortCol = colIndex; state.sortAsc = true; }
           table.querySelectorAll('th[data-key]').forEach(function (t) { t.removeAttribute('data-asc'); });

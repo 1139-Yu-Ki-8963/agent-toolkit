@@ -18,8 +18,6 @@
   scripts/build-feature-list.sh 冒頭コメントを正本とする。本コメントでは
   二重置換事故を避けるため意図的に波括弧・HTMLコメント記法を外して記載する):
     GENERATED_AT (生成日時マーカー)             : ISO8601 生成日時
-    SOURCE_DIR (ソースディレクトリマーカー)     : 探索対象ソースディレクトリ(絶対パス)
-    EXTRACTION_METHOD (抽出方式マーカー)        : strategy.extractionMethod
     CATEGORY_COUNT (大分類数タイルマーカー)     : 検出された大分類の数
     UNIT_COUNT (検出機能数タイルマーカー)       : detectionSummary.unitCount
     UNRESOLVED_COUNT (要確認数タイルマーカー)   : detectionSummary.unresolvedCount
@@ -27,7 +25,9 @@
     UNRESOLVED_SECTION (要手動確認セクションマーカー) : kind=unresolved の一覧テーブル、0件なら「なし」の文言
     MANIFEST_JSON (マニフェストJSON埋め込みマーカー) : manifest.json の内容をそのまま埋め込み(二重管理・ドリフト禁止)
 
-  テーブル列順(固定・全10列): 機能ID / 機能キー / 機能名 / 概要 / 関連画面 / 関連API / 関連テーブル / confidence / 検出方式 / 主ファイル
+  テーブル列順(固定・全3列): 機能名 / 概要 / 区分(任意列はクライアント側OPTIONAL_FIELDSが動的追加)。
+  行の<tr>には data-unit-id / data-unit-key 属性を持たせ、展開行JSがマニフェストJSONから
+  該当機能を引けるようにする(不可視属性のため3列制約には抵触しない)。カテゴリ別<details>は残す。
 
   制約:
     - 外部リソース(CDN・フォント・画像)は一切使わない。単一ファイル自己完結
@@ -42,14 +42,18 @@
 <style>
   /* TOKENS_CSS */
 
+  html { height: 100%; }
   * { box-sizing: border-box; }
   body {
-    margin: 0; padding: 0 24px 96px;
+    margin: 0; padding: 0 24px 0;
     font-family: var(--font-body);
     line-height: 1.7; color: var(--text); background: var(--bg);
     max-width: 1180px; margin-inline: auto;
+    height: 100%; overflow: hidden; display: flex; flex-direction: column;
   }
+  .table-area { flex: 1; min-height: 0; overflow-y: auto; }
   .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  table.units thead { position: sticky; top: 0; z-index: 3; }
   header { padding: 40px 0 20px; border-bottom: 3px solid var(--border-strong); }
   .header-top { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
   header h1 { font-size: 1.7rem; margin: 0 0 10px; }
@@ -86,7 +90,6 @@
 
   table.units {
     table-layout: fixed; width: 100%; min-width: 1000px; border-collapse: collapse; font-size: 0.88rem;
-    overflow: hidden;
   }
   table.units th {
     border-top: 1px solid var(--border); padding: 8px 10px; text-align: left; vertical-align: top;
@@ -106,28 +109,24 @@
   }
 
   /* 列幅の明示指定（data-key属性でシェブロン列挿入に影響されない。キー名はbuild-feature-list.sh準拠） */
-  table.units th[data-key="unitId"] { width: 5%; }
-  table.units th[data-key="unitKey"] { width: 7%; }
-  table.units th[data-key="unitNameGuess"] { width: 8%; }
-  table.units th[data-key="summary"] { width: 22%; }
-  table.units th[data-key="relatedScreens"] { width: 8%; }
-  table.units th[data-key="relatedApis"] { width: 10%; }
-  table.units th[data-key="relatedTables"] { width: 7%; }
-  table.units th[data-key="confidence"] { width: 5%; }
-  table.units th[data-key="detectionMethod"] { width: 5%; }
-  table.units th[data-key="sourceFile"] { width: 23%; }
+  table.units th[data-key="unitNameGuess"] { width: 25%; }
+  table.units th[data-key="summary"] { width: 45%; }
+  table.units th[data-key="kind"] { width: 10%; }
 
-  /* 数値列は右揃え＋等幅数字 */
-  table.units td:nth-child(8) {
-    text-align: right;
-    font-variant-numeric: tabular-nums;
+  /* 固定列（シェブロン列・機能名列・概要列）: 横スクロール時も左端に固定する */
+  table.units thead th:nth-child(1), table.units tbody td:nth-child(1) {
+    position: sticky; left: 0; z-index: 2; background: var(--panel);
   }
-
-  /* コード系列はモノスペース */
-  table.units td:nth-child(2),
-  table.units td:nth-child(10) {
-    font-family: var(--mono);
-    font-size: 0.8em;
+  table.units thead th:nth-child(2), table.units tbody td:nth-child(2) {
+    position: sticky; left: 32px; z-index: 2; background: var(--panel);
+  }
+  table.units thead th:nth-child(3), table.units tbody td:nth-child(3) {
+    position: sticky; left: calc(32px + 25%); z-index: 2; background: var(--panel);
+  }
+  table.units thead th:nth-child(1),
+  table.units thead th:nth-child(2),
+  table.units thead th:nth-child(3) {
+    background: var(--panel-2); z-index: 4;
   }
 
   /* ゼブラストライプ */
@@ -145,13 +144,14 @@
   .badge.medium { background: var(--gold-soft); color: var(--gold); }
   .badge.low    { background: var(--accent-soft); color: var(--accent); }
 
-  section.unresolved {
-    margin-top: 40px; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 16px 20px; min-width: 0;
-  }
+  section.unresolved { margin-top: 24px; border-radius: 8px; padding: 12px 16px; min-width: 0; }
+  section.unresolved.empty { background: var(--panel-2); border: 1px solid var(--border); color: var(--text-muted); }
+  section.unresolved.empty h2 { color: var(--text-muted); font-size: 0.95rem; margin: 0; }
+  section.unresolved.has-items { background: var(--danger-soft); border: 1px solid var(--danger); color: var(--danger); }
+  section.unresolved.has-items h2 { color: var(--danger); font-size: 0.95rem; margin: 0 0 8px; }
   #category-sections { min-width: 0; }
-  section.unresolved h2 { font-size: 1.05rem; margin: 0 0 10px; }
 
-  footer { margin-top: 48px; font-size: 0.8rem; color: var(--text-muted); }
+  footer { flex-shrink: 0; padding: 8px 0; font-size: 0.75rem; color: var(--text-muted); text-align: center; border-top: 1px solid var(--border); }
 
   .pagination { display: flex; gap: 8px; align-items: center; justify-content: center; margin: 16px 0; font-size: 0.85rem; }
   .pagination button { background: var(--panel-2); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text-sub); cursor: pointer; padding: 4px 10px; font-family: inherit; font-size: 0.82rem; }
@@ -177,6 +177,15 @@
   .expand-cell { transition: color 0.15s; }
   tr:hover .expand-cell { color: var(--accent); }
   tr[data-expanded="true"] .chevron svg { transform: rotate(90deg); }
+
+  .detail-inner { padding: 12px 16px 14px 20px; }
+  .detail-group { margin-bottom: 12px; }
+  .detail-group:last-child { margin-bottom: 0; }
+  .detail-group-label { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.06em; color: var(--text-muted); margin-bottom: 6px; padding-bottom: 4px; border-bottom: 1px solid var(--border); }
+  .detail-group-label.evidence { color: var(--gold); border-bottom-color: var(--gold-soft); }
+  .detail-grid { display: grid; grid-template-columns: max-content 1fr; gap: 3px 14px; }
+  .detail-grid dt { color: var(--text-muted); font-size: 0.78rem; white-space: nowrap; }
+  .detail-grid dd { margin: 0; font-size: 0.84rem; word-break: break-all; }
   .csv-btn {
     background: var(--panel-2); border: 1px solid var(--border); border-radius: var(--radius-sm);
     color: var(--text-sub); cursor: pointer; padding: 5px 12px; font-size: 0.82rem; font-family: inherit;
@@ -203,6 +212,15 @@
   display: inline-flex; align-items: center; gap: 4px;
 }
 .top-actions button:hover { background: var(--accent-soft, #e8f4fd); color: var(--accent, #0969da); border-color: var(--accent-border, #0969da); }
+.topbar { flex-shrink: 0; }
+.page-hero.compact { padding: 12px 0 8px; flex-shrink: 0; }
+.page-hero.compact .header-top { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.page-hero.compact h1 { font-size: 1.3rem; margin: 0; }
+.page-hero.compact .summary-tiles { margin: 0; gap: 8px; }
+.page-hero.compact .tile { padding: 4px 12px; font-size: 0.78rem; }
+.page-hero.compact .tile strong { font-size: 1rem; display: inline; margin-right: 4px; }
+.page-hero.compact .meta-inline { font-size: 0.75rem; color: var(--text-muted); margin: 2px 0 0; }
+.toolbar-area { flex-shrink: 0; padding: 8px 0; }
 </style>
 </head>
 <body>
@@ -220,42 +238,39 @@
     <button id="theme-toggle" title="テーマ切替">ライト</button>
   </div>
 </header>
-<section class="page-hero">
+<section class="page-hero compact">
   <nav class="back-link" style="margin: 16px 0 0; font-size: 0.85rem;">
     <a href="{{PORTAL_RELATIVE}}" style="color: var(--text-sub); text-decoration: none; border-bottom: 1px dotted var(--text-muted);">← ポータルへ戻る</a>
   </nav>
   <div class="header-top">
     <h1>機能一覧</h1>
-  </div>
-  <table class="meta-table">
-    <tr><td>生成日時</td><td>{{GENERATED_AT}}</td></tr>
-    <tr><td>ソースディレクトリ</td><td><code>{{SOURCE_DIR}}</code></td></tr>
-    <tr><td>種別</td><td>機能（派生一覧）</td></tr>
-    <tr><td>抽出方式</td><td>{{EXTRACTION_METHOD}}</td></tr>
-  </table>
-
-  <div class="summary-tiles">
-    <div class="tile"><strong>{{CATEGORY_COUNT}}</strong>大分類数</div>
-    <div class="tile"><strong>{{UNIT_COUNT}}</strong>検出機能数</div>
-    <div class="tile"><strong>{{UNRESOLVED_COUNT}}</strong>要手動確認数</div>
+    <div class="summary-tiles">
+      <div class="tile"><strong>{{CATEGORY_COUNT}}</strong>大分類数</div>
+      <div class="tile"><strong>{{UNIT_COUNT}}</strong>検出機能数</div>
+      <div class="tile"><strong>{{UNRESOLVED_COUNT}}</strong>要手動確認数</div>
+    </div>
   </div>
 </section>
 
-<div class="toolbar">
-  <input type="search" id="unit-search" placeholder="キー・概要で絞り込み">
-  <span class="note">列見出しクリックでソート</span>
+<div class="toolbar-area">
+  <div class="toolbar">
+    <input type="search" id="unit-search" placeholder="キー・概要で絞り込み">
+    <span class="note">列見出しクリックでソート</span>
+  </div>
 </div>
 
+<div class="table-area">
 <div id="category-sections" class="table-wrap">
 <!--CATEGORY_SECTIONS-->
 </div>
 
-<section class="unresolved">
+<section class="unresolved {{UNRESOLVED_CLASS}}">
   <h2>要手動確認</h2>
   <div class="table-wrap">
   <!--UNRESOLVED_SECTION-->
   </div>
 </section>
+</div>
 
 <script type="application/json" id="unit-manifest">
 {{MANIFEST_JSON}}
@@ -280,7 +295,10 @@
     ];
     /* 文字列値 → バッジ色クラスの対応（該当しない文字列はそのまま表示） */
     var ENUM_BADGES = {
-      operationClass: { '参照系': 'accent', '更新系': 'gold', '削除系': 'danger' },
+      /* 6値: 照会/登録/更新/削除/承認/その他。opt-badge クラスは accent/gold/success/danger の
+         4色のみのため、照会と承認は accent を共用する（badge のテキスト自体で値は区別できる）。
+         「その他」は該当エントリなしのまま無色のプレーンテキスト表示にフォールバックする */
+      operationClass: { '照会': 'accent', '登録': 'success', '更新': 'gold', '削除': 'danger', '承認': 'accent' },
       designDocStatus: { '未着手': 'danger', '着手済': 'success' }
     };
 
@@ -363,8 +381,8 @@
         headRow.appendChild(th);
       });
       Array.prototype.slice.call(tbody.querySelectorAll('tr')).forEach(function (tr) {
-        var idText = tr.children[0] ? tr.children[0].textContent.trim() : '';
-        var keyText = tr.children[1] ? tr.children[1].textContent.trim() : '';
+        var idText = tr.getAttribute('data-unit-id') || '';
+        var keyText = tr.getAttribute('data-unit-key') || '';
         var unit = byId[idText] || byKey[keyText] || null;
         active.forEach(function (field) {
           var td = document.createElement('td');
@@ -430,7 +448,7 @@
 
     /* ===== 一覧UI拡張（コピーボタン・フィルタチップ・行クリック展開・CSVエクスポート） ===== */
     /* チップ対象の列見出し名（任意列スクリプトが追加した列も指定できる） */
-    var CHIP_COLUMNS = ['confidence', '操作区分'];
+    var CHIP_COLUMNS = ['区分', '操作区分'];
     var chipSelected = { category: {} };
     CHIP_COLUMNS.forEach(function (c) { chipSelected[c] = {}; });
     var chipBar = null, chipClearBtn = null;
@@ -601,10 +619,104 @@
         tr.parentNode.removeChild(tr);
       });
     }
-    function bindRowExpansion(state) {
-      var headers = Array.prototype.slice.call(state.table.querySelectorAll('thead th')).map(function (th) {
-        return th.textContent.trim();
+
+    /* --- 行クリック展開: マニフェストJSONを直接参照し「仕様」「エビデンス」2グループに分離表示 --- */
+    var DETAIL_SPEC_FIELDS = [
+      ['relatedScreens', '関連画面'],
+      ['relatedApis', '関連API'],
+      ['relatedTables', '関連テーブル']
+    ];
+    var DETAIL_LINK_TARGETS = {
+      relatedScreens: '../画面一覧/画面一覧.html',
+      relatedApis: '../API一覧/API一覧.html',
+      relatedTables: '../テーブル一覧/テーブル一覧.html'
+    };
+    var EVIDENCE_FIELDS = [
+      ['confidence', 'confidence'],
+      ['detectionMethod', '検出方式'],
+      ['fileCount', '構成ファイル数'],
+      ['sourceFile', '主ファイル'],
+      ['unitId', (manifest.unitKind || '') + 'ID'],
+      ['unitKey', (manifest.unitKind || '') + 'キー']
+    ];
+    var detailById = {}, detailByKey = {};
+    (manifest.units || []).forEach(function (u) {
+      if (u.unitId !== undefined && u.unitId !== null) detailById[String(u.unitId)] = u;
+      if (u.unitKey !== undefined && u.unitKey !== null) detailByKey[String(u.unitKey)] = u;
+    });
+    function findDetailUnit(tr) {
+      var idAttr = tr.getAttribute('data-unit-id') || '';
+      if (idAttr && detailById[idAttr]) return detailById[idAttr];
+      var keyAttr = tr.getAttribute('data-unit-key') || '';
+      if (keyAttr && detailByKey[keyAttr]) return detailByKey[keyAttr];
+      return null;
+    }
+    function detailHasValue(v) {
+      if (v === undefined || v === null || v === '') return false;
+      if (Array.isArray(v)) return v.length > 0;
+      return true;
+    }
+    function renderConfidenceValue(dd, v) {
+      if (!detailHasValue(v)) { dd.textContent = '—'; return; }
+      var badge = document.createElement('span');
+      var cls = String(v).toLowerCase();
+      badge.className = 'badge ' + (cls === 'high' || cls === 'medium' || cls === 'low' ? cls : 'medium');
+      badge.textContent = String(v);
+      dd.appendChild(badge);
+    }
+    function renderDetailValue(dd, fieldName, v) {
+      if (!detailHasValue(v)) { dd.textContent = '—'; return; }
+      if (Array.isArray(v)) {
+        var linkBase = DETAIL_LINK_TARGETS[fieldName];
+        v.forEach(function (item) {
+          var text = String(item);
+          var el;
+          if (linkBase && text && text !== '—') {
+            el = document.createElement('a');
+            el.href = linkBase + '?q=' + encodeURIComponent(text);
+          } else {
+            el = document.createElement('span');
+          }
+          el.className = 'opt-tag';
+          el.textContent = text;
+          dd.appendChild(el);
+        });
+        return;
+      }
+      if (fieldName === 'sourceFile') {
+        var code = document.createElement('code');
+        code.textContent = String(v);
+        dd.appendChild(code);
+        return;
+      }
+      dd.textContent = String(v);
+    }
+    function buildDetailGroup(labelText, isEvidence, fieldPairs, unit) {
+      var group = document.createElement('div');
+      group.className = 'detail-group';
+      var label = document.createElement('div');
+      label.className = 'detail-group-label' + (isEvidence ? ' evidence' : '');
+      label.textContent = labelText;
+      group.appendChild(label);
+      var dl = document.createElement('dl');
+      dl.className = 'detail-grid';
+      fieldPairs.forEach(function (pair) {
+        var fieldName = pair[0], fieldLabel = pair[1];
+        var dt = document.createElement('dt');
+        dt.textContent = fieldLabel;
+        var dd = document.createElement('dd');
+        var val = unit ? unit[fieldName] : undefined;
+        if (fieldName === 'confidence') { renderConfidenceValue(dd, val); }
+        else { renderDetailValue(dd, fieldName, val); }
+        if (copyableValue(dd)) dd.appendChild(makeCopyBtn(dd));
+        dl.appendChild(dt);
+        dl.appendChild(dd);
       });
+      group.appendChild(dl);
+      return group;
+    }
+
+    function bindRowExpansion(state) {
       state.tbody.addEventListener('click', function (ev) {
         if (ev.target.closest && ev.target.closest('.copy-btn,a,button')) return;
         var tr = ev.target.closest ? ev.target.closest('tr') : null;
@@ -612,25 +724,22 @@
         var next = tr.nextElementSibling;
         if (next && next.classList.contains('row-detail')) {
           next.parentNode.removeChild(next);
+          tr.removeAttribute('data-expanded');
           return;
         }
+        var unit = findDetailUnit(tr);
         var detail = document.createElement('tr');
         detail.className = 'row-detail';
         var td = document.createElement('td');
-        td.colSpan = headers.length || tr.children.length;
-        var dl = document.createElement('dl');
-        Array.prototype.slice.call(tr.children).forEach(function (cell, i) {
-          var dt = document.createElement('dt');
-          dt.textContent = headers[i] || ('列' + (i + 1));
-          var dd = document.createElement('dd');
-          dd.textContent = cellText(cell);
-          if (copyableValue(cell)) dd.appendChild(makeCopyBtn(dd));
-          dl.appendChild(dt);
-          dl.appendChild(dd);
-        });
-        td.appendChild(dl);
+        td.colSpan = tr.children.length;
+        var inner = document.createElement('div');
+        inner.className = 'detail-inner';
+        inner.appendChild(buildDetailGroup('仕様', false, DETAIL_SPEC_FIELDS, unit));
+        inner.appendChild(buildDetailGroup('エビデンス（検出メタデータ）', true, EVIDENCE_FIELDS, unit));
+        td.appendChild(inner);
         detail.appendChild(td);
         tr.parentNode.insertBefore(detail, tr.nextSibling);
+        tr.setAttribute('data-expanded', 'true');
       });
     }
 
@@ -804,15 +913,6 @@
         });
       });
     });
-
-    // nth-child オフセット補正: シェブロン列挿入で全列+1シフト
-    var fixStyle = document.createElement('style');
-    fixStyle.textContent =
-      'table.units td:nth-child(8){text-align:left;font-variant-numeric:normal;}' +
-      'table.units td:nth-child(2),table.units td:nth-child(10){font-family:inherit;font-size:inherit;}' +
-      'table.units td:nth-child(9){text-align:right;font-variant-numeric:tabular-nums;}' +
-      'table.units td:nth-child(3),table.units td:nth-child(11){font-family:var(--mono);font-size:0.8em;}';
-    document.head.appendChild(fixStyle);
 
     if (search) {
       search.addEventListener('input', function () {

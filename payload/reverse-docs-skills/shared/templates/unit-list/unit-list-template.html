@@ -20,15 +20,15 @@
   二重置換事故を避けるため意図的に波括弧・HTMLコメント記法を外して記載する):
     UNIT_KIND_LABEL (種別ラベルマーカー)        : screen=画面/api=API/table=テーブル/batch=バッチ/report=帳票/external=外部連携
     GENERATED_AT (生成日時マーカー)             : ISO8601 生成日時
-    SOURCE_DIR (ソースディレクトリマーカー)     : 探索対象ソースディレクトリ(絶対パス)
-    EXTRACTION_METHOD (抽出方式マーカー)        : strategy.extractionMethod
     UNIT_COUNT (ユニット数タイルマーカー)       : detectionSummary.unitCount
     UNRESOLVED_COUNT (要確認数タイルマーカー)   : detectionSummary.unresolvedCount
     UNIT_TABLE_ROWS (ユニットテーブル行マーカー): kind!=unresolved の行を1ユニットごとに挿入
     UNRESOLVED_SECTION (要手動確認セクションマーカー) : kind=unresolved の一覧テーブル、0件なら「なし」の文言
     MANIFEST_JSON (マニフェストJSON埋め込みマーカー) : manifest.json の内容をそのまま埋め込み(二重管理・ドリフト禁止)
 
-  テーブル列順(固定・全9列): <ラベル>ID / <ラベル>キー / 区分 / <ラベル>名 / 識別子 / 検出方式 / confidence / 構成ファイル数 / 主ファイル
+  テーブル列順(固定・全3列): <ラベル>名 / 識別子 / 区分(種別固有列はJSのFIELD_SETSが動的追加)。
+  行の<tr>には data-unit-id / data-unit-key 属性を持たせ、展開行JSがマニフェストJSONから
+  該当ユニットを引けるようにする(不可視属性のため3列制約には抵触しない)。
 
   制約:
     - 外部リソース(CDN・フォント・画像)は一切使わない。単一ファイル自己完結
@@ -43,14 +43,18 @@
 <style>
   /* TOKENS_CSS */
 
+  html { height: 100%; }
   * { box-sizing: border-box; }
   body {
-    margin: 0; padding: 0 24px 96px;
+    margin: 0; padding: 0 24px 0;
     font-family: var(--font-body);
     line-height: 1.7; color: var(--text); background: var(--bg);
     max-width: 1180px; margin-inline: auto;
+    height: 100%; overflow: hidden; display: flex; flex-direction: column;
   }
+  .table-area { flex: 1; min-height: 0; overflow-y: auto; }
   .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  table.units thead { position: sticky; top: 0; z-index: 3; }
   header { padding: 40px 0 20px; border-bottom: 3px solid var(--border-strong); }
   .header-top { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
   header h1 { font-size: 1.7rem; margin: 0 0 10px; }
@@ -77,17 +81,11 @@
   }
   .toolbar .note { font-size: 0.82rem; color: var(--text-muted); }
 
-  details.module-group { margin: 18px 0; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; min-width: 0; }
-  details.module-group > summary {
-    cursor: pointer; padding: 12px 16px; font-weight: 700; list-style: none;
-  }
-  details.module-group > summary::-webkit-details-marker { display: none; }
-  details.module-group > summary::before { content: "▸ "; }
-  details.module-group[open] > summary::before { content: "▾ "; }
+  section.module-group { margin: 18px 0; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 16px 20px; min-width: 0; }
+  section.module-group h2 { font-size: 1.05rem; margin: 0 0 12px; }
 
   table.units, table.screens {
     table-layout: fixed; width: 100%; min-width: 900px; border-collapse: collapse; font-size: 0.88rem;
-    overflow: hidden;
   }
   table.units th, table.screens th {
     border-top: 1px solid var(--border); padding: 8px 10px; text-align: left; vertical-align: top;
@@ -107,28 +105,24 @@
   }
 
   /* 列幅の明示指定（data-key属性でシェブロン列挿入に影響されない） */
-  table.units th[data-key="unitId"] { width: 6%; }
-  table.units th[data-key="unitKey"] { width: 8%; }
-  table.units th[data-key="kind"] { width: 5%; }
-  table.units th[data-key="unitNameGuess"] { width: 10%; }
-  table.units th[data-key="identifier"] { width: 22%; }
-  table.units th[data-key="detectionMethod"] { width: 6%; }
-  table.units th[data-key="confidence"] { width: 5%; }
-  table.units th[data-key="fileCount"] { width: 6%; }
-  table.units th[data-key="sourceFile"] { width: 32%; }
+  table.units th[data-key="unitNameGuess"] { width: 25%; }
+  table.units th[data-key="identifier"] { width: 45%; }
+  table.units th[data-key="kind"] { width: 10%; }
 
-  /* 数値列は右揃え＋等幅数字 */
-  table.units td:nth-child(7),
-  table.units td:nth-child(8) {
-    text-align: right;
-    font-variant-numeric: tabular-nums;
+  /* 固定列（シェブロン列・名前列・識別子列）: 横スクロール時も左端に固定する */
+  table.units thead th:nth-child(1), table.units tbody td:nth-child(1) {
+    position: sticky; left: 0; z-index: 2; background: var(--panel);
   }
-
-  /* コード系列はモノスペース */
-  table.units td:nth-child(5),
-  table.units td:nth-child(9) {
-    font-family: var(--mono);
-    font-size: 0.8em;
+  table.units thead th:nth-child(2), table.units tbody td:nth-child(2) {
+    position: sticky; left: 32px; z-index: 2; background: var(--panel);
+  }
+  table.units thead th:nth-child(3), table.units tbody td:nth-child(3) {
+    position: sticky; left: calc(32px + 25%); z-index: 2; background: var(--panel);
+  }
+  table.units thead th:nth-child(1),
+  table.units thead th:nth-child(2),
+  table.units thead th:nth-child(3) {
+    background: var(--panel-2); z-index: 4;
   }
 
   /* ゼブラストライプ */
@@ -157,12 +151,13 @@
   .diag-warn strong { display: block; margin-bottom: 6px; }
   .diag-warn ul { margin: 0; padding-left: 20px; }
 
-  section.common-files, section.unresolved {
-    margin-top: 40px; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 16px 20px; min-width: 0;
-  }
-  section.common-files h2, section.unresolved h2 { font-size: 1.05rem; margin: 0 0 10px; }
+  section.unresolved { margin-top: 24px; border-radius: 8px; padding: 12px 16px; min-width: 0; }
+  section.unresolved.empty { background: var(--panel-2); border: 1px solid var(--border); color: var(--text-muted); }
+  section.unresolved.empty h2 { color: var(--text-muted); font-size: 0.95rem; margin: 0; }
+  section.unresolved.has-items { background: var(--danger-soft); border: 1px solid var(--danger); color: var(--danger); }
+  section.unresolved.has-items h2 { color: var(--danger); font-size: 0.95rem; margin: 0 0 8px; }
 
-  footer { margin-top: 48px; font-size: 0.8rem; color: var(--text-muted); }
+  footer { flex-shrink: 0; padding: 8px 0; font-size: 0.75rem; color: var(--text-muted); text-align: center; border-top: 1px solid var(--border); }
 
   .pagination { display: flex; gap: 8px; align-items: center; justify-content: center; margin: 16px 0; font-size: 0.85rem; }
   .pagination button { background: var(--panel-2); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text-sub); cursor: pointer; padding: 4px 10px; font-family: inherit; font-size: 0.82rem; }
@@ -188,6 +183,15 @@
   .expand-cell { transition: color 0.15s; }
   tr:hover .expand-cell { color: var(--accent); }
   tr[data-expanded="true"] .chevron svg { transform: rotate(90deg); }
+
+  .detail-inner { padding: 12px 16px 14px 20px; }
+  .detail-group { margin-bottom: 12px; }
+  .detail-group:last-child { margin-bottom: 0; }
+  .detail-group-label { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.06em; color: var(--text-muted); margin-bottom: 6px; padding-bottom: 4px; border-bottom: 1px solid var(--border); }
+  .detail-group-label.evidence { color: var(--gold); border-bottom-color: var(--gold-soft); }
+  .detail-grid { display: grid; grid-template-columns: max-content 1fr; gap: 3px 14px; }
+  .detail-grid dt { color: var(--text-muted); font-size: 0.78rem; white-space: nowrap; }
+  .detail-grid dd { margin: 0; font-size: 0.84rem; word-break: break-all; }
 /* ─── 統一ヘッダー ─── */
 .topbar {
   display: grid; grid-template-columns: auto 1fr auto;
@@ -209,6 +213,15 @@
   display: inline-flex; align-items: center; gap: 4px;
 }
 .top-actions button:hover { background: var(--accent-soft, #e8f4fd); color: var(--accent, #0969da); border-color: var(--accent-border, #0969da); }
+.topbar { flex-shrink: 0; }
+.page-hero.compact { padding: 12px 0 8px; flex-shrink: 0; }
+.page-hero.compact .header-top { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.page-hero.compact h1 { font-size: 1.3rem; margin: 0; }
+.page-hero.compact .summary-tiles { margin: 0; gap: 8px; }
+.page-hero.compact .tile { padding: 4px 12px; font-size: 0.78rem; }
+.page-hero.compact .tile strong { font-size: 1rem; display: inline; margin-right: 4px; }
+.page-hero.compact .meta-inline { font-size: 0.75rem; color: var(--text-muted); margin: 2px 0 0; }
+.toolbar-area { flex-shrink: 0; padding: 8px 0; }
 </style>
 </head>
 <body>
@@ -226,47 +239,37 @@
     <button id="theme-toggle" title="テーマ切替">ライト</button>
   </div>
 </header>
-<section class="page-hero">
+<section class="page-hero compact">
   <nav class="back-link" style="margin: 16px 0 0; font-size: 0.85rem;">
     <a href="{{PORTAL_RELATIVE}}" style="color: var(--text-sub); text-decoration: none; border-bottom: 1px dotted var(--text-muted);">← ポータルへ戻る</a>
   </nav>
   <div class="header-top">
     <h1>{{UNIT_KIND_LABEL}}一覧</h1>
-  </div>
-  <table class="meta-table">
-    <tr><td>生成日時</td><td>{{GENERATED_AT}}</td></tr>
-    <tr><td>ソースディレクトリ</td><td><code>{{SOURCE_DIR}}</code></td></tr>
-    <tr><td>種別</td><td>{{UNIT_KIND_LABEL}}</td></tr>
-    <tr><td>抽出方式</td><td>{{EXTRACTION_METHOD}}</td></tr>
-  </table>
-
-  <div class="summary-tiles">
-    <div class="tile"><strong>{{UNIT_COUNT}}</strong>検出{{UNIT_KIND_LABEL}}数</div>
-    <div class="tile"><strong>{{UNRESOLVED_COUNT}}</strong>要手動確認数</div>
+    <div class="summary-tiles">
+      <div class="tile"><strong>{{UNIT_COUNT}}</strong>検出{{UNIT_KIND_LABEL}}数</div>
+      <div class="tile"><strong>{{UNRESOLVED_COUNT}}</strong>要手動確認数</div>
+    </div>
   </div>
 </section>
 
-<div class="toolbar">
-  <input type="search" id="unit-search" placeholder="キー・識別子で絞り込み">
-  <span class="note">列見出しクリックでソート</span>
-  <button id="csv-export" class="theme-toggle-btn csv-btn" type="button" title="絞り込み適用後の全行をCSVダウンロード">CSV</button>
+<div class="toolbar-area">
+  <div class="toolbar">
+    <input type="search" id="unit-search" placeholder="キー・識別子で絞り込み">
+    <span class="note">列見出しクリックでソート</span>
+    <button id="csv-export" class="theme-toggle-btn csv-btn" type="button" title="絞り込み適用後の全行をCSVダウンロード">CSV</button>
+  </div>
 </div>
 
-<details class="module-group" open>
-  <summary>{{UNIT_KIND_LABEL}}一覧</summary>
+<div class="table-area">
+<section class="module-group">
+  <h2>{{UNIT_KIND_LABEL}}一覧</h2>
   <div class="table-wrap">
   <table class="units" id="unit-table">
     <thead>
       <tr>
-        <th data-key="unitId">{{UNIT_KIND_LABEL}}ID</th>
-        <th data-key="unitKey">{{UNIT_KIND_LABEL}}キー</th>
-        <th data-key="kind">区分</th>
         <th data-key="unitNameGuess">{{UNIT_KIND_LABEL}}名</th>
         <th data-key="identifier">識別子</th>
-        <th data-key="detectionMethod">検出方式</th>
-        <th data-key="confidence">confidence</th>
-        <th data-key="fileCount">構成ファイル数</th>
-        <th data-key="sourceFile">主ファイル</th>
+        <th data-key="kind">区分</th>
       </tr>
     </thead>
     <tbody>
@@ -274,7 +277,7 @@
     </tbody>
   </table>
   </div>
-</details>
+</section>
 
 <div class="pagination" id="pagination">
   <button id="page-first" title="先頭">≪</button>
@@ -284,17 +287,13 @@
   <button id="page-last" title="最後">≫</button>
 </div>
 
-<section class="unresolved">
+<section class="unresolved {{UNRESOLVED_CLASS}}">
   <h2>要手動確認</h2>
   <div class="table-wrap">
   <!--UNRESOLVED_SECTION-->
   </div>
 </section>
-
-<section class="common-files">
-  <h2>共通ファイル・未分類（参考情報）</h2>
-  <p class="note">本スキルは import グラフ解析を行わないため、共通ファイルのクロス参照分離は非対応。必要に応じて手動確認する。</p>
-</section>
+</div>
 
 <script type="application/json" id="unit-manifest">
 {{MANIFEST_JSON}}
@@ -373,10 +372,10 @@
     });
 
     function findUnit(tr) {
-      var idTxt = tr.children[0] ? tr.children[0].textContent.trim() : '';
-      if (idTxt && byId[idTxt]) return byId[idTxt];
-      var keyTxt = tr.children[1] ? tr.children[1].textContent.trim() : '';
-      if (keyTxt && byKey[keyTxt]) return byKey[keyTxt];
+      var idAttr = tr.getAttribute('data-unit-id') || '';
+      if (idAttr && byId[idAttr]) return byId[idAttr];
+      var keyAttr = tr.getAttribute('data-unit-key') || '';
+      if (keyAttr && byKey[keyAttr]) return byKey[keyAttr];
       return null;
     }
 
@@ -581,21 +580,13 @@
         tr.insertBefore(chTd, tr.firstChild);
       });
 
-      // nth-child オフセット補正: シェブロン列挿入で全列+1シフト
-      var fixStyle = document.createElement('style');
-      fixStyle.textContent =
-        'table.units td:nth-child(7),table.units td:nth-child(8){text-align:left;font-variant-numeric:normal;}' +
-        'table.units td:nth-child(5),table.units td:nth-child(9){font-family:inherit;font-size:inherit;}' +
-        'table.units td:nth-child(8),table.units td:nth-child(9){text-align:right;font-variant-numeric:tabular-nums;}' +
-        'table.units td:nth-child(6),table.units td:nth-child(10){font-family:var(--mono);font-size:0.8em;}';
-      document.head.appendChild(fixStyle);
     })();
 
     /* ===== 一覧UI追加機能: フィルタチップ / コピーボタン / 行クリック展開 / CSVエクスポート ===== */
     var headerCells = Array.prototype.slice.call(table.querySelectorAll('thead th'));
     var COL_COUNT = headerCells.length;
     /* チップ対象列は列見出し名で指定する（任意列スクリプトが追加した列も対象にできる） */
-    var CHIP_COLUMNS = ['区分', 'confidence'];
+    var CHIP_COLUMNS = ['区分'];
     var EXTRA_CHIP_COLUMNS = { api: ['メソッド', '認証'], batch: [], report: ['出力形式', '出力契機'], external: ['方向', 'プロトコル'] };
     (EXTRA_CHIP_COLUMNS[manifest.unitKind] || []).forEach(function (name) {
       if (CHIP_COLUMNS.indexOf(name) === -1) CHIP_COLUMNS.push(name);
@@ -741,7 +732,107 @@
       });
     });
 
-    /* --- 行クリック展開 --- */
+    /* --- 行クリック展開: マニフェストJSONを直接参照し「仕様」「エビデンス」2グループに分離表示 --- */
+    var DETAIL_SPEC_FIELDS = {
+      api:      [['ioSummary', 'I/O概要'], ['authRequired', '認証'], ['callers', '呼び出し元画面']],
+      table:    [['columnCount', 'カラム数'], ['mainColumns', '主要カラム'], ['foreignKeys', 'FK参照先']],
+      batch:    [['schedule', 'スケジュール'], ['targetTables', '対象テーブル'], ['downstreamJobs', '後続ジョブ'], ['execMethod', '実行方法']],
+      report:   [['format', '出力形式'], ['trigger', '出力契機']],
+      external: [['direction', '方向'], ['protocol', 'プロトコル'], ['authMethod', '認証方式']]
+    };
+    var EVIDENCE_FIELDS = [
+      ['confidence', 'confidence'],
+      ['detectionMethod', '検出方式'],
+      ['fileCount', '構成ファイル数'],
+      ['sourceFile', '主ファイル'],
+      ['unitId', (manifest.unitKind || '') + 'ID'],
+      ['unitKey', (manifest.unitKind || '') + 'キー']
+    ];
+
+    var detailById = {};
+    var detailByKey = {};
+    (manifest.units || []).forEach(function (u) {
+      if (u.unitId !== undefined && u.unitId !== null) detailById[String(u.unitId)] = u;
+      if (u.unitKey !== undefined && u.unitKey !== null) detailByKey[String(u.unitKey)] = u;
+    });
+
+    function findDetailUnit(tr) {
+      var idAttr = tr.getAttribute('data-unit-id') || '';
+      if (idAttr && detailById[idAttr]) return detailById[idAttr];
+      var keyAttr = tr.getAttribute('data-unit-key') || '';
+      if (keyAttr && detailByKey[keyAttr]) return detailByKey[keyAttr];
+      return null;
+    }
+
+    function detailHasValue(v) {
+      if (v === undefined || v === null || v === '') return false;
+      if (Array.isArray(v)) return v.length > 0;
+      return true;
+    }
+
+    function renderConfidenceValue(dd, v) {
+      if (!detailHasValue(v)) { dd.textContent = '—'; return; }
+      var badge = document.createElement('span');
+      var cls = String(v).toLowerCase();
+      badge.className = 'badge ' + (cls === 'high' || cls === 'medium' || cls === 'low' ? cls : 'medium');
+      badge.textContent = String(v);
+      dd.appendChild(badge);
+    }
+
+    function renderDetailValue(dd, fieldName, v) {
+      if (!detailHasValue(v)) { dd.textContent = '—'; return; }
+      if (Array.isArray(v)) {
+        v.forEach(function (item) {
+          var tag = document.createElement('span');
+          tag.className = 'opt-tag';
+          tag.textContent = String(item);
+          dd.appendChild(tag);
+        });
+        return;
+      }
+      if (typeof v === 'boolean') {
+        var flag = document.createElement('span');
+        if (v) { flag.className = 'badge medium'; flag.textContent = '要'; }
+        else { flag.textContent = '不要'; flag.style.color = 'var(--text-muted)'; }
+        dd.appendChild(flag);
+        return;
+      }
+      if (fieldName === 'sourceFile') {
+        var code = document.createElement('code');
+        code.textContent = String(v);
+        dd.appendChild(code);
+        return;
+      }
+      dd.textContent = String(v);
+    }
+
+    function buildDetailGroup(labelText, isEvidence, fieldPairs, unit) {
+      var group = document.createElement('div');
+      group.className = 'detail-group';
+      var label = document.createElement('div');
+      label.className = 'detail-group-label' + (isEvidence ? ' evidence' : '');
+      label.textContent = labelText;
+      group.appendChild(label);
+      var dl = document.createElement('dl');
+      dl.className = 'detail-grid';
+      fieldPairs.forEach(function (pair) {
+        var fieldName = pair[0], fieldLabel = pair[1];
+        var dt = document.createElement('dt');
+        dt.textContent = fieldLabel;
+        var dd = document.createElement('dd');
+        var val = unit ? unit[fieldName] : undefined;
+        if (fieldName === 'confidence') { renderConfidenceValue(dd, val); }
+        else { renderDetailValue(dd, fieldName, val); }
+        if (dd.textContent !== '—' && copyableText(dd.textContent)) {
+          dd.appendChild(makeCopyBtn((function (v) { return function () { return v; }; })(dd.textContent)));
+        }
+        dl.appendChild(dt);
+        dl.appendChild(dd);
+      });
+      group.appendChild(dl);
+      return group;
+    }
+
     allRows.forEach(function (tr) {
       tr.addEventListener('click', function (ev) {
         if (ev.target.closest('.copy-btn,a,button')) return;
@@ -751,25 +842,22 @@
           tr.removeAttribute('data-expanded');
           return;
         }
+        var unit = findDetailUnit(tr);
         var detail = document.createElement('tr');
         detail.className = 'row-detail';
         var td = document.createElement('td');
         td.colSpan = COL_COUNT;
-        var dl = document.createElement('dl');
-        headerCells.forEach(function (th, i) {
-          var dt = document.createElement('dt');
-          dt.textContent = th.textContent.trim();
-          var dd = document.createElement('dd');
-          var cell = tr.children[i];
-          var val = cell ? cell.textContent.trim() : '';
-          dd.textContent = val;
-          if (copyableText(val)) {
-            dd.appendChild(makeCopyBtn(function () { return val; }));
-          }
-          dl.appendChild(dt);
-          dl.appendChild(dd);
-        });
-        td.appendChild(dl);
+        var inner = document.createElement('div');
+        inner.className = 'detail-inner';
+
+        var specFields = DETAIL_SPEC_FIELDS[manifest.unitKind];
+        if (specFields && specFields.length) {
+          inner.appendChild(buildDetailGroup('仕様', false, specFields, unit));
+        }
+
+        inner.appendChild(buildDetailGroup('エビデンス（検出メタデータ）', true, EVIDENCE_FIELDS, unit));
+
+        td.appendChild(inner);
         detail.appendChild(td);
         tr.parentNode.insertBefore(detail, tr.nextSibling);
         tr.setAttribute('data-expanded', 'true');

@@ -1,0 +1,394 @@
+{
+  "generatedAt": "2026-07-20T00:00:00+09:00",
+  "sourceDir": "shared/samples/一覧/機能一覧/fixtures",
+  "unitKind": "feature",
+  "strategy": {
+    "extractionMethod": "static-analysis",
+    "approvedByUser": true
+  },
+  "detectionSummary": {
+    "unitCount": 16,
+    "unresolvedCount": 0
+  },
+  "units": [
+    {
+      "unitId": "feat-login",
+      "unitKey": "login",
+      "kind": "feature",
+      "identifier": "POST /api/auth/login",
+      "unitNameGuess": "ログイン",
+      "summary": "メール・パスワードによるユーザー認証とセッション発行",
+      "category": "認証・セキュリティ",
+      "relatedScreens": [
+        "ログイン画面"
+      ],
+      "relatedApis": [
+        "POST /api/auth/login"
+      ],
+      "relatedTables": [
+        "users",
+        "sessions"
+      ],
+      "sourceFile": "src/pages/auth/LoginPage.tsx",
+      "confidence": "HIGH",
+      "fileCount": 1,
+      "detectionMethod": "画面派生",
+      "operationClass": "更新系"
+    },
+    {
+      "unitId": "feat-logout",
+      "unitKey": "logout",
+      "kind": "feature",
+      "identifier": "DELETE /api/auth/session",
+      "unitNameGuess": "ログアウト",
+      "summary": "セッション破棄とログイン画面への遷移",
+      "category": "認証・セキュリティ",
+      "relatedScreens": [
+        "全画面共通"
+      ],
+      "relatedApis": [
+        "DELETE /api/auth/session"
+      ],
+      "relatedTables": [
+        "sessions"
+      ],
+      "sourceFile": "src/hooks/useAuth.ts",
+      "confidence": "HIGH",
+      "fileCount": 1,
+      "detectionMethod": "画面派生",
+      "operationClass": "削除系"
+    },
+    {
+      "unitId": "feat-signup",
+      "unitKey": "signup",
+      "kind": "feature",
+      "identifier": "POST /api/users",
+      "unitNameGuess": "新規登録",
+      "summary": "メールアドレスとパスワードによるアカウント作成",
+      "category": "認証・セキュリティ",
+      "relatedScreens": [
+        "新規登録画面"
+      ],
+      "relatedApis": [
+        "POST /api/users"
+      ],
+      "relatedTables": [
+        "users"
+      ],
+      "sourceFile": "src/pages/auth/SignupPage.tsx",
+      "confidence": "HIGH",
+      "fileCount": 1,
+      "detectionMethod": "画面派生",
+      "operationClass": "更新系"
+    },
+    {
+      "unitId": "feat-password-reset",
+      "unitKey": "password-reset",
+      "kind": "feature",
+      "identifier": "POST /api/auth/reset-password",
+      "unitNameGuess": "パスワードリセット",
+      "summary": "メール送信によるパスワード再設定フロー",
+      "category": "認証・セキュリティ",
+      "relatedScreens": [
+        "パスワードリセット"
+      ],
+      "relatedApis": [
+        "POST /api/auth/reset-password"
+      ],
+      "relatedTables": [
+        "users"
+      ],
+      "sourceFile": "src/pages/auth/ForgotPasswordPage.tsx",
+      "confidence": "MEDIUM",
+      "fileCount": 1,
+      "detectionMethod": "画面派生",
+      "operationClass": "更新系"
+    },
+    {
+      "unitId": "feat-profile-edit",
+      "unitKey": "profile-edit",
+      "kind": "feature",
+      "identifier": "PUT /api/users/:userId",
+      "unitNameGuess": "プロフィール編集",
+      "summary": "表示名・アバター・連絡先情報の表示と更新",
+      "category": "ユーザー管理",
+      "relatedScreens": [
+        "プロフィール"
+      ],
+      "relatedApis": [
+        "PUT /api/users/:userId"
+      ],
+      "relatedTables": [
+        "users"
+      ],
+      "sourceFile": "src/pages/settings/ProfilePage.tsx",
+      "confidence": "HIGH",
+      "fileCount": 1,
+      "detectionMethod": "画面派生",
+      "operationClass": "更新系"
+    },
+    {
+      "unitId": "feat-user-list",
+      "unitKey": "user-list",
+      "kind": "feature",
+      "identifier": "GET /api/users",
+      "unitNameGuess": "ユーザー一覧表示",
+      "summary": "管理者向けユーザー一覧の検索・絞り込み・ページネーション",
+      "category": "ユーザー管理",
+      "relatedScreens": [
+        "ユーザー一覧"
+      ],
+      "relatedApis": [
+        "GET /api/users"
+      ],
+      "relatedTables": [
+        "users",
+        "roles"
+      ],
+      "sourceFile": "src/pages/admin/UsersListPage.tsx",
+      "confidence": "HIGH",
+      "fileCount": 1,
+      "detectionMethod": "画面派生",
+      "operationClass": "参照系"
+    },
+    {
+      "unitId": "feat-user-invite",
+      "unitKey": "user-invite",
+      "kind": "feature",
+      "identifier": "POST /api/users",
+      "unitNameGuess": "ユーザー招待",
+      "summary": "メールアドレス指定による新規ユーザーの招待",
+      "category": "ユーザー管理",
+      "relatedScreens": [
+        "ユーザー一覧"
+      ],
+      "relatedApis": [
+        "POST /api/users"
+      ],
+      "relatedTables": [
+        "users"
+      ],
+      "sourceFile": "src/pages/admin/UsersListPage.tsx",
+      "confidence": "MEDIUM",
+      "fileCount": 1,
+      "detectionMethod": "画面派生",
+      "operationClass": "更新系"
+    },
+    {
+      "unitId": "feat-role-assign",
+      "unitKey": "role-assign",
+      "kind": "feature",
+      "identifier": "PUT /api/users/:userId",
+      "unitNameGuess": "ロール割当",
+      "summary": "ユーザーへのロール付与・変更・剥奪",
+      "category": "ユーザー管理",
+      "relatedScreens": [
+        "ユーザー詳細"
+      ],
+      "relatedApis": [
+        "PUT /api/users/:userId"
+      ],
+      "relatedTables": [
+        "user_roles",
+        "roles"
+      ],
+      "sourceFile": "src/pages/admin/UserDetailPage.tsx",
+      "confidence": "HIGH",
+      "fileCount": 1,
+      "detectionMethod": "画面派生",
+      "operationClass": "更新系"
+    },
+    {
+      "unitId": "feat-post-create",
+      "unitKey": "post-create",
+      "kind": "feature",
+      "identifier": "POST /api/posts",
+      "unitNameGuess": "投稿作成",
+      "summary": "リッチテキストエディタによる投稿の新規作成と公開",
+      "category": "コンテンツ管理",
+      "relatedScreens": [
+        "投稿エディタ"
+      ],
+      "relatedApis": [
+        "POST /api/posts"
+      ],
+      "relatedTables": [
+        "posts",
+        "tags",
+        "post_tags"
+      ],
+      "sourceFile": "src/pages/posts/PostEditorPage.tsx",
+      "confidence": "HIGH",
+      "fileCount": 1,
+      "detectionMethod": "画面派生",
+      "operationClass": "更新系"
+    },
+    {
+      "unitId": "feat-post-edit",
+      "unitKey": "post-edit",
+      "kind": "feature",
+      "identifier": "PUT /api/posts/:postId",
+      "unitNameGuess": "投稿編集",
+      "summary": "既存投稿の内容編集・タグ変更・下書き保存",
+      "category": "コンテンツ管理",
+      "relatedScreens": [
+        "投稿エディタ"
+      ],
+      "relatedApis": [
+        "PUT /api/posts/:postId"
+      ],
+      "relatedTables": [
+        "posts",
+        "tags",
+        "post_tags"
+      ],
+      "sourceFile": "src/pages/posts/PostEditorPage.tsx",
+      "confidence": "HIGH",
+      "fileCount": 1,
+      "detectionMethod": "画面派生",
+      "operationClass": "更新系"
+    },
+    {
+      "unitId": "feat-post-delete",
+      "unitKey": "post-delete",
+      "kind": "feature",
+      "identifier": "DELETE /api/posts/:postId",
+      "unitNameGuess": "投稿削除",
+      "summary": "投稿の論理削除と関連コメントの連鎖処理",
+      "category": "コンテンツ管理",
+      "relatedScreens": [
+        "投稿詳細"
+      ],
+      "relatedApis": [
+        "DELETE /api/posts/:postId"
+      ],
+      "relatedTables": [
+        "posts",
+        "comments"
+      ],
+      "sourceFile": "src/pages/posts/PostDetailPage.tsx",
+      "confidence": "HIGH",
+      "fileCount": 1,
+      "detectionMethod": "画面派生",
+      "operationClass": "削除系"
+    },
+    {
+      "unitId": "feat-comment",
+      "unitKey": "comment",
+      "kind": "feature",
+      "identifier": "POST /api/posts/:postId/comments",
+      "unitNameGuess": "コメント投稿",
+      "summary": "投稿へのコメント追加と通知連携",
+      "category": "コンテンツ管理",
+      "relatedScreens": [
+        "投稿詳細"
+      ],
+      "relatedApis": [
+        "POST /api/posts/:postId/comments"
+      ],
+      "relatedTables": [
+        "comments",
+        "notifications"
+      ],
+      "sourceFile": "src/pages/posts/PostDetailPage.tsx",
+      "confidence": "HIGH",
+      "fileCount": 1,
+      "detectionMethod": "画面派生",
+      "operationClass": "更新系"
+    },
+    {
+      "unitId": "feat-file-upload",
+      "unitKey": "file-upload",
+      "kind": "feature",
+      "identifier": "POST /api/files/upload",
+      "unitNameGuess": "ファイル添付",
+      "summary": "投稿へのファイルアップロードとプレビュー表示",
+      "category": "コンテンツ管理",
+      "relatedScreens": [
+        "投稿エディタ"
+      ],
+      "relatedApis": [
+        "POST /api/files/upload"
+      ],
+      "relatedTables": [
+        "uploaded_files"
+      ],
+      "sourceFile": "src/components/FileUploader.tsx",
+      "confidence": "MEDIUM",
+      "fileCount": 1,
+      "detectionMethod": "画面派生",
+      "operationClass": "更新系"
+    },
+    {
+      "unitId": "feat-notification-list",
+      "unitKey": "notification-list",
+      "kind": "feature",
+      "identifier": "GET /api/notifications",
+      "unitNameGuess": "通知一覧表示",
+      "summary": "未読・既読の通知一覧表示と一括既読処理",
+      "category": "通知・レポート",
+      "relatedScreens": [
+        "通知一覧"
+      ],
+      "relatedApis": [
+        "GET /api/notifications"
+      ],
+      "relatedTables": [
+        "notifications"
+      ],
+      "sourceFile": "src/pages/NotificationsPage.tsx",
+      "confidence": "HIGH",
+      "fileCount": 1,
+      "detectionMethod": "画面派生",
+      "operationClass": "参照系"
+    },
+    {
+      "unitId": "feat-notification-settings",
+      "unitKey": "notification-settings",
+      "kind": "feature",
+      "identifier": "PUT /api/settings",
+      "unitNameGuess": "通知設定",
+      "summary": "通知種別ごとの受信可否と配信チャネル設定",
+      "category": "通知・レポート",
+      "relatedScreens": [
+        "設定画面"
+      ],
+      "relatedApis": [
+        "PUT /api/settings"
+      ],
+      "relatedTables": [
+        "settings"
+      ],
+      "sourceFile": "src/pages/settings/SettingsPage.tsx",
+      "confidence": "MEDIUM",
+      "fileCount": 1,
+      "detectionMethod": "画面派生",
+      "operationClass": "更新系"
+    },
+    {
+      "unitId": "feat-report-view",
+      "unitKey": "report-view",
+      "kind": "feature",
+      "identifier": "GET /api/reports/:reportId",
+      "unitNameGuess": "レポート閲覧",
+      "summary": "集計データのグラフ表示とCSVダウンロード",
+      "category": "通知・レポート",
+      "relatedScreens": [
+        "レポート閲覧"
+      ],
+      "relatedApis": [
+        "GET /api/reports/:reportId"
+      ],
+      "relatedTables": [
+        "posts",
+        "comments",
+        "audit_logs"
+      ],
+      "sourceFile": "src/pages/reports/ReportViewerPage.tsx",
+      "confidence": "HIGH",
+      "fileCount": 1,
+      "detectionMethod": "画面派生",
+      "operationClass": "参照系"
+    }
+  ]
+}

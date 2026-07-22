@@ -92,25 +92,26 @@ Stage 2 → Stage 3 の実行順はデータ依存(Stage 3 は Stage 2 の出力
 
 ### Phase 6: 検証とHTML生成(機械実行)
 
-- **Step 1**: `../../../shared/scripts/unit-list/validate-manifest.sh <manifest.json> --unit-kind feature` を実行する。FAIL 時は指摘に応じて修正し再実行(3回失敗で Phase 3 へ差し戻し)。完了条件: 全項目 PASS
-- **Step 2**: 両方向の参照検査を実行する。いずれかが非空なら該当 Phase へ差し戻す
+- **Step 1**: マニフェストへメタデータを付与する。`../../../shared/scripts/extract/extract-feature-metadata.sh <manifest.json> <manifest.ext.json>` を実行し、各機能に `operationClass`(照会/登録/更新/削除/承認/その他)フィールドを追加した拡張マニフェスト(`manifest.ext.json`)を生成する。以降の Step では `manifest.ext.json` を使用する。完了条件: 拡張マニフェストが生成済み
+- **Step 2**: `../../../shared/scripts/unit-list/validate-manifest.sh <manifest.ext.json> --unit-kind feature` を実行する。FAIL 時は指摘に応じて修正し再実行(3回失敗で Phase 3 へ差し戻し)。完了条件: 全項目 PASS
+- **Step 3**: 両方向の参照検査を実行する。いずれかが非空なら該当 Phase へ差し戻す
 
 ```bash
 # Gate A(既存): dangling reference — relatedScreens の参照先が画面一覧に実在するか
 # (relatedApis/relatedTables も対応一覧の units[].unitKey で同型。
 # 参照先一覧が未生成の種別は related* が空配列のため自動的に PASS)
 comm -23 \
-  <(jq -r '.units[] | .relatedScreens[]?' feature-manifest.json | sort -u) \
+  <(jq -r '.units[] | .relatedScreens[]?' feature-manifest.ext.json | sort -u) \
   <(jq -r '.screens[].screenKey' screen-manifest.json | sort -u)
 
 # Gate B(新設): completeness — 画面一覧の全 screenKey が機能に割り当て済みか
 comm -13 \
-  <(jq -r '.units[] | .relatedScreens[]?' feature-manifest.json | sort -u) \
+  <(jq -r '.units[] | .relatedScreens[]?' feature-manifest.ext.json | sort -u) \
   <(jq -r '.screens[].screenKey' screen-manifest.json | sort -u)
 # Gate A・B いずれも空 = PASS。1行でも出力があれば FAIL
 ```
 
-- **Step 3**: `../../../shared/scripts/unit-list/build-unit-list.sh <manifest.json> <output_dir>/一覧/機能一覧/機能一覧.html --unit-kind feature --portal-dir <output_dir>` を実行する。`--portal-dir` にはポータル（`index.html`）の配置先＝納品物ルート（output_dir=docs_root）を渡し、「ポータルへ戻る」リンクを実在パスに解決させる。build 側が内部で validate を再実行するため、検証を経ない manifest からは生成できない。完了条件: HTML 生成済み
+- **Step 4**: `../../../shared/scripts/unit-list/build-unit-list.sh <manifest.ext.json> <output_dir>/一覧/機能一覧/機能一覧.html --unit-kind feature --portal-dir <output_dir>` を実行する。`--portal-dir` にはポータル（`index.html`）の配置先＝納品物ルート（output_dir=docs_root）を渡し、「ポータルへ戻る」リンクを実在パスに解決させる。build 側が内部で validate を再実行するため、検証を経ない manifest からは生成できない。完了条件: HTML 生成済み
 
 **手作業でのプレースホルダ置換は禁止する**。HTML 生成は必ずスクリプト経由の決定的処理で行う。
 
@@ -123,7 +124,7 @@ comm -13 \
 | Phase 3 | 全画面が relatedScreens または unresolved に載り(完全性ゲート PASS)、マニフェスト JSON が生成済み(relatedApis/relatedTables は空配列) |
 | Phase 4 | 全機能の relatedApis・relatedTables・confidence が確定済み |
 | Phase 5 | 構成案がユーザー承認済み(approvedByUser: true) |
-| Phase 6 | validate 全項目 PASS・Gate A(dangling) PASS・Gate B(completeness) PASS・機能一覧.html 生成済み |
+| Phase 6 | Step 1で拡張マニフェストに operationClass が付与済み。validate 全項目 PASS・Gate A(dangling) PASS・Gate B(completeness) PASS・機能一覧.html 生成済み |
 | **Goal** | 検証済みマニフェストのみから HTML が生成され、大分類ごとの機能と関連画面・API・テーブルの対応、および要手動確認が可視化されている |
 
 ## 返却
@@ -193,3 +194,16 @@ comm -13 \
 **保守責任者**: 人手(ユーザー)。マニフェストスキーマ変更時に validate-manifest.sh との整合を同時更新する
 
 **廃棄条件**: generating-feature-list-for-reverse-docs スキルが廃止された時、またはHTML生成が別基盤へ移行した時
+
+### extract-feature-metadata.sh
+
+**必要性**: 機能一覧の各ユニットへ `operationClass`(照会/登録/更新/削除/承認/その他の6値)を付与する処理は、Phase 6 で毎回同じキーワード判定ロジック(優先順を持つ複数カテゴリのキーワード集合との突合)を繰り返し適用する必要があり、Bash ツール直叩きでは判定ロジックが都度手書きになり判定基準がユニット間・実行間でぶれる。他5種別(`extract-batch-metadata.sh` 等)と同じ「決定的スクリプト固定」方針に揃え、`--self-test` で分類ロジックの回帰(6カテゴリ全ての判定・キーワード不一致時の「その他」フォールバック・既存フィールド不変・validate-manifest.sh PASS)を機械保証する。
+
+**代替案を採用しなかった理由**:
+- Bash ツール直叩き(Claude が都度キーワード判定): 実行のたびに判定基準が微妙にぶれるリスクがあり、他5種別で確立した「抽出は決定的スクリプト」の方針から逸脱する
+- 既存 Makefile ターゲット拡張・package.json scripts 追加: 本リポジトリに Makefile・package.json は存在しない
+- `build-feature-list.sh` への処理統合: `build-feature-list.sh` は HTML 生成(検証済み manifest からの決定的変換)を担い、メタデータ抽出(manifest 自体の拡張)とは責務が異なる。他種別の `extract-*-metadata.sh` と `build-unit-list.sh` の分離方針に合わせた
+
+**保守責任者**: 人手(ユーザー)。キーワード集合・優先順を変更する場合は `shared/references/manifest-schema-extensions.md`「features」節の値域定義と `shared/templates/unit-list/feature-list-template.html` のバッジ色分けを同時更新する
+
+**廃棄条件**: `operationClass` フィールドがスキーマから廃止された時、または分類ロジックが機械抽出ではなく人手判定に一本化された時

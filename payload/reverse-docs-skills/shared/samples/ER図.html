@@ -4,20 +4,41 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>ER図 — リバース設計ポータル</title>
-<link rel="icon" href="data:,">
 <!--
-  インタラクティブER図(プロトタイプ版)。build-detail-page.sh経由ではなく直接編集。
-  100テーブル規模を想定し、クラスタカード一覧(状態0)→クラスタ展開(状態1)→
-  テーブル詳細(状態2)の3段階を1画面内の状態遷移で実現する。
-  クラスタ化はFK接続グラフの連結成分を決定的アルゴリズムで算出し、
-  巨大成分は出次数上位3ノードのハブ分割で分解する(乱数・物理シミュレーション不使用)。
-  アニメーションはCSS transitionのみ(transform/opacity)。
+  detail-pages T6 ER図専用テンプレート — リバース設計スキル群
+  生成: shared/scripts/detail-pages/build-detail-page.sh
+  プレースホルダ置換は build-detail-page.sh の render_template() が行う。
+  手作業によるプレースホルダ置換は禁止。生成は必ずスクリプト経由で行う。
+
+  埋め込みJSON(script#page-data)のentities[]/relations[]から、ページ読込時に
+  JavaScriptがDOMを構築する。クラスタカード一覧(状態0)→クラスタ展開(状態1)→
+  テーブル詳細(状態2)の3段階を1画面内の状態遷移で実現するインタラクティブER図。
+  クラスタ化はFK接続グラフの連結成分を決定的アルゴリズムで算出し、巨大成分は
+  出次数上位3ノードのハブ分割で分解する(乱数・物理シミュレーション不使用)。
+  「テーブル詳細」タブでは entities[].columns[](PK/FK/UQ/NULLバッジ)を検索可能な
+  サイドバー付きで表示する。アニメーションはCSS transitionのみ(transform/opacity)。
+
   保守注記: トークンブロック・テーマ切替(data-theme二重定義・rd-portal-theme)は
   shared/templates/portal-template.html からの複製である。
+  同テンプレートの当該部分を変更した場合は本ファイルも同時更新すること
+  （T1一覧テンプレート群・T2〜T5テンプレートにも同種の複製あり。include化は別件）。
+
+  プレースホルダ(build-detail-page.shが注入。実際のマーカー記法は
+  scripts/detail-pages/build-detail-page.sh 冒頭コメントを定義とする。本コメントでは
+  二重置換事故を避けるため意図的に波括弧を外して記載する):
+    TITLE (ページ見出しマーカー)         : page-data.json の title
+    DESCRIPTION (ページ概要マーカー)     : page-data.json の description
+    GENERATED_AT (生成日時マーカー)      : page-data.json の generatedAt
+    PAGE_DATA_JSON (page-data埋め込みマーカー) : page-data.json の内容全体(本ファイル物理末尾のscriptタグへ注入)
 -->
 <style>
 :root,
 [data-theme="light"] {
+  /* Windows フォント上書き防止 */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-synthesis: none;
   --bg: #FFFFFF;
   --panel: #FFFFFF;
   --panel-2: #F6F8FA;
@@ -38,8 +59,18 @@
   --warn: #BC4C00;
   --danger: #CF222E;
   --danger-soft: #FFEBE9;
+  --highlight: #D97B1A;
+  --highlight-soft: rgba(217,123,26,0.12);
+  --highlight-border: rgba(217,123,26,0.5);
+  --nav-tag: #7B8BBF;
+  --nav-tag-soft: #ECEEF6;
+  --self-tag: #6B9B6B;
+  --self-tag-soft: #E8F0E8;
   --code-bg: #1B1F26;
   --code-fg: #E8E5DC;
+  --cat-list: #2563eb;
+  --cat-common: #059669;
+  --cat-project: #7C3AED;
   --font-body: "Hiragino Kaku Gothic ProN","Hiragino Sans","Noto Sans JP","BIZ UDPGothic","Yu Gothic","Meiryo",system-ui,-apple-system,sans-serif;
   --mono: "SFMono-Regular","Menlo","Cascadia Code","Consolas",monospace;
   --shadow-sm: 0 1px 3px rgba(27,31,38,.07), 0 2px 6px rgba(27,31,38,.05);
@@ -56,7 +87,11 @@
     --gold: #DB6D28; --gold-soft: #311D08; --gold-border: #7A3E0D;
     --success: #3FB950; --success-soft: #0D2818;
     --warn: #DB6D28; --danger: #F85149; --danger-soft: #3D1214;
+    --highlight: #E8943A; --highlight-soft: rgba(232,148,58,0.15); --highlight-border: rgba(232,148,58,0.5);
+    --nav-tag: #8E9ED0; --nav-tag-soft: rgba(142,158,208,0.15);
+    --self-tag: #7DB87D; --self-tag-soft: rgba(125,184,125,0.15);
     --code-bg: #0E1116; --code-fg: #E8E5DC;
+    --cat-list: #60A5FA; --cat-common: #34D399; --cat-project: #A78BFA;
   }
 }
 [data-theme="dark"] {
@@ -67,7 +102,11 @@
   --gold: #DB6D28; --gold-soft: #311D08; --gold-border: #7A3E0D;
   --success: #3FB950; --success-soft: #0D2818;
   --warn: #DB6D28; --danger: #F85149; --danger-soft: #3D1214;
+  --highlight: #E8943A; --highlight-soft: rgba(232,148,58,0.15); --highlight-border: rgba(232,148,58,0.5);
+  --nav-tag: #8E9ED0; --nav-tag-soft: rgba(142,158,208,0.15);
+  --self-tag: #7DB87D; --self-tag-soft: rgba(125,184,125,0.15);
   --code-bg: #0E1116; --code-fg: #E8E5DC;
+  --cat-list: #60A5FA; --cat-common: #34D399; --cat-project: #A78BFA;
 }
 
 * { box-sizing: border-box; }
@@ -80,7 +119,7 @@ body {
 a { color: var(--accent); text-decoration: none; }
 a:hover { text-decoration: underline; }
 
-.dp-page { display: grid; grid-template-rows: auto 1fr auto; min-height: 100vh; }
+.dp-page { display: grid; grid-template-rows: auto 1fr auto; height: 100vh; overflow: hidden; }
 
 .topbar {
   display: grid; grid-template-columns: auto 1fr auto;
@@ -103,7 +142,7 @@ a:hover { text-decoration: underline; }
 }
 .top-actions button:hover { background: var(--accent-soft); color: var(--accent); border-color: var(--accent-border); }
 
-.dp-main { max-width: 1280px; width: 100%; min-width: 0; margin: 0 auto; padding: 24px 24px 64px; }
+.dp-main { max-width: 1280px; width: 100%; min-width: 0; margin: 0 auto; padding: 24px 24px 64px; overflow-y: auto; min-height: 0; }
 
 .doc-crumbs { font-size: 12px; color: var(--text-muted); margin-bottom: 8px; }
 .doc-crumbs a { color: var(--text-sub); cursor: pointer; }
@@ -115,9 +154,24 @@ a:hover { text-decoration: underline; }
 }
 .dp-hero h1 { font-size: 23px; margin: 0; }
 .dp-hero p { font-size: 12.5px; color: var(--text-muted); margin: 4px 0 0; }
-.dp-updated {
-  font-size: 12px; color: var(--text-sub); background: var(--accent-soft);
-  border: 1px solid var(--accent-border); border-radius: 999px; padding: 3px 12px; white-space: nowrap;
+
+.sec-label {
+  font-size: 12px; font-weight: 700; letter-spacing: 0.04em; color: var(--text-sub);
+  display: flex; align-items: center; gap: 8px; margin: 26px 0 12px;
+}
+.sec-label:first-of-type { margin-top: 6px; }
+.sec-label::before { content: ""; width: 4px; height: 14px; background: var(--accent); border-radius: 2px; }
+
+.note-box {
+  font-size: 12px; color: var(--text-sub); background: var(--panel-2);
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  padding: 8px 12px; margin: 14px 0 0;
+}
+
+.footer {
+  padding: 12px 20px; border-top: 1px solid var(--border);
+  font-size: 12px; color: var(--text-muted);
+  display: flex; gap: 20px; justify-content: center;
 }
 
 /* --- ツールバー --- */
@@ -238,7 +292,7 @@ a:hover { text-decoration: underline; }
 .pipe-line { fill: none; stroke-width: 1.6; }
 .pipe-line.same-cluster { stroke: var(--accent); }
 .pipe-line.cross-cluster { stroke: var(--gold); }
-.pipe-line:hover { stroke-width: 3; stroke-dasharray: 4 8; animation: pipe-flow 1.5s linear infinite; }
+.pipe-line:hover { stroke-width: 3; stroke-dasharray: 4 8; animation: pipe-flow 1.5s cubic-bezier(0,0,1,1) infinite; }
 @keyframes pipe-flow { to { stroke-dashoffset: -12; } }
 
 .detail-table-section { margin-top: 20px; }
@@ -299,6 +353,7 @@ table.data-table code {
 .td-card {
   position: absolute; left: 0; top: 0; border-radius: var(--radius); background: var(--panel);
   font-size: 12px; box-shadow: var(--shadow-sm); transition: transform 300ms ease-out;
+  overflow: hidden;
 }
 .td-card-selected { border: 3px double var(--accent); background: var(--accent-soft); }
 .td-card-related { border: 1px solid var(--border); cursor: pointer; }
@@ -308,8 +363,8 @@ table.data-table code {
 .td-card-key { font-family: var(--mono); font-size: 11px; color: var(--text-sub); margin-top: 2px; }
 .td-col-row { padding: 3px 14px; font-size: 11.5px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--border); }
 .td-col-row:last-child { border-bottom: none; }
-.td-col-name { font-family: var(--mono); color: var(--text); min-width: 120px; }
-.td-col-type { font-family: var(--mono); color: var(--text-muted); flex: 1; }
+.td-col-name { font-family: var(--mono); color: var(--text); max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.td-col-type { font-family: var(--mono); color: var(--text-muted); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .td-col-badges { display: flex; gap: 3px; }
 .td-badge { font-size: 9px; padding: 1px 5px; border-radius: 3px; font-weight: 600; }
 .td-badge-pk { background: var(--gold-soft); color: var(--gold); border: 1px solid var(--gold-border); }
@@ -317,6 +372,7 @@ table.data-table code {
 .td-badge-uq { background: var(--panel-2); color: var(--text-sub); border: 1px solid var(--border); }
 .td-badge-null { background: var(--panel-2); color: var(--text-muted); border: 1px solid var(--border); }
 .td-col-more { padding: 6px 14px; font-size: 11px; color: var(--text-muted); text-align: center; }
+.td-block + .td-block { border-top: 1px dashed var(--border); padding-top: 20px; }
 
 @media (max-width: 760px) {
   .topbar { grid-template-columns: 1fr; gap: 8px; padding: 10px 14px; }
@@ -340,7 +396,7 @@ table.data-table code {
       <span class="brand-sub">設計ポータル</span>
     </a>
     <div class="header-meta">
-      <span class="pm-updated">更新: 2026-07-21 · コミット番号: 89178e6</span>
+      <span class="pm-updated">更新: 2026-07-22T00:00:00Z</span>
     </div>
     <div class="top-actions">
       <button id="theme-toggle" title="テーマ切替">ライト</button>
@@ -352,9 +408,8 @@ table.data-table code {
     <div class="dp-hero">
       <div>
         <h1>ER図</h1>
-        <p>テーブル一覧と外部キー定義から生成したエンティティ関連図</p>
+        <p>テーブル一覧と外部キー定義から生成したエンティティ関連図(サンプル: ECサイト想定・60テーブル規模)</p>
       </div>
-      <span class="dp-updated">生成: 2026-07-20</span>
     </div>
 
     <div class="er-tab-bar" id="er-tab-bar">
@@ -390,6 +445,8 @@ table.data-table code {
         </div>
       </div>
     </div>
+
+    <div id="unresolved-mount"></div>
   </main>
 
   <footer class="footer">
@@ -399,108 +456,2137 @@ table.data-table code {
 
 <script type="application/json" id="page-data">
 {
+  "projectName": "サンプルプロジェクト",
   "pageKind": "er",
+  "generatedAt": "2026-07-22T00:00:00Z",
   "title": "ER図",
-  "description": "テーブル一覧と外部キー定義から生成したエンティティ関連図",
-  "generatedAt": "2026-07-20",
-  "legend": [],
+  "description": "テーブル一覧と外部キー定義から生成したエンティティ関連図(サンプル: ECサイト想定・60テーブル規模)",
+  "legend": [
+    {
+      "symbol": "PK",
+      "meaning": "主キー"
+    },
+    {
+      "symbol": "FK",
+      "meaning": "外部キー"
+    },
+    {
+      "symbol": "UQ",
+      "meaning": "一意制約"
+    },
+    {
+      "symbol": "NULL",
+      "meaning": "NULL許容"
+    }
+  ],
   "entities": [
-    {"key": "users", "label": "ユーザー", "columns": [
-      {"name": "id", "type": "BIGINT", "pk": true},
-      {"name": "role_id", "type": "BIGINT", "fk": true},
-      {"name": "email", "type": "VARCHAR(255)", "unique": true},
-      {"name": "password_hash", "type": "VARCHAR(255)"},
-      {"name": "display_name", "type": "VARCHAR(100)"},
-      {"name": "status", "type": "VARCHAR(20)"},
-      {"name": "created_at", "type": "TIMESTAMP"},
-      {"name": "updated_at", "type": "TIMESTAMP", "nullable": true}
-    ]},
-    {"key": "sessions", "label": "セッション"},
-    {"key": "profiles", "label": "プロフィール"},
-    {"key": "roles", "label": "ロール", "columns": [
-      {"name": "id", "type": "BIGINT", "pk": true},
-      {"name": "name", "type": "VARCHAR(50)", "unique": true},
-      {"name": "description", "type": "VARCHAR(200)", "nullable": true},
-      {"name": "is_system", "type": "BOOLEAN"},
-      {"name": "created_at", "type": "TIMESTAMP"}
-    ]},
-    {"key": "permissions", "label": "権限"},
-    {"key": "orders", "label": "注文", "columns": [
-      {"name": "id", "type": "BIGINT", "pk": true},
-      {"name": "user_id", "type": "BIGINT", "fk": true},
-      {"name": "coupon_id", "type": "BIGINT", "fk": true, "nullable": true},
-      {"name": "order_number", "type": "VARCHAR(50)", "unique": true},
-      {"name": "status", "type": "VARCHAR(20)"},
-      {"name": "total_amount", "type": "DECIMAL(12,2)"},
-      {"name": "ordered_at", "type": "TIMESTAMP"},
-      {"name": "created_at", "type": "TIMESTAMP"},
-      {"name": "updated_at", "type": "TIMESTAMP", "nullable": true}
-    ]},
-    {"key": "order_items", "label": "注文明細"},
-    {"key": "shipping_addresses", "label": "配送先"},
-    {"key": "order_history", "label": "注文履歴"},
-    {"key": "coupons", "label": "クーポン"},
-    {"key": "products", "label": "商品", "columns": [
-      {"name": "id", "type": "BIGINT", "pk": true},
-      {"name": "category_id", "type": "BIGINT", "fk": true},
-      {"name": "name", "type": "VARCHAR(200)"},
-      {"name": "description", "type": "TEXT", "nullable": true},
-      {"name": "price", "type": "DECIMAL(10,2)"},
-      {"name": "stock_quantity", "type": "INT"},
-      {"name": "is_active", "type": "BOOLEAN"},
-      {"name": "created_at", "type": "TIMESTAMP"},
-      {"name": "updated_at", "type": "TIMESTAMP", "nullable": true}
-    ]},
-    {"key": "categories", "label": "カテゴリ"},
-    {"key": "product_images", "label": "商品画像"},
-    {"key": "product_tags", "label": "商品タグ"},
-    {"key": "tags", "label": "タグ"},
-    {"key": "invoices", "label": "請求書", "columns": [
-      {"name": "id", "type": "BIGINT", "pk": true},
-      {"name": "order_id", "type": "BIGINT", "fk": true},
-      {"name": "invoice_number", "type": "VARCHAR(50)", "unique": true},
-      {"name": "amount", "type": "DECIMAL(12,2)"},
-      {"name": "tax_amount", "type": "DECIMAL(12,2)"},
-      {"name": "status", "type": "VARCHAR(20)"},
-      {"name": "issued_at", "type": "TIMESTAMP"},
-      {"name": "due_date", "type": "DATE", "nullable": true}
-    ]},
-    {"key": "payments", "label": "支払い"},
-    {"key": "plans", "label": "プラン"},
-    {"key": "subscriptions", "label": "契約"},
-    {"key": "reviews", "label": "レビュー"},
-    {"key": "review_images", "label": "レビュー画像"},
-    {"key": "notifications", "label": "通知"},
-    {"key": "favorites", "label": "お気に入り"},
-    {"key": "settings", "label": "設定"},
-    {"key": "audit_logs", "label": "監査ログ"}
+    {
+      "key": "users",
+      "label": "ユーザー",
+      "columns": [
+        {
+          "name": "id",
+          "type": "BIGINT",
+          "pk": true
+        },
+        {
+          "name": "role_id",
+          "type": "BIGINT",
+          "fk": true
+        },
+        {
+          "name": "email",
+          "type": "VARCHAR(255)",
+          "unique": true
+        },
+        {
+          "name": "password_hash",
+          "type": "VARCHAR(255)"
+        },
+        {
+          "name": "display_name",
+          "type": "VARCHAR(100)"
+        },
+        {
+          "name": "status",
+          "type": "VARCHAR(20)"
+        },
+        {
+          "name": "created_at",
+          "type": "TIMESTAMP"
+        },
+        {
+          "name": "updated_at",
+          "type": "TIMESTAMP",
+          "nullable": true
+        }
+      ]
+    },
+    {
+      "key": "roles",
+      "label": "ロール",
+      "columns": [
+        {
+          "name": "id",
+          "type": "BIGINT",
+          "pk": true
+        },
+        {
+          "name": "name",
+          "type": "VARCHAR(50)",
+          "unique": true
+        },
+        {
+          "name": "description",
+          "type": "VARCHAR(200)",
+          "nullable": true
+        },
+        {
+          "name": "created_at",
+          "type": "TIMESTAMP"
+        },
+        {
+          "name": "updated_at",
+          "type": "TIMESTAMP",
+          "nullable": true
+        }
+      ]
+    },
+    {
+      "key": "permissions",
+      "label": "権限",
+      "columns": [
+        {
+          "name": "id",
+          "type": "BIGINT",
+          "pk": true
+        },
+        {
+          "name": "code",
+          "type": "VARCHAR(100)",
+          "unique": true
+        },
+        {
+          "name": "label",
+          "type": "VARCHAR(100)"
+        }
+      ]
+    },
+    {
+      "key": "role_permissions",
+      "label": "ロール権限紐付",
+      "columns": [
+        {
+          "name": "id",
+          "type": "BIGINT",
+          "pk": true
+        },
+        {
+          "name": "role_id",
+          "type": "BIGINT",
+          "fk": true
+        },
+        {
+          "name": "permission_id",
+          "type": "BIGINT",
+          "fk": true
+        }
+      ]
+    },
+    {
+      "key": "user_sessions",
+      "label": "ユーザーセッション",
+      "columns": [
+        {
+          "name": "id",
+          "type": "BIGINT",
+          "pk": true
+        },
+        {
+          "name": "user_id",
+          "type": "BIGINT",
+          "fk": true
+        },
+        {
+          "name": "token",
+          "type": "VARCHAR(255)",
+          "unique": true
+        },
+        {
+          "name": "expires_at",
+          "type": "TIMESTAMP"
+        },
+        {
+          "name": "created_at",
+          "type": "TIMESTAMP"
+        },
+        {
+          "name": "updated_at",
+          "type": "TIMESTAMP",
+          "nullable": true
+        }
+      ]
+    },
+    {
+      "key": "password_resets",
+      "label": "パスワードリセット",
+      "columns": [
+        {
+          "name": "id",
+          "type": "BIGINT",
+          "pk": true
+        },
+        {
+          "name": "user_id",
+          "type": "BIGINT",
+          "fk": true
+        },
+        {
+          "name": "token",
+          "type": "VARCHAR(255)",
+          "unique": true
+        },
+        {
+          "name": "expires_at",
+          "type": "TIMESTAMP"
+        }
+      ]
+    },
+    {
+      "key": "email_verifications",
+      "label": "メール認証",
+      "columns": [
+        {
+          "name": "id",
+          "type": "BIGINT",
+          "pk": true
+        },
+        {
+          "name": "user_id",
+          "type": "BIGINT",
+          "fk": true
+        },
+        {
+          "name": "token",
+          "type": "VARCHAR(255)",
+          "unique": true
+        },
+        {
+          "name": "verified_at",
+          "type": "TIMESTAMP",
+          "nullable": true
+        }
+      ]
+    },
+    {
+      "key": "api_keys",
+      "label": "APIキー",
+      "columns": [
+        {
+          "name": "id",
+          "type": "BIGINT",
+          "pk": true
+        },
+        {
+          "name": "user_id",
+          "type": "BIGINT",
+          "fk": true
+        },
+        {
+          "name": "key_hash",
+          "type": "VARCHAR(255)",
+          "unique": true
+        },
+        {
+          "name": "last_used_at",
+          "type": "TIMESTAMP",
+          "nullable": true
+        },
+        {
+          "name": "created_at",
+          "type": "TIMESTAMP"
+        },
+        {
+          "name": "updated_at",
+          "type": "TIMESTAMP",
+          "nullable": true
+        }
+      ]
+    },
+    {
+      "key": "shipping_addresses",
+      "label": "配送先",
+      "columns": [
+        {
+          "name": "id",
+          "type": "BIGINT",
+          "pk": true
+        },
+        {
+          "name": "user_id",
+          "type": "BIGINT",
+          "fk": true
+        },
+        {
+          "name": "postal_code",
+          "type": "VARCHAR(10)"
+        },
+        {
+          "name": "prefecture",
+          "type": "VARCHAR(20)"
+        },
+        {
+          "name": "address_line",
+          "type": "VARCHAR(200)"
+        },
+        {
+          "name": "is_default",
+          "type": "BOOLEAN"
+        },
+        {
+          "name": "created_at",
+          "type": "TIMESTAMP"
+        },
+        {
+          "name": "updated_at",
+          "type": "TIMESTAMP",
+          "nullable": true
+        }
+      ]
+    },
+    {
+      "key": "billing_addresses",
+      "label": "請求先",
+      "columns": [
+        {
+          "name": "id",
+          "type": "BIGINT",
+          "pk": true
+        },
+        {
+          "name": "user_id",
+          "type": "BIGINT",
+          "fk": true
+        },
+        {
+          "name": "postal_code",
+          "type": "VARCHAR(10)"
+        },
+        {
+          "name": "address_line",
+          "type": "VARCHAR(200)"
+        },
+        {
+          "name": "created_at",
+          "type": "TIMESTAMP"
+        },
+        {
+          "name": "updated_at",
+          "type": "TIMESTAMP",
+          "nullable": true
+        }
+      ]
+    },
+    {
+      "key": "shipping_methods",
+      "label": "配送方法",
+      "columns": [
+        {
+          "name": "id",
+          "type": "BIGINT",
+          "pk": true
+        },
+        {
+          "name": "name",
+          "type": "VARCHAR(50)"
+        },
+        {
+          "name": "fee",
+          "type": "DECIMAL(10,2)"
+        }
+      ]
+    },
+    {
+      "key": "carriers",
+      "label": "配送業者",
+      "columns": [
+        {
+          "name": "id",
+          "type": "BIGINT",
+          "pk": true
+        },
+        {
+          "name": "name",
+          "type": "VARCHAR(50)"
+        },
+        {
+          "name": "tracking_url_template",
+          "type": "VARCHAR(255)",
+          "nullable": true
+        }
+      ]
+    },
+    {
+      "key": "tracking_events",
+      "label": "配送追跡イベント",
+      "columns": [
+        {
+          "name": "id",
+          "type": "BIGINT",
+          "pk": true
+        },
+        {
+          "name": "order_id",
+          "type": "BIGINT",
+          "fk": true
+        },
+        {
+          "name": "carrier_id",
+          "type": "BIGINT",
+          "fk": true
+        },
+        {
+          "name": "status",
+          "type": "VARCHAR(50)"
+        },
+        {
+          "name": "occurred_at",
+          "type": "TIMESTAMP"
+        }
+      ]
+    },
+    {
+      "key": "categories",
+      "label": "カテゴリ",
+      "columns": [
+        {
+          "name": "id",
+          "type": "BIGINT",
+          "pk": true
+        },
+        {
+          "name": "parent_id",
+          "type": "BIGINT",
+          "fk": true,
+          "nullable": true
+        },
+        {
+          "name": "name",
+          "type": "VARCHAR(100)"
+        },
+        {
+          "name": "created_at",
+          "type": "TIMESTAMP"
+        },
+        {
+          "name": "updated_at",
+          "type": "TIMESTAMP",
+          "nullable": true
+        }
+      ]
+    },
+    {
+      "key": "brands",
+      "label": "ブランド",
+      "columns": [
+        {
+          "name": "id",
+          "type": "BIGINT",
+          "pk": true
+        },
+        {
+          "name": "name",
+          "type": "VARCHAR(100)",
+          "unique": true
+        }
+      ]
+    },
+    {
+      "key": "suppliers",
+      "label": "仕入先",
+      "columns": [
+        {
+          "name": "id",
+          "type": "BIGINT",
+          "pk": true
+        },
+        {
+          "name": "name",
+          "type": "VARCHAR(150)"
+        },
+        {
+          "name": "contact_email",
+          "type": "VARCHAR(255)",
+          "nullable": true
+        }
+      ]
+    },
+    {
+      "key": "products",
+      "label": "商品",
+      "columns": [
+        {
+          "name": "id",
+          "type": "BIGINT",
+          "pk": true
+        },
+        {
+          "name": "category_id",
+          "type": "BIGINT",
+          "fk": true
+        },
+        {
+          "name": "brand_id",
+          "type": "BIGINT",
+          "fk": true,
+          "nullable": true
+        },
+        {
+          "name": "supplier_id",
+          "type": "BIGINT",
+          "fk": true,
+          "nullable": true
+        },
+        {
+          "name": "name",
+          "type": "VARCHAR(200)"
+        },
+        {
+          "name": "description",
+          "type": "TEXT",
+          "nullable": true
+        },
+        {
+          "name": "price",
+          "type": "DECIMAL(10,2)"
+        },
+        {
+          "name": "is_active",
+          "type": "BOOLEAN"
+        },
+        {
+          "name": "created_at",
+          "type": "TIMESTAMP"
+        },
+        {
+          "name": "updated_at",
+          "type": "TIMESTAMP",
+          "nullable": true
+        }
+      ]
+    },
+    {
+      "key": "product_categories",
+      "label": "商品カテゴリ紐付",
+      "columns": [
+        {
+          "name": "id",
+          "type": "BIGINT",
+          "pk": true
+        },
+        {
+          "name": "product_id",
+          "type": "BIGINT",
+          "fk": true
+        },
+        {
+          "name": "category_id",
+          "type": "BIGINT",
+          "fk": true
+        }
+      ]
+    },
+    {
+      "key": "product_images",
+      "label": "商品画像",
+      "columns": [
+        {
+          "name": "id",
+          "type": "BIGINT",
+          "pk": true
+        },
+        {
+          "name": "product_id",
+          "type": "BIGINT",
+          "fk": true
+        },
+        {
+          "name": "url",
+          "type": "VARCHAR(255)"
+        },
+        {
+          "name": "sort_order",
+          "type": "INT"
+        }
+      ]
+    },
+    {
+      "key": "product_variants",
+      "label": "商品バリエーション",
+      "columns": [
+        {
+          "name": "id",
+          "type": "BIGINT",
+          "pk": true
+        },
+        {
+          "name": "product_id",
+          "type": "BIGINT",
+          "fk": true
+        },
+        {
+          "name": "sku",
+          "type": "VARCHAR(50)",
+          "unique": true
+        },
+        {
+          "name": "color",
+          "type": "VARCHAR(30)",
+          "nullable": true
+        },
+        {
+          "name": "size",
+          "type": "VARCHAR(30)",
+          "nullable": true
+        },
+        {
+          "name": "price_diff",
+          "type": "DECIMAL(10,2)"
+        }
+      ]
+    },
+    {
+      "key": "inventory",
+      "label": "在庫",
+      "columns": [
+        {
+          "name": "id",
+          "type": "BIGINT",
+          "pk": true
+        },
+        {
+          "name": "product_variant_id",
+          "type": "BIGINT",
+          "fk": true
+        },
+        {
+          "name": "warehouse_id",
+          "type": "BIGINT",
+          "fk": true
+        },
+        {
+          "name": "quantity",
+          "type": "INT"
+        },
+        {
+          "name": "created_at",
+          "type": "TIMESTAMP"
+        },
+        {
+          "name": "updated_at",
+          "type": "TIMESTAMP",
+          "nullable": true
+        }
+      ]
+    },
+    {
+      "key": "warehouses",
+      "label": "倉庫",
+      "columns": [
+        {
+          "name": "id",
+          "type": "BIGINT",
+          "pk": true
+        },
+        {
+          "name": "name",
+          "type": "VARCHAR(100)"
+        },
+        {
+          "name": "location",
+          "type": "VARCHAR(200)",
+          "nullable": true
+        }
+      ]
+    },
+    {
+      "key": "stock_movements",
+      "label": "在庫移動履歴",
+      "columns": [
+        {
+          "name": "id",
+          "type": "BIGINT",
+          "pk": true
+        },
+        {
+          "name": "inventory_id",
+          "type": "BIGINT",
+          "fk": true
+        },
+        {
+          "name": "delta",
+          "type": "INT"
+        },
+        {
+          "name": "reason",
+          "type": "VARCHAR(50)"
+        },
+        {
+          "name": "occurred_at",
+          "type": "TIMESTAMP"
+        }
+      ]
+    },
+    {
+      "key": "carts",
+      "label": "カート",
+      "columns": [
+        {
+          "name": "id",
+          "type": "BIGINT",
+          "pk": true
+        },
+        {
+          "name": "user_id",
+          "type": "BIGINT",
+          "fk": true
+        },
+        {
+          "name": "status",
+          "type": "VARCHAR(20)"
+        },
+        {
+          "name": "created_at",
+          "type": "TIMESTAMP"
+        },
+        {
+          "name": "updated_at",
+          "type": "TIMESTAMP",
+          "nullable": true
+        }
+      ]
+    },
+    {
+      "key": "cart_items",
+      "label": "カート明細",
+      "columns": [
+        {
+          "name": "id",
+          "type": "BIGINT",
+          "pk": true
+        },
+        {
+          "name": "cart_id",
+          "type": "BIGINT",
+          "fk": true
+        },
+        {
+          "name": "product_variant_id",
+          "type": "BIGINT",
+          "fk": true
+        },
+        {
+          "name": "quantity",
+          "type": "INT"
+        }
+      ]
+    },
+    {
+      "key": "orders",
+      "label": "注文",
+      "columns": [
+        {
+          "name": "id",
+          "type": "BIGINT",
+          "pk": true
+        },
+        {
+          "name": "user_id",
+          "type": "BIGINT",
+          "fk": true
+        },
+        {
+          "name": "shipping_address_id",
+          "type": "BIGINT",
+          "fk": true
+        },
+        {
+          "name": "shipping_method_id",
+          "type": "BIGINT",
+          "fk": true
+        },
+        {
+          "name": "coupon_id",
+          "type": "BIGINT",
+          "fk": true,
+          "nullable": true
+        },
+        {
+          "name": "order_number",
+          "type": "VARCHAR(50)",
+          "unique": true
+        },
+        {
+          "name": "status",
+          "type": "VARCHAR(20)"
+        },
+        {
+          "name": "total_amount",
+          "type": "DECIMAL(12,2)"
+        },
+        {
+          "name": "ordered_at",
+          "type": "TIMESTAMP"
+        },
+        {
+          "name": "created_at",
+          "type": "TIMESTAMP"
+        },
+        {
+          "name": "updated_at",
+          "type": "TIMESTAMP",
+          "nullable": true
+        }
+      ]
+    },
+    {
+      "key": "order_items",
+      "label": "注文明細",
+      "columns": [
+        {
+          "name": "id",
+          "type": "BIGINT",
+          "pk": true
+        },
+        {
+          "name": "order_id",
+          "type": "BIGINT",
+          "fk": true
+        },
+        {
+          "name": "product_variant_id",
+          "type": "BIGINT",
+          "fk": true
+        },
+        {
+          "name": "quantity",
+          "type": "INT"
+        },
+        {
+          "name": "unit_price",
+          "type": "DECIMAL(10,2)"
+        }
+      ]
+    },
+    {
+      "key": "returns",
+      "label": "返品",
+      "columns": [
+        {
+          "name": "id",
+          "type": "BIGINT",
+          "pk": true
+        },
+        {
+          "name": "order_id",
+          "type": "BIGINT",
+          "fk": true
+        },
+        {
+          "name": "status",
+          "type": "VARCHAR(20)"
+        },
+        {
+          "name": "requested_at",
+          "type": "TIMESTAMP"
+        }
+      ]
+    },
+    {
+      "key": "return_items",
+      "label": "返品明細",
+      "columns": [
+        {
+          "name": "id",
+          "type": "BIGINT",
+          "pk": true
+        },
+        {
+          "name": "return_id",
+          "type": "BIGINT",
+          "fk": true
+        },
+        {
+          "name": "order_item_id",
+          "type": "BIGINT",
+          "fk": true
+        },
+        {
+          "name": "quantity",
+          "type": "INT"
+        }
+      ]
+    },
+    {
+      "key": "payment_methods",
+      "label": "支払い方法",
+      "columns": [
+        {
+          "name": "id",
+          "type": "BIGINT",
+          "pk": true
+        },
+        {
+          "name": "user_id",
+          "type": "BIGINT",
+          "fk": true
+        },
+        {
+          "name": "type",
+          "type": "VARCHAR(30)"
+        },
+        {
+          "name": "last4",
+          "type": "VARCHAR(4)",
+          "nullable": true
+        },
+        {
+          "name": "created_at",
+          "type": "TIMESTAMP"
+        },
+        {
+          "name": "updated_at",
+          "type": "TIMESTAMP",
+          "nullable": true
+        }
+      ]
+    },
+    {
+      "key": "payments",
+      "label": "支払い",
+      "columns": [
+        {
+          "name": "id",
+          "type": "BIGINT",
+          "pk": true
+        },
+        {
+          "name": "order_id",
+          "type": "BIGINT",
+          "fk": true
+        },
+        {
+          "name": "payment_method_id",
+          "type": "BIGINT",
+          "fk": true
+        },
+        {
+          "name": "amount",
+          "type": "DECIMAL(12,2)"
+        },
+        {
+          "name": "status",
+          "type": "VARCHAR(20)"
+        },
+        {
+          "name": "paid_at",
+          "type": "TIMESTAMP",
+          "nullable": true
+        }
+      ]
+    },
+    {
+      "key": "refunds",
+      "label": "返金",
+      "columns": [
+        {
+          "name": "id",
+          "type": "BIGINT",
+          "pk": true
+        },
+        {
+          "name": "payment_id",
+          "type": "BIGINT",
+          "fk": true
+        },
+        {
+          "name": "amount",
+          "type": "DECIMAL(12,2)"
+        },
+        {
+          "name": "reason",
+          "type": "VARCHAR(200)",
+          "nullable": true
+        },
+        {
+          "name": "refunded_at",
+          "type": "TIMESTAMP",
+          "nullable": true
+        }
+      ]
+    },
+    {
+      "key": "invoices",
+      "label": "請求書",
+      "columns": [
+        {
+          "name": "id",
+          "type": "BIGINT",
+          "pk": true
+        },
+        {
+          "name": "order_id",
+          "type": "BIGINT",
+          "fk": true
+        },
+        {
+          "name": "invoice_number",
+          "type": "VARCHAR(50)",
+          "unique": true
+        },
+        {
+          "name": "amount",
+          "type": "DECIMAL(12,2)"
+        },
+        {
+          "name": "issued_at",
+          "type": "TIMESTAMP"
+        }
+      ]
+    },
+    {
+      "key": "invoice_items",
+      "label": "請求明細",
+      "columns": [
+        {
+          "name": "id",
+          "type": "BIGINT",
+          "pk": true
+        },
+        {
+          "name": "invoice_id",
+          "type": "BIGINT",
+          "fk": true
+        },
+        {
+          "name": "description",
+          "type": "VARCHAR(200)"
+        },
+        {
+          "name": "amount",
+          "type": "DECIMAL(10,2)"
+        }
+      ]
+    },
+    {
+      "key": "tax_rates",
+      "label": "税率",
+      "columns": [
+        {
+          "name": "id",
+          "type": "BIGINT",
+          "pk": true
+        },
+        {
+          "name": "region",
+          "type": "VARCHAR(50)"
+        },
+        {
+          "name": "rate",
+          "type": "DECIMAL(5,4)"
+        }
+      ]
+    },
+    {
+      "key": "currencies",
+      "label": "通貨",
+      "columns": [
+        {
+          "name": "id",
+          "type": "BIGINT",
+          "pk": true
+        },
+        {
+          "name": "code",
+          "type": "VARCHAR(3)",
+          "unique": true
+        },
+        {
+          "name": "symbol",
+          "type": "VARCHAR(5)"
+        }
+      ]
+    },
+    {
+      "key": "exchange_rates",
+      "label": "為替レート",
+      "columns": [
+        {
+          "name": "id",
+          "type": "BIGINT",
+          "pk": true
+        },
+        {
+          "name": "currency_id",
+          "type": "BIGINT",
+          "fk": true
+        },
+        {
+          "name": "rate",
+          "type": "DECIMAL(10,6)"
+        },
+        {
+          "name": "effective_at",
+          "type": "TIMESTAMP"
+        }
+      ]
+    },
+    {
+      "key": "coupons",
+      "label": "クーポン",
+      "columns": [
+        {
+          "name": "id",
+          "type": "BIGINT",
+          "pk": true
+        },
+        {
+          "name": "code",
+          "type": "VARCHAR(30)",
+          "unique": true
+        },
+        {
+          "name": "discount_type",
+          "type": "VARCHAR(20)"
+        },
+        {
+          "name": "discount_value",
+          "type": "DECIMAL(10,2)"
+        },
+        {
+          "name": "expires_at",
+          "type": "TIMESTAMP",
+          "nullable": true
+        }
+      ]
+    },
+    {
+      "key": "discounts",
+      "label": "割引",
+      "columns": [
+        {
+          "name": "id",
+          "type": "BIGINT",
+          "pk": true
+        },
+        {
+          "name": "product_id",
+          "type": "BIGINT",
+          "fk": true
+        },
+        {
+          "name": "percent_off",
+          "type": "DECIMAL(5,2)"
+        },
+        {
+          "name": "starts_at",
+          "type": "TIMESTAMP"
+        },
+        {
+          "name": "ends_at",
+          "type": "TIMESTAMP",
+          "nullable": true
+        }
+      ]
+    },
+    {
+      "key": "gift_cards",
+      "label": "ギフトカード",
+      "columns": [
+        {
+          "name": "id",
+          "type": "BIGINT",
+          "pk": true
+        },
+        {
+          "name": "code",
+          "type": "VARCHAR(30)",
+          "unique": true
+        },
+        {
+          "name": "balance",
+          "type": "DECIMAL(10,2)"
+        }
+      ]
+    },
+    {
+      "key": "gift_card_transactions",
+      "label": "ギフトカード取引",
+      "columns": [
+        {
+          "name": "id",
+          "type": "BIGINT",
+          "pk": true
+        },
+        {
+          "name": "gift_card_id",
+          "type": "BIGINT",
+          "fk": true
+        },
+        {
+          "name": "order_id",
+          "type": "BIGINT",
+          "fk": true,
+          "nullable": true
+        },
+        {
+          "name": "amount",
+          "type": "DECIMAL(10,2)"
+        },
+        {
+          "name": "occurred_at",
+          "type": "TIMESTAMP"
+        }
+      ]
+    },
+    {
+      "key": "loyalty_points",
+      "label": "ポイント残高",
+      "columns": [
+        {
+          "name": "id",
+          "type": "BIGINT",
+          "pk": true
+        },
+        {
+          "name": "user_id",
+          "type": "BIGINT",
+          "fk": true,
+          "unique": true
+        },
+        {
+          "name": "balance",
+          "type": "INT"
+        }
+      ]
+    },
+    {
+      "key": "loyalty_transactions",
+      "label": "ポイント取引",
+      "columns": [
+        {
+          "name": "id",
+          "type": "BIGINT",
+          "pk": true
+        },
+        {
+          "name": "loyalty_points_id",
+          "type": "BIGINT",
+          "fk": true
+        },
+        {
+          "name": "order_id",
+          "type": "BIGINT",
+          "fk": true,
+          "nullable": true
+        },
+        {
+          "name": "delta",
+          "type": "INT"
+        },
+        {
+          "name": "occurred_at",
+          "type": "TIMESTAMP"
+        }
+      ]
+    },
+    {
+      "key": "subscription_plans",
+      "label": "契約プラン",
+      "columns": [
+        {
+          "name": "id",
+          "type": "BIGINT",
+          "pk": true
+        },
+        {
+          "name": "name",
+          "type": "VARCHAR(50)"
+        },
+        {
+          "name": "price",
+          "type": "DECIMAL(10,2)"
+        }
+      ]
+    },
+    {
+      "key": "subscriptions",
+      "label": "定期購入契約",
+      "columns": [
+        {
+          "name": "id",
+          "type": "BIGINT",
+          "pk": true
+        },
+        {
+          "name": "user_id",
+          "type": "BIGINT",
+          "fk": true
+        },
+        {
+          "name": "subscription_plan_id",
+          "type": "BIGINT",
+          "fk": true
+        },
+        {
+          "name": "status",
+          "type": "VARCHAR(20)"
+        },
+        {
+          "name": "started_at",
+          "type": "TIMESTAMP"
+        }
+      ]
+    },
+    {
+      "key": "campaigns",
+      "label": "キャンペーン",
+      "columns": [
+        {
+          "name": "id",
+          "type": "BIGINT",
+          "pk": true
+        },
+        {
+          "name": "name",
+          "type": "VARCHAR(100)"
+        },
+        {
+          "name": "starts_at",
+          "type": "TIMESTAMP"
+        },
+        {
+          "name": "ends_at",
+          "type": "TIMESTAMP",
+          "nullable": true
+        }
+      ]
+    },
+    {
+      "key": "campaign_products",
+      "label": "キャンペーン対象商品",
+      "columns": [
+        {
+          "name": "id",
+          "type": "BIGINT",
+          "pk": true
+        },
+        {
+          "name": "campaign_id",
+          "type": "BIGINT",
+          "fk": true
+        },
+        {
+          "name": "product_id",
+          "type": "BIGINT",
+          "fk": true
+        }
+      ]
+    },
+    {
+      "key": "banners",
+      "label": "バナー",
+      "columns": [
+        {
+          "name": "id",
+          "type": "BIGINT",
+          "pk": true
+        },
+        {
+          "name": "campaign_id",
+          "type": "BIGINT",
+          "fk": true,
+          "nullable": true
+        },
+        {
+          "name": "image_url",
+          "type": "VARCHAR(255)"
+        },
+        {
+          "name": "sort_order",
+          "type": "INT"
+        }
+      ]
+    },
+    {
+      "key": "reviews",
+      "label": "レビュー",
+      "columns": [
+        {
+          "name": "id",
+          "type": "BIGINT",
+          "pk": true
+        },
+        {
+          "name": "user_id",
+          "type": "BIGINT",
+          "fk": true
+        },
+        {
+          "name": "product_id",
+          "type": "BIGINT",
+          "fk": true
+        },
+        {
+          "name": "rating",
+          "type": "INT"
+        },
+        {
+          "name": "comment",
+          "type": "TEXT",
+          "nullable": true
+        },
+        {
+          "name": "created_at",
+          "type": "TIMESTAMP"
+        },
+        {
+          "name": "updated_at",
+          "type": "TIMESTAMP",
+          "nullable": true
+        }
+      ]
+    },
+    {
+      "key": "review_images",
+      "label": "レビュー画像",
+      "columns": [
+        {
+          "name": "id",
+          "type": "BIGINT",
+          "pk": true
+        },
+        {
+          "name": "review_id",
+          "type": "BIGINT",
+          "fk": true
+        },
+        {
+          "name": "url",
+          "type": "VARCHAR(255)"
+        }
+      ]
+    },
+    {
+      "key": "wishlists",
+      "label": "お気に入りリスト",
+      "columns": [
+        {
+          "name": "id",
+          "type": "BIGINT",
+          "pk": true
+        },
+        {
+          "name": "user_id",
+          "type": "BIGINT",
+          "fk": true
+        }
+      ]
+    },
+    {
+      "key": "wishlist_items",
+      "label": "お気に入り明細",
+      "columns": [
+        {
+          "name": "id",
+          "type": "BIGINT",
+          "pk": true
+        },
+        {
+          "name": "wishlist_id",
+          "type": "BIGINT",
+          "fk": true
+        },
+        {
+          "name": "product_id",
+          "type": "BIGINT",
+          "fk": true
+        }
+      ]
+    },
+    {
+      "key": "support_tickets",
+      "label": "サポートチケット",
+      "columns": [
+        {
+          "name": "id",
+          "type": "BIGINT",
+          "pk": true
+        },
+        {
+          "name": "user_id",
+          "type": "BIGINT",
+          "fk": true
+        },
+        {
+          "name": "subject",
+          "type": "VARCHAR(200)"
+        },
+        {
+          "name": "status",
+          "type": "VARCHAR(20)"
+        },
+        {
+          "name": "created_at",
+          "type": "TIMESTAMP"
+        },
+        {
+          "name": "updated_at",
+          "type": "TIMESTAMP",
+          "nullable": true
+        }
+      ]
+    },
+    {
+      "key": "support_ticket_messages",
+      "label": "サポートチケットメッセージ",
+      "columns": [
+        {
+          "name": "id",
+          "type": "BIGINT",
+          "pk": true
+        },
+        {
+          "name": "support_ticket_id",
+          "type": "BIGINT",
+          "fk": true
+        },
+        {
+          "name": "body",
+          "type": "TEXT"
+        },
+        {
+          "name": "sent_at",
+          "type": "TIMESTAMP"
+        }
+      ]
+    },
+    {
+      "key": "faqs",
+      "label": "よくある質問",
+      "columns": [
+        {
+          "name": "id",
+          "type": "BIGINT",
+          "pk": true
+        },
+        {
+          "name": "question",
+          "type": "VARCHAR(200)"
+        },
+        {
+          "name": "answer",
+          "type": "TEXT"
+        }
+      ]
+    },
+    {
+      "key": "notifications",
+      "label": "通知",
+      "columns": [
+        {
+          "name": "id",
+          "type": "BIGINT",
+          "pk": true
+        },
+        {
+          "name": "user_id",
+          "type": "BIGINT",
+          "fk": true
+        },
+        {
+          "name": "body",
+          "type": "VARCHAR(255)"
+        },
+        {
+          "name": "read_at",
+          "type": "TIMESTAMP",
+          "nullable": true
+        },
+        {
+          "name": "created_at",
+          "type": "TIMESTAMP"
+        },
+        {
+          "name": "updated_at",
+          "type": "TIMESTAMP",
+          "nullable": true
+        }
+      ]
+    },
+    {
+      "key": "webhooks",
+      "label": "Webhook登録",
+      "columns": [
+        {
+          "name": "id",
+          "type": "BIGINT",
+          "pk": true
+        },
+        {
+          "name": "url",
+          "type": "VARCHAR(255)"
+        },
+        {
+          "name": "event_type",
+          "type": "VARCHAR(50)"
+        }
+      ]
+    },
+    {
+      "key": "webhook_events",
+      "label": "Webhookイベント履歴",
+      "columns": [
+        {
+          "name": "id",
+          "type": "BIGINT",
+          "pk": true
+        },
+        {
+          "name": "webhook_id",
+          "type": "BIGINT",
+          "fk": true
+        },
+        {
+          "name": "payload",
+          "type": "TEXT"
+        },
+        {
+          "name": "delivered_at",
+          "type": "TIMESTAMP",
+          "nullable": true
+        }
+      ]
+    },
+    {
+      "key": "audit_logs",
+      "label": "監査ログ",
+      "columns": [
+        {
+          "name": "id",
+          "type": "BIGINT",
+          "pk": true
+        },
+        {
+          "name": "user_id",
+          "type": "BIGINT",
+          "fk": true,
+          "nullable": true
+        },
+        {
+          "name": "action",
+          "type": "VARCHAR(100)"
+        },
+        {
+          "name": "occurred_at",
+          "type": "TIMESTAMP"
+        }
+      ]
+    },
+    {
+      "key": "settings",
+      "label": "設定",
+      "columns": [
+        {
+          "name": "id",
+          "type": "BIGINT",
+          "pk": true
+        },
+        {
+          "name": "key",
+          "type": "VARCHAR(100)",
+          "unique": true
+        },
+        {
+          "name": "value",
+          "type": "TEXT",
+          "nullable": true
+        }
+      ]
+    },
+    {
+      "key": "locales",
+      "label": "ロケール",
+      "columns": [
+        {
+          "name": "id",
+          "type": "BIGINT",
+          "pk": true
+        },
+        {
+          "name": "code",
+          "type": "VARCHAR(10)",
+          "unique": true
+        }
+      ]
+    },
+    {
+      "key": "translations",
+      "label": "翻訳",
+      "columns": [
+        {
+          "name": "id",
+          "type": "BIGINT",
+          "pk": true
+        },
+        {
+          "name": "locale_id",
+          "type": "BIGINT",
+          "fk": true
+        },
+        {
+          "name": "key",
+          "type": "VARCHAR(100)"
+        },
+        {
+          "name": "value",
+          "type": "TEXT"
+        }
+      ]
+    },
+    {
+      "key": "system_flags",
+      "label": "システムフラグ",
+      "columns": [
+        {
+          "name": "id",
+          "type": "BIGINT",
+          "pk": true
+        },
+        {
+          "name": "name",
+          "type": "VARCHAR(100)",
+          "unique": true
+        },
+        {
+          "name": "enabled",
+          "type": "BOOLEAN"
+        }
+      ]
+    },
+    {
+      "key": "maintenance_windows",
+      "label": "メンテナンス予定",
+      "columns": [
+        {
+          "name": "id",
+          "type": "BIGINT",
+          "pk": true
+        },
+        {
+          "name": "starts_at",
+          "type": "TIMESTAMP"
+        },
+        {
+          "name": "ends_at",
+          "type": "TIMESTAMP"
+        }
+      ]
+    }
   ],
   "relations": [
-    {"from": "users", "to": "sessions", "cardinality": "1:N", "sourceRef": "migrations/002_sessions.sql"},
-    {"from": "users", "to": "profiles", "cardinality": "1:1", "sourceRef": "migrations/003_profiles.sql"},
-    {"from": "roles", "to": "users", "cardinality": "1:N", "sourceRef": "migrations/004_roles.sql"},
-    {"from": "roles", "to": "permissions", "cardinality": "1:N", "sourceRef": "migrations/005_permissions.sql"},
-    {"from": "users", "to": "orders", "cardinality": "1:N", "sourceRef": "migrations/010_orders.sql"},
-    {"from": "orders", "to": "order_items", "cardinality": "1:N", "sourceRef": "migrations/011_items.sql"},
-    {"from": "orders", "to": "shipping_addresses", "cardinality": "1:N", "sourceRef": "migrations/012_shipping.sql"},
-    {"from": "orders", "to": "order_history", "cardinality": "1:N", "sourceRef": "migrations/013_history.sql"},
-    {"from": "coupons", "to": "orders", "cardinality": "1:N", "sourceRef": "migrations/014_coupons.sql"},
-    {"from": "categories", "to": "products", "cardinality": "1:N", "sourceRef": "migrations/020_products.sql"},
-    {"from": "products", "to": "product_images", "cardinality": "1:N", "sourceRef": "migrations/021_images.sql"},
-    {"from": "products", "to": "product_tags", "cardinality": "1:N", "sourceRef": "migrations/022_tags.sql"},
-    {"from": "tags", "to": "product_tags", "cardinality": "1:N", "sourceRef": "migrations/022_tags.sql"},
-    {"from": "products", "to": "order_items", "cardinality": "1:N", "sourceRef": "migrations/011_items.sql"},
-    {"from": "orders", "to": "invoices", "cardinality": "1:N", "sourceRef": "migrations/030_invoices.sql"},
-    {"from": "invoices", "to": "payments", "cardinality": "1:N", "sourceRef": "migrations/031_payments.sql"},
-    {"from": "plans", "to": "subscriptions", "cardinality": "1:N", "sourceRef": "migrations/032_subs.sql"},
-    {"from": "users", "to": "subscriptions", "cardinality": "1:N", "sourceRef": "migrations/032_subs.sql"},
-    {"from": "users", "to": "reviews", "cardinality": "1:N", "sourceRef": "migrations/040_reviews.sql"},
-    {"from": "products", "to": "reviews", "cardinality": "1:N", "sourceRef": "migrations/040_reviews.sql"},
-    {"from": "reviews", "to": "review_images", "cardinality": "1:N", "sourceRef": "migrations/041_images.sql"},
-    {"from": "users", "to": "notifications", "cardinality": "1:N", "sourceRef": "migrations/050_notif.sql"},
-    {"from": "users", "to": "favorites", "cardinality": "1:N", "sourceRef": "migrations/051_favs.sql"}
+    {
+      "from": "roles",
+      "to": "users",
+      "cardinality": "1:N",
+      "sourceRef": "migrations/004_roles.sql:12"
+    },
+    {
+      "from": "roles",
+      "to": "role_permissions",
+      "cardinality": "1:N",
+      "sourceRef": "migrations/005_role_perms.sql:8"
+    },
+    {
+      "from": "permissions",
+      "to": "role_permissions",
+      "cardinality": "1:N",
+      "sourceRef": "migrations/005_role_perms.sql:14"
+    },
+    {
+      "from": "users",
+      "to": "user_sessions",
+      "cardinality": "1:N",
+      "sourceRef": "migrations/006_sessions.sql:9"
+    },
+    {
+      "from": "users",
+      "to": "password_resets",
+      "cardinality": "1:N",
+      "sourceRef": "migrations/007_resets.sql:9"
+    },
+    {
+      "from": "users",
+      "to": "email_verifications",
+      "cardinality": "1:N",
+      "sourceRef": "migrations/008_verify.sql:9"
+    },
+    {
+      "from": "users",
+      "to": "api_keys",
+      "cardinality": "1:N",
+      "sourceRef": "migrations/009_apikeys.sql:9"
+    },
+    {
+      "from": "users",
+      "to": "shipping_addresses",
+      "cardinality": "1:N",
+      "sourceRef": "migrations/010_shipping.sql:9"
+    },
+    {
+      "from": "users",
+      "to": "billing_addresses",
+      "cardinality": "1:N",
+      "sourceRef": "migrations/011_billing.sql:9"
+    },
+    {
+      "from": "orders",
+      "to": "tracking_events",
+      "cardinality": "1:N",
+      "sourceRef": "migrations/012_tracking.sql:14"
+    },
+    {
+      "from": "carriers",
+      "to": "tracking_events",
+      "cardinality": "1:N",
+      "sourceRef": "migrations/012_tracking.sql:16"
+    },
+    {
+      "from": "categories",
+      "to": "categories",
+      "cardinality": "1:N",
+      "sourceRef": "migrations/020_categories.sql:10"
+    },
+    {
+      "from": "categories",
+      "to": "products",
+      "cardinality": "1:N",
+      "sourceRef": "migrations/021_products.sql:12"
+    },
+    {
+      "from": "brands",
+      "to": "products",
+      "cardinality": "1:N",
+      "sourceRef": "migrations/021_products.sql:14"
+    },
+    {
+      "from": "suppliers",
+      "to": "products",
+      "cardinality": "1:N",
+      "sourceRef": "migrations/021_products.sql:16"
+    },
+    {
+      "from": "products",
+      "to": "product_categories",
+      "cardinality": "1:N",
+      "sourceRef": "migrations/022_prod_cat.sql:8"
+    },
+    {
+      "from": "categories",
+      "to": "product_categories",
+      "cardinality": "1:N",
+      "sourceRef": "migrations/022_prod_cat.sql:10"
+    },
+    {
+      "from": "products",
+      "to": "product_images",
+      "cardinality": "1:N",
+      "sourceRef": "migrations/023_images.sql:8"
+    },
+    {
+      "from": "products",
+      "to": "product_variants",
+      "cardinality": "1:N",
+      "sourceRef": "migrations/024_variants.sql:9"
+    },
+    {
+      "from": "product_variants",
+      "to": "inventory",
+      "cardinality": "1:N",
+      "sourceRef": "migrations/025_inventory.sql:9"
+    },
+    {
+      "from": "warehouses",
+      "to": "inventory",
+      "cardinality": "1:N",
+      "sourceRef": "migrations/025_inventory.sql:11"
+    },
+    {
+      "from": "inventory",
+      "to": "stock_movements",
+      "cardinality": "1:N",
+      "sourceRef": "migrations/026_stock_move.sql:9"
+    },
+    {
+      "from": "users",
+      "to": "carts",
+      "cardinality": "1:N",
+      "sourceRef": "migrations/030_carts.sql:9"
+    },
+    {
+      "from": "carts",
+      "to": "cart_items",
+      "cardinality": "1:N",
+      "sourceRef": "migrations/031_cart_items.sql:8"
+    },
+    {
+      "from": "product_variants",
+      "to": "cart_items",
+      "cardinality": "1:N",
+      "sourceRef": "migrations/031_cart_items.sql:10"
+    },
+    {
+      "from": "users",
+      "to": "orders",
+      "cardinality": "1:N",
+      "sourceRef": "migrations/032_orders.sql:9"
+    },
+    {
+      "from": "shipping_addresses",
+      "to": "orders",
+      "cardinality": "1:N",
+      "sourceRef": "migrations/032_orders.sql:11"
+    },
+    {
+      "from": "shipping_methods",
+      "to": "orders",
+      "cardinality": "1:N",
+      "sourceRef": "migrations/032_orders.sql:13"
+    },
+    {
+      "from": "coupons",
+      "to": "orders",
+      "cardinality": "1:N",
+      "sourceRef": "migrations/033_coupons.sql:9"
+    },
+    {
+      "from": "orders",
+      "to": "order_items",
+      "cardinality": "1:N",
+      "sourceRef": "migrations/034_order_items.sql:8"
+    },
+    {
+      "from": "product_variants",
+      "to": "order_items",
+      "cardinality": "1:N",
+      "sourceRef": "migrations/034_order_items.sql:10"
+    },
+    {
+      "from": "orders",
+      "to": "returns",
+      "cardinality": "1:N",
+      "sourceRef": "migrations/035_returns.sql:9"
+    },
+    {
+      "from": "returns",
+      "to": "return_items",
+      "cardinality": "1:N",
+      "sourceRef": "migrations/036_return_items.sql:8"
+    },
+    {
+      "from": "order_items",
+      "to": "return_items",
+      "cardinality": "1:N",
+      "sourceRef": "migrations/036_return_items.sql:10"
+    },
+    {
+      "from": "users",
+      "to": "payment_methods",
+      "cardinality": "1:N",
+      "sourceRef": "migrations/040_pay_methods.sql:9"
+    },
+    {
+      "from": "orders",
+      "to": "payments",
+      "cardinality": "1:N",
+      "sourceRef": "migrations/041_payments.sql:9"
+    },
+    {
+      "from": "payment_methods",
+      "to": "payments",
+      "cardinality": "1:N",
+      "sourceRef": "migrations/041_payments.sql:11"
+    },
+    {
+      "from": "payments",
+      "to": "refunds",
+      "cardinality": "1:N",
+      "sourceRef": "migrations/042_refunds.sql:8"
+    },
+    {
+      "from": "orders",
+      "to": "invoices",
+      "cardinality": "1:N",
+      "sourceRef": "migrations/043_invoices.sql:9"
+    },
+    {
+      "from": "invoices",
+      "to": "invoice_items",
+      "cardinality": "1:N",
+      "sourceRef": "migrations/044_invoice_items.sql:8"
+    },
+    {
+      "from": "currencies",
+      "to": "exchange_rates",
+      "cardinality": "1:N",
+      "sourceRef": "migrations/045_exrates.sql:9"
+    },
+    {
+      "from": "products",
+      "to": "discounts",
+      "cardinality": "1:N",
+      "sourceRef": "migrations/050_discounts.sql:9"
+    },
+    {
+      "from": "gift_cards",
+      "to": "gift_card_transactions",
+      "cardinality": "1:N",
+      "sourceRef": "migrations/051_giftcards.sql:9"
+    },
+    {
+      "from": "orders",
+      "to": "gift_card_transactions",
+      "cardinality": "1:N",
+      "sourceRef": "migrations/051_giftcards.sql:11"
+    },
+    {
+      "from": "users",
+      "to": "loyalty_points",
+      "cardinality": "1:1",
+      "sourceRef": "migrations/052_loyalty.sql:9"
+    },
+    {
+      "from": "loyalty_points",
+      "to": "loyalty_transactions",
+      "cardinality": "1:N",
+      "sourceRef": "migrations/053_loyalty_tx.sql:8"
+    },
+    {
+      "from": "orders",
+      "to": "loyalty_transactions",
+      "cardinality": "1:N",
+      "sourceRef": "migrations/053_loyalty_tx.sql:10"
+    },
+    {
+      "from": "subscription_plans",
+      "to": "subscriptions",
+      "cardinality": "1:N",
+      "sourceRef": "migrations/054_subs.sql:9"
+    },
+    {
+      "from": "users",
+      "to": "subscriptions",
+      "cardinality": "1:N",
+      "sourceRef": "migrations/054_subs.sql:11"
+    },
+    {
+      "from": "campaigns",
+      "to": "campaign_products",
+      "cardinality": "1:N",
+      "sourceRef": "migrations/055_campaigns.sql:9"
+    },
+    {
+      "from": "products",
+      "to": "campaign_products",
+      "cardinality": "1:N",
+      "sourceRef": "migrations/055_campaigns.sql:11"
+    },
+    {
+      "from": "campaigns",
+      "to": "banners",
+      "cardinality": "1:N",
+      "sourceRef": "migrations/056_banners.sql:9"
+    },
+    {
+      "from": "users",
+      "to": "reviews",
+      "cardinality": "1:N",
+      "sourceRef": "migrations/060_reviews.sql:9"
+    },
+    {
+      "from": "products",
+      "to": "reviews",
+      "cardinality": "1:N",
+      "sourceRef": "migrations/060_reviews.sql:11"
+    },
+    {
+      "from": "reviews",
+      "to": "review_images",
+      "cardinality": "1:N",
+      "sourceRef": "migrations/061_review_images.sql:8"
+    },
+    {
+      "from": "users",
+      "to": "wishlists",
+      "cardinality": "1:N",
+      "sourceRef": "migrations/062_wishlists.sql:9"
+    },
+    {
+      "from": "wishlists",
+      "to": "wishlist_items",
+      "cardinality": "1:N",
+      "sourceRef": "migrations/063_wishlist_items.sql:8"
+    },
+    {
+      "from": "products",
+      "to": "wishlist_items",
+      "cardinality": "1:N",
+      "sourceRef": "migrations/063_wishlist_items.sql:10"
+    },
+    {
+      "from": "users",
+      "to": "support_tickets",
+      "cardinality": "1:N",
+      "sourceRef": "migrations/070_tickets.sql:9"
+    },
+    {
+      "from": "support_tickets",
+      "to": "support_ticket_messages",
+      "cardinality": "1:N",
+      "sourceRef": "migrations/071_ticket_msgs.sql:8"
+    },
+    {
+      "from": "users",
+      "to": "notifications",
+      "cardinality": "1:N",
+      "sourceRef": "migrations/080_notifications.sql:9"
+    },
+    {
+      "from": "webhooks",
+      "to": "webhook_events",
+      "cardinality": "1:N",
+      "sourceRef": "migrations/081_webhooks.sql:9"
+    },
+    {
+      "from": "users",
+      "to": "audit_logs",
+      "cardinality": "1:N",
+      "sourceRef": "migrations/082_audit.sql:9"
+    },
+    {
+      "from": "locales",
+      "to": "translations",
+      "cardinality": "1:N",
+      "sourceRef": "migrations/083_translations.sql:9"
+    }
   ],
-  "unresolved": []
+  "unresolved": [
+    {
+      "label": "legacy_carts(旧カート実装)",
+      "reason": "移行前の旧テーブルでスキーマ定義が失われている",
+      "sourceRef": "migrations/legacy/000_carts_v1.sql"
+    }
+  ]
 }
 </script>
 
@@ -976,7 +3062,7 @@ table.data-table code {
         } },
       { label: '全体に戻る', onClick: function() { state.mode = 'clusters'; render(); } },
       { label: 'テーブル詳細で見る', onClick: function() {
-          state.tdSelectedKey = selKey;
+          state.tdSelectedKeys = [selKey];
           switchTab('tableDetail');
         } }
     ]);
@@ -1166,6 +3252,37 @@ table.data-table code {
     var tableSection = document.getElementById('detail-table-section');
     tableSection.style.display = '';
     tableSection.innerHTML = '';
+
+    tableSection.appendChild(el('div', { class: 'sec-label' }, selEntity.label + ' のカラム'));
+    var colWrap = el('div', { class: 'table-wrap' });
+    var colTbl = el('table', { class: 'data-table' });
+    var colThead = el('thead');
+    colThead.appendChild(el('tr', null, [
+      el('th', null, 'カラム名'), el('th', null, '型'), el('th', null, '制約')
+    ]));
+    colTbl.appendChild(colThead);
+    var colTbody = el('tbody');
+    var selCols = selEntity.columns || [];
+    if (selCols.length === 0) {
+      colTbody.appendChild(el('tr', null, el('td', { colspan: '3' }, 'カラム情報なし')));
+    } else {
+      selCols.forEach(function(c) {
+        var badges = el('span', { class: 'td-col-badges' });
+        if (c.pk) badges.appendChild(el('span', { class: 'td-badge td-badge-pk' }, 'PK'));
+        if (c.fk) badges.appendChild(el('span', { class: 'td-badge td-badge-fk' }, 'FK'));
+        if (c.unique) badges.appendChild(el('span', { class: 'td-badge td-badge-uq' }, 'UQ'));
+        if (c.nullable) badges.appendChild(el('span', { class: 'td-badge td-badge-null' }, 'NULL'));
+        colTbody.appendChild(el('tr', null, [
+          el('td', null, el('code', null, c.name)),
+          el('td', null, c.type || ''),
+          el('td', null, badges)
+        ]));
+      });
+    }
+    colTbl.appendChild(colTbody);
+    colWrap.appendChild(colTbl);
+    tableSection.appendChild(colWrap);
+
     tableSection.appendChild(el('div', { class: 'sec-label' }, selEntity.label + ' のリレーション'));
     var tableWrap = el('div', { class: 'table-wrap' });
     var tbl = el('table', { class: 'data-table' });
@@ -1217,7 +3334,7 @@ table.data-table code {
 
   // --- テーブル詳細タブ ---
   state.tab = 'relation';
-  state.tdSelectedKey = null;
+  state.tdSelectedKeys = [];
   state.tdSearchTerm = '';
 
   function switchTab(tabId) {
@@ -1238,37 +3355,21 @@ table.data-table code {
     })(tabButtons[ti]);
   }
 
-  function renderTableDetail() {
-    var tdCanvas = document.getElementById('td-canvas');
-    tdCanvas.innerHTML = '';
+  // カード高さ計算(選択中カード・関連カード共通)
+  function cardHeight(e, maxCols) {
+    var cols = (e.columns || []);
+    var shown = maxCols ? Math.min(cols.length, maxCols) : cols.length;
+    var hasMore = maxCols && cols.length > maxCols;
+    return 48 + shown * 24 + (hasMore ? 24 : 0) + (cols.length === 0 ? 0 : 4);
+  }
 
-    // サイドバー描画
-    var sidebarList = document.getElementById('td-sidebar-list');
-    sidebarList.innerHTML = '';
-    var sortedEntities = entities.slice().sort(function(a, b) {
-      return a.label < b.label ? -1 : a.label > b.label ? 1 : 0;
-    });
-    var term = normalize(state.tdSearchTerm);
-    sortedEntities.forEach(function(e) {
-      if (term && normalize(e.key).indexOf(term) === -1 && normalize(e.label).indexOf(term) === -1) return;
-      var item = el('div', { class: 'td-sidebar-item' + (state.tdSelectedKey === e.key ? ' is-active' : '') });
-      item.appendChild(el('div', { class: 'td-si-label' }, e.label));
-      item.appendChild(el('div', { class: 'td-si-key' }, e.key));
-      item.addEventListener('click', function() {
-        state.tdSelectedKey = e.key;
-        renderTableDetail();
-      });
-      sidebarList.appendChild(item);
-    });
+  // DOM id・SVGマーカーidに使える形へキーを変換する
+  function sanitizeId(k) { return String(k).replace(/[^a-zA-Z0-9_-]/g, '_'); }
 
-    if (!state.tdSelectedKey) {
-      tdCanvas.appendChild(el('div', { style: 'padding:40px;color:var(--text-muted);font-size:13px;text-align:center;' }, 'サイドバーからテーブルを選択'));
-      return;
-    }
-
-    var selKey = state.tdSelectedKey;
+  // 選択中テーブル1件分の詳細ブロックを描画し、そのブロックの高さを返す
+  function renderTableDetailBlock(selKey, tdCanvas, CANVAS_W, yOffset) {
     var selEntity = entitiesByKey[selKey];
-    if (!selEntity) return;
+    if (!selEntity) return 0;
     var selClusterId = clusterByKey[selKey] || 'isolated';
 
     // 関連テーブル収集
@@ -1297,20 +3398,11 @@ table.data-table code {
       otherByCluster[cid].push(k);
     });
 
-    // カード高さ計算
-    function cardHeight(e, maxCols) {
-      var cols = (e.columns || []);
-      var shown = maxCols ? Math.min(cols.length, maxCols) : cols.length;
-      var hasMore = maxCols && cols.length > maxCols;
-      return 48 + shown * 24 + (hasMore ? 24 : 0) + (cols.length === 0 ? 0 : 4);
-    }
-
     var CARD_W = 220;
     var GAP_X = 250, GAP_Y = 50;
     var selH = cardHeight(selEntity);
-    var CANVAS_W = 1140;
 
-    // ★中央位置
+    // ★中央位置(ブロック内ローカル座標。yOffsetはラッパーdivのtransformで加算する)
     var centerX = CANVAS_W / 2, centerY = 0; // centerY は後で算出
 
     // 同クラスタ上部
@@ -1364,18 +3456,23 @@ table.data-table code {
       });
     });
 
-    // キャンバスサイズ算出
+    // ブロック高さ算出
     var allPositions = Object.keys(positions).map(function(k) { return positions[k]; });
     var maxY = 0;
     allPositions.forEach(function(p) { if (p.y + p.h > maxY) maxY = p.y + p.h; });
-    var CANVAS_H = Math.max(600, maxY + 80);
-    tdCanvas.style.width = CANVAS_W + 'px';
-    tdCanvas.style.height = CANVAS_H + 'px';
+    var blockH = Math.max(600, maxY + 80);
 
-    // SVG 線描画
-    var svg = svgEl('svg', { width: CANVAS_W, height: CANVAS_H, style: 'position:absolute;left:0;top:0;pointer-events:none;overflow:visible;' });
+    var wrap = el('div', {
+      class: 'td-block',
+      style: 'position:absolute;left:0;top:' + yOffset + 'px;width:' + CANVAS_W + 'px;height:' + blockH + 'px;'
+    });
+    wrap.appendChild(el('div', { class: 'sec-label', style: 'margin:0 0 8px 4px;' }, selEntity.label + ' の詳細'));
+
+    // SVG 線描画(markerのidはブロックごとに一意化)
+    var markerId = 'arrowhead-td-' + sanitizeId(selKey);
+    var svg = svgEl('svg', { width: CANVAS_W, height: blockH, style: 'position:absolute;left:0;top:0;pointer-events:none;overflow:visible;' });
     var defs = svgEl('defs');
-    var marker = svgEl('marker', { id: 'arrowhead-td', viewBox: '0 0 10 10', refX: '9', refY: '5', markerWidth: '6', markerHeight: '6', orient: 'auto-start-reverse' });
+    var marker = svgEl('marker', { id: markerId, viewBox: '0 0 10 10', refX: '9', refY: '5', markerWidth: '6', markerHeight: '6', orient: 'auto-start-reverse' });
     marker.appendChild(svgEl('path', { d: 'M 0 0 L 10 5 L 0 10 z', fill: 'var(--text-muted)' }));
     defs.appendChild(marker);
     svg.appendChild(defs);
@@ -1387,7 +3484,7 @@ table.data-table code {
       var line = svgEl('line', {
         x1: sp.x, y1: sp.y + sp.h / 2, x2: p.x, y2: p.y + p.h / 2,
         class: 'pipe-line ' + (rl.sameCluster ? 'same-cluster' : 'cross-cluster'),
-        'marker-end': 'url(#arrowhead-td)',
+        'marker-end': 'url(#' + markerId + ')',
         style: 'pointer-events:stroke;'
       });
       var titleEl = svgEl('title');
@@ -1401,10 +3498,10 @@ table.data-table code {
         svg.appendChild(t);
       }
     });
-    tdCanvas.appendChild(svg);
+    wrap.appendChild(svg);
 
     // クラスタ点線囲い
-    function drawGroupBox(keys, label, canvas) {
+    function drawGroupBox(keys, label) {
       if (keys.length === 0) return;
       var xs = keys.map(function(k) { return positions[k].x; });
       var ys = keys.map(function(k) { return positions[k].y; });
@@ -1414,25 +3511,25 @@ table.data-table code {
       var minY = Math.min.apply(null, ys) - 30;
       var maxH = 0;
       keys.forEach(function(k, i) { if (ys[i] + hs[i] > maxH) maxH = ys[i] + hs[i]; });
-      var maxY = maxH + 10;
+      var maxYb = maxH + 10;
       var box = el('div', {
         class: 'group-box',
-        style: 'transform:translate(' + minX + 'px,' + minY + 'px);width:' + (maxX - minX) + 'px;height:' + (maxY - minY) + 'px;'
+        style: 'transform:translate(' + minX + 'px,' + minY + 'px);width:' + (maxX - minX) + 'px;height:' + (maxYb - minY) + 'px;'
       });
       box.appendChild(el('span', { class: 'gb-label' }, label));
-      canvas.appendChild(box);
+      wrap.appendChild(box);
     }
 
     if (relatedSame.length > 0) {
       var sameLabel = selClusterId === 'isolated' ? '孤立テーブル' : clusterLabel(selClusterId);
-      drawGroupBox(relatedSame, sameLabel, tdCanvas);
+      drawGroupBox(relatedSame, sameLabel);
     }
     otherClusterIds.forEach(function(cid) {
       var label = cid === 'isolated' ? '孤立テーブル' : clusterLabel(cid);
-      drawGroupBox(otherByCluster[cid], label, tdCanvas);
+      drawGroupBox(otherByCluster[cid], label);
     });
 
-    // カード描画関数
+    // カード描画関数(クリックで選択集合に追加。ブロック自身の選択解除はサイドバーから行う)
     function buildCard(e, isSelected, maxCols) {
       var cls = 'td-card ' + (isSelected ? 'td-card-selected' : 'td-card-related');
       var p = positions[e.key];
@@ -1449,8 +3546,8 @@ table.data-table code {
       var shown = maxCols ? cols.slice(0, maxCols) : cols;
       shown.forEach(function(c) {
         var row = el('div', { class: 'td-col-row' });
-        row.appendChild(el('span', { class: 'td-col-name' }, c.name));
-        row.appendChild(el('span', { class: 'td-col-type' }, c.type));
+        row.appendChild(el('span', { class: 'td-col-name', title: c.name }, c.name));
+        row.appendChild(el('span', { class: 'td-col-type', title: c.type || '' }, c.type));
         var badges = el('span', { class: 'td-col-badges' });
         if (c.pk) badges.appendChild(el('span', { class: 'td-badge td-badge-pk' }, 'PK'));
         if (c.fk) badges.appendChild(el('span', { class: 'td-badge td-badge-fk' }, 'FK'));
@@ -1464,7 +3561,7 @@ table.data-table code {
       }
       if (!isSelected) {
         card.addEventListener('click', function() {
-          state.tdSelectedKey = e.key;
+          if (state.tdSelectedKeys.indexOf(e.key) === -1) state.tdSelectedKeys.push(e.key);
           renderTableDetail();
         });
       }
@@ -1472,12 +3569,60 @@ table.data-table code {
     }
 
     // ★カード
-    tdCanvas.appendChild(buildCard(selEntity, true, null));
+    wrap.appendChild(buildCard(selEntity, true, null));
 
     // 関連カード
     relatedSame.concat(relatedOther).forEach(function(k) {
-      tdCanvas.appendChild(buildCard(entitiesByKey[k], false, 5));
+      wrap.appendChild(buildCard(entitiesByKey[k], false, 5));
     });
+
+    tdCanvas.appendChild(wrap);
+    return blockH;
+  }
+
+  // 選択中の全テーブルを縦に並べて描画する(複数選択対応)
+  function renderTableDetail() {
+    var tdCanvas = document.getElementById('td-canvas');
+    tdCanvas.innerHTML = '';
+
+    // サイドバー描画
+    var sidebarList = document.getElementById('td-sidebar-list');
+    sidebarList.innerHTML = '';
+    var sortedEntities = entities.slice().sort(function(a, b) {
+      return a.label < b.label ? -1 : a.label > b.label ? 1 : 0;
+    });
+    var term = normalize(state.tdSearchTerm);
+    sortedEntities.forEach(function(e) {
+      if (term && normalize(e.key).indexOf(term) === -1 && normalize(e.label).indexOf(term) === -1) return;
+      var isActive = state.tdSelectedKeys.indexOf(e.key) !== -1;
+      var item = el('div', { class: 'td-sidebar-item' + (isActive ? ' is-active' : '') });
+      item.appendChild(el('div', { class: 'td-si-label' }, e.label));
+      item.appendChild(el('div', { class: 'td-si-key' }, e.key));
+      item.addEventListener('click', function() {
+        var idx = state.tdSelectedKeys.indexOf(e.key);
+        if (idx === -1) state.tdSelectedKeys.push(e.key);
+        else state.tdSelectedKeys.splice(idx, 1);
+        renderTableDetail();
+      });
+      sidebarList.appendChild(item);
+    });
+
+    if (state.tdSelectedKeys.length === 0) {
+      tdCanvas.style.width = '';
+      tdCanvas.style.height = '';
+      tdCanvas.appendChild(el('div', { style: 'padding:40px;color:var(--text-muted);font-size:13px;text-align:center;' }, 'サイドバーからテーブルを選択（複数選択可）'));
+      return;
+    }
+
+    var CANVAS_W = 1140;
+    var BLOCK_GAP = 40;
+    var yCursor = 0;
+    state.tdSelectedKeys.forEach(function(selKey) {
+      var h = renderTableDetailBlock(selKey, tdCanvas, CANVAS_W, yCursor);
+      yCursor += h + BLOCK_GAP;
+    });
+    tdCanvas.style.width = CANVAS_W + 'px';
+    tdCanvas.style.height = Math.max(600, yCursor) + 'px';
   }
 
   // テーブル詳細タブの検索
@@ -1487,6 +3632,19 @@ table.data-table code {
       state.tdSearchTerm = tdSearchInput.value;
       renderTableDetail();
     });
+  }
+
+  // --- 未解決節(unresolved[]) ---
+  var unresolvedMount = document.getElementById('unresolved-mount');
+  var unresolved = data.unresolved || [];
+  if (unresolved.length > 0) {
+    unresolvedMount.appendChild(el('div', { class: 'sec-label' }, '未解決'));
+    var box = el('div', { class: 'note-box' });
+    unresolved.forEach(function(u) {
+      var line = (u.label || '') + '（' + (u.reason || '') + '）';
+      box.appendChild(el('div', null, line));
+    });
+    unresolvedMount.appendChild(box);
   }
 
   var themeBtn = document.getElementById('theme-toggle');

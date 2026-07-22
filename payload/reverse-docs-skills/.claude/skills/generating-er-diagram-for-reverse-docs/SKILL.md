@@ -54,6 +54,7 @@ allowed-tools: [Bash, Read, Write, Grep, Glob, AskUserQuestion, TaskCreate, Task
 ### Phase 2: 抽出
 
 - **Step 1** — テーブル一覧 manifest の `units[]` から `entities[]` を組み立てる。`kind != "unresolved"` の各 unit について `identifier` を `key`、`unitNameGuess` または `identifier` を `label` とする。完了条件: `entities[]` が確定済み
+- **Step 1b（columns の収集）** — 各 `entities[]` 要素へ `columns`（`page-data-schema.md` 定義の任意フィールド。`{ name, type, pk?, fk?, unique?, nullable? }` の配列）を付与する。テーブル一覧 manifest の該当 unit が外部キー・カラム情報（`foreignKeys`/`mainColumns` 等）を保持していればそこから組み立てる（推奨・追加の走査コストがない）。保持していない場合は Phase 1 で判別した ORM/マイグレーション種別に従い、DDL・マイグレーションファイルから直接カラム定義を抽出する。カラム定義を抽出できないテーブルは `columns` を付けない（省略時はテンプレート側でカラム明細を表示しない。fail-safe）。完了条件: 抽出できた `entities[]` 要素すべてに `columns` が付与済み、または抽出不能の根拠が記録済み
 - **Step 2** — Phase 1 で確定した検出戦略に沿って FK を走査する。検出した FK ごとに参照元・参照先テーブルを特定する。両方が `entities[].key` に存在すれば `relations[]`（`from`/`to`/`cardinality`/`sourceRef`）へ分類する。参照先が `entities[].key` に存在しなければ `unresolved[]`（`label`/`reason`/`sourceRef`）へ分類する。`cardinality` の導出規則は `references/er-detection.md` を参照する。完了条件: 検出した FK すべてについて `relations[]` または `unresolved[]` への振り分けが完了済み
 - **Step 3** — 検出件数を確認する。`relations[]` が 0 件ならユーザーに報告してハード停止する（関連を捏造しない）。完了条件: `relations[]` 1 件以上を確認済み、または 0 件を報告して停止している
 - **Step 4** — page-data.json を組み立てる。`pageKind: "er"`、`legend[]`（`cardinality` の記号説明）、`entities[]`・`relations[]`・`unresolved[]` を埋める。完了条件: page-data.json を一時ディレクトリへ保存済み
@@ -91,7 +92,7 @@ page-data.json の保存先は `$CLAUDE_JOB_DIR/tmp/er-page-data.json` とする
 | Phase | 完了条件 |
 |---|---|
 | Phase 1 | テーブル一覧 manifest の実在確認済み（または不在を報告して停止）。検出戦略がユーザー承認済み |
-| Phase 2 | `entities[]` を manifest から確定済み。FK 走査で `relations[]`/`unresolved[]` へ振り分け済み、または 0 件を報告して停止している |
+| Phase 2 | `entities[]` を manifest から確定済み。`entities[]` へ `columns` を付与済み（抽出できた範囲）。FK 走査で `relations[]`/`unresolved[]` へ振り分け済み、または 0 件を報告して停止している |
 | Phase 3 | `validate-page-data.sh --target-repo` が全項目 PASS（孤児関連検査含む） |
 | Phase 4 | `<docs_root>/ER図.html` が生成され、指定時は `build-portal.sh` の再実行が完了している |
 | **Goal** | テーブル一覧 manifest と対象リポジトリの FK 定義から検証済みの ER図.html が生成され、manifest 外参照・0 件検出時は捏造せず停止報告されている |

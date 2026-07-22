@@ -17,9 +17,6 @@
   scripts/build-screen-list.sh 冒頭コメントを正本とする。本コメントでは
   二重置換事故を避けるため意図的に波括弧・HTMLコメント記法を外して記載する):
     GENERATED_AT (生成日時マーカー)            : ISO8601 生成日時
-    SOURCE_DIR (ソースディレクトリマーカー)     : 探索対象ソースディレクトリ(絶対パス)
-    EXTRACTION_METHOD (抽出方式マーカー)        : strategy.extractionMethod(組み込みスクリプト/Claude手書き等の抽出方式)
-    DETECTION_METHOD (検出方式マーカー)         : detectionSummary.method
     TILE_SCREEN_COUNT (画面数タイルマーカー)    : detectionSummary.screenCount
     TILE_CLUSTER_COUNT (クラスタ数タイルマーカー): detectionSummary.clusterCount
     TILE_SHARED_SCREEN_COUNT (共有画面数タイルマーカー): detectionSummary.sharedScreenCount
@@ -30,14 +27,14 @@
     SCREEN_MANIFEST_JSON (マニフェストJSON埋め込みマーカー) : manifest.json の内容をそのまま埋め込み(二重管理・ドリフト禁止)
     DIAGNOSTICS (診断・警告マーカー)            : diagnostics配列を警告リストとして表示。空配列なら何も出力しない
 
-  テーブル列順(固定・全11列): 画面ID / 画面キー / 区分 / 画面名 / ルート / 検出方式 / confidence / 共有 / 埋め込み元 / 構成ファイル数 / 主ファイル
-    - 共有列: sharedWithの各キーをmanifest内で引き、screenId(欠落時はキー):routeのペアを列挙。
-      メンバーのscreenIdが1件でも取れれば詳細表示を優先し、全メンバーがscreenId欠落の場合のみ
-      「N件: キー一覧」表示にフォールバックする
-    - 埋め込み元列: kind=embedded-view の行はembeddedIn(親画面キー)を表示。kind=routeは「—」
+  テーブル列順(固定・全3列): 画面名 / ルート / 区分(任意列はクライアント側FIELDSが動的追加)。
+    - 行の<tr>には data-screen-id / data-screen-key 属性を持たせ、展開行JSがマニフェストJSONから
+      該当画面を引けるようにする(不可視属性のため3列制約には抵触しない)
+    - sharedWith(共有画面キー一覧) / embeddedIn(埋め込み元) / routeDupCount(route定義箇所数) は
+      表示列から外し、展開行の「仕様」グループでマニフェストJSONから直接表示する
     - 任意列(クライアント描画): manifest の category / permissions / relatedApis / designDocStatus に
       値が1件でもあるフィールドだけ、任意列スクリプトが末尾へ「画面区分 / 必要権限 / 関連API / 設計書」列を
-      追加する。全フィールドが空なら列を追加しない(後方互換)。既存11列のインデックスは変えない
+      追加する。全フィールドが空なら列を追加しない(後方互換)
     - 設計書列の補助フィールド(任意): designDocPath(設計書への相対パス。designDocStatus=着手済かつ
       パスありなら着手済バッジをリンク化) / sourceHash・designDocSourceHash(両方存在して不一致なら
       danger色の「陳腐化」バッジを併記)
@@ -55,14 +52,18 @@
 <style>
   /* TOKENS_CSS */
 
+  html { height: 100%; }
   * { box-sizing: border-box; }
   body {
-    margin: 0; padding: 0 24px 96px;
+    margin: 0; padding: 0 24px 0;
     font-family: var(--font-body);
     line-height: 1.7; color: var(--text); background: var(--bg);
     max-width: 1180px; margin-inline: auto;
+    height: 100%; overflow: hidden; display: flex; flex-direction: column;
   }
+  .table-area { flex: 1; min-height: 0; overflow-y: auto; }
   .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  table.screens thead { position: sticky; top: 0; z-index: 3; }
   header { padding: 40px 0 20px; border-bottom: 3px solid var(--border-strong); }
   .header-top { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
   header h1 { font-size: 1.7rem; margin: 0 0 10px; }
@@ -89,17 +90,11 @@
   }
   .toolbar .note { font-size: 0.82rem; color: var(--text-muted); }
 
-  details.module-group { margin: 18px 0; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; min-width: 0; }
-  details.module-group > summary {
-    cursor: pointer; padding: 12px 16px; font-weight: 700; list-style: none;
-  }
-  details.module-group > summary::-webkit-details-marker { display: none; }
-  details.module-group > summary::before { content: "▸ "; }
-  details.module-group[open] > summary::before { content: "▾ "; }
+  section.module-group { margin: 18px 0; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 16px 20px; min-width: 0; }
+  section.module-group h2 { font-size: 1.05rem; margin: 0 0 12px; }
 
   table.screens {
     table-layout: fixed; width: 100%; min-width: 1100px; border-collapse: collapse; font-size: 0.88rem;
-    overflow: hidden;
   }
   table.screens th {
     border-top: 1px solid var(--border); padding: 8px 10px; text-align: left; vertical-align: top;
@@ -119,30 +114,24 @@
   }
 
   /* 列幅の明示指定（data-key属性でシェブロン列挿入に影響されない） */
-  table.screens th[data-key="screenId"] { width: 5%; }
-  table.screens th[data-key="screenKey"] { width: 7%; }
-  table.screens th[data-key="kind"] { width: 5%; }
-  table.screens th[data-key="screenNameGuess"] { width: 9%; }
-  table.screens th[data-key="route"] { width: 16%; }
-  table.screens th[data-key="detectionMethod"] { width: 5%; }
-  table.screens th[data-key="confidence"] { width: 5%; }
-  table.screens th[data-key="sharedWith"] { width: 6%; }
-  table.screens th[data-key="embeddedIn"] { width: 6%; }
-  table.screens th[data-key="fileCount"] { width: 5%; }
-  table.screens th[data-key="entryFile"] { width: 31%; }
+  table.screens th[data-key="screenNameGuess"] { width: 25%; }
+  table.screens th[data-key="route"] { width: 45%; }
+  table.screens th[data-key="kind"] { width: 10%; }
 
-  /* 数値列は右揃え＋等幅数字 */
-  table.screens td:nth-child(7),
-  table.screens td:nth-child(10) {
-    text-align: right;
-    font-variant-numeric: tabular-nums;
+  /* 固定列（シェブロン列・画面名列・ルート列）: 横スクロール時も左端に固定する */
+  table.screens thead th:nth-child(1), table.screens tbody td:nth-child(1) {
+    position: sticky; left: 0; z-index: 2; background: var(--panel);
   }
-
-  /* コード系列はモノスペース */
-  table.screens td:nth-child(5),
-  table.screens td:nth-child(11) {
-    font-family: var(--mono);
-    font-size: 0.8em;
+  table.screens thead th:nth-child(2), table.screens tbody td:nth-child(2) {
+    position: sticky; left: 32px; z-index: 2; background: var(--panel);
+  }
+  table.screens thead th:nth-child(3), table.screens tbody td:nth-child(3) {
+    position: sticky; left: calc(32px + 25%); z-index: 2; background: var(--panel);
+  }
+  table.screens thead th:nth-child(1),
+  table.screens thead th:nth-child(2),
+  table.screens thead th:nth-child(3) {
+    background: var(--panel-2); z-index: 4;
   }
 
   /* ゼブラストライプ */
@@ -172,12 +161,13 @@
   .diag-warn strong { display: block; margin-bottom: 6px; }
   .diag-warn ul { margin: 0; padding-left: 20px; }
 
-  section.common-files, section.unresolved {
-    margin-top: 40px; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 16px 20px; min-width: 0;
-  }
-  section.common-files h2, section.unresolved h2 { font-size: 1.05rem; margin: 0 0 10px; }
+  section.unresolved { margin-top: 24px; border-radius: 8px; padding: 12px 16px; min-width: 0; }
+  section.unresolved.empty { background: var(--panel-2); border: 1px solid var(--border); color: var(--text-muted); }
+  section.unresolved.empty h2 { color: var(--text-muted); font-size: 0.95rem; margin: 0; }
+  section.unresolved.has-items { background: var(--danger-soft); border: 1px solid var(--danger); color: var(--danger); }
+  section.unresolved.has-items h2 { color: var(--danger); font-size: 0.95rem; margin: 0 0 8px; }
 
-  footer { margin-top: 48px; font-size: 0.8rem; color: var(--text-muted); }
+  footer { flex-shrink: 0; padding: 8px 0; font-size: 0.75rem; color: var(--text-muted); text-align: center; border-top: 1px solid var(--border); }
 
   .pagination { display: flex; gap: 8px; align-items: center; justify-content: center; margin: 16px 0; font-size: 0.85rem; }
   .pagination button { background: var(--panel-2); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text-sub); cursor: pointer; padding: 4px 10px; font-family: inherit; font-size: 0.82rem; }
@@ -208,6 +198,15 @@
   tr:hover .expand-cell { color: var(--accent); }
   tr[data-expanded="true"] .chevron svg { transform: rotate(90deg); }
 
+  .detail-inner { padding: 12px 16px 14px 20px; }
+  .detail-group { margin-bottom: 12px; }
+  .detail-group:last-child { margin-bottom: 0; }
+  .detail-group-label { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.06em; color: var(--text-muted); margin-bottom: 6px; padding-bottom: 4px; border-bottom: 1px solid var(--border); }
+  .detail-group-label.evidence { color: var(--gold); border-bottom-color: var(--gold-soft); }
+  .detail-grid { display: grid; grid-template-columns: max-content 1fr; gap: 3px 14px; }
+  .detail-grid dt { color: var(--text-muted); font-size: 0.78rem; white-space: nowrap; }
+  .detail-grid dd { margin: 0; font-size: 0.84rem; word-break: break-all; }
+
   /* 追加UI: CSVエクスポート */
   .csv-btn {
     background: var(--panel-2); border: 1px solid var(--border); border-radius: var(--radius-sm);
@@ -235,6 +234,15 @@
   display: inline-flex; align-items: center; gap: 4px;
 }
 .top-actions button:hover { background: var(--accent-soft, #e8f4fd); color: var(--accent, #0969da); border-color: var(--accent-border, #0969da); }
+.topbar { flex-shrink: 0; }
+.page-hero.compact { padding: 12px 0 8px; flex-shrink: 0; }
+.page-hero.compact .header-top { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.page-hero.compact h1 { font-size: 1.3rem; margin: 0; }
+.page-hero.compact .summary-tiles { margin: 0; gap: 8px; }
+.page-hero.compact .tile { padding: 4px 12px; font-size: 0.78rem; }
+.page-hero.compact .tile strong { font-size: 1rem; display: inline; margin-right: 4px; }
+.page-hero.compact .meta-inline { font-size: 0.75rem; color: var(--text-muted); margin: 2px 0 0; }
+.toolbar-area { flex-shrink: 0; padding: 8px 0; }
 </style>
 </head>
 <body>
@@ -252,52 +260,40 @@
     <button id="theme-toggle" title="テーマ切替">ライト</button>
   </div>
 </header>
-<section class="page-hero">
+<section class="page-hero compact">
   <nav class="back-link" style="margin: 16px 0 0; font-size: 0.85rem;">
     <a href="{{PORTAL_RELATIVE}}" style="color: var(--text-sub); text-decoration: none; border-bottom: 1px dotted var(--text-muted);">← ポータルへ戻る</a>
   </nav>
   <div class="header-top">
     <h1>画面一覧</h1>
-  </div>
-  <table class="meta-table">
-    <tr><td>生成日時</td><td>{{GENERATED_AT}}</td></tr>
-    <tr><td>ソースディレクトリ</td><td><code>{{SOURCE_DIR}}</code></td></tr>
-    <tr><td>抽出方式</td><td>{{EXTRACTION_METHOD}}</td></tr>
-    <tr><td>検出方式</td><td>{{DETECTION_METHOD}}</td></tr>
-  </table>
-
-  <div class="summary-tiles">
-    <div class="tile"><strong>{{TILE_SCREEN_COUNT}}</strong>検出画面数</div>
-    <div class="tile"><strong>{{TILE_CLUSTER_COUNT}}</strong>共有クラスタ数（{{TILE_SHARED_SCREEN_COUNT}}画面が関与）</div>
-    <div class="tile"><strong>{{TILE_EMBEDDED_COUNT}}</strong>埋め込みビュー候補数</div>
-    <div class="tile"><strong>{{TILE_UNRESOLVED_COUNT}}</strong>要手動確認数</div>
+    <div class="summary-tiles">
+      <div class="tile"><strong>{{TILE_SCREEN_COUNT}}</strong>検出画面数</div>
+      <div class="tile"><strong>{{TILE_CLUSTER_COUNT}}</strong>共有クラスタ数（{{TILE_SHARED_SCREEN_COUNT}}画面が関与）</div>
+      <div class="tile"><strong>{{TILE_EMBEDDED_COUNT}}</strong>埋め込みビュー候補数</div>
+      <div class="tile"><strong>{{TILE_UNRESOLVED_COUNT}}</strong>要手動確認数</div>
+    </div>
   </div>
 </section>
 
 <!--DIAGNOSTICS-->
 
-<div class="toolbar">
-  <input type="search" id="screen-search" placeholder="画面キー・ルートで絞り込み">
-  <span class="note">列見出しクリックでソート</span>
+<div class="toolbar-area">
+  <div class="toolbar">
+    <input type="search" id="screen-search" placeholder="画面キー・ルートで絞り込み">
+    <span class="note">列見出しクリックでソート</span>
+  </div>
 </div>
 
-<details class="module-group" open>
-  <summary>画面一覧</summary>
+<div class="table-area">
+<section class="module-group">
+  <h2>画面一覧</h2>
   <div class="table-wrap">
   <table class="screens" id="screen-table">
     <thead>
       <tr>
-        <th data-key="screenId">画面ID</th>
-        <th data-key="screenKey">画面キー</th>
-        <th data-key="kind">区分</th>
         <th data-key="screenNameGuess">画面名</th>
         <th data-key="route">ルート</th>
-        <th data-key="detectionMethod">検出方式</th>
-        <th data-key="confidence">confidence</th>
-        <th data-key="sharedWith">共有</th>
-        <th data-key="embeddedIn">埋め込み元</th>
-        <th data-key="fileCount">構成ファイル数</th>
-        <th data-key="entryFile">主ファイル</th>
+        <th data-key="kind">区分</th>
       </tr>
     </thead>
     <tbody>
@@ -305,7 +301,7 @@
     </tbody>
   </table>
   </div>
-</details>
+</section>
 
 <div class="pagination" id="pagination">
   <button id="page-first" title="先頭">≪</button>
@@ -315,17 +311,13 @@
   <button id="page-last" title="最後">≫</button>
 </div>
 
-<section class="unresolved">
+<section class="unresolved {{UNRESOLVED_CLASS}}">
   <h2>要手動確認</h2>
   <div class="table-wrap">
   <!--UNRESOLVED_SECTION-->
   </div>
 </section>
-
-<section class="common-files">
-  <h2>共通ファイル・未分類（参考情報）</h2>
-  <p class="note">本スキルは import グラフ解析を行わないため、共通ファイルのクロス参照分離は非対応。必要に応じて手動確認する。</p>
-</section>
+</div>
 
 <script type="application/json" id="screen-manifest">
 <!--SCREEN_MANIFEST_JSON-->
@@ -468,8 +460,8 @@
     });
 
     Array.prototype.forEach.call(bodyRows, function (tr) {
-      var idText = tr.children[0] ? tr.children[0].textContent.trim() : '';
-      var keyText = tr.children[1] ? tr.children[1].textContent.trim() : '';
+      var idText = tr.getAttribute('data-screen-id') || '';
+      var keyText = tr.getAttribute('data-screen-key') || '';
       var item = byId[idText] || byKey[keyText] || null;
       active.forEach(function (field) {
         var td = document.createElement('td');
@@ -527,18 +519,10 @@
         tr.insertBefore(chTd, tr.firstChild);
       });
 
-      // nth-child オフセット補正: シェブロン列挿入で全列+1シフト
-      var fixStyle = document.createElement('style');
-      fixStyle.textContent =
-        'table.screens td:nth-child(7),table.screens td:nth-child(10){text-align:left;font-variant-numeric:normal;}' +
-        'table.screens td:nth-child(5),table.screens td:nth-child(11){font-family:inherit;font-size:inherit;}' +
-        'table.screens td:nth-child(8),table.screens td:nth-child(11){text-align:right;font-variant-numeric:tabular-nums;}' +
-        'table.screens td:nth-child(6),table.screens td:nth-child(12){font-family:var(--mono);font-size:0.8em;}';
-      document.head.appendChild(fixStyle);
     })();
 
     /* ===== 追加UI: コピーボタン / フィルタチップ / 行クリック展開 / CSVエクスポート ===== */
-    var CHIP_COLUMNS = ['区分', 'confidence', '画面区分'];  /* 列見出し名で指定。任意列(画面区分)は存在する時だけチップ化 */
+    var CHIP_COLUMNS = ['区分', '画面区分'];  /* 列見出し名で指定。任意列(画面区分)は存在する時だけチップ化 */
     var COL_COUNT = table.querySelectorAll('thead th').length;
     var headerLabels = Array.prototype.map.call(table.querySelectorAll('thead th'), function (th) { return th.textContent.trim(); });
     var chipState = {};
@@ -685,34 +669,127 @@
       });
     }
 
+    /* --- 行クリック展開: マニフェストJSONを直接参照し「仕様」「エビデンス」2グループに分離表示 ---
+       画面は種別(kind=route/embedded-view)による項目差がないため、仕様グループはunitKind別マップではなく
+       固定のフラットなフィールド一覧(sharedWith・embeddedIn・routeDupCount)を使う。 */
+    var DETAIL_SPEC_FIELDS = [
+      ['sharedWith', '共有画面'],
+      ['embeddedIn', '埋め込み元'],
+      ['routeDupCount', 'route定義箇所数']
+    ];
+    var EVIDENCE_FIELDS = [
+      ['confidence', 'confidence'],
+      ['detectionMethod', '検出方式'],
+      ['fileCount', '構成ファイル数'],
+      ['entryFile', '主ファイル'],
+      ['screenId', '画面ID'],
+      ['screenKey', '画面キー']
+    ];
+
+    var detailById = {};
+    var detailByKey = {};
+    (manifest.screens || []).forEach(function (s) {
+      if (s.screenId !== undefined && s.screenId !== null) detailById[String(s.screenId)] = s;
+      if (s.screenKey !== undefined && s.screenKey !== null) detailByKey[String(s.screenKey)] = s;
+    });
+
+    function findDetailScreen(tr) {
+      var idAttr = tr.getAttribute('data-screen-id') || '';
+      if (idAttr && detailById[idAttr]) return detailById[idAttr];
+      var keyAttr = tr.getAttribute('data-screen-key') || '';
+      if (keyAttr && detailByKey[keyAttr]) return detailByKey[keyAttr];
+      return null;
+    }
+
+    function detailHasValue(v) {
+      if (v === undefined || v === null || v === '') return false;
+      if (Array.isArray(v)) return v.length > 0;
+      return true;
+    }
+
+    function renderConfidenceValue(dd, v) {
+      if (!detailHasValue(v)) { dd.textContent = '—'; return; }
+      var badge = document.createElement('span');
+      var cls = String(v).toLowerCase();
+      badge.className = 'badge ' + (cls === 'high' || cls === 'medium' || cls === 'low' ? cls : 'medium');
+      badge.textContent = String(v);
+      dd.appendChild(badge);
+    }
+
+    function renderDetailValue(dd, fieldName, v) {
+      if (fieldName === 'routeDupCount') {
+        if (!v || v <= 1) { dd.textContent = '—'; return; }
+        dd.textContent = String(v) + ' 箇所';
+        return;
+      }
+      if (!detailHasValue(v)) { dd.textContent = '—'; return; }
+      if (Array.isArray(v)) {
+        v.forEach(function (item) {
+          var tag = document.createElement('span');
+          tag.className = 'opt-tag';
+          tag.textContent = String(item);
+          dd.appendChild(tag);
+        });
+        return;
+      }
+      if (fieldName === 'entryFile') {
+        var code = document.createElement('code');
+        code.textContent = String(v);
+        dd.appendChild(code);
+        return;
+      }
+      dd.textContent = String(v);
+    }
+
+    function buildDetailGroup(labelText, isEvidence, fieldPairs, item) {
+      var group = document.createElement('div');
+      group.className = 'detail-group';
+      var label = document.createElement('div');
+      label.className = 'detail-group-label' + (isEvidence ? ' evidence' : '');
+      label.textContent = labelText;
+      group.appendChild(label);
+      var dl = document.createElement('dl');
+      dl.className = 'detail-grid';
+      fieldPairs.forEach(function (pair) {
+        var fieldName = pair[0], fieldLabel = pair[1];
+        var dt = document.createElement('dt');
+        dt.textContent = fieldLabel;
+        var dd = document.createElement('dd');
+        var val = item ? item[fieldName] : undefined;
+        if (fieldName === 'confidence') { renderConfidenceValue(dd, val); }
+        else { renderDetailValue(dd, fieldName, val); }
+        if (dd.textContent !== '—' && dd.textContent !== '' ) {
+          dd.appendChild(makeCopyBtn((function (v) { return function () { return v; }; })(dd.textContent)));
+        }
+        dl.appendChild(dt);
+        dl.appendChild(dd);
+      });
+      group.appendChild(dl);
+      return group;
+    }
+
     allRows.forEach(function (tr) {
       tr.addEventListener('click', function (ev) {
         if (ev.target.closest && ev.target.closest('.copy-btn,a,button')) return;
         var next = tr.nextElementSibling;
         if (next && next.classList.contains('row-detail')) {
           next.parentNode.removeChild(next);
+          tr.removeAttribute('data-expanded');
           return;
         }
+        var item = findDetailScreen(tr);
         var detail = document.createElement('tr');
         detail.className = 'row-detail';
         var td = document.createElement('td');
         td.colSpan = COL_COUNT;
-        var dl = document.createElement('dl');
-        headerLabels.forEach(function (label, i) {
-          var dt = document.createElement('dt');
-          dt.textContent = label;
-          var dd = document.createElement('dd');
-          var val = tr.children[i] ? tr.children[i].textContent.trim() : '';
-          dd.textContent = val;
-          if (val && val !== '—') {
-            dd.appendChild(makeCopyBtn(function () { return val; }));
-          }
-          dl.appendChild(dt);
-          dl.appendChild(dd);
-        });
-        td.appendChild(dl);
+        var inner = document.createElement('div');
+        inner.className = 'detail-inner';
+        inner.appendChild(buildDetailGroup('仕様', false, DETAIL_SPEC_FIELDS, item));
+        inner.appendChild(buildDetailGroup('エビデンス（検出メタデータ）', true, EVIDENCE_FIELDS, item));
+        td.appendChild(inner);
         detail.appendChild(td);
         tr.parentNode.insertBefore(detail, tr.nextSibling);
+        tr.setAttribute('data-expanded', 'true');
       });
     });
 
