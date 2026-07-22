@@ -72,7 +72,7 @@
 
 | フィールド名 | 型 | 必須/任意 | 説明 | 抽出元の想定 |
 |---|---|---|---|---|
-| operationClass | string | 任意 | 操作の強さ区分。`参照系` / `更新系` / `削除系` | 関連 API の method 集合からの機械判定 |
+| operationClass | string | 任意 | 操作区分。`照会` / `登録` / `更新` / `削除` / `承認` / `その他` の6値 | `extract-feature-metadata.sh` による unitKey・identifier・unitNameGuess のキーワード判定 |
 
 設計書の陳腐化検知バッジは、traceability.json の `sourceHash`（後述）と設計書側の記録ハッシュの比較で実現する。マニフェスト側への専用フィールド追加は不要。
 

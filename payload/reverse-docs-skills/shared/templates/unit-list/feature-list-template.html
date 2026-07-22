@@ -295,7 +295,10 @@
     ];
     /* 文字列値 → バッジ色クラスの対応（該当しない文字列はそのまま表示） */
     var ENUM_BADGES = {
-      operationClass: { '参照系': 'accent', '更新系': 'gold', '削除系': 'danger' },
+      /* 6値: 照会/登録/更新/削除/承認/その他。opt-badge クラスは accent/gold/success/danger の
+         4色のみのため、照会と承認は accent を共用する（badge のテキスト自体で値は区別できる）。
+         「その他」は該当エントリなしのまま無色のプレーンテキスト表示にフォールバックする */
+      operationClass: { '照会': 'accent', '登録': 'success', '更新': 'gold', '削除': 'danger', '承認': 'accent' },
       designDocStatus: { '未着手': 'danger', '着手済': 'success' }
     };
 

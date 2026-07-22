@@ -57,19 +57,20 @@ allowed-tools: [Bash, Read, Write, Edit, Grep, Glob, AskUserQuestion, TaskCreate
 - **Step 1**: 抽出方式はカスタム抽出パスに固定される（テーブル種別に組み込み検出器はない）。Phase 1で宣言した抽出手順を確認する。完了条件: 抽出手順（走査対象・グルーピング規則）が確定済み
 - **Step 2**: 宣言した手順（例: マイグレーションファイルの走査・ORM モデル定義の解析・SQL DDL の `CREATE TABLE`/`CREATE VIEW` 抽出等）をClaude自身がBash/Grep/Readで実行し、スキーマ準拠のマニフェストJSONをWriteする。完了条件: マニフェストJSONが生成済み
 - **Step 3**: 検出件数と内訳を確認する。0件検出ならユーザーに報告してハード停止する（テーブルを捏造しない）。完了条件: 1件以上の検出を確認済み、または0件を報告して停止している
+- **Step 4**: マニフェストへメタデータを付与する。`../../../shared/scripts/extract/extract-table-metadata.sh <manifest.json> <migrations_dir> <manifest.ext.json>` を実行し、各ユニットに `foreignKeys`・`columnCount`・`mainColumns` フィールドを追加した拡張マニフェスト（`manifest.ext.json`）を生成する。`<migrations_dir>` はPhase 1 Step 2で特定したマイグレーション/DDLディレクトリを渡す。以降のPhaseでは `manifest.ext.json` を使用する。完了条件: 拡張マニフェストが生成済み
 
 検出結果は一時ディレクトリ（`$CLAUDE_JOB_DIR/tmp/table-manifest.json`、未設定時は `${TMPDIR:-/tmp}/claude-job-${session}/tmp/` 配下。`${session}`はセッションIDが取得できなければ任意の一意な値でよい）に保存する。
 
 ### Phase 3: 整合検証（機械実行）
 
-- **Step 1**: `../../../shared/scripts/unit-list/validate-manifest.sh <manifest.json> --unit-kind table` を実行する。完了条件: 全項目PASS
+- **Step 1**: `../../../shared/scripts/unit-list/validate-manifest.sh <manifest.ext.json> --unit-kind table` を実行する。完了条件: 全項目PASS
 - **Step 2**: FAIL時は指摘に応じて修正する。修正後Step 1を再実行する。3回失敗したら抽出手順の再検討（Phase 2 Step 1）へ差し戻す。完了条件: exit 0
 
 カスタム抽出パスであっても、この検証を通過しないマニフェストはPhase 4に進めない。
 
 ### Phase 4: テーブル一覧.html 生成
 
-- **Step 1**: `../../../shared/scripts/unit-list/build-unit-list.sh <manifest.json> <output_dir>/一覧/テーブル一覧/テーブル一覧.html --unit-kind table --portal-dir <output_dir>` を実行する。`--portal-dir` にはポータル（`index.html`）の配置先＝納品物ルート（output_dir=docs_root）を渡し、「ポータルへ戻る」リンクを実在パスに解決させる。build側が内部でvalidateを再実行するため、検証を経ないmanifestからは生成できない。完了条件: HTML生成済み
+- **Step 1**: `../../../shared/scripts/unit-list/build-unit-list.sh <manifest.ext.json> <output_dir>/一覧/テーブル一覧/テーブル一覧.html --unit-kind table --portal-dir <output_dir>` を実行する。`--portal-dir` にはポータル（`index.html`）の配置先＝納品物ルート（output_dir=docs_root）を渡し、「ポータルへ戻る」リンクを実在パスに解決させる。build側が内部でvalidateを再実行するため、検証を経ないmanifestからは生成できない。完了条件: HTML生成済み
 
 **手作業でのプレースホルダ置換は禁止する**（過去に `entryFile=None` の混入という実害が発生している）。HTML生成は必ずスクリプト経由の決定的処理で行う。
 
@@ -78,7 +79,7 @@ allowed-tools: [Bash, Read, Write, Edit, Grep, Glob, AskUserQuestion, TaskCreate
 | Phase | 完了条件 |
 |---|---|
 | Phase 1 | Step 1〜4の調査完了（`references/table-detection.md` の調査項目に準拠）。Step 5の検出戦略宣言（`unitKind: "table"`/`extractionMethod: "custom"`/`unitIdRegex`/`excludePatterns`）がユーザー承認済み |
-| Phase 2 | Step 2でスキーマ準拠のマニフェスト（配列キー `units`）が1件以上確定、または0件検出をユーザーに報告して停止している。Step 3で検出内訳を確認済み |
+| Phase 2 | Step 2でスキーマ準拠のマニフェスト（配列キー `units`）が1件以上確定、または0件検出をユーザーに報告して停止している。Step 3で検出内訳を確認済み。Step 4で拡張マニフェストに種別固有フィールド（foreignKeys・columnCount・mainColumns等）が付与されている |
 | Phase 3 | Step 1で `validate-manifest.sh --unit-kind table` が全項目PASS。Step 2のFAIL時修正ループは3回以内 |
 | Phase 4 | Step 1でテーブル一覧.htmlが生成され、埋め込みJSONがマニフェストと一致している |
 | **Goal** | 検証済みマニフェストのみからHTMLが生成され、未解決・診断警告が可視化され、設計書単位の判断材料が揃っている |
