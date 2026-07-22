@@ -297,8 +297,6 @@ label_esc="$(html_escape "$LABEL")"
 # --- メタ情報・サマリ集計をマニフェストから抽出 ---
 generated_at="$(jq -r '.generatedAt // ""' "$MANIFEST")"
 source_dir="$(jq -r '.sourceDir // ""' "$MANIFEST")"
-source_dir_display="$(basename "$source_dir")"
-extraction_method="$(jq -r '.strategy.extractionMethod // ""' "$MANIFEST")"
 tile_unit_count="$(jq -r '.detectionSummary.unitCount // 0' "$MANIFEST")"
 tile_unresolved_count="$(jq -r '.detectionSummary.unresolvedCount // 0' "$MANIFEST")"
 
@@ -389,8 +387,6 @@ render_args=(
   "{{PROJECT_NAME}}" "$(html_escape "$PROJECT_NAME_ARG")"
   "{{UNIT_KIND_LABEL}}" "$label_esc"
   "{{GENERATED_AT}}" "$(html_escape "$generated_at")"
-  "{{SOURCE_DIR}}" "$(html_escape "$source_dir_display")"
-  "{{EXTRACTION_METHOD}}" "$(html_escape "$extraction_method")"
   "{{UNIT_COUNT}}" "$tile_unit_count"
   "{{UNRESOLVED_COUNT}}" "$tile_unresolved_count"
   "<!--UNIT_TABLE_ROWS-->" "$unit_rows"

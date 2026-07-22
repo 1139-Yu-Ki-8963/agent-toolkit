@@ -17,9 +17,6 @@
   scripts/build-screen-list.sh 冒頭コメントを正本とする。本コメントでは
   二重置換事故を避けるため意図的に波括弧・HTMLコメント記法を外して記載する):
     GENERATED_AT (生成日時マーカー)            : ISO8601 生成日時
-    SOURCE_DIR (ソースディレクトリマーカー)     : 探索対象ソースディレクトリ(絶対パス)
-    EXTRACTION_METHOD (抽出方式マーカー)        : strategy.extractionMethod(組み込みスクリプト/Claude手書き等の抽出方式)
-    DETECTION_METHOD (検出方式マーカー)         : detectionSummary.method
     TILE_SCREEN_COUNT (画面数タイルマーカー)    : detectionSummary.screenCount
     TILE_CLUSTER_COUNT (クラスタ数タイルマーカー): detectionSummary.clusterCount
     TILE_SHARED_SCREEN_COUNT (共有画面数タイルマーカー): detectionSummary.sharedScreenCount
@@ -276,7 +273,6 @@
       <div class="tile"><strong>{{TILE_UNRESOLVED_COUNT}}</strong>要手動確認数</div>
     </div>
   </div>
-  <p class="meta-inline">生成: {{GENERATED_AT}} | ソース: <code>{{SOURCE_DIR}}</code> | 抽出: {{EXTRACTION_METHOD}} | 検出: {{DETECTION_METHOD}}</p>
 </section>
 
 <!--DIAGNOSTICS-->

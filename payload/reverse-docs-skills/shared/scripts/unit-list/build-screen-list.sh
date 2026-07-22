@@ -269,13 +269,6 @@ source "$(cd "$(dirname "$0")/.." && pwd)/render-template.sh"
 # --- メタ情報・サマリ集計をマニフェストから抽出 ---
 generated_at="$(jq -r '.generatedAt // ""' "$MANIFEST")"
 source_dir="$(jq -r '.sourceDir // ""' "$MANIFEST")"
-# 表示用: 絶対パスはマシン固有パスの漏洩防止でbasenameに丸め、相対パスはそのまま表示する
-case "$source_dir" in
-  /*) source_dir_display="$(basename "$source_dir")" ;;
-  *)  source_dir_display="$source_dir" ;;
-esac
-extraction_method="$(jq -r '.strategy.extractionMethod // ""' "$MANIFEST")"
-detection_method="$(jq -r '.detectionSummary.method // ""' "$MANIFEST")"
 tile_screen_count="$(jq -r '.detectionSummary.screenCount // 0' "$MANIFEST")"
 tile_cluster_count="$(jq -r '.detectionSummary.clusterCount // 0' "$MANIFEST")"
 tile_shared_screen_count="$(jq -r '.detectionSummary.sharedScreenCount // 0' "$MANIFEST")"
@@ -382,9 +375,6 @@ fi
 render_args=(
   "{{PROJECT_NAME}}" "$(html_escape "$PROJECT_NAME_ARG")"
   "{{GENERATED_AT}}" "$(html_escape "$generated_at")"
-  "{{SOURCE_DIR}}" "$(html_escape "$source_dir_display")"
-  "{{EXTRACTION_METHOD}}" "$(html_escape "$extraction_method")"
-  "{{DETECTION_METHOD}}" "$(html_escape "$detection_method")"
   "{{TILE_SCREEN_COUNT}}" "$tile_screen_count"
   "{{TILE_CLUSTER_COUNT}}" "$tile_cluster_count"
   "{{TILE_SHARED_SCREEN_COUNT}}" "$tile_shared_screen_count"
