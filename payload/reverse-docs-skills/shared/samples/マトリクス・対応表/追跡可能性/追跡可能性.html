@@ -153,6 +153,13 @@
   .mode-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
   .hidden { display: none; }
 
+  /* #mode-screen・#mode-table 自体をflexコンテナ化する。これがないと直下の
+     .table-wrap の flex:1; min-height:0; が無効化され(親がflexコンテナでないため)、
+     テーブルが内容量ぶん伸びてbody(height:100vh; overflow:hidden)にクリップされ、
+     画面に収まりきらない行がスクロールもできず見えなくなる。 */
+  #mode-screen, #mode-table { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+  #mode-screen.hidden, #mode-table.hidden { display: none; }
+
   .toolbar { display: flex; gap: 10px; margin: 18px 0 10px; align-items: center; flex-wrap: wrap; }
   .toolbar input[type="search"] {
     flex: 1; min-width: 220px; padding: 8px 12px; font-size: 0.92rem;
