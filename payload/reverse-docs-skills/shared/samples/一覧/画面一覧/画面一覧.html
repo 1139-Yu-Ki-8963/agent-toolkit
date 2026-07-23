@@ -290,6 +290,11 @@
     padding: 5px 12px; text-decoration: none; transition: background 0.15s, border-color 0.15s;
   }
   .doc-link:hover { background: var(--panel); border-color: var(--accent); text-decoration: none; }
+  .doc-link.disabled {
+    color: var(--text-muted); background: var(--panel-2);
+    border-color: var(--border); pointer-events: none; opacity: 0.5;
+  }
+  .doc-link.disabled::before { background: var(--text-muted); }
   .doc-link::before { content: ''; display: inline-block; width: 14px; height: 14px; background: currentColor; -webkit-mask-size: contain; mask-size: contain; -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat; }
   .doc-link[data-kind="basic"]::before { -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zM13 9V3.5L18.5 9H13z'/%3E%3C/svg%3E"); mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zM13 9V3.5L18.5 9H13z'/%3E%3C/svg%3E"); }
   .doc-link[data-kind="detail"]::before { -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M6.5 10h-2v7h2v-7zm6 0h-2v7h2v-7zm8.5 9H2v2h19v-2zm-2.5-9h-2v7h2v-7zM11.5 1L2 6v2h19V6l-9.5-5z'/%3E%3C/svg%3E"); mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M6.5 10h-2v7h2v-7zm6 0h-2v7h2v-7zm8.5 9H2v2h19v-2zm-2.5-9h-2v7h2v-7zM11.5 1L2 6v2h19V6l-9.5-5z'/%3E%3C/svg%3E"); }
@@ -1581,7 +1586,11 @@
       'a.opt-tag{color:inherit;text-decoration:none;cursor:pointer;}' +
       'a.opt-tag:hover{text-decoration:underline;color:var(--accent);}' +
       'a.opt-badge-link{text-decoration:none;}' +
-      'a.opt-badge-link:hover .opt-badge{text-decoration:underline;}';
+      'a.opt-badge-link:hover .opt-badge{text-decoration:underline;}' +
+      '.doc-status-row{display:inline-flex;gap:3px;}' +
+      '.doc-status-chip{font-size:10px;font-weight:700;padding:1px 5px;border-radius:3px;line-height:1.4;}' +
+      '.doc-status-chip.active{color:var(--success);background:var(--success-soft);}' +
+      '.doc-status-chip.inactive{color:var(--text-muted);background:var(--panel-2);border:1px solid var(--border);}';
     document.head.appendChild(style);
 
     var byId = {};
@@ -1630,27 +1639,24 @@
         return;
       }
       var text = String(v);
-      if (field.key === 'designDocStatus' && (text === '未着手' || text === '着手済')) {
-        var badge = document.createElement('span');
-        badge.className = 'opt-badge ' + (text === '未着手' ? 'danger' : 'success');
-        badge.textContent = text;
-        if (text === '着手済' && item && typeof item.designDocPath === 'string' && item.designDocPath) {
-          var link = document.createElement('a');
-          link.className = 'opt-badge-link';
-          link.href = item.designDocPath;
-          link.appendChild(badge);
-          td.appendChild(link);
-        } else {
-          td.appendChild(badge);
-        }
-        if (item && item.sourceHash && item.designDocSourceHash && item.sourceHash !== item.designDocSourceHash) {
-          var stale = document.createElement('span');
-          stale.className = 'opt-badge danger';
-          stale.style.marginLeft = '4px';
-          stale.textContent = '陳腐化';
-          stale.title = '原本ハッシュ(sourceHash)と設計書生成時ハッシュ(designDocSourceHash)が不一致';
-          td.appendChild(stale);
-        }
+      if (field.key === 'designDocStatus') {
+        var hasDoc = text === '着手済';
+        var row = document.createElement('span');
+        row.className = 'doc-status-row';
+        var chips = [
+          {label: '基', title: '基本設計書'},
+          {label: '詳', title: '詳細設計書'},
+          {label: 'シ', title: 'シーケンス図'}
+        ];
+        chips.forEach(function(chip) {
+          var s = document.createElement('span');
+          s.className = 'doc-status-chip ' + (hasDoc ? 'active' : 'inactive');
+          s.textContent = chip.label;
+          s.title = chip.title + (hasDoc ? '' : '（未作成）');
+          row.appendChild(s);
+        });
+        td.textContent = '';
+        td.appendChild(row);
         return;
       }
       td.textContent = text;
@@ -2000,6 +2006,7 @@
           var docLinks = document.createElement('div');
           docLinks.className = 'doc-links';
           var screenDir = '../../画面/' + item.screenId + '/';
+          var hasDesignDoc = item.designDocStatus === '着手済';
           var docDefs = [
             {label: '基本設計書', href: screenDir + '基本設計/画面基本設計書.html', kind: 'basic'},
             {label: '詳細設計書', href: screenDir + '詳細設計/画面詳細設計書.html', kind: 'detail'},
@@ -2007,10 +2014,15 @@
           ];
           docDefs.forEach(function(doc) {
             var a = document.createElement('a');
-            a.href = doc.href;
             a.textContent = doc.label;
-            a.className = 'doc-link';
             a.setAttribute('data-kind', doc.kind);
+            if (hasDesignDoc) {
+              a.href = doc.href;
+              a.className = 'doc-link';
+            } else {
+              a.className = 'doc-link disabled';
+              a.title = '未作成';
+            }
             docLinks.appendChild(a);
           });
           docGroup.appendChild(docLinks);
