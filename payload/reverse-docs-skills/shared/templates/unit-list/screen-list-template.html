@@ -207,6 +207,19 @@
   .detail-grid dt { color: var(--text-muted); font-size: 0.78rem; white-space: nowrap; }
   .detail-grid dd { margin: 0; font-size: 0.84rem; word-break: break-all; }
 
+  .doc-links { display: flex; flex-wrap: wrap; gap: 8px; }
+  .doc-link {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 12.5px; color: var(--accent); background: var(--accent-soft);
+    border: 1px solid var(--accent-border); border-radius: var(--radius-sm);
+    padding: 5px 12px; text-decoration: none; transition: background 0.15s, border-color 0.15s;
+  }
+  .doc-link:hover { background: var(--panel); border-color: var(--accent); text-decoration: none; }
+  .doc-link::before { content: ''; display: inline-block; width: 14px; height: 14px; background: currentColor; -webkit-mask-size: contain; mask-size: contain; -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat; }
+  .doc-link[data-kind="basic"]::before { -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zM13 9V3.5L18.5 9H13z'/%3E%3C/svg%3E"); mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zM13 9V3.5L18.5 9H13z'/%3E%3C/svg%3E"); }
+  .doc-link[data-kind="detail"]::before { -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M6.5 10h-2v7h2v-7zm6 0h-2v7h2v-7zm8.5 9H2v2h19v-2zm-2.5-9h-2v7h2v-7zM11.5 1L2 6v2h19V6l-9.5-5z'/%3E%3C/svg%3E"); mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M6.5 10h-2v7h2v-7zm6 0h-2v7h2v-7zm8.5 9H2v2h19v-2zm-2.5-9h-2v7h2v-7zM11.5 1L2 6v2h19V6l-9.5-5z'/%3E%3C/svg%3E"); }
+  .doc-link[data-kind="sequence"]::before { -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M22 11V3h-7v3H9V3H2v8h7V8h2v10h4v3h7v-8h-7v3h-2V8h2v3h7zM7 9H4V5h3v4zm10 6h3v4h-3v-4zm0-10h3v4h-3V5z'/%3E%3C/svg%3E"); mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M22 11V3h-7v3H9V3H2v8h7V8h2v10h4v3h7v-8h-7v3h-2V8h2v3h7zM7 9H4V5h3v4zm10 6h3v4h-3v-4zm0-10h3v4h-3V5z'/%3E%3C/svg%3E"); }
+
   /* 追加UI: CSVエクスポート */
   .csv-btn {
     background: var(--panel-2); border: 1px solid var(--border); border-radius: var(--radius-sm);
@@ -786,6 +799,32 @@
         inner.className = 'detail-inner';
         inner.appendChild(buildDetailGroup('仕様', false, DETAIL_SPEC_FIELDS, item));
         inner.appendChild(buildDetailGroup('エビデンス（検出メタデータ）', true, EVIDENCE_FIELDS, item));
+        if (item && item.screenId) {
+          var docGroup = document.createElement('div');
+          docGroup.className = 'detail-group';
+          var docLabel = document.createElement('div');
+          docLabel.className = 'detail-group-label';
+          docLabel.textContent = '設計書';
+          docGroup.appendChild(docLabel);
+          var docLinks = document.createElement('div');
+          docLinks.className = 'doc-links';
+          var screenDir = '../../画面/' + item.screenId + '/';
+          var docDefs = [
+            {label: '基本設計書', href: screenDir + '基本設計/画面基本設計書.html', kind: 'basic'},
+            {label: '詳細設計書', href: screenDir + '詳細設計/画面詳細設計書.html', kind: 'detail'},
+            {label: 'シーケンス図', href: screenDir + 'シーケンス図.html', kind: 'sequence'}
+          ];
+          docDefs.forEach(function(doc) {
+            var a = document.createElement('a');
+            a.href = doc.href;
+            a.textContent = doc.label;
+            a.className = 'doc-link';
+            a.setAttribute('data-kind', doc.kind);
+            docLinks.appendChild(a);
+          });
+          docGroup.appendChild(docLinks);
+          inner.appendChild(docGroup);
+        }
         td.appendChild(inner);
         detail.appendChild(td);
         tr.parentNode.insertBefore(detail, tr.nextSibling);
