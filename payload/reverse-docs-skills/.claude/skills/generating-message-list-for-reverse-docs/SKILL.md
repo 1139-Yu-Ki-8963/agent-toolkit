@@ -26,7 +26,7 @@ allowed-tools: [Read, Bash, Write, Edit, Grep, Glob]
 ## 設計原則
 
 - **転記のみ** — メッセージ文言の妥当性・粒度は判定しない。メッセージ定義書.md に記載された事実（キー・文言・種別・抽出元・使用画面）のみを転記する
-- **固定と可変の分離** — 抽出（`convert-message-doc-to-manifest.sh`）・整合検証（`validate-manifest.sh`）・HTML 生成（`build-unit-list.sh`）はすべて決定的スクリプトに固定する。他種別一覧のようなカスタム抽出判断は不要（メッセージ定義書.md の形式が既に固定契約のため）
+- **固定と可変の分離** — 抽出（`convert-message-doc-to-manifest.sh`）・整合検証（`validate-message-manifest.sh`）・HTML 生成（`build-unit-list.sh`）はすべて決定的スクリプトに固定する。他種別一覧のようなカスタム抽出判断は不要（メッセージ定義書.md の形式が既に固定契約のため）
 
 ## エンジンスクリプトの所在
 
@@ -35,7 +35,7 @@ allowed-tools: [Read, Bash, Write, Edit, Grep, Glob]
 | スクリプト | パス（スキルフォルダ基点） |
 |---|---|
 | manifest 変換 | `../../../shared/scripts/extract/convert-message-doc-to-manifest.sh` |
-| 整合検証 | `../../../shared/scripts/unit-list/validate-manifest.sh` |
+| 整合検証 | `../../../shared/scripts/unit-list/validate-message-manifest.sh` |
 | HTML生成 | `../../../shared/scripts/unit-list/build-unit-list.sh` |
 | ポータル再生成（任意） | `../../../shared/scripts/build-portal.sh` |
 
@@ -62,7 +62,7 @@ manifest.json の保存先は `$CLAUDE_JOB_DIR/tmp/message-manifest.json` とす
 - **Step 1** — 整合検証スクリプトを実行する。完了条件: 全項目 PASS
 
   ```
-  ../../../shared/scripts/unit-list/validate-manifest.sh <manifest.json> --unit-kind message
+  ../../../shared/scripts/unit-list/validate-message-manifest.sh <manifest.json>
   ```
 
 - **Step 2** — FAIL 時は指摘に応じて manifest を修正し Step 1 を再実行する。3 回失敗したら Phase 2（変換スクリプトの入力＝メッセージ定義書.md の記法）の見直しへ差し戻す。完了条件: exit 0
@@ -89,7 +89,7 @@ manifest.json の保存先は `$CLAUDE_JOB_DIR/tmp/message-manifest.json` とす
 |---|---|
 | Phase 1 | メッセージ定義書.md の実在確認済み、または不在を報告して停止している |
 | Phase 2 | manifest JSON が生成済み、totalCount を確認済み |
-| Phase 3 | `validate-manifest.sh --unit-kind message` が全項目 PASS |
+| Phase 3 | `validate-message-manifest.sh` が全項目 PASS |
 | Phase 4 | `<docs_root>/一覧/メッセージ一覧/メッセージ一覧.html` が生成され、指定時は `build-portal.sh` の再実行が完了している |
 | **Goal** | メッセージ定義書.md の事実のみからメッセージ一覧.html が生成され、0 件の場合もその旨が可視化されている |
 
@@ -118,8 +118,22 @@ manifest.json の保存先は `$CLAUDE_JOB_DIR/tmp/message-manifest.json` とす
 
 ## 完了報告
 
-`~/.claude/skills/managing-agent-configs/references/skills/completion-report-format.md` の作業報告型に従う。固有差分として「検証」テーブルに `validate-manifest.sh --unit-kind message` の PASS/FAIL 行を追加する。
+`~/.claude/skills/managing-agent-configs/references/skills/completion-report-format.md` の作業報告型に従う。固有差分として「検証」テーブルに `validate-message-manifest.sh` の PASS/FAIL 行を追加する。
 
 ## 参照資料
 
 - `../../../shared/references/manifest-schema-extensions.md` — manifest JSON のスキーマ拡張定義（存在する場合）
+
+## 設計判断
+
+### validate-message-manifest.sh
+
+**必要性**: メッセージ一覧の manifest は「転記のみ」設計であり、検出系スキルの validate-manifest.sh が要求する strategy/approvedByUser/detectionSummary/kind/identifier/confidence を持たない。validate-manifest.sh の default 分岐にこれらを必須要求するロジックがあるため、message manifest を通すと構造的に PASS 不能になる。特に approvedByUser=true の要求は、人間承認を前提としない転記設計では事実の捏造になるため、値の追加で回避することは許されない。
+
+**代替案を採用しなかった理由**:
+- validate-manifest.sh に message) case 分岐を追加: 10 スキルが依存する共有スクリプト（767行）への guard 散在で影響範囲が大きい。必須キー集合を変えない方針を維持する
+- 検証をスキップ: 転記の正確性（unitKey 一意・summary 一致）の保証が失われる
+
+**保守責任者**: 人手（ユーザー）。convert-message-doc-to-manifest.sh の出力契約を変更する場合は本スクリプトの必須フィールドリストを同時に更新する
+
+**廃棄条件**: validate-manifest.sh が種別ごとの検証プロファイルを内蔵し、message 種別の転記契約に対応した時

@@ -50,7 +50,7 @@ allowed-tools: [Bash, Read, Write, Grep, Glob]
 
 - **Step 1** — Phase 1 Step 2 で取得した全コミットを `ad`（日付）でグルーピングする。完了条件: 日付単位のコミット群が確定済み
 - **Step 2** — 各コミットの件名を先頭の日本語角括弧プレフィックスで走査し、変更種別（機能追加・バグ修正・改善・その他）を判定する。プレフィックスが無い、またはプレフィックス対応表に無い件名は「その他」に分類する。完了条件: 全コミットの種別分類が確定済み
-- **Step 3** — 日付グループごとに、コミット一覧（ハッシュ・件名・種別）を要約したエントリを組み立て、page-data.json を構築する。`pageKind: "release-notes"`、`tiles[]`（直近の変更種別内訳などの要約タイル）を埋める。`rows[]`（`{item, value, sourceRef}`。`item` は日付、`value` は当日のコミット件名一覧、`sourceRef` はコミットハッシュ）も埋める。完了条件: page-data.json を一時ディレクトリへ保存済み
+- **Step 3** — 日付グループごとに、コミット一覧（ハッシュ・件名・種別）を要約したエントリを組み立て、page-data.json を構築する。`pageKind: "release-notes"`、`tiles[]`（直近の変更種別内訳などの要約タイル）を埋める。`releases[]`（`{id, date, title, pr, prUrl, flow, summary, changes, verifySteps}`。PR 単位のリリースエントリ。コミット情報は `changes` と `summary` に要約する。`sourceRef` は使わない）も埋める。完了条件: page-data.json を一時ディレクトリへ保存済み
 
 page-data.json の保存先は `$CLAUDE_JOB_DIR/tmp/release-notes-page-data.json` とする。未設定時は `${TMPDIR:-/tmp}/claude-job-${session}/tmp/` 配下に置く。
 
@@ -62,7 +62,7 @@ page-data.json の保存先は `$CLAUDE_JOB_DIR/tmp/release-notes-page-data.json
   ../../../shared/scripts/detail-pages/validate-page-data.sh <page-data.json> --target-repo <target_repo_path>
   ```
 
-- **Step 2** — FAIL 時は `sourceRef` を修正し Step 1 を再実行する。3 回失敗したら Phase 2 Step 3（page-data 組み立て）へ差し戻す。完了条件: exit 0
+- **Step 2** — FAIL 時は指摘に応じて page-data.json を修正し Step 1 を再実行する。3 回失敗したら Phase 2 Step 3（page-data 組み立て）へ差し戻す。完了条件: exit 0
 
 ### Phase 4: リリースノート.html 生成
 
@@ -122,7 +122,7 @@ page-data.json の保存先は `$CLAUDE_JOB_DIR/tmp/release-notes-page-data.json
 ## 予想を裏切る挙動
 
 - 出力先は `<docs_root>` 直下（種別専用フォルダは作らない）。`build-detail-page.sh` の `--page release-notes` 固定出力名仕様に従う
-- `rows[]` の `sourceRef` はコミットハッシュを使う。ファイルパス形式ではなく、`git log` が一次ソースであることを明示する
+- `releases[]` に `sourceRef` は持たせない。コミット情報は各リリースの `changes`・`summary` に要約して格納する（確定仕様 `page-data-schema.md` T7 準拠）
 - `portal_output_dir` 未指定時は `build-portal.sh` を実行しない。生成済みリリースノート.html はそのまま残り、次回ポータル生成時に自動でカード化される
 
 ## 設計判断
