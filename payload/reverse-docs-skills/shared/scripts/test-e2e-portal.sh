@@ -30,6 +30,10 @@
 #                     連続配置されているか（レンダラは group 変化時にのみ見出しを描画するため、
 #                     非連続だと同一グループ見出しが重複表示される）
 #   フッター-空確認   全ページの <footer> 内にスキル名・生成ツール名が含まれていないか
+#   リンク-文書存在確認 画面一覧の screens[].designDocPath/detailDocPath/sequencePath/testCasePath
+#                     が指す全ファイルが実在するか（値が有る画面のみ検査）
+#   整合-リンク設計   画面一覧サンプル・テンプレートの詳細行 JS が item[doc.pathField] で
+#                     リンク有効/無効を制御しているか（固定パターン screenDir が残存しないか）
 #
 # 出力: 「[PASS|FAIL|SKIP] <ケースキー> <ページ名> — 詳細」+ 末尾サマリ。FAIL があれば exit 1。
 # 依存: bash / jq / perl（macOS 標準）
@@ -442,6 +446,72 @@ for f in "${ALL_PAGES[@]}"; do
     report PASS "フッター-空確認" "$page" "footer内にスキル名・生成ツール名なし"
   fi
 done
+
+# ---- 検査キー: リンク-文書存在確認（画面一覧固有）----
+SCREEN_LIST_PAGE=""
+for f in ${LIST_PAGES[@]+"${LIST_PAGES[@]}"}; do
+  case "$(basename "$f")" in "画面一覧.html") SCREEN_LIST_PAGE="$f" ;; esac
+done
+if [ -z "$SCREEN_LIST_PAGE" ]; then
+  report SKIP "リンク-文書存在確認" "画面一覧" "ページ不在（生成フロー未対応のため検査対象外）"
+else
+  page="$(rel "$SCREEN_LIST_PAGE")"
+  dir="$(dirname "$SCREEN_LIST_PAGE")"
+  blockdir="$TMP_DIR/screenlist_docpaths"
+  mkdir -p "$blockdir"
+  extract_json_blocks "$SCREEN_LIST_PAGE" "$blockdir"
+  doc_json=""
+  for b in "$blockdir"/block_*.json; do
+    [ -f "$b" ] || continue
+    if jq -e 'type=="object" and has("screens")' "$b" >/dev/null 2>&1; then
+      doc_json="$b"
+      break
+    fi
+  done
+  if [ -z "$doc_json" ]; then
+    report FAIL "リンク-文書存在確認" "$page" "screens を持つマニフェストが見つからない"
+  else
+    broken=""
+    checked=0
+    while IFS= read -r path; do
+      [ -z "$path" ] && continue
+      checked=$((checked + 1))
+      if [ ! -f "$dir/$path" ]; then
+        broken="$broken $path"
+      fi
+    done < <(jq -r '.screens[] | (.designDocPath, .detailDocPath, .sequencePath, .testCasePath) | select(. != null)' "$doc_json" 2>/dev/null | LC_ALL=C sort -u)
+    if [ -n "$broken" ]; then
+      report FAIL "リンク-文書存在確認" "$page" "文書パス切れ:$broken"
+    else
+      report PASS "リンク-文書存在確認" "$page" "designDocPath/detailDocPath/sequencePath/testCasePath ${checked} 件すべて実在"
+    fi
+  fi
+fi
+
+# ---- 検査キー: 整合-リンク設計 ----
+LINK_DESIGN_TARGETS=()
+[ -n "$SCREEN_LIST_PAGE" ] && LINK_DESIGN_TARGETS+=("$SCREEN_LIST_PAGE")
+TEMPLATE_SCREEN_LIST="$SCRIPT_DIR/../templates/unit-list/screen-list-template.html"
+[ -f "$TEMPLATE_SCREEN_LIST" ] && LINK_DESIGN_TARGETS+=("$TEMPLATE_SCREEN_LIST")
+
+if [ "${#LINK_DESIGN_TARGETS[@]}" -eq 0 ]; then
+  report SKIP "整合-リンク設計" "画面一覧" "検査対象ページ・テンプレート不在（生成フロー未対応のため検査対象外）"
+else
+  for f in "${LINK_DESIGN_TARGETS[@]}"; do
+    case "$f" in
+      "$SAMPLES_DIR"/*) page="$(rel "$f")" ;;
+      *) page="$(basename "$(dirname "$f")")/$(basename "$f")" ;;
+    esac
+    probs=""
+    grep -q 'item\[doc\.pathField\]' "$f" || probs="${probs} pathFieldパターン欠落"
+    grep -q 'screenDir' "$f" && probs="${probs} 固定パターンscreenDirが残存"
+    if [ -n "$probs" ]; then
+      report FAIL "整合-リンク設計" "$page" "$probs"
+    else
+      report PASS "整合-リンク設計" "$page" "item[doc.pathField]パターンで制御・screenDir固定パターンなし"
+    fi
+  done
+fi
 
 # ---- サマリ ----
 echo "合計 ${TOTAL} 件 / FAIL ${FAILS} 件 / SKIP ${SKIPS} 件"
