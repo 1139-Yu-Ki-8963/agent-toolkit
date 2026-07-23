@@ -170,7 +170,7 @@ case "$PAGE_KIND" in
 esac
 
 # --- 4. 型別スロット ---
-get_slot_keys() { case "$1" in glossary) echo "categories terms";; techstack) echo "tiles columns rows";; transition) echo "legend nodes edges";; er) echo "legend entities relations";; env) echo "prerequisites steps allocations";; entity-state) echo "legend nodes edges";; esac; }
+get_slot_keys() { case "$1" in glossary) echo "categories terms";; techstack) echo "tiles columns rows";; transition) echo "legend nodes edges";; er) echo "legend entities relations";; env) echo "prerequisites steps allocations";; entity-state) echo "legend nodes edges";; release-notes) echo "releases";; design-system) echo "tokens";; component-inventory) echo "components";; icon-catalog) echo "icons";; esac; }
 
 if [ -n "$(get_slot_keys "$PAGE_KIND")" ]; then
   missing_slots=""

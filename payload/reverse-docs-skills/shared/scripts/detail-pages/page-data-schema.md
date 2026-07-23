@@ -6,7 +6,7 @@ detail-pages 系（用語辞書 / 技術スタック / 画面遷移図 / ER図 /
 
 | キー | 型 | 必須 | 内容 |
 |---|---|---|---|
-| pageKind | string | 必須 | `glossary` \| `techstack` \| `transition` \| `er` \| `env` \| `entity-state` のいずれか |
+| pageKind | string | 必須 | `glossary` \| `techstack` \| `transition` \| `er` \| `env` \| `entity-state` \| `release-notes` \| `design-system` \| `component-inventory` \| `icon-catalog` のいずれか |
 | generatedAt | string | 必須 | ISO8601 形式の生成日時（例: `2026-01-01T00:00:00Z`） |
 | title | string | 必須 | ページ見出し |
 | description | string | 必須 | ページ概要（1〜2 文） |
@@ -98,6 +98,45 @@ detail-pages 系（用語辞書 / 技術スタック / 画面遷移図 / ER図 /
 | allocations | array | `{ "target": string, "value": string, "sourceRef": string }` の配列。ポート割当等 |
 
 テンプレート挙動: 前提ツール表 → 手順表 → 割当表の順に固定表示する。各配列が空の場合は該当表に「なし」を 1 行表示する。
+
+### T7: release-notes（確定仕様）
+
+| キー | 型 | 内容 |
+|---|---|---|
+| releases | array | `{ id: string, date: string, title: string, pr: number \| null, prUrl: string \| null, flow: string, summary: array, changes: array, verifySteps: array }` の配列。1 要素 = 1 リリース（PR 単位） |
+
+- `releases[].id` は一意キー。`YYYY-MM-DD-<kebab>` 形式を推奨
+- `releases[].date` はコミット日（`YYYY-MM-DD`）
+- `releases[].pr` / `releases[].prUrl` は PR 番号・URL。存在しない場合は null
+- `releases[].flow` は `feature` \| `maintenance` \| `docs` のいずれか
+- `releases[].summary` は `{ label: string, text: string }` の配列。変更概要のラベル付き箇条書き
+- `releases[].changes` は `{ type: string, text: string }` の配列。`type` は `feat` \| `fix` \| `docs` \| `test` \| `refactor` \| `chore` のいずれか
+- `releases[].verifySteps` は `{ title: string, env?: string, checks: string[] }` の配列。`env` は `staging` \| `production` \| `local` のいずれか（省略可）
+
+テンプレート挙動: `releases[]` を PR 単位のアコーディオンカードとして一覧表示する。各カードの中身は「変更概要」「変更内容」「確認手順」の 3 つの折りたたみで構成し、確認手順のチェック状態は `localStorage` に永続化する。全チェック完了のカードは完了表示に切り替わる。
+
+### T8: design-system（確定仕様）
+
+| キー | 型 | 内容 |
+|---|---|---|
+| tokens | array | `{ category: string, name: string, value: string, usage: string }` の配列。デザイントークン 1 行 = 1 要素 |
+| summary | array | `{ label: string, value: string, note?: string }` の配列。要約タイル（任意） |
+
+### T9: component-inventory（確定仕様）
+
+| キー | 型 | 内容 |
+|---|---|---|
+| components | array | `{ name: string, path: string, props: number, usageCount: number, files: string[] }` の配列。コンポーネント 1 件 = 1 要素 |
+| summary | array | `{ label: string, value: string, note?: string }` の配列。要約タイル（任意） |
+
+### T10: icon-catalog（確定仕様）
+
+| キー | 型 | 内容 |
+|---|---|---|
+| icons | array | `{ name: string, sourceType: string, usageCount: number, files: string[] }` の配列。アイコン 1 個 = 1 要素 |
+| summary | array | `{ label: string, value: string, note?: string }` の配列。要約タイル（任意） |
+
+テンプレート挙動: `icons[]` をカードグリッドで表示する。`sourceType` に応じてカード上部にグリフ（`material` は Material Symbols フォント、`emoji` はテキストそのもの、それ以外は代替アイコン）を描画し、ソース種別チップ＋名前部分一致検索＋`usageCount` 降順ソートで絞り込む。使用ファイル一覧は `<details>` 展開式。
 
 ## 出力ファイル名との対応
 
