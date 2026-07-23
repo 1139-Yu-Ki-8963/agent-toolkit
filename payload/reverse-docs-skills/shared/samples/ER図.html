@@ -3298,10 +3298,11 @@ a:hover { text-decoration: underline; }
   function fallbackCopy(text) {
     var ta = document.createElement('textarea');
     ta.value = text;
-    ta.style.cssText = 'position:fixed;left:-9999px;top:0;opacity:0';
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
     document.body.appendChild(ta);
     ta.select();
-    try { document.execCommand('copy'); } catch(e) {}
+    try { document.execCommand('copy'); } catch (e) {}
     document.body.removeChild(ta);
   }
 
@@ -3323,20 +3324,17 @@ a:hover { text-decoration: underline; }
       });
     }
     sql += ');';
-    function onCopied() {
+    function done() {
       if (!btn) return;
       var original = btn.textContent;
       btn.textContent = 'コピーしました';
       setTimeout(function() { btn.textContent = original; }, 1200);
     }
     if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(sql).then(onCopied).catch(function() {
-        fallbackCopy(sql);
-        onCopied();
-      });
+      navigator.clipboard.writeText(sql).then(done, function() { fallbackCopy(sql); done(); });
     } else {
       fallbackCopy(sql);
-      onCopied();
+      done();
     }
   };
 

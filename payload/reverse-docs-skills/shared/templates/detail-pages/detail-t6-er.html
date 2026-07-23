@@ -148,7 +148,7 @@ a:hover { text-decoration: underline; }
 /* --- Canvas ステージ --- */
 .er-stage {
   position: relative; overflow: hidden; border-radius: var(--radius); border: 1px solid var(--border);
-  background: var(--panel); height: min(72vh, 720px); min-height: 420px;
+  background: var(--panel); height: min(80vh, 840px); min-height: 480px;
 }
 .er-canvas-el { display: block; width: 100%; height: 100%; cursor: grab; touch-action: none; }
 .er-canvas-el.dragging { cursor: grabbing; }
@@ -162,7 +162,7 @@ a:hover { text-decoration: underline; }
 
 /* --- 詳細パネル --- */
 .er-detail-panel {
-  position: absolute; top: 12px; right: 12px; width: 280px; max-height: calc(100% - 24px);
+  position: absolute; top: 12px; right: 12px; width: 320px; max-height: calc(100% - 24px);
   overflow-y: auto; background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius);
   box-shadow: var(--shadow-md); font-size: 11.5px; display: none; z-index: 5;
 }
@@ -217,6 +217,31 @@ a:hover { text-decoration: underline; }
 }
 
 .hidden { display: none !important; }
+
+.er-legend {
+  position: absolute; bottom: 12px; left: 12px;
+  background: var(--panel); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); box-shadow: var(--shadow-sm);
+  padding: 10px 14px; font-size: 11px; z-index: 4;
+}
+.er-legend-title { margin: 0 0 8px; font-size: 11px; font-weight: 700; color: var(--text-sub); }
+.er-legend-row { display: flex; align-items: center; gap: 8px; padding: 3px 0; color: var(--text-sub); }
+.er-legend-sym { width: 48px; height: 20px; flex: none; }
+.er-legend-toggle {
+  position: absolute; bottom: 12px; left: 12px;
+  background: var(--panel-2); border: 1px solid var(--border); border-radius: var(--radius-sm);
+  color: var(--text-sub); cursor: pointer; padding: 5px 10px; font-size: 11px; font-family: inherit;
+  z-index: 5;
+}
+.er-legend-toggle:hover { background: var(--accent-soft); color: var(--accent); border-color: var(--accent-border); }
+.er-legend.is-hidden { display: none; }
+.er-zoom-btns { display: flex; gap: 2px; }
+.er-zoom-btns button {
+  background: var(--panel-2); border: 1px solid var(--border); border-radius: var(--radius-sm);
+  color: var(--text-sub); cursor: pointer; padding: 6px 10px; font-size: 15px; font-family: inherit;
+  line-height: 1; min-width: 32px;
+}
+.er-zoom-btns button:hover { background: var(--accent-soft); color: var(--accent); border-color: var(--accent-border); }
 </style>
 </head>
 <body>
@@ -254,8 +279,13 @@ a:hover { text-decoration: underline; }
       <div class="er-breadcrumb" id="er-breadcrumb"></div>
       <div class="er-stats" id="er-stats"></div>
       <div class="er-toolbar-actions">
+        <div class="er-zoom-btns">
+          <button type="button" id="er-btn-zoomout" title="縮小">&minus;</button>
+          <button type="button" id="er-btn-zoomin" title="拡大">+</button>
+        </div>
         <button type="button" id="er-btn-overview">全体</button>
         <button type="button" id="er-btn-fit">フィット</button>
+        <button type="button" id="er-btn-export">PNG保存</button>
       </div>
     </div>
 
@@ -269,6 +299,30 @@ a:hover { text-decoration: underline; }
         </div>
         <div class="er-detail-body" id="er-detail-body"></div>
       </div>
+      <div class="er-legend" id="er-legend">
+        <div class="er-legend-title">凡例</div>
+        <div class="er-legend-row">
+          <svg class="er-legend-sym" viewBox="0 0 48 20"><line x1="4" y1="10" x2="44" y2="10" stroke="var(--text-muted)" stroke-width="1.2"/><line x1="10" y1="4" x2="10" y2="16" stroke="var(--text-muted)" stroke-width="1.2"/><line x1="44" y1="10" x2="36" y2="4" stroke="var(--text-muted)" stroke-width="1.2"/><line x1="44" y1="10" x2="36" y2="16" stroke="var(--text-muted)" stroke-width="1.2"/></svg>
+          <span>1対多 (1:N)</span>
+        </div>
+        <div class="er-legend-row">
+          <svg class="er-legend-sym" viewBox="0 0 48 20"><line x1="4" y1="10" x2="44" y2="10" stroke="var(--text-muted)" stroke-width="1.2"/><line x1="10" y1="4" x2="10" y2="16" stroke="var(--text-muted)" stroke-width="1.2"/><line x1="38" y1="4" x2="38" y2="16" stroke="var(--text-muted)" stroke-width="1.2"/></svg>
+          <span>1対1 (1:1)</span>
+        </div>
+        <div class="er-legend-row">
+          <svg class="er-legend-sym" viewBox="0 0 48 20"><path d="M24 16 C36 16 40 4 28 4" fill="none" stroke="var(--text-muted)" stroke-width="1.2"/><polygon points="26,2 30,4 26,6" fill="var(--text-muted)"/></svg>
+          <span>自己参照</span>
+        </div>
+        <div class="er-legend-row">
+          <span class="er-badge er-badge-pk" style="font-size:9px">PK</span>
+          <span>主キー</span>
+        </div>
+        <div class="er-legend-row">
+          <span class="er-badge er-badge-fk" style="font-size:9px">FK</span>
+          <span>外部キー</span>
+        </div>
+      </div>
+      <button type="button" class="er-legend-toggle" id="er-legend-toggle" style="display:none">凡例</button>
     </div>
 
     <!--RELATED_ENTITIES--><div id="unresolved-mount"></div>
@@ -476,11 +530,40 @@ a:hover { text-decoration: underline; }
   var nodeByKey = {};
   allNodes.forEach(function(n) { nodeByKey[n.key] = n; });
   var allEdges = graph.relations.map(function(r) {
-    return { from: nodeByKey[r.from], to: nodeByKey[r.to], cardinality: r.cardinality || '', sourceRef: r.sourceRef || '', ps: [] };
+    return { from: nodeByKey[r.from], to: nodeByKey[r.to], cardinality: r.cardinality || '', sourceRef: r.sourceRef || '' };
+  });
+
+  allEdges.forEach(function(e) {
+    if (!e.to || !e.from) return;
+    var toEntity = entitiesByKey[e.to.key];
+    var fromKey = e.from.key;
+    if (!toEntity || !toEntity.columns) return;
+    var candidates = [fromKey + '_id'];
+    if (fromKey.endsWith('s')) candidates.push(fromKey.slice(0, -1) + '_id');
+    if (fromKey.endsWith('ies')) candidates.push(fromKey.slice(0, -3) + 'y_id');
+    if (e.from.key === e.to.key) candidates.push('parent_id');
+    for (var i = 0; i < toEntity.columns.length; i++) {
+      var col = toEntity.columns[i];
+      if (col.fk && candidates.indexOf(col.name) !== -1) {
+        e.fkCol = col.name;
+        break;
+      }
+    }
+    if (!e.fkCol) {
+      for (var j = 0; j < toEntity.columns.length; j++) {
+        if (toEntity.columns[j].fk) {
+          var colName = toEntity.columns[j].name;
+          if (colName.indexOf(fromKey.replace(/s$/, '')) !== -1 || colName.indexOf(fromKey) !== -1) {
+            e.fkCol = colName;
+            break;
+          }
+        }
+      }
+    }
   });
 
   // --- クラスタ配置(俯瞰時のグリッド配置)とクラスタ内ノードの初期円配置 ---
-  var CARD_W = 230, CARD_H = 148, CARD_GAP = 90;
+  var CARD_W = 260, CARD_H = 156, CARD_GAP = 100;
   var cCols = Math.max(1, Math.ceil(Math.sqrt(clusterDefs.length || 1)));
   var cRows = Math.max(1, Math.ceil((clusterDefs.length || 1) / cCols));
   function layoutClusterMembers(c) {
@@ -506,7 +589,7 @@ a:hover { text-decoration: underline; }
   var cv = document.getElementById('er-canvas-el');
   var ctx = cv.getContext('2d');
   var W = 0, H = 0, dpr = window.devicePixelRatio || 1;
-  var NW = 134, NH = 36;
+  var NW = 240, NH = 56;
   var ADUR = 420;
   var cam = { x: 0, y: 0, z: .6, sx: 0, sy: 0, sz: .6, tx: 0, ty: 0, tz: .6 };
   var drag = null, anim = null, aStart = 0, queryTerm = '';
@@ -569,7 +652,7 @@ a:hover { text-decoration: underline; }
     ctx.fillStyle = cl.color;
     ctx.fillRect(x, y, 5, cl.h);
 
-    ctx.fillStyle = T.text; ctx.font = '700 14px ' + T.fontBody; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+    ctx.fillStyle = T.text; ctx.font = '700 15px ' + T.fontBody; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
     ctx.fillText(clusterLabel(cl.id), x + 20, y + 12, cl.w - 32);
 
     ctx.fillStyle = T.textMuted; ctx.font = '11px ' + T.fontBody;
@@ -582,7 +665,7 @@ a:hover { text-decoration: underline; }
       namesY = y + 76;
     }
     ctx.fillStyle = T.textMuted; ctx.font = '10px ' + T.fontBody;
-    ctx.fillText(clusterMemberNamesTruncated(cl, cl.w - 32), x + 20, namesY, cl.w - 32);
+    ctx.fillText(clusterMemberNamesTruncated(cl, cl.w - 36), x + 20, namesY, cl.w - 36);
     ctx.globalAlpha = 1;
   }
 
@@ -599,6 +682,20 @@ a:hover { text-decoration: underline; }
   }
 
   function selectedNode() { return state.selectedKey ? nodeByKey[state.selectedKey] : null; }
+
+  function fillTextEllipsis(text, x, y, maxW) {
+    if (ctx.measureText(text).width <= maxW) {
+      ctx.fillText(text, x, y);
+      return;
+    }
+    var ellipsis = '…';
+    var eW = ctx.measureText(ellipsis).width;
+    var t = text;
+    while (t.length > 0 && ctx.measureText(t).width + eW > maxW) {
+      t = t.slice(0, -1);
+    }
+    ctx.fillText(t + ellipsis, x, y);
+  }
 
   function drawNode(n, T) {
     if (n.a < .01) return;
@@ -621,14 +718,47 @@ a:hover { text-decoration: underline; }
     ctx.fill(); ctx.stroke();
     ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0;
 
-    ctx.fillStyle = color; ctx.fillRect(x, y, 4, NH);
-    ctx.fillStyle = T.text; ctx.font = '700 11px ' + T.fontBody; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
-    ctx.fillText(n.label, x + 10, y + NH * 0.36, NW - 16);
+    ctx.fillStyle = color; ctx.fillRect(x, y, 5, NH);
+    ctx.fillStyle = T.text; ctx.font = '700 13px ' + T.fontBody; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+    fillTextEllipsis(n.label, x + 14, y + NH * 0.24, NW - 24);
     if (n.key !== n.label) {
-      ctx.fillStyle = T.textMuted; ctx.font = '9px ' + T.mono;
-      ctx.fillText(n.key, x + 10, y + NH * 0.74, NW - 16);
+      ctx.fillStyle = T.textMuted; ctx.font = '11px ' + T.mono;
+      fillTextEllipsis(n.key, x + 14, y + NH * 0.50, NW - 24);
+    }
+    var colCount = (n.cols || []).length;
+    if (colCount > 0) {
+      ctx.fillStyle = T.textMuted; ctx.font = '10px ' + T.fontBody;
+      ctx.fillText(colCount + ' columns', x + 14, y + NH * 0.76);
     }
     ctx.globalAlpha = 1;
+  }
+
+  function clipLineToRect(cx, cy, hw, hh, dx, dy) {
+    var adx = Math.abs(dx), ady = Math.abs(dy);
+    if (adx < 0.0001 && ady < 0.0001) return { x: cx, y: cy };
+    var sx = adx > 0 ? hw / adx : 1e9;
+    var sy = ady > 0 ? hh / ady : 1e9;
+    var s = Math.min(sx, sy);
+    return { x: cx + dx * s, y: cy + dy * s };
+  }
+
+  function drawCrowsFoot(x, y, bx, by, px, py, sz) {
+    var spread = sz * 1.1;
+    var depth = sz * 1.4;
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x + bx * depth + px * spread, y + by * depth + py * spread);
+    ctx.moveTo(x, y);
+    ctx.lineTo(x + bx * depth - px * spread, y + by * depth - py * spread);
+    ctx.stroke();
+  }
+
+  function drawOneMark(x, y, bx, by, px, py, sz) {
+    var off = sz * 0.8;
+    ctx.beginPath();
+    ctx.moveTo(x + bx * off + px * sz, y + by * off + py * sz);
+    ctx.lineTo(x + bx * off - px * sz, y + by * off - py * sz);
+    ctx.stroke();
   }
 
   function drawEdge(e, T) {
@@ -636,17 +766,82 @@ a:hover { text-decoration: underline; }
     if (a < .01) return;
     var sel = selectedNode();
     var active = sel && (e.from === sel || e.to === sel);
-    ctx.globalAlpha = a;
+    var dim = queryTerm && !active;
+    ctx.globalAlpha = dim ? a * .08 : a;
     ctx.strokeStyle = active ? T.accent : T.border;
-    ctx.lineWidth = (active ? 1.8 : .6) / cam.z;
-    ctx.beginPath(); ctx.moveTo(e.from.x, e.from.y); ctx.lineTo(e.to.x, e.to.y); ctx.stroke();
-    if (e.ps.length) {
-      e.ps.forEach(function(p) {
-        var px = e.from.x + (e.to.x - e.from.x) * p.t, py = e.from.y + (e.to.y - e.from.y) * p.t;
-        ctx.beginPath(); ctx.arc(px, py, 2.4 / cam.z, 0, Math.PI * 2);
-        ctx.fillStyle = T.accent; ctx.globalAlpha = a * (1 - p.t * .3); ctx.fill();
-      });
+    var lw = (active ? 1.8 : .8) / cam.z;
+    ctx.lineWidth = lw;
+
+    if (e.from === e.to) {
+      var sx = e.from.x + NW / 2, sy = e.from.y;
+      var loopW = 28 / cam.z, loopH = 36 / cam.z;
+      ctx.beginPath();
+      ctx.moveTo(sx, sy - 6 / cam.z);
+      ctx.bezierCurveTo(sx + loopW, sy - loopH, sx + loopW, sy + loopH, sx, sy + 6 / cam.z);
+      ctx.stroke();
+      var arSz = 5 / cam.z;
+      ctx.beginPath();
+      ctx.moveTo(sx, sy + 6 / cam.z);
+      ctx.lineTo(sx + arSz, sy + 6 / cam.z - arSz);
+      ctx.moveTo(sx, sy + 6 / cam.z);
+      ctx.lineTo(sx - arSz * 0.4, sy + 6 / cam.z - arSz);
+      ctx.stroke();
+      if (e.cardinality && cam.z > 0.35) {
+        ctx.fillStyle = active ? T.accent : T.textMuted;
+        ctx.font = (9 / cam.z) + 'px ' + T.fontBody;
+        ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+        ctx.fillText(e.cardinality, sx + loopW + 4 / cam.z, sy);
+      }
+      ctx.globalAlpha = 1;
+      return;
     }
+
+    var fx = e.from.x, fy = e.from.y, tx = e.to.x, ty = e.to.y;
+    var dx = tx - fx, dy = ty - fy;
+    var len = Math.sqrt(dx * dx + dy * dy);
+    if (len < 1) { ctx.globalAlpha = 1; return; }
+    var nx = dx / len, ny = dy / len;
+
+    var fp = clipLineToRect(fx, fy, NW / 2 + 2, NH / 2 + 2, dx, dy);
+    var tp = clipLineToRect(tx, ty, NW / 2 + 2, NH / 2 + 2, -dx, -dy);
+
+    ctx.beginPath();
+    ctx.moveTo(fp.x, fp.y);
+    ctx.lineTo(tp.x, tp.y);
+    ctx.stroke();
+
+    var card = e.cardinality || '';
+    var perpX = -ny, perpY = nx;
+    var symSz = 9 / cam.z;
+
+    if (cam.z > 0.25) {
+      if (card === '1:N' || card === '1:n') {
+        drawOneMark(fp.x, fp.y, nx, ny, perpX, perpY, symSz);
+        drawCrowsFoot(tp.x, tp.y, -nx, -ny, perpX, perpY, symSz);
+      } else if (card === '1:1') {
+        drawOneMark(fp.x, fp.y, nx, ny, perpX, perpY, symSz);
+        drawOneMark(tp.x, tp.y, -nx, -ny, perpX, perpY, symSz);
+      }
+    }
+
+    if (card && cam.z > 0.35) {
+      var midX = (fp.x + tp.x) / 2;
+      var midY = (fp.y + tp.y) / 2;
+      ctx.fillStyle = active ? T.accent : T.textMuted;
+      ctx.font = '600 ' + (9 / cam.z) + 'px ' + T.fontBody;
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(card, midX + perpX * 10 / cam.z, midY + perpY * 10 / cam.z);
+    }
+
+    if (e.fkCol && cam.z > 0.55) {
+      var fkLabelX = fp.x + (tp.x - fp.x) * 0.75;
+      var fkLabelY = fp.y + (tp.y - fp.y) * 0.75;
+      ctx.fillStyle = active ? T.accent : T.textMuted;
+      ctx.font = (8 / cam.z) + 'px ' + T.mono;
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(e.fkCol, fkLabelX - perpX * 10 / cam.z, fkLabelY - perpY * 10 / cam.z);
+    }
+
     ctx.globalAlpha = 1;
   }
 
@@ -701,19 +896,6 @@ a:hover { text-decoration: underline; }
     cam.y = cam.sy + (cam.ty - cam.sy) * e;
     cam.z = cam.sz + (cam.tz - cam.sz) * e;
     if (t >= 1) anim = null;
-  }
-
-  function upPipes() {
-    var sel = selectedNode();
-    allEdges.forEach(function(e) {
-      var active = state.mode === 'table' && sel && (e.from === sel || e.to === sel);
-      if (active) {
-        if (Math.random() < .08) e.ps.push({ t: 0, s: .006 + Math.random() * .004 });
-        e.ps = e.ps.filter(function(p) { p.t += p.s; return p.t < 1; });
-      } else if (e.ps.length) {
-        e.ps.length = 0;
-      }
-    });
   }
 
   function startAnim(targets, camTx, camTy, camTz) {
@@ -781,13 +963,13 @@ a:hover { text-decoration: underline; }
     state.mode = 'expand'; state.focusClusterId = clusterId; state.selectedKey = null;
     hideDetail();
     var n = cl.members.length;
-    var radius = 90 + n * 16;
+    var radius = 160 + n * 28;
     var targets = {};
     cl.members.forEach(function(k, i) {
       var ang = Math.PI * 2 * i / Math.max(1, n) - Math.PI / 2;
       targets[k] = { tx: Math.cos(ang) * radius, ty: Math.sin(ang) * radius, ta: 1 };
     });
-    startAnim(targets, 0, 0, computeFitZoom(radius * 2 + 200, radius * 2 + 180));
+    startAnim(targets, 0, 0, computeFitZoom(radius * 2 + 280, radius * 2 + 240));
     renderBreadcrumb([{ label: clusterLabel(clusterId), action: null }]);
     updateBackButton();
   }
@@ -802,14 +984,14 @@ a:hover { text-decoration: underline; }
       if (other && !seen[other]) { seen[other] = true; relKeys.push(other); }
     });
     relKeys.sort(keyAsc);
-    var radius = Math.max(150, relKeys.length * 24);
+    var radius = Math.max(260, relKeys.length * 38);
     var targets = {};
     targets[key] = { tx: 0, ty: 0, ta: 1 };
     relKeys.forEach(function(k, i) {
       var ang = Math.PI * 2 * i / Math.max(1, relKeys.length) - Math.PI / 2;
       targets[k] = { tx: Math.cos(ang) * radius, ty: Math.sin(ang) * radius, ta: 1 };
     });
-    startAnim(targets, 0, 0, computeFitZoom(radius * 2 + 220, radius * 2 + 200));
+    startAnim(targets, 0, 0, computeFitZoom(radius * 2 + 300, radius * 2 + 260));
     var cid = clusterIdOf(key);
     renderBreadcrumb([
       { label: clusterLabel(cid), action: function() { enterExpand(cid); } },
@@ -979,6 +1161,18 @@ a:hover { text-decoration: underline; }
     cam.z = Math.max(.15, Math.min(3, cam.z * (ev.deltaY > 0 ? .9 : 1.1)));
   }, { passive: false });
 
+  cv.addEventListener('mousemove', function(ev) {
+    if (drag) return;
+    var w = s2w(ev.clientX, ev.clientY);
+    var hit = false;
+    if (state.mode === 'clusters') {
+      hit = !!hitCluster(w.x, w.y);
+    } else {
+      hit = !!hitNode(w.x, w.y);
+    }
+    cv.style.cursor = hit ? 'pointer' : 'grab';
+  });
+
   cv.addEventListener('mousedown', function(ev) {
     var w = s2w(ev.clientX, ev.clientY);
     if (state.mode === 'clusters') {
@@ -996,7 +1190,7 @@ a:hover { text-decoration: underline; }
     cam.x = drag.cx - (ev.clientX - drag.sx) / cam.z;
     cam.y = drag.cy - (ev.clientY - drag.sy) / cam.z;
   });
-  window.addEventListener('mouseup', function() { drag = null; cv.classList.remove('dragging'); });
+  window.addEventListener('mouseup', function() { drag = null; cv.classList.remove('dragging'); cv.style.cursor = 'grab'; });
 
   var touch0 = null;
   cv.addEventListener('touchstart', function(ev) {
@@ -1034,6 +1228,49 @@ a:hover { text-decoration: underline; }
   document.getElementById('er-back-btn').addEventListener('click', goBack);
   document.getElementById('er-btn-overview').addEventListener('click', enterOverview);
   document.getElementById('er-btn-fit').addEventListener('click', fitView);
+  document.getElementById('er-btn-zoomin').addEventListener('click', function() {
+    cam.z = Math.min(3, cam.z * 1.25);
+  });
+  document.getElementById('er-btn-zoomout').addEventListener('click', function() {
+    cam.z = Math.max(0.15, cam.z * 0.8);
+  });
+
+  document.getElementById('er-btn-export').addEventListener('click', function() {
+    var tempCv = document.createElement('canvas');
+    var exportScale = 2;
+    tempCv.width = W * exportScale;
+    tempCv.height = H * exportScale;
+    var tempCtx = tempCv.getContext('2d');
+    var origCtx = ctx;
+    var origDpr = dpr;
+    ctx = tempCtx;
+    dpr = exportScale;
+    render();
+    ctx = origCtx;
+    dpr = origDpr;
+    var link = document.createElement('a');
+    link.download = 'er-diagram.png';
+    link.href = tempCv.toDataURL('image/png');
+    link.click();
+  });
+
+  var legendEl = document.getElementById('er-legend');
+  var legendToggle = document.getElementById('er-legend-toggle');
+  legendToggle.addEventListener('click', function() {
+    legendEl.classList.remove('is-hidden');
+    legendToggle.style.display = 'none';
+  });
+  var legendClose = document.createElement('button');
+  legendClose.type = 'button';
+  legendClose.style.cssText = 'position:absolute;top:6px;right:6px;background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:14px;line-height:1;';
+  legendClose.setAttribute('aria-label', '閉じる');
+  legendClose.innerHTML = '&times;';
+  legendEl.style.position = 'relative';
+  legendEl.insertBefore(legendClose, legendEl.firstChild);
+  legendClose.addEventListener('click', function() {
+    legendEl.classList.add('is-hidden');
+    legendToggle.style.display = '';
+  });
 
   var searchInput = document.getElementById('er-search-input');
   var searchResults = document.getElementById('er-search-results');
@@ -1066,7 +1303,7 @@ a:hover { text-decoration: underline; }
   resize();
   window.addEventListener('resize', resize);
   enterOverview();
-  function loop() { upAnim(); upPipes(); render(); requestAnimationFrame(loop); }
+  function loop() { upAnim(); render(); requestAnimationFrame(loop); }
   loop();
 
   // --- 未解決節(unresolved[]) ---
