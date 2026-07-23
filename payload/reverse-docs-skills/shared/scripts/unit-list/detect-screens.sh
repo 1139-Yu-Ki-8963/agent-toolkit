@@ -1741,6 +1741,23 @@ EOF
     test_report "1-11-非UTF8-grep-a付き検出" 1 "enc_with_a=$enc_with_a"
   fi
 
+  # --- 陽性: DOM判定(form)済み画面のファイル名モーダル判定(basename_lower スコープ修正の検証) ---
+  local t_modal="$root/t_modal"
+  mkdir -p "$t_modal/src/screens/user"
+  printf '<html>\n<body>\n<form action="/edit">\n<input type="text" />\n</form>\n</body>\n</html>' > "$t_modal/src/screens/user/edit-modal.html"
+  printf '<html>\n<body>\n<h1>User</h1>\n<table><tr><td>data</td></tr></table>\n</body>\n</html>' > "$t_modal/src/screens/user/index.html"
+  local t_modal_manifest t_modal_status t_modal_parent
+  t_modal_manifest="$(mktemp)"
+  t_modal_status=0
+  bash "$0" "$t_modal" "$t_modal_manifest" >/dev/null 2>&1 || t_modal_status=$?
+  t_modal_parent="$(jq -r '.screens[] | select(.screenKey | test("edit-modal")) | .parentScreen' "$t_modal_manifest" 2>/dev/null || echo "")"
+  if [ "$t_modal_status" -eq 0 ] && [ -n "$t_modal_parent" ] && [ "$t_modal_parent" != "null" ]; then
+    test_report "1-9-モーダル判定-DOM確定後も有効" 0
+  else
+    test_report "1-9-モーダル判定-DOM確定後も有効" 1 "status=$t_modal_status parent='$t_modal_parent'"
+  fi
+  rm -f "$t_modal_manifest"
+
   rm -rf "$root"
 
   echo "self-test: ${PASS_COUNT} PASS, ${FAIL_COUNT} FAIL" >&2
@@ -2227,10 +2244,12 @@ classify_screen() {
     fi
   fi
 
+  # basename_lower: モーダル判定(2272行)でも参照するため、screenType判定の外で代入する
+  local basename_lower
+  basename_lower="$(basename "$entry_file" 2>/dev/null | tr '[:upper:]' '[:lower:]')"
+
   # (2) ファイル名キーワード(補助。DOMで判定できなかった場合のみ)
   if [ "$screen_type" = "unknown" ]; then
-    local basename_lower
-    basename_lower="$(basename "$entry_file" 2>/dev/null | tr '[:upper:]' '[:lower:]')"
     case "$basename_lower" in
       *list*|*index*|*search*) screen_type="list" ;;
       *detail*|*show*|*view*) screen_type="detail" ;;

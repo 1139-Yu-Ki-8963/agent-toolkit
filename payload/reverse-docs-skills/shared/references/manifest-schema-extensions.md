@@ -23,7 +23,7 @@
 | accountGroup | string | 任意 | システム区分（Level 1 分類。プロジェクトの設定グループ定義から機械抽出） | detectionMethod のグループ名から判定 |
 | accountSubType | string | 任意 | 利用者権限区分（Level 2 分類。権限チェック条件分岐の有無で判定。該当なしは `common`） | エントリファイル内の権限チェック grep |
 | hasTemplate | boolean | 任意 | テンプレート実体の有無（拡張子 `.html`/`.htm`/`.tt`/`.tx` で判定） | テンプレートファイルの実在確認 |
-| parentScreen | string | 任意 | 親画面のキー（モーダル・ポップアップの呼出し元。該当なしは null） | `onclick`/`window.open`/`showModal` の参照元 grep |
+| parentScreen | string | 任意 | 親画面のキー（モーダル・ポップアップの呼出し元。該当なしは null） | ファイル名パターン `modal\|dialog\|popup\|drawer` ＋内容パターン `isOpen\|isVisible\|showModal\|onClose\|handleClose` による判定、同階層の非モーダルファイルを親候補に採用 |
 | childComponents | string[] | 任意 | 紐づくコンポーネントキーの配列（parentScreen の逆引き） | parentScreen フィールドの逆引き集約 |
 | isProcessingEndpoint | boolean | 任意 | 処理エンドポイント（UI を持たない）か否か（hasTemplate=false かつ screenType=unknown で判定） | テンプレート不在かつリダイレクトのみ |
 
