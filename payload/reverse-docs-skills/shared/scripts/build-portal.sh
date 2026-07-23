@@ -371,6 +371,23 @@ TEST10HTML
   fi
   rm -rf "$test10_dir"
 
+  echo "--- ケース11: .pm-main の縦スクロール指定 ---"
+  test11_dir="$(mktemp -d)"
+  test11_repo="$test11_dir/repo"
+  test11_docs="$test11_dir/docs"
+  test11_portal="$test11_dir/portal"
+  mkdir -p "$test11_repo" "$test11_docs" "$test11_portal"
+  echo '{"total":100,"fe":50,"be":50,"file_count":10}' > "$test11_portal/code-metrics.json"
+  "$SCRIPT_DIR/build-portal.sh" "$test11_repo" "$test11_docs" "$test11_portal" 2>/dev/null
+  if grep -q '\.pm-main {.*overflow-y: auto' "$test11_portal/index.html"; then
+    echo "PASS: --self-test ケース11（.pm-main の縦スクロール指定）"
+  else
+    echo "FAIL: --self-test ケース11（.pm-main の縦スクロール指定）" >&2
+    rm -rf "$test11_dir"
+    exit 1
+  fi
+  rm -rf "$test11_dir"
+
   exit 0
 fi
 

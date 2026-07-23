@@ -239,6 +239,14 @@ self_test() {
   }' > "$data_er"
   check_page_fixture er "$data_er"
 
+  local out_er_html="$tmp/out-er/ER図.html"
+  if [ -f "$out_er_html" ] && grep -qF 'execCommand' "$out_er_html"; then
+    echo "  [PASS] ケースf(er): clipboard フォールバック(execCommand)が出力に含まれる"
+  else
+    echo "  [FAIL] ケースf(er): clipboard フォールバック(execCommand)が出力に含まれない" >&2
+    rc=1
+  fi
+
   local data_env="$tmp/page-data-env.json"
   jq -n '{
     pageKind: "env",
@@ -456,6 +464,7 @@ render_args=(
   "{{DESCRIPTION}}" "$(html_escape "$DESCRIPTION")"
   "{{GENERATED_AT}}" "$(html_escape "$GENERATED_AT")"
   "{{COMMIT_SHORT}}" ""
+  "{{BACK_LINK}}" "index.html"
   "<!--RELATED_ENTITIES-->" "$RELATED_ENTITIES_HTML"
   "{{PAGE_DATA_JSON}}" "$PAGE_DATA_JSON"
 )

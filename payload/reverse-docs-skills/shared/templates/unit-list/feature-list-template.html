@@ -361,12 +361,15 @@
       }
       if (typeof value === 'object') {
         var s = document.createElement('span');
-        s.textContent = (value.readable !== undefined) ? String(value.readable) : JSON.stringify(value);
+        var displayText = (value.readable !== undefined) ? String(value.readable) : JSON.stringify(value);
+        s.textContent = displayText;
         if (value.cron) s.title = value.cron;
+        td.title = displayText;
         td.appendChild(s);
         return;
       }
       td.textContent = String(value);
+      td.title = String(value);
     }
 
     /* 全テーブルを走査（カテゴリごとの複数テーブル対応）。thead 末尾に th、各行末尾に td を追加。
