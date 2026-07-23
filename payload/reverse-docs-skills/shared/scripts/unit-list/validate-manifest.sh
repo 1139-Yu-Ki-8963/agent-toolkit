@@ -12,7 +12,7 @@
 # screenKey/route/entryFile/screenIdRegex を使う。screen以外は units・unitKey/identifier/
 # sourceFile/unitIdRegex を使う。
 #
-# 検査項目(全8項目。結果は [PASS]/[FAIL] 項目名 — 詳細 の形式でstderrへ列挙):
+# 検査項目(screen: 全9項目 / screen以外: 全8項目。結果は [PASS]/[FAIL] 項目名 — 詳細 の形式でstderrへ列挙):
 #   1. schema-必須フィールド    : トップレベル必須キー + 各要素の必須キーの存在
 #                                  (screen: generatedAt,sourceDir,strategy,detectionSummary,screens /
 #                                   screenKey,kind,route,entryFile,confidence。
@@ -51,8 +51,12 @@
 #                                   - object({cron, readable}を持つ): schedule
 #                                   - 2値制約: designDocStatus(着手済/未着手)・trigger(画面/バッチ)・
 #                                     direction(送信/受信)
+#   9. screenType-必須+値域     : screen専用(screen以外はskip)。全screensにscreenTypeフィールドが
+#                                   存在し(不在・null不可)、値が list/detail/form/confirm/complete/
+#                                   error/top/processing_endpoint のいずれかであること
 #
-# 全8項目PASSでexit 0。1件でもFAILがあればexit 1(--fixで解消された項目4はPASS扱い)。
+# 全項目(screen: 9項目 / screen以外: 8項目)PASSでexit 0。1件でもFAILがあればexit 1
+# (--fixで解消された項目4はPASS扱い)。
 
 set -uo pipefail
 
@@ -458,8 +462,39 @@ run_validate() {
   fi
 
   # ---------------------------------------------------------------------------
+  # 9. screenType-必須+値域(screen専用。screen以外はskip)
+  #    全screensにscreenTypeフィールドが存在し(不在・null不可)、値域内であることを検査する。
+  # ---------------------------------------------------------------------------
+  local total_items=8
+  if [ "$UNIT_KIND" = "screen" ]; then
+    total_items=9
+    local screen_type_issues
+    screen_type_issues="$(jq -r '
+      ["list","detail","form","confirm","complete","error","top","processing_endpoint"] as $allowed
+      | [ .screens[]? |
+          (.screenKey // "?") as $k
+          | (.screenType) as $st
+          | if (has("screenType") | not) or ($st == null) then
+              $k + ":screenType不在"
+            elif ($allowed | index($st)) == null then
+              $k + ":screenType=" + ($st | tostring) + "(値域外)"
+            else
+              empty
+            end
+        ] | join("; ")
+    ' "$MANIFEST")"
+
+    if [ -n "$screen_type_issues" ]; then
+      overall_fail=1
+      echo "[FAIL] screenType-必須+値域 — ${screen_type_issues}" >&2
+    else
+      echo "[PASS] screenType-必須+値域 — 全screensにscreenType存在し値域内" >&2
+    fi
+  fi
+
+  # ---------------------------------------------------------------------------
   if [ "$overall_fail" -eq 0 ]; then
-    echo "[OK] validate-manifest: 全8項目PASS" >&2
+    echo "[OK] validate-manifest: 全${total_items}項目PASS" >&2
     return 0
   fi
 
@@ -506,7 +541,8 @@ EOF
       "kind": "route",
       "route": "/home",
       "entryFile": "src/screens/Home.tsx",
-      "confidence": "high"
+      "confidence": "high",
+      "screenType": "top"
     }
   ]
 }
@@ -526,6 +562,25 @@ JSON
     rc=1
   else
     echo "  [PASS] screen陰性: screens欠落でFAIL"
+  fi
+
+  # ---- 検査9(screenType-必須+値域)の確認 ----
+  local screen_missing_type="$tmp/screen-missing-type.json"
+  jq '.screens[0] |= del(.screenType)' "$screen_pass" > "$screen_missing_type"
+  if run_validate "$screen_missing_type" "" "screen" >/dev/null 2>&1; then
+    echo "  [FAIL] screenType陰性(不在): screenType不在なのにPASSした" >&2
+    rc=1
+  else
+    echo "  [PASS] screenType陰性(不在): screenType不在でFAIL"
+  fi
+
+  local screen_bad_type="$tmp/screen-bad-type.json"
+  jq '.screens[0].screenType = "invalid-value"' "$screen_pass" > "$screen_bad_type"
+  if run_validate "$screen_bad_type" "" "screen" >/dev/null 2>&1; then
+    echo "  [FAIL] screenType陰性(値域外): screenType値域外なのにPASSした" >&2
+    rc=1
+  else
+    echo "  [PASS] screenType陰性(値域外): screenType値域外でFAIL"
   fi
 
   # ---- api フィクスチャ: unitKind=apiでの汎用パス確認 ----

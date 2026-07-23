@@ -1725,6 +1725,22 @@ EOF
   fi
   rm -f "$tshared_manifest"
 
+  # --- 陽性: 非UTF-8(Shift_JIS)テンプレートの grep -a 挙動差検証 ---
+  local t_enc="$root/t_enc"
+  mkdir -p "$t_enc/src/screens/foo"
+  # Shift_JIS でエンコードされた <form> を含むファイルを合成
+  # \x83\x74\x83\x48\x81\x5b\x83\x80 = "フォーム" in Shift_JIS
+  printf '<html>\n<body>\n<form action="/submit">\n\x83\x74\x83\x48\x81\x5b\x83\x80\n</form>\n</body>\n</html>' > "$t_enc/src/screens/foo/index.html"
+  # -a 付きなら検出できる
+  local enc_with_a enc_without_a
+  enc_with_a="$(grep -ac '<form' "$t_enc/src/screens/foo/index.html" 2>/dev/null || echo 0)"
+  enc_without_a="$(grep -c '<form' "$t_enc/src/screens/foo/index.html" 2>/dev/null || echo 0)"
+  if [ "$enc_with_a" -ge 1 ]; then
+    test_report "1-11-非UTF8-grep-a付き検出" 0
+  else
+    test_report "1-11-非UTF8-grep-a付き検出" 1 "enc_with_a=$enc_with_a"
+  fi
+
   rm -rf "$root"
 
   echo "self-test: ${PASS_COUNT} PASS, ${FAIL_COUNT} FAIL" >&2
@@ -2191,23 +2207,19 @@ classify_screen() {
     if [ -n "$role_match" ]; then
       account_sub_type="$role_match"
     fi
+    # 条件分岐による権限チェックパターン(アノテーションで検出できなかった場合)
+    if [ "$account_sub_type" = "common" ]; then
+      local branch_role_match
+      branch_role_match=$(grep -aoE '(if|switch|case).*\b(role|permission|auth|access)\b' "$entry_file" 2>/dev/null | head -1)
+      if [ -n "$branch_role_match" ]; then
+        account_sub_type="role_checked"
+      fi
+    fi
   fi
 
-  # Level 3: 画面種別(entryFileのパスとファイル名パターンから推定)
-  local basename_lower
-  basename_lower="$(basename "$entry_file" 2>/dev/null | tr '[:upper:]' '[:lower:]')"
-  case "$basename_lower" in
-    *list*|*index*|*search*) screen_type="list" ;;
-    *detail*|*show*|*view*) screen_type="detail" ;;
-    *edit*|*form*|*input*|*new*|*create*|*update*) screen_type="form" ;;
-    *confirm*) screen_type="confirm" ;;
-    *complete*|*done*|*finish*) screen_type="complete" ;;
-    *error*|*404*|*500*) screen_type="error" ;;
-    *top*|*home*|*dashboard*) screen_type="top" ;;
-  esac
-
-  # screenType の DOM 補完: ファイル名から判定できない場合、テンプレートのDOM構造から推定
-  if [ "$screen_type" = "unknown" ] && [ -f "$entry_file" ]; then
+  # Level 3: 画面種別(DOM構造分析を主軸、ファイル名マッチを補助)
+  # (1) DOM構造分析(主軸)
+  if [ -f "$entry_file" ]; then
     if grep -aqE '<form[\s>]' "$entry_file" 2>/dev/null; then
       screen_type="form"
     elif grep -aqE '<table[\s>]' "$entry_file" 2>/dev/null; then
@@ -2215,10 +2227,31 @@ classify_screen() {
     fi
   fi
 
+  # (2) ファイル名キーワード(補助。DOMで判定できなかった場合のみ)
+  if [ "$screen_type" = "unknown" ]; then
+    local basename_lower
+    basename_lower="$(basename "$entry_file" 2>/dev/null | tr '[:upper:]' '[:lower:]')"
+    case "$basename_lower" in
+      *list*|*index*|*search*) screen_type="list" ;;
+      *detail*|*show*|*view*) screen_type="detail" ;;
+      *edit*|*form*|*input*|*new*|*create*|*update*) screen_type="form" ;;
+      *confirm*) screen_type="confirm" ;;
+      *complete*|*done*|*finish*) screen_type="complete" ;;
+      *error*|*404*|*500*) screen_type="error" ;;
+      *top*|*home*|*dashboard*) screen_type="top" ;;
+    esac
+  fi
+
   # hasTemplate: テンプレートファイルの存在推定(entryFileの拡張子がhtml等)
   case "$entry_file" in
     *.html|*.htm|*.tt|*.tx|*.tsx|*.jsx|*.vue|*.svelte) has_template="true" ;;
   esac
+  # テンプレート呼び出し関数の検出(拡張子で判定できなかった場合)
+  if [ "$has_template" = "false" ] && [ -f "$entry_file" ]; then
+    if grep -aoE '(render|render_template|template|view)\s*\(' "$entry_file" >/dev/null 2>&1; then
+      has_template="true"
+    fi
+  fi
 
   # unknown かつテンプレートありは、テンプレート実体がありUIを持つが一覧でも
   # フォームでもエラーでもない画面として、最も汎用的な detail(詳細/参照画面)へ倒す
