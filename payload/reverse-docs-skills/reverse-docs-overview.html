@@ -171,7 +171,7 @@
 
     <div>
       <div class="flowstep">
-        <span class="stepname">一覧生成（6 種別）</span>
+        <span class="stepname">一覧生成（8 種別）</span>
         <span class="stepskill">generating-&lt;種別&gt;-list-for-reverse-docs ×6</span>
         <div class="note">Phase 1B：実在する種別（unit_kinds_present）のみ並列起動（Agent, run_in_background）</div>
       </div>
@@ -185,6 +185,15 @@
       </div>
     </div>
     <div class="flowgain"><span class="gainlabel">docs_root に増えるもの</span><code>プロジェクト共通/</code> の 7 文書（規約 4 種・共通設計書・メッセージ定義書・DESIGN.md）</div>
+
+    <div>
+      <div class="flowstep">
+        <span class="stepname">基盤ページ生成（9 種・任意）</span>
+        <span class="stepskill">generating-tech-stack-for-reverse-docs / generating-env-guide-for-reverse-docs / generating-screen-transition-for-reverse-docs / generating-er-diagram-for-reverse-docs / generating-glossary-for-reverse-docs / generating-release-notes-for-reverse-docs / generating-design-system-for-reverse-docs / generating-component-inventory-for-reverse-docs / generating-icon-catalog-for-reverse-docs</span>
+        <div class="note">データ源未整備時はスキップしてよい任意工程（contract.md「基盤ページ未生成（任意）」）</div>
+      </div>
+    </div>
+    <div class="flowgain"><span class="gainlabel">docs_root に増えるもの</span><code>技術スタック.html</code>・<code>環境構築手順.html</code>・<code>画面遷移図.html</code>・<code>ER図.html</code>・<code>用語辞書.html</code>・<code>リリースノート.html</code>・<code>デザインシステム.html</code>・<code>コンポーネント棚卸し.html</code>・<code>アイコンカタログ.html</code>（いずれも docs_root 直下）</div>
 
     <div>
       <div class="flowstep">
@@ -331,6 +340,18 @@
       <td>一覧/機能一覧/機能一覧.html</td>
     </tr>
     <tr>
+      <td><a href=".claude/skills/generating-message-list-for-reverse-docs/references/generating-message-list-for-reverse-docs-guide.html"><code>generating-message-list-for-reverse-docs</code></a></td>
+      <td>派生一覧未生成（任意）</td>
+      <td><code>DONE | ERROR</code></td>
+      <td>一覧/メッセージ一覧/メッセージ一覧.html</td>
+    </tr>
+    <tr>
+      <td><a href=".claude/skills/generating-test-viewpoint-list-for-reverse-docs/references/generating-test-viewpoint-list-for-reverse-docs-guide.html"><code>generating-test-viewpoint-list-for-reverse-docs</code></a></td>
+      <td>派生一覧未生成（任意）</td>
+      <td><code>DONE | ERROR</code></td>
+      <td>一覧/テスト観点表/テスト観点表.html</td>
+    </tr>
+    <tr>
       <td><a href=".claude/skills/generating-reverse-common-docs/references/generating-reverse-common-docs-guide.html"><code>generating-reverse-common-docs</code></a></td>
       <td>共通未採録（NG 帰着 (c) 時は往復未検証から再入）</td>
       <td><code>採録v0確定 | 追記完了 | 中断</code></td>
@@ -415,6 +436,30 @@
       <td>用語辞書.html</td>
     </tr>
     <tr>
+      <td><a href=".claude/skills/generating-release-notes-for-reverse-docs/references/generating-release-notes-for-reverse-docs-guide.html"><code>generating-release-notes-for-reverse-docs</code></a></td>
+      <td>基盤ページ未生成（任意）</td>
+      <td><code>DONE | ERROR</code></td>
+      <td>リリースノート.html</td>
+    </tr>
+    <tr>
+      <td><a href=".claude/skills/generating-design-system-for-reverse-docs/references/generating-design-system-for-reverse-docs-guide.html"><code>generating-design-system-for-reverse-docs</code></a></td>
+      <td>基盤ページ未生成（任意）</td>
+      <td><code>DONE | ERROR</code></td>
+      <td>デザインシステム.html</td>
+    </tr>
+    <tr>
+      <td><a href=".claude/skills/generating-component-inventory-for-reverse-docs/references/generating-component-inventory-for-reverse-docs-guide.html"><code>generating-component-inventory-for-reverse-docs</code></a></td>
+      <td>基盤ページ未生成（任意）</td>
+      <td><code>DONE | ERROR</code></td>
+      <td>コンポーネント棚卸し.html</td>
+    </tr>
+    <tr>
+      <td><a href=".claude/skills/generating-icon-catalog-for-reverse-docs/references/generating-icon-catalog-for-reverse-docs-guide.html"><code>generating-icon-catalog-for-reverse-docs</code></a></td>
+      <td>基盤ページ未生成（任意）</td>
+      <td><code>DONE | ERROR</code></td>
+      <td>アイコンカタログ.html</td>
+    </tr>
+    <tr>
       <td><code>counting-code-lines</code></td>
       <td>ポータル生成用計測（Phase 4A）</td>
       <td>（status 契約なし・完了報告型）</td>
@@ -450,13 +495,15 @@
             <li><span class="node">帳票一覧/帳票一覧.html</span><span class="by">generating-report-list-for-reverse-docs</span> <span class="tag done">済</span></li>
             <li><span class="node">外部連携一覧/外部連携一覧.html</span><span class="by">generating-external-list-for-reverse-docs</span> <span class="tag done">済</span></li>
             <li><span class="node">機能一覧/機能一覧.html</span><span class="by">generating-feature-list-for-reverse-docs（派生一覧）</span> <span class="tag done">済</span></li>
+            <li><span class="node">メッセージ一覧/メッセージ一覧.html</span><span class="by">generating-message-list-for-reverse-docs（派生一覧）</span> <span class="tag done">済</span></li>
+            <li><span class="node">テスト観点表/テスト観点表.html</span><span class="by">generating-test-viewpoint-list-for-reverse-docs（派生一覧）</span> <span class="tag done">済</span></li>
             <li><span class="node">reverse-screen-registry.yml</span><span class="by">unlocking-reverse-target-screens（記帳）</span> <span class="tag done">済</span></li>
             <li><span class="node">excluded-kinds.json</span><span class="by">orchestrating-reverse-docs-flow</span> <span class="tag done">済</span></li>
           </ul>
         </li>
         <li><span class="node dir">プロジェクト共通/</span>
           <ul>
-            <li><span class="node">規約/（コーディング・命名・ディレクトリ構成・コンポーネント設計の 4 種）</span><span class="by">generating-reverse-common-docs</span> <span class="tag done">済</span></li>
+            <li><span class="node">規約/（コーディング・命名・ディレクトリ構成・コンポーネント設計・テスト方針・デザインガイド・フロー手順・自動化・文章品質の 9 種）</span><span class="by">generating-reverse-common-docs</span> <span class="tag done">済</span></li>
             <li><span class="node">共通設計書.md ・ メッセージ定義書.md ・ DESIGN.md</span><span class="by">generating-reverse-common-docs</span> <span class="tag done">済</span></li>
             <li><span class="node">アーキテクチャ調査書.md</span><span class="by">surveying-architecture-for-reverse-docs</span> <span class="tag done">済</span></li>
             <li><span class="node">基盤設計.md ・ UI共通設計.md ・ データ設計.md</span><span class="by">上位抽象化スキル（基本設計）</span> <span class="tag planned">段階計画 Cycle 4</span></li>
@@ -505,6 +552,10 @@
         <li><span class="node">画面遷移図.html</span><span class="by">generating-screen-transition-for-reverse-docs</span> <span class="tag done">済</span></li>
         <li><span class="node">ER図.html</span><span class="by">generating-er-diagram-for-reverse-docs</span> <span class="tag done">済</span></li>
         <li><span class="node">環境構築手順.html</span><span class="by">generating-env-guide-for-reverse-docs</span> <span class="tag done">済</span></li>
+        <li><span class="node">リリースノート.html</span><span class="by">generating-release-notes-for-reverse-docs</span> <span class="tag done">済</span></li>
+        <li><span class="node">デザインシステム.html</span><span class="by">generating-design-system-for-reverse-docs</span> <span class="tag done">済</span></li>
+        <li><span class="node">コンポーネント棚卸し.html</span><span class="by">generating-component-inventory-for-reverse-docs</span> <span class="tag done">済</span></li>
+        <li><span class="node">アイコンカタログ.html</span><span class="by">generating-icon-catalog-for-reverse-docs</span> <span class="tag done">済</span></li>
       </ul>
     </li>
   </ul>
@@ -529,6 +580,8 @@
     <tr><td>バッチ（batch）</td><td><span class="tag listonly">一覧のみ</span></td><td><span class="tag done">済</span></td><td><span class="tag planned">段階計画</span></td><td><span class="tag planned">段階計画</span></td><td><span class="tag planned">段階計画</span></td></tr>
     <tr><td>帳票（report）</td><td><span class="tag listonly">一覧のみ</span></td><td><span class="tag done">済</span></td><td><span class="tag planned">段階計画</span></td><td><span class="tag planned">段階計画</span></td><td><span class="tag planned">段階計画</span></td></tr>
     <tr><td>外部連携（external）</td><td><span class="tag listonly">一覧のみ</span></td><td><span class="tag done">済</span></td><td><span class="tag planned">段階計画</span></td><td><span class="tag planned">段階計画</span></td><td><span class="tag planned">段階計画</span></td></tr>
+    <tr><td>メッセージ（message・派生一覧）</td><td><span class="tag listonly">一覧のみ</span></td><td><span class="tag done">済</span></td><td><span class="tag planned">段階計画</span></td><td><span class="tag planned">段階計画</span></td><td><span class="tag planned">段階計画</span></td></tr>
+    <tr><td>テスト観点表（test_viewpoint・派生一覧）</td><td><span class="tag listonly">一覧のみ</span></td><td><span class="tag done">済</span></td><td><span class="tag planned">段階計画</span></td><td><span class="tag planned">段階計画</span></td><td><span class="tag planned">段階計画</span></td></tr>
   </table>
   <p class="note">facts 抽出スキルは <code>profile=screen</code> のみ実装しており、他プロファイル指定時は <code>status=中断</code> を返す。画面以外の種別は一覧確立の時点で工程が止まる（contract.md の状態判定表に明文化済み）。</p>
 </section>

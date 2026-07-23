@@ -321,7 +321,9 @@
       table:    [['foreignKeys', 'FK参照先'], ['columnCount', 'カラム数'], ['mainColumns', '主要カラム']],
       batch:    [['schedule', 'スケジュール'], ['targetTables', '対象テーブル'], ['downstreamJobs', '後続ジョブ'], ['execMethod', '実行方法']],
       report:   [['format', '出力形式'], ['trigger', '出力契機']],
-      external: [['direction', '方向'], ['protocol', 'プロトコル'], ['authMethod', '認証方式']]
+      external: [['direction', '方向'], ['protocol', 'プロトコル'], ['authMethod', '認証方式']],
+      message:  [['messageText', '文言'], ['messageType', '種別'], ['sourceFile', '抽出元'], ['usedScreen', '使用画面']],
+      test_viewpoint: [['screenKey', '画面'], ['testType', 'テスト種別'], ['category', 'カテゴリ'], ['viewpoint', '観点']]
     };
     var fields = FIELD_SETS[optManifest.unitKind];
     if (!fields) return;
@@ -587,7 +589,7 @@
     var COL_COUNT = headerCells.length;
     /* チップ対象列は列見出し名で指定する（任意列スクリプトが追加した列も対象にできる） */
     var CHIP_COLUMNS = ['区分'];
-    var EXTRA_CHIP_COLUMNS = { api: ['メソッド', '認証'], batch: [], report: ['出力形式', '出力契機'], external: ['方向', 'プロトコル'] };
+    var EXTRA_CHIP_COLUMNS = { api: ['メソッド', '認証'], batch: [], report: ['出力形式', '出力契機'], external: ['方向', 'プロトコル'], message: ['種別'], test_viewpoint: ['テスト種別', '画面'] };
     (EXTRA_CHIP_COLUMNS[manifest.unitKind] || []).forEach(function (name) {
       if (CHIP_COLUMNS.indexOf(name) === -1) CHIP_COLUMNS.push(name);
     });

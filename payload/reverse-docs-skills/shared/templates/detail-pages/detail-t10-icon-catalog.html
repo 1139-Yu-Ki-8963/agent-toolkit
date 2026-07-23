@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{TITLE}} — リバース設計ポータル</title>
+<!--
+  detail-pages T10 アイコンカタログ型テンプレート — リバース設計スキル群
+  生成: shared/scripts/detail-pages/build-detail-page.sh
+  プレースホルダ置換は build-detail-page.sh の render_template() が行う。
+  手作業によるプレースホルダ置換は禁止。生成は必ずスクリプト経由で行う。
+
+  保守注記: トークンブロック・テーマ切替(data-theme二重定義・rd-portal-theme)は
+  shared/templates/portal-template.html からの複製である。
+  同テンプレートの当該部分を変更した場合は本ファイルも同時更新すること
+  （T1一覧テンプレート群・T2〜T6テンプレートにも同種の複製あり。include化は別件）。
+
+  プレースホルダ(build-detail-page.shが注入。実際のマーカー記法は
+  scripts/detail-pages/build-detail-page.sh 冒頭コメントを定義とする。本コメントでは
+  二重置換事故を避けるため意図的に波括弧を外して記載する):
+    TITLE (ページ見出しマーカー)         : page-data.json の title
+    DESCRIPTION (ページ概要マーカー)     : page-data.json の description
+    GENERATED_AT (生成日時マーカー)      : page-data.json の generatedAt
+    PAGE_DATA_JSON (page-data埋め込みマーカー) : page-data.json の内容全体(本ファイル物理末尾のscriptタグへ注入)
+
+  pageKind: icon-catalog
+  page-data.json 想定構造(本テンプレートのJSが直接参照する型別スロット。
+  定義スキーマへの追記は別件・page-data-schema.mdは本ファイルの変更対象外):
+    icons: [{ name: string, sourceType: string, usageCount: number, files: string[] }]
+    summary: [{ label: string, value: string, note?: string }]（任意。要約タイル）
+  アイコン名でグルーピングしたカードグリッド。各カードにアイコン名 + ソース種別タグ + 使用件数 +
+  使用ファイル一覧(<details>展開式)を表示する。ソース種別フィルタ + 検索窓(名前部分一致) +
+  usageCount 降順ソートを行う。
+-->
+<style>
+/* TOKENS_CSS */
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: var(--font-body);
+  background: var(--bg); color: var(--text); line-height: 1.7; font-size: 15px;
+}
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+.dp-page { display: grid; grid-template-rows: auto 1fr auto; height: 100vh; overflow: hidden; }
+
+.topbar {
+  display: grid; grid-template-columns: auto 1fr auto;
+  align-items: center; gap: 24px; padding: 12px 20px;
+  background: linear-gradient(180deg, var(--panel) 0%, var(--panel-2) 100%);
+  border-bottom: 1px solid var(--border);
+  position: sticky; top: 0; z-index: 10;
+}
+.brand { display: flex; align-items: baseline; gap: 8px; color: var(--text); }
+.brand:hover { text-decoration: none; }
+.brand-icon { display: inline-flex; align-items: center; }
+.brand-title { font-weight: 700; font-size: 16px; }
+.brand-sub { font-size: 11px; color: var(--text-muted, #6c757d); }
+.top-actions { display: flex; align-items: center; gap: 8px; }
+.top-actions button {
+  background: var(--panel-2); border: 1px solid var(--border); border-radius: var(--radius-sm);
+  color: var(--text-sub); cursor: pointer; padding: 8px 16px; font-size: 13px; font-family: inherit;
+  display: inline-flex; align-items: center; gap: 4px;
+}
+.top-actions button:hover { background: var(--accent-soft); color: var(--accent); border-color: var(--accent-border); }
+.header-meta { font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 8px; }
+
+.dp-main { max-width: 1280px; width: 100%; min-width: 0; margin: 0 auto; padding: 24px 24px 64px; overflow-y: auto; min-height: 0; }
+
+.doc-crumbs { font-size: 12px; color: var(--text-muted); margin-bottom: 8px; }
+.doc-crumbs a { color: var(--text-sub); cursor: pointer; }
+.doc-crumbs a:hover { color: var(--accent); }
+
+.dp-hero {
+  display: flex; align-items: flex-end; justify-content: space-between; gap: 16px;
+  padding: 4px 2px 14px; border-bottom: 1px solid var(--border); margin-bottom: 20px; flex-wrap: wrap;
+}
+.dp-hero h1 { font-size: 23px; margin: 0; }
+.dp-hero p { font-size: 12.5px; color: var(--text-muted); margin: 4px 0 0; }
+.dp-updated {
+  font-size: 12px; color: var(--text-sub); background: var(--accent-soft);
+  border: 1px solid var(--accent-border); border-radius: 999px; padding: 3px 12px; white-space: nowrap;
+}
+
+.sec-label {
+  font-size: 12px; font-weight: 700; letter-spacing: 0.04em; color: var(--text-sub);
+  display: flex; align-items: center; gap: 8px; margin: 6px 0 12px;
+}
+.sec-label::before { content: ""; width: 4px; height: 14px; background: var(--accent); border-radius: 2px; }
+
+/* 要約タイル */
+.tile-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(168px, 1fr)); gap: 14px; margin-bottom: 24px; min-width: 0; }
+.tile-card {
+  background: var(--panel); border: 1px solid var(--border); min-width: 0;
+  border-radius: var(--radius); padding: 14px 16px 13px; box-shadow: var(--shadow-sm);
+}
+.tile-label { font-size: 11.5px; font-weight: 700; letter-spacing: 0.02em; color: var(--text-sub); margin-bottom: 4px; }
+.tile-value { font-size: 24px; font-weight: 800; line-height: 1.15; font-family: var(--mono); color: var(--text); overflow-wrap: break-word; }
+.tile-note { font-size: 11.5px; color: var(--text-muted); margin-top: 5px; }
+
+/* 検索ボックス + ソース種別チップ */
+.toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 14px; min-width: 0; }
+.toolbar input[type="search"] {
+  flex: 1; min-width: 200px; padding: 8px 12px; font-size: 13.5px;
+  background: var(--panel); color: var(--text); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); font-family: inherit;
+}
+.chip-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
+.chip {
+  font-size: 12.5px; color: var(--text-sub); background: var(--panel);
+  border: 1px solid var(--border); border-radius: 999px; padding: 5px 14px;
+  cursor: pointer; font-family: inherit;
+}
+.chip:hover { background: var(--accent-soft); color: var(--accent); border-color: var(--accent-border); }
+.chip.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+/* アイコンカードグリッド */
+.icon-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; min-width: 0; }
+.icon-card { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; min-width: 0; }
+.icon-name { font-weight: 700; font-size: 14px; margin-bottom: 8px; overflow-wrap: break-word; }
+.icon-meta { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
+.source-tag {
+  font-size: 11px; font-weight: 700; padding: 2px 9px; border-radius: 999px;
+  background: var(--accent-soft); color: var(--accent);
+}
+.usage-count { font-size: 12px; color: var(--text-muted); }
+.icon-files summary { cursor: pointer; font-size: 12px; color: var(--text-sub); }
+.icon-files summary:hover { color: var(--accent); }
+.icon-files ul { margin: 6px 0 0; padding-left: 18px; font-size: 11.5px; color: var(--text-muted); }
+.icon-files li { margin-bottom: 2px; overflow-wrap: break-word; }
+.icon-files code {
+  background: var(--panel-2); padding: 1px 6px; border-radius: 4px;
+  font-family: var(--mono); font-size: 11px; color: var(--text-sub);
+  border: 1px solid var(--border);
+}
+
+.empty-note {
+  font-size: 12.5px; color: var(--text-muted); background: var(--panel-2);
+  border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px 16px;
+}
+
+.note-box {
+  font-size: 12px; color: var(--text-sub); background: var(--panel-2);
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  padding: 8px 12px; margin: 14px 0 0;
+}
+
+.footer {
+  padding: 12px 20px; border-top: 1px solid var(--border);
+  font-size: 12px; color: var(--text-muted);
+  display: flex; gap: 20px; justify-content: center;
+}
+
+@media (max-width: 760px) {
+  .topbar { grid-template-columns: 1fr; gap: 8px; padding: 10px 14px; }
+  .dp-main { padding: 14px; }
+  .tile-grid, .icon-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+}
+@media (max-width: 560px) {
+  body { font-size: 14px; }
+  .dp-hero h1 { font-size: 20px; }
+  .dp-main { padding: 12px; }
+  .tile-grid { grid-template-columns: 1fr 1fr; }
+}
+
+.hidden { display: none !important; }
+</style>
+</head>
+<body>
+<div class="dp-page">
+  <header class="topbar">
+    <a class="brand" href="index.html">
+      <span class="brand-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:middle"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zM13 9V3.5L18.5 9H13z"/></svg></span>
+      <span class="brand-title">{{PROJECT_NAME}}</span>
+      <span class="brand-sub">設計ポータル</span>
+    </a>
+    <div class="header-meta">
+      <span class="pm-updated">更新: {{GENERATED_AT}}{{COMMIT_SHORT}}</span>
+    </div>
+    <div class="top-actions">
+      <button id="theme-toggle" title="テーマ切替">ライト</button>
+    </div>
+  </header>
+
+  <main class="dp-main">
+    <div class="doc-crumbs"><a href="index.html">← ポータル TOP へ戻る</a></div>
+    <div class="dp-hero">
+      <div>
+        <h1>{{TITLE}}</h1>
+        <p>{{DESCRIPTION}}</p>
+      </div>
+    </div>
+
+    <div class="tile-grid" id="tiles-mount"></div>
+
+    <div class="sec-label">検索・絞り込み</div>
+    <div class="toolbar">
+      <input type="search" id="icon-search" placeholder="アイコン名で絞り込み">
+    </div>
+    <div class="chip-row" id="chips-mount"></div>
+
+    <div class="sec-label">アイコン一覧</div>
+    <div class="icon-grid" id="icon-mount"></div>
+
+    <!--RELATED_ENTITIES--><div id="unresolved-mount"></div>
+  </main>
+
+  <footer class="footer">
+    <span></span>
+  </footer>
+</div>
+
+<script type="application/json" id="page-data">
+{{PAGE_DATA_JSON}}
+</script>
+
+<script>
+(function() {
+  var data = JSON.parse(document.getElementById('page-data').textContent);
+
+  function el(tag, attrs, children) {
+    var node = document.createElement(tag);
+    if (attrs) Object.keys(attrs).forEach(function(k) {
+      if (k === 'html') node.innerHTML = attrs[k];
+      else node.setAttribute(k, attrs[k]);
+    });
+    if (children) {
+      if (!Array.isArray(children)) children = [children];
+      children.forEach(function(c) {
+        if (typeof c === 'string') node.appendChild(document.createTextNode(c));
+        else if (c) node.appendChild(c);
+      });
+    }
+    return node;
+  }
+
+  // --- 要約タイル(summary[]) ---
+  var tilesMount = document.getElementById('tiles-mount');
+  (data.summary || []).forEach(function(t) {
+    var card = el('div', { class: 'tile-card' });
+    card.appendChild(el('div', { class: 'tile-label' }, t.label || ''));
+    card.appendChild(el('div', { class: 'tile-value' }, String(t.value != null ? t.value : '')));
+    if (t.note) card.appendChild(el('div', { class: 'tile-note' }, t.note));
+    tilesMount.appendChild(card);
+  });
+
+  // usageCount 降順で固定ソート
+  var icons = (data.icons || []).slice().sort(function(a, b) {
+    return (b.usageCount || 0) - (a.usageCount || 0);
+  });
+  var activeSource = 'all';
+  var cardEls = [];
+
+  // --- ソース種別チップ(icons[].sourceType から動的抽出) ---
+  var sourceTypes = [];
+  icons.forEach(function(ic) {
+    var s = ic.sourceType || 'other';
+    if (sourceTypes.indexOf(s) === -1) sourceTypes.push(s);
+  });
+
+  var chipsMount = document.getElementById('chips-mount');
+  function renderChips() {
+    chipsMount.innerHTML = '';
+    var chips = [{ key: 'all', label: 'すべて' }].concat(sourceTypes.map(function(s) {
+      return { key: s, label: s };
+    }));
+    chips.forEach(function(c) {
+      var btn = el('button', { class: 'chip' + (activeSource === c.key ? ' active' : ''), type: 'button' }, c.label);
+      btn.addEventListener('click', function() {
+        activeSource = c.key;
+        renderChips();
+        applyFilter();
+      });
+      chipsMount.appendChild(btn);
+    });
+  }
+
+  // --- アイコンカードグリッド(icons[]) ---
+  var iconMount = document.getElementById('icon-mount');
+  function renderCards() {
+    iconMount.innerHTML = '';
+    cardEls = [];
+    if (icons.length === 0) {
+      iconMount.appendChild(el('div', { class: 'empty-note' }, 'なし'));
+      return;
+    }
+    icons.forEach(function(ic) {
+      var sourceType = ic.sourceType || 'other';
+      var files = ic.files || [];
+      var fileList = el('ul', null, files.map(function(f) {
+        return el('li', null, el('code', null, String(f)));
+      }));
+      var details = el('details', { class: 'icon-files' }, [
+        el('summary', null, '使用ファイル（' + files.length + '）'),
+        fileList
+      ]);
+      var card = el('div', { class: 'icon-card', 'data-source': sourceType }, [
+        el('div', { class: 'icon-name' }, ic.name || ''),
+        el('div', { class: 'icon-meta' }, [
+          el('span', { class: 'source-tag' }, sourceType),
+          el('span', { class: 'usage-count' }, '使用 ' + (ic.usageCount != null ? ic.usageCount : 0) + ' 件')
+        ]),
+        details
+      ]);
+      iconMount.appendChild(card);
+      cardEls.push(card);
+    });
+  }
+
+  // --- 検索(部分一致) + ソース種別チップ絞り込み ---
+  function applyFilter() {
+    var q = (document.getElementById('icon-search').value || '').trim().toLowerCase();
+    cardEls.forEach(function(card) {
+      var srcOk = activeSource === 'all' || card.getAttribute('data-source') === activeSource;
+      var nameEl = card.querySelector('.icon-name');
+      var name = nameEl ? nameEl.textContent.toLowerCase() : '';
+      var textOk = q === '' || name.indexOf(q) !== -1;
+      card.style.display = (srcOk && textOk) ? '' : 'none';
+    });
+  }
+
+  renderChips();
+  renderCards();
+  applyFilter();
+  document.getElementById('icon-search').addEventListener('input', applyFilter);
+
+  // --- 未解決節(unresolved[]) ---
+  var unresolvedMount = document.getElementById('unresolved-mount');
+  var unresolved = data.unresolved || [];
+  if (unresolved.length > 0) {
+    unresolvedMount.appendChild(el('div', { class: 'sec-label' }, '未解決'));
+    var box = el('div', { class: 'note-box' });
+    unresolved.forEach(function(u) {
+      var line = (u.label || '') + '（' + (u.reason || '') + '）';
+      box.appendChild(el('div', null, line));
+    });
+    unresolvedMount.appendChild(box);
+  }
+
+  var themeBtn = document.getElementById('theme-toggle');
+  themeBtn.addEventListener('click', function() {
+    var r = document.documentElement;
+    var next = r.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    r.setAttribute('data-theme', next);
+    themeBtn.textContent = next === 'dark' ? 'ダーク' : 'ライト';
+    try { localStorage.setItem('rd-portal-theme', next); } catch(e) {}
+  });
+  try {
+    var saved = localStorage.getItem('rd-portal-theme');
+    if (saved) {
+      document.documentElement.setAttribute('data-theme', saved);
+      var tb = document.getElementById('theme-toggle');
+      if (tb) tb.textContent = saved === 'dark' ? 'ダーク' : 'ライト';
+    }
+  } catch(e) {}
+})();
+</script>
+</body>
+</html>

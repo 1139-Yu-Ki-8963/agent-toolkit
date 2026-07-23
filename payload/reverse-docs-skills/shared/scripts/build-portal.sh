@@ -695,13 +695,16 @@ if [ -d "$DOCS_ROOT/画面" ] && [ -f "$SCREEN_DOC_TEMPLATE_FILE" ]; then
 fi
 
 # --- 4. 将来ページ受け口（FUTURE_PAGES）: docs_root 直下に該当 HTML が実在する場合のみカード化 ---
-get_future_label() { case "$1" in glossary) echo "用語辞書";; techstack) echo "技術スタック";; transition) echo "画面遷移図";; er) echo "ER図";; env) echo "環境構築手順";; entity-state) echo "状態遷移図";; esac; }
-get_future_file() { case "$1" in glossary) echo "用語辞書.html";; techstack) echo "技術スタック.html";; transition) echo "画面遷移図.html";; er) echo "ER図.html";; env) echo "環境構築手順.html";; entity-state) echo "状態遷移図.html";; esac; }
-get_future_icon() { case "$1" in glossary) echo "dictionary";; techstack) echo "stacks";; transition) echo "account_tree";; er) echo "schema";; env) echo "terminal";; entity-state) echo "sync";; esac; }
-get_future_desc() { case "$1" in glossary) echo "業務用語・技術用語・略語の定義とコード上の対応識別子の対訳。";; techstack) echo "言語・フレームワーク・主要依存パッケージのバージョンと採用箇所の整理。";; transition) echo "画面一覧とコード走査から生成する画面遷移マップ。ブラウザバック・条件付き遷移に対応。";; er) echo "テーブル一覧と外部キー定義から生成するエンティティ関連図。";; env) echo "環境構築・必須ツール・ポート割当の整理。";; entity-state) echo "データ設計の状態遷移表から生成するエンティティ状態遷移図。";; esac; }
-FUTURE_ORDER="techstack env glossary entity-state"
+get_future_label() { case "$1" in glossary) echo "用語辞書";; techstack) echo "技術スタック";; transition) echo "画面遷移図";; er) echo "ER図";; env) echo "環境構築手順";; entity-state) echo "状態遷移図";; release-notes) echo "リリースノート";; design-system) echo "デザインシステム";; component-inventory) echo "コンポーネント棚卸し";; icon-catalog) echo "アイコンカタログ";; esac; }
+get_future_file() { case "$1" in glossary) echo "用語辞書.html";; techstack) echo "技術スタック.html";; transition) echo "画面遷移図.html";; er) echo "ER図.html";; env) echo "環境構築手順.html";; entity-state) echo "状態遷移図.html";; release-notes) echo "リリースノート.html";; design-system) echo "デザインシステム.html";; component-inventory) echo "コンポーネント棚卸し.html";; icon-catalog) echo "アイコンカタログ.html";; esac; }
+get_future_icon() { case "$1" in glossary) echo "dictionary";; techstack) echo "stacks";; transition) echo "account_tree";; er) echo "schema";; env) echo "terminal";; entity-state) echo "sync";; release-notes) echo "history";; design-system) echo "palette";; component-inventory) echo "widgets";; icon-catalog) echo "emoji_symbols";; esac; }
+get_future_desc() { case "$1" in glossary) echo "業務用語・技術用語・略語の定義とコード上の対応識別子の対訳。";; techstack) echo "言語・フレームワーク・主要依存パッケージのバージョンと採用箇所の整理。";; transition) echo "画面一覧とコード走査から生成する画面遷移マップ。ブラウザバック・条件付き遷移に対応。";; er) echo "テーブル一覧と外部キー定義から生成するエンティティ関連図。";; env) echo "環境構築・必須ツール・ポート割当の整理。";; entity-state) echo "データ設計の状態遷移表から生成するエンティティ状態遷移図。";; release-notes) echo "git log から自動生成した変更履歴。";; design-system) echo "CSS トークン（色・タイポ・スペーシング）の可視化。";; component-inventory) echo "コンポーネントの一覧・Props・被参照数。";; icon-catalog) echo "使用アイコンの一覧と使用箇所。";; esac; }
+FUTURE_ORDER="techstack env glossary entity-state release-notes design-system component-inventory icon-catalog"
 
+# デザイン系3種（design-system/component-inventory/icon-catalog）は別カテゴリ「デザイン」に振り分ける。
+# それ以外（release-notes 含む）は従来どおり「プロジェクト基盤情報」カテゴリに入れる。
 future_tools_json=""
+design_tools_json=""
 for key in $FUTURE_ORDER; do
   label="$(get_future_label "$key")"
   file="$(get_future_file "$key")"
@@ -711,8 +714,46 @@ for key in $FUTURE_ORDER; do
 
   if [ -f "$html_file" ]; then
     href="$docs_relative/$file"
-    [ -n "$future_tools_json" ] && future_tools_json="$future_tools_json,"
-    future_tools_json="$future_tools_json{\"title\":\"$label\",\"icon\":\"$icon\",\"href\":\"$href\",\"desc\":\"$desc\",\"count\":\"詳細を見る\"}"
+    entry_json="{\"title\":\"$label\",\"icon\":\"$icon\",\"href\":\"$href\",\"desc\":\"$desc\",\"count\":\"詳細を見る\"}"
+    case "$key" in
+      design-system|component-inventory|icon-catalog)
+        [ -n "$design_tools_json" ] && design_tools_json="$design_tools_json,"
+        design_tools_json="$design_tools_json$entry_json"
+        ;;
+      *)
+        [ -n "$future_tools_json" ] && future_tools_json="$future_tools_json,"
+        future_tools_json="$future_tools_json$entry_json"
+        ;;
+    esac
+  fi
+done
+
+# --- 4d. 派生一覧（message / test_viewpoint）: KINDS_ORDER には含めず、
+#     feature 同様に HTML 実在チェックのみで一覧カテゴリのカードとして追加する ---
+get_derived_label() { case "$1" in message) echo "メッセージ一覧";; test_viewpoint) echo "テスト観点表";; esac; }
+get_derived_dir() { case "$1" in message) echo "メッセージ一覧";; test_viewpoint) echo "テスト観点表";; esac; }
+get_derived_icon() { case "$1" in message) echo "chat";; test_viewpoint) echo "checklist";; esac; }
+get_derived_desc() { case "$1" in message) echo "UI メッセージ・エラー文の正本一覧。";; test_viewpoint) echo "全画面のテスト観点を横断集約。";; esac; }
+DERIVED_ORDER="message test_viewpoint"
+
+for key in $DERIVED_ORDER; do
+  label="$(get_derived_label "$key")"
+  dir_name="$(get_derived_dir "$key")"
+  icon="$(get_derived_icon "$key")"
+  desc="$(get_derived_desc "$key")"
+  # 正本レイアウト: <docs_root>/一覧/<ディレクトリ>/<ラベル>.html
+  # 後方互換: 旧レイアウト（<docs_root>/<ディレクトリ>/<ラベル>.html）にも実在すれば採用する
+  derived_rel_path="一覧/$dir_name/${label}.html"
+  html_file="$DOCS_ROOT/$derived_rel_path"
+  if [ ! -f "$html_file" ] && [ -f "$DOCS_ROOT/$dir_name/${label}.html" ]; then
+    derived_rel_path="$dir_name/${label}.html"
+    html_file="$DOCS_ROOT/$derived_rel_path"
+  fi
+
+  if [ -f "$html_file" ]; then
+    href="$docs_relative/$derived_rel_path"
+    [ -n "$list_tools_json" ] && list_tools_json="$list_tools_json,"
+    list_tools_json="$list_tools_json{\"title\":\"$label\",\"group\":\"$label\",\"icon\":\"$icon\",\"href\":\"$href\",\"desc\":\"$desc\",\"count\":\"詳細を見る\"}"
   fi
 done
 
@@ -794,6 +835,10 @@ future_count=0
 if [ -n "$future_tools_json" ]; then
   future_count="$(echo "$future_tools_json" | grep -o '{' | wc -l | awk '{print $1}')"
 fi
+design_count=0
+if [ -n "$design_tools_json" ]; then
+  design_count="$(echo "$design_tools_json" | grep -o '{' | wc -l | awk '{print $1}')"
+fi
 
 CATEGORIES_JSON="["
 if [ "$future_count" -gt 0 ]; then
@@ -808,6 +853,9 @@ if [ -n "$cross_tools_json" ]; then
 fi
 if [ -n "$ai_tools_json" ]; then
   CATEGORIES_JSON="$CATEGORIES_JSON,{\"id\":\"ai\",\"title\":\"AI設定資産\",\"icon\":\"smart_toy\",\"sub\":\"rules・skills・サブエージェント・hooks の設定を俯瞰する資料\",\"tools\":[$ai_tools_json]}"
+fi
+if [ "$design_count" -gt 0 ]; then
+  CATEGORIES_JSON="$CATEGORIES_JSON,{\"id\":\"design\",\"title\":\"デザイン\",\"icon\":\"palette\",\"sub\":\"デザインシステム・コンポーネント・アイコンの一覧\",\"tools\":[$design_tools_json]}"
 fi
 CATEGORIES_JSON="$CATEGORIES_JSON]"
 

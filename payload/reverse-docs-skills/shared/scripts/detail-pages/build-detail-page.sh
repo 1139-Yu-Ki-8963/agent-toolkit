@@ -3,7 +3,7 @@
 # page-data.json + --page 指定から、対応するテンプレートへ描画したHTMLを固定ファイル名で
 # <output-dir> 直下に書き出す。出力ファイル名は build-portal.sh の FUTURE_FILES と同値。
 #
-# Usage: build-detail-page.sh <page-data.json> <output-dir> --page glossary|techstack|transition|er|env|entity-state
+# Usage: build-detail-page.sh <page-data.json> <output-dir> --page glossary|techstack|transition|er|env|entity-state|release-notes|design-system|component-inventory|icon-catalog
 #        build-detail-page.sh --self-test
 #
 # page → (テンプレートファイル, 固定出力ファイル名) 対応は本スクリプト内の
@@ -24,8 +24,8 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
-get_page_template() { case "$1" in glossary) echo "detail-t2-dictionary.html";; techstack) echo "detail-t3-attributes.html";; transition) echo "detail-t4-diagram.html";; er) echo "detail-t6-er.html";; env) echo "detail-t5-procedure.html";; entity-state) echo "detail-t7-entity-state.html";; esac; }
-get_page_filename() { case "$1" in glossary) echo "用語辞書.html";; techstack) echo "技術スタック.html";; transition) echo "画面遷移図.html";; er) echo "ER図.html";; env) echo "環境構築手順.html";; entity-state) echo "状態遷移図.html";; esac; }
+get_page_template() { case "$1" in glossary) echo "detail-t2-dictionary.html";; techstack) echo "detail-t3-attributes.html";; transition) echo "detail-t4-diagram.html";; er) echo "detail-t6-er.html";; env) echo "detail-t5-procedure.html";; entity-state) echo "detail-t7-entity-state.html";; release-notes) echo "detail-t7-release-notes.html";; design-system) echo "detail-t8-design-system.html";; component-inventory) echo "detail-t9-component-inventory.html";; icon-catalog) echo "detail-t10-icon-catalog.html";; esac; }
+get_page_filename() { case "$1" in glossary) echo "用語辞書.html";; techstack) echo "技術スタック.html";; transition) echo "画面遷移図.html";; er) echo "ER図.html";; env) echo "環境構築手順.html";; entity-state) echo "状態遷移図.html";; release-notes) echo "リリースノート.html";; design-system) echo "デザインシステム.html";; component-inventory) echo "コンポーネント棚卸し.html";; icon-catalog) echo "アイコンカタログ.html";; esac; }
 
 # --- --self-test モード ---
 # (a) バックスラッシュ・実マーカー文字列(\d+・{{PAGE_DATA_JSON}}・<!--DETAIL_TILES-->)を含む
@@ -351,8 +351,8 @@ if [ "${1:-}" = "--self-test" ]; then
   exit $?
 fi
 
-DATA="${1:?Usage: build-detail-page.sh <page-data.json> <output-dir> --page glossary|techstack|transition|er|env|entity-state}"
-OUTPUT_DIR="${2:?Usage: build-detail-page.sh <page-data.json> <output-dir> --page glossary|techstack|transition|er|env|entity-state}"
+DATA="${1:?Usage: build-detail-page.sh <page-data.json> <output-dir> --page glossary|techstack|transition|er|env|entity-state|release-notes|design-system|component-inventory|icon-catalog}"
+OUTPUT_DIR="${2:?Usage: build-detail-page.sh <page-data.json> <output-dir> --page glossary|techstack|transition|er|env|entity-state|release-notes|design-system|component-inventory|icon-catalog}"
 shift 2 || true
 
 PAGE=""
@@ -370,7 +370,7 @@ while [ $# -gt 0 ]; do
 done
 
 if [ -z "$PAGE" ] || [ -z "$(get_page_template "$PAGE")" ]; then
-  echo "ERROR: --page must be one of: glossary techstack transition er env entity-state" >&2
+  echo "ERROR: --page must be one of: glossary techstack transition er env entity-state release-notes design-system component-inventory icon-catalog" >&2
   exit 1
 fi
 

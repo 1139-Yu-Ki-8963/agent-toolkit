@@ -272,6 +272,8 @@ case "$UNIT_KIND" in
   batch) LABEL="バッチ" ;;
   report) LABEL="帳票" ;;
   external) LABEL="外部連携" ;;
+  message) LABEL="メッセージ" ;;
+  test_viewpoint) LABEL="テスト観点" ;;
   *) echo "ERROR: unknown unit_kind: $UNIT_KIND" >&2; exit 1 ;;
 esac
 
