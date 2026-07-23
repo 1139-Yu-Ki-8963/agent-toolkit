@@ -85,8 +85,8 @@ a:hover { text-decoration: underline; }
 .metric-value .unit { font-size: 13px; font-weight: 600; color: var(--text-muted); margin-left: 3px; }
 .metric-sub { font-size: 11.5px; color: var(--text-muted); margin-top: 5px; }
 .metric-sub b { color: var(--text-sub); font-weight: 700; }
-a.metric-card { display: block; color: var(--text); cursor: pointer; transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease; }
-a.metric-card:hover, a.metric-card:focus-visible { transform: translateY(-2px); box-shadow: var(--shadow-md); border-color: var(--accent); text-decoration: none; outline: none; }
+.metric-card { display: block; color: var(--text); cursor: pointer; transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease; }
+.metric-card:hover, .metric-card:focus-visible { transform: translateY(-2px); box-shadow: var(--shadow-md); border-color: var(--accent); text-decoration: none; outline: none; }
 
 .count-tags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 7px; }
 .count-tag {
@@ -314,7 +314,7 @@ table.data-table code {
     var scale = metrics.scale;
     var tests = metrics.tests;
 
-    var scaleCard = el('a', { class: 'metric-card', href: '#/summary' });
+    var scaleCard = el('div', { class: 'metric-card' });
     scaleCard.appendChild(el('div', { class: 'metric-label', html: matIcon('code', 14) + '<span>規模</span>' }));
     scaleCard.appendChild(el('div', { class: 'metric-value', html: fmtNum(scale.total) + '<span class="unit">行</span>' }));
     var scaleTags = el('div', { class: 'count-tags' });
@@ -326,7 +326,7 @@ table.data-table code {
     scaleCard.appendChild(el('div', { class: 'metric-sub' }, '全 ' + scale.kinds.length + ' 種別の内訳 →'));
     metricsMount.appendChild(scaleCard);
 
-    var testsCard = el('a', { class: 'metric-card', href: '#/summary' });
+    var testsCard = el('div', { class: 'metric-card' });
     testsCard.appendChild(el('div', { class: 'metric-label', html: matIcon('science', 14) + '<span>テスト</span>' }));
     if (tests) {
       testsCard.appendChild(el('div', { class: 'metric-value', html: fmtNum(tests.count) + '<span class="unit">件</span>' }));
@@ -347,7 +347,12 @@ table.data-table code {
   function renderTop() {
     root.innerHTML = '';
     var grid = el('div', { class: 'cards' });
+    var currentGroup = '';
     categories.forEach(function(cat) {
+      if (cat.group && cat.group !== currentGroup) {
+        currentGroup = cat.group;
+        grid.appendChild(el('div', { class: 'tool-group-label' }, currentGroup));
+      }
       var card = el('a', { class: 'card is-category group-' + cat.id, href: '#/category/' + cat.id });
       card.appendChild(el('div', { class: 'card-head', html:
         '<span class="card-icon">' + matIcon(cat.icon) + '</span>' +
@@ -404,77 +409,8 @@ table.data-table code {
     });
   }
 
-  function renderSummary() {
-    root.innerHTML = '';
-    var scale = metrics.scale;
-    var tests = metrics.tests;
-    var freshness = metrics.freshness;
-    var previous = metrics.previous;
-    var measuredText = freshness.measured_at + (freshness.note ? '・' + freshness.note : '');
-
-    root.appendChild(el('div', { class: 'doc-crumbs', html: '<a data-nav="#/">TOP</a> / 解析概要' }));
-    root.appendChild(el('div', { class: 'section-header' }, [
-      el('h2', { class: 'section-title', html: matIcon('monitoring', 18) + ' 解析概要' }),
-      el('span', { class: 'section-sub' }, '計測値と規模の明細。事実の記録のみで、数値の出所となる計算・条件を併記する。'),
-    ]));
-
-    root.appendChild(el('div', { class: 'sec-label' }, '計測値（テスト）'));
-    if (tests) {
-      var densityText = tests.density + '<span class="unit">件/千行</span>';
-      var testsWrap = el('div', { class: 'table-wrap' });
-      var testsTable = el('table', { class: 'data-table', html:
-        '<thead><tr><th>指標</th><th>値</th><th>前回比</th><th>計算・条件</th><th>計測時点</th></tr></thead>' +
-        '<tbody>' +
-        '<tr><td class="cell-main">テスト件数</td>' +
-          '<td class="val-cell">' + fmtNum(tests.count) + '<span class="unit">件</span></td>' +
-          '<td class="cell-sub">' + deltaText(tests.count, previous ? previous.tests_count : null) + '</td>' +
-          '<td>it / test ブロックと def test_ 関数を計数（FE ' + fmtNum(tests.fe) + ' ／ BE ' + fmtNum(tests.be) + '）</td>' +
-          '<td class="cell-sub">' + measuredText + '</td></tr>' +
-        '<tr><td class="cell-main">テストファイル数</td>' +
-          '<td class="val-cell">' + fmtNum(tests.files) + '<span class="unit">件</span></td>' +
-          '<td class="cell-sub">—</td>' +
-          '<td>*.test.ts(x) / *.spec.ts(x) / test_*.py / *_test.py に一致するファイルを計数</td>' +
-          '<td class="cell-sub">' + measuredText + '</td></tr>' +
-        '<tr><td class="cell-main">テスト密度</td>' +
-          '<td class="val-cell">' + densityText + '</td>' +
-          '<td class="cell-sub">—</td>' +
-          '<td>テスト ' + fmtNum(tests.count) + ' 件 ÷ コード ' + (scale.total / 1000).toFixed(1) + ' 千行</td>' +
-          '<td class="cell-sub">' + measuredText + '</td></tr>' +
-        '</tbody>'
-      });
-      testsWrap.appendChild(testsTable);
-      root.appendChild(testsWrap);
-    } else {
-      root.appendChild(el('div', { class: 'note-box' }, '未計測'));
-    }
-
-    root.appendChild(el('div', { class: 'sec-label' }, '規模'));
-    var scaleRowsHtml =
-      '<tr><td class="cell-main">コード行数</td>' +
-        '<td class="val-cell">' + fmtNum(scale.total) + '<span class="unit">行</span></td>' +
-        '<td>FE ' + fmtNum(scale.fe) + ' ／ BE ' + fmtNum(scale.be) + '・' + fmtNum(scale.files) + ' ファイル</td>' +
-        '<td><code>code-metrics.json</code></td></tr>';
-    scale.kinds.forEach(function(k) {
-      scaleRowsHtml += '<tr><td class="cell-main">' + k.label + '</td>' +
-        '<td class="val-cell">' + fmtNum(k.count) + '</td>' +
-        '<td>' + k.unit + '</td>' +
-        '<td><a href="' + k.href + '">' + k.label + '一覧ページ →</a></td></tr>';
-    });
-    var scaleWrap = el('div', { class: 'table-wrap' });
-    var scaleTable = el('table', { class: 'data-table', html:
-      '<thead><tr><th>種別</th><th>件数</th><th>内訳・補足</th><th>一覧ページ</th></tr></thead>' +
-      '<tbody>' + scaleRowsHtml + '</tbody>'
-    });
-    scaleWrap.appendChild(scaleTable);
-    root.appendChild(scaleWrap);
-    root.appendChild(el('div', { class: 'scale-fresh' }, '計測時点: ' + measuredText));
-
-    root.appendChild(el('div', { class: 'back-link' }, el('a', { 'data-nav': '#/' }, '← TOP へ戻る')));
-  }
-
   function route() {
     var path = location.hash.replace(/^#/, '') || '/';
-    if (path === '/summary') { renderSummary(); window.scrollTo(0, 0); return; }
     var m = path.match(/^\/category\/(.+)$/);
     if (m) renderCategory(decodeURIComponent(m[1]));
     else renderTop();
