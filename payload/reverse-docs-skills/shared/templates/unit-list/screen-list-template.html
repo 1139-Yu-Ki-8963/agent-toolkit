@@ -224,6 +224,7 @@
   .doc-link[data-kind="basic"]::before { -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zM13 9V3.5L18.5 9H13z'/%3E%3C/svg%3E"); mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zM13 9V3.5L18.5 9H13z'/%3E%3C/svg%3E"); }
   .doc-link[data-kind="detail"]::before { -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M6.5 10h-2v7h2v-7zm6 0h-2v7h2v-7zm8.5 9H2v2h19v-2zm-2.5-9h-2v7h2v-7zM11.5 1L2 6v2h19V6l-9.5-5z'/%3E%3C/svg%3E"); mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M6.5 10h-2v7h2v-7zm6 0h-2v7h2v-7zm8.5 9H2v2h19v-2zm-2.5-9h-2v7h2v-7zM11.5 1L2 6v2h19V6l-9.5-5z'/%3E%3C/svg%3E"); }
   .doc-link[data-kind="sequence"]::before { -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M22 11V3h-7v3H9V3H2v8h7V8h2v10h4v3h7v-8h-7v3h-2V8h2v3h7zM7 9H4V5h3v4zm10 6h3v4h-3v-4zm0-10h3v4h-3V5z'/%3E%3C/svg%3E"); mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M22 11V3h-7v3H9V3H2v8h7V8h2v10h4v3h7v-8h-7v3h-2V8h2v3h7zM7 9H4V5h3v4zm10 6h3v4h-3v-4zm0-10h3v4h-3V5z'/%3E%3C/svg%3E"); }
+  .doc-link[data-kind="test"]::before { -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M13 11.33L18 18H6l5-6.67V6h2m2-2H9v5.33L4 16v2c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2v-2l-5-6.67V4z'/%3E%3C/svg%3E"); mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M13 11.33L18 18H6l5-6.67V6h2m2-2H9v5.33L4 16v2c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2v-2l-5-6.67V4z'/%3E%3C/svg%3E"); }
 
   /* 追加UI: CSVエクスポート */
   .csv-btn {
@@ -455,7 +456,8 @@
         var chips = [
           {label: '基', title: '基本設計書'},
           {label: '詳', title: '詳細設計書'},
-          {label: 'シ', title: 'シーケンス図'}
+          {label: 'シ', title: 'シーケンス図'},
+          {label: 'テ', title: 'テストケース'}
         ];
         chips.forEach(function(chip) {
           var s = document.createElement('span');
@@ -819,7 +821,8 @@
           var docDefs = [
             {label: '基本設計書', href: screenDir + '基本設計/画面基本設計書.html', kind: 'basic'},
             {label: '詳細設計書', href: screenDir + '詳細設計/画面詳細設計書.html', kind: 'detail'},
-            {label: 'シーケンス図', href: screenDir + 'シーケンス図.html', kind: 'sequence'}
+            {label: 'シーケンス図', href: screenDir + 'シーケンス図.html', kind: 'sequence'},
+            {label: 'テストケース', href: screenDir + 'テストケース.html', kind: 'test'}
           ];
           docDefs.forEach(function(doc) {
             var a = document.createElement('a');
