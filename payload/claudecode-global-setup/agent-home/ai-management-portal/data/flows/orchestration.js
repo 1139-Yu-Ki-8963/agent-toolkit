@@ -1,3 +1,6 @@
+// 記載ルール（編集前に必読）:
+// - 概要タブの文言: ~/agent-home/skills/orchestrating-dev-flow/references/overview-content-rules.md
+// - phaseSteps 5 列テーブル: ~/agent-home/skills/orchestrating-dev-flow/references/table-column-rules.md
 export const ORCHESTRATION_FLOWS = [
   {
     id: "orchestrating-dev-flow",
@@ -16,9 +19,9 @@ export const ORCHESTRATION_FLOWS = [
       "module-creating-screen-mock",
       "module-formatting-pr",
       "module-fixing-review-findings",
-      "module-reviewing-pre-impl",
-      "module-reviewing-impl-quality",
-      "module-reviewing-pre-push",
+      "pre-impl-review",
+      "impl-quality-review",
+      "pre-push-review",
       "module-running-e2e",
       "phase-11-main-sync-and-improve"
     ],
@@ -366,7 +369,7 @@ export const ORCHESTRATION_FLOWS = [
             completionCondition: "ExitPlanMode によるユーザー承認が得られ、review gate を通過していること（設定されている場合）",
             timing: "Step 4-6 承認後",
             refs: [
-              { type: "module", text: "module-reviewing-pre-impl", desc: "仕様適合レビューを実行する" },
+              { type: "module", text: "pre-impl-review", desc: "仕様適合レビューを実行する" },
               { type: "context", text: "仕様適合レビューゲート", desc: "仕様適合レビューゲートのスキル名" },
               { type: "rule", text: "no-premature-deferral-rules", desc: "作業の先送り（別セッション / 次回対応）を禁止する" },
             ],
@@ -486,7 +489,7 @@ export const ORCHESTRATION_FLOWS = [
             completionCondition: "実装品質レビューゲートを通過していること（設定されている場合）",
             timing: "各サイクル完了後",
             refs: [
-              { type: "module", text: "module-reviewing-impl-quality", desc: "実装品質レビューを実行する" },
+              { type: "module", text: "impl-quality-review", desc: "実装品質レビューを実行する" },
               { type: "context", text: "実装品質レビューゲート", desc: "実装品質レビューゲートのスキル名" },
               { type: "rule", text: "subagent-delegation-rules", desc: "メインエージェントの直接作業を制限し、サブエージェントへの委任を促進する" }
             ],
@@ -559,7 +562,7 @@ export const ORCHESTRATION_FLOWS = [
         flowSummary: "「最終確認」diff 確認 → レビューゲート → push 実行",
         completionCondition: "diff が確認されていること・review gate を通過していること・push が成功していること",
         routes: ["full", "quick", "config", "refactor"],
-        skill: "module-reviewing-pre-push", stop: false, stopDetail: null,
+        skill: "pre-push-review", stop: false, stopDetail: null,
         phaseSteps: [
           {
             id: "8-1",
@@ -581,7 +584,7 @@ export const ORCHESTRATION_FLOWS = [
             completionCondition: "プッシュ前レビューゲートを通過していること（設定されている場合）",
             timing: "Step 8-1 直後",
             refs: [
-              { type: "module", text: "module-reviewing-pre-push", desc: "プッシュ前の最終レビューを実行する" },
+              { type: "module", text: "pre-push-review", desc: "プッシュ前の最終レビューを実行する" },
               { type: "context", text: "プッシュ前レビューゲート", desc: "プッシュ前レビューゲートのスキル名" },
               { type: "rule", text: "subagent-delegation-rules", desc: "メインエージェントの直接作業を制限し、サブエージェントへの委任を促進する" }
             ],

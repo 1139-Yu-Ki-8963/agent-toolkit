@@ -7,24 +7,112 @@
   <link rel="stylesheet" href="../style.css" />
   <script type="module" src="../src/common/header.js"></script>
   <style>
-    .tag-main { background: #7c3aed; color: #fff; }
-    .tag-sub { background: #059669; color: #fff; }
+    .page-hero.compact { padding: 12px 0 8px; }
+    .page-hero.compact .header-top { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+    .page-hero.compact h1 { font-size: 1.3rem; margin: 0; }
+    .page-hero.compact .meta-inline { font-size: 0.75rem; color: var(--text-muted); margin: 6px 0 0; }
+
+    .summary-tiles { display: flex; gap: 10px; flex-wrap: wrap; }
+    .summary-tiles .tile {
+      background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius-sm);
+      padding: 4px 12px; font-size: 0.78rem; color: var(--text-sub);
+    }
+    .summary-tiles .tile strong { font-size: 1rem; color: var(--text); margin-right: 4px; }
+
+    .toolbar-area { padding: 8px 0; }
+    .toolbar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    .toolbar input[type="search"] {
+      flex: 1; min-width: 220px; padding: 8px 12px; font-size: 0.92rem;
+      border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--panel); color: var(--text);
+    }
+    .toolbar .note { font-size: 0.82rem; color: var(--text-muted); white-space: nowrap; }
+
+    section.module-group { margin: 18px 0; background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 20px; }
+    section.module-group h2 { font-size: 1.05rem; margin: 0 0 12px; }
+
+    .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    table.screens { table-layout: fixed; width: 100%; min-width: 640px; border-collapse: collapse; font-size: 0.88rem; }
+    table.screens thead { position: sticky; top: 0; z-index: 3; }
+    table.screens th {
+      border-top: 1px solid var(--border); padding: 8px 10px; text-align: left; vertical-align: top;
+      background: var(--panel-2); font-weight: 700; cursor: pointer; user-select: none; font-size: 0.85em;
+    }
+    table.screens th:hover { background: var(--accent-soft); }
+    table.screens th[data-asc="true"]::after { content: " \25B2"; font-size: 0.7em; }
+    table.screens th[data-asc="false"]::after { content: " \25BC"; font-size: 0.7em; }
+    table.screens th[data-key="id"] { width: 24%; }
+    table.screens th[data-key="cat"] { width: 16%; }
+    table.screens th[data-key="summary"] { width: 60%; }
+    table.screens td {
+      border-top: 1px solid var(--border); padding: 6px 8px; text-align: left; vertical-align: top;
+      overflow: hidden; text-overflow: ellipsis; white-space: normal; word-break: break-word;
+    }
+    table.screens td code {
+      font-family: var(--mono); font-size: 0.85em; background: var(--panel-2); padding: 1px 5px; border-radius: 3px;
+    }
+    table.screens tbody tr:nth-child(even) { background: color-mix(in srgb, var(--panel-2) 40%, transparent); }
+    table.screens tbody tr:hover { background: var(--accent-soft); }
+    table.screens tbody tr { cursor: pointer; }
+
+    .expand-cell { text-align: center; color: var(--text-muted); transition: color 0.15s; }
+    tr:hover .expand-cell { color: var(--accent); }
+    tr[data-expanded="true"] .chevron svg { transform: rotate(90deg); }
+    .chevron svg { transition: transform 0.15s; vertical-align: middle; }
+
+    .badge { display: inline-block; font-size: 0.76rem; font-weight: 700; padding: 1px 8px; border-radius: 3px; }
+
+    .copy-btn { background: none; border: none; cursor: pointer; padding: 1px 3px; color: var(--text-muted); opacity: .35; vertical-align: middle; }
+    tr:hover .copy-btn, .copy-btn:focus { opacity: 1; }
+    .copy-btn:hover { color: var(--accent); }
+
+    tr.row-detail > td { background: var(--panel-2); font-size: .86rem; white-space: normal; border-left: 3px solid var(--accent); }
+    .detail-grid { display: grid; grid-template-columns: max-content 1fr; gap: 4px 14px; margin: 4px 0; padding: 10px 14px; }
+    .detail-grid dt { color: var(--text-muted); font-size: 0.78rem; white-space: nowrap; }
+    .detail-grid dd { margin: 0; font-size: 0.84rem; word-break: break-word; }
+    .detail-grid a { color: var(--accent); }
   </style>
 </head>
 <body>
   <div class="cat-wrap">
-    <div class="page-hero">
-      <h1>Skills 一覧</h1>
-      <p>~/agent-home/skills で管理しているスキル（SKILL.md）をカテゴリ別に一覧化したものです。各行を開くとトリガーと概要を表示します。<a href="../index.html">← フロー・ポータルへ戻る</a></p>
+    <section class="page-hero compact">
+      <nav style="margin: 16px 0 0; font-size: 0.85rem;">
+        <a href="../index.html" style="color: var(--text-sub); text-decoration: none; border-bottom: 1px dotted var(--text-muted);">← ポータルへ戻る</a>
+      </nav>
+      <div class="header-top">
+        <h1>Skills 一覧</h1>
+        <div class="summary-tiles">
+          <div class="tile"><strong id="tile-total">0</strong>スキル数</div>
+          <div class="tile"><strong id="tile-cat">0</strong>カテゴリ数</div>
+        </div>
+      </div>
+      <p class="meta-inline">~/agent-home/skills で管理しているスキル（SKILL.md）をカテゴリ別に一覧化したものです。</p>
+    </section>
+
+    <div class="toolbar-area">
+      <div class="toolbar">
+        <input type="search" id="filter" placeholder="スキル名・説明で絞り込み…" autocomplete="off" />
+        <span class="note" id="total"></span>
+      </div>
     </div>
 
-    <div class="cat-bar">
-      <a class="cat-back" href="../index.html">← ポータル TOP</a>
-      <span class="cat-total" id="total"></span>
-      <input class="cat-filter" id="filter" type="search" placeholder="スキル名・説明で絞り込み…" autocomplete="off" />
+    <div class="table-area">
+      <section class="module-group">
+        <h2>Skills 一覧</h2>
+        <div class="table-wrap">
+          <table class="screens" id="data-table">
+            <thead>
+              <tr>
+                <th style="width:32px;padding:8px 4px;"></th>
+                <th data-key="id">スキル名</th>
+                <th data-key="cat">カテゴリ</th>
+                <th data-key="summary">概要</th>
+              </tr>
+            </thead>
+            <tbody id="table-body"></tbody>
+          </table>
+        </div>
+      </section>
     </div>
-
-    <div id="list"></div>
   </div>
 
   <script type="module">
@@ -38,117 +126,243 @@
       { id: "adding-textlint-dictionary-terms", cat: "write", summary: "textlint置き換え辞書（prh.yml）への新規語彙登録", trigger: "「prh.yml登録」「辞書に登録」「置き換え語を追加」と言われた時、text-dictionary/rule.md の [TEXTLINT-BLOCK] 手順で辞書に該当エントリがない時", guide: true },
       { id: "adversarial-verification", cat: "meta", summary: "成果物に独立の懐疑者が反証を試み、採否判断と修正反映まで行う", trigger: "「敵対的検証して」「反証して」と言われた時、計画のユーザー承認前（ExitPlanMode 前）、PR 作成前（gh pr create 前）、設計書・調査報告・社外提示物の提示前", guide: true },
       { id: "creating-new-project", cat: "dev", summary: "新規プロジェクトセットアップ（Next.js / React+Vite+FastAPI）", trigger: "「新規プロジェクト」「プロジェクト作成」「アプリ新規作成」「セットアップ」と言われた時", guide: true },
+      { id: "dev-flow-preparing-manual-mockup", cat: "build", sub: "pr", summary: "マニュアル画像加工→HTML モック→承認を実装前に完了", trigger: "manual-images 追加・差し替え、添付画像あり、PNG 派生作成", guide: true },
       { id: "eliciting-plan-tacit-knowledge", cat: "meta", summary: "計画を弱モデルに初見読解させ、理解のズレから暗黙知を抽出して計画へ明文化する", trigger: "「暗黙知を炙り出して」「計画の前提を明文化して」「計画を初見読解で検証して」と言われた時、brain の計画立案後・ユーザー承認前の計画品質確認", guide: true },
       { id: "frontend-design", cat: "design", summary: "UI/画面デザインガイド", trigger: "コンポーネント実装、LP、デザイン刷新", guide: true },
-      { id: "generating-explanation-html-slides", cat: "content", summary: "与えたトピックを横1枚（16:9）のスライド風解説HTMLにする。図解型と論証テーブル型を選択可能", trigger: "「解説スライドを作って」「説明用HTMLにして」「スライドHTML」「図解して1枚にまとめて」「論証テーブルで整理して」と言われた時", guide: true },
-      { id: "grouping-commits", cat: "impl", sub: "pr", summary: "変更分析しグループ化・単一目的コミット作成", trigger: "「コミット分割」「変更グループ化」「まとめてコミット」と言われた時", guide: true },
+      { id: "generating-explanation-html-slides", cat: "content", summary: "与えたトピックを横1枚（16:9）のスライド風解説HTMLにする。段階比較型・層構造型と論証テーブル型を選択可能", trigger: "「解説スライドを作って」「説明用HTMLにして」「スライドHTML」「1枚の図にまとめて」「論証テーブルで整理して」と言われた時", guide: true },
+      { id: "grouping-commits", cat: "build", sub: "pr", summary: "変更分析しグループ化・単一目的コミット作成", trigger: "「コミット分割」「変更グループ化」「まとめてコミット」と言われた時", guide: true },
       { id: "managing-agent-configs", cat: "manage", sub: "skill", summary: "エージェント構成管理", trigger: "スキル/ルール/ルーティン/エージェント/フック作成・レビュー・テスト", guide: true },
-      { id: "managing-github-issues", cat: "impl", sub: "issue", summary: "GitHub issue の起票・選択着手・スコープ検証のモードハブ", trigger: "「issue作成」「起票」「issueにして」「issueを選んで実装」「issue一覧から着手」「スコープ検証」「issue範囲チェック」、issue-N ブランチで commit 前", guide: true },
+      { id: "managing-github-operations", cat: "other", summary: "GitHub issue の起票・選択着手・スコープ検証のモードハブ", trigger: "「issue作成」「起票」「issueにして」「issueを選んで実装」「issue一覧から着手」「スコープ検証」「issue範囲チェック」、issue-N ブランチで commit 前、「PRレビュー」「差分確認」「LGTM」「まとめてレビュー」「routine PR」", guide: true },
       { id: "managing-review-sets", cat: "review", summary: "レビュープロファイルに従い品質検証を一元実行するエンジン", trigger: "Skill(\"managing-review-sets\") で呼ばれた時、計画提示前、成果物提示前、実装後レビュー時", guide: true },
-      { id: "managing-session-workflow", cat: "manage", summary: "セッション開始時に状態を読み取り、適切なスキルへ誘導する管理スキル", trigger: "SessionStart hook の advisory 注入を受けた時、セッション冒頭で手動起動された時", guide: true },
-      { id: "orchestrating-dev-flow", cat: "impl", sub: "pr", summary: "開発オーケストレーター", trigger: "「新機能追加」「バグ修正」「リファクタ」「ドキュメント編集」「インシデント対応」と言われた時", guide: true },
-      { id: "parallel-dev-worktree", cat: "impl", sub: "pr", summary: "worktreeブランチ作成/管理/復旧", trigger: "wt1-wt3不在、MISSING/FAIL", guide: true },
+      { id: "managing-session-workflow", cat: "manage", summary: "セッション開始時にゴールと完了条件を確認し、道筋を設計してセッション全体を管理するセッション管理者", trigger: "SessionStart hook の advisory 注入を受けた時、セッション冒頭で手動起動された時", guide: true },
+      { id: "orchestrating-dev-flow", cat: "build", sub: "pr", summary: "開発オーケストレーター", trigger: "「新機能追加」「バグ修正」「リファクタ」「ドキュメント編集」「インシデント対応」と言われた時", guide: true },
+      { id: "parallel-dev-worktree", cat: "build", sub: "pr", summary: "worktreeブランチ作成/管理/復旧", trigger: "wt1-wt3不在、MISSING/FAIL", guide: true },
       { id: "presenting-plan-with-artifacts", cat: "flow", summary: "計画の品質検証と視覚的な成果物提示を EnterPlanMode 前に 100% 強制するゲート", trigger: "EnterPlanMode の直前（PreToolUse hook で自動発火）、計画をユーザーに提示する前", guide: true },
-      { id: "reviewing-against-rules", cat: "review", summary: "レビューの単一入口。適用 rule を解決し、専門家に照合を委任する", trigger: "「レビューして」と成果物・差分を指定された時、他スキルのレビュー工程（PR レビュー Phase 5・開発フローのレビューゲート）から呼ばれた時、HTML・コードの完成判定時", guide: true },
-      { id: "reviewing-public-readiness", cat: "review", summary: "公開前機密漏洩スナップショット走査", trigger: "make public・[PUBLISH-*]注入", guide: true },
-      { id: "reviewing-single-pr-with-inline-comments", cat: "review", summary: "PRレビュー・コメント・修正・マージ", trigger: "差分確認、LGTM、まとめてレビュー、routine PR", guide: true },
       { id: "subagent-investigation-checklist", cat: "meta", summary: "調査委任前チェックリスト作成", trigger: "「調査チェックリスト」「調査委任」と言われた時、investigator/report-reviewer への委任前", guide: true },
+      { id: "transcribing-images", cat: "content", summary: "添付・アップロード画像の内容を構造を保って忠実に書き起こし、検証と次アクション提案まで行う", trigger: "『書き起こして』『文字起こし』『transcribe』と言われた時、画像添付とともに内容のテキスト化を求められた時", guide: true },
     ];
     // <!-- /GEN:SKILLS -->
 
-    const root = document.getElementById("list");
-    const totalEl = document.getElementById("total");
+    const tbody = document.getElementById("table-body");
+    const table = document.getElementById("data-table");
     const filterEl = document.getElementById("filter");
-    totalEl.textContent = SKILLS.length + " スキル / " + CATEGORIES.length + " カテゴリ";
+    const totalEl = document.getElementById("total");
+    const tileTotalEl = document.getElementById("tile-total");
+    const tileCatEl = document.getElementById("tile-cat");
 
-    function rowHtml(s) {
-      return (
-        '<details class="fr" data-key="' + (s.id + " " + s.summary + " " + s.trigger).toLowerCase() + '">' +
-          '<summary>' +
-            '<span class="expbtn">+</span>' +
-            '<span class="fn">' + s.summary + '</span>' +
-            (s.exec === "main" ? '<span class="tag tag-main">メインセッション</span>' : '<span class="tag tag-sub">サブエージェント可</span>') +
-            '<span class="fsep">—</span>' +
-            '<span class="fdesc">' + s.trigger + '</span>' +
-          '</summary>' +
-          '<div class="fdetail">' +
-            '<div class="frow"><span class="frow-label">id</span><span class="frow-val"><code>' + s.id + '</code></span></div>' +
-            '<div class="fmeta">~/agent-home/skills/' + s.id + '/SKILL.md' + (s.guide ? ' <a class="fguide" href="../../skills/' + s.id + '/references/' + s.id + '-guide.html" target="_blank" rel="noopener">ガイド ↗</a>' : '') + '</div>' +
-            '<div class="frow"><span class="frow-label">概要</span><span class="frow-val">' + s.summary + '</span></div>' +
-            '<div class="frow"><span class="frow-label">トリガー</span><span class="frow-val"><span class="tag tag-trigger">TRIGGER</span> ' + s.trigger + '</span></div>' +
-          '</div>' +
-        '</details>'
-      );
+    tileTotalEl.textContent = SKILLS.length;
+    tileCatEl.textContent = CATEGORIES.length;
+
+    const CAT_PALETTE = ["#2563eb", "#059669", "#7c3aed", "#d97706", "#db2777", "#0891b2", "#65a30d", "#dc2626", "#4f46e5", "#0d9488"];
+
+    function categoryInfo(catId) {
+      const idx = CATEGORIES.findIndex((c) => c.id === catId);
+      if (idx === -1) return { name: catId, color: "#767b85" };
+      return { name: CATEGORIES[idx].name, color: CAT_PALETTE[idx % CAT_PALETTE.length] };
     }
 
-    function subWrap(label, tag, items) {
-      return (
-        '<div class="sub-wrap">' +
-          '<div class="sub-divider"><span class="tag ' + tag + '">' + label + '</span><span class="sub-count">' + items.length + '</span></div>' +
-          items.map(rowHtml).join("") +
-        '</div>'
-      );
+    function categoryBadge(catId) {
+      const info = categoryInfo(catId);
+      const span = document.createElement("span");
+      span.className = "badge";
+      span.textContent = info.name;
+      span.style.background = info.color + "22";
+      span.style.color = info.color;
+      return span;
     }
 
-    // カテゴリに subs があれば小カテゴリに分割、なければフラット描画
-    function rowsHtml(cat, items) {
-      const subs = cat.subs;
-      if (!subs) return items.map(rowHtml).join("");
-      let html = "";
-      subs.forEach((g) => {
-        const members = items.filter((s) => s.sub === g.key);
-        if (members.length) html += subWrap(g.label, g.tag, members);
+    const CHEVRON_SVG = '<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M6.22 3.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042L9.94 8 6.22 4.28a.75.75 0 0 1 0-1.06Z"/></svg>';
+    const COPY_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>';
+    const CHECK_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+
+    function fallbackCopy(text) {
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand("copy"); } catch (e) { /* ignore */ }
+      document.body.removeChild(ta);
+    }
+
+    function copyCellText(text, btn) {
+      function showDone() {
+        btn.innerHTML = CHECK_SVG;
+        setTimeout(() => { btn.innerHTML = COPY_SVG; }, 1200);
+      }
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(showDone, () => { fallbackCopy(text); showDone(); });
+      } else {
+        fallbackCopy(text);
+        showDone();
+      }
+    }
+
+    function makeCopyBtn(getText) {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "copy-btn";
+      btn.setAttribute("aria-label", "コピー");
+      btn.innerHTML = COPY_SVG;
+      btn.addEventListener("click", (ev) => {
+        ev.stopPropagation();
+        ev.preventDefault();
+        copyCellText(getText(), btn);
       });
-      const rest = items.filter((s) => !subs.some((g) => g.key === s.sub));
-      if (rest.length) html += subWrap("その他", "tag-lib", rest);
-      return html;
+      return btn;
     }
 
-    function render() {
-      root.innerHTML = "";
-      CATEGORIES.forEach((c, i) => {
-        const items = SKILLS.filter((s) => s.cat === c.id);
-        if (items.length === 0) return;
-        const sec = document.createElement("details");
-        sec.className = "cat-block";
-        sec.open = true;
-        sec.innerHTML =
-          '<summary class="cat-card">' +
-            '<span class="cat-fold"></span>' +
-            '<div class="cat-num-block"><span class="cat-number">' + String(i + 1).padStart(2, "0") + '</span></div>' +
-            '<div class="cat-body"><div class="cat-name">' + c.name + '</div><div class="cat-desc">' + c.desc + '</div></div>' +
-            '<span class="cat-count">' + items.length + ' skills</span>' +
-          '</summary>' +
-          '<div class="file-rows">' + rowsHtml(c, items) + '</div>';
-        root.appendChild(sec);
+    function buildDetailRow(s) {
+      const detail = document.createElement("tr");
+      detail.className = "row-detail";
+      const td = document.createElement("td");
+      td.colSpan = 4;
+      const dl = document.createElement("dl");
+      dl.className = "detail-grid";
+
+      function addPair(label, buildValue) {
+        const dt = document.createElement("dt");
+        dt.textContent = label;
+        const dd = document.createElement("dd");
+        buildValue(dd);
+        dl.appendChild(dt);
+        dl.appendChild(dd);
+      }
+
+      addPair("id", (dd) => {
+        const code = document.createElement("code");
+        code.textContent = s.id;
+        dd.appendChild(code);
+        dd.appendChild(makeCopyBtn(() => s.id));
       });
+      addPair("パス", (dd) => {
+        const code = document.createElement("code");
+        code.textContent = "~/agent-home/skills/" + s.id + "/SKILL.md";
+        dd.appendChild(code);
+      });
+      addPair("概要", (dd) => { dd.textContent = s.summary; });
+      addPair("トリガー", (dd) => { dd.textContent = s.trigger; });
+      if (s.guide) {
+        addPair("ガイド", (dd) => {
+          const a = document.createElement("a");
+          a.href = "../../skills/" + s.id + "/references/" + s.id + "-guide.html";
+          a.target = "_blank";
+          a.rel = "noopener";
+          a.textContent = "ガイド ↗";
+          dd.appendChild(a);
+        });
+      }
+
+      td.appendChild(dl);
+      detail.appendChild(td);
+      return detail;
     }
 
-    function applyFilter() {
+    function toggleDetail(tr, s) {
+      const next = tr.nextElementSibling;
+      if (next && next.classList.contains("row-detail")) {
+        next.remove();
+        tr.removeAttribute("data-expanded");
+        return;
+      }
+      const detail = buildDetailRow(s);
+      tr.after(detail);
+      tr.setAttribute("data-expanded", "true");
+    }
+
+    function makeRow(s) {
+      const tr = document.createElement("tr");
+      tr.dataset.key = (s.id + " " + s.summary + " " + s.trigger).toLowerCase();
+
+      const chTd = document.createElement("td");
+      chTd.className = "expand-cell";
+      chTd.innerHTML = '<span class="chevron">' + CHEVRON_SVG + "</span>";
+      tr.appendChild(chTd);
+
+      const idTd = document.createElement("td");
+      const code = document.createElement("code");
+      code.textContent = s.id;
+      idTd.appendChild(code);
+      idTd.appendChild(makeCopyBtn(() => s.id));
+      tr.appendChild(idTd);
+
+      const catTd = document.createElement("td");
+      catTd.appendChild(categoryBadge(s.cat));
+      tr.appendChild(catTd);
+
+      const sumTd = document.createElement("td");
+      sumTd.textContent = s.summary;
+      tr.appendChild(sumTd);
+
+      tr.addEventListener("click", (ev) => {
+        if (ev.target.closest(".copy-btn,a,button")) return;
+        toggleDetail(tr, s);
+      });
+
+      return tr;
+    }
+
+    const allRows = SKILLS.map(makeRow);
+
+    let sortKey = null;
+    let sortAsc = true;
+    const COL_INDEX = { id: 1, cat: 2, summary: 3 };
+
+    function closeAllDetails() {
+      tbody.querySelectorAll("tr.row-detail").forEach((r) => r.remove());
+      allRows.forEach((tr) => tr.removeAttribute("data-expanded"));
+    }
+
+    function computeVisible() {
       const q = filterEl.value.trim().toLowerCase();
-      let shown = 0;
-      root.querySelectorAll("details.cat-block").forEach((sec) => {
-        let secShown = 0;
-        sec.querySelectorAll("details.fr").forEach((d) => {
-          const hit = !q || d.dataset.key.includes(q);
-          d.style.display = hit ? "" : "none";
-          if (hit) { secShown++; shown++; }
+      let visible = allRows.filter((tr) => !q || tr.dataset.key.includes(q));
+      if (sortKey) {
+        const idx = COL_INDEX[sortKey];
+        visible = visible.slice().sort((a, b) => {
+          const av = a.children[idx].textContent.trim();
+          const bv = b.children[idx].textContent.trim();
+          const cmp = av.localeCompare(bv, "ja");
+          return sortAsc ? cmp : -cmp;
         });
-        // サブグループの見出しは、配下に表示行が無ければ隠す
-        sec.querySelectorAll(".sub-wrap").forEach((w) => {
-          const anyVisible = [...w.querySelectorAll("details.fr")].some((d) => d.style.display !== "none");
-          w.style.display = anyVisible ? "" : "none";
-        });
-        sec.style.display = secShown > 0 ? "" : "none";
-        if (q && secShown > 0) sec.open = true; // 絞り込み中はヒットしたカテゴリを開く
-      });
+      }
+      return visible;
+    }
+
+    function updateCount(shownCount) {
+      const q = filterEl.value.trim();
       totalEl.textContent = q
-        ? shown + " 件ヒット / " + SKILLS.length + " スキル"
+        ? shownCount + " 件ヒット / " + SKILLS.length + " スキル"
         : SKILLS.length + " スキル / " + CATEGORIES.length + " カテゴリ";
     }
 
-    let t;
-    filterEl.addEventListener("input", () => { clearTimeout(t); t = setTimeout(applyFilter, 120); });
+    function render() {
+      closeAllDetails();
+      const visible = computeVisible();
+      allRows.forEach((tr) => { tr.style.display = "none"; });
+      visible.forEach((tr) => {
+        tr.style.display = "";
+        tbody.appendChild(tr);
+      });
+      updateCount(visible.length);
+    }
+
+    table.querySelectorAll("th[data-key]").forEach((th) => {
+      th.addEventListener("click", () => {
+        const key = th.dataset.key;
+        if (sortKey === key) { sortAsc = !sortAsc; } else { sortKey = key; sortAsc = true; }
+        table.querySelectorAll("th[data-key]").forEach((t) => t.removeAttribute("data-asc"));
+        th.setAttribute("data-asc", sortAsc);
+        render();
+      });
+    });
+
+    let debounceTimer;
+    filterEl.addEventListener("input", () => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(render, 120);
+    });
+
     render();
   </script>
 </body>

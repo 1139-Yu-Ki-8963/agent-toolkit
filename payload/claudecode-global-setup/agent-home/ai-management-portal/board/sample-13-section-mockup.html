@@ -1,0 +1,702 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<!-- generated-by: creating-mock v1 -->
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>issue #241 タスクボードに手動再実行ボタンを追加する（13セクション規約 見本）</title>
+<style>
+  :root {
+    /* creating-screen-mock-conventions.md 必須 5 トークン */
+    --mock-max-width: 1080px;
+    --mock-accent: #2563eb;
+    --mock-text: #1f2937;
+    --mock-panel-bg: #f8fafc;
+    --mock-font: -apple-system, "Hiragino Sans", sans-serif;
+
+    /* 画面モック部分（#proposal）は実装同等の忠実度のため
+       ai-management-portal/style.css の実デザイントークン（ライトテーマ値）をそのまま流用する */
+    --bg: #FFFFFF;
+    --panel: #ffffff;
+    --panel-2: #F6F8FA;
+    --border: #D1D9E0;
+    --border-strong: #AFB8C1;
+    --text: #1B1F26;
+    --text-sub: #4A4F58;
+    --text-muted: #767B85;
+    --accent: #0969DA;
+    --accent-soft: #DDF4FF;
+    --accent-border: #54AEFF;
+    --inverse-bg: #1B1F26;
+    --inverse-fg: #FFFFFF;
+    --gold: #BC4C00;
+    --gold-soft: #FFF1E5;
+    --success: #1A7F37;
+    --success-soft: #DAFBE1;
+    --danger: #CF222E;
+    --danger-soft: #FFEBE9;
+    --radius: 10px;
+    --radius-sm: 6px;
+    --shadow-sm: 0 1px 3px rgba(27,31,38,.07), 0 2px 6px rgba(27,31,38,.05);
+    --font-body: "Hiragino Kaku Gothic ProN","Hiragino Sans","Noto Sans JP",system-ui,-apple-system,sans-serif;
+    --mono: "SFMono-Regular", "Menlo", "Cascadia Code", "Consolas", monospace;
+  }
+
+  /* ===== 説明用ドキュメント本体（13 セクション） ===== */
+  body { font-family: var(--mock-font); max-width: var(--mock-max-width); margin: 24px auto; padding: 0 16px; line-height: 1.6; color: var(--mock-text); }
+  h1.mock-title { border-bottom: 3px solid var(--mock-accent); padding-bottom: 8px; }
+  h2 { margin-top: 32px; border-left: 4px solid var(--mock-accent); padding-left: 10px; }
+  h3 { margin-top: 24px; }
+  section { margin-top: 16px; }
+  .panel { border: 1px solid #cbd5e1; border-radius: 8px; padding: 14px 18px; margin: 14px 0; background: var(--mock-panel-bg); }
+  table { width: 100%; border-collapse: collapse; margin: 12px 0; }
+  th, td { border: 1px solid #cbd5e1; padding: 8px 10px; text-align: left; font-size: 13.5px; vertical-align: top; }
+  th { background: #e0e7ff; }
+  ul { padding-left: 22px; }
+  code { background: #eef2ff; padding: 1px 6px; border-radius: 4px; font-family: ui-monospace, Menlo, monospace; word-break: break-all; }
+  pre { background: #0f172a; color: #e2e8f0; padding: 12px 14px; border-radius: 8px; overflow-x: auto; font-size: 12.5px; }
+  pre code { background: transparent; padding: 0; color: inherit; }
+  .exempt-note { font-size: 12.5px; color: #64748b; }
+  .flow-ascii { background: #0f172a; color: #e2e8f0; border-radius: 8px; padding: 14px 16px; font-family: var(--mono); font-size: 12.5px; line-height: 1.9; white-space: pre; overflow-x: auto; }
+
+  /* ===== #proposal 内の画面モック（実装同等の実 CSS） ===== */
+  .browser-frame {
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+    margin: 14px 0;
+  }
+  .browser-frame .browser-bar {
+    display: flex; align-items: center; gap: 6px;
+    background: var(--panel-2); border-bottom: 1px solid var(--border);
+    padding: 8px 12px; font-size: 11.5px; color: var(--text-muted);
+  }
+  .browser-frame .browser-dot { width: 9px; height: 9px; border-radius: 999px; background: var(--border-strong); }
+  .cat-wrap-demo { max-width: 100%; margin: 0 auto; padding: 20px; background: var(--bg); color: var(--text); font-family: var(--font-body); }
+  .page-hero-demo {
+    background: var(--inverse-bg); color: var(--inverse-fg);
+    border: 1px solid var(--border-strong); border-radius: var(--radius);
+    padding: 18px 22px; margin-bottom: 16px;
+  }
+  .page-hero-demo h2 { margin: 0 0 4px; font-size: 18px; font-weight: 800; border: none; padding: 0; color: var(--inverse-fg); }
+  .page-hero-demo p { margin: 0; opacity: .85; font-size: 12.5px; }
+  .metric-grid-demo { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; margin-bottom: 20px; }
+  .metric-card-demo {
+    background: var(--panel); border: 1px solid var(--border); border-top: 3px solid var(--accent);
+    border-radius: var(--radius); padding: 12px 14px 11px; box-shadow: var(--shadow-sm);
+  }
+  .metric-card-demo.ok { border-top-color: var(--success); }
+  .metric-card-demo.scale { border-top-color: var(--gold); }
+  .metric-card-demo.danger { border-top-color: var(--danger); }
+  .metric-label-demo { font-size: 11px; font-weight: 700; color: var(--text-sub); margin-bottom: 3px; }
+  .metric-value-demo { font-size: 22px; font-weight: 800; font-family: var(--mono); color: var(--text); }
+  .metric-value-demo .unit { font-size: 11.5px; font-weight: 600; color: var(--text-muted); margin-left: 2px; }
+  .cat-bar-demo { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
+  .cat-back-demo { font-size: 11.5px; font-weight: 700; color: var(--accent); background: var(--accent-soft); border: 1px solid var(--accent-border); border-radius: var(--radius-sm); padding: 5px 10px; }
+  .cat-total-demo { font-size: 11.5px; color: var(--text-muted); font-weight: 700; }
+  .mt-table-wrap-demo { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius); background: var(--panel); box-shadow: var(--shadow-sm); }
+  table.mt-table-demo { border-collapse: collapse; width: 100%; font-size: 12px; margin: 0; }
+  table.mt-table-demo th, table.mt-table-demo td { border: none; border-bottom: 1px solid var(--border); padding: 7px 10px; text-align: left; vertical-align: top; }
+  table.mt-table-demo thead th { background: var(--accent-soft); color: var(--accent); font-weight: 700; white-space: nowrap; }
+  table.mt-table-demo tbody tr:nth-child(even) td { background: var(--panel-2); }
+  table.mt-table-demo td code { background: var(--panel-2); padding: 1px 5px; border-radius: 4px; font-family: var(--mono); font-size: 11px; }
+  .mt-chip-demo { display: inline-block; font-size: 10.5px; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); }
+  .mt-chip-demo.ok { background: var(--success-soft); color: var(--success); }
+  .mt-chip-demo.no { background: var(--danger-soft); color: var(--danger); }
+  .mt-chip-demo.warn { background: var(--gold-soft); color: var(--gold); }
+  .mt-chip-demo.muted { background: var(--panel-2); color: var(--text-muted); }
+
+  /* 本 issue で新設するボタン・パネル（bespoke class。:root トークンは変更しない） */
+  .tb-retry-btn {
+    font-size: 11px; font-weight: 700; color: #fff; background: var(--accent);
+    border: none; border-radius: var(--radius-sm); padding: 4px 10px; cursor: pointer;
+    min-height: 26px;
+  }
+  .tb-retry-btn:hover { filter: brightness(1.08); }
+  .tb-retry-panel {
+    display: none; background: #0f172a; color: #e2e8f0; font-family: var(--mono);
+    font-size: 11.5px; padding: 10px 12px; border-radius: var(--radius-sm); margin-top: 6px;
+    line-height: 1.7; overflow-x: auto;
+  }
+  .tb-retry-panel.open { display: block; }
+  .tb-retry-copy {
+    margin-top: 6px; font-size: 11px; font-weight: 700; color: var(--accent);
+    background: var(--accent-soft); border: 1px solid var(--accent-border);
+    border-radius: var(--radius-sm); padding: 3px 9px; cursor: pointer;
+  }
+  .tb-retry-status { font-size: 11px; color: #94a3b8; margin-left: 8px; }
+
+  /* ===== 表現規約（認知設計6項目）: 読み順ナビ・ビフォー/アフタータブ・バッジ・図解 ===== */
+  .read-order-nav ul { margin: 6px 0 0; }
+  .read-order-nav li { margin-bottom: 4px; }
+  .read-order-nav a { color: var(--mock-accent); font-weight: 600; }
+
+  .badge { display: inline-block; font-size: 10.5px; font-weight: 700; padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
+  .badge-high { background: #FFEBE9; color: #CF222E; }
+  .badge-mid { background: #FFF1E5; color: #BC4C00; }
+  .badge-low { background: #F6F8FA; color: #767B85; border: 1px solid #D1D9E0; }
+  .badge-required { background: #DDF4FF; color: #0969DA; border: 1px solid #54AEFF; }
+  .badge-recommended { background: #F6F8FA; color: #767B85; border: 1px solid #D1D9E0; }
+  .badge-new { background: #DDF4FF; color: #0969DA; border: 1px solid #54AEFF; }
+
+  .tb-tabs { display: flex; gap: 4px; margin: 10px 0 0; border-bottom: 1px solid var(--border); }
+  .tb-tab-btn {
+    font-size: 12.5px; font-weight: 700; padding: 8px 14px; border: none; background: transparent;
+    color: var(--text-muted); cursor: pointer; border-bottom: 2px solid transparent; font-family: var(--font-body);
+  }
+  .tb-tab-btn[aria-selected="true"] { color: var(--accent); border-bottom-color: var(--accent); }
+  .tb-tabpanel { border: 1px solid var(--border-strong); border-top: none; border-radius: 0 0 var(--radius) var(--radius); overflow: hidden; }
+  .tb-tabpanel[hidden] { display: none; }
+  .tb-tabpanel .browser-frame { margin: 0; border: none; border-radius: 0; box-shadow: none; }
+
+  .field-summary { font-size: 13.5px; margin: 10px 0 6px; }
+  details.field-fold { margin-bottom: 12px; }
+  details.field-fold summary { cursor: pointer; font-size: 13px; font-weight: 700; color: var(--mock-accent); padding: 6px 0; }
+
+  .state-svg-wrap { margin: 14px 0; }
+  .state-svg-wrap svg { max-width: 100%; height: auto; display: block; margin: 0 auto; background: #fff; border: 1px solid #cbd5e1; border-radius: 8px; }
+
+  @media (max-width: 480px) {
+    body { padding: 0 10px; }
+    table, .mt-table-wrap-demo table { font-size: 12px; }
+    .metric-grid-demo { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<h1 class="mock-title">issue #241 タスクボードに<wbr>タスクの<wbr>手動再実行ボタンを<wbr>追加する</h1>
+<p class="exempt-note">対象機能: agent-home タスクボード（<code>ai-management-portal/board/task-board.html</code> / <code>tools/harness/scripts/task-board.mjs</code> / <code>state/task-board/</code>）。本ファイルは creating-mock 規約（13 セクション・実装同等忠実度）の見本として作成した説明用 HTML であり、記載する issue 番号・タスク例は本規約を実演するための架空値。</p>
+
+<div class="panel read-order-nav">
+  <p><strong>この<wbr>モックの<wbr>読み方</strong></p>
+  <ul>
+    <li>承認判断の方: <a href="#proposal">提案</a> → <a href="#acceptance-tests">受け入れテスト観点</a> → <a href="#risks">リスク</a> の 3 つを読めば判断できます（約 3 分）</li>
+    <li>実装される方: <a href="#placement">配置</a> → <a href="#db-schema">DB設計</a> → <a href="#domain-logic">ドメインロジック</a> → <a href="#api-contract">API契約</a></li>
+  </ul>
+</div>
+
+<section id="background">
+  <h2>背景</h2>
+  <p>
+    task-board.mjs には <code>add</code> / <code>claim</code> / <code>complete</code> / <code>fail</code> / <code>list</code> / <code>next</code> の 6 サブコマンドがあり、
+    failed になったタスクを再度実行可能な状態へ戻す手段が存在しない。
+  </p>
+  <p>
+    現状の回避策は 2 つしかない。1 つは <code>add</code> で同じ内容のタスクを新規 id で再登録する方法だが、
+    失敗の経緯（元の <code>receipt</code>・何回目の失敗か）が新タスクに引き継がれず、履歴が分断される。
+    もう 1 つは <code>state/task-board/board.json</code> を直接テキストエディタで編集して <code>status</code> を
+    <code>pending</code> に書き換える方法だが、README.md が「正本は必ず <code>board.json</code>」としつつも
+    手編集は read-modify-write の整合性保証（一時ファイル経由の rename）を経ないため、書き込み中の他プロセスとの競合や
+    JSON 構文崩れのリスクを負う。
+  </p>
+  <p>
+    本 issue では、failed タスクを安全に <code>pending</code> へ戻す <code>retry</code> サブコマンドと、
+    タスクボード画面から failed 行に対して再実行コマンドを提示する導線を追加し、この 2 つの回避策を不要にする。
+  </p>
+</section>
+
+<section id="proposal">
+  <h2>提案</h2>
+  <p>
+    <code>board/task-board.html</code> の一覧テーブルに「操作」列を追加し、<code>status</code> が
+    <code>failed</code> の行にのみ「再実行」ボタンを表示する。クリックすると行の下に
+    <code>retry</code> コマンドのコピー用パネルが開く（board.json への書き込みは CLI 経由のみのため、
+    画面から直接 API を叩く実装にはしない）。以下は実際の <code>ai-management-portal/style.css</code> の
+    デザイントークン・クラス構成をそのまま用いた実装同等のマークアップである。
+  </p>
+  <p>画面の変化を把握しやすいよう、下記は「現状」「変更後」の 2 タブで比較できるようにしている。</p>
+
+  <div class="tb-tabs" role="tablist" aria-label="画面モックの状態切替">
+    <button type="button" id="tb-tab-before" class="tb-tab-btn" role="tab" aria-selected="false" aria-controls="tb-panel-before" onclick="tbSwitchTab('before')">現状</button>
+    <button type="button" id="tb-tab-after" class="tb-tab-btn" role="tab" aria-selected="true" aria-controls="tb-panel-after" onclick="tbSwitchTab('after')">変更後</button>
+  </div>
+
+  <div id="tb-panel-before" class="tb-tabpanel" role="tabpanel" aria-labelledby="tb-tab-before" hidden>
+    <div class="browser-frame">
+      <div class="browser-bar">
+        <span class="browser-dot"></span><span class="browser-dot"></span><span class="browser-dot"></span>
+        &nbsp;ai-management-portal/board/task-board.html（現状）
+      </div>
+      <div class="cat-wrap-demo">
+        <div class="page-hero-demo">
+          <h2>タスクボード</h2>
+          <p>セッション横断で残す永続タスク（task-board）の状態を一元監視するページ。正本は board.json。</p>
+        </div>
+
+        <div class="metric-grid-demo">
+          <div class="metric-card-demo scale"><div class="metric-label-demo">pending</div><div class="metric-value-demo">1<span class="unit">件</span></div></div>
+          <div class="metric-card-demo"><div class="metric-label-demo">in_progress</div><div class="metric-value-demo">1<span class="unit">件</span></div></div>
+          <div class="metric-card-demo ok"><div class="metric-label-demo">done</div><div class="metric-value-demo">1<span class="unit">件</span></div></div>
+          <div class="metric-card-demo danger"><div class="metric-label-demo">failed</div><div class="metric-value-demo">1<span class="unit">件</span></div></div>
+        </div>
+
+        <div class="cat-bar-demo">
+          <span class="cat-back-demo">← ポータル TOP</span>
+          <span class="cat-total-demo">4 件中 4 件を表示</span>
+        </div>
+
+        <div class="mt-table-wrap-demo">
+          <table class="mt-table-demo">
+            <thead>
+              <tr><th>id</th><th>status</th><th>priority</th><th>goal</th><th>project</th><th>updated_at</th><th>receipt</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>login-validation-fix</code></td>
+                <td><span class="mt-chip-demo ok">done</span></td>
+                <td>high</td>
+                <td>ログイン画面のバリデーションエラー表示を修正する</td>
+                <td><code>/Users/<project>/Projects/example-app</code></td>
+                <td>2026-07-20T09:12:00+09:00</td>
+                <td>バリデーションテスト全件通過・code-reviewer PASS</td>
+              </tr>
+              <tr>
+                <td><code>catalog-search-debounce</code></td>
+                <td><span class="mt-chip-demo">in_progress</span></td>
+                <td>normal</td>
+                <td>カタログ検索のデバウンス処理を追加する</td>
+                <td><code>/Users/<project>/Projects/catalog-site</code></td>
+                <td>2026-07-22T14:30:00+09:00</td>
+                <td>—</td>
+              </tr>
+              <tr>
+                <td><code>portal-dark-mode-flicker</code></td>
+                <td><span class="mt-chip-demo warn">pending</span></td>
+                <td>normal</td>
+                <td>ダークモード切替時のちらつきを解消する</td>
+                <td>—</td>
+                <td>2026-07-21T08:00:00+09:00</td>
+                <td>—</td>
+              </tr>
+              <tr>
+                <td><code>task-board-mirror-sync</code></td>
+                <td><span class="mt-chip-demo no">failed</span></td>
+                <td>high</td>
+                <td>task-board.mjs のミラー生成処理を修正する</td>
+                <td><code>/Users/<project>/agent-home</code></td>
+                <td>2026-07-19T17:45:00+09:00</td>
+                <td>統合テストが依存パッケージの欠如で失敗（retry_count: 1/3）</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <p class="exempt-note">※ 現状は「操作」列が存在しない。failed 行でも receipt を確認できるだけで、再実行の手段がないまま放置される。</p>
+  </div>
+
+  <div id="tb-panel-after" class="tb-tabpanel" role="tabpanel" aria-labelledby="tb-tab-after">
+    <div class="browser-frame">
+      <div class="browser-bar">
+        <span class="browser-dot"></span><span class="browser-dot"></span><span class="browser-dot"></span>
+        &nbsp;ai-management-portal/board/task-board.html（変更後）
+      </div>
+      <div class="cat-wrap-demo">
+        <div class="page-hero-demo">
+          <h2>タスクボード</h2>
+          <p>セッション横断で残す永続タスク（task-board）の状態を一元監視するページ。正本は board.json。</p>
+        </div>
+
+        <div class="metric-grid-demo">
+          <div class="metric-card-demo scale"><div class="metric-label-demo">pending</div><div class="metric-value-demo">1<span class="unit">件</span></div></div>
+          <div class="metric-card-demo"><div class="metric-label-demo">in_progress</div><div class="metric-value-demo">1<span class="unit">件</span></div></div>
+          <div class="metric-card-demo ok"><div class="metric-label-demo">done</div><div class="metric-value-demo">1<span class="unit">件</span></div></div>
+          <div class="metric-card-demo danger"><div class="metric-label-demo">failed</div><div class="metric-value-demo">1<span class="unit">件</span></div></div>
+        </div>
+
+        <div class="cat-bar-demo">
+          <span class="cat-back-demo">← ポータル TOP</span>
+          <span class="cat-total-demo">4 件中 4 件を表示</span>
+        </div>
+
+        <div class="mt-table-wrap-demo">
+          <table class="mt-table-demo">
+            <thead>
+              <tr><th>id</th><th>status</th><th>priority</th><th>goal</th><th>project</th><th>updated_at</th><th>receipt</th><th>操作 <span class="badge badge-new">新規</span></th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>login-validation-fix</code></td>
+                <td><span class="mt-chip-demo ok">done</span></td>
+                <td>high</td>
+                <td>ログイン画面のバリデーションエラー表示を修正する</td>
+                <td><code>/Users/<project>/Projects/example-app</code></td>
+                <td>2026-07-20T09:12:00+09:00</td>
+                <td>バリデーションテスト全件通過・code-reviewer PASS</td>
+                <td>—</td>
+              </tr>
+              <tr>
+                <td><code>catalog-search-debounce</code></td>
+                <td><span class="mt-chip-demo">in_progress</span></td>
+                <td>normal</td>
+                <td>カタログ検索のデバウンス処理を追加する</td>
+                <td><code>/Users/<project>/Projects/catalog-site</code></td>
+                <td>2026-07-22T14:30:00+09:00</td>
+                <td>—</td>
+                <td>—</td>
+              </tr>
+              <tr>
+                <td><code>portal-dark-mode-flicker</code></td>
+                <td><span class="mt-chip-demo warn">pending</span></td>
+                <td>normal</td>
+                <td>ダークモード切替時のちらつきを解消する</td>
+                <td>—</td>
+                <td>2026-07-21T08:00:00+09:00</td>
+                <td>—</td>
+                <td>—</td>
+              </tr>
+              <tr>
+                <td><code>task-board-mirror-sync</code></td>
+                <td><span class="mt-chip-demo no">failed</span></td>
+                <td>high</td>
+                <td>task-board.mjs のミラー生成処理を修正する</td>
+                <td><code>/Users/<project>/agent-home</code></td>
+                <td>2026-07-19T17:45:00+09:00</td>
+                <td>統合テストが依存パッケージの欠如で失敗（retry_count: 1/3）</td>
+                <td>
+                  <button type="button" class="tb-retry-btn" onclick="document.getElementById('retry-panel-demo').classList.toggle('open')">再実行</button>
+                  <span class="badge badge-new">新規</span>
+                </td>
+              </tr>
+              <tr>
+                <td colspan="8" style="padding:0; border:none;">
+                  <div id="retry-panel-demo" class="tb-retry-panel">
+node ~/agent-home/tools/harness/scripts/task-board.mjs retry \
+  --id task-board-mirror-sync \
+  --reason "依存パッケージを追加後に再試行"
+                    <div>
+                      <button type="button" class="tb-retry-copy" onclick="var t=document.getElementById('retry-copy-target').textContent; if(navigator.clipboard){navigator.clipboard.writeText(t).then(function(){document.getElementById('retry-copy-status').textContent='コピーしました';});} else {document.getElementById('retry-copy-status').textContent='手動でコピーしてください';}">コマンドをコピー</button>
+                      <span id="retry-copy-status" class="tb-retry-status"></span>
+                    </div>
+                    <span id="retry-copy-target" style="display:none;">node ~/agent-home/tools/harness/scripts/task-board.mjs retry --id task-board-mirror-sync --reason "依存パッケージを追加後に再試行"</span>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function tbSwitchTab(name) {
+      var before = document.getElementById('tb-panel-before');
+      var after = document.getElementById('tb-panel-after');
+      var btnBefore = document.getElementById('tb-tab-before');
+      var btnAfter = document.getElementById('tb-tab-after');
+      if (name === 'before') {
+        before.hidden = false;
+        after.hidden = true;
+        btnBefore.setAttribute('aria-selected', 'true');
+        btnAfter.setAttribute('aria-selected', 'false');
+      } else {
+        before.hidden = true;
+        after.hidden = false;
+        btnBefore.setAttribute('aria-selected', 'false');
+        btnAfter.setAttribute('aria-selected', 'true');
+      }
+    }
+  </script>
+
+  <p class="exempt-note">
+    ※「再実行」ボタンは board.json を直接書き換えず、ターミナルで実行する retry コマンドを提示する（コピー動作は本ファイル内で完結し動作する）。
+    task-board.html は静的ミラー（board.js）を読むだけの画面であり、画面からのライブ書き込み API は持たない設計を踏襲する。
+  </p>
+</section>
+
+<section id="acceptance">
+  <h2>受け入れ条件</h2>
+  <ul>
+    <li><code>status: failed</code> の行にのみ「再実行」列にボタンが表示され、それ以外の status では表示されない</li>
+    <li>ボタンを押すと、当該タスクの id を埋め込んだ <code>task-board.mjs retry --id &lt;id&gt;</code> コマンドがその場に展開される</li>
+    <li><code>retry</code> コマンドは failed 以外のタスクに対しては拒否され、<code>board.json</code> は変更されない</li>
+    <li><code>retry_count</code> が 3 に達したタスクは <code>retry</code> が拒否され、上限到達がエラーメッセージで分かる</li>
+    <li>retry 成功後は <code>board.js</code> ミラーが自動再生成され、画面再読み込みで <code>pending</code> 表示に反映される</li>
+  </ul>
+</section>
+
+<section id="placement">
+  <h2>配置</h2>
+  <table>
+    <thead><tr><th>パス</th><th>種別</th><th>新規 / 編集</th></tr></thead>
+    <tbody>
+      <tr><td><code>tools/harness/scripts/task-board.mjs</code></td><td>CLI（Node.js、外部依存なし）</td><td>編集（<code>cmdRetry</code> 追加）</td></tr>
+      <tr><td><code>ai-management-portal/board/task-board.html</code></td><td>HTML（一覧描画 JS）</td><td>編集（操作列・再実行ボタン追加）</td></tr>
+      <tr><td><code>state/task-board/README.md</code></td><td>ドキュメント（スキーマ・使用例）</td><td>編集（<code>retry_count</code> フィールド・遷移図・使用例追記）</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="related">
+  <h2>関連</h2>
+  <ul>
+    <li>#238 task-board: 失敗タスクの一覧に失敗理由（receipt）の全文表示を追加する（本 issue が前提とする既存表示機能）</li>
+    <li>#252 task-board: dispatched ステータスを払い出しエンジン側で使用開始する（<code>retry</code> は <code>dispatched</code> を経由しないため直接の依存はないが、状態遷移図を同時に更新する）</li>
+  </ul>
+</section>
+
+<section id="risks">
+  <h2>リスク</h2>
+  <table>
+    <thead><tr><th>重大度</th><th>リスク</th><th>影響</th><th>緩和策</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><span class="badge badge-mid">中</span></td>
+        <td>retry_count の上限（3 回）に達したタスクが再実行不能になったまま放置される</td>
+        <td>失敗の原因が解消されても再実行手段がなく、手動で新規タスクを再登録する二度手間が生じる</td>
+        <td>一覧の receipt 列に retry_count を明記し、acceptance-tests のケースで上限到達時の表示を検証する。上限到達後は新規 id での再登録を README の使用例に明記する</td>
+      </tr>
+      <tr>
+        <td><span class="badge badge-high">高</span></td>
+        <td>board.json の直接編集と retry コマンドの競合</td>
+        <td>手動編集後に retry を実行すると retry_count の起点がずれ、上限判定が不正確になる</td>
+        <td>README.md に「retry_count はコマンド経由でのみ更新し手編集しない」と明記し、既存の read-modify-write（一時ファイル + rename）方式をそのまま踏襲する</td>
+      </tr>
+      <tr>
+        <td><span class="badge badge-low">低</span></td>
+        <td>原因未解消のまま再実行され、同じ理由で再度 failed になる</td>
+        <td>retry_count を無駄に消費し、実質的な上限到達を早める</td>
+        <td><code>--reason</code> 引数で再実行理由を receipt に残す運用とし、次回失敗時に前回理由と比較できるようにする</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="db-schema">
+  <h2>DB設計</h2>
+  <p>永続化先は <code>state/task-board/board.json</code>（<code>tasks</code> 配列を持つ単一 JSON ファイル）。既存フィールドに <code>retry_count</code> を追加する。</p>
+
+  <div class="flow-ascii">board.json
+   │ tasks: [ ... ]  配列を保持
+   ▼
+tasks[] の要素（1 タスク = 1 オブジェクト）
+   │ 11 フィールドを保持
+   ▼
+id / goal / completion_conditions / status / priority / project /
+created_at / updated_at / session_id / receipt / retry_count（新規）</div>
+
+  <p class="field-summary">全 11 フィールド中、変更は <code>retry_count</code> の追加のみ（既存 10 フィールドは無変更）。</p>
+  <table>
+    <thead><tr><th>テーブル</th><th>カラム</th><th>型</th><th>制約 / リレーション</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>tasks[]</td>
+        <td><b>retry_count</b> <span class="badge badge-new">新規</span></td>
+        <td>integer</td>
+        <td>既定値 0。<code>retry</code> 実行のたびに +1。上限 3（超過は retry 拒否）</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <details class="field-fold">
+    <summary>既存 10 フィールドを表示（無変更・折りたたみ中）</summary>
+    <table>
+      <thead><tr><th>テーブル</th><th>カラム</th><th>型</th><th>制約 / リレーション</th></tr></thead>
+      <tbody>
+        <tr><td>tasks[]</td><td>id</td><td>string</td><td>一意。連番形式（task-1 等）は add 時にエラー（既存制約）</td></tr>
+        <tr><td>tasks[]</td><td>goal</td><td>string</td><td>必須</td></tr>
+        <tr><td>tasks[]</td><td>completion_conditions</td><td>string[]</td><td>0 件以上</td></tr>
+        <tr><td>tasks[]</td><td>status</td><td>string</td><td><code>pending</code> / <code>dispatched</code> / <code>in_progress</code> / <code>done</code> / <code>failed</code></td></tr>
+        <tr><td>tasks[]</td><td>priority</td><td>string</td><td><code>high</code> / <code>normal</code> / <code>low</code></td></tr>
+        <tr><td>tasks[]</td><td>project</td><td>string | null</td><td>絶対パス</td></tr>
+        <tr><td>tasks[]</td><td>created_at</td><td>string</td><td>ISO 8601（タイムゾーンオフセット付き）</td></tr>
+        <tr><td>tasks[]</td><td>updated_at</td><td>string</td><td>同上。retry 実行時に更新</td></tr>
+        <tr><td>tasks[]</td><td>session_id</td><td>string | null</td><td>retry 実行時に <code>null</code> へリセット</td></tr>
+        <tr><td>tasks[]</td><td>receipt</td><td>string | null</td><td>完了報告・失敗理由・再実行理由を記録</td></tr>
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section id="domain-logic">
+  <h2>ドメイン<wbr>ロジック</h2>
+  <p>業務ルール: 再実行の上限は 3 回とする（<code>retry_count &gt;= 3</code> のタスクは <code>retry</code> できない）。再実行が成立すると <code>status</code> は <code>pending</code> に戻り、<code>next</code> コマンドの取得対象へ復帰する。</p>
+
+  <div class="state-svg-wrap">
+    <svg viewBox="0 0 560 270" role="img" aria-label="タスク状態遷移図。pending は claim で in_progress へ、in_progress は complete で done へ、pending と in_progress は fail で failed へ遷移する。failed から pending へは retry（retry_count が 3 未満の場合のみ）という新規の遷移が加わる。">
+      <defs>
+        <marker id="arrow-muted" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="#4A4F58" />
+        </marker>
+        <marker id="arrow-accent" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="#0969DA" />
+        </marker>
+        <linearGradient id="retry-gradient" x1="0" y1="1" x2="0" y2="0">
+          <stop offset="0%" stop-color="#CF222E" />
+          <stop offset="100%" stop-color="#0969DA" />
+        </linearGradient>
+      </defs>
+
+      <rect x="20" y="20" width="140" height="50" rx="8" fill="#F6F8FA" stroke="#D1D9E0" />
+      <text x="90" y="50" text-anchor="middle" font-size="13" font-weight="700" fill="#1B1F26">pending</text>
+
+      <rect x="400" y="20" width="140" height="50" rx="8" fill="#F6F8FA" stroke="#D1D9E0" />
+      <text x="470" y="50" text-anchor="middle" font-size="13" font-weight="700" fill="#1B1F26">in_progress</text>
+
+      <rect x="400" y="200" width="140" height="50" rx="8" fill="#DAFBE1" stroke="#1A7F37" />
+      <text x="470" y="230" text-anchor="middle" font-size="13" font-weight="700" fill="#1A7F37">done</text>
+
+      <rect x="20" y="200" width="140" height="50" rx="8" fill="#FFEBE9" stroke="#CF222E" />
+      <text x="90" y="230" text-anchor="middle" font-size="13" font-weight="700" fill="#CF222E">failed</text>
+
+      <line x1="160" y1="45" x2="398" y2="45" stroke="#4A4F58" stroke-width="2" marker-end="url(#arrow-muted)" />
+      <text x="280" y="38" text-anchor="middle" font-size="11" fill="#4A4F58">claim</text>
+
+      <line x1="470" y1="71" x2="470" y2="198" stroke="#4A4F58" stroke-width="2" marker-end="url(#arrow-muted)" />
+      <text x="505" y="140" text-anchor="middle" font-size="11" fill="#4A4F58">complete</text>
+
+      <line x1="70" y1="71" x2="70" y2="198" stroke="#4A4F58" stroke-width="2" marker-end="url(#arrow-muted)" />
+      <text x="45" y="140" text-anchor="end" font-size="11" fill="#4A4F58">fail</text>
+
+      <line x1="400" y1="72" x2="162" y2="202" stroke="#4A4F58" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#arrow-muted)" />
+      <text x="280" y="150" text-anchor="middle" font-size="11" fill="#4A4F58">fail</text>
+
+      <line x1="140" y1="199" x2="140" y2="71" stroke="url(#retry-gradient)" stroke-width="3" marker-end="url(#arrow-accent)" />
+      <text x="150" y="115" font-size="11" font-weight="700" fill="#0969DA">retry</text>
+      <rect x="150" y="150" width="60" height="20" rx="10" fill="#DDF4FF" stroke="#54AEFF" />
+      <text x="180" y="164" text-anchor="middle" font-size="10.5" font-weight="700" fill="#0969DA">新規</text>
+    </svg>
+  </div>
+
+  <table>
+    <thead><tr><th>状態</th><th>遷移条件</th><th>遷移先</th></tr></thead>
+    <tbody>
+      <tr><td>pending</td><td><code>claim</code> 実行</td><td>in_progress</td></tr>
+      <tr><td>in_progress</td><td><code>complete</code> 実行</td><td>done</td></tr>
+      <tr><td>pending / in_progress</td><td><code>fail</code> 実行</td><td>failed</td></tr>
+      <tr>
+        <td>failed <span class="badge badge-new">新規</span></td>
+        <td><code>retry</code> 実行かつ <code>retry_count &lt; 3</code></td>
+        <td>pending（<code>retry_count</code> +1・<code>session_id</code> を null に戻す）</td>
+      </tr>
+    </tbody>
+  </table>
+  <table>
+    <thead><tr><th>項目</th><th>条件</th><th>エラーメッセージ</th></tr></thead>
+    <tbody>
+      <tr><td>--id</td><td>該当タスクが存在すること</td><td><code>error: task not found: &lt;id&gt;</code></td></tr>
+      <tr><td>status</td><td><code>failed</code> であること</td><td><code>error: cannot retry task in status "&lt;status&gt;" (must be failed): &lt;id&gt;</code></td></tr>
+      <tr><td>retry_count</td><td>3 未満であること</td><td><code>error: retry_count exceeded max (3): &lt;id&gt;</code></td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="api-contract">
+  <h2>API契約</h2>
+  <p>本機能に HTTP エンドポイントは存在しない。task-board.mjs は外部依存のない Node.js CLI であり、画面（task-board.html）はこの CLI が書き出す <code>board.js</code> ミラーを読むだけの静的表示である。そのため本節は「呼び出すインターフェース」として <code>retry</code> サブコマンドの CLI 契約を定義する。</p>
+  <table>
+    <thead><tr><th>サブコマンド</th><th>引数</th><th>成功時の応答</th><th>エラー時の応答</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><code>retry</code> <span class="badge badge-new">新規</span></td>
+        <td>
+          <code>--id &lt;task_id&gt;</code>（必須）<br />
+          <code>--reason &lt;text&gt;</code>（任意。receipt に追記する再実行理由）
+        </td>
+        <td>
+          exit 0。stdout: <code>retried: &lt;id&gt; (retry_count=&lt;N&gt;/3)</code><br />
+          board.json / board.js を更新: <code>status→pending</code>・<code>retry_count</code> +1・<code>session_id→null</code>・<code>updated_at</code> 更新
+        </td>
+        <td>
+          exit 1。stderr のいずれか:<br />
+          <code>error: task not found: &lt;id&gt;</code><br />
+          <code>error: cannot retry task in status "&lt;status&gt;" (must be failed): &lt;id&gt;</code><br />
+          <code>error: retry_count exceeded max (3): &lt;id&gt;</code>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="role-visibility">
+  <h2>権限<wbr>・ロール別表示</h2>
+  <p>対象外（task-board はロール概念を持たず、CLI・画面ともに単一ユーザー運用で全操作が同一権限のため）。</p>
+</section>
+
+<section id="screen-flow">
+  <h2>画面遷移マップ</h2>
+  <div class="flow-ascii">ポータル TOP (index.html)
+   │ 「タスクボード」カードをクリック
+   ▼
+タスクボード (board/task-board.html)
+   │ status = failed の行の「再実行」ボタンをクリック
+   ▼
+再実行コマンドパネル（該当行の下にインライン展開）
+   │ 「コマンドをコピー」→ ターミナルへ貼り付けて実行
+   │ node task-board.mjs retry --id &lt;id&gt; --reason "..."
+   ▼
+board.json 更新（status: failed → pending・retry_count +1）
+   │ ブラウザでページを再読み込み
+   ▼
+タスクボード（pending 行として再表示・再実行ボタンは消える）</div>
+  <table>
+    <thead><tr><th>遷移元</th><th>操作 / 条件</th><th>遷移先</th></tr></thead>
+    <tbody>
+      <tr><td>ポータル TOP</td><td>「タスクボード」カードをクリック</td><td>タスクボード画面</td></tr>
+      <tr><td>タスクボード画面（failed 行）</td><td>「再実行」ボタンをクリック</td><td>再実行コマンドパネル（同画面内インライン展開）</td></tr>
+      <tr><td>再実行コマンドパネル</td><td>ターミナルでコマンド実行が成功</td><td>board.json / board.js 更新（外部プロセス）</td></tr>
+      <tr><td>board.json / board.js 更新後</td><td>ブラウザの再読み込み</td><td>タスクボード画面（pending 表示）</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="acceptance-tests">
+  <h2>受け入れ<wbr>テスト観点</h2>
+  <table>
+    <thead><tr><th>優先度</th><th>条件</th><th>操作</th><th>期待結果</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><span class="badge badge-required">必須</span></td>
+        <td><code>retry_count: 1</code> の failed タスクが存在する</td>
+        <td><code>task-board.mjs retry --id task-board-mirror-sync --reason "依存パッケージ追加"</code> を実行する</td>
+        <td>exit 0。<code>status: pending</code>・<code>retry_count: 2</code>・<code>session_id: null</code> に更新され、stdout に <code>retried: task-board-mirror-sync (retry_count=2/3)</code> が出る</td>
+      </tr>
+      <tr>
+        <td><span class="badge badge-required">必須</span></td>
+        <td><code>retry_count: 3</code>（上限到達）の failed タスクが存在する</td>
+        <td>同タスクに対し <code>retry</code> を実行する</td>
+        <td>exit 1。stderr に <code>error: retry_count exceeded max (3): &lt;id&gt;</code> が出て、board.json は変更されない</td>
+      </tr>
+      <tr>
+        <td><span class="badge badge-recommended">推奨</span></td>
+        <td>retry 実行が成功した直後</td>
+        <td><code>task-board.mjs list --status pending</code> を実行する</td>
+        <td>再実行したタスクの id が pending 一覧に表示される</td>
+      </tr>
+      <tr>
+        <td><span class="badge badge-required">必須</span></td>
+        <td><code>status: done</code> または <code>in_progress</code> のタスク行が画面に表示されている</td>
+        <td>タスクボード画面を目視確認する</td>
+        <td>「操作」列に再実行ボタンが表示されない（<code>—</code> 表示のまま）</td>
+      </tr>
+      <tr>
+        <td><span class="badge badge-recommended">推奨</span></td>
+        <td>retry コマンドが成功した直後</td>
+        <td><code>state/task-board/board.js</code> の内容を確認する</td>
+        <td><code>window.TASK_BOARD</code> の内容が更新後の board.json と一致し、画面再読み込みで反映される</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- 図解採否:
+header=図なし（タイトルと注記のみで図解候補なし）
+background=図なし（回避策2つの経緯は文章の因果説明で十分、図解の追加効果なし）
+proposal=ビフォー/アフタータブ採用（現状と変更後の画面差分は並べた文章より画面表現の比較が最速で伝わる）
+acceptance=図なし（5条件の箇条書き列挙のみで要素間に構造的関係がなく図解効果なし）
+placement=表のみ採用（3行の対応列挙のみで要素間の関係性がなく図解効果なし）
+related=図なし（2件の関連issue列挙のみで図解効果なし）
+risks=重大度バッジ採用（3件の相対的な深刻さは色分けバッジで即座に伝わり、追加の図解効果は薄い）
+db-schema=ミニ構造図（罫線）採用（board.json→tasks[]→フィールドという包含関係を示すのに最速）+ 段階的開示（details/summary）採用（11件中10件は無変更のため新規1件のみを常時提示）
+domain-logic=SVG状態遷移図採用（4状態・5遷移の全体像は図が最速で、新規のretry遷移をdanger→accentのグラデーション矢印とバッジで強調できる）
+api-contract=表のみ採用（単一サブコマンドの契約定義で分岐がなく図解効果なし）
+role-visibility=対象外（ロール概念を持たないため図解候補が存在しない）
+screen-flow=罫線遷移図+遷移表の対提示を維持（既存構成が全体像と詳細条件の両立に最適）
+acceptance-tests=優先度バッジ採用（5件の対応順位は色分けバッジで十分に伝わり、追加の図解効果は薄い）
+-->
+
+</body>
+</html>

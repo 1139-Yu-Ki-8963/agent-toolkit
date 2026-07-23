@@ -6,25 +6,130 @@
   <title>スキル利用頻度 — agent-home</title>
   <link rel="stylesheet" href="../style.css" />
   <script type="module" src="../src/common/header.js"></script>
+  <style>
+    .page-hero.compact { padding: 12px 0 8px; }
+    .page-hero.compact .header-top { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+    .page-hero.compact h1 { font-size: 1.3rem; margin: 0; }
+    .page-hero.compact .meta-inline { font-size: 0.75rem; color: var(--text-muted); margin: 6px 0 0; }
+
+    .summary-tiles { display: flex; gap: 10px; flex-wrap: wrap; }
+    .summary-tiles .tile {
+      background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius-sm);
+      padding: 4px 12px; font-size: 0.78rem; color: var(--text-sub);
+    }
+    .summary-tiles .tile strong { font-size: 1rem; color: var(--text); margin-right: 4px; }
+
+    .toolbar-area { padding: 8px 0; }
+    .toolbar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    .toolbar input[type="search"] {
+      flex: 1; min-width: 220px; padding: 8px 12px; font-size: 0.92rem;
+      border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--panel); color: var(--text);
+    }
+    .toolbar .note { font-size: 0.82rem; color: var(--text-muted); white-space: nowrap; }
+
+    .usage-note {
+      font-size: 12.5px; color: var(--text-muted);
+      background: var(--panel-2); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); padding: 10px 14px;
+      margin: 10px 0 0;
+    }
+
+    section.module-group { margin: 18px 0; background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 20px; }
+    section.module-group h2 { font-size: 1.05rem; margin: 0 0 12px; }
+
+    .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    table.screens { table-layout: fixed; width: 100%; min-width: 640px; border-collapse: collapse; font-size: 0.88rem; }
+    table.screens thead { position: sticky; top: 0; z-index: 3; }
+    table.screens th {
+      border-top: 1px solid var(--border); padding: 8px 10px; text-align: left; vertical-align: top;
+      background: var(--panel-2); font-weight: 700; cursor: pointer; user-select: none; font-size: 0.85em;
+    }
+    table.screens th:hover { background: var(--accent-soft); }
+    table.screens th[data-asc="true"]::after { content: " \25B2"; font-size: 0.7em; }
+    table.screens th[data-asc="false"]::after { content: " \25BC"; font-size: 0.7em; }
+    table.screens th[data-key="id"] { width: 34%; }
+    table.screens th[data-key="n"] { width: 16%; }
+    table.screens th[data-key="last"] { width: 18%; }
+    table.screens th[data-key="diag"] { width: 32%; }
+    table.screens td {
+      border-top: 1px solid var(--border); padding: 6px 8px; text-align: left; vertical-align: top;
+      overflow: hidden; text-overflow: ellipsis; white-space: normal; word-break: break-word;
+    }
+    table.screens td code {
+      font-family: var(--mono); font-size: 0.85em; background: var(--panel-2); padding: 1px 5px; border-radius: 3px;
+    }
+    table.screens tbody tr:nth-child(even) { background: color-mix(in srgb, var(--panel-2) 40%, transparent); }
+    table.screens tbody tr:hover { background: var(--accent-soft); }
+    table.screens tbody tr { cursor: pointer; }
+
+    .expand-cell { text-align: center; color: var(--text-muted); transition: color 0.15s; }
+    tr:hover .expand-cell { color: var(--accent); }
+    tr[data-expanded="true"] .chevron svg { transform: rotate(90deg); }
+    .chevron svg { transition: transform 0.15s; vertical-align: middle; }
+
+    .badge { display: inline-block; font-size: 0.76rem; font-weight: 700; padding: 1px 8px; border-radius: 3px; }
+    .u-count { font-weight: 700; }
+    .u-count.u-zero { color: var(--danger); }
+    .u-count.u-low { color: var(--gold); }
+    .u-count.u-ok { color: var(--success); }
+
+    .copy-btn { background: none; border: none; cursor: pointer; padding: 1px 3px; color: var(--text-muted); opacity: .35; vertical-align: middle; }
+    tr:hover .copy-btn, .copy-btn:focus { opacity: 1; }
+    .copy-btn:hover { color: var(--accent); }
+
+    tr.row-detail > td { background: var(--panel-2); font-size: .86rem; white-space: normal; border-left: 3px solid var(--accent); }
+    .detail-grid { display: grid; grid-template-columns: max-content 1fr; gap: 4px 14px; margin: 4px 0; padding: 10px 14px; }
+    .detail-grid dt { color: var(--text-muted); font-size: 0.78rem; white-space: nowrap; }
+    .detail-grid dd { margin: 0; font-size: 0.84rem; word-break: break-word; }
+    .detail-grid a { color: var(--accent); }
+  </style>
 </head>
 <body>
   <div class="cat-wrap">
-    <div class="page-hero">
-      <h1>スキル利用頻度</h1>
-      <p>~/agent-home/sessions/.skill-log の Skill ツール起動回数を集計し、発火健全性の観点で診断したものです。<a href="../index.html">← フロー・ポータルへ戻る</a></p>
+    <section class="page-hero compact">
+      <nav style="margin: 16px 0 0; font-size: 0.85rem;">
+        <a href="../index.html" style="color: var(--text-sub); text-decoration: none; border-bottom: 1px dotted var(--text-muted);">← ポータルへ戻る</a>
+      </nav>
+      <div class="header-top">
+        <h1>スキル利用頻度</h1>
+        <div class="summary-tiles">
+          <div class="tile"><strong id="tile-total">0</strong>スキル数</div>
+          <div class="tile"><strong id="tile-snapshot">-</strong>スナップショット</div>
+        </div>
+      </div>
+      <p class="meta-inline">~/agent-home/sessions/.skill-log の Skill ツール起動回数を集計し、発火健全性の観点で診断したものです。</p>
+    </section>
+
+    <div class="toolbar-area">
+      <div class="toolbar">
+        <input type="search" id="filter" placeholder="スキル名・理由で絞り込み…" autocomplete="off" />
+        <span class="note" id="total"></span>
+      </div>
     </div>
 
     <div class="usage-note">
       <strong>注意</strong>：skill-log は <b>Skill ツール経由の起動のみ</b>を記録します。0 回＝不要ではありません。hook・CLAUDE.md・cron・上位スキルからの間接起動はカウントされないため、診断は回数だけでなく間接起動・上位代替・トリガー健全性を加味しています。
     </div>
 
-    <div class="cat-bar">
-      <a class="cat-back" href="../index.html">← ポータル TOP</a>
-      <span class="cat-total" id="total"></span>
-      <input class="cat-filter" id="filter" type="search" placeholder="スキル名・理由で絞り込み…" autocomplete="off" />
+    <div class="table-area">
+      <section class="module-group">
+        <h2>スキル利用頻度一覧</h2>
+        <div class="table-wrap">
+          <table class="screens" id="data-table">
+            <thead>
+              <tr>
+                <th style="width:32px;padding:8px 4px;"></th>
+                <th data-key="id">スキル名</th>
+                <th data-key="n">発火回数</th>
+                <th data-key="last">最終発火</th>
+                <th data-key="diag">診断</th>
+              </tr>
+            </thead>
+            <tbody id="table-body"></tbody>
+          </table>
+        </div>
+      </section>
     </div>
-
-    <div id="list"></div>
   </div>
 
   <script type="module">
@@ -32,79 +137,231 @@
 
     // 診断グループ（表示順：改善＝要対応を先頭に）
     const DIAGS = [
-      { key: "improve", label: "発火改善", tag: "tag-stop",
+      { key: "improve", label: "発火改善", color: "#dc2626",
         desc: "呼ばれるべきが呼ばれていない（トリガー不全 / 上位スキルが代替）。トリガー改善・統合で是正する" },
-      { key: "merge", label: "統合検討", tag: "tag-prompt",
+      { key: "merge", label: "統合検討", color: "#7c3aed",
         desc: "機能が重複し、他スキルへ統合できる候補" },
-      { key: "keep", label: "維持", tag: "tag-skill",
+      { key: "keep", label: "維持", color: "#059669",
         desc: "高頻度、または hook / CLAUDE / cron で間接起動される（カウント過少を含む）" },
     ];
+    const DIAG_MAP = Object.fromEntries(DIAGS.map((d) => [d.key, d]));
 
-    const root = document.getElementById("list");
-    const totalEl = document.getElementById("total");
+    const tbody = document.getElementById("table-body");
+    const table = document.getElementById("data-table");
     const filterEl = document.getElementById("filter");
-    totalEl.textContent = SKILL_USAGE.length + " スキル / スナップショット " + USAGE_SNAPSHOT;
+    const totalEl = document.getElementById("total");
+    const tileTotalEl = document.getElementById("tile-total");
+    const tileSnapshotEl = document.getElementById("tile-snapshot");
 
-    function rowHtml(s) {
-      const why = s.why ? '<div class="frow"><span class="frow-label">理由</span><span class="frow-val">' + s.why + '</span></div>' : "";
-      const nClass = s.n === 0 ? "u-zero" : (s.n < 5 ? "u-low" : "u-ok");
-      return (
-        '<details class="fr" data-key="' + (s.id + " " + (s.why || "")).toLowerCase() + '">' +
-          '<summary>' +
-            '<span class="expbtn">+</span>' +
-            '<span class="fn">' + s.id + '</span>' +
-            '<span class="u-count ' + nClass + '">' + s.n + ' 回</span>' +
-            '<span class="u-last">' + s.last + '</span>' +
-          '</summary>' +
-          '<div class="fdetail">' +
-            '<div class="fmeta">~/agent-home/skills/' + s.id + '/SKILL.md</div>' +
-            '<div class="frow"><span class="frow-label">起動回数</span><span class="frow-val">' + s.n + ' 回（最終 ' + s.last + '）</span></div>' +
-            why +
-          '</div>' +
-        '</details>'
-      );
+    tileTotalEl.textContent = SKILL_USAGE.length;
+    tileSnapshotEl.textContent = USAGE_SNAPSHOT;
+
+    function diagBadge(diagKey) {
+      const info = DIAG_MAP[diagKey] || { label: diagKey, color: "#767b85" };
+      const span = document.createElement("span");
+      span.className = "badge";
+      span.textContent = info.label;
+      span.style.background = info.color + "22";
+      span.style.color = info.color;
+      return span;
     }
 
-    function render() {
-      root.innerHTML = "";
-      DIAGS.forEach((d, i) => {
-        const items = SKILL_USAGE.filter((s) => s.diag === d.key);
-        if (items.length === 0) return;
-        const sec = document.createElement("details");
-        sec.className = "cat-block";
-        sec.open = true;
-        sec.innerHTML =
-          '<summary class="cat-card">' +
-            '<span class="cat-fold"></span>' +
-            '<div class="cat-num-block"><span class="cat-number">' + String(i + 1).padStart(2, "0") + '</span></div>' +
-            '<div class="cat-body"><div class="cat-name">' + d.label + ' <span class="tag ' + d.tag + '">' + items.length + '</span></div><div class="cat-desc">' + d.desc + '</div></div>' +
-            '<span class="cat-count">' + items.length + ' skills</span>' +
-          '</summary>' +
-          '<div class="file-rows">' + items.map(rowHtml).join("") + '</div>';
-        root.appendChild(sec);
+    const CHEVRON_SVG = '<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M6.22 3.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042L9.94 8 6.22 4.28a.75.75 0 0 1 0-1.06Z"/></svg>';
+    const COPY_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>';
+    const CHECK_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+
+    function fallbackCopy(text) {
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand("copy"); } catch (e) { /* ignore */ }
+      document.body.removeChild(ta);
+    }
+
+    function copyCellText(text, btn) {
+      function showDone() {
+        btn.innerHTML = CHECK_SVG;
+        setTimeout(() => { btn.innerHTML = COPY_SVG; }, 1200);
+      }
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(showDone, () => { fallbackCopy(text); showDone(); });
+      } else {
+        fallbackCopy(text);
+        showDone();
+      }
+    }
+
+    function makeCopyBtn(getText) {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "copy-btn";
+      btn.setAttribute("aria-label", "コピー");
+      btn.innerHTML = COPY_SVG;
+      btn.addEventListener("click", (ev) => {
+        ev.stopPropagation();
+        ev.preventDefault();
+        copyCellText(getText(), btn);
       });
+      return btn;
     }
 
-    function applyFilter() {
+    function buildDetailRow(s) {
+      const detail = document.createElement("tr");
+      detail.className = "row-detail";
+      const td = document.createElement("td");
+      td.colSpan = 5;
+      const dl = document.createElement("dl");
+      dl.className = "detail-grid";
+
+      function addPair(label, buildValue) {
+        const dt = document.createElement("dt");
+        dt.textContent = label;
+        const dd = document.createElement("dd");
+        buildValue(dd);
+        dl.appendChild(dt);
+        dl.appendChild(dd);
+      }
+
+      addPair("スキル名", (dd) => {
+        const code = document.createElement("code");
+        code.textContent = s.id;
+        dd.appendChild(code);
+        dd.appendChild(makeCopyBtn(() => s.id));
+      });
+      addPair("パス", (dd) => {
+        const code = document.createElement("code");
+        code.textContent = "~/agent-home/skills/" + s.id + "/SKILL.md";
+        dd.appendChild(code);
+      });
+      addPair("発火回数", (dd) => { dd.textContent = s.n + " 回"; });
+      addPair("最終発火日", (dd) => { dd.textContent = s.last; });
+      addPair("診断", (dd) => { dd.appendChild(diagBadge(s.diag)); });
+      addPair("診断理由", (dd) => { dd.textContent = s.why || (DIAG_MAP[s.diag] || {}).desc || ""; });
+
+      td.appendChild(dl);
+      detail.appendChild(td);
+      return detail;
+    }
+
+    function toggleDetail(tr, s) {
+      const next = tr.nextElementSibling;
+      if (next && next.classList.contains("row-detail")) {
+        next.remove();
+        tr.removeAttribute("data-expanded");
+        return;
+      }
+      const detail = buildDetailRow(s);
+      tr.after(detail);
+      tr.setAttribute("data-expanded", "true");
+    }
+
+    function makeRow(s) {
+      const tr = document.createElement("tr");
+      tr.dataset.key = (s.id + " " + (s.why || "")).toLowerCase();
+      tr.dataset.n = String(s.n);
+
+      const chTd = document.createElement("td");
+      chTd.className = "expand-cell";
+      chTd.innerHTML = '<span class="chevron">' + CHEVRON_SVG + "</span>";
+      tr.appendChild(chTd);
+
+      const idTd = document.createElement("td");
+      const code = document.createElement("code");
+      code.textContent = s.id;
+      idTd.appendChild(code);
+      idTd.appendChild(makeCopyBtn(() => s.id));
+      tr.appendChild(idTd);
+
+      const nTd = document.createElement("td");
+      const nSpan = document.createElement("span");
+      nSpan.className = "u-count " + (s.n === 0 ? "u-zero" : (s.n < 5 ? "u-low" : "u-ok"));
+      nSpan.textContent = s.n + " 回";
+      nTd.appendChild(nSpan);
+      tr.appendChild(nTd);
+
+      const lastTd = document.createElement("td");
+      lastTd.textContent = s.last;
+      tr.appendChild(lastTd);
+
+      const diagTd = document.createElement("td");
+      diagTd.appendChild(diagBadge(s.diag));
+      tr.appendChild(diagTd);
+
+      tr.addEventListener("click", (ev) => {
+        if (ev.target.closest(".copy-btn,a,button")) return;
+        toggleDetail(tr, s);
+      });
+
+      return tr;
+    }
+
+    const allRows = SKILL_USAGE.map(makeRow);
+
+    let sortKey = null;
+    let sortAsc = true;
+    const COL_INDEX = { id: 1, n: 2, last: 3, diag: 4 };
+
+    function closeAllDetails() {
+      tbody.querySelectorAll("tr.row-detail").forEach((r) => r.remove());
+      allRows.forEach((tr) => tr.removeAttribute("data-expanded"));
+    }
+
+    function computeVisible() {
       const q = filterEl.value.trim().toLowerCase();
-      let shown = 0;
-      root.querySelectorAll("details.cat-block").forEach((sec) => {
-        let secShown = 0;
-        sec.querySelectorAll("details.fr").forEach((dt) => {
-          const hit = !q || dt.dataset.key.includes(q);
-          dt.style.display = hit ? "" : "none";
-          if (hit) { secShown++; shown++; }
+      let visible = allRows.filter((tr) => !q || tr.dataset.key.includes(q));
+      if (sortKey) {
+        const idx = COL_INDEX[sortKey];
+        visible = visible.slice().sort((a, b) => {
+          if (sortKey === "n") {
+            const cmp = Number(a.dataset.n) - Number(b.dataset.n);
+            return sortAsc ? cmp : -cmp;
+          }
+          const av = a.children[idx].textContent.trim();
+          const bv = b.children[idx].textContent.trim();
+          const cmp = av.localeCompare(bv, "ja");
+          return sortAsc ? cmp : -cmp;
         });
-        sec.style.display = secShown > 0 ? "" : "none";
-        if (q && secShown > 0) sec.open = true;
-      });
+      }
+      return visible;
+    }
+
+    function updateCount(shownCount) {
+      const q = filterEl.value.trim();
       totalEl.textContent = q
-        ? shown + " 件ヒット / " + SKILL_USAGE.length + " スキル"
+        ? shownCount + " 件ヒット / " + SKILL_USAGE.length + " スキル"
         : SKILL_USAGE.length + " スキル / スナップショット " + USAGE_SNAPSHOT;
     }
 
-    let t;
-    filterEl.addEventListener("input", () => { clearTimeout(t); t = setTimeout(applyFilter, 120); });
+    function render() {
+      closeAllDetails();
+      const visible = computeVisible();
+      allRows.forEach((tr) => { tr.style.display = "none"; });
+      visible.forEach((tr) => {
+        tr.style.display = "";
+        tbody.appendChild(tr);
+      });
+      updateCount(visible.length);
+    }
+
+    table.querySelectorAll("th[data-key]").forEach((th) => {
+      th.addEventListener("click", () => {
+        const key = th.dataset.key;
+        if (sortKey === key) { sortAsc = !sortAsc; } else { sortKey = key; sortAsc = true; }
+        table.querySelectorAll("th[data-key]").forEach((t) => t.removeAttribute("data-asc"));
+        th.setAttribute("data-asc", sortAsc);
+        render();
+      });
+    });
+
+    let debounceTimer;
+    filterEl.addEventListener("input", () => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(render, 120);
+    });
+
     render();
   </script>
 </body>

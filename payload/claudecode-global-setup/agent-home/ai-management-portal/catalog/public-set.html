@@ -7,10 +7,34 @@
   <link rel="stylesheet" href="../style.css" />
   <script type="module" src="../src/common/header.js"></script>
   <style>
-    .verdict-summary {
-      display: flex; flex-wrap: wrap; gap: 10px;
-      margin: 0 0 16px;
+    .page-hero.compact { padding: 12px 0 8px; }
+    .page-hero.compact .header-top { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+    .page-hero.compact h1 { font-size: 1.3rem; margin: 0; }
+    .page-hero.compact .meta-inline { font-size: 0.75rem; color: var(--text-muted); margin: 6px 0 0; }
+
+    .summary-tiles { display: flex; gap: 10px; flex-wrap: wrap; }
+    .summary-tiles .tile {
+      background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius-sm);
+      padding: 4px 12px; font-size: 0.78rem; color: var(--text-sub);
     }
+    .summary-tiles .tile strong { font-size: 1rem; color: var(--text); margin-right: 4px; }
+
+    .toolbar-area { padding: 8px 0; }
+    .toolbar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    .toolbar input[type="search"] {
+      flex: 1; min-width: 220px; padding: 8px 12px; font-size: 0.92rem;
+      border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--panel); color: var(--text);
+    }
+    .toolbar .note { font-size: 0.82rem; color: var(--text-muted); white-space: nowrap; }
+
+    .note-box {
+      font-size: 12.5px; color: var(--text-muted);
+      background: var(--panel-2); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); padding: 10px 14px;
+      margin: 10px 0 0;
+    }
+
+    .verdict-summary { display: flex; flex-wrap: wrap; gap: 10px; margin: 14px 0 0; }
     .verdict-chip {
       display: inline-flex; align-items: center; gap: 6px;
       font-size: 12px; font-weight: 700;
@@ -25,7 +49,7 @@
     .verdict-chip.deprecate { background: var(--danger-soft); color: var(--danger); border-color: var(--danger-border); }
     .verdict-chip.tbd { background: var(--gold-soft); color: var(--gold); border-color: var(--gold-border); }
 
-    .type-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 14px; }
+    .type-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 0; }
     .type-tab {
       font-size: 12px; font-weight: 600;
       padding: 5px 12px; border-radius: 999px;
@@ -35,54 +59,104 @@
     .type-tab:hover { border-color: var(--accent); color: var(--accent); }
     .type-tab.active { background: var(--accent); color: #fff; border-color: var(--accent); }
 
-    .note-box {
-      font-size: 12.5px; color: var(--text-muted);
-      background: var(--panel-2); border: 1px solid var(--border);
-      border-radius: var(--radius-sm); padding: 10px 14px;
-      margin: 0 0 18px;
-    }
+    section.module-group { margin: 18px 0; background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 20px; }
+    section.module-group h2 { font-size: 1.05rem; margin: 0 0 12px; }
 
-    .vbadge {
-      display: inline-block; font-size: 10.5px; font-weight: 700;
-      padding: 1px 8px; border-radius: 999px; margin-right: 8px;
-      vertical-align: middle;
+    .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    table.screens { table-layout: fixed; width: 100%; min-width: 720px; border-collapse: collapse; font-size: 0.88rem; }
+    table.screens thead { position: sticky; top: 0; z-index: 3; }
+    table.screens th {
+      border-top: 1px solid var(--border); padding: 8px 10px; text-align: left; vertical-align: top;
+      background: var(--panel-2); font-weight: 700; cursor: pointer; user-select: none; font-size: 0.85em;
     }
-    .vbadge.bundle { background: var(--success-soft); color: var(--success); }
-    .vbadge.template { background: var(--accent-soft); color: var(--accent); }
-    .vbadge.exclude { background: var(--panel-2); color: var(--text-muted); }
-    .vbadge.deprecate { background: var(--danger-soft); color: var(--danger); }
-    .vbadge.tbd { background: var(--gold-soft); color: var(--gold); }
+    table.screens th:hover { background: var(--accent-soft); }
+    table.screens th[data-asc="true"]::after { content: " \25B2"; font-size: 0.7em; }
+    table.screens th[data-asc="false"]::after { content: " \25BC"; font-size: 0.7em; }
+    table.screens th[data-key="id"] { width: 30%; }
+    table.screens th[data-key="type"] { width: 12%; }
+    table.screens th[data-key="verdict"] { width: 16%; }
+    table.screens th[data-key="reason"] { width: 42%; }
+    table.screens td {
+      border-top: 1px solid var(--border); padding: 6px 8px; text-align: left; vertical-align: top;
+      overflow: hidden; text-overflow: ellipsis; white-space: normal; word-break: break-word;
+    }
+    table.screens td code {
+      font-family: var(--mono); font-size: 0.85em; background: var(--panel-2); padding: 1px 5px; border-radius: 3px;
+    }
+    table.screens tbody tr:nth-child(even) { background: color-mix(in srgb, var(--panel-2) 40%, transparent); }
+    table.screens tbody tr:hover { background: var(--accent-soft); }
+    table.screens tbody tr { cursor: pointer; }
 
-    .item-type-tag {
-      font-size: 10.5px; color: var(--text-muted);
-      background: var(--panel-2); border: 1px solid var(--border);
-      border-radius: 999px; padding: 1px 8px; margin-right: 6px;
-    }
+    .expand-cell { text-align: center; color: var(--text-muted); transition: color 0.15s; }
+    tr:hover .expand-cell { color: var(--accent); }
+    tr[data-expanded="true"] .chevron svg { transform: rotate(90deg); }
+    .chevron svg { transition: transform 0.15s; vertical-align: middle; }
+
+    .badge { display: inline-block; font-size: 0.76rem; font-weight: 700; padding: 1px 8px; border-radius: 3px; }
+    .badge.bundle { background: var(--success-soft); color: var(--success); }
+    .badge.template { background: var(--accent-soft); color: var(--accent); }
+    .badge.exclude { background: var(--panel-2); color: var(--text-muted); }
+    .badge.deprecate { background: var(--danger-soft); color: var(--danger); }
+    .badge.tbd { background: var(--gold-soft); color: var(--gold); }
+
+    .copy-btn { background: none; border: none; cursor: pointer; padding: 1px 3px; color: var(--text-muted); opacity: .35; vertical-align: middle; }
+    tr:hover .copy-btn, .copy-btn:focus { opacity: 1; }
+    .copy-btn:hover { color: var(--accent); }
+
+    tr.row-detail > td { background: var(--panel-2); font-size: .86rem; white-space: normal; border-left: 3px solid var(--accent); }
+    .detail-grid { display: grid; grid-template-columns: max-content 1fr; gap: 4px 14px; margin: 4px 0; padding: 10px 14px; }
+    .detail-grid dt { color: var(--text-muted); font-size: 0.78rem; white-space: nowrap; }
+    .detail-grid dd { margin: 0; font-size: 0.84rem; word-break: break-word; }
+    .detail-grid a { color: var(--accent); }
   </style>
 </head>
 <body>
   <div class="cat-wrap">
-    <div class="page-hero">
-      <h1>公開セット台帳</h1>
-      <p>グローバル設定（~/.claude + agent-home）を公開用リポジトリへ切り出す際の同梱判定を資産別に一覧化したものです。判定は監査と個別確認を踏まえた初期値であり、随時更新します。<a href="../index.html">← フロー・ポータルへ戻る</a></p>
+    <section class="page-hero compact">
+      <nav style="margin: 16px 0 0; font-size: 0.85rem;">
+        <a href="../index.html" style="color: var(--text-sub); text-decoration: none; border-bottom: 1px dotted var(--text-muted);">← ポータルへ戻る</a>
+      </nav>
+      <div class="header-top">
+        <h1>公開セット台帳</h1>
+        <div class="summary-tiles">
+          <div class="tile"><strong id="tile-total">0</strong>件</div>
+        </div>
+      </div>
+      <p class="meta-inline">グローバル設定（~/.claude + agent-home）を公開用リポジトリへ切り出す際の同梱判定を資産別に一覧化したものです。判定は監査と個別確認を踏まえた初期値であり、随時更新します。</p>
+      <div class="note-box">hook は所属する規約・スキルの判定に従属するため、本台帳では独立した行を持ちません。</div>
+    </section>
+
+    <div class="toolbar-area">
+      <div class="toolbar">
+        <input type="search" id="filter" placeholder="資産名・理由で絞り込み…" autocomplete="off" />
+        <span class="note" id="total"></span>
+      </div>
+      <div class="verdict-summary" id="verdict-summary"></div>
+      <div class="type-tabs" id="type-tabs"></div>
     </div>
 
-    <div class="note-box">hook は所属する規約・スキルの判定に従属するため、本台帳では独立した行を持ちません。</div>
-
-    <div class="verdict-summary" id="verdict-summary"></div>
-
-    <div class="type-tabs" id="type-tabs"></div>
-
-    <div class="cat-bar">
-      <a class="cat-back" href="../index.html">← ポータル TOP</a>
-      <span class="cat-total" id="total"></span>
-      <input class="cat-filter" id="filter" type="search" placeholder="資産名・理由で絞り込み…" autocomplete="off" />
+    <div class="table-area">
+      <section class="module-group">
+        <h2>公開セット台帳</h2>
+        <div class="table-wrap">
+          <table class="screens" id="data-table">
+            <thead>
+              <tr>
+                <th style="width:32px;padding:8px 4px;"></th>
+                <th data-key="id">資産名</th>
+                <th data-key="type">種別</th>
+                <th data-key="verdict">判定</th>
+                <th data-key="reason">理由</th>
+              </tr>
+            </thead>
+            <tbody id="table-body"></tbody>
+          </table>
+        </div>
+      </section>
     </div>
-
-    <div id="list"></div>
   </div>
 
-  <script>
+  <script type="module">
     // 判定データセット（type, verdict, reason, cond, href）
     // id は資産名そのものを内容要約キーとする（連番禁止）
     const ITEMS = [
@@ -170,11 +244,15 @@
       tbd: "要判断",
     };
 
-    const root = document.getElementById("list");
-    const totalEl = document.getElementById("total");
+    const tbody = document.getElementById("table-body");
+    const table = document.getElementById("data-table");
     const filterEl = document.getElementById("filter");
+    const totalEl = document.getElementById("total");
+    const tileTotalEl = document.getElementById("tile-total");
     const summaryEl = document.getElementById("verdict-summary");
     const tabsEl = document.getElementById("type-tabs");
+
+    tileTotalEl.textContent = ITEMS.length;
 
     let activeType = "all";
 
@@ -205,61 +283,221 @@
         btn.addEventListener("click", () => {
           activeType = btn.dataset.type;
           renderTabs();
-          applyFilter();
+          render();
         });
       });
     }
 
-    function rowHtml(item) {
-      const key = (item.id + " " + item.reason + " " + (item.cond || "")).toLowerCase();
-      const nameCell = item.href
-        ? '<a href="' + item.href + '">' + item.id + '</a>'
-        : item.id;
-      return (
-        '<details class="fr" data-key="' + key + '" data-type="' + item.type + '">' +
-          '<summary>' +
-            '<span class="expbtn">+</span>' +
-            '<span class="vbadge ' + item.verdict + '">' + VERDICT_LABELS[item.verdict] + '</span>' +
-            '<span class="item-type-tag">' + TYPE_LABELS[item.type] + '</span>' +
-            '<span class="fn">' + nameCell + '</span>' +
-            '<span class="fsep">—</span>' +
-            '<span class="fdesc">' + item.reason + '</span>' +
-          '</summary>' +
-          '<div class="fdetail">' +
-            '<div class="frow"><span class="frow-label">判定</span><span class="frow-val">' + VERDICT_LABELS[item.verdict] + '</span></div>' +
-            '<div class="frow"><span class="frow-label">理由</span><span class="frow-val">' + item.reason + '</span></div>' +
-            (item.cond ? '<div class="frow"><span class="frow-label">条件</span><span class="frow-val">' + item.cond + '</span></div>' : "") +
-          '</div>' +
-        '</details>'
-      );
+    const CHEVRON_SVG = '<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M6.22 3.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042L9.94 8 6.22 4.28a.75.75 0 0 1 0-1.06Z"/></svg>';
+    const COPY_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>';
+    const CHECK_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+
+    function fallbackCopy(text) {
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand("copy"); } catch (e) { /* ignore */ }
+      document.body.removeChild(ta);
     }
 
-    function render() {
-      root.innerHTML = ITEMS.map(rowHtml).join("");
+    function copyCellText(text, btn) {
+      function showDone() {
+        btn.innerHTML = CHECK_SVG;
+        setTimeout(() => { btn.innerHTML = COPY_SVG; }, 1200);
+      }
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(showDone, () => { fallbackCopy(text); showDone(); });
+      } else {
+        fallbackCopy(text);
+        showDone();
+      }
     }
 
-    function applyFilter() {
-      const q = filterEl.value.trim().toLowerCase();
-      let shown = 0;
-      root.querySelectorAll("details.fr").forEach((d) => {
-        const typeHit = activeType === "all" || d.dataset.type === activeType;
-        const textHit = !q || d.dataset.key.includes(q);
-        const hit = typeHit && textHit;
-        d.style.display = hit ? "" : "none";
-        if (hit) shown++;
+    function makeCopyBtn(getText) {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "copy-btn";
+      btn.setAttribute("aria-label", "コピー");
+      btn.innerHTML = COPY_SVG;
+      btn.addEventListener("click", (ev) => {
+        ev.stopPropagation();
+        ev.preventDefault();
+        copyCellText(getText(), btn);
       });
+      return btn;
+    }
+
+    function verdictBadge(verdict) {
+      const span = document.createElement("span");
+      span.className = "badge " + verdict;
+      span.textContent = VERDICT_LABELS[verdict] || verdict;
+      return span;
+    }
+
+    function buildDetailRow(item) {
+      const detail = document.createElement("tr");
+      detail.className = "row-detail";
+      const td = document.createElement("td");
+      td.colSpan = 5;
+      const dl = document.createElement("dl");
+      dl.className = "detail-grid";
+
+      function addPair(label, buildValue) {
+        const dt = document.createElement("dt");
+        dt.textContent = label;
+        const dd = document.createElement("dd");
+        buildValue(dd);
+        dl.appendChild(dt);
+        dl.appendChild(dd);
+      }
+
+      addPair("資産名", (dd) => {
+        if (item.href) {
+          const a = document.createElement("a");
+          a.href = item.href;
+          a.textContent = item.id;
+          dd.appendChild(a);
+        } else {
+          dd.appendChild(document.createTextNode(item.id));
+        }
+        dd.appendChild(makeCopyBtn(() => item.id));
+      });
+      addPair("種別", (dd) => { dd.textContent = TYPE_LABELS[item.type] || item.type; });
+      addPair("判定", (dd) => { dd.appendChild(verdictBadge(item.verdict)); });
+      addPair("理由", (dd) => { dd.textContent = item.reason; });
+      if (item.cond) {
+        addPair("条件", (dd) => { dd.textContent = item.cond; });
+      }
+
+      td.appendChild(dl);
+      detail.appendChild(td);
+      return detail;
+    }
+
+    function toggleDetail(tr, item) {
+      const next = tr.nextElementSibling;
+      if (next && next.classList.contains("row-detail")) {
+        next.remove();
+        tr.removeAttribute("data-expanded");
+        return;
+      }
+      const detail = buildDetailRow(item);
+      tr.after(detail);
+      tr.setAttribute("data-expanded", "true");
+    }
+
+    function makeRow(item) {
+      const tr = document.createElement("tr");
+      tr.dataset.key = (item.id + " " + item.reason + " " + (item.cond || "")).toLowerCase();
+      tr.dataset.type = item.type;
+
+      const chTd = document.createElement("td");
+      chTd.className = "expand-cell";
+      chTd.innerHTML = '<span class="chevron">' + CHEVRON_SVG + "</span>";
+      tr.appendChild(chTd);
+
+      const idTd = document.createElement("td");
+      if (item.href) {
+        const a = document.createElement("a");
+        a.href = item.href;
+        a.textContent = item.id;
+        idTd.appendChild(a);
+      } else {
+        idTd.appendChild(document.createTextNode(item.id));
+      }
+      idTd.appendChild(makeCopyBtn(() => item.id));
+      tr.appendChild(idTd);
+
+      const typeTd = document.createElement("td");
+      typeTd.textContent = TYPE_LABELS[item.type] || item.type;
+      tr.appendChild(typeTd);
+
+      const verdictTd = document.createElement("td");
+      verdictTd.appendChild(verdictBadge(item.verdict));
+      tr.appendChild(verdictTd);
+
+      const reasonTd = document.createElement("td");
+      reasonTd.textContent = item.reason;
+      tr.appendChild(reasonTd);
+
+      tr.addEventListener("click", (ev) => {
+        if (ev.target.closest(".copy-btn,a,button")) return;
+        toggleDetail(tr, item);
+      });
+
+      return tr;
+    }
+
+    const allRows = ITEMS.map(makeRow);
+
+    let sortKey = null;
+    let sortAsc = true;
+    const COL_INDEX = { id: 1, type: 2, verdict: 3, reason: 4 };
+
+    function closeAllDetails() {
+      tbody.querySelectorAll("tr.row-detail").forEach((r) => r.remove());
+      allRows.forEach((tr) => tr.removeAttribute("data-expanded"));
+    }
+
+    function computeVisible() {
+      const q = filterEl.value.trim().toLowerCase();
+      let visible = allRows.filter((tr) => {
+        const typeHit = activeType === "all" || tr.dataset.type === activeType;
+        const textHit = !q || tr.dataset.key.includes(q);
+        return typeHit && textHit;
+      });
+      if (sortKey) {
+        const idx = COL_INDEX[sortKey];
+        visible = visible.slice().sort((a, b) => {
+          const av = a.children[idx].textContent.trim();
+          const bv = b.children[idx].textContent.trim();
+          const cmp = av.localeCompare(bv, "ja");
+          return sortAsc ? cmp : -cmp;
+        });
+      }
+      return visible;
+    }
+
+    function updateCount(shownCount) {
+      const q = filterEl.value.trim();
       totalEl.textContent = (q || activeType !== "all")
-        ? shown + " 件ヒット / " + ITEMS.length + " 件"
+        ? shownCount + " 件ヒット / " + ITEMS.length + " 件"
         : ITEMS.length + " 件";
     }
 
-    let t;
-    filterEl.addEventListener("input", () => { clearTimeout(t); t = setTimeout(applyFilter, 120); });
+    function render() {
+      closeAllDetails();
+      const visible = computeVisible();
+      allRows.forEach((tr) => { tr.style.display = "none"; });
+      visible.forEach((tr) => {
+        tr.style.display = "";
+        tbody.appendChild(tr);
+      });
+      updateCount(visible.length);
+    }
+
+    table.querySelectorAll("th[data-key]").forEach((th) => {
+      th.addEventListener("click", () => {
+        const key = th.dataset.key;
+        if (sortKey === key) { sortAsc = !sortAsc; } else { sortKey = key; sortAsc = true; }
+        table.querySelectorAll("th[data-key]").forEach((t) => t.removeAttribute("data-asc"));
+        th.setAttribute("data-asc", sortAsc);
+        render();
+      });
+    });
+
+    let debounceTimer;
+    filterEl.addEventListener("input", () => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(render, 120);
+    });
 
     renderSummary();
     renderTabs();
     render();
-    applyFilter();
   </script>
 </body>
 </html>

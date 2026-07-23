@@ -21,6 +21,7 @@
         <a href="catalog/rules.html">ルール一覧</a>
         <a href="catalog/subagents.html">エージェント一覧</a>
         <a href="catalog/dictionaries.html">辞書一覧</a>
+        <a href="board/task-board.html">タスクボード</a>
       </nav>
     </header>
 
@@ -31,7 +32,7 @@
           <h1>AI マネジメントポータル</h1>
           <p>agent-home のフロー・スキル・hook と、~/.claude・~/.codex の設定を 1 画面で俯瞰する。</p>
         </div>
-        <span class="pm-updated">更新: <!-- PM:UPDATED -->2026-07-22<!-- /PM:UPDATED --></span>
+        <span class="pm-updated">更新: <!-- PM:UPDATED -->2026-07-24<!-- /PM:UPDATED --></span>
       </div>
 
       <!-- 規模サマリ（実ファイル数を集計してベタ書き） -->
@@ -44,12 +45,12 @@
         </a>
         <a class="metric-card" href="catalog/rules.html">
           <div class="metric-label">Rules</div>
-          <div class="metric-value"><!-- GEN:COUNT:rules -->38<!-- /GEN:COUNT:rules --><span class="unit">本</span></div>
+          <div class="metric-value"><!-- GEN:COUNT:rules -->43<!-- /GEN:COUNT:rules --><span class="unit">本</span></div>
           <div class="metric-sub">~/.claude/rules/*.md</div>
         </a>
         <a class="metric-card" href="catalog/skills.html">
           <div class="metric-label">Skills</div>
-          <div class="metric-value"><!-- GEN:COUNT:skills -->18<!-- /GEN:COUNT:skills --><span class="unit">個</span></div>
+          <div class="metric-value"><!-- GEN:COUNT:skills -->17<!-- /GEN:COUNT:skills --><span class="unit">個</span></div>
           <div class="metric-sub">skills/**/SKILL.md</div>
         </a>
         <a class="metric-card ok" href="catalog/subagents.html">
@@ -59,7 +60,7 @@
         </a>
         <a class="metric-card ok" href="catalog/hooks.html">
           <div class="metric-label">Hooks</div>
-          <div class="metric-value"><!-- GEN:COUNT:hooks -->40<!-- /GEN:COUNT:hooks --><span class="unit">本</span></div>
+          <div class="metric-value"><!-- GEN:COUNT:hooks -->47<!-- /GEN:COUNT:hooks --><span class="unit">本</span></div>
           <div class="metric-sub">~/.claude/rules/**/*.sh</div>
         </a>
         <a class="metric-card" href="catalog/output-styles.html">
@@ -74,13 +75,18 @@
         </a>
         <a class="metric-card" href="catalog/dictionaries.html">
           <div class="metric-label">置き換え辞書</div>
-          <div class="metric-value"><!-- GEN:COUNT:dictionaries -->77<!-- /GEN:COUNT:dictionaries --><span class="unit">語</span></div>
+          <div class="metric-value"><!-- GEN:COUNT:dictionaries -->79<!-- /GEN:COUNT:dictionaries --><span class="unit">語</span></div>
           <div class="metric-sub">prh.yml（グローバル + プロジェクト）</div>
         </a>
         <a class="metric-card" href="catalog/public-set.html">
           <div class="metric-label">公開セット</div>
           <div class="metric-value"><!-- GEN:COUNT:public-set -->55<!-- /GEN:COUNT:public-set --><span class="unit">件</span></div>
           <div class="metric-sub">公開用リポジトリへの同梱判定台帳</div>
+        </a>
+        <a class="metric-card" href="board/task-board.html">
+          <div class="metric-label">タスクボード</div>
+          <div class="metric-value"><span id="board-pending-count">—</span><span class="unit">件</span></div>
+          <div class="metric-sub">pending タスク（払い出し待ち）</div>
         </a>
       </div>
 
@@ -152,9 +158,29 @@
           <div class="card-count">準備中</div>
         </a>
     <!-- /GEN:CATEGORIES -->
+        <!-- GEN 外配置: category/<id>.html 固定リンクのみ対応のジェネレータでは board/task-board.html への直リンクを表現できないため静的配置 -->
+        <a class="card is-category group-board" href="board/task-board.html">
+          <div class="card-head">
+            <span class="card-icon material-symbols-outlined">fact_check</span>
+            <span class="card-title">タスクボード</span>
+          </div>
+          <div class="card-desc">セッション横断タスクの状態一元表示。登録・払い出し・完了の現在地を見る</div>
+          <div class="card-count">→</div>
+        </a>
 
       <div class="pm-foot">数値は <code>~/agent-home/skills</code> <code>tools/hooks</code> 等の実ファイル数を集計した静的値です。</div>
     </main>
   </div>
+  <script src="board/board.js"></script>
+  <script>
+    (function () {
+      try {
+        var el = document.getElementById("board-pending-count");
+        var tasks = (window.TASK_BOARD && window.TASK_BOARD.tasks) || [];
+        var n = tasks.filter(function (t) { return t.status === "pending"; }).length;
+        if (el) el.textContent = String(n);
+      } catch (e) { /* board.js 不在時は「—」のまま */ }
+    })();
+  </script>
 </body>
 </html>

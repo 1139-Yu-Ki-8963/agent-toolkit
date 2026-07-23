@@ -10,7 +10,7 @@
 
 // カテゴリ定義(表示順)。subs を持つカテゴリは内部を小カテゴリに分割する。
 export const CATEGORIES = [
-  { id: "impl",   name: "実装・PR",            desc: "issue 着手からコミット・PR まで",
+  { id: "build",  name: "実装・PR",            desc: "issue 着手からコミット・PR まで",
     subs: [
       { key: "issue", label: "issue 起票・選択", tag: "tag-post" },
       { key: "pr",    label: "実装・コミット・PR", tag: "tag-skill" },
@@ -32,10 +32,11 @@ export const CATEGORIES = [
 
 // スキル id → カテゴリ対応。値は文字列（cat のみ）か { cat, sub } オブジェクト。
 export const SKILL_CATEGORY = {
-  "managing-github-issues": { cat: "impl", sub: "issue" },
-  "orchestrating-dev-flow": { cat: "impl", sub: "pr" },
-  "parallel-dev-worktree": { cat: "impl", sub: "pr" },
-  "grouping-commits": { cat: "impl", sub: "pr" },
+  "managing-github-issues": { cat: "build", sub: "issue" },
+  "orchestrating-dev-flow": { cat: "build", sub: "pr" },
+  "dev-flow-preparing-manual-mockup": { cat: "build", sub: "pr" },
+  "parallel-dev-worktree": { cat: "build", sub: "pr" },
+  "grouping-commits": { cat: "build", sub: "pr" },
   "creating-new-project": "dev",
   "reviewing-single-pr-with-inline-comments": "review",
   "reviewing-public-readiness": "review",
@@ -48,6 +49,7 @@ export const SKILL_CATEGORY = {
   "subagent-investigation-checklist": "meta",
   "frontend-design": "design",
   "generating-explanation-html-slides": "content",
+  "transcribing-images": "content",
   "managing-review-sets": "review",
   "presenting-plan-with-artifacts": "flow",
 };

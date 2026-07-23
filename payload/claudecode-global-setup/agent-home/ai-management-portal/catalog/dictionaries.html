@@ -6,21 +6,116 @@
   <title>置き換え辞書一覧 — agent-home</title>
   <link rel="stylesheet" href="../style.css" />
   <script type="module" src="../src/common/header.js"></script>
+  <style>
+    .page-hero.compact { padding: 12px 0 8px; }
+    .page-hero.compact .header-top { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+    .page-hero.compact h1 { font-size: 1.3rem; margin: 0; }
+    .page-hero.compact .meta-inline { font-size: 0.75rem; color: var(--text-muted); margin: 6px 0 0; }
+
+    .summary-tiles { display: flex; gap: 10px; flex-wrap: wrap; }
+    .summary-tiles .tile {
+      background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius-sm);
+      padding: 4px 12px; font-size: 0.78rem; color: var(--text-sub);
+    }
+    .summary-tiles .tile strong { font-size: 1rem; color: var(--text); margin-right: 4px; }
+
+    .toolbar-area { padding: 8px 0; }
+    .toolbar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    .toolbar input[type="search"] {
+      flex: 1; min-width: 220px; padding: 8px 12px; font-size: 0.92rem;
+      border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--panel); color: var(--text);
+    }
+    .toolbar .note { font-size: 0.82rem; color: var(--text-muted); white-space: nowrap; }
+
+    section.module-group { margin: 18px 0; background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 20px; }
+    section.module-group h2 { font-size: 1.05rem; margin: 0 0 12px; }
+
+    .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    table.screens { table-layout: fixed; width: 100%; min-width: 760px; border-collapse: collapse; font-size: 0.88rem; }
+    table.screens thead { position: sticky; top: 0; z-index: 3; }
+    table.screens th {
+      border-top: 1px solid var(--border); padding: 8px 10px; text-align: left; vertical-align: top;
+      background: var(--panel-2); font-weight: 700; cursor: pointer; user-select: none; font-size: 0.85em;
+    }
+    table.screens th:hover { background: var(--accent-soft); }
+    table.screens th[data-asc="true"]::after { content: " \25B2"; font-size: 0.7em; }
+    table.screens th[data-asc="false"]::after { content: " \25BC"; font-size: 0.7em; }
+    table.screens th[data-key="pattern"] { width: 34%; }
+    table.screens th[data-key="expected"] { width: 16%; }
+    table.screens th[data-key="category"] { width: 16%; }
+    table.screens th[data-key="note"] { width: 34%; }
+    table.screens td {
+      border-top: 1px solid var(--border); padding: 6px 8px; text-align: left; vertical-align: top;
+      overflow: hidden; text-overflow: ellipsis; white-space: normal; word-break: break-word;
+    }
+    table.screens td code {
+      font-family: var(--mono); font-size: 0.85em; background: var(--panel-2); padding: 1px 5px; border-radius: 3px;
+    }
+    table.screens tbody tr:nth-child(even) { background: color-mix(in srgb, var(--panel-2) 40%, transparent); }
+    table.screens tbody tr:hover { background: var(--accent-soft); }
+    table.screens tbody tr { cursor: pointer; }
+
+    .expand-cell { text-align: center; color: var(--text-muted); transition: color 0.15s; }
+    tr:hover .expand-cell { color: var(--accent); }
+    tr[data-expanded="true"] .chevron svg { transform: rotate(90deg); }
+    .chevron svg { transition: transform 0.15s; vertical-align: middle; }
+
+    .badge { display: inline-block; font-size: 0.76rem; font-weight: 700; padding: 1px 8px; border-radius: 3px; }
+    .scope-tag { display: inline-block; font-size: 0.7rem; color: var(--text-muted); margin-left: 6px; white-space: nowrap; }
+
+    .copy-btn { background: none; border: none; cursor: pointer; padding: 1px 3px; color: var(--text-muted); opacity: .35; vertical-align: middle; }
+    tr:hover .copy-btn, .copy-btn:focus { opacity: 1; }
+    .copy-btn:hover { color: var(--accent); }
+
+    tr.row-detail > td { background: var(--panel-2); font-size: .86rem; white-space: normal; border-left: 3px solid var(--accent); }
+    .detail-grid { display: grid; grid-template-columns: max-content 1fr; gap: 4px 14px; margin: 4px 0; padding: 10px 14px; }
+    .detail-grid dt { color: var(--text-muted); font-size: 0.78rem; white-space: nowrap; }
+    .detail-grid dd { margin: 0; font-size: 0.84rem; word-break: break-word; }
+    .detail-grid a { color: var(--accent); }
+  </style>
 </head>
 <body>
   <div class="cat-wrap">
-    <div class="page-hero">
-      <h1>置き換え辞書一覧</h1>
-      <p>textlint の prh 辞書（<code>~/.claude/rules/always/review-checklist/text-dictionary/prh.yml</code> とプロジェクト辞書）に登録されている置き換えルールをカテゴリ別に一覧化したものです。辞書は「読み手第一」「比喩の借用禁止」「番号に意味を負わせない」「正式名称主義」という 4 原則の検出網であり、原則自体が正本です。詳細は正本 <code>~/.claude/rules/always/review-checklist/text-dictionary/rule.md</code> を参照してください。<a href="../index.html">← フロー・ポータルへ戻る</a></p>
+    <section class="page-hero compact">
+      <nav style="margin: 16px 0 0; font-size: 0.85rem;">
+        <a href="../index.html" style="color: var(--text-sub); text-decoration: none; border-bottom: 1px dotted var(--text-muted);">← ポータルへ戻る</a>
+      </nav>
+      <div class="header-top">
+        <h1>置き換え辞書一覧</h1>
+        <div class="summary-tiles">
+          <div class="tile"><strong id="tile-total">0</strong>語彙数</div>
+          <div class="tile"><strong id="tile-cat">0</strong>カテゴリ数</div>
+        </div>
+      </div>
+      <p class="meta-inline">textlint の prh 辞書（<code>~/.claude/rules/always/review-checklist/text-dictionary/prh.yml</code> とプロジェクト辞書）に登録されている置き換えルールをカテゴリ別に一覧化したものです。辞書は「読み手第一」「比喩の借用禁止」「番号に意味を負わせない」「正式名称主義」という 4 原則の検出網であり、原則自体が正本です。詳細は正本 <code>~/.claude/rules/always/review-checklist/text-dictionary/rule.md</code> を参照してください。</p>
+    </section>
+
+    <div class="toolbar-area">
+      <div class="toolbar">
+        <input type="search" id="filter" placeholder="検出パターン・推奨語・注記で絞り込み…" autocomplete="off" />
+        <span class="note" id="total"></span>
+      </div>
     </div>
 
-    <div class="cat-bar">
-      <a class="cat-back" href="../index.html">← ポータル TOP</a>
-      <span class="cat-total" id="total"></span>
-      <input class="cat-filter" id="filter" type="search" placeholder="検出パターン・推奨語・注記で絞り込み…" autocomplete="off" />
+    <div class="table-area">
+      <section class="module-group">
+        <h2>置き換え辞書一覧</h2>
+        <div class="table-wrap">
+          <table class="screens" id="data-table">
+            <thead>
+              <tr>
+                <th style="width:32px;padding:8px 4px;"></th>
+                <th data-key="pattern">検出パターン</th>
+                <th data-key="expected">推奨語</th>
+                <th data-key="category">カテゴリ</th>
+                <th data-key="note">注記</th>
+              </tr>
+            </thead>
+            <tbody id="table-body"></tbody>
+          </table>
+        </div>
+      </section>
     </div>
-
-    <div id="list"></div>
   </div>
 
   <script type="module">
@@ -106,106 +201,247 @@
       { expected: "Codex CLI", patterns: ["/Codex cli/","/codex cli/","/codex CLI/","/CodexCLI/","/CODEX CLI/"], note: "Codex CLI", caution: "タグ語彙値 codex 単体は対象外（CLI 併記時のみ検出）", category: "official-names", scope: "global" },
       { expected: "Gemini CLI", patterns: ["/Gemini cli/","/gemini cli/","/gemini CLI/","/GeminiCLI/","/GEMINI CLI/"], note: "Gemini CLI", caution: "タグ語彙値 gemini-cli（ハイフン形）は対象外", category: "official-names", scope: "global" },
       { expected: "AGENTS.md", patterns: ["AGENT.md"], note: "AGENTS.md", caution: "", category: "filename-normalization", scope: "global" },
+      { expected: "暗黙知の炙り出し", patterns: ["/プローブ/"], note: "暗黙知の炙り出し", caution: "スキル名・サブエージェント名の識別子（plan-comprehension-prober 等）は対象外", category: "domain-terms", scope: "global" },
+      { expected: "内容要約キー", patterns: ["意味キー"], note: "内容要約キー", caution: "", category: "domain-terms", scope: "global" },
       { expected: "チームバトル期間", patterns: ["/シーズン/"], note: "チームバトル期間", caution: "コード識別子 season_id / SeasonSelector 等は英語のため対象外（正規表現でヒットしない）", category: "official-names", scope: "<project>-<project>" },
       { expected: "敵一覧", patterns: ["/ロスター/i","/roster/i"], note: "敵一覧 / メンバー一覧 / 編成画面", caution: "スクリーンショットの実ファイル名（例: 2313_roster_01.png）は対象外", category: "official-names", scope: "<project>-<project>" },
       { expected: "SP", patterns: ["/\\bPP\\b/"], note: "SP または EP（サイト上の正式名称を確認して使い分ける）", caution: "", category: "official-names", scope: "<project>-<project>" },
     ];
     // <!-- /GEN:DICTIONARIES -->
 
-    const root = document.getElementById("list");
-    const totalEl = document.getElementById("total");
+    const tbody = document.getElementById("table-body");
+    const table = document.getElementById("data-table");
     const filterEl = document.getElementById("filter");
+    const totalEl = document.getElementById("total");
+    const tileTotalEl = document.getElementById("tile-total");
+    const tileCatEl = document.getElementById("tile-cat");
+
+    tileTotalEl.textContent = DICTIONARIES.length;
+    tileCatEl.textContent = CATEGORIES.length;
+
+    const CAT_PALETTE = ["#2563eb", "#059669", "#7c3aed", "#d97706", "#db2777", "#0891b2", "#65a30d", "#dc2626", "#4f46e5", "#0d9488"];
+
+    function categoryInfo(catId) {
+      const idx = CATEGORIES.findIndex((c) => c.id === catId);
+      if (idx === -1) return { name: catId, color: "#767b85" };
+      return { name: CATEGORIES[idx].name, color: CAT_PALETTE[idx % CAT_PALETTE.length] };
+    }
+
+    function categoryBadge(catId) {
+      const info = categoryInfo(catId);
+      const span = document.createElement("span");
+      span.className = "badge";
+      span.textContent = info.name;
+      span.style.background = info.color + "22";
+      span.style.color = info.color;
+      return span;
+    }
 
     function scopeLabel(scope) {
       return scope === "global" ? "グローバル" : "プロジェクト (" + scope + ")";
     }
 
-    function scopeTagClass(scope) {
-      return scope === "global" ? "tag-skill" : "tag-post";
+    const CHEVRON_SVG = '<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M6.22 3.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042L9.94 8 6.22 4.28a.75.75 0 0 1 0-1.06Z"/></svg>';
+    const COPY_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>';
+    const CHECK_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+
+    function fallbackCopy(text) {
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand("copy"); } catch (e) { /* ignore */ }
+      document.body.removeChild(ta);
     }
 
-    function updateTotal() {
+    function copyCellText(text, btn) {
+      function showDone() {
+        btn.innerHTML = CHECK_SVG;
+        setTimeout(() => { btn.innerHTML = COPY_SVG; }, 1200);
+      }
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(showDone, () => { fallbackCopy(text); showDone(); });
+      } else {
+        fallbackCopy(text);
+        showDone();
+      }
+    }
+
+    function makeCopyBtn(getText) {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "copy-btn";
+      btn.setAttribute("aria-label", "コピー");
+      btn.innerHTML = COPY_SVG;
+      btn.addEventListener("click", (ev) => {
+        ev.stopPropagation();
+        ev.preventDefault();
+        copyCellText(getText(), btn);
+      });
+      return btn;
+    }
+
+    function appendPatternCodes(container, patterns) {
+      patterns.forEach((p, i) => {
+        const code = document.createElement("code");
+        code.textContent = p;
+        container.appendChild(code);
+        if (i < patterns.length - 1) container.appendChild(document.createElement("br"));
+      });
+    }
+
+    function buildDetailRow(d) {
+      const detail = document.createElement("tr");
+      detail.className = "row-detail";
+      const td = document.createElement("td");
+      td.colSpan = 5;
+      const dl = document.createElement("dl");
+      dl.className = "detail-grid";
+
+      function addPair(label, buildValue) {
+        const dt = document.createElement("dt");
+        dt.textContent = label;
+        const dd = document.createElement("dd");
+        buildValue(dd);
+        dl.appendChild(dt);
+        dl.appendChild(dd);
+      }
+
+      addPair("推奨語", (dd) => {
+        dd.appendChild(document.createTextNode(d.expected));
+        dd.appendChild(makeCopyBtn(() => d.expected));
+      });
+      addPair("検出パターン", (dd) => { appendPatternCodes(dd, d.patterns); });
+      addPair("カテゴリ", (dd) => { dd.appendChild(categoryBadge(d.category)); });
+      addPair("適用範囲", (dd) => { dd.textContent = scopeLabel(d.scope); });
+      addPair("注記", (dd) => { dd.textContent = d.note || ""; });
+      if (d.caution) {
+        addPair("誤検知注意", (dd) => { dd.textContent = d.caution; });
+      }
+
+      td.appendChild(dl);
+      detail.appendChild(td);
+      return detail;
+    }
+
+    function toggleDetail(tr, d) {
+      const next = tr.nextElementSibling;
+      if (next && next.classList.contains("row-detail")) {
+        next.remove();
+        tr.removeAttribute("data-expanded");
+        return;
+      }
+      const detail = buildDetailRow(d);
+      tr.after(detail);
+      tr.setAttribute("data-expanded", "true");
+    }
+
+    function makeRow(d) {
+      const tr = document.createElement("tr");
+      tr.dataset.key = (
+        d.expected + " " + d.patterns.join(" ") + " " + (d.note || "") + " " + (d.caution || "") + " " + categoryInfo(d.category).name
+      ).toLowerCase();
+
+      const chTd = document.createElement("td");
+      chTd.className = "expand-cell";
+      chTd.innerHTML = '<span class="chevron">' + CHEVRON_SVG + "</span>";
+      tr.appendChild(chTd);
+
+      const patTd = document.createElement("td");
+      appendPatternCodes(patTd, d.patterns);
+      tr.appendChild(patTd);
+
+      const expTd = document.createElement("td");
+      expTd.appendChild(document.createTextNode(d.expected));
+      expTd.appendChild(makeCopyBtn(() => d.expected));
+      tr.appendChild(expTd);
+
+      const catTd = document.createElement("td");
+      catTd.appendChild(categoryBadge(d.category));
+      if (d.scope !== "global") {
+        const st = document.createElement("span");
+        st.className = "scope-tag";
+        st.textContent = "(" + d.scope + ")";
+        catTd.appendChild(st);
+      }
+      tr.appendChild(catTd);
+
+      const noteTd = document.createElement("td");
+      noteTd.textContent = d.note || "";
+      tr.appendChild(noteTd);
+
+      tr.addEventListener("click", (ev) => {
+        if (ev.target.closest(".copy-btn,a,button")) return;
+        toggleDetail(tr, d);
+      });
+
+      return tr;
+    }
+
+    const allRows = DICTIONARIES.map(makeRow);
+
+    let sortKey = null;
+    let sortAsc = true;
+    const COL_INDEX = { pattern: 1, expected: 2, category: 3, note: 4 };
+
+    function closeAllDetails() {
+      tbody.querySelectorAll("tr.row-detail").forEach((r) => r.remove());
+      allRows.forEach((tr) => tr.removeAttribute("data-expanded"));
+    }
+
+    function computeVisible() {
+      const q = filterEl.value.trim().toLowerCase();
+      let visible = allRows.filter((tr) => !q || tr.dataset.key.includes(q));
+      if (sortKey) {
+        const idx = COL_INDEX[sortKey];
+        visible = visible.slice().sort((a, b) => {
+          const av = a.children[idx].textContent.trim();
+          const bv = b.children[idx].textContent.trim();
+          const cmp = av.localeCompare(bv, "ja");
+          return sortAsc ? cmp : -cmp;
+        });
+      }
+      return visible;
+    }
+
+    function updateCount(shownCount) {
+      const q = filterEl.value.trim();
       const globalCount = DICTIONARIES.filter((d) => d.scope === "global").length;
       const projectCount = DICTIONARIES.length - globalCount;
-      totalEl.textContent =
-        "グローバル " + globalCount + " 語 + プロジェクト " + projectCount + " 語 / " + CATEGORIES.length + " カテゴリ";
-    }
-
-    function esc(s) {
-      const div = document.createElement("div");
-      div.textContent = s == null ? "" : String(s);
-      return div.innerHTML;
-    }
-
-    function rowHtml(d) {
-      const patternsHtml = d.patterns.map((p) => "<code>" + esc(p) + "</code>").join("<br />");
-      const cautionHtml = d.caution ? esc(d.caution) : "";
-      const key = (d.expected + " " + d.patterns.join(" ") + " " + (d.note || "") + " " + (d.caution || "")).toLowerCase();
-      return (
-        '<details class="fr" data-key="' + esc(key) + '">' +
-          '<summary>' +
-            '<span class="expbtn">+</span>' +
-            '<span class="fn">' + esc(d.expected) + '</span>' +
-            '<span class="fsep">—</span>' +
-            '<span class="fdesc">' + esc(d.note || "") + '</span>' +
-          '</summary>' +
-          '<div class="fdetail">' +
-            '<table class="dict-table">' +
-              '<thead><tr><th>検出パターン</th><th>推奨語</th><th>誤検知注意</th><th>適用範囲</th></tr></thead>' +
-              '<tbody><tr>' +
-                '<td>' + patternsHtml + '</td>' +
-                '<td><strong>' + esc(d.expected) + '</strong></td>' +
-                '<td class="muted">' + cautionHtml + '</td>' +
-                '<td><span class="tag ' + scopeTagClass(d.scope) + '">' + scopeLabel(d.scope) + '</span></td>' +
-              '</tr></tbody>' +
-            '</table>' +
-          '</div>' +
-        '</details>'
-      );
+      totalEl.textContent = q
+        ? shownCount + " 件ヒット / " + DICTIONARIES.length + " 語"
+        : "グローバル " + globalCount + " 語 + プロジェクト " + projectCount + " 語 / " + CATEGORIES.length + " カテゴリ";
     }
 
     function render() {
-      root.innerHTML = "";
-      CATEGORIES.forEach((c, i) => {
-        const items = DICTIONARIES.filter((d) => d.category === c.id);
-        if (items.length === 0) return;
-        const sec = document.createElement("details");
-        sec.className = "cat-block";
-        sec.open = true;
-        sec.innerHTML =
-          '<summary class="cat-card">' +
-            '<span class="cat-fold"></span>' +
-            '<div class="cat-num-block"><span class="cat-number">' + String(i + 1).padStart(2, "0") + '</span></div>' +
-            '<div class="cat-body"><div class="cat-name">' + esc(c.name) + '</div><div class="cat-desc">' + esc(c.desc) + '</div></div>' +
-            '<span class="cat-count">' + items.length + ' 語</span>' +
-          '</summary>' +
-          '<div class="file-rows">' + items.map(rowHtml).join("") + '</div>';
-        root.appendChild(sec);
+      closeAllDetails();
+      const visible = computeVisible();
+      allRows.forEach((tr) => { tr.style.display = "none"; });
+      visible.forEach((tr) => {
+        tr.style.display = "";
+        tbody.appendChild(tr);
       });
-      updateTotal();
+      updateCount(visible.length);
     }
 
-    function applyFilter() {
-      const q = filterEl.value.trim().toLowerCase();
-      let shown = 0;
-      root.querySelectorAll("details.cat-block").forEach((sec) => {
-        let secShown = 0;
-        sec.querySelectorAll("details.fr").forEach((d) => {
-          const hit = !q || d.dataset.key.includes(q);
-          d.style.display = hit ? "" : "none";
-          if (hit) { secShown++; shown++; }
-        });
-        sec.style.display = secShown > 0 ? "" : "none";
-        if (q && secShown > 0) sec.open = true;
+    table.querySelectorAll("th[data-key]").forEach((th) => {
+      th.addEventListener("click", () => {
+        const key = th.dataset.key;
+        if (sortKey === key) { sortAsc = !sortAsc; } else { sortKey = key; sortAsc = true; }
+        table.querySelectorAll("th[data-key]").forEach((t) => t.removeAttribute("data-asc"));
+        th.setAttribute("data-asc", sortAsc);
+        render();
       });
-      totalEl.textContent = q
-        ? shown + " 件ヒット / " + DICTIONARIES.length + " 語"
-        : totalEl.textContent;
-      if (!q) updateTotal();
-    }
+    });
 
-    let t;
-    filterEl.addEventListener("input", () => { clearTimeout(t); t = setTimeout(applyFilter, 120); });
+    let debounceTimer;
+    filterEl.addEventListener("input", () => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(render, 120);
+    });
+
     render();
   </script>
 </body>

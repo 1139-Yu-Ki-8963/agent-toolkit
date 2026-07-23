@@ -6,31 +6,90 @@
   <title>Output styles 一覧 — agent-home</title>
   <link rel="stylesheet" href="../style.css" />
   <script type="module" src="../src/common/header.js"></script>
+  <style>
+    .page-hero.compact { padding: 12px 0 8px; }
+    .page-hero.compact .header-top { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+    .page-hero.compact h1 { font-size: 1.3rem; margin: 0; }
+    .page-hero.compact .meta-inline { font-size: 0.75rem; color: var(--text-muted); margin: 6px 0 0; }
+
+    .summary-tiles { display: flex; gap: 10px; flex-wrap: wrap; }
+    .summary-tiles .tile {
+      background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius-sm);
+      padding: 4px 12px; font-size: 0.78rem; color: var(--text-sub);
+    }
+    .summary-tiles .tile strong { font-size: 1rem; color: var(--text); margin-right: 4px; }
+
+    .toolbar-area { padding: 8px 0; }
+    .toolbar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    .toolbar .note { font-size: 0.82rem; color: var(--text-muted); white-space: nowrap; }
+
+    section.module-group { margin: 18px 0; background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 20px; }
+    section.module-group h2 { font-size: 1.05rem; margin: 0 0 12px; }
+
+    .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    table.screens { table-layout: fixed; width: 100%; min-width: 560px; border-collapse: collapse; font-size: 0.88rem; }
+    table.screens th {
+      border-top: 1px solid var(--border); padding: 8px 10px; text-align: left; vertical-align: top;
+      background: var(--panel-2); font-weight: 700; font-size: 0.85em;
+    }
+    table.screens th:nth-child(1) { width: 16%; }
+    table.screens th:nth-child(2) { width: 20%; }
+    table.screens th:nth-child(3) { width: 42%; }
+    table.screens th:nth-child(4) { width: 22%; }
+    table.screens td {
+      border-top: 1px solid var(--border); padding: 6px 8px; text-align: left; vertical-align: top;
+      overflow: hidden; text-overflow: ellipsis; white-space: normal; word-break: break-word;
+    }
+    table.screens td code {
+      font-family: var(--mono); font-size: 0.85em; background: var(--panel-2); padding: 1px 5px; border-radius: 3px;
+    }
+  </style>
 </head>
 <body>
   <div class="cat-wrap">
-    <div class="page-hero">
-      <h1>Output styles 一覧</h1>
-      <p>ユーザースコープ・プロジェクトスコープで配置されている Output style ファイルを一覧化したものです。仕様は <a href="../design/output-style.html">Output styles 設計ガイド</a> を参照してください。<a href="../index.html">← フロー・ポータルへ戻る</a></p>
+    <section class="page-hero compact">
+      <nav style="margin: 16px 0 0; font-size: 0.85rem;">
+        <a href="../index.html" style="color: var(--text-sub); text-decoration: none; border-bottom: 1px dotted var(--text-muted);">← ポータルへ戻る</a>
+      </nav>
+      <div class="header-top">
+        <h1>Output styles 一覧</h1>
+        <div class="summary-tiles">
+          <div class="tile"><strong>1</strong>件</div>
+        </div>
+      </div>
+      <p class="meta-inline">ユーザー範囲・プロジェクト範囲で配置されている Output style ファイルを一覧化したものです。仕様は <a href="../design/output-style.html">Output styles 設計ガイド</a> を参照してください。</p>
+    </section>
+
+    <div class="toolbar-area">
+      <div class="toolbar">
+        <span class="note">1 件</span>
+      </div>
     </div>
 
-    <div class="cat-bar">
-      <a class="cat-back" href="../index.html">← ポータル TOP</a>
-      <span class="cat-total">1 件</span>
-    </div>
-
-    <div class="prose" style="padding:0 20px 24px">
-      <table class="design-table">
-        <thead><tr><th>name</th><th>スコープ</th><th>説明</th><th>パス</th></tr></thead>
-        <tbody>
-          <tr>
-            <td>fable-like</td>
-            <td>ユーザースコープ</td>
-            <td>Fable 5 の既定挙動（結論先行・即行動・進捗の実証・スコープ規律）を Sonnet/Opus 向けに移植した行動規範</td>
-            <td><code>~/.claude/output-styles/fable-like.md</code></td>
-          </tr>
-        </tbody>
-      </table>
+    <div class="table-area">
+      <section class="module-group">
+        <h2>Output styles 一覧</h2>
+        <div class="table-wrap">
+          <table class="screens">
+            <thead>
+              <tr>
+                <th>name</th>
+                <th>範囲</th>
+                <th>説明</th>
+                <th>パス</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>fable-like</td>
+                <td>ユーザー範囲</td>
+                <td>Fable 5 の既定挙動（結論先行・即行動・進捗の実証・範囲規律）を Sonnet/Opus 向けに移植した行動規範</td>
+                <td><code>~/.claude/output-styles/fable-like.md</code></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
     </div>
   </div>
 </body>

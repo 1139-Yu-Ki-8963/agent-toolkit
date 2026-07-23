@@ -22,6 +22,7 @@ const NAV_LINKS = [
   { path: "catalog/usage.html", label: "利用頻度" },
   { path: "catalog/rules.html", label: "ルール一覧" },
   { path: "catalog/subagents.html", label: "エージェント一覧" },
+  { path: "board/task-board.html", label: "タスクボード" },
 ];
 
 function findHostHeader() {
