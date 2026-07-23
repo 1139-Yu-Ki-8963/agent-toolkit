@@ -159,13 +159,13 @@ fi
 # --- 3. pageKind値 ---
 PAGE_KIND="$(jq -r '.pageKind // ""' "$MANIFEST")"
 case "$PAGE_KIND" in
-  glossary|techstack|transition|er|env|entity-state)
+  glossary|techstack|transition|er|env|entity-state|release-notes|design-system|component-inventory|icon-catalog)
     echo "[PASS] pageKind値 — '${PAGE_KIND}'は許可値" >&2
     ;;
   *)
     overall_fail=1
     ln="$(line_of "\"pageKind\"")"
-    echo "[FAIL] pageKind値 — 不正な値: '${PAGE_KIND}'(行番号: ${ln:-不明})。glossary|techstack|transition|er|env|entity-stateのいずれかである必要があります" >&2
+    echo "[FAIL] pageKind値 — 不正な値: '${PAGE_KIND}'(行番号: ${ln:-不明})。glossary|techstack|transition|er|env|entity-state|release-notes|design-system|component-inventory|icon-catalogのいずれかである必要があります" >&2
     ;;
 esac
 
@@ -187,8 +187,7 @@ if [ -n "$(get_slot_keys "$PAGE_KIND")" ]; then
     echo "[PASS] 型別スロット — pageKind='${PAGE_KIND}'の必須キーはすべて存在" >&2
   fi
 else
-  overall_fail=1
-  echo "[FAIL] 型別スロット — pageKindが不正なため型別スロットを検証できません" >&2
+  echo "[SKIP] 型別スロット — pageKind '${PAGE_KIND}' のスロット定義なし（検査スキップ）" >&2
 fi
 
 # --- 5. 孤児参照(transition/erのみ) ---

@@ -70,6 +70,16 @@ check_file() {
     fi
   fi
 
+  local footer_content
+  footer_content=$(awk '/<footer/,/<\/footer>/' "$f" 2>/dev/null)
+  if [ -z "$footer_content" ]; then
+    pass "フッター-空確認（footerタグなし）"
+  elif printf '%s\n' "$footer_content" | grep -qE 'スキルにより生成|により自動生成|設計スキル群'; then
+    fail "フッター-空確認"
+  else
+    pass "フッター-空確認"
+  fi
+
   if grep -qE 'id="unit-manifest"|id="screen-manifest"' "$f" 2>/dev/null; then
     # 最初の thead のみカウント
     local th_count
