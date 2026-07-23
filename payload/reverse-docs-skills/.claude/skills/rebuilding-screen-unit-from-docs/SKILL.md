@@ -50,7 +50,7 @@ P4（コード生成）は必ず `worker-sonnet` へ隔離委任する。prompt 
 
 起動引数の画面ディレクトリが存在しない場合、著者スキル `generating-reverse-detailed-design` が未実行の状態とみなし、テンプレート展開は行わず `status=差し戻し` として本スキルを終了する（hint に「画面ディレクトリ・設計書が未著述のため `generating-reverse-detailed-design` を先に実行せよ」を記録する）。
 
-画面ディレクトリが既に存在する場合は `bash <scaffold_script_path> --verify <docs_root> <画面ID>`（scaffold_script_path は管理者が解決して渡すスキャフォールディングスクリプトのパス。audit_script_path と同型。実体: `shared/scripts/scaffold-screen.sh` の1本が正本）を実行し、既存構造の健全性（詳細設計/テスト項目書の必須ファイルの有無、検証記録/ 配下の `<timestamp>` 等未展開プレースホルダの残留有無）を確認する。exit 0 なら従来の P1 ロジック（下記）へ直接進む。exit 1 の場合は起動引数 template_root 起点のテンプレート原本（`<template_root>/画面/詳細設計/` 等、欠落ファイルの種類に応じたディレクトリ）から欠落ファイルのみをコピーして復元し `--verify` を再実行する。再実行しても exit 0 にならない場合は `status=差し戻し` として `generating-reverse-detailed-design` へ差し戻す（fail-closed）。壊れた構造のまま P1 の残りへ進んではならない。
+画面ディレクトリが既に存在する場合は `bash <scaffold_script_path> --verify <output_dir> <画面ID>`（scaffold_script_path は管理者が解決して渡すスキャフォールディングスクリプトのパス。audit_script_path と同型。実体: `shared/scripts/scaffold-screen.sh` の1本が正本）を実行し、既存構造の健全性（詳細設計/テスト項目書の必須ファイルの有無、検証記録/ 配下の `<timestamp>` 等未展開プレースホルダの残留有無）を確認する。exit 0 なら従来の P1 ロジック（下記）へ直接進む。exit 1 の場合は起動引数 template_root 起点のテンプレート原本（`<template_root>/画面/詳細設計/` 等、欠落ファイルの種類に応じたディレクトリ）から欠落ファイルのみをコピーして復元し `--verify` を再実行する。再実行しても exit 0 にならない場合は `status=差し戻し` として `generating-reverse-detailed-design` へ差し戻す（fail-closed）。壊れた構造のまま P1 の残りへ進んではならない。
 
 **進行前ガード（未記入テンプレート検知）**: 対象設計書が scaffold 直後の未記入テンプレートのまま（audit-consistency.sh 通常モードの検査 b が未記入プレースホルダ `<...>` を多数報告する状態）であれば、P2 の白紙化へ進んではならない。この場合は「設計書が未記入のため往復検証を開始できない。`generating-reverse-detailed-design` で設計書を記入してから対象ファイルを指定して再起動せよ」を返却ブロックの hint に記録し、`status=差し戻し` として本スキルを終了する（fail-closed）。記入済みの画面ディレクトリ（検査 b の未記入プレースホルダが実質ゼロ）では本ガードは発火しない。
 

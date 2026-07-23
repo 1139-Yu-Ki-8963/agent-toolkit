@@ -111,7 +111,7 @@ comm -13 \
 # Gate A・B いずれも空 = PASS。1行でも出力があれば FAIL
 ```
 
-- **Step 4**: `../../../shared/scripts/unit-list/build-unit-list.sh <manifest.ext.json> <output_dir>/一覧/機能一覧/機能一覧.html --unit-kind feature --portal-dir <output_dir>` を実行する。`--portal-dir` にはポータル（`index.html`）の配置先＝納品物ルート（output_dir=docs_root）を渡し、「ポータルへ戻る」リンクを実在パスに解決させる。build 側が内部で validate を再実行するため、検証を経ない manifest からは生成できない。完了条件: HTML 生成済み
+- **Step 4**: `../../../shared/scripts/unit-list/build-unit-list.sh <manifest.ext.json> <output_dir>/一覧/機能一覧/機能一覧.html --unit-kind feature --portal-dir <output_dir>` を実行する。`--portal-dir` にはポータル（`index.html`）の配置先＝納品物ルート（output_dir=output_dir）を渡し、「ポータルへ戻る」リンクを実在パスに解決させる。build 側が内部で validate を再実行するため、検証を経ない manifest からは生成できない。完了条件: HTML 生成済み
 
 **手作業でのプレースホルダ置換は禁止する**。HTML 生成は必ずスクリプト経由の決定的処理で行う。
 

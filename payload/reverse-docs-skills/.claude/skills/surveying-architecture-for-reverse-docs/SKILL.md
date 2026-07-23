@@ -10,7 +10,7 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, TaskCreate, TaskUpdate]
 
 工程全体は orchestrating-reverse-docs-flow が案内する。本スキルは対象リポジトリの走査から「アーキテクチャ調査書」の確定までを単独で担い、単独起動できる（起動引数を渡せば動く）。後続工程（共通採録・facts抽出・詳細設計執筆）はこの調査書を前提として動くが、本スキル自体は他スキルへの依存を持たない。
 
-対象リポジトリに対しては読み取り専用で動作する。書き込み・変更は一切行わない。出力は `docs_root` 側の1ファイル（アーキテクチャ調査書.md）のみ。
+対象リポジトリに対しては読み取り専用で動作する。書き込み・変更は一切行わない。出力は `output_dir` 側の1ファイル（アーキテクチャ調査書.md）のみ。
 
 ## 使用タイミング
 
@@ -22,7 +22,7 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, TaskCreate, TaskUpdate]
 | 引数 | 必須 | 内容 |
 |---|---|---|
 | target_repo_path | 必須 | 調査対象リポジトリの絶対パス |
-| docs_root | 必須 | 出力先ルート。調査書は `<docs_root>/プロジェクト共通/アーキテクチャ調査書.md` に出力する |
+| output_dir | 必須 | 出力先ルート。調査書は `<output_dir>/プロジェクト共通/アーキテクチャ調査書.md` に出力する |
 | template_root | 必須 | テンプレ一式のルート。この配下の `プロジェクト共通/アーキテクチャ調査書.md` を雛形に使う |
 | target_branch | 任意 | 調査時点の対象ブランチ。調査メタ節に記録する |
 | source_ref | 任意 | 調査時点のコミット参照。調査メタ節に記録する |
@@ -33,7 +33,7 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, TaskCreate, TaskUpdate]
 
 ## 設計原則
 
-- **読み取り専用**: 対象リポジトリへの書き込み・変更は一切行わない。出力は `docs_root` 配下のみ
+- **読み取り専用**: 対象リポジトリへの書き込み・変更は一切行わない。出力は `output_dir` 配下のみ
 - **決定的根拠のみ**: 全記述は `find`/`grep`/`ls` 等の決定的コマンドの実出力を根拠とする。推測での埋め合わせを禁止する
 - **空欄禁止・理由必須**: 判定不能・実在しない項目は空欄にせず「実在しない（理由: …）」で必ず埋める
 - **固定と可変の分離**: ゲート（`scripts/check-architecture-survey.sh`）は決定的スクリプトに固定する。調査そのもの（何をどう調べるか）はプロジェクトごとに可変であり、Phase 2〜3 で都度 Bash/Grep/Glob を用いて実行する
@@ -43,9 +43,9 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, TaskCreate, TaskUpdate]
 
 ### Phase 1: 前提確認
 
-`target_repo_path` と `template_root` の実在を確認する（`test -d`）。`docs_root` に `プロジェクト共通/` ディレクトリが無ければ作成する。`mode=revise` の場合は既存の調査書（`<docs_root>/プロジェクト共通/アーキテクチャ調査書.md`）の実在を確認し、`revise_findings` に列挙された指摘節を洗い出す。`mode=survey` の場合はテンプレ（`<template_root>/プロジェクト共通/アーキテクチャ調査書.md`）を調査書の出力先へ複製する。
+`target_repo_path` と `template_root` の実在を確認する（`test -d`）。`output_dir` に `プロジェクト共通/` ディレクトリが無ければ作成する。`mode=revise` の場合は既存の調査書（`<output_dir>/プロジェクト共通/アーキテクチャ調査書.md`）の実在を確認し、`revise_findings` に列挙された指摘節を洗い出す。`mode=survey` の場合はテンプレ（`<template_root>/プロジェクト共通/アーキテクチャ調査書.md`）を調査書の出力先へ複製する。
 
-完了条件: 全argsが解決済み（`target_repo_path`・`template_root` の実在確認済み、`docs_root` 配下のディレクトリ作成済み、`mode=revise` 時は既存調査書と指摘節の特定済み）
+完了条件: 全argsが解決済み（`target_repo_path`・`template_root` の実在確認済み、`output_dir` 配下のディレクトリ作成済み、`mode=revise` 時は既存調査書と指摘節の特定済み）
 
 ### Phase 2: 決定的走査
 
@@ -85,13 +85,13 @@ API種別の判定基準: 「API定義の実在」は SDL（GraphQL Schema Defin
 
 | Phase | 完了条件 |
 |---|---|
-| Phase 1 | 全args解決済み。`target_repo_path`・`template_root` 実在確認済み。`docs_root` 配下のディレクトリ作成済み |
+| Phase 1 | 全args解決済み。`target_repo_path`・`template_root` 実在確認済み。`output_dir` 配下のディレクトリ作成済み |
 | Phase 2 | ディレクトリ責務マップとエントリポイント一覧が根拠パス付きで揃っている |
 | Phase 3 | 6種別すべてに判定行がある |
 | Phase 4 | プレースホルダ残存ゼロ |
 | Phase 5 | `check-architecture-survey.sh` が `exit 0` |
 | Phase 6 | `status` 確定（`調査確定` または `中断`） |
-| **Goal** | 決定的走査のみを根拠とするアーキテクチャ調査書が機械ゲート全5検査PASSの状態で `docs_root` に確定し、後続工程が前提として読み込める |
+| **Goal** | 決定的走査のみを根拠とするアーキテクチャ調査書が機械ゲート全5検査PASSの状態で `output_dir` に確定し、後続工程が前提として読み込める |
 
 ## 返却ブロック
 
@@ -120,7 +120,7 @@ API種別の判定基準: 「API定義の実在」は SDL（GraphQL Schema Defin
 ## 重要な注意事項
 
 - 対象リポジトリに対しては読み取り専用。書き込み・変更は一切行わない
-- 出力は `docs_root` 側のみ（アーキテクチャ調査書.md 1本）。対象リポジトリ側には何も生成しない
+- 出力は `output_dir` 側のみ（アーキテクチャ調査書.md 1本）。対象リポジトリ側には何も生成しない
 - 推測禁止。全記述は決定的コマンド（`find`/`grep`/`ls`）の実出力を根拠とする
 - 6種別は実在しない場合も「実在しない（理由: …）」で必ず埋める。空欄・省略は禁止する
 - AskUserQuestionを使わない。args全量指定・対話ゼロで完走する

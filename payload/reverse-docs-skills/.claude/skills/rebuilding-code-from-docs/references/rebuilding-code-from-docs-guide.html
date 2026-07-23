@@ -246,7 +246,7 @@
   </div>
   <table class="spec">
     <tr><th>項目</th><th>内容</th></tr>
-    <tr><td>mode=implement の起動引数</td><td><code>screen_dir</code>・<code>scope</code>・<code>reverse_worktree</code>・<code>ports</code>・<code>baseline_tag_status</code>・<code>docs_root</code>・<code>template_root</code>・<code>audit_script_path</code>・<code>chapter_map_path</code>・<code>user-approved</code></td></tr>
+    <tr><td>mode=implement の起動引数</td><td><code>screen_dir</code>・<code>scope</code>・<code>reverse_worktree</code>・<code>ports</code>・<code>baseline_tag_status</code>・<code>output_dir</code>・<code>template_root</code>・<code>audit_script_path</code>・<code>chapter_map_path</code>・<code>user-approved</code></td></tr>
     <tr><td>mode=judge の起動引数</td><td><code>screen_dir</code>・<code>compare_result</code>・<code>reverse_worktree</code>・<code>freeze_commit</code></td></tr>
     <tr><td>環境値の取得元</td><td>管理者が事前解決した args（env_block）。本スキルは自ら取得・導出しない</td></tr>
     <tr><td>比較エンジン</td><td>自前実装しない。<code>mode=judge</code> は起動引数 <code>compare_result</code> のみを判定根拠とする</td></tr>
@@ -286,7 +286,7 @@
 <section id="s6">
   <h2><span class="sec-num">§6</span>設計原則</h2>
   <ol>
-    <li><strong>正本一元化</strong>: 環境固有値の正は起動引数の env_block（<code>scope</code>/<code>reverse_worktree</code>/<code>ports</code>/<code>baseline_tag_status</code>/<code>docs_root</code>）。画面固有値の正は設計書 frontmatter。本スキル専用の config.yml は新設しない</li>
+    <li><strong>定義一元化</strong>: 環境固有値の正は起動引数の env_block（<code>scope</code>/<code>reverse_worktree</code>/<code>ports</code>/<code>baseline_tag_status</code>/<code>output_dir</code>）。画面固有値の正は設計書 frontmatter。本スキル専用の config.yml は新設しない</li>
     <li><strong>比較エンジンの非自前実装</strong>: 判定は <code>mode=judge</code> が受け取る起動引数 <code>compare_result</code> のみ</li>
     <li><strong>1 起動 = 1 往復</strong>: 設計書修正後の再往復は管理者による本スキルの再起動として扱う</li>
     <li><strong>検証役と生成役の分離</strong>: <code>mode=implement</code> 実装時点の自己申告では判定しない。判定は <code>mode=judge</code> が受け取る <code>compare_result</code> の決定的出力のみ</li>

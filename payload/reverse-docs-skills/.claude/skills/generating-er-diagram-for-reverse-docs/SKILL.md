@@ -15,10 +15,10 @@ allowed-tools: [Bash, Read, Write, Grep, Glob, AskUserQuestion, TaskCreate, Task
 ## 使用タイミング
 
 - テーブル一覧.html が確定済みで、ポータルに ER 図カードを追加したいとき
-- 起動引数: `target_repo_path`（対象リポジトリの絶対パス）・`docs_root`（テーブル一覧.html 所在 / ER図.html 出力先）・`portal_output_dir`（任意）
+- 起動引数: `target_repo_path`（対象リポジトリの絶対パス）・`output_dir`（テーブル一覧.html 所在 / ER図.html 出力先）・`portal_output_dir`（任意）
 - `portal_output_dir` を指定した場合、生成後に `build-portal.sh` を再実行してカードへ反映する
 
-出力先は `<docs_root>/ER図.html` に固定する（`build-portal.sh` の `FUTURE_FILES` と同値）。前提となるテーブル一覧.html は `<docs_root>/一覧/テーブル一覧/テーブル一覧.html`（正本レイアウト）を既定パスとする。不在の場合のみ後方互換として旧レイアウト `<docs_root>/テーブル一覧/テーブル一覧.html` も探索する。
+出力先は `<output_dir>/ER図.html` に固定する（`build-portal.sh` の `FUTURE_FILES` と同値）。前提となるテーブル一覧.html は `<output_dir>/一覧/テーブル一覧/テーブル一覧.html`（正本レイアウト）を既定パスとする。不在の場合のみ後方互換として旧レイアウト `<output_dir>/テーブル一覧/テーブル一覧.html` も探索する。
 
 ## 設計原則
 
@@ -41,13 +41,13 @@ allowed-tools: [Bash, Read, Write, Grep, Glob, AskUserQuestion, TaskCreate, Task
 
 ## 進捗管理（必須手順）
 
-スキル開始時に `TaskCreate` で Phase 1〜4 のタスクを登録する。各 Phase 開始時に該当タスクを `in_progress` に、完了時に `completed` へ `TaskUpdate` で更新する。Phase 3 から Phase 2 へ差し戻す場合は Phase 2 タスクを `in_progress` に戻す。実行環境に TaskCreate/TaskUpdate が存在しない場合は、`docs_root` 内のタスク台帳ファイル（`task-ledger.md`）で同等の Phase 遷移記録を代替する。
+スキル開始時に `TaskCreate` で Phase 1〜4 のタスクを登録する。各 Phase 開始時に該当タスクを `in_progress` に、完了時に `completed` へ `TaskUpdate` で更新する。Phase 3 から Phase 2 へ差し戻す場合は Phase 2 タスクを `in_progress` に戻す。実行環境に TaskCreate/TaskUpdate が存在しない場合は、`output_dir` 内のタスク台帳ファイル（`task-ledger.md`）で同等の Phase 遷移記録を代替する。
 
 ## Phase 手順
 
 ### Phase 1: 前提確認 + 検出戦略宣言
 
-- **Step 1** — `<docs_root>/一覧/テーブル一覧/テーブル一覧.html`（正本レイアウト。不在時のみ後方互換で `<docs_root>/テーブル一覧/テーブル一覧.html`）の実在を確認する。あわせて `<script type="application/json" id="unit-manifest">` の埋め込みも確認する。不在ならハード停止する。この場合 `generating-table-list-for-reverse-docs` の先行実行を案内して終了する。完了条件: manifest の実在確認済み、または不在を報告して停止している
+- **Step 1** — `<output_dir>/一覧/テーブル一覧/テーブル一覧.html`（正本レイアウト。不在時のみ後方互換で `<output_dir>/テーブル一覧/テーブル一覧.html`）の実在を確認する。あわせて `<script type="application/json" id="unit-manifest">` の埋め込みも確認する。不在ならハード停止する。この場合 `generating-table-list-for-reverse-docs` の先行実行を案内して終了する。完了条件: manifest の実在確認済み、または不在を報告して停止している
 - **Step 2** — `target_repo_path` の定義ファイル・依存関係から ORM/マイグレーション種別（SQLAlchemy／Prisma／生 SQL migration 等）を判別する。判別手法は `references/er-detection.md` の調査対象・検出手法を参照する。完了条件: 種別が特定済み、または特定不能の根拠（推定経路）が記録済み
 - **Step 3** — 検出戦略（走査対象ファイル・FK 検出パターン・除外パターン）を宣言し、AskUserQuestion で承認を取る。宣言内容は一時ファイルに保存する。完了条件: 検出戦略（ORM 種別・走査対象・除外パターン・`approvedByUser: true`）が保存済み
 
@@ -73,16 +73,16 @@ page-data.json の保存先は `$CLAUDE_JOB_DIR/tmp/er-page-data.json` とする
 
 ### Phase 4: ER図.html 生成
 
-- **Step 1** — HTML 生成スクリプトを実行する。完了条件: `<docs_root>/ER図.html` が生成済み
+- **Step 1** — HTML 生成スクリプトを実行する。完了条件: `<output_dir>/ER図.html` が生成済み
 
   ```
-  ../../../shared/scripts/detail-pages/build-detail-page.sh <page-data.json> <docs_root> --page er
+  ../../../shared/scripts/detail-pages/build-detail-page.sh <page-data.json> <output_dir> --page er
   ```
 
 - **Step 2** — `portal_output_dir` が指定されていればポータル再生成スクリプトを実行しカードへ反映する。未指定（ポータル未生成環境）なら省略し完了報告に注記する。完了条件: 再実行済み、または省略を注記済み
 
   ```
-  ../../../shared/scripts/build-portal.sh <target_repo_path> <docs_root> <portal_output_dir>
+  ../../../shared/scripts/build-portal.sh <target_repo_path> <output_dir> <portal_output_dir>
   ```
 
 **手作業でのプレースホルダ置換は禁止する**。HTML 生成は必ず `build-detail-page.sh` 経由の決定的処理で行う。
@@ -94,7 +94,7 @@ page-data.json の保存先は `$CLAUDE_JOB_DIR/tmp/er-page-data.json` とする
 | Phase 1 | テーブル一覧 manifest の実在確認済み（または不在を報告して停止）。検出戦略がユーザー承認済み |
 | Phase 2 | `entities[]` を manifest から確定済み。`entities[]` へ `columns` を付与済み（抽出できた範囲）。FK 走査で `relations[]`/`unresolved[]` へ振り分け済み、または 0 件を報告して停止している |
 | Phase 3 | `validate-page-data.sh --target-repo` が全項目 PASS（孤児関連検査含む） |
-| Phase 4 | `<docs_root>/ER図.html` が生成され、指定時は `build-portal.sh` の再実行が完了している |
+| Phase 4 | `<output_dir>/ER図.html` が生成され、指定時は `build-portal.sh` の再実行が完了している |
 | **Goal** | テーブル一覧 manifest と対象リポジトリの FK 定義から検証済みの ER図.html が生成され、manifest 外参照・0 件検出時は捏造せず停止報告されている |
 
 ## 返却ブロック
@@ -124,11 +124,11 @@ page-data.json の保存先は `$CLAUDE_JOB_DIR/tmp/er-page-data.json` とする
 - 判定・評価はしない。テーブル設計の良否・正規化の妥当性には一切踏み込まず、FK として検出できた関連の事実のみを転記する
 - FK 0 件・参照先不明時に AskUserQuestion で手動関連を聞き出さない。検出できない関連を即興確定しない
 - Phase 4 の HTML 手作業組み立てを禁止する。`build-detail-page.sh` を必ず経由する
-- 対象リポジトリへの書き込み・変更は一切行わない。出力は `docs_root` 配下の ER図.html のみ
+- 対象リポジトリへの書き込み・変更は一切行わない。出力は `output_dir` 配下の ER図.html のみ
 
 ## 予想を裏切る挙動
 
-- 出力先は `<docs_root>` 直下（`ER図` のような種別専用フォルダは作らない）。`build-detail-page.sh` の `--page er` 固定出力名仕様に従う
+- 出力先は `<output_dir>` 直下（`ER図` のような種別専用フォルダは作らない）。`build-detail-page.sh` の `--page er` 固定出力名仕様に従う
 - `entities[].key` はテーブル一覧 manifest の `identifier` を使う（`unitKey` ではない）。`relations[].from`/`to` は `entities[].key` を参照する必要があるため、この対応を崩さない
 - マイグレーションと ORM モデルの両方が存在する場合、テーブル一覧生成時に確定した定義（Phase 1 の判別結果）と同じ側から FK を抽出する。両方を無差別に走査すると同一関連の重複検出になる
 - 自己参照 FK（同一テーブル内の親子関係等）は `from`/`to` が同一の `entities[].key` になる。孤児関連には該当しない

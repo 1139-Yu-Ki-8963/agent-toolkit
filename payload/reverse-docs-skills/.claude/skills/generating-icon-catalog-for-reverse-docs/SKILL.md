@@ -18,10 +18,10 @@ allowed-tools: [Read, Bash, Write, Edit, Grep, Glob]
 ## 使用タイミング
 
 - 対象リポジトリにアイコン参照（Material Icons/SVG import/React icons コンポーネント）が存在し、ポータルにアイコンカタログカードを追加したいとき
-- 起動引数: `target_repo_path`（調査対象リポジトリの絶対パス）・`docs_root`（出力先）・`portal_output_dir`（任意）
+- 起動引数: `target_repo_path`（調査対象リポジトリの絶対パス）・`output_dir`（出力先）・`portal_output_dir`（任意）
 - `portal_output_dir` を指定した場合、生成後に `build-portal.sh` を再実行してカードへ反映する
 
-出力先は `<docs_root>/アイコンカタログ.html` に固定する。
+出力先は `<output_dir>/アイコンカタログ.html` に固定する。
 
 ## 設計原則
 
@@ -69,16 +69,16 @@ page-data.json の保存先は `$CLAUDE_JOB_DIR/tmp/icon-catalog-page-data.json`
 
 ### Phase 4: アイコンカタログ.html 生成
 
-- **Step 1** — HTML 生成スクリプトを実行する。完了条件: `<docs_root>/アイコンカタログ.html` が生成済み
+- **Step 1** — HTML 生成スクリプトを実行する。完了条件: `<output_dir>/アイコンカタログ.html` が生成済み
 
   ```
-  ../../../shared/scripts/detail-pages/build-detail-page.sh <page-data.json> <docs_root> --page icon-catalog
+  ../../../shared/scripts/detail-pages/build-detail-page.sh <page-data.json> <output_dir> --page icon-catalog
   ```
 
 - **Step 2** — `portal_output_dir` が指定されていればポータル再生成スクリプトを実行しカードへ反映する。未指定なら省略し完了報告に注記する。完了条件: 再実行済み、または省略を注記済み
 
   ```
-  ../../../shared/scripts/build-portal.sh <target_repo_path> <docs_root> <portal_output_dir>
+  ../../../shared/scripts/build-portal.sh <target_repo_path> <output_dir> <portal_output_dir>
   ```
 
 **手作業でのプレースホルダ置換は禁止する**。HTML 生成は必ず `build-detail-page.sh` 経由の決定的処理で行う。
@@ -90,7 +90,7 @@ page-data.json の保存先は `$CLAUDE_JOB_DIR/tmp/icon-catalog-page-data.json`
 | Phase 1 | アイコン参照の 1 件以上の実在確認済み、または 0 件を報告して停止している |
 | Phase 2 | アイコン参照が抽出済み、抽出結果（総数・使用回数・参照元内訳）を確認済み |
 | Phase 3 | `validate-page-data.sh --target-repo` が全項目 PASS |
-| Phase 4 | `<docs_root>/アイコンカタログ.html` が生成され、指定時は `build-portal.sh` の再実行が完了している |
+| Phase 4 | `<output_dir>/アイコンカタログ.html` が生成され、指定時は `build-portal.sh` の再実行が完了している |
 | **Goal** | 対象リポジトリの実コードのみからアイコンカタログ.html が生成され、3 パターン以外の参照方式は捏造なく対象外として扱われている |
 
 ## 返却ブロック
@@ -109,7 +109,7 @@ page-data.json の保存先は `$CLAUDE_JOB_DIR/tmp/icon-catalog-page-data.json`
 
 - 判定・評価はしない。アイコン使用の妥当性・重複には一切踏み込まず、実コードの参照事実の転記のみを行う
 - Phase 4 の HTML 手作業組み立てを禁止する。`build-detail-page.sh` を必ず経由する
-- 対象リポジトリへの書き込み・変更は一切行わない。出力は `docs_root` 配下のアイコンカタログ.html のみ
+- 対象リポジトリへの書き込み・変更は一切行わない。出力は `output_dir` 配下のアイコンカタログ.html のみ
 
 ## 予想を裏切る挙動
 

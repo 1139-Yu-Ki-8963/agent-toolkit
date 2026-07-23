@@ -130,7 +130,7 @@
   <p>マーカー冪等性（同じ画面を再実行しても安全に再開できる性質）・limit 耐性（API 利用上限に達しても待機して再開する性質）・残ゼロまで継続、の3要件を満たす設計になっている。orchestrating-reverse-docs-flow から args 全量指定で起動され、AskUserQuestion を一切発行しない対話ゼロ契約を前提とする。</p>
   <pre class="flow"><span class="cap">── 処理の全体像 ──────────────────────────────</span>
 
-  target_repo_path / docs_root / screen_ids 等の args
+  target_repo_path / output_dir / screen_ids 等の args
        │  Phase 1  引数検証 + 対象画面一覧生成
        ▼
   batch-targets.txt（1行1画面ID）
@@ -181,7 +181,7 @@
 
 <section id="s4">
   <h2><span class="sec-num">§4</span>実行フロー</h2>
-  <p>起動引数は <code>target_repo_path</code>・<code>docs_root</code>・<code>screen_ids</code>・<code>template_root</code>・<code>common_docs_root</code>・<code>survey_doc_path</code> が必須。<code>model</code>・<code>wait_seconds</code>・<code>fail_limit_k</code>・<code>log_path</code>・<code>lane_id</code>・<code>deadline</code> は任意。</p>
+  <p>起動引数は <code>target_repo_path</code>・<code>output_dir</code>・<code>screen_ids</code>・<code>template_root</code>・<code>common_docs_root</code>・<code>survey_doc_path</code> が必須。<code>model</code>・<code>wait_seconds</code>・<code>fail_limit_k</code>・<code>log_path</code>・<code>lane_id</code>・<code>deadline</code> は任意。</p>
   <table class="spec">
     <tr><th>Phase</th><th>内容</th><th>完了条件</th></tr>
     <tr>

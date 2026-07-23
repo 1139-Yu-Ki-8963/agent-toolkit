@@ -126,7 +126,7 @@
 
 <section id="s1">
   <h2><span class="sec-num">§1</span>概要</h2>
-  <p>リバースエンジニアリング設計のポータルには、将来ページの受け口（<code>docs_root</code> 直下に該当 HTML が実在するときだけカード化される仕組み）がある。本スキルはそのうち ER図（T4）専任の生成係として、テーブル一覧 manifest のエンティティと対象リポジトリの外部キー定義を突き合わせ、<strong>ER図.html</strong> を機械検証付きで作成する。</p>
+  <p>リバースエンジニアリング設計のポータルには、将来ページの受け口（<code>output_dir</code> 直下に該当 HTML が実在するときだけカード化される仕組み）がある。本スキルはそのうち ER図（T4）専任の生成係として、テーブル一覧 manifest のエンティティと対象リポジトリの外部キー定義を突き合わせ、<strong>ER図.html</strong> を機械検証付きで作成する。</p>
   <p>本スキルは判定・評価をしない。テーブル設計の良否・正規化の妥当性は問わず、外部キーとして検出できた関連のみを転記する。参照先テーブルが manifest に存在しない外部キーは捏造せず未解決として分離し、外部キーを 1 件も検出できなければ生成せず停止報告する。</p>
   <pre class="flow"><span class="cap">── 処理の全体像 ──────────────────────────────</span>
 
@@ -142,7 +142,7 @@
   検証済み page-data
        │  Phase 4  build-detail-page.sh --page er
        ▼
-  &lt;docs_root&gt;/ER図.html（+ 任意で build-portal.sh 再実行）</pre>
+  &lt;output_dir&gt;/ER図.html（+ 任意で build-portal.sh 再実行）</pre>
   <p class="note">画面遷移図と同様、本スキルは「確定済みの一覧（テーブル一覧）」と「コード新規抽出（外部キー走査）」の 2 段構成を持つ。エンティティ自体は新規抽出せず、テーブル一覧 manifest をそのまま正とする。</p>
 </section>
 
@@ -150,7 +150,7 @@
   <h2><span class="sec-num">§2</span>出力</h2>
   <p>スキルを実行すると、以下の 2 点が生まれる。</p>
   <div class="def">
-    <dt>ER図.html（<code>&lt;docs_root&gt;</code> 直下）</dt>
+    <dt>ER図.html（<code>&lt;output_dir&gt;</code> 直下）</dt>
     <dd>テーブル一覧の各テーブルをノードとし、外部キーで検出した関連を線で結んだ図と、その下に関連の詳細（参照元／参照先／cardinality／出所）を並べた補足表を持つページ。参照先テーブルが manifest に存在しない外部キーは、図には現れず「未解決」節に理由付きで一覧表示される。</dd>
     <dt>埋め込み page-data JSON</dt>
     <dd>ER図.html の中に、生成の元になった page-data.json がそのまま埋め込まれる。読んだ人は「いつ・どのテーブル一覧 manifest とどの外部キー定義から生成されたか」を HTML 単体で追跡でき、機械処理（後続スキルからの参照）にも使える。</dd>
@@ -176,7 +176,7 @@
 
 <section id="s4">
   <h2><span class="sec-num">§4</span>動作フロー</h2>
-  <p>起動引数は <code>target_repo_path</code>・<code>docs_root</code>（必須）と <code>portal_output_dir</code>（任意）の 3 つ。種別は er に固定されているため、種別を選ぶ引数はない。</p>
+  <p>起動引数は <code>target_repo_path</code>・<code>output_dir</code>（必須）と <code>portal_output_dir</code>（任意）の 3 つ。種別は er に固定されているため、種別を選ぶ引数はない。</p>
   <table class="spec">
     <tr><th>Phase</th><th>内容</th><th>完了条件</th></tr>
     <tr>
@@ -196,7 +196,7 @@
     </tr>
     <tr>
       <td><strong>Phase 4</strong><br>ER図.html 生成</td>
-      <td><code>build-detail-page.sh &lt;page-data.json&gt; &lt;docs_root&gt; --page er</code> を実行。<code>portal_output_dir</code> 指定時は <code>build-portal.sh</code> を再実行しカードへ反映</td>
+      <td><code>build-detail-page.sh &lt;page-data.json&gt; &lt;output_dir&gt; --page er</code> を実行。<code>portal_output_dir</code> 指定時は <code>build-portal.sh</code> を再実行しカードへ反映</td>
       <td>HTML 生成済み。指定時は build-portal.sh 再実行済み</td>
     </tr>
   </table>

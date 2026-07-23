@@ -126,7 +126,7 @@
 
 <section id="s1">
   <h2><span class="sec-num">§1</span>概要</h2>
-  <p>リバースエンジニアリング設計のポータルには、将来ページの受け口（<code>docs_root</code> 直下に該当 HTML が実在するときだけカード化される仕組み）がある。本スキルはそのうち用語辞書（T2）専任の生成係として、プロジェクト共通文書・アーキテクチャ調査書・対象リポジトリのコード識別子を層化サンプリングで調べ、<strong>用語辞書.html</strong> を二段承認と機械検証付きで作成する。</p>
+  <p>リバースエンジニアリング設計のポータルには、将来ページの受け口（<code>output_dir</code> 直下に該当 HTML が実在するときだけカード化される仕組み）がある。本スキルはそのうち用語辞書（T2）専任の生成係として、プロジェクト共通文書・アーキテクチャ調査書・対象リポジトリのコード識別子を層化サンプリングで調べ、<strong>用語辞書.html</strong> を二段承認と機械検証付きで作成する。</p>
   <p>他の detail-pages 系スキルと異なり、用語辞書には構造化された一次情報（manifest・調査書表）が存在しない。本スキルは<strong>採録型</strong>を取り、採録源に実在する記述・識別子から用語候補を構築する。語の意味を創作せず、根拠の無い語は生成せず <code>unresolved[]</code> へ退避する。</p>
   <pre class="flow"><span class="cap">── 処理の全体像 ──────────────────────────────</span>
 
@@ -142,7 +142,7 @@
   page-data.json（pageKind: glossary）
        │  Phase 4  validate-page-data.sh --target-repo で機械検証 + build-detail-page.sh
        ▼
-  &lt;docs_root&gt;/用語辞書.html（+ 任意で build-portal.sh 再実行）</pre>
+  &lt;output_dir&gt;/用語辞書.html（+ 任意で build-portal.sh 再実行）</pre>
   <p class="note">承認は 2 箇所（採録方針・候補一覧）にあり、無人実行時はいずれも既定値での自動承認として扱う（詳細は §4「無人実行時の扱い」）。</p>
 </section>
 
@@ -150,7 +150,7 @@
   <h2><span class="sec-num">§2</span>出力</h2>
   <p>スキルを実行すると、以下の 2 点が生まれる。</p>
   <div class="def">
-    <dt>用語辞書.html（<code>&lt;docs_root&gt;</code> 直下）</dt>
+    <dt>用語辞書.html（<code>&lt;output_dir&gt;</code> 直下）</dt>
     <dd>分類チップ（業務用語／技術用語／略語が既定）と検索ボックスで絞り込める用語一覧ページ。各行には定義・コード参照（<code>codeRefs[]</code>）・出所（<code>sourceRef</code>）が付き、読んだ人は語がどの文書またはどのコード識別子から採録されたかをその場で追跡できる。根拠の無い語があれば「未解決」節に理由付きで表示される。</dd>
     <dt>埋め込み page-data JSON</dt>
     <dd>一覧 HTML の中に、生成の元になった page-data.json がそのまま埋め込まれる。読んだ人は「いつ・どの採録源から生成されたか」を HTML 単体で追跡でき、機械処理（後続スキルからの参照）にも使える。</dd>
@@ -176,7 +176,7 @@
 
 <section id="s4">
   <h2><span class="sec-num">§4</span>動作フロー</h2>
-  <p>起動引数は <code>target_repo_path</code>・<code>docs_root</code>（必須）と <code>portal_output_dir</code>（任意）の 3 つ。種別は glossary に固定されているため、種別を選ぶ引数はない。</p>
+  <p>起動引数は <code>target_repo_path</code>・<code>output_dir</code>（必須）と <code>portal_output_dir</code>（任意）の 3 つ。種別は glossary に固定されているため、種別を選ぶ引数はない。</p>
   <table class="spec">
     <tr><th>Phase</th><th>内容</th><th>完了条件</th></tr>
     <tr>

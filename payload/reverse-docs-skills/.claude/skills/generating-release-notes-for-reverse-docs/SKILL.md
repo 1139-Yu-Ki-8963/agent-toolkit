@@ -3,7 +3,7 @@ name: generating-release-notes-for-reverse-docs
 description: |
   対象リポジトリの git log からリリースノート HTML を生成する。
   TRIGGER when: 「リリースノートを生成」「変更履歴を出力」と言われた時、orchestrating-reverse-docs-flow の「基盤ページ未生成（任意）」状態キーから起動された時。
-  SKIP: git 履歴がないリポジトリ、リリースノートが既に docs_root に存在する時。
+  SKIP: git 履歴がないリポジトリ、リリースノートが既に output_dir に存在する時。
 invocation: generating-release-notes-for-reverse-docs
 type: transform
 allowed-tools: [Bash, Read, Write, Grep, Glob]
@@ -18,10 +18,10 @@ allowed-tools: [Bash, Read, Write, Grep, Glob]
 ## 使用タイミング
 
 - 対象リポジトリに git 履歴があり、ポータルにリリースノートカードを追加したいとき
-- 起動引数: `target_repo_path`（調査対象リポジトリの絶対パス）・`docs_root`（調査書の所在かつ出力先）・`portal_output_dir`（任意）
+- 起動引数: `target_repo_path`（調査対象リポジトリの絶対パス）・`output_dir`（調査書の所在かつ出力先）・`portal_output_dir`（任意）
 - `portal_output_dir` を指定した場合、生成後に `build-portal.sh` を再実行してカードへ反映する
 
-出力先は `<docs_root>/リリースノート.html` に固定する（`build-portal.sh` の `FUTURE_FILES` と同値）。
+出力先は `<output_dir>/リリースノート.html` に固定する（`build-portal.sh` の `FUTURE_FILES` と同値）。
 
 ## 設計原則
 
@@ -66,16 +66,16 @@ page-data.json の保存先は `$CLAUDE_JOB_DIR/tmp/release-notes-page-data.json
 
 ### Phase 4: リリースノート.html 生成
 
-- **Step 1** — HTML 生成スクリプトを実行する。完了条件: `<docs_root>/リリースノート.html` が生成済み
+- **Step 1** — HTML 生成スクリプトを実行する。完了条件: `<output_dir>/リリースノート.html` が生成済み
 
   ```
-  ../../../shared/scripts/detail-pages/build-detail-page.sh <page-data.json> <docs_root> --page release-notes
+  ../../../shared/scripts/detail-pages/build-detail-page.sh <page-data.json> <output_dir> --page release-notes
   ```
 
 - **Step 2** — `portal_output_dir` が指定されていればポータル再生成スクリプトを実行しカードへ反映する。未指定（ポータル未生成環境）なら省略し完了報告に注記する。完了条件: 再実行済み、または省略を注記済み
 
   ```
-  ../../../shared/scripts/build-portal.sh <target_repo_path> <docs_root> <portal_output_dir>
+  ../../../shared/scripts/build-portal.sh <target_repo_path> <output_dir> <portal_output_dir>
   ```
 
 **手作業でのプレースホルダ置換は禁止する**。HTML 生成は必ず `build-detail-page.sh` 経由の決定的処理で行う。
@@ -87,7 +87,7 @@ page-data.json の保存先は `$CLAUDE_JOB_DIR/tmp/release-notes-page-data.json
 | Phase 1 | git リポジトリの実在確認済み、または不在を報告して停止している |
 | Phase 2 | 全コミットの日付グルーピング・種別分類を終え page-data.json を保存済み |
 | Phase 3 | `validate-page-data.sh --target-repo` が全項目 PASS |
-| Phase 4 | `<docs_root>/リリースノート.html` が生成され、指定時は `build-portal.sh` の再実行が完了している |
+| Phase 4 | `<output_dir>/リリースノート.html` が生成され、指定時は `build-portal.sh` の再実行が完了している |
 | **Goal** | git log の事実のみからリリースノート.html が生成され、種別判定不能なコミットは「その他」として捏造なく分類されている |
 
 ## 返却ブロック
@@ -117,11 +117,11 @@ page-data.json の保存先は `$CLAUDE_JOB_DIR/tmp/release-notes-page-data.json
 - 判定・評価はしない。コミット内容の良否・粒度の妥当性には一切踏み込まず、`git log` の事実とプレフィックスパターンからの機械的な種別分類のみを行う
 - 種別判定不能時に AskUserQuestion で手動分類を聞き出さない。プレフィックス対応表にない件名は即座に「その他」へ分類する
 - Phase 4 の HTML 手作業組み立てを禁止する。`build-detail-page.sh` を必ず経由する
-- 対象リポジトリへの書き込み・変更は一切行わない。出力は `docs_root` 配下のリリースノート.html のみ
+- 対象リポジトリへの書き込み・変更は一切行わない。出力は `output_dir` 配下のリリースノート.html のみ
 
 ## 予想を裏切る挙動
 
-- 出力先は `<docs_root>` 直下（種別専用フォルダは作らない）。`build-detail-page.sh` の `--page release-notes` 固定出力名仕様に従う
+- 出力先は `<output_dir>` 直下（種別専用フォルダは作らない）。`build-detail-page.sh` の `--page release-notes` 固定出力名仕様に従う
 - `releases[]` に `sourceRef` は持たせない。コミット情報は各リリースの `changes`・`summary` に要約して格納する（確定仕様 `page-data-schema.md` T7 準拠）
 - `portal_output_dir` 未指定時は `build-portal.sh` を実行しない。生成済みリリースノート.html はそのまま残り、次回ポータル生成時に自動でカード化される
 

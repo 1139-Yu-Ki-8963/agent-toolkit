@@ -260,7 +260,7 @@ grep -qiE 'usage limit|rate limit|session limit|limit reached|limit will reset|Y
 
 各 Skill の args は以下のリポジトリの SKILL.md に従い全量指定する:
 - target_repo_path: $TARGET_REPO_PATH
-- docs_root: $DOCS_ROOT
+- output_dir: $DOCS_ROOT
 - screen_id: $TARGET
 - template_root: $TEMPLATE_ROOT
 - common_docs_root: $COMMON_DOCS_ROOT
@@ -296,7 +296,7 @@ grep -qiE 'usage limit|rate limit|session limit|limit reached|limit will reset|Y
 
 各 Skill の args は以下のリポジトリの SKILL.md に従い全量指定する:
 - target_repo_path: $TARGET_REPO_PATH
-- docs_root: $DOCS_ROOT
+- output_dir: $DOCS_ROOT
 - screen_id: $TARGET
 - template_root: $TEMPLATE_ROOT
 - common_docs_root: $COMMON_DOCS_ROOT

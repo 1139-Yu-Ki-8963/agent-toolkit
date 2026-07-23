@@ -150,7 +150,7 @@
     <strong>単独動作</strong>: 他スキルへの依存を持たない。起動引数を渡せば単独で動く。工程全体は orchestrating-reverse-docs-flow が案内する。後続工程（facts抽出・詳細設計執筆）はこのプロジェクト共通文書を前提として動く。
   </div>
   <div class="constraint">
-    <strong>読み取り専用</strong>: 対象リポジトリへの書き込み・変更は一切行わない。出力は docs_root 配下の8ファイルのみ。
+    <strong>読み取り専用</strong>: 対象リポジトリへの書き込み・変更は一切行わない。出力は output_dir 配下の8ファイルのみ。
   </div>
   <div class="constraint">
     <strong>v0で止める</strong>: 完成を狙わない。v0確定後の追記は mode=append の別起動でのみ行う。
@@ -186,7 +186,7 @@
   <table class="spec">
     <tr><th>引数</th><th>必須</th><th>内容</th></tr>
     <tr><td>target_repo_path</td><td>必須</td><td>対象リポジトリの絶対パス</td></tr>
-    <tr><td>docs_root</td><td>必須</td><td>出力先ルート。10文書は <code>&lt;docs_root&gt;/プロジェクト共通/</code> 配下に出力する</td></tr>
+    <tr><td>output_dir</td><td>必須</td><td>出力先ルート。10文書は <code>&lt;output_dir&gt;/プロジェクト共通/</code> 配下に出力する</td></tr>
     <tr><td>template_root</td><td>必須</td><td>テンプレ一式のルート。<code>&lt;template_root&gt;/プロジェクト共通/</code> の既存テンプレ10文書を雛形に使う</td></tr>
     <tr><td>survey_doc_path</td><td>必須</td><td>アーキテクチャ調査書のパス（ディレクトリ責務マップを層化サンプリングの層定義に使う）</td></tr>
     <tr><td>mode</td><td>任意（既定 v0）</td><td>v0（新規）／append（NG帰着(c)の追記。append_findings を受け取り該当文書へ追記して全ゲートを再実行）</td></tr>
@@ -198,7 +198,7 @@
   <h2><span class="sec-num">§5</span>設計原則</h2>
   <table class="spec">
     <tr><th>原則</th><th>内容</th></tr>
-    <tr><td>読み取り専用</td><td>対象リポジトリへの書き込み・変更は一切行わない。出力は docs_root 配下のみ</td></tr>
+    <tr><td>読み取り専用</td><td>対象リポジトリへの書き込み・変更は一切行わない。出力は output_dir 配下のみ</td></tr>
     <tr><td>実装事実主義</td><td>サンプルに現れない規則を発明しない。理想論（あるべき姿）を書かず、実装済みコードに現に存在する事実だけを記録する</td></tr>
     <tr><td>三点セット必須</td><td>各規則行は実例（3件以上）・頻度・例外率を必ず添える</td></tr>
     <tr><td>決定的サンプリング</td><td>層化サンプリングの選定は find / sort / head の決定的コマンドに固定する。乱数・目視選定を禁止する</td></tr>
@@ -213,7 +213,7 @@
   target_repo_path・template_root・survey_doc_pathの実在を確認する
   調査書内「ユニット種別判定」節と「ディレクトリ責務マップ」節の
   実在をgrepで確認する(調査書ゲートの再実行はしない)
-  docs_root/プロジェクト共通/規約/を作成しテンプレ10文書を複製する
+  output_dir/プロジェクト共通/規約/を作成しテンプレ10文書を複製する
   完了条件: テンプレ10文書複製済み・調査書の2節実在確認済み
    (mode=append時は既存11文書と指摘文書の特定済み)
 
@@ -239,7 +239,7 @@
   完了条件: 3文書のプレースホルダ残存ゼロ
 
 <span class="cap">Phase 5: 機械ゲート</span>
-  check-common-docs.sh <docs_root>/プロジェクト共通
+  check-common-docs.sh <output_dir>/プロジェクト共通
    <target_repo_path> を実行
   FAILしたらPhase 3〜4に戻り、指摘された実例不足・頻度欠落・
   例外率欠落・未実在パス・テンプレ残存・理想論表現を修正して

@@ -172,7 +172,7 @@
   <table class="spec">
     <tr><th>引数</th><th>必須</th><th>内容</th></tr>
     <tr><td>screen_dir</td><td>必須</td><td>画面ディレクトリ絶対パス</td></tr>
-    <tr><td>docs_root</td><td>必須</td><td>設計書展開先ルート</td></tr>
+    <tr><td>output_dir</td><td>必須</td><td>設計書展開先ルート</td></tr>
     <tr><td>template_root</td><td>必須</td><td>テンプレート原本ルート</td></tr>
     <tr><td>chapter_map_path</td><td>必須</td><td>章役割キー対応表</td></tr>
     <tr><td>audit_script_path</td><td>必須</td><td>内部整合性監査スクリプト</td></tr>
@@ -203,7 +203,7 @@
 <section id="s6">
   <h2><span class="sec-num">§6</span>動作フロー（Phase 1〜6）</h2>
   <pre class="flow"><span class="cap">Phase 1: preflight（起動引数検収・スキャフォールディング）</span>
-  必須引数を検収する(screen_dir/docs_root/template_root/chapter_map_path/
+  必須引数を検収する(screen_dir/output_dir/template_root/chapter_map_path/
    audit_script_path/scaffold_script_path/facts_ref/common_docs_root/mode/target_file_path)
   画面ディレクトリ未存在ならscaffold_script_path(実体: shared/scripts/scaffold-screen.sh)で展開、
    既存なら--verifyで健全性確認

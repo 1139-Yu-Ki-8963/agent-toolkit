@@ -153,7 +153,7 @@
   <p>本スキルを実行すると、以下の 1 点が生まれる。</p>
   <div class="def">
     <dt>状態遷移図.html</dt>
-    <dd><code>&lt;docs_root&gt;</code> 直下に固定生成される、エンティティごとの状態遷移図ページ。データ設計.md §6 状態遷移表の各行を nodes（状態）・edges（遷移。契機と根拠パス付き）に機械変換し、検証済みの page-data から <code>build-detail-page.sh</code> が決定的に組み立てる。エンティティ絞り込みセレクタで画面を切り替えながら、どの状態からどの契機でどの状態へ遷移するかを、根拠パス付きで確認できる。</dd>
+    <dd><code>&lt;output_dir&gt;</code> 直下に固定生成される、エンティティごとの状態遷移図ページ。データ設計.md §6 状態遷移表の各行を nodes（状態）・edges（遷移。契機と根拠パス付き）に機械変換し、検証済みの page-data から <code>build-detail-page.sh</code> が決定的に組み立てる。エンティティ絞り込みセレクタで画面を切り替えながら、どの状態からどの契機でどの状態へ遷移するかを、根拠パス付きで確認できる。</dd>
   </div>
 </section>
 
@@ -162,9 +162,9 @@
   <table class="spec">
     <tr><th>区分</th><th>内容</th></tr>
     <tr><td>前提</td><td>データ設計.md の §6 状態遷移表が確定済みで、ポータルに状態遷移図カードを追加したいとき</td></tr>
-    <tr><td>起動引数</td><td><code>target_repo_path</code>（対象リポジトリの絶対パス。根拠パスの実在検証に使用）・<code>docs_root</code>（データ設計.md 所在 / 状態遷移図.html 出力先）・<code>portal_output_dir</code>（任意）</td></tr>
-    <tr><td>出力先</td><td><code>&lt;docs_root&gt;/状態遷移図.html</code> に固定（<code>build-detail-page.sh</code> の <code>get_page_filename</code> と同値）</td></tr>
-    <tr><td>前提ファイル既定パス</td><td><code>&lt;docs_root&gt;/プロジェクト共通/データ設計.md</code></td></tr>
+    <tr><td>起動引数</td><td><code>target_repo_path</code>（対象リポジトリの絶対パス。根拠パスの実在検証に使用）・<code>output_dir</code>（データ設計.md 所在 / 状態遷移図.html 出力先）・<code>portal_output_dir</code>（任意）</td></tr>
+    <tr><td>出力先</td><td><code>&lt;output_dir&gt;/状態遷移図.html</code> に固定（<code>build-detail-page.sh</code> の <code>get_page_filename</code> と同値）</td></tr>
+    <tr><td>前提ファイル既定パス</td><td><code>&lt;output_dir&gt;/プロジェクト共通/データ設計.md</code></td></tr>
   </table>
   <p class="note"><code>portal_output_dir</code> を指定した場合、生成後に <code>build-portal.sh</code> を再実行する。ただし状態遷移図（entity-state）のポータルカード受け口は本スキル作成時点で <code>build-portal.sh</code> に未配線であり、再実行してもカードが増えないことがある（別途の配線作業を要する。本スキルの責務外）。</p>
 </section>
@@ -191,7 +191,7 @@
     <tr><td>1. 前提確認</td><td>データ設計.md §6 状態遷移表の実在確認。データ行数の確認（プレースホルダ行のみは 0 件扱い）</td><td>表の実在・データ行 1 件以上を確認済み（または不在・0 件を報告して停止）</td></tr>
     <tr><td>2. 抽出</td><td>Step 1: nodes 組み立て（状態列 + 遷移前/遷移後からの補完）。Step 2: edges 組み立て。Step 3: page-data.json 組み立て（<code>pageKind: "entity-state"</code>、legend/nodes/edges/unresolved）</td><td>表の全行から nodes[]・edges[] へ変換済み</td></tr>
     <tr><td>3. 整合検証</td><td><code>validate-page-data.sh &lt;page-data.json&gt; --target-repo &lt;target_repo_path&gt;</code> を実行。孤児参照検査を含む</td><td><code>validate-page-data.sh --target-repo</code> が全項目 PASS</td></tr>
-    <tr><td>4. HTML 生成</td><td><code>build-detail-page.sh &lt;page-data.json&gt; &lt;docs_root&gt; --page entity-state</code> を実行。<code>portal_output_dir</code> 指定時は <code>build-portal.sh</code> を再実行</td><td><code>&lt;docs_root&gt;/状態遷移図.html</code> が生成済み</td></tr>
+    <tr><td>4. HTML 生成</td><td><code>build-detail-page.sh &lt;page-data.json&gt; &lt;output_dir&gt; --page entity-state</code> を実行。<code>portal_output_dir</code> 指定時は <code>build-portal.sh</code> を再実行</td><td><code>&lt;output_dir&gt;/状態遷移図.html</code> が生成済み</td></tr>
   </table>
   <p class="note">page-data.json の保存先は <code>$CLAUDE_JOB_DIR/tmp/entity-state-page-data.json</code>（未設定時は <code>${TMPDIR:-/tmp}/claude-job-${session}/tmp/</code> 配下）。手作業でのプレースホルダ置換は禁止し、HTML 生成は必ず <code>build-detail-page.sh</code> 経由の決定的処理で行う。</p>
 </section>
@@ -215,7 +215,7 @@
   </div>
   <table class="spec">
     <tr><th>予想を裏切る挙動</th><th>内容</th></tr>
-    <tr><td>出力先の階層</td><td><code>&lt;docs_root&gt;</code> 直下（「状態遷移図」のような種別専用フォルダは作らない）。<code>build-detail-page.sh</code> の <code>--page entity-state</code> 固定出力名仕様に従う</td></tr>
+    <tr><td>出力先の階層</td><td><code>&lt;output_dir&gt;</code> 直下（「状態遷移図」のような種別専用フォルダは作らない）。<code>build-detail-page.sh</code> の <code>--page entity-state</code> 固定出力名仕様に従う</td></tr>
     <tr><td>nodes.key の複合形式</td><td><code>&lt;エンティティ&gt;.&lt;状態&gt;</code> 形式に固定する（ER図の <code>entities[].key</code> のような単一識別子ではなく、複数エンティティを横断する状態名の衝突を避けるための複合キー）</td></tr>
     <tr><td>自己遷移の扱い</td><td><code>from</code>/<code>to</code> が同一状態を指す行があってもそのまま転記する。孤児参照には該当しない</td></tr>
     <tr><td><code>portal_output_dir</code> 未指定時</td><td><code>build-portal.sh</code> を実行しない。生成済み状態遷移図.html はそのまま残り、entity-state のカード受け口が配線された時点で次回ポータル生成時にカード化される</td></tr>

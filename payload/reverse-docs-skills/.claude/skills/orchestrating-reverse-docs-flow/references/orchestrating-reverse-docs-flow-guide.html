@@ -377,7 +377,7 @@
     <tbody>
       <tr><td>Phase 2</td><td>不在種別に対応する種別別一覧生成スキル（6種）</td><td>source_dir, output_dir</td><td><span class="tag pass">DONE</span></td></tr>
       <tr><td>Phase 3</td><td>syncing-reverse-env</td><td>design-doc, mode=setup</td><td><span class="tag pass">PASS</span>（env_block抽出）</td></tr>
-      <tr><td>Phase 4（S1a）</td><td>generating-reverse-detailed-design</td><td>screen_dir, docs_root, template_root, chapter_map_path, audit_script_path, target_repo_path, target_branch, source_ref, mode, target_file_path</td><td><span class="tag pass">AUTHORED</span></td></tr>
+      <tr><td>Phase 4（S1a）</td><td>generating-reverse-detailed-design</td><td>screen_dir, output_dir, template_root, chapter_map_path, audit_script_path, target_repo_path, target_branch, source_ref, mode, target_file_path</td><td><span class="tag pass">AUTHORED</span></td></tr>
       <tr><td>Phase 4（S1b）</td><td>rebuilding-screen-unit-from-docs</td><td>screen_dir, target_file_path, 資産paths, env_block, user-approved</td><td><span class="tag pass">再現一致</span></td></tr>
       <tr><td>Phase 5</td><td>syncing-reverse-env</td><td>design-doc, mode=sync</td><td><span class="tag pass">PASS</span></td></tr>
       <tr><td>Phase 6</td><td>rebuilding-code-from-docs</td><td>mode=implement, scope, reverse_worktree, ports, 資産paths, user-approved</td><td><span class="tag mode">NEED-COMPARE</span></td></tr>
@@ -392,7 +392,7 @@
   <div class="constraint">
     <strong>重要な注意事項</strong><br>
     白紙化などの破壊的操作のユーザー承認は管理者が事前に取り、<code>user-approved</code> として args で渡す（子はユーザーに直接聞かない）。<br>
-    <code>docs_root</code> が null のときの展開先確認も管理者が担う。<br>
+    <code>output_dir</code> が null のときの展開先確認も管理者が担う。<br>
     各子スキルは単独起動可能（ユーザーが同じ args を手渡せば動く）。工程順序を知るのは管理者だけ。
   </div>
 </section>
@@ -438,9 +438,9 @@
         <td>syncing-reverse-env</td>
         <td><code>PASS | FAIL | ERROR | INCOMPLETE</code></td>
         <td>
-          既存の15フィールド返却ブロック（status / mode / scope / screen_id / slot / ports / original_code / reverse_code / baseline_tag / static_diff / dynamic / env_check / artifacts / docs_root / hint）はそのまま正で改変しない。
-          管理者が読むのは status / scope / ports / baseline_tag / docs_root / artifacts / hint。
-          <code>mode=setup</code> の返却からは env_block として docs_root / scope / ports / slot / baseline_tag / original_code / reverse_code を抽出する。
+          既存の15フィールド返却ブロック（status / mode / scope / screen_id / slot / ports / original_code / reverse_code / baseline_tag / static_diff / dynamic / env_check / artifacts / output_dir / hint）はそのまま正で改変しない。
+          管理者が読むのは status / scope / ports / baseline_tag / output_dir / artifacts / hint。
+          <code>mode=setup</code> の返却からは env_block として output_dir / scope / ports / slot / baseline_tag / original_code / reverse_code を抽出する。
           <code>mode=sync,dry-run</code> の返却が「比較結果ブロック」= static_diff / dynamic / env_check / status / hint を含む15フィールドそのもの。
         </td>
       </tr>
@@ -482,14 +482,14 @@
     <tbody>
       <tr><td>各一覧生成スキル（6スキル共通）</td><td>source_dir, output_dir（unit_kind は各スキルの固定値のため args に含めない）</td></tr>
       <tr><td>syncing-reverse-env</td><td>design-doc, mode（setup|sync|teardown）, dry-run, reset-first, user-approved, scenarios, max-loop（既存契約のまま）</td></tr>
-      <tr><td>generating-reverse-detailed-design</td><td>screen_dir, docs_root, template_root, chapter_map_path, audit_script_path, target_repo_path, target_branch, source_ref, mode, target_file_path（mode=file時）, screenshot_dir（任意）, registry値（任意）</td></tr>
-      <tr><td>rebuilding-screen-unit-from-docs</td><td>screen_dir, target_file_path, docs_root, template_root, audit_script_path, chapter_map_path, env_block, user-approved</td></tr>
-      <tr><td>rebuilding-code-from-docs (mode=implement)</td><td>screen_dir, scope, reverse_worktree, ports, baseline_tag_status, docs_root, template_root, audit_script_path, chapter_map_path, user-approved</td></tr>
+      <tr><td>generating-reverse-detailed-design</td><td>screen_dir, output_dir, template_root, chapter_map_path, audit_script_path, target_repo_path, target_branch, source_ref, mode, target_file_path（mode=file時）, screenshot_dir（任意）, registry値（任意）</td></tr>
+      <tr><td>rebuilding-screen-unit-from-docs</td><td>screen_dir, target_file_path, output_dir, template_root, audit_script_path, chapter_map_path, env_block, user-approved</td></tr>
+      <tr><td>rebuilding-code-from-docs (mode=implement)</td><td>screen_dir, scope, reverse_worktree, ports, baseline_tag_status, output_dir, template_root, audit_script_path, chapter_map_path, user-approved</td></tr>
       <tr><td>rebuilding-code-from-docs (mode=judge)</td><td>screen_dir, compare_result, reverse_worktree, freeze_commit</td></tr>
     </tbody>
   </table>
 
-  <p class="note">注記: <code>user-approved</code>（白紙化承認）と <code>docs_root</code> は管理者が事前に解決して args で渡す（完全仲介方式のため子スキルはユーザーに直接聞かない）。</p>
+  <p class="note">注記: <code>user-approved</code>（白紙化承認）と <code>output_dir</code> は管理者が事前に解決して args で渡す（完全仲介方式のため子スキルはユーザーに直接聞かない）。</p>
 </section>
 
 <!-- ===== §8 ループ設計 ===== -->
@@ -591,7 +591,7 @@
       <tr><td><code>assets/リバース検証/</code></td><td>移設済みの共有資産（テンプレート一式）</td></tr>
       <tr><td><code>scripts/audit-consistency.sh</code></td><td>工程間ゲート</td></tr>
       <tr><td><code>references/chapter-map.md</code></td><td>章役割キー対応表</td></tr>
-      <tr><td><code>&lt;docs_root&gt;/一覧/reverse-screen-registry.yml</code></td><td>画面レジストリ正本（docs_root はスキルフォルダ外のため、スキル同期・上書きコピーの影響を受けない）</td></tr>
+      <tr><td><code>&lt;output_dir&gt;/一覧/reverse-screen-registry.yml</code></td><td>画面レジストリ定義（output_dir はスキルフォルダ外のため、スキル同期・上書きコピーの影響を受けない）</td></tr>
     </tbody>
   </table>
 </section>

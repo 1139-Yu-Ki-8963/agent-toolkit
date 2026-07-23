@@ -63,8 +63,8 @@
     verification_url_template: "<FILL:確認URLテンプレート（{port}等含む）>"
     domain_tag: ""   # 任意。reference_screenが属する業務ドメインの識別ラベル
   handoff:
-    unlock_record_dir: "<FILL:開通証跡の置き場>"   # 開通証跡は検証記録の一種であり docs_root 配下（納品物）には置かない
-    screen_registry_path: "<docs_root>/一覧/reverse-screen-registry.yml"   # <docs_root>は起動引数docs_rootの実値に置き換える。スキルフォルダ外のため同期・上書きコピーの影響を受けない
+    unlock_record_dir: "<FILL:開通証跡の置き場>"   # 開通証跡は検証記録の一種であり output_dir 配下（納品物）には置かない
+    screen_registry_path: "<output_dir>/一覧/reverse-screen-registry.yml"   # <output_dir>は起動引数output_dirの実値に置き換える。スキルフォルダ外のため同期・上書きコピーの影響を受けない
     registration_procedure: "既定はcontract.md準拠。差分があれば記載"
   prohibitions: []          # 無ければ空配列のままでよい（<FILL:...> の必須埋め込み対象外）。例: ["本番DBへ接続しない"]
   known_gotchas: []         # 無ければ空配列のままでよい（<FILL:...> の必須埋め込み対象外）。例: [{symptom: "...", cause: "...", workaround: "..."}]

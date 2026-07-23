@@ -15,10 +15,10 @@ allowed-tools: [Bash, Read, Write, Grep, Glob, AskUserQuestion, TaskCreate, Task
 ## 使用タイミング
 
 - 画面一覧.html が確定済みで、ポータルに画面遷移図カードを追加したいとき
-- 起動引数: `target_repo_path`（調査対象リポジトリの絶対パス）・`docs_root`（画面一覧.html の所在かつ出力先）・`portal_output_dir`（任意）
+- 起動引数: `target_repo_path`（調査対象リポジトリの絶対パス）・`output_dir`（画面一覧.html の所在かつ出力先）・`portal_output_dir`（任意）
 - `portal_output_dir` を指定した場合、生成後に `build-portal.sh` を再実行してカードへ反映する
 
-出力先は `<docs_root>/画面遷移図.html` に固定する（`build-portal.sh` の `FUTURE_FILES` と同値）。前提となる画面一覧.html は `<docs_root>/一覧/画面一覧/画面一覧.html`（正本レイアウト）を見に行く。不在の場合のみ後方互換として旧レイアウト `<docs_root>/画面一覧/画面一覧.html` も探索する。
+出力先は `<output_dir>/画面遷移図.html` に固定する（`build-portal.sh` の `FUTURE_FILES` と同値）。前提となる画面一覧.html は `<output_dir>/一覧/画面一覧/画面一覧.html`（正本レイアウト）を見に行く。不在の場合のみ後方互換として旧レイアウト `<output_dir>/画面一覧/画面一覧.html` も探索する。
 
 ## 設計原則: 固定と可変の分離
 
@@ -46,7 +46,7 @@ allowed-tools: [Bash, Read, Write, Grep, Glob, AskUserQuestion, TaskCreate, Task
 
 ### Phase 1: 前提確認・検出戦略の宣言
 
-- **Step 1** — `<docs_root>/一覧/画面一覧/画面一覧.html`（正本レイアウト。不在時のみ後方互換で `<docs_root>/画面一覧/画面一覧.html`）の実在を確認する。いずれも不在ならハード停止する。この場合 `generating-screen-list-for-reverse-docs` の先行実行を案内して終了する。完了条件: 実在確認済み、または不在を報告して停止している
+- **Step 1** — `<output_dir>/一覧/画面一覧/画面一覧.html`（正本レイアウト。不在時のみ後方互換で `<output_dir>/画面一覧/画面一覧.html`）の実在を確認する。いずれも不在ならハード停止する。この場合 `generating-screen-list-for-reverse-docs` の先行実行を案内して終了する。完了条件: 実在確認済み、または不在を報告して停止している
 - **Step 2** — 画面一覧.html 内の `<script type="application/json" id="screen-manifest">` を抽出する。`screens[]` の件数・`route` の値が空文字列の画面の件数を確認する（`validate-manifest.sh` は `route` キー自体の欠落を許さないため、実際に起こるのは空文字）。完了条件: `screens[]` 件数と route 空文字件数が確定済み
 - **Step 3** — `target_repo_path` の定義ファイル（`package.json` の依存関係・import 文の形跡）から Router 種別を判別する。候補は React Router・Next.js App Router・Next.js Pages Router・Vue Router 等。完了条件: Router 種別が特定済み、または特定不能の根拠（推定経路）が記録済み
 - **Step 4** — 検出戦略宣言を作成する。内容は `routerKind`・抽出対象 API（`navigate`・`<Link>`・`redirect` 等のうち実在するもの）・confidence 判定基準の 3 点。AskUserQuestion で承認を取り、宣言 JSON は一時ファイルに保存する。完了条件: 戦略 JSON が保存済みかつユーザー承認済み
@@ -84,16 +84,16 @@ page-data.json の保存先は `$CLAUDE_JOB_DIR/tmp/screen-transition-page-data.
 
 ### Phase 4: 画面遷移図.html 生成
 
-- **Step 1** — HTML 生成スクリプトを実行する。完了条件: `<docs_root>/画面遷移図.html` が生成済み
+- **Step 1** — HTML 生成スクリプトを実行する。完了条件: `<output_dir>/画面遷移図.html` が生成済み
 
   ```
-  ../../../shared/scripts/detail-pages/build-detail-page.sh <page-data.json> <docs_root> --page transition
+  ../../../shared/scripts/detail-pages/build-detail-page.sh <page-data.json> <output_dir> --page transition
   ```
 
 - **Step 2** — `portal_output_dir` が指定されていればポータル再生成スクリプトを実行しカードへ反映する。未指定（ポータル未生成環境）なら省略し完了報告に注記する。完了条件: 再実行済み、または省略を注記済み
 
   ```
-  ../../../shared/scripts/build-portal.sh <target_repo_path> <docs_root> <portal_output_dir>
+  ../../../shared/scripts/build-portal.sh <target_repo_path> <output_dir> <portal_output_dir>
   ```
 
 **手作業でのプレースホルダ置換は禁止する**。HTML 生成は必ず `build-detail-page.sh` 経由の決定的処理で行う。
@@ -105,7 +105,7 @@ page-data.json の保存先は `$CLAUDE_JOB_DIR/tmp/screen-transition-page-data.
 | Phase 1 | 画面一覧.html の実在確認済み（または不在を報告して停止）。Router 種別と検出戦略がユーザー承認済み |
 | Phase 2 | `nodes[]`／`edges[]` が確定し page-data.json を保存済み。全ノードの `category`/`categorySrc` が確定済み。route 空文字画面・宛先未解決の遷移は `unresolved[]` へ隔離済み |
 | Phase 3 | `validate-page-data.sh --target-repo` が全項目 PASS（孤児参照検査含む） |
-| Phase 4 | `<docs_root>/画面遷移図.html` が生成され、指定時は `build-portal.sh` の再実行が完了している |
+| Phase 4 | `<output_dir>/画面遷移図.html` が生成され、指定時は `build-portal.sh` の再実行が完了している |
 | **Goal** | 画面一覧マニフェストとコードの実測から解決できた遷移のみから画面遷移図.html が生成され、route空文字画面・宛先未解決の遷移は捏造せず可視化されている |
 
 ## 返却ブロック
@@ -135,7 +135,7 @@ page-data.json の保存先は `$CLAUDE_JOB_DIR/tmp/screen-transition-page-data.
 - 判定・評価はしない。画面設計の良否・遷移の妥当性には一切踏み込まず、コードの実測から解決できた遷移のみを転記する
 - 宛先未解決の遷移を AskUserQuestion で手動確定しない。route 文字列とコードのどちらかを即興で正としない
 - Phase 4 の HTML 手作業組み立てを禁止する。`build-detail-page.sh` を必ず経由する
-- 対象リポジトリへの書き込み・変更は一切行わない。出力は `docs_root` 配下の画面遷移図.html のみ
+- 対象リポジトリへの書き込み・変更は一切行わない。出力は `output_dir` 配下の画面遷移図.html のみ
 
 ## テンプレート/コード分析時の注意
 
@@ -143,7 +143,7 @@ page-data.json の保存先は `$CLAUDE_JOB_DIR/tmp/screen-transition-page-data.
 
 ## 予想を裏切る挙動
 
-- 出力先は `<docs_root>` 直下（画面一覧のような種別専用フォルダは作らない）。`build-detail-page.sh` の `--page transition` 固定出力名仕様に従う
+- 出力先は `<output_dir>` 直下（画面一覧のような種別専用フォルダは作らない）。`build-detail-page.sh` の `--page transition` 固定出力名仕様に従う
 - page-data の `nodes[]` は `{unitKey, label}` のみを持つ。`route` は Phase 2 の解決処理でのみ使う一時情報であり、page-data には持ち込まない
 - `route` が空文字列の画面（`validate-manifest.sh` は `route` キー自体の欠落を許さないため、実際に起こるのは空文字）は `nodes[]` から除外される。除外された画面は遷移の起点・終点のいずれにもならない。当該画面が絡む遷移候補は自動的に宛先未解決として `unresolved[]` に落ちる
 - `portal_output_dir` 未指定時は `build-portal.sh` を実行しない。生成済み画面遷移図.html はそのまま残り、次回ポータル生成時に自動でカード化される

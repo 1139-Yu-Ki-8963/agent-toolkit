@@ -3,7 +3,7 @@ name: generating-design-system-for-reverse-docs
 description: |
   共通 DESIGN.md の CSS トークンを抽出し、デザインシステム HTML を生成する。
   TRIGGER when: orchestrating-reverse-docs-flow の「基盤ページ未生成（任意）」状態キーから起動された時、「デザインシステムを生成」と言われた時。
-  SKIP: 共通 DESIGN.md が docs_root に存在しない時。
+  SKIP: 共通 DESIGN.md が output_dir に存在しない時。
 invocation: generating-design-system-for-reverse-docs
 type: transform
 allowed-tools: [Read, Bash, Write, Edit, Grep, Glob]
@@ -13,15 +13,15 @@ allowed-tools: [Read, Bash, Write, Edit, Grep, Glob]
 
 工程全体は orchestrating-reverse-docs-flow が案内する。本スキルはポータルの基盤ページ受け口のうちデザインシステム（`pageKind: design-system`）のみを担い、単独起動できる（起動引数を渡せば動く）。
 
-`<docs_root>/プロジェクト共通/DESIGN.md` を単一の事実源とし、frontmatter の colors/typography/spacing/rounded/components を抽出してデザインシステム.html を組み立てる。**本スキルは判定・評価を一切行わない**。DESIGN.md に記載されたトークン値の転記に徹し、frontmatter 未検出時のみ CSS 変数への正規表現フォールバックを行う。
+`<output_dir>/プロジェクト共通/DESIGN.md` を単一の事実源とし、frontmatter の colors/typography/spacing/rounded/components を抽出してデザインシステム.html を組み立てる。**本スキルは判定・評価を一切行わない**。DESIGN.md に記載されたトークン値の転記に徹し、frontmatter 未検出時のみ CSS 変数への正規表現フォールバックを行う。
 
 ## 使用タイミング
 
-- `<docs_root>/プロジェクト共通/DESIGN.md` が確定済みで、ポータルにデザインシステムカードを追加したいとき
-- 起動引数: `docs_root`（DESIGN.md の所在かつ出力先）・`portal_output_dir`（任意）
+- `<output_dir>/プロジェクト共通/DESIGN.md` が確定済みで、ポータルにデザインシステムカードを追加したいとき
+- 起動引数: `output_dir`（DESIGN.md の所在かつ出力先）・`portal_output_dir`（任意）
 - `portal_output_dir` を指定した場合、生成後に `build-portal.sh` を再実行してカードへ反映する
 
-出力先は `<docs_root>/デザインシステム.html` に固定する。
+出力先は `<output_dir>/デザインシステム.html` に固定する。
 
 ## 設計原則
 
@@ -43,7 +43,7 @@ allowed-tools: [Read, Bash, Write, Edit, Grep, Glob]
 
 ### Phase 1: DESIGN.md の存在確認
 
-- **Step 1** — `<docs_root>/プロジェクト共通/DESIGN.md` の実在を `test -f` で確認する。存在しなければハード停止し、DESIGN.md が未作成である旨を報告して終了する。完了条件: 実在確認済み、または不在を報告して停止している
+- **Step 1** — `<output_dir>/プロジェクト共通/DESIGN.md` の実在を `test -f` で確認する。存在しなければハード停止し、DESIGN.md が未作成である旨を報告して終了する。完了条件: 実在確認済み、または不在を報告して停止している
 
 ### Phase 2: トークン抽出（機械実行）
 
@@ -69,16 +69,16 @@ page-data.json の保存先は `$CLAUDE_JOB_DIR/tmp/design-system-page-data.json
 
 ### Phase 4: デザインシステム.html 生成
 
-- **Step 1** — HTML 生成スクリプトを実行する。完了条件: `<docs_root>/デザインシステム.html` が生成済み
+- **Step 1** — HTML 生成スクリプトを実行する。完了条件: `<output_dir>/デザインシステム.html` が生成済み
 
   ```
-  ../../../shared/scripts/detail-pages/build-detail-page.sh <page-data.json> <docs_root> --page design-system
+  ../../../shared/scripts/detail-pages/build-detail-page.sh <page-data.json> <output_dir> --page design-system
   ```
 
 - **Step 2** — `portal_output_dir` が指定されていればポータル再生成スクリプトを実行しカードへ反映する。未指定なら省略し完了報告に注記する。完了条件: 再実行済み、または省略を注記済み
 
   ```
-  ../../../shared/scripts/build-portal.sh <target_repo_path> <docs_root> <portal_output_dir>
+  ../../../shared/scripts/build-portal.sh <target_repo_path> <output_dir> <portal_output_dir>
   ```
 
 **手作業でのプレースホルダ置換は禁止する**。HTML 生成は必ず `build-detail-page.sh` 経由の決定的処理で行う。
@@ -90,7 +90,7 @@ page-data.json の保存先は `$CLAUDE_JOB_DIR/tmp/design-system-page-data.json
 | Phase 1 | DESIGN.md の実在確認済み、または不在を報告して停止している |
 | Phase 2 | トークンが抽出済み、抽出経路（frontmatter/フォールバック）を確認済み |
 | Phase 3 | `validate-page-data.sh` が全項目 PASS |
-| Phase 4 | `<docs_root>/デザインシステム.html` が生成され、指定時は `build-portal.sh` の再実行が完了している |
+| Phase 4 | `<output_dir>/デザインシステム.html` が生成され、指定時は `build-portal.sh` の再実行が完了している |
 | **Goal** | DESIGN.md の事実のみからデザインシステム.html が生成され、フォールバック抽出時はその旨が可視化されている |
 
 ## 返却ブロック
@@ -109,7 +109,7 @@ page-data.json の保存先は `$CLAUDE_JOB_DIR/tmp/design-system-page-data.json
 
 - 判定・評価はしない。トークン値の妥当性には一切踏み込まず、DESIGN.md の事実の転記のみを行う
 - Phase 4 の HTML 手作業組み立てを禁止する。`build-detail-page.sh` を必ず経由する
-- 対象リポジトリへの書き込み・変更は一切行わない。出力は `docs_root` 配下のデザインシステム.html のみ
+- 対象リポジトリへの書き込み・変更は一切行わない。出力は `output_dir` 配下のデザインシステム.html のみ
 
 ## 予想を裏切る挙動
 

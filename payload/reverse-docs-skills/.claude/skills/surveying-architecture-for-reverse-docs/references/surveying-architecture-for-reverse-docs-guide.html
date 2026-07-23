@@ -150,7 +150,7 @@
     <strong>単独動作</strong>: 他スキルへの依存を持たない。起動引数を渡せば単独で動く。工程全体は orchestrating-reverse-docs-flow が案内する。後続工程（共通採録・facts抽出・詳細設計執筆）はこの調査書を前提として動く。
   </div>
   <div class="constraint">
-    <strong>読み取り専用</strong>: 対象リポジトリへの書き込み・変更は一切行わない。出力は docs_root 配下の1ファイル（アーキテクチャ調査書.md）のみ。
+    <strong>読み取り専用</strong>: 対象リポジトリへの書き込み・変更は一切行わない。出力は output_dir 配下の1ファイル（アーキテクチャ調査書.md）のみ。
   </div>
 </section>
 
@@ -181,7 +181,7 @@
   <table class="spec">
     <tr><th>引数</th><th>必須</th><th>内容</th></tr>
     <tr><td>target_repo_path</td><td>必須</td><td>調査対象リポジトリの絶対パス</td></tr>
-    <tr><td>docs_root</td><td>必須</td><td>出力先ルート。調査書は <code>&lt;docs_root&gt;/プロジェクト共通/アーキテクチャ調査書.md</code> に出力する</td></tr>
+    <tr><td>output_dir</td><td>必須</td><td>出力先ルート。調査書は <code>&lt;output_dir&gt;/プロジェクト共通/アーキテクチャ調査書.md</code> に出力する</td></tr>
     <tr><td>template_root</td><td>必須</td><td>テンプレ一式のルート。この配下の <code>プロジェクト共通/アーキテクチャ調査書.md</code> を雛形に使う</td></tr>
     <tr><td>target_branch</td><td>任意</td><td>調査時点の対象ブランチ。調査メタ節に記録する</td></tr>
     <tr><td>source_ref</td><td>任意</td><td>調査時点のコミット参照。調査メタ節に記録する</td></tr>
@@ -194,7 +194,7 @@
   <h2><span class="sec-num">§5</span>設計原則</h2>
   <table class="spec">
     <tr><th>原則</th><th>内容</th></tr>
-    <tr><td>読み取り専用</td><td>対象リポジトリへの書き込み・変更は一切行わない。出力は docs_root 配下のみ</td></tr>
+    <tr><td>読み取り専用</td><td>対象リポジトリへの書き込み・変更は一切行わない。出力は output_dir 配下のみ</td></tr>
     <tr><td>決定的根拠のみ</td><td>全記述は find / grep / ls 等の決定的コマンドの実出力を根拠とする。推測での埋め合わせを禁止する</td></tr>
     <tr><td>空欄禁止・理由必須</td><td>判定不能・実在しない項目は空欄にせず「実在しない（理由: …）」で必ず埋める</td></tr>
     <tr><td>固定と可変の分離</td><td>ゲート（check-architecture-survey.sh）は決定的スクリプトに固定する。調査そのもの（何をどう調べるか）はプロジェクトごとに可変であり、Phase 2〜3 で都度 Bash/Grep/Glob を用いて実行する</td></tr>
@@ -206,7 +206,7 @@
   <h2><span class="sec-num">§6</span>動作フロー（Phase 1〜6）</h2>
   <pre class="flow"><span class="cap">Phase 1: 前提確認</span>
   target_repo_path・template_rootの実在を確認する(test -d)
-  docs_rootに「プロジェクト共通/」が無ければ作成する
+  output_dirに「プロジェクト共通/」が無ければ作成する
   mode=revise: 既存調査書の実在確認+指摘節の洗い出し
   mode=survey: テンプレを調査書の出力先へ複製する
   完了条件: 全args解決済み・実在確認済み・ディレクトリ作成済み
@@ -305,7 +305,7 @@
     <li>ビルド設定・エントリポイントの列挙は「実在するもののみ」を書く。対象スタックに存在しないファイル種別を推測で書かない</li>
     <li>機械ゲートの推測語検査（検査3）は調査書ファイル全体（テンプレ由来の固定文・HTMLコメントを含む）を走査する。テンプレの固定文にも検出正規表現に一致する語を書いてはならない（テンプレ改訂時の注意）</li>
     <li>対象リポジトリに対しては読み取り専用。書き込み・変更は一切行わない</li>
-    <li>出力は docs_root 側のみ（アーキテクチャ調査書.md 1本）。対象リポジトリ側には何も生成しない</li>
+    <li>出力は output_dir 側のみ（アーキテクチャ調査書.md 1本）。対象リポジトリ側には何も生成しない</li>
     <li>推測禁止。全記述は決定的コマンド（find/grep/ls）の実出力を根拠とする</li>
     <li>6種別は実在しない場合も「実在しない（理由: …）」で必ず埋める。空欄・省略は禁止する</li>
     <li>AskUserQuestionを使わない。args全量指定・対話ゼロで完走する</li>

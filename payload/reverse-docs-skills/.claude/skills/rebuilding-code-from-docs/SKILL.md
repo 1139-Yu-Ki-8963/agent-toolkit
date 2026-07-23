@@ -25,7 +25,7 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob]
 
 ## 設計原則
 
-1. **正本一元化**: 環境固有値（ポート・worktree パス）の正は起動引数の env_block（`scope` / `reverse_worktree` / `ports` / `baseline_tag_status` / `docs_root`）。画面固有値の正は設計書 frontmatter（`doc_id` / `scenarios`（旧 `route`） / `source_repo` / `unit_test_sheet` / `integration_test_sheet` 等）。本スキル専用の config.yml は新設しない
+1. **正本一元化**: 環境固有値（ポート・worktree パス）の正は起動引数の env_block（`scope` / `reverse_worktree` / `ports` / `baseline_tag_status` / `output_dir`）。画面固有値の正は設計書 frontmatter（`doc_id` / `scenarios`（旧 `route`） / `source_repo` / `unit_test_sheet` / `integration_test_sheet` 等）。本スキル専用の config.yml は新設しない
 2. 比較エンジンは自前実装しない。`mode=judge` は起動引数 `compare_result`（管理者が比較〔dry-run〕を実行した結果ブロック）のみを判定根拠とする
 3. **1 起動 = 1 往復**。設計書修正が必要になった場合、修正後の再往復は管理者による本スキルの再起動として扱う（同一起動内でループしない）
 4. **検証役と生成役の分離**: `mode=implement`（実装）の自己申告では判定しない。判定は `mode=judge` が受け取る `compare_result` の決定的出力のみで行う
@@ -36,7 +36,7 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob]
 
 #### 起動引数の解決
 
-`mode=implement` は args として `screen_dir`（画面ディレクトリパス。例: `<docs_root>/画面/screen-<画面ID>/詳細設計`）・`scope`・`reverse_worktree`・`ports`・`baseline_tag_status`・`docs_root`・`template_root`・`audit_script_path`・`chapter_map_path`・`user-approved`・`saved_test_paths`（上流 rebuilding-screen-unit-from-docs が保存した単体テストコードのパス一覧。上流未実施の画面では省略される）を受け取る。これらは管理者が事前解決して渡す値であり、本スキル自身は取得・導出しない。`docs_root` が欠落している場合は Phase 1 で `status=BLOCKED` として管理者へ差し戻す。
+`mode=implement` は args として `screen_dir`（画面ディレクトリパス。例: `<output_dir>/画面/screen-<画面ID>/詳細設計`）・`scope`・`reverse_worktree`・`ports`・`baseline_tag_status`・`output_dir`・`template_root`・`audit_script_path`・`chapter_map_path`・`user-approved`・`saved_test_paths`（上流 rebuilding-screen-unit-from-docs が保存した単体テストコードのパス一覧。上流未実施の画面では省略される）を受け取る。これらは管理者が事前解決して渡す値であり、本スキル自身は取得・導出しない。`output_dir` が欠落している場合は Phase 1 で `status=BLOCKED` として管理者へ差し戻す。
 
 起動引数の `screen_dir` から以下の設計資産を frontmatter 経由でロードする。
 

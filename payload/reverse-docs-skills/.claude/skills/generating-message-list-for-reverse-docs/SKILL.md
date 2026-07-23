@@ -3,7 +3,7 @@ name: generating-message-list-for-reverse-docs
 description: |
   メッセージ定義書.md を manifest JSON に変換し、メッセージ一覧 HTML を生成する。
   TRIGGER when: orchestrating-reverse-docs-flow の派生一覧状態キーから起動された時、「メッセージ一覧を生成」と言われた時。
-  SKIP: メッセージ定義書.md が docs_root に存在しない時。
+  SKIP: メッセージ定義書.md が output_dir に存在しない時。
 invocation: generating-message-list-for-reverse-docs
 type: transform
 allowed-tools: [Read, Bash, Write, Edit, Grep, Glob]
@@ -13,15 +13,15 @@ allowed-tools: [Read, Bash, Write, Edit, Grep, Glob]
 
 工程全体は orchestrating-reverse-docs-flow が案内する。本スキルはポータルの派生一覧のうちメッセージ一覧（`unit_kind=message`）のみを担い、単独起動できる（起動引数を渡せば動く）。
 
-`<docs_root>/プロジェクト共通/メッセージ定義書.md` の「キー | 文言(実測) | 種別 | 抽出元 | 使用画面」5列パイプテーブルを単一の事実源とし、manifest JSON へ変換してメッセージ一覧.html を組み立てる。**本スキルは判定・評価を一切行わない**。メッセージ定義書.md に記載された事実の転記に徹し、テーブル解析は決定的パターンマッチのみで行う。
+`<output_dir>/プロジェクト共通/メッセージ定義書.md` の「キー | 文言(実測) | 種別 | 抽出元 | 使用画面」5列パイプテーブルを単一の事実源とし、manifest JSON へ変換してメッセージ一覧.html を組み立てる。**本スキルは判定・評価を一切行わない**。メッセージ定義書.md に記載された事実の転記に徹し、テーブル解析は決定的パターンマッチのみで行う。
 
 ## 使用タイミング
 
-- `<docs_root>/プロジェクト共通/メッセージ定義書.md` が確定済みで、ポータルにメッセージ一覧カードを追加したいとき
-- 起動引数: `docs_root`（メッセージ定義書.md の所在かつ出力先）・`portal_output_dir`（任意）
+- `<output_dir>/プロジェクト共通/メッセージ定義書.md` が確定済みで、ポータルにメッセージ一覧カードを追加したいとき
+- 起動引数: `output_dir`（メッセージ定義書.md の所在かつ出力先）・`portal_output_dir`（任意）
 - `portal_output_dir` を指定した場合、生成後に `build-portal.sh` を再実行してカードへ反映する
 
-出力先は `<docs_root>/一覧/メッセージ一覧/メッセージ一覧.html` に固定する。
+出力先は `<output_dir>/一覧/メッセージ一覧/メッセージ一覧.html` に固定する。
 
 ## 設計原則
 
@@ -43,7 +43,7 @@ allowed-tools: [Read, Bash, Write, Edit, Grep, Glob]
 
 ### Phase 1: メッセージ定義書.md の存在確認
 
-- **Step 1** — `<docs_root>/プロジェクト共通/メッセージ定義書.md` の実在を `test -f` で確認する。存在しなければハード停止し、メッセージ定義書.md が未作成である旨を報告して終了する。完了条件: 実在確認済み、または不在を報告して停止している
+- **Step 1** — `<output_dir>/プロジェクト共通/メッセージ定義書.md` の実在を `test -f` で確認する。存在しなければハード停止し、メッセージ定義書.md が未作成である旨を報告して終了する。完了条件: 実在確認済み、または不在を報告して停止している
 
 ### Phase 2: manifest JSON 生成（機械実行）
 
@@ -69,16 +69,16 @@ manifest.json の保存先は `$CLAUDE_JOB_DIR/tmp/message-manifest.json` とす
 
 ### Phase 4: メッセージ一覧.html 生成
 
-- **Step 1** — HTML 生成スクリプトを実行する。完了条件: `<docs_root>/一覧/メッセージ一覧/メッセージ一覧.html` が生成済み
+- **Step 1** — HTML 生成スクリプトを実行する。完了条件: `<output_dir>/一覧/メッセージ一覧/メッセージ一覧.html` が生成済み
 
   ```
-  ../../../shared/scripts/unit-list/build-unit-list.sh <manifest.json> <docs_root>/一覧/メッセージ一覧/メッセージ一覧.html --unit-kind message
+  ../../../shared/scripts/unit-list/build-unit-list.sh <manifest.json> <output_dir>/一覧/メッセージ一覧/メッセージ一覧.html --unit-kind message
   ```
 
 - **Step 2** — `portal_output_dir` が指定されていればポータル再生成スクリプトを実行しカードへ反映する。未指定なら省略し完了報告に注記する。完了条件: 再実行済み、または省略を注記済み
 
   ```
-  ../../../shared/scripts/build-portal.sh <target_repo_path> <docs_root> <portal_output_dir>
+  ../../../shared/scripts/build-portal.sh <target_repo_path> <output_dir> <portal_output_dir>
   ```
 
 **手作業でのプレースホルダ置換は禁止する**。HTML 生成は必ず `build-unit-list.sh` 経由の決定的処理で行う。
@@ -90,7 +90,7 @@ manifest.json の保存先は `$CLAUDE_JOB_DIR/tmp/message-manifest.json` とす
 | Phase 1 | メッセージ定義書.md の実在確認済み、または不在を報告して停止している |
 | Phase 2 | manifest JSON が生成済み、totalCount を確認済み |
 | Phase 3 | `validate-message-manifest.sh` が全項目 PASS |
-| Phase 4 | `<docs_root>/一覧/メッセージ一覧/メッセージ一覧.html` が生成され、指定時は `build-portal.sh` の再実行が完了している |
+| Phase 4 | `<output_dir>/一覧/メッセージ一覧/メッセージ一覧.html` が生成され、指定時は `build-portal.sh` の再実行が完了している |
 | **Goal** | メッセージ定義書.md の事実のみからメッセージ一覧.html が生成され、0 件の場合もその旨が可視化されている |
 
 ## 返却ブロック
@@ -109,7 +109,7 @@ manifest.json の保存先は `$CLAUDE_JOB_DIR/tmp/message-manifest.json` とす
 
 - 判定・評価はしない。メッセージ文言の妥当性・粒度には一切踏み込まず、メッセージ定義書.md の事実の転記のみを行う
 - Phase 4 の HTML 手作業組み立てを禁止する。`build-unit-list.sh` を必ず経由する
-- 対象リポジトリへの書き込み・変更は一切行わない。出力は `docs_root` 配下のメッセージ一覧.html のみ
+- 対象リポジトリへの書き込み・変更は一切行わない。出力は `output_dir` 配下のメッセージ一覧.html のみ
 
 ## 予想を裏切る挙動
 

@@ -126,7 +126,7 @@
 
 <section id="s1">
   <h2><span class="sec-num">§1</span>概要</h2>
-  <p>リバースエンジニアリング設計のポータルには、将来ページの受け口（<code>docs_root</code> 直下に該当 HTML が実在するときだけカード化される仕組み）がある。本スキルはそのうち画面遷移図（T4）専任の生成係として、画面一覧.html に埋め込まれたマニフェストと対象リポジトリのルーティング定義を突合し、<strong>画面遷移図.html</strong> を機械検証付きで作成する。</p>
+  <p>リバースエンジニアリング設計のポータルには、将来ページの受け口（<code>output_dir</code> 直下に該当 HTML が実在するときだけカード化される仕組み）がある。本スキルはそのうち画面遷移図（T4）専任の生成係として、画面一覧.html に埋め込まれたマニフェストと対象リポジトリのルーティング定義を突合し、<strong>画面遷移図.html</strong> を機械検証付きで作成する。</p>
   <p>本スキルは判定・評価をしない。画面設計の良否は問わず、コードの実測から解決できた遷移のみを転記する。宛先を解決できない遷移や route 情報を持たない画面（旧形式マニフェスト）は捏造せず、未解決として可視化する。</p>
   <pre class="flow"><span class="cap">── 処理の全体像 ──────────────────────────────</span>
 
@@ -142,7 +142,7 @@
   検証済み page-data
        │  Phase 4  build-detail-page.sh --page transition
        ▼
-  &lt;docs_root&gt;/画面遷移図.html（+ 任意で build-portal.sh 再実行）</pre>
+  &lt;output_dir&gt;/画面遷移図.html（+ 任意で build-portal.sh 再実行）</pre>
   <p class="note">テーブル一覧のような組み込み検出器はなく、Router 種別の判別からカスタム抽出パスで進める点はテーブル一覧生成スキルと同型である。</p>
 </section>
 
@@ -150,7 +150,7 @@
   <h2><span class="sec-num">§2</span>出力</h2>
   <p>スキルを実行すると、以下の 2 点が生まれる。</p>
   <div class="def">
-    <dt>画面遷移図.html（<code>&lt;docs_root&gt;</code> 直下）</dt>
+    <dt>画面遷移図.html（<code>&lt;output_dir&gt;</code> 直下）</dt>
     <dd>画面ごとのワイヤーフレームと遷移先テーブルを左右に並べた split-view 形式で、client-side JavaScript が埋め込み JSON から構築するページ。上部の「画面別 / 動線別 / 未接続」3 タブで表示を切り替え、画面別タブでは選択ドロップダウンと前後ボタンで画面を移動する。遷移エッジは画面固有（橙）・共通ナビゲーション（青）・自己ループ（緑）の 3 層に色分けして遷移先テーブルに表示し、出次数がしきい値（<code>MAX_EDGES_PER_VIEW</code>）を超えるノードは中央ナビゲーション画面として、入出次数 0 のノードは未接続画面一覧として、それぞれ折りたたみ表示される。読んだ人はどこまでが確定情報かをその場で判別できる。</dd>
     <dt>埋め込み page-data JSON</dt>
     <dd>画面遷移図.html の中に、生成の元になった page-data.json がそのまま埋め込まれる。読んだ人は「いつ・どの画面一覧・どのコード実測から生成されたか」を HTML 単体で追跡でき、機械処理（後続スキルからの参照）にも使える。</dd>
@@ -176,7 +176,7 @@
 
 <section id="s4">
   <h2><span class="sec-num">§4</span>動作フロー</h2>
-  <p>起動引数は <code>target_repo_path</code>・<code>docs_root</code>（必須）と <code>portal_output_dir</code>（任意）の 3 つ。種別は transition に固定されているため、種別を選ぶ引数はない。</p>
+  <p>起動引数は <code>target_repo_path</code>・<code>output_dir</code>（必須）と <code>portal_output_dir</code>（任意）の 3 つ。種別は transition に固定されているため、種別を選ぶ引数はない。</p>
   <table class="spec">
     <tr><th>Phase</th><th>内容</th><th>完了条件</th></tr>
     <tr>
@@ -196,7 +196,7 @@
     </tr>
     <tr>
       <td><strong>Phase 4</strong><br>画面遷移図.html 生成</td>
-      <td><code>build-detail-page.sh &lt;page-data.json&gt; &lt;docs_root&gt; --page transition</code> を実行。<code>portal_output_dir</code> 指定時は <code>build-portal.sh</code> を再実行しカードへ反映</td>
+      <td><code>build-detail-page.sh &lt;page-data.json&gt; &lt;output_dir&gt; --page transition</code> を実行。<code>portal_output_dir</code> 指定時は <code>build-portal.sh</code> を再実行しカードへ反映</td>
       <td>HTML 生成済み。指定時は build-portal.sh 再実行済み</td>
     </tr>
   </table>

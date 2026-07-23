@@ -18,10 +18,10 @@ allowed-tools: [Read, Bash, Write, Edit, Grep, Glob]
 ## 使用タイミング
 
 - 対象リポジトリに `.tsx`/`.jsx`/`.vue` ファイルが存在し、ポータルにコンポーネント棚卸しカードを追加したいとき
-- 起動引数: `target_repo_path`（調査対象リポジトリの絶対パス）・`docs_root`（出力先）・`portal_output_dir`（任意）
+- 起動引数: `target_repo_path`（調査対象リポジトリの絶対パス）・`output_dir`（出力先）・`portal_output_dir`（任意）
 - `portal_output_dir` を指定した場合、生成後に `build-portal.sh` を再実行してカードへ反映する
 
-出力先は `<docs_root>/コンポーネント棚卸し.html` に固定する。
+出力先は `<output_dir>/コンポーネント棚卸し.html` に固定する。
 
 ## 設計原則
 
@@ -69,16 +69,16 @@ page-data.json の保存先は `$CLAUDE_JOB_DIR/tmp/component-inventory-page-dat
 
 ### Phase 4: コンポーネント棚卸し.html 生成
 
-- **Step 1** — HTML 生成スクリプトを実行する。完了条件: `<docs_root>/コンポーネント棚卸し.html` が生成済み
+- **Step 1** — HTML 生成スクリプトを実行する。完了条件: `<output_dir>/コンポーネント棚卸し.html` が生成済み
 
   ```
-  ../../../shared/scripts/detail-pages/build-detail-page.sh <page-data.json> <docs_root> --page component-inventory
+  ../../../shared/scripts/detail-pages/build-detail-page.sh <page-data.json> <output_dir> --page component-inventory
   ```
 
 - **Step 2** — `portal_output_dir` が指定されていればポータル再生成スクリプトを実行しカードへ反映する。未指定なら省略し完了報告に注記する。完了条件: 再実行済み、または省略を注記済み
 
   ```
-  ../../../shared/scripts/build-portal.sh <target_repo_path> <docs_root> <portal_output_dir>
+  ../../../shared/scripts/build-portal.sh <target_repo_path> <output_dir> <portal_output_dir>
   ```
 
 **手作業でのプレースホルダ置換は禁止する**。HTML 生成は必ず `build-detail-page.sh` 経由の決定的処理で行う。
@@ -90,7 +90,7 @@ page-data.json の保存先は `$CLAUDE_JOB_DIR/tmp/component-inventory-page-dat
 | Phase 1 | コンポーネントファイルの 1 件以上の実在確認済み、または不在を報告して停止している |
 | Phase 2 | 棚卸しが抽出済み、抽出結果（総数・分類内訳・被参照上位）を確認済み |
 | Phase 3 | `validate-page-data.sh --target-repo` が全項目 PASS |
-| Phase 4 | `<docs_root>/コンポーネント棚卸し.html` が生成され、指定時は `build-portal.sh` の再実行が完了している |
+| Phase 4 | `<output_dir>/コンポーネント棚卸し.html` が生成され、指定時は `build-portal.sh` の再実行が完了している |
 | **Goal** | 対象リポジトリの実ファイルのみからコンポーネント棚卸し.html が生成され、分類は自動推定なくディレクトリパス由来の機械的な値のみである |
 
 ## 返却ブロック
@@ -109,7 +109,7 @@ page-data.json の保存先は `$CLAUDE_JOB_DIR/tmp/component-inventory-page-dat
 
 - 自動分類（taxonomy inference）は行わない。分類はディレクトリパス（`components/`・`pages/`・`layouts/`・`other`）からのみ導出する
 - Phase 4 の HTML 手作業組み立てを禁止する。`build-detail-page.sh` を必ず経由する
-- 対象リポジトリへの書き込み・変更は一切行わない。出力は `docs_root` 配下のコンポーネント棚卸し.html のみ
+- 対象リポジトリへの書き込み・変更は一切行わない。出力は `output_dir` 配下のコンポーネント棚卸し.html のみ
 
 ## 予想を裏切る挙動
 

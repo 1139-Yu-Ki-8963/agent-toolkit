@@ -145,7 +145,7 @@
   <p>本スキルを実行すると、対象画面 1 つにつき以下の 1 点が生まれる。</p>
   <div class="def">
     <dt>シーケンス図.html</dt>
-    <dd><code>&lt;docs_root&gt;/画面/screen-&lt;ID&gt;/</code> 直下に固定生成される、当該画面の操作単位（ボタン押下・フォーム送信等）を選択式で切り替えられるシーケンス図ページ。固定 3 本のレーン（<code>screen</code>=画面 / <code>api</code>=API / <code>table</code>=テーブル）上に、facts の call_order または手書き page-data から機械変換した呼び出し順序を、根拠パス（sourceRef）付きで表示する。画面基本設計書・詳細設計書と同じ体裁の doc-nav を持ち、3 種の設計書間をタブで行き来できる。</dd>
+    <dd><code>&lt;output_dir&gt;/画面/screen-&lt;ID&gt;/</code> 直下に固定生成される、当該画面の操作単位（ボタン押下・フォーム送信等）を選択式で切り替えられるシーケンス図ページ。固定 3 本のレーン（<code>screen</code>=画面 / <code>api</code>=API / <code>table</code>=テーブル）上に、facts の call_order または手書き page-data から機械変換した呼び出し順序を、根拠パス（sourceRef）付きで表示する。画面基本設計書・詳細設計書と同じ体裁の doc-nav を持ち、3 種の設計書間をタブで行き来できる。</dd>
   </div>
 </section>
 
@@ -154,14 +154,14 @@
   <table class="spec">
     <tr><th>区分</th><th>内容</th></tr>
     <tr><td>前提</td><td>対象画面の facts.yml（<code>extracting-unit-facts-from-code</code> が確定済み）または手書きの page-data がある画面について、シーケンス図を生成・更新したいとき</td></tr>
-    <tr><td>起動引数</td><td><code>docs_root</code>（<code>画面/screen-&lt;ID&gt;/</code> の所在）・対象画面 ID（複数可）</td></tr>
-    <tr><td>出力先</td><td>各画面ディレクトリ直下の <code>&lt;docs_root&gt;/画面/screen-&lt;ID&gt;/シーケンス図.html</code> に固定（<code>build-portal.sh</code> の DOC_NAV 判定と同値。基本設計・詳細設計フォルダの 1 階層上）</td></tr>
+    <tr><td>起動引数</td><td><code>output_dir</code>（<code>画面/screen-&lt;ID&gt;/</code> の所在）・対象画面 ID（複数可）</td></tr>
+    <tr><td>出力先</td><td>各画面ディレクトリ直下の <code>&lt;output_dir&gt;/画面/screen-&lt;ID&gt;/シーケンス図.html</code> に固定（<code>build-portal.sh</code> の DOC_NAV 判定と同値。基本設計・詳細設計フォルダの 1 階層上）</td></tr>
   </table>
 </section>
 
 <section id="s4">
   <h2><span class="sec-num">§4</span>用語・page-data の形状</h2>
-  <p>各画面の page-data（<code>&lt;docs_root&gt;/画面/screen-&lt;ID&gt;/シーケンス図-data.json</code>）は以下の形状を持つ。</p>
+  <p>各画面の page-data（<code>&lt;output_dir&gt;/画面/screen-&lt;ID&gt;/シーケンス図-data.json</code>）は以下の形状を持つ。</p>
   <pre class="flow"><span class="cap">── シーケンス図-data.json の形状 ─────────────────────────</span>
 {
   "screenId": "screen-order-list",
@@ -208,7 +208,7 @@
   </div>
   <table class="spec">
     <tr><th>予想を裏切る挙動</th><th>内容</th></tr>
-    <tr><td>出力先の階層</td><td>テンプレート名（<code>シーケンス図.html</code>）が pageKind の <code>FUTURE_FILES</code> と同名でも、<code>docs_root</code> 直下ではなく画面ごとのフォルダ（<code>画面/screen-&lt;ID&gt;/</code>）直下になる。pageKind 体系の「1 pageKind = 1 固定ファイル名」契約はここでは適用されない</td></tr>
+    <tr><td>出力先の階層</td><td>テンプレート名（<code>シーケンス図.html</code>）が pageKind の <code>FUTURE_FILES</code> と同名でも、<code>output_dir</code> 直下ではなく画面ごとのフォルダ（<code>画面/screen-&lt;ID&gt;/</code>）直下になる。pageKind 体系の「1 pageKind = 1 固定ファイル名」契約はここでは適用されない</td></tr>
     <tr><td>DOC_NAV の担当分担</td><td><code>build-portal.sh</code> は画面設計書（基本設計・詳細設計）側の DOC_NAV にのみシーケンス図タブを追加する。シーケンス図.html 自体の DOC_NAV は本スキルの Phase 2/3 が組み立てる（<code>build-portal.sh</code> の担当範囲外）</td></tr>
   </table>
 </section>

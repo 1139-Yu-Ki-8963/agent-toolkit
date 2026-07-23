@@ -7,7 +7,7 @@ set -euo pipefail
 #   check-common-docs.sh <common_docs_dir> <target_repo_path>
 #   check-common-docs.sh --self-test
 #
-# <common_docs_dir> は `<docs_root>/プロジェクト共通` を指す（10文書＋サンプル記録.mdの
+# <common_docs_dir> は `<output_dir>/プロジェクト共通` を指す（10文書＋サンプル記録.mdの
 # 親ディレクトリ）。
 #
 # 検査:

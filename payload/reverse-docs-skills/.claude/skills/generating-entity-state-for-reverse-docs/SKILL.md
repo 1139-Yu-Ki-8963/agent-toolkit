@@ -15,10 +15,10 @@ allowed-tools: [Bash, Read, Write, Grep, Glob, AskUserQuestion, TaskCreate, Task
 ## 使用タイミング
 
 - データ設計.md の §6 状態遷移表が確定済みで、ポータルに状態遷移図カードを追加したいとき
-- 起動引数: `target_repo_path`（対象リポジトリの絶対パス。根拠パスの実在検証に使用）・`docs_root`（データ設計.md 所在 / 状態遷移図.html 出力先）・`portal_output_dir`（任意）
+- 起動引数: `target_repo_path`（対象リポジトリの絶対パス。根拠パスの実在検証に使用）・`output_dir`（データ設計.md 所在 / 状態遷移図.html 出力先）・`portal_output_dir`（任意）
 - `portal_output_dir` を指定した場合、生成後に `build-portal.sh` を再実行する。ただし状態遷移図（entity-state）のポータルカード受け口は本スキル作成時点で `build-portal.sh` に未配線であり、再実行してもカードが増えないことがある（別途の配線作業を要する。本スキルの責務外）
 
-出力先は `<docs_root>/状態遷移図.html` に固定する（`build-detail-page.sh` の `get_page_filename` と同値）。前提となるデータ設計.md は `<docs_root>/プロジェクト共通/データ設計.md` を既定パスとする。
+出力先は `<output_dir>/状態遷移図.html` に固定する（`build-detail-page.sh` の `get_page_filename` と同値）。前提となるデータ設計.md は `<output_dir>/プロジェクト共通/データ設計.md` を既定パスとする。
 
 ## 設計原則
 
@@ -39,13 +39,13 @@ allowed-tools: [Bash, Read, Write, Grep, Glob, AskUserQuestion, TaskCreate, Task
 
 ## 進捗管理（必須手順）
 
-スキル開始時に `TaskCreate` で Phase 1〜4 のタスクを登録する。各 Phase 開始時に該当タスクを `in_progress` に、完了時に `completed` へ `TaskUpdate` で更新する。Phase 3 から Phase 2 へ差し戻す場合は Phase 2 タスクを `in_progress` に戻す。実行環境に TaskCreate/TaskUpdate が存在しない場合は、`docs_root` 内のタスク台帳ファイル（`task-ledger.md`）で同等の Phase 遷移記録を代替する。
+スキル開始時に `TaskCreate` で Phase 1〜4 のタスクを登録する。各 Phase 開始時に該当タスクを `in_progress` に、完了時に `completed` へ `TaskUpdate` で更新する。Phase 3 から Phase 2 へ差し戻す場合は Phase 2 タスクを `in_progress` に戻す。実行環境に TaskCreate/TaskUpdate が存在しない場合は、`output_dir` 内のタスク台帳ファイル（`task-ledger.md`）で同等の Phase 遷移記録を代替する。
 
 ## Phase 手順
 
 ### Phase 1: 前提確認
 
-- **Step 1** — `<docs_root>/プロジェクト共通/データ設計.md` の実在と、`## §6 状態遷移表` 見出し・表（列: エンティティ/状態/遷移前/契機/遷移後/根拠パス）の実在を確認する。不在ならハード停止する。この場合 `generating-reverse-common-docs` の先行実行（データ設計.md §6 の採録）を案内して終了する。完了条件: 表の実在確認済み、または不在を報告して停止している
+- **Step 1** — `<output_dir>/プロジェクト共通/データ設計.md` の実在と、`## §6 状態遷移表` 見出し・表（列: エンティティ/状態/遷移前/契機/遷移後/根拠パス）の実在を確認する。不在ならハード停止する。この場合 `generating-reverse-common-docs` の先行実行（データ設計.md §6 の採録）を案内して終了する。完了条件: 表の実在確認済み、または不在を報告して停止している
 - **Step 2** — 表のデータ行数（プレースホルダ行 `<実測: ...>` のみの雛形状態は 0 件扱い）を確認する。0 件ならユーザーに報告してハード停止する（遷移を捏造しない）。完了条件: データ行 1 件以上を確認済み、または 0 件を報告して停止している
 
 ### Phase 2: 抽出
@@ -68,16 +68,16 @@ page-data.json の保存先は `$CLAUDE_JOB_DIR/tmp/entity-state-page-data.json`
 
 ### Phase 4: 状態遷移図.html 生成
 
-- **Step 1** — HTML 生成スクリプトを実行する。完了条件: `<docs_root>/状態遷移図.html` が生成済み
+- **Step 1** — HTML 生成スクリプトを実行する。完了条件: `<output_dir>/状態遷移図.html` が生成済み
 
   ```
-  ../../../shared/scripts/detail-pages/build-detail-page.sh <page-data.json> <docs_root> --page entity-state
+  ../../../shared/scripts/detail-pages/build-detail-page.sh <page-data.json> <output_dir> --page entity-state
   ```
 
 - **Step 2** — `portal_output_dir` が指定されていればポータル再生成スクリプトを実行する。未指定（ポータル未生成環境）なら省略し完了報告に注記する。完了条件: 再実行済み、または省略を注記済み
 
   ```
-  ../../../shared/scripts/build-portal.sh <target_repo_path> <docs_root> <portal_output_dir>
+  ../../../shared/scripts/build-portal.sh <target_repo_path> <output_dir> <portal_output_dir>
   ```
 
 **手作業でのプレースホルダ置換は禁止する**。HTML 生成は必ず `build-detail-page.sh` 経由の決定的処理で行う。
@@ -89,7 +89,7 @@ page-data.json の保存先は `$CLAUDE_JOB_DIR/tmp/entity-state-page-data.json`
 | Phase 1 | データ設計.md §6 状態遷移表の実在・データ行 1 件以上を確認済み（または不在・0 件を報告して停止） |
 | Phase 2 | 表の全行から `nodes[]`・`edges[]` へ変換済み |
 | Phase 3 | `validate-page-data.sh --target-repo` が全項目 PASS（孤児参照検査含む） |
-| Phase 4 | `<docs_root>/状態遷移図.html` が生成済み |
+| Phase 4 | `<output_dir>/状態遷移図.html` が生成済み |
 | **Goal** | データ設計.md §6 状態遷移表から検証済みの状態遷移図.html が生成され、表に記載のない遷移は捏造せず、行 0 件時は停止報告されている |
 
 ## 返却ブロック
@@ -119,12 +119,12 @@ page-data.json の保存先は `$CLAUDE_JOB_DIR/tmp/entity-state-page-data.json`
 - 判定・評価はしない。状態設計の良否・遷移の妥当性には一切踏み込まず、状態遷移表に記載された遷移の事実のみを転記する
 - 状態遷移表に記載がない遷移を AskUserQuestion で聞き出さない。記載のない遷移を即興確定しない
 - Phase 4 の HTML 手作業組み立てを禁止する。`build-detail-page.sh` を必ず経由する
-- 対象リポジトリへの書き込み・変更は一切行わない。出力は `docs_root` 配下の状態遷移図.html のみ
+- 対象リポジトリへの書き込み・変更は一切行わない。出力は `output_dir` 配下の状態遷移図.html のみ
 - `shared/scripts/build-portal.sh` は本スキルの責務外。編集しない
 
 ## 予想を裏切る挙動
 
-- 出力先は `<docs_root>` 直下（`状態遷移図` のような種別専用フォルダは作らない）。`build-detail-page.sh` の `--page entity-state` 固定出力名仕様に従う
+- 出力先は `<output_dir>` 直下（`状態遷移図` のような種別専用フォルダは作らない）。`build-detail-page.sh` の `--page entity-state` 固定出力名仕様に従う
 - `nodes[].key` は `<エンティティ>.<状態>` 形式に固定する（ER図の `entities[].key` のような単一識別子ではなく、複数エンティティを横断する状態名の衝突を避けるための複合キー）
 - 同一エンティティ内の自己遷移（例: 「差し戻し」で同じ状態へ戻る遷移は通常発生しないが、`from`/`to` が同一状態を指す行がある場合はそのまま転記する。孤児参照には該当しない
 - `portal_output_dir` 未指定時は `build-portal.sh` を実行しない。生成済み状態遷移図.html はそのまま残り、`build-portal.sh` が entity-state のカード受け口に対応した時点で次回ポータル生成時にカード化される

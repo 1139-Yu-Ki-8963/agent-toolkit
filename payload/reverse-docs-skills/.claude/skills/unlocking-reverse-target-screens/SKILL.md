@@ -13,7 +13,7 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Skill, TaskCreate, TaskUpda
 ## 使用タイミング
 
 - 対象画面にまだ設計書が無く、既存コードがログインを要求するなどの理由でそのままでは動作確認できないとき
-- 起動引数は system・screen_id・reverse_worktree・ports・docs_root・user-approved の全量（管理者から渡される。単独起動時はユーザーから直接取得してよい。`user-approved` は Phase 5 で `syncing-reverse-env(mode=registry)` へ転送するため必須）
+- 起動引数は system・screen_id・reverse_worktree・ports・output_dir・user-approved の全量（管理者から渡される。単独起動時はユーザーから直接取得してよい。`user-approved` は Phase 5 で `syncing-reverse-env(mode=registry)` へ転送するため必須）
 - 対象プロジェクトの `manifest.yml` に `projects.<system>` エントリが無い、または未確定キー（`<FILL:...>`）が残っている場合は `assets/manifest-template.yml` を複製してまず埋める（前提ゲートで検出・差し戻し）
 - 設計書が既にある画面はこのスキルの対象外（`rebuilding-screen-unit-from-docs` / `rebuilding-code-from-docs` を使う）
 
@@ -99,13 +99,13 @@ TaskCreate で本前提ゲートを含む全Phase分のタスクを1つずつ登
 
 ### Phase 5: 基準確立への引き渡し
 
-開通状態をコミットする（コミットメッセージ:「【機能追加】<画面名> をモックAPIで開通」）。開通確認時点のコミットハッシュを `source_ref` とする。このオリジナル参照点となる元リポジトリは `manifest.<system>.repo_and_launch.original_repo_path`（任意キー。無指定なら `work_repo_path` と同一視する）を正本とする。存在確認は前提ゲートの必須キー確認で完了済みのため、Phase 5独自のエラー分岐は設けない。画面を表示確認できたURLを `verification_url` とする（画面が埋め込みビュー画面の場合は「埋め込みビュー画面の開通（ルートを持たない画面）」節に従い親画面URL＋操作手順の組で記録する。ローカル起動できず確認手段が無ければ「未実施」と明記する）。`docs_root` 起点で `<system>-<screen_id>` 相当のパスを組み立てて `design_doc_path`（今後の設計書の想定配置パス）とする。画面レジストリ（`manifest.<system>.handoff.screen_registry_path`。既定は `<docs_root>/一覧/reverse-screen-registry.yml`。docs_root はスキルフォルダ外のため、スキル同期・上書きコピーの影響を受けない。contract.mdの正本と一致させる）へ `source_ref`・`verification_url`・`design_doc_path`・`status=unlocked` を記帳する。
+開通状態をコミットする（コミットメッセージ:「【機能追加】<画面名> をモックAPIで開通」）。開通確認時点のコミットハッシュを `source_ref` とする。このオリジナル参照点となる元リポジトリは `manifest.<system>.repo_and_launch.original_repo_path`（任意キー。無指定なら `work_repo_path` と同一視する）を正本とする。存在確認は前提ゲートの必須キー確認で完了済みのため、Phase 5独自のエラー分岐は設けない。画面を表示確認できたURLを `verification_url` とする（画面が埋め込みビュー画面の場合は「埋め込みビュー画面の開通（ルートを持たない画面）」節に従い親画面URL＋操作手順の組で記録する。ローカル起動できず確認手段が無ければ「未実施」と明記する）。`output_dir` 起点で `<system>-<screen_id>` 相当のパスを組み立てて `design_doc_path`（今後の設計書の想定配置パス）とする。画面レジストリ（`manifest.<system>.handoff.screen_registry_path`。既定は `<output_dir>/一覧/reverse-screen-registry.yml`。output_dir はスキルフォルダ外のため、スキル同期・上書きコピーの影響を受けない。contract.mdの正本と一致させる）へ `source_ref`・`verification_url`・`design_doc_path`・`status=unlocked` を記帳する。
 
 `syncing-reverse-env` へ渡す `reverse_worktree` は、呼び出し前に命名規則（`reverse-code-<scope>` / `feature/reverse-code-<scope>`）に従い自ら用意する。既存のworktreeがあれば再利用し、新規作成はしない。並列実行時は「並列実行時の運用規約」節で定義する作業コピーとは別物であることに注意する。起動引数 `ports` は前提ゲートで自ら起動したdevサーバー専用の値であり、`syncing-reverse-env` が管理する環境のポートは同スキルの `config.yml` 計算式が常に正となる。両者に食い違いが生じても異常ではなく、完了報告にその旨を記す。`Skill` で `syncing-reverse-env` を `mode=registry`・`system`・`screen_id`・`reverse_worktree`・`ports`・`user-approved` で起動する。
 
 返却 `status=PASS` なら、画面レジストリの該当エントリを `status=baseline-established` に更新し、`git tag -l "reverse-baseline/<scope>"` 等の決定的コマンド出力でタグ確立を確認する（自然文の自己申告で完了と判定しない）。
 
-開通完了後、Playwright で対象画面のスクリーンショットを撮影し `<docs_root>/画面/screen-<screen_id>/詳細設計/original.png` として保存する。これは基本設計書・詳細設計書の画面キャプチャとして参照される。撮影には syncing-reverse-env の既存 Playwright 設定（viewport・loading 待機条件）を流用する。
+開通完了後、Playwright で対象画面のスクリーンショットを撮影し `<output_dir>/画面/screen-<screen_id>/詳細設計/original.png` として保存する。これは基本設計書・詳細設計書の画面キャプチャとして参照される。撮影には syncing-reverse-env の既存 Playwright 設定（viewport・loading 待機条件）を流用する。
 
 確認できたら `status=BASELINE-ESTABLISHED` で返却する（返却フィールドに `baseline_tag` を追加し、`syncing-reverse-env` の返却値をそのまま転記する）。返却が `PASS` 以外（`FAIL`/`ERROR`/`INCOMPLETE`）の場合は、画面レジストリを `status=unlocked` のまま残し、`status=UNLOCKED`（部分完了）で hint に理由を記して差し戻す。返却が `status=ERROR` かつポートスロット上限（`max_slots`）到達が理由の場合は `status=BLOCKED` とし、hint に「(a) 並行検証の要否再確認」「(b) baseline-established済み環境のteardown可否」「(c) 上限拡張要否のユーザー確認」の3点を記す。
 
@@ -167,7 +167,7 @@ Phase 1で列挙した画面要求値とPhase 3で実装したモックデータ
 
 - **変更してよい範囲**: モックの実装・開発用の起動時初期化処理（devサーバー起動スクリプト等）・設定ファイル（`manifest.<system>` に記載された範囲、および Phase 2 で対象画面を権限チェーンの既存許可リストへ追記登録する作業を含む）のみ。画面・業務ロジック・共通処理などアプリケーション本体のコードを新規実装・改変することは対象外（リバース対象の原本性を損なうため）。検証がうまくいかない場合は、まず同一条件で失敗が混在するか常に決定的に再現するかを切り分け、該当する対処節（「同一条件で成功と失敗が混在する」場合の対処／「同一条件で常に同じ失敗（決定的クラッシュ）が再現する」場合の対処）に従う。それでも根本原因がアプリ本体側の実装にあると判明した場合は、コードを書き換えるのではなく、その事実を開通記録（`handoff.unlock_record_dir`）に書き残しユーザーの判断に委ねる。
 - 対象画面自身の配線（ルート定義等）に既存バグを見つけた場合も修正しない。「未使用ゆえ検証されてこなかった事前バグの可能性」として `handoff.unlock_record_dir` に記録し、修正要否はユーザー判断に委ねる
-- `handoff.unlock_record_dir` は docs_root 配下（納品物）に置いてはならない。開通証跡は検証記録の一種であり、docs_root 配下の各種一覧・設計書生成時に上書き・整理対象となる可能性があるため（contract.md「バッチ運転記録は docs_root 配下に置かない」と同趣旨）
+- `handoff.unlock_record_dir` は output_dir 配下（納品物）に置いてはならない。開通証跡は検証記録の一種であり、output_dir 配下の各種一覧・設計書生成時に上書き・整理対象となる可能性があるため（contract.md「バッチ運転記録は output_dir 配下に置かない」と同趣旨）
 - 本スキルは画面レジストリへの直接読み書きと `syncing-reverse-env` の直接起動を行う。これは完全仲介方式の例外ではなく、基準タグ確立まで単独完走するという設計要件に基づく意図した正式仕様である（理由: 開通の事実を知るのは本スキルだけであり、下流が能動的に検知できないため）
 - プロジェクト固有値（パス・コマンド・API名・ポート・画面ID等）は本文・references に一切書かない。すべて `manifest.yml` の `projects.<system>` から取得する
 - 健全性確認は自分が起動したサーバー上でのみ行う。稼働中の他エージェントの環境には触れない

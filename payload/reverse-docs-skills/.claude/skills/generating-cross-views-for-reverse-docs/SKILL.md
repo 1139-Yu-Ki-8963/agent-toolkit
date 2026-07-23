@@ -15,18 +15,18 @@ allowed-tools: [Bash, Read, Write, Grep, Glob, AskUserQuestion, TaskCreate, Task
 ## 使用タイミング
 
 - 画面一覧.html・API一覧.html が確定済みで、ポータルにマトリクス・対応表・AI設定資産のカードを追加したいとき
-- 起動引数: `target_repo_path`（対象リポジトリの絶対パス）・`docs_root`（一覧HTML所在 / マトリクス・対応表・AI設定資産の出力先）・`portal_output_dir`（任意）
+- 起動引数: `target_repo_path`（対象リポジトリの絶対パス）・`output_dir`（一覧HTML所在 / マトリクス・対応表・AI設定資産の出力先）・`portal_output_dir`（任意）
 - `portal_output_dir` を指定した場合、生成後に `build-portal.sh` を再実行してカードへ反映する
 
 ## 出力先（固定・`build-portal.sh` の `get_cross_label`/`CROSS_ORDER` と同値）
 
 | page-type | 出力パス |
 |---|---|
-| permission-screen | `<docs_root>/マトリクス・対応表/権限画面マトリクス/権限画面マトリクス.html` |
-| permission-function | `<docs_root>/マトリクス・対応表/権限機能マトリクス/権限機能マトリクス.html` |
-| crud | `<docs_root>/マトリクス・対応表/CRUD図/CRUD図.html` |
-| traceability | `<docs_root>/マトリクス・対応表/追跡可能性/追跡可能性.html` |
-| ai-assets | `<docs_root>/AI設定資産/AI設定資産.html` |
+| permission-screen | `<output_dir>/マトリクス・対応表/権限画面マトリクス/権限画面マトリクス.html` |
+| permission-function | `<output_dir>/マトリクス・対応表/権限機能マトリクス/権限機能マトリクス.html` |
+| crud | `<output_dir>/マトリクス・対応表/CRUD図/CRUD図.html` |
+| traceability | `<output_dir>/マトリクス・対応表/追跡可能性/追跡可能性.html` |
+| ai-assets | `<output_dir>/AI設定資産/AI設定資産.html` |
 
 `build-portal.sh` はこの5パスの実在有無だけでカードを出す（不在時はセクション自体が非表示になる fail-safe）。パスをこの表からずらすとカードが無言で出ない事故になるため厳守する。
 
@@ -47,14 +47,14 @@ allowed-tools: [Bash, Read, Write, Grep, Glob, AskUserQuestion, TaskCreate, Task
 
 ## 進捗管理（必須手順）
 
-スキル開始時に `TaskCreate` で Phase 1〜4 のタスクを登録する。各 Phase 開始時に該当タスクを `in_progress` に、完了時に `completed` へ `TaskUpdate` で更新する。実行環境に TaskCreate/TaskUpdate が存在しない場合は、`docs_root` 内のタスク台帳ファイル（`task-ledger.md`）で同等の Phase 遷移記録を代替する。
+スキル開始時に `TaskCreate` で Phase 1〜4 のタスクを登録する。各 Phase 開始時に該当タスクを `in_progress` に、完了時に `completed` へ `TaskUpdate` で更新する。実行環境に TaskCreate/TaskUpdate が存在しない場合は、`output_dir` 内のタスク台帳ファイル（`task-ledger.md`）で同等の Phase 遷移記録を代替する。
 
 ## Phase 手順
 
 ### Phase 1: 前提確認
 
-- **Step 1** — `<docs_root>/一覧/画面一覧/画面一覧.html` と `<docs_root>/一覧/API一覧/API一覧.html` の実在を確認する。いずれか不在ならハード停止する。この場合 `generating-screen-list-for-reverse-docs` / `generating-api-list-for-reverse-docs` の先行実行を案内して終了する。完了条件: 両ファイルの実在確認済み、または不在を報告して停止している
-- **Step 2** — `<docs_root>/一覧/テーブル一覧/テーブル一覧.html` と `<docs_root>/一覧/機能一覧/機能一覧.html` の実在を確認する。いずれも任意データ源であり、不在でも Phase 2 以降を続行する（`build-matrix-data.sh` は table-manifest・feature-manifest を省略しても動作する fail-safe 設計）。完了条件: 両ファイルの実在有無が確定済み
+- **Step 1** — `<output_dir>/一覧/画面一覧/画面一覧.html` と `<output_dir>/一覧/API一覧/API一覧.html` の実在を確認する。いずれか不在ならハード停止する。この場合 `generating-screen-list-for-reverse-docs` / `generating-api-list-for-reverse-docs` の先行実行を案内して終了する。完了条件: 両ファイルの実在確認済み、または不在を報告して停止している
+- **Step 2** — `<output_dir>/一覧/テーブル一覧/テーブル一覧.html` と `<output_dir>/一覧/機能一覧/機能一覧.html` の実在を確認する。いずれも任意データ源であり、不在でも Phase 2 以降を続行する（`build-matrix-data.sh` は table-manifest・feature-manifest を省略しても動作する fail-safe 設計）。完了条件: 両ファイルの実在有無が確定済み
 
 ### Phase 2: 拡張マニフェスト抽出 + 交差データ導出
 
@@ -109,10 +109,10 @@ allowed-tools: [Bash, Read, Write, Grep, Glob, AskUserQuestion, TaskCreate, Task
 - **Step 1** — 4種のデータ（Phase 2 の3ファイル + Phase 3 の1ファイル）を、`build-matrix-pages.sh` で対応するテンプレートへ埋め込む。**手作業でのプレースホルダ置換は禁止する**（HTML生成は必ずスクリプト経由の決定的処理で行う）。完了条件: 生成可能な全ページがそれぞれの固定パス（本SKILL冒頭の出力先表）に出力済み
 
   ```bash
-  ../../../shared/scripts/matrix/build-matrix-pages.sh permission-screen permission-matrix.json "<docs_root>/マトリクス・対応表/権限画面マトリクス/権限画面マトリクス.html"
-  ../../../shared/scripts/matrix/build-matrix-pages.sh crud crud-matrix.json "<docs_root>/マトリクス・対応表/CRUD図/CRUD図.html"
-  ../../../shared/scripts/matrix/build-matrix-pages.sh traceability traceability.json "<docs_root>/マトリクス・対応表/追跡可能性/追跡可能性.html"
-  ../../../shared/scripts/matrix/build-matrix-pages.sh ai-assets ai-assets-data.json "<docs_root>/AI設定資産/AI設定資産.html"
+  ../../../shared/scripts/matrix/build-matrix-pages.sh permission-screen permission-matrix.json "<output_dir>/マトリクス・対応表/権限画面マトリクス/権限画面マトリクス.html"
+  ../../../shared/scripts/matrix/build-matrix-pages.sh crud crud-matrix.json "<output_dir>/マトリクス・対応表/CRUD図/CRUD図.html"
+  ../../../shared/scripts/matrix/build-matrix-pages.sh traceability traceability.json "<output_dir>/マトリクス・対応表/追跡可能性/追跡可能性.html"
+  ../../../shared/scripts/matrix/build-matrix-pages.sh ai-assets ai-assets-data.json "<output_dir>/AI設定資産/AI設定資産.html"
   ```
 
   `permission-function`（権限機能マトリクス）は「予想を裏切る挙動」節に記載する既知の制約により、Phase 2 の `permission-matrix.json` をそのまま入力に使えない。生成できる場合のみ実行し、できない場合はスキップして完了報告に明記する（下記参照）。
@@ -120,7 +120,7 @@ allowed-tools: [Bash, Read, Write, Grep, Glob, AskUserQuestion, TaskCreate, Task
 - **Step 2** — `portal_output_dir` が指定されていればポータル再生成スクリプトを実行しカードへ反映する。未指定なら省略し完了報告に注記する。完了条件: 再実行済み、または省略を注記済み
 
   ```bash
-  ../../../shared/scripts/build-portal.sh <target_repo_path> <docs_root> <portal_output_dir>
+  ../../../shared/scripts/build-portal.sh <target_repo_path> <output_dir> <portal_output_dir>
   ```
 
 ## 完了条件
@@ -150,7 +150,7 @@ allowed-tools: [Bash, Read, Write, Grep, Glob, AskUserQuestion, TaskCreate, Task
 
 - 判定・評価はしない。権限設計・CRUD設計の良否には踏み込まず、manifest から機械導出できた関係のみを転記する
 - 検出できない関係を AskUserQuestion で聞き出さない。データが揃わないページは生成せず理由を報告する（捏造しない）
-- 対象リポジトリへの書き込み・変更は一切行わない。出力は `docs_root` 配下のページのみ
+- 対象リポジトリへの書き込み・変更は一切行わない。出力は `output_dir` 配下のページのみ
 
 ## 予想を裏切る挙動
 

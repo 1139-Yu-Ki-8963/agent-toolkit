@@ -185,7 +185,7 @@
     <tr><td>screen_id</td><td>対象画面ID</td></tr>
     <tr><td>reverse_worktree</td><td>対象画面のソースコードを持つ worktree の絶対パス</td></tr>
     <tr><td>ports</td><td>動作確認に使うポート情報</td></tr>
-    <tr><td>docs_root</td><td>今後の設計書配置ルート（design_doc_path の組み立てに使用）</td></tr>
+    <tr><td>output_dir</td><td>今後の設計書配置ルート（design_doc_path の組み立てに使用）</td></tr>
     <tr><td>user-approved</td><td>Phase 5 で <code>syncing-reverse-env(mode=registry)</code> へ転送する承認情報。必須</td></tr>
   </table>
   <p class="note">全量が管理者から渡される。単独起動時はユーザーから直接取得してよい。対象プロジェクトの <code>manifest.yml</code> に <code>projects.&lt;system&gt;</code> エントリが無い、または未確定キー（<code>&lt;FILL:...&gt;</code>）が残っている場合は <code>assets/manifest-template.yml</code> を複製してまず埋める（前提ゲートで検出・差し戻し）。</p>
@@ -329,10 +329,10 @@
   （存在確認は前提ゲートの必須キー確認で完了済みのため、Phase 5独自のエラー分岐は設けない）
   画面を表示確認できたURLをverification_urlとする（埋め込みビュー画面の場合は§3に従い
   親画面URL＋操作手順の組で記録。ローカル起動できず確認手段が無ければ「未実施」と明記）
-  docs_root起点で&lt;system&gt;-&lt;screen_id&gt;相当のパスを組み立ててdesign_doc_path
+  output_dir起点で&lt;system&gt;-&lt;screen_id&gt;相当のパスを組み立ててdesign_doc_path
   （今後の設計書の想定配置パス）とする
   画面レジストリ（handoff.screen_registry_path。既定は
-  &lt;docs_root&gt;/一覧/reverse-screen-registry.yml。docs_rootはスキルフォルダ外のため
+  &lt;output_dir&gt;/一覧/reverse-screen-registry.yml。output_dirはスキルフォルダ外のため
   スキル同期・上書きコピーの影響を受けない。contract.mdの正本と一致させる）へ
   source_ref・verification_url・design_doc_path・status=unlockedを記帳
   syncing-reverse-envへ渡すreverse_worktreeは、呼び出し前に命名規則

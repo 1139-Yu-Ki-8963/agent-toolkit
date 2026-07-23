@@ -15,10 +15,10 @@ allowed-tools: [Bash, Read, Write, Grep, Glob, AskUserQuestion]
 ## 使用タイミング
 
 - プロジェクト共通文書（`generating-reverse-common-docs` の出力）とアーキテクチャ調査書が確定済みで、ポータルに用語辞書カードを追加したいとき
-- 起動引数: `target_repo_path`（調査対象リポジトリの絶対パス）・`docs_root`（プロジェクト共通文書・調査書の所在かつ出力先）・`portal_output_dir`（任意）
+- 起動引数: `target_repo_path`（調査対象リポジトリの絶対パス）・`output_dir`（プロジェクト共通文書・調査書の所在かつ出力先）・`portal_output_dir`（任意）
 - `portal_output_dir` を指定した場合、生成後に `build-portal.sh` を再実行してカードへ反映する
 
-出力先は `<docs_root>/用語辞書.html` に固定する（`build-portal.sh` の `FUTURE_FILES` と同値）。
+出力先は `<output_dir>/用語辞書.html` に固定する（`build-portal.sh` の `FUTURE_FILES` と同値）。
 
 ## 設計原則
 
@@ -43,7 +43,7 @@ allowed-tools: [Bash, Read, Write, Grep, Glob, AskUserQuestion]
 ### Phase 1: 採録方針の承認（二段承認・1段目）
 
 - **Step 1** — 分類軸を決定する。既定は「業務用語／技術用語／略語」の 3 軸。プロジェクトの実態に応じてユーザーが分類軸を追加・変更できる。完了条件: 分類軸（`categories[]` の `key`/`label` 候補）が確定済み
-- **Step 2** — 採録源を確認する。採録源は 3 系統ある。`<docs_root>/プロジェクト共通/` 配下の共通文書一式（`generating-reverse-common-docs` の出力）。`<docs_root>/プロジェクト共通/アーキテクチャ調査書.md`。`target_repo_path` 配下のコード識別子（層化サンプリング対象）。この 3 系統の実在を確認する。共通文書・調査書がいずれも不在ならハード停止し、該当スキルの先行実行を案内する。完了条件: 3 系統の採録源の実在確認済み、または不在を報告して停止している
+- **Step 2** — 採録源を確認する。採録源は 3 系統ある。`<output_dir>/プロジェクト共通/` 配下の共通文書一式（`generating-reverse-common-docs` の出力）。`<output_dir>/プロジェクト共通/アーキテクチャ調査書.md`。`target_repo_path` 配下のコード識別子（層化サンプリング対象）。この 3 系統の実在を確認する。共通文書・調査書がいずれも不在ならハード停止し、該当スキルの先行実行を案内する。完了条件: 3 系統の採録源の実在確認済み、または不在を報告して停止している
 - **Step 3** — 除外パターンを確定する。既定は一般英単語・フレームワーク API 名（`references/glossary-extraction.md`「除外既定」節参照）。プロジェクト固有の除外語があればユーザーから追加を受ける。完了条件: 除外パターン一覧が確定済み
 - **Step 4** — Step 1〜3 の採録方針を AskUserQuestion でまとめて提示し承認を取る。宣言内容（分類軸・採録源・除外パターン）は一時ファイルに保存する。完了条件: 採録方針が承認済み（ヘッドレス実行時の扱いは「無人実行時の扱い」節を参照）
 
@@ -72,16 +72,16 @@ page-data.json の保存先は `$CLAUDE_JOB_DIR/tmp/glossary-page-data.json` と
   ```
 
 - **Step 2** — FAIL 時は `sourceRef` を修正し Step 1 を再実行する。3 回失敗したら Phase 2 Step 3（候補統合）へ差し戻す。完了条件: exit 0
-- **Step 3** — HTML 生成スクリプトを実行する。完了条件: `<docs_root>/用語辞書.html` が生成済み
+- **Step 3** — HTML 生成スクリプトを実行する。完了条件: `<output_dir>/用語辞書.html` が生成済み
 
   ```
-  ../../../shared/scripts/detail-pages/build-detail-page.sh <page-data.json> <docs_root> --page glossary
+  ../../../shared/scripts/detail-pages/build-detail-page.sh <page-data.json> <output_dir> --page glossary
   ```
 
 - **Step 4** — `portal_output_dir` が指定されていればポータル再生成スクリプトを実行しカードへ反映する。未指定なら省略し完了報告に注記する。完了条件: 再実行済み、または省略を注記済み
 
   ```
-  ../../../shared/scripts/build-portal.sh <target_repo_path> <docs_root> <portal_output_dir>
+  ../../../shared/scripts/build-portal.sh <target_repo_path> <output_dir> <portal_output_dir>
   ```
 
 **手作業でのプレースホルダ置換は禁止する**。HTML 生成は必ず `build-detail-page.sh` 経由の決定的処理で行う。
@@ -104,7 +104,7 @@ page-data.json の保存先は `$CLAUDE_JOB_DIR/tmp/glossary-page-data.json` と
 | Phase 1 | 分類軸・採録源・除外パターンの採録方針が承認済み、または不在を報告して停止している |
 | Phase 2 | `terms[]` と（該当があれば）`unresolved[]` が確定済み（採録源に根拠のある語のみ） |
 | Phase 3 | 候補一覧の取捨結果を反映した page-data.json を保存済み |
-| Phase 4 | `validate-page-data.sh --target-repo` が全項目 PASS し、`<docs_root>/用語辞書.html` が生成され、指定時は `build-portal.sh` の再実行が完了している |
+| Phase 4 | `validate-page-data.sh --target-repo` が全項目 PASS し、`<output_dir>/用語辞書.html` が生成され、指定時は `build-portal.sh` の再実行が完了している |
 | **Goal** | 採録源に実在する記述・識別子のみを根拠とする用語辞書.html が二段承認と機械検証を経て生成され、根拠の無い語は unresolved として可視化されている |
 
 ## 返却ブロック
@@ -135,12 +135,12 @@ page-data.json の保存先は `$CLAUDE_JOB_DIR/tmp/glossary-page-data.json` と
 - Phase 3 の言い換え指示は既存記述の言い回し変更に限る。採録源に無い新規事実の追加指示は反映しない（該当指示があった場合は反映せず hint に記録する）
 - 層化サンプリングの選定は決定的コマンド（`find`/`sort`/`head`）に固定する。乱数・目視選定を禁止する
 - Phase 4 の HTML 手作業組み立てを禁止する。`build-detail-page.sh` を必ず経由する
-- 対象リポジトリへの書き込み・変更は一切行わない。出力は `docs_root` 配下の用語辞書.html のみ
+- 対象リポジトリへの書き込み・変更は一切行わない。出力は `output_dir` 配下の用語辞書.html のみ
 
 ## 予想を裏切る挙動
 
 - `terms[].sourceRef` はコード識別子由来の語なら実ファイルパス（`src/models/order.ts:3` 形式）を使う。文書由来の語なら文書参照形式（`共通設計書.md#業務用語` 形式）を使う。`validate-page-data.sh --target-repo` は文書参照形式（`.md#` を含む値）を実在検査の対象外とする
-- 出力先は `<docs_root>` 直下（他種別と同様、種別専用フォルダは作らない）
+- 出力先は `<output_dir>` 直下（他種別と同様、種別専用フォルダは作らない）
 - `categories[]` は既定 3 軸だが固定ではない。Phase 1 でユーザーが追加・変更した軸がそのまま `terms[].category` の許容値になる
 - Phase 3 で全語が削除された場合でも `terms: []` として page-data.json を組み立てる。`validate-page-data.sh` は空配列を許容し、テンプレート側が「なし」を表示する
 - `portal_output_dir` 未指定時は `build-portal.sh` を実行しない。生成済み用語辞書.html はそのまま残り、次回ポータル生成時に自動でカード化される

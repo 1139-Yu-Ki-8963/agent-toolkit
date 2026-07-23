@@ -27,7 +27,7 @@ claude CLI のヘッドレスモード（`claude -p`、対話画面を介さず1
 | 引数 | 必須 | 内容 |
 |---|---|---|
 | target_repo_path | 必須 | 対象プロジェクトのリポジトリルートパス |
-| docs_root | 必須 | 設計書の書き出し先ルートパス |
+| output_dir | 必須 | 設計書の書き出し先ルートパス |
 | screen_ids | 必須 | 対象画面IDリスト（配列）。"all" で画面一覧HTMLから全画面を対象にする |
 | template_root | 必須 | テンプレートディレクトリパス（shared/templates/リバース検証/画面/） |
 | common_docs_root | 必須 | プロジェクト共通設計書ディレクトリパス |
@@ -54,13 +54,13 @@ claude CLI 2.1.206 で実機確認済みの仕様。
 
 ### Step 1-1: 引数を検証する
 
-全必須引数（target_repo_path・docs_root・screen_ids・template_root・common_docs_root・survey_doc_path）の存在と、参照先パスの実在を確認する。不足があればエラーメッセージを返して即終了する。
+全必須引数（target_repo_path・output_dir・screen_ids・template_root・common_docs_root・survey_doc_path）の存在と、参照先パスの実在を確認する。不足があればエラーメッセージを返して即終了する。
 
 **完了**: 全必須引数が検証済みで、参照先パスが実在する。
 
 ### Step 1-2: 画面一覧を生成する
 
-screen_ids が "all" の場合は画面一覧HTML（`<docs_root>/一覧/画面一覧.html`）のマニフェストJSONから全画面IDを抽出する。指定リストの場合はそのまま使う。1行1画面IDのテキストファイル（`<docs_root>/batch-targets.txt`）に書き出す。既検証画面（レジストリで status=baseline-established）をカウントし、未検証件数を確認する。
+screen_ids が "all" の場合は画面一覧HTML（`<output_dir>/一覧/画面一覧.html`）のマニフェストJSONから全画面IDを抽出する。指定リストの場合はそのまま使う。1行1画面IDのテキストファイル（`<output_dir>/batch-targets.txt`）に書き出す。既検証画面（レジストリで status=baseline-established）をカウントし、未検証件数を確認する。
 
 **完了**: 対象画面一覧ファイルが生成され、総数と既検証数が確認済み。
 
@@ -173,7 +173,7 @@ Bash ツールで残件カウントコマンドを実行する。マーカー未
 
 ## マーカー仕様
 
-- **中間マーカー判定（前半完了）**: 画面レジストリ（`<docs_root>/一覧/reverse-screen-registry.yml`）内の当該画面エントリで `status` が `authored`
+- **中間マーカー判定（前半完了）**: 画面レジストリ（`<output_dir>/一覧/reverse-screen-registry.yml`）内の当該画面エントリで `status` が `authored`
 - **完了マーカー判定（後半完了）**: 同エントリで `status` が `baseline-established`
 - **CHECK_CMD**: 画面レジストリファイルを読み、`<system>-<screen_id>:` キー（正本: `orchestrating-reverse-docs-flow` の `references/contract.md` 「画面レジストリ」節。system は `target_repo_path` のディレクトリ名から導出する）のブロック内に `status: baseline-established` が存在するかを grep で判定する（`verification-pass` は廃止済み。旧値が残る台帳の読み替え手順は `orchestrating-reverse-docs-flow` の `references/contract.md` の「レジストリ移行手順」を参照）
 

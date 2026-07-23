@@ -13,13 +13,13 @@ allowed-tools: [Bash, Read, Write, Grep, Glob, AskUserQuestion, TaskCreate, Task
 ## 使用タイミング
 
 - 対象画面の facts.yml（`extracting-unit-facts-from-code` が確定済み）または手書きの page-data がある画面について、シーケンス図を生成・更新したいとき
-- 起動引数: `docs_root`（`画面/screen-<ID>/` の所在）・対象画面 ID（複数可）
+- 起動引数: `output_dir`（`画面/screen-<ID>/` の所在）・対象画面 ID（複数可）
 
-出力先は各画面ディレクトリ直下の `<docs_root>/画面/screen-<ID>/シーケンス図.html` に固定する（`build-portal.sh` の DOC_NAV 判定と同値。基本設計・詳細設計フォルダの 1 階層上）。
+出力先は各画面ディレクトリ直下の `<output_dir>/画面/screen-<ID>/シーケンス図.html` に固定する（`build-portal.sh` の DOC_NAV 判定と同値。基本設計・詳細設計フォルダの 1 階層上）。
 
 ## page-data の形状
 
-各画面の page-data（`<docs_root>/画面/screen-<ID>/シーケンス図-data.json`）は以下の形状を持つ。
+各画面の page-data（`<output_dir>/画面/screen-<ID>/シーケンス図-data.json`）は以下の形状を持つ。
 
 ```json
 {
@@ -62,7 +62,7 @@ allowed-tools: [Bash, Read, Write, Grep, Glob, AskUserQuestion, TaskCreate, Task
 
 ### Phase 1: page-data の確保
 
-- **Step 1** — 対象画面ごとに `<docs_root>/画面/screen-<ID>/シーケンス図-data.json` の実在を確認する。存在すれば内容を読み、上記形状（`screenId`・`screenLabel`・`operations[].key`/`label`/`steps[]`）に合致するか確認する。完了条件: 各対象画面について実在確認済み
+- **Step 1** — 対象画面ごとに `<output_dir>/画面/screen-<ID>/シーケンス図-data.json` の実在を確認する。存在すれば内容を読み、上記形状（`screenId`・`screenLabel`・`operations[].key`/`label`/`steps[]`）に合致するか確認する。完了条件: 各対象画面について実在確認済み
 - **Step 2** — 不在の画面については、同ディレクトリの facts.yml（`facts_ref`。`extracting-unit-facts-from-code` が確定済みの前提）を Read する。⑤handler の各 item が持つ任意フィールド `call_order`（形式 `"<連番>:<api分類のkey>@<file:line>; ..."`。`shared/references/facts-schema.md` の「call_order（⑤handlerの任意フィールド）」節が正本）を持つ handler だけを対象に、`operations[]` へ機械変換する
   - `operations[].key`/`label` は handler item の `key`/`value`（発火要素・処理1行要約）から組み立てる
   - `call_order` の各エントリを `steps[]` に変換する: `from: "screen"`・`to: "api"`・`label` は参照先の⑧api分類 item の `value`（BL 名・リクエスト形）・`sourceRef` は `call_order` エントリの `file:line`
@@ -76,14 +76,14 @@ jq -e '
   (.screenId and .screenLabel and .operations) and
   (.operations | all(.steps | all(.from as $f | .to as $t | (["screen","api","table"] | index($f)) != null and (["screen","api","table"] | index($t)) != null))) and
   (.operations | all((.steps | map(.seq)) as $seqs | $seqs == ([range(1; ($seqs | length) + 1)])))
-' "<docs_root>/画面/screen-<ID>/シーケンス図-data.json"
+' "<output_dir>/画面/screen-<ID>/シーケンス図-data.json"
 ```
 
 ### Phase 2: DOC_NAV の組み立て
 
-対象画面の `<docs_root>/画面/screen-<ID>/` 配下で、設計書ビューアと同じ体裁の doc-nav を組み立てる。`build-portal.sh` セクション 3.5 の doc_nav 組み立てロジックと同一の判定を、シーケンス図.html 側の視点（アクティブタブがシーケンス図）で行う。
+対象画面の `<output_dir>/画面/screen-<ID>/` 配下で、設計書ビューアと同じ体裁の doc-nav を組み立てる。`build-portal.sh` セクション 3.5 の doc_nav 組み立てロジックと同一の判定を、シーケンス図.html 側の視点（アクティブタブがシーケンス図）で行う。
 
-- **戻るリンク**: `<a class="back-link" href="<画面一覧.htmlへの相対パス>">← 画面一覧へ戻る</a>`。`<docs_root>/一覧/画面一覧/画面一覧.html` への相対パスを算出する（出力先は `画面/screen-<ID>/` 直下なので `../../一覧/画面一覧/画面一覧.html` が典型値）
+- **戻るリンク**: `<a class="back-link" href="<画面一覧.htmlへの相対パス>">← 画面一覧へ戻る</a>`。`<output_dir>/一覧/画面一覧/画面一覧.html` への相対パスを算出する（出力先は `画面/screen-<ID>/` 直下なので `../../一覧/画面一覧/画面一覧.html` が典型値）
 - **基本設計タブ**: `${screen_dir}基本設計/画面基本設計書.html` が実在すれば `<a class="doc-tab" href="基本設計/画面基本設計書.html">基本設計</a>`
 - **詳細設計タブ**: `${screen_dir}詳細設計/画面詳細設計書.html` が実在すれば `<a class="doc-tab" href="詳細設計/画面詳細設計書.html">詳細設計</a>`
 - **シーケンス図タブ**: 自ページなので `<span class="doc-tab active">シーケンス図</span>`
@@ -93,14 +93,14 @@ jq -e '
 
 ### Phase 3: HTML 生成
 
-- **Step 1** — 以下のように `render_template` を呼び出し、`<docs_root>/画面/screen-<ID>/シーケンス図.html` を生成する。`render-template.sh` は bash 関数を提供するのみで CLI エントリポイントを持たないため、Bash ツールから以下のようなインライン bash で実行する（新規 `.sh` ファイルは作らない）。
+- **Step 1** — 以下のように `render_template` を呼び出し、`<output_dir>/画面/screen-<ID>/シーケンス図.html` を生成する。`render-template.sh` は bash 関数を提供するのみで CLI エントリポイントを持たないため、Bash ツールから以下のようなインライン bash で実行する（新規 `.sh` ファイルは作らない）。
 
   ```bash
   bash -c '
     source "<スキルフォルダ>/../../../shared/scripts/render-template.sh"
     template="$(cat "<スキルフォルダ>/../../../shared/templates/screen-sequence-template.html")"
     tokens_css="$(cat "<スキルフォルダ>/../../../shared/templates/tokens.css")"
-    page_data="$(cat "<docs_root>/画面/screen-<ID>/シーケンス図-data.json")"
+    page_data="$(cat "<output_dir>/画面/screen-<ID>/シーケンス図-data.json")"
     out="$(render_template "$template" \
       "{{PROJECT_NAME}}" "<プロジェクト名>" \
       "{{GENERATED_DATE}}" "<YYYY-MM-DD>" \
@@ -110,7 +110,7 @@ jq -e '
       "{{SCREEN_LABEL}}" "<画面ラベル>" \
       "/* TOKENS_CSS */" "$tokens_css" \
       "{{PAGE_DATA_JSON}}" "$page_data")"
-    printf "%s\n" "$out" > "<docs_root>/画面/screen-<ID>/シーケンス図.html"
+    printf "%s\n" "$out" > "<output_dir>/画面/screen-<ID>/シーケンス図.html"
   '
   ```
 
@@ -135,7 +135,7 @@ jq -e '
 
 ## 予想を裏切る挙動
 
-- 出力先はテンプレート名（`シーケンス図.html`）が pageKind の `FUTURE_FILES` と同名でも、`docs_root` 直下ではなく画面ごとのフォルダ（`画面/screen-<ID>/`）直下になる。pageKind 体系の「1 pageKind = 1 固定ファイル名」契約はここでは適用されない
+- 出力先はテンプレート名（`シーケンス図.html`）が pageKind の `FUTURE_FILES` と同名でも、`output_dir` 直下ではなく画面ごとのフォルダ（`画面/screen-<ID>/`）直下になる。pageKind 体系の「1 pageKind = 1 固定ファイル名」契約はここでは適用されない
 - `build-portal.sh` は画面設計書（基本設計・詳細設計）側の DOC_NAV にのみシーケンス図タブを追加する。シーケンス図.html 自体の DOC_NAV は本スキルの Phase 2/3 が組み立てる（build-portal.sh の担当範囲外）
 
 ## 完了報告
