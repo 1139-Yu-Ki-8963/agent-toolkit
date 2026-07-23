@@ -2,7 +2,7 @@
 <!--
   <ラベル>一覧.HTML の静的シェル(テンプレート)
 
-  使い方(種別別一覧スキル群 generating-<種別>-list-for-reverse-docs。unit_kind=screen 以外):
+  使い方(種別別一覧生成スキル（unit_kind=screen 以外）):
     scripts/build-unit-list.sh <manifest.json> <output-html-path> --unit-kind <kind> を実行する。
     build-unit-list.sh が本テンプレートを土台に、jqでマニフェストJSONをパースして
     プレースホルダ・注入マーカーを機械的に置換し、決定的にHTMLを生成する。
@@ -496,7 +496,7 @@
 }
 </script>
 
-<footer>種別別一覧スキル（generating-&lt;種別&gt;-list-for-reverse-docs）により生成。手編集は次回再生成で上書きされる。</footer>
+<footer>種別別一覧生成スキルにより生成。手編集は次回再生成で上書きされる。</footer>
 
 <script>
   /* 任意列描画（shared/references/manifest-schema-extensions.md 準拠）

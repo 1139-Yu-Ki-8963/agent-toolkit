@@ -332,15 +332,15 @@
     {"ruleName": "プロジェクトコンテキスト（PROJECT-CONTEXT）", "layer": "always", "enforcement": "なし", "tags": [], "summary": "プロジェクト概要・技術スタック・設定索引・ルート直下許可ディレクトリ（shared のみ）の定義"}
   ],
   "skills": [
-    {"skillName": "orchestrating-reverse-docs-flow", "category": "指揮", "trigger": "リバース検証の進行・工程統括・画面一覧から基準確立まで", "summary": "リバース設計書往復検証フロー全体を統括する指揮役スキル"},
-    {"skillName": "generating-screen-list-for-reverse-docs", "category": "一覧生成", "trigger": "画面一覧作成・画面の洗い出し", "summary": "既存コードベースから画面単位の一覧フォルダ・画面一覧 HTML を生成する"},
-    {"skillName": "generating-api-list-for-reverse-docs", "category": "一覧生成", "trigger": "API一覧作成・エンドポイント一覧", "summary": "API 一覧フォルダ・API一覧 HTML を生成する（unit_kind=api 専用）"},
-    {"skillName": "generating-table-list-for-reverse-docs", "category": "一覧生成", "trigger": "テーブル一覧作成・スキーマ一覧", "summary": "テーブル種別専用の一覧フォルダ・一覧 HTML を生成する"},
-    {"skillName": "generating-feature-list-for-reverse-docs", "category": "一覧生成", "trigger": "機能一覧作成・業務機能の横断目録", "summary": "機能一覧フォルダ・機能一覧 HTML を生成する（unit_kind=feature 専用・派生一覧）"},
-    {"skillName": "generating-er-diagram-for-reverse-docs", "category": "基盤ページ生成", "trigger": "ER図生成・テーブル関連図作成", "summary": "ER図.html をテーブル一覧 manifest とマイグレーション/モデルの FK 定義から機械生成する"},
-    {"skillName": "surveying-architecture-for-reverse-docs", "category": "工程", "trigger": "リバース設計着手前の前提調査", "summary": "既存リポジトリを走査しアーキテクチャ調査書を機械検証付きで確定する"},
-    {"skillName": "extracting-unit-facts-from-code", "category": "工程", "trigger": "リバース設計の facts 抽出・事実表新規作成", "summary": "原本コードから宣言的契約 facts を抽出し独立再計数・封印まで完走する"},
-    {"skillName": "generating-reverse-detailed-design", "category": "工程", "trigger": "facts 封印後の設計書執筆・再執筆", "summary": "封印済み facts と共通文書から画面詳細設計書を執筆する執筆役"},
+    {"skillName": "orchestrating-docs-flow", "category": "指揮", "trigger": "設計検証の進行・工程統括・画面一覧から基準確立まで", "summary": "設計書往復検証フロー全体を統括する指揮役スキル"},
+    {"skillName": "generating-screen-list", "category": "一覧生成", "trigger": "画面一覧作成・画面の洗い出し", "summary": "既存コードベースから画面単位の一覧フォルダ・画面一覧 HTML を生成する"},
+    {"skillName": "generating-api-list", "category": "一覧生成", "trigger": "API一覧作成・エンドポイント一覧", "summary": "API 一覧フォルダ・API一覧 HTML を生成する（unit_kind=api 専用）"},
+    {"skillName": "generating-table-list", "category": "一覧生成", "trigger": "テーブル一覧作成・スキーマ一覧", "summary": "テーブル種別専用の一覧フォルダ・一覧 HTML を生成する"},
+    {"skillName": "generating-feature-list", "category": "一覧生成", "trigger": "機能一覧作成・業務機能の横断目録", "summary": "機能一覧フォルダ・機能一覧 HTML を生成する（unit_kind=feature 専用・派生一覧）"},
+    {"skillName": "generating-er-diagram", "category": "基盤ページ生成", "trigger": "ER図生成・テーブル関連図作成", "summary": "ER図.html をテーブル一覧 manifest とマイグレーション/モデルの FK 定義から機械生成する"},
+    {"skillName": "surveying-architecture", "category": "工程", "trigger": "設計着手前の前提調査", "summary": "既存リポジトリを走査しアーキテクチャ調査書を機械検証付きで確定する"},
+    {"skillName": "extracting-unit-facts-from-code", "category": "工程", "trigger": "設計の facts 抽出・事実表新規作成", "summary": "原本コードから宣言的契約 facts を抽出し独立再計数・封印まで完走する"},
+    {"skillName": "generating-detailed-design", "category": "工程", "trigger": "facts 封印後の設計書執筆・再執筆", "summary": "封印済み facts と共通文書から画面詳細設計書を執筆する執筆役"},
     {"skillName": "rebuilding-code-from-docs", "category": "工程", "trigger": "往復品質検証", "summary": "設計書だけから画面単位でコードを再生成し原本と突合して欠落を発見する"}
   ],
   "subagents": [
@@ -355,7 +355,7 @@
   ],
   "hooks": [
     {"script": "check-publish-complete.sh", "timing": "Stop", "matcher": "—（全応答終了時）", "tags": ["[PUBLISH-COMPLETE-BLOCK]"], "behavior": "block", "summary": "正本-未コミット検査。git status が空でなければ完了報告を止める（3 回連続で自動解除）"},
-    {"script": "check-publish-sync-gate.sh", "timing": "PostToolUse", "matcher": "Bash（git commit 成功直後）", "tags": ["[PUBLISH-SYNC-REQUIRED]"], "behavior": "advisory", "summary": "main-未反映検査。payload/reverse-docs-skills と正本の不一致を通知する（block なし）"}
+    {"script": "check-publish-sync-gate.sh", "timing": "PostToolUse", "matcher": "Bash（git commit 成功直後）", "tags": ["[PUBLISH-SYNC-REQUIRED]"], "behavior": "advisory", "summary": "main-未反映検査。payload/docs-skills と正本の不一致を通知する（block なし）"}
   ]
 }
 </script>
