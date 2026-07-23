@@ -284,6 +284,8 @@ count_state() {
   ' "$1"
 }
 
+# 関数宣言単位で数える。JSX 属性への inline アロー（on~={() =>）と
+# prop 渡しのハンドラ参照（onSelect={handleSelect}）は数えない
 count_handler() {
   awk '
     /^[ \t]*function[ \t]+[a-z]/ { count++ }
@@ -335,12 +337,13 @@ count_effect_trigger() {
   { grep -cE '(^|[^A-Za-z0-9_])(useEffect|useLayoutEffect)[[:blank:]]*\(' "$1" 2>/dev/null || true; }
 }
 
+# 残る既知限界: gqlタグ定数・styled呼出形CSS・フック形API・
+# useMemo/useCallbackハンドラ・非フック分割代入・stateの計数誤差。
+# 計数単位の定義を抽出粒度と一致させる方針で解消する
 count_error_handling() {
-  local throw_count catch_count alert_count
-  throw_count="$(grep -cE '(^|[^A-Za-z0-9_])throw[[:blank:]]' "$1" 2>/dev/null || true)"
-  catch_count="$(grep -cE '(^|[^A-Za-z0-9_])catch[[:blank:]]*\(' "$1" 2>/dev/null || true)"
-  alert_count="$(grep -cE 'window\.alert[[:blank:]]*\(' "$1" 2>/dev/null || true)"
-  echo $(( throw_count + catch_count + alert_count ))
+  local n
+  n="$(grep -cE '(^|[^A-Za-z0-9_])throw[[:blank:]]|catch[[:blank:]]*\(|window\.alert[[:blank:]]*\(|[a-zA-Z]*([Tt]hrow|Error)[A-Za-z]*\([^()]*\);' "$1" 2>/dev/null)"
+  echo "${n:-0}"
 }
 
 # await を伴わない Promise チェーン形式（`api.foo(...).then(...).catch(...)`）のAPI呼出しは
@@ -1318,6 +1321,51 @@ EOF
     rc=1
   fi
 
+  # ⑥error_handling陽性: throwAsyncError/setError の idiom で2件。
+  error_handling_idiom_pos_file="$tmp/error-handling-idiom-pos.txt"
+  cat > "$error_handling_idiom_pos_file" <<'EOF'
+function handleError(err) {
+  throwAsyncError(err);
+}
+function validate(data) {
+  setError('validation failed');
+}
+EOF
+  error_handling_idiom_pos_count="$(count_error_handling "$error_handling_idiom_pos_file")"
+  if [ "$error_handling_idiom_pos_count" = "2" ]; then
+    echo "  [PASS] error_handling陽性（⑥）: throwAsyncError/setError idiom で2件"
+  else
+    echo "  [FAIL] error_handling陽性（⑥）: idiom 検知に失敗（実測=${error_handling_idiom_pos_count} 期待=2）" >&2
+    rc=1
+  fi
+
+  # ⑥error_handling陰性: 非呼出しの Error 識別子は0件。
+  error_handling_idiom_neg_file="$tmp/error-handling-idiom-neg.txt"
+  cat > "$error_handling_idiom_neg_file" <<'EOF'
+const errorCount = errors.length;
+const hasError = errorCount > 0;
+EOF
+  error_handling_idiom_neg_count="$(count_error_handling "$error_handling_idiom_neg_file")"
+  if [ "$error_handling_idiom_neg_count" = "0" ]; then
+    echo "  [PASS] error_handling陰性（⑥）: 非呼出し Error 識別子は0件"
+  else
+    echo "  [FAIL] error_handling陰性（⑥）: 非呼出し Error 識別子を誤検知（実測=${error_handling_idiom_neg_count} 期待=0）" >&2
+    rc=1
+  fi
+
+  # ⑥error_handling回帰: 同一行 throw new Error('boom') は1件（二重計上しない）。
+  error_handling_regression_file="$tmp/error-handling-regression.txt"
+  cat > "$error_handling_regression_file" <<'EOF'
+throw new Error('boom');
+EOF
+  error_handling_regression_count="$(count_error_handling "$error_handling_regression_file")"
+  if [ "$error_handling_regression_count" = "1" ]; then
+    echo "  [PASS] error_handling回帰（⑥）: throw new Error は1件（二重計上なし）"
+  else
+    echo "  [FAIL] error_handling回帰（⑥）: throw new Error の二重計上（実測=${error_handling_regression_count} 期待=1）" >&2
+    rc=1
+  fi
+
   # style: inline sx={{...}}の加算を検知する（陽性）。
   style_sx_pos_file="$tmp/style-sx-pos.txt"
   cat > "$style_sx_pos_file" <<'EOF'
@@ -1403,6 +1451,50 @@ EOF
     echo "  [PASS] handler陰性: JSXバインディングは宣言でないため0件"
   else
     echo "  [FAIL] handler陰性: JSXバインディングを誤って宣言として計上した（実測=${handler_decl_neg_count} 期待=0）" >&2
+    rc=1
+  fi
+
+  # ⑤handler陽性: function宣言+アロー定義を数え、コンポーネント・関数呼出し代入を除外して3件。
+  handler_mixed_pos_file="$tmp/handler-mixed-pos.txt"
+  cat > "$handler_mixed_pos_file" <<'EOF'
+function handleClick(event) {
+  doSomething(event);
+}
+
+const handleSubmit = (event) => {
+  doSomethingElse(event);
+};
+
+const handleChange = async (value) => {
+  await save(value);
+};
+
+const MyComponent = () => {
+  return <div />;
+};
+
+const result = doSomething();
+EOF
+  handler_mixed_pos_count="$(count_handler "$handler_mixed_pos_file")"
+  if [ "$handler_mixed_pos_count" = "3" ]; then
+    echo "  [PASS] handler陽性（⑤）: function宣言+アロー定義3件、コンポーネント・呼出し代入を除外"
+  else
+    echo "  [FAIL] handler陽性（⑤）: 期待3件に対し実測=${handler_mixed_pos_count}" >&2
+    rc=1
+  fi
+
+  # ⑤handler陰性: JSXインラインバインディングは0件。
+  handler_inline_neg_file="$tmp/handler-inline-neg.txt"
+  cat > "$handler_inline_neg_file" <<'EOF'
+<Button onClick={() => setOpen(true)}>Open</Button>
+<Input onChange={(e) => setValue(e.target.value)} />
+<Select onSelect={handleSelect} />
+EOF
+  handler_inline_neg_count="$(count_handler "$handler_inline_neg_file")"
+  if [ "$handler_inline_neg_count" = "0" ]; then
+    echo "  [PASS] handler陰性（⑤）: JSXインラインバインディング・prop渡しは0件"
+  else
+    echo "  [FAIL] handler陰性（⑤）: JSXインラインを誤検知（実測=${handler_inline_neg_count} 期待=0）" >&2
     rc=1
   fi
 
