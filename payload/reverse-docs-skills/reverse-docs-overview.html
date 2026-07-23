@@ -158,6 +158,83 @@
   <h2><span class="sec-num">§1</span>ポータルが充実していく仕組み</h2>
   <p>ポータル（<code>index.html</code>）は <code>doc/</code> フォルダ内に実在するファイルだけを検知してカードを動的に生成する。スキルを 1 つ実行して HTML や Markdown を <code>doc/</code> に出力し、<code>build-portal.sh</code> を再実行すると、ポータルに新しいカードが現れる。右列は、ポータル上のどのカテゴリにカードが追加されるかを示す。</p>
   <p class="note">どのスキルをどの順序で実行しても構わない。指揮役（<code>orchestrating-reverse-docs-flow</code>）は最適な順序で自動実行するが、手動で好きなスキルだけ実行してもポータルは正しく組み上がる。「facts」は原本コードから抽出した宣言的契約の事実表を指す。「基準タグ」は、2 環境の完全一致を証明できた時点のコミットに打つ git タグ <code>reverse-baseline/&lt;scope&gt;</code> を指す。</p>
+  <h3>フェーズごとのポータル充実度</h3>
+  <p class="note">下表は各フェーズ完了後にポータルに追加されるカード数を示す。<span class="tag done">+N</span> は当該フェーズで新規追加されるカード。最終的に 6 カテゴリ・約 30 枚のカードが揃った設計ポータルが完成する。</p>
+  <table class="spec">
+    <tr>
+      <th>フェーズ</th>
+      <th>基盤情報</th>
+      <th>規約</th>
+      <th>設計書</th>
+      <th>一覧・設計図</th>
+      <th>マトリクス</th>
+      <th>AI</th>
+      <th>累計</th>
+    </tr>
+    <tr>
+      <td>アーキ調査</td>
+      <td>—</td>
+      <td>—</td>
+      <td>—</td>
+      <td>—</td>
+      <td>—</td>
+      <td>—</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <td>一覧生成</td>
+      <td>—</td>
+      <td>—</td>
+      <td>—</td>
+      <td><span class="tag done">+7</span></td>
+      <td>—</td>
+      <td>—</td>
+      <td>7</td>
+    </tr>
+    <tr>
+      <td>共通文書採録</td>
+      <td>—</td>
+      <td><span class="tag done">+6</span></td>
+      <td><span class="tag done">+5</span></td>
+      <td>7</td>
+      <td>—</td>
+      <td>—</td>
+      <td>18</td>
+    </tr>
+    <tr>
+      <td>基盤ページ生成</td>
+      <td><span class="tag done">+3</span></td>
+      <td>6</td>
+      <td>5</td>
+      <td><span class="tag done">+3</span></td>
+      <td>—</td>
+      <td>—</td>
+      <td>24</td>
+    </tr>
+    <tr>
+      <td>マトリクス・AI</td>
+      <td>3</td>
+      <td>6</td>
+      <td>5</td>
+      <td>10</td>
+      <td><span class="tag done">+4</span></td>
+      <td><span class="tag done">+1</span></td>
+      <td>29</td>
+    </tr>
+    <tr>
+      <td><b>最終形</b></td>
+      <td><b>3</b></td>
+      <td><b>6</b></td>
+      <td><b>5</b></td>
+      <td><b>10</b></td>
+      <td><b>4</b></td>
+      <td><b>1</b></td>
+      <td><b>29</b></td>
+    </tr>
+  </table>
+  <p class="note">カテゴリ名はポータルの実際のセクション名と一致する。件数はサンプル（<code>shared/samples/index.html</code>）の最終形に基づく。対象リポジトリの実態に応じて種別や件数は変わる。</p>
+
+  <h3>工程ごとの詳細（スキルとポータルカテゴリの対応）</h3>
 
   <div class="flowgrid">
     <div>
@@ -175,7 +252,7 @@
         <div class="note">Phase 1B：実在する種別（unit_kinds_present）のみ並列起動（Agent, run_in_background）</div>
       </div>
     </div>
-    <div class="flowgain"><span class="gainlabel">ポータルに追加 ＞ 一覧・設計図</span><code>一覧/&lt;種別&gt;一覧/&lt;種別&gt;一覧.html</code>（実在種別ぶん）と <code>一覧/excluded-kinds.json</code>（対象外種別の記録）</div>
+    <div class="flowgain"><span class="gainlabel">ポータルに追加 ＞ 一覧・設計図</span><ul style="margin:4px 0 0;padding-left:1.2em;font-size:0.88rem"><li>画面一覧</li><li>API一覧</li><li>テーブル一覧</li><li>バッチ一覧</li><li>帳票一覧</li><li>外部連携一覧</li><li>機能一覧（派生）</li></ul><span style="font-size:0.82rem;color:#64748b">実在する種別のみ生成。対象外種別は excluded-kinds.json に記録</span></div>
 
     <div>
       <div class="flowstep">
@@ -183,7 +260,7 @@
         <span class="stepskill">generating-reverse-common-docs</span>
       </div>
     </div>
-    <div class="flowgain"><span class="gainlabel">ポータルに追加 ＞ プロジェクト規約</span><code>プロジェクト共通/</code> の 7 文書（規約 4 種・共通設計書・メッセージ定義書・DESIGN.md）</div>
+    <div class="flowgain"><span class="gainlabel">ポータルに追加 ＞ プロジェクト規約</span><div style="font-size:0.88rem"><b>規約カテゴリ:</b> コーディング規約 / 命名規約 / ディレクトリ構成規約 / コンポーネント設計規約 / レビュー観点表 / テスト方針書<br><b>設計書カテゴリ:</b> 共通設計書 / メッセージ定義書 / データ設計 / UI共通設計 / 基盤設計</div></div>
 
     <div>
       <div class="flowstep">
@@ -192,7 +269,7 @@
         <div class="note">データ源未整備時はスキップしてよい任意工程（contract.md「基盤ページ未生成（任意）」）</div>
       </div>
     </div>
-    <div class="flowgain"><span class="gainlabel">ポータルに追加 ＞ プロジェクト基盤情報</span><code>技術スタック.html</code>・<code>環境構築手順.html</code>・<code>画面遷移図.html</code>・<code>ER図.html</code>・<code>用語辞書.html</code>・<code>リリースノート.html</code>・<code>デザインシステム.html</code>・<code>コンポーネント棚卸し.html</code>・<code>アイコンカタログ.html</code>（いずれも output_dir 直下）</div>
+    <div class="flowgain"><span class="gainlabel">ポータルに追加 ＞ プロジェクト基盤情報</span><div style="font-size:0.88rem"><b>基盤情報カテゴリ:</b> 技術スタック / 環境構築手順 / 用語辞書 / リリースノート<br><b>一覧カテゴリに追加:</b> 画面遷移図 / ER図 / 状態遷移図<br><b>デザインカテゴリ:</b> デザインシステム / コンポーネント棚卸し / アイコンカタログ</div></div>
 
     <div>
       <div class="flowstep">
@@ -232,11 +309,7 @@
       </div>
     </div>
     <div class="flowgain"><span class="gainlabel">ポータルに追加 ＞ 一覧・設計図（画面ごと）</span>
-      <code>一覧/reverse-screen-registry.yml</code>（開通の記帳）／
-      <code>詳細設計/original.png</code>（開通時点の画面キャプチャ）／
-      <code>基本設計/画面基本設計書.md</code>／
-      <code>詳細設計/画面詳細設計書.md</code>・<code>DESIGN.md</code>・観点表／
-      <code>テスト項目書/テストコード/単体/</code>（保存済み単体テストコード）
+      <div style="font-size:0.88rem"><b>画面ごとに追加されるカード:</b><ul style="margin:4px 0 0;padding-left:1.2em"><li>画面基本設計書（基本設計/）</li><li>画面詳細設計書 + DESIGN.md（詳細設計/）</li><li>単体・結合テスト観点表</li><li>テストコード（テスト項目書/）</li><li>画面キャプチャ（original.png）</li></ul></div>
     </div>
     <div class="flowgain"><span class="gainlabel">検証記録（ポータル外）</span>
       <code>verification/screen-&lt;画面ID&gt;/facts/</code>（封印済み facts）／
