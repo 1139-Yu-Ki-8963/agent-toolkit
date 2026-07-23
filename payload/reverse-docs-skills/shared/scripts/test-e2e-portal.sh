@@ -11,7 +11,7 @@
 #   - ポータル index の正本は「<root>/index.html」の 1 つのみ。<root>/../project-portal/
 #     等の正本外配置は探索しない（正本外に置かれた場合はリンク解決 FAIL のままとする。
 #     正本準拠を強制するのがこのテストの役割であり、探索を広げて救済しない）
-#   - AI設定資産・交差ビューのページは存在する場合のみ検査する（不在は SKIP 行を出す。
+#   - AI設定資産・マトリクス・対応表のページは存在する場合のみ検査する（不在は SKIP 行を出す。
 #     生成フローが未対応のページを FAIL にしない）
 #
 # 検査項目（ケースキーは意味語。連番禁止）:
@@ -20,7 +20,7 @@
 #   json-埋め込み妥当  <script type="application/json"> の中身が jq でパース可能か
 #   整合-行数一致     一覧7ページのマニフェスト件数と tbody データ行数の一致
 #   機能-必須JS       一覧7ページの copy-btn/filter-chips/row-detail/csv/URLSearchParams、
-#                     交差ビュー4+AI設定資産の URLSearchParams
+#                     マトリクス・対応表4+AI設定資産の URLSearchParams
 #   退行-行高         一覧7ページの td CSS に white-space: nowrap / text-overflow: ellipsis
 #   退行-縦書き       マトリクス3ページに rotate(180deg) が無く text-orientation が有ること
 #   構造-タグ開閉     table/script/details の開閉数一致（HTMLコメント除外）
@@ -84,7 +84,7 @@ echo "# 一覧レイアウト検出: 一覧/<種別一覧>/ 形式 ${NESTED_COUN
 
 CROSS_PAGES=()
 for f in "${ALL_PAGES[@]}"; do
-  case "$f" in */交差ビュー/*) CROSS_PAGES+=("$f") ;; esac
+  case "$f" in */マトリクス・対応表/*) CROSS_PAGES+=("$f") ;; esac
 done
 
 MATRIX_PAGES=()
@@ -244,9 +244,9 @@ for f in "${LIST_PAGES[@]}"; do
     report PASS "機能-必須JS" "$page" "copy-btn/filter-chips/row-detail/csv/URLSearchParams すべて存在"
   fi
 done
-# 交差ビュー・AI設定資産は存在する場合のみ検査（不在は SKIP。生成フロー未対応を FAIL にしない）
+# マトリクス・対応表・AI設定資産は存在する場合のみ検査（不在は SKIP。生成フロー未対応を FAIL にしない）
 if [ "${#CROSS_PAGES[@]}" -eq 0 ]; then
-  report SKIP "機能-必須JS" "交差ビュー" "ページ不在（生成フロー未対応のため検査対象外）"
+  report SKIP "機能-必須JS" "マトリクス・対応表" "ページ不在（生成フロー未対応のため検査対象外）"
 fi
 for f in ${CROSS_PAGES[@]+"${CROSS_PAGES[@]}"} "$AI_PAGE"; do
   page="$(rel "$f")"
@@ -299,7 +299,7 @@ done
 
 # ---- 検査キー: 退行-縦書き ----
 if [ "${#MATRIX_PAGES[@]}" -eq 0 ]; then
-  report SKIP "退行-縦書き" "交差ビュー" "マトリクスページ不在（生成フロー未対応のため検査対象外）"
+  report SKIP "退行-縦書き" "マトリクス・対応表" "マトリクスページ不在（生成フロー未対応のため検査対象外）"
 fi
 for f in ${MATRIX_PAGES[@]+"${MATRIX_PAGES[@]}"}; do
   page="$(rel "$f")"

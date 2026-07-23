@@ -314,13 +314,13 @@ TEST8HTML
   fi
   rm -rf "$test8_dir"
 
-  echo "--- ケース9: 交差ビュー・AI設定資産カード（実在時のみ出現、全不在時はセクション非表示） ---"
+  echo "--- ケース9: マトリクス・対応表・AI設定資産カード（実在時のみ出現、全不在時はセクション非表示） ---"
   test9_dir="$(mktemp -d)"
   test9_repo="$test9_dir/repo"
   test9_docs="$test9_dir/docs"
   test9_portal="$test9_dir/portal"
-  mkdir -p "$test9_repo" "$test9_docs/交差ビュー/権限画面マトリクス" "$test9_docs/AI設定資産" "$test9_portal"
-  echo '<html><body>perm screen matrix</body></html>' > "$test9_docs/交差ビュー/権限画面マトリクス/権限画面マトリクス.html"
+  mkdir -p "$test9_repo" "$test9_docs/マトリクス・対応表/権限画面マトリクス" "$test9_docs/AI設定資産" "$test9_portal"
+  echo '<html><body>perm screen matrix</body></html>' > "$test9_docs/マトリクス・対応表/権限画面マトリクス/権限画面マトリクス.html"
   echo '<html><body>ai assets</body></html>' > "$test9_docs/AI設定資産/AI設定資産.html"
   "$SCRIPT_DIR/build-portal.sh" "$test9_repo" "$test9_docs" "$test9_portal" 2>/dev/null
   if grep -q '権限画面マトリクス' "$test9_portal/index.html" && grep -q 'AI設定資産' "$test9_portal/index.html" \
@@ -331,7 +331,7 @@ TEST8HTML
     rm -rf "$test9_dir"
     exit 1
   fi
-  # 全不在ケース: 交差ビュー・AI設定資産のセクション自体が出ない
+  # 全不在ケース: マトリクス・対応表・AI設定資産のセクション自体が出ない
   test9b_docs="$test9_dir/docs-empty"
   test9b_portal="$test9_dir/portal-empty"
   mkdir -p "$test9b_docs" "$test9b_portal"
@@ -716,7 +716,7 @@ for key in $FUTURE_ORDER; do
   fi
 done
 
-# --- 4b. 交差ビュー 4 ページ: docs_root/交差ビュー/<名前>/<名前>.html が実在する場合のみカード化 ---
+# --- 4b. マトリクス・対応表 4 ページ: docs_root/マトリクス・対応表/<名前>/<名前>.html が実在する場合のみカード化 ---
 get_cross_label() { case "$1" in permscreen) echo "権限画面マトリクス";; permfeature) echo "権限機能マトリクス";; crud) echo "CRUD図";; trace) echo "追跡可能性";; esac; }
 get_cross_icon() { case "$1" in permscreen) echo "lock";; permfeature) echo "key";; crud) echo "grid_on";; trace) echo "route";; esac; }
 get_cross_desc() { case "$1" in permscreen) echo "ロール×画面の行×列で閲覧可否の関係を示すマトリクス。";; permfeature) echo "ロール×機能の行×列で操作可否（CRUD）の関係を示すマトリクス。";; crud) echo "機能×テーブルの行×列でCRUD操作の関係を示すマトリクス。";; trace) echo "画面-API-テーブルの対応連鎖を行×列で追跡する対応表。";; esac; }
@@ -727,10 +727,10 @@ for key in $CROSS_ORDER; do
   label="$(get_cross_label "$key")"
   icon="$(get_cross_icon "$key")"
   desc="$(get_cross_desc "$key")"
-  html_file="$DOCS_ROOT/交差ビュー/$label/$label.html"
+  html_file="$DOCS_ROOT/マトリクス・対応表/$label/$label.html"
 
   if [ -f "$html_file" ]; then
-    href="$docs_relative/交差ビュー/$label/$label.html"
+    href="$docs_relative/マトリクス・対応表/$label/$label.html"
     [ -n "$cross_tools_json" ] && cross_tools_json="$cross_tools_json,"
     cross_tools_json="$cross_tools_json{\"title\":\"$label\",\"icon\":\"$icon\",\"href\":\"$href\",\"desc\":\"$desc\",\"count\":\"詳細を見る\"}"
   fi
@@ -804,7 +804,7 @@ if [ "$common_count" -gt 0 ]; then
 fi
 CATEGORIES_JSON="$CATEGORIES_JSON{\"id\":\"list\",\"title\":\"一覧・設計図\",\"icon\":\"list_alt\",\"sub\":\"画面・API・テーブル等の種別一覧と、画面遷移図・ER図\",\"tools\":[$list_tools_json]}"
 if [ -n "$cross_tools_json" ]; then
-  CATEGORIES_JSON="$CATEGORIES_JSON,{\"id\":\"cross\",\"title\":\"交差ビュー\",\"icon\":\"grid_view\",\"sub\":\"画面・機能・テーブル・権限の関係を行×列で示すマトリクス\",\"tools\":[$cross_tools_json]}"
+  CATEGORIES_JSON="$CATEGORIES_JSON,{\"id\":\"cross\",\"title\":\"マトリクス・対応表\",\"icon\":\"grid_view\",\"sub\":\"画面・機能・テーブル・権限の関係を行×列で示すマトリクス\",\"tools\":[$cross_tools_json]}"
 fi
 if [ -n "$ai_tools_json" ]; then
   CATEGORIES_JSON="$CATEGORIES_JSON,{\"id\":\"ai\",\"title\":\"AI設定資産\",\"icon\":\"smart_toy\",\"sub\":\"rules・skills・サブエージェント・hooks の設定を俯瞰する資料\",\"tools\":[$ai_tools_json]}"

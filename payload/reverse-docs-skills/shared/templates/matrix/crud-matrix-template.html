@@ -2,7 +2,7 @@
 <!--
   CRUD図.HTML の静的シェル(テンプレート)
 
-  使い方(交差ビュー: 機能×テーブル):
+  使い方(マトリクス・対応表: 機能×テーブル):
     将来のビルドスクリプトが本テンプレートを土台に、機能一覧・テーブル一覧の
     マニフェストJSONを突合してプレースホルダ・注入マーカーを機械的に置換し、
     決定的にHTMLを生成する。
@@ -19,7 +19,7 @@
     GENERATED_AT (生成日時マーカー)   : ISO8601 生成日時
     DATA_SOURCE (データ源マーカー)    : 突合元の機能一覧・テーブル一覧マニフェストのパス
     MATRIX_JSON (マトリクスJSON埋め込みマーカー・HTMLコメント形式) :
-      script#matrix-manifest に交差ビューJSONをそのまま埋め込む(二重管理・ドリフト禁止)。
+      script#matrix-manifest にマトリクス・対応表JSONをそのまま埋め込む(二重管理・ドリフト禁止)。
       形式: { "tables": [{"physicalName","logicalName"}...],
               "features": [{"featureId","featureName","cells":{"<物理名>":"CRUD文字列"}}...] }
 
@@ -233,9 +233,9 @@
   </div>
   <table class="meta-table">
     <tr><td>データ源</td><td><code>{{DATA_SOURCE}}</code></td></tr>
-    <tr><td>種別</td><td>交差ビュー（機能×テーブル）</td></tr>
+    <tr><td>種別</td><td>マトリクス・対応表（機能×テーブル）</td></tr>
   </table>
-  <p class="purpose">「このテーブルに書き込むのはどの機能か」「テーブル変更の影響範囲はどこまでか」に答える交差ビュー。</p>
+  <p class="purpose">「このテーブルに書き込むのはどの機能か」「テーブル変更の影響範囲はどこまでか」に答えるマトリクス・対応表。</p>
 
   <div class="summary-tiles">
     <div class="tile"><strong id="tile-feature-count">0</strong>機能数</div>

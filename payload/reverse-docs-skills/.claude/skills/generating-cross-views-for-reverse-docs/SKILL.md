@@ -1,31 +1,31 @@
 ---
 name: generating-cross-views-for-reverse-docs
-description: "権限×画面・権限×機能・CRUD図・追跡可能性の交差ビュー4ページとAI設定資産ページをmanifest群から機械生成する。 TRIGGER when: 交差ビュー生成、権限マトリクス作成、CRUD図作成、追跡可能性ページ作成、AI設定資産ページ作成。 SKIP: 画面/API/テーブル/機能一覧自体の作成（→各対応する一覧生成スキル）、往復検証/同期/実装。"
+description: "権限×画面・権限×機能・CRUD図・追跡可能性のマトリクス・対応表4ページとAI設定資産ページをmanifest群から機械生成する。 TRIGGER when: マトリクス・対応表生成、権限マトリクス作成、CRUD図作成、追跡可能性ページ作成、AI設定資産ページ作成。 SKIP: 画面/API/テーブル/機能一覧自体の作成（→各対応する一覧生成スキル）、往復検証/同期/実装。"
 invocation: generating-cross-views-for-reverse-docs
 type: transform
 allowed-tools: [Bash, Read, Write, Grep, Glob, AskUserQuestion, TaskCreate, TaskUpdate]
 ---
 
-# 交差ビュー生成スキル
+# マトリクス・対応表生成スキル
 
-工程全体は orchestrating-reverse-docs-flow が案内する。本スキルはポータルの「交差ビュー」カテゴリ4ページ（権限画面マトリクス・権限機能マトリクス・CRUD図・追跡可能性）と「AI設定資産」カテゴリ1ページの、あわせて5ページを担い、単独起動できる（起動引数を渡せば動く）。
+工程全体は orchestrating-reverse-docs-flow が案内する。本スキルはポータルの「マトリクス・対応表」カテゴリ4ページ（権限画面マトリクス・権限機能マトリクス・CRUD図・追跡可能性）と「AI設定資産」カテゴリ1ページの、あわせて5ページを担い、単独起動できる（起動引数を渡せば動く）。
 
 既に確立済みの種別別一覧（画面一覧・API一覧・テーブル一覧・機能一覧）の manifest を突き合わせ、権限・CRUD・画面-API-テーブルの連鎖関係を導出する。**本スキルはソースコードを新規に読み解いて画面・API・テーブルを検出する一覧生成の役割は持たない**。既存 manifest の再構成と、対象リポジトリの `.claude/` 配下（AI設定資産のみ）の走査に限定する。
 
 ## 使用タイミング
 
-- 画面一覧.html・API一覧.html が確定済みで、ポータルに交差ビュー・AI設定資産のカードを追加したいとき
-- 起動引数: `target_repo_path`（対象リポジトリの絶対パス）・`docs_root`（一覧HTML所在 / 交差ビュー・AI設定資産の出力先）・`portal_output_dir`（任意）
+- 画面一覧.html・API一覧.html が確定済みで、ポータルにマトリクス・対応表・AI設定資産のカードを追加したいとき
+- 起動引数: `target_repo_path`（対象リポジトリの絶対パス）・`docs_root`（一覧HTML所在 / マトリクス・対応表・AI設定資産の出力先）・`portal_output_dir`（任意）
 - `portal_output_dir` を指定した場合、生成後に `build-portal.sh` を再実行してカードへ反映する
 
 ## 出力先（固定・`build-portal.sh` の `get_cross_label`/`CROSS_ORDER` と同値）
 
 | page-type | 出力パス |
 |---|---|
-| permission-screen | `<docs_root>/交差ビュー/権限画面マトリクス/権限画面マトリクス.html` |
-| permission-function | `<docs_root>/交差ビュー/権限機能マトリクス/権限機能マトリクス.html` |
-| crud | `<docs_root>/交差ビュー/CRUD図/CRUD図.html` |
-| traceability | `<docs_root>/交差ビュー/追跡可能性/追跡可能性.html` |
+| permission-screen | `<docs_root>/マトリクス・対応表/権限画面マトリクス/権限画面マトリクス.html` |
+| permission-function | `<docs_root>/マトリクス・対応表/権限機能マトリクス/権限機能マトリクス.html` |
+| crud | `<docs_root>/マトリクス・対応表/CRUD図/CRUD図.html` |
+| traceability | `<docs_root>/マトリクス・対応表/追跡可能性/追跡可能性.html` |
 | ai-assets | `<docs_root>/AI設定資産/AI設定資産.html` |
 
 `build-portal.sh` はこの5パスの実在有無だけでカードを出す（不在時はセクション自体が非表示になる fail-safe）。パスをこの表からずらすとカードが無言で出ない事故になるため厳守する。
@@ -43,7 +43,7 @@ allowed-tools: [Bash, Read, Write, Grep, Glob, AskUserQuestion, TaskCreate, Task
 | ページHTML生成 | `../../../shared/scripts/matrix/build-matrix-pages.sh` | page-type ごとにテンプレートへ data.json を埋め込み、整合検証（必須トップレベルキー）も兼ねる |
 | ポータル再生成（任意） | `../../../shared/scripts/build-portal.sh` | 生成済みページをカードへ反映 |
 
-データスキーマの正本は `shared/references/manifest-schema-extensions.md`（種別ごとの追加フィールド定義・交差ビュー用新規データファイル定義・AI設定資産ページのデータ源）。`build-matrix-pages.sh` の必須トップレベルキー検査もこの定義と一致させてある（二重管理・ドリフト禁止）。
+データスキーマの正本は `shared/references/manifest-schema-extensions.md`（種別ごとの追加フィールド定義・マトリクス・対応表用新規データファイル定義・AI設定資産ページのデータ源）。`build-matrix-pages.sh` の必須トップレベルキー検査もこの定義と一致させてある（二重管理・ドリフト禁止）。
 
 ## 進捗管理（必須手順）
 
@@ -109,9 +109,9 @@ allowed-tools: [Bash, Read, Write, Grep, Glob, AskUserQuestion, TaskCreate, Task
 - **Step 1** — 4種のデータ（Phase 2 の3ファイル + Phase 3 の1ファイル）を、`build-matrix-pages.sh` で対応するテンプレートへ埋め込む。**手作業でのプレースホルダ置換は禁止する**（HTML生成は必ずスクリプト経由の決定的処理で行う）。完了条件: 生成可能な全ページがそれぞれの固定パス（本SKILL冒頭の出力先表）に出力済み
 
   ```bash
-  ../../../shared/scripts/matrix/build-matrix-pages.sh permission-screen permission-matrix.json "<docs_root>/交差ビュー/権限画面マトリクス/権限画面マトリクス.html"
-  ../../../shared/scripts/matrix/build-matrix-pages.sh crud crud-matrix.json "<docs_root>/交差ビュー/CRUD図/CRUD図.html"
-  ../../../shared/scripts/matrix/build-matrix-pages.sh traceability traceability.json "<docs_root>/交差ビュー/追跡可能性/追跡可能性.html"
+  ../../../shared/scripts/matrix/build-matrix-pages.sh permission-screen permission-matrix.json "<docs_root>/マトリクス・対応表/権限画面マトリクス/権限画面マトリクス.html"
+  ../../../shared/scripts/matrix/build-matrix-pages.sh crud crud-matrix.json "<docs_root>/マトリクス・対応表/CRUD図/CRUD図.html"
+  ../../../shared/scripts/matrix/build-matrix-pages.sh traceability traceability.json "<docs_root>/マトリクス・対応表/追跡可能性/追跡可能性.html"
   ../../../shared/scripts/matrix/build-matrix-pages.sh ai-assets ai-assets-data.json "<docs_root>/AI設定資産/AI設定資産.html"
   ```
 
@@ -131,7 +131,7 @@ allowed-tools: [Bash, Read, Write, Grep, Glob, AskUserQuestion, TaskCreate, Task
 | Phase 2 | 拡張画面/APIマニフェストが生成され、`permission-matrix.json`・`crud-matrix.json`・`traceability.json` が生成済み |
 | Phase 3 | `ai-assets-data.json` が生成済み |
 | Phase 4 | 生成可能な全ページ（permission-screen / crud / traceability / ai-assets は必ず、permission-function はデータ形状が揃った場合のみ）が固定パスに出力され、指定時は `build-portal.sh` の再実行が完了している |
-| **Goal** | 交差ビュー・AI設定資産のうち生成可能なページがすべて生成され、ポータルのカードへ反映されている。permission-function を未生成のまま終える場合はその理由が完了報告に明記されている |
+| **Goal** | マトリクス・対応表・AI設定資産のうち生成可能なページがすべて生成され、ポータルのカードへ反映されている。permission-function を未生成のまま終える場合はその理由が完了報告に明記されている |
 
 ## 返却ブロック
 
@@ -154,7 +154,7 @@ allowed-tools: [Bash, Read, Write, Grep, Glob, AskUserQuestion, TaskCreate, Task
 
 ## 予想を裏切る挙動
 
-- 出力先は種別ごとに `交差ビュー/<ラベル>/<ラベル>.html`（AI設定資産のみ `AI設定資産/AI設定資産.html` で専用フォルダ名がラベルと一致しない）。`build-portal.sh` の `get_cross_label`/`CROSS_ORDER` 固定出力名仕様に従う
+- 出力先は種別ごとに `マトリクス・対応表/<ラベル>/<ラベル>.html`（AI設定資産のみ `AI設定資産/AI設定資産.html` で専用フォルダ名がラベルと一致しない）。`build-portal.sh` の `get_cross_label`/`CROSS_ORDER` 固定出力名仕様に従う
 - **permission-function（権限機能マトリクス）は既知のデータ形状ギャップを持つ**。`build-matrix-data.sh` が導出する `permission-matrix.json` は `roles`（文字列配列）と `features[]`（`unitKey`/`crud` の2フィールドのみ）を持つが、`permission-function-matrix-template.html` が要求する data.json は `roles: [{key,name}...]` と `functions: [{functionKey,functionName,category,permissions}...]` の形状であり、両者は互換しない（`functionName`・`category` に対応する抽出元がスキーマ定義上どこにも存在しない）。`build-matrix-pages.sh --self-test` の連結ケースが permission-screen/crud/traceability の3種のみを対象とし permission-function を意図的に除外しているのも同じ理由による。本スキールはこのギャップを推測で埋めた変換を行わない。生成できる4ページ（permission-screen/crud/traceability/ai-assets）のみ確実に生成し、permission-function は `skipped_pages` に理由を添えて報告する
 - feature-manifest（機能一覧）は任意入力であり、不在でも他の交差データは生成できる（`build-matrix-data.sh` の fail-safe。feature 関連フィールドのみ空扱いになる）
 - `portal_output_dir` 未指定時は `build-portal.sh` を実行しない。生成済みページはそのまま残り、次回ポータル生成時に自動でカード化される
@@ -171,11 +171,11 @@ allowed-tools: [Bash, Read, Write, Grep, Glob, AskUserQuestion, TaskCreate, Task
 
 **保守責任者**: 人手（ユーザー）
 
-**廃棄条件**: 交差ビュー・AI設定資産ページの生成が別基盤へ移行した時、または対応テンプレート群が廃止された時
+**廃棄条件**: マトリクス・対応表・AI設定資産ページの生成が別基盤へ移行した時、または対応テンプレート群が廃止された時
 
 ### permission-function を推測変換しない判断
 
-**必要性**: `build-matrix-data.sh` の出力とテンプレートの要求形状が一致しないことを自己テスト（連結ケースの意図的除外）から確認済みである。ここで unitKey→functionKey・category の穴埋め等の変換をClaude自身が推測で行うと、根拠のないfunctionName/categoryが交差ビューに混入し、往復検証の対象外である本スキルが誤情報を生成する側になる。
+**必要性**: `build-matrix-data.sh` の出力とテンプレートの要求形状が一致しないことを自己テスト（連結ケースの意図的除外）から確認済みである。ここで unitKey→functionKey・category の穴埋め等の変換をClaude自身が推測で行うと、根拠のないfunctionName/categoryがマトリクス・対応表に混入し、往復検証の対象外である本スキルが誤情報を生成する側になる。
 
 **代替案を採用しなかった理由**:
 - 推測での変換実装: 抽出元が定義されていない値（category等）を捏造することになり、「manifest外参照は捏造しない」という他の生成スキル群の設計原則に反する
@@ -191,5 +191,5 @@ allowed-tools: [Bash, Read, Write, Grep, Glob, AskUserQuestion, TaskCreate, Task
 
 ## 参照資料
 
-- `../../../shared/references/manifest-schema-extensions.md` — 種別ごとの追加フィールド定義・交差ビュー用新規データファイル定義・AI設定資産ページのデータ源
+- `../../../shared/references/manifest-schema-extensions.md` — 種別ごとの追加フィールド定義・マトリクス・対応表用新規データファイル定義・AI設定資産ページのデータ源
 - `../../../shared/scripts/matrix/build-matrix-pages.sh` — page-type→テンプレート・必須キーの対応表（正本コメント）

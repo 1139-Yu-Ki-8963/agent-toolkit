@@ -191,7 +191,7 @@
         </div>
 
         <div class="col-right">
-          <div style="font-size:12px;font-weight:700;color:var(--ink);margin-bottom:2px;">全画面構成（現行3層 + 構想中の交差ビュー層）</div>
+          <div style="font-size:12px;font-weight:700;color:var(--ink);margin-bottom:2px;">全画面構成（現行3層 + 構想中のマトリクス・対応表層）</div>
 
           <div class="hierarchy">
             <div style="text-align:center;">
@@ -223,7 +223,7 @@
             </div>
 
             <div class="h-section h-section--planned">
-              <div class="h-section-title"><span class="h-badge h-badge--planned">構想中</span> 交差ビュー — 行 × 列 = 関係の<wbr>マトリクス</div>
+              <div class="h-section-title"><span class="h-badge h-badge--planned">構想中</span> マトリクス・対応表 — 行 × 列 = 関係の<wbr>マトリクス</div>
               <div class="h-items">
                 <span class="h-item">権限×画面マトリクス</span>
                 <span class="h-item">権限×機能マトリクス（CRUD）</span>
@@ -368,10 +368,10 @@
       <div class="slide-meta"></div>
     </section>
 
-    <!-- ====== Page 3: 交差ビュー（マトリクス）の設計 ====== -->
+    <!-- ====== Page 3: マトリクス・対応表（マトリクス）の設計 ====== -->
     <section class="slide-page">
       <header class="slide-header">
-        <span class="slide-eyebrow">交差ビュー設計</span>
+        <span class="slide-eyebrow">マトリクス・対応表設計</span>
         <h1 class="slide-title">フラット表では<wbr>答えられない<wbr>質問に<wbr>マトリクスで<wbr>答える</h1>
         <p class="slide-subtitle">一覧は「1行 = 1エンティティ」。<wbr>2つの<wbr>エンティティの<wbr>関係を<wbr>問う質問には<wbr>「行 × 列 = 関係」の<wbr>専用ページが<wbr>必要</p>
       </header>
@@ -450,7 +450,7 @@
         </div>
       </div>
 
-      <p style="font-size:10.5px;color:var(--ink-2);line-height:1.5;"><strong style="color:var(--ink)">配置の設計判断:</strong> 交差ビューは一覧ページの列に押し込まず、画面遷移図・ER図と同格の独立ページとする。前提としてマニフェスト JSON への権限情報・API-テーブル対応の追加（スキーマ拡張）が必要。</p>
+      <p style="font-size:10.5px;color:var(--ink-2);line-height:1.5;"><strong style="color:var(--ink)">配置の設計判断:</strong> マトリクス・対応表は一覧ページの列に押し込まず、画面遷移図・ER図と同格の独立ページとする。前提としてマニフェスト JSON への権限情報・API-テーブル対応の追加（スキーマ拡張）が必要。</p>
       <div class="slide-meta"></div>
     </section>
 

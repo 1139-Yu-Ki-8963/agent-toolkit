@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 交差ビュー用データ生成エンジン: 拡張済みマニフェスト群から permission-matrix.json・
+# マトリクス・対応表用データ生成エンジン: 拡張済みマニフェスト群から permission-matrix.json・
 # crud-matrix.json・traceability.json の 3 ファイルを決定的に導出する。
 # ソースコードは読まない(拡張済みマニフェストのみを入力とする導出エンジン)。
 #
@@ -17,7 +17,7 @@
 #     table-manifest:   units[].unitKey(targetTables の収載確認のみ。出力には影響しない)
 #
 # 出力契約: <output-dir>/permission-matrix.json・crud-matrix.json・traceability.json の
-#   3 ファイル(スキーマは manifest-schema-extensions.md「交差ビュー用の新規データファイル
+#   3 ファイル(スキーマは manifest-schema-extensions.md「マトリクス・対応表用の新規データファイル
 #   定義」に完全準拠。同スキーマは shared/templates/matrix/ の各テンプレート内 JS が
 #   参照するトップレベルキー・フィールド名と一致させている。二重管理・ドリフト禁止)。
 #
