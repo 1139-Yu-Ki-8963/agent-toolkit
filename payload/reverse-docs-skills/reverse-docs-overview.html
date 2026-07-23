@@ -133,7 +133,7 @@
 
 <header>
   <h1>リバース工程全体ガイド</h1>
-  <p>既存コードから設計書一式を復元し、その設計書だけでコードを再現できることを証明するまでの全工程を 1 枚で俯瞰する。スキルを 1 つずつ実行するたびに <code>docs_root</code>（設計書一式の置き場ルート）へ成果物が積み上がり、最後に納品一覧が完成する。</p>
+  <p>各スキルは単体でも使え、テンプレートから 1 枚の HTML を生成する。ポータルサイト（index.html）が存在する場合、生成ページはポータルのカードとして階層化される。出力先は <code>output_dir</code>（既定値: <code>doc/</code>）に集約される。</p>
 
   <table class="meta-table">
     <tr><td>正本</td><td>このファイル（<code>reverse-docs-overview.html</code>）</td></tr>
@@ -156,7 +156,7 @@
 
 <section id="s1">
   <h2><span class="sec-num">§1</span>工程フロー図（成果物の積み上がり）</h2>
-  <p>指揮役（<code>orchestrating-reverse-docs-flow</code>）が左列の工程を上から順に進める。各工程が完了するたびに、右列の成果物が <code>docs_root</code> に増える。緑枠の「ユニット反復」は画面 1 つごとに繰り返す。</p>
+  <p>指揮役（<code>orchestrating-reverse-docs-flow</code>）が左列の工程を上から順に進める。各工程が完了するたびに、右列の成果物が <code>output_dir</code> に増える。緑枠の「ユニット反復」は画面 1 つごとに繰り返す。各スキルはポータル無しでも単独で 1 枚の HTML を生成できる。</p>
   <p class="note">本文書で使う「facts」は、原本コードから抽出した宣言的契約の事実表（項目・分岐・呼び出しの数まで数え上げた一次資料）を指す。「基準タグ」は、2 環境の完全一致を証明できた時点のコミットに打つ git タグ <code>reverse-baseline/&lt;scope&gt;</code> を指す。</p>
   <p class="note">Phase 0（ヒアリング）で対象パス・出力先・画面スコープを確定後、Phase 1 で状態判定を行い全工程をタスク一覧として一括登録する（マニフェスト先出し方式）。「一覧未生成」状態の解決は Phase 1B で、実在する種別（unit_kinds_present）の一覧生成スキルのみを Agent ツールで並列起動する。基本設計と詳細設計も同じ並列パターンで実行する。画面一覧の確立後、Phase 1C で機能一覧（派生一覧）を生成する。</p>
 
@@ -167,7 +167,7 @@
         <span class="stepskill">surveying-architecture-for-reverse-docs</span>
       </div>
     </div>
-    <div class="flowgain"><span class="gainlabel">docs_root に増えるもの</span><code>プロジェクト共通/アーキテクチャ調査書.md</code>（実在する種別の判定を含む・機械検証で確定）</div>
+    <div class="flowgain"><span class="gainlabel">output_dir に増えるもの</span><code>プロジェクト共通/アーキテクチャ調査書.md</code>（実在する種別の判定を含む・機械検証で確定）</div>
 
     <div>
       <div class="flowstep">
@@ -176,7 +176,7 @@
         <div class="note">Phase 1B：実在する種別（unit_kinds_present）のみ並列起動（Agent, run_in_background）</div>
       </div>
     </div>
-    <div class="flowgain"><span class="gainlabel">docs_root に増えるもの</span><code>一覧/&lt;種別&gt;一覧/&lt;種別&gt;一覧.html</code>（実在種別ぶん）と <code>一覧/excluded-kinds.json</code>（対象外種別の記録）</div>
+    <div class="flowgain"><span class="gainlabel">output_dir に増えるもの</span><code>一覧/&lt;種別&gt;一覧/&lt;種別&gt;一覧.html</code>（実在種別ぶん）と <code>一覧/excluded-kinds.json</code>（対象外種別の記録）</div>
 
     <div>
       <div class="flowstep">
@@ -184,7 +184,7 @@
         <span class="stepskill">generating-reverse-common-docs</span>
       </div>
     </div>
-    <div class="flowgain"><span class="gainlabel">docs_root に増えるもの</span><code>プロジェクト共通/</code> の 7 文書（規約 4 種・共通設計書・メッセージ定義書・DESIGN.md）</div>
+    <div class="flowgain"><span class="gainlabel">output_dir に増えるもの</span><code>プロジェクト共通/</code> の 7 文書（規約 4 種・共通設計書・メッセージ定義書・DESIGN.md）</div>
 
     <div>
       <div class="flowstep">
@@ -193,7 +193,7 @@
         <div class="note">データ源未整備時はスキップしてよい任意工程（contract.md「基盤ページ未生成（任意）」）</div>
       </div>
     </div>
-    <div class="flowgain"><span class="gainlabel">docs_root に増えるもの</span><code>技術スタック.html</code>・<code>環境構築手順.html</code>・<code>画面遷移図.html</code>・<code>ER図.html</code>・<code>用語辞書.html</code>・<code>リリースノート.html</code>・<code>デザインシステム.html</code>・<code>コンポーネント棚卸し.html</code>・<code>アイコンカタログ.html</code>（いずれも docs_root 直下）</div>
+    <div class="flowgain"><span class="gainlabel">output_dir に増えるもの</span><code>技術スタック.html</code>・<code>環境構築手順.html</code>・<code>画面遷移図.html</code>・<code>ER図.html</code>・<code>用語辞書.html</code>・<code>リリースノート.html</code>・<code>デザインシステム.html</code>・<code>コンポーネント棚卸し.html</code>・<code>アイコンカタログ.html</code>（いずれも output_dir 直下）</div>
 
     <div>
       <div class="flowstep">
@@ -202,7 +202,7 @@
         <div class="note">Phase 4A Step 4A-1：PC の OS・ツール有無を調査し env-config.json に出力</div>
       </div>
     </div>
-    <div class="flowgain none"><span class="gainlabel">docs_root には増えない</span><code>env-config.json</code> が生成される（ポータル生成の前提データ）</div>
+    <div class="flowgain none"><span class="gainlabel">output_dir には増えない</span><code>env-config.json</code> が生成される（ポータル生成の前提データ）</div>
 
     <div>
       <div class="flowstep">
@@ -211,7 +211,7 @@
         <div class="note">Phase 4A Step 4A-2：コード行数・テスト件数を計測し code-metrics.json に出力</div>
       </div>
     </div>
-    <div class="flowgain none"><span class="gainlabel">docs_root には増えない</span><code>code-metrics.json</code> が生成される（ポータルのメトリクスカード表示用）</div>
+    <div class="flowgain none"><span class="gainlabel">output_dir には増えない</span><code>code-metrics.json</code> が生成される（ポータルのメトリクスカード表示用）</div>
 
     <div>
       <div class="flowstep">
@@ -219,7 +219,7 @@
         <span class="stepskill">syncing-reverse-env（mode=setup）</span>
       </div>
     </div>
-    <div class="flowgain none"><span class="gainlabel">docs_root には増えない</span>オリジナルコード環境・リバースコード環境の 2 worktree と固定ポートが確立する（対象コードリポジトリ側の資産）</div>
+    <div class="flowgain none"><span class="gainlabel">output_dir には増えない</span>オリジナルコード環境・リバースコード環境の 2 worktree と固定ポートが確立する（対象コードリポジトリ側の資産）</div>
 
     <div>
       <div class="flowstep loop">
@@ -232,14 +232,14 @@
         </ul>
       </div>
     </div>
-    <div class="flowgain"><span class="gainlabel">docs_root に増えるもの</span>
+    <div class="flowgain"><span class="gainlabel">output_dir に増えるもの</span>
       <code>一覧/reverse-screen-registry.yml</code>（開通の記帳）／
       <code>詳細設計/original.png</code>（開通時点の画面キャプチャ）／
       <code>基本設計/画面基本設計書.md</code>／
       <code>詳細設計/画面詳細設計書.md</code>・<code>DESIGN.md</code>・観点表／
       <code>テスト項目書/テストコード/単体/</code>（保存済み単体テストコード）
     </div>
-    <div class="flowgain"><span class="gainlabel">verification/ に増えるもの（docs_root の外）</span>
+    <div class="flowgain"><span class="gainlabel">verification/ に増えるもの（output_dir の外）</span>
       <code>verification/screen-&lt;画面ID&gt;/facts/</code>（封印済み facts）／
       <code>verification/screen-&lt;画面ID&gt;/単体-&lt;ファイル名&gt;/</code>（ファイル単位検証の修正指示書）
     </div>
@@ -250,7 +250,7 @@
         <span class="stepskill">syncing-reverse-env（mode=setup → sync）</span>
       </div>
     </div>
-    <div class="flowgain none"><span class="gainlabel">docs_root には増えない</span>基準タグ <code>reverse-baseline/&lt;scope&gt;</code> が対象コードリポジトリに確立する（設計書検証の土台）</div>
+    <div class="flowgain none"><span class="gainlabel">output_dir には増えない</span>基準タグ <code>reverse-baseline/&lt;scope&gt;</code> が対象コードリポジトリに確立する（設計書検証の土台）</div>
 
     <div>
       <div class="flowstep">
@@ -258,7 +258,7 @@
         <span class="stepskill">rebuilding-code-from-docs（mode=implement）</span>
       </div>
     </div>
-    <div class="flowgain none"><span class="gainlabel">docs_root には増えない</span>設計書だけを見た再実装コードがリバースコード環境に入り、凍結コミット（freeze_commit）で固定される</div>
+    <div class="flowgain none"><span class="gainlabel">output_dir には増えない</span>設計書だけを見た再実装コードがリバースコード環境に入り、凍結コミット（freeze_commit）で固定される</div>
 
     <div>
       <div class="flowstep">
@@ -274,7 +274,7 @@
         <span class="stepskill">rebuilding-code-from-docs（mode=judge）</span>
       </div>
     </div>
-    <div class="flowgain"><span class="gainlabel">verification/ に増えるもの（docs_root の外）</span><code>verification/screen-&lt;画面ID&gt;/&lt;timestamp&gt;/修正指示書.md</code>・<code>最終報告.md</code>。不一致は NG 帰着 3 系統（<code>shared/references/リバース工程設計.md</code>）へ配線する</div>
+    <div class="flowgain"><span class="gainlabel">verification/ に増えるもの（output_dir の外）</span><code>verification/screen-&lt;画面ID&gt;/&lt;timestamp&gt;/修正指示書.md</code>・<code>最終報告.md</code>。不一致は NG 帰着 3 系統（<code>shared/references/リバース工程設計.md</code>）へ配線する</div>
 
     <div>
       <div class="flowstep last">
@@ -288,7 +288,7 @@
 
 <section id="s2">
   <h2><span class="sec-num">§2</span>スキル→成果物対応表</h2>
-  <p>指揮役 1 つを含む全 25 スキルのうち、指揮役が仲介する子スキル 24 個の一覧。状態キーは指揮役の状態判定表（contract.md）で当該スキルの起動条件となる状態、返却 status は各スキルが返す判定値、主成果物は完了時に確立する代表的な生成物を示す。個別ガイドがあるスキルはスキル名からたどれる。</p>
+  <p>指揮役 1 つを含む全 34 スキルのうち、指揮役が仲介する子スキル 33 個の一覧。状態キーは指揮役の状態判定表（contract.md）で当該スキルの起動条件となる状態、返却 status は各スキルが返す判定値、主成果物は完了時に確立する代表的な生成物を示す。個別ガイドがあるスキルはスキル名からたどれる。</p>
   <table class="spec">
     <tr><th>スキル</th><th>状態キー</th><th>返却 status</th><th>主成果物</th></tr>
     <tr>
@@ -350,6 +350,24 @@
       <td>派生一覧未生成（任意）</td>
       <td><code>DONE | ERROR</code></td>
       <td>一覧/テスト観点表/テスト観点表.html</td>
+    </tr>
+    <tr>
+      <td><code>generating-cross-views-for-reverse-docs</code></td>
+      <td>マトリクス・対応表（Phase 1D・機能一覧確立後）</td>
+      <td><code>DONE | ERROR</code></td>
+      <td>権限×画面・権限×機能・CRUD図・追跡可能性の 4 ページ + AI設定資産ページ</td>
+    </tr>
+    <tr>
+      <td><code>generating-entity-state-for-reverse-docs</code></td>
+      <td>状態遷移図未生成（任意）</td>
+      <td><code>DONE | ERROR</code></td>
+      <td>状態遷移図.html</td>
+    </tr>
+    <tr>
+      <td><code>generating-sequence-diagram-for-reverse-docs</code></td>
+      <td>シーケンス図未生成（任意）</td>
+      <td><code>DONE | ERROR</code></td>
+      <td>画面フォルダに操作単位のシーケンス図.html</td>
     </tr>
     <tr>
       <td><a href=".claude/skills/generating-reverse-common-docs/references/generating-reverse-common-docs-guide.html"><code>generating-reverse-common-docs</code></a></td>
@@ -477,14 +495,14 @@
 
 <section id="s3">
   <h2><span class="sec-num">§3</span>納品物ツリー最終形</h2>
-  <p><code>docs_root</code> 配下の最終形。各行の薄い文字は生成スキル、右端は実装状況。実装状況の凡例は次のとおり（Cycle 番号の正本は <code>shared/references/納品物フォルダ体系.md</code>）。</p>
+  <p><code>output_dir</code> 配下の最終形。各行の薄い文字は生成スキル、右端は実装状況。実装状況の凡例は次のとおり（Cycle 番号の定義は <code>shared/references/納品物フォルダ体系.md</code>）。</p>
   <p>
     <span class="tag done">済</span> 現行スキルで生成できる ／
     <span class="tag planned">段階計画 Cycle 1〜3</span> API・テーブル・バッチ・帳票・外部連携の詳細設計書群（未実装）／
     <span class="tag planned">段階計画 Cycle 4</span> 上位抽象化スキルが担う基本設計・要件定義文書群（未実装）
   </p>
   <ul class="tree">
-    <li><span class="node dir">&lt;docs_root&gt;/</span>
+    <li><span class="node dir">&lt;output_dir&gt;/</span>
       <ul>
         <li><span class="node dir">一覧/</span>
           <ul>
@@ -559,7 +577,7 @@
       </ul>
     </li>
   </ul>
-  <p class="note">ツリーの構成正本は <code>shared/references/納品物フォルダ体系.md</code>。検証記録（facts・ファイル単位検証記録・往復検証の証跡）は納品物ではないため <code>docs_root</code> の外、<code>docs_root</code> と同階層の <code>verification/</code> フォルダに格納する。パスの詳細は同ファイルの「検証記録（verification/）」節を参照。</p>
+  <p class="note">ツリーの構成定義は <code>shared/references/納品物フォルダ体系.md</code>。検証記録（facts・ファイル単位検証記録・往復検証の証跡）は納品物ではないため <code>output_dir</code> の外、<code>output_dir</code> と同階層の <code>verification/</code> フォルダに格納する。パスの詳細は同ファイルの「検証記録（verification/）」節を参照。</p>
 </section>
 
 <section id="s4">
@@ -603,7 +621,7 @@
     <dt>unlocking の単独完走</dt>
     <dd>unlocking-reverse-target-screens が画面レジストリ記帳から <code>syncing-reverse-env（mode=registry）</code> 起動・基準タグ確立まで単独で完走するのは意図した正式仕様。開通の事実を知るのは本スキルだけであり、指揮役が能動的に検知できないため。</dd>
     <dt>画面レジストリの正本</dt>
-    <dd>開通済み画面の記帳台帳の正本は <code>&lt;docs_root&gt;/一覧/reverse-screen-registry.yml</code>。設計書リポジトリ側に置くため、スキル同期・上書きコピーの影響を受けない。unlocking 以外の子スキルは直接触れない。</dd>
+    <dd>開通済み画面の記帳台帳の定義は <code>&lt;output_dir&gt;/一覧/reverse-screen-registry.yml</code>。設計書リポジトリ側に置くため、スキル同期・上書きコピーの影響を受けない。unlocking 以外の子スキルは直接触れない。</dd>
   </div>
 </section>
 

@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 # 抽出エンジン: 単体/結合テスト観点表(Markdown)群からテスト観点manifest(JSON)への横断集約。
-# docs_root 配下の 画面/screen-*/詳細設計/{単体テスト観点表.md,結合テスト観点表.md} を
+# output_dir 配下の 画面/screen-*/詳細設計/{単体テスト観点表.md,結合テスト観点表.md} を
 # すべて走査し、各テーブル行の「章見出し(カテゴリ)」と「観点」列を抽出して1つのJSONに集約する。
 #
-# Usage: aggregate-test-viewpoints.sh <docs_root> <output.json>
+# Usage: aggregate-test-viewpoints.sh <output_dir> <output.json>
 #
 # 入力契約:
-#   <docs_root> : 画面/screen-<ID>/詳細設計/単体テスト観点表.md および 結合テスト観点表.md を
+#   <output_dir> : 画面/screen-<ID>/詳細設計/単体テスト観点表.md および 結合テスト観点表.md を
 #                 含むディレクトリツリーのルート
 #                 （形式は shared/templates/リバース検証/画面/詳細設計/単体テスト観点表.md 準拠）
 #   <output.json> : 出力先パス
@@ -30,12 +30,12 @@
 #
 # 終了コード:
 #   0 : 正常終了(観点表未検出でも units:[] で正常出力)
-#   1 : docs_root 不在、または引数不足
+#   1 : output_dir 不在、または引数不足
 
 set -euo pipefail
 
 usage() {
-  echo "Usage: $(basename "$0") <docs_root> <output.json>" >&2
+  echo "Usage: $(basename "$0") <output_dir> <output.json>" >&2
 }
 
 if [ "$#" -lt 2 ]; then
@@ -43,11 +43,11 @@ if [ "$#" -lt 2 ]; then
   exit 1
 fi
 
-docs_root="$1"
+output_dir="$1"
 output_file="$2"
 
-if [ ! -d "$docs_root" ]; then
-  echo "ERROR: docs_root not found: $docs_root" >&2
+if [ ! -d "$output_dir" ]; then
+  echo "ERROR: output_dir not found: $output_dir" >&2
   exit 1
 fi
 
@@ -169,7 +169,7 @@ while IFS= read -r -d '' file; do
   esac
 
   awk -v screenKey="$screen_key" -v testType="$test_type" "$awk_program" "$file" >> "$tmp_tsv"
-done < <(find "$docs_root" \
+done < <(find "$output_dir" \
   \( -path "*/画面/screen-*/詳細設計/単体テスト観点表.md" -o -path "*/画面/screen-*/詳細設計/結合テスト観点表.md" \) \
   -print0)
 

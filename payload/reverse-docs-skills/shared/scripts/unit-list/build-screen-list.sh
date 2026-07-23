@@ -360,7 +360,7 @@ fi
 screen_manifest_json="$(cat "$MANIFEST")"
 
 # --- ポータルへの相対パス算出(--portal-dir 未指定時は正本レイアウトの既定値) ---
-# 正本レイアウト: <docs_root>/index.html と <docs_root>/一覧/<種別>一覧/<種別>一覧.html。
+# 正本レイアウト: <output_dir>/index.html と <output_dir>/一覧/<種別>一覧/<種別>一覧.html。
 # 一覧HTMLから見たポータルは2階層上のため、未指定時は ../../index.html を既定とする。
 if [ -n "$PORTAL_DIR_ARG" ]; then
   portal_relative="$(python3 -c "import os; print(os.path.relpath('$PORTAL_DIR_ARG', '$(dirname "$OUTPUT_HTML")'))" 2>/dev/null || echo "..")/index.html"

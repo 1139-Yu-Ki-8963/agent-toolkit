@@ -8,21 +8,21 @@
 
 ## 成果物の最終形
 
-すべての成果物は設計書リポジトリの `<docs_root>` 配下に積み上がる。最終形の要約は次のとおり（全量は [納品物フォルダ体系.md](shared/references/納品物フォルダ体系.md) を参照）。
+すべての成果物は設計書リポジトリの `<output_dir>` 配下に積み上がる。最終形の要約は次のとおり（全量は [納品物フォルダ体系.md](shared/references/納品物フォルダ体系.md) を参照）。
 
 ```
-<docs_root>/
+<output_dir>/
 ├── 一覧/                  # 種別ごとの目録（画面一覧.html 等6種 + 機能一覧（派生）） + excluded-kinds.json + 画面レジストリ
 ├── プロジェクト共通/      # アーキテクチャ調査書 + 規約4種 + 共通設計書 + メッセージ定義書 + DESIGN.md
 ├── 画面/screen-<ID>/      # 詳細設計（画面詳細設計書.md・original.png・rebuilt.png 等）+ 基本設計 + テスト項目書
 └── API/ テーブル/ バッチ/ 帳票/ 外部連携/   # 各種別の詳細設計置き場（現時点は一覧確立まで）
 ```
 
-検証記録（facts・往復検証の証跡）は納品物ではないため `docs_root` の外に配置する。`docs_root` と同階層の `verification/` フォルダに移動した（詳細は [納品物フォルダ体系.md](shared/references/納品物フォルダ体系.md) を参照）。
+検証記録（facts・往復検証の証跡）は納品物ではないため `output_dir` の外に配置する。`output_dir` と同階層の `verification/` フォルダに移動した（詳細は [納品物フォルダ体系.md](shared/references/納品物フォルダ体系.md) を参照）。
 
 スキルを 1 つ実行するごとに増える成果物の対応（標準の実行順）:
 
-| 実行順のスキル | `<docs_root>` に増える成果物 |
+| 実行順のスキル | `<output_dir>` に増える成果物 |
 |---|---|
 | surveying-architecture-for-reverse-docs | `プロジェクト共通/アーキテクチャ調査書.md`（機械検証済み） |
 | generating-<種別>-list-for-reverse-docs（実在種別ごと） | `一覧/<種別>一覧/<種別>一覧.html`。全種別確定後に指揮役が `一覧/excluded-kinds.json` を書き出す |
@@ -150,7 +150,7 @@ Skill(orchestrating-reverse-docs-flow)
 | [reverse-docs-overview.html](reverse-docs-overview.html) | 全体ガイド（工程フロー図・スキル→成果物対応表・種別×工程の実装状況） |
 | [contract.md](.claude/skills/orchestrating-reverse-docs-flow/references/contract.md) | 返却ブロック契約・args 仕様・状態判定表の正本 |
 | [リバース工程設計.md](shared/references/リバース工程設計.md) | Phase/Step×スキル対応・NG 帰着 3 系統の正本 |
-| [納品物フォルダ体系.md](shared/references/納品物フォルダ体系.md) | 成果物の置き場（`<docs_root>` 配下構成）の正本 |
+| [納品物フォルダ体系.md](shared/references/納品物フォルダ体系.md) | 成果物の置き場（`<output_dir>` 配下構成）の正本 |
 | [スキル実装計画.md](shared/references/スキル実装計画.md) | 実装順序・完了条件・検証想定の正本 |
 | [facts-schema.md](shared/references/facts-schema.md) | facts の共有スキーマ |
 | [chapter-map.md](shared/references/chapter-map.md) | 設計書の章マップ |

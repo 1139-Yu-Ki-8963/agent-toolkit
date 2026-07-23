@@ -6,7 +6,7 @@ command -v jq >/dev/null 2>&1 || { echo "ERROR: jq is required but not installed
 # build-portal.sh — 設計ポータルを生成する
 #
 # Usage:
-#   bash shared/scripts/build-portal.sh <target_repo_path> <docs_root> <portal_output_dir>
+#   bash shared/scripts/build-portal.sh <target_repo_path> <output_dir> <portal_output_dir>
 #
 # 処理:
 #   1. 対象リポジトリのコード行数・ファイル数を計測（FE/BE分離）
@@ -345,7 +345,7 @@ TEST8HTML
   fi
   rm -rf "$test9_dir"
 
-  echo "--- ケース10: 旧レイアウト（docs_root 直下の一覧）への後方互換探索 ---"
+  echo "--- ケース10: 旧レイアウト（output_dir 直下の一覧）への後方互換探索 ---"
   test10_dir="$(mktemp -d)"
   test10_repo="$test10_dir/repo"
   test10_docs="$test10_dir/docs"
@@ -393,7 +393,7 @@ fi
 
 # --- 引数チェック ---
 if [ $# -lt 3 ]; then
-  echo "Usage: $0 <target_repo_path> <docs_root> <portal_output_dir>" >&2
+  echo "Usage: $0 <target_repo_path> <output_dir> <portal_output_dir>" >&2
   exit 1
 fi
 
@@ -480,8 +480,8 @@ for kind in $KINDS_ORDER; do
   desc="$(get_kind_desc "$kind")"
   unit="$(get_kind_unit "$kind")"
   group="$(get_kind_group "$kind")"
-  # 正本レイアウト: <docs_root>/一覧/<種別>一覧/<種別>一覧.html
-  # 後方互換: 旧レイアウト（<docs_root>/<種別>一覧/<種別>一覧.html）にも実在すれば採用する
+  # 正本レイアウト: <output_dir>/一覧/<種別>一覧/<種別>一覧.html
+  # 後方互換: 旧レイアウト（<output_dir>/<種別>一覧/<種別>一覧.html）にも実在すれば採用する
   list_rel_path="一覧/$dir_name/${label}一覧.html"
   html_file="$DOCS_ROOT/$list_rel_path"
   if [ ! -f "$html_file" ] && [ -f "$DOCS_ROOT/$dir_name/${label}一覧.html" ]; then
@@ -694,7 +694,7 @@ if [ -d "$DOCS_ROOT/画面" ] && [ -f "$SCREEN_DOC_TEMPLATE_FILE" ]; then
   done
 fi
 
-# --- 4. 将来ページ受け口（FUTURE_PAGES）: docs_root 直下に該当 HTML が実在する場合のみカード化 ---
+# --- 4. 将来ページ受け口（FUTURE_PAGES）: output_dir 直下に該当 HTML が実在する場合のみカード化 ---
 get_future_label() { case "$1" in glossary) echo "用語辞書";; techstack) echo "技術スタック";; transition) echo "画面遷移図";; er) echo "ER図";; env) echo "環境構築手順";; entity-state) echo "状態遷移図";; release-notes) echo "リリースノート";; design-system) echo "デザインシステム";; component-inventory) echo "コンポーネント棚卸し";; icon-catalog) echo "アイコンカタログ";; esac; }
 get_future_file() { case "$1" in glossary) echo "用語辞書.html";; techstack) echo "技術スタック.html";; transition) echo "画面遷移図.html";; er) echo "ER図.html";; env) echo "環境構築手順.html";; entity-state) echo "状態遷移図.html";; release-notes) echo "リリースノート.html";; design-system) echo "デザインシステム.html";; component-inventory) echo "コンポーネント棚卸し.html";; icon-catalog) echo "アイコンカタログ.html";; esac; }
 get_future_icon() { case "$1" in glossary) echo "dictionary";; techstack) echo "stacks";; transition) echo "account_tree";; er) echo "schema";; env) echo "terminal";; entity-state) echo "sync";; release-notes) echo "history";; design-system) echo "palette";; component-inventory) echo "widgets";; icon-catalog) echo "emoji_symbols";; esac; }
@@ -741,8 +741,8 @@ for key in $DERIVED_ORDER; do
   dir_name="$(get_derived_dir "$key")"
   icon="$(get_derived_icon "$key")"
   desc="$(get_derived_desc "$key")"
-  # 正本レイアウト: <docs_root>/一覧/<ディレクトリ>/<ラベル>.html
-  # 後方互換: 旧レイアウト（<docs_root>/<ディレクトリ>/<ラベル>.html）にも実在すれば採用する
+  # 正本レイアウト: <output_dir>/一覧/<ディレクトリ>/<ラベル>.html
+  # 後方互換: 旧レイアウト（<output_dir>/<ディレクトリ>/<ラベル>.html）にも実在すれば採用する
   derived_rel_path="一覧/$dir_name/${label}.html"
   html_file="$DOCS_ROOT/$derived_rel_path"
   if [ ! -f "$html_file" ] && [ -f "$DOCS_ROOT/$dir_name/${label}.html" ]; then
@@ -757,7 +757,7 @@ for key in $DERIVED_ORDER; do
   fi
 done
 
-# --- 4b. マトリクス・対応表 4 ページ: docs_root/マトリクス・対応表/<名前>/<名前>.html が実在する場合のみカード化 ---
+# --- 4b. マトリクス・対応表 4 ページ: output_dir/マトリクス・対応表/<名前>/<名前>.html が実在する場合のみカード化 ---
 get_cross_label() { case "$1" in permscreen) echo "権限画面マトリクス";; permfeature) echo "権限機能マトリクス";; crud) echo "CRUD図";; trace) echo "追跡可能性";; esac; }
 get_cross_icon() { case "$1" in permscreen) echo "lock";; permfeature) echo "key";; crud) echo "grid_on";; trace) echo "route";; esac; }
 get_cross_desc() { case "$1" in permscreen) echo "ロール×画面の行×列で閲覧可否の関係を示すマトリクス。";; permfeature) echo "ロール×機能の行×列で操作可否（CRUD）の関係を示すマトリクス。";; crud) echo "機能×テーブルの行×列でCRUD操作の関係を示すマトリクス。";; trace) echo "画面-API-テーブルの対応連鎖を行×列で追跡する対応表。";; esac; }
@@ -777,7 +777,7 @@ for key in $CROSS_ORDER; do
   fi
 done
 
-# --- 4c. AI設定資産ページ: docs_root/AI設定資産/AI設定資産.html が実在する場合のみカード化 ---
+# --- 4c. AI設定資産ページ: output_dir/AI設定資産/AI設定資産.html が実在する場合のみカード化 ---
 ai_tools_json=""
 ai_html_file="$DOCS_ROOT/AI設定資産/AI設定資産.html"
 if [ -f "$ai_html_file" ]; then

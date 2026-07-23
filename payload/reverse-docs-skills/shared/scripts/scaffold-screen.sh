@@ -4,12 +4,12 @@ set -euo pipefail
 # scaffold-screen.sh — リバース検証テンプレートを対象プロジェクトへ展開する
 #
 # 使い方:
-#   scaffold-screen.sh <docs_root> <画面ID> [<画面名>] [<template_root>]
-#   scaffold-screen.sh --verify <docs_root> <画面ID>
-#   scaffold-screen.sh --dry-run <docs_root> <画面ID> [<画面名>] [<template_root>]
+#   scaffold-screen.sh <output_dir> <画面ID> [<画面名>] [<template_root>]
+#   scaffold-screen.sh --verify <output_dir> <画面ID>
+#   scaffold-screen.sh --dry-run <output_dir> <画面ID> [<画面名>] [<template_root>]
 #
 # 引数:
-#   docs_root     設計書展開先ルート（呼び出し元スキルが起動引数として渡す）
+#   output_dir     設計書展開先ルート（呼び出し元スキルが起動引数として渡す）
 #   画面ID        画面識別子（例: monthly-report）
 #   画面名        日本語の画面名（省略時は画面IDをそのまま使う）
 #   template_root テンプレート原本ルート（省略時はスクリプト位置基準の既定値
@@ -17,8 +17,8 @@ set -euo pipefail
 #
 # 処理:
 #   1. template_root（引数指定 or 既定値）からテンプレートを特定
-#   2. <docs_root>/画面/screen-<画面ID>/ へ画面単位テンプレートをコピー
-#   3. <docs_root>/プロジェクト共通/ が未存在なら初回コピー
+#   2. <output_dir>/画面/screen-<画面ID>/ へ画面単位テンプレートをコピー
+#   3. <output_dir>/プロジェクト共通/ が未存在なら初回コピー
 #   4. 全 .md の <画面ID> <画面名> プレースホルダを sed 置換
 #   5. 展開結果を tree で表示
 
@@ -40,12 +40,12 @@ if [ "${1:-}" = "--self-test" ]; then
       fail=$((fail + 1))
     fi
 
-    # 異常系: 存在しないdocs_rootを指定するとexit1
+    # 異常系: 存在しないoutput_dirを指定するとexit1
     if bash "$self_path" "$tmp/docs_not_exist" selftest-screen2 >/dev/null 2>&1; then
-      echo "FAIL: 存在しないdocs_root指定時にexit1" >&2
+      echo "FAIL: 存在しないoutput_dir指定時にexit1" >&2
       fail=$((fail + 1))
     else
-      echo "PASS: 存在しないdocs_root指定時にexit1" >&2
+      echo "PASS: 存在しないoutput_dir指定時にexit1" >&2
       pass=$((pass + 1))
     fi
 
@@ -67,9 +67,9 @@ fi
 
 if [ "${1:-}" = "--verify" ]; then
   shift
-  docs_root="${1:?引数 docs_root が必要です}"
+  output_dir="${1:?引数 output_dir が必要です}"
   screen_id="${2:?引数 画面ID が必要です}"
-  screen_dir="$docs_root/画面/screen-${screen_id}"
+  screen_dir="$output_dir/画面/screen-${screen_id}"
   errors=0
   for req in 詳細設計/画面詳細設計書.md 詳細設計/単体テスト観点表.md 詳細設計/結合テスト観点表.md \
              詳細設計/DESIGN.md テスト項目書/単体テスト仕様書.md テスト項目書/結合テスト仕様書.md \
@@ -101,7 +101,7 @@ if [ "${1:-}" = "--dry-run" ]; then
   shift
 fi
 
-docs_root="${1:?引数1 docs_root が必要です}"
+output_dir="${1:?引数1 output_dir が必要です}"
 screen_id="${2:?引数2 画面ID が必要です}"
 screen_name="${3:-$screen_id}"
 script_dir="$(cd "$(dirname "$0")" && pwd)"
@@ -122,9 +122,9 @@ for _val in "$screen_id" "$screen_name"; do
   esac
 done
 
-# docs_root は既存必須（タイポによる意図しない新規作成を防ぐ）
-if [ ! -d "$docs_root" ]; then
-  echo "エラー: docs_root が存在しません（タイポ防止のため自動作成しません）: $docs_root" >&2
+# output_dir は既存必須（タイポによる意図しない新規作成を防ぐ）
+if [ ! -d "$output_dir" ]; then
+  echo "エラー: output_dir が存在しません（タイポ防止のため自動作成しません）: $output_dir" >&2
   exit 1
 fi
 
@@ -134,8 +134,8 @@ if [ ! -d "$template_root" ]; then
 fi
 template_dir="$(cd "$template_root" && pwd)"
 
-screen_dir="$docs_root/画面/screen-${screen_id}"
-common_dir="$docs_root/プロジェクト共通"
+screen_dir="$output_dir/画面/screen-${screen_id}"
+common_dir="$output_dir/プロジェクト共通"
 
 if [ -d "$screen_dir" ]; then
   echo "エラー: 画面ディレクトリが既に存在します: $screen_dir" >&2
@@ -164,7 +164,7 @@ cp -r "$template_dir/画面/詳細設計" "$staging/"
 cp -r "$template_dir/画面/テスト項目書" "$staging/"
 cp -r "$template_dir/画面/基本設計" "$staging/"
 
-# プロジェクト共通テンプレートのコピー（初回のみ。docs_root 直下の共通領域なので画面ディレクトリとは別扱い）
+# プロジェクト共通テンプレートのコピー（初回のみ。output_dir 直下の共通領域なので画面ディレクトリとは別扱い）
 if [ -d "$common_dir" ]; then
   echo "プロジェクト共通/ は既に存在するためスキップ: $common_dir"
 else
@@ -209,9 +209,9 @@ mv "$staging" "$screen_dir"
 echo ""
 echo "=== 展開結果 ==="
 if command -v tree >/dev/null 2>&1; then
-  tree "$docs_root"
+  tree "$output_dir"
 else
-  find "$docs_root" -type f | sort
+  find "$output_dir" -type f | sort
 fi
 
 echo ""
