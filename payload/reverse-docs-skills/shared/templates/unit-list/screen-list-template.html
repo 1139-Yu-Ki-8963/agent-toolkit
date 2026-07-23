@@ -816,20 +816,19 @@
           docGroup.appendChild(docLabel);
           var docLinks = document.createElement('div');
           docLinks.className = 'doc-links';
-          var screenDir = '../../画面/' + item.screenId + '/';
-          var hasDesignDoc = item.designDocStatus === '着手済';
           var docDefs = [
-            {label: '基本設計書', href: screenDir + '基本設計/画面基本設計書.html', kind: 'basic'},
-            {label: '詳細設計書', href: screenDir + '詳細設計/画面詳細設計書.html', kind: 'detail'},
-            {label: 'シーケンス図', href: screenDir + 'シーケンス図.html', kind: 'sequence'},
-            {label: 'テストケース', href: screenDir + 'テストケース.html', kind: 'test'}
+            {label: '基本設計書', pathField: 'designDocPath', kind: 'basic'},
+            {label: '詳細設計書', pathField: 'detailDocPath', kind: 'detail'},
+            {label: 'シーケンス図', pathField: 'sequencePath', kind: 'sequence'},
+            {label: 'テストケース', pathField: 'testCasePath', kind: 'test'}
           ];
           docDefs.forEach(function(doc) {
             var a = document.createElement('a');
             a.textContent = doc.label;
             a.setAttribute('data-kind', doc.kind);
-            if (hasDesignDoc) {
-              a.href = doc.href;
+            var href = item[doc.pathField];
+            if (href) {
+              a.href = href;
               a.className = 'doc-link';
             } else {
               a.className = 'doc-link disabled';
