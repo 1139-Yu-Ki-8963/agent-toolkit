@@ -4,34 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>アイコンカタログ — リバース設計ポータル</title>
-<!--
-  detail-pages T10 アイコンカタログ型テンプレート — リバース設計スキル群
-  生成: shared/scripts/detail-pages/build-detail-page.sh
-  プレースホルダ置換は build-detail-page.sh の render_template() が行う。
-  手作業によるプレースホルダ置換は禁止。生成は必ずスクリプト経由で行う。
-
-  保守注記: トークンブロック・テーマ切替(data-theme二重定義・rd-portal-theme)は
-  shared/templates/portal-template.html からの複製である。
-  同テンプレートの当該部分を変更した場合は本ファイルも同時更新すること
-  （T1一覧テンプレート群・T2〜T6テンプレートにも同種の複製あり。include化は別件）。
-
-  プレースホルダ(build-detail-page.shが注入。実際のマーカー記法は
-  scripts/detail-pages/build-detail-page.sh 冒頭コメントを定義とする。本コメントでは
-  二重置換事故を避けるため意図的に波括弧を外して記載する):
-    TITLE (ページ見出しマーカー)         : page-data.json の title
-    DESCRIPTION (ページ概要マーカー)     : page-data.json の description
-    GENERATED_AT (生成日時マーカー)      : page-data.json の generatedAt
-    PAGE_DATA_JSON (page-data埋め込みマーカー) : page-data.json の内容全体(本ファイル物理末尾のscriptタグへ注入)
-
-  pageKind: icon-catalog
-  page-data.json 想定構造(本テンプレートのJSが直接参照する型別スロット。
-  定義スキーマへの追記は別件・page-data-schema.mdは本ファイルの変更対象外):
-    icons: [{ name: string, sourceType: string, usageCount: number, files: string[] }]
-    summary: [{ label: string, value: string, note?: string }]（任意。要約タイル）
-  アイコン名でグルーピングしたカードグリッド。各カードにアイコン名 + ソース種別タグ + 使用件数 +
-  使用ファイル一覧(<details>展開式)を表示する。ソース種別フィルタ + 検索窓(名前部分一致) +
-  usageCount 降順ソートを行う。
--->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
 <style>
 :root,
 [data-theme="light"] {
@@ -120,6 +93,13 @@ body {
 a { color: var(--accent); text-decoration: none; }
 a:hover { text-decoration: underline; }
 
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  font-size: 28px;
+  line-height: 1;
+  display: inline-block;
+}
+
 .dp-page { display: grid; grid-template-rows: auto 1fr auto; height: 100vh; overflow: hidden; }
 
 .topbar {
@@ -193,16 +173,26 @@ a:hover { text-decoration: underline; }
 .chip.active { background: var(--accent); color: #fff; border-color: var(--accent); }
 
 /* アイコンカードグリッド */
-.icon-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; min-width: 0; }
-.icon-card { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; min-width: 0; }
-.icon-name { font-weight: 700; font-size: 14px; margin-bottom: 8px; overflow-wrap: break-word; }
-.icon-meta { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
+.icon-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; min-width: 0; }
+.icon-card {
+  background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 16px 16px 14px; min-width: 0; display: flex; flex-direction: column; align-items: center; text-align: center;
+}
+.icon-glyph {
+  width: 56px; height: 56px; display: flex; align-items: center; justify-content: center;
+  background: var(--panel-2); border-radius: var(--radius); margin-bottom: 10px;
+  color: var(--accent);
+}
+.icon-glyph .material-symbols-outlined { font-size: 30px; }
+.icon-name { font-weight: 700; font-size: 13.5px; margin-bottom: 8px; overflow-wrap: break-word; font-family: var(--mono); }
+.icon-meta { display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
 .source-tag {
   font-size: 11px; font-weight: 700; padding: 2px 9px; border-radius: 999px;
   background: var(--accent-soft); color: var(--accent);
 }
 .usage-count { font-size: 12px; color: var(--text-muted); }
-.icon-files summary { cursor: pointer; font-size: 12px; color: var(--text-sub); }
+.icon-files { width: 100%; text-align: left; }
+.icon-files summary { cursor: pointer; font-size: 12px; color: var(--text-sub); text-align: center; }
 .icon-files summary:hover { color: var(--accent); }
 .icon-files ul { margin: 6px 0 0; padding-left: 18px; font-size: 11.5px; color: var(--text-muted); }
 .icon-files li { margin-bottom: 2px; overflow-wrap: break-word; }
@@ -253,7 +243,7 @@ a:hover { text-decoration: underline; }
       <span class="brand-sub">設計ポータル</span>
     </a>
     <div class="header-meta">
-      <span class="pm-updated">更新: 2026-07-20</span>
+      <span class="pm-updated">更新: 2026-07-23</span>
     </div>
     <div class="top-actions">
       <button id="theme-toggle" title="テーマ切替">ライト</button>
@@ -265,7 +255,7 @@ a:hover { text-decoration: underline; }
     <div class="dp-hero">
       <div>
         <h1>アイコンカタログ</h1>
-        <p>使用アイコンの一覧と使用箇所。</p>
+        <p>使用アイコンの視覚的一覧。種別・使用回数・使用ファイルを確認できる。</p>
       </div>
     </div>
 
@@ -291,23 +281,31 @@ a:hover { text-decoration: underline; }
 <script type="application/json" id="page-data">
 {
   "pageKind": "icon-catalog",
-  "projectName": "サンプルプロジェクト",
   "title": "アイコンカタログ",
-  "description": "使用アイコンの一覧と使用箇所。",
-  "generatedAt": "2026-07-20",
-  "summary": [
-    {"label": "アイコン数", "value": "8", "note": "重複除く"},
-    {"label": "ソース種別", "value": "2", "note": "lucide-react / svg"}
-  ],
+  "description": "使用アイコンの視覚的一覧。種別・使用回数・使用ファイルを確認できる。",
+  "generatedAt": "2026-07-23T00:00:00Z",
   "icons": [
-    {"name": "search", "sourceType": "lucide-react", "usageCount": 6, "files": ["src/components/SearchBox.tsx", "src/pages/PostsListPage.tsx"]},
-    {"name": "bell", "sourceType": "lucide-react", "usageCount": 4, "files": ["src/layouts/AppHeader.tsx", "src/pages/NotificationsPage.tsx"]},
-    {"name": "user", "sourceType": "lucide-react", "usageCount": 9, "files": ["src/layouts/AppHeader.tsx", "src/pages/ProfilePage.tsx", "src/components/Avatar.tsx"]},
-    {"name": "trash-2", "sourceType": "lucide-react", "usageCount": 3, "files": ["src/pages/PostEditorPage.tsx"]},
-    {"name": "edit", "sourceType": "lucide-react", "usageCount": 5, "files": ["src/pages/PostDetailPage.tsx", "src/pages/PostEditorPage.tsx"]},
-    {"name": "logo-mark", "sourceType": "svg", "usageCount": 2, "files": ["src/layouts/AppHeader.tsx", "public/favicon.svg"]},
-    {"name": "chevron-down", "sourceType": "lucide-react", "usageCount": 7, "files": ["src/components/Dropdown.tsx"]},
-    {"name": "upload-cloud", "sourceType": "svg", "usageCount": 2, "files": ["src/components/FileUploader.tsx"]}
+    {"name": "menu", "sourceType": "material", "usageCount": 12, "files": ["src/components/common/Header.tsx", "src/components/common/Sidebar.tsx"]},
+    {"name": "search", "sourceType": "material", "usageCount": 9, "files": ["src/components/common/SearchBar.tsx", "src/pages/OrderListPage.tsx"]},
+    {"name": "close", "sourceType": "material", "usageCount": 8, "files": ["src/components/common/Modal.tsx", "src/components/common/Dialog.tsx"]},
+    {"name": "settings", "sourceType": "material", "usageCount": 6, "files": ["src/pages/SettingsPage.tsx"]},
+    {"name": "person", "sourceType": "material", "usageCount": 5, "files": ["src/components/common/Avatar.tsx", "src/pages/MemberEditPage.tsx"]},
+    {"name": "notifications", "sourceType": "material", "usageCount": 4, "files": ["src/components/common/Header.tsx"]},
+    {"name": "edit", "sourceType": "material", "usageCount": 4, "files": ["src/pages/OrderDetailPage.tsx", "src/pages/MemberEditPage.tsx"]},
+    {"name": "delete", "sourceType": "material", "usageCount": 3, "files": ["src/components/common/ConfirmDialog.tsx"]},
+    {"name": "visibility", "sourceType": "material", "usageCount": 3, "files": ["src/components/forms/PasswordInput.tsx"]},
+    {"name": "expand_more", "sourceType": "material", "usageCount": 7, "files": ["src/components/common/Accordion.tsx", "src/components/common/Select.tsx"]},
+    {"name": "check_circle", "sourceType": "material", "usageCount": 5, "files": ["src/components/common/Toast.tsx", "src/pages/OrderDetailPage.tsx"]},
+    {"name": "error", "sourceType": "material", "usageCount": 4, "files": ["src/components/common/Toast.tsx", "src/components/forms/FormField.tsx"]},
+    {"name": "arrow_back", "sourceType": "material", "usageCount": 6, "files": ["src/components/common/PageHeader.tsx"]},
+    {"name": "add", "sourceType": "material", "usageCount": 3, "files": ["src/pages/OrderListPage.tsx"]},
+    {"name": "download", "sourceType": "material", "usageCount": 2, "files": ["src/pages/ReportPage.tsx"]},
+    {"name": "filter_list", "sourceType": "material", "usageCount": 3, "files": ["src/components/common/FilterPanel.tsx"]}
+  ],
+  "summary": [
+    {"label": "総アイコン数", "value": "16", "note": "Material Symbols のみ"},
+    {"label": "総使用回数", "value": "84"},
+    {"label": "ソース種別", "value": "Material: 16"}
   ],
   "unresolved": []
 }
@@ -350,18 +348,13 @@ a:hover { text-decoration: underline; }
   var activeSource = 'all';
   var cardEls = [];
 
-  // --- ソース種別チップ(icons[].sourceType から動的抽出) ---
-  var sourceTypes = [];
-  icons.forEach(function(ic) {
-    var s = ic.sourceType || 'other';
-    if (sourceTypes.indexOf(s) === -1) sourceTypes.push(s);
-  });
-
+  // --- ソース種別チップ(固定3種: material / svg / emoji) ---
+  var SOURCE_LABEL = { material: 'Material', svg: 'SVG', emoji: 'Emoji' };
   var chipsMount = document.getElementById('chips-mount');
   function renderChips() {
     chipsMount.innerHTML = '';
-    var chips = [{ key: 'all', label: 'すべて' }].concat(sourceTypes.map(function(s) {
-      return { key: s, label: s };
+    var chips = [{ key: 'all', label: 'すべて' }].concat(Object.keys(SOURCE_LABEL).map(function(k) {
+      return { key: k, label: SOURCE_LABEL[k] };
     }));
     chips.forEach(function(c) {
       var btn = el('button', { class: 'chip' + (activeSource === c.key ? ' active' : ''), type: 'button' }, c.label);
@@ -386,6 +379,14 @@ a:hover { text-decoration: underline; }
     icons.forEach(function(ic) {
       var sourceType = ic.sourceType || 'other';
       var files = ic.files || [];
+      var glyph = el('div', { class: 'icon-glyph' });
+      if (sourceType === 'material') {
+        glyph.appendChild(el('span', { class: 'material-symbols-outlined' }, ic.name || ''));
+      } else if (sourceType === 'emoji') {
+        glyph.appendChild(el('span', null, ic.name || ''));
+      } else {
+        glyph.appendChild(el('span', { class: 'material-symbols-outlined' }, 'image'));
+      }
       var fileList = el('ul', null, files.map(function(f) {
         return el('li', null, el('code', null, String(f)));
       }));
@@ -394,9 +395,10 @@ a:hover { text-decoration: underline; }
         fileList
       ]);
       var card = el('div', { class: 'icon-card', 'data-source': sourceType }, [
+        glyph,
         el('div', { class: 'icon-name' }, ic.name || ''),
         el('div', { class: 'icon-meta' }, [
-          el('span', { class: 'source-tag' }, sourceType),
+          el('span', { class: 'source-tag' }, SOURCE_LABEL[sourceType] || sourceType),
           el('span', { class: 'usage-count' }, '使用 ' + (ic.usageCount != null ? ic.usageCount : 0) + ' 件')
         ]),
         details

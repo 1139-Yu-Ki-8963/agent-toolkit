@@ -4,32 +4,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>リリースノート — リバース設計ポータル</title>
-<!--
-  detail-pages T7 リリースノート型テンプレート — リバース設計スキル群
-  生成: shared/scripts/detail-pages/build-detail-page.sh
-  プレースホルダ置換は build-detail-page.sh の render_template() が行う。
-  手作業によるプレースホルダ置換は禁止。生成は必ずスクリプト経由で行う。
-
-  保守注記: トークンブロック・テーマ切替(data-theme二重定義・rd-portal-theme)は
-  shared/templates/portal-template.html からの複製である。
-  同テンプレートの当該部分を変更した場合は本ファイルも同時更新すること
-  （T1一覧テンプレート群・T2〜T6テンプレートにも同種の複製あり。include化は別件）。
-
-  プレースホルダ(build-detail-page.shが注入。実際のマーカー記法は
-  scripts/detail-pages/build-detail-page.sh 冒頭コメントを定義とする。本コメントでは
-  二重置換事故を避けるため意図的に波括弧を外して記載する):
-    TITLE (ページ見出しマーカー)         : page-data.json の title
-    DESCRIPTION (ページ概要マーカー)     : page-data.json の description
-    GENERATED_AT (生成日時マーカー)      : page-data.json の generatedAt
-    PAGE_DATA_JSON (page-data埋め込みマーカー) : page-data.json の内容全体(本ファイル物理末尾のscriptタグへ注入)
-
-  pageKind: release-notes
-  page-data.json 想定構造(本テンプレートのJSが直接参照する型別スロット。
-  定義スキーマへの追記は別件・page-data-schema.mdは本ファイルの変更対象外):
-    releases: [{ date: string, commits: [{ hash: string, message: string, type: string }] }]
-  releases[].date で日付グルーピングしたカード一覧。各カードに日付ヘッダ + コミット行
-  (ハッシュ・メッセージ・変更種別タグ)を表示する。種別チップで commits[].type を横断絞り込みする。
--->
 <style>
 :root,
 [data-theme="light"] {
@@ -141,7 +115,7 @@ a:hover { text-decoration: underline; }
 .top-actions button:hover { background: var(--accent-soft); color: var(--accent); border-color: var(--accent-border); }
 .header-meta { font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 8px; }
 
-.dp-main { max-width: 1280px; width: 100%; min-width: 0; margin: 0 auto; padding: 24px 24px 64px; overflow-y: auto; min-height: 0; }
+.dp-main { max-width: 1000px; width: 100%; min-width: 0; margin: 0 auto; padding: 24px 24px 64px; overflow-y: auto; min-height: 0; }
 
 .doc-crumbs { font-size: 12px; color: var(--text-muted); margin-bottom: 8px; }
 .doc-crumbs a { color: var(--text-sub); cursor: pointer; }
@@ -164,49 +138,119 @@ a:hover { text-decoration: underline; }
 }
 .sec-label::before { content: ""; width: 4px; height: 14px; background: var(--accent); border-radius: 2px; }
 
-/* 検索ボックス + 種別チップ */
-.toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 14px; min-width: 0; }
-.toolbar input[type="search"] {
-  flex: 1; min-width: 200px; padding: 8px 12px; font-size: 13.5px;
-  background: var(--panel); color: var(--text); border: 1px solid var(--border);
-  border-radius: var(--radius-sm); font-family: inherit;
+/* ============ PR 行（トップレベル <details> アコーディオン）============ */
+.release-list { display: flex; flex-direction: column; gap: 10px; }
+.rn-pr {
+  background: var(--panel); border: 1px solid var(--border);
+  border-radius: var(--radius); box-shadow: var(--shadow-sm);
+  overflow: hidden;
 }
-.chip-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
-.chip {
-  font-size: 12.5px; color: var(--text-sub); background: var(--panel);
-  border: 1px solid var(--border); border-radius: 999px; padding: 5px 14px;
-  cursor: pointer; font-family: inherit;
-}
-.chip:hover { background: var(--accent-soft); color: var(--accent); border-color: var(--accent-border); }
-.chip.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+.rn-pr[data-flow="feature"]     { border-left: 4px solid #d97706; }
+.rn-pr[data-flow="maintenance"] { border-left: 4px solid var(--success); }
+.rn-pr[data-flow="docs"]        { border-left: 4px solid #7c3aed; }
+.rn-pr.is-done { background: var(--panel-2); box-shadow: none; }
 
-/* リリースカード一覧 */
-.release-list { display: flex; flex-direction: column; gap: 16px; }
-.release-card { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
-.release-date {
-  padding: 10px 16px; background: var(--panel-2); border-bottom: 1px solid var(--border);
-  font-weight: 700; font-size: 13px; color: var(--text-sub);
+.rn-pr-sum {
+  list-style: none; cursor: pointer;
+  padding: 12px 14px;
+  display: flex; align-items: center; gap: 8px;
+  flex-wrap: wrap;
 }
-.commit-row {
-  display: flex; align-items: center; gap: 10px; padding: 9px 16px;
-  border-bottom: 1px solid var(--border); font-size: 13px; flex-wrap: wrap;
+.rn-pr-sum::-webkit-details-marker { display: none; }
+.rn-pr-caret { flex: none; font-size: 9px; color: var(--text-muted); transition: transform .15s; }
+.rn-pr[open] .rn-pr-caret { transform: rotate(90deg); }
+
+.rn-tick { flex: none; color: var(--success); font-weight: 800; font-size: 14px; }
+
+.rn-flow-pill {
+  flex: none; padding: 2px 9px; border-radius: 999px;
+  font-size: 10.5px; font-weight: 800; white-space: nowrap; color: #fff;
 }
-.commit-row:last-child { border-bottom: none; }
-.commit-hash {
-  font-family: var(--mono); font-size: 11.5px; color: var(--text-sub); background: var(--panel-2);
-  padding: 1px 6px; border-radius: 4px; border: 1px solid var(--border); flex-shrink: 0;
+.rn-flow-pill--feature     { background: #d97706; }
+.rn-flow-pill--maintenance { background: var(--success); }
+.rn-flow-pill--docs        { background: #7c3aed; }
+.rn-pr.is-done .rn-flow-pill { opacity: 0.75; }
+
+.rn-pr-num {
+  flex: none; font-family: var(--mono); font-size: 12px; font-weight: 700;
+  color: var(--accent); background: var(--panel);
+  padding: 2px 8px; border-radius: 999px; border: 1px solid var(--accent-border);
+  text-decoration: none;
 }
-.commit-message { flex: 1; min-width: 0; overflow-wrap: break-word; }
-.type-tag {
-  font-size: 11px; font-weight: 700; padding: 2px 9px; border-radius: 999px;
-  letter-spacing: 0.02em; flex-shrink: 0;
+.rn-pr-num:hover { background: var(--accent-soft); }
+.rn-pr.is-done .rn-pr-num { opacity: 0.75; }
+
+.rn-pr-date { flex: none; font-size: 11.5px; color: var(--text-muted); }
+
+.rn-pr-title { flex: 1; min-width: 0; font-size: 14px; font-weight: 700; color: var(--text); line-height: 1.4; overflow-wrap: break-word; }
+.rn-pr.is-done .rn-pr-title { font-weight: 500; color: var(--text-sub); }
+
+.rn-pr-body { padding: 4px 14px 14px; border-top: 1px dashed var(--border); margin: 0 4px; }
+
+/* ============ 中身フォルド（変更概要 / 変更内容 / 確認手順）============ */
+.rn-fold { margin: 8px 0 0; background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; }
+.rn-fold-sum {
+  list-style: none; cursor: pointer; padding: 10px 12px;
+  font-size: 12.5px; font-weight: 800; color: var(--text);
+  display: flex; align-items: center; gap: 8px;
 }
-.type-tag.feat { background: var(--success-soft); color: var(--success); }
-.type-tag.fix { background: var(--danger-soft); color: var(--danger); }
-.type-tag.docs { background: var(--accent-soft); color: var(--accent); }
-.type-tag.refactor { background: var(--gold-soft); color: var(--gold); }
-.type-tag.chore { background: var(--panel-2); color: var(--text-sub); }
-.type-tag.other { background: var(--panel-2); color: var(--text-muted); }
+.rn-fold-sum::-webkit-details-marker { display: none; }
+.rn-fold-sum::before { content: "▶"; flex: none; font-size: 9px; transition: transform .15s; }
+.rn-fold[open] .rn-fold-sum::before { transform: rotate(90deg); }
+.rn-fold-label { flex: 1; }
+
+.rn-fold[data-kind="summary"] { border-color: var(--accent-border); }
+.rn-fold[data-kind="summary"] .rn-fold-sum { background: var(--accent-soft); color: var(--accent); border-bottom: 1px solid var(--accent-border); }
+.rn-fold[data-kind="summary"] .rn-fold-sum::before { color: var(--accent); }
+
+.rn-fold[data-kind="changes"] { border-color: var(--border); }
+.rn-fold[data-kind="changes"] .rn-fold-sum { background: var(--panel-2); color: var(--text); border-bottom: 1px solid var(--border); }
+.rn-fold[data-kind="changes"] .rn-fold-sum::before { color: var(--text-muted); }
+
+.rn-fold[data-kind="verify"] { border-color: var(--danger); border-width: 1.5px; }
+.rn-fold[data-kind="verify"] .rn-fold-sum { background: var(--danger-soft); color: var(--danger); border-bottom: 1px solid var(--danger); }
+.rn-fold[data-kind="verify"] .rn-fold-sum::before { color: var(--danger); }
+.rn-pr.is-done .rn-fold[data-kind="verify"] { border-color: var(--success); border-width: 1px; }
+.rn-pr.is-done .rn-fold[data-kind="verify"] .rn-fold-sum { background: var(--success-soft); color: var(--success); border-bottom-color: var(--success); }
+.rn-pr.is-done .rn-fold[data-kind="verify"] .rn-fold-sum::before { color: var(--success); }
+
+.rn-fold-body { padding: 10px 12px 12px; }
+
+/* ============ 変更概要: ラベル付き箇条書き ============ */
+.rn-dl { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 6px; }
+.rn-dl > li { display: flex; flex-direction: column; gap: 2px; padding: 4px 0; border-bottom: 1px dashed var(--border); }
+.rn-dl > li:last-child { border-bottom: none; }
+.rn-dl-label { font-size: 11px; font-weight: 800; color: var(--accent); letter-spacing: 0.04em; }
+.rn-dl-text { font-size: 13px; line-height: 1.6; color: var(--text); overflow-wrap: break-word; }
+
+/* ============ 変更内容: 種別バッジ付き ============ */
+.rn-changes { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 4px; }
+.rn-changes li { display: flex; align-items: flex-start; gap: 8px; font-size: 12.5px; line-height: 1.55; padding: 4px 0; color: var(--text-sub); overflow-wrap: break-word; }
+.badge { padding: 1px 6px; border-radius: 3px; font-size: 10px; font-weight: 800; white-space: nowrap; flex: none; margin-top: 2px; }
+.badge-feat { background: var(--success-soft); color: var(--success); }
+.badge-fix  { background: var(--danger-soft);  color: var(--danger); }
+.badge-docs { background: var(--accent-soft);  color: var(--accent); }
+.badge-test { background: var(--gold-soft);    color: var(--gold); }
+.badge-refactor, .badge-chore { background: var(--panel-2); color: var(--text-muted); border: 1px solid var(--border); }
+
+/* ============ 確認手順: チェックボックス付き ============ */
+.rn-step { padding-bottom: 8px; }
+.rn-step + .rn-step { border-top: 1px dashed var(--border); padding-top: 8px; }
+.rn-step-h { padding: 2px 4px 6px; font-size: 13px; font-weight: 700; color: var(--text); line-height: 1.45; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.rn-env { font-size: 10px; font-weight: 800; border-radius: 3px; padding: 1px 6px; flex: none; }
+.rn-env--staging { background: var(--accent-soft); color: var(--accent); }
+.rn-env--production { background: var(--danger-soft); color: var(--danger); }
+.rn-env--local { background: var(--panel-2); color: var(--text-muted); border: 1px solid var(--border); }
+
+.rn-checkrow {
+  display: flex; align-items: flex-start; gap: 12px; padding: 8px 6px; cursor: pointer;
+  border-radius: var(--radius-sm); transition: background .12s; margin: 1px 0;
+}
+.rn-checkrow:hover, .rn-checkrow:focus-within { background: var(--accent-soft); }
+.rn-checkrow input[type="checkbox"] { width: 18px; height: 18px; margin-top: 2px; flex: none; accent-color: var(--accent); cursor: pointer; }
+.rn-checkrow-text { flex: 1; font-size: 13px; line-height: 1.55; color: var(--text); overflow-wrap: break-word; }
+.rn-checkrow.is-done { opacity: 0.6; }
+.rn-checkrow.is-done .rn-checkrow-text { color: var(--text-muted); text-decoration: line-through; }
 
 .empty-note {
   font-size: 12.5px; color: var(--text-muted); background: var(--panel-2);
@@ -233,7 +277,7 @@ a:hover { text-decoration: underline; }
   body { font-size: 14px; }
   .dp-hero h1 { font-size: 20px; }
   .dp-main { padding: 12px; }
-  .commit-row { align-items: flex-start; }
+  .rn-pr-title { font-size: 13.5px; }
 }
 
 .hidden { display: none !important; }
@@ -248,7 +292,7 @@ a:hover { text-decoration: underline; }
       <span class="brand-sub">設計ポータル</span>
     </a>
     <div class="header-meta">
-      <span class="pm-updated">更新: 2026-07-20</span>
+      <span class="pm-updated">更新: 2026-07-23</span>
     </div>
     <div class="top-actions">
       <button id="theme-toggle" title="テーマ切替">ライト</button>
@@ -260,15 +304,9 @@ a:hover { text-decoration: underline; }
     <div class="dp-hero">
       <div>
         <h1>リリースノート</h1>
-        <p>git log から自動生成した変更履歴。</p>
+        <p>PR 単位の変更履歴。変更概要・変更内容・確認手順を記録する。</p>
       </div>
     </div>
-
-    <div class="sec-label">検索・絞り込み</div>
-    <div class="toolbar">
-      <input type="search" id="commit-search" placeholder="コミットメッセージ・ハッシュで絞り込み">
-    </div>
-    <div class="chip-row" id="chips-mount"></div>
 
     <div class="sec-label">リリース一覧</div>
     <div class="release-list" id="release-mount"></div>
@@ -284,32 +322,77 @@ a:hover { text-decoration: underline; }
 <script type="application/json" id="page-data">
 {
   "pageKind": "release-notes",
-  "projectName": "サンプルプロジェクト",
   "title": "リリースノート",
-  "description": "git log から自動生成した変更履歴。",
-  "generatedAt": "2026-07-20",
+  "description": "PR 単位の変更履歴。変更概要・変更内容・確認手順を記録する。",
+  "generatedAt": "2026-07-23T00:00:00Z",
   "releases": [
     {
+      "id": "2026-07-22-order-timeline",
+      "date": "2026-07-22",
+      "title": "注文詳細画面にステータス遷移タイムラインを追加",
+      "pr": 142,
+      "prUrl": "#",
+      "flow": "feature",
+      "summary": [
+        {"label": "目的", "text": "注文のステータス変更履歴が画面上で確認できず、問い合わせ対応で DB を直接参照していた問題を解消"},
+        {"label": "対象", "text": "注文詳細画面（/orders/:id）"},
+        {"label": "追加内容", "text": "縦型タイムラインコンポーネント。ステータス名・変更日時・操作者を時系列で表示"}
+      ],
+      "changes": [
+        {"type": "feat", "text": "OrderTimeline コンポーネントを新規作成（src/components/orders/）"},
+        {"type": "feat", "text": "注文詳細画面にタイムラインセクションを追加"},
+        {"type": "fix", "text": "ステータス更新 API のレスポンスに updated_by を追加"}
+      ],
+      "verifySteps": [
+        {"title": "注文詳細画面でタイムラインを確認", "env": "staging", "checks": [
+          "注文詳細画面にタイムラインセクションが表示される",
+          "ステータスを変更するとタイムラインに即座に反映される",
+          "操作者名が正しく表示される（システム更新は「システム」と表示）"
+        ]}
+      ]
+    },
+    {
+      "id": "2026-07-20-pagination-fix",
+      "date": "2026-07-20",
+      "title": "会員一覧のページネーションで最終ページ表示が崩れる不具合を修正",
+      "pr": 139,
+      "prUrl": "#",
+      "flow": "maintenance",
+      "summary": [
+        {"label": "原因", "text": "総件数が pageSize の倍数のとき、空の最終ページが生成されていた"},
+        {"label": "修正", "text": "Math.ceil(total / pageSize) の計算で 0 件ページを除外"}
+      ],
+      "changes": [
+        {"type": "fix", "text": "usePagination フックの総ページ数計算を修正"},
+        {"type": "test", "text": "境界値テストケースを 3 件追加"}
+      ],
+      "verifySteps": [
+        {"title": "ページネーション動作確認", "env": "staging", "checks": [
+          "会員一覧で最終ページに空ページが表示されない",
+          "総件数が pageSize の倍数のとき正しいページ数が表示される"
+        ]}
+      ]
+    },
+    {
+      "id": "2026-07-18-design-docs",
       "date": "2026-07-18",
-      "commits": [
-        {"hash": "89178e6", "message": "投稿エディタにファイル添付機能を追加", "type": "feat"},
-        {"hash": "7c2a441", "message": "通知一覧の未読バッジが消えない不具合を修正", "type": "fix"},
-        {"hash": "1d90ffa", "message": "README にセットアップ手順を追記", "type": "docs"}
-      ]
-    },
-    {
-      "date": "2026-07-11",
-      "commits": [
-        {"hash": "e5b3c02", "message": "ユーザー一覧のページネーションを共通コンポーネント化", "type": "refactor"},
-        {"hash": "4f8a9d1", "message": "検索APIのレスポンス型をZodスキーマに統一", "type": "refactor"},
-        {"hash": "0a71bce", "message": "依存パッケージを一括更新", "type": "chore"}
-      ]
-    },
-    {
-      "date": "2026-07-04",
-      "commits": [
-        {"hash": "d3f60a8", "message": "コメント投稿機能を追加", "type": "feat"},
-        {"hash": "b209e77", "message": "ログイン画面のバリデーションエラー表示を修正", "type": "fix"}
+      "title": "画面基本設計書 24 件にコーディングレベル詳細を追記",
+      "pr": 137,
+      "prUrl": "#",
+      "flow": "docs",
+      "summary": [
+        {"label": "目的", "text": "設計書のコーディングレベル詳細が不足していたため、全画面の設計書を拡充"},
+        {"label": "対象", "text": "docs/02_画面基本設計/ 配下の全 24 画面"},
+        {"label": "追加内容", "text": "状態定義 / デザイントークン参照 / コンポーネント階層 / アニメーション の 4 セクション"}
+      ],
+      "changes": [
+        {"type": "docs", "text": "画面基本設計書 24 件に 4 セクションを追記（+2,279 行）"}
+      ],
+      "verifySteps": [
+        {"title": "設計書の追記内容を確認", "env": "local", "checks": [
+          "各設計書に「状態定義」セクションが存在する",
+          "各設計書に「デザイントークン参照」セクションが存在する"
+        ]}
       ]
     }
   ],
@@ -320,6 +403,7 @@ a:hover { text-decoration: underline; }
 <script>
 (function() {
   var data = JSON.parse(document.getElementById('page-data').textContent);
+  var STORE_KEY_PREFIX = 'rn-';
 
   function el(tag, attrs, children) {
     var node = document.createElement(tag);
@@ -337,81 +421,150 @@ a:hover { text-decoration: underline; }
     return node;
   }
 
-  var releases = data.releases || [];
-  var activeType = 'all';
+  function loadChecked(key) {
+    try { return localStorage.getItem(key) === '1'; } catch (e) { return false; }
+  }
+  function saveChecked(key, value) {
+    try { localStorage.setItem(key, value ? '1' : '0'); } catch (e) {}
+  }
 
-  // --- 種別チップ(commits[].type から動的抽出) ---
-  var types = [];
-  releases.forEach(function(r) {
-    (r.commits || []).forEach(function(c) {
-      var t = c.type || 'other';
-      if (types.indexOf(t) === -1) types.push(t);
+  var FLOW_LABEL = { feature: '機能追加', maintenance: '保守', docs: 'ドキュメント' };
+  var TYPE_LABEL = { feat: 'feat', fix: 'fix', docs: 'docs', test: 'test', refactor: 'refactor', chore: 'chore' };
+
+  function makeFold(kind, label, openByDefault, bodyBuilder) {
+    var det = el('details', { class: 'rn-fold', 'data-kind': kind });
+    if (openByDefault) det.setAttribute('open', '');
+    var sum = el('summary', { class: 'rn-fold-sum' }, el('span', { class: 'rn-fold-label' }, label));
+    det.appendChild(sum);
+    var body = el('div', { class: 'rn-fold-body' });
+    bodyBuilder(body);
+    det.appendChild(body);
+    return det;
+  }
+
+  function buildSummaryBody(body, summary) {
+    var ul = el('ul', { class: 'rn-dl' });
+    (summary || []).forEach(function(item) {
+      var li = el('li', null, [
+        el('span', { class: 'rn-dl-label' }, (item.label || '') + '：'),
+        el('span', { class: 'rn-dl-text' }, item.text || '')
+      ]);
+      ul.appendChild(li);
     });
-  });
+    body.appendChild(ul);
+  }
 
-  var chipsMount = document.getElementById('chips-mount');
-  function renderChips() {
-    chipsMount.innerHTML = '';
-    var chips = [{ key: 'all', label: 'すべて' }].concat(types.map(function(t) {
-      return { key: t, label: t };
-    }));
-    chips.forEach(function(c) {
-      var btn = el('button', { class: 'chip' + (activeType === c.key ? ' active' : ''), type: 'button' }, c.label);
-      btn.addEventListener('click', function() {
-        activeType = c.key;
-        renderChips();
-        renderReleases();
+  function buildChangesBody(body, changes) {
+    var ul = el('ul', { class: 'rn-changes' });
+    (changes || []).forEach(function(c) {
+      var badgeClass = ['feat', 'fix', 'docs', 'test', 'refactor', 'chore'].indexOf(c.type) !== -1 ? c.type : 'chore';
+      var li = el('li', null, [
+        el('span', { class: 'badge badge-' + badgeClass }, TYPE_LABEL[c.type] || c.type || ''),
+        el('span', null, c.text || '')
+      ]);
+      ul.appendChild(li);
+    });
+    body.appendChild(ul);
+  }
+
+  // 確認手順チェック状態から完了カウントを集計する
+  function countChecks(release) {
+    var total = 0, done = 0;
+    (release.verifySteps || []).forEach(function(step, si) {
+      (step.checks || []).forEach(function(_c, ci) {
+        total++;
+        var key = STORE_KEY_PREFIX + release.id + '-' + si + '-' + ci;
+        if (loadChecked(key)) done++;
       });
-      chipsMount.appendChild(btn);
+    });
+    return { total: total, done: done };
+  }
+
+  function buildVerifyBody(body, release, onChange) {
+    (release.verifySteps || []).forEach(function(step, si) {
+      var stepWrap = el('div', { class: 'rn-step' });
+      var sh = el('div', { class: 'rn-step-h' }, [el('span', null, 'Step ' + (si + 1) + ': ' + (step.title || ''))]);
+      if (step.env) {
+        sh.appendChild(el('span', { class: 'rn-env rn-env--' + step.env }, step.env));
+      }
+      stepWrap.appendChild(sh);
+      (step.checks || []).forEach(function(text, ci) {
+        var key = STORE_KEY_PREFIX + release.id + '-' + si + '-' + ci;
+        var isDone = loadChecked(key);
+        var label = el('label', { class: 'rn-checkrow' + (isDone ? ' is-done' : '') });
+        var box = el('input', { type: 'checkbox' });
+        if (isDone) box.checked = true;
+        box.addEventListener('change', function() {
+          saveChecked(key, box.checked);
+          onChange();
+        });
+        label.appendChild(box);
+        label.appendChild(el('span', { class: 'rn-checkrow-text' }, text));
+        stepWrap.appendChild(label);
+      });
+      body.appendChild(stepWrap);
     });
   }
 
-  // --- リリースカード一覧(releases[].commits[]) ---
-  var releaseMount = document.getElementById('release-mount');
-  function renderReleases() {
-    releaseMount.innerHTML = '';
-    var q = (document.getElementById('commit-search').value || '').trim().toLowerCase();
-    var anyVisible = false;
+  function renderRelease(release) {
+    var counts = countChecks(release);
+    var isDone = counts.total > 0 && counts.done === counts.total;
 
+    var det = el('details', { class: 'rn-pr' + (isDone ? ' is-done' : ''), 'data-flow': release.flow || 'feature' });
+
+    var sum = el('summary', { class: 'rn-pr-sum' });
+    sum.appendChild(el('span', { class: 'rn-pr-caret' }, '▶'));
+    if (isDone) sum.appendChild(el('span', { class: 'rn-tick' }, '✓'));
+    sum.appendChild(el('span', { class: 'rn-flow-pill rn-flow-pill--' + (release.flow || 'feature') }, FLOW_LABEL[release.flow] || release.flow || ''));
+    if (release.prUrl) {
+      var a = el('a', { class: 'rn-pr-num', href: release.prUrl, target: '_blank', rel: 'noopener' }, '#' + release.pr);
+      a.addEventListener('click', function(ev) { ev.stopPropagation(); });
+      sum.appendChild(a);
+    } else {
+      sum.appendChild(el('span', { class: 'rn-pr-num' }, '#' + release.pr));
+    }
+    sum.appendChild(el('span', { class: 'rn-pr-date' }, release.date || ''));
+    sum.appendChild(el('span', { class: 'rn-pr-title' }, release.title || ''));
+    det.appendChild(sum);
+
+    var body = el('div', { class: 'rn-pr-body' });
+    if ((release.summary || []).length) {
+      body.appendChild(makeFold('summary', '変更概要', true, function(b) { buildSummaryBody(b, release.summary); }));
+    }
+    if ((release.changes || []).length) {
+      body.appendChild(makeFold('changes', '変更内容', false, function(b) { buildChangesBody(b, release.changes); }));
+    }
+    if ((release.verifySteps || []).length) {
+      body.appendChild(makeFold('verify', '確認手順（' + counts.done + '/' + counts.total + '）', false, function(b) {
+        buildVerifyBody(b, release, render);
+      }));
+    }
+    det.appendChild(body);
+    return det;
+  }
+
+  var releaseMount = document.getElementById('release-mount');
+  var releases = data.releases || [];
+
+  function render() {
+    // 開いている <details> の id を保持し、再描画後も展開状態を維持する
+    var openIds = [];
+    releaseMount.querySelectorAll('.rn-pr[open]').forEach(function(d) { openIds.push(d.dataset.id); });
+
+    releaseMount.innerHTML = '';
     if (releases.length === 0) {
       releaseMount.appendChild(el('div', { class: 'empty-note' }, 'なし'));
       return;
     }
-
-    releases.forEach(function(r) {
-      var commits = r.commits || [];
-      var visibleCommits = commits.filter(function(c) {
-        var t = c.type || 'other';
-        var typeOk = activeType === 'all' || t === activeType;
-        var textOk = q === '' || ((c.message || '') + ' ' + (c.hash || '')).toLowerCase().indexOf(q) !== -1;
-        return typeOk && textOk;
-      });
-      if (visibleCommits.length === 0) return;
-      anyVisible = true;
-
-      var card = el('div', { class: 'release-card' });
-      card.appendChild(el('div', { class: 'release-date' }, r.date || ''));
-      visibleCommits.forEach(function(c) {
-        var t = c.type || 'other';
-        var known = ['feat', 'fix', 'docs', 'refactor', 'chore'].indexOf(t) !== -1 ? t : 'other';
-        var row = el('div', { class: 'commit-row' }, [
-          el('span', { class: 'commit-hash' }, c.hash || ''),
-          el('span', { class: 'commit-message' }, c.message || ''),
-          el('span', { class: 'type-tag ' + known }, t)
-        ]);
-        card.appendChild(row);
-      });
-      releaseMount.appendChild(card);
+    releases.forEach(function(release) {
+      var node = renderRelease(release);
+      node.dataset.id = release.id;
+      if (openIds.indexOf(release.id) !== -1) node.setAttribute('open', '');
+      releaseMount.appendChild(node);
     });
-
-    if (!anyVisible) {
-      releaseMount.appendChild(el('div', { class: 'empty-note' }, '該当するコミットがありません'));
-    }
   }
 
-  renderChips();
-  renderReleases();
-  document.getElementById('commit-search').addEventListener('input', renderReleases);
+  render();
 
   // --- 未解決節(unresolved[]) ---
   var unresolvedMount = document.getElementById('unresolved-mount');
