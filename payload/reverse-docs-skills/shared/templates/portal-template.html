@@ -379,7 +379,7 @@ table.data-table code {
     var grid = el('div', { class: 'cards', id: 'detail-grid' });
     var currentGroup = '';
     cat.tools.forEach(function(tool) {
-      if (cat.id === 'list' && tool.group && tool.group !== currentGroup) {
+      if (tool.group && tool.group !== currentGroup) {
         currentGroup = tool.group;
         grid.appendChild(el('div', { class: 'tool-group-label' }, currentGroup));
       }
