@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>共通設計書</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
 <style>
   :root,
 [data-theme="light"] {
@@ -82,80 +83,252 @@
   --cat-list: #60A5FA; --cat-common: #34D399; --cat-project: #A78BFA;
 }
 
+
   * { box-sizing: border-box; }
-  body {
-    margin: 0; padding: 0;
-    font-family: var(--font-body);
-    line-height: 1.7; color: var(--text); background: var(--bg);
-  }
+  html { -webkit-text-size-adjust: 100%; }
+  html, body { margin: 0; padding: 0; }
+  body { font-family: var(--font-body); background: var(--bg); color: var(--text); line-height: 1.7; font-size: 15px; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20; vertical-align: middle; }
+
+  /* viewport-fit layout */
+  .dp-page { display: grid; grid-template-rows: auto 1fr; height: 100vh; overflow: hidden; }
+
+  /* topbar */
   .topbar {
     display: grid; grid-template-columns: auto 1fr auto;
-    align-items: center; gap: 12px;
-    padding: 10px 20px;
-    background: var(--panel); border-bottom: 1px solid var(--border);
-    position: sticky; top: 0; z-index: 10;
+    align-items: center; gap: 24px; padding: 12px 20px;
+    background: linear-gradient(180deg, var(--panel) 0%, var(--panel-2) 100%);
+    border-bottom: 1px solid var(--border);
   }
-  .brand { display: flex; align-items: center; gap: 8px; color: var(--text); text-decoration: none; font-weight: 700; font-size: 0.95rem; }
-  .brand:hover { color: var(--accent); }
-  .brand-sub { font-size: 11px; font-weight: 400; color: var(--text-muted, #6c757d); }
-  #theme-toggle {
-    background: var(--panel-2); border: 1px solid var(--border); border-radius: var(--radius-sm);
-    color: var(--text-sub); cursor: pointer; padding: 4px 12px; font-family: inherit; font-size: 0.82rem;
-  }
-  #theme-toggle:hover { background: var(--accent-soft); color: var(--accent); border-color: var(--accent-border); }
+  .brand { display: flex; align-items: baseline; gap: 8px; color: var(--text); text-decoration: none; }
+  .brand:hover { text-decoration: none; color: var(--accent); }
+  .brand-icon { display: inline-flex; align-items: center; }
+  .brand-title { font-weight: 700; font-size: 16px; }
+  .brand-sub { font-size: 11px; color: var(--text-muted); }
   .header-meta { font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 8px; }
-  .doc-main {
-    max-width: 860px; margin: 0 auto; padding: 32px 24px 96px;
+  .top-actions { display: flex; align-items: center; gap: 8px; }
+  .top-actions button {
+    background: var(--panel-2); border: 1px solid var(--border); border-radius: var(--radius-sm);
+    color: var(--text-sub); cursor: pointer; padding: 8px 16px; font-size: 13px; font-family: inherit;
+    display: inline-flex; align-items: center; gap: 4px;
   }
-  .doc-main h1 { font-size: 1.6rem; margin: 32px 0 16px; padding-bottom: 8px; border-bottom: 2px solid var(--border-strong); color: var(--text); }
-  .doc-main h2 { font-size: 1.3rem; margin: 28px 0 12px; padding-bottom: 6px; border-bottom: 1px solid var(--border); color: var(--text); }
-  .doc-main h3 { font-size: 1.1rem; margin: 24px 0 8px; color: var(--text); }
-  .doc-main h4 { font-size: 1rem; margin: 20px 0 6px; color: var(--text-sub); }
-  .doc-main p { margin: 8px 0; }
-  .doc-main ul, .doc-main ol { padding-left: 24px; margin: 8px 0; }
-  .doc-main li { margin: 4px 0; }
-  .doc-main code {
+  .top-actions button:hover { background: var(--accent-soft); color: var(--accent); border-color: var(--accent-border); }
+
+  /* body: sidebar + main */
+  .dp-body { display: flex; min-height: 0; overflow: hidden; }
+
+  /* sidebar */
+  .dp-sidebar {
+    width: 220px; flex-shrink: 0;
+    overflow-y: auto; padding: 16px 0 16px 16px;
+    border-right: 1px solid var(--border);
+    background: var(--panel);
+  }
+  .toc-label {
+    font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em;
+    color: var(--text-muted); padding: 0 10px; margin-bottom: 8px;
+  }
+  .toc-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 1px; }
+  .toc-link {
+    display: flex; align-items: center; gap: 6px;
+    padding: 6px 10px; border-radius: var(--radius-sm);
+    text-decoration: none; color: var(--text-sub); font-size: 13px; font-weight: 450;
+    transition: background .15s, color .15s;
+  }
+  .toc-link:hover { background: var(--panel-2); color: var(--text); text-decoration: none; }
+  .toc-link.active { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+  .toc-link .material-symbols-outlined { font-size: 16px; }
+
+  /* main content */
+  .dp-main {
+    flex: 1; min-width: 0;
+    overflow-y: auto; min-height: 0;
+    padding: 24px 32px 64px;
+  }
+  .dp-inner { max-width: 800px; }
+
+  .doc-crumbs { font-size: 12px; color: var(--text-muted); margin-bottom: 8px; }
+  .doc-crumbs a { color: var(--text-sub); }
+  .doc-crumbs a:hover { color: var(--accent); }
+
+  .dp-hero {
+    display: flex; align-items: flex-end; justify-content: space-between; gap: 16px;
+    padding: 4px 2px 14px; border-bottom: 1px solid var(--border); margin-bottom: 24px; flex-wrap: wrap;
+  }
+  .dp-hero h1 { font-size: 23px; margin: 0; }
+  .dp-hero-desc { font-size: 12.5px; color: var(--text-muted); margin: 4px 0 0; }
+  .dp-updated {
+    font-size: 12px; color: var(--text-sub); background: var(--accent-soft);
+    border: 1px solid var(--accent-border); border-radius: 999px; padding: 3px 12px; white-space: nowrap;
+  }
+
+  /* section */
+  .sec-block { margin-bottom: 28px; }
+  .sec-label {
+    font-size: 12px; font-weight: 700; letter-spacing: .04em; color: var(--text-sub);
+    display: flex; align-items: center; gap: 8px; margin: 0 0 12px;
+  }
+  .sec-label::before { content: ""; width: 4px; height: 14px; border-radius: 2px; }
+  .sec-label[data-color="accent"]::before { background: var(--accent); }
+  .sec-label[data-color="success"]::before { background: var(--success); }
+  .sec-label[data-color="gold"]::before { background: var(--gold); }
+  .sec-label[data-color="danger"]::before { background: var(--danger); }
+  .sec-label[data-color="highlight"]::before { background: var(--highlight); }
+
+  /* baseline prose（セクション固有クラスの対象外になる見出し・段落・引用・区切り線） */
+  #doc-content h3 { font-size: 1.05rem; margin: 20px 0 8px; color: var(--text); }
+  #doc-content h4 { font-size: 0.95rem; margin: 16px 0 6px; color: var(--text-sub); }
+  #doc-content p { margin: 8px 0; font-size: 13.5px; color: var(--text-sub); line-height: 1.65; }
+  #doc-content ul, #doc-content ol { padding-left: 22px; margin: 8px 0; font-size: 13.5px; color: var(--text-sub); }
+  #doc-content li { margin: 4px 0; }
+  #doc-content code {
     background: var(--code-bg); color: var(--code-fg); padding: 1px 6px;
     border-radius: 4px; font-family: var(--mono); font-size: 0.85em;
   }
-  .doc-main blockquote {
+  #doc-content blockquote {
     border-left: 3px solid var(--accent-border); margin: 12px 0; padding: 8px 16px;
-    background: var(--panel); color: var(--text-sub); font-size: 0.95rem;
+    background: var(--panel-2); color: var(--text-sub); font-size: 0.95rem; border-radius: var(--radius-sm);
   }
-  .doc-main table { border-collapse: collapse; width: 100%; margin: 12px 0; font-size: 0.9rem; }
-  .table-wrap { overflow-x: auto; margin: 12px 0; }
-  .table-wrap table { margin: 0; }
-  .doc-main th { background: var(--panel); font-weight: 700; text-align: left; }
-  .doc-main th, .doc-main td { padding: 8px 12px; border: 1px solid var(--border); }
-  .doc-main hr { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
-  .doc-main pre { background: var(--code-bg); color: var(--code-fg); padding: 12px 16px; border-radius: var(--radius-sm); overflow-x: auto; font-family: var(--mono); font-size: 0.85em; line-height: 1.5; }
+  #doc-content hr { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
+
+  /* rule items */
+  .rule-list { display: flex; flex-direction: column; gap: 6px; list-style: none; padding-left: 0; }
+  .rule-item {
+    display: flex; align-items: flex-start; gap: 8px; padding: 8px 12px;
+    background: var(--panel-2); border-radius: var(--radius-sm); font-size: 13.5px; line-height: 1.6;
+  }
+  .rule-item .material-symbols-outlined { font-size: 18px; margin-top: 2px; flex-shrink: 0; }
+  .rule-item code {
+    background: var(--code-bg); color: var(--code-fg); padding: 1px 5px;
+    border-radius: 3px; font-family: var(--mono); font-size: .85em;
+  }
+
+  /* tables */
+  .table-wrap { overflow-x: auto; border-radius: var(--radius); margin-bottom: 14px; }
+  table.data-table {
+    width: 100%; min-width: 400px; border-collapse: collapse; font-size: 13px;
+    background: var(--panel); border: 1px solid var(--border);
+  }
+  table.data-table thead { position: sticky; top: 0; z-index: 1; }
+  table.data-table th {
+    text-align: left; font-size: 11.5px; font-weight: 700; color: var(--text-sub);
+    background: var(--panel-2); padding: 8px 12px; border-bottom: 1px solid var(--border); white-space: nowrap;
+  }
+  table.data-table td { padding: 9px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  table.data-table tr:last-child td { border-bottom: none; }
+  table.data-table code {
+    background: var(--code-bg); color: var(--code-fg); padding: 1px 5px; border-radius: 3px;
+    font-family: var(--mono); font-size: 11.5px;
+  }
+
+  /* code blocks（手動で span を書いた場合にのみ配色が効く。MD パーサーは自動適用しない） */
+  .code-block { border-radius: var(--radius-sm); overflow: hidden; background: var(--code-bg); margin-bottom: 14px; }
+  .code-block-head {
+    display: flex; align-items: center; gap: 6px;
+    padding: 6px 14px; font-size: 11px; font-weight: 600;
+    color: var(--text-muted); border-bottom: 1px solid rgba(255,255,255,.06);
+    letter-spacing: .03em;
+  }
+  .code-block pre {
+    margin: 0; padding: 12px 14px; overflow-x: auto;
+    font-family: var(--mono); font-size: 12.5px; line-height: 1.65; color: var(--code-fg);
+  }
+  .code-block .kw { color: #CBA6F7; }
+  .code-block .fn { color: #89B4FA; }
+  .code-block .str { color: #A6E3A1; }
+  .code-block .num { color: #FAB387; }
+  .code-block .cm { color: #6C7086; font-style: italic; }
+  .code-block .op { color: #89DCEB; }
+  .code-block .type { color: #F9E2AF; }
+
+  /* callout */
+  .callout {
+    display: flex; gap: 8px; padding: 10px 14px; border-radius: var(--radius-sm);
+    font-size: 12.5px; line-height: 1.6; margin-bottom: 14px;
+  }
+  .callout .material-symbols-outlined { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+  .callout strong { font-weight: 600; }
+  .callout-tip { background: var(--success-soft); border: 1px solid var(--success); }
+  .callout-tip .material-symbols-outlined { color: var(--success); }
+  .callout-warn { background: var(--gold-soft); border: 1px solid var(--gold-border); }
+  .callout-warn .material-symbols-outlined { color: var(--gold); }
+  .callout-err { background: var(--danger-soft); border: 1px solid var(--danger); }
+  .callout-err .material-symbols-outlined { color: var(--danger); }
+
+  /* mobile toc toggle */
+  .toc-toggle {
+    display: none; position: fixed; bottom: 16px; right: 16px; z-index: 60;
+    width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--border);
+    background: var(--panel); box-shadow: var(--shadow-md);
+    cursor: pointer; color: var(--text); align-items: center; justify-content: center;
+  }
+
   .footer {
     padding: 12px 20px; border-top: 1px solid var(--border);
     font-size: 12px; color: var(--text-muted);
     display: flex; gap: 20px; justify-content: center;
   }
+
   @media (max-width: 760px) {
+    .dp-sidebar { display: none; }
+    .dp-sidebar.open {
+      display: block; position: fixed; top: 0; left: 0; bottom: 0; width: 260px;
+      background: var(--panel); z-index: 55; border-right: 1px solid var(--border);
+      box-shadow: var(--shadow-md); padding: 60px 16px 16px;
+    }
+    .toc-toggle { display: flex; }
+    .dp-main { padding: 16px 14px 48px; }
     .topbar { grid-template-columns: 1fr; gap: 8px; padding: 10px 14px; }
-    .doc-main { padding: 14px; }
+  }
+  @media (max-width: 480px) {
+    .dp-hero h1 { font-size: 20px; }
   }
 </style>
 </head>
 <body>
-<header class="topbar">
-  <a class="brand" href="../index.html">
-    <span class="brand-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:middle"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zM13 9V3.5L18.5 9H13z"/></svg></span>
-    <span class="brand-title">サンプルプロジェクト</span>
-    <span class="brand-sub">設計ポータル</span>
-  </a>
-  <div class="header-meta">
-    <span class="pm-updated">更新: 2026-07-23</span>
-  </div>
-  <div class="top-actions">
-    <button id="theme-toggle" title="テーマ切替">ライト</button>
-  </div>
-</header>
+<div class="dp-page">
+  <header class="topbar">
+    <a class="brand" href="../index.html">
+      <span class="brand-icon"><span class="material-symbols-outlined" style="font-size:20px">description</span></span>
+      <span class="brand-title">サンプルプロジェクト</span>
+      <span class="brand-sub">設計ポータル</span>
+    </a>
+    <div class="header-meta">
+      <span><span class="material-symbols-outlined" style="font-size:14px">schedule</span> 更新: 2026-07-24</span>
+    </div>
+    <div class="top-actions">
+      <button id="theme-toggle" title="テーマ切替">
+        <span class="material-symbols-outlined" style="font-size:16px" id="theme-icon">light_mode</span>
+        <span id="theme-label">ライト</span>
+      </button>
+    </div>
+  </header>
 
-<main class="doc-main" id="doc-content"></main>
+  <div class="dp-body">
+    <aside class="dp-sidebar" id="sidebar">
+      <div class="toc-label">目次</div>
+      <ul class="toc-list" id="toc-list"></ul>
+    </aside>
+
+    <main class="dp-main" id="main-scroll">
+      <div class="dp-inner">
+        <div class="doc-crumbs"><a href="../index.html">← ポータル TOP へ戻る</a></div>
+        <div class="dp-hero">
+          <div>
+            <h1 id="dp-hero-title"></h1>
+          </div>
+        </div>
+        <div id="doc-content"></div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<button class="toc-toggle" id="tocToggle">
+  <span class="material-symbols-outlined">menu</span>
+</button>
 
 <footer class="footer"></footer>
 
@@ -188,6 +361,7 @@
 
 正常時: `{ "data": {...}, "meta": { "requestId": "..." } }`
 異常時: `{ "error": { "code": 1001, "message": "..." }, "meta": { "requestId": "..." } }`
+
 </script>
 
 <script>
@@ -289,18 +463,131 @@
   closeList(); closeTable(); closeBlockquote();
 
   document.getElementById('doc-content').innerHTML = html.join('\n');
+
+  // --- 拡張: h1 をヒーローへ、h2 をセクションブロック化 + 目次生成、テーブル/リストの装飾付与 ---
+  (function enhance() {
+    var container = document.getElementById('doc-content');
+    var heroTitle = document.getElementById('dp-hero-title');
+    var tocList = document.getElementById('toc-list');
+    var colors = ['accent', 'success', 'gold', 'danger', 'highlight', 'accent'];
+
+    // 最初の h1 はヒーローへ移し、本文からは除去する
+    var h1 = container.querySelector('h1');
+    if (h1) {
+      heroTitle.textContent = h1.textContent;
+      h1.parentNode.removeChild(h1);
+    }
+
+    // テーブルに data-table クラスを付与（sticky thead は CSS 側で対応済み）
+    Array.prototype.forEach.call(container.querySelectorAll('table'), function (t) {
+      t.classList.add('data-table');
+    });
+
+    // h2 ごとにセクションブロック化 + 目次エントリを生成
+    var h2s = Array.prototype.slice.call(container.querySelectorAll('h2'));
+    h2s.forEach(function (h2, idx) {
+      var text = h2.textContent;
+      var id = 'sec-' + text.trim();
+      var color = colors[idx % colors.length];
+
+      var section = document.createElement('section');
+      section.className = 'sec-block';
+      section.id = id;
+
+      var label = document.createElement('div');
+      label.className = 'sec-label';
+      label.setAttribute('data-color', color);
+      label.textContent = text;
+      section.appendChild(label);
+
+      h2.parentNode.insertBefore(section, h2);
+      var node = h2.nextSibling;
+      h2.parentNode.removeChild(h2);
+      while (node && !(node.nodeType === 1 && node.tagName === 'H2')) {
+        var next = node.nextSibling;
+        section.appendChild(node);
+        node = next;
+      }
+
+      // セクション直下（トップレベル）の ul のみをチェックリスト装飾する。入れ子リストは変換しない
+      Array.prototype.forEach.call(section.children, function (child) {
+        if (child.tagName === 'UL') {
+          child.classList.add('rule-list');
+          Array.prototype.forEach.call(child.children, function (li) {
+            if (li.tagName !== 'LI') return;
+            li.classList.add('rule-item');
+            var icon = document.createElement('span');
+            icon.className = 'material-symbols-outlined';
+            icon.style.color = 'var(--' + color + ')';
+            icon.textContent = 'check_circle';
+            var content = document.createElement('div');
+            while (li.firstChild) content.appendChild(li.firstChild);
+            li.appendChild(icon);
+            li.appendChild(content);
+          });
+        }
+      });
+
+      var li = document.createElement('li');
+      var a = document.createElement('a');
+      a.className = 'toc-link';
+      a.href = '#' + id;
+      a.innerHTML = '<span class="material-symbols-outlined" style="font-size:16px;color:var(--' + color + ')">article</span>' + text;
+      li.appendChild(a);
+      tocList.appendChild(li);
+    });
+
+    var firstLink = tocList.querySelector('.toc-link');
+    if (firstLink) firstLink.classList.add('active');
+  })();
 })();
 </script>
 
 <script>
-(function () {
+(function(){
+  var links = document.querySelectorAll('.toc-link');
+  var sections = document.querySelectorAll('.sec-block');
+  var mainEl = document.getElementById('main-scroll');
+
+  var observer = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){
+      if(e.isIntersecting){
+        links.forEach(function(l){l.classList.remove('active')});
+        var a = document.querySelector('.toc-link[href="#'+e.target.id+'"]');
+        if(a) a.classList.add('active');
+      }
+    });
+  },{root: mainEl, rootMargin:'-10% 0px -80% 0px'});
+  sections.forEach(function(s){observer.observe(s)});
+
+  links.forEach(function(l){
+    l.addEventListener('click',function(e){
+      e.preventDefault();
+      var t = document.querySelector(this.getAttribute('href'));
+      if(t) t.scrollIntoView({behavior:'smooth',block:'start'});
+      var sb = document.getElementById('sidebar');
+      if (sb) sb.classList.remove('open');
+    });
+  });
+
+  var tocToggle = document.getElementById('tocToggle');
+  if (tocToggle) {
+    tocToggle.addEventListener('click',function(){
+      var sb = document.getElementById('sidebar');
+      if (sb) sb.classList.toggle('open');
+    });
+  }
+
   var themeBtn = document.getElementById('theme-toggle');
+  var themeIcon = document.getElementById('theme-icon');
+  var themeLabel = document.getElementById('theme-label');
   if (themeBtn) {
     themeBtn.addEventListener('click', function () {
       var r = document.documentElement;
       var next = r.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
       r.setAttribute('data-theme', next);
-      themeBtn.textContent = next === 'dark' ? 'ダーク' : 'ライト';
+      if (themeLabel) themeLabel.textContent = next === 'dark' ? 'ダーク' : 'ライト';
+      if (themeIcon) themeIcon.textContent = next === 'dark' ? 'dark_mode' : 'light_mode';
       try { localStorage.setItem('rd-portal-theme', next); } catch (e) {}
     });
   }
@@ -308,8 +595,8 @@
     var saved = localStorage.getItem('rd-portal-theme');
     if (saved) {
       document.documentElement.setAttribute('data-theme', saved);
-      var tb = document.getElementById('theme-toggle');
-      if (tb) tb.textContent = saved === 'dark' ? 'ダーク' : 'ライト';
+      if (themeLabel) themeLabel.textContent = saved === 'dark' ? 'ダーク' : 'ライト';
+      if (themeIcon) themeIcon.textContent = saved === 'dark' ? 'dark_mode' : 'light_mode';
     }
   } catch (e) {}
 })();
