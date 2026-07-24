@@ -36,6 +36,14 @@
 #   designDocStatus: --design-docs-dir 配下に <screenKey> 名のフォルダ/ファイル
 #                   (または <screenKey>.* ファイル)が実在すれば「着手済」、無ければ「未着手」。
 #                   オプション未指定ならフィールド自体を付けない
+#   designDocPath / detailDocPath / sequencePath / testCasePath:
+#                   --design-docs-dir 配下の画面フォルダ(<screenKey> または screen-<screenKey>)内で
+#                   以下のファイル実在を個別に判定し、実在するものだけを画面フォルダからの相対パスで付与する:
+#                     基本設計/画面基本設計書.html   → designDocPath
+#                     詳細設計/画面詳細設計書.html   → detailDocPath
+#                     シーケンス図.html               → sequencePath
+#                     テスト項目書/単体テスト仕様書.html → testCasePath
+#                   画面フォルダ自体が不在、またはファイルが不在ならそのフィールドは付けない
 #   sourceHash    : 構成ファイル(実在するもの)を列挙順に連結した sha256 の先頭12桁。
 #                   実在ファイル 0 件ならフィールド自体を付けない
 #
@@ -351,6 +359,34 @@ while IFS= read -r row; do
       done
     fi
     add="$(jq --arg v "$doc_status" '. + {designDocStatus: $v}' <<<"$add")"
+  fi
+
+  # --- 4b. designDocPath / detailDocPath / sequencePath / testCasePath: 画面フォルダ内の各設計文書実在判定 ---
+  if [ -n "$DESIGN_DOCS_DIR" ] && [ -n "$screen_key" ]; then
+    screen_folder=""
+    screen_folder_rel=""
+    if [ -d "$DESIGN_DOCS_DIR/$screen_key" ]; then
+      screen_folder="$DESIGN_DOCS_DIR/$screen_key"
+      screen_folder_rel="$screen_key"
+    elif [ -d "$DESIGN_DOCS_DIR/screen-$screen_key" ]; then
+      screen_folder="$DESIGN_DOCS_DIR/screen-$screen_key"
+      screen_folder_rel="screen-$screen_key"
+    fi
+
+    if [ -n "$screen_folder" ]; then
+      if [ -f "$screen_folder/基本設計/画面基本設計書.html" ]; then
+        add="$(jq --arg v "$screen_folder_rel/基本設計/画面基本設計書.html" '. + {designDocPath: $v}' <<<"$add")"
+      fi
+      if [ -f "$screen_folder/詳細設計/画面詳細設計書.html" ]; then
+        add="$(jq --arg v "$screen_folder_rel/詳細設計/画面詳細設計書.html" '. + {detailDocPath: $v}' <<<"$add")"
+      fi
+      if [ -f "$screen_folder/シーケンス図.html" ]; then
+        add="$(jq --arg v "$screen_folder_rel/シーケンス図.html" '. + {sequencePath: $v}' <<<"$add")"
+      fi
+      if [ -f "$screen_folder/テスト項目書/単体テスト仕様書.html" ]; then
+        add="$(jq --arg v "$screen_folder_rel/テスト項目書/単体テスト仕様書.html" '. + {testCasePath: $v}' <<<"$add")"
+      fi
+    fi
   fi
 
   # --- 5. sourceHash: 実在構成ファイル連結の sha256 先頭12桁 ---

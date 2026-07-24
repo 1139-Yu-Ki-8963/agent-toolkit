@@ -538,10 +538,19 @@ for kind in $KINDS_ORDER; do
   fi
 done
 
-# --- 3. 共通文書リストの収集 ---
-common_tools_json=""
+# --- 3. 共通文書リストの収集（standards: 規約系 / design: 設計書系 に分割。category-grouping/rule.md 準拠） ---
 common_dir="$DOCS_ROOT/プロジェクト共通"
 COMMON_DOC_TEMPLATE_FILE="$SCRIPT_DIR/../templates/common-doc-template.html"
+
+standards_titles=()
+standards_icons=()
+standards_hrefs=()
+standards_groups=()
+
+design_doc_titles=()
+design_doc_icons=()
+design_doc_hrefs=()
+design_doc_groups=()
 
 html_escape() {
   printf '%s' "$1" | sed 's/&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g'
@@ -619,11 +628,63 @@ if [ -d "$common_dir" ]; then
       *メッセージ*) doc_icon="chat" ;;
     esac
 
-    [ -n "$common_tools_json" ] && common_tools_json="$common_tools_json,"
     title_escaped="$(echo "$title" | sed 's/"/\\"/g')"
-    common_tools_json="$common_tools_json{\"title\":\"$title_escaped\",\"icon\":\"$doc_icon\",\"href\":\"$rel_href\",\"desc\":\"\",\"count\":\"詳細を見る\"}"
+
+    # カテゴリ振り分け（規約/規則/命名 → standards、設計/アーキテクチャ/データ/UI → design。既定は standards）
+    common_category="standards"
+    case "$(basename "$md_file") $title" in
+      *規約*|*規則*|*命名*) common_category="standards" ;;
+      *設計*|*アーキテクチャ*|*データ*|*UI*) common_category="design" ;;
+    esac
+
+    if [ "$common_category" = "standards" ]; then
+      doc_group=""
+      case "$title" in
+        *コーディング規約*|*命名規約*) doc_group="コード" ;;
+        *ディレクトリ構成規約*|*コンポーネント設計規約*) doc_group="構造" ;;
+        *レビュー観点表*|*テスト方針書*) doc_group="品質" ;;
+      esac
+      standards_titles+=("$title_escaped")
+      standards_icons+=("$doc_icon")
+      standards_hrefs+=("$rel_href")
+      standards_groups+=("$doc_group")
+    else
+      doc_group=""
+      case "$title" in
+        *基盤設計書*|*共通設計書*) doc_group="基盤" ;;
+        *データ設計書*|*メッセージ定義書*) doc_group="データ" ;;
+        *UI共通設計書*) doc_group="UI" ;;
+      esac
+      design_doc_titles+=("$title_escaped")
+      design_doc_icons+=("$doc_icon")
+      design_doc_hrefs+=("$rel_href")
+      design_doc_groups+=("$doc_group")
+    fi
   done < <(find "$common_dir" -name '*.md' -type f 2>/dev/null | sort)
 fi
+
+# 共通文書 JSON の組み立て（カテゴリ内アイテムが 4 件以上の場合のみ group フィールドを付与）
+build_common_category_json() {
+  local -a titles=("${!1}")
+  local -a icons=("${!2}")
+  local -a hrefs=("${!3}")
+  local -a groups=("${!4}")
+  local count=${#titles[@]}
+  local json=""
+  local i
+  for ((i = 0; i < count; i++)); do
+    [ -n "$json" ] && json="$json,"
+    if [ "$count" -ge 4 ] && [ -n "${groups[$i]}" ]; then
+      json="$json{\"title\":\"${titles[$i]}\",\"group\":\"${groups[$i]}\",\"icon\":\"${icons[$i]}\",\"href\":\"${hrefs[$i]}\",\"desc\":\"\",\"count\":\"詳細を見る\"}"
+    else
+      json="$json{\"title\":\"${titles[$i]}\",\"icon\":\"${icons[$i]}\",\"href\":\"${hrefs[$i]}\",\"desc\":\"\",\"count\":\"詳細を見る\"}"
+    fi
+  done
+  echo "$json"
+}
+
+standards_tools_json="$(build_common_category_json standards_titles[@] standards_icons[@] standards_hrefs[@] standards_groups[@])"
+design_common_json="$(build_common_category_json design_doc_titles[@] design_doc_icons[@] design_doc_hrefs[@] design_doc_groups[@])"
 
 # --- 3.5. 画面設計書の変換 ---
 SCREEN_DOC_TEMPLATE_FILE="$SCRIPT_DIR/../templates/screen-doc-template.html"
@@ -830,10 +891,8 @@ scale_json="$(jq -n --argjson total "$total_lines" --argjson fe "$fe_lines" --ar
 METRICS_JSON="$(jq -n --argjson scale "$scale_json" --argjson tests "$tests_json" --argjson freshness "$freshness_json" --argjson previous "$previous_json" \
   '{scale:$scale, tests:$tests, freshness:$freshness, previous:$previous}')"
 
-common_count=0
-if [ -n "$common_tools_json" ]; then
-  common_count="$(echo "$common_tools_json" | grep -o '{' | wc -l | awk '{print $1}')"
-fi
+standards_count="${#standards_titles[@]}"
+design_common_count="${#design_doc_titles[@]}"
 future_count=0
 if [ -n "$future_tools_json" ]; then
   future_count="$(echo "$future_tools_json" | grep -o '{' | wc -l | awk '{print $1}')"
@@ -847,8 +906,11 @@ CATEGORIES_JSON="["
 if [ "$future_count" -gt 0 ]; then
   CATEGORIES_JSON="$CATEGORIES_JSON{\"id\":\"project\",\"title\":\"プロジェクト基盤情報\",\"icon\":\"domain\",\"sub\":\"プロジェクトの前提を横断的にまとめた資料\",\"tools\":[$future_tools_json]},"
 fi
-if [ "$common_count" -gt 0 ]; then
-  CATEGORIES_JSON="$CATEGORIES_JSON{\"id\":\"common\",\"title\":\"プロジェクト規約\",\"icon\":\"library_books\",\"sub\":\"プロジェクト全体に適用される設計方針・規約\",\"tools\":[$common_tools_json]},"
+if [ "$standards_count" -gt 0 ]; then
+  CATEGORIES_JSON="$CATEGORIES_JSON{\"id\":\"standards\",\"title\":\"規約\",\"icon\":\"rule\",\"sub\":\"全体に適用されるルール・規約\",\"tools\":[$standards_tools_json]},"
+fi
+if [ "$design_common_count" -gt 0 ]; then
+  CATEGORIES_JSON="$CATEGORIES_JSON{\"id\":\"design\",\"title\":\"設計書\",\"icon\":\"architecture\",\"sub\":\"基盤・共通・データ・UIの設計方針を記述した文書\",\"tools\":[$design_common_json]},"
 fi
 CATEGORIES_JSON="$CATEGORIES_JSON{\"id\":\"list\",\"title\":\"一覧・設計図\",\"icon\":\"list_alt\",\"sub\":\"画面・API・テーブル等の種別一覧と、画面遷移図・ER図\",\"tools\":[$list_tools_json]}"
 if [ -n "$cross_tools_json" ]; then
@@ -858,7 +920,7 @@ if [ -n "$ai_tools_json" ]; then
   CATEGORIES_JSON="$CATEGORIES_JSON,{\"id\":\"ai\",\"title\":\"AI設定資産\",\"icon\":\"smart_toy\",\"sub\":\"rules・skills・サブエージェント・hooks の設定を俯瞰する資料\",\"tools\":[$ai_tools_json]}"
 fi
 if [ "$design_count" -gt 0 ]; then
-  CATEGORIES_JSON="$CATEGORIES_JSON,{\"id\":\"design\",\"title\":\"デザイン\",\"icon\":\"palette\",\"sub\":\"デザインシステム・コンポーネント・アイコンの一覧\",\"tools\":[$design_tools_json]}"
+  CATEGORIES_JSON="$CATEGORIES_JSON,{\"id\":\"design-tools\",\"title\":\"デザイン\",\"icon\":\"palette\",\"sub\":\"デザイントークン・コンポーネント・アイコンの可視化\",\"tools\":[$design_tools_json]}"
 fi
 CATEGORIES_JSON="$CATEGORIES_JSON]"
 

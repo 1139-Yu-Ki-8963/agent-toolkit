@@ -260,8 +260,21 @@ if [ "$UNIT_KIND" = "feature" ]; then
 fi
 
 # --- unit_kind=screen 以外: 検証してから汎用テンプレートで生成 ---
-if ! "$SCRIPT_DIR/validate-manifest.sh" "$MANIFEST" --unit-kind "$UNIT_KIND"; then
-  echo "ERROR: manifestがvalidate-manifest.shの検証に失敗しました。Phase 3の整合検証を先に完了してください" >&2
+# test_viewpoint/message はスキーマ契約が異なるため専用検証スクリプトへ委譲する。
+case "$UNIT_KIND" in
+  test_viewpoint)
+    VALIDATE_CMD=("$SCRIPT_DIR/validate-test-viewpoint-manifest.sh" "$MANIFEST")
+    ;;
+  message)
+    VALIDATE_CMD=("$SCRIPT_DIR/validate-message-manifest.sh" "$MANIFEST")
+    ;;
+  *)
+    VALIDATE_CMD=("$SCRIPT_DIR/validate-manifest.sh" "$MANIFEST" --unit-kind "$UNIT_KIND")
+    ;;
+esac
+
+if ! "${VALIDATE_CMD[@]}"; then
+  echo "ERROR: manifestが検証に失敗しました。Phase 3の整合検証を先に完了してください" >&2
   exit 1
 fi
 

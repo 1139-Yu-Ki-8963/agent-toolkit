@@ -124,3 +124,17 @@ manifest.json の保存先は `$CLAUDE_JOB_DIR/tmp/test-viewpoint-manifest.json`
 ## 参照資料
 
 - `../../../shared/references/manifest-schema-extensions.md` — manifest JSON のスキーマ拡張定義（存在する場合）
+
+## 設計判断
+
+### validate-test-viewpoint-manifest.sh
+
+**必要性**: テスト観点表一覧の manifest は「転記のみ」設計であり、検出系スキルの validate-manifest.sh が要求する sourceFile 実在チェック・strategy 承認・意味キー品質（screenKey-testType-N 形式の連番検査）・参照整合を満たさない構造を持つ。これらの検査を通そうとすると manifest の意味を歪める値を追加することになり、事実の転記に徹する本スキルの設計原則と矛盾する。
+
+**代替案を採用しなかった理由**:
+- validate-manifest.sh に test_viewpoint 分岐を追加: 複数種別が依存する共有スクリプトへの guard 散在で影響範囲が大きく、必須キー集合を変えない方針を維持する
+- 検証をスキップ: unitKey 一意性・summary 一致の保証が失われる
+
+**保守責任者**: 人手（ユーザー）。aggregate-test-viewpoints.sh の出力契約を変更する場合は本スクリプトの必須フィールドリストを同時に更新する
+
+**廃棄条件**: validate-manifest.sh が種別ごとの検証プロファイルを内蔵し、test_viewpoint 種別の転記契約に対応した時

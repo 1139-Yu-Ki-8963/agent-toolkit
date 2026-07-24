@@ -14,8 +14,9 @@
 #   6. categorySrc整合性(transitionのみ): nodes[]にcategoryを持つノードが1件以上あれば、
 #      全ノードのcategorySrcが非空であること(片方だけ付与された中途半端な状態を検出)
 #   7. sourceRef実在・行番号(--target-repo指定時のみ):
-#      ネスト位置を問わず全 .sourceRef 値について、パス部分(":"より前。文書参照形式.md#は対象外)の
-#      test -f 実在確認と、行番号付与時はそのファイルの総行数(wc -l)以内であることを検証する
+#      rows/terms/edges/relations/allocations/unresolved の6キー配下の .sourceRef 値について、
+#      パス部分(":"より前。文書参照形式.md#は対象外)のtest -f 実在確認と、行番号付与時は
+#      そのファイルの総行数(wc -l)以内であることを検証する
 #   8. columns型検証(erのみ): entities[].columns[]が存在する場合、name/typeがstring、
 #      pk/fk/unique/nullableがboolean(いずれも存在時のみ)であることを検証する
 #

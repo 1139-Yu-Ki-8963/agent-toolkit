@@ -319,28 +319,24 @@ mkdir -p "$OUTPUT_DIR"
 GENERATED_AT="$(date +%Y-%m-%dT%H:%M:%S%z | sed 's/\(..\)$/:\1/')"
 
 # ---------------------------------------------------------------------------
-# 導出の素材抽出
+# 導出の素材抽出（ARG_MAX 超過を避けるため、マニフェスト全体はシェル変数へ代入せず
+# 各 jq 呼び出しで --slurpfile によりファイルから直接読ませる）
 # ---------------------------------------------------------------------------
-ALL_SCREENS="$(jq -c '.screens // []' "$SCREEN_MANIFEST")"
-# permissions フィールドを持つ画面のみ(fail-safe: 未抽出画面に全許可を与えない)
-PERM_SCREENS="$(jq -c '[.screens[]? | select(has("permissions"))]' "$SCREEN_MANIFEST")"
-API_UNITS="$(jq -c '.units // []' "$API_MANIFEST")"
-
 if [ -n "$FEATURE_MANIFEST" ]; then
-  FEATURE_UNITS="$(jq -c '.units // []' "$FEATURE_MANIFEST")"
   HAS_FEATURES=true
 else
-  FEATURE_UNITS='[]'
   HAS_FEATURES=false
 fi
 
 if [ -n "$TABLE_MANIFEST" ]; then
-  TABLE_UNITS="$(jq -c '.units // []' "$TABLE_MANIFEST")"
   HAS_TABLES=true
 else
-  TABLE_UNITS='[]'
   HAS_TABLES=false
 fi
+
+# 未指定の任意マニフェストは /dev/null を渡す（--slurpfile は空ファイルを空配列として読む）
+FEATURE_MANIFEST_FILE="${FEATURE_MANIFEST:-/dev/null}"
+TABLE_MANIFEST_FILE="${TABLE_MANIFEST:-/dev/null}"
 
 # dataSource: 各ファイルの導出に使った入力マニフェストのパス(メタ表示用)
 DS_PERMISSION="$SCREEN_MANIFEST + $API_MANIFEST${FEATURE_MANIFEST:+ + $FEATURE_MANIFEST}"
@@ -355,13 +351,17 @@ else
 fi
 
 # --- fail-safe の除外理由を stderr へ ---
-total_screens="$(jq 'length' <<<"$ALL_SCREENS")"
-perm_screens_count="$(jq 'length' <<<"$PERM_SCREENS")"
+total_screens="$(jq '(.screens // []) | length' "$SCREEN_MANIFEST")"
+perm_screens_count="$(jq '[.screens[]? | select(has("permissions"))] | length' "$SCREEN_MANIFEST")"
 if [ "$perm_screens_count" -lt "$total_screens" ]; then
   echo "NOTE: permissions 未抽出の画面 $((total_screens - perm_screens_count)) 件は permission-matrix で permissions: null(権限未設定)として出力しました(fail-safe: 誤った全許可を出さない)" >&2
 fi
 
-feat_with_apis="$(jq '[.[] | select(((.relatedApis // []) | length) > 0)] | length' <<<"$FEATURE_UNITS")"
+if [ "$HAS_FEATURES" = true ]; then
+  feat_with_apis="$(jq '[.units[]? | select(((.relatedApis // []) | length) > 0)] | length' "$FEATURE_MANIFEST")"
+else
+  feat_with_apis=0
+fi
 if [ "$feat_with_apis" -eq 0 ]; then
   if [ "$HAS_FEATURES" = true ]; then
     echo "NOTE: feature-manifest に relatedApis を持つ feature が 0 件のため permission-matrix の features は空配列です" >&2
@@ -373,9 +373,9 @@ fi
 # --- table-manifest 収載確認(advisory。出力は変えない) ---
 if [ -n "$TABLE_MANIFEST" ]; then
   unknown_tables="$(jq -n -r \
-    --argjson apis "$API_UNITS" \
+    --slurpfile am "$API_MANIFEST" \
     --slurpfile tm "$TABLE_MANIFEST" \
-    '(([$apis[] | .targetTables // [] | .[]] | unique) - [$tm[0].units[]? | .unitKey]) | join(", ")')"
+    '(([$am[0].units[]? | .targetTables // [] | .[]] | unique) - [$tm[0].units[]? | .unitKey]) | join(", ")')"
   if [ -n "$unknown_tables" ]; then
     echo "WARN: apis の targetTables に table-manifest 未収載の unitKey があります: ${unknown_tables}" >&2
   fi
@@ -405,12 +405,15 @@ jq -n \
   --arg generatedAt "$GENERATED_AT" \
   --arg dataSource "$DS_PERMISSION" \
   --argjson roles "$ROLES_JSON" \
-  --argjson allScreens "$ALL_SCREENS" \
-  --argjson screens "$PERM_SCREENS" \
-  --argjson apis "$API_UNITS" \
-  --argjson features "$FEATURE_UNITS" \
+  --slurpfile screenManifest "$SCREEN_MANIFEST" \
+  --slurpfile apiManifest "$API_MANIFEST" \
+  --slurpfile featureManifest "$FEATURE_MANIFEST_FILE" \
   "$JQ_DEFS"'
-  {
+  ($screenManifest[0].screens // []) as $allScreens
+  | ([ $allScreens[] | select(has("permissions")) ]) as $screens
+  | ($apiManifest[0].units // []) as $apis
+  | ($featureManifest[0].units // []) as $features
+  | {
     generatedAt: $generatedAt,
     dataSource: $dataSource,
     roles: $roles,
@@ -451,13 +454,16 @@ echo "OK: wrote $OUTPUT_DIR/permission-matrix.json" >&2
 jq -n \
   --arg generatedAt "$GENERATED_AT" \
   --arg dataSource "$DS_CRUD" \
-  --argjson apis "$API_UNITS" \
-  --argjson features "$FEATURE_UNITS" \
-  --argjson tableUnits "$TABLE_UNITS" \
+  --slurpfile apiManifest "$API_MANIFEST" \
+  --slurpfile featureManifest "$FEATURE_MANIFEST_FILE" \
+  --slurpfile tableManifest "$TABLE_MANIFEST_FILE" \
   --argjson hasFeatures "$HAS_FEATURES" \
   --argjson hasTables "$HAS_TABLES" \
   "$JQ_DEFS"'
-  ([ $tableUnits[] | {key: .unitKey, value: (.identifier // .unitKey)} ] | from_entries) as $phys
+  ($apiManifest[0].units // []) as $apis
+  | ($featureManifest[0].units // []) as $features
+  | ($tableManifest[0].units // []) as $tableUnits
+  | ([ $tableUnits[] | {key: .unitKey, value: (.identifier // .unitKey)} ] | from_entries) as $phys
   | (
       if $hasFeatures then
         [ $features[]
@@ -505,12 +511,15 @@ echo "OK: wrote $OUTPUT_DIR/crud-matrix.json" >&2
 jq -n \
   --arg generatedAt "$GENERATED_AT" \
   --arg dataSource "$DS_TRACE" \
-  --argjson screens "$ALL_SCREENS" \
-  --argjson apis "$API_UNITS" \
-  --argjson tableUnits "$TABLE_UNITS" \
+  --slurpfile screenManifest "$SCREEN_MANIFEST" \
+  --slurpfile apiManifest "$API_MANIFEST" \
+  --slurpfile tableManifest "$TABLE_MANIFEST_FILE" \
   --argjson hasTables "$HAS_TABLES" \
   '
-  { generatedAt: $generatedAt,
+  ($screenManifest[0].screens // []) as $screens
+  | ($apiManifest[0].units // []) as $apis
+  | ($tableManifest[0].units // []) as $tableUnits
+  | { generatedAt: $generatedAt,
     dataSource: $dataSource,
     screens: [
       $screens[]
