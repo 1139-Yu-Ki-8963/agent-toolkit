@@ -35,7 +35,8 @@
   --code-bg: #1B1F26;
   --code-fg: #E8E5DC;
   --cat-list: #2563eb;
-  --cat-common: #059669;
+  --cat-standards: #059669;
+  --cat-design: #D97706;
   --cat-project: #7C3AED;
   --font-body: "Hiragino Kaku Gothic ProN","Hiragino Sans","Noto Sans JP","BIZ UDPGothic","Yu Gothic","Meiryo",system-ui,-apple-system,sans-serif;
   --mono: "SFMono-Regular","Menlo","Cascadia Code","Consolas",monospace;
@@ -57,7 +58,7 @@
     --nav-tag: #8E9ED0; --nav-tag-soft: rgba(142,158,208,0.15);
     --self-tag: #7DB87D; --self-tag-soft: rgba(125,184,125,0.15);
     --code-bg: #0E1116; --code-fg: #E8E5DC;
-    --cat-list: #60A5FA; --cat-common: #34D399; --cat-project: #A78BFA;
+    --cat-list: #60A5FA; --cat-standards: #34D399; --cat-design: #FBBF24; --cat-project: #A78BFA;
   }
 }
 [data-theme="dark"] {
@@ -72,5 +73,5 @@
   --nav-tag: #8E9ED0; --nav-tag-soft: rgba(142,158,208,0.15);
   --self-tag: #7DB87D; --self-tag-soft: rgba(125,184,125,0.15);
   --code-bg: #0E1116; --code-fg: #E8E5DC;
-  --cat-list: #60A5FA; --cat-common: #34D399; --cat-project: #A78BFA;
+  --cat-list: #60A5FA; --cat-standards: #34D399; --cat-design: #FBBF24; --cat-project: #A78BFA;
 }

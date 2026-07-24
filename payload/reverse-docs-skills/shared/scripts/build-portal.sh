@@ -825,6 +825,7 @@ done
 get_cross_label() { case "$1" in permscreen) echo "権限画面マトリクス";; permfeature) echo "権限機能マトリクス";; crud) echo "CRUD図";; trace) echo "追跡可能性";; esac; }
 get_cross_icon() { case "$1" in permscreen) echo "lock";; permfeature) echo "key";; crud) echo "grid_on";; trace) echo "route";; esac; }
 get_cross_desc() { case "$1" in permscreen) echo "ロール×画面の行×列で閲覧可否の関係を示すマトリクス。";; permfeature) echo "ロール×機能の行×列で操作可否（CRUD）の関係を示すマトリクス。";; crud) echo "機能×テーブルの行×列でCRUD操作の関係を示すマトリクス。";; trace) echo "画面-API-テーブルの対応連鎖を行×列で追跡する対応表。";; esac; }
+get_cross_group() { case "$1" in permscreen) echo "権限";; permfeature) echo "権限";; crud) echo "データ";; trace) echo "データ";; esac; }
 CROSS_ORDER="permscreen permfeature crud trace"
 
 cross_tools_json=""
@@ -832,12 +833,13 @@ for key in $CROSS_ORDER; do
   label="$(get_cross_label "$key")"
   icon="$(get_cross_icon "$key")"
   desc="$(get_cross_desc "$key")"
+  group="$(get_cross_group "$key")"
   html_file="$DOCS_ROOT/マトリクス・対応表/$label/$label.html"
 
   if [ -f "$html_file" ]; then
     href="$docs_relative/マトリクス・対応表/$label/$label.html"
     [ -n "$cross_tools_json" ] && cross_tools_json="$cross_tools_json,"
-    cross_tools_json="$cross_tools_json{\"title\":\"$label\",\"icon\":\"$icon\",\"href\":\"$href\",\"desc\":\"$desc\",\"count\":\"詳細を見る\"}"
+    cross_tools_json="$cross_tools_json{\"title\":\"$label\",\"group\":\"$group\",\"icon\":\"$icon\",\"href\":\"$href\",\"desc\":\"$desc\",\"count\":\"詳細を見る\"}"
   fi
 done
 
