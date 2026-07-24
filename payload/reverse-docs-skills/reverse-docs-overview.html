@@ -158,83 +158,90 @@
   <h2><span class="sec-num">§1</span>ポータルが充実していく仕組み</h2>
   <p>ポータル（<code>index.html</code>）は <code>doc/</code> フォルダ内に実在するファイルだけを検知してカードを動的に生成する。スキルを 1 つ実行して HTML や Markdown を <code>doc/</code> に出力し、<code>build-portal.sh</code> を再実行すると、ポータルに新しいカードが現れる。右列は、ポータル上のどのカテゴリにカードが追加されるかを示す。</p>
   <p class="note">どのスキルをどの順序で実行しても構わない。指揮役（<code>orchestrating-reverse-docs-flow</code>）は最適な順序で自動実行するが、手動で好きなスキルだけ実行してもポータルは正しく組み上がる。「facts」は原本コードから抽出した宣言的契約の事実表を指す。「基準タグ」は、2 環境の完全一致を証明できた時点のコミットに打つ git タグ <code>reverse-baseline/&lt;scope&gt;</code> を指す。</p>
-  <h3>フェーズごとのポータル充実度</h3>
-  <p class="note">下表は各フェーズ完了後にポータルに追加されるカード数を示す。<span class="tag done">+N</span> は当該フェーズで新規追加されるカード。最終的に 6 カテゴリ・約 30 枚のカードが揃った設計ポータルが完成する。</p>
+  <h3>段階ごとのポータル充実度</h3>
+  <p class="note">各段階で新たに追加されるカード数を <span class="tag done">+N</span> で示す。最終行はサンプルポータルの完成形（7 カテゴリ・35 カード）。</p>
   <table class="spec">
     <tr>
-      <th>フェーズ</th>
+      <th>段階</th>
       <th>基盤情報</th>
       <th>規約</th>
       <th>設計書</th>
       <th>一覧・設計図</th>
       <th>マトリクス</th>
       <th>AI</th>
+      <th>デザイン</th>
       <th>累計</th>
     </tr>
     <tr>
-      <td>アーキ調査</td>
+      <td>一覧生成（6 種別）</td>
       <td>—</td>
       <td>—</td>
       <td>—</td>
+      <td><span class="tag done">+6</span></td>
       <td>—</td>
       <td>—</td>
       <td>—</td>
-      <td>0</td>
-    </tr>
-    <tr>
-      <td>一覧生成</td>
-      <td>—</td>
-      <td>—</td>
-      <td>—</td>
-      <td><span class="tag done">+7</span></td>
-      <td>—</td>
-      <td>—</td>
-      <td>7</td>
+      <td>6</td>
     </tr>
     <tr>
       <td>共通文書採録</td>
       <td>—</td>
       <td><span class="tag done">+6</span></td>
       <td><span class="tag done">+5</span></td>
-      <td>7</td>
       <td>—</td>
       <td>—</td>
-      <td>18</td>
+      <td>—</td>
+      <td>—</td>
+      <td>17</td>
     </tr>
     <tr>
-      <td>基盤ページ生成</td>
-      <td><span class="tag done">+3</span></td>
-      <td>6</td>
-      <td>5</td>
+      <td>基盤ページ生成（9 種）</td>
+      <td><span class="tag done">+4</span></td>
+      <td>—</td>
+      <td>—</td>
       <td><span class="tag done">+3</span></td>
       <td>—</td>
       <td>—</td>
-      <td>24</td>
+      <td><span class="tag done">+3</span></td>
+      <td>27</td>
+    </tr>
+    <tr>
+      <td>派生一覧</td>
+      <td>—</td>
+      <td>—</td>
+      <td>—</td>
+      <td><span class="tag done">+3</span></td>
+      <td>—</td>
+      <td>—</td>
+      <td>—</td>
+      <td>30</td>
     </tr>
     <tr>
       <td>マトリクス・AI</td>
-      <td>3</td>
-      <td>6</td>
-      <td>5</td>
-      <td>10</td>
+      <td>—</td>
+      <td>—</td>
+      <td>—</td>
+      <td>—</td>
       <td><span class="tag done">+4</span></td>
       <td><span class="tag done">+1</span></td>
-      <td>29</td>
+      <td>—</td>
+      <td>35</td>
     </tr>
-    <tr>
+    <tr style="border-top:2px solid #1a1a1a">
       <td><b>最終形</b></td>
-      <td><b>3</b></td>
+      <td><b>4</b></td>
       <td><b>6</b></td>
       <td><b>5</b></td>
-      <td><b>10</b></td>
+      <td><b>12</b></td>
       <td><b>4</b></td>
       <td><b>1</b></td>
-      <td><b>29</b></td>
+      <td><b>3</b></td>
+      <td><b>35</b></td>
     </tr>
   </table>
-  <p class="note">カテゴリ名はポータルの実際のセクション名と一致する。件数はサンプル（<code>shared/samples/index.html</code>）の最終形に基づく。対象リポジトリの実態に応じて種別や件数は変わる。</p>
+  <p class="note">カテゴリ名はポータルの実際のセクション名と一致する（<code>shared/samples/index.html</code> で実測）。対象外種別がある場合は一覧の件数が減る。</p>
 
-  <h3>工程ごとの詳細（スキルとポータルカテゴリの対応）</h3>
+<h3>工程ごとの詳細（スキルとポータルカテゴリの対応）</h3>
 
   <div class="flowgrid">
     <div>
@@ -260,7 +267,7 @@
         <span class="stepskill">generating-reverse-common-docs</span>
       </div>
     </div>
-    <div class="flowgain"><span class="gainlabel">ポータルに追加 ＞ プロジェクト規約</span><div style="font-size:0.88rem"><b>規約カテゴリ:</b> コーディング規約 / 命名規約 / ディレクトリ構成規約 / コンポーネント設計規約 / レビュー観点表 / テスト方針書<br><b>設計書カテゴリ:</b> 共通設計書 / メッセージ定義書 / データ設計 / UI共通設計 / 基盤設計</div></div>
+    <div class="flowgain"><span class="gainlabel">ポータルに追加 ＞ プロジェクト規約</span><div style="font-size:0.88rem"><b>規約カテゴリ:</b> コーディング規約 / 命名規約 / ディレクトリ構成規約 / コンポーネント設計規約 / レビュー観点表 / テスト方針書<br><b>設計書カテゴリ:</b> 共通設計書 / メッセージ定義書 / データ設計書 / UI共通設計書 / 基盤設計書</div></div>
 
     <div>
       <div class="flowstep">
@@ -270,6 +277,33 @@
       </div>
     </div>
     <div class="flowgain"><span class="gainlabel">ポータルに追加 ＞ プロジェクト基盤情報</span><div style="font-size:0.88rem"><b>基盤情報カテゴリ:</b> 技術スタック / 環境構築手順 / 用語辞書 / リリースノート<br><b>一覧カテゴリに追加:</b> 画面遷移図 / ER図 / 状態遷移図<br><b>デザインカテゴリ:</b> デザインシステム / コンポーネント棚卸し / アイコンカタログ</div></div>
+
+    <div>
+      <div class="flowstep">
+        <span class="stepname">派生一覧生成</span>
+        <span class="stepskill">generating-message-list-for-reverse-docs / generating-test-viewpoint-list-for-reverse-docs</span>
+        <div class="note">メッセージ定義書・テスト観点表の横断集約（任意）</div>
+      </div>
+    </div>
+    <div class="flowgain"><span class="gainlabel">ポータルに追加 ＞ 一覧・設計図</span><div style="font-size:0.88rem">メッセージ一覧 / テスト観点表</div></div>
+
+    <div>
+      <div class="flowstep">
+        <span class="stepname">マトリクス・対応表生成</span>
+        <span class="stepskill">generating-cross-views-for-reverse-docs</span>
+        <div class="note">Phase 1D：画面一覧・API一覧・機能一覧・テーブル一覧の確立後</div>
+      </div>
+    </div>
+    <div class="flowgain"><span class="gainlabel">ポータルに追加 ＞ マトリクス・対応表 / AI設定資産</span><div style="font-size:0.88rem">権限画面マトリクス / 権限機能マトリクス / CRUD図 / 追跡可能性 / AI設定資産</div></div>
+
+    <div>
+      <div class="flowstep">
+        <span class="stepname">シーケンス図生成</span>
+        <span class="stepskill">generating-sequence-diagram-for-reverse-docs</span>
+        <div class="note">画面フォルダに操作単位のシーケンス図を生成（任意）</div>
+      </div>
+    </div>
+    <div class="flowgain"><span class="gainlabel">ポータルに追加 ＞ 一覧・設計図（画面ごと）</span><div style="font-size:0.88rem">画面フォルダにシーケンス図.html</div></div>
 
     <div>
       <div class="flowstep">
@@ -427,7 +461,7 @@
       <td><code>generating-cross-views-for-reverse-docs</code></td>
       <td>マトリクス・対応表（Phase 1D・機能一覧確立後）</td>
       <td><code>DONE | ERROR</code></td>
-      <td>権限×画面・権限×機能・CRUD図・追跡可能性の 4 ページ + AI設定資産ページ</td>
+      <td>権限画面マトリクス・権限機能マトリクス・CRUD図・追跡可能性の 4 ページ + AI設定資産ページ</td>
     </tr>
     <tr>
       <td><code>generating-entity-state-for-reverse-docs</code></td>
