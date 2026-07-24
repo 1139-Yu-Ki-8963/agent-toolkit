@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<!--
+  テストケース一覧.HTML
+
+  全画面のテスト仕様書md（単体テスト仕様書・結合テスト仕様書・操作シナリオ仕様書）を
+  横断集約し、単体テスト・結合テスト・操作シナリオの3タブで表示するページ。
+
+  データソース: shared/samples/画面/<screenId>/テスト項目書/*.md
+  トークンブロック・テーマ切替は shared/samples/一覧/テスト観点表/テスト観点表.html から
+  CSS/テーマ・topbar・page-hero パターンを流用している。同ファイルの当該部分を変更した
+  場合は本ファイルも同時更新すること。
+
+  制約:
+    - 外部リソース(CDN・フォント・画像)は一切使わない。単一ファイル自己完結
+    - <script id="test-case-manifest"> の中身は各画面のテスト仕様書mdの内容と一致させる
+-->
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>テストケース一覧</title>
+<style>
+  :root,
+  [data-theme="light"] {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    font-synthesis: none;
+    --bg: #FFFFFF;
+    --panel: #FFFFFF;
+    --panel-2: #F6F8FA;
+    --border: #D1D9E0;
+    --border-strong: #AFB8C1;
+    --text: #1B1F26;
+    --text-sub: #4A4F58;
+    --text-muted: #767B85;
+    --accent: #0969DA;
+    --accent-2: #218BFF;
+    --accent-soft: #DDF4FF;
+    --accent-border: #54AEFF;
+    --gold: #BC4C00;
+    --gold-soft: #FFF1E5;
+    --gold-border: #D18A5A;
+    --success: #1A7F37;
+    --success-soft: #DAFBE1;
+    --warn: #BC4C00;
+    --danger: #CF222E;
+    --danger-soft: #FFEBE9;
+    --font-body: "Hiragino Kaku Gothic ProN","Hiragino Sans","Noto Sans JP","BIZ UDPGothic","Yu Gothic","Meiryo",system-ui,-apple-system,sans-serif;
+    --mono: "SFMono-Regular","Menlo","Cascadia Code","Consolas",monospace;
+    --shadow-sm: 0 1px 3px rgba(27,31,38,.07), 0 2px 6px rgba(27,31,38,.05);
+    --radius: 10px;
+    --radius-sm: 6px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #15171C; --panel: #1C1F26; --panel-2: #21262D;
+      --border: #30363D; --border-strong: #484F58;
+      --text: #E8E5DC; --text-sub: #B6B3AB; --text-muted: #888784;
+      --accent: #58A6FF; --accent-2: #79C0FF; --accent-soft: #132D4B; --accent-border: #1F6FEB;
+      --gold: #DB6D28; --gold-soft: #311D08; --gold-border: #7A3E0D;
+      --success: #3FB950; --success-soft: #0D2818;
+      --warn: #DB6D28; --danger: #F85149; --danger-soft: #3D1214;
+    }
+  }
+  [data-theme="dark"] {
+    --bg: #15171C; --panel: #1C1F26; --panel-2: #21262D;
+    --border: #30363D; --border-strong: #484F58;
+    --text: #E8E5DC; --text-sub: #B6B3AB; --text-muted: #888784;
+    --accent: #58A6FF; --accent-2: #79C0FF; --accent-soft: #132D4B; --accent-border: #1F6FEB;
+    --gold: #DB6D28; --gold-soft: #311D08; --gold-border: #7A3E0D;
+    --success: #3FB950; --success-soft: #0D2818;
+    --warn: #DB6D28; --danger: #F85149; --danger-soft: #3D1214;
+  }
+
+  html { height: 100vh; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 0 24px 0;
+    font-family: var(--font-body);
+    line-height: 1.7; color: var(--text); background: var(--bg);
+    max-width: 1280px; margin-inline: auto;
+    height: 100%; overflow: hidden; display: flex; flex-direction: column;
+  }
+  a { color: var(--accent); }
+
+  .table-area { flex: 1; min-height: 0; overflow-y: auto; padding-bottom: 24px; }
+  .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+  .topbar {
+    display: grid; grid-template-columns: auto 1fr auto;
+    align-items: center; gap: 24px; padding: 12px 0;
+    background: linear-gradient(180deg, var(--panel) 0%, var(--panel-2) 100%);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .brand { display: flex; align-items: baseline; gap: 8px; color: var(--text); text-decoration: none; }
+  .brand:hover { text-decoration: none; }
+  .brand-icon { display: inline-flex; align-items: center; }
+  .brand-title { font-weight: 700; font-size: 16px; }
+  .brand-sub { font-size: 11px; color: var(--text-muted); }
+  .header-meta { font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 8px; }
+  .top-actions { display: flex; align-items: center; gap: 8px; }
+  .top-actions button {
+    background: var(--panel-2); border: 1px solid var(--border); border-radius: var(--radius-sm);
+    color: var(--text-sub); cursor: pointer; padding: 8px 16px; font-size: 13px; font-family: inherit;
+  }
+  .top-actions button:hover { background: var(--accent-soft); color: var(--accent); border-color: var(--accent-border); }
+
+  .page-hero { padding: 16px 0 8px; flex-shrink: 0; }
+  .back-link { font-size: 0.85rem; margin: 0 0 8px; }
+  .back-link a { color: var(--text-sub); text-decoration: none; border-bottom: 1px dotted var(--text-muted); }
+  .header-top { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+  .page-hero h1 { font-size: 1.5rem; margin: 0; }
+
+  .summary-tiles { display: flex; gap: 10px; flex-wrap: wrap; margin: 12px 0 0; }
+  .tile {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 8px;
+    padding: 8px 16px; font-size: 0.8rem; color: var(--text-sub);
+  }
+  .tile strong { font-size: 1.15rem; color: var(--text); margin-right: 4px; }
+  .tile.p-high strong { color: var(--success); }
+  .tile.p-medium strong { color: var(--gold); }
+  .tile.p-low strong { color: var(--accent); }
+
+  .tabs { display: flex; gap: 4px; border-bottom: 2px solid var(--border); margin: 18px 0 0; flex-shrink: 0; }
+  .tab-btn {
+    background: none; border: none; padding: 9px 20px; font-size: 0.92rem; font-weight: 700;
+    color: var(--text-muted); cursor: pointer; border-bottom: 2px solid transparent;
+    margin-bottom: -2px; font-family: inherit;
+  }
+  .tab-btn:hover { color: var(--text-sub); }
+  .tab-btn[aria-selected="true"] { color: var(--accent); border-bottom-color: var(--accent); }
+
+  .toolbar-area { flex-shrink: 0; padding: 10px 0; }
+  .toolbar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .toolbar input[type="search"] {
+    flex: 1; min-width: 220px; padding: 8px 12px; font-size: 0.92rem;
+    border: 1px solid var(--border); border-radius: 6px; background: var(--panel); color: var(--text);
+    font-family: inherit;
+  }
+  .toolbar input[type="search"]:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+  .hit-count { font-size: 0.82rem; color: var(--text-muted); white-space: nowrap; }
+
+  .filter-chips { display: flex; gap: 6px; flex-wrap: wrap; margin: 8px 0 0; align-items: center; }
+  .chip-label { font-size: .72rem; color: var(--text-muted); margin-right: 2px; }
+  .chip { font-size: .8rem; padding: 3px 12px; border-radius: 999px; border: 1px solid var(--border); background: var(--panel); color: var(--text-sub); cursor: pointer; font-family: inherit; }
+  .chip[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent); border-color: var(--accent-border); font-weight: 700; }
+  .chip-clear { margin-left: auto; display: none; }
+
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  section.module-group { margin: 16px 0; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 14px 18px; min-width: 0; }
+  section.module-group h3 { font-size: 1rem; margin: 0 0 10px; display: flex; align-items: baseline; gap: 8px; }
+  .screen-count { font-size: 0.76rem; font-weight: 400; color: var(--text-muted); }
+
+  table.case-table { width: 100%; min-width: 920px; border-collapse: collapse; font-size: 0.85rem; }
+  table.case-table th {
+    text-align: left; font-size: 0.78rem; font-weight: 700; color: var(--text-sub);
+    background: var(--panel-2); padding: 7px 10px; border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border); white-space: nowrap;
+  }
+  table.case-table td {
+    padding: 8px 10px; border-top: 1px solid var(--border); vertical-align: top;
+    white-space: normal; word-break: break-word;
+  }
+  table.case-table tbody tr:nth-child(even) { background: color-mix(in srgb, var(--panel-2) 40%, transparent); }
+  table.case-table tbody tr:hover { background: var(--accent-soft); }
+  table.case-table .cell-main { font-weight: 700; white-space: nowrap; }
+  table.case-table th[data-col="key"], table.case-table td.cell-main { width: 13%; }
+  table.case-table th[data-col="category"] { width: 9%; white-space: nowrap; }
+  table.case-table th[data-col="priority"], table.case-table td.pri-cell { width: 6%; white-space: nowrap; }
+
+  .badge { display: inline-block; font-size: 0.76rem; font-weight: 700; padding: 1px 8px; border-radius: 3px; }
+  .badge.high   { background: var(--success-soft); color: var(--success); }
+  .badge.medium { background: var(--gold-soft); color: var(--gold); }
+  .badge.low    { background: var(--accent-soft); color: var(--accent); }
+
+  .empty-note { padding: 20px; text-align: center; color: var(--text-muted); font-size: 0.88rem; }
+
+  @media (max-width: 760px) {
+    body { padding: 0 12px; }
+    .toolbar input[type="search"] { width: 100%; }
+  }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <a class="brand" href="../../index.html">
+    <span class="brand-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:middle"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zM13 9V3.5L18.5 9H13z"/></svg></span>
+    <span class="brand-title">サンプルプロジェクト</span>
+    <span class="brand-sub">設計ポータル</span>
+  </a>
+  <div class="header-meta">
+    <span class="pm-updated">更新: 2026-07-24T00:00:00+09:00</span>
+  </div>
+  <div class="top-actions">
+    <button id="theme-toggle" title="テーマ切替">ライト</button>
+  </div>
+</header>
+
+<section class="page-hero">
+  <nav class="back-link"><a href="../../index.html">← ポータルへ戻る</a></nav>
+  <div class="header-top">
+    <h1>テストケース<wbr>一覧</h1>
+  </div>
+  <div class="summary-tiles" id="summary-tiles">
+    <div class="tile"><strong id="tile-total">0</strong>テスト項目数</div>
+    <div class="tile"><strong id="tile-screens">0</strong>画面数</div>
+    <div class="tile p-high"><strong id="tile-high">0</strong>優先度: 高</div>
+    <div class="tile p-medium"><strong id="tile-medium">0</strong>優先度: 中</div>
+    <div class="tile p-low"><strong id="tile-low">0</strong>優先度: 低</div>
+  </div>
+</section>
+
+<nav class="tabs" id="tabs" role="tablist">
+  <button class="tab-btn" type="button" role="tab" data-tab="unit" aria-selected="true">単体テスト</button>
+  <button class="tab-btn" type="button" role="tab" data-tab="integration" aria-selected="false">結合テスト</button>
+  <button class="tab-btn" type="button" role="tab" data-tab="scenario" aria-selected="false">操作シナリオ</button>
+</nav>
+
+<div class="toolbar-area">
+  <div class="toolbar">
+    <input type="search" id="case-search" placeholder="画面名で絞り込み">
+    <span class="hit-count" id="hit-count"></span>
+  </div>
+  <div class="filter-chips" id="priority-chips">
+    <span class="chip-label">優先度</span>
+  </div>
+</div>
+
+<div class="table-area">
+  <div class="tab-panel active" id="panel-unit" data-tab-panel="unit"></div>
+  <div class="tab-panel" id="panel-integration" data-tab-panel="integration"></div>
+  <div class="tab-panel" id="panel-scenario" data-tab-panel="scenario"></div>
+</div>
+
+<script type="application/json" id="test-case-manifest">
+{
+  "generatedAt": "2026-07-24T00:00:00+09:00",
+  "sourceDir": "shared/samples/画面/*/テスト項目書",
+  "tabs": {
+    "unit": {
+      "label": "単体テスト",
+      "sourceFile": "単体テスト仕様書.md",
+      "items": [
+        { "screenId": "screen-home", "screenName": "ホーム", "key": "表示-集計カード表示", "category": "表示条件", "content": "ダッシュボード集計APIが正常応答した場合、cardsの内容がカード形式で表示される", "precondition": "ログイン済み・API正常応答", "steps": "画面を表示する", "expected": "集計カードが件数とともに表示される", "priority": "高" },
+        { "screenId": "screen-home", "screenName": "ホーム", "key": "ナビ-管理者メニュー表示", "category": "表示条件", "content": "利用者権限が管理者の場合、管理系メニュー項目が表示される", "precondition": "管理者権限でログイン済み", "steps": "画面を表示する", "expected": "サイドメニューに管理系項目が表示される", "priority": "高" },
+        { "screenId": "screen-home", "screenName": "ホーム", "key": "ナビ-一般利用者メニュー非表示", "category": "表示条件", "content": "利用者権限が一般の場合、管理系メニュー項目が非表示になる", "precondition": "一般権限でログイン済み", "steps": "画面を表示する", "expected": "サイドメニューに管理系項目が表示されない", "priority": "高" },
+        { "screenId": "screen-home", "screenName": "ホーム", "key": "通知-未読バッジ表示", "category": "表示条件", "content": "unreadCountが1以上の場合、通知ベルにバッジで件数が表示される", "precondition": "未読通知が1件以上存在", "steps": "画面を表示する", "expected": "通知ベルに未読件数のバッジが表示される", "priority": "中" },
+        { "screenId": "screen-home", "screenName": "ホーム", "key": "通知-未読バッジ非表示", "category": "表示条件", "content": "unreadCountが0の場合、バッジが表示されない", "precondition": "未読通知が0件", "steps": "画面を表示する", "expected": "通知ベルにバッジが表示されない", "priority": "中" },
+        { "screenId": "screen-home", "screenName": "ホーム", "key": "通知-既読化件数減算", "category": "状態遷移", "content": "通知項目クリックでmarkNotificationAsReadが呼ばれunreadCountが1減算される", "precondition": "未読通知が1件以上存在", "steps": "通知パネルを開き未読通知を1件クリックする", "expected": "unreadCountが1減算されバッジ表示が更新される", "priority": "中" },
+        { "screenId": "screen-home", "screenName": "ホーム", "key": "表示-初期ローディング遷移", "category": "状態遷移", "content": "初期表示中はローディング表示になりAPI成功後にreadyへ遷移する", "precondition": "ダッシュボード集計API呼び出し中", "steps": "画面を表示する", "expected": "ローディング表示後にメインコンテンツへ切り替わる", "priority": "中" },
+
+        { "screenId": "screen-member-edit", "screenName": "会員編集", "key": "必須項目-氏名連絡先", "category": "入力検証", "content": "氏名・メールアドレス・電話番号が空欄の場合、保存操作でエラーが表示される", "precondition": "会員編集画面表示中", "steps": "いずれかの必須項目を空欄にして保存ボタンを押す", "expected": "MSG-MEMBER-002のインラインエラーが表示される", "priority": "高" },
+        { "screenId": "screen-member-edit", "screenName": "会員編集", "key": "メール形式-必須", "category": "入力検証", "content": "メールアドレスが形式不正の場合、インラインエラーが即時表示される", "precondition": "会員編集画面表示中", "steps": "メールアドレス欄に形式不正な値を入力する", "expected": "メールアドレス欄にインラインエラーが即時表示される", "priority": "高" },
+        { "screenId": "screen-member-edit", "screenName": "会員編集", "key": "削除-注文残存禁止", "category": "入力検証", "content": "出荷待ちの注文が残っている会員は削除操作が失敗する", "precondition": "出荷待ち注文が残る会員", "steps": "削除ボタンを押し確認ダイアログで承認する", "expected": "MSG-MEMBER-003のエラーが表示され削除されない", "priority": "高" },
+        { "screenId": "screen-member-edit", "screenName": "会員編集", "key": "退会-確認要求", "category": "状態遷移", "content": "会員状態を退会に変更する場合、確認ダイアログでの承認が必須である", "precondition": "会員状態が有効または休会", "steps": "会員状態を「退会」に変更する", "expected": "確認ダイアログが表示され承認するまで確定しない", "priority": "中" },
+        { "screenId": "screen-member-edit", "screenName": "会員編集", "key": "表示-退会済み閲覧モード", "category": "表示条件", "content": "会員状態が退会の場合、連絡先入力欄が読み取り専用になる", "precondition": "会員状態が退会の会員を表示", "steps": "画面を表示する", "expected": "連絡先入力欄が読み取り専用として表示される", "priority": "中" },
+        { "screenId": "screen-member-edit", "screenName": "会員編集", "key": "削除ボタン-活性条件", "category": "表示条件", "content": "会員状態が退会かつ出荷待ち注文が0件のときのみ削除ボタンが活性化する", "precondition": "削除権限を持つ利用者でログイン済み", "steps": "会員状態・出荷待ち注文件数の異なる会員を表示する", "expected": "条件を満たす会員のみ削除ボタンが活性化する", "priority": "中" },
+        { "screenId": "screen-member-edit", "screenName": "会員編集", "key": "下書き-自動保存", "category": "状態遷移", "content": "入力欄の変更を検知しローカルストレージへ下書きが保存される", "precondition": "会員編集画面表示中", "steps": "いずれかの入力欄を変更する", "expected": "member-edit-draft-{id}へ入力内容が保存される", "priority": "低" },
+
+        { "screenId": "screen-order-detail", "screenName": "注文詳細", "key": "遷移-下書きから確定", "category": "状態遷移", "content": "ステータスが下書きで明細が1件以上ある場合、確定状態へ更新できる", "precondition": "下書き状態・明細1件以上の注文", "steps": "次ステータスに「確定」を選択し更新を実行する", "expected": "ステータスが確定に更新される", "priority": "高" },
+        { "screenId": "screen-order-detail", "screenName": "注文詳細", "key": "遷移-明細0件時の確定不可", "category": "状態遷移", "content": "明細が0件の下書き注文は確定状態へ更新できない", "precondition": "下書き状態・明細0件の注文", "steps": "次ステータスに「確定」を選択し更新を実行する", "expected": "更新が拒否されエラーが表示される", "priority": "高" },
+        { "screenId": "screen-order-detail", "screenName": "注文詳細", "key": "遷移-出荷済のキャンセル禁止", "category": "入力検証", "content": "出荷済状態の注文はキャンセルへの更新を選択できない", "precondition": "出荷済状態の注文", "steps": "ステータス更新の選択肢を確認する", "expected": "キャンセルが選択肢に含まれない", "priority": "高" },
+        { "screenId": "screen-order-detail", "screenName": "注文詳細", "key": "更新-備考文字数制限", "category": "入力検証", "content": "更新備考が200文字を超える場合、形式エラーが表示される", "precondition": "注文詳細画面表示中", "steps": "更新備考に201文字以上入力し更新を実行する", "expected": "形式エラーが表示され更新が実行されない", "priority": "中" },
+        { "screenId": "screen-order-detail", "screenName": "注文詳細", "key": "表示-ステータス履歴順序", "category": "表示条件", "content": "ステータス変更履歴が更新日時の新しい順で表示される", "precondition": "ステータス変更履歴が2件以上ある注文", "steps": "画面を表示する", "expected": "履歴が新しい順に並んで表示される", "priority": "中" },
+        { "screenId": "screen-order-detail", "screenName": "注文詳細", "key": "更新-競合検出", "category": "状態遷移", "content": "ステータス更新APIが409を返した場合、競合エラー表示後に最新状態を再取得する", "precondition": "更新中に他者が先に更新した状態", "steps": "ステータス更新を実行する", "expected": "MSG-ORDER-005が表示され最新状態が再取得される", "priority": "中" },
+
+        { "screenId": "screen-order-list", "screenName": "注文一覧", "key": "検索-受注番号絞り込み", "category": "入力検証", "content": "受注番号を入力して検索した場合、該当する注文のみ一覧表示される", "precondition": "複数件の注文が登録済み", "steps": "受注番号を入力し検索実行ボタンを押す", "expected": "入力した受注番号に一致する注文のみ表示される", "priority": "高" },
+        { "screenId": "screen-order-list", "screenName": "注文一覧", "key": "検索-期間範囲逆転エラー", "category": "入力検証", "content": "開始日が終了日より後の場合、範囲エラーが表示される", "precondition": "注文一覧画面表示中", "steps": "開始日に終了日より後の日付を入力し検索を実行する", "expected": "MSG-ORDER-001の範囲エラーがインライン表示される", "priority": "高" },
+        { "screenId": "screen-order-list", "screenName": "注文一覧", "key": "表示-キャンセル行強調", "category": "表示条件", "content": "ステータスがキャンセルの注文行がmuted-rowパターンで表示される", "precondition": "キャンセル状態の注文を含む一覧を表示", "steps": "画面を表示する", "expected": "キャンセル行が薄いグレーで表示される", "priority": "中" },
+        { "screenId": "screen-order-list", "screenName": "注文一覧", "key": "出力-権限制御", "category": "表示条件", "content": "利用者が経理権限を持たない場合CSV出力ボタンが表示されない", "precondition": "経理権限を持たない利用者でログイン済み", "steps": "画面を表示する", "expected": "CSV出力ボタンが表示されない", "priority": "高" },
+        { "screenId": "screen-order-list", "screenName": "注文一覧", "key": "出力-上限件数超過案内", "category": "入力検証", "content": "絞り込み結果が出力上限5000件を超える場合、絞り込みを促す案内が表示される", "precondition": "検索結果が5000件を超える状態", "steps": "CSV出力ボタンを押す", "expected": "上限超過の案内メッセージが表示される", "priority": "中" },
+        { "screenId": "screen-order-list", "screenName": "注文一覧", "key": "一覧-初期ローディング遷移", "category": "状態遷移", "content": "初期表示中はスケルトン表示になりAPI成功後にreadyへ遷移する", "precondition": "注文検索API呼び出し中", "steps": "画面を表示する", "expected": "スケルトン表示後に一覧テーブルへ切り替わる", "priority": "中" },
+        { "screenId": "screen-order-list", "screenName": "注文一覧", "key": "一覧-空状態表示", "category": "状態遷移", "content": "検索結果が0件の場合、空状態メッセージが表示される", "precondition": "該当する注文が0件の検索条件", "steps": "該当0件になる条件で検索を実行する", "expected": "空状態メッセージが表示される", "priority": "中" },
+
+        { "screenId": "screen-sales-dashboard", "screenName": "売上ダッシュボード", "key": "期間範囲-上限超過", "category": "入力検証", "content": "指定期間が366日を超える場合、期間適用ボタンが無効化される", "precondition": "売上ダッシュボード画面表示中", "steps": "開始日と終了日の差が366日を超える値を入力する", "expected": "期間適用ボタンが無効化される", "priority": "高" },
+        { "screenId": "screen-sales-dashboard", "screenName": "売上ダッシュボード", "key": "開始終了-順序逆転", "category": "入力検証", "content": "開始日が終了日より後の場合、即座にエラー表示され期間適用ボタンが無効化される", "precondition": "売上ダッシュボード画面表示中", "steps": "開始日に終了日より後の日付を入力する", "expected": "エラーが即座に表示され期間適用ボタンが無効化される", "priority": "高" },
+        { "screenId": "screen-sales-dashboard", "screenName": "売上ダッシュボード", "key": "再集計-連打抑止", "category": "状態遷移", "content": "再集計処理の実行中は再集計ボタンが無効化される", "precondition": "再集計処理を開始した直後", "steps": "再集計ボタンを連続してクリックする", "expected": "処理中は再集計ボタンが無効化され二重実行されない", "priority": "中" },
+        { "screenId": "screen-sales-dashboard", "screenName": "売上ダッシュボード", "key": "表示-平均客単価算出", "category": "表示条件", "content": "averageOrderValueが合計売上金額を注文件数で除算した値で表示される", "precondition": "集計結果取得済み", "steps": "画面を表示する", "expected": "平均客単価が正しい計算値で表示される", "priority": "中" },
+        { "screenId": "screen-sales-dashboard", "screenName": "売上ダッシュボード", "key": "表示-空状態メッセージ", "category": "状態遷移", "content": "対象期間に売上データがない場合、空状態メッセージが表示される", "precondition": "売上データが0件の期間", "steps": "該当0件になる期間で集計を実行する", "expected": "空状態メッセージが表示される", "priority": "中" },
+        { "screenId": "screen-sales-dashboard", "screenName": "売上ダッシュボード", "key": "集計単位-切替反映", "category": "状態遷移", "content": "集計単位選択欄の変更によりgranularityが更新され推移グラフが再描画される", "precondition": "売上ダッシュボード画面表示中", "steps": "集計単位を「日次」から「月次」に変更する", "expected": "granularityが更新され推移グラフが月次表示に切り替わる", "priority": "中" }
+      ]
+    },
+    "integration": {
+      "label": "結合テスト",
+      "sourceFile": "結合テスト仕様書.md",
+      "items": [
+        { "screenId": "screen-home", "screenName": "ホーム", "key": "ログイン-ホーム引き継ぎ", "category": "画面間連携", "content": "ログイン画面からホームへ遷移時に利用者権限・利用者名が引き継がれる", "precondition": "ログイン認証成功直後", "steps": "ログインを完了する", "expected": "ホーム画面に利用者名が表示され権限に応じたメニューが出る", "priority": "高" },
+        { "screenId": "screen-home", "screenName": "ホーム", "key": "ホーム-業務画面遷移", "category": "画面遷移", "content": "サイドメニュー項目クリックで対象の業務画面へpush遷移する", "precondition": "ホーム画面表示中", "steps": "サイドメニューの項目をクリックする", "expected": "対象の業務画面へ遷移する", "priority": "高" },
+        { "screenId": "screen-home", "screenName": "ホーム", "key": "ダッシュボード集計api連携", "category": "データ受け渡し", "content": "初期表示時にダッシュボード集計APIを呼び出しcards・unreadNotificationCountを取得する", "precondition": "ホーム画面初期表示", "steps": "画面を表示する", "expected": "集計カードと未読件数が画面に反映される", "priority": "高" },
+        { "screenId": "screen-home", "screenName": "ホーム", "key": "通知一覧api連携", "category": "データ受け渡し", "content": "通知ベルクリック時に通知一覧APIを呼び出し通知パネルへ反映する", "precondition": "ホーム画面表示中", "steps": "通知ベルをクリックする", "expected": "通知一覧が通知パネルに表示される", "priority": "中" },
+
+        { "screenId": "screen-member-edit", "screenName": "会員編集", "key": "一覧-編集遷移", "category": "画面遷移", "content": "会員一覧の編集操作から選択した会員番号を引き継いで編集画面が表示される", "precondition": "会員一覧に1件以上表示中", "steps": "一覧行の編集操作をする", "expected": "選択した会員番号の編集画面が表示される", "priority": "高" },
+        { "screenId": "screen-member-edit", "screenName": "会員編集", "key": "編集-詳細遷移", "category": "画面遷移", "content": "保存操作完了後、更新後の会員情報を伴いreplaceで会員詳細画面へ遷移する", "precondition": "会員編集画面で入力済み", "steps": "保存ボタンを押す", "expected": "会員詳細画面へ遷移し更新内容が反映されている", "priority": "高" },
+        { "screenId": "screen-member-edit", "screenName": "会員編集", "key": "編集-一覧遷移", "category": "画面遷移", "content": "削除操作完了後、pushで会員一覧画面へ遷移する", "precondition": "退会済み・出荷待ち注文0件の会員を表示中", "steps": "削除ボタンを押し確認ダイアログで承認する", "expected": "会員一覧画面へ遷移する", "priority": "中" },
+        { "screenId": "screen-member-edit", "screenName": "会員編集", "key": "会員情報更新api連携", "category": "データ受け渡し", "content": "保存ボタン押下時に会員情報更新APIを呼び出し成功時に会員詳細へ遷移する", "precondition": "会員編集画面で必須項目入力済み", "steps": "保存ボタンを押す", "expected": "会員情報更新APIが呼ばれ会員詳細へ遷移する", "priority": "高" },
+
+        { "screenId": "screen-order-detail", "screenName": "注文詳細", "key": "一覧-詳細引き継ぎ", "category": "画面遷移", "content": "注文一覧の行クリックから受注番号を引き継いで詳細画面が表示される", "precondition": "注文一覧に1件以上表示中", "steps": "一覧の行をクリックする", "expected": "選択した受注番号の注文詳細が表示される", "priority": "高" },
+        { "screenId": "screen-order-detail", "screenName": "注文詳細", "key": "詳細-一覧反映", "category": "データ受け渡し", "content": "ステータス更新完了後、一覧へ戻る操作で更新結果が反映された一覧が再表示される", "precondition": "注文詳細でステータス更新済み", "steps": "一覧へ戻る操作をする", "expected": "更新後のステータスが一覧に反映されている", "priority": "高" },
+        { "screenId": "screen-order-detail", "screenName": "注文詳細", "key": "注文詳細取得api連携", "category": "データ受け渡し", "content": "初期表示時に注文詳細取得APIを呼び出し明細・配送先・ステータス履歴を表示する", "precondition": "注文詳細画面初期表示", "steps": "画面を表示する", "expected": "API応答内容が明細・配送先・履歴として表示される", "priority": "高" },
+
+        { "screenId": "screen-order-list", "screenName": "注文一覧", "key": "一覧-詳細遷移", "category": "画面遷移", "content": "一覧行クリックで受注番号を伴い注文詳細画面へpush遷移する", "precondition": "注文一覧に1件以上表示中", "steps": "一覧の行をクリックする", "expected": "受注番号を引き継ぎ注文詳細画面へ遷移する", "priority": "高" },
+        { "screenId": "screen-order-list", "screenName": "注文一覧", "key": "詳細-一覧復帰", "category": "データ受け渡し", "content": "注文詳細画面から一覧へ戻る操作で検索条件・スクロール位置を維持したまま復帰する", "precondition": "注文詳細画面表示中", "steps": "一覧へ戻る操作をする", "expected": "直前の検索条件を維持した一覧が再表示される", "priority": "中" },
+        { "screenId": "screen-order-list", "screenName": "注文一覧", "key": "注文検索api連携", "category": "データ受け渡し", "content": "検索実行時に注文検索APIを呼び出しitems・totalCountを一覧へ反映する", "precondition": "注文一覧画面表示中", "steps": "検索条件を入力し検索を実行する", "expected": "一覧テーブルと件数表示がAPI応答内容と一致する", "priority": "高" },
+        { "screenId": "screen-order-list", "screenName": "注文一覧", "key": "注文csv出力api連携", "category": "データ受け渡し", "content": "CSV出力ボタン押下時に注文CSV出力APIを呼び出しdownloadUrlを取得する", "precondition": "経理権限利用者・検索結果1件以上", "steps": "CSV出力ボタンを押す", "expected": "ダウンロードリンクが提示される", "priority": "中" },
+
+        { "screenId": "screen-sales-dashboard", "screenName": "売上ダッシュボード", "key": "管理メニュー-ダッシュボード遷移", "category": "画面遷移", "content": "管理メニューからの選択操作で売上ダッシュボード画面が表示される", "precondition": "管理メニュー表示中", "steps": "売上ダッシュボードの項目を選択する", "expected": "売上ダッシュボード画面が表示される", "priority": "中" },
+        { "screenId": "screen-sales-dashboard", "screenName": "売上ダッシュボード", "key": "カテゴリ内訳-注文一覧ドリルダウン", "category": "画面遷移", "content": "カテゴリ別内訳のドリルダウン操作で集計期間・カテゴリを引き継ぎ注文一覧へ遷移する", "precondition": "カテゴリ別内訳が表示済み", "steps": "カテゴリ別内訳テーブルの行をクリックする", "expected": "選択カテゴリと集計期間を引き継ぎ注文一覧画面へ遷移する", "priority": "中" },
+        { "screenId": "screen-sales-dashboard", "screenName": "売上ダッシュボード", "key": "売上集計取得api連携", "category": "データ受け渡し", "content": "期間適用ボタン押下時に売上集計取得APIを呼び出しサマリ・グラフ・内訳を更新する", "precondition": "売上ダッシュボード画面表示中", "steps": "期間を指定し期間適用ボタンを押す", "expected": "API応答内容がサマリ・グラフ・内訳に反映される", "priority": "高" }
+      ]
+    },
+    "scenario": {
+      "label": "操作シナリオ",
+      "sourceFile": "操作シナリオ仕様書.md",
+      "items": [
+        { "screenId": "screen-home", "screenName": "ホーム", "key": "初回ログイン後のホーム表示", "category": "操作シナリオ", "content": "ログイン直後のホーム画面表示を確認する", "precondition": "未ログイン状態", "steps": "ログインを完了する→ホーム画面が表示されるのを確認する", "expected": "集計カード・サイドメニュー・通知ベルが表示される", "priority": "高" },
+        { "screenId": "screen-home", "screenName": "ホーム", "key": "未読通知の確認", "category": "操作シナリオ", "content": "未読通知の確認と既読化の操作を確認する", "precondition": "未読通知が1件以上存在", "steps": "通知ベルをクリックする→通知一覧から未読通知をクリックする", "expected": "該当通知が既読化されunreadCountが1減算される", "priority": "中" },
+        { "screenId": "screen-home", "screenName": "ホーム", "key": "サイドメニューからの業務画面遷移", "category": "操作シナリオ", "content": "サイドメニューからの遷移操作を確認する", "precondition": "ホーム画面表示中", "steps": "サイドメニューの項目をクリックする", "expected": "対象の業務画面へ遷移する", "priority": "高" },
+        { "screenId": "screen-home", "screenName": "ホーム", "key": "管理者権限利用者のメニュー確認", "category": "操作シナリオ", "content": "管理者権限でのメニュー表示差分を確認する", "precondition": "管理者権限でログイン可能な状態", "steps": "管理者権限でログインする→ホーム画面を表示する", "expected": "管理系メニュー項目が表示される", "priority": "中" },
+
+        { "screenId": "screen-member-edit", "screenName": "会員編集", "key": "会員情報の編集保存", "category": "操作シナリオ", "content": "会員の連絡先情報を編集して保存する操作を確認する", "precondition": "会員一覧から編集対象を選択可能", "steps": "会員一覧から編集操作をする→連絡先を修正する→保存ボタンを押す", "expected": "更新後の会員情報を伴い会員詳細画面へ遷移する", "priority": "高" },
+        { "screenId": "screen-member-edit", "screenName": "会員編集", "key": "会員の退会処理", "category": "操作シナリオ", "content": "会員状態を退会へ変更する操作を確認する", "precondition": "会員状態が有効または休会の会員を編集中", "steps": "会員状態を「退会」に変更する→確認ダイアログで承認する→保存する", "expected": "会員状態が退会に更新される", "priority": "高" },
+        { "screenId": "screen-member-edit", "screenName": "会員編集", "key": "退会会員の削除", "category": "操作シナリオ", "content": "退会確定済み会員の削除操作を確認する", "precondition": "退会済みかつ出荷待ち注文0件の会員を表示中", "steps": "削除ボタンを押す→確認ダイアログで承認する", "expected": "会員情報が削除され会員一覧へ遷移する", "priority": "中" },
+        { "screenId": "screen-member-edit", "screenName": "会員編集", "key": "出荷待ち注文が残る会員の削除試行", "category": "操作シナリオ", "content": "削除不可条件での挙動を確認する", "precondition": "出荷待ち注文が残る退会会員を表示中", "steps": "削除ボタンを押す", "expected": "削除がエラーとなり残存注文を促すメッセージが表示される", "priority": "中" },
+
+        { "screenId": "screen-order-detail", "screenName": "注文詳細", "key": "下書き注文の確定操作", "category": "操作シナリオ", "content": "下書き注文を確定状態へ更新する操作を確認する", "precondition": "下書き状態・明細1件以上の注文詳細を表示中", "steps": "次ステータスに「確定」を選択する→確認ダイアログで承認する", "expected": "ステータスが確定に更新され履歴に追記される", "priority": "高" },
+        { "screenId": "screen-order-detail", "screenName": "注文詳細", "key": "出荷済注文のキャンセル試行", "category": "操作シナリオ", "content": "出荷済注文でキャンセルへの更新が選択できないことを確認する", "precondition": "出荷済状態の注文詳細を表示中", "steps": "次ステータスの選択肢を確認する", "expected": "キャンセルへの遷移が選択肢に含まれない", "priority": "中" },
+        { "screenId": "screen-order-detail", "screenName": "注文詳細", "key": "更新時の競合発生時の再取得", "category": "操作シナリオ", "content": "更新競合発生時の画面挙動を確認する", "precondition": "他利用者が先に同一注文を更新済み", "steps": "ステータス更新を実行する", "expected": "競合エラーが表示され最新状態が再取得される", "priority": "中" },
+        { "screenId": "screen-order-detail", "screenName": "注文詳細", "key": "一覧へ戻る操作", "category": "操作シナリオ", "content": "詳細画面から一覧への復帰操作を確認する", "precondition": "注文詳細画面表示中", "steps": "「一覧へ戻る」ボタンを押す", "expected": "直前の検索条件を維持した注文一覧へ遷移する", "priority": "中" },
+
+        { "screenId": "screen-order-list", "screenName": "注文一覧", "key": "ステータス絞り込みでの注文確認", "category": "操作シナリオ", "content": "ステータス絞り込みでの注文確認操作を確認する", "precondition": "出荷済の注文を含む複数件が登録済み", "steps": "ステータス「出荷済」を選択する→検索実行ボタンを押す", "expected": "出荷済の注文のみ一覧表示される", "priority": "高" },
+        { "screenId": "screen-order-list", "screenName": "注文一覧", "key": "csv出力操作", "category": "操作シナリオ", "content": "経理担当者によるCSV出力操作を確認する", "precondition": "経理権限でログイン済み", "steps": "検索条件を確定する→CSV出力ボタンを押す", "expected": "CSVファイルのダウンロードリンクが提示される", "priority": "高" },
+        { "screenId": "screen-order-list", "screenName": "注文一覧", "key": "注文詳細への遷移と復帰", "category": "操作シナリオ", "content": "詳細画面への遷移と一覧への復帰を確認する", "precondition": "注文一覧に1件以上表示中", "steps": "一覧行をクリックする→注文詳細を確認する→一覧へ戻る", "expected": "直前の検索条件を維持した一覧が再表示される", "priority": "中" },
+        { "screenId": "screen-order-list", "screenName": "注文一覧", "key": "不正な期間指定時のエラー表示", "category": "操作シナリオ", "content": "期間指定が不正な場合のエラー表示を確認する", "precondition": "注文一覧画面表示中", "steps": "開始日を終了日より後に設定する→検索実行ボタンを押す", "expected": "範囲エラーメッセージが表示される", "priority": "中" },
+
+        { "screenId": "screen-sales-dashboard", "screenName": "売上ダッシュボード", "key": "月次集計の確認", "category": "操作シナリオ", "content": "月次集計単位での売上確認操作を確認する", "precondition": "売上ダッシュボード画面表示中", "steps": "開始日・終了日・集計単位「月次」を指定する→期間適用ボタンを押す", "expected": "指定期間の月次売上推移とカテゴリ別内訳が表示される", "priority": "高" },
+        { "screenId": "screen-sales-dashboard", "screenName": "売上ダッシュボード", "key": "手動再集計の実行", "category": "操作シナリオ", "content": "直近データを反映する再集計操作を確認する", "precondition": "集計結果表示中", "steps": "再集計ボタンを押す", "expected": "直近の注文データを反映した最新の集計結果が表示される", "priority": "中" },
+        { "screenId": "screen-sales-dashboard", "screenName": "売上ダッシュボード", "key": "カテゴリ別内訳からのドリルダウン", "category": "操作シナリオ", "content": "カテゴリ別内訳からの注文一覧への遷移を確認する", "precondition": "カテゴリ別内訳が表示済み", "steps": "カテゴリ別内訳テーブルの行をクリックする", "expected": "選択カテゴリと集計期間を引き継ぎ注文一覧画面へ遷移する", "priority": "中" },
+        { "screenId": "screen-sales-dashboard", "screenName": "売上ダッシュボード", "key": "不正な期間指定時の挙動確認", "category": "操作シナリオ", "content": "不正な期間指定時のエラー表示挙動を確認する", "precondition": "売上ダッシュボード画面表示中", "steps": "開始日を終了日より後に設定する", "expected": "期間適用ボタンが無効化されエラーが表示される", "priority": "中" }
+      ]
+    }
+  }
+}
+</script>
+
+<script>
+(function () {
+  var DATA = JSON.parse(document.getElementById('test-case-manifest').textContent);
+  var TAB_IDS = ['unit', 'integration', 'scenario'];
+  var state = { tab: 'unit', query: '', priorities: new Set() };
+
+  function escHtml(s) {
+    return String(s).replace(/[&<>"]/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+    });
+  }
+
+  function priorityClass(p) {
+    return p === '高' ? 'high' : (p === '中' ? 'medium' : 'low');
+  }
+
+  function screenOrder(items) {
+    var order = [];
+    items.forEach(function (it) {
+      if (order.indexOf(it.screenName) === -1) order.push(it.screenName);
+    });
+    return order;
+  }
+
+  function priorityCounts(items) {
+    var c = { '高': 0, '中': 0, '低': 0 };
+    items.forEach(function (it) { c[it.priority] = (c[it.priority] || 0) + 1; });
+    return c;
+  }
+
+  function buildPanelHtml(tabId) {
+    var items = DATA.tabs[tabId].items;
+    if (!items.length) return '<div class="empty-note">テスト項目がありません。</div>';
+    var screens = screenOrder(items);
+    var byScreen = {};
+    items.forEach(function (it) {
+      (byScreen[it.screenName] = byScreen[it.screenName] || []).push(it);
+    });
+    var html = '';
+    screens.forEach(function (name) {
+      var rows = byScreen[name];
+      html += '<section class="module-group" data-screen-section>';
+      html += '<h3>' + escHtml(name) + '<span class="screen-count">' + rows.length + '件</span></h3>';
+      html += '<div class="table-wrap"><table class="case-table"><thead><tr>' +
+        '<th data-col="key">キー</th><th data-col="category">分類</th><th>テスト内容</th>' +
+        '<th>前提条件</th><th>操作手順</th><th>期待結果</th><th data-col="priority">優先度</th>' +
+        '</tr></thead><tbody>';
+      rows.forEach(function (it) {
+        html += '<tr data-priority="' + escHtml(it.priority) + '" data-screen="' + escHtml(name) + '">' +
+          '<td class="cell-main">' + escHtml(it.key) + '</td>' +
+          '<td>' + escHtml(it.category) + '</td>' +
+          '<td>' + escHtml(it.content) + '</td>' +
+          '<td>' + escHtml(it.precondition) + '</td>' +
+          '<td>' + escHtml(it.steps) + '</td>' +
+          '<td>' + escHtml(it.expected) + '</td>' +
+          '<td class="pri-cell"><span class="badge ' + priorityClass(it.priority) + '">' + escHtml(it.priority) + '</span></td>' +
+          '</tr>';
+      });
+      html += '</tbody></table></div></section>';
+    });
+    return html;
+  }
+
+  TAB_IDS.forEach(function (tabId) {
+    document.getElementById('panel-' + tabId).innerHTML = buildPanelHtml(tabId);
+  });
+
+  function updateSummary(tabId) {
+    var items = DATA.tabs[tabId].items;
+    var screens = screenOrder(items);
+    var counts = priorityCounts(items);
+    document.getElementById('tile-total').textContent = items.length;
+    document.getElementById('tile-screens').textContent = screens.length;
+    document.getElementById('tile-high').textContent = counts['高'] || 0;
+    document.getElementById('tile-medium').textContent = counts['中'] || 0;
+    document.getElementById('tile-low').textContent = counts['低'] || 0;
+  }
+
+  var hitCountEl = document.getElementById('hit-count');
+
+  function applyFilter() {
+    var panel = document.querySelector('.tab-panel.active');
+    if (!panel) return;
+    var rows = Array.prototype.slice.call(panel.querySelectorAll('tbody tr'));
+    var q = state.query.trim().toLowerCase();
+    var visibleCount = 0;
+    rows.forEach(function (tr) {
+      var priority = tr.getAttribute('data-priority') || '';
+      var matchesQuery = !q || tr.getAttribute('data-screen').toLowerCase().indexOf(q) !== -1 ||
+        tr.textContent.toLowerCase().indexOf(q) !== -1;
+      var matchesPriority = state.priorities.size === 0 || state.priorities.has(priority);
+      var visible = matchesQuery && matchesPriority;
+      tr.style.display = visible ? '' : 'none';
+      if (visible) visibleCount++;
+    });
+    Array.prototype.slice.call(panel.querySelectorAll('[data-screen-section]')).forEach(function (sec) {
+      var anyVisible = Array.prototype.some.call(sec.querySelectorAll('tbody tr'), function (tr) {
+        return tr.style.display !== 'none';
+      });
+      sec.style.display = anyVisible ? '' : 'none';
+    });
+    hitCountEl.textContent = visibleCount + ' / ' + rows.length + ' 件';
+  }
+
+  function switchTab(tabId) {
+    state.tab = tabId;
+    document.querySelectorAll('.tab-btn').forEach(function (btn) {
+      btn.setAttribute('aria-selected', String(btn.getAttribute('data-tab') === tabId));
+    });
+    document.querySelectorAll('.tab-panel').forEach(function (panel) {
+      panel.classList.toggle('active', panel.getAttribute('data-tab-panel') === tabId);
+    });
+    updateSummary(tabId);
+    applyFilter();
+  }
+
+  document.querySelectorAll('.tab-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () { switchTab(btn.getAttribute('data-tab')); });
+  });
+
+  var searchInput = document.getElementById('case-search');
+  searchInput.addEventListener('input', function () {
+    state.query = searchInput.value;
+    applyFilter();
+  });
+
+  var chipBar = document.getElementById('priority-chips');
+  var chipClearBtn = document.createElement('button');
+  chipClearBtn.type = 'button';
+  chipClearBtn.className = 'chip chip-clear';
+  chipClearBtn.textContent = 'クリア';
+  ['高', '中', '低'].forEach(function (p) {
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'chip';
+    b.setAttribute('aria-pressed', 'false');
+    b.textContent = p;
+    b.addEventListener('click', function () {
+      var pressed = b.getAttribute('aria-pressed') === 'true';
+      if (pressed) { state.priorities.delete(p); } else { state.priorities.add(p); }
+      b.setAttribute('aria-pressed', String(!pressed));
+      chipClearBtn.style.display = state.priorities.size > 0 ? '' : 'none';
+      applyFilter();
+    });
+    chipBar.appendChild(b);
+  });
+  chipClearBtn.addEventListener('click', function () {
+    state.priorities.clear();
+    Array.prototype.slice.call(chipBar.querySelectorAll('.chip[aria-pressed]')).forEach(function (b) {
+      b.setAttribute('aria-pressed', 'false');
+    });
+    chipClearBtn.style.display = 'none';
+    applyFilter();
+  });
+  chipBar.appendChild(chipClearBtn);
+
+  updateSummary('unit');
+  applyFilter();
+
+  var themeBtn = document.getElementById('theme-toggle');
+  if (themeBtn) {
+    themeBtn.addEventListener('click', function () {
+      var r = document.documentElement;
+      var next = r.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+      r.setAttribute('data-theme', next);
+      themeBtn.textContent = next === 'dark' ? 'ダーク' : 'ライト';
+      try { localStorage.setItem('rd-portal-theme', next); } catch (e) {}
+    });
+  }
+  try {
+    var saved = localStorage.getItem('rd-portal-theme');
+    if (saved) {
+      document.documentElement.setAttribute('data-theme', saved);
+      if (themeBtn) themeBtn.textContent = saved === 'dark' ? 'ダーク' : 'ライト';
+    }
+  } catch (e) {}
+})();
+</script>
+
+</body>
+</html>
