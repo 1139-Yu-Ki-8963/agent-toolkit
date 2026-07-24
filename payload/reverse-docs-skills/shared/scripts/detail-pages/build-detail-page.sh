@@ -351,15 +351,20 @@ if [ "${1:-}" = "--self-test" ]; then
   exit $?
 fi
 
-DATA="${1:?Usage: build-detail-page.sh <page-data.json> <output-dir> --page glossary|techstack|transition|er|env|entity-state|release-notes|design-system|component-inventory|icon-catalog}"
-OUTPUT_DIR="${2:?Usage: build-detail-page.sh <page-data.json> <output-dir> --page glossary|techstack|transition|er|env|entity-state|release-notes|design-system|component-inventory|icon-catalog}"
+DATA="${1:?Usage: build-detail-page.sh <page-data.json> <output-dir> --page <kind> [--portal-dir <path>]}"
+OUTPUT_DIR="${2:?Usage: build-detail-page.sh <page-data.json> <output-dir> --page <kind> [--portal-dir <path>]}"
 shift 2 || true
 
 PAGE=""
+PORTAL_DIR_ARG=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --page)
       PAGE="${2:-}"
+      shift 2
+      ;;
+    --portal-dir)
+      PORTAL_DIR_ARG="${2:-}"
       shift 2
       ;;
     *)
@@ -458,13 +463,20 @@ RELATED_ENTITIES_HTML="$(jq -r '
 # page-dataのJSONはテンプレート内で物理的に最後に出現するため、単一パスの
 # document-order走査により自動的に最後に処理される(JSON内容に他マーカー文字列が
 # 偶然含まれた場合の誤爆を避けるため)。
+# --- ポータルへの相対パス算出(--portal-dir 未指定時は既定値 index.html) ---
+if [ -n "$PORTAL_DIR_ARG" ]; then
+  back_link="$(python3 -c "import os; print(os.path.relpath('$PORTAL_DIR_ARG', '$OUTPUT_DIR'))" 2>/dev/null || echo ".")/index.html"
+else
+  back_link="index.html"
+fi
+
 render_args=(
   "{{PROJECT_NAME}}" "$(html_escape "$PROJECT_NAME")"
   "{{TITLE}}" "$(html_escape "$TITLE")"
   "{{DESCRIPTION}}" "$(html_escape "$DESCRIPTION")"
   "{{GENERATED_AT}}" "$(html_escape "$GENERATED_AT")"
   "{{COMMIT_SHORT}}" ""
-  "{{BACK_LINK}}" "index.html"
+  "{{BACK_LINK}}" "$back_link"
   "<!--RELATED_ENTITIES-->" "$RELATED_ENTITIES_HTML"
   "{{PAGE_DATA_JSON}}" "$PAGE_DATA_JSON"
 )

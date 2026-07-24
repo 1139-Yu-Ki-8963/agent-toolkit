@@ -256,18 +256,28 @@ if [ "${1:-}" = "--self-test" ]; then
   exit $?
 fi
 
-USAGE="Usage: build-matrix-pages.sh <page-type> <data.json> <output-html-path>
+USAGE="Usage: build-matrix-pages.sh <page-type> <data.json> <output-html-path> [--portal-dir <path>]
   page-type: permission-screen | permission-function | crud | traceability | ai-assets"
 
 PAGE_TYPE="${1:?$USAGE}"
 DATA_JSON="${2:?$USAGE}"
 OUTPUT_HTML="${3:?$USAGE}"
+shift 3
 
-if [ $# -gt 3 ]; then
-  echo "ERROR: unknown argument: $4" >&2
-  echo "$USAGE" >&2
-  exit 1
-fi
+PORTAL_DIR_ARG=""
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --portal-dir)
+      PORTAL_DIR_ARG="${2:-}"
+      shift 2
+      ;;
+    *)
+      echo "ERROR: unknown argument: $1" >&2
+      echo "$USAGE" >&2
+      exit 1
+      ;;
+  esac
+done
 
 if ! command -v jq >/dev/null 2>&1; then
   echo "ERROR: jq is required but not found in PATH" >&2
@@ -355,6 +365,20 @@ matrix_json="$(cat "$DATA_JSON")"
 
 mkdir -p "$(dirname "$OUTPUT_HTML")"
 
+# --- ポータルへの相対パス算出(--portal-dir 未指定時はpage-type別の既定値) ---
+if [ -n "$PORTAL_DIR_ARG" ]; then
+  back_link="$(python3 -c "import os; print(os.path.relpath('$PORTAL_DIR_ARG', '$(dirname "$OUTPUT_HTML")'))" 2>/dev/null || echo ".")/index.html"
+else
+  case "$PAGE_TYPE" in
+    ai-assets)
+      back_link="../index.html"
+      ;;
+    *)
+      back_link="../../index.html"
+      ;;
+  esac
+fi
+
 # --- テンプレートへの注入(単一パス方式。render_template()参照) ---
 # JSON埋め込みマーカーはテンプレート内で物理的に最後に出現するため、
 # 単一パスのdocument-order走査により自動的に最後に処理される
@@ -363,6 +387,7 @@ out="$(render_template "$(cat "$TEMPLATE")" \
   "{{GENERATED_AT}}" "$(html_escape "$generated_at")" \
   "{{DATA_SOURCE}}" "$(html_escape "$data_source")" \
   "{{PROJECT_NAME}}" "$(html_escape "$project_name")" \
+  "{{BACK_LINK}}" "$back_link" \
   "$JSON_MARKER" "$matrix_json")"
 
 printf '%s\n' "$out" > "$OUTPUT_HTML"
