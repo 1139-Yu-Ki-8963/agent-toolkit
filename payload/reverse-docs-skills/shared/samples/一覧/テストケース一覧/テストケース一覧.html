@@ -4,8 +4,13 @@
 
   全画面のテスト仕様書md（単体テスト仕様書・結合テスト仕様書・操作シナリオ仕様書）を
   横断集約し、単体テスト・結合テスト・操作シナリオの3タブで表示するページ。
+  加えて、観点表md（単体テスト観点表・結合テスト観点表の「観点表」節のみ）から
+  導出した観点網羅カバー率パネルを表示する。
 
-  データソース: shared/samples/画面/<screenId>/テスト項目書/*.md
+  データソース:
+    - shared/samples/画面/<screenId>/テスト項目書/*.md（test-case-manifest）
+    - shared/samples/画面/<screenId>/詳細設計/*テスト観点表.md の「観点表」節のみ
+      （手動観点表・往復検証観点表は対象外。viewpoint-manifest）
   トークンブロック・テーマ切替は shared/samples/一覧/テスト観点表/テスト観点表.html から
   CSS/テーマ・topbar・page-hero パターンを流用している。同ファイルの当該部分を変更した
   場合は本ファイルも同時更新すること。
@@ -13,6 +18,10 @@
   制約:
     - 外部リソース(CDN・フォント・画像)は一切使わない。単一ファイル自己完結
     - <script id="test-case-manifest"> の中身は各画面のテスト仕様書mdの内容と一致させる
+    - <script id="viewpoint-manifest"> の中身は各画面の観点表mdの「観点表」節（単体・結合）の
+      内容と一致させる。手動観点表・往復検証観点表の行は含めない
+    - 操作シナリオ（scenario）の観点キーは往復検証観点表を参照するため、本カバー率の
+      分母には含まれない。カバー率は単体・結合の観点網羅のみを示す指標である
 -->
 <html lang="ja">
 <head>
@@ -119,9 +128,26 @@
     padding: 8px 16px; font-size: 0.8rem; color: var(--text-sub);
   }
   .tile strong { font-size: 1.15rem; color: var(--text); margin-right: 4px; }
-  .tile.p-high strong { color: var(--success); }
-  .tile.p-medium strong { color: var(--gold); }
-  .tile.p-low strong { color: var(--accent); }
+
+  .coverage-panel {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 8px;
+    padding: 10px 16px; margin: 12px 0 0; flex-shrink: 0;
+    display: flex; flex-wrap: wrap; align-items: center; gap: 16px;
+  }
+  .coverage-stat { display: flex; align-items: baseline; gap: 6px; }
+  .coverage-label { font-size: 0.78rem; color: var(--text-muted); }
+  .coverage-value { font-size: 1.1rem; font-weight: 700; color: var(--text); }
+  .uncovered-toggle {
+    font-size: 0.82rem; color: var(--danger); cursor: pointer; user-select: none;
+    background: var(--danger-soft); border-radius: var(--radius-sm); padding: 4px 10px;
+  }
+  .uncovered-toggle:hover { text-decoration: underline; }
+  .uncovered-list {
+    flex-basis: 100%; font-size: 0.82rem; color: var(--danger);
+    background: var(--danger-soft); border-radius: var(--radius-sm); padding: 8px 12px;
+  }
+  .uncovered-list ul { margin: 0; padding-left: 18px; }
+  .coverage-note { flex-basis: 100%; font-size: 0.74rem; color: var(--text-muted); }
 
   .tabs { display: flex; gap: 4px; border-bottom: 2px solid var(--border); margin: 18px 0 0; flex-shrink: 0; }
   .tab-btn {
@@ -142,12 +168,6 @@
   .toolbar input[type="search"]:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
   .hit-count { font-size: 0.82rem; color: var(--text-muted); white-space: nowrap; }
 
-  .filter-chips { display: flex; gap: 6px; flex-wrap: wrap; margin: 8px 0 0; align-items: center; }
-  .chip-label { font-size: .72rem; color: var(--text-muted); margin-right: 2px; }
-  .chip { font-size: .8rem; padding: 3px 12px; border-radius: 999px; border: 1px solid var(--border); background: var(--panel); color: var(--text-sub); cursor: pointer; font-family: inherit; }
-  .chip[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent); border-color: var(--accent-border); font-weight: 700; }
-  .chip-clear { margin-left: auto; display: none; }
-
   .tab-panel { display: none; }
   .tab-panel.active { display: block; }
 
@@ -155,11 +175,12 @@
   section.module-group h3 { font-size: 1rem; margin: 0 0 10px; display: flex; align-items: baseline; gap: 8px; }
   .screen-count { font-size: 0.76rem; font-weight: 400; color: var(--text-muted); }
 
-  table.case-table { width: 100%; min-width: 920px; border-collapse: collapse; font-size: 0.85rem; }
+  table.case-table { width: 100%; min-width: 860px; border-collapse: collapse; font-size: 0.85rem; }
   table.case-table th {
     text-align: left; font-size: 0.78rem; font-weight: 700; color: var(--text-sub);
     background: var(--panel-2); padding: 7px 10px; border-top: 1px solid var(--border);
     border-bottom: 1px solid var(--border); white-space: nowrap;
+    position: sticky; top: 0; z-index: 1;
   }
   table.case-table td {
     padding: 8px 10px; border-top: 1px solid var(--border); vertical-align: top;
@@ -168,14 +189,8 @@
   table.case-table tbody tr:nth-child(even) { background: color-mix(in srgb, var(--panel-2) 40%, transparent); }
   table.case-table tbody tr:hover { background: var(--accent-soft); }
   table.case-table .cell-main { font-weight: 700; white-space: nowrap; }
-  table.case-table th[data-col="key"], table.case-table td.cell-main { width: 13%; }
-  table.case-table th[data-col="category"] { width: 9%; white-space: nowrap; }
-  table.case-table th[data-col="priority"], table.case-table td.pri-cell { width: 6%; white-space: nowrap; }
-
-  .badge { display: inline-block; font-size: 0.76rem; font-weight: 700; padding: 1px 8px; border-radius: 3px; }
-  .badge.high   { background: var(--success-soft); color: var(--success); }
-  .badge.medium { background: var(--gold-soft); color: var(--gold); }
-  .badge.low    { background: var(--accent-soft); color: var(--accent); }
+  table.case-table td.cell-viewpoint-key { color: var(--text-sub); white-space: nowrap; }
+  table.case-table td.cell-viewpoint-key.uncovered-ref { color: var(--danger); }
 
   .empty-note { padding: 20px; text-align: center; color: var(--text-muted); font-size: 0.88rem; }
 
@@ -209,9 +224,23 @@
   <div class="summary-tiles" id="summary-tiles">
     <div class="tile"><strong id="tile-total">0</strong>テスト項目数</div>
     <div class="tile"><strong id="tile-screens">0</strong>画面数</div>
-    <div class="tile p-high"><strong id="tile-high">0</strong>優先度: 高</div>
-    <div class="tile p-medium"><strong id="tile-medium">0</strong>優先度: 中</div>
-    <div class="tile p-low"><strong id="tile-low">0</strong>優先度: 低</div>
+  </div>
+  <div class="coverage-panel" id="coverage-panel">
+    <div class="coverage-stat">
+      <span class="coverage-label">観点カバー率</span>
+      <span class="coverage-value" id="vp-coverage">--</span>
+    </div>
+    <div class="coverage-stat">
+      <span class="coverage-label">画面網羅</span>
+      <span class="coverage-value" id="screen-coverage">--</span>
+    </div>
+    <div class="uncovered-toggle" id="uncovered-toggle">
+      未カバー観点: <span id="uncovered-count">0</span>件 ▼
+    </div>
+    <div class="uncovered-list" id="uncovered-list" style="display:none"></div>
+    <div class="coverage-note">
+      ※ 本カバー率は設計書から導出した観点（単体・結合の観点表）とテストケースの対応を示す自己申告指標であり、独立した網羅性の証明ではありません。操作シナリオ（往復検証観点）は本カバー率の対象外です
+    </div>
   </div>
 </section>
 
@@ -225,9 +254,6 @@
   <div class="toolbar">
     <input type="search" id="case-search" placeholder="画面名で絞り込み">
     <span class="hit-count" id="hit-count"></span>
-  </div>
-  <div class="filter-chips" id="priority-chips">
-    <span class="chip-label">優先度</span>
   </div>
 </div>
 
@@ -246,121 +272,237 @@
       "label": "単体テスト",
       "sourceFile": "単体テスト仕様書.md",
       "items": [
-        { "screenId": "screen-home", "screenName": "ホーム", "key": "表示-集計カード表示", "category": "表示条件", "content": "ダッシュボード集計APIが正常応答した場合、cardsの内容がカード形式で表示される", "precondition": "ログイン済み・API正常応答", "steps": "画面を表示する", "expected": "集計カードが件数とともに表示される", "priority": "高" },
-        { "screenId": "screen-home", "screenName": "ホーム", "key": "ナビ-管理者メニュー表示", "category": "表示条件", "content": "利用者権限が管理者の場合、管理系メニュー項目が表示される", "precondition": "管理者権限でログイン済み", "steps": "画面を表示する", "expected": "サイドメニューに管理系項目が表示される", "priority": "高" },
-        { "screenId": "screen-home", "screenName": "ホーム", "key": "ナビ-一般利用者メニュー非表示", "category": "表示条件", "content": "利用者権限が一般の場合、管理系メニュー項目が非表示になる", "precondition": "一般権限でログイン済み", "steps": "画面を表示する", "expected": "サイドメニューに管理系項目が表示されない", "priority": "高" },
-        { "screenId": "screen-home", "screenName": "ホーム", "key": "通知-未読バッジ表示", "category": "表示条件", "content": "unreadCountが1以上の場合、通知ベルにバッジで件数が表示される", "precondition": "未読通知が1件以上存在", "steps": "画面を表示する", "expected": "通知ベルに未読件数のバッジが表示される", "priority": "中" },
-        { "screenId": "screen-home", "screenName": "ホーム", "key": "通知-未読バッジ非表示", "category": "表示条件", "content": "unreadCountが0の場合、バッジが表示されない", "precondition": "未読通知が0件", "steps": "画面を表示する", "expected": "通知ベルにバッジが表示されない", "priority": "中" },
-        { "screenId": "screen-home", "screenName": "ホーム", "key": "通知-既読化件数減算", "category": "状態遷移", "content": "通知項目クリックでmarkNotificationAsReadが呼ばれunreadCountが1減算される", "precondition": "未読通知が1件以上存在", "steps": "通知パネルを開き未読通知を1件クリックする", "expected": "unreadCountが1減算されバッジ表示が更新される", "priority": "中" },
-        { "screenId": "screen-home", "screenName": "ホーム", "key": "表示-初期ローディング遷移", "category": "状態遷移", "content": "初期表示中はローディング表示になりAPI成功後にreadyへ遷移する", "precondition": "ダッシュボード集計API呼び出し中", "steps": "画面を表示する", "expected": "ローディング表示後にメインコンテンツへ切り替わる", "priority": "中" },
+        { "screenId": "screen-home", "screenName": "ホーム", "type": "unit", "key": "管理者権限-メニュー項目含有", "viewpointKey": "権限-管理者メニュー表示", "input": "userRole: \"admin\"", "expected": "visibleMenuItems に管理系メニュー項目（例: 売上ダッシュボード）が含まれる" },
+        { "screenId": "screen-home", "screenName": "ホーム", "type": "unit", "key": "一般権限-メニュー項目除外", "viewpointKey": "権限-一般メニュー除外", "input": "userRole: \"general\"", "expected": "visibleMenuItems に管理系メニュー項目が含まれない" },
+        { "screenId": "screen-home", "screenName": "ホーム", "type": "unit", "key": "未読1件以上-判定true", "viewpointKey": "通知-未読判定成立", "input": "unreadCount: 1", "expected": "hasUnread が true を返す" },
+        { "screenId": "screen-home", "screenName": "ホーム", "type": "unit", "key": "未読0件-判定false", "viewpointKey": "通知-未読判定不成立", "input": "unreadCount: 0", "expected": "hasUnread が false を返す" },
+        { "screenId": "screen-home", "screenName": "ホーム", "type": "unit", "key": "既読化-件数1減算", "viewpointKey": "通知-既読化減算", "input": "unreadCount: 3, 既読化対象 notificationId: \"N-101\"", "expected": "markNotificationAsRead(\"N-101\") 呼び出し後 unreadCount が 2 になる" },
+        { "screenId": "screen-home", "screenName": "ホーム", "type": "unit", "key": "通知取得失敗-トースト表示", "viewpointKey": "エラー-通知取得失敗表示", "input": "通知一覧API応答: 500", "expected": "MSG-COMMON-500 のトーストが表示される" },
+        { "screenId": "screen-home", "screenName": "ホーム", "type": "unit", "key": "メニュー押下-業務画面push", "viewpointKey": "遷移-サイドメニュー押下", "input": "サイドメニュー項目「注文一覧」をクリック", "expected": "/orders へ push 方式で遷移する" },
 
-        { "screenId": "screen-member-edit", "screenName": "会員編集", "key": "必須項目-氏名連絡先", "category": "入力検証", "content": "氏名・メールアドレス・電話番号が空欄の場合、保存操作でエラーが表示される", "precondition": "会員編集画面表示中", "steps": "いずれかの必須項目を空欄にして保存ボタンを押す", "expected": "MSG-MEMBER-002のインラインエラーが表示される", "priority": "高" },
-        { "screenId": "screen-member-edit", "screenName": "会員編集", "key": "メール形式-必須", "category": "入力検証", "content": "メールアドレスが形式不正の場合、インラインエラーが即時表示される", "precondition": "会員編集画面表示中", "steps": "メールアドレス欄に形式不正な値を入力する", "expected": "メールアドレス欄にインラインエラーが即時表示される", "priority": "高" },
-        { "screenId": "screen-member-edit", "screenName": "会員編集", "key": "削除-注文残存禁止", "category": "入力検証", "content": "出荷待ちの注文が残っている会員は削除操作が失敗する", "precondition": "出荷待ち注文が残る会員", "steps": "削除ボタンを押し確認ダイアログで承認する", "expected": "MSG-MEMBER-003のエラーが表示され削除されない", "priority": "高" },
-        { "screenId": "screen-member-edit", "screenName": "会員編集", "key": "退会-確認要求", "category": "状態遷移", "content": "会員状態を退会に変更する場合、確認ダイアログでの承認が必須である", "precondition": "会員状態が有効または休会", "steps": "会員状態を「退会」に変更する", "expected": "確認ダイアログが表示され承認するまで確定しない", "priority": "中" },
-        { "screenId": "screen-member-edit", "screenName": "会員編集", "key": "表示-退会済み閲覧モード", "category": "表示条件", "content": "会員状態が退会の場合、連絡先入力欄が読み取り専用になる", "precondition": "会員状態が退会の会員を表示", "steps": "画面を表示する", "expected": "連絡先入力欄が読み取り専用として表示される", "priority": "中" },
-        { "screenId": "screen-member-edit", "screenName": "会員編集", "key": "削除ボタン-活性条件", "category": "表示条件", "content": "会員状態が退会かつ出荷待ち注文が0件のときのみ削除ボタンが活性化する", "precondition": "削除権限を持つ利用者でログイン済み", "steps": "会員状態・出荷待ち注文件数の異なる会員を表示する", "expected": "条件を満たす会員のみ削除ボタンが活性化する", "priority": "中" },
-        { "screenId": "screen-member-edit", "screenName": "会員編集", "key": "下書き-自動保存", "category": "状態遷移", "content": "入力欄の変更を検知しローカルストレージへ下書きが保存される", "precondition": "会員編集画面表示中", "steps": "いずれかの入力欄を変更する", "expected": "member-edit-draft-{id}へ入力内容が保存される", "priority": "低" },
+        { "screenId": "screen-member-edit", "screenName": "会員編集", "type": "unit", "key": "退会済み-連絡先読取専用", "viewpointKey": "モード-退会済み閲覧", "input": "memberStatus: \"withdrawn\"", "expected": "連絡先入力欄（メール・電話・住所）が読み取り専用になる" },
+        { "screenId": "screen-member-edit", "screenName": "会員編集", "type": "unit", "key": "削除活性-退会かつ注文0件", "viewpointKey": "削除活性-条件判定", "input": "memberStatus: \"withdrawn\", outstandingOrderCount: 0", "expected": "isDeleteEnabled が true を返す" },
+        { "screenId": "screen-member-edit", "screenName": "会員編集", "type": "unit", "key": "削除非活性-注文残存", "viewpointKey": "削除活性-条件判定", "input": "memberStatus: \"withdrawn\", outstandingOrderCount: 1", "expected": "isDeleteEnabled が false を返す" },
+        { "screenId": "screen-member-edit", "screenName": "会員編集", "type": "unit", "key": "保存活性-必須充足エラー0件", "viewpointKey": "保存活性-必須充足判定", "input": "氏名・メール・電話番号すべて入力済み、validationErrors: {}", "expected": "isSaveEnabled が true を返す" },
+        { "screenId": "screen-member-edit", "screenName": "会員編集", "type": "unit", "key": "メール形式不正-即時エラー", "viewpointKey": "入力検証-メール形式", "input": "email: \"invalid-format\"", "expected": "メールアドレス欄にインラインエラーが即時表示される" },
+        { "screenId": "screen-member-edit", "screenName": "会員編集", "type": "unit", "key": "必須項目空欄-保存時エラー", "viewpointKey": "入力検証-必須項目空欄", "input": "name: \"\" （氏名を空欄にして保存を実行）", "expected": "MSG-MEMBER-002 のインラインエラーが表示され保存が実行されない" },
+        { "screenId": "screen-member-edit", "screenName": "会員編集", "type": "unit", "key": "保存完了-会員詳細replace遷移", "viewpointKey": "遷移-保存後会員詳細", "input": "保存ボタン押下、会員番号 M-100234", "expected": "更新後の会員情報を伴い replace で会員詳細へ遷移する" },
+        { "screenId": "screen-member-edit", "screenName": "会員編集", "type": "unit", "key": "削除完了-会員一覧push遷移", "viewpointKey": "遷移-削除後会員一覧", "input": "削除ボタン押下・確認ダイアログ承認", "expected": "push で会員一覧へ遷移する" },
 
-        { "screenId": "screen-order-detail", "screenName": "注文詳細", "key": "遷移-下書きから確定", "category": "状態遷移", "content": "ステータスが下書きで明細が1件以上ある場合、確定状態へ更新できる", "precondition": "下書き状態・明細1件以上の注文", "steps": "次ステータスに「確定」を選択し更新を実行する", "expected": "ステータスが確定に更新される", "priority": "高" },
-        { "screenId": "screen-order-detail", "screenName": "注文詳細", "key": "遷移-明細0件時の確定不可", "category": "状態遷移", "content": "明細が0件の下書き注文は確定状態へ更新できない", "precondition": "下書き状態・明細0件の注文", "steps": "次ステータスに「確定」を選択し更新を実行する", "expected": "更新が拒否されエラーが表示される", "priority": "高" },
-        { "screenId": "screen-order-detail", "screenName": "注文詳細", "key": "遷移-出荷済のキャンセル禁止", "category": "入力検証", "content": "出荷済状態の注文はキャンセルへの更新を選択できない", "precondition": "出荷済状態の注文", "steps": "ステータス更新の選択肢を確認する", "expected": "キャンセルが選択肢に含まれない", "priority": "高" },
-        { "screenId": "screen-order-detail", "screenName": "注文詳細", "key": "更新-備考文字数制限", "category": "入力検証", "content": "更新備考が200文字を超える場合、形式エラーが表示される", "precondition": "注文詳細画面表示中", "steps": "更新備考に201文字以上入力し更新を実行する", "expected": "形式エラーが表示され更新が実行されない", "priority": "中" },
-        { "screenId": "screen-order-detail", "screenName": "注文詳細", "key": "表示-ステータス履歴順序", "category": "表示条件", "content": "ステータス変更履歴が更新日時の新しい順で表示される", "precondition": "ステータス変更履歴が2件以上ある注文", "steps": "画面を表示する", "expected": "履歴が新しい順に並んで表示される", "priority": "中" },
-        { "screenId": "screen-order-detail", "screenName": "注文詳細", "key": "更新-競合検出", "category": "状態遷移", "content": "ステータス更新APIが409を返した場合、競合エラー表示後に最新状態を再取得する", "precondition": "更新中に他者が先に更新した状態", "steps": "ステータス更新を実行する", "expected": "MSG-ORDER-005が表示され最新状態が再取得される", "priority": "中" },
+        { "screenId": "screen-order-detail", "screenName": "注文詳細", "type": "unit", "key": "下書き明細あり-確定含む", "viewpointKey": "遷移可否-次ステータス算出", "input": "order.status: \"draft\", 明細1件以上", "expected": "availableNextStatuses に \"confirmed\" が含まれる" },
+        { "screenId": "screen-order-detail", "screenName": "注文詳細", "type": "unit", "key": "下書き明細0件-確定を含まない", "viewpointKey": "遷移可否-次ステータス算出", "input": "order.status: \"draft\", 明細0件", "expected": "availableNextStatuses に \"confirmed\" が含まれず更新実行時にエラーが表示される" },
+        { "screenId": "screen-order-detail", "screenName": "注文詳細", "type": "unit", "key": "下書き確定-編集可判定true", "viewpointKey": "編集可否-ステータス判定", "input": "order.status: \"draft\" または \"confirmed\"", "expected": "isEditable が true を返す" },
+        { "screenId": "screen-order-detail", "screenName": "注文詳細", "type": "unit", "key": "出荷済-編集可判定false", "viewpointKey": "編集可否-ステータス判定", "input": "order.status: \"shipped\"", "expected": "isEditable が false を返す" },
+        { "screenId": "screen-order-detail", "screenName": "注文詳細", "type": "unit", "key": "備考201文字-形式エラー", "viewpointKey": "入力検証-備考文字数上限", "input": "updateComment に201文字を入力", "expected": "形式エラーが表示され更新が実行されない" },
+        { "screenId": "screen-order-detail", "screenName": "注文詳細", "type": "unit", "key": "出荷済-キャンセル選択肢除外", "viewpointKey": "入力検証-遷移不可選択", "input": "order.status: \"shipped\"", "expected": "ステータス更新の選択肢に \"cancelled\" が含まれない" },
+        { "screenId": "screen-order-detail", "screenName": "注文詳細", "type": "unit", "key": "キャンセル済-キャンセル選択肢除外", "viewpointKey": "モード-出荷済閲覧専用", "input": "order.status: \"cancelled\"", "expected": "キャンセルへの更新操作が無効化され選択肢から除外される" },
+        { "screenId": "screen-order-detail", "screenName": "注文詳細", "type": "unit", "key": "一覧へ戻る-back方式で条件維持", "viewpointKey": "遷移-一覧へback", "input": "「一覧へ戻る」ボタン押下", "expected": "back 方式で遷移し直前の検索条件が維持される" },
+        { "screenId": "screen-order-detail", "screenName": "注文詳細", "type": "unit", "key": "更新競合409-再取得トリガー", "viewpointKey": "競合検出-再取得トリガー", "input": "ステータス更新APIレスポンス 409", "expected": "MSG-ORDER-005 が表示され最新状態が再取得される" },
 
-        { "screenId": "screen-order-list", "screenName": "注文一覧", "key": "検索-受注番号絞り込み", "category": "入力検証", "content": "受注番号を入力して検索した場合、該当する注文のみ一覧表示される", "precondition": "複数件の注文が登録済み", "steps": "受注番号を入力し検索実行ボタンを押す", "expected": "入力した受注番号に一致する注文のみ表示される", "priority": "高" },
-        { "screenId": "screen-order-list", "screenName": "注文一覧", "key": "検索-期間範囲逆転エラー", "category": "入力検証", "content": "開始日が終了日より後の場合、範囲エラーが表示される", "precondition": "注文一覧画面表示中", "steps": "開始日に終了日より後の日付を入力し検索を実行する", "expected": "MSG-ORDER-001の範囲エラーがインライン表示される", "priority": "高" },
-        { "screenId": "screen-order-list", "screenName": "注文一覧", "key": "表示-キャンセル行強調", "category": "表示条件", "content": "ステータスがキャンセルの注文行がmuted-rowパターンで表示される", "precondition": "キャンセル状態の注文を含む一覧を表示", "steps": "画面を表示する", "expected": "キャンセル行が薄いグレーで表示される", "priority": "中" },
-        { "screenId": "screen-order-list", "screenName": "注文一覧", "key": "出力-権限制御", "category": "表示条件", "content": "利用者が経理権限を持たない場合CSV出力ボタンが表示されない", "precondition": "経理権限を持たない利用者でログイン済み", "steps": "画面を表示する", "expected": "CSV出力ボタンが表示されない", "priority": "高" },
-        { "screenId": "screen-order-list", "screenName": "注文一覧", "key": "出力-上限件数超過案内", "category": "入力検証", "content": "絞り込み結果が出力上限5000件を超える場合、絞り込みを促す案内が表示される", "precondition": "検索結果が5000件を超える状態", "steps": "CSV出力ボタンを押す", "expected": "上限超過の案内メッセージが表示される", "priority": "中" },
-        { "screenId": "screen-order-list", "screenName": "注文一覧", "key": "一覧-初期ローディング遷移", "category": "状態遷移", "content": "初期表示中はスケルトン表示になりAPI成功後にreadyへ遷移する", "precondition": "注文検索API呼び出し中", "steps": "画面を表示する", "expected": "スケルトン表示後に一覧テーブルへ切り替わる", "priority": "中" },
-        { "screenId": "screen-order-list", "screenName": "注文一覧", "key": "一覧-空状態表示", "category": "状態遷移", "content": "検索結果が0件の場合、空状態メッセージが表示される", "precondition": "該当する注文が0件の検索条件", "steps": "該当0件になる条件で検索を実行する", "expected": "空状態メッセージが表示される", "priority": "中" },
+        { "screenId": "screen-order-list", "screenName": "注文一覧", "type": "unit", "key": "経理権限なし-出力ボタン非表示", "viewpointKey": "出力可否-権限判定", "input": "userRole: \"order-staff\"（経理権限なし）", "expected": "CSV出力ボタンが表示されない" },
+        { "screenId": "screen-order-list", "screenName": "注文一覧", "type": "unit", "key": "経理権限あり-出力ボタン表示", "viewpointKey": "出力可否-権限判定", "input": "userRole: \"accounting-staff\"", "expected": "CSV出力ボタンが表示される" },
+        { "screenId": "screen-order-list", "screenName": "注文一覧", "type": "unit", "key": "差分マージ-ページ1へリセット", "viewpointKey": "検索条件-差分マージ", "input": "updateSearchCondition({ status: \"shipped\" }), currentPage: 3", "expected": "ステータス条件のみ更新され currentPage が 1 に戻る" },
+        { "screenId": "screen-order-list", "screenName": "注文一覧", "type": "unit", "key": "件数集計-登録件数と一致", "viewpointKey": "件数集計-合計算出", "input": "orders に5件のレコード", "expected": "totalCount が 5 を返す" },
+        { "screenId": "screen-order-list", "screenName": "注文一覧", "type": "unit", "key": "期間逆転-範囲エラー", "viewpointKey": "入力検証-期間逆転", "input": "dateFrom: \"2026-08-01\", dateTo: \"2026-07-01\"", "expected": "MSG-ORDER-001 の範囲エラーがインライン表示される" },
+        { "screenId": "screen-order-list", "screenName": "注文一覧", "type": "unit", "key": "キャンセル行含有-検出true", "viewpointKey": "キャンセル判定-該当行検出", "input": "orders にステータス \"cancelled\" を含む", "expected": "hasCancelledRow が true を返す" },
+        { "screenId": "screen-order-list", "screenName": "注文一覧", "type": "unit", "key": "一覧行クリック-受注番号push遷移", "viewpointKey": "遷移-詳細画面push", "input": "一覧行クリック、orderId: \"ORD-2026-00042\"", "expected": "受注番号を伴い push で注文詳細へ遷移する" },
+        { "screenId": "screen-order-list", "screenName": "注文一覧", "type": "unit", "key": "url復元-検索条件反映", "viewpointKey": "url復元-検索条件書き戻し", "input": "URLパラメータ status=shipped&dateFrom=2026-07-01&dateTo=2026-07-31", "expected": "statusFilter・期間条件が検索条件ストアへ書き戻される" },
 
-        { "screenId": "screen-sales-dashboard", "screenName": "売上ダッシュボード", "key": "期間範囲-上限超過", "category": "入力検証", "content": "指定期間が366日を超える場合、期間適用ボタンが無効化される", "precondition": "売上ダッシュボード画面表示中", "steps": "開始日と終了日の差が366日を超える値を入力する", "expected": "期間適用ボタンが無効化される", "priority": "高" },
-        { "screenId": "screen-sales-dashboard", "screenName": "売上ダッシュボード", "key": "開始終了-順序逆転", "category": "入力検証", "content": "開始日が終了日より後の場合、即座にエラー表示され期間適用ボタンが無効化される", "precondition": "売上ダッシュボード画面表示中", "steps": "開始日に終了日より後の日付を入力する", "expected": "エラーが即座に表示され期間適用ボタンが無効化される", "priority": "高" },
-        { "screenId": "screen-sales-dashboard", "screenName": "売上ダッシュボード", "key": "再集計-連打抑止", "category": "状態遷移", "content": "再集計処理の実行中は再集計ボタンが無効化される", "precondition": "再集計処理を開始した直後", "steps": "再集計ボタンを連続してクリックする", "expected": "処理中は再集計ボタンが無効化され二重実行されない", "priority": "中" },
-        { "screenId": "screen-sales-dashboard", "screenName": "売上ダッシュボード", "key": "表示-平均客単価算出", "category": "表示条件", "content": "averageOrderValueが合計売上金額を注文件数で除算した値で表示される", "precondition": "集計結果取得済み", "steps": "画面を表示する", "expected": "平均客単価が正しい計算値で表示される", "priority": "中" },
-        { "screenId": "screen-sales-dashboard", "screenName": "売上ダッシュボード", "key": "表示-空状態メッセージ", "category": "状態遷移", "content": "対象期間に売上データがない場合、空状態メッセージが表示される", "precondition": "売上データが0件の期間", "steps": "該当0件になる期間で集計を実行する", "expected": "空状態メッセージが表示される", "priority": "中" },
-        { "screenId": "screen-sales-dashboard", "screenName": "売上ダッシュボード", "key": "集計単位-切替反映", "category": "状態遷移", "content": "集計単位選択欄の変更によりgranularityが更新され推移グラフが再描画される", "precondition": "売上ダッシュボード画面表示中", "steps": "集計単位を「日次」から「月次」に変更する", "expected": "granularityが更新され推移グラフが月次表示に切り替わる", "priority": "中" }
+        { "screenId": "screen-sales-dashboard", "screenName": "売上ダッシュボード", "type": "unit", "key": "客単価-除算結果と一致", "viewpointKey": "客単価-算出ロジック", "input": "totalSalesAmount: 1000000, orderCount: 200", "expected": "averageOrderValue が 5000 を返す" },
+        { "screenId": "screen-sales-dashboard", "screenName": "売上ダッシュボード", "type": "unit", "key": "開始終了正順-妥当性true", "viewpointKey": "期間妥当性-判定", "input": "periodRange.from: \"2026-07-01\", periodRange.to: \"2026-07-31\"", "expected": "isPeriodValid が true を返す" },
+        { "screenId": "screen-sales-dashboard", "screenName": "売上ダッシュボード", "type": "unit", "key": "開始終了逆転-即時エラー", "viewpointKey": "入力検証-期間逆転即時エラー", "input": "from: \"2026-07-31\", to: \"2026-07-01\"", "expected": "エラーが即座に表示され期間適用ボタンが無効化される" },
+        { "screenId": "screen-sales-dashboard", "screenName": "売上ダッシュボード", "type": "unit", "key": "期間367日-上限超過無効化", "viewpointKey": "入力検証-期間上限366日", "input": "from: \"2026-01-01\", to: \"2027-01-03\"（367日間）", "expected": "期間適用ボタンが無効化される" },
+        { "screenId": "screen-sales-dashboard", "screenName": "売上ダッシュボード", "type": "unit", "key": "url復元-期間集計単位反映", "viewpointKey": "url復元-期間集計単位書き戻し", "input": "URLパラメータ from=2026-07-01&to=2026-07-31&granularity=monthly", "expected": "periodRange・granularity が該当値へ書き戻される" },
+        { "screenId": "screen-sales-dashboard", "screenName": "売上ダッシュボード", "type": "unit", "key": "ドリルダウン-カテゴリ期間引継push", "viewpointKey": "遷移-ドリルダウンpush", "input": "カテゴリ別内訳行クリック、category: \"家電\"", "expected": "集計期間・カテゴリを伴い push で注文一覧へ遷移する" },
+        { "screenId": "screen-sales-dashboard", "screenName": "売上ダッシュボード", "type": "unit", "key": "再集計実行中-ボタン無効化", "viewpointKey": "再集計活性-連打抑止", "input": "isRecalculating: true", "expected": "再集計ボタンが無効化され連打しても二重実行されない" }
       ]
     },
     "integration": {
       "label": "結合テスト",
       "sourceFile": "結合テスト仕様書.md",
       "items": [
-        { "screenId": "screen-home", "screenName": "ホーム", "key": "ログイン-ホーム引き継ぎ", "category": "画面間連携", "content": "ログイン画面からホームへ遷移時に利用者権限・利用者名が引き継がれる", "precondition": "ログイン認証成功直後", "steps": "ログインを完了する", "expected": "ホーム画面に利用者名が表示され権限に応じたメニューが出る", "priority": "高" },
-        { "screenId": "screen-home", "screenName": "ホーム", "key": "ホーム-業務画面遷移", "category": "画面遷移", "content": "サイドメニュー項目クリックで対象の業務画面へpush遷移する", "precondition": "ホーム画面表示中", "steps": "サイドメニューの項目をクリックする", "expected": "対象の業務画面へ遷移する", "priority": "高" },
-        { "screenId": "screen-home", "screenName": "ホーム", "key": "ダッシュボード集計api連携", "category": "データ受け渡し", "content": "初期表示時にダッシュボード集計APIを呼び出しcards・unreadNotificationCountを取得する", "precondition": "ホーム画面初期表示", "steps": "画面を表示する", "expected": "集計カードと未読件数が画面に反映される", "priority": "高" },
-        { "screenId": "screen-home", "screenName": "ホーム", "key": "通知一覧api連携", "category": "データ受け渡し", "content": "通知ベルクリック時に通知一覧APIを呼び出し通知パネルへ反映する", "precondition": "ホーム画面表示中", "steps": "通知ベルをクリックする", "expected": "通知一覧が通知パネルに表示される", "priority": "中" },
+        { "screenId": "screen-home", "screenName": "ホーム", "type": "integration", "key": "ログイン-利用者情報引継反映", "viewpointKey": "ログイン引継-利用者情報反映", "steps": "ログインを完了する", "input": "有効な認証情報", "expected": "ホーム画面に利用者名が表示され権限に応じたメニューが表示される" },
+        { "screenId": "screen-home", "screenName": "ホーム", "type": "integration", "key": "管理者権限-管理メニュー表示", "viewpointKey": "権限-管理メニュー表示結合", "steps": "管理者権限でログインし画面を表示する", "input": "userRole: \"admin\"", "expected": "サイドメニューに管理系メニュー項目が表示される" },
+        { "screenId": "screen-home", "screenName": "ホーム", "type": "integration", "key": "通知既読-バッジ即時減算", "viewpointKey": "通知既読-バッジ即時反映", "steps": "通知ベルをクリックし未読通知を1件クリックする", "input": "未読通知が1件以上存在", "expected": "サイドメニューの通知バッジ件数が1減算される" },
+        { "screenId": "screen-home", "screenName": "ホーム", "type": "integration", "key": "集計api失敗-エラーバナー表示", "viewpointKey": "api失敗-エラーバナー表示", "steps": "画面を表示する（ダッシュボード集計APIが500を返す環境）", "input": "API応答 500", "expected": "エラーバナーが表示されリトライ導線が出る" },
+        { "screenId": "screen-home", "screenName": "ホーム", "type": "integration", "key": "通知一覧-新しい順表示準拠", "viewpointKey": "逸脱-通知並び順準拠確認", "steps": "発生日時の異なる通知が複数件ある状態で通知ベルをクリックする", "input": "発生日時の異なる通知3件", "expected": "通知一覧が発生日時の新しい順に並んで表示される" },
 
-        { "screenId": "screen-member-edit", "screenName": "会員編集", "key": "一覧-編集遷移", "category": "画面遷移", "content": "会員一覧の編集操作から選択した会員番号を引き継いで編集画面が表示される", "precondition": "会員一覧に1件以上表示中", "steps": "一覧行の編集操作をする", "expected": "選択した会員番号の編集画面が表示される", "priority": "高" },
-        { "screenId": "screen-member-edit", "screenName": "会員編集", "key": "編集-詳細遷移", "category": "画面遷移", "content": "保存操作完了後、更新後の会員情報を伴いreplaceで会員詳細画面へ遷移する", "precondition": "会員編集画面で入力済み", "steps": "保存ボタンを押す", "expected": "会員詳細画面へ遷移し更新内容が反映されている", "priority": "高" },
-        { "screenId": "screen-member-edit", "screenName": "会員編集", "key": "編集-一覧遷移", "category": "画面遷移", "content": "削除操作完了後、pushで会員一覧画面へ遷移する", "precondition": "退会済み・出荷待ち注文0件の会員を表示中", "steps": "削除ボタンを押し確認ダイアログで承認する", "expected": "会員一覧画面へ遷移する", "priority": "中" },
-        { "screenId": "screen-member-edit", "screenName": "会員編集", "key": "会員情報更新api連携", "category": "データ受け渡し", "content": "保存ボタン押下時に会員情報更新APIを呼び出し成功時に会員詳細へ遷移する", "precondition": "会員編集画面で必須項目入力済み", "steps": "保存ボタンを押す", "expected": "会員情報更新APIが呼ばれ会員詳細へ遷移する", "priority": "高" },
+        { "screenId": "screen-member-edit", "screenName": "会員編集", "type": "integration", "key": "一覧編集操作-会員番号引継", "viewpointKey": "一覧-編集遷移引継", "steps": "会員一覧の行で編集操作をする", "input": "会員一覧に1件以上表示中", "expected": "選択した会員番号の編集画面が表示される" },
+        { "screenId": "screen-member-edit", "screenName": "会員編集", "type": "integration", "key": "責任者ロール-削除ボタン表示", "viewpointKey": "権限-責任者のみ削除表示", "steps": "会員管理責任者でログインし画面を表示する", "input": "userRole: \"member-admin-manager\"", "expected": "削除ボタンが表示される" },
+        { "screenId": "screen-member-edit", "screenName": "会員編集", "type": "integration", "key": "退会変更-確認ダイアログ経由確定", "viewpointKey": "退会確認-ダイアログ経由更新", "steps": "会員状態を「退会」に変更し確認ダイアログで承認する", "input": "memberStatus: \"active\" から \"withdrawn\" へ変更", "expected": "確認ダイアログの承認後に会員状態が退会へ更新される" },
+        { "screenId": "screen-member-edit", "screenName": "会員編集", "type": "integration", "key": "保存押下-更新api呼出後詳細反映", "viewpointKey": "保存api-会員詳細反映", "steps": "保存ボタンを押す", "input": "必須項目入力済み", "expected": "会員情報更新APIが呼ばれ、成功時に会員詳細へ遷移し更新内容が反映されている" },
+        { "screenId": "screen-member-edit", "screenName": "会員編集", "type": "integration", "key": "離脱後再訪-下書き復元", "viewpointKey": "下書き-離脱後復元", "steps": "いずれかの入力欄を変更した後、画面を離脱し再度同一会員の編集画面を開く", "input": "入力欄変更あり", "expected": "member-edit-draft-{id} の内容が入力欄に復元される" },
 
-        { "screenId": "screen-order-detail", "screenName": "注文詳細", "key": "一覧-詳細引き継ぎ", "category": "画面遷移", "content": "注文一覧の行クリックから受注番号を引き継いで詳細画面が表示される", "precondition": "注文一覧に1件以上表示中", "steps": "一覧の行をクリックする", "expected": "選択した受注番号の注文詳細が表示される", "priority": "高" },
-        { "screenId": "screen-order-detail", "screenName": "注文詳細", "key": "詳細-一覧反映", "category": "データ受け渡し", "content": "ステータス更新完了後、一覧へ戻る操作で更新結果が反映された一覧が再表示される", "precondition": "注文詳細でステータス更新済み", "steps": "一覧へ戻る操作をする", "expected": "更新後のステータスが一覧に反映されている", "priority": "高" },
-        { "screenId": "screen-order-detail", "screenName": "注文詳細", "key": "注文詳細取得api連携", "category": "データ受け渡し", "content": "初期表示時に注文詳細取得APIを呼び出し明細・配送先・ステータス履歴を表示する", "precondition": "注文詳細画面初期表示", "steps": "画面を表示する", "expected": "API応答内容が明細・配送先・履歴として表示される", "priority": "高" },
+        { "screenId": "screen-order-detail", "screenName": "注文詳細", "type": "integration", "key": "一覧行クリック-受注番号引継表示", "viewpointKey": "一覧-詳細引継", "steps": "注文一覧の行をクリックする", "input": "注文一覧に1件以上表示中", "expected": "選択した受注番号の注文詳細が表示される" },
+        { "screenId": "screen-order-detail", "screenName": "注文詳細", "type": "integration", "key": "受注担当者-更新ボタン表示", "viewpointKey": "権限-出荷担当者更新可", "steps": "受注担当者でログインし画面を表示する", "input": "userRole: \"order-staff\"", "expected": "ステータス更新実行ボタンが表示される" },
+        { "screenId": "screen-order-detail", "screenName": "注文詳細", "type": "integration", "key": "更新実行-確認ダイアログ経由api呼出", "viewpointKey": "確定操作-確認ダイアログ経由", "steps": "次ステータスを選択し確認ダイアログで承認する", "input": "nextStatus: \"confirmed\"", "expected": "確認ダイアログの承認後に注文ステータス更新APIが呼ばれる" },
+        { "screenId": "screen-order-detail", "screenName": "注文詳細", "type": "integration", "key": "更新成功-履歴新しい順追記", "viewpointKey": "更新api-履歴反映", "steps": "ステータス更新を実行する", "input": "更新成功レスポンス", "expected": "statusHistory に新しい履歴が追記され新しい順で表示される" },
+        { "screenId": "screen-order-detail", "screenName": "注文詳細", "type": "integration", "key": "戻る操作-一覧へ更新結果反映", "viewpointKey": "詳細-一覧反映", "steps": "一覧へ戻る操作をする", "input": "注文詳細でステータス更新済み", "expected": "更新後のステータスが一覧に反映されている" },
 
-        { "screenId": "screen-order-list", "screenName": "注文一覧", "key": "一覧-詳細遷移", "category": "画面遷移", "content": "一覧行クリックで受注番号を伴い注文詳細画面へpush遷移する", "precondition": "注文一覧に1件以上表示中", "steps": "一覧の行をクリックする", "expected": "受注番号を引き継ぎ注文詳細画面へ遷移する", "priority": "高" },
-        { "screenId": "screen-order-list", "screenName": "注文一覧", "key": "詳細-一覧復帰", "category": "データ受け渡し", "content": "注文詳細画面から一覧へ戻る操作で検索条件・スクロール位置を維持したまま復帰する", "precondition": "注文詳細画面表示中", "steps": "一覧へ戻る操作をする", "expected": "直前の検索条件を維持した一覧が再表示される", "priority": "中" },
-        { "screenId": "screen-order-list", "screenName": "注文一覧", "key": "注文検索api連携", "category": "データ受け渡し", "content": "検索実行時に注文検索APIを呼び出しitems・totalCountを一覧へ反映する", "precondition": "注文一覧画面表示中", "steps": "検索条件を入力し検索を実行する", "expected": "一覧テーブルと件数表示がAPI応答内容と一致する", "priority": "高" },
-        { "screenId": "screen-order-list", "screenName": "注文一覧", "key": "注文csv出力api連携", "category": "データ受け渡し", "content": "CSV出力ボタン押下時に注文CSV出力APIを呼び出しdownloadUrlを取得する", "precondition": "経理権限利用者・検索結果1件以上", "steps": "CSV出力ボタンを押す", "expected": "ダウンロードリンクが提示される", "priority": "中" },
+        { "screenId": "screen-order-list", "screenName": "注文一覧", "type": "integration", "key": "一覧行クリック-受注番号引継push", "viewpointKey": "一覧-詳細遷移引継", "steps": "一覧の行をクリックする", "input": "注文一覧に1件以上表示中", "expected": "受注番号を引き継ぎ注文詳細画面へ遷移する" },
+        { "screenId": "screen-order-list", "screenName": "注文一覧", "type": "integration", "key": "経理担当者-出力ボタン表示結合", "viewpointKey": "権限-経理担当のみ出力可", "steps": "経理担当者でログインし画面を表示する", "input": "userRole: \"accounting-staff\"", "expected": "CSV出力ボタンが表示される" },
+        { "screenId": "screen-order-list", "screenName": "注文一覧", "type": "integration", "key": "検索実行-即時一覧反映", "viewpointKey": "検索api-一覧即時反映", "steps": "検索条件を入力し検索を実行する", "input": "検索条件入力済み", "expected": "一覧テーブルと件数表示がAPI応答内容と一致する" },
+        { "screenId": "screen-order-list", "screenName": "注文一覧", "type": "integration", "key": "戻る操作-検索条件維持復帰", "viewpointKey": "詳細-一覧復帰条件維持", "steps": "一覧へ戻る操作をする", "input": "注文詳細画面表示中", "expected": "直前の検索条件を維持した一覧が再表示される" },
 
-        { "screenId": "screen-sales-dashboard", "screenName": "売上ダッシュボード", "key": "管理メニュー-ダッシュボード遷移", "category": "画面遷移", "content": "管理メニューからの選択操作で売上ダッシュボード画面が表示される", "precondition": "管理メニュー表示中", "steps": "売上ダッシュボードの項目を選択する", "expected": "売上ダッシュボード画面が表示される", "priority": "中" },
-        { "screenId": "screen-sales-dashboard", "screenName": "売上ダッシュボード", "key": "カテゴリ内訳-注文一覧ドリルダウン", "category": "画面遷移", "content": "カテゴリ別内訳のドリルダウン操作で集計期間・カテゴリを引き継ぎ注文一覧へ遷移する", "precondition": "カテゴリ別内訳が表示済み", "steps": "カテゴリ別内訳テーブルの行をクリックする", "expected": "選択カテゴリと集計期間を引き継ぎ注文一覧画面へ遷移する", "priority": "中" },
-        { "screenId": "screen-sales-dashboard", "screenName": "売上ダッシュボード", "key": "売上集計取得api連携", "category": "データ受け渡し", "content": "期間適用ボタン押下時に売上集計取得APIを呼び出しサマリ・グラフ・内訳を更新する", "precondition": "売上ダッシュボード画面表示中", "steps": "期間を指定し期間適用ボタンを押す", "expected": "API応答内容がサマリ・グラフ・内訳に反映される", "priority": "高" }
+        { "screenId": "screen-sales-dashboard", "screenName": "売上ダッシュボード", "type": "integration", "key": "期間適用-サマリグラフ内訳更新", "viewpointKey": "期間適用-サマリ即時反映", "steps": "期間を指定し期間適用ボタンを押す", "input": "from: \"2026-07-01\", to: \"2026-07-31\"", "expected": "売上集計取得APIが呼ばれサマリ・グラフ・内訳が更新される" },
+        { "screenId": "screen-sales-dashboard", "screenName": "売上ダッシュボード", "type": "integration", "key": "カテゴリ内訳クリック-期間カテゴリ引継", "viewpointKey": "ドリルダウン-注文一覧引継", "steps": "カテゴリ別内訳テーブルの行をクリックする", "input": "カテゴリ別内訳が表示済み", "expected": "選択カテゴリと集計期間を引き継ぎ注文一覧画面へ遷移する" },
+        { "screenId": "screen-sales-dashboard", "screenName": "売上ダッシュボード", "type": "integration", "key": "再集計押下-最新データ反映", "viewpointKey": "再集計-最新反映", "steps": "再集計ボタンを押す", "input": "集計結果表示中", "expected": "直近の注文データを反映した最新の集計結果が表示される" },
+        { "screenId": "screen-sales-dashboard", "screenName": "売上ダッシュボード", "type": "integration", "key": "集計単位変更-グラフ月次再描画", "viewpointKey": "集計単位切替-グラフ再描画", "steps": "集計単位を「日次」から「月次」に変更する", "input": "granularity: \"monthly\"", "expected": "granularity が更新され推移グラフが月次表示に切り替わる" }
       ]
     },
     "scenario": {
       "label": "操作シナリオ",
       "sourceFile": "操作シナリオ仕様書.md",
       "items": [
-        { "screenId": "screen-home", "screenName": "ホーム", "key": "初回ログイン後のホーム表示", "category": "操作シナリオ", "content": "ログイン直後のホーム画面表示を確認する", "precondition": "未ログイン状態", "steps": "ログインを完了する→ホーム画面が表示されるのを確認する", "expected": "集計カード・サイドメニュー・通知ベルが表示される", "priority": "高" },
-        { "screenId": "screen-home", "screenName": "ホーム", "key": "未読通知の確認", "category": "操作シナリオ", "content": "未読通知の確認と既読化の操作を確認する", "precondition": "未読通知が1件以上存在", "steps": "通知ベルをクリックする→通知一覧から未読通知をクリックする", "expected": "該当通知が既読化されunreadCountが1減算される", "priority": "中" },
-        { "screenId": "screen-home", "screenName": "ホーム", "key": "サイドメニューからの業務画面遷移", "category": "操作シナリオ", "content": "サイドメニューからの遷移操作を確認する", "precondition": "ホーム画面表示中", "steps": "サイドメニューの項目をクリックする", "expected": "対象の業務画面へ遷移する", "priority": "高" },
-        { "screenId": "screen-home", "screenName": "ホーム", "key": "管理者権限利用者のメニュー確認", "category": "操作シナリオ", "content": "管理者権限でのメニュー表示差分を確認する", "precondition": "管理者権限でログイン可能な状態", "steps": "管理者権限でログインする→ホーム画面を表示する", "expected": "管理系メニュー項目が表示される", "priority": "中" },
+        { "screenId": "screen-home", "screenName": "ホーム", "type": "scenario", "key": "未読通知の既読化", "viewpointKey": "操作後-画面反映", "precondition": "未読通知が1件以上存在", "expected": "クリックした通知が既読化され、通知ベルの未読バッジ件数が1減算される。" },
+        { "screenId": "screen-home", "screenName": "ホーム", "type": "scenario", "key": "サイドメニューからの業務画面遷移", "viewpointKey": "遷移方式-パラメータ一致", "precondition": "ホーム画面表示中", "expected": "対象の業務画面（注文一覧）へ push 方式で遷移する。" },
 
-        { "screenId": "screen-member-edit", "screenName": "会員編集", "key": "会員情報の編集保存", "category": "操作シナリオ", "content": "会員の連絡先情報を編集して保存する操作を確認する", "precondition": "会員一覧から編集対象を選択可能", "steps": "会員一覧から編集操作をする→連絡先を修正する→保存ボタンを押す", "expected": "更新後の会員情報を伴い会員詳細画面へ遷移する", "priority": "高" },
-        { "screenId": "screen-member-edit", "screenName": "会員編集", "key": "会員の退会処理", "category": "操作シナリオ", "content": "会員状態を退会へ変更する操作を確認する", "precondition": "会員状態が有効または休会の会員を編集中", "steps": "会員状態を「退会」に変更する→確認ダイアログで承認する→保存する", "expected": "会員状態が退会に更新される", "priority": "高" },
-        { "screenId": "screen-member-edit", "screenName": "会員編集", "key": "退会会員の削除", "category": "操作シナリオ", "content": "退会確定済み会員の削除操作を確認する", "precondition": "退会済みかつ出荷待ち注文0件の会員を表示中", "steps": "削除ボタンを押す→確認ダイアログで承認する", "expected": "会員情報が削除され会員一覧へ遷移する", "priority": "中" },
-        { "screenId": "screen-member-edit", "screenName": "会員編集", "key": "出荷待ち注文が残る会員の削除試行", "category": "操作シナリオ", "content": "削除不可条件での挙動を確認する", "precondition": "出荷待ち注文が残る退会会員を表示中", "steps": "削除ボタンを押す", "expected": "削除がエラーとなり残存注文を促すメッセージが表示される", "priority": "中" },
+        { "screenId": "screen-member-edit", "screenName": "会員編集", "type": "scenario", "key": "退会への状態変更操作", "viewpointKey": "操作後-画面反映", "precondition": "会員状態が有効または休会の会員を編集中", "expected": "会員状態を「退会」に変更する操作の直後に、確認ダイアログが即座に表示される。" },
+        { "screenId": "screen-member-edit", "screenName": "会員編集", "type": "scenario", "key": "保存操作後の会員詳細遷移", "viewpointKey": "遷移方式-パラメータ一致", "precondition": "会員編集画面で必須項目入力済み", "expected": "保存操作完了後、更新後の会員情報を伴い replace 方式で会員詳細画面へ遷移する。" },
 
-        { "screenId": "screen-order-detail", "screenName": "注文詳細", "key": "下書き注文の確定操作", "category": "操作シナリオ", "content": "下書き注文を確定状態へ更新する操作を確認する", "precondition": "下書き状態・明細1件以上の注文詳細を表示中", "steps": "次ステータスに「確定」を選択する→確認ダイアログで承認する", "expected": "ステータスが確定に更新され履歴に追記される", "priority": "高" },
-        { "screenId": "screen-order-detail", "screenName": "注文詳細", "key": "出荷済注文のキャンセル試行", "category": "操作シナリオ", "content": "出荷済注文でキャンセルへの更新が選択できないことを確認する", "precondition": "出荷済状態の注文詳細を表示中", "steps": "次ステータスの選択肢を確認する", "expected": "キャンセルへの遷移が選択肢に含まれない", "priority": "中" },
-        { "screenId": "screen-order-detail", "screenName": "注文詳細", "key": "更新時の競合発生時の再取得", "category": "操作シナリオ", "content": "更新競合発生時の画面挙動を確認する", "precondition": "他利用者が先に同一注文を更新済み", "steps": "ステータス更新を実行する", "expected": "競合エラーが表示され最新状態が再取得される", "priority": "中" },
-        { "screenId": "screen-order-detail", "screenName": "注文詳細", "key": "一覧へ戻る操作", "category": "操作シナリオ", "content": "詳細画面から一覧への復帰操作を確認する", "precondition": "注文詳細画面表示中", "steps": "「一覧へ戻る」ボタンを押す", "expected": "直前の検索条件を維持した注文一覧へ遷移する", "priority": "中" },
+        { "screenId": "screen-order-detail", "screenName": "注文詳細", "type": "scenario", "key": "下書き注文の確定更新", "viewpointKey": "操作後-画面反映", "precondition": "下書き状態・明細1件以上の注文詳細を表示中", "expected": "ステータス更新実行後、statusHistory の表示へ即座に反映され、新しい履歴が先頭に追記される。" },
+        { "screenId": "screen-order-detail", "screenName": "注文詳細", "type": "scenario", "key": "一覧へ戻る復帰操作", "viewpointKey": "遷移方式-パラメータ一致", "precondition": "注文詳細画面表示中", "expected": "back 方式で注文一覧へ遷移し、直前の検索条件が維持されている。" },
 
-        { "screenId": "screen-order-list", "screenName": "注文一覧", "key": "ステータス絞り込みでの注文確認", "category": "操作シナリオ", "content": "ステータス絞り込みでの注文確認操作を確認する", "precondition": "出荷済の注文を含む複数件が登録済み", "steps": "ステータス「出荷済」を選択する→検索実行ボタンを押す", "expected": "出荷済の注文のみ一覧表示される", "priority": "高" },
-        { "screenId": "screen-order-list", "screenName": "注文一覧", "key": "csv出力操作", "category": "操作シナリオ", "content": "経理担当者によるCSV出力操作を確認する", "precondition": "経理権限でログイン済み", "steps": "検索条件を確定する→CSV出力ボタンを押す", "expected": "CSVファイルのダウンロードリンクが提示される", "priority": "高" },
-        { "screenId": "screen-order-list", "screenName": "注文一覧", "key": "注文詳細への遷移と復帰", "category": "操作シナリオ", "content": "詳細画面への遷移と一覧への復帰を確認する", "precondition": "注文一覧に1件以上表示中", "steps": "一覧行をクリックする→注文詳細を確認する→一覧へ戻る", "expected": "直前の検索条件を維持した一覧が再表示される", "priority": "中" },
-        { "screenId": "screen-order-list", "screenName": "注文一覧", "key": "不正な期間指定時のエラー表示", "category": "操作シナリオ", "content": "期間指定が不正な場合のエラー表示を確認する", "precondition": "注文一覧画面表示中", "steps": "開始日を終了日より後に設定する→検索実行ボタンを押す", "expected": "範囲エラーメッセージが表示される", "priority": "中" },
+        { "screenId": "screen-order-list", "screenName": "注文一覧", "type": "scenario", "key": "ステータス絞り込み検索", "viewpointKey": "操作後-画面反映", "precondition": "出荷済の注文を含む複数件が登録済み", "expected": "検索実行後、一覧テーブルが即座に更新され出荷済の注文のみ表示される。" },
+        { "screenId": "screen-order-list", "screenName": "注文一覧", "type": "scenario", "key": "一覧行から注文詳細への遷移", "viewpointKey": "遷移方式-パラメータ一致", "precondition": "注文一覧に1件以上表示中", "expected": "受注番号を引き継ぎ push 方式で注文詳細画面へ遷移する。" },
 
-        { "screenId": "screen-sales-dashboard", "screenName": "売上ダッシュボード", "key": "月次集計の確認", "category": "操作シナリオ", "content": "月次集計単位での売上確認操作を確認する", "precondition": "売上ダッシュボード画面表示中", "steps": "開始日・終了日・集計単位「月次」を指定する→期間適用ボタンを押す", "expected": "指定期間の月次売上推移とカテゴリ別内訳が表示される", "priority": "高" },
-        { "screenId": "screen-sales-dashboard", "screenName": "売上ダッシュボード", "key": "手動再集計の実行", "category": "操作シナリオ", "content": "直近データを反映する再集計操作を確認する", "precondition": "集計結果表示中", "steps": "再集計ボタンを押す", "expected": "直近の注文データを反映した最新の集計結果が表示される", "priority": "中" },
-        { "screenId": "screen-sales-dashboard", "screenName": "売上ダッシュボード", "key": "カテゴリ別内訳からのドリルダウン", "category": "操作シナリオ", "content": "カテゴリ別内訳からの注文一覧への遷移を確認する", "precondition": "カテゴリ別内訳が表示済み", "steps": "カテゴリ別内訳テーブルの行をクリックする", "expected": "選択カテゴリと集計期間を引き継ぎ注文一覧画面へ遷移する", "priority": "中" },
-        { "screenId": "screen-sales-dashboard", "screenName": "売上ダッシュボード", "key": "不正な期間指定時の挙動確認", "category": "操作シナリオ", "content": "不正な期間指定時のエラー表示挙動を確認する", "precondition": "売上ダッシュボード画面表示中", "steps": "開始日を終了日より後に設定する", "expected": "期間適用ボタンが無効化されエラーが表示される", "priority": "中" }
+        { "screenId": "screen-sales-dashboard", "screenName": "売上ダッシュボード", "type": "scenario", "key": "期間適用によるサマリ更新", "viewpointKey": "操作後-画面反映", "precondition": "売上ダッシュボード画面表示中", "expected": "期間適用操作の直後にサマリ・グラフ・内訳が即座に反映される。" },
+        { "screenId": "screen-sales-dashboard", "screenName": "売上ダッシュボード", "type": "scenario", "key": "カテゴリ別内訳からのドリルダウン", "viewpointKey": "遷移方式-パラメータ一致", "precondition": "カテゴリ別内訳が表示済み", "expected": "選択カテゴリと集計期間を引き継ぎ push 方式で注文一覧画面へ遷移する。" }
       ]
     }
   }
 }
 </script>
 
+<script type="application/json" id="viewpoint-manifest">
+{
+  "note": "手動観点表・往復検証観点表は含まない。単体・結合の「観点表」節のみを対象とする",
+  "viewpoints": [
+    { "screenId": "screen-home", "type": "unit", "key": "権限-管理者メニュー表示", "viewpoint": "利用者権限が管理者の場合、管理系メニュー項目を含める" },
+    { "screenId": "screen-home", "type": "unit", "key": "権限-一般メニュー除外", "viewpoint": "利用者権限が一般の場合、管理系メニュー項目を除外する" },
+    { "screenId": "screen-home", "type": "unit", "key": "通知-未読判定成立", "viewpoint": "unreadCount が1以上のとき true を返す" },
+    { "screenId": "screen-home", "type": "unit", "key": "通知-未読判定不成立", "viewpoint": "unreadCount が0のとき false を返す" },
+    { "screenId": "screen-home", "type": "unit", "key": "通知-既読化減算", "viewpoint": "指定した通知IDを既読化し unreadCount を1減算する" },
+    { "screenId": "screen-home", "type": "unit", "key": "エラー-通知取得失敗表示", "viewpoint": "通知取得API失敗時に MSG-COMMON-500 のトーストを表示する" },
+    { "screenId": "screen-home", "type": "unit", "key": "遷移-サイドメニュー押下", "viewpoint": "サイドメニュー項目クリックで対象の業務画面へ push 遷移する" },
+    { "screenId": "screen-home", "type": "integration", "key": "通知既読-バッジ即時反映", "viewpoint": "通知パネルで既読化した件数がサイドメニューの通知バッジへ即時反映される" },
+    { "screenId": "screen-home", "type": "integration", "key": "権限-管理メニュー表示結合", "viewpoint": "管理者権限でログインした場合、管理系メニュー項目がサイドナビに表示される" },
+    { "screenId": "screen-home", "type": "integration", "key": "api失敗-エラーバナー表示", "viewpoint": "ダッシュボード集計API失敗時にエラーバナーが表示されリトライ導線が出る" },
+    { "screenId": "screen-home", "type": "integration", "key": "ログイン引継-利用者情報反映", "viewpoint": "ログイン画面から遷移時に利用者権限・利用者名が引き継がれ表示される" },
+    { "screenId": "screen-home", "type": "integration", "key": "通知件数上限-すべて見る導線", "viewpoint": "通知パネル表示件数が10件を超える場合「すべて見る」リンクが表示される" },
+    { "screenId": "screen-home", "type": "integration", "key": "逸脱-通知並び順準拠確認", "viewpoint": "通知一覧の並び順が発生日時の新しい順という共通ルールに準拠している" },
+
+    { "screenId": "screen-member-edit", "type": "unit", "key": "モード-退会済み閲覧", "viewpoint": "会員状態が退会のとき連絡先入力欄を読み取り専用にする" },
+    { "screenId": "screen-member-edit", "type": "unit", "key": "削除活性-条件判定", "viewpoint": "会員状態が退会かつ出荷待ち注文が0件のとき true になる" },
+    { "screenId": "screen-member-edit", "type": "unit", "key": "保存活性-必須充足判定", "viewpoint": "必須項目がすべて入力済みかつバリデーションエラーが0件のとき true になる" },
+    { "screenId": "screen-member-edit", "type": "unit", "key": "入力検証-メール形式", "viewpoint": "形式不正の場合インラインエラーを即時表示する" },
+    { "screenId": "screen-member-edit", "type": "unit", "key": "入力検証-必須項目空欄", "viewpoint": "氏名・メールアドレス・電話番号のいずれかが空欄の場合、保存時にエラーとなる" },
+    { "screenId": "screen-member-edit", "type": "unit", "key": "遷移-保存後会員詳細", "viewpoint": "保存操作完了後、replace で更新後の会員情報を伴い会員詳細へ遷移する" },
+    { "screenId": "screen-member-edit", "type": "unit", "key": "遷移-削除後会員一覧", "viewpoint": "削除操作完了後、push で会員一覧へ遷移する" },
+    { "screenId": "screen-member-edit", "type": "integration", "key": "一覧-編集遷移引継", "viewpoint": "会員一覧の編集操作から選択した会員番号を引き継いで編集画面が表示される" },
+    { "screenId": "screen-member-edit", "type": "integration", "key": "権限-責任者のみ削除表示", "viewpoint": "会員管理責任者にのみ削除ボタンが表示される" },
+    { "screenId": "screen-member-edit", "type": "integration", "key": "退会確認-ダイアログ経由更新", "viewpoint": "会員状態を退会に変更する操作は確認ダイアログでの承認を経て確定する" },
+    { "screenId": "screen-member-edit", "type": "integration", "key": "保存api-会員詳細反映", "viewpoint": "保存ボタン押下で会員情報更新APIが呼ばれ、成功時に会員詳細へ遷移する" },
+    { "screenId": "screen-member-edit", "type": "integration", "key": "下書き-離脱後復元", "viewpoint": "入力中に離脱してもローカルストレージの下書きが再訪時に復元される" },
+    { "screenId": "screen-member-edit", "type": "integration", "key": "逸脱-削除権限方針要確認", "viewpoint": "削除権限を会員管理責任者に限定する方針が運用部門の最終合意未取得のまま実装として残っている" },
+
+    { "screenId": "screen-order-detail", "type": "unit", "key": "遷移可否-次ステータス算出", "viewpoint": "order.status を起点に遷移可能な次ステータス一覧を算出する" },
+    { "screenId": "screen-order-detail", "type": "unit", "key": "編集可否-ステータス判定", "viewpoint": "order.status が下書きまたは確定のとき true になる" },
+    { "screenId": "screen-order-detail", "type": "unit", "key": "入力検証-備考文字数上限", "viewpoint": "更新備考が200文字を超える場合、形式エラーとする" },
+    { "screenId": "screen-order-detail", "type": "unit", "key": "入力検証-遷移不可選択", "viewpoint": "現在のステータスから遷移不可な区分を選択した場合エラーとする" },
+    { "screenId": "screen-order-detail", "type": "unit", "key": "モード-出荷済閲覧専用", "viewpoint": "ステータスが出荷済またはキャンセルの場合、キャンセルへの更新操作を無効化する" },
+    { "screenId": "screen-order-detail", "type": "unit", "key": "遷移-一覧へback", "viewpoint": "一覧へ戻るボタン押下時、back 方式で直前の検索条件を維持し遷移する" },
+    { "screenId": "screen-order-detail", "type": "unit", "key": "競合検出-再取得トリガー", "viewpoint": "ステータス更新APIが409を返した場合、競合エラー表示後に最新状態を再取得する" },
+    { "screenId": "screen-order-detail", "type": "integration", "key": "一覧-詳細引継", "viewpoint": "注文一覧の行クリックから受注番号を引き継いで詳細画面が表示される" },
+    { "screenId": "screen-order-detail", "type": "integration", "key": "権限-出荷担当者更新可", "viewpoint": "出荷担当者・受注担当者ともにステータス更新実行ボタンが表示される" },
+    { "screenId": "screen-order-detail", "type": "integration", "key": "確定操作-確認ダイアログ経由", "viewpoint": "ステータス更新は確認ダイアログでの承認を経てAPIが呼ばれる" },
+    { "screenId": "screen-order-detail", "type": "integration", "key": "更新api-履歴反映", "viewpoint": "ステータス更新API成功時に statusHistory へ新しい履歴が追記され新しい順で表示される" },
+    { "screenId": "screen-order-detail", "type": "integration", "key": "詳細-一覧反映", "viewpoint": "ステータス更新完了後、一覧へ戻る操作で更新結果が反映された一覧が再表示される" },
+    { "screenId": "screen-order-detail", "type": "integration", "key": "件数上限-スクロール表示", "viewpoint": "商品明細が100件を超える場合、明細テーブル内でスクロール表示になる" },
+    { "screenId": "screen-order-detail", "type": "integration", "key": "逸脱-キャンセル理由未確定", "viewpoint": "キャンセルへの更新時に備考入力を必須化すべきという要確認事項が実装に反映されていない" },
+
+    { "screenId": "screen-order-list", "type": "unit", "key": "出力可否-権限判定", "viewpoint": "経理権限を持たない利用者にはCSV出力ボタンを非表示にする" },
+    { "screenId": "screen-order-list", "type": "unit", "key": "検索条件-差分マージ", "viewpoint": "渡した項目のみ現在の検索条件へマージし、ページ番号を1に戻す" },
+    { "screenId": "screen-order-list", "type": "unit", "key": "件数集計-合計算出", "viewpoint": "orders の件数を正しく集計する" },
+    { "screenId": "screen-order-list", "type": "unit", "key": "入力検証-期間逆転", "viewpoint": "開始日が終了日より後の場合、範囲エラーとする" },
+    { "screenId": "screen-order-list", "type": "unit", "key": "キャンセル判定-該当行検出", "viewpoint": "orders の中にキャンセル状態が含まれるか判定する" },
+    { "screenId": "screen-order-list", "type": "unit", "key": "遷移-詳細画面push", "viewpoint": "一覧行クリックで受注番号を伴い push で注文詳細へ遷移する" },
+    { "screenId": "screen-order-list", "type": "unit", "key": "url復元-検索条件書き戻し", "viewpoint": "status・dateFrom・dateTo の URL パラメータを検索条件ストアへ書き戻す" },
+    { "screenId": "screen-order-list", "type": "integration", "key": "一覧-詳細遷移引継", "viewpoint": "一覧行クリックで受注番号を伴い push で注文詳細画面へ遷移する" },
+    { "screenId": "screen-order-list", "type": "integration", "key": "権限-経理担当のみ出力可", "viewpoint": "経理担当者にのみCSV出力ボタンが表示される" },
+    { "screenId": "screen-order-list", "type": "integration", "key": "検索api-一覧即時反映", "viewpoint": "検索実行時に注文検索APIが呼ばれ結果が一覧テーブルへ即時反映される" },
+    { "screenId": "screen-order-list", "type": "integration", "key": "詳細-一覧復帰条件維持", "viewpoint": "注文詳細から一覧へ戻る操作で検索条件・スクロール位置を維持したまま復帰する" },
+    { "screenId": "screen-order-list", "type": "integration", "key": "出力上限-案内メッセージ", "viewpoint": "検索結果が5,000件を超える場合、絞り込みを促す案内が表示される" },
+    { "screenId": "screen-order-list", "type": "integration", "key": "逸脱-csv上限根拠未確定", "viewpoint": "CSV出力上限5,000件の業務要件妥当性が経理部門未確認のまま実装されている" },
+
+    { "screenId": "screen-sales-dashboard", "type": "unit", "key": "客単価-算出ロジック", "viewpoint": "合計売上金額を注文件数で除算して算出する" },
+    { "screenId": "screen-sales-dashboard", "type": "unit", "key": "期間妥当性-判定", "viewpoint": "開始日が終了日より前であるかを判定する" },
+    { "screenId": "screen-sales-dashboard", "type": "unit", "key": "入力検証-期間逆転即時エラー", "viewpoint": "開始日が終了日より後の場合、即座にエラー表示し期間適用ボタンを無効化する" },
+    { "screenId": "screen-sales-dashboard", "type": "unit", "key": "入力検証-期間上限366日", "viewpoint": "指定期間が366日を超える場合、期間適用ボタンを無効化する" },
+    { "screenId": "screen-sales-dashboard", "type": "unit", "key": "url復元-期間集計単位書き戻し", "viewpoint": "from・to・granularity の URL パラメータを periodRange・granularity へ書き戻す" },
+    { "screenId": "screen-sales-dashboard", "type": "unit", "key": "遷移-ドリルダウンpush", "viewpoint": "カテゴリ別内訳行クリックで集計期間・カテゴリを伴い push で注文一覧へ遷移する" },
+    { "screenId": "screen-sales-dashboard", "type": "unit", "key": "再集計活性-連打抑止", "viewpoint": "再集計処理実行中は再集計ボタンを無効化する" },
+    { "screenId": "screen-sales-dashboard", "type": "integration", "key": "期間適用-サマリ即時反映", "viewpoint": "期間適用ボタン押下で売上集計取得APIが呼ばれサマリ・グラフ・内訳が更新される" },
+    { "screenId": "screen-sales-dashboard", "type": "integration", "key": "ドリルダウン-注文一覧引継", "viewpoint": "カテゴリ別内訳のドリルダウン操作で集計期間・カテゴリを引き継ぎ注文一覧へ遷移する" },
+    { "screenId": "screen-sales-dashboard", "type": "integration", "key": "再集計-最新反映", "viewpoint": "再集計ボタン押下で直近の注文データを反映した最新の集計結果が表示される" },
+    { "screenId": "screen-sales-dashboard", "type": "integration", "key": "集計単位切替-グラフ再描画", "viewpoint": "集計単位選択欄の変更で granularity が更新され推移グラフが再描画される" },
+    { "screenId": "screen-sales-dashboard", "type": "integration", "key": "データ点上限-月次12件", "viewpoint": "集計単位が月次の場合、推移グラフのデータ点が最大12件に絞り込まれる" },
+    { "screenId": "screen-sales-dashboard", "type": "integration", "key": "逸脱-データ点上限要確認", "viewpoint": "月次データ点上限12件が経営層の表示期間拡張要望を反映せず実装のまま残っている" }
+  ]
+}
+</script>
+
 <script>
 (function () {
   var DATA = JSON.parse(document.getElementById('test-case-manifest').textContent);
+  var VIEWPOINTS = JSON.parse(document.getElementById('viewpoint-manifest').textContent).viewpoints;
   var TAB_IDS = ['unit', 'integration', 'scenario'];
-  var state = { tab: 'unit', query: '', priorities: new Set() };
+  var state = { tab: 'unit', query: '' };
+
+  var allViewpointKeys = VIEWPOINTS.map(function (v) { return v.key; });
+  var coveredKeys = new Set();
+  TAB_IDS.forEach(function (tabId) {
+    DATA.tabs[tabId].items.forEach(function (tc) {
+      if (tc.viewpointKey && tc.viewpointKey !== '-' && allViewpointKeys.indexOf(tc.viewpointKey) !== -1) {
+        coveredKeys.add(tc.viewpointKey);
+      }
+    });
+  });
+  var uncoveredViewpoints = VIEWPOINTS.filter(function (v) { return !coveredKeys.has(v.key); });
+  var coverageRate = allViewpointKeys.length > 0 ? coveredKeys.size / allViewpointKeys.length : 0;
+
+  var allScreenIds = new Set();
+  VIEWPOINTS.forEach(function (v) { allScreenIds.add(v.screenId); });
+  TAB_IDS.forEach(function (tabId) {
+    DATA.tabs[tabId].items.forEach(function (tc) { allScreenIds.add(tc.screenId); });
+  });
+  var testedScreenIds = new Set();
+  TAB_IDS.forEach(function (tabId) {
+    DATA.tabs[tabId].items.forEach(function (tc) { testedScreenIds.add(tc.screenId); });
+  });
+
+  document.getElementById('vp-coverage').textContent =
+    coveredKeys.size + ' / ' + allViewpointKeys.length + '（' + Math.round(coverageRate * 100) + '%）';
+  document.getElementById('screen-coverage').textContent =
+    testedScreenIds.size + ' / ' + allScreenIds.size + ' 画面';
+  document.getElementById('uncovered-count').textContent = uncoveredViewpoints.length;
+
+  var uncoveredListEl = document.getElementById('uncovered-list');
+  uncoveredListEl.innerHTML = uncoveredViewpoints.length
+    ? '<ul>' + uncoveredViewpoints.map(function (v) {
+        return '<li>[' + escHtml(v.screenId) + '] ' + escHtml(v.key) + '（' + escHtml(v.type) + '）: ' + escHtml(v.viewpoint) + '</li>';
+      }).join('') + '</ul>'
+    : '<div class="empty-note">未カバーの観点はありません。</div>';
+
+  document.getElementById('uncovered-toggle').addEventListener('click', function () {
+    var visible = uncoveredListEl.style.display !== 'none';
+    uncoveredListEl.style.display = visible ? 'none' : 'block';
+  });
 
   function escHtml(s) {
     return String(s).replace(/[&<>"]/g, function (c) {
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
     });
-  }
-
-  function priorityClass(p) {
-    return p === '高' ? 'high' : (p === '中' ? 'medium' : 'low');
   }
 
   function screenOrder(items) {
@@ -371,15 +513,32 @@
     return order;
   }
 
-  function priorityCounts(items) {
-    var c = { '高': 0, '中': 0, '低': 0 };
-    items.forEach(function (it) { c[it.priority] = (c[it.priority] || 0) + 1; });
-    return c;
-  }
+  var TAB_COLUMNS = {
+    unit: [
+      { field: 'key', label: 'キー', cls: 'cell-main' },
+      { field: 'viewpointKey', label: '対応観点キー', cls: 'cell-viewpoint-key' },
+      { field: 'input', label: '入力値' },
+      { field: 'expected', label: '期待結果（アサーション）' }
+    ],
+    integration: [
+      { field: 'key', label: 'キー', cls: 'cell-main' },
+      { field: 'viewpointKey', label: '対応観点キー', cls: 'cell-viewpoint-key' },
+      { field: 'steps', label: '操作手順' },
+      { field: 'input', label: '入力値' },
+      { field: 'expected', label: '期待結果（アサーション）' }
+    ],
+    scenario: [
+      { field: 'key', label: 'シナリオ名', cls: 'cell-main' },
+      { field: 'viewpointKey', label: '対応往復検証観点キー', cls: 'cell-viewpoint-key' },
+      { field: 'precondition', label: '前提条件' },
+      { field: 'expected', label: '期待結果' }
+    ]
+  };
 
   function buildPanelHtml(tabId) {
     var items = DATA.tabs[tabId].items;
     if (!items.length) return '<div class="empty-note">テスト項目がありません。</div>';
+    var columns = TAB_COLUMNS[tabId];
     var screens = screenOrder(items);
     var byScreen = {};
     items.forEach(function (it) {
@@ -391,18 +550,18 @@
       html += '<section class="module-group" data-screen-section>';
       html += '<h3>' + escHtml(name) + '<span class="screen-count">' + rows.length + '件</span></h3>';
       html += '<div class="table-wrap"><table class="case-table"><thead><tr>' +
-        '<th data-col="key">キー</th><th data-col="category">分類</th><th>テスト内容</th>' +
-        '<th>前提条件</th><th>操作手順</th><th>期待結果</th><th data-col="priority">優先度</th>' +
+        columns.map(function (col) { return '<th>' + escHtml(col.label) + '</th>'; }).join('') +
         '</tr></thead><tbody>';
       rows.forEach(function (it) {
-        html += '<tr data-priority="' + escHtml(it.priority) + '" data-screen="' + escHtml(name) + '">' +
-          '<td class="cell-main">' + escHtml(it.key) + '</td>' +
-          '<td>' + escHtml(it.category) + '</td>' +
-          '<td>' + escHtml(it.content) + '</td>' +
-          '<td>' + escHtml(it.precondition) + '</td>' +
-          '<td>' + escHtml(it.steps) + '</td>' +
-          '<td>' + escHtml(it.expected) + '</td>' +
-          '<td class="pri-cell"><span class="badge ' + priorityClass(it.priority) + '">' + escHtml(it.priority) + '</span></td>' +
+        html += '<tr data-screen="' + escHtml(name) + '">' +
+          columns.map(function (col) {
+            var value = it[col.field] || '';
+            var cls = col.cls || '';
+            if (col.field === 'viewpointKey' && value && !coveredKeys.has(value) && allViewpointKeys.indexOf(value) !== -1) {
+              cls += ' uncovered-ref';
+            }
+            return '<td' + (cls ? ' class="' + cls + '"' : '') + '>' + escHtml(value) + '</td>';
+          }).join('') +
           '</tr>';
       });
       html += '</tbody></table></div></section>';
@@ -417,12 +576,8 @@
   function updateSummary(tabId) {
     var items = DATA.tabs[tabId].items;
     var screens = screenOrder(items);
-    var counts = priorityCounts(items);
     document.getElementById('tile-total').textContent = items.length;
     document.getElementById('tile-screens').textContent = screens.length;
-    document.getElementById('tile-high').textContent = counts['高'] || 0;
-    document.getElementById('tile-medium').textContent = counts['中'] || 0;
-    document.getElementById('tile-low').textContent = counts['低'] || 0;
   }
 
   var hitCountEl = document.getElementById('hit-count');
@@ -434,11 +589,8 @@
     var q = state.query.trim().toLowerCase();
     var visibleCount = 0;
     rows.forEach(function (tr) {
-      var priority = tr.getAttribute('data-priority') || '';
-      var matchesQuery = !q || tr.getAttribute('data-screen').toLowerCase().indexOf(q) !== -1 ||
+      var visible = !q || tr.getAttribute('data-screen').toLowerCase().indexOf(q) !== -1 ||
         tr.textContent.toLowerCase().indexOf(q) !== -1;
-      var matchesPriority = state.priorities.size === 0 || state.priorities.has(priority);
-      var visible = matchesQuery && matchesPriority;
       tr.style.display = visible ? '' : 'none';
       if (visible) visibleCount++;
     });
@@ -472,36 +624,6 @@
     state.query = searchInput.value;
     applyFilter();
   });
-
-  var chipBar = document.getElementById('priority-chips');
-  var chipClearBtn = document.createElement('button');
-  chipClearBtn.type = 'button';
-  chipClearBtn.className = 'chip chip-clear';
-  chipClearBtn.textContent = 'クリア';
-  ['高', '中', '低'].forEach(function (p) {
-    var b = document.createElement('button');
-    b.type = 'button';
-    b.className = 'chip';
-    b.setAttribute('aria-pressed', 'false');
-    b.textContent = p;
-    b.addEventListener('click', function () {
-      var pressed = b.getAttribute('aria-pressed') === 'true';
-      if (pressed) { state.priorities.delete(p); } else { state.priorities.add(p); }
-      b.setAttribute('aria-pressed', String(!pressed));
-      chipClearBtn.style.display = state.priorities.size > 0 ? '' : 'none';
-      applyFilter();
-    });
-    chipBar.appendChild(b);
-  });
-  chipClearBtn.addEventListener('click', function () {
-    state.priorities.clear();
-    Array.prototype.slice.call(chipBar.querySelectorAll('.chip[aria-pressed]')).forEach(function (b) {
-      b.setAttribute('aria-pressed', 'false');
-    });
-    chipClearBtn.style.display = 'none';
-    applyFilter();
-  });
-  chipBar.appendChild(chipClearBtn);
 
   updateSummary('unit');
   applyFilter();
