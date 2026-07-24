@@ -674,6 +674,9 @@ if [ -d "$DOCS_ROOT/画面" ] && [ -f "$SCREEN_DOC_TEMPLATE_FILE" ]; then
       if [ -f "${screen_dir}シーケンス図.html" ]; then
         doc_nav="$doc_nav<a class=\"doc-tab\" href=\"../シーケンス図.html\">シーケンス図</a>"
       fi
+      if [ -f "${screen_dir}テスト項目書/単体テスト仕様書.html" ]; then
+        doc_nav="$doc_nav<a class=\"doc-tab\" href=\"../テスト項目書/単体テスト仕様書.html\">テストケース</a>"
+      fi
 
       screen_render_args=(
         "{{PROJECT_NAME}}" "$PROJECT_NAME"
