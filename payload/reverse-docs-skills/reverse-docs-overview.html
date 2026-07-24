@@ -158,11 +158,11 @@
   <h2><span class="sec-num">§1</span>ポータルが充実していく仕組み</h2>
   <p>ポータル（<code>index.html</code>）は <code>doc/</code> フォルダ内に実在するファイルだけを検知してカードを動的に生成する。スキルを 1 つ実行して HTML や Markdown を <code>doc/</code> に出力し、<code>build-portal.sh</code> を再実行すると、ポータルに新しいカードが現れる。右列は、ポータル上のどのカテゴリにカードが追加されるかを示す。</p>
   <p class="note">どのスキルをどの順序で実行しても構わない。指揮役（<code>orchestrating-reverse-docs-flow</code>）は最適な順序で自動実行するが、手動で好きなスキルだけ実行してもポータルは正しく組み上がる。「facts」は原本コードから抽出した宣言的契約の事実表を指す。「基準タグ」は、2 環境の完全一致を証明できた時点のコミットに打つ git タグ <code>reverse-baseline/&lt;scope&gt;</code> を指す。</p>
-  <h3>段階ごとのポータル充実度</h3>
-  <p class="note">各段階で新たに追加されるカード数を <span class="tag done">+N</span> で示す。最終行はサンプルポータルの完成形（7 カテゴリ・35 カード）。</p>
+  <h3>フェーズごとのポータル充実度</h3>
+  <p class="note">各フェーズで新たに追加されるカード数を <span class="tag done">+N</span> で示す。最終行はサンプルポータルの完成形（7 カテゴリ・35 カード）。</p>
   <table class="spec">
     <tr>
-      <th>段階</th>
+      <th>フェーズ</th>
       <th>基盤情報</th>
       <th>規約</th>
       <th>設計書</th>
