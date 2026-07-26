@@ -17,14 +17,17 @@
 | designDocStatus | string | 任意 | 設計書の着手状態。`着手済` / `未着手` の 2 値 | 設計書リポジトリ側の該当フォルダ有無 |
 | category | string | 任意 | 画面区分（`管理` / `一般` 等） | ルート prefix（`/admin` 等）とディレクトリ構成 |
 | designDocPath | string | 任意 | 設計書への相対パス。designDocStatus=着手済 かつ本フィールドありで設計書リンクを描画 | 設計書リポジトリの該当フォルダ |
+| detailDocPath | string/null | 任意 | 詳細設計書への相対パス。未作成時は null とし、一覧ではリンクをグレーアウト表示する | 詳細設計書リポジトリの該当画面 |
+| sequencePath | string/null | 任意 | シーケンス図への相対パス。未作成時は null とし、一覧ではリンクをグレーアウト表示する | シーケンス図リポジトリの該当画面 |
+| testCasePath | string/null | 任意 | テストケースへの相対パス。未作成時は null とし、一覧ではリンクをグレーアウト表示する | テストケースリポジトリの該当画面 |
 | sourceHash | string | 任意 | 画面ユニットの原本ソース連結ハッシュ（sha256 先頭12桁） | 原本コードの走査 |
 | designDocSourceHash | string | 任意 | 設計書生成時に記録した sourceHash。sourceHash と不一致なら一覧に陳腐化バッジを表示 | 設計書生成工程の記録 |
 | screenType | string | 任意 | 画面種別（Level 3 分類。8 種: top/list/detail/form/confirm/complete/error/processing_endpoint） | コード分析（DOM 構造・テンプレート有無）で判定 |
-| accountGroup | string | 任意 | システム区分（Level 1 分類。プロジェクトの設定グループ定義から機械抽出） | detectionMethod のグループ名から判定 |
+| accountGroup | string | 任意 | システム区分（Level 1 分類。許可値は `user` / `admin` / `editor` / `report` / `common`。明示マップを優先し、route prefix と detectionMethod の既知語から補完、未判定は common） | entryFile だけでなく、BFSで解決した関連ファイルと route prefix / detectionMethod |
 | accountSubType | string | 任意 | 利用者権限区分（Level 2 分類。権限チェック条件分岐の有無で判定。該当なしは `common`） | エントリファイル内の権限チェック grep |
-| hasTemplate | boolean | 任意 | テンプレート実体の有無（拡張子 `.html`/`.htm`/`.tt`/`.tx` で判定） | テンプレートファイルの実在確認 |
+| hasTemplate | boolean | 任意 | テンプレート実体の有無。エントリファイルと別ファイルに分離された場合も、解決済み関連ファイルのテンプレート拡張子またはテンプレート呼出しから判定する | entryFile と BFSで解決した関連ファイルの実在・内容 |
 | parentScreen | string | 任意 | 親画面のキー（モーダル・ポップアップの呼出し元。該当なしは null） | ファイル名パターン `modal\|dialog\|popup\|drawer` ＋内容パターン `isOpen\|isVisible\|showModal\|onClose\|handleClose` による判定、同階層の非モーダルファイルを親候補に採用 |
-| childComponents | string[] | 任意 | 紐づくコンポーネントキーの配列（parentScreen の逆引き） | parentScreen フィールドの逆引き集約 |
+| childComponents | object[] | 任意 | 紐づくコンポーネントの配列（parentScreen の逆引き）。各要素は `{"screenKey":"子画面キー","componentType":"modal|popup|iframe"}`。該当なしは `[]` | parentScreen とコンポーネント検出結果の逆引き集約 |
 | isProcessingEndpoint | boolean | 任意 | 処理エンドポイント（UI を持たない）か否か（hasTemplate=false かつ screenType=unknown で判定） | テンプレート不在かつリダイレクトのみ |
 
 ### apis（API）
@@ -73,6 +76,16 @@
 | フィールド名 | 型 | 必須/任意 | 説明 | 抽出元の想定 |
 |---|---|---|---|---|
 | operationClass | string | 任意 | 操作区分。`照会` / `登録` / `更新` / `削除` / `承認` / `その他` の6値 | `extract-feature-metadata.sh` による unitKey・identifier・unitNameGuess のキーワード判定 |
+
+### messages（メッセージ）
+
+message manifest は、共通トップレベル契約に加えて `sourceDir`（string）、`strategy`（object）、
+`detectionSummary`（object）、`units`（array）、`summary`（object）を持つ。`units[]` は
+`unitKey` / `kind`（`message`）/ `identifier` / `confidence` / `messageText` / `messageType` /
+`usedScreen` を必須とし、`sourceFile` は複数の原本を表す `string[]` とする（単一文字列は不許可）。
+`detectionSummary.unitCount` は units 件数、`detectionSummary.unresolvedCount` は空の
+`sourceFile` 配列の件数、`summary.totalCount` と `summary.byType` は units から再計算できる値と一致させる。
+この専用契約は `validate-message-manifest.sh` と `build-unit-list.sh --unit-kind message` が共有する。
 
 設計書の陳腐化検知バッジは、traceability.json の `sourceHash`（後述）と設計書側の記録ハッシュの比較で実現する。マニフェスト側への専用フィールド追加は不要。
 

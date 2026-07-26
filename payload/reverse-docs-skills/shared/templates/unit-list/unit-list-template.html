@@ -403,7 +403,7 @@
           } else {
             tag = document.createElement('span');
           }
-          tag.className = 'opt-tag';
+          tag.className = 'opt-tag' + (fieldName === 'sourceFile' ? ' source-file' : '');
           tag.textContent = txt;
           td.appendChild(tag);
         });
@@ -740,7 +740,8 @@
       table:    [['columnCount', 'カラム数'], ['mainColumns', '主要カラム'], ['foreignKeys', 'FK参照先']],
       batch:    [['schedule', 'スケジュール'], ['targetTables', '対象テーブル'], ['downstreamJobs', '後続ジョブ'], ['execMethod', '実行方法']],
       report:   [['format', '出力形式'], ['trigger', '出力契機']],
-      external: [['direction', '方向'], ['protocol', 'プロトコル'], ['authMethod', '認証方式']]
+      external: [['direction', '方向'], ['protocol', 'プロトコル'], ['authMethod', '認証方式']],
+      message:  [['messageText', '文言'], ['messageType', '種別'], ['sourceFile', '抽出元'], ['usedScreen', '使用画面']]
     };
     var EVIDENCE_FIELDS = [
       ['confidence', 'confidence'],
@@ -786,7 +787,7 @@
       if (Array.isArray(v)) {
         v.forEach(function (item) {
           var tag = document.createElement('span');
-          tag.className = 'opt-tag';
+          tag.className = 'opt-tag' + (fieldName === 'sourceFile' ? ' source-file' : '');
           tag.textContent = String(item);
           dd.appendChild(tag);
         });

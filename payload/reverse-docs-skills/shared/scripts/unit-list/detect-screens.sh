@@ -23,7 +23,8 @@
 # --account-group-map <file>:
 #   classify_screen() の accountGroup 判定に使う外部設定ファイル(グロブパターン\t分類値の
 #   TSV、1行1パターン、detectionMethod に対して上から順に最初に一致した行を採用)。
-#   未指定/ファイル不在の場合は detectionMethod の値をそのまま accountGroup とする。
+#   未指定/ファイル不在の場合は route prefix と detectionMethod の既知語から推定し、
+#   許可値外は common にフォールバックする。
 #
 # --resolve-files <manifest-in> <source-dir> <manifest-out>:
 #   既存マニフェストの kind=route/embedded-view で entryFile が非空の画面それぞれについて、
@@ -152,6 +153,22 @@ function extract_specs(file,    codeline, s, seg, spec, cnt) {
         spec = substr(seg, RSTART + 1, RLENGTH - 2)
         cnt++; SPECS[cnt] = spec
       }
+      s = substr(s, RSTART + RLENGTH)
+    }
+    s = codeline
+    while (match(s, /import[ \t]*"[^"]+"/)) {
+      seg = substr(s, RSTART, RLENGTH)
+      sub(/^import[ \t]*/, "", seg)
+      spec = substr(seg, 2, length(seg) - 2)
+      cnt++; SPECS[cnt] = spec
+      s = substr(s, RSTART + RLENGTH)
+    }
+    s = codeline
+    while (match(s, /import[ \t]*'[^']+'/)) {
+      seg = substr(s, RSTART, RLENGTH)
+      sub(/^import[ \t]*/, "", seg)
+      spec = substr(seg, 2, length(seg) - 2)
+      cnt++; SPECS[cnt] = spec
       s = substr(s, RSTART + RLENGTH)
     }
     s = codeline
@@ -995,6 +1012,31 @@ $t1/src/shared/Button.tsx" \
 $t3/src/screens/foo/Local.tsx" \
     "$t3_result"
 
+  # --- 陽性3b: 副作用import経由のテンプレート検出 ---
+  # export/import-from 形式で参照されないテンプレートも、画面専有ファイル集合と
+  # screenType/hasTemplate 判定へ取り込む(ダブルクォート・シングルクォート双方を対象)。
+  local t3b="$root/t3b"
+  mkdir -p "$t3b/pages"
+  printf 'module.exports = {}\n' > "$t3b/next.config.js"
+  printf 'import "../shared"\nexport default function Page() { return null }\n' > "$t3b/pages/index.tsx"
+  printf 'export default function SharedTemplate() { return <table><tr><td>shared template</td></tr></table> }\n' > "$t3b/shared.tsx"
+  printf "import '../single'\n" >> "$t3b/pages/index.tsx"
+  printf 'export default function SingleTemplate() { return <div>single template</div> }\n' > "$t3b/single.tsx"
+  local t3b_manifest t3b_status t3b_files t3b_template t3b_type
+  t3b_manifest="$(mktemp)"
+  t3b_status=0
+  bash "$0" "$t3b" "$t3b_manifest" >/dev/null 2>&1 || t3b_status=$?
+  t3b_files="$(jq -r '.screens[0].files[]?' "$t3b_manifest" 2>/dev/null | sort | tr '\n' ' ')"
+  t3b_template="$(jq -r '.screens[0].hasTemplate' "$t3b_manifest" 2>/dev/null || echo false)"
+  t3b_type="$(jq -r '.screens[0].screenType' "$t3b_manifest" 2>/dev/null || echo unknown)"
+  if [ "$t3b_status" -eq 0 ] && printf '%s' "$t3b_files" | grep -q '/shared.tsx' && \
+    printf '%s' "$t3b_files" | grep -q '/single.tsx' && [ "$t3b_template" = "true" ] && [ "$t3b_type" = "list" ]; then
+    test_report "10-4-副作用import経由テンプレート検出" 0
+  else
+    test_report "10-4-副作用import経由テンプレート検出" 1 "status=$t3b_status files='$t3b_files' template=$t3b_template type=$t3b_type"
+  fi
+  rm -f "$t3b_manifest"
+
   # --- 陽性4: 循環収束 ---
   local t4="$root/t4"
   mkdir -p "$t4/src/screens/foo"
@@ -1746,17 +1788,63 @@ EOF
   mkdir -p "$t_modal/src/screens/user"
   printf '<html>\n<body>\n<form action="/edit">\n<input type="text" />\n</form>\n</body>\n</html>' > "$t_modal/src/screens/user/edit-modal.html"
   printf '<html>\n<body>\n<h1>User</h1>\n<table><tr><td>data</td></tr></table>\n</body>\n</html>' > "$t_modal/src/screens/user/index.html"
-  local t_modal_manifest t_modal_status t_modal_parent
+  local t_modal_manifest t_modal_status t_modal_parent t_modal_parent_exists t_modal_child_type
   t_modal_manifest="$(mktemp)"
   t_modal_status=0
   bash "$0" "$t_modal" "$t_modal_manifest" >/dev/null 2>&1 || t_modal_status=$?
-  t_modal_parent="$(jq -r '.screens[] | select(.screenKey | test("edit-modal")) | .parentScreen' "$t_modal_manifest" 2>/dev/null || echo "")"
-  if [ "$t_modal_status" -eq 0 ] && [ -n "$t_modal_parent" ] && [ "$t_modal_parent" != "null" ]; then
+  t_modal_parent="$(jq -r '.screens[] | select(.parentScreen != null) | .parentScreen' "$t_modal_manifest" 2>/dev/null | sed -n '1p' || true)"
+  t_modal_parent_exists="$(jq -r --arg p "$t_modal_parent" '[.screens[].screenKey] | index($p) != null' "$t_modal_manifest" 2>/dev/null || echo false)"
+  t_modal_child_type="$(jq -r '.screens[] | .childComponents[]? | .componentType' "$t_modal_manifest" 2>/dev/null | sed -n '1p' || true)"
+  if [ "$t_modal_status" -eq 0 ] && [ -n "$t_modal_parent" ] && [ "$t_modal_parent_exists" = "true" ] && [ "$t_modal_child_type" = "modal" ]; then
     test_report "1-9-モーダル判定-DOM確定後も有効" 0
   else
-    test_report "1-9-モーダル判定-DOM確定後も有効" 1 "status=$t_modal_status parent='$t_modal_parent'"
+    test_report "1-9-モーダル判定-DOM確定後も有効" 1 "status=$t_modal_status parent='$t_modal_parent' exists=$t_modal_parent_exists childType='$t_modal_child_type'"
   fi
   rm -f "$t_modal_manifest"
+
+  # --- 陽性: pages配下の同階層indexをscreenKeyへ正規化した親子逆引き ---
+  local t_parent_child="$root/t_parent_child"
+  mkdir -p "$t_parent_child/pages/user"
+  printf 'module.exports = {}\n' > "$t_parent_child/next.config.js"
+  printf 'import UserTemplate from "./UserTemplate"\nexport default function User() { return <UserTemplate /> }\n' > "$t_parent_child/pages/user/index.tsx"
+  printf 'export default function UserTemplate() { if (role === "admin") return <table><tr><td>user</td></tr></table>; return <table><tr><td>user</td></tr></table> }\n' > "$t_parent_child/pages/user/UserTemplate.tsx"
+  printf 'export default function Modal() { return <form><div className="modal">edit</div></form> }\n' > "$t_parent_child/pages/user/edit-modal.tsx"
+  local t_parent_child_manifest t_parent_child_status t_child_parent t_parent_children t_child_type t_parent_exists t_account_groups t_account_sub_type t_separated_template
+  t_parent_child_manifest="$(mktemp)"
+  t_parent_child_status=0
+  bash "$0" "$t_parent_child" "$t_parent_child_manifest" >/dev/null 2>&1 || t_parent_child_status=$?
+  t_child_parent="$(jq -r '.screens[] | select(.route=="/user/edit-modal") | .parentScreen' "$t_parent_child_manifest" 2>/dev/null || echo "")"
+  t_parent_children="$(jq -r '.screens[] | select(.route=="/user") | .childComponents[0].screenKey' "$t_parent_child_manifest" 2>/dev/null || echo "")"
+  t_child_type="$(jq -r '.screens[] | select(.route=="/user") | .childComponents[0].componentType' "$t_parent_child_manifest" 2>/dev/null || echo "")"
+  t_parent_exists="$(jq -r --arg p "$t_child_parent" '[.screens[].screenKey] | index($p) != null' "$t_parent_child_manifest" 2>/dev/null || echo false)"
+  t_account_groups="$(jq -r '.screens[].accountGroup' "$t_parent_child_manifest" | grep -avE '^(user|admin|editor|report|common)$' || true)"
+  t_account_sub_type="$(jq -r '.screens[] | select(.route=="/user") | .accountSubType' "$t_parent_child_manifest")"
+  t_separated_template="$(jq -r '.screens[] | select(.route=="/user") | .screenType + ":" + (.hasTemplate | tostring)' "$t_parent_child_manifest")"
+  if [ "$t_parent_child_status" -eq 0 ] && [ "$t_child_parent" = "user" ] && [ "$t_parent_children" = "edit-modal" ] && [ "$t_child_type" = "modal" ] && [ "$t_parent_exists" = "true" ] && [ -z "$t_account_groups" ] && [ "$t_account_sub_type" = "role_checked" ] && [ "$t_separated_template" = "list:true" ]; then
+    test_report "1-9-親screenKey正規化・childComponents逆引き" 0
+  else
+    test_report "1-9-親screenKey正規化・childComponents逆引き" 1 "status=$t_parent_child_status parent='$t_child_parent' children='$t_parent_children' type='$t_child_type' exists=$t_parent_exists groups='$t_account_groups' subtype='$t_account_sub_type' template='$t_separated_template'"
+  fi
+  rm -f "$t_parent_child_manifest"
+
+  # --- 陽性: 無効なaccount-group map値はcommonへフォールバック ---
+  local t_group_map="$root/t_group_map"
+  mkdir -p "$t_group_map/pages"
+  printf 'module.exports = {}\n' > "$t_group_map/next.config.js"
+  printf 'export default function Page() { return <div>common</div> }\n' > "$t_group_map/pages/index.tsx"
+  local t_group_map_file t_group_manifest t_group_status t_group_value
+  t_group_map_file="$(mktemp)"
+  printf 'nextjs-pages\tfeature_phone\n' > "$t_group_map_file"
+  t_group_manifest="$(mktemp)"
+  t_group_status=0
+  bash "$0" "$t_group_map" "$t_group_manifest" --account-group-map "$t_group_map_file" >/dev/null 2>&1 || t_group_status=$?
+  t_group_value="$(jq -r '.screens[0].accountGroup' "$t_group_manifest" 2>/dev/null || echo '')"
+  if [ "$t_group_status" -eq 0 ] && [ "$t_group_value" = "common" ]; then
+    test_report "10-5-無効account-group-map値-commonフォールバック" 0
+  else
+    test_report "10-5-無効account-group-map値-commonフォールバック" 1 "status=$t_group_status value='$t_group_value'"
+  fi
+  rm -f "$t_group_map_file" "$t_group_manifest"
 
   rm -rf "$root"
 
@@ -1909,7 +1997,8 @@ TMP_KEYED="$(mktemp)"
 TMP_EMBEDDED="$(mktemp)"
 TMP_ALL="$(mktemp)"
 TMP_CLUSTERS="$(mktemp)"
-trap 'rm -f "$TMP_ROWS" "$SEEN_KEYS_FILE" "$TMP_MERGED" "$TMP_KEYED" "$TMP_EMBEDDED" "$TMP_ALL" "$TMP_CLUSTERS" "$RESOLVE_COMMON_AWK_FILE" "$RESOLVE_AWK_FILE" "$RESOLVE_BATCH_AWK_FILE" "$STRATEGY_SHARED_FILE" "$STRATEGY_ALIAS_FILE" "$STRATEGY_ALL_ENTRIES_FILE"' EXIT
+SCREEN_KEY_MAP_FILE="$(mktemp)"
+trap 'rm -f "$TMP_ROWS" "$SEEN_KEYS_FILE" "$TMP_MERGED" "$TMP_KEYED" "$TMP_EMBEDDED" "$TMP_ALL" "$TMP_CLUSTERS" "$SCREEN_KEY_MAP_FILE" "$RESOLVE_COMMON_AWK_FILE" "$RESOLVE_AWK_FILE" "$RESOLVE_BATCH_AWK_FILE" "$STRATEGY_SHARED_FILE" "$STRATEGY_ALIAS_FILE" "$STRATEGY_ALL_ENTRIES_FILE"' EXIT
 
 detection_method=""
 
@@ -2192,56 +2281,99 @@ extract_screen_id() {
 
 # 画面の階層分類を判定する
 classify_screen() {
-  local screen_key="$1" entry_file="$2" detection_method="$3" route_path="$4"
+  local screen_key="$1" entry_file="$2" detection_method="$3" route_path="$4" analysis_files="${5:-$2}"
   local screen_type="unknown" account_group="unknown" account_sub_type="common"
-  local has_template="false" is_processing_endpoint="false"
+  local has_template="false" is_processing_endpoint="false" component_type=""
   local parent_screen="null"
 
-  # Level 1: システムアカウント種別(detectionMethodのconfグループから判定)
+  # Level 1: システムアカウント種別。設定の明示値を優先し、許可値以外は
+  # route prefix / detectionMethod の既知語へ戻して common に収束させる。
+  local account_group_explicit="false" map_pattern map_value
+  local normalize_group
+  normalize_group() {
+    case "$(printf '%s' "$1" | tr '[:upper:]' '[:lower:]')" in
+      user|admin|editor|report|common) printf '%s' "$(printf '%s' "$1" | tr '[:upper:]' '[:lower:]')" ;;
+      *) printf '%s' "" ;;
+    esac
+  }
+
   # --account-group-map で指定した外部ファイル(グロブパターン\t分類値のTSV、
   # 1行1パターン、上から順に最初に一致した行を採用)から読み込む。
-  # ファイル未指定/不在の場合はdetectionMethodの値をそのままaccountGroupとする
-  # (プロジェクト固有の分類値をスキル本体にハードコードしないためのフォールバック)。
   if [ -n "$ACCOUNT_GROUP_MAP_FILE" ] && [ -f "$ACCOUNT_GROUP_MAP_FILE" ]; then
-    local map_pattern map_value
     while IFS=$'\t' read -r map_pattern map_value; do
       [ -z "$map_pattern" ] && continue
       case "$detection_method" in
-        $map_pattern) account_group="$map_value"; break ;;
+        $map_pattern)
+          account_group="$(normalize_group "$map_value")"
+          [ -n "$account_group" ] && account_group_explicit="true"
+          break
+          ;;
       esac
       case "$route_path" in
-        $map_pattern) account_group="$map_value"; break ;;
+        $map_pattern)
+          account_group="$(normalize_group "$map_value")"
+          [ -n "$account_group" ] && account_group_explicit="true"
+          break
+          ;;
       esac
     done < "$ACCOUNT_GROUP_MAP_FILE"
-  else
-    account_group="$detection_method"
   fi
 
-  # Level 2: 権限区分(entryFileの権限チェックパターンから推定)
-  if [ -f "$entry_file" ]; then
-    local role_match
-    role_match=$(grep -aoE '(requireRole|hasRole|roles:|@RolesAllowed)\s*[\(\[="'"'"']\s*[A-Za-z_]+' "$entry_file" 2>/dev/null | head -1 | grep -oE '[A-Za-z_]+$')
+  if [ "$account_group_explicit" = "false" ]; then
+    case "$route_path" in
+      /admin|/admin/*) account_group="admin" ;;
+      /editor|/editor/*) account_group="editor" ;;
+      /report|/report/*|/reports|/reports/*) account_group="report" ;;
+      /user|/user/*|/users|/users/*|/member|/member/*) account_group="user" ;;
+    esac
+  fi
+  if [ "$account_group_explicit" = "false" ] && [ "$account_group" = "unknown" ]; then
+    case "$(printf '%s' "$detection_method" | tr '[:upper:]' '[:lower:]')" in
+      *admin*|*manage*) account_group="admin" ;;
+      *editor*) account_group="editor" ;;
+      *report*) account_group="report" ;;
+      *user*|*member*|*customer*) account_group="user" ;;
+      *) account_group="common" ;;
+    esac
+  fi
+  if [ -z "$(normalize_group "$account_group")" ]; then
+    account_group="common"
+  fi
+
+  # Level 2: 権限区分。BFSで解決した関連ファイルも含めて判定する。
+  local analysis_file role_match branch_role_match
+  while IFS= read -r analysis_file; do
+    [ -f "$analysis_file" ] || continue
+    role_match="$(grep -aoE '(requireRole|hasRole|roles:|@RolesAllowed)[^[:alnum:]_]+[A-Za-z_]+' "$analysis_file" 2>/dev/null | sed -n '1p' | grep -aoE '[A-Za-z_]+$' || true)"
     if [ -n "$role_match" ]; then
       account_sub_type="$role_match"
+      break
     fi
-    # 条件分岐による権限チェックパターン(アノテーションで検出できなかった場合)
-    if [ "$account_sub_type" = "common" ]; then
-      local branch_role_match
-      branch_role_match=$(grep -aoE '(if|switch|case).*\b(role|permission|auth|access)\b' "$entry_file" 2>/dev/null | head -1)
-      if [ -n "$branch_role_match" ]; then
-        account_sub_type="role_checked"
-      fi
+    branch_role_match="$(grep -aoE '(if|switch|case)[^\n]*(role|permission|auth|access)' "$analysis_file" 2>/dev/null | sed -n '1p' || true)"
+    if [ -n "$branch_role_match" ]; then
+      account_sub_type="role_checked"
+      break
     fi
-  fi
+  done <<< "$analysis_files"
 
-  # Level 3: 画面種別(DOM構造分析を主軸、ファイル名マッチを補助)
-  # (1) DOM構造分析(主軸)
-  if [ -f "$entry_file" ]; then
-    if grep -aqE '<form[\s>]' "$entry_file" 2>/dev/null; then
-      screen_type="form"
-    elif grep -aqE '<table[\s>]' "$entry_file" 2>/dev/null; then
-      screen_type="list"
+  # Level 3: 画面種別(DOM構造分析を主軸、ファイル名マッチを補助)。
+  # DOMの優先順位(form > table)は維持し、分離テンプレートも走査する。
+  local has_form="false" has_table="false"
+  while IFS= read -r analysis_file; do
+    [ -f "$analysis_file" ] || continue
+    grep -aqE '<form[[:space:]>]' "$analysis_file" 2>/dev/null && has_form="true"
+    grep -aqE '<table[[:space:]>]' "$analysis_file" 2>/dev/null && has_table="true"
+    case "$analysis_file" in
+      *.html|*.htm|*.tt|*.tx|*.tsx|*.jsx|*.vue|*.svelte) has_template="true" ;;
+    esac
+    if grep -aqE '(render|render_template|renderToString|template|view|include|includeTemplate)[[:space:]]*\(' "$analysis_file" 2>/dev/null; then
+      has_template="true"
     fi
+  done <<< "$analysis_files"
+  if [ "$has_form" = "true" ]; then
+    screen_type="form"
+  elif [ "$has_table" = "true" ]; then
+    screen_type="list"
   fi
 
   # basename_lower: モーダル判定(2272行)でも参照するため、screenType判定の外で代入する
@@ -2261,17 +2393,6 @@ classify_screen() {
     esac
   fi
 
-  # hasTemplate: テンプレートファイルの存在推定(entryFileの拡張子がhtml等)
-  case "$entry_file" in
-    *.html|*.htm|*.tt|*.tx|*.tsx|*.jsx|*.vue|*.svelte) has_template="true" ;;
-  esac
-  # テンプレート呼び出し関数の検出(拡張子で判定できなかった場合)
-  if [ "$has_template" = "false" ] && [ -f "$entry_file" ]; then
-    if grep -aoE '(render|render_template|template|view)\s*\(' "$entry_file" >/dev/null 2>&1; then
-      has_template="true"
-    fi
-  fi
-
   # unknown かつテンプレートありは、テンプレート実体がありUIを持つが一覧でも
   # フォームでもエラーでもない画面として、最も汎用的な detail(詳細/参照画面)へ倒す
   if [ "$screen_type" = "unknown" ] && [ "$has_template" = "true" ]; then
@@ -2284,30 +2405,47 @@ classify_screen() {
     screen_type="processing_endpoint"
   fi
 
-  # parentScreen: モーダル判定(ファイル名 or 開閉ハンドラの有無)から親画面を推定
+  # parentScreen: 関連ファイルを含むモーダル判定から親画面を推定。
   local entry_basename
   entry_basename="$basename_lower"
   local is_modal=false
-  if echo "$entry_basename" | grep -qiE '(modal|dialog|popup|drawer)'; then
-    is_modal=true
-  elif [ -f "$entry_file" ] && grep -aqiE '(isOpen|isVisible|showModal|onClose|handleClose)' "$entry_file" 2>/dev/null; then
-    is_modal=true
-  fi
+  while IFS= read -r analysis_file; do
+    [ -f "$analysis_file" ] || continue
+    analysis_basename="$(basename "$analysis_file" 2>/dev/null | tr '[:upper:]' '[:lower:]')"
+    if printf '%s\n' "$analysis_basename" | grep -qiE '(modal|dialog|popup|drawer)' ||
+      grep -aqiE '(window\.open|showModal|isOpen|isVisible|onClose|handleClose|position[[:space:]]*:[[:space:]]*fixed|<iframe)' "$analysis_file" 2>/dev/null; then
+      is_modal=true
+      case "$analysis_basename" in
+        *iframe*|*.iframe.*) component_type="iframe" ;;
+        *popup*|*window*|*open*) [ -n "$component_type" ] || component_type="popup" ;;
+        *) [ -n "$component_type" ] || component_type="modal" ;;
+      esac
+    fi
+  done <<< "$analysis_files"
+  [ "$is_modal" = true ] && [ -z "$component_type" ] && component_type="modal"
 
   if [ "$is_modal" = true ]; then
     # 同じディレクトリの親画面(モーダルでないファイル)を探す
     local parent_dir
-    parent_dir=$(dirname "$entry_file")
+    if [ -d "$entry_file" ]; then
+      parent_dir="$entry_file"
+    else
+      parent_dir=$(dirname "$entry_file")
+    fi
     local parent_candidate
-    parent_candidate=$(find "$parent_dir" -maxdepth 1 -name "*.tsx" -o -name "*.ts" -o -name "*.html" | grep -viE '(modal|dialog|popup|drawer)' | head -1)
+    parent_candidate=$(find "$parent_dir" -maxdepth 1 -type f \( -name "*.tsx" -o -name "*.ts" -o -name "*.jsx" -o -name "*.js" -o -name "*.html" -o -name "*.htm" \) 2>/dev/null | grep -viE '(modal|dialog|popup|drawer)' | sed -n '1p' || true)
     if [ -n "$parent_candidate" ]; then
-      local parent_key
-      parent_key=$(basename "$parent_candidate" | sed 's/\.[^.]*$//' | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/-/g')
-      parent_screen="\"$parent_key\""
+      local parent_key parent_dir_key
+      parent_key="$(awk -F'\t' -v p="$parent_candidate" '$1==p {print $2; exit}' "$SCREEN_KEY_MAP_FILE" 2>/dev/null || true)"
+      parent_dir_key="$(awk -F'\t' -v p="$parent_dir" '$1==p {print $2; exit}' "$SCREEN_KEY_MAP_FILE" 2>/dev/null || true)"
+      [ -z "$parent_key" ] && parent_key="$parent_dir_key"
+      if [ -n "$parent_key" ]; then
+        parent_screen="\"$(json_escape "$parent_key")\""
+      fi
     fi
   fi
 
-  printf '%s\t%s\t%s\t%s\t%s\t%s' "$screen_type" "$account_group" "$account_sub_type" "$has_template" "$is_processing_endpoint" "$parent_screen"
+  printf '%s\t%s\t%s\t%s\t%s\t%s\t%s' "$screen_type" "$account_group" "$account_sub_type" "$has_template" "$is_processing_endpoint" "$parent_screen" "$component_type"
 }
 
 # --- 既に route 画面の entryFile として検出済みの basename(拡張子なし)集合 ---
@@ -2389,6 +2527,13 @@ if [ -n "$VIEW_SWITCH_PATTERN" ]; then
 fi
 
 cat "$TMP_KEYED" "$TMP_EMBEDDED" > "$TMP_ALL"
+
+# 親子参照用に entryFile と entryDir の両方を実際の screenKey へ対応付ける。
+# フォールバック検出では entryFile が画面ディレクトリ自身になるため、両方を保持する。
+awk -F'\t' 'NF >= 5 {
+  if ($5 != "") print $5 "\t" $1
+  if ($4 != "") print $4 "\t" $1
+}' "$TMP_ALL" | sort -u > "$SCREEN_KEY_MAP_FILE"
 
 # --- 共有クラスタ算出(同一 entryFile を共有する route 画面が2つ以上ある場合) ---
 awk -F'\t' '$2=="route" && $5!=""{
@@ -2603,8 +2748,8 @@ awk -F'\t' '$5!=""{print $5}' "$TMP_ALL" | sort -u > "$STRATEGY_ALL_ENTRIES_FILE
       detection_method_field="embedded-view-heuristic"
     fi
 
-    IFS=$'\t' read -r classify_screen_type classify_account_group classify_account_sub_type classify_has_template classify_is_processing_endpoint classify_parent_screen \
-      <<< "$(classify_screen "$key" "$entry_file" "$detection_method_field" "$route")"
+    IFS=$'\t' read -r classify_screen_type classify_account_group classify_account_sub_type classify_has_template classify_is_processing_endpoint classify_parent_screen classify_component_type \
+      <<< "$(classify_screen "$key" "$entry_file" "$detection_method_field" "$route" "$files")"
 
     [ "$first" -eq 1 ] || printf ',\n'
     first=0
@@ -2633,6 +2778,11 @@ awk -F'\t' '$5!=""{print $5}' "$TMP_ALL" | sort -u > "$STRATEGY_ALL_ENTRIES_FILE
     printf '      "hasTemplate": %s,\n' "$classify_has_template"
     printf '      "isProcessingEndpoint": %s,\n' "$classify_is_processing_endpoint"
     printf '      "parentScreen": %s,\n' "$classify_parent_screen"
+    if [ -n "$classify_component_type" ]; then
+      printf '      "componentType": "%s",\n' "$(json_escape "$classify_component_type")"
+    else
+      printf '      "componentType": null,\n'
+    fi
     printf '      "childComponents": []\n'
     printf '    }'
   done < "$TMP_ALL"
@@ -2648,7 +2798,11 @@ if command -v jq >/dev/null 2>&1 && [ -f "$MANIFEST_OUT" ]; then
     .screens |= [
       .[] |
       . as $s |
-      .childComponents = [$all[] | select(.parentScreen == $s.screenKey) | .screenKey]
+      .childComponents = [$all[] | select(.parentScreen == $s.screenKey) | {
+        screenKey: .screenKey,
+        componentType: (.componentType // "modal")
+      }] |
+      del(.componentType)
     ]
   ' "$MANIFEST_OUT" > "$tmp_manifest" 2>/dev/null && mv "$tmp_manifest" "$MANIFEST_OUT"
 fi
