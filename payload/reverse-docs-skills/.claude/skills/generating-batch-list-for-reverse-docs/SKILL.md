@@ -3,7 +3,7 @@ name: generating-batch-list-for-reverse-docs
 description: "バッチ一覧フォルダ・バッチ一覧HTML生成。 TRIGGER when: バッチ一覧作成、バッチ一覧生成、ジョブ一覧。 SKIP: 他種別の一覧（→対応する種別別一覧スキル）、往復検証/同期/実装。"
 invocation: generating-batch-list-for-reverse-docs
 type: transform
-allowed-tools: [Bash, Read, Write, Edit, Grep, Glob, AskUserQuestion, TaskCreate, TaskUpdate]
+allowed-tools: [AskUserQuestion, Bash, Grep, Read, Write]
 ---
 
 # バッチ一覧生成スキル
@@ -43,7 +43,11 @@ allowed-tools: [Bash, Read, Write, Edit, Grep, Glob, AskUserQuestion, TaskCreate
 
 ## 動作フロー（Phase 1〜4）
 
-### Phase 1: スタック・バッチ規約の特定
+## Phase 1: スタック・バッチ規約の特定
+
+## Step 1-1: スタック・バッチ規約の特定
+
+**使用ツール**: AskUserQuestion / Bash / Grep / Read / Write
 
 調査項目の詳細は `references/batch-detection.md` を参照する。
 
@@ -53,7 +57,11 @@ allowed-tools: [Bash, Read, Write, Edit, Grep, Glob, AskUserQuestion, TaskCreate
 - **Step 4**: 除外パターンを確定する。ワンショットスクリプト・マイグレーション・`tests` 等のノイズを実際に `ls` で確認する。完了条件: `excludePatterns` 一覧が確定済み
 - **Step 5**: 検出戦略宣言を作成し、AskUserQuestionで承認を取る。宣言JSONは一時ファイルに保存する。完了条件: 戦略JSON（`unitKind: "batch"`/`extractionMethod: "custom"`/`unitIdRegex`/`excludePatterns`/`approvedByUser: true`/`notes`）が保存済み
 
-### Phase 2: 戦略に基づく抽出（カスタム抽出パスのみ）
+**完了**: Step 1〜4の調査完了（`references/batch-detection.md` の調査項目に準拠）。Step 5の検出戦略宣言（`unitKind`/`extractionMethod`/`unitIdRegex`/`excludePatterns`）がユーザー承認済み
+
+## Phase 2: 戦略に基づく抽出（カスタム抽出パスのみ）
+
+## Step 2-1: 戦略に基づく抽出（カスタム抽出パスのみ）
 
 - **Step 1**: Phase 1で宣言した手順（例: cron 設定ファイルのエントリ走査・ジョブ登録呼び出し（`schedule()`/`cron.schedule()` 等）の収集・CLI コマンド定義の列挙）をClaude自身がBash/Grep/Readで実行し、スキーマ準拠のマニフェストJSON（配列キー `units`）をWriteする。0件検出ならユーザーに報告してハード停止する。バッチを捏造しない。完了条件: マニフェストJSONが生成済み、または0件停止を報告済み
 - **Step 2**: diagnosticsを確認する。警告が出た場合は抽出手順を見直し、見直し時はStep 1へ戻る。完了条件: diagnosticsが空、または警告を承知の上で続行と判断済み
@@ -61,18 +69,32 @@ allowed-tools: [Bash, Read, Write, Edit, Grep, Glob, AskUserQuestion, TaskCreate
 
 検出結果は一時ディレクトリ（`$CLAUDE_JOB_DIR/tmp/batch-manifest.json`、未設定時は `${TMPDIR:-/tmp}/claude-job-${session}/tmp/` 配下。`${session}`はセッションIDが取得できなければ任意の一意な値でよい）に保存する。
 
-### Phase 3: 整合検証（機械実行）
+**完了**: Step 1でスキーマ準拠のマニフェストが1件以上確定、または0件検出をユーザーに報告して停止している。Step 2でdiagnosticsを確認済み。Step 3で拡張マニフェストに種別固有フィールド（schedule・targetTables・execMethod等）が付与されている
+
+## Phase 3: 整合検証（機械実行）
+
+## Step 3-1: 整合検証（機械実行）
+
+**使用ツール**: Bash
 
 - **Step 1**: `../../../shared/scripts/unit-list/validate-manifest.sh <manifest.ext.json> --unit-kind batch` を実行する。完了条件: 全項目PASS
 - **Step 2**: FAIL時は指摘に応じて修正する（sourceFile不在は `--fix` でunresolved降格可）。修正後Step 1を再実行する。3回失敗したら抽出手順の再検討（Phase 2 Step 1）へ差し戻す。完了条件: exit 0
 
 `validate-manifest.sh` は抽出者非依存で同一基準の検証を行う。カスタム抽出パスであっても、この検証を通過しないマニフェストはPhase 4に進めない。
 
-### Phase 4: バッチ一覧.html 生成
+**完了**: Step 1で `validate-manifest.sh --unit-kind batch` が全項目PASS。Step 2のFAIL時修正ループは3回以内
+
+## Phase 4: バッチ一覧.html 生成
+
+## Step 4-1: バッチ一覧.html 生成
+
+**使用ツール**: Bash / Write
 
 - **Step 1**: `../../../shared/scripts/unit-list/build-unit-list.sh <manifest.ext.json> <output_dir>/一覧/バッチ一覧/バッチ一覧.html --unit-kind batch --portal-dir <output_dir>` を実行する。`--portal-dir` にはポータル（`index.html`）の配置先＝納品物ルート（output_dir=output_dir）を渡し、「ポータルへ戻る」リンクを実在パスに解決させる。build側が内部でvalidateを再実行するため、検証を経ないmanifestからは生成できない。完了条件: HTML生成済み
 
 **手作業でのプレースホルダ置換は禁止する**（過去に `entryFile=None` の混入という実害が発生している）。HTML生成は必ずスクリプト経由の決定的処理で行う。
+
+**完了**: Step 1でバッチ一覧.htmlが生成され、埋め込みJSONがマニフェストと一致している
 
 ## 完了条件
 

@@ -3,7 +3,7 @@ name: generating-glossary-for-reverse-docs
 description: "用語辞書.html を層化サンプリングによる採録から機械生成する。 TRIGGER when: 用語辞書ページ生成、glossary HTML作成、用語集作成。 SKIP: プロジェクト共通文書自体の採録（→generating-reverse-common-docs）、他種別詳細ページ生成。"
 invocation: generating-glossary-for-reverse-docs
 type: transform
-allowed-tools: [Bash, Read, Write, Grep, Glob, AskUserQuestion]
+allowed-tools: [AskUserQuestion, Bash, Read, Write]
 ---
 
 # 用語辞書ページ生成スキル
@@ -38,16 +38,24 @@ allowed-tools: [Bash, Read, Write, Grep, Glob, AskUserQuestion]
 | HTML生成 | `../../../shared/scripts/detail-pages/build-detail-page.sh` |
 | ポータル再生成（任意） | `../../../shared/scripts/build-portal.sh` |
 
-## Phase 手順
+## 実行手順
 
-### Phase 1: 採録方針の承認（二段承認・1段目）
+## Phase 1: 採録方針の承認（二段承認・1段目）
+
+## Step 1-1: 採録方針の承認（二段承認・1段目）
 
 - **Step 1** — 分類軸を決定する。既定は「業務用語／技術用語／略語」の 3 軸。プロジェクトの実態に応じてユーザーが分類軸を追加・変更できる。完了条件: 分類軸（`categories[]` の `key`/`label` 候補）が確定済み
 - **Step 2** — 採録源を確認する。採録源は 3 系統ある。`<output_dir>/プロジェクト共通/` 配下の共通文書一式（`generating-reverse-common-docs` の出力）。`<output_dir>/プロジェクト共通/アーキテクチャ調査書.md`。`target_repo_path` 配下のコード識別子（層化サンプリング対象）。この 3 系統の実在を確認する。共通文書・調査書がいずれも不在ならハード停止し、該当スキルの先行実行を案内する。完了条件: 3 系統の採録源の実在確認済み、または不在を報告して停止している
 - **Step 3** — 除外パターンを確定する。既定は一般英単語・フレームワーク API 名（`references/glossary-extraction.md`「除外既定」節参照）。プロジェクト固有の除外語があればユーザーから追加を受ける。完了条件: 除外パターン一覧が確定済み
 - **Step 4** — Step 1〜3 の採録方針を AskUserQuestion でまとめて提示し承認を取る。宣言内容（分類軸・採録源・除外パターン）は一時ファイルに保存する。完了条件: 採録方針が承認済み（ヘッドレス実行時の扱いは「無人実行時の扱い」節を参照）
 
-### Phase 2: 採録
+**完了**: 分類軸・採録源・除外パターンの採録方針が承認済み、または不在を報告して停止している
+
+## Phase 2: 採録
+
+## Step 2-1: 採録
+
+**使用ツール**: AskUserQuestion / Read / Bash / Write
 
 - **Step 1** — プロジェクト共通文書・アーキテクチャ調査書から、Phase 1 で承認した分類軸に該当する語を抽出する。各語について記述箇所を `sourceRef` として控える（文書参照形式 `<文書名>.md#<見出し>`）。サンプルに現れない語を発明しない。完了条件: 文書由来の用語候補が抽出済み
 - **Step 2** — `target_repo_path` のコード識別子を層化サンプリングで抽出する。層定義・snake_case/camelCase 分解規則は `references/glossary-extraction.md` を参照する。除外パターンに一致する識別子は候補から外す。分解して得た語のうち、Step 1 の文書側記述と対応が取れたものだけを候補にする。または、コード上の使用文脈から定義を復元できたものも候補にする。完了条件: コード由来の用語候補が抽出済み（`codeRefs[]` に実ファイルパス:行番号を記録）
@@ -55,7 +63,11 @@ allowed-tools: [Bash, Read, Write, Grep, Glob, AskUserQuestion]
 
 候補一覧は一時ファイル `$CLAUDE_JOB_DIR/tmp/glossary-candidates.json` に保存する。未設定時は `${TMPDIR:-/tmp}/claude-job-${session}/tmp/` 配下に置く。
 
-### Phase 3: 候補一覧の承認（二段承認・2段目）
+**完了**: `terms[]` と（該当があれば）`unresolved[]` が確定済み（採録源に根拠のある語のみ）
+
+## Phase 3: 候補一覧の承認（二段承認・2段目）
+
+## Step 3-1: 候補一覧の承認（二段承認・2段目）
 
 - **Step 1** — Phase 2 で確定した `terms[]` を HTML 化前にユーザーへ提示する（`term`/`definition`/`category`/`sourceRef` の一覧）。完了条件: 候補一覧が提示済み
 - **Step 2** — AskUserQuestion で取捨（削除・言い換え）の指示を受ける。削除指示があった語は `terms[]` から除く。言い換え指示があった語は `definition` を指示内容へ置換する（採録源に無い新規事実の追加は禁止。既存記述の言い回し変更に限る）。完了条件: 取捨結果が確定済み（ヘッドレス実行時の扱いは「無人実行時の扱い」節を参照）
@@ -63,7 +75,13 @@ allowed-tools: [Bash, Read, Write, Grep, Glob, AskUserQuestion]
 
 page-data.json の保存先は `$CLAUDE_JOB_DIR/tmp/glossary-page-data.json` とする。未設定時は `${TMPDIR:-/tmp}/claude-job-${session}/tmp/` 配下に置く。
 
-### Phase 4: 整合検証・用語辞書.html 生成
+**完了**: 候補一覧の取捨結果を反映した page-data.json を保存済み
+
+## Phase 4: 整合検証・用語辞書.html 生成
+
+## Step 4-1: 整合検証・用語辞書.html 生成
+
+**使用ツール**: Bash / Write
 
 - **Step 1** — 整合検証スクリプトを実行する。完了条件: 全項目 PASS
 
@@ -85,6 +103,8 @@ page-data.json の保存先は `$CLAUDE_JOB_DIR/tmp/glossary-page-data.json` と
   ```
 
 **手作業でのプレースホルダ置換は禁止する**。HTML 生成は必ず `build-detail-page.sh` 経由の決定的処理で行う。
+
+**完了**: `validate-page-data.sh --target-repo` が全項目 PASS し、`<output_dir>/用語辞書.html` が生成され、指定時は `build-portal.sh` の再実行が完了している
 
 ## 無人実行（headless）時の扱い
 

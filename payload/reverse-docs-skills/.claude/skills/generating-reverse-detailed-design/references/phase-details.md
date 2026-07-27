@@ -2,7 +2,7 @@
 
 SKILL.md の Phase 2（封印検証と facts 読込）〜Phase 5（完全性ゲート）の詳細手順を集約する。12分類の定義（キーの付け方・抽出粒度）は `shared/references/facts-schema.md` を定義元とする（本ファイルでは重複定義しない）。転記先の判定規律・字面転記と要約の境界・実測委譲の書式は `references/writing-rules.md` を定義元とする（同上）。
 
-## Phase 2 詳細: 封印検証と facts 読込
+## 詳細: Phase 2 / Step 2-1 — 封印検証と facts 読込
 
 1. `shared/scripts/seal-facts.sh verify <facts_ref>` を実行する。exit 0 なら Phase を継続する。exit 1（facts.yml が封印時から改変されている）なら著述を行わず `status=BLOCKED` とし、hint に「extracting-unit-facts-from-code で再封印せよ」と記す（このゲートはループ対象外の終端条件であり、Phase 4 への差し戻しは発生しない）。
 2. `<facts_ref>/facts.yml` を読み込む。12分類（`sections` 配下のキー: import・export_type・const・state・handler・jsx・style・api・measurement_pending・local_type・effect_trigger・error_handling）の定義・キー付け規則は `shared/references/facts-schema.md` を参照する。
@@ -12,13 +12,13 @@ SKILL.md の Phase 2（封印検証と facts 読込）〜Phase 5（完全性ゲ�
 
 完了条件: `seal-facts.sh verify` が exit 0、`check-facts-sufficiency.sh` が exit 0、かつ facts.yml と共通文書の読込完了
 
-## Phase 4 詳細: facts.yml → 章の転記
+## 詳細: Phase 4 / Step 4-1 — facts.yml → 章の転記
 
 facts.yml の各セクションを対応する章へ転記する判定規律（章マップ準拠の転記先決定・facts のキー→設計書章の対応規律・字面転記と要約の境界・実測委譲の書式）は `references/writing-rules.md` を正本とする。SKILL.md 本文の転記マップ表（facts.yml セクション → §番号）と矛盾する記述を本ファイルには残さない。
 
 章の役割キー → §番号の解決は起動引数 chapter_map_path（`shared/references/chapter-map.md`）を正本とする。§番号は既定値であり、設計書の章マップ表で解決する。
 
-## Phase 5 詳細: 完全性ゲート
+## 詳細: Phase 5 / Step 5-1 — 完全性ゲート
 
 1. `scripts/check-fact-coverage.sh <facts_ref>/facts.yml <画面詳細設計書.md> [<DESIGN.md>]` を実行し exit 0 を確認する。未転記が 1 件でもあれば exit 1（fail-closed）で、未転記キーが stderr に列挙される。`measurement_pending`（⑨）のキーは、設計書に「実測委譲」の表記があれば転記済み扱いとして除外される（表記が無い場合のみ個別キー一致を要求する）。該当キーを Phase 4 のマップに従って転記してから再実行する。
 2. 起動引数 audit_script_path（`shared/scripts/audit-consistency.sh`）を通常モードで実行し、章の内部整合性の違反が 0 件であることを確認する。

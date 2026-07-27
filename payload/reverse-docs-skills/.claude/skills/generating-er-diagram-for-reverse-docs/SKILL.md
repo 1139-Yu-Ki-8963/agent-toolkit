@@ -1,9 +1,9 @@
 ---
 name: generating-er-diagram-for-reverse-docs
-description: "ER図.html をテーブル一覧manifestとマイグレーション/モデルのFK定義から機械生成する。 TRIGGER when: ER図生成、テーブル関連図作成、ER diagram HTML作成。 SKIP: テーブル一覧自体の作成（→generating-table-list-for-reverse-docs）、他種別詳細ページ生成。"
+description: "ER図をテーブル一覧とFK定義から機械生成する。 TRIGGER when: ER図生成、テーブル関連図作成、ER diagram HTML作成。 SKIP: テーブル一覧自体の作成（→generating-table-list-for-reverse-docs）、他種別詳細ページ生成。"
 invocation: generating-er-diagram-for-reverse-docs
 type: transform
-allowed-tools: [Bash, Read, Write, Grep, Glob, AskUserQuestion, TaskCreate, TaskUpdate]
+allowed-tools: [AskUserQuestion, Bash, Read, Write]
 ---
 
 # ER図生成スキル
@@ -43,15 +43,23 @@ allowed-tools: [Bash, Read, Write, Grep, Glob, AskUserQuestion, TaskCreate, Task
 
 スキル開始時に `TaskCreate` で Phase 1〜4 のタスクを登録する。各 Phase 開始時に該当タスクを `in_progress` に、完了時に `completed` へ `TaskUpdate` で更新する。Phase 3 から Phase 2 へ差し戻す場合は Phase 2 タスクを `in_progress` に戻す。実行環境に TaskCreate/TaskUpdate が存在しない場合は、`output_dir` 内のタスク台帳ファイル（`task-ledger.md`）で同等の Phase 遷移記録を代替する。
 
-## Phase 手順
+## 実行手順
 
-### Phase 1: 前提確認 + 検出戦略宣言
+## Phase 1: 前提確認 + 検出戦略宣言
+
+## Step 1-1: 前提確認 + 検出戦略宣言
 
 - **Step 1** — `<output_dir>/一覧/テーブル一覧/テーブル一覧.html`（正本レイアウト。不在時のみ後方互換で `<output_dir>/テーブル一覧/テーブル一覧.html`）の実在を確認する。あわせて `<script type="application/json" id="unit-manifest">` の埋め込みも確認する。不在ならハード停止する。この場合 `generating-table-list-for-reverse-docs` の先行実行を案内して終了する。完了条件: manifest の実在確認済み、または不在を報告して停止している
 - **Step 2** — `target_repo_path` の定義ファイル・依存関係から ORM/マイグレーション種別（SQLAlchemy／Prisma／生 SQL migration 等）を判別する。判別手法は `references/er-detection.md` の調査対象・検出手法を参照する。完了条件: 種別が特定済み、または特定不能の根拠（推定経路）が記録済み
 - **Step 3** — 検出戦略（走査対象ファイル・FK 検出パターン・除外パターン）を宣言し、AskUserQuestion で承認を取る。宣言内容は一時ファイルに保存する。完了条件: 検出戦略（ORM 種別・走査対象・除外パターン・`approvedByUser: true`）が保存済み
 
-### Phase 2: 抽出
+**完了**: テーブル一覧 manifest の実在確認済み（または不在を報告して停止）。検出戦略がユーザー承認済み
+
+## Phase 2: 抽出
+
+## Step 2-1: 抽出
+
+**使用ツール**: Read / Bash / Write
 
 - **Step 1** — テーブル一覧 manifest の `units[]` から `entities[]` を組み立てる。`kind != "unresolved"` の各 unit について `identifier` を `key`、`unitNameGuess` または `identifier` を `label` とする。完了条件: `entities[]` が確定済み
 - **Step 1b（columns の収集）** — 各 `entities[]` 要素へ `columns`（`page-data-schema.md` 定義の任意フィールド。`{ name, type, pk?, fk?, unique?, nullable? }` の配列）を付与する。テーブル一覧 manifest の該当 unit が外部キー・カラム情報（`foreignKeys`/`mainColumns` 等）を保持していればそこから組み立てる（推奨・追加の走査コストがない）。保持していない場合は Phase 1 で判別した ORM/マイグレーション種別に従い、DDL・マイグレーションファイルから直接カラム定義を抽出する。カラム定義を抽出できないテーブルは `columns` を付けない（省略時はテンプレート側でカラム明細を表示しない。fail-safe）。完了条件: 抽出できた `entities[]` 要素すべてに `columns` が付与済み、または抽出不能の根拠が記録済み
@@ -61,7 +69,13 @@ allowed-tools: [Bash, Read, Write, Grep, Glob, AskUserQuestion, TaskCreate, Task
 
 page-data.json の保存先は `$CLAUDE_JOB_DIR/tmp/er-page-data.json` とする。未設定時は `${TMPDIR:-/tmp}/claude-job-${session}/tmp/` 配下に置く。
 
-### Phase 3: 整合検証
+**完了**: `entities[]` を manifest から確定済み。`entities[]` へ `columns` を付与済み（抽出できた範囲）。FK 走査で `relations[]`/`unresolved[]` へ振り分け済み、または 0 件を報告して停止している
+
+## Phase 3: 整合検証
+
+## Step 3-1: 整合検証
+
+**使用ツール**: Read / Bash
 
 - **Step 1** — 整合検証スクリプトを実行する。`relations[].from`/`to` が `entities[].key` に実在するかの孤児関連検査を含め、`validate-page-data.sh` が機械実行する（手動事前確認は不要）。完了条件: 全項目 PASS
 
@@ -71,7 +85,13 @@ page-data.json の保存先は `$CLAUDE_JOB_DIR/tmp/er-page-data.json` とする
 
 - **Step 2** — Step 1 が FAIL したら `[FAIL]` 項目名で分岐する。「孤児参照」FAIL の場合は該当 relation を `unresolved[]` へ差し戻して Phase 2 Step 2（FK 走査）へ戻る。その他の FAIL（`sourceRef` 実在等）は該当箇所を修正し Step 1 を再実行する。3 回失敗したら Phase 2 Step 2（FK 走査）へ差し戻す。完了条件: exit 0（孤児関連検査を含め全項目 PASS）
 
-### Phase 4: ER図.html 生成
+**完了**: `validate-page-data.sh --target-repo` が全項目 PASS（孤児関連検査含む）
+
+## Phase 4: ER図.html 生成
+
+## Step 4-1: ER図.html 生成
+
+**使用ツール**: Bash / Write
 
 - **Step 1** — HTML 生成スクリプトを実行する。完了条件: `<output_dir>/ER図.html` が生成済み
 
@@ -86,6 +106,8 @@ page-data.json の保存先は `$CLAUDE_JOB_DIR/tmp/er-page-data.json` とする
   ```
 
 **手作業でのプレースホルダ置換は禁止する**。HTML 生成は必ず `build-detail-page.sh` 経由の決定的処理で行う。
+
+**完了**: `<output_dir>/ER図.html` が生成され、指定時は `build-portal.sh` の再実行が完了している
 
 ## 完了条件
 

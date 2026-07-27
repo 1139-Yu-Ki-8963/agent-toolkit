@@ -3,7 +3,7 @@ name: extracting-unit-facts-from-code
 description: "原本コードから宣言的契約factsを抽出し独立再計数・封印まで完走する。 TRIGGER when: リバース設計のfacts抽出、画面ユニットの事実表新規作成、facts欠落からの再抽出。 SKIP: 詳細設計執筆（→generating-reverse-detailed-design）、共通文書採録（→generating-reverse-common-docs）。"
 invocation: extracting-unit-facts-from-code
 type: orchestration
-allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, TaskCreate, TaskUpdate]
+allowed-tools: [Bash, Read, Write, Edit]
 ---
 
 # ユニット事実抽出スキル
@@ -51,35 +51,55 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, TaskCreate, TaskUpdate]
 - **再現性の担保**: 同一 args での抽出結果は（run_id を除き）決定的に一致することを diff で確認する
 - **合格判定はスクリプトのexit codeのみ**: 自然文の自己申告での合格判定を行わない
 
-## Phase 手順
+## 実行手順
 
-### Phase 1: 前提確認
+## Phase 1: 前提確認
+
+## Step 1-1: 前提確認
+
+**使用ツール**: Read / Bash / Write
 
 `target_repo_path`・`screen_dir`・`survey_doc_path` の実在を確認する（`test -d`/`test -f`）。`target_file_paths` 全件について `target_repo_path` 配下の実在を確認する。`profile` が `screen` であることを確認する（`screen` 以外は Phase 6 で `status=中断` とし、hint に「未対応プロファイル」と記す）。`run_id`（省略時 `extract-1`）を確定し、`<verification_dir>/screen-<画面ID>/facts/<run_id>/` を作成する。
 
-完了条件: 全args解決済み・target_file_paths全件実在確認済み・facts出力ディレクトリ作成済み
+**完了**: 全args解決済み・target_file_paths全件実在確認済み・facts出力ディレクトリ作成済み
 
-### Phase 2: 抽出
+## Phase 2: 抽出
+
+## Step 2-1: 抽出
+
+**使用ツール**: Read / Bash / Write / Edit
 
 `references/profile-screen.md` の分類別抽出手順に従い、`target_file_paths` の実コードを読解し、`facts.yml`（`shared/references/facts-schema.md` 準拠の12分類構造）を作成する。全項目は原本の行番号根拠付き（`file:line`）とする。推測・要約での補完を禁止する（コードに無い事実を書かない）。分類に該当項目が無い場合は `items: []` とし `reason` に根拠を記す（根拠なしの空節・裸の「未確認」は完了条件違反）。⑨実測系（`measurement_pending`）は key・evidence のみを記録し value は書かない。あわせて `references/profile-screen.md` の「メタ節（meta）の採録手順」に従い `meta`（source_repo・source_ref・route）を記録する。
 
-完了条件: facts.ymlが12分類（`sections` 配下12キー）の節を持ち、かつ `meta`（source_repo・source_ref・route）を記録済み
+**完了**: facts.ymlが12分類（`sections` 配下12キー）の節を持ち、かつ `meta`（source_repo・source_ref・route）を記録済み
 
-### Phase 3: 独立再計数ゲート
+## Phase 3: 独立再計数ゲート
+
+## Step 3-1: 独立再計数ゲート
+
+**使用ツール**: Read / Bash / Write
 
 `scripts/recount-facts.sh <facts.yml> <target_repo_path> <target_file_paths...>` を実行する。スクリプトは facts.yml を読まずにまずコードから分類別件数を再計数し、その後 facts.yml の記載件数と突合する（乖離率5%以内・必須フィールド（key・evidence）の空欄率30%以内・孤児参照0件の3検査）。標準出力を `recount-report.txt` へ保存する（`scripts/recount-facts.sh ... | tee <facts_dir>/recount-report.txt`）。FAILした場合は Phase 2 へ戻り、指摘された乖離・空欄・孤児参照を修正して再実行する（上限3回。ループ設計は下表参照）。上限到達で収束しない場合は `status=中断` とする。
 
 facts.yml は不要で、facts 抽出前段階でも使える軽量な再計数専用モードとして `scripts/recount-facts.sh --recount-only <target_repo_path> <target_file_paths...>` を呼べる。facts.yml を介さず対象コードから直接8軸＋locを計測し、「`<セクション> <件数>`」形式で9行（import/export_type/const/state/handler/jsx/style/api の8軸＋loc）を標準出力へ返す。facts.yml との突合（乖離判定）は行わない。
 
-完了条件: `recount-facts.sh` が `exit 0` かつ recount-report.txt保存済み
+**完了**: `recount-facts.sh` が `exit 0` かつ recount-report.txt保存済み
 
-### Phase 4: 封印
+## Phase 4: 封印
+
+## Step 4-1: 封印
+
+**使用ツール**: Read / Bash / Write
 
 `bash <shared>/scripts/seal-facts.sh seal <facts_dir>` を実行し `facts.lock` を生成する。続けて `bash <shared>/scripts/seal-facts.sh verify <facts_dir>` を実行し、封印直後の整合性を確認する。
 
-完了条件: `seal-facts.sh verify` が `exit 0`
+**完了**: `seal-facts.sh verify` が `exit 0`
 
-### Phase 5: 再現性検証
+## Phase 5: 再現性検証
+
+## Step 5-1: 再現性検証
+
+**使用ツール**: Bash / Write
 
 同じ args で抽出（Phase 2〜4 相当。ただし封印は任意）をもう1度、`mktemp -d "${TMPDIR:-/tmp}/XXXXXX"` 形式で作成した一時ディレクトリに実行する。両方の `facts.yml` を `seal-facts.sh normalize` でそれぞれ一時ファイルへ書き出し、`diff` で比較する（プロセス置換 `<(...)` はサンドボックス環境で `/dev/fd` アクセスが権限拒否される場合があるため使わない。一時ファイル経由の比較に固定する）。diffが空なら通過。diffに差分がある場合は以下の診断ステップで分類する:
 1. **順序差異**: diff が行の順序のみの違い（キー名・値は同一）→ seal-facts.sh の正規化不足として status=中断、hint に ordering-divergence を記録
@@ -87,13 +107,17 @@ facts.yml は不要で、facts 抽出前段階でも使える軽量な再計数�
 3. **共通文書由来の解釈分岐**: 差分の原因が共通文書に記載のない規約・パターンの解釈に起因する → status=共通文書帰着、hint に不足している共通文書の観点を記録。オーケストレーターは NG帰着(c) として generating-reverse-common-docs を mode=append で再起動する
 分類できない場合は status=中断（終端条件）とする。
 
-完了条件: 2回の正規化出力の diff が空
+**完了**: 2回の正規化出力の diff が空
 
-### Phase 6: 返却
+## Phase 6: 返却
+
+## Step 6-1: 返却
+
+**使用ツール**: Bash / Write
 
 返却ブロックを出力する。`封印済み` の場合は `artifacts` に facts.yml・facts.lock・recount-report.txt の絶対パスを、`facts_ref` に facts ディレクトリの絶対パスと facts.lock の sha256 を、`pending_measurements` に ⑨実測委譲キーの一覧を記す。`中断` の場合は hint に Phase 3 で未解消の検査項目・Phase 5 の非決定箇所・非対応プロファイル等、中断理由を記す。
 
-完了条件: `status` が確定している
+**完了**: `status` が確定している
 
 ## 完了条件
 
@@ -192,7 +216,7 @@ facts.yml は不要で、facts 抽出前段階でも使える軽量な再計数�
 
 ## 参照資料
 
-- `~/reverse-docs-skills/.claude/skills/orchestrating-reverse-docs-flow/references/contract.md` — 返却ブロック契約・args仕様の正本
+- `<reverse_docs_root>/.claude/skills/orchestrating-reverse-docs-flow/references/contract.md` — 返却ブロック契約・args仕様の正本
 - `references/profile-screen.md`（本スキル同梱） — screen プロファイルの分類別抽出手順・独立再計数用の決定的パターン
 - `shared/references/facts-schema.md` — facts.ymlのスキーマ正本（12分類・必須フィールド・孤児参照定義・normalize規則）
 - `shared/scripts/seal-facts.sh` — facts.ymlの封印・検証・正規化を担う共有スクリプト

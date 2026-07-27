@@ -2,6 +2,10 @@
 
 この契約は管理者スキル orchestrating-reverse-docs-flow が正本を持つ。子スキル33個（surveying-architecture-for-reverse-docs / 種別別一覧スキル6つ（`generating-<種別>-list-for-reverse-docs`、例: generating-screen-list-for-reverse-docs） / generating-feature-list-for-reverse-docs（機能一覧・派生一覧） / generating-reverse-common-docs / syncing-reverse-env / unlocking-reverse-target-screens / extracting-unit-facts-from-code / generating-reverse-basic-design / generating-reverse-detailed-design / rebuilding-screen-unit-from-docs / rebuilding-code-from-docs / running-reverse-screen-batch）は自分の SKILL.md 内で「この契約に準拠する」と宣言するのみで、contract.md 自体は読まず args だけで動く。管理者は各子スキルの返却ブロックを本契約の共通サブセットで検収し、状態判定表に従って次工程を機械的に決定する。これにより管理者と子スキルの間には契約書という単一の仲介点だけが存在し、子スキル同士が互いの内部仕様を知る必要がない完全仲介方式が成立する。
 
+## グローバル工程順序
+
+全体順序は `shared/references/リバース工程設計.md` の Phase 1〜7 / Step 1〜30だけを正とする。統括SKILL.mdのローカル見出し `Step N-M` は親PhaseとPhase内順序を表し、直下の `global_step` が本契約のStep 1〜30へ一意に対応する。条件分岐は `conditional_step_id`、反復は `back_edge_id`・from/to Step・条件・上限で表現し、英字接尾辞・Phase 0・Step 0・暗黙の差し戻しを使用しない。
+
 ## プレースホルダ定義
 
 - `verification_dir`: docs と同階層の `verification/`。修正指示書・最終報告・テストログ・facts の出力先。
@@ -135,6 +139,7 @@
 
 各子スキルが単独起動で受け取る引数の全量。単独起動時はユーザーが同じ args を手渡しすれば動く。
 
+- 共通: `reverse_docs_root` は配布されたreverse-docs-skillsルートの実在する絶対パス。統括が解決し、`<reverse_docs_root>/shared/` または契約参照を必要とする全子スキルへ渡す。固定インストール先を仮定しない
 - surveying-architecture-for-reverse-docs: target_repo_path, output_dir, template_root, target_branch（任意）, source_ref（任意）, mode（`survey`|`revise`、既定 `survey`）, revise_findings（mode=revise 時のみ必須）
 - generating-<種別>-list-for-reverse-docs（種別別一覧スキル6つ共通）: source_dir, output_dir（unit_kind はスキル名で固定されるため引数に無い。管理者は output_dir に `<output_dir>` を渡す。一覧HTMLは `<output_dir>/一覧/<種別ラベル>一覧/<種別ラベル>一覧.html` に出力され、ポータル `<output_dir>/index.html` への戻るリンクが張られる）, survey_doc_path（任意。unit_kind=screen のみ、Phase 1 共有ファイル・エイリアス調査の裏取り元として使用。他種別は未使用）
 - generating-feature-list-for-reverse-docs: source_dir, output_dir（管理者は `<output_dir>` を渡す。出力は `<output_dir>/一覧/機能一覧/機能一覧.html`）, survey_doc_path（任意。ルート定義等の所在特定の参考）
@@ -149,7 +154,7 @@
 - generating-reverse-detailed-design: screen_dir, output_dir, template_root, chapter_map_path, audit_script_path, scaffold_script_path（管理者が shared/scripts/scaffold-screen.sh を解決して渡す。audit_script_path と同型）, facts_ref, common_docs_root, mode, target_file_path（mode=file時）, screenshot_dir（任意・補助情報源）, verification_url（任意・開通時に実レンダリング確認済みのURL。画面レジストリの値を管理者が解決して渡す。scenarios の query/path_params の確定転記に使用する）
 - rebuilding-screen-unit-from-docs: screen_dir, target_file_path, output_dir, template_root, audit_script_path, scaffold_script_path（管理者が shared/scripts/scaffold-screen.sh を解決して渡す。audit_script_path と同型）, chapter_map_path, env_block, user-approved, verification_mode（`single-pass|iterative`、既定 `single-pass`）
 - rebuilding-code-from-docs (mode=implement): screen_dir, scope, reverse_worktree, ports, baseline_tag_status, output_dir, template_root, audit_script_path, chapter_map_path, user-approved, saved_test_paths（上流 rebuilding-screen-unit-from-docs が保存した単体テストコードのパス一覧。管理者が転送する。上流未実施の画面では省略可）
-- rebuilding-code-from-docs (mode=judge): screen_dir, compare_result, reverse_worktree, freeze_commit（Phase 8 の compare_request から管理者が保持して転送する。scripts/check-freeze.sh の入力に使う）
+- rebuilding-code-from-docs (mode=judge): screen_dir, compare_result, reverse_worktree, freeze_commit（global Step 29 の compare_request から管理者が保持して転送する。scripts/check-freeze.sh の入力に使う）
 - running-reverse-screen-batch: target_repo_path, output_dir, screen_ids, template_root, common_docs_root, survey_doc_path, verification_mode（`docs-only|single-pass|iterative`、既定 `single-pass`。`docs-only` は前半の静的リバースだけを実行）, model（任意、既定 `claude-sonnet-5`）, wait_seconds（任意、既定 3600）, fail_limit_k（任意、`iterative` のみ使用・既定 3）, log_path（任意、既定 `<verification_dir>/バッチ運転記録/batch-log.txt`）
 
 注記: user-approved（白紙化承認）と output_dir は管理者が事前に解決して args で渡す（完全仲介方式のため子スキルはユーザーに直接聞かない）。
@@ -184,11 +189,11 @@ headless_approved_ops: [白紙化, 再実装, タグ更新, 環境撤去]
 
 ### 盲検分離の必須要件
 
-「原本コードを読む工程（Phase 6 の extracting/authoring）」と「設計書のみから再実装・判定する工程（Phase 8-10 の rebuilding/judge）」は、無人モードでは別プロセス（別のヘッドレス呼び出し）に分離する。同一プロセス内で両工程を連続実行することを禁止する。ファイル単位盲検検証（rebuilding-screen-unit-from-docs）は、無人モードでは任意工程ではなく必須工程として扱う。
+「原本コードを読む工程（Phase 5 / global Step 17〜28）」と「設計書のみから再実装・判定する工程（Phase 6〜7 / global Step 29〜30）」は、無人モードでは別プロセス（別のヘッドレス呼び出し）に分離する。同一プロセス内で両工程を連続実行することを禁止する。ファイル単位盲検検証（rebuilding-screen-unit-from-docs）は、無人モードでは任意工程ではなく必須工程として扱う。
 
-### Phase 6 以降の実行主体（headless）
+### global Step 29以降の実行主体（headless）
 
-無人（headless）実行では、`single-pass` / `iterative` の Phase 6 以降の動的検証を自セッション内のサブエージェント委任で実行してはならない。サブエージェントは Agent 起動ツールを持たず、rebuilding-screen-unit-from-docs 等の内部委任を要する工程がネスト不可で失敗するため。これら動的検証モードでは画面4件以上を running-reverse-screen-batch（画面ごとに独立の claude -p を起動する無人バッチ）へ委譲する。3件以下の `single-pass` / `iterative` は無人実行では完遂できず、Agent ツールを持つ通常セッションで実行する。`docs-only` は動的検証・盲検分離・内部 Agent 委任を要しないため、画面4件以上では running-reverse-screen-batch の静的専用経路、3件以下では Phase 6 の静的逐次経路で完遂できる。
+無人（headless）実行では、`single-pass` / `iterative` の global Step 29以降の動的検証を自セッション内のサブエージェント委任で実行してはならない。サブエージェントは Agent 起動ツールを持たず、rebuilding-screen-unit-from-docs 等の内部委任を要する工程がネスト不可で失敗するため。これら動的検証モードでは画面4件以上を running-reverse-screen-batch（画面ごとに独立の claude -p を起動する無人バッチ）へ委譲する。3件以下の `single-pass` / `iterative` は無人実行では完遂できず、Agent ツールを持つ通常セッションで実行する。`docs-only` は動的検証・盲検分離・内部 Agent 委任を要しないため、画面4件以上では running-reverse-screen-batch の静的専用経路、3件以下では Phase 5 の静的逐次経路で完遂できる。
 
 ### 実行レポート
 
@@ -264,7 +269,7 @@ running-reverse-screen-batch の実行ログ（`log_path`）・failed リスト�
 14. 往復未検証: judge の直近記録と NG帰着(c)保留の有無
 15. 検証完了: judge の直近 PASS
 
-`verification_mode=docs-only` は、standard では基本設計著述完了+AUTHORED、large-two-passではDETAIL_AUTHORED+基本設計著述完了+COMPANION_AUTHOREDの検収直後に、verification_url の有無を問わず「静的リバース完了」として必ず終端する。11〜15 および Phase 7〜11 の動的工程は判定も起動も行わない。
+`verification_mode=docs-only` は、standard では基本設計著述完了+AUTHORED、large-two-passではDETAIL_AUTHORED+基本設計著述完了+COMPANION_AUTHOREDの検収直後（global Step 28）に、verification_url の有無を問わず「静的リバース完了」として必ず終端する。状態11〜15およびglobal Step 29〜30の動的工程は判定も起動も行わない。
 
 「次に起動する子スキル」列は起動する子スキル名のみを記す。mode の選択・分岐条件は必ず「渡す主要 args」列または実在判定列を参照する（子スキル名に mode を併記しない）。
 
@@ -305,11 +310,11 @@ running-reverse-screen-batch の実行ログ（`log_path`）・failed リスト�
 
 この種別ループは既存15状態の判定を変更しない（screen 以外の種別は一覧確立後に新しい状態へ遷移せず、終端状態の記録のみを行う）。
 
-feature（機能一覧）は種別ループの対象外である。派生一覧のため presentKinds にも excludedKinds にも載らず、Phase 1C（画面一覧確立後）で生成される。到達状態の報告は 生成済み / 未生成 の2値で行う（表1に feature（派生）行として記載する）。
+feature（機能一覧）は種別ループの対象外である。派生一覧のため presentKinds にも excludedKinds にも載らず、global Step 10（画面一覧確立後）で生成される。到達状態の報告は 生成済み / 未生成 の2値で行う（表1に feature（派生）行として記載する）。
 
 メッセージ一覧・テスト観点表一覧（状態キー: 「派生一覧未生成（任意）」）も feature と同じ扱いで種別ループの対象外である。派生一覧のため presentKinds にも excludedKinds にも載らず、前提条件（メッセージ定義書.md（message）または per-画面の単体テスト観点表（test_viewpoint）が output_dir に存在すること）を満たした場合にのみ、任意工程として generating-message-list-for-reverse-docs / generating-test-viewpoint-list-for-reverse-docs を起動する。到達状態の報告は 生成済み / 未生成 の2値で行う（表1に派生一覧（メッセージ/テスト観点表）行として記載する）。
 
-マトリクス・対応表4ページ・AI設定資産ページ（generating-cross-views-for-reverse-docs）も種別ループの対象外である。派生補完のため presentKinds にも excludedKinds にも載らず、Phase 1D（機能一覧確立後）で生成される。到達状態の報告は 生成済み / 未生成 の2値で行う（表1にマトリクス・対応表（派生補完）行として記載する）。permission-function のみデータ形状ギャップにより個別に未生成となりうるため、報告時は5ページ中の生成数（例: 4/5）を併記する。
+マトリクス・対応表4ページ・AI設定資産ページ（generating-cross-views-for-reverse-docs）も種別ループの対象外である。派生補完のため presentKinds にも excludedKinds にも載らず、global Step 11（機能一覧確立後）で生成される。到達状態の報告は 生成済み / 未生成 の2値で行う（表1にマトリクス・対応表（派生補完）行として記載する）。permission-function のみデータ形状ギャップにより個別に未生成となりうるため、報告時は5ページ中の生成数（例: 4/5）を併記する。
 
 ### §16未解消の扱い（補足）
 
@@ -317,7 +322,7 @@ rebuilding-code-from-docsのPhase2が実行するaudit-consistency.shは§16要�
 
 ### 標準著述と大規模ユニットの2パス著述
 
-Phase 6 は `target_file_paths` の合計行数・ファイル数を実測する。合計1,500行超または4ファイル超、もしくは詳細設計書が1,000行を超える見込みを呼び出し元が根拠付きで指定した場合は `authoring_mode=large-two-pass`、それ以外は `authoring_mode=standard` とする。
+global Step 17 は `target_file_paths` の合計行数・ファイル数を実測する。合計1,500行超または4ファイル超、もしくは詳細設計書が1,000行を超える見込みを呼び出し元が根拠付きで指定した場合は `authoring_mode=large-two-pass`、それ以外は `authoring_mode=standard` とする。
 
 - `standard`: generating-reverse-basic-design（`authoring_pass=standard`）と generating-reverse-detailed-design（`authoring_pass=full`）を並列起動する。合流条件は `基本設計著述完了` と `AUTHORED`
 - `large-two-pass` パス1: generating-reverse-detailed-design（`authoring_pass=detail-only`）だけを起動し、詳細設計書の完全性ゲート通過を示す `DETAIL_AUTHORED`、`detail_design_path`、`pass1_receipt_path` を受領する
@@ -341,7 +346,7 @@ judge（rebuilding-code-from-docs mode=judge）が `status=FAIL` を返した場
 |---|---|---|
 | (a) 執筆規律不足 | 詳細設計書の執筆規律・転記精度に起因する不一致 | generating-reverse-detailed-design のスキル資産（`references/writing-rules.md` 等）の改訂が必要なため、管理者は自動配線せずユーザーに報告する |
 | (b) facts欠落 | 事実抽出プロファイルが対象コードの挙動を捕捉できていない | extracting-unit-facts-from-code のスキル資産（`references/profile-screen.md` 等）の改訂が必要なため、管理者は自動配線せずユーザーに報告する |
-| (c) 共通文書欠落 | 共通設計書・規約4種等のプロジェクト共通文書に該当挙動の記載が無い | 管理者が generating-reverse-common-docs を `mode=append`・`append_findings=`（修正指示書.md からの抜粋）で起動する。返却 `status=追記完了` を受けたら Phase 8 ⑦implement へ差し戻す |
+| (c) 共通文書欠落 | 共通設計書・規約4種等のプロジェクト共通文書に該当挙動の記載が無い | back_edge_id=common-docs-appendとしてglobal Step 14へ戻し、`mode=append`・`append_findings=`で追記後にglobal Step 29を再実行する |
 
 (a)・(b) はスキル資産（reference・プロファイル）そのものの改訂を要するため、管理者が代わりに再実行しても解消しない。(c) のみ、管理者が既存の子スキルを再起動するだけで自動的に解消できる。
 
@@ -359,7 +364,7 @@ syncing-reverse-env は計測事実（static_diff / dynamic / env_check）の報
 
 ## 凍結検査の除外リスト
 
-rebuilding-code-from-docs（mode=judge）Phase 9 の凍結検証（`scripts/check-freeze.sh`）は `freeze_commit` 時点の HEAD・作業ツリーとの一致を確認するが、契約はバージョン管理外の生成物配置を「作業ツリー汚染」の判定対象から除外する。除外対象は `node_modules/`・`.next/`・`dist/` 等、ビルド・依存解決の都度再生成される git 管理外ディレクトリに限る（`.gitignore` に列挙されている配置と整合させる）。凍結コミット対象（Phase 3 白紙化リスト内の実装ファイル）自体の変更は除外対象に含めない。
+rebuilding-code-from-docs（mode=judge）内部Phase 9の凍結検証（`scripts/check-freeze.sh`）は `freeze_commit` 時点の HEAD・作業ツリーとの一致を確認するが、契約はバージョン管理外の生成物配置を「作業ツリー汚染」の判定対象から除外する。除外対象は `node_modules/`・`.next/`・`dist/` 等、ビルド・依存解決の都度再生成される git 管理外ディレクトリに限る（`.gitignore` に列挙されている配置と整合させる）。凍結コミット対象（同スキル内部Phase 3の白紙化リスト内の実装ファイル）自体の変更は除外対象に含めない。
 
 ## 実行環境の代替
 

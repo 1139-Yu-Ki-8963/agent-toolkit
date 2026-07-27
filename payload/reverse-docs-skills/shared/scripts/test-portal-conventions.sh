@@ -6,6 +6,8 @@
 PASS=0
 FAIL=0
 SKIP=0
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd -P)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd -P)"
 
 pass() { PASS=$((PASS+1)); echo "  PASS: $1"; }
 fail() { FAIL=$((FAIL+1)); echo "  FAIL: $1"; }
@@ -27,18 +29,34 @@ check_file() {
   local is_doc_viewer=0
   grep -q 'class="doc-main"' "$f" 2>/dev/null && is_doc_viewer=1
 
-  local old_l; old_l=$(grep -cE "$OLD_COLORS_LIGHT" "$f" 2>/dev/null || true)
-  [ "$old_l" -eq 0 ] && pass "色トークン-旧値禁止（ライト）" || fail "色トークン-旧値禁止（ライト）: ${old_l}件"
+  # TOKENS_CSS マーカーを持つ source template は、生成スクリプトが
+  # shared/templates/tokens.css を注入する前の入力である。raw template に
+  # 色値を二重管理させず、トークン検査は生成済み HTML 側で行う。
+  local has_token_marker=0
+  local absolute_file
+  absolute_file="$(cd "$(dirname "$f")" && pwd -P)/$(basename "$f")"
+  if [[ "$absolute_file" == "$REPO_ROOT"/shared/templates/* ]] \
+    && grep -q '/\* TOKENS_CSS \*/' "$f" 2>/dev/null; then
+    has_token_marker=1
+  fi
 
-  local old_d; old_d=$(grep -cE "$OLD_COLORS_DARK" "$f" 2>/dev/null || true)
-  [ "$old_d" -eq 0 ] && pass "色トークン-旧値禁止（ダーク）" || fail "色トークン-旧値禁止（ダーク）: ${old_d}件"
-
-  grep -q '#F6F8FA' "$f" 2>/dev/null && pass "色トークン-新値存在（panel-2）" || fail "色トークン-新値存在（panel-2）"
-
-  if grep -q 'prefers-color-scheme: dark' "$f" 2>/dev/null && grep -q 'data-theme="dark"' "$f" 2>/dev/null; then
-    pass "テーマ-ダーク定義"
+  if [ "$has_token_marker" -eq 1 ]; then
+    skip "色トークン（生成時に tokens.css を注入）"
+    skip "テーマ-ダーク定義（生成時に tokens.css を注入）"
   else
-    fail "テーマ-ダーク定義"
+    local old_l; old_l=$(grep -cE "$OLD_COLORS_LIGHT" "$f" 2>/dev/null || true)
+    [ "$old_l" -eq 0 ] && pass "色トークン-旧値禁止（ライト）" || fail "色トークン-旧値禁止（ライト）: ${old_l}件"
+
+    local old_d; old_d=$(grep -cE "$OLD_COLORS_DARK" "$f" 2>/dev/null || true)
+    [ "$old_d" -eq 0 ] && pass "色トークン-旧値禁止（ダーク）" || fail "色トークン-旧値禁止（ダーク）: ${old_d}件"
+
+    grep -q '#F6F8FA' "$f" 2>/dev/null && pass "色トークン-新値存在（panel-2）" || fail "色トークン-新値存在（panel-2）"
+
+    if grep -q 'prefers-color-scheme: dark' "$f" 2>/dev/null && grep -q 'data-theme="dark"' "$f" 2>/dev/null; then
+      pass "テーマ-ダーク定義"
+    else
+      fail "テーマ-ダーク定義"
+    fi
   fi
 
   if [ "$is_doc_viewer" -eq 1 ]; then

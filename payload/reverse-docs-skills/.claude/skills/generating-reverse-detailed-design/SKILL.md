@@ -3,7 +3,7 @@ name: generating-reverse-detailed-design
 description: "封印済みfactsと共通文書から画面詳細設計書を執筆する執筆役。 TRIGGER when: facts封印後の設計書執筆・再執筆。 SKIP: facts抽出（→extracting-unit-facts-from-code）、盲検検証（→rebuilding-screen-unit-from-docs）。"
 invocation: generating-reverse-detailed-design
 type: orchestration
-allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent]
+allowed-tools: [Agent, Bash, Read, Write, Edit]
 ---
 
 # 封印済みfactsからのリバース設計書執筆スキル
@@ -38,15 +38,23 @@ facts 抽出・設計書執筆・盲検検証の3スキルは情報アクセス�
 
 ## Phase 1: preflight（起動引数検収・スキャフォールディング）
 
+## Step 1-1: preflight（起動引数検収・スキャフォールディング）
+
+**使用ツール**: Read / Bash / Write / Agent
+
 起動引数を検収する: screen_dir / output_dir / template_root / chapter_map_path / audit_script_path / scaffold_script_path / facts_ref / common_docs_root / mode / target_file_path（mode=file 時）/ verification_dir / authoring_pass（`full|detail-only|companion-docs`、既定 `full`）。補助情報源（スクリーンショット dir・verification_url）があれば受け取る。verification_url は任意であり、未開通でも著述を止めない。渡された場合だけ scenarios の query/path_params の実測値を確定転記する。`authoring_pass=companion-docs` では detail_design_path と pass1_receipt_path を必須とし、パス1証跡の固定検収契約を満たさなければ fail-closed で差し戻す。いずれか必須引数が欠ける場合は起動不可として呼び出し元へ差し戻す。
 
 `companion-docs` の開始前に pass1_receipt_path の JSON を読み、`status=DETAIL_AUTHORED`、`detail_design_path` が起動引数と一致、`facts_lock_sha256` が現在の `<facts_ref>/facts.lock` の SHA-256 と一致、`coverage_check=PASS`、`audit_check=PASS` の5条件を機械検収する。詳細設計書の実在も確認し、1条件でも満たさなければ `status=BLOCKED` とする。
 
 統括（orchestrator）が著述スキル起動前にスキャフォールディングを実施済みの前提で動作する（標準の並列起動・大規模2パスのいずれでも競合を避けるため、実施主体は統括に一本化されている）。画面ディレクトリが存在しない場合はエラーとして呼び出し元へ報告する。存在する場合は `bash <scaffold_script_path> --verify <output_dir> <画面ID>`（scaffold_script_path は管理者が解決して渡すスキャフォールディングスクリプトのパス。audit_script_path と同型。実体: `shared/scripts/scaffold-screen.sh`）で構造の健全性を確認し、exit 1 なら template_root 起点の原本から欠落ファイルのみ復元して再実行する（fail-closed）。
 
-完了条件: 必須引数が揃い、画面ディレクトリの構造健全性を確認済み
+**完了**: 必須引数が揃い、画面ディレクトリの構造健全性を確認済み
 
 ## Phase 2: 封印検証と facts 読込
+
+## Step 2-1: 封印検証と facts 読込
+
+**使用ツール**: Read / Bash
 
 `shared/scripts/seal-facts.sh verify <facts_ref>` を実行し exit 0 を確認する（Phase 2 の必須ゲート）。exit 1（facts.yml が封印時から改変されている）なら著述を行わず `status=BLOCKED` とし、hint に「extracting-unit-facts-from-code で再封印せよ」と記す（このゲートはループ対象外の終端条件）。
 
@@ -54,17 +62,25 @@ exit 0 を確認したら、`<facts_ref>/facts.yml`（`shared/references/facts-s
 
 封印検証成功後、`bash shared/scripts/check-facts-sufficiency.sh <facts_ref>/facts.yml` を実行し exit 0 を確認する（著述前の充足検査）。exit 0 でなければ著述に入らず `status=BLOCKED` としてfacts抽出工程へ差し戻す。差し戻し理由には検査出力のchapter-impact行（違反セクション→影響する設計書の章）を添え、どの章のfactsが薄いかを申し送る。
 
-完了条件: `seal-facts.sh verify` が exit 0、`check-facts-sufficiency.sh` が exit 0、かつ facts.yml と共通文書の読込完了
+**完了**: `seal-facts.sh verify` が exit 0、`check-facts-sufficiency.sh` が exit 0、かつ facts.yml と共通文書の読込完了
 
 ## Phase 3: 観点表追記
+
+## Step 3-1: 観点表追記
+
+**使用ツール**: Bash / Write
 
 facts.yml から単体テスト観点表へ観点行を追記する（意味キー規約: 連番禁止・内容要約キー）。`measurement_pending`（⑨）に由来する観点は `実測委譲（画面単位検証で確定）` として留保する。
 
 `authoring_pass=detail-only` では本Phaseと「テスト仕様書記入責務」を実行せず、詳細設計書だけをPhase 4〜5で完成させる。`authoring_pass=companion-docs` ではPhase 4の設計書転記を実行せず、パス1完成版を改変しないまま本Phaseとテスト仕様書3点の著述だけを行う。
 
-完了条件: `full|companion-docs` は facts.yml 由来の観点行が観点表に追記済み・意味キー規約準拠。`detail-only` は契約どおりスキップ済み
+**完了**: `full|companion-docs` は facts.yml 由来の観点行が観点表に追記済み・意味キー規約準拠。`detail-only` は契約どおりスキップ済み
 
 ## Phase 4: 設計書転記
+
+## Step 4-1: 設計書転記
+
+**使用ツール**: Read / Bash / Write / Edit / Agent
 
 scaffold直後に `shared/scripts/prefill-design-from-facts.sh <facts_ref>/facts.yml <画面詳細設計書.md>` で facts.yml からの機械転記を実行してよい（任意工程）。facts.yml の12分類を下記マップに従って対応する章表へ機械的に転記し、転記できない列（業務的意味・分類判断等）には `【著述・未確認:<章番号>-<種別>】` マーカーを置く。転記スクリプトを使った場合、Phase 5 の完全性ゲートに `shared/scripts/check-prefill-markers.sh <画面詳細設計書.md>` による残存マーカー検査（残0件）を追記する。
 
@@ -105,22 +121,30 @@ facts.yml の各セクションを下記マップに従って各章へ転記す�
 - パス2（`authoring_pass=companion-docs`）: パス1の `DETAIL_AUTHORED`・詳細設計書の完成版・facts を入力に、観点表・テスト仕様書を著述して `COMPANION_AUTHORED` を返す。基本設計書は同じパス2で generating-reverse-basic-design（`authoring_pass=large-pass2`）へ別委任する
 - パス1未完了でパス2を開始すること、およびパス1で基本設計・観点表・テスト仕様書を先行著述することを禁止する
 
-完了条件: 転記完了・`measurement_pending` が `実測委譲（画面単位検証で確定）` として留保済み・frontmatter に `source_repo`/`source_ref` を転記済み・`scenarios` が1件以上
+**完了**: 転記完了・`measurement_pending` が `実測委譲（画面単位検証で確定）` として留保済み・frontmatter に `source_repo`/`source_ref` を転記済み・`scenarios` が1件以上
 
 ## Phase 5: 完全性ゲート
+
+## Step 5-1: 完全性ゲート
+
+**使用ツール**: Read / Bash / Write
 
 1. `scripts/check-fact-coverage.sh <facts_ref>/facts.yml <画面詳細設計書.md> [<DESIGN.md>]` を実行し exit 0 を確認する。facts.yml の全項目（`measurement_pending` は「実測委譲」表記があれば転記済み扱い）が設計書いずれかの章に転記済みかを機械突合し、未転記が 1 件でもあれば exit 1（fail-closed）。未転記キーを Phase 4 のマップに従って転記してから再実行する
 2. 起動引数 audit_script_path（`shared/scripts/audit-consistency.sh`）を通常モードで実行し、exit 0（内部整合性の違反 0 件）を確認する。§15.2 が facts.yml の export_type「型定義なし」に基づく根拠付き該当なし文であっても exit 0 になる（型を捏造して検査を通すことは禁止）。返却ブロックの `measurement_pending[]` 件数を `AUDIT_EXPECTED_MP_COUNT=<件数>` として渡して再実行し、検査 i-2（§16のmeasurement_pending計上数と`AUDIT_EXPECTED_MP_COUNT`の突合）の WARN が出ないことを確認する
 3. `awk '/^---$/{n++; next} n==1' <画面詳細設計書.md> | grep -c 実測委譲` が `0` であることを確認する（frontmatter の `scenarios` に実測委譲プレースホルダが残っていないかの機械検査）。非0なら著述未完了として Phase 4 へ差し戻す
 4. Phase 4 で `prefill-design-from-facts.sh` を使った場合のみ、`shared/scripts/check-prefill-markers.sh <画面詳細設計書.md>` を実行し exit 0（残存マーカー0件）を確認する。残存があれば当該箇所を著述で埋めてから再実行する
 
-完了条件: `check-fact-coverage.sh` と `audit-consistency.sh` がともに exit 0・§16 の measurement_pending 計上数（mp-接頭辞キー）が返却ブロック `measurement_pending[]` の件数と一致・frontmatter の実測委譲プレースホルダ検査（`grep -c 実測委譲` が `0`）通過・（prefill-design-from-facts.sh 使用時のみ）`check-prefill-markers.sh` が exit 0
+**完了**: `check-fact-coverage.sh` と `audit-consistency.sh` がともに exit 0・§16 の measurement_pending 計上数（mp-接頭辞キー）が返却ブロック `measurement_pending[]` の件数と一致・frontmatter の実測委譲プレースホルダ検査（`grep -c 実測委譲` が `0`）通過・（prefill-design-from-facts.sh 使用時のみ）`check-prefill-markers.sh` が exit 0
 
 ## Phase 6: 返却
 
+## Step 6-1: 返却
+
+**使用ツール**: Read / Bash / Write
+
 返却ブロックを検証記録に保存する（下記「返却ブロック」を参照）。`detail-only` では `<verification_dir>/screen-<画面ID>/authoring/detail-pass1.json` を原子的に作成し、`status`、`facts_lock_sha256`、`detail_design_path`、`coverage_check`、`audit_check` を保存する。status は `DETAIL_AUTHORED`、2つの検査値は `PASS` に固定し、facts_lock_sha256 は検収済み facts.lock の SHA-256 とする。
 
-完了条件: authoring_pass に対応する `status=AUTHORED|DETAIL_AUTHORED|COMPANION_AUTHORED` の返却ブロックが検証記録に保存済み
+**完了**: authoring_pass に対応する `status=AUTHORED|DETAIL_AUTHORED|COMPANION_AUTHORED` の返却ブロックが検証記録に保存済み
 
 ## 完了条件
 

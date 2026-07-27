@@ -3,7 +3,7 @@ name: generating-tech-stack-for-reverse-docs
 description: "技術スタック.html を調査書と定義ファイルの実測突合から機械生成する。 TRIGGER when: 技術スタックページ生成、tech stack HTML作成。 SKIP: アーキテクチャ調査書自体の作成（→surveying-architecture-for-reverse-docs）、他種別詳細ページ生成。"
 invocation: generating-tech-stack-for-reverse-docs
 type: transform
-allowed-tools: [Bash, Read, Write, Grep, Glob]
+allowed-tools: [Bash, Read, Write]
 ---
 
 # 技術スタックページ生成スキル
@@ -36,14 +36,24 @@ allowed-tools: [Bash, Read, Write, Grep, Glob]
 | HTML生成 | `../../../shared/scripts/detail-pages/build-detail-page.sh` |
 | ポータル再生成（任意） | `../../../shared/scripts/build-portal.sh` |
 
-## Phase 手順
+## 実行手順
 
-### Phase 1: データ源読込
+## Phase 1: データ源読込
+
+## Step 1-1: データ源読込
+
+**使用ツール**: Read / Write
 
 - **Step 1** — `<output_dir>/プロジェクト共通/アーキテクチャ調査書.md` の実在を確認する。不在ならハード停止する。この場合 `surveying-architecture-for-reverse-docs` の先行実行を案内して終了する。完了条件: 調査書の実在確認済み、または不在を報告して停止している
 - **Step 2** — `target_repo_path` 直下の定義ファイルを列挙する。対象は `package.json`／`requirements.txt`／`pyproject.toml`／`go.mod` 等のうち実在するもののみ。完了条件: 実在する定義ファイルのパス一覧が確定済み
 
-### Phase 2: 抽出・突合
+**完了**: 調査書の実在確認済み、または不在を報告して停止している
+
+## Phase 2: 抽出・突合
+
+## Step 2-1: 抽出・突合
+
+**使用ツール**: Read / Bash / Write
 
 - **Step 1** — 調査書 §2 技術スタック表（言語・ランタイム／フレームワーク／パッケージマネージャ／ルーティングライブラリ）の記載値をそのまま読み込む。完了条件: §2 表の全行の記載値を転記済み
 - **Step 2** — Phase 1 Step 2 の定義ファイルを読み、項目ごとの実測値（実バージョン・実パッケージ名）を確認し調査書記載値と突合する。完了条件: 項目ごとに一致／乖離が判定済み
@@ -52,7 +62,13 @@ allowed-tools: [Bash, Read, Write, Grep, Glob]
 
 page-data.json の保存先は `$CLAUDE_JOB_DIR/tmp/tech-stack-page-data.json` とする。未設定時は `${TMPDIR:-/tmp}/claude-job-${session}/tmp/` 配下に置く。
 
-### Phase 3: 整合検証（機械実行）
+**完了**: 全項目一致を確認して page-data.json を保存済み、または乖離を報告して停止している
+
+## Phase 3: 整合検証（機械実行）
+
+## Step 3-1: 整合検証（機械実行）
+
+**使用ツール**: Bash
 
 - **Step 1** — 整合検証スクリプトを実行する。完了条件: 全項目 PASS
 
@@ -62,7 +78,13 @@ page-data.json の保存先は `$CLAUDE_JOB_DIR/tmp/tech-stack-page-data.json` �
 
 - **Step 2** — FAIL 時は `sourceRef` を修正し Step 1 を再実行する。3 回失敗したら Phase 2 Step 4（page-data 組み立て）へ差し戻す。完了条件: exit 0
 
-### Phase 4: 技術スタック.html 生成
+**完了**: `validate-page-data.sh --target-repo` が全項目 PASS
+
+## Phase 4: 技術スタック.html 生成
+
+## Step 4-1: 技術スタック.html 生成
+
+**使用ツール**: Bash / Write
 
 - **Step 1** — HTML 生成スクリプトを実行する。完了条件: `<output_dir>/技術スタック.html` が生成済み
 
@@ -77,6 +99,8 @@ page-data.json の保存先は `$CLAUDE_JOB_DIR/tmp/tech-stack-page-data.json` �
   ```
 
 **手作業でのプレースホルダ置換は禁止する**。HTML 生成は必ず `build-detail-page.sh` 経由の決定的処理で行う。
+
+**完了**: `<output_dir>/技術スタック.html` が生成され、指定時は `build-portal.sh` の再実行が完了している
 
 ## 完了条件
 

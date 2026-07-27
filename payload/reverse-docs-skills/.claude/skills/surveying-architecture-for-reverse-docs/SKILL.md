@@ -3,7 +3,7 @@ name: surveying-architecture-for-reverse-docs
 description: "既存リポジトリを走査しアーキテクチャ調査書を機械検証付きで確定する。 TRIGGER when: リバース設計着手前の前提調査、アーキテクチャ調査書の新規作成・改訂。 SKIP: 一覧生成（→generating-screen-list-for-reverse-docs 等の種別別一覧スキル）、共通文書採録・facts抽出・詳細設計執筆（後続工程）。"
 invocation: surveying-architecture-for-reverse-docs
 type: orchestration
-allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, TaskCreate, TaskUpdate]
+allowed-tools: [Bash, Edit, Read, Write]
 ---
 
 # アーキテクチャ調査スキル
@@ -39,19 +39,27 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, TaskCreate, TaskUpdate]
 - **固定と可変の分離**: ゲート（`scripts/check-architecture-survey.sh`）は決定的スクリプトに固定する。調査そのもの（何をどう調べるか）はプロジェクトごとに可変であり、Phase 2〜3 で都度 Bash/Grep/Glob を用いて実行する
 - **合格判定はスクリプトのexit codeのみ**: 自然文の自己申告での合格判定を行わない
 
-## Phase 手順
+## 実行手順
 
-### Phase 1: 前提確認
+## Phase 1: 前提確認
+
+## Step 1-1: 前提確認
+
+**使用ツール**: Read / Bash
 
 `target_repo_path` と `template_root` の実在を確認する（`test -d`）。`output_dir` に `プロジェクト共通/` ディレクトリが無ければ作成する。`mode=revise` の場合は既存の調査書（`<output_dir>/プロジェクト共通/アーキテクチャ調査書.md`）の実在を確認し、`revise_findings` に列挙された指摘節を洗い出す。`mode=survey` の場合はテンプレ（`<template_root>/プロジェクト共通/アーキテクチャ調査書.md`）を調査書の出力先へ複製する。
 
-完了条件: 全argsが解決済み（`target_repo_path`・`template_root` の実在確認済み、`output_dir` 配下のディレクトリ作成済み、`mode=revise` 時は既存調査書と指摘節の特定済み）
+**完了**: 全argsが解決済み（`target_repo_path`・`template_root` の実在確認済み、`output_dir` 配下のディレクトリ作成済み、`mode=revise` 時は既存調査書と指摘節の特定済み）
 
-### Phase 2: 決定的走査
+## Phase 2: 決定的走査
+
+## Step 2-1: 決定的走査
+
+**使用ツール**: Read / Bash / Write
 
 `find`/`grep`/`ls` を対象リポジトリに対して実行し、ビルド設定（`package.json`・lockファイル・`next.config.*`・`pom.xml`・`build.gradle` 等、実在するもののみ）・起動コマンド・エントリポイント・ルーティング定義・依存関係を決定的出力のみを根拠に列挙する。実行した調査コマンドは1つ残らず調査書の調査メタ節に記録する（再現可能性の担保）。推測での埋め合わせは禁止する。併せて、複数ディレクトリから import・参照される共有ファイル（共通スタイル定数・テーマ定義ファイル等）の有無を `grep -rl` 等の決定的コマンドで確認する。例: `grep -rlE "from ['\"].*theme['\"]" src | xargs -I{} dirname {} | sort -u` の出力が2ディレクトリ以上にまたがる場合、当該ファイルを §4 ディレクトリ責務マップへ「共有ファイル」行として追記する（該当が無ければ追記しない）。
 
-完了条件: ディレクトリ責務マップとエントリポイント一覧が根拠パス付きで揃っている（複数ディレクトリから参照される共有ファイルが実在する場合はその行も追記済み。存在しない場合は追記不要である旨を確認済み）
+**完了**: ディレクトリ責務マップとエントリポイント一覧が根拠パス付きで揃っている（複数ディレクトリから参照される共有ファイルが実在する場合はその行も追記済み。存在しない場合は追記不要である旨を確認済み）
 
 **§9 テスト基盤の決定的走査**: 以下の決定的コマンドで対象リポジトリのテスト基盤を走査し、結果を§9へ転記する。
 
@@ -60,7 +68,11 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, TaskCreate, TaskUpdate]
 - `<target_repo_path>/.github/workflows/*.yml`（実在する場合のみ）を確認し、テスト実行ステップを含むジョブを検出する
 - 検出結果（フレームワーク種別・設定ファイルパス・テストファイル総数・テストディレクトリのパターン・CIテストジョブの有無）を§9「テスト基盤」の各表へ転記する。検出できなかった項目は空欄にせず「実在しない（理由: …）」で埋める
 
-### Phase 3: ユニット6種別判定
+## Phase 3: ユニット6種別判定
+
+## Step 3-1: ユニット6種別判定
+
+**使用ツール**: Read / Bash / Write
 
 画面・API・テーブル・バッチ・帳票・外部連携の6種別それぞれについて、Phase 2 と同様に決定的コマンドで実在を判定する。各種別の判定は「実在する」または「実在しない（理由: …）」のいずれかで必ず記録し、検出に使った再現可能な `grep`/`find` パターンを検出手がかり列に記録する。空欄・省略は禁止する。
 
@@ -68,25 +80,37 @@ API種別の判定基準: 「API定義の実在」は SDL（GraphQL Schema Defin
 
 フロントエンド専用リポジトリにおけるAPI種別の判定基準: SDL/IDLソースが対象コードリポジトリ内に見当たらない場合、クライアント側API操作（クエリ定義・ミューテーション定義・fetch/axios ラッパー等）の目録化を代替の実在根拠として指す。サーバー側エンドポイント定義（route handler）が本リポジトリに存在しないことは「API種別が実在しない」の根拠にならない。判定の再現可能なgrep/findパターンは、まずSDL/IDLソースを検出するパターン（例: `find . -name '*.graphql' -o -name '*.proto' -o -iname 'openapi*.yaml'`）を用い、見つからない場合にクライアント側API操作を検出するパターン（例: `grep -r 'useQuery\|useMutation\|fetch(' src/`）を使用する。
 
-完了条件: 6種別すべてに判定行がある（種別名と判定語が同一行に存在する）
+**完了**: 6種別すべてに判定行がある（種別名と判定語が同一行に存在する）
 
-### Phase 4: 調査書執筆
+## Phase 4: 調査書執筆
+
+## Step 4-1: 調査書執筆
+
+**使用ツール**: Write / Edit
 
 テンプレの全節（調査メタ・技術スタック・ビルドと起動・ディレクトリ責務マップ・エントリポイントとルーティング・ユニット種別判定・判定不能と実在しない項目の理由・後続工程への申し送り・テスト基盤）を、Phase 2〜3 で得た実測値の転記で埋める。`mode=revise` の場合は `revise_findings` が指摘した節のみを改訂すればよいが、次のPhase 5ゲートは全項目を再実行する（部分ゲートは無い）。
 
-完了条件: プレースホルダ（`<実測: …>` 等）の残存ゼロ
+**完了**: プレースホルダ（`<実測: …>` 等）の残存ゼロ
 
-### Phase 5: 機械ゲート
+## Phase 5: 機械ゲート
+
+## Step 5-1: 機械ゲート
+
+**使用ツール**: Read / Bash / Write
 
 `scripts/check-architecture-survey.sh <調査書> <target_repo_path>` を実行する。FAILした場合はPhase 4に戻り、指摘された未実在パス・未判定種別・推測語・テンプレ残存を修正して再実行する（上限5回。ループ設計は下表参照）。上限到達で収束しない場合は `status=中断` とし、hintに残欠落を記録する。
 
-完了条件: ゲート `exit 0`
+**完了**: ゲート `exit 0`
 
-### Phase 6: 返却
+## Phase 6: 返却
+
+## Step 6-1: 返却
+
+**使用ツール**: Read
 
 返却ブロックを出力する。`status=調査確定` の場合は `artifacts` に調査書の絶対パスを、`scope` に `target_repo_path` のbasenameを、`survey_doc_path` に調査書パスを、`unit_kinds_present` に実在判定が「実在する」だった種別の一覧を記す。`hint` には後続工程（共通採録・facts抽出）への申し送りを記す。`status=中断` の場合は `hint` にPhase 5で未収束のまま残った検査項目・理由を記す。
 
-完了条件: `status` が確定している
+**完了**: `status` が確定している
 
 ## 完了条件
 
@@ -179,6 +203,6 @@ API種別の判定基準: 「API定義の実在」は SDL（GraphQL Schema Defin
 
 ## 参照資料
 
-- `~/reverse-docs-skills/.claude/skills/orchestrating-reverse-docs-flow/references/contract.md` — 返却ブロック契約・args仕様の正本
+- `<reverse_docs_root>/.claude/skills/orchestrating-reverse-docs-flow/references/contract.md` — 返却ブロック契約・args仕様の正本
 - `shared/templates/リバース検証/プロジェクト共通/アーキテクチャ調査書.md`（本スキル同梱ではなくリポジトリ共有テンプレ） — 調査書の雛形
 - `shared/references/リバース工程設計.md` — Phase/Step×スキル対応の正本（本スキルの位置づけ: Phase 2 / Step 3-7）

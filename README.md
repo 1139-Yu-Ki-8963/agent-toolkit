@@ -60,7 +60,7 @@ payload/
 │   ├── .claude/skills/          （13スキル）
 │   └── docs/
 └── reverse-docs-skills/         → リバースドキュメント用スキル集
-    ├── .claude/skills/          （17スキル）
+    ├── .claude/skills/          （35スキル）
     └── shared/
 ```
 
@@ -85,7 +85,7 @@ payload/
 
 サブエージェント 6 体（`brain` / `researcher` / `reviewer` / `worker-sonnet` / `worker-haiku` / `investigator`）を `payload/claudecode-global-setup/claude-config/agents/` に、画面基本設計テンプレート一式を `payload/claudecode-global-setup/agent-home/templates/project-docs/` に、textlint 設定と link-checker の仕組みを `payload/claudecode-global-setup/agent-home/tools/linter/` に同梱しています。
 
-### reverse-docs-skills（リバース設計書の往復検証フロー、6スキル）
+### reverse-docs-skills（リバース設計書の往復検証フロー、全35スキル・主要6スキルを掲載）
 
 `payload/reverse-docs-skills/` は独立したスキル集で、`~/reverse-docs-skills/` へミラーされます。各スキルは他スキルのフォルダに依存せず単独起動でき、共有資産（テンプレート・章対応表・監査スクリプト）は `shared/` に同梱済みです（別途用意する必要はありません）。
 

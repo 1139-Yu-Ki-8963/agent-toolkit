@@ -3,7 +3,7 @@ name: generating-screen-transition-for-reverse-docs
 description: "画面遷移図.html を画面一覧マニフェストとコード内のルーティング定義から機械生成する。 TRIGGER when: 画面遷移図生成、画面遷移図作成、遷移図HTML作成。 SKIP: 画面一覧自体の作成（→generating-screen-list-for-reverse-docs）、他種別詳細ページ生成（→対応する種別別スキル）。"
 invocation: generating-screen-transition-for-reverse-docs
 type: transform
-allowed-tools: [Bash, Read, Write, Grep, Glob, AskUserQuestion, TaskCreate, TaskUpdate]
+allowed-tools: [AskUserQuestion, Bash, Grep, Read, Write]
 ---
 
 # 画面遷移図生成スキル
@@ -42,16 +42,26 @@ allowed-tools: [Bash, Read, Write, Grep, Glob, AskUserQuestion, TaskCreate, Task
 
 スキル開始時に `TaskCreate` で Phase 1〜4 のタスクを登録する。各 Phase 開始時に該当タスクを `in_progress` に、完了時に `completed` へ `TaskUpdate` で更新する。Phase 3 から Phase 2 へ差し戻す場合は Phase 2 タスクを `in_progress` に戻す。実行環境に TaskCreate/TaskUpdate が存在しない場合は、`$CLAUDE_JOB_DIR/tmp/task-ledger.md` で同等の Phase 遷移記録を代替する。
 
-## Phase 手順
+## 実行手順
 
-### Phase 1: 前提確認・検出戦略の宣言
+## Phase 1: 前提確認・検出戦略の宣言
+
+## Step 1-1: 前提確認・検出戦略の宣言
+
+**使用ツール**: AskUserQuestion / Bash / Grep / Read / Write
 
 - **Step 1** — `<output_dir>/一覧/画面一覧/画面一覧.html`（正本レイアウト。不在時のみ後方互換で `<output_dir>/画面一覧/画面一覧.html`）の実在を確認する。いずれも不在ならハード停止する。この場合 `generating-screen-list-for-reverse-docs` の先行実行を案内して終了する。完了条件: 実在確認済み、または不在を報告して停止している
 - **Step 2** — 画面一覧.html 内の `<script type="application/json" id="screen-manifest">` を抽出する。`screens[]` の件数・`route` の値が空文字列の画面の件数を確認する（`validate-manifest.sh` は `route` キー自体の欠落を許さないため、実際に起こるのは空文字）。完了条件: `screens[]` 件数と route 空文字件数が確定済み
 - **Step 3** — `target_repo_path` の定義ファイル（`package.json` の依存関係・import 文の形跡）から Router 種別を判別する。候補は React Router・Next.js App Router・Next.js Pages Router・Vue Router 等。完了条件: Router 種別が特定済み、または特定不能の根拠（推定経路）が記録済み
 - **Step 4** — 検出戦略宣言を作成する。内容は `routerKind`・抽出対象 API（`navigate`・`<Link>`・`redirect` 等のうち実在するもの）・confidence 判定基準の 3 点。AskUserQuestion で承認を取り、宣言 JSON は一時ファイルに保存する。完了条件: 戦略 JSON が保存済みかつユーザー承認済み
 
-### Phase 2: 抽出
+**完了**: 画面一覧.html の実在確認済み（または不在を報告して停止）。Router 種別と検出戦略がユーザー承認済み
+
+## Phase 2: 抽出
+
+## Step 2-1: 抽出
+
+**使用ツール**: Bash / Grep / Read / Write
 
 - **Step 1** — `screens[]` から、`kind` が `route` または `embedded-view` で `route` が空文字列でない画面を選ぶ。選んだ画面を `nodes[]` へ転記する（`unitKey` = `screenKey`、`label` = `screenNameGuess`）。`route` が空文字列の画面は `nodes[]` に含めない。代わりに `unresolved[]` へ、理由「routeが空文字列のため遷移解決不能」を添えて登録する。完了条件: `nodes[]` と route 空文字画面の `unresolved[]` 登録が確定済み
 - **Step 2** — Phase 1 で宣言した戦略に沿って、Router 定義・`navigate()`・`<Link>`・`redirect` を Grep/Read で走査する。走査対象から遷移候補を洗い出す。各候補には `from`（発生元画面の `unitKey`）・`to`（遷移先 route。ブラウザバックの場合は空文字列）・`trigger`（契機）・`sourceRef`（file:line）・`confidence`・`condition`（任意。遷移条件） の 6 項目を記録する。完了条件: 遷移候補一覧が確定済み
@@ -72,7 +82,13 @@ allowed-tools: [Bash, Read, Write, Grep, Glob, AskUserQuestion, TaskCreate, Task
 
 page-data.json の保存先は `$CLAUDE_JOB_DIR/tmp/screen-transition-page-data.json` とする。未設定時は `${TMPDIR:-/tmp}/claude-job-${session}/tmp/` 配下に置く。
 
-### Phase 3: 整合検証（機械実行）
+**完了**: `nodes[]`／`edges[]` が確定し page-data.json を保存済み。全ノードの `category`/`categorySrc` が確定済み。route 空文字画面・宛先未解決の遷移は `unresolved[]` へ隔離済み
+
+## Phase 3: 整合検証（機械実行）
+
+## Step 3-1: 整合検証（機械実行）
+
+**使用ツール**: Read / Bash
 
 - **Step 1** — 整合検証スクリプトを実行する。`edges[].from`/`.to` が `nodes[].unitKey` に実在するかの孤児参照検査を含め、`validate-page-data.sh` が機械実行する（手動 jq 突合は不要）。完了条件: 全項目 PASS
 
@@ -82,7 +98,13 @@ page-data.json の保存先は `$CLAUDE_JOB_DIR/tmp/screen-transition-page-data.
 
 - **Step 2** — Step 1 が FAIL したら `[FAIL]` 項目名で分岐する。「孤児参照」FAIL の場合は該当 edge を `edges[]` から外し `unresolved[]` へ差し戻して Phase 2 Step 3 へ戻る。その他の FAIL（`sourceRef` 実在等）は該当箇所を修正し Step 1 を再実行する。3 回失敗したら Phase 2 Step 5（page-data 組み立て）へ差し戻す。完了条件: `validate-page-data.sh` が exit 0（孤児参照検査を含め全項目 PASS）
 
-### Phase 4: 画面遷移図.html 生成
+**完了**: `validate-page-data.sh --target-repo` が全項目 PASS（孤児参照検査含む）
+
+## Phase 4: 画面遷移図.html 生成
+
+## Step 4-1: 画面遷移図.html 生成
+
+**使用ツール**: Bash / Write
 
 - **Step 1** — HTML 生成スクリプトを実行する。完了条件: `<output_dir>/画面遷移図.html` が生成済み
 
@@ -97,6 +119,8 @@ page-data.json の保存先は `$CLAUDE_JOB_DIR/tmp/screen-transition-page-data.
   ```
 
 **手作業でのプレースホルダ置換は禁止する**。HTML 生成は必ず `build-detail-page.sh` 経由の決定的処理で行う。
+
+**完了**: `<output_dir>/画面遷移図.html` が生成され、指定時は `build-portal.sh` の再実行が完了している
 
 ## 完了条件
 
