@@ -1271,13 +1271,13 @@ EOF
 
   # --- 追加: --profile サブコマンドの複雑度プロファイリング(8-6) ---
   build_profile_fixture_file() {
-    local path="$1" fn="$2" i=0
+    local path="$1" fn="$2"
     mkdir -p "$(dirname "$path")"
-    : > "$path"
-    while [ "$i" -lt "$fn" ]; do
-      echo "import { sym${i} } from './sym${i}';" >> "$path"
-      i=$((i + 1))
-    done
+    # n=250 の大規模自己テストでも、行ごとに Bash を往復せず一括生成する。
+    # import 数は複雑度プロファイルの入力値なので、生成内容は従来と同一に保つ。
+    awk -v n="$fn" 'BEGIN {
+      for (i = 0; i < n; i++) print "import { sym" i " } from '\''./sym" i "'\'';"
+    }' > "$path"
   }
 
   local profile_recount_script
@@ -1600,7 +1600,21 @@ EOF
 
   # 12-2-6: n=250の大規模データで層件数の合計がnと一致し、G1〜G6が全て非空になる。
   local pmanifest_big="$root/profile-manifest-big.json"
-  local ibig pfbig screens_big_tmp
+  local ibig pfbig screens_big_tmp profile_recount_fast_script
+  # 大規模ケースは層分けの完全性を検証するための入力であり、recount-facts.sh
+  # 自体の再計数は上の小規模ケースで実行済み。250件で同じ再計数を繰り返すと
+  # 自己テストの終了を不必要に妨げるため、screenKey由来の再現可能なスコアを返す
+  # 軽量スタブをこのケースに限って使用する。
+  profile_recount_fast_script="$root/profile-recount-fast.sh"
+  printf '%s\n' \
+    '#!/usr/bin/env bash' \
+    'set -euo pipefail' \
+    'target="${!#}"' \
+    'value="${target#*ScreenBig_}"' \
+    'value="${value%%/*}"' \
+    'case "$value" in ""|*[!0-9]*) value=0 ;; esac' \
+    'printf "loc %s\\nimport 0\\nexport_type 0\\nconst 0\\nstate 0\\nhandler 0\\njsx 0\\nstyle 0\\napi 0\\n" "$value"' \
+    > "$profile_recount_fast_script"
   screens_big_tmp="$(mktemp)"
   : > "$screens_big_tmp"
   for ibig in $(seq 1 250); do
@@ -1611,7 +1625,7 @@ EOF
   jq -s '{generatedAt:null, sourceDir:"dummy", screens:.}' "$screens_big_tmp" > "$pmanifest_big"
   rm -f "$screens_big_tmp"
   local pout_big="$root/profile-out-big.json" pstatus_big=0
-  bash "$0" --profile "$pmanifest_big" "$prepo" "$pout_big" --recount-script "$profile_recount_script" --repo-root "$prepo" >/dev/null 2>&1 || pstatus_big=$?
+  bash "$0" --profile "$pmanifest_big" "$prepo" "$pout_big" --recount-script "$profile_recount_fast_script" --repo-root "$prepo" >/dev/null 2>&1 || pstatus_big=$?
   if [ "$pstatus_big" -eq 0 ]; then
     local big_n big_sum big_all_nonempty
     big_n="$(jq -r '.n' "$pout_big")"
@@ -1741,22 +1755,193 @@ EOF
     test_report "1-11-非UTF8-grep-a付き検出" 1 "enc_with_a=$enc_with_a"
   fi
 
-  # --- 陽性: DOM判定(form)済み画面のファイル名モーダル判定(basename_lower スコープ修正の検証) ---
+  # --- 陽性: モーダル画面を祖先ディレクトリの実在親キーへ紐付ける ---
   local t_modal="$root/t_modal"
-  mkdir -p "$t_modal/src/screens/user"
-  printf '<html>\n<body>\n<form action="/edit">\n<input type="text" />\n</form>\n</body>\n</html>' > "$t_modal/src/screens/user/edit-modal.html"
-  printf '<html>\n<body>\n<h1>User</h1>\n<table><tr><td>data</td></tr></table>\n</body>\n</html>' > "$t_modal/src/screens/user/index.html"
-  local t_modal_manifest t_modal_status t_modal_parent
+  mkdir -p "$t_modal/app/user/edit-modal" "$t_modal/app/user/components"
+  printf "module.exports = {}\n" > "$t_modal/next.config.js"
+  printf '%s\n' \
+    'import ScreenBody from "./components/ScreenBody"' \
+    'export default function Page() { return <ScreenBody /> }' > "$t_modal/app/user/page.tsx"
+  printf '%s\n' \
+    'export default function ScreenBody() {' \
+    '  const onClose = () => {}' \
+    '  return <main onClick={onClose}>User</main>' \
+    '}' > "$t_modal/app/user/components/ScreenBody.tsx"
+  printf 'export default function Page() { return <form><input /></form> }\n' > "$t_modal/app/user/edit-modal/page.tsx"
+  local t_modal_manifest t_modal_status t_modal_parent t_modal_parent_exists t_modal_child_key t_modal_child_type t_modal_user_parent t_modal_user_component_type
   t_modal_manifest="$(mktemp)"
   t_modal_status=0
   bash "$0" "$t_modal" "$t_modal_manifest" >/dev/null 2>&1 || t_modal_status=$?
-  t_modal_parent="$(jq -r '.screens[] | select(.screenKey | test("edit-modal")) | .parentScreen' "$t_modal_manifest" 2>/dev/null || echo "")"
-  if [ "$t_modal_status" -eq 0 ] && [ -n "$t_modal_parent" ] && [ "$t_modal_parent" != "null" ]; then
-    test_report "1-9-モーダル判定-DOM確定後も有効" 0
+  t_modal_parent="$(jq -r '.screens[] | select(.screenKey == "edit-modal") | .parentScreen' "$t_modal_manifest" 2>/dev/null || true)"
+  t_modal_parent_exists="$(jq -r --arg p "$t_modal_parent" '[.screens[].screenKey] | index($p) != null' "$t_modal_manifest" 2>/dev/null || echo false)"
+  t_modal_child_key="$(jq -r '.screens[] | select(.screenKey == "user") | .childComponents[]? | .screenKey' "$t_modal_manifest" 2>/dev/null | sed -n '1p' || true)"
+  t_modal_child_type="$(jq -r '.screens[] | select(.screenKey == "user") | .childComponents[]? | .componentType' "$t_modal_manifest" 2>/dev/null | sed -n '1p' || true)"
+  t_modal_user_parent="$(jq -r '.screens[] | select(.screenKey == "user") | .parentScreen' "$t_modal_manifest" 2>/dev/null || true)"
+  t_modal_user_component_type="$(jq -r '.screens[] | select(.screenKey == "user") | .componentType // empty' "$t_modal_manifest" 2>/dev/null || true)"
+  if [ "$t_modal_status" -eq 0 ] && [ "$t_modal_parent" = "user" ] && [ "$t_modal_parent_exists" = "true" ] && [ "$t_modal_child_key" = "edit-modal" ] && [ "$t_modal_child_type" = "modal" ] && [ "$t_modal_user_parent" = "null" ] && [ -z "$t_modal_user_component_type" ]; then
+    test_report "1-9-モーダル判定-実在親キーとcomponentType" 0
   else
-    test_report "1-9-モーダル判定-DOM確定後も有効" 1 "status=$t_modal_status parent='$t_modal_parent'"
+    test_report "1-9-モーダル判定-実在親キーとcomponentType" 1 "status=$t_modal_status parent='$t_modal_parent' exists=$t_modal_parent_exists child='$t_modal_child_key' type='$t_modal_child_type' user_parent='$t_modal_user_parent' user_type='$t_modal_user_component_type'"
   fi
   rm -f "$t_modal_manifest"
+
+  # --- 反例: embedded-viewのスラッシュなしrouteで親探索が停止し、検出が完走する ---
+  local t_embedded="$root/t_embedded"
+  mkdir -p "$t_embedded/app"
+  printf "module.exports = {}\n" > "$t_embedded/next.config.js"
+  printf '%s\n' \
+    'import SettingsModal from "./SettingsModal"' \
+    'export default function Page() { return isOpen ? <SettingsModal /> : <main>Home</main> }' > "$t_embedded/app/page.tsx"
+  printf 'export default function SettingsModal() { return <dialog>Settings</dialog> }\n' > "$t_embedded/app/SettingsModal.tsx"
+  local t_embedded_manifest t_embedded_status t_embedded_key
+  t_embedded_manifest="$(mktemp)"
+  t_embedded_status=0
+  perl -e 'alarm shift; exec @ARGV' 5 bash "$0" "$t_embedded" "$t_embedded_manifest" --view-switch-pattern 'isOpen' >/dev/null 2>&1 || t_embedded_status=$?
+  t_embedded_key="$(jq -r '.screens[] | select(.kind == "embedded-view") | .screenKey' "$t_embedded_manifest" 2>/dev/null | sed -n '1p' || true)"
+  if [ "$t_embedded_status" -eq 0 ] && [ "$t_embedded_key" = "settings-modal" ]; then
+    test_report "1-9-埋め込みビュー-スラッシュなしrouteの親探索停止" 0
+  else
+    test_report "1-9-埋め込みビュー-スラッシュなしrouteの親探索停止" 1 "status=$t_embedded_status key='$t_embedded_key'"
+  fi
+  rm -f "$t_embedded_manifest"
+
+  # --- 反例: React.createElementを返すpage.jsを処理エンドポイントに誤分類しない ---
+  local t_react_element="$root/t_react_element"
+  mkdir -p "$t_react_element/app/ui"
+  printf "module.exports = {}\n" > "$t_react_element/next.config.js"
+  printf '%s\n' \
+    'import React from "react"' \
+    'export default function Page() { return React.createElement("main", null, "UI") }' > "$t_react_element/app/ui/page.js"
+  local t_react_element_manifest t_react_element_status t_react_element_type t_react_element_processing t_react_element_template
+  t_react_element_manifest="$(mktemp)"
+  t_react_element_status=0
+  bash "$0" "$t_react_element" "$t_react_element_manifest" >/dev/null 2>&1 || t_react_element_status=$?
+  t_react_element_type="$(jq -r '.screens[] | select(.route == "/ui") | .screenType' "$t_react_element_manifest" 2>/dev/null || true)"
+  t_react_element_processing="$(jq -r '.screens[] | select(.route == "/ui") | .isProcessingEndpoint' "$t_react_element_manifest" 2>/dev/null || true)"
+  t_react_element_template="$(jq -r '.screens[] | select(.route == "/ui") | .hasTemplate' "$t_react_element_manifest" 2>/dev/null || true)"
+  if [ "$t_react_element_status" -eq 0 ] && [ "$t_react_element_type" = "detail" ] && [ "$t_react_element_processing" = "false" ] && [ "$t_react_element_template" = "true" ]; then
+    test_report "1-9-UI返却page.js-処理エンドポイント誤分類防止" 0
+  else
+    test_report "1-9-UI返却page.js-処理エンドポイント誤分類防止" 1 "status=$t_react_element_status type='$t_react_element_type' processing='$t_react_element_processing' template='$t_react_element_template'"
+  fi
+  rm -f "$t_react_element_manifest"
+
+  # --- 陰性: BFSで解決した子モーダルの実装だけでは親画面をモーダル扱いしない ---
+  local t_modal_parent="$root/t_modal_parent"
+  mkdir -p "$t_modal_parent/app/home"
+  printf "module.exports = {}\n" > "$t_modal_parent/next.config.js"
+  printf '%s\n' \
+    'import EditModal from "./EditModal"' \
+    'export default function Page() { return <main><EditModal /></main> }' > "$t_modal_parent/app/home/page.tsx"
+  printf '%s\n' \
+    'export default function EditModal({ onClose }) {' \
+    '  return <div role="dialog"><button onClick={onClose}>閉じる</button></div>' \
+    '}' > "$t_modal_parent/app/home/EditModal.tsx"
+  local t_modal_parent_manifest t_modal_parent_status t_modal_parent_value t_modal_parent_children
+  t_modal_parent_manifest="$(mktemp)"
+  t_modal_parent_status=0
+  bash "$0" "$t_modal_parent" "$t_modal_parent_manifest" >/dev/null 2>&1 || t_modal_parent_status=$?
+  t_modal_parent_value="$(jq -r '.screens[] | select(.screenKey == "home") | .parentScreen' "$t_modal_parent_manifest" 2>/dev/null || true)"
+  t_modal_parent_children="$(jq -r '.screens[] | select(.screenKey == "home") | (.childComponents | length)' "$t_modal_parent_manifest" 2>/dev/null || true)"
+  if [ "$t_modal_parent_status" -eq 0 ] && [ "$t_modal_parent_value" = "null" ] && [ "$t_modal_parent_children" = "0" ]; then
+    test_report "1-10-モーダル判定-BFS子実装で親を誤分類しない" 0
+  else
+    test_report "1-10-モーダル判定-BFS子実装で親を誤分類しない" 1 "status=$t_modal_parent_status parent='$t_modal_parent_value' children='$t_modal_parent_children'"
+  fi
+  rm -f "$t_modal_parent_manifest"
+
+  # --- 反例: 通常route自身のonCloseで同一entryFileの別routeを親にしない ---
+  local t_route_onclose="$root/t_route_onclose"
+  mkdir -p "$t_route_onclose/src"
+  printf '%s\n' \
+    'import { createBrowserRouter } from "react-router-dom"' \
+    'const Top = () => <main>Top</main>' \
+    'const Orders = () => {' \
+    '  const onClose = () => {}' \
+    '  return <main onClick={onClose}>Orders</main>' \
+    '}' \
+    'export const router = createBrowserRouter([' \
+    '  { path: "/top", element: <Top /> },' \
+    '  { path: "/orders", element: <Orders /> }' \
+    '])' > "$t_route_onclose/src/router.tsx"
+  local t_route_onclose_manifest t_route_onclose_status t_route_onclose_parent t_route_onclose_type
+  t_route_onclose_manifest="$(mktemp)"
+  t_route_onclose_status=0
+  bash "$0" "$t_route_onclose" "$t_route_onclose_manifest" >/dev/null 2>&1 || t_route_onclose_status=$?
+  t_route_onclose_parent="$(jq -r '.screens[] | select(.route == "/orders") | .parentScreen' "$t_route_onclose_manifest" 2>/dev/null || true)"
+  t_route_onclose_type="$(jq -r '.screens[] | select(.route == "/orders") | .componentType' "$t_route_onclose_manifest" 2>/dev/null || true)"
+  if [ "$t_route_onclose_status" -eq 0 ] && [ "$t_route_onclose_parent" = "null" ] && [ "$t_route_onclose_type" = "null" ]; then
+    test_report "1-10-モーダル判定-通常route自身のonCloseを除外" 0
+  else
+    test_report "1-10-モーダル判定-通常route自身のonCloseを除外" 1 "status=$t_route_onclose_status parent='$t_route_onclose_parent' type='$t_route_onclose_type'"
+  fi
+  rm -f "$t_route_onclose_manifest"
+
+  # --- 陽性: UIを返すpage.jsはテンプレートありであり、処理エンドポイントにしない ---
+  local t_page_js="$root/t_page_js"
+  mkdir -p "$t_page_js/app/dashboard"
+  printf "module.exports = {}\n" > "$t_page_js/next.config.js"
+  printf '%s\n' \
+    'import React from "react"' \
+    'export default function Page() { return React.createElement("main", null, "Dashboard") }' > "$t_page_js/app/dashboard/page.js"
+  local t_page_js_manifest t_page_js_status t_page_js_template t_page_js_endpoint
+  t_page_js_manifest="$(mktemp)"
+  t_page_js_status=0
+  bash "$0" "$t_page_js" "$t_page_js_manifest" >/dev/null 2>&1 || t_page_js_status=$?
+  t_page_js_template="$(jq -r '.screens[] | select(.screenKey == "dashboard") | .hasTemplate' "$t_page_js_manifest" 2>/dev/null || true)"
+  t_page_js_endpoint="$(jq -r '.screens[] | select(.screenKey == "dashboard") | .isProcessingEndpoint' "$t_page_js_manifest" 2>/dev/null || true)"
+  if [ "$t_page_js_status" -eq 0 ] && [ "$t_page_js_template" = "true" ] && [ "$t_page_js_endpoint" = "false" ]; then
+    test_report "1-9-page.js-UIを処理エンドポイントに誤分類しない" 0
+  else
+    test_report "1-9-page.js-UIを処理エンドポイントに誤分類しない" 1 "status=$t_page_js_status template='$t_page_js_template' endpoint='$t_page_js_endpoint'"
+  fi
+  rm -f "$t_page_js_manifest"
+
+  # --- 陽性: App Routerのpage.*でもrouteを補助根拠に確認画面へ分類する ---
+  local t_confirm_page="$root/t_confirm_page"
+  mkdir -p "$t_confirm_page/app/confirm"
+  printf "module.exports = {}\n" > "$t_confirm_page/next.config.js"
+  printf '%s\n' \
+    'export default function Page() { return <main>Confirm</main> }' > "$t_confirm_page/app/confirm/page.tsx"
+  local t_confirm_manifest t_confirm_status t_confirm_type t_confirm_endpoint
+  t_confirm_manifest="$(mktemp)"
+  t_confirm_status=0
+  bash "$0" "$t_confirm_page" "$t_confirm_manifest" >/dev/null 2>&1 || t_confirm_status=$?
+  t_confirm_type="$(jq -r '.screens[] | select(.route == "/confirm") | .screenType' "$t_confirm_manifest" 2>/dev/null || true)"
+  t_confirm_endpoint="$(jq -r '.screens[] | select(.route == "/confirm") | .isProcessingEndpoint' "$t_confirm_manifest" 2>/dev/null || true)"
+  if [ "$t_confirm_status" -eq 0 ] && [ "$t_confirm_type" = "confirm" ] && [ "$t_confirm_endpoint" = "false" ]; then
+    test_report "1-9-AppRouter-page.tsx-route補助でconfirm分類" 0
+  else
+    test_report "1-9-AppRouter-page.tsx-route補助でconfirm分類" 1 "status=$t_confirm_status type='$t_confirm_type' endpoint='$t_confirm_endpoint'"
+  fi
+  rm -f "$t_confirm_manifest"
+
+  # --- 陽性: BFSで解決した分離テンプレートと権限分岐を分類に反映する ---
+  local t_bfs="$root/t_bfs"
+  mkdir -p "$t_bfs/app/admin"
+  printf "module.exports = {}\n" > "$t_bfs/next.config.js"
+  printf '%s\n' \
+    'import ScreenBody from "./ScreenBody"' \
+    'export default function Page() { return <ScreenBody /> }' > "$t_bfs/app/admin/page.tsx"
+  printf '%s\n' \
+    'export default function ScreenBody() {' \
+    '  if (role === "admin") return <form><input /></form>' \
+    '  return <form><input /></form>' \
+    '}' > "$t_bfs/app/admin/ScreenBody.tsx"
+  printf '*\tfeature_phone\n' > "$t_bfs/account-group-map.tsv"
+  local t_bfs_manifest t_bfs_status t_bfs_type t_bfs_subtype t_bfs_group
+  t_bfs_manifest="$(mktemp)"
+  t_bfs_status=0
+  bash "$0" "$t_bfs" "$t_bfs_manifest" --account-group-map "$t_bfs/account-group-map.tsv" >/dev/null 2>&1 || t_bfs_status=$?
+  t_bfs_type="$(jq -r '.screens[] | select(.route=="/admin") | .screenType' "$t_bfs_manifest" 2>/dev/null || true)"
+  t_bfs_subtype="$(jq -r '.screens[] | select(.route=="/admin") | .accountSubType' "$t_bfs_manifest" 2>/dev/null || true)"
+  t_bfs_group="$(jq -r '.screens[] | select(.route=="/admin") | .accountGroup' "$t_bfs_manifest" 2>/dev/null || true)"
+  if [ "$t_bfs_status" -eq 0 ] && [ "$t_bfs_type" = "form" ] && [ "$t_bfs_subtype" = "role_checked" ] && [ "$t_bfs_group" = "common" ]; then
+    test_report "1-12-BFS分類-分離テンプレート権限分岐と無効map正規化" 0
+  else
+    test_report "1-12-BFS分類-分離テンプレート権限分岐と無効map正規化" 1 "status=$t_bfs_status type='$t_bfs_type' subtype='$t_bfs_subtype' group='$t_bfs_group'"
+  fi
+  rm -f "$t_bfs_manifest"
 
   rm -rf "$root"
 
@@ -2192,83 +2377,126 @@ extract_screen_id() {
 
 # 画面の階層分類を判定する
 classify_screen() {
-  local screen_key="$1" entry_file="$2" detection_method="$3" route_path="$4"
-  local screen_type="unknown" account_group="unknown" account_sub_type="common"
-  local has_template="false" is_processing_endpoint="false"
+  local screen_key="$1" entry_file="$2" detection_method="$3" route_path="$4" analysis_files="${5:-$2}"
+  local screen_type="unknown" account_group="common" account_sub_type="common"
+  local has_template="false" is_processing_endpoint="false" component_type=""
+  local has_processing_evidence="false"
   local parent_screen="null"
 
-  # Level 1: システムアカウント種別(detectionMethodのconfグループから判定)
-  # --account-group-map で指定した外部ファイル(グロブパターン\t分類値のTSV、
-  # 1行1パターン、上から順に最初に一致した行を採用)から読み込む。
-  # ファイル未指定/不在の場合はdetectionMethodの値をそのままaccountGroupとする
-  # (プロジェクト固有の分類値をスキル本体にハードコードしないためのフォールバック)。
+  # Level 1: 許可値へ正規化する。mapの無効値はフォールバックではなく common とする。
+  local account_group_explicit="false" map_pattern map_value
+  normalize_account_group() {
+    case "$(printf '%s' "$1" | tr '[:upper:]' '[:lower:]')" in
+      user|admin|editor|report|common) printf '%s' "$(printf '%s' "$1" | tr '[:upper:]' '[:lower:]')" ;;
+      *) printf '%s' "" ;;
+    esac
+  }
+
   if [ -n "$ACCOUNT_GROUP_MAP_FILE" ] && [ -f "$ACCOUNT_GROUP_MAP_FILE" ]; then
-    local map_pattern map_value
     while IFS=$'\t' read -r map_pattern map_value; do
       [ -z "$map_pattern" ] && continue
       case "$detection_method" in
-        $map_pattern) account_group="$map_value"; break ;;
+        $map_pattern)
+          account_group="$(normalize_account_group "$map_value")"
+          [ -n "$account_group" ] || account_group="common"
+          account_group_explicit="true"
+          break
+          ;;
       esac
       case "$route_path" in
-        $map_pattern) account_group="$map_value"; break ;;
+        $map_pattern)
+          account_group="$(normalize_account_group "$map_value")"
+          [ -n "$account_group" ] || account_group="common"
+          account_group_explicit="true"
+          break
+          ;;
       esac
     done < "$ACCOUNT_GROUP_MAP_FILE"
-  else
-    account_group="$detection_method"
   fi
 
-  # Level 2: 権限区分(entryFileの権限チェックパターンから推定)
-  if [ -f "$entry_file" ]; then
-    local role_match
-    role_match=$(grep -aoE '(requireRole|hasRole|roles:|@RolesAllowed)\s*[\(\[="'"'"']\s*[A-Za-z_]+' "$entry_file" 2>/dev/null | head -1 | grep -oE '[A-Za-z_]+$')
+  if [ "$account_group_explicit" = "false" ]; then
+    case "$route_path" in
+      /admin|/admin/*) account_group="admin" ;;
+      /editor|/editor/*) account_group="editor" ;;
+      /report|/report/*|/reports|/reports/*) account_group="report" ;;
+      /user|/user/*|/users|/users/*|/member|/member/*) account_group="user" ;;
+    esac
+  fi
+  if [ "$account_group_explicit" = "false" ] && [ "$account_group" = "common" ]; then
+    case "$(printf '%s' "$detection_method" | tr '[:upper:]' '[:lower:]')" in
+      *admin*|*manage*) account_group="admin" ;;
+      *editor*) account_group="editor" ;;
+      *report*) account_group="report" ;;
+      *user*|*member*|*customer*) account_group="user" ;;
+    esac
+  fi
+
+  # Level 2: 権限区分はentryFileだけでなくBFS解決済みファイル全体から判定する。
+  local analysis_file role_match branch_role_match
+  while IFS= read -r analysis_file; do
+    [ -f "$analysis_file" ] || continue
+    role_match="$(grep -aoE '(requireRole|hasRole|roles:|@RolesAllowed)[^[:alnum:]_]+[A-Za-z_]+' "$analysis_file" 2>/dev/null | sed -n '1p' | grep -aoE '[A-Za-z_]+$' || true)"
     if [ -n "$role_match" ]; then
       account_sub_type="$role_match"
+      break
     fi
-    # 条件分岐による権限チェックパターン(アノテーションで検出できなかった場合)
-    if [ "$account_sub_type" = "common" ]; then
-      local branch_role_match
-      branch_role_match=$(grep -aoE '(if|switch|case).*\b(role|permission|auth|access)\b' "$entry_file" 2>/dev/null | head -1)
-      if [ -n "$branch_role_match" ]; then
-        account_sub_type="role_checked"
-      fi
+    branch_role_match="$(grep -aoE '(if|switch|case).*(role|permission|auth|access)' "$analysis_file" 2>/dev/null | sed -n '1p' || true)"
+    if [ -n "$branch_role_match" ]; then
+      account_sub_type="role_checked"
+      break
     fi
-  fi
+  done <<< "$analysis_files"
 
-  # Level 3: 画面種別(DOM構造分析を主軸、ファイル名マッチを補助)
-  # (1) DOM構造分析(主軸)
-  if [ -f "$entry_file" ]; then
-    if grep -aqE '<form[\s>]' "$entry_file" 2>/dev/null; then
-      screen_type="form"
-    elif grep -aqE '<table[\s>]' "$entry_file" 2>/dev/null; then
-      screen_type="list"
+  # Level 3: 分離テンプレート・副作用importも含めてDOMとテンプレート実体を判定する。
+  local has_form="false" has_table="false"
+  while IFS= read -r analysis_file; do
+    [ -f "$analysis_file" ] || continue
+    grep -aqE '<form[[:space:]>]' "$analysis_file" 2>/dev/null && has_form="true"
+    grep -aqE '<table[[:space:]>]' "$analysis_file" 2>/dev/null && has_table="true"
+    case "$analysis_file" in
+      *.html|*.htm|*.tt|*.tx|*.tsx|*.jsx|*.vue|*.svelte) has_template="true" ;;
+    esac
+    if grep -aqE '(render|render_template|renderToString|template|view|include|includeTemplate)[[:space:]]*\(' "$analysis_file" 2>/dev/null; then
+      has_template="true"
     fi
+    # 拡張子が .js のUI実装もあるため、React.createElement / JSX の実在を
+    # テンプレート根拠として扱う。ファイル拡張子だけで判定すると、UIを返す
+    # App Routerのpage.jsを処理エンドポイントへ誤分類する。
+    if grep -aqE 'React\.createElement[[:space:]]*\(|return[[:space:]]*\(?[[:space:]]*<[[:alpha:]]' "$analysis_file" 2>/dev/null; then
+      has_template="true"
+    fi
+  done <<< "$analysis_files"
+  if [ "$has_form" = "true" ]; then
+    screen_type="form"
+  elif [ "$has_table" = "true" ]; then
+    screen_type="list"
   fi
 
   # basename_lower: モーダル判定(2272行)でも参照するため、screenType判定の外で代入する
   local basename_lower
   basename_lower="$(basename "$entry_file" 2>/dev/null | tr '[:upper:]' '[:lower:]')"
 
-  # (2) ファイル名キーワード(補助。DOMで判定できなかった場合のみ)
+  # (2) 名前・routeキーワード(補助。DOMで判定できなかった場合のみ)
+  # App Router の entryFile は page.* で固定されるため、basenameだけでは
+  # /confirm/page.tsx のような画面種別を区別できない。routeとscreenKeyも
+  # 補助根拠にし、境界で区切られた語だけを扱って曖昧な部分一致を避ける。
   if [ "$screen_type" = "unknown" ]; then
-    case "$basename_lower" in
-      *list*|*index*|*search*) screen_type="list" ;;
-      *detail*|*show*|*view*) screen_type="detail" ;;
-      *edit*|*form*|*input*|*new*|*create*|*update*) screen_type="form" ;;
-      *confirm*) screen_type="confirm" ;;
-      *complete*|*done*|*finish*) screen_type="complete" ;;
-      *error*|*404*|*500*) screen_type="error" ;;
-      *top*|*home*|*dashboard*) screen_type="top" ;;
-    esac
-  fi
-
-  # hasTemplate: テンプレートファイルの存在推定(entryFileの拡張子がhtml等)
-  case "$entry_file" in
-    *.html|*.htm|*.tt|*.tx|*.tsx|*.jsx|*.vue|*.svelte) has_template="true" ;;
-  esac
-  # テンプレート呼び出し関数の検出(拡張子で判定できなかった場合)
-  if [ "$has_template" = "false" ] && [ -f "$entry_file" ]; then
-    if grep -aoE '(render|render_template|template|view)\s*\(' "$entry_file" >/dev/null 2>&1; then
-      has_template="true"
+    local screen_type_hints
+    screen_type_hints="$(printf '%s\n%s\n%s' "$basename_lower" "$screen_key" "$route_path" | tr '[:upper:]' '[:lower:]')"
+    if printf '%s\n' "$screen_type_hints" | grep -aqE '(^|[/_.-])(confirm|confirmation)([/_.-]|$)'; then
+      screen_type="confirm"
+    elif printf '%s\n' "$screen_type_hints" | grep -aqE '(^|[/_.-])(complete|completion|done|finish)([/_.-]|$)'; then
+      screen_type="complete"
+    elif printf '%s\n' "$screen_type_hints" | grep -aqE '(^|[/_.-])(error|404|500)([/_.-]|$)'; then
+      screen_type="error"
+    elif printf '%s\n' "$screen_type_hints" | grep -aqE '(^|[/_.-])(list|index|search)([/_.-]|$)'; then
+      screen_type="list"
+    elif printf '%s\n' "$screen_type_hints" | grep -aqE '(^|[/_.-])(edit|form|input|new|create|update)([/_.-]|$)'; then
+      screen_type="form"
+    elif printf '%s\n' "$screen_type_hints" | grep -aqE '(^|[/_.-])(top|home|dashboard)([/_.-]|$)'; then
+      screen_type="top"
+    elif printf '%s\n' "$screen_type_hints" | grep -aqE '(^|[/_.-])(detail|show|view)([/_.-]|$)'; then
+      screen_type="detail"
     fi
   fi
 
@@ -2278,36 +2506,93 @@ classify_screen() {
     screen_type="detail"
   fi
 
-  # isProcessingEndpoint: テンプレートなし+リダイレクト/処理のみのハンドラ
-  if [ "$has_template" = "false" ] && [ "$screen_type" = "unknown" ]; then
+  # isProcessingEndpoint: UI/テンプレートが見つからないだけでは処理エンドポイントに
+  # しない。entryFile自身のリダイレクトまたは非HTML応答を根拠にする。
+  if [ -f "$entry_file" ] && grep -aqE '(redirect[[:space:]]*\(|NextResponse\.redirect[[:space:]]*\(|res\.redirect[[:space:]]*\(|return[[:space:]]+new[[:space:]]+Response[[:space:]]*\(|res\.(json|send)[[:space:]]*\(|Content-Type[^[:cntrl:]]*(application/json|text/plain|application/octet-stream))' "$entry_file" 2>/dev/null; then
+    has_processing_evidence="true"
+  fi
+  if [ "$has_template" = "false" ] && [ "$screen_type" = "unknown" ] && [ "$has_processing_evidence" = "true" ]; then
     is_processing_endpoint="true"
     screen_type="processing_endpoint"
+  elif [ "$screen_type" = "unknown" ]; then
+    # UI/処理のどちらとも断定できないファイルは処理エンドポイントへ倒さず、
+    # 汎用の参照画面(detail)として出力する。
+    screen_type="detail"
   fi
 
-  # parentScreen: モーダル判定(ファイル名 or 開閉ハンドラの有無)から親画面を推定
+  # parentScreen: モーダル判定は画面自身のentryFileに限定する。BFS関連ファイルは
+  # テンプレート・権限の根拠には使うが、子モーダルのonClose等を親画面の性質として
+  # 扱うと、通常画面までモーダルとして誤って親子関係を持つ。
   local entry_basename
   entry_basename="$basename_lower"
   local is_modal=false
-  if echo "$entry_basename" | grep -qiE '(modal|dialog|popup|drawer)'; then
+  local analysis_basename
+  if printf '%s\n%s\n' "$screen_key" "$route_path" | grep -qiE '(^|[/._-])(modal|dialog|popup|drawer)([/._-]|$)'; then
     is_modal=true
-  elif [ -f "$entry_file" ] && grep -aqiE '(isOpen|isVisible|showModal|onClose|handleClose)' "$entry_file" 2>/dev/null; then
-    is_modal=true
+    case "$(printf '%s %s' "$screen_key" "$route_path" | tr '[:upper:]' '[:lower:]')" in
+      *iframe*) component_type="iframe" ;;
+      *popup*|*window*) component_type="popup" ;;
+      *) component_type="modal" ;;
+    esac
   fi
-
-  if [ "$is_modal" = true ]; then
-    # 同じディレクトリの親画面(モーダルでないファイル)を探す
-    local parent_dir
-    parent_dir=$(dirname "$entry_file")
-    local parent_candidate
-    parent_candidate=$(find "$parent_dir" -maxdepth 1 -name "*.tsx" -o -name "*.ts" -o -name "*.html" | grep -viE '(modal|dialog|popup|drawer)' | head -1)
-    if [ -n "$parent_candidate" ]; then
-      local parent_key
-      parent_key=$(basename "$parent_candidate" | sed 's/\.[^.]*$//' | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/-/g')
-      parent_screen="\"$parent_key\""
+  # 通常route自身の開閉イベントは、モーダルである根拠にならない。isOpen/onClose
+  # は通常画面にも現れるため、挙動の一致だけで親子関係を作ると、同一entryFile
+  # から検出された別routeを親としてしまう。名称根拠のない挙動判定は、明示的に
+  # 別componentとして検出済みの embedded-view にだけ許可する。
+  if [ "$detection_method" = "embedded-view-heuristic" ] && [ -f "$entry_file" ]; then
+    analysis_basename="$(basename "$entry_file" 2>/dev/null | tr '[:upper:]' '[:lower:]')"
+    if grep -aqiE '(window\.open|showModal|isOpen|isVisible|onClose|handleClose|position[[:space:]]*:[[:space:]]*fixed|<iframe)' "$entry_file" 2>/dev/null; then
+      is_modal=true
+      case "$analysis_basename" in
+        *iframe*|*.iframe.*) component_type="iframe" ;;
+        *popup*|*window*|*open*) [ -n "$component_type" ] || component_type="popup" ;;
+        *) [ -n "$component_type" ] || component_type="modal" ;;
+      esac
     fi
   fi
+  [ "$is_modal" = "true" ] && [ -z "$component_type" ] && component_type="modal"
 
-  printf '%s\t%s\t%s\t%s\t%s\t%s' "$screen_type" "$account_group" "$account_sub_type" "$has_template" "$is_processing_endpoint" "$parent_screen"
+  if [ "$is_modal" = true ]; then
+    # 同一ディレクトリを優先し、見つからなければ祖先ディレクトリにある
+    # 非モーダル画面の実在screenKeyを親として解決する。App Routerでは
+    # /user/page.tsx と /user/edit-modal/page.tsx がこの関係になる。
+    local parent_dir
+    if [ -d "$entry_file" ]; then
+      parent_dir="$entry_file"
+    else
+      parent_dir=$(dirname "$entry_file")
+    fi
+    local parent_key parent_route_candidate parent_search_dir parent_next_dir
+    parent_key=""
+    parent_route_candidate="$route_path"
+    while [ -z "$parent_key" ] && [ -n "$parent_route_candidate" ] && [ "$parent_route_candidate" != "/" ]; do
+      case "$parent_route_candidate" in
+        */*) parent_route_candidate="${parent_route_candidate%/*}" ;;
+        *) parent_route_candidate="/" ;;
+      esac
+      [ -n "$parent_route_candidate" ] || parent_route_candidate="/"
+      parent_key="$(awk -F'\t' -v child="$screen_key" -v route="$parent_route_candidate" '
+        $1 != child && $3 == route { print $1; exit }
+      ' "$TMP_ALL" 2>/dev/null || true)"
+    done
+    parent_search_dir="$parent_dir"
+    while [ -z "$parent_key" ] && [ -n "$parent_search_dir" ]; do
+      parent_key="$(awk -F'\t' -v child="$screen_key" -v dir="$parent_search_dir" '
+        $1 != child && $4 == dir && $5 !~ /(modal|dialog|popup|drawer)/ { print $1; exit }
+      ' "$TMP_ALL" 2>/dev/null || true)"
+      [ -n "$parent_key" ] && break
+      [ "$parent_search_dir" = "$SOURCE_DIR" ] && break
+      parent_next_dir="$(dirname "$parent_search_dir")"
+      [ "$parent_next_dir" = "$parent_search_dir" ] && break
+      case "$parent_next_dir" in
+        "$SOURCE_DIR"|"$SOURCE_DIR"/*) parent_search_dir="$parent_next_dir" ;;
+        *) break ;;
+      esac
+    done
+    [ -n "$parent_key" ] && parent_screen="\"$(json_escape "$parent_key")\""
+  fi
+
+  printf '%s\t%s\t%s\t%s\t%s\t%s\t%s' "$screen_type" "$account_group" "$account_sub_type" "$has_template" "$is_processing_endpoint" "$parent_screen" "$component_type"
 }
 
 # --- 既に route 画面の entryFile として検出済みの basename(拡張子なし)集合 ---
@@ -2603,8 +2888,8 @@ awk -F'\t' '$5!=""{print $5}' "$TMP_ALL" | sort -u > "$STRATEGY_ALL_ENTRIES_FILE
       detection_method_field="embedded-view-heuristic"
     fi
 
-    IFS=$'\t' read -r classify_screen_type classify_account_group classify_account_sub_type classify_has_template classify_is_processing_endpoint classify_parent_screen \
-      <<< "$(classify_screen "$key" "$entry_file" "$detection_method_field" "$route")"
+    IFS=$'\t' read -r classify_screen_type classify_account_group classify_account_sub_type classify_has_template classify_is_processing_endpoint classify_parent_screen classify_component_type \
+      <<< "$(classify_screen "$key" "$entry_file" "$detection_method_field" "$route" "$files")"
 
     [ "$first" -eq 1 ] || printf ',\n'
     first=0
@@ -2633,6 +2918,11 @@ awk -F'\t' '$5!=""{print $5}' "$TMP_ALL" | sort -u > "$STRATEGY_ALL_ENTRIES_FILE
     printf '      "hasTemplate": %s,\n' "$classify_has_template"
     printf '      "isProcessingEndpoint": %s,\n' "$classify_is_processing_endpoint"
     printf '      "parentScreen": %s,\n' "$classify_parent_screen"
+    if [ -n "$classify_component_type" ]; then
+      printf '      "componentType": "%s",\n' "$(json_escape "$classify_component_type")"
+    else
+      printf '      "componentType": null,\n'
+    fi
     printf '      "childComponents": []\n'
     printf '    }'
   done < "$TMP_ALL"
@@ -2640,7 +2930,7 @@ awk -F'\t' '$5!=""{print $5}' "$TMP_ALL" | sort -u > "$STRATEGY_ALL_ENTRIES_FILE
   printf '}\n'
 } > "$MANIFEST_OUT"
 
-# childComponents 後処理: parentScreen の逆引きで実値を埋める
+# childComponents 後処理: モーダル候補を統合前の $all から逆引きするため、候補を失わない。
 if command -v jq >/dev/null 2>&1 && [ -f "$MANIFEST_OUT" ]; then
   tmp_manifest="${MANIFEST_OUT}.childcomp"
   jq '
@@ -2648,7 +2938,11 @@ if command -v jq >/dev/null 2>&1 && [ -f "$MANIFEST_OUT" ]; then
     .screens |= [
       .[] |
       . as $s |
-      .childComponents = [$all[] | select(.parentScreen == $s.screenKey) | .screenKey]
+      .childComponents = [$all[] | select(.parentScreen == $s.screenKey) | {
+        screenKey: .screenKey,
+        componentType: (.componentType // "modal")
+      }] |
+      del(.componentType)
     ]
   ' "$MANIFEST_OUT" > "$tmp_manifest" 2>/dev/null && mv "$tmp_manifest" "$MANIFEST_OUT"
 fi

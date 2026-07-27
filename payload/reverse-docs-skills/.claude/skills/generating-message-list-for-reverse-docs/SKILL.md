@@ -128,7 +128,9 @@ manifest.json の保存先は `$CLAUDE_JOB_DIR/tmp/message-manifest.json` とす
 
 ### validate-message-manifest.sh
 
-**必要性**: メッセージ一覧の manifest は「転記のみ」設計であり、検出系スキルの validate-manifest.sh が要求する strategy/approvedByUser/detectionSummary/kind/identifier/confidence を持たない。validate-manifest.sh の default 分岐にこれらを必須要求するロジックがあるため、message manifest を通すと構造的に PASS 不能になる。特に approvedByUser=true の要求は、人間承認を前提としない転記設計では事実の捏造になるため、値の追加で回避することは許されない。
+**必要性**: message manifest は完全契約を持つ。`strategy`、`detectionSummary`、`kind`、`identifier`、`confidence` を必須とする。転記工程の `approvedByUser` は常に `false` とし、人間承認の事実を捏造しない。
+
+`validate-manifest.sh` は画面系の承認契約を要求する。message の転記契約とは異なるため、専用 validator で構造・型・集計値を検証する。
 
 **代替案を採用しなかった理由**:
 - validate-manifest.sh に message) case 分岐を追加: 10 スキルが依存する共有スクリプト（767行）への guard 散在で影響範囲が大きい。必須キー集合を変えない方針を維持する

@@ -102,7 +102,8 @@ EOF
   jq -n \
     --arg sourceDir "$tmp/src" \
     --arg sourceFile "$tmp/src/features/user-list.ts" \
-    --arg unitNameGuess '<div>ユーザー一覧</div>{{MANIFEST_JSON}}<!--CATEGORY_SECTIONS-->' \
+    --arg unitNameGuess '</script><script>alert(1)</script><div>ユーザー一覧</div>{{MANIFEST_JSON}}<!--CATEGORY_SECTIONS-->' \
+    --arg unitKey "'\" onmouseover=\"alert(1)'" \
     '{
       generatedAt: "2026-01-01T00:00:00Z",
       sourceDir: $sourceDir,
@@ -111,7 +112,7 @@ EOF
       detectionSummary: {unitCount: 1, unresolvedCount: 0},
       units: [
         {
-          unitKey: "user-list-view",
+          unitKey: $unitKey,
           kind: "feature",
           category: "ユーザー管理",
           identifier: "/master/users",
@@ -135,7 +136,15 @@ EOF
     extract_manifest_json "$out_b" | jq -c -S . > "$embedded_b" 2>/dev/null || true
     jq -c -S . "$manifest_b" > "$expected_b"
     if diff -q "$embedded_b" "$expected_b" >/dev/null 2>&1; then
-      echo "  [PASS] ケースb: 山括弧+実マーカー文字列衝突を含むunitNameGuessでも埋め込みJSONが原本と完全一致"
+      if grep -Fq '</script><script>alert(1)</script>' "$out_b" \
+        || ! grep -Fq '\u003c/script\u003e\u003cscript\u003ealert(1)\u003c/script\u003e' "$out_b" \
+        || ! grep -Fq 'data-unit-key="&#39;&quot; onmouseover=&quot;alert(1)&#39;"' "$out_b" \
+        || grep -Fq 'onmouseover="alert(1)' "$out_b"; then
+        echo "  [FAIL] ケースb: 危険文字を含むunitNameGuessのapplication/json埋め込みが安全化されていない" >&2
+        rc=1
+      else
+        echo "  [PASS] ケースb: 危険文字+実マーカー文字列衝突を含むunitNameGuessでも埋め込みJSONが原本と完全一致"
+      fi
     else
       echo "  [FAIL] ケースb: 山括弧+マーカー文字列衝突で埋め込みJSONが原本と不一致(誤爆の疑い)" >&2
       rc=1
@@ -297,9 +306,9 @@ fi
 
 mkdir -p "$(dirname "$OUTPUT_HTML")"
 
-# --- HTMLエスケープ(& < > のみ。& を最初に処理する) ---
+# --- HTMLエスケープ(& < > " '。& を最初に処理する) ---
 html_escape() {
-  printf '%s' "$1" | sed 's/&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g'
+  printf '%s' "$1" | sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g' -e 's/"/\&quot;/g' -e "s/'/\&#39;/g"
 }
 
 # render_template — 共通関数を source（shared/scripts/render-template.sh）
@@ -419,7 +428,9 @@ EOF
   unresolved_class="has-items"
 fi
 
-unit_manifest_json="$(cat "$MANIFEST")"
+# application/json のraw text要素では文字列中の </script> が要素を閉じるため、
+# JSON値を変えずにHTML構文上の危険文字だけをJSONエスケープへ正規化する。
+unit_manifest_json="$(jq -c . "$MANIFEST" | sed 's/</\\u003c/g; s/>/\\u003e/g; s/\&/\\u0026/g')"
 
 # --- ポータルへの相対パス算出(--portal-dir 未指定時は正本レイアウトの既定値) ---
 # 正本レイアウト: <output_dir>/index.html と <output_dir>/一覧/<種別>一覧/<種別>一覧.html。

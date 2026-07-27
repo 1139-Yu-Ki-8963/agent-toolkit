@@ -21,12 +21,13 @@ allowed-tools: [Read, Bash, Write, Edit, Grep, Glob]
 - 起動引数: `output_dir`（per-screen 観点表の所在かつ出力先）・`portal_output_dir`（任意）
 - `portal_output_dir` を指定した場合、生成後に `build-portal.sh` を再実行してカードへ反映する
 
-出力先は `<output_dir>/一覧/テスト観点表一覧/テスト観点表.html` に固定する。
+出力先は `<output_dir>/一覧/テスト観点表/テスト観点表.html` に固定する。
+既存サンプルと `build-portal.sh` の派生一覧探索名を照合して確定した定義である。
 
 ## 設計原則
 
 - **転記のみ** — 観点の妥当性・網羅性は判定しない。per-screen 観点表.md に記載された事実（画面・テスト種別・カテゴリ・観点文言）のみを転記する
-- **固定と可変の分離** — 抽出（`aggregate-test-viewpoints.sh`）・整合検証（`validate-manifest.sh`）・HTML 生成（`build-unit-list.sh`）はすべて決定的スクリプトに固定する。画面横断の走査・種別判定（ファイル名に「単体」/「結合」を含むか）も抽出スクリプト側の機械的パターンマッチに閉じる
+- **固定と可変の分離** — 抽出・整合検証・HTML 生成は、それぞれ決定的スクリプトに固定する。画面横断の走査と種別判定も、抽出スクリプト側の機械的パターンマッチに閉じる
 
 ## エンジンスクリプトの所在
 
@@ -35,7 +36,7 @@ allowed-tools: [Read, Bash, Write, Edit, Grep, Glob]
 | スクリプト | パス（スキルフォルダ基点） |
 |---|---|
 | manifest 横断集約 | `../../../shared/scripts/extract/aggregate-test-viewpoints.sh` |
-| 整合検証 | `../../../shared/scripts/unit-list/validate-manifest.sh` |
+| 整合検証 | `../../../shared/scripts/unit-list/validate-test-viewpoint-manifest.sh` |
 | HTML生成 | `../../../shared/scripts/unit-list/build-unit-list.sh` |
 | ポータル再生成（任意） | `../../../shared/scripts/build-portal.sh` |
 
@@ -62,17 +63,17 @@ manifest.json の保存先は `$CLAUDE_JOB_DIR/tmp/test-viewpoint-manifest.json`
 - **Step 1** — 整合検証スクリプトを実行する。完了条件: 全項目 PASS
 
   ```
-  ../../../shared/scripts/unit-list/validate-manifest.sh <manifest.json> --unit-kind test_viewpoint
+  ../../../shared/scripts/unit-list/validate-test-viewpoint-manifest.sh <manifest.json>
   ```
 
 - **Step 2** — FAIL 時は指摘に応じて manifest を修正し Step 1 を再実行する。3 回失敗したら Phase 2（集約スクリプトの入力＝per-screen 観点表.md の記法）の見直しへ差し戻す。完了条件: exit 0
 
 ### Phase 4: テスト観点表.html 生成
 
-- **Step 1** — HTML 生成スクリプトを実行する。完了条件: `<output_dir>/一覧/テスト観点表一覧/テスト観点表.html` が生成済み
+- **Step 1** — HTML 生成スクリプトを実行する。完了条件: `<output_dir>/一覧/テスト観点表/テスト観点表.html` が生成済み
 
   ```
-  ../../../shared/scripts/unit-list/build-unit-list.sh <manifest.json> <output_dir>/一覧/テスト観点表一覧/テスト観点表.html --unit-kind test_viewpoint
+  ../../../shared/scripts/unit-list/build-unit-list.sh <manifest.json> <output_dir>/一覧/テスト観点表/テスト観点表.html --unit-kind test_viewpoint
   ```
 
 - **Step 2** — `portal_output_dir` が指定されていればポータル再生成スクリプトを実行しカードへ反映する。未指定なら省略し完了報告に注記する。完了条件: 再実行済み、または省略を注記済み
@@ -89,8 +90,8 @@ manifest.json の保存先は `$CLAUDE_JOB_DIR/tmp/test-viewpoint-manifest.json`
 |---|---|
 | Phase 1 | per-screen 観点表の 1 件以上の実在確認済み、または不在を報告して停止している |
 | Phase 2 | manifest JSON が横断集約済み、集約結果（件数・種別内訳・画面内訳）を確認済み |
-| Phase 3 | `validate-manifest.sh --unit-kind test_viewpoint` が全項目 PASS |
-| Phase 4 | `<output_dir>/一覧/テスト観点表一覧/テスト観点表.html` が生成され、指定時は `build-portal.sh` の再実行が完了している |
+| Phase 3 | `validate-test-viewpoint-manifest.sh` が全項目 PASS |
+| Phase 4 | `<output_dir>/一覧/テスト観点表/テスト観点表.html` が生成され、指定時は `build-portal.sh` の再実行が完了している |
 | **Goal** | per-screen 観点表.md の事実のみからテスト観点表.html が画面横断で生成され、0 件の場合もその旨が可視化されている |
 
 ## 返却ブロック
@@ -119,7 +120,7 @@ manifest.json の保存先は `$CLAUDE_JOB_DIR/tmp/test-viewpoint-manifest.json`
 
 ## 完了報告
 
-`~/.claude/skills/managing-agent-configs/references/skills/completion-report-format.md` の作業報告型に従う。固有差分として「検証」テーブルに `validate-manifest.sh --unit-kind test_viewpoint` の PASS/FAIL 行を追加する。
+`~/.claude/skills/managing-agent-configs/references/skills/completion-report-format.md` の作業報告型に従う。固有差分として「検証」テーブルに `validate-test-viewpoint-manifest.sh` の PASS/FAIL 行を追加する。
 
 ## 参照資料
 

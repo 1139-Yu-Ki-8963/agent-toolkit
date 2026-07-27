@@ -34,6 +34,10 @@ run_validate() {
       top_ok=1
     fi
   done
+  if ! jq -e '(.generatedAt | type) == "string" and (.generatedAt | length) > 0 and (.units | type) == "array" and (.summary | type) == "object"' "$manifest" >/dev/null 2>&1; then
+    echo "    generatedAt must be a non-empty string; units must be an array; summary must be an object" >&2
+    top_ok=1
+  fi
   report "schema-トップレベル必須" "$top_ok"
 
   # 2. unitKind-一致
@@ -56,6 +60,16 @@ run_validate() {
       item_ok=1
     fi
   done
+  if ! jq -e '[.units[]? | select(
+    (.unitKey | type) != "string"
+    or (.screenKey | type) != "string"
+    or (.testType | type) != "string"
+    or (.category | type) != "string"
+    or (.viewpoint | type) != "string"
+  )] | length == 0' "$manifest" >/dev/null 2>&1; then
+    echo "    unitKey/screenKey/testType/category/viewpoint must be strings" >&2
+    item_ok=1
+  fi
   report "schema-ユニット必須" "$item_ok"
 
   # 4. 重複-unitKey
@@ -71,11 +85,27 @@ run_validate() {
 
   # 5. summary-一致
   local sum_ok=0
-  local declared_total actual_total
+  local declared_total actual_total declared_by_test_type actual_by_test_type declared_by_screen actual_by_screen
   declared_total=$(jq '.summary.totalCount // -1' "$manifest" 2>/dev/null || echo -1)
   actual_total=$(jq '.units | length' "$manifest" 2>/dev/null || echo 0)
-  if [ "$declared_total" != "$actual_total" ]; then
-    echo "    totalCount mismatch: declared=$declared_total actual=$actual_total" >&2
+  declared_by_test_type=$(jq -cS '.summary.byTestType // null' "$manifest" 2>/dev/null || echo null)
+  actual_by_test_type=$(jq -cS '[.units[]?] | group_by(.testType) | map({key: .[0].testType, value: length}) | from_entries' "$manifest" 2>/dev/null || echo '{}')
+  declared_by_screen=$(jq -cS '.summary.byScreen // null' "$manifest" 2>/dev/null || echo null)
+  actual_by_screen=$(jq -cS '[.units[]?] | group_by(.screenKey) | map({key: .[0].screenKey, value: length}) | from_entries' "$manifest" 2>/dev/null || echo '{}')
+  if ! jq -e '
+    (.summary.totalCount | type) == "number"
+    and (.summary.totalCount | floor) == .summary.totalCount
+    and .summary.totalCount >= 0
+    and (.summary.byTestType | type) == "object"
+    and all(.summary.byTestType[]?; (type == "number") and (floor == .) and . >= 0)
+    and (.summary.byScreen | type) == "object"
+    and all(.summary.byScreen[]?; (type == "number") and (floor == .) and . >= 0)
+  ' "$manifest" >/dev/null 2>&1; then
+    echo "    summary must declare non-negative integer totalCount/byTestType/byScreen" >&2
+    sum_ok=1
+  fi
+  if [ "$declared_total" != "$actual_total" ] || [ "$declared_by_test_type" != "$actual_by_test_type" ] || [ "$declared_by_screen" != "$actual_by_screen" ]; then
+    echo "    summary mismatch: total=$declared_total/$actual_total byTestType=$declared_by_test_type/$actual_by_test_type byScreen=$declared_by_screen/$actual_by_screen" >&2
     sum_ok=1
   fi
   report "summary-一致" "$sum_ok"
@@ -96,7 +126,7 @@ self_test() {
 
   local pass_fixture="$tmp/pass.json"
   cat > "$pass_fixture" <<'JSON'
-{"unitKind":"test_viewpoint","generatedAt":"2026-01-01","units":[{"unitKey":"login-submit-1","screenKey":"screen-login","testType":"unit","category":"境界値","viewpoint":"金額下限"},{"unitKey":"login-empty-2","screenKey":"screen-login","testType":"unit","category":"異常系","viewpoint":"空入力"}],"summary":{"totalCount":2}}
+{"unitKind":"test_viewpoint","generatedAt":"2026-01-01T00:00:00Z","units":[{"unitKey":"login-submit-1","screenKey":"screen-login","testType":"unit","category":"境界値","viewpoint":"金額下限"},{"unitKey":"login-empty-2","screenKey":"screen-login","testType":"unit","category":"異常系","viewpoint":"空入力"}],"summary":{"totalCount":2,"byTestType":{"unit":2},"byScreen":{"screen-login":2}}}
 JSON
 
   if run_validate "$pass_fixture" >/dev/null 2>&1; then
@@ -113,6 +143,15 @@ JSON
     rc=1
   else
     echo "  [PASS] 陰性(トップレベル欠落): summary欠落でFAIL"
+  fi
+
+  local bad_units_type="$tmp/bad-units-type.json"
+  jq '.units = {} | .summary.totalCount = 0' "$pass_fixture" > "$bad_units_type"
+  if run_validate "$bad_units_type" >/dev/null 2>&1; then
+    echo "  [FAIL] 陰性(units型): unitsがobjectなのにPASSした" >&2
+    rc=1
+  else
+    echo "  [PASS] 陰性(units型): unitsがobjectでFAIL"
   fi
 
   local bad_kind="$tmp/bad-kind.json"
@@ -133,6 +172,18 @@ JSON
     echo "  [PASS] 陰性(ユニットキー欠落): viewpoint欠落でFAIL"
   fi
 
+  local required_key bad_unit_type
+  for required_key in unitKey screenKey testType category viewpoint; do
+    bad_unit_type="$tmp/bad-unit-type-${required_key}.json"
+    jq --arg k "$required_key" '.units[0][$k] = null' "$pass_fixture" > "$bad_unit_type"
+    if run_validate "$bad_unit_type" >/dev/null 2>&1; then
+      echo "  [FAIL] 陰性(ユニット値型): ${required_key}=nullなのにPASSした" >&2
+      rc=1
+    else
+      echo "  [PASS] 陰性(ユニット値型): ${required_key}=nullでFAIL"
+    fi
+  done
+
   local dup_key="$tmp/dup-key.json"
   jq '.units[1].unitKey = .units[0].unitKey' "$pass_fixture" > "$dup_key"
   if run_validate "$dup_key" >/dev/null 2>&1; then
@@ -149,6 +200,33 @@ JSON
     rc=1
   else
     echo "  [PASS] 陰性(summary不一致): totalCount不一致でFAIL"
+  fi
+
+  local bad_sum_type="$tmp/bad-sum-type.json"
+  jq '.summary.totalCount = "2"' "$pass_fixture" > "$bad_sum_type"
+  if run_validate "$bad_sum_type" >/dev/null 2>&1; then
+    echo "  [FAIL] 陰性(summary型): totalCountが文字列なのにPASSした" >&2
+    rc=1
+  else
+    echo "  [PASS] 陰性(summary型): totalCountが文字列でFAIL"
+  fi
+
+  local bad_generated_at="$tmp/bad-generated-at.json"
+  jq '.generatedAt = null' "$pass_fixture" > "$bad_generated_at"
+  if run_validate "$bad_generated_at" >/dev/null 2>&1; then
+    echo "  [FAIL] 陰性(generatedAt型): generatedAt=nullなのにPASSした" >&2
+    rc=1
+  else
+    echo "  [PASS] 陰性(generatedAt型): generatedAt=nullでFAIL"
+  fi
+
+  local bad_aggregates="$tmp/bad-aggregates.json"
+  jq '.summary.byTestType = [] | .summary.byScreen = "broken"' "$pass_fixture" > "$bad_aggregates"
+  if run_validate "$bad_aggregates" >/dev/null 2>&1; then
+    echo "  [FAIL] 陰性(summary集計型): byTestType/byScreen不正型なのにPASSした" >&2
+    rc=1
+  else
+    echo "  [PASS] 陰性(summary集計型): byTestType/byScreen不正型でFAIL"
   fi
 
   if [ "$rc" -eq 0 ]; then

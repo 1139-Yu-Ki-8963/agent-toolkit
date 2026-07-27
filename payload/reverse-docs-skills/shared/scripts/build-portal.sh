@@ -388,6 +388,26 @@ TEST10HTML
   fi
   rm -rf "$test11_dir"
 
+  echo "--- ケース12: テスト観点表は正本ディレクトリから派生一覧カードになる ---"
+  test12_dir="$(mktemp -d)"
+  test12_repo="$test12_dir/repo"
+  test12_docs="$test12_dir/docs"
+  test12_portal="$test12_dir/portal"
+  mkdir -p "$test12_repo" "$test12_docs/一覧/テスト観点表" "$test12_portal"
+  cat > "$test12_docs/一覧/テスト観点表/テスト観点表.html" <<'TEST12HTML'
+<!DOCTYPE html><html><body><script type="application/json" id="unit-manifest">{"unitKind":"test_viewpoint","detectionSummary":{"unitCount":3,"unresolvedCount":0},"units":[]}</script></body></html>
+TEST12HTML
+  "$SCRIPT_DIR/build-portal.sh" "$test12_repo" "$test12_docs" "$test12_portal" 2>/dev/null
+  if grep -q '"title":"テスト観点表"' "$test12_portal/index.html" \
+     && grep -q '一覧/テスト観点表/テスト観点表.html' "$test12_portal/index.html"; then
+    echo "PASS: --self-test ケース12（テスト観点表の正本パスを派生一覧カードへ反映）"
+  else
+    echo "FAIL: --self-test ケース12（テスト観点表の派生一覧カード）" >&2
+    rm -rf "$test12_dir"
+    exit 1
+  fi
+  rm -rf "$test12_dir"
+
   exit 0
 fi
 

@@ -15,7 +15,7 @@
 #
 # 汎用マニフェストの入力JSONスキーマ(契約。詳細は references/kind-detection-strategies.md):
 # {
-#   "generatedAt": "...", "sourceDir": "...", "unitKind": "api|table|batch|report|external",
+#   "generatedAt": "...", "sourceDir": "...", "unitKind": "api|table|batch|report|external|message|test_viewpoint",
 #   "strategy": {"extractionMethod": "...", "approvedByUser": true, ...},
 #   "detectionSummary": {"method": "...", "unitCount": 0, "unresolvedCount": 0},
 #   "units": [{
@@ -102,6 +102,7 @@ EOF
     --arg sourceDir "$tmp/src" \
     --arg sourceFile "$tmp/src/routes/users.ts" \
     --arg unitNameGuess '<div>ユーザー一覧</div>{{MANIFEST_JSON}}<!--UNIT_TABLE_ROWS-->' \
+    --arg unitKey "'\" onmouseover=\"alert(1)'" \
     '{
       generatedAt: "2026-01-01T00:00:00Z",
       sourceDir: $sourceDir,
@@ -110,7 +111,7 @@ EOF
       detectionSummary: {unitCount: 1, unresolvedCount: 0},
       units: [
         {
-          unitKey: "users-list",
+          unitKey: $unitKey,
           kind: "endpoint",
           identifier: "GET /api/users",
           unitNameGuess: $unitNameGuess,
@@ -129,7 +130,13 @@ EOF
     extract_manifest_json "$out_b" | jq -c -S . > "$embedded_b" 2>/dev/null || true
     jq -c -S . "$manifest_b" > "$expected_b"
     if diff -q "$embedded_b" "$expected_b" >/dev/null 2>&1; then
-      echo "  [PASS] ケースb: 山括弧+実マーカー文字列衝突を含むunitNameGuessでも埋め込みJSONが原本と完全一致"
+      if grep -Fq 'data-unit-key="&#39;&quot; onmouseover=&quot;alert(1)&#39;"' "$out_b" \
+        && ! grep -Fq 'onmouseover="alert(1)' "$out_b"; then
+        echo "  [PASS] ケースb: 引用符を含むunitKeyを属性値として安全にエスケープし、埋め込みJSONも原本と完全一致"
+      else
+        echo "  [FAIL] ケースb: 引用符を含むunitKeyで属性注入を防止できていない" >&2
+        rc=1
+      fi
     else
       echo "  [FAIL] ケースb: 山括弧+マーカー文字列衝突で埋め込みJSONが原本と不一致(誤爆の疑い)" >&2
       rc=1
@@ -174,10 +181,100 @@ EOF
     regression_ok=0
   fi
 
+  # --- 入力契約: 明示種別とmanifest.unitKindの不一致、およびgeneratedAt:nullを生成前に拒否 ---
+  local contract_ok=1
+  local manifest_kind_mismatch="$tmp/manifest-kind-mismatch.json"
+  local manifest_generated_at_null="$tmp/manifest-generated-at-null.json"
+  local screen_generated_at_null="$tmp/screen-generated-at-null.json"
+  local screen_without_unit_kind="$tmp/screen-without-unit-kind.json"
+  jq '.unitKind = "table"' "$manifest_normal" > "$manifest_kind_mismatch"
+  jq '.generatedAt = null' "$manifest_normal" > "$manifest_generated_at_null"
+  jq -n --arg sourceDir "$tmp/src" --arg entryFile "$tmp/src/routes/users.ts" '{
+    generatedAt: null,
+    sourceDir: $sourceDir,
+    strategy: {extractionMethod: "custom", approvedByUser: true, screenIdRegex: null, excludePatterns: []},
+    detectionSummary: {screenCount: 1, clusterCount: 0, sharedScreenCount: 0, embeddedCandidateCount: 0, unresolvedCount: 0},
+    screens: [{screenKey: "users", kind: "route", route: "/users", entryFile: $entryFile, detectionMethod: "manual", confidence: "high", screenType: "list", accountGroup: "common", accountSubType: "common", hasTemplate: true, parentScreen: null, childComponents: [], isProcessingEndpoint: false}]
+  }' > "$screen_generated_at_null"
+  jq '.generatedAt = "2026-01-01T00:00:00Z"' "$screen_generated_at_null" > "$screen_without_unit_kind"
+  if bash "$script_path" "$manifest_kind_mismatch" "$tmp/kind-mismatch.html" --unit-kind api >"$tmp/kind-mismatch.log" 2>&1 \
+    || ! grep -Fq -- '--unit-kind (api) must match manifest.unitKind (table)' "$tmp/kind-mismatch.log"; then
+    contract_ok=0
+  fi
+  if bash "$script_path" "$manifest_generated_at_null" "$tmp/generated-at-null.html" --unit-kind api >"$tmp/generated-at-null.log" 2>&1 \
+    || ! grep -Fq 'generatedAt must be a non-empty string' "$tmp/generated-at-null.log"; then
+    contract_ok=0
+  fi
+  if bash "$script_path" "$screen_generated_at_null" "$tmp/screen-generated-at-null.html" >"$tmp/screen-generated-at-null.log" 2>&1 \
+    || ! grep -Fq 'generatedAt must be a non-empty string' "$tmp/screen-generated-at-null.log"; then
+    contract_ok=0
+  fi
+  if ! bash "$script_path" "$screen_without_unit_kind" "$tmp/screen-without-unit-kind.html" --unit-kind screen >/dev/null 2>&1; then
+    contract_ok=0
+  fi
+  if [ "$contract_ok" -eq 1 ]; then
+    echo "  [PASS] 入力契約: --unit-kind不一致とgeneratedAt:nullをscreen委譲前を含めて拒否"
+  else
+    echo "  [FAIL] 入力契約: --unit-kind不一致またはgeneratedAt:nullを受理した" >&2
+    rc=1
+  fi
+
   if [ "$regression_ok" -eq 1 ]; then
     echo "  [PASS] 回帰確認: 可視テーブル内容は維持されvalidate-manifest.shも引き続きPASS"
   else
     echo "  [FAIL] 回帰確認: 可視テーブル内容またはvalidate-manifest.shのPASSに退行が発生した" >&2
+    rc=1
+  fi
+
+  # --- 派生一覧: 専用validator経路・表示列・埋め込み完全JSONを確認 ---
+  local derived_ok=1
+  local message_manifest="$tmp/message.json" message_out="$tmp/message.html"
+  jq -n --arg sourceDir "$tmp/src" '{
+    generatedAt:"2026-01-01T00:00:00Z", sourceDir:$sourceDir, unitKind:"message",
+    strategy:{extractionMethod:"message-definition-table",approvedByUser:false,unitIdRegex:null,excludePatterns:[]},
+    detectionSummary:{method:"message-definition-table",unitCount:1,unresolvedCount:0},
+    units:[{unitKey:"login-required",unitNameGuess:"ログインしてください",kind:"error",identifier:"login-required",confidence:"high",messageText:"</script><script>alert(1)</script>",messageType:"error",sourceFile:["src/auth.ts","src/guard.ts"],usedScreen:"ログイン"}],
+    summary:{totalCount:1,byType:{error:1}}
+  }' > "$message_manifest"
+  if ! bash "$script_path" "$message_manifest" "$message_out" --unit-kind message >/dev/null 2>&1 \
+    || ! grep -q '<code>login-required</code>' "$message_out" \
+    || ! grep -q 'href="../../index.html"' "$message_out"; then
+    derived_ok=0
+  fi
+  extract_manifest_json "$message_out" | jq -cS . > "$tmp/message-embedded.json" 2>/dev/null || derived_ok=0
+  jq -cS . "$message_manifest" > "$tmp/message-original.json"
+  diff -q "$tmp/message-embedded.json" "$tmp/message-original.json" >/dev/null 2>&1 || derived_ok=0
+  if grep -Fq '</script><script>alert(1)</script>' "$message_out" \
+    || ! grep -Fq '\u003c/script\u003e\u003cscript\u003ealert(1)\u003c/script\u003e' "$message_out"; then
+    derived_ok=0
+  fi
+
+  # --portal-dir 明示時は既定値で上書きせず、指定先への相対リンクを維持する。
+  local portal_out="$tmp/derived/message/message.html"
+  mkdir -p "$(dirname "$portal_out")" "$tmp/project-portal"
+  if ! bash "$script_path" "$message_manifest" "$portal_out" --unit-kind message --portal-dir "$tmp/project-portal" >/dev/null 2>&1 \
+    || ! grep -q 'href="../../project-portal/index.html"' "$portal_out"; then
+    derived_ok=0
+  fi
+
+  local viewpoint_manifest="$tmp/viewpoint.json" viewpoint_out="$tmp/viewpoint.html"
+  jq -n '{
+    unitKind:"test_viewpoint", generatedAt:"2026-01-01T00:00:00Z",
+    units:[{unitKey:"screen-login-unit-1",screenKey:"screen-login",testType:"unit",category:"入力",viewpoint:"必須入力"}],
+    summary:{totalCount:1,byTestType:{unit:1},byScreen:{"screen-login":1}}
+  }' > "$viewpoint_manifest"
+  if ! bash "$script_path" "$viewpoint_manifest" "$viewpoint_out" --unit-kind test_viewpoint >/dev/null 2>&1 \
+    || ! grep -q '<code>screen-login</code>' "$viewpoint_out" \
+    || ! grep -q 'href="../../index.html"' "$viewpoint_out"; then
+    derived_ok=0
+  fi
+  extract_manifest_json "$viewpoint_out" | jq -cS . > "$tmp/viewpoint-embedded.json" 2>/dev/null || derived_ok=0
+  jq -cS . "$viewpoint_manifest" > "$tmp/viewpoint-original.json"
+  diff -q "$tmp/viewpoint-embedded.json" "$tmp/viewpoint-original.json" >/dev/null 2>&1 || derived_ok=0
+  if [ "$derived_ok" -eq 1 ]; then
+    echo "  [PASS] 派生一覧: message/test_viewpointの表示値・埋め込み完全JSON・戻りリンクを維持"
+  else
+    echo "  [FAIL] 派生一覧: message/test_viewpointの完全契約出力に退行" >&2
     rc=1
   fi
 
@@ -234,11 +331,21 @@ fi
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
+if ! jq -e '(.generatedAt | type == "string") and (.generatedAt | length > 0)' "$MANIFEST" >/dev/null; then
+  echo "ERROR: generatedAt must be a non-empty string" >&2
+  exit 1
+fi
+
+manifest_unit_kind="$(jq -r 'if (.unitKind | type) == "string" and (.unitKind | length) > 0 then .unitKind else empty end' "$MANIFEST")"
 if [ -n "$UNIT_KIND_ARG" ]; then
+  if [ "$manifest_unit_kind" != "$UNIT_KIND_ARG" ] \
+    && ! { [ "$UNIT_KIND_ARG" = "screen" ] && [ -z "$manifest_unit_kind" ]; }; then
+    echo "ERROR: --unit-kind ($UNIT_KIND_ARG) must match manifest.unitKind ($manifest_unit_kind)" >&2
+    exit 1
+  fi
   UNIT_KIND="$UNIT_KIND_ARG"
 else
-  UNIT_KIND="$(jq -r '.unitKind // "screen"' "$MANIFEST")"
-  [ "$UNIT_KIND" = "null" ] && UNIT_KIND="screen"
+  UNIT_KIND="${manifest_unit_kind:-screen}"
 fi
 
 # --- unit_kind=screen: build-screen-list.sh に委譲(exit codeをそのまま返す) ---
@@ -299,9 +406,9 @@ fi
 
 mkdir -p "$(dirname "$OUTPUT_HTML")"
 
-# --- HTMLエスケープ(& < > のみ。& を最初に処理する) ---
+# --- HTMLエスケープ(& < > " '。& を最初に処理する) ---
 html_escape() {
-  printf '%s' "$1" | sed 's/&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g'
+  printf '%s' "$1" | sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g' -e 's/"/\&quot;/g' -e "s/'/\&#39;/g"
 }
 
 # render_template — 共通関数を source（shared/scripts/render-template.sh）
@@ -312,8 +419,8 @@ label_esc="$(html_escape "$LABEL")"
 # --- メタ情報・サマリ集計をマニフェストから抽出 ---
 generated_at="$(jq -r '.generatedAt // ""' "$MANIFEST")"
 source_dir="$(jq -r '.sourceDir // ""' "$MANIFEST")"
-tile_unit_count="$(jq -r '.detectionSummary.unitCount // 0' "$MANIFEST")"
-tile_unresolved_count="$(jq -r '.detectionSummary.unresolvedCount // 0' "$MANIFEST")"
+tile_unit_count="$(jq -r '.detectionSummary.unitCount // .summary.totalCount // 0' "$MANIFEST")"
+tile_unresolved_count="$(jq -r '.detectionSummary.unresolvedCount // ([.units[]? | select(.kind == "unresolved")] | length)' "$MANIFEST")"
 
 # --- 1ユニット分の <tr> を生成する ---
 # 行データはjqの@tsv+bash readではなく、1行1JSONオブジェクト(jq -c)を個別に
@@ -328,9 +435,9 @@ row_html() {
 
   unit_id="$(jq -r '.unitId // empty' <<<"$row")"
   unit_key="$(jq -r '.unitKey // ""' <<<"$row")"
-  kind="$(jq -r '.kind // ""' <<<"$row")"
-  unit_name="$(jq -r '.unitNameGuess // ""' <<<"$row")"
-  identifier="$(jq -r '.identifier // ""' <<<"$row")"
+  kind="$(jq -r '.kind // .messageType // .category // ""' <<<"$row")"
+  unit_name="$(jq -r '.unitNameGuess // .messageText // .viewpoint // ""' <<<"$row")"
+  identifier="$(jq -r '.identifier // .screenKey // .unitKey // ""' <<<"$row")"
 
   case "$kind" in
     unresolved) kind_class="kind-unresolved"; kind_label="要確認" ;;
@@ -383,11 +490,14 @@ EOF
   unresolved_class="has-items"
 fi
 
-unit_manifest_json="$(cat "$MANIFEST")"
+# application/json のraw text要素では文字列中の </script> が要素を閉じるため、
+# JSON値を変えずにHTML構文上の危険文字だけをJSONエスケープへ正規化する。
+# <, >, & はJSON構文では文字列中にしか現れないため、この変換後も jq での比較は原本と同値になる。
+unit_manifest_json="$(jq -c . "$MANIFEST" | sed 's/</\\u003c/g; s/>/\\u003e/g; s/\&/\\u0026/g')"
 
 # --- ポータルへの相対パス算出(--portal-dir 未指定時は正本レイアウトの既定値) ---
 # 正本レイアウト: <output_dir>/index.html と <output_dir>/一覧/<種別>一覧/<種別>一覧.html。
-# 一覧HTMLから見たポータルは2階層上のため、未指定時は ../../index.html を既定とする。
+# 一覧HTMLから見たポータルは ../../index.html を既定とする。
 if [ -n "$PORTAL_DIR_ARG" ]; then
   portal_relative="$(python3 -c "import os; print(os.path.relpath('$PORTAL_DIR_ARG', '$(dirname "$OUTPUT_HTML")'))" 2>/dev/null || echo "..")/index.html"
 else

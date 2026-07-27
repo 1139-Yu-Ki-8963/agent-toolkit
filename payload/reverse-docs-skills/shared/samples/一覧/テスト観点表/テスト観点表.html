@@ -18,13 +18,13 @@
   プレースホルダ(build-unit-list.shが注入。実際のマーカー記法は
   scripts/build-unit-list.sh 冒頭コメントを正本とする。本コメントでは
   二重置換事故を避けるため意図的に波括弧・HTMLコメント記法を外して記載する):
-    UNIT_KIND_LABEL (種別ラベルマーカー)        : screen=画面/api=API/table=テーブル/batch=バッチ/report=帳票/external=外部連携
+    UNIT_KIND_LABEL (種別ラベルマーカー)        : screen=画面/api=API/table=テーブル/batch=バッチ/report=帳票/external=外部連携/message=メッセージ/test_viewpoint=テスト観点
     GENERATED_AT (生成日時マーカー)             : ISO8601 生成日時
     UNIT_COUNT (ユニット数タイルマーカー)       : detectionSummary.unitCount
     UNRESOLVED_COUNT (要確認数タイルマーカー)   : detectionSummary.unresolvedCount
     UNIT_TABLE_ROWS (ユニットテーブル行マーカー): kind!=unresolved の行を1ユニットごとに挿入
     UNRESOLVED_SECTION (要手動確認セクションマーカー) : kind=unresolved の一覧テーブル、0件なら「なし」の文言
-    MANIFEST_JSON (マニフェストJSON埋め込みマーカー) : manifest.json の内容をそのまま埋め込み(二重管理・ドリフト禁止)
+    MANIFEST_JSON (マニフェストJSON埋め込みマーカー) : manifest.json とJSON値が同値な安全エスケープ済みJSONを埋め込み(二重管理・ドリフト禁止)
 
   テーブル列順(固定・全3列): <ラベル>名 / 識別子 / 区分(種別固有列はJSのFIELD_SETSが動的追加)。
   行の<tr>には data-unit-id / data-unit-key 属性を持たせ、展開行JSがマニフェストJSONから
@@ -32,7 +32,7 @@
 
   制約:
     - 外部リソース(CDN・フォント・画像)は一切使わない。単一ファイル自己完結
-    - <script id="unit-manifest"> の中身は確定結果(manifest.json)と完全に一致させる
+    - <script id="unit-manifest"> のJSON.parse結果は確定結果(manifest.json)と完全に一致させる。文字列中のHTML危険文字はJSONエスケープを許容する
     - 本テンプレートは<ラベル>一覧.HTMLの生成のみを対象とする。設計書の雛形展開・生成は本スキルの範囲外
 -->
 <html lang="ja">
@@ -78,7 +78,8 @@
   --code-bg: #1B1F26;
   --code-fg: #E8E5DC;
   --cat-list: #2563eb;
-  --cat-common: #059669;
+  --cat-standards: #059669;
+  --cat-design: #D97706;
   --cat-project: #7C3AED;
   --font-body: "Hiragino Kaku Gothic ProN","Hiragino Sans","Noto Sans JP","BIZ UDPGothic","Yu Gothic","Meiryo",system-ui,-apple-system,sans-serif;
   --mono: "SFMono-Regular","Menlo","Cascadia Code","Consolas",monospace;
@@ -100,7 +101,7 @@
     --nav-tag: #8E9ED0; --nav-tag-soft: rgba(142,158,208,0.15);
     --self-tag: #7DB87D; --self-tag-soft: rgba(125,184,125,0.15);
     --code-bg: #0E1116; --code-fg: #E8E5DC;
-    --cat-list: #60A5FA; --cat-common: #34D399; --cat-project: #A78BFA;
+    --cat-list: #60A5FA; --cat-standards: #34D399; --cat-design: #FBBF24; --cat-project: #A78BFA;
   }
 }
 [data-theme="dark"] {
@@ -115,7 +116,7 @@
   --nav-tag: #8E9ED0; --nav-tag-soft: rgba(142,158,208,0.15);
   --self-tag: #7DB87D; --self-tag-soft: rgba(125,184,125,0.15);
   --code-bg: #0E1116; --code-fg: #E8E5DC;
-  --cat-list: #60A5FA; --cat-common: #34D399; --cat-project: #A78BFA;
+  --cat-list: #60A5FA; --cat-standards: #34D399; --cat-design: #FBBF24; --cat-project: #A78BFA;
 }
 
   html { height: 100vh; }
@@ -348,35 +349,35 @@
       </tr>
     </thead>
     <tbody>
-      <tr data-unit-id="tv-login-required-field" data-unit-key="login-required-field">
+      <tr data-unit-id="" data-unit-key="login-required-field">
 <td>メールアドレス・パスワード未入力時に送信ボタンが無効化される</td>
 <td><code>ログイン画面</code></td>
 <td><span class="badge kind-generic">入力検証</span></td>
-</tr><tr data-unit-id="tv-login-invalid-credentials" data-unit-key="login-invalid-credentials">
+</tr><tr data-unit-id="" data-unit-key="login-invalid-credentials">
 <td>誤ったパスワードでログイン失敗のメッセージが表示される</td>
 <td><code>ログイン画面</code></td>
 <td><span class="badge kind-generic">異常系</span></td>
-</tr><tr data-unit-id="tv-post-editor-max-length" data-unit-key="post-editor-max-length">
+</tr><tr data-unit-id="" data-unit-key="post-editor-max-length">
 <td>本文が上限文字数を超えた場合に警告表示される</td>
 <td><code>投稿エディタ</code></td>
 <td><span class="badge kind-generic">境界値</span></td>
-</tr><tr data-unit-id="tv-post-editor-upload-size" data-unit-key="post-editor-upload-size">
+</tr><tr data-unit-id="" data-unit-key="post-editor-upload-size">
 <td>添付ファイルが10MBを超える場合にアップロードが拒否される</td>
 <td><code>投稿エディタ</code></td>
 <td><span class="badge kind-generic">境界値</span></td>
-</tr><tr data-unit-id="tv-users-list-permission" data-unit-key="users-list-permission">
+</tr><tr data-unit-id="" data-unit-key="users-list-permission">
 <td>一般ユーザーがユーザー一覧画面に直接アクセスするとリダイレクトされる</td>
 <td><code>ユーザー一覧</code></td>
 <td><span class="badge kind-generic">権限</span></td>
-</tr><tr data-unit-id="tv-users-delete-confirm" data-unit-key="users-delete-confirm">
+</tr><tr data-unit-id="" data-unit-key="users-delete-confirm">
 <td>ユーザー削除時に確認ダイアログが表示され、キャンセルで削除されない</td>
 <td><code>ユーザー一覧</code></td>
 <td><span class="badge kind-generic">確認ダイアログ</span></td>
-</tr><tr data-unit-id="tv-search-empty-result" data-unit-key="search-empty-result">
+</tr><tr data-unit-id="" data-unit-key="search-empty-result">
 <td>該当なしの検索語で「該当する結果がありません」と表示される</td>
 <td><code>検索結果</code></td>
 <td><span class="badge kind-generic">異常系</span></td>
-</tr><tr data-unit-id="tv-notifications-realtime" data-unit-key="notifications-realtime">
+</tr><tr data-unit-id="" data-unit-key="notifications-realtime">
 <td>新着通知が画面遷移なしにバッジ件数へ即時反映される</td>
 <td><code>通知一覧</code></td>
 <td><span class="badge kind-generic">非機能</span></td>
@@ -403,109 +404,7 @@
 </div>
 
 <script type="application/json" id="unit-manifest">
-{
-  "generatedAt": "2026-07-20T00:00:00+09:00",
-  "sourceDir": "shared/samples/一覧/テスト観点表/fixtures",
-  "unitKind": "test_viewpoint",
-  "strategy": {
-    "extractionMethod": "static-analysis",
-    "approvedByUser": true
-  },
-  "detectionSummary": {
-    "unitCount": 8,
-    "unresolvedCount": 0
-  },
-  "units": [
-    {
-      "unitId": "tv-login-required-field",
-      "unitKey": "login-required-field",
-      "kind": "入力検証",
-      "unitNameGuess": "メールアドレス・パスワード未入力時に送信ボタンが無効化される",
-      "identifier": "ログイン画面",
-      "detectionMethod": "test-file-scan",
-      "confidence": "HIGH",
-      "fileCount": 1,
-      "sourceFile": "tests/e2e/login-required-field.spec.ts"
-    },
-    {
-      "unitId": "tv-login-invalid-credentials",
-      "unitKey": "login-invalid-credentials",
-      "kind": "異常系",
-      "unitNameGuess": "誤ったパスワードでログイン失敗のメッセージが表示される",
-      "identifier": "ログイン画面",
-      "detectionMethod": "test-file-scan",
-      "confidence": "HIGH",
-      "fileCount": 1,
-      "sourceFile": "tests/e2e/login-invalid-credentials.spec.ts"
-    },
-    {
-      "unitId": "tv-post-editor-max-length",
-      "unitKey": "post-editor-max-length",
-      "kind": "境界値",
-      "unitNameGuess": "本文が上限文字数を超えた場合に警告表示される",
-      "identifier": "投稿エディタ",
-      "detectionMethod": "test-file-scan",
-      "confidence": "MEDIUM",
-      "fileCount": 1,
-      "sourceFile": "tests/e2e/post-editor-max-length.spec.ts"
-    },
-    {
-      "unitId": "tv-post-editor-upload-size",
-      "unitKey": "post-editor-upload-size",
-      "kind": "境界値",
-      "unitNameGuess": "添付ファイルが10MBを超える場合にアップロードが拒否される",
-      "identifier": "投稿エディタ",
-      "detectionMethod": "test-file-scan",
-      "confidence": "MEDIUM",
-      "fileCount": 1,
-      "sourceFile": "tests/e2e/post-editor-upload-size.spec.ts"
-    },
-    {
-      "unitId": "tv-users-list-permission",
-      "unitKey": "users-list-permission",
-      "kind": "権限",
-      "unitNameGuess": "一般ユーザーがユーザー一覧画面に直接アクセスするとリダイレクトされる",
-      "identifier": "ユーザー一覧",
-      "detectionMethod": "test-file-scan",
-      "confidence": "HIGH",
-      "fileCount": 1,
-      "sourceFile": "tests/e2e/admin-users-list-permission.spec.ts"
-    },
-    {
-      "unitId": "tv-users-delete-confirm",
-      "unitKey": "users-delete-confirm",
-      "kind": "確認ダイアログ",
-      "unitNameGuess": "ユーザー削除時に確認ダイアログが表示され、キャンセルで削除されない",
-      "identifier": "ユーザー一覧",
-      "detectionMethod": "test-file-scan",
-      "confidence": "HIGH",
-      "fileCount": 1,
-      "sourceFile": "tests/e2e/admin-users-delete-confirm.spec.ts"
-    },
-    {
-      "unitId": "tv-search-empty-result",
-      "unitKey": "search-empty-result",
-      "kind": "異常系",
-      "unitNameGuess": "該当なしの検索語で「該当する結果がありません」と表示される",
-      "identifier": "検索結果",
-      "detectionMethod": "test-file-scan",
-      "confidence": "MEDIUM",
-      "fileCount": 1,
-      "sourceFile": "tests/e2e/search-empty-result.spec.ts"
-    },
-    {
-      "unitId": "tv-notifications-realtime",
-      "unitKey": "notifications-realtime",
-      "kind": "非機能",
-      "unitNameGuess": "新着通知が画面遷移なしにバッジ件数へ即時反映される",
-      "identifier": "通知一覧",
-      "detectionMethod": "test-file-scan",
-      "confidence": "LOW",
-      "fileCount": 1,
-      "sourceFile": "tests/e2e/notifications-realtime.spec.ts"
-    }
-  ]
-}
+{"generatedAt":"2026-07-20T00:00:00+09:00","sourceDir":"shared/samples/一覧/テスト観点表/fixtures","unitKind":"test_viewpoint","units":[{"unitKey":"login-required-field","screenKey":"ログイン画面","testType":"integration","category":"入力検証","viewpoint":"メールアドレス・パスワード未入力時に送信ボタンが無効化される","sourceFile":"tests/e2e/login-required-field.spec.ts"},{"unitKey":"login-invalid-credentials","screenKey":"ログイン画面","testType":"integration","category":"異常系","viewpoint":"誤ったパスワードでログイン失敗のメッセージが表示される","sourceFile":"tests/e2e/login-invalid-credentials.spec.ts"},{"unitKey":"post-editor-max-length","screenKey":"投稿エディタ","testType":"integration","category":"境界値","viewpoint":"本文が上限文字数を超えた場合に警告表示される","sourceFile":"tests/e2e/post-editor-max-length.spec.ts"},{"unitKey":"post-editor-upload-size","screenKey":"投稿エディタ","testType":"integration","category":"境界値","viewpoint":"添付ファイルが10MBを超える場合にアップロードが拒否される","sourceFile":"tests/e2e/post-editor-upload-size.spec.ts"},{"unitKey":"users-list-permission","screenKey":"ユーザー一覧","testType":"integration","category":"権限","viewpoint":"一般ユーザーがユーザー一覧画面に直接アクセスするとリダイレクトされる","sourceFile":"tests/e2e/admin-users-list-permission.spec.ts"},{"unitKey":"users-delete-confirm","screenKey":"ユーザー一覧","testType":"integration","category":"確認ダイアログ","viewpoint":"ユーザー削除時に確認ダイアログが表示され、キャンセルで削除されない","sourceFile":"tests/e2e/admin-users-delete-confirm.spec.ts"},{"unitKey":"search-empty-result","screenKey":"検索結果","testType":"integration","category":"異常系","viewpoint":"該当なしの検索語で「該当する結果がありません」と表示される","sourceFile":"tests/e2e/search-empty-result.spec.ts"},{"unitKey":"notifications-realtime","screenKey":"通知一覧","testType":"integration","category":"非機能","viewpoint":"新着通知が画面遷移なしにバッジ件数へ即時反映される","sourceFile":"tests/e2e/notifications-realtime.spec.ts"}],"summary":{"totalCount":8,"byTestType":{"integration":8},"byScreen":{"ユーザー一覧":2,"ログイン画面":2,"投稿エディタ":2,"検索結果":1,"通知一覧":1}}}
 </script>
 
 <footer></footer>
@@ -531,8 +430,8 @@
       batch:    [['schedule', 'スケジュール'], ['targetTables', '対象テーブル'], ['downstreamJobs', '後続ジョブ'], ['execMethod', '実行方法']],
       report:   [['format', '出力形式'], ['trigger', '出力契機']],
       external: [['direction', '方向'], ['protocol', 'プロトコル'], ['authMethod', '認証方式']],
-      message:  [['messageText', '文言'], ['messageType', '種別'], ['sourceFile', '抽出元'], ['usedScreen', '使用画面']],
-      test_viewpoint: [['screenKey', '画面'], ['testType', 'テスト種別'], ['category', 'カテゴリ'], ['viewpoint', '観点']]
+      message:  [['sourceFile', '抽出元'], ['usedScreen', '使用画面']],
+      test_viewpoint: [['testType', 'テスト種別']]
     };
     var fields = FIELD_SETS[optManifest.unitKind];
     if (!fields) return;

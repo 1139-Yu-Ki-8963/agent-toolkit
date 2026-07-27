@@ -19,13 +19,13 @@
 | designDocPath | string | 任意 | 設計書への相対パス。designDocStatus=着手済 かつ本フィールドありで設計書リンクを描画 | 設計書リポジトリの該当フォルダ |
 | sourceHash | string | 任意 | 画面ユニットの原本ソース連結ハッシュ（sha256 先頭12桁） | 原本コードの走査 |
 | designDocSourceHash | string | 任意 | 設計書生成時に記録した sourceHash。sourceHash と不一致なら一覧に陳腐化バッジを表示 | 設計書生成工程の記録 |
-| screenType | string | 任意 | 画面種別（Level 3 分類。8 種: top/list/detail/form/confirm/complete/error/processing_endpoint） | コード分析（DOM 構造・テンプレート有無）で判定 |
-| accountGroup | string | 任意 | システム区分（Level 1 分類。プロジェクトの設定グループ定義から機械抽出） | detectionMethod のグループ名から判定 |
-| accountSubType | string | 任意 | 利用者権限区分（Level 2 分類。権限チェック条件分岐の有無で判定。該当なしは `common`） | エントリファイル内の権限チェック grep |
-| hasTemplate | boolean | 任意 | テンプレート実体の有無（拡張子 `.html`/`.htm`/`.tt`/`.tx` で判定） | テンプレートファイルの実在確認 |
-| parentScreen | string | 任意 | 親画面のキー（モーダル・ポップアップの呼出し元。該当なしは null） | ファイル名パターン `modal\|dialog\|popup\|drawer` ＋内容パターン `isOpen\|isVisible\|showModal\|onClose\|handleClose` による判定、同階層の非モーダルファイルを親候補に採用 |
-| childComponents | string[] | 任意 | 紐づくコンポーネントキーの配列（parentScreen の逆引き） | parentScreen フィールドの逆引き集約 |
-| isProcessingEndpoint | boolean | 任意 | 処理エンドポイント（UI を持たない）か否か（hasTemplate=false かつ screenType=unknown で判定） | テンプレート不在かつリダイレクトのみ |
+| screenType | string | 必須 | 画面種別（Level 3 分類。8 種: top/list/detail/form/confirm/complete/error/processing_endpoint） | entryFile と幅優先探索（BFS）で解決した関連ファイルのDOM構造・テンプレート有無で判定 |
+| accountGroup | string | 任意 | システム区分（Level 1 分類。許可値は `user` / `admin` / `editor` / `report` / `common`。明示mapを優先し、無効なmap値は `common`） | route prefix・detectionMethod・明示mapから正規化 |
+| accountSubType | string | 任意 | 利用者権限区分（Level 2 分類。権限チェック条件分岐の有無で判定。該当なしは `common`） | entryFileとBFSで解決した関連ファイルの権限チェック |
+| hasTemplate | boolean | 任意 | テンプレート実体の有無。分離テンプレートや副作用importで解決した関連ファイルも含める | entryFileとBFSで解決した関連ファイルの拡張子・テンプレート呼出し |
+| parentScreen | string | 任意 | 親画面の実在するscreenKey（モーダル・ポップアップの呼出し元。該当なしは null） | モーダル候補と同階層の非モーダル親候補をscreenKey対応表で解決 |
+| childComponents | object[] | 任意 | 紐づくコンポーネントの配列。各要素は `{"screenKey":"子画面キー","componentType":"modal\|popup\|iframe"}`。該当なしは `[]` | parentScreen の逆引き。統合前のモーダル候補から集約するため候補を失わない |
+| isProcessingEndpoint | boolean | 任意 | 処理エンドポイント（UI を持たない）か否か（hasTemplate=false かつ screenType=processing_endpoint で判定） | テンプレート不在かつリダイレクトのみ |
 
 ### apis（API）
 
@@ -242,7 +242,7 @@ build-*.sh の実在ファイルは以下の 5 本（`.claude/skills/*/scripts/`
 
 ## 段階的移行方針
 
-追加フィールドはすべて任意とする。既存マニフェストは無改修のまま妥当（validate-manifest.sh の必須キー集合は変更しない）。ビルドスクリプトはフィールド欠落時に該当列を非表示にし、マトリクス・対応表用 JSON が不在なら該当ページを生成しない。これにより、旧マニフェストのプロジェクトでも現行ポータルがそのまま成立し、フィールドを埋めたプロジェクトから順に△機能が有効になる。抽出スクリプトは検出根拠が弱い値を出力しない fail-safe 方針のため、抽出漏れは列非表示として現れる（誤表示より欠落を優先）。
+screenType を除く追加フィールドは任意とする。screenType は画面種別の整合検証に必要なため、validate-manifest.sh で必須とする。ビルドスクリプトは任意フィールドが欠落した場合に該当列を非表示にし、マトリクス・対応表用 JSON が不在なら該当ページを生成しない。抽出スクリプトは検出根拠が弱い値を出力しない fail-safe 方針のため、任意フィールドの抽出漏れは列非表示として現れる（誤表示より欠落を優先）。
 
 ## 設計判断
 

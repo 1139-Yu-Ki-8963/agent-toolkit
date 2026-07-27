@@ -18,13 +18,13 @@
   プレースホルダ(build-unit-list.shが注入。実際のマーカー記法は
   scripts/build-unit-list.sh 冒頭コメントを正本とする。本コメントでは
   二重置換事故を避けるため意図的に波括弧・HTMLコメント記法を外して記載する):
-    UNIT_KIND_LABEL (種別ラベルマーカー)        : screen=画面/api=API/table=テーブル/batch=バッチ/report=帳票/external=外部連携
+    UNIT_KIND_LABEL (種別ラベルマーカー)        : screen=画面/api=API/table=テーブル/batch=バッチ/report=帳票/external=外部連携/message=メッセージ/test_viewpoint=テスト観点
     GENERATED_AT (生成日時マーカー)             : ISO8601 生成日時
     UNIT_COUNT (ユニット数タイルマーカー)       : detectionSummary.unitCount
     UNRESOLVED_COUNT (要確認数タイルマーカー)   : detectionSummary.unresolvedCount
     UNIT_TABLE_ROWS (ユニットテーブル行マーカー): kind!=unresolved の行を1ユニットごとに挿入
     UNRESOLVED_SECTION (要手動確認セクションマーカー) : kind=unresolved の一覧テーブル、0件なら「なし」の文言
-    MANIFEST_JSON (マニフェストJSON埋め込みマーカー) : manifest.json の内容をそのまま埋め込み(二重管理・ドリフト禁止)
+    MANIFEST_JSON (マニフェストJSON埋め込みマーカー) : manifest.json とJSON値が同値な安全エスケープ済みJSONを埋め込み(二重管理・ドリフト禁止)
 
   テーブル列順(固定・全3列): <ラベル>名 / 識別子 / 区分(種別固有列はJSのFIELD_SETSが動的追加)。
   行の<tr>には data-unit-id / data-unit-key 属性を持たせ、展開行JSがマニフェストJSONから
@@ -32,7 +32,7 @@
 
   制約:
     - 外部リソース(CDN・フォント・画像)は一切使わない。単一ファイル自己完結
-    - <script id="unit-manifest"> の中身は確定結果(manifest.json)と完全に一致させる
+    - <script id="unit-manifest"> のJSON.parse結果は確定結果(manifest.json)と完全に一致させる。文字列中のHTML危険文字はJSONエスケープを許容する
     - 本テンプレートは<ラベル>一覧.HTMLの生成のみを対象とする。設計書の雛形展開・生成は本スキルの範囲外
 -->
 <html lang="ja">
@@ -78,7 +78,8 @@
   --code-bg: #1B1F26;
   --code-fg: #E8E5DC;
   --cat-list: #2563eb;
-  --cat-common: #059669;
+  --cat-standards: #059669;
+  --cat-design: #D97706;
   --cat-project: #7C3AED;
   --font-body: "Hiragino Kaku Gothic ProN","Hiragino Sans","Noto Sans JP","BIZ UDPGothic","Yu Gothic","Meiryo",system-ui,-apple-system,sans-serif;
   --mono: "SFMono-Regular","Menlo","Cascadia Code","Consolas",monospace;
@@ -100,7 +101,7 @@
     --nav-tag: #8E9ED0; --nav-tag-soft: rgba(142,158,208,0.15);
     --self-tag: #7DB87D; --self-tag-soft: rgba(125,184,125,0.15);
     --code-bg: #0E1116; --code-fg: #E8E5DC;
-    --cat-list: #60A5FA; --cat-common: #34D399; --cat-project: #A78BFA;
+    --cat-list: #60A5FA; --cat-standards: #34D399; --cat-design: #FBBF24; --cat-project: #A78BFA;
   }
 }
 [data-theme="dark"] {
@@ -115,7 +116,7 @@
   --nav-tag: #8E9ED0; --nav-tag-soft: rgba(142,158,208,0.15);
   --self-tag: #7DB87D; --self-tag-soft: rgba(125,184,125,0.15);
   --code-bg: #0E1116; --code-fg: #E8E5DC;
-  --cat-list: #60A5FA; --cat-common: #34D399; --cat-project: #A78BFA;
+  --cat-list: #60A5FA; --cat-standards: #34D399; --cat-design: #FBBF24; --cat-project: #A78BFA;
 }
 
   html { height: 100vh; }
@@ -348,35 +349,35 @@
       </tr>
     </thead>
     <tbody>
-      <tr data-unit-id="message-required-field" data-unit-key="required-field">
+      <tr data-unit-id="" data-unit-key="required-field">
 <td>必須項目が未入力です</td>
 <td><code>MSG-VALIDATION-001</code></td>
 <td><span class="badge kind-generic">バリデーション</span></td>
-</tr><tr data-unit-id="message-invalid-email" data-unit-key="invalid-email">
+</tr><tr data-unit-id="" data-unit-key="invalid-email">
 <td>メールアドレスの形式が正しくありません</td>
 <td><code>MSG-VALIDATION-002</code></td>
 <td><span class="badge kind-generic">バリデーション</span></td>
-</tr><tr data-unit-id="message-login-failed" data-unit-key="login-failed">
+</tr><tr data-unit-id="" data-unit-key="login-failed">
 <td>メールアドレスまたはパスワードが正しくありません</td>
 <td><code>MSG-AUTH-001</code></td>
 <td><span class="badge kind-generic">エラー通知</span></td>
-</tr><tr data-unit-id="message-session-expired" data-unit-key="session-expired">
+</tr><tr data-unit-id="" data-unit-key="session-expired">
 <td>セッションの有効期限が切れました。再度ログインしてください</td>
 <td><code>MSG-AUTH-002</code></td>
 <td><span class="badge kind-generic">エラー通知</span></td>
-</tr><tr data-unit-id="message-post-created" data-unit-key="post-created">
+</tr><tr data-unit-id="" data-unit-key="post-created">
 <td>投稿を作成しました</td>
 <td><code>MSG-POST-001</code></td>
 <td><span class="badge kind-generic">完了通知</span></td>
-</tr><tr data-unit-id="message-post-deleted" data-unit-key="post-deleted">
+</tr><tr data-unit-id="" data-unit-key="post-deleted">
 <td>この投稿を削除しますか？この操作は取り消せません</td>
 <td><code>MSG-POST-002</code></td>
 <td><span class="badge kind-generic">確認</span></td>
-</tr><tr data-unit-id="message-upload-too-large" data-unit-key="upload-too-large">
+</tr><tr data-unit-id="" data-unit-key="upload-too-large">
 <td>ファイルサイズが上限（10MB）を超えています</td>
 <td><code>MSG-FILE-001</code></td>
 <td><span class="badge kind-generic">エラー通知</span></td>
-</tr><tr data-unit-id="message-settings-saved" data-unit-key="settings-saved">
+</tr><tr data-unit-id="" data-unit-key="settings-saved">
 <td>設定を保存しました</td>
 <td><code>MSG-SETTINGS-001</code></td>
 <td><span class="badge kind-generic">完了通知</span></td>
@@ -403,109 +404,7 @@
 </div>
 
 <script type="application/json" id="unit-manifest">
-{
-  "generatedAt": "2026-07-20T00:00:00+09:00",
-  "sourceDir": "shared/samples/一覧/メッセージ一覧/fixtures",
-  "unitKind": "message",
-  "strategy": {
-    "extractionMethod": "static-analysis",
-    "approvedByUser": true
-  },
-  "detectionSummary": {
-    "unitCount": 8,
-    "unresolvedCount": 0
-  },
-  "units": [
-    {
-      "unitId": "message-required-field",
-      "unitKey": "required-field",
-      "kind": "バリデーション",
-      "unitNameGuess": "必須項目が未入力です",
-      "identifier": "MSG-VALIDATION-001",
-      "detectionMethod": "i18n-scan",
-      "confidence": "HIGH",
-      "fileCount": 1,
-      "sourceFile": "src/i18n/ja/validation.json"
-    },
-    {
-      "unitId": "message-invalid-email",
-      "unitKey": "invalid-email",
-      "kind": "バリデーション",
-      "unitNameGuess": "メールアドレスの形式が正しくありません",
-      "identifier": "MSG-VALIDATION-002",
-      "detectionMethod": "i18n-scan",
-      "confidence": "HIGH",
-      "fileCount": 1,
-      "sourceFile": "src/i18n/ja/validation.json"
-    },
-    {
-      "unitId": "message-login-failed",
-      "unitKey": "login-failed",
-      "kind": "エラー通知",
-      "unitNameGuess": "メールアドレスまたはパスワードが正しくありません",
-      "identifier": "MSG-AUTH-001",
-      "detectionMethod": "i18n-scan",
-      "confidence": "HIGH",
-      "fileCount": 1,
-      "sourceFile": "src/i18n/ja/auth.json"
-    },
-    {
-      "unitId": "message-session-expired",
-      "unitKey": "session-expired",
-      "kind": "エラー通知",
-      "unitNameGuess": "セッションの有効期限が切れました。再度ログインしてください",
-      "identifier": "MSG-AUTH-002",
-      "detectionMethod": "i18n-scan",
-      "confidence": "MEDIUM",
-      "fileCount": 1,
-      "sourceFile": "src/i18n/ja/auth.json"
-    },
-    {
-      "unitId": "message-post-created",
-      "unitKey": "post-created",
-      "kind": "完了通知",
-      "unitNameGuess": "投稿を作成しました",
-      "identifier": "MSG-POST-001",
-      "detectionMethod": "i18n-scan",
-      "confidence": "HIGH",
-      "fileCount": 1,
-      "sourceFile": "src/i18n/ja/post.json"
-    },
-    {
-      "unitId": "message-post-deleted",
-      "unitKey": "post-deleted",
-      "kind": "確認",
-      "unitNameGuess": "この投稿を削除しますか？この操作は取り消せません",
-      "identifier": "MSG-POST-002",
-      "detectionMethod": "i18n-scan",
-      "confidence": "HIGH",
-      "fileCount": 1,
-      "sourceFile": "src/i18n/ja/post.json"
-    },
-    {
-      "unitId": "message-upload-too-large",
-      "unitKey": "upload-too-large",
-      "kind": "エラー通知",
-      "unitNameGuess": "ファイルサイズが上限（10MB）を超えています",
-      "identifier": "MSG-FILE-001",
-      "detectionMethod": "i18n-scan",
-      "confidence": "MEDIUM",
-      "fileCount": 1,
-      "sourceFile": "src/i18n/ja/file.json"
-    },
-    {
-      "unitId": "message-settings-saved",
-      "unitKey": "settings-saved",
-      "kind": "完了通知",
-      "unitNameGuess": "設定を保存しました",
-      "identifier": "MSG-SETTINGS-001",
-      "detectionMethod": "i18n-scan",
-      "confidence": "HIGH",
-      "fileCount": 1,
-      "sourceFile": "src/i18n/ja/settings.json"
-    }
-  ]
-}
+{"generatedAt":"2026-07-20T00:00:00+09:00","sourceDir":"shared/samples/一覧/メッセージ一覧/fixtures","unitKind":"message","strategy":{"extractionMethod":"static-analysis","approvedByUser":false,"unitIdRegex":null,"excludePatterns":[]},"detectionSummary":{"method":"static-analysis","unitCount":8,"unresolvedCount":0},"units":[{"unitKey":"required-field","unitNameGuess":"必須項目が未入力です","kind":"バリデーション","identifier":"MSG-VALIDATION-001","confidence":"high","messageText":"必須項目が未入力です","messageType":"バリデーション","sourceFile":["src/i18n/ja/validation.json"],"usedScreen":""},{"unitKey":"invalid-email","unitNameGuess":"メールアドレスの形式が正しくありません","kind":"バリデーション","identifier":"MSG-VALIDATION-002","confidence":"high","messageText":"メールアドレスの形式が正しくありません","messageType":"バリデーション","sourceFile":["src/i18n/ja/validation.json"],"usedScreen":""},{"unitKey":"login-failed","unitNameGuess":"メールアドレスまたはパスワードが正しくありません","kind":"エラー通知","identifier":"MSG-AUTH-001","confidence":"high","messageText":"メールアドレスまたはパスワードが正しくありません","messageType":"エラー通知","sourceFile":["src/i18n/ja/auth.json"],"usedScreen":""},{"unitKey":"session-expired","unitNameGuess":"セッションの有効期限が切れました。再度ログインしてください","kind":"エラー通知","identifier":"MSG-AUTH-002","confidence":"medium","messageText":"セッションの有効期限が切れました。再度ログインしてください","messageType":"エラー通知","sourceFile":["src/i18n/ja/auth.json"],"usedScreen":""},{"unitKey":"post-created","unitNameGuess":"投稿を作成しました","kind":"完了通知","identifier":"MSG-POST-001","confidence":"high","messageText":"投稿を作成しました","messageType":"完了通知","sourceFile":["src/i18n/ja/post.json"],"usedScreen":""},{"unitKey":"post-deleted","unitNameGuess":"この投稿を削除しますか？この操作は取り消せません","kind":"確認","identifier":"MSG-POST-002","confidence":"high","messageText":"この投稿を削除しますか？この操作は取り消せません","messageType":"確認","sourceFile":["src/i18n/ja/post.json"],"usedScreen":""},{"unitKey":"upload-too-large","unitNameGuess":"ファイルサイズが上限（10MB）を超えています","kind":"エラー通知","identifier":"MSG-FILE-001","confidence":"medium","messageText":"ファイルサイズが上限（10MB）を超えています","messageType":"エラー通知","sourceFile":["src/i18n/ja/file.json"],"usedScreen":""},{"unitKey":"settings-saved","unitNameGuess":"設定を保存しました","kind":"完了通知","identifier":"MSG-SETTINGS-001","confidence":"high","messageText":"設定を保存しました","messageType":"完了通知","sourceFile":["src/i18n/ja/settings.json"],"usedScreen":""}],"summary":{"totalCount":8,"byType":{"エラー通知":3,"バリデーション":2,"完了通知":2,"確認":1}}}
 </script>
 
 <footer></footer>
@@ -531,8 +430,8 @@
       batch:    [['schedule', 'スケジュール'], ['targetTables', '対象テーブル'], ['downstreamJobs', '後続ジョブ'], ['execMethod', '実行方法']],
       report:   [['format', '出力形式'], ['trigger', '出力契機']],
       external: [['direction', '方向'], ['protocol', 'プロトコル'], ['authMethod', '認証方式']],
-      message:  [['messageText', '文言'], ['messageType', '種別'], ['sourceFile', '抽出元'], ['usedScreen', '使用画面']],
-      test_viewpoint: [['screenKey', '画面'], ['testType', 'テスト種別'], ['category', 'カテゴリ'], ['viewpoint', '観点']]
+      message:  [['sourceFile', '抽出元'], ['usedScreen', '使用画面']],
+      test_viewpoint: [['testType', 'テスト種別']]
     };
     var fields = FIELD_SETS[optManifest.unitKind];
     if (!fields) return;

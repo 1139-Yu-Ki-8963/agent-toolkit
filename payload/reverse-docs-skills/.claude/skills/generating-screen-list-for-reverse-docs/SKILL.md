@@ -116,7 +116,7 @@ Level 1・2 の分類値はプロジェクトごとに異なるため、スキ�
 | accountSubType | 文字列 | Level 2 の利用者権限区分 | `"common"` |
 | hasTemplate | 真偽値 | 対応するテンプレート実体の有無 | `true` |
 | parentScreen | 文字列またはnull | 親画面のキー | `null` |
-| childComponents | 文字列配列 | 紐づくコンポーネントキーの配列 | `["list-orders-detail-modal"]` |
+| childComponents | オブジェクト配列 | 紐づく子コンポーネント。各要素は `screenKey` と `componentType` を持つ | `[{"screenKey":"list-orders-detail-modal","componentType":"modal"}]` |
 | isProcessingEndpoint | 真偽値 | 処理エンドポイント（UIを持たない）か否か | `false` |
 
 #### Step 2B-1: 分類の実行
@@ -128,12 +128,15 @@ Phase 1 の調査結果とアーキテクチャ調査書（`survey_doc_path`）�
 - 全エントリに `screenType` フィールドが存在し、値が Level 3 の8種のいずれかであること
 - `hasTemplate: false` かつ `isProcessingEndpoint: true` の画面が、テンプレート実体が実在しないことと一致すること
 - `parentScreen` が非 null の画面について、その `parentScreen` が `screen-manifest` 内に実在すること（孤児参照がないこと）
+- `childComponents` の各 `screenKey` が実在し、`componentType` が許可値であること
+- 親→子と子→親の参照が双方向に一致すること
 
 完了条件: マニフェストの全エントリに分類フィールドが付与され、検証項目がすべてPASS
 
 ### Phase 3: 整合検証（機械実行）
 
-- **Step 1**: `../../../shared/scripts/unit-list/validate-manifest.sh <manifest.ext.json> --unit-kind screen` を実行する。7項目検証が動く。完了条件: 全項目PASS
+- **Step 1**: `../../../shared/scripts/unit-list/validate-manifest.sh` を実行する。
+  引数は `<manifest.ext.json> --unit-kind screen`。11項目検証が動く。完了条件: 全項目PASS
 - **Step 2**: FAIL時は指摘に応じて修正する（entryFile不在は `--fix` でunresolved降格可）。修正後Step 1を再実行する。3回失敗したら抽出方式の再検討（Phase 2 Step 1）へ差し戻す。完了条件: exit 0
 - **Step 3（レジストリ整合検査）**: 画面レジストリ（`<output_dir>/一覧/reverse-screen-registry.yml`。存在しない場合は本Stepをスキップする）に記帳済みの全画面キーを列挙し、マニフェスト掲載画面キーと突合する。レジストリにのみ存在するキーが1件でもあり、かつ根拠付き除外記録が無ければFAILとし、Phase 2の抽出漏れとして差し戻す。完了条件: 突合差分ゼロ（根拠付き除外記録がある場合のみ許容）
 
@@ -160,7 +163,7 @@ Phase 1 の調査結果とアーキテクチャ調査書（`survey_doc_path`）�
 | Phase 1 | Step 1〜4の調査完了。Step 5の共有ファイル・エイリアス調査（sharedDirPatterns/pathAliases）完了。Step 6の検出戦略宣言（`unitKind: "screen"`/screenUnitDefinition/screenIdRegex/viewSwitchPattern/excludePatterns/sharedDirPatterns/pathAliases/importTraversalMaxDepth）がユーザー承認済み |
 | Phase 2 | Step 1で抽出方式（builtin/custom）が決定済み。Step 2でスキーマ準拠のマニフェストが1件以上確定、または0件検出をユーザーに報告して停止している。Step 3でdiagnosticsを確認済み。セルフチェックゲート（route実在照合含む）・ルート網羅性検査ゲートをPASS済み。Step 4で拡張マニフェストに種別固有フィールド（category・permissions・relatedApis等）が付与されている。Step 5で全画面に existingTestCount が付与されている |
 | Phase 2B | マニフェストの全エントリに screenType・accountGroup・hasTemplate・parentScreen・isProcessingEndpoint が付与され、検証項目がすべてPASS |
-| Phase 3 | Step 1で `validate-manifest.sh --unit-kind screen` が7項目すべてPASS。Step 2のFAIL時修正ループは3回以内。Step 3のレジストリ整合検査で突合差分ゼロ（画面レジストリが存在する場合のみ） |
+| Phase 3 | Step 1で `validate-manifest.sh --unit-kind screen` が11項目すべてPASS。Step 2のFAIL時修正ループは3回以内。Step 3のレジストリ整合検査で突合差分ゼロ（画面レジストリが存在する場合のみ） |
 | Phase 4 | Step 1で画面一覧.htmlが生成され、埋め込みJSONがマニフェストと一致している |
 | Phase 5（任意） | `--profile`サブコマンド実行時のみ、複雑度プロファイル.jsonが生成されている |
 | **Goal** | 検証済みマニフェストのみからHTMLが生成され、共有/埋め込み/未解決/診断警告が可視化され、設計書単位の判断材料が揃っている |

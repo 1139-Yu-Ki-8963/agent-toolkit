@@ -69,7 +69,7 @@ Phase 1（スタック・画面規約の特定）で調査すべき対象と検�
       "files": [],
       "sharedWith": [],
       "detectionMethod": "検出手法",
-      "screenType": "画面種別（任意）",
+      "screenType": "画面種別（必須）",
       "accountGroup": "アカウント種別（任意）",
       "hasTemplate": true,
       "isProcessingEndpoint": false,
@@ -86,7 +86,7 @@ Phase 1（スタック・画面規約の特定）で調査すべき対象と検�
 
 | フィールド | 型 | 内容 |
 |---|---|---|
-| screenType | string（任意） | 画面種別。値: list/detail/form/confirm/complete/error/processing/top |
+| screenType | string（必須） | 画面種別。値: top/list/detail/form/confirm/complete/error/processing_endpoint |
 | accountGroup | string（任意） | アカウント種別。値: user/admin/editor/report/common |
 | hasTemplate | boolean（任意） | テンプレートファイルの存在有無 |
 | isProcessingEndpoint | boolean（任意） | 処理エンドポイント（リダイレクト専用等）かどうか |

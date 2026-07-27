@@ -204,6 +204,88 @@ EOF
     rc=1
   fi
 
+  # 900列超の入力では、head -5 が上流を SIGPIPE にしないことを確認する。
+  # あわせて、PATCHES の合計が ARG_MAX を超える程度まで大きくしても、
+  # パッチ集合をコマンドライン引数へ展開せずに適用できることを確認する。
+  local stress_manifest="$tmp/stress-table-manifest.json" stress_out="$tmp/stress-out.json"
+  local wide_file="$tmp/migrations/003_create_wide_columns.sql"
+  local arg_file="$tmp/migrations/004_create_arg_payload.sql"
+  local arg_max large_count=16 bytes_per_patch padding_length padding out_size n comma
+  arg_max="$(getconf ARG_MAX 2>/dev/null || printf '%s' 262144)"
+  case "$arg_max" in
+    ''|*[!0-9]*) arg_max=262144 ;;
+  esac
+  bytes_per_patch=$((arg_max / large_count + 4096))
+  padding_length=$((bytes_per_patch / 5))
+  padding="$(printf '%*s' "$padding_length" '' | tr ' ' x)"
+
+  {
+    echo 'CREATE TABLE wide_columns ('
+    for ((n = 1; n <= 900; n++)); do
+      if [ "$n" -eq 900 ]; then comma=''; else comma=','; fi
+      printf '  wide_column_%04d_padding_for_pipefail_regression VARCHAR(20)%s\n' "$n" "$comma"
+    done
+    echo ');'
+  } > "$wide_file"
+  {
+    echo 'CREATE TABLE arg_payload ('
+    for n in $(seq 1 5); do
+      if [ "$n" -eq 5 ]; then comma=''; else comma=','; fi
+      printf '  arg_column_%d_%s VARCHAR(20)%s\n' "$n" "$padding" "$comma"
+    done
+    echo ');'
+  } > "$arg_file"
+
+  jq -n \
+    --arg sourceDir "$tmp/migrations" \
+    --arg wideFile "$wide_file" \
+    --arg argFile "$arg_file" \
+    --argjson largeCount "$large_count" \
+    '{
+      generatedAt: "2026-01-01T00:00:00Z",
+      sourceDir: $sourceDir,
+      unitKind: "table",
+      strategy: {extractionMethod: "migration-sql", approvedByUser: true, unitIdRegex: null, excludePatterns: []},
+      detectionSummary: {unitCount: ($largeCount + 1), unresolvedCount: 0},
+      units: (
+        [{unitKey: "wide-columns", kind: "table", identifier: "wide_columns", unitNameGuess: "wide",
+          sourceFile: $wideFile, confidence: "high", fileCount: 1, detectionMethod: "create-table"}]
+        + [range(0; $largeCount) | {
+          unitKey: ("arg-large-" + ((. + 1) | tostring)), kind: "table", identifier: "arg_payload", unitNameGuess: "arg",
+          sourceFile: $argFile, confidence: "high", fileCount: 1, detectionMethod: "create-table"
+        }]
+      )
+    }' > "$stress_manifest"
+
+  if ! bash "$script_path" "$stress_manifest" "$tmp/migrations" "$stress_out" >/dev/null 2>&1; then
+    echo "  [FAIL] stress: 900列または大規模パッチ集合で抽出コマンドが失敗した" >&2
+    rc=1
+  elif jq -e --argjson n "$large_count" '
+      (.units[] | select(.unitKey == "wide-columns")
+        | .columnCount == 900
+          and .mainColumns == [
+            "wide_column_0001_padding_for_pipefail_regression",
+            "wide_column_0002_padding_for_pipefail_regression",
+            "wide_column_0003_padding_for_pipefail_regression",
+            "wide_column_0004_padding_for_pipefail_regression",
+            "wide_column_0005_padding_for_pipefail_regression"
+          ])
+      and ([.units[] | select(.unitKey | startswith("arg-large-"))] | length == $n)
+      and all(.units[] | select(.unitKey | startswith("arg-large-"));
+        .columnCount == 5 and (.mainColumns | length == 5) and .foreignKeys == [])
+    ' "$stress_out" >/dev/null 2>&1; then
+    out_size="$(wc -c < "$stress_out" | tr -d ' ')"
+    if [ "$out_size" -gt "$arg_max" ]; then
+      echo "  [PASS] stress: 900列を全読込し、ARG_MAX超の大規模パッチ集合を適用"
+    else
+      echo "  [FAIL] stress: 出力が ARG_MAX を超えず、大規模パッチ回帰条件を満たさない" >&2
+      rc=1
+    fi
+  else
+    echo "  [FAIL] stress: 900列または大規模パッチ集合の出力内容が不正" >&2
+    rc=1
+  fi
+
   if [ "$rc" -eq 0 ]; then
     echo "self-test 全項目 PASS"
   else
@@ -270,7 +352,7 @@ while IFS= read -r row; do
     cols="$(printf '%s\n' "$block" | extract_columns)"
     if [ -n "$cols" ]; then
       col_count="$(printf '%s\n' "$cols" | grep -c .)"
-      main_cols_json="$(printf '%s\n' "$cols" | head -5 | jq -R . | jq -s -c .)"
+      main_cols_json="$(printf '%s\n' "$cols" | jq -Rsc 'split("\n") | map(select(length > 0)) | .[:5]')"
       add="$(jq -c --argjson n "$col_count" --argjson m "$main_cols_json" \
         '. + {columnCount: $n, mainColumns: $m}' <<<"$add")"
     fi
@@ -292,9 +374,10 @@ while IFS= read -r row; do
   fi
 done < <(jq -c '.units[]' "$MANIFEST")
 
-PATCH_MAP="$(jq -s 'from_entries' "$PATCHES")"
-
 mkdir -p "$(dirname "$OUTPUT")"
-jq --argjson p "$PATCH_MAP" '.units |= map(. + ($p[.unitKey] // {}))' "$MANIFEST" > "$OUTPUT"
+jq --slurpfile patches "$PATCHES" '
+  (reduce $patches[] as $patch ({}; .[$patch.key] = $patch.value)) as $patch_map
+  | .units |= map(. + ($patch_map[.unitKey] // {}))
+' "$MANIFEST" > "$OUTPUT"
 
 echo "OK: wrote $OUTPUT" >&2

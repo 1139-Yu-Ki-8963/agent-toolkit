@@ -110,11 +110,13 @@ self_test() {
     detectionSummary: {screenCount: 3, clusterCount: 0, sharedScreenCount: 0, embeddedCandidateCount: 0, unresolvedCount: 0},
     screens: [
       {screenKey: "user-admin", kind: "route", route: "/admin/users", entryFile: "screens/UserAdmin.tsx",
-       confidence: "high", permissions: ["admin"], relatedApis: ["users-list", "user-delete"], sourceHash: "abcdef123456"},
+       confidence: "high", screenType: "top", accountGroup: "admin", accountSubType: "common", hasTemplate: true, parentScreen: null, childComponents: [], isProcessingEndpoint: false,
+       permissions: ["admin"], relatedApis: ["users-list", "user-delete"], sourceHash: "abcdef123456"},
       {screenKey: "home", kind: "route", route: "/", entryFile: "screens/Home.tsx",
-       confidence: "high", permissions: [], relatedApis: ["users-list"]},
+       confidence: "high", screenType: "top", accountGroup: "user", accountSubType: "common", hasTemplate: true, parentScreen: null, childComponents: [], isProcessingEndpoint: false,
+       permissions: [], relatedApis: ["users-list"]},
       {screenKey: "legacy-report", kind: "route", route: "/legacy/report", entryFile: "screens/Home.tsx",
-       confidence: "low"}
+       confidence: "low", screenType: "detail", accountGroup: "report", accountSubType: "common", hasTemplate: true, parentScreen: null, childComponents: [], isProcessingEndpoint: false}
     ]
   }' > "$sm"
 

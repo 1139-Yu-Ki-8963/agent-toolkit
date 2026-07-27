@@ -12,9 +12,11 @@
 #
 # 出力契約:
 #   {
-#     unitKind: "message",
-#     generatedAt: string(UTC ISO8601),
-#     units: [{ unitKey, messageText, messageType, sourceFile, usedScreen }],
+#     sourceDir: string, unitKind: "message", generatedAt: string(UTC ISO8601),
+#     strategy: { extractionMethod, approvedByUser, unitIdRegex, excludePatterns },
+#     detectionSummary: { method, unitCount, unresolvedCount },
+#     units: [{ unitKey, unitNameGuess, kind, identifier, confidence,
+#               messageText, messageType, sourceFile: string[], usedScreen }],
 #     summary: { totalCount: number, byType: { <messageType>: number, ... } }
 #   }
 #
@@ -49,6 +51,7 @@ if [ ! -f "$input_file" ]; then
 fi
 
 generated_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+source_dir="$(cd "$(dirname "$input_file")" && pwd)"
 
 # パイプテーブル行を抽出し、ヘッダ/セパレータ/プレースホルダ行を除外して
 # キー\t文言\t種別\t抽出元\t使用画面 のTSVに変換する
@@ -90,11 +93,11 @@ tsv="$(awk '
 ' "$input_file")"
 
 if [ -z "$tsv" ]; then
-  jq -n --arg generatedAt "$generated_at" '{
-    unitKind: "message",
-    generatedAt: $generatedAt,
-    units: [],
-    summary: { totalCount: 0, byType: {} }
+  jq -n --arg generatedAt "$generated_at" --arg sourceDir "$source_dir" '{
+    sourceDir: $sourceDir, unitKind: "message", generatedAt: $generatedAt,
+    strategy: {extractionMethod: "message-definition-table", approvedByUser: false, unitIdRegex: null, excludePatterns: []},
+    detectionSummary: {method: "message-definition-table", unitCount: 0, unresolvedCount: 0},
+    units: [], summary: {totalCount: 0, byType: {}}
   }' > "$output_file"
   exit 0
 fi
@@ -102,20 +105,32 @@ fi
 units_json="$(printf '%s\n' "$tsv" | jq -R -s '
   split("\n") | map(select(length > 0)) | map(split("\t")) | map({
     unitKey: .[0],
+    unitNameGuess: .[1],
+    kind: .[2],
+    identifier: .[0],
+    confidence: "high",
     messageText: .[1],
     messageType: .[2],
-    sourceFile: .[3],
+    sourceFile: (.[3] | split(",") | map(gsub("^[[:space:]]+|[[:space:]]+$"; "")) | map(select(length > 0))),
     usedScreen: .[4]
   })
 ')"
 
 jq -n \
   --arg generatedAt "$generated_at" \
+  --arg sourceDir "$source_dir" \
   --argjson units "$units_json" \
   '
   {
+    sourceDir: $sourceDir,
     unitKind: "message",
     generatedAt: $generatedAt,
+    strategy: {extractionMethod: "message-definition-table", approvedByUser: false, unitIdRegex: null, excludePatterns: []},
+    detectionSummary: {
+      method: "message-definition-table",
+      unitCount: ($units | length),
+      unresolvedCount: ($units | map(select(.kind == "unresolved")) | length)
+    },
     units: $units,
     summary: {
       totalCount: ($units | length),

@@ -21,10 +21,10 @@
 #     "confidence": "high|medium|low",
 #     "entryFile": "...", "fileCount": 0, "files": [],
 #     "sharedWith": [], "clusterId": null, "embeddedIn": null, "routeDupCount": 1,
-#     "screenType": "list|detail|form|confirm|complete|error|top|processing_endpoint|unknown",
-#     "accountGroup": "user|admin|editor|report|feature_phone|unknown",
+#     "screenType": "list|detail|form|confirm|complete|error|top|processing_endpoint",
+#     "accountGroup": "user|admin|editor|report|common",
 #     "accountSubType": "common", "hasTemplate": true, "parentScreen": null,
-#     "childComponents": [], "isProcessingEndpoint": false
+#     "childComponents": [{"screenKey":"...","componentType":"modal|popup|iframe"}], "isProcessingEndpoint": false
 #   }]
 # }
 #
@@ -94,7 +94,14 @@ EOF
           route: "/home",
           entryFile: $entryFile,
           detectionMethod: $detectionMethod,
-          confidence: "high"
+          confidence: "high",
+          screenType: "top",
+          accountGroup: "common",
+          accountSubType: "common",
+          hasTemplate: true,
+          parentScreen: null,
+          childComponents: [],
+          isProcessingEndpoint: false
         }
       ]
     }' > "$manifest_a"
@@ -121,7 +128,8 @@ EOF
   jq -n \
     --arg sourceDir "$tmp/src" \
     --arg entryFile "$tmp/src/screens/Home.tsx" \
-    --arg diag '<span>要確認</span>{{GENERATED_AT}}<!--SCREEN_MANIFEST_JSON-->' \
+    --arg diag '</script><script>alert(1)</script><span>要確認</span>{{GENERATED_AT}}<!--SCREEN_MANIFEST_JSON-->' \
+    --arg screenKey "'\" onmouseover=\"alert(1)'" \
     '{
       generatedAt: "2026-01-01T00:00:00Z",
       sourceDir: $sourceDir,
@@ -129,12 +137,19 @@ EOF
       detectionSummary: {screenCount: 1, clusterCount: 0, sharedScreenCount: 0, embeddedCandidateCount: 0, unresolvedCount: 0},
       screens: [
         {
-          screenKey: "home-screen",
+          screenKey: $screenKey,
           kind: "route",
           route: "/home",
           entryFile: $entryFile,
           detectionMethod: "manual",
-          confidence: "high"
+          confidence: "high",
+          screenType: "top",
+          accountGroup: "common",
+          accountSubType: "common",
+          hasTemplate: true,
+          parentScreen: null,
+          childComponents: [],
+          isProcessingEndpoint: false
         }
       ],
       diagnostics: [$diag]
@@ -147,7 +162,15 @@ EOF
     extract_manifest_json "$out_b" | jq -c -S . > "$embedded_b" 2>/dev/null || true
     jq -c -S . "$manifest_b" > "$expected_b"
     if diff -q "$embedded_b" "$expected_b" >/dev/null 2>&1; then
-      echo "  [PASS] ケースb: 山括弧+実マーカー文字列衝突を含むdiagnosticsでも埋め込みJSONが原本と完全一致"
+      if grep -Fq '</script><script>alert(1)</script>' "$out_b" \
+        || ! grep -Fq '\u003c/script\u003e\u003cscript\u003ealert(1)\u003c/script\u003e' "$out_b" \
+        || ! grep -Fq 'data-screen-key="&#39;&quot; onmouseover=&quot;alert(1)&#39;"' "$out_b" \
+        || grep -Fq 'onmouseover="alert(1)' "$out_b"; then
+        echo "  [FAIL] ケースb: 危険文字を含むdiagnosticsのapplication/json埋め込みが安全化されていない" >&2
+        rc=1
+      else
+        echo "  [PASS] ケースb: 危険文字+実マーカー文字列衝突を含むdiagnosticsでも埋め込みJSONが原本と完全一致"
+      fi
     else
       echo "  [FAIL] ケースb: 山括弧+マーカー文字列衝突で埋め込みJSONが原本と不一致(誤爆の疑い)" >&2
       rc=1
@@ -174,7 +197,14 @@ EOF
           route: "/home",
           entryFile: $entryFile,
           detectionMethod: "manual",
-          confidence: "high"
+          confidence: "high",
+          screenType: "top",
+          accountGroup: "common",
+          accountSubType: "common",
+          hasTemplate: true,
+          parentScreen: null,
+          childComponents: [],
+          isProcessingEndpoint: false
         }
       ]
     }' > "$manifest_normal"
@@ -258,9 +288,9 @@ fi
 
 mkdir -p "$(dirname "$OUTPUT_HTML")"
 
-# --- HTMLエスケープ(& < > のみ。& を最初に処理する) ---
+# --- HTMLエスケープ(& < > " '。& を最初に処理する) ---
 html_escape() {
-  printf '%s' "$1" | sed 's/&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g'
+  printf '%s' "$1" | sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g' -e 's/"/\&quot;/g' -e "s/'/\&#39;/g"
 }
 
 # render_template — 共通関数を source（shared/scripts/render-template.sh）
@@ -357,7 +387,9 @@ else
   diagnostics_html="<div class=\"diag-warn\"><strong>診断・警告</strong><ul>${diag_items}</ul></div>"
 fi
 
-screen_manifest_json="$(cat "$MANIFEST")"
+# application/json のraw text要素では文字列中の </script> が要素を閉じるため、
+# JSON値を変えずにHTML構文上の危険文字だけをJSONエスケープへ正規化する。
+screen_manifest_json="$(jq -c . "$MANIFEST" | sed 's/</\\u003c/g; s/>/\\u003e/g; s/\&/\\u0026/g')"
 
 # --- ポータルへの相対パス算出(--portal-dir 未指定時は正本レイアウトの既定値) ---
 # 正本レイアウト: <output_dir>/index.html と <output_dir>/一覧/<種別>一覧/<種別>一覧.html。

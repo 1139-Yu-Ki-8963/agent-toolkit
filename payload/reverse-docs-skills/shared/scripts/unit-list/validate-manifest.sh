@@ -12,7 +12,7 @@
 # screenKey/route/entryFile/screenIdRegex を使う。screen以外は units・unitKey/identifier/
 # sourceFile/unitIdRegex を使う。
 #
-# 検査項目(screen: 全9項目 / screen以外: 全8項目。結果は [PASS]/[FAIL] 項目名 — 詳細 の形式でstderrへ列挙):
+# 検査項目(screen: 全11項目 / screen以外: 全8項目。結果は [PASS]/[FAIL] 項目名 — 詳細 の形式でstderrへ列挙):
 #   1. schema-必須フィールド    : トップレベル必須キー + 各要素の必須キーの存在
 #                                  (screen: generatedAt,sourceDir,strategy,detectionSummary,screens /
 #                                   screenKey,kind,route,entryFile,confidence。
@@ -54,8 +54,11 @@
 #   9. screenType-必須+値域     : screen専用(screen以外はskip)。全screensにscreenTypeフィールドが
 #                                   存在し(不在・null不可)、値が list/detail/form/confirm/complete/
 #                                   error/top/processing_endpoint のいずれかであること
+#  10. accountGroup-値域         : screen専用。存在する場合は user/admin/editor/report/common のいずれか
+#  11. parent-child参照          : parentScreen と childComponents のscreenKey実在、componentType値域、
+#                                   親→子・子→親の双方向一致を検証する
 #
-# 全項目(screen: 9項目 / screen以外: 8項目)PASSでexit 0。1件でもFAILがあればexit 1
+# 全項目(screen: 11項目 / screen以外: 8項目)PASSでexit 0。1件でもFAILがあればexit 1
 # (--fixで解消された項目4はPASS扱い)。
 
 set -uo pipefail
@@ -104,7 +107,7 @@ run_validate() {
   # ---------------------------------------------------------------------------
   # 1. schema-必須フィールド
   # ---------------------------------------------------------------------------
-  local missing_top missing_item_fields detail
+  local missing_top missing_item_fields detail generated_at_ok manifest_kind kind_ok
   missing_top="$(jq -r --argjson req "$TOP_REQUIRED_JSON" '$req - keys | join(",")' "$MANIFEST")"
   missing_item_fields="$(jq -r --arg items "$ITEMS_KEY" --argjson req "$ITEM_REQUIRED_JSON" --arg keyfield "$ITEM_KEY_FIELD" '
     [ .[$items][]? |
@@ -114,9 +117,19 @@ run_validate() {
     ] | join("; ")
   ' "$MANIFEST")"
 
-  if [ -n "$missing_top" ] || [ -n "$missing_item_fields" ]; then
+  generated_at_ok="$(jq -r '(.generatedAt | type) == "string" and (.generatedAt | length) > 0' "$MANIFEST" 2>/dev/null || echo false)"
+  manifest_kind="$(jq -r '.unitKind // empty' "$MANIFEST")"
+  if [ "$UNIT_KIND" = "screen" ]; then
+    # screen は unitKind 未導入の既存契約を受け入れる。ただし、値がある場合は screen に限る。
+    kind_ok="$(jq -r '((has("unitKind") | not) or .unitKind == "screen")' "$MANIFEST" 2>/dev/null || echo false)"
+  else
+    kind_ok="$(jq -r --arg expected "$UNIT_KIND" '(.unitKind | type) == "string" and .unitKind == $expected' "$MANIFEST" 2>/dev/null || echo false)"
+  fi
+
+  if [ -n "$missing_top" ] || [ -n "$missing_item_fields" ] \
+    || [ "$generated_at_ok" != "true" ] || [ "$kind_ok" != "true" ]; then
     overall_fail=1
-    detail="トップレベル欠落=[${missing_top}] ${ITEMS_KEY}欠落=[${missing_item_fields}]"
+    detail="トップレベル欠落=[${missing_top}] ${ITEMS_KEY}欠落=[${missing_item_fields}] generatedAt非空文字列=${generated_at_ok} unitKind=${manifest_kind:-\"(screen既存契約)\"}/期待=${UNIT_KIND}"
     echo "[FAIL] schema-必須フィールド — ${detail}" >&2
   else
     echo "[PASS] schema-必須フィールド — 必須キーはすべて存在" >&2
@@ -125,15 +138,16 @@ run_validate() {
   # ---------------------------------------------------------------------------
   # 2. strategy-承認
   # ---------------------------------------------------------------------------
-  local extraction_nonempty approved_true
+  local extraction_nonempty approved_true id_regex_contract_ok
   extraction_nonempty="$(jq -r '((.strategy.extractionMethod // "") | length) > 0' "$MANIFEST")"
   approved_true="$(jq -r '(.strategy.approvedByUser == true)' "$MANIFEST")"
+  id_regex_contract_ok="$(jq -r --arg f "$ID_REGEX_FIELD" '(.strategy | has($f)) and ((.strategy[$f] == null) or (.strategy[$f] | type) == "string")' "$MANIFEST" 2>/dev/null || echo false)"
 
-  if [ "$extraction_nonempty" != "true" ] || [ "$approved_true" != "true" ]; then
+  if [ "$extraction_nonempty" != "true" ] || [ "$approved_true" != "true" ] || [ "$id_regex_contract_ok" != "true" ]; then
     overall_fail=1
-    echo "[FAIL] strategy-承認 — Phase 1の検出戦略宣言が未承認です。承認を経ずに後続Phaseへ進むことはできません" >&2
+    echo "[FAIL] strategy-承認 — extractionMethod・approvedByUser=true・${ID_REGEX_FIELD}(nullまたは文字列)が必要です" >&2
   else
-    echo "[PASS] strategy-承認 — extractionMethod設定済み・approvedByUser=true" >&2
+    echo "[PASS] strategy-承認 — extractionMethod設定済み・approvedByUser=true・${ID_REGEX_FIELD}が契約どおり" >&2
   fi
 
   # ---------------------------------------------------------------------------
@@ -467,7 +481,7 @@ run_validate() {
   # ---------------------------------------------------------------------------
   local total_items=8
   if [ "$UNIT_KIND" = "screen" ]; then
-    total_items=9
+    total_items=11
     local screen_type_issues
     screen_type_issues="$(jq -r '
       ["list","detail","form","confirm","complete","error","top","processing_endpoint"] as $allowed
@@ -489,6 +503,75 @@ run_validate() {
       echo "[FAIL] screenType-必須+値域 — ${screen_type_issues}" >&2
     else
       echo "[PASS] screenType-必須+値域 — 全screensにscreenType存在し値域内" >&2
+    fi
+
+    local account_group_issues
+    account_group_issues="$(jq -r '
+      ["user","admin","editor","report","common"] as $allowed
+      | [ .screens[]? | select(has("accountGroup") and .accountGroup != null)
+          | .accountGroup as $group
+          | select(($group | type) != "string" or (($allowed | index($group)) == null))
+          | (.screenKey // "?") + ":accountGroup=" + ($group | tostring) + "(値域外)"
+        ] | join("; ")
+    ' "$MANIFEST" 2>/dev/null)"
+    if [ -n "$account_group_issues" ]; then
+      overall_fail=1
+      echo "[FAIL] accountGroup-値域 — ${account_group_issues}" >&2
+    else
+      echo "[PASS] accountGroup-値域 — user/admin/editor/report/commonのみ" >&2
+    fi
+
+    local parent_child_issues
+    parent_child_issues="$(jq -r '
+      (.screens // []) as $screens
+      | ($screens | map(.screenKey // "")) as $keys
+      | (
+          [ $screens[]
+            | select(.parentScreen != null)
+            | .parentScreen as $parent
+            | select(($keys | index($parent)) == null)
+            | (.screenKey // "?") + ":parentScreen=" + ($parent | tostring) + "が不在"
+          ]
+          +
+          [ $screens[] as $parent
+            | if ($parent | has("childComponents")) and (($parent.childComponents | type) != "array") then
+                ($parent.screenKey // "?") + ":childComponentsが配列でない"
+              else
+                ($parent.childComponents // [])[]?
+                  | if (type != "object") then
+                      ($parent.screenKey // "?") + ":childComponentがobjectでない"
+                    elif ((.screenKey // "") as $child | ($keys | index($child)) == null) then
+                      ($parent.screenKey // "?") + ":childComponentのscreenKeyが不在"
+                    elif (.componentType // "") as $component
+                      | (["modal","popup","iframe"] | index($component)) == null then
+                      ($parent.screenKey // "?") + ":componentTypeが値域外"
+                    else empty end
+              end
+          ]
+          +
+          [ $screens[] as $parent
+            | ($parent.childComponents // [] | if type == "array" then . else [] end)[]?
+            | select(type == "object" and (.screenKey | type) == "string")
+            | .screenKey as $child_key
+            | ($screens | map(select(.screenKey == $child_key) | .parentScreen) | index($parent.screenKey)) as $has_reverse_parent
+            | select($has_reverse_parent == null)
+            | $parent.screenKey + ":childComponents=" + $child_key + "の子→親不一致"
+          ]
+          +
+          [ $screens[] as $child
+            | select($child.parentScreen != null)
+            | ($child.parentScreen) as $parent_key
+            | ($screens | map(select(.screenKey == $parent_key) | (.childComponents // [] | if type == "array" then . else [] end)[]? | select(type == "object") | .screenKey) | index($child.screenKey)) as $has_reverse_child
+            | select($has_reverse_child == null)
+            | $child.screenKey + ":parentScreen=" + $parent_key + "の親→子不一致"
+          ]
+        ) | join("; ")
+    ' "$MANIFEST" 2>/dev/null)"
+    if [ -n "$parent_child_issues" ]; then
+      overall_fail=1
+      echo "[FAIL] parent-child参照 — ${parent_child_issues}" >&2
+    else
+      echo "[PASS] parent-child参照 — screenKey・componentType・双方向参照が整合" >&2
     fi
   fi
 
@@ -542,7 +625,13 @@ EOF
       "route": "/home",
       "entryFile": "src/screens/Home.tsx",
       "confidence": "high",
-      "screenType": "top"
+      "screenType": "top",
+      "accountGroup": "common",
+      "accountSubType": "common",
+      "hasTemplate": true,
+      "parentScreen": null,
+      "childComponents": [],
+      "isProcessingEndpoint": false
     }
   ]
 }
@@ -564,6 +653,24 @@ JSON
     echo "  [PASS] screen陰性: screens欠落でFAIL"
   fi
 
+  local screen_bad_generated_at="$tmp/screen-bad-generated-at.json"
+  jq '.generatedAt = null' "$screen_pass" > "$screen_bad_generated_at"
+  if run_validate "$screen_bad_generated_at" "" "screen" >/dev/null 2>&1; then
+    echo "  [FAIL] screen陰性: generatedAt=nullを受け入れた" >&2
+    rc=1
+  else
+    echo "  [PASS] screen陰性: generatedAt=nullでFAIL"
+  fi
+
+  local screen_bad_kind="$tmp/screen-bad-kind.json"
+  jq '.unitKind = "api"' "$screen_pass" > "$screen_bad_kind"
+  if run_validate "$screen_bad_kind" "" "screen" >/dev/null 2>&1; then
+    echo "  [FAIL] screen陰性: unitKind=apiをscreenとして受け入れた" >&2
+    rc=1
+  else
+    echo "  [PASS] screen陰性: unitKind=apiをscreen指定でFAIL"
+  fi
+
   # ---- 検査9(screenType-必須+値域)の確認 ----
   local screen_missing_type="$tmp/screen-missing-type.json"
   jq '.screens[0] |= del(.screenType)' "$screen_pass" > "$screen_missing_type"
@@ -581,6 +688,54 @@ JSON
     rc=1
   else
     echo "  [PASS] screenType陰性(値域外): screenType値域外でFAIL"
+  fi
+
+  # ---- 分類値域と親子双方向参照の確認 ----
+  local screen_bad_group="$tmp/screen-bad-group.json"
+  jq '.screens[0].accountGroup = "feature_phone"' "$screen_pass" > "$screen_bad_group"
+  if run_validate "$screen_bad_group" "" "screen" >/dev/null 2>&1; then
+    echo "  [FAIL] accountGroup陰性(値域外): 無効値なのにPASSした" >&2
+    rc=1
+  else
+    echo "  [PASS] accountGroup陰性(値域外): 無効値でFAIL"
+  fi
+
+  local screen_parent_child="$tmp/screen-parent-child.json"
+  jq '.detectionSummary.screenCount = 2
+      | .screens += [{screenKey:"home-modal", kind:"route", route:"/home/modal", entryFile:"src/screens/Home.tsx", confidence:"high", screenType:"form", accountGroup:"common", accountSubType:"common", hasTemplate:true, parentScreen:"home-screen", childComponents:[], isProcessingEndpoint:false}]
+      | .screens[0].childComponents = [{screenKey:"home-modal", componentType:"modal"}]' "$screen_pass" > "$screen_parent_child"
+  if run_validate "$screen_parent_child" "" "screen" >/dev/null 2>&1; then
+    echo "  [PASS] parent-child陽性: 双方向参照とcomponentTypeが整合"
+  else
+    echo "  [FAIL] parent-child陽性: 正当な双方向参照がFAILした" >&2
+    rc=1
+  fi
+
+  local screen_missing_parent_link="$tmp/screen-missing-parent-link.json"
+  jq '.screens[1].parentScreen = null' "$screen_parent_child" > "$screen_missing_parent_link"
+  if run_validate "$screen_missing_parent_link" "" "screen" >/dev/null 2>&1; then
+    echo "  [FAIL] parent-child陰性(親のみ): 子→親不一致なのにPASSした" >&2
+    rc=1
+  else
+    echo "  [PASS] parent-child陰性(親のみ): 子→親不一致でFAIL"
+  fi
+
+  local screen_missing_child_link="$tmp/screen-missing-child-link.json"
+  jq '.screens[0].childComponents = []' "$screen_parent_child" > "$screen_missing_child_link"
+  if run_validate "$screen_missing_child_link" "" "screen" >/dev/null 2>&1; then
+    echo "  [FAIL] parent-child陰性(子のみ): 親→子不一致なのにPASSした" >&2
+    rc=1
+  else
+    echo "  [PASS] parent-child陰性(子のみ): 親→子不一致でFAIL"
+  fi
+
+  local screen_bad_component_type="$tmp/screen-bad-component-type.json"
+  jq '.screens[0].childComponents[0].componentType = "drawer"' "$screen_parent_child" > "$screen_bad_component_type"
+  if run_validate "$screen_bad_component_type" "" "screen" >/dev/null 2>&1; then
+    echo "  [FAIL] componentType陰性(値域外): 無効値なのにPASSした" >&2
+    rc=1
+  else
+    echo "  [PASS] componentType陰性(値域外): 無効値でFAIL"
   fi
 
   # ---- api フィクスチャ: unitKind=apiでの汎用パス確認 ----
@@ -629,6 +784,42 @@ JSON
   else
     echo "  [FAIL] api陽性: 正当なapiマニフェストがFAILした" >&2
     rc=1
+  fi
+
+  local api_bad_kind="$tmp/api-bad-kind.json"
+  jq '.unitKind = "table"' "$api_pass" > "$api_bad_kind"
+  if run_validate "$api_bad_kind" "" "api" >/dev/null 2>&1; then
+    echo "  [FAIL] api陰性: unitKind=tableをapiとして受け入れた" >&2
+    rc=1
+  else
+    echo "  [PASS] api陰性: unitKind=tableをapi指定でFAIL"
+  fi
+
+  local api_bad_generated_at="$tmp/api-bad-generated-at.json"
+  jq '.generatedAt = ""' "$api_pass" > "$api_bad_generated_at"
+  if run_validate "$api_bad_generated_at" "" "api" >/dev/null 2>&1; then
+    echo "  [FAIL] api陰性: generatedAt空文字を受け入れた" >&2
+    rc=1
+  else
+    echo "  [PASS] api陰性: generatedAt空文字でFAIL"
+  fi
+
+  local api_missing_id_regex="$tmp/api-missing-id-regex.json"
+  jq 'del(.strategy.unitIdRegex)' "$api_pass" > "$api_missing_id_regex"
+  if run_validate "$api_missing_id_regex" "" "api" >/dev/null 2>&1; then
+    echo "  [FAIL] api陰性: strategy.unitIdRegex欠落を受け入れた" >&2
+    rc=1
+  else
+    echo "  [PASS] api陰性: strategy.unitIdRegex欠落でFAIL"
+  fi
+
+  local api_bad_id_regex="$tmp/api-bad-id-regex.json"
+  jq '.strategy.unitIdRegex = 1' "$api_pass" > "$api_bad_id_regex"
+  if run_validate "$api_bad_id_regex" "" "api" >/dev/null 2>&1; then
+    echo "  [FAIL] api陰性: strategy.unitIdRegex数値を受け入れた" >&2
+    rc=1
+  else
+    echo "  [PASS] api陰性: strategy.unitIdRegex数値でFAIL"
   fi
 
   local resolved_kind
