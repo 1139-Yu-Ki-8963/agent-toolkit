@@ -6,6 +6,13 @@
 <title>基盤設計書</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
 <style>
+
+  :root {
+    --content-max: 1120px;
+    --reading-width: 72ch;
+    --page-gutter: clamp(20px, 4vw, 72px);
+    --section-gap: clamp(28px, 4vw, 44px);
+  }
   :root,
 [data-theme="light"] {
   /* Windows フォント上書き防止 */
@@ -145,9 +152,9 @@
   .dp-main {
     flex: 1; min-width: 0;
     overflow-y: auto; min-height: 0;
-    padding: 24px 32px 64px;
+    padding: 32px var(--page-gutter) 72px;
   }
-  .dp-inner { max-width: 800px; }
+  .dp-inner { width: min(100%, var(--content-max)); margin-inline: auto; }
 
   .doc-crumbs { font-size: 12px; color: var(--text-muted); margin-bottom: 8px; }
   .doc-crumbs a { color: var(--text-sub); }
@@ -165,10 +172,10 @@
   }
 
   /* section */
-  .sec-block { margin-bottom: 28px; }
+  .sec-block { margin-bottom: var(--section-gap); scroll-margin-top: 24px; }
   .sec-label {
-    font-size: 12px; font-weight: 700; letter-spacing: .04em; color: var(--text-sub);
-    display: flex; align-items: center; gap: 8px; margin: 0 0 12px;
+    font-size: 15px; font-weight: 700; letter-spacing: .025em; color: var(--text-sub);
+    display: flex; align-items: center; gap: 8px; margin: 0 0 14px;
   }
   .sec-label::before { content: ""; width: 4px; height: 14px; border-radius: 2px; }
   .sec-label[data-color="accent"]::before { background: var(--accent); }
@@ -180,8 +187,8 @@
   /* baseline prose（セクション固有クラスの対象外になる見出し・段落・引用・区切り線） */
   #doc-content h3 { font-size: 1.05rem; margin: 20px 0 8px; color: var(--text); }
   #doc-content h4 { font-size: 0.95rem; margin: 16px 0 6px; color: var(--text-sub); }
-  #doc-content p { margin: 8px 0; font-size: 13.5px; color: var(--text-sub); line-height: 1.65; }
-  #doc-content ul, #doc-content ol { padding-left: 22px; margin: 8px 0; font-size: 13.5px; color: var(--text-sub); }
+  #doc-content p { margin: 8px 0; font-size: 14px; color: var(--text-sub); line-height: 1.8; }
+  #doc-content ul, #doc-content ol { padding-left: 22px; margin: 8px 0; font-size: 14px; color: var(--text-sub); line-height: 1.8; }
   #doc-content li { margin: 4px 0; }
   #doc-content code {
     background: var(--code-bg); color: var(--code-fg); padding: 1px 6px;
@@ -193,11 +200,27 @@
   }
   #doc-content hr { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
 
+  /* 読書レーン: 長時間読む本文は行長を抑え、周辺の余白を左右対称にする */
+  .doc-crumbs,
+  .dp-hero,
+  .sec-label,
+  #doc-content .sec-block > h3,
+  #doc-content .sec-block > h4,
+  #doc-content .sec-block > p,
+  #doc-content .sec-block > ul:not(.rule-list),
+  #doc-content .sec-block > ol,
+  #doc-content .sec-block > blockquote,
+  #doc-content .rule-list,
+  .callout {
+    width: min(100%, var(--reading-width));
+    margin-inline: auto;
+  }
+
   /* rule items */
-  .rule-list { display: flex; flex-direction: column; gap: 6px; list-style: none; padding-left: 0; }
+  .rule-list { display: flex; flex-direction: column; gap: 6px; list-style: none; padding-left: 0; margin-top: 8px; }
   .rule-item {
-    display: flex; align-items: flex-start; gap: 8px; padding: 8px 12px;
-    background: var(--panel-2); border-radius: var(--radius-sm); font-size: 13.5px; line-height: 1.6;
+    display: flex; align-items: flex-start; gap: 8px; padding: 11px 14px;
+    background: var(--panel-2); border-radius: var(--radius-sm); font-size: 14px; line-height: 1.7;
   }
   .rule-item .material-symbols-outlined { font-size: 18px; margin-top: 2px; flex-shrink: 0; }
   .rule-item code {
@@ -206,7 +229,7 @@
   }
 
   /* tables */
-  .table-wrap { overflow-x: auto; border-radius: var(--radius); margin-bottom: 14px; }
+  .table-wrap { width: 100%; overflow-x: auto; border-radius: var(--radius); margin-bottom: 14px; }
   table.data-table {
     width: 100%; min-width: 400px; border-collapse: collapse; font-size: 13px;
     background: var(--panel); border: 1px solid var(--border);
@@ -224,7 +247,7 @@
   }
 
   /* code blocks（手動で span を書いた場合にのみ配色が効く。MD パーサーは自動適用しない） */
-  .code-block { border-radius: var(--radius-sm); overflow: hidden; background: var(--code-bg); margin-bottom: 14px; }
+  .code-block { width: 100%; border-radius: var(--radius-sm); overflow: hidden; background: var(--code-bg); margin-bottom: 14px; }
   .code-block-head {
     display: flex; align-items: center; gap: 6px;
     padding: 6px 14px; font-size: 11px; font-weight: 600;
@@ -279,7 +302,20 @@
       box-shadow: var(--shadow-md); padding: 60px 16px 16px;
     }
     .toc-toggle { display: flex; }
-    .dp-main { padding: 16px 14px 48px; }
+    :root { --page-gutter: 16px; }
+    .dp-main { padding: 16px var(--page-gutter) 48px; }
+    .dp-inner,
+    .doc-crumbs,
+    .dp-hero,
+    .sec-label,
+    #doc-content .sec-block > h3,
+    #doc-content .sec-block > h4,
+    #doc-content .sec-block > p,
+    #doc-content .sec-block > ul:not(.rule-list),
+    #doc-content .sec-block > ol,
+    #doc-content .sec-block > blockquote,
+    #doc-content .rule-list,
+    .callout { width: 100%; }
     .topbar { grid-template-columns: 1fr; gap: 8px; padding: 10px 14px; }
   }
   @media (max-width: 480px) {
