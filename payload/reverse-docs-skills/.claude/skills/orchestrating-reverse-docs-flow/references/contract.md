@@ -97,13 +97,17 @@
 - 返却ブロック共通サブセット（status/scope/artifacts/hint）に準拠する
 - `status=基本設計著述失敗` は facts 未封印（`seal-facts.sh verify` exit 1）・unit_kind が screen 以外（未実装）・実装用語混入がループ上限内で解消しない等で著述不能な場合
 - `unit_kind`（`screen` のみ実装）。他の値を指定された場合も `status=基本設計著述失敗` を返す
+- `authoring_pass`: `standard | large-pass2`。`large-pass2` は `detail_design_path` と `pass1_receipt_path` を必須とし、固定証跡契約の検収失敗時は `status=基本設計著述失敗`
 
 ### generating-reverse-detailed-design（設計書著述）
 
-- status: `AUTHORED | BLOCKED`
-- 拡張: facts_ref（入力で受け取った facts ディレクトリの絶対パスをそのまま転記。下流工程への追跡用）、measurement_pending（⑨実測系として設計書に確定せず画面単位検証へ委譲した項目の一覧）
+- status: `AUTHORED | DETAIL_AUTHORED | COMPANION_AUTHORED | BLOCKED`
+- 拡張: facts_ref（入力で受け取った facts ディレクトリの絶対パスをそのまま転記。下流工程への追跡用）、measurement_pending（⑨実測系として設計書に確定せず画面単位検証へ委譲した項目の一覧）、detail_design_path、pass1_receipt_path
 - 返却ブロック共通サブセット（status/scope/artifacts/hint）に準拠する
-- `status=BLOCKED` は facts 未封印（`seal-facts.sh verify` exit 1）・引数不足等で著述不能な場合
+- `authoring_pass`: `full | detail-only | companion-docs`。`detail-only` は詳細設計書と完全性ゲート、`companion-docs` は完成済み詳細設計書を変更せず観点表・テスト仕様書だけを担当する
+- `status=BLOCKED` は facts 未封印（`seal-facts.sh verify` exit 1）・引数不足・`companion-docs` のパス1証跡不足等で著述不能な場合
+- `detail-only` は `<verification_dir>/screen-<画面ID>/authoring/detail-pass1.json` を作成する。必須フィールドは `status=DETAIL_AUTHORED`、`facts_lock_sha256`、`detail_design_path`、`coverage_check=PASS`、`audit_check=PASS`
+- `large-pass2|companion-docs` は証跡の5フィールド、詳細設計書の実在、detail_design_path の一致、現在の facts.lock の SHA-256 一致を検収する。違反時は fail-closed とする
 
 ### rebuilding-screen-unit-from-docs（ファイル単位検証）
 
@@ -234,15 +238,15 @@ running-reverse-screen-batch の実行ログ（`log_path`）・failed リスト�
 | 状態遷移図未生成（任意） | 状態遷移図.html が output_dir 直下に不在。データ源未整備時はスキップしてよい | generating-entity-state-for-reverse-docs | target_repo_path, output_dir, portal_output_dir（任意） |
 | シーケンス図未生成（任意） | 画面フォルダのシーケンス図.html が不在。データ源未整備時はスキップしてよい | generating-sequence-diagram-for-reverse-docs | target_repo_path, output_dir, screen_id, portal_output_dir（任意） |
 | 事実未封印 | `<verification_dir>/screen-<画面ID>/facts/*/facts.lock` が不在、または `seal-facts.sh verify` が exit 1 | extracting-unit-facts-from-code | target_repo_path, target_file_paths, screen_dir, profile=screen, survey_doc_path, run_id（期待返却 封印済み） |
-| 基本設計未著述 | `<screen_dir>/基本設計/画面基本設計書.md` が不在 | generating-reverse-basic-design | screen_dir, output_dir, template_root, scaffold_script_path, facts_ref, common_docs_root, unit_kind（期待返却 基本設計著述完了） |
-| 設計書未著述 | 画面ディレクトリ不在 or §15.1 に対象ファイル行なし or 著者スキルの完全性ゲート成果物（画面詳細設計書.md 該当章 + check-fact-coverage 通過記録）不在 or 直近の AUTHORED 返却の facts_ref が現在の封印済み facts と不一致、もしくは `seal-facts.sh verify` が exit 1（facts が再抽出・改変され著述が陳腐化している） | generating-reverse-detailed-design（必須工程） | screen_dir, output_dir, template_root, chapter_map_path, audit_script_path, facts_ref, common_docs_root, mode, target_file_path, verification_url（任意） |
+| 基本設計未著述 | standardで画面基本設計書.mdが不在、またはlarge-two-passで有効なpass1_receipt_pathがあり画面基本設計書.mdが不在 | generating-reverse-basic-design | standardはauthoring_pass=standard。large-two-passはauthoring_pass=large-pass2, detail_design_path, pass1_receipt_path（期待返却 基本設計著述完了） |
+| 設計書未著述 | standardは詳細設計の完全性ゲート成果物またはAUTHOREDが不在。large-two-passは有効なpass1_receipt_pathがなければdetail-only、証跡がありCOMPANION_AUTHOREDがなければcompanion-docsを起動する | generating-reverse-detailed-design（必須工程） | 共通argsにauthoring_passを追加。companion-docsではdetail_design_pathとpass1_receipt_pathも渡す |
 | 画面未開通 | 基本設計・詳細設計は著述済みだが、画面レジストリに実レンダリング確認済みの `verification_url` がない。`docs-only` では「静的リバース完了」の終端として扱う | unlocking-reverse-target-screens（`single-pass` / `iterative` のみ、`invocation_mode=dynamic-only`。開通と設計書 frontmatter 補完まで行い基準確立は後続へ委ねる） | invocation_mode=dynamic-only, system, screen_id, reverse_worktree, ports, output_dir, user-approved（期待返却 UNLOCKED） |
 | ファイル単位未検証 | 著述済み（設計書未著述=false）**かつ** 当該ファイルの `<verification_dir>/screen-<画面ID>/単体-<対象ファイルbasename>/` 配下に検証記録が1件以上実在する（＝rebuilding-screen-unit-from-docsに着手済み）**かつ** 直近の記録の `status` が「再現一致」でない。当該ファイルの検証記録が1件も無い場合は着手前（任意工程の未着手）であり本状態を確定させず、基準未確立/往復未検証の判定へ読み飛ばす | rebuilding-screen-unit-from-docs（任意工程。無人モードでは必須工程に上書きされる。「無人モード仕様」の「盲検分離の必須要件」を参照） | screen_dir, target_file_path, 資産paths, env_block, user-approved, verification_mode |
 | 基準未確立 | 設計書有・baseline_tag 未確立（syncing setup の baseline_tag が未実施） | syncing-reverse-env（mode=setup → sync） | design-doc, mode=setup |
 | 往復未検証 | baseline_tag有・judge の直近記録が PASS でない（judge 未実施の初回と、judge FAIL 後に再 implement 待ちの状態を区別せず同一状態として扱う。いずれも次に起動する子スキルは rebuilding-code-from-docs である）。`single-pass` で直近 judge が FAIL の場合は同じ明示起動内では終端し、自動再実行しない。後日の新しい明示起動では新たな単発検証として再開できる。**例外**: 直近の修正指示書.md が NG帰着(c)（共通文書欠落）に分類され、かつ対応する generating-reverse-common-docs の mode=append 再起動がまだ行われていない場合に限り、次に起動する子スキルを generating-reverse-common-docs（mode=append）に読み替える（詳細は下記「NG帰着3系統の配線」）。修正指示書.md 自体が無い、またはあっても NG帰着(c)以外・追記対応済みの場合はこの読み替えを評価せず、既定の rebuilding-code-from-docs を次に起動する（NG帰着(c)保留の証跡が無いことを「往復未検証＝未実施」の確定根拠とし、推測で個別分岐を補わない） | rebuilding-code-from-docs（mode=implement）→ syncing-reverse-env（mode=sync,dry-run）→ rebuilding-code-from-docs（mode=judge）。ただし上記例外時は generating-reverse-common-docs（mode=append）を先に起動する | screen_dir, scope, reverse_worktree, ports, output_dir（implement）／ design-doc, mode=sync, dry-run（sync,dry-run）／ screen_dir, compare_result, reverse_worktree, freeze_commit（judge）／ 例外時: target_repo_path, output_dir, template_root, survey_doc_path, mode=append, append_findings |
 | 検証完了 | rebuilding-code-from-docs judge が status=PASS | syncing-reverse-env（mode=sync 本番で基準タグ更新 / 依頼時 teardown。user-approved 必須） | design-doc, mode=sync, user-approved |
 
-判定は次の順に降りる判定フローで15状態を漏れなく被覆する。
+判定は次の順に降りる判定フローで15状態を漏れなく被覆する。事実封印の検収直後、状態9より前に著述モードを確定する。large-two-passでは状態10のdetail-onlyを状態9より先に評価する。
 
 1. アーキ未調査: アーキテクチャ調査書の実在と機械ゲート
 2. 一覧未生成: 各種別の一覧HTMLと excluded-kinds.json の実在
@@ -252,19 +256,19 @@ running-reverse-screen-batch の実行ログ（`log_path`）・failed リスト�
 6. 状態遷移図未生成（任意）: 状態遷移図.html の実在。スキップ時はデータ源未整備の根拠を記録する
 7. シーケンス図未生成（任意）: 画面フォルダのシーケンス図.html の実在。スキップ時はデータ源未整備の根拠を記録する
 8. 事実未封印: facts.lock の実在と封印検証
-9. 基本設計未著述: 画面基本設計書.md の実在
-10. 設計書未著述: 詳細設計書・対象ファイル行・完全性ゲート成果物の実在と facts_ref 整合
+9. 基本設計未著述: standardは通常判定。large-two-passは有効なパス1証跡がある場合だけ判定
+10. 設計書未著述: standardはfullを判定。large-two-passはdetail-onlyを先行し、その後companion-docsを判定
 11. 画面未開通: 実レンダリング確認済み verification_url の実在
 12. ファイル単位未検証: 検証記録の実在有無と直近の再現一致有無
 13. 基準未確立: syncing setup 返却の baseline_tag
 14. 往復未検証: judge の直近記録と NG帰着(c)保留の有無
 15. 検証完了: judge の直近 PASS
 
-`verification_mode=docs-only` は 10 の詳細設計 AUTHORED 検収直後に、verification_url の有無を問わず「静的リバース完了」として必ず終端する。11〜15 および Phase 7〜11 の動的工程は判定も起動も行わない。
+`verification_mode=docs-only` は、standard では基本設計著述完了+AUTHORED、large-two-passではDETAIL_AUTHORED+基本設計著述完了+COMPANION_AUTHOREDの検収直後に、verification_url の有無を問わず「静的リバース完了」として必ず終端する。11〜15 および Phase 7〜11 の動的工程は判定も起動も行わない。
 
 「次に起動する子スキル」列は起動する子スキル名のみを記す。mode の選択・分岐条件は必ず「渡す主要 args」列または実在判定列を参照する（子スキル名に mode を併記しない）。
 
-**動的検証ゲート**: 画面レジストリの `verification_url` は、ファイル単位検証・基準確立・往復検証へ進む時点で、実レンダリング確認済みの実URL（「未実施」・エラーページ・プレースホルダでない）でなければならない。この条件は facts封印・基本設計著述・詳細設計著述には適用しない。未開通でも静的コードから3工程を完了できる。`single-pass` / `iterative` で開通に失敗した場合は「静的リバース完了・動的検証保留」とする。`docs-only` は URL の有無にかかわらず詳細設計 AUTHORED 直後に「静的リバース完了」として終端し、Phase 7〜11 を常にスキップする。`single-pass` は1回の明示起動につき対象画面の judge を最大1回に制限し、FAIL 後の自動反復を禁止する。後日の新しい明示起動は新たな単発検証として許可する。`iterative` だけが上限付きの自動反復を許可する。
+**動的検証ゲート**: 画面レジストリの `verification_url` は、ファイル単位検証・基準確立・往復検証へ進む時点で、実レンダリング確認済みの実URLでなければならない。この条件は静的著述には適用しない。`docs-only` はstandardの基本設計著述完了+AUTHORED、またはlarge-two-passのDETAIL_AUTHORED+基本設計著述完了+COMPANION_AUTHOREDを検収した直後に終端する。`single-pass` は1回の明示起動につき対象画面のjudgeを最大1回に制限する。`iterative` だけが上限付きの自動反復を許可する。
 
 アーキ未調査・共通未採録はプロジェクト単位で1回だけ確定させればよく、画面ごとに繰り返さない（一覧未生成以降は画面単位の反復対象）。
 
@@ -274,7 +278,7 @@ running-reverse-screen-batch の実行ログ（`log_path`）・failed リスト�
 
 **無人モードでの上書き**: 上記「任意工程」の扱いは通常モードのものであり、無人モード（headless=true）ではファイル単位未検証（rebuilding-screen-unit-from-docs）を任意工程ではなく必須工程として扱う（正本は「無人モード仕様」の「盲検分離の必須要件」）。無人モードで当該ファイルの検証記録が1件も無い場合もスキップせず必ず実行する。
 
-基本設計未著述は任意工程ではなく必須工程である。`<screen_dir>/基本設計/画面基本設計書.md` が不在のまま設計書未著述・ファイル単位未検証・基準未確立・往復未検証へ進むことを禁止する。管理者の完了条件および最終報告には、対象画面ごとに画面基本設計書.md の実在を含める。
+基本設計未著述は任意工程ではなく必須工程である。standard では基本設計書が不在のまま後続へ進まない。large-two-pass では唯一の例外として詳細設計パス1だけを先行できるが、基本設計書が不在のままパス2合流後のファイル単位未検証・基準未確立・往復未検証へ進むことは禁止する。管理者の完了条件および最終報告には、対象画面ごとに画面基本設計書.md の実在を含める。
 
 ### 種別ループ
 
@@ -311,9 +315,15 @@ feature（機能一覧）は種別ループの対象外である。派生一覧�
 
 rebuilding-code-from-docsのPhase2が実行するaudit-consistency.shは§16要確認事項一覧の未解消行数をWARNとして記録する（既定）。既定挙動では管理者の状態判定・次工程遷移に影響しない。管理者が往復検証着手前に§16のゼロ解消を強制したい場合のみ、AUDIT_STRICT_P16=1を設定した上でaudit-consistency.shを実行するようrebuilding-code-from-docsへ指示する（この場合はexit 1となり、Phase2は「内部矛盾あり」としてPhase8へ直行する既存の分岐がそのまま適用される）。
 
-### 基本設計・詳細設計の並列起動
+### 標準著述と大規模ユニットの2パス著述
 
-Phase 6 の (b-2) generating-reverse-basic-design と (c) generating-reverse-detailed-design は、画面の開通有無にかかわらず Agent(run_in_background: true) で並列起動する。両スキルは互いの成果物を参照しない（SKILL.md「予想を裏切る挙動」節で明文化済み）。合流条件は両方の完了ステータス受領。(d) rebuilding-screen-unit-from-docs の `status=差し戻し` は `verification_mode=iterative` の場合だけ詳細設計へ戻す（基本設計への差し戻しは発生しない）。
+Phase 6 は `target_file_paths` の合計行数・ファイル数を実測する。合計1,500行超または4ファイル超、もしくは詳細設計書が1,000行を超える見込みを呼び出し元が根拠付きで指定した場合は `authoring_mode=large-two-pass`、それ以外は `authoring_mode=standard` とする。
+
+- `standard`: generating-reverse-basic-design（`authoring_pass=standard`）と generating-reverse-detailed-design（`authoring_pass=full`）を並列起動する。合流条件は `基本設計著述完了` と `AUTHORED`
+- `large-two-pass` パス1: generating-reverse-detailed-design（`authoring_pass=detail-only`）だけを起動し、詳細設計書の完全性ゲート通過を示す `DETAIL_AUTHORED`、`detail_design_path`、`pass1_receipt_path` を受領する
+- `large-two-pass` パス2: パス1の完了後に限り、generating-reverse-basic-design（`authoring_pass=large-pass2`）で基本設計書を、generating-reverse-detailed-design（`authoring_pass=companion-docs`）で観点表・テスト仕様書を別サブエージェントへ委任する。両方に facts_ref・`detail_design_path`・`pass1_receipt_path` を渡す。合流条件は `基本設計著述完了` と `COMPANION_AUTHORED`
+
+大規模ユニットでは状態判定の「基本設計未著述」をパス1完了まで保留し、「設計書未著述」を先に解消する。パス1未完了でパス2を開始した場合は契約違反として fail-closed に停止する。基本設計書は完成済み詳細設計書を内容の出典にはせず、パス2開始の完了証跡・整合対象として扱い、本文の出典は封印済み facts と共通文書に限定する。(d) rebuilding-screen-unit-from-docs の `status=差し戻し` は `verification_mode=iterative` の場合だけ詳細設計へ戻す（基本設計への差し戻しは発生しない）。
 
 ## 画面完了の定義
 

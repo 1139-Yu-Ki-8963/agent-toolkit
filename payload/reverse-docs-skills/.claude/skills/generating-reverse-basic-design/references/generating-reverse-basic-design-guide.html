@@ -107,7 +107,7 @@
 
   <table class="meta-table">
     <tr><td>対応 OS</td><td>Windows WSL2 環境</td></tr>
-    <tr><td>検証状況</td><td>サンプルプロジェクトで動作確認済み</td></tr>
+    <tr><td>検証状況</td><td>2026-07-27: 標準の並列著述と、大規模ユニットの詳細設計完了後パス2の両契約を確認済み</td></tr>
     <tr><td>依存</td><td>shared/scripts/scaffold-screen.sh（Phase 1スキャフォールディング。起動引数scaffold_script_pathで受領）、shared/scripts/seal-facts.sh（Phase 1封印検証）</td></tr>
     <tr><td>関連資料</td><td><code>SKILL.md</code></td></tr>
   </table>
@@ -138,7 +138,7 @@
     <strong>執筆専任・業務語彙限定</strong>: facts抽出（→ extracting-unit-facts-from-code）・詳細設計執筆（→ generating-reverse-detailed-design）は本スキルの範囲外。基本設計書はコード識別子・フレームワーク用語・型構文・ファイルパス・ライブラリ名を一切含めない、業務担当者が読める記述に限定する。
   </div>
   <div class="warn">
-    <strong>原本 Read 全面禁止・詳細設計非依存</strong>: 本スキル実行中に対象リポジトリの原本コードを Read することは全面禁止する。また詳細設計書を参照・要約しない。基本設計書は facts.yml から独立して業務語彙で直接書く成果物であり、詳細設計書の劣化版・要約版ではない。
+    <strong>原本 Read 全面禁止・詳細設計を内容の出典にしない</strong>: 本スキル実行中に対象リポジトリの原本コードを Read することは全面禁止する。大規模ユニットでは完成済み詳細設計書をパス2開始の証跡として検収するが、本文は facts.yml から業務語彙で直接書き、詳細設計の要約版にはしない。
   </div>
 </section>
 
@@ -177,9 +177,10 @@
     <tr><td>facts_ref</td><td>必須</td><td>封印済み facts ディレクトリの絶対パス</td></tr>
     <tr><td>common_docs_root</td><td>必須</td><td>プロジェクト共通文書ルートの絶対パス</td></tr>
     <tr><td>unit_kind</td><td>任意（既定 screen）</td><td>screen / batch / report / external。screen 以外は未実装のため status=基本設計著述失敗</td></tr>
+    <tr><td>authoring_pass</td><td>任意（既定 standard）</td><td><code>standard</code> または <code>large-pass2</code>。large-pass2 は detail_design_path と pass1_receipt_path が必須で、facts.lockのハッシュと完全性検査結果を再検収する</td></tr>
   </table>
   <div class="warn">
-    <strong>chapter_map_path・audit_script_path は受け取らない</strong>。基本設計書は5章固定のテンプレートであり、章役割キーの解決も15章監査も不要なため。
+    <strong>chapter_map_path・audit_script_path は受け取らない</strong>。基本設計書は6章固定のテンプレートであり、章役割キーの解決も15章監査も不要なため。
   </div>
 </section>
 
@@ -192,7 +193,7 @@
     <tr><td>プロジェクト非依存</td><td>固有値は起動引数・設計書側に置き、SKILL.md本文には書かない</td></tr>
     <tr><td>原本Read禁止</td><td>本スキル実行中に対象リポジトリの原本コードをReadすることを全面禁止する。情報源はfacts_refとcommon_docs_rootに限定する</td></tr>
     <tr><td>業務語彙限定</td><td>コード識別子・フレームワーク用語・型構文・ファイルパス・ライブラリ名を一切含めない</td></tr>
-    <tr><td>詳細設計非依存</td><td>詳細設計書を参照・要約しない。facts.ymlから独立して業務語彙で直接書く</td></tr>
+    <tr><td>詳細設計を内容の出典にしない</td><td>大規模パス2でも詳細設計書は開始証跡・整合対象に限定し、本文はfacts.ymlから業務語彙で直接書く</td></tr>
   </table>
 </section>
 
@@ -213,7 +214,7 @@
   facts.ymlの各セクション(state/handler/jsx/api/meta.route)を転記マップ(§7)に従って各章へ転記する
   import/export_type/const/style/measurement_pendingは転記しない(詳細設計書の担当)
   facts.ymlに該当分類が無い場合は「該当なし」+根拠を記す
-  完了条件: テンプレートの5章(§1〜§5)すべてに記述がある
+  完了条件: テンプレートの6章(§1〜§6)すべてに記述がある
 
 <span class="cap">Phase 3: 実装用語混入検査</span>
   画面基本設計書.md全文に対しgrepでコード識別子・フレームワーク用語・型構文・
@@ -224,7 +225,7 @@
 
 <section id="s7">
   <h2><span class="sec-num">§7</span>facts.yml → 章の転記マップ</h2>
-  <p>facts.yml のスキーマ正本は <code>shared/references/facts-schema.md</code>（9分類）。基本設計書が使うのはこのうち5分類のみ。</p>
+  <p>facts.yml のスキーマ定義は <code>shared/references/facts-schema.md</code>（12分類）。基本設計書が使うのは state / handler / jsx / api / effect_trigger / error_handling の6分類と meta.route である。</p>
   <table class="spec">
     <tr><th>facts.yml セクション</th><th>基本設計書の章</th><th>変換規則</th></tr>
     <tr><td>handler</td><td>§2 機能仕様</td><td>業務動作に翻訳する（例: onClick → 「ボタン押下時の処理」）</td></tr>
@@ -276,8 +277,8 @@
   <h2><span class="sec-num">§11</span>予想を裏切る挙動</h2>
   <ul>
     <li>原本コードのReadは全面禁止。情報源はfacts_ref配下のfacts.ymlとcommon_docs_root配下の共通文書のみ</li>
-    <li>詳細設計書は参照しない。基本設計書はfacts.ymlから独立して業務語彙で直接書く（詳細設計の劣化版・要約版ではない）</li>
-    <li>chapter_map_path・audit_script_pathは受け取らない。基本設計書は5章固定のテンプレートであり、章役割キーの解決も15章監査（audit-consistency.sh）も不要。本スキル独自のPhase 3 grep検査で完結する</li>
+    <li>標準ユニットは詳細設計と並列で著述する。大規模ユニットはDETAIL_AUTHORED受領後のパス2で著述し、詳細設計書を内容の出典にはしない</li>
+    <li>chapter_map_path・audit_script_pathは受け取らない。基本設計書は6章固定のテンプレートであり、章役割キーの解決も15章監査（audit-consistency.sh）も不要。本スキル独自のPhase 3 grep検査で完結する</li>
     <li>unit_kindは受け取るがscreen以外は未実装。batch/report/externalの基本設計書テンプレートが存在しないため、無理にscreen用テンプレートを流用しない</li>
     <li>facts.ymlのimport/export_type/const/style/measurement_pending（実装寄り・実測系の5分類）は基本設計書に一切転記しない</li>
     <li>本SKILL.md本文にリバース対象の固有値（対象リポジトリパス・画面ID・業務名）を書かない</li>
@@ -292,8 +293,8 @@
     <tr><td>orchestrating-reverse-docs-flow</td><td>工程全体を案内する管理者スキル。本スキルの返却する status/artifacts はこの契約に準拠する</td></tr>
     <tr><td>extracting-unit-facts-from-code</td><td>原本コードからfacts.ymlを抽出・独立再計数・封印する上流スキル。本スキルの唯一の情報源のひとつ</td></tr>
     <tr><td>generating-reverse-common-docs</td><td>プロジェクト共通文書を採録する上流スキル。common_docs_rootの実体を提供する</td></tr>
-    <tr><td>generating-reverse-detailed-design</td><td>本スキルがstatus=基本設計著述完了を返した後に起動する下流の詳細設計執筆スキル。互いに参照し合わない独立した成果物を著述する</td></tr>
-    <tr><td>shared/references/facts-schema.md</td><td>facts.ymlのスキーマ正本（9分類・必須フィールド・正規化規則）</td></tr>
+    <tr><td>generating-reverse-detailed-design</td><td>標準ユニットでは並列起動する。大規模ユニットではdetail-onlyの完了後、本スキルをlarge-pass2として起動する</td></tr>
+    <tr><td>shared/references/facts-schema.md</td><td>facts.ymlのスキーマ定義（12分類・必須フィールド・正規化規則）</td></tr>
   </table>
 </section>
 

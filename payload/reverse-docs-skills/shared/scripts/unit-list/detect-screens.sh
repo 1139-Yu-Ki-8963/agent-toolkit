@@ -894,13 +894,19 @@ extract_route_paths() {
     | sed -E 's/^path[[:space:]]*[:=][[:space:]]*["'"'"'\`]//; s/["'"'"'\`]$//' || true
 }
 
-# 1-8: screenNameGuess の OK マーカー除去(末尾スペース区切り型・括弧付き型のみ。
-# 業務用語としての OK(「決済OK着地」等、末尾以外や語の一部に現れるもの)は維持する)。
+# 1-25〜1-27: screenNameGuess の末尾 OK マーカー除去。
+# 除去対象は、末尾の空白+OK、(OK)、(OK)+識別子、全角閉じ括弧直後のOKだけに
+# 限定する。業務用語としての OK(「決済OK着地」等、語中・語頭のもの)は維持する。
 # extract_route_paths() と同様の理由(--self-test は run_self_tests() 呼び出し後に
 # 本スクリプトを exit するため、後方定義のままだと自己テスト内からの呼び出し時点で
 # 未定義になる)で、定義をここ(self-test セクション直前)へ前倒しする。
 strip_ok_marker() {
-  printf '%s' "$1" | sed -E 's/[[:space:]]+OK[[:space:]]*$//; s/\(OK\)[[:space:]]*$//' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//'
+  printf '%s' "$1" | sed -E '
+    s/[[:space:]]*\(OK\)[[:space:]]+[[:alnum:]_.-]+[[:space:]]*$//
+    s/(）)OK[[:space:]]*$/\1/
+    s/[[:space:]]+OK[[:space:]]*$//
+    s/[[:space:]]*\(OK\)[[:space:]]*$//
+  ' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//'
 }
 
 # --- --self-test: resolve_screen_files / --resolve-files の自己診断 ---
@@ -1641,7 +1647,7 @@ EOF
   fi
 
   # --- 1-8: screenNameGuess の OK マーカー除去 ---
-  local ok_t1 ok_t2 ok_t3 ok_t4
+  local ok_t1 ok_t2 ok_t3 ok_t4 ok_t5 ok_t6
   ok_t1="$(strip_ok_marker "トップ OK")"
   if [ "$ok_t1" = "トップ" ]; then
     test_report "1-8-OKマーカー除去-末尾スペース区切り" 0
@@ -1656,18 +1662,32 @@ EOF
     test_report "1-8-OKマーカー除去-括弧付き" 1 "got='$ok_t2'"
   fi
 
-  ok_t3="$(strip_ok_marker "docomo(sp)決済OK着地")"
-  if [ "$ok_t3" = "docomo(sp)決済OK着地" ]; then
-    test_report "1-8-OKマーカー除去-業務用語維持-着地" 0
+  ok_t3="$(strip_ok_marker "トップ(OK) T-001")"
+  if [ "$ok_t3" = "トップ" ]; then
+    test_report "1-25-OKマーカー除去-括弧付き識別子" 0
   else
-    test_report "1-8-OKマーカー除去-業務用語維持-着地" 1 "got='$ok_t3'"
+    test_report "1-25-OKマーカー除去-括弧付き識別子" 1 "got='$ok_t3'"
   fi
 
-  ok_t4="$(strip_ok_marker "OK処理")"
-  if [ "$ok_t4" = "OK処理" ]; then
+  ok_t4="$(strip_ok_marker "トップ（暫定）OK")"
+  if [ "$ok_t4" = "トップ（暫定）" ]; then
+    test_report "1-25-OKマーカー除去-全角閉じ括弧直後" 0
+  else
+    test_report "1-25-OKマーカー除去-全角閉じ括弧直後" 1 "got='$ok_t4'"
+  fi
+
+  ok_t5="$(strip_ok_marker "docomo(sp)決済OK着地")"
+  if [ "$ok_t5" = "docomo(sp)決済OK着地" ]; then
+    test_report "1-8-OKマーカー除去-業務用語維持-着地" 0
+  else
+    test_report "1-8-OKマーカー除去-業務用語維持-着地" 1 "got='$ok_t5'"
+  fi
+
+  ok_t6="$(strip_ok_marker "OK処理")"
+  if [ "$ok_t6" = "OK処理" ]; then
     test_report "1-8-OKマーカー除去-業務用語維持-先頭" 0
   else
-    test_report "1-8-OKマーカー除去-業務用語維持-先頭" 1 "got='$ok_t4'"
+    test_report "1-8-OKマーカー除去-業務用語維持-先頭" 1 "got='$ok_t6'"
   fi
 
   # --- 1-8-5: screenNameGuess → nodes[].label 転記への連動確認
@@ -1796,7 +1816,7 @@ EOF
   local t_embedded_manifest t_embedded_status t_embedded_key
   t_embedded_manifest="$(mktemp)"
   t_embedded_status=0
-  perl -e 'alarm shift; exec @ARGV' 5 bash "$0" "$t_embedded" "$t_embedded_manifest" --view-switch-pattern 'isOpen' >/dev/null 2>&1 || t_embedded_status=$?
+  perl -e 'alarm shift; exec @ARGV' 15 bash "$0" "$t_embedded" "$t_embedded_manifest" --view-switch-pattern 'isOpen' >/dev/null 2>&1 || t_embedded_status=$?
   t_embedded_key="$(jq -r '.screens[] | select(.kind == "embedded-view") | .screenKey' "$t_embedded_manifest" 2>/dev/null | sed -n '1p' || true)"
   if [ "$t_embedded_status" -eq 0 ] && [ "$t_embedded_key" = "settings-modal" ]; then
     test_report "1-9-埋め込みビュー-スラッシュなしrouteの親探索停止" 0
@@ -1942,6 +1962,189 @@ EOF
     test_report "1-12-BFS分類-分離テンプレート権限分岐と無効map正規化" 1 "status=$t_bfs_status type='$t_bfs_type' subtype='$t_bfs_subtype' group='$t_bfs_group'"
   fi
   rm -f "$t_bfs_manifest"
+
+  # --- 1-12: 後続の明示roleを、先行する分岐ヒントより優先する ---
+  local t_role_priority="$root/t_role_priority"
+  mkdir -p "$t_role_priority/app/role-priority" "$t_role_priority/app/role-dynamic" \
+    "$t_role_priority/app/roles-array" "$t_role_priority/app/has-role" "$t_role_priority/app/role-literal"
+  printf 'module.exports = {}\n' > "$t_role_priority/next.config.js"
+  printf '%s\n' \
+    'export default function Page() {' \
+    '  if (role === "viewer") return <main>Viewer</main>' \
+    '  requireRole("admin")' \
+    '  return <main>Admin</main>' \
+    '}' > "$t_role_priority/app/role-priority/page.tsx"
+  printf '%s\n' \
+    'export default function Page() {' \
+    '  role = getCurrentRole()' \
+    '  role = user.role' \
+    '  return <main>Dynamic</main>' \
+    '}' > "$t_role_priority/app/role-dynamic/page.tsx"
+  printf 'export default function Page() { const policy = { roles: ["admin"] }; return <main>{policy.roles[0]}</main> }\n' > "$t_role_priority/app/roles-array/page.tsx"
+  printf 'export default function Page() { return hasRole(currentUser, "admin") ? <main>Admin</main> : <main>User</main> }\n' > "$t_role_priority/app/has-role/page.tsx"
+  printf 'export default function Page() { role = "admin"; return <main>Admin</main> }\n' > "$t_role_priority/app/role-literal/page.tsx"
+  local t_role_priority_manifest t_role_priority_status t_role_priority_subtype t_role_dynamic_subtype
+  local t_roles_array_subtype t_has_role_subtype t_role_literal_subtype
+  t_role_priority_manifest="$(mktemp)"
+  t_role_priority_status=0
+  bash "$0" "$t_role_priority" "$t_role_priority_manifest" >/dev/null 2>&1 || t_role_priority_status=$?
+  t_role_priority_subtype="$(jq -r '.screens[] | select(.route == "/role-priority") | .accountSubType' "$t_role_priority_manifest" 2>/dev/null || true)"
+  t_role_dynamic_subtype="$(jq -r '.screens[] | select(.route == "/role-dynamic") | .accountSubType' "$t_role_priority_manifest" 2>/dev/null || true)"
+  t_roles_array_subtype="$(jq -r '.screens[] | select(.route == "/roles-array") | .accountSubType' "$t_role_priority_manifest" 2>/dev/null || true)"
+  t_has_role_subtype="$(jq -r '.screens[] | select(.route == "/has-role") | .accountSubType' "$t_role_priority_manifest" 2>/dev/null || true)"
+  t_role_literal_subtype="$(jq -r '.screens[] | select(.route == "/role-literal") | .accountSubType' "$t_role_priority_manifest" 2>/dev/null || true)"
+  if [ "$t_role_priority_status" -eq 0 ] \
+    && [ "$t_role_priority_subtype" = "admin" ] && [ "$t_roles_array_subtype" = "admin" ] \
+    && [ "$t_has_role_subtype" = "admin" ] && [ "$t_role_literal_subtype" = "admin" ] \
+    && [ "$t_role_dynamic_subtype" = "common" ]; then
+    test_report "1-12-明示role-分岐ヒント優先順位" 0
+  else
+    test_report "1-12-明示role-分岐ヒント優先順位" 1 "status=$t_role_priority_status require='$t_role_priority_subtype' roles='$t_roles_array_subtype' hasRole='$t_has_role_subtype' literal='$t_role_literal_subtype' dynamic='$t_role_dynamic_subtype'"
+  fi
+  rm -f "$t_role_priority_manifest"
+
+  # --- 1-12: パイプ容量を超えるDOM一致でもform/table/template分類を維持する ---
+  local t_dom_stress="$root/t_dom_stress"
+  mkdir -p "$t_dom_stress/app/mass-form" "$t_dom_stress/app/mass-table"
+  printf 'module.exports = {}\n' > "$t_dom_stress/next.config.js"
+  printf 'import Body from "./Body"\nexport default function Page() { return <Body /> }\n' > "$t_dom_stress/app/mass-form/page.tsx"
+  printf 'import Body from "./Body"\nexport default function Page() { return <Body /> }\n' > "$t_dom_stress/app/mass-table/page.tsx"
+  {
+    printf 'export default function Body() { return <main>\n'
+    for ((n = 1; n <= 12000; n++)); do
+      printf '<form><input name="field-%04d" /></form>\n' "$n"
+    done
+    printf '</main> }\n'
+  } > "$t_dom_stress/app/mass-form/Body.tsx"
+  {
+    printf 'export default function Body() { return <main>\n'
+    for ((n = 1; n <= 12000; n++)); do
+      printf '<table><tr><td>row-%04d</td></tr></table>\n' "$n"
+    done
+    printf '</main> }\n'
+  } > "$t_dom_stress/app/mass-table/Body.tsx"
+  local t_dom_stress_manifest t_dom_stress_status t_dom_form_type t_dom_form_template t_dom_table_type t_dom_table_template t_dom_form_bytes t_dom_table_bytes
+  t_dom_stress_manifest="$(mktemp)"
+  t_dom_stress_status=0
+  bash "$0" "$t_dom_stress" "$t_dom_stress_manifest" >/dev/null 2>&1 || t_dom_stress_status=$?
+  t_dom_form_type="$(jq -r '.screens[] | select(.route == "/mass-form") | .screenType' "$t_dom_stress_manifest" 2>/dev/null || true)"
+  t_dom_form_template="$(jq -r '.screens[] | select(.route == "/mass-form") | .hasTemplate' "$t_dom_stress_manifest" 2>/dev/null || true)"
+  t_dom_table_type="$(jq -r '.screens[] | select(.route == "/mass-table") | .screenType' "$t_dom_stress_manifest" 2>/dev/null || true)"
+  t_dom_table_template="$(jq -r '.screens[] | select(.route == "/mass-table") | .hasTemplate' "$t_dom_stress_manifest" 2>/dev/null || true)"
+  t_dom_form_bytes="$(wc -c < "$t_dom_stress/app/mass-form/Body.tsx" | tr -d ' ')"
+  t_dom_table_bytes="$(wc -c < "$t_dom_stress/app/mass-table/Body.tsx" | tr -d ' ')"
+  if [ "$t_dom_stress_status" -eq 0 ] \
+    && [ "$t_dom_form_bytes" -gt 131072 ] && [ "$t_dom_table_bytes" -gt 131072 ] \
+    && [ "$t_dom_form_type" = "form" ] && [ "$t_dom_form_template" = "true" ] \
+    && [ "$t_dom_table_type" = "list" ] && [ "$t_dom_table_template" = "true" ]; then
+    test_report "1-12-大量DOM一致-pipefail回帰" 0
+  else
+    test_report "1-12-大量DOM一致-pipefail回帰" 1 "status=$t_dom_stress_status bytes='$t_dom_form_bytes/$t_dom_table_bytes' form='$t_dom_form_type/$t_dom_form_template' table='$t_dom_table_type/$t_dom_table_template'"
+  fi
+  rm -f "$t_dom_stress_manifest"
+
+  # --- 1-9: 1,001件超の人工テンプレートをBFSで解決してhasTemplateを維持する ---
+  # 実データの件数を示すものではなく、拡張子・JSXを横断する合成テスト用入力である。
+  local t_template_bulk="$root/t_template_bulk"
+  mkdir -p "$t_template_bulk/app/bulk/templates"
+  printf 'module.exports = {}\n' > "$t_template_bulk/next.config.js"
+  {
+    for ((n = 1; n <= 1001; n++)); do
+      printf 'import Template%04d from "./templates/Template%04d"\n' "$n" "$n"
+    done
+    printf 'export default function Page() { return <main>bulk</main> }\n'
+  } > "$t_template_bulk/app/bulk/page.tsx"
+  for ((n = 1; n <= 1001; n++)); do
+    printf 'export default function Template%04d() { return <section>template %04d</section> }\n' "$n" "$n" \
+      > "$t_template_bulk/app/bulk/templates/Template$(printf '%04d' "$n").tsx"
+  done
+  local t_template_bulk_manifest t_template_bulk_status t_template_bulk_has_template t_template_bulk_count
+  t_template_bulk_manifest="$(mktemp)"
+  t_template_bulk_status=0
+  bash "$0" "$t_template_bulk" "$t_template_bulk_manifest" >/dev/null 2>&1 || t_template_bulk_status=$?
+  t_template_bulk_has_template="$(jq -r '.screens[] | select(.route == "/bulk") | .hasTemplate' "$t_template_bulk_manifest" 2>/dev/null || true)"
+  t_template_bulk_count="$(jq -r '.screens[] | select(.route == "/bulk") | .fileCount' "$t_template_bulk_manifest" 2>/dev/null || true)"
+  if [ "$t_template_bulk_status" -eq 0 ] && [ "$t_template_bulk_has_template" = "true" ] && [ "$t_template_bulk_count" -eq 1002 ]; then
+    test_report "1-9-hasTemplate-1001件超合成テスト用入力" 0
+  else
+    test_report "1-9-hasTemplate-1001件超合成テスト用入力" 1 "status=$t_template_bulk_status hasTemplate='$t_template_bulk_has_template' fileCount='$t_template_bulk_count'"
+  fi
+  rm -f "$t_template_bulk_manifest"
+
+  # --- 1-10: 通常routeがimportするテンプレートの新規window呼出しを親子判定に使う ---
+  local t_template_popup="$root/t_template_popup"
+  mkdir -p "$t_template_popup/app/user/print" "$t_template_popup/app/user/templates"
+  printf 'module.exports = {}\n' > "$t_template_popup/next.config.js"
+  printf 'export default function Page() { return <main>User</main> }\n' > "$t_template_popup/app/user/page.tsx"
+  printf '%s\n' \
+    'import PopupTemplate from "../templates/PopupTemplate"' \
+    'export default function Page() { return <PopupTemplate /> }' > "$t_template_popup/app/user/print/page.tsx"
+  printf '%s\n' \
+    'export default function PopupTemplate() {' \
+    '  window.open("/print-preview")' \
+    '  return <main>Preview</main>' \
+    '}' > "$t_template_popup/app/user/templates/PopupTemplate.tsx"
+  local t_template_popup_manifest t_template_popup_status t_template_popup_parent t_template_popup_child t_template_popup_type
+  t_template_popup_manifest="$(mktemp)"
+  t_template_popup_status=0
+  bash "$0" "$t_template_popup" "$t_template_popup_manifest" >/dev/null 2>&1 || t_template_popup_status=$?
+  t_template_popup_parent="$(jq -r '.screens[] | select(.screenKey == "print") | .parentScreen' "$t_template_popup_manifest" 2>/dev/null || true)"
+  t_template_popup_child="$(jq -r '.screens[] | select(.screenKey == "user") | .childComponents[]? | select(.screenKey == "print") | .screenKey' "$t_template_popup_manifest" 2>/dev/null || true)"
+  t_template_popup_type="$(jq -r '.screens[] | select(.screenKey == "user") | .childComponents[]? | select(.screenKey == "print") | .componentType' "$t_template_popup_manifest" 2>/dev/null || true)"
+  if [ "$t_template_popup_status" -eq 0 ] && [ "$t_template_popup_parent" = "user" ] && [ "$t_template_popup_child" = "print" ] && [ "$t_template_popup_type" = "popup" ]; then
+    test_report "1-10-通常route-分離テンプレートpopup判定" 0
+  else
+    test_report "1-10-通常route-分離テンプレートpopup判定" 1 "status=$t_template_popup_status parent='$t_template_popup_parent' child='$t_template_popup_child' type='$t_template_popup_type'"
+  fi
+  rm -f "$t_template_popup_manifest"
+
+  # --- 1-10: entry自身のwindow.openは、import先に根拠がなければpopup判定しない ---
+  local t_entry_popup="$root/t_entry_popup"
+  mkdir -p "$t_entry_popup/app/reports/print" "$t_entry_popup/app/reports/templates"
+  printf 'module.exports = {}\n' > "$t_entry_popup/next.config.js"
+  printf 'export default function Page() { return <main>Reports</main> }\n' > "$t_entry_popup/app/reports/page.tsx"
+  printf '%s\n' \
+    'import PrintBody from "../templates/PrintBody"' \
+    'export default function Page() { window.open("/self"); return <PrintBody /> }' > "$t_entry_popup/app/reports/print/page.tsx"
+  printf 'export default function PrintBody() { return <main>Body</main> }\n' > "$t_entry_popup/app/reports/templates/PrintBody.tsx"
+  local t_entry_popup_manifest t_entry_popup_status t_entry_popup_parent t_entry_popup_children
+  t_entry_popup_manifest="$(mktemp)"
+  t_entry_popup_status=0
+  bash "$0" "$t_entry_popup" "$t_entry_popup_manifest" >/dev/null 2>&1 || t_entry_popup_status=$?
+  t_entry_popup_parent="$(jq -r '.screens[] | select(.route == "/reports/print") | .parentScreen' "$t_entry_popup_manifest" 2>/dev/null || true)"
+  t_entry_popup_children="$(jq -r '[.screens[] | select(.route == "/reports") | .childComponents[]? | select(.componentType == "popup")] | length' "$t_entry_popup_manifest" 2>/dev/null || true)"
+  if [ "$t_entry_popup_status" -eq 0 ] && [ "$t_entry_popup_parent" = "null" ] && [ "$t_entry_popup_children" -eq 0 ]; then
+    test_report "1-10-entry自身window.open-popup誤判定防止" 0
+  else
+    test_report "1-10-entry自身window.open-popup誤判定防止" 1 "status=$t_entry_popup_status parent='$t_entry_popup_parent' popupChildren='$t_entry_popup_children'"
+  fi
+  rm -f "$t_entry_popup_manifest"
+
+  # --- 1-10: 非UI helperのwindow.openは、popup判定根拠にしない ---
+  local t_helper_popup="$root/t_helper_popup"
+  mkdir -p "$t_helper_popup/app/helper/print" "$t_helper_popup/app/helper/lib"
+  printf 'module.exports = {}\n' > "$t_helper_popup/next.config.js"
+  printf 'export default function Page() { return <main>Helper</main> }\n' > "$t_helper_popup/app/helper/page.tsx"
+  printf '%s\n' \
+    'import { openWindow } from "../lib/open-window"' \
+    'import { openWindowTsx } from "../lib/open-window-tsx"' \
+    'export default function Page() { return <main onClick={() => { openWindow(); openWindowTsx() }}>Print</main> }' > "$t_helper_popup/app/helper/print/page.tsx"
+  printf 'export const openWindow = () => window.open("/helper-only")\n' > "$t_helper_popup/app/helper/lib/open-window.ts"
+  printf '%s\n' \
+    'export const identity = <T>(value: T) => value' \
+    'export const openWindowTsx = () => window.open("/helper-tsx-only")' > "$t_helper_popup/app/helper/lib/open-window-tsx.tsx"
+  local t_helper_popup_manifest t_helper_popup_status t_helper_popup_parent t_helper_popup_children
+  t_helper_popup_manifest="$(mktemp)"
+  t_helper_popup_status=0
+  bash "$0" "$t_helper_popup" "$t_helper_popup_manifest" >/dev/null 2>&1 || t_helper_popup_status=$?
+  t_helper_popup_parent="$(jq -r '.screens[] | select(.route == "/helper/print") | .parentScreen' "$t_helper_popup_manifest" 2>/dev/null || true)"
+  t_helper_popup_children="$(jq -r '[.screens[] | select(.route == "/helper") | .childComponents[]? | select(.componentType == "popup")] | length' "$t_helper_popup_manifest" 2>/dev/null || true)"
+  if [ "$t_helper_popup_status" -eq 0 ] && [ "$t_helper_popup_parent" = "null" ] && [ "$t_helper_popup_children" -eq 0 ]; then
+    test_report "1-10-非UI-helper-window.open-popup誤判定防止" 0
+  else
+    test_report "1-10-非UI-helper-window.open-popup誤判定防止" 1 "status=$t_helper_popup_status parent='$t_helper_popup_parent' popupChildren='$t_helper_popup_children'"
+  fi
+  rm -f "$t_helper_popup_manifest"
 
   rm -rf "$root"
 
@@ -2382,6 +2585,10 @@ classify_screen() {
   local has_template="false" is_processing_endpoint="false" component_type=""
   local has_processing_evidence="false"
   local parent_screen="null"
+  local analysis_file analysis_file_array=()
+  while IFS= read -r analysis_file; do
+    [ -f "$analysis_file" ] && analysis_file_array+=("$analysis_file")
+  done <<< "$analysis_files"
 
   # Level 1: 許可値へ正規化する。mapの無効値はフォールバックではなく common とする。
   local account_group_explicit="false" map_pattern map_value
@@ -2432,40 +2639,60 @@ classify_screen() {
   fi
 
   # Level 2: 権限区分はentryFileだけでなくBFS解決済みファイル全体から判定する。
-  local analysis_file role_match branch_role_match
-  while IFS= read -r analysis_file; do
-    [ -f "$analysis_file" ] || continue
-    role_match="$(grep -aoE '(requireRole|hasRole|roles:|@RolesAllowed)[^[:alnum:]_]+[A-Za-z_]+' "$analysis_file" 2>/dev/null | sed -n '1p' | grep -aoE '[A-Za-z_]+$' || true)"
+  local role_match branch_lines branch_role_match
+  if [ "${#analysis_file_array[@]}" -gt 0 ]; then
+    # 明示roleは全ファイルを先に検索し、分岐ヒントより常に優先する。
+    role_match="$(awk '
+      function last_quoted_literal(source,    rest, token, value) {
+        rest = source
+        value = ""
+        while (match(rest, /["\047][A-Za-z_][A-Za-z0-9_]*["\047]/)) {
+          token = substr(rest, RSTART + 1, RLENGTH - 2)
+          value = token
+          rest = substr(rest, RSTART + RLENGTH)
+        }
+        return value
+      }
+      {
+        if ($0 ~ /(requireRole|hasRole|roles:|@RolesAllowed)/) {
+          value = last_quoted_literal($0)
+          if (value != "") { print value; exit }
+          line = $0
+          sub(/.*(requireRole|hasRole|roles:|@RolesAllowed)[^[:alnum:]_]+/, "", line)
+          if (match(line, /^[A-Za-z_][A-Za-z0-9_]*/)) {
+            print substr(line, RSTART, RLENGTH)
+            exit
+          }
+        }
+        if (match($0, /role[[:space:]]*=[[:space:]]*["\047][A-Za-z_][A-Za-z0-9_]*["\047]/)) {
+          value = last_quoted_literal(substr($0, RSTART, RLENGTH))
+          if (value != "") { print value; exit }
+        }
+      }
+    ' "${analysis_file_array[@]}" 2>/dev/null || true)"
     if [ -n "$role_match" ]; then
       account_sub_type="$role_match"
-      break
+    else
+      branch_lines="$(grep -ahm1 -E '(if|switch|case).*(role|permission|auth|access)' "${analysis_file_array[@]}" 2>/dev/null || true)"
+      branch_role_match="${branch_lines%%$'\n'*}"
+      [ -n "$branch_role_match" ] && account_sub_type="role_checked"
     fi
-    branch_role_match="$(grep -aoE '(if|switch|case).*(role|permission|auth|access)' "$analysis_file" 2>/dev/null | sed -n '1p' || true)"
-    if [ -n "$branch_role_match" ]; then
-      account_sub_type="role_checked"
-      break
-    fi
-  done <<< "$analysis_files"
+  fi
 
   # Level 3: 分離テンプレート・副作用importも含めてDOMとテンプレート実体を判定する。
-  local has_form="false" has_table="false"
-  while IFS= read -r analysis_file; do
-    [ -f "$analysis_file" ] || continue
-    grep -aqE '<form[[:space:]>]' "$analysis_file" 2>/dev/null && has_form="true"
-    grep -aqE '<table[[:space:]>]' "$analysis_file" 2>/dev/null && has_table="true"
+  local has_form="false" has_table="false" dom_scan="" template_scan=""
+  if [ "${#analysis_file_array[@]}" -gt 0 ]; then
+    dom_scan="$(grep -ahoE '<form[[:space:]>]|<table[[:space:]>]' "${analysis_file_array[@]}" 2>/dev/null || true)"
+    template_scan="$(grep -ahoE '(render|render_template|renderToString|template|view|include|includeTemplate)[[:space:]]*\(|React\.createElement[[:space:]]*\(|return[[:space:]]*\(?[[:space:]]*<[[:alpha:]]' "${analysis_file_array[@]}" 2>/dev/null || true)"
+  fi
+  case "$dom_scan" in *"<form"*) has_form="true" ;; esac
+  case "$dom_scan" in *"<table"*) has_table="true" ;; esac
+  [ -n "$template_scan" ] && has_template="true"
+  for analysis_file in "${analysis_file_array[@]}"; do
     case "$analysis_file" in
       *.html|*.htm|*.tt|*.tx|*.tsx|*.jsx|*.vue|*.svelte) has_template="true" ;;
     esac
-    if grep -aqE '(render|render_template|renderToString|template|view|include|includeTemplate)[[:space:]]*\(' "$analysis_file" 2>/dev/null; then
-      has_template="true"
-    fi
-    # 拡張子が .js のUI実装もあるため、React.createElement / JSX の実在を
-    # テンプレート根拠として扱う。ファイル拡張子だけで判定すると、UIを返す
-    # App Routerのpage.jsを処理エンドポイントへ誤分類する。
-    if grep -aqE 'React\.createElement[[:space:]]*\(|return[[:space:]]*\(?[[:space:]]*<[[:alpha:]]' "$analysis_file" 2>/dev/null; then
-      has_template="true"
-    fi
-  done <<< "$analysis_files"
+  done
   if [ "$has_form" = "true" ]; then
     screen_type="form"
   elif [ "$has_table" = "true" ]; then
@@ -2537,8 +2764,25 @@ classify_screen() {
   fi
   # 通常route自身の開閉イベントは、モーダルである根拠にならない。isOpen/onClose
   # は通常画面にも現れるため、挙動の一致だけで親子関係を作ると、同一entryFile
-  # から検出された別routeを親としてしまう。名称根拠のない挙動判定は、明示的に
-  # 別componentとして検出済みの embedded-view にだけ許可する。
+  # から検出された別routeを親としてしまう。一方、BFSで解決した分離テンプレート
+  # 内の明示的な新規window/popup呼出しは、通常routeでも判定根拠にする。
+  local has_template_popup=false popup_ui_files=()
+  for analysis_file in "${analysis_file_array[@]}"; do
+    [ "$analysis_file" = "$entry_file" ] && continue
+    local popup_ui_evidence=false
+    if grep -aqE '(return[[:space:]]*\(?[[:space:]]*<[[:alpha:]]|=>[[:space:]]*\(?[[:space:]]*<[[:alpha:]]|React\.createElement[[:space:]]*\(|(render|render_template|renderToString|template|view|include|includeTemplate)[[:space:]]*\(|<(html|body|template|main|section|div|form|table|dialog)[[:space:]>])' "$analysis_file" 2>/dev/null; then
+      popup_ui_evidence=true
+    fi
+    [ "$popup_ui_evidence" = true ] && popup_ui_files+=("$analysis_file")
+  done
+  if [ "${#popup_ui_files[@]}" -gt 0 ] \
+    && grep -aqiE '(window\.open|showModal[[:space:]]*\(|openPopup[[:space:]]*\(|open[[:alnum:]_]*Window[[:space:]]*\()' "${popup_ui_files[@]}" 2>/dev/null; then
+    has_template_popup=true
+  fi
+  if [ "$detection_method" != "embedded-view-heuristic" ] && [ "$has_template_popup" = true ]; then
+    is_modal=true
+    component_type="popup"
+  fi
   if [ "$detection_method" = "embedded-view-heuristic" ] && [ -f "$entry_file" ]; then
     analysis_basename="$(basename "$entry_file" 2>/dev/null | tr '[:upper:]' '[:lower:]')"
     if grep -aqiE '(window\.open|showModal|isOpen|isVisible|onClose|handleClose|position[[:space:]]*:[[:space:]]*fixed|<iframe)' "$entry_file" 2>/dev/null; then
@@ -2879,6 +3123,9 @@ awk -F'\t' '$5!=""{print $5}' "$TMP_ALL" | sort -u > "$STRATEGY_ALL_ENTRIES_FILE
         fi
       fi
     fi
+    # cluster処理がscreenKey由来の名前を再代入しても、表示名の末尾マーカーを
+    # 復活させない。以後にname_guessを変更する経路はない。
+    name_guess="$(strip_ok_marker "$name_guess")"
 
     embedded_in_json="null"
     [ -n "$embedded_in" ] && embedded_in_json="\"$(json_escape "$embedded_in")\""

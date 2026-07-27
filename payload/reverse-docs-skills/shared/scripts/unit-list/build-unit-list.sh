@@ -70,7 +70,7 @@ EOF
           unitKey: "users-list",
           kind: "endpoint",
           identifier: $identifier,
-          unitNameGuess: "ユーザー一覧",
+          unitNameGuess: "ユーザー一覧(OK) API-001",
           sourceFile: $sourceFile,
           confidence: "high",
           fileCount: 1,
@@ -162,7 +162,7 @@ EOF
           unitKey: "users-list",
           kind: "endpoint",
           identifier: "GET /api/users",
-          unitNameGuess: "ユーザー一覧",
+          unitNameGuess: "ユーザー一覧(OK) API-001",
           sourceFile: $sourceFile,
           confidence: "high",
           fileCount: 1,
@@ -177,7 +177,36 @@ EOF
     regression_ok=0
   elif ! grep -q '<code>GET /api/users</code>' "$out_normal"; then
     regression_ok=0
+  elif ! grep -q '<td>ユーザー一覧</td>' "$out_normal" || grep -q '<td>ユーザー一覧(OK)' "$out_normal"; then
+    regression_ok=0
   elif ! bash "$script_dir/validate-manifest.sh" "$manifest_normal" --unit-kind api >/dev/null 2>&1; then
+    regression_ok=0
+  fi
+
+  # 4種類の末尾マーカーを除去し、語頭・語中のOKは保持する。
+  local marker_manifest="$tmp/manifest-marker-forms.json" marker_out="$tmp/out-marker-forms.html"
+  jq '
+    .detectionSummary.unitCount = 6
+    | .units = [
+        ["marker-space", "GET /marker-space", "末尾空白 OK"],
+        ["marker-paren", "GET /marker-paren", "半角括弧(OK)"],
+        ["marker-id", "GET /marker-id", "識別子付き(OK) API-001"],
+        ["marker-wide", "GET /marker-wide", "全角括弧（補足）OK"],
+        ["marker-leading", "GET /marker-leading", "OK処理"],
+        ["marker-middle", "GET /marker-middle", "決済OK着地"]
+      ]
+      | .units |= map({
+          unitKey: .[0], kind: "endpoint", identifier: .[1], unitNameGuess: .[2],
+          sourceFile: $sourceFile, confidence: "high", fileCount: 1, detectionMethod: "manual"
+        })
+  ' --arg sourceFile "$tmp/src/routes/users.ts" "$manifest_normal" > "$marker_manifest"
+  if ! bash "$script_path" "$marker_manifest" "$marker_out" --unit-kind api >/dev/null 2>&1 \
+    || ! grep -q '<td>末尾空白</td>' "$marker_out" \
+    || ! grep -q '<td>半角括弧</td>' "$marker_out" \
+    || ! grep -q '<td>識別子付き</td>' "$marker_out" \
+    || ! grep -q '<td>全角括弧（補足）</td>' "$marker_out" \
+    || ! grep -q '<td>OK処理</td>' "$marker_out" \
+    || ! grep -q '<td>決済OK着地</td>' "$marker_out"; then
     regression_ok=0
   fi
 
@@ -220,7 +249,7 @@ EOF
   fi
 
   if [ "$regression_ok" -eq 1 ]; then
-    echo "  [PASS] 回帰確認: 可視テーブル内容は維持されvalidate-manifest.shも引き続きPASS"
+    echo "  [PASS] 回帰確認: 末尾4形式を除去し語頭・語中OKを保持、validate-manifest.shも引き続きPASS"
   else
     echo "  [FAIL] 回帰確認: 可視テーブル内容またはvalidate-manifest.shのPASSに退行が発生した" >&2
     rc=1
@@ -411,6 +440,17 @@ html_escape() {
   printf '%s' "$1" | sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g' -e 's/"/\&quot;/g' -e "s/'/\&#39;/g"
 }
 
+# detect-screens.sh と同じ末尾OKマーカー規約を、種別別一覧の可視HTMLにも適用する。
+# 埋め込みマニフェストは正本としてそのまま保持し、表示値だけを防衛的に正規化する。
+strip_ok_marker() {
+  printf '%s' "$1" | sed -E '
+    s/[[:space:]]*\(OK\)[[:space:]]+[[:alnum:]_.-]+[[:space:]]*$//
+    s/(）)OK[[:space:]]*$/\1/
+    s/[[:space:]]+OK[[:space:]]*$//
+    s/[[:space:]]*\(OK\)[[:space:]]*$//
+  ' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//'
+}
+
 # render_template — 共通関数を source（shared/scripts/render-template.sh）
 source "$(cd "$(dirname "$0")/.." && pwd)/render-template.sh"
 
@@ -437,6 +477,7 @@ row_html() {
   unit_key="$(jq -r '.unitKey // ""' <<<"$row")"
   kind="$(jq -r '.kind // .messageType // .category // ""' <<<"$row")"
   unit_name="$(jq -r '.unitNameGuess // .messageText // .viewpoint // ""' <<<"$row")"
+  unit_name="$(strip_ok_marker "$unit_name")"
   identifier="$(jq -r '.identifier // .screenKey // .unitKey // ""' <<<"$row")"
 
   case "$kind" in

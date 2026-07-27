@@ -38,6 +38,65 @@ usage() {
   echo "Usage: $(basename "$0") <output_dir> <output.json>" >&2
 }
 
+self_test() {
+  local script_path="$0" script_dir tmp docs manifest html portal manifest_only
+  script_dir="$(cd "$(dirname "$script_path")" && pwd)"
+  tmp="$(mktemp -d "${TMPDIR:-/tmp}/aggregate-test-viewpoints-self-test.XXXXXX")"
+  trap 'rm -rf "$tmp"' RETURN
+  docs="$tmp/docs"
+  manifest="$tmp/test-viewpoint-manifest.json"
+  html="$docs/一覧/テスト観点表/テスト観点表.html"
+  portal="$tmp/portal"
+  manifest_only="$tmp/manifest-only.html"
+  has_visible_viewpoint_row() {
+    local file="$1" unit_key="$2" viewpoint="$3" screen_key="$4" category="$5"
+    awk -v unit_key="$unit_key" -v viewpoint="$viewpoint" -v screen_key="$screen_key" -v category="$category" '
+      BEGIN { RS = "</tr>"; found = 0 }
+      index($0, "data-unit-key=\"" unit_key "\"") &&
+      index($0, "<td>" viewpoint "</td>") &&
+      index($0, "<code>" screen_key "</code>") &&
+      index($0, ">" category "</span>") { found = 1 }
+      END { exit(found ? 0 : 1) }
+    ' "$file"
+  }
+  mkdir -p "$docs/画面/screen-orders/詳細設計" "$docs/一覧/テスト観点表" "$portal" "$tmp/repo"
+  cat > "$docs/画面/screen-orders/詳細設計/単体テスト観点表.md" <<'EOF'
+# 単体
+| 観点 | 期待結果 |
+| --- | --- |
+| 入力必須 | 必須項目が表示される |
+EOF
+  cat > "$docs/画面/screen-orders/詳細設計/結合テスト観点表.md" <<'EOF'
+# 結合
+| 観点 | 期待結果 |
+| --- | --- |
+| 登録遷移 | 登録後に一覧へ戻る |
+EOF
+  if ! bash "$script_path" "$docs" "$manifest" >/dev/null 2>&1 \
+    || ! bash "$script_dir/../unit-list/validate-test-viewpoint-manifest.sh" "$manifest" >/dev/null 2>&1 \
+    || ! bash "$script_dir/../unit-list/build-unit-list.sh" "$manifest" "$html" --unit-kind test_viewpoint >/dev/null 2>&1 \
+    || ! bash "$script_dir/../build-portal.sh" "$tmp/repo" "$docs" "$portal" >/dev/null 2>&1; then
+    echo "self-test FAIL: テスト観点表の集約→検証→HTML→ポータル連結が失敗" >&2
+    return 1
+  fi
+  printf '<script type="application/json">%s</script>\n' "$(jq -c . "$manifest")" > "$manifest_only"
+  if jq -e '.summary.totalCount == 2 and ([.units[].testType] | sort == ["integration", "unit"])' "$manifest" >/dev/null 2>&1 \
+    && has_visible_viewpoint_row "$html" "screen-orders-unit-1" "入力必須" "screen-orders" "単体" \
+    && has_visible_viewpoint_row "$html" "screen-orders-integration-1" "登録遷移" "screen-orders" "結合" \
+    && ! has_visible_viewpoint_row "$manifest_only" "screen-orders-unit-1" "入力必須" "screen-orders" "単体" \
+    && grep -q '一覧/テスト観点表/テスト観点表.html' "$portal/index.html"; then
+    echo "self-test PASS: テスト観点表の集約→検証→HTML→ポータル連結（既存正本パス維持）"
+  else
+    echo "self-test FAIL: テスト観点表の連結結果または正本パスが不正" >&2
+    return 1
+  fi
+}
+
+if [ "${1:-}" = "--self-test" ]; then
+  self_test
+  exit $?
+fi
+
 if [ "$#" -lt 2 ]; then
   usage
   exit 1

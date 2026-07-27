@@ -10,21 +10,21 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob]
 
 封印済み facts（facts.yml）とプロジェクト共通文書だけを情報源に、業務語彙のみで書かれた基本設計書（画面基本設計書.md）を著述する執筆専任スキル。generating-reverse-detailed-design と同じく原本非アクセスの執筆役であり、情報源は facts_ref 配下の facts.yml と common_docs_root 配下の共通文書に限定する。**本スキル実行中に対象リポジトリの原本コードを Read することは全面禁止**（検証の盲検性を壊す契約違反）である。
 
-基本設計書は詳細設計書の抽象化・要約ではない。facts.yml から業務語彙で直接書く独立した成果物であり、詳細設計書（コード識別子・型構文を含む実装契約）とは章立て・読み手（業務担当者）が異なる。
+基本設計書は詳細設計書の抽象化・要約ではない。facts.yml から業務語彙で直接書く独立した成果物であり、詳細設計書（コード識別子・型構文を含む実装契約）とは章立て・読み手（業務担当者）が異なる。ただし大規模ユニットでは、詳細設計書の完全性ゲート完了後に始まるパス2で著述する。
 
 ## 目的
 
-orchestrating-reverse-docs-flow の状態判定表で「基本設計未著述」は「事実未封印」の直後・「設計書未著述」の直前に位置する。本スキルはこの間隙を埋め、facts 封印直後に業務語彙のみの基本設計書を確立する。詳細設計書（generating-reverse-detailed-design が著述）が実装寄りの宣言的契約を担うのに対し、本スキルは業務担当者が読める業務レベルの記述に限定した基本設計書を担う。両者は互いに独立した成果物であり、一方が他方の入力にはならない（本スキルは詳細設計書を参照しない）。
+orchestrating-reverse-docs-flow の標準ユニットでは「基本設計未著述」を facts 封印直後に解消する。大規模ユニットでは「設計書未著述」を先に解消し、詳細設計のパス1完了後に本スキルをパス2として起動する。詳細設計書（generating-reverse-detailed-design が著述）が実装寄りの宣言的契約を担うのに対し、本スキルは業務担当者が読める業務レベルの記述に限定した基本設計書を担う。両者は独立した成果物であり、完成済み詳細設計書は大規模パス2の開始証跡・整合対象であって本文の出典ではない。
 
 ## 使用タイミング
 
 - facts が封印済み（extracting-unit-facts-from-code が `status=封印済み` で facts_ref を返した後）で、画面基本設計書を新規著述・再著述したいとき
-- 本スキルが `status=基本設計著述完了` を返した後、orchestrating-reverse-docs-flow は次に generating-reverse-detailed-design（設計書未著述）を起動する
-- 起動引数は screen_dir + facts_ref + common_docs_root + 資産パス群 + unit_kind
+- 標準ユニットでは詳細設計と並列、大規模ユニットでは詳細設計完了後のパス2で起動する
+- 起動引数は screen_dir + facts_ref + common_docs_root + 資産パス群 + unit_kind + authoring_pass。`authoring_pass=large-pass2` では detail_design_path と pass1_receipt_path も必須
 
-## スコープ
+## 対象範囲
 
-unit_kind パラメータで screen / batch / report / external を区別する契約とするが、**現時点で実装済みなのは unit_kind=screen のみ**（テンプレート `shared/templates/リバース検証/画面/基本設計/画面基本設計書.md` が存在するのは screen のみ。batch/report/external の基本設計書テンプレートは `納品物フォルダ体系.md` の【段階計画 Cycle 4】であり未着手）。screen 以外を指定された場合は著述を行わず `status=基本設計著述失敗` とし、hint に「unit_kind=screen 以外は未実装」と記す。この契約は extracting-unit-facts-from-code の `profile=screen のみ実装` と同型である。
+unit_kind パラメータで screen / batch / report / external を区別する契約とするが、**現時点で実装済みなのは unit_kind=screen のみ**（テンプレート `shared/templates/リバース検証/画面/基本設計/画面基本設計書.md` が存在するのは screen のみ。batch/report/external の基本設計書テンプレートは `納品物フォルダ体系.md` の【段階計画 Cycle 4】であり未着手）。screen 以外を指定された場合は著述せず `status=基本設計著述失敗` とし、hint に「unit_kind=screen 以外は未実装」と記す。この契約は extracting-unit-facts-from-code の `profile=screen のみ実装` と同型である。
 
 ## 設計原則
 
@@ -33,23 +33,23 @@ unit_kind パラメータで screen / batch / report / external を区別する�
 3. **プロジェクト非依存**: リバース対象の固有値（対象リポジトリパス・画面 ID・業務名）はすべて起動引数・設計書側に置き、本 SKILL.md 本文には書かない
 4. **原本 Read 禁止**: 本スキル実行中に対象リポジトリの原本コードを Read することを全面禁止する。情報源は起動引数 facts_ref 配下の facts.yml と common_docs_root 配下の共通文書に限定する
 5. **業務語彙限定**: コード識別子・フレームワーク用語・型構文・ファイルパス・ライブラリ名を一切含めない。実装寄りの契約は詳細設計書（generating-reverse-detailed-design）が担う
-6. **詳細設計非依存**: 詳細設計書を参照・要約しない。facts.yml から独立して業務語彙で直接書く
+6. **詳細設計を内容の出典にしない**: 詳細設計書を要約せず、facts.yml から業務語彙で直接書く。大規模ユニットでは完成済み詳細設計書をパス2開始の完了証跡・整合対象としてのみ検収する
 
 ## Phase 1: テンプレート展開と facts 読込
 
-起動引数を検収する: screen_dir / output_dir / template_root / scaffold_script_path / facts_ref / common_docs_root / unit_kind（既定 screen）。unit_kind が screen 以外の場合は著述を行わず `status=基本設計著述失敗` とする（「スコープ」節を参照）。
+起動引数を検収する: screen_dir / output_dir / template_root / scaffold_script_path / facts_ref / common_docs_root / unit_kind（既定 screen）/ authoring_pass（`standard|large-pass2`、既定 `standard`）。unit_kind が screen 以外の場合は著述せず `status=基本設計著述失敗` とする（「対象範囲」節を参照）。`authoring_pass=large-pass2` では detail_design_path と pass1_receipt_path を必須とする。証跡JSONの `status=DETAIL_AUTHORED`、`detail_design_path` の一致、`facts_lock_sha256` と現在の facts.lock の SHA-256 の一致、`coverage_check=PASS`、`audit_check=PASS`、詳細設計書の実在を機械検収し、1条件でも満たさなければ fail-closed で `status=基本設計著述失敗` とする。
 
-統括（orchestrator）が並列起動前にスキャフォールディングを実施済みの前提で動作する（基本設計・詳細設計の並列起動時にスキャフォールディングが競合するのを避けるため、実施主体は統括に一本化されている）。画面ディレクトリが存在しない場合はエラーとして呼び出し元へ報告する。存在する場合は `bash <scaffold_script_path> --verify <output_dir> <画面ID>`（scaffold_script_path は管理者が解決して渡すスキャフォールディングスクリプトのパス。実体: `shared/scripts/scaffold-screen.sh`。正本はこの1本のみ）で構造の健全性を確認する。
+統括（orchestrator）が著述スキル起動前にスキャフォールディングを実施済みの前提で動作する（標準の並列起動・大規模パス2のいずれでも競合を避けるため、実施主体は統括に一本化されている）。画面ディレクトリが存在しない場合はエラーとして呼び出し元へ報告する。存在する場合は `bash <scaffold_script_path> --verify <output_dir> <画面ID>`（scaffold_script_path は管理者が解決して渡すスキャフォールディングスクリプトのパス。実体: `shared/scripts/scaffold-screen.sh`。正本はこの1本のみ）で構造の健全性を確認する。
 
 `shared/scripts/seal-facts.sh verify <facts_ref>` を実行し exit 0 を確認する（必須ゲート）。exit 1（facts.yml が封印時から改変されている）なら著述を行わず `status=基本設計著述失敗` とし、hint に「extracting-unit-facts-from-code で再封印せよ」と記す。
 
-exit 0 を確認したら `<facts_ref>/facts.yml`（`shared/references/facts-schema.md` 準拠の9分類構造）と `common_docs_root` 配下のプロジェクト共通文書だけを情報源として読み込む。**対象リポジトリの原本コードは Read しない**（設計原則4）。
+exit 0 を確認したら `<facts_ref>/facts.yml`（`shared/references/facts-schema.md` 準拠の12分類構造）と `common_docs_root` 配下のプロジェクト共通文書だけを情報源として読み込む。**対象リポジトリの原本コードは Read しない**（設計原則4）。
 
-完了条件: 必須引数が揃い、画面ディレクトリの構造健全性を確認済み・`seal-facts.sh verify` が exit 0・facts.yml と共通文書の読込完了
+完了条件: 必須引数が揃い、画面ディレクトリの構造健全性を確認済み・`seal-facts.sh verify` が exit 0・facts.yml と共通文書の読込完了・（large-pass2のみ）固定契約のパス1証跡と detail_design_path の検収完了
 
 ## Phase 2: facts → 業務語彙への転記（章ごとに実施）
 
-facts.yml の各セクションを下記マップに従って基本設計書の各章へ転記する。facts.yml の実際のセクションキー（`shared/references/facts-schema.md` 準拠）は import / export_type / const / state / handler / jsx / style / api / measurement_pending の9分類であり、基本設計書が使うのはこのうち業務挙動に直結する4分類（state / handler / jsx / api）と meta.route のみである。import / export_type / const / style / measurement_pending（実装寄り・実測系の5分類）は基本設計書に転記しない（詳細設計書の担当）。
+facts.yml の各セクションを下記マップに従って基本設計書の各章へ転記する。12分類のうち業務挙動に直結する6分類（state / handler / jsx / api / effect_trigger / error_handling）と meta.route を使用する。import / export_type / const / style / measurement_pending / local_type は基本設計書に転記しない。
 
 | facts.yml セクション | 基本設計書の章 | 変換規則 |
 |---|---|---|
@@ -57,9 +57,23 @@ facts.yml の各セクションを下記マップに従って基本設計書の�
 | jsx | §1 画面の目的 | 業務目的に翻訳する（画面が「何を見せるか」を業務の言葉で書く） |
 | api | §5 入出力の業務的意味 | 業務目的に翻訳する（「何のデータをやり取りするか」を業務の言葉で書く） |
 | state | §4 業務ルール | 業務的な制約・条件に翻訳する（実装の条件式ではなく業務の言葉で書く） |
+| effect_trigger | §3 機能仕様 / §4 業務ルール | 発火契機と条件を業務動作・業務条件へ翻訳する |
+| error_handling | §4 業務ルール | 失敗時の処理・利用者への影響を業務の言葉で書く |
 | meta.route（+ common_docs_root の共通設計書） | §6 画面遷移の業務文脈 | 共通設計書の遷移情報を参照引用する |
 
-§2 画面構成の生成: `<screen_dir>/詳細設計/original.png` を参照し、画面の視覚的な領域配置を業務用語の ASCII アートで作成する。コード識別子（コンポーネント名・関数名等）は使用しない。画像パスは `../詳細設計/original.png` として Markdown に埋め込む。original.png は unlocking-reverse-target-screens が撮影済みの画像ファイルであり、原本コードの直接読み取りには該当しない（情報源制約の対象外）。
+§2 画面構成の生成: まず `<screen_dir>/詳細設計/original.png` の実在を確認する。存在する場合は画像を最優先し、画像パスを `../詳細設計/original.png` として Markdown に埋め込み、視覚的な領域配置を業務用語の ASCII アートで作成する。original.png は unlocking-reverse-target-screens が撮影済みの画像ファイルであり、原本コードの直接読み取りには該当しない（情報源制約の対象外）。
+
+次の4ケースを検証記録で確認する。
+
+1. original.png がある場合は、画像を優先する。
+2. original.png が無い場合は、facts.yml の jsx セクションにある利用可能な構造だけを根拠に ASCII アートを作成する。
+   見出しに **「構造推定」** と明記する。
+   根拠に無い値・位置・挙動は創作しない。
+3. 構造を推定できない領域は、空欄または「未定義」と記載する。
+4. 画像と利用可能な構造がどちらも無い場合は、画面構成を著述しない。
+   `status=基本設計著述失敗` とし、両方の根拠が無いことを理由として返す。
+
+いずれのケースでも、コンポーネント名や関数名などのコード識別子は使用しない。
 
 各章のキー（意味キー規約準拠）は facts.yml のキーをそのまま流用せず、業務語彙で章ごとに新規に付け直す（例: `handler-onRowClick-遷移` → §3 の機能キー `一覧行選択-詳細遷移`）。facts.yml に該当分類の事実が無い場合は「該当なし」＋根拠（例:「該当なし（facts.yml の api セクションに項目なし）」）を記す。
 
@@ -89,7 +103,7 @@ grep -nE 'useState|useEffect|useReducer|\bProps\b|styled-components|\bReact\b|\b
 
 | Phase | 完了条件 |
 |---|---|
-| Phase 1 | 必須引数が揃い、画面ディレクトリの構造健全性を確認済み・`seal-facts.sh verify` が exit 0・facts.yml と共通文書の読込完了 |
+| Phase 1 | 必須引数が揃い、画面ディレクトリの構造健全性を確認済み・`seal-facts.sh verify` が exit 0・facts.yml と共通文書の読込完了・（large-pass2のみ）パス1証跡検収済み |
 | Phase 2 | テンプレートの6章（§1〜§6）すべてに記述がある（「該当なし」＋根拠を含む）・創作の禁止（業務断定の根拠規律）遵守 |
 | Phase 3 | 実装用語検出0件・内部成果物名検出0件・facts根拠チェック済み・HTMLコメント残存0件・frontmatter status=authored |
 | **Goal** | `status=基本設計著述完了` の返却ブロックが検証記録に保存済み。裸の「未確認」ゼロ |
@@ -117,12 +131,12 @@ facts 読込・執筆（Phase 1〜2）はサブエージェントへ委任しな
 | scope | `<system>-<画面ID>`（工程を跨いだ同一性キー） |
 | artifacts | 画面基本設計書のパス |
 | facts_ref（拡張） | 入力で受け取った facts ディレクトリの絶対パスをそのまま転記（下流工程への追跡用） |
-| hint | 次工程（generating-reverse-detailed-design 起動）への申し送り・差し戻し理由 |
+| hint | 標準ユニットは並列著述の合流、大規模ユニットはパス2合流への申し送り・差し戻し理由 |
 
 ## 予想を裏切る挙動
 
 - 入力は封印済み facts であり、原本コードは直接読まない。コードから事実を抽出するのは extracting-unit-facts-from-code の責務
-- 詳細設計書は参照しない。基本設計書は facts から独立して業務語彙で直接書く（詳細設計の劣化版・要約版ではない）
+- 詳細設計書を内容の出典にはしない。標準ユニットは facts から独立して著述し、大規模ユニットは完成済み詳細設計書をパス2開始の完了証跡・整合対象としてだけ検収する（詳細設計の劣化版・要約版にはしない）
 - chapter_map_path・audit_script_path は受け取らない。基本設計書は6章固定のテンプレートであり、章役割キーの解決も15章監査（audit-consistency.sh）も不要。本スキル独自の Phase 3 grep 検査で完結する
 - unit_kind は受け取るが screen 以外は未実装。batch/report/external の基本設計書テンプレートが存在しないため、無理に screen 用テンプレートを流用しない
 - facts.yml の import / export_type / const / style / measurement_pending（実装寄り・実測系の5分類）は基本設計書に一切転記しない。転記対象は state / handler / jsx / api / meta.route の5分類のみ
@@ -145,7 +159,7 @@ facts 読込・執筆（Phase 1〜2）はサブエージェントへ委任しな
 - 起動引数 facts_ref（封印済み facts ディレクトリの絶対パス。実体: extracting-unit-facts-from-code が出力する `<verification_dir>/screen-<画面ID>/facts/<run_id>/`）
 - 起動引数 common_docs_root（プロジェクト共通文書ルートの絶対パス。実体: generating-reverse-common-docs が採録する `プロジェクト共通/`）
 - 起動引数 template_root（テンプレート原本。実体: `shared/templates/リバース検証`）
-- `shared/references/facts-schema.md` — facts.yml のスキーマ正本（9 分類・必須フィールド・正規化規則）
+- `shared/references/facts-schema.md` — facts.yml のスキーマ定義（12分類・必須フィールド・正規化規則）
 - `shared/templates/リバース検証/画面/基本設計/画面基本設計書.md` — 基本設計書テンプレート正本（6章固定）
 
 ## 設計判断

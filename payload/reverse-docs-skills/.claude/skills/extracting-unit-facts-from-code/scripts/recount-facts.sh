@@ -16,7 +16,7 @@ set -euo pipefail
 #   1. 分類別件数の乖離検査: facts.yml を読まずに①〜⑧の8分類を対象コードから独立再計数し、
 #      facts.yml内の記載件数との乖離率 |再計数-記載|/max(両者,1) が0.05を超える分類が1つでもあれば違反。
 #      ⑨measurement_pendingは再計数対象外（動的値のため）。
-#   2. 必須フィールド空欄検査: 全9分類の各項目についてkey・evidence（file:line形式）の空欄率が
+#   2. 必須フィールド空欄検査: 全12分類の各項目についてkey・evidence（file:line形式）の空欄率が
 #      30%を超えれば違反。
 #   3. 孤児参照検査: evidenceのファイル部分がtarget_file_pathsの集合に含まれない項目が
 #      1件でもあれば違反。
@@ -284,14 +284,133 @@ count_state() {
   ' "$1"
 }
 
-# 関数宣言単位で数える。JSX 属性への inline アロー（on~={() =>）と
-# prop 渡しのハンドラ参照（onSelect={handleSelect}）は数えない
-count_handler() {
+# コメントと文字列を空白化し、コードとして評価すべきトークンだけを残す。
+# 行数を保つため、後続の行単位カウンタは元ファイルと同じ粒度で扱える。
+strip_non_code() {
   awk '
-    /^[ \t]*function[ \t]+[a-z]/ { count++ }
-    /^[ \t]*const[ \t]+[a-z][A-Za-z0-9_]*[ \t]*=[ \t]*(async[ \t]+)?\(/ && /\)[ \t]*=>/ { count++ }
-    END { print count+0 }
+    {
+      out = ""
+      for (i = 1; i <= length($0); i++) {
+        c = substr($0, i, 1)
+        nextc = substr($0, i + 1, 1)
+
+        if (in_block_comment) {
+          if (c == "*" && nextc == "/") {
+            in_block_comment = 0
+            i++
+          }
+          continue
+        }
+        if (quote != "") {
+          if (escaped) {
+            escaped = 0
+          } else if (c == "\\") {
+            escaped = 1
+          } else if (c == quote) {
+            quote = ""
+          }
+          continue
+        }
+        if (in_template && template_expr_depth == 0) {
+          if (c == "\\") {
+            i++
+          } else if (c == "`") {
+            in_template = 0
+          } else if (c == "$" && nextc == "{") {
+            template_expr_depth = 1
+            i++
+          }
+          continue
+        }
+        if (c == "/" && nextc == "*") {
+          in_block_comment = 1
+          i++
+          continue
+        }
+        if (c == "/" && nextc == "/") {
+          break
+        }
+        if (c == "\"" || c == "\\047") {
+          quote = c
+          continue
+        }
+        if (c == "`") {
+          in_template = 1
+          template_expr_depth = 0
+          continue
+        }
+        if (in_template && c == "{") {
+          template_expr_depth++
+        } else if (in_template && c == "}") {
+          template_expr_depth--
+          if (template_expr_depth == 0) {
+            continue
+          }
+        }
+        out = out c
+      }
+      print out
+    }
   ' "$1"
+}
+
+# 関数宣言単位で数える。handleX/onX 命名、または JSX event prop
+# （onClick={save} 等）から参照される宣言だけを対象にする。JSX 属性そのもの、
+# inline アロー、Reactコンポーネント、通常ヘルパーは数えない。
+count_handler() {
+  strip_non_code "$1" | awk '
+    function is_event_handler(name) {
+      return name ~ /^(handle|on)[A-Z]/ || event_refs[name]
+    }
+    function count_declaration(name) {
+      if (name !~ /^[A-Z]/ && is_event_handler(name)) {
+        count++
+      }
+    }
+    function assignment_rhs(line, i, c, nextc, prevc) {
+      for (i = 1; i <= length(line); i++) {
+        c = substr(line, i, 1)
+        nextc = substr(line, i + 1, 1)
+        prevc = substr(line, i - 1, 1)
+        if (c == "=" && nextc != ">" && prevc !~ /[=!<>]/) {
+          return substr(line, i + 1)
+        }
+      }
+      return ""
+    }
+    {
+      line = $0
+      while (match(line, /on[A-Z][A-Za-z0-9_]*[ \t]*=[ \t]*\{[ \t]*[A-Za-z_$][A-Za-z0-9_$]*[ \t]*\}/)) {
+        ref = substr(line, RSTART, RLENGTH)
+        sub(/^on[A-Za-z0-9_]*[ \t]*=[ \t]*\{[ \t]*/, "", ref)
+        sub(/[ \t]*\}$/, "", ref)
+        event_refs[ref] = 1
+        line = substr(line, RSTART + RLENGTH)
+      }
+      source[NR] = $0
+    }
+    END {
+      for (i = 1; i <= NR; i++) {
+        line = source[i]
+        if (line ~ /^[ \t]*(export[ \t]+)?(async[ \t]+)?function[ \t]+[A-Za-z_$][A-Za-z0-9_$]*/) {
+          name = line
+          sub(/^[ \t]*(export[ \t]+)?(async[ \t]+)?function[ \t]+/, "", name)
+          sub(/[^A-Za-z0-9_$].*$/, "", name)
+          count_declaration(name)
+        } else if (line ~ /^[ \t]*(export[ \t]+)?const[ \t]+[A-Za-z_$][A-Za-z0-9_$]*/) {
+          name = line
+          sub(/^[ \t]*(export[ \t]+)?const[ \t]+/, "", name)
+          sub(/[^A-Za-z0-9_$].*$/, "", name)
+          rhs = assignment_rhs(line)
+          if (rhs ~ /^[ \t]*(async[ \t]+)?(\([^)]*\)|[A-Za-z_$][A-Za-z0-9_$]*)[ \t]*=>/ ||
+              rhs ~ /^[ \t]*useCallback[ \t]*\(/) {
+            count_declaration(name)
+          }
+        }
+      }
+      print count + 0
+    }
+  '
 }
 
 # JSX開始タグは属性を複数行に折り返すと `<Header` の直後が改行になり、従来の
@@ -341,9 +460,20 @@ count_effect_trigger() {
 # useMemo/useCallbackハンドラ・非フック分割代入・stateの計数誤差。
 # 計数単位の定義を抽出粒度と一致させる方針で解消する
 count_error_handling() {
-  local n
-  n="$(grep -cE '(^|[^A-Za-z0-9_])throw[[:blank:]]|catch[[:blank:]]*\(|window\.alert[[:blank:]]*\(|[a-zA-Z]*([Tt]hrow|Error)[A-Za-z]*\([^()]*\);' "$1" 2>/dev/null)"
-  echo "${n:-0}"
+  strip_non_code "$1" | awk '
+    {
+      is_idiom_call = $0 ~ /(^|[^A-Za-z0-9_$])([Tt]hrow[A-Za-z0-9_$]*Error|setError)[ \t]*\(/
+      is_function_declaration = $0 ~ /^[ \t]*(export[ \t]+)?(async[ \t]+)?function[ \t]+/
+      is_arrow_declaration = $0 ~ /^[ \t]*(export[ \t]+)?(const|let|var)[ \t]+[A-Za-z_$][A-Za-z0-9_$]*[ \t]*=[ \t]*(async[ \t]+)?\([^)]*\)[ \t]*=>/
+      if ($0 ~ /(^|[^A-Za-z0-9_$])throw[ \t]/ ||
+          $0 ~ /catch[ \t]*\(/ ||
+          $0 ~ /window[.]alert[ \t]*\(/ ||
+          (is_idiom_call && !is_function_declaration && !is_arrow_declaration)) {
+        count++
+      }
+    }
+    END { print count + 0 }
+  '
 }
 
 # await を伴わない Promise チェーン形式（`api.foo(...).then(...).catch(...)`）のAPI呼出しは
@@ -1353,6 +1483,23 @@ EOF
     rc=1
   fi
 
+  # error_handling回帰: Errorを含む通常関数を除外し、対象idiomだけを数える。
+  error_handling_idiom_scope_file="$tmp/error-handling-idiom-scope.txt"
+  cat > "$error_handling_idiom_scope_file" <<'EOF'
+getErrorMessage();
+formatError();
+hasError();
+throwAsyncError(error);
+setError('real');
+EOF
+  error_handling_idiom_scope_count="$(count_error_handling "$error_handling_idiom_scope_file")"
+  if [ "$error_handling_idiom_scope_count" = "2" ]; then
+    echo "  [PASS] error_handling回帰: 対象idiomだけを検知（2件）"
+  else
+    echo "  [FAIL] error_handling回帰: 通常のError関数を誤計上した（実測=${error_handling_idiom_scope_count} 期待=2）" >&2
+    rc=1
+  fi
+
   # ⑥error_handling回帰: 同一行 throw new Error('boom') は1件（二重計上しない）。
   error_handling_regression_file="$tmp/error-handling-regression.txt"
   cat > "$error_handling_regression_file" <<'EOF'
@@ -1363,6 +1510,43 @@ EOF
     echo "  [PASS] error_handling回帰（⑥）: throw new Error は1件（二重計上なし）"
   else
     echo "  [FAIL] error_handling回帰（⑥）: throw new Error の二重計上（実測=${error_handling_regression_count} 期待=1）" >&2
+    rc=1
+  fi
+
+  # error_handling回帰: コメントと文字列内の疑似コードを除外し、実コードだけを数える。
+  error_handling_false_positive_file="$tmp/error-handling-false-positive.txt"
+  cat > "$error_handling_false_positive_file" <<'EOF'
+// throw new Error('comment');
+/* catch (err) { window.alert('comment'); } */
+const example = "throwAsyncError(err); setError('message'); window.alert('message');";
+const template = `throw new Error('template')`;
+throwAsyncError(error);
+setError('real');
+try {
+  doSomething();
+} catch (err) {
+  window.alert('real');
+  throw err;
+}
+EOF
+  error_handling_false_positive_count="$(count_error_handling "$error_handling_false_positive_file")"
+  if [ "$error_handling_false_positive_count" = "5" ]; then
+    echo "  [PASS] error_handling回帰: コメント・文字列を除外し実コード5件"
+  else
+    echo "  [FAIL] error_handling回帰: コメント・文字列を誤計上した（実測=${error_handling_false_positive_count} 期待=5）" >&2
+    rc=1
+  fi
+
+  # error_handling回帰: テンプレート通常文は除外し、${...}補間式内だけをコードとして数える。
+  error_handling_template_file="$tmp/error-handling-template.txt"
+  cat > "$error_handling_template_file" <<'EOF'
+const message = `example throwAsyncError(fake) ${throwAsyncError(error)} setError('text')`;
+EOF
+  error_handling_template_count="$(count_error_handling "$error_handling_template_file")"
+  if [ "$error_handling_template_count" = "1" ]; then
+    echo "  [PASS] error_handling回帰: テンプレート補間式内だけを検知（1件）"
+  else
+    echo "  [FAIL] error_handling回帰: テンプレート補間式の判定不正（実測=${error_handling_template_count} 期待=1）" >&2
     rc=1
   fi
 
@@ -1495,6 +1679,78 @@ EOF
     echo "  [PASS] handler陰性（⑤）: JSXインラインバインディング・prop渡しは0件"
   else
     echo "  [FAIL] handler陰性（⑤）: JSXインラインを誤検知（実測=${handler_inline_neg_count} 期待=0）" >&2
+    rc=1
+  fi
+
+  # handler回帰: 通常ヘルパーとコンポーネントを除外し、命名規約またはJSX event propで
+  # 参照される宣言だけを数える。
+  handler_false_positive_file="$tmp/handler-false-positive.txt"
+  cat > "$handler_false_positive_file" <<'EOF'
+function validate(value) {
+  return value.length > 0;
+}
+const computeTotal = (items) => items.length;
+const Screen = () => <div />;
+function handleSubmit() {}
+const onSave = () => {};
+function persist() {}
+<Button onClick={persist}>Save</Button>
+EOF
+  handler_false_positive_count="$(count_handler "$handler_false_positive_file")"
+  if [ "$handler_false_positive_count" = "3" ]; then
+    echo "  [PASS] handler回帰: 通常ヘルパー・コンポーネントを除外しイベント宣言3件"
+  else
+    echo "  [FAIL] handler回帰: 通常ヘルパー等を誤計上した（実測=${handler_false_positive_count} 期待=3）" >&2
+    rc=1
+  fi
+
+  # handler回帰: JSX event propから参照される非括弧アロー宣言を数える。
+  handler_single_param_arrow_file="$tmp/handler-single-param-arrow.txt"
+  cat > "$handler_single_param_arrow_file" <<'EOF'
+const persist = value => {
+  save(value);
+};
+<Button onClick={persist}>Save</Button>
+EOF
+  handler_single_param_arrow_count="$(count_handler "$handler_single_param_arrow_file")"
+  if [ "$handler_single_param_arrow_count" = "1" ]; then
+    echo "  [PASS] handler回帰: event prop参照の非括弧アロー宣言を検知（1件）"
+  else
+    echo "  [FAIL] handler回帰: 非括弧アロー宣言を検知できない（実測=${handler_single_param_arrow_count} 期待=1）" >&2
+    rc=1
+  fi
+
+  # handler回帰: 型注釈付きアローはevent prop参照時だけ数え、通常ヘルパーは除外する。
+  handler_typed_arrow_file="$tmp/handler-typed-arrow.txt"
+  cat > "$handler_typed_arrow_file" <<'EOF'
+const persist: (value: string) => void = value => {
+  save(value);
+};
+const validate: (value: string) => boolean = value => value.length > 0;
+<Button onClick={persist}>Save</Button>
+EOF
+  handler_typed_arrow_count="$(count_handler "$handler_typed_arrow_file")"
+  if [ "$handler_typed_arrow_count" = "1" ]; then
+    echo "  [PASS] handler回帰: 型注釈付きアローをevent prop参照時だけ検知（1件）"
+  else
+    echo "  [FAIL] handler回帰: 型注釈付きアローの判定不正（実測=${handler_typed_arrow_count} 期待=1）" >&2
+    rc=1
+  fi
+
+  # handler回帰: useCallback包装宣言を数え、通常の未参照memoized関数は除外する。
+  handler_use_callback_file="$tmp/handler-use-callback.txt"
+  cat > "$handler_use_callback_file" <<'EOF'
+const handleClick = useCallback((event) => {
+  submit(event);
+}, []);
+const memoized = useCallback((value) => computeTotal(value), []);
+<Button onClick={handleClick}>Submit</Button>
+EOF
+  handler_use_callback_count="$(count_handler "$handler_use_callback_file")"
+  if [ "$handler_use_callback_count" = "1" ]; then
+    echo "  [PASS] handler回帰: useCallback包装ハンドラだけを検知（1件）"
+  else
+    echo "  [FAIL] handler回帰: useCallback包装宣言の判定不正（実測=${handler_use_callback_count} 期待=1）" >&2
     rc=1
   fi
 

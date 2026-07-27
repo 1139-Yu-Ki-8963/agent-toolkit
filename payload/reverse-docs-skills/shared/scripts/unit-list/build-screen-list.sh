@@ -90,6 +90,7 @@ EOF
       screens: [
         {
           screenKey: "home-screen",
+          screenNameGuess: "トップ(OK) T-001",
           kind: "route",
           route: "/home",
           entryFile: $entryFile,
@@ -193,6 +194,7 @@ EOF
       screens: [
         {
           screenKey: "home-screen",
+          screenNameGuess: "トップ(OK) T-001",
           kind: "route",
           route: "/home",
           entryFile: $entryFile,
@@ -215,12 +217,43 @@ EOF
     regression_ok=0
   elif ! grep -q '<code>/home</code>' "$out_normal"; then
     regression_ok=0
+  elif ! grep -q '<td>トップ</td>' "$out_normal" || grep -q '<td>トップ(OK)' "$out_normal"; then
+    regression_ok=0
   elif ! bash "$script_dir/validate-manifest.sh" "$manifest_normal" >/dev/null 2>&1; then
     regression_ok=0
   fi
 
+  # 4種類の末尾マーカーを除去し、語頭・語中のOKは保持する。
+  local marker_manifest="$tmp/manifest-marker-forms.json" marker_out="$tmp/out-marker-forms.html"
+  jq '
+    .detectionSummary.screenCount = 6
+    | .screens = [
+        ["marker-space", "/marker-space", "末尾空白 OK"],
+        ["marker-paren", "/marker-paren", "半角括弧(OK)"],
+        ["marker-id", "/marker-id", "識別子付き(OK) SCR-001"],
+        ["marker-wide", "/marker-wide", "全角括弧（補足）OK"],
+        ["marker-leading", "/marker-leading", "OK処理"],
+        ["marker-middle", "/marker-middle", "決済OK着地"]
+      ]
+      | .screens |= map({
+          screenKey: .[0], screenNameGuess: .[2], kind: "route", route: .[1],
+          entryFile: $entryFile, detectionMethod: "manual", confidence: "high",
+          screenType: "top", accountGroup: "common", accountSubType: "common",
+          hasTemplate: true, parentScreen: null, childComponents: [], isProcessingEndpoint: false
+        })
+  ' --arg entryFile "$tmp/src/screens/Home.tsx" "$manifest_normal" > "$marker_manifest"
+  if ! bash "$script_path" "$marker_manifest" "$marker_out" >/dev/null 2>&1 \
+    || ! grep -q '<td>末尾空白</td>' "$marker_out" \
+    || ! grep -q '<td>半角括弧</td>' "$marker_out" \
+    || ! grep -q '<td>識別子付き</td>' "$marker_out" \
+    || ! grep -q '<td>全角括弧（補足）</td>' "$marker_out" \
+    || ! grep -q '<td>OK処理</td>' "$marker_out" \
+    || ! grep -q '<td>決済OK着地</td>' "$marker_out"; then
+    regression_ok=0
+  fi
+
   if [ "$regression_ok" -eq 1 ]; then
-    echo "  [PASS] 回帰確認: 可視テーブル内容は維持されvalidate-manifest.shも引き続きPASS"
+    echo "  [PASS] 回帰確認: 末尾4形式を除去し語頭・語中OKを保持、validate-manifest.shも引き続きPASS"
   else
     echo "  [FAIL] 回帰確認: 可視テーブル内容またはvalidate-manifest.shのPASSに退行が発生した" >&2
     rc=1
@@ -293,6 +326,17 @@ html_escape() {
   printf '%s' "$1" | sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g' -e 's/"/\&quot;/g' -e "s/'/\&#39;/g"
 }
 
+# 検出器と同じ4形式だけを表示境界で除去する最終防衛。マニフェストJSON自体は
+# 改変せず、語中・語頭のOKを含む業務名は保持する。
+strip_ok_marker() {
+  printf '%s' "$1" | sed -E '
+    s/[[:space:]]*\(OK\)[[:space:]]+[[:alnum:]_.-]+[[:space:]]*$//
+    s/(）)OK[[:space:]]*$/\1/
+    s/[[:space:]]+OK[[:space:]]*$//
+    s/[[:space:]]*\(OK\)[[:space:]]*$//
+  ' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//'
+}
+
 # render_template — 共通関数を source（shared/scripts/render-template.sh）
 source "$(cd "$(dirname "$0")/.." && pwd)/render-template.sh"
 
@@ -315,6 +359,7 @@ row_html() {
   screen_key="$(jq -r '.screenKey // ""' <<<"$row")"
   kind="$(jq -r '.kind // ""' <<<"$row")"
   screen_name="$(jq -r '.screenNameGuess // ""' <<<"$row")"
+  screen_name="$(strip_ok_marker "$screen_name")"
   route="$(jq -r '.route // ""' <<<"$row")"
 
   case "$kind" in

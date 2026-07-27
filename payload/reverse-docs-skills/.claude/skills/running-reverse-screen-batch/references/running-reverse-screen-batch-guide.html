@@ -146,7 +146,7 @@
        │  Phase 5  完了報告
        ▼
   verification_dir 配下の検証結果 + バッチ運転記録 + progress.jsonl</pre>
-  <p class="note"><code>docs-only</code> は前半（facts→基本設計→詳細設計）を1回だけ実行し、<code>STATIC_COMPLETE</code> で終端する。<code>single-pass</code> / <code>iterative</code> は盲検分離のため、前半（著述）・後半（ファイル単位盲検検証・往復検証）の2回に分けて呼び出す。</p>
+  <p class="note"><code>docs-only</code> は前半（facts→著述モード判定→標準著述または大規模2パス）を1回だけ実行し、<code>STATIC_COMPLETE</code> で終端する。大規模ユニットは詳細設計を先に完成させ、基本設計・観点表・テスト仕様書をパス2で作る。<code>single-pass</code> / <code>iterative</code> は盲検分離のため、前半（著述）・後半（ファイル単位盲検検証・往復検証）の2回に分けて呼び出す。</p>
 </section>
 
 <section id="s2">

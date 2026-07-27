@@ -107,7 +107,7 @@
 
   <table class="meta-table">
     <tr><td>対応 OS</td><td>Windows WSL2 環境</td></tr>
-    <tr><td>検証状況</td><td>2026-07-27: verification_url 未確定でも facts から詳細設計を著述できる契約と回帰検査を確認済み</td></tr>
+    <tr><td>検証状況</td><td>2026-07-27: verification_url未確定時の著述に加え、大規模ユニットのdetail-only→companion-docs 2パス契約を確認済み</td></tr>
     <tr><td>依存</td><td>shared/scripts/scaffold-screen.sh（Phase 1スキャフォールディング。起動引数scaffold_script_pathで受領）、shared/scripts/seal-facts.sh（Phase 2封印検証）、scripts/check-fact-coverage.sh（Phase 5完全性ゲート）、shared/scripts/audit-consistency.sh（Phase 5内部整合性）</td></tr>
     <tr><td>関連資料</td><td><code>SKILL.md</code>, <code>references/phase-details.md</code>, <code>references/writing-rules.md</code></td></tr>
   </table>
@@ -181,6 +181,9 @@
     <tr><td>common_docs_root</td><td>必須</td><td>プロジェクト共通文書ルートの絶対パス</td></tr>
     <tr><td>mode</td><td>必須</td><td><code>file</code> または <code>screen</code></td></tr>
     <tr><td>target_file_path</td><td>mode=file時必須</td><td>対象ファイルのパス</td></tr>
+    <tr><td>verification_dir</td><td>必須</td><td>パス1証跡を保存する検証記録ルート</td></tr>
+    <tr><td>authoring_pass</td><td>任意（既定 full）</td><td><code>full</code> / <code>detail-only</code> / <code>companion-docs</code></td></tr>
+    <tr><td>detail_design_path / pass1_receipt_path</td><td>companion-docs時必須</td><td>パス1の完成版詳細設計書と固定JSON証跡。facts.lockのハッシュと完全性検査結果を再検収する</td></tr>
     <tr><td>screenshot_dir / registry値</td><td>任意</td><td>補助情報源</td></tr>
   </table>
   <div class="warn">
@@ -232,8 +235,9 @@
   完了条件: check-fact-coverage.shがexit 0かつaudit-consistency.sh違反0件
 
 <span class="cap">Phase 6: 返却</span>
-  返却ブロックを検証記録に保存する
-  完了条件: status=AUTHOREDの返却ブロックが検証記録に保存済み</pre>
+  authoring_passに対応する返却ブロックを検証記録に保存する
+  detail-onlyはdetail-pass1.jsonも保存する
+  完了条件: AUTHORED / DETAIL_AUTHORED / COMPANION_AUTHOREDの該当返却が保存済み</pre>
 </section>
 
 <section id="s7">
@@ -250,6 +254,9 @@
     <tr><td>style</td><td>DESIGN.md + §3.6/§15.6のキー参照</td></tr>
     <tr><td>api</td><td>§7（API通信仕様）</td></tr>
     <tr><td>measurement_pending</td><td>転記せず「実測委譲（画面単位検証で確定）」+ measurement_pending</td></tr>
+    <tr><td>local_type</td><td>§15.2（型定義）</td></tr>
+    <tr><td>effect_trigger</td><td>§6.4（データフローの発火契機）</td></tr>
+    <tr><td>error_handling</td><td>章役割キー「エラーハンドリング」（既定 §11.2）</td></tr>
   </table>
   <p class="note">章の役割キー→§番号の解決は起動引数 chapter_map_path を正本とする。§番号は既定値であり、設計書の章マップ表で解決する。</p>
 </section>
@@ -328,7 +335,7 @@
     <tr><td>extracting-unit-facts-from-code</td><td>原本コードからfacts.ymlを抽出・独立再計数・封印する上流スキル。本スキルの唯一の情報源のひとつ</td></tr>
     <tr><td>generating-reverse-common-docs</td><td>プロジェクト共通文書を採録する上流スキル。common_docs_rootの実体を提供する</td></tr>
     <tr><td>rebuilding-screen-unit-from-docs</td><td>本スキルがAUTHOREDを返した後に起動する下流の盲検検証スキル。「差し戻し」の差し戻し先は本スキル</td></tr>
-    <tr><td>shared/references/facts-schema.md</td><td>facts.ymlのスキーマ正本（9分類・必須フィールド・正規化規則）</td></tr>
+    <tr><td>shared/references/facts-schema.md</td><td>facts.ymlのスキーマ定義（12分類・必須フィールド・正規化規則）</td></tr>
   </table>
 </section>
 

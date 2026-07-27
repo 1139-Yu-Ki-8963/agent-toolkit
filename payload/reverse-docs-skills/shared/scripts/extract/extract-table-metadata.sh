@@ -45,28 +45,97 @@ lc() { printf '%s' "$1" | tr '[:upper:]' '[:lower:]'; }
 
 # --- CREATE TABLE ブロック切り出し: $1=file $2=テーブル物理名 → stdout(不検出なら空) ---
 extract_create_block() {
-  local file="$1" table_lc start="" lineno line name
+  local file="$1" table_lc
   table_lc="$(lc "$2")"
-  while IFS=: read -r lineno line; do
-    name="$(printf '%s\n' "$line" | tr '[:upper:]' '[:lower:]' \
-      | sed -E 's/.*create[[:space:]]+table[[:space:]]+//' \
-      | sed -E 's/^if[[:space:]]+not[[:space:]]+exists[[:space:]]+//' \
-      | sed -E 's/[[:space:](].*//' | tr -d '`"[]')"
-    name="${name##*.}"
-    if [ "$name" = "$table_lc" ]; then
-      start="$lineno"
-      break
-    fi
-  done < <(grep -niE 'create[[:space:]]+table[[:space:]]' "$file" 2>/dev/null || true)
-  [ -z "$start" ] && return 0
-  sed -n "${start},\$p" "$file" | awk '{print} /\)[[:space:]]*;[[:space:]]*$/{exit}'
+  # sed の残り全行出力を awk が早期終了すると、pipefail 下では sed が SIGPIPE(141)
+  # になり得る。同じ入力ファイルを awk が一度だけ読むことで境界を構造的に除去する。
+  awk -v target="$table_lc" '
+    BEGIN { target = tolower(target); started = 0; block_depth = 0; in_string = 0; dollar_tag = ""; quote = sprintf("%c", 39) }
+    function code_only(source,    result, i, c, next_c, rest) {
+      result = ""
+      for (i = 1; i <= length(source); i++) {
+        c = substr(source, i, 1)
+        next_c = substr(source, i + 1, 1)
+        if (dollar_tag != "") {
+          if (substr(source, i, length(dollar_tag)) == dollar_tag) {
+            i += length(dollar_tag) - 1
+            dollar_tag = ""
+          }
+          result = result " "
+          continue
+        }
+        if (block_depth > 0) {
+          if (c == "/" && next_c == "*") {
+            block_depth++
+            i++
+          } else if (c == "*" && next_c == "/") {
+            block_depth--
+            i++
+          }
+          result = result " "
+          continue
+        }
+        if (in_string) {
+          if (c == "\\") {
+            i++
+          } else if (c == quote && next_c == quote) {
+            i++
+          } else if (c == quote) {
+            in_string = 0
+          }
+          result = result " "
+          continue
+        }
+        if (c == "-" && next_c == "-") break
+        if (c == "/" && next_c == "*") {
+          block_depth = 1
+          result = result " "
+          i++
+          continue
+        }
+        if (c == quote) {
+          in_string = 1
+          result = result " "
+          continue
+        }
+        if (c == "$") {
+          rest = substr(source, i)
+          if (match(rest, /^\$\$/) || match(rest, /^\$[A-Za-z_][A-Za-z0-9_]*\$/)) {
+            dollar_tag = substr(rest, 1, RLENGTH)
+            i += RLENGTH - 1
+            result = result " "
+            continue
+          }
+        }
+        result = result c
+      }
+      return result
+    }
+    {
+      code = code_only($0)
+      lower = tolower(code)
+      if (!started && lower ~ /create[[:space:]]+table[[:space:]]+/) {
+        name = lower
+        sub(/.*create[[:space:]]+table[[:space:]]+/, "", name)
+        sub(/^if[[:space:]]+not[[:space:]]+exists[[:space:]]+/, "", name)
+        sub(/[[:space:](].*/, "", name)
+        gsub(/[`"\[\]]/, "", name)
+        sub(/^.*\./, "", name)
+        if (name == target) started = 1
+      }
+      if (started) {
+        print code
+        if (code ~ /\)[^;]*;[[:space:]]*$/) exit
+      }
+    }
+  ' "$file"
 }
 
 # --- カラム物理名抽出: stdin=CREATE TABLE ブロック → stdout=物理名(1 行 1 名) ---
 extract_columns() {
   awk '
     NR==1 { next }
-    /\)[[:space:]]*;[[:space:]]*$/ { exit }
+    /\)[^;]*;[[:space:]]*$/ { exit }
     {
       line=$0
       sub(/^[[:space:]]+/, "", line)
@@ -201,6 +270,133 @@ EOF
     echo "  [PASS] validate-manifest.sh: 拡張マニフェストが --unit-kind table で PASS"
   else
     echo "  [FAIL] validate-manifest.sh: 拡張マニフェストの検証が FAIL" >&2
+    rc=1
+  fi
+
+  # 1-16: 同一DDL内の3表以上を順に抽出しても、早期終了する抽出器が上流を
+  # SIGPIPE(141)にしないことを確認する。
+  local multi_file="$tmp/migrations/003_create_multi.sql"
+  cat > "$multi_file" <<'EOF'
+CREATE TABLE audit_logs (
+  id BIGINT NOT NULL,
+  user_id BIGINT NOT NULL REFERENCES users(id),
+  message TEXT,
+  PRIMARY KEY (id)
+);
+CREATE TABLE tags (
+  id BIGINT NOT NULL,
+  label VARCHAR(100) NOT NULL,
+  PRIMARY KEY (id)
+);
+CREATE TABLE post_tags (
+  post_id BIGINT NOT NULL REFERENCES posts(id),
+  tag_id BIGINT NOT NULL REFERENCES tags(id),
+  PRIMARY KEY (post_id, tag_id)
+);
+EOF
+  local multi_manifest="$tmp/multi-table-manifest.json" multi_out="$tmp/multi-out.json"
+  jq -n \
+    --arg sourceDir "$tmp/migrations" \
+    --arg multiFile "$multi_file" \
+    '{
+      generatedAt: "2026-01-01T00:00:00Z",
+      sourceDir: $sourceDir,
+      unitKind: "table",
+      strategy: {extractionMethod: "migration-sql", approvedByUser: true, unitIdRegex: null, excludePatterns: []},
+      detectionSummary: {unitCount: 3, unresolvedCount: 0},
+      units: [
+        {unitKey: "audit-logs", kind: "table", identifier: "audit_logs", unitNameGuess: "監査", sourceFile: $multiFile, confidence: "high", fileCount: 1, detectionMethod: "create-table"},
+        {unitKey: "tags", kind: "table", identifier: "tags", unitNameGuess: "タグ", sourceFile: $multiFile, confidence: "high", fileCount: 1, detectionMethod: "create-table"},
+        {unitKey: "post-tags", kind: "table", identifier: "post_tags", unitNameGuess: "投稿タグ", sourceFile: $multiFile, confidence: "high", fileCount: 1, detectionMethod: "create-table"}
+      ]
+    }' > "$multi_manifest"
+  if ! bash "$script_path" "$multi_manifest" "$tmp/migrations" "$multi_out" >/dev/null 2>&1; then
+    echo "  [FAIL] 1-16: 同一DDLの3表抽出がSIGPIPEを含む異常終了" >&2
+    rc=1
+  elif jq -e '
+      (.units[] | select(.unitKey == "audit-logs") | .columnCount == 3)
+      and (.units[] | select(.unitKey == "tags") | .columnCount == 2)
+      and (.units[] | select(.unitKey == "post-tags") | .columnCount == 2)
+    ' "$multi_out" >/dev/null 2>&1; then
+    echo "  [PASS] 1-16: 同一DDLの3表抽出がpipefail下で完走"
+  else
+    echo "  [FAIL] 1-16: 同一DDLの3表抽出結果が不正" >&2
+    rc=1
+  fi
+
+  # コメントやSQL文字列内のCREATE TABLEを抽出開始位置として扱わない。
+  local commented_file="$tmp/migrations/004_commented_create.sql"
+  local commented_manifest="$tmp/commented-table-manifest.json" commented_out="$tmp/commented-out.json"
+  cat > "$commented_file" <<'EOF'
+-- CREATE TABLE actual_table (
+--   ghost_line TEXT
+-- );
+/*
+CREATE TABLE actual_table (
+  ghost_block TEXT
+);
+*/
+SELECT 'CREATE TABLE actual_table (ghost_string TEXT);';
+SELECT $$
+CREATE TABLE actual_table (
+  ghost_dollar TEXT
+);
+$$;
+SELECT $body$
+CREATE TABLE actual_table (
+  ghost_tagged_dollar TEXT
+);
+$body$;
+CREATE TABLE actual_table (
+  real_id BIGINT NOT NULL,
+  -- ghost_line TEXT REFERENCES ghost_line_table(id),
+  /*
+  ghost_block TEXT REFERENCES ghost_block_table(id),
+    /*
+    ghost_nested TEXT REFERENCES ghost_nested_table(id),
+    */
+  ghost_after_nested TEXT REFERENCES ghost_after_nested_table(id),
+  */
+  payload TEXT DEFAULT $$
+  ghost_dollar TEXT REFERENCES ghost_dollar_table(id),
+  $$,
+  note TEXT DEFAULT $body$
+  ghost_tagged_dollar TEXT REFERENCES ghost_tagged_table(id),
+  $body$,
+  escaped_note TEXT DEFAULT E'prefix\' ghost_escape TEXT REFERENCES ghost_escape_table(id)',
+  user_id BIGINT REFERENCES users(id),
+  real_name TEXT
+) ENGINE=InnoDB;
+CREATE TABLE trailing_noise (
+  trailing_id BIGINT,
+  trailing_user_id BIGINT REFERENCES ghost_trailing_table(id)
+);
+EOF
+  jq -n \
+    --arg sourceDir "$tmp/migrations" \
+    --arg sourceFile "$commented_file" \
+    --arg usersFile "$tmp/migrations/001_create_users.sql" \
+    '{
+      generatedAt: "2026-01-01T00:00:00Z",
+      sourceDir: $sourceDir,
+      unitKind: "table",
+      strategy: {extractionMethod: "migration-sql", approvedByUser: true, unitIdRegex: null, excludePatterns: []},
+      detectionSummary: {unitCount: 2, unresolvedCount: 0},
+      units: [
+        {unitKey: "actual-table", kind: "table", identifier: "actual_table", unitNameGuess: "実表",
+         sourceFile: $sourceFile, confidence: "high", fileCount: 1, detectionMethod: "create-table"},
+        {unitKey: "users-master", kind: "table", identifier: "users", unitNameGuess: "ユーザー",
+         sourceFile: $usersFile, confidence: "high", fileCount: 1, detectionMethod: "create-table"}
+      ]
+    }' > "$commented_manifest"
+  if bash "$script_path" "$commented_manifest" "$tmp/migrations" "$commented_out" >/dev/null 2>&1 \
+    && jq -e '.units[0]
+      | .columnCount == 6
+        and .mainColumns == ["real_id", "payload", "note", "escaped_note", "user_id"]
+        and .foreignKeys == ["users-master"]' "$commented_out" >/dev/null 2>&1; then
+    echo "  [PASS] DDLコメント除外: 行・ブロックコメント、単一引用、ドル引用を無視して実DDLのみ抽出"
+  else
+    echo "  [FAIL] DDLコメント除外: コメントまたはSQL文字列内のCREATE TABLEを誤抽出" >&2
     rc=1
   fi
 

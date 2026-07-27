@@ -38,9 +38,11 @@ facts 抽出・設計書執筆・盲検検証の3スキルは情報アクセス�
 
 ## Phase 1: preflight（起動引数検収・スキャフォールディング）
 
-起動引数を検収する: screen_dir / output_dir / template_root / chapter_map_path / audit_script_path / scaffold_script_path / facts_ref / common_docs_root / mode / target_file_path（mode=file 時）。補助情報源（スクリーンショット dir・verification_url）があれば受け取る。verification_url は任意であり、未開通でも著述を止めない。渡された場合だけ scenarios の query/path_params の実測値を確定転記する。いずれか必須引数が欠ける場合は起動不可として呼び出し元へ差し戻す。
+起動引数を検収する: screen_dir / output_dir / template_root / chapter_map_path / audit_script_path / scaffold_script_path / facts_ref / common_docs_root / mode / target_file_path（mode=file 時）/ verification_dir / authoring_pass（`full|detail-only|companion-docs`、既定 `full`）。補助情報源（スクリーンショット dir・verification_url）があれば受け取る。verification_url は任意であり、未開通でも著述を止めない。渡された場合だけ scenarios の query/path_params の実測値を確定転記する。`authoring_pass=companion-docs` では detail_design_path と pass1_receipt_path を必須とし、パス1証跡の固定検収契約を満たさなければ fail-closed で差し戻す。いずれか必須引数が欠ける場合は起動不可として呼び出し元へ差し戻す。
 
-統括（orchestrator）が並列起動前にスキャフォールディングを実施済みの前提で動作する（基本設計・詳細設計の並列起動時にスキャフォールディングが競合するのを避けるため、実施主体は統括に一本化されている）。画面ディレクトリが存在しない場合はエラーとして呼び出し元へ報告する。存在する場合は `bash <scaffold_script_path> --verify <output_dir> <画面ID>`（scaffold_script_path は管理者が解決して渡すスキャフォールディングスクリプトのパス。audit_script_path と同型。実体: `shared/scripts/scaffold-screen.sh`）で構造の健全性を確認し、exit 1 なら template_root 起点の原本から欠落ファイルのみ復元して再実行する（fail-closed）。
+`companion-docs` の開始前に pass1_receipt_path の JSON を読み、`status=DETAIL_AUTHORED`、`detail_design_path` が起動引数と一致、`facts_lock_sha256` が現在の `<facts_ref>/facts.lock` の SHA-256 と一致、`coverage_check=PASS`、`audit_check=PASS` の5条件を機械検収する。詳細設計書の実在も確認し、1条件でも満たさなければ `status=BLOCKED` とする。
+
+統括（orchestrator）が著述スキル起動前にスキャフォールディングを実施済みの前提で動作する（標準の並列起動・大規模2パスのいずれでも競合を避けるため、実施主体は統括に一本化されている）。画面ディレクトリが存在しない場合はエラーとして呼び出し元へ報告する。存在する場合は `bash <scaffold_script_path> --verify <output_dir> <画面ID>`（scaffold_script_path は管理者が解決して渡すスキャフォールディングスクリプトのパス。audit_script_path と同型。実体: `shared/scripts/scaffold-screen.sh`）で構造の健全性を確認し、exit 1 なら template_root 起点の原本から欠落ファイルのみ復元して再実行する（fail-closed）。
 
 完了条件: 必須引数が揃い、画面ディレクトリの構造健全性を確認済み
 
@@ -48,7 +50,7 @@ facts 抽出・設計書執筆・盲検検証の3スキルは情報アクセス�
 
 `shared/scripts/seal-facts.sh verify <facts_ref>` を実行し exit 0 を確認する（Phase 2 の必須ゲート）。exit 1（facts.yml が封印時から改変されている）なら著述を行わず `status=BLOCKED` とし、hint に「extracting-unit-facts-from-code で再封印せよ」と記す（このゲートはループ対象外の終端条件）。
 
-exit 0 を確認したら、`<facts_ref>/facts.yml`（`shared/references/facts-schema.md` 準拠の9分類構造）と `common_docs_root` 配下のプロジェクト共通文書だけを情報源として読み込む。**対象リポジトリの原本コードは Read しない**（設計原則4）。9 分類（① import 〜 ⑨ measurement_pending）の定義・キーの付け方は `shared/references/facts-schema.md` を参照する。
+exit 0 を確認したら、`<facts_ref>/facts.yml`（`shared/references/facts-schema.md` 準拠の12分類構造）と `common_docs_root` 配下のプロジェクト共通文書だけを情報源として読み込む。**対象リポジトリの原本コードは Read しない**（設計原則4）。12分類の定義・キーの付け方は `shared/references/facts-schema.md` を参照する。
 
 封印検証成功後、`bash shared/scripts/check-facts-sufficiency.sh <facts_ref>/facts.yml` を実行し exit 0 を確認する（著述前の充足検査）。exit 0 でなければ著述に入らず `status=BLOCKED` としてfacts抽出工程へ差し戻す。差し戻し理由には検査出力のchapter-impact行（違反セクション→影響する設計書の章）を添え、どの章のfactsが薄いかを申し送る。
 
@@ -58,11 +60,13 @@ exit 0 を確認したら、`<facts_ref>/facts.yml`（`shared/references/facts-s
 
 facts.yml から単体テスト観点表へ観点行を追記する（意味キー規約: 連番禁止・内容要約キー）。`measurement_pending`（⑨）に由来する観点は `実測委譲（画面単位検証で確定）` として留保する。
 
-完了条件: facts.yml 由来の観点行が観点表に追記済み・意味キー規約準拠
+`authoring_pass=detail-only` では本Phaseと「テスト仕様書記入責務」を実行せず、詳細設計書だけをPhase 4〜5で完成させる。`authoring_pass=companion-docs` ではPhase 4の設計書転記を実行せず、パス1完成版を改変しないまま本Phaseとテスト仕様書3点の著述だけを行う。
+
+完了条件: `full|companion-docs` は facts.yml 由来の観点行が観点表に追記済み・意味キー規約準拠。`detail-only` は契約どおりスキップ済み
 
 ## Phase 4: 設計書転記
 
-scaffold直後に `shared/scripts/prefill-design-from-facts.sh <facts_ref>/facts.yml <画面詳細設計書.md>` で facts.yml からの機械転記を実行してよい（任意工程）。facts.yml の9分類を下記マップに従って対応する章表へ機械的に転記し、転記できない列（業務的意味・分類判断等）には `【著述・未確認:<章番号>-<種別>】` マーカーを置く。転記スクリプトを使った場合、Phase 5 の完全性ゲートに `shared/scripts/check-prefill-markers.sh <画面詳細設計書.md>` による残存マーカー検査（残0件）を追記する。
+scaffold直後に `shared/scripts/prefill-design-from-facts.sh <facts_ref>/facts.yml <画面詳細設計書.md>` で facts.yml からの機械転記を実行してよい（任意工程）。facts.yml の12分類を下記マップに従って対応する章表へ機械的に転記し、転記できない列（業務的意味・分類判断等）には `【著述・未確認:<章番号>-<種別>】` マーカーを置く。転記スクリプトを使った場合、Phase 5 の完全性ゲートに `shared/scripts/check-prefill-markers.sh <画面詳細設計書.md>` による残存マーカー検査（残0件）を追記する。
 
 各章の執筆直前に、`shared/references/gold-standard/docs/` 配下の正解設計書（gold標準）を記載粒度・表形式・値の書き方の見本として参照する（gold標準が存在する場合のみ）。参照してよいのは書式（章の粒度・表のカラム構成・値の記述スタイル）のみであり、値・識別子・画面固有の事実の転写・流用は禁止する（対象画面の事実の唯一の出典はfacts.yml）。
 
@@ -79,6 +83,9 @@ facts.yml の各セクションを下記マップに従って各章へ転記す�
 | style | DESIGN.md + §3.6/§15.6 のキー参照 |
 | api | §7（API 通信仕様） |
 | measurement_pending | 転記せず `実測委譲（画面単位検証で確定）` + measurement_pending |
+| local_type | §15.2（型定義） |
+| effect_trigger | §6.4（データフローの発火契機） |
+| error_handling | 章役割キー「エラーハンドリング」で解決（既定 §11.2） |
 
 **measurement_pending の§16自動計上**: measurement_pending の全項目を §16 要確認事項一覧へ自動計上する。計上形式: `| mp-<キー名> | 実測委譲（画面単位検証で確定） | facts由来 | 未解消 |`。Phase 5 の audit-consistency.sh 検査で §16 の measurement_pending 計上数と返却ブロック measurement_pending[] の件数が一致することを突合する。
 
@@ -92,10 +99,11 @@ facts.yml の各セクションを下記マップに従って各章へ転記す�
 
 ### 大規模ユニットの著述の2パス分割
 
-画面詳細設計書の著述と周辺文書（観点表・テスト仕様書・基本設計）の著述は別パス（別サブエージェント委任）に分割する。詳細設計書が 1,000 行を超える見込みの大規模ユニットでは必須とする。
+画面詳細設計書の著述と周辺文書（観点表・テスト仕様書・基本設計）の著述は別パス（別サブエージェント委任）に分割する。対象コードが合計1,500行超または4ファイル超、もしくは詳細設計書が1,000行を超える見込みの大規模ユニットでは必須とする。
 
-- パス1（詳細設計書）: 画面詳細設計書を著述し、Phase 5 の完全性ゲートまで通す
-- パス2（周辺文書）: 観点表・テスト仕様書・基本設計を著述する。入力として詳細設計書の完成版と facts を渡す
+- パス1（`authoring_pass=detail-only`）: 画面詳細設計書だけを著述し、Phase 5 の完全性ゲートまで通して `DETAIL_AUTHORED` を返す
+- パス2（`authoring_pass=companion-docs`）: パス1の `DETAIL_AUTHORED`・詳細設計書の完成版・facts を入力に、観点表・テスト仕様書を著述して `COMPANION_AUTHORED` を返す。基本設計書は同じパス2で generating-reverse-basic-design（`authoring_pass=large-pass2`）へ別委任する
+- パス1未完了でパス2を開始すること、およびパス1で基本設計・観点表・テスト仕様書を先行著述することを禁止する
 
 完了条件: 転記完了・`measurement_pending` が `実測委譲（画面単位検証で確定）` として留保済み・frontmatter に `source_repo`/`source_ref` を転記済み・`scenarios` が1件以上
 
@@ -110,9 +118,9 @@ facts.yml の各セクションを下記マップに従って各章へ転記す�
 
 ## Phase 6: 返却
 
-返却ブロックを検証記録に保存する（下記「返却ブロック」を参照）。
+返却ブロックを検証記録に保存する（下記「返却ブロック」を参照）。`detail-only` では `<verification_dir>/screen-<画面ID>/authoring/detail-pass1.json` を原子的に作成し、`status`、`facts_lock_sha256`、`detail_design_path`、`coverage_check`、`audit_check` を保存する。status は `DETAIL_AUTHORED`、2つの検査値は `PASS` に固定し、facts_lock_sha256 は検収済み facts.lock の SHA-256 とする。
 
-完了条件: `status=AUTHORED` の返却ブロックが検証記録に保存済み
+完了条件: authoring_pass に対応する `status=AUTHORED|DETAIL_AUTHORED|COMPANION_AUTHORED` の返却ブロックが検証記録に保存済み
 
 ## 完了条件
 
@@ -120,10 +128,10 @@ facts.yml の各セクションを下記マップに従って各章へ転記す�
 |---|---|
 | Phase 1 | 必須引数が揃い、画面ディレクトリの構造健全性を確認済み |
 | Phase 2 | `seal-facts.sh verify` が exit 0、`check-facts-sufficiency.sh` が exit 0、かつ facts.yml と共通文書の読込完了 |
-| Phase 3 | facts.yml 由来の観点行が観点表に追記済み・意味キー規約準拠 |
-| Phase 4 | 転記完了・`measurement_pending` が `実測委譲（画面単位検証で確定）` として留保済み・frontmatter に `source_repo`/`source_ref` を転記済み・`scenarios` が1件以上 |
-| Phase 5 | `check-fact-coverage.sh` が exit 0 かつ `audit-consistency.sh` 違反 0 件・§16 measurement_pending 計上数と `measurement_pending[]` 件数が一致・frontmatter 実測委譲プレースホルダ検査（`grep -c 実測委譲` が `0`）通過 |
-| Phase 6 | `status=AUTHORED` の返却ブロックが検証記録に保存済み |
+| Phase 3 | `full|companion-docs` は観点表・テスト仕様書を著述済み。`detail-only` はスキップ済み |
+| Phase 4 | `full|detail-only` は転記完了・`measurement_pending` 留保済み・frontmatter確定。`companion-docs` はパス1完成版を未変更 |
+| Phase 5 | `full|detail-only` は完全性ゲート通過。`companion-docs` は入力した `DETAIL_AUTHORED` 証跡と詳細設計書の実在を再検収済み |
+| Phase 6 | authoring_pass に対応する返却 status が検証記録に保存済み。detail-only は固定形式のパス1証跡も保存済み |
 | **Goal** | 裸の「未確認」ゼロ（残ってよいのは `実測委譲（画面単位検証で確定）` と §16 起票済みのみ） |
 
 ## ループ設計
@@ -144,10 +152,12 @@ facts 読込・執筆（Phase 2〜4）はサブエージェントへ委任しな
 
 | キー | 値 |
 |---|---|
-| status | `AUTHORED`（著述完了）\| `BLOCKED`（facts 未封印・引数不足等で著述不能） |
+| status | `AUTHORED`（full完了）\| `DETAIL_AUTHORED`（detail-only完了）\| `COMPANION_AUTHORED`（companion-docs完了）\| `BLOCKED`（facts未封印・引数不足・パス順序違反等で著述不能） |
 | scope | `<system>-<画面ID>`（工程を跨いだ同一性キー） |
 | artifacts | 画面詳細設計書・DESIGN.md・単体テスト観点表 のパス |
 | facts_ref（拡張） | 入力で受け取った facts ディレクトリの絶対パスをそのまま転記（下流工程への追跡用） |
+| detail_design_path（拡張） | detail-only / companion-docs が参照する完成済み画面詳細設計書の絶対パス |
+| pass1_receipt_path（拡張） | detail-only が作成し、companion-docs が固定契約で再検収する `detail-pass1.json` の絶対パス |
 | measurement_pending | ⑨実測系として設計書に確定せず画面単位検証へ委譲した項目の一覧（拡張フィールド） |
 | hint | 次工程（検証スキル起動）への申し送り・差し戻し理由 |
 
@@ -218,10 +228,10 @@ mode=screen が著述する画面横断章（§1 画面概要・§2 機能一覧
 
 ### prefill-design-from-facts.sh
 
-**必要性**: facts.yml（9分類）を各章表へ転記するPhase 4の作業は、キー命名規約（`<分類>-<名前>-<補足>`）に基づく名前列の復元・evidence引用の付与・facts側に無い列へのマーカー挿入・アイテム0件時のプレースホルダ温存判断・転記後の残存プレースホルダ一括マーカー化という複数分岐を機械的に反復する定型作業であり、目視での転記は転記漏れ・裸のプレースホルダ残存という本スキル分離の動機そのものの事故を誘発する。facts.yml の固定インデント解析（2パス構成のawkステートマシン）・9分類×転記先アンカーの対応表・終端self-verify（プレースホルダ残存検査＋facts全キー突合）という複数の決定的分岐を持ち、Bash直叩きでは再現性が失われる。
+**必要性**: facts.yml（12分類）を各章表へ転記するPhase 4の作業は、キー命名規約（`<分類>-<名前>-<補足>`）に基づく名前列の復元・evidence引用の付与・facts側に無い列へのマーカー挿入・アイテム0件時のプレースホルダ温存判断・転記後の残存プレースホルダ一括マーカー化という複数分岐を機械的に反復する定型作業であり、目視での転記は転記漏れ・裸のプレースホルダ残存という本スキル分離の動機そのものの事故を誘発する。facts.yml の固定インデント解析（2パス構成のawkステートマシン）・12分類と転記先アンカーの対応表・終端self-verify（プレースホルダ残存検査＋facts全キー突合）という複数の決定的分岐を持ち、Bash直叩きでは再現性が失われる。
 
 **代替案を採用しなかった理由**:
-- Bash 直叩き: 9分類×転記先の対応・アンカー検索・プレースホルダ一括置換を都度手書きすると転記漏れや裸のプレースホルダ残存を誘発する
+- Bash 直叩き: 12分類と転記先の対応・アンカー検索・プレースホルダ一括置換を都度手書きすると転記漏れや裸のプレースホルダ残存を誘発する
 - 既存 Makefile ターゲット拡張: このリポジトリに Makefile がない
 - package.json scripts 追加: スキル用途でありプロジェクトの package.json に属さない
 
@@ -255,7 +265,7 @@ mode=screen が著述する画面横断章（§1 画面概要・§2 機能一覧
 - 起動引数 chapter_map_path（章役割キー対応表。実体: `shared/references/chapter-map.md`）
 - 起動引数 audit_script_path（内部整合性監査。実体: `shared/scripts/audit-consistency.sh`）
 - 起動引数 template_root（テンプレート原本。実体: `shared/templates/リバース検証`）
-- `shared/references/facts-schema.md` — facts.yml のスキーマ正本（9 分類・必須フィールド・正規化規則）
+- `shared/references/facts-schema.md` — facts.yml のスキーマ定義（12分類・必須フィールド・正規化規則）
 - `shared/scripts/prefill-design-from-facts.sh` — Phase 4 の任意工程（facts.yml からの機械転記。`--self-test` 内蔵）
 - `shared/scripts/check-prefill-markers.sh` — Phase 5 完全性ゲートの追加検査（prefill 使用時のみ。残存マーカー検査。`--self-test` 内蔵）
 - `shared/scripts/check-facts-sufficiency.sh` — Phase 2 充足検査ゲート（facts.yml の12分類充足を機械検査。`--self-test` 内蔵）

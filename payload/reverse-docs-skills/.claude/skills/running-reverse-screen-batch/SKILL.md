@@ -32,7 +32,7 @@ claude CLI のヘッドレスモード（`claude -p`、対話画面を介さず1
 | template_root | 必須 | テンプレートディレクトリパス（shared/templates/リバース検証/画面/） |
 | common_docs_root | 必須 | プロジェクト共通設計書ディレクトリパス |
 | survey_doc_path | 必須 | アーキテクチャ調査書のファイルパス |
-| verification_mode | 任意（既定 `single-pass`） | `docs-only` は facts→基本設計→詳細設計だけを実行して `STATIC_COMPLETE` で終端する。`single-pass` は各画面の意味的な検証を1回だけ実行し、judge FAIL・差し戻し・再現不一致を記録して再試行しない。`iterative` のみ改善後の再実行を許可する |
+| verification_mode | 任意（既定 `single-pass`） | `docs-only` は facts→著述モード判定→標準著述または大規模2パスだけを実行して `STATIC_COMPLETE` で終端する。`single-pass` は各画面の意味的な検証を1回だけ実行し、judge FAIL・差し戻し・再現不一致を記録して再試行しない。`iterative` のみ改善後の再実行を許可する |
 | model | 任意 | claude -p に渡すモデル名。既定: claude-sonnet-5（事実封印・往復検証は分析・判断を伴い Haiku では精度不足のため） |
 | wait_seconds | 任意 | limit検知時の待機秒数。既定: 3600 |
 | fail_limit_k | 任意 | `iterative` 時だけ使う同一画面の連続失敗上限。既定: 3 |
@@ -151,14 +151,15 @@ Bash ツールで残件カウントコマンドを実行する。マーカー未
 ### 前半（1回目 claude -p）: 静的リバース著述
 
 1. **事実封印**: 画面の開通有無にかかわらず、対象ファイルの facts を抽出・封印する（extracting-unit-facts-from-code）
-2. **基本設計著述**: 封印済み facts から画面基本設計書を生成する（generating-reverse-basic-design）
-3. **詳細設計著述**: 封印済み facts から画面詳細設計書を生成する（generating-reverse-detailed-design）。未開通時の実測項目は留保する
-4. **静的完了マーカー**: 詳細設計完了を検収した管理プロセスがレジストリを `status=authored` に更新する
-5. **画面開通**: 著述後に `unlocking-reverse-target-screens(invocation_mode=dynamic-only)` で実レンダリングURLを取得し、設計書 frontmatter の実測項目を補完する。開通失敗でも前4工程の成果物と `authored` を保持する
+2. **著述モード判定**: orchestrating-reverse-docs-flow の契約どおり対象行数・ファイル数から `standard|large-two-pass` を決める
+3. **標準著述**: standard は基本設計（authoring_pass=standard）と詳細設計（authoring_pass=full）を著述する
+4. **大規模2パス著述**: large-two-pass は詳細設計（detail-only）の `DETAIL_AUTHORED` を先に検収し、その後のパス2で基本設計（large-pass2）と観点表・テスト仕様書（companion-docs）を著述する
+5. **静的完了マーカー**: 著述モードごとの全完了statusを検収した管理プロセスがレジストリを `status=authored` に更新する
+6. **画面開通**: 著述後に `unlocking-reverse-target-screens(invocation_mode=dynamic-only)` で実レンダリングURLを取得し、設計書 frontmatter の実測項目を補完する。開通失敗でも静的成果物と `authored` を保持する
 
 静的著述完了時、管理プロセスは画面レジストリの当該エントリを作成または更新して `status=authored` とする（=中間マーカー付与）。開通成功後は opener が `unlocked` に進める。未開通でも `authored` と静的成果物を保持し、「動的検証保留」を別途記録する。
 
-`docs-only` では手順5を実行せず、`status=authored` を確認して `STATIC_COMPLETE` を返して終了する。unlocking/dynamic-only、ファイル単位検証、基準確立、implement、sync dry-run、judge、teardown を一切起動しない。
+`docs-only` では手順6を実行せず、`status=authored` を確認して `STATIC_COMPLETE` を返して終了する。unlocking/dynamic-only、ファイル単位検証、基準確立、implement、sync dry-run、judge、teardown を一切起動しない。
 
 ### 後半（2回目 claude -p）: ファイル単位盲検検証・往復検証
 
@@ -209,5 +210,5 @@ Bash ツールで残件カウントコマンドを実行する。マーカー未
 元スキル（running-headless-batch）から本スキルへの主な変更点:
 - AskUserQuestion を全面撤廃し args 全量指定の対話ゼロ契約に変更
 - per-item の対象を汎用ファイルから「画面」に特化
-- per-item prompt を orchestrating-reverse-docs-flow の画面処理パイプライン（前半: 事実→基本設計→詳細設計→必要時のみ開通／後半: ファイル単位盲検検証→基準確立→往復検証）に特化。前半・後半を別 claude -p 呼び出しに分離し盲検分離を満たす
+- per-item prompt を orchestrating-reverse-docs-flow の画面処理パイプライン（前半: 事実→著述モード判定→標準著述または大規模2パス→必要時のみ開通／後半: ファイル単位盲検検証→基準確立→往復検証）に特化。前半・後半を別 claude -p 呼び出しに分離し盲検分離を満たす
 - sandbox 無効化を args ではなく常時有効として設計（claude -p の API 到達に必須のため）

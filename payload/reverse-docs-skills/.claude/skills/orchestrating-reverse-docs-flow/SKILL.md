@@ -213,7 +213,7 @@ bash shared/scripts/build-portal.sh \
 
 ### Phase 4C: 画面バッチ実行（共通採録完了後・画面数4件以上）
 
-Phase 4（共通採録）完了後、対象画面が4件以上の場合に running-reverse-screen-batch スキルを起動する。`docs-only` はバッチ前半の facts→基本設計→詳細設計だけを実行して静的完了し、`single-pass|iterative` は動的検証まで進む。3件以下は Phase 6 で逐次処理する。headless=true で3件以下の場合、`docs-only` は動的検証・盲検分離・内部 Agent 委任を要しない静的逐次経路として完遂できるが、`single-pass|iterative` は通常セッションで実行する。
+Phase 4（共通採録）完了後、対象画面が4件以上の場合に running-reverse-screen-batch スキルを起動する。`docs-only` はバッチ前半の facts→著述モード判定→標準著述または大規模2パスだけを実行して静的完了し、`single-pass|iterative` は動的検証まで進む。3件以下は Phase 6 で逐次処理する。headless=true で3件以下の場合、`docs-only` は動的検証・盲検分離・内部 Agent 委任を要しない静的逐次経路として完遂できるが、`single-pass|iterative` は通常セッションで実行する。
 
 #### Step 4C-1: 画面バッチスキルを起動する
 
@@ -231,7 +231,7 @@ Skill ツールで running-reverse-screen-batch を以下の引数で起動す�
 
 ### Phase 1: 状態判定
 
-preflight では上表の15状態を、表と同じ順序で必ず確認する。
+preflight では上表の15状態を確認する。事実封印後、状態9より前に著述モードを確定する。large-two-passでは状態10のdetail-onlyを先に評価し、有効なパス1証跡を得てから状態9とcompanion-docsを評価する。
 
 1. アーキ未調査
 2. 一覧未生成
@@ -241,8 +241,8 @@ preflight では上表の15状態を、表と同じ順序で必ず確認する�
 6. 状態遷移図未生成（任意）
 7. シーケンス図未生成（任意）
 8. 事実未封印
-9. 基本設計未著述
-10. 設計書未著述
+9. 基本設計未著述（large-two-passはパス1証跡取得後）
+10. 設計書未著述（large-two-passはdetail-onlyを先行し、その後companion-docs）
 11. 画面未開通
 12. ファイル単位未検証
 13. 基準未確立
@@ -300,15 +300,22 @@ Bash で `<verification_dir>/progress.jsonl` に phase="Phase 6" status="started
 
 **(b) 事実未封印の場合**: 画面の開通有無にかかわらず、Skill で ⑥extracting-unit-facts-from-code を target_repo_path・target_file_paths・screen_dir・profile=screen・survey_doc_path・run_id で起動する。返却 status=封印済み を受けたら facts_ref を記録して (b-2) へ進む。status=中断 の場合は hint を確認しユーザーに報告する。
 
-**(b-2)(c) 基本設計・詳細設計の並列著述**: 事実封印完了（facts_ref 確定）後、画面の開通有無にかかわらず、管理者が並列起動前にスキャフォールディングを1回だけ実施する（`bash <scaffold_script_path> <output_dir> <画面ID> [<画面名>]` を画面ディレクトリ未存在時のみ実行。既存の場合は `--verify` のみで健全性確認する）。両スキルが個別にスキャフォールディングを実行すると並列実行時に競合するため、この1回化は管理者の責務とする。スキャフォールディング完了後、Agent ツールで以下の 2 スキルを同時に起動する（run_in_background: true、Phase 1B の並列パターンに準拠）:
+**(b-2)(c) 著述モード判定と著述**: 事実封印完了（facts_ref 確定）後、画面の開通有無にかかわらず、管理者がスキャフォールディングを1回だけ実施する（`bash <scaffold_script_path> <output_dir> <画面ID> [<画面名>]` を画面ディレクトリ未存在時のみ実行。既存の場合は `--verify` のみで健全性確認する）。その後、`target_file_paths` の合計行数とファイル数を実測し、合計1,500行超または4ファイル超なら `authoring_mode=large-two-pass`、それ以外は `authoring_mode=standard` とする。呼び出し元が詳細設計書1,000行超の見込みを根拠付きで指定した場合も `large-two-pass` を選ぶ。
 
-- generating-reverse-basic-design（args: screen_dir・output_dir・template_root・scaffold_script_path・facts_ref・common_docs_root・unit_kind）→ 期待 status=基本設計著述完了
-- generating-reverse-detailed-design（args: screen_dir・output_dir・template_root・chapter_map_path・audit_script_path・scaffold_script_path・facts_ref・common_docs_root・mode・target_file_path・verification_url）→ 期待 status=AUTHORED。画面ディレクトリのスキャフォールディングは管理者が事前実施済みのため、本スキルは `--verify` のみを実行する
+`authoring_mode=standard` では、Agent ツールで次の2スキルを同時に起動する（run_in_background: true、Phase 1B の並列パターンに準拠）。
 
-headless=true 時は基本設計→詳細設計を Skill ツールで逐次起動する（Agent の並列起動が 600 秒で切断されるため）。対話モードでは従来どおり Agent(run_in_background: true) で並列起動する。
+- generating-reverse-basic-design（args: screen_dir・output_dir・template_root・scaffold_script_path・facts_ref・common_docs_root・unit_kind・authoring_pass=standard）→ 期待 status=基本設計著述完了
+- generating-reverse-detailed-design（args: screen_dir・output_dir・template_root・chapter_map_path・audit_script_path・scaffold_script_path・facts_ref・common_docs_root・mode・target_file_path・verification_url・authoring_pass=full）→ 期待 status=AUTHORED
+
+`authoring_mode=large-two-pass` では、次の2パスを必ず直列に実行する。
+
+1. **パス1（詳細設計）**: generating-reverse-detailed-design を `authoring_pass=detail-only` で起動し、画面詳細設計書の著述と完全性ゲートを完了させる。期待 status は `DETAIL_AUTHORED`
+2. **パス2（周辺文書）**: パス1の `DETAIL_AUTHORED`、`detail_design_path`、`pass1_receipt_path` を検収した後、generating-reverse-basic-design（`authoring_pass=large-pass2`）と generating-reverse-detailed-design（`authoring_pass=companion-docs`）へ3値を渡して別委任する。前者は基本設計書、後者は観点表・テスト仕様書を著述する。期待statusは `基本設計著述完了` と `COMPANION_AUTHORED`
+
+大規模ユニットでは「基本設計未著述」の状態をパス1完了まで保留し、「設計書未著述」を先に解消する。パス1未完了のまま基本設計・観点表・テスト仕様書を著述してはならない。headless=true 時もパス境界は維持し、パス2内だけ基本設計→周辺文書の順で逐次起動する（Agent の並列起動が600秒で切断されるため）。
 
 前提条件: facts_ref 確定済み（(b) で取得）・common_docs_root 確定済み（Phase 4 で取得）・画面ディレクトリのスキャフォールディング完了済み（管理者が並列起動前に実施）
-合流条件: 両方が完了ステータスを返した後に、まず下記「静的完了ゲート」を評価する
+合流条件: standard は基本設計著述完了と AUTHORED、large-two-pass は DETAIL_AUTHORED・基本設計著述完了・COMPANION_AUTHOREDをすべて受領した後に、下記「静的完了ゲート」を評価する
 片方失敗時: 失敗側のみ再起動する（成功側の待機は不要）。基本設計著述失敗 / BLOCKED の場合は hint を確認しユーザーに報告する
 
 **静的完了ゲート**: facts・基本設計・詳細設計が完成したら、管理者が両著述スキルの完了 status を検収し、画面レジストリの当該エントリを作成または更新して `status=authored` とする。その後にURLの有無にかかわらず `verification_mode` を評価する。`docs-only` は「静的リバース完了」として直ちに終端し、(a)・Phase 5・(d)・Phase 7〜11をすべてスキップする。`single-pass|iterative` だけ (a) へ進む。
@@ -446,8 +453,8 @@ feature（機能一覧）は派生一覧であり、実在判定（unit_kinds_pr
 | Phase 5 | syncing-reverse-env | design-doc, mode=setup | PASS（env_block抽出） |
 | Phase 6（静的著述後の画面未開通時） | unlocking-reverse-target-screens | invocation_mode=dynamic-only, system, screen_id, reverse_worktree, ports, output_dir, user-approved | UNLOCKED |
 | Phase 6（事実未封印時） | extracting-unit-facts-from-code | target_repo_path, target_file_paths, screen_dir, profile=screen, survey_doc_path, run_id | 封印済み |
-| Phase 6（基本設計未著述時） | generating-reverse-basic-design | screen_dir, output_dir, template_root, scaffold_script_path, facts_ref, common_docs_root, unit_kind | 基本設計著述完了 |
-| Phase 6（設計書未著述時） | generating-reverse-detailed-design | screen_dir, output_dir, template_root, chapter_map_path, audit_script_path, scaffold_script_path, facts_ref, common_docs_root, mode, target_file_path, verification_url | AUTHORED |
+| Phase 6（基本設計未著述時） | generating-reverse-basic-design | screen_dir, output_dir, template_root, scaffold_script_path, facts_ref, common_docs_root, unit_kind, authoring_pass, detail_design_path・pass1_receipt_path（large-pass2時） | 基本設計著述完了 |
+| Phase 6（設計書未著述時） | generating-reverse-detailed-design | screen_dir, output_dir, template_root, chapter_map_path, audit_script_path, scaffold_script_path, facts_ref, common_docs_root, mode, target_file_path, verification_url, verification_dir, authoring_pass, detail_design_path・pass1_receipt_path（companion-docs時） | AUTHORED / DETAIL_AUTHORED / COMPANION_AUTHORED |
 | Phase 6（ファイル単位未検証時） | rebuilding-screen-unit-from-docs | screen_dir, target_file_path, 資産paths, env_block, user-approved, verification_mode | 再現一致 / 再現不一致 / 差し戻し |
 | Phase 7 | syncing-reverse-env | design-doc, mode=sync | PASS |
 | Phase 8 | rebuilding-code-from-docs | mode=implement, scope, reverse_worktree, ports, 資産paths, user-approved | NEED-COMPARE |
@@ -457,7 +464,7 @@ feature（機能一覧）は派生一覧であり、実在判定（unit_kinds_pr
 
 Agent（サブエージェント）は preflight の並行事実確認等に限定して用いる。実検証は子スキルへ委ねる。
 
-**並列起動**: Phase 6 の (b-2) generating-reverse-basic-design と (c) generating-reverse-detailed-design は Agent(run_in_background: true) で同時起動する。両スキルは互いの成果物を参照しない（『予想を裏切る挙動』節で明文化済み）。合流後に (d) へ進む。Phase 1B の 6 一覧並列と同じパターン。
+**並列起動**: `authoring_mode=standard` は generating-reverse-basic-design と generating-reverse-detailed-design を同時起動する。`authoring_mode=large-two-pass` は詳細設計のパス1を単独で完了させた後、パス2の基本設計と周辺文書を同時起動する。パス境界をまたぐ並列化は禁止する。
 
 ## タスク一覧フォーマット
 
@@ -533,7 +540,7 @@ Phase 1 の状態判定完了後に一括登録するタスク一覧の設計。
 - ⑨は mode で2分割される（implement=比較要求を返して停止 / judge=比較結果を受け取り判定）。管理者がこの2回を別々に起動し、間に⑧sync dry-run を挟む
 - scaffold_script_path は管理者がリポジトリ展開先の `shared/scripts/scaffold-screen.sh`（正本はこの1本のみ）を解決して generating-reverse-detailed-design / rebuilding-screen-unit-from-docs に渡す（audit_script_path と同型）
 - 静的著述後の画面未開通では `unlocking-reverse-target-screens(invocation_mode=dynamic-only)` を起動し、開通・レジストリ記帳・設計書 frontmatter の実測項目補完まで行う。基準確立は後続の Phase 5/7 が担う。単独起動の `standalone` だけは従来どおり基準タグ確立まで完走する
-- 事実未封印〜ファイル単位未検証の間は、extracting-unit-facts-from-code（原本を読む唯一の役）→ generating-reverse-basic-design（基本設計未著述・著述。原本を読まず facts のみを読む）／ generating-reverse-detailed-design（設計書未著述・著述。原本を読まず facts のみを読む）→ rebuilding-screen-unit-from-docs（ファイル単位未検証・盲検検証。facts も原本も読まない）の順で情報アクセス規律が段階的に狭まる。基本設計と詳細設計は互いに独立した成果物であり、一方が他方を参照しない。`verification_mode=iterative` で rebuilding が status=差し戻し を返した場合だけ detailed-design の著述へ戻る
+- 事実未封印〜ファイル単位未検証の間は、extracting-unit-facts-from-code（原本を読む唯一の役）→著述モード別の basic/detailed design（原本を読まず facts を読む）→ rebuilding-screen-unit-from-docs（factsも原本も読まない）の順で情報アクセスを絞る。基本設計は詳細設計を内容の出典にはしない。大規模ユニットではパス1の詳細設計を開始証跡としてパス2へ渡す。`verification_mode=iterative` で rebuilding が status=差し戻し を返した場合だけ detailed-design の著述へ戻る
 - judge FAIL 時の自動改善は `verification_mode=iterative` の場合だけ有効。NG帰着(c)共通文書欠落は管理者が generating-reverse-common-docs を mode=append で再起動できるが、(a)執筆規律不足・(b)facts欠落 はスキル資産（reference・プロファイル）の改訂を要するため、管理者は自動配線せずユーザーに報告する（`references/contract.md` の「NG帰着3系統の配線」）
 - 2026-07-22 実測: 無人セッション内のサブエージェント経由で Phase 6 を実行し、ファイル検証工程のネスト委任不可で画面が failed 終端した
 

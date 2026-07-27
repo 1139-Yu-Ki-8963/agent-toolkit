@@ -125,7 +125,7 @@
 
   <table class="meta-table">
     <tr><td>対応 OS</td><td>Windows WSL2 環境（統括対象の子スキル群と同一環境）</td></tr>
-    <tr><td>検証状況</td><td>2026-07-27: 未開通4シナリオの契約整合、静的リバース先行、検証モード分岐を確認済み</td></tr>
+    <tr><td>検証状況</td><td>2026-07-27: 未開通4シナリオに加え、大規模ユニットの詳細設計→基本設計・観点表・テスト仕様書という2パス契約を確認済み</td></tr>
     <tr><td>依存</td><td>ツール: Read, Bash, Grep, Glob, AskUserQuestion, TaskCreate, TaskUpdate, Skill, Agent ／ 子スキル: surveying-architecture-for-reverse-docs, 種別別一覧生成スキル6種（generating-screen-list-for-reverse-docs / generating-api-list-for-reverse-docs / generating-table-list-for-reverse-docs / generating-batch-list-for-reverse-docs / generating-report-list-for-reverse-docs / generating-external-list-for-reverse-docs）, generating-reverse-common-docs, syncing-reverse-env, unlocking-reverse-target-screens, extracting-unit-facts-from-code, generating-reverse-detailed-design, rebuilding-screen-unit-from-docs, rebuilding-code-from-docs</td></tr>
     <tr><td>関連資料</td><td><code>SKILL.md</code>、<code>references/contract.md</code>（返却ブロック契約・args仕様・状態判定表の正本）、<code>references/chapter-map.md</code>、<code>assets/リバース検証/</code>、<code>scripts/audit-consistency.sh</code></td></tr>
   </table>
@@ -327,7 +327,7 @@
       <tr><td>Phase 1D</td><td>マトリクス・対応表生成（派生補完）</td><td>機能一覧確立後</td></tr>
       <tr><td>Phase 4</td><td>プロジェクト共通10文書の採録</td><td>共通未採録時のみ</td></tr>
       <tr><td>Phase 5</td><td>動的検証用の環境ブロックを setup で取得する</td><td><code>single-pass</code> / <code>iterative</code> のみ。Phase 6 の静的リバース完了後かつ画面開通後（番号より依存順を優先）</td></tr>
-      <tr><td>Phase 6</td><td>facts封印、基本設計・詳細設計、画面開通、任意のファイル単位検証を行う。facts→基本設計/詳細設計は未開通でも完了させる</td><td>画面単位。<code>docs-only</code> は静的リバース完了でここを終端とし、動的検証時のみ開通・ファイル単位検証へ進む</td></tr>
+      <tr><td>Phase 6</td><td>facts封印、基本設計・詳細設計、画面開通、任意のファイル単位検証を行う。大規模ユニットは詳細設計をパス1で完成させ、基本設計・観点表・テスト仕様書をパス2で作る</td><td>画面単位。<code>docs-only</code> は静的リバース完了でここを終端とし、動的検証時のみ開通・ファイル単位検証へ進む</td></tr>
       <tr><td>Phase 7</td><td>sync による基準確立</td><td>基準未確立時のみ。<code>docs-only</code> はスキップ</td></tr>
       <tr><td>Phase 8</td><td>implement。比較要求を取得する</td><td>往復未検証時のみ。<code>docs-only</code> はスキップ</td></tr>
       <tr><td>Phase 9</td><td>sync dry-run による比較</td><td>Phase 8 の後。<code>docs-only</code> はスキップ</td></tr>
@@ -369,8 +369,8 @@
       <tr><td>Phase 5</td><td>syncing-reverse-env</td><td>design-doc, mode=setup</td><td><span class="tag pass">PASS</span>（env_block抽出）</td></tr>
       <tr><td>Phase 6（静的著述後の画面未開通時）</td><td>unlocking-reverse-target-screens</td><td>invocation_mode=dynamic-only, system, screen_id, reverse_worktree, ports, output_dir, user-approved</td><td><span class="tag pass">UNLOCKED</span></td></tr>
       <tr><td>Phase 6（事実未封印時）</td><td>extracting-unit-facts-from-code</td><td>target_repo_path, target_file_paths, screen_dir, profile=screen, survey_doc_path, run_id</td><td><span class="tag pass">封印済み</span></td></tr>
-      <tr><td>Phase 6（基本設計未著述時）</td><td>generating-reverse-basic-design</td><td>screen_dir, output_dir, template_root, scaffold_script_path, facts_ref, common_docs_root, unit_kind</td><td><span class="tag pass">基本設計著述完了</span></td></tr>
-      <tr><td>Phase 6（設計書未著述時）</td><td>generating-reverse-detailed-design</td><td>screen_dir, output_dir, template_root, chapter_map_path, audit_script_path, scaffold_script_path, facts_ref, common_docs_root, mode, target_file_path, verification_url</td><td><span class="tag pass">AUTHORED</span></td></tr>
+      <tr><td>Phase 6（基本設計未著述時）</td><td>generating-reverse-basic-design</td><td>screen_dir, output_dir, template_root, scaffold_script_path, facts_ref, common_docs_root, unit_kind, authoring_pass, detail_design_path・pass1_receipt_path（大規模パス2時）</td><td><span class="tag pass">基本設計著述完了</span></td></tr>
+      <tr><td>Phase 6（設計書未著述時）</td><td>generating-reverse-detailed-design</td><td>screen_dir, output_dir, template_root, chapter_map_path, audit_script_path, scaffold_script_path, facts_ref, common_docs_root, mode, target_file_path, verification_url, verification_dir, authoring_pass, detail_design_path・pass1_receipt_path（companion-docs時）</td><td><span class="tag pass">AUTHORED / DETAIL_AUTHORED / COMPANION_AUTHORED</span></td></tr>
       <tr><td>Phase 6（ファイル単位未検証時）</td><td>rebuilding-screen-unit-from-docs</td><td>screen_dir, target_file_path, 資産paths, env_block, user-approved</td><td><span class="tag pass">再現一致</span></td></tr>
       <tr><td>Phase 7</td><td>syncing-reverse-env</td><td>design-doc, mode=sync</td><td><span class="tag pass">PASS</span></td></tr>
       <tr><td>Phase 8</td><td>rebuilding-code-from-docs</td><td>mode=implement, scope, reverse_worktree, ports, 資産paths, user-approved</td><td><span class="tag mode">NEED-COMPARE</span></td></tr>

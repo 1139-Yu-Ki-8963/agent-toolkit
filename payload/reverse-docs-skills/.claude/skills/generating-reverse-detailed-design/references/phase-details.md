@@ -1,11 +1,11 @@
 # generating-reverse-detailed-design 工程詳細
 
-SKILL.md の Phase 2（封印検証と facts 読込）〜Phase 5（完全性ゲート）の詳細手順を集約する。9 分類の定義（キーの付け方・抽出粒度）は `shared/references/facts-schema.md` を正本とする（本ファイルでは重複定義しない）。転記先の判定規律・字面転記と要約の境界・実測委譲の書式は `references/writing-rules.md` を正本とする（同上）。
+SKILL.md の Phase 2（封印検証と facts 読込）〜Phase 5（完全性ゲート）の詳細手順を集約する。12分類の定義（キーの付け方・抽出粒度）は `shared/references/facts-schema.md` を定義元とする（本ファイルでは重複定義しない）。転記先の判定規律・字面転記と要約の境界・実測委譲の書式は `references/writing-rules.md` を定義元とする（同上）。
 
 ## Phase 2 詳細: 封印検証と facts 読込
 
 1. `shared/scripts/seal-facts.sh verify <facts_ref>` を実行する。exit 0 なら Phase を継続する。exit 1（facts.yml が封印時から改変されている）なら著述を行わず `status=BLOCKED` とし、hint に「extracting-unit-facts-from-code で再封印せよ」と記す（このゲートはループ対象外の終端条件であり、Phase 4 への差し戻しは発生しない）。
-2. `<facts_ref>/facts.yml` を読み込む。9 分類（`sections` 配下のキー: import・export_type・const・state・handler・jsx・style・api・measurement_pending）の定義・キー付け規則は `shared/references/facts-schema.md` を参照する。
+2. `<facts_ref>/facts.yml` を読み込む。12分類（`sections` 配下のキー: import・export_type・const・state・handler・jsx・style・api・measurement_pending・local_type・effect_trigger・error_handling）の定義・キー付け規則は `shared/references/facts-schema.md` を参照する。
 3. `common_docs_root` 配下のプロジェクト共通文書を読み込む（DESIGN.md 等の既存共通トークン・章マップとの整合確認に使う）。
 4. `bash shared/scripts/check-facts-sufficiency.sh <facts_ref>/facts.yml` を実行し exit 0 を確認する（著述前の充足検査）。12分類キーの存在・items空時のreason記載・value充足・evidence形式・孤児参照の5検査を行う。exit 0 でなければ著述に入らず `status=BLOCKED` としてfacts抽出工程へ差し戻す。差し戻し理由には検査出力のchapter-impact行を添える。
 5. 対象リポジトリの原本コードは一切 Read しない。facts.yml に事実の欠落・矛盾を発見した場合も自ら原本で確認せず、extracting-unit-facts-from-code への差し戻し事由として hint に記録する。

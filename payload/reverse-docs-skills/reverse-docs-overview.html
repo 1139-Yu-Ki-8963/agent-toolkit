@@ -336,7 +336,8 @@
         <span class="stepname">ユニット処理（画面 1 つごと）</span>
         <ul class="substeps">
           <li>facts 抽出 <span class="stepskill">extracting-unit-facts-from-code</span></li>
-          <li>基本設計 ‖ 詳細設計（並列・未開通でも実行） <span class="stepskill">generating-reverse-basic-design ‖ generating-reverse-detailed-design</span></li>
+          <li>標準: 基本設計 ‖ 詳細設計（並列・未開通でも実行） <span class="stepskill">generating-reverse-basic-design ‖ generating-reverse-detailed-design</span></li>
+          <li>大規模: 詳細設計（1回目）→ 基本設計 ‖ 観点表・テスト仕様書（2回目） <span class="stepskill">generating-reverse-detailed-design → generating-reverse-basic-design ‖ generating-reverse-detailed-design</span></li>
           <li>動的検証時のみ開通 <span class="stepskill">unlocking-reverse-target-screens</span></li>
           <li>ファイル単位検証 <span class="stepskill">rebuilding-screen-unit-from-docs</span></li>
         </ul>

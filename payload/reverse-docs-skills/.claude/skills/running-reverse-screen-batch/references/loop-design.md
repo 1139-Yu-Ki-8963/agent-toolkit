@@ -289,9 +289,11 @@ grep -qiE 'usage limit|rate limit|session limit|limit reached|limit will reset|Y
 契約（必ず守ること）:
 1. 対象画面の著述パイプラインを以下の順に全て実行する:
    - Skill(extracting-unit-facts-from-code) で事実封印
-   - Skill(generating-reverse-basic-design) で基本設計著述
-   - Skill(generating-reverse-detailed-design) で詳細設計著述
-2. 詳細設計の AUTHORED を検収したら、管理プロセスとして画面レジストリの当該エントリを作成または更新し `status=authored` にする
+   - 対象ファイルの合計行数・ファイル数を実測し、orchestrating-reverse-docs-flow の契約どおり authoring_mode を判定する
+   - standard: Skill(generating-reverse-basic-design, authoring_pass=standard) と Skill(generating-reverse-detailed-design, authoring_pass=full) を順次実行する
+   - large-two-pass パス1: Skill(generating-reverse-detailed-design, authoring_pass=detail-only) を実行して DETAIL_AUTHORED・detail_design_path・pass1_receipt_path を検収する
+   - large-two-pass パス2: 固定証跡の検収後に detail_design_path・pass1_receipt_path を渡し、Skill(generating-reverse-basic-design, authoring_pass=large-pass2) と Skill(generating-reverse-detailed-design, authoring_pass=companion-docs) を順次実行する
+2. standard は基本設計著述完了+AUTHORED、large-two-pass はDETAIL_AUTHORED+基本設計著述完了+COMPANION_AUTHOREDを検収したら、管理プロセスとして画面レジストリの当該エントリを作成または更新し `status=authored` にする
 3. `docs-only` の場合はここで `STATIC_COMPLETE` を返して終了する。unlocking/dynamic-only、ファイル単位検証、基準確立、implement、sync dry-run、judge、teardown を一切起動しない
 4. `single-pass` / `iterative` の場合だけ Skill(unlocking-reverse-target-screens) を `invocation_mode=dynamic-only` で起動し、動的検証に使う画面を開通して設計書 frontmatter の実測項目を補完する
 5. 画面レジストリで当該画面の status が既に authored、unlocked、baseline-established のいずれかなら、完了済み工程を再実行しない

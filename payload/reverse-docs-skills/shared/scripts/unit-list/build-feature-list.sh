@@ -237,8 +237,37 @@ EOF
     regression_ok=0
   fi
 
+  # 4種類の末尾マーカーを除去し、語頭・語中のOKは保持する。
+  local marker_manifest="$tmp/manifest-marker-forms.json" marker_out="$tmp/out-marker-forms.html"
+  jq '
+    .detectionSummary = {unitCount: 6, unresolvedCount: 0}
+    | .units = [
+        ["marker-space", "末尾空白 OK"],
+        ["marker-paren", "半角括弧(OK)"],
+        ["marker-id", "識別子付き(OK) FTR-001"],
+        ["marker-wide", "全角括弧（補足）OK"],
+        ["marker-leading", "OK処理"],
+        ["marker-middle", "決済OK着地"]
+      ]
+      | .units |= map({
+          unitKey: .[0], unitId: null, unitNameGuess: .[1], kind: "feature",
+          category: "マーカー検証", identifier: .[0], sourceFile: $sourceFile,
+          summary: "表示名検証", relatedScreens: [], relatedApis: [], relatedTables: [],
+          confidence: "high", fileCount: 1, detectionMethod: "manual"
+        })
+  ' --arg sourceFile "$tmp/src/features/user-list.ts" "$manifest_normal" > "$marker_manifest"
+  if ! bash "$script_path" "$marker_manifest" "$marker_out" >/dev/null 2>&1 \
+    || ! grep -q '<td>末尾空白</td>' "$marker_out" \
+    || ! grep -q '<td>半角括弧</td>' "$marker_out" \
+    || ! grep -q '<td>識別子付き</td>' "$marker_out" \
+    || ! grep -q '<td>全角括弧（補足）</td>' "$marker_out" \
+    || ! grep -q '<td>OK処理</td>' "$marker_out" \
+    || ! grep -q '<td>決済OK着地</td>' "$marker_out"; then
+    regression_ok=0
+  fi
+
   if [ "$regression_ok" -eq 1 ]; then
-    echo "  [PASS] 回帰確認: 大分類summary文字列・関連画面セル値が出力されvalidate-manifest.sh --unit-kind featureもPASS"
+    echo "  [PASS] 回帰確認: 末尾4形式を除去し語頭・語中OKを保持、feature検証もPASS"
   else
     echo "  [FAIL] 回帰確認: 可視テーブル内容またはvalidate-manifest.shのPASSに退行が発生した" >&2
     rc=1
@@ -311,6 +340,15 @@ html_escape() {
   printf '%s' "$1" | sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g' -e 's/"/\&quot;/g' -e "s/'/\&#39;/g"
 }
 
+strip_ok_marker() {
+  printf '%s' "$1" | sed -E '
+    s/[[:space:]]*\(OK\)[[:space:]]+[[:alnum:]_.-]+[[:space:]]*$//
+    s/(）)OK[[:space:]]*$/\1/
+    s/[[:space:]]+OK[[:space:]]*$//
+    s/[[:space:]]*\(OK\)[[:space:]]*$//
+  ' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//'
+}
+
 # render_template — 共通関数を source（shared/scripts/render-template.sh）
 source "$(cd "$(dirname "$0")/.." && pwd)/render-template.sh"
 
@@ -334,6 +372,7 @@ row_html() {
   unit_id="$(jq -r '.unitId // empty' <<<"$row")"
   unit_key="$(jq -r '.unitKey // ""' <<<"$row")"
   unit_name="$(jq -r '.unitNameGuess // ""' <<<"$row")"
+  unit_name="$(strip_ok_marker "$unit_name")"
   summary="$(jq -r '.summary // ""' <<<"$row")"
   kind="$(jq -r '.kind // ""' <<<"$row")"
 

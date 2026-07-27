@@ -1,6 +1,6 @@
 # facts.yml スキーマ正本
 
-`extracting-unit-facts-from-code` が出力する `facts.yml` の構造・必須フィールド・正規化規則を定める正本。9 分類の定義は `generating-reverse-detailed-design` の `references/phase-details.md`（宣言的契約事実表 `fact-table.md` の9分類定義）から移設したものであり、authoring 側の `fact-table.md`（Markdown 2列表）とは別形式（YAML・evidence列付き）の独立した成果物である。
+`extracting-unit-facts-from-code` が出力する `facts.yml` の構造・必須フィールド・正規化規則を定める正本。12分類の定義は `generating-reverse-detailed-design` の `references/phase-details.md` から移設・拡張したものであり、authoring 側の `fact-table.md`（Markdown 2列表）とは別形式（YAML・evidence列付き）の独立した成果物である。
 
 ## 全体構造
 
@@ -76,7 +76,7 @@ sections:
 | ② | export_type | export・型 | export 名、interface/type の全フィールド（フィールド名・型・省略可否）。型宣言を伴わない export は事実欄に「型定義なし・リテラル推論型」と明記する。enum はメンバごとにキーを分解する | `export-ReportTable`・`type-ReportRow-id` |
 | ③ | const | 定数 | 定数名と値（リテラル・enum・as const）。オブジェクト/enum 型はフィールドごとにキーを分解する（最上位1階層のみ。フィールド値自体がオブジェクト/配列でも内部までは再帰的に分解しない）。フィールドのevidenceは当該フィールド行のfile:line | `const-MAX_ROWS-100`（スカラー）・`const-cardStyle-height`（オブジェクトのフィールド分解） |
 | ④ | state | 状態変数 | useState/useReducer/useRef/store 参照の変数名・型・初期値リテラル | `state-rows-empty` |
-| ⑤ | handler | イベントハンドラ | ハンドラ名・発火要素・処理1行要約。関数宣言単位（1宣言=1item）。全ての関数本体を全文literalで含める | `handler-onRowClick-遷移` |
+| ⑤ | handler | イベントハンドラ | ハンドラ名・発火要素・処理1行要約。`handleX` / `onX` 命名、または JSX イベント属性から参照される関数宣言単位（1宣言=1item）。通常ヘルパー・コンポーネント・インラインアローは対象外。対象ハンドラの関数本体を全文literalで含める | `handler-onRowClick-遷移` |
 | ⑥ | jsx | JSX構造 | コンポーネントのネスト構造。全文字列リテラル・全propsの具体値・className・見出しレベル等の具体粒度は references/profile-screen.md の「⑥JSX構造の採録規律」を正本とする。条件分岐（早期return・三項演算子・&&）で複数パスが生成される場合、パスごとのルート要素を独立キーで採録する（jsx-path-<パス識別子>-<ルート要素名>） | `jsx-Table-Row-Cell`（ネスト）・`jsx-path-loading-div`（パス別ルート） |
 | ⑦ | style | スタイル実測値 | styled 定数名と数値・色（実測値。DESIGN.md が正）。inline sx（`sx={{`）も style として計上する | `style-Wrapper-padding-16` |
 | ⑧ | api | API呼出 | BL 名・契機・リクエスト/レスポンス形 | `api-fetchReport-req` |
@@ -102,12 +102,12 @@ useEffect / useLayoutEffect の呼び出し。1呼出=1item。
 
 ### ⑫ error_handling
 
-throw文・catch節・window.alert等のエラー処理。1箇所=1item。
+throw文・catch節・window.alert・throw/setError系のエラー通知呼び出し等のエラー処理。1箇所=1item。コメント・文字列中の疑似コードは対象外。
 
 - **セクションキー**: `error_handling`
 - **key規約**: `error-<文脈>-<種別>`
 - **value**: メッセージliteralと処理内容。メッセージ定数は「定数キー→実文言→生成APIシグネチャ」まで含める。GraphQLエラー参照パス・文字列加工もliteral
-- **recount計数**: throw + catch + window.alert の出現数合算
+- **recount計数**: コメント・文字列を除外した実コード上の throw + catch + window.alert + 名前にThrow/Errorを含む呼び出しの行単位合算。関数宣言は対象外
 
 ### call_order（⑤handlerの任意フィールド）
 
@@ -177,7 +177,7 @@ Phase 2（抽出）完了前に、対象ファイルごとに原本の非空・�
 
 ## 拡張予約（screen 以外のプロファイル追加余地）
 
-本スキー本体は Stage 3 の範囲で `profile: screen` のみを実装する。他プロファイル（API・テーブル・バッチ・帳票・外部連携）を追加する場合は、`sections` の9分類キー構成をプロファイルごとに拡張・差し替えできるよう、`profile` フィールド値ごとに `references/profile-<profile名>.md`（例: `references/profile-api.md`）を追加し、`recount-facts.sh` の分類別パターンを `profile` 値で切り替える設計とする。9分類の枠組み自体（意味キー・key/value/evidence の3フィールド契約・孤児参照定義・normalize規則）はプロファイル非依存で共通利用する。
+本スキル本体は Stage 3 の範囲で `profile: screen` のみを実装する。他プロファイル（API・テーブル・バッチ・帳票・外部連携）を追加する場合は、`sections` の12分類キー構成をプロファイルごとに拡張・差し替えできるよう、`profile` フィールド値ごとに `references/profile-<profile名>.md`（例: `references/profile-api.md`）を追加し、`recount-facts.sh` の分類別パターンを `profile` 値で切り替える設計とする。12分類の枠組み自体（意味キー・key/value/evidence の3フィールド契約・孤児参照定義・normalize規則）はプロファイル非依存で共通利用する。
 
 ## 関連
 
@@ -185,4 +185,4 @@ Phase 2（抽出）完了前に、対象ファイルごとに原本の非空・�
 - `.claude/skills/extracting-unit-facts-from-code/references/profile-screen.md` — screen プロファイルの分類別抽出手順・再計数用決定的パターン
 - `.claude/skills/extracting-unit-facts-from-code/scripts/recount-facts.sh` — 本スキーマに基づく独立再計数ゲート
 - `shared/scripts/seal-facts.sh` — 本スキーマの normalize・封印・検証を担う共有スクリプト
-- `.claude/skills/generating-reverse-detailed-design/references/phase-details.md` — 9分類定義の移設元（fact-table.md 側は本スキーマの対象外。authoring 側の改修は別工程）
+- `.claude/skills/generating-reverse-detailed-design/references/phase-details.md` — 分類定義の移設元（fact-table.md 側は本スキーマの対象外）
