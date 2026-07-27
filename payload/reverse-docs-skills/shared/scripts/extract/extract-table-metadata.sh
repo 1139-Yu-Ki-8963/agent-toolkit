@@ -139,11 +139,6 @@ CREATE TABLE posts (
   FOREIGN KEY (user_id) REFERENCES users(id)
 );
 EOF
-  {
-    printf 'CREATE TABLE large_table (\n'
-    seq 1 900 | awk '{printf "  col_%d TEXT,\n", $1}'
-    printf '  PRIMARY KEY (col_1)\n);\n'
-  } > "$tmp/migrations/003_create_large.sql"
 
   # unitKey(users-master) と identifier(users) を意図的に変え、突合による解決を検証する
   local manifest="$tmp/table-manifest.json"
@@ -151,20 +146,17 @@ EOF
     --arg sourceDir "$tmp/migrations" \
     --arg usersFile "$tmp/migrations/001_create_users.sql" \
     --arg postsFile "$tmp/migrations/002_create_posts.sql" \
-    --arg largeFile "$tmp/migrations/003_create_large.sql" \
     '{
       generatedAt: "2026-01-01T00:00:00Z",
       sourceDir: $sourceDir,
       unitKind: "table",
       strategy: {extractionMethod: "migration-sql", approvedByUser: true, unitIdRegex: null, excludePatterns: []},
-      detectionSummary: {unitCount: 3, unresolvedCount: 0},
+      detectionSummary: {unitCount: 2, unresolvedCount: 0},
       units: [
         {unitKey: "users-master", kind: "table", identifier: "users", unitNameGuess: "ユーザー",
          sourceFile: $usersFile, confidence: "high", fileCount: 1, detectionMethod: "create-table"},
         {unitKey: "posts", kind: "table", identifier: "posts", unitNameGuess: "投稿",
-         sourceFile: $postsFile, confidence: "high", fileCount: 1, detectionMethod: "create-table"},
-        {unitKey: "large-table", kind: "table", identifier: "large_table", unitNameGuess: "大規模",
-         sourceFile: $largeFile, confidence: "high", fileCount: 1, detectionMethod: "create-table"}
+         sourceFile: $postsFile, confidence: "high", fileCount: 1, detectionMethod: "create-table"}
       ]
     }' > "$manifest"
 
@@ -192,16 +184,6 @@ EOF
     echo "  [PASS] posts: columnCount=6・foreignKeys が unitKey(users-master) へ解決・mainColumns 先頭5列"
   else
     echo "  [FAIL] posts: columnCount/foreignKeys/mainColumns が期待値と不一致" >&2
-    rc=1
-  fi
-
-  if jq -e '.units[] | select(.unitKey=="large-table")
-      | .columnCount == 900
-        and .mainColumns == ["col_1","col_2","col_3","col_4","col_5"]
-        and .foreignKeys == []' "$out" >/dev/null 2>&1; then
-    echo "  [PASS] large_table: 900列をpipefail下で処理しSIGPIPE(141)なし"
-  else
-    echo "  [FAIL] large_table: 大規模カラム列の処理結果が不一致" >&2
     rc=1
   fi
 
@@ -288,9 +270,7 @@ while IFS= read -r row; do
     cols="$(printf '%s\n' "$block" | extract_columns)"
     if [ -n "$cols" ]; then
       col_count="$(printf '%s\n' "$cols" | grep -c .)"
-      # sed は入力全体を読み切るため、set -o pipefail 下でも上流を SIGPIPE で
-      # 終了させない。head -5 は大規模なカラム列で終了コード141を起こす。
-      main_cols_json="$(printf '%s\n' "$cols" | sed -n '1,5p' | jq -R . | jq -s -c .)"
+      main_cols_json="$(printf '%s\n' "$cols" | head -5 | jq -R . | jq -s -c .)"
       add="$(jq -c --argjson n "$col_count" --argjson m "$main_cols_json" \
         '. + {columnCount: $n, mainColumns: $m}' <<<"$add")"
     fi

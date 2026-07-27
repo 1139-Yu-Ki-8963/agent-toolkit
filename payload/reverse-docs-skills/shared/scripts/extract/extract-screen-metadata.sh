@@ -142,28 +142,14 @@ EOF
       "kind": "route",
       "route": "/admin/users",
       "entryFile": "screens/admin/UserAdmin.tsx",
-      "confidence": "high",
-      "screenType": "top",
-      "accountGroup": "admin",
-      "accountSubType": "common",
-      "hasTemplate": true,
-      "isProcessingEndpoint": false,
-      "parentScreen": null,
-      "childComponents": []
+      "confidence": "high"
     },
     {
       "screenKey": "home",
       "kind": "route",
       "route": "/home",
       "entryFile": "screens/Home.tsx",
-      "confidence": "high",
-      "screenType": "top",
-      "accountGroup": "user",
-      "accountSubType": "common",
-      "hasTemplate": true,
-      "isProcessingEndpoint": false,
-      "parentScreen": null,
-      "childComponents": []
+      "confidence": "high"
     }
   ]
 }

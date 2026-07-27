@@ -14,10 +14,7 @@
 #   {
 #     unitKind: "message",
 #     generatedAt: string(UTC ISO8601),
-#     sourceDir: string,
-#     strategy: { extractionMethod: "markdown-table", approvedByUser: false },
-#     detectionSummary: { method, unitCount, unresolvedCount },
-#     units: [{ unitKey, kind, identifier, confidence, messageText, messageType, sourceFile, usedScreen }],
+#     units: [{ unitKey, messageText, messageType, sourceFile, usedScreen }],
 #     summary: { totalCount: number, byType: { <messageType>: number, ... } }
 #   }
 #
@@ -52,7 +49,6 @@ if [ ! -f "$input_file" ]; then
 fi
 
 generated_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-source_dir="$(cd "$(dirname "$input_file")" && pwd)"
 
 # パイプテーブル行を抽出し、ヘッダ/セパレータ/プレースホルダ行を除外して
 # キー\t文言\t種別\t抽出元\t使用画面 のTSVに変換する
@@ -94,12 +90,9 @@ tsv="$(awk '
 ' "$input_file")"
 
 if [ -z "$tsv" ]; then
-  jq -n --arg generatedAt "$generated_at" --arg sourceDir "$source_dir" '{
+  jq -n --arg generatedAt "$generated_at" '{
     unitKind: "message",
     generatedAt: $generatedAt,
-    sourceDir: $sourceDir,
-    strategy: {extractionMethod: "markdown-table", approvedByUser: false},
-    detectionSummary: {method: "markdown-table", unitCount: 0, unresolvedCount: 0},
     units: [],
     summary: { totalCount: 0, byType: {} }
   }' > "$output_file"
@@ -109,35 +102,20 @@ fi
 units_json="$(printf '%s\n' "$tsv" | jq -R -s '
   split("\n") | map(select(length > 0)) | map(split("\t")) | map({
     unitKey: .[0],
-    kind: "message",
-    identifier: .[0],
-    confidence: "high",
     messageText: .[1],
     messageType: .[2],
-    sourceFile: (.[3]
-      | gsub("`"; "\n")
-      | gsub("[,\r\n]+"; "\n")
-      | split("\n")
-      | map(gsub("^[[:space:]]+|[[:space:]]+$"; "") | select(length > 0))),
+    sourceFile: .[3],
     usedScreen: .[4]
   })
 ')"
 
 jq -n \
   --arg generatedAt "$generated_at" \
-  --arg sourceDir "$source_dir" \
   --argjson units "$units_json" \
   '
   {
     unitKind: "message",
     generatedAt: $generatedAt,
-    sourceDir: $sourceDir,
-    strategy: {extractionMethod: "markdown-table", approvedByUser: false},
-    detectionSummary: {
-      method: "markdown-table",
-      unitCount: ($units | length),
-      unresolvedCount: ($units | map(select((.sourceFile | length) == 0)) | length)
-    },
     units: $units,
     summary: {
       totalCount: ($units | length),

@@ -1,21 +1,21 @@
 ---
 name: unlocking-reverse-target-screens
-description: "設計書が無い画面をモックAPIで開通させ、リバース基準タグ確立まで単独で完走する。 TRIGGER when: 画面開通、設計書皆無画面の動作確認、設計書着手前の下準備、基準タグ確立まで含む一気通貫実行。 SKIP: 設計書がある画面の往復検証（→rebuilding-code-from-docs）。"
+description: "既存画面をモックAPIで開通する。単独では基準タグ確立まで、統括のdynamic-onlyでは静的設計後の動的検証準備まで行う。 TRIGGER when: リバース対象画面が未開通。 SKIP: 画面が開通済み。"
 invocation: unlocking-reverse-target-screens
 type: orchestration
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Skill, TaskCreate, TaskUpdate]
 ---
 
-# 設計書なし画面の開通スキル
+# リバース対象画面の開通スキル
 
-このスキルは開通からリバース基準タグ確立までを単独で完走する自己完結型スキルである。開通の事実（どのURLなら検証できるか）を知るのは本スキルだけであり、下流の管理者（orchestrating-reverse-docs-flow）はこの事実を能動的に検知できない。そのため本スキルは、画面レジストリへの直接読み書きと `syncing-reverse-env` の直接起動を自ら行う。これは完全仲介方式の例外ではなく、基準タグ確立まで単独完走するという設計要件に基づく意図した正式仕様である（他の子スキルは完全仲介方式に従い、この2点に触れない）。プロジェクト固有の値（パス・コマンド・API名・ポート・画面ID等）は本文に一切書かず、すべて同ディレクトリの `manifest.yml` の `projects.<system>` から取得する。起動経路は二重である。単独起動時はユーザー自身が起点となり、管理者経由時は `orchestrating-reverse-docs-flow` による画面未開通状態の判定が起点となる。これは意図した二重運用であり、単独起動条件・返却ブロック契約への参照は削除すべき旧設計の名残ではない。
+このスキルは2つの起動モードを持つ。既定の `invocation_mode=standalone` は設計書なし画面の開通からリバース基準タグ確立までを単独で完走する。`invocation_mode=dynamic-only` は `orchestrating-reverse-docs-flow` が静的リバース完了後に起動し、実レンダリング確認済みURLの記録と設計書 frontmatter の実測項目補完までを行い、基準確立は後続工程へ返す。開通の事実を知るのは本スキルだけであるため、両モードとも画面レジストリへ直接記録する。プロジェクト固有の値はすべて同ディレクトリの `manifest.yml` の `projects.<system>` から取得する。
 
 ## 使用タイミング
 
-- 対象画面にまだ設計書が無く、既存コードがログインを要求するなどの理由でそのままでは動作確認できないとき
-- 起動引数は system・screen_id・reverse_worktree・ports・output_dir・user-approved の全量（管理者から渡される。単独起動時はユーザーから直接取得してよい。`user-approved` は Phase 5 で `syncing-reverse-env(mode=registry)` へ転送するため必須）
+- 既存コードがログインを要求するなどの理由で対象画面をそのまま動作確認できないとき
+- 起動引数は system・screen_id・reverse_worktree・ports・output_dir・user-approved・invocation_mode の全量（`invocation_mode` の既定は `standalone`）。`dynamic-only` では `user-approved` をレジストリ記録の承認として使い、`syncing-reverse-env` へは転送しない
 - 対象プロジェクトの `manifest.yml` に `projects.<system>` エントリが無い、または未確定キー（`<FILL:...>`）が残っている場合は `assets/manifest-template.yml` を複製してまず埋める（前提ゲートで検出・差し戻し）
-- 設計書が既にある画面はこのスキルの対象外（`rebuilding-screen-unit-from-docs` / `rebuilding-code-from-docs` を使う）
+- 設計書が既にある画面は `standalone` の対象外だが、`dynamic-only` の正規対象
 
 ## 埋め込みビュー画面の開通（ルートを持たない画面）
 
@@ -99,19 +99,21 @@ TaskCreate で本前提ゲートを含む全Phase分のタスクを1つずつ登
 
 ### Phase 5: 基準確立への引き渡し
 
-開通状態をコミットする（コミットメッセージ:「【機能追加】<画面名> をモックAPIで開通」）。開通確認時点のコミットハッシュを `source_ref` とする。このオリジナル参照点となる元リポジトリは `manifest.<system>.repo_and_launch.original_repo_path`（任意キー。無指定なら `work_repo_path` と同一視する）を正本とする。存在確認は前提ゲートの必須キー確認で完了済みのため、Phase 5独自のエラー分岐は設けない。画面を表示確認できたURLを `verification_url` とする（画面が埋め込みビュー画面の場合は「埋め込みビュー画面の開通（ルートを持たない画面）」節に従い親画面URL＋操作手順の組で記録する。ローカル起動できず確認手段が無ければ「未実施」と明記する）。`output_dir` 起点で `<system>-<screen_id>` 相当のパスを組み立てて `design_doc_path`（今後の設計書の想定配置パス）とする。画面レジストリ（`manifest.<system>.handoff.screen_registry_path`。既定は `<output_dir>/一覧/reverse-screen-registry.yml`。output_dir はスキルフォルダ外のため、スキル同期・上書きコピーの影響を受けない。contract.mdの正本と一致させる）へ `source_ref`・`verification_url`・`design_doc_path`・`status=unlocked` を記帳する。
+開通状態をコミットする（コミットメッセージ:「【機能追加】<画面名> をモックAPIで開通」）。開通確認時点のコミットハッシュを `source_ref` とする。このオリジナル参照点となる元リポジトリは `manifest.<system>.repo_and_launch.original_repo_path`（任意キー。無指定なら `work_repo_path` と同一視する）を正本とする。画面を表示確認できたURLを `verification_url` とし、`output_dir` 起点で `<system>-<screen_id>` 相当の `design_doc_path` を組み立てる。この時点では候補値を保持するだけで、画面レジストリの `status` はまだ更新しない。
 
-`syncing-reverse-env` へ渡す `reverse_worktree` は、呼び出し前に命名規則（`reverse-code-<scope>` / `feature/reverse-code-<scope>`）に従い自ら用意する。既存のworktreeがあれば再利用し、新規作成はしない。並列実行時は「並列実行時の運用規約」節で定義する作業コピーとは別物であることに注意する。起動引数 `ports` は前提ゲートで自ら起動したdevサーバー専用の値であり、`syncing-reverse-env` が管理する環境のポートは同スキルの `config.yml` 計算式が常に正となる。両者に食い違いが生じても異常ではなく、完了報告にその旨を記す。`Skill` で `syncing-reverse-env` を `mode=registry`・`system`・`screen_id`・`reverse_worktree`・`ports`・`user-approved` で起動する。
+`dynamic-only` では、実測した `verification_url` から著述済み詳細設計 frontmatter の `scenarios[].query` / `path_params` を補完し、該当する `measurement_pending` を解消する。静的 facts 由来の `path` / `ready` は保持し、実測と矛盾する場合は推測で上書きせず `status=BLOCKED` として差分を返し、レジストリは従前の `authored` のままにする。補完後に scenarios 完全性ゲートを実行し、通過した場合だけ画面レジストリへ `source_ref`・`verification_url`・`design_doc_path`・`status=unlocked` を原子的に記帳して `status=UNLOCKED` を返す。`dynamic-only` はここで終了し、`syncing-reverse-env` と基準タグ確立を行わない。
 
-返却 `status=PASS` なら、画面レジストリの該当エントリを `status=baseline-established` に更新し、`git tag -l "reverse-baseline/<scope>"` 等の決定的コマンド出力でタグ確立を確認する（自然文の自己申告で完了と判定しない）。
+`standalone` では画面レジストリへ候補値と `status=unlocked` を記帳してから、`syncing-reverse-env` へ渡す `reverse_worktree` を、呼び出し前に命名規則（`reverse-code-<scope>` / `feature/reverse-code-<scope>`）に従い自ら用意する。既存のworktreeがあれば再利用し、新規作成はしない。並列実行時は「並列実行時の運用規約」節で定義する作業コピーとは別物であることに注意する。起動引数 `ports` は前提ゲートで自ら起動したdevサーバー専用の値であり、`syncing-reverse-env` が管理する環境のポートは同スキルの `config.yml` 計算式が常に正となる。両者に食い違いが生じても異常ではなく、完了報告にその旨を記す。`Skill` で `syncing-reverse-env` を `mode=registry`・`system`・`screen_id`・`reverse_worktree`・`ports`・`user-approved` で起動する。
+
+`standalone` の返却 `status=PASS` なら、画面レジストリの該当エントリを `status=baseline-established` に更新し、`git tag -l "reverse-baseline/<scope>"` 等の決定的コマンド出力でタグ確立を確認する（自然文の自己申告で完了と判定しない）。
 
 開通完了後、Playwright で対象画面のスクリーンショットを撮影し `<output_dir>/画面/screen-<screen_id>/詳細設計/original.png` として保存する。これは基本設計書・詳細設計書の画面キャプチャとして参照される。撮影には syncing-reverse-env の既存 Playwright 設定（viewport・loading 待機条件）を流用する。
 
-確認できたら `status=BASELINE-ESTABLISHED` で返却する（返却フィールドに `baseline_tag` を追加し、`syncing-reverse-env` の返却値をそのまま転記する）。返却が `PASS` 以外（`FAIL`/`ERROR`/`INCOMPLETE`）の場合は、画面レジストリを `status=unlocked` のまま残し、`status=UNLOCKED`（部分完了）で hint に理由を記して差し戻す。返却が `status=ERROR` かつポートスロット上限（`max_slots`）到達が理由の場合は `status=BLOCKED` とし、hint に「(a) 並行検証の要否再確認」「(b) baseline-established済み環境のteardown可否」「(c) 上限拡張要否のユーザー確認」の3点を記す。
+`standalone` で確認できたら `status=BASELINE-ESTABLISHED` で返却する（返却フィールドに `baseline_tag` を追加し、`syncing-reverse-env` の返却値をそのまま転記する）。返却が `PASS` 以外（`FAIL`/`ERROR`/`INCOMPLETE`）の場合は、画面レジストリを `status=unlocked` のまま残し、`status=UNLOCKED`（部分完了）で hint に理由を記して差し戻す。返却が `status=ERROR` かつポートスロット上限（`max_slots`）到達が理由の場合は `status=BLOCKED` とし、hint に「(a) 並行検証の要否再確認」「(b) baseline-established済み環境のteardown可否」「(c) 上限拡張要否のユーザー確認」の3点を記す。
 
 基準確立が完了した時点で、並行して `status=baseline-established` にある環境数が `syncing-reverse-env` の容量上限（`max_slots` 等）に近づいていないか確認する。近づいている場合は、次の画面の開通に着手する前に、拡張または整理（teardown可能な環境の有無）の要否をユーザーに確認する。この確認は、上限到達により `syncing-reverse-env` が `status=ERROR` を返してから対処する前段落のhint（(a)〜(c)）とは異なり、ERROR発生そのものを未然に防ぐための予防的な位置付けである。ここで拡張・整理を済ませておけば、後続画面の着手時に前段落のhintで同じ判断をやり直す必要はない。
 
-完了条件: レジストリ登録済み、`reverse_worktree` の命名規則準拠を確認済み、かつ（成功時のみ）`git tag -l` 等の決定的出力でタグ確立を確認済み
+完了条件: `dynamic-only` はレジストリ登録・設計書 frontmatter の実測項目補完・scenarios 完全性ゲート通過済みで `status=UNLOCKED` を返す。`standalone` はレジストリ登録・`reverse_worktree` の命名規則準拠を確認済み、かつ成功時は `git tag -l` 等の決定的出力でタグ確立を確認済み
 
 ## 完了条件
 
@@ -122,8 +124,8 @@ TaskCreate で本前提ゲートを含む全Phase分のタスクを1つずつ登
 | Phase 2 | 権限チェック呼び出し有無の事前確認（呼び出さない場合はスキップ判定の根拠を記録）・セッションキー実測結果・識別子フィールド非空確認・権限チェーン構造（単層/二層）の分類キー突合確認・同一分類キーを消費する全系統の横断洗い出しと一括登録・消費先推定の実行時ログ裏取り・各層への登録完了 |
 | Phase 3 | 登録名一覧×実名一覧の突合差分ゼロ（既存共通モックのうち対象画面が依存する分を含む）、サーバー再起動後の反映確認済み |
 | Phase 4 | 収束条件を満たすか、発散/上限到達で status=BLOCKED 確定 |
-| Phase 5 | 画面レジストリ登録済み、`reverse_worktree` の命名規則準拠を確認済み、`git tag -l` 等の決定的出力でタグ確立を確認済み（PASS以外なら status=UNLOCKED で差し戻し。ポートスロット上限到達なら status=BLOCKED で差し戻し） |
-| **Goal** | `status=BASELINE-ESTABLISHED`（開通〜レジストリ登録〜基準タグ確立まで完走、決定的コマンド出力で確認済み）。Phase5でsyncing-reverse-envがPASS以外なら `status=UNLOCKED` で部分完了として差し戻す |
+| Phase 5 | `dynamic-only`: レジストリ登録・frontmatter 実測項目補完・scenarios 完全性ゲート通過済みで `status=UNLOCKED`。`standalone`: さらに `reverse_worktree` 命名規則と `git tag -l` 等の決定的出力で基準タグ確立を確認済み（PASS以外なら status=UNLOCKED、ポートスロット上限到達なら status=BLOCKED） |
+| **Goal** | `dynamic-only` は `status=UNLOCKED`（動的検証準備完了、基準確立は後続へ委譲）。`standalone` は `status=BASELINE-ESTABLISHED`（開通〜基準タグ確立まで単独完走） |
 
 ## ループ設計
 
@@ -156,19 +158,19 @@ Phase 1で列挙した画面要求値とPhase 3で実装したモックデータ
 
 | 呼び出し箇所 | invocation | args骨格 | 期待返却status |
 |---|---|---|---|
-| Phase 5 | syncing-reverse-env | mode=registry, system, screen_id, reverse_worktree, ports, user-approved | PASS |
+| Phase 5（`standalone` のみ） | syncing-reverse-env | mode=registry, system, screen_id, reverse_worktree, ports, user-approved | PASS |
 
 - ポートスロット上限（`max_slots`）到達で `status=ERROR` が返った場合は `status=BLOCKED` とし、hintに並行検証の要否再確認・baseline-established済み環境のteardown可否・上限拡張要否のユーザー確認を記す
 - 起動引数 `ports` は本スキルが自ら起動したdevサーバー専用の値であり、`syncing-reverse-env` が管理する環境のポートは同スキルの `config.yml` 計算式が常に正。食い違いは異常ではない
 
-本スキルは唯一、他子スキル（syncing-reverse-env）を直接起動する子スキルである。これは完全仲介方式に対する例外ではなく、基準タグ確立まで単独完走するという設計要件に基づく意図した正式仕様であり、本スキル内でのみ許容される。
+`standalone` は唯一、他子スキル（syncing-reverse-env）を直接起動する子スキル経路である。これは完全仲介方式に対する例外ではなく、基準タグ確立まで単独完走するという設計要件に基づく意図した正式仕様であり、本スキル内でのみ許容される。`dynamic-only` は syncing-reverse-env を起動せず、基準確立を呼び出し元へ委ねる。
 
 ## 重要な注意事項
 
 - **変更してよい範囲**: モックの実装・開発用の起動時初期化処理（devサーバー起動スクリプト等）・設定ファイル（`manifest.<system>` に記載された範囲、および Phase 2 で対象画面を権限チェーンの既存許可リストへ追記登録する作業を含む）のみ。画面・業務ロジック・共通処理などアプリケーション本体のコードを新規実装・改変することは対象外（リバース対象の原本性を損なうため）。検証がうまくいかない場合は、まず同一条件で失敗が混在するか常に決定的に再現するかを切り分け、該当する対処節（「同一条件で成功と失敗が混在する」場合の対処／「同一条件で常に同じ失敗（決定的クラッシュ）が再現する」場合の対処）に従う。それでも根本原因がアプリ本体側の実装にあると判明した場合は、コードを書き換えるのではなく、その事実を開通記録（`handoff.unlock_record_dir`）に書き残しユーザーの判断に委ねる。
 - 対象画面自身の配線（ルート定義等）に既存バグを見つけた場合も修正しない。「未使用ゆえ検証されてこなかった事前バグの可能性」として `handoff.unlock_record_dir` に記録し、修正要否はユーザー判断に委ねる
 - `handoff.unlock_record_dir` は output_dir 配下（納品物）に置いてはならない。開通証跡は検証記録の一種であり、output_dir 配下の各種一覧・設計書生成時に上書き・整理対象となる可能性があるため（contract.md「バッチ運転記録は output_dir 配下に置かない」と同趣旨）
-- 本スキルは画面レジストリへの直接読み書きと `syncing-reverse-env` の直接起動を行う。これは完全仲介方式の例外ではなく、基準タグ確立まで単独完走するという設計要件に基づく意図した正式仕様である（理由: 開通の事実を知るのは本スキルだけであり、下流が能動的に検知できないため）
+- 本スキルは画面レジストリへ直接読み書きする。`standalone` に限って `syncing-reverse-env` も直接起動する。これは完全仲介方式の例外ではなく、単独起動時に基準タグ確立まで完走するための正式仕様である。`dynamic-only` は開通事実と frontmatter を確定して `UNLOCKED` を返し、同期・基準確立を行わない
 - プロジェクト固有値（パス・コマンド・API名・ポート・画面ID等）は本文・references に一切書かない。すべて `manifest.yml` の `projects.<system>` から取得する
 - 健全性確認は自分が起動したサーバー上でのみ行う。稼働中の他エージェントの環境には触れない
 - 合格判定は自然文の自己申告でなく、決定的コマンド出力（`git tag -l` 等）で行う
@@ -197,7 +199,7 @@ Phase 1で列挙した画面要求値とPhase 3で実装したモックデータ
 
 一般的な症状別の切り分け（詰まりパターン）は `references/troubleshooting-patterns.md` を参照する。以下は同ファイルに寄せていない個別の注意点。
 
-- 設計書がある画面は対象外（`rebuilding-screen-unit-from-docs` / `rebuilding-code-from-docs` を使う）
+- 設計書がある画面は `standalone` では対象外、`dynamic-only` では対象
 - モック変更はホットリロードで反映されないことがある。反映確認は必ずサーバー再起動後に行う
 - コード生成名とワイヤ上の実名は大小文字が食い違うことがある。実名は `api_source_of_truth.definition_root` で確認する
 - manifest に未確定キー（`<FILL:...>`）が残ったまま作業を開始してはならない

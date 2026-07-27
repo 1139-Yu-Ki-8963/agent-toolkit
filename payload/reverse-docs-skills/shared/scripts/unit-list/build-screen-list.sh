@@ -22,9 +22,9 @@
 #     "entryFile": "...", "fileCount": 0, "files": [],
 #     "sharedWith": [], "clusterId": null, "embeddedIn": null, "routeDupCount": 1,
 #     "screenType": "list|detail|form|confirm|complete|error|top|processing_endpoint|unknown",
-#     "accountGroup": "user|admin|editor|report|common",
+#     "accountGroup": "user|admin|editor|report|feature_phone|unknown",
 #     "accountSubType": "common", "hasTemplate": true, "parentScreen": null,
-#     "childComponents": [{"screenKey":"...","componentType":"modal|popup|iframe"}], "isProcessingEndpoint": false
+#     "childComponents": [], "isProcessingEndpoint": false
 #   }]
 # }
 #

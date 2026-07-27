@@ -108,19 +108,19 @@
 <body>
 
 <header>
-  <h1>設計書なし画面の開通スキル<br><span class="skill-name">unlocking-reverse-target-screens</span></h1>
-  <p>設計書が無い画面をモックAPIで開通させ、リバース基準タグ確立まで単独で完走する自己完結型スキル。</p>
+  <h1>リバース対象画面の開通スキル<br><span class="skill-name">unlocking-reverse-target-screens</span></h1>
+  <p>standalone は設計書なし画面を基準確立まで、dynamic-only は静的設計後の画面を動的検証準備まで開通する。</p>
 
   <div class="def">
     <dt>こんな人向け</dt>
     <dd>リバース検証工程で、対象画面を開通させ基準タグ確立まで一気通貫で任せたい人。</dd>
     <dt>こんな場面で使う</dt>
-    <dd>画面開通・設計書皆無画面の動作確認・設計書着手前の下準備・基準タグ確立まで含む一気通貫実行。設計書がある画面の往復検証には使わない。</dd>
+    <dd>単独開通、または統括フローで静的リバース後に実測URLと frontmatter を確定するとき。</dd>
   </div>
 
   <table class="meta-table">
     <tr><td>対応 OS</td><td>Windows WSL2 環境</td></tr>
-    <tr><td>検証状況</td><td>暫定実装</td></tr>
+    <tr><td>検証状況</td><td>2026-07-27: standalone / dynamic-only の適用条件と引き渡し契約を整合確認済み</td></tr>
     <tr><td>依存</td><td>reverse_worktree 上の対象画面ソースコード一式、<code>manifest.yml</code> の <code>projects.&lt;system&gt;</code> エントリ</td></tr>
     <tr><td>関連資料</td><td><code>SKILL.md</code>, <code>manifest.yml</code>, <code>assets/manifest-template.yml</code>, <code>orchestrating-reverse-docs-flow/references/contract.md</code>, <code>syncing-reverse-env/config.yml</code></td></tr>
   </table>
@@ -150,9 +150,9 @@
 
 <section id="s1">
   <h2><span class="sec-num">§1</span>概要</h2>
-  <p>本スキルは開通からリバース基準タグ確立までを単独で完走する自己完結型スキルである。開通の事実（どのURLなら検証できるか）を知るのは本スキルだけであり、下流の管理者（orchestrating-reverse-docs-flow）はこの事実を能動的に検知できない。</p>
+  <p>本スキルは <code>standalone</code> と <code>dynamic-only</code> を持つ。前者は基準確立まで、後者は静的著述後の実測URL記録・frontmatter補完までを担当する。</p>
   <div class="constraint">
-    <strong>直接操作は意図した正式仕様</strong>: そのため本スキルは、画面レジストリへの直接読み書きと <code>syncing-reverse-env</code> の直接起動を自ら行う。これは完全仲介方式の例外ではなく、基準タグ確立まで単独完走するという設計要件に基づく意図した正式仕様である。他の子スキルは完全仲介方式に従い、この2点に触れない。
+    <strong>直接操作は mode により異なる正式仕様</strong>: 本スキルは画面レジストリを直接読み書きする。<code>standalone</code> だけが <code>syncing-reverse-env</code> を直接起動し、基準タグ確立まで単独完走する。<code>dynamic-only</code> は開通・実測URL記録・frontmatter補完を終えて返却し、統括の後続工程が同期・基準確立を担う。他の子スキルは完全仲介方式に従う。
   </div>
   <div class="constraint">
     <strong>プロジェクト固有値の排除</strong>: プロジェクト固有の値（パス・コマンド・API名・ポート・画面ID等）は本文に一切書かず、すべて同ディレクトリの <code>manifest.yml</code> の <code>projects.&lt;system&gt;</code> から取得する。
@@ -174,9 +174,9 @@
 <section id="s3">
   <h2><span class="sec-num">§3</span>使用タイミングと起動引数</h2>
   <ul>
-    <li>対象画面にまだ設計書が無く、既存コードがログインを要求するなどの理由でそのままでは動作確認できないとき</li>
-    <li>画面開通・設計書皆無画面の動作確認・設計書着手前の下準備・基準タグ確立まで含む一気通貫実行を行いたいとき</li>
-    <li>設計書が既にある画面はこのスキルの対象外（<code>rebuilding-screen-unit-from-docs</code> / <code>rebuilding-code-from-docs</code> を使う）</li>
+    <li>既存コードがログインを要求するなどの理由で対象画面をそのまま動作確認できないとき</li>
+    <li><code>standalone</code> は設計書なし画面を基準確立まで一気通貫で処理するとき</li>
+    <li><code>dynamic-only</code> は設計書が既にある画面を開通し、実測項目を補完するとき</li>
   </ul>
 
   <table class="spec">
@@ -186,7 +186,8 @@
     <tr><td>reverse_worktree</td><td>対象画面のソースコードを持つ worktree の絶対パス</td></tr>
     <tr><td>ports</td><td>動作確認に使うポート情報</td></tr>
     <tr><td>output_dir</td><td>今後の設計書配置ルート（design_doc_path の組み立てに使用）</td></tr>
-    <tr><td>user-approved</td><td>Phase 5 で <code>syncing-reverse-env(mode=registry)</code> へ転送する承認情報。必須</td></tr>
+    <tr><td>user-approved</td><td>レジストリ記録の承認情報。<code>standalone</code> のみ Phase 5 で <code>syncing-reverse-env(mode=registry)</code> へ転送する</td></tr>
+    <tr><td>invocation_mode</td><td><code>standalone</code>（既定）または <code>dynamic-only</code></td></tr>
   </table>
   <p class="note">全量が管理者から渡される。単独起動時はユーザーから直接取得してよい。対象プロジェクトの <code>manifest.yml</code> に <code>projects.&lt;system&gt;</code> エントリが無い、または未確定キー（<code>&lt;FILL:...&gt;</code>）が残っている場合は <code>assets/manifest-template.yml</code> を複製してまず埋める（前提ゲートで検出・差し戻し）。</p>
 </section>
@@ -334,7 +335,10 @@
   画面レジストリ（handoff.screen_registry_path。既定は
   &lt;output_dir&gt;/一覧/reverse-screen-registry.yml。output_dirはスキルフォルダ外のため
   スキル同期・上書きコピーの影響を受けない。contract.mdの正本と一致させる）へ
-  source_ref・verification_url・design_doc_path・status=unlockedを記帳
+  source_ref・verification_url・design_doc_pathは候補値として保持し、この時点ではstatusを更新しない
+  dynamic-onlyでは実測URLから著述済み設計書frontmatterのquery/path_paramsを補完し、
+  scenarios完全性ゲート通過後だけ候補値とstatus=unlockedを原子的に記帳してUNLOCKEDを返す。
+  ゲート失敗時は従前のauthoredを維持する。standaloneはstatus=unlockedを記帳して以下の基準確立へ進む
   syncing-reverse-envへ渡すreverse_worktreeは、呼び出し前に命名規則
   （reverse-code-&lt;scope&gt; / feature/reverse-code-&lt;scope&gt;）に従い自ら用意する。
   既存のworktreeがあれば再利用し新規作成はしない。並列実行時は§11「並列実行時の運用規約」で
@@ -370,8 +374,8 @@
     <tr><td>Phase 2</td><td>権限チェック呼び出し有無の事前確認（呼び出さない場合はスキップ判定の根拠を記録）・セッションキー実測結果・識別子フィールド非空確認・権限チェーン構造（単層/二層）の分類キー突合確認・同一分類キーを消費する全系統の横断洗い出しと一括登録・消費先推定の実行時ログ裏取り・各層への登録完了</td></tr>
     <tr><td>Phase 3</td><td>登録名一覧×実名一覧の突合差分ゼロ（既存共通モックのうち対象画面が依存する分を含む）、サーバー再起動後の反映確認済み</td></tr>
     <tr><td>Phase 4</td><td>収束条件を満たすか、発散/上限到達で <span class="tag error">BLOCKED</span> 確定</td></tr>
-    <tr><td>Phase 5</td><td>画面レジストリ登録済み、<code>reverse_worktree</code> の命名規則準拠を確認済み、<code>git tag -l</code> 等の決定的出力でタグ確立を確認済み（PASS以外なら <span class="tag mode">UNLOCKED</span> で差し戻し。ポートスロット上限到達なら <span class="tag mode">BLOCKED</span> で差し戻し）</td></tr>
-    <tr><td><strong>Goal</strong></td><td><span class="tag pass">BASELINE-ESTABLISHED</span>（開通〜レジストリ登録〜基準タグ確立まで完走、決定的コマンド出力で確認済み）。Phase5でsyncing-reverse-envがPASS以外なら <span class="tag mode">UNLOCKED</span> で部分完了として差し戻す</td></tr>
+    <tr><td>Phase 5</td><td><code>dynamic-only</code>: レジストリ登録・frontmatter実測補完・scenarios完全性ゲート通過。<code>standalone</code>: 加えて基準タグ確立を決定的出力で確認</td></tr>
+    <tr><td><strong>Goal</strong></td><td><code>dynamic-only</code> は <span class="tag mode">UNLOCKED</span>、<code>standalone</code> は <span class="tag pass">BASELINE-ESTABLISHED</span>。失敗時は静的成果物を壊さず BLOCKED / ERROR を返す</td></tr>
   </table>
 </section>
 
@@ -413,7 +417,7 @@
   <h2><span class="sec-num">§10</span>サブエージェント委任仕様</h2>
   <table class="spec">
     <tr><th>呼び出し箇所</th><th>invocation</th><th>args骨格</th><th>期待返却status</th></tr>
-    <tr><td>Phase 5</td><td>syncing-reverse-env</td><td>mode=registry, system, screen_id, reverse_worktree, ports, user-approved</td><td><span class="tag pass">PASS</span></td></tr>
+    <tr><td>Phase 5（standaloneのみ）</td><td>syncing-reverse-env</td><td>mode=registry, system, screen_id, reverse_worktree, ports, user-approved</td><td><span class="tag pass">PASS</span></td></tr>
   </table>
   <div class="constraint">
     <strong>ポートスロット上限時の扱い</strong>: ポートスロット上限（<code>max_slots</code>）到達で <code>status=ERROR</code> が返った場合は <span class="tag mode">BLOCKED</span> とし、hintに並行検証の要否再確認・baseline-established済み環境のteardown可否・上限拡張要否のユーザー確認を記す。
@@ -422,7 +426,7 @@
     <strong>ポート値の食い違い</strong>: 起動引数 <code>ports</code> は本スキルが自ら起動したdevサーバー専用の値であり、<code>syncing-reverse-env</code> が管理する環境のポートは同スキルの <code>config.yml</code> 計算式が常に正。食い違いは異常ではない。
   </div>
   <div class="constraint">
-    <strong>直接起動は意図した正式仕様</strong>: 本スキルは唯一、他子スキル（syncing-reverse-env）を直接起動する子スキルである。これは完全仲介方式に対する例外ではなく、基準タグ確立まで単独完走するという設計要件に基づく意図した正式仕様であり、本スキル内でのみ許容される。
+    <strong>直接起動は standalone のみ</strong>: <code>standalone</code> は基準タグ確立まで単独完走するため syncing-reverse-env を直接起動する。<code>dynamic-only</code> は起動せず管理者へ引き渡す。
   </div>
 </section>
 
@@ -431,7 +435,7 @@
   <ul>
     <li><strong>変更してよい範囲</strong>: モックの実装・開発用の起動時初期化処理（devサーバー起動スクリプト等）・設定ファイル（<code>manifest.&lt;system&gt;</code> に記載された範囲、および Phase 2 で対象画面を権限チェーンの既存許可リストへ追記登録する作業を含む）のみ。画面・業務ロジック・共通処理などアプリケーション本体のコードを新規実装・改変することは対象外（リバース対象の原本性を損なうため）。検証がうまくいかない場合は、まず同一条件で失敗が混在するか常に決定的に再現するかを切り分け、該当する対処節（§7「同一条件で成功と失敗が混在する場合の対処」／§8「同一条件で常に同じ失敗（決定的クラッシュ）が再現する場合の対処」）に従う。それでも根本原因がアプリ本体側の実装にあると判明した場合は、コードを書き換えるのではなく、その事実を開通記録（<code>handoff.unlock_record_dir</code>）に書き残しユーザーの判断に委ねる。</li>
     <li>対象画面自身の配線（ルート定義等）に既存バグを見つけた場合も修正しない。「未使用ゆえ検証されてこなかった事前バグの可能性」として <code>handoff.unlock_record_dir</code> に記録し、修正要否はユーザー判断に委ねる</li>
-    <li>本スキルは画面レジストリへの直接読み書きと <code>syncing-reverse-env</code> の直接起動を行う。これは完全仲介方式の例外ではなく、基準タグ確立まで単独完走するという設計要件に基づく意図した正式仕様である（理由: 開通の事実を知るのは本スキルだけであり、下流が能動的に検知できないため）</li>
+    <li>本スキルは画面レジストリへ直接読み書きする。<code>standalone</code> に限って <code>syncing-reverse-env</code> も直接起動し基準タグ確立まで単独完走する。<code>dynamic-only</code> は開通・実測項目補完後に <code>UNLOCKED</code> を返し、統括の後続工程が同期・基準確立を担う。</li>
     <li>プロジェクト固有値（パス・コマンド・API名・ポート・画面ID等）は本文・references に一切書かない。すべて <code>manifest.yml</code> の <code>projects.&lt;system&gt;</code> から取得する</li>
     <li>健全性確認は自分が起動したサーバー上でのみ行う。稼働中の他エージェントの環境には触れない</li>
     <li>合格判定は自然文の自己申告でなく、決定的コマンド出力（<code>git tag -l</code> 等）で行う</li>
@@ -461,7 +465,7 @@
   <h2><span class="sec-num">§14</span>予想を裏切る挙動</h2>
   <p class="note">一般的な症状別の切り分け（詰まりパターン）は <code>references/troubleshooting-patterns.md</code> を参照する。以下は同ファイルに寄せていない個別の注意点。</p>
   <ul>
-    <li>設計書がある画面は対象外（<code>rebuilding-screen-unit-from-docs</code> / <code>rebuilding-code-from-docs</code> を使う）</li>
+    <li>設計書がある画面は <code>standalone</code> では対象外、<code>dynamic-only</code> では対象</li>
     <li>モック変更はホットリロードで反映されないことがある。反映確認は必ずサーバー再起動後に行う</li>
     <li>コード生成名とワイヤ上の実名は大小文字が食い違うことがある。実名は <code>api_source_of_truth.definition_root</code> で確認する</li>
     <li>manifest に未確定キー（<code>&lt;FILL:...&gt;</code>）が残ったまま作業を開始してはならない</li>

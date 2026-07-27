@@ -54,7 +54,7 @@ facts.yml の `meta` 節は以下の通り frontmatter へ転記する（`shared
 
 - `meta.source_repo` → frontmatter の `source_repo` へそのまま転記する（必須）
 - `meta.source_ref` → frontmatter の `source_ref` へそのまま転記する（必須）
-- `meta.route`（`value`）→ frontmatter の `scenarios[].path` を構成する。`query` / `path_params` は起動引数 `verification_url`（画面レジストリに記帳された、開通時に実レンダリング確認済みのURL。管理者が解決して渡す）から確定転記する。`ready`（描画到達判定に使う要素）は facts.yml の `jsx` セクションの分岐別ルート要素（`jsx-path-*`）から確定する。**`scenarios` 内に実測委譲プレースホルダを残すことを禁止する**（残すと基準確立・往復検証の動的比較（render-ready 判定）が実行不能になる）。確定できない場合は `AUTHORED` を返さず、hint に「開通不完全（scenarios 確定不能）」を記して管理者へ差し戻す（開通の完了が先）。`scenarios: []` のまま `AUTHORED` を返すことも禁止する
+- `meta.route`（`value`）→ frontmatter の `scenarios[].path` を構成する。`ready`（描画到達判定に使う要素）は facts.yml の `jsx` セクションの分岐別ルート要素（`jsx-path-*`）から確定する。起動引数 `verification_url` がある場合だけ、実レンダリング確認済みURLから `query` / `path_params` を確定転記する。未開通で `verification_url` がない場合は `path` と `ready` を静的事実から記載し、`query` / `path_params` を省略して `measurement_pending` に留保項目を記録したうえで `AUTHORED` を返してよい。`scenarios: []` は禁止する。動的検証へ進む前に `unlocking-reverse-target-screens(invocation_mode=dynamic-only)` が実測URLで留保項目を補完する
 
 ## 禁止事項
 

@@ -38,7 +38,7 @@ facts 抽出・設計書執筆・盲検検証の3スキルは情報アクセス�
 
 ## Phase 1: preflight（起動引数検収・スキャフォールディング）
 
-起動引数を検収する: screen_dir / output_dir / template_root / chapter_map_path / audit_script_path / scaffold_script_path / facts_ref / common_docs_root / mode / target_file_path（mode=file 時）。補助情報源（スクリーンショット dir・verification_url）があれば受け取る。verification_url（任意）は開通時に実レンダリング確認済みのURLで、画面レジストリの値を統括が解決して渡し、scenarios の query/path_params の確定転記に使用する。いずれか必須引数が欠ける場合は起動不可として呼び出し元へ差し戻す。
+起動引数を検収する: screen_dir / output_dir / template_root / chapter_map_path / audit_script_path / scaffold_script_path / facts_ref / common_docs_root / mode / target_file_path（mode=file 時）。補助情報源（スクリーンショット dir・verification_url）があれば受け取る。verification_url は任意であり、未開通でも著述を止めない。渡された場合だけ scenarios の query/path_params の実測値を確定転記する。いずれか必須引数が欠ける場合は起動不可として呼び出し元へ差し戻す。
 
 統括（orchestrator）が並列起動前にスキャフォールディングを実施済みの前提で動作する（基本設計・詳細設計の並列起動時にスキャフォールディングが競合するのを避けるため、実施主体は統括に一本化されている）。画面ディレクトリが存在しない場合はエラーとして呼び出し元へ報告する。存在する場合は `bash <scaffold_script_path> --verify <output_dir> <画面ID>`（scaffold_script_path は管理者が解決して渡すスキャフォールディングスクリプトのパス。audit_script_path と同型。実体: `shared/scripts/scaffold-screen.sh`）で構造の健全性を確認し、exit 1 なら template_root 起点の原本から欠落ファイルのみ復元して再実行する（fail-closed）。
 
@@ -88,7 +88,7 @@ facts.yml の各セクションを下記マップに従って各章へ転記す�
 
 あわせて facts.yml の `meta` 節を frontmatter へ転記する（`meta.source_repo`→`source_repo`・`meta.source_ref`→`source_ref`・`meta.route`→`scenarios[].path`）。転記規律は `references/writing-rules.md` の「frontmatter 転記規律」を正本とする。
 
-`scenarios` の `query/path_params` は `verification_url` から確定転記する。`ready` は facts の jsx 分岐別ルート要素から確定する。`scenarios` 内の実測委譲プレースホルダを禁止し、確定できない場合は AUTHORED を返さず hint「開通不完全（scenarios 確定不能）」で差し戻す。
+`scenarios[].path` は facts の `meta.route` から必ず確定する。`ready` は facts の jsx 分岐別ルート要素から確定する。実レンダリング確認済みの `verification_url` がある場合だけ `query/path_params` の具体値を転記し、無い場合はテンプレート値を残さず両キーを省略する（該当なしなら省略可という frontmatter 契約に従う）。画面未開通を AUTHORED の差し戻し理由にしてはならない。実測が必要な値は本文の `measurement_pending` と §16 に留保し、後続の動的検証で補完する。
 
 ### 大規模ユニットの著述の2パス分割
 
@@ -155,7 +155,7 @@ facts 読込・執筆（Phase 2〜4）はサブエージェントへ委任しな
 
 - 原本コードの Read は全面禁止。情報源は facts_ref 配下の facts.yml と common_docs_root 配下の共通文書のみ（設計原則4）
 - facts.yml の字面（`value` 列）をそのまま書き写すだけでなく、章の文脈に沿って正規化して書く。ただし facts に無い事実を創作しない（境界例は `references/writing-rules.md`）
-- `measurement_pending`（⑨実測系: 初期表示値・DOM 順・要素位置・レイアウト）を目視転記・推測で確定しない。`実測委譲（画面単位検証で確定）` に留め measurement_pending へ回す
+- `measurement_pending`（⑨実測系: 初期表示値・DOM 順・要素位置・レイアウト）を目視転記・推測で確定しない。画面未開通でも著述を止めず、`実測委譲（画面単位検証で確定）` に留め measurement_pending へ回す
 - 「該当なし」は必ず根拠を添える。裸の「未確認」は完了条件違反
 - §15.2 が facts.yml export_type「型定義なし」の根拠付き該当なし文でも audit_script_path は exit 0 になる（検査gの型名抽出は無マッチ許容）。exit 1 は常に実違反として扱い、型を捏造して検査を通すことは絶対にしない
 - facts.yml 自体の誤り・欠落に気づいても本スキルは書き換えない。extracting-unit-facts-from-code への差し戻しとして hint に記録する

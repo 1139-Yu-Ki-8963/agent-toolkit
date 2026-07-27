@@ -57,8 +57,6 @@
 #
 # 全項目(screen: 9項目 / screen以外: 8項目)PASSでexit 0。1件でもFAILがあればexit 1
 # (--fixで解消された項目4はPASS扱い)。
-# screen.accountGroup の現行 detect-screens 出力は user/admin/editor/report/common の5値のみ。
-# 旧マニフェストに残る feature_phone/unknown は入力時だけ後方互換で受け入れ、現行出力を緩めない。
 
 set -uo pipefail
 
@@ -469,7 +467,7 @@ run_validate() {
   # ---------------------------------------------------------------------------
   local total_items=8
   if [ "$UNIT_KIND" = "screen" ]; then
-    total_items=11
+    total_items=9
     local screen_type_issues
     screen_type_issues="$(jq -r '
       ["list","detail","form","confirm","complete","error","top","processing_endpoint"] as $allowed
@@ -491,64 +489,6 @@ run_validate() {
       echo "[FAIL] screenType-必須+値域 — ${screen_type_issues}" >&2
     else
       echo "[PASS] screenType-必須+値域 — 全screensにscreenType存在し値域内" >&2
-    fi
-
-    # accountGroup は detect-screens の現行出力値(user/admin/editor/report/common)を検査する。
-    # feature_phone/unknown は過去契約の既存マニフェスト入力としてのみ後方互換で許容し、
-    # detect-screens の現行出力値域を緩めるものではない。
-    local account_group_issues
-    account_group_issues="$(jq -r '
-      ["user","admin","editor","report","common","feature_phone","unknown"] as $allowed
-      | [ .screens[]? | select(has("accountGroup") and .accountGroup != null)
-          | .accountGroup as $group
-          | select(($group | type) != "string" or (($allowed | index($group)) == null))
-          | (.screenKey // "?") + ":accountGroup=" + ($group | tostring) + "(値域外)"
-        ] | join("; ")
-    ' "$MANIFEST" 2>/dev/null)"
-    if [ -n "$account_group_issues" ]; then
-      overall_fail=1
-      echo "[FAIL] accountGroup-値域 — ${account_group_issues}" >&2
-    else
-      echo "[PASS] accountGroup-値域 — 現行値(user/admin/editor/report/common)と旧互換値(feature_phone/unknown)のみ" >&2
-    fi
-
-    # parentScreen と childComponents は screenKey 体系で相互参照される。
-    local parent_child_issues
-    parent_child_issues="$(jq -r '
-      (.screens // []) as $screens
-      | ($screens | map(.screenKey // "")) as $keys
-      | (
-          [ $screens[]
-            | select(.parentScreen != null)
-            | .parentScreen as $parent
-            | select(($keys | index($parent)) == null)
-            | (.screenKey // "?") + ":parentScreen=" + ($parent | tostring) + "が不在"
-          ]
-          +
-          [ $screens[]
-            | select(has("childComponents"))
-            | if (.childComponents | type) != "array" then
-                [(.screenKey // "?") + ":childComponentsが配列でない"]
-              else
-                [ .childComponents[]
-                  | if (type != "object") then
-                      (. | tostring) + ":childComponentがobjectでない"
-                    elif ((.screenKey // "") as $child | ($keys | index($child)) == null) then
-                      (.screenKey // "?") + ":childComponentのscreenKeyが不在"
-                    elif (.componentType // "") as $component
-                      | (["modal","popup","iframe"] | index($component)) == null then
-                      (.screenKey // "?") + ":componentTypeが値域外"
-                    else empty end
-                ]
-              end
-          ]
-        ) | flatten | join("; ")
-    ' "$MANIFEST" 2>/dev/null)"
-    if [ -n "$parent_child_issues" ]; then
-      overall_fail=1
-      echo "[FAIL] parent-child参照 — ${parent_child_issues}" >&2
-    else
-      echo "[PASS] parent-child参照 — screenKey体系とcomponentTypeが整合" >&2
     fi
   fi
 

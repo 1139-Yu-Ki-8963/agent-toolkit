@@ -99,14 +99,14 @@
     </dd>
     <dt>こんな場面で使う</dt>
     <dd>
-      画面開通・共通採録が完了し、残り画面をまとめて facts 封印〜往復検証まで通したい時 ／
+      共通採録が完了し、残り画面をまとめて静的リバース〜必要時の画面開通・往復検証まで通したい時 ／
       夜間などの無人運転で残ゼロまで自動継続させたい時
     </dd>
   </div>
 
   <table class="meta-table">
     <tr><td>対応 OS</td><td>Windows WSL2 環境</td></tr>
-    <tr><td>検証状況</td><td>統括スキルの画面バッチ Phase から起動される無人バッチ実行。対話ゼロ契約</td></tr>
+    <tr><td>検証状況</td><td>2026-07-27: docs-only の静的終端、未開通時の静的リバース継続、single-pass / iterative 分岐を契約・雛形で整合確認済み</td></tr>
     <tr><td>依存</td><td>claude CLI（<code>claude -p</code> ヘッドレスモード）、orchestrating-reverse-docs-flow（起動元）</td></tr>
     <tr><td>関連資料</td><td>orchestrating-reverse-docs-flow SKILL.md、<code>references/gotchas.md</code>、<code>references/loop-design.md</code></td></tr>
   </table>
@@ -134,19 +134,19 @@
        │  Phase 1  引数検証 + 対象画面一覧生成
        ▼
   batch-targets.txt（1行1画面ID）
-       │  Phase 2  単発ドライラン（1画面で前半・後半の完走確認）
+       │  Phase 2  単発ドライラン（docs-onlyは前半のみ、動的検証は前半・後半）
        ▼
   ドライラン合格
        │  Phase 3  無人ループ起動（nohup + disown でバックグラウンド化）
        ▼
-  周回ループ（claude -p を画面ごとに前半・後半の計2回呼び出す）
+  周回ループ（docs-onlyは前半1回、動的検証は前半・後半の計2回）
        │  Phase 4  監視と完了確認（残件カウント）
        ▼
   全画面が検証完了 / failed退避 / conflict-skip退避のいずれかで確定
        │  Phase 5  完了報告
        ▼
   verification_dir 配下の検証結果 + バッチ運転記録 + progress.jsonl</pre>
-  <p class="note">盲検分離（原本コードを読む工程と設計書のみで判定する工程を別プロセスに分離する要件）を満たすため、1画面につき claude -p を前半（著述）・後半（ファイル単位盲検検証・往復検証）の2回に分けて呼び出す。</p>
+  <p class="note"><code>docs-only</code> は前半（facts→基本設計→詳細設計）を1回だけ実行し、<code>STATIC_COMPLETE</code> で終端する。<code>single-pass</code> / <code>iterative</code> は盲検分離のため、前半（著述）・後半（ファイル単位盲検検証・往復検証）の2回に分けて呼び出す。</p>
 </section>
 
 <section id="s2">
@@ -154,7 +154,7 @@
   <p>スキルを実行すると、以下の3点が生まれる。</p>
   <div class="def">
     <dt>全画面の検証結果（<code>verification_dir</code> 配下）</dt>
-    <dd>各画面の facts 封印・設計書著述・コード再生成・往復検証の結果が画面ごとに蓄積される。前半完了で画面レジストリの <code>status</code> が <code>authored</code>、後半完了で <code>baseline-established</code> になり、どこまで検証が進んだ画面かをレジストリから一目で追跡できる。</dd>
+    <dd><code>docs-only</code> は facts 封印・設計書著述を蓄積し、<code>status=authored</code> と <code>STATIC_COMPLETE</code> で終端する。動的検証モードでは前半完了で <code>authored</code>、後半完了で <code>baseline-established</code> になり、レジストリから進捗を追跡できる。</dd>
     <dt>バッチ運転記録（<code>&lt;verification_dir&gt;/バッチ運転記録/</code> 配下）</dt>
     <dd><code>batch-log.txt</code>（全画面の実行ログ）・<code>failed-screens.txt</code>（連続失敗で退避した画面のリスト）・<code>conflict-skip-screens.txt</code>（他プロセスとの競合でスキップした画面のリスト）の3ファイルが生まれ、読んだ人はどの画面が正常完了しどの画面に人手の追跡が必要かをこの3点だけで判断できる。</dd>
     <dt>progress.jsonl（<code>&lt;verification_dir&gt;/progress.jsonl</code>）</dt>
@@ -191,8 +191,8 @@
     </tr>
     <tr>
       <td><strong>Phase 2</strong><br>単発ドライラン</td>
-      <td>対象一覧の先頭1画面だけをフォアグラウンド実行し、前半（著述、status=authored）・後半（ファイル単位盲検検証・往復検証、status=baseline-established）の両工程を1画面分だけ完走させて確認する</td>
-      <td>前半・後半の両工程完走とマーカー付与を確認済み。合格前は Phase 3 に進むことを禁止</td>
+      <td><code>docs-only</code> は前半を1回実行し <code>STATIC_COMPLETE</code> を確認する。動的検証モードは前半・後半を各1回実行する。この処理を本番1回目として数え、Phase 3 で同じ画面を重複実行しない</td>
+      <td><code>docs-only</code> は STATIC_COMPLETE、<code>single-pass</code> は成功/failedのどちらでも結果確定後に Phase 3 へ進む。<code>iterative</code> だけ改善後の再試行を許可</td>
     </tr>
     <tr>
       <td><strong>Phase 3</strong><br>無人ループ起動</td>
@@ -238,7 +238,7 @@
     <tr><td><code>~/.claude/projects/</code> が肥大化し Claude Code の起動が遅くなる</td><td><code>--no-session-persistence</code> を必ず付ける</td></tr>
     <tr><td>1周回あたりの所要時間が長い（画面数 × 実測60分程度）</td><td>想定時間を事前に計算し、夜間運転で余裕を持たせる。Mac のスリープ無効を確認する</td></tr>
     <tr><td>macOS 標準 bash（3.2系）で <code>declare -A</code> が <code>invalid option</code> で落ちる</td><td>連想配列を使わず、<code>awk</code> によるファイルベースのカウンタで失敗回数を管理する</td></tr>
-    <tr><td>周回ループに上限がなく暴走に見える</td><td>意図的な設計判断。暴走防止は画面単位の <code>FAIL_LIMIT_K</code> のみで担保し、対象数が有限であるため必ず有限回で終了する</td></tr>
+    <tr><td>周回ループに上限がなく暴走に見える</td><td><code>verification_mode=iterative</code> の場合だけの設計判断。画面単位の <code>FAIL_LIMIT_K</code> で担保する。既定の <code>single-pass</code> は各画面を1回だけ処理し、再試行しない</td></tr>
   </table>
 </section>
 
@@ -247,8 +247,8 @@
   <table class="spec">
     <tr><th>関連</th><th>関係</th></tr>
     <tr><td><code>orchestrating-reverse-docs-flow</code></td><td>工程全体の案内役。画面数4件以上の画面バッチ Phase から本スキルを起動する</td></tr>
-    <tr><td><code>unlocking-reverse-target-screens</code> / <code>extracting-unit-facts-from-code</code> / <code>generating-reverse-basic-design</code> / <code>generating-reverse-detailed-design</code></td><td>前半（著述）で順に呼び出す子スキル群</td></tr>
-    <tr><td><code>rebuilding-screen-unit-from-docs</code> / <code>syncing-reverse-env</code> / <code>rebuilding-code-from-docs</code></td><td>後半（ファイル単位盲検検証・往復検証）で順に呼び出す子スキル群</td></tr>
+    <tr><td><code>extracting-unit-facts-from-code</code> / <code>generating-reverse-basic-design</code> / <code>generating-reverse-detailed-design</code></td><td>全モードの前半で静的リバースを行う子スキル群。docs-only はここで終端する</td></tr>
+    <tr><td><code>unlocking-reverse-target-screens(invocation_mode=dynamic-only)</code> / <code>rebuilding-screen-unit-from-docs</code> / <code>syncing-reverse-env</code> / <code>rebuilding-code-from-docs</code></td><td>single-pass / iterative のみで、開通後のファイル単位盲検検証・往復検証を行う子スキル群</td></tr>
     <tr><td><code>references/loop-design.md</code></td><td>ループ雛形・プレースホルダ定義・limit検知パターンの正本</td></tr>
     <tr><td><code>references/gotchas.md</code></td><td>落とし穴集（本ガイド §5 の元資料）</td></tr>
   </table>

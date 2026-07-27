@@ -12,12 +12,13 @@
 | `MARKER_REGISTRY` | 画面レジストリYAMLの絶対パス（マーカー判定に使用） | なし（必須） |
 | `LOG` | 実行ログの出力先絶対パス | なし（必須） |
 | `WAIT_SECONDS` | limit 検知時の待機秒数 | 3600 |
-| `FAIL_LIMIT_K` | 同一画面の連続失敗上限 | 3 |
+| `VERIFICATION_MODE` | 検証モード。`docs-only` / `single-pass` / `iterative` | single-pass |
+| `FAIL_LIMIT_K` | `iterative` でだけ使う同一画面の連続失敗上限 | 3 |
 | `MODEL` | `claude -p` に渡すモデル名 | claude-sonnet-5 |
 | `ALLOWED_TOOLS` | `--allowedTools` に渡すツール一覧（カンマ区切り） | Read,Write,Edit,Bash,Grep,Glob,Skill |
-| `PER_ITEM_PROMPT_FIRST` | 前半（著述）のプロンプト文字列。`$TARGET` を画面IDへの置換対象として含む | 本ファイル §4 参照 |
-| `PER_ITEM_PROMPT_SECOND` | 後半（ファイル単位盲検検証・往復検証）のプロンプト文字列。`$TARGET` を画面IDへの置換対象として含む | 本ファイル §4 参照 |
-| `FAILED_LIST` | 連続失敗でK回に達した画面の退避先絶対パス | `<LOGと同ディレクトリ>/failed-screens.txt` |
+| `PER_ITEM_PROMPT_FIRST` | 前半（静的著述）のプロンプト文字列。`$TARGET` を画面IDへの置換対象として含む。`docs-only` はこれだけを実行する | 本ファイル §4 参照 |
+| `PER_ITEM_PROMPT_SECOND` | 後半（ファイル単位盲検検証・往復検証）のプロンプト文字列。`single-pass` / `iterative` のみで使い、`$TARGET` を画面IDへの置換対象として含む | 本ファイル §4 参照 |
+| `FAILED_LIST` | `single-pass` の初回未完了、または `iterative` の連続失敗K回到達画面の退避先絶対パス | `<LOGと同ディレクトリ>/failed-screens.txt` |
 | `FAIL_COUNTS` | 画面ごとの失敗回数を記録するTSVファイルの絶対パス | `<LOGと同ディレクトリ>/fail-counts.tsv` |
 | `TARGET_REPO_PATH` | 対象プロジェクトのリポジトリルートパス | なし（必須） |
 | `DOCS_ROOT` | 設計書の書き出し先ルートパス | なし（必須） |
@@ -36,6 +37,7 @@ TARGETS_FILE="__TARGETS_FILE__"
 MARKER_REGISTRY="__MARKER_REGISTRY__"
 LOG="__LOG__"
 WAIT_SECONDS=__WAIT_SECONDS__
+VERIFICATION_MODE="__VERIFICATION_MODE__"
 FAIL_LIMIT_K=__FAIL_LIMIT_K__
 MODEL="__MODEL__"
 ALLOWED_TOOLS="__ALLOWED_TOOLS__"
@@ -67,7 +69,12 @@ registry_block() {
 
 check_authored() {
   TARGET="$1"
-  registry_block "$TARGET" | grep -qE "status: (authored|baseline-established)"
+  registry_block "$TARGET" | grep -qE "status: (authored|unlocked|baseline-established)"
+}
+
+check_dynamic_ready() {
+  TARGET="$1"
+  registry_block "$TARGET" | grep -qE "status: (unlocked|baseline-established)"
 }
 
 check_baseline() {
@@ -110,11 +117,23 @@ while :; do
     if check_baseline "$TARGET"; then
       continue
     fi
+    if [ "$VERIFICATION_MODE" = "docs-only" ] && check_authored "$TARGET"; then
+      continue
+    fi
     remaining=$((remaining + 1))
-    STAGE_OK=1
+    STAGE_OK=0
 
-    if ! check_authored "$TARGET"; then
+    if [ "$VERIFICATION_MODE" = "docs-only" ]; then
+      if check_authored "$TARGET"; then
+        STAGE_OK=1
+      fi
+    elif check_dynamic_ready "$TARGET"; then
+      STAGE_OK=1
+    fi
+
+    if [ "$STAGE_OK" -eq 0 ]; then
       PROMPT="__PER_ITEM_PROMPT_FIRST__"
+      PROMPT="${PROMPT//__VERIFICATION_MODE__/$VERIFICATION_MODE}"
       PROMPT="${PROMPT//\$TARGET/$TARGET}"
       PROMPT="${PROMPT//\$TARGET_REPO_PATH/$TARGET_REPO_PATH}"
       PROMPT="${PROMPT//\$DOCS_ROOT/$DOCS_ROOT}"
@@ -144,13 +163,25 @@ while :; do
         continue
       fi
 
-      if ! check_authored "$TARGET"; then
-        STAGE_OK=0
+      STAGE_OK=0
+      if [ "$VERIFICATION_MODE" = "docs-only" ]; then
+        if check_authored "$TARGET"; then
+          STAGE_OK=1
+        fi
+      elif check_dynamic_ready "$TARGET"; then
+        STAGE_OK=1
       fi
     fi
 
-    if [ "$STAGE_OK" -eq 1 ]; then
+    if [ "$VERIFICATION_MODE" = "docs-only" ] && [ "$STAGE_OK" -eq 1 ] && check_authored "$TARGET"; then
+      echo "[LAP $lap] STATIC_COMPLETE screen=$TARGET"
+      progressed=$((progressed + 1))
+      continue
+    fi
+
+    if [ "$VERIFICATION_MODE" != "docs-only" ] && [ "$STAGE_OK" -eq 1 ]; then
       PROMPT="__PER_ITEM_PROMPT_SECOND__"
+      PROMPT="${PROMPT//__VERIFICATION_MODE__/$VERIFICATION_MODE}"
       PROMPT="${PROMPT//\$TARGET/$TARGET}"
       PROMPT="${PROMPT//\$TARGET_REPO_PATH/$TARGET_REPO_PATH}"
       PROMPT="${PROMPT//\$DOCS_ROOT/$DOCS_ROOT}"
@@ -189,11 +220,16 @@ while :; do
       echo "[LAP $lap] 検証完了 screen=$TARGET"
       progressed=$((progressed + 1))
     else
-      fc=$(inc_fail_count "$TARGET")
-      echo "[LAP $lap] 未完了 screen=$TARGET fail_count=$fc"
-      if [ "$fc" -ge "$FAIL_LIMIT_K" ]; then
+      if [ "$VERIFICATION_MODE" = "docs-only" ] || [ "$VERIFICATION_MODE" = "single-pass" ]; then
         echo "$TARGET" >> "$FAILED_LIST"
-        echo "[LAP $lap] failedリストへ退避 screen=$TARGET"
+        echo "[LAP $lap] $VERIFICATION_MODE 未完了のため再試行せずfailedリストへ退避 screen=$TARGET"
+      else
+        fc=$(inc_fail_count "$TARGET")
+        echo "[LAP $lap] 未完了 screen=$TARGET fail_count=$fc"
+        if [ "$fc" -ge "$FAIL_LIMIT_K" ]; then
+          echo "$TARGET" >> "$FAILED_LIST"
+          echo "[LAP $lap] failedリストへ退避 screen=$TARGET"
+        fi
       fi
     fi
   done < "$TARGETS_FILE"
@@ -215,7 +251,7 @@ echo "$BG_PID"
 
 置換手順:
 
-1. `__TARGETS_FILE__` `__MARKER_REGISTRY__` `__LOG__` `__WAIT_SECONDS__` `__FAIL_LIMIT_K__` `__MODEL__` `__ALLOWED_TOOLS__` `__FAILED_LIST__` `__FAIL_COUNTS__` `__TARGET_REPO_PATH__` `__DOCS_ROOT__` `__TEMPLATE_ROOT__` `__COMMON_DOCS_ROOT__` `__SURVEY_DOC_PATH__` `__DEADLINE__` を起動引数の確定値で置換する
+1. `__TARGETS_FILE__` `__MARKER_REGISTRY__` `__LOG__` `__WAIT_SECONDS__` `__VERIFICATION_MODE__` `__FAIL_LIMIT_K__` `__MODEL__` `__ALLOWED_TOOLS__` `__FAILED_LIST__` `__FAIL_COUNTS__` `__TARGET_REPO_PATH__` `__DOCS_ROOT__` `__TEMPLATE_ROOT__` `__COMMON_DOCS_ROOT__` `__SURVEY_DOC_PATH__` `__DEADLINE__` を起動引数の確定値で置換する
 2. `__PER_ITEM_PROMPT_FIRST__` を §4 の前半テンプレートを埋めた文字列で置換する
 3. `__PER_ITEM_PROMPT_SECOND__` を §4 の後半テンプレートを埋めた文字列で置換する
 4. 置換済みの全文を1個の Bash ツール呼び出し（dangerouslyDisableSandbox: true）として実行する
@@ -235,7 +271,7 @@ grep -qiE 'usage limit|rate limit|session limit|limit reached|limit will reset|Y
 
 ## 4. 1画面分プロンプトのテンプレート（per-item prompt）
 
-前半・後半は別々の `claude -p` 呼び出しに渡す独立したプロンプトであり、互いのセッション・コンテキストを共有しない（これにより盲検分離が成立する）。
+`docs-only` は前半プロンプトだけを実行し、`STATIC_COMPLETE` で終端する。`single-pass` / `iterative` では前半・後半を別々の `claude -p` 呼び出しに渡し、互いのセッション・コンテキストを共有しない（これにより盲検分離が成立する）。
 
 ### 4.1 前半テンプレート（著述）: `PER_ITEM_PROMPT_FIRST`
 
@@ -243,6 +279,7 @@ grep -qiE 'usage limit|rate limit|session limit|limit reached|limit will reset|Y
 あなたは1画面のリバース設計著述を完遂するヘッドレスタスクです（前半: 原本コードを読む工程）。
 
 対象画面: $TARGET
+検証モード: __VERIFICATION_MODE__
 リポジトリ: $TARGET_REPO_PATH
 設計書出力先: $DOCS_ROOT
 テンプレート: $TEMPLATE_ROOT
@@ -251,12 +288,15 @@ grep -qiE 'usage limit|rate limit|session limit|limit reached|limit will reset|Y
 
 契約（必ず守ること）:
 1. 対象画面の著述パイプラインを以下の順に全て実行する:
-   - Skill(unlocking-reverse-target-screens) で画面開通
    - Skill(extracting-unit-facts-from-code) で事実封印
    - Skill(generating-reverse-basic-design) で基本設計著述
    - Skill(generating-reverse-detailed-design) で詳細設計著述
-2. 全工程完了したら画面レジストリの当該エントリ status を `authored` に更新する（=中間マーカー付与）
-3. 画面レジストリで当該画面の status が既に authored または baseline-established なら、何もせず即座に終了する
+2. 詳細設計の AUTHORED を検収したら、管理プロセスとして画面レジストリの当該エントリを作成または更新し `status=authored` にする
+3. `docs-only` の場合はここで `STATIC_COMPLETE` を返して終了する。unlocking/dynamic-only、ファイル単位検証、基準確立、implement、sync dry-run、judge、teardown を一切起動しない
+4. `single-pass` / `iterative` の場合だけ Skill(unlocking-reverse-target-screens) を `invocation_mode=dynamic-only` で起動し、動的検証に使う画面を開通して設計書 frontmatter の実測項目を補完する
+5. 画面レジストリで当該画面の status が既に authored、unlocked、baseline-established のいずれかなら、完了済み工程を再実行しない
+6. 画面開通に失敗しても facts・基本設計・詳細設計と `authored` を保持し、`静的リバース完了・動的検証保留` として停止する
+7. `single-pass` では再抽出・再著述・再比較を行わない。精度向上の反復は `iterative` の場合だけ許可する
 
 各 Skill の args は以下のリポジトリの SKILL.md に従い全量指定する:
 - target_repo_path: $TARGET_REPO_PATH
@@ -271,21 +311,24 @@ grep -qiE 'usage limit|rate limit|session limit|limit reached|limit will reset|Y
 
 ### 4.2 後半テンプレート（ファイル単位盲検検証・往復検証）: `PER_ITEM_PROMPT_SECOND`
 
+`docs-only` ではこのテンプレートを使わない。
+
 ```
 あなたは1画面のリバース設計検証を完遂するヘッドレスタスクです（後半: 設計書のみから判定する工程。原本コードは一切読まない）。
 
 対象画面: $TARGET
+検証モード: __VERIFICATION_MODE__
 リポジトリ: $TARGET_REPO_PATH
 設計書出力先: $DOCS_ROOT
 テンプレート: $TEMPLATE_ROOT
 共通設計書: $COMMON_DOCS_ROOT
 
-前提: 画面レジストリの当該エントリ status が authored であること（前半で著述済み）。この前提が満たされない場合は何もせず即座に終了する。
+前提: 画面レジストリの当該エントリ status が unlocked であること（静的著述・動的開通・frontmatter 完全性ゲート済み）。authored のままなら動的準備未完了なので何もせず即座に終了する。
 
 契約（必ず守ること）:
 1. 対象リポジトリの原本コードを Read しない（盲検）。情報源は設計書と facts のみ
 2. 検証パイプラインを以下の順に全て実行する:
-   - Skill(rebuilding-screen-unit-from-docs) でファイル単位盲検検証（対象ファイルを白紙化し設計書のみから再現。無人モードでは必須工程）
+   - Skill(rebuilding-screen-unit-from-docs) に verification_mode を渡してファイル単位盲検検証（対象ファイルを白紙化し設計書のみから再現。無人モードでは必須工程）
    - Skill(syncing-reverse-env) mode=sync で基準確立
    - Skill(rebuilding-code-from-docs) mode=implement で比較要求を取得
    - Skill(syncing-reverse-env) mode=sync,dry-run で比較結果ブロックを取得
@@ -293,6 +336,7 @@ grep -qiE 'usage limit|rate limit|session limit|limit reached|limit will reset|Y
 3. status=PASS まで到達したら画面レジストリの当該エントリ status を `baseline-established` に更新する（=検証完了マーカー付与）
 4. 検証完了後、Skill(syncing-reverse-env) mode=teardown（軽量: ポート・プロセスのみ解放し baseline_tag・成果物は保持）で環境スロットを解放する
 5. 画面レジストリで当該画面の status が既に baseline-established なら、何もせず即座に終了する
+6. `single-pass` は各検証を1回だけ実行し、FAIL・差し戻し・未完了を改善候補として返して停止する。再生成・再比較による精度向上は `iterative` の場合だけ行う
 
 各 Skill の args は以下のリポジトリの SKILL.md に従い全量指定する:
 - target_repo_path: $TARGET_REPO_PATH

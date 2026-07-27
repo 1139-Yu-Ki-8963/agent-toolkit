@@ -107,7 +107,7 @@
 
   <table class="meta-table">
     <tr><td>対応 OS</td><td>Windows WSL2 環境</td></tr>
-    <tr><td>検証状況</td><td>サンプルプロジェクトで動作確認済み</td></tr>
+    <tr><td>検証状況</td><td>2026-07-27: verification_url 未確定でも facts から詳細設計を著述できる契約と回帰検査を確認済み</td></tr>
     <tr><td>依存</td><td>shared/scripts/scaffold-screen.sh（Phase 1スキャフォールディング。起動引数scaffold_script_pathで受領）、shared/scripts/seal-facts.sh（Phase 2封印検証）、scripts/check-fact-coverage.sh（Phase 5完全性ゲート）、shared/scripts/audit-consistency.sh（Phase 5内部整合性）</td></tr>
     <tr><td>関連資料</td><td><code>SKILL.md</code>, <code>references/phase-details.md</code>, <code>references/writing-rules.md</code></td></tr>
   </table>
@@ -210,7 +210,7 @@
   完了条件: 必須引数が揃い、画面ディレクトリの構造健全性を確認済み
 
 <span class="cap">Phase 2: 封印検証と facts 読込</span>
-  seal-facts.sh verify <facts_ref> を実行、exit 0を確認(必須ゲート)
+  seal-facts.sh verify &lt;facts_ref&gt; を実行、exit 0を確認(必須ゲート)
   exit 1ならstatus=BLOCKED(hint: extracting-unit-facts-from-codeで再封印せよ)
   exit 0ならfacts.ymlとcommon_docs_root配下の共通文書を読み込む
   対象リポジトリの原本コードは一切Readしない
@@ -227,7 +227,7 @@
   完了条件: 転記完了・measurement_pendingが留保済み
 
 <span class="cap">Phase 5: 完全性ゲート</span>
-  check-fact-coverage.sh <facts_ref>/facts.yml <設計書.md> [<DESIGN.md>]
+  check-fact-coverage.sh &lt;facts_ref&gt;/facts.yml &lt;設計書.md&gt; [&lt;DESIGN.md&gt;]
   audit-consistency.shを通常モードで実行、違反0件を確認
   完了条件: check-fact-coverage.shがexit 0かつaudit-consistency.sh違反0件
 

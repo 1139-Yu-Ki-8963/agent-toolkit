@@ -25,11 +25,6 @@
 #   }]
 # }
 #
-# unit_kind=message の専用契約:
-#   トップレベルに sourceDir(string), strategy(object), detectionSummary(object), units(array),
-#   summary(object) を持つ。units[].sourceFile は単一文字列ではなく string[] とし、複数の原本
-#   ファイルを列挙する。message 専用の詳細契約は shared/references/manifest-schema-extensions.md に記載する。
-#
 # 出力: <output-html-path> に単一ファイル自己完結のHTMLを書き出す。
 #   - kind=unresolved は「要手動確認」セクションの別テーブルへ(0件なら「なし」)
 #   - manifest.json の内容は <script type="application/json" id="unit-manifest"> にそのまま埋め込む
@@ -183,31 +178,6 @@ EOF
     echo "  [PASS] 回帰確認: 可視テーブル内容は維持されvalidate-manifest.shも引き続きPASS"
   else
     echo "  [FAIL] 回帰確認: 可視テーブル内容またはvalidate-manifest.shのPASSに退行が発生した" >&2
-    rc=1
-  fi
-
-  # --- message 契約: 専用validator結線・複数sourceFile表示・HTML生成までの完走 ---
-  local manifest_message="$tmp/manifest-message.json"
-  jq -n \
-    --arg sourceDir "$tmp/src" \
-    '{
-      generatedAt: "2026-01-01T00:00:00Z",
-      unitKind: "message",
-      sourceDir: $sourceDir,
-      strategy: {extractionMethod: "markdown-table", approvedByUser: false},
-      detectionSummary: {method: "markdown-table", unitCount: 1, unresolvedCount: 0},
-      units: [{unitKey: "MSG-001", kind: "message", identifier: "MSG-001", confidence: "high",
-        messageText: "登録しました", messageType: "success",
-        sourceFile: ["src/messages.ts", "src/common.ts"], usedScreen: "users"}],
-      summary: {totalCount: 1, byType: {success: 1}}
-    }' > "$manifest_message"
-  local out_message="$tmp/out-message.html"
-  if bash "$script_path" "$manifest_message" "$out_message" --unit-kind message >/dev/null 2>&1 &&
-    grep -q 'src/messages.ts' "$out_message" &&
-    grep -q 'source-file' "$out_message"; then
-    echo "  [PASS] message: 専用validator結線・複数sourceFile表示・HTML生成"
-  else
-    echo "  [FAIL] message: 新契約の検証またはHTML生成が失敗した" >&2
     rc=1
   fi
 

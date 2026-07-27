@@ -32,9 +32,10 @@ claude CLI のヘッドレスモード（`claude -p`、対話画面を介さず1
 | template_root | 必須 | テンプレートディレクトリパス（shared/templates/リバース検証/画面/） |
 | common_docs_root | 必須 | プロジェクト共通設計書ディレクトリパス |
 | survey_doc_path | 必須 | アーキテクチャ調査書のファイルパス |
+| verification_mode | 任意（既定 `single-pass`） | `docs-only` は facts→基本設計→詳細設計だけを実行して `STATIC_COMPLETE` で終端する。`single-pass` は各画面の意味的な検証を1回だけ実行し、judge FAIL・差し戻し・再現不一致を記録して再試行しない。`iterative` のみ改善後の再実行を許可する |
 | model | 任意 | claude -p に渡すモデル名。既定: claude-sonnet-5（事実封印・往復検証は分析・判断を伴い Haiku では精度不足のため） |
 | wait_seconds | 任意 | limit検知時の待機秒数。既定: 3600 |
-| fail_limit_k | 任意 | 同一画面の連続失敗上限。既定: 3 |
+| fail_limit_k | 任意 | `iterative` 時だけ使う同一画面の連続失敗上限。既定: 3 |
 | log_path | 任意 | 実行ログ出力先。既定: `<verification_dir>/バッチ運転記録/batch-log.txt` |
 | lane_id | 任意 | レーン識別子。複数レーン並列起動時に指定。未指定なら単一レーン運転。ログは `<verification_dir>/バッチ運転記録/batch-log-<lane_id>.txt`、failed リストは `<verification_dir>/バッチ運転記録/failed-screens-<lane_id>.txt`、conflict-skip リストは `<verification_dir>/バッチ運転記録/conflict-skip-screens-<lane_id>.txt` にレーン別分離 |
 | deadline | 任意 | 時限（ISO 8601日時）。指定時はこの時刻以降に新規画面への着手を停止する（ソフト停止）。未指定なら従来どおり残ゼロまで継続 |
@@ -54,7 +55,7 @@ claude CLI 2.1.206 で実機確認済みの仕様。
 
 ### Step 1-1: 引数を検証する
 
-全必須引数（target_repo_path・output_dir・screen_ids・template_root・common_docs_root・survey_doc_path）の存在と、参照先パスの実在を確認する。不足があればエラーメッセージを返して即終了する。
+全必須引数（target_repo_path・output_dir・screen_ids・template_root・common_docs_root・survey_doc_path）の存在と、参照先パスの実在を確認する。verification_mode は `docs-only|single-pass|iterative` を受理する。不足・不正値があればエラーメッセージを返して即終了する。
 
 **完了**: 全必須引数が検証済みで、参照先パスが実在する。
 
@@ -68,16 +69,16 @@ screen_ids が "all" の場合は画面一覧HTML（`<output_dir>/一覧/画面�
 
 ### Step 2-1: 1画面実行し成否判定を検証する
 
-Bash ツール（dangerouslyDisableSandbox: true）で対象一覧の先頭1画面だけをフォアグラウンド実行する。前半 per-item prompt（後述）を使い claude -p を1回実行し、画面レジストリの当該エントリ status が `authored` になったことを確認する。続けて後半 per-item prompt で claude -p をもう1回実行し、status が `baseline-established` になったことを確認する（前半・後半は別プロセスで、盲検分離を満たす）。
+Bash ツール（dangerouslyDisableSandbox: true）で対象一覧の先頭1画面だけをフォアグラウンド実行する。前半 per-item prompt（後述）を使い claude -p を1回実行し、静的著述の結果を確認する。`docs-only` は `STATIC_COMPLETE` と `status=authored` を確認してここで終了する。`single-pass|iterative` は続けて後半 per-item prompt で claude -p をもう1回実行し、動的検証の結果を確認する（前半・後半は別プロセスで、盲検分離を満たす）。この処理は先頭画面に対する本番1回目として数え、Phase 3 で同じ画面を再実行しない。
 
-**合格するまで Phase 3 に進むことを禁止する。**
+`single-pass` は結果が PASS でも FAIL でも1回で Phase 2 を終了し、FAIL は failed リストへ記録して Phase 3 に進む。`iterative` の場合だけ、実行基盤自体の不備を直してドライランを再実行できる。意味的FAILの改善反復は Phase 3 の `FAIL_LIMIT_K` 管理へ委ねる。
 
 失敗時の切り分け手順:
-1. limit 文言が出力に含まれる → 時間帯を変えて再試行
-2. マーカー未付与だが途中まで進んでいる → per-item prompt（前半/後半どちらか）の工程指示を確認・修正
+1. limit 文言が出力に含まれる → 基盤事象として待機後に再開（意味的な精度向上反復には数えない）
+2. マーカー未付与だが途中まで進んでいる → `single-pass` は失敗理由を記録して終了、`iterative` は per-item prompt の工程指示を確認して Phase 3 で再試行
 3. 起動自体が失敗 → sandbox 設定・モデル名・allowedTools を確認
 
-**完了**: ドライラン1画面で前半（status=authored）・後半（status=baseline-established）の両工程完走とマーカー付与を確認済み。
+**完了**: `docs-only` はドライラン1画面の前半を1回実行し `STATIC_COMPLETE` または failed が確定済み。`single-pass|iterative` は前半・後半を各1回実行し、成功または failed の結果が確定済み。
 
 ## Phase 3: 無人ループ起動
 
@@ -116,7 +117,7 @@ Bash ツールで残件カウントコマンドを実行する。マーカー未
 | Phase | 完了条件 |
 |---|---|
 | Phase 1 | 引数検証済み・対象画面一覧生成済み |
-| Phase 2 | ドライラン1画面で全工程完走確認済み。合格前はPhase 3に進まない |
+| Phase 2 | `docs-only` は前半を1回実行し `STATIC_COMPLETE` または failed が確定。`single-pass|iterative` は前半・後半を各1回実行し、成功または failed が確定済み |
 | Phase 3 | PID生存確認済み・監視コマンド報告済み |
 | Phase 4 | 全画面が検証完了・failed退避・conflict-skip退避のいずれかで確定 |
 | Phase 5 | 完了報告提示済み |
@@ -126,8 +127,8 @@ Bash ツールで残件カウントコマンドを実行する。マーカー未
 
 | 層 | 反復条件 | 上限・停止条件 |
 |---|---|---|
-| 周回ループ | 未検証残（マーカー未付与かつfailedリスト・conflict-skipリスト外）> 0 | 周回数に上限なし（意図的）。停止は (1) 収束: 全画面マーカー付与済みで remaining=0 (2) 発散検知: 各画面がK回連続失敗でfailed退避。対象数有限なら必ず終了する |
-| 対象ループ | 画面一覧を先頭から1件ずつ処理。前半・後半の計2回 `claude -p` を呼び出す | `status: baseline-established` ならスキップ。前半は `status: authored` の実在、後半は `status: baseline-established` の実在で成否判定する（終了コードは使わない）。未達なら失敗カウント加算、K回でfailed退避 |
+| 周回ループ | 未検証残（マーカー未付与かつfailedリスト・conflict-skipリスト外）> 0 | `docs-only` と `single-pass` は各画面1回で終了し、未完了をfailed退避する。`iterative` だけ周回数に上限なしとし、各画面K回連続失敗でfailed退避する |
+| 対象ループ | 画面一覧を先頭から1件ずつ処理。`docs-only` は前半1回、`single-pass|iterative` は前半・後半の計2回 `claude -p` を呼び出す | `docs-only` は `status: authored` を `STATIC_COMPLETE` の完了マーカーとして扱い、動的工程を起動しない。`single-pass` は judge FAIL・差し戻し・再現不一致を1回の検証結果としてfailedリストへ記録し再キューしない。`iterative` は未達時に失敗カウントを加算し、K回まで改善後の再実行を許可する |
 | 環境スロット解放 | 対象画面が `baseline-established` に到達（後半完了）した直後に実施 | syncing-reverse-env の mode=teardown の軽量版（ポート・プロセスのみ解放し、baseline_tag・成果物は保持）を実行し、次画面のためにスロットを確保する |
 | スロット枯渇時の自動回収 | 前半 claude -p の画面開通で syncing-reverse-env がスロット不足 ERROR を返した場合 | headless_approved_ops に `環境撤去` が含まれていれば、基準確立済みで最も古い環境を軽量解放して再試行する。含まれていなければ failed リストへ退避する |
 | 開通競合検知 | unlocking-reverse-target-screens が `status=CONFLICT-SKIPPED`（他プロセスが同一画面の作業コピー・devサーバー等を使用中）を返した場合 | 当該画面を競合スキップとして conflict-skip リストへ記録し、他プロセスの環境には一切触れず次の画面へ続行する。競合スキップは failed とは別区分とし、失敗カウント（fail_limit_k）には加算しない |
@@ -145,20 +146,23 @@ Bash ツールで残件カウントコマンドを実行する。マーカー未
 
 ## 画面1件の処理パイプライン
 
-盲検分離（原本コードを読む工程と設計書のみで判定する工程を別プロセスに分離する要件。正本は `orchestrating-reverse-docs-flow` の `references/contract.md` の「無人モード仕様」の「盲検分離の必須要件」）を満たすため、1画面につき claude -p を前半・後半の2回に分けて呼び出す。前半と後半は別プロセスで実行されるため、前半で読んだ原本コードの情報が後半のコンテキストに混入しない。
+`docs-only` は1画面につき前半の claude -p を1回だけ呼び出し、静的リバースを `STATIC_COMPLETE` として終端する。`single-pass|iterative` は盲検分離（原本コードを読む工程と設計書のみで判定する工程を別プロセスに分離する要件）を満たすため、前半・後半の2回に分けて呼び出す。前半と後半は別プロセスで実行されるため、前半で読んだ原本コードの情報が後半のコンテキストに混入しない。
 
-### 前半（1回目 claude -p）: 著述
+### 前半（1回目 claude -p）: 静的リバース著述
 
-1. **画面開通**: 画面ディレクトリ作成・基準ファイル配置・レジストリ記帳（unlocking-reverse-target-screens）
-2. **事実封印**: 対象ファイルの facts 抽出と封印（extracting-unit-facts-from-code）
-3. **基本設計著述**: 画面基本設計書の生成（generating-reverse-basic-design）
-4. **詳細設計著述**: 画面詳細設計書の生成（generating-reverse-detailed-design）
+1. **事実封印**: 画面の開通有無にかかわらず、対象ファイルの facts を抽出・封印する（extracting-unit-facts-from-code）
+2. **基本設計著述**: 封印済み facts から画面基本設計書を生成する（generating-reverse-basic-design）
+3. **詳細設計著述**: 封印済み facts から画面詳細設計書を生成する（generating-reverse-detailed-design）。未開通時の実測項目は留保する
+4. **静的完了マーカー**: 詳細設計完了を検収した管理プロセスがレジストリを `status=authored` に更新する
+5. **画面開通**: 著述後に `unlocking-reverse-target-screens(invocation_mode=dynamic-only)` で実レンダリングURLを取得し、設計書 frontmatter の実測項目を補完する。開通失敗でも前4工程の成果物と `authored` を保持する
 
-前半完了時、画面レジストリの当該エントリ `status` を `authored` に更新する（=中間マーカー付与）。
+静的著述完了時、管理プロセスは画面レジストリの当該エントリを作成または更新して `status=authored` とする（=中間マーカー付与）。開通成功後は opener が `unlocked` に進める。未開通でも `authored` と静的成果物を保持し、「動的検証保留」を別途記録する。
+
+`docs-only` では手順5を実行せず、`status=authored` を確認して `STATIC_COMPLETE` を返して終了する。unlocking/dynamic-only、ファイル単位検証、基準確立、implement、sync dry-run、judge、teardown を一切起動しない。
 
 ### 後半（2回目 claude -p）: ファイル単位盲検検証・往復検証
 
-前半完了（`status: authored`）を前提条件として開始する。原本コードは一切読まない（盲検）。
+前半の動的開通完了（`status: unlocked`）を前提条件として開始する。`authored` のままなら画面開通または frontmatter 完全性ゲートが未完了なので後半へ進まない。原本コードは一切読まない（盲検）。
 
 1. **ファイル単位盲検検証**: rebuilding-screen-unit-from-docs で対象ファイルを白紙化し設計書のみから再現する（無人モードでは任意工程ではなく必須工程）
 2. **基準確立**: syncing-reverse-env mode=sync で baseline tag を確立
@@ -167,7 +171,7 @@ Bash ツールで残件カウントコマンドを実行する。マーカー未
 
 後半完了時、画面レジストリの当該エントリ `status` を `baseline-established` に更新する（=検証完了マーカー付与）。
 
-各工程は既存の子スキルと同じロジックを Skill ツールで順次起動する形で、前半用・後半用の2種の per-item prompt にそれぞれ記述する。
+各工程は既存の子スキルと同じロジックを Skill ツールで順次起動する形で、前半用・後半用の2種の per-item prompt にそれぞれ記述する。両 prompt へ verification_mode を逐語で渡し、`single-pass` では意味的FAIL後の再抽出・再著述・再比較を禁止する。
 
 **per-item prompt の必須文言**: 無人モードではいかなる工程・用途でも Agent ツールのバックグラウンド起動を使用してはならない（正本は `orchestrating-reverse-docs-flow` の `references/contract.md` の「無人モード仕様」）。前半・後半それぞれの per-item prompt（`references/loop-design.md` §4 のテンプレート）は、この禁止文言をプロンプト本文へ逐語で含めることを必須とする。プロンプト内で Skill ツール起動を指示する記述と併記し、claude -p が起動する側のサブエージェントにも同じ制約を確実に伝播させる。
 
@@ -183,7 +187,7 @@ Bash ツールで残件カウントコマンドを実行する。マーカー未
 - バックグラウンドシェルの寿命が短いため `nohup` + `disown` + 起動10秒後の生存確認が必須
 - サンドボックスが外向き接続を制限するため dangerouslyDisableSandbox: true が必須
 - 終了コードは信用しない。成否はマーカー実在の grep で判定する
-- 周回ループに上限はない（意図的。`references/gotchas.md` 参照）
+- 周回ループに上限がないのは `verification_mode=iterative` のみ。`single-pass` は各画面1回で終端する
 - 1画面あたりの処理時間は実測ベースで前半・後半合わせて60分程度を見込む（事実封印・往復検証は分析・判断を伴い時間を要するため、初期見積りの5〜15分から実測値へ改めた）
 
 ## 参照資料
@@ -205,5 +209,5 @@ Bash ツールで残件カウントコマンドを実行する。マーカー未
 元スキル（running-headless-batch）から本スキルへの主な変更点:
 - AskUserQuestion を全面撤廃し args 全量指定の対話ゼロ契約に変更
 - per-item の対象を汎用ファイルから「画面」に特化
-- per-item prompt を orchestrating-reverse-docs-flow の画面処理パイプライン（前半: 開通→事実→基本設計→詳細設計／後半: ファイル単位盲検検証→基準確立→往復検証）に特化。前半・後半を別 claude -p 呼び出しに分離し盲検分離を満たす
+- per-item prompt を orchestrating-reverse-docs-flow の画面処理パイプライン（前半: 事実→基本設計→詳細設計→必要時のみ開通／後半: ファイル単位盲検検証→基準確立→往復検証）に特化。前半・後半を別 claude -p 呼び出しに分離し盲検分離を満たす
 - sandbox 無効化を args ではなく常時有効として設計（claude -p の API 到達に必須のため）
