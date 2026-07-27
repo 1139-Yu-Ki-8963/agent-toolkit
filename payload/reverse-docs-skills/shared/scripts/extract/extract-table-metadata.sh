@@ -43,15 +43,11 @@ set -euo pipefail
 
 lc() { printf '%s' "$1" | tr '[:upper:]' '[:lower:]'; }
 
-# --- CREATE TABLE ブロック切り出し: $1=file $2=テーブル物理名 → stdout(不検出なら空) ---
-extract_create_block() {
-  local file="$1" table_lc
-  table_lc="$(lc "$2")"
-  # sed の残り全行出力を awk が早期終了すると、pipefail 下では sed が SIGPIPE(141)
-  # になり得る。同じ入力ファイルを awk が一度だけ読むことで境界を構造的に除去する。
-  awk -v target="$table_lc" '
-    BEGIN { target = tolower(target); started = 0; block_depth = 0; in_string = 0; dollar_tag = ""; quote = sprintf("%c", 39) }
-    function code_only(source,    result, i, c, next_c, rest) {
+# --- SQL字句除去: コメント・文字列を空白化し、コードと括弧構造だけをstdoutへ出す ---
+sql_code_only() {
+  awk '
+    BEGIN { block_depth = 0; in_string = 0; e_string = 0; dollar_tag = ""; quote = sprintf("%c", 39) }
+    function code_only(source,    result, i, c, next_c, rest, prev_c, prev_prev_c) {
       result = ""
       for (i = 1; i <= length(source); i++) {
         c = substr(source, i, 1)
@@ -76,12 +72,13 @@ extract_create_block() {
           continue
         }
         if (in_string) {
-          if (c == "\\") {
+          if (e_string && c == "\\") {
             i++
           } else if (c == quote && next_c == quote) {
             i++
           } else if (c == quote) {
             in_string = 0
+            e_string = 0
           }
           result = result " "
           continue
@@ -94,6 +91,9 @@ extract_create_block() {
           continue
         }
         if (c == quote) {
+          prev_c = (i > 1 ? substr(source, i - 1, 1) : "")
+          prev_prev_c = (i > 2 ? substr(source, i - 2, 1) : "")
+          e_string = (prev_c ~ /[Ee]/ && prev_prev_c !~ /[[:alnum:]_]/)
           in_string = 1
           result = result " "
           continue
@@ -113,6 +113,22 @@ extract_create_block() {
     }
     {
       code = code_only($0)
+      print code
+    }
+  ' "$1"
+}
+
+# --- CREATE TABLE ブロック切り出し: $1=file $2=テーブル物理名 → stdout(不検出なら空) ---
+extract_create_block() {
+  local file="$1" table_lc sql_code
+  table_lc="$(lc "$2")"
+  # 字句除去結果を先に読み切ってから対象ブロックを切り出す。早期終了する下流へ
+  # ファイル読込をパイプしないため、pipefail下でもSIGPIPE(141)を発生させない。
+  sql_code="$(sql_code_only "$file")"
+  awk -v target="$table_lc" '
+    BEGIN { target = tolower(target); started = 0 }
+    {
+      code = $0
       lower = tolower(code)
       if (!started && lower ~ /create[[:space:]]+table[[:space:]]+/) {
         name = lower
@@ -128,7 +144,7 @@ extract_create_block() {
         if (code ~ /\)[^;]*;[[:space:]]*$/) exit
       }
     }
-  ' "$file"
+  ' <<< "$sql_code"
 }
 
 # --- カラム物理名抽出: stdin=CREATE TABLE ブロック → stdout=物理名(1 行 1 名) ---
@@ -154,8 +170,9 @@ extract_columns() {
 
 # --- FK 参照先物理名の収集: $1=block $2=file $3=対象テーブル物理名 → stdout=小文字物理名(重複除去) ---
 collect_fk_targets() {
-  local block="$1" file="$2" table_lc l tname
+  local block="$1" file="$2" table_lc l tname alter_code
   table_lc="$(lc "$3")"
+  alter_code="$(sql_code_only "$file")"
   {
     if [ -n "$block" ]; then
       printf '%s\n' "$block" | grep -oiE 'references[[:space:]]+[^[:space:](,;]+' || true
@@ -168,7 +185,7 @@ collect_fk_targets() {
       tname="${tname##*.}"
       [ "$tname" = "$table_lc" ] || continue
       printf '%s\n' "$l" | grep -oiE 'references[[:space:]]+[^[:space:](,;]+' || true
-    done < <(grep -iE 'alter[[:space:]]+table[^;]*references' "$file" 2>/dev/null || true)
+    done < <(grep -iE 'alter[[:space:]]+table[^;]*references' <<< "$alter_code" 2>/dev/null || true)
   } | awk '{print $2}' | tr -d '`"[]' | sed -E 's/.*\.//' \
     | tr '[:upper:]' '[:lower:]' | awk 'NF && !seen[$0]++'
 }
@@ -364,6 +381,7 @@ CREATE TABLE actual_table (
   ghost_tagged_dollar TEXT REFERENCES ghost_tagged_table(id),
   $body$,
   escaped_note TEXT DEFAULT E'prefix\' ghost_escape TEXT REFERENCES ghost_escape_table(id)',
+  standard_note TEXT DEFAULT 'abc\',
   user_id BIGINT REFERENCES users(id),
   real_name TEXT
 ) ENGINE=InnoDB;
@@ -371,29 +389,38 @@ CREATE TABLE trailing_noise (
   trailing_id BIGINT,
   trailing_user_id BIGINT REFERENCES ghost_trailing_table(id)
 );
+-- ALTER TABLE actual_table ADD COLUMN ghost_line_id BIGINT REFERENCES ghost_alter_line(id);
+/* ALTER TABLE actual_table ADD COLUMN ghost_block_id BIGINT REFERENCES ghost_alter_block(id); */
+SELECT 'ALTER TABLE actual_table ADD COLUMN ghost_string_id BIGINT REFERENCES ghost_alter_string(id);';
+SELECT E'ALTER TABLE actual_table ADD COLUMN ghost_e_id BIGINT REFERENCES ghost_alter_e(id);';
+SELECT $$ALTER TABLE actual_table ADD COLUMN ghost_dollar_id BIGINT REFERENCES ghost_alter_dollar(id);$$;
+ALTER TABLE actual_table ADD COLUMN post_id BIGINT REFERENCES posts(id);
 EOF
   jq -n \
     --arg sourceDir "$tmp/migrations" \
     --arg sourceFile "$commented_file" \
     --arg usersFile "$tmp/migrations/001_create_users.sql" \
+    --arg postsFile "$tmp/migrations/002_create_posts.sql" \
     '{
       generatedAt: "2026-01-01T00:00:00Z",
       sourceDir: $sourceDir,
       unitKind: "table",
       strategy: {extractionMethod: "migration-sql", approvedByUser: true, unitIdRegex: null, excludePatterns: []},
-      detectionSummary: {unitCount: 2, unresolvedCount: 0},
+      detectionSummary: {unitCount: 3, unresolvedCount: 0},
       units: [
         {unitKey: "actual-table", kind: "table", identifier: "actual_table", unitNameGuess: "実表",
          sourceFile: $sourceFile, confidence: "high", fileCount: 1, detectionMethod: "create-table"},
         {unitKey: "users-master", kind: "table", identifier: "users", unitNameGuess: "ユーザー",
-         sourceFile: $usersFile, confidence: "high", fileCount: 1, detectionMethod: "create-table"}
+         sourceFile: $usersFile, confidence: "high", fileCount: 1, detectionMethod: "create-table"},
+        {unitKey: "posts", kind: "table", identifier: "posts", unitNameGuess: "投稿",
+         sourceFile: $postsFile, confidence: "high", fileCount: 1, detectionMethod: "create-table"}
       ]
     }' > "$commented_manifest"
   if bash "$script_path" "$commented_manifest" "$tmp/migrations" "$commented_out" >/dev/null 2>&1 \
     && jq -e '.units[0]
-      | .columnCount == 6
-        and .mainColumns == ["real_id", "payload", "note", "escaped_note", "user_id"]
-        and .foreignKeys == ["users-master"]' "$commented_out" >/dev/null 2>&1; then
+      | .columnCount == 7
+        and .mainColumns == ["real_id", "payload", "note", "escaped_note", "standard_note"]
+        and .foreignKeys == ["users-master", "posts"]' "$commented_out" >/dev/null 2>&1; then
     echo "  [PASS] DDLコメント除外: 行・ブロックコメント、単一引用、ドル引用を無視して実DDLのみ抽出"
   else
     echo "  [FAIL] DDLコメント除外: コメントまたはSQL文字列内のCREATE TABLEを誤抽出" >&2

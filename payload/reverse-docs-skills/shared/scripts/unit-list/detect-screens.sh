@@ -936,6 +936,11 @@ assert_set_equal() {
   fi
 }
 
+has_ui_rendering_evidence() {
+  local file="$1"
+  grep -aqE '((return|=>)[[:space:]]*\(?[[:space:]]*<([a-z][[:alnum:]:-]*[[:space:]>]|[A-Z][[:alnum:]_.:-]*[^>]*\/>)|</[A-Za-z][[:alnum:]_.:-]*[[:space:]]*>|React\.createElement[[:space:]]*\(|(render|render_template|renderToString|template|view|include|includeTemplate)[[:space:]]*\(|<(html|body|template|main|section|div|form|table|dialog)[[:space:]>])' "$file" 2>/dev/null
+}
+
 run_self_tests() {
   local root
   root="$(mktemp -d)"
@@ -1966,7 +1971,8 @@ EOF
   # --- 1-12: 後続の明示roleを、先行する分岐ヒントより優先する ---
   local t_role_priority="$root/t_role_priority"
   mkdir -p "$t_role_priority/app/role-priority" "$t_role_priority/app/role-dynamic" \
-    "$t_role_priority/app/roles-array" "$t_role_priority/app/has-role" "$t_role_priority/app/role-literal"
+    "$t_role_priority/app/roles-array" "$t_role_priority/app/has-role" \
+    "$t_role_priority/app/has-role-first" "$t_role_priority/app/role-literal"
   printf 'module.exports = {}\n' > "$t_role_priority/next.config.js"
   printf '%s\n' \
     'export default function Page() {' \
@@ -1980,11 +1986,12 @@ EOF
     '  role = user.role' \
     '  return <main>Dynamic</main>' \
     '}' > "$t_role_priority/app/role-dynamic/page.tsx"
-  printf 'export default function Page() { const policy = { roles: ["admin"] }; return <main>{policy.roles[0]}</main> }\n' > "$t_role_priority/app/roles-array/page.tsx"
-  printf 'export default function Page() { return hasRole(currentUser, "admin") ? <main>Admin</main> : <main>User</main> }\n' > "$t_role_priority/app/has-role/page.tsx"
+  printf 'export default function Page() { const policy = { roles: ["admin", "editor"], label: "settings" }; return <main>{policy.roles[0]}</main> }\n' > "$t_role_priority/app/roles-array/page.tsx"
+  printf 'export default function Page() { return hasRole(currentUser, "admin") ? <main title="Report">Admin</main> : <main>User</main> }\n' > "$t_role_priority/app/has-role/page.tsx"
+  printf 'export default function Page() { return hasRole("admin", "tenant-a") ? <main title="Report">Admin</main> : <main>User</main> }\n' > "$t_role_priority/app/has-role-first/page.tsx"
   printf 'export default function Page() { role = "admin"; return <main>Admin</main> }\n' > "$t_role_priority/app/role-literal/page.tsx"
   local t_role_priority_manifest t_role_priority_status t_role_priority_subtype t_role_dynamic_subtype
-  local t_roles_array_subtype t_has_role_subtype t_role_literal_subtype
+  local t_roles_array_subtype t_has_role_subtype t_has_role_first_subtype t_role_literal_subtype
   t_role_priority_manifest="$(mktemp)"
   t_role_priority_status=0
   bash "$0" "$t_role_priority" "$t_role_priority_manifest" >/dev/null 2>&1 || t_role_priority_status=$?
@@ -1992,14 +1999,16 @@ EOF
   t_role_dynamic_subtype="$(jq -r '.screens[] | select(.route == "/role-dynamic") | .accountSubType' "$t_role_priority_manifest" 2>/dev/null || true)"
   t_roles_array_subtype="$(jq -r '.screens[] | select(.route == "/roles-array") | .accountSubType' "$t_role_priority_manifest" 2>/dev/null || true)"
   t_has_role_subtype="$(jq -r '.screens[] | select(.route == "/has-role") | .accountSubType' "$t_role_priority_manifest" 2>/dev/null || true)"
+  t_has_role_first_subtype="$(jq -r '.screens[] | select(.route == "/has-role-first") | .accountSubType' "$t_role_priority_manifest" 2>/dev/null || true)"
   t_role_literal_subtype="$(jq -r '.screens[] | select(.route == "/role-literal") | .accountSubType' "$t_role_priority_manifest" 2>/dev/null || true)"
   if [ "$t_role_priority_status" -eq 0 ] \
     && [ "$t_role_priority_subtype" = "admin" ] && [ "$t_roles_array_subtype" = "admin" ] \
-    && [ "$t_has_role_subtype" = "admin" ] && [ "$t_role_literal_subtype" = "admin" ] \
+    && [ "$t_has_role_subtype" = "admin" ] && [ "$t_has_role_first_subtype" = "admin" ] \
+    && [ "$t_role_literal_subtype" = "admin" ] \
     && [ "$t_role_dynamic_subtype" = "common" ]; then
     test_report "1-12-明示role-分岐ヒント優先順位" 0
   else
-    test_report "1-12-明示role-分岐ヒント優先順位" 1 "status=$t_role_priority_status require='$t_role_priority_subtype' roles='$t_roles_array_subtype' hasRole='$t_has_role_subtype' literal='$t_role_literal_subtype' dynamic='$t_role_dynamic_subtype'"
+    test_report "1-12-明示role-分岐ヒント優先順位" 1 "status=$t_role_priority_status require='$t_role_priority_subtype' roles='$t_roles_array_subtype' hasRole='$t_has_role_subtype/$t_has_role_first_subtype' literal='$t_role_literal_subtype' dynamic='$t_role_dynamic_subtype'"
   fi
   rm -f "$t_role_priority_manifest"
 
@@ -2132,7 +2141,13 @@ EOF
   printf 'export const openWindow = () => window.open("/helper-only")\n' > "$t_helper_popup/app/helper/lib/open-window.ts"
   printf '%s\n' \
     'export const identity = <T>(value: T) => value' \
+    'export function assertValue(value: unknown) { window.open("/assert"); return <T>value }' \
     'export const openWindowTsx = () => window.open("/helper-tsx-only")' > "$t_helper_popup/app/helper/lib/open-window-tsx.tsx"
+  printf 'export const View = () => <main>Lower</main>\n' > "$t_helper_popup/ui-lower.tsx"
+  printf 'export const View = () => <PreviewPane />\n' > "$t_helper_popup/ui-self-closing.tsx"
+  printf 'export const View = () => <PreviewPane>Body</PreviewPane>\n' > "$t_helper_popup/ui-closing.tsx"
+  printf 'export const View = () => React.createElement("main", null, "React")\n' > "$t_helper_popup/ui-react.js"
+  printf 'render_template("preview")\n' > "$t_helper_popup/ui-template.rb"
   local t_helper_popup_manifest t_helper_popup_status t_helper_popup_parent t_helper_popup_children
   t_helper_popup_manifest="$(mktemp)"
   t_helper_popup_status=0
@@ -2143,6 +2158,16 @@ EOF
     test_report "1-10-非UI-helper-window.open-popup誤判定防止" 0
   else
     test_report "1-10-非UI-helper-window.open-popup誤判定防止" 1 "status=$t_helper_popup_status parent='$t_helper_popup_parent' popupChildren='$t_helper_popup_children'"
+  fi
+  if ! has_ui_rendering_evidence "$t_helper_popup/app/helper/lib/open-window-tsx.tsx" \
+    && has_ui_rendering_evidence "$t_helper_popup/ui-lower.tsx" \
+    && has_ui_rendering_evidence "$t_helper_popup/ui-self-closing.tsx" \
+    && has_ui_rendering_evidence "$t_helper_popup/ui-closing.tsx" \
+    && has_ui_rendering_evidence "$t_helper_popup/ui-react.js" \
+    && has_ui_rendering_evidence "$t_helper_popup/ui-template.rb"; then
+    test_report "1-10-UI描画根拠-型アサーション境界" 0
+  else
+    test_report "1-10-UI描画根拠-型アサーション境界" 1
   fi
   rm -f "$t_helper_popup_manifest"
 
@@ -2653,19 +2678,33 @@ classify_screen() {
         }
         return value
       }
+      function first_quoted_literal(source,    token) {
+        if (match(source, /["\047][A-Za-z_][A-Za-z0-9_]*["\047]/)) {
+          token = substr(source, RSTART + 1, RLENGTH - 2)
+          return token
+        }
+        return ""
+      }
       {
-        if ($0 ~ /(requireRole|hasRole|roles:|@RolesAllowed)/) {
-          value = last_quoted_literal($0)
+        if (match($0, /(requireRole|hasRole|@RolesAllowed)[^(]*\([^)]*\)/)) {
+          scope = substr($0, RSTART, RLENGTH)
+          value = first_quoted_literal(scope)
           if (value != "") { print value; exit }
-          line = $0
-          sub(/.*(requireRole|hasRole|roles:|@RolesAllowed)[^[:alnum:]_]+/, "", line)
+          line = scope
+          sub(/.*(requireRole|hasRole|@RolesAllowed)[^[:alnum:]_]+/, "", line)
           if (match(line, /^[A-Za-z_][A-Za-z0-9_]*/)) {
             print substr(line, RSTART, RLENGTH)
             exit
           }
         }
+        if (match($0, /roles[[:space:]]*:[[:space:]]*\[[^]]*\]/)) {
+          scope = substr($0, RSTART, RLENGTH)
+          value = first_quoted_literal(scope)
+          if (value != "") { print value; exit }
+        }
         if (match($0, /role[[:space:]]*=[[:space:]]*["\047][A-Za-z_][A-Za-z0-9_]*["\047]/)) {
-          value = last_quoted_literal(substr($0, RSTART, RLENGTH))
+          scope = substr($0, RSTART, RLENGTH)
+          value = last_quoted_literal(scope)
           if (value != "") { print value; exit }
         }
       }
@@ -2770,7 +2809,7 @@ classify_screen() {
   for analysis_file in "${analysis_file_array[@]}"; do
     [ "$analysis_file" = "$entry_file" ] && continue
     local popup_ui_evidence=false
-    if grep -aqE '(return[[:space:]]*\(?[[:space:]]*<[[:alpha:]]|=>[[:space:]]*\(?[[:space:]]*<[[:alpha:]]|React\.createElement[[:space:]]*\(|(render|render_template|renderToString|template|view|include|includeTemplate)[[:space:]]*\(|<(html|body|template|main|section|div|form|table|dialog)[[:space:]>])' "$analysis_file" 2>/dev/null; then
+    if has_ui_rendering_evidence "$analysis_file"; then
       popup_ui_evidence=true
     fi
     [ "$popup_ui_evidence" = true ] && popup_ui_files+=("$analysis_file")
