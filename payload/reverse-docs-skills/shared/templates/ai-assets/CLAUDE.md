@@ -1,0 +1,21 @@
+# {{REPOSITORY_NAME}} 作業案内
+
+## リポジトリ索引
+
+- 目的: {{REPOSITORY_PURPOSE_FROM_EVIDENCE}}
+- 技術スタック: {{TECH_STACK_FROM_MANIFESTS_AND_CONFIG}}
+- 実行コマンド: {{VERIFIED_COMMANDS_WITH_SOURCE_PATHS}}
+- ディレクトリ構造: {{DIRECTORY_STRUCTURE_WITH_ROOTS}}
+- リバース対象: {{REVERSE_TARGETS_FROM_IMPLEMENTATION}}
+- 成果物の正本: {{CANONICAL_ARTIFACT_PATHS}}
+- 派生物: {{DERIVED_ARTIFACT_PATHS_AND_GENERATORS}}
+- 調査入口: {{INVESTIGATION_ENTRY_PATHS}}
+- 検証出力先: {{VERIFICATION_OUTPUT_PATHS}}
+
+## 索引の範囲
+
+このファイルはリポジトリの前半索引だけを持つ。規約本文、規約一覧、AIの行動規範はここへ記載しない。
+
+## 未確定事項
+
+- {{UNCONFIRMED_PROJECT_FACT}}

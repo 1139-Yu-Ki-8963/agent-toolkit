@@ -4,7 +4,7 @@
 
 ## 概要
 
-このリポジトリは、指揮役スキル 1 つと子スキル 22 個（一覧生成 6 + 機能一覧 1 + 基盤ページ生成 5 + 工程 10）で構成される。既存コードベースを走査して一覧・共通文書・詳細設計書を積み上げ、最後に「設計書だけからコードを再生成し、原本と機械突合する」往復検証で設計書の品質を保証する。再生成コードが原本と一致しなければ設計書のどこかに欠落がある、という考え方により、設計書の完成度を主観ではなく機械判定（画面描画・内容・ARIA・画素差分・console・操作の各一致）で確定させる。
+このリポジトリは、指揮役 1 個を含む実在する 35 スキルで構成される。既存コードベースを走査して一覧・共通文書・詳細設計書を積み上げ、最後に「設計書だけからコードを再生成し、原本と機械突合する」往復検証で設計書の品質を保証する。再生成コードが原本と一致しなければ設計書のどこかに欠落がある、という考え方により、設計書の完成度を主観ではなく機械判定（画面描画・内容・ARIA・画素差分・console・操作の各一致）で確定させる。スキル数の正本は `.claude/skills/*/SKILL.md` の実在ファイルであり、本 README の表は役割と主成果物を読むための索引である。
 
 ## 成果物の最終形
 
@@ -36,7 +36,7 @@
 
 ## スキル一覧
 
-指揮役 1 + 一覧生成 6 + 機能一覧 1 + 基盤ページ生成 5 + 工程 10 の計 23 スキル。
+`.claude/skills/*/SKILL.md` に実在する全35スキル。以下の表は役割と主成果物を読むための索引であり、実数はファイル実体を正本とする。
 
 | スキル名 | 役割 | 主成果物 |
 |---|---|---|
@@ -63,10 +63,22 @@
 | rebuilding-screen-unit-from-docs | 設計書だけから 1 ファイルを再生成し原本と突合（ファイル単位検証） | 検証記録・最終テストコード |
 | rebuilding-code-from-docs | 設計書だけから画面単位で再実装し比較・判定（implement / judge の 2 モード） | 修正指示書.md・最終報告.md |
 | running-reverse-screen-batch | 画面単位の検証を claude -p 無人バッチで一括実行 | 画面バッチ実行ログ |
+| counting-code-lines | 対象コードの行数を算出 | 行数集計結果 |
+| surveying-local-environment | 対象プロジェクトのローカル実行環境を調査 | 環境調査結果 |
+| generating-component-inventory-for-reverse-docs | UIコンポーネントを棚卸し | コンポーネント棚卸し |
+| generating-cross-views-for-reverse-docs | 複数成果物を横断する対応表を生成 | 対応表 |
+| generating-design-system-for-reverse-docs | デザインシステムを採録 | デザインシステム |
+| generating-entity-state-for-reverse-docs | エンティティ状態を採録 | 状態遷移表 |
+| generating-icon-catalog-for-reverse-docs | アイコンを棚卸し | アイコンカタログ |
+| generating-message-list-for-reverse-docs | メッセージを棚卸し | メッセージ一覧 |
+| generating-release-notes-for-reverse-docs | リリース履歴を採録 | リリースノート |
+| generating-sequence-diagram-for-reverse-docs | シーケンスを採録 | シーケンス図 |
+| generating-test-viewpoint-list-for-reverse-docs | テスト観点を一覧化 | テスト観点一覧 |
+| generating-agent-config-index-from-repo | リポジトリ分析からAGENTS/CLAUDE索引を生成 | AGENTS.md・CLAUDE.md |
 
 ## 種別×工程の対応表
 
-6 種別 × 4 工程の対応状況。画面のみ全工程が確立済みで、他 5 種別は一覧生成まで対応済み（facts 抽出以降は「[段階計画](#段階計画)」の対象）。
+6 種別 × 4 工程の対応状況。画面のみ全工程が確立済みで、他 5 種別は一覧生成まで対応済み（facts 抽出以降は「[段階計画](#段階計画)」の対象）。ポータルで扱う納品物カテゴリ全体（基盤情報・規約・設計書・一覧/設計図・マトリクス/対応表・AI設定資産・デザイン）は [reverse-docs-overview.html](reverse-docs-overview.html) の納品物表を正本とする。
 
 | 種別 | 一覧生成 | facts 抽出 | 設計書執筆 | 往復検証 |
 |---|---|---|---|---|
@@ -159,6 +171,16 @@ Skill(orchestrating-reverse-docs-flow)
 | [facts-schema.md](shared/references/facts-schema.md) | facts の共有スキーマ |
 | [chapter-map.md](shared/references/chapter-map.md) | 設計書の章マップ |
 
+## 全体ガイドの整合検証
+
+全体ガイドの表示内容は、ポータルサンプルのカテゴリ・カード名・リンク先と一致させる。工程表は、状態遷移の順序と実行時の並列化（大規模画面の二段パスを含む）を混同しない。変更後は次の検査を実行する。
+
+```bash
+bash shared/scripts/check-overview-consistency.sh
+```
+
+この検査は `shared/samples/index.html` のカテゴリ JSON と `reverse-docs-overview.html` の可視表記を突合する。失敗時は値を推測して埋めず、正本（サンプル、工程設計、契約、各スキル）へ戻って原因を修正する。なお、実行環境の hook が検査スクリプトを遮断した場合は、成功扱いにせず、遮断理由と未実行の検証を受入記録へ残す。
+
 各スキルの詳解ガイド:
 
 - [指揮役（orchestrating-reverse-docs-flow）](.claude/skills/orchestrating-reverse-docs-flow/references/orchestrating-reverse-docs-flow-guide.html)
@@ -186,3 +208,13 @@ Skill(orchestrating-reverse-docs-flow)
 - [画面単位リバース検証バッチ（running-reverse-screen-batch）](.claude/skills/running-reverse-screen-batch/references/running-reverse-screen-batch-guide.html)
 - [コード行数計測（counting-code-lines）](.claude/skills/counting-code-lines/references/counting-code-lines-guide.html)
 - [ローカル環境調査（surveying-local-environment）](.claude/skills/surveying-local-environment/references/surveying-local-environment-guide.html)
+- [コンポーネント棚卸し（generating-component-inventory-for-reverse-docs）](.claude/skills/generating-component-inventory-for-reverse-docs/references/generating-component-inventory-for-reverse-docs-guide.html)
+- [横断表生成（generating-cross-views-for-reverse-docs）](.claude/skills/generating-cross-views-for-reverse-docs/references/generating-cross-views-for-reverse-docs-guide.html)
+- [デザインシステム生成（generating-design-system-for-reverse-docs）](.claude/skills/generating-design-system-for-reverse-docs/references/generating-design-system-for-reverse-docs-guide.html)
+- [状態遷移生成（generating-entity-state-for-reverse-docs）](.claude/skills/generating-entity-state-for-reverse-docs/references/generating-entity-state-for-reverse-docs-guide.html)
+- [アイコンカタログ生成（generating-icon-catalog-for-reverse-docs）](.claude/skills/generating-icon-catalog-for-reverse-docs/references/generating-icon-catalog-for-reverse-docs-guide.html)
+- [メッセージ一覧生成（generating-message-list-for-reverse-docs）](.claude/skills/generating-message-list-for-reverse-docs/references/generating-message-list-for-reverse-docs-guide.html)
+- [リリースノート生成（generating-release-notes-for-reverse-docs）](.claude/skills/generating-release-notes-for-reverse-docs/references/generating-release-notes-for-reverse-docs-guide.html)
+- [シーケンス図生成（generating-sequence-diagram-for-reverse-docs）](.claude/skills/generating-sequence-diagram-for-reverse-docs/references/generating-sequence-diagram-for-reverse-docs-guide.html)
+- [テスト観点表生成（generating-test-viewpoint-list-for-reverse-docs）](.claude/skills/generating-test-viewpoint-list-for-reverse-docs/references/generating-test-viewpoint-list-for-reverse-docs-guide.html)
+- [AGENTS/CLAUDE索引生成（generating-agent-config-index-from-repo）](.claude/skills/generating-agent-config-index-from-repo/references/generating-agent-config-index-from-repo-guide.html)

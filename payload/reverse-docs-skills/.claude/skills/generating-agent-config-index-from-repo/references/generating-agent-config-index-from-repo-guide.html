@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>generating-agent-config-index-from-repo</title>
+  <style>
+    :root{color-scheme:light dark;font-family:system-ui,sans-serif}body{max-width:960px;margin:2rem auto;padding:0 1rem;line-height:1.7}code{padding:.1rem .3rem;border-radius:.25rem;background:#8882}.box{border:1px solid #8885;border-radius:.6rem;padding:1rem;margin:1rem 0}dt{font-weight:700}
+  </style>
+</head>
+<body>
+  <h1>AGENTS/CLAUDE索引生成</h1>
+  <p>対象リポジトリの実在情報から、AI設定ファイルの前半索引を生成するスキル。</p>
+  <section id="s1"><h2>概要</h2><p>コードから確定できる索引と、明示された規約参照を分離する。</p></section>
+  <section id="s2"><h2>出力</h2><div class="box"><dl><dt>AGENTS.md</dt><dd>前半のリポジトリ索引と、対象リポジトリで確認できた規約の正確な参照パス。</dd><dt>CLAUDE.md</dt><dd>前半のリポジトリ索引。規約本文・規約一覧は含めない。</dd><dt>検証報告</dt><dd>根拠パス、規約参照の実在、両ファイルの重複状態を確認した結果。</dd></dl></div></section>
+  <section id="s3"><h2>入力</h2><p><code>target_repo_path</code>、<code>template_root</code>、<code>output_dir</code>、任意の <code>rules_root</code>。</p></section>
+  <section id="s4"><h2>工程</h2><ol><li>リポジトリの事実を収集する。</li><li>規約正本の実在パスを確認する。</li><li>テンプレートへ展開し検証する。</li></ol></section>
+  <section id="s5"><h2>作成区分</h2><p>両ファイルの前半は共通索引。後半の規約読み込みはAGENTS.mdだけに置く。</p></section>
+  <section id="s6"><h2>禁止事項</h2><p>規約、業務目的、AIの行動規範、未確認コマンド、架空のサンプル値を推測で作らない。</p></section>
+  <section id="s7"><h2>返却</h2><p><code>status</code>、<code>artifacts</code>、<code>evidence_root</code>、<code>hint</code>を返す。</p></section>
+  <section id="s8"><h2>予想を裏切る挙動</h2><p>CLAUDE.mdは規約読み込みの代替ではない。</p></section>
+  <section id="s9"><h2>検証</h2><p>参照パスの実在と、CLAUDE.mdへの規約重複なしを確認する。</p></section>
+  <section id="s10"><h2>参照</h2><p><code>shared/templates/ai-assets/</code> と <code>shared/references/納品物フォルダ体系.md</code>。</p></section>
+</body>
+</html>

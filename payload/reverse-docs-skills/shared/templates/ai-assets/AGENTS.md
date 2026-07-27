@@ -1,0 +1,27 @@
+# {{REPOSITORY_NAME}} 作業案内
+
+## 前半: リポジトリ索引
+
+- 目的: {{REPOSITORY_PURPOSE_FROM_EVIDENCE}}
+- 技術スタック: {{TECH_STACK_FROM_MANIFESTS_AND_CONFIG}}
+- 実行コマンド: {{VERIFIED_COMMANDS_WITH_SOURCE_PATHS}}
+- ディレクトリ構造: {{DIRECTORY_STRUCTURE_WITH_ROOTS}}
+- リバース対象: {{REVERSE_TARGETS_FROM_IMPLEMENTATION}}
+- 成果物の正本: {{CANONICAL_ARTIFACT_PATHS}}
+- 派生物: {{DERIVED_ARTIFACT_PATHS_AND_GENERATORS}}
+- 調査入口: {{INVESTIGATION_ENTRY_PATHS}}
+- 検証出力先: {{VERIFICATION_OUTPUT_PATHS}}
+
+## 後半: 規約の読み込み
+
+以下は対象リポジトリで実在・適用範囲・読み込み順を確認できた規約だけを記載する。規約本文はここへ複製しない。
+
+### {{RULES_FOLDER_OR_SCOPE}}
+
+- 意図: {{WHY_THIS_RULE_FOLDER_EXISTS}}
+- 常時または対象別の適用条件: {{APPLICABILITY_FROM_EVIDENCE}}
+- 正確な参照パス: `{{EXACT_RULE_PATH}}`
+
+### 未確定事項
+
+- {{UNCONFIRMED_RULE_OR_MISSING_EVIDENCE}}
