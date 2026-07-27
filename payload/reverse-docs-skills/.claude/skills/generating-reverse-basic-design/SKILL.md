@@ -3,7 +3,7 @@ name: generating-reverse-basic-design
 description: "封印済みfactsから業務語彙のみで基本設計書を執筆する執筆役。 TRIGGER when: 事実封印後の基本設計書生成、決定木「基本設計未著述」での起動。 SKIP: 詳細設計執筆（→generating-reverse-detailed-design）、facts抽出（→extracting-unit-facts-from-code）。"
 invocation: generating-reverse-basic-design
 type: transform
-allowed-tools: [Bash, Read, Write]
+allowed-tools: [Read, Write, Edit, Bash, Grep, Glob]
 ---
 
 # 封印済みfactsからの基本設計書執筆スキル
@@ -37,10 +37,6 @@ unit_kind パラメータで screen / batch / report / external を区別する�
 
 ## Phase 1: テンプレート展開と facts 読込
 
-## Step 1-1: テンプレート展開と facts 読込
-
-**使用ツール**: Read / Bash
-
 起動引数を検収する: screen_dir / output_dir / template_root / scaffold_script_path / facts_ref / common_docs_root / unit_kind（既定 screen）/ authoring_pass（`standard|large-pass2`、既定 `standard`）。unit_kind が screen 以外の場合は著述せず `status=基本設計著述失敗` とする（「対象範囲」節を参照）。`authoring_pass=large-pass2` では detail_design_path と pass1_receipt_path を必須とする。証跡JSONの `status=DETAIL_AUTHORED`、`detail_design_path` の一致、`facts_lock_sha256` と現在の facts.lock の SHA-256 の一致、`coverage_check=PASS`、`audit_check=PASS`、詳細設計書の実在を機械検収し、1条件でも満たさなければ fail-closed で `status=基本設計著述失敗` とする。
 
 統括（orchestrator）が著述スキル起動前にスキャフォールディングを実施済みの前提で動作する（標準の並列起動・大規模パス2のいずれでも競合を避けるため、実施主体は統括に一本化されている）。画面ディレクトリが存在しない場合はエラーとして呼び出し元へ報告する。存在する場合は `bash <scaffold_script_path> --verify <output_dir> <画面ID>`（scaffold_script_path は管理者が解決して渡すスキャフォールディングスクリプトのパス。実体: `shared/scripts/scaffold-screen.sh`。正本はこの1本のみ）で構造の健全性を確認する。
@@ -49,13 +45,9 @@ unit_kind パラメータで screen / batch / report / external を区別する�
 
 exit 0 を確認したら `<facts_ref>/facts.yml`（`shared/references/facts-schema.md` 準拠の12分類構造）と `common_docs_root` 配下のプロジェクト共通文書だけを情報源として読み込む。**対象リポジトリの原本コードは Read しない**（設計原則4）。
 
-**完了**: 必須引数が揃い、画面ディレクトリの構造健全性を確認済み・`seal-facts.sh verify` が exit 0・facts.yml と共通文書の読込完了・（large-pass2のみ）固定契約のパス1証跡と detail_design_path の検収完了
+完了条件: 必須引数が揃い、画面ディレクトリの構造健全性を確認済み・`seal-facts.sh verify` が exit 0・facts.yml と共通文書の読込完了・（large-pass2のみ）固定契約のパス1証跡と detail_design_path の検収完了
 
 ## Phase 2: facts → 業務語彙への転記（章ごとに実施）
-
-## Step 2-1: facts → 業務語彙への転記（章ごとに実施）
-
-**使用ツール**: Read / Bash / Write
 
 facts.yml の各セクションを下記マップに従って基本設計書の各章へ転記する。12分類のうち業務挙動に直結する6分類（state / handler / jsx / api / effect_trigger / error_handling）と meta.route を使用する。import / export_type / const / style / measurement_pending / local_type は基本設計書に転記しない。
 
@@ -69,7 +61,7 @@ facts.yml の各セクションを下記マップに従って基本設計書の�
 | error_handling | §4 業務ルール | 失敗時の処理・利用者への影響を業務の言葉で書く |
 | meta.route（+ common_docs_root の共通設計書） | §6 画面遷移の業務文脈 | 共通設計書の遷移情報を参照引用する |
 
-§2 画面構成の生成: まず `<screen_dir>/詳細設計/original.png` の実在を確認する。存在する場合は画像を最優先し、画像パスを `../詳細設計/original.png` として Markdown に埋め込み、視覚的な領域配置を業務用語の ASCII アートで作成する。original.png は unlocking-reverse-target-screens が撮影済みの画像ファイルであり、原本コードの直接読み取りには該当しない（情報源制約の対象外）。
+§2 画面構成の生成: 著述前に`python3 shared/scripts/validate-reverse-authoring-inputs.py screen-composition --screen-dir <screen_dir> --facts <facts_ref>/facts.yml --record <screen_dir>/基本設計/画面構成入力判定.json`を必ず実行する。このhelperのJSON出力を選択経路の単一判定源とし、終了コードと`status`が不一致の場合はfail-closedに停止する。`route=image-priority`なら`<screen_dir>/詳細設計/original.png`を最優先し、画像パスを`../詳細設計/original.png`としてMarkdownに埋め込み、視覚的な領域配置を業務用語のASCIIアートで作成する。original.pngはunlocking-reverse-target-screensが撮影済みの画像ファイルであり、原本コードの直接読み取りには該当しない（情報源制約の対象外）。
 
 次の4ケースを検証記録で確認する。
 
@@ -90,7 +82,7 @@ facts.yml の各セクションを下記マップに従って基本設計書の�
 | なし | あり | 構造推定 | 「構造推定」と明記して画面構成を出力 |
 | なし | なし | 著述停止 | `status=基本設計著述失敗` |
 
-完了ゲート: 入力条件・選択経路・出力または停止statusが監査表の同一行で対応し、該当ケースの記録が残っていること。
+完了ゲート: 入力条件・選択経路・出力または停止statusが監査表の同一行で対応し、helperが原子的に保存した`画面構成入力判定.json`が残っていること。helperを呼ばない手作業判定は禁止する。
 
 いずれのケースでも、コンポーネント名や関数名などのコード識別子は使用しない。
 
@@ -98,13 +90,9 @@ facts.yml の各セクションを下記マップに従って基本設計書の�
 
 **創作の禁止（業務断定の根拠規律）**: 業務的な機能・役割・利用者・目的の断定は、対応する facts のキーから直接導出できるものに限る。導出できない事項（なぜこの仕様か・誰が使うか・業務上の位置づけ等）は、もっともらしく断定せず「要確認（現場確認事項）」として明示する。特に注意すべき創作パターン: (a) UI部品の存在（タブ・ボタン等）から、実装されていない挙動（切替で内容が変わる等）を推定して機能として記述する (b) 画面内の文言から利用者・業務フローの方向を推定して断定する。facts 上で空実装・無処理と分かる部品は、その現状（「選択しても表示内容は変わらない」等）を明記する。
 
-**完了**: テンプレートの6章（§1〜§6）すべてに記述がある（「該当なし」＋根拠を含む）・創作の禁止（業務断定の根拠規律）遵守
+完了条件: テンプレートの6章（§1〜§6）すべてに記述がある（「該当なし」＋根拠を含む）・創作の禁止（業務断定の根拠規律）遵守
 
 ## Phase 3: 実装用語混入検査
-
-## Step 3-1: 実装用語混入検査
-
-**使用ツール**: Read / Bash / Write
 
 生成した画面基本設計書.md 全文に対し、コード識別子・フレームワーク用語・型構文・ファイルパス・ライブラリ名の混入を grep で検査する。
 
@@ -120,7 +108,7 @@ grep -nE 'useState|useEffect|useReducer|\bProps\b|styled-components|\bReact\b|\b
 
 **コメント残存・status 検査**: HTMLコメント（`<!-- -->`）の残存検査を行う。テンプレートの執筆指示コメントが1件でも残存していれば著述未完了として差し戻す。frontmatter の `status` が `draft` のまま残っていないことを確認する（著述完了時は `status: authored` に更新すること）。
 
-**完了**: 実装用語検出0件・内部成果物名検出0件・facts根拠チェック済み・HTMLコメント残存0件・frontmatter status=authored
+完了条件: 実装用語検出0件・内部成果物名検出0件・facts根拠チェック済み・HTMLコメント残存0件・frontmatter status=authored
 
 ## 完了条件
 

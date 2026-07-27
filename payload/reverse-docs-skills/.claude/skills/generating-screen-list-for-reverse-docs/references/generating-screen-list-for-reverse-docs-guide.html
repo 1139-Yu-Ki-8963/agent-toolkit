@@ -91,35 +91,6 @@
   .tag.pass  { background: #e7f3e7; color: #23662a; border-color: #b9d9ba; }
   .tag.fail  { background: #fbe9e7; color: #9c2b1a; border-color: #ecc0b8; }
   .tag.mode  { background: #e8eef7; color: #2a4a7a; border-color: #c2d2e8; }
-
-
-  /* portal-conventions: canonical viewport and theme compatibility */
-  :root, [data-theme="light"] {
-    --guide-bg: #FFFFFF; --guide-panel: #FFFFFF; --panel-2: #F6F8FA; --guide-border: #D1D9E0;
-    --guide-text: #1B1F26; --guide-text-sub: #4A4F58; --guide-accent: #0969DA; --guide-code-bg: #F6F8FA;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) {
-      --guide-bg: #15171C; --guide-panel: #1C1F26; --panel-2: #21262D; --guide-border: #30363D;
-      --guide-text: #E8E5DC; --guide-text-sub: #B6B3AB; --guide-accent: #58A6FF; --guide-code-bg: #21262D;
-    }
-  }
-  [data-theme="dark"] {
-    --guide-bg: #15171C; --guide-panel: #1C1F26; --panel-2: #21262D; --guide-border: #30363D;
-    --guide-text: #E8E5DC; --guide-text-sub: #B6B3AB; --guide-accent: #58A6FF; --guide-code-bg: #21262D;
-  }
-  html { height: 100vh; overflow: hidden; background: var(--guide-bg); }
-  body { height: 100vh; overflow-y: auto; color: var(--guide-text); background: var(--guide-bg); }
-  header, section > h2 { border-color: var(--guide-text); }
-  header p, .meta-table, .note, .def dd { color: var(--guide-text-sub); }
-  nav.toc, table.spec, .def, .flowstep, .flowgain, ul.tree, ul.tree .substeps li, pre.project-tree {
-    color: var(--guide-text); background: var(--guide-panel); border-color: var(--guide-border);
-  }
-  nav.toc a, table.spec a { color: var(--guide-accent); }
-  table.spec th, table.spec td { border-color: var(--guide-border); }
-  table.spec th { background: var(--panel-2); }
-  table.spec td code, table.spec th code, li code, p code, dd code { background: var(--guide-code-bg); }
-  table thead { position: sticky; top: 0; z-index: 1; }
 </style>
 </head>
 <body>
@@ -178,12 +149,12 @@
 
 <section id="s2">
   <h2><span class="sec-num">§2</span>出力</h2>
-  <p>スキルを完走すると、以下の 2 点が生まれる。</p>
+  <p>スキルを完走すると、以下の成果物が生まれる。</p>
   <div class="def">
     <dt>画面一覧.html（<code>&lt;output_dir&gt;/画面一覧/画面一覧.html</code>）</dt>
     <dd>対象コードベースに存在する画面の全数を、画面キー・推定画面名・入口ファイル・構成ファイル群・検出根拠とともに一覧化した文書。読んだ人は「このシステムには画面が何枚あり、それぞれどのファイル群でできているか」を根拠付きで把握でき、画面詳細設計書を何冊書くべきかを迷わず決められる。共有部品・埋め込みビュー・未解決候補・診断警告も可視化される。</dd>
-    <dt>検証済みマニフェスト（HTML 内埋め込み JSON）</dt>
-    <dd>画面一覧の元データとなる機械可読の JSON。7 項目の整合検証を通過したものだけが HTML に埋め込まれるため、後続工程（設計書執筆・往復検証）はこの JSON を信頼して機械処理できる。配列キーは <code>screens</code>（後方互換）。</dd>
+    <dt>検証済みマニフェスト（永続JSON + HTML内埋め込みJSON）</dt>
+    <dd><code>screen-manifest.json</code> と <code>screen-manifest.ext.json</code> を画面一覧フォルダへ原子的に保存する。整合検証を通過した拡張JSONだけがHTMLにも埋め込まれるため、後続工程と再開実行は一時ファイルへ依存せず機械処理できる。配列キーは <code>screens</code>（後方互換）。</dd>
   </div>
 </section>
 
@@ -222,6 +193,8 @@
     <tr><td><code>artifacts</code></td><td>生成した画面一覧.html のパス。<code>artifacts[0]</code> を汎用名 <code>unit_list_html</code> としても返す</td></tr>
     <tr><td><code>screen_list_html</code></td><td>従来互換のエイリアス（<code>unit_list_html</code> と同値）</td></tr>
     <tr><td><code>embedded_json_ref</code></td><td>HTML 内に埋め込んだマニフェスト JSON への参照</td></tr>
+    <tr><td><code>screen_manifest_path</code></td><td>画面一覧フォルダへ永続保存した生マニフェストJSON</td></tr>
+    <tr><td><code>screen_manifest_ext_path</code></td><td>設計書メタデータを付与した永続拡張マニフェストJSON</td></tr>
     <tr><td><code>unit_kind</code></td><td>固定値 <code>screen</code></td></tr>
   </table>
 </section>
@@ -238,8 +211,8 @@
     </tr>
     <tr>
       <td><span class="tag mode">Phase 2</span><br>戦略に基づく抽出</td>
-      <td>組み込みパスかカスタム抽出パスかを分岐判定 → 選んだ経路でマニフェスト JSON を生成 → diagnostics（entryFile 集中警告等）を確認</td>
-      <td>スキーマ準拠のマニフェストが 1 件以上確定。0 件検出はハード停止（画面を捏造しない）</td>
+      <td>組み込みパスかカスタム抽出パスかを分岐判定 → 選んだ経路でマニフェスト JSON を生成 → diagnostics（entryFile 集中警告等）を確認 → 生/拡張manifestを画面一覧フォルダへ原子的に永続保存</td>
+      <td>スキーマ準拠の永続生/拡張マニフェストが確定。0 件検出はハード停止（画面を捏造しない）</td>
     </tr>
     <tr>
       <td><span class="tag mode">Phase 3</span><br>整合検証（機械実行）</td>

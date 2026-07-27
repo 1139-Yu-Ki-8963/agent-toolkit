@@ -5,7 +5,7 @@ set -euo pipefail
 #
 # 使い方:
 #   recount-facts.sh <facts.yml> <target_repo_path> <target_file相対パス...>
-#   recount-facts.sh --recount-only <target_repo_path> <target_file相対パス...>
+#   recount-facts.sh --recount-only [--profile screen|python] <target_repo_path> <target_file相対パス...>
 #   recount-facts.sh --self-test
 #
 # --recount-only は facts.yml を介さず、①〜⑧の8分類件数とloc（対象ファイル群の
@@ -35,6 +35,10 @@ BLANK_RATE_THRESHOLD_NUM=30
 BLANK_RATE_THRESHOLD_DEN=100
 SECTIONS="import export_type const state handler jsx style api local_type effect_trigger error_handling"
 ALL_SECTIONS="import export_type const state handler jsx style api measurement_pending local_type effect_trigger error_handling"
+PYTHON_SECTIONS="import function local_assignment external_call exception_handling measurement_pending"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PYTHON_EXTRACTOR="$SCRIPT_DIR/extract-python-facts.py"
+PYTHON_COUNTER="$SCRIPT_DIR/recount-python-facts.py"
 
 # ---- コード側の分類別独立再計数（facts.yml を読まない） ----
 #
@@ -589,6 +593,26 @@ recount_from_code() {
   printf '%s %s\n' error_handling "$(count_error_handling "$contentfile")"
 }
 
+# Pythonは抽出器をimportしない独立ASTカウンターで再計数する。文字コード契約だけを
+# PEP 263で共有し、分類処理の実装を分離して同時破損による偽PASSを防ぐ。
+recount_python_from_code() {
+  repo="$1"
+  shift
+  python3 "$PYTHON_COUNTER" counts --repo "$repo" "$@"
+}
+
+facts_profile() {
+  awk '
+    /^profile:[ \t]*/ {
+      value=$0
+      sub(/^profile:[ \t]*/, "", value)
+      gsub(/^["'"'"']|["'"'"']$/, "", value)
+      print value
+      exit
+    }
+  ' "$1"
+}
+
 # ---- facts.yml 側の解析 ----
 
 # facts.yml の各セクションの記載件数を「<セクション> <件数>」の形式で出力する。
@@ -685,9 +709,24 @@ run_check() {
   shift 2
   targets=("$@")
   violations=0
+  profile="$(facts_profile "$facts")"
+  [ -z "$profile" ] && profile="screen"
+  case "$profile" in
+    screen)
+      active_sections="$ALL_SECTIONS"
+      recount_out="$(recount_from_code "$repo" "${targets[@]}")"
+      ;;
+    python)
+      active_sections="$PYTHON_SECTIONS"
+      recount_out="$(recount_python_from_code "$repo" "${targets[@]}")"
+      ;;
+    *)
+      echo "エラー: 未対応profileです: $profile" >&2
+      return 2
+      ;;
+  esac
 
   echo "== 検査1: 分類別件数の乖離検査 =="
-  recount_out="$(recount_from_code "$repo" "${targets[@]}")"
   while IFS=' ' read -r sec code_count; do
     [ -z "$sec" ] && continue
     dec_count="$(get_declared_count "$facts" "$sec")"
@@ -710,7 +749,7 @@ EOF
   echo "== 検査2: 必須フィールド空欄検査 =="
   blank_total=0
   field_total=0
-  for sec in $ALL_SECTIONS; do
+  for sec in $active_sections; do
     stats="$(awk -v target_sec="$sec" '
       /^sections:/ { in_sections=1; next }
       in_sections && /^  [A-Za-z_]+:[ \t]*$/ {
@@ -770,11 +809,35 @@ EOF
     echo "  OK: 孤児参照0件"
   fi
 
+  if [ "$profile" = "python" ]; then
+    echo "== 検査4: Python関数本文の行網羅検査 =="
+    if python3 "$PYTHON_EXTRACTOR" verify-bodies \
+      --facts "$facts" --repo "$repo" "${targets[@]}" >/dev/null; then
+      echo "  OK: 関数宣言の先頭から本体末尾までvalueに保持"
+    else
+      echo "  関数本文の欠落を検出" >&2
+      violations=$((violations + 1))
+    fi
+
+    echo "== 検査5: Python分類間source span排他検査 =="
+    span_args=()
+    for target in "${targets[@]}"; do
+      span_args+=(--target-file "$target")
+    done
+    if python3 "$PYTHON_COUNTER" validate-spans \
+        --facts "$facts" "${span_args[@]}" >/dev/null; then
+      echo "  OK: 異分類のsource span重複0件"
+    else
+      echo "  異分類のsource span重複を検出" >&2
+      violations=$((violations + 1))
+    fi
+  fi
+
   if [ "$violations" -gt 0 ]; then
     echo "再計数ゲート失敗: ${violations} 検査で違反を検出しました" >&2
     return 1
   fi
-  echo "再計数ゲート通過: 全3検査PASS"
+  echo "再計数ゲート通過: profile=${profile} の全検査PASS"
   return 0
 }
 
@@ -1852,6 +1915,18 @@ fi
 # 用途でコア計数関数を再利用するための薄い出口）。
 if [ "${1:-}" = "--recount-only" ]; then
   shift
+  recount_profile="screen"
+  if [ "${1:-}" = "--profile" ]; then
+    recount_profile="${2:-}"
+    shift 2 || true
+  fi
+  case "$recount_profile" in
+    screen|python) ;;
+    *)
+      echo "エラー: --profile は screen または python を指定してください: $recount_profile" >&2
+      exit 2
+      ;;
+  esac
   repo="${1:?使い方: recount-facts.sh --recount-only <target_repo_path> <target_file相対パス...>}"
   shift || true
   if [ "$#" -lt 1 ]; then
@@ -1868,7 +1943,11 @@ if [ "${1:-}" = "--recount-only" ]; then
       exit 2
     fi
   done
-  recount_from_code "$repo" "$@"
+  if [ "$recount_profile" = "python" ]; then
+    recount_python_from_code "$repo" "$@"
+  else
+    recount_from_code "$repo" "$@"
+  fi
   # loc（合計行数）は元ファイルごとのwc -lを合算する。build_content_file が生成する
   # 連結一時ファイルは各ファイル末尾に区切り用の空行を1行付加するため、そちらを
   # wc -l すると件数がファイル数分水増しされる。

@@ -1,9 +1,9 @@
 ---
 name: generating-cross-views-for-reverse-docs
-description: "マトリクス・対応表とAI設定資産ページをmanifest群から機械生成する。 TRIGGER when: マトリクス・対応表生成、権限マトリクス作成、CRUD図作成、追跡可能性ページ作成、AI設定資産ページ作成。 SKIP: 画面/API/テーブル/機能一覧自体の作成（→各対応する一覧生成スキル）、往復検証/同期/実装。"
+description: "権限×画面・権限×機能・CRUD図・追跡可能性のマトリクス・対応表4ページとAI設定資産ページをmanifest群から機械生成する。 TRIGGER when: マトリクス・対応表生成、権限マトリクス作成、CRUD図作成、追跡可能性ページ作成、AI設定資産ページ作成。 SKIP: 画面/API/テーブル/機能一覧自体の作成（→各対応する一覧生成スキル）、往復検証/同期/実装。"
 invocation: generating-cross-views-for-reverse-docs
 type: transform
-allowed-tools: [Bash, Read, Write]
+allowed-tools: [Bash, Read, Write, Grep, Glob, AskUserQuestion, TaskCreate, TaskUpdate]
 ---
 
 # マトリクス・対応表生成スキル
@@ -49,24 +49,14 @@ allowed-tools: [Bash, Read, Write]
 
 スキル開始時に `TaskCreate` で Phase 1〜4 のタスクを登録する。各 Phase 開始時に該当タスクを `in_progress` に、完了時に `completed` へ `TaskUpdate` で更新する。実行環境に TaskCreate/TaskUpdate が存在しない場合は、`output_dir` 内のタスク台帳ファイル（`task-ledger.md`）で同等の Phase 遷移記録を代替する。
 
-## 実行手順
+## Phase 手順
 
-## Phase 1: 前提確認
-
-## Step 1-1: 前提確認
-
-**使用ツール**: Read / Bash / Write
+### Phase 1: 前提確認
 
 - **Step 1** — `<output_dir>/一覧/画面一覧/画面一覧.html` と `<output_dir>/一覧/API一覧/API一覧.html` の実在を確認する。いずれか不在ならハード停止する。この場合 `generating-screen-list-for-reverse-docs` / `generating-api-list-for-reverse-docs` の先行実行を案内して終了する。完了条件: 両ファイルの実在確認済み、または不在を報告して停止している
 - **Step 2** — `<output_dir>/一覧/テーブル一覧/テーブル一覧.html` と `<output_dir>/一覧/機能一覧/機能一覧.html` の実在を確認する。いずれも任意データ源であり、不在でも Phase 2 以降を続行する（`build-matrix-data.sh` は table-manifest・feature-manifest を省略しても動作する fail-safe 設計）。完了条件: 両ファイルの実在有無が確定済み
 
-**完了**: 画面一覧.html・API一覧.html の実在確認済み（不在時は停止）。テーブル一覧.html・機能一覧.html の実在有無が確定済み
-
-## Phase 2: 拡張マニフェスト抽出 + 交差データ導出
-
-## Step 2-1: 拡張マニフェスト抽出 + 交差データ導出
-
-**使用ツール**: Read / Bash / Write
+### Phase 2: 拡張マニフェスト抽出 + 交差データ導出
 
 - **Step 1** — 各一覧HTMLから埋め込み manifest を抽出する。抽出先は一時ディレクトリ（`$CLAUDE_JOB_DIR/tmp/`、未設定時は `${TMPDIR:-/tmp}/claude-job-${session}/tmp/` 配下）。
 
@@ -106,13 +96,7 @@ allowed-tools: [Bash, Read, Write]
 
   table-manifest・feature-manifest はPhase 1 Step 2 で不在確認したものは省略する（省略時の fail-safe 挙動は `build-matrix-data.sh` ヘッダコメント参照）。
 
-**完了**: 拡張画面/APIマニフェストが生成され、`permission-matrix.json`・`crud-matrix.json`・`traceability.json` が生成済み
-
-## Phase 3: AI設定資産データ抽出
-
-## Step 3-1: AI設定資産データ抽出
-
-**使用ツール**: Bash / Write
+### Phase 3: AI設定資産データ抽出
 
 - **Step 1** — 対象リポジトリの `.claude/` 配下を走査する。完了条件: `ai-assets-data.json` が生成済み
 
@@ -120,13 +104,7 @@ allowed-tools: [Bash, Read, Write]
   ../../../shared/scripts/extract/extract-ai-assets.sh <target_repo_path> ai-assets-data.json
   ```
 
-**完了**: `ai-assets-data.json` が生成済み
-
-## Phase 4: ページHTML生成
-
-## Step 4-1: ページHTML生成
-
-**使用ツール**: Read / Bash / Write
+### Phase 4: ページHTML生成
 
 - **Step 1** — 4種のデータ（Phase 2 の3ファイル + Phase 3 の1ファイル）を、`build-matrix-pages.sh` で対応するテンプレートへ埋め込む。**手作業でのプレースホルダ置換は禁止する**（HTML生成は必ずスクリプト経由の決定的処理で行う）。完了条件: 生成可能な全ページがそれぞれの固定パス（本SKILL冒頭の出力先表）に出力済み
 
@@ -144,8 +122,6 @@ allowed-tools: [Bash, Read, Write]
   ```bash
   ../../../shared/scripts/build-portal.sh <target_repo_path> <output_dir> <portal_output_dir>
   ```
-
-**完了**: 生成可能な全ページ（permission-screen / crud / traceability / ai-assets は必ず、permission-function はデータ形状が揃った場合のみ）が固定パスに出力され、指定時は `build-portal.sh` の再実行が完了している
 
 ## 完了条件
 

@@ -79,7 +79,9 @@ extract_section_keys() {
 # 除去しないと「Foo.tsx」「12」のような座標断片がコード的トークンとして誤抽出され、
 # 設計書本文に転記されるはずのない座標値の不在で誤って fail-closed になる。
 strip_coordinate_noise() {
-  printf '%s' "$1" | sed -E 's#[A-Za-z0-9_./-]+\.(tsx|ts|jsx|js|css):[0-9]+##g'
+  # 拡張子の列挙に依存しない。英数字とドットからなる拡張子 + :行番号の形を
+  # コード座標とみなし、Python/Java/Ruby/Go等の追加プロファイルでも同じ規則を使う。
+  printf '%s' "$1" | sed -E 's#[A-Za-z0-9_./-]+\.[A-Za-z0-9]+:[0-9]+##g'
 }
 
 # facts.yml の複数行literal（value内の改行保持形式）が `\n`（バックスラッシュ+nの2文字）
@@ -478,6 +480,19 @@ MD
   else
     echo "  [FAIL] 座標ノイズ除去: 座標断片をトークンとして誤要求し非0で終了した" >&2
     rc=1
+  fi
+
+  # 1-36: 特定の5拡張子に固定せず、同じ「パス.拡張子:行番号」構文を除去する。
+  for ext in py rb java go cs rs kt; do
+    noisy="src/domain/Worker.${ext}:123 で service.execute=100 と定義"
+    cleaned="$(strip_coordinate_noise "$noisy")"
+    if printf '%s' "$cleaned" | grep -qF "Worker.${ext}:123"; then
+      echo "  [FAIL] 1-36: .${ext} の座標断片が残った" >&2
+      rc=1
+    fi
+  done
+  if [ "$rc" -eq 0 ]; then
+    echo "  [PASS] 1-36: 7拡張子の座標断片を構文規則で除去"
   fi
 
   # \n エスケープ除去フィクスチャ: value が複数行literalの改行保持形式（`\n`エスケープ、

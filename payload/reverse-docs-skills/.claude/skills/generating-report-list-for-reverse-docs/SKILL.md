@@ -3,7 +3,7 @@ name: generating-report-list-for-reverse-docs
 description: "帳票専用のユニット一覧生成スキル。帳票一覧フォルダ・帳票一覧.htmlを作成する。 TRIGGER when: 帳票一覧作成、帳票一覧生成。 SKIP: 他種別の一覧（→対応する種別別一覧スキル）、往復検証/同期/実装。"
 invocation: generating-report-list-for-reverse-docs
 type: transform
-allowed-tools: [AskUserQuestion, Bash, Grep, Read, Write]
+allowed-tools: [Bash, Read, Write, Edit, Grep, Glob, AskUserQuestion, TaskCreate, TaskUpdate]
 ---
 
 # 帳票一覧生成スキル
@@ -50,11 +50,7 @@ allowed-tools: [AskUserQuestion, Bash, Grep, Read, Write]
 
 帳票固有の調査項目・検出手法・マニフェストスキーマの詳細は `references/report-detection.md` を参照する。
 
-## Phase 1: スタック・帳票規約の特定
-
-## Step 1-1: スタック・帳票規約の特定
-
-**使用ツール**: AskUserQuestion / Bash / Grep / Read / Write
+### Phase 1: スタック・帳票規約の特定
 
 - **Step 1**: `package.json`・lockファイル（`package-lock.json`/`yarn.lock`/`pnpm-lock.yaml`）からフレームワークと帳票生成ライブラリ（puppeteer/pdfkit/ExcelJS 等）を確定する。これらが存在しないコードベースでは import 文・API 使用形跡から推定する。完了条件: ライブラリ名とバージョンが特定済み、または特定不能の根拠（推定経路）が記録済み
 - **Step 2**: 帳票定義の所在を特定する。テンプレートファイル（Jasper/BIRT/Crystal 等）・PDF/Excel生成コード・レポート定義設定の実ファイルパスを列挙する。完了条件: 帳票定義を含む実ファイルパスが列挙済み
@@ -62,11 +58,7 @@ allowed-tools: [AskUserQuestion, Bash, Grep, Read, Write]
 - **Step 4**: 除外パターンを確定する。テスト用テンプレート・`tests`/`mocks` 等のノイズディレクトリを実際に `ls` で確認する。完了条件: `excludePatterns` 一覧が確定済み
 - **Step 5**: 検出戦略宣言を作成し、AskUserQuestionで承認を取る。宣言JSONは一時ファイルに保存する。完了条件: 戦略JSON（`unitKind: "report"`/`extractionMethod: "custom"`/`unitIdRegex`/`excludePatterns`/`approvedByUser: true`/`notes`）が保存済み
 
-**完了**: Step 1〜4の調査完了（`references/report-detection.md` の調査項目に準拠）。Step 5の検出戦略宣言（`unitKind`/`extractionMethod`/`unitIdRegex`/`excludePatterns`）がユーザー承認済み
-
-## Phase 2: 戦略に基づく抽出（カスタム抽出パスのみ）
-
-## Step 2-1: 戦略に基づく抽出（カスタム抽出パスのみ）
+### Phase 2: 戦略に基づく抽出（カスタム抽出パスのみ）
 
 - **Step 1**: Phase 1で宣言した手順（例: テンプレートファイルの走査・帳票生成関数の呼び出し元収集・レポート定義設定のJSON解析等）をClaude自身がBash/Grep/Readで実行し、スキーマ準拠のマニフェストJSONをWriteする。0件検出の場合はユーザーに報告してハード停止する。帳票を捏造しない。完了条件: マニフェストJSONが生成済み、または0件検出を報告して停止している
 - **Step 2**: diagnosticsを確認する。sourceFile集中警告等が出た場合は抽出手順を見直し、見直し時はStep 1へ戻る。完了条件: diagnosticsが空、または警告を承知の上で続行と判断済み
@@ -74,32 +66,18 @@ allowed-tools: [AskUserQuestion, Bash, Grep, Read, Write]
 
 検出結果は一時ディレクトリ（`$CLAUDE_JOB_DIR/tmp/report-manifest.json`、未設定時は `${TMPDIR:-/tmp}/claude-job-${session}/tmp/` 配下。`${session}`はセッションIDが取得できなければ任意の一意な値でよい）に保存する。
 
-**完了**: Step 1でスキーマ準拠のマニフェストが1件以上確定、または0件検出をユーザーに報告して停止している。Step 2でdiagnosticsを確認済み。Step 3で拡張マニフェストに種別固有フィールド（format・trigger）が付与されている
-
-## Phase 3: 整合検証（機械実行）
-
-## Step 3-1: 整合検証（機械実行）
-
-**使用ツール**: Bash / Write
+### Phase 3: 整合検証（機械実行）
 
 - **Step 1**: `../../../shared/scripts/unit-list/validate-manifest.sh <manifest.ext.json> --unit-kind report` を実行する。完了条件: 全項目PASS
 - **Step 2**: FAIL時は指摘に応じて修正する（sourceFile不在は `--fix` でunresolved降格可）。修正後Step 1を再実行する。3回失敗したら抽出手順の再検討（Phase 2 Step 1）へ差し戻す。完了条件: exit 0
 
 カスタム抽出パスで生成したマニフェストであっても、この検証を通過しないマニフェストはPhase 4に進めない。
 
-**完了**: Step 1で `validate-manifest.sh --unit-kind report` が全項目PASS。Step 2のFAIL時修正ループは3回以内
-
-## Phase 4: 帳票一覧.html 生成
-
-## Step 4-1: 帳票一覧.html 生成
-
-**使用ツール**: Bash / Write
+### Phase 4: 帳票一覧.html 生成
 
 - **Step 1**: `../../../shared/scripts/unit-list/build-unit-list.sh <manifest.ext.json> <output_dir>/一覧/帳票一覧/帳票一覧.html --unit-kind report --portal-dir <output_dir>` を実行する。`--portal-dir` にはポータル（`index.html`）の配置先＝納品物ルート（output_dir=output_dir）を渡し、「ポータルへ戻る」リンクを実在パスに解決させる。build側が内部でvalidateを再実行するため、検証を経ないmanifestからは生成できない。完了条件: HTML生成済み
 
 **手作業でのプレースホルダ置換は禁止する**（過去に `entryFile=None` の混入という実害が発生している）。HTML生成は必ずスクリプト経由の決定的処理で行う。
-
-**完了**: Step 1で帳票一覧.htmlが生成され、埋め込みJSONがマニフェストと一致している
 
 ## 完了条件
 

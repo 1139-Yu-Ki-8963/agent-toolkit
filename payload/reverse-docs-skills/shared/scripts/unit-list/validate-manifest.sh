@@ -433,6 +433,17 @@ run_validate() {
   local type_issues type_jq_rc
   type_issues="$(jq -r --arg items "$ITEMS_KEY" --arg keyfield "$ITEM_KEY_FIELD" '
     def is_str_arr: (type == "array") and (all(.[]?; type == "string"));
+    def is_safe_relative_url:
+      if type != "string" then false
+      else
+        length > 0
+        and . == gsub("^\\s+|\\s+$"; "")
+        and (startswith("/") | not)
+        and (startswith("\\") | not)
+        and (contains("\\") | not)
+        and (test("^[A-Za-z][A-Za-z0-9+.-]*:") | not)
+        and ((explode | any(. < 32 or . == 127)) | not)
+      end;
     [ .[$items][]? |
       (.[$keyfield] // "?") as $k
       | (
@@ -446,6 +457,10 @@ run_validate() {
         + [ ("method","ioSummary","designDocStatus","category","format","trigger","direction","protocol","authMethod","execMethod","operationClass") as $f
             | select(has($f) and (.[$f] != null)) | select((.[$f] | type) != "string")
             | $f + "が文字列でない" ]
+        + [ ("designDocPath","detailDocPath","sequencePath","testCasePath") as $f
+            | select(has($f) and (.[$f] != null))
+            | select((.[$f] | is_safe_relative_url) | not)
+            | $f + "が安全な相対URLでない" ]
         + [ select(has("schedule") and (.schedule != null))
             | select(((.schedule | type) != "object") or (((.schedule | has("cron")) and (.schedule | has("readable"))) | not))
             | "scheduleが{cron, readable}を持つobjectでない" ]
@@ -736,6 +751,35 @@ JSON
     rc=1
   else
     echo "  [PASS] componentType陰性(値域外): 無効値でFAIL"
+  fi
+
+  # ---- 設計書リンクの安全な相対URL契約 ----
+  local screen_safe_doc_urls="$tmp/screen-safe-doc-urls.json"
+  jq '.screens[0] += {
+        designDocPath: "../../画面/home/基本設計.html",
+        detailDocPath: "../../画面/home/詳細設計.html",
+        sequencePath: "../../画面/home/シーケンス図.html",
+        testCasePath: "../../画面/home/テスト仕様書.html"
+      }' "$screen_pass" > "$screen_safe_doc_urls"
+  if run_validate "$screen_safe_doc_urls" "" "screen" >/dev/null 2>&1; then
+    echo "  [PASS] 設計書URL陽性: 安全な相対URLを受け入れる"
+  else
+    echo "  [FAIL] 設計書URL陽性: 安全な相対URLを拒否した" >&2
+    rc=1
+  fi
+
+  local screen_bad_doc_urls="$tmp/screen-bad-doc-urls.json"
+  jq '.screens[0] += {
+        designDocPath: "javascript:alert(1)",
+        detailDocPath: "https://attacker.invalid/doc.html",
+        sequencePath: "//attacker.invalid/sequence.html",
+        testCasePath: "unsafe\u000aurl.html"
+      }' "$screen_pass" > "$screen_bad_doc_urls"
+  if run_validate "$screen_bad_doc_urls" "" "screen" >/dev/null 2>&1; then
+    echo "  [FAIL] 設計書URL陰性: scheme・//・制御文字を含むURLを受け入れた" >&2
+    rc=1
+  else
+    echo "  [PASS] 設計書URL陰性: scheme・//・制御文字を含むURLをFAIL"
   fi
 
   # ---- api フィクスチャ: unitKind=apiでの汎用パス確認 ----

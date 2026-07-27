@@ -3,7 +3,7 @@ name: generating-table-list-for-reverse-docs
 description: "テーブル種別専用の一覧フォルダ・一覧HTML生成。 TRIGGER when: テーブル一覧作成、テーブル一覧生成、スキーマ一覧。 SKIP: 他種別の一覧（→対応する種別別一覧スキル）、往復検証/同期/実装。"
 invocation: generating-table-list-for-reverse-docs
 type: transform
-allowed-tools: [AskUserQuestion, Bash, Grep, Read, Write]
+allowed-tools: [Bash, Read, Write, Edit, Grep, Glob, AskUserQuestion, TaskCreate, TaskUpdate]
 ---
 
 # テーブル一覧生成スキル
@@ -44,11 +44,7 @@ allowed-tools: [AskUserQuestion, Bash, Grep, Read, Write]
 
 種別固有の調査項目・マニフェストスキーマの詳細は `references/table-detection.md` を参照する。
 
-## Phase 1: スタック・テーブル規約の特定
-
-## Step 1-1: スタック・テーブル規約の特定
-
-**使用ツール**: AskUserQuestion / Bash / Grep / Read / Write
+### Phase 1: スタック・テーブル規約の特定
 
 - **Step 1**: `package.json`・lockファイル（`package-lock.json`/`yarn.lock`/`pnpm-lock.yaml`）・`requirements.txt`/`pyproject.toml` 等から ORM・マイグレーションツール（Prisma/TypeORM/Knex/Alembic 等）を確定する。これらが存在しないコードベースでは import 文・SQL ファイルの形跡から推定する。完了条件: ツール名とバージョンが特定済み、または特定不能の根拠（推定経路）が記録済み
 - **Step 2**: テーブル定義の所在を特定する。マイグレーションファイル・ORM モデル定義・SQL DDL のいずれが正本かを確定し、定義を含む実ファイルパスを列挙する。完了条件: テーブル定義を含む実ファイルパスが列挙済み
@@ -56,11 +52,7 @@ allowed-tools: [AskUserQuestion, Bash, Grep, Read, Write]
 - **Step 4**: 除外パターンを確定する。テスト用マイグレーション・シード等のノイズを実際に `ls` で確認する。完了条件: `excludePatterns` 一覧が確定済み
 - **Step 5**: 検出戦略宣言を作成し、AskUserQuestionで承認を取る。宣言JSONは一時ファイルに保存する。完了条件: 戦略JSON（`unitKind: "table"`/`extractionMethod: "custom"`/`unitIdRegex`/`excludePatterns`/`approvedByUser: true`/`notes`）が保存済み
 
-**完了**: Step 1〜4の調査完了（`references/table-detection.md` の調査項目に準拠）。Step 5の検出戦略宣言（`unitKind: "table"`/`extractionMethod: "custom"`/`unitIdRegex`/`excludePatterns`）がユーザー承認済み
-
-## Phase 2: 戦略に基づく抽出
-
-## Step 2-1: 戦略に基づく抽出
+### Phase 2: 戦略に基づく抽出
 
 - **Step 1**: 抽出方式はカスタム抽出パスに固定される（テーブル種別に組み込み検出器はない）。Phase 1で宣言した抽出手順を確認する。完了条件: 抽出手順（走査対象・グルーピング規則）が確定済み
 - **Step 2**: 宣言した手順（例: マイグレーションファイルの走査・ORM モデル定義の解析・SQL DDL の `CREATE TABLE`/`CREATE VIEW` 抽出等）をClaude自身がBash/Grep/Readで実行し、スキーマ準拠のマニフェストJSONをWriteする。完了条件: マニフェストJSONが生成済み
@@ -69,32 +61,18 @@ allowed-tools: [AskUserQuestion, Bash, Grep, Read, Write]
 
 検出結果は一時ディレクトリ（`$CLAUDE_JOB_DIR/tmp/table-manifest.json`、未設定時は `${TMPDIR:-/tmp}/claude-job-${session}/tmp/` 配下。`${session}`はセッションIDが取得できなければ任意の一意な値でよい）に保存する。
 
-**完了**: Step 2でスキーマ準拠のマニフェスト（配列キー `units`）が1件以上確定、または0件検出をユーザーに報告して停止している。Step 3で検出内訳を確認済み。Step 4で拡張マニフェストに種別固有フィールド（foreignKeys・columnCount・mainColumns等）が付与されている
-
-## Phase 3: 整合検証（機械実行）
-
-## Step 3-1: 整合検証（機械実行）
-
-**使用ツール**: Bash
+### Phase 3: 整合検証（機械実行）
 
 - **Step 1**: `../../../shared/scripts/unit-list/validate-manifest.sh <manifest.ext.json> --unit-kind table` を実行する。完了条件: 全項目PASS
 - **Step 2**: FAIL時は指摘に応じて修正する。修正後Step 1を再実行する。3回失敗したら抽出手順の再検討（Phase 2 Step 1）へ差し戻す。完了条件: exit 0
 
 カスタム抽出パスであっても、この検証を通過しないマニフェストはPhase 4に進めない。
 
-**完了**: Step 1で `validate-manifest.sh --unit-kind table` が全項目PASS。Step 2のFAIL時修正ループは3回以内
-
-## Phase 4: テーブル一覧.html 生成
-
-## Step 4-1: テーブル一覧.html 生成
-
-**使用ツール**: Bash / Write
+### Phase 4: テーブル一覧.html 生成
 
 - **Step 1**: `../../../shared/scripts/unit-list/build-unit-list.sh <manifest.ext.json> <output_dir>/一覧/テーブル一覧/テーブル一覧.html --unit-kind table --portal-dir <output_dir>` を実行する。`--portal-dir` にはポータル（`index.html`）の配置先＝納品物ルート（output_dir=output_dir）を渡し、「ポータルへ戻る」リンクを実在パスに解決させる。build側が内部でvalidateを再実行するため、検証を経ないmanifestからは生成できない。完了条件: HTML生成済み
 
 **手作業でのプレースホルダ置換は禁止する**（過去に `entryFile=None` の混入という実害が発生している）。HTML生成は必ずスクリプト経由の決定的処理で行う。
-
-**完了**: Step 1でテーブル一覧.htmlが生成され、埋め込みJSONがマニフェストと一致している
 
 ## 完了条件
 

@@ -91,7 +91,7 @@ PASS / FAIL / INCOMPLETE（`DESIGN-INCOMPLETE` または `DYNAMIC-UNVERIFIED` �
 - env_check: <全項目の通過数>
 - env_check 実施水準: <完全（正式13項目チェックリストを全実施）／簡略（一部項目のみ実施）／未実施>。完全以外は判定を `DYNAMIC-UNVERIFIED` として扱う
 - hint: <あれば>
-- incomplete_reason: <status が DESIGN-INCOMPLETE または DYNAMIC-UNVERIFIED の場合のみ内訳を記入（例: scenarios の query/path_params 不足によるスピナー未到達／MCP・Playwright とも不在）>
+- incomplete_reason: <status が DESIGN-INCOMPLETE または DYNAMIC-UNVERIFIED の場合のみ内訳を記入（例: scenarios の path/ready 不整合による描画未到達／MCP・Playwright とも不在）。未開通時の query/path_params 省略だけを理由にしない>
 
 ## 凍結検証結果
 

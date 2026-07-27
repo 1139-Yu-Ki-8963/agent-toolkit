@@ -72,6 +72,13 @@ esc_cell() { # Markdownテーブルセル用にパイプ文字をエスケープ
   printf '%s' "$1" | sed 's/|/\\|/g'
 }
 
+table_value() { # $1=key $2=value。複数行literalは表へ押し込まず別コードブロックを参照する
+  case "$2" in
+    *\\n*) printf 'コードブロック「%s」参照' "$1" ;;
+    *) printf '%s' "$2" ;;
+  esac
+}
+
 # ---- facts.yml パース（awk固定インデント方式。facts-schema.md準拠） ----
 
 extract_items() { # $1=facts.yml $2=対象セクション名 -> key\x01value\x01evidence を1行ずつ出力
@@ -108,6 +115,65 @@ extract_items() { # $1=facts.yml $2=対象セクション名 -> key\x01value\x01
     }
     END { if (havekey && cursec == target) flush() }
   ' "$1"
+}
+
+# 複数行literalを忠実に復号する経路では、固定YAMLスカラーを生のまま取り出す。
+# Python extractorが出力する二重引用符スカラーはJSON文字列でもあるため、jqの
+# fromjsonで引用符・バックスラッシュ・Unicodeを一括復号する。
+extract_raw_items() { # $1=facts.yml $2=対象セクション名 -> raw key\x01raw value\x01raw evidence
+  awk -v target="$2" '
+    function flush() {
+      printf "%s\x01%s\x01%s\n", key, value, evidence
+      havekey = 0
+    }
+    /^sections:/ { insec = 1; next }
+    insec && /^  [A-Za-z_]+:[\t ]*$/ {
+      if (havekey && cursec == target) flush()
+      newsec = $0
+      sub(/^  /, "", newsec); sub(/:[\t ]*$/, "", newsec)
+      cursec = newsec
+      havekey = 0
+      next
+    }
+    cursec != target { next }
+    /^      - key:/ {
+      if (havekey) flush()
+      key = $0
+      sub(/^      - key:[\t ]*/, "", key)
+      value = ""; evidence = ""; havekey = 1
+      next
+    }
+    /^        value:/ {
+      value = $0
+      sub(/^        value:[\t ]*/, "", value)
+      next
+    }
+    /^        evidence:/ {
+      evidence = $0
+      sub(/^        evidence:[\t ]*/, "", evidence)
+      next
+    }
+    END { if (havekey && cursec == target) flush() }
+  ' "$1"
+}
+
+decode_fixed_scalar() { # $1=固定YAMLスカラー
+  local raw="$1"
+  case "$raw" in
+    \"*\")
+      command -v jq >/dev/null 2>&1 \
+        || { echo "エラー: 引用符付きfactsスカラーの復号にはjqが必要です" >&2; return 2; }
+      printf '%s' "$raw" | jq -Rr 'fromjson'
+      ;;
+    \'*\')
+      raw="${raw#\'}"
+      raw="${raw%\'}"
+      printf '%s' "$raw" | sed "s/''/'/g"
+      ;;
+    *)
+      printf '%s' "$raw"
+      ;;
+  esac
 }
 
 # 全12分類のアイテム総数（facts全キー突合の基準値）
@@ -288,7 +354,7 @@ build_rows_handler() {
     local name trigger summary
     name="$(key_token "$key" 2)"; [ -z "$name" ] && name="$key"
     trigger="$(mk_marker 8 発火要素)"
-    summary="$value"; [ -z "$summary" ] && summary="$(mk_marker 8 処理概要)"
+    summary="$(table_value "$key" "$value")"; [ -z "$summary" ] && summary="$(mk_marker 8 処理概要)"
     printf '| `%s` | %s | %s | <!-- fact:%s -->\n' "$(esc_cell "$name")" "$trigger" "$(esc_cell "$summary")" "$key"
   done < <(extract_items "$1" handler)
 }
@@ -372,15 +438,13 @@ build_rows_transition_list() { # §12.1
 build_rows_local_type() { # §15.2（type-*以外のローカル型定義。key: local-type-<型名>）
   while IFS=$'\x01' read -r key value evidence; do
     [ -z "$key" ] && continue
-    local tname decl_kind fields
+    local tname field_name fields req
     tname="$(key_token "$key" 3)"; [ -z "$tname" ] && tname="$(mk_marker 15 型名)"
-    case "$value" in
-      interface*) decl_kind="interface" ;;
-      type*) decl_kind="type" ;;
-      *) decl_kind="$(mk_marker 15 宣言形式)" ;;
-    esac
-    fields="$value"; [ -z "$fields" ] && fields="$(mk_marker 15 フィールド一覧)"
-    printf '| `%s` | %s | %s | <!-- fact:%s -->\n' "$(esc_cell "$tname")" "$decl_kind" "$(esc_cell "$fields")" "$key"
+    field_name="$(mk_marker 15 フィールド名)"
+    fields="$(table_value "$key" "$value")"; [ -z "$fields" ] && fields="$(mk_marker 15 フィールド一覧)"
+    req="$(mk_marker 15 必須任意)"
+    printf '| `%s` | %s | %s | %s | <!-- fact:%s -->\n' \
+      "$(esc_cell "$tname")" "$field_name" "$(esc_cell "$fields")" "$req" "$key"
   done < <(extract_items "$1" local_type)
 }
 
@@ -500,6 +564,72 @@ pass2_sweep() { # $1=infile $2=outfile
   ' "$1" > "$2"
 }
 
+# 関数本体などの複数行literalを表の単一セルへ押し込まず、独立したコードブロックへ展開する。
+# 表側はtable_value()がこの節への参照だけを記録する。
+append_multiline_literal_blocks() { # $1=facts.yml $2=design.md
+  local facts="$1" design="$2" sec raw_key raw_value raw_evidence key value count=0
+  local blocks
+  blocks="$(mktemp "${TMPDIR:-/tmp}/prefill-code-blocks.XXXXXX")"
+  for sec in handler local_type function; do
+    while IFS=$'\x01' read -r raw_key raw_value raw_evidence; do
+      key="$(decode_fixed_scalar "$raw_key")"
+      value="$(decode_fixed_scalar "$raw_value")"
+      [ -z "$key" ] && continue
+      case "$value" in
+        *$'\n'*)
+          if [ "$count" -eq 0 ]; then
+            {
+              printf '\n## 付録: factsコードブロック\n\n'
+              printf '複数行literalは表セルではなく、執筆規律に従ってこの節へ展開する。\n\n'
+            } >> "$blocks"
+          fi
+          {
+            printf '### `%s`\n\n' "$key"
+            printf '```text\n'
+            printf '%s\n' "$value"
+            printf '```\n\n'
+          } >> "$blocks"
+          count=$((count + 1))
+          ;;
+      esac
+    done < <(extract_raw_items "$facts" "$sec")
+  done
+  if [ "$count" -gt 0 ]; then
+    cat "$blocks" >> "$design"
+  fi
+  rm -f "$blocks"
+}
+
+# Markdown表はヘッダー行と全データ行のセル数を一致させる。追跡用HTMLコメントは
+# 最終セル内へ収めるため、行末コメントを別セルとして追加しない。
+validate_markdown_table_widths() { # $1=design.md
+  awk '
+    function cells(line,    i,c,prev,n) {
+      n=0; prev=""
+      for (i=1; i<=length(line); i++) {
+        c=substr(line,i,1)
+        if (c=="|" && prev!="\\") n++
+        prev=c
+      }
+      return n-1
+    }
+    /^\|/ {
+      width=cells($0)
+      if (!in_table) {
+        expected=width
+        in_table=1
+      }
+      if (width != expected) {
+        printf "table-width-mismatch: line=%d expected=%d actual=%d\n", NR, expected, width > "/dev/stderr"
+        errors++
+      }
+      next
+    }
+    { in_table=0; expected=0 }
+    END { exit(errors > 0 ? 1 : 0) }
+  ' "$1"
+}
+
 count_remaining_placeholders() { # $1=md file （frontmatter・フェンス・HTMLコメントは対象外で数える）
   awk '
     BEGIN { fmseen = 0; fmdone = 0; infence = 0; cnt = 0 }
@@ -564,6 +694,7 @@ main() {
 
   pass1_insert "$facts" "$design_md" "$workdir/pass1.md" "$workdir"
   pass2_sweep "$workdir/pass1.md" "$workdir/pass2.md"
+  append_multiline_literal_blocks "$facts" "$workdir/pass2.md"
 
   # 終端self-verify（1: プレースホルダ残存なし　2: facts全キーの転記行数突合）
   local total_facts rows_total remaining n
@@ -587,6 +718,10 @@ main() {
   fi
   if [ "$rows_total" -ne "$total_facts" ]; then
     echo "self-verify失敗: facts全キー突合不一致（facts総数=${total_facts} 転記行数=${rows_total}）" >&2
+    ok=0
+  fi
+  if ! validate_markdown_table_widths "$workdir/pass2.md"; then
+    echo "self-verify失敗: Markdown表のヘッダーとデータ行でセル数が一致しません" >&2
     ok=0
   fi
   if [ "$ok" -ne 1 ]; then
@@ -692,6 +827,10 @@ sections:
         evidence: "src/screens/Foo/Foo.tsx:22"
 YML
 
+  # 1-35用: 関数本文相当の複数行literalは単一セルに押し込まず別コードブロック化する。
+  sed -E 's#value: "行クリックで詳細画面へ遷移する"#value: "function onRowClick() {\\n  const escaped = \\"\\\\\\\\n\\";\\n  router.push(\\"/rows/42\\");\\n}"#' \
+    "$facts" > "$facts.tmp" && mv "$facts.tmp" "$facts"
+
   if bash "$SCRIPT_DIR/prefill-design-from-facts.sh" "$facts" "$design_md" > "$tmp/summary.json" 2> "$tmp/stderr.log"; then
     echo "  [PASS] 実行成功（終端self-verify通過）"
   else
@@ -719,7 +858,30 @@ YML
   if extract_section "$design_md" '^### 8\.1' | grep -q '行クリックで詳細画面へ遷移する'; then
     echo "  [PASS] 陽性: handler が §8.1 の表へ転記された"
   else
-    echo "  [FAIL] 陽性: handler が §8.1 の表へ転記されていない" >&2
+    if extract_section "$design_md" '^### 8\.1' | grep -q 'コードブロック「handler-onRowClick-遷移」参照'; then
+      echo "  [PASS] 1-35: 複数行handlerは表から独立コードブロックを参照"
+    else
+      echo "  [FAIL] 陽性: handler が §8.1 の表へ転記されていない" >&2
+      rc=1
+    fi
+  fi
+
+  if grep -q '^## 付録: factsコードブロック$' "$design_md" \
+    && grep -q '^function onRowClick() {$' "$design_md" \
+    && grep -Fq '  const escaped = "\\n";' "$design_md" \
+    && grep -Fq '  router.push("/rows/42");' "$design_md" \
+    && ! grep -Fq 'router.push(\\"/rows/42\\");' "$design_md" \
+    && ! extract_section "$design_md" '^### 8\.1' | grep -q '\\n'; then
+    echo "  [PASS] 1-35: 関数本文を改行付きコードブロックへ展開"
+  else
+    echo "  [FAIL] 1-35: 関数本文のコードブロック展開に失敗" >&2
+    rc=1
+  fi
+
+  if validate_markdown_table_widths "$design_md" >/dev/null 2>&1; then
+    echo "  [PASS] 1-34: 全Markdown表でヘッダーとデータ行のセル数が一致"
+  else
+    echo "  [FAIL] 1-34: Markdown表のセル数不一致" >&2
     rc=1
   fi
 

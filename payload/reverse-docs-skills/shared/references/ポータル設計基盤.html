@@ -2,11 +2,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>プロジェクトポータル 設計基盤</title>
 <style>
-  :root,
-  [data-theme="light"] {
+  :root {
     --page: #EDF0F4;
     --surface: #FFFFFF;
-    --panel-2: #F6F8FA;
     --ink: #1C2B3A;
     --ink-2: #55667A;
     --ink-3: #8494A6;
@@ -19,26 +17,6 @@
     --partial: #B8860B;
     --partial-soft: #FFF8E1;
     --tag-bg: #EDF1F6;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) {
-      --page: #15171C; --surface: #1C1F26; --panel-2: #21262D;
-      --ink: #E8E5DC; --ink-2: #B6B3AB; --ink-3: #888784;
-      --border: #30363D; --grid: #30363D;
-      --critical: #F85149; --critical-soft: #3D1214;
-      --good: #3FB950; --good-soft: #0D2818;
-      --partial: #DB6D28; --partial-soft: #311D08;
-      --tag-bg: #21262D;
-    }
-  }
-  [data-theme="dark"] {
-    --page: #15171C; --surface: #1C1F26; --panel-2: #21262D;
-    --ink: #E8E5DC; --ink-2: #B6B3AB; --ink-3: #888784;
-    --border: #30363D; --grid: #30363D;
-    --critical: #F85149; --critical-soft: #3D1214;
-    --good: #3FB950; --good-soft: #0D2818;
-    --partial: #DB6D28; --partial-soft: #311D08;
-    --tag-bg: #21262D;
   }
   html, body { height: 100%; overflow: hidden; }
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -61,7 +39,6 @@
     font-family: system-ui, -apple-system, 'Segoe UI', 'Hiragino Sans', sans-serif;
     transform: translate(-50%,-50%) scale(var(--slide-scale,1));
     transform-origin: center center;
-    overflow-y: auto;
   }
 
   .slide-header { display: flex; flex-direction: column; gap: 2px; padding-bottom: 10px; border-bottom: 2px solid var(--ink); }
@@ -147,7 +124,6 @@
     color: var(--ink-2); white-space: nowrap;
   }
   .mini-matrix th { background: var(--tag-bg); font-weight: 700; color: var(--ink); }
-  .mini-matrix thead { position: sticky; top: 0; z-index: 1; }
   .mini-matrix td.hit { background: var(--good-soft); color: var(--good); font-weight: 700; }
   .mini-matrix td.miss { color: var(--ink-3); }
   .mini-matrix td.crud { background: var(--good-soft); color: var(--good); font-weight: 700; font-size: 8.5px; }

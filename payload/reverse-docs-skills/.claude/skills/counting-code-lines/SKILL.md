@@ -1,7 +1,7 @@
 ---
 name: counting-code-lines
 description: |
-  コード行数・ファイル数を FE/BE 別に計測してJSON出力する。
+  対象ディレクトリのコード行数・ファイル数を FE/BE 別に計測し code-metrics.json に出力する。
   TRIGGER when: 「コード行数」「LOC計測」「コード計測」「code-metrics」と言われた時、リバース設計ポータル生成で計測結果が必要な時。
   SKIP: code-metrics.json が既に存在し再計測が不要な時。
 invocation: counting-code-lines
@@ -23,36 +23,20 @@ allowed-tools: [Bash, Read, Write]
 
 ## 実行手順
 
-## Phase 1: 前提確認
-
-## Step 1-1: 前提確認
-
-**使用ツール**: Read / Bash / Write
+### Phase 1: 前提確認
 
 1. `target_dir` が存在するか確認する。存在しなければエラー終了
 2. `env_config` が存在するか確認する。存在しなければ `tools.cloc = false` として扱う（surveying-local-environment の未実行を許容し、フォールバック計測で進める）
 3. `mkdir -p "$output_dir"` で出力先を作成する
 
-**完了**: `target_dir` の実在、`env_config` の有無、書き込み可能な `output_dir` が確認済み
-
-## Phase 2: 計測方式の決定
-
-## Step 2-1: 計測方式の決定
-
-**使用ツール**: Read / Bash
+### Phase 2: 計測方式の決定
 
 `env_config` が存在する場合、`jq -r '.tools.cloc' "$env_config"` で cloc の有無を確認する。
 
 - `true` → cloc 方式
 - `false` または env_config 不在 → wc -l 方式
 
-**完了**: cloc方式またはwc -l方式のいずれか一方が確定している
-
-## Phase 3: コード行数の計測
-
-## Step 3-1: コード行数の計測
-
-**使用ツール**: Read / Bash / Write
+### Phase 3: コード行数の計測
 
 #### cloc 方式
 
@@ -83,13 +67,7 @@ find "$target_dir" \
 
 列挙されたファイルに対して `xargs wc -l` で行数を合計する。
 
-**完了**: 対象拡張子・除外規則を適用したコード行数のtotalが数値で取得済み
-
-## Phase 4: FE/BE 分離
-
-## Step 4-1: FE/BE 分離
-
-**使用ツール**: Bash / Write
+### Phase 4: FE/BE 分離
 
 計測対象ファイルのパスに以下のパターンが含まれるかで判定する。BE を先に判定し、一致しなければ FE を判定する。どちらにも一致しないファイルは未分類（total にのみ計上）。
 
@@ -101,13 +79,7 @@ find "$target_dir" \
 
 ファイル数も同じパターンで分類する。
 
-**完了**: 計測対象の行数とファイル数がFE・BE・未分類へ重複なく分類済み
-
-## Phase 5: テスト計測
-
-## Step 5-1: テスト計測
-
-**使用ツール**: Read / Bash / Write
+### Phase 5: テスト計測
 
 テストファイルを以下のパターンで列挙する。除外規則は Phase 3 の wc -l 方式と同じである。除外対象は `node_modules` / `.git` / `dist` / `build` / `__pycache__` / `.next` / `coverage` である。
 
@@ -116,21 +88,13 @@ find "$target_dir" \
 
 列挙したテストファイルに対して、ファイル内容から `it(` / `test(` / `def test_` の出現数を grep で計数する。テストファイルを先に列挙してから計数することで、テスト以外のファイル内の偶発的な文字列一致を防ぐ。FE/BE の内訳は Phase 4 と同じ判定パスをそのまま適用する。判定パスは、パスに `backend/` `api/` `server/` を含めば BE とする。パスに `frontend/` `src/pages/` `src/components/` `src/app/` を含めば FE とする。テストファイル数も同じ判定パスで分類する。
 
-**完了**: テスト件数・テストファイル数とFE/BE内訳が数値で取得済み
-
-## Phase 6: code-metrics.json の出力
-
-## Step 6-1: code-metrics.json の出力
-
-**使用ツール**: Read / Bash / Write
+### Phase 6: code-metrics.json の出力
 
 Write 前に `$output_dir/code-metrics.json` が既存であれば読み込む。`total` の値を `previous.total` として、`tests.count` の値を `previous.tests_count` として、`measured_at` の値を `previous.measured_at` として転記する。ファイル不在時、すなわち初回計測時は `previous` を `null` にする。デフォルト値は作らない。
 
 `git -C "$target_dir" rev-parse HEAD` で計測時のコミットハッシュを取得し `commit` に記録する（`target_dir` が git 管理外の場合は `null`）。
 
 計測結果を JSON 形式で `$output_dir/code-metrics.json` に Write する。
-
-**完了**: `code-metrics.json` が正しいJSONとして存在し、commit・total・tests・previousが記録済み
 
 ```json
 {
@@ -164,7 +128,7 @@ Write 前に `$output_dir/code-metrics.json` が既存であれば読み込む�
 
 ## 使用タイミング
 
-- リバース設計フローのglobal Step 16（ポータル生成）でポータルの解析サマリに表示するコード行数を計測する時
+- リバース設計フローの Phase 4A（ポータル生成）でポータルの解析サマリに表示するコード行数を計測する時
 - 任意のプロジェクトのコード規模を概算したい時
 
 ## 予想を裏切る挙動

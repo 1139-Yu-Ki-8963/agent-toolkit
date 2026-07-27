@@ -5,13 +5,17 @@
 # 検出根拠が弱い値は出力しない(誤った値より欠落を優先する fail-safe)。
 #
 # Usage: extract-screen-metadata.sh <screen-manifest.json> <source-dir> <output.json> \
-#          [--api-manifest <api-manifest.json>] [--design-docs-dir <dir>]
+#          [--api-manifest <api-manifest.json>] [--design-docs-dir <dir>] \
+#          [--link-base-dir <dir>]
 #
 # 入力契約:
 #   <screen-manifest.json> : validate-manifest.sh --unit-kind screen をPASSする画面マニフェスト
 #   <source-dir>           : 原本ソースのルート。screens[].entryFile 等の相対パスの解決基点
 #   --api-manifest         : unitKind=api のマニフェスト。relatedApis を unitKey に解決する
 #   --design-docs-dir      : 設計書リポジトリ側のディレクトリ。designDocStatus の判定元
+#   --link-base-dir        : 一覧HTMLを置くディレクトリ。設計書リンクをこのディレクトリ
+#                            からの相対パスにする。省略時は従来どおり
+#                            --design-docs-dir 配下の相対パスを返す
 #
 # 出力契約(<output.json>):
 #   入力マニフェストと同一構造 + screens[] 各要素への追加フィールド。
@@ -44,6 +48,9 @@
 #                     シーケンス図.html               → sequencePath
 #                     テスト項目書/単体テスト仕様書.html → testCasePath
 #                   画面フォルダ自体が不在、またはファイルが不在ならそのフィールドは付けない
+#   confirmedScreenName:
+#                   画面フォルダの基本設計書または詳細設計書の先頭見出しから確定画面名を
+#                   読み取り、推定名 screenNameGuess を上書きせず別フィールドで付与する
 #   sourceHash    : 構成ファイル(実在するもの)を列挙順に連結した sha256 の先頭12桁。
 #                   実在ファイル 0 件ならフィールド自体を付けない
 #
@@ -179,7 +186,20 @@ JSON
   ]
 }
 JSON
-  mkdir -p "$tmp/design-docs/user-admin"
+  local docs_root="$tmp/output/画面"
+  local list_dir="$tmp/output/一覧/画面一覧"
+  mkdir -p \
+    "$docs_root/screen-user-admin/基本設計" \
+    "$docs_root/screen-user-admin/詳細設計" \
+    "$docs_root/screen-user-admin/テスト項目書" \
+    "$list_dir"
+  cat > "$docs_root/screen-user-admin/基本設計/画面基本設計書.md" <<'EOF'
+# 確定ユーザー管理 画面基本設計書
+EOF
+  : > "$docs_root/screen-user-admin/基本設計/画面基本設計書.html"
+  : > "$docs_root/screen-user-admin/詳細設計/画面詳細設計書.html"
+  : > "$docs_root/screen-user-admin/シーケンス図.html"
+  : > "$docs_root/screen-user-admin/テスト項目書/単体テスト仕様書.html"
 
   check() {
     local label="$1" expr="$2" file="$3"
@@ -211,10 +231,25 @@ JSON
   # --- ケースb: --api-manifest + --design-docs-dir 指定 ---
   local out_b="$tmp/out-b.json"
   if bash "$script_path" "$manifest" "$tmp/src" "$out_b" \
-      --api-manifest "$api_manifest" --design-docs-dir "$tmp/design-docs" >/dev/null 2>&1; then
+      --api-manifest "$api_manifest" --design-docs-dir "$docs_root" \
+      --link-base-dir "$list_dir" >/dev/null 2>&1; then
     check "ケースb: relatedApis が unitKey に解決" '.screens[0].relatedApis == ["users-list"]' "$out_b"
     check "ケースb: 管理画面 designDocStatus=着手済" '.screens[0].designDocStatus == "着手済"' "$out_b"
     check "ケースb: 一般画面 designDocStatus=未着手" '.screens[1].designDocStatus == "未着手"' "$out_b"
+    check "1-40: 実在する設計書4リンクだけを一覧基準の相対パスで付与" '
+      .screens[0].designDocPath == "../../画面/screen-user-admin/基本設計/画面基本設計書.html"
+      and .screens[0].detailDocPath == "../../画面/screen-user-admin/詳細設計/画面詳細設計書.html"
+      and .screens[0].sequencePath == "../../画面/screen-user-admin/シーケンス図.html"
+      and .screens[0].testCasePath == "../../画面/screen-user-admin/テスト項目書/単体テスト仕様書.html"
+      and (.screens[1] | has("designDocPath") | not)
+      and (.screens[1] | has("detailDocPath") | not)
+      and (.screens[1] | has("sequencePath") | not)
+      and (.screens[1] | has("testCasePath") | not)
+    ' "$out_b"
+    check "1-41: 設計書見出しの確定画面名を書き戻し、推定名は保持" '
+      .screens[0].confirmedScreenName == "確定ユーザー管理"
+      and (.screens[0].screenNameGuess | not)
+    ' "$out_b"
   else
     echo "  [FAIL] ケースb: 抽出コマンド自体が失敗した" >&2
     rc=1
@@ -245,7 +280,7 @@ fi
 # ---------------------------------------------------------------------------
 # 引数パース
 # ---------------------------------------------------------------------------
-USAGE="Usage: extract-screen-metadata.sh <screen-manifest.json> <source-dir> <output.json> [--api-manifest <api-manifest.json>] [--design-docs-dir <dir>]"
+USAGE="Usage: extract-screen-metadata.sh <screen-manifest.json> <source-dir> <output.json> [--api-manifest <api-manifest.json>] [--design-docs-dir <dir>] [--link-base-dir <dir>]"
 MANIFEST="${1:?$USAGE}"
 SOURCE_DIR="${2:?$USAGE}"
 OUTPUT="${3:?$USAGE}"
@@ -253,6 +288,7 @@ shift 3 || true
 
 API_MANIFEST=""
 DESIGN_DOCS_DIR=""
+LINK_BASE_DIR=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --api-manifest)
@@ -261,6 +297,10 @@ while [ $# -gt 0 ]; do
       ;;
     --design-docs-dir)
       DESIGN_DOCS_DIR="${2:-}"
+      shift 2
+      ;;
+    --link-base-dir)
+      LINK_BASE_DIR="${2:-}"
       shift 2
       ;;
     *)
@@ -287,9 +327,29 @@ if [ -n "$API_MANIFEST" ] && [ ! -f "$API_MANIFEST" ]; then
   echo "ERROR: api-manifest not found: $API_MANIFEST" >&2
   exit 1
 fi
-if [ -n "$DESIGN_DOCS_DIR" ] && [ ! -d "$DESIGN_DOCS_DIR" ]; then
-  echo "ERROR: design-docs-dir not found: $DESIGN_DOCS_DIR" >&2
+# 標準フローでは一覧を先に作り、設計書ディレクトリを後から展開する。
+# そのため両ディレクトリは未作成でも許可し、全画面を未着手として扱う。
+if [ -n "$LINK_BASE_DIR" ] && [ -z "$DESIGN_DOCS_DIR" ]; then
+  echo "ERROR: --link-base-dir requires --design-docs-dir" >&2
   exit 1
+fi
+
+DESIGN_DOCS_LINK_PREFIX=""
+if [ -n "$DESIGN_DOCS_DIR" ] && [ -n "$LINK_BASE_DIR" ]; then
+  if ! command -v python3 >/dev/null 2>&1; then
+    echo "ERROR: python3 is required when --link-base-dir is specified" >&2
+    exit 1
+  fi
+  DESIGN_DOCS_LINK_PREFIX="$(python3 -c '
+import os
+import sys
+
+relative = os.path.relpath(
+    os.path.abspath(sys.argv[2]),
+    os.path.abspath(sys.argv[1]),
+)
+sys.stdout.write(relative.replace(os.sep, "/"))
+' "$LINK_BASE_DIR" "$DESIGN_DOCS_DIR")"
 fi
 
 TMP_WORK="$(mktemp -d "${TMPDIR:-/tmp}/extract-screen-metadata.XXXXXX")"
@@ -365,7 +425,7 @@ while IFS= read -r row; do
   # --- 4. designDocStatus: 設計書ディレクトリ配下の screenKey 実在判定 ---
   if [ -n "$DESIGN_DOCS_DIR" ] && [ -n "$screen_key" ]; then
     doc_status="未着手"
-    if [ -e "$DESIGN_DOCS_DIR/$screen_key" ]; then
+    if [ -e "$DESIGN_DOCS_DIR/$screen_key" ] || [ -e "$DESIGN_DOCS_DIR/screen-$screen_key" ]; then
       doc_status="着手済"
     else
       for cand in "$DESIGN_DOCS_DIR/$screen_key".*; do
@@ -388,17 +448,38 @@ while IFS= read -r row; do
     fi
 
     if [ -n "$screen_folder" ]; then
+      link_folder="$screen_folder_rel"
+      if [ -n "$DESIGN_DOCS_LINK_PREFIX" ]; then
+        link_folder="${DESIGN_DOCS_LINK_PREFIX%/}/$screen_folder_rel"
+      fi
       if [ -f "$screen_folder/基本設計/画面基本設計書.html" ]; then
-        add="$(jq --arg v "$screen_folder_rel/基本設計/画面基本設計書.html" '. + {designDocPath: $v}' <<<"$add")"
+        add="$(jq --arg v "$link_folder/基本設計/画面基本設計書.html" '. + {designDocPath: $v}' <<<"$add")"
       fi
       if [ -f "$screen_folder/詳細設計/画面詳細設計書.html" ]; then
-        add="$(jq --arg v "$screen_folder_rel/詳細設計/画面詳細設計書.html" '. + {detailDocPath: $v}' <<<"$add")"
+        add="$(jq --arg v "$link_folder/詳細設計/画面詳細設計書.html" '. + {detailDocPath: $v}' <<<"$add")"
       fi
       if [ -f "$screen_folder/シーケンス図.html" ]; then
-        add="$(jq --arg v "$screen_folder_rel/シーケンス図.html" '. + {sequencePath: $v}' <<<"$add")"
+        add="$(jq --arg v "$link_folder/シーケンス図.html" '. + {sequencePath: $v}' <<<"$add")"
       fi
       if [ -f "$screen_folder/テスト項目書/単体テスト仕様書.html" ]; then
-        add="$(jq --arg v "$screen_folder_rel/テスト項目書/単体テスト仕様書.html" '. + {testCasePath: $v}' <<<"$add")"
+        add="$(jq --arg v "$link_folder/テスト項目書/単体テスト仕様書.html" '. + {testCasePath: $v}' <<<"$add")"
+      fi
+
+      confirmed_name=""
+      if [ -f "$screen_folder/基本設計/画面基本設計書.md" ]; then
+        confirmed_name="$(
+          sed -n -E 's/^#[[:space:]]+(.+)[[:space:]]+画面基本設計書[[:space:]]*$/\1/p' \
+            "$screen_folder/基本設計/画面基本設計書.md" | sed -n '1p'
+        )"
+      fi
+      if [ -z "$confirmed_name" ] && [ -f "$screen_folder/詳細設計/画面詳細設計書.md" ]; then
+        confirmed_name="$(
+          sed -n -E 's/^#[[:space:]]+(.+)[[:space:]]+画面詳細設計書[[:space:]]*$/\1/p' \
+            "$screen_folder/詳細設計/画面詳細設計書.md" | sed -n '1p'
+        )"
+      fi
+      if [ -n "$confirmed_name" ]; then
+        add="$(jq --arg v "$confirmed_name" '. + {confirmedScreenName: $v}' <<<"$add")"
       fi
     fi
   fi

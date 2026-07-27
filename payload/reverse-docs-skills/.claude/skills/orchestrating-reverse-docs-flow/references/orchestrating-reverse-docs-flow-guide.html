@@ -108,35 +108,6 @@
   .tag.fail  { background: #fbe9e7; color: #9c2b1a; border-color: #ecc0b8; }
   .tag.error { background: #fdf3d7; color: #7a5d10; border-color: #e8d59a; }
   .tag.mode  { background: #e8eef7; color: #2a4a7a; border-color: #c2d2e8; }
-
-
-  /* portal-conventions: canonical viewport and theme compatibility */
-  :root, [data-theme="light"] {
-    --guide-bg: #FFFFFF; --guide-panel: #FFFFFF; --panel-2: #F6F8FA; --guide-border: #D1D9E0;
-    --guide-text: #1B1F26; --guide-text-sub: #4A4F58; --guide-accent: #0969DA; --guide-code-bg: #F6F8FA;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) {
-      --guide-bg: #15171C; --guide-panel: #1C1F26; --panel-2: #21262D; --guide-border: #30363D;
-      --guide-text: #E8E5DC; --guide-text-sub: #B6B3AB; --guide-accent: #58A6FF; --guide-code-bg: #21262D;
-    }
-  }
-  [data-theme="dark"] {
-    --guide-bg: #15171C; --guide-panel: #1C1F26; --panel-2: #21262D; --guide-border: #30363D;
-    --guide-text: #E8E5DC; --guide-text-sub: #B6B3AB; --guide-accent: #58A6FF; --guide-code-bg: #21262D;
-  }
-  html { height: 100vh; overflow: hidden; background: var(--guide-bg); }
-  body { height: 100vh; overflow-y: auto; color: var(--guide-text); background: var(--guide-bg); }
-  header, section > h2 { border-color: var(--guide-text); }
-  header p, .meta-table, .note, .def dd { color: var(--guide-text-sub); }
-  nav.toc, table.spec, .def, .flowstep, .flowgain, ul.tree, ul.tree .substeps li, pre.project-tree {
-    color: var(--guide-text); background: var(--guide-panel); border-color: var(--guide-border);
-  }
-  nav.toc a, table.spec a { color: var(--guide-accent); }
-  table.spec th, table.spec td { border-color: var(--guide-border); }
-  table.spec th { background: var(--panel-2); }
-  table.spec td code, table.spec th code, li code, p code, dd code { background: var(--guide-code-bg); }
-  table thead { position: sticky; top: 0; z-index: 1; }
 </style>
 </head>
 <body>
@@ -154,7 +125,7 @@
 
   <table class="meta-table">
     <tr><td>対応 OS</td><td>Windows WSL2 環境（統括対象の子スキル群と同一環境）</td></tr>
-    <tr><td>検証状況</td><td>2026-07-28: Phase 1〜7 / global Step 1〜30、条件分岐、Back-edge、35 Skillと26 operational refsの番号整合を構造検査で確認済み</td></tr>
+    <tr><td>検証状況</td><td>2026-07-27: 未開通4シナリオに加え、大規模ユニットの詳細設計→基本設計・観点表・テスト仕様書という2パス契約を確認済み</td></tr>
     <tr><td>依存</td><td>ツール: Read, Bash, Grep, Glob, AskUserQuestion, TaskCreate, TaskUpdate, Skill, Agent ／ 子スキル: surveying-architecture-for-reverse-docs, 種別別一覧生成スキル6種（generating-screen-list-for-reverse-docs / generating-api-list-for-reverse-docs / generating-table-list-for-reverse-docs / generating-batch-list-for-reverse-docs / generating-report-list-for-reverse-docs / generating-external-list-for-reverse-docs）, generating-reverse-common-docs, syncing-reverse-env, unlocking-reverse-target-screens, extracting-unit-facts-from-code, generating-reverse-detailed-design, rebuilding-screen-unit-from-docs, rebuilding-code-from-docs</td></tr>
     <tr><td>関連資料</td><td><code>SKILL.md</code>、<code>references/contract.md</code>（返却ブロック契約・args仕様・状態判定表の正本）、<code>references/chapter-map.md</code>、<code>assets/リバース検証/</code>、<code>scripts/audit-consistency.sh</code></td></tr>
   </table>
@@ -166,7 +137,7 @@
     <li><a href="#s1">概要</a></li>
     <li><a href="#s2">出力</a></li>
     <li><a href="#s3">状態判定表と判定フロー（15状態）</a></li>
-    <li><a href="#s4">事前ヒアリングと Phase 1〜7 / global Step 1〜30 のワークフロー</a></li>
+    <li><a href="#s4">事前ヒアリングと Phase 1〜11 のワークフロー</a></li>
     <li><a href="#s5">サブエージェント委任仕様</a></li>
     <li><a href="#s6">返却ブロック契約</a></li>
     <li><a href="#s7">args 仕様</a></li>
@@ -207,7 +178,7 @@
 <!-- ===== §2 出力 ===== -->
 <section id="s2">
   <h2><span class="sec-num">§2</span>出力</h2>
-  <p>統括スキル自体はファイルを生成しない。以下の最終状態を、事前ヒアリングと Phase 1〜7 / global Step 1〜30 の工程を依存順に制御して達成する。</p>
+  <p>統括スキル自体はファイルを生成しない。以下の最終状態を、事前ヒアリングと Phase 1〜11 の工程を依存順に制御して達成する。</p>
   <div class="def">
     <dt>全画面の設計書一式</dt>
     <dd>対象アプリケーションのすべての画面について、コードの事実に基づいた詳細設計書が揃い、「設計書だけからコードを再構築→元と一致」の往復検証に合格した状態。新規参画者がコードを読まなくても画面仕様を把握できるドキュメント群が最終成果物になる。</dd>
@@ -339,29 +310,47 @@
   </figure>
 </section>
 
-<!-- ===== §4 Phase 1〜7 / global Step 1〜30 ===== -->
+<!-- ===== §4 事前ヒアリングと Phase 1〜11 のワークフロー ===== -->
 <section id="s4">
-  <h2><span class="sec-num">§4</span>Phase 1〜7 / global Step 1〜30</h2>
+  <h2><span class="sec-num">§4</span>事前ヒアリングと Phase 1〜11 のワークフロー</h2>
 
   <table class="spec">
     <thead>
       <tr><th>Phase</th><th>内容</th><th>実行条件</th></tr>
     </thead>
     <tbody>
-      <tr><td>Phase 1 / Step 1〜2</td><td>対象・出力先・スコープ・実行モード・状態を確定する</td><td>常時</td></tr>
-      <tr><td>Phase 2 / Step 3〜8</td><td>アーキテクチャ調査と明示的なrevise back-edge</td><td>アーキ未調査または検出手がかり不足時</td></tr>
-      <tr><td>Phase 3 / Step 9〜11</td><td>種別別一覧、対象外記録、機能一覧、マトリクス・対応表を確定する</td><td>一覧・派生成果物が未生成時</td></tr>
-      <tr><td>Phase 4 / Step 12〜16</td><td>共通文書、ポータル、任意基盤ページを確定する</td><td>共通未採録またはポータル未生成時</td></tr>
-      <tr><td>Phase 5 / Step 17〜28</td><td>facts封印、基本設計・詳細設計の静的リバース</td><td>screen種別。docs-onlyはStep 28で終端</td></tr>
-      <tr><td>Phase 6 / Step 29</td><td>unlock→setup→file verify→baseline sync→implement→compare</td><td><code>single-pass</code> / <code>iterative</code>のみ</td></tr>
-      <tr><td>Phase 7 / Step 30</td><td>judge、基準更新、必要時teardown、明示back-edge</td><td>比較結果取得後</td></tr>
+      <tr><td>事前ヒアリング</td><td><code>auto|screen</code>は対象パス・出力先・画面範囲・実行モードを確定する。<code>python</code>は画面範囲を求めず、対象パス・出力先・リポジトリ相対の<code>target_file_paths</code>・<code>facts_unit_id</code>・<code>verification_dir</code>・実行モードを確定する</td><td>初回起動時のみ。headlessはprofile別必須引数が指定済みの場合、対話実行は該当項目が確定済みの場合だけスキップする</td></tr>
+      <tr><td>Phase 0P</td><td>既存のアーキテクチャ調査書を検証し、不在・不合格なら調査スキルで生成・改訂してから、明示指定されたPythonファイル群のfacts抽出・再計数・封印だけを実行して終端する</td><td><code>facts_profile=python</code>を明示した場合だけ。事前ヒアリング後、画面一覧・画面状態判定より前に実行する</td></tr>
+      <tr><td>Phase 1</td><td>状態判定。15状態から次工程を決定し、残り工程のタスクを登録する</td><td>常時</td></tr>
+      <tr><td>Phase 2</td><td>アーキテクチャ調査</td><td>アーキ未調査時のみ</td></tr>
+      <tr><td>Phase 3</td><td>種別別一覧生成。画面manifestを一覧フォルダへ永続化し、既存一覧からの再開では埋込JSONから復元する</td><td>一覧生成時、および既存一覧に永続manifestが無い再開時</td></tr>
+      <tr><td>Phase 1C</td><td>機能一覧生成（派生一覧）</td><td>画面一覧確立後</td></tr>
+      <tr><td>Phase 1D</td><td>マトリクス・対応表生成（派生補完）</td><td>機能一覧確立後</td></tr>
+      <tr><td>Phase 4</td><td>プロジェクト共通10文書の採録</td><td>共通未採録時のみ</td></tr>
+      <tr><td>Phase 5</td><td>動的検証用の環境ブロックを setup で取得する</td><td><code>single-pass</code> / <code>iterative</code> のみ。Phase 6 の静的リバース完了後かつ画面開通後（番号より依存順を優先）</td></tr>
+      <tr><td>Phase 6</td><td>facts封印、基本設計・詳細設計、画面開通、任意のファイル単位検証を行う。大規模ユニットは詳細設計をパス1で完成させ、基本設計・観点表・テスト仕様書をパス2で作る</td><td>画面単位。<code>docs-only</code> は静的リバース完了でここを終端とし、動的検証時のみ開通・ファイル単位検証へ進む</td></tr>
+      <tr><td>Phase 7</td><td>sync による基準確立</td><td>基準未確立時のみ。<code>docs-only</code> はスキップ</td></tr>
+      <tr><td>Phase 8</td><td>implement。比較要求を取得する</td><td>往復未検証時のみ。<code>docs-only</code> はスキップ</td></tr>
+      <tr><td>Phase 9</td><td>sync dry-run による比較</td><td>Phase 8 の後。<code>docs-only</code> はスキップ</td></tr>
+      <tr><td>Phase 10</td><td>judge。PASS/FAIL を確定する</td><td>Phase 9 の後。FAIL は <code>single-pass</code> なら結果を記録して停止、<code>iterative</code> のみ反復。<code>docs-only</code> はスキップ</td></tr>
+      <tr><td>Phase 11</td><td>sync本番または teardown</td><td>Phase 10 が PASS のとき。<code>docs-only</code> はスキップ</td></tr>
     </tbody>
   </table>
 
   <div class="constraint">
-    <strong>global Step 29〜30 の関係</strong><br>
+    <strong>facts profileの境界</strong><br>
+    起動引数が空の対話実行ではprofileを質問し、<code>python</code>選択時は<code>target_repo_path</code>・<code>output_dir</code>・<code>target_file_paths</code>・<code>facts_unit_id</code>・<code>verification_dir</code>・実行モードを収集する。<code>target_file_paths</code>は対象リポジトリ内に実在する相対<code>.py</code>パスだけを許可し、外部絶対パスは要求しない。フル実行はPhase 1ではなくPhase 0Pへ進む。通常の画面ループは対象ファイルの拡張子にかかわらず常に <code>profile=screen</code> を使う。<code>profile=python</code> は明示したPhase 0Pだけで使う。Phase 0Pは <code>survey_doc_path</code> を既存調査書から解決し、不在なら <code>surveying-architecture-for-reverse-docs(mode=survey)</code>、不合格なら <code>mode=revise</code> で確定してからfacts抽出へ進み、facts封印後に終端する。拡張子だけから画面フローをPython facts-onlyへ切り替えない。
+  </div>
+
+  <div class="constraint">
+    <strong>静的完了前の画面一覧更新</strong><br>
+    基本設計・詳細設計の著述が合流したら、永続 <code>screen-manifest.json</code> を解決する。再開時に無ければ既存画面一覧HTMLの <code>#screen-manifest</code> から <code>restore-screen-manifest.sh</code> で復元・検証し、設計書メタデータ抽出と画面一覧生成を再実行する。実在する4成果物のリンク・確定画面名・登録件数と表行数を検収してから、画面レジストリを <code>authored</code> へ更新する。
+  </div>
+
+  <div class="constraint">
+    <strong>Phase 8〜10 の関係</strong><br>
     <code>rebuilding-code-from-docs</code> は <code>mode</code> で2分割される（<code>implement</code>=比較要求を返して停止 / <code>judge</code>=比較結果を受け取り判定）。
-    管理者がこの2回を別々に起動し、global Step 29内で sync dry-run を挟む。
+    管理者がこの2回を別々に起動し、間に sync dry-run（Phase 9）を挟む。
   </div>
 
   <div class="constraint">
@@ -383,14 +372,23 @@
       <tr><th>呼び出し箇所</th><th>invocation</th><th>args骨格</th><th>期待返却 status</th></tr>
     </thead>
     <tbody>
-      <tr><td>global Step 3〜7</td><td>surveying-architecture-for-reverse-docs</td><td>target_repo_path, output_dir, template_root, mode</td><td><span class="tag pass">調査確定</span></td></tr>
-      <tr><td>global Step 9</td><td>generating-&lt;種別&gt;-list-for-reverse-docs</td><td>source_dir, output_dir</td><td><span class="tag pass">DONE</span></td></tr>
-      <tr><td>global Step 10〜11</td><td>generating-feature-list-for-reverse-docs / generating-cross-views-for-reverse-docs</td><td>source_dir, target_repo_path, output_dir</td><td><span class="tag pass">DONE</span></td></tr>
-      <tr><td>global Step 12〜15</td><td>generating-reverse-common-docs</td><td>target_repo_path, output_dir, template_root, survey_doc_path, mode</td><td><span class="tag pass">採録v0確定 / 追記完了</span></td></tr>
-      <tr><td>global Step 18〜21</td><td>extracting-unit-facts-from-code</td><td>target_repo_path, target_file_paths, screen_dir, profile=screen, survey_doc_path, run_id</td><td><span class="tag pass">封印済み</span></td></tr>
-      <tr><td>global Step 22〜28</td><td>generating-reverse-basic-design / generating-reverse-detailed-design</td><td>facts_ref, common_docs_root, authoring_pass等</td><td><span class="tag pass">基本設計著述完了 / AUTHORED</span></td></tr>
-      <tr><td>global Step 29</td><td>unlocking / syncing / rebuilding-screen-unit / rebuilding-code</td><td>動的検証に必要なargs全量</td><td><span class="tag mode">NEED-COMPARE</span></td></tr>
-      <tr><td>global Step 30</td><td>rebuilding-code-from-docs / syncing-reverse-env</td><td>mode=judge, compare_result, freeze_commit / mode=sync</td><td><span class="tag pass">PASS</span>/<span class="tag fail">FAIL</span></td></tr>
+      <tr><td>Phase 2（アーキ未調査時）</td><td>surveying-architecture-for-reverse-docs</td><td>target_repo_path, output_dir, template_root, mode</td><td><span class="tag pass">調査確定</span></td></tr>
+      <tr><td>Phase 3（一覧未生成時）</td><td>generating-&lt;種別&gt;-list-for-reverse-docs（不在種別ごと）</td><td>source_dir, output_dir</td><td><span class="tag pass">DONE</span></td></tr>
+      <tr><td>Phase 1C（画面一覧確立後）</td><td>generating-feature-list-for-reverse-docs</td><td>source_dir, output_dir</td><td><span class="tag pass">DONE</span></td></tr>
+      <tr><td>Phase 1D（機能一覧確立後）</td><td>generating-cross-views-for-reverse-docs</td><td>target_repo_path, output_dir, portal_output_dir（任意）</td><td><span class="tag pass">DONE</span></td></tr>
+      <tr><td>Phase 4（共通未採録時）</td><td>generating-reverse-common-docs</td><td>target_repo_path, output_dir, template_root, survey_doc_path, mode</td><td><span class="tag pass">採録v0確定</span></td></tr>
+      <tr><td>Phase 5</td><td>syncing-reverse-env</td><td>design-doc, mode=setup</td><td><span class="tag pass">PASS</span>（env_block抽出）</td></tr>
+      <tr><td>Phase 6（静的著述後の画面未開通時）</td><td>unlocking-reverse-target-screens</td><td>invocation_mode=dynamic-only, system, screen_id, reverse_worktree, ports, output_dir, user-approved</td><td><span class="tag pass">UNLOCKED</span></td></tr>
+      <tr><td>Phase 0P（明示Python facts-only）</td><td>extracting-unit-facts-from-code</td><td>target_repo_path, target_file_paths, logical screen_dir, verification_dir, profile=python, survey_doc_path, run_id</td><td><span class="tag pass">封印済み→Python facts封印完了</span></td></tr>
+      <tr><td>Phase 6（画面の事実未封印時）</td><td>extracting-unit-facts-from-code</td><td>target_repo_path, target_file_paths, screen_dir, verification_dir, profile=screen, survey_doc_path, run_id</td><td><span class="tag pass">封印済み</span></td></tr>
+      <tr><td>Phase 6（基本設計未著述時）</td><td>generating-reverse-basic-design</td><td>screen_dir, output_dir, template_root, scaffold_script_path, facts_ref, common_docs_root, unit_kind, authoring_pass, detail_design_path・pass1_receipt_path（大規模パス2時）</td><td><span class="tag pass">基本設計著述完了</span></td></tr>
+      <tr><td>Phase 6（設計書未著述時）</td><td>generating-reverse-detailed-design</td><td>screen_dir, output_dir, template_root, chapter_map_path, audit_script_path, scaffold_script_path, facts_ref, common_docs_root, mode, target_file_path, verification_url, verification_dir, authoring_pass, detail_design_path・pass1_receipt_path（companion-docs時）</td><td><span class="tag pass">AUTHORED / DETAIL_AUTHORED / COMPANION_AUTHORED</span></td></tr>
+      <tr><td>Phase 6（ファイル単位未検証時）</td><td>rebuilding-screen-unit-from-docs</td><td>screen_dir, target_file_path, 資産paths, env_block, user-approved</td><td><span class="tag pass">再現一致</span></td></tr>
+      <tr><td>Phase 7</td><td>syncing-reverse-env</td><td>design-doc, mode=sync</td><td><span class="tag pass">PASS</span></td></tr>
+      <tr><td>Phase 8</td><td>rebuilding-code-from-docs</td><td>mode=implement, scope, reverse_worktree, ports, 資産paths, user-approved</td><td><span class="tag mode">NEED-COMPARE</span></td></tr>
+      <tr><td>Phase 9</td><td>syncing-reverse-env</td><td>design-doc, mode=sync, dry-run</td><td><span class="tag pass">PASS</span>/<span class="tag fail">FAIL</span>（比較結果）</td></tr>
+      <tr><td>Phase 10</td><td>rebuilding-code-from-docs</td><td>mode=judge, screen_dir, compare_result, reverse_worktree, freeze_commit</td><td><span class="tag pass">PASS</span>/<span class="tag fail">FAIL</span></td></tr>
+      <tr><td>Phase 11</td><td>syncing-reverse-env</td><td>design-doc, mode=sync／teardown, user-approved</td><td><span class="tag pass">PASS</span></td></tr>
     </tbody>
   </table>
 
@@ -509,7 +507,7 @@
       <tr><th>要素</th><th>内容</th></tr>
     </thead>
     <tbody>
-      <tr><td>反復条件</td><td><code>verification_mode=iterative</code> かつglobal Step 29または30がFAILした場合だけ、back_edge_idで明示したStepへ戻す</td></tr>
+      <tr><td>反復条件</td><td><code>verification_mode=iterative</code> かつ Phase 10 judge が FAIL の場合のみ、Phase 8 implement へ戻す</td></tr>
       <tr><td>上限回数</td><td>max_loop（既定3。②の max_loop とは別軸の工程ループ）</td></tr>
       <tr>
         <td>停止条件</td>
@@ -524,9 +522,9 @@
     </tbody>
   </table>
 
-  <p class="note">この外側ループ（発散判定2連続・上限）はiterativeにだけ適用する。single-passは1回のjudge結果を記録して停止し、docs-onlyはglobal Step 28の静的リバース完了で終端する。</p>
+  <p class="note">この外側ループ（発散判定2連続・上限）は iterative にだけ適用する。single-pass は1回のjudge結果を記録して停止し、docs-only はPhase 6の静的リバース完了で終端する。</p>
 
-  <h3>静的著述とファイル単位検証のback-edge</h3>
+  <h3>Phase 6 内: S1a⇄S1b ループ</h3>
 
   <table class="spec">
     <thead>
@@ -550,13 +548,20 @@
       <tr><th>Phase</th><th>完了条件</th></tr>
     </thead>
     <tbody>
-      <tr><td>Phase 1</td><td>対象・出力先・スコープ・実行モード・状態キーが確定している</td></tr>
-      <tr><td>Phase 2</td><td>survey_doc_pathとunit_kinds_presentが確定している</td></tr>
-      <tr><td>Phase 3</td><td>6種別の生成済み/対象外と派生一覧・対応表が確定している</td></tr>
-      <tr><td>Phase 4</td><td>common_docs_root、ポータル、任意ページ、バッチ経路が確定している</td></tr>
-      <tr><td>Phase 5</td><td>facts・基本設計・詳細設計が完成し、docs-onlyは静的完了している</td></tr>
-      <tr><td>Phase 6</td><td>compare_resultとfreeze_commit、または動的検証保留理由が確定している</td></tr>
-      <tr><td>Phase 7</td><td>PASS / FAIL / 動的検証保留が確定し、PASS時は基準更新済み</td></tr>
+      <tr><td>事前ヒアリング</td><td><code>auto|screen</code>は4項目（対象パス・出力先・画面範囲・実行モード）が確定済み。<code>python</code>はtarget_repo_path・output_dir・target_file_paths・facts_unit_id・verification_dir・実行モードが確定済みでscreen_scopeは不要。headless=trueはprofile別必須引数が指定済みの場合だけスキップ</td></tr>
+      <tr><td>Phase 1</td><td>状態キーが確定し、残り全工程のタスク一覧が TaskCreate で一括登録済み</td></tr>
+      <tr><td>Phase 2</td><td>survey_doc_path が確定している（アーキ未調査時のみ）</td></tr>
+      <tr><td>Phase 3</td><td>unit_kinds_present の全種別について一覧HTMLが存在し、画面一覧がある場合は永続screen-manifest.json / screen-manifest.ext.jsonが検証済み、excluded-kinds.json が存在する</td></tr>
+      <tr><td>Phase 1C</td><td>機能一覧.html が存在する（画面一覧確立後。派生一覧のため unit_kinds_present の判定対象外）</td></tr>
+      <tr><td>Phase 1D</td><td>生成可能なマトリクス・対応表ページ・AI設定資産ページが存在する（機能一覧確立後。派生補完）</td></tr>
+      <tr><td>Phase 4</td><td>common_docs_root が確定している（共通未採録時のみ）</td></tr>
+      <tr><td>Phase 5</td><td>env_block の7フィールドが確定している</td></tr>
+      <tr><td>Phase 6</td><td>全モードで facts・基本設計・詳細設計が完成。<code>docs-only</code> は静的リバース完了でGoal到達可能。動的検証ありでは画面開通後の対象ファイルが再現一致または検証結果報告済み</td></tr>
+      <tr><td>Phase 7</td><td>baseline_tag が確立済み（status=PASS）</td></tr>
+      <tr><td>Phase 8</td><td>compare_request が取得済み（status=NEED-COMPARE）</td></tr>
+      <tr><td>Phase 9</td><td>比較結果ブロックが省略なく取得済み</td></tr>
+      <tr><td>Phase 10</td><td>PASS / FAIL いずれかに確定している</td></tr>
+      <tr><td>Phase 11</td><td>基準タグが更新済み、または依頼時は teardown が完了している</td></tr>
       <tr><td><strong>Goal</strong></td><td><strong><code>docs-only</code> の静的成果物が完成、または動的検証モードで PASS / 結果報告に到達し、最終報告フォーマットの必須フィールドをすべて充足している</strong></td></tr>
     </tbody>
   </table>

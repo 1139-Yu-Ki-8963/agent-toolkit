@@ -56,6 +56,24 @@
 
 set -euo pipefail
 
+count_rendered_screen_rows() {
+  local rendered="$1"
+  local count
+  count="$(printf '%s' "$rendered" | grep -o '<tr data-screen-id=' | wc -l | tr -d ' ' || true)"
+  printf '%s\n' "${count:-0}"
+}
+
+verify_rendered_screen_count() {
+  local expected="$1"
+  local rendered="$2"
+  local actual
+  actual="$(count_rendered_screen_rows "$rendered")"
+  if [ "$actual" -ne "$expected" ]; then
+    echo "ERROR: manifest登録件数($expected)と実出力表行数($actual)が一致しません" >&2
+    return 1
+  fi
+}
+
 # --- --self-test モード ---
 # render_template()の単一パス置換が、埋め込み値中の他マーカー文字列衝突・
 # バックスラッシュ・山括弧を含む自由記述フィールドでも誤爆しないことを検証する。
@@ -74,6 +92,10 @@ EOF
 
   extract_manifest_json() {
     sed -n '/<script type="application\/json" id="screen-manifest">/,/<\/script>/p' "$1" | sed '1d;$d'
+  }
+
+  html_escape_for_test() {
+    printf '%s' "$1" | sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g' -e 's/"/\&quot;/g' -e "s/'/\&#39;/g"
   }
 
   # --- ケースa: バックスラッシュ(正規表現風 \d+)を含む detectionMethod ---
@@ -157,7 +179,8 @@ EOF
     }' > "$manifest_b"
 
   local out_b="$tmp/out-b.html"
-  if bash "$script_path" "$manifest_b" "$out_b" >/dev/null 2>&1; then
+  local build_b_error=""
+  if build_b_error="$(bash "$script_path" "$manifest_b" "$out_b" 2>&1)"; then
     local embedded_b="$tmp/embedded-b.json"
     local expected_b="$tmp/expected-b.json"
     extract_manifest_json "$out_b" | jq -c -S . > "$embedded_b" 2>/dev/null || true
@@ -177,7 +200,7 @@ EOF
       rc=1
     fi
   else
-    echo "  [FAIL] ケースb: 生成コマンド自体が失敗した" >&2
+    echo "  [FAIL] ケースb: 生成コマンド自体が失敗した: $build_b_error" >&2
     rc=1
   fi
 
@@ -217,7 +240,9 @@ EOF
     regression_ok=0
   elif ! grep -q '<code>/home</code>' "$out_normal"; then
     regression_ok=0
-  elif ! grep -q '<td>トップ</td>' "$out_normal" || grep -q '<td>トップ(OK)' "$out_normal"; then
+  elif ! grep -q '<td class="screen-name-cell"></td>' "$out_normal" \
+    || ! grep -Fq 'item.confirmedScreenName || item.screenNameGuess' "$out_normal" \
+    || grep -q '<td>トップ' "$out_normal"; then
     regression_ok=0
   elif ! bash "$script_dir/validate-manifest.sh" "$manifest_normal" >/dev/null 2>&1; then
     regression_ok=0
@@ -243,12 +268,14 @@ EOF
         })
   ' --arg entryFile "$tmp/src/screens/Home.tsx" "$manifest_normal" > "$marker_manifest"
   if ! bash "$script_path" "$marker_manifest" "$marker_out" >/dev/null 2>&1 \
-    || ! grep -q '<td>末尾空白</td>' "$marker_out" \
-    || ! grep -q '<td>半角括弧</td>' "$marker_out" \
-    || ! grep -q '<td>識別子付き</td>' "$marker_out" \
-    || ! grep -q '<td>全角括弧（補足）</td>' "$marker_out" \
-    || ! grep -q '<td>OK処理</td>' "$marker_out" \
-    || ! grep -q '<td>決済OK着地</td>' "$marker_out"; then
+    || [ "$(grep -c '<td class=\"screen-name-cell\"></td>' "$marker_out" 2>/dev/null || true)" != "6" ] \
+    || ! grep -Fq 'function normalizeScreenName(value)' "$marker_out" \
+    || grep -q '<td>末尾空白' "$marker_out" \
+    || grep -q '<td>半角括弧' "$marker_out" \
+    || grep -q '<td>識別子付き' "$marker_out" \
+    || grep -q '<td>全角括弧' "$marker_out" \
+    || grep -q '<td>OK処理' "$marker_out" \
+    || grep -q '<td>決済OK着地' "$marker_out"; then
     regression_ok=0
   fi
 
@@ -257,6 +284,162 @@ EOF
   else
     echo "  [FAIL] 回帰確認: 可視テーブル内容またはvalidate-manifest.shのPASSに退行が発生した" >&2
     rc=1
+  fi
+
+  # --- 写真指摘 1-40〜1-44: 一覧の表示・検索・件数・戻りリンク契約 ---
+  local manifest_findings="$tmp/manifest-findings.json"
+  local out_findings="$tmp/arbitrary/list-output/画面一覧.html"
+  local portal_findings="$tmp/portal target's"
+  mkdir -p "$(dirname "$out_findings")" "$portal_findings"
+  : > "$portal_findings/index.html"
+  jq -n \
+    --arg sourceDir "$tmp/src" \
+    --arg entryFile "$tmp/src/screens/Home.tsx" \
+    '{
+      generatedAt: "2026-01-01T00:00:00Z",
+      sourceDir: $sourceDir,
+      strategy: {extractionMethod: "custom", approvedByUser: true, screenIdRegex: null, excludePatterns: []},
+      detectionSummary: {screenCount: 2, clusterCount: 0, sharedScreenCount: 0, embeddedCandidateCount: 0, unresolvedCount: 1},
+      screens: [
+        {
+          screenId: "SCR-041",
+          screenKey: "confirmed-home",
+          screenNameGuess: "旧推定名",
+          confirmedScreenName: "確定ホーム",
+          kind: "route",
+          route: "/home",
+          entryFile: $entryFile,
+          detectionMethod: "manual",
+          confidence: "high",
+          screenType: "top",
+          accountGroup: "common",
+          accountSubType: "common",
+          hasTemplate: true,
+          parentScreen: null,
+          childComponents: [],
+          isProcessingEndpoint: false,
+          designDocStatus: "着手済",
+          designDocPath: "../../画面/screen-confirmed-home/基本設計/画面基本設計書.html",
+          detailDocPath: "../../画面/screen-confirmed-home/詳細設計/画面詳細設計書.html",
+          sequencePath: "../../画面/screen-confirmed-home/シーケンス図.html",
+          testCasePath: "../../画面/screen-confirmed-home/テスト項目書/単体テスト仕様書.html"
+        },
+        {
+          screenKey: "unresolved-one",
+          screenNameGuess: "要確認画面",
+          kind: "unresolved",
+          route: "",
+          entryFile: "",
+          detectionMethod: "manual",
+          confidence: "low",
+          screenType: "top",
+          accountGroup: "common",
+          accountSubType: "common",
+          hasTemplate: false,
+          parentScreen: null,
+          childComponents: [],
+          isProcessingEndpoint: false
+        }
+      ]
+    }' > "$manifest_findings"
+
+  local findings_ok=1
+  if ! bash "$script_path" "$manifest_findings" "$out_findings" \
+      --portal-dir "$portal_findings" >/dev/null 2>&1; then
+    findings_ok=0
+  fi
+
+  if [ "$findings_ok" -eq 1 ] \
+    && grep -Fq 'confirmedScreenName' "$out_findings" \
+    && grep -Fq 'class="screen-name-cell"' "$out_findings" \
+    && ! grep -Fq '<td>旧推定名</td>' "$out_findings" \
+    && grep -Fq "item.confirmedScreenName || item.screenNameGuess" "$out_findings"; then
+    echo "  [PASS] 1-41: 確定画面名は埋め込みマニフェストを単一表示源として再描画"
+  else
+    echo "  [FAIL] 1-41: 確定画面名の単一表示源化が未達" >&2
+    rc=1
+  fi
+
+  if [ "$findings_ok" -eq 1 ] \
+    && grep -Fq "document.querySelectorAll('#screen-table tbody tr, #unresolved-table tbody tr')" "$out_findings" \
+    && grep -Fq 'data-screen-key="unresolved-one"' "$out_findings" \
+    && grep -Fq '"screenNameGuess":"要確認画面"' "$out_findings"; then
+    echo "  [PASS] 1-41: 要手動確認テーブルも埋め込みマニフェストから画面名を再描画"
+  else
+    echo "  [FAIL] 1-41: 要手動確認テーブルが画面名再描画の対象外" >&2
+    rc=1
+  fi
+
+  if [ "$findings_ok" -eq 1 ] \
+    && grep -Fq 'data-search-text="SCR-041 confirmed-home '"$tmp"'/src/screens/Home.tsx"' "$out_findings" \
+    && grep -Fq 'placeholder="画面名・画面キー・画面ID・入口ファイル・ルートで絞り込み"' "$out_findings"; then
+    echo "  [PASS] 1-42: 画面キー・画面ID・entryFileを検索索引へ追加"
+  else
+    echo "  [FAIL] 1-42: 画面キー・画面ID・entryFileの検索索引が不足" >&2
+    rc=1
+  fi
+
+  local finding_row_count
+  finding_row_count="$(grep -c '<tr data-screen-' "$out_findings" 2>/dev/null || true)"
+  if [ "$findings_ok" -eq 1 ] \
+    && [ "$finding_row_count" = "2" ] \
+    && grep -Fq '<strong>2</strong>検出画面数' "$out_findings" \
+    && ! verify_rendered_screen_count 2 '<tr data-screen-id="one"></tr>' >/dev/null 2>&1; then
+    echo "  [PASS] 1-43: 実出力表行を再計数し、欠落行を陰性fixtureで拒否"
+  else
+    echo "  [FAIL] 1-43: 実出力表行数ゲートが不足(rows=$finding_row_count)" >&2
+    rc=1
+  fi
+
+  local expected_portal_href_raw expected_portal_href expected_portal_target resolved_portal_target
+  expected_portal_href_raw="$(python3 -c '
+import os
+import sys
+
+relative = os.path.relpath(
+    os.path.join(os.path.abspath(sys.argv[2]), "index.html"),
+    os.path.abspath(sys.argv[1]),
+)
+sys.stdout.write(relative.replace(os.sep, "/"))
+' "$(dirname "$out_findings")" "$portal_findings")"
+  expected_portal_href="$(html_escape_for_test "$expected_portal_href_raw")"
+  resolved_portal_target="$(python3 -c '
+import os
+import sys
+
+print(os.path.abspath(os.path.join(sys.argv[1], sys.argv[2])))
+' "$(dirname "$out_findings")" "$expected_portal_href_raw")"
+  expected_portal_target="$(python3 -c '
+import os
+import sys
+
+print(os.path.abspath(os.path.join(sys.argv[1], "index.html")))
+' "$portal_findings")"
+  local portal_link_count
+  portal_link_count="$(grep -Fc "href=\"$expected_portal_href\"" "$out_findings" 2>/dev/null || true)"
+  if [ "$findings_ok" -eq 1 ] \
+    && [ "$portal_link_count" = "2" ] \
+    && [ "$resolved_portal_target" = "$expected_portal_target" ] \
+    && [ -f "$resolved_portal_target" ]; then
+    echo "  [PASS] 1-44: 戻りリンクを任意portalの実在indexへ解決"
+  else
+    echo "  [FAIL] 1-44: 任意portal出力先への戻りリンクが実在indexへ到達不能(count=$portal_link_count)" >&2
+    rc=1
+  fi
+
+  # 設計書リンクはvalidatorと描画側の二層で安全な相対URLだけを許可する。
+  local manifest_bad_doc_url="$tmp/manifest-bad-doc-url.json"
+  local out_bad_doc_url="$tmp/out-bad-doc-url.html"
+  jq '.screens[0].designDocPath = "javascript:alert(1)"' \
+    "$manifest_findings" > "$manifest_bad_doc_url"
+  if bash "$script_path" "$manifest_bad_doc_url" "$out_bad_doc_url" >/dev/null 2>&1; then
+    echo "  [FAIL] 設計書URL陰性: javascript: URLを生成入口で受け入れた" >&2
+    rc=1
+  elif ! grep -Fq 'if (isSafeRelativeUrl(href))' "$out_findings"; then
+    echo "  [FAIL] 設計書URL陰性: 生成HTMLに描画時URLガードが無い" >&2
+    rc=1
+  else
+    echo "  [PASS] 設計書URL陰性: 生成入口で拒否し描画側も安全な相対URLだけを有効化"
   fi
 
   if [ "$rc" -eq 0 ]; then
@@ -343,7 +526,7 @@ source "$(cd "$(dirname "$0")/.." && pwd)/render-template.sh"
 # --- メタ情報・サマリ集計をマニフェストから抽出 ---
 generated_at="$(jq -r '.generatedAt // ""' "$MANIFEST")"
 source_dir="$(jq -r '.sourceDir // ""' "$MANIFEST")"
-tile_screen_count="$(jq -r '.detectionSummary.screenCount // 0' "$MANIFEST")"
+tile_screen_count="$(jq -r '.screens | length' "$MANIFEST")"
 tile_cluster_count="$(jq -r '.detectionSummary.clusterCount // 0' "$MANIFEST")"
 tile_shared_screen_count="$(jq -r '.detectionSummary.sharedScreenCount // 0' "$MANIFEST")"
 tile_embedded_count="$(jq -r '.detectionSummary.embeddedCandidateCount // 0' "$MANIFEST")"
@@ -352,7 +535,7 @@ tile_unresolved_count="$(jq -r '.detectionSummary.unresolvedCount // 0' "$MANIFE
 # --- 1画面分の <tr> を生成する ---
 row_html() {
   local row="$1"
-  local screen_id screen_key kind screen_name route
+  local screen_id screen_key kind screen_name route entry_file search_text
   local kind_class kind_label
 
   screen_id="$(jq -r '.screenId // empty' <<<"$row")"
@@ -361,6 +544,8 @@ row_html() {
   screen_name="$(jq -r '.screenNameGuess // ""' <<<"$row")"
   screen_name="$(strip_ok_marker "$screen_name")"
   route="$(jq -r '.route // ""' <<<"$row")"
+  entry_file="$(jq -r '.entryFile // ""' <<<"$row")"
+  search_text="${screen_id} ${screen_key} ${entry_file}"
 
   case "$kind" in
     route)          kind_class="kind-route";      kind_label="ルート" ;;
@@ -371,8 +556,11 @@ row_html() {
 
   # screenId/screenKey は表示列から外したが、展開行JSのユニット特定(findUnit等)のため
   # trの data-screen-id / data-screen-key 属性として保持する(3セルの制約には抵触しない)。
-  printf '<tr data-screen-id="%s" data-screen-key="%s">\n' "$(html_escape "$screen_id")" "$(html_escape "$screen_key")"
-  printf '<td>%s</td>\n' "$(html_escape "$screen_name")"
+  printf '<tr data-screen-id="%s" data-screen-key="%s" data-search-text="%s">\n' \
+    "$(html_escape "$screen_id")" "$(html_escape "$screen_key")" "$(html_escape "$search_text")"
+  # 画面名は埋め込みマニフェストを唯一の表示源とし、テンプレート側で再描画する。
+  # 静的セルに推定値を複製すると、埋め込みデータ更新後も旧名が残るため空セルにする。
+  printf '<td class="screen-name-cell"></td>\n'
   if [ -n "$route" ]; then
     printf '<td><code>%s</code></td>\n' "$(html_escape "$route")"
   else
@@ -440,7 +628,20 @@ screen_manifest_json="$(jq -c . "$MANIFEST" | sed 's/</\\u003c/g; s/>/\\u003e/g;
 # 正本レイアウト: <output_dir>/index.html と <output_dir>/一覧/<種別>一覧/<種別>一覧.html。
 # 一覧HTMLから見たポータルは2階層上のため、未指定時は ../../index.html を既定とする。
 if [ -n "$PORTAL_DIR_ARG" ]; then
-  portal_relative="$(python3 -c "import os; print(os.path.relpath('$PORTAL_DIR_ARG', '$(dirname "$OUTPUT_HTML")'))" 2>/dev/null || echo "..")/index.html"
+  if ! command -v python3 >/dev/null 2>&1; then
+    echo "ERROR: python3 is required when --portal-dir is specified" >&2
+    exit 1
+  fi
+  portal_relative="$(python3 -c '
+import os
+import sys
+
+relative = os.path.relpath(
+    os.path.join(os.path.abspath(sys.argv[2]), "index.html"),
+    os.path.abspath(sys.argv[1]),
+)
+sys.stdout.write(relative.replace(os.sep, "/"))
+' "$(dirname "$OUTPUT_HTML")" "$PORTAL_DIR_ARG")"
 else
   portal_relative="../../index.html"
 fi
@@ -462,7 +663,8 @@ render_args=(
   "{{UNRESOLVED_CLASS}}" "$unresolved_class"
   "{{UNRESOLVED_CLASS}}" "$unresolved_class"
   "<!--DIAGNOSTICS-->" "$diagnostics_html"
-  "{{PORTAL_RELATIVE}}" "$portal_relative"
+  "{{PORTAL_RELATIVE}}" "$(html_escape "$portal_relative")"
+  "{{PORTAL_RELATIVE}}" "$(html_escape "$portal_relative")"
   "<!--SCREEN_MANIFEST_JSON-->" "$screen_manifest_json"
 )
 # トークンCSS注入（tokens.css が存在する場合のみ）
@@ -470,6 +672,7 @@ if [ -f "$TOKENS_CSS_FILE" ]; then
   render_args+=("/* TOKENS_CSS */" "$(cat "$TOKENS_CSS_FILE")")
 fi
 out="$(render_template "$(cat "$TEMPLATE")" "${render_args[@]}")"
+verify_rendered_screen_count "$tile_screen_count" "$out"
 
 printf '%s\n' "$out" > "$OUTPUT_HTML"
 

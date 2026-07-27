@@ -109,35 +109,6 @@
   .tag.fail  { background: #fbe9e7; color: #9c2b1a; border-color: #ecc0b8; }
   .tag.error { background: #fdf3d7; color: #7a5d10; border-color: #e8d59a; }
   .tag.mode  { background: #e8eef7; color: #2a4a7a; border-color: #c2d2e8; }
-
-
-  /* portal-conventions: canonical viewport and theme compatibility */
-  :root, [data-theme="light"] {
-    --guide-bg: #FFFFFF; --guide-panel: #FFFFFF; --panel-2: #F6F8FA; --guide-border: #D1D9E0;
-    --guide-text: #1B1F26; --guide-text-sub: #4A4F58; --guide-accent: #0969DA; --guide-code-bg: #F6F8FA;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) {
-      --guide-bg: #15171C; --guide-panel: #1C1F26; --panel-2: #21262D; --guide-border: #30363D;
-      --guide-text: #E8E5DC; --guide-text-sub: #B6B3AB; --guide-accent: #58A6FF; --guide-code-bg: #21262D;
-    }
-  }
-  [data-theme="dark"] {
-    --guide-bg: #15171C; --guide-panel: #1C1F26; --panel-2: #21262D; --guide-border: #30363D;
-    --guide-text: #E8E5DC; --guide-text-sub: #B6B3AB; --guide-accent: #58A6FF; --guide-code-bg: #21262D;
-  }
-  html { height: 100vh; overflow: hidden; background: var(--guide-bg); }
-  body { height: 100vh; overflow-y: auto; color: var(--guide-text); background: var(--guide-bg); }
-  header, section > h2 { border-color: var(--guide-text); }
-  header p, .meta-table, .note, .def dd { color: var(--guide-text-sub); }
-  nav.toc, table.spec, .def, .flowstep, .flowgain, ul.tree, ul.tree .substeps li, pre.project-tree {
-    color: var(--guide-text); background: var(--guide-panel); border-color: var(--guide-border);
-  }
-  nav.toc a, table.spec a { color: var(--guide-accent); }
-  table.spec th, table.spec td { border-color: var(--guide-border); }
-  table.spec th { background: var(--panel-2); }
-  table.spec td code, table.spec th code, li code, p code, dd code { background: var(--guide-code-bg); }
-  table thead { position: sticky; top: 0; z-index: 1; }
 </style>
 </head>
 <body>
@@ -157,7 +128,7 @@
     <tr><td>対応 OS</td><td>Windows WSL2 環境</td></tr>
     <tr><td>検証状況</td><td>実機検証済み</td></tr>
     <tr><td>依存</td><td>起動引数 <code>mode</code>（<code>implement</code> | <code>judge</code>）。環境同期・比較エンジンは管理者が仲介する</td></tr>
-    <tr><td>関連資料</td><td><code>references/phase-details.md</code>, <code>references/ng-classification.md</code>, <code>references/test-item-patterns.md</code>, <code>references/report-format.md</code>, <code><reverse_docs_root>/.claude/skills/orchestrating-reverse-docs-flow/references/contract.md</code></td></tr>
+    <tr><td>関連資料</td><td><code>references/phase-details.md</code>, <code>references/ng-classification.md</code>, <code>references/test-item-patterns.md</code>, <code>references/report-format.md</code>, <code>~/reverse-docs-skills/.claude/skills/orchestrating-reverse-docs-flow/references/contract.md</code></td></tr>
   </table>
 </header>
 
@@ -222,7 +193,7 @@
     <tr><td>L5 操作シーケンス比較</td><td>クリック・入力等の一連の操作（<code>operations</code>）を実行した後の画面内容（<code>postContent</code> の tables/texts）が両環境で一致するか。<code>operations</code> を持つ画面のみ評価対象</td></tr>
   </table>
   <p class="note">上記とは別軸で、静的比較（ファイル diff の「実差分」判定）も同時に受領する。</p>
-  <p class="note">status が <span class="tag mode">DESIGN-INCOMPLETE</span>（両環境とも render-ready 未到達）の場合は scenarios への query/path_params/ready 追加を指示する。<span class="tag mode">DYNAMIC-UNVERIFIED</span>（MCP・Playwright とも不在）の場合は PASS 扱いにせず往復検証未完了として報告する。</p>
+  <p class="note">status が <span class="tag mode">DESIGN-INCOMPLETE</span>（両環境とも render-ready 未到達）の場合は、Phase 2で本番とself-test共通の <code>validate-reverse-authoring-inputs.py scenarios</code> を必ず実行し、scenarios の必須キー path/ready を確認する。query/path_params は実測済みの場合だけ必須であり、未開通時の省略だけを失敗理由にしない。実測証跡があるのに不足していればFAILとする。<span class="tag mode">DYNAMIC-UNVERIFIED</span>（MCP・Playwright とも不在）の場合は PASS 扱いにせず往復検証未完了として報告する。</p>
 
   <h3>Phase 8: NG 分類の具体例</h3>
   <p>検出シグナルは <code>references/ng-classification.md</code> 表 A で失敗クラスへ写像し、表 B で設計書の帰着先（役割・既定§）を決める。全件は同ファイル参照。以下は代表例。</p>
@@ -230,7 +201,7 @@
     <tr><th>失敗クラス</th><th>帰着（役割・既定§）</th></tr>
     <tr><td>export-import-型不一致</td><td>実装契約（ファイル分割/型定義/依存。既定 §15.1/15.2/15.3）</td></tr>
     <tr><td>状態変数欠落・初期値差</td><td>状態管理（既定 §5.3/5.9）</td></tr>
-    <tr><td>scenarios引数不足</td><td>frontmatter（<code>scenarios[].query</code>/<code>path_params</code>）</td></tr>
+    <tr><td>scenarios必須引数不足</td><td>frontmatter（<code>scenarios[].path</code>/<code>ready</code>）。未開通時のquery/path_params省略は対象外</td></tr>
   </table>
 
   <h3>Phase 9: 凍結検証と最終報告の定量欄</h3>

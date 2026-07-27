@@ -136,35 +136,6 @@
     font-size: 0.82rem; line-height: 1.55; color: #202020;
   }
   pre.project-tree code { font: inherit; background: none; padding: 0; }
-
-
-  /* portal-conventions: canonical viewport and theme compatibility */
-  :root, [data-theme="light"] {
-    --guide-bg: #FFFFFF; --guide-panel: #FFFFFF; --panel-2: #F6F8FA; --guide-border: #D1D9E0;
-    --guide-text: #1B1F26; --guide-text-sub: #4A4F58; --guide-accent: #0969DA; --guide-code-bg: #F6F8FA;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) {
-      --guide-bg: #15171C; --guide-panel: #1C1F26; --panel-2: #21262D; --guide-border: #30363D;
-      --guide-text: #E8E5DC; --guide-text-sub: #B6B3AB; --guide-accent: #58A6FF; --guide-code-bg: #21262D;
-    }
-  }
-  [data-theme="dark"] {
-    --guide-bg: #15171C; --guide-panel: #1C1F26; --panel-2: #21262D; --guide-border: #30363D;
-    --guide-text: #E8E5DC; --guide-text-sub: #B6B3AB; --guide-accent: #58A6FF; --guide-code-bg: #21262D;
-  }
-  html { height: 100vh; overflow: hidden; background: var(--guide-bg); }
-  body { height: 100vh; overflow-y: auto; color: var(--guide-text); background: var(--guide-bg); }
-  header, section > h2 { border-color: var(--guide-text); }
-  header p, .meta-table, .note, .def dd { color: var(--guide-text-sub); }
-  nav.toc, table.spec, .def, .flowstep, .flowgain, ul.tree, ul.tree .substeps li, pre.project-tree {
-    color: var(--guide-text); background: var(--guide-panel); border-color: var(--guide-border);
-  }
-  nav.toc a, table.spec a { color: var(--guide-accent); }
-  table.spec th, table.spec td { border-color: var(--guide-border); }
-  table.spec th { background: var(--panel-2); }
-  table.spec td code, table.spec th code, li code, p code, dd code { background: var(--guide-code-bg); }
-  table thead { position: sticky; top: 0; z-index: 1; }
 </style>
 </head>
 <body>
@@ -592,7 +563,7 @@
     </tr>
     <tr>
       <td><a href=".claude/skills/generating-feature-list-for-reverse-docs/references/generating-feature-list-for-reverse-docs-guide.html"><code>generating-feature-list-for-reverse-docs</code></a></td>
-      <td>派生一覧（global Step 10・画面一覧確立後）</td>
+      <td>派生一覧（Phase 1C・画面一覧確立後）</td>
       <td><code>DONE | ERROR</code></td>
       <td>一覧/機能一覧/機能一覧.html</td>
     </tr>
@@ -610,7 +581,7 @@
     </tr>
     <tr>
       <td><code>generating-cross-views-for-reverse-docs</code></td>
-      <td>マトリクス・対応表（global Step 11・機能一覧確立後）</td>
+      <td>マトリクス・対応表（Phase 1D・機能一覧確立後）</td>
       <td><code>DONE | ERROR</code></td>
       <td>権限画面マトリクス・権限機能マトリクス・CRUD図・追跡可能性の 4 ページ + AI設定資産ページ</td>
     </tr>
@@ -676,7 +647,7 @@
     </tr>
     <tr>
       <td><a href=".claude/skills/running-reverse-screen-batch/SKILL.md"><code>running-reverse-screen-batch</code></a></td>
-      <td>画面数4件以上（global Step 16の条件分岐。新しいPhase番号は作らない）</td>
+      <td>画面数 4 件以上（Phase 4C・共通採録完了後の任意工程）</td>
       <td><code>BATCH-COMPLETE | BATCH-IN-PROGRESS | BATCH-ABORTED</code></td>
       <td>画面バッチ実行ログ（batch-log.txt）・進捗記録（progress.jsonl）</td>
     </tr>
@@ -736,13 +707,13 @@
     </tr>
     <tr>
       <td><code>counting-code-lines</code></td>
-      <td>ポータル生成用計測（global Step 16）</td>
+      <td>ポータル生成用計測（Phase 4A）</td>
       <td>（status 契約なし・完了報告型）</td>
       <td>code-metrics.json（コード行数・テスト件数の計測結果）</td>
     </tr>
     <tr>
       <td><code>surveying-local-environment</code></td>
-      <td>環境調査（global Step 16）</td>
+      <td>環境調査（Phase 4A）</td>
       <td>（status 契約なし・完了報告型）</td>
       <td>env-config.json（PC の OS・ツール有無の調査結果）</td>
     </tr>

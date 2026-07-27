@@ -3,7 +3,7 @@ name: generating-sequence-diagram-for-reverse-docs
 description: "画面フォルダに操作単位のシーケンス図HTMLを機械生成する。 TRIGGER when: シーケンス図生成、操作単位の呼び出し順序図化、sequence HTML作成。 SKIP: facts抽出（→extracting-unit-facts-from-code）、状態遷移図（→generating-entity-state-for-reverse-docs）、他種別詳細ページ生成。"
 invocation: generating-sequence-diagram-for-reverse-docs
 type: transform
-allowed-tools: [AskUserQuestion, Bash, Read, Write]
+allowed-tools: [Bash, Read, Write, Grep, Glob, AskUserQuestion, TaskCreate, TaskUpdate]
 ---
 
 # シーケンス図生成スキル
@@ -58,13 +58,9 @@ allowed-tools: [AskUserQuestion, Bash, Read, Write]
 
 スキル開始時に `TaskCreate` で Phase 1〜3 のタスクを登録する。各 Phase 開始時に該当タスクを `in_progress` に、完了時に `completed` へ `TaskUpdate` で更新する。実行環境に TaskCreate/TaskUpdate が存在しない場合は `$CLAUDE_JOB_DIR/tmp/task-ledger.md` で同等の Phase 遷移記録を代替する。
 
-## 実行手順
+## Phase 手順
 
-## Phase 1: page-data の確保
-
-## Step 1-1: page-data の確保
-
-**使用ツール**: Read / Bash / Write
+### Phase 1: page-data の確保
 
 - **Step 1** — 対象画面ごとに `<output_dir>/画面/screen-<ID>/シーケンス図-data.json` の実在を確認する。存在すれば内容を読み、上記形状（`screenId`・`screenLabel`・`operations[].key`/`label`/`steps[]`）に合致するか確認する。完了条件: 各対象画面について実在確認済み
 - **Step 2** — 不在の画面については、同ディレクトリの facts.yml（`facts_ref`。`extracting-unit-facts-from-code` が確定済みの前提）を Read する。⑤handler の各 item が持つ任意フィールド `call_order`（形式 `"<連番>:<api分類のkey>@<file:line>; ..."`。`shared/references/facts-schema.md` の「call_order（⑤handlerの任意フィールド）」節が正本）を持つ handler だけを対象に、`operations[]` へ機械変換する
@@ -83,13 +79,7 @@ jq -e '
 ' "<output_dir>/画面/screen-<ID>/シーケンス図-data.json"
 ```
 
-**完了**: 対象画面ごとに `シーケンス図-data.json` が実在し jq 検証を通過済み、または変換不能を報告済み
-
-## Phase 2: DOC_NAV の組み立て
-
-## Step 2-1: DOC_NAV の組み立て
-
-**使用ツール**: Read / Bash / Write
+### Phase 2: DOC_NAV の組み立て
 
 対象画面の `<output_dir>/画面/screen-<ID>/` 配下で、設計書ビューアと同じ体裁の doc-nav を組み立てる。`build-portal.sh` セクション 3.5 の doc_nav 組み立てロジックと同一の判定を、シーケンス図.html 側の視点（アクティブタブがシーケンス図）で行う。
 
@@ -99,11 +89,9 @@ jq -e '
 - **シーケンス図タブ**: 自ページなので `<span class="doc-tab active">シーケンス図</span>`
 - 実在しないタブは追加しない（存在しない基本設計・詳細設計への空リンクを作らない）
 
-**完了**: 対象画面ごとに doc_nav 文字列が確定済み
+完了条件: 対象画面ごとに doc_nav 文字列が確定済み
 
-## Phase 3: HTML 生成
-
-## Step 3-1: HTML 生成
+### Phase 3: HTML 生成
 
 - **Step 1** — 以下のように `render_template` を呼び出し、`<output_dir>/画面/screen-<ID>/シーケンス図.html` を生成する。`render-template.sh` は bash 関数を提供するのみで CLI エントリポイントを持たないため、Bash ツールから以下のようなインライン bash で実行する（新規 `.sh` ファイルは作らない）。
 
@@ -128,8 +116,6 @@ jq -e '
 
   **手作業でのプレースホルダ置換（sed・perl 直書き等）は禁止する**。`render_template` は最短前方一致で置換するため、値の中に他プレースホルダ文字列が偶然含まれても誤爆しない。完了条件: 対象画面すべてで `シーケンス図.html` が生成済み
 - **Step 2** — `portal_output_dir` が指定されていれば `build-portal.sh` を再実行し、生成済み `シーケンス図.html` が設計書ビューアの DOC_NAV にシーケンス図タブとして反映されることを確認する。未指定なら省略し完了報告に注記する。完了条件: 再実行済み、または省略を注記済み
-
-**完了**: 対象画面ごとに `シーケンス図.html` が生成済み。指定時は `build-portal.sh` の再実行が完了している
 
 ## 完了条件
 

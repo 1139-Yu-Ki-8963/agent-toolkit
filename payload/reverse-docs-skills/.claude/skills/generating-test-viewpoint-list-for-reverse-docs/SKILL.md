@@ -6,7 +6,7 @@ description: |
   SKIP: per-screen 観点表が output_dir に 1 件も存在しない時。
 invocation: generating-test-viewpoint-list-for-reverse-docs
 type: transform
-allowed-tools: [Bash, Read, Write]
+allowed-tools: [Read, Bash, Write, Edit, Grep, Glob]
 ---
 
 # テスト観点表一覧生成スキル
@@ -40,23 +40,13 @@ allowed-tools: [Bash, Read, Write]
 | HTML生成 | `../../../shared/scripts/unit-list/build-unit-list.sh` |
 | ポータル再生成（任意） | `../../../shared/scripts/build-portal.sh` |
 
-## 実行手順
+## Phase 手順
 
-## Phase 1: per-screen 観点表の存在確認
-
-## Step 1-1: per-screen 観点表の存在確認
-
-**使用ツール**: Read / Bash / Write
+### Phase 1: per-screen 観点表の存在確認
 
 - **Step 1** — `<output_dir>/画面/screen-*/詳細設計/単体テスト観点表.md` および `結合テスト観点表.md` を `find`/`ls` で走査する。1 件も存在しなければハード停止し、観点表が未作成である旨を報告して終了する。完了条件: 1 件以上の実在確認済み、または不在を報告して停止している
 
-**完了**: per-screen 観点表の 1 件以上の実在確認済み、または不在を報告して停止している
-
-## Phase 2: manifest JSON 横断集約（機械実行）
-
-## Step 2-1: manifest JSON 横断集約（機械実行）
-
-**使用ツール**: Read / Bash / Write
+### Phase 2: manifest JSON 横断集約（機械実行）
 
 - **Step 1** — 集約スクリプトを実行する。完了条件: manifest JSON が生成済み
 
@@ -68,13 +58,7 @@ allowed-tools: [Bash, Read, Write]
 
 manifest.json の保存先は `$CLAUDE_JOB_DIR/tmp/test-viewpoint-manifest.json` とする。未設定時は `${TMPDIR:-/tmp}/claude-job-${session}/tmp/` 配下に置く。
 
-**完了**: manifest JSON が横断集約済み、集約結果（件数・種別内訳・画面内訳）を確認済み
-
-## Phase 3: 整合検証（機械実行）
-
-## Step 3-1: 整合検証（機械実行）
-
-**使用ツール**: Read / Bash
+### Phase 3: 整合検証（機械実行）
 
 - **Step 1** — 整合検証スクリプトを実行する。完了条件: 全項目 PASS
 
@@ -84,13 +68,7 @@ manifest.json の保存先は `$CLAUDE_JOB_DIR/tmp/test-viewpoint-manifest.json`
 
 - **Step 2** — FAIL 時は指摘に応じて manifest を修正し Step 1 を再実行する。3 回失敗したら Phase 2（集約スクリプトの入力＝per-screen 観点表.md の記法）の見直しへ差し戻す。完了条件: exit 0
 
-**完了**: `validate-test-viewpoint-manifest.sh` が全項目 PASS
-
-## Phase 4: テスト観点表.html 生成
-
-## Step 4-1: テスト観点表.html 生成
-
-**使用ツール**: Bash / Write
+### Phase 4: テスト観点表.html 生成
 
 - **Step 1** — HTML 生成スクリプトを実行する。完了条件: `<output_dir>/一覧/テスト観点表/テスト観点表.html` が生成済み
 
@@ -105,8 +83,6 @@ manifest.json の保存先は `$CLAUDE_JOB_DIR/tmp/test-viewpoint-manifest.json`
   ```
 
 **手作業でのプレースホルダ置換は禁止する**。HTML 生成は必ず `build-unit-list.sh` 経由の決定的処理で行う。
-
-**完了**: `<output_dir>/一覧/テスト観点表/テスト観点表.html` が生成され、指定時は `build-portal.sh` の再実行が完了している
 
 ## 完了条件
 

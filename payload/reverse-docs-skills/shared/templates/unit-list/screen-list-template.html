@@ -270,8 +270,8 @@
 <body>
 
 <header class="topbar">
-  <a class="brand" href="../../index.html">
-    <span class="brand-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:middle"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zM13 9V3.5L18.5 9H13z"/></svg></span>
+  <a class="brand" href="{{PORTAL_RELATIVE}}">
+    <span class="brand-icon"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:middle"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zM13 9V3.5L18.5 9H13z"/></svg></span>
     <span class="brand-title">{{PROJECT_NAME}}</span>
     <span class="brand-sub">設計ポータル</span>
   </a>
@@ -301,7 +301,7 @@
 
 <div class="toolbar-area">
   <div class="toolbar">
-    <input type="search" id="screen-search" placeholder="画面キー・ルートで絞り込み">
+    <input type="search" id="screen-search" placeholder="画面名・画面キー・画面ID・入口ファイル・ルートで絞り込み">
     <span class="note">列見出しクリックでソート</span>
   </div>
 </div>
@@ -377,16 +377,43 @@
       return true;
     }
 
+    var table = document.getElementById('screen-table');
+    if (!table) return;
+    var headRow = table.querySelector('thead tr');
+    var bodyRows = document.querySelectorAll('#screen-table tbody tr, #unresolved-table tbody tr');
+    if (!headRow || !bodyRows.length) return;
+
+    var byId = {};
+    var byKey = {};
+    items.forEach(function (it) {
+      if (it.screenId) byId[it.screenId] = it;
+      if (it.screenKey) byKey[it.screenKey] = it;
+    });
+
+    function normalizeScreenName(value) {
+      return String(value || '')
+        .replace(/\s*\(OK\)\s+[A-Za-z0-9_.-]+\s*$/, '')
+        .replace(/）OK\s*$/, '）')
+        .replace(/\s+OK\s*$/, '')
+        .replace(/\s*\(OK\)\s*$/, '')
+        .trim();
+    }
+
+    /* 1-41: 画面名は埋め込みマニフェストだけを正とし、確定名を推定名より優先して再描画する。 */
+    Array.prototype.forEach.call(bodyRows, function (tr) {
+      var idText = tr.getAttribute('data-screen-id') || '';
+      var keyText = tr.getAttribute('data-screen-key') || '';
+      var item = byId[idText] || byKey[keyText] || null;
+      var nameCell = tr.querySelector('.screen-name-cell');
+      if (item && nameCell) {
+        nameCell.textContent = normalizeScreenName(item.confirmedScreenName || item.screenNameGuess || '');
+      }
+    });
+
     var active = FIELDS.filter(function (f) {
       return items.some(function (it) { return hasValue(it[f.key], f); });
     });
     if (!active.length) return;
-
-    var table = document.getElementById('screen-table');
-    if (!table) return;
-    var headRow = table.querySelector('thead tr');
-    var bodyRows = table.querySelectorAll('tbody tr');
-    if (!headRow || !bodyRows.length) return;
 
     var style = document.createElement('style');
     style.textContent =
@@ -405,13 +432,6 @@
       '.doc-status-chip.active{color:var(--success);background:var(--success-soft);}' +
       '.doc-status-chip.inactive{color:var(--text-muted);background:var(--panel-2);border:1px solid var(--border);}';
     document.head.appendChild(style);
-
-    var byId = {};
-    var byKey = {};
-    items.forEach(function (it) {
-      if (it.screenId) byId[it.screenId] = it;
-      if (it.screenKey) byKey[it.screenKey] = it;
-    });
 
     function appendTag(td, text, href) {
       var el = href ? document.createElement('a') : document.createElement('span');
@@ -672,7 +692,8 @@
     function computeVisible() {
       var q = search ? search.value.trim().toLowerCase() : '';
       var visible = allRows.filter(function (tr) {
-        if (q && tr.textContent.toLowerCase().indexOf(q) === -1) return false;
+        var searchText = (tr.textContent + ' ' + (tr.getAttribute('data-search-text') || '')).toLowerCase();
+        if (q && searchText.indexOf(q) === -1) return false;
         return matchesChips(tr);
       });
       if (sortCol >= 0) {
@@ -811,7 +832,7 @@
         inner.className = 'detail-inner';
         inner.appendChild(buildDetailGroup('仕様', false, DETAIL_SPEC_FIELDS, item));
         inner.appendChild(buildDetailGroup('エビデンス（検出メタデータ）', true, EVIDENCE_FIELDS, item));
-        if (item && item.screenId) {
+        if (item) {
           var docGroup = document.createElement('div');
           docGroup.className = 'detail-group';
           var docLabel = document.createElement('div');
@@ -826,17 +847,26 @@
             {label: 'シーケンス図', pathField: 'sequencePath', kind: 'sequence'},
             {label: 'テストケース', pathField: 'testCasePath', kind: 'test'}
           ];
+          function isSafeRelativeUrl(value) {
+            return typeof value === 'string' &&
+              value.length > 0 &&
+              value === value.trim() &&
+              !/[\u0000-\u001f\u007f]/.test(value) &&
+              !/^[A-Za-z][A-Za-z0-9+.-]*:/.test(value) &&
+              !/^[\/\\]/.test(value) &&
+              value.indexOf('\\') === -1;
+          }
           docDefs.forEach(function(doc) {
             var a = document.createElement('a');
             a.textContent = doc.label;
             a.setAttribute('data-kind', doc.kind);
             var href = item[doc.pathField];
-            if (href) {
+            if (isSafeRelativeUrl(href)) {
               a.href = href;
               a.className = 'doc-link';
             } else {
               a.className = 'doc-link disabled';
-              a.title = '未作成';
+              a.title = href ? '無効なリンク' : '未作成';
             }
             docLinks.appendChild(a);
           });

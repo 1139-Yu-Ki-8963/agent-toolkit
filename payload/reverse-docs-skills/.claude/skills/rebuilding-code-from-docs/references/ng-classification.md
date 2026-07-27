@@ -13,8 +13,8 @@ Phase 8 で使う分類表。表 A は Phase 7（答え合わせ）・Phase 2（
 | L3画素差 | Phase 7（動的比較 L3） | 画素比較が config.yml の閾値を超える | 表 B の「スタイル数値差」へ |
 | L4コンソール差 | Phase 7（動的比較 L4） | コンソールエラー集合が一致しない | 表 B の該当失敗クラスへ（多くは API 呼び出し条件・型差、イベント処理挙動差） |
 | L5操作シーケンス差 | Phase 7（動的比較 L5） | 操作シーケンス実行後の postContent（tables/texts）が両環境で不一致 | 表 B の該当失敗クラスへ（多くは イベント処理挙動差・遷移方式・パラメータ差） |
-| 設計書内部矛盾 | Phase 2（内部整合性監査） | 突合 1〜5 のいずれかで不一致が検出された | 表 B の該当失敗クラスへ。実装を経ずに直接指示書へ |
-| 自己完結発散エラー | Phase 5（自己完結チェック） | 同一エラーシグネチャが 3 連続で再発し発散確定 | エラー内容から表 B の該当失敗クラスを推定 |
+| P2内部矛盾 | Phase 2（内部整合性監査） | 突合 1〜5 のいずれかで不一致が検出された | 表 B の該当失敗クラスへ。実装を経ずに直接指示書へ |
+| P5発散エラー | Phase 5（自己完結チェック） | 同一エラーシグネチャが 3 連続で再発し発散確定 | エラー内容から表 B の該当失敗クラスを推定 |
 | 描画未到達(両環境) | Phase 7（`compare_result.status`） | `status` が `DESIGN-INCOMPLETE`（両環境とも同様に render-ready 未到達。引数不足のスピナー等） | 表 B の「scenarios引数不足」へ |
 | 動的検証不能 | Phase 7（`compare_result.status`） | `status` が `DYNAMIC-UNVERIFIED`（MCP・Playwright とも不在で動的検証不能） | 表 B 対象外。NG 計上せず最終報告の注記へ（PASS 扱いにしない） |
 
@@ -32,7 +32,7 @@ Phase 8 で使う分類表。表 A は Phase 7（答え合わせ）・Phase 2（
 | 遷移方式・パラメータ差 | 画面遷移（既定 §12） | — |
 | 定数値差 | 定数設定値（既定 §10） | — |
 | 空状態・エラー状態差 | データフロー/エラーハンドリング（空状態/エラー状態。既定 §6.6/§11） | — |
-| scenarios引数不足 | frontmatter（`scenarios[].query` / `path_params` / `ready`） | 2 画面以上で再発 |
+| scenarios必須引数不足 | frontmatter（`scenarios[].path` / `ready`）。決定的helperの`scenarios-input-check.json`を根拠にし、`query` / `path_params` の未開通時省略は対象外、実測証跡ありでの不足は対象 | 2 画面以上で再発 |
 
 ## 使い方
 

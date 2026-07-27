@@ -12,6 +12,7 @@
 | jq | 1.5 以上 | code-metrics.json の構築・解析（build-portal.sh 等） | 実行不可（起動時にエラー終了） |
 | git | 2.0 以上 | 計測鮮度の算出・worktree 操作・コミットガード | 鮮度計算をスキップ。worktree 操作不可 |
 | python3 | 3.6 以上 | 相対パス算出（build-portal.sh 内） | フォールバック値 `../docs` で動作するが、PORTAL_DIR と DOCS_ROOT の位置関係が異なる場合にリンク切れの可能性 |
+| python3（`profile=python`限定） | 3.8 以上 | Python facts抽出・独立再計数 | AST終了位置が必須。抽出器・再計数器は3.7以下をexit 2で拒否する。既存screen経路の最低版は3.6のまま |
 
 ## 1. 推奨配置
 

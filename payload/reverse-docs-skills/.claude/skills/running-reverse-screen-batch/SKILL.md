@@ -5,8 +5,8 @@ description: |
   TRIGGER when: orchestrating-reverse-docs-flow から起動される時、画面数が多く一括無人処理が適切な時。
   SKIP: 画面が3件以下（通常セッションで逐次処理の方が速い）、個別画面の手動検証。
 invocation: running-reverse-screen-batch
-type: orchestration
-allowed-tools: [Bash, Edit, Read, Write]
+type: execution
+allowed-tools: [Read, Write, Bash, Grep, Glob]
 ---
 
 # 画面単位リバース検証バッチスキル
@@ -53,17 +53,13 @@ claude CLI 2.1.206 で実機確認済みの仕様。
 
 ## Phase 1: 引数検証と対象一覧生成
 
-## Step 1-1: 引数を検証する
-
-**使用ツール**: Read / Bash
+### Step 1-1: 引数を検証する
 
 全必須引数（target_repo_path・output_dir・screen_ids・template_root・common_docs_root・survey_doc_path）の存在と、参照先パスの実在を確認する。verification_mode は `docs-only|single-pass|iterative` を受理する。不足・不正値があればエラーメッセージを返して即終了する。
 
 **完了**: 全必須引数が検証済みで、参照先パスが実在する。
 
-## Step 1-2: 画面一覧を生成する
-
-**使用ツール**: Read / Bash / Write
+### Step 1-2: 画面一覧を生成する
 
 screen_ids が "all" の場合は画面一覧HTML（`<output_dir>/一覧/画面一覧.html`）のマニフェストJSONから全画面IDを抽出する。指定リストの場合はそのまま使う。1行1画面IDのテキストファイル（`<output_dir>/batch-targets.txt`）に書き出す。既検証画面（レジストリで status=baseline-established）をカウントし、未検証件数を確認する。
 
@@ -71,7 +67,7 @@ screen_ids が "all" の場合は画面一覧HTML（`<output_dir>/一覧/画面�
 
 ## Phase 2: 単発ドライラン
 
-## Step 2-1: 1画面実行し成否判定を検証する
+### Step 2-1: 1画面実行し成否判定を検証する
 
 Bash ツール（dangerouslyDisableSandbox: true）で対象一覧の先頭1画面だけをフォアグラウンド実行する。前半 per-item prompt（後述）を使い claude -p を1回実行し、静的著述の結果を確認する。`docs-only` は `STATIC_COMPLETE` と `status=authored` を確認してここで終了する。`single-pass|iterative` は続けて後半 per-item prompt で claude -p をもう1回実行し、動的検証の結果を確認する（前半・後半は別プロセスで、盲検分離を満たす）。この処理は先頭画面に対する本番1回目として数え、Phase 3 で同じ画面を再実行しない。
 
@@ -86,15 +82,13 @@ Bash ツール（dangerouslyDisableSandbox: true）で対象一覧の先頭1画�
 
 ## Phase 3: 無人ループ起動
 
-## Step 3-1: ループスクリプトにパラメータを反映する
-
-**使用ツール**: Read / Edit
+### Step 3-1: ループスクリプトにパラメータを反映する
 
 Read ツールで `references/loop-design.md` の雛形を読み込み、確定値（TARGETS_FILE・MARKER_REGISTRY・CHECK_CMD・LOG・WAIT_SECONDS・FAIL_LIMIT_K・MODEL・ALLOWED_TOOLS・PER_ITEM_PROMPT_FIRST・PER_ITEM_PROMPT_SECOND・FAILED_LIST・FAIL_COUNTS）を埋める。埋めた内容はディスクに保存せず、次 Step の Bash コマンド文字列にそのまま展開する。
 
 **完了**: 全プレースホルダが実値に置換され、実行可能なコマンド文字列が組み上がっている。
 
-## Step 3-2: バックグラウンド起動しPID生存を確認する
+### Step 3-2: バックグラウンド起動しPID生存を確認する
 
 Bash ツール（dangerouslyDisableSandbox: true）で `nohup bash -c '...' >> ログ 2>&1 & disown` 構造で起動する。起動直後にPIDを取得し、10秒後に `kill -0 $PID` で生存確認する。
 
@@ -102,7 +96,7 @@ Bash ツール（dangerouslyDisableSandbox: true）で `nohup bash -c '...' >> �
 
 ## Phase 4: 監視と完了確認
 
-## Step 4-1: 残件カウントと完了判定
+### Step 4-1: 残件カウントと完了判定
 
 Bash ツールで残件カウントコマンドを実行する。マーカー未付与かつfailedリスト・conflict-skipリスト外の画面数を計算する。残ゼロ、またはfailedリスト・conflict-skipリストへの退避で全画面確定していれば完了とする。
 
@@ -110,9 +104,7 @@ Bash ツールで残件カウントコマンドを実行する。マーカー未
 
 ## Phase 5: 完了報告
 
-## Step 5-1: 完了報告を提示する
-
-**使用ツール**: Bash / Write
+### Step 5-1: 完了報告を提示する
 
 最終の残件数・failed件数・conflict-skip件数・実周回数を再カウントし報告する。failedリストがある場合は画面ID一覧と失敗理由（ログ末尾から抽出）を添える。conflict-skipリストがある場合は画面ID一覧を添える（競合スキップは失敗ではないため理由欄は「他プロセス使用中」の定型文とする）。
 

@@ -36,7 +36,7 @@ set -euo pipefail
 # 検査g（§15.2テーブル型名抽出）・検査i（§16未解消チェック）・検査q（本文相対パス
 # 参照の到達性・違反）・検査i-3（本文実測委譲件数と§16計上の突合・違反）・検査m
 # （テスト仕様書空殻検出・違反への昇格）・検査m-2（操作シナリオ仕様書fenced内実測
-# 委譲検出・違反）の回帰保護。既存検査a〜fは対象外（今回無変更のため）。最小構成の
+# 委譲検出・違反）に加え、写真指摘1-37〜1-39を回帰保護する。最小構成の
 # 画面詳細設計書.mdフィクスチャを mktemp -d 配下に生成し、"$0" <dir> を呼び出して
 # 出力・終了コードを検証する。
 self_test() {
@@ -499,6 +499,73 @@ operation_test_spec: ./optest.md
 | foo-issue | `2026-01-01` | 何らかの確認事項 | §15 | 実装完了 | 解消済み |
 MDEOF
 
+  # フィクスチャ j/k: 観点キーを仕様書の同一セルへ併記した場合と、キーを一切
+  # 記載しない場合。1-38 の本文包含判定を陽性・陰性の両方で固定する。
+  make_fixture "$tmp/j" '| キー | 起票日 | 内容 | 暫定扱いにしている § | 解消条件 | 状態 |
+|---|---|---|---|---|---|
+| foo-issue | `2026-01-01` | 何らかの確認事項 | §15 | 実装完了 | 解消済み |'
+  cat > "$tmp/j/unit.md" <<'EOF'
+---
+type: unit-test-sheet
+---
+
+## 観点表
+
+| キー | 観点 |
+|---|---|
+| order-submit | 登録できる |
+| order-cancel | 取消できる |
+EOF
+  cat > "$tmp/j/spec.md" <<'EOF'
+---
+status: implemented
+---
+
+## テストケース一覧
+
+| ケース | 対応観点・期待結果 |
+|---|---|
+| 正常系 | `order-submit` と `order-cancel` を同一セルに併記して確認する |
+EOF
+  sed -i.bak \
+    -e 's#unit_test_sheet: ./none.md#unit_test_sheet: ./unit.md#' \
+    -e '/integration_test_sheet:/a\
+unit_test_spec: ./spec.md' \
+    -e 's#| foo-view | 表示 |#| order-submit | 登録 |\
+| order-cancel | 取消 |#' \
+    "$tmp/j/画面詳細設計書.md"
+  rm -f "$tmp/j/画面詳細設計書.md.bak"
+
+  cp -R "$tmp/j" "$tmp/k"
+  cat > "$tmp/k/spec.md" <<'EOF'
+---
+status: implemented
+---
+
+## テストケース一覧
+
+| ケース | 対応観点・期待結果 |
+|---|---|
+| 正常系 | 登録と取消の期待結果だけを記載し、観点キーは記載しない |
+EOF
+
+  # フィクスチャ l/m: §15.1 のリポジトリ内ファイルパスはリンクではないため
+  # 検査qから除外する。一方、通常本文の到達不能リンクは従来どおり違反にする。
+  make_fixture "$tmp/l" '| キー | 起票日 | 内容 | 暫定扱いにしている § | 解消条件 | 状態 |
+|---|---|---|---|---|---|
+| foo-issue | `2026-01-01` | 何らかの確認事項 | §15 | 実装完了 | 解消済み |'
+  sed -i.bak \
+    -e 's#| components/Foo.tsx | Foo | コンポーネント | components/ |#| `src/components/Foo.tsx` | Foo | コンポーネント | components/ |#' \
+    -e '/| foo-view | 表示 |/a\
+\
+詳細は [欠落資料](./missing-note.md) を参照。' \
+    "$tmp/l/画面詳細設計書.md"
+  rm -f "$tmp/l/画面詳細設計書.md.bak"
+
+  cp -R "$tmp/l" "$tmp/m"
+  sed -i.bak '/欠落資料/d' "$tmp/m/画面詳細設計書.md"
+  rm -f "$tmp/m/画面詳細設計書.md.bak"
+
   # ケース8: 検査q陽性（本文の到達不能な相対パス参照を違反として検出する）
   if out_f="$(bash "$script_path" "$tmp/f" 2>&1)"; then rc_f=0; else rc_f=$?; fi
   if [ "$rc_f" -eq 1 ] && printf '%s' "$out_f" | grep -qF "missing-note.md"; then
@@ -545,6 +612,78 @@ MDEOF
     echo "[PASS] 検査m・検査m-2陰性: 実データ行あり・fenced内実測委譲なしでは違反が発生しない"
   else
     echo "[FAIL] 検査m・検査m-2陰性: 実データ行あり・fenced内実測委譲なしでも違反が発生しています（exit=${rc_i}）"
+    fail=1
+  fi
+
+  # ケース13（1-38陽性）: 観点キーを仕様書の1セルへ併記しても本文包含で対応済みになる。
+  if out_j="$(bash "$script_path" "$tmp/j" 2>&1)"; then rc_j=0; else rc_j=$?; fi
+  if [ "$rc_j" -eq 0 ] \
+     && ! printf '%s' "$out_j" | grep -q "単体テスト観点表 の観点キーのうち"; then
+    echo "[PASS] 1-38陽性: 仕様書の同一セルに併記した観点キーを本文包含で対応済みと判定する"
+  else
+    echo "[FAIL] 1-38陽性: 併記済み観点キーが未対応と判定されました（exit=${rc_j}）"
+    fail=1
+  fi
+
+  # ケース14（1-38陰性）: 仕様書本文に観点キーが無ければ警告を維持する。
+  if out_k="$(bash "$script_path" "$tmp/k" 2>&1)"; then rc_k=0; else rc_k=$?; fi
+  if [ "$rc_k" -eq 0 ] \
+     && printf '%s' "$out_k" | grep -q "単体テスト観点表 の観点キーのうち" \
+     && printf '%s' "$out_k" | grep -q "order-submit" \
+     && printf '%s' "$out_k" | grep -q "order-cancel"; then
+    echo "[PASS] 1-38陰性: 仕様書本文に観点キーが無ければ未対応警告を維持する"
+  else
+    echo "[FAIL] 1-38陰性: 観点キー未記載を警告できません（exit=${rc_k}）"
+    fail=1
+  fi
+
+  # ケース15（1-37陰性）: §15.1 path列は除外し、通常本文の偽リンクだけを検出する。
+  if out_l="$(bash "$script_path" "$tmp/l" 2>&1)"; then rc_l=0; else rc_l=$?; fi
+  if [ "$rc_l" -eq 1 ] \
+     && printf '%s' "$out_l" | grep -qF "missing-note.md" \
+     && ! printf '%s' "$out_l" | grep -qF "    - src/components/Foo.tsx"; then
+    echo "[PASS] 1-37陰性: §15.1のrepo内path列を除外し、通常本文の偽リンクは違反として検出する"
+  else
+    echo "[FAIL] 1-37陰性: repo内path列の除外または偽リンク検出に失敗しました（exit=${rc_l}）"
+    fail=1
+  fi
+
+  # ケース16（1-37陽性）: §15.1 path列だけなら到達性違反を発生させない。
+  if out_m="$(bash "$script_path" "$tmp/m" 2>&1)"; then rc_m=0; else rc_m=$?; fi
+  if [ "$rc_m" -eq 0 ] \
+     && printf '%s' "$out_m" | grep -q "本文の相対パス参照はすべて到達可能です"; then
+    echo "[PASS] 1-37陽性: §15.1のrepo内path列だけでは相対リンク到達性違反を発生させない"
+  else
+    echo "[FAIL] 1-37陽性: §15.1のrepo内path列を相対リンクと誤判定しました（exit=${rc_m}）"
+    fail=1
+  fi
+
+  # ケース17/18（1-39）: 実テンプレートをscaffoldした直後はテンプレート由来の
+  # 未記入誤検出が0件で、明示的に残した真の未記入は検出する。
+  local script_dir template_root scaffolded_design
+  script_dir="$(cd "$(dirname "$script_path")" && pwd)"
+  template_root="$script_dir/../templates/リバース検証"
+  mkdir -p "$tmp/n"
+  if scaffold_out="$(bash "$script_dir/scaffold-screen.sh" "$tmp/n" "p39" "プレースホルダー試験" "$template_root" 2>&1)"; then
+    scaffolded_design="$tmp/n/画面/screen-p39/詳細設計/画面詳細設計書.md"
+    if out_n="$(bash "$script_path" "$tmp/n/画面/screen-p39" 2>&1)"; then rc_n=0; else rc_n=$?; fi
+    if printf '%s' "$out_n" | grep -q "未記入プレースホルダなし"; then
+      echo "[PASS] 1-39陽性: テンプレート展開直後の未記入プレースホルダ誤検出は0件"
+    else
+      echo "[FAIL] 1-39陽性: テンプレート由来の未記入プレースホルダを誤検出しました（exit=${rc_n}）"
+      fail=1
+    fi
+    printf '\n真の未記入: <未記入>\n' >> "$scaffolded_design"
+    if out_n_bad="$(bash "$script_path" "$tmp/n/画面/screen-p39" 2>&1)"; then rc_n_bad=0; else rc_n_bad=$?; fi
+    if [ "$rc_n_bad" -eq 1 ] \
+       && printf '%s' "$out_n_bad" | grep -q "違反: 未記入プレースホルダが"; then
+      echo "[PASS] 1-39陰性: 明示的に残した真の未記入プレースホルダを違反として検出する"
+    else
+      echo "[FAIL] 1-39陰性: 真の未記入プレースホルダを検出できません（exit=${rc_n_bad}）"
+      fail=1
+    fi
+  else
+    echo "[FAIL] 1-39: 詳細設計テンプレートのscaffoldに失敗しました: $scaffold_out"
     fail=1
   fi
 
@@ -1494,20 +1633,32 @@ fi
 check_sheet_spec_coverage() {
   local sheet="$1" spec="$2" label="$3" heading="$4"
   [ -f "$sheet" ] || return 0
-  local sheet_keys spec_keys saved_keys all_covered uncovered
+  local sheet_keys spec_body saved_keys uncovered key
   sheet_keys="$(extract_sheet_keys "$sheet")"
   [ -z "$sheet_keys" ] && return 0
-  spec_keys=""
+  spec_body=""
   if [ -n "$spec" ] && [ -f "$spec" ]; then
-    spec_keys="$(extract_table_column "$(extract_heading_body "$spec" "$heading")" 2 | sed 's/`//g' | grep -vE '^<.*>$' | sort -u)"
+    # テスト仕様書は1セルへ複数の観点キーを併記できる。列値をキー集合として
+    # 完全一致比較すると併記済みでも未対応になるため、対象章の本文全体に
+    # 観点キーのliteralが含まれるかを判定する。
+    spec_body="$(extract_heading_body "$spec" "$heading")"
   fi
   saved_keys=""
   if [ -d "$SCREEN_DIR/検証記録" ]; then
     saved_keys="$(find "$SCREEN_DIR/検証記録" -type d -name 'テストコード' -exec find {} -type f \; 2>/dev/null \
       | xargs -I{} basename {} 2>/dev/null | sed -E 's/\.[A-Za-z0-9]+$//' | sort -u)"
   fi
-  all_covered="$(printf '%s\n%s\n' "$spec_keys" "$saved_keys" | grep . | sort -u || true)"
-  uncovered="$(comm -23 <(printf '%s\n' "$sheet_keys") <(printf '%s\n' "$all_covered") || true)"
+  uncovered=""
+  while IFS= read -r key; do
+    [ -z "$key" ] && continue
+    if { [ -n "$spec_body" ] && printf '%s\n' "$spec_body" | grep -Fq -- "$key"; } \
+       || printf '%s\n' "$saved_keys" | grep -Fxq -- "$key"; then
+      continue
+    fi
+    uncovered="${uncovered}${key}
+"
+  done <<< "$sheet_keys"
+  uncovered="$(printf '%s\n' "$uncovered" | grep . | sort -u || true)"
   if [ -n "$uncovered" ]; then
     echo "  WARN: ${label} の観点キーのうち、テスト仕様書の具体ケース・保存済みテストコードのいずれにも対応が見つからないもの:" >&2
     printf '%s\n' "$uncovered" | sed 's/^/    - /' >&2
@@ -1658,10 +1809,36 @@ extract_body_no_fence() {
 
 BODY_NO_FENCE="$(extract_body_no_fence "$DESIGN_DOC")"
 
+# §15.1「ファイル分割」表の1列目は対象リポジトリ内のパスであり、設計書からの
+# Markdown相対リンクではない。該当セルだけを空にしてからリンク候補を抽出する。
+# 他の本文は保持するため、通常本文に書かれた偽リンクの検出能力は落とさない。
+CONTRACT_SECNUM="$(resolve_role_section "実装契約" || true)"
+BODY_FOR_PATH_SCAN="$(printf '%s\n' "$BODY_NO_FENCE" | awk -v sec="$CONTRACT_SECNUM" '
+  BEGIN { in_contract=0; in_split=0 }
+  /^## §[0-9]+/ {
+    in_contract = (sec != "" && $0 ~ ("^## §" sec "([^0-9]|$)"))
+    in_split=0
+  }
+  in_contract && /^### / {
+    in_split = ($0 ~ /ファイル分割/)
+  }
+  in_split && /^\|/ {
+    n=split($0, cols, "|")
+    if (n >= 3) {
+      cols[2]=""
+      line=cols[1]
+      for (i=2; i<=n; i++) line=line "|" cols[i]
+      print line
+      next
+    }
+  }
+  { print }
+')"
+
 # 抽出対象: Markdownリンク `](path)` と、スラッシュ＋拡張子を含むバッククォート内トークン。
 # 外部URL・アンカーのみの参照・プレースホルダは対象外とする（狭い抽出範囲に留め誤検出を避ける）。
-BODY_PATH_REFS_RAW="$(printf '%s\n' "$BODY_NO_FENCE" | grep -oE '\]\([^)]+\)' | sed -E 's/^\]\(//; s/\)$//' || true
-printf '%s\n' "$BODY_NO_FENCE" | grep -oE '`[^`]*/[^`]*\.[A-Za-z0-9]+`' | sed -E 's/^`//; s/`$//' || true)"
+BODY_PATH_REFS_RAW="$(printf '%s\n' "$BODY_FOR_PATH_SCAN" | grep -oE '\]\([^)]+\)' | sed -E 's/^\]\(//; s/\)$//' || true
+printf '%s\n' "$BODY_FOR_PATH_SCAN" | grep -oE '`[^`]*/[^`]*\.[A-Za-z0-9]+`' | sed -E 's/^`//; s/`$//' || true)"
 
 BODY_PATH_REFS="$(printf '%s\n' "$BODY_PATH_REFS_RAW" | sed -E 's/#.*$//' | grep -v '^https\?://' | grep -vE '^<.*>$' | grep -F '/' | grep . | sort -u || true)"
 

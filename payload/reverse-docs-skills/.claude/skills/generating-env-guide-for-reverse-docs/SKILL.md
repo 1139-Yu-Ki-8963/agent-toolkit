@@ -3,7 +3,7 @@ name: generating-env-guide-for-reverse-docs
 description: "環境構築手順.html を調査書とローカル環境調査結果から機械生成する。 TRIGGER when: 環境構築手順ページ生成、env guide HTML作成。 SKIP: アーキテクチャ調査書自体の作成（→surveying-architecture-for-reverse-docs）、他種別詳細ページ生成。"
 invocation: generating-env-guide-for-reverse-docs
 type: transform
-allowed-tools: [Bash, Read, Write]
+allowed-tools: [Bash, Read, Write, Grep]
 ---
 
 # 環境構築手順ページ生成スキル
@@ -38,24 +38,14 @@ allowed-tools: [Bash, Read, Write]
 | HTML生成 | `../../../shared/scripts/detail-pages/build-detail-page.sh` |
 | ポータル再生成（任意） | `../../../shared/scripts/build-portal.sh` |
 
-## 実行手順
+## Phase 手順
 
-## Phase 1: データ源読込
-
-## Step 1-1: データ源読込
-
-**使用ツール**: Read / Write
+### Phase 1: データ源読込
 
 - **Step 1** — `<output_dir>/プロジェクト共通/アーキテクチャ調査書.md` の実在を確認する。不在ならハード停止する。この場合 `surveying-architecture-for-reverse-docs` の先行実行を案内して終了する。完了条件: 調査書の実在確認済み、または不在を報告して停止している
 - **Step 2** — `env_config_path`（既定値: `<output_dir>/env-config.json`）の実在を確認する。存在すれば内容を読み込み、存在しなければ「env-config.json 不在。前提ツール表は調査書のみから組み立てる」と記録し先へ進む（ハード停止しない）。完了条件: env-config.json の有無と内容（存在時のみ）が確定済み
 
-**完了**: 調査書の実在確認済み、または不在を報告して停止している。env-config.json の有無が確定済み
-
-## Phase 2: 抽出
-
-## Step 2-1: 抽出
-
-**使用ツール**: Read / Bash / Write
+### Phase 2: 抽出
 
 - **Step 1（prerequisites[]）** — env-config.json が存在する場合、`tools` の実測結果を `{name, note}` へ変換する。対象は cloc/node/python3/jq/git の 5 種。`note` にはインストール有無を記載し、未インストール時は `install_commands` の値も記載する。env-config.json が不在の場合、prerequisites[] は空配列のまま Phase 4 へ渡す（テンプレート側が「なし」を表示する）。完了条件: prerequisites[] を確定済み（空配列を含む）
 - **Step 2（steps[]）** — 調査書 §3 の「ビルドコマンド」「起動コマンド（開発）」「起動コマンド（本番）」の 3 行を読む。記載値が「実在しない（理由: …）」でない行だけを対象にする。対象行を `order` 昇順（ビルド=1、開発起動=2、本番起動=3。欠番があれば詰めずそのまま欠落させる）で `steps[]` に変換する。`command` には §3 の「内容」列をそのまま転記する。`note` には「出所: <§3 の根拠パス>」の形式で根拠パスを埋め込む。steps[] にはスキーマ上 sourceRef フィールドが存在しないため、根拠パスは note へテキストとして埋め込む運用にする。完了条件: steps[] を確定済み
@@ -64,13 +54,7 @@ allowed-tools: [Bash, Read, Write]
 
 page-data.json の保存先は `$CLAUDE_JOB_DIR/tmp/env-guide-page-data.json` とする。未設定時は `${TMPDIR:-/tmp}/claude-job-${session}/tmp/` 配下に置く。
 
-**完了**: prerequisites[]/steps[]/allocations[] を確定し page-data.json を保存済み
-
-## Phase 3: 整合検証（機械実行）
-
-## Step 3-1: 整合検証（機械実行）
-
-**使用ツール**: Bash
+### Phase 3: 整合検証（機械実行）
 
 - **Step 1** — 整合検証スクリプトを実行する。完了条件: 全項目 PASS
 
@@ -82,13 +66,7 @@ page-data.json の保存先は `$CLAUDE_JOB_DIR/tmp/env-guide-page-data.json` �
 
 - **Step 2** — FAIL 時は `allocations[].sourceRef` を修正し Step 1 を再実行する。3 回失敗したら Phase 2 Step 3（allocations 抽出）へ差し戻す。完了条件: exit 0
 
-**完了**: `validate-page-data.sh --target-repo` が全項目 PASS
-
-## Phase 4: 環境構築手順.html 生成
-
-## Step 4-1: 環境構築手順.html 生成
-
-**使用ツール**: Bash / Write
+### Phase 4: 環境構築手順.html 生成
 
 - **Step 1** — HTML 生成スクリプトを実行する。完了条件: `<output_dir>/環境構築手順.html` が生成済み
 
@@ -103,8 +81,6 @@ page-data.json の保存先は `$CLAUDE_JOB_DIR/tmp/env-guide-page-data.json` �
   ```
 
 **手作業でのプレースホルダ置換は禁止する**。HTML 生成は必ず `build-detail-page.sh` 経由の決定的処理で行う。
-
-**完了**: `<output_dir>/環境構築手順.html` が生成され、指定時は `build-portal.sh` の再実行が完了している
 
 ## 完了条件
 

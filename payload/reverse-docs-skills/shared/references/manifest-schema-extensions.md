@@ -16,7 +16,11 @@
 | relatedApis | string[] | 任意 | この画面が呼ぶ API の unitKey 配列 | 画面コンポーネント内の fetch / axios / API クライアント呼び出し |
 | designDocStatus | string | 任意 | 設計書の着手状態。`着手済` / `未着手` の 2 値 | 設計書リポジトリ側の該当フォルダ有無 |
 | category | string | 任意 | 画面区分（`管理` / `一般` 等） | ルート prefix（`/admin` 等）とディレクトリ構成 |
-| designDocPath | string | 任意 | 設計書への相対パス。designDocStatus=着手済 かつ本フィールドありで設計書リンクを描画 | 設計書リポジトリの該当フォルダ |
+| confirmedScreenName | string | 任意 | 設計書で確定した画面名。表示時は推定値 `screenNameGuess` より優先する | 画面基本設計書または画面詳細設計書の先頭見出し |
+| designDocPath | string | 任意 | 画面一覧HTMLから基本設計書への相対パス。ファイル実在時だけ付与する | 設計書リポジトリの該当フォルダ |
+| detailDocPath | string | 任意 | 画面一覧HTMLから詳細設計書への相対パス。ファイル実在時だけ付与する | 設計書リポジトリの該当フォルダ |
+| sequencePath | string | 任意 | 画面一覧HTMLからシーケンス図への相対パス。ファイル実在時だけ付与する | 設計書リポジトリの該当フォルダ |
+| testCasePath | string | 任意 | 画面一覧HTMLから単体テスト仕様書への相対パス。ファイル実在時だけ付与する | 設計書リポジトリの該当フォルダ |
 | sourceHash | string | 任意 | 画面ユニットの原本ソース連結ハッシュ（sha256 先頭12桁） | 原本コードの走査 |
 | designDocSourceHash | string | 任意 | 設計書生成時に記録した sourceHash。sourceHash と不一致なら一覧に陳腐化バッジを表示 | 設計書生成工程の記録 |
 | screenType | string | 必須 | 画面種別（Level 3 分類。8 種: top/list/detail/form/confirm/complete/error/processing_endpoint） | entryFile と幅優先探索（BFS）で解決した関連ファイルのDOM構造・テンプレート有無で判定 |

@@ -1,0 +1,99 @@
+{
+  "generatedAt": "2026-07-20T00:00:00+09:00",
+  "sourceDir": "shared/samples/一覧/外部連携一覧/fixtures",
+  "unitKind": "external",
+  "strategy": {
+    "extractionMethod": "static-analysis",
+    "approvedByUser": true
+  },
+  "detectionSummary": {
+    "unitCount": 6,
+    "unresolvedCount": 0
+  },
+  "units": [
+    {
+      "unitId": "ext-payment-gateway",
+      "unitKey": "payment-gateway",
+      "kind": "API連携",
+      "unitNameGuess": "決済ゲートウェイ送信",
+      "identifier": "payment_gateway_client",
+      "detectionMethod": "sdk-import",
+      "confidence": "HIGH",
+      "fileCount": 3,
+      "sourceFile": "src/integrations/payment_gateway.py",
+      "direction": "送信",
+      "protocol": "REST",
+      "authMethod": "APIキー"
+    },
+    {
+      "unitId": "ext-mail-delivery",
+      "unitKey": "mail-delivery",
+      "kind": "API連携",
+      "unitNameGuess": "メール配信送信",
+      "identifier": "mail_delivery_client",
+      "detectionMethod": "sdk-import",
+      "confidence": "HIGH",
+      "fileCount": 2,
+      "sourceFile": "src/integrations/mail_delivery.py",
+      "direction": "送信",
+      "protocol": "REST",
+      "authMethod": "APIキー"
+    },
+    {
+      "unitId": "ext-address-verify",
+      "unitKey": "address-verify",
+      "kind": "API連携",
+      "unitNameGuess": "住所検証送信",
+      "identifier": "address_verify_client",
+      "detectionMethod": "http-call",
+      "confidence": "MEDIUM",
+      "fileCount": 1,
+      "sourceFile": "src/integrations/address_verify.py",
+      "direction": "送信",
+      "protocol": "REST",
+      "authMethod": "Basic"
+    },
+    {
+      "unitId": "ext-sales-sftp",
+      "unitKey": "sales-sftp",
+      "kind": "ファイル連携",
+      "unitNameGuess": "売上データSFTP受信",
+      "identifier": "sales_sftp_receiver",
+      "detectionMethod": "config-scan",
+      "confidence": "HIGH",
+      "fileCount": 2,
+      "sourceFile": "src/integrations/sales_sftp.py",
+      "direction": "受信",
+      "protocol": "SFTP",
+      "authMethod": "Basic"
+    },
+    {
+      "unitId": "ext-order-webhook",
+      "unitKey": "order-webhook",
+      "kind": "API連携",
+      "unitNameGuess": "Webhook受注受信",
+      "identifier": "order_webhook_handler",
+      "detectionMethod": "route-scan",
+      "confidence": "HIGH",
+      "fileCount": 2,
+      "sourceFile": "src/integrations/order_webhook.py",
+      "direction": "受信",
+      "protocol": "Webhook",
+      "authMethod": "APIキー"
+    },
+    {
+      "unitId": "ext-sso-auth",
+      "unitKey": "sso-auth",
+      "kind": "API連携",
+      "unitNameGuess": "SSO認証連携",
+      "identifier": "sso_auth_client",
+      "detectionMethod": "sdk-import",
+      "confidence": "HIGH",
+      "fileCount": 3,
+      "sourceFile": "src/integrations/sso_auth.py",
+      "direction": "送信",
+      "protocol": "REST",
+      "authMethod": "OAuth2"
+    }
+  ]
+}

@@ -191,7 +191,7 @@ extract_json_blocks() { # <file> <outdir> — application/json ブロックを�
       close(out); inblock = 0; next
     }
     inblock { print > out }
-    END { print n + 0 > (outdir "/count") }
+    END { print n > (outdir "/count") }
   '
 }
 

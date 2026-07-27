@@ -1,7 +1,7 @@
 ---
 name: surveying-local-environment
 description: |
-  OS・パッケージ管理・開発ツールを調査してJSON出力する。
+  PC の OS・パッケージ管理ツール・開発ツール有無を調査し env-config.json に出力する。
   TRIGGER when: 「環境調査」「PC環境」「env-config」「ツール確認」と言われた時、env-config.json が不在でリバース設計ポータル生成が必要な時。
   SKIP: env-config.json が既に存在する時（手動削除で再生成）。
 invocation: surveying-local-environment
@@ -21,19 +21,11 @@ allowed-tools: [Bash, Read, Write]
 
 ## 実行手順
 
-## Phase 1: 出力先の確認
-
-## Step 1-1: 出力先の確認
-
-**使用ツール**: Read / Bash / Write
+### Phase 1: 出力先の確認
 
 `output_dir` に `env-config.json` が既に存在する場合は「既存の env-config.json を検出。再生成する場合は削除してから再実行してください」と報告して終了する。存在しない場合は `mkdir -p "$output_dir"` で出力先を作成して Phase 2 に進む。
 
-**完了**: 既存ファイルによる終了、または書き込み可能な出力先の作成のどちらかが確定済み
-
-## Phase 2: 環境調査
-
-## Step 2-1: 環境調査
+### Phase 2: 環境調査
 
 以下のコマンドを Bash ツールで実行し、結果を収集する。
 
@@ -69,11 +61,7 @@ case "$pkg_manager" in
 esac
 ```
 
-**完了**: OS・アーキテクチャ・パッケージ管理ツール・5開発ツールの有無が取得済み
-
-## Phase 3: env-config.json の出力
-
-## Step 3-1: env-config.json の出力
+### Phase 3: env-config.json の出力
 
 収集した結果を JSON 形式で `$output_dir/env-config.json` に Write する。
 
@@ -96,21 +84,13 @@ esac
 }
 ```
 
-**完了**: `$output_dir/env-config.json` が正しいJSONとして存在し、全調査キーが記録済み
-
-## Phase 4: cloc 未インストール時の案内
-
-## Step 4-1: cloc 未インストール時の案内
-
-**使用ツール**: Read
+### Phase 4: cloc 未インストール時の案内
 
 `tools.cloc` が false の場合、以下を報告する:
 
 「cloc が未インストールです。コード行数の計測精度が向上します。インストールコマンド: `<install_commands.cloc>`。インストール後に env-config.json を削除して再実行すると反映されます。」
 
 cloc が既にインストール済みの場合はこの案内を省略する。
-
-**完了**: cloc未導入時は実行可能な導入コマンドを報告済み、導入済み時は案内不要と記録済み
 
 ## 完了条件
 
@@ -124,7 +104,7 @@ cloc が既にインストール済みの場合はこの案内を省略する。
 
 ## 使用タイミング
 
-- リバース設計フローのglobal Step 16（ポータル生成）で env-config.json が不在の場合
+- リバース設計フローの Phase 4A（ポータル生成）で env-config.json が不在の場合
 - 新しい PC でリバース設計を初めて実行する場合
 - ツールをインストール/削除した後に環境情報を更新したい場合（手動で env-config.json を削除してから再実行）
 

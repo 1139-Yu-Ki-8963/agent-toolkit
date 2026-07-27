@@ -6,7 +6,7 @@ description: |
   SKIP: git 履歴がないリポジトリ、リリースノートが既に output_dir に存在する時。
 invocation: generating-release-notes-for-reverse-docs
 type: transform
-allowed-tools: [Bash, Read, Write]
+allowed-tools: [Bash, Read, Write, Grep, Glob]
 ---
 
 # リリースノートページ生成スキル
@@ -39,24 +39,14 @@ allowed-tools: [Bash, Read, Write]
 | HTML生成 | `../../../shared/scripts/detail-pages/build-detail-page.sh` |
 | ポータル再生成（任意） | `../../../shared/scripts/build-portal.sh` |
 
-## 実行手順
+## Phase 手順
 
-## Phase 1: git log 全件取得
-
-## Step 1-1: git log 全件取得
-
-**使用ツール**: Read / Bash / Write
+### Phase 1: git log 全件取得
 
 - **Step 1** — `target_repo_path` が git リポジトリであることを確認する。`.git` が存在しなければハード停止する。この場合 git 履歴を持たないリポジトリである旨を報告して終了する。完了条件: git リポジトリの実在確認済み、または不在を報告して停止している
 - **Step 2** — `git -C <target_repo_path> log --date=short --pretty=format:'%H%x1f%ad%x1f%s'` で全コミットのハッシュ・日付・件名を取得する。完了条件: 全コミットの一覧が確定済み
 
-**完了**: git リポジトリの実在確認済み、または不在を報告して停止している
-
-## Phase 2: 日付グルーピング + 変更種別判定
-
-## Step 2-1: 日付グルーピング + 変更種別判定
-
-**使用ツール**: Bash / Write
+### Phase 2: 日付グルーピング + 変更種別判定
 
 - **Step 1** — Phase 1 Step 2 で取得した全コミットを `ad`（日付）でグルーピングする。完了条件: 日付単位のコミット群が確定済み
 - **Step 2** — 各コミットの件名を先頭の日本語角括弧プレフィックスで走査し、変更種別（機能追加・バグ修正・改善・その他）を判定する。プレフィックスが無い、またはプレフィックス対応表に無い件名は「その他」に分類する。完了条件: 全コミットの種別分類が確定済み
@@ -64,13 +54,7 @@ allowed-tools: [Bash, Read, Write]
 
 page-data.json の保存先は `$CLAUDE_JOB_DIR/tmp/release-notes-page-data.json` とする。未設定時は `${TMPDIR:-/tmp}/claude-job-${session}/tmp/` 配下に置く。
 
-**完了**: 全コミットの日付グルーピング・種別分類を終え page-data.json を保存済み
-
-## Phase 3: 整合検証（機械実行）
-
-## Step 3-1: 整合検証（機械実行）
-
-**使用ツール**: Bash
+### Phase 3: 整合検証（機械実行）
 
 - **Step 1** — 整合検証スクリプトを実行する。完了条件: 全項目 PASS
 
@@ -80,13 +64,7 @@ page-data.json の保存先は `$CLAUDE_JOB_DIR/tmp/release-notes-page-data.json
 
 - **Step 2** — FAIL 時は指摘に応じて page-data.json を修正し Step 1 を再実行する。3 回失敗したら Phase 2 Step 3（page-data 組み立て）へ差し戻す。完了条件: exit 0
 
-**完了**: `validate-page-data.sh --target-repo` が全項目 PASS
-
-## Phase 4: リリースノート.html 生成
-
-## Step 4-1: リリースノート.html 生成
-
-**使用ツール**: Bash / Write
+### Phase 4: リリースノート.html 生成
 
 - **Step 1** — HTML 生成スクリプトを実行する。完了条件: `<output_dir>/リリースノート.html` が生成済み
 
@@ -101,8 +79,6 @@ page-data.json の保存先は `$CLAUDE_JOB_DIR/tmp/release-notes-page-data.json
   ```
 
 **手作業でのプレースホルダ置換は禁止する**。HTML 生成は必ず `build-detail-page.sh` 経由の決定的処理で行う。
-
-**完了**: `<output_dir>/リリースノート.html` が生成され、指定時は `build-portal.sh` の再実行が完了している
 
 ## 完了条件
 

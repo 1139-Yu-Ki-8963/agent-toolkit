@@ -103,35 +103,6 @@
   .tag.fail  { background: #fbe9e7; color: #9c2b1a; border-color: #ecc0b8; }
   .tag.error { background: #fdf3d7; color: #7a5d10; border-color: #e8d59a; }
   .tag.mode  { background: #e8eef7; color: #2a4a7a; border-color: #c2d2e8; }
-
-
-  /* portal-conventions: canonical viewport and theme compatibility */
-  :root, [data-theme="light"] {
-    --guide-bg: #FFFFFF; --guide-panel: #FFFFFF; --panel-2: #F6F8FA; --guide-border: #D1D9E0;
-    --guide-text: #1B1F26; --guide-text-sub: #4A4F58; --guide-accent: #0969DA; --guide-code-bg: #F6F8FA;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) {
-      --guide-bg: #15171C; --guide-panel: #1C1F26; --panel-2: #21262D; --guide-border: #30363D;
-      --guide-text: #E8E5DC; --guide-text-sub: #B6B3AB; --guide-accent: #58A6FF; --guide-code-bg: #21262D;
-    }
-  }
-  [data-theme="dark"] {
-    --guide-bg: #15171C; --guide-panel: #1C1F26; --panel-2: #21262D; --guide-border: #30363D;
-    --guide-text: #E8E5DC; --guide-text-sub: #B6B3AB; --guide-accent: #58A6FF; --guide-code-bg: #21262D;
-  }
-  html { height: 100vh; overflow: hidden; background: var(--guide-bg); }
-  body { height: 100vh; overflow-y: auto; color: var(--guide-text); background: var(--guide-bg); }
-  header, section > h2 { border-color: var(--guide-text); }
-  header p, .meta-table, .note, .def dd { color: var(--guide-text-sub); }
-  nav.toc, table.spec, .def, .flowstep, .flowgain, ul.tree, ul.tree .substeps li, pre.project-tree {
-    color: var(--guide-text); background: var(--guide-panel); border-color: var(--guide-border);
-  }
-  nav.toc a, table.spec a { color: var(--guide-accent); }
-  table.spec th, table.spec td { border-color: var(--guide-border); }
-  table.spec th { background: var(--panel-2); }
-  table.spec td code, table.spec th code, li code, p code, dd code { background: var(--guide-code-bg); }
-  table thead { position: sticky; top: 0; z-index: 1; }
 </style>
 </head>
 <body>
@@ -218,8 +189,9 @@
     <tr><th>引数</th><th>必須</th><th>内容</th></tr>
     <tr><td>target_repo_path</td><td>必須</td><td>対象リポジトリの絶対パス</td></tr>
     <tr><td>target_file_paths</td><td>必須</td><td>対象ユニットの対象ファイル（画面本体＋直接の子コンポーネント）の相対パス配列</td></tr>
-    <tr><td>screen_dir</td><td>必須</td><td>出力先の画面ディレクトリ絶対パス。facts は <code>&lt;verification_dir&gt;/screen-&lt;画面ID&gt;/facts/&lt;run_id&gt;/</code> に出力する</td></tr>
-    <tr><td>profile</td><td>必須</td><td><code>screen</code> のみ実装。他値は status=中断で未対応と返す</td></tr>
+    <tr><td>screen_dir</td><td>必須</td><td>論理IDを得る画面ディレクトリ絶対パス。facts抽出時点では不在でもよい</td></tr>
+    <tr><td>verification_dir</td><td>必須</td><td>factsの出力ルート。<code>&lt;verification_dir&gt;/screen-&lt;画面ID&gt;/facts/&lt;run_id&gt;/</code>へ出力する</td></tr>
+    <tr><td>profile</td><td>必須</td><td><code>screen</code>または<code>python</code></td></tr>
     <tr><td>survey_doc_path</td><td>必須</td><td>アーキテクチャ調査書のパス（方式→プロファイル選択の根拠。実在確認のみ）</td></tr>
     <tr><td>run_id</td><td>任意（既定 extract-1）</td><td>抽出実行の識別子。出力ディレクトリ名・facts.yml内のrun_idフィールドに使う</td></tr>
   </table>
@@ -229,7 +201,7 @@
   <h2><span class="sec-num">§5</span>設計原則</h2>
   <table class="spec">
     <tr><th>原則</th><th>内容</th></tr>
-    <tr><td>読み取り専用</td><td>対象リポジトリへの書き込み・変更は一切行わない。出力は screen_dir 配下のみ</td></tr>
+    <tr><td>読み取り専用</td><td>対象リポジトリへの書き込み・変更は一切行わない。出力はverification_dir配下のみ</td></tr>
     <tr><td>原本事実主義</td><td>推測・要約での補完を禁止する。コードに存在しない事実を書かない。全項目に file:line 根拠が必要</td></tr>
     <tr><td>独立再計数による検証</td><td>抽出者（Phase 2）と検証者（recount-facts.sh）を分離する。検証者はfacts.ymlを読まずにまずコードから件数を独立算出する</td></tr>
     <tr><td>封印による改ざん検知</td><td>確定したfacts.ymlは正規化ハッシュで封印し、以降の改変を機械検知できる状態にする</td></tr>
@@ -241,28 +213,29 @@
 <section id="s6">
   <h2><span class="sec-num">§6</span>動作フロー（Phase 1〜6）</h2>
   <pre class="flow"><span class="cap">Phase 1: 前提確認</span>
-  target_repo_path・screen_dir・survey_doc_pathの実在を確認する(test -d/-f)
+  target_repo_path・verification_dir・survey_doc_pathの実在を確認する(test -d/-f)
+  screen_dirは論理ID用であり実在を要求しない
   target_file_paths全件の実在を確認する
-  profile=screenを確認する(screen以外はstatus=中断)
+  profile=screen|pythonを確認する
   run_id確定+facts出力ディレクトリ作成
   完了条件: 全args解決済み・target_file_paths全件実在確認済み・
    facts出力ディレクトリ作成済み
 
 <span class="cap">Phase 2: 抽出</span>
-  profile-screen.mdの分類別抽出手順に従いfacts.ymlを作成する
+  screenはprofile-screen.md、pythonはprofile-python.mdに従いfacts.ymlを作成する
   全項目に原本のfile:line根拠を付ける。推測・要約での補完を禁止する
   該当なしの分類はitems:[]+reasonで埋める
-  完了条件: facts.ymlが12分類(sections配下12キー)の節を持つ
+  完了条件: screenは12分類、pythonは6分類の節を持つ
 
 <span class="cap">Phase 3: 独立再計数ゲート</span>
-  recount-facts.sh <facts.yml> <target_repo_path> <target_file_paths...>
+  recount-facts.sh &lt;facts.yml&gt; &lt;target_repo_path&gt; &lt;target_file_paths...&gt;
   乖離率5%以内・空欄率30%以内・孤児参照0件の3検査
   FAILしたらPhase 2に戻る(上限3回・同一NG理由2連続で発散中断)
   完了条件: recount-facts.shがexit 0、recount-report.txt保存済み
 
 <span class="cap">Phase 4: 封印</span>
-  seal-facts.sh seal <facts_dir> でfacts.lockを生成
-  seal-facts.sh verify <facts_dir> で直後の整合性を確認
+  seal-facts.sh seal &lt;facts_dir&gt; でfacts.lockを生成
+  seal-facts.sh verify &lt;facts_dir&gt; で直後の整合性を確認
   完了条件: seal-facts.sh verifyがexit 0
 
 <span class="cap">Phase 5: 再現性検証</span>
@@ -357,7 +330,7 @@
     <li>対象リポジトリに対しては読み取り専用。書き込み・変更は一切行わない</li>
     <li>出力は <code>&lt;verification_dir&gt;/screen-&lt;画面ID&gt;/facts/&lt;run_id&gt;/</code> 配下のみ（3ファイル）。対象リポジトリ側には何も生成しない</li>
     <li>推測・要約での補完を禁止する。コードに存在しない事実を書かない</li>
-    <li>profile=screen 以外は未対応。指定された場合は抽出を行わず status=中断を返す</li>
+    <li>profile=screen|python以外は未対応。指定された場合は抽出を行わずstatus=中断を返す</li>
     <li>AskUserQuestionを使わない。args全量指定・対話ゼロで完走する</li>
     <li>SKILL.md本文にプロジェクト固有値（リポジトリ名・画面名・絶対パス・ユーザー名）を一切書かない。固有値はすべて起動argsで受ける</li>
   </ul>

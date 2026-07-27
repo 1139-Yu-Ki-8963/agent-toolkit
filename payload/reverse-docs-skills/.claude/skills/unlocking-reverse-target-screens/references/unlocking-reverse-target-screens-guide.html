@@ -103,35 +103,6 @@
   .tag.fail  { background: #fbe9e7; color: #9c2b1a; border-color: #ecc0b8; }
   .tag.error { background: #fdf3d7; color: #7a5d10; border-color: #e8d59a; }
   .tag.mode  { background: #e8eef7; color: #2a4a7a; border-color: #c2d2e8; }
-
-
-  /* portal-conventions: canonical viewport and theme compatibility */
-  :root, [data-theme="light"] {
-    --guide-bg: #FFFFFF; --guide-panel: #FFFFFF; --panel-2: #F6F8FA; --guide-border: #D1D9E0;
-    --guide-text: #1B1F26; --guide-text-sub: #4A4F58; --guide-accent: #0969DA; --guide-code-bg: #F6F8FA;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) {
-      --guide-bg: #15171C; --guide-panel: #1C1F26; --panel-2: #21262D; --guide-border: #30363D;
-      --guide-text: #E8E5DC; --guide-text-sub: #B6B3AB; --guide-accent: #58A6FF; --guide-code-bg: #21262D;
-    }
-  }
-  [data-theme="dark"] {
-    --guide-bg: #15171C; --guide-panel: #1C1F26; --panel-2: #21262D; --guide-border: #30363D;
-    --guide-text: #E8E5DC; --guide-text-sub: #B6B3AB; --guide-accent: #58A6FF; --guide-code-bg: #21262D;
-  }
-  html { height: 100vh; overflow: hidden; background: var(--guide-bg); }
-  body { height: 100vh; overflow-y: auto; color: var(--guide-text); background: var(--guide-bg); }
-  header, section > h2 { border-color: var(--guide-text); }
-  header p, .meta-table, .note, .def dd { color: var(--guide-text-sub); }
-  nav.toc, table.spec, .def, .flowstep, .flowgain, ul.tree, ul.tree .substeps li, pre.project-tree {
-    color: var(--guide-text); background: var(--guide-panel); border-color: var(--guide-border);
-  }
-  nav.toc a, table.spec a { color: var(--guide-accent); }
-  table.spec th, table.spec td { border-color: var(--guide-border); }
-  table.spec th { background: var(--panel-2); }
-  table.spec td code, table.spec th code, li code, p code, dd code { background: var(--guide-code-bg); }
-  table thead { position: sticky; top: 0; z-index: 1; }
 </style>
 </head>
 <body>
@@ -514,13 +485,13 @@
   <h2><span class="sec-num">§15</span>参照資料</h2>
   <table class="spec">
     <tr><th>関連</th><th>関係</th></tr>
-    <tr><td><code><reverse_docs_root>/.claude/skills/orchestrating-reverse-docs-flow/references/contract.md</code></td><td>返却ブロック契約・args仕様・画面レジストリの正本（本スキルの直接記帳・直接起動を正式仕様と定める条項含む）</td></tr>
+    <tr><td><code>~/reverse-docs-skills/.claude/skills/orchestrating-reverse-docs-flow/references/contract.md</code></td><td>返却ブロック契約・args仕様・画面レジストリの正本（本スキルの直接記帳・直接起動を正式仕様と定める条項含む）</td></tr>
     <tr><td><code>manifest.yml</code>（本スキル同梱）</td><td>プロジェクト固有値の正本</td></tr>
     <tr><td><code>manifest.local.yml</code>（同ディレクトリ・任意）</td><td>存在する場合、<code>manifest.yml</code> を基底として深いマージ（local 優先）で重ねた結果を有効値とする。実プロジェクトの絶対パス入り <code>projects</code> エントリはこちらにのみ記載する（<code>.gitignore</code> 済みのため公開 payload に載らない）。<code>operating_rules</code> 等の枠組みキーの上書きは不可</td></tr>
     <tr><td><code>assets/manifest-template.yml</code>（本スキル同梱）</td><td>manifest未整備プロジェクト向け雛形</td></tr>
     <tr><td><code>references/mock-implementation-recipe.md</code>（本スキル同梱）</td><td>Phase 3のモック実装レシピ（正本からの書き写し・消費側からの逆引き特定・型決定基準・同名API分岐の判断基準・既存共通モックの実名突合・共通ヘルパーの必須引数化・分類コードの全系統一括登録）</td></tr>
     <tr><td><code>references/troubleshooting-patterns.md</code>（本スキル同梱）</td><td>症状・原因・対処の詰まりパターン集（プロジェクト非依存分。プロジェクト固有は <code>manifest.yml</code> の <code>known_gotchas</code>）</td></tr>
-    <tr><td><code><reverse_docs_root>/.claude/skills/syncing-reverse-env/config.yml</code></td><td>Playwright実行系設定（<code>playwright_exec</code> 等）の共有正本。本スキルは重複定義しない。既定のナビゲーションタイムアウト（60000ms）を実際の描画時間が超える実例があるため、Phase 4で未描画と誤認する前に <code>projects.&lt;system&gt;</code> 上書きで延長を試す</td></tr>
+    <tr><td><code>~/reverse-docs-skills/.claude/skills/syncing-reverse-env/config.yml</code></td><td>Playwright実行系設定（<code>playwright_exec</code> 等）の共有正本。本スキルは重複定義しない。既定のナビゲーションタイムアウト（60000ms）を実際の描画時間が超える実例があるため、Phase 4で未描画と誤認する前に <code>projects.&lt;system&gt;</code> 上書きで延長を試す</td></tr>
   </table>
 </section>
 

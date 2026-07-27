@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCALAR_CANONICALIZER="$SCRIPT_DIR/canonicalize-facts-scalars.py"
 
 # seal-facts.sh — facts.yml の封印・検証・正規化を担う共有スクリプト（Phase 4 封印 / Phase 5 再現性検証）
 #
@@ -16,7 +18,8 @@ set -euo pipefail
 #              「1行目 SEALED sha256=<hash>」「2行目以降 対象ファイル一覧」の形式で書く。
 #   verify   : facts.lockの記録ハッシュと、現在のfacts.ymlをnormalizeして再計算したハッシュを照合する。
 #              不一致ならexit 1（fail-closed）。
-#   normalize: run_id行・行末空白・空行を除去した正規形をstdoutへ出す。
+#   normalize: run_id行・行末空白・空行を除去し、key/valueスカラーをYAMLの意味型を
+#              保ったタグ付き表現へ変換した正規形をstdoutへ出す。
 #              Phase 5の再現性検証（2回の独立抽出結果の diff 比較）に用いる。
 #
 # 正規化の対象外にする理由: run_idは起動ごとに変わりうる値であり、内容の同一性判定
@@ -42,7 +45,8 @@ normalize_file() {
   f="$1"
   sed -E '/^run_id:[[:space:]]*.*$/d' "$f" \
     | sed -E 's/[[:space:]]+$//' \
-    | sed '/^[[:space:]]*$/d'
+    | sed '/^[[:space:]]*$/d' \
+    | python3 "$SCALAR_CANONICALIZER"
 }
 
 sha256_of() {
@@ -172,6 +176,85 @@ YML
     echo "  [PASS] 補助: run_idのみ異なるfacts.ymlはnormalize後に一致する"
   else
     echo "  [FAIL] 補助: run_idのみ異なるfacts.ymlのnormalize結果が一致しなかった" >&2
+    rc=1
+  fi
+
+  # 1-32: key/valueの外側引用符の有無だけが異なるfactsは同じ正規形になる。
+  cat > "$tmp/quoted.yml" <<'YML'
+profile: python
+sections:
+  function:
+    reason: ""
+    items:
+      - key: "function-load"
+        value: 'plain-value'
+        evidence: "src/load.py:1"
+YML
+  cat > "$tmp/unquoted.yml" <<'YML'
+profile: python
+sections:
+  function:
+    reason: ""
+    items:
+      - key: function-load
+        value: plain-value
+        evidence: "src/load.py:1"
+YML
+  if [ "$(cmd_normalize "$tmp/quoted.yml")" = "$(cmd_normalize "$tmp/unquoted.yml")" ]; then
+    echo "  [PASS] 1-32: key/value外側引用符の差をnormalizeが吸収する"
+  else
+    echo "  [FAIL] 1-32: key/value外側引用符の差がnormalize後も残る" >&2
+    rc=1
+  fi
+
+  # 引用符の有無でYAML上の意味が変わる値は、同じ正規形へ潰してはならない。
+  cat > "$tmp/escaped-string.yml" <<'YML'
+profile: python
+sections:
+  function:
+    items:
+      - key: function-load
+        value: "a\nb"
+        evidence: "src/load.py:1"
+YML
+  cat > "$tmp/plain-backslash.yml" <<'YML'
+profile: python
+sections:
+  function:
+    items:
+      - key: function-load
+        value: a\nb
+        evidence: "src/load.py:1"
+YML
+  if [ "$(cmd_normalize "$tmp/escaped-string.yml")" != "$(cmd_normalize "$tmp/plain-backslash.yml")" ]; then
+    echo "  [PASS] 1-32陰性: 引用符内改行escapeとplainバックスラッシュを区別する"
+  else
+    echo "  [FAIL] 1-32陰性: YAML意味が異なる改行escapeを同一化した" >&2
+    rc=1
+  fi
+
+  cat > "$tmp/quoted-null.yml" <<'YML'
+profile: python
+sections:
+  function:
+    items:
+      - key: function-load
+        value: "null"
+        evidence: "src/load.py:1"
+YML
+  cat > "$tmp/plain-null.yml" <<'YML'
+profile: python
+sections:
+  function:
+    items:
+      - key: function-load
+        value: null
+        evidence: "src/load.py:1"
+YML
+  if [ "$(cmd_normalize "$tmp/quoted-null.yml")" != "$(cmd_normalize "$tmp/plain-null.yml")" ]; then
+    echo "  [PASS] 1-32陰性: 文字列nullとYAML null型を区別する"
+  else
+    echo "  [FAIL] 1-32陰性: 文字列nullとYAML null型を同一化した" >&2
     rc=1
   fi
 

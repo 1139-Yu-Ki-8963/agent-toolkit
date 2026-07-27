@@ -1,0 +1,337 @@
+{
+  "generatedAt": "2026-07-20T00:00:00+09:00",
+  "sourceDir": "shared/samples/一覧/テーブル一覧/fixtures",
+  "unitKind": "table",
+  "strategy": {
+    "extractionMethod": "static-analysis",
+    "approvedByUser": true
+  },
+  "detectionSummary": {
+    "unitCount": 16,
+    "unresolvedCount": 0
+  },
+  "units": [
+    {
+      "unitId": "table-users",
+      "unitKey": "users",
+      "kind": "マスタ",
+      "unitNameGuess": "ユーザー",
+      "identifier": "users",
+      "detectionMethod": "migration",
+      "confidence": "HIGH",
+      "fileCount": 1,
+      "sourceFile": "001_create_users.sql",
+      "foreignKeys": [],
+      "columnCount": 10,
+      "mainColumns": [
+        "id",
+        "email",
+        "name",
+        "status"
+      ]
+    },
+    {
+      "unitId": "table-sessions",
+      "unitKey": "sessions",
+      "kind": "トランザクション",
+      "unitNameGuess": "セッション",
+      "identifier": "sessions",
+      "detectionMethod": "migration",
+      "confidence": "HIGH",
+      "fileCount": 1,
+      "sourceFile": "002_create_sessions.sql",
+      "foreignKeys": [
+        "users"
+      ],
+      "columnCount": 6,
+      "mainColumns": [
+        "id",
+        "user_id",
+        "token",
+        "expires_at"
+      ]
+    },
+    {
+      "unitId": "table-settings",
+      "unitKey": "settings",
+      "kind": "マスタ",
+      "unitNameGuess": "設定",
+      "identifier": "app_settings",
+      "detectionMethod": "migration",
+      "confidence": "HIGH",
+      "fileCount": 1,
+      "sourceFile": "003_create_settings.sql",
+      "foreignKeys": [
+        "users"
+      ],
+      "columnCount": 5,
+      "mainColumns": [
+        "id",
+        "user_id",
+        "key",
+        "value"
+      ]
+    },
+    {
+      "unitId": "table-roles",
+      "unitKey": "roles",
+      "kind": "マスタ",
+      "unitNameGuess": "ロール",
+      "identifier": "roles",
+      "detectionMethod": "migration",
+      "confidence": "HIGH",
+      "fileCount": 1,
+      "sourceFile": "004_create_roles.sql",
+      "foreignKeys": [],
+      "columnCount": 4,
+      "mainColumns": [
+        "id",
+        "name",
+        "description"
+      ]
+    },
+    {
+      "unitId": "table-permissions",
+      "unitKey": "permissions",
+      "kind": "マスタ",
+      "unitNameGuess": "権限",
+      "identifier": "permissions",
+      "detectionMethod": "migration",
+      "confidence": "HIGH",
+      "fileCount": 1,
+      "sourceFile": "005_create_permissions.sql",
+      "foreignKeys": [],
+      "columnCount": 4,
+      "mainColumns": [
+        "id",
+        "code",
+        "name"
+      ]
+    },
+    {
+      "unitId": "table-user-roles",
+      "unitKey": "user-roles",
+      "kind": "関連",
+      "unitNameGuess": "ユーザーロール紐付",
+      "identifier": "user_roles",
+      "detectionMethod": "migration",
+      "confidence": "HIGH",
+      "fileCount": 1,
+      "sourceFile": "006_create_user_roles.sql",
+      "foreignKeys": [
+        "users",
+        "roles"
+      ],
+      "columnCount": 4,
+      "mainColumns": [
+        "id",
+        "user_id",
+        "role_id"
+      ]
+    },
+    {
+      "unitId": "table-posts",
+      "unitKey": "posts",
+      "kind": "トランザクション",
+      "unitNameGuess": "投稿",
+      "identifier": "posts",
+      "detectionMethod": "migration",
+      "confidence": "HIGH",
+      "fileCount": 2,
+      "sourceFile": "007_create_posts.sql",
+      "foreignKeys": [
+        "users",
+        "categories"
+      ],
+      "columnCount": 11,
+      "mainColumns": [
+        "id",
+        "author_id",
+        "title",
+        "status"
+      ]
+    },
+    {
+      "unitId": "table-comments",
+      "unitKey": "comments",
+      "kind": "トランザクション",
+      "unitNameGuess": "コメント",
+      "identifier": "comments",
+      "detectionMethod": "migration",
+      "confidence": "HIGH",
+      "fileCount": 1,
+      "sourceFile": "008_create_comments.sql",
+      "foreignKeys": [
+        "posts",
+        "users"
+      ],
+      "columnCount": 6,
+      "mainColumns": [
+        "id",
+        "post_id",
+        "author_id",
+        "body"
+      ]
+    },
+    {
+      "unitId": "table-categories",
+      "unitKey": "categories",
+      "kind": "マスタ",
+      "unitNameGuess": "カテゴリ",
+      "identifier": "categories",
+      "detectionMethod": "migration",
+      "confidence": "HIGH",
+      "fileCount": 1,
+      "sourceFile": "009_create_categories.sql",
+      "foreignKeys": [],
+      "columnCount": 5,
+      "mainColumns": [
+        "id",
+        "slug",
+        "name"
+      ]
+    },
+    {
+      "unitId": "table-tags",
+      "unitKey": "tags",
+      "kind": "マスタ",
+      "unitNameGuess": "タグ",
+      "identifier": "tags",
+      "detectionMethod": "migration",
+      "confidence": "HIGH",
+      "fileCount": 1,
+      "sourceFile": "010_create_tags.sql",
+      "foreignKeys": [],
+      "columnCount": 4,
+      "mainColumns": [
+        "id",
+        "slug",
+        "name"
+      ]
+    },
+    {
+      "unitId": "table-post-tags",
+      "unitKey": "post-tags",
+      "kind": "関連",
+      "unitNameGuess": "投稿タグ紐付",
+      "identifier": "post_tags",
+      "detectionMethod": "migration",
+      "confidence": "HIGH",
+      "fileCount": 1,
+      "sourceFile": "011_create_post_tags.sql",
+      "foreignKeys": [
+        "posts",
+        "tags"
+      ],
+      "columnCount": 4,
+      "mainColumns": [
+        "id",
+        "post_id",
+        "tag_id"
+      ]
+    },
+    {
+      "unitId": "table-notifications",
+      "unitKey": "notifications",
+      "kind": "トランザクション",
+      "unitNameGuess": "通知",
+      "identifier": "notifications",
+      "detectionMethod": "migration",
+      "confidence": "HIGH",
+      "fileCount": 2,
+      "sourceFile": "012_create_notifications.sql",
+      "foreignKeys": [
+        "users"
+      ],
+      "columnCount": 8,
+      "mainColumns": [
+        "id",
+        "user_id",
+        "type",
+        "read_at"
+      ]
+    },
+    {
+      "unitId": "table-audit-logs",
+      "unitKey": "audit-logs",
+      "kind": "トランザクション",
+      "unitNameGuess": "監査ログ",
+      "identifier": "audit_logs",
+      "detectionMethod": "migration",
+      "confidence": "HIGH",
+      "fileCount": 1,
+      "sourceFile": "013_create_audit_logs.sql",
+      "foreignKeys": [
+        "users"
+      ],
+      "columnCount": 9,
+      "mainColumns": [
+        "id",
+        "actor_id",
+        "action",
+        "created_at"
+      ]
+    },
+    {
+      "unitId": "table-files",
+      "unitKey": "files",
+      "kind": "トランザクション",
+      "unitNameGuess": "ファイル",
+      "identifier": "uploaded_files",
+      "detectionMethod": "migration",
+      "confidence": "MEDIUM",
+      "fileCount": 1,
+      "sourceFile": "014_create_files.sql",
+      "foreignKeys": [
+        "users"
+      ],
+      "columnCount": 8,
+      "mainColumns": [
+        "id",
+        "owner_id",
+        "path",
+        "mime_type"
+      ]
+    },
+    {
+      "unitId": "table-organizations",
+      "unitKey": "organizations",
+      "kind": "マスタ",
+      "unitNameGuess": "組織",
+      "identifier": "organizations",
+      "detectionMethod": "migration",
+      "confidence": "HIGH",
+      "fileCount": 1,
+      "sourceFile": "015_create_organizations.sql",
+      "foreignKeys": [],
+      "columnCount": 7,
+      "mainColumns": [
+        "id",
+        "slug",
+        "name"
+      ]
+    },
+    {
+      "unitId": "table-org-members",
+      "unitKey": "org-members",
+      "kind": "関連",
+      "unitNameGuess": "組織メンバー紐付",
+      "identifier": "organization_members",
+      "detectionMethod": "migration",
+      "confidence": "HIGH",
+      "fileCount": 1,
+      "sourceFile": "016_create_org_members.sql",
+      "foreignKeys": [
+        "organizations",
+        "users"
+      ],
+      "columnCount": 5,
+      "mainColumns": [
+        "id",
+        "organization_id",
+        "user_id",
+        "role"
+      ]
+    }
+  ]
+}
