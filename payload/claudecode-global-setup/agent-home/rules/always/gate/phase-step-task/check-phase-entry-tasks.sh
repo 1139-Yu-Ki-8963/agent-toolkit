@@ -2,9 +2,9 @@
 # check-phase-entry-tasks.sh - PreToolUse(Bash) hook（rules-bash-runner.sh 経由・9 本目）
 #
 # 役割: update-flow-status.sh の新 phase 宣言（前回宣言と異なる phase 番号）を検出し、
-#       当該 phase の step タスク登録数（record-step-tasks.sh のカウンタ）が total_steps に
+#       当該 phase の step タスク登録数（record-step-tasks.sh の transcript タグ）が total_steps に
 #       達していなければ exit 2 で block する。
-# 素通り（fail-safe）: 非対象コマンド / --init / 同一 phase の step 更新 / Phase D・I / 引数パース不能
+# 素通り（fail-safe）: 非対象コマンド / --init / 同一 phase の step 更新 / 引数パース不能
 # 仕様: ~/.claude/rules/always/gate/phase-step-task/rule.md
 set -u
 
@@ -31,9 +31,6 @@ total_steps=$(printf '%s\n' "$tokens" | sed -n 4p)
 case "$phase_num" in ''|*[!0-9DI]*) exit 0 ;; esac
 case "$total_steps" in ''|*[!0-9]*) exit 0 ;; esac
 
-# Phase D / I はドキュメント・インシデント系のため gate で止めない（flow-gate 規約と同判断）
-case "$phase_num" in D|I) exit 0 ;; esac
-
 session=$(printf '%s' "$input" | jq -r '.session_id // empty' 2>/dev/null)
 [ -z "$session" ] && exit 0
 cwd=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null)
@@ -49,15 +46,19 @@ if [ -n "$tp" ] && [ -f "$tp" ]; then
 fi
 [ "$phase_num" = "$last_phase" ] && exit 0
 
-# 新 phase 突入: transcript 内の step タスク登録数を検証
+# 新 phase 突入: transcript 内の一意な step タスク登録数を検証。
+# 旧 transcript の phase-only tag も移行互換として加算する。
 count=0
 if [ -n "$tp" ] && [ -f "$tp" ]; then
-  count=$(grep -c "\[STEP-TASK-RECORDED:${phase_num}\]" "$tp" 2>/dev/null || true)
+  specific_count=$(grep -o "\[STEP-TASK-RECORDED:${phase_num}:[0-9][0-9]*\]" "$tp" 2>/dev/null |
+    sort -u | wc -l | tr -d ' ')
+  legacy_count=$(grep -c "\[STEP-TASK-RECORDED:${phase_num}\]" "$tp" 2>/dev/null || true)
+  count=$((specific_count + legacy_count))
 fi
 case "$count" in ''|*[!0-9]*) count=0 ;; esac
 
 if [ "$count" -lt "$total_steps" ]; then
-  printf '[PHASE-TASK-BLOCK] Phase %s 突入前の step タスク登録が不足（登録 %s / 必要 %s）。当該 phase の全 step を subject「Phase %s Step %s-<M>: <作業内容>」形式で TaskCreate してから再実行すること。~/.claude/rules/always/gate/phase-step-task/rule.md を参照。\n' \
+  printf '[PHASE-TASK-BLOCK] Phase %s 突入前の step タスク登録が不足（登録 %s / 必要 %s）。当該 phase の全 step を「Phase %s Step %s-<M>: <作業内容>」形式で TaskCreate（Codexはupdate_plan）してから再実行すること。~/.claude/rules/always/gate/phase-step-task/rule.md を参照。\n' \
     "$phase_num" "$count" "$total_steps" "$phase_num" "$phase_num" >&2
   exit 2
 fi

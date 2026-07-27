@@ -1,6 +1,6 @@
 # claudecode-global-setup / CLAUDE.md（AI 向け説明）
 
-このフォルダは、PC 全体の Claude Code 環境（`~/agent-home/` と `~/.claude/`）の配布単位です。`payload/` 直下の他のフォルダ（`ai-consulting-toolkit` / `reverse-docs-skills`）は個別プロジェクト向けツールキットであり、本フォルダとは役割が異なります。
+このフォルダは、PC 全体の Claude Code / Codex 環境の配布単位です。`payload/` 直下の他のフォルダ（`ai-consulting-toolkit` / `reverse-docs-skills`）は個別プロジェクト向けツールキットであり、本フォルダとは役割が異なります。
 
 ## 中身の対応表
 
@@ -9,10 +9,11 @@
 | `agent-home/` | `~/agent-home/` | ディレクトリ全体をミラー |
 | `claude-config/CLAUDE.md` | `~/.claude/CLAUDE.md` | 既存があれば上書きしない |
 | `claude-config/settings-hooks.json` | `~/.claude/settings.json` | 既存の hooks セクションへ merge |
+| `codex-config/hooks.json` | `~/.codex/hooks.json` | `--runtime codex\|all` の場合だけ既存 hooks へ merge |
 
 ## 実処理の委譲先
 
-設置・更新の実作業はこのフォルダの中には置かず、リポジトリ直下の `scripts/install.mjs` に委譲しています。このフォルダ単体を直接操作するスクリプトは存在しません。設置・更新手順はリポジトリ直下の `CLAUDE.md` の「設置マッピング」節を参照してください。
+設置・更新の実作業はこのフォルダの中には置かず、リポジトリ直下の `scripts/install.mjs` に委譲しています。runtime の既定値は `claude`、Codex は opt-in です。両 runtime の既存 JSON はバックアップ後に非破壊 merge し、不正な JSON では変更前に停止します。設置・更新手順はリポジトリ直下の `CLAUDE.md` の「設置マッピング」節を参照してください。
 
 ## 正本との関係
 

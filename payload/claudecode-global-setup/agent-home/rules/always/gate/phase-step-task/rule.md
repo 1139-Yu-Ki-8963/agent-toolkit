@@ -11,7 +11,7 @@ phase / step 構造を持つスキルフローで、次の phase に突入する
 
 ### 2. phase 突入前の step タスク登録義務
 
-Phase N の作業を開始する（= `update-flow-status.sh N ...` を初めて実行する）前に、Phase N の全 step を **1 step = 1 タスク** で TaskCreate する。phase をまたいだ一括登録は禁止しない（事前に全 phase 分を登録してもよい）が、突入時点で当該 phase の step 数が揃っていることが必須条件。
+Phase N の作業を開始する（= `update-flow-status.sh N ...` を初めて実行する）前に、Phase N の全 step を **1 step = 1 タスク** で登録する。ClaudeはTaskCreate、Codexは`update_plan.plan[]`を使う。phase をまたいだ一括登録は禁止しない（事前に全 phase 分を登録してもよい）が、突入時点で当該 phase の step 数が揃っていることが必須条件。
 
 ### 3. タスク subject の形式（粒度規約）
 
@@ -39,29 +39,29 @@ orchestrating-dev-flow 以外の phase/step スキルもこのスクリプトを
 
 | timing | スクリプト | 注入タグ | 挙動 |
 |---|---|---|---|
-| PostToolUse(TaskCreate) | `record-step-tasks.sh` | `[STEP-TASK-FORMAT]` | subject が形式合致なら phase 別カウンタ（marker_path 配下 `phase-step-task-count-<N>`）を加算。フロー実行中（flow-status.json 存在）の形式違反 subject に advisory 注入（exit 0） |
-| PreToolUse(Bash) | `check-phase-entry-tasks.sh`（`rules-bash-runner.sh` 経由） | `[PHASE-TASK-BLOCK]` | `update-flow-status.sh` の新 phase 宣言（前回宣言と異なる phase 番号）時にカウンタ < total_steps なら exit 2 で block |
+| PostToolUse(TaskCreate / Codex update_plan) | `record-step-tasks.sh` | `[STEP-TASK-FORMAT]` | Claudeのsubject、またはCodexのpending/in_progress plan itemが形式合致なら transcript へ `[STEP-TASK-RECORDED:<N>:<M>]` を項目ごとに注入。フロー実行中（flow-status.json 存在）の形式違反項目に advisory 注入（exit 0） |
+| PreToolUse(Bash) | `check-phase-entry-tasks.sh`（`rules-bash-runner.sh` 経由） | `[PHASE-TASK-BLOCK]` | `update-flow-status.sh` の新 phase 宣言（transcript の直近 `[PHASE-ENTERED:<N>]` と異なる phase）時に、同phaseの記録タグ数 < total_steps なら exit 2 で block |
 
-check-phase-entry-tasks.sh の素通り条件（fail-safe）: `--init` / 同一 phase 内の step 更新 / Phase D・I（ドキュメント・インシデントは gate で止めない。flow-gate 規約と同判断）/ 引数パース不能。
+check-phase-entry-tasks.sh の素通り条件（fail-safe）: `--init` / 同一 phase 内の step 更新 / 引数パース不能。Phase D・I も全step登録契約の対象とする。
 
 ## 違反検知時の手順
 
 ### `[PHASE-TASK-BLOCK]` 受信
 
-1. block メッセージ内の不足数（登録 X / 必要 Y）を確認する
-2. 当該 phase の step 定義（SKILL.md または references/phase-N-*.md）を読み、全 step を §3 の形式で TaskCreate する
+1. block メッセージ内の不足数（transcript 記録 X / 必要 Y）を確認する
+2. 当該 phase の step 定義（SKILL.md または references/phase-N-*.md）を読み、全 step を §3 の形式でTaskCreate（Codexはupdate_plan）する
 3. 再度 `update-flow-status.sh` を実行する
 
 ### `[STEP-TASK-FORMAT]` 受信
 
-1. 直前の TaskCreate の subject を確認し、TaskUpdate で §3 の形式に修正する（修正ではカウントされないため、削除して正しい形式で再作成する）
-2. 形式違反のタスクはカウンタに加算されない。放置すると phase 突入時に `[PHASE-TASK-BLOCK]` で block される
+1. 直前のTaskCreate subjectまたはCodex plan itemを確認し、§3 の形式で再登録する
+2. 形式違反のタスクはtranscriptへ記録されない。放置すると phase 突入時に `[PHASE-TASK-BLOCK]` で block される
 
 ## 制約・既知の限界
 
-- カウンタは TaskCreate の発行回数ベース。同一 step の重複作成は重複カウントされ、タスク削除は減算されない
-- `update-flow-status.sh` を呼ばないフローには phase 突入の観測点がなく gate は発火しない。§4 の進行宣言義務が前提
-- TaskUpdate による subject 修正はカウンタに反映されない（PostToolUse の matcher は TaskCreate のみ）
+- step番号付きtranscriptタグを一意に数えるため、Codexが同じplan全体を再送しても重複加算しない。旧phase-onlyタグは移行互換として加算する
+- `update-flow-status.sh` を呼ばないフローには phase 突入の観測点がなく gate は発火しない。§4 の進行宣言義務が前提。2026-07-23 以降は managing-session-workflow（全セッションで起動を機械強制済み）が非縮退タスクの進行宣言起点となるため、観測点はセッション横断で保証される（定義: `~/agent-home/skills/managing-session-workflow/SKILL.md` の「進行宣言」節）。TaskCreate の有無自体は task-breakdown ゲート（`always/gate/task-breakdown/rule.md`）が 3 ファイル編集アンカーで下限保証する（2026-07-23 追加）
+- Codex update_planの`completed`項目は再記録しない。登録時は`pending`または`in_progress`で全stepを含める
 
 ## プロジェクト上書き
 
@@ -78,4 +78,4 @@ check-phase-entry-tasks.sh の素通り条件（fail-safe）: `--init` / 同一 
 - `~/.claude/statusline.py` — flow-status.json を読む Phase/Step 進捗バー（表示側。本規約で変更なし）
 - `~/.claude/rules/scoped/dev-flow/gate/rule.md` — Phase 順序の実装ゲート（コード書き込み制御）。本規約はタスク分解の粒度を担当し、対象が異なる
 - `~/.claude/rules/scoped/agent-config/hooks/rules-bash-runner.sh` — check-phase-entry-tasks.sh の起動元（9 本目）
-- `~/.claude/rules/always/placement/file-guard/rule.md` — marker_path ヘルパーとカウンタの書き出し先規約
+- `~/.claude/rules/scoped/agent-config/hooks/shared/transcript-query.sh` — transcript 参照の共有ヘルパー

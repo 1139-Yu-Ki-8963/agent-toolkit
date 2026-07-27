@@ -19,13 +19,15 @@ orchestrating-dev-flow を経由せずにサブエージェントが ~/Projects/
 
 1. file_path が `.flow-progress.json` → block（直接書き換え防止。`update-flow-status.sh` 経由のみ許可）
 2. file_path が ~/Projects/ 配下でなければ通過
-3. file_path が .claude/ 配下、CLAUDE.md、docs/ 配下なら通過
+3. route 未確定時に限り、file_path が .claude/ 配下、CLAUDE.md、docs/ 配下なら通過
 4. cwd が agent-home なら通過
 5. CLAUDE_SKILL_NAME が creating-new-project なら通過
-6. プロジェクトルートに `.claude/rules/always/project-context/flow-values.yml` が存在しない → block
-7. `.flow-progress.json` の `route` を読み、ルート別の前提 Phase が `phases_completed` に全て含まれるか検証 → 不足があれば block
-8. `route` が不明の場合はフォールバック: `current_phase >= 6` チェック
-9. 上記以外 → 通過
+6. `.claude/rules/always/project-context/flow-values.yml` が存在しない → WARN 相当として標準値で続行
+7. 同ファイルが存在し parser で YAML 不正を確認 → block。parser が無い場合は WARN で続行し、不正と断定しない
+8. `.flow-progress.json` の `route` を読み、ルート別の前提 Phase が `phases_completed` に全て含まれるか検証 → 不足があれば block
+9. 全 route で正規 artifact `.claude/dev-flow/handoff-and-coverage.json` に対する implementation validator を実行 → 不在・不正なら block
+10. `route` が不明の場合はフォールバック: `current_phase >= 6` チェック
+11. 上記以外 → 通過
 
 ### current_phase の取得元（優先順）
 
@@ -40,8 +42,8 @@ orchestrating-dev-flow を経由せずにサブエージェントが ~/Projects/
 | feature-with-full-planning | 1, 2, 3, 4, 5 |
 | feature-with-quick-delivery | 1, 2, 5 |
 | refactor-with-safety-guarantee | 1, 2, 5 |
-| config-with-review-and-verify | 通過（コードゲート不要） |
-| incident-with-emergency-path | 通過（緊急復旧はゲートで止めない） |
+| config-with-review-and-verify | 1, 2 |
+| incident-with-emergency-path | 1, 2 |
 | route 不明 | フォールバック: current_phase >= 6 |
 
 ### .flow-progress.json 直接書き換え防止
@@ -50,8 +52,9 @@ Write / Edit ツールで `.flow-progress.json` を直接編集することを b
 
 ### 特殊ルートの扱い
 
-- Phase D（ドキュメント編集）: 通過（コード編集を伴わないルートのため）
-- Phase I（インシデント対応）: 通過（緊急復旧はゲートで止めない）
+- Phase D（ドキュメント編集）: Step D-2 で正規 artifact を作成し validator が PASS するまで編集を block
+- Phase I（インシデント対応）: I2 で正規 artifact を作成し validator が PASS するまで修正実装を block
+- 正規 artifact 自体への Write/Edit は、artifact を作成・修正できるよう通過
 
 ## 機械強制
 

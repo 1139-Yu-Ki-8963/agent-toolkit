@@ -172,6 +172,7 @@
       { id: "placement/file-guard",       type: "rule", verdict: "bundle",   reason: "ファイル配置・書き出し先ガードは環境に依存しない普遍規約。",                                                cond: "", href: "rules.html" },
       { id: "infra/pre-bash-dispatch",     type: "rule", verdict: "bundle",   reason: "Bash 実行前マルチディスパッチは textlint・命名規則の共通土台。",                                           cond: "", href: "rules.html" },
       { id: "session/infra",              type: "rule", verdict: "bundle",   reason: "スキル発火ログ記録とセルフ設定削除はセッション基盤として普遍的。",                                          cond: "", href: "rules.html" },
+      { id: "session/workflow-gate",      type: "rule", verdict: "bundle",   reason: "毎ターンの workflow 本文供給と完了証拠確認を担う公開承認済みゲート。",                                      cond: "", href: "rules.html" },
       { id: "gate/flow-gate",             type: "rule", verdict: "bundle",   reason: "実装フローゲートは orchestrating-dev-flow と対の普遍規約。",                                               cond: "", href: "rules.html" },
       { id: "gate/worktree-required",     type: "rule", verdict: "bundle",   reason: "worktree 必須運用は開発フローの普遍規約。",                                                                cond: "", href: "rules.html" },
       { id: "tooling/shell",              type: "rule", verdict: "bundle",   reason: "スクリプト作成方針は環境に依存しない普遍規約。",                                                            cond: "", href: "rules.html" },
@@ -183,17 +184,19 @@
       { id: "local-environment/port-management",      type: "rule", verdict: "template", reason: "計算式自体は汎用だが割当表がこのPC固有の実ポート番号を含む。",                                            cond: "port-values.txt を実値版と .template 版の2ファイルに分離する", href: "rules.html" },
       { id: "ui/icon-usage",              type: "rule", verdict: "deprecate", reason: "特定アイコンライブラリ（Material Symbols）の強制は規約の粒度として細かすぎ、公開セットには合わない。", cond: "", href: "rules.html" },
 
-      // ── Skills（22件。初期判定・本監査未実施） ──────────────────────
+      // ── Skills（22件・bundle 10件） ──────────────────────
       { id: "managing-agent-configs",       type: "skill", verdict: "bundle", reason: "skills/hooks/rules/routines/subagents の統合管理ハブ。初期判定・本監査未実施。",     cond: "", href: "skills.html" },
       { id: "adding-textlint-dictionary-terms", type: "skill", verdict: "bundle", reason: "文章品質ルールと辞書管理は普遍的。初期判定・本監査未実施。",                        cond: "", href: "skills.html" },
       { id: "grouping-commits",             type: "skill", verdict: "bundle", reason: "コミットのグルーピング手順は普遍的。初期判定・本監査未実施。",                      cond: "", href: "skills.html" },
       { id: "subagent-investigation-checklist", type: "skill", verdict: "bundle", reason: "調査委任チェックリストの生成は4体制に依存するが普遍的。初期判定・本監査未実施。", cond: "", href: "skills.html" },
-      { id: "reviewing-public-readiness",   type: "skill", verdict: "bundle", reason: "公開可否レビュー手順は普遍的。初期判定・本監査未実施。",                            cond: "", href: "skills.html" },
+      { id: "reviewing-public-readiness",   type: "skill", verdict: "exclude", reason: "公開承認台帳で除外（未承認）。",                            cond: "", href: "skills.html" },
       { id: "parallel-dev-worktree",        type: "skill", verdict: "bundle", reason: "worktree 作成・削除の実行エンジンは普遍的。初期判定・本監査未実施。",              cond: "", href: "skills.html" },
-      { id: "orchestrating-dev-flow",       type: "skill", verdict: "bundle", reason: "統合開発フローの全体設計は普遍的。初期判定・本監査未実施。",                        cond: "", href: "skills.html" },
-      { id: "reviewing-single-pr-with-inline-comments", type: "skill", verdict: "bundle", reason: "PR レビュー手順は普遍的。初期判定・本監査未実施。",                        cond: "", href: "skills.html" },
-      { id: "managing-github-issues",        type: "skill", verdict: "bundle", reason: "issue 作成・選定・スコープ検証手順（create/pick/verify モード）は普遍的。初期判定・本監査未実施。", cond: "", href: "skills.html" },
-      { id: "frontend-design",              type: "skill", verdict: "bundle", reason: "フロントエンド設計手順は普遍的。初期判定・本監査未実施。",                          cond: "", href: "skills.html" },
+      { id: "managing-session-workflow",   type: "skill", verdict: "bundle", reason: "毎ターンの目的・完了条件・制約・引き継ぎを管理する公開承認済みの共通フロー。", cond: "", href: "skills.html" },
+      { id: "transcribing-images",         type: "skill", verdict: "bundle", reason: "画像の構造化 findings を専門実装フローへ渡す公開承認済みの境界スキル。", cond: "", href: "skills.html" },
+      { id: "orchestrating-dev-flow",      type: "skill", verdict: "bundle", reason: "指摘対応表・回帰・公開証拠までを扱う公開承認済みの統合開発フロー。", cond: "", href: "skills.html" },
+      { id: "reviewing-single-pr-with-inline-comments", type: "skill", verdict: "exclude", reason: "公開承認台帳で除外（未承認）。",                        cond: "", href: "skills.html" },
+      { id: "managing-github-issues",        type: "skill", verdict: "exclude", reason: "公開承認台帳で除外（未承認）。", cond: "", href: "skills.html" },
+      { id: "frontend-design",              type: "skill", verdict: "exclude", reason: "公開承認台帳で除外（未承認）。",                          cond: "", href: "skills.html" },
       { id: "generating-screen-list-for-reverse-docs", type: "skill", verdict: "exclude", reason: "リバースドキュメント生成は個人プロジェクト固有のワークフロー。初期判定・本監査未実施。", cond: "", href: "skills.html" },
       { id: "syncing-reverse-env",          type: "skill", verdict: "exclude", reason: "リバース環境同期は個人プロジェクト固有。初期判定・本監査未実施。",                  cond: "", href: "skills.html" },
       { id: "rebuilding-code-from-docs",    type: "skill", verdict: "exclude", reason: "ドキュメントからのコード再構築は個人プロジェクト固有。初期判定・本監査未実施。",    cond: "", href: "skills.html" },
@@ -201,7 +204,11 @@
       { id: "orchestrating-reverse-docs-flow", type: "skill", verdict: "exclude", reason: "リバースドキュメントフロー統括は個人プロジェクト固有。初期判定・本監査未実施。",   cond: "", href: "skills.html" },
       { id: "unlocking-reverse-target-screens", type: "skill", verdict: "exclude", reason: "対象画面ロック解除は個人プロジェクト固有。初期判定・本監査未実施。",             cond: "", href: "skills.html" },
       { id: "launching-<project>-dev-servers", type: "skill", verdict: "exclude", reason: "<project>-<project> 専用の開発サーバー起動は個人プロジェクト固有。初期判定・本監査未実施。", cond: "", href: "skills.html" },
-      { id: "creating-new-project",         type: "skill", verdict: "tbd",   reason: "Next.js テンプレの個人色が強いか要確認。初期判定・本監査未実施。",                    cond: "テンプレ内容の個人依存度を確認する", href: "skills.html" },
+      { id: "creating-new-project",         type: "skill", verdict: "exclude",   reason: "公開承認台帳で除外（未承認）。",                    cond: "テンプレ内容の個人依存度を確認する", href: "skills.html" },
+      { id: "eliciting-plan-tacit-knowledge", type: "skill", verdict: "bundle", reason: "公開承認台帳で承認済み。", cond: "", href: "skills.html" },
+      { id: "generating-explanation-html-slides", type: "skill", verdict: "bundle", reason: "公開承認台帳で承認済み。", cond: "", href: "skills.html" },
+
+
 
       // ── Subagents（6件・全 bundle） ──────────────────────────────
       { id: "brain",         type: "subagent", verdict: "bundle", reason: "タスク分解と worker 配布を担う4体制の中核。", cond: "", href: "subagents.html" },

@@ -1,6 +1,6 @@
 # agent-toolkit
 
-Claude Code のスキルとフックを「ライフサイクル」として管理する meta スキル集。新しい PC への初期設定と、既存環境の更新を `scripts/install.mjs` 1 コマンドで完結させる配布キット。
+Claude Code と Codex のスキル・フックを「ライフサイクル」として管理する meta スキル集。新しい PC への初期設定と、既存環境の更新を `scripts/install.mjs` 1 コマンドで完結させる配布キット。
 
 ## クイックスタート
 
@@ -10,6 +10,15 @@ cd agent-toolkit && claude
 ```
 
 Claude Code が起動したら「CLAUDE.md の初回設定を実行して」と依頼してください。
+
+既定は従来どおり Claude 用です。Codex の hook も設置する場合だけ runtime を明示します。
+
+```bash
+node scripts/install.mjs --doctor --runtime codex
+node scripts/install.mjs --diff --runtime codex
+node scripts/install.mjs --apply --runtime codex
+# 両方: --runtime all
+```
 
 ---
 
@@ -23,13 +32,18 @@ payload/
 │   │   ├── ai-management-portal/
 │   │   ├── rules/               （行動規範。always/ + scoped/）
 │   │   ├── sessions/
-│   │   ├── skills/              （6スキル）
+│   │   ├── skills/              （10スキル）
 │   │   │   ├── adding-textlint-dictionary-terms/
 │   │   │   ├── eliciting-plan-tacit-knowledge/
 │   │   │   ├── grouping-commits/
+│   │   │   ├── generating-explanation-html-slides/
 │   │   │   ├── managing-agent-configs/
 │   │   │   ├── parallel-dev-worktree/
-│   │   │   └── subagent-investigation-checklist/
+│   │   │   ├── subagent-investigation-checklist/
+│   │   │   ├── managing-session-workflow/
+│   │   │   ├── transcribing-images/
+│   │   │   └── orchestrating-dev-flow/
+│   │   ├── config/codex/        （Codex hook adapter・公開 registry）
 │   │   ├── templates/
 │   │   │   └── project-docs/
 │   │   └── tools/
@@ -39,6 +53,8 @@ payload/
 │   │   ├── CLAUDE.md            （既存があれば上書きしない）
 │   │   ├── settings-hooks.json  （既存 settings.json へ hooks・outputStyle・permissions を merge）
 │   │   └── statusline.py       （ステータスバー表示）
+│   ├── codex-config/
+│   │   └── hooks.json           → ~/.codex/hooks.json（opt-in、安全 merge）
 │   └── agent-home-overview.html （アーキテクチャ概要。配布専用ドキュメント）
 ├── ai-consulting-toolkit/       → AI コンサルティング用スキル集
 │   ├── .claude/skills/          （13スキル）
@@ -56,8 +72,16 @@ payload/
 
 | スキル | 担当 |
 |---|---|
+| [`adding-textlint-dictionary-terms`](payload/claudecode-global-setup/agent-home/skills/adding-textlint-dictionary-terms/SKILL.md) | textlint 辞書へ新しい置き換え語を登録する |
+| [`eliciting-plan-tacit-knowledge`](payload/claudecode-global-setup/agent-home/skills/eliciting-plan-tacit-knowledge/SKILL.md) | 計画の初見読解から暗黙の前提を抽出する |
+| [`generating-explanation-html-slides`](payload/claudecode-global-setup/agent-home/skills/generating-explanation-html-slides/SKILL.md) | 横 1 枚の解説 HTML スライドを生成する |
+| [`grouping-commits`](payload/claudecode-global-setup/agent-home/skills/grouping-commits/SKILL.md) | 変更を単一目的のコミットへグループ化する |
 | [`managing-agent-configs`](payload/claudecode-global-setup/agent-home/skills/managing-agent-configs/SKILL.md) | エージェント構成 5 種（スキル・フック・ルール・ルーティン・サブエージェント）のライフサイクル管理（作成・観点ベース静的レビュー・実機検証）。スキルガイドを [`references/managing-agent-configs-guide.html`](payload/claudecode-global-setup/agent-home/skills/managing-agent-configs/references/managing-agent-configs-guide.html) に同梱 |
-| [`running-headless-batch`](payload/claudecode-global-setup/agent-home/skills/running-headless-batch/SKILL.md) | `claude -p`（対話画面を介さず1回の呼び出しで完結する実行方式）による無人バッチループの構築・起動。数十件以上の対象に1件=1呼び出しで処理し、マーカー冪等性・limit耐性・残ゼロまで継続する3要件を満たす。スキルガイドを [`references/running-headless-batch-guide.html`](payload/claudecode-global-setup/agent-home/skills/running-headless-batch/references/running-headless-batch-guide.html) に同梱 |
+| [`managing-session-workflow`](payload/claudecode-global-setup/agent-home/skills/managing-session-workflow/SKILL.md) | 毎ターン、目的・完了条件・制約・訂正・公開条件を再評価し、専門スキルへ共通契約で引き継ぐ |
+| [`parallel-dev-worktree`](payload/claudecode-global-setup/agent-home/skills/parallel-dev-worktree/SKILL.md) | 専用 worktree の作成・管理・復旧を行う |
+| [`subagent-investigation-checklist`](payload/claudecode-global-setup/agent-home/skills/subagent-investigation-checklist/SKILL.md) | 調査委任前の証拠チェックリストを作る |
+| [`transcribing-images`](payload/claudecode-global-setup/agent-home/skills/transcribing-images/SKILL.md) | 画像を書き起こし、actionable findings・期待変更・検証方法を構造化してセッション管理へ返す |
+| [`orchestrating-dev-flow`](payload/claudecode-global-setup/agent-home/skills/orchestrating-dev-flow/SKILL.md) | 指摘対応表、既知 FAIL の回帰、実装・レビュー・公開証拠までを既存開発フローで追跡する |
 
 サブエージェント 6 体（`brain` / `researcher` / `reviewer` / `worker-sonnet` / `worker-haiku` / `investigator`）を `payload/claudecode-global-setup/claude-config/agents/` に、画面基本設計テンプレート一式を `payload/claudecode-global-setup/agent-home/templates/project-docs/` に、textlint 設定と link-checker の仕組みを `payload/claudecode-global-setup/agent-home/tools/linter/` に同梱しています。
 
@@ -236,6 +260,12 @@ agent-toolkit/
 
 ## 要件
 
-- [Claude Code](https://docs.claude.com/en/docs/claude-code)（skill ローダー）
+- Claude Code または Codex（利用する runtime の hook ローダー）
 - Node.js 18 以上（`scripts/install.mjs` の実行に必要）
-- bash / jq / python3（review モードの検出式が依存）
+- bash / jq / shasum / python3（hook と検証スクリプトが依存）
+
+不足コマンドや壊れた既存 JSON は `--doctor` で確認してください。`flow-values.yml` は任意で、不存在時は標準フローへフォールバックし、存在するが不正な場合だけ停止します。
+
+既存 `~/.claude/settings.json` / `~/.codex/hooks.json` は上書きせず merge し、反映前の内容を `.bak.<timestamp>` に保存します。復元時は JSON として妥当なバックアップを元のファイル名へ戻してください。Codex 設定は `--runtime codex|all` を指定しない限り変更されません。
+
+ライセンスは現時点で指定されていません。再配布・利用条件が必要な場合はリポジトリ所有者へ確認してください。

@@ -124,22 +124,15 @@
     // <!-- GEN:SKILLS -->
     const SKILLS = [
       { id: "adding-textlint-dictionary-terms", cat: "write", summary: "textlint置き換え辞書（prh.yml）への新規語彙登録", trigger: "「prh.yml登録」「辞書に登録」「置き換え語を追加」と言われた時、text-dictionary/rule.md の [TEXTLINT-BLOCK] 手順で辞書に該当エントリがない時", guide: true },
-      { id: "adversarial-verification", cat: "meta", summary: "成果物に独立の懐疑者が反証を試み、採否判断と修正反映まで行う", trigger: "「敵対的検証して」「反証して」と言われた時、計画のユーザー承認前（ExitPlanMode 前）、PR 作成前（gh pr create 前）、設計書・調査報告・社外提示物の提示前", guide: true },
-      { id: "creating-new-project", cat: "dev", summary: "新規プロジェクトセットアップ（Next.js / React+Vite+FastAPI）", trigger: "「新規プロジェクト」「プロジェクト作成」「アプリ新規作成」「セットアップ」と言われた時", guide: true },
-      { id: "dev-flow-preparing-manual-mockup", cat: "build", sub: "pr", summary: "マニュアル画像加工→HTML モック→承認を実装前に完了", trigger: "manual-images 追加・差し替え、添付画像あり、PNG 派生作成", guide: true },
       { id: "eliciting-plan-tacit-knowledge", cat: "meta", summary: "計画を弱モデルに初見読解させ、理解のズレから暗黙知を抽出して計画へ明文化する", trigger: "「暗黙知を炙り出して」「計画の前提を明文化して」「計画を初見読解で検証して」と言われた時、brain の計画立案後・ユーザー承認前の計画品質確認", guide: true },
-      { id: "frontend-design", cat: "design", summary: "UI/画面デザインガイド", trigger: "コンポーネント実装、LP、デザイン刷新", guide: true },
-      { id: "generating-explanation-html-slides", cat: "content", summary: "与えたトピックを横1枚（16:9）のスライド風解説HTMLにする。段階比較型・層構造型と論証テーブル型を選択可能", trigger: "「解説スライドを作って」「説明用HTMLにして」「スライドHTML」「1枚の図にまとめて」「論証テーブルで整理して」と言われた時", guide: true },
+      { id: "generating-explanation-html-slides", cat: "content", summary: "与えたトピックを横1枚（16:9）のスライド風解説HTMLにする。図解型と論証テーブル型を選択可能", trigger: "「解説スライドを作って」「説明用HTMLにして」「スライドHTML」「図解して1枚にまとめて」「論証テーブルで整理して」と言われた時", guide: true },
       { id: "grouping-commits", cat: "build", sub: "pr", summary: "変更分析しグループ化・単一目的コミット作成", trigger: "「コミット分割」「変更グループ化」「まとめてコミット」と言われた時", guide: true },
       { id: "managing-agent-configs", cat: "manage", sub: "skill", summary: "エージェント構成管理", trigger: "スキル/ルール/ルーティン/エージェント/フック作成・レビュー・テスト", guide: true },
-      { id: "managing-github-operations", cat: "other", summary: "GitHub issue の起票・選択着手・スコープ検証のモードハブ", trigger: "「issue作成」「起票」「issueにして」「issueを選んで実装」「issue一覧から着手」「スコープ検証」「issue範囲チェック」、issue-N ブランチで commit 前、「PRレビュー」「差分確認」「LGTM」「まとめてレビュー」「routine PR」", guide: true },
-      { id: "managing-review-sets", cat: "review", summary: "レビュープロファイルに従い品質検証を一元実行するエンジン", trigger: "Skill(\"managing-review-sets\") で呼ばれた時、計画提示前、成果物提示前、実装後レビュー時", guide: true },
-      { id: "managing-session-workflow", cat: "manage", summary: "セッション開始時にゴールと完了条件を確認し、道筋を設計してセッション全体を管理するセッション管理者", trigger: "SessionStart hook の advisory 注入を受けた時、セッション冒頭で手動起動された時", guide: true },
-      { id: "orchestrating-dev-flow", cat: "build", sub: "pr", summary: "開発オーケストレーター", trigger: "「新機能追加」「バグ修正」「リファクタ」「ドキュメント編集」「インシデント対応」と言われた時", guide: true },
+      { id: "managing-session-workflow", cat: "manage", summary: "毎ターン目的・完了条件・制約・引き継ぎを再評価する", trigger: "SessionStart時、ユーザーの新規・追加・訂正・置換・質問を受けた時", guide: true },
+      { id: "orchestrating-dev-flow", cat: "build", sub: "pr", summary: "開発オーケストレーター", trigger: "「新機能追加」「バグ修正」「リファクタ」「ドキュメント編集」「インシデント対応」時", guide: true },
       { id: "parallel-dev-worktree", cat: "build", sub: "pr", summary: "worktreeブランチ作成/管理/復旧", trigger: "wt1-wt3不在、MISSING/FAIL", guide: true },
-      { id: "presenting-plan-with-artifacts", cat: "flow", summary: "計画の品質検証と視覚的な成果物提示を EnterPlanMode 前に 100% 強制するゲート", trigger: "EnterPlanMode の直前（PreToolUse hook で自動発火）、計画をユーザーに提示する前", guide: true },
       { id: "subagent-investigation-checklist", cat: "meta", summary: "調査委任前チェックリスト作成", trigger: "「調査チェックリスト」「調査委任」と言われた時、investigator/report-reviewer への委任前", guide: true },
-      { id: "transcribing-images", cat: "content", summary: "添付・アップロード画像の内容を構造を保って忠実に書き起こし、検証と次アクション提案まで行う", trigger: "『書き起こして』『文字起こし』『transcribe』と言われた時、画像添付とともに内容のテキスト化を求められた時", guide: true },
+      { id: "transcribing-images", cat: "content", summary: "添付画像を構造保持で書き起こし、検証・次アクション提案する", trigger: "『書き起こして』『文字起こし』『transcribe』時、画像添付での内容テキスト化要求時", guide: true },
     ];
     // <!-- /GEN:SKILLS -->
 

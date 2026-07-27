@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // ゼロ依存インストーラ。node:fs/path/os/process/child_process のみ使用。
-// 使い方: node scripts/install.mjs [--doctor|--diff|--apply] [--target <dir>]
+// 使い方: node scripts/install.mjs [--doctor|--diff|--apply] [--target <dir>] [--runtime claude|codex|all]
 
 import fs from "node:fs";
 import path from "node:path";
@@ -17,13 +17,20 @@ const GLOBAL_SETUP = path.join(PAYLOAD, "claudecode-global-setup");
 // ── 引数パース ───────────────────────────────────────────────────
 
 const args = process.argv.slice(2);
-const flag = args.find((a) => a.startsWith("--") && !a.startsWith("--target"));
+const actions = new Set(["--doctor", "--diff", "--apply"]);
+const flag = args.find((a) => actions.has(a));
 const targetIdx = args.indexOf("--target");
 const TARGET = path.resolve(targetIdx !== -1 ? args[targetIdx + 1] : os.homedir());
+const runtimeIdx = args.indexOf("--runtime");
+const RUNTIME = runtimeIdx !== -1 ? args[runtimeIdx + 1] : "claude";
+if (!["claude", "codex", "all"].includes(RUNTIME)) {
+  console.error(`不正な runtime: ${RUNTIME || "(未指定)"}。claude / codex / all を指定してください。`);
+  process.exit(1);
+}
 
 // ── マッピング定義 ───────────────────────────────────────────────
 
-// { src: 絶対パス, dst: 絶対パス, mode: "copy" | "skip-if-exists" | "merge-json" }
+// { src: 絶対パス, dst: 絶対パス, mode: "copy" | "skip-if-exists" | "merge-json" | "merge-hooks-json" }
 function buildMappings() {
   const mappings = [];
 
@@ -48,35 +55,42 @@ function buildMappings() {
   }
 
   // payload/claudecode-global-setup/claude-config/** → <TARGET>/.claude/**（CLAUDE.md・settings-hooks.json は特殊挙動）
-  const claudeConfigSrc = path.join(GLOBAL_SETUP, "claude-config");
-  for (const rel of walkFiles(claudeConfigSrc)) {
-    const src = path.join(claudeConfigSrc, rel);
+  if (RUNTIME === "claude" || RUNTIME === "all") {
+    const claudeConfigSrc = path.join(GLOBAL_SETUP, "claude-config");
+    for (const rel of walkFiles(claudeConfigSrc)) {
+      const src = path.join(claudeConfigSrc, rel);
 
-    if (rel === "CLAUDE.md") {
-      // payload/claude-config/CLAUDE.md → <TARGET>/.claude/CLAUDE.md（上書きしない）
+      if (rel === "CLAUDE.md") {
+        mappings.push({
+          src,
+          dst: path.join(TARGET, ".claude", "CLAUDE.md"),
+          mode: "skip-if-exists",
+        });
+        continue;
+      }
+
+      if (rel === "settings-hooks.json") {
+        mappings.push({
+          src,
+          dst: path.join(TARGET, ".claude", "settings.json"),
+          mode: "merge-json",
+        });
+        continue;
+      }
+
       mappings.push({
         src,
-        dst: path.join(TARGET, ".claude", "CLAUDE.md"),
-        mode: "skip-if-exists",
+        dst: path.join(TARGET, ".claude", rel),
+        mode: "copy",
       });
-      continue;
     }
+  }
 
-    if (rel === "settings-hooks.json") {
-      // payload/claude-config/settings-hooks.json → <TARGET>/.claude/settings.json（merge）
-      mappings.push({
-        src,
-        dst: path.join(TARGET, ".claude", "settings.json"),
-        mode: "merge-json",
-      });
-      continue;
-    }
-
-    // それ以外（agents/** 等）→ <TARGET>/.claude/<相対パス> にそのままコピー
+  if (RUNTIME === "codex" || RUNTIME === "all") {
     mappings.push({
-      src,
-      dst: path.join(TARGET, ".claude", rel),
-      mode: "copy",
+      src: path.join(GLOBAL_SETUP, "codex-config", "hooks.json"),
+      dst: path.join(TARGET, ".codex", "hooks.json"),
+      mode: "merge-hooks-json",
     });
   }
 
@@ -189,12 +203,69 @@ function mergeSettings(srcPath, dstPath) {
   return { ok: true, json: dstJson, added, skipped };
 }
 
+function mergeCodexHooks(srcPath, dstPath) {
+  let srcJson;
+  try {
+    srcJson = JSON.parse(fs.readFileSync(srcPath, "utf8"));
+  } catch (e) {
+    return { ok: false, reason: `配布側 hooks.json のパースに失敗: ${e.message}` };
+  }
+
+  let dstJson = { hooks: {} };
+  if (fs.existsSync(dstPath)) {
+    try {
+      dstJson = JSON.parse(fs.readFileSync(dstPath, "utf8"));
+    } catch (e) {
+      return { ok: false, reason: `設置先 hooks.json のパースに失敗（変更せず停止）: ${e.message}` };
+    }
+  }
+  if (!dstJson || typeof dstJson !== "object" || Array.isArray(dstJson)) {
+    return { ok: false, reason: "設置先 hooks.json は JSON object ではありません（変更せず停止）" };
+  }
+  if (!dstJson.hooks) dstJson.hooks = {};
+  if (typeof dstJson.hooks !== "object" || Array.isArray(dstJson.hooks)) {
+    return { ok: false, reason: "設置先 hooks.json の hooks は object ではありません（変更せず停止）" };
+  }
+
+  let added = 0;
+  let skipped = 0;
+  for (const [event, entries] of Object.entries(srcJson.hooks || {})) {
+    if (!Array.isArray(entries)) {
+      return { ok: false, reason: `配布側 hooks.${event} は配列ではありません` };
+    }
+    if (!dstJson.hooks[event]) dstJson.hooks[event] = [];
+    if (!Array.isArray(dstJson.hooks[event])) {
+      return { ok: false, reason: `設置先 hooks.${event} は配列ではありません（変更せず停止）` };
+    }
+    for (const entry of entries) {
+      const entryCommands = (entry.hooks || []).map((h) => normalizeCmd(h.command || ""));
+      const alreadyExists = dstJson.hooks[event].some((dstEntry) => {
+        const dstCommands = (dstEntry.hooks || []).map((h) => normalizeCmd(h.command || ""));
+        return entryCommands.length > 0 && entryCommands.every((cmd) => dstCommands.includes(cmd));
+      });
+      if (alreadyExists) {
+        skipped++;
+      } else {
+        dstJson.hooks[event].push(entry);
+        added++;
+      }
+    }
+  }
+  return { ok: true, json: dstJson, added, skipped };
+}
+
 // ── diff 分類 ───────────────────────────────────────────────────
 
 function classifyFile(src, dst, mode) {
   if (mode === "merge-json") {
     if (!fs.existsSync(dst)) return { kind: "新規" };
     const result = mergeSettings(src, dst);
+    if (!result.ok) return { kind: "エラー", reason: result.reason };
+    return { kind: "merge", added: result.added, skipped: result.skipped };
+  }
+  if (mode === "merge-hooks-json") {
+    if (!fs.existsSync(dst)) return { kind: "新規" };
+    const result = mergeCodexHooks(src, dst);
     if (!result.ok) return { kind: "エラー", reason: result.reason };
     return { kind: "merge", added: result.added, skipped: result.skipped };
   }
@@ -216,6 +287,7 @@ function classifyFile(src, dst, mode) {
 function cmdDoctor() {
   const rows = [];
   let hasFatal = false;
+  rows.push({ 項目: "runtime", 状態: "OK", 値: RUNTIME });
 
   // Node バージョン
   const nodeVer = process.version;
@@ -243,25 +315,40 @@ function cmdDoctor() {
   rows.push({ 項目: `${TARGET} 書き込み`, 状態: targetWritable ? "OK" : "FAIL（致命）", 値: targetExists ? (targetWritable ? "書き込み可" : "書き込み不可") : "存在しない" });
   if (!targetWritable) hasFatal = true;
 
-  // <TARGET>/.claude 書き込み可否
-  const claudeDir = path.join(TARGET, ".claude");
-  const claudeExists = fs.existsSync(claudeDir);
-  let claudeWritable = false;
-  if (claudeExists) {
-    try { fs.accessSync(claudeDir, fs.constants.W_OK); claudeWritable = true; } catch {}
-  } else {
-    claudeWritable = targetWritable; // 親が書き込み可なら作成可能
+  for (const runtimeDir of [
+    ...(RUNTIME === "claude" || RUNTIME === "all" ? [".claude"] : []),
+    ...(RUNTIME === "codex" || RUNTIME === "all" ? [".codex"] : []),
+  ]) {
+    const configDir = path.join(TARGET, runtimeDir);
+    const configExists = fs.existsSync(configDir);
+    let configWritable = false;
+    if (configExists) {
+      try { fs.accessSync(configDir, fs.constants.W_OK); configWritable = true; } catch {}
+    } else {
+      configWritable = targetWritable;
+    }
+    rows.push({ 項目: `${configDir} 書き込み`, 状態: configWritable ? "OK" : "FAIL（致命）", 値: configExists ? (configWritable ? "書き込み可" : "書き込み不可") : "未作成（作成可）" });
+    if (!configWritable) hasFatal = true;
   }
-  rows.push({ 項目: `${claudeDir} 書き込み`, 状態: claudeWritable ? "OK" : "FAIL（致命）", 値: claudeExists ? (claudeWritable ? "書き込み可" : "書き込み不可") : "未作成（作成可）" });
-  if (!claudeWritable) hasFatal = true;
 
   // 既存 agent-home の有無
   const agentHomeExists = fs.existsSync(path.join(TARGET, "agent-home"));
   rows.push({ 項目: "既存 agent-home", 状態: agentHomeExists ? "あり（上書き対象）" : "なし（新規）", 値: "" });
 
-  // 既存 settings.json の有無
-  const settingsExists = fs.existsSync(path.join(TARGET, ".claude", "settings.json"));
-  rows.push({ 項目: "既存 settings.json", 状態: settingsExists ? "あり（merge 対象）" : "なし（新規）", 値: "" });
+  if (RUNTIME === "claude" || RUNTIME === "all") {
+    const settingsExists = fs.existsSync(path.join(TARGET, ".claude", "settings.json"));
+    rows.push({ 項目: "既存 Claude settings.json", 状態: settingsExists ? "あり（merge 対象）" : "なし（新規）", 値: "" });
+  }
+  if (RUNTIME === "codex" || RUNTIME === "all") {
+    const hooksPath = path.join(TARGET, ".codex", "hooks.json");
+    if (!fs.existsSync(hooksPath)) {
+      rows.push({ 項目: "既存 Codex hooks.json", 状態: "なし（新規）", 値: "" });
+    } else {
+      const result = mergeCodexHooks(path.join(GLOBAL_SETUP, "codex-config", "hooks.json"), hooksPath);
+      rows.push({ 項目: "既存 Codex hooks.json", 状態: result.ok ? "あり（merge 対象）" : "FAIL（致命）", 値: result.ok ? "" : result.reason });
+      if (!result.ok) hasFatal = true;
+    }
+  }
 
   // 表示
   console.log("\n前提診断");
@@ -295,8 +382,7 @@ function cmdDiff() {
   console.log("─".repeat(70));
 
   // merge プレビュー
-  const mergeItem = classified.find((c) => c.mode === "merge-json");
-  if (mergeItem) {
+  for (const mergeItem of classified.filter((c) => c.mode === "merge-json" || c.mode === "merge-hooks-json")) {
     const r = mergeItem.result;
     if (r.kind === "新規") {
       console.log(`  [merge] ${path.relative(TARGET, mergeItem.dst)} → 新規作成`);
@@ -320,7 +406,7 @@ function cmdDiff() {
   }
 
   console.log("─".repeat(70));
-  console.log(`  新規: ${counts["新規"] || 0}  更新: ${counts["更新"] || 0}  同一: ${counts["同一"] || 0}  skip: ${counts["skip"] || 0}`);
+  console.log(`  runtime: ${RUNTIME}  新規: ${counts["新規"] || 0}  更新: ${counts["更新"] || 0}  同一: ${counts["同一"] || 0}  skip: ${counts["skip"] || 0}  merge: ${counts["merge"] || 0}  エラー: ${counts["エラー"] || 0}`);
 }
 
 // ── --apply ─────────────────────────────────────────────────────
@@ -331,11 +417,20 @@ async function cmdApply() {
   console.log("\n設置を開始します...\n");
 
   const mappings = buildMappings();
+  const preflightErrors = mappings
+    .map((m) => ({ mapping: m, result: classifyFile(m.src, m.dst, m.mode) }))
+    .filter(({ result }) => result.kind === "エラー");
+  if (preflightErrors.length > 0) {
+    for (const { mapping, result } of preflightErrors) {
+      console.error(`  [エラー] ${path.relative(TARGET, mapping.dst)} — ${result.reason}`);
+    }
+    console.error("設定ファイルが不正なため、変更せず停止しました。");
+    process.exit(1);
+  }
 
   // ① ディレクトリ作成
   const dirs = new Set(mappings.map((m) => path.dirname(m.dst)));
   for (const d of dirs) fs.mkdirSync(d, { recursive: true });
-  fs.mkdirSync(path.join(TARGET, ".claude"), { recursive: true });
 
   let copied = 0, updated = 0, skipped = 0, errors = 0;
 
@@ -377,7 +472,7 @@ async function cmdApply() {
       continue;
     }
 
-    if (m.mode === "merge-json") {
+    if (m.mode === "merge-json" || m.mode === "merge-hooks-json") {
       // バックアップ
       if (fs.existsSync(m.dst)) {
         const iso = new Date().toISOString().replace(/:/g, "-").replace(/\..+/, "");
@@ -386,7 +481,9 @@ async function cmdApply() {
         console.log(`  [backup] ${path.relative(TARGET, bak)}`);
       }
 
-      const result = mergeSettings(m.src, m.dst);
+      const result = m.mode === "merge-json"
+        ? mergeSettings(m.src, m.dst)
+        : mergeCodexHooks(m.src, m.dst);
       if (!result.ok) {
         console.error(`  [エラー] ${rel} — ${result.reason}`);
         errors++;
@@ -413,11 +510,13 @@ async function cmdApply() {
 
   // symlink: <TARGET>/.claude/rules → <TARGET>/agent-home/rules
   //          <TARGET>/.claude/skills → <TARGET>/agent-home/skills
-  const symlinks = [
-    { link: path.join(TARGET, ".claude", "rules"), target: path.join(TARGET, "agent-home", "rules") },
-    { link: path.join(TARGET, ".claude", "skills"), target: path.join(TARGET, "agent-home", "skills") },
-    { link: path.join(TARGET, ".claude", "agents"), target: path.join(TARGET, "agent-home", "agents") },
-  ];
+  const symlinks = RUNTIME === "claude" || RUNTIME === "all"
+    ? [
+        { link: path.join(TARGET, ".claude", "rules"), target: path.join(TARGET, "agent-home", "rules") },
+        { link: path.join(TARGET, ".claude", "skills"), target: path.join(TARGET, "agent-home", "skills") },
+        { link: path.join(TARGET, ".claude", "agents"), target: path.join(TARGET, "agent-home", "agents") },
+      ]
+    : [];
   for (const { link, target: linkTarget } of symlinks) {
     const relTarget = path.relative(path.dirname(link), linkTarget);
     if (fs.existsSync(link)) {
@@ -454,10 +553,27 @@ async function cmdApply() {
     process.exit(1);
   }
 
+  const portalRuntimeHome = fs.mkdtempSync(path.join(os.tmpdir(), "agent-toolkit-portal-"));
+  fs.mkdirSync(path.join(portalRuntimeHome, ".claude"), { recursive: true });
+  fs.symlinkSync(agentHome, path.join(portalRuntimeHome, "agent-home"));
+  fs.symlinkSync(path.join(agentHome, "rules"), path.join(portalRuntimeHome, ".claude", "rules"));
+  fs.symlinkSync(path.join(agentHome, "agents"), path.join(portalRuntimeHome, ".claude", "agents"));
+  const installedClaudeSettings = path.join(TARGET, ".claude", "settings.json");
+  const runtimeClaudeSettings = path.join(portalRuntimeHome, ".claude", "settings.json");
+  if (fs.existsSync(installedClaudeSettings)) {
+    fs.symlinkSync(installedClaudeSettings, runtimeClaudeSettings);
+  } else {
+    fs.writeFileSync(runtimeClaudeSettings, "{}\n");
+  }
+  const portalEnv = { ...process.env, HOME: portalRuntimeHome };
+  let compatibilityAliasLink;
+
+  try {
   console.log("未登録スキルを検出中...");
   const checkResult = spawnSync("node", [manageScript, "check-unregistered"], {
     cwd: agentHome,
     encoding: "utf8",
+    env: portalEnv,
   });
   const unregistered = JSON.parse(checkResult.stdout || "[]");
 
@@ -478,8 +594,7 @@ async function cmdApply() {
     });
 
     if (answer === "C") {
-      console.error("インストールを中止しました。");
-      process.exit(1);
+      throw new Error("インストールを中止しました。");
     }
 
     if (answer === "A") {
@@ -488,10 +603,10 @@ async function cmdApply() {
         cwd: agentHome,
         stdio: "inherit",
         encoding: "utf8",
+        env: portalEnv,
       });
       if (regResult.status !== 0) {
-        console.error("register-skills が失敗しました。");
-        process.exit(1);
+        throw new Error("register-skills が失敗しました。");
       }
     } else {
       skipVerify = true;
@@ -504,10 +619,10 @@ async function cmdApply() {
       cwd: agentHome,
       stdio: "inherit",
       encoding: "utf8",
+      env: portalEnv,
     });
     if (genResult.status !== 0) {
-      console.error("generate が失敗しました。");
-      process.exit(1);
+      throw new Error("generate が失敗しました。");
     }
   }
 
@@ -517,16 +632,43 @@ async function cmdApply() {
     console.log("インストール完了（verify スキップ）。");
   } else {
     console.log("\nポータル verify を実行中...");
+    const reverseAliasTarget = path.join(
+      TARGET,
+      "reverse-docs-skills",
+      ".claude",
+      "skills",
+      "generating-screen-list-for-reverse-docs"
+    );
+    compatibilityAliasLink = path.join(
+      agentHome,
+      "skills",
+      "generating-screen-list-for-reverse-docs"
+    );
+    if (fs.existsSync(reverseAliasTarget) && !fs.existsSync(compatibilityAliasLink)) {
+      fs.symlinkSync(reverseAliasTarget, compatibilityAliasLink);
+    } else {
+      compatibilityAliasLink = undefined;
+    }
     const verResult = spawnSync("node", [manageScript, "verify"], {
       cwd: agentHome,
       stdio: "inherit",
       encoding: "utf8",
+      env: portalEnv,
     });
+    if (compatibilityAliasLink) {
+      fs.unlinkSync(compatibilityAliasLink);
+      compatibilityAliasLink = undefined;
+    }
     if (verResult.status !== 0) {
-      console.error("verify が失敗しました。インストールは不完全な状態です。");
-      process.exit(1);
+      throw new Error("verify が失敗しました。インストールは不完全な状態です。");
     }
     console.log("インストール完了。verify PASS。");
+  }
+  } finally {
+    if (compatibilityAliasLink && fs.existsSync(compatibilityAliasLink)) {
+      fs.unlinkSync(compatibilityAliasLink);
+    }
+    fs.rmSync(portalRuntimeHome, { recursive: true, force: true });
   }
 }
 
@@ -543,6 +685,6 @@ switch (flag) {
     await cmdApply();
     break;
   default:
-    console.error("使い方: node scripts/install.mjs [--doctor|--diff|--apply] [--target <dir>]");
+    console.error("使い方: node scripts/install.mjs [--doctor|--diff|--apply] [--target <dir>] [--runtime claude|codex|all]");
     process.exit(1);
 }

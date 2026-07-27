@@ -20,10 +20,12 @@ sync-manifest.json への mapping 追加は本台帳での承認を前提とす�
 | subagent-investigation-checklist | 承認済み | beeebf1 で追加 | beeebf1 (2026-07-13) | |
 | eliciting-plan-tacit-knowledge | 承認済み | beeebf1 で追加 | beeebf1 (2026-07-13) | |
 | generating-explanation-html-slides | 承認済み | 815d818 で追加 | 815d818 (2026-07-14) | manifest に重複エントリあり（修正済み） |
+| managing-session-workflow | 承認済み | セッション契約・ランタイム分岐・完了証拠を公開再レビュー | 本公開変更 | Codex/Claude 共通のルーティング責務。source: agent-home@532d7102520022ba81e04ee9e7f96eb9b1254fbe |
+| transcribing-images | 承認済み | 構造化 handoff と責務境界を公開再レビュー | 本公開変更 | 実装は行わずセッション管理へ返す。source: agent-home@532d7102520022ba81e04ee9e7f96eb9b1254fbe |
+| orchestrating-dev-flow | 承認済み | 指摘対応表・回帰・公開完了ゲートを公開再レビュー | 本公開変更 | 既存実装フローの補強。source: agent-home@532d7102520022ba81e04ee9e7f96eb9b1254fbe |
 | creating-new-project | 除外（未承認） | 公開可否レビュー未実施 | 3c44814 (2026-07-15) | 未収載補完として無断追加。manifest・payload から除去済み |
 | frontend-design | 除外（未承認） | 公開可否レビュー未実施 | 3c44814 (2026-07-15) | 同上 |
 | managing-github-issues | 除外（未承認） | 公開可否レビュー未実施 | 3c44814 (2026-07-15) | 同上 |
-| orchestrating-dev-flow | 除外（未承認） | 公開可否レビュー未実施 | 3c44814 (2026-07-15) | 同上 |
 | reviewing-against-rules | 除外（未承認） | 公開可否レビュー未実施 | 3c44814 (2026-07-15) | 同上 |
 | reviewing-public-readiness | 除外（未承認） | 公開可否レビュー未実施 | 3c44814 (2026-07-15) | 同上 |
 | reviewing-single-pr-with-inline-comments | 除外（未承認） | 公開可否レビュー未実施 | 3c44814 (2026-07-15) | 同上 |
@@ -32,7 +34,7 @@ sync-manifest.json への mapping 追加は本台帳での承認を前提とす�
 
 mirror モード（`~/agent-home/rules` → `payload/.../agent-home/rules`）で全量同期。beeebf1 (2026-07-13) で一括追加。`local-environment` は payload-artifacts.json で除外済み。
 
-### always（常時注入・17件）
+### always（常時注入・公開ミラー）
 
 | ルールパス | 承認状況 | 備考 |
 |---|---|---|
@@ -40,7 +42,7 @@ mirror モード（`~/agent-home/rules` → `payload/.../agent-home/rules`）で
 | always/agent/coding-principles | 承認済み（mirror 一括） | コーディング原則 |
 | always/agent/global-config-change | 承認済み（mirror 一括） | グローバル設定変更運用 |
 | always/agent/subagent-selection | 承認済み（mirror 一括） | サブエージェント委任規約 |
-| always/gate/phase-step-task | 承認済み（mirror 一括） | phase 突入タスクゲート |
+| always/gate/phase-step-task | 承認済み（本公開変更で再レビュー） | phase 突入タスクゲート。source: agent-home@532d7102520022ba81e04ee9e7f96eb9b1254fbe |
 | always/infra/pre-bash-dispatch | 承認済み（mirror 一括） | Bash 実行前ディスパッチ |
 | always/naming/commit-branch | 承認済み（mirror 一括） | コミット・ブランチ命名 |
 | always/naming/common-principles | 承認済み（mirror 一括） | 共通命名原則 |
@@ -53,8 +55,9 @@ mirror モード（`~/agent-home/rules` → `payload/.../agent-home/rules`）で
 | always/review-checklist/term-explanation | 承認済み（mirror 一括） | 略称使用禁止 |
 | always/review-checklist/text-dictionary | 承認済み（mirror 一括） | 文章置き換え辞書 |
 | always/session/infra | 承認済み（mirror 一括） | セッション基盤 |
+| always/session/workflow-gate | 承認済み（本公開変更で再レビュー） | 毎ターンの workflow コンテキスト供給・状態・完了ゲート。source: agent-home@532d7102520022ba81e04ee9e7f96eb9b1254fbe |
 
-### scoped（パス条件付き・17件）
+### scoped（パス条件付き・公開ミラー）
 
 | ルールパス | 承認状況 | 備考 |
 |---|---|---|
@@ -63,7 +66,7 @@ mirror モード（`~/agent-home/rules` → `payload/.../agent-home/rules`）で
 | scoped/agent-config/placement | 承認済み（mirror 一括） | 設定層配置判定 |
 | scoped/agent-config/project-structure | 承認済み（mirror 一括） | プロジェクト構造 |
 | scoped/agent-config/review-checklist | 承認済み（mirror 一括） | レビュー観点統治 |
-| scoped/dev-flow/gate | 承認済み（mirror 一括） | 実装フローゲート |
+| scoped/dev-flow/gate | 承認済み（本公開変更で再レビュー） | 実装フローゲート。source: agent-home@532d7102520022ba81e04ee9e7f96eb9b1254fbe |
 | scoped/dev-flow/worktree | 承認済み（mirror 一括） | worktree 運用 |
 | scoped/portal/page-conventions | 承認済み（mirror 一括） | ポータルページ規約 |
 | scoped/review-checklist/business-content/common | 承認済み（mirror 一括） | ビジネス資料品質基準 |
@@ -75,6 +78,7 @@ mirror モード（`~/agent-home/rules` → `payload/.../agent-home/rules`）で
 | scoped/review-checklist/report/common | 承認済み（mirror 一括） | 報告書観点 |
 | scoped/routines/test-completion | 承認済み（mirror 一括） | テスト完了ルーティン |
 | scoped/tooling/shell | 承認済み（mirror 一括） | シェルスクリプト規約 |
+| scoped/review-checklist/code/catalog-site/design-notes.txt | 承認済み（公開安全 cleanup） | origin/main に残存した内部プロジェクト固有名のみ汎用化。規約内容・判断根拠は不変 |
 
 ## エージェント（agent-home/agents/）
 
@@ -92,3 +96,12 @@ mirror モード（`~/agent-home/agents` → `payload/.../agent-home/agents`）�
 | document-reviewer | 承認済み（mirror 一括） | 判定系 | 文書照合 |
 | business-content-reviewer | 承認済み（mirror 一括） | 判定系 | 顧客資料照合 |
 | report-reviewer | 承認済み（mirror 一括） | 判定系 | 調査報告検証 |
+
+## Codex ポータブル設定
+
+| 資産 | 承認状況 | 承認根拠 | 備考 |
+|---|---|---|---|
+| agent-home/config/codex/hook-command-adapter.sh | 承認済み | 偽 bootstrap 廃止とイベント検証を再レビュー | `--runtime codex\|all` で配布。source: agent-home@532d7102520022ba81e04ee9e7f96eb9b1254fbe |
+| agent-home/config/codex/hook-command-adapter.test.sh | 承認済み | adapter 回帰テストとして再レビュー | 配布後の自己診断に利用可能。source: agent-home@532d7102520022ba81e04ee9e7f96eb9b1254fbe |
+| agent-home/config/codex/hooks-registry.json | 承認済み | 公開対象 hook の最小集合として再レビュー | `$HOME` 基準のポータブル registry。source: agent-home@532d7102520022ba81e04ee9e7f96eb9b1254fbe |
+| codex-config/hooks.json | 承認済み | Codex hook 形状・既存設定 merge をレビュー | opt-in、既存設定を backup して merge。source: agent-home@532d7102520022ba81e04ee9e7f96eb9b1254fbe |

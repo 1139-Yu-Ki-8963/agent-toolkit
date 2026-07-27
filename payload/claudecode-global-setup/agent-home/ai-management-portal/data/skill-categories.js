@@ -32,24 +32,14 @@ export const CATEGORIES = [
 
 // スキル id → カテゴリ対応。値は文字列（cat のみ）か { cat, sub } オブジェクト。
 export const SKILL_CATEGORY = {
-  "managing-github-issues": { cat: "build", sub: "issue" },
   "orchestrating-dev-flow": { cat: "build", sub: "pr" },
-  "dev-flow-preparing-manual-mockup": { cat: "build", sub: "pr" },
   "parallel-dev-worktree": { cat: "build", sub: "pr" },
   "grouping-commits": { cat: "build", sub: "pr" },
-  "creating-new-project": "dev",
-  "reviewing-single-pr-with-inline-comments": "review",
-  "reviewing-public-readiness": "review",
-  "reviewing-against-rules": "review",
   "adding-textlint-dictionary-terms": "write",
   "managing-agent-configs": { cat: "manage", sub: "skill" },
   "managing-session-workflow": "manage",
-  "adversarial-verification": "meta",
   "eliciting-plan-tacit-knowledge": "meta",
   "subagent-investigation-checklist": "meta",
-  "frontend-design": "design",
   "generating-explanation-html-slides": "content",
   "transcribing-images": "content",
-  "managing-review-sets": "review",
-  "presenting-plan-with-artifacts": "flow",
 };

@@ -77,3 +77,5 @@
 **保守責任者**: 人手（ユーザー）
 
 **廃棄条件**: Claude Code本体がAgent起動前のフロー状態検査を標準機能として提供するようになった時
+2026-07-27: flow-values.yml はプロジェクト固有の任意設定とし、不存在だけでは実装を停止しない。既存の有効な flow progress を通常どおり検査する。ファイルが存在する場合は ruby → yq → Node js-yaml の順で構文検証し、parser が不正と判定した場合だけ block する。parser 不在時は不正と断定せず WARN で続行する。これにより「文書は標準値で継続、gate は不存在や検証器不在で停止」という矛盾を解消した。
+2026-07-27: Phase D / I を含む全 route の実装開始時に `.claude/dev-flow/handoff-and-coverage.json` の implementation validator PASS を機械必須化した。正規 artifact 自体の編集だけは作成不能を避けるため通過する。parser 利用不可 WARN は後続判定の最終結果へ統合し、hook stdout に複数 JSON 文書を出さない。

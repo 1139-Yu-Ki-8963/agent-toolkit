@@ -1,6 +1,6 @@
 # claudecode-global-setup
 
-PC 全体の Claude Code 環境（`~/agent-home/` と `~/.claude/`）をセットアップするための配布単位です。個別プロジェクト向けのツールキット（`ai-consulting-toolkit` や `reverse-docs-skills`）とは区別され、このフォルダの中身だけで「その PC で Claude Code を使うための共通基盤」が揃います。
+PC 全体の Claude Code / Codex 環境（`~/agent-home/` と runtime 別設定）をセットアップするための配布単位です。個別プロジェクト向けのツールキットとは区別され、このフォルダの中身だけで共通基盤が揃います。
 
 ## 中身
 
@@ -8,6 +8,7 @@ PC 全体の Claude Code 環境（`~/agent-home/` と `~/.claude/`）をセッ�
 |---|---|
 | `agent-home/` | `~/agent-home/`（ディレクトリ全体をミラー） |
 | `claude-config/` | `~/.claude/`（ファイル単位で設置） |
+| `codex-config/hooks.json` | `~/.codex/hooks.json`（opt-in、安全 merge） |
 
 ## 設置手順
 
@@ -20,6 +21,8 @@ node scripts/install.mjs --doctor    # 前提診断
 node scripts/install.mjs --diff      # 設置予定の差分確認
 node scripts/install.mjs --apply     # 設置実行
 ```
+
+Codex は `--runtime codex`、両 runtime は `--runtime all` を各コマンドへ追加します。省略時は Claude のみで、従来動作を維持します。既存 JSON はバックアップ後に merge され、不正な場合は変更せず停止します。
 
 ## 既存環境の更新
 

@@ -1,0 +1,87 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$HOME/agent-home/config/codex/hook-command-adapter.sh SessionStart session-start-reset",
+            "statusMessage": "Resetting session workflow state",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$HOME/agent-home/config/codex/hook-command-adapter.sh UserPromptSubmit workflow-prompt",
+            "statusMessage": "Loading session workflow context",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$HOME/agent-home/config/codex/hook-command-adapter.sh PreToolUse workflow-pretool",
+            "statusMessage": "Checking session workflow state",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "^(Write|Edit|MultiEdit|NotebookEdit)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$HOME/agent-home/config/codex/hook-command-adapter.sh PreToolUse dev-flow-pretool",
+            "statusMessage": "Checking development-flow gate",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "^(Bash)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$HOME/agent-home/config/codex/hook-command-adapter.sh PreToolUse phase-entry-pretool",
+            "statusMessage": "Checking phase-entry tasks",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "^(TaskCreate|update_plan)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$HOME/agent-home/config/codex/hook-command-adapter.sh PostToolUse phase-step-posttool",
+            "statusMessage": "Recording phase-step tasks",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$HOME/agent-home/config/codex/hook-command-adapter.sh Stop workflow-stop",
+            "statusMessage": "Checking completion evidence",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

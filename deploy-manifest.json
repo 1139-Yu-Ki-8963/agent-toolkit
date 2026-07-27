@@ -13,10 +13,12 @@
     { "path": "agent-home/templates", "mode": "mirror" },
     { "path": "agent-home/tools/hooks/shared", "mode": "mirror" },
     { "path": "agent-home/tools/linter", "mode": "mirror" },
+    { "path": "agent-home/config/codex", "mode": "mirror", "note": "Codex opt-in adapter・portable registry" },
     { "path": "agent-home/sessions/.skill-log/skill-aliases.yml", "mode": "mirror" },
     { "path": "claude-config/CLAUDE.md", "mode": "seed" },
     { "path": "claude-config/settings-hooks.json", "mode": "extend", "note": "hooks/outputStyle/permissions をマージ。既存キーは上書きしない" },
     { "path": "claude-config/statusline.py", "mode": "mirror" },
+    { "path": "codex-config/hooks.json", "mode": "extend", "note": "--runtime codex|all の明示指定時だけ ~/.codex/hooks.json へbackup後merge" },
     {
       "path": "agent-home/ai-management-portal",
       "mode": "mirror",

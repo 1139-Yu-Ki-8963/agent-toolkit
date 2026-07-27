@@ -6,6 +6,38 @@
 set -euo pipefail
 
 input=$(cat)
+warning_context=""
+
+emit_json() {
+  local decision="${1:-}"
+  local message="${2:-}"
+  local system_message="${3:-}"
+  if [ "$decision" = "block" ]; then
+    jq -n --arg ctx "$message" --arg system "$system_message" \
+      '{"decision":"block","systemMessage":$system,"hookSpecificOutput":{"hookEventName":"PreToolUse","additionalContext":$ctx}}'
+  elif [ -n "$message" ]; then
+    jq -n --arg ctx "$message" --arg system "$system_message" \
+      '{"systemMessage":$system,"hookSpecificOutput":{"hookEventName":"PreToolUse","additionalContext":$ctx}}'
+  fi
+}
+
+block() {
+  local message="$1"
+  local system_message="$2"
+  if [ -n "$warning_context" ]; then
+    message="${warning_context}
+${message}"
+  fi
+  emit_json block "$message" "$system_message"
+  exit 2
+}
+
+pass() {
+  if [ -n "$warning_context" ]; then
+    emit_json "" "$warning_context" "[フック発火] FLOW-GATE: YAML parser 利用不可"
+  fi
+  exit 0
+}
 
 [ "${CLAUDE_HOOKS_TEST:-}" = "1" ] && exit 0
 
@@ -30,8 +62,7 @@ esac
 case "$(basename "$abs")" in
   .flow-progress.json)
     ctx="[DEV-FLOW-PHASE-GATE-BLOCK] .flow-progress.json への直接書き込みは禁止されています。Phase 進捗は update-flow-status.sh 経由で更新してください。"
-    jq -n --arg ctx "$ctx" '{"decision":"block","systemMessage":"[フック発火] FLOW-GATE: .flow-progress.json 直接編集","hookSpecificOutput":{"hookEventName":"PreToolUse","additionalContext":$ctx}}'
-    exit 2
+    block "$ctx" "[フック発火] FLOW-GATE: .flow-progress.json 直接編集"
     ;;
 esac
 
@@ -59,15 +90,58 @@ fi
 
 rel_from_root="${abs#$project_root/}"
 
-case "$rel_from_root" in
-  .claude/*|CLAUDE.md|docs/*|slides/*) exit 0 ;;
-esac
-
 flow_context="$project_root/.claude/rules/always/project-context/flow-values.yml"
-if [ ! -f "$flow_context" ]; then
-  ctx="[DEV-FLOW-PHASE-GATE-BLOCK] 実装フローが未設定です。orchestrating-dev-flow を起動してから実装してください。対象: $abs"
-  jq -n --arg ctx "$ctx" '{"decision":"block","systemMessage":"[フック発火] FLOW-GATE: 実装フロー未設定","hookSpecificOutput":{"hookEventName":"PreToolUse","additionalContext":$ctx}}'
-  exit 2
+if [ -f "$flow_context" ]; then
+  yaml_validator="${DEV_FLOW_YAML_VALIDATOR:-auto}"
+  if [ "$yaml_validator" = "auto" ]; then
+    if command -v ruby >/dev/null 2>&1; then
+      yaml_validator="ruby"
+    elif command -v yq >/dev/null 2>&1; then
+      yaml_validator="yq"
+    elif command -v node >/dev/null 2>&1 &&
+      node -e 'require.resolve("js-yaml")' >/dev/null 2>&1; then
+      yaml_validator="node"
+    else
+      yaml_validator="unavailable"
+    fi
+  fi
+
+  yaml_valid=true
+  case "$yaml_validator" in
+    ruby)
+      if command -v ruby >/dev/null 2>&1; then
+        ruby -e 'require "yaml"; YAML.safe_load(File.read(ARGV[0]), permitted_classes: [], aliases: false)' \
+          "$flow_context" >/dev/null 2>&1 || yaml_valid=false
+      else
+        yaml_valid="unknown"
+      fi
+      ;;
+    yq)
+      if command -v yq >/dev/null 2>&1; then
+        yq eval '.' "$flow_context" >/dev/null 2>&1 || yaml_valid=false
+      else
+        yaml_valid="unknown"
+      fi
+      ;;
+    node)
+      if command -v node >/dev/null 2>&1 &&
+        node -e 'require.resolve("js-yaml")' >/dev/null 2>&1; then
+        node -e 'require("js-yaml").load(require("fs").readFileSync(process.argv[1], "utf8"))' \
+          "$flow_context" >/dev/null 2>&1 || yaml_valid=false
+      else
+        yaml_valid="unknown"
+      fi
+      ;;
+    unavailable) yaml_valid="unknown" ;;
+    *) yaml_valid="unknown" ;;
+  esac
+
+  if [ "$yaml_valid" = false ]; then
+    ctx="[DEV-FLOW-PHASE-GATE-BLOCK] parser が既存の flow-values.yml を不正と判定しました。YAML を修正してから続行してください。対象: $flow_context"
+    block "$ctx" "[フック発火] FLOW-GATE: flow-values.yml 不正"
+  elif [ "$yaml_valid" = "unknown" ]; then
+    warning_context="[DEV-FLOW-PHASE-GATE-WARN] YAML parser を利用できないため flow-values.yml の構文を断定せず、既存 Phase 判定を続行します。"
+  fi
 fi
 
 # --- Phase 順序検証 ---
@@ -91,29 +165,31 @@ fi
 
 [ -z "$current_phase" ] && current_phase="0"
 
-# Phase D / I は通過
-case "$current_phase" in
-  D|I) exit 0 ;;
-esac
-
 # ルート別のコード書き込み前提条件
 code_prereqs=""
 case "$route" in
   feature-with-full-planning)     code_prereqs="1 2 3 4 5" ;;
   feature-with-quick-delivery)    code_prereqs="1 2 5" ;;
   refactor-with-safety-guarantee) code_prereqs="1 2 5" ;;
-  config-with-review-and-verify)  exit 0 ;;
-  incident-with-emergency-path)   exit 0 ;;
+  config-with-review-and-verify)  code_prereqs="1 2" ;;
+  incident-with-emergency-path)   code_prereqs="1 2" ;;
   "")
+    case "$rel_from_root" in
+      .claude/*|CLAUDE.md|docs/*|slides/*) pass ;;
+    esac
     # route 不明: 従来の current_phase >= 6 フォールバック
     phase_num=$((current_phase + 0)) 2>/dev/null || phase_num=0
     if [ "$phase_num" -lt 6 ]; then
       ctx="[DEV-FLOW-PHASE-GATE-BLOCK] 現在 Phase ${current_phase} です。Phase 6（実装）に到達するまでコードの書き込みはできません。対象: $abs"
-      jq -n --arg ctx "$ctx" '{"decision":"block","systemMessage":"[フック発火] FLOW-GATE: Phase 6 未到達","hookSpecificOutput":{"hookEventName":"PreToolUse","additionalContext":$ctx}}'
-      exit 2
+      block "$ctx" "[フック発火] FLOW-GATE: Phase 6 未到達"
     fi
-    exit 0
+    pass
     ;;
+esac
+
+handoff_file="${DEV_FLOW_HANDOFF_FILE:-$project_root/.claude/dev-flow/handoff-and-coverage.json}"
+case "$abs" in
+  "$handoff_file") pass ;;
 esac
 
 # phases_completed を検証
@@ -127,17 +203,26 @@ if [ -f "$progress_file" ]; then
 
   if [ -n "$missing" ]; then
     ctx="[DEV-FLOW-PHASE-GATE-BLOCK] コード書き込みの前提 Phase が未完了です。不足:${missing}。ルート: ${route}。対象: ${abs}"
-    jq -n --arg ctx "$ctx" '{"decision":"block","systemMessage":"[フック発火] FLOW-GATE: 前提 Phase 未完了","hookSpecificOutput":{"hookEventName":"PreToolUse","additionalContext":$ctx}}'
-    exit 2
+    block "$ctx" "[フック発火] FLOW-GATE: 前提 Phase 未完了"
   fi
 else
   # progress_file がない場合はフォールバック
   phase_num=$((current_phase + 0)) 2>/dev/null || phase_num=0
   if [ "$phase_num" -lt 6 ]; then
     ctx="[DEV-FLOW-PHASE-GATE-BLOCK] 現在 Phase ${current_phase} です。Phase 6（実装）に到達するまでコードの書き込みはできません。対象: $abs"
-    jq -n --arg ctx "$ctx" '{"decision":"block","systemMessage":"[フック発火] FLOW-GATE: Phase 6 未到達","hookSpecificOutput":{"hookEventName":"PreToolUse","additionalContext":$ctx}}'
-    exit 2
+    block "$ctx" "[フック発火] FLOW-GATE: Phase 6 未到達"
   fi
 fi
 
-exit 0
+handoff_validator="${DEV_FLOW_HANDOFF_VALIDATOR:-$HOME/agent-home/skills/orchestrating-dev-flow/scripts/validate-handoff-coverage.mjs}"
+if [ ! -f "$handoff_file" ]; then
+  ctx="[DEV-FLOW-PHASE-GATE-BLOCK] 正規 handoff/coverage artifact がありません。既存ルートの計画工程で作成し、implementation validator を通してください。対象: $handoff_file"
+  block "$ctx" "[フック発火] FLOW-GATE: handoff/coverage 未作成"
+fi
+if [ ! -f "$handoff_validator" ] ||
+  ! node "$handoff_validator" implementation "$handoff_file" >/dev/null 2>&1; then
+  ctx="[DEV-FLOW-PHASE-GATE-BLOCK] 正規 handoff/coverage artifact が implementation validator を通過していません。対象: $handoff_file"
+  block "$ctx" "[フック発火] FLOW-GATE: handoff/coverage 不備"
+fi
+
+pass

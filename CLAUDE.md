@@ -11,6 +11,7 @@
 | `payload/claudecode-global-setup/claude-config/CLAUDE.md` | `~/.claude/CLAUDE.md` | 既存があれば上書きしない |
 | `payload/claudecode-global-setup/claude-config/settings-hooks.json` | `~/.claude/settings.json` | hooks・outputStyle・permissions を merge |
 | `payload/claudecode-global-setup/claude-config/statusline.py` | `~/.claude/statusline.py` | copy |
+| `payload/claudecode-global-setup/codex-config/hooks.json` | `~/.codex/hooks.json` | `--runtime codex\|all` の場合だけ backup 後 merge |
 | — | `~/.claude/rules` → `~/agent-home/rules` | symlink 作成 |
 | — | `~/.claude/skills` → `~/agent-home/skills` | symlink 作成 |
 | — | `~/.claude/agents` → `~/agent-home/agents` | symlink 作成 |
@@ -22,6 +23,7 @@ node scripts/install.mjs --doctor    # 前提診断（Node.js / 必須コマン�
 node scripts/install.mjs --diff      # 設置予定を差分で提示（書き込み禁止）
 node scripts/install.mjs --apply     # 設置実行（settings.json はバックアップ後 merge）
 node scripts/install.mjs --target <dir>   # テスト用: 設置先を <dir> に変更して実行
+node scripts/install.mjs --doctor --runtime codex  # Codex は opt-in。claude / codex / all
 ```
 
 ---
