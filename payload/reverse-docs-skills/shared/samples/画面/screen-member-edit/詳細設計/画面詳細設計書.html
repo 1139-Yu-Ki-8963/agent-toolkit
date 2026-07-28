@@ -4,15 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>会員編集 画面詳細設計書</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
 <style>
-
-  :root {
-    --content-max: 1120px;
-    --reading-width: 72ch;
-    --page-gutter: clamp(20px, 4vw, 72px);
-    --section-gap: clamp(28px, 4vw, 44px);
-  }
   :root,
 [data-theme="light"] {
   /* Windows フォント上書き防止 */
@@ -50,7 +42,8 @@
   --code-bg: #1B1F26;
   --code-fg: #E8E5DC;
   --cat-list: #2563eb;
-  --cat-common: #059669;
+  --cat-standards: #059669;
+  --cat-design: #D97706;
   --cat-project: #7C3AED;
   --font-body: "Hiragino Kaku Gothic ProN","Hiragino Sans","Noto Sans JP","BIZ UDPGothic","Yu Gothic","Meiryo",system-ui,-apple-system,sans-serif;
   --mono: "SFMono-Regular","Menlo","Cascadia Code","Consolas",monospace;
@@ -72,7 +65,7 @@
     --nav-tag: #8E9ED0; --nav-tag-soft: rgba(142,158,208,0.15);
     --self-tag: #7DB87D; --self-tag-soft: rgba(125,184,125,0.15);
     --code-bg: #0E1116; --code-fg: #E8E5DC;
-    --cat-list: #60A5FA; --cat-common: #34D399; --cat-project: #A78BFA;
+    --cat-list: #60A5FA; --cat-standards: #34D399; --cat-design: #FBBF24; --cat-project: #A78BFA;
   }
 }
 [data-theme="dark"] {
@@ -87,9 +80,16 @@
   --nav-tag: #8E9ED0; --nav-tag-soft: rgba(142,158,208,0.15);
   --self-tag: #7DB87D; --self-tag-soft: rgba(125,184,125,0.15);
   --code-bg: #0E1116; --code-fg: #E8E5DC;
-  --cat-list: #60A5FA; --cat-common: #34D399; --cat-project: #A78BFA;
+  --cat-list: #60A5FA; --cat-standards: #34D399; --cat-design: #FBBF24; --cat-project: #A78BFA;
 }
 
+  :root {
+    --content-max: 1320px;
+    --reading-width: 72ch;
+    --page-gutter: clamp(20px, 4vw, 72px);
+    --section-gap: clamp(28px, 4vw, 44px);
+    --sidebar-width: 280px;
+  }
 
   * { box-sizing: border-box; }
   html { -webkit-text-size-adjust: 100%; }
@@ -100,10 +100,8 @@
   }
   a { color: var(--accent); text-decoration: none; }
   a:hover { text-decoration: underline; }
-  .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20; vertical-align: middle; }
-
   /* viewport-fit layout */
-  .dp-page { display: grid; grid-template-rows: auto 1fr; height: 100vh; overflow: hidden; }
+  .dp-page { display: grid; grid-template-rows: auto 1fr; height: 100vh; height: 100dvh; overflow: hidden; }
 
   /* topbar */
   .topbar {
@@ -131,10 +129,37 @@
 
   /* sidebar */
   .dp-sidebar {
-    width: 220px; flex-shrink: 0;
-    overflow-y: auto; padding: 16px 0 16px 16px;
+    width: var(--sidebar-width); flex-shrink: 0;
+    overflow-y: auto; padding: 18px 14px 24px;
     border-right: 1px solid var(--border);
     background: var(--panel);
+    scrollbar-gutter: stable;
+  }
+  .sidebar-parent {
+    display: flex; align-items: center; gap: 8px;
+    margin: 0 0 10px; padding: 8px 10px;
+    border-radius: var(--radius-sm); background: var(--panel-2);
+    color: var(--text); font-size: 13px; font-weight: 700; line-height: 1.4;
+  }
+  .sidebar-parent .material-symbols-outlined { color: var(--accent); font-size: 18px; flex: 0 0 auto; }
+  .sidebar-doc-nav {
+    display: flex; flex-direction: column; gap: 2px;
+    margin: 0 0 20px; padding: 0 0 14px 18px;
+    border-bottom: 1px solid var(--border);
+  }
+  .sidebar-doc-nav .back-link,
+  .sidebar-doc-nav .nav-item {
+    display: block; min-width: 0; padding: 7px 10px;
+    border: 0; border-radius: var(--radius-sm);
+    background: transparent; color: var(--text-sub);
+    font-size: 12.5px; line-height: 1.4; text-decoration: none;
+  }
+  .sidebar-doc-nav .back-link { order: 10; margin-top: 6px; color: var(--text-muted); font-size: 11.5px; }
+  .sidebar-doc-nav .nav-item:hover,
+  .sidebar-doc-nav .back-link:hover { background: var(--panel-2); color: var(--accent); text-decoration: none; }
+  .sidebar-doc-nav .nav-item.active {
+    background: var(--accent-soft); color: var(--accent); font-weight: 700;
+    box-shadow: inset 3px 0 0 var(--accent);
   }
   .toc-label {
     font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em;
@@ -162,21 +187,6 @@
   .doc-crumbs { font-size: 12px; color: var(--text-muted); margin-bottom: 8px; }
   .doc-crumbs a { color: var(--text-sub); }
   .doc-crumbs a:hover { color: var(--accent); }
-
-  /* screen doc タブナビ（基本設計 / 詳細設計 / シーケンス図） */
-  .doc-nav {
-    display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
-    margin: 0 0 16px; border-bottom: 2px solid var(--border);
-  }
-  .doc-nav .back-link { margin-right: auto; font-size: 12px; color: var(--text-sub); text-decoration: none; }
-  .doc-nav .back-link:hover { color: var(--accent); text-decoration: none; }
-  .doc-tab {
-    padding: 5px 16px; border: 1px solid var(--border); border-bottom: none;
-    border-radius: 6px 6px 0 0; font-size: 13px; text-decoration: none; color: var(--text-sub);
-    background: var(--panel);
-  }
-  .doc-tab:hover { text-decoration: none; color: var(--accent); }
-  .doc-tab.active { color: var(--accent); font-weight: 700; border-color: var(--accent); background: var(--bg); }
 
   .dp-hero {
     display: flex; align-items: flex-end; justify-content: space-between; gap: 16px;
@@ -210,8 +220,9 @@
   #doc-content li { margin: 4px 0; }
   #doc-content img { max-width: 100%; border-radius: var(--radius-sm); }
   #doc-content code {
-    background: var(--code-bg); color: var(--code-fg); padding: 1px 6px;
-    border-radius: 4px; font-family: var(--mono); font-size: 0.85em;
+    background: var(--panel-2); color: var(--text); padding: 1px 6px;
+    border: 1px solid var(--border); border-radius: 4px;
+    font-family: var(--mono); font-size: 0.85em;
   }
   #doc-content blockquote {
     border-left: 3px solid var(--accent-border); margin: 12px 0; padding: 8px 16px;
@@ -243,39 +254,53 @@
   }
   .rule-item .material-symbols-outlined { font-size: 18px; margin-top: 2px; flex-shrink: 0; }
   .rule-item code {
-    background: var(--code-bg); color: var(--code-fg); padding: 1px 5px;
-    border-radius: 3px; font-family: var(--mono); font-size: .85em;
+    background: var(--panel); color: var(--text); padding: 1px 5px;
+    border: 1px solid var(--border); border-radius: 3px;
+    font-family: var(--mono); font-size: .85em;
   }
 
   /* tables */
-  .table-wrap { width: 100%; overflow-x: auto; border-radius: var(--radius); margin-bottom: 14px; }
+  .table-wrap {
+    width: 100%; overflow-x: auto; overscroll-behavior-inline: contain;
+    border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 14px;
+    scrollbar-gutter: stable;
+  }
   table.data-table {
-    width: 100%; min-width: 400px; border-collapse: collapse; font-size: 13px;
-    background: var(--panel); border: 1px solid var(--border);
+    width: max-content; min-width: 100%; border-collapse: collapse; font-size: 13px;
+    background: var(--panel);
   }
   table.data-table thead { position: sticky; top: 0; z-index: 1; }
   table.data-table th {
     text-align: left; font-size: 11.5px; font-weight: 700; color: var(--text-sub);
     background: var(--panel-2); padding: 8px 12px; border-bottom: 1px solid var(--border); white-space: nowrap;
   }
-  table.data-table td { padding: 9px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  table.data-table td {
+    min-width: 11rem; max-width: 34rem; padding: 9px 12px;
+    border-bottom: 1px solid var(--border); vertical-align: top;
+    overflow-wrap: normal; word-break: normal; hyphens: none;
+  }
+  table.data-table td:first-child { min-width: 7rem; }
   table.data-table tr:last-child td { border-bottom: none; }
   table.data-table code {
-    background: var(--code-bg); color: var(--code-fg); padding: 1px 5px; border-radius: 3px;
-    font-family: var(--mono); font-size: 11.5px;
+    background: var(--panel-2); color: var(--text); padding: 1px 5px;
+    border: 1px solid var(--border); border-radius: 3px;
+    font-family: var(--mono); font-size: 11.5px; white-space: nowrap;
   }
 
-  /* code blocks（手動で span を書いた場合にのみ配色が効く。MD パーサーは自動適用しない） */
-  .code-block { width: 100%; border-radius: var(--radius-sm); overflow: hidden; background: var(--code-bg); margin-bottom: 14px; }
+  /* code blocks */
+  .code-block {
+    width: 100%; border: 1px solid var(--border); border-radius: var(--radius-sm);
+    overflow: hidden; background: var(--panel-2); margin-bottom: 14px;
+  }
   .code-block-head {
     display: flex; align-items: center; gap: 6px;
     padding: 6px 14px; font-size: 11px; font-weight: 600;
-    color: var(--text-muted); border-bottom: 1px solid rgba(255,255,255,.06);
+    color: var(--text-muted); border-bottom: 1px solid var(--border);
     letter-spacing: .03em;
   }
   .code-block pre {
     margin: 0; padding: 12px 14px; overflow-x: auto;
-    font-family: var(--mono); font-size: 12.5px; line-height: 1.65; color: var(--code-fg);
+    font-family: var(--mono); font-size: 12.5px; line-height: 1.65; color: var(--text);
   }
   .code-block .kw { color: #CBA6F7; }
   .code-block .fn { color: #89B4FA; }
@@ -313,10 +338,10 @@
     display: flex; gap: 20px; justify-content: center;
   }
 
-  @media (max-width: 760px) {
+  @media (max-width: 820px) {
     .dp-sidebar { display: none; }
     .dp-sidebar.open {
-      display: block; position: fixed; top: 0; left: 0; bottom: 0; width: 260px;
+      display: block; position: fixed; top: 0; left: 0; bottom: 0; width: min(88vw, 320px);
       background: var(--panel); z-index: 55; border-right: 1px solid var(--border);
       box-shadow: var(--shadow-md); padding: 60px 16px 16px;
     }
@@ -340,22 +365,28 @@
   @media (max-width: 480px) {
     .dp-hero h1 { font-size: 20px; }
   }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      scroll-behavior: auto !important;
+      animation-duration: .01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: .01ms !important;
+    }
+  }
 </style>
 </head>
 <body>
 <div class="dp-page">
   <header class="topbar">
     <a class="brand" href="../../../index.html">
-      <span class="brand-icon"><span class="material-symbols-outlined" style="font-size:20px">description</span></span>
       <span class="brand-title">サンプルプロジェクト</span>
       <span class="brand-sub">設計ポータル</span>
     </a>
     <div class="header-meta">
-      <span><span class="material-symbols-outlined" style="font-size:14px">schedule</span> 更新: 2026-07-24</span>
+      <span>更新: 2026-07-28</span>
     </div>
     <div class="top-actions">
       <button id="theme-toggle" title="テーマ切替">
-        <span class="material-symbols-outlined" style="font-size:16px" id="theme-icon">light_mode</span>
         <span id="theme-label">ライト</span>
       </button>
     </div>
@@ -363,14 +394,17 @@
 
   <div class="dp-body">
     <aside class="dp-sidebar" id="sidebar">
-      <div class="toc-label">目次</div>
+      <div class="sidebar-parent">
+        <span id="screen-nav-title">画面 / 設計書</span>
+      </div>
+      <nav class="sidebar-doc-nav" aria-label="画面設計書"><a class="back-link" href="../../../一覧/画面一覧/画面一覧.html">← 画面一覧へ戻る</a><a class="nav-item" href="../基本設計/画面基本設計書.html">基本設計</a><span class="nav-item active">詳細設計</span><a class="nav-item" href="../シーケンス図.html">シーケンス図</a></nav>
+      <div class="toc-label">この設計書内</div>
       <ul class="toc-list" id="toc-list"></ul>
     </aside>
 
     <main class="dp-main" id="main-scroll">
       <div class="dp-inner">
         <div class="doc-crumbs"><a href="../../../index.html">← ポータル TOP へ戻る</a></div>
-        <nav class="doc-nav"><a class="back-link" href="../../../index.html">← ポータル TOP</a></nav>
         <div class="dp-hero">
           <div>
             <h1 id="dp-hero-title"></h1>
@@ -383,703 +417,16 @@
 </div>
 
 <button class="toc-toggle" id="tocToggle">
-  <span class="material-symbols-outlined">menu</span>
+  <span>目次</span>
 </button>
 
 <footer class="footer"></footer>
 
-<script type="text/plain" id="doc-md">
----
-doc_id: screen-member-edit
-type: screen-detail-design
-status: draft
-target_screen: 会員編集
-source_repo: /workspace/ec-admin-system
-source_ref: 8f3c2a1d9e0b4f5c6a7d8e9f0a1b2c3d4e5f6789
-scenarios:
-  - name: "有効会員の編集画面"
-    path: "/members/:id/edit"
-    path_params: { id: "M-100234" }
-    ready:
-      selector: "[data-testid='member-edit-form']"
-      not: "[data-testid='loading-spinner']"
-    assert:
-      texts: ["[data-testid='member-status-badge']", "[data-testid='member-name-input']"]
-    mask: ["[data-testid='last-updated-at']"]
-  - name: "休会会員の編集画面"
-    path: "/members/:id/edit"
-    path_params: { id: "M-100897" }
-    ready:
-      selector: "[data-testid='member-edit-form']"
-      not: "[data-testid='loading-spinner']"
-    assert:
-      texts: ["[data-testid='member-status-badge']"]
-    mask: ["[data-testid='last-updated-at']"]
-design_md: ./DESIGN.md
-common_design_md: ../../プロジェクト共通/DESIGN.md
-unit_test_sheet: ./単体テスト観点表.md
-unit_test_spec: ../テスト項目書/単体テスト仕様書.md
-integration_test_sheet: ./結合テスト観点表.md
-integration_test_spec: ../テスト項目書/結合テスト仕様書.md
-operation_test_spec: ../テスト項目書/操作シナリオ仕様書.md
-common_spec: ../../プロジェクト共通/共通設計書.md
-common_spec_version: v1.0
-messages: ../../プロジェクト共通/メッセージ定義書.md
-updated: 2026-07-23
----
-
-# 会員編集 画面詳細設計書
-
-## 関連資料（正の宣言）
-
-| 正の種類 | ファイル | 本書との役割分担 |
-|---|---|---|
-| スタイル・数値（共通） | `../../プロジェクト共通/DESIGN.md` | 複数画面共通のデザイン値の正 |
-| スタイル・数値（画面固有差分） | `./DESIGN.md` | 画面固有の差分の正。本書はキー名参照のみ |
-| 共通仕様 | `../../プロジェクト共通/共通設計書.md` | システム共通仕様の正。本書は準拠状況と画面固有制約のみ |
-| 文言 | `../../プロジェクト共通/メッセージ定義書.md` | 文言の正。本書はメッセージ ID で参照 |
-| テスト観点 | `./単体テスト観点表.md` / `./結合テスト観点表.md` | テスト観点・受け入れ条件の正。本書に含めない |
-| 単体テストケース | `../テスト項目書/単体テスト仕様書.md`（任意） | 具体的な入力値・アサーションの設計時契約。実装後はテストコードが正 |
-| 結合テストケース | `../テスト項目書/結合テスト仕様書.md`（任意） | 具体的な操作手順・入力値・アサーションの設計時契約。実装後はテストコードが正 |
-
-## 章マップ
-
-| 役割キー | § | 章名 | 区分 | 正 | 実装後の扱い | 保守方式 |
-|---|---|---|---|---|---|---|
-| 画面概要 | §1 | 画面概要 | 必須 | 本書 | 維持 | 手 |
-| 機能一覧 | §2 | 機能一覧 | 必須 | 本書 | 維持 | 手 |
-| 画面構造 | §3 | 画面構造 | 必須 | 本書（§3.6 の数値は DESIGN.md） | 維持 | 生成 |
-| 業務ルール | §4 | 業務ルール | 条件付き | 本書 | 維持 | 手 |
-| 状態管理 | §5 | 状態管理 | 必須 | 本書 | 維持 | 生成 |
-| データフロー | §6 | データフロー | 必須 | 本書 | 維持 | 生成 |
-| API通信 | §7 | API 通信仕様 | 条件付き | API 定義書（本書は画面固有の使い方のみ） | 維持 | 生成 |
-| イベント処理 | §8 | イベント処理 | 必須 | 本書 | 維持 | 生成 |
-| 領域別仕様 | §9 | 領域別仕様 | 必須 | 本書 | 維持 | 混在 |
-| 定数設定値 | §10 | 定数・設定値 | 条件付き | 設計時は本書 → 実装後は実装コード | 実装ファイルのパス参照に置換 | 混在 |
-| エラーハンドリング | §11 | エラーハンドリング | 必須 | 本書 | 維持 | 混在 |
-| 画面遷移 | §12 | 画面遷移仕様 | 必須 | 本書 | 維持 | 生成 |
-| 非機能要件 | §13 | 非機能要件 | 必須 | 共通設計書（画面固有制約のみ本書） | 維持 | 手 |
-| 共通準拠 | §14 | 共通仕様への準拠 | 必須 | 共通設計書（本書は逸脱のみ） | 維持 | 手 |
-| 実装契約 | §15 | 実装契約 | 必須 | 設計時は本書 → 実装後はコード（§15.6 は DESIGN.md） | 構造の骨子のみ維持 | 生成 |
-| 要確認事項 | §16 | 要確認事項一覧 | 必須 | 本書 | approved の条件は 0 件 | 手 |
-
-保守方式: 手 = 人が保守する正 / 生成 = 納品時にコードから生成 / 混在 = 生成した骨格に業務的意味を手で重ねる
-
----
-
-## §1 画面概要
-
-### 1.1 基本情報
-
-| 項目 | 値 |
-|---|---|
-| 画面名 | 会員編集 |
-| 目的 | 会員の登録情報を修正し、会員状態（有効・休会・退会）を切り替える |
-| ルート | /members/:id/edit |
-| 遷移元 | 会員一覧 |
-| 遷移先 | 会員詳細（保存操作完了時）、会員一覧（削除完了時または戻る操作時） |
-
-### 1.2 業務上の位置づけ
-
-会員管理業務における会員情報の維持・更新工程の中核画面であり、会員からの申告内容の反映と会員状態の切り替えを一元的に担う。
-
----
-
-## §2 機能一覧
-
-### 2.1 機能一覧表
-
-| キー | 機能名 | 概要 | 優先度 |
-|---|---|---|---|
-| 会員情報-編集保存 | 会員情報編集 | 氏名・連絡先・住所・会員区分を編集して保存する | 必須 |
-| 会員状態-変更 | 会員状態変更 | 会員状態を有効・休会・退会の間で切り替える | 必須 |
-| 会員-削除退会 | 会員削除 | 退会確定済みの会員情報を削除する | 必須 |
-| 編集内容-下書き保持 | 編集内容の自動下書き保持 | 保存前の入力内容をブラウザに保持し、再訪時に復元する | 任意 |
-
-### 2.2 機能間の関係
-
-会員削除は会員状態が退会である場合にのみ活性化する。会員状態変更（退会への変更）が先行条件となる直列の依存関係を持つ。
-
----
-
-## §3 画面構造
-
-### 画面キャプチャ
-
-![元コードの画面](./original.png)
-
-### 部品構成（コンポーネント構造）
-
-```
-┌─ MemberEditPage ──────────────────┐
-│ ┌─ MemberEditHeader ────────────┐ │
-│ │ MemberStatusBadge              │ │
-│ └────────────────────────────────┘ │
-│ ┌─ MemberEditForm ──────────────┐ │
-│ │ ContactFieldGroup              │ │
-│ │ MemberTypeSelect                │ │
-│ └────────────────────────────────┘ │
-│ ┌─ MemberEditActionBar ─────────┐ │
-│ │ DeleteConfirmDialog             │ │
-│ └────────────────────────────────┘ │
-└────────────────────────────────────┘
-```
-
-### 3.1 コンポーネント配置
-
-```
-MemberEditPage
-├─ MemberEditHeader
-│   └─ MemberStatusBadge
-├─ MemberEditForm
-│   ├─ ContactFieldGroup
-│   └─ MemberTypeSelect
-└─ MemberEditActionBar
-    └─ DeleteConfirmDialog
-```
-
-### 3.2 DOM 配置順序
-
-1. MemberEditHeader — 会員番号と現在の会員状態を提示する
-2. MemberEditForm — 氏名・連絡先・会員区分の入力欄を提示する
-3. MemberEditActionBar — 保存・削除・戻るの操作ボタンを提示する
-
-### 3.3 レイアウト制約
-
-| 制約 | 値 |
-|---|---|
-| レイアウト方式 | Flex（縦積み1カラム） |
-| 最小幅 | 360px |
-| 最大幅 | 960px |
-
-### 3.4 メニューバー設定（条件付き：メニューバーを持つ画面のみ）
-
-該当なし（メニューバーが存在しない画面のため）
-
-### 3.5 設定オブジェクト構造（条件付き：設定オブジェクトを持つ場合のみ）
-
-該当なし（設定オブジェクトを持たない画面のため）
-
-### 3.6 スタイル適用パターン
-
-| 領域 | 適用パターン | 参照先 |
-|---|---|---|
-| フォーム全体 | card-panel | `DESIGN.md > colors.panel` |
-| 会員状態バッジ | status-badge | `DESIGN.md > colors.statusMember` |
-| 危険操作ボタン | danger-button | `DESIGN.md > colors.danger` |
-
-### 3.7 ボタン一覧
-
-| ボタン名 | 種別 | 位置 | 活性条件 |
-|---|---|---|---|
-| 保存 | 主要 | アクションバー右 | 必須項目がすべて入力済みのとき |
-| 削除 | 危険 | アクションバー左 | 会員状態が退会かつ出荷待ち注文が0件のとき |
-| 戻る | 補助 | アクションバー左端 | 常時 |
-
----
-
-## §4 業務ルール（条件付き：業務モード・権限制御がある画面のみ）
-
-### 4.1 業務モードと切替条件
-
-| モード | 切替条件 | UI の変化 |
-|---|---|---|
-| 通常編集モード | 会員状態が有効または休会 | 全入力欄が編集可能 |
-| 退会済み閲覧モード | 会員状態が退会 | 連絡先入力欄が読み取り専用になり、削除ボタンが活性化する |
-
-### 4.2 業務判断ポイント
-
-会員状態を退会へ変更する操作は、出荷待ち注文の有無によって確認ダイアログの文言が分岐する。出荷待ち注文がある場合は注文キャンセルを促す警告を追加表示する。
-
-### 4.3 業務フロー内の前後画面との関係
-
-会員一覧から選択された会員番号を受け取り、保存完了後は更新済みの会員情報を伴って会員詳細へ引き継ぐ。
-
-### 4.4 権限別の UI 制御
-
-| ロール | 保存 | 削除 |
-|---|---|---|
-| 会員管理担当者 | 表示 | 非表示 |
-| 会員管理責任者 | 表示 | 表示 |
-
----
-
-## §5 状態管理
-
-### 5.1 URL パラメータ
-
-| パラメータ名 | 型 | 必須 | 用途 |
-|---|---|---|---|
-| id | string | ○ | 編集対象の会員番号を特定する |
-
-### 5.2 セッション・ストレージ参照
-
-| キー名 | 種別 | 用途 |
-|---|---|---|
-| member-edit-draft-{id} | local | 保存前の入力内容を下書きとして保持し、再訪時に復元する |
-
-### 5.3 メイン画面の状態変数
-
-| 変数名 | 型 | 初期値 | 役割 |
-|---|---|---|---|
-| memberForm | object | APIから取得した会員情報 | 氏名・連絡先・会員区分・会員状態の編集対象値を保持する |
-| isSaving | boolean | false | 保存API呼び出し中のボタン多重押下を防止する |
-| isDeleteConfirmOpen | boolean | false | 削除確認ダイアログの表示状態を保持する |
-| validationErrors | object | 空オブジェクト | 入力チェックで検出したエラー内容を項目単位で保持する |
-| pendingStatusChange | string または null | null | 会員状態変更の確認待ち値を一時保持する |
-
-### 5.4 サブコンポーネントの状態変数
-
-| コンポーネント | 変数名 | 型 | 役割 |
-|---|---|---|---|
-| DeleteConfirmDialog | isOutstandingOrderChecked | boolean | 出荷待ち注文の有無確認済みフラグを保持する |
-
-### 5.5 派生値（計算値）
-
-| 派生値名 | 算出ロジック概要 | 依存する状態変数 |
-|---|---|---|
-| isDeleteEnabled | 会員状態が退会かつ出荷待ち注文が0件のとき true | memberForm, pendingStatusChange |
-| isSaveEnabled | 必須項目がすべて入力済みかつバリデーションエラーが0件のとき true | memberForm, validationErrors |
-
-### 5.6 画面専用ストア（永続化）
-
-該当なし（画面固有の永続化なし。下書き保持は §5.2 のローカルストレージ参照で完結する）
-
-### 5.7 共有ストア参照
-
-該当なし（他画面と共有するストア参照は使用しない）
-
-### 5.8 検索条件更新関数
-
-該当なし
-
-### 5.9 初期値・デフォルト値一覧
-
-| 変数名 | 初期値 | 根拠 |
-|---|---|---|
-| isSaving | false | 画面表示直後は保存操作が発生していないため |
-| validationErrors | 空オブジェクト | 画面表示直後は未入力チェック未実施のため |
-
----
-
-## §6 データフロー
-
-### 6.1 初期表示シーケンス
-
-1. URL パラメータ（会員番号）取得
-2. ローカルストレージの下書き有無を確認
-3. 会員情報取得APIを呼び出す（§7参照）
-4. 取得結果を編集フォーム用データへ変換（§6.5参照）
-5. 画面状態をreadyに更新
-
-#### 6.1.1 起動時初期化（URL パラメータ → ストア書き戻し）
-
-該当なし（URL 状態同期なし。会員番号は取得APIの引数としてのみ使用する）
-
-### 6.2 依存連鎖
-
-該当なし（独立したデータ取得のみ）
-
-### 6.3 ユーザー操作確定時の処理フロー
-
-1. バリデーション（§11参照）
-2. 確認ダイアログ表示（会員状態を退会に変更する場合、または削除操作の場合）
-3. 保存APIまたは削除APIを呼び出す
-4. 成功時: 会員詳細または会員一覧へ遷移
-5. 失敗時: エラー表示（§11参照）
-
-### 6.4 データ更新トリガーの分類
-
-| トリガー | 種別 | 処理概要 |
-|---|---|---|
-| 保存ボタン押下 | ユーザー操作 | 入力内容を会員更新APIへ送信する |
-| 削除ボタン押下 | ユーザー操作 | 会員削除APIを呼び出す |
-| 下書き自動保存 | 自動 | 入力欄の変更を検知しローカルストレージへ書き込む |
-
-### 6.5 データ変換（API レスポンス → 画面表示用データ）
-
-| 変換名 | 入力型 | 出力型 | 変換概要 |
-|---|---|---|---|
-| toMemberFormValues | MemberResponse | MemberFormValues | APIレスポンスの会員情報を編集フォーム用の項目値へマッピングする |
-
-### 6.6 画面状態の遷移
-
-| 状態 | 遷移条件 | UI の表示 |
-|---|---|---|
-| loading | 初期表示・再取得中 | ローディング表示 |
-| empty | データ0件 | 空状態メッセージ（該当会員が存在しない旨） |
-| error | APIエラー | エラーメッセージ（§11参照） |
-| ready | データ取得成功 | メインコンテンツ（編集フォーム） |
-
----
-
-## §7 API 通信仕様（条件付き：API を呼ぶ画面のみ）
-
-### 7.1 API 一覧
-
-| No | API 名 | メソッド | エンドポイント | 呼び出し契機 |
-|---|---|---|---|---|
-| 7.2 | 会員情報取得 | GET | /api/members/:id | 初期表示 |
-| 7.3 | 会員情報更新 | PUT | /api/members/:id | 保存ボタン押下 |
-| 7.4 | 会員削除 | DELETE | /api/members/:id | 削除ボタン押下 |
-
-### 7.2 会員情報取得
-
-| 項目 | 内容 |
-|---|---|
-| 概要 | 編集対象の会員情報を取得する |
-| エンドポイント | GET /api/members/:id |
-| 呼び出し契機 | 初期表示 |
-
-**リクエスト**
-
-```typescript
-{ id: string; }
-```
-
-**レスポンス**
-
-```typescript
-{ id: string; name: string; email: string; phone: string; address: string; memberType: string; memberStatus: string; registeredAt: string; updatedAt: string; totalOrderCount: number; }
-```
-
-**エラーと画面側の扱い**
-
-| ステータス | 画面の挙動 | メッセージ ID |
-|---|---|---|
-| 400 | バリデーションエラー表示 | MSG-MEMBER-001 |
-| 401 | ログイン画面へ遷移 | — |
-| 500 | システムエラーメッセージ表示 | MSG-SYSTEM-500 |
-
-### 7.3 会員情報更新
-
-| 項目 | 内容 |
-|---|---|
-| 概要 | 編集内容を保存し、会員情報を更新する |
-| エンドポイント | PUT /api/members/:id |
-| 呼び出し契機 | 保存ボタン押下 |
-
-**リクエスト**
-
-```typescript
-{ name: string; email: string; phone: string; address: string; memberType: string; memberStatus: string; }
-```
-
-**レスポンス**
-
-```typescript
-{ id: string; updatedAt: string; }
-```
-
-**エラーと画面側の扱い**
-
-| ステータス | 画面の挙動 | メッセージ ID |
-|---|---|---|
-| 400 | バリデーションエラー表示 | MSG-MEMBER-002 |
-| 401 | ログイン画面へ遷移 | — |
-| 500 | システムエラーメッセージ表示 | MSG-SYSTEM-500 |
-
-### 7.4 会員削除
-
-| 項目 | 内容 |
-|---|---|
-| 概要 | 退会確定済みの会員情報を削除する |
-| エンドポイント | DELETE /api/members/:id |
-| 呼び出し契機 | 削除ボタン押下（削除確認ダイアログの承認後） |
-
-**リクエスト**
-
-```typescript
-{ id: string; }
-```
-
-**レスポンス**
-
-```typescript
-{ deleted: boolean; }
-```
-
-**エラーと画面側の扱い**
-
-| ステータス | 画面の挙動 | メッセージ ID |
-|---|---|---|
-| 400 | バリデーションエラー表示（出荷待ち注文が残存する旨） | MSG-MEMBER-003 |
-| 401 | ログイン画面へ遷移 | — |
-| 500 | システムエラーメッセージ表示 | MSG-SYSTEM-500 |
-
----
-
-## §8 イベント処理
-
-### 8.1 メイン画面イベント
-
-| イベント | 発火要素 | 処理概要 |
-|---|---|---|
-| onSave | 保存ボタン | バリデーション後、会員情報更新APIを呼び出す |
-| onDeleteRequest | 削除ボタン | 削除確認ダイアログを表示する |
-| onFieldChange | 各入力欄 | 状態変数を更新し、下書き自動保存をトリガーする |
-
-### 8.2 サブコンポーネントイベント
-
-| コンポーネント | イベント | 処理概要 |
-|---|---|---|
-| DeleteConfirmDialog | onConfirm | 会員削除APIを呼び出す |
-| DeleteConfirmDialog | onCancel | ダイアログを閉じ、削除操作を取り消す |
-
-### 8.3 複数ステップ処理の詳細
-
-会員状態を退会へ変更する操作は、(1) 状態変更の一時保持、(2) 確認ダイアログでの承認、(3) 保存APIの呼び出し、の3ステップを踏む。承認前にキャンセルした場合は一時保持した値を破棄し元の状態に戻す。
-
-### 8.4 キーボード操作
-
-| キー | 発火条件 | 挙動 |
-|---|---|---|
-| Tab | フォーカス可能要素 | 氏名 → 連絡先 → 会員区分 → 会員状態 → 保存 → 削除 → 戻る の順で移動する |
-| Enter | 入力欄フォーカス時 | フォームを送信せず次項目へフォーカスを移す |
-
----
-
-## §9 領域別仕様
-
-### 9.1 連絡先情報入力欄
-
-#### 9.1.1 概要
-
-会員のメールアドレス・電話番号・住所を編集する領域である。
-
-#### 9.1.2 配置
-
-MemberEditForm内、会員基本情報入力欄の直下に配置される。
-
-#### 9.1.3 項目定義
-
-| 項目名 | 型 | 必須 | 書式 | 状態別編集可否 |
-|---|---|---|---|---|
-| メールアドレス | string | ○ | user@example.com形式 | ready: 可 / loading: 不可 |
-| 電話番号 | string | ○ | ハイフン区切り数字 | ready: 可 / loading: 不可 |
-| 住所 | string | × | 自由入力 | ready: 可 / loading: 不可 |
-
-#### 9.1.4 イベント・挙動
-
-| イベント | 挙動 |
-|---|---|
-| メールアドレス変更 | 形式チェックを即時実行し、不正な場合はインラインエラーを表示する |
-
-#### 9.1.5 領域固有の制約
-
-会員状態が退会の場合、この領域は読み取り専用になる。
-
----
-
-## §10 定数・設定値（条件付き：画面固有の定数がある場合のみ）
-
-### 10.1 文字列定数
-
-該当なし
-
-### 10.2 選択肢定義
-
-| 定数名 | 選択肢 | 用途 |
-|---|---|---|
-| MEMBER_TYPE_OPTIONS | 一般会員 / 優待会員 | 会員区分選択欄の選択肢 |
-| MEMBER_STATUS_OPTIONS | 有効 / 休会 / 退会 | 会員状態選択欄の選択肢 |
-
-### 10.3 列定義・表示設定
-
-該当なし（テーブル・グリッドを持たない画面のため）
-
-### 10.4 コード変換テーブル
-
-| コード | 表示ラベル |
-|---|---|
-| active | 有効 |
-| suspended | 休会 |
-| withdrawn | 退会 |
-
-### 10.5 区分定数
-
-| 定数名 | 値一覧 |
-|---|---|
-| MEMBER_TYPE | general / preferred |
-
----
-
-## §11 エラーハンドリング
-
-### 11.1 ユーザー入力チェック
-
-| チェック対象 | 条件 | エラー種別 |
-|---|---|---|
-| 氏名 | 空欄不可 | 必須 |
-| メールアドレス | 空欄不可・形式チェック | 必須・形式 |
-| 電話番号 | 空欄不可 | 必須 |
-
-### 11.2 エラーメッセージ・警告
-
-| タイミング | メッセージ ID | 表示位置 |
-|---|---|---|
-| 保存時のバリデーション失敗 | MSG-MEMBER-002 | インライン |
-| 削除時の出荷待ち注文残存 | MSG-MEMBER-003 | トースト |
-
-### 11.3 システムエラー
-
-| エラー種別 | 画面の挙動 | メッセージ ID |
-|---|---|---|
-| ネットワーク断 | エラーバナー表示・リトライ促進 | MSG-SYSTEM-NETWORK |
-| 認証切れ | ログイン画面へ遷移 | — |
-| 予期しないエラー | エラーメッセージ表示 | MSG-SYSTEM-500 |
-
----
-
-## §12 画面遷移仕様
-
-### 12.1 遷移先一覧
-
-| 遷移先画面 | 遷移方式 | 条件 | 渡すパラメータ |
-|---|---|---|---|
-| 会員詳細 | replace | 保存操作の完了 | 会員番号 |
-| 会員一覧 | push | 削除操作の完了、または戻る操作 | なし |
-
-### 12.2 遷移方式の方針
-
-保存完了時は編集画面へ戻れないようreplaceで会員詳細へ遷移する。戻る操作・削除完了時は履歴を残すpushで会員一覧へ遷移する。
-
----
-
-## §13 非機能要件
-
-### 13.1 表示件数・データ量制限
-
-該当なし（単一会員の編集画面のため一覧表示を持たない）
-
-### 13.2 パフォーマンス目安
-
-| 操作 | 目標応答時間 |
-|---|---|
-| 初期表示 | 2秒以内 |
-| 保存操作 | 1秒以内 |
-
-### 13.3 ローディング・処理中表示
-
-| 操作 | ローディング表示方式 |
-|---|---|
-| 初期表示 | スケルトン |
-| 保存操作 | ボタン無効化 |
-
-### 13.4 タイムアウト・リトライ方針
-
-| 項目 | 値 | 根拠 |
-|---|---|---|
-| タイムアウト時間 | 10秒 | 会員更新APIの想定応答時間の5倍を確保するため |
-| リトライ回数 | 1回 | ネットワーク瞬断からの自動復帰を許容するため |
-
-### 13.5 ブラウザ・画面解像度の動作保証範囲
-
-共通設計書準拠（差分なし）
-
----
-
-## §14 共通仕様への準拠
-
-### 14.1 共通コンポーネント利用一覧
-
-| コンポーネント名 | 利用箇所 | 独自実装の場合の理由 |
-|---|---|---|
-| 共通確認ダイアログ | DeleteConfirmDialog | — |
-| 共通トースト通知 | 保存・削除完了通知 | — |
-
-### 14.2 共通ソート・表示順ルールの適用
-
-該当なし（一覧を持たない画面のため）
-
-### 14.3 用語・ラベルの統一
-
-共通設計書準拠（差分なし）
-
-### 14.4 日付・数値・コード値の表示フォーマット
-
-| 値の種類 | フォーマット | 空値時 |
-|---|---|---|
-| 日付 | YYYY/MM/DD | — |
-| 数値 | 桁区切りカンマ | — |
-| コード値 | §10.4の変換テーブルに従い表示ラベルへ変換 | — |
-
-### 14.5 共通メッセージの利用
-
-| 用途 | メッセージ ID |
-|---|---|
-| システムエラー全般 | MSG-SYSTEM-500 |
-
----
-
-## §15 実装契約
-
-### 15.1 ファイル分割と export 一覧
-
-| ファイルパス | export 名 | 種別 | 実体形状 | 配置ディレクトリ |
-|---|---|---|---|---|
-| pages/members/MemberEditPage.tsx | MemberEditPage | コンポーネント | 会員編集画面のルートコンポーネント | pages/ |
-| components/members/MemberEditForm.tsx | MemberEditForm | コンポーネント | 会員情報入力フォーム | components/ |
-| components/members/DeleteConfirmDialog.tsx | DeleteConfirmDialog | コンポーネント | 削除確認ダイアログ | components/ |
-| hooks/useMemberEditDraft.ts | useMemberEditDraft | フック | ローカルストレージ下書きの読み書きを行う関数群を返す | hooks/ |
-
-### 15.2 型定義
-
-| 型名 | フィールド名 | 型 | 必須/任意 |
-|---|---|---|---|
-| MemberFormValues | name | string | 必須 |
-| MemberFormValues | email | string | 必須 |
-| MemberFormValues | phone | string | 必須 |
-| MemberFormValues | address | string | 任意 |
-| MemberFormValues | memberType | string | 必須 |
-| MemberFormValues | memberStatus | string | 必須 |
-
-### 15.3 依存（import）一覧
-
-| モジュール | import 内容 | 種別 |
-|---|---|---|
-| api/members | fetchMember, updateMember, deleteMember | 内部 |
-| ui/dialog | ConfirmDialog | 内部 |
-
-### 15.4 別画面コンポーネントとの型合わせ
-
-該当なし（画面間型共有なし）
-
-### 15.5 スコープ分類
-
-| 対象 | スコープ | 理由 |
-|---|---|---|
-| memberForm | コンポーネントローカル | 編集対象は当該画面でのみ使用するため |
-| isSaving | コンポーネントローカル | ボタン多重押下防止のみに使うため |
-
-### 15.6 スタイル定数一覧
-
-| 定数名 | 用途 | 参照先 |
-|---|---|---|
-| PANEL_BACKGROUND | フォーム背景色 | `DESIGN.md > colors.panel` |
-| DANGER_BUTTON_COLOR | 削除ボタン色 | `DESIGN.md > colors.danger` |
-
-### 15.7 state 遷移シーケンス
-
-```
-初期化 → loading → ready
-                 ↘ error（リトライ可）
-       → loading → empty（0 件時）
-```
-
----
-
-## §16 要確認事項一覧
-
-| キー | 起票日 | 内容 | 暫定扱いにしている § | 解消条件 | 状態 |
-|---|---|---|---|---|---|
-| 削除権限-範囲確認 | 2026-07-23 | 会員削除の権限を会員管理責任者のみとする方針で暫定しているが、運用部門との最終合意は未取得 | §4.4 | 運用部門との権限方針レビュー完了 | 未解消 |
-
-</script>
+<script type="application/json" id="doc-md">"\n# 会員編集 画面詳細設計書\n\n## 関連資料（正の宣言）\n\n| 正の種類 | ファイル | 本書との役割分担 |\n|---|---|---|\n| スタイル・数値（共通） | `../../プロジェクト共通/DESIGN.md` | 複数画面共通のデザイン値の正 |\n| スタイル・数値（画面固有差分） | `./DESIGN.md` | 画面固有の差分の正。本書はキー名参照のみ |\n| 共通仕様 | `../../プロジェクト共通/共通設計書.md` | システム共通仕様の正。本書は準拠状況と画面固有制約のみ |\n| 文言 | `../../プロジェクト共通/メッセージ定義書.md` | 文言の正。本書はメッセージ ID で参照 |\n| テスト観点 | `./単体テスト観点表.md` / `./結合テスト観点表.md` | テスト観点・受け入れ条件の正。本書に含めない |\n| 単体テストケース | `../テスト項目書/単体テスト仕様書.md`（任意） | 具体的な入力値・アサーションの設計時契約。実装後はテストコードが正 |\n| 結合テストケース | `../テスト項目書/結合テスト仕様書.md`（任意） | 具体的な操作手順・入力値・アサーションの設計時契約。実装後はテストコードが正 |\n\n## 章マップ\n\n| 役割キー | § | 章名 | 区分 | 正 | 実装後の扱い | 保守方式 |\n|---|---|---|---|---|---|---|\n| 画面概要 | §1 | 画面概要 | 必須 | 本書 | 維持 | 手 |\n| 機能一覧 | §2 | 機能一覧 | 必須 | 本書 | 維持 | 手 |\n| 画面構造 | §3 | 画面構造 | 必須 | 本書（§3.6 の数値は DESIGN.md） | 維持 | 生成 |\n| 業務ルール | §4 | 業務ルール | 条件付き | 本書 | 維持 | 手 |\n| 状態管理 | §5 | 状態管理 | 必須 | 本書 | 維持 | 生成 |\n| データフロー | §6 | データフロー | 必須 | 本書 | 維持 | 生成 |\n| API通信 | §7 | API 通信仕様 | 条件付き | API 定義書（本書は画面固有の使い方のみ） | 維持 | 生成 |\n| イベント処理 | §8 | イベント処理 | 必須 | 本書 | 維持 | 生成 |\n| 領域別仕様 | §9 | 領域別仕様 | 必須 | 本書 | 維持 | 混在 |\n| 定数設定値 | §10 | 定数・設定値 | 条件付き | 設計時は本書 → 実装後は実装コード | 実装ファイルのパス参照に置換 | 混在 |\n| エラーハンドリング | §11 | エラーハンドリング | 必須 | 本書 | 維持 | 混在 |\n| 画面遷移 | §12 | 画面遷移仕様 | 必須 | 本書 | 維持 | 生成 |\n| 非機能要件 | §13 | 非機能要件 | 必須 | 共通設計書（画面固有制約のみ本書） | 維持 | 手 |\n| 共通準拠 | §14 | 共通仕様への準拠 | 必須 | 共通設計書（本書は逸脱のみ） | 維持 | 手 |\n| 実装契約 | §15 | 実装契約 | 必須 | 設計時は本書 → 実装後はコード（§15.6 は DESIGN.md） | 構造の骨子のみ維持 | 生成 |\n| 要確認事項 | §16 | 要確認事項一覧 | 必須 | 本書 | approved の条件は 0 件 | 手 |\n\n保守方式: 手 = 人が保守する正 / 生成 = 納品時にコードから生成 / 混在 = 生成した骨格に業務的意味を手で重ねる\n\n---\n\n## §1 画面概要\n\n### 1.1 基本情報\n\n| 項目 | 値 |\n|---|---|\n| 画面名 | 会員編集 |\n| 目的 | 会員の登録情報を修正し、会員状態（有効・休会・退会）を切り替える |\n| ルート | /members/:id/edit |\n| 遷移元 | 会員一覧 |\n| 遷移先 | 会員詳細（保存操作完了時）、会員一覧（削除完了時または戻る操作時） |\n\n### 1.2 業務上の位置づけ\n\n会員管理業務における会員情報の維持・更新工程の中核画面であり、会員からの申告内容の反映と会員状態の切り替えを一元的に担う。\n\n---\n\n## §2 機能一覧\n\n### 2.1 機能一覧表\n\n| キー | 機能名 | 概要 | 優先度 |\n|---|---|---|---|\n| 会員情報-編集保存 | 会員情報編集 | 氏名・連絡先・住所・会員区分を編集して保存する | 必須 |\n| 会員状態-変更 | 会員状態変更 | 会員状態を有効・休会・退会の間で切り替える | 必須 |\n| 会員-削除退会 | 会員削除 | 退会確定済みの会員情報を削除する | 必須 |\n| 編集内容-下書き保持 | 編集内容の自動下書き保持 | 保存前の入力内容をブラウザに保持し、再訪時に復元する | 任意 |\n\n### 2.2 機能間の関係\n\n会員削除は会員状態が退会である場合にのみ活性化する。会員状態変更（退会への変更）が先行条件となる直列の依存関係を持つ。\n\n---\n\n## §3 画面構造\n\n### 画面キャプチャ\n\n> 元コードの画面キャプチャーは、このサンプルには含まれません。\n\n### 部品構成（コンポーネント構造）\n\n```\n┌─ MemberEditPage ──────────────────┐\n│ ┌─ MemberEditHeader ────────────┐ │\n│ │ MemberStatusBadge              │ │\n│ └────────────────────────────────┘ │\n│ ┌─ MemberEditForm ──────────────┐ │\n│ │ ContactFieldGroup              │ │\n│ │ MemberTypeSelect                │ │\n│ └────────────────────────────────┘ │\n│ ┌─ MemberEditActionBar ─────────┐ │\n│ │ DeleteConfirmDialog             │ │\n│ └────────────────────────────────┘ │\n└────────────────────────────────────┘\n```\n\n### 3.1 コンポーネント配置\n\n```\nMemberEditPage\n├─ MemberEditHeader\n│   └─ MemberStatusBadge\n├─ MemberEditForm\n│   ├─ ContactFieldGroup\n│   └─ MemberTypeSelect\n└─ MemberEditActionBar\n    └─ DeleteConfirmDialog\n```\n\n### 3.2 DOM 配置順序\n\n1. MemberEditHeader — 会員番号と現在の会員状態を提示する\n2. MemberEditForm — 氏名・連絡先・会員区分の入力欄を提示する\n3. MemberEditActionBar — 保存・削除・戻るの操作ボタンを提示する\n\n### 3.3 レイアウト制約\n\n| 制約 | 値 |\n|---|---|\n| レイアウト方式 | Flex（縦積み1カラム） |\n| 最小幅 | 360px |\n| 最大幅 | 960px |\n\n### 3.4 メニューバー設定（条件付き：メニューバーを持つ画面のみ）\n\n該当なし（メニューバーが存在しない画面のため）\n\n### 3.5 設定オブジェクト構造（条件付き：設定オブジェクトを持つ場合のみ）\n\n該当なし（設定オブジェクトを持たない画面のため）\n\n### 3.6 スタイル適用パターン\n\n| 領域 | 適用パターン | 参照先 |\n|---|---|---|\n| フォーム全体 | card-panel | `DESIGN.md > colors.panel` |\n| 会員状態バッジ | status-badge | `DESIGN.md > colors.statusMember` |\n| 危険操作ボタン | danger-button | `DESIGN.md > colors.danger` |\n\n### 3.7 ボタン一覧\n\n| ボタン名 | 種別 | 位置 | 活性条件 |\n|---|---|---|---|\n| 保存 | 主要 | アクションバー右 | 必須項目がすべて入力済みのとき |\n| 削除 | 危険 | アクションバー左 | 会員状態が退会かつ出荷待ち注文が0件のとき |\n| 戻る | 補助 | アクションバー左端 | 常時 |\n\n---\n\n## §4 業務ルール（条件付き：業務モード・権限制御がある画面のみ）\n\n### 4.1 業務モードと切替条件\n\n| モード | 切替条件 | UI の変化 |\n|---|---|---|\n| 通常編集モード | 会員状態が有効または休会 | 全入力欄が編集可能 |\n| 退会済み閲覧モード | 会員状態が退会 | 連絡先入力欄が読み取り専用になり、削除ボタンが活性化する |\n\n### 4.2 業務判断ポイント\n\n会員状態を退会へ変更する操作は、出荷待ち注文の有無によって確認ダイアログの文言が分岐する。出荷待ち注文がある場合は注文キャンセルを促す警告を追加表示する。\n\n### 4.3 業務フロー内の前後画面との関係\n\n会員一覧から選択された会員番号を受け取り、保存完了後は更新済みの会員情報を伴って会員詳細へ引き継ぐ。\n\n### 4.4 権限別の UI 制御\n\n| ロール | 保存 | 削除 |\n|---|---|---|\n| 会員管理担当者 | 表示 | 非表示 |\n| 会員管理責任者 | 表示 | 表示 |\n\n---\n\n## §5 状態管理\n\n### 5.1 URL パラメータ\n\n| パラメータ名 | 型 | 必須 | 用途 |\n|---|---|---|---|\n| id | string | ○ | 編集対象の会員番号を特定する |\n\n### 5.2 セッション・ストレージ参照\n\n| キー名 | 種別 | 用途 |\n|---|---|---|\n| member-edit-draft-{id} | local | 保存前の入力内容を下書きとして保持し、再訪時に復元する |\n\n### 5.3 メイン画面の状態変数\n\n| 変数名 | 型 | 初期値 | 役割 |\n|---|---|---|---|\n| memberForm | object | APIから取得した会員情報 | 氏名・連絡先・会員区分・会員状態の編集対象値を保持する |\n| isSaving | boolean | false | 保存API呼び出し中のボタン多重押下を防止する |\n| isDeleteConfirmOpen | boolean | false | 削除確認ダイアログの表示状態を保持する |\n| validationErrors | object | 空オブジェクト | 入力チェックで検出したエラー内容を項目単位で保持する |\n| pendingStatusChange | string または null | null | 会員状態変更の確認待ち値を一時保持する |\n\n### 5.4 サブコンポーネントの状態変数\n\n| コンポーネント | 変数名 | 型 | 役割 |\n|---|---|---|---|\n| DeleteConfirmDialog | isOutstandingOrderChecked | boolean | 出荷待ち注文の有無確認済みフラグを保持する |\n\n### 5.5 派生値（計算値）\n\n| 派生値名 | 算出ロジック概要 | 依存する状態変数 |\n|---|---|---|\n| isDeleteEnabled | 会員状態が退会かつ出荷待ち注文が0件のとき true | memberForm, pendingStatusChange |\n| isSaveEnabled | 必須項目がすべて入力済みかつバリデーションエラーが0件のとき true | memberForm, validationErrors |\n\n### 5.6 画面専用ストア（永続化）\n\n該当なし（画面固有の永続化なし。下書き保持は §5.2 のローカルストレージ参照で完結する）\n\n### 5.7 共有ストア参照\n\n該当なし（他画面と共有するストア参照は使用しない）\n\n### 5.8 検索条件更新関数\n\n該当なし\n\n### 5.9 初期値・デフォルト値一覧\n\n| 変数名 | 初期値 | 根拠 |\n|---|---|---|\n| isSaving | false | 画面表示直後は保存操作が発生していないため |\n| validationErrors | 空オブジェクト | 画面表示直後は未入力チェック未実施のため |\n\n---\n\n## §6 データフロー\n\n### 6.1 初期表示シーケンス\n\n1. URL パラメータ（会員番号）取得\n2. ローカルストレージの下書き有無を確認\n3. 会員情報取得APIを呼び出す（§7参照）\n4. 取得結果を編集フォーム用データへ変換（§6.5参照）\n5. 画面状態をreadyに更新\n\n#### 6.1.1 起動時初期化（URL パラメータ → ストア書き戻し）\n\n該当なし（URL 状態同期なし。会員番号は取得APIの引数としてのみ使用する）\n\n### 6.2 依存連鎖\n\n該当なし（独立したデータ取得のみ）\n\n### 6.3 ユーザー操作確定時の処理フロー\n\n1. バリデーション（§11参照）\n2. 確認ダイアログ表示（会員状態を退会に変更する場合、または削除操作の場合）\n3. 保存APIまたは削除APIを呼び出す\n4. 成功時: 会員詳細または会員一覧へ遷移\n5. 失敗時: エラー表示（§11参照）\n\n### 6.4 データ更新トリガーの分類\n\n| トリガー | 種別 | 処理概要 |\n|---|---|---|\n| 保存ボタン押下 | ユーザー操作 | 入力内容を会員更新APIへ送信する |\n| 削除ボタン押下 | ユーザー操作 | 会員削除APIを呼び出す |\n| 下書き自動保存 | 自動 | 入力欄の変更を検知しローカルストレージへ書き込む |\n\n### 6.5 データ変換（API レスポンス → 画面表示用データ）\n\n| 変換名 | 入力型 | 出力型 | 変換概要 |\n|---|---|---|---|\n| toMemberFormValues | MemberResponse | MemberFormValues | APIレスポンスの会員情報を編集フォーム用の項目値へマッピングする |\n\n### 6.6 画面状態の遷移\n\n| 状態 | 遷移条件 | UI の表示 |\n|---|---|---|\n| loading | 初期表示・再取得中 | ローディング表示 |\n| empty | データ0件 | 空状態メッセージ（該当会員が存在しない旨） |\n| error | APIエラー | エラーメッセージ（§11参照） |\n| ready | データ取得成功 | メインコンテンツ（編集フォーム） |\n\n---\n\n## §7 API 通信仕様（条件付き：API を呼ぶ画面のみ）\n\n### 7.1 API 一覧\n\n| No | API 名 | メソッド | エンドポイント | 呼び出し契機 |\n|---|---|---|---|---|\n| 7.2 | 会員情報取得 | GET | /api/members/:id | 初期表示 |\n| 7.3 | 会員情報更新 | PUT | /api/members/:id | 保存ボタン押下 |\n| 7.4 | 会員削除 | DELETE | /api/members/:id | 削除ボタン押下 |\n\n### 7.2 会員情報取得\n\n| 項目 | 内容 |\n|---|---|\n| 概要 | 編集対象の会員情報を取得する |\n| エンドポイント | GET /api/members/:id |\n| 呼び出し契機 | 初期表示 |\n\n**リクエスト**\n\n```typescript\n{ id: string; }\n```\n\n**レスポンス**\n\n```typescript\n{ id: string; name: string; email: string; phone: string; address: string; memberType: string; memberStatus: string; registeredAt: string; updatedAt: string; totalOrderCount: number; }\n```\n\n**エラーと画面側の扱い**\n\n| ステータス | 画面の挙動 | メッセージ ID |\n|---|---|---|\n| 400 | バリデーションエラー表示 | MSG-MEMBER-001 |\n| 401 | ログイン画面へ遷移 | — |\n| 500 | システムエラーメッセージ表示 | MSG-SYSTEM-500 |\n\n### 7.3 会員情報更新\n\n| 項目 | 内容 |\n|---|---|\n| 概要 | 編集内容を保存し、会員情報を更新する |\n| エンドポイント | PUT /api/members/:id |\n| 呼び出し契機 | 保存ボタン押下 |\n\n**リクエスト**\n\n```typescript\n{ name: string; email: string; phone: string; address: string; memberType: string; memberStatus: string; }\n```\n\n**レスポンス**\n\n```typescript\n{ id: string; updatedAt: string; }\n```\n\n**エラーと画面側の扱い**\n\n| ステータス | 画面の挙動 | メッセージ ID |\n|---|---|---|\n| 400 | バリデーションエラー表示 | MSG-MEMBER-002 |\n| 401 | ログイン画面へ遷移 | — |\n| 500 | システムエラーメッセージ表示 | MSG-SYSTEM-500 |\n\n### 7.4 会員削除\n\n| 項目 | 内容 |\n|---|---|\n| 概要 | 退会確定済みの会員情報を削除する |\n| エンドポイント | DELETE /api/members/:id |\n| 呼び出し契機 | 削除ボタン押下（削除確認ダイアログの承認後） |\n\n**リクエスト**\n\n```typescript\n{ id: string; }\n```\n\n**レスポンス**\n\n```typescript\n{ deleted: boolean; }\n```\n\n**エラーと画面側の扱い**\n\n| ステータス | 画面の挙動 | メッセージ ID |\n|---|---|---|\n| 400 | バリデーションエラー表示（出荷待ち注文が残存する旨） | MSG-MEMBER-003 |\n| 401 | ログイン画面へ遷移 | — |\n| 500 | システムエラーメッセージ表示 | MSG-SYSTEM-500 |\n\n---\n\n## §8 イベント処理\n\n### 8.1 メイン画面イベント\n\n| イベント | 発火要素 | 処理概要 |\n|---|---|---|\n| onSave | 保存ボタン | バリデーション後、会員情報更新APIを呼び出す |\n| onDeleteRequest | 削除ボタン | 削除確認ダイアログを表示する |\n| onFieldChange | 各入力欄 | 状態変数を更新し、下書き自動保存をトリガーする |\n\n### 8.2 サブコンポーネントイベント\n\n| コンポーネント | イベント | 処理概要 |\n|---|---|---|\n| DeleteConfirmDialog | onConfirm | 会員削除APIを呼び出す |\n| DeleteConfirmDialog | onCancel | ダイアログを閉じ、削除操作を取り消す |\n\n### 8.3 複数ステップ処理の詳細\n\n会員状態を退会へ変更する操作は、(1) 状態変更の一時保持、(2) 確認ダイアログでの承認、(3) 保存APIの呼び出し、の3ステップを踏む。承認前にキャンセルした場合は一時保持した値を破棄し元の状態に戻す。\n\n### 8.4 キーボード操作\n\n| キー | 発火条件 | 挙動 |\n|---|---|---|\n| Tab | フォーカス可能要素 | 氏名 → 連絡先 → 会員区分 → 会員状態 → 保存 → 削除 → 戻る の順で移動する |\n| Enter | 入力欄フォーカス時 | フォームを送信せず次項目へフォーカスを移す |\n\n---\n\n## §9 領域別仕様\n\n### 9.1 連絡先情報入力欄\n\n#### 9.1.1 概要\n\n会員のメールアドレス・電話番号・住所を編集する領域である。\n\n#### 9.1.2 配置\n\nMemberEditForm内、会員基本情報入力欄の直下に配置される。\n\n#### 9.1.3 項目定義\n\n| 項目名 | 型 | 必須 | 書式 | 状態別編集可否 |\n|---|---|---|---|---|\n| メールアドレス | string | ○ | user@example.com形式 | ready: 可 / loading: 不可 |\n| 電話番号 | string | ○ | ハイフン区切り数字 | ready: 可 / loading: 不可 |\n| 住所 | string | × | 自由入力 | ready: 可 / loading: 不可 |\n\n#### 9.1.4 イベント・挙動\n\n| イベント | 挙動 |\n|---|---|\n| メールアドレス変更 | 形式チェックを即時実行し、不正な場合はインラインエラーを表示する |\n\n#### 9.1.5 領域固有の制約\n\n会員状態が退会の場合、この領域は読み取り専用になる。\n\n---\n\n## §10 定数・設定値（条件付き：画面固有の定数がある場合のみ）\n\n### 10.1 文字列定数\n\n該当なし\n\n### 10.2 選択肢定義\n\n| 定数名 | 選択肢 | 用途 |\n|---|---|---|\n| MEMBER_TYPE_OPTIONS | 一般会員 / 優待会員 | 会員区分選択欄の選択肢 |\n| MEMBER_STATUS_OPTIONS | 有効 / 休会 / 退会 | 会員状態選択欄の選択肢 |\n\n### 10.3 列定義・表示設定\n\n該当なし（テーブル・グリッドを持たない画面のため）\n\n### 10.4 コード変換テーブル\n\n| コード | 表示ラベル |\n|---|---|\n| active | 有効 |\n| suspended | 休会 |\n| withdrawn | 退会 |\n\n### 10.5 区分定数\n\n| 定数名 | 値一覧 |\n|---|---|\n| MEMBER_TYPE | general / preferred |\n\n---\n\n## §11 エラーハンドリング\n\n### 11.1 ユーザー入力チェック\n\n| チェック対象 | 条件 | エラー種別 |\n|---|---|---|\n| 氏名 | 空欄不可 | 必須 |\n| メールアドレス | 空欄不可・形式チェック | 必須・形式 |\n| 電話番号 | 空欄不可 | 必須 |\n\n### 11.2 エラーメッセージ・警告\n\n| タイミング | メッセージ ID | 表示位置 |\n|---|---|---|\n| 保存時のバリデーション失敗 | MSG-MEMBER-002 | インライン |\n| 削除時の出荷待ち注文残存 | MSG-MEMBER-003 | トースト |\n\n### 11.3 システムエラー\n\n| エラー種別 | 画面の挙動 | メッセージ ID |\n|---|---|---|\n| ネットワーク断 | エラーバナー表示・リトライ促進 | MSG-SYSTEM-NETWORK |\n| 認証切れ | ログイン画面へ遷移 | — |\n| 予期しないエラー | エラーメッセージ表示 | MSG-SYSTEM-500 |\n\n---\n\n## §12 画面遷移仕様\n\n### 12.1 遷移先一覧\n\n| 遷移先画面 | 遷移方式 | 条件 | 渡すパラメータ |\n|---|---|---|---|\n| 会員詳細 | replace | 保存操作の完了 | 会員番号 |\n| 会員一覧 | push | 削除操作の完了、または戻る操作 | なし |\n\n### 12.2 遷移方式の方針\n\n保存完了時は編集画面へ戻れないようreplaceで会員詳細へ遷移する。戻る操作・削除完了時は履歴を残すpushで会員一覧へ遷移する。\n\n---\n\n## §13 非機能要件\n\n### 13.1 表示件数・データ量制限\n\n該当なし（単一会員の編集画面のため一覧表示を持たない）\n\n### 13.2 パフォーマンス目安\n\n| 操作 | 目標応答時間 |\n|---|---|\n| 初期表示 | 2秒以内 |\n| 保存操作 | 1秒以内 |\n\n### 13.3 ローディング・処理中表示\n\n| 操作 | ローディング表示方式 |\n|---|---|\n| 初期表示 | スケルトン |\n| 保存操作 | ボタン無効化 |\n\n### 13.4 タイムアウト・リトライ方針\n\n| 項目 | 値 | 根拠 |\n|---|---|---|\n| タイムアウト時間 | 10秒 | 会員更新APIの想定応答時間の5倍を確保するため |\n| リトライ回数 | 1回 | ネットワーク瞬断からの自動復帰を許容するため |\n\n### 13.5 ブラウザ・画面解像度の動作保証範囲\n\n共通設計書準拠（差分なし）\n\n---\n\n## §14 共通仕様への準拠\n\n### 14.1 共通コンポーネント利用一覧\n\n| コンポーネント名 | 利用箇所 | 独自実装の場合の理由 |\n|---|---|---|\n| 共通確認ダイアログ | DeleteConfirmDialog | — |\n| 共通トースト通知 | 保存・削除完了通知 | — |\n\n### 14.2 共通ソート・表示順ルールの適用\n\n該当なし（一覧を持たない画面のため）\n\n### 14.3 用語・ラベルの統一\n\n共通設計書準拠（差分なし）\n\n### 14.4 日付・数値・コード値の表示フォーマット\n\n| 値の種類 | フォーマット | 空値時 |\n|---|---|---|\n| 日付 | YYYY/MM/DD | — |\n| 数値 | 桁区切りカンマ | — |\n| コード値 | §10.4の変換テーブルに従い表示ラベルへ変換 | — |\n\n### 14.5 共通メッセージの利用\n\n| 用途 | メッセージ ID |\n|---|---|\n| システムエラー全般 | MSG-SYSTEM-500 |\n\n---\n\n## §15 実装契約\n\n### 15.1 ファイル分割と export 一覧\n\n| ファイルパス | export 名 | 種別 | 実体形状 | 配置ディレクトリ |\n|---|---|---|---|---|\n| pages/members/MemberEditPage.tsx | MemberEditPage | コンポーネント | 会員編集画面のルートコンポーネント | pages/ |\n| components/members/MemberEditForm.tsx | MemberEditForm | コンポーネント | 会員情報入力フォーム | components/ |\n| components/members/DeleteConfirmDialog.tsx | DeleteConfirmDialog | コンポーネント | 削除確認ダイアログ | components/ |\n| hooks/useMemberEditDraft.ts | useMemberEditDraft | フック | ローカルストレージ下書きの読み書きを行う関数群を返す | hooks/ |\n\n### 15.2 型定義\n\n| 型名 | フィールド名 | 型 | 必須/任意 |\n|---|---|---|---|\n| MemberFormValues | name | string | 必須 |\n| MemberFormValues | email | string | 必須 |\n| MemberFormValues | phone | string | 必須 |\n| MemberFormValues | address | string | 任意 |\n| MemberFormValues | memberType | string | 必須 |\n| MemberFormValues | memberStatus | string | 必須 |\n\n### 15.3 依存（import）一覧\n\n| モジュール | import 内容 | 種別 |\n|---|---|---|\n| api/members | fetchMember, updateMember, deleteMember | 内部 |\n| ui/dialog | ConfirmDialog | 内部 |\n\n### 15.4 別画面コンポーネントとの型合わせ\n\n該当なし（画面間型共有なし）\n\n### 15.5 スコープ分類\n\n| 対象 | スコープ | 理由 |\n|---|---|---|\n| memberForm | コンポーネントローカル | 編集対象は当該画面でのみ使用するため |\n| isSaving | コンポーネントローカル | ボタン多重押下防止のみに使うため |\n\n### 15.6 スタイル定数一覧\n\n| 定数名 | 用途 | 参照先 |\n|---|---|---|\n| PANEL_BACKGROUND | フォーム背景色 | `DESIGN.md > colors.panel` |\n| DANGER_BUTTON_COLOR | 削除ボタン色 | `DESIGN.md > colors.danger` |\n\n### 15.7 state 遷移シーケンス\n\n```\n初期化 → loading → ready\n                 ↘ error（リトライ可）\n       → loading → empty（0 件時）\n```\n\n---\n\n## §16 要確認事項一覧\n\n| キー | 起票日 | 内容 | 暫定扱いにしている § | 解消条件 | 状態 |\n|---|---|---|---|---|---|\n| 削除権限-範囲確認 | 2026-07-23 | 会員削除の権限を会員管理責任者のみとする方針で暫定しているが、運用部門との最終合意は未取得 | §4.4 | 運用部門との権限方針レビュー完了 | 未解消 |"</script>
 
 <script>
 (function () {
-  var src = document.getElementById('doc-md').textContent;
+  var src = JSON.parse(document.getElementById('doc-md').textContent || '""');
 
   // frontmatter 除去
   src = src.replace(/^\s*---[\s\S]*?---\s*/, '');
@@ -1094,11 +441,26 @@ MemberEditForm内、会員基本情報入力欄の直下に配置される。
   function escHtml(s) {
     return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   }
+  function escAttr(s) {
+    return s.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+  function safeUrl(s) {
+    var value = s.replace(/[\u0000-\u001f\u007f]+/g, '').trim();
+    var scheme = value.match(/^([a-z][a-z0-9+.-]*):/i);
+    if (scheme && !/^(?:https?|mailto)$/i.test(scheme[1])) return '';
+    return escAttr(value);
+  }
   function inlineFormat(s) {
     s = escHtml(s);
     s = s.replace(/`([^`]+)`/g, '<code>$1</code>');
-    s = s.replace(/!\[([^\]]*)\]\(([^()\s]+)\)/g, '<img src="$2" alt="$1" style="max-width:100%">');
-    s = s.replace(/\[([^\]]+)\]\(([^()\s]+)\)/g, '<a href="$2">$1</a>');
+    s = s.replace(/!\[([^\]]*)\]\(([^()\s]+)\)/g, function(_, alt, url) {
+      var sanitizedUrl = safeUrl(url);
+      return sanitizedUrl ? '<img src="' + sanitizedUrl + '" alt="' + escAttr(alt) + '" style="max-width:100%">' : alt;
+    });
+    s = s.replace(/\[([^\]]+)\]\(([^()\s]+)\)/g, function(_, label, url) {
+      var sanitizedUrl = safeUrl(url);
+      return sanitizedUrl ? '<a href="' + sanitizedUrl + '">' + label + '</a>' : label;
+    });
     s = s.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
     s = s.replace(/\*([^*]+)\*/g, '<em>$1</em>');
     return s;
@@ -1190,6 +552,8 @@ MemberEditForm内、会員基本情報入力欄の直下に配置される。
     var h1 = container.querySelector('h1');
     if (h1) {
       heroTitle.textContent = h1.textContent;
+      var navTitle = document.getElementById('screen-nav-title');
+      if (navTitle) navTitle.textContent = '画面 / ' + h1.textContent.replace(/\s*画面(基本|詳細)設計書\s*$/, '');
       h1.parentNode.removeChild(h1);
     }
 
@@ -1198,11 +562,27 @@ MemberEditForm内、会員基本情報入力欄の直下に配置される。
       t.classList.add('data-table');
     });
 
+    function sectionSlug(text) {
+      var normalized = text.trim();
+      if (normalized.normalize) normalized = normalized.normalize('NFKC');
+      normalized = normalized.toLowerCase()
+        .replace(/[^a-z0-9\u3040-\u30ff\u3400-\u9fff._~-]+/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '');
+      return normalized || 'section';
+    }
+
     // h2 ごとにセクションブロック化 + 目次エントリを生成
     var h2s = Array.prototype.slice.call(container.querySelectorAll('h2'));
     h2s.forEach(function (h2, idx) {
       var text = h2.textContent;
-      var id = 'sec-' + text.trim();
+      var baseId = 'sec-' + sectionSlug(text);
+      var id = baseId;
+      var duplicate = 2;
+      while (document.getElementById(id)) {
+        id = baseId + '-' + duplicate;
+        duplicate += 1;
+      }
       var color = colors[idx % colors.length];
 
       var section = document.createElement('section');
@@ -1231,13 +611,8 @@ MemberEditForm内、会員基本情報入力欄の直下に配置される。
           Array.prototype.forEach.call(child.children, function (li) {
             if (li.tagName !== 'LI') return;
             li.classList.add('rule-item');
-            var icon = document.createElement('span');
-            icon.className = 'material-symbols-outlined';
-            icon.style.color = 'var(--' + color + ')';
-            icon.textContent = 'check_circle';
             var content = document.createElement('div');
             while (li.firstChild) content.appendChild(li.firstChild);
-            li.appendChild(icon);
             li.appendChild(content);
           });
         }
@@ -1247,7 +622,9 @@ MemberEditForm内、会員基本情報入力欄の直下に配置される。
       var a = document.createElement('a');
       a.className = 'toc-link';
       a.href = '#' + id;
-      a.innerHTML = '<span class="material-symbols-outlined" style="font-size:16px;color:var(--' + color + ')">article</span>' + text;
+      var label = document.createElement('span');
+      label.textContent = text;
+      a.appendChild(label);
       li.appendChild(a);
       tocList.appendChild(li);
     });
@@ -1264,11 +641,39 @@ MemberEditForm内、会員基本情報入力欄の直下に配置される。
   var sections = document.querySelectorAll('.sec-block');
   var mainEl = document.getElementById('main-scroll');
 
+  function prefersReducedMotion() {
+    return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  }
+
+  function fragmentToId(fragment) {
+    var raw = fragment && fragment.charAt(0) === '#' ? fragment.substring(1) : (fragment || '');
+    if (!raw) return '';
+    try {
+      return decodeURIComponent(raw);
+    } catch (error) {
+      return '';
+    }
+  }
+
+  function scrollToFragment(fragment, behavior) {
+    var targetId = fragmentToId(fragment);
+    var target = targetId ? document.getElementById(targetId) : null;
+    if (!target) return false;
+    target.scrollIntoView({behavior: behavior, block:'start'});
+    return true;
+  }
+
+  var linkBySectionId = {};
+  links.forEach(function(l){
+    var href = l.getAttribute('href');
+    if (href && href.charAt(0) === '#') linkBySectionId[href.substring(1)] = l;
+  });
+
   var observer = new IntersectionObserver(function(entries){
     entries.forEach(function(e){
       if(e.isIntersecting){
         links.forEach(function(l){l.classList.remove('active')});
-        var a = document.querySelector('.toc-link[href="#'+e.target.id+'"]');
+        var a = linkBySectionId[e.target.id];
         if(a) a.classList.add('active');
       }
     });
@@ -1278,18 +683,43 @@ MemberEditForm内、会員基本情報入力欄の直下に配置される。
   links.forEach(function(l){
     l.addEventListener('click',function(e){
       e.preventDefault();
-      var t = document.querySelector(this.getAttribute('href'));
-      if(t) t.scrollIntoView({behavior:'smooth',block:'start'});
+      var href = this.getAttribute('href');
+      if(scrollToFragment(href, prefersReducedMotion() ? 'auto' : 'smooth')) {
+        if (window.history && window.history.pushState) window.history.pushState(null, '', href);
+        else window.location.hash = fragmentToId(href);
+      }
       var sb = document.getElementById('sidebar');
       if (sb) sb.classList.remove('open');
+      var toggle = document.getElementById('tocToggle');
+      if (toggle) toggle.setAttribute('aria-expanded', 'false');
+    });
+  });
+
+  if (window.location.hash) {
+    requestAnimationFrame(function(){
+      scrollToFragment(window.location.hash, 'auto');
+    });
+  }
+
+  window.addEventListener('popstate', function(){
+    requestAnimationFrame(function(){
+      if (!scrollToFragment(window.location.hash, 'auto') && mainEl) {
+        mainEl.scrollTo({top: 0, behavior: 'auto'});
+      }
     });
   });
 
   var tocToggle = document.getElementById('tocToggle');
   if (tocToggle) {
+    tocToggle.setAttribute('aria-label', '目次を開閉');
+    tocToggle.setAttribute('aria-controls', 'sidebar');
+    tocToggle.setAttribute('aria-expanded', 'false');
     tocToggle.addEventListener('click',function(){
       var sb = document.getElementById('sidebar');
-      if (sb) sb.classList.toggle('open');
+      if (sb) {
+        var isOpen = sb.classList.toggle('open');
+        tocToggle.setAttribute('aria-expanded', String(isOpen));
+      }
     });
   }
 

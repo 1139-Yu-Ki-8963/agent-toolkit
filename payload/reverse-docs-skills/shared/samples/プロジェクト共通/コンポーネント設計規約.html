@@ -143,7 +143,7 @@
 <body>
 <header class="topbar">
   <a class="brand" href="../index.html">
-    <span class="brand-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:middle"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zM13 9V3.5L18.5 9H13z"/></svg></span>
+    <span class="brand-icon"><svg role="img" aria-label="ドキュメント" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:middle"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zM13 9V3.5L18.5 9H13z"/></svg></span>
     <span class="brand-title">サンプルプロジェクト</span>
     <span class="brand-sub">設計ポータル</span>
   </a>
@@ -155,31 +155,17 @@
   </div>
 </header>
 
+<h1 hidden>コンポーネント設計規約</h1>
+
 <main class="doc-main" id="doc-content"></main>
 
 <footer class="footer"></footer>
 
-<script type="text/plain" id="doc-md">
-# コンポーネント設計規約
-
-## 概要
-
-UI コンポーネントの分割単位・命名・再利用方針を定義する。
-
-## 分割単位
-
-- ページ・レイアウト・部品の 3 階層で分割する
-- 共通部品は共通ディレクトリに集約し、個別画面固有の部品と混在させない
-
-## 命名・再利用
-
-- コンポーネント名はパスカルケースで役割を表す名前にする
-- Props の型定義を必須とし、暗黙の any を禁止する
-</script>
+<script type="application/json" id="doc-md">"# コンポーネント設計規約\n\n## 概要\n\nUI コンポーネントの分割単位・命名・再利用方針を定義する。\n\n## 分割単位\n\n- ページ・レイアウト・部品の 3 階層で分割する\n- 共通部品は共通ディレクトリに集約し、個別画面固有の部品と混在させない\n\n## 命名・再利用\n\n- コンポーネント名はパスカルケースで役割を表す名前にする\n- Props の型定義を必須とし、暗黙の any を禁止する"</script>
 
 <script>
 (function () {
-  var src = document.getElementById('doc-md').textContent;
+  var src = JSON.parse(document.getElementById('doc-md').textContent || '""');
 
   // frontmatter 除去
   src = src.replace(/^\s*---[\s\S]*?---\s*/, '');

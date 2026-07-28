@@ -143,7 +143,7 @@
 <body>
 <header class="topbar">
   <a class="brand" href="../index.html">
-    <span class="brand-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:middle"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zM13 9V3.5L18.5 9H13z"/></svg></span>
+    <span class="brand-icon"><svg role="img" aria-label="ドキュメント" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:middle"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zM13 9V3.5L18.5 9H13z"/></svg></span>
     <span class="brand-title">サンプルプロジェクト</span>
     <span class="brand-sub">設計ポータル</span>
   </a>
@@ -155,30 +155,17 @@
   </div>
 </header>
 
+<h1 hidden>テスト方針書</h1>
+
 <main class="doc-main" id="doc-content"></main>
 
 <footer class="footer"></footer>
 
-<script type="text/plain" id="doc-md">
-# テスト方針書
-
-## テスト種別と判別基準
-
-| 種別 | ファイルパターン | フレームワーク |
-|---|---|---|
-| 単体テスト | *.test.ts(x) / *.spec.ts(x) | jest / vitest |
-| 結合テスト | tests/integration/ 配下 | jest / vitest + msw |
-| E2Eテスト | *.e2e.ts / cypress/ / playwright/ | Cypress / Playwright |
-
-## カバレッジ基準
-
-- 単体テスト: 主要ビジネスロジックを網羅
-- E2Eテスト: 主要ユーザーフローを網羅
-</script>
+<script type="application/json" id="doc-md">"# テスト方針書\n\n## テスト種別と判別基準\n\n| 種別 | ファイルパターン | フレームワーク |\n|---|---|---|\n| 単体テスト | *.test.ts(x) / *.spec.ts(x) | jest / vitest |\n| 結合テスト | tests/integration/ 配下 | jest / vitest + msw |\n| E2Eテスト | *.e2e.ts / cypress/ / playwright/ | Cypress / Playwright |\n\n## カバレッジ基準\n\n- 単体テスト: 主要ビジネスロジックを網羅\n- E2Eテスト: 主要ユーザーフローを網羅"</script>
 
 <script>
 (function () {
-  var src = document.getElementById('doc-md').textContent;
+  var src = JSON.parse(document.getElementById('doc-md').textContent || '""');
 
   // frontmatter 除去
   src = src.replace(/^\s*---[\s\S]*?---\s*/, '');

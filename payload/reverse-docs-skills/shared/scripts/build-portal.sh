@@ -246,7 +246,8 @@ FIXTURE2
   mkdir -p "$test6d_repo" "$test6d_docs/プロジェクト共通" "$test6d_portal"
   printf '# 見出し\n\nテキスト <!-- コメント --> テキスト' > "$test6d_docs/プロジェクト共通/comment-inline-test.md"
   "$0" "$test6d_repo" "$test6d_docs" "$test6d_portal" 2>/dev/null
-  if ! grep -q 'テキスト <!-- コメント --> テキスト' "$test6d_docs/プロジェクト共通/comment-inline-test.html" 2>/dev/null; then
+  test6d_json="$(sed -n 's|.*<script type="application/json" id="doc-md">\([^<]*\)</script>.*|\1|p' "$test6d_docs/プロジェクト共通/comment-inline-test.html")"
+  if ! printf '%s' "$test6d_json" | jq -r . | grep -Fq 'テキスト <!-- コメント --> テキスト'; then
     echo "FAIL: ケース6d — 行内コメントを含む行が変化した" >&2
     rm -rf "$test6d_dir"
     exit 1
@@ -600,6 +601,11 @@ prepare_md_content() {
   '
 }
 
+# JSON文字列として埋め込み、HTMLパーサーが </script> を終端として解釈しないよう「<」をUnicode escapeする。
+markdown_to_script_json() {
+  printf '%s' "$1" | jq -Rsr 'tojson | gsub("<"; "\\u003c")'
+}
+
 if [ -d "$common_dir" ]; then
   while IFS= read -r md_file; do
     title="$(sed -e '1s/^\xEF\xBB\xBF//' "$md_file" | grep -m1 '^#' | sed 's/^##* *//' 2>/dev/null || true)"
@@ -616,6 +622,7 @@ if [ -d "$common_dir" ]; then
       portal_index_rel="$(python3 -c "import os,sys; print(os.path.relpath(sys.argv[1], sys.argv[2]))" "$PORTAL_DIR" "$(dirname "$md_file")" 2>/dev/null || echo "..")"
       portal_index_href="$portal_index_rel/index.html"
       md_content="$(prepare_md_content "$md_file")"
+      md_content_json="$(markdown_to_script_json "$md_content")"
       local_render_args=(
         "{{PROJECT_NAME}}" "$PROJECT_NAME"
         "{{DOC_TITLE}}" "$(html_escape "$title")"
@@ -626,7 +633,7 @@ if [ -d "$common_dir" ]; then
       if [ -f "$TOKENS_CSS_FILE" ]; then
         local_render_args+=("/* TOKENS_CSS */" "$(cat "$TOKENS_CSS_FILE")")
       fi
-      local_render_args+=("{{DOC_MARKDOWN}}" "$md_content")
+      local_render_args+=("{{DOC_MARKDOWN_JSON}}" "$md_content_json")
       doc_html="$(render_template "$(cat "$COMMON_DOC_TEMPLATE_FILE")" "${local_render_args[@]}")"
       printf '%s\n' "$doc_html" > "$html_file"
     fi
@@ -728,6 +735,7 @@ if [ -d "$DOCS_ROOT/画面" ] && [ -f "$SCREEN_DOC_TEMPLATE_FILE" ]; then
       html_basename="$(basename "$target_md" .md).html"
       html_file="$(dirname "$target_md")/$html_basename"
       md_content="$(prepare_md_content "$target_md")"
+      md_content_json="$(markdown_to_script_json "$md_content")"
 
       # 戻るリンク（ブランド）: 出力先の深さに応じてポータル index.html への相対パスを計算する
       portal_index_rel="$(python3 -c "import os,sys; print(os.path.relpath(sys.argv[1], sys.argv[2]))" "$PORTAL_DIR" "$(dirname "$target_md")" 2>/dev/null || echo "..")"
@@ -740,23 +748,23 @@ if [ -d "$DOCS_ROOT/画面" ] && [ -f "$SCREEN_DOC_TEMPLATE_FILE" ]; then
       doc_nav="<a class=\"back-link\" href=\"$screen_index_href\">← 画面一覧へ戻る</a>"
       if [ -f "$base_md" ]; then
         if [ "$target_md" = "$base_md" ]; then
-          doc_nav="$doc_nav<span class=\"doc-tab active\">基本設計</span>"
+          doc_nav="$doc_nav<span class=\"nav-item active\">基本設計</span>"
         else
-          doc_nav="$doc_nav<a class=\"doc-tab\" href=\"../基本設計/画面基本設計書.html\">基本設計</a>"
+          doc_nav="$doc_nav<a class=\"nav-item\" href=\"../基本設計/画面基本設計書.html\">基本設計</a>"
         fi
       fi
       if [ -f "$detail_md" ]; then
         if [ "$target_md" = "$detail_md" ]; then
-          doc_nav="$doc_nav<span class=\"doc-tab active\">詳細設計</span>"
+          doc_nav="$doc_nav<span class=\"nav-item active\">詳細設計</span>"
         else
-          doc_nav="$doc_nav<a class=\"doc-tab\" href=\"../詳細設計/画面詳細設計書.html\">詳細設計</a>"
+          doc_nav="$doc_nav<a class=\"nav-item\" href=\"../詳細設計/画面詳細設計書.html\">詳細設計</a>"
         fi
       fi
       if [ -f "${screen_dir}シーケンス図.html" ]; then
-        doc_nav="$doc_nav<a class=\"doc-tab\" href=\"../シーケンス図.html\">シーケンス図</a>"
+        doc_nav="$doc_nav<a class=\"nav-item\" href=\"../シーケンス図.html\">シーケンス図</a>"
       fi
       if [ -f "${screen_dir}テスト項目書/単体テスト仕様書.html" ]; then
-        doc_nav="$doc_nav<a class=\"doc-tab\" href=\"../テスト項目書/単体テスト仕様書.html\">テストケース</a>"
+        doc_nav="$doc_nav<a class=\"nav-item\" href=\"../テスト項目書/単体テスト仕様書.html\">テストケース</a>"
       fi
 
       screen_render_args=(
@@ -770,7 +778,7 @@ if [ -d "$DOCS_ROOT/画面" ] && [ -f "$SCREEN_DOC_TEMPLATE_FILE" ]; then
       if [ -f "$TOKENS_CSS_FILE" ]; then
         screen_render_args+=("/* TOKENS_CSS */" "$(cat "$TOKENS_CSS_FILE")")
       fi
-      screen_render_args+=("{{DOC_MARKDOWN}}" "$md_content")
+      screen_render_args+=("{{DOC_MARKDOWN_JSON}}" "$md_content_json")
 
       screen_doc_html="$(render_template "$(cat "$SCREEN_DOC_TEMPLATE_FILE")" "${screen_render_args[@]}")"
       printf '%s\n' "$screen_doc_html" > "$html_file"
