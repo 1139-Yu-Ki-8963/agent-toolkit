@@ -5,422 +5,661 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>注文詳細 画面基本設計書</title>
 <style>
-  :root,
-[data-theme="light"] {
-  /* Windows フォント上書き防止 */
+/* 設計ポータルのデザイントークン。
+   本ファイルの全文が、ビルド時に各テンプレートのトークン注入マーカーへ差し込まれる。
+   既定はダークテーマ。ライトは OS 設定または data-theme="light" で切り替える。
+   色は 26 種の基本トークンだけをテーマ別に定義し、
+   既存の別名トークンは var() 参照でテーマへ自動追従させる。 */
+
+:root {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
   font-synthesis: none;
-  --bg: #FFFFFF;
-  --panel: #FFFFFF;
-  --panel-2: #F6F8FA;
-  --border: #D1D9E0;
-  --border-strong: #AFB8C1;
-  --text: #1B1F26;
-  --text-sub: #4A4F58;
-  --text-muted: #767B85;
-  --accent: #0969DA;
-  --accent-2: #218BFF;
-  --accent-soft: #DDF4FF;
-  --accent-border: #54AEFF;
-  --gold: #BC4C00;
-  --gold-soft: #FFF1E5;
-  --gold-border: #D18A5A;
-  --success: #1A7F37;
-  --success-soft: #DAFBE1;
-  --warn: #BC4C00;
-  --danger: #CF222E;
-  --danger-soft: #FFEBE9;
-  --highlight: #D97B1A;
-  --highlight-soft: rgba(217,123,26,0.12);
-  --highlight-border: rgba(217,123,26,0.5);
-  --nav-tag: #7B8BBF;
-  --nav-tag-soft: #ECEEF6;
-  --self-tag: #6B9B6B;
-  --self-tag-soft: #E8F0E8;
-  --code-bg: #1B1F26;
-  --code-fg: #E8E5DC;
-  --cat-list: #2563eb;
-  --cat-standards: #059669;
-  --cat-design: #D97706;
-  --cat-project: #7C3AED;
+
+  /* 基本色（ダーク） */
+  --bg: #0F1217;
+  --panel: #161C23;
+  --panel2: #1C232E;
+  --panel3: #141A23;
+  --line: #2B3443;
+  --line2: #3A4658;
+  --text: #E7ECF4;
+  --sub: #A8B3C3;
+  --muted: #8A96A7;
+  --faint: #5B6574;
+  --accent: #4CC2FE;
+  --accent-hi: #9ADCFF;
+  --accent-soft: rgba(76,194,255,0.17);
+  --stamp: #FF6E4F;
+  --stamp-soft: rgba(255,110,78,0.16);
+  --green: #4ADE81;
+  --green-soft: rgba(74,222,129,0.16);
+  --grid: rgba(255,255,255,0.036);
+  --head: #202B3B;
+  --headtext: #E7ECF4;
+  --code: #0B0E13;
+  --codetext: #C9E8FF;
+  --navon: #EAF6FF;
+  --chipontext: #0F1217;
+  --rowopen: #1A212B;
+  --neutral-soft: rgba(255,255,255,0.06);
+
+  /* 別名。既存テンプレートの参照を壊さないために残す。値は基本色を参照するのでテーマに自動追従する */
+  --panel-2: var(--panel2);
+  --border: var(--line);
+  --border-strong: var(--line2);
+  --text-sub: var(--sub);
+  --text-muted: var(--muted);
+  --accent-2: var(--accent-hi);
+  --accent-border: var(--accent);
+  --gold: var(--stamp);
+  --gold-soft: var(--stamp-soft);
+  --gold-border: var(--stamp);
+  --warn: var(--stamp);
+  --danger: var(--stamp);
+  --danger-soft: var(--stamp-soft);
+  --success: var(--green);
+  --success-soft: var(--green-soft);
+  --highlight: var(--accent);
+  --highlight-soft: var(--accent-soft);
+  --highlight-border: var(--accent);
+  --nav-tag: var(--faint);
+  --nav-tag-soft: var(--neutral-soft);
+  --self-tag: var(--green);
+  --self-tag-soft: var(--green-soft);
+  --code-bg: var(--code);
+  --code-fg: var(--codetext);
+  --cat-list: var(--accent);
+  --cat-standards: var(--accent);
+  --cat-design: var(--accent);
+  --cat-project: var(--accent);
+
+  /* 非色トークン。テーマで変えない */
   --font-body: "Hiragino Kaku Gothic ProN","Hiragino Sans","Noto Sans JP","BIZ UDPGothic","Yu Gothic","Meiryo",system-ui,-apple-system,sans-serif;
   --mono: "SFMono-Regular","Menlo","Cascadia Code","Consolas",monospace;
-  --shadow-sm: 0 1px 3px rgba(27,31,38,.07), 0 2px 6px rgba(27,31,38,.05);
-  --shadow-md: 0 2px 8px rgba(27,31,38,.09), 0 8px 24px rgba(27,31,38,.07);
-  --radius: 10px;
-  --radius-sm: 6px;
+  --radius: 0;
+  --radius-sm: 0;
+  --shadow-sm: 3px 3px 0 var(--accent-soft);
+  --shadow-md: 4px 4px 0 var(--accent-soft);
+  --sidebar-w: 248px;
+  --page-gutter: 40px;
+  --grid-size: 24px;
 }
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg: #15171C; --panel: #1C1F26; --panel-2: #21262D;
-    --border: #30363D; --border-strong: #484F58;
-    --text: #E8E5DC; --text-sub: #B6B3AB; --text-muted: #888784;
-    --accent: #58A6FF; --accent-2: #79C0FF; --accent-soft: #132D4B; --accent-border: #1F6FEB;
-    --gold: #DB6D28; --gold-soft: #311D08; --gold-border: #7A3E0D;
-    --success: #3FB950; --success-soft: #0D2818;
-    --warn: #DB6D28; --danger: #F85149; --danger-soft: #3D1214;
-    --highlight: #E8943A; --highlight-soft: rgba(232,148,58,0.15); --highlight-border: rgba(232,148,58,0.5);
-    --nav-tag: #8E9ED0; --nav-tag-soft: rgba(142,158,208,0.15);
-    --self-tag: #7DB87D; --self-tag-soft: rgba(125,184,125,0.15);
-    --code-bg: #0E1116; --code-fg: #E8E5DC;
-    --cat-list: #60A5FA; --cat-standards: #34D399; --cat-design: #FBBF24; --cat-project: #A78BFA;
+
+/* OS がライト設定で、かつダークを明示指定していない場合 */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg: #F1F4F8;
+    --panel: #FFFFFF;
+    --panel2: #E9EEF4;
+    --panel3: #F7F9FC;
+    --line: #D8DFE8;
+    --line2: #243040;
+    --text: #1A222E;
+    --sub: #4B5A70;
+    --muted: #6C7A8E;
+    --faint: #9AA7B6;
+    --accent: #0284C7;
+    --accent-hi: #075985;
+    --accent-soft: rgba(2,132,199,0.10);
+    --stamp: #D9482B;
+    --stamp-soft: rgba(217,72,43,0.12);
+    --green: #15803D;
+    --green-soft: rgba(21,128,61,0.16);
+    --grid: rgba(16,34,64,0.05);
+    --head: #243040;
+    --headtext: #F1F4F8;
+    --code: #101722;
+    --codetext: #C9E8FF;
+    --navon: #102A43;
+    --chipontext: #FFFFFF;
+    --rowopen: #F0F4F9;
+    --neutral-soft: rgba(16,34,64,0.06);
   }
 }
+
+/* ユーザーがライトを明示指定した場合 */
+[data-theme="light"] {
+  --bg: #F1F4F8;
+  --panel: #FFFFFF;
+  --panel2: #E9EEF4;
+  --panel3: #F7F9FC;
+  --line: #D8DFE8;
+  --line2: #243040;
+  --text: #1A222E;
+  --sub: #4B5A70;
+  --muted: #6C7A8E;
+  --faint: #9AA7B6;
+  --accent: #0284C7;
+  --accent-hi: #075985;
+  --accent-soft: rgba(2,132,199,0.10);
+  --stamp: #D9482B;
+  --stamp-soft: rgba(217,72,43,0.12);
+  --green: #15803D;
+  --green-soft: rgba(21,128,61,0.16);
+  --grid: rgba(16,34,64,0.05);
+  --head: #243040;
+  --headtext: #F1F4F8;
+  --code: #101722;
+  --codetext: #C9E8FF;
+  --navon: #102A43;
+  --chipontext: #FFFFFF;
+  --rowopen: #F0F4F9;
+  --neutral-soft: rgba(16,34,64,0.06);
+}
+
+/* ユーザーがダークを明示指定した場合。OS がライトでも :root の既定値へ戻す */
 [data-theme="dark"] {
-  --bg: #15171C; --panel: #1C1F26; --panel-2: #21262D;
-  --border: #30363D; --border-strong: #484F58;
-  --text: #E8E5DC; --text-sub: #B6B3AB; --text-muted: #888784;
-  --accent: #58A6FF; --accent-2: #79C0FF; --accent-soft: #132D4B; --accent-border: #1F6FEB;
-  --gold: #DB6D28; --gold-soft: #311D08; --gold-border: #7A3E0D;
-  --success: #3FB950; --success-soft: #0D2818;
-  --warn: #DB6D28; --danger: #F85149; --danger-soft: #3D1214;
-  --highlight: #E8943A; --highlight-soft: rgba(232,148,58,0.15); --highlight-border: rgba(232,148,58,0.5);
-  --nav-tag: #8E9ED0; --nav-tag-soft: rgba(142,158,208,0.15);
-  --self-tag: #7DB87D; --self-tag-soft: rgba(125,184,125,0.15);
-  --code-bg: #0E1116; --code-fg: #E8E5DC;
-  --cat-list: #60A5FA; --cat-standards: #34D399; --cat-design: #FBBF24; --cat-project: #A78BFA;
+  --bg: #0F1217;
+  --panel: #161C23;
+  --panel2: #1C232E;
+  --panel3: #141A23;
+  --line: #2B3443;
+  --line2: #3A4658;
+  --text: #E7ECF4;
+  --sub: #A8B3C3;
+  --muted: #8A96A7;
+  --faint: #5B6574;
+  --accent: #4CC2FE;
+  --accent-hi: #9ADCFF;
+  --accent-soft: rgba(76,194,255,0.17);
+  --stamp: #FF6E4F;
+  --stamp-soft: rgba(255,110,78,0.16);
+  --green: #4ADE81;
+  --green-soft: rgba(74,222,129,0.16);
+  --grid: rgba(255,255,255,0.036);
+  --head: #202B3B;
+  --headtext: #E7ECF4;
+  --code: #0B0E13;
+  --codetext: #C9E8FF;
+  --navon: #EAF6FF;
+  --chipontext: #0F1217;
+  --rowopen: #1A212B;
+  --neutral-soft: rgba(255,255,255,0.06);
+}
+/* 設計ポータルの共通シェル。サイドバー・メインペイン・フッター・方眼紙背景・ページヘッダの
+   共通クラスを定義する。色と寸法は tokens.css のトークンだけを参照し、実値を直書きしない。
+   本ファイルの全文は、ビルド時に各テンプレートのシェル注入マーカーへ差し込まれる。 */
+
+.pt {
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 13px;
+  line-height: 1.7;
+}
+.pt *, .pt *::before, .pt *::after { box-sizing: border-box; }
+.pt a { color: var(--accent); text-decoration: none; }
+.pt a:hover { color: var(--accent-hi); text-decoration: underline; }
+.pt ::selection { background: var(--accent-soft); }
+.pt :focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+.pt-grid {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background-image:
+    linear-gradient(var(--grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: var(--grid-size) var(--grid-size);
 }
 
-  :root {
-    --content-max: 1320px;
-    --reading-width: 72ch;
-    --page-gutter: clamp(20px, 4vw, 72px);
-    --section-gap: clamp(28px, 4vw, 44px);
-    --sidebar-width: 280px;
-  }
+.pt-row {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  align-items: stretch;
+}
 
-  * { box-sizing: border-box; }
-  html { -webkit-text-size-adjust: 100%; }
-  html, body { margin: 0; padding: 0; }
-  body {
-    font-family: var(--font-body);
-    background: var(--bg); color: var(--text); line-height: 1.7; font-size: 15px;
-  }
-  a { color: var(--accent); text-decoration: none; }
-  a:hover { text-decoration: underline; }
-  /* viewport-fit layout */
-  .dp-page { display: grid; grid-template-rows: auto 1fr; height: 100vh; height: 100dvh; overflow: hidden; }
+/* サイドバー */
+.pt-sidebar {
+  width: var(--sidebar-w);
+  flex: none;
+  border-right: 1.5px solid var(--line2);
+  background: var(--panel3);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+.pt-brand { padding: 20px 20px 16px; border-bottom: 1.5px solid var(--line2); }
+.pt-brand-stamp { font-family: var(--mono); font-size: 10px; letter-spacing: 3px; color: var(--stamp); font-weight: 600; }
+.pt-brand-name { font-size: 16px; font-weight: 700; letter-spacing: 0.5px; margin-top: 4px; line-height: 1.35; }
+.pt-brand-sub { font-family: var(--mono); font-size: 10.5px; color: var(--muted); margin-top: 5px; }
 
-  /* topbar */
-  .topbar {
-    display: grid; grid-template-columns: auto 1fr auto;
-    align-items: center; gap: 24px; padding: 12px 20px;
-    background: linear-gradient(180deg, var(--panel) 0%, var(--panel-2) 100%);
-    border-bottom: 1px solid var(--border);
-  }
-  .brand { display: flex; align-items: baseline; gap: 8px; color: var(--text); text-decoration: none; }
-  .brand:hover { text-decoration: none; color: var(--accent); }
-  .brand-icon { display: inline-flex; align-items: center; }
-  .brand-title { font-weight: 700; font-size: 16px; }
-  .brand-sub { font-size: 11px; color: var(--text-muted); }
-  .header-meta { font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 8px; }
-  .top-actions { display: flex; align-items: center; gap: 8px; }
-  .top-actions button {
-    background: var(--panel-2); border: 1px solid var(--border); border-radius: var(--radius-sm);
-    color: var(--text-sub); cursor: pointer; padding: 8px 16px; font-size: 13px; font-family: inherit;
-    display: inline-flex; align-items: center; gap: 4px;
-  }
-  .top-actions button:hover { background: var(--accent-soft); color: var(--accent); border-color: var(--accent-border); }
+.pt-nav { padding: 14px 12px; display: flex; flex-direction: column; gap: 2px; }
+.pt-nav-group { font-family: var(--mono); font-size: 9.5px; letter-spacing: 2px; color: var(--faint); padding: 14px 10px 5px; }
+.pt-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  font-size: 12.5px;
+  color: var(--sub);
+  border-left: 3px solid transparent;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.pt-nav-item:hover { background: var(--panel2); color: var(--text); text-decoration: none; }
+.pt-nav-item.is-active { color: var(--navon); background: var(--accent-soft); border-left-color: var(--accent); font-weight: 600; }
+.pt-nav-num { font-family: var(--mono); font-size: 10px; color: var(--muted); }
+.pt-nav-count { margin-left: auto; font-family: var(--mono); font-size: 10px; color: var(--faint); font-variant-numeric: tabular-nums; }
 
-  /* body: sidebar + main */
-  .dp-body { display: flex; min-height: 0; overflow: hidden; }
+.pt-theme {
+  margin: auto 12px 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: calc(100% - 24px);
+  border: 1px solid var(--line2);
+  background: transparent;
+  padding: 8px 12px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--sub);
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.pt-theme:hover { border-color: var(--accent); color: var(--accent); }
+.pt-theme-next { font-family: var(--mono); font-size: 10px; color: var(--faint); }
+.pt-sidebar-meta { padding: 14px 20px; font-family: var(--mono); font-size: 10px; color: var(--muted); line-height: 1.9; }
 
-  /* sidebar */
-  .dp-sidebar {
-    width: var(--sidebar-width); flex-shrink: 0;
-    overflow-y: auto; padding: 18px 14px 24px;
-    border-right: 1px solid var(--border);
-    background: var(--panel);
-    scrollbar-gutter: stable;
-  }
-  .sidebar-parent {
-    display: flex; align-items: center; gap: 8px;
-    margin: 0 0 10px; padding: 8px 10px;
-    border-radius: var(--radius-sm); background: var(--panel-2);
-    color: var(--text); font-size: 13px; font-weight: 700; line-height: 1.4;
-  }
-  .sidebar-parent .material-symbols-outlined { color: var(--accent); font-size: 18px; flex: 0 0 auto; }
-  .sidebar-doc-nav {
-    display: flex; flex-direction: column; gap: 2px;
-    margin: 0 0 20px; padding: 0 0 14px 18px;
-    border-bottom: 1px solid var(--border);
-  }
-  .sidebar-doc-nav .back-link,
-  .sidebar-doc-nav .nav-item {
-    display: block; min-width: 0; padding: 7px 10px;
-    border: 0; border-radius: var(--radius-sm);
-    background: transparent; color: var(--text-sub);
-    font-size: 12.5px; line-height: 1.4; text-decoration: none;
-  }
-  .sidebar-doc-nav .back-link { order: 10; margin-top: 6px; color: var(--text-muted); font-size: 11.5px; }
-  .sidebar-doc-nav .nav-item:hover,
-  .sidebar-doc-nav .back-link:hover { background: var(--panel-2); color: var(--accent); text-decoration: none; }
-  .sidebar-doc-nav .nav-item.active {
-    background: var(--accent-soft); color: var(--accent); font-weight: 700;
-    box-shadow: inset 3px 0 0 var(--accent);
-  }
-  .toc-label {
-    font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em;
-    color: var(--text-muted); padding: 0 10px; margin-bottom: 8px;
-  }
-  .toc-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 1px; }
-  .toc-link {
-    display: flex; align-items: center; gap: 6px;
-    padding: 6px 10px; border-radius: var(--radius-sm);
-    text-decoration: none; color: var(--text-sub); font-size: 13px; font-weight: 450;
-    transition: background .15s, color .15s;
-  }
-  .toc-link:hover { background: var(--panel-2); color: var(--text); text-decoration: none; }
-  .toc-link.active { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
-  .toc-link .material-symbols-outlined { font-size: 16px; }
+/* メインペイン */
+.pt-main {
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+  padding: 0 var(--page-gutter) 72px;
+}
+.pt-main.is-fixed { overflow-y: hidden; display: flex; flex-direction: column; padding-bottom: 24px; }
 
-  /* main content */
-  .dp-main {
-    flex: 1; min-width: 0;
-    overflow-y: auto; min-height: 0;
-    padding: 32px var(--page-gutter) 72px;
-  }
-  .dp-inner { width: min(100%, var(--content-max)); margin-inline: auto; }
+/* ページヘッダ */
+.pt-head { flex: none; padding: 32px 0 16px; border-bottom: 2px solid var(--line2); }
+.pt-crumb { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+.pt-crumb-current { color: var(--text); }
+.pt-title-row { display: flex; align-items: baseline; gap: 16px; margin-top: 10px; flex-wrap: wrap; }
+.pt-title { margin: 0; font-size: 26px; font-weight: 700; letter-spacing: 1px; }
+.pt-title-sub { font-size: 12px; color: var(--muted); }
 
-  .doc-crumbs { font-size: 12px; color: var(--text-muted); margin-bottom: 8px; }
-  .doc-crumbs a { color: var(--text-sub); }
-  .doc-crumbs a:hover { color: var(--accent); }
+/* 汎用パーツ */
+.pt-panel { background: var(--panel); border: 1.5px solid var(--line2); }
+.pt-input {
+  border: 1.5px solid var(--line2);
+  background: var(--panel);
+  padding: 8px 13px;
+  font-family: var(--font-body);
+  font-size: 12.5px;
+  color: var(--text);
+  outline: none;
+  transition: all 0.12s;
+}
+.pt-input:focus { border-color: var(--accent); box-shadow: 3px 3px 0 var(--accent-soft); }
+.pt-seg { display: flex; border: 1px solid var(--line2); }
+.pt-seg button {
+  border: 0;
+  border-right: 1px solid var(--line);
+  padding: 7px 16px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  background: var(--panel);
+  color: var(--sub);
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.pt-seg button:last-child { border-right: 0; }
+.pt-seg button.is-active { background: var(--accent); color: var(--chipontext); }
+.pt-chip { font-size: 11px; border: 1px solid var(--line); background: var(--panel3); padding: 2px 8px; font-family: var(--mono); }
+.pt-badge { font-size: 10.5px; font-weight: 600; padding: 2px 9px; }
+.pt-badge.is-done { color: var(--accent); background: var(--accent-soft); }
+.pt-badge.is-stale { color: var(--stamp); background: var(--stamp-soft); }
+.pt-badge.is-todo { color: var(--muted); background: var(--neutral-soft); }
+.pt-count { font-family: var(--mono); font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
 
-  .dp-hero {
-    display: flex; align-items: flex-end; justify-content: space-between; gap: 16px;
-    padding: 4px 2px 14px; border-bottom: 1px solid var(--border); margin-bottom: 24px; flex-wrap: wrap;
-  }
-  .dp-hero h1 { font-size: 23px; margin: 0; }
-  .dp-hero-desc { font-size: 12.5px; color: var(--text-muted); margin: 4px 0 0; }
-  .dp-updated {
-    font-size: 12px; color: var(--text-sub); background: var(--accent-soft);
-    border: 1px solid var(--accent-border); border-radius: 999px; padding: 3px 12px; white-space: nowrap;
-  }
+/* 表 */
+.pt-tablewrap { flex: 0 1 auto; min-height: 0; overflow: auto; border: 1.5px solid var(--line2); background: var(--panel); }
+.pt-tablewrap table { width: 100%; border-collapse: separate; border-spacing: 0; }
+.pt-tablewrap thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--head);
+  color: var(--headtext);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-align: left;
+  padding: 9px 14px;
+}
+.pt-tablewrap tbody td { border-top: 1px solid var(--line); padding: 10px 14px; font-size: 13px; }
+.pt-tablewrap tbody tr:hover td { background: var(--panel3); }
+.pt-tablewrap tbody tr.is-open td { background: var(--rowopen); }
+.pt-mono { font-family: var(--mono); font-size: 11.5px; color: var(--sub); }
 
-  /* section */
-  .sec-block { margin-bottom: var(--section-gap); scroll-margin-top: 24px; }
-  .sec-label {
-    font-size: 15px; font-weight: 700; letter-spacing: .025em; color: var(--text-sub);
-    display: flex; align-items: center; gap: 8px; margin: 0 0 14px;
-  }
-  .sec-label::before { content: ""; width: 4px; height: 14px; border-radius: 2px; }
-  .sec-label[data-color="accent"]::before { background: var(--accent); }
-  .sec-label[data-color="success"]::before { background: var(--success); }
-  .sec-label[data-color="gold"]::before { background: var(--gold); }
-  .sec-label[data-color="danger"]::before { background: var(--danger); }
-  .sec-label[data-color="highlight"]::before { background: var(--highlight); }
+/* フッター */
+.pt-footer {
+  position: relative;
+  z-index: 1;
+  flex: none;
+  border-top: 1.5px solid var(--line2);
+  background: var(--panel3);
+  padding: 12px var(--page-gutter);
+  display: flex;
+  gap: 20px;
+  align-items: baseline;
+  flex-wrap: wrap;
+}
+.pt-footer-stamp { font-family: var(--mono); font-size: 10.5px; letter-spacing: 2px; color: var(--stamp); font-weight: 600; }
+.pt-footer-meta { font-family: var(--mono); font-size: 10.5px; color: var(--muted); }
+.pt-footer-gen { margin-left: auto; font-size: 10.5px; color: var(--muted); }
 
-  /* baseline prose（セクション固有クラスの対象外になる見出し・段落・引用・区切り線） */
-  #doc-content h3 { font-size: 1.05rem; margin: 20px 0 8px; color: var(--text); }
-  #doc-content h4 { font-size: 0.95rem; margin: 16px 0 6px; color: var(--text-sub); }
-  #doc-content p { margin: 8px 0; font-size: 14px; color: var(--text-sub); line-height: 1.8; }
-  #doc-content ul, #doc-content ol { padding-left: 22px; margin: 8px 0; font-size: 14px; color: var(--text-sub); line-height: 1.8; }
-  #doc-content li { margin: 4px 0; }
-  #doc-content img { max-width: 100%; border-radius: var(--radius-sm); }
-  #doc-content code {
-    background: var(--panel-2); color: var(--text); padding: 1px 6px;
-    border: 1px solid var(--border); border-radius: 4px;
-    font-family: var(--mono); font-size: 0.85em;
-  }
-  #doc-content blockquote {
-    border-left: 3px solid var(--accent-border); margin: 12px 0; padding: 8px 16px;
-    background: var(--panel-2); color: var(--text-sub); font-size: 0.95rem; border-radius: var(--radius-sm);
-  }
-  #doc-content hr { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
+@media (prefers-reduced-motion: reduce) {
+  .pt *, .pt *::before, .pt *::after { transition: none !important; }
+}
 
-  /* 読書レーン: 長時間読む本文は行長を抑え、周辺の余白を左右対称にする */
-  .doc-crumbs,
-  .dp-hero,
-  .sec-label,
-  #doc-content .sec-block > h3,
-  #doc-content .sec-block > h4,
-  #doc-content .sec-block > p,
-  #doc-content .sec-block > ul:not(.rule-list),
-  #doc-content .sec-block > ol,
-  #doc-content .sec-block > blockquote,
-  #doc-content .rule-list,
-  .callout {
-    width: min(100%, var(--reading-width));
-    margin-inline: auto;
-  }
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+html, body { margin: 0; padding: 0; }
+a { text-decoration: none; }
+a:hover { text-decoration: underline; }
 
-  /* rule items */
-  .rule-list { display: flex; flex-direction: column; gap: 6px; list-style: none; padding-left: 0; margin-top: 8px; }
-  .rule-item {
-    display: flex; align-items: flex-start; gap: 8px; padding: 11px 14px;
-    background: var(--panel-2); border-radius: var(--radius-sm); font-size: 14px; line-height: 1.7;
-  }
-  .rule-item .material-symbols-outlined { font-size: 18px; margin-top: 2px; flex-shrink: 0; }
-  .rule-item code {
-    background: var(--panel); color: var(--text); padding: 1px 5px;
-    border: 1px solid var(--border); border-radius: 3px;
-    font-family: var(--mono); font-size: .85em;
-  }
+:root { --section-gap: clamp(28px, 4vw, 44px); }
 
-  /* tables */
-  .table-wrap {
-    width: 100%; overflow-x: auto; overscroll-behavior-inline: contain;
-    border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 14px;
-    scrollbar-gutter: stable;
-  }
-  table.data-table {
-    width: max-content; min-width: 100%; border-collapse: collapse; font-size: 13px;
-    background: var(--panel);
-  }
-  table.data-table thead { position: sticky; top: 0; z-index: 1; }
-  table.data-table th {
-    text-align: left; font-size: 11.5px; font-weight: 700; color: var(--text-sub);
-    background: var(--panel-2); padding: 8px 12px; border-bottom: 1px solid var(--border); white-space: nowrap;
-  }
-  table.data-table td {
-    min-width: 11rem; max-width: 34rem; padding: 9px 12px;
-    border-bottom: 1px solid var(--border); vertical-align: top;
-    overflow-wrap: normal; word-break: normal; hyphens: none;
-  }
-  table.data-table td:first-child { min-width: 7rem; }
-  table.data-table tr:last-child td { border-bottom: none; }
-  table.data-table code {
-    background: var(--panel-2); color: var(--text); padding: 1px 5px;
-    border: 1px solid var(--border); border-radius: 3px;
-    font-family: var(--mono); font-size: 11.5px; white-space: nowrap;
-  }
+/* 文書 2 カラム（目次 + 本文） */
+.dp-layout { display: grid; grid-template-columns: 200px 1fr; gap: 36px; margin-top: 28px; align-items: start; }
+.dp-toc { position: sticky; top: 24px; border-left: 1.5px solid var(--line2); padding-left: 16px; }
 
-  /* code blocks */
-  .code-block {
-    width: 100%; border: 1px solid var(--border); border-radius: var(--radius-sm);
-    overflow: hidden; background: var(--panel-2); margin-bottom: 14px;
-  }
-  .code-block-head {
-    display: flex; align-items: center; gap: 6px;
-    padding: 6px 14px; font-size: 11px; font-weight: 600;
-    color: var(--text-muted); border-bottom: 1px solid var(--border);
-    letter-spacing: .03em;
-  }
-  .code-block pre {
-    margin: 0; padding: 12px 14px; overflow-x: auto;
-    font-family: var(--mono); font-size: 12.5px; line-height: 1.65; color: var(--text);
-  }
-  .code-block .kw { color: #CBA6F7; }
-  .code-block .fn { color: #89B4FA; }
-  .code-block .str { color: #A6E3A1; }
-  .code-block .num { color: #FAB387; }
-  .code-block .cm { color: #6C7086; font-style: italic; }
-  .code-block .op { color: #89DCEB; }
-  .code-block .type { color: #F9E2AF; }
+/* 画面ドキュメント間ナビ（基本設計・詳細設計・シーケンス図・テストケース） */
+.sidebar-parent {
+  display: flex; align-items: center; gap: 8px;
+  margin: 0 0 10px; padding: 0 2px;
+  color: var(--text); font-size: 13px; font-weight: 700; line-height: 1.4;
+}
+.sidebar-doc-nav {
+  display: flex; flex-direction: column; gap: 2px;
+  margin: 0 0 20px; padding: 0 0 14px;
+  border-bottom: 1px solid var(--line);
+}
+.sidebar-doc-nav .back-link,
+.sidebar-doc-nav .nav-item {
+  display: block; min-width: 0; padding: 6px 10px;
+  border: 0; border-left: 3px solid transparent;
+  background: transparent; color: var(--sub);
+  font-size: 12.5px; line-height: 1.4; text-decoration: none;
+}
+.sidebar-doc-nav .back-link { order: 10; margin-top: 6px; color: var(--muted); font-size: 11.5px; }
+.sidebar-doc-nav .nav-item:hover,
+.sidebar-doc-nav .back-link:hover { color: var(--accent); border-left-color: var(--accent); text-decoration: none; }
+.sidebar-doc-nav .nav-item.active { color: var(--accent); border-left-color: var(--accent); font-weight: 700; }
 
-  /* callout */
-  .callout {
-    display: flex; gap: 8px; padding: 10px 14px; border-radius: var(--radius-sm);
-    font-size: 12.5px; line-height: 1.6; margin-bottom: 14px;
-  }
-  .callout .material-symbols-outlined { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
-  .callout strong { font-weight: 600; }
-  .callout-tip { background: var(--success-soft); border: 1px solid var(--success); }
-  .callout-tip .material-symbols-outlined { color: var(--success); }
-  .callout-warn { background: var(--gold-soft); border: 1px solid var(--gold-border); }
-  .callout-warn .material-symbols-outlined { color: var(--gold); }
-  .callout-err { background: var(--danger-soft); border: 1px solid var(--danger); }
-  .callout-err .material-symbols-outlined { color: var(--danger); }
+.toc-label {
+  font-family: var(--mono); font-size: 10px; font-weight: 700; letter-spacing: .06em;
+  text-transform: uppercase; color: var(--muted); margin: 0 0 8px; padding: 0 2px;
+}
+.toc-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 1px; }
+.toc-link {
+  display: block; padding: 6px 10px; margin-left: -1.5px;
+  border-left: 3px solid transparent;
+  color: var(--sub); font-size: 12.5px; font-weight: 450; line-height: 1.4;
+  transition: color .12s, border-color .12s;
+}
+.toc-link:hover { color: var(--text); border-left-color: var(--accent); text-decoration: none; }
+.toc-link.active { color: var(--accent); border-left-color: var(--accent); font-weight: 600; }
 
-  /* mobile toc toggle */
-  .toc-toggle {
-    display: none; position: fixed; bottom: 16px; right: 16px; z-index: 60;
-    width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--border);
-    background: var(--panel); box-shadow: var(--shadow-md);
-    cursor: pointer; color: var(--text); align-items: center; justify-content: center;
-  }
+.dp-panel { border: 1.5px solid var(--line2); background: var(--panel); max-width: 760px; padding: 32px 40px; counter-reset: sec-num; }
 
-  .footer {
-    padding: 12px 20px; border-top: 1px solid var(--border);
-    font-size: 12px; color: var(--text-muted);
-    display: flex; gap: 20px; justify-content: center;
-  }
+/* section */
+.sec-block { margin-bottom: var(--section-gap); scroll-margin-top: 24px; }
+.sec-label {
+  counter-increment: sec-num;
+  display: flex; align-items: baseline; gap: 10px;
+  font-size: 16.5px; font-weight: 700; color: var(--text);
+  margin: 0 0 14px; padding-bottom: 10px; border-bottom: 1px solid var(--line);
+}
+.sec-label::before {
+  content: counter(sec-num, decimal-leading-zero);
+  font-family: var(--mono); font-size: 12px; font-weight: 600; color: var(--stamp);
+}
 
-  @media (max-width: 820px) {
-    .dp-sidebar { display: none; }
-    .dp-sidebar.open {
-      display: block; position: fixed; top: 0; left: 0; bottom: 0; width: min(88vw, 320px);
-      background: var(--panel); z-index: 55; border-right: 1px solid var(--border);
-      box-shadow: var(--shadow-md); padding: 60px 16px 16px;
-    }
-    .toc-toggle { display: flex; }
-    :root { --page-gutter: 16px; }
-    .dp-main { padding: 16px var(--page-gutter) 48px; }
-    .dp-inner,
-    .doc-crumbs,
-    .dp-hero,
-    .sec-label,
-    #doc-content .sec-block > h3,
-    #doc-content .sec-block > h4,
-    #doc-content .sec-block > p,
-    #doc-content .sec-block > ul:not(.rule-list),
-    #doc-content .sec-block > ol,
-    #doc-content .sec-block > blockquote,
-    #doc-content .rule-list,
-    .callout { width: 100%; }
-    .topbar { grid-template-columns: 1fr; gap: 8px; padding: 10px 14px; }
-  }
-  @media (max-width: 480px) {
-    .dp-hero h1 { font-size: 20px; }
-  }
-  @media (prefers-reduced-motion: reduce) {
-    *, *::before, *::after {
-      scroll-behavior: auto !important;
-      animation-duration: .01ms !important;
-      animation-iteration-count: 1 !important;
-      transition-duration: .01ms !important;
-    }
-  }
+/* baseline prose（セクション固有クラスの対象外になる見出し・段落・引用・区切り線） */
+#doc-content h3 { font-size: 1.05rem; margin: 20px 0 8px; color: var(--text); }
+#doc-content h4 { font-size: 0.95rem; margin: 16px 0 6px; color: var(--sub); }
+#doc-content p { margin: 8px 0; font-size: 13.5px; color: var(--sub); line-height: 1.75; }
+#doc-content ol { padding-left: 22px; margin: 8px 0; font-size: 13.5px; color: var(--sub); line-height: 1.75; }
+#doc-content ol li { margin: 4px 0; }
+#doc-content ul { list-style: none; padding-left: 20px; margin: 8px 0; font-size: 13.5px; color: var(--sub); line-height: 1.75; }
+#doc-content ul li { position: relative; margin: 4px 0; }
+#doc-content ul li::before { content: "\25b8"; position: absolute; left: -18px; color: var(--accent); }
+#doc-content img { max-width: 100%; }
+#doc-content code {
+  background: var(--panel3); color: var(--text); padding: 1px 6px;
+  border: 1px solid var(--line); font-family: var(--mono); font-size: 0.85em;
+}
+#doc-content blockquote {
+  border-left: 3px solid var(--accent); margin: 12px 0; padding: 8px 16px;
+  background: var(--panel3); color: var(--sub); font-size: 0.95rem;
+}
+#doc-content hr { border: none; border-top: 1px solid var(--line); margin: 24px 0; }
+
+/* rule items（トップレベル ul のチェックリスト装飾。箇条書きと同じ体裁） */
+.rule-list { list-style: none; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; margin: 8px 0 0; }
+.rule-item { position: relative; font-size: 13.5px; line-height: 1.75; color: var(--sub); }
+.rule-item::before { content: "\25b8"; position: absolute; left: -18px; color: var(--accent); }
+.rule-item code {
+  background: var(--panel); color: var(--text); padding: 1px 5px;
+  border: 1px solid var(--line); font-family: var(--mono); font-size: .85em;
+}
+
+/* tables */
+.table-wrap {
+  width: 100%; overflow-x: auto; overscroll-behavior-inline: contain;
+  border: 1.5px solid var(--line2); margin-bottom: 14px; scrollbar-gutter: stable;
+}
+table.data-table { width: max-content; min-width: 100%; border-collapse: collapse; font-size: 13px; background: var(--panel); }
+table.data-table thead { position: sticky; top: 0; z-index: 1; }
+table.data-table th {
+  text-align: left; font-size: 11.5px; font-weight: 700; color: var(--headtext);
+  background: var(--head); padding: 8px 12px; border-bottom: 1px solid var(--line2); white-space: nowrap;
+}
+table.data-table td {
+  min-width: 11rem; max-width: 34rem; padding: 9px 12px;
+  border-bottom: 1px solid var(--line); vertical-align: top;
+  overflow-wrap: normal; word-break: normal; hyphens: none;
+}
+table.data-table td:first-child { min-width: 7rem; }
+table.data-table tr:last-child td { border-bottom: none; }
+table.data-table code {
+  background: var(--panel3); color: var(--accent); padding: 1px 5px;
+  border: 1px solid var(--line); font-family: var(--mono); font-size: 11.5px; white-space: nowrap;
+}
+
+/* code blocks */
+.code-block { width: 100%; border: 1px solid var(--line2); overflow: hidden; background: var(--code); margin-bottom: 14px; }
+.code-block-head {
+  display: flex; align-items: center; gap: 6px;
+  padding: 6px 14px; font-size: 11px; font-weight: 600;
+  color: var(--muted); border-bottom: 1px solid var(--line2);
+  letter-spacing: .03em;
+}
+.code-block pre {
+  margin: 0; padding: 12px 14px; overflow-x: auto;
+  font-family: var(--mono); font-size: 12px; line-height: 1.8; color: var(--codetext);
+}
+.code-block .kw { color: #CBA6F7; }
+.code-block .fn { color: #89B4FA; }
+.code-block .str { color: #A6E3A1; }
+.code-block .num { color: #FAB387; }
+.code-block .cm { color: #6C7086; font-style: italic; }
+.code-block .op { color: #89DCEB; }
+.code-block .type { color: #F9E2AF; }
+
+@media (max-width: 820px) {
+  .dp-layout { grid-template-columns: 1fr; margin-top: 20px; }
+  .dp-toc { position: static; border-left: 0; padding-left: 0; margin-bottom: 20px; }
+  .dp-panel { max-width: none; padding: 20px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .toc-link { transition: none; }
+}
 </style>
 </head>
 <body>
-<div class="dp-page">
-  <header class="topbar">
-    <a class="brand" href="../../../index.html">
-      <span class="brand-title">サンプルプロジェクト</span>
-      <span class="brand-sub">設計ポータル</span>
-    </a>
-    <div class="header-meta">
-      <span>更新: 2026-07-28</span>
-    </div>
-    <div class="top-actions">
-      <button id="theme-toggle" title="テーマ切替">
-        <span id="theme-label">ライト</span>
-      </button>
-    </div>
-  </header>
+<div class="pt">
+  <div class="pt-grid"></div>
+  <div class="pt-row">
+    <aside class="pt-sidebar" data-portal-href="../../../index.html" data-active-category="list">
+  <div class="pt-brand">
+    <div class="pt-brand-stamp">DESIGN PORTAL</div>
+    <div class="pt-brand-name">reverse-docs-1-62-impl</div>
+    <div class="pt-brand-sub">設計台帳 · 全36資料</div>
+  </div>
+  <nav class="pt-nav" id="pt-nav" aria-label="資料カテゴリ"></nav>
+  <button type="button" class="pt-theme" id="pt-theme-toggle">
+    <span id="pt-theme-label">テーマ: ダーク</span><span class="pt-theme-next" id="pt-theme-next">→ LIGHT</span>
+  </button>
+  <div class="pt-sidebar-meta">更新 <span id="pt-sidebar-date">2026-07-29</span><span id="pt-meta-commit"><br>コミット </span></div>
+</aside>
+<script type="application/json" id="pt-nav-data">[{"key":"project","num":"01","label":"基盤情報","count":4},{"key":"standards","num":"02","label":"規約","count":6},{"key":"design","num":"03","label":"設計書","count":5},{"key":"list","num":"04","label":"一覧・設計図","count":13},{"key":"cross","num":"05","label":"マトリクス・対応表","count":4},{"key":"ai","num":"06","label":"AI設定資産","count":1},{"key":"design-tools","num":"07","label":"デザイン","count":3}]</script>
+<script>
+(function () {
+  var root = document.documentElement;
+  function applyTheme(t) {
+    root.setAttribute('data-theme', t);
+    var label = document.getElementById('pt-theme-label');
+    var next = document.getElementById('pt-theme-next');
+    if (label) label.textContent = t === 'dark' ? 'テーマ: ダーク' : 'テーマ: ライト';
+    if (next) next.textContent = t === 'dark' ? '→ LIGHT' : '→ DARK';
+  }
+  var saved = null;
+  try { saved = localStorage.getItem('rd-portal-theme'); } catch (e) {}
+  if (saved === 'dark' || saved === 'light') {
+    applyTheme(saved);
+  } else {
+    applyTheme(window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+  }
+  var btn = document.getElementById('pt-theme-toggle');
+  if (btn) {
+    btn.addEventListener('click', function () {
+      var next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+      applyTheme(next);
+      try { localStorage.setItem('rd-portal-theme', next); } catch (e) {}
+    });
+  }
 
-  <div class="dp-body">
-    <aside class="dp-sidebar" id="sidebar">
-      <div class="sidebar-parent">
-        <span id="screen-nav-title">画面 / 設計書</span>
-      </div>
-      <nav class="sidebar-doc-nav" aria-label="画面設計書"><a class="back-link" href="../../../一覧/画面一覧/画面一覧.html">← 画面一覧へ戻る</a><span class="nav-item active">基本設計</span><a class="nav-item" href="../詳細設計/画面詳細設計書.html">詳細設計</a><a class="nav-item" href="../シーケンス図.html">シーケンス図</a></nav>
-      <div class="toc-label">この設計書内</div>
-      <ul class="toc-list" id="toc-list"></ul>
-    </aside>
+  function isCommitEmpty(text) {
+    return text.replace(/コミット/g, '').replace(/[·\s　]+/g, '') === '';
+  }
+  function removeIfEmptyCommit(id) {
+    var node = document.getElementById(id);
+    if (node && isCommitEmpty(node.textContent) && node.parentNode) {
+      node.parentNode.removeChild(node);
+    }
+  }
+  removeIfEmptyCommit('pt-meta-commit');
 
-    <main class="dp-main" id="main-scroll">
-      <div class="dp-inner">
-        <div class="doc-crumbs"><a href="../../../index.html">← ポータル TOP へ戻る</a></div>
-        <div class="dp-hero">
-          <div>
-            <h1 id="dp-hero-title"></h1>
-          </div>
+  function formatDateOnly(text) {
+    return /^\d{4}-\d{2}-\d{2}/.test(text) ? text.slice(0, 10) : text;
+  }
+  function truncateDate(id) {
+    var node = document.getElementById(id);
+    if (node) node.textContent = formatDateOnly(node.textContent);
+  }
+  truncateDate('pt-sidebar-date');
+
+  function formatTitleSubDates() {
+    var nodes = document.querySelectorAll('.pt-title-sub');
+    for (var i = 0; i < nodes.length; i++) {
+      nodes[i].textContent = nodes[i].textContent.replace(
+        /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z/g,
+        function (m) { return m.slice(0, 10); }
+      );
+    }
+  }
+
+  function applyShellMetaFormatting() {
+    removeIfEmptyCommit('pt-footer-commit');
+    truncateDate('pt-footer-date');
+    formatTitleSubDates();
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', applyShellMetaFormatting);
+  } else {
+    applyShellMetaFormatting();
+  }
+
+  var nav = document.getElementById('pt-nav');
+  var side = document.querySelector('.pt-sidebar');
+  var dataEl = document.getElementById('pt-nav-data');
+  if (!nav || !side || !dataEl) return;
+  var cats = [];
+  try { cats = JSON.parse(dataEl.textContent) || []; } catch (e) { return; }
+  var portalHref = side.getAttribute('data-portal-href') || 'index.html';
+  var active = side.getAttribute('data-active-category') || '';
+
+  function item(href, num, label, count, isActive) {
+    var a = document.createElement('a');
+    a.className = 'pt-nav-item' + (isActive ? ' is-active' : '');
+    a.href = href;
+    var n = document.createElement('span');
+    n.className = 'pt-nav-num';
+    n.textContent = num;
+    a.appendChild(n);
+    a.appendChild(document.createTextNode(label));
+    if (count !== null && count !== undefined) {
+      var c = document.createElement('span');
+      c.className = 'pt-nav-count';
+      c.textContent = String(count);
+      a.appendChild(c);
+    }
+    return a;
+  }
+
+  nav.appendChild(item(portalHref, '00', 'ダッシュボード', null, active === ''));
+  var head = document.createElement('div');
+  head.className = 'pt-nav-group';
+  head.textContent = '資料カテゴリ';
+  nav.appendChild(head);
+  cats.forEach(function (c) {
+    nav.appendChild(item(portalHref + '#cat-' + c.key, c.num, c.label, c.count, active === c.key));
+  });
+})();
+</script>
+    <main class="pt-main" id="main-scroll">
+      <div class="pt-head">
+        <div class="pt-crumb"><a href="../../../index.html">TOP</a> ／ 一覧・設計図 ／ <span class="pt-crumb-current">注文詳細 画面基本設計書</span></div>
+        <div class="pt-title-row">
+          <h1 class="pt-title" id="dp-hero-title">注文詳細 画面基本設計書</h1>
         </div>
-        <div id="doc-content"></div>
+      </div>
+      <div class="dp-layout">
+        <aside class="dp-toc" id="sidebar">
+          <div class="sidebar-parent">
+            <span id="screen-nav-title">画面 / 設計書</span>
+          </div>
+          <nav class="sidebar-doc-nav" aria-label="画面設計書"><a class="back-link" href="../../../一覧/画面一覧/画面一覧.html">← 画面一覧へ戻る</a><span class="nav-item active">基本設計</span><a class="nav-item" href="../詳細設計/画面詳細設計書.html">詳細設計</a><a class="nav-item" href="../シーケンス図.html">シーケンス図</a></nav>
+          <div class="toc-label">この設計書内</div>
+          <ul class="toc-list" id="toc-list"></ul>
+        </aside>
+        <div class="dp-panel">
+          <div id="doc-content"></div>
+        </div>
       </div>
     </main>
   </div>
+  <footer class="pt-footer">
+  <span class="pt-footer-stamp">REVERSE-DOCS REGISTER</span>
+  <span class="pt-footer-meta">reverse-docs-1-62-impl · 更新 <span id="pt-footer-date">2026-07-29</span><span id="pt-footer-commit"> · コミット </span></span>
+  <span class="pt-footer-gen">生成: shared/scripts/build-portal.sh</span>
+</footer>
 </div>
-
-<button class="toc-toggle" id="tocToggle">
-  <span>目次</span>
-</button>
-
-<footer class="footer"></footer>
 
 <script type="application/json" id="doc-md">"\n# 注文詳細 画面基本設計書\n\n## §1 画面の目的\n\n個別注文の明細・配送先・進行状況を確認し、出荷準備や出荷指示に向けて注文のステータスを次の段階へ更新するための画面である。\n\n## §2 画面構成\n\n### 画面キャプチャ\n\n> 元コードの画面キャプチャーは、このサンプルには含まれません。\n\n### 部品構成\n\n```\n┌────────────────────────────────┐\n│ 注文基本情報エリア               │\n├────────────────────────────────┤\n│  ┌──────────────────────────┐  │\n│  │ 注文明細テーブル           │  │\n│  └──────────────────────────┘  │\n│  ┌──────────────────────────┐  │\n│  │ 配送先情報エリア           │  │\n│  └──────────────────────────┘  │\n│  ┌──────────────────────────┐  │\n│  │ ステータス更新操作エリア   │  │\n│  └──────────────────────────┘  │\n└────────────────────────────────┘\n```\n\n## §3 機能仕様（業務機能の一覧）\n\n| キー | 機能名 | 業務上の目的 | 利用者 |\n|---|---|---|---|\n| 詳細-明細確認 | 注文明細確認 | 注文に含まれる商品・数量・単価を確認し、内容に誤りがないかを把握する | 受注担当者 |\n| 詳細-配送確認 | 配送先情報確認 | 配送先住所・配送方法を確認し、出荷準備に必要な情報を把握する | 受注担当者・物流担当者 |\n| 詳細-ステータス更新 | 注文ステータス更新 | 注文の進行状況を次の段階（確定・出荷済・キャンセル）に更新し、社内の後続処理を進められるようにする | 受注担当者・出荷担当者 |\n\n## §4 業務ルール\n\n| キー | ルール内容 | 適用条件 | 例外 |\n|---|---|---|---|\n| 遷移-下書きから確定 | 下書き状態の注文は、明細内容を確認したうえで確定状態へ進めることができる | ステータスが下書きで、明細が1件以上ある場合 | 明細が1件もない注文は確定できない |\n| 遷移-確定から出荷済 | 確定状態の注文は、出荷作業の完了後に出荷済状態へ進めることができる | ステータスが確定の場合 | なし |\n| 遷移-キャンセル制限 | 出荷済の注文はキャンセルできず、下書きまたは確定状態の注文のみキャンセルできる | ステータスが下書きまたは確定の場合 | 出荷済の注文はキャンセル不可 |\n\n## §5 入出力の業務的意味\n\n### 5.1 入力（利用者が入力・選択する情報）\n\n| キー | 項目名 | 業務上の意味 | 必須性 |\n|---|---|---|---|\n| 更新-次ステータス | 更新後ステータス | ステータス更新操作で選択する遷移先の状態 | 必須（更新操作を行う場合） |\n| 更新-備考 | 更新備考 | ステータス更新の理由や補足事項を記録するための自由記述 | 任意 |\n\n### 5.2 出力（画面が提示する情報）\n\n| キー | 項目名 | 業務上の意味 | 提示形式の業務要件 |\n|---|---|---|---|\n| 詳細-受注番号 | 受注番号 | 表示中の注文を識別する管理番号 | 詳細 |\n| 詳細-顧客情報 | 顧客情報 | 注文した顧客の氏名・連絡先 | 詳細 |\n| 詳細-商品明細 | 商品明細 | 注文に含まれる商品名・数量・単価・小計の一覧 | 詳細（明細ごとに行を分けて表示） |\n| 詳細-配送先 | 配送先情報 | 商品を届ける住所と配送方法 | 詳細 |\n| 詳細-ステータス履歴 | ステータス変更履歴 | いつ誰がどの状態に変更したかの記録 | 詳細（更新日時の新しい順で表示） |\n\n## §6 画面遷移の業務文脈\n\n| 遷移元画面 | 引き継ぐ業務情報 | 遷移先画面 | 引き渡す業務情報 | 遷移する業務上の契機 |\n|---|---|---|---|---|\n| 注文一覧 | 選択した注文の受注番号 | 注文詳細（自画面） | 表示対象の注文情報 | 一覧の行をクリックしたとき |\n| 注文詳細（自画面） | 更新後の注文ステータス | 注文一覧 | 更新結果を反映させる指示 | 一覧へ戻る操作をしたとき |"</script>
 
@@ -546,7 +785,6 @@
     var container = document.getElementById('doc-content');
     var heroTitle = document.getElementById('dp-hero-title');
     var tocList = document.getElementById('toc-list');
-    var colors = ['accent', 'success', 'gold', 'danger', 'highlight', 'accent'];
 
     // 最初の h1 はヒーローへ移し、本文からは除去する
     var h1 = container.querySelector('h1');
@@ -566,7 +804,7 @@
       var normalized = text.trim();
       if (normalized.normalize) normalized = normalized.normalize('NFKC');
       normalized = normalized.toLowerCase()
-        .replace(/[^a-z0-9\u3040-\u30ff\u3400-\u9fff._~-]+/g, '-')
+        .replace(/[^a-z0-9぀-ヿ㐀-鿿._~-]+/g, '-')
         .replace(/-+/g, '-')
         .replace(/^-|-$/g, '');
       return normalized || 'section';
@@ -583,7 +821,6 @@
         id = baseId + '-' + duplicate;
         duplicate += 1;
       }
-      var color = colors[idx % colors.length];
 
       var section = document.createElement('section');
       section.className = 'sec-block';
@@ -591,7 +828,6 @@
 
       var label = document.createElement('div');
       label.className = 'sec-label';
-      label.setAttribute('data-color', color);
       label.textContent = text;
       section.appendChild(label);
 
@@ -622,9 +858,9 @@
       var a = document.createElement('a');
       a.className = 'toc-link';
       a.href = '#' + id;
-      var label = document.createElement('span');
-      label.textContent = text;
-      a.appendChild(label);
+      var label2 = document.createElement('span');
+      label2.textContent = text;
+      a.appendChild(label2);
       li.appendChild(a);
       tocList.appendChild(li);
     });
@@ -688,10 +924,6 @@
         if (window.history && window.history.pushState) window.history.pushState(null, '', href);
         else window.location.hash = fragmentToId(href);
       }
-      var sb = document.getElementById('sidebar');
-      if (sb) sb.classList.remove('open');
-      var toggle = document.getElementById('tocToggle');
-      if (toggle) toggle.setAttribute('aria-expanded', 'false');
     });
   });
 
@@ -708,42 +940,6 @@
       }
     });
   });
-
-  var tocToggle = document.getElementById('tocToggle');
-  if (tocToggle) {
-    tocToggle.setAttribute('aria-label', '目次を開閉');
-    tocToggle.setAttribute('aria-controls', 'sidebar');
-    tocToggle.setAttribute('aria-expanded', 'false');
-    tocToggle.addEventListener('click',function(){
-      var sb = document.getElementById('sidebar');
-      if (sb) {
-        var isOpen = sb.classList.toggle('open');
-        tocToggle.setAttribute('aria-expanded', String(isOpen));
-      }
-    });
-  }
-
-  var themeBtn = document.getElementById('theme-toggle');
-  var themeIcon = document.getElementById('theme-icon');
-  var themeLabel = document.getElementById('theme-label');
-  if (themeBtn) {
-    themeBtn.addEventListener('click', function () {
-      var r = document.documentElement;
-      var next = r.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-      r.setAttribute('data-theme', next);
-      if (themeLabel) themeLabel.textContent = next === 'dark' ? 'ダーク' : 'ライト';
-      if (themeIcon) themeIcon.textContent = next === 'dark' ? 'dark_mode' : 'light_mode';
-      try { localStorage.setItem('rd-portal-theme', next); } catch (e) {}
-    });
-  }
-  try {
-    var saved = localStorage.getItem('rd-portal-theme');
-    if (saved) {
-      document.documentElement.setAttribute('data-theme', saved);
-      if (themeLabel) themeLabel.textContent = saved === 'dark' ? 'ダーク' : 'ライト';
-      if (themeIcon) themeIcon.textContent = saved === 'dark' ? 'dark_mode' : 'light_mode';
-    }
-  } catch (e) {}
 })();
 </script>
 </body>

@@ -112,15 +112,16 @@ Glob / Read で実在ファイルを確認し、対象画面の `<output_dir>/�
 
 ## Step 3-1: テンプレートのレンダリング
 
-以下のように Bash から `render_template` を呼び出し、Write で `<output_dir>/画面/screen-<ID>/シーケンス図.html` を生成する。`render-template.sh` は bash 関数を提供するのみで CLI エントリポイントを持たないため、Bash ツールから以下のようなインライン bash で実行する（新規 `.sh` ファイルは作らない）。
+以下のように Bash から `render_template` を呼び出し、Write で `<output_dir>/画面/screen-<ID>/シーケンス図.html` を生成する。`render-template.sh` は bash 関数を提供するのみで CLI エントリポイントを持たないため、Bash ツールから以下のようなインライン bash で実行する（新規 `.sh` ファイルは作らない）。他ページと共通の階層サイドバー・フッター（partials）も `shell-injection.sh` の `shell_injection_args` で注入する。
 
   ```bash
   bash -c '
     source "<スキルフォルダ>/../../../shared/scripts/render-template.sh"
+    . "<スキルフォルダ>/../../../shared/scripts/shell-injection.sh"
     template="$(cat "<スキルフォルダ>/../../../shared/templates/screen-sequence-template.html")"
     tokens_css="$(cat "<スキルフォルダ>/../../../shared/templates/tokens.css")"
     page_data="$(cat "<output_dir>/画面/screen-<ID>/シーケンス図-data.json")"
-    out="$(render_template "$template" \
+    render_args=(
       "{{PROJECT_NAME}}" "<プロジェクト名>" \
       "{{GENERATED_DATE}}" "<YYYY-MM-DD>" \
       "{{COMMIT_SHORT}}" "<（空文字可）>" \
@@ -128,7 +129,13 @@ Glob / Read で実在ファイルを確認し、対象画面の `<output_dir>/�
       "{{DOC_NAV}}" "<Phase 2で確定したdoc_nav文字列>" \
       "{{SCREEN_LABEL}}" "<画面ラベル>" \
       "/* TOKENS_CSS */" "$tokens_css" \
-      "{{PAGE_DATA_JSON}}" "$page_data")"
+      "{{PAGE_DATA_JSON}}" "$page_data"
+    )
+    shell_injection_args "<スキルフォルダ>/../../../shared/templates" "<スキルフォルダ>/../../../shared/templates/../references/portal-catalog.json" "<ポータルindex.htmlへの相対パス>" "<プロジェクト名>" "<YYYY-MM-DD>" "<（空文字可）>" "generating-sequence-diagram-for-reverse-docs" "list"
+    if [ ${#SHELL_RENDER_ARGS[@]} -gt 0 ]; then
+      render_args+=("${SHELL_RENDER_ARGS[@]}")
+    fi
+    out="$(render_template "$template" "${render_args[@]}")"
     printf "%s\n" "$out" > "<output_dir>/画面/screen-<ID>/シーケンス図.html"
   '
   ```

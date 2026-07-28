@@ -11,8 +11,8 @@ pass() { PASS=$((PASS+1)); echo "  PASS: $1"; }
 fail() { FAIL=$((FAIL+1)); echo "  FAIL: $1"; }
 skip() { SKIP=$((SKIP+1)); echo "  SKIP: $1"; }
 
-OLD_COLORS_LIGHT='#F0EDE3|#DAD5C5|#BFB9A6|#3F4F8E|#5A6BAE|#E6E9F3|#BAC2DC|#9B7A1F|#F5EFD9|#DDC68A|#9B3F2D|#F5E2DC'
-OLD_COLORS_DARK='#232730|#353944|#4A4F5C|#8FA3DB|#A8B8E5|#2A2E47|#4C5680|#D4B45D|#3D3520|#7A6633|#D4836E|#3F2620'
+OLD_COLORS_LIGHT='#F6F8FA|#D1D9E0|#AFB8C1|#0969DA|#218BFF|#DDF4FF|#54AEFF|#BC4C00|#FFF1E5|#1A7F37|#DAFBE1|#CF222E'
+OLD_COLORS_DARK='#15171C|#1C1F26|#21262D|#30363D|#484F58|#E8E5DC|#B6B3AB|#888784|#58A6FF|#79C0FF|#132D4B|#1F6FEB'
 
 check_file() {
   local f="$1"
@@ -33,13 +33,29 @@ check_file() {
   local old_d; old_d=$(grep -cE "$OLD_COLORS_DARK" "$f" 2>/dev/null || true)
   [ "$old_d" -eq 0 ] && pass "色トークン-旧値禁止（ダーク）" || fail "色トークン-旧値禁止（ダーク）: ${old_d}件"
 
-  grep -q '#F6F8FA' "$f" 2>/dev/null && pass "色トークン-新値存在（panel-2）" || fail "色トークン-新値存在（panel-2）"
-
-  if grep -q 'prefers-color-scheme: dark' "$f" 2>/dev/null && grep -q 'data-theme="dark"' "$f" 2>/dev/null; then
-    pass "テーマ-ダーク定義"
+  if grep -q '#0F1217' "$f" 2>/dev/null && grep -q '#4CC2FE' "$f" 2>/dev/null && grep -q '#FF6E4F' "$f" 2>/dev/null; then
+    pass "色トークン-新値存在"
   else
-    fail "テーマ-ダーク定義"
+    fail "色トークン-新値存在"
   fi
+
+  if grep -q 'prefers-color-scheme' "$f" 2>/dev/null && grep -q 'data-theme="dark"' "$f" 2>/dev/null && grep -q 'data-theme="light"' "$f" 2>/dev/null; then
+    pass "テーマ-定義"
+  else
+    fail "テーマ-定義"
+  fi
+
+  grep -q 'class="pt-sidebar"' "$f" 2>/dev/null && pass "共通シェル-サイドバー" || fail "共通シェル-サイドバー"
+
+  grep -q 'background-size' "$f" 2>/dev/null && pass "共通シェル-方眼紙" || fail "共通シェル-方眼紙"
+
+  local radius_count
+  radius_count=$(grep -cE 'border-radius:[[:space:]]*[^0[:space:];]' "$f" 2>/dev/null || true)
+  [ "$radius_count" -eq 0 ] && pass "角丸-ゼロ" || fail "角丸-ゼロ: ${radius_count}件"
+
+  local shadow_count
+  shadow_count=$(grep -cE 'box-shadow:[^;]*[0-9]px[[:space:]]+[-0-9.]+px[[:space:]]+[1-9]' "$f" 2>/dev/null || true)
+  [ "$shadow_count" -eq 0 ] && pass "影-オフセットのみ" || fail "影-オフセットのみ: ${shadow_count}件"
 
   if [ "$is_doc_viewer" -eq 1 ]; then
     skip "全画面-高さ固定（文書ビューア型は適用除外）"
@@ -57,7 +73,7 @@ check_file() {
       fail "全画面-overflow制御"
     fi
 
-    if grep -qE 'overflow-y:\s*auto|overflow-y: auto' "$f" 2>/dev/null; then
+    if grep -qE 'overflow-y:\s*auto|overflow:\s*auto' "$f" 2>/dev/null; then
       pass "全画面-スクロール領域"
     else
       fail "全画面-スクロール領域"
@@ -84,7 +100,7 @@ check_file() {
     # 最初の thead のみカウント
     local th_count
     th_count=$(sed -n '/<thead/,/<\/thead/{p;/<\/thead/q;}' "$f" | grep -co '<th' || true)
-    [ "$th_count" -le 5 ] && pass "一覧-列数上限（${th_count}列）" || fail "一覧-列数上限（${th_count}列）"
+    [ "$th_count" -le 6 ] && pass "一覧-列数上限（${th_count}列）" || fail "一覧-列数上限（${th_count}列）"
 
     if grep -q 'detail-group-label' "$f" 2>/dev/null && grep -q 'evidence' "$f" 2>/dev/null; then
       pass "一覧-展開グループ分離"

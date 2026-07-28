@@ -10,21 +10,20 @@
     unit_kind=screen の場合は本テンプレートを使わず screen-list-template.html を使う
     (build-unit-list.sh が build-screen-list.sh に委譲する)。
 
-  保守注記: トークンブロック・テーマ切替(data-theme二重定義・rd-portal-theme)は
-  shared/templates/detail-pages/detail-t3-attributes.html(同portal-template.html)からの複製である。
-  同ファイルの当該部分を変更した場合は本ファイルも同時更新すること
-  (feature-list-template.html・screen-list-template.htmlにも同種の複製あり。include化は別件)。
+  保守注記: トークン・共通シェル(サイドバー・フッター・全画面レイアウトのCSS)は
+  shared/templates/partials 配下の共通ファイルを注入マーカー経由で読み込む。
+  テーマ切替はサイドバー側に一本化されており、本テンプレートに複製は無い。
 
   プレースホルダ(build-unit-list.shが注入。実際のマーカー記法は
   scripts/build-unit-list.sh 冒頭コメントを正本とする。本コメントでは
   二重置換事故を避けるため意図的に波括弧・HTMLコメント記法を外して記載する):
-    UNIT_KIND_LABEL (種別ラベルマーカー)        : screen=画面/api=API/table=テーブル/batch=バッチ/report=帳票/external=外部連携
+    UNIT_KIND_LABEL (種別ラベルマーカー)        : screen=画面/api=API/table=テーブル/batch=バッチ/report=帳票/external=外部連携/message=メッセージ/test_viewpoint=テスト観点
     GENERATED_AT (生成日時マーカー)             : ISO8601 生成日時
     UNIT_COUNT (ユニット数タイルマーカー)       : detectionSummary.unitCount
     UNRESOLVED_COUNT (要確認数タイルマーカー)   : detectionSummary.unresolvedCount
     UNIT_TABLE_ROWS (ユニットテーブル行マーカー): kind!=unresolved の行を1ユニットごとに挿入
     UNRESOLVED_SECTION (要手動確認セクションマーカー) : kind=unresolved の一覧テーブル、0件なら「なし」の文言
-    MANIFEST_JSON (マニフェストJSON埋め込みマーカー) : manifest.json の内容をそのまま埋め込み(二重管理・ドリフト禁止)
+    MANIFEST_JSON (マニフェストJSON埋め込みマーカー) : manifest.json とJSON値が同値な安全エスケープ済みJSONを埋め込み(二重管理・ドリフト禁止)
 
   テーブル列順(固定・全3列): <ラベル>名 / 識別子 / 区分(種別固有列はJSのFIELD_SETSが動的追加)。
   行の<tr>には data-unit-id / data-unit-key 属性を持たせ、展開行JSがマニフェストJSONから
@@ -32,7 +31,7 @@
 
   制約:
     - 外部リソース(CDN・フォント・画像)は一切使わない。単一ファイル自己完結
-    - <script id="unit-manifest"> の中身は確定結果(manifest.json)と完全に一致させる
+    - <script id="unit-manifest"> のJSON.parse結果は確定結果(manifest.json)と完全に一致させる。文字列中のHTML危険文字はJSONエスケープを許容する
     - 本テンプレートは<ラベル>一覧.HTMLの生成のみを対象とする。設計書の雛形展開・生成は本スキルの範囲外
 -->
 <html lang="ja">
@@ -41,122 +40,386 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>API一覧</title>
 <style>
-  :root,
-[data-theme="light"] {
-  /* Windows フォント上書き防止 */
+  /* 設計ポータルのデザイントークン。
+   本ファイルの全文が、ビルド時に各テンプレートのトークン注入マーカーへ差し込まれる。
+   既定はダークテーマ。ライトは OS 設定または data-theme="light" で切り替える。
+   色は 26 種の基本トークンだけをテーマ別に定義し、
+   既存の別名トークンは var() 参照でテーマへ自動追従させる。 */
+
+:root {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
   font-synthesis: none;
-  --bg: #FFFFFF;
-  --panel: #FFFFFF;
-  --panel-2: #F6F8FA;
-  --border: #D1D9E0;
-  --border-strong: #AFB8C1;
-  --text: #1B1F26;
-  --text-sub: #4A4F58;
-  --text-muted: #767B85;
-  --accent: #0969DA;
-  --accent-2: #218BFF;
-  --accent-soft: #DDF4FF;
-  --accent-border: #54AEFF;
-  --gold: #BC4C00;
-  --gold-soft: #FFF1E5;
-  --gold-border: #D18A5A;
-  --success: #1A7F37;
-  --success-soft: #DAFBE1;
-  --warn: #BC4C00;
-  --danger: #CF222E;
-  --danger-soft: #FFEBE9;
-  --highlight: #D97B1A;
-  --highlight-soft: rgba(217,123,26,0.12);
-  --highlight-border: rgba(217,123,26,0.5);
-  --nav-tag: #7B8BBF;
-  --nav-tag-soft: #ECEEF6;
-  --self-tag: #6B9B6B;
-  --self-tag-soft: #E8F0E8;
-  --code-bg: #1B1F26;
-  --code-fg: #E8E5DC;
-  --cat-list: #2563eb;
-  --cat-common: #059669;
-  --cat-project: #7C3AED;
+
+  /* 基本色（ダーク） */
+  --bg: #0F1217;
+  --panel: #161C23;
+  --panel2: #1C232E;
+  --panel3: #141A23;
+  --line: #2B3443;
+  --line2: #3A4658;
+  --text: #E7ECF4;
+  --sub: #A8B3C3;
+  --muted: #8A96A7;
+  --faint: #5B6574;
+  --accent: #4CC2FE;
+  --accent-hi: #9ADCFF;
+  --accent-soft: rgba(76,194,255,0.17);
+  --stamp: #FF6E4F;
+  --stamp-soft: rgba(255,110,78,0.16);
+  --green: #4ADE81;
+  --green-soft: rgba(74,222,129,0.16);
+  --grid: rgba(255,255,255,0.036);
+  --head: #202B3B;
+  --headtext: #E7ECF4;
+  --code: #0B0E13;
+  --codetext: #C9E8FF;
+  --navon: #EAF6FF;
+  --chipontext: #0F1217;
+  --rowopen: #1A212B;
+  --neutral-soft: rgba(255,255,255,0.06);
+
+  /* 別名。既存テンプレートの参照を壊さないために残す。値は基本色を参照するのでテーマに自動追従する */
+  --panel-2: var(--panel2);
+  --border: var(--line);
+  --border-strong: var(--line2);
+  --text-sub: var(--sub);
+  --text-muted: var(--muted);
+  --accent-2: var(--accent-hi);
+  --accent-border: var(--accent);
+  --gold: var(--stamp);
+  --gold-soft: var(--stamp-soft);
+  --gold-border: var(--stamp);
+  --warn: var(--stamp);
+  --danger: var(--stamp);
+  --danger-soft: var(--stamp-soft);
+  --success: var(--green);
+  --success-soft: var(--green-soft);
+  --highlight: var(--accent);
+  --highlight-soft: var(--accent-soft);
+  --highlight-border: var(--accent);
+  --nav-tag: var(--faint);
+  --nav-tag-soft: var(--neutral-soft);
+  --self-tag: var(--green);
+  --self-tag-soft: var(--green-soft);
+  --code-bg: var(--code);
+  --code-fg: var(--codetext);
+  --cat-list: var(--accent);
+  --cat-standards: var(--accent);
+  --cat-design: var(--accent);
+  --cat-project: var(--accent);
+
+  /* 非色トークン。テーマで変えない */
   --font-body: "Hiragino Kaku Gothic ProN","Hiragino Sans","Noto Sans JP","BIZ UDPGothic","Yu Gothic","Meiryo",system-ui,-apple-system,sans-serif;
   --mono: "SFMono-Regular","Menlo","Cascadia Code","Consolas",monospace;
-  --shadow-sm: 0 1px 3px rgba(27,31,38,.07), 0 2px 6px rgba(27,31,38,.05);
-  --shadow-md: 0 2px 8px rgba(27,31,38,.09), 0 8px 24px rgba(27,31,38,.07);
-  --radius: 10px;
-  --radius-sm: 6px;
+  --radius: 0;
+  --radius-sm: 0;
+  --shadow-sm: 3px 3px 0 var(--accent-soft);
+  --shadow-md: 4px 4px 0 var(--accent-soft);
+  --sidebar-w: 248px;
+  --page-gutter: 40px;
+  --grid-size: 24px;
 }
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg: #15171C; --panel: #1C1F26; --panel-2: #21262D;
-    --border: #30363D; --border-strong: #484F58;
-    --text: #E8E5DC; --text-sub: #B6B3AB; --text-muted: #888784;
-    --accent: #58A6FF; --accent-2: #79C0FF; --accent-soft: #132D4B; --accent-border: #1F6FEB;
-    --gold: #DB6D28; --gold-soft: #311D08; --gold-border: #7A3E0D;
-    --success: #3FB950; --success-soft: #0D2818;
-    --warn: #DB6D28; --danger: #F85149; --danger-soft: #3D1214;
-    --highlight: #E8943A; --highlight-soft: rgba(232,148,58,0.15); --highlight-border: rgba(232,148,58,0.5);
-    --nav-tag: #8E9ED0; --nav-tag-soft: rgba(142,158,208,0.15);
-    --self-tag: #7DB87D; --self-tag-soft: rgba(125,184,125,0.15);
-    --code-bg: #0E1116; --code-fg: #E8E5DC;
-    --cat-list: #60A5FA; --cat-common: #34D399; --cat-project: #A78BFA;
+
+/* OS がライト設定で、かつダークを明示指定していない場合 */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg: #F1F4F8;
+    --panel: #FFFFFF;
+    --panel2: #E9EEF4;
+    --panel3: #F7F9FC;
+    --line: #D8DFE8;
+    --line2: #243040;
+    --text: #1A222E;
+    --sub: #4B5A70;
+    --muted: #6C7A8E;
+    --faint: #9AA7B6;
+    --accent: #0284C7;
+    --accent-hi: #075985;
+    --accent-soft: rgba(2,132,199,0.10);
+    --stamp: #D9482B;
+    --stamp-soft: rgba(217,72,43,0.12);
+    --green: #15803D;
+    --green-soft: rgba(21,128,61,0.16);
+    --grid: rgba(16,34,64,0.05);
+    --head: #243040;
+    --headtext: #F1F4F8;
+    --code: #101722;
+    --codetext: #C9E8FF;
+    --navon: #102A43;
+    --chipontext: #FFFFFF;
+    --rowopen: #F0F4F9;
+    --neutral-soft: rgba(16,34,64,0.06);
   }
 }
+
+/* ユーザーがライトを明示指定した場合 */
+[data-theme="light"] {
+  --bg: #F1F4F8;
+  --panel: #FFFFFF;
+  --panel2: #E9EEF4;
+  --panel3: #F7F9FC;
+  --line: #D8DFE8;
+  --line2: #243040;
+  --text: #1A222E;
+  --sub: #4B5A70;
+  --muted: #6C7A8E;
+  --faint: #9AA7B6;
+  --accent: #0284C7;
+  --accent-hi: #075985;
+  --accent-soft: rgba(2,132,199,0.10);
+  --stamp: #D9482B;
+  --stamp-soft: rgba(217,72,43,0.12);
+  --green: #15803D;
+  --green-soft: rgba(21,128,61,0.16);
+  --grid: rgba(16,34,64,0.05);
+  --head: #243040;
+  --headtext: #F1F4F8;
+  --code: #101722;
+  --codetext: #C9E8FF;
+  --navon: #102A43;
+  --chipontext: #FFFFFF;
+  --rowopen: #F0F4F9;
+  --neutral-soft: rgba(16,34,64,0.06);
+}
+
+/* ユーザーがダークを明示指定した場合。OS がライトでも :root の既定値へ戻す */
 [data-theme="dark"] {
-  --bg: #15171C; --panel: #1C1F26; --panel-2: #21262D;
-  --border: #30363D; --border-strong: #484F58;
-  --text: #E8E5DC; --text-sub: #B6B3AB; --text-muted: #888784;
-  --accent: #58A6FF; --accent-2: #79C0FF; --accent-soft: #132D4B; --accent-border: #1F6FEB;
-  --gold: #DB6D28; --gold-soft: #311D08; --gold-border: #7A3E0D;
-  --success: #3FB950; --success-soft: #0D2818;
-  --warn: #DB6D28; --danger: #F85149; --danger-soft: #3D1214;
-  --highlight: #E8943A; --highlight-soft: rgba(232,148,58,0.15); --highlight-border: rgba(232,148,58,0.5);
-  --nav-tag: #8E9ED0; --nav-tag-soft: rgba(142,158,208,0.15);
-  --self-tag: #7DB87D; --self-tag-soft: rgba(125,184,125,0.15);
-  --code-bg: #0E1116; --code-fg: #E8E5DC;
-  --cat-list: #60A5FA; --cat-common: #34D399; --cat-project: #A78BFA;
+  --bg: #0F1217;
+  --panel: #161C23;
+  --panel2: #1C232E;
+  --panel3: #141A23;
+  --line: #2B3443;
+  --line2: #3A4658;
+  --text: #E7ECF4;
+  --sub: #A8B3C3;
+  --muted: #8A96A7;
+  --faint: #5B6574;
+  --accent: #4CC2FE;
+  --accent-hi: #9ADCFF;
+  --accent-soft: rgba(76,194,255,0.17);
+  --stamp: #FF6E4F;
+  --stamp-soft: rgba(255,110,78,0.16);
+  --green: #4ADE81;
+  --green-soft: rgba(74,222,129,0.16);
+  --grid: rgba(255,255,255,0.036);
+  --head: #202B3B;
+  --headtext: #E7ECF4;
+  --code: #0B0E13;
+  --codetext: #C9E8FF;
+  --navon: #EAF6FF;
+  --chipontext: #0F1217;
+  --rowopen: #1A212B;
+  --neutral-soft: rgba(255,255,255,0.06);
+}
+  /* 設計ポータルの共通シェル。サイドバー・メインペイン・フッター・方眼紙背景・ページヘッダの
+   共通クラスを定義する。色と寸法は tokens.css のトークンだけを参照し、実値を直書きしない。
+   本ファイルの全文は、ビルド時に各テンプレートのシェル注入マーカーへ差し込まれる。 */
+
+.pt {
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 13px;
+  line-height: 1.7;
+}
+.pt *, .pt *::before, .pt *::after { box-sizing: border-box; }
+.pt a { color: var(--accent); text-decoration: none; }
+.pt a:hover { color: var(--accent-hi); text-decoration: underline; }
+.pt ::selection { background: var(--accent-soft); }
+.pt :focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+.pt-grid {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background-image:
+    linear-gradient(var(--grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: var(--grid-size) var(--grid-size);
 }
 
-  html { height: 100vh; }
-  * { box-sizing: border-box; }
-  body {
-    margin: 0; padding: 0 24px 0;
-    font-family: var(--font-body);
-    line-height: 1.7; color: var(--text); background: var(--bg);
-    max-width: 1180px; margin-inline: auto;
-    height: 100%; overflow: hidden; display: flex; flex-direction: column;
-  }
-  .table-area { flex: 1; min-height: 0; overflow-y: auto; }
-  .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-  table.units thead { position: sticky; top: 0; z-index: 3; }
-  header { padding: 40px 0 20px; border-bottom: 3px solid var(--border-strong); }
-  .header-top { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
-  header h1 { font-size: 1.7rem; margin: 0 0 10px; }
-  .theme-toggle-btn {
-    background: var(--panel-2); border: 1px solid var(--border); border-radius: var(--radius-sm);
-    color: var(--text-sub); cursor: pointer; padding: 5px 12px; font-size: 0.82rem; font-family: inherit;
-  }
-  .theme-toggle-btn:hover { background: var(--accent-soft); color: var(--accent); border-color: var(--accent-border); }
-  .meta-table { font-size: 0.88rem; color: var(--text-sub); border-collapse: collapse; }
-  .meta-table td { padding: 2px 18px 2px 0; vertical-align: top; }
-  .meta-table td:first-child { color: var(--text-muted); white-space: nowrap; }
+.pt-row {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  align-items: stretch;
+}
 
-  .summary-tiles { display: flex; gap: 14px; margin: 20px 0; flex-wrap: wrap; }
+/* サイドバー */
+.pt-sidebar {
+  width: var(--sidebar-w);
+  flex: none;
+  border-right: 1.5px solid var(--line2);
+  background: var(--panel3);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+.pt-brand { padding: 20px 20px 16px; border-bottom: 1.5px solid var(--line2); }
+.pt-brand-stamp { font-family: var(--mono); font-size: 10px; letter-spacing: 3px; color: var(--stamp); font-weight: 600; }
+.pt-brand-name { font-size: 16px; font-weight: 700; letter-spacing: 0.5px; margin-top: 4px; line-height: 1.35; }
+.pt-brand-sub { font-family: var(--mono); font-size: 10.5px; color: var(--muted); margin-top: 5px; }
+
+.pt-nav { padding: 14px 12px; display: flex; flex-direction: column; gap: 2px; }
+.pt-nav-group { font-family: var(--mono); font-size: 9.5px; letter-spacing: 2px; color: var(--faint); padding: 14px 10px 5px; }
+.pt-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  font-size: 12.5px;
+  color: var(--sub);
+  border-left: 3px solid transparent;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.pt-nav-item:hover { background: var(--panel2); color: var(--text); text-decoration: none; }
+.pt-nav-item.is-active { color: var(--navon); background: var(--accent-soft); border-left-color: var(--accent); font-weight: 600; }
+.pt-nav-num { font-family: var(--mono); font-size: 10px; color: var(--muted); }
+.pt-nav-count { margin-left: auto; font-family: var(--mono); font-size: 10px; color: var(--faint); font-variant-numeric: tabular-nums; }
+
+.pt-theme {
+  margin: auto 12px 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: calc(100% - 24px);
+  border: 1px solid var(--line2);
+  background: transparent;
+  padding: 8px 12px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--sub);
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.pt-theme:hover { border-color: var(--accent); color: var(--accent); }
+.pt-theme-next { font-family: var(--mono); font-size: 10px; color: var(--faint); }
+.pt-sidebar-meta { padding: 14px 20px; font-family: var(--mono); font-size: 10px; color: var(--muted); line-height: 1.9; }
+
+/* メインペイン */
+.pt-main {
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+  padding: 0 var(--page-gutter) 72px;
+}
+.pt-main.is-fixed { overflow-y: hidden; display: flex; flex-direction: column; padding-bottom: 24px; }
+
+/* ページヘッダ */
+.pt-head { flex: none; padding: 32px 0 16px; border-bottom: 2px solid var(--line2); }
+.pt-crumb { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+.pt-crumb-current { color: var(--text); }
+.pt-title-row { display: flex; align-items: baseline; gap: 16px; margin-top: 10px; flex-wrap: wrap; }
+.pt-title { margin: 0; font-size: 26px; font-weight: 700; letter-spacing: 1px; }
+.pt-title-sub { font-size: 12px; color: var(--muted); }
+
+/* 汎用パーツ */
+.pt-panel { background: var(--panel); border: 1.5px solid var(--line2); }
+.pt-input {
+  border: 1.5px solid var(--line2);
+  background: var(--panel);
+  padding: 8px 13px;
+  font-family: var(--font-body);
+  font-size: 12.5px;
+  color: var(--text);
+  outline: none;
+  transition: all 0.12s;
+}
+.pt-input:focus { border-color: var(--accent); box-shadow: 3px 3px 0 var(--accent-soft); }
+.pt-seg { display: flex; border: 1px solid var(--line2); }
+.pt-seg button {
+  border: 0;
+  border-right: 1px solid var(--line);
+  padding: 7px 16px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  background: var(--panel);
+  color: var(--sub);
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.pt-seg button:last-child { border-right: 0; }
+.pt-seg button.is-active { background: var(--accent); color: var(--chipontext); }
+.pt-chip { font-size: 11px; border: 1px solid var(--line); background: var(--panel3); padding: 2px 8px; font-family: var(--mono); }
+.pt-badge { font-size: 10.5px; font-weight: 600; padding: 2px 9px; }
+.pt-badge.is-done { color: var(--accent); background: var(--accent-soft); }
+.pt-badge.is-stale { color: var(--stamp); background: var(--stamp-soft); }
+.pt-badge.is-todo { color: var(--muted); background: var(--neutral-soft); }
+.pt-count { font-family: var(--mono); font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+/* 表 */
+.pt-tablewrap { flex: 0 1 auto; min-height: 0; overflow: auto; border: 1.5px solid var(--line2); background: var(--panel); }
+.pt-tablewrap table { width: 100%; border-collapse: separate; border-spacing: 0; }
+.pt-tablewrap thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--head);
+  color: var(--headtext);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-align: left;
+  padding: 9px 14px;
+}
+.pt-tablewrap tbody td { border-top: 1px solid var(--line); padding: 10px 14px; font-size: 13px; }
+.pt-tablewrap tbody tr:hover td { background: var(--panel3); }
+.pt-tablewrap tbody tr.is-open td { background: var(--rowopen); }
+.pt-mono { font-family: var(--mono); font-size: 11.5px; color: var(--sub); }
+
+/* フッター */
+.pt-footer {
+  position: relative;
+  z-index: 1;
+  flex: none;
+  border-top: 1.5px solid var(--line2);
+  background: var(--panel3);
+  padding: 12px var(--page-gutter);
+  display: flex;
+  gap: 20px;
+  align-items: baseline;
+  flex-wrap: wrap;
+}
+.pt-footer-stamp { font-family: var(--mono); font-size: 10.5px; letter-spacing: 2px; color: var(--stamp); font-weight: 600; }
+.pt-footer-meta { font-family: var(--mono); font-size: 10.5px; color: var(--muted); }
+.pt-footer-gen { margin-left: auto; font-size: 10.5px; color: var(--muted); }
+
+@media (prefers-reduced-motion: reduce) {
+  .pt *, .pt *::before, .pt *::after { transition: none !important; }
+}
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+
+  .summary-tiles { display: flex; gap: 14px; margin: 16px 0 0; flex-wrap: wrap; }
   .tile {
-    background: var(--panel); border: 1px solid var(--border); border-radius: 8px;
+    flex: 1; background: var(--panel); border: 1.5px solid var(--line2);
     padding: 10px 18px; font-size: 0.85rem; color: var(--text-sub);
   }
   .tile strong { display: block; font-size: 1.3rem; color: var(--text); }
 
-  .toolbar { display: flex; gap: 10px; margin: 24px 0 10px; align-items: center; flex-wrap: wrap; }
-  .toolbar input[type="search"] {
-    flex: 1; min-width: 220px; padding: 8px 12px; font-size: 0.92rem;
-    border: 1px solid var(--border); border-radius: 6px;
-  }
+  .toolbar-area { flex-shrink: 0; padding: 8px 0; }
+  .toolbar { display: flex; gap: 10px; margin: 10px 0; align-items: center; flex-wrap: wrap; }
+  .toolbar input[type="search"] { flex: 1; min-width: 220px; }
   .toolbar .note { font-size: 0.82rem; color: var(--text-muted); }
 
-  section.module-group { margin: 18px 0; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 16px 20px; min-width: 0; }
+  .table-area { flex: 1; min-height: 0; overflow-y: auto; }
+  .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  table.units thead { position: sticky; top: 0; z-index: 3; }
+
+  section.module-group { margin: 18px 0; background: var(--panel); border: 1.5px solid var(--line2); padding: 16px 20px; min-width: 0; }
   section.module-group h2 { font-size: 1.05rem; margin: 0 0 12px; }
 
   table.units, table.screens {
@@ -176,7 +439,7 @@
   table.units th:hover, table.screens th:hover { background: var(--accent-soft); cursor: pointer; }
   table.units td code {
     font-family: var(--mono);
-    font-size: 0.85em; background: var(--panel-2); padding: 1px 5px; border-radius: 3px;
+    font-size: 0.85em; background: var(--panel-2); padding: 1px 5px;
   }
 
   /* 列幅の明示指定（data-key属性でシェブロン列挿入に影響されない） */
@@ -212,30 +475,21 @@
   }
 
   td code { overflow-wrap: break-word; word-break: break-all; }
-  .badge { display: inline-block; font-size: 0.76rem; font-weight: 700; padding: 1px 8px; border-radius: 3px; }
+  .badge { display: inline-block; font-size: 0.76rem; font-weight: 700; padding: 1px 8px; }
   .badge.high   { background: var(--success-soft); color: var(--success); }
   .badge.medium { background: var(--gold-soft); color: var(--gold); }
   .badge.low    { background: var(--accent-soft); color: var(--accent); }
   .badge.kind-generic    { background: var(--accent-soft); color: var(--accent); }
   .badge.kind-unresolved { background: var(--panel-2); color: var(--text-sub); }
 
-  .diag-warn {
-    margin: 16px 0; padding: 12px 18px; background: var(--gold-soft); border: 1px solid var(--gold-border);
-    border-radius: 8px; font-size: 0.86rem; color: var(--gold);
-  }
-  .diag-warn strong { display: block; margin-bottom: 6px; }
-  .diag-warn ul { margin: 0; padding-left: 20px; }
-
-  section.unresolved { margin-top: 24px; border-radius: 8px; padding: 12px 16px; min-width: 0; }
+  section.unresolved { margin-top: 24px; padding: 12px 16px; min-width: 0; }
   section.unresolved.empty { background: var(--panel-2); border: 1px solid var(--border); color: var(--text-muted); }
   section.unresolved.empty h2 { color: var(--text-muted); font-size: 0.95rem; margin: 0; }
   section.unresolved.has-items { background: var(--danger-soft); border: 1px solid var(--danger); color: var(--danger); }
   section.unresolved.has-items h2 { color: var(--danger); font-size: 0.95rem; margin: 0 0 8px; }
 
-  footer { flex-shrink: 0; padding: 8px 0; font-size: 0.75rem; color: var(--text-muted); text-align: center; border-top: 1px solid var(--border); }
-
   .pagination { display: flex; gap: 8px; align-items: center; justify-content: center; margin: 16px 0; font-size: 0.85rem; }
-  .pagination button { background: var(--panel-2); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text-sub); cursor: pointer; padding: 4px 10px; font-family: inherit; font-size: 0.82rem; }
+  .pagination button { background: var(--panel-2); border: 1px solid var(--border); color: var(--text-sub); cursor: pointer; padding: 4px 10px; font-family: inherit; font-size: 0.82rem; }
   .pagination button:hover { background: var(--accent-soft); color: var(--accent); border-color: var(--accent-border); }
   .pagination button:disabled { opacity: 0.4; cursor: not-allowed; }
   .pagination .page-info { color: var(--text-muted); }
@@ -245,15 +499,19 @@
   tr:hover .copy-btn, .copy-btn:focus { opacity: 1; }
   .copy-btn:hover { color: var(--accent); }
   .filter-chips { display: flex; gap: 6px; flex-wrap: wrap; margin: 4px 0 8px; }
-  .chip { font-size: .78rem; padding: 2px 10px; border-radius: 999px; border: 1px solid var(--border); background: var(--panel); color: var(--text-sub); cursor: pointer; }
-  .chip[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent); border-color: var(--accent-border); font-weight: 700; }
+  .chip { font-size: .78rem; padding: 2px 10px; border: 1px solid var(--line2); background: var(--panel); color: var(--text-sub); cursor: pointer; }
+  .chip[aria-pressed="true"] { background: var(--accent); color: var(--chipontext); border-color: var(--accent); font-weight: 700; }
   .chip-label { font-size: .72rem; color: var(--text-muted); align-self: center; margin-left: 8px; }
   .chip-label:first-child { margin-left: 0; }
   tr.row-detail > td { background: var(--panel-2); font-size: .82rem; white-space: normal; border-left: 3px solid var(--accent); }
   .row-detail dl { display: grid; grid-template-columns: max-content 1fr; gap: 2px 12px; margin: 4px 0; }
   .row-detail dt { color: var(--text-muted); }
   .row-detail dd { margin: 0; word-break: break-all; }
-  .csv-btn { white-space: nowrap; }
+  .csv-btn {
+    white-space: nowrap; background: var(--panel-2); border: 1px solid var(--border);
+    color: var(--text-sub); cursor: pointer; padding: 5px 12px; font-size: 0.82rem; font-family: inherit;
+  }
+  .csv-btn:hover { background: var(--accent-soft); color: var(--accent); border-color: var(--accent-border); }
   table.units tbody tr, table.screens tbody tr { cursor: pointer; }
   .expand-cell { transition: color 0.15s; }
   tr:hover .expand-cell { color: var(--accent); }
@@ -267,88 +525,164 @@
   .detail-grid { display: grid; grid-template-columns: max-content 1fr; gap: 3px 14px; }
   .detail-grid dt { color: var(--text-muted); font-size: 0.78rem; white-space: nowrap; }
   .detail-grid dd { margin: 0; font-size: 0.84rem; word-break: break-all; }
-/* ─── 統一ヘッダー ─── */
-.topbar {
-  display: grid; grid-template-columns: auto 1fr auto;
-  align-items: center; gap: 24px; padding: 12px 20px;
-  background: linear-gradient(180deg, var(--panel, #fff) 0%, var(--panel-2, #f8f9fa) 100%);
-  border-bottom: 1px solid var(--border, #dee2e6);
-  position: sticky; top: 0; z-index: 10;
-}
-.brand { display: flex; align-items: baseline; gap: 8px; color: var(--text, #212529); text-decoration: none; }
-.brand:hover { text-decoration: none; }
-.brand-icon { display: inline-flex; align-items: center; }
-.brand-title { font-weight: 700; font-size: 16px; }
-.brand-sub { font-size: 11px; color: var(--text-muted, #6c757d); }
-.header-meta { font-size: 12px; color: var(--text-muted, #6c757d); display: flex; align-items: center; gap: 8px; }
-.top-actions { display: flex; align-items: center; gap: 8px; }
-.top-actions button {
-  background: var(--panel-2, #f8f9fa); border: 1px solid var(--border, #dee2e6); border-radius: var(--radius-sm, 6px);
-  color: var(--text-sub, #495057); cursor: pointer; padding: 8px 16px; font-size: 13px; font-family: inherit;
-  display: inline-flex; align-items: center; gap: 4px;
-}
-.top-actions button:hover { background: var(--accent-soft, #e8f4fd); color: var(--accent, #0969da); border-color: var(--accent-border, #0969da); }
-.topbar { flex-shrink: 0; }
-.page-hero.compact { padding: 12px 0 8px; flex-shrink: 0; }
-.page-hero.compact .header-top { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
-.page-hero.compact h1 { font-size: 1.3rem; margin: 0; }
-.page-hero.compact .summary-tiles { margin: 0; gap: 8px; }
-.page-hero.compact .tile { padding: 4px 12px; font-size: 0.78rem; }
-.page-hero.compact .tile strong { font-size: 1rem; display: inline; margin-right: 4px; }
-.page-hero.compact .meta-inline { font-size: 0.75rem; color: var(--text-muted); margin: 2px 0 0; }
-.toolbar-area { flex-shrink: 0; padding: 8px 0; }
 </style>
 </head>
 <body>
+<div class="pt">
+  <div class="pt-grid"></div>
+  <div class="pt-row">
+    <aside class="pt-sidebar" data-portal-href="../../index.html" data-active-category="list">
+  <div class="pt-brand">
+    <div class="pt-brand-stamp">DESIGN PORTAL</div>
+    <div class="pt-brand-name">reverse-docs-1-62-impl</div>
+    <div class="pt-brand-sub">設計台帳 · 全36資料</div>
+  </div>
+  <nav class="pt-nav" id="pt-nav" aria-label="資料カテゴリ"></nav>
+  <button type="button" class="pt-theme" id="pt-theme-toggle">
+    <span id="pt-theme-label">テーマ: ダーク</span><span class="pt-theme-next" id="pt-theme-next">→ LIGHT</span>
+  </button>
+  <div class="pt-sidebar-meta">更新 <span id="pt-sidebar-date">2026-07-22T00:00:00+09:00</span><span id="pt-meta-commit"><br>コミット </span></div>
+</aside>
+<script type="application/json" id="pt-nav-data">[{"key":"project","num":"01","label":"基盤情報","count":4},{"key":"standards","num":"02","label":"規約","count":6},{"key":"design","num":"03","label":"設計書","count":5},{"key":"list","num":"04","label":"一覧・設計図","count":13},{"key":"cross","num":"05","label":"マトリクス・対応表","count":4},{"key":"ai","num":"06","label":"AI設定資産","count":1},{"key":"design-tools","num":"07","label":"デザイン","count":3}]</script>
+<script>
+(function () {
+  var root = document.documentElement;
+  function applyTheme(t) {
+    root.setAttribute('data-theme', t);
+    var label = document.getElementById('pt-theme-label');
+    var next = document.getElementById('pt-theme-next');
+    if (label) label.textContent = t === 'dark' ? 'テーマ: ダーク' : 'テーマ: ライト';
+    if (next) next.textContent = t === 'dark' ? '→ LIGHT' : '→ DARK';
+  }
+  var saved = null;
+  try { saved = localStorage.getItem('rd-portal-theme'); } catch (e) {}
+  if (saved === 'dark' || saved === 'light') {
+    applyTheme(saved);
+  } else {
+    applyTheme(window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+  }
+  var btn = document.getElementById('pt-theme-toggle');
+  if (btn) {
+    btn.addEventListener('click', function () {
+      var next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+      applyTheme(next);
+      try { localStorage.setItem('rd-portal-theme', next); } catch (e) {}
+    });
+  }
 
-<header class="topbar">
-  <a class="brand" href="../../index.html">
-    <span class="brand-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:middle"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zM13 9V3.5L18.5 9H13z"/></svg></span>
-    <span class="brand-title"></span>
-    <span class="brand-sub">設計ポータル</span>
-  </a>
-  <div class="header-meta">
-    <span class="pm-updated">更新: 2026-07-22T00:00:00+09:00</span>
-  </div>
-  <div class="top-actions">
-    <button id="theme-toggle" title="テーマ切替">ライト</button>
-  </div>
-</header>
-<section class="page-hero compact">
-  <nav class="back-link" style="margin: 16px 0 0; font-size: 0.85rem;">
-    <a href="../../index.html" style="color: var(--text-sub); text-decoration: none; border-bottom: 1px dotted var(--text-muted);">← ポータルへ戻る</a>
-  </nav>
-  <div class="header-top">
-    <h1>API一覧</h1>
-    <div class="summary-tiles">
-      <div class="tile"><strong>141</strong>検出API数</div>
-      <div class="tile"><strong>5</strong>要手動確認数</div>
-    </div>
-  </div>
-</section>
+  function isCommitEmpty(text) {
+    return text.replace(/コミット/g, '').replace(/[·\s　]+/g, '') === '';
+  }
+  function removeIfEmptyCommit(id) {
+    var node = document.getElementById(id);
+    if (node && isCommitEmpty(node.textContent) && node.parentNode) {
+      node.parentNode.removeChild(node);
+    }
+  }
+  removeIfEmptyCommit('pt-meta-commit');
 
-<div class="toolbar-area">
-  <div class="toolbar">
-    <input type="search" id="unit-search" placeholder="キー・識別子で絞り込み">
-    <span class="note">列見出しクリックでソート</span>
-    <button id="csv-export" class="theme-toggle-btn csv-btn" type="button" title="絞り込み適用後の全行をCSVダウンロード">CSV</button>
-  </div>
-</div>
+  function formatDateOnly(text) {
+    return /^\d{4}-\d{2}-\d{2}/.test(text) ? text.slice(0, 10) : text;
+  }
+  function truncateDate(id) {
+    var node = document.getElementById(id);
+    if (node) node.textContent = formatDateOnly(node.textContent);
+  }
+  truncateDate('pt-sidebar-date');
 
-<div class="table-area">
-<section class="module-group">
-  <h2>API一覧</h2>
-  <div class="table-wrap">
-  <table class="units" id="unit-table">
-    <thead>
-      <tr>
-        <th data-key="unitNameGuess">API名</th>
-        <th data-key="identifier">識別子</th>
-        <th data-key="kind">区分</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr data-unit-id="api-auth-login" data-unit-key="auth-login">
+  function formatTitleSubDates() {
+    var nodes = document.querySelectorAll('.pt-title-sub');
+    for (var i = 0; i < nodes.length; i++) {
+      nodes[i].textContent = nodes[i].textContent.replace(
+        /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z/g,
+        function (m) { return m.slice(0, 10); }
+      );
+    }
+  }
+
+  function applyShellMetaFormatting() {
+    removeIfEmptyCommit('pt-footer-commit');
+    truncateDate('pt-footer-date');
+    formatTitleSubDates();
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', applyShellMetaFormatting);
+  } else {
+    applyShellMetaFormatting();
+  }
+
+  var nav = document.getElementById('pt-nav');
+  var side = document.querySelector('.pt-sidebar');
+  var dataEl = document.getElementById('pt-nav-data');
+  if (!nav || !side || !dataEl) return;
+  var cats = [];
+  try { cats = JSON.parse(dataEl.textContent) || []; } catch (e) { return; }
+  var portalHref = side.getAttribute('data-portal-href') || 'index.html';
+  var active = side.getAttribute('data-active-category') || '';
+
+  function item(href, num, label, count, isActive) {
+    var a = document.createElement('a');
+    a.className = 'pt-nav-item' + (isActive ? ' is-active' : '');
+    a.href = href;
+    var n = document.createElement('span');
+    n.className = 'pt-nav-num';
+    n.textContent = num;
+    a.appendChild(n);
+    a.appendChild(document.createTextNode(label));
+    if (count !== null && count !== undefined) {
+      var c = document.createElement('span');
+      c.className = 'pt-nav-count';
+      c.textContent = String(count);
+      a.appendChild(c);
+    }
+    return a;
+  }
+
+  nav.appendChild(item(portalHref, '00', 'ダッシュボード', null, active === ''));
+  var head = document.createElement('div');
+  head.className = 'pt-nav-group';
+  head.textContent = '資料カテゴリ';
+  nav.appendChild(head);
+  cats.forEach(function (c) {
+    nav.appendChild(item(portalHref + '#cat-' + c.key, c.num, c.label, c.count, active === c.key));
+  });
+})();
+</script>
+    <main class="pt-main is-fixed">
+      <div class="pt-head">
+        <div class="pt-crumb"><a href="../../index.html">TOP</a> ／ 一覧・設計図 ／ <span class="pt-crumb-current">API一覧</span></div>
+        <div class="pt-title-row">
+          <h1 class="pt-title">API一覧</h1>
+          <span class="pt-title-sub">更新 2026-07-22T00:00:00+09:00</span>
+        </div>
+        <div class="summary-tiles">
+          <div class="tile"><strong>141</strong>検出API数</div>
+          <div class="tile"><strong>5</strong>要手動確認数</div>
+        </div>
+      </div>
+
+      <div class="toolbar-area">
+        <div class="toolbar">
+          <input type="search" id="unit-search" class="pt-input" placeholder="キー・識別子で絞り込み">
+          <span class="note">列見出しクリックでソート</span>
+          <button id="csv-export" class="csv-btn" type="button" title="絞り込み適用後の全行をCSVダウンロード">CSV</button>
+        </div>
+      </div>
+
+      <div class="table-area">
+      <section class="module-group">
+        <h2>API一覧</h2>
+        <div class="table-wrap">
+        <table class="units" id="unit-table">
+          <thead>
+            <tr>
+              <th data-key="unitNameGuess">API名</th>
+              <th data-key="identifier">識別子</th>
+              <th data-key="kind">区分</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr data-unit-id="api-auth-login" data-unit-key="auth-login">
 <td>ログイン</td>
 <td><code>POST /api/auth/login</code></td>
 <td><span class="badge kind-generic">REST</span></td>
@@ -893,23 +1227,23 @@
 <td><code>GET /api/ping</code></td>
 <td><span class="badge kind-generic">REST</span></td>
 </tr>
-    </tbody>
-  </table>
-  </div>
-</section>
+          </tbody>
+        </table>
+        </div>
+      </section>
 
-<div class="pagination" id="pagination">
-  <button id="page-first" title="先頭">≪</button>
-  <button id="page-prev" title="前">＜</button>
-  <span id="page-info" class="page-info"></span>
-  <button id="page-next" title="次">＞</button>
-  <button id="page-last" title="最後">≫</button>
-</div>
+      <div class="pagination" id="pagination">
+        <button id="page-first" title="先頭">≪</button>
+        <button id="page-prev" title="前">＜</button>
+        <span id="page-info" class="page-info"></span>
+        <button id="page-next" title="次">＞</button>
+        <button id="page-last" title="最後">≫</button>
+      </div>
 
-<section class="unresolved has-items">
-  <h2>要手動確認</h2>
-  <div class="table-wrap">
-  <table class="units" id="unresolved-table">
+      <section class="unresolved has-items">
+        <h2>要手動確認</h2>
+        <div class="table-wrap">
+        <table class="units" id="unresolved-table">
 <thead>
 <tr>
 <th>API名</th><th>識別子</th><th>区分</th>
@@ -939,15 +1273,21 @@
 </tr>
 </tbody>
 </table>
+        </div>
+      </section>
+      </div>
+
+      <script type="application/json" id="unit-manifest">
+{"generatedAt":"2026-07-22T00:00:00+09:00","sourceDir":"shared/samples/一覧/API一覧/fixtures","unitKind":"api","strategy":{"extractionMethod":"static-analysis","approvedByUser":true,"unitIdRegex":null},"detectionSummary":{"unitCount":141,"unresolvedCount":5},"units":[{"unitId":"api-auth-login","unitKey":"auth-login","kind":"REST","unitNameGuess":"ログイン","identifier":"POST /api/auth/login","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/auth.py","method":"POST","authRequired":false,"callers":["login"],"ioSummary":"メールアドレスとパスワードを受け取りアクセストークンを返す"},{"unitId":"api-auth-logout","unitKey":"auth-logout","kind":"REST","unitNameGuess":"ログアウト","identifier":"DELETE /api/auth/session","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/auth.py","method":"DELETE","authRequired":true,"callers":["header-nav"],"ioSummary":"セッショントークンを受け取り破棄結果を返す"},{"unitId":"api-auth-refresh","unitKey":"auth-refresh","kind":"REST","unitNameGuess":"トークン更新","identifier":"POST /api/auth/refresh","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/auth.py","method":"POST","authRequired":false,"callers":[],"ioSummary":"リフレッシュトークンを受け取り新しいアクセストークンを返す"},{"unitId":"api-auth-register","unitKey":"auth-register","kind":"REST","unitNameGuess":"新規登録","identifier":"POST /api/auth/register","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/auth.py","method":"POST","authRequired":false,"callers":["signup"],"ioSummary":"登録情報を受け取りアカウントを作成する"},{"unitId":"api-auth-forgot-password","unitKey":"auth-forgot-password","kind":"REST","unitNameGuess":"パスワード再設定依頼","identifier":"POST /api/auth/forgot-password","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/auth.py","method":"POST","authRequired":false,"callers":["forgot-password"],"ioSummary":"メールアドレスを受け取り再設定用メールを送信する"},{"unitId":"api-auth-reset-password","unitKey":"auth-reset-password","kind":"REST","unitNameGuess":"パスワード再設定実行","identifier":"POST /api/auth/reset-password","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/auth.py","method":"POST","authRequired":false,"callers":["reset-password"],"ioSummary":"再設定トークンと新パスワードを受け取り更新結果を返す"},{"unitId":"api-auth-verify-email","unitKey":"auth-verify-email","kind":"REST","unitNameGuess":"メール確認","identifier":"POST /api/auth/verify-email","detectionMethod":"decorator","confidence":"MEDIUM","fileCount":3,"sourceFile":"src/api/auth.py","method":"POST","authRequired":false,"callers":[],"ioSummary":"確認トークンを受け取りメールアドレスを検証済みにする"},{"unitId":"api-auth-me","unitKey":"auth-me","kind":"REST","unitNameGuess":"自分自身の情報取得","identifier":"GET /api/auth/me","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/auth.py","method":"GET","authRequired":true,"callers":["profile","header-nav"],"ioSummary":"認証済みユーザー自身のプロフィールを返す"},{"unitId":"api-auth-sessions","unitKey":"auth-sessions","kind":"REST","unitNameGuess":"有効セッション一覧取得","identifier":"GET /api/auth/sessions","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/auth.py","method":"GET","authRequired":true,"callers":["security-settings"],"ioSummary":"ログイン中の端末・セッション一覧を返す"},{"unitId":"api-auth-sessions-revoke","unitKey":"auth-sessions-revoke","kind":"REST","unitNameGuess":"セッション個別失効","identifier":"DELETE /api/auth/sessions/:sessionId","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/auth.py","method":"DELETE","authRequired":true,"callers":["security-settings"],"ioSummary":"指定セッションIDを受け取り強制ログアウトする"},{"unitId":"api-auth-sessions-revoke-all","unitKey":"auth-sessions-revoke-all","kind":"REST","unitNameGuess":"全セッション失効","identifier":"DELETE /api/auth/sessions","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/auth.py","method":"DELETE","authRequired":true,"callers":["security-settings"],"ioSummary":"自分自身以外の全セッションを一括失効する"},{"unitId":"api-auth-change-password","unitKey":"auth-change-password","kind":"REST","unitNameGuess":"パスワード変更","identifier":"PUT /api/auth/password","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/auth.py","method":"PUT","authRequired":true,"callers":["security-settings"],"ioSummary":"現パスワードと新パスワードを受け取り更新する"},{"unitId":"api-auth-mfa-enable","unitKey":"auth-mfa-enable","kind":"REST","unitNameGuess":"多要素認証有効化","identifier":"POST /api/auth/mfa","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/auth.py","method":"POST","authRequired":true,"callers":["security-settings"],"ioSummary":"認証アプリのシークレットを発行し設定用QRコードを返す"},{"unitId":"api-auth-mfa-verify","unitKey":"auth-mfa-verify","kind":"REST","unitNameGuess":"多要素認証コード検証","identifier":"POST /api/auth/mfa/verify","detectionMethod":"decorator","confidence":"MEDIUM","fileCount":4,"sourceFile":"src/api/auth.py","method":"POST","authRequired":true,"callers":["security-settings"],"ioSummary":"ワンタイムコードを受け取り有効化を確定する"},{"unitId":"api-auth-mfa-disable","unitKey":"auth-mfa-disable","kind":"REST","unitNameGuess":"多要素認証無効化","identifier":"DELETE /api/auth/mfa","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/auth.py","method":"DELETE","authRequired":true,"callers":["security-settings"],"ioSummary":"認証済みユーザーの多要素認証設定を解除する"},{"unitId":"api-users-list","unitKey":"users-list","kind":"REST","unitNameGuess":"ユーザー一覧取得","identifier":"GET /api/users","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/users.py","method":"GET","authRequired":true,"callers":["user-list"],"ioSummary":"検索・ページング条件を受け取りユーザーの配列を返す"},{"unitId":"api-users-create","unitKey":"users-create","kind":"REST","unitNameGuess":"ユーザー新規作成","identifier":"POST /api/users","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/users.py","method":"POST","authRequired":true,"callers":["user-list"],"ioSummary":"ユーザー登録情報を受け取り作成したユーザーを返す"},{"unitId":"api-users-get","unitKey":"users-get","kind":"REST","unitNameGuess":"ユーザー詳細取得","identifier":"GET /api/users/:userId","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/users.py","method":"GET","authRequired":true,"callers":["user-detail","user-edit"],"ioSummary":"userIdを受け取りユーザー詳細を返す"},{"unitId":"api-users-update","unitKey":"users-update","kind":"REST","unitNameGuess":"ユーザー更新","identifier":"PUT /api/users/:userId","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/users.py","method":"PUT","authRequired":true,"callers":["user-edit"],"ioSummary":"更新内容を受け取り更新後のユーザーを返す"},{"unitId":"api-users-delete","unitKey":"users-delete","kind":"REST","unitNameGuess":"ユーザー削除","identifier":"DELETE /api/users/:userId","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/users.py","method":"DELETE","authRequired":true,"callers":["user-detail"],"ioSummary":"userIdを受け取り削除結果を返す"},{"unitId":"api-users-search","unitKey":"users-search","kind":"REST","unitNameGuess":"ユーザー検索","identifier":"GET /api/users/search","detectionMethod":"decorator","confidence":"MEDIUM","fileCount":2,"sourceFile":"src/api/users.py","method":"GET","authRequired":true,"callers":["global-search"],"ioSummary":"検索語を受け取り一致するユーザーの配列を返す"},{"unitId":"api-users-bulk-import","unitKey":"users-bulk-import","kind":"REST","unitNameGuess":"ユーザー一括登録","identifier":"POST /api/users/bulk-import","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/users.py","method":"POST","authRequired":true,"callers":["user-list"],"ioSummary":"CSVファイルを受け取り一括登録結果を返す"},{"unitId":"api-users-export","unitKey":"users-export","kind":"REST","unitNameGuess":"ユーザーエクスポート","identifier":"GET /api/users/export","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/users.py","method":"GET","authRequired":true,"callers":["user-list"],"ioSummary":"絞り込み条件を受け取りCSV形式のユーザー一覧を返す"},{"unitId":"api-users-roles","unitKey":"users-roles","kind":"REST","unitNameGuess":"ユーザーロール取得","identifier":"GET /api/users/:userId/roles","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/users.py","method":"GET","authRequired":true,"callers":["user-edit"],"ioSummary":"userIdを受け取り割当済みロールの配列を返す"},{"unitId":"api-users-permissions","unitKey":"users-permissions","kind":"REST","unitNameGuess":"ユーザー権限更新","identifier":"PUT /api/users/:userId/permissions","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/users.py","method":"PUT","authRequired":true,"callers":["user-edit"],"ioSummary":"権限一覧を受け取り更新後の権限を返す"},{"unitId":"api-users-avatar-upload","unitKey":"users-avatar-upload","kind":"REST","unitNameGuess":"アバターアップロード","identifier":"POST /api/users/:userId/avatar","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/users.py","method":"POST","authRequired":true,"callers":["profile"],"ioSummary":"画像ファイルを受け取り保存先URLを返す"},{"unitId":"api-users-get-by-email","unitKey":"users-get-by-email","kind":"REST","unitNameGuess":"メールアドレスでユーザー検索","identifier":"GET /api/users/lookup","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/users.py","method":"GET","authRequired":true,"callers":[],"ioSummary":"メールアドレスを受け取り一致するユーザーを返す"},{"unitId":"api-users-activity-log","unitKey":"users-activity-log","kind":"REST","unitNameGuess":"ユーザー操作履歴取得","identifier":"GET /api/users/:userId/activity","detectionMethod":"decorator","confidence":"MEDIUM","fileCount":3,"sourceFile":"src/api/users.py","method":"GET","authRequired":true,"callers":["user-detail"],"ioSummary":"userIdを受け取り操作ログの配列を返す"},{"unitId":"api-users-impersonate","unitKey":"users-impersonate","kind":"REST","unitNameGuess":"ユーザーなりすまし開始","identifier":"POST /api/users/:userId/impersonate","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/users.py","method":"POST","authRequired":true,"callers":["user-detail"],"ioSummary":"管理者が対象ユーザーの一時セッションを発行する"},{"unitId":"api-users-deactivate","unitKey":"users-deactivate","kind":"REST","unitNameGuess":"ユーザー無効化","identifier":"POST /api/users/:userId/deactivate","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/users.py","method":"POST","authRequired":true,"callers":["user-detail"],"ioSummary":"userIdを受け取りアカウントを無効化する"},{"unitId":"api-users-reactivate","unitKey":"users-reactivate","kind":"REST","unitNameGuess":"ユーザー再有効化","identifier":"POST /api/users/:userId/reactivate","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/users.py","method":"POST","authRequired":true,"callers":["user-detail"],"ioSummary":"userIdを受け取りアカウントを再有効化する"},{"unitId":"api-organizations-list","unitKey":"organizations-list","kind":"REST","unitNameGuess":"組織一覧取得","identifier":"GET /api/organizations","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/organizations.py","method":"GET","authRequired":true,"callers":["org-list"],"ioSummary":"所属組織の配列を返す"},{"unitId":"api-organizations-create","unitKey":"organizations-create","kind":"REST","unitNameGuess":"組織新規作成","identifier":"POST /api/organizations","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/organizations.py","method":"POST","authRequired":true,"callers":["org-list"],"ioSummary":"組織名・種別を受け取り作成した組織を返す"},{"unitId":"api-organizations-get","unitKey":"organizations-get","kind":"REST","unitNameGuess":"組織詳細取得","identifier":"GET /api/organizations/:orgId","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/organizations.py","method":"GET","authRequired":true,"callers":["org-detail"],"ioSummary":"orgIdを受け取り組織詳細を返す"},{"unitId":"api-organizations-update","unitKey":"organizations-update","kind":"REST","unitNameGuess":"組織更新","identifier":"PUT /api/organizations/:orgId","detectionMethod":"decorator","confidence":"MEDIUM","fileCount":4,"sourceFile":"src/api/organizations.py","method":"PUT","authRequired":true,"callers":["org-edit"],"ioSummary":"更新内容を受け取り更新後の組織を返す"},{"unitId":"api-organizations-delete","unitKey":"organizations-delete","kind":"REST","unitNameGuess":"組織削除","identifier":"DELETE /api/organizations/:orgId","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/organizations.py","method":"DELETE","authRequired":true,"callers":["org-detail"],"ioSummary":"orgIdを受け取り削除結果を返す"},{"unitId":"api-organizations-members","unitKey":"organizations-members","kind":"REST","unitNameGuess":"組織メンバー一覧取得","identifier":"GET /api/organizations/:orgId/members","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/organizations.py","method":"GET","authRequired":true,"callers":["org-members"],"ioSummary":"orgIdを受け取りメンバーの配列を返す"},{"unitId":"api-organizations-invite","unitKey":"organizations-invite","kind":"REST","unitNameGuess":"組織招待送信","identifier":"POST /api/organizations/:orgId/invites","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/organizations.py","method":"POST","authRequired":true,"callers":["org-members"],"ioSummary":"招待先メールアドレスを受け取り招待結果を返す"},{"unitId":"api-organizations-settings","unitKey":"organizations-settings","kind":"REST","unitNameGuess":"組織設定取得","identifier":"GET /api/organizations/:orgId/settings","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/organizations.py","method":"GET","authRequired":true,"callers":["org-settings"],"ioSummary":"orgIdを受け取り組織単位の設定値を返す"},{"unitId":"api-organizations-billing","unitKey":"organizations-billing","kind":"REST","unitNameGuess":"組織請求情報取得","identifier":"GET /api/organizations/:orgId/billing","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/organizations.py","method":"GET","authRequired":true,"callers":["org-billing"],"ioSummary":"orgIdを受け取り契約プランと請求履歴を返す"},{"unitId":"api-organizations-usage","unitKey":"organizations-usage","kind":"REST","unitNameGuess":"組織利用状況取得","identifier":"GET /api/organizations/:orgId/usage","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/organizations.py","method":"GET","authRequired":true,"callers":["org-billing"],"ioSummary":"orgIdを受け取りAPI呼び出し数等の利用量を返す"},{"unitId":"api-organizations-audit-log","unitKey":"organizations-audit-log","kind":"REST","unitNameGuess":"組織監査ログ取得","identifier":"GET /api/organizations/:orgId/audit-log","detectionMethod":"decorator","confidence":"MEDIUM","fileCount":2,"sourceFile":"src/api/organizations.py","method":"GET","authRequired":true,"callers":["org-settings"],"ioSummary":"orgIdを受け取り組織内操作の監査ログを返す"},{"unitId":"api-organizations-domains","unitKey":"organizations-domains","kind":"REST","unitNameGuess":"組織ドメイン一覧取得","identifier":"GET /api/organizations/:orgId/domains","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/organizations.py","method":"GET","authRequired":true,"callers":["org-settings"],"ioSummary":"orgIdを受け取り許可済みメールドメインの配列を返す"},{"unitId":"api-projects-list","unitKey":"projects-list","kind":"REST","unitNameGuess":"プロジェクト一覧取得","identifier":"GET /api/projects","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/projects.py","method":"GET","authRequired":true,"callers":["project-list"],"ioSummary":"所属プロジェクトの配列を返す"},{"unitId":"api-projects-create","unitKey":"projects-create","kind":"REST","unitNameGuess":"プロジェクト新規作成","identifier":"POST /api/projects","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/projects.py","method":"POST","authRequired":true,"callers":["project-list"],"ioSummary":"プロジェクト名・概要を受け取り作成したプロジェクトを返す"},{"unitId":"api-projects-get","unitKey":"projects-get","kind":"REST","unitNameGuess":"プロジェクト詳細取得","identifier":"GET /api/projects/:projectId","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/projects.py","method":"GET","authRequired":true,"callers":["project-detail"],"ioSummary":"projectIdを受け取りプロジェクト詳細を返す"},{"unitId":"api-projects-update","unitKey":"projects-update","kind":"REST","unitNameGuess":"プロジェクト更新","identifier":"PUT /api/projects/:projectId","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/projects.py","method":"PUT","authRequired":true,"callers":["project-edit"],"ioSummary":"更新内容を受け取り更新後のプロジェクトを返す"},{"unitId":"api-projects-delete","unitKey":"projects-delete","kind":"REST","unitNameGuess":"プロジェクト削除","identifier":"DELETE /api/projects/:projectId","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/projects.py","method":"DELETE","authRequired":true,"callers":["project-detail"],"ioSummary":"projectIdを受け取り削除結果を返す"},{"unitId":"api-projects-archive","unitKey":"projects-archive","kind":"REST","unitNameGuess":"プロジェクトアーカイブ","identifier":"POST /api/projects/:projectId/archive","detectionMethod":"decorator","confidence":"MEDIUM","fileCount":3,"sourceFile":"src/api/projects.py","method":"POST","authRequired":true,"callers":["project-detail"],"ioSummary":"projectIdを受け取りアーカイブ状態にする"},{"unitId":"api-projects-members","unitKey":"projects-members","kind":"REST","unitNameGuess":"プロジェクトメンバー一覧取得","identifier":"GET /api/projects/:projectId/members","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/projects.py","method":"GET","authRequired":true,"callers":["project-members"],"ioSummary":"projectIdを受け取りメンバーの配列を返す"},{"unitId":"api-projects-tasks","unitKey":"projects-tasks","kind":"REST","unitNameGuess":"プロジェクト内タスク一覧取得","identifier":"GET /api/projects/:projectId/tasks","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/projects.py","method":"GET","authRequired":true,"callers":["project-detail"],"ioSummary":"projectIdを受け取り紐づくタスクの配列を返す"},{"unitId":"api-projects-milestones","unitKey":"projects-milestones","kind":"REST","unitNameGuess":"マイルストーン一覧取得","identifier":"GET /api/projects/:projectId/milestones","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/projects.py","method":"GET","authRequired":true,"callers":["project-milestones"],"ioSummary":"projectIdを受け取りマイルストーンの配列を返す"},{"unitId":"api-projects-duplicate","unitKey":"projects-duplicate","kind":"REST","unitNameGuess":"プロジェクト複製","identifier":"POST /api/projects/:projectId/duplicate","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/projects.py","method":"POST","authRequired":true,"callers":["project-detail"],"ioSummary":"projectIdを受け取り設定を引き継いだ複製プロジェクトを返す"},{"unitId":"api-projects-export","unitKey":"projects-export","kind":"REST","unitNameGuess":"プロジェクトエクスポート","identifier":"GET /api/projects/:projectId/export","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/projects.py","method":"GET","authRequired":true,"callers":["project-detail"],"ioSummary":"projectIdを受け取りプロジェクト構成のエクスポートファイルを返す"},{"unitId":"api-projects-import","unitKey":"projects-import","kind":"REST","unitNameGuess":"プロジェクトインポート","identifier":"POST /api/projects/import","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/projects.py","method":"POST","authRequired":true,"callers":["project-list"],"ioSummary":"エクスポートファイルを受け取りプロジェクトを作成する"},{"unitId":"api-projects-labels","unitKey":"projects-labels","kind":"REST","unitNameGuess":"プロジェクトラベル一覧取得","identifier":"GET /api/projects/:projectId/labels","detectionMethod":"decorator","confidence":"MEDIUM","fileCount":4,"sourceFile":"src/api/projects.py","method":"GET","authRequired":true,"callers":["project-edit"],"ioSummary":"projectIdを受け取りラベル定義の配列を返す"},{"unitId":"api-projects-templates","unitKey":"projects-templates","kind":"REST","unitNameGuess":"プロジェクトテンプレート一覧取得","identifier":"GET /api/projects/templates","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/projects.py","method":"GET","authRequired":true,"callers":["project-list"],"ioSummary":"利用可能なプロジェクトテンプレートの配列を返す"},{"unitId":"api-tasks-list","unitKey":"tasks-list","kind":"REST","unitNameGuess":"タスク一覧取得","identifier":"GET /api/tasks","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/tasks.py","method":"GET","authRequired":true,"callers":["task-list"],"ioSummary":"絞り込み条件を受け取りタスクの配列を返す"},{"unitId":"api-tasks-create","unitKey":"tasks-create","kind":"REST","unitNameGuess":"タスク新規作成","identifier":"POST /api/tasks","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/tasks.py","method":"POST","authRequired":true,"callers":["task-list"],"ioSummary":"タスク内容を受け取り作成したタスクを返す"},{"unitId":"api-tasks-get","unitKey":"tasks-get","kind":"REST","unitNameGuess":"タスク詳細取得","identifier":"GET /api/tasks/:taskId","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/tasks.py","method":"GET","authRequired":true,"callers":["task-detail"],"ioSummary":"taskIdを受け取りタスク詳細を返す"},{"unitId":"api-tasks-update","unitKey":"tasks-update","kind":"REST","unitNameGuess":"タスク更新","identifier":"PUT /api/tasks/:taskId","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/tasks.py","method":"PUT","authRequired":true,"callers":["task-edit"],"ioSummary":"更新内容を受け取り更新後のタスクを返す"},{"unitId":"api-tasks-delete","unitKey":"tasks-delete","kind":"REST","unitNameGuess":"タスク削除","identifier":"DELETE /api/tasks/:taskId","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/tasks.py","method":"DELETE","authRequired":true,"callers":["task-detail"],"ioSummary":"taskIdを受け取り削除結果を返す"},{"unitId":"api-tasks-assign","unitKey":"tasks-assign","kind":"REST","unitNameGuess":"タスク担当者変更","identifier":"PUT /api/tasks/:taskId/assignee","detectionMethod":"decorator","confidence":"MEDIUM","fileCount":2,"sourceFile":"src/api/tasks.py","method":"PUT","authRequired":true,"callers":["task-detail"],"ioSummary":"担当ユーザーIDを受け取り担当者を更新する"},{"unitId":"api-tasks-status","unitKey":"tasks-status","kind":"REST","unitNameGuess":"タスクステータス変更","identifier":"PATCH /api/tasks/:taskId/status","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/tasks.py","method":"PATCH","authRequired":true,"callers":["task-detail","task-board"],"ioSummary":"新しいステータス値を受け取り更新後のタスクを返す"},{"unitId":"api-tasks-comments","unitKey":"tasks-comments","kind":"REST","unitNameGuess":"タスクコメント一覧取得","identifier":"GET /api/tasks/:taskId/comments","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/tasks.py","method":"GET","authRequired":true,"callers":["task-detail"],"ioSummary":"taskIdを受け取りコメントの配列を返す"},{"unitId":"api-tasks-attachments","unitKey":"tasks-attachments","kind":"REST","unitNameGuess":"タスク添付ファイル追加","identifier":"POST /api/tasks/:taskId/attachments","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/tasks.py","method":"POST","authRequired":true,"callers":["task-detail"],"ioSummary":"ファイル本体を受け取り添付結果を返す"},{"unitId":"api-tasks-history","unitKey":"tasks-history","kind":"REST","unitNameGuess":"タスク変更履歴取得","identifier":"GET /api/tasks/:taskId/history","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/tasks.py","method":"GET","authRequired":true,"callers":["task-detail"],"ioSummary":"taskIdを受け取り変更履歴の配列を返す"},{"unitId":"api-tasks-reorder","unitKey":"tasks-reorder","kind":"REST","unitNameGuess":"タスク並び替え","identifier":"PUT /api/tasks/reorder","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/tasks.py","method":"PUT","authRequired":true,"callers":["task-board"],"ioSummary":"タスクIDの並び順配列を受け取り並び順を更新する"},{"unitId":"api-tasks-bulk-update","unitKey":"tasks-bulk-update","kind":"REST","unitNameGuess":"タスク一括更新","identifier":"PATCH /api/tasks/bulk-update","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/tasks.py","method":"PATCH","authRequired":true,"callers":["task-list"],"ioSummary":"対象タスクIDと変更内容を受け取り一括更新する"},{"unitId":"api-tasks-watchers","unitKey":"tasks-watchers","kind":"REST","unitNameGuess":"タスクウォッチャー一覧取得","identifier":"GET /api/tasks/:taskId/watchers","detectionMethod":"decorator","confidence":"MEDIUM","fileCount":3,"sourceFile":"src/api/tasks.py","method":"GET","authRequired":true,"callers":["task-detail"],"ioSummary":"taskIdを受け取り通知購読中のユーザー配列を返す"},{"unitId":"api-tasks-dependencies","unitKey":"tasks-dependencies","kind":"REST","unitNameGuess":"タスク依存関係取得","identifier":"GET /api/tasks/:taskId/dependencies","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/tasks.py","method":"GET","authRequired":true,"callers":["task-detail"],"ioSummary":"taskIdを受け取り先行・後続タスクの配列を返す"},{"unitId":"api-tasks-time-tracking","unitKey":"tasks-time-tracking","kind":"REST","unitNameGuess":"タスク作業時間記録","identifier":"POST /api/tasks/:taskId/time-entries","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/tasks.py","method":"POST","authRequired":true,"callers":["task-detail"],"ioSummary":"作業時間を受け取り記録結果を返す"},{"unitId":"api-comments-create","unitKey":"comments-create","kind":"REST","unitNameGuess":"コメント投稿","identifier":"POST /api/posts/:postId/comments","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/comments.py","method":"POST","authRequired":true,"callers":["post-detail"],"ioSummary":"コメント本文を受け取り作成したコメントを返す"},{"unitId":"api-comments-update","unitKey":"comments-update","kind":"REST","unitNameGuess":"コメント編集","identifier":"PUT /api/comments/:commentId","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/comments.py","method":"PUT","authRequired":true,"callers":["post-detail"],"ioSummary":"commentIdと本文を受け取り更新後のコメントを返す"},{"unitId":"api-comments-delete","unitKey":"comments-delete","kind":"REST","unitNameGuess":"コメント削除","identifier":"DELETE /api/comments/:commentId","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/comments.py","method":"DELETE","authRequired":true,"callers":["post-detail"],"ioSummary":"commentIdを受け取り削除結果を返す"},{"unitId":"api-comments-list","unitKey":"comments-list","kind":"REST","unitNameGuess":"コメント一覧取得","identifier":"GET /api/posts/:postId/comments","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/comments.py","method":"GET","authRequired":true,"callers":["post-detail"],"ioSummary":"postIdを受け取りコメントの配列を返す"},{"unitId":"api-comments-reactions","unitKey":"comments-reactions","kind":"REST","unitNameGuess":"コメントリアクション追加","identifier":"POST /api/comments/:commentId/reactions","detectionMethod":"decorator","confidence":"MEDIUM","fileCount":4,"sourceFile":"src/api/comments.py","method":"POST","authRequired":true,"callers":["post-detail"],"ioSummary":"リアクション種別を受け取り追加結果を返す"},{"unitId":"api-comments-pin","unitKey":"comments-pin","kind":"REST","unitNameGuess":"コメント固定","identifier":"PUT /api/comments/:commentId/pin","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/comments.py","method":"PUT","authRequired":true,"callers":["post-detail"],"ioSummary":"commentIdを受け取りコメントを上部固定にする"},{"unitId":"api-comments-unpin","unitKey":"comments-unpin","kind":"REST","unitNameGuess":"コメント固定解除","identifier":"DELETE /api/comments/:commentId/pin","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/comments.py","method":"DELETE","authRequired":true,"callers":["post-detail"],"ioSummary":"commentIdを受け取り固定を解除する"},{"unitId":"api-files-upload","unitKey":"files-upload","kind":"REST","unitNameGuess":"ファイルアップロード","identifier":"POST /api/files","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/files.py","method":"POST","authRequired":true,"callers":["file-manager"],"ioSummary":"ファイル本体を受け取り保存先情報を返す"},{"unitId":"api-files-download","unitKey":"files-download","kind":"REST","unitNameGuess":"ファイルダウンロード","identifier":"GET /api/files/:fileId/download","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/files.py","method":"GET","authRequired":true,"callers":["file-manager"],"ioSummary":"fileIdを受け取りファイル本体を返す"},{"unitId":"api-files-list","unitKey":"files-list","kind":"REST","unitNameGuess":"ファイル一覧取得","identifier":"GET /api/files","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/files.py","method":"GET","authRequired":true,"callers":["file-manager"],"ioSummary":"絞り込み条件を受け取りファイルの配列を返す"},{"unitId":"api-files-delete","unitKey":"files-delete","kind":"REST","unitNameGuess":"ファイル削除","identifier":"DELETE /api/files/:fileId","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/files.py","method":"DELETE","authRequired":true,"callers":["file-manager"],"ioSummary":"fileIdを受け取り削除結果を返す"},{"unitId":"api-files-metadata","unitKey":"files-metadata","kind":"REST","unitNameGuess":"ファイルメタ情報取得","identifier":"GET /api/files/:fileId","detectionMethod":"decorator","confidence":"MEDIUM","fileCount":2,"sourceFile":"src/api/files.py","method":"GET","authRequired":true,"callers":["file-manager"],"ioSummary":"fileIdを受け取りサイズ・種別等のメタ情報を返す"},{"unitId":"api-files-thumbnails","unitKey":"files-thumbnails","kind":"REST","unitNameGuess":"ファイルサムネイル取得","identifier":"GET /api/files/:fileId/thumbnail","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/files.py","method":"GET","authRequired":true,"callers":["file-manager"],"ioSummary":"fileIdを受け取りサムネイル画像を返す"},{"unitId":"api-files-share","unitKey":"files-share","kind":"REST","unitNameGuess":"ファイル共有リンク発行","identifier":"POST /api/files/:fileId/share","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/files.py","method":"POST","authRequired":true,"callers":["file-manager"],"ioSummary":"有効期限を受け取り共有用URLを発行する"},{"unitId":"api-files-versions","unitKey":"files-versions","kind":"REST","unitNameGuess":"ファイルバージョン一覧取得","identifier":"GET /api/files/:fileId/versions","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/files.py","method":"GET","authRequired":true,"callers":["file-manager"],"ioSummary":"fileIdを受け取り過去バージョンの配列を返す"},{"unitId":"api-files-restore-version","unitKey":"files-restore-version","kind":"REST","unitNameGuess":"ファイルバージョン復元","identifier":"POST /api/files/:fileId/versions/:versionId/restore","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/files.py","method":"POST","authRequired":true,"callers":["file-manager"],"ioSummary":"versionIdを受け取り指定バージョンへ復元する"},{"unitId":"api-files-permissions","unitKey":"files-permissions","kind":"REST","unitNameGuess":"ファイル権限設定","identifier":"PUT /api/files/:fileId/permissions","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/files.py","method":"PUT","authRequired":true,"callers":["file-manager"],"ioSummary":"共有先ユーザーと権限レベルを受け取り更新する"},{"unitId":"api-notifications-list","unitKey":"notifications-list","kind":"REST","unitNameGuess":"通知一覧取得","identifier":"GET /api/notifications","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/notifications.py","method":"GET","authRequired":true,"callers":["notifications"],"ioSummary":"未読条件を受け取り通知の配列を返す"},{"unitId":"api-notifications-read","unitKey":"notifications-read","kind":"REST","unitNameGuess":"通知既読化","identifier":"PUT /api/notifications/:notificationId/read","detectionMethod":"decorator","confidence":"MEDIUM","fileCount":3,"sourceFile":"src/api/notifications.py","method":"PUT","authRequired":true,"callers":["notifications"],"ioSummary":"notificationIdを受け取り既読状態にする"},{"unitId":"api-notifications-read-all","unitKey":"notifications-read-all","kind":"REST","unitNameGuess":"全通知既読化","identifier":"PUT /api/notifications/read-all","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/notifications.py","method":"PUT","authRequired":true,"callers":["notifications"],"ioSummary":"認証済みユーザーの全通知を既読にする"},{"unitId":"api-notifications-settings","unitKey":"notifications-settings","kind":"REST","unitNameGuess":"通知設定取得","identifier":"GET /api/notifications/settings","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/notifications.py","method":"GET","authRequired":true,"callers":["notification-settings"],"ioSummary":"認証済みユーザーの通知設定を返す"},{"unitId":"api-notifications-subscribe","unitKey":"notifications-subscribe","kind":"REST","unitNameGuess":"通知購読登録","identifier":"POST /api/notifications/subscriptions","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/notifications.py","method":"POST","authRequired":true,"callers":["notification-settings"],"ioSummary":"プッシュ通知用エンドポイントを受け取り登録する"},{"unitId":"api-notifications-unsubscribe","unitKey":"notifications-unsubscribe","kind":"REST","unitNameGuess":"通知購読解除","identifier":"DELETE /api/notifications/subscriptions/:subscriptionId","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/notifications.py","method":"DELETE","authRequired":true,"callers":["notification-settings"],"ioSummary":"subscriptionIdを受け取り購読を解除する"},{"unitId":"api-notifications-preferences","unitKey":"notifications-preferences","kind":"REST","unitNameGuess":"通知設定更新","identifier":"PUT /api/notifications/settings","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/notifications.py","method":"PUT","authRequired":true,"callers":["notification-settings"],"ioSummary":"通知種別ごとの受信可否を受け取り更新する"},{"unitId":"api-notifications-test","unitKey":"notifications-test","kind":"REST","unitNameGuess":"テスト通知送信","identifier":"POST /api/notifications/test","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/notifications.py","method":"POST","authRequired":true,"callers":["notification-settings"],"ioSummary":"認証済みユーザー宛にテスト通知を送信する"},{"unitId":"api-search-global","unitKey":"search-global","kind":"REST","unitNameGuess":"全体横断検索","identifier":"GET /api/search","detectionMethod":"decorator","confidence":"MEDIUM","fileCount":4,"sourceFile":"src/api/search.py","method":"GET","authRequired":true,"callers":["global-search"],"ioSummary":"検索語を受け取り種別横断のヒット結果を返す"},{"unitId":"api-search-users","unitKey":"search-users","kind":"REST","unitNameGuess":"ユーザー検索","identifier":"GET /api/search/users","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/search.py","method":"GET","authRequired":true,"callers":["global-search"],"ioSummary":"検索語を受け取り一致するユーザーの配列を返す"},{"unitId":"api-search-projects","unitKey":"search-projects","kind":"REST","unitNameGuess":"プロジェクト検索","identifier":"GET /api/search/projects","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/search.py","method":"GET","authRequired":true,"callers":["global-search"],"ioSummary":"検索語を受け取り一致するプロジェクトの配列を返す"},{"unitId":"api-search-tasks","unitKey":"search-tasks","kind":"REST","unitNameGuess":"タスク検索","identifier":"GET /api/search/tasks","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/search.py","method":"GET","authRequired":true,"callers":["global-search"],"ioSummary":"検索語を受け取り一致するタスクの配列を返す"},{"unitId":"api-search-files","unitKey":"search-files","kind":"REST","unitNameGuess":"ファイル検索","identifier":"GET /api/search/files","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/search.py","method":"GET","authRequired":true,"callers":["global-search"],"ioSummary":"検索語を受け取り一致するファイルの配列を返す"},{"unitId":"api-search-suggestions","unitKey":"search-suggestions","kind":"REST","unitNameGuess":"検索候補取得","identifier":"GET /api/search/suggestions","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/search.py","method":"GET","authRequired":true,"callers":["global-search"],"ioSummary":"入力途中の検索語を受け取り候補文字列の配列を返す"},{"unitId":"api-search-recent","unitKey":"search-recent","kind":"REST","unitNameGuess":"最近の検索履歴取得","identifier":"GET /api/search/recent","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/search.py","method":"GET","authRequired":true,"callers":["global-search"],"ioSummary":"認証済みユーザーの検索履歴の配列を返す"},{"unitId":"api-search-saved","unitKey":"search-saved","kind":"REST","unitNameGuess":"保存済み検索条件取得","identifier":"GET /api/search/saved","detectionMethod":"decorator","confidence":"MEDIUM","fileCount":2,"sourceFile":"src/api/search.py","method":"GET","authRequired":true,"callers":["global-search"],"ioSummary":"認証済みユーザーが保存した検索条件の配列を返す"},{"unitId":"api-dashboard-overview","unitKey":"dashboard-overview","kind":"REST","unitNameGuess":"ダッシュボード概要取得","identifier":"GET /api/dashboard/overview","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/dashboard.py","method":"GET","authRequired":true,"callers":["dashboard"],"ioSummary":"認証済みユーザー向けの概要指標を返す"},{"unitId":"api-dashboard-stats","unitKey":"dashboard-stats","kind":"REST","unitNameGuess":"ダッシュボード統計取得","identifier":"GET /api/dashboard/stats","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/dashboard.py","method":"GET","authRequired":true,"callers":["dashboard"],"ioSummary":"期間を受け取り集計統計を返す"},{"unitId":"api-dashboard-recent-activity","unitKey":"dashboard-recent-activity","kind":"REST","unitNameGuess":"最近のアクティビティ取得","identifier":"GET /api/dashboard/recent-activity","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/dashboard.py","method":"GET","authRequired":true,"callers":["dashboard"],"ioSummary":"件数を受け取り直近の操作履歴の配列を返す"},{"unitId":"api-dashboard-charts","unitKey":"dashboard-charts","kind":"REST","unitNameGuess":"ダッシュボードチャートデータ取得","identifier":"GET /api/dashboard/charts","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/dashboard.py","method":"GET","authRequired":true,"callers":["dashboard"],"ioSummary":"指標種別を受け取りグラフ描画用データを返す"},{"unitId":"api-dashboard-widgets","unitKey":"dashboard-widgets","kind":"REST","unitNameGuess":"ダッシュボードウィジェット構成取得","identifier":"GET /api/dashboard/widgets","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/dashboard.py","method":"GET","authRequired":true,"callers":["dashboard"],"ioSummary":"認証済みユーザーのウィジェット配置を返す"},{"unitId":"api-dashboard-export","unitKey":"dashboard-export","kind":"REST","unitNameGuess":"ダッシュボードエクスポート","identifier":"GET /api/dashboard/export","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/dashboard.py","method":"GET","authRequired":true,"callers":["dashboard"],"ioSummary":"期間を受け取りダッシュボード内容をPDF等で返す"},{"unitId":"api-reports-generate","unitKey":"reports-generate","kind":"REST","unitNameGuess":"帳票生成依頼","identifier":"POST /api/reports","detectionMethod":"decorator","confidence":"MEDIUM","fileCount":3,"sourceFile":"src/api/reports.py","method":"POST","authRequired":true,"callers":["report-list"],"ioSummary":"帳票種別とパラメータを受け取り生成ジョブを開始する"},{"unitId":"api-reports-list","unitKey":"reports-list","kind":"REST","unitNameGuess":"帳票一覧取得","identifier":"GET /api/reports","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/reports.py","method":"GET","authRequired":true,"callers":["report-list"],"ioSummary":"生成済み帳票の配列を返す"},{"unitId":"api-reports-download","unitKey":"reports-download","kind":"REST","unitNameGuess":"帳票ダウンロード","identifier":"GET /api/reports/:reportId/download","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/reports.py","method":"GET","authRequired":true,"callers":["report-list"],"ioSummary":"reportIdを受け取り帳票ファイルを返す"},{"unitId":"api-reports-schedule","unitKey":"reports-schedule","kind":"REST","unitNameGuess":"帳票定期実行設定","identifier":"POST /api/reports/schedules","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/reports.py","method":"POST","authRequired":true,"callers":["report-schedule"],"ioSummary":"実行スケジュールを受け取り定期実行を登録する"},{"unitId":"api-reports-templates","unitKey":"reports-templates","kind":"REST","unitNameGuess":"帳票テンプレート一覧取得","identifier":"GET /api/reports/templates","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/reports.py","method":"GET","authRequired":true,"callers":["report-list"],"ioSummary":"利用可能な帳票テンプレートの配列を返す"},{"unitId":"api-reports-delete","unitKey":"reports-delete","kind":"REST","unitNameGuess":"帳票削除","identifier":"DELETE /api/reports/:reportId","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/reports.py","method":"DELETE","authRequired":true,"callers":["report-list"],"ioSummary":"reportIdを受け取り削除結果を返す"},{"unitId":"api-reports-share","unitKey":"reports-share","kind":"REST","unitNameGuess":"帳票共有","identifier":"POST /api/reports/:reportId/share","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/reports.py","method":"POST","authRequired":true,"callers":["report-list"],"ioSummary":"共有先ユーザーを受け取り共有結果を返す"},{"unitId":"api-settings-get","unitKey":"settings-get","kind":"REST","unitNameGuess":"設定取得","identifier":"GET /api/settings","detectionMethod":"decorator","confidence":"MEDIUM","fileCount":4,"sourceFile":"src/api/settings.py","method":"GET","authRequired":true,"callers":["settings","profile"],"ioSummary":"認証済みユーザーの設定一覧を返す"},{"unitId":"api-settings-update","unitKey":"settings-update","kind":"REST","unitNameGuess":"設定更新","identifier":"PUT /api/settings","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/settings.py","method":"PUT","authRequired":true,"callers":["settings"],"ioSummary":"設定の変更内容を受け取り更新後の設定を返す"},{"unitId":"api-settings-integrations","unitKey":"settings-integrations","kind":"REST","unitNameGuess":"外部連携設定取得","identifier":"GET /api/settings/integrations","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/settings.py","method":"GET","authRequired":true,"callers":["settings"],"ioSummary":"連携済み外部サービスの一覧を返す"},{"unitId":"api-settings-webhooks","unitKey":"settings-webhooks","kind":"REST","unitNameGuess":"Webhook設定取得","identifier":"GET /api/settings/webhooks","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/settings.py","method":"GET","authRequired":true,"callers":["settings"],"ioSummary":"登録済みWebhookの一覧を返す"},{"unitId":"api-settings-api-keys","unitKey":"settings-api-keys","kind":"REST","unitNameGuess":"APIキー一覧取得","identifier":"GET /api/settings/api-keys","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/settings.py","method":"GET","authRequired":true,"callers":["settings"],"ioSummary":"発行済みAPIキーの一覧を返す"},{"unitId":"api-settings-notifications","unitKey":"settings-notifications","kind":"REST","unitNameGuess":"通知系設定更新","identifier":"PUT /api/settings/notification-preferences","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/settings.py","method":"PUT","authRequired":true,"callers":["settings"],"ioSummary":"通知チャネルごとの有効可否を受け取り更新する"},{"unitId":"api-settings-security","unitKey":"settings-security","kind":"REST","unitNameGuess":"セキュリティ設定取得","identifier":"GET /api/settings/security","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/settings.py","method":"GET","authRequired":true,"callers":["security-settings"],"ioSummary":"パスワードポリシー・多要素認証状況を返す"},{"unitId":"api-settings-sessions","unitKey":"settings-sessions","kind":"REST","unitNameGuess":"設定画面向けセッション一覧取得","identifier":"GET /api/settings/sessions","detectionMethod":"decorator","confidence":"MEDIUM","fileCount":2,"sourceFile":"src/api/settings.py","method":"GET","authRequired":true,"callers":["security-settings"],"ioSummary":"設定画面で表示するログインセッションの配列を返す"},{"unitId":"api-audit-logs","unitKey":"audit-logs","kind":"REST","unitNameGuess":"監査ログ一覧取得","identifier":"GET /api/audit/logs","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/audit.py","method":"GET","authRequired":true,"callers":["audit-log"],"ioSummary":"期間・操作種別を受け取り監査ログの配列を返す"},{"unitId":"api-audit-export","unitKey":"audit-export","kind":"REST","unitNameGuess":"監査ログエクスポート","identifier":"GET /api/audit/logs/export","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/audit.py","method":"GET","authRequired":true,"callers":["audit-log"],"ioSummary":"絞り込み条件を受け取りCSV形式の監査ログを返す"},{"unitId":"api-audit-user-activity","unitKey":"audit-user-activity","kind":"REST","unitNameGuess":"ユーザー別監査ログ取得","identifier":"GET /api/audit/users/:userId","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/audit.py","method":"GET","authRequired":true,"callers":["audit-log"],"ioSummary":"userIdを受け取り対象ユーザーの操作ログを返す"},{"unitId":"api-audit-alerts","unitKey":"audit-alerts","kind":"REST","unitNameGuess":"監査アラート一覧取得","identifier":"GET /api/audit/alerts","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/audit.py","method":"GET","authRequired":true,"callers":["audit-log"],"ioSummary":"異常操作として検知されたアラートの配列を返す"},{"unitId":"api-audit-retention-policy","unitKey":"audit-retention-policy","kind":"REST","unitNameGuess":"監査ログ保持期間設定取得","identifier":"GET /api/audit/retention-policy","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/audit.py","method":"GET","authRequired":true,"callers":["audit-log"],"ioSummary":"現在の監査ログ保持期間ポリシーを返す"},{"unitId":"api-system-health","unitKey":"system-health","kind":"REST","unitNameGuess":"ヘルスチェック","identifier":"GET /api/health","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/system.py","method":"GET","authRequired":false,"callers":[],"ioSummary":"サービスの死活状態を返す"},{"unitId":"api-system-version","unitKey":"system-version","kind":"REST","unitNameGuess":"バージョン情報取得","identifier":"GET /api/version","detectionMethod":"decorator","confidence":"MEDIUM","fileCount":3,"sourceFile":"src/api/system.py","method":"GET","authRequired":false,"callers":[],"ioSummary":"デプロイ中のアプリケーションバージョンを返す"},{"unitId":"api-system-metrics","unitKey":"system-metrics","kind":"REST","unitNameGuess":"システムメトリクス取得","identifier":"GET /api/metrics","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/system.py","method":"GET","authRequired":true,"callers":["system-status"],"ioSummary":"CPU・メモリ等の稼働メトリクスを返す"},{"unitId":"api-system-status","unitKey":"system-status","kind":"REST","unitNameGuess":"システムステータス取得","identifier":"GET /api/status","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/system.py","method":"GET","authRequired":false,"callers":["system-status"],"ioSummary":"各サブシステムの稼働状況を返す"},{"unitId":"api-system-ping","unitKey":"system-ping","kind":"REST","unitNameGuess":"疎通確認","identifier":"GET /api/ping","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/system.py","method":"GET","authRequired":false,"callers":[],"ioSummary":"簡易な生存確認レスポンスを返す"},{"unitId":"unresolved-legacy-export","unitKey":"unresolved-legacy-export","kind":"unresolved","unitNameGuess":"旧バージョンエクスポート処理(要確認)","identifier":"? /api/v1/export/...","detectionMethod":"heuristic","confidence":"LOW","fileCount":1,"sourceFile":"src/api/legacy.py"},{"unitId":"unresolved-internal-webhook-relay","unitKey":"unresolved-internal-webhook-relay","kind":"unresolved","unitNameGuess":"内部Webhook中継処理(要確認)","identifier":"POST /api/internal/???","detectionMethod":"heuristic","confidence":"LOW","fileCount":1,"sourceFile":"src/api/webhooks_internal.py"},{"unitId":"unresolved-batch-callback","unitKey":"unresolved-batch-callback","kind":"unresolved","unitNameGuess":"バッチ処理コールバック受信(要確認)","identifier":"? /api/callbacks/batch/...","detectionMethod":"heuristic","confidence":"LOW","fileCount":1,"sourceFile":"src/api/callbacks.py"},{"unitId":"unresolved-partner-sync-endpoint","unitKey":"unresolved-partner-sync-endpoint","kind":"unresolved","unitNameGuess":"パートナー連携同期処理(要確認)","identifier":"PATCH /api/partners/???","detectionMethod":"heuristic","confidence":"LOW","fileCount":1,"sourceFile":"src/api/partners.py"},{"unitId":"unresolved-deprecated-token-exchange","unitKey":"unresolved-deprecated-token-exchange","kind":"unresolved","unitNameGuess":"旧トークン交換処理(要確認)","identifier":"POST /api/oauth/exchange(旧仕様)","detectionMethod":"heuristic","confidence":"LOW","fileCount":1,"sourceFile":"src/api/oauth_legacy.py"}]}
+      </script>
+    </main>
   </div>
-</section>
+  <footer class="pt-footer">
+  <span class="pt-footer-stamp">REVERSE-DOCS REGISTER</span>
+  <span class="pt-footer-meta">reverse-docs-1-62-impl · 更新 <span id="pt-footer-date">2026-07-22T00:00:00+09:00</span><span id="pt-footer-commit"> · コミット </span></span>
+  <span class="pt-footer-gen">生成: shared/scripts/unit-list/build-unit-list.sh</span>
+</footer>
 </div>
-
-<script type="application/json" id="unit-manifest">
-{"generatedAt": "2026-07-22T00:00:00+09:00", "sourceDir": "shared/samples/一覧/API一覧/fixtures", "unitKind": "api", "strategy": {"extractionMethod": "static-analysis", "approvedByUser": true}, "detectionSummary": {"unitCount": 141, "unresolvedCount": 5}, "units": [{"unitId": "api-auth-login", "unitKey": "auth-login", "kind": "REST", "unitNameGuess": "ログイン", "identifier": "POST /api/auth/login", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 3, "sourceFile": "src/api/auth.py", "method": "POST", "authRequired": false, "callers": ["login"], "ioSummary": "メールアドレスとパスワードを受け取りアクセストークンを返す"}, {"unitId": "api-auth-logout", "unitKey": "auth-logout", "kind": "REST", "unitNameGuess": "ログアウト", "identifier": "DELETE /api/auth/session", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 4, "sourceFile": "src/api/auth.py", "method": "DELETE", "authRequired": true, "callers": ["header-nav"], "ioSummary": "セッショントークンを受け取り破棄結果を返す"}, {"unitId": "api-auth-refresh", "unitKey": "auth-refresh", "kind": "REST", "unitNameGuess": "トークン更新", "identifier": "POST /api/auth/refresh", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 2, "sourceFile": "src/api/auth.py", "method": "POST", "authRequired": false, "callers": [], "ioSummary": "リフレッシュトークンを受け取り新しいアクセストークンを返す"}, {"unitId": "api-auth-register", "unitKey": "auth-register", "kind": "REST", "unitNameGuess": "新規登録", "identifier": "POST /api/auth/register", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 3, "sourceFile": "src/api/auth.py", "method": "POST", "authRequired": false, "callers": ["signup"], "ioSummary": "登録情報を受け取りアカウントを作成する"}, {"unitId": "api-auth-forgot-password", "unitKey": "auth-forgot-password", "kind": "REST", "unitNameGuess": "パスワード再設定依頼", "identifier": "POST /api/auth/forgot-password", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 4, "sourceFile": "src/api/auth.py", "method": "POST", "authRequired": false, "callers": ["forgot-password"], "ioSummary": "メールアドレスを受け取り再設定用メールを送信する"}, {"unitId": "api-auth-reset-password", "unitKey": "auth-reset-password", "kind": "REST", "unitNameGuess": "パスワード再設定実行", "identifier": "POST /api/auth/reset-password", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 2, "sourceFile": "src/api/auth.py", "method": "POST", "authRequired": false, "callers": ["reset-password"], "ioSummary": "再設定トークンと新パスワードを受け取り更新結果を返す"}, {"unitId": "api-auth-verify-email", "unitKey": "auth-verify-email", "kind": "REST", "unitNameGuess": "メール確認", "identifier": "POST /api/auth/verify-email", "detectionMethod": "decorator", "confidence": "MEDIUM", "fileCount": 3, "sourceFile": "src/api/auth.py", "method": "POST", "authRequired": false, "callers": [], "ioSummary": "確認トークンを受け取りメールアドレスを検証済みにする"}, {"unitId": "api-auth-me", "unitKey": "auth-me", "kind": "REST", "unitNameGuess": "自分自身の情報取得", "identifier": "GET /api/auth/me", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 4, "sourceFile": "src/api/auth.py", "method": "GET", "authRequired": true, "callers": ["profile", "header-nav"], "ioSummary": "認証済みユーザー自身のプロフィールを返す"}, {"unitId": "api-auth-sessions", "unitKey": "auth-sessions", "kind": "REST", "unitNameGuess": "有効セッション一覧取得", "identifier": "GET /api/auth/sessions", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 2, "sourceFile": "src/api/auth.py", "method": "GET", "authRequired": true, "callers": ["security-settings"], "ioSummary": "ログイン中の端末・セッション一覧を返す"}, {"unitId": "api-auth-sessions-revoke", "unitKey": "auth-sessions-revoke", "kind": "REST", "unitNameGuess": "セッション個別失効", "identifier": "DELETE /api/auth/sessions/:sessionId", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 3, "sourceFile": "src/api/auth.py", "method": "DELETE", "authRequired": true, "callers": ["security-settings"], "ioSummary": "指定セッションIDを受け取り強制ログアウトする"}, {"unitId": "api-auth-sessions-revoke-all", "unitKey": "auth-sessions-revoke-all", "kind": "REST", "unitNameGuess": "全セッション失効", "identifier": "DELETE /api/auth/sessions", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 4, "sourceFile": "src/api/auth.py", "method": "DELETE", "authRequired": true, "callers": ["security-settings"], "ioSummary": "自分自身以外の全セッションを一括失効する"}, {"unitId": "api-auth-change-password", "unitKey": "auth-change-password", "kind": "REST", "unitNameGuess": "パスワード変更", "identifier": "PUT /api/auth/password", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 2, "sourceFile": "src/api/auth.py", "method": "PUT", "authRequired": true, "callers": ["security-settings"], "ioSummary": "現パスワードと新パスワードを受け取り更新する"}, {"unitId": "api-auth-mfa-enable", "unitKey": "auth-mfa-enable", "kind": "REST", "unitNameGuess": "多要素認証有効化", "identifier": "POST /api/auth/mfa", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 3, "sourceFile": "src/api/auth.py", "method": "POST", "authRequired": true, "callers": ["security-settings"], "ioSummary": "認証アプリのシークレットを発行し設定用QRコードを返す"}, {"unitId": "api-auth-mfa-verify", "unitKey": "auth-mfa-verify", "kind": "REST", "unitNameGuess": "多要素認証コード検証", "identifier": "POST /api/auth/mfa/verify", "detectionMethod": "decorator", "confidence": "MEDIUM", "fileCount": 4, "sourceFile": "src/api/auth.py", "method": "POST", "authRequired": true, "callers": ["security-settings"], "ioSummary": "ワンタイムコードを受け取り有効化を確定する"}, {"unitId": "api-auth-mfa-disable", "unitKey": "auth-mfa-disable", "kind": "REST", "unitNameGuess": "多要素認証無効化", "identifier": "DELETE /api/auth/mfa", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 2, "sourceFile": "src/api/auth.py", "method": "DELETE", "authRequired": true, "callers": ["security-settings"], "ioSummary": "認証済みユーザーの多要素認証設定を解除する"}, {"unitId": "api-users-list", "unitKey": "users-list", "kind": "REST", "unitNameGuess": "ユーザー一覧取得", "identifier": "GET /api/users", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 3, "sourceFile": "src/api/users.py", "method": "GET", "authRequired": true, "callers": ["user-list"], "ioSummary": "検索・ページング条件を受け取りユーザーの配列を返す"}, {"unitId": "api-users-create", "unitKey": "users-create", "kind": "REST", "unitNameGuess": "ユーザー新規作成", "identifier": "POST /api/users", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 4, "sourceFile": "src/api/users.py", "method": "POST", "authRequired": true, "callers": ["user-list"], "ioSummary": "ユーザー登録情報を受け取り作成したユーザーを返す"}, {"unitId": "api-users-get", "unitKey": "users-get", "kind": "REST", "unitNameGuess": "ユーザー詳細取得", "identifier": "GET /api/users/:userId", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 2, "sourceFile": "src/api/users.py", "method": "GET", "authRequired": true, "callers": ["user-detail", "user-edit"], "ioSummary": "userIdを受け取りユーザー詳細を返す"}, {"unitId": "api-users-update", "unitKey": "users-update", "kind": "REST", "unitNameGuess": "ユーザー更新", "identifier": "PUT /api/users/:userId", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 3, "sourceFile": "src/api/users.py", "method": "PUT", "authRequired": true, "callers": ["user-edit"], "ioSummary": "更新内容を受け取り更新後のユーザーを返す"}, {"unitId": "api-users-delete", "unitKey": "users-delete", "kind": "REST", "unitNameGuess": "ユーザー削除", "identifier": "DELETE /api/users/:userId", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 4, "sourceFile": "src/api/users.py", "method": "DELETE", "authRequired": true, "callers": ["user-detail"], "ioSummary": "userIdを受け取り削除結果を返す"}, {"unitId": "api-users-search", "unitKey": "users-search", "kind": "REST", "unitNameGuess": "ユーザー検索", "identifier": "GET /api/users/search", "detectionMethod": "decorator", "confidence": "MEDIUM", "fileCount": 2, "sourceFile": "src/api/users.py", "method": "GET", "authRequired": true, "callers": ["global-search"], "ioSummary": "検索語を受け取り一致するユーザーの配列を返す"}, {"unitId": "api-users-bulk-import", "unitKey": "users-bulk-import", "kind": "REST", "unitNameGuess": "ユーザー一括登録", "identifier": "POST /api/users/bulk-import", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 3, "sourceFile": "src/api/users.py", "method": "POST", "authRequired": true, "callers": ["user-list"], "ioSummary": "CSVファイルを受け取り一括登録結果を返す"}, {"unitId": "api-users-export", "unitKey": "users-export", "kind": "REST", "unitNameGuess": "ユーザーエクスポート", "identifier": "GET /api/users/export", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 4, "sourceFile": "src/api/users.py", "method": "GET", "authRequired": true, "callers": ["user-list"], "ioSummary": "絞り込み条件を受け取りCSV形式のユーザー一覧を返す"}, {"unitId": "api-users-roles", "unitKey": "users-roles", "kind": "REST", "unitNameGuess": "ユーザーロール取得", "identifier": "GET /api/users/:userId/roles", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 2, "sourceFile": "src/api/users.py", "method": "GET", "authRequired": true, "callers": ["user-edit"], "ioSummary": "userIdを受け取り割当済みロールの配列を返す"}, {"unitId": "api-users-permissions", "unitKey": "users-permissions", "kind": "REST", "unitNameGuess": "ユーザー権限更新", "identifier": "PUT /api/users/:userId/permissions", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 3, "sourceFile": "src/api/users.py", "method": "PUT", "authRequired": true, "callers": ["user-edit"], "ioSummary": "権限一覧を受け取り更新後の権限を返す"}, {"unitId": "api-users-avatar-upload", "unitKey": "users-avatar-upload", "kind": "REST", "unitNameGuess": "アバターアップロード", "identifier": "POST /api/users/:userId/avatar", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 4, "sourceFile": "src/api/users.py", "method": "POST", "authRequired": true, "callers": ["profile"], "ioSummary": "画像ファイルを受け取り保存先URLを返す"}, {"unitId": "api-users-get-by-email", "unitKey": "users-get-by-email", "kind": "REST", "unitNameGuess": "メールアドレスでユーザー検索", "identifier": "GET /api/users/lookup", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 2, "sourceFile": "src/api/users.py", "method": "GET", "authRequired": true, "callers": [], "ioSummary": "メールアドレスを受け取り一致するユーザーを返す"}, {"unitId": "api-users-activity-log", "unitKey": "users-activity-log", "kind": "REST", "unitNameGuess": "ユーザー操作履歴取得", "identifier": "GET /api/users/:userId/activity", "detectionMethod": "decorator", "confidence": "MEDIUM", "fileCount": 3, "sourceFile": "src/api/users.py", "method": "GET", "authRequired": true, "callers": ["user-detail"], "ioSummary": "userIdを受け取り操作ログの配列を返す"}, {"unitId": "api-users-impersonate", "unitKey": "users-impersonate", "kind": "REST", "unitNameGuess": "ユーザーなりすまし開始", "identifier": "POST /api/users/:userId/impersonate", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 4, "sourceFile": "src/api/users.py", "method": "POST", "authRequired": true, "callers": ["user-detail"], "ioSummary": "管理者が対象ユーザーの一時セッションを発行する"}, {"unitId": "api-users-deactivate", "unitKey": "users-deactivate", "kind": "REST", "unitNameGuess": "ユーザー無効化", "identifier": "POST /api/users/:userId/deactivate", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 2, "sourceFile": "src/api/users.py", "method": "POST", "authRequired": true, "callers": ["user-detail"], "ioSummary": "userIdを受け取りアカウントを無効化する"}, {"unitId": "api-users-reactivate", "unitKey": "users-reactivate", "kind": "REST", "unitNameGuess": "ユーザー再有効化", "identifier": "POST /api/users/:userId/reactivate", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 3, "sourceFile": "src/api/users.py", "method": "POST", "authRequired": true, "callers": ["user-detail"], "ioSummary": "userIdを受け取りアカウントを再有効化する"}, {"unitId": "api-organizations-list", "unitKey": "organizations-list", "kind": "REST", "unitNameGuess": "組織一覧取得", "identifier": "GET /api/organizations", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 4, "sourceFile": "src/api/organizations.py", "method": "GET", "authRequired": true, "callers": ["org-list"], "ioSummary": "所属組織の配列を返す"}, {"unitId": "api-organizations-create", "unitKey": "organizations-create", "kind": "REST", "unitNameGuess": "組織新規作成", "identifier": "POST /api/organizations", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 2, "sourceFile": "src/api/organizations.py", "method": "POST", "authRequired": true, "callers": ["org-list"], "ioSummary": "組織名・種別を受け取り作成した組織を返す"}, {"unitId": "api-organizations-get", "unitKey": "organizations-get", "kind": "REST", "unitNameGuess": "組織詳細取得", "identifier": "GET /api/organizations/:orgId", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 3, "sourceFile": "src/api/organizations.py", "method": "GET", "authRequired": true, "callers": ["org-detail"], "ioSummary": "orgIdを受け取り組織詳細を返す"}, {"unitId": "api-organizations-update", "unitKey": "organizations-update", "kind": "REST", "unitNameGuess": "組織更新", "identifier": "PUT /api/organizations/:orgId", "detectionMethod": "decorator", "confidence": "MEDIUM", "fileCount": 4, "sourceFile": "src/api/organizations.py", "method": "PUT", "authRequired": true, "callers": ["org-edit"], "ioSummary": "更新内容を受け取り更新後の組織を返す"}, {"unitId": "api-organizations-delete", "unitKey": "organizations-delete", "kind": "REST", "unitNameGuess": "組織削除", "identifier": "DELETE /api/organizations/:orgId", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 2, "sourceFile": "src/api/organizations.py", "method": "DELETE", "authRequired": true, "callers": ["org-detail"], "ioSummary": "orgIdを受け取り削除結果を返す"}, {"unitId": "api-organizations-members", "unitKey": "organizations-members", "kind": "REST", "unitNameGuess": "組織メンバー一覧取得", "identifier": "GET /api/organizations/:orgId/members", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 3, "sourceFile": "src/api/organizations.py", "method": "GET", "authRequired": true, "callers": ["org-members"], "ioSummary": "orgIdを受け取りメンバーの配列を返す"}, {"unitId": "api-organizations-invite", "unitKey": "organizations-invite", "kind": "REST", "unitNameGuess": "組織招待送信", "identifier": "POST /api/organizations/:orgId/invites", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 4, "sourceFile": "src/api/organizations.py", "method": "POST", "authRequired": true, "callers": ["org-members"], "ioSummary": "招待先メールアドレスを受け取り招待結果を返す"}, {"unitId": "api-organizations-settings", "unitKey": "organizations-settings", "kind": "REST", "unitNameGuess": "組織設定取得", "identifier": "GET /api/organizations/:orgId/settings", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 2, "sourceFile": "src/api/organizations.py", "method": "GET", "authRequired": true, "callers": ["org-settings"], "ioSummary": "orgIdを受け取り組織単位の設定値を返す"}, {"unitId": "api-organizations-billing", "unitKey": "organizations-billing", "kind": "REST", "unitNameGuess": "組織請求情報取得", "identifier": "GET /api/organizations/:orgId/billing", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 3, "sourceFile": "src/api/organizations.py", "method": "GET", "authRequired": true, "callers": ["org-billing"], "ioSummary": "orgIdを受け取り契約プランと請求履歴を返す"}, {"unitId": "api-organizations-usage", "unitKey": "organizations-usage", "kind": "REST", "unitNameGuess": "組織利用状況取得", "identifier": "GET /api/organizations/:orgId/usage", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 4, "sourceFile": "src/api/organizations.py", "method": "GET", "authRequired": true, "callers": ["org-billing"], "ioSummary": "orgIdを受け取りAPI呼び出し数等の利用量を返す"}, {"unitId": "api-organizations-audit-log", "unitKey": "organizations-audit-log", "kind": "REST", "unitNameGuess": "組織監査ログ取得", "identifier": "GET /api/organizations/:orgId/audit-log", "detectionMethod": "decorator", "confidence": "MEDIUM", "fileCount": 2, "sourceFile": "src/api/organizations.py", "method": "GET", "authRequired": true, "callers": ["org-settings"], "ioSummary": "orgIdを受け取り組織内操作の監査ログを返す"}, {"unitId": "api-organizations-domains", "unitKey": "organizations-domains", "kind": "REST", "unitNameGuess": "組織ドメイン一覧取得", "identifier": "GET /api/organizations/:orgId/domains", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 3, "sourceFile": "src/api/organizations.py", "method": "GET", "authRequired": true, "callers": ["org-settings"], "ioSummary": "orgIdを受け取り許可済みメールドメインの配列を返す"}, {"unitId": "api-projects-list", "unitKey": "projects-list", "kind": "REST", "unitNameGuess": "プロジェクト一覧取得", "identifier": "GET /api/projects", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 4, "sourceFile": "src/api/projects.py", "method": "GET", "authRequired": true, "callers": ["project-list"], "ioSummary": "所属プロジェクトの配列を返す"}, {"unitId": "api-projects-create", "unitKey": "projects-create", "kind": "REST", "unitNameGuess": "プロジェクト新規作成", "identifier": "POST /api/projects", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 2, "sourceFile": "src/api/projects.py", "method": "POST", "authRequired": true, "callers": ["project-list"], "ioSummary": "プロジェクト名・概要を受け取り作成したプロジェクトを返す"}, {"unitId": "api-projects-get", "unitKey": "projects-get", "kind": "REST", "unitNameGuess": "プロジェクト詳細取得", "identifier": "GET /api/projects/:projectId", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 3, "sourceFile": "src/api/projects.py", "method": "GET", "authRequired": true, "callers": ["project-detail"], "ioSummary": "projectIdを受け取りプロジェクト詳細を返す"}, {"unitId": "api-projects-update", "unitKey": "projects-update", "kind": "REST", "unitNameGuess": "プロジェクト更新", "identifier": "PUT /api/projects/:projectId", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 4, "sourceFile": "src/api/projects.py", "method": "PUT", "authRequired": true, "callers": ["project-edit"], "ioSummary": "更新内容を受け取り更新後のプロジェクトを返す"}, {"unitId": "api-projects-delete", "unitKey": "projects-delete", "kind": "REST", "unitNameGuess": "プロジェクト削除", "identifier": "DELETE /api/projects/:projectId", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 2, "sourceFile": "src/api/projects.py", "method": "DELETE", "authRequired": true, "callers": ["project-detail"], "ioSummary": "projectIdを受け取り削除結果を返す"}, {"unitId": "api-projects-archive", "unitKey": "projects-archive", "kind": "REST", "unitNameGuess": "プロジェクトアーカイブ", "identifier": "POST /api/projects/:projectId/archive", "detectionMethod": "decorator", "confidence": "MEDIUM", "fileCount": 3, "sourceFile": "src/api/projects.py", "method": "POST", "authRequired": true, "callers": ["project-detail"], "ioSummary": "projectIdを受け取りアーカイブ状態にする"}, {"unitId": "api-projects-members", "unitKey": "projects-members", "kind": "REST", "unitNameGuess": "プロジェクトメンバー一覧取得", "identifier": "GET /api/projects/:projectId/members", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 4, "sourceFile": "src/api/projects.py", "method": "GET", "authRequired": true, "callers": ["project-members"], "ioSummary": "projectIdを受け取りメンバーの配列を返す"}, {"unitId": "api-projects-tasks", "unitKey": "projects-tasks", "kind": "REST", "unitNameGuess": "プロジェクト内タスク一覧取得", "identifier": "GET /api/projects/:projectId/tasks", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 2, "sourceFile": "src/api/projects.py", "method": "GET", "authRequired": true, "callers": ["project-detail"], "ioSummary": "projectIdを受け取り紐づくタスクの配列を返す"}, {"unitId": "api-projects-milestones", "unitKey": "projects-milestones", "kind": "REST", "unitNameGuess": "マイルストーン一覧取得", "identifier": "GET /api/projects/:projectId/milestones", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 3, "sourceFile": "src/api/projects.py", "method": "GET", "authRequired": true, "callers": ["project-milestones"], "ioSummary": "projectIdを受け取りマイルストーンの配列を返す"}, {"unitId": "api-projects-duplicate", "unitKey": "projects-duplicate", "kind": "REST", "unitNameGuess": "プロジェクト複製", "identifier": "POST /api/projects/:projectId/duplicate", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 4, "sourceFile": "src/api/projects.py", "method": "POST", "authRequired": true, "callers": ["project-detail"], "ioSummary": "projectIdを受け取り設定を引き継いだ複製プロジェクトを返す"}, {"unitId": "api-projects-export", "unitKey": "projects-export", "kind": "REST", "unitNameGuess": "プロジェクトエクスポート", "identifier": "GET /api/projects/:projectId/export", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 2, "sourceFile": "src/api/projects.py", "method": "GET", "authRequired": true, "callers": ["project-detail"], "ioSummary": "projectIdを受け取りプロジェクト構成のエクスポートファイルを返す"}, {"unitId": "api-projects-import", "unitKey": "projects-import", "kind": "REST", "unitNameGuess": "プロジェクトインポート", "identifier": "POST /api/projects/import", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 3, "sourceFile": "src/api/projects.py", "method": "POST", "authRequired": true, "callers": ["project-list"], "ioSummary": "エクスポートファイルを受け取りプロジェクトを作成する"}, {"unitId": "api-projects-labels", "unitKey": "projects-labels", "kind": "REST", "unitNameGuess": "プロジェクトラベル一覧取得", "identifier": "GET /api/projects/:projectId/labels", "detectionMethod": "decorator", "confidence": "MEDIUM", "fileCount": 4, "sourceFile": "src/api/projects.py", "method": "GET", "authRequired": true, "callers": ["project-edit"], "ioSummary": "projectIdを受け取りラベル定義の配列を返す"}, {"unitId": "api-projects-templates", "unitKey": "projects-templates", "kind": "REST", "unitNameGuess": "プロジェクトテンプレート一覧取得", "identifier": "GET /api/projects/templates", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 2, "sourceFile": "src/api/projects.py", "method": "GET", "authRequired": true, "callers": ["project-list"], "ioSummary": "利用可能なプロジェクトテンプレートの配列を返す"}, {"unitId": "api-tasks-list", "unitKey": "tasks-list", "kind": "REST", "unitNameGuess": "タスク一覧取得", "identifier": "GET /api/tasks", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 3, "sourceFile": "src/api/tasks.py", "method": "GET", "authRequired": true, "callers": ["task-list"], "ioSummary": "絞り込み条件を受け取りタスクの配列を返す"}, {"unitId": "api-tasks-create", "unitKey": "tasks-create", "kind": "REST", "unitNameGuess": "タスク新規作成", "identifier": "POST /api/tasks", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 4, "sourceFile": "src/api/tasks.py", "method": "POST", "authRequired": true, "callers": ["task-list"], "ioSummary": "タスク内容を受け取り作成したタスクを返す"}, {"unitId": "api-tasks-get", "unitKey": "tasks-get", "kind": "REST", "unitNameGuess": "タスク詳細取得", "identifier": "GET /api/tasks/:taskId", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 2, "sourceFile": "src/api/tasks.py", "method": "GET", "authRequired": true, "callers": ["task-detail"], "ioSummary": "taskIdを受け取りタスク詳細を返す"}, {"unitId": "api-tasks-update", "unitKey": "tasks-update", "kind": "REST", "unitNameGuess": "タスク更新", "identifier": "PUT /api/tasks/:taskId", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 3, "sourceFile": "src/api/tasks.py", "method": "PUT", "authRequired": true, "callers": ["task-edit"], "ioSummary": "更新内容を受け取り更新後のタスクを返す"}, {"unitId": "api-tasks-delete", "unitKey": "tasks-delete", "kind": "REST", "unitNameGuess": "タスク削除", "identifier": "DELETE /api/tasks/:taskId", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 4, "sourceFile": "src/api/tasks.py", "method": "DELETE", "authRequired": true, "callers": ["task-detail"], "ioSummary": "taskIdを受け取り削除結果を返す"}, {"unitId": "api-tasks-assign", "unitKey": "tasks-assign", "kind": "REST", "unitNameGuess": "タスク担当者変更", "identifier": "PUT /api/tasks/:taskId/assignee", "detectionMethod": "decorator", "confidence": "MEDIUM", "fileCount": 2, "sourceFile": "src/api/tasks.py", "method": "PUT", "authRequired": true, "callers": ["task-detail"], "ioSummary": "担当ユーザーIDを受け取り担当者を更新する"}, {"unitId": "api-tasks-status", "unitKey": "tasks-status", "kind": "REST", "unitNameGuess": "タスクステータス変更", "identifier": "PATCH /api/tasks/:taskId/status", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 3, "sourceFile": "src/api/tasks.py", "method": "PATCH", "authRequired": true, "callers": ["task-detail", "task-board"], "ioSummary": "新しいステータス値を受け取り更新後のタスクを返す"}, {"unitId": "api-tasks-comments", "unitKey": "tasks-comments", "kind": "REST", "unitNameGuess": "タスクコメント一覧取得", "identifier": "GET /api/tasks/:taskId/comments", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 4, "sourceFile": "src/api/tasks.py", "method": "GET", "authRequired": true, "callers": ["task-detail"], "ioSummary": "taskIdを受け取りコメントの配列を返す"}, {"unitId": "api-tasks-attachments", "unitKey": "tasks-attachments", "kind": "REST", "unitNameGuess": "タスク添付ファイル追加", "identifier": "POST /api/tasks/:taskId/attachments", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 2, "sourceFile": "src/api/tasks.py", "method": "POST", "authRequired": true, "callers": ["task-detail"], "ioSummary": "ファイル本体を受け取り添付結果を返す"}, {"unitId": "api-tasks-history", "unitKey": "tasks-history", "kind": "REST", "unitNameGuess": "タスク変更履歴取得", "identifier": "GET /api/tasks/:taskId/history", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 3, "sourceFile": "src/api/tasks.py", "method": "GET", "authRequired": true, "callers": ["task-detail"], "ioSummary": "taskIdを受け取り変更履歴の配列を返す"}, {"unitId": "api-tasks-reorder", "unitKey": "tasks-reorder", "kind": "REST", "unitNameGuess": "タスク並び替え", "identifier": "PUT /api/tasks/reorder", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 4, "sourceFile": "src/api/tasks.py", "method": "PUT", "authRequired": true, "callers": ["task-board"], "ioSummary": "タスクIDの並び順配列を受け取り並び順を更新する"}, {"unitId": "api-tasks-bulk-update", "unitKey": "tasks-bulk-update", "kind": "REST", "unitNameGuess": "タスク一括更新", "identifier": "PATCH /api/tasks/bulk-update", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 2, "sourceFile": "src/api/tasks.py", "method": "PATCH", "authRequired": true, "callers": ["task-list"], "ioSummary": "対象タスクIDと変更内容を受け取り一括更新する"}, {"unitId": "api-tasks-watchers", "unitKey": "tasks-watchers", "kind": "REST", "unitNameGuess": "タスクウォッチャー一覧取得", "identifier": "GET /api/tasks/:taskId/watchers", "detectionMethod": "decorator", "confidence": "MEDIUM", "fileCount": 3, "sourceFile": "src/api/tasks.py", "method": "GET", "authRequired": true, "callers": ["task-detail"], "ioSummary": "taskIdを受け取り通知購読中のユーザー配列を返す"}, {"unitId": "api-tasks-dependencies", "unitKey": "tasks-dependencies", "kind": "REST", "unitNameGuess": "タスク依存関係取得", "identifier": "GET /api/tasks/:taskId/dependencies", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 4, "sourceFile": "src/api/tasks.py", "method": "GET", "authRequired": true, "callers": ["task-detail"], "ioSummary": "taskIdを受け取り先行・後続タスクの配列を返す"}, {"unitId": "api-tasks-time-tracking", "unitKey": "tasks-time-tracking", "kind": "REST", "unitNameGuess": "タスク作業時間記録", "identifier": "POST /api/tasks/:taskId/time-entries", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 2, "sourceFile": "src/api/tasks.py", "method": "POST", "authRequired": true, "callers": ["task-detail"], "ioSummary": "作業時間を受け取り記録結果を返す"}, {"unitId": "api-comments-create", "unitKey": "comments-create", "kind": "REST", "unitNameGuess": "コメント投稿", "identifier": "POST /api/posts/:postId/comments", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 3, "sourceFile": "src/api/comments.py", "method": "POST", "authRequired": true, "callers": ["post-detail"], "ioSummary": "コメント本文を受け取り作成したコメントを返す"}, {"unitId": "api-comments-update", "unitKey": "comments-update", "kind": "REST", "unitNameGuess": "コメント編集", "identifier": "PUT /api/comments/:commentId", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 4, "sourceFile": "src/api/comments.py", "method": "PUT", "authRequired": true, "callers": ["post-detail"], "ioSummary": "commentIdと本文を受け取り更新後のコメントを返す"}, {"unitId": "api-comments-delete", "unitKey": "comments-delete", "kind": "REST", "unitNameGuess": "コメント削除", "identifier": "DELETE /api/comments/:commentId", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 2, "sourceFile": "src/api/comments.py", "method": "DELETE", "authRequired": true, "callers": ["post-detail"], "ioSummary": "commentIdを受け取り削除結果を返す"}, {"unitId": "api-comments-list", "unitKey": "comments-list", "kind": "REST", "unitNameGuess": "コメント一覧取得", "identifier": "GET /api/posts/:postId/comments", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 3, "sourceFile": "src/api/comments.py", "method": "GET", "authRequired": true, "callers": ["post-detail"], "ioSummary": "postIdを受け取りコメントの配列を返す"}, {"unitId": "api-comments-reactions", "unitKey": "comments-reactions", "kind": "REST", "unitNameGuess": "コメントリアクション追加", "identifier": "POST /api/comments/:commentId/reactions", "detectionMethod": "decorator", "confidence": "MEDIUM", "fileCount": 4, "sourceFile": "src/api/comments.py", "method": "POST", "authRequired": true, "callers": ["post-detail"], "ioSummary": "リアクション種別を受け取り追加結果を返す"}, {"unitId": "api-comments-pin", "unitKey": "comments-pin", "kind": "REST", "unitNameGuess": "コメント固定", "identifier": "PUT /api/comments/:commentId/pin", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 2, "sourceFile": "src/api/comments.py", "method": "PUT", "authRequired": true, "callers": ["post-detail"], "ioSummary": "commentIdを受け取りコメントを上部固定にする"}, {"unitId": "api-comments-unpin", "unitKey": "comments-unpin", "kind": "REST", "unitNameGuess": "コメント固定解除", "identifier": "DELETE /api/comments/:commentId/pin", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 3, "sourceFile": "src/api/comments.py", "method": "DELETE", "authRequired": true, "callers": ["post-detail"], "ioSummary": "commentIdを受け取り固定を解除する"}, {"unitId": "api-files-upload", "unitKey": "files-upload", "kind": "REST", "unitNameGuess": "ファイルアップロード", "identifier": "POST /api/files", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 4, "sourceFile": "src/api/files.py", "method": "POST", "authRequired": true, "callers": ["file-manager"], "ioSummary": "ファイル本体を受け取り保存先情報を返す"}, {"unitId": "api-files-download", "unitKey": "files-download", "kind": "REST", "unitNameGuess": "ファイルダウンロード", "identifier": "GET /api/files/:fileId/download", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 2, "sourceFile": "src/api/files.py", "method": "GET", "authRequired": true, "callers": ["file-manager"], "ioSummary": "fileIdを受け取りファイル本体を返す"}, {"unitId": "api-files-list", "unitKey": "files-list", "kind": "REST", "unitNameGuess": "ファイル一覧取得", "identifier": "GET /api/files", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 3, "sourceFile": "src/api/files.py", "method": "GET", "authRequired": true, "callers": ["file-manager"], "ioSummary": "絞り込み条件を受け取りファイルの配列を返す"}, {"unitId": "api-files-delete", "unitKey": "files-delete", "kind": "REST", "unitNameGuess": "ファイル削除", "identifier": "DELETE /api/files/:fileId", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 4, "sourceFile": "src/api/files.py", "method": "DELETE", "authRequired": true, "callers": ["file-manager"], "ioSummary": "fileIdを受け取り削除結果を返す"}, {"unitId": "api-files-metadata", "unitKey": "files-metadata", "kind": "REST", "unitNameGuess": "ファイルメタ情報取得", "identifier": "GET /api/files/:fileId", "detectionMethod": "decorator", "confidence": "MEDIUM", "fileCount": 2, "sourceFile": "src/api/files.py", "method": "GET", "authRequired": true, "callers": ["file-manager"], "ioSummary": "fileIdを受け取りサイズ・種別等のメタ情報を返す"}, {"unitId": "api-files-thumbnails", "unitKey": "files-thumbnails", "kind": "REST", "unitNameGuess": "ファイルサムネイル取得", "identifier": "GET /api/files/:fileId/thumbnail", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 3, "sourceFile": "src/api/files.py", "method": "GET", "authRequired": true, "callers": ["file-manager"], "ioSummary": "fileIdを受け取りサムネイル画像を返す"}, {"unitId": "api-files-share", "unitKey": "files-share", "kind": "REST", "unitNameGuess": "ファイル共有リンク発行", "identifier": "POST /api/files/:fileId/share", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 4, "sourceFile": "src/api/files.py", "method": "POST", "authRequired": true, "callers": ["file-manager"], "ioSummary": "有効期限を受け取り共有用URLを発行する"}, {"unitId": "api-files-versions", "unitKey": "files-versions", "kind": "REST", "unitNameGuess": "ファイルバージョン一覧取得", "identifier": "GET /api/files/:fileId/versions", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 2, "sourceFile": "src/api/files.py", "method": "GET", "authRequired": true, "callers": ["file-manager"], "ioSummary": "fileIdを受け取り過去バージョンの配列を返す"}, {"unitId": "api-files-restore-version", "unitKey": "files-restore-version", "kind": "REST", "unitNameGuess": "ファイルバージョン復元", "identifier": "POST /api/files/:fileId/versions/:versionId/restore", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 3, "sourceFile": "src/api/files.py", "method": "POST", "authRequired": true, "callers": ["file-manager"], "ioSummary": "versionIdを受け取り指定バージョンへ復元する"}, {"unitId": "api-files-permissions", "unitKey": "files-permissions", "kind": "REST", "unitNameGuess": "ファイル権限設定", "identifier": "PUT /api/files/:fileId/permissions", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 4, "sourceFile": "src/api/files.py", "method": "PUT", "authRequired": true, "callers": ["file-manager"], "ioSummary": "共有先ユーザーと権限レベルを受け取り更新する"}, {"unitId": "api-notifications-list", "unitKey": "notifications-list", "kind": "REST", "unitNameGuess": "通知一覧取得", "identifier": "GET /api/notifications", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 2, "sourceFile": "src/api/notifications.py", "method": "GET", "authRequired": true, "callers": ["notifications"], "ioSummary": "未読条件を受け取り通知の配列を返す"}, {"unitId": "api-notifications-read", "unitKey": "notifications-read", "kind": "REST", "unitNameGuess": "通知既読化", "identifier": "PUT /api/notifications/:notificationId/read", "detectionMethod": "decorator", "confidence": "MEDIUM", "fileCount": 3, "sourceFile": "src/api/notifications.py", "method": "PUT", "authRequired": true, "callers": ["notifications"], "ioSummary": "notificationIdを受け取り既読状態にする"}, {"unitId": "api-notifications-read-all", "unitKey": "notifications-read-all", "kind": "REST", "unitNameGuess": "全通知既読化", "identifier": "PUT /api/notifications/read-all", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 4, "sourceFile": "src/api/notifications.py", "method": "PUT", "authRequired": true, "callers": ["notifications"], "ioSummary": "認証済みユーザーの全通知を既読にする"}, {"unitId": "api-notifications-settings", "unitKey": "notifications-settings", "kind": "REST", "unitNameGuess": "通知設定取得", "identifier": "GET /api/notifications/settings", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 2, "sourceFile": "src/api/notifications.py", "method": "GET", "authRequired": true, "callers": ["notification-settings"], "ioSummary": "認証済みユーザーの通知設定を返す"}, {"unitId": "api-notifications-subscribe", "unitKey": "notifications-subscribe", "kind": "REST", "unitNameGuess": "通知購読登録", "identifier": "POST /api/notifications/subscriptions", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 3, "sourceFile": "src/api/notifications.py", "method": "POST", "authRequired": true, "callers": ["notification-settings"], "ioSummary": "プッシュ通知用エンドポイントを受け取り登録する"}, {"unitId": "api-notifications-unsubscribe", "unitKey": "notifications-unsubscribe", "kind": "REST", "unitNameGuess": "通知購読解除", "identifier": "DELETE /api/notifications/subscriptions/:subscriptionId", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 4, "sourceFile": "src/api/notifications.py", "method": "DELETE", "authRequired": true, "callers": ["notification-settings"], "ioSummary": "subscriptionIdを受け取り購読を解除する"}, {"unitId": "api-notifications-preferences", "unitKey": "notifications-preferences", "kind": "REST", "unitNameGuess": "通知設定更新", "identifier": "PUT /api/notifications/settings", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 2, "sourceFile": "src/api/notifications.py", "method": "PUT", "authRequired": true, "callers": ["notification-settings"], "ioSummary": "通知種別ごとの受信可否を受け取り更新する"}, {"unitId": "api-notifications-test", "unitKey": "notifications-test", "kind": "REST", "unitNameGuess": "テスト通知送信", "identifier": "POST /api/notifications/test", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 3, "sourceFile": "src/api/notifications.py", "method": "POST", "authRequired": true, "callers": ["notification-settings"], "ioSummary": "認証済みユーザー宛にテスト通知を送信する"}, {"unitId": "api-search-global", "unitKey": "search-global", "kind": "REST", "unitNameGuess": "全体横断検索", "identifier": "GET /api/search", "detectionMethod": "decorator", "confidence": "MEDIUM", "fileCount": 4, "sourceFile": "src/api/search.py", "method": "GET", "authRequired": true, "callers": ["global-search"], "ioSummary": "検索語を受け取り種別横断のヒット結果を返す"}, {"unitId": "api-search-users", "unitKey": "search-users", "kind": "REST", "unitNameGuess": "ユーザー検索", "identifier": "GET /api/search/users", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 2, "sourceFile": "src/api/search.py", "method": "GET", "authRequired": true, "callers": ["global-search"], "ioSummary": "検索語を受け取り一致するユーザーの配列を返す"}, {"unitId": "api-search-projects", "unitKey": "search-projects", "kind": "REST", "unitNameGuess": "プロジェクト検索", "identifier": "GET /api/search/projects", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 3, "sourceFile": "src/api/search.py", "method": "GET", "authRequired": true, "callers": ["global-search"], "ioSummary": "検索語を受け取り一致するプロジェクトの配列を返す"}, {"unitId": "api-search-tasks", "unitKey": "search-tasks", "kind": "REST", "unitNameGuess": "タスク検索", "identifier": "GET /api/search/tasks", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 4, "sourceFile": "src/api/search.py", "method": "GET", "authRequired": true, "callers": ["global-search"], "ioSummary": "検索語を受け取り一致するタスクの配列を返す"}, {"unitId": "api-search-files", "unitKey": "search-files", "kind": "REST", "unitNameGuess": "ファイル検索", "identifier": "GET /api/search/files", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 2, "sourceFile": "src/api/search.py", "method": "GET", "authRequired": true, "callers": ["global-search"], "ioSummary": "検索語を受け取り一致するファイルの配列を返す"}, {"unitId": "api-search-suggestions", "unitKey": "search-suggestions", "kind": "REST", "unitNameGuess": "検索候補取得", "identifier": "GET /api/search/suggestions", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 3, "sourceFile": "src/api/search.py", "method": "GET", "authRequired": true, "callers": ["global-search"], "ioSummary": "入力途中の検索語を受け取り候補文字列の配列を返す"}, {"unitId": "api-search-recent", "unitKey": "search-recent", "kind": "REST", "unitNameGuess": "最近の検索履歴取得", "identifier": "GET /api/search/recent", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 4, "sourceFile": "src/api/search.py", "method": "GET", "authRequired": true, "callers": ["global-search"], "ioSummary": "認証済みユーザーの検索履歴の配列を返す"}, {"unitId": "api-search-saved", "unitKey": "search-saved", "kind": "REST", "unitNameGuess": "保存済み検索条件取得", "identifier": "GET /api/search/saved", "detectionMethod": "decorator", "confidence": "MEDIUM", "fileCount": 2, "sourceFile": "src/api/search.py", "method": "GET", "authRequired": true, "callers": ["global-search"], "ioSummary": "認証済みユーザーが保存した検索条件の配列を返す"}, {"unitId": "api-dashboard-overview", "unitKey": "dashboard-overview", "kind": "REST", "unitNameGuess": "ダッシュボード概要取得", "identifier": "GET /api/dashboard/overview", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 3, "sourceFile": "src/api/dashboard.py", "method": "GET", "authRequired": true, "callers": ["dashboard"], "ioSummary": "認証済みユーザー向けの概要指標を返す"}, {"unitId": "api-dashboard-stats", "unitKey": "dashboard-stats", "kind": "REST", "unitNameGuess": "ダッシュボード統計取得", "identifier": "GET /api/dashboard/stats", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 4, "sourceFile": "src/api/dashboard.py", "method": "GET", "authRequired": true, "callers": ["dashboard"], "ioSummary": "期間を受け取り集計統計を返す"}, {"unitId": "api-dashboard-recent-activity", "unitKey": "dashboard-recent-activity", "kind": "REST", "unitNameGuess": "最近のアクティビティ取得", "identifier": "GET /api/dashboard/recent-activity", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 2, "sourceFile": "src/api/dashboard.py", "method": "GET", "authRequired": true, "callers": ["dashboard"], "ioSummary": "件数を受け取り直近の操作履歴の配列を返す"}, {"unitId": "api-dashboard-charts", "unitKey": "dashboard-charts", "kind": "REST", "unitNameGuess": "ダッシュボードチャートデータ取得", "identifier": "GET /api/dashboard/charts", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 3, "sourceFile": "src/api/dashboard.py", "method": "GET", "authRequired": true, "callers": ["dashboard"], "ioSummary": "指標種別を受け取りグラフ描画用データを返す"}, {"unitId": "api-dashboard-widgets", "unitKey": "dashboard-widgets", "kind": "REST", "unitNameGuess": "ダッシュボードウィジェット構成取得", "identifier": "GET /api/dashboard/widgets", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 4, "sourceFile": "src/api/dashboard.py", "method": "GET", "authRequired": true, "callers": ["dashboard"], "ioSummary": "認証済みユーザーのウィジェット配置を返す"}, {"unitId": "api-dashboard-export", "unitKey": "dashboard-export", "kind": "REST", "unitNameGuess": "ダッシュボードエクスポート", "identifier": "GET /api/dashboard/export", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 2, "sourceFile": "src/api/dashboard.py", "method": "GET", "authRequired": true, "callers": ["dashboard"], "ioSummary": "期間を受け取りダッシュボード内容をPDF等で返す"}, {"unitId": "api-reports-generate", "unitKey": "reports-generate", "kind": "REST", "unitNameGuess": "帳票生成依頼", "identifier": "POST /api/reports", "detectionMethod": "decorator", "confidence": "MEDIUM", "fileCount": 3, "sourceFile": "src/api/reports.py", "method": "POST", "authRequired": true, "callers": ["report-list"], "ioSummary": "帳票種別とパラメータを受け取り生成ジョブを開始する"}, {"unitId": "api-reports-list", "unitKey": "reports-list", "kind": "REST", "unitNameGuess": "帳票一覧取得", "identifier": "GET /api/reports", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 4, "sourceFile": "src/api/reports.py", "method": "GET", "authRequired": true, "callers": ["report-list"], "ioSummary": "生成済み帳票の配列を返す"}, {"unitId": "api-reports-download", "unitKey": "reports-download", "kind": "REST", "unitNameGuess": "帳票ダウンロード", "identifier": "GET /api/reports/:reportId/download", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 2, "sourceFile": "src/api/reports.py", "method": "GET", "authRequired": true, "callers": ["report-list"], "ioSummary": "reportIdを受け取り帳票ファイルを返す"}, {"unitId": "api-reports-schedule", "unitKey": "reports-schedule", "kind": "REST", "unitNameGuess": "帳票定期実行設定", "identifier": "POST /api/reports/schedules", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 3, "sourceFile": "src/api/reports.py", "method": "POST", "authRequired": true, "callers": ["report-schedule"], "ioSummary": "実行スケジュールを受け取り定期実行を登録する"}, {"unitId": "api-reports-templates", "unitKey": "reports-templates", "kind": "REST", "unitNameGuess": "帳票テンプレート一覧取得", "identifier": "GET /api/reports/templates", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 4, "sourceFile": "src/api/reports.py", "method": "GET", "authRequired": true, "callers": ["report-list"], "ioSummary": "利用可能な帳票テンプレートの配列を返す"}, {"unitId": "api-reports-delete", "unitKey": "reports-delete", "kind": "REST", "unitNameGuess": "帳票削除", "identifier": "DELETE /api/reports/:reportId", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 2, "sourceFile": "src/api/reports.py", "method": "DELETE", "authRequired": true, "callers": ["report-list"], "ioSummary": "reportIdを受け取り削除結果を返す"}, {"unitId": "api-reports-share", "unitKey": "reports-share", "kind": "REST", "unitNameGuess": "帳票共有", "identifier": "POST /api/reports/:reportId/share", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 3, "sourceFile": "src/api/reports.py", "method": "POST", "authRequired": true, "callers": ["report-list"], "ioSummary": "共有先ユーザーを受け取り共有結果を返す"}, {"unitId": "api-settings-get", "unitKey": "settings-get", "kind": "REST", "unitNameGuess": "設定取得", "identifier": "GET /api/settings", "detectionMethod": "decorator", "confidence": "MEDIUM", "fileCount": 4, "sourceFile": "src/api/settings.py", "method": "GET", "authRequired": true, "callers": ["settings", "profile"], "ioSummary": "認証済みユーザーの設定一覧を返す"}, {"unitId": "api-settings-update", "unitKey": "settings-update", "kind": "REST", "unitNameGuess": "設定更新", "identifier": "PUT /api/settings", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 2, "sourceFile": "src/api/settings.py", "method": "PUT", "authRequired": true, "callers": ["settings"], "ioSummary": "設定の変更内容を受け取り更新後の設定を返す"}, {"unitId": "api-settings-integrations", "unitKey": "settings-integrations", "kind": "REST", "unitNameGuess": "外部連携設定取得", "identifier": "GET /api/settings/integrations", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 3, "sourceFile": "src/api/settings.py", "method": "GET", "authRequired": true, "callers": ["settings"], "ioSummary": "連携済み外部サービスの一覧を返す"}, {"unitId": "api-settings-webhooks", "unitKey": "settings-webhooks", "kind": "REST", "unitNameGuess": "Webhook設定取得", "identifier": "GET /api/settings/webhooks", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 4, "sourceFile": "src/api/settings.py", "method": "GET", "authRequired": true, "callers": ["settings"], "ioSummary": "登録済みWebhookの一覧を返す"}, {"unitId": "api-settings-api-keys", "unitKey": "settings-api-keys", "kind": "REST", "unitNameGuess": "APIキー一覧取得", "identifier": "GET /api/settings/api-keys", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 2, "sourceFile": "src/api/settings.py", "method": "GET", "authRequired": true, "callers": ["settings"], "ioSummary": "発行済みAPIキーの一覧を返す"}, {"unitId": "api-settings-notifications", "unitKey": "settings-notifications", "kind": "REST", "unitNameGuess": "通知系設定更新", "identifier": "PUT /api/settings/notification-preferences", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 3, "sourceFile": "src/api/settings.py", "method": "PUT", "authRequired": true, "callers": ["settings"], "ioSummary": "通知チャネルごとの有効可否を受け取り更新する"}, {"unitId": "api-settings-security", "unitKey": "settings-security", "kind": "REST", "unitNameGuess": "セキュリティ設定取得", "identifier": "GET /api/settings/security", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 4, "sourceFile": "src/api/settings.py", "method": "GET", "authRequired": true, "callers": ["security-settings"], "ioSummary": "パスワードポリシー・多要素認証状況を返す"}, {"unitId": "api-settings-sessions", "unitKey": "settings-sessions", "kind": "REST", "unitNameGuess": "設定画面向けセッション一覧取得", "identifier": "GET /api/settings/sessions", "detectionMethod": "decorator", "confidence": "MEDIUM", "fileCount": 2, "sourceFile": "src/api/settings.py", "method": "GET", "authRequired": true, "callers": ["security-settings"], "ioSummary": "設定画面で表示するログインセッションの配列を返す"}, {"unitId": "api-audit-logs", "unitKey": "audit-logs", "kind": "REST", "unitNameGuess": "監査ログ一覧取得", "identifier": "GET /api/audit/logs", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 3, "sourceFile": "src/api/audit.py", "method": "GET", "authRequired": true, "callers": ["audit-log"], "ioSummary": "期間・操作種別を受け取り監査ログの配列を返す"}, {"unitId": "api-audit-export", "unitKey": "audit-export", "kind": "REST", "unitNameGuess": "監査ログエクスポート", "identifier": "GET /api/audit/logs/export", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 4, "sourceFile": "src/api/audit.py", "method": "GET", "authRequired": true, "callers": ["audit-log"], "ioSummary": "絞り込み条件を受け取りCSV形式の監査ログを返す"}, {"unitId": "api-audit-user-activity", "unitKey": "audit-user-activity", "kind": "REST", "unitNameGuess": "ユーザー別監査ログ取得", "identifier": "GET /api/audit/users/:userId", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 2, "sourceFile": "src/api/audit.py", "method": "GET", "authRequired": true, "callers": ["audit-log"], "ioSummary": "userIdを受け取り対象ユーザーの操作ログを返す"}, {"unitId": "api-audit-alerts", "unitKey": "audit-alerts", "kind": "REST", "unitNameGuess": "監査アラート一覧取得", "identifier": "GET /api/audit/alerts", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 3, "sourceFile": "src/api/audit.py", "method": "GET", "authRequired": true, "callers": ["audit-log"], "ioSummary": "異常操作として検知されたアラートの配列を返す"}, {"unitId": "api-audit-retention-policy", "unitKey": "audit-retention-policy", "kind": "REST", "unitNameGuess": "監査ログ保持期間設定取得", "identifier": "GET /api/audit/retention-policy", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 4, "sourceFile": "src/api/audit.py", "method": "GET", "authRequired": true, "callers": ["audit-log"], "ioSummary": "現在の監査ログ保持期間ポリシーを返す"}, {"unitId": "api-system-health", "unitKey": "system-health", "kind": "REST", "unitNameGuess": "ヘルスチェック", "identifier": "GET /api/health", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 2, "sourceFile": "src/api/system.py", "method": "GET", "authRequired": false, "callers": [], "ioSummary": "サービスの死活状態を返す"}, {"unitId": "api-system-version", "unitKey": "system-version", "kind": "REST", "unitNameGuess": "バージョン情報取得", "identifier": "GET /api/version", "detectionMethod": "decorator", "confidence": "MEDIUM", "fileCount": 3, "sourceFile": "src/api/system.py", "method": "GET", "authRequired": false, "callers": [], "ioSummary": "デプロイ中のアプリケーションバージョンを返す"}, {"unitId": "api-system-metrics", "unitKey": "system-metrics", "kind": "REST", "unitNameGuess": "システムメトリクス取得", "identifier": "GET /api/metrics", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 4, "sourceFile": "src/api/system.py", "method": "GET", "authRequired": true, "callers": ["system-status"], "ioSummary": "CPU・メモリ等の稼働メトリクスを返す"}, {"unitId": "api-system-status", "unitKey": "system-status", "kind": "REST", "unitNameGuess": "システムステータス取得", "identifier": "GET /api/status", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 2, "sourceFile": "src/api/system.py", "method": "GET", "authRequired": false, "callers": ["system-status"], "ioSummary": "各サブシステムの稼働状況を返す"}, {"unitId": "api-system-ping", "unitKey": "system-ping", "kind": "REST", "unitNameGuess": "疎通確認", "identifier": "GET /api/ping", "detectionMethod": "decorator", "confidence": "HIGH", "fileCount": 3, "sourceFile": "src/api/system.py", "method": "GET", "authRequired": false, "callers": [], "ioSummary": "簡易な生存確認レスポンスを返す"}, {"unitId": "unresolved-legacy-export", "unitKey": "unresolved-legacy-export", "kind": "unresolved", "unitNameGuess": "旧バージョンエクスポート処理(要確認)", "identifier": "? /api/v1/export/...", "detectionMethod": "heuristic", "confidence": "LOW", "fileCount": 1, "sourceFile": "src/api/legacy.py"}, {"unitId": "unresolved-internal-webhook-relay", "unitKey": "unresolved-internal-webhook-relay", "kind": "unresolved", "unitNameGuess": "内部Webhook中継処理(要確認)", "identifier": "POST /api/internal/???", "detectionMethod": "heuristic", "confidence": "LOW", "fileCount": 1, "sourceFile": "src/api/webhooks_internal.py"}, {"unitId": "unresolved-batch-callback", "unitKey": "unresolved-batch-callback", "kind": "unresolved", "unitNameGuess": "バッチ処理コールバック受信(要確認)", "identifier": "? /api/callbacks/batch/...", "detectionMethod": "heuristic", "confidence": "LOW", "fileCount": 1, "sourceFile": "src/api/callbacks.py"}, {"unitId": "unresolved-partner-sync-endpoint", "unitKey": "unresolved-partner-sync-endpoint", "kind": "unresolved", "unitNameGuess": "パートナー連携同期処理(要確認)", "identifier": "PATCH /api/partners/???", "detectionMethod": "heuristic", "confidence": "LOW", "fileCount": 1, "sourceFile": "src/api/partners.py"}, {"unitId": "unresolved-deprecated-token-exchange", "unitKey": "unresolved-deprecated-token-exchange", "kind": "unresolved", "unitNameGuess": "旧トークン交換処理(要確認)", "identifier": "POST /api/oauth/exchange(旧仕様)", "detectionMethod": "heuristic", "confidence": "LOW", "fileCount": 1, "sourceFile": "src/api/oauth_legacy.py"}]}
-</script>
-
-<footer></footer>
 
 <script>
   /* 任意列描画（shared/references/manifest-schema-extensions.md 準拠）
@@ -969,7 +1309,9 @@
       table:    [['foreignKeys', 'FK参照先'], ['columnCount', 'カラム数'], ['mainColumns', '主要カラム']],
       batch:    [['schedule', 'スケジュール'], ['targetTables', '対象テーブル'], ['downstreamJobs', '後続ジョブ'], ['execMethod', '実行方法']],
       report:   [['format', '出力形式'], ['trigger', '出力契機']],
-      external: [['direction', '方向'], ['protocol', 'プロトコル'], ['authMethod', '認証方式']]
+      external: [['direction', '方向'], ['protocol', 'プロトコル'], ['authMethod', '認証方式']],
+      message:  [['sourceFile', '抽出元'], ['usedScreen', '使用画面']],
+      test_viewpoint: [['testType', 'テスト種別']]
     };
     var fields = FIELD_SETS[optManifest.unitKind];
     if (!fields) return;
@@ -1000,7 +1342,7 @@
 
     var optStyle = document.createElement('style');
     optStyle.textContent =
-      '.opt-tag{display:inline-block;font-size:.72rem;padding:1px 6px;border-radius:4px;background:var(--panel-2);margin:1px 3px 1px 0;}' +
+      '.opt-tag{display:inline-block;font-size:.72rem;padding:1px 6px;background:var(--panel-2);margin:1px 3px 1px 0;}' +
       'a.opt-tag{color:inherit;text-decoration:none;}' +
       'a.opt-tag:hover{text-decoration:underline;color:var(--accent);}' +
       'a.crud-link{font-size:.8em;color:var(--accent);text-decoration:none;border-bottom:1px dotted var(--accent);}' +
@@ -1235,7 +1577,7 @@
     var COL_COUNT = headerCells.length;
     /* チップ対象列は列見出し名で指定する（任意列スクリプトが追加した列も対象にできる） */
     var CHIP_COLUMNS = ['区分'];
-    var EXTRA_CHIP_COLUMNS = { api: ['メソッド', '認証'], batch: [], report: ['出力形式', '出力契機'], external: ['方向', 'プロトコル'] };
+    var EXTRA_CHIP_COLUMNS = { api: ['メソッド', '認証'], batch: [], report: ['出力形式', '出力契機'], external: ['方向', 'プロトコル'], message: ['種別'], test_viewpoint: ['テスト種別', '画面'] };
     (EXTRA_CHIP_COLUMNS[manifest.unitKind] || []).forEach(function (name) {
       if (CHIP_COLUMNS.indexOf(name) === -1) CHIP_COLUMNS.push(name);
     });
@@ -1545,29 +1887,6 @@
     } catch (e) {}
 
     renderPage();
-  })();
-</script>
-
-<script>
-  (function () {
-    var themeBtn = document.getElementById('theme-toggle');
-    if (themeBtn) {
-      themeBtn.addEventListener('click', function() {
-        var r = document.documentElement;
-        var next = r.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-        r.setAttribute('data-theme', next);
-        themeBtn.textContent = next === 'dark' ? 'ダーク' : 'ライト';
-        try { localStorage.setItem('rd-portal-theme', next); } catch(e) {}
-      });
-    }
-    try {
-      var saved = localStorage.getItem('rd-portal-theme');
-      if (saved) {
-        document.documentElement.setAttribute('data-theme', saved);
-        var tb = document.getElementById('theme-toggle');
-        if (tb) tb.textContent = saved === 'dark' ? 'ダーク' : 'ライト';
-      }
-    } catch(e) {}
   })();
 </script>
 

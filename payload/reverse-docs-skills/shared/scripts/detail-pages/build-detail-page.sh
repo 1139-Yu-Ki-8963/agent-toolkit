@@ -26,6 +26,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 get_page_template() { case "$1" in glossary) echo "detail-t2-dictionary.html";; techstack) echo "detail-t3-attributes.html";; transition) echo "detail-t4-diagram.html";; er) echo "detail-t6-er.html";; env) echo "detail-t5-procedure.html";; entity-state) echo "detail-t7-entity-state.html";; release-notes) echo "detail-t7-release-notes.html";; design-system) echo "detail-t8-design-system.html";; component-inventory) echo "detail-t9-component-inventory.html";; icon-catalog) echo "detail-t10-icon-catalog.html";; esac; }
 get_page_filename() { case "$1" in glossary) echo "用語辞書.html";; techstack) echo "技術スタック.html";; transition) echo "画面遷移図.html";; er) echo "ER図.html";; env) echo "環境構築手順.html";; entity-state) echo "状態遷移図.html";; release-notes) echo "リリースノート.html";; design-system) echo "デザインシステム.html";; component-inventory) echo "コンポーネント棚卸し.html";; icon-catalog) echo "アイコンカタログ.html";; esac; }
+get_page_category() { case "$1" in glossary) echo "project";; techstack) echo "project";; env) echo "project";; release-notes) echo "project";; transition) echo "list";; er) echo "list";; entity-state) echo "list";; design-system) echo "design-tools";; component-inventory) echo "design-tools";; icon-catalog) echo "design-tools";; esac; }
 
 # --- --self-test モード ---
 # (a) バックスラッシュ・実マーカー文字列(\d+・{{PAGE_DATA_JSON}}・<!--DETAIL_TILES-->)を含む
@@ -436,6 +437,9 @@ html_escape() {
 
 # render_template — 共通関数を source（shared/scripts/render-template.sh）
 source "$(cd "$(dirname "$0")/.." && pwd)/render-template.sh"
+if [ -f "$SCRIPT_DIR/../shell-injection.sh" ]; then
+  . "$SCRIPT_DIR/../shell-injection.sh"
+fi
 
 PROJECT_NAME="$(jq -r '.projectName // ""' "$DATA")"
 TITLE="$(jq -r '.title // ""' "$DATA")"
@@ -496,6 +500,13 @@ render_args=(
 # トークンCSS注入（tokens.css が存在する場合のみ）
 if [ -f "$TOKENS_CSS_FILE" ]; then
   render_args+=("/* TOKENS_CSS */" "$(cat "$TOKENS_CSS_FILE")")
+fi
+# 共通シェル注入（partials が存在する場合のみ）
+if type shell_injection_args >/dev/null 2>&1; then
+  shell_injection_args "$SCRIPT_DIR/../../templates" "$SCRIPT_DIR/../../templates/../references/portal-catalog.json" "$back_link" "$PROJECT_NAME" "$GENERATED_AT" "" "shared/scripts/detail-pages/build-detail-page.sh" "$(get_page_category "$PAGE")"
+  if [ ${#SHELL_RENDER_ARGS[@]} -gt 0 ]; then
+    render_args+=("${SHELL_RENDER_ARGS[@]}")
+  fi
 fi
 out="$(render_template "$(cat "$TEMPLATE")" "${render_args[@]}")"
 

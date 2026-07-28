@@ -1,0 +1,117 @@
+<aside class="pt-sidebar" data-portal-href="{{PORTAL_HREF}}" data-active-category="{{ACTIVE_CATEGORY}}">
+  <div class="pt-brand">
+    <div class="pt-brand-stamp">DESIGN PORTAL</div>
+    <div class="pt-brand-name">{{PROJECT_NAME}}</div>
+    <div class="pt-brand-sub">設計台帳 · 全{{TOTAL_ARTIFACTS}}資料</div>
+  </div>
+  <nav class="pt-nav" id="pt-nav" aria-label="資料カテゴリ"></nav>
+  <button type="button" class="pt-theme" id="pt-theme-toggle">
+    <span id="pt-theme-label">テーマ: ダーク</span><span class="pt-theme-next" id="pt-theme-next">→ LIGHT</span>
+  </button>
+  <div class="pt-sidebar-meta">更新 <span id="pt-sidebar-date">{{GENERATED_DATE}}</span><span id="pt-meta-commit"><br>コミット {{COMMIT_SHORT}}</span></div>
+</aside>
+<script type="application/json" id="pt-nav-data">/*SHELL_NAV_JSON*/</script>
+<script>
+(function () {
+  var root = document.documentElement;
+  function applyTheme(t) {
+    root.setAttribute('data-theme', t);
+    var label = document.getElementById('pt-theme-label');
+    var next = document.getElementById('pt-theme-next');
+    if (label) label.textContent = t === 'dark' ? 'テーマ: ダーク' : 'テーマ: ライト';
+    if (next) next.textContent = t === 'dark' ? '→ LIGHT' : '→ DARK';
+  }
+  var saved = null;
+  try { saved = localStorage.getItem('rd-portal-theme'); } catch (e) {}
+  if (saved === 'dark' || saved === 'light') {
+    applyTheme(saved);
+  } else {
+    applyTheme(window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+  }
+  var btn = document.getElementById('pt-theme-toggle');
+  if (btn) {
+    btn.addEventListener('click', function () {
+      var next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+      applyTheme(next);
+      try { localStorage.setItem('rd-portal-theme', next); } catch (e) {}
+    });
+  }
+
+  function isCommitEmpty(text) {
+    return text.replace(/コミット/g, '').replace(/[·\s　]+/g, '') === '';
+  }
+  function removeIfEmptyCommit(id) {
+    var node = document.getElementById(id);
+    if (node && isCommitEmpty(node.textContent) && node.parentNode) {
+      node.parentNode.removeChild(node);
+    }
+  }
+  removeIfEmptyCommit('pt-meta-commit');
+
+  function formatDateOnly(text) {
+    return /^\d{4}-\d{2}-\d{2}/.test(text) ? text.slice(0, 10) : text;
+  }
+  function truncateDate(id) {
+    var node = document.getElementById(id);
+    if (node) node.textContent = formatDateOnly(node.textContent);
+  }
+  truncateDate('pt-sidebar-date');
+
+  function formatTitleSubDates() {
+    var nodes = document.querySelectorAll('.pt-title-sub');
+    for (var i = 0; i < nodes.length; i++) {
+      nodes[i].textContent = nodes[i].textContent.replace(
+        /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z/g,
+        function (m) { return m.slice(0, 10); }
+      );
+    }
+  }
+
+  function applyShellMetaFormatting() {
+    removeIfEmptyCommit('pt-footer-commit');
+    truncateDate('pt-footer-date');
+    formatTitleSubDates();
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', applyShellMetaFormatting);
+  } else {
+    applyShellMetaFormatting();
+  }
+
+  var nav = document.getElementById('pt-nav');
+  var side = document.querySelector('.pt-sidebar');
+  var dataEl = document.getElementById('pt-nav-data');
+  if (!nav || !side || !dataEl) return;
+  var cats = [];
+  try { cats = JSON.parse(dataEl.textContent) || []; } catch (e) { return; }
+  var portalHref = side.getAttribute('data-portal-href') || 'index.html';
+  var active = side.getAttribute('data-active-category') || '';
+
+  function item(href, num, label, count, isActive) {
+    var a = document.createElement('a');
+    a.className = 'pt-nav-item' + (isActive ? ' is-active' : '');
+    a.href = href;
+    var n = document.createElement('span');
+    n.className = 'pt-nav-num';
+    n.textContent = num;
+    a.appendChild(n);
+    a.appendChild(document.createTextNode(label));
+    if (count !== null && count !== undefined) {
+      var c = document.createElement('span');
+      c.className = 'pt-nav-count';
+      c.textContent = String(count);
+      a.appendChild(c);
+    }
+    return a;
+  }
+
+  nav.appendChild(item(portalHref, '00', 'ダッシュボード', null, active === ''));
+  var head = document.createElement('div');
+  head.className = 'pt-nav-group';
+  head.textContent = '資料カテゴリ';
+  nav.appendChild(head);
+  cats.forEach(function (c) {
+    nav.appendChild(item(portalHref + '#cat-' + c.key, c.num, c.label, c.count, active === c.key));
+  });
+})();
+</script>

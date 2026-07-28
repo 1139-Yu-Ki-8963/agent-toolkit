@@ -24,6 +24,9 @@ DEFAULT_CATALOG="$SCRIPT_DIR/../references/portal-catalog.json"
 CATALOG_ENGINE="$SCRIPT_DIR/portal-catalog.mjs"
 
 source "$SCRIPT_DIR/render-template.sh"
+if [ -f "$SCRIPT_DIR/shell-injection.sh" ]; then
+  . "$SCRIPT_DIR/shell-injection.sh"
+fi
 
 script_safe_json() {
   node -e '
@@ -387,7 +390,7 @@ TEST10HTML
   fi
   rm -rf "$test10_dir"
 
-  echo "--- ケース11: .pm-main の縦スクロール指定 ---"
+  echo "--- ケース11: .pt-main の縦スクロール指定 ---"
   test11_dir="$(mktemp -d)"
   test11_repo="$test11_dir/repo"
   test11_docs="$test11_dir/docs"
@@ -395,10 +398,10 @@ TEST10HTML
   mkdir -p "$test11_repo" "$test11_docs" "$test11_portal"
   echo '{"total":100,"fe":50,"be":50,"file_count":10}' > "$test11_portal/code-metrics.json"
   "$SCRIPT_DIR/build-portal.sh" "$test11_repo" "$test11_docs" "$test11_portal" 2>/dev/null
-  if grep -q '\.pm-main {.*overflow-y: auto' "$test11_portal/index.html"; then
-    echo "PASS: --self-test ケース11（.pm-main の縦スクロール指定）"
+  if grep -A3 '\.pt-main {' "$test11_portal/index.html" | grep -q 'overflow-y: auto'; then
+    echo "PASS: --self-test ケース11（.pt-main の縦スクロール指定, 共通シェル partials 由来）"
   else
-    echo "FAIL: --self-test ケース11（.pm-main の縦スクロール指定）" >&2
+    echo "FAIL: --self-test ケース11（.pt-main の縦スクロール指定）" >&2
     rm -rf "$test11_dir"
     exit 1
   fi
@@ -442,7 +445,7 @@ TEST12HTML
   echo "PASS: --portal-only preserves every non-index artifact"
   rm -rf "$test13_dir"
 
-  echo "--- ケース14: generatedAt と manifestContentHash の受け渡し ---"
+  echo "--- ケース14: generatedAt と manifestContentHash の受け渡し（ラベルの文言に依存せず、値が埋め込まれていることを確認する） ---"
   test14_dir="$(mktemp -d)"
   test14_repo="$test14_dir/repo"
   test14_docs="$test14_dir/docs"
@@ -452,8 +455,8 @@ TEST12HTML
   "$SCRIPT_DIR/build-portal.sh" "$test14_repo" "$test14_docs" "$test14_docs" \
     --portal-only --generated-at 2026-07-28T00:00:00Z \
     --screen-manifest "$test14_dir/screen-manifest.ext.json" 2>/dev/null
-  if ! grep -q '更新: 2026-07-28' "$test14_docs/index.html" \
-     || ! grep -q '"manifestContentHash":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"' "$test14_docs/index.html"; then
+  if ! grep -qF '2026-07-28' "$test14_docs/index.html" \
+     || ! grep -qF "$test14_hash" "$test14_docs/index.html"; then
     echo "FAIL: generatedAt or manifestContentHash was not embedded" >&2
     rm -rf "$test14_dir"
     exit 1
@@ -491,6 +494,28 @@ TEST15CATALOG
   fi
   echo "PASS: embedded JSON is script-safe and JSON.parse restores the original title"
   rm -rf "$test15_dir"
+
+  echo "--- ケース16: ポータル規約検査 ---"
+  CONVENTIONS_TEST="$SCRIPT_DIR/test-portal-conventions.sh"
+  if [ -f "$CONVENTIONS_TEST" ]; then
+    test16_dir="$(mktemp -d)"
+    test16_repo="$test16_dir/repo"
+    test16_docs="$test16_dir/docs"
+    test16_portal="$test16_dir/portal"
+    mkdir -p "$test16_repo" "$test16_docs" "$test16_portal"
+    echo '{"total":100,"fe":50,"be":50,"file_count":10}' > "$test16_portal/code-metrics.json"
+    "$SCRIPT_DIR/build-portal.sh" "$test16_repo" "$test16_docs" "$test16_portal" 2>/dev/null
+    if bash "$CONVENTIONS_TEST" "$test16_portal/index.html"; then
+      echo "PASS: --self-test ケース16（ポータル規約検査）"
+    else
+      echo "FAIL: --self-test ケース16（ポータル規約検査）" >&2
+      rm -rf "$test16_dir"
+      exit 1
+    fi
+    rm -rf "$test16_dir"
+  else
+    echo "SKIP: --self-test ケース16（ポータル規約検査, test-portal-conventions.sh 不在）" >&2
+  fi
 
   exit 0
 fi
@@ -665,6 +690,13 @@ if [ -d "$common_dir" ]; then
       if [ -f "$TOKENS_CSS_FILE" ]; then
         local_render_args+=("/* TOKENS_CSS */" "$(cat "$TOKENS_CSS_FILE")")
       fi
+      # 共通シェル注入（partials が存在する場合のみ）
+      if type shell_injection_args >/dev/null 2>&1; then
+        shell_injection_args "$SCRIPT_DIR/../templates" "$CATALOG" "$portal_index_href" "$PROJECT_NAME" "$GENERATED_DATE" "$COMMIT_SHORT" "shared/scripts/build-portal.sh" "design"
+        if [ ${#SHELL_RENDER_ARGS[@]} -gt 0 ]; then
+          local_render_args+=("${SHELL_RENDER_ARGS[@]}")
+        fi
+      fi
       local_render_args+=("{{DOC_MARKDOWN_JSON}}" "$md_content_json")
       doc_html="$(render_template "$(cat "$COMMON_DOC_TEMPLATE_FILE")" "${local_render_args[@]}")"
       printf '%s\n' "$doc_html" > "$html_file"
@@ -810,6 +842,13 @@ if [ -d "$DOCS_ROOT/画面" ] && [ -f "$SCREEN_DOC_TEMPLATE_FILE" ]; then
       if [ -f "$TOKENS_CSS_FILE" ]; then
         screen_render_args+=("/* TOKENS_CSS */" "$(cat "$TOKENS_CSS_FILE")")
       fi
+      # 共通シェル注入（partials が存在する場合のみ）
+      if type shell_injection_args >/dev/null 2>&1; then
+        shell_injection_args "$SCRIPT_DIR/../templates" "$CATALOG" "$portal_index_href" "$PROJECT_NAME" "$GENERATED_DATE" "$COMMIT_SHORT" "shared/scripts/build-portal.sh" "list"
+        if [ ${#SHELL_RENDER_ARGS[@]} -gt 0 ]; then
+          screen_render_args+=("${SHELL_RENDER_ARGS[@]}")
+        fi
+      fi
       screen_render_args+=("{{DOC_MARKDOWN_JSON}}" "$md_content_json")
 
       screen_doc_html="$(render_template "$(cat "$SCREEN_DOC_TEMPLATE_FILE")" "${screen_render_args[@]}")"
@@ -899,6 +938,13 @@ render_args=(
 # トークンCSS注入（tokens.css が存在する場合のみ）
 if [ -f "$TOKENS_CSS_FILE" ]; then
   render_args+=("/* TOKENS_CSS */" "$(cat "$TOKENS_CSS_FILE")")
+fi
+# 共通シェル注入（partials が存在する場合のみ）
+if type shell_injection_args >/dev/null 2>&1; then
+  shell_injection_args "$SCRIPT_DIR/../templates" "$CATALOG" "index.html" "$PROJECT_NAME" "$GENERATED_DATE" "$COMMIT_SHORT" "shared/scripts/build-portal.sh" ""
+  if [ ${#SHELL_RENDER_ARGS[@]} -gt 0 ]; then
+    render_args+=("${SHELL_RENDER_ARGS[@]}")
+  fi
 fi
 output="$(render_template "$template_content" "${render_args[@]}")"
 

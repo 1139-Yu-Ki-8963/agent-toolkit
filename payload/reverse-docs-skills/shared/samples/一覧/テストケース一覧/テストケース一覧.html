@@ -2,25 +2,27 @@
 <!--
   テストケース一覧.HTML
 
-  全画面のテスト仕様書md（単体テスト仕様書・結合テスト仕様書・操作シナリオ仕様書）を
+  全画面のテスト仕様書md(単体テスト仕様書・結合テスト仕様書・操作シナリオ仕様書)を
   横断集約し、単体テスト・結合テスト・操作シナリオの3タブで表示するページ。
-  加えて、観点表md（単体テスト観点表・結合テスト観点表の「観点表」節のみ）から
+  加えて、観点表md(単体テスト観点表・結合テスト観点表の「観点表」節のみ)から
   導出した観点網羅カバー率パネルを表示する。
 
   データソース:
-    - shared/samples/画面/<screenId>/テスト項目書/*.md（test-case-manifest）
+    - shared/samples/画面/<screenId>/テスト項目書/*.md(test-case-manifest)
     - shared/samples/画面/<screenId>/詳細設計/*テスト観点表.md の「観点表」節のみ
-      （手動観点表・往復検証観点表は対象外。viewpoint-manifest）
-  トークンブロック・テーマ切替は shared/samples/一覧/テスト観点表/テスト観点表.html から
-  CSS/テーマ・topbar・page-hero パターンを流用している。同ファイルの当該部分を変更した
-  場合は本ファイルも同時更新すること。
+      (手動観点表・往復検証観点表は対象外。viewpoint-manifest)
+
+  保守注記: このページには専用の生成スクリプトが無い。共通シェル(サイドバー・フッター・
+  トークン・全画面レイアウトのCSS)はshared/scripts/unit-list/build-unit-list.shが生成した
+  API一覧.HTMLのシェルを土台とし、タブ・カバー率パネル・テーブル部分のみ手動で組み替えている。
+  共通シェルを変更した場合は他の一覧ページと同様に本ファイルも同時更新すること。
 
   制約:
     - 外部リソース(CDN・フォント・画像)は一切使わない。単一ファイル自己完結
     - <script id="test-case-manifest"> の中身は各画面のテスト仕様書mdの内容と一致させる
-    - <script id="viewpoint-manifest"> の中身は各画面の観点表mdの「観点表」節（単体・結合）の
+    - <script id="viewpoint-manifest"> の中身は各画面の観点表mdの「観点表」節(単体・結合)の
       内容と一致させる。手動観点表・往復検証観点表の行は含めない
-    - 操作シナリオ（scenario）の観点キーは往復検証観点表を参照するため、本カバー率の
+    - 操作シナリオ(scenario)の観点キーは往復検証観点表を参照するため、本カバー率の
       分母には含まれない。カバー率は単体・結合の観点網羅のみを示す指標である
 -->
 <html lang="ja">
@@ -29,151 +31,512 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>テストケース一覧</title>
 <style>
-  :root,
-  [data-theme="light"] {
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    text-rendering: optimizeLegibility;
-    font-synthesis: none;
-    --bg: #FFFFFF;
+  /* 設計ポータルのデザイントークン。
+   本ファイルの全文が、ビルド時に各テンプレートのトークン注入マーカーへ差し込まれる。
+   既定はダークテーマ。ライトは OS 設定または data-theme="light" で切り替える。
+   色は 26 種の基本トークンだけをテーマ別に定義し、
+   既存の別名トークンは var() 参照でテーマへ自動追従させる。 */
+
+:root {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-synthesis: none;
+
+  /* 基本色（ダーク） */
+  --bg: #0F1217;
+  --panel: #161C23;
+  --panel2: #1C232E;
+  --panel3: #141A23;
+  --line: #2B3443;
+  --line2: #3A4658;
+  --text: #E7ECF4;
+  --sub: #A8B3C3;
+  --muted: #8A96A7;
+  --faint: #5B6574;
+  --accent: #4CC2FE;
+  --accent-hi: #9ADCFF;
+  --accent-soft: rgba(76,194,255,0.17);
+  --stamp: #FF6E4F;
+  --stamp-soft: rgba(255,110,78,0.16);
+  --green: #4ADE81;
+  --green-soft: rgba(74,222,129,0.16);
+  --grid: rgba(255,255,255,0.036);
+  --head: #202B3B;
+  --headtext: #E7ECF4;
+  --code: #0B0E13;
+  --codetext: #C9E8FF;
+  --navon: #EAF6FF;
+  --chipontext: #0F1217;
+  --rowopen: #1A212B;
+  --neutral-soft: rgba(255,255,255,0.06);
+
+  /* 別名。既存テンプレートの参照を壊さないために残す。値は基本色を参照するのでテーマに自動追従する */
+  --panel-2: var(--panel2);
+  --border: var(--line);
+  --border-strong: var(--line2);
+  --text-sub: var(--sub);
+  --text-muted: var(--muted);
+  --accent-2: var(--accent-hi);
+  --accent-border: var(--accent);
+  --gold: var(--stamp);
+  --gold-soft: var(--stamp-soft);
+  --gold-border: var(--stamp);
+  --warn: var(--stamp);
+  --danger: var(--stamp);
+  --danger-soft: var(--stamp-soft);
+  --success: var(--green);
+  --success-soft: var(--green-soft);
+  --highlight: var(--accent);
+  --highlight-soft: var(--accent-soft);
+  --highlight-border: var(--accent);
+  --nav-tag: var(--faint);
+  --nav-tag-soft: var(--neutral-soft);
+  --self-tag: var(--green);
+  --self-tag-soft: var(--green-soft);
+  --code-bg: var(--code);
+  --code-fg: var(--codetext);
+  --cat-list: var(--accent);
+  --cat-standards: var(--accent);
+  --cat-design: var(--accent);
+  --cat-project: var(--accent);
+
+  /* 非色トークン。テーマで変えない */
+  --font-body: "Hiragino Kaku Gothic ProN","Hiragino Sans","Noto Sans JP","BIZ UDPGothic","Yu Gothic","Meiryo",system-ui,-apple-system,sans-serif;
+  --mono: "SFMono-Regular","Menlo","Cascadia Code","Consolas",monospace;
+  --radius: 0;
+  --radius-sm: 0;
+  --shadow-sm: 3px 3px 0 var(--accent-soft);
+  --shadow-md: 4px 4px 0 var(--accent-soft);
+  --sidebar-w: 248px;
+  --page-gutter: 40px;
+  --grid-size: 24px;
+}
+
+/* OS がライト設定で、かつダークを明示指定していない場合 */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg: #F1F4F8;
     --panel: #FFFFFF;
-    --panel-2: #F6F8FA;
-    --border: #D1D9E0;
-    --border-strong: #AFB8C1;
-    --text: #1B1F26;
-    --text-sub: #4A4F58;
-    --text-muted: #767B85;
-    --accent: #0969DA;
-    --accent-2: #218BFF;
-    --accent-soft: #DDF4FF;
-    --accent-border: #54AEFF;
-    --gold: #BC4C00;
-    --gold-soft: #FFF1E5;
-    --gold-border: #D18A5A;
-    --success: #1A7F37;
-    --success-soft: #DAFBE1;
-    --warn: #BC4C00;
-    --danger: #CF222E;
-    --danger-soft: #FFEBE9;
-    --font-body: "Hiragino Kaku Gothic ProN","Hiragino Sans","Noto Sans JP","BIZ UDPGothic","Yu Gothic","Meiryo",system-ui,-apple-system,sans-serif;
-    --mono: "SFMono-Regular","Menlo","Cascadia Code","Consolas",monospace;
-    --shadow-sm: 0 1px 3px rgba(27,31,38,.07), 0 2px 6px rgba(27,31,38,.05);
-    --radius: 10px;
-    --radius-sm: 6px;
+    --panel2: #E9EEF4;
+    --panel3: #F7F9FC;
+    --line: #D8DFE8;
+    --line2: #243040;
+    --text: #1A222E;
+    --sub: #4B5A70;
+    --muted: #6C7A8E;
+    --faint: #9AA7B6;
+    --accent: #0284C7;
+    --accent-hi: #075985;
+    --accent-soft: rgba(2,132,199,0.10);
+    --stamp: #D9482B;
+    --stamp-soft: rgba(217,72,43,0.12);
+    --green: #15803D;
+    --green-soft: rgba(21,128,61,0.16);
+    --grid: rgba(16,34,64,0.05);
+    --head: #243040;
+    --headtext: #F1F4F8;
+    --code: #101722;
+    --codetext: #C9E8FF;
+    --navon: #102A43;
+    --chipontext: #FFFFFF;
+    --rowopen: #F0F4F9;
+    --neutral-soft: rgba(16,34,64,0.06);
   }
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) {
-      --bg: #15171C; --panel: #1C1F26; --panel-2: #21262D;
-      --border: #30363D; --border-strong: #484F58;
-      --text: #E8E5DC; --text-sub: #B6B3AB; --text-muted: #888784;
-      --accent: #58A6FF; --accent-2: #79C0FF; --accent-soft: #132D4B; --accent-border: #1F6FEB;
-      --gold: #DB6D28; --gold-soft: #311D08; --gold-border: #7A3E0D;
-      --success: #3FB950; --success-soft: #0D2818;
-      --warn: #DB6D28; --danger: #F85149; --danger-soft: #3D1214;
-    }
-  }
-  [data-theme="dark"] {
-    --bg: #15171C; --panel: #1C1F26; --panel-2: #21262D;
-    --border: #30363D; --border-strong: #484F58;
-    --text: #E8E5DC; --text-sub: #B6B3AB; --text-muted: #888784;
-    --accent: #58A6FF; --accent-2: #79C0FF; --accent-soft: #132D4B; --accent-border: #1F6FEB;
-    --gold: #DB6D28; --gold-soft: #311D08; --gold-border: #7A3E0D;
-    --success: #3FB950; --success-soft: #0D2818;
-    --warn: #DB6D28; --danger: #F85149; --danger-soft: #3D1214;
-  }
+}
 
-  html { height: 100vh; }
+/* ユーザーがライトを明示指定した場合 */
+[data-theme="light"] {
+  --bg: #F1F4F8;
+  --panel: #FFFFFF;
+  --panel2: #E9EEF4;
+  --panel3: #F7F9FC;
+  --line: #D8DFE8;
+  --line2: #243040;
+  --text: #1A222E;
+  --sub: #4B5A70;
+  --muted: #6C7A8E;
+  --faint: #9AA7B6;
+  --accent: #0284C7;
+  --accent-hi: #075985;
+  --accent-soft: rgba(2,132,199,0.10);
+  --stamp: #D9482B;
+  --stamp-soft: rgba(217,72,43,0.12);
+  --green: #15803D;
+  --green-soft: rgba(21,128,61,0.16);
+  --grid: rgba(16,34,64,0.05);
+  --head: #243040;
+  --headtext: #F1F4F8;
+  --code: #101722;
+  --codetext: #C9E8FF;
+  --navon: #102A43;
+  --chipontext: #FFFFFF;
+  --rowopen: #F0F4F9;
+  --neutral-soft: rgba(16,34,64,0.06);
+}
+
+/* ユーザーがダークを明示指定した場合。OS がライトでも :root の既定値へ戻す */
+[data-theme="dark"] {
+  --bg: #0F1217;
+  --panel: #161C23;
+  --panel2: #1C232E;
+  --panel3: #141A23;
+  --line: #2B3443;
+  --line2: #3A4658;
+  --text: #E7ECF4;
+  --sub: #A8B3C3;
+  --muted: #8A96A7;
+  --faint: #5B6574;
+  --accent: #4CC2FE;
+  --accent-hi: #9ADCFF;
+  --accent-soft: rgba(76,194,255,0.17);
+  --stamp: #FF6E4F;
+  --stamp-soft: rgba(255,110,78,0.16);
+  --green: #4ADE81;
+  --green-soft: rgba(74,222,129,0.16);
+  --grid: rgba(255,255,255,0.036);
+  --head: #202B3B;
+  --headtext: #E7ECF4;
+  --code: #0B0E13;
+  --codetext: #C9E8FF;
+  --navon: #EAF6FF;
+  --chipontext: #0F1217;
+  --rowopen: #1A212B;
+  --neutral-soft: rgba(255,255,255,0.06);
+}
+  /* 設計ポータルの共通シェル。サイドバー・メインペイン・フッター・方眼紙背景・ページヘッダの
+   共通クラスを定義する。色と寸法は tokens.css のトークンだけを参照し、実値を直書きしない。
+   本ファイルの全文は、ビルド時に各テンプレートのシェル注入マーカーへ差し込まれる。 */
+
+.pt {
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 13px;
+  line-height: 1.7;
+}
+.pt *, .pt *::before, .pt *::after { box-sizing: border-box; }
+.pt a { color: var(--accent); text-decoration: none; }
+.pt a:hover { color: var(--accent-hi); text-decoration: underline; }
+.pt ::selection { background: var(--accent-soft); }
+.pt :focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+.pt-grid {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background-image:
+    linear-gradient(var(--grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: var(--grid-size) var(--grid-size);
+}
+
+.pt-row {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  align-items: stretch;
+}
+
+/* サイドバー */
+.pt-sidebar {
+  width: var(--sidebar-w);
+  flex: none;
+  border-right: 1.5px solid var(--line2);
+  background: var(--panel3);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+.pt-brand { padding: 20px 20px 16px; border-bottom: 1.5px solid var(--line2); }
+.pt-brand-stamp { font-family: var(--mono); font-size: 10px; letter-spacing: 3px; color: var(--stamp); font-weight: 600; }
+.pt-brand-name { font-size: 16px; font-weight: 700; letter-spacing: 0.5px; margin-top: 4px; line-height: 1.35; }
+.pt-brand-sub { font-family: var(--mono); font-size: 10.5px; color: var(--muted); margin-top: 5px; }
+
+.pt-nav { padding: 14px 12px; display: flex; flex-direction: column; gap: 2px; }
+.pt-nav-group { font-family: var(--mono); font-size: 9.5px; letter-spacing: 2px; color: var(--faint); padding: 14px 10px 5px; }
+.pt-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  font-size: 12.5px;
+  color: var(--sub);
+  border-left: 3px solid transparent;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.pt-nav-item:hover { background: var(--panel2); color: var(--text); text-decoration: none; }
+.pt-nav-item.is-active { color: var(--navon); background: var(--accent-soft); border-left-color: var(--accent); font-weight: 600; }
+.pt-nav-num { font-family: var(--mono); font-size: 10px; color: var(--muted); }
+.pt-nav-count { margin-left: auto; font-family: var(--mono); font-size: 10px; color: var(--faint); font-variant-numeric: tabular-nums; }
+
+.pt-theme {
+  margin: auto 12px 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: calc(100% - 24px);
+  border: 1px solid var(--line2);
+  background: transparent;
+  padding: 8px 12px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--sub);
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.pt-theme:hover { border-color: var(--accent); color: var(--accent); }
+.pt-theme-next { font-family: var(--mono); font-size: 10px; color: var(--faint); }
+.pt-sidebar-meta { padding: 14px 20px; font-family: var(--mono); font-size: 10px; color: var(--muted); line-height: 1.9; }
+
+/* メインペイン */
+.pt-main {
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+  padding: 0 var(--page-gutter) 72px;
+}
+.pt-main.is-fixed { overflow-y: hidden; display: flex; flex-direction: column; padding-bottom: 24px; }
+
+/* ページヘッダ */
+.pt-head { flex: none; padding: 32px 0 16px; border-bottom: 2px solid var(--line2); }
+.pt-crumb { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+.pt-crumb-current { color: var(--text); }
+.pt-title-row { display: flex; align-items: baseline; gap: 16px; margin-top: 10px; flex-wrap: wrap; }
+.pt-title { margin: 0; font-size: 26px; font-weight: 700; letter-spacing: 1px; }
+.pt-title-sub { font-size: 12px; color: var(--muted); }
+
+/* 汎用パーツ */
+.pt-panel { background: var(--panel); border: 1.5px solid var(--line2); }
+.pt-input {
+  border: 1.5px solid var(--line2);
+  background: var(--panel);
+  padding: 8px 13px;
+  font-family: var(--font-body);
+  font-size: 12.5px;
+  color: var(--text);
+  outline: none;
+  transition: all 0.12s;
+}
+.pt-input:focus { border-color: var(--accent); box-shadow: 3px 3px 0 var(--accent-soft); }
+.pt-seg { display: flex; border: 1px solid var(--line2); }
+.pt-seg button {
+  border: 0;
+  border-right: 1px solid var(--line);
+  padding: 7px 16px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  background: var(--panel);
+  color: var(--sub);
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.pt-seg button:last-child { border-right: 0; }
+.pt-seg button.is-active { background: var(--accent); color: var(--chipontext); }
+.pt-chip { font-size: 11px; border: 1px solid var(--line); background: var(--panel3); padding: 2px 8px; font-family: var(--mono); }
+.pt-badge { font-size: 10.5px; font-weight: 600; padding: 2px 9px; }
+.pt-badge.is-done { color: var(--accent); background: var(--accent-soft); }
+.pt-badge.is-stale { color: var(--stamp); background: var(--stamp-soft); }
+.pt-badge.is-todo { color: var(--muted); background: var(--neutral-soft); }
+.pt-count { font-family: var(--mono); font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+/* 表 */
+.pt-tablewrap { flex: 0 1 auto; min-height: 0; overflow: auto; border: 1.5px solid var(--line2); background: var(--panel); }
+.pt-tablewrap table { width: 100%; border-collapse: separate; border-spacing: 0; }
+.pt-tablewrap thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--head);
+  color: var(--headtext);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-align: left;
+  padding: 9px 14px;
+}
+.pt-tablewrap tbody td { border-top: 1px solid var(--line); padding: 10px 14px; font-size: 13px; }
+.pt-tablewrap tbody tr:hover td { background: var(--panel3); }
+.pt-tablewrap tbody tr.is-open td { background: var(--rowopen); }
+.pt-mono { font-family: var(--mono); font-size: 11.5px; color: var(--sub); }
+
+/* フッター */
+.pt-footer {
+  position: relative;
+  z-index: 1;
+  flex: none;
+  border-top: 1.5px solid var(--line2);
+  background: var(--panel3);
+  padding: 12px var(--page-gutter);
+  display: flex;
+  gap: 20px;
+  align-items: baseline;
+  flex-wrap: wrap;
+}
+.pt-footer-stamp { font-family: var(--mono); font-size: 10.5px; letter-spacing: 2px; color: var(--stamp); font-weight: 600; }
+.pt-footer-meta { font-family: var(--mono); font-size: 10.5px; color: var(--muted); }
+.pt-footer-gen { margin-left: auto; font-size: 10.5px; color: var(--muted); }
+
+@media (prefers-reduced-motion: reduce) {
+  .pt *, .pt *::before, .pt *::after { transition: none !important; }
+}
+
   * { box-sizing: border-box; }
-  body {
-    margin: 0; padding: 0 24px 0;
-    font-family: var(--font-body);
-    line-height: 1.7; color: var(--text); background: var(--bg);
-    max-width: 1280px; margin-inline: auto;
-    height: 100%; overflow: hidden; display: flex; flex-direction: column;
-  }
-  a { color: var(--accent); }
+  html, body { margin: 0; padding: 0; }
 
-  .table-area { flex: 1; min-height: 0; overflow-y: auto; padding-bottom: 24px; }
-  .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-
-  .topbar {
-    display: grid; grid-template-columns: auto 1fr auto;
-    align-items: center; gap: 24px; padding: 12px 0;
-    background: linear-gradient(180deg, var(--panel) 0%, var(--panel-2) 100%);
-    border-bottom: 1px solid var(--border);
-    flex-shrink: 0;
-  }
-  .brand { display: flex; align-items: baseline; gap: 8px; color: var(--text); text-decoration: none; }
-  .brand:hover { text-decoration: none; }
-  .brand-icon { display: inline-flex; align-items: center; }
-  .brand-title { font-weight: 700; font-size: 16px; }
-  .brand-sub { font-size: 11px; color: var(--text-muted); }
-  .header-meta { font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 8px; }
-  .top-actions { display: flex; align-items: center; gap: 8px; }
-  .top-actions button {
-    background: var(--panel-2); border: 1px solid var(--border); border-radius: var(--radius-sm);
-    color: var(--text-sub); cursor: pointer; padding: 8px 16px; font-size: 13px; font-family: inherit;
-  }
-  .top-actions button:hover { background: var(--accent-soft); color: var(--accent); border-color: var(--accent-border); }
-
-  .page-hero { padding: 16px 0 8px; flex-shrink: 0; }
-  .back-link { font-size: 0.85rem; margin: 0 0 8px; }
-  .back-link a { color: var(--text-sub); text-decoration: none; border-bottom: 1px dotted var(--text-muted); }
-  .header-top { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
-  .page-hero h1 { font-size: 1.5rem; margin: 0; }
-
-  .summary-tiles { display: flex; gap: 10px; flex-wrap: wrap; margin: 12px 0 0; }
+  .summary-tiles { display: flex; gap: 14px; margin: 16px 0 0; flex-wrap: wrap; }
   .tile {
-    background: var(--panel); border: 1px solid var(--border); border-radius: 8px;
-    padding: 8px 16px; font-size: 0.8rem; color: var(--text-sub);
+    flex: 1; background: var(--panel); border: 1.5px solid var(--line2);
+    padding: 10px 18px; font-size: 0.85rem; color: var(--text-sub);
   }
-  .tile strong { font-size: 1.15rem; color: var(--text); margin-right: 4px; }
+  .tile strong { display: block; font-size: 1.3rem; color: var(--text); }
 
-  .coverage-panel {
-    background: var(--panel); border: 1px solid var(--border); border-radius: 8px;
-    padding: 10px 16px; margin: 12px 0 0; flex-shrink: 0;
-    display: flex; flex-wrap: wrap; align-items: center; gap: 16px;
+  .toolbar-area { flex-shrink: 0; padding: 8px 0; }
+  .toolbar { display: flex; gap: 10px; margin: 10px 0; align-items: center; flex-wrap: wrap; }
+  .toolbar input[type="search"] { flex: 1; min-width: 220px; }
+  .toolbar .note { font-size: 0.82rem; color: var(--text-muted); }
+
+  .table-area { flex: 1; min-height: 0; overflow-y: auto; }
+  .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  table.units thead { position: sticky; top: 0; z-index: 3; }
+
+  section.module-group { margin: 18px 0; background: var(--panel); border: 1.5px solid var(--line2); padding: 16px 20px; min-width: 0; }
+  section.module-group h2 { font-size: 1.05rem; margin: 0 0 12px; }
+
+  table.units, table.screens {
+    table-layout: fixed; width: 100%; min-width: 900px; border-collapse: collapse; font-size: 0.88rem;
   }
-  .coverage-stat { display: flex; align-items: baseline; gap: 6px; }
-  .coverage-label { font-size: 0.78rem; color: var(--text-muted); }
-  .coverage-value { font-size: 1.1rem; font-weight: 700; color: var(--text); }
-  .uncovered-toggle {
-    font-size: 0.82rem; color: var(--danger); cursor: pointer; user-select: none;
-    background: var(--danger-soft); border-radius: var(--radius-sm); padding: 4px 10px;
+  table.units th, table.screens th {
+    border-top: 1px solid var(--border); padding: 8px 10px; text-align: left; vertical-align: top;
+    white-space: normal; overflow: visible; font-size: 0.8em;
   }
-  .uncovered-toggle:hover { text-decoration: underline; }
-  .uncovered-list {
-    flex-basis: 100%; font-size: 0.82rem; color: var(--danger);
-    background: var(--danger-soft); border-radius: var(--radius-sm); padding: 8px 12px;
+  table.units td, table.screens td {
+    border-top: 1px solid var(--border); padding: 6px 8px; text-align: left; vertical-align: top;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
-  .uncovered-list ul { margin: 0; padding-left: 18px; }
-  .coverage-note { flex-basis: 100%; font-size: 0.74rem; color: var(--text-muted); }
+  table.units th {
+    background: var(--panel-2); font-weight: 700; cursor: pointer; user-select: none;
+  }
+  table.units th:hover, table.screens th:hover { background: var(--accent-soft); cursor: pointer; }
+  table.units td code {
+    font-family: var(--mono);
+    font-size: 0.85em; background: var(--panel-2); padding: 1px 5px;
+  }
+
+  /* 列幅の明示指定（data-key属性でシェブロン列挿入に影響されない） */
+  table.units th[data-key="unitNameGuess"] { width: 25%; }
+  table.units th[data-key="identifier"] { width: 45%; }
+  table.units th[data-key="kind"] { width: 10%; }
+
+  /* 固定列（シェブロン列・名前列・識別子列）: 横スクロール時も左端に固定する */
+  table.units thead th:nth-child(1), table.units tbody td:nth-child(1) {
+    position: sticky; left: 0; z-index: 2; background: var(--panel);
+  }
+  table.units thead th:nth-child(2), table.units tbody td:nth-child(2) {
+    position: sticky; left: 32px; z-index: 2; background: var(--panel);
+  }
+  table.units thead th:nth-child(3), table.units tbody td:nth-child(3) {
+    position: sticky; left: calc(32px + 25%); z-index: 2; background: var(--panel);
+  }
+  table.units thead th:nth-child(1),
+  table.units thead th:nth-child(2),
+  table.units thead th:nth-child(3) {
+    background: var(--panel-2); z-index: 4;
+  }
+
+  /* ゼブラストライプ */
+  table.units tbody tr:nth-child(even),
+  table.screens tbody tr:nth-child(even) {
+    background: color-mix(in srgb, var(--panel-2) 40%, transparent);
+  }
+  /* 行ホバー */
+  table.units tbody tr:hover,
+  table.screens tbody tr:hover {
+    background: var(--accent-soft);
+  }
+
+  td code { overflow-wrap: break-word; word-break: break-all; }
+  .badge { display: inline-block; font-size: 0.76rem; font-weight: 700; padding: 1px 8px; }
+  .badge.high   { background: var(--success-soft); color: var(--success); }
+  .badge.medium { background: var(--gold-soft); color: var(--gold); }
+  .badge.low    { background: var(--accent-soft); color: var(--accent); }
+  .badge.kind-generic    { background: var(--accent-soft); color: var(--accent); }
+  .badge.kind-unresolved { background: var(--panel-2); color: var(--text-sub); }
+
+  section.unresolved { margin-top: 24px; padding: 12px 16px; min-width: 0; }
+  section.unresolved.empty { background: var(--panel-2); border: 1px solid var(--border); color: var(--text-muted); }
+  section.unresolved.empty h2 { color: var(--text-muted); font-size: 0.95rem; margin: 0; }
+  section.unresolved.has-items { background: var(--danger-soft); border: 1px solid var(--danger); color: var(--danger); }
+  section.unresolved.has-items h2 { color: var(--danger); font-size: 0.95rem; margin: 0 0 8px; }
+
+  .pagination { display: flex; gap: 8px; align-items: center; justify-content: center; margin: 16px 0; font-size: 0.85rem; }
+  .pagination button { background: var(--panel-2); border: 1px solid var(--border); color: var(--text-sub); cursor: pointer; padding: 4px 10px; font-family: inherit; font-size: 0.82rem; }
+  .pagination button:hover { background: var(--accent-soft); color: var(--accent); border-color: var(--accent-border); }
+  .pagination button:disabled { opacity: 0.4; cursor: not-allowed; }
+  .pagination .page-info { color: var(--text-muted); }
+
+  /* 一覧UI追加機能（コピーボタン・フィルタチップ・行クリック展開・CSVエクスポート） */
+  .copy-btn { background: none; border: none; cursor: pointer; padding: 1px 3px; color: var(--text-muted); opacity: .35; vertical-align: middle; }
+  tr:hover .copy-btn, .copy-btn:focus { opacity: 1; }
+  .copy-btn:hover { color: var(--accent); }
+  .filter-chips { display: flex; gap: 6px; flex-wrap: wrap; margin: 4px 0 8px; }
+  .chip { font-size: .78rem; padding: 2px 10px; border: 1px solid var(--line2); background: var(--panel); color: var(--text-sub); cursor: pointer; }
+  .chip[aria-pressed="true"] { background: var(--accent); color: var(--chipontext); border-color: var(--accent); font-weight: 700; }
+  .chip-label { font-size: .72rem; color: var(--text-muted); align-self: center; margin-left: 8px; }
+  .chip-label:first-child { margin-left: 0; }
+  tr.row-detail > td { background: var(--panel-2); font-size: .82rem; white-space: normal; border-left: 3px solid var(--accent); }
+  .row-detail dl { display: grid; grid-template-columns: max-content 1fr; gap: 2px 12px; margin: 4px 0; }
+  .row-detail dt { color: var(--text-muted); }
+  .row-detail dd { margin: 0; word-break: break-all; }
+  .csv-btn {
+    white-space: nowrap; background: var(--panel-2); border: 1px solid var(--border);
+    color: var(--text-sub); cursor: pointer; padding: 5px 12px; font-size: 0.82rem; font-family: inherit;
+  }
+  .csv-btn:hover { background: var(--accent-soft); color: var(--accent); border-color: var(--accent-border); }
+  table.units tbody tr, table.screens tbody tr { cursor: pointer; }
+  .expand-cell { transition: color 0.15s; }
+  tr:hover .expand-cell { color: var(--accent); }
+  tr[data-expanded="true"] .chevron svg { transform: rotate(90deg); }
+
+  .detail-inner { padding: 12px 16px 14px 20px; }
+  .detail-group { margin-bottom: 12px; }
+  .detail-group:last-child { margin-bottom: 0; }
+  .detail-group-label { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.06em; color: var(--text-muted); margin-bottom: 6px; padding-bottom: 4px; border-bottom: 1px solid var(--border); }
+  .detail-group-label.evidence { color: var(--gold); border-bottom-color: var(--gold-soft); }
+  .detail-grid { display: grid; grid-template-columns: max-content 1fr; gap: 3px 14px; }
+  .detail-grid dt { color: var(--text-muted); font-size: 0.78rem; white-space: nowrap; }
+  .detail-grid dd { margin: 0; font-size: 0.84rem; word-break: break-all; }
 
   .tabs { display: flex; gap: 4px; border-bottom: 2px solid var(--border); margin: 18px 0 0; flex-shrink: 0; }
-  .tab-btn {
-    background: none; border: none; padding: 9px 20px; font-size: 0.92rem; font-weight: 700;
-    color: var(--text-muted); cursor: pointer; border-bottom: 2px solid transparent;
-    margin-bottom: -2px; font-family: inherit;
-  }
+  .tab-btn { background: none; border: none; padding: 9px 20px; font-size: 0.92rem; font-weight: 700; color: var(--text-muted); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; font-family: inherit; }
   .tab-btn:hover { color: var(--text-sub); }
   .tab-btn[aria-selected="true"] { color: var(--accent); border-bottom-color: var(--accent); }
 
-  .toolbar-area { flex-shrink: 0; padding: 10px 0; }
-  .toolbar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-  .toolbar input[type="search"] {
-    flex: 1; min-width: 220px; padding: 8px 12px; font-size: 0.92rem;
-    border: 1px solid var(--border); border-radius: 6px; background: var(--panel); color: var(--text);
-    font-family: inherit;
-  }
-  .toolbar input[type="search"]:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
-  .hit-count { font-size: 0.82rem; color: var(--text-muted); white-space: nowrap; }
+  .coverage-panel { background: var(--panel); border: 1.5px solid var(--line2); padding: 10px 16px; margin: 12px 0 0; flex-shrink: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 16px; }
+  .coverage-stat { display: flex; align-items: baseline; gap: 6px; }
+  .coverage-label { font-size: 0.78rem; color: var(--text-muted); }
+  .coverage-value { font-size: 1.1rem; font-weight: 700; color: var(--text); }
+  .uncovered-toggle { font-size: 0.82rem; color: var(--danger); cursor: pointer; user-select: none; background: var(--danger-soft); padding: 4px 10px; }
+  .uncovered-toggle:hover { text-decoration: underline; }
+  .uncovered-list { flex-basis: 100%; font-size: 0.82rem; color: var(--danger); background: var(--danger-soft); padding: 8px 12px; }
+  .uncovered-list ul { margin: 0; padding-left: 18px; }
+  .coverage-note { flex-basis: 100%; font-size: 0.74rem; color: var(--text-muted); }
 
   .tab-panel { display: none; }
   .tab-panel.active { display: block; }
 
-  section.module-group { margin: 16px 0; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 14px 18px; min-width: 0; }
-  section.module-group h3 { font-size: 1rem; margin: 0 0 10px; display: flex; align-items: baseline; gap: 8px; }
   .screen-count { font-size: 0.76rem; font-weight: 400; color: var(--text-muted); }
+  .hit-count { font-size: 0.82rem; color: var(--text-muted); white-space: nowrap; }
 
   table.case-table { width: 100%; min-width: 860px; border-collapse: collapse; font-size: 0.85rem; }
   table.case-table th {
@@ -193,75 +556,177 @@
   table.case-table td.cell-viewpoint-key.uncovered-ref { color: var(--danger); }
 
   .empty-note { padding: 20px; text-align: center; color: var(--text-muted); font-size: 0.88rem; }
-
-  @media (max-width: 760px) {
-    body { padding: 0 12px; }
-    .toolbar input[type="search"] { width: 100%; }
-  }
 </style>
 </head>
 <body>
+<div class="pt">
+  <div class="pt-grid"></div>
+  <div class="pt-row">
+    <aside class="pt-sidebar" data-portal-href="../../index.html" data-active-category="list">
+  <div class="pt-brand">
+    <div class="pt-brand-stamp">DESIGN PORTAL</div>
+    <div class="pt-brand-name"></div>
+    <div class="pt-brand-sub">設計台帳 · 全36資料</div>
+  </div>
+  <nav class="pt-nav" id="pt-nav" aria-label="資料カテゴリ"></nav>
+  <button type="button" class="pt-theme" id="pt-theme-toggle">
+    <span id="pt-theme-label">テーマ: ダーク</span><span class="pt-theme-next" id="pt-theme-next">→ LIGHT</span>
+  </button>
+  <div class="pt-sidebar-meta">更新 2026-07-22T00:00:00+09:00<br>コミット </div>
+</aside>
+<script type="application/json" id="pt-nav-data">[{"key":"project","num":"01","label":"基盤情報","count":4},{"key":"standards","num":"02","label":"規約","count":6},{"key":"design","num":"03","label":"設計書","count":5},{"key":"list","num":"04","label":"一覧・設計図","count":13},{"key":"cross","num":"05","label":"マトリクス・対応表","count":4},{"key":"ai","num":"06","label":"AI設定資産","count":1},{"key":"design-tools","num":"07","label":"デザイン","count":3}]</script>
+<script>
+(function () {
+  var root = document.documentElement;
+  function applyTheme(t) {
+    root.setAttribute('data-theme', t);
+    var label = document.getElementById('pt-theme-label');
+    var next = document.getElementById('pt-theme-next');
+    if (label) label.textContent = t === 'dark' ? 'テーマ: ダーク' : 'テーマ: ライト';
+    if (next) next.textContent = t === 'dark' ? '→ LIGHT' : '→ DARK';
+  }
+  var saved = null;
+  try { saved = localStorage.getItem('rd-portal-theme'); } catch (e) {}
+  if (saved === 'dark' || saved === 'light') {
+    applyTheme(saved);
+  } else {
+    applyTheme(window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+  }
+  var btn = document.getElementById('pt-theme-toggle');
+  if (btn) {
+    btn.addEventListener('click', function () {
+      var next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+      applyTheme(next);
+      try { localStorage.setItem('rd-portal-theme', next); } catch (e) {}
+    });
+  }
 
-<header class="topbar">
-  <a class="brand" href="../../index.html">
-    <span class="brand-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:middle"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zM13 9V3.5L18.5 9H13z"/></svg></span>
-    <span class="brand-title">サンプルプロジェクト</span>
-    <span class="brand-sub">設計ポータル</span>
-  </a>
-  <div class="header-meta">
-    <span class="pm-updated">更新: 2026-07-24T00:00:00+09:00</span>
-  </div>
-  <div class="top-actions">
-    <button id="theme-toggle" title="テーマ切替">ライト</button>
-  </div>
-</header>
+  function isCommitEmpty(text) {
+    return text.replace(/コミット/g, '').replace(/[·\s　]+/g, '') === '';
+  }
+  function removeIfEmptyCommit(id) {
+    var node = document.getElementById(id);
+    if (node && isCommitEmpty(node.textContent) && node.parentNode) {
+      node.parentNode.removeChild(node);
+    }
+  }
+  removeIfEmptyCommit('pt-meta-commit');
 
-<section class="page-hero">
-  <nav class="back-link"><a href="../../index.html">← ポータルへ戻る</a></nav>
-  <div class="header-top">
-    <h1>テストケース<wbr>一覧</h1>
-  </div>
-  <div class="summary-tiles" id="summary-tiles">
-    <div class="tile"><strong id="tile-total">0</strong>テスト項目数</div>
-    <div class="tile"><strong id="tile-screens">0</strong>画面数</div>
-  </div>
-  <div class="coverage-panel" id="coverage-panel">
-    <div class="coverage-stat">
-      <span class="coverage-label">観点カバー率</span>
-      <span class="coverage-value" id="vp-coverage">--</span>
-    </div>
-    <div class="coverage-stat">
-      <span class="coverage-label">画面網羅</span>
-      <span class="coverage-value" id="screen-coverage">--</span>
-    </div>
-    <div class="uncovered-toggle" id="uncovered-toggle">
-      未カバー観点: <span id="uncovered-count">0</span>件 ▼
-    </div>
-    <div class="uncovered-list" id="uncovered-list" style="display:none"></div>
-    <div class="coverage-note">
-      ※ 本カバー率は設計書から導出した観点（単体・結合の観点表）とテストケースの対応を示す自己申告指標であり、独立した網羅性の証明ではありません。操作シナリオ（往復検証観点）は本カバー率の対象外です
-    </div>
-  </div>
-</section>
+  function formatDateOnly(text) {
+    return /^\d{4}-\d{2}-\d{2}/.test(text) ? text.slice(0, 10) : text;
+  }
+  function truncateDate(id) {
+    var node = document.getElementById(id);
+    if (node) node.textContent = formatDateOnly(node.textContent);
+  }
+  truncateDate('pt-sidebar-date');
 
-<nav class="tabs" id="tabs" role="tablist">
-  <button class="tab-btn" type="button" role="tab" data-tab="unit" aria-selected="true">単体テスト</button>
-  <button class="tab-btn" type="button" role="tab" data-tab="integration" aria-selected="false">結合テスト</button>
-  <button class="tab-btn" type="button" role="tab" data-tab="scenario" aria-selected="false">操作シナリオ</button>
-</nav>
+  function formatTitleSubDates() {
+    var nodes = document.querySelectorAll('.pt-title-sub');
+    for (var i = 0; i < nodes.length; i++) {
+      nodes[i].textContent = nodes[i].textContent.replace(
+        /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z/g,
+        function (m) { return m.slice(0, 10); }
+      );
+    }
+  }
 
-<div class="toolbar-area">
-  <div class="toolbar">
-    <input type="search" id="case-search" placeholder="画面名で絞り込み">
-    <span class="hit-count" id="hit-count"></span>
-  </div>
-</div>
+  function applyShellMetaFormatting() {
+    removeIfEmptyCommit('pt-footer-commit');
+    truncateDate('pt-footer-date');
+    formatTitleSubDates();
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', applyShellMetaFormatting);
+  } else {
+    applyShellMetaFormatting();
+  }
 
-<div class="table-area">
-  <div class="tab-panel active" id="panel-unit" data-tab-panel="unit"></div>
-  <div class="tab-panel" id="panel-integration" data-tab-panel="integration"></div>
-  <div class="tab-panel" id="panel-scenario" data-tab-panel="scenario"></div>
-</div>
+  var nav = document.getElementById('pt-nav');
+  var side = document.querySelector('.pt-sidebar');
+  var dataEl = document.getElementById('pt-nav-data');
+  if (!nav || !side || !dataEl) return;
+  var cats = [];
+  try { cats = JSON.parse(dataEl.textContent) || []; } catch (e) { return; }
+  var portalHref = side.getAttribute('data-portal-href') || 'index.html';
+  var active = side.getAttribute('data-active-category') || '';
+
+  function item(href, num, label, count, isActive) {
+    var a = document.createElement('a');
+    a.className = 'pt-nav-item' + (isActive ? ' is-active' : '');
+    a.href = href;
+    var n = document.createElement('span');
+    n.className = 'pt-nav-num';
+    n.textContent = num;
+    a.appendChild(n);
+    a.appendChild(document.createTextNode(label));
+    if (count !== null && count !== undefined) {
+      var c = document.createElement('span');
+      c.className = 'pt-nav-count';
+      c.textContent = String(count);
+      a.appendChild(c);
+    }
+    return a;
+  }
+
+  nav.appendChild(item(portalHref, '00', 'ダッシュボード', null, active === ''));
+  var head = document.createElement('div');
+  head.className = 'pt-nav-group';
+  head.textContent = '資料カテゴリ';
+  nav.appendChild(head);
+  cats.forEach(function (c) {
+    nav.appendChild(item(portalHref + '#cat-' + c.key, c.num, c.label, c.count, active === c.key));
+  });
+})();
+</script>
+    <main class="pt-main is-fixed">
+      <div class="pt-head">
+        <div class="pt-crumb"><a href="../../index.html">TOP</a> ／ 一覧・設計図 ／ <span class="pt-crumb-current">テストケース一覧</span></div>
+        <div class="pt-title-row">
+          <h1 class="pt-title">テストケース一覧</h1>
+          <span class="pt-title-sub">更新 2026-07-24T00:00:00+09:00</span>
+        </div>
+        <div class="summary-tiles" id="summary-tiles">
+          <div class="tile"><strong id="tile-total">0</strong>テスト項目数</div>
+          <div class="tile"><strong id="tile-screens">0</strong>画面数</div>
+        </div>
+        <div class="coverage-panel" id="coverage-panel">
+          <div class="coverage-stat">
+            <span class="coverage-label">観点カバー率</span>
+            <span class="coverage-value" id="vp-coverage">--</span>
+          </div>
+          <div class="coverage-stat">
+            <span class="coverage-label">画面網羅</span>
+            <span class="coverage-value" id="screen-coverage">--</span>
+          </div>
+          <div class="uncovered-toggle" id="uncovered-toggle">
+            未カバー観点: <span id="uncovered-count">0</span>件 ▼
+          </div>
+          <div class="uncovered-list" id="uncovered-list" style="display:none"></div>
+          <div class="coverage-note">
+            ※ 本カバー率は設計書から導出した観点(単体・結合の観点表)とテストケースの対応を示す自己申告指標であり、独立した網羅性の証明ではありません。操作シナリオ(往復検証観点)は本カバー率の対象外です
+          </div>
+        </div>
+      </div>
+
+      <nav class="tabs" id="tabs" role="tablist">
+        <button class="tab-btn" type="button" role="tab" data-tab="unit" aria-selected="true">単体テスト</button>
+        <button class="tab-btn" type="button" role="tab" data-tab="integration" aria-selected="false">結合テスト</button>
+        <button class="tab-btn" type="button" role="tab" data-tab="scenario" aria-selected="false">操作シナリオ</button>
+      </nav>
+
+      <div class="toolbar-area">
+        <div class="toolbar">
+          <input type="search" id="case-search" class="pt-input" placeholder="画面名で絞り込み">
+          <span class="hit-count" id="hit-count"></span>
+        </div>
+      </div>
+
+      <div class="table-area">
+        <div class="tab-panel active" id="panel-unit" data-tab-panel="unit"></div>
+        <div class="tab-panel" id="panel-integration" data-tab-panel="integration"></div>
+        <div class="tab-panel" id="panel-scenario" data-tab-panel="scenario"></div>
+      </div>
 
 <script type="application/json" id="test-case-manifest">
 {
@@ -482,7 +947,7 @@
   });
 
   document.getElementById('vp-coverage').textContent =
-    coveredKeys.size + ' / ' + allViewpointKeys.length + '（' + Math.round(coverageRate * 100) + '%）';
+    coveredKeys.size + ' / ' + allViewpointKeys.length + '(' + Math.round(coverageRate * 100) + '%)';
   document.getElementById('screen-coverage').textContent =
     testedScreenIds.size + ' / ' + allScreenIds.size + ' 画面';
   document.getElementById('uncovered-count').textContent = uncoveredViewpoints.length;
@@ -490,7 +955,7 @@
   var uncoveredListEl = document.getElementById('uncovered-list');
   uncoveredListEl.innerHTML = uncoveredViewpoints.length
     ? '<ul>' + uncoveredViewpoints.map(function (v) {
-        return '<li>[' + escHtml(v.screenId) + '] ' + escHtml(v.key) + '（' + escHtml(v.type) + '）: ' + escHtml(v.viewpoint) + '</li>';
+        return '<li>[' + escHtml(v.screenId) + '] ' + escHtml(v.key) + '(' + escHtml(v.type) + '): ' + escHtml(v.viewpoint) + '</li>';
       }).join('') + '</ul>'
     : '<div class="empty-note">未カバーの観点はありません。</div>';
 
@@ -518,14 +983,14 @@
       { field: 'key', label: 'キー', cls: 'cell-main' },
       { field: 'viewpointKey', label: '対応観点キー', cls: 'cell-viewpoint-key' },
       { field: 'input', label: '入力値' },
-      { field: 'expected', label: '期待結果（アサーション）' }
+      { field: 'expected', label: '期待結果(アサーション)' }
     ],
     integration: [
       { field: 'key', label: 'キー', cls: 'cell-main' },
       { field: 'viewpointKey', label: '対応観点キー', cls: 'cell-viewpoint-key' },
       { field: 'steps', label: '操作手順' },
       { field: 'input', label: '入力値' },
-      { field: 'expected', label: '期待結果（アサーション）' }
+      { field: 'expected', label: '期待結果(アサーション)' }
     ],
     scenario: [
       { field: 'key', label: 'シナリオ名', cls: 'cell-main' },
@@ -548,7 +1013,7 @@
     screens.forEach(function (name) {
       var rows = byScreen[name];
       html += '<section class="module-group" data-screen-section>';
-      html += '<h3>' + escHtml(name) + '<span class="screen-count">' + rows.length + '件</span></h3>';
+      html += '<h2>' + escHtml(name) + '<span class="screen-count">' + rows.length + '件</span></h2>';
       html += '<div class="table-wrap"><table class="case-table"><thead><tr>' +
         columns.map(function (col) { return '<th>' + escHtml(col.label) + '</th>'; }).join('') +
         '</tr></thead><tbody>';
@@ -627,26 +1092,16 @@
 
   updateSummary('unit');
   applyFilter();
-
-  var themeBtn = document.getElementById('theme-toggle');
-  if (themeBtn) {
-    themeBtn.addEventListener('click', function () {
-      var r = document.documentElement;
-      var next = r.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-      r.setAttribute('data-theme', next);
-      themeBtn.textContent = next === 'dark' ? 'ダーク' : 'ライト';
-      try { localStorage.setItem('rd-portal-theme', next); } catch (e) {}
-    });
-  }
-  try {
-    var saved = localStorage.getItem('rd-portal-theme');
-    if (saved) {
-      document.documentElement.setAttribute('data-theme', saved);
-      if (themeBtn) themeBtn.textContent = saved === 'dark' ? 'ダーク' : 'ライト';
-    }
-  } catch (e) {}
 })();
 </script>
+    </main>
+  </div>
+  <footer class="pt-footer">
+  <span class="pt-footer-stamp">REVERSE-DOCS REGISTER</span>
+  <span class="pt-footer-meta"> · 更新 2026-07-24T00:00:00+09:00 · コミット </span>
+  <span class="pt-footer-gen">生成: 手動組立(shared/scripts/unit-list/build-unit-list.sh が生成したAPI一覧.HTMLの共通シェルを流用)</span>
+</footer>
+</div>
 
 </body>
 </html>

@@ -532,6 +532,9 @@ strip_ok_marker() {
 
 # render_template — 共通関数を source（shared/scripts/render-template.sh）
 source "$(cd "$(dirname "$0")/.." && pwd)/render-template.sh"
+if [ -f "$SCRIPT_DIR/../shell-injection.sh" ]; then
+  . "$SCRIPT_DIR/../shell-injection.sh"
+fi
 
 # --- メタ情報・サマリ集計をマニフェストから抽出 ---
 generated_at="$(jq -r '.generatedAt // ""' "$MANIFEST")"
@@ -680,6 +683,13 @@ render_args=(
 # トークンCSS注入（tokens.css が存在する場合のみ）
 if [ -f "$TOKENS_CSS_FILE" ]; then
   render_args+=("/* TOKENS_CSS */" "$(cat "$TOKENS_CSS_FILE")")
+fi
+# 共通シェル注入（partials が存在する場合のみ）
+if type shell_injection_args >/dev/null 2>&1; then
+  shell_injection_args "$SCRIPT_DIR/../../templates" "$SCRIPT_DIR/../../templates/../references/portal-catalog.json" "$portal_relative" "$PROJECT_NAME_ARG" "$generated_at" "" "shared/scripts/unit-list/build-screen-list.sh" "list"
+  if [ ${#SHELL_RENDER_ARGS[@]} -gt 0 ]; then
+    render_args+=("${SHELL_RENDER_ARGS[@]}")
+  fi
 fi
 out="$(render_template "$(cat "$TEMPLATE")" "${render_args[@]}")"
 verify_rendered_screen_count "$tile_screen_count" "$out"

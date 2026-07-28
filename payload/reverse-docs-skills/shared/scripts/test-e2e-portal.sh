@@ -15,7 +15,9 @@
 #     生成フローが未対応のページを FAIL にしない）
 #
 # 検査項目（ケースキーは意味語。連番禁止）:
-#   リンク-戻る解決   各ページの「ポータルへ戻る」リンク href が実在ファイルを指すか
+#   リンク-戻る解決   各ページにポータルトップへ戻る手段があるか。従来の「ポータルへ戻る」
+#                     リンク／brand アンカーの href が実在ファイルを指すか、または共通シェルの
+#                     サイドバー（class="pt-sidebar"）が data-portal-href に空でない値を持つか
 #   リンク-内部解決   全 <a href>（#・http 以外）を相対解決して実在するか
 #   json-埋め込み妥当  <script type="application/json"> の中身が jq でパース可能か
 #   整合-行数一致     一覧9ページのマニフェスト件数と tbody データ行数の一致
@@ -125,20 +127,32 @@ for f in "${ALL_PAGES[@]}"; do
   # 表記ゆれ許容: 「ポータルへ戻る」「ポータル TOP へ戻る」。無ければ brand アンカーで代替
   line="$(grep -m1 -E 'ポータル[^<]*戻る' "$f" || true)"
   [ -z "$line" ] && line="$(grep -m1 -E '<a class="brand" href="[^"]*"' "$f" || true)"
-  if [ -z "$line" ]; then
-    report FAIL "リンク-戻る解決" "$page" "「ポータルへ戻る」リンク（brand アンカー含む）が見つからない"
+  if [ -n "$line" ]; then
+    href="$(printf '%s' "$line" | grep -oE 'href="[^"]*"' | head -1 | sed 's/^href="//; s/"$//')"
+    if [ -z "$href" ]; then
+      report FAIL "リンク-戻る解決" "$page" "戻るリンク行から href を抽出できない"
+      continue
+    fi
+    target="${href%%\#*}"; target="${target%%\?*}"
+    if [ -f "$(dirname "$f")/$target" ]; then
+      report PASS "リンク-戻る解決" "$page" "href=$href 実在"
+    else
+      report FAIL "リンク-戻る解決" "$page" "href=$href が実在しない"
+    fi
     continue
   fi
-  href="$(printf '%s' "$line" | grep -oE 'href="[^"]*"' | head -1 | sed 's/^href="//; s/"$//')"
-  if [ -z "$href" ]; then
-    report FAIL "リンク-戻る解決" "$page" "戻るリンク行から href を抽出できない"
+  # 従来リンクが無い場合: 共通シェルのサイドバー(pt-sidebar)がポータルへの相対パスを
+  # data-portal-href に持つかで代替判定する（ナビ項目自体はJSが実行時に描画するため静的HTMLには現れない）
+  sidebar_line="$(grep -m1 -E 'class="pt-sidebar"' "$f" || true)"
+  if [ -z "$sidebar_line" ]; then
+    report FAIL "リンク-戻る解決" "$page" "「ポータルへ戻る」リンク・brand アンカー・pt-sidebar のいずれも見つからない"
     continue
   fi
-  target="${href%%\#*}"; target="${target%%\?*}"
-  if [ -f "$(dirname "$f")/$target" ]; then
-    report PASS "リンク-戻る解決" "$page" "href=$href 実在"
+  portal_href="$(printf '%s' "$sidebar_line" | grep -oE 'data-portal-href="[^"]*"' | head -1 | sed 's/^data-portal-href="//; s/"$//')"
+  if [ -z "$portal_href" ] || [ "${portal_href#*\{\{}" != "$portal_href" ]; then
+    report FAIL "リンク-戻る解決" "$page" "pt-sidebar の data-portal-href が空または未置換(${portal_href})"
   else
-    report FAIL "リンク-戻る解決" "$page" "href=$href が実在しない"
+    report PASS "リンク-戻る解決" "$page" "pt-sidebar data-portal-href=$portal_href"
   fi
 done
 

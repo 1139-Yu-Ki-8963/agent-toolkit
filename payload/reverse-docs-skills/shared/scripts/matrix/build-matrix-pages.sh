@@ -108,8 +108,8 @@ self_test() {
       if grep -q 'height: 100vh' "$out" \
         && grep -qE 'overflow:[[:space:]]*hidden' "$out" \
         && grep -qE 'overflow-y:[[:space:]]*auto' "$out" \
-        && grep -q '<main class="matrix-content">' "$out"; then
-        echo "  [PASS] $label: 固定viewportと独立縦スクロール領域を生成"
+        && grep -q '<main class="pt-main is-fixed">' "$out"; then
+        echo "  [PASS] $label: 固定viewportと独立縦スクロール領域(共通シェルpt-main)を生成"
       else
         echo "  [FAIL] $label: viewport/overflow/scroll layout契約が不完全" >&2
         rc=1
@@ -172,11 +172,13 @@ self_test() {
   token_fixture_root="$tmp/token-fixture/shared"
   token_fixture_script="$token_fixture_root/scripts/matrix/build-matrix-pages.sh"
   token_fixture_out="$tmp/token-fixture-output.html"
-  mkdir -p "$token_fixture_root/scripts/matrix" "$token_fixture_root/templates/matrix"
+  mkdir -p "$token_fixture_root/scripts/matrix" "$token_fixture_root/templates/matrix" "$token_fixture_root/templates/partials"
   cp "$script_path" "$token_fixture_script"
   cp "$(cd "$(dirname "$script_path")/.." && pwd)/render-template.sh" "$token_fixture_root/scripts/render-template.sh"
+  cp "$(cd "$(dirname "$script_path")/.." && pwd)/shell-injection.sh" "$token_fixture_root/scripts/shell-injection.sh"
   cp "$(cd "$(dirname "$script_path")/../../templates" && pwd)/tokens.css" "$token_fixture_root/templates/tokens.css"
   cp "$(cd "$(dirname "$script_path")/../../templates" && pwd)"/matrix/*.html "$token_fixture_root/templates/matrix/"
+  cp "$(cd "$(dirname "$script_path")/../../templates" && pwd)"/partials/*.css "$(cd "$(dirname "$script_path")/../../templates" && pwd)"/partials/*.html "$token_fixture_root/templates/partials/"
   printf '\n.fixture-token-proof { color: rgb(1, 2, 3); }\n' >> "$token_fixture_root/templates/tokens.css"
   if bash "$token_fixture_script" crud "$tmp/fixture-crud.json" "$token_fixture_out" >/dev/null 2>&1 \
     && grep -qF '.fixture-token-proof { color: rgb(1, 2, 3); }' "$token_fixture_out"; then
@@ -389,7 +391,7 @@ if [ ! -f "$TEMPLATE" ]; then
   echo "ERROR: template not found: $TEMPLATE" >&2
   exit 1
 fi
-if [ "$PAGE_TYPE" != "ai-assets" ] && [ ! -f "$TOKENS_CSS_FILE" ]; then
+if [ ! -f "$TOKENS_CSS_FILE" ]; then
   echo "ERROR: tokens.css not found: $TOKENS_CSS_FILE" >&2
   exit 1
 fi
@@ -414,6 +416,9 @@ html_escape() {
 
 # render_template — 共通関数を source(shared/scripts/render-template.sh)
 source "$(cd "$(dirname "$0")/.." && pwd)/render-template.sh"
+if [ -f "$SCRIPT_DIR/../shell-injection.sh" ]; then
+  . "$SCRIPT_DIR/../shell-injection.sh"
+fi
 
 # --- メタ情報を data.json から抽出 ---
 generated_at="$(jq -r '.generatedAt // ""' "$DATA_JSON")"
@@ -422,7 +427,9 @@ if [ -z "$generated_at" ]; then
 fi
 data_source="$(jq -r '.dataSource // ""' "$DATA_JSON")"
 [ -z "$data_source" ] && data_source="—"
-project_name="$(jq -r '.projectName // ""' "$DATA_JSON")"
+# --project-name オプションを優先し、未指定ならdata.jsonのprojectNameへフォールバックする
+# (従来はオプションが解析されるだけで無視され、data.json側にprojectNameが無い場合は空表示になっていた)
+project_name="${PROJECT_NAME_ARG:-$(jq -r '.projectName // ""' "$DATA_JSON")}"
 
 matrix_json="$(cat "$DATA_JSON")"
 
@@ -451,8 +458,18 @@ render_args=( \
   "{{DATA_SOURCE}}" "$(html_escape "$data_source")" \
   "{{PROJECT_NAME}}" "$(html_escape "$project_name")" \
   "{{BACK_LINK}}" "$back_link")
-if [ "$PAGE_TYPE" != "ai-assets" ]; then
-  render_args+=("/* TOKENS_CSS */" "$(cat "$TOKENS_CSS_FILE")")
+render_args+=("/* TOKENS_CSS */" "$(cat "$TOKENS_CSS_FILE")")
+# 共通シェル注入（partials が存在する場合のみ）
+if [ "$PAGE_TYPE" = "ai-assets" ]; then
+  shell_active_category="ai"
+else
+  shell_active_category="cross"
+fi
+if type shell_injection_args >/dev/null 2>&1; then
+  shell_injection_args "$TEMPLATES_DIR" "$TEMPLATES_DIR/../references/portal-catalog.json" "$back_link" "$project_name" "$generated_at" "" "shared/scripts/matrix/build-matrix-pages.sh" "$shell_active_category"
+  if [ ${#SHELL_RENDER_ARGS[@]} -gt 0 ]; then
+    render_args+=("${SHELL_RENDER_ARGS[@]}")
+  fi
 fi
 render_args+=("$JSON_MARKER" "$matrix_json")
 out="$(render_template "$(cat "$TEMPLATE")" "${render_args[@]}")"
