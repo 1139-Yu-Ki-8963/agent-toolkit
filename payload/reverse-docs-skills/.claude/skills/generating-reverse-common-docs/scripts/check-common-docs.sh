@@ -66,6 +66,16 @@ extract_backtick_tokens() {
   grep -oE '`[^`]+`' "$1" 2>/dev/null | sed -E 's/^`//; s/`$//' || true
 }
 
+# 「AI設定資産への変換」は派生rule生成用の構造化契約であり、実測規則行ではない。
+# 既存の実例・頻度・例外率ゲートおよび対象repoパス実在検査から除外する。
+extract_backtick_tokens_without_ai_section() {
+  awk '
+    /^## AI設定資産への変換[[:space:]]*$/ { skip = 1; next }
+    skip && /^## / { skip = 0 }
+    !skip { print }
+  ' "$1" | grep -oE '`[^`]+`' 2>/dev/null | sed -E 's/^`//; s/`$//' || true
+}
+
 # 表の区切り行（|---|---|等）かどうかを判定する
 is_separator_row() {
   line="$1"
@@ -99,8 +109,17 @@ check_rule_rows() {
     path="$dir/$f"
     [ -f "$path" ] || continue
     lineno=0
+    in_ai_conversion=0
     while IFS= read -r line; do
       lineno=$((lineno + 1))
+      if [ "$line" = "## AI設定資産への変換" ]; then
+        in_ai_conversion=1
+        continue
+      fi
+      if [ "$in_ai_conversion" -eq 1 ] && printf '%s' "$line" | grep -q '^## '; then
+        in_ai_conversion=0
+      fi
+      [ "$in_ai_conversion" -eq 1 ] && continue
       case "$line" in
         '|'*) : ;;
         *) continue ;;
@@ -155,7 +174,10 @@ check_paths_exist() {
   for f in $PATH_CHECK_FILES; do
     path="$dir/$f"
     [ -f "$path" ] || continue
-    tokens="$(extract_backtick_tokens "$path")"
+    case "$f" in
+      規約/*) tokens="$(extract_backtick_tokens_without_ai_section "$path")" ;;
+      *) tokens="$(extract_backtick_tokens "$path")" ;;
+    esac
     while IFS= read -r tok; do
       [ -z "$tok" ] && continue
       if ! is_path_candidate "$tok"; then

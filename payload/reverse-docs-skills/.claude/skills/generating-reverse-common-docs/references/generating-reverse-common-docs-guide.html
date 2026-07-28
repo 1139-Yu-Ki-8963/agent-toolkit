@@ -153,6 +153,9 @@
     <strong>読み取り専用</strong>: 対象リポジトリへの書き込み・変更は一切行わない。出力は output_dir 配下の8ファイルのみ。
   </div>
   <div class="constraint">
+    <strong>rule生成は独立操作</strong>: 規約4文書の構造化表は生成契約として出力するが、採録中は対象リポジトリへ書かない。採録完了後に生成スクリプトへ <code>--apply</code> を明示した場合だけ更新する。
+  </div>
+  <div class="constraint">
     <strong>v0で止める</strong>: 完成を狙わない。v0確定後の追記は mode=append の別起動でのみ行う。
   </div>
 </section>
@@ -199,6 +202,7 @@
   <table class="spec">
     <tr><th>原則</th><th>内容</th></tr>
     <tr><td>読み取り専用</td><td>対象リポジトリへの書き込み・変更は一切行わない。出力は output_dir 配下のみ</td></tr>
+    <tr><td>派生rule生成は別操作</td><td><code>generate-rules-from-common-docs.sh</code> は既定dry-run。<code>--apply</code>時だけ所有index配下を更新し、<code>--check</code>で文書hash・entry hash・bytes一致を検査する</td></tr>
     <tr><td>実装事実主義</td><td>サンプルに現れない規則を発明しない。理想論（あるべき姿）を書かず、実装済みコードに現に存在する事実だけを記録する</td></tr>
     <tr><td>三点セット必須</td><td>各規則行は実例（3件以上）・頻度・例外率を必ず添える</td></tr>
     <tr><td>決定的サンプリング</td><td>層化サンプリングの選定は find / sort / head の決定的コマンドに固定する。乱数・目視選定を禁止する</td></tr>
@@ -219,7 +223,7 @@
 
 <span class="cap">Phase 2: 層化サンプリング</span>
   調査書のディレクトリ責務マップの各層ごとに
-  find <層> -type f | sort | head -n <k> で決定的に確定する
+  find &lt;層&gt; -type f | sort | head -n &lt;k&gt; で決定的に確定する
   (kは層あたり3〜10。全層合計20ファイル以上)
   選定コマンドと結果一覧をサンプル記録.mdに記録する
   完了条件: サンプル記録.mdに全層のコマンドと選定ファイル一覧が
@@ -230,6 +234,8 @@
   コンポーネント設計規約の各規則を採録する
   各規則行に①実例(相対パス3件以上) ②頻度(N/M形式)
   ③例外率(%表記)を記載する。サンプルに無い規則は発明しない
+  「AI設定資産への変換」の5列表はテンプレートどおり保持し、
+  4文書横断で規約キーを重複させない
   完了条件: 全規則行が実例3件以上+頻度+例外率付き
 
 <span class="cap">Phase 4: 共通文書採録</span>
@@ -239,8 +245,8 @@
   完了条件: 3文書のプレースホルダ残存ゼロ
 
 <span class="cap">Phase 5: 機械ゲート</span>
-  check-common-docs.sh <output_dir>/プロジェクト共通
-   <target_repo_path> を実行
+  check-common-docs.sh &lt;output_dir&gt;/プロジェクト共通
+   &lt;target_repo_path&gt; を実行
   FAILしたらPhase 3〜4に戻り、指摘された実例不足・頻度欠落・
   例外率欠落・未実在パス・テンプレ残存・理想論表現を修正して
   再実行する(上限5回)
@@ -262,7 +268,7 @@
   <table class="spec">
     <tr><th>検査</th><th>内容</th></tr>
     <tr><td>実在検査</td><td>プロジェクト共通8ファイル（規約4種＋共通設計書.md＋メッセージ定義書.md＋DESIGN.md＋サンプル記録.md）すべてが実在するかを確認する</td></tr>
-    <tr><td>規則行完備性検査</td><td>規約4文書内の各テーブル行のうち、backtick囲みの相対パス（「/」を含む）トークンを1件以上含む行を「規則行」とみなし、その行に実例パス3件以上・頻度（<code>[0-9]+/[0-9]+</code>形式）・例外率（<code>[0-9.]+%</code>形式）が揃っているかを確認する</td></tr>
+    <tr><td>規則行完備性検査</td><td>規約4文書内の各テーブル行のうち、backtick囲みの相対パス（「/」を含む）トークンを1件以上含む行を「規則行」とみなし、その行に実例パス3件以上・頻度（<code>[0-9]+/[0-9]+</code>形式）・例外率（<code>[0-9.]+%</code>形式）が揃っているかを確認する。「AI設定資産への変換」表は派生rule生成用なので対象外</td></tr>
     <tr><td>パス実在検査</td><td>規約4文書内のbacktick囲み相対パス全件が target_repo_path 配下に実在するかを確認する。URL・glob・プレースホルダ・絶対パス・空白や正規表現記号を含むトークンは対象外</td></tr>
     <tr><td>テンプレ残存検査</td><td>プレースホルダ（<code>&lt;実測</code>・<code>&lt;FILL</code>・<code>TBD</code>・<code>TODO</code>）の残存ゼロを8ファイルすべてで確認する</td></tr>
     <tr><td>理想論表現検査</td><td>規約4文書に「すべきである」「望ましい」「べきだ」「理想的には」「今後は」等の理想論表現が無いかを確認する（実装事実の記録に限る）</td></tr>

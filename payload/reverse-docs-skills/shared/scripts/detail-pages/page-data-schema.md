@@ -8,6 +8,7 @@ detail-pages 系（用語辞書 / 技術スタック / 画面遷移図 / ER図 /
 |---|---|---|---|
 | pageKind | string | 必須 | `glossary` \| `techstack` \| `transition` \| `er` \| `env` \| `entity-state` \| `release-notes` \| `design-system` \| `component-inventory` \| `icon-catalog` のいずれか |
 | generatedAt | string | 必須 | ISO8601 形式の生成日時（例: `2026-01-01T00:00:00Z`） |
+| manifestContentHash | string | transitionのみ必須 | raw `screen-manifest.json`を`jq -cjS`した改行なしbytesのSHA-256（64桁lowercase hex） |
 | title | string | 必須 | ページ見出し |
 | description | string | 必須 | ページ概要（1〜2 文） |
 | unresolved | array | 任意 | 未解決項目の配列。要素は `{ "label": string, "reason": string, "sourceRef"?: string }`。省略時は空扱い |
@@ -48,7 +49,7 @@ detail-pages 系（用語辞書 / 技術スタック / 画面遷移図 / ER図 /
 | キー | 型 | 内容 |
 |---|---|---|
 | legend | array | 凡例。`{ "symbol": string, "meaning": string }` の配列。空配列可（「凡例なし」を表示） |
-| nodes | array（transition のみ） | `{ "unitKey": string, "label": string }` の配列。SVG 描画時のノードキーは `unitKey` |
+| nodes | array（transition のみ） | `{ "unitKey": string, "label": string, "route"?: string, "category"?: string, "categorySrc"?: string }` の配列。SVG 描画時のノードキーは `unitKey` |
 | edges | array（transition のみ） | `{ "from": string, "to": string, "trigger": string, "sourceRef": string, "confidence": string }` の配列。`from`/`to` は `nodes[].unitKey` を参照する |
 | entities | array（er のみ） | `{ "key": string, "label": string }` の配列。SVG 描画時のノードキーは `key` |
 | relations | array（er のみ） | `{ "from": string, "to": string, "cardinality": string, "sourceRef": string }` の配列。`from`/`to` は `entities[].key` を参照する |

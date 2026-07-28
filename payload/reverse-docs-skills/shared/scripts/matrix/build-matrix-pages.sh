@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # マトリクス・対応表4ページ + AI設定資産ページの決定的ビルドスクリプト。
-# page-type からテンプレートを解決し、data.json のメタ情報マーカー置換と
-# manifest JSON の埋め込みのみを行う(描画はテンプレート内 JS が担うため、
+# page-type からテンプレートを解決し、data.json のメタ情報マーカー置換、
+# matrix 4ページへのtokens.css正本全文注入、manifest JSON の埋め込みを行う
+# (描画はテンプレート内 JS が担うため、
 # 本スクリプトは行 HTML の組み立てをしない)。
 #
 # Usage: build-matrix-pages.sh <page-type> <data.json> <output-html-path>
@@ -25,6 +26,8 @@
 # 共通マーカー(全テンプレート):
 #   GENERATED_AT (波括弧記法) : data.json の generatedAt。無ければ実行時刻(UTC ISO8601)
 #   DATA_SOURCE (波括弧記法)  : data.json の dataSource。無ければ空欄表示「—」
+# matrix 4テンプレート共通:
+#   TOKENS_CSS (CSSコメント記法): shared/templates/tokens.css の全文
 #
 # 出力: <output-html-path> に単一ファイル自己完結の HTML を書き出す。
 #   data.json の内容は <script type="application/json" id="matrix-manifest"> に
@@ -74,11 +77,11 @@ self_test() {
 
   # 1ケース分の生成+埋め込み一致検証
   run_case() {
-    local label="$1" page_type="$2" fixture="$3"
+    local label="$1" page_type="$2" fixture="$3" builder="${4:-$script_path}"
     local out="$tmp/out-$page_type.html"
     local embedded="$tmp/embedded-$page_type.json"
     local expected="$tmp/expected-$page_type.json"
-    if ! bash "$script_path" "$page_type" "$fixture" "$out" >/dev/null 2>&1; then
+    if ! bash "$builder" "$page_type" "$fixture" "$out" >/dev/null 2>&1; then
       echo "  [FAIL] $label: 生成コマンド自体が失敗した" >&2
       rc=1
       return
@@ -90,6 +93,27 @@ self_test() {
     else
       echo "  [FAIL] $label: 埋め込みJSONが原本フィクスチャと不一致(誤爆の疑い)" >&2
       rc=1
+    fi
+    if [ "$page_type" != "ai-assets" ]; then
+      local canonical_tokens
+      canonical_tokens="$(cd "$(dirname "$builder")/../../templates" 2>/dev/null && pwd)/tokens.css"
+      if [ -f "$canonical_tokens" ] \
+        && python3 -c 'import pathlib,sys; h=pathlib.Path(sys.argv[1]).read_text(); t=pathlib.Path(sys.argv[2]).read_text(); raise SystemExit(0 if t in h else 1)' "$out" "$canonical_tokens" \
+        && ! grep -q '/\* TOKENS_CSS \*/' "$out"; then
+        echo "  [PASS] $label: tokens.css正本全文を注入"
+      else
+        echo "  [FAIL] $label: tokens.css注入が不完全" >&2
+        rc=1
+      fi
+      if grep -q 'height: 100vh' "$out" \
+        && grep -qE 'overflow:[[:space:]]*hidden' "$out" \
+        && grep -qE 'overflow-y:[[:space:]]*auto' "$out" \
+        && grep -q '<main class="matrix-content">' "$out"; then
+        echo "  [PASS] $label: 固定viewportと独立縦スクロール領域を生成"
+      else
+        echo "  [FAIL] $label: viewport/overflow/scroll layout契約が不完全" >&2
+        rc=1
+      fi
     fi
   }
 
@@ -142,6 +166,25 @@ self_test() {
     tables: [{tableId: "users", tableName: "users", logicalName: "ユーザー"}]
   }' > "$tmp/fixture-traceability.json"
   run_case "traceability" "traceability" "$tmp/fixture-traceability.json"
+
+  # --- tokens.css変更追従: 隔離したbuilder一式の正本にfixture tokenを追加 ---
+  local token_fixture_root token_fixture_script token_fixture_out
+  token_fixture_root="$tmp/token-fixture/shared"
+  token_fixture_script="$token_fixture_root/scripts/matrix/build-matrix-pages.sh"
+  token_fixture_out="$tmp/token-fixture-output.html"
+  mkdir -p "$token_fixture_root/scripts/matrix" "$token_fixture_root/templates/matrix"
+  cp "$script_path" "$token_fixture_script"
+  cp "$(cd "$(dirname "$script_path")/.." && pwd)/render-template.sh" "$token_fixture_root/scripts/render-template.sh"
+  cp "$(cd "$(dirname "$script_path")/../../templates" && pwd)/tokens.css" "$token_fixture_root/templates/tokens.css"
+  cp "$(cd "$(dirname "$script_path")/../../templates" && pwd)"/matrix/*.html "$token_fixture_root/templates/matrix/"
+  printf '\n.fixture-token-proof { color: rgb(1, 2, 3); }\n' >> "$token_fixture_root/templates/tokens.css"
+  if bash "$token_fixture_script" crud "$tmp/fixture-crud.json" "$token_fixture_out" >/dev/null 2>&1 \
+    && grep -qF '.fixture-token-proof { color: rgb(1, 2, 3); }' "$token_fixture_out"; then
+    echo "  [PASS] tokens.css変更fixture: 再生成HTMLへ正本変更が反映"
+  else
+    echo "  [FAIL] tokens.css変更fixture: 再生成HTMLへ正本変更が未反映" >&2
+    rc=1
+  fi
 
   # --- ai-assets: バックスラッシュ(正規表現風 \d+)を含む値で誤爆検証 ---
   jq -n \
@@ -256,7 +299,7 @@ if [ "${1:-}" = "--self-test" ]; then
   exit $?
 fi
 
-USAGE="Usage: build-matrix-pages.sh <page-type> <data.json> <output-html-path> [--portal-dir <path>]
+USAGE="Usage: build-matrix-pages.sh <page-type> <data.json> <output-html-path> [--portal-dir <path>] [--project-name <name>] [--generated-at <iso8601>]
   page-type: permission-screen | permission-function | crud | traceability | ai-assets"
 
 PAGE_TYPE="${1:?$USAGE}"
@@ -265,10 +308,20 @@ OUTPUT_HTML="${3:?$USAGE}"
 shift 3
 
 PORTAL_DIR_ARG=""
+PROJECT_NAME_ARG=""
+GENERATED_AT_ARG=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --portal-dir)
       PORTAL_DIR_ARG="${2:-}"
+      shift 2
+      ;;
+    --project-name)
+      PROJECT_NAME_ARG="${2:-}"
+      shift 2
+      ;;
+    --generated-at)
+      GENERATED_AT_ARG="${2:-}"
       shift 2
       ;;
     *)
@@ -288,9 +341,15 @@ if [ ! -f "$DATA_JSON" ]; then
   echo "ERROR: data.json not found: $DATA_JSON" >&2
   exit 1
 fi
+if [ -n "$GENERATED_AT_ARG" ] \
+  && [ "$(jq -r '.generatedAt // ""' "$DATA_JSON")" != "$GENERATED_AT_ARG" ]; then
+  echo "ERROR: data generatedAt does not match --generated-at" >&2
+  exit 1
+fi
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 TEMPLATES_DIR="$SCRIPT_DIR/../../templates"
+TOKENS_CSS_FILE="$TEMPLATES_DIR/tokens.css"
 
 # --- page-type からテンプレート・JSON埋め込みマーカー・必須トップレベルキーを解決 ---
 case "$PAGE_TYPE" in
@@ -328,6 +387,10 @@ esac
 
 if [ ! -f "$TEMPLATE" ]; then
   echo "ERROR: template not found: $TEMPLATE" >&2
+  exit 1
+fi
+if [ "$PAGE_TYPE" != "ai-assets" ] && [ ! -f "$TOKENS_CSS_FILE" ]; then
+  echo "ERROR: tokens.css not found: $TOKENS_CSS_FILE" >&2
   exit 1
 fi
 
@@ -383,12 +446,16 @@ fi
 # JSON埋め込みマーカーはテンプレート内で物理的に最後に出現するため、
 # 単一パスのdocument-order走査により自動的に最後に処理される
 # (JSON内容に他マーカー文字列が偶然含まれた場合の誤爆を避けるため)
-out="$(render_template "$(cat "$TEMPLATE")" \
+render_args=( \
   "{{GENERATED_AT}}" "$(html_escape "$generated_at")" \
   "{{DATA_SOURCE}}" "$(html_escape "$data_source")" \
   "{{PROJECT_NAME}}" "$(html_escape "$project_name")" \
-  "{{BACK_LINK}}" "$back_link" \
-  "$JSON_MARKER" "$matrix_json")"
+  "{{BACK_LINK}}" "$back_link")
+if [ "$PAGE_TYPE" != "ai-assets" ]; then
+  render_args+=("/* TOKENS_CSS */" "$(cat "$TOKENS_CSS_FILE")")
+fi
+render_args+=("$JSON_MARKER" "$matrix_json")
+out="$(render_template "$(cat "$TEMPLATE")" "${render_args[@]}")"
 
 printf '%s\n' "$out" > "$OUTPUT_HTML"
 

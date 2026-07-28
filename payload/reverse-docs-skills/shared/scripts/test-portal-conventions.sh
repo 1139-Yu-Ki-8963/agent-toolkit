@@ -112,6 +112,36 @@ check_file() {
   fi
 }
 
+check_matrix_template_tokens() {
+  local script_dir templates_dir template definitions markers
+  script_dir="$(cd "$(dirname "$0")" && pwd)"
+  templates_dir="$script_dir/../templates/matrix"
+  echo ""
+  echo "=== matrix template token contract ==="
+  for template in \
+    permission-screen-matrix-template.html \
+    permission-function-matrix-template.html \
+    crud-matrix-template.html \
+    traceability-template.html; do
+    if [ ! -f "$templates_dir/$template" ]; then
+      fail "matrix token-template実在: $template"
+      continue
+    fi
+    definitions="$(grep -cE '^[[:space:]]*--[a-z0-9-]+[[:space:]]*:' "$templates_dir/$template" 2>/dev/null || true)"
+    markers="$(grep -cF '/* TOKENS_CSS */' "$templates_dir/$template" 2>/dev/null || true)"
+    if [ "$definitions" -eq 0 ]; then
+      pass "matrix token実値定義0件: $template"
+    else
+      fail "matrix token実値定義0件: $template（${definitions}件残存）"
+    fi
+    if [ "$markers" -eq 1 ]; then
+      pass "matrix token注入placeholder 1件: $template"
+    else
+      fail "matrix token注入placeholder 1件: $template（${markers}件）"
+    fi
+  done
+}
+
 target="${1:-.}"
 if [ -d "$target" ]; then
   while IFS= read -r f; do
@@ -120,6 +150,8 @@ if [ -d "$target" ]; then
 else
   check_file "$target"
 fi
+
+check_matrix_template_tokens
 
 echo ""
 echo "========================================="

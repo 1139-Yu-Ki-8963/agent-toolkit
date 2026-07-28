@@ -210,10 +210,12 @@ Bash で以下を実行する:
 bash shared/scripts/build-portal.sh \
   "$target_repo_path" \
   "$output_dir" \
-  "$output_dir"
+  "$output_dir" \
+  --catalog shared/references/portal-catalog.json
 ```
 
 ポータルは納品物ルート（output_dir）直下の `index.html` として出力する（正本レイアウト。`references/contract.md` の「納品物ルート（output_dir）の正本レイアウト」参照）。
+カテゴリ、カード、探索条件、件数単位は`shared/references/portal-catalog.json`から導出する。カテゴリや成果物種別を追加する場合は、`build-portal.sh`へ分岐を足さずcatalogへblueprintを登録する。画面manifestから派生物を一括再生成する工程では、同じcatalogに加えて`--portal-only`、`--generated-at`、`--screen-manifest`を渡し、既存成果物を再変換せず`index.html`だけを更新する。
 
 **完了**: `<output_dir>/index.html` が存在する。
 

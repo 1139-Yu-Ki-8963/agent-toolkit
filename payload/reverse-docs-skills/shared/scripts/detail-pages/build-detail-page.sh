@@ -131,6 +131,7 @@ self_test() {
   local data_orphan="$tmp/page-data-orphan.json"
   jq -n '{
     pageKind: "transition",
+    manifestContentHash: ("a"*64),
     generatedAt: "2026-01-01T00:00:00Z",
     title: "画面遷移図",
     description: "self-test用フィクスチャ(孤児edge混入)",
@@ -216,6 +217,7 @@ self_test() {
   local data_transition="$tmp/page-data-transition.json"
   jq -n '{
     pageKind: "transition",
+    manifestContentHash: ("a"*64),
     generatedAt: "2026-01-01T00:00:00Z",
     title: "画面遷移図",
     description: "self-test用フィクスチャ",
@@ -287,6 +289,7 @@ self_test() {
   local data_rel="$tmp/page-data-rel.json"
   jq -n '{
     pageKind: "transition",
+    manifestContentHash: ("a"*64),
     generatedAt: "2026-01-01T00:00:00Z",
     title: "画面遷移図",
     description: "self-test用フィクスチャ(関連エンティティ有)",
@@ -351,12 +354,13 @@ if [ "${1:-}" = "--self-test" ]; then
   exit $?
 fi
 
-DATA="${1:?Usage: build-detail-page.sh <page-data.json> <output-dir> --page <kind> [--portal-dir <path>]}"
-OUTPUT_DIR="${2:?Usage: build-detail-page.sh <page-data.json> <output-dir> --page <kind> [--portal-dir <path>]}"
+DATA="${1:?Usage: build-detail-page.sh <page-data.json> <output-dir> --page <kind> [--portal-dir <path>] [--generated-at <iso8601>]}"
+OUTPUT_DIR="${2:?Usage: build-detail-page.sh <page-data.json> <output-dir> --page <kind> [--portal-dir <path>] [--generated-at <iso8601>]}"
 shift 2 || true
 
 PAGE=""
 PORTAL_DIR_ARG=""
+GENERATED_AT_ARG=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --page)
@@ -365,6 +369,10 @@ while [ $# -gt 0 ]; do
       ;;
     --portal-dir)
       PORTAL_DIR_ARG="${2:-}"
+      shift 2
+      ;;
+    --generated-at)
+      GENERATED_AT_ARG="${2:-}"
       shift 2
       ;;
     *)
@@ -386,6 +394,11 @@ fi
 
 if [ ! -f "$DATA" ]; then
   echo "ERROR: page-data not found: $DATA" >&2
+  exit 1
+fi
+if [ -n "$GENERATED_AT_ARG" ] \
+  && [ "$(jq -r '.generatedAt // ""' "$DATA")" != "$GENERATED_AT_ARG" ]; then
+  echo "ERROR: page-data generatedAt does not match --generated-at" >&2
   exit 1
 fi
 

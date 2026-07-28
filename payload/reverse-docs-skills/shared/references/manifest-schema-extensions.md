@@ -6,6 +6,14 @@
 
 ## 種別ごとの追加フィールド定義
 
+## 画面manifestの正本・派生契約
+
+- `<output-root>/一覧/画面一覧/screen-manifest.json`だけを人が編集するraw正本とし、`manifestContentHash`を持たせない。
+- `screen-manifest.ext.json`はrawからのみ再生成する。rawの順序と既存fieldを保持し、トップレベルへ`generatedAt`と`manifestContentHash`、各画面へ本節の抽出fieldだけを追加できる。
+- `manifestContentHash`は`jq -cjS '.' screen-manifest.json`の末尾改行なしbytesをSHA-256化した64桁lowercase hexとする。`screens[].sourceHash`は別概念（個別ソースの先頭12桁）であり、rawに既存なら上書きしない。
+- 画面一覧、画面遷移、matrix 4 JSON/HTML、portalには同じ`manifestContentHash`を伝播し、`check-screen-manifest-consistency.sh`で埋め込みJSONまで照合する。
+- 全派生の再生成は`rebuild-screen-derived-pages.sh`だけを入口とする。同一filesystemのsibling transactionで全検査を終え、管理対象13fileをcommitする。child失敗またはcommit途中失敗では開始前のtreeへrollbackする。
+
 全フィールドは各マニフェストの `screens[]` / `units[]` 要素に追加する。記入規則: 表のキーはフィールド名（意味語）とし、連番を使わない。
 
 ### screens（画面）

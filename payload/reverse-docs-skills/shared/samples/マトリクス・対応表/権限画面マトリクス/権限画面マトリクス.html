@@ -45,62 +45,55 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>権限×画面マトリクス</title>
 <style>
-  /* ここからトークンブロック:
-     shared/templates/detail-pages/detail-t3-attributes.html(同portal-template.html)からの複製である。
-     同ファイルの当該部分を変更した場合は本ファイルも同時更新すること */
   :root,
-  [data-theme="light"] {
-    /* Windows フォント上書き防止 */
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    text-rendering: optimizeLegibility;
-    font-synthesis: none;
-    --bg: #FFFFFF;
-    --panel: #FFFFFF;
-    --panel-2: #F6F8FA;
-    --border: #D1D9E0;
-    --border-strong: #AFB8C1;
-    --text: #1B1F26;
-    --text-sub: #4A4F58;
-    --text-muted: #767B85;
-    --accent: #0969DA;
-    --accent-2: #218BFF;
-    --accent-soft: #DDF4FF;
-    --accent-border: #54AEFF;
-    --gold: #BC4C00;
-    --gold-soft: #FFF1E5;
-    --gold-border: #D18A5A;
-    --success: #1A7F37;
-    --success-soft: #DAFBE1;
-    --warn: #BC4C00;
-    --danger: #CF222E;
-    --danger-soft: #FFEBE9;
-    --code-bg: #1B1F26;
-    --code-fg: #E8E5DC;
-    --cat-list: #2563eb;
-    --cat-common: #059669;
-    --cat-project: #7C3AED;
-    --font-body: "Hiragino Kaku Gothic ProN","Hiragino Sans","Noto Sans JP","BIZ UDPGothic","Yu Gothic","Meiryo",system-ui,-apple-system,sans-serif;
-    --mono: "SFMono-Regular","Menlo","Cascadia Code","Consolas",monospace;
-    --shadow-sm: 0 1px 3px rgba(27,31,38,.07), 0 2px 6px rgba(27,31,38,.05);
-    --shadow-md: 0 2px 8px rgba(27,31,38,.09), 0 8px 24px rgba(27,31,38,.07);
-    --radius: 10px;
-    --radius-sm: 6px;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) {
-      --bg: #15171C; --panel: #1C1F26; --panel-2: #21262D;
-      --border: #30363D; --border-strong: #484F58;
-      --text: #E8E5DC; --text-sub: #B6B3AB; --text-muted: #888784;
-      --accent: #58A6FF; --accent-2: #79C0FF; --accent-soft: #132D4B; --accent-border: #1F6FEB;
-      --gold: #DB6D28; --gold-soft: #311D08; --gold-border: #7A3E0D;
-      --success: #3FB950; --success-soft: #0D2818;
-      --warn: #DB6D28; --danger: #F85149; --danger-soft: #3D1214;
-      --code-bg: #0E1116; --code-fg: #E8E5DC;
-      --cat-list: #60A5FA; --cat-common: #34D399; --cat-project: #A78BFA;
-    }
-  }
-  [data-theme="dark"] {
+[data-theme="light"] {
+  /* Windows フォント上書き防止 */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-synthesis: none;
+  --bg: #FFFFFF;
+  --panel: #FFFFFF;
+  --panel-2: #F6F8FA;
+  --border: #D1D9E0;
+  --border-strong: #AFB8C1;
+  --text: #1B1F26;
+  --text-sub: #4A4F58;
+  --text-muted: #767B85;
+  --accent: #0969DA;
+  --accent-2: #218BFF;
+  --accent-soft: #DDF4FF;
+  --accent-border: #54AEFF;
+  --gold: #BC4C00;
+  --gold-soft: #FFF1E5;
+  --gold-border: #D18A5A;
+  --success: #1A7F37;
+  --success-soft: #DAFBE1;
+  --warn: #BC4C00;
+  --danger: #CF222E;
+  --danger-soft: #FFEBE9;
+  --highlight: #D97B1A;
+  --highlight-soft: rgba(217,123,26,0.12);
+  --highlight-border: rgba(217,123,26,0.5);
+  --nav-tag: #7B8BBF;
+  --nav-tag-soft: #ECEEF6;
+  --self-tag: #6B9B6B;
+  --self-tag-soft: #E8F0E8;
+  --code-bg: #1B1F26;
+  --code-fg: #E8E5DC;
+  --cat-list: #2563eb;
+  --cat-standards: #059669;
+  --cat-design: #D97706;
+  --cat-project: #7C3AED;
+  --font-body: "Hiragino Kaku Gothic ProN","Hiragino Sans","Noto Sans JP","BIZ UDPGothic","Yu Gothic","Meiryo",system-ui,-apple-system,sans-serif;
+  --mono: "SFMono-Regular","Menlo","Cascadia Code","Consolas",monospace;
+  --shadow-sm: 0 1px 3px rgba(27,31,38,.07), 0 2px 6px rgba(27,31,38,.05);
+  --shadow-md: 0 2px 8px rgba(27,31,38,.09), 0 8px 24px rgba(27,31,38,.07);
+  --radius: 10px;
+  --radius-sm: 6px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
     --bg: #15171C; --panel: #1C1F26; --panel-2: #21262D;
     --border: #30363D; --border-strong: #484F58;
     --text: #E8E5DC; --text-sub: #B6B3AB; --text-muted: #888784;
@@ -108,19 +101,39 @@
     --gold: #DB6D28; --gold-soft: #311D08; --gold-border: #7A3E0D;
     --success: #3FB950; --success-soft: #0D2818;
     --warn: #DB6D28; --danger: #F85149; --danger-soft: #3D1214;
+    --highlight: #E8943A; --highlight-soft: rgba(232,148,58,0.15); --highlight-border: rgba(232,148,58,0.5);
+    --nav-tag: #8E9ED0; --nav-tag-soft: rgba(142,158,208,0.15);
+    --self-tag: #7DB87D; --self-tag-soft: rgba(125,184,125,0.15);
     --code-bg: #0E1116; --code-fg: #E8E5DC;
-    --cat-list: #60A5FA; --cat-common: #34D399; --cat-project: #A78BFA;
+    --cat-list: #60A5FA; --cat-standards: #34D399; --cat-design: #FBBF24; --cat-project: #A78BFA;
   }
-  /* ここまでトークンブロック(複製) */
+}
+[data-theme="dark"] {
+  --bg: #15171C; --panel: #1C1F26; --panel-2: #21262D;
+  --border: #30363D; --border-strong: #484F58;
+  --text: #E8E5DC; --text-sub: #B6B3AB; --text-muted: #888784;
+  --accent: #58A6FF; --accent-2: #79C0FF; --accent-soft: #132D4B; --accent-border: #1F6FEB;
+  --gold: #DB6D28; --gold-soft: #311D08; --gold-border: #7A3E0D;
+  --success: #3FB950; --success-soft: #0D2818;
+  --warn: #DB6D28; --danger: #F85149; --danger-soft: #3D1214;
+  --highlight: #E8943A; --highlight-soft: rgba(232,148,58,0.15); --highlight-border: rgba(232,148,58,0.5);
+  --nav-tag: #8E9ED0; --nav-tag-soft: rgba(142,158,208,0.15);
+  --self-tag: #7DB87D; --self-tag-soft: rgba(125,184,125,0.15);
+  --code-bg: #0E1116; --code-fg: #E8E5DC;
+  --cat-list: #60A5FA; --cat-standards: #34D399; --cat-design: #FBBF24; --cat-project: #A78BFA;
+}
 
+  html { height: 100vh; }
   * { box-sizing: border-box; }
   body {
-    margin: 0; padding: 0 24px 0;
+    margin: 0; padding: 0 24px;
     font-family: var(--font-body);
-    line-height: 1.7; color: var(--text); background: var(--bg); height: 100vh; overflow: hidden; display: flex; flex-direction: column;
+    line-height: 1.7; color: var(--text); background: var(--bg);
     max-width: 1180px; margin-inline: auto;
+    height: 100%; overflow: hidden; display: flex; flex-direction: column;
   }
-  .table-wrap { overflow-x: auto; overflow-y: auto; flex: 1; min-height: 0; -webkit-overflow-scrolling: touch; }
+  .matrix-content { flex: 1; min-height: 0; overflow-y: auto; padding-bottom: 96px; }
+  .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
   header { padding: 40px 0 20px; border-bottom: 3px solid var(--border-strong); }
   .header-top { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
   header h1 { font-size: 1.7rem; margin: 0 0 10px; }
@@ -256,7 +269,7 @@
     <span class="brand-sub">設計ポータル</span>
   </a>
   <div class="header-meta">
-    <span class="pm-updated">更新: 2026-07-20T00:00:00+09:00</span>
+    <span class="pm-updated">更新: 2026-07-28T00:00:00Z</span>
   </div>
   <div class="top-actions">
     <button id="theme-toggle" title="テーマ切替">ライト</button>
@@ -270,7 +283,7 @@
     <h1>権限×画面マトリクス</h1>
   </div>
   <table class="meta-table">
-    <tr><td>データ源</td><td>画面一覧マニフェスト + ルートガード定義（src/routes/guards.ts の静的解析）</td></tr>
+    <tr><td>データ源</td><td>screen-manifest.ext.json + api-manifest.json</td></tr>
     <tr><td>種別</td><td>マトリクス・対応表（権限×画面マトリクス）</td></tr>
   </table>
 
@@ -279,6 +292,7 @@
   </div>
 </section>
 
+<main class="matrix-content">
 <div class="toolbar">
   <input type="search" id="matrix-search" placeholder="画面名・ルートで絞り込み">
   <span class="note">ロール列見出しクリックでそのロールが閲覧可の画面だけに絞り込み（再クリックで解除）</span>
@@ -302,32 +316,461 @@
   </table>
 </div>
 <p class="legend">凡例: <span class="perm-yes">○</span> = 閲覧可 / — = 閲覧不可 / <span class="perm-unset">?</span> = 権限未設定（権限情報を取得できなかった画面。要確認）</p>
+</main>
 
 <script type="application/json" id="matrix-manifest">
 {
-  "generatedAt": "2026-07-20T00:00:00+09:00",
-  "dataSource": "画面一覧マニフェスト + ルートガード定義（src/routes/guards.ts の静的解析）",
-  "roles": ["管理者", "運用担当", "編集者", "一般", "ゲスト"],
+  "generatedAt": "2026-07-28T00:00:00Z",
+  "dataSource": "screen-manifest.ext.json + api-manifest.json",
+  "roles": [
+    "admin",
+    "guest",
+    "member"
+  ],
   "screens": [
-    { "screenId": "screen-home",          "screenName": "ホーム画面",           "route": "/",                        "permissions": { "管理者": true,  "運用担当": true,  "編集者": true,  "一般": true,  "ゲスト": false } },
-    { "screenId": "screen-login",         "screenName": "ログイン画面",         "route": "/login",                   "permissions": { "管理者": true,  "運用担当": true,  "編集者": true,  "一般": true,  "ゲスト": true } },
-    { "screenId": "screen-signup",        "screenName": "新規登録画面",         "route": "/signup",                  "permissions": { "管理者": true,  "運用担当": true,  "編集者": true,  "一般": true,  "ゲスト": true } },
-    { "screenId": "screen-forgot-pw",     "screenName": "パスワードリセット",   "route": "/forgot-password",         "permissions": { "管理者": true,  "運用担当": true,  "編集者": true,  "一般": true,  "ゲスト": true } },
-    { "screenId": "screen-dashboard",     "screenName": "ダッシュボード",       "route": "/dashboard",               "permissions": { "管理者": true,  "運用担当": true,  "編集者": true,  "一般": true,  "ゲスト": false } },
-    { "screenId": "screen-profile",       "screenName": "プロフィール",         "route": "/profile",                 "permissions": { "管理者": true,  "運用担当": true,  "編集者": true,  "一般": true,  "ゲスト": false } },
-    { "screenId": "screen-settings",      "screenName": "設定画面",             "route": "/settings",                "permissions": { "管理者": true,  "運用担当": true,  "編集者": true,  "一般": true,  "ゲスト": false } },
-    { "screenId": "screen-users-list",    "screenName": "ユーザー一覧",         "route": "/admin/users",             "permissions": { "管理者": true,  "運用担当": true,  "編集者": false, "一般": false, "ゲスト": false } },
-    { "screenId": "screen-users-detail",  "screenName": "ユーザー詳細",         "route": "/admin/users/:userId",     "permissions": { "管理者": true,  "運用担当": true,  "編集者": false, "一般": false, "ゲスト": false } },
-    { "screenId": "screen-users-edit",    "screenName": "ユーザー編集",         "route": "/admin/users/:userId/edit","permissions": { "管理者": true,  "運用担当": false, "編集者": false, "一般": false, "ゲスト": false } },
-    { "screenId": "screen-roles",         "screenName": "ロール管理",           "route": "/admin/roles",             "permissions": { "管理者": true,  "運用担当": false, "編集者": false, "一般": false, "ゲスト": false } },
-    { "screenId": "screen-posts-list",    "screenName": "投稿一覧",             "route": "/posts",                   "permissions": { "管理者": true,  "運用担当": true,  "編集者": true,  "一般": true,  "ゲスト": false } },
-    { "screenId": "screen-post-detail",   "screenName": "投稿詳細",             "route": "/posts/:postId",           "permissions": { "管理者": true,  "運用担当": true,  "編集者": true,  "一般": true,  "ゲスト": false } },
-    { "screenId": "screen-post-editor",   "screenName": "投稿エディタ",         "route": "/posts/:postId/edit",      "permissions": { "管理者": true,  "運用担当": false, "編集者": true,  "一般": true,  "ゲスト": false } },
-    { "screenId": "screen-notifications", "screenName": "通知一覧",             "route": "/notifications",           "permissions": { "管理者": true,  "運用担当": true,  "編集者": true,  "一般": true,  "ゲスト": false } },
-    { "screenId": "screen-search",        "screenName": "検索結果",             "route": "/search",                  "permissions": { "管理者": true,  "運用担当": true,  "編集者": true,  "一般": true,  "ゲスト": false } },
-    { "screenId": "screen-report-viewer", "screenName": "レポート閲覧",         "route": "/reports/:reportId",       "permissions": null },
-    { "screenId": "screen-sidebar-nav",   "screenName": "サイドバーナビ",       "route": null,                       "permissions": { "管理者": true,  "運用担当": true,  "編集者": true,  "一般": true,  "ゲスト": false } }
-  ]
+    {
+      "screenId": "home",
+      "screenName": "home",
+      "route": "/",
+      "permissions": {
+        "admin": true,
+        "guest": true,
+        "member": true
+      }
+    },
+    {
+      "screenId": "login",
+      "screenName": "login",
+      "route": "/login",
+      "permissions": {
+        "admin": true,
+        "guest": true,
+        "member": true
+      }
+    },
+    {
+      "screenId": "signup",
+      "screenName": "signup",
+      "route": "/signup",
+      "permissions": {
+        "admin": true,
+        "guest": true,
+        "member": true
+      }
+    },
+    {
+      "screenId": "forgot-password",
+      "screenName": "forgot-password",
+      "route": "/forgot-password",
+      "permissions": {
+        "admin": true,
+        "guest": true,
+        "member": true
+      }
+    },
+    {
+      "screenId": "dashboard",
+      "screenName": "dashboard",
+      "route": "/dashboard",
+      "permissions": {
+        "admin": true,
+        "guest": true,
+        "member": true
+      }
+    },
+    {
+      "screenId": "profile",
+      "screenName": "profile",
+      "route": "/profile",
+      "permissions": {
+        "admin": true,
+        "guest": true,
+        "member": true
+      }
+    },
+    {
+      "screenId": "settings",
+      "screenName": "settings",
+      "route": "/settings",
+      "permissions": {
+        "admin": true,
+        "guest": true,
+        "member": true
+      }
+    },
+    {
+      "screenId": "users-list",
+      "screenName": "users-list",
+      "route": "/admin/users",
+      "permissions": {
+        "admin": true,
+        "guest": false,
+        "member": false
+      }
+    },
+    {
+      "screenId": "users-detail",
+      "screenName": "users-detail",
+      "route": "/admin/users/:userId",
+      "permissions": {
+        "admin": true,
+        "guest": false,
+        "member": false
+      }
+    },
+    {
+      "screenId": "users-edit",
+      "screenName": "users-edit",
+      "route": "/admin/users/:userId/edit",
+      "permissions": {
+        "admin": true,
+        "guest": false,
+        "member": false
+      }
+    },
+    {
+      "screenId": "roles",
+      "screenName": "roles",
+      "route": "/admin/roles",
+      "permissions": {
+        "admin": true,
+        "guest": false,
+        "member": false
+      }
+    },
+    {
+      "screenId": "posts-list",
+      "screenName": "posts-list",
+      "route": "/posts",
+      "permissions": {
+        "admin": true,
+        "guest": true,
+        "member": true
+      }
+    },
+    {
+      "screenId": "post-detail",
+      "screenName": "post-detail",
+      "route": "/posts/:postId",
+      "permissions": {
+        "admin": true,
+        "guest": true,
+        "member": true
+      }
+    },
+    {
+      "screenId": "post-editor",
+      "screenName": "post-editor",
+      "route": "/posts/:postId/edit",
+      "permissions": {
+        "admin": true,
+        "guest": true,
+        "member": true
+      }
+    },
+    {
+      "screenId": "notifications",
+      "screenName": "notifications",
+      "route": "/notifications",
+      "permissions": {
+        "admin": true,
+        "guest": true,
+        "member": true
+      }
+    },
+    {
+      "screenId": "search",
+      "screenName": "search",
+      "route": "/search",
+      "permissions": {
+        "admin": true,
+        "guest": true,
+        "member": true
+      }
+    },
+    {
+      "screenId": "report-viewer",
+      "screenName": "report-viewer",
+      "route": "/reports/:reportId",
+      "permissions": {
+        "admin": true,
+        "guest": true,
+        "member": true
+      }
+    },
+    {
+      "screenId": "sidebar-nav",
+      "screenName": "sidebar-nav",
+      "route": "",
+      "permissions": {
+        "admin": true,
+        "guest": true,
+        "member": true
+      }
+    },
+    {
+      "screenId": "order-list",
+      "screenName": "order-list",
+      "route": "/orders",
+      "permissions": {
+        "admin": true,
+        "guest": true,
+        "member": true
+      }
+    },
+    {
+      "screenId": "order-detail",
+      "screenName": "order-detail",
+      "route": "/orders/:orderId",
+      "permissions": {
+        "admin": true,
+        "guest": true,
+        "member": true
+      }
+    },
+    {
+      "screenId": "order-confirm",
+      "screenName": "order-confirm",
+      "route": "/orders/:orderId/confirm",
+      "permissions": {
+        "admin": true,
+        "guest": true,
+        "member": true
+      }
+    },
+    {
+      "screenId": "order-cancel",
+      "screenName": "order-cancel",
+      "route": "/orders/:orderId/cancel",
+      "permissions": {
+        "admin": true,
+        "guest": true,
+        "member": true
+      }
+    },
+    {
+      "screenId": "order-search",
+      "screenName": "order-search",
+      "route": "/orders/search",
+      "permissions": {
+        "admin": true,
+        "guest": true,
+        "member": true
+      }
+    },
+    {
+      "screenId": "shipment-list",
+      "screenName": "shipment-list",
+      "route": "/shipments",
+      "permissions": {
+        "admin": true,
+        "guest": true,
+        "member": true
+      }
+    },
+    {
+      "screenId": "member-list",
+      "screenName": "member-list",
+      "route": "/members",
+      "permissions": {
+        "admin": true,
+        "guest": true,
+        "member": true
+      }
+    },
+    {
+      "screenId": "member-detail",
+      "screenName": "member-detail",
+      "route": "/members/:memberId",
+      "permissions": {
+        "admin": true,
+        "guest": true,
+        "member": true
+      }
+    },
+    {
+      "screenId": "member-edit",
+      "screenName": "member-edit",
+      "route": "/members/:memberId/edit",
+      "permissions": {
+        "admin": true,
+        "guest": true,
+        "member": true
+      }
+    },
+    {
+      "screenId": "member-suspend",
+      "screenName": "member-suspend",
+      "route": "/members/:memberId/suspend",
+      "permissions": {
+        "admin": true,
+        "guest": true,
+        "member": true
+      }
+    },
+    {
+      "screenId": "product-list",
+      "screenName": "product-list",
+      "route": "/products",
+      "permissions": {
+        "admin": true,
+        "guest": true,
+        "member": true
+      }
+    },
+    {
+      "screenId": "product-detail",
+      "screenName": "product-detail",
+      "route": "/products/:productId",
+      "permissions": {
+        "admin": true,
+        "guest": true,
+        "member": true
+      }
+    },
+    {
+      "screenId": "product-edit",
+      "screenName": "product-edit",
+      "route": "/products/:productId/edit",
+      "permissions": {
+        "admin": true,
+        "guest": true,
+        "member": true
+      }
+    },
+    {
+      "screenId": "product-inventory",
+      "screenName": "product-inventory",
+      "route": "/products/:productId/inventory",
+      "permissions": {
+        "admin": true,
+        "guest": true,
+        "member": true
+      }
+    },
+    {
+      "screenId": "product-category",
+      "screenName": "product-category",
+      "route": "/products/categories",
+      "permissions": {
+        "admin": true,
+        "guest": true,
+        "member": true
+      }
+    },
+    {
+      "screenId": "invoice-list",
+      "screenName": "invoice-list",
+      "route": "/invoices",
+      "permissions": {
+        "admin": true,
+        "guest": true,
+        "member": true
+      }
+    },
+    {
+      "screenId": "invoice-detail",
+      "screenName": "invoice-detail",
+      "route": "/invoices/:invoiceId",
+      "permissions": {
+        "admin": true,
+        "guest": true,
+        "member": true
+      }
+    },
+    {
+      "screenId": "payment-list",
+      "screenName": "payment-list",
+      "route": "/payments",
+      "permissions": {
+        "admin": true,
+        "guest": true,
+        "member": true
+      }
+    },
+    {
+      "screenId": "refund-list",
+      "screenName": "refund-list",
+      "route": "/refunds",
+      "permissions": {
+        "admin": true,
+        "guest": true,
+        "member": true
+      }
+    },
+    {
+      "screenId": "sales-dashboard",
+      "screenName": "sales-dashboard",
+      "route": "/reports/sales",
+      "permissions": {
+        "admin": true,
+        "guest": true,
+        "member": true
+      }
+    },
+    {
+      "screenId": "sales-report",
+      "screenName": "sales-report",
+      "route": "/reports/sales/export",
+      "permissions": {
+        "admin": true,
+        "guest": true,
+        "member": true
+      }
+    },
+    {
+      "screenId": "inventory-report",
+      "screenName": "inventory-report",
+      "route": "/reports/inventory",
+      "permissions": {
+        "admin": true,
+        "guest": true,
+        "member": true
+      }
+    },
+    {
+      "screenId": "coupon-list",
+      "screenName": "coupon-list",
+      "route": "/settings/coupons",
+      "permissions": {
+        "admin": true,
+        "guest": true,
+        "member": true
+      }
+    },
+    {
+      "screenId": "coupon-edit",
+      "screenName": "coupon-edit",
+      "route": "/settings/coupons/:couponId/edit",
+      "permissions": {
+        "admin": true,
+        "guest": true,
+        "member": true
+      }
+    },
+    {
+      "screenId": "campaign-list",
+      "screenName": "campaign-list",
+      "route": "/settings/campaigns",
+      "permissions": {
+        "admin": true,
+        "guest": true,
+        "member": true
+      }
+    },
+    {
+      "screenId": "notification-settings",
+      "screenName": "notification-settings",
+      "route": "/settings/notifications",
+      "permissions": {
+        "admin": true,
+        "guest": true,
+        "member": true
+      }
+    }
+  ],
+  "features": [],
+  "manifestContentHash": "c7d90a604412f8b7f047b9d3de9c723168e34b0215ac4d27e2c63a30a089a550"
 }
 </script>
 

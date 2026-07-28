@@ -16,6 +16,7 @@
     {{COMMIT_SHORT}}     — 対象リポジトリの短縮コミット SHA（git 管理外は空文字。区切り文字 " · " 込み）
     {{METRICS_JSON}}     — 解析概要 JSON オブジェクト（scale/tests/freshness/previous の構造化データ）
     {{CATEGORIES_JSON}}  — カテゴリ・ツール JSON 配列
+    {{SCREEN_MANIFEST_JSON}} — 画面派生元manifest（未指定時は空object）
 -->
 <style>
 /* TOKENS_CSS */
@@ -243,6 +244,7 @@ table.data-table code {
 
 <script type="application/json" id="portal-metrics">{{METRICS_JSON}}</script>
 <script type="application/json" id="portal-categories">{{CATEGORIES_JSON}}</script>
+<script type="application/json" id="screen-manifest-source">{{SCREEN_MANIFEST_JSON}}</script>
 
 <script>
 (function() {
