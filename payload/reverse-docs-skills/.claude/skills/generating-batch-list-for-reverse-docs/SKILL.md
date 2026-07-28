@@ -151,9 +151,3 @@ allowed-tools: [Bash, Read, Write, Edit, Grep, Glob, AskUserQuestion, TaskCreate
 **保守責任者**: 人手（ユーザー）
 
 **廃棄条件**: マニフェスト形式（JSONスキーマ）が廃止された時
-
-<!-- delivery-owner-contracts:start -->
-```json
-[{"failure_return_to":"orchestrating-reverse-docs-flow","id":"batch-list","inputs":["batch source"],"outputs":["一覧/バッチ一覧/バッチ一覧.html"],"stop_conditions":["0件"],"validator":"check-delivery-artifacts.sh"}]
-```
-<!-- delivery-owner-contracts:end -->

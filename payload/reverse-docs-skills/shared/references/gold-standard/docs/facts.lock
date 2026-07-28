@@ -1,9 +1,0 @@
-SEALED sha256=665f397ae2a8d906c1d0e02408e4b1586909c55615af15935a03fb34fc3d0fbc
-.gitkeep
-DESIGN.md
-facts.yml
-コーディング規約.md
-テスト仕様書.md
-単体テスト観点表.md
-画面詳細設計書.md
-結合テスト観点表.md

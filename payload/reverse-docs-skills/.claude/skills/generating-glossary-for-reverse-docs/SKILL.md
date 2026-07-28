@@ -206,9 +206,3 @@ page-data.json の保存先は `$CLAUDE_JOB_DIR/tmp/glossary-page-data.json` と
 - `references/generating-glossary-for-reverse-docs-guide.html` — スキルガイド
 - `.claude/skills/generating-reverse-common-docs/SKILL.md` — 層化サンプリング・実装事実主義の踏襲元
 - `.claude/skills/generating-table-list-for-reverse-docs/SKILL.md` — 検出戦略の AskUserQuestion 承認パターンの踏襲元
-
-<!-- delivery-owner-contracts:start -->
-```json
-[{"failure_return_to":"orchestrating-reverse-docs-flow","id":"glossary","inputs":["source","documents"],"outputs":["用語辞書.html"],"stop_conditions":["用語根拠なし"],"validator":"check-delivery-artifacts.sh"}]
-```
-<!-- delivery-owner-contracts:end -->

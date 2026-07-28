@@ -45,62 +45,55 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>追跡可能性（画面→API→テーブル）</title>
 <style>
-  /* ここからトークンブロック:
-     shared/templates/detail-pages/detail-t3-attributes.html(同portal-template.html)からの複製である。
-     同ファイルの当該部分を変更した場合は本ファイルも同時更新すること */
   :root,
-  [data-theme="light"] {
-    /* Windows フォント上書き防止 */
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    text-rendering: optimizeLegibility;
-    font-synthesis: none;
-    --bg: #FFFFFF;
-    --panel: #FFFFFF;
-    --panel-2: #F6F8FA;
-    --border: #D1D9E0;
-    --border-strong: #AFB8C1;
-    --text: #1B1F26;
-    --text-sub: #4A4F58;
-    --text-muted: #767B85;
-    --accent: #0969DA;
-    --accent-2: #218BFF;
-    --accent-soft: #DDF4FF;
-    --accent-border: #54AEFF;
-    --gold: #BC4C00;
-    --gold-soft: #FFF1E5;
-    --gold-border: #D18A5A;
-    --success: #1A7F37;
-    --success-soft: #DAFBE1;
-    --warn: #BC4C00;
-    --danger: #CF222E;
-    --danger-soft: #FFEBE9;
-    --code-bg: #1B1F26;
-    --code-fg: #E8E5DC;
-    --cat-list: #2563eb;
-    --cat-common: #059669;
-    --cat-project: #7C3AED;
-    --font-body: "Hiragino Kaku Gothic ProN","Hiragino Sans","Noto Sans JP","BIZ UDPGothic","Yu Gothic","Meiryo",system-ui,-apple-system,sans-serif;
-    --mono: "SFMono-Regular","Menlo","Cascadia Code","Consolas",monospace;
-    --shadow-sm: 0 1px 3px rgba(27,31,38,.07), 0 2px 6px rgba(27,31,38,.05);
-    --shadow-md: 0 2px 8px rgba(27,31,38,.09), 0 8px 24px rgba(27,31,38,.07);
-    --radius: 10px;
-    --radius-sm: 6px;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) {
-      --bg: #15171C; --panel: #1C1F26; --panel-2: #21262D;
-      --border: #30363D; --border-strong: #484F58;
-      --text: #E8E5DC; --text-sub: #B6B3AB; --text-muted: #888784;
-      --accent: #58A6FF; --accent-2: #79C0FF; --accent-soft: #132D4B; --accent-border: #1F6FEB;
-      --gold: #DB6D28; --gold-soft: #311D08; --gold-border: #7A3E0D;
-      --success: #3FB950; --success-soft: #0D2818;
-      --warn: #DB6D28; --danger: #F85149; --danger-soft: #3D1214;
-      --code-bg: #0E1116; --code-fg: #E8E5DC;
-      --cat-list: #60A5FA; --cat-common: #34D399; --cat-project: #A78BFA;
-    }
-  }
-  [data-theme="dark"] {
+[data-theme="light"] {
+  /* Windows フォント上書き防止 */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-synthesis: none;
+  --bg: #FFFFFF;
+  --panel: #FFFFFF;
+  --panel-2: #F6F8FA;
+  --border: #D1D9E0;
+  --border-strong: #AFB8C1;
+  --text: #1B1F26;
+  --text-sub: #4A4F58;
+  --text-muted: #767B85;
+  --accent: #0969DA;
+  --accent-2: #218BFF;
+  --accent-soft: #DDF4FF;
+  --accent-border: #54AEFF;
+  --gold: #BC4C00;
+  --gold-soft: #FFF1E5;
+  --gold-border: #D18A5A;
+  --success: #1A7F37;
+  --success-soft: #DAFBE1;
+  --warn: #BC4C00;
+  --danger: #CF222E;
+  --danger-soft: #FFEBE9;
+  --highlight: #D97B1A;
+  --highlight-soft: rgba(217,123,26,0.12);
+  --highlight-border: rgba(217,123,26,0.5);
+  --nav-tag: #7B8BBF;
+  --nav-tag-soft: #ECEEF6;
+  --self-tag: #6B9B6B;
+  --self-tag-soft: #E8F0E8;
+  --code-bg: #1B1F26;
+  --code-fg: #E8E5DC;
+  --cat-list: #2563eb;
+  --cat-standards: #059669;
+  --cat-design: #D97706;
+  --cat-project: #7C3AED;
+  --font-body: "Hiragino Kaku Gothic ProN","Hiragino Sans","Noto Sans JP","BIZ UDPGothic","Yu Gothic","Meiryo",system-ui,-apple-system,sans-serif;
+  --mono: "SFMono-Regular","Menlo","Cascadia Code","Consolas",monospace;
+  --shadow-sm: 0 1px 3px rgba(27,31,38,.07), 0 2px 6px rgba(27,31,38,.05);
+  --shadow-md: 0 2px 8px rgba(27,31,38,.09), 0 8px 24px rgba(27,31,38,.07);
+  --radius: 10px;
+  --radius-sm: 6px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
     --bg: #15171C; --panel: #1C1F26; --panel-2: #21262D;
     --border: #30363D; --border-strong: #484F58;
     --text: #E8E5DC; --text-sub: #B6B3AB; --text-muted: #888784;
@@ -108,19 +101,39 @@
     --gold: #DB6D28; --gold-soft: #311D08; --gold-border: #7A3E0D;
     --success: #3FB950; --success-soft: #0D2818;
     --warn: #DB6D28; --danger: #F85149; --danger-soft: #3D1214;
+    --highlight: #E8943A; --highlight-soft: rgba(232,148,58,0.15); --highlight-border: rgba(232,148,58,0.5);
+    --nav-tag: #8E9ED0; --nav-tag-soft: rgba(142,158,208,0.15);
+    --self-tag: #7DB87D; --self-tag-soft: rgba(125,184,125,0.15);
     --code-bg: #0E1116; --code-fg: #E8E5DC;
-    --cat-list: #60A5FA; --cat-common: #34D399; --cat-project: #A78BFA;
+    --cat-list: #60A5FA; --cat-standards: #34D399; --cat-design: #FBBF24; --cat-project: #A78BFA;
   }
-  /* ここまでトークンブロック(複製) */
+}
+[data-theme="dark"] {
+  --bg: #15171C; --panel: #1C1F26; --panel-2: #21262D;
+  --border: #30363D; --border-strong: #484F58;
+  --text: #E8E5DC; --text-sub: #B6B3AB; --text-muted: #888784;
+  --accent: #58A6FF; --accent-2: #79C0FF; --accent-soft: #132D4B; --accent-border: #1F6FEB;
+  --gold: #DB6D28; --gold-soft: #311D08; --gold-border: #7A3E0D;
+  --success: #3FB950; --success-soft: #0D2818;
+  --warn: #DB6D28; --danger: #F85149; --danger-soft: #3D1214;
+  --highlight: #E8943A; --highlight-soft: rgba(232,148,58,0.15); --highlight-border: rgba(232,148,58,0.5);
+  --nav-tag: #8E9ED0; --nav-tag-soft: rgba(142,158,208,0.15);
+  --self-tag: #7DB87D; --self-tag-soft: rgba(125,184,125,0.15);
+  --code-bg: #0E1116; --code-fg: #E8E5DC;
+  --cat-list: #60A5FA; --cat-standards: #34D399; --cat-design: #FBBF24; --cat-project: #A78BFA;
+}
 
+  html { height: 100vh; }
   * { box-sizing: border-box; }
   body {
-    margin: 0; padding: 0 24px 0;
+    margin: 0; padding: 0 24px;
     font-family: var(--font-body);
-    line-height: 1.7; color: var(--text); background: var(--bg); height: 100vh; overflow: hidden; display: flex; flex-direction: column;
+    line-height: 1.7; color: var(--text); background: var(--bg);
     max-width: 1180px; margin-inline: auto;
+    height: 100%; overflow: hidden; display: flex; flex-direction: column;
   }
-  .table-wrap { overflow-x: auto; overflow-y: auto; flex: 1; min-height: 0; -webkit-overflow-scrolling: touch; }
+  .matrix-content { flex: 1; min-height: 0; overflow-y: auto; padding-bottom: 96px; }
+  .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
   header { padding: 40px 0 20px; border-bottom: 3px solid var(--border-strong); }
   .header-top { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
   header h1 { font-size: 1.7rem; margin: 0 0 10px; }
@@ -152,13 +165,6 @@
   .mode-tab:hover { color: var(--text-sub); }
   .mode-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
   .hidden { display: none; }
-
-  /* #mode-screen・#mode-table 自体をflexコンテナ化する。これがないと直下の
-     .table-wrap の flex:1; min-height:0; が無効化され(親がflexコンテナでないため)、
-     テーブルが内容量ぶん伸びてbody(height:100vh; overflow:hidden)にクリップされ、
-     画面に収まりきらない行がスクロールもできず見えなくなる。 */
-  #mode-screen, #mode-table { display: flex; flex-direction: column; flex: 1; min-height: 0; }
-  #mode-screen.hidden, #mode-table.hidden { display: none; }
 
   .toolbar { display: flex; gap: 10px; margin: 18px 0 10px; align-items: center; flex-wrap: wrap; }
   .toolbar input[type="search"] {
@@ -247,11 +253,11 @@
 <header class="topbar">
   <a class="brand" href="../../index.html">
     <span class="brand-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:middle"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zM13 9V3.5L18.5 9H13z"/></svg></span>
-    <span class="brand-title">サンプルプロジェクト</span>
+    <span class="brand-title"></span>
     <span class="brand-sub">設計ポータル</span>
   </a>
   <div class="header-meta">
-    <span class="pm-updated">更新: 2026-07-21 · コミット番号: 89178e6</span>
+    <span class="pm-updated">更新: 2026-07-28T00:00:00Z</span>
   </div>
   <div class="top-actions">
     <button id="theme-toggle" title="テーマ切替">ライト</button>
@@ -265,7 +271,7 @@
     <h1>追跡可能性（画面→API→テーブル）</h1>
   </div>
   <table class="meta-table">
-    <tr><td>データ源</td><td>画面一覧・API一覧・テーブル一覧マニフェスト + APIハンドラ（src/api のクエリ静的解析）</td></tr>
+    <tr><td>データ源</td><td>screen-manifest.ext.json + api-manifest.json</td></tr>
     <tr><td>種別</td><td>マトリクス・対応表（追跡可能性：画面→API→テーブル連鎖）</td></tr>
   </table>
 
@@ -274,6 +280,7 @@
   </div>
 </section>
 
+<main class="matrix-content">
 <div class="mode-tabs" id="mode-tabs">
   <button type="button" class="mode-tab active" data-mode="screen">画面起点</button>
   <button type="button" class="mode-tab" data-mode="table">テーブル起点（逆引き）</button>
@@ -318,69 +325,1217 @@
   </div>
   <p class="legend">凡例: <span class="badge-orphan" style="margin-left:0;">孤立</span> = どの画面からも使われていないテーブル（未使用・デッドスキーマの疑い。要確認）</p>
 </div>
+</main>
 
 <script type="application/json" id="matrix-manifest">
 {
-  "generatedAt": "2026-07-20T00:00:00+09:00",
-  "dataSource": "画面一覧・API一覧・テーブル一覧マニフェスト + APIハンドラ（src/api のクエリ静的解析）",
+  "generatedAt": "2026-07-28T00:00:00Z",
+  "dataSource": "screen-manifest.ext.json + api-manifest.json",
   "screens": [
-    { "screenId": "screen-home", "screenName": "ホーム画面", "route": "/", "apis": ["api-posts-list", "api-notifications-list"] },
-    { "screenId": "screen-login", "screenName": "ログイン画面", "route": "/login", "apis": ["api-auth-login"] },
-    { "screenId": "screen-signup", "screenName": "新規登録画面", "route": "/signup", "apis": ["api-users-create"] },
-    { "screenId": "screen-forgot-pw", "screenName": "パスワードリセット", "route": "/forgot-password", "apis": ["api-users-update"] },
-    { "screenId": "screen-dashboard", "screenName": "ダッシュボード", "route": "/dashboard", "apis": ["api-posts-list", "api-notifications-list", "api-users-list"] },
-    { "screenId": "screen-posts-list", "screenName": "投稿一覧", "route": "/posts", "apis": ["api-posts-list"] },
-    { "screenId": "screen-post-detail", "screenName": "投稿詳細", "route": "/posts/:postId", "apis": ["api-posts-get", "api-comments-create"] },
-    { "screenId": "screen-post-editor", "screenName": "投稿エディタ", "route": "/posts/:postId/edit", "apis": ["api-posts-create", "api-posts-update", "api-posts-delete", "api-files-upload"] },
-    { "screenId": "screen-search", "screenName": "検索結果", "route": "/search", "apis": ["api-posts-list", "api-users-list"] },
-    { "screenId": "screen-notifications", "screenName": "通知一覧", "route": "/notifications", "apis": ["api-notifications-list"] },
-    { "screenId": "screen-profile", "screenName": "プロフィール", "route": "/profile", "apis": ["api-users-get", "api-users-update", "api-files-upload"] },
-    { "screenId": "screen-settings", "screenName": "設定画面", "route": "/settings", "apis": ["api-settings-get", "api-settings-update"] },
-    { "screenId": "screen-users-list", "screenName": "ユーザー一覧", "route": "/admin/users", "apis": ["api-users-list", "api-users-delete"] },
-    { "screenId": "screen-users-detail", "screenName": "ユーザー詳細", "route": "/admin/users/:id", "apis": ["api-users-get"] },
-    { "screenId": "screen-users-edit", "screenName": "ユーザー編集", "route": "/admin/users/:id/edit", "apis": ["api-users-get", "api-users-update"] },
-    { "screenId": "screen-roles", "screenName": "ロール管理", "route": "/admin/roles", "apis": ["api-users-list", "api-users-update"] },
-    { "screenId": "screen-report-viewer", "screenName": "レポート閲覧", "route": "/reports", "apis": ["api-posts-list", "api-users-list"] },
-    { "screenId": "screen-sidebar-nav", "screenName": "サイドバーナビ", "route": null, "apis": ["api-auth-logout", "api-auth-refresh", "api-notifications-list"] }
+    {
+      "screenId": "home",
+      "screenName": "home",
+      "route": "/",
+      "apis": [
+        "posts-list",
+        "notifications-list"
+      ],
+      "sourceHash": "a1b2c3d4e5f6"
+    },
+    {
+      "screenId": "login",
+      "screenName": "login",
+      "route": "/login",
+      "apis": [
+        "auth-login"
+      ]
+    },
+    {
+      "screenId": "signup",
+      "screenName": "signup",
+      "route": "/signup",
+      "apis": [
+        "users-create",
+        "auth-login"
+      ]
+    },
+    {
+      "screenId": "dashboard",
+      "screenName": "dashboard",
+      "route": "/dashboard",
+      "apis": [
+        "posts-list",
+        "notifications-list",
+        "users-get"
+      ],
+      "sourceHash": "f6e5d4c3b2a1"
+    },
+    {
+      "screenId": "profile",
+      "screenName": "profile",
+      "route": "/profile",
+      "apis": [
+        "users-get",
+        "users-update"
+      ]
+    },
+    {
+      "screenId": "settings",
+      "screenName": "settings",
+      "route": "/settings",
+      "apis": [
+        "settings-get",
+        "settings-update"
+      ]
+    },
+    {
+      "screenId": "users-list",
+      "screenName": "users-list",
+      "route": "/admin/users",
+      "apis": [
+        "users-list"
+      ]
+    },
+    {
+      "screenId": "users-detail",
+      "screenName": "users-detail",
+      "route": "/admin/users/:userId",
+      "apis": [
+        "users-get"
+      ]
+    },
+    {
+      "screenId": "users-edit",
+      "screenName": "users-edit",
+      "route": "/admin/users/:userId/edit",
+      "apis": [
+        "users-get",
+        "users-update"
+      ]
+    },
+    {
+      "screenId": "roles",
+      "screenName": "roles",
+      "route": "/admin/roles",
+      "apis": [
+        "users-list"
+      ]
+    },
+    {
+      "screenId": "posts-list",
+      "screenName": "posts-list",
+      "route": "/posts",
+      "apis": [
+        "posts-list"
+      ]
+    },
+    {
+      "screenId": "post-detail",
+      "screenName": "post-detail",
+      "route": "/posts/:postId",
+      "apis": [
+        "posts-get",
+        "comments-create"
+      ]
+    },
+    {
+      "screenId": "post-editor",
+      "screenName": "post-editor",
+      "route": "/posts/:postId/edit",
+      "apis": [
+        "posts-get",
+        "posts-update",
+        "files-upload"
+      ]
+    },
+    {
+      "screenId": "notifications",
+      "screenName": "notifications",
+      "route": "/notifications",
+      "apis": [
+        "notifications-list"
+      ]
+    },
+    {
+      "screenId": "search",
+      "screenName": "search",
+      "route": "/search",
+      "apis": [
+        "posts-list"
+      ]
+    },
+    {
+      "screenId": "sidebar-nav",
+      "screenName": "sidebar-nav",
+      "route": "",
+      "apis": [
+        "notifications-list"
+      ]
+    },
+    {
+      "screenId": "order-list",
+      "screenName": "order-list",
+      "route": "/orders",
+      "apis": [
+        "orders-list"
+      ]
+    },
+    {
+      "screenId": "order-detail",
+      "screenName": "order-detail",
+      "route": "/orders/:orderId",
+      "apis": [
+        "orders-get",
+        "shipments-get"
+      ]
+    },
+    {
+      "screenId": "order-confirm",
+      "screenName": "order-confirm",
+      "route": "/orders/:orderId/confirm",
+      "apis": [
+        "orders-confirm"
+      ]
+    },
+    {
+      "screenId": "order-cancel",
+      "screenName": "order-cancel",
+      "route": "/orders/:orderId/cancel",
+      "apis": [
+        "orders-cancel"
+      ]
+    },
+    {
+      "screenId": "order-search",
+      "screenName": "order-search",
+      "route": "/orders/search",
+      "apis": [
+        "orders-list"
+      ]
+    },
+    {
+      "screenId": "shipment-list",
+      "screenName": "shipment-list",
+      "route": "/shipments",
+      "apis": [
+        "shipments-list"
+      ]
+    },
+    {
+      "screenId": "member-list",
+      "screenName": "member-list",
+      "route": "/members",
+      "apis": [
+        "members-list"
+      ]
+    },
+    {
+      "screenId": "member-detail",
+      "screenName": "member-detail",
+      "route": "/members/:memberId",
+      "apis": [
+        "members-get"
+      ]
+    },
+    {
+      "screenId": "member-edit",
+      "screenName": "member-edit",
+      "route": "/members/:memberId/edit",
+      "apis": [
+        "members-get",
+        "members-update"
+      ]
+    },
+    {
+      "screenId": "member-suspend",
+      "screenName": "member-suspend",
+      "route": "/members/:memberId/suspend",
+      "apis": [
+        "members-suspend"
+      ]
+    },
+    {
+      "screenId": "product-list",
+      "screenName": "product-list",
+      "route": "/products",
+      "apis": [
+        "products-list"
+      ]
+    },
+    {
+      "screenId": "product-detail",
+      "screenName": "product-detail",
+      "route": "/products/:productId",
+      "apis": [
+        "products-get"
+      ]
+    },
+    {
+      "screenId": "product-edit",
+      "screenName": "product-edit",
+      "route": "/products/:productId/edit",
+      "apis": [
+        "products-get",
+        "products-update"
+      ]
+    },
+    {
+      "screenId": "product-inventory",
+      "screenName": "product-inventory",
+      "route": "/products/:productId/inventory",
+      "apis": [
+        "inventory-get",
+        "inventory-update"
+      ]
+    },
+    {
+      "screenId": "product-category",
+      "screenName": "product-category",
+      "route": "/products/categories",
+      "apis": [
+        "categories-list"
+      ]
+    },
+    {
+      "screenId": "invoice-list",
+      "screenName": "invoice-list",
+      "route": "/invoices",
+      "apis": [
+        "invoices-list"
+      ]
+    },
+    {
+      "screenId": "invoice-detail",
+      "screenName": "invoice-detail",
+      "route": "/invoices/:invoiceId",
+      "apis": [
+        "invoices-get"
+      ]
+    },
+    {
+      "screenId": "payment-list",
+      "screenName": "payment-list",
+      "route": "/payments",
+      "apis": [
+        "payments-list"
+      ]
+    },
+    {
+      "screenId": "refund-list",
+      "screenName": "refund-list",
+      "route": "/refunds",
+      "apis": [
+        "refunds-list"
+      ]
+    },
+    {
+      "screenId": "sales-dashboard",
+      "screenName": "sales-dashboard",
+      "route": "/reports/sales",
+      "apis": [
+        "reports-sales"
+      ]
+    },
+    {
+      "screenId": "sales-report",
+      "screenName": "sales-report",
+      "route": "/reports/sales/export",
+      "apis": [
+        "reports-sales-export"
+      ]
+    },
+    {
+      "screenId": "inventory-report",
+      "screenName": "inventory-report",
+      "route": "/reports/inventory",
+      "apis": [
+        "reports-inventory"
+      ]
+    },
+    {
+      "screenId": "coupon-list",
+      "screenName": "coupon-list",
+      "route": "/settings/coupons",
+      "apis": [
+        "coupons-list"
+      ]
+    },
+    {
+      "screenId": "coupon-edit",
+      "screenName": "coupon-edit",
+      "route": "/settings/coupons/:couponId/edit",
+      "apis": [
+        "coupons-get",
+        "coupons-update"
+      ]
+    },
+    {
+      "screenId": "campaign-list",
+      "screenName": "campaign-list",
+      "route": "/settings/campaigns",
+      "apis": [
+        "campaigns-list"
+      ]
+    },
+    {
+      "screenId": "notification-settings",
+      "screenName": "notification-settings",
+      "route": "/settings/notifications",
+      "apis": [
+        "notification-settings-get"
+      ]
+    }
   ],
   "apis": [
-    { "apiId": "api-auth-login", "apiName": "ログイン", "endpoint": "POST /api/auth/login", "tables": ["table-users", "table-sessions"] },
-    { "apiId": "api-auth-logout", "apiName": "ログアウト", "endpoint": "DELETE /api/auth/session", "tables": ["table-sessions"] },
-    { "apiId": "api-auth-refresh", "apiName": "トークン更新", "endpoint": "POST /api/auth/refresh", "tables": ["table-sessions"] },
-    { "apiId": "api-users-list", "apiName": "ユーザー一覧取得", "endpoint": "GET /api/users", "tables": ["table-users", "table-user-roles", "table-roles", "table-organizations", "table-org-members"] },
-    { "apiId": "api-users-get", "apiName": "ユーザー詳細取得", "endpoint": "GET /api/users/:userId", "tables": ["table-users", "table-user-roles", "table-roles", "table-permissions"] },
-    { "apiId": "api-users-create", "apiName": "ユーザー新規作成", "endpoint": "POST /api/users", "tables": ["table-users", "table-user-roles"] },
-    { "apiId": "api-users-update", "apiName": "ユーザー更新", "endpoint": "PUT /api/users/:userId", "tables": ["table-users", "table-user-roles"] },
-    { "apiId": "api-users-delete", "apiName": "ユーザー削除", "endpoint": "DELETE /api/users/:userId", "tables": ["table-users", "table-sessions", "table-user-roles"] },
-    { "apiId": "api-posts-list", "apiName": "投稿一覧取得", "endpoint": "GET /api/posts", "tables": ["table-posts", "table-categories", "table-tags", "table-post-tags"] },
-    { "apiId": "api-posts-get", "apiName": "投稿詳細取得", "endpoint": "GET /api/posts/:postId", "tables": ["table-posts", "table-comments", "table-categories", "table-tags", "table-post-tags", "table-files"] },
-    { "apiId": "api-posts-create", "apiName": "投稿作成", "endpoint": "POST /api/posts", "tables": ["table-posts", "table-post-tags", "table-tags", "table-categories"] },
-    { "apiId": "api-posts-update", "apiName": "投稿更新", "endpoint": "PUT /api/posts/:postId", "tables": ["table-posts", "table-post-tags", "table-tags"] },
-    { "apiId": "api-posts-delete", "apiName": "投稿削除", "endpoint": "DELETE /api/posts/:postId", "tables": ["table-posts", "table-post-tags", "table-comments"] },
-    { "apiId": "api-comments-create", "apiName": "コメント投稿", "endpoint": "POST /api/posts/:postId/comments", "tables": ["table-comments", "table-notifications"] },
-    { "apiId": "api-notifications-list", "apiName": "通知一覧取得", "endpoint": "GET /api/notifications", "tables": ["table-notifications"] },
-    { "apiId": "api-settings-get", "apiName": "設定取得", "endpoint": "GET /api/settings", "tables": ["table-settings"] },
-    { "apiId": "api-settings-update", "apiName": "設定更新", "endpoint": "PUT /api/settings", "tables": ["table-settings"] },
-    { "apiId": "api-files-upload", "apiName": "ファイルアップロード", "endpoint": "POST /api/files/upload", "tables": ["table-files"] }
+    {
+      "apiId": "auth-login",
+      "apiName": "auth-login",
+      "endpoint": "POST /api/auth/login",
+      "tables": []
+    },
+    {
+      "apiId": "auth-logout",
+      "apiName": "auth-logout",
+      "endpoint": "DELETE /api/auth/session",
+      "tables": []
+    },
+    {
+      "apiId": "auth-refresh",
+      "apiName": "auth-refresh",
+      "endpoint": "POST /api/auth/refresh",
+      "tables": []
+    },
+    {
+      "apiId": "auth-register",
+      "apiName": "auth-register",
+      "endpoint": "POST /api/auth/register",
+      "tables": []
+    },
+    {
+      "apiId": "auth-forgot-password",
+      "apiName": "auth-forgot-password",
+      "endpoint": "POST /api/auth/forgot-password",
+      "tables": []
+    },
+    {
+      "apiId": "auth-reset-password",
+      "apiName": "auth-reset-password",
+      "endpoint": "POST /api/auth/reset-password",
+      "tables": []
+    },
+    {
+      "apiId": "auth-verify-email",
+      "apiName": "auth-verify-email",
+      "endpoint": "POST /api/auth/verify-email",
+      "tables": []
+    },
+    {
+      "apiId": "auth-me",
+      "apiName": "auth-me",
+      "endpoint": "GET /api/auth/me",
+      "tables": []
+    },
+    {
+      "apiId": "auth-sessions",
+      "apiName": "auth-sessions",
+      "endpoint": "GET /api/auth/sessions",
+      "tables": []
+    },
+    {
+      "apiId": "auth-sessions-revoke",
+      "apiName": "auth-sessions-revoke",
+      "endpoint": "DELETE /api/auth/sessions/:sessionId",
+      "tables": []
+    },
+    {
+      "apiId": "auth-sessions-revoke-all",
+      "apiName": "auth-sessions-revoke-all",
+      "endpoint": "DELETE /api/auth/sessions",
+      "tables": []
+    },
+    {
+      "apiId": "auth-change-password",
+      "apiName": "auth-change-password",
+      "endpoint": "PUT /api/auth/password",
+      "tables": []
+    },
+    {
+      "apiId": "auth-mfa-enable",
+      "apiName": "auth-mfa-enable",
+      "endpoint": "POST /api/auth/mfa",
+      "tables": []
+    },
+    {
+      "apiId": "auth-mfa-verify",
+      "apiName": "auth-mfa-verify",
+      "endpoint": "POST /api/auth/mfa/verify",
+      "tables": []
+    },
+    {
+      "apiId": "auth-mfa-disable",
+      "apiName": "auth-mfa-disable",
+      "endpoint": "DELETE /api/auth/mfa",
+      "tables": []
+    },
+    {
+      "apiId": "users-list",
+      "apiName": "users-list",
+      "endpoint": "GET /api/users",
+      "tables": []
+    },
+    {
+      "apiId": "users-create",
+      "apiName": "users-create",
+      "endpoint": "POST /api/users",
+      "tables": []
+    },
+    {
+      "apiId": "users-get",
+      "apiName": "users-get",
+      "endpoint": "GET /api/users/:userId",
+      "tables": []
+    },
+    {
+      "apiId": "users-update",
+      "apiName": "users-update",
+      "endpoint": "PUT /api/users/:userId",
+      "tables": []
+    },
+    {
+      "apiId": "users-delete",
+      "apiName": "users-delete",
+      "endpoint": "DELETE /api/users/:userId",
+      "tables": []
+    },
+    {
+      "apiId": "users-search",
+      "apiName": "users-search",
+      "endpoint": "GET /api/users/search",
+      "tables": []
+    },
+    {
+      "apiId": "users-bulk-import",
+      "apiName": "users-bulk-import",
+      "endpoint": "POST /api/users/bulk-import",
+      "tables": []
+    },
+    {
+      "apiId": "users-export",
+      "apiName": "users-export",
+      "endpoint": "GET /api/users/export",
+      "tables": []
+    },
+    {
+      "apiId": "users-roles",
+      "apiName": "users-roles",
+      "endpoint": "GET /api/users/:userId/roles",
+      "tables": []
+    },
+    {
+      "apiId": "users-permissions",
+      "apiName": "users-permissions",
+      "endpoint": "PUT /api/users/:userId/permissions",
+      "tables": []
+    },
+    {
+      "apiId": "users-avatar-upload",
+      "apiName": "users-avatar-upload",
+      "endpoint": "POST /api/users/:userId/avatar",
+      "tables": []
+    },
+    {
+      "apiId": "users-get-by-email",
+      "apiName": "users-get-by-email",
+      "endpoint": "GET /api/users/lookup",
+      "tables": []
+    },
+    {
+      "apiId": "users-activity-log",
+      "apiName": "users-activity-log",
+      "endpoint": "GET /api/users/:userId/activity",
+      "tables": []
+    },
+    {
+      "apiId": "users-impersonate",
+      "apiName": "users-impersonate",
+      "endpoint": "POST /api/users/:userId/impersonate",
+      "tables": []
+    },
+    {
+      "apiId": "users-deactivate",
+      "apiName": "users-deactivate",
+      "endpoint": "POST /api/users/:userId/deactivate",
+      "tables": []
+    },
+    {
+      "apiId": "users-reactivate",
+      "apiName": "users-reactivate",
+      "endpoint": "POST /api/users/:userId/reactivate",
+      "tables": []
+    },
+    {
+      "apiId": "organizations-list",
+      "apiName": "organizations-list",
+      "endpoint": "GET /api/organizations",
+      "tables": []
+    },
+    {
+      "apiId": "organizations-create",
+      "apiName": "organizations-create",
+      "endpoint": "POST /api/organizations",
+      "tables": []
+    },
+    {
+      "apiId": "organizations-get",
+      "apiName": "organizations-get",
+      "endpoint": "GET /api/organizations/:orgId",
+      "tables": []
+    },
+    {
+      "apiId": "organizations-update",
+      "apiName": "organizations-update",
+      "endpoint": "PUT /api/organizations/:orgId",
+      "tables": []
+    },
+    {
+      "apiId": "organizations-delete",
+      "apiName": "organizations-delete",
+      "endpoint": "DELETE /api/organizations/:orgId",
+      "tables": []
+    },
+    {
+      "apiId": "organizations-members",
+      "apiName": "organizations-members",
+      "endpoint": "GET /api/organizations/:orgId/members",
+      "tables": []
+    },
+    {
+      "apiId": "organizations-invite",
+      "apiName": "organizations-invite",
+      "endpoint": "POST /api/organizations/:orgId/invites",
+      "tables": []
+    },
+    {
+      "apiId": "organizations-settings",
+      "apiName": "organizations-settings",
+      "endpoint": "GET /api/organizations/:orgId/settings",
+      "tables": []
+    },
+    {
+      "apiId": "organizations-billing",
+      "apiName": "organizations-billing",
+      "endpoint": "GET /api/organizations/:orgId/billing",
+      "tables": []
+    },
+    {
+      "apiId": "organizations-usage",
+      "apiName": "organizations-usage",
+      "endpoint": "GET /api/organizations/:orgId/usage",
+      "tables": []
+    },
+    {
+      "apiId": "organizations-audit-log",
+      "apiName": "organizations-audit-log",
+      "endpoint": "GET /api/organizations/:orgId/audit-log",
+      "tables": []
+    },
+    {
+      "apiId": "organizations-domains",
+      "apiName": "organizations-domains",
+      "endpoint": "GET /api/organizations/:orgId/domains",
+      "tables": []
+    },
+    {
+      "apiId": "projects-list",
+      "apiName": "projects-list",
+      "endpoint": "GET /api/projects",
+      "tables": []
+    },
+    {
+      "apiId": "projects-create",
+      "apiName": "projects-create",
+      "endpoint": "POST /api/projects",
+      "tables": []
+    },
+    {
+      "apiId": "projects-get",
+      "apiName": "projects-get",
+      "endpoint": "GET /api/projects/:projectId",
+      "tables": []
+    },
+    {
+      "apiId": "projects-update",
+      "apiName": "projects-update",
+      "endpoint": "PUT /api/projects/:projectId",
+      "tables": []
+    },
+    {
+      "apiId": "projects-delete",
+      "apiName": "projects-delete",
+      "endpoint": "DELETE /api/projects/:projectId",
+      "tables": []
+    },
+    {
+      "apiId": "projects-archive",
+      "apiName": "projects-archive",
+      "endpoint": "POST /api/projects/:projectId/archive",
+      "tables": []
+    },
+    {
+      "apiId": "projects-members",
+      "apiName": "projects-members",
+      "endpoint": "GET /api/projects/:projectId/members",
+      "tables": []
+    },
+    {
+      "apiId": "projects-tasks",
+      "apiName": "projects-tasks",
+      "endpoint": "GET /api/projects/:projectId/tasks",
+      "tables": []
+    },
+    {
+      "apiId": "projects-milestones",
+      "apiName": "projects-milestones",
+      "endpoint": "GET /api/projects/:projectId/milestones",
+      "tables": []
+    },
+    {
+      "apiId": "projects-duplicate",
+      "apiName": "projects-duplicate",
+      "endpoint": "POST /api/projects/:projectId/duplicate",
+      "tables": []
+    },
+    {
+      "apiId": "projects-export",
+      "apiName": "projects-export",
+      "endpoint": "GET /api/projects/:projectId/export",
+      "tables": []
+    },
+    {
+      "apiId": "projects-import",
+      "apiName": "projects-import",
+      "endpoint": "POST /api/projects/import",
+      "tables": []
+    },
+    {
+      "apiId": "projects-labels",
+      "apiName": "projects-labels",
+      "endpoint": "GET /api/projects/:projectId/labels",
+      "tables": []
+    },
+    {
+      "apiId": "projects-templates",
+      "apiName": "projects-templates",
+      "endpoint": "GET /api/projects/templates",
+      "tables": []
+    },
+    {
+      "apiId": "tasks-list",
+      "apiName": "tasks-list",
+      "endpoint": "GET /api/tasks",
+      "tables": []
+    },
+    {
+      "apiId": "tasks-create",
+      "apiName": "tasks-create",
+      "endpoint": "POST /api/tasks",
+      "tables": []
+    },
+    {
+      "apiId": "tasks-get",
+      "apiName": "tasks-get",
+      "endpoint": "GET /api/tasks/:taskId",
+      "tables": []
+    },
+    {
+      "apiId": "tasks-update",
+      "apiName": "tasks-update",
+      "endpoint": "PUT /api/tasks/:taskId",
+      "tables": []
+    },
+    {
+      "apiId": "tasks-delete",
+      "apiName": "tasks-delete",
+      "endpoint": "DELETE /api/tasks/:taskId",
+      "tables": []
+    },
+    {
+      "apiId": "tasks-assign",
+      "apiName": "tasks-assign",
+      "endpoint": "PUT /api/tasks/:taskId/assignee",
+      "tables": []
+    },
+    {
+      "apiId": "tasks-status",
+      "apiName": "tasks-status",
+      "endpoint": "PATCH /api/tasks/:taskId/status",
+      "tables": []
+    },
+    {
+      "apiId": "tasks-comments",
+      "apiName": "tasks-comments",
+      "endpoint": "GET /api/tasks/:taskId/comments",
+      "tables": []
+    },
+    {
+      "apiId": "tasks-attachments",
+      "apiName": "tasks-attachments",
+      "endpoint": "POST /api/tasks/:taskId/attachments",
+      "tables": []
+    },
+    {
+      "apiId": "tasks-history",
+      "apiName": "tasks-history",
+      "endpoint": "GET /api/tasks/:taskId/history",
+      "tables": []
+    },
+    {
+      "apiId": "tasks-reorder",
+      "apiName": "tasks-reorder",
+      "endpoint": "PUT /api/tasks/reorder",
+      "tables": []
+    },
+    {
+      "apiId": "tasks-bulk-update",
+      "apiName": "tasks-bulk-update",
+      "endpoint": "PATCH /api/tasks/bulk-update",
+      "tables": []
+    },
+    {
+      "apiId": "tasks-watchers",
+      "apiName": "tasks-watchers",
+      "endpoint": "GET /api/tasks/:taskId/watchers",
+      "tables": []
+    },
+    {
+      "apiId": "tasks-dependencies",
+      "apiName": "tasks-dependencies",
+      "endpoint": "GET /api/tasks/:taskId/dependencies",
+      "tables": []
+    },
+    {
+      "apiId": "tasks-time-tracking",
+      "apiName": "tasks-time-tracking",
+      "endpoint": "POST /api/tasks/:taskId/time-entries",
+      "tables": []
+    },
+    {
+      "apiId": "comments-create",
+      "apiName": "comments-create",
+      "endpoint": "POST /api/posts/:postId/comments",
+      "tables": []
+    },
+    {
+      "apiId": "comments-update",
+      "apiName": "comments-update",
+      "endpoint": "PUT /api/comments/:commentId",
+      "tables": []
+    },
+    {
+      "apiId": "comments-delete",
+      "apiName": "comments-delete",
+      "endpoint": "DELETE /api/comments/:commentId",
+      "tables": []
+    },
+    {
+      "apiId": "comments-list",
+      "apiName": "comments-list",
+      "endpoint": "GET /api/posts/:postId/comments",
+      "tables": []
+    },
+    {
+      "apiId": "comments-reactions",
+      "apiName": "comments-reactions",
+      "endpoint": "POST /api/comments/:commentId/reactions",
+      "tables": []
+    },
+    {
+      "apiId": "comments-pin",
+      "apiName": "comments-pin",
+      "endpoint": "PUT /api/comments/:commentId/pin",
+      "tables": []
+    },
+    {
+      "apiId": "comments-unpin",
+      "apiName": "comments-unpin",
+      "endpoint": "DELETE /api/comments/:commentId/pin",
+      "tables": []
+    },
+    {
+      "apiId": "files-upload",
+      "apiName": "files-upload",
+      "endpoint": "POST /api/files",
+      "tables": []
+    },
+    {
+      "apiId": "files-download",
+      "apiName": "files-download",
+      "endpoint": "GET /api/files/:fileId/download",
+      "tables": []
+    },
+    {
+      "apiId": "files-list",
+      "apiName": "files-list",
+      "endpoint": "GET /api/files",
+      "tables": []
+    },
+    {
+      "apiId": "files-delete",
+      "apiName": "files-delete",
+      "endpoint": "DELETE /api/files/:fileId",
+      "tables": []
+    },
+    {
+      "apiId": "files-metadata",
+      "apiName": "files-metadata",
+      "endpoint": "GET /api/files/:fileId",
+      "tables": []
+    },
+    {
+      "apiId": "files-thumbnails",
+      "apiName": "files-thumbnails",
+      "endpoint": "GET /api/files/:fileId/thumbnail",
+      "tables": []
+    },
+    {
+      "apiId": "files-share",
+      "apiName": "files-share",
+      "endpoint": "POST /api/files/:fileId/share",
+      "tables": []
+    },
+    {
+      "apiId": "files-versions",
+      "apiName": "files-versions",
+      "endpoint": "GET /api/files/:fileId/versions",
+      "tables": []
+    },
+    {
+      "apiId": "files-restore-version",
+      "apiName": "files-restore-version",
+      "endpoint": "POST /api/files/:fileId/versions/:versionId/restore",
+      "tables": []
+    },
+    {
+      "apiId": "files-permissions",
+      "apiName": "files-permissions",
+      "endpoint": "PUT /api/files/:fileId/permissions",
+      "tables": []
+    },
+    {
+      "apiId": "notifications-list",
+      "apiName": "notifications-list",
+      "endpoint": "GET /api/notifications",
+      "tables": []
+    },
+    {
+      "apiId": "notifications-read",
+      "apiName": "notifications-read",
+      "endpoint": "PUT /api/notifications/:notificationId/read",
+      "tables": []
+    },
+    {
+      "apiId": "notifications-read-all",
+      "apiName": "notifications-read-all",
+      "endpoint": "PUT /api/notifications/read-all",
+      "tables": []
+    },
+    {
+      "apiId": "notifications-settings",
+      "apiName": "notifications-settings",
+      "endpoint": "GET /api/notifications/settings",
+      "tables": []
+    },
+    {
+      "apiId": "notifications-subscribe",
+      "apiName": "notifications-subscribe",
+      "endpoint": "POST /api/notifications/subscriptions",
+      "tables": []
+    },
+    {
+      "apiId": "notifications-unsubscribe",
+      "apiName": "notifications-unsubscribe",
+      "endpoint": "DELETE /api/notifications/subscriptions/:subscriptionId",
+      "tables": []
+    },
+    {
+      "apiId": "notifications-preferences",
+      "apiName": "notifications-preferences",
+      "endpoint": "PUT /api/notifications/settings",
+      "tables": []
+    },
+    {
+      "apiId": "notifications-test",
+      "apiName": "notifications-test",
+      "endpoint": "POST /api/notifications/test",
+      "tables": []
+    },
+    {
+      "apiId": "search-global",
+      "apiName": "search-global",
+      "endpoint": "GET /api/search",
+      "tables": []
+    },
+    {
+      "apiId": "search-users",
+      "apiName": "search-users",
+      "endpoint": "GET /api/search/users",
+      "tables": []
+    },
+    {
+      "apiId": "search-projects",
+      "apiName": "search-projects",
+      "endpoint": "GET /api/search/projects",
+      "tables": []
+    },
+    {
+      "apiId": "search-tasks",
+      "apiName": "search-tasks",
+      "endpoint": "GET /api/search/tasks",
+      "tables": []
+    },
+    {
+      "apiId": "search-files",
+      "apiName": "search-files",
+      "endpoint": "GET /api/search/files",
+      "tables": []
+    },
+    {
+      "apiId": "search-suggestions",
+      "apiName": "search-suggestions",
+      "endpoint": "GET /api/search/suggestions",
+      "tables": []
+    },
+    {
+      "apiId": "search-recent",
+      "apiName": "search-recent",
+      "endpoint": "GET /api/search/recent",
+      "tables": []
+    },
+    {
+      "apiId": "search-saved",
+      "apiName": "search-saved",
+      "endpoint": "GET /api/search/saved",
+      "tables": []
+    },
+    {
+      "apiId": "dashboard-overview",
+      "apiName": "dashboard-overview",
+      "endpoint": "GET /api/dashboard/overview",
+      "tables": []
+    },
+    {
+      "apiId": "dashboard-stats",
+      "apiName": "dashboard-stats",
+      "endpoint": "GET /api/dashboard/stats",
+      "tables": []
+    },
+    {
+      "apiId": "dashboard-recent-activity",
+      "apiName": "dashboard-recent-activity",
+      "endpoint": "GET /api/dashboard/recent-activity",
+      "tables": []
+    },
+    {
+      "apiId": "dashboard-charts",
+      "apiName": "dashboard-charts",
+      "endpoint": "GET /api/dashboard/charts",
+      "tables": []
+    },
+    {
+      "apiId": "dashboard-widgets",
+      "apiName": "dashboard-widgets",
+      "endpoint": "GET /api/dashboard/widgets",
+      "tables": []
+    },
+    {
+      "apiId": "dashboard-export",
+      "apiName": "dashboard-export",
+      "endpoint": "GET /api/dashboard/export",
+      "tables": []
+    },
+    {
+      "apiId": "reports-generate",
+      "apiName": "reports-generate",
+      "endpoint": "POST /api/reports",
+      "tables": []
+    },
+    {
+      "apiId": "reports-list",
+      "apiName": "reports-list",
+      "endpoint": "GET /api/reports",
+      "tables": []
+    },
+    {
+      "apiId": "reports-download",
+      "apiName": "reports-download",
+      "endpoint": "GET /api/reports/:reportId/download",
+      "tables": []
+    },
+    {
+      "apiId": "reports-schedule",
+      "apiName": "reports-schedule",
+      "endpoint": "POST /api/reports/schedules",
+      "tables": []
+    },
+    {
+      "apiId": "reports-templates",
+      "apiName": "reports-templates",
+      "endpoint": "GET /api/reports/templates",
+      "tables": []
+    },
+    {
+      "apiId": "reports-delete",
+      "apiName": "reports-delete",
+      "endpoint": "DELETE /api/reports/:reportId",
+      "tables": []
+    },
+    {
+      "apiId": "reports-share",
+      "apiName": "reports-share",
+      "endpoint": "POST /api/reports/:reportId/share",
+      "tables": []
+    },
+    {
+      "apiId": "settings-get",
+      "apiName": "settings-get",
+      "endpoint": "GET /api/settings",
+      "tables": []
+    },
+    {
+      "apiId": "settings-update",
+      "apiName": "settings-update",
+      "endpoint": "PUT /api/settings",
+      "tables": []
+    },
+    {
+      "apiId": "settings-integrations",
+      "apiName": "settings-integrations",
+      "endpoint": "GET /api/settings/integrations",
+      "tables": []
+    },
+    {
+      "apiId": "settings-webhooks",
+      "apiName": "settings-webhooks",
+      "endpoint": "GET /api/settings/webhooks",
+      "tables": []
+    },
+    {
+      "apiId": "settings-api-keys",
+      "apiName": "settings-api-keys",
+      "endpoint": "GET /api/settings/api-keys",
+      "tables": []
+    },
+    {
+      "apiId": "settings-notifications",
+      "apiName": "settings-notifications",
+      "endpoint": "PUT /api/settings/notification-preferences",
+      "tables": []
+    },
+    {
+      "apiId": "settings-security",
+      "apiName": "settings-security",
+      "endpoint": "GET /api/settings/security",
+      "tables": []
+    },
+    {
+      "apiId": "settings-sessions",
+      "apiName": "settings-sessions",
+      "endpoint": "GET /api/settings/sessions",
+      "tables": []
+    },
+    {
+      "apiId": "audit-logs",
+      "apiName": "audit-logs",
+      "endpoint": "GET /api/audit/logs",
+      "tables": []
+    },
+    {
+      "apiId": "audit-export",
+      "apiName": "audit-export",
+      "endpoint": "GET /api/audit/logs/export",
+      "tables": []
+    },
+    {
+      "apiId": "audit-user-activity",
+      "apiName": "audit-user-activity",
+      "endpoint": "GET /api/audit/users/:userId",
+      "tables": []
+    },
+    {
+      "apiId": "audit-alerts",
+      "apiName": "audit-alerts",
+      "endpoint": "GET /api/audit/alerts",
+      "tables": []
+    },
+    {
+      "apiId": "audit-retention-policy",
+      "apiName": "audit-retention-policy",
+      "endpoint": "GET /api/audit/retention-policy",
+      "tables": []
+    },
+    {
+      "apiId": "system-health",
+      "apiName": "system-health",
+      "endpoint": "GET /api/health",
+      "tables": []
+    },
+    {
+      "apiId": "system-version",
+      "apiName": "system-version",
+      "endpoint": "GET /api/version",
+      "tables": []
+    },
+    {
+      "apiId": "system-metrics",
+      "apiName": "system-metrics",
+      "endpoint": "GET /api/metrics",
+      "tables": []
+    },
+    {
+      "apiId": "system-status",
+      "apiName": "system-status",
+      "endpoint": "GET /api/status",
+      "tables": []
+    },
+    {
+      "apiId": "system-ping",
+      "apiName": "system-ping",
+      "endpoint": "GET /api/ping",
+      "tables": []
+    },
+    {
+      "apiId": "unresolved-legacy-export",
+      "apiName": "unresolved-legacy-export",
+      "endpoint": "? /api/v1/export/...",
+      "tables": []
+    },
+    {
+      "apiId": "unresolved-internal-webhook-relay",
+      "apiName": "unresolved-internal-webhook-relay",
+      "endpoint": "POST /api/internal/???",
+      "tables": []
+    },
+    {
+      "apiId": "unresolved-batch-callback",
+      "apiName": "unresolved-batch-callback",
+      "endpoint": "? /api/callbacks/batch/...",
+      "tables": []
+    },
+    {
+      "apiId": "unresolved-partner-sync-endpoint",
+      "apiName": "unresolved-partner-sync-endpoint",
+      "endpoint": "PATCH /api/partners/???",
+      "tables": []
+    },
+    {
+      "apiId": "unresolved-deprecated-token-exchange",
+      "apiName": "unresolved-deprecated-token-exchange",
+      "endpoint": "POST /api/oauth/exchange(旧仕様)",
+      "tables": []
+    }
   ],
-  "tables": [
-    { "tableId": "table-users", "tableName": "users", "logicalName": "ユーザー" },
-    { "tableId": "table-sessions", "tableName": "sessions", "logicalName": "セッション" },
-    { "tableId": "table-settings", "tableName": "app_settings", "logicalName": "設定" },
-    { "tableId": "table-roles", "tableName": "roles", "logicalName": "ロール" },
-    { "tableId": "table-permissions", "tableName": "permissions", "logicalName": "権限" },
-    { "tableId": "table-user-roles", "tableName": "user_roles", "logicalName": "ユーザーロール紐付" },
-    { "tableId": "table-posts", "tableName": "posts", "logicalName": "投稿" },
-    { "tableId": "table-comments", "tableName": "comments", "logicalName": "コメント" },
-    { "tableId": "table-categories", "tableName": "categories", "logicalName": "カテゴリ" },
-    { "tableId": "table-tags", "tableName": "tags", "logicalName": "タグ" },
-    { "tableId": "table-post-tags", "tableName": "post_tags", "logicalName": "投稿タグ紐付" },
-    { "tableId": "table-notifications", "tableName": "notifications", "logicalName": "通知" },
-    { "tableId": "table-audit-logs", "tableName": "audit_logs", "logicalName": "監査ログ" },
-    { "tableId": "table-files", "tableName": "files", "logicalName": "ファイル" },
-    { "tableId": "table-organizations", "tableName": "organizations", "logicalName": "組織" },
-    { "tableId": "table-org-members", "tableName": "organization_members", "logicalName": "組織メンバー紐付" }
-  ]
+  "tables": [],
+  "manifestContentHash": "c7d90a604412f8b7f047b9d3de9c723168e34b0215ac4d27e2c63a30a089a550"
 }
 </script>
 

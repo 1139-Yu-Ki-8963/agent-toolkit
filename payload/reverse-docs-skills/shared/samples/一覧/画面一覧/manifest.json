@@ -1,0 +1,386 @@
+{
+  "generatedAt": "2026-07-20T00:00:00+09:00",
+  "sourceDir": "shared/samples/一覧/画面一覧/fixtures",
+  "strategy": {
+    "extractionMethod": "静的解析（ルーティング定義 + ファイル走査）",
+    "approvedByUser": true
+  },
+  "detectionSummary": {
+    "method": "React Router v6 のルーティング定義から自動検出",
+    "screenCount": 18,
+    "clusterCount": 1,
+    "sharedScreenCount": 2,
+    "embeddedCandidateCount": 1,
+    "unresolvedCount": 0
+  },
+  "screens": [
+    {
+      "screenId": "screen-home",
+      "screenKey": "home",
+      "kind": "route",
+      "screenNameGuess": "ホーム画面",
+      "route": "/",
+      "detectionMethod": "routing",
+      "confidence": "HIGH",
+      "sharedWith": null,
+      "embeddedIn": null,
+      "fileCount": 5,
+      "entryFile": "pages/HomePage.tsx",
+      "category": "一般",
+      "permissions": [],
+      "relatedApis": [
+        "posts-list",
+        "notifications-list"
+      ],
+      "designDocStatus": "着手済",
+      "designDocPath": "../../プロジェクト共通/共通設計書.html",
+      "sourceHash": "a1b2c3d4e5f6",
+      "designDocSourceHash": "a1b2c3d4e5f6"
+    },
+    {
+      "screenId": "screen-login",
+      "screenKey": "login",
+      "kind": "route",
+      "screenNameGuess": "ログイン画面",
+      "route": "/login",
+      "detectionMethod": "routing",
+      "confidence": "HIGH",
+      "sharedWith": null,
+      "embeddedIn": null,
+      "fileCount": 3,
+      "entryFile": "pages/auth/LoginPage.tsx",
+      "category": "一般",
+      "permissions": [],
+      "relatedApis": [
+        "auth-login"
+      ],
+      "designDocStatus": "着手済"
+    },
+    {
+      "screenId": "screen-signup",
+      "screenKey": "signup",
+      "kind": "route",
+      "screenNameGuess": "新規登録画面",
+      "route": "/signup",
+      "detectionMethod": "routing",
+      "confidence": "HIGH",
+      "sharedWith": null,
+      "embeddedIn": null,
+      "fileCount": 4,
+      "entryFile": "pages/auth/SignupPage.tsx",
+      "category": "一般",
+      "permissions": [],
+      "relatedApis": [
+        "users-create",
+        "auth-login"
+      ],
+      "designDocStatus": "未着手"
+    },
+    {
+      "screenId": "screen-forgot-pw",
+      "screenKey": "forgot-password",
+      "kind": "route",
+      "screenNameGuess": "パスワードリセット",
+      "route": "/forgot-password",
+      "detectionMethod": "routing",
+      "confidence": "HIGH",
+      "sharedWith": null,
+      "embeddedIn": null,
+      "fileCount": 2,
+      "entryFile": "pages/auth/ForgotPasswordPage.tsx",
+      "category": "一般",
+      "permissions": [],
+      "relatedApis": [],
+      "designDocStatus": "未着手"
+    },
+    {
+      "screenId": "screen-dashboard",
+      "screenKey": "dashboard",
+      "kind": "route",
+      "screenNameGuess": "ダッシュボード",
+      "route": "/dashboard",
+      "detectionMethod": "routing",
+      "confidence": "HIGH",
+      "sharedWith": null,
+      "embeddedIn": null,
+      "fileCount": 8,
+      "entryFile": "pages/DashboardPage.tsx",
+      "category": "一般",
+      "permissions": [],
+      "relatedApis": [
+        "posts-list",
+        "notifications-list",
+        "users-get"
+      ],
+      "designDocStatus": "着手済",
+      "sourceHash": "f6e5d4c3b2a1",
+      "designDocSourceHash": "000000000000"
+    },
+    {
+      "screenId": "screen-profile",
+      "screenKey": "profile",
+      "kind": "route",
+      "screenNameGuess": "プロフィール",
+      "route": "/profile",
+      "detectionMethod": "routing",
+      "confidence": "HIGH",
+      "sharedWith": null,
+      "embeddedIn": null,
+      "fileCount": 3,
+      "entryFile": "pages/settings/ProfilePage.tsx",
+      "category": "一般",
+      "permissions": [],
+      "relatedApis": [
+        "users-get",
+        "users-update"
+      ],
+      "designDocStatus": "未着手"
+    },
+    {
+      "screenId": "screen-settings",
+      "screenKey": "settings",
+      "kind": "route",
+      "screenNameGuess": "設定画面",
+      "route": "/settings",
+      "detectionMethod": "routing",
+      "confidence": "HIGH",
+      "sharedWith": null,
+      "embeddedIn": null,
+      "fileCount": 4,
+      "entryFile": "pages/settings/SettingsPage.tsx",
+      "category": "一般",
+      "permissions": [],
+      "relatedApis": [
+        "settings-get",
+        "settings-update"
+      ],
+      "designDocStatus": "未着手"
+    },
+    {
+      "screenId": "screen-users-list",
+      "screenKey": "users-list",
+      "kind": "route",
+      "screenNameGuess": "ユーザー一覧",
+      "route": "/admin/users",
+      "detectionMethod": "routing",
+      "confidence": "HIGH",
+      "sharedWith": [
+        "users-detail"
+      ],
+      "embeddedIn": null,
+      "fileCount": 6,
+      "entryFile": "pages/admin/UsersListPage.tsx",
+      "category": "管理",
+      "permissions": [
+        "admin"
+      ],
+      "relatedApis": [
+        "users-list"
+      ],
+      "designDocStatus": "未着手",
+      "clusterId": "users-cluster"
+    },
+    {
+      "screenId": "screen-users-detail",
+      "screenKey": "users-detail",
+      "kind": "route",
+      "screenNameGuess": "ユーザー詳細",
+      "route": "/admin/users/:userId",
+      "detectionMethod": "routing",
+      "confidence": "HIGH",
+      "sharedWith": [
+        "users-list"
+      ],
+      "embeddedIn": null,
+      "fileCount": 5,
+      "entryFile": "pages/admin/UserDetailPage.tsx",
+      "category": "管理",
+      "permissions": [
+        "admin"
+      ],
+      "relatedApis": [
+        "users-get"
+      ],
+      "designDocStatus": "未着手",
+      "clusterId": "users-cluster"
+    },
+    {
+      "screenId": "screen-users-edit",
+      "screenKey": "users-edit",
+      "kind": "route",
+      "screenNameGuess": "ユーザー編集",
+      "route": "/admin/users/:userId/edit",
+      "detectionMethod": "routing",
+      "confidence": "MEDIUM",
+      "sharedWith": null,
+      "embeddedIn": null,
+      "fileCount": 4,
+      "entryFile": "pages/admin/UserEditPage.tsx",
+      "category": "管理",
+      "permissions": [
+        "admin"
+      ],
+      "relatedApis": [
+        "users-get",
+        "users-update"
+      ],
+      "designDocStatus": "未着手"
+    },
+    {
+      "screenId": "screen-roles",
+      "screenKey": "roles",
+      "kind": "route",
+      "screenNameGuess": "ロール管理",
+      "route": "/admin/roles",
+      "detectionMethod": "routing",
+      "confidence": "HIGH",
+      "sharedWith": null,
+      "embeddedIn": null,
+      "fileCount": 3,
+      "entryFile": "pages/admin/RolesPage.tsx",
+      "category": "管理",
+      "permissions": [
+        "admin"
+      ],
+      "relatedApis": [
+        "users-list"
+      ],
+      "designDocStatus": "未着手"
+    },
+    {
+      "screenId": "screen-posts-list",
+      "screenKey": "posts-list",
+      "kind": "route",
+      "screenNameGuess": "投稿一覧",
+      "route": "/posts",
+      "detectionMethod": "routing",
+      "confidence": "HIGH",
+      "sharedWith": null,
+      "embeddedIn": null,
+      "fileCount": 4,
+      "entryFile": "pages/posts/PostsListPage.tsx",
+      "category": "一般",
+      "permissions": [],
+      "relatedApis": [
+        "posts-list"
+      ],
+      "designDocStatus": "未着手"
+    },
+    {
+      "screenId": "screen-post-detail",
+      "screenKey": "post-detail",
+      "kind": "route",
+      "screenNameGuess": "投稿詳細",
+      "route": "/posts/:postId",
+      "detectionMethod": "routing",
+      "confidence": "HIGH",
+      "sharedWith": null,
+      "embeddedIn": null,
+      "fileCount": 5,
+      "entryFile": "pages/posts/PostDetailPage.tsx",
+      "category": "一般",
+      "permissions": [],
+      "relatedApis": [
+        "posts-get",
+        "comments-create"
+      ],
+      "designDocStatus": "未着手"
+    },
+    {
+      "screenId": "screen-post-editor",
+      "screenKey": "post-editor",
+      "kind": "route",
+      "screenNameGuess": "投稿エディタ",
+      "route": "/posts/:postId/edit",
+      "detectionMethod": "routing",
+      "confidence": "MEDIUM",
+      "sharedWith": null,
+      "embeddedIn": null,
+      "fileCount": 7,
+      "entryFile": "pages/posts/PostEditorPage.tsx",
+      "category": "一般",
+      "permissions": [],
+      "relatedApis": [
+        "posts-get",
+        "posts-update",
+        "files-upload"
+      ],
+      "designDocStatus": "未着手"
+    },
+    {
+      "screenId": "screen-notifications",
+      "screenKey": "notifications",
+      "kind": "route",
+      "screenNameGuess": "通知一覧",
+      "route": "/notifications",
+      "detectionMethod": "routing",
+      "confidence": "HIGH",
+      "sharedWith": null,
+      "embeddedIn": null,
+      "fileCount": 3,
+      "entryFile": "pages/NotificationsPage.tsx",
+      "category": "一般",
+      "permissions": [],
+      "relatedApis": [
+        "notifications-list"
+      ],
+      "designDocStatus": "未着手"
+    },
+    {
+      "screenId": "screen-search",
+      "screenKey": "search",
+      "kind": "route",
+      "screenNameGuess": "検索結果",
+      "route": "/search",
+      "detectionMethod": "routing",
+      "confidence": "MEDIUM",
+      "sharedWith": null,
+      "embeddedIn": null,
+      "fileCount": 2,
+      "entryFile": "pages/SearchResultsPage.tsx",
+      "category": "一般",
+      "permissions": [],
+      "relatedApis": [
+        "posts-list"
+      ],
+      "designDocStatus": "未着手"
+    },
+    {
+      "screenId": "screen-report-viewer",
+      "screenKey": "report-viewer",
+      "kind": "route",
+      "screenNameGuess": "レポート閲覧",
+      "route": "/reports/:reportId",
+      "detectionMethod": "routing",
+      "confidence": "HIGH",
+      "sharedWith": null,
+      "embeddedIn": null,
+      "fileCount": 4,
+      "entryFile": "pages/reports/ReportViewerPage.tsx",
+      "category": "一般",
+      "permissions": [],
+      "relatedApis": [],
+      "designDocStatus": "未着手"
+    },
+    {
+      "screenId": "screen-sidebar-nav",
+      "screenKey": "sidebar-nav",
+      "kind": "embedded-view",
+      "screenNameGuess": "サイドバーナビ",
+      "route": null,
+      "detectionMethod": "file-scan",
+      "confidence": "MEDIUM",
+      "sharedWith": null,
+      "embeddedIn": "dashboard",
+      "fileCount": 2,
+      "entryFile": "components/layout/SidebarNav.tsx",
+      "category": "一般",
+      "permissions": [],
+      "relatedApis": [
+        "notifications-list"
+      ],
+      "designDocStatus": "未着手"
+    }
+  ],
+  "diagnostics": []
+}

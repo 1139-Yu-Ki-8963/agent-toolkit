@@ -11,7 +11,8 @@
 # {
 #   "generatedAt": "ISO8601",
 #   "dataSource": "<repo-root>",
-#   "rules":     [{"ruleName": "...", "layer": "always|scoped", "enforcement": "block|advisory|なし",
+#   "rules":     [{"ruleName": "...", "layer": "always|scoped|generated",
+#                  "declaredEnforcement": "block|advisory|なし", "mechanicalEnforcement": false,
 #                  "tags": ["[TAG]"], "summary": "..."}],
 #   "skills":    [{"skillName": "...", "category": "指揮|一覧生成|基盤ページ生成|工程",
 #                  "trigger": "...", "summary": "...", "phaseCount": 0}],
@@ -33,11 +34,13 @@
 #   rules(<repo-root>/.claude/rules/**/rule.md):
 #     - ruleName: 先頭の h1 見出し(「# 」行)の本文
 #     - layer: パス中の /always/ → always、/scoped/ → scoped
-#     - enforcement: 「## 機械強制」節の本文を grep。
+#     - declaredEnforcement: generated ruleは所有index、既存ruleは「## 機械強制」節を読む。
 #         'exit 2' または 'decision:block' あり → block
 #         'advisory' あり → advisory
 #         '機械強制なし' 等「なし」表記のみ / 節不在 → なし
 #         (「block なし」の block 文字列に誤反応しないよう 'exit 2|decision:block' のみを block 根拠とする)
+#     - mechanicalEnforcement: generated ruleは常にfalse。既存ruleは機械強制節に記載された
+#         hook scriptが.claude/settings.jsonへ実際に登録されている場合だけtrue。
 #     - tags: 「## 機械強制」節内の \[[A-Z][A-Z0-9-]+\] パターンを重複排除して列挙
 #     - summary: h1 直後の最初の非見出し段落の第 1 文(最初の「。」まで)
 #   skills(<repo-root>/.claude/skills/*/SKILL.md):
@@ -132,36 +135,83 @@ skill_category() {
 extract_rules() {
   local repo="$1" out_dir="$2"
   : > "$out_dir/rules.jsonl"
+  local generated_index="$repo/.claude/rules/generated/index.json"
+  if [ -e "$generated_index" ]; then
+    jq -e '
+      .generatedBy == "generate-rules-from-common-docs.sh"
+      and .schemaVersion == 1
+      and (.entries | type == "array")
+      and ([.entries[].key] | length == (unique | length))
+    ' "$generated_index" >/dev/null || {
+      echo "ERROR: generated rules index is invalid: $generated_index" >&2
+      return 1
+    }
+  fi
+  local registered_commands=""
+  if [ -f "$repo/.claude/settings.json" ]; then
+    registered_commands="$(jq -r '.hooks // {} | .. | objects | .command? // empty' "$repo/.claude/settings.json" 2>/dev/null || true)"
+  fi
   local f
   while IFS= read -r f; do
     [ -f "$f" ] || continue
-    local rule_name layer section enforcement tags summary
+    local rule_name layer section declared mechanical tags summary relative generated_entry
     rule_name="$(sed -n 's/^# //p' "$f" | head -1)"
     [ -n "$rule_name" ] || continue
     case "$f" in
       */rules/always/*) layer="always" ;;
       */rules/scoped/*) layer="scoped" ;;
+      */rules/generated/*) layer="generated" ;;
       *)                layer="" ;;
     esac
-    section="$(enforcement_section "$f")"
-    if grep -qE 'exit 2|decision:block' <<<"$section"; then
-      enforcement="block"
-    elif grep -q 'advisory' <<<"$section"; then
-      enforcement="advisory"
+    if [ "$layer" = "generated" ]; then
+      [ -f "$generated_index" ] || {
+        echo "ERROR: generated rule exists without index: $f" >&2
+        return 1
+      }
+      relative="${f#"$repo/"}"
+      generated_entry="$(jq -c --arg p "$relative" '[.entries[] | select(.rulePath == $p)] | if length == 1 then .[0] else empty end' "$generated_index")"
+      [ -n "$generated_entry" ] || {
+        echo "ERROR: generated rule is not owned by index: $relative" >&2
+        return 1
+      }
+      grep -q "^generatedBy: generate-rules-from-common-docs.sh$" "$f" || {
+        echo "ERROR: generated rule marker mismatch: $relative" >&2
+        return 1
+      }
+      declared="$(jq -r '.declaredEnforcement' <<<"$generated_entry")"
+      summary="$(jq -r '.summary // empty' <<<"$generated_entry")"
+      mechanical="false"
+      tags="[]"
     else
-      enforcement="なし"
+      section="$(enforcement_section "$f")"
+      if grep -qE 'exit 2|decision:block' <<<"$section"; then
+        declared="block"
+      elif grep -q 'advisory' <<<"$section"; then
+        declared="advisory"
+      else
+        declared="なし"
+      fi
+      mechanical="false"
+      while IFS= read -r script; do
+        [ -n "$script" ] || continue
+        if printf '%s\n' "$registered_commands" | grep -Fq -- "$script"; then
+          mechanical="true"
+          break
+        fi
+      done < <(printf '%s\n' "$section" | grep -oE '`[^`]+\.sh`' | tr -d '`' | while IFS= read -r script; do basename "$script"; done || true)
+      tags="$(tags_json_from_text "$section")"
+      summary="$(first_paragraph_sentence "$f")"
     fi
-    tags="$(tags_json_from_text "$section")"
-    summary="$(first_paragraph_sentence "$f")"
     jq -n -c \
       --arg ruleName "$rule_name" \
       --arg layer "$layer" \
-      --arg enforcement "$enforcement" \
+      --arg declaredEnforcement "$declared" \
+      --argjson mechanicalEnforcement "$mechanical" \
       --argjson tags "$tags" \
       --arg summary "$summary" \
       '{ruleName: $ruleName}
        + (if $layer != "" then {layer: $layer} else {} end)
-       + {enforcement: $enforcement, tags: $tags}
+       + {declaredEnforcement: $declaredEnforcement, mechanicalEnforcement: $mechanicalEnforcement, tags: $tags}
        + (if $summary != "" then {summary: $summary} else {} end)' \
       >> "$out_dir/rules.jsonl"
   done < <(find "$repo/.claude/rules" -type f -name rule.md 2>/dev/null | sort)
@@ -335,6 +385,8 @@ self_test() {
   mkdir -p "$fx/.claude/rules/always/test-gate" \
            "$fx/.claude/rules/scoped/adv-note" \
            "$fx/.claude/rules/always/plain-doc" \
+           "$fx/.claude/rules/generated/generated-advisory" \
+           "$fx/.claude/rules/generated/generated-block" \
            "$fx/.claude/skills/testing-fixture-skill" \
            "$fx/.claude/agents"
 
@@ -347,11 +399,67 @@ self_test() {
 
 | timing | スクリプト | 注入タグ | 挙動 |
 |---|---|---|---|
-| PreToolUse(Bash) | `check-test-gate.sh` | `[TEST-GATE-BLOCK]` | 違反を exit 2 で block |
+| PreToolUse(Bash) | `hook-fixture.sh` | `[TEST-GATE-BLOCK]` | 違反を exit 2 で block |
 
 ## 関連
 
 - なし
+EOF
+
+  cat > "$fx/.claude/rules/generated/generated-advisory/rule.md" <<'EOF'
+---
+generatedBy: generate-rules-from-common-docs.sh
+ruleKey: "generated-advisory"
+sourcePath: "共通規約/コーディング規約.md"
+sourceSha256: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+targetPath: "**/*"
+declaredEnforcement: advisory
+mechanicalEnforcement: false
+---
+
+# 生成助言規約
+EOF
+
+  cat > "$fx/.claude/rules/generated/generated-block/rule.md" <<'EOF'
+---
+generatedBy: generate-rules-from-common-docs.sh
+ruleKey: "generated-block"
+sourcePath: "共通規約/命名規約.md"
+sourceSha256: bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+targetPath: "**/*"
+declaredEnforcement: block
+mechanicalEnforcement: false
+---
+
+# 生成block規約
+EOF
+
+  cat > "$fx/.claude/rules/generated/index.json" <<'EOF'
+{
+  "generatedBy": "generate-rules-from-common-docs.sh",
+  "schemaVersion": 1,
+  "sourceDocumentSha256": {},
+  "entries": [
+    {
+      "key": "generated-advisory",
+      "rulePath": ".claude/rules/generated/generated-advisory/rule.md",
+      "sourcePath": "共通規約/コーディング規約.md",
+      "sourceSha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "declaredEnforcement": "advisory",
+      "mechanicalEnforcement": false,
+      "summary": "生成助言規約"
+    },
+    {
+      "key": "generated-block",
+      "rulePath": ".claude/rules/generated/generated-block/rule.md",
+      "sourcePath": "共通規約/命名規約.md",
+      "sourceSha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "declaredEnforcement": "block",
+      "mechanicalEnforcement": false,
+      "summary": "生成block規約"
+    }
+  ]
+}
 EOF
 
   cat > "$fx/.claude/rules/scoped/adv-note/rule.md" <<'EOF'
@@ -426,16 +534,23 @@ EOF
     local checks_a
     checks_a="$(jq -r '
       [
-        (.rules | length) == 3,
+        (.rules | length) == 5,
         ([.rules[] | select(.ruleName == "テストゲート規約（TEST-GATE）")][0]
-          | .layer == "always" and .enforcement == "block"
+          | .layer == "always" and .declaredEnforcement == "block" and .mechanicalEnforcement == true
             and .tags == ["[TEST-GATE-BLOCK]"]
             and (.summary | startswith("テスト用の block 規約。"))
             and (.summary | contains("二文目") | not)),
         ([.rules[] | select(.ruleName == "助言規約（ADV-NOTE）")][0]
-          | .layer == "scoped" and .enforcement == "advisory" and .tags == ["[ADV-NOTE]"]),
+          | .layer == "scoped" and .declaredEnforcement == "advisory"
+            and .mechanicalEnforcement == false and .tags == ["[ADV-NOTE]"]),
         ([.rules[] | select(.ruleName == "素の文書規約（PLAIN-DOC）")][0]
-          | .enforcement == "なし" and .tags == []),
+          | .declaredEnforcement == "なし" and .mechanicalEnforcement == false and .tags == []),
+        ([.rules[] | select(.ruleName == "生成助言規約")][0]
+          | .layer == "generated" and .declaredEnforcement == "advisory"
+            and .mechanicalEnforcement == false and .tags == []),
+        ([.rules[] | select(.ruleName == "生成block規約")][0]
+          | .layer == "generated" and .declaredEnforcement == "block"
+            and .mechanicalEnforcement == false and .tags == []),
         (.skills | length) == 1,
         (.skills[0] | .skillName == "testing-fixture-skill"
           and .category == "工程"
@@ -564,7 +679,7 @@ EOF
     local schema_ok
     schema_ok="$(jq '
       (keys | sort) == ["dataSource","generatedAt","hooks","rules","skills","subagents"] and
-      ([.rules[]     | keys[]] - ["ruleName","layer","enforcement","tags","summary"] == []) and
+      ([.rules[]     | keys[]] - ["ruleName","layer","declaredEnforcement","mechanicalEnforcement","tags","summary"] == []) and
       ([.skills[]    | keys[]] - ["skillName","category","trigger","summary","phaseCount"] == []) and
       ([.subagents[] | keys[]] - ["name","classification","verdict","mainTools"] == []) and
       ([.hooks[]     | keys[]] - ["script","timing","matcher","tags","behavior","summary"] == [])
@@ -577,6 +692,23 @@ EOF
     fi
   else
     echo "  [FAIL] ケースb: 合成フィクスチャ抽出の実行または JSON パースに失敗" >&2
+    rc=1
+  fi
+
+  # --- ケースc: AI設定資産テンプレートの宣言区分/機械強制の表示分離 ---
+  local script_dir template_path
+  script_dir="$(cd "$(dirname "$script_path")" && pwd)"
+  template_path="$(cd "$script_dir/../.." && pwd)/templates/ai-assets/ai-assets-template.html"
+  if [ -f "$template_path" ] \
+    && grep -q '<th>宣言区分</th>' "$template_path" \
+    && grep -q '<th>機械強制</th>' "$template_path" \
+    && grep -q "value === true ? 'badge danger' : 'badge neutral'" "$template_path" \
+    && grep -q "value === true ? '有効' : 'なし'" "$template_path" \
+    && grep -q 'declaredBadge(r.declaredEnforcement)' "$template_path" \
+    && grep -q 'mechanicalBadge(r.mechanicalEnforcement)' "$template_path"; then
+    echo "  [PASS] ケースc: UIが宣言区分と機械強制を別列・別badgeで表示し、dangerはmechanical=trueだけ"
+  else
+    echo "  [FAIL] ケースc: AI設定資産テンプレートの表示分離契約が不一致" >&2
     rc=1
   fi
 

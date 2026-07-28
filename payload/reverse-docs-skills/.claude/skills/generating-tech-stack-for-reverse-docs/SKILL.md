@@ -146,9 +146,3 @@ page-data.json の保存先は `$CLAUDE_JOB_DIR/tmp/tech-stack-page-data.json` �
 
 - `../../../shared/scripts/detail-pages/page-data-schema.md` — page-data.json のスキーマ定義
 - `references/generating-tech-stack-for-reverse-docs-guide.html` — スキルガイド
-
-<!-- delivery-owner-contracts:start -->
-```json
-[{"failure_return_to":"orchestrating-reverse-docs-flow","id":"tech-stack","inputs":["package manifests","lock files"],"outputs":["技術スタック.html"],"stop_conditions":["根拠なし"],"validator":"check-delivery-artifacts.sh"}]
-```
-<!-- delivery-owner-contracts:end -->

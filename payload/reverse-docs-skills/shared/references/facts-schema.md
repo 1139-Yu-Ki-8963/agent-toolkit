@@ -5,11 +5,8 @@
 ## 全体構造
 
 ```yaml
-schema_version: 1
 run_id: extract-1
 profile: screen
-unit_kind: screen
-unit_id: foo
 target_repo_path: /abs/path/to/target-repo
 target_file_paths:
   - src/screens/Foo/Foo.tsx
@@ -19,28 +16,14 @@ meta:
   source_ref: a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2
   route:
     value: "/foo/:id"
-    evidence:
-      path: src/screens/Foo/Foo.tsx
-      line_start: 42
-      line_end: 42
-      source_sha256: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
-      excerpt: 'path: "/foo/:id"'
-      observed_start: 7
-      observed_end: 15
+    evidence: "src/router/routes.tsx:42"
 sections:
   import:
     reason: ""
     items:
       - key: import-react-useState
-        value: 'import { useState } from "react"'
-        evidence:
-          path: src/screens/Foo/Foo.tsx
-          line_start: 1
-          line_end: 1
-          source_sha256: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
-          excerpt: 'import { useState } from "react"'
-          observed_start: 0
-          observed_end: 32
+        value: "react から useState"
+        evidence: "src/screens/Foo/Foo.tsx:1"
   export_type:
     reason: ""
     items: []
@@ -66,37 +49,22 @@ sections:
     reason: ""
     items:
       - key: 初期表示-件数
-        evidence:
-          path: src/screens/Foo/Foo.tsx
-          line_start: 12
-          line_end: 12
-          source_sha256: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
-          excerpt: "初期表示-件数を実測する"
+        evidence: "src/screens/Foo/Foo.tsx:12"
 ```
 
-インデントは2スペース刻み固定とする。`evidence` は item 直下のmappingであり、その子フィールドをさらに1段下げる。この固定インデントは `scripts/recount-facts.sh` の解析契約である。
+インデントは2スペース刻み固定とする（`sections` 配下のキー = 2段目、`reason`/`items` = 3段目、`- key:` = 4段目、`value:`/`evidence:` = 5段目）。この固定インデントは `scripts/recount-facts.sh` が awk で行位置ベースに解析するための契約であり、崩すと再計数ゲートが正しく集計できない。
 
 `meta` は `sections` と並ぶトップレベル必須節であり、以下の3フィールドを持つ。
 
 | フィールド | 内容 |
 |---|---|
-| source_repo | 対象リポジトリの識別パス（`target_repo_path` と同値） |
-| source_ref | 対象・証拠集合から決定的に再計算するSHA-256 digest |
-| route | 画面のルートパス。`value`（実測したパス文字列）と検算可能な `evidence` mappingを持つ |
-
-`evidence` は `path`・`line_start`・`line_end`・`source_sha256`・`excerpt` を必須とする。routeとvalueを持つitemは、さらに正規化excerpt内の半開区間を示す `observed_start`・`observed_end` を必須とする。SHAは対象ソースファイル全体、excerptは指定行範囲を空白正規化した内容と一致し、value全体はobserved区間と完全一致しなければならない。部分tokenの一致だけでは合格しない。
-
-`source_ref` は任意のGit SHAではない。
-schema version、profile、unit kind、解決済みtarget repo、unit ID、target file pathsをcanonical JSON化する。
-routeのvalueとevidence、およびsectionsの記録順も対象に含める。
-各sectionではsection名・reason・item順、各itemではkey・value・call_order・evidenceを含める。
-したがって、同じevidenceを流用したsection移動、key/value/reason/call_order変更、section/item並べ替えもdigest不一致になる。
-そのSHA-256を64桁digestとして記録する。
-validatorが同じ入力から再計算し、記録値との完全一致を検査する。
+| source_repo | 対象リポジトリの絶対パス（`target_repo_path` と同値） |
+| source_ref | 抽出時点のコミットSHA（`git -C <target_repo_path> rev-parse HEAD` で実測） |
+| route | 画面のルートパス。`value`（実測したパス文字列）と `evidence`（ルーター定義ファイルの `file:line`）を持つ |
 
 ### リポジトリ参照の解決規則
 
-`source_repo`・`target_repo_path` に記録するパスは、通常の抽出では主リポジトリの絶対パスとする。リポジトリに同梱する検査 fixture では、ホスト固有の絶対パスを封入しない。facts.yml の配置先から解決できる fixture 相対パス（例: `../original`）またはリポジトリ相対パスを使用できる。両フィールドは同じ識別文字列でなければならない。validator は起動引数の実体パスとの一致を解決後に検査する。`source_ref` の決定的入力には実体のホスト絶対パスではなく、このスラッシュ正規化済み識別文字列を使う。作業複製（worktree・一時 clone・キャッシュ展開先等）のパスは実行環境側の都合であり、同梱 fixture の識別値へ記録しない。
+`source_repo`・`target_repo_path` に記録するパスは、作業複製（worktree・一時 clone・キャッシュ展開先等）のパスではなく、主リポジトリ（起動引数として渡された正本チェックアウトの絶対パス。作業複製経由で解決した場合は `git rev-parse --show-toplevel` 等で主リポジトリの実体を辿った解決値）を記録する。作業複製は実行環境側の都合であり、下流工程・監査が参照する固有値ではないため、抽出実行が作業複製上で行われた場合でも記録するパスは主リポジトリ解決値に置き換える。
 
 ## 12分類とキーの付け方
 
@@ -188,14 +156,14 @@ Phase 2（抽出）完了前に、対象ファイルごとに原本の非空・�
 
 | セクション | 必須フィールド | 備考 |
 |---|---|---|
-| import 〜 api（①〜⑧） | key・value・evidence | `evidence` はpath・行範囲・ソースSHA・正規化excerpt・observed半開区間のmapping |
+| import 〜 api（①〜⑧） | key・value・evidence | `evidence` は `<target_file_paths内の相対パス>:<行番号>` 形式（例: `src/screens/Foo.tsx:12`） |
 | measurement_pending（⑨） | key・evidence | `value` を持たない（実測委譲のため値を記録しない） |
 
 `scripts/recount-facts.sh` の空欄率検査は **key・evidence の2フィールドのみ** を機械検査の対象にする（`value` の欠落は本メトリクスに現れない。Phase 2 実行者は分類ごとの抽出粒度表に従い value を必ず埋める。value 欠落は完了条件違反だが、独立の自動検査は持たない）。
 
 ## 孤児参照の定義
 
-`evidence.path` が `target_file_paths` に列挙された相対パスの集合に含まれない場合を「孤児参照」とみなす。対象ユニットの宣言対象外ファイルを根拠に事実を書いてはならないという原則を機械検査する。
+`evidence` の相対パス部分（`:<行番号>` を除いた部分）が `target_file_paths` に列挙された相対パスの集合に含まれない場合を「孤児参照」とみなす。対象ユニットの宣言対象外ファイルを根拠に事実を書いてはならないという原則を機械検査する。
 
 ## normalize 規則（`shared/scripts/seal-facts.sh normalize`）
 

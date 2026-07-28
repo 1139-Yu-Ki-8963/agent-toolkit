@@ -26,20 +26,19 @@ check_file() {
 
   local is_doc_viewer=0
   grep -q 'class="doc-main"' "$f" 2>/dev/null && is_doc_viewer=1
-  grep -q '<title>[^<]*スキルガイド</title>' "$f" 2>/dev/null && is_doc_viewer=1
-  if grep -q 'id="s1"' "$f" 2>/dev/null && grep -q 'id="s2"' "$f" 2>/dev/null; then
-    is_doc_viewer=1
-  fi
 
-  if [ "$is_doc_viewer" -eq 1 ]; then
-    skip "色トークン・テーマ（文書ビューア型は適用除外）"
+  local old_l; old_l=$(grep -cE "$OLD_COLORS_LIGHT" "$f" 2>/dev/null || true)
+  [ "$old_l" -eq 0 ] && pass "色トークン-旧値禁止（ライト）" || fail "色トークン-旧値禁止（ライト）: ${old_l}件"
+
+  local old_d; old_d=$(grep -cE "$OLD_COLORS_DARK" "$f" 2>/dev/null || true)
+  [ "$old_d" -eq 0 ] && pass "色トークン-旧値禁止（ダーク）" || fail "色トークン-旧値禁止（ダーク）: ${old_d}件"
+
+  grep -q '#F6F8FA' "$f" 2>/dev/null && pass "色トークン-新値存在（panel-2）" || fail "色トークン-新値存在（panel-2）"
+
+  if grep -q 'prefers-color-scheme: dark' "$f" 2>/dev/null && grep -q 'data-theme="dark"' "$f" 2>/dev/null; then
+    pass "テーマ-ダーク定義"
   else
-    local old_l; old_l=$(grep -cE "$OLD_COLORS_LIGHT" "$f" 2>/dev/null || true)
-    [ "$old_l" -eq 0 ] && pass "色トークン-旧値禁止（ライト）" || fail "色トークン-旧値禁止（ライト）: ${old_l}件"
-    local old_d; old_d=$(grep -cE "$OLD_COLORS_DARK" "$f" 2>/dev/null || true)
-    [ "$old_d" -eq 0 ] && pass "色トークン-旧値禁止（ダーク）" || fail "色トークン-旧値禁止（ダーク）: ${old_d}件"
-    grep -q '#F6F8FA' "$f" 2>/dev/null && pass "色トークン-新値存在（panel-2）" || fail "色トークン-新値存在（panel-2）"
-    if grep -q 'prefers-color-scheme: dark' "$f" 2>/dev/null && grep -q 'data-theme="dark"' "$f" 2>/dev/null; then pass "テーマ-ダーク定義"; else fail "テーマ-ダーク定義"; fi
+    fail "テーマ-ダーク定義"
   fi
 
   if [ "$is_doc_viewer" -eq 1 ]; then
@@ -113,6 +112,36 @@ check_file() {
   fi
 }
 
+check_matrix_template_tokens() {
+  local script_dir templates_dir template definitions markers
+  script_dir="$(cd "$(dirname "$0")" && pwd)"
+  templates_dir="$script_dir/../templates/matrix"
+  echo ""
+  echo "=== matrix template token contract ==="
+  for template in \
+    permission-screen-matrix-template.html \
+    permission-function-matrix-template.html \
+    crud-matrix-template.html \
+    traceability-template.html; do
+    if [ ! -f "$templates_dir/$template" ]; then
+      fail "matrix token-template実在: $template"
+      continue
+    fi
+    definitions="$(grep -cE '^[[:space:]]*--[a-z0-9-]+[[:space:]]*:' "$templates_dir/$template" 2>/dev/null || true)"
+    markers="$(grep -cF '/* TOKENS_CSS */' "$templates_dir/$template" 2>/dev/null || true)"
+    if [ "$definitions" -eq 0 ]; then
+      pass "matrix token実値定義0件: $template"
+    else
+      fail "matrix token実値定義0件: $template（${definitions}件残存）"
+    fi
+    if [ "$markers" -eq 1 ]; then
+      pass "matrix token注入placeholder 1件: $template"
+    else
+      fail "matrix token注入placeholder 1件: $template（${markers}件）"
+    fi
+  done
+}
+
 target="${1:-.}"
 if [ -d "$target" ]; then
   while IFS= read -r f; do
@@ -121,6 +150,8 @@ if [ -d "$target" ]; then
 else
   check_file "$target"
 fi
+
+check_matrix_template_tokens
 
 echo ""
 echo "========================================="

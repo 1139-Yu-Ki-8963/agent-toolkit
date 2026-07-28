@@ -143,7 +143,7 @@
 <body>
 <header class="topbar">
   <a class="brand" href="../index.html">
-    <span class="brand-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:middle"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zM13 9V3.5L18.5 9H13z"/></svg></span>
+    <span class="brand-icon"><svg role="img" aria-label="ドキュメント" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:middle"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zM13 9V3.5L18.5 9H13z"/></svg></span>
     <span class="brand-title">サンプルプロジェクト</span>
     <span class="brand-sub">設計ポータル</span>
   </a>
@@ -155,31 +155,17 @@
   </div>
 </header>
 
+<h1 hidden>ディレクトリ構成規約</h1>
+
 <main class="doc-main" id="doc-content"></main>
 
 <footer class="footer"></footer>
 
-<script type="text/plain" id="doc-md">
-# ディレクトリ構成規約
-
-## 概要
-
-リポジトリのルート直下ディレクトリ構成と、各ディレクトリの用途・配置規則を定義する。
-
-## ルート直下ディレクトリ
-
-- ソースコード・設定・ドキュメントの配置先を用途別に分離する
-- 許可リスト外の新規ディレクトリ作成は事前確認を要する
-
-## 配置規則
-
-- 一時ファイル・スクラッチは正規の退避先に置く
-- 生成物と手編集ファイルを同一ディレクトリに混在させない
-</script>
+<script type="application/json" id="doc-md">"# ディレクトリ構成規約\n\n## 概要\n\nリポジトリのルート直下ディレクトリ構成と、各ディレクトリの用途・配置規則を定義する。\n\n## ルート直下ディレクトリ\n\n- ソースコード・設定・ドキュメントの配置先を用途別に分離する\n- 許可リスト外の新規ディレクトリ作成は事前確認を要する\n\n## 配置規則\n\n- 一時ファイル・スクラッチは正規の退避先に置く\n- 生成物と手編集ファイルを同一ディレクトリに混在させない"</script>
 
 <script>
 (function () {
-  var src = document.getElementById('doc-md').textContent;
+  var src = JSON.parse(document.getElementById('doc-md').textContent || '""');
 
   // frontmatter 除去
   src = src.replace(/^\s*---[\s\S]*?---\s*/, '');

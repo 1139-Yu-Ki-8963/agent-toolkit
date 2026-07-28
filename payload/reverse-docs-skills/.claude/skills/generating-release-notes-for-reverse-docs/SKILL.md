@@ -147,9 +147,3 @@ page-data.json の保存先は `$CLAUDE_JOB_DIR/tmp/release-notes-page-data.json
 
 - `../../../shared/scripts/detail-pages/page-data-schema.md` — page-data.json のスキーマ定義
 - `references/generating-release-notes-for-reverse-docs-guide.html` — スキルガイド
-
-<!-- delivery-owner-contracts:start -->
-```json
-[{"failure_return_to":"orchestrating-reverse-docs-flow","id":"release-notes","inputs":["git history"],"outputs":["リリースノート.html"],"stop_conditions":["履歴なし"],"validator":"check-delivery-artifacts.sh"}]
-```
-<!-- delivery-owner-contracts:end -->

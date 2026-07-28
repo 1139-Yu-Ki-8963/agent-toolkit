@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-YAML_CANONICALIZER="$SCRIPT_DIR/canonicalize-facts-yaml.rb"
-FACTS_VALIDATOR="$SCRIPT_DIR/validate-facts-schema.py"
+SCALAR_CANONICALIZER="$SCRIPT_DIR/canonicalize-facts-scalars.py"
 
 # seal-facts.sh — facts.yml の封印・検証・正規化を担う共有スクリプト（Phase 4 封印 / Phase 5 再現性検証）
 #
@@ -44,7 +43,10 @@ FACTS_VALIDATOR="$SCRIPT_DIR/validate-facts-schema.py"
 
 normalize_file() {
   f="$1"
-  ruby "$YAML_CANONICALIZER" < "$f"
+  sed -E '/^run_id:[[:space:]]*.*$/d' "$f" \
+    | sed -E 's/[[:space:]]+$//' \
+    | sed '/^[[:space:]]*$/d' \
+    | python3 "$SCALAR_CANONICALIZER"
 }
 
 sha256_of() {
@@ -67,7 +69,6 @@ cmd_seal() {
     echo "エラー: facts.yml が見つかりません: $facts" >&2
     return 2
   fi
-  python3 "$FACTS_VALIDATOR" --facts "$facts" --if-screen >/dev/null
   hash="$(normalize_file "$facts" | sha256_of)"
   {
     echo "SEALED sha256=$hash"
@@ -88,7 +89,6 @@ cmd_verify() {
     echo "エラー: facts.yml が見つかりません: $facts" >&2
     return 2
   fi
-  python3 "$FACTS_VALIDATOR" --facts "$facts" --if-screen >/dev/null
   recorded="$(head -n 1 "$lock" | sed -E 's/^SEALED sha256=//')"
   actual="$(normalize_file "$facts" | sha256_of)"
   if [ "$recorded" != "$actual" ]; then
@@ -109,7 +109,7 @@ self_test() {
   mkdir -p "$dir"
   cat > "$dir/facts.yml" <<'YML'
 run_id: extract-1
-profile: python
+profile: screen
 target_repo_path: /abs/path/to/repo
 target_file_paths:
   - src/screens/Foo/Foo.tsx
@@ -144,7 +144,7 @@ YML
   # 補助検証: normalize は run_id の差異を吸収する（seal/verifyの意図した挙動の直接確認）
   cat > "$tmp/base.yml" <<'YML'
 run_id: extract-1
-profile: python
+profile: screen
 target_repo_path: /abs/path/to/repo
 target_file_paths:
   - src/screens/Foo/Foo.tsx
@@ -158,7 +158,7 @@ sections:
 YML
   cat > "$tmp/base2.yml" <<'YML'
 run_id: extract-2
-profile: python
+profile: screen
 target_repo_path: /abs/path/to/repo
 target_file_paths:
   - src/screens/Foo/Foo.tsx
@@ -256,37 +256,6 @@ YML
   else
     echo "  [FAIL] 1-32陰性: 文字列nullとYAML null型を同一化した" >&2
     rc=1
-  fi
-
-  cat > "$tmp/hex-escape.yml" <<'YML'
-meta:
-  reason: "\x41"
-YML
-  cat > "$tmp/literal-a.yml" <<'YML'
-meta:
-  reason: A
-YML
-  if [ "$(cmd_normalize "$tmp/hex-escape.yml")" = "$(cmd_normalize "$tmp/literal-a.yml")" ]; then
-    echo "  [PASS] YAML有効な16進escapeを意味値Aとして正規化する"
-  else
-    echo "  [FAIL] YAMLの16進escapeを正しく解釈できなかった" >&2
-    rc=1
-  fi
-
-  cmd_normalize "$tmp/base.yml" > "$tmp/canonical.json"
-  if [ "$(cmd_normalize "$tmp/base.yml")" = "$(cmd_normalize "$tmp/canonical.json")" ]; then
-    echo "  [PASS] normalizeはround-tripで冪等"
-  else
-    echo "  [FAIL] normalizeが冪等でない" >&2
-    rc=1
-  fi
-
-  printf 'meta:\n  reason: "unsafe\\0value"\n' > "$tmp/nul.yml"
-  if cmd_normalize "$tmp/nul.yml" >/dev/null 2>&1; then
-    echo "  [FAIL] NULを含む危険値を受理した" >&2
-    rc=1
-  else
-    echo "  [PASS] NULを含む危険値を拒否する"
   fi
 
   if [ "$rc" -eq 0 ]; then

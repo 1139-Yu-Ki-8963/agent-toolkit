@@ -201,7 +201,6 @@ for f in "${ALL_PAGES[@]}"; do
   mkdir -p "$blockdir"
   extract_json_blocks "$f" "$blockdir"
   count="$(cat "$blockdir/count" 2>/dev/null || echo 0)"
-  case "$count" in ''|*[!0-9]*) count=0 ;; esac
   if [ "$count" -eq 0 ]; then
     report PASS "json-埋め込み妥当" "$page" "JSON ブロックなし（対象外）"
     continue

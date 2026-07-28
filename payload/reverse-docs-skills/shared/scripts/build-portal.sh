@@ -7,6 +7,8 @@ command -v jq >/dev/null 2>&1 || { echo "ERROR: jq is required but not installed
 #
 # Usage:
 #   bash shared/scripts/build-portal.sh <target_repo_path> <output_dir> <portal_output_dir>
+#     [--catalog <portal-catalog.json>] [--generated-at <ISO-8601>]
+#     [--portal-only] [--screen-manifest <screen-manifest.ext.json>]
 #
 # 処理:
 #   1. 対象リポジトリのコード行数・ファイル数を計測（FE/BE分離）
@@ -18,8 +20,28 @@ command -v jq >/dev/null 2>&1 || { echo "ERROR: jq is required but not installed
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 TEMPLATE="$SCRIPT_DIR/../templates/portal-template.html"
 TOKENS_CSS_FILE="$SCRIPT_DIR/../templates/tokens.css"
+DEFAULT_CATALOG="$SCRIPT_DIR/../references/portal-catalog.json"
+CATALOG_ENGINE="$SCRIPT_DIR/portal-catalog.mjs"
 
 source "$SCRIPT_DIR/render-template.sh"
+
+script_safe_json() {
+  node -e '
+    let input = "";
+    process.stdin.setEncoding("utf8");
+    process.stdin.on("data", chunk => { input += chunk; });
+    process.stdin.on("end", () => {
+      process.stdout.write(
+        input
+          .replaceAll("<", "\\u003c")
+          .replaceAll(">", "\\u003e")
+          .replaceAll("&", "\\u0026")
+          .replaceAll("\u2028", "\\u2028")
+          .replaceAll("\u2029", "\\u2029")
+      );
+    });
+  '
+}
 
 # --- self-test ---
 if [ "${1:-}" = "--self-test" ]; then
@@ -88,7 +110,7 @@ FIXTURE2
   echo '{"total":100,"fe":50,"be":50,"file_count":10}' > "$test3_docs/code-metrics.json"
   echo '<html><body>test glossary</body></html>' > "$test3_docs/用語辞書.html"
   "$SCRIPT_DIR/build-portal.sh" "$test3_dir" "$test3_docs" "$test3_portal" 2>/dev/null
-  if grep -q "用語辞書" "$test3_portal/index.html" && grep -q "プロジェクト基盤情報" "$test3_portal/index.html"; then
+  if grep -q "用語辞書" "$test3_portal/index.html" && grep -q "基盤情報" "$test3_portal/index.html"; then
     echo "PASS: --self-test ケース3（FUTURE_PAGES 実在チェック, 用語辞書カード出現）"
   else
     echo "FAIL: --self-test ケース3" >&2; rm -rf "$test3_dir"; exit 1
@@ -106,8 +128,8 @@ FIXTURE2
   "$SCRIPT_DIR/build-portal.sh" "$test4_repo" "$test4_docs" "$test4_portal" 2>/dev/null
   bom_ok=0
   fm_ok=0
-  grep -q 'BOM付き見出し' "$test4_portal/index.html" 2>/dev/null && bom_ok=1
-  grep -q 'FM後の見出し' "$test4_portal/index.html" 2>/dev/null && fm_ok=1
+  grep -q 'BOM付き見出し' "$test4_docs/プロジェクト共通/bom-test.html" 2>/dev/null && bom_ok=1
+  grep -q 'FM後の見出し' "$test4_docs/プロジェクト共通/fm-test.html" 2>/dev/null && fm_ok=1
   if [ "$bom_ok" = "1" ] && [ "$fm_ok" = "1" ]; then
     echo "PASS: --self-test ケース4（BOM付き・frontmatter付きmdからのタイトル抽出）"
   else
@@ -131,9 +153,6 @@ FIXTURE2
   if ! grep -q 'テスト文書' "$test5_docs/プロジェクト共通/test-doc.html"; then
     echo "FAIL: ケース5 — test-doc.html にタイトルが含まれていない" >&2; rm -rf "$test5_dir"; exit 1
   fi
-  if ! grep -q 'test-doc.html' "$test5_portal/index.html"; then
-    echo "FAIL: ケース5 — ポータルのリンク先が .html になっていない" >&2; rm -rf "$test5_dir"; exit 1
-  fi
   if grep -q 'test-doc\.md"' "$test5_portal/index.html"; then
     echo "FAIL: ケース5 — ポータルにまだ .md リンクが残っている" >&2; rm -rf "$test5_dir"; exit 1
   fi
@@ -151,10 +170,7 @@ FIXTURE2
   if [ ! -f "$test5b_docs/プロジェクト共通/規約/sub-rule.html" ]; then
     echo "FAIL: ケース5b — サブディレクトリ内に sub-rule.html が生成されていない" >&2; rm -rf "$test5b_dir"; exit 1
   fi
-  if ! grep -q 'プロジェクト共通/規約/sub-rule.html' "$test5b_portal/index.html"; then
-    echo "FAIL: ケース5b — ポータルのリンクが 規約/ サブディレクトリを保持していない" >&2; rm -rf "$test5b_dir"; exit 1
-  fi
-  echo "PASS: --self-test ケース5b（サブディレクトリ配下の共通文書リンク解決）"
+  echo "PASS: --self-test ケース5b（サブディレクトリ配下の共通文書変換）"
   rm -rf "$test5b_dir"
 
   echo "--- ケース5c: 共通文書の戻るリンクが出力先の深さに応じた相対パスになる ---"
@@ -246,7 +262,8 @@ FIXTURE2
   mkdir -p "$test6d_repo" "$test6d_docs/プロジェクト共通" "$test6d_portal"
   printf '# 見出し\n\nテキスト <!-- コメント --> テキスト' > "$test6d_docs/プロジェクト共通/comment-inline-test.md"
   "$0" "$test6d_repo" "$test6d_docs" "$test6d_portal" 2>/dev/null
-  if ! grep -q 'テキスト <!-- コメント --> テキスト' "$test6d_docs/プロジェクト共通/comment-inline-test.html" 2>/dev/null; then
+  test6d_json="$(sed -n 's|.*<script type="application/json" id="doc-md">\([^<]*\)</script>.*|\1|p' "$test6d_docs/プロジェクト共通/comment-inline-test.html")"
+  if ! printf '%s' "$test6d_json" | jq -r . | grep -Fq 'テキスト <!-- コメント --> テキスト'; then
     echo "FAIL: ケース6d — 行内コメントを含む行が変化した" >&2
     rm -rf "$test6d_dir"
     exit 1
@@ -268,7 +285,7 @@ FIXTURE2
     "unitCount": 5,
     "analyzedFiles": 10
   },
-  "units": []
+  "units": [{},{},{},{},{}]
 }
 </script>
 </body></html>
@@ -298,7 +315,7 @@ TEST7HTML
     "screenCount": 12,
     "analyzedFiles": 20
   },
-  "screens": []
+  "screens": [{},{},{},{},{},{},{},{},{},{},{},{}]
 }
 </script>
 </body></html>
@@ -345,7 +362,7 @@ TEST8HTML
   fi
   rm -rf "$test9_dir"
 
-  echo "--- ケース10: 旧レイアウト（output_dir 直下の一覧）への後方互換探索 ---"
+  echo "--- ケース10: catalog外の旧レイアウトを暗黙発見しない ---"
   test10_dir="$(mktemp -d)"
   test10_repo="$test10_dir/repo"
   test10_docs="$test10_dir/docs"
@@ -354,18 +371,17 @@ TEST8HTML
   cat > "$test10_docs/API一覧/API一覧.html" <<'TEST10HTML'
 <!DOCTYPE html><html><head><title>API一覧</title></head><body>
 <script type="application/json" id="unit-manifest">
-{"detectionSummary":{"unitCount":7,"analyzedFiles":10},"units":[]}
+{"detectionSummary":{"unitCount":7,"analyzedFiles":10},"units":[{},{},{},{},{},{},{}]}
 </script>
 </body></html>
 TEST10HTML
   echo '{"total":100,"fe":50,"be":50,"file_count":10}' > "$test10_portal/code-metrics.json"
   "$SCRIPT_DIR/build-portal.sh" "$test10_repo" "$test10_docs" "$test10_portal" 2>/dev/null
-  if tr -d ' \n' < "$test10_portal/index.html" | grep -q '"kind":"api".*"count":7' \
-     && grep -q 'API一覧/API一覧.html' "$test10_portal/index.html" \
-     && ! grep -q '一覧/API一覧/API一覧.html' "$test10_portal/index.html"; then
-    echo "PASS: --self-test ケース10（旧レイアウト後方互換探索, count=7, リンクも旧レイアウトを指す）"
+  if ! grep -q '"kind":"api"' "$test10_portal/index.html" \
+     && ! grep -q '"title":"API一覧"' "$test10_portal/index.html"; then
+    echo "PASS: --self-test ケース10（catalog外artifact typeを暗黙発見しない）"
   else
-    echo "FAIL: --self-test ケース10（旧レイアウト後方互換探索）" >&2
+    echo "FAIL: --self-test ケース10（catalog外artifact typeを発見した）" >&2
     rm -rf "$test10_dir"
     exit 1
   fi
@@ -408,18 +424,110 @@ TEST12HTML
   fi
   rm -rf "$test12_dir"
 
+  echo "--- ケース13: --portal-only は index.html 以外を変更しない ---"
+  test13_dir="$(mktemp -d)"
+  test13_repo="$test13_dir/repo"
+  test13_docs="$test13_dir/docs"
+  mkdir -p "$test13_repo" "$test13_docs/プロジェクト共通"
+  printf '# 変換禁止\n\n本文。\n' > "$test13_docs/プロジェクト共通/source.md"
+  printf '<html><body>glossary</body></html>\n' > "$test13_docs/用語辞書.html"
+  before13="$(find "$test13_docs" -type f ! -name index.html -print0 | sort -z | xargs -0 shasum -a 256)"
+  "$SCRIPT_DIR/build-portal.sh" "$test13_repo" "$test13_docs" "$test13_docs" --portal-only --generated-at 2026-07-28T00:00:00Z 2>/dev/null
+  after13="$(find "$test13_docs" -type f ! -name index.html -print0 | sort -z | xargs -0 shasum -a 256)"
+  if [ "$before13" != "$after13" ] || [ -f "$test13_docs/プロジェクト共通/source.html" ]; then
+    echo "FAIL: --portal-only changed or generated a non-index artifact" >&2
+    rm -rf "$test13_dir"
+    exit 1
+  fi
+  echo "PASS: --portal-only preserves every non-index artifact"
+  rm -rf "$test13_dir"
+
+  echo "--- ケース14: generatedAt と manifestContentHash の受け渡し ---"
+  test14_dir="$(mktemp -d)"
+  test14_repo="$test14_dir/repo"
+  test14_docs="$test14_dir/docs"
+  mkdir -p "$test14_repo" "$test14_docs"
+  test14_hash="$(printf 'a%.0s' {1..64})"
+  printf '{"manifestContentHash":"%s","screens":[]}\n' "$test14_hash" > "$test14_dir/screen-manifest.ext.json"
+  "$SCRIPT_DIR/build-portal.sh" "$test14_repo" "$test14_docs" "$test14_docs" \
+    --portal-only --generated-at 2026-07-28T00:00:00Z \
+    --screen-manifest "$test14_dir/screen-manifest.ext.json" 2>/dev/null
+  if ! grep -q '更新: 2026-07-28' "$test14_docs/index.html" \
+     || ! grep -q '"manifestContentHash":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"' "$test14_docs/index.html"; then
+    echo "FAIL: generatedAt or manifestContentHash was not embedded" >&2
+    rm -rf "$test14_dir"
+    exit 1
+  fi
+  echo "PASS: generatedAt and manifestContentHash are embedded deterministically"
+  rm -rf "$test14_dir"
+
+  echo "--- ケース15: 埋め込みJSONのscript終端文字列を無害化して復号できる ---"
+  test15_dir="$(mktemp -d)"
+  test15_repo="$test15_dir/repo"
+  test15_docs="$test15_dir/docs"
+  mkdir -p "$test15_repo" "$test15_docs/pages"
+  printf '<h1>&lt;/script&gt;&lt;img src=x onerror=alert(1)&gt;</h1>\n' > "$test15_docs/pages/unsafe.html"
+  cat > "$test15_dir/catalog.json" <<'TEST15CATALOG'
+{"schemaVersion":1,"categories":[{"key":"unsafe","label":"Unsafe","group":"Test","icon":"warning","sub":"test","blueprints":[{"kind":"unsafe-page","label":"Unsafe page","icon":"warning","desc":"test","dir":"pages","generator":"test-generator","unit":"件","countFormat":"detail","discovery":{"artifactType":"unsafe-page","root":"output-dir","glob":"pages/*.html","matchKind":"file","titleSource":"html-h1","dirSource":"match-parent","instanceKeySource":"relative-path","sort":"relative-path-bytewise"}}]}]}
+TEST15CATALOG
+  "$SCRIPT_DIR/build-portal.sh" "$test15_repo" "$test15_docs" "$test15_docs" \
+    --portal-only --catalog "$test15_dir/catalog.json" --generated-at 2026-07-28T00:00:00Z 2>/dev/null
+  if grep -Fq '</script><img' "$test15_docs/index.html"; then
+    echo "FAIL: raw script terminator escaped from embedded JSON" >&2
+    rm -rf "$test15_dir"
+    exit 1
+  fi
+  if ! node -e '
+    const fs = require("fs");
+    const source = fs.readFileSync(process.argv[1], "utf8");
+    const match = source.match(/<script type="application\/json" id="portal-categories">([\s\S]*?)<\/script>/);
+    if (!match) process.exit(1);
+    const title = JSON.parse(match[1])[0].tools[0].title;
+    if (title !== "</script><img src=x onerror=alert(1)>") process.exit(1);
+  ' "$test15_docs/index.html"; then
+    echo "FAIL: script-safe JSON did not decode to the original title" >&2
+    rm -rf "$test15_dir"
+    exit 1
+  fi
+  echo "PASS: embedded JSON is script-safe and JSON.parse restores the original title"
+  rm -rf "$test15_dir"
+
   exit 0
 fi
 
 # --- 引数チェック ---
 if [ $# -lt 3 ]; then
-  echo "Usage: $0 <target_repo_path> <output_dir> <portal_output_dir>" >&2
+  echo "Usage: $0 <target_repo_path> <output_dir> <portal_output_dir> [--catalog <file>] [--generated-at <ISO-8601>] [--portal-only] [--screen-manifest <file>]" >&2
   exit 1
 fi
 
 TARGET_REPO="$1"
 DOCS_ROOT="$2"
 PORTAL_DIR="$3"
+shift 3
+
+CATALOG="$DEFAULT_CATALOG"
+GENERATED_AT=""
+PORTAL_ONLY=0
+SCREEN_MANIFEST=""
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --catalog)
+      [ $# -ge 2 ] || { echo "ERROR: --catalog requires a value" >&2; exit 1; }
+      CATALOG="$2"; shift 2 ;;
+    --generated-at)
+      [ $# -ge 2 ] || { echo "ERROR: --generated-at requires a value" >&2; exit 1; }
+      GENERATED_AT="$2"; shift 2 ;;
+    --portal-only)
+      PORTAL_ONLY=1; shift ;;
+    --screen-manifest)
+      [ $# -ge 2 ] || { echo "ERROR: --screen-manifest requires a value" >&2; exit 1; }
+      SCREEN_MANIFEST="$2"; shift 2 ;;
+    *)
+      echo "ERROR: unknown argument: $1" >&2
+      exit 1 ;;
+  esac
+done
 
 if [ ! -d "$TARGET_REPO" ]; then
   echo "ERROR: target_repo_path does not exist: $TARGET_REPO" >&2
@@ -430,9 +538,26 @@ if [ ! -f "$TEMPLATE" ]; then
   echo "ERROR: template not found: $TEMPLATE" >&2
   exit 1
 fi
+if [ ! -f "$CATALOG" ]; then
+  echo "ERROR: portal catalog not found: $CATALOG" >&2
+  exit 1
+fi
+if [ ! -f "$CATALOG_ENGINE" ]; then
+  echo "ERROR: portal catalog engine not found: $CATALOG_ENGINE" >&2
+  exit 1
+fi
+if [ -n "$SCREEN_MANIFEST" ] && [ ! -f "$SCREEN_MANIFEST" ]; then
+  echo "ERROR: screen manifest not found: $SCREEN_MANIFEST" >&2
+  exit 1
+fi
 
 PROJECT_NAME="$(basename "$TARGET_REPO")"
-GENERATED_DATE="$(date +%Y-%m-%d)"
+if [ -n "$GENERATED_AT" ]; then
+  GENERATED_DATE="$(node -e 'const d=new Date(process.argv[1]);if(Number.isNaN(d.valueOf()))process.exit(1);process.stdout.write(d.toISOString().slice(0,10))' "$GENERATED_AT")" \
+    || { echo "ERROR: --generated-at must be a valid ISO-8601 value" >&2; exit 1; }
+else
+  GENERATED_DATE="$(date +%Y-%m-%d)"
+fi
 
 # 対象リポジトリの短縮コミット SHA（git 管理外は空文字）
 if git -C "$TARGET_REPO" rev-parse --git-dir >/dev/null 2>&1; then
@@ -461,107 +586,15 @@ else
   previous_json="null"
 fi
 
-# --- 2. 一覧件数の抽出（規模側の kinds データもここで同時に収集し重複計測を避ける） ---
-get_kind_label() { case "$1" in screen) echo "画面";; api) echo "API";; batch) echo "バッチ";; table) echo "テーブル";; report) echo "帳票";; external) echo "外部連携";; feature) echo "機能";; esac; }
-get_kind_dir() { case "$1" in screen) echo "画面一覧";; api) echo "API一覧";; batch) echo "バッチ一覧";; table) echo "テーブル一覧";; report) echo "帳票一覧";; external) echo "外部連携一覧";; feature) echo "機能一覧";; esac; }
-get_kind_icon() { case "$1" in screen) echo "monitor";; api) echo "api";; batch) echo "schedule";; table) echo "table_chart";; report) echo "print";; external) echo "link";; feature) echo "category";; esac; }
-get_kind_desc() { case "$1" in screen) echo "全画面のルートパス・コンポーネント構成・複雑度プロファイルを一覧化。";; api) echo "全エンドポイントのパス・HTTPメソッド・リクエスト/レスポンス型・認証要否を網羅。";; batch) echo "定期実行ジョブのスケジュール・入出力・依存関係・実行頻度を整理。";; table) echo "全テーブルのカラム定義・型・制約・外部キーリレーションを一覧化。";; report) echo "出力帳票のフォーマット・生成条件・出力先・利用者を整理。";; external) echo "外部サービスとの連携インターフェース・プロトコル・認証方式を整理。";; feature) echo "画面一覧を入力に導出した機能単位の一覧（派生一覧）。";; esac; }
-get_kind_unit() { case "$1" in screen) echo "画面";; api) echo "エンドポイント";; batch) echo "ジョブ";; table) echo "テーブル";; report) echo "帳票";; external) echo "連携先";; feature) echo "機能";; esac; }
-get_kind_group() { case "$1" in screen) echo "画面";; api) echo "API";; batch) echo "バッチ";; table) echo "データ";; report) echo "帳票";; external) echo "外部連携";; feature) echo "機能";; esac; }
-
-excluded_kinds=""
-excluded_json="$DOCS_ROOT/一覧/excluded-kinds.json"
-if [ -f "$excluded_json" ]; then
-  excluded_kinds="$(jq -r '.[]' "$excluded_json" 2>/dev/null || true)"
-fi
-
-is_excluded() {
-  local kind="$1"
-  echo "$excluded_kinds" | grep -qx "$kind" 2>/dev/null
-}
-
-docs_relative=""
-if [ -d "$DOCS_ROOT" ]; then
-  docs_relative="$(python3 -c "import os; print(os.path.relpath('$DOCS_ROOT', '$PORTAL_DIR'))" 2>/dev/null || echo "../docs")"
-fi
-
-KINDS_ORDER="screen api batch table report external feature"
-
-list_tools_json=""
+# --- 2. portal catalogが一覧件数とカードを一括導出する ---
 kinds_json="[]"
-for kind in $KINDS_ORDER; do
-  if is_excluded "$kind"; then
-    continue
-  fi
-
-  label="$(get_kind_label "$kind")"
-  dir_name="$(get_kind_dir "$kind")"
-  icon="$(get_kind_icon "$kind")"
-  desc="$(get_kind_desc "$kind")"
-  unit="$(get_kind_unit "$kind")"
-  group="$(get_kind_group "$kind")"
-  # 正本レイアウト: <output_dir>/一覧/<種別>一覧/<種別>一覧.html
-  # 後方互換: 旧レイアウト（<output_dir>/<種別>一覧/<種別>一覧.html）にも実在すれば採用する
-  list_rel_path="一覧/$dir_name/${label}一覧.html"
-  html_file="$DOCS_ROOT/$list_rel_path"
-  if [ ! -f "$html_file" ] && [ -f "$DOCS_ROOT/$dir_name/${label}一覧.html" ]; then
-    list_rel_path="$dir_name/${label}一覧.html"
-    html_file="$DOCS_ROOT/$list_rel_path"
-  fi
-  unit_count=0
-
-  if [ -f "$html_file" ]; then
-    # 画面一覧は screen-manifest、他種別は unit-manifest
-    if [ "$kind" = "screen" ]; then
-      manifest_id="screen-manifest"
-      count_field="screenCount"
-    else
-      manifest_id="unit-manifest"
-      count_field="unitCount"
-    fi
-    # 複数行 JSON 対応: awk で script タグ間の内容を抽出（コメント内の誤マッチ防止のため type 属性も要求）
-    manifest_json="$(awk -v id="$manifest_id" '
-      /type="application\/json"/ && /id="'"$manifest_id"'"/ { found=1; sub(/.*>/, ""); if (/<\/script>/) { sub(/<\/script>.*/, ""); print; found=0; next } }
-      found && /<\/script>/ { sub(/<\/script>.*/, ""); print; found=0; next }
-      found { print }
-    ' "$html_file" 2>/dev/null || true)"
-    if [ -n "$manifest_json" ]; then
-      unit_count="$(echo "$manifest_json" | jq -r ".detectionSummary.$count_field // 0" 2>/dev/null || echo 0)"
-    fi
-  fi
-
-  href="$docs_relative/$list_rel_path"
-  count_text="$unit_count $unit →"
-
-  [ -n "$list_tools_json" ] && list_tools_json="$list_tools_json,"
-  list_tools_json="$list_tools_json{\"title\":\"${label}一覧\",\"group\":\"$group\",\"icon\":\"$icon\",\"href\":\"$href\",\"desc\":\"$desc\",\"count\":\"$count_text\"}"
-
-  kinds_json="$(jq -n -c --argjson arr "$kinds_json" --arg kind "$kind" --arg label "$label" --argjson count "$unit_count" --arg unit "$unit" --arg href "$href" \
-    '$arr + [{kind:$kind,label:$label,count:$count,unit:$unit,href:$href}]')"
-
-  if [ "$kind" = "screen" ]; then
-    transition_file="$DOCS_ROOT/画面遷移図.html"
-    if [ -f "$transition_file" ]; then
-      transition_href="$docs_relative/画面遷移図.html"
-      [ -n "$list_tools_json" ] && list_tools_json="$list_tools_json,"
-      list_tools_json="$list_tools_json{\"title\":\"画面遷移図\",\"group\":\"画面\",\"icon\":\"account_tree\",\"href\":\"$transition_href\",\"desc\":\"画面一覧とコード走査から生成する画面遷移マップ。ブラウザバック・条件付き遷移に対応。\",\"count\":\"詳細を見る\"}"
-    fi
-  fi
-
-  if [ "$kind" = "table" ]; then
-    er_file="$DOCS_ROOT/ER図.html"
-    if [ -f "$er_file" ]; then
-      er_href="$docs_relative/ER図.html"
-      [ -n "$list_tools_json" ] && list_tools_json="$list_tools_json,"
-      list_tools_json="$list_tools_json{\"title\":\"ER図\",\"group\":\"データ\",\"icon\":\"schema\",\"href\":\"$er_href\",\"desc\":\"テーブル一覧と外部キー定義から生成するエンティティ関連図。\",\"count\":\"詳細を見る\"}"
-    fi
-  fi
-done
 
 # --- 3. 共通文書リストの収集（standards: 規約系 / design: 設計書系 に分割。category-grouping/rule.md 準拠） ---
 common_dir="$DOCS_ROOT/プロジェクト共通"
 COMMON_DOC_TEMPLATE_FILE="$SCRIPT_DIR/../templates/common-doc-template.html"
+docs_relative="$(python3 -c 'import os,sys; print(os.path.relpath(sys.argv[1], sys.argv[2]))' "$DOCS_ROOT" "$PORTAL_DIR" 2>/dev/null || echo ".")"
 
+if [ "$PORTAL_ONLY" -eq 0 ]; then
 standards_titles=()
 standards_icons=()
 standards_hrefs=()
@@ -600,6 +633,11 @@ prepare_md_content() {
   '
 }
 
+# JSON文字列として埋め込み、HTMLパーサーが </script> を終端として解釈しないよう「<」をUnicode escapeする。
+markdown_to_script_json() {
+  printf '%s' "$1" | jq -Rsr 'tojson | gsub("<"; "\\u003c")'
+}
+
 if [ -d "$common_dir" ]; then
   while IFS= read -r md_file; do
     title="$(sed -e '1s/^\xEF\xBB\xBF//' "$md_file" | grep -m1 '^#' | sed 's/^##* *//' 2>/dev/null || true)"
@@ -616,6 +654,7 @@ if [ -d "$common_dir" ]; then
       portal_index_rel="$(python3 -c "import os,sys; print(os.path.relpath(sys.argv[1], sys.argv[2]))" "$PORTAL_DIR" "$(dirname "$md_file")" 2>/dev/null || echo "..")"
       portal_index_href="$portal_index_rel/index.html"
       md_content="$(prepare_md_content "$md_file")"
+      md_content_json="$(markdown_to_script_json "$md_content")"
       local_render_args=(
         "{{PROJECT_NAME}}" "$PROJECT_NAME"
         "{{DOC_TITLE}}" "$(html_escape "$title")"
@@ -626,7 +665,7 @@ if [ -d "$common_dir" ]; then
       if [ -f "$TOKENS_CSS_FILE" ]; then
         local_render_args+=("/* TOKENS_CSS */" "$(cat "$TOKENS_CSS_FILE")")
       fi
-      local_render_args+=("{{DOC_MARKDOWN}}" "$md_content")
+      local_render_args+=("{{DOC_MARKDOWN_JSON}}" "$md_content_json")
       doc_html="$(render_template "$(cat "$COMMON_DOC_TEMPLATE_FILE")" "${local_render_args[@]}")"
       printf '%s\n' "$doc_html" > "$html_file"
     fi
@@ -728,6 +767,7 @@ if [ -d "$DOCS_ROOT/画面" ] && [ -f "$SCREEN_DOC_TEMPLATE_FILE" ]; then
       html_basename="$(basename "$target_md" .md).html"
       html_file="$(dirname "$target_md")/$html_basename"
       md_content="$(prepare_md_content "$target_md")"
+      md_content_json="$(markdown_to_script_json "$md_content")"
 
       # 戻るリンク（ブランド）: 出力先の深さに応じてポータル index.html への相対パスを計算する
       portal_index_rel="$(python3 -c "import os,sys; print(os.path.relpath(sys.argv[1], sys.argv[2]))" "$PORTAL_DIR" "$(dirname "$target_md")" 2>/dev/null || echo "..")"
@@ -740,23 +780,23 @@ if [ -d "$DOCS_ROOT/画面" ] && [ -f "$SCREEN_DOC_TEMPLATE_FILE" ]; then
       doc_nav="<a class=\"back-link\" href=\"$screen_index_href\">← 画面一覧へ戻る</a>"
       if [ -f "$base_md" ]; then
         if [ "$target_md" = "$base_md" ]; then
-          doc_nav="$doc_nav<span class=\"doc-tab active\">基本設計</span>"
+          doc_nav="$doc_nav<span class=\"nav-item active\">基本設計</span>"
         else
-          doc_nav="$doc_nav<a class=\"doc-tab\" href=\"../基本設計/画面基本設計書.html\">基本設計</a>"
+          doc_nav="$doc_nav<a class=\"nav-item\" href=\"../基本設計/画面基本設計書.html\">基本設計</a>"
         fi
       fi
       if [ -f "$detail_md" ]; then
         if [ "$target_md" = "$detail_md" ]; then
-          doc_nav="$doc_nav<span class=\"doc-tab active\">詳細設計</span>"
+          doc_nav="$doc_nav<span class=\"nav-item active\">詳細設計</span>"
         else
-          doc_nav="$doc_nav<a class=\"doc-tab\" href=\"../詳細設計/画面詳細設計書.html\">詳細設計</a>"
+          doc_nav="$doc_nav<a class=\"nav-item\" href=\"../詳細設計/画面詳細設計書.html\">詳細設計</a>"
         fi
       fi
       if [ -f "${screen_dir}シーケンス図.html" ]; then
-        doc_nav="$doc_nav<a class=\"doc-tab\" href=\"../シーケンス図.html\">シーケンス図</a>"
+        doc_nav="$doc_nav<a class=\"nav-item\" href=\"../シーケンス図.html\">シーケンス図</a>"
       fi
       if [ -f "${screen_dir}テスト項目書/単体テスト仕様書.html" ]; then
-        doc_nav="$doc_nav<a class=\"doc-tab\" href=\"../テスト項目書/単体テスト仕様書.html\">テストケース</a>"
+        doc_nav="$doc_nav<a class=\"nav-item\" href=\"../テスト項目書/単体テスト仕様書.html\">テストケース</a>"
       fi
 
       screen_render_args=(
@@ -770,105 +810,13 @@ if [ -d "$DOCS_ROOT/画面" ] && [ -f "$SCREEN_DOC_TEMPLATE_FILE" ]; then
       if [ -f "$TOKENS_CSS_FILE" ]; then
         screen_render_args+=("/* TOKENS_CSS */" "$(cat "$TOKENS_CSS_FILE")")
       fi
-      screen_render_args+=("{{DOC_MARKDOWN}}" "$md_content")
+      screen_render_args+=("{{DOC_MARKDOWN_JSON}}" "$md_content_json")
 
       screen_doc_html="$(render_template "$(cat "$SCREEN_DOC_TEMPLATE_FILE")" "${screen_render_args[@]}")"
       printf '%s\n' "$screen_doc_html" > "$html_file"
     done
   done
 fi
-
-# --- 4. 将来ページ受け口（FUTURE_PAGES）: output_dir 直下に該当 HTML が実在する場合のみカード化 ---
-get_future_label() { case "$1" in glossary) echo "用語辞書";; techstack) echo "技術スタック";; transition) echo "画面遷移図";; er) echo "ER図";; env) echo "環境構築手順";; entity-state) echo "状態遷移図";; release-notes) echo "リリースノート";; design-system) echo "デザインシステム";; component-inventory) echo "コンポーネント棚卸し";; icon-catalog) echo "アイコンカタログ";; esac; }
-get_future_file() { case "$1" in glossary) echo "用語辞書.html";; techstack) echo "技術スタック.html";; transition) echo "画面遷移図.html";; er) echo "ER図.html";; env) echo "環境構築手順.html";; entity-state) echo "状態遷移図.html";; release-notes) echo "リリースノート.html";; design-system) echo "デザインシステム.html";; component-inventory) echo "コンポーネント棚卸し.html";; icon-catalog) echo "アイコンカタログ.html";; esac; }
-get_future_icon() { case "$1" in glossary) echo "dictionary";; techstack) echo "stacks";; transition) echo "account_tree";; er) echo "schema";; env) echo "terminal";; entity-state) echo "sync";; release-notes) echo "history";; design-system) echo "palette";; component-inventory) echo "widgets";; icon-catalog) echo "emoji_symbols";; esac; }
-get_future_desc() { case "$1" in glossary) echo "業務用語・技術用語・略語の定義とコード上の対応識別子の対訳。";; techstack) echo "言語・フレームワーク・主要依存パッケージのバージョンと採用箇所の整理。";; transition) echo "画面一覧とコード走査から生成する画面遷移マップ。ブラウザバック・条件付き遷移に対応。";; er) echo "テーブル一覧と外部キー定義から生成するエンティティ関連図。";; env) echo "環境構築・必須ツール・ポート割当の整理。";; entity-state) echo "データ設計の状態遷移表から生成するエンティティ状態遷移図。";; release-notes) echo "git log から自動生成した変更履歴。";; design-system) echo "CSS トークン（色・タイポ・スペーシング）の可視化。";; component-inventory) echo "コンポーネントの一覧・Props・被参照数。";; icon-catalog) echo "使用アイコンの一覧と使用箇所。";; esac; }
-FUTURE_ORDER="techstack env glossary entity-state release-notes design-system component-inventory icon-catalog"
-
-# デザイン系3種（design-system/component-inventory/icon-catalog）は別カテゴリ「デザイン」に振り分ける。
-# それ以外（release-notes 含む）は従来どおり「プロジェクト基盤情報」カテゴリに入れる。
-future_tools_json=""
-design_tools_json=""
-for key in $FUTURE_ORDER; do
-  label="$(get_future_label "$key")"
-  file="$(get_future_file "$key")"
-  icon="$(get_future_icon "$key")"
-  desc="$(get_future_desc "$key")"
-  html_file="$DOCS_ROOT/$file"
-
-  if [ -f "$html_file" ]; then
-    href="$docs_relative/$file"
-    entry_json="{\"title\":\"$label\",\"icon\":\"$icon\",\"href\":\"$href\",\"desc\":\"$desc\",\"count\":\"詳細を見る\"}"
-    case "$key" in
-      design-system|component-inventory|icon-catalog)
-        [ -n "$design_tools_json" ] && design_tools_json="$design_tools_json,"
-        design_tools_json="$design_tools_json$entry_json"
-        ;;
-      *)
-        [ -n "$future_tools_json" ] && future_tools_json="$future_tools_json,"
-        future_tools_json="$future_tools_json$entry_json"
-        ;;
-    esac
-  fi
-done
-
-# --- 4d. 派生一覧（message / test_viewpoint）: KINDS_ORDER には含めず、
-#     feature 同様に HTML 実在チェックのみで一覧カテゴリのカードとして追加する ---
-get_derived_label() { case "$1" in message) echo "メッセージ一覧";; test_viewpoint) echo "テスト観点表";; esac; }
-get_derived_dir() { case "$1" in message) echo "メッセージ一覧";; test_viewpoint) echo "テスト観点表";; esac; }
-get_derived_icon() { case "$1" in message) echo "chat";; test_viewpoint) echo "checklist";; esac; }
-get_derived_desc() { case "$1" in message) echo "UI メッセージ・エラー文の正本一覧。";; test_viewpoint) echo "全画面のテスト観点を横断集約。";; esac; }
-DERIVED_ORDER="message test_viewpoint"
-
-for key in $DERIVED_ORDER; do
-  label="$(get_derived_label "$key")"
-  dir_name="$(get_derived_dir "$key")"
-  icon="$(get_derived_icon "$key")"
-  desc="$(get_derived_desc "$key")"
-  # 正本レイアウト: <output_dir>/一覧/<ディレクトリ>/<ラベル>.html
-  # 後方互換: 旧レイアウト（<output_dir>/<ディレクトリ>/<ラベル>.html）にも実在すれば採用する
-  derived_rel_path="一覧/$dir_name/${label}.html"
-  html_file="$DOCS_ROOT/$derived_rel_path"
-  if [ ! -f "$html_file" ] && [ -f "$DOCS_ROOT/$dir_name/${label}.html" ]; then
-    derived_rel_path="$dir_name/${label}.html"
-    html_file="$DOCS_ROOT/$derived_rel_path"
-  fi
-
-  if [ -f "$html_file" ]; then
-    href="$docs_relative/$derived_rel_path"
-    [ -n "$list_tools_json" ] && list_tools_json="$list_tools_json,"
-    list_tools_json="$list_tools_json{\"title\":\"$label\",\"group\":\"$label\",\"icon\":\"$icon\",\"href\":\"$href\",\"desc\":\"$desc\",\"count\":\"詳細を見る\"}"
-  fi
-done
-
-# --- 4b. マトリクス・対応表 4 ページ: output_dir/マトリクス・対応表/<名前>/<名前>.html が実在する場合のみカード化 ---
-get_cross_label() { case "$1" in permscreen) echo "権限画面マトリクス";; permfeature) echo "権限機能マトリクス";; crud) echo "CRUD図";; trace) echo "追跡可能性";; esac; }
-get_cross_icon() { case "$1" in permscreen) echo "lock";; permfeature) echo "key";; crud) echo "grid_on";; trace) echo "route";; esac; }
-get_cross_desc() { case "$1" in permscreen) echo "ロール×画面の行×列で閲覧可否の関係を示すマトリクス。";; permfeature) echo "ロール×機能の行×列で操作可否（CRUD）の関係を示すマトリクス。";; crud) echo "機能×テーブルの行×列でCRUD操作の関係を示すマトリクス。";; trace) echo "画面-API-テーブルの対応連鎖を行×列で追跡する対応表。";; esac; }
-get_cross_group() { case "$1" in permscreen) echo "権限";; permfeature) echo "権限";; crud) echo "データ";; trace) echo "データ";; esac; }
-CROSS_ORDER="permscreen permfeature crud trace"
-
-cross_tools_json=""
-for key in $CROSS_ORDER; do
-  label="$(get_cross_label "$key")"
-  icon="$(get_cross_icon "$key")"
-  desc="$(get_cross_desc "$key")"
-  group="$(get_cross_group "$key")"
-  html_file="$DOCS_ROOT/マトリクス・対応表/$label/$label.html"
-
-  if [ -f "$html_file" ]; then
-    href="$docs_relative/マトリクス・対応表/$label/$label.html"
-    [ -n "$cross_tools_json" ] && cross_tools_json="$cross_tools_json,"
-    cross_tools_json="$cross_tools_json{\"title\":\"$label\",\"group\":\"$group\",\"icon\":\"$icon\",\"href\":\"$href\",\"desc\":\"$desc\",\"count\":\"詳細を見る\"}"
-  fi
-done
-
-# --- 4c. AI設定資産ページ: output_dir/AI設定資産/AI設定資産.html が実在する場合のみカード化 ---
-ai_tools_json=""
-ai_html_file="$DOCS_ROOT/AI設定資産/AI設定資産.html"
-if [ -f "$ai_html_file" ]; then
-  ai_href="$docs_relative/AI設定資産/AI設定資産.html"
-  ai_tools_json="{\"title\":\"AI設定資産\",\"icon\":\"smart_toy\",\"href\":\"$ai_href\",\"desc\":\"rules・skills・サブエージェント・hooks の設定資産の俯瞰。\",\"count\":\"詳細を見る\"}"
 fi
 
 # --- 5. テスト計測・鮮度・前回値の JSON 化 ---
@@ -913,38 +861,28 @@ scale_json="$(jq -n --argjson total "$total_lines" --argjson fe "$fe_lines" --ar
 METRICS_JSON="$(jq -n --argjson scale "$scale_json" --argjson tests "$tests_json" --argjson freshness "$freshness_json" --argjson previous "$previous_json" \
   '{scale:$scale, tests:$tests, freshness:$freshness, previous:$previous}')"
 
-standards_count="${#standards_titles[@]}"
-design_common_count="${#design_doc_titles[@]}"
-future_count=0
-if [ -n "$future_tools_json" ]; then
-  future_count="$(echo "$future_tools_json" | grep -o '{' | wc -l | awk '{print $1}')"
-fi
-design_count=0
-if [ -n "$design_tools_json" ]; then
-  design_count="$(echo "$design_tools_json" | grep -o '{' | wc -l | awk '{print $1}')"
+catalog_render="$(node "$CATALOG_ENGINE" render --catalog "$CATALOG" --output-root "$DOCS_ROOT" --portal-dir "$PORTAL_DIR")"
+CATEGORIES_JSON="$(jq -c '.categories' <<<"$catalog_render")"
+kinds_json="$(jq -c '.kinds' <<<"$catalog_render")"
+
+# catalogから導出した一覧件数をmetricsにも渡す。カード定義と規模表示の二重管理をしない。
+scale_json="$(jq -n --argjson total "$total_lines" --argjson fe "$fe_lines" --argjson be "$be_lines" --argjson files "$total_files" --argjson kinds "$kinds_json" \
+  '{total:$total, fe:$fe, be:$be, files:$files, kinds:$kinds}')"
+METRICS_JSON="$(jq -n --argjson scale "$scale_json" --argjson tests "$tests_json" --argjson freshness "$freshness_json" --argjson previous "$previous_json" \
+  '{scale:$scale, tests:$tests, freshness:$freshness, previous:$previous}')"
+
+SCREEN_MANIFEST_JSON="{}"
+if [ -n "$SCREEN_MANIFEST" ]; then
+  SCREEN_MANIFEST_JSON="$(jq -c '.' "$SCREEN_MANIFEST")" \
+    || { echo "ERROR: invalid screen manifest JSON: $SCREEN_MANIFEST" >&2; exit 1; }
+  manifest_content_hash="$(jq -r '.manifestContentHash // empty' "$SCREEN_MANIFEST")"
+  [[ "$manifest_content_hash" =~ ^[0-9a-f]{64}$ ]] \
+    || { echo "ERROR: screen manifest must contain a 64 lowercase hex manifestContentHash" >&2; exit 1; }
 fi
 
-CATEGORIES_JSON="["
-if [ "$future_count" -gt 0 ]; then
-  CATEGORIES_JSON="$CATEGORIES_JSON{\"id\":\"project\",\"title\":\"プロジェクト基盤情報\",\"icon\":\"domain\",\"sub\":\"プロジェクトの前提を横断的にまとめた資料\",\"tools\":[$future_tools_json]},"
-fi
-if [ "$standards_count" -gt 0 ]; then
-  CATEGORIES_JSON="$CATEGORIES_JSON{\"id\":\"standards\",\"title\":\"規約\",\"icon\":\"rule\",\"sub\":\"全体に適用されるルール・規約\",\"tools\":[$standards_tools_json]},"
-fi
-if [ "$design_common_count" -gt 0 ]; then
-  CATEGORIES_JSON="$CATEGORIES_JSON{\"id\":\"design\",\"title\":\"設計書\",\"icon\":\"architecture\",\"sub\":\"基盤・共通・データ・UIの設計方針を記述した文書\",\"tools\":[$design_common_json]},"
-fi
-CATEGORIES_JSON="$CATEGORIES_JSON{\"id\":\"list\",\"title\":\"一覧・設計図\",\"icon\":\"list_alt\",\"sub\":\"画面・API・テーブル等の種別一覧と、画面遷移図・ER図\",\"tools\":[$list_tools_json]}"
-if [ -n "$cross_tools_json" ]; then
-  CATEGORIES_JSON="$CATEGORIES_JSON,{\"id\":\"cross\",\"title\":\"マトリクス・対応表\",\"icon\":\"grid_view\",\"sub\":\"画面・機能・テーブル・権限の関係を行×列で示すマトリクス\",\"tools\":[$cross_tools_json]}"
-fi
-if [ -n "$ai_tools_json" ]; then
-  CATEGORIES_JSON="$CATEGORIES_JSON,{\"id\":\"ai\",\"title\":\"AI設定資産\",\"icon\":\"smart_toy\",\"sub\":\"rules・skills・サブエージェント・hooks の設定を俯瞰する資料\",\"tools\":[$ai_tools_json]}"
-fi
-if [ "$design_count" -gt 0 ]; then
-  CATEGORIES_JSON="$CATEGORIES_JSON,{\"id\":\"design-tools\",\"title\":\"デザイン\",\"icon\":\"palette\",\"sub\":\"デザイントークン・コンポーネント・アイコンの可視化\",\"tools\":[$design_tools_json]}"
-fi
-CATEGORIES_JSON="$CATEGORIES_JSON]"
+METRICS_JSON_SAFE="$(printf '%s' "$METRICS_JSON" | script_safe_json)"
+CATEGORIES_JSON_SAFE="$(printf '%s' "$CATEGORIES_JSON" | script_safe_json)"
+SCREEN_MANIFEST_JSON_SAFE="$(printf '%s' "$SCREEN_MANIFEST_JSON" | script_safe_json)"
 
 # --- 7. テンプレート置換・出力 ---
 mkdir -p "$PORTAL_DIR"
@@ -954,8 +892,9 @@ render_args=(
   "{{PROJECT_NAME}}" "$PROJECT_NAME"
   "{{GENERATED_DATE}}" "$GENERATED_DATE"
   "{{COMMIT_SHORT}}" "$COMMIT_SHORT"
-  "{{METRICS_JSON}}" "$METRICS_JSON"
-  "{{CATEGORIES_JSON}}" "$CATEGORIES_JSON"
+  "{{METRICS_JSON}}" "$METRICS_JSON_SAFE"
+  "{{CATEGORIES_JSON}}" "$CATEGORIES_JSON_SAFE"
+  "{{SCREEN_MANIFEST_JSON}}" "$SCREEN_MANIFEST_JSON_SAFE"
 )
 # トークンCSS注入（tokens.css が存在する場合のみ）
 if [ -f "$TOKENS_CSS_FILE" ]; then

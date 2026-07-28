@@ -1,1156 +1,296 @@
-{
-  "schema_version": 1,
-  "run_id": "gold-standard-1",
-  "profile": "screen",
-  "unit_kind": "screen",
-  "unit_id": "item-list",
-  "target_repo_path": "../original",
-  "target_file_paths": [
-    "ItemListPage.tsx",
-    "ItemListColumns.tsx",
-    "ItemListPage.gql.ts"
-  ],
-  "meta": {
-    "source_repo": "../original",
-    "source_ref": "1461edf6622279be106230f6fb90a6d9d68840fd240fece8d30bcd626773e7dc",
-    "route": {
-      "value": "/items",
-      "evidence": {
-        "path": "ItemListPage.tsx",
-        "line_start": 101,
-        "line_end": 101,
-        "source_sha256": "a23eaf9eb7f3db060a5f1f77d491dac14ae4bf02d804878cd23aea9016f98bf9",
-        "excerpt": "  const handleAddClick = () => navigate('/items/new');",
-        "observed_start": 39,
-        "observed_end": 45
-      }
-    }
-  },
-  "sections": {
-    "import": {
-      "reason": "",
-      "items": [
-        {
-          "key": "import-react-useEffect",
-          "value": "import { useEffect, useState } from 'react';",
-          "evidence": {
-            "path": "ItemListPage.tsx",
-            "line_start": 1,
-            "line_end": 1,
-            "source_sha256": "a23eaf9eb7f3db060a5f1f77d491dac14ae4bf02d804878cd23aea9016f98bf9",
-            "excerpt": "import { useEffect, useState } from 'react';",
-            "observed_start": 0,
-            "observed_end": 44
-          }
-        },
-        {
-          "key": "import-react-useState",
-          "value": "import { useEffect, useState } from 'react';",
-          "evidence": {
-            "path": "ItemListPage.tsx",
-            "line_start": 1,
-            "line_end": 1,
-            "source_sha256": "a23eaf9eb7f3db060a5f1f77d491dac14ae4bf02d804878cd23aea9016f98bf9",
-            "excerpt": "import { useEffect, useState } from 'react';",
-            "observed_start": 0,
-            "observed_end": 44
-          }
-        },
-        {
-          "key": "import-react-router-useNavigate",
-          "value": "import { useNavigate } from 'react-router-dom';",
-          "evidence": {
-            "path": "ItemListPage.tsx",
-            "line_start": 2,
-            "line_end": 2,
-            "source_sha256": "a23eaf9eb7f3db060a5f1f77d491dac14ae4bf02d804878cd23aea9016f98bf9",
-            "excerpt": "import { useNavigate } from 'react-router-dom';",
-            "observed_start": 0,
-            "observed_end": 47
-          }
-        },
-        {
-          "key": "import-mui-Box",
-          "value": "import Box from '@mui/material/Box';",
-          "evidence": {
-            "path": "ItemListPage.tsx",
-            "line_start": 3,
-            "line_end": 3,
-            "source_sha256": "a23eaf9eb7f3db060a5f1f77d491dac14ae4bf02d804878cd23aea9016f98bf9",
-            "excerpt": "import Box from '@mui/material/Box';",
-            "observed_start": 0,
-            "observed_end": 36
-          }
-        },
-        {
-          "key": "import-mui-Button",
-          "value": "import Button from '@mui/material/Button';",
-          "evidence": {
-            "path": "ItemListPage.tsx",
-            "line_start": 4,
-            "line_end": 4,
-            "source_sha256": "a23eaf9eb7f3db060a5f1f77d491dac14ae4bf02d804878cd23aea9016f98bf9",
-            "excerpt": "import Button from '@mui/material/Button';",
-            "observed_start": 0,
-            "observed_end": 42
-          }
-        },
-        {
-          "key": "import-mui-CircularProgress",
-          "value": "import CircularProgress from '@mui/material/CircularProgress';",
-          "evidence": {
-            "path": "ItemListPage.tsx",
-            "line_start": 5,
-            "line_end": 5,
-            "source_sha256": "a23eaf9eb7f3db060a5f1f77d491dac14ae4bf02d804878cd23aea9016f98bf9",
-            "excerpt": "import CircularProgress from '@mui/material/CircularProgress';",
-            "observed_start": 0,
-            "observed_end": 62
-          }
-        },
-        {
-          "key": "import-mui-Table",
-          "value": "import Table from '@mui/material/Table';",
-          "evidence": {
-            "path": "ItemListPage.tsx",
-            "line_start": 6,
-            "line_end": 6,
-            "source_sha256": "a23eaf9eb7f3db060a5f1f77d491dac14ae4bf02d804878cd23aea9016f98bf9",
-            "excerpt": "import Table from '@mui/material/Table';",
-            "observed_start": 0,
-            "observed_end": 40
-          }
-        },
-        {
-          "key": "import-mui-TableBody",
-          "value": "import TableBody from '@mui/material/TableBody';",
-          "evidence": {
-            "path": "ItemListPage.tsx",
-            "line_start": 7,
-            "line_end": 7,
-            "source_sha256": "a23eaf9eb7f3db060a5f1f77d491dac14ae4bf02d804878cd23aea9016f98bf9",
-            "excerpt": "import TableBody from '@mui/material/TableBody';",
-            "observed_start": 0,
-            "observed_end": 48
-          }
-        },
-        {
-          "key": "import-mui-TableCell",
-          "value": "import TableCell from '@mui/material/TableCell';",
-          "evidence": {
-            "path": "ItemListPage.tsx",
-            "line_start": 8,
-            "line_end": 8,
-            "source_sha256": "a23eaf9eb7f3db060a5f1f77d491dac14ae4bf02d804878cd23aea9016f98bf9",
-            "excerpt": "import TableCell from '@mui/material/TableCell';",
-            "observed_start": 0,
-            "observed_end": 48
-          }
-        },
-        {
-          "key": "import-mui-TableContainer",
-          "value": "import TableContainer from '@mui/material/TableContainer';",
-          "evidence": {
-            "path": "ItemListPage.tsx",
-            "line_start": 9,
-            "line_end": 9,
-            "source_sha256": "a23eaf9eb7f3db060a5f1f77d491dac14ae4bf02d804878cd23aea9016f98bf9",
-            "excerpt": "import TableContainer from '@mui/material/TableContainer';",
-            "observed_start": 0,
-            "observed_end": 58
-          }
-        },
-        {
-          "key": "import-mui-TableRow",
-          "value": "import TableRow from '@mui/material/TableRow';",
-          "evidence": {
-            "path": "ItemListPage.tsx",
-            "line_start": 10,
-            "line_end": 10,
-            "source_sha256": "a23eaf9eb7f3db060a5f1f77d491dac14ae4bf02d804878cd23aea9016f98bf9",
-            "excerpt": "import TableRow from '@mui/material/TableRow';",
-            "observed_start": 0,
-            "observed_end": 46
-          }
-        },
-        {
-          "key": "import-mui-TextField",
-          "value": "import TextField from '@mui/material/TextField';",
-          "evidence": {
-            "path": "ItemListPage.tsx",
-            "line_start": 11,
-            "line_end": 11,
-            "source_sha256": "a23eaf9eb7f3db060a5f1f77d491dac14ae4bf02d804878cd23aea9016f98bf9",
-            "excerpt": "import TextField from '@mui/material/TextField';",
-            "observed_start": 0,
-            "observed_end": 48
-          }
-        },
-        {
-          "key": "import-mui-Typography",
-          "value": "import Typography from '@mui/material/Typography';",
-          "evidence": {
-            "path": "ItemListPage.tsx",
-            "line_start": 12,
-            "line_end": 12,
-            "source_sha256": "a23eaf9eb7f3db060a5f1f77d491dac14ae4bf02d804878cd23aea9016f98bf9",
-            "excerpt": "import Typography from '@mui/material/Typography';",
-            "observed_start": 0,
-            "observed_end": 50
-          }
-        },
-        {
-          "key": "import-mui-Paper",
-          "value": "import Paper from '@mui/material/Paper';",
-          "evidence": {
-            "path": "ItemListPage.tsx",
-            "line_start": 13,
-            "line_end": 13,
-            "source_sha256": "a23eaf9eb7f3db060a5f1f77d491dac14ae4bf02d804878cd23aea9016f98bf9",
-            "excerpt": "import Paper from '@mui/material/Paper';",
-            "observed_start": 0,
-            "observed_end": 40
-          }
-        },
-        {
-          "key": "import-ItemListColumns-columns",
-          "value": "import { columns, HeaderCell, sortItemsByKey, SortDirection } from './ItemListColumns';",
-          "evidence": {
-            "path": "ItemListPage.tsx",
-            "line_start": 15,
-            "line_end": 15,
-            "source_sha256": "a23eaf9eb7f3db060a5f1f77d491dac14ae4bf02d804878cd23aea9016f98bf9",
-            "excerpt": "import { columns, HeaderCell, sortItemsByKey, SortDirection } from './ItemListColumns';",
-            "observed_start": 0,
-            "observed_end": 87
-          }
-        },
-        {
-          "key": "import-ItemListColumns-HeaderCell",
-          "value": "import { columns, HeaderCell, sortItemsByKey, SortDirection } from './ItemListColumns';",
-          "evidence": {
-            "path": "ItemListPage.tsx",
-            "line_start": 15,
-            "line_end": 15,
-            "source_sha256": "a23eaf9eb7f3db060a5f1f77d491dac14ae4bf02d804878cd23aea9016f98bf9",
-            "excerpt": "import { columns, HeaderCell, sortItemsByKey, SortDirection } from './ItemListColumns';",
-            "observed_start": 0,
-            "observed_end": 87
-          }
-        },
-        {
-          "key": "import-ItemListColumns-sortItemsByKey",
-          "value": "import { columns, HeaderCell, sortItemsByKey, SortDirection } from './ItemListColumns';",
-          "evidence": {
-            "path": "ItemListPage.tsx",
-            "line_start": 15,
-            "line_end": 15,
-            "source_sha256": "a23eaf9eb7f3db060a5f1f77d491dac14ae4bf02d804878cd23aea9016f98bf9",
-            "excerpt": "import { columns, HeaderCell, sortItemsByKey, SortDirection } from './ItemListColumns';",
-            "observed_start": 0,
-            "observed_end": 87
-          }
-        },
-        {
-          "key": "import-ItemListColumns-SortDirection",
-          "value": "import { columns, HeaderCell, sortItemsByKey, SortDirection } from './ItemListColumns';",
-          "evidence": {
-            "path": "ItemListPage.tsx",
-            "line_start": 15,
-            "line_end": 15,
-            "source_sha256": "a23eaf9eb7f3db060a5f1f77d491dac14ae4bf02d804878cd23aea9016f98bf9",
-            "excerpt": "import { columns, HeaderCell, sortItemsByKey, SortDirection } from './ItemListColumns';",
-            "observed_start": 0,
-            "observed_end": 87
-          }
-        },
-        {
-          "key": "import-gql-ITEM_LIST_QUERY",
-          "value": "import { ITEM_LIST_QUERY, DELETE_ITEM_MUTATION } from './ItemListPage.gql';",
-          "evidence": {
-            "path": "ItemListPage.tsx",
-            "line_start": 16,
-            "line_end": 16,
-            "source_sha256": "a23eaf9eb7f3db060a5f1f77d491dac14ae4bf02d804878cd23aea9016f98bf9",
-            "excerpt": "import { ITEM_LIST_QUERY, DELETE_ITEM_MUTATION } from './ItemListPage.gql';",
-            "observed_start": 0,
-            "observed_end": 75
-          }
-        },
-        {
-          "key": "import-gql-DELETE_ITEM_MUTATION",
-          "value": "import { ITEM_LIST_QUERY, DELETE_ITEM_MUTATION } from './ItemListPage.gql';",
-          "evidence": {
-            "path": "ItemListPage.tsx",
-            "line_start": 16,
-            "line_end": 16,
-            "source_sha256": "a23eaf9eb7f3db060a5f1f77d491dac14ae4bf02d804878cd23aea9016f98bf9",
-            "excerpt": "import { ITEM_LIST_QUERY, DELETE_ITEM_MUTATION } from './ItemListPage.gql';",
-            "observed_start": 0,
-            "observed_end": 75
-          }
-        },
-        {
-          "key": "import-type-ItemListResponse",
-          "value": "import type { ItemListResponse, ItemListVariables } from './ItemListPage.gql';",
-          "evidence": {
-            "path": "ItemListPage.tsx",
-            "line_start": 17,
-            "line_end": 17,
-            "source_sha256": "a23eaf9eb7f3db060a5f1f77d491dac14ae4bf02d804878cd23aea9016f98bf9",
-            "excerpt": "import type { ItemListResponse, ItemListVariables } from './ItemListPage.gql';",
-            "observed_start": 0,
-            "observed_end": 78
-          }
-        },
-        {
-          "key": "import-type-ItemListVariables",
-          "value": "import type { ItemListResponse, ItemListVariables } from './ItemListPage.gql';",
-          "evidence": {
-            "path": "ItemListPage.tsx",
-            "line_start": 17,
-            "line_end": 17,
-            "source_sha256": "a23eaf9eb7f3db060a5f1f77d491dac14ae4bf02d804878cd23aea9016f98bf9",
-            "excerpt": "import type { ItemListResponse, ItemListVariables } from './ItemListPage.gql';",
-            "observed_start": 0,
-            "observed_end": 78
-          }
-        },
-        {
-          "key": "import-styled",
-          "value": "import { styled } from '@mui/material/styles';",
-          "evidence": {
-            "path": "ItemListColumns.tsx",
-            "line_start": 1,
-            "line_end": 1,
-            "source_sha256": "94e0b8aa15af86d0b746cba4d852dc60651d91ead957f4df390ff5cf2df1dd5d",
-            "excerpt": "import { styled } from '@mui/material/styles';",
-            "observed_start": 0,
-            "observed_end": 46
-          }
-        },
-        {
-          "key": "import-columns-TableCell",
-          "value": "import TableCell from '@mui/material/TableCell';",
-          "evidence": {
-            "path": "ItemListColumns.tsx",
-            "line_start": 2,
-            "line_end": 2,
-            "source_sha256": "94e0b8aa15af86d0b746cba4d852dc60651d91ead957f4df390ff5cf2df1dd5d",
-            "excerpt": "import TableCell from '@mui/material/TableCell';",
-            "observed_start": 0,
-            "observed_end": 48
-          }
-        }
-      ]
-    },
-    "export_type": {
-      "reason": "",
-      "items": [
-        {
-          "key": "export-ItemListPage-default",
-          "value": "export default function ItemListPage()",
-          "evidence": {
-            "path": "ItemListPage.tsx",
-            "line_start": 53,
-            "line_end": 53,
-            "source_sha256": "a23eaf9eb7f3db060a5f1f77d491dac14ae4bf02d804878cd23aea9016f98bf9",
-            "excerpt": "export default function ItemListPage() {",
-            "observed_start": 0,
-            "observed_end": 38
-          }
-        },
-        {
-          "key": "export-columns",
-          "value": "export const columns: ColumnConfig[]",
-          "evidence": {
-            "path": "ItemListColumns.tsx",
-            "line_start": 25,
-            "line_end": 25,
-            "source_sha256": "94e0b8aa15af86d0b746cba4d852dc60651d91ead957f4df390ff5cf2df1dd5d",
-            "excerpt": "export const columns: ColumnConfig[] = [",
-            "observed_start": 0,
-            "observed_end": 36
-          }
-        },
-        {
-          "key": "export-sortItemsByKey",
-          "value": "export function sortItemsByKey<T extends SortableItem>(",
-          "evidence": {
-            "path": "ItemListColumns.tsx",
-            "line_start": 39,
-            "line_end": 39,
-            "source_sha256": "94e0b8aa15af86d0b746cba4d852dc60651d91ead957f4df390ff5cf2df1dd5d",
-            "excerpt": "export function sortItemsByKey<T extends SortableItem>(",
-            "observed_start": 0,
-            "observed_end": 55
-          }
-        },
-        {
-          "key": "export-HeaderCell",
-          "value": "export const HeaderCell = styled(TableCell)(({ theme }) => ({",
-          "evidence": {
-            "path": "ItemListColumns.tsx",
-            "line_start": 56,
-            "line_end": 56,
-            "source_sha256": "94e0b8aa15af86d0b746cba4d852dc60651d91ead957f4df390ff5cf2df1dd5d",
-            "excerpt": "export const HeaderCell = styled(TableCell)(({ theme }) => ({",
-            "observed_start": 0,
-            "observed_end": 61
-          }
-        },
-        {
-          "key": "export-SortDirection",
-          "value": "export { SortDirection }",
-          "evidence": {
-            "path": "ItemListColumns.tsx",
-            "line_start": 62,
-            "line_end": 62,
-            "source_sha256": "94e0b8aa15af86d0b746cba4d852dc60651d91ead957f4df390ff5cf2df1dd5d",
-            "excerpt": "export { SortDirection };",
-            "observed_start": 0,
-            "observed_end": 24
-          }
-        },
-        {
-          "key": "type-SortDirection-Asc",
-          "value": "Asc = 'asc'",
-          "evidence": {
-            "path": "ItemListColumns.tsx",
-            "line_start": 20,
-            "line_end": 20,
-            "source_sha256": "94e0b8aa15af86d0b746cba4d852dc60651d91ead957f4df390ff5cf2df1dd5d",
-            "excerpt": "  Asc = 'asc',",
-            "observed_start": 0,
-            "observed_end": 11
-          }
-        },
-        {
-          "key": "type-SortDirection-Desc",
-          "value": "Desc = 'desc'",
-          "evidence": {
-            "path": "ItemListColumns.tsx",
-            "line_start": 21,
-            "line_end": 21,
-            "source_sha256": "94e0b8aa15af86d0b746cba4d852dc60651d91ead957f4df390ff5cf2df1dd5d",
-            "excerpt": "  Desc = 'desc',",
-            "observed_start": 0,
-            "observed_end": 13
-          }
-        },
-        {
-          "key": "export-ColumnConfig",
-          "value": "export type { ColumnConfig }",
-          "evidence": {
-            "path": "ItemListColumns.tsx",
-            "line_start": 63,
-            "line_end": 63,
-            "source_sha256": "94e0b8aa15af86d0b746cba4d852dc60651d91ead957f4df390ff5cf2df1dd5d",
-            "excerpt": "export type { ColumnConfig };",
-            "observed_start": 0,
-            "observed_end": 28
-          }
-        },
-        {
-          "key": "type-ItemListResponse",
-          "value": "export type ItemListResponse = {",
-          "evidence": {
-            "path": "ItemListPage.gql.ts",
-            "line_start": 2,
-            "line_end": 2,
-            "source_sha256": "895265d2d309c7f366af2f33a862635d542d28030b5651b821e762dbfe1dcb5e",
-            "excerpt": "export type ItemListResponse = {",
-            "observed_start": 0,
-            "observed_end": 32
-          }
-        },
-        {
-          "key": "type-ItemListVariables",
-          "value": "export type ItemListVariables = {",
-          "evidence": {
-            "path": "ItemListPage.gql.ts",
-            "line_start": 15,
-            "line_end": 15,
-            "source_sha256": "895265d2d309c7f366af2f33a862635d542d28030b5651b821e762dbfe1dcb5e",
-            "excerpt": "export type ItemListVariables = {",
-            "observed_start": 0,
-            "observed_end": 33
-          }
-        },
-        {
-          "key": "type-DeleteItemVariables",
-          "value": "export type DeleteItemVariables = {",
-          "evidence": {
-            "path": "ItemListPage.gql.ts",
-            "line_start": 22,
-            "line_end": 22,
-            "source_sha256": "895265d2d309c7f366af2f33a862635d542d28030b5651b821e762dbfe1dcb5e",
-            "excerpt": "export type DeleteItemVariables = {",
-            "observed_start": 0,
-            "observed_end": 35
-          }
-        },
-        {
-          "key": "export-ITEM_LIST_QUERY",
-          "value": "export const ITEM_LIST_QUERY = /* GraphQL */ `",
-          "evidence": {
-            "path": "ItemListPage.gql.ts",
-            "line_start": 26,
-            "line_end": 26,
-            "source_sha256": "895265d2d309c7f366af2f33a862635d542d28030b5651b821e762dbfe1dcb5e",
-            "excerpt": "export const ITEM_LIST_QUERY = /* GraphQL */ `",
-            "observed_start": 0,
-            "observed_end": 46
-          }
-        },
-        {
-          "key": "export-DELETE_ITEM_MUTATION",
-          "value": "export const DELETE_ITEM_MUTATION = /* GraphQL */ `",
-          "evidence": {
-            "path": "ItemListPage.gql.ts",
-            "line_start": 40,
-            "line_end": 40,
-            "source_sha256": "895265d2d309c7f366af2f33a862635d542d28030b5651b821e762dbfe1dcb5e",
-            "excerpt": "export const DELETE_ITEM_MUTATION = /* GraphQL */ `",
-            "observed_start": 0,
-            "observed_end": 51
-          }
-        }
-      ]
-    },
-    "const": {
-      "reason": "",
-      "items": [
-        {
-          "key": "const-PAGE_SIZE-20",
-          "value": "20",
-          "evidence": {
-            "path": "ItemListPage.tsx",
-            "line_start": 27,
-            "line_end": 27,
-            "source_sha256": "a23eaf9eb7f3db060a5f1f77d491dac14ae4bf02d804878cd23aea9016f98bf9",
-            "excerpt": "const PAGE_SIZE = 20;",
-            "observed_start": 18,
-            "observed_end": 20
-          }
-        },
-        {
-          "key": "const-columns-code",
-          "value": "{ key: 'code', label: 'コード', width: 120, sortable: true }",
-          "evidence": {
-            "path": "ItemListColumns.tsx",
-            "line_start": 26,
-            "line_end": 26,
-            "source_sha256": "94e0b8aa15af86d0b746cba4d852dc60651d91ead957f4df390ff5cf2df1dd5d",
-            "excerpt": "  { key: 'code', label: 'コード', width: 120, sortable: true },",
-            "observed_start": 0,
-            "observed_end": 57
-          }
-        },
-        {
-          "key": "const-columns-name",
-          "value": "{ key: 'name', label: '名称', width: 240, sortable: true }",
-          "evidence": {
-            "path": "ItemListColumns.tsx",
-            "line_start": 27,
-            "line_end": 27,
-            "source_sha256": "94e0b8aa15af86d0b746cba4d852dc60651d91ead957f4df390ff5cf2df1dd5d",
-            "excerpt": "  { key: 'name', label: '名称', width: 240, sortable: true },",
-            "observed_start": 0,
-            "observed_end": 56
-          }
-        },
-        {
-          "key": "const-columns-category",
-          "value": "{ key: 'category', label: '区分', width: 140, sortable: true }",
-          "evidence": {
-            "path": "ItemListColumns.tsx",
-            "line_start": 28,
-            "line_end": 28,
-            "source_sha256": "94e0b8aa15af86d0b746cba4d852dc60651d91ead957f4df390ff5cf2df1dd5d",
-            "excerpt": "  { key: 'category', label: '区分', width: 140, sortable: true },",
-            "observed_start": 0,
-            "observed_end": 60
-          }
-        },
-        {
-          "key": "const-columns-quantity",
-          "value": "{ key: 'quantity', label: '数量', width: 100, sortable: true }",
-          "evidence": {
-            "path": "ItemListColumns.tsx",
-            "line_start": 29,
-            "line_end": 29,
-            "source_sha256": "94e0b8aa15af86d0b746cba4d852dc60651d91ead957f4df390ff5cf2df1dd5d",
-            "excerpt": "  { key: 'quantity', label: '数量', width: 100, sortable: true },",
-            "observed_start": 0,
-            "observed_end": 60
-          }
-        },
-        {
-          "key": "const-columns-updatedAt",
-          "value": "{ key: 'updatedAt', label: '更新日時', width: 180, sortable: true }",
-          "evidence": {
-            "path": "ItemListColumns.tsx",
-            "line_start": 30,
-            "line_end": 30,
-            "source_sha256": "94e0b8aa15af86d0b746cba4d852dc60651d91ead957f4df390ff5cf2df1dd5d",
-            "excerpt": "  { key: 'updatedAt', label: '更新日時', width: 180, sortable: true },",
-            "observed_start": 0,
-            "observed_end": 63
-          }
-        }
-      ]
-    },
-    "state": {
-      "reason": "",
-      "items": [
-        {
-          "key": "state-items-empty",
-          "value": "useState<ItemRow[]>([])",
-          "evidence": {
-            "path": "ItemListPage.tsx",
-            "line_start": 55,
-            "line_end": 55,
-            "source_sha256": "a23eaf9eb7f3db060a5f1f77d491dac14ae4bf02d804878cd23aea9016f98bf9",
-            "excerpt": "  const [items, setItems] = useState<ItemRow[]>([]);",
-            "observed_start": 26,
-            "observed_end": 49
-          }
-        },
-        {
-          "key": "state-loading-true",
-          "value": "useState(true)",
-          "evidence": {
-            "path": "ItemListPage.tsx",
-            "line_start": 56,
-            "line_end": 56,
-            "source_sha256": "a23eaf9eb7f3db060a5f1f77d491dac14ae4bf02d804878cd23aea9016f98bf9",
-            "excerpt": "  const [loading, setLoading] = useState(true);",
-            "observed_start": 30,
-            "observed_end": 44
-          }
-        },
-        {
-          "key": "state-error-null",
-          "value": "useState<string | null>(null)",
-          "evidence": {
-            "path": "ItemListPage.tsx",
-            "line_start": 57,
-            "line_end": 57,
-            "source_sha256": "a23eaf9eb7f3db060a5f1f77d491dac14ae4bf02d804878cd23aea9016f98bf9",
-            "excerpt": "  const [error, setError] = useState<string | null>(null);",
-            "observed_start": 26,
-            "observed_end": 55
-          }
-        },
-        {
-          "key": "state-form-keyword",
-          "value": "useState<SearchFormState>({ keyword: '' })",
-          "evidence": {
-            "path": "ItemListPage.tsx",
-            "line_start": 58,
-            "line_end": 58,
-            "source_sha256": "a23eaf9eb7f3db060a5f1f77d491dac14ae4bf02d804878cd23aea9016f98bf9",
-            "excerpt": "  const [form, setForm] = useState<SearchFormState>({ keyword: '' });",
-            "observed_start": 24,
-            "observed_end": 66
-          }
-        },
-        {
-          "key": "state-navigate",
-          "value": "useNavigate()",
-          "evidence": {
-            "path": "ItemListPage.tsx",
-            "line_start": 54,
-            "line_end": 54,
-            "source_sha256": "a23eaf9eb7f3db060a5f1f77d491dac14ae4bf02d804878cd23aea9016f98bf9",
-            "excerpt": "  const navigate = useNavigate();",
-            "observed_start": 17,
-            "observed_end": 30
-          }
-        }
-      ]
-    },
-    "handler": {
-      "reason": "",
-      "items": [
-        {
-          "key": "handler-fetchItemList-API",
-          "value": "async function fetchItemList(variables: ItemListVariables): Promise<ItemListResponse> { const response = await fetch('/api/graphql', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ query: ITEM_LIST_QUERY, variables }), }); if (!response.ok) { throw new Error(`一覧の取得に失敗しました（status: ${response.status}）`); } const body = await response.json(); return body.data as ItemListResponse; }",
-          "evidence": {
-            "path": "ItemListPage.tsx",
-            "line_start": 29,
-            "line_end": 40,
-            "source_sha256": "a23eaf9eb7f3db060a5f1f77d491dac14ae4bf02d804878cd23aea9016f98bf9",
-            "excerpt": "async function fetchItemList(variables: ItemListVariables): Promise<ItemListResponse> {\n  const response = await fetch('/api/graphql', {\n    method: 'POST',\n    headers: { 'Content-Type': 'application/json' },\n    body: JSON.stringify({ query: ITEM_LIST_QUERY, variables }),\n  });\n  if (!response.ok) {\n    throw new Error(`一覧の取得に失敗しました（status: ${response.status}）`);\n  }\n  const body = await response.json();\n  return body.data as ItemListResponse;\n}",
-            "observed_start": 0,
-            "observed_end": 423
-          }
-        },
-        {
-          "key": "handler-deleteItem-API",
-          "value": "async function deleteItem(id: string): Promise<void> { const response = await fetch('/api/graphql', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ query: DELETE_ITEM_MUTATION, variables: { id } }), }); if (!response.ok) { throw new Error(`削除に失敗しました（status: ${response.status}）`); } }",
-          "evidence": {
-            "path": "ItemListPage.tsx",
-            "line_start": 42,
-            "line_end": 51,
-            "source_sha256": "a23eaf9eb7f3db060a5f1f77d491dac14ae4bf02d804878cd23aea9016f98bf9",
-            "excerpt": "async function deleteItem(id: string): Promise<void> {\n  const response = await fetch('/api/graphql', {\n    method: 'POST',\n    headers: { 'Content-Type': 'application/json' },\n    body: JSON.stringify({ query: DELETE_ITEM_MUTATION, variables: { id } }),\n  });\n  if (!response.ok) {\n    throw new Error(`削除に失敗しました（status: ${response.status}）`);\n  }\n}",
-            "observed_start": 0,
-            "observed_end": 326
-          }
-        },
-        {
-          "key": "handler-handleSearchSubmit-検索",
-          "value": "const handleSearchSubmit = async (event: React.FormEvent<HTMLFormElement>) => { event.preventDefault(); try { setLoading(true); const result = await fetchItemList({ keyword: form.keyword, limit: PAGE_SIZE, offset: 0 }); setItems(result.items); } catch (err) { window.alert(err instanceof Error ? err.message : '検索に失敗しました'); } finally { setLoading(false); } }",
-          "evidence": {
-            "path": "ItemListPage.tsx",
-            "line_start": 88,
-            "line_end": 99,
-            "source_sha256": "a23eaf9eb7f3db060a5f1f77d491dac14ae4bf02d804878cd23aea9016f98bf9",
-            "excerpt": "  const handleSearchSubmit = async (event: React.FormEvent<HTMLFormElement>) => {\n    event.preventDefault();\n    try {\n      setLoading(true);\n      const result = await fetchItemList({ keyword: form.keyword, limit: PAGE_SIZE, offset: 0 });\n      setItems(result.items);\n    } catch (err) {\n      window.alert(err instanceof Error ? err.message : '検索に失敗しました');\n    } finally {\n      setLoading(false);\n    }\n  };",
-            "observed_start": 0,
-            "observed_end": 358
-          }
-        },
-        {
-          "key": "handler-handleAddClick-遷移",
-          "value": "const handleAddClick = () => navigate('/items/new')",
-          "evidence": {
-            "path": "ItemListPage.tsx",
-            "line_start": 101,
-            "line_end": 101,
-            "source_sha256": "a23eaf9eb7f3db060a5f1f77d491dac14ae4bf02d804878cd23aea9016f98bf9",
-            "excerpt": "  const handleAddClick = () => navigate('/items/new');",
-            "observed_start": 0,
-            "observed_end": 51
-          }
-        },
-        {
-          "key": "handler-handleRowClick-遷移",
-          "value": "const handleRowClick = (id: string) => navigate(`/items/${id}`)",
-          "evidence": {
-            "path": "ItemListPage.tsx",
-            "line_start": 102,
-            "line_end": 102,
-            "source_sha256": "a23eaf9eb7f3db060a5f1f77d491dac14ae4bf02d804878cd23aea9016f98bf9",
-            "excerpt": "  const handleRowClick = (id: string) => navigate(`/items/${id}`);",
-            "observed_start": 0,
-            "observed_end": 63
-          }
-        },
-        {
-          "key": "handler-handleDeleteClick-削除",
-          "value": "const handleDeleteClick = async (id: string) => { try { await deleteItem(id); setItems((prev) => prev.filter((item) => item.id !== id)); } catch (err) { window.alert(err instanceof Error ? err.message : '削除でエラーが発生しました'); } }",
-          "evidence": {
-            "path": "ItemListPage.tsx",
-            "line_start": 103,
-            "line_end": 110,
-            "source_sha256": "a23eaf9eb7f3db060a5f1f77d491dac14ae4bf02d804878cd23aea9016f98bf9",
-            "excerpt": "  const handleDeleteClick = async (id: string) => {\n    try {\n      await deleteItem(id);\n      setItems((prev) => prev.filter((item) => item.id !== id));\n    } catch (err) {\n      window.alert(err instanceof Error ? err.message : '削除でエラーが発生しました');\n    }\n  };",
-            "observed_start": 0,
-            "observed_end": 224
-          }
-        },
-        {
-          "key": "handler-sortItemsByKey-ソート",
-          "value": "export function sortItemsByKey<T extends SortableItem>( items: T[], key: string, direction: SortDirection, ): T[] { const sorted = [...items].sort((a, b) => { const left = a[key]; const right = b[key]; if (left === right) { return 0; } return left > right ? 1 : -1; }); return direction === SortDirection.Desc ? sorted.reverse() : sorted; }",
-          "evidence": {
-            "path": "ItemListColumns.tsx",
-            "line_start": 39,
-            "line_end": 53,
-            "source_sha256": "94e0b8aa15af86d0b746cba4d852dc60651d91ead957f4df390ff5cf2df1dd5d",
-            "excerpt": "export function sortItemsByKey<T extends SortableItem>(\n  items: T[],\n  key: string,\n  direction: SortDirection,\n): T[] {\n  const sorted = [...items].sort((a, b) => {\n    const left = a[key];\n    const right = b[key];\n    if (left === right) {\n      return 0;\n    }\n    return left > right ? 1 : -1;\n  });\n  return direction === SortDirection.Desc ? sorted.reverse() : sorted;\n}",
-            "observed_start": 0,
-            "observed_end": 340
-          }
-        }
-      ]
-    },
-    "jsx": {
-      "reason": "",
-      "items": [
-        {
-          "key": "jsx-Box-root",
-          "value": "Box sx={{ padding: 3 }}",
-          "evidence": {
-            "path": "ItemListPage.tsx",
-            "line_start": 113,
-            "line_end": 113,
-            "source_sha256": "a23eaf9eb7f3db060a5f1f77d491dac14ae4bf02d804878cd23aea9016f98bf9",
-            "excerpt": "    <Box sx={{ padding: 3 }}>",
-            "observed_start": 1,
-            "observed_end": 24
-          }
-        },
-        {
-          "key": "jsx-Typography-h1",
-          "value": "<Typography variant=\"h5\" component=\"h1\" sx={{ marginBottom: 2 }}> アイテム一覧 </Typography>",
-          "evidence": {
-            "path": "ItemListPage.tsx",
-            "line_start": 114,
-            "line_end": 116,
-            "source_sha256": "a23eaf9eb7f3db060a5f1f77d491dac14ae4bf02d804878cd23aea9016f98bf9",
-            "excerpt": "      <Typography variant=\"h5\" component=\"h1\" sx={{ marginBottom: 2 }}>\n        アイテム一覧\n      </Typography>",
-            "observed_start": 0,
-            "observed_end": 86
-          }
-        },
-        {
-          "key": "jsx-form-search",
-          "value": "Box component=\"form\" onSubmit={handleSearchSubmit} sx={{ display: 'flex', gap: 2, marginBottom: 2, alignItems: 'center' }}",
-          "evidence": {
-            "path": "ItemListPage.tsx",
-            "line_start": 118,
-            "line_end": 121,
-            "source_sha256": "a23eaf9eb7f3db060a5f1f77d491dac14ae4bf02d804878cd23aea9016f98bf9",
-            "excerpt": "      <Box\n        component=\"form\"\n        onSubmit={handleSearchSubmit}\n        sx={{ display: 'flex', gap: 2, marginBottom: 2, alignItems: 'center' }}",
-            "observed_start": 1,
-            "observed_end": 123
-          }
-        },
-        {
-          "key": "jsx-TextField-keyword",
-          "value": "TextField label=\"キーワード\" size=\"small\" value={form.keyword} onChange={(event) => setForm({ keyword: event.target.value })}",
-          "evidence": {
-            "path": "ItemListPage.tsx",
-            "line_start": 123,
-            "line_end": 128,
-            "source_sha256": "a23eaf9eb7f3db060a5f1f77d491dac14ae4bf02d804878cd23aea9016f98bf9",
-            "excerpt": "        <TextField\n          label=\"キーワード\"\n          size=\"small\"\n          value={form.keyword}\n          onChange={(event) => setForm({ keyword: event.target.value })}\n        />",
-            "observed_start": 1,
-            "observed_end": 121
-          }
-        },
-        {
-          "key": "jsx-Button-submit",
-          "value": "<Button type=\"submit\" variant=\"contained\"> 検索 </Button>",
-          "evidence": {
-            "path": "ItemListPage.tsx",
-            "line_start": 129,
-            "line_end": 131,
-            "source_sha256": "a23eaf9eb7f3db060a5f1f77d491dac14ae4bf02d804878cd23aea9016f98bf9",
-            "excerpt": "        <Button type=\"submit\" variant=\"contained\">\n          検索\n        </Button>",
-            "observed_start": 0,
-            "observed_end": 55
-          }
-        },
-        {
-          "key": "jsx-Button-add",
-          "value": "<Button variant=\"outlined\" onClick={handleAddClick}> 新規追加 </Button>",
-          "evidence": {
-            "path": "ItemListPage.tsx",
-            "line_start": 132,
-            "line_end": 134,
-            "source_sha256": "a23eaf9eb7f3db060a5f1f77d491dac14ae4bf02d804878cd23aea9016f98bf9",
-            "excerpt": "        <Button variant=\"outlined\" onClick={handleAddClick}>\n          新規追加\n        </Button>",
-            "observed_start": 0,
-            "observed_end": 67
-          }
-        },
-        {
-          "key": "jsx-path-error-Typography",
-          "value": "{error && ( <Typography color=\"error\" sx={{ marginBottom: 2 }}> {error} </Typography> )}",
-          "evidence": {
-            "path": "ItemListPage.tsx",
-            "line_start": 137,
-            "line_end": 141,
-            "source_sha256": "a23eaf9eb7f3db060a5f1f77d491dac14ae4bf02d804878cd23aea9016f98bf9",
-            "excerpt": "      {error && (\n        <Typography color=\"error\" sx={{ marginBottom: 2 }}>\n          {error}\n        </Typography>\n      )}",
-            "observed_start": 0,
-            "observed_end": 88
-          }
-        },
-        {
-          "key": "jsx-path-loading-CircularProgress",
-          "value": "{loading ? ( <CircularProgress size={24} />",
-          "evidence": {
-            "path": "ItemListPage.tsx",
-            "line_start": 143,
-            "line_end": 144,
-            "source_sha256": "a23eaf9eb7f3db060a5f1f77d491dac14ae4bf02d804878cd23aea9016f98bf9",
-            "excerpt": "      {loading ? (\n        <CircularProgress size={24} />",
-            "observed_start": 0,
-            "observed_end": 43
-          }
-        },
-        {
-          "key": "jsx-TableContainer-Paper",
-          "value": "<TableContainer component={Paper} sx={{ '& .MuiTableCell-root': { fontSize: '0.875rem', padding: '8px 16px', }, '& .MuiTableRow-root:hover': { backgroundColor: 'action.hover', cursor: 'pointer', }, }} >",
-          "evidence": {
-            "path": "ItemListPage.tsx",
-            "line_start": 146,
-            "line_end": 158,
-            "source_sha256": "a23eaf9eb7f3db060a5f1f77d491dac14ae4bf02d804878cd23aea9016f98bf9",
-            "excerpt": "        <TableContainer\n          component={Paper}\n          sx={{\n            '& .MuiTableCell-root': {\n              fontSize: '0.875rem',\n              padding: '8px 16px',\n            },\n            '& .MuiTableRow-root:hover': {\n              backgroundColor: 'action.hover',\n              cursor: 'pointer',\n            },\n          }}\n        >",
-            "observed_start": 0,
-            "observed_end": 202
-          }
-        },
-        {
-          "key": "jsx-Table-header",
-          "value": "<Table size=\"small\"> <TableBody> <TableRow> {columns.map((column) => ( <HeaderCell key={column.key} sx={{ width: column.width }}> {column.label} </HeaderCell> ))} <HeaderCell sx={{ width: 80 }}>操作</HeaderCell> </TableRow>",
-          "evidence": {
-            "path": "ItemListPage.tsx",
-            "line_start": 159,
-            "line_end": 168,
-            "source_sha256": "a23eaf9eb7f3db060a5f1f77d491dac14ae4bf02d804878cd23aea9016f98bf9",
-            "excerpt": "          <Table size=\"small\">\n            <TableBody>\n              <TableRow>\n                {columns.map((column) => (\n                  <HeaderCell key={column.key} sx={{ width: column.width }}>\n                    {column.label}\n                  </HeaderCell>\n                ))}\n                <HeaderCell sx={{ width: 80 }}>操作</HeaderCell>\n              </TableRow>",
-            "observed_start": 0,
-            "observed_end": 221
-          }
-        },
-        {
-          "key": "jsx-Table-row",
-          "value": "{items.map((item) => ( <TableRow key={item.id} onClick={() => handleRowClick(item.id)}> <TableCell>{item.code}</TableCell> <TableCell>{item.name}</TableCell> <TableCell>{item.category}</TableCell> <TableCell>{item.quantity}</TableCell> <TableCell>{item.updatedAt}</TableCell> <TableCell> <Button size=\"small\" color=\"error\" onClick={(event) => { event.stopPropagation(); handleDeleteClick(item.id); }} > 削除 </Button> </TableCell> </TableRow> ))}",
-          "evidence": {
-            "path": "ItemListPage.tsx",
-            "line_start": 169,
-            "line_end": 189,
-            "source_sha256": "a23eaf9eb7f3db060a5f1f77d491dac14ae4bf02d804878cd23aea9016f98bf9",
-            "excerpt": "              {items.map((item) => (\n                <TableRow key={item.id} onClick={() => handleRowClick(item.id)}>\n                  <TableCell>{item.code}</TableCell>\n                  <TableCell>{item.name}</TableCell>\n                  <TableCell>{item.category}</TableCell>\n                  <TableCell>{item.quantity}</TableCell>\n                  <TableCell>{item.updatedAt}</TableCell>\n                  <TableCell>\n                    <Button\n                      size=\"small\"\n                      color=\"error\"\n                      onClick={(event) => {\n                        event.stopPropagation();\n                        handleDeleteClick(item.id);\n                      }}\n                    >\n                      削除\n                    </Button>\n                  </TableCell>\n                </TableRow>\n              ))}",
-            "observed_start": 0,
-            "observed_end": 444
-          }
-        }
-      ]
-    },
-    "style": {
-      "reason": "",
-      "items": [
-        {
-          "key": "style-HeaderCell-fontWeight-bold",
-          "value": "fontWeight: theme.typography.fontWeightBold",
-          "evidence": {
-            "path": "ItemListColumns.tsx",
-            "line_start": 57,
-            "line_end": 57,
-            "source_sha256": "94e0b8aa15af86d0b746cba4d852dc60651d91ead957f4df390ff5cf2df1dd5d",
-            "excerpt": "  fontWeight: theme.typography.fontWeightBold,",
-            "observed_start": 0,
-            "observed_end": 43
-          }
-        },
-        {
-          "key": "style-HeaderCell-backgroundColor-grey100",
-          "value": "backgroundColor: theme.palette.grey[100]",
-          "evidence": {
-            "path": "ItemListColumns.tsx",
-            "line_start": 58,
-            "line_end": 58,
-            "source_sha256": "94e0b8aa15af86d0b746cba4d852dc60651d91ead957f4df390ff5cf2df1dd5d",
-            "excerpt": "  backgroundColor: theme.palette.grey[100],",
-            "observed_start": 0,
-            "observed_end": 40
-          }
-        },
-        {
-          "key": "style-HeaderCell-whiteSpace-nowrap",
-          "value": "whiteSpace: 'nowrap'",
-          "evidence": {
-            "path": "ItemListColumns.tsx",
-            "line_start": 59,
-            "line_end": 59,
-            "source_sha256": "94e0b8aa15af86d0b746cba4d852dc60651d91ead957f4df390ff5cf2df1dd5d",
-            "excerpt": "  whiteSpace: 'nowrap',",
-            "observed_start": 0,
-            "observed_end": 20
-          }
-        }
-      ]
-    },
-    "api": {
-      "reason": "",
-      "items": [
-        {
-          "key": "api-fetchItemList-req",
-          "value": "const response = await fetch('/api/graphql', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ query: ITEM_LIST_QUERY, variables }), });",
-          "evidence": {
-            "path": "ItemListPage.tsx",
-            "line_start": 30,
-            "line_end": 34,
-            "source_sha256": "a23eaf9eb7f3db060a5f1f77d491dac14ae4bf02d804878cd23aea9016f98bf9",
-            "excerpt": "  const response = await fetch('/api/graphql', {\n    method: 'POST',\n    headers: { 'Content-Type': 'application/json' },\n    body: JSON.stringify({ query: ITEM_LIST_QUERY, variables }),\n  });",
-            "observed_start": 0,
-            "observed_end": 176
-          }
-        },
-        {
-          "key": "api-fetchItemList-res",
-          "value": "const body = await response.json(); return body.data as ItemListResponse;",
-          "evidence": {
-            "path": "ItemListPage.tsx",
-            "line_start": 38,
-            "line_end": 39,
-            "source_sha256": "a23eaf9eb7f3db060a5f1f77d491dac14ae4bf02d804878cd23aea9016f98bf9",
-            "excerpt": "  const body = await response.json();\n  return body.data as ItemListResponse;",
-            "observed_start": 0,
-            "observed_end": 73
-          }
-        },
-        {
-          "key": "api-deleteItem-req",
-          "value": "const response = await fetch('/api/graphql', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ query: DELETE_ITEM_MUTATION, variables: { id } }), });",
-          "evidence": {
-            "path": "ItemListPage.tsx",
-            "line_start": 43,
-            "line_end": 47,
-            "source_sha256": "a23eaf9eb7f3db060a5f1f77d491dac14ae4bf02d804878cd23aea9016f98bf9",
-            "excerpt": "  const response = await fetch('/api/graphql', {\n    method: 'POST',\n    headers: { 'Content-Type': 'application/json' },\n    body: JSON.stringify({ query: DELETE_ITEM_MUTATION, variables: { id } }),\n  });",
-            "observed_start": 0,
-            "observed_end": 189
-          }
-        }
-      ]
-    },
-    "measurement_pending": {
-      "reason": "該当なし（合成コードのため実測委譲対象の動的値が存在しない）",
-      "items": []
-    },
-    "local_type": {
-      "reason": "",
-      "items": [
-        {
-          "key": "local-type-ItemRow",
-          "value": "/** 画面内でのみ使うアイテム表示行の型（ローカル型定義）。 */ type ItemRow = ItemListResponse['items'][number]",
-          "evidence": {
-            "path": "ItemListPage.tsx",
-            "line_start": 19,
-            "line_end": 20,
-            "source_sha256": "a23eaf9eb7f3db060a5f1f77d491dac14ae4bf02d804878cd23aea9016f98bf9",
-            "excerpt": "/** 画面内でのみ使うアイテム表示行の型（ローカル型定義）。 */\ntype ItemRow = ItemListResponse['items'][number];",
-            "observed_start": 0,
-            "observed_end": 83
-          }
-        },
-        {
-          "key": "local-type-SearchFormState",
-          "value": "/** 検索フォームの入力値をまとめるローカル型定義。 */ type SearchFormState = { keyword: string; }",
-          "evidence": {
-            "path": "ItemListPage.tsx",
-            "line_start": 22,
-            "line_end": 25,
-            "source_sha256": "a23eaf9eb7f3db060a5f1f77d491dac14ae4bf02d804878cd23aea9016f98bf9",
-            "excerpt": "/** 検索フォームの入力値をまとめるローカル型定義。 */\ntype SearchFormState = {\n  keyword: string;\n};",
-            "observed_start": 0,
-            "observed_end": 74
-          }
-        },
-        {
-          "key": "local-type-ColumnConfig",
-          "value": "type ColumnConfig = { key: string; label: string; width: number; sortable: boolean; }",
-          "evidence": {
-            "path": "ItemListColumns.tsx",
-            "line_start": 8,
-            "line_end": 13,
-            "source_sha256": "94e0b8aa15af86d0b746cba4d852dc60651d91ead957f4df390ff5cf2df1dd5d",
-            "excerpt": "type ColumnConfig = {\n  key: string;\n  label: string;\n  width: number;\n  sortable: boolean;\n};",
-            "observed_start": 0,
-            "observed_end": 85
-          }
-        },
-        {
-          "key": "local-type-SortableItem",
-          "value": "type SortableItem = Record<string, string | number>",
-          "evidence": {
-            "path": "ItemListColumns.tsx",
-            "line_start": 33,
-            "line_end": 33,
-            "source_sha256": "94e0b8aa15af86d0b746cba4d852dc60651d91ead957f4df390ff5cf2df1dd5d",
-            "excerpt": "type SortableItem = Record<string, string | number>;",
-            "observed_start": 0,
-            "observed_end": 51
-          }
-        }
-      ]
-    },
-    "effect_trigger": {
-      "reason": "",
-      "items": [
-        {
-          "key": "effect-load-keyword変更",
-          "value": "useEffect(() => { let cancelled = false; async function load() { setLoading(true); setError(null); try { const result = await fetchItemList({ keyword: form.keyword, limit: PAGE_SIZE, offset: 0 }); if (!cancelled) { setItems(sortItemsByKey(result.items, 'updatedAt', SortDirection.Desc)); } } catch (err) { if (!cancelled) { setError(err instanceof Error ? err.message : '不明なエラーが発生しました'); } } finally { if (!cancelled) { setLoading(false); } } } load(); return () => { cancelled = true; }; }, [form.keyword]);",
-          "evidence": {
-            "path": "ItemListPage.tsx",
-            "line_start": 60,
-            "line_end": 86,
-            "source_sha256": "a23eaf9eb7f3db060a5f1f77d491dac14ae4bf02d804878cd23aea9016f98bf9",
-            "excerpt": "  useEffect(() => {\n    let cancelled = false;\n\n    async function load() {\n      setLoading(true);\n      setError(null);\n      try {\n        const result = await fetchItemList({ keyword: form.keyword, limit: PAGE_SIZE, offset: 0 });\n        if (!cancelled) {\n          setItems(sortItemsByKey(result.items, 'updatedAt', SortDirection.Desc));\n        }\n      } catch (err) {\n        if (!cancelled) {\n          setError(err instanceof Error ? err.message : '不明なエラーが発生しました');\n        }\n      } finally {\n        if (!cancelled) {\n          setLoading(false);\n        }\n      }\n    }\n\n    load();\n    return () => {\n      cancelled = true;\n    };\n  }, [form.keyword]);",
-            "observed_start": 0,
-            "observed_end": 508
-          }
-        }
-      ]
-    },
-    "error_handling": {
-      "reason": "",
-      "items": [
-        {
-          "key": "error-fetchItemList-throw",
-          "value": "throw new Error(`一覧の取得に失敗しました（status: ${response.status}）`)",
-          "evidence": {
-            "path": "ItemListPage.tsx",
-            "line_start": 36,
-            "line_end": 37,
-            "source_sha256": "a23eaf9eb7f3db060a5f1f77d491dac14ae4bf02d804878cd23aea9016f98bf9",
-            "excerpt": "    throw new Error(`一覧の取得に失敗しました（status: ${response.status}）`);\n  }",
-            "observed_start": 0,
-            "observed_end": 59
-          }
-        },
-        {
-          "key": "error-deleteItem-throw",
-          "value": "throw new Error(`削除に失敗しました（status: ${response.status}）`)",
-          "evidence": {
-            "path": "ItemListPage.tsx",
-            "line_start": 49,
-            "line_end": 50,
-            "source_sha256": "a23eaf9eb7f3db060a5f1f77d491dac14ae4bf02d804878cd23aea9016f98bf9",
-            "excerpt": "    throw new Error(`削除に失敗しました（status: ${response.status}）`);\n  }",
-            "observed_start": 0,
-            "observed_end": 56
-          }
-        },
-        {
-          "key": "error-handleSearchSubmit-alert",
-          "value": "window.alert(err instanceof Error ? err.message : '検索に失敗しました')",
-          "evidence": {
-            "path": "ItemListPage.tsx",
-            "line_start": 95,
-            "line_end": 95,
-            "source_sha256": "a23eaf9eb7f3db060a5f1f77d491dac14ae4bf02d804878cd23aea9016f98bf9",
-            "excerpt": "      window.alert(err instanceof Error ? err.message : '検索に失敗しました');",
-            "observed_start": 0,
-            "observed_end": 62
-          }
-        },
-        {
-          "key": "error-handleDeleteClick-alert",
-          "value": "window.alert(err instanceof Error ? err.message : '削除でエラーが発生しました')",
-          "evidence": {
-            "path": "ItemListPage.tsx",
-            "line_start": 108,
-            "line_end": 108,
-            "source_sha256": "a23eaf9eb7f3db060a5f1f77d491dac14ae4bf02d804878cd23aea9016f98bf9",
-            "excerpt": "      window.alert(err instanceof Error ? err.message : '削除でエラーが発生しました');",
-            "observed_start": 0,
-            "observed_end": 66
-          }
-        },
-        {
-          "key": "error-useEffect-catch",
-          "value": "setError(err instanceof Error ? err.message : '不明なエラーが発生しました')",
-          "evidence": {
-            "path": "ItemListPage.tsx",
-            "line_start": 72,
-            "line_end": 74,
-            "source_sha256": "a23eaf9eb7f3db060a5f1f77d491dac14ae4bf02d804878cd23aea9016f98bf9",
-            "excerpt": "        if (!cancelled) {\n          setError(err instanceof Error ? err.message : '不明なエラーが発生しました');\n        }",
-            "observed_start": 18,
-            "observed_end": 80
-          }
-        }
-      ]
-    }
-  }
-}
+run_id: gold-standard-1
+profile: screen
+target_repo_path: shared/references/gold-standard/original
+target_file_paths:
+  - ItemListPage.tsx
+  - ItemListColumns.tsx
+  - ItemListPage.gql.ts
+meta:
+  source_repo: shared/references/gold-standard/original
+  source_ref: gold-standard
+  route:
+    value: "/items"
+    evidence: "ItemListPage.tsx:53"
+sections:
+  import:
+    reason: ""
+    items:
+      - key: import-react-useEffect
+        value: "import { useEffect, useState } from 'react';"
+        evidence: "ItemListPage.tsx:1"
+      - key: import-react-useState
+        value: "import { useEffect, useState } from 'react';"
+        evidence: "ItemListPage.tsx:1"
+      - key: import-react-router-useNavigate
+        value: "import { useNavigate } from 'react-router-dom';"
+        evidence: "ItemListPage.tsx:2"
+      - key: import-mui-Box
+        value: "import Box from '@mui/material/Box';"
+        evidence: "ItemListPage.tsx:3"
+      - key: import-mui-Button
+        value: "import Button from '@mui/material/Button';"
+        evidence: "ItemListPage.tsx:4"
+      - key: import-mui-CircularProgress
+        value: "import CircularProgress from '@mui/material/CircularProgress';"
+        evidence: "ItemListPage.tsx:5"
+      - key: import-mui-Table
+        value: "import Table from '@mui/material/Table';"
+        evidence: "ItemListPage.tsx:6"
+      - key: import-mui-TableBody
+        value: "import TableBody from '@mui/material/TableBody';"
+        evidence: "ItemListPage.tsx:7"
+      - key: import-mui-TableCell
+        value: "import TableCell from '@mui/material/TableCell';"
+        evidence: "ItemListPage.tsx:8"
+      - key: import-mui-TableContainer
+        value: "import TableContainer from '@mui/material/TableContainer';"
+        evidence: "ItemListPage.tsx:9"
+      - key: import-mui-TableRow
+        value: "import TableRow from '@mui/material/TableRow';"
+        evidence: "ItemListPage.tsx:10"
+      - key: import-mui-TextField
+        value: "import TextField from '@mui/material/TextField';"
+        evidence: "ItemListPage.tsx:11"
+      - key: import-mui-Typography
+        value: "import Typography from '@mui/material/Typography';"
+        evidence: "ItemListPage.tsx:12"
+      - key: import-mui-Paper
+        value: "import Paper from '@mui/material/Paper';"
+        evidence: "ItemListPage.tsx:13"
+      - key: import-ItemListColumns-columns
+        value: "import { columns, HeaderCell, sortItemsByKey, SortDirection } from './ItemListColumns';"
+        evidence: "ItemListPage.tsx:15"
+      - key: import-ItemListColumns-HeaderCell
+        value: "import { columns, HeaderCell, sortItemsByKey, SortDirection } from './ItemListColumns';"
+        evidence: "ItemListPage.tsx:15"
+      - key: import-ItemListColumns-sortItemsByKey
+        value: "import { columns, HeaderCell, sortItemsByKey, SortDirection } from './ItemListColumns';"
+        evidence: "ItemListPage.tsx:15"
+      - key: import-ItemListColumns-SortDirection
+        value: "import { columns, HeaderCell, sortItemsByKey, SortDirection } from './ItemListColumns';"
+        evidence: "ItemListPage.tsx:15"
+      - key: import-gql-ITEM_LIST_QUERY
+        value: "import { ITEM_LIST_QUERY, DELETE_ITEM_MUTATION } from './ItemListPage.gql';"
+        evidence: "ItemListPage.tsx:16"
+      - key: import-gql-DELETE_ITEM_MUTATION
+        value: "import { ITEM_LIST_QUERY, DELETE_ITEM_MUTATION } from './ItemListPage.gql';"
+        evidence: "ItemListPage.tsx:16"
+      - key: import-type-ItemListResponse
+        value: "import type { ItemListResponse, ItemListVariables } from './ItemListPage.gql';"
+        evidence: "ItemListPage.tsx:17"
+      - key: import-type-ItemListVariables
+        value: "import type { ItemListResponse, ItemListVariables } from './ItemListPage.gql';"
+        evidence: "ItemListPage.tsx:17"
+      - key: import-styled
+        value: "import { styled } from '@mui/material/styles';"
+        evidence: "ItemListColumns.tsx:1"
+      - key: import-columns-TableCell
+        value: "import TableCell from '@mui/material/TableCell';"
+        evidence: "ItemListColumns.tsx:2"
+  export_type:
+    reason: ""
+    items:
+      - key: export-ItemListPage-default
+        value: "export default function ItemListPage()"
+        evidence: "ItemListPage.tsx:53"
+      - key: export-columns
+        value: "export const columns: ColumnConfig[]"
+        evidence: "ItemListColumns.tsx:25"
+      - key: export-sortItemsByKey
+        value: "export function sortItemsByKey<T extends SortableItem>(items: T[], key: string, direction: SortDirection): T[]"
+        evidence: "ItemListColumns.tsx:39"
+      - key: export-HeaderCell
+        value: "export const HeaderCell = styled(TableCell)(({ theme }) => ({...}))"
+        evidence: "ItemListColumns.tsx:56"
+      - key: export-SortDirection
+        value: "export { SortDirection }"
+        evidence: "ItemListColumns.tsx:62"
+      - key: type-SortDirection-Asc
+        value: "Asc = 'asc'"
+        evidence: "ItemListColumns.tsx:20"
+      - key: type-SortDirection-Desc
+        value: "Desc = 'desc'"
+        evidence: "ItemListColumns.tsx:21"
+      - key: export-ColumnConfig
+        value: "export type { ColumnConfig }"
+        evidence: "ItemListColumns.tsx:63"
+      - key: type-ItemListResponse
+        value: "export type ItemListResponse = { items: { id: string; code: string; name: string; category: string; quantity: number; updatedAt: string; }[]; totalCount: number; }"
+        evidence: "ItemListPage.gql.ts:2"
+      - key: type-ItemListVariables
+        value: "export type ItemListVariables = { keyword: string; limit: number; offset: number; }"
+        evidence: "ItemListPage.gql.ts:14"
+      - key: type-DeleteItemVariables
+        value: "export type DeleteItemVariables = { id: string; }"
+        evidence: "ItemListPage.gql.ts:21"
+      - key: export-ITEM_LIST_QUERY
+        value: "export const ITEM_LIST_QUERY = /* GraphQL */ `query ItemList($keyword: String, $limit: Int!, $offset: Int!) { items(keyword: $keyword, limit: $limit, offset: $offset) { id\ncode\nname\ncategory\nquantity\nupdatedAt } totalCount(keyword: $keyword) }`"
+        evidence: "ItemListPage.gql.ts:26"
+      - key: export-DELETE_ITEM_MUTATION
+        value: "export const DELETE_ITEM_MUTATION = /* GraphQL */ `mutation DeleteItem($id: ID!) { deleteItem(id: $id) { id } }`"
+        evidence: "ItemListPage.gql.ts:40"
+  const:
+    reason: ""
+    items:
+      - key: const-PAGE_SIZE-20
+        value: "20"
+        evidence: "ItemListPage.tsx:27"
+      - key: const-columns-code
+        value: "{ key: 'code', label: 'コード', width: 120, sortable: true }"
+        evidence: "ItemListColumns.tsx:26"
+      - key: const-columns-name
+        value: "{ key: 'name', label: '名称', width: 240, sortable: true }"
+        evidence: "ItemListColumns.tsx:27"
+      - key: const-columns-category
+        value: "{ key: 'category', label: '区分', width: 140, sortable: true }"
+        evidence: "ItemListColumns.tsx:28"
+      - key: const-columns-quantity
+        value: "{ key: 'quantity', label: '数量', width: 100, sortable: true }"
+        evidence: "ItemListColumns.tsx:29"
+      - key: const-columns-updatedAt
+        value: "{ key: 'updatedAt', label: '更新日時', width: 180, sortable: true }"
+        evidence: "ItemListColumns.tsx:30"
+  state:
+    reason: ""
+    items:
+      - key: state-items-empty
+        value: "useState<ItemRow[]>([])"
+        evidence: "ItemListPage.tsx:55"
+      - key: state-loading-true
+        value: "useState(true)"
+        evidence: "ItemListPage.tsx:56"
+      - key: state-error-null
+        value: "useState<string | null>(null)"
+        evidence: "ItemListPage.tsx:57"
+      - key: state-form-keyword
+        value: "useState<SearchFormState>({ keyword: '' })"
+        evidence: "ItemListPage.tsx:58"
+      - key: state-navigate
+        value: "useNavigate()"
+        evidence: "ItemListPage.tsx:54"
+  handler:
+    reason: ""
+    items:
+      - key: handler-fetchItemList-API
+        value: "async function fetchItemList(variables: ItemListVariables): Promise<ItemListResponse> {\n  const response = await fetch('/api/graphql', {\n    method: 'POST',\n    headers: { 'Content-Type': 'application/json' },\n    body: JSON.stringify({ query: ITEM_LIST_QUERY, variables }),\n  });\n  if (!response.ok) {\n    throw new Error(`一覧の取得に失敗しました（status: ${response.status}）`);\n  }\n  const body = await response.json();\n  return body.data as ItemListResponse;\n}"
+        evidence: "ItemListPage.tsx:29-40"
+      - key: handler-deleteItem-API
+        value: "async function deleteItem(id: string): Promise<void> {\n  const response = await fetch('/api/graphql', {\n    method: 'POST',\n    headers: { 'Content-Type': 'application/json' },\n    body: JSON.stringify({ query: DELETE_ITEM_MUTATION, variables: { id } }),\n  });\n  if (!response.ok) {\n    throw new Error(`削除に失敗しました（status: ${response.status}）`);\n  }\n}"
+        evidence: "ItemListPage.tsx:42-51"
+      - key: handler-handleSearchSubmit-検索
+        value: "const handleSearchSubmit = async (event: React.FormEvent<HTMLFormElement>) => {\n  event.preventDefault();\n  try {\n    setLoading(true);\n    const result = await fetchItemList({ keyword: form.keyword, limit: PAGE_SIZE, offset: 0 });\n    setItems(result.items);\n  } catch (err) {\n    window.alert(err instanceof Error ? err.message : '検索に失敗しました');\n  } finally {\n    setLoading(false);\n  }\n}"
+        evidence: "ItemListPage.tsx:88-99"
+      - key: handler-handleAddClick-遷移
+        value: "const handleAddClick = () => navigate('/items/new')"
+        evidence: "ItemListPage.tsx:101"
+      - key: handler-handleRowClick-遷移
+        value: "const handleRowClick = (id: string) => navigate(`/items/${id}`)"
+        evidence: "ItemListPage.tsx:102"
+      - key: handler-handleDeleteClick-削除
+        value: "const handleDeleteClick = async (id: string) => {\n  try {\n    await deleteItem(id);\n    setItems((prev) => prev.filter((item) => item.id !== id));\n  } catch (err) {\n    window.alert(err instanceof Error ? err.message : '削除でエラーが発生しました');\n  }\n}"
+        evidence: "ItemListPage.tsx:103-110"
+      - key: handler-sortItemsByKey-ソート
+        value: "export function sortItemsByKey<T extends SortableItem>(items: T[], key: string, direction: SortDirection): T[] {\n  const sorted = [...items].sort((a, b) => {\n    const left = a[key];\n    const right = b[key];\n    if (left === right) { return 0; }\n    return left > right ? 1 : -1;\n  });\n  return direction === SortDirection.Desc ? sorted.reverse() : sorted;\n}"
+        evidence: "ItemListColumns.tsx:39-53"
+  jsx:
+    reason: ""
+    items:
+      - key: jsx-Box-root
+        value: "Box sx={{ padding: 3 }}"
+        evidence: "ItemListPage.tsx:113"
+      - key: jsx-Typography-h1
+        value: "Typography variant=\"h5\" component=\"h1\" sx={{ marginBottom: 2 }} 文言「アイテム一覧」"
+        evidence: "ItemListPage.tsx:114-116"
+      - key: jsx-form-search
+        value: "Box component=\"form\" onSubmit={handleSearchSubmit} sx={{ display: 'flex', gap: 2, marginBottom: 2, alignItems: 'center' }}"
+        evidence: "ItemListPage.tsx:118-121"
+      - key: jsx-TextField-keyword
+        value: "TextField label=\"キーワード\" size=\"small\" value={form.keyword} onChange={(event) => setForm({ keyword: event.target.value })}"
+        evidence: "ItemListPage.tsx:123-128"
+      - key: jsx-Button-submit
+        value: "Button type=\"submit\" variant=\"contained\" 文言「検索」"
+        evidence: "ItemListPage.tsx:129-131"
+      - key: jsx-Button-add
+        value: "Button variant=\"outlined\" onClick={handleAddClick} 文言「新規追加」"
+        evidence: "ItemListPage.tsx:132-134"
+      - key: jsx-path-error-Typography
+        value: "Typography color=\"error\" sx={{ marginBottom: 2 }} 条件={error}"
+        evidence: "ItemListPage.tsx:137-141"
+      - key: jsx-path-loading-CircularProgress
+        value: "CircularProgress size={24} 条件={loading}"
+        evidence: "ItemListPage.tsx:143-144"
+      - key: jsx-TableContainer-Paper
+        value: "TableContainer component={Paper} sx={{ '& .MuiTableCell-root': { fontSize: '0.875rem', padding: '8px 16px' }, '& .MuiTableRow-root:hover': { backgroundColor: 'action.hover', cursor: 'pointer' } }}"
+        evidence: "ItemListPage.tsx:146-158"
+      - key: jsx-Table-header
+        value: "Table size=\"small\" > TableBody > TableRow > columns.map((column) => HeaderCell key={column.key} sx={{ width: column.width }} 文言={column.label}) + HeaderCell sx={{ width: 80 }} 文言「操作」"
+        evidence: "ItemListPage.tsx:159-168"
+      - key: jsx-Table-row
+        value: "items.map((item) => TableRow key={item.id} onClick={() => handleRowClick(item.id)} > TableCell{item.code} TableCell{item.name} TableCell{item.category} TableCell{item.quantity} TableCell{item.updatedAt} TableCell > Button size=\"small\" color=\"error\" onClick={event.stopPropagation + handleDeleteClick(item.id)} 文言「削除」)"
+        evidence: "ItemListPage.tsx:169-189"
+  style:
+    reason: ""
+    items:
+      - key: style-HeaderCell-fontWeight-bold
+        value: "fontWeight: theme.typography.fontWeightBold"
+        evidence: "ItemListColumns.tsx:57"
+      - key: style-HeaderCell-backgroundColor-grey100
+        value: "backgroundColor: theme.palette.grey[100]"
+        evidence: "ItemListColumns.tsx:58"
+      - key: style-HeaderCell-whiteSpace-nowrap
+        value: "whiteSpace: 'nowrap'"
+        evidence: "ItemListColumns.tsx:59"
+  api:
+    reason: ""
+    items:
+      - key: api-fetchItemList-req
+        value: "fetch('/api/graphql', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ query: ITEM_LIST_QUERY, variables }) })"
+        evidence: "ItemListPage.tsx:30-34"
+      - key: api-fetchItemList-res
+        value: "response.json() → body.data as ItemListResponse"
+        evidence: "ItemListPage.tsx:38-39"
+      - key: api-deleteItem-req
+        value: "fetch('/api/graphql', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ query: DELETE_ITEM_MUTATION, variables: { id } }) })"
+        evidence: "ItemListPage.tsx:43-47"
+  measurement_pending:
+    reason: "該当なし（合成コードのため実測委譲対象の動的値が存在しない）"
+    items: []
+  local_type:
+    reason: ""
+    items:
+      - key: local-type-ItemRow
+        value: "/** 画面内でのみ使うアイテム表示行の型（ローカル型定義）。 */\ntype ItemRow = ItemListResponse['items'][number]"
+        evidence: "ItemListPage.tsx:19-20"
+      - key: local-type-SearchFormState
+        value: "/** 検索フォームの入力値をまとめるローカル型定義。 */\ntype SearchFormState = { keyword: string; }"
+        evidence: "ItemListPage.tsx:22-25"
+      - key: local-type-ColumnConfig
+        value: "type ColumnConfig = { key: string; label: string; width: number; sortable: boolean; }"
+        evidence: "ItemListColumns.tsx:8-13"
+      - key: local-type-SortableItem
+        value: "type SortableItem = Record<string, string | number>"
+        evidence: "ItemListColumns.tsx:33"
+  effect_trigger:
+    reason: ""
+    items:
+      - key: effect-load-keyword変更
+        value: "依存配列: [form.keyword]\n実行内容: fetchItemList呼出しでアイテム一覧を取得しsortItemsByKeyでソート\ncleanup: cancelled = true"
+        evidence: "ItemListPage.tsx:60-86"
+  error_handling:
+    reason: ""
+    items:
+      - key: error-fetchItemList-throw
+        value: "throw new Error(`一覧の取得に失敗しました（status: ${response.status}）`)"
+        evidence: "ItemListPage.tsx:36-37"
+      - key: error-deleteItem-throw
+        value: "throw new Error(`削除に失敗しました（status: ${response.status}）`)"
+        evidence: "ItemListPage.tsx:49-50"
+      - key: error-handleSearchSubmit-alert
+        value: "window.alert(err instanceof Error ? err.message : '検索に失敗しました')"
+        evidence: "ItemListPage.tsx:95"
+      - key: error-handleDeleteClick-alert
+        value: "window.alert(err instanceof Error ? err.message : '削除でエラーが発生しました')"
+        evidence: "ItemListPage.tsx:108"
+      - key: error-useEffect-catch
+        value: "setError(err instanceof Error ? err.message : '不明なエラーが発生しました')"
+        evidence: "ItemListPage.tsx:72-74"

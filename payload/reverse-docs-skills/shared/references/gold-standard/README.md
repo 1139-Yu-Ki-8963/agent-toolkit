@@ -8,12 +8,6 @@
 2. **カバレッジ受入判定**: 生成設計書がgold設計書と同等の網羅度を持つか機械判定する（`check-doc-coverage-against-gold.sh`）
 3. **著述見本**: 執筆スキルが記載粒度・表形式の参考にする（値・識別子の転写は禁止）
 
-## 実行カバレッジの境界
-
-各stackの `expected-deliverables.json` では、`fixture_decisions` を原本の検出・非検出・STOP判定として記録する。これは生成実行済みという主張ではない。
-
-生成実行済みとして扱う主張は `coverage_matrix` の3列（`generated_by`・`validated_by`・`decision_source`）をすべて持つ行だけである。評価器はこの表を固定契約と照合し、inventory生成、unit設計生成と証拠検証、test-case STOP生成と証拠検証を実際に起動する。未実行generatorの行を追加したfixtureは不合格にする。
-
 ## ディレクトリ構成
 
 | ディレクトリ | 内容 |

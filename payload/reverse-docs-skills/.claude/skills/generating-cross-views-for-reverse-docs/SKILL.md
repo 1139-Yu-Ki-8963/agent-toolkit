@@ -115,7 +115,16 @@ allowed-tools: [Bash, Read, Write, Grep, Glob, AskUserQuestion, TaskCreate, Task
   ../../../shared/scripts/matrix/build-matrix-pages.sh ai-assets ai-assets-data.json "<output_dir>/AI設定資産/AI設定資産.html"
   ```
 
-  `permission-function`（権限機能マトリクス）は「予想を裏切る挙動」節に記載する既知の制約により、Phase 2 の `permission-matrix.json` をそのまま入力に使えない。生成できる場合のみ実行し、できない場合はスキップして完了報告に明記する（下記参照）。
+  `permission-function`は`build-permission-function-data.sh`で`permission-matrix.json`から決定的に変換してから生成する。
+
+  ```bash
+  ../../../shared/scripts/extract/build-permission-function-data.sh \
+    permission-matrix.json permission-function-matrix.json \
+    --generated-at "<ISO8601 UTC>" --manifest-content-hash "<sha256>"
+  ../../../shared/scripts/matrix/build-matrix-pages.sh permission-function \
+    permission-function-matrix.json \
+    "<output_dir>/マトリクス・対応表/権限機能マトリクス/権限機能マトリクス.html"
+  ```
 
 - **Step 2** — `portal_output_dir` が指定されていればポータル再生成スクリプトを実行しカードへ反映する。未指定なら省略し完了報告に注記する。完了条件: 再実行済み、または省略を注記済み
 
@@ -130,7 +139,7 @@ allowed-tools: [Bash, Read, Write, Grep, Glob, AskUserQuestion, TaskCreate, Task
 | Phase 1 | 画面一覧.html・API一覧.html の実在確認済み（不在時は停止）。テーブル一覧.html・機能一覧.html の実在有無が確定済み |
 | Phase 2 | 拡張画面/APIマニフェストが生成され、`permission-matrix.json`・`crud-matrix.json`・`traceability.json` が生成済み |
 | Phase 3 | `ai-assets-data.json` が生成済み |
-| Phase 4 | 生成可能な全ページ（permission-screen / crud / traceability / ai-assets は必ず、permission-function はデータ形状が揃った場合のみ）が固定パスに出力され、指定時は `build-portal.sh` の再実行が完了している |
+| Phase 4 | 全5ページ（permission-screen / permission-function / crud / traceability / ai-assets）が固定パスに出力され、指定時は `build-portal.sh` の再実行が完了している |
 | **Goal** | マトリクス・対応表・AI設定資産のうち生成可能なページがすべて生成され、ポータルのカードへ反映されている。permission-function を未生成のまま終える場合はその理由が完了報告に明記されている |
 
 ## 返却ブロック
@@ -155,7 +164,7 @@ allowed-tools: [Bash, Read, Write, Grep, Glob, AskUserQuestion, TaskCreate, Task
 ## 予想を裏切る挙動
 
 - 出力先は種別ごとに `マトリクス・対応表/<ラベル>/<ラベル>.html`（AI設定資産のみ `AI設定資産/AI設定資産.html` で専用フォルダ名がラベルと一致しない）。`build-portal.sh` の `get_cross_label`/`CROSS_ORDER` 固定出力名仕様に従う
-- **permission-function（権限機能マトリクス）は既知のデータ形状ギャップを持つ**。`build-matrix-data.sh` が導出する `permission-matrix.json` は `roles`（文字列配列）と `features[]`（`unitKey`/`crud` の2フィールドのみ）を持つが、`permission-function-matrix-template.html` が要求する data.json は `roles: [{key,name}...]` と `functions: [{functionKey,functionName,category,permissions}...]` の形状であり、両者は互換しない（`functionName`・`category` に対応する抽出元がスキーマ定義上どこにも存在しない）。`build-matrix-pages.sh --self-test` の連結ケースが permission-screen/crud/traceability の3種のみを対象とし permission-function を意図的に除外しているのも同じ理由による。本スキールはこのギャップを推測で埋めた変換を行わない。生成できる4ページ（permission-screen/crud/traceability/ai-assets）のみ確実に生成し、permission-function は `skipped_pages` に理由を添えて報告する
+- **permission-functionのデータ形状ギャップは変換器で閉じる**。roles文字列は`{key,name}`へ、features[].unitKeyはfunctionKey/functionNameへ写像し、categoryは空文字列、CRUDは`CRU-`形式へ正規化する。推測値を追加せず、重複・型不正・CRUD外文字を拒否する
 - feature-manifest（機能一覧）は任意入力であり、不在でも他の交差データは生成できる（`build-matrix-data.sh` の fail-safe。feature 関連フィールドのみ空扱いになる）
 - `portal_output_dir` 未指定時は `build-portal.sh` を実行しない。生成済みページはそのまま残り、次回ポータル生成時に自動でカード化される
 
@@ -173,17 +182,13 @@ allowed-tools: [Bash, Read, Write, Grep, Glob, AskUserQuestion, TaskCreate, Task
 
 **廃棄条件**: マトリクス・対応表・AI設定資産ページの生成が別基盤へ移行した時、または対応テンプレート群が廃止された時
 
-### permission-function を推測変換しない判断
+### permission-function変換器
 
-**必要性**: `build-matrix-data.sh` の出力とテンプレートの要求形状が一致しないことを自己テスト（連結ケースの意図的除外）から確認済みである。ここで unitKey→functionKey・category の穴埋め等の変換をClaude自身が推測で行うと、根拠のないfunctionName/categoryがマトリクス・対応表に混入し、往復検証の対象外である本スキルが誤情報を生成する側になる。
+**必要性**: `permission-matrix.json`と描画テンプレートの形状差を、単一の決定的変換器で閉じる。`functionName=unitKey`、`category=""`は明示契約であり、自由記述の推測はしない。
 
-**代替案を採用しなかった理由**:
-- 推測での変換実装: 抽出元が定義されていない値（category等）を捏造することになり、「manifest外参照は捏造しない」という他の生成スキル群の設計原則に反する
-- permission-function自体を5ページから削除: `build-matrix-pages.sh`・テンプレートは既に page-type として実装済みであり、本スキルの都合で対応表から消すのは正本の記述と食い違う
+**保守責任者**: 人手（ユーザー）
 
-**保守責任者**: 人手（ユーザー）。`build-matrix-data.sh` が `functions[]` 形状の出力に対応した時点で本節を撤回し、Phase 4 の permission-function 生成を他4ページと同列に扱う
-
-**廃棄条件**: `build-matrix-data.sh` の出力スキーマが `permission-function-matrix-template.html` の要求形状と一致した時
+**廃棄条件**: `build-matrix-data.sh`がテンプレート要求形状を直接出力するようになった時
 
 ## 完了報告
 
@@ -193,9 +198,3 @@ allowed-tools: [Bash, Read, Write, Grep, Glob, AskUserQuestion, TaskCreate, Task
 
 - `../../../shared/references/manifest-schema-extensions.md` — 種別ごとの追加フィールド定義・マトリクス・対応表用新規データファイル定義・AI設定資産ページのデータ源
 - `../../../shared/scripts/matrix/build-matrix-pages.sh` — page-type→テンプレート・必須キーの対応表（正本コメント）
-
-<!-- delivery-owner-contracts:start -->
-```json
-[{"failure_return_to":"orchestrating-reverse-docs-flow","id":"permission-screen-matrix","inputs":["unit lists","facts"],"outputs":["マトリクス・対応表/権限画面マトリクス/権限画面マトリクス.html"],"stop_conditions":["関係根拠なし"],"validator":"check-delivery-artifacts.sh"},{"failure_return_to":"orchestrating-reverse-docs-flow","id":"permission-feature-matrix","inputs":["unit lists","facts"],"outputs":["マトリクス・対応表/権限機能マトリクス/権限機能マトリクス.html"],"stop_conditions":["関係根拠なし"],"validator":"check-delivery-artifacts.sh"},{"failure_return_to":"orchestrating-reverse-docs-flow","id":"crud-matrix","inputs":["unit lists","facts"],"outputs":["マトリクス・対応表/CRUD図/CRUD図.html"],"stop_conditions":["関係根拠なし"],"validator":"check-delivery-artifacts.sh"},{"failure_return_to":"orchestrating-reverse-docs-flow","id":"traceability-matrix","inputs":["unit lists","facts"],"outputs":["マトリクス・対応表/追跡可能性/追跡可能性.html"],"stop_conditions":["関係根拠なし"],"validator":"check-delivery-artifacts.sh"},{"failure_return_to":"orchestrating-reverse-docs-flow","id":"ai-assets","inputs":["agent configuration"],"outputs":["AI設定資産/AI設定資産.html"],"stop_conditions":["設定資産なし"],"validator":"check-delivery-artifacts.sh"}]
-```
-<!-- delivery-owner-contracts:end -->

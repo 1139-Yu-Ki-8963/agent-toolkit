@@ -168,9 +168,3 @@ page-data.json の保存先は `$CLAUDE_JOB_DIR/tmp/er-page-data.json` とする
 - `../../../shared/scripts/detail-pages/page-data-schema.md` — page-data.json のスキーマ定義
 - `references/er-detection.md` — ORM 別 FK 検出パターンと cardinality 導出規則
 - `references/generating-er-diagram-for-reverse-docs-guide.html` — スキルガイド
-
-<!-- delivery-owner-contracts:start -->
-```json
-[{"failure_return_to":"orchestrating-reverse-docs-flow","id":"er-diagram","inputs":["table list"],"outputs":["ER図.html"],"stop_conditions":["関係根拠なし"],"validator":"check-delivery-artifacts.sh"}]
-```
-<!-- delivery-owner-contracts:end -->

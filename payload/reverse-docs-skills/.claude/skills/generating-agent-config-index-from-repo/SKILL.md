@@ -95,9 +95,3 @@ hint: <未確定事項または次工程>
 - `shared/templates/ai-assets/AGENTS.md`
 - `shared/templates/ai-assets/CLAUDE.md`
 - `shared/references/納品物フォルダ体系.md`
-
-<!-- delivery-owner-contracts:start -->
-```json
-[{"failure_return_to":"orchestrating-reverse-docs-flow","id":"agent-instructions","inputs":["agent configuration"],"outputs":["AGENTS.md"],"stop_conditions":["設定資産なし"],"validator":"check-delivery-artifacts.sh"},{"failure_return_to":"orchestrating-reverse-docs-flow","id":"claude-instructions","inputs":["agent configuration"],"outputs":["CLAUDE.md"],"stop_conditions":["設定資産なし"],"validator":"check-delivery-artifacts.sh"}]
-```
-<!-- delivery-owner-contracts:end -->

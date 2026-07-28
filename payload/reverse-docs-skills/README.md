@@ -1,18 +1,10 @@
 # reverse-docs-skills
 
-## 納品物リバースの定義
-
-納品物は`shared/references/delivery-reverse-manifest.yml`で定義する。
-全フォルダ項目の分類は`shared/references/delivery-folder-catalog.json`で定義する。
-分類はdeliverable/control/evidence/assetの4種類である。
-検証スクリプトで担当・出力・分類の双方向一意性を確認する。
-根拠がない規約や要件定義では、規範・推奨・値を推測しない。
-
-既存コードから設計書を生成し、設計書だけからコードを再生成して突合するスキル群のリポジトリ。
+既存コードから設計書をリバース生成し、その設計書だけからコードを再生成して原本と一致するまで往復検証するスキル群の正本リポジトリ。
 
 ## 概要
 
-成果物はD1からD8まで順に積み上げる。再生成コードと原本の不一致を、設計書の欠落として機械判定する。スキル数は`.claude/skills/*/SKILL.md`の実在ファイルから数える。
+このリポジトリは、指揮役 1 個を含む実在する 35 スキルで構成される。既存コードベースを走査して一覧・共通文書・詳細設計書を積み上げ、最後に「設計書だけからコードを再生成し、原本と機械突合する」往復検証で設計書の品質を保証する。再生成コードが原本と一致しなければ設計書のどこかに欠落がある、という考え方により、設計書の完成度を主観ではなく機械判定（画面描画・内容・ARIA・画素差分・console・操作の各一致）で確定させる。スキル数の正本は `.claude/skills/*/SKILL.md` の実在ファイルであり、本 README の表は役割と主成果物を読むための索引である。
 
 ## 成果物の最終形
 
@@ -21,7 +13,7 @@
 ```
 <output_dir>/
 ├── 一覧/                  # 種別ごとの目録（画面一覧.html 等6種 + 機能一覧（派生）） + excluded-kinds.json + 画面レジストリ
-├── プロジェクト共通/      # アーキテクチャ調査書 + 専用スキル生成の規約4種 + 共通6文書 + 要件定義文書
+├── プロジェクト共通/      # アーキテクチャ調査書 + 規約4種 + 共通設計書 + メッセージ定義書 + DESIGN.md
 ├── 画面/screen-<ID>/      # 詳細設計（画面詳細設計書.md・original.png・rebuilt.png 等）+ 基本設計 + テスト項目書
 └── API/ テーブル/ バッチ/ 帳票/ 外部連携/   # 各種別の詳細設計置き場（現時点は一覧確立まで）
 ```
@@ -33,33 +25,18 @@
 | 実行順のスキル | `<output_dir>` に増える成果物 |
 |---|---|
 | surveying-architecture-for-reverse-docs | `プロジェクト共通/アーキテクチャ調査書.md`（機械検証済み） |
-| generating-<種別>-list-for-reverse-docs（実在種別ごと） | `一覧/<種別>一覧/<種別>一覧.html`。全種別確定後に `一覧/excluded-kinds.json` を出力 |
+| generating-<種別>-list-for-reverse-docs（実在種別ごと） | `一覧/<種別>一覧/<種別>一覧.html`。全種別確定後に指揮役が `一覧/excluded-kinds.json` を書き出す |
+| unlocking-reverse-target-screens | `一覧/reverse-screen-registry.yml` への記帳と、対象コード側の基準タグ（`reverse-baseline/<scope>`） |
+| generating-reverse-common-docs | `プロジェクト共通/` の 7 文書 v0（規約 4 種・共通設計書・メッセージ定義書・DESIGN.md） |
 | extracting-unit-facts-from-code | `verification/screen-<ID>/facts/<run_id>/`（facts 一式 + 封印 facts.lock） |
-| generating-unit-designs-for-reverse-docs（mode=facts） | `verification/<kind>-<ID>/facts/unit-facts.json`（非画面5種のcanonical facts） |
-| generating-reverse-detailed-design | `画面/screen-<ID>/詳細設計/画面詳細設計書.md`・`DESIGN.md`・`original.png`（画面キャプチャ） |
-| surveying-rule-sources / classifying-rule-evidence / generating-*-rules | 規約根拠記録・分類結果。明示規範がある場合だけ規約成果物 |
-| generating-reverse-common-docs | `プロジェクト共通/` の共通6文書とサンプル記録 |
 | generating-reverse-basic-design | `画面/screen-<ID>/基本設計/画面基本設計書.md` |
-| build-portal.sh / HTML検証器 | `<output_dir>/index.html` とHTML検証証跡 |
-| unlocking-reverse-target-screens | `一覧/reverse-screen-registry.yml` への記帳 |
+| generating-reverse-detailed-design | `画面/screen-<ID>/詳細設計/画面詳細設計書.md`・`DESIGN.md`・`original.png`（画面キャプチャ） |
 | rebuilding-screen-unit-from-docs | `verification/screen-<ID>/単体-<対象ファイル>/` の検証記録と `テスト項目書/テストコード/単体/` の最終テストコード |
 | rebuilding-code-from-docs + syncing-reverse-env | `verification/screen-<ID>/<timestamp>/修正指示書.md`・`最終報告.md`、判定 PASS 時は基準タグの本番更新と `詳細設計/rebuilt.png`（画面キャプチャ）の更新 |
 
 ## スキル一覧
 
-全Skillの照合索引:
-
-- [classifying-rule-evidence-for-reverse-docs](.claude/skills/classifying-rule-evidence-for-reverse-docs/references/classifying-rule-evidence-for-reverse-docs-guide.html)
-- [generating-category-rules-for-reverse-docs](.claude/skills/generating-category-rules-for-reverse-docs/references/generating-category-rules-for-reverse-docs-guide.html)
-- [generating-coding-rules-for-reverse-docs](.claude/skills/generating-coding-rules-for-reverse-docs/references/generating-coding-rules-for-reverse-docs-guide.html)
-- [generating-component-rules-for-reverse-docs](.claude/skills/generating-component-rules-for-reverse-docs/references/generating-component-rules-for-reverse-docs-guide.html)
-- [generating-naming-rules-for-reverse-docs](.claude/skills/generating-naming-rules-for-reverse-docs/references/generating-naming-rules-for-reverse-docs-guide.html)
-- [generating-placement-rules-for-reverse-docs](.claude/skills/generating-placement-rules-for-reverse-docs/references/generating-placement-rules-for-reverse-docs-guide.html)
-- [generating-test-case-list-for-reverse-docs](.claude/skills/generating-test-case-list-for-reverse-docs/references/generating-test-case-list-for-reverse-docs-guide.html)
-- [generating-unit-designs-for-reverse-docs](.claude/skills/generating-unit-designs-for-reverse-docs/references/generating-unit-designs-for-reverse-docs-guide.html)
-- [surveying-rule-sources-for-reverse-docs](.claude/skills/surveying-rule-sources-for-reverse-docs/references/surveying-rule-sources-for-reverse-docs-guide.html)
-
-`.claude/skills/*/SKILL.md`に実在する全44スキル。以下の表は役割と主成果物の索引である。
+`.claude/skills/*/SKILL.md` に実在する全35スキル。以下の表は役割と主成果物を読むための索引であり、実数はファイル実体を正本とする。
 
 | スキル名 | 役割 | 主成果物 |
 |---|---|---|
@@ -79,7 +56,7 @@
 | surveying-architecture-for-reverse-docs | 対象リポジトリの前提調査を機械検証付きで確定 | アーキテクチャ調査書.md |
 | unlocking-reverse-target-screens | 設計書が無い画面をモック API で開通させ基準タグ確立まで単独完走 | 画面レジストリ記帳・基準タグ |
 | syncing-reverse-env | リバース元と設計書の 2 環境同期・比較・基準タグ操作 | 基準タグ・比較結果ブロック |
-| generating-reverse-common-docs | 層化サンプリングで共通6文書とサンプル記録を採録 | プロジェクト共通/ 共通6文書・サンプル記録 |
+| generating-reverse-common-docs | 層化サンプリングでプロジェクト共通 7 文書の v0 を採録 | プロジェクト共通/ 7 文書 |
 | extracting-unit-facts-from-code | 原本コードから宣言的契約の事実表（facts）を抽出し封印 | facts 一式 + facts.lock |
 | generating-reverse-basic-design | 封印済み facts と共通文書から業務語彙のみで画面基本設計書を執筆 | 画面基本設計書.md |
 | generating-reverse-detailed-design | 封印済み facts と共通文書から画面詳細設計書を執筆 | 画面詳細設計書.md・DESIGN.md |
@@ -101,46 +78,46 @@
 
 ## 種別×工程の対応表
 
-6種別すべてで一覧・facts・静的設計を生成できる。画面だけが動的な往復検証まで進む。全カテゴリは[reverse-docs-overview.html](reverse-docs-overview.html)に定義する。
+6 種別 × 4 工程の対応状況。画面のみ全工程が確立済みで、他 5 種別は一覧生成まで対応済み（facts 抽出以降は「[段階計画](#段階計画)」の対象）。ポータルで扱う納品物カテゴリ全体（基盤情報・規約・設計書・一覧/設計図・マトリクス/対応表・AI設定資産・デザイン）は [reverse-docs-overview.html](reverse-docs-overview.html) の納品物表を正本とする。
 
 | 種別 | 一覧生成 | facts 抽出 | 設計書執筆 | 往復検証 |
 |---|---|---|---|---|
 | 画面 | 済 | 済 | 済 | 済 |
-| API | 済 | 済 | 済 | 対象外（静的設計まで） |
-| テーブル | 済 | 済 | 済 | 対象外（静的設計まで） |
-| バッチ | 済 | 済 | 済 | 対象外（静的設計まで） |
-| 帳票 | 済 | 済 | 済 | 対象外（静的設計まで） |
-| 外部連携 | 済 | 済 | 済 | 対象外（静的設計まで） |
+| API | 済 | 未対応 | 未対応 | 未対応 |
+| テーブル | 済 | 未対応 | 未対応 | 未対応 |
+| バッチ | 済 | 未対応 | 未対応 | 未対応 |
+| 帳票 | 済 | 未対応 | 未対応 | 未対応 |
+| 外部連携 | 済 | 未対応 | 未対応 | 未対応 |
 
-「対象外（静的設計まで）」は動的な画面往復検証を適用しない意味であり、アーキテクチャ調査書で「実在しない」と判定された種別とは異なる。
+「未対応」は一覧確立の時点で工程が止まる状態を指す。アーキテクチャ調査書で「実在しない」と判定された種別（excluded-kinds.json に記録）とは区別される。
 
 ## 全体の流れ
 
-事前ヒアリングの後、D1でアーキテクチャを確定する。続いてD2の一覧、D3のfacts、D4の詳細・静的設計を確定する。D5は規約・共通統合、D6は基本・派生文書、D7はポータル・HTML検証である。`docs-only`はD7で終端する。
+事前ヒアリングで対象パス・出力先・画面範囲を確定後、以下の状態機械で進行する。Phase 1B では 6 一覧を Agent 並列実行し、Phase 4C では画面数 4 件以上の場合に running-reverse-screen-batch で無人バッチ実行する。`docs-only` はバッチでも静的リバースだけで終端する。標準ユニットは基本設計と詳細設計を並列著述し、大規模ユニットは1回目に詳細設計だけを完成させ、2回目に基本設計・観点表・テスト仕様書を作る。
 
 指揮役は成果物の実在から現在の状態を判定し（15 状態）、次に起動する子スキルを機械的に決める。判定は次の順に降りる判定フローで行う。
 
 ```
-アーキ未調査 → 一覧未生成 → 事実未封印 → 詳細・静的設計未著述
-  → 規約・共通未確定 → 基本設計未著述 → 派生成果物未生成
-  → ポータル未生成 → HTML未検証 → 画面未開通（動的検証時のみ）
-  → ファイル単位未検証 → 基準未確立 → 往復未検証
-  → 判定未確定 → 検証完了
+アーキ未調査 → 一覧未生成 → 共通未採録 → ポータル未生成
+  → 基盤ページ未生成（任意） → 状態遷移図未生成（任意） → シーケンス図未生成（任意）
+  → 事実未封印 → 基本設計未著述 → 設計書未著述
+  → 画面未開通（動的検証時のみ） → ファイル単位未検証（任意工程）
+  → 基準未確立 → 往復未検証 → 検証完了
 ```
 
 工程順の要約:
 
 ```
-アーキ調査 ─→ 一覧生成（実在種別ごと） ─→ facts 抽出・封印
-     ─→ 詳細設計・静的設計 ─→ 規約根拠の調査・分類・生成と共通6文書の統合
-     ─→ 基本設計・派生一覧・図表・対応表・AI設定資産 ─→ ポータル生成・HTML検証
+アーキ調査 ─→ 一覧生成（実在種別ごと） ─→ 共通採録 v0
+     ─→ facts 抽出・封印 ─→ 標準: 基本設計 ‖ 詳細設計（並列）
+                       └─→ 大規模: 詳細設計（1回目）→ 基本設計 ‖ 観点表・テスト仕様書（2回目）
      ─→（動的検証時）画面開通 ─→（任意）ファイル単位検証
      ─→ 往復検証（再実装 → 環境比較 → 判定） ─→ PASS: 基準タグ更新
                                               └─→ FAIL: 結果報告
                                                    └─→ iterative 指定時のみ NG 帰着 3 系統へ差し戻し
 ```
 
-画面が未開通でも、原本コードから facts を抽出し、D7のポータル・HTML検証まで静的リバースを完了できる。動的検証は `verification_mode` で選ぶ。既定の `single-pass` は1回だけ検証し、`docs-only` はD7で終了、`iterative` を明示した場合だけ FAIL 後の再抽出・再著述・再比較を反復する。
+画面が未開通でも、原本コードから facts を抽出し、基本設計・詳細設計まで静的リバースを完了できる。動的検証は `verification_mode` で選ぶ。既定の `single-pass` は1回だけ検証し、`docs-only` は静的リバースで終了、`iterative` を明示した場合だけ FAIL 後の再抽出・再著述・再比較を反復する。
 
 状態判定表・返却ブロック契約の正本は [contract.md](.claude/skills/orchestrating-reverse-docs-flow/references/contract.md)、Phase/Step とスキルの対応は [リバース工程設計.md](shared/references/リバース工程設計.md) を参照。全体ガイドは [reverse-docs-overview.html](reverse-docs-overview.html) を参照。
 
@@ -170,9 +147,17 @@ Skill(orchestrating-reverse-docs-flow)
 - **固定と可変の分離**: 決定的スクリプト（`shared/scripts/unit-list/` の共通エンジン等）が固定の処理を担い、プロジェクト・種別ごとの差分は戦略宣言（種別別の検出戦略 reference・抽出プロファイル）に閉じる
 - **NG 帰着 3 系統**: 往復検証の判定 FAIL は必ず (a) 執筆規律不足（→執筆規律 reference の改訂）/ (b) facts 欠落（→抽出プロファイルの改訂）/ (c) 共通文書欠落（→共通採録の mode=append 追記）のいずれかに帰着させ、該当資産の改訂へ還元する
 
-## 実装状態
+## 段階計画
 
-全納品物の担当・入力・出力・停止条件は[delivery-reverse-manifest.yml](shared/references/delivery-reverse-manifest.yml)に定義する。根拠不足の要件定義文書は、値を持たない空構造だけを生成する。
+確立済みの範囲と今後の拡張方針。正本は [リバース工程設計.md](shared/references/リバース工程設計.md) の「段階計画（Cycle 0〜4）」、実装順序の正本は [スキル実装計画.md](shared/references/スキル実装計画.md) を参照。各 Cycle の合格条件は既存原則を踏襲する: 異種プロジェクトでスキル無改造成立・決定的出力のみで検収。
+
+| Cycle | 状態 | 内容 |
+|---|---|---|
+| Cycle 0 | 完了 | 一覧スキル 6 分割・契約明文化・責務確定・README/全体ガイド整備 |
+| Cycle 1 | 未着手 | API 縦貫。extracting-unit-facts-from-code の profile=api 追加・facts-schema 拡張 → generating-reverse-detailed-design の API 章マップ → 画面レンダリング比較に代わる検証方式（スキーマ差分・HTTP 応答突合）の設計 |
+| Cycle 2 | 未着手 | テーブル・バッチ。テーブルはスキーマ静的比較、バッチは実行契約の facts |
+| Cycle 3 | 未着手 | 帳票・外部連携。帳票レイアウト・外部連携契約 |
+| Cycle 4 | 未着手 | 上位抽象化スキル。基本設計・要件定義文書群（[納品物フォルダ体系.md](shared/references/納品物フォルダ体系.md) の未実装担当分） |
 
 ## 正本文書
 

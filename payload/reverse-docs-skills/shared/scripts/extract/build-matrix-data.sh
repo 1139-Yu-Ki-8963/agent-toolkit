@@ -270,7 +270,7 @@ fi
 # ---------------------------------------------------------------------------
 # 引数パース
 # ---------------------------------------------------------------------------
-USAGE="Usage: build-matrix-data.sh <output-dir> --screen-manifest <path> --api-manifest <path> [--table-manifest <path>] [--feature-manifest <path>] [--roles <comma-separated>]"
+USAGE="Usage: build-matrix-data.sh <output-dir> --screen-manifest <path> --api-manifest <path> [--table-manifest <path>] [--feature-manifest <path>] [--roles <comma-separated>] [--generated-at <iso8601>] [--manifest-content-hash <sha256>]"
 OUTPUT_DIR="${1:?$USAGE}"
 shift
 
@@ -279,6 +279,8 @@ API_MANIFEST=""
 TABLE_MANIFEST=""
 FEATURE_MANIFEST=""
 ROLES_CSV=""
+GENERATED_AT_ARG=""
+MANIFEST_CONTENT_HASH=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --screen-manifest)  SCREEN_MANIFEST="${2:-}";  shift 2 ;;
@@ -286,6 +288,8 @@ while [ $# -gt 0 ]; do
     --table-manifest)   TABLE_MANIFEST="${2:-}";   shift 2 ;;
     --feature-manifest) FEATURE_MANIFEST="${2:-}"; shift 2 ;;
     --roles)            ROLES_CSV="${2:-}";        shift 2 ;;
+    --generated-at)     GENERATED_AT_ARG="${2:-}"; shift 2 ;;
+    --manifest-content-hash) MANIFEST_CONTENT_HASH="${2:-}"; shift 2 ;;
     *)
       echo "ERROR: unknown argument: $1" >&2
       echo "$USAGE" >&2
@@ -318,7 +322,17 @@ done
 
 mkdir -p "$OUTPUT_DIR"
 
-GENERATED_AT="$(date +%Y-%m-%dT%H:%M:%S%z | sed 's/\(..\)$/:\1/')"
+GENERATED_AT="${GENERATED_AT_ARG:-$(date +%Y-%m-%dT%H:%M:%S%z | sed 's/\(..\)$/:\1/')}"
+if { [ -n "$GENERATED_AT_ARG" ] && [ -z "$MANIFEST_CONTENT_HASH" ]; } \
+  || { [ -z "$GENERATED_AT_ARG" ] && [ -n "$MANIFEST_CONTENT_HASH" ]; }; then
+  echo "ERROR: --generated-at and --manifest-content-hash must be specified together" >&2
+  exit 1
+fi
+if [ -n "$MANIFEST_CONTENT_HASH" ] \
+  && ! printf '%s' "$MANIFEST_CONTENT_HASH" | grep -Eq '^[0-9a-f]{64}$'; then
+  echo "ERROR: --manifest-content-hash must be 64 lowercase hex" >&2
+  exit 1
+fi
 
 # ---------------------------------------------------------------------------
 # 導出の素材抽出（ARG_MAX 超過を避けるため、マニフェスト全体はシェル変数へ代入せず
@@ -341,9 +355,9 @@ FEATURE_MANIFEST_FILE="${FEATURE_MANIFEST:-/dev/null}"
 TABLE_MANIFEST_FILE="${TABLE_MANIFEST:-/dev/null}"
 
 # dataSource: 各ファイルの導出に使った入力マニフェストのパス(メタ表示用)
-DS_PERMISSION="$SCREEN_MANIFEST + $API_MANIFEST${FEATURE_MANIFEST:+ + $FEATURE_MANIFEST}"
-DS_CRUD="$API_MANIFEST${FEATURE_MANIFEST:+ + $FEATURE_MANIFEST}${TABLE_MANIFEST:+ + $TABLE_MANIFEST}"
-DS_TRACE="$SCREEN_MANIFEST + $API_MANIFEST${TABLE_MANIFEST:+ + $TABLE_MANIFEST}"
+DS_PERMISSION="screen-manifest.ext.json + api-manifest.json${FEATURE_MANIFEST:+ + feature-manifest.json}"
+DS_CRUD="api-manifest.json${FEATURE_MANIFEST:+ + feature-manifest.json}${TABLE_MANIFEST:+ + table-manifest.json}"
+DS_TRACE="screen-manifest.ext.json + api-manifest.json${TABLE_MANIFEST:+ + table-manifest.json}"
 
 # roles: --roles 指定値(カンマ区切り・前後空白トリム)。未指定なら検出ロール + member/guest
 if [ -n "$ROLES_CSV" ]; then
@@ -405,6 +419,7 @@ JQ_DEFS='
 # ---------------------------------------------------------------------------
 jq -n \
   --arg generatedAt "$GENERATED_AT" \
+  --arg manifestContentHash "$MANIFEST_CONTENT_HASH" \
   --arg dataSource "$DS_PERMISSION" \
   --argjson roles "$ROLES_JSON" \
   --slurpfile screenManifest "$SCREEN_MANIFEST" \
@@ -415,7 +430,7 @@ jq -n \
   | ([ $allScreens[] | select(has("permissions")) ]) as $screens
   | ($apiManifest[0].units // []) as $apis
   | ($featureManifest[0].units // []) as $features
-  | {
+  | ({
     generatedAt: $generatedAt,
     dataSource: $dataSource,
     roles: $roles,
@@ -447,7 +462,7 @@ jq -n \
                                  | $fa.letter ] | unique | crud_str) }
                  ] | from_entries) }
     ]
-  }' > "$OUTPUT_DIR/permission-matrix.json"
+  } + (if ($manifestContentHash | length) > 0 then {manifestContentHash: $manifestContentHash} else {} end))' > "$OUTPUT_DIR/permission-matrix.json"
 echo "OK: wrote $OUTPUT_DIR/permission-matrix.json" >&2
 
 # ---------------------------------------------------------------------------
@@ -455,6 +470,7 @@ echo "OK: wrote $OUTPUT_DIR/permission-matrix.json" >&2
 # ---------------------------------------------------------------------------
 jq -n \
   --arg generatedAt "$GENERATED_AT" \
+  --arg manifestContentHash "$MANIFEST_CONTENT_HASH" \
   --arg dataSource "$DS_CRUD" \
   --slurpfile apiManifest "$API_MANIFEST" \
   --slurpfile featureManifest "$FEATURE_MANIFEST_FILE" \
@@ -504,6 +520,7 @@ jq -n \
                end),
       features: $featureRows }
   + (if $hasFeatures then {} else {note: "feature-manifest未指定のためAPI単位で集約(featureIdはAPIのunitKey)"} end)
+  + (if ($manifestContentHash | length) > 0 then {manifestContentHash: $manifestContentHash} else {} end)
   ' > "$OUTPUT_DIR/crud-matrix.json"
 echo "OK: wrote $OUTPUT_DIR/crud-matrix.json" >&2
 
@@ -512,6 +529,7 @@ echo "OK: wrote $OUTPUT_DIR/crud-matrix.json" >&2
 # ---------------------------------------------------------------------------
 jq -n \
   --arg generatedAt "$GENERATED_AT" \
+  --arg manifestContentHash "$MANIFEST_CONTENT_HASH" \
   --arg dataSource "$DS_TRACE" \
   --slurpfile screenManifest "$SCREEN_MANIFEST" \
   --slurpfile apiManifest "$API_MANIFEST" \
@@ -521,7 +539,7 @@ jq -n \
   ($screenManifest[0].screens // []) as $screens
   | ($apiManifest[0].units // []) as $apis
   | ($tableManifest[0].units // []) as $tableUnits
-  | { generatedAt: $generatedAt,
+  | ({ generatedAt: $generatedAt,
     dataSource: $dataSource,
     screens: [
       $screens[]
@@ -545,5 +563,6 @@ jq -n \
                       + (if has("logicalName") then {logicalName: .logicalName} else {} end) ]
              else ([ $apis[] | .targetTables // [] | .[] ] | unique | map({tableId: ., tableName: .}))
              end) }
+    + (if ($manifestContentHash | length) > 0 then {manifestContentHash: $manifestContentHash} else {} end))
   ' > "$OUTPUT_DIR/traceability.json"
 echo "OK: wrote $OUTPUT_DIR/traceability.json" >&2

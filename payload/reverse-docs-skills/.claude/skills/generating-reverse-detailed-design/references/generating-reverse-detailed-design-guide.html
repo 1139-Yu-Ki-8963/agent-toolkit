@@ -90,19 +90,13 @@
   }
   .tag.pass  { background: #e7f3e7; color: #23662a; border-color: #b9d9ba; }
   .tag.fail  { background: #fbe9e7; color: #9c2b1a; border-color: #ecc0b8; }
-  @media (max-width: 640px) {
-    body { padding-inline: 14px; }
-    header h1, header .skill-name, p, li, td, th, dd { overflow-wrap: anywhere; }
-    nav.toc ol { columns: 1; }
-    .meta-table, table.spec { display: block; overflow-x: auto; }
-  }
 </style>
 </head>
 <body>
 
 <header>
   <h1>封印済みfactsからのリバース設計書執筆スキル<br><span class="skill-name">generating-reverse-detailed-design</span></h1>
-  <p>封印済み facts（facts.yml）だけを情報源に、リバース設計書（画面詳細設計書・DESIGN.md・単体テスト観点表）を著述する執筆専任スキル。対象リポジトリの原本コードは一切 Read しない。</p>
+  <p>封印済み facts（facts.yml）とプロジェクト共通文書だけを情報源に、リバース設計書（画面詳細設計書・DESIGN.md・単体テスト観点表）を著述する執筆専任スキル。対象リポジトリの原本コードは一切 Read しない。</p>
 
   <div class="def">
     <dt>こんな人向け</dt>
@@ -140,7 +134,7 @@
 
 <section id="s1">
   <h2><span class="sec-num">§1</span>概要</h2>
-  <p>本スキルは体系内で唯一「原本を読まずに書く」ことが仕事の執筆役である。<strong>原本を読むのは上流の extracting-unit-facts-from-code だけ</strong>であり、本スキルはその成果物（封印済み facts.yml）だけを情報源に、宣言的契約を各章のテンプレート様式へ転記・整形する。</p>
+  <p>本スキルは体系内で唯一「原本を読まずに書く」ことが仕事の執筆役である。<strong>原本を読むのは上流の extracting-unit-facts-from-code だけ</strong>であり、本スキルはその成果物（封印済み facts.yml）とプロジェクト共通文書だけを情報源に、宣言的契約を各章のテンプレート様式へ転記・整形する。</p>
   <div class="constraint">
     <strong>執筆専任</strong>: facts抽出（→ extracting-unit-facts-from-code）・共通文書採録（→ generating-reverse-common-docs）は本スキルの範囲外。本スキルは「封印済みfactsが既にある」ことを前提に動く。
   </div>
@@ -163,6 +157,8 @@
   <dl class="def">
     <dt>facts_ref</dt>
     <dd>extracting-unit-facts-from-code が確定した、封印済み facts ディレクトリの絶対パス（<code>&lt;verification_dir&gt;/screen-&lt;画面ID&gt;/facts/&lt;run_id&gt;/</code>）。facts.yml・facts.lock・recount-report.txt を含む。</dd>
+    <dt>common_docs_root</dt>
+    <dd>generating-reverse-common-docs が採録したプロジェクト共通文書のルート（<code>プロジェクト共通/</code>）。本スキルの情報源のもう一方。</dd>
     <dt>封印検証</dt>
     <dd><code>shared/scripts/seal-facts.sh verify &lt;facts_ref&gt;</code>による、facts.yml が封印時から改変されていないことの確認。Phase 2の必須ゲート。</dd>
     <dt>実測委譲</dt>
@@ -182,6 +178,7 @@
     <tr><td>audit_script_path</td><td>必須</td><td>内部整合性監査スクリプト</td></tr>
     <tr><td>scaffold_script_path</td><td>必須</td><td>スキャフォールディングスクリプト（実体: shared/scripts/scaffold-screen.sh。正本はこの1本のみ）</td></tr>
     <tr><td>facts_ref</td><td>必須</td><td>封印済み facts ディレクトリの絶対パス</td></tr>
+    <tr><td>common_docs_root</td><td>必須</td><td>プロジェクト共通文書ルートの絶対パス</td></tr>
     <tr><td>mode</td><td>必須</td><td><code>file</code> または <code>screen</code></td></tr>
     <tr><td>target_file_path</td><td>mode=file時必須</td><td>対象ファイルのパス</td></tr>
     <tr><td>verification_dir</td><td>必須</td><td>パス1証跡を保存する検証記録ルート</td></tr>
@@ -201,7 +198,7 @@
     <tr><td>正本一元化</td><td>facts.yml は封印済みの確定情報であり第二の正本ではない。正は設計書。食い違ったら設計書を直す</td></tr>
     <tr><td>「該当なし」に根拠必須</td><td>根拠なしの裸の「未確認」は完了条件違反</td></tr>
     <tr><td>プロジェクト非依存</td><td>固有値は起動引数・設計書側に置き、SKILL.md本文には書かない</td></tr>
-    <tr><td>原本Read禁止</td><td>本スキル実行中に対象リポジトリの原本コードをReadすることを全面禁止する。情報源はfacts_refに限定する</td></tr>
+    <tr><td>原本Read禁止</td><td>本スキル実行中に対象リポジトリの原本コードをReadすることを全面禁止する。情報源はfacts_refとcommon_docs_rootに限定する</td></tr>
     <tr><td>検証スキルとの関係</td><td>AUTHORED後に検証スキル(rebuilding-screen-unit-from-docs)を起動し、検証「差し戻し」の差し戻し先は本スキル</td></tr>
   </table>
 </section>
@@ -210,7 +207,7 @@
   <h2><span class="sec-num">§6</span>動作フロー（Phase 1〜6）</h2>
   <pre class="flow"><span class="cap">Phase 1: preflight（起動引数検収・スキャフォールディング）</span>
   必須引数を検収する(screen_dir/output_dir/template_root/chapter_map_path/
-   audit_script_path/scaffold_script_path/facts_ref/mode/target_file_path)
+   audit_script_path/scaffold_script_path/facts_ref/common_docs_root/mode/target_file_path)
   画面ディレクトリ未存在ならscaffold_script_path(実体: shared/scripts/scaffold-screen.sh)で展開、
    既存なら--verifyで健全性確認
   完了条件: 必須引数が揃い、画面ディレクトリの構造健全性を確認済み
@@ -218,9 +215,9 @@
 <span class="cap">Phase 2: 封印検証と facts 読込</span>
   seal-facts.sh verify &lt;facts_ref&gt; を実行、exit 0を確認(必須ゲート)
   exit 1ならstatus=BLOCKED(hint: extracting-unit-facts-from-codeで再封印せよ)
-  exit 0ならfacts.ymlだけを読み込む
+  exit 0ならfacts.ymlとcommon_docs_root配下の共通文書を読み込む
   対象リポジトリの原本コードは一切Readしない
-  完了条件: seal-facts.sh verifyがexit 0、facts.ymlの読込完了
+  完了条件: seal-facts.sh verifyがexit 0、facts.ymlと共通文書の読込完了
 
 <span class="cap">Phase 3: 観点表追記</span>
   facts.ymlから単体テスト観点表へ観点行を追記する(意味キー規約準拠)
@@ -322,7 +319,7 @@
 <section id="s12">
   <h2><span class="sec-num">§12</span>予想を裏切る挙動</h2>
   <ul>
-    <li>原本コードのReadは全面禁止。情報源はfacts_ref配下のfacts.ymlのみ</li>
+    <li>原本コードのReadは全面禁止。情報源はfacts_ref配下のfacts.ymlとcommon_docs_root配下の共通文書のみ</li>
     <li>facts.ymlの字面（value列）をそのまま書き写すだけでなく、章の文脈に沿って正規化して書く。ただしfactsに無い事実を創作しない</li>
     <li>measurement_pending（⑨実測系）を目視転記・推測で確定しない。「実測委譲（画面単位検証で確定）」に留めmeasurement_pendingへ回す</li>
     <li>「該当なし」は必ず根拠を添える。裸の「未確認」は完了条件違反</li>
@@ -337,7 +334,8 @@
   <table class="spec">
     <tr><th>関連</th><th>関係</th></tr>
     <tr><td>orchestrating-reverse-docs-flow</td><td>工程全体を案内する管理者スキル。本スキルの返却する status/artifacts はこの契約に準拠する</td></tr>
-    <tr><td>extracting-unit-facts-from-code</td><td>原本コードからfacts.ymlを抽出・独立再計数・封印する上流スキル。本スキルの唯一の情報源</td></tr>
+    <tr><td>extracting-unit-facts-from-code</td><td>原本コードからfacts.ymlを抽出・独立再計数・封印する上流スキル。本スキルの唯一の情報源のひとつ</td></tr>
+    <tr><td>generating-reverse-common-docs</td><td>プロジェクト共通文書を採録する上流スキル。common_docs_rootの実体を提供する</td></tr>
     <tr><td>rebuilding-screen-unit-from-docs</td><td>本スキルがAUTHOREDを返した後に起動する下流の盲検検証スキル。「差し戻し」の差し戻し先は本スキル</td></tr>
     <tr><td>shared/references/facts-schema.md</td><td>facts.ymlのスキーマ定義（12分類・必須フィールド・正規化規則）</td></tr>
   </table>

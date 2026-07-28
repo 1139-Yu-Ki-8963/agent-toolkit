@@ -94,12 +94,6 @@
     padding: 12px 18px; margin: 16px 0; font-size: 0.93rem;
   }
   .constraint strong:first-child { color: #2a4a7a; }
-  @media (max-width: 760px) {
-    body { padding-inline: 12px; overflow-x: hidden; }
-    nav.toc ol { columns: 1; }
-    table.spec { display: block; max-width: 100%; overflow-x: auto; }
-    code { overflow-wrap: anywhere; word-break: break-word; }
-  }
 
   .tag {
     display: inline-block; font-family: ui-monospace, monospace; font-size: 0.78rem;
@@ -115,7 +109,7 @@
 
 <header>
   <h1>プロジェクト共通採録スキル<br><span class="skill-name">generating-reverse-common-docs</span></h1>
-  <p>アーキテクチャ調査書を前提に、対象リポジトリのコードから層化サンプリングで共通6文書とサンプル記録を採録する。規約4種は専用規約スキルが担当し、本スキルは生成・追記・検証しない。</p>
+  <p>アーキテクチャ調査書を前提に、対象リポジトリのコードから層化サンプリングでプロジェクト共通10文書のv0を採録する。実装済みコードに現に存在する規約・共通仕様の事実だけを記録し、理想論は書かない。</p>
 
   <div class="def">
     <dt>こんな人向け</dt>
@@ -159,6 +153,9 @@
     <strong>読み取り専用</strong>: 対象リポジトリへの書き込み・変更は一切行わない。出力は output_dir 配下の8ファイルのみ。
   </div>
   <div class="constraint">
+    <strong>rule生成は独立操作</strong>: 規約4文書の構造化表は生成契約として出力するが、採録中は対象リポジトリへ書かない。採録完了後に生成スクリプトへ <code>--apply</code> を明示した場合だけ更新する。
+  </div>
+  <div class="constraint">
     <strong>v0で止める</strong>: 完成を狙わない。v0確定後の追記は mode=append の別起動でのみ行う。
   </div>
 </section>
@@ -192,8 +189,8 @@
   <table class="spec">
     <tr><th>引数</th><th>必須</th><th>内容</th></tr>
     <tr><td>target_repo_path</td><td>必須</td><td>対象リポジトリの絶対パス</td></tr>
-    <tr><td>output_dir</td><td>必須</td><td>出力先ルート。共通6文書とサンプル記録は <code>&lt;output_dir&gt;/プロジェクト共通/</code> 配下に出力する</td></tr>
-    <tr><td>template_root</td><td>必須</td><td>テンプレ一式のルート。<code>&lt;template_root&gt;/プロジェクト共通/</code> の共通6文書を雛形に使う</td></tr>
+    <tr><td>output_dir</td><td>必須</td><td>出力先ルート。10文書は <code>&lt;output_dir&gt;/プロジェクト共通/</code> 配下に出力する</td></tr>
+    <tr><td>template_root</td><td>必須</td><td>テンプレ一式のルート。<code>&lt;template_root&gt;/プロジェクト共通/</code> の既存テンプレ10文書を雛形に使う</td></tr>
     <tr><td>survey_doc_path</td><td>必須</td><td>アーキテクチャ調査書のパス（ディレクトリ責務マップを層化サンプリングの層定義に使う）</td></tr>
     <tr><td>mode</td><td>任意（既定 v0）</td><td>v0（新規）／append（NG帰着(c)の追記。append_findings を受け取り該当文書へ追記して全ゲートを再実行）</td></tr>
     <tr><td>append_findings</td><td>mode=append 時のみ必須</td><td>差し戻し元が指摘した欠落挙動・欠落文書の一覧</td></tr>
@@ -205,6 +202,7 @@
   <table class="spec">
     <tr><th>原則</th><th>内容</th></tr>
     <tr><td>読み取り専用</td><td>対象リポジトリへの書き込み・変更は一切行わない。出力は output_dir 配下のみ</td></tr>
+    <tr><td>派生rule生成は別操作</td><td><code>generate-rules-from-common-docs.sh</code> は既定dry-run。<code>--apply</code>時だけ所有index配下を更新し、<code>--check</code>で文書hash・entry hash・bytes一致を検査する</td></tr>
     <tr><td>実装事実主義</td><td>サンプルに現れない規則を発明しない。理想論（あるべき姿）を書かず、実装済みコードに現に存在する事実だけを記録する</td></tr>
     <tr><td>三点セット必須</td><td>各規則行は実例（3件以上）・頻度・例外率を必ず添える</td></tr>
     <tr><td>決定的サンプリング</td><td>層化サンプリングの選定は find / sort / head の決定的コマンドに固定する。乱数・目視選定を禁止する</td></tr>
@@ -219,8 +217,8 @@
   target_repo_path・template_root・survey_doc_pathの実在を確認する
   調査書内「ユニット種別判定」節と「ディレクトリ責務マップ」節の
   実在をgrepで確認する(調査書ゲートの再実行はしない)
-  output_dir/プロジェクト共通/を作成し共通6文書を複製する
-  完了条件: 共通6文書複製済み・調査書の2節実在確認済み
+  output_dir/プロジェクト共通/規約/を作成しテンプレ10文書を複製する
+  完了条件: テンプレ10文書複製済み・調査書の2節実在確認済み
    (mode=append時は既存11文書と指摘文書の特定済み)
 
 <span class="cap">Phase 2: 層化サンプリング</span>
@@ -236,6 +234,8 @@
   コンポーネント設計規約の各規則を採録する
   各規則行に①実例(相対パス3件以上) ②頻度(N/M形式)
   ③例外率(%表記)を記載する。サンプルに無い規則は発明しない
+  「AI設定資産への変換」の5列表はテンプレートどおり保持し、
+  4文書横断で規約キーを重複させない
   完了条件: 全規則行が実例3件以上+頻度+例外率付き
 
 <span class="cap">Phase 4: 共通文書採録</span>
@@ -268,7 +268,7 @@
   <table class="spec">
     <tr><th>検査</th><th>内容</th></tr>
     <tr><td>実在検査</td><td>プロジェクト共通8ファイル（規約4種＋共通設計書.md＋メッセージ定義書.md＋DESIGN.md＋サンプル記録.md）すべてが実在するかを確認する</td></tr>
-    <tr><td>規則行完備性検査</td><td>規約4文書内の各テーブル行のうち、backtick囲みの相対パス（「/」を含む）トークンを1件以上含む行を「規則行」とみなし、その行に実例パス3件以上・頻度（<code>[0-9]+/[0-9]+</code>形式）・例外率（<code>[0-9.]+%</code>形式）が揃っているかを確認する</td></tr>
+    <tr><td>規則行完備性検査</td><td>規約4文書内の各テーブル行のうち、backtick囲みの相対パス（「/」を含む）トークンを1件以上含む行を「規則行」とみなし、その行に実例パス3件以上・頻度（<code>[0-9]+/[0-9]+</code>形式）・例外率（<code>[0-9.]+%</code>形式）が揃っているかを確認する。「AI設定資産への変換」表は派生rule生成用なので対象外</td></tr>
     <tr><td>パス実在検査</td><td>規約4文書内のbacktick囲み相対パス全件が target_repo_path 配下に実在するかを確認する。URL・glob・プレースホルダ・絶対パス・空白や正規表現記号を含むトークンは対象外</td></tr>
     <tr><td>テンプレ残存検査</td><td>プレースホルダ（<code>&lt;実測</code>・<code>&lt;FILL</code>・<code>TBD</code>・<code>TODO</code>）の残存ゼロを8ファイルすべてで確認する</td></tr>
     <tr><td>理想論表現検査</td><td>規約4文書に「すべきである」「望ましい」「べきだ」「理想的には」「今後は」等の理想論表現が無いかを確認する（実装事実の記録に限る）</td></tr>
@@ -327,7 +327,7 @@
     <tr><td>orchestrating-reverse-docs-flow</td><td>工程全体を案内する管理者スキル。本スキルは他スキル名を参照せず単独起動できるが、返却する status / artifacts はこの管理者スキルの契約に準拠する</td></tr>
     <tr><td>surveying-architecture-for-reverse-docs</td><td>本スキルが前提とするアーキテクチャ調査書を確定する上流スキル。本スキルのスコープ外（TRIGGER条件のSKIP対象）</td></tr>
     <tr><td>extracting-unit-facts-from-code / generating-reverse-detailed-design</td><td>本スキルが確定したプロジェクト共通文書を前提として動く後続工程。本スキルのスコープ外（TRIGGER条件のSKIP対象）</td></tr>
-    <tr><td>リバース工程設計.md</td><td>納品物工程の正式な参照元。本スキルはunit facts・unit detailed designs後の規約・共通統合で共通6文書だけを担当する</td></tr>
+    <tr><td>リバース工程設計.md</td><td>Phase/Step×スキル対応の正本。本スキルの位置づけはPhase 4 共通採録 / Step 12-16。NG帰着3系統の(c)共通文書欠落からの差し戻し先でもある</td></tr>
   </table>
 </section>
 

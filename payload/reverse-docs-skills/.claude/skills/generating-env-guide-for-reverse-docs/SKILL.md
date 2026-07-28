@@ -164,9 +164,3 @@ page-data.json の保存先は `$CLAUDE_JOB_DIR/tmp/env-guide-page-data.json` �
 
 - `../../../shared/scripts/detail-pages/page-data-schema.md` — page-data.json のスキーマ定義
 - `references/generating-env-guide-for-reverse-docs-guide.html` — スキルガイド
-
-<!-- delivery-owner-contracts:start -->
-```json
-[{"failure_return_to":"orchestrating-reverse-docs-flow","id":"environment-guide","inputs":["configuration","scripts"],"outputs":["環境構築手順.html"],"stop_conditions":["実行根拠なし"],"validator":"check-delivery-artifacts.sh"}]
-```
-<!-- delivery-owner-contracts:end -->

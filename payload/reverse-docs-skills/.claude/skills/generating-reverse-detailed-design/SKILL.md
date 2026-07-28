@@ -21,7 +21,7 @@ facts 抽出・設計書執筆・盲検検証の3スキルは情報アクセス�
 - facts が封印済み（extracting-unit-facts-from-code が `status=封印済み` で facts_ref を返した後）で、リバース設計書を新規著述・再著述したいとき
 - 本スキルが `status=AUTHORED` を返した後に検証スキル rebuilding-screen-unit-from-docs を起動する（facts抽出 → 執筆 → 盲検往復検証の順）
 - 検証スキルが `差し戻し`（設計書に対象契約なし）を返した場合の差し戻し先は本スキルである
-- 起動引数は screen_dir + facts_ref + 資産パス群 + mode（+ mode=file 時は target_file_path）
+- 起動引数は screen_dir + facts_ref + common_docs_root + 資産パス群 + mode（+ mode=file 時は target_file_path）
 
 ## スコープ（2 モード）
 
@@ -33,12 +33,12 @@ facts 抽出・設計書執筆・盲検検証の3スキルは情報アクセス�
 1. **正本一元化**: facts.yml は封印済みの確定情報であり第二の正本ではない。正は設計書。設計書と facts.yml が食い違ったら設計書を直す（facts.yml 自体の誤りは extracting-unit-facts-from-code への差し戻し対象であり本スキルは書き換えない）
 2. **「該当なし」に根拠を必須とする**（例:「該当なし（facts.yml の const セクションに項目なし）」）。根拠なしの裸の「未確認」は完了条件違反
 3. **プロジェクト非依存**: リバース対象の固有値（対象リポジトリパス・画面 ID・BL 名）はすべて起動引数・設計書側に置き、本 SKILL.md 本文には書かない。完成後に固有文字列ゼロを確認する（環境名の直書き禁止規約にも整合させる）
-4. **原本Read禁止**。情報源は`facts_ref`配下のfacts.ymlに限定する。factsの欠落は抽出スキルへ差し戻す
+4. **原本 Read 禁止**: 本スキル実行中に対象リポジトリの原本コードを Read することを全面禁止する。情報源は起動引数 facts_ref 配下の facts.yml と common_docs_root 配下の共通文書に限定する。原本を読むことは検証の盲検性を壊す契約違反であり、facts の欠落に気づいた場合でも自ら原本を確認せず extracting-unit-facts-from-code への差し戻しとして扱う
 5. **検証スキルとの関係を明記**: 上記「使用タイミング」の通り、AUTHORED 後に検証スキルを起動し、検証 差し戻し の差し戻し先は本スキルである
 
 ## Phase 1: preflight（起動引数検収・スキャフォールディング）
 
-起動引数を検収する。`verification_url`は任意であり、未開通でも著述を止めない。`companion-docs`ではパス1証跡を必須とする。必須引数が欠ける場合は呼び出し元へ差し戻す。
+起動引数を検収する: screen_dir / output_dir / template_root / chapter_map_path / audit_script_path / scaffold_script_path / facts_ref / common_docs_root / mode / target_file_path（mode=file 時）/ verification_dir / authoring_pass（`full|detail-only|companion-docs`、既定 `full`）。補助情報源（スクリーンショット dir・verification_url）があれば受け取る。verification_url は任意であり、未開通でも著述を止めない。渡された場合だけ scenarios の query/path_params の実測値を確定転記する。`authoring_pass=companion-docs` では detail_design_path と pass1_receipt_path を必須とし、パス1証跡の固定検収契約を満たさなければ fail-closed で差し戻す。いずれか必須引数が欠ける場合は起動不可として呼び出し元へ差し戻す。
 
 `companion-docs` の開始前に pass1_receipt_path の JSON を読み、`status=DETAIL_AUTHORED`、`detail_design_path` が起動引数と一致、`facts_lock_sha256` が現在の `<facts_ref>/facts.lock` の SHA-256 と一致、`coverage_check=PASS`、`audit_check=PASS` の5条件を機械検収する。詳細設計書の実在も確認し、1条件でも満たさなければ `status=BLOCKED` とする。
 
@@ -50,7 +50,7 @@ facts 抽出・設計書執筆・盲検検証の3スキルは情報アクセス�
 
 `shared/scripts/seal-facts.sh verify <facts_ref>` を実行し exit 0 を確認する（Phase 2 の必須ゲート）。exit 1（facts.yml が封印時から改変されている）なら著述を行わず `status=BLOCKED` とし、hint に「extracting-unit-facts-from-code で再封印せよ」と記す（このゲートはループ対象外の終端条件）。
 
-exit 0 を確認したら、`<facts_ref>/facts.yml`（`shared/references/facts-schema.md` 準拠の12分類構造）だけを情報源として読み込む。**対象リポジトリの原本コードは Read しない**（設計原則4）。12分類の定義・キーの付け方は `shared/references/facts-schema.md` を参照する。
+exit 0 を確認したら、`<facts_ref>/facts.yml`（`shared/references/facts-schema.md` 準拠の12分類構造）と `common_docs_root` 配下のプロジェクト共通文書だけを情報源として読み込む。**対象リポジトリの原本コードは Read しない**（設計原則4）。12分類の定義・キーの付け方は `shared/references/facts-schema.md` を参照する。
 
 封印検証成功後、`bash shared/scripts/check-facts-sufficiency.sh <facts_ref>/facts.yml` を実行し exit 0 を確認する（著述前の充足検査）。exit 0 でなければ著述に入らず `status=BLOCKED` としてfacts抽出工程へ差し戻す。差し戻し理由には検査出力のchapter-impact行（違反セクション→影響する設計書の章）を添え、どの章のfactsが薄いかを申し送る。
 
@@ -164,7 +164,7 @@ facts 読込・執筆（Phase 2〜4）はサブエージェントへ委任しな
 
 ## 予想を裏切る挙動
 
-- 原本コードの Read は全面禁止。情報源は facts_ref 配下の facts.yml のみ（設計原則4）
+- 原本コードの Read は全面禁止。情報源は facts_ref 配下の facts.yml と common_docs_root 配下の共通文書のみ（設計原則4）
 - facts.yml の字面（`value` 列）をそのまま書き写すだけでなく、章の文脈に沿って正規化して書く。ただし facts に無い事実を創作しない（境界例は `references/writing-rules.md`）
 - `measurement_pending`（⑨実測系: 初期表示値・DOM 順・要素位置・レイアウト）を目視転記・推測で確定しない。画面未開通でも著述を止めず、`実測委譲（画面単位検証で確定）` に留め measurement_pending へ回す
 - 「該当なし」は必ず根拠を添える。裸の「未確認」は完了条件違反
@@ -262,6 +262,7 @@ mode=screen が著述する画面横断章（§1 画面概要・§2 機能一覧
 - `scripts/check-fact-coverage.sh` — Phase 5 完全性ゲート（facts.yml → 設計書の転記突合。`--self-test` 内蔵）
 - 起動引数 scaffold_script_path（Phase 1 スキャフォールディング〔テンプレート展開・--verify・--dry-run〕。実体: `shared/scripts/scaffold-screen.sh`。正本はこの1本のみ）
 - 起動引数 facts_ref（封印済み facts ディレクトリの絶対パス。実体: extracting-unit-facts-from-code が出力する `<verification_dir>/screen-<画面ID>/facts/<run_id>/`）
+- 起動引数 common_docs_root（プロジェクト共通文書ルートの絶対パス。実体: generating-reverse-common-docs が採録する `プロジェクト共通/`）
 - 起動引数 chapter_map_path（章役割キー対応表。実体: `shared/references/chapter-map.md`）
 - 起動引数 audit_script_path（内部整合性監査。実体: `shared/scripts/audit-consistency.sh`）
 - 起動引数 template_root（テンプレート原本。実体: `shared/templates/リバース検証`）
