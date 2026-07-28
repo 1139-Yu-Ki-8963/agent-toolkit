@@ -138,3 +138,9 @@ allowed-tools: [Bash, Read, Write, Edit, Grep, Glob, AskUserQuestion, TaskCreate
 ## 設計判断
 
 本スキルは独自スクリプトを持たないため省略する。
+
+<!-- delivery-owner-contracts:start -->
+```json
+[{"failure_return_to":"orchestrating-reverse-docs-flow","id":"external-list","inputs":["integration source"],"outputs":["一覧/外部連携一覧/外部連携一覧.html"],"stop_conditions":["0件"],"validator":"check-delivery-artifacts.sh"}]
+```
+<!-- delivery-owner-contracts:end -->

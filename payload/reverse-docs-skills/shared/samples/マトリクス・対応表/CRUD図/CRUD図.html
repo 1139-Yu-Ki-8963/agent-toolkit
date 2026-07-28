@@ -40,11 +40,6 @@
 <style>
   :root,
 [data-theme="light"] {
-  /* Windows フォント上書き防止 */
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-rendering: optimizeLegibility;
-  font-synthesis: none;
   --bg: #FFFFFF;
   --panel: #FFFFFF;
   --panel-2: #F6F8FA;
@@ -65,19 +60,8 @@
   --warn: #BC4C00;
   --danger: #CF222E;
   --danger-soft: #FFEBE9;
-  --highlight: #D97B1A;
-  --highlight-soft: rgba(217,123,26,0.12);
-  --highlight-border: rgba(217,123,26,0.5);
-  --nav-tag: #7B8BBF;
-  --nav-tag-soft: #ECEEF6;
-  --self-tag: #6B9B6B;
-  --self-tag-soft: #E8F0E8;
   --code-bg: #1B1F26;
   --code-fg: #E8E5DC;
-  --cat-list: #2563eb;
-  --cat-standards: #059669;
-  --cat-design: #D97706;
-  --cat-project: #7C3AED;
   --font-body: "Hiragino Kaku Gothic ProN","Hiragino Sans","Noto Sans JP","BIZ UDPGothic","Yu Gothic","Meiryo",system-ui,-apple-system,sans-serif;
   --mono: "SFMono-Regular","Menlo","Cascadia Code","Consolas",monospace;
   --shadow-sm: 0 1px 3px rgba(27,31,38,.07), 0 2px 6px rgba(27,31,38,.05);
@@ -94,11 +78,7 @@
     --gold: #DB6D28; --gold-soft: #311D08; --gold-border: #7A3E0D;
     --success: #3FB950; --success-soft: #0D2818;
     --warn: #DB6D28; --danger: #F85149; --danger-soft: #3D1214;
-    --highlight: #E8943A; --highlight-soft: rgba(232,148,58,0.15); --highlight-border: rgba(232,148,58,0.5);
-    --nav-tag: #8E9ED0; --nav-tag-soft: rgba(142,158,208,0.15);
-    --self-tag: #7DB87D; --self-tag-soft: rgba(125,184,125,0.15);
     --code-bg: #0E1116; --code-fg: #E8E5DC;
-    --cat-list: #60A5FA; --cat-standards: #34D399; --cat-design: #FBBF24; --cat-project: #A78BFA;
   }
 }
 [data-theme="dark"] {
@@ -109,24 +89,17 @@
   --gold: #DB6D28; --gold-soft: #311D08; --gold-border: #7A3E0D;
   --success: #3FB950; --success-soft: #0D2818;
   --warn: #DB6D28; --danger: #F85149; --danger-soft: #3D1214;
-  --highlight: #E8943A; --highlight-soft: rgba(232,148,58,0.15); --highlight-border: rgba(232,148,58,0.5);
-  --nav-tag: #8E9ED0; --nav-tag-soft: rgba(142,158,208,0.15);
-  --self-tag: #7DB87D; --self-tag-soft: rgba(125,184,125,0.15);
   --code-bg: #0E1116; --code-fg: #E8E5DC;
-  --cat-list: #60A5FA; --cat-standards: #34D399; --cat-design: #FBBF24; --cat-project: #A78BFA;
 }
 
-  html { height: 100vh; }
   * { box-sizing: border-box; }
   body {
-    margin: 0; padding: 0 24px;
+    margin: 0; padding: 0 24px 0;
     font-family: var(--font-body);
-    line-height: 1.7; color: var(--text); background: var(--bg);
+    line-height: 1.7; color: var(--text); background: var(--bg); height: 100vh; overflow: hidden; display: flex; flex-direction: column;
     max-width: 1180px; margin-inline: auto;
-    height: 100%; overflow: hidden; display: flex; flex-direction: column;
   }
-  .matrix-content { flex: 1; min-height: 0; overflow-y: auto; padding-bottom: 96px; }
-  .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .table-wrap { overflow-x: auto; overflow-y: auto; flex: 1; min-height: 0; -webkit-overflow-scrolling: touch; }
   header { padding: 40px 0 20px; border-bottom: 3px solid var(--border-strong); }
   .header-top { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
   header h1 { font-size: 1.7rem; margin: 0 0 10px; }
@@ -245,7 +218,7 @@
     <span class="brand-sub">設計ポータル</span>
   </a>
   <div class="header-meta">
-    <span class="pm-updated">更新: 2026-07-28T00:00:00Z</span>
+    <span class="pm-updated">更新: 2026-07-20 00:00</span>
   </div>
   <div class="top-actions">
     <button id="theme-toggle" title="テーマ切替">ライト</button>
@@ -259,7 +232,7 @@
     <h1>CRUD図（機能×テーブル）</h1>
   </div>
   <table class="meta-table">
-    <tr><td>データ源</td><td><code>api-manifest.json</code></td></tr>
+    <tr><td>データ源</td><td><code>一覧/機能一覧 + 一覧/テーブル一覧 の突合分析</code></td></tr>
     <tr><td>種別</td><td>マトリクス・対応表（機能×テーブル）</td></tr>
   </table>
   <p class="purpose">「このテーブルに書き込むのはどの機能か」「テーブル変更の影響範囲はどこまでか」に答えるマトリクス・対応表。</p>
@@ -271,7 +244,6 @@
   </div>
 </section>
 
-<main class="matrix-content">
 <div class="toolbar">
   <input type="search" id="matrix-search" placeholder="機能名・テーブル物理名で絞り込み">
   <span class="note">セルにマウスを重ねると行・列を同時ハイライト</span>
@@ -289,16 +261,63 @@
     <tbody></tbody>
   </table>
 </div>
-</main>
 
 <script type="application/json" id="matrix-manifest">
 {
-  "generatedAt": "2026-07-28T00:00:00Z",
-  "dataSource": "api-manifest.json",
-  "tables": [],
-  "features": [],
-  "note": "feature-manifest未指定のためAPI単位で集約(featureIdはAPIのunitKey)",
-  "manifestContentHash": "c7d90a604412f8b7f047b9d3de9c723168e34b0215ac4d27e2c63a30a089a550"
+  "generatedAt": "2026-07-20 00:00",
+  "dataSource": "一覧/機能一覧 + 一覧/テーブル一覧 の突合分析",
+  "tables": [
+    { "physicalName": "users", "logicalName": "ユーザー" },
+    { "physicalName": "sessions", "logicalName": "セッション" },
+    { "physicalName": "app_settings", "logicalName": "設定" },
+    { "physicalName": "roles", "logicalName": "ロール" },
+    { "physicalName": "permissions", "logicalName": "権限" },
+    { "physicalName": "user_roles", "logicalName": "ユーザーロール紐付" },
+    { "physicalName": "posts", "logicalName": "投稿" },
+    { "physicalName": "comments", "logicalName": "コメント" },
+    { "physicalName": "categories", "logicalName": "カテゴリ" },
+    { "physicalName": "tags", "logicalName": "タグ" },
+    { "physicalName": "post_tags", "logicalName": "投稿タグ紐付" },
+    { "physicalName": "notifications", "logicalName": "通知" },
+    { "physicalName": "audit_logs", "logicalName": "監査ログ" },
+    { "physicalName": "uploaded_files", "logicalName": "ファイル" },
+    { "physicalName": "organizations", "logicalName": "組織" },
+    { "physicalName": "organization_members", "logicalName": "組織メンバー紐付" }
+  ],
+  "features": [
+    { "featureId": "feat-login", "featureName": "ログイン",
+      "cells": { "users": "R", "sessions": "C" } },
+    { "featureId": "feat-logout", "featureName": "ログアウト",
+      "cells": { "sessions": "D" } },
+    { "featureId": "feat-signup", "featureName": "新規登録",
+      "cells": { "users": "C" } },
+    { "featureId": "feat-password-reset", "featureName": "パスワードリセット",
+      "cells": { "users": "RU" } },
+    { "featureId": "feat-profile-edit", "featureName": "プロフィール編集",
+      "cells": { "users": "RU", "uploaded_files": "C" } },
+    { "featureId": "feat-user-list", "featureName": "ユーザー一覧表示",
+      "cells": { "users": "R", "roles": "R" } },
+    { "featureId": "feat-user-invite", "featureName": "ユーザー招待",
+      "cells": { "users": "C", "notifications": "C" } },
+    { "featureId": "feat-role-assign", "featureName": "ロール割当",
+      "cells": { "roles": "R", "user_roles": "CD" } },
+    { "featureId": "feat-post-create", "featureName": "投稿作成",
+      "cells": { "posts": "C", "categories": "R", "tags": "R", "post_tags": "C" } },
+    { "featureId": "feat-post-edit", "featureName": "投稿編集",
+      "cells": { "posts": "RU", "post_tags": "CD" } },
+    { "featureId": "feat-post-delete", "featureName": "投稿削除",
+      "cells": { "posts": "U", "comments": "D", "audit_logs": "C" } },
+    { "featureId": "feat-comment", "featureName": "コメント投稿",
+      "cells": { "comments": "C", "notifications": "C" } },
+    { "featureId": "feat-file-upload", "featureName": "ファイル添付",
+      "cells": { "uploaded_files": "C" } },
+    { "featureId": "feat-notification-list", "featureName": "通知一覧表示",
+      "cells": { "notifications": "RU" } },
+    { "featureId": "feat-notification-settings", "featureName": "通知設定",
+      "cells": { "app_settings": "RU" } },
+    { "featureId": "feat-report-view", "featureName": "レポート閲覧",
+      "cells": { "posts": "R", "comments": "R", "audit_logs": "R" } }
+  ]
 }
 </script>
 

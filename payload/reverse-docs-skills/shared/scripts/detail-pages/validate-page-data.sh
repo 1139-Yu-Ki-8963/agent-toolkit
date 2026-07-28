@@ -170,16 +170,6 @@ case "$PAGE_KIND" in
     ;;
 esac
 
-if [ "$PAGE_KIND" = "transition" ]; then
-  manifest_hash="$(jq -r '.manifestContentHash // ""' "$MANIFEST")"
-  if ! printf '%s' "$manifest_hash" | grep -Eq '^[0-9a-f]{64}$'; then
-    overall_fail=1
-    echo "[FAIL] manifestContentHash — transitionでは64桁lowercase hexが必須" >&2
-  else
-    echo "[PASS] manifestContentHash — 64桁lowercase hex" >&2
-  fi
-fi
-
 # --- 4. 型別スロット ---
 get_slot_keys() { case "$1" in glossary) echo "categories terms";; techstack) echo "tiles columns rows";; transition) echo "legend nodes edges";; er) echo "legend entities relations";; env) echo "prerequisites steps allocations";; entity-state) echo "legend nodes edges";; release-notes) echo "releases";; design-system) echo "tokens";; component-inventory) echo "components";; icon-catalog) echo "icons";; esac; }
 

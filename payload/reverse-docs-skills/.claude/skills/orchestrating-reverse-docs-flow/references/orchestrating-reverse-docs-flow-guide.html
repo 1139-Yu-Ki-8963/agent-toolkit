@@ -99,6 +99,12 @@
     padding: 12px 18px; margin: 16px 0; font-size: 0.93rem;
   }
   .constraint strong:first-child { color: #2a4a7a; }
+  @media (max-width: 760px) {
+    body { padding-inline: 12px; overflow-x: hidden; }
+    nav.toc ol { columns: 1; }
+    table.spec { display: block; max-width: 100%; overflow-x: auto; }
+    code { overflow-wrap: anywhere; word-break: break-word; }
+  }
 
   .tag {
     display: inline-block; font-family: ui-monospace, monospace; font-size: 0.78rem;
@@ -183,7 +189,7 @@
     <dt>全画面の設計書一式</dt>
     <dd>対象アプリケーションのすべての画面について、コードの事実に基づいた詳細設計書が揃い、「設計書だけからコードを再構築→元と一致」の往復検証に合格した状態。新規参画者がコードを読まなくても画面仕様を把握できるドキュメント群が最終成果物になる。</dd>
     <dt>全6種別の到達状態レポート</dt>
-    <dd>最終報告に、画面・API・テーブル・バッチ・帳票・外部連携の6種別それぞれの到達状態が「生成済み / 対象外 / 後続未対応」の3値で記載される。screen 以外の種別は facts抽出以降の工程が現時点で未対応のため、一覧確立をもって「後続未対応」として終端記録される。</dd>
+    <dd>最終報告に6種別それぞれの到達状態を記載する。screen以外は一覧・facts・静的設計を確定し、動的往復検証は対象外とする。</dd>
   </div>
 </section>
 
@@ -193,7 +199,7 @@
 
   <p>
     成果物の実在から現在の状態を15状態で判定し、次に起動する子スキルを機械的に決定する。
-    判定はアーキテクチャ調査・一覧・共通採録・ポータル・任意ページを先に確認し、その後に facts封印、基本設計・詳細設計、画面開通、ファイル単位検証、基準確立、judge の順に降りる。画面未開通でも静的リバースは止めない。
+    判定はアーキテクチャ調査・一覧・unit facts・unit detailed designs・規約/共通統合・上位/派生成果物・ポータルの順に確認し、その後に画面開通、ファイル単位検証、基準確立、judgeへ進む。
     成果物の実在から毎回評価するので中断後も再開できる。
   </p>
 
@@ -204,14 +210,14 @@
     <tbody>
       <tr><td>アーキ未調査</td><td>アーキテクチャ調査書が不在、または調査ゲートの再実行が失敗</td><td>surveying-architecture-for-reverse-docs</td></tr>
       <tr><td>一覧未生成</td><td>実在種別の一覧HTML、または対象外種別の該当なし記録が不在</td><td>generating-&lt;種別&gt;-list-for-reverse-docs（不在種別のみ）</td></tr>
-      <tr><td>共通未採録</td><td>プロジェクト共通10文書のいずれかが不在、または共通文書ゲートが失敗</td><td>generating-reverse-common-docs</td></tr>
+      <tr><td>規約・共通未確定</td><td>専用規約成果物、共通6文書、サンプル記録のいずれかが不在、または各ゲートが失敗</td><td>規約専用スキル / generating-reverse-common-docs</td></tr>
       <tr><td>ポータル未生成</td><td><code>&lt;output_dir&gt;/index.html</code> が不在</td><td>bash shared/scripts/build-portal.sh</td></tr>
       <tr><td>基盤ページ未生成（任意）</td><td>基盤ページ群のいずれかが不在。データ源未整備時はスキップ可</td><td>不在ページに対応する基盤ページ生成スキル</td></tr>
       <tr><td>状態遷移図未生成（任意）</td><td>状態遷移図.html が不在。データ源未整備時はスキップ可</td><td>generating-entity-state-for-reverse-docs</td></tr>
       <tr><td>シーケンス図未生成（任意）</td><td>画面フォルダのシーケンス図.html が不在。データ源未整備時はスキップ可</td><td>generating-sequence-diagram-for-reverse-docs</td></tr>
-      <tr><td>事実未封印</td><td>facts.lock が不在、または封印検証が失敗</td><td>extracting-unit-facts-from-code</td></tr>
-      <tr><td>基本設計未著述</td><td>画面基本設計書が不在</td><td>generating-reverse-basic-design</td></tr>
-      <tr><td>設計書未著述</td><td>対象ファイル行、完全性ゲート成果物、または現在の facts に対応する著述が不在</td><td>generating-reverse-detailed-design（静的リバースの必須工程）</td></tr>
+      <tr><td>事実未封印</td><td>画面のfacts.lock、または非画面5種のcanonical unit-facts.jsonが不在・検証失敗</td><td>画面はextracting-unit-facts-from-code、非画面はgenerating-unit-designs-for-reverse-docs（mode=facts）</td></tr>
+      <tr><td>基本設計未著述</td><td>画面、batch、report、externalの基本設計が不在</td><td>generating-reverse-basic-design / generating-unit-designs-for-reverse-docs（mode=design）</td></tr>
+      <tr><td>設計書未著述</td><td>画面または非画面5種の詳細・静的設計が不在</td><td>generating-reverse-detailed-design / generating-unit-designs-for-reverse-docs（mode=design）</td></tr>
       <tr><td>画面未開通</td><td>静的成果物は著述済みだが実レンダリング確認済みの verification_url がない</td><td><code>docs-only</code> は静的リバース完了。<code>single-pass</code> / <code>iterative</code> は unlocking-reverse-target-screens</td></tr>
       <tr><td>ファイル単位未検証</td><td>検証記録に着手済みで、直近の記録が再現一致でない（任意工程）</td><td>rebuilding-screen-unit-from-docs</td></tr>
       <tr><td>基準未確立</td><td>設計書有・<code>baseline_tag</code> 未確立</td><td>syncing-reverse-env（mode=setup → sync）</td></tr>
@@ -324,11 +330,13 @@
       <tr><td>Phase 1</td><td>状態判定。15状態から次工程を決定し、残り工程のタスクを登録する</td><td>常時</td></tr>
       <tr><td>Phase 2</td><td>アーキテクチャ調査</td><td>アーキ未調査時のみ</td></tr>
       <tr><td>Phase 3</td><td>種別別一覧生成。画面manifestを一覧フォルダへ永続化し、既存一覧からの再開では埋込JSONから復元する</td><td>一覧生成時、および既存一覧に永続manifestが無い再開時</td></tr>
-      <tr><td>Phase 1C</td><td>機能一覧生成（派生一覧）</td><td>画面一覧確立後</td></tr>
-      <tr><td>Phase 1D</td><td>マトリクス・対応表生成（派生補完）</td><td>機能一覧確立後</td></tr>
-      <tr><td>Phase 4</td><td>プロジェクト共通10文書の採録</td><td>共通未採録時のみ</td></tr>
-      <tr><td>Phase 5</td><td>動的検証用の環境ブロックを setup で取得する</td><td><code>single-pass</code> / <code>iterative</code> のみ。Phase 6 の静的リバース完了後かつ画面開通後（番号より依存順を優先）</td></tr>
-      <tr><td>Phase 6</td><td>facts封印、基本設計・詳細設計、画面開通、任意のファイル単位検証を行う。大規模ユニットは詳細設計をパス1で完成させ、基本設計・観点表・テスト仕様書をパス2で作る</td><td>画面単位。<code>docs-only</code> は静的リバース完了でここを終端とし、動的検証時のみ開通・ファイル単位検証へ進む</td></tr>
+      <tr><td>D3</td><td>全実在種別のunit factsを確定</td><td>一覧確立後</td></tr>
+      <tr><td>D4</td><td>全実在種別のunit detailed designsを確定</td><td>unit facts確定後</td></tr>
+      <tr><td>D5</td><td>規約根拠・分類・専用生成と共通6文書の統合</td><td>unit detailed designs確定後</td></tr>
+      <tr><td>D6</td><td>基本設計・派生一覧・図表・対応表・AI設定資産を生成</td><td>規約・共通統合後</td></tr>
+      <tr><td>D7</td><td>ポータル生成とHTML検証</td><td>全上位・派生成果物確定後</td></tr>
+      <tr><td>D8</td><td>動的検証用の環境ブロックを setup で取得する</td><td><code>single-pass</code> / <code>iterative</code> のみ。D7完了後かつ画面開通後</td></tr>
+      <tr><td>D3〜D7</td><td>facts→詳細・静的設計→規約・共通→基本・派生→ポータル・HTML検証を直列実行する</td><td><code>docs-only</code> はD7完了で終端し、動的検証時のみ開通・ファイル単位検証へ進む</td></tr>
       <tr><td>Phase 7</td><td>sync による基準確立</td><td>基準未確立時のみ。<code>docs-only</code> はスキップ</td></tr>
       <tr><td>Phase 8</td><td>implement。比較要求を取得する</td><td>往復未検証時のみ。<code>docs-only</code> はスキップ</td></tr>
       <tr><td>Phase 9</td><td>sync dry-run による比較</td><td>Phase 8 の後。<code>docs-only</code> はスキップ</td></tr>
@@ -356,8 +364,8 @@
   <div class="constraint">
     <strong>種別ループ</strong><br>
     管理者は excluded-kinds.json の presentKinds に記載された各種別についてループする。screen のみユニット反復〜基準確立〜往復検証へ進む。
-    screen 以外（api / table / batch / report / external）は facts抽出以降の工程が現時点で未対応のため、一覧確立をもって「後続未対応」の終端状態として記録する。
-    最終報告には全6種別の到達状態（生成済み / 対象外 / 後続未対応 の3値）を必ず含める（正本は <code>references/contract.md</code> の「種別ループ」）。
+    screen以外は一覧・facts・静的設計を生成し、「静的設計完了」として記録する。
+    最終報告には全6種別の到達状態（生成済み / 静的設計完了 / 対象外）を必ず含める。
   </div>
 </section>
 
@@ -374,16 +382,18 @@
     <tbody>
       <tr><td>Phase 2（アーキ未調査時）</td><td>surveying-architecture-for-reverse-docs</td><td>target_repo_path, output_dir, template_root, mode</td><td><span class="tag pass">調査確定</span></td></tr>
       <tr><td>Phase 3（一覧未生成時）</td><td>generating-&lt;種別&gt;-list-for-reverse-docs（不在種別ごと）</td><td>source_dir, output_dir</td><td><span class="tag pass">DONE</span></td></tr>
-      <tr><td>Phase 1C（画面一覧確立後）</td><td>generating-feature-list-for-reverse-docs</td><td>source_dir, output_dir</td><td><span class="tag pass">DONE</span></td></tr>
-      <tr><td>Phase 1D（機能一覧確立後）</td><td>generating-cross-views-for-reverse-docs</td><td>target_repo_path, output_dir, portal_output_dir（任意）</td><td><span class="tag pass">DONE</span></td></tr>
-      <tr><td>Phase 4（共通未採録時）</td><td>generating-reverse-common-docs</td><td>target_repo_path, output_dir, template_root, survey_doc_path, mode</td><td><span class="tag pass">採録v0確定</span></td></tr>
+      <tr><td>D6（D5完了後）</td><td>generating-feature-list-for-reverse-docs</td><td>source_dir, output_dir</td><td><span class="tag pass">DONE</span></td></tr>
+      <tr><td>D6（機能一覧確立後）</td><td>generating-cross-views-for-reverse-docs</td><td>target_repo_path, output_dir, portal_output_dir（固定値: output_dir）</td><td><span class="tag pass">DONE</span></td></tr>
+      <tr><td>D5（共通6文書未確定時）</td><td>generating-reverse-common-docs</td><td>target_repo_path, output_dir, template_root, survey_doc_path, mode</td><td><span class="tag pass">採録v0確定</span></td></tr>
       <tr><td>Phase 5</td><td>syncing-reverse-env</td><td>design-doc, mode=setup</td><td><span class="tag pass">PASS</span>（env_block抽出）</td></tr>
-      <tr><td>Phase 6（静的著述後の画面未開通時）</td><td>unlocking-reverse-target-screens</td><td>invocation_mode=dynamic-only, system, screen_id, reverse_worktree, ports, output_dir, user-approved</td><td><span class="tag pass">UNLOCKED</span></td></tr>
+      <tr><td>D8（静的著述後の画面未開通時）</td><td>unlocking-reverse-target-screens</td><td>invocation_mode=dynamic-only, system, screen_id, reverse_worktree, ports, output_dir, user-approved</td><td><span class="tag pass">UNLOCKED</span></td></tr>
       <tr><td>Phase 0P（明示Python facts-only）</td><td>extracting-unit-facts-from-code</td><td>target_repo_path, target_file_paths, logical screen_dir, verification_dir, profile=python, survey_doc_path, run_id</td><td><span class="tag pass">封印済み→Python facts封印完了</span></td></tr>
-      <tr><td>Phase 6（画面の事実未封印時）</td><td>extracting-unit-facts-from-code</td><td>target_repo_path, target_file_paths, screen_dir, verification_dir, profile=screen, survey_doc_path, run_id</td><td><span class="tag pass">封印済み</span></td></tr>
-      <tr><td>Phase 6（基本設計未著述時）</td><td>generating-reverse-basic-design</td><td>screen_dir, output_dir, template_root, scaffold_script_path, facts_ref, common_docs_root, unit_kind, authoring_pass, detail_design_path・pass1_receipt_path（大規模パス2時）</td><td><span class="tag pass">基本設計著述完了</span></td></tr>
-      <tr><td>Phase 6（設計書未著述時）</td><td>generating-reverse-detailed-design</td><td>screen_dir, output_dir, template_root, chapter_map_path, audit_script_path, scaffold_script_path, facts_ref, common_docs_root, mode, target_file_path, verification_url, verification_dir, authoring_pass, detail_design_path・pass1_receipt_path（companion-docs時）</td><td><span class="tag pass">AUTHORED / DETAIL_AUTHORED / COMPANION_AUTHORED</span></td></tr>
-      <tr><td>Phase 6（ファイル単位未検証時）</td><td>rebuilding-screen-unit-from-docs</td><td>screen_dir, target_file_path, 資産paths, env_block, user-approved</td><td><span class="tag pass">再現一致</span></td></tr>
+      <tr><td>D3（画面の事実未封印時）</td><td>extracting-unit-facts-from-code</td><td>target_repo_path, target_file_paths, screen_dir, verification_dir, profile=screen, survey_doc_path, run_id</td><td><span class="tag pass">封印済み</span></td></tr>
+      <tr><td>D3（非画面の事実未封印時）</td><td>generating-unit-designs-for-reverse-docs</td><td>mode=facts, target_repo_path, source_paths, unit_kind, unit_id, verification_dir</td><td><span class="tag pass">DONE / STOPPED</span></td></tr>
+      <tr><td>D6（基本設計未著述時）</td><td>generating-reverse-basic-design</td><td>screen_dir, output_dir, template_root, scaffold_script_path, facts_ref, common_docs_root, unit_kind, authoring_pass, detail_design_path・pass1_receipt_path（大規模時）</td><td><span class="tag pass">基本設計著述完了</span></td></tr>
+      <tr><td>D4 / D6（非画面設計未著述時）</td><td>generating-unit-designs-for-reverse-docs</td><td>mode=design, facts_path, output_dir, unit_kind, unit_id</td><td><span class="tag pass">DONE / STOPPED</span></td></tr>
+      <tr><td>D4（設計書未著述時）</td><td>generating-reverse-detailed-design</td><td>screen_dir, output_dir, template_root, chapter_map_path, audit_script_path, scaffold_script_path, facts_ref, mode, target_file_path, verification_url, verification_dir, authoring_pass</td><td><span class="tag pass">AUTHORED / DETAIL_AUTHORED</span></td></tr>
+      <tr><td>D8以降（ファイル単位未検証時）</td><td>rebuilding-screen-unit-from-docs</td><td>screen_dir, target_file_path, 資産paths, env_block, user-approved</td><td><span class="tag pass">再現一致</span></td></tr>
       <tr><td>Phase 7</td><td>syncing-reverse-env</td><td>design-doc, mode=sync</td><td><span class="tag pass">PASS</span></td></tr>
       <tr><td>Phase 8</td><td>rebuilding-code-from-docs</td><td>mode=implement, scope, reverse_worktree, ports, 資産paths, user-approved</td><td><span class="tag mode">NEED-COMPARE</span></td></tr>
       <tr><td>Phase 9</td><td>syncing-reverse-env</td><td>design-doc, mode=sync, dry-run</td><td><span class="tag pass">PASS</span>/<span class="tag fail">FAIL</span>（比較結果）</td></tr>
@@ -485,7 +495,7 @@
       <tr><th>子スキル</th><th>args</th></tr>
     </thead>
     <tbody>
-      <tr><td>管理者</td><td><code>verification_mode</code>（<code>docs-only</code> | <code>single-pass</code> | <code>iterative</code>、既定 <code>single-pass</code>）。docs-only は facts・基本設計・詳細設計まで、single-pass は動的検証を1回、iterative は FAIL 後の改善反復も行う</td></tr>
+      <tr><td>管理者</td><td><code>verification_mode</code>（<code>docs-only</code> | <code>single-pass</code> | <code>iterative</code>、既定 <code>single-pass</code>）。docs-only はD7のポータル・HTML検証まで、single-pass は動的検証を1回、iterative は FAIL 後の改善反復も行う</td></tr>
       <tr><td>各一覧生成スキル（6スキル共通）</td><td>source_dir, output_dir（unit_kind は各スキルの固定値のため args に含めない）</td></tr>
       <tr><td>syncing-reverse-env</td><td>design-doc, mode（setup|sync|teardown）, dry-run, reset-first, user-approved, scenarios, max-loop（既存契約のまま）</td></tr>
       <tr><td>generating-reverse-detailed-design</td><td>screen_dir, output_dir, template_root, chapter_map_path, audit_script_path, target_repo_path, target_branch, source_ref, mode, target_file_path（mode=file時）, screenshot_dir（任意）, registry値（任意）</td></tr>
@@ -522,9 +532,9 @@
     </tbody>
   </table>
 
-  <p class="note">この外側ループ（発散判定2連続・上限）は iterative にだけ適用する。single-pass は1回のjudge結果を記録して停止し、docs-only はPhase 6の静的リバース完了で終端する。</p>
+  <p class="note">この外側ループ（発散判定2連続・上限）は iterative にだけ適用する。single-pass は1回のjudge結果を記録して停止し、docs-only はD7のポータル・HTML検証完了で終端する。</p>
 
-  <h3>Phase 6 内: S1a⇄S1b ループ</h3>
+  <h3>D8以降: S1a⇄S1b ループ</h3>
 
   <table class="spec">
     <thead>
@@ -552,11 +562,10 @@
       <tr><td>Phase 1</td><td>状態キーが確定し、残り全工程のタスク一覧が TaskCreate で一括登録済み</td></tr>
       <tr><td>Phase 2</td><td>survey_doc_path が確定している（アーキ未調査時のみ）</td></tr>
       <tr><td>Phase 3</td><td>unit_kinds_present の全種別について一覧HTMLが存在し、画面一覧がある場合は永続screen-manifest.json / screen-manifest.ext.jsonが検証済み、excluded-kinds.json が存在する</td></tr>
-      <tr><td>Phase 1C</td><td>機能一覧.html が存在する（画面一覧確立後。派生一覧のため unit_kinds_present の判定対象外）</td></tr>
-      <tr><td>Phase 1D</td><td>生成可能なマトリクス・対応表ページ・AI設定資産ページが存在する（機能一覧確立後。派生補完）</td></tr>
-      <tr><td>Phase 4</td><td>common_docs_root が確定している（共通未採録時のみ）</td></tr>
+      <tr><td>D6</td><td>機能一覧、生成可能なマトリクス・対応表、AI設定資産が存在する</td></tr>
+      <tr><td>D5</td><td>専用規約成果物とcommon_docs_rootが確定している</td></tr>
       <tr><td>Phase 5</td><td>env_block の7フィールドが確定している</td></tr>
-      <tr><td>Phase 6</td><td>全モードで facts・基本設計・詳細設計が完成。<code>docs-only</code> は静的リバース完了でGoal到達可能。動的検証ありでは画面開通後の対象ファイルが再現一致または検証結果報告済み</td></tr>
+      <tr><td>D7</td><td><code>output_dir/index.html</code> が存在し、変更HTMLのstatic/runtime検証が完了。<code>docs-only</code> はここでGoal到達可能</td></tr>
       <tr><td>Phase 7</td><td>baseline_tag が確立済み（status=PASS）</td></tr>
       <tr><td>Phase 8</td><td>compare_request が取得済み（status=NEED-COMPARE）</td></tr>
       <tr><td>Phase 9</td><td>比較結果ブロックが省略なく取得済み</td></tr>
@@ -588,8 +597,8 @@
   <h3>予想を裏切る挙動</h3>
 
   <div class="constraint">
-    状態判定はアーキテクチャ調査、一覧、共通採録、facts封印、基本設計・詳細設計、画面開通、ファイル単位検証、基準確立、judge の順に成果物実在から毎回評価する。したがって静的リバースは画面開通より先に完了できる。<br>
-    <code>docs-only</code> はPhase 6の静的リバース完了で終端する。動的検証では implement → sync dry-run → judge を別々に起動し、judge FAIL後に反復するのは <code>iterative</code> だけである。<code>single-pass</code> は結果を報告して停止する。
+    状態判定はアーキテクチャ調査、一覧、facts封印、詳細・静的設計、規約・共通、基本・派生、ポータル・HTML検証、画面開通、ファイル単位検証、基準確立、judge の順に成果物実在から毎回評価する。したがって静的リバースは画面開通より先に完了できる。<br>
+    <code>docs-only</code> はD7のポータル・HTML検証完了で終端する。動的検証では implement → sync dry-run → judge を別々に起動し、judge FAIL後に反復するのは <code>iterative</code> だけである。<code>single-pass</code> は結果を報告して停止する。
   </div>
 
   <h3>参照資料</h3>

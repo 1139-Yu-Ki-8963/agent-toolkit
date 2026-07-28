@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# check-common-docs.sh — プロジェクト共通10文書の機械ゲート（6検査すべて決定的）
+# check-common-docs.sh — 共通6文書・サンプル記録の機械ゲート（common-onlyは規約行を検証しない）
 #
 # 使い方:
 #   check-common-docs.sh <common_docs_dir> <target_repo_path>
 #   check-common-docs.sh --self-test
 #
-# <common_docs_dir> は `<output_dir>/プロジェクト共通` を指す（10文書＋サンプル記録.mdの
+# <common_docs_dir> は `<output_dir>/プロジェクト共通` を指す（共通6文書＋サンプル記録.mdの
 # 親ディレクトリ）。
 #
 # 検査:
-#   1. 実在検査: 10文書＋サンプル記録.md（計11ファイル。規約4種は規約/サブディレクトリ）
+#   1. 実在検査: scope=full は既存互換、scope=common-only は共通6文書＋サンプル記録.md
 #      すべてが実在する。
 #   2. 規則行完備性: 規約4文書内の各テーブル行のうち、backtick囲みの相対パス
 #      （「/」を含む）トークンを1件以上含む行を「規則行」とみなし、その行に
@@ -41,6 +41,8 @@ CONVENTION_FILES="規約/コーディング規約.md 規約/命名規約.md 規�
 # 検査3（パス実在検査）は規約4種に加え、共通設計書・メッセージ定義書・DESIGN.mdも対象にする
 PATH_CHECK_FILES="$CONVENTION_FILES 共通設計書.md メッセージ定義書.md DESIGN.md"
 MESSAGE_DOC_FILE="メッセージ定義書.md"
+COMMON_ONLY_FILES="共通設計書.md メッセージ定義書.md DESIGN.md 基盤設計.md UI共通設計.md データ設計.md サンプル記録.md"
+SCOPE="full"
 PLACEHOLDER_RE='<実測|<FILL|TBD|TODO'
 IDEAL_WORDS_RE='すべきである|望ましい|べきだ|理想的には|今後は'
 FREQ_RE='[0-9]+/[0-9]+'
@@ -64,16 +66,6 @@ is_path_candidate() {
 
 extract_backtick_tokens() {
   grep -oE '`[^`]+`' "$1" 2>/dev/null | sed -E 's/^`//; s/`$//' || true
-}
-
-# 「AI設定資産への変換」は派生rule生成用の構造化契約であり、実測規則行ではない。
-# 既存の実例・頻度・例外率ゲートおよび対象repoパス実在検査から除外する。
-extract_backtick_tokens_without_ai_section() {
-  awk '
-    /^## AI設定資産への変換[[:space:]]*$/ { skip = 1; next }
-    skip && /^## / { skip = 0 }
-    !skip { print }
-  ' "$1" | grep -oE '`[^`]+`' 2>/dev/null | sed -E 's/^`//; s/`$//' || true
 }
 
 # 表の区切り行（|---|---|等）かどうかを判定する
@@ -109,17 +101,8 @@ check_rule_rows() {
     path="$dir/$f"
     [ -f "$path" ] || continue
     lineno=0
-    in_ai_conversion=0
     while IFS= read -r line; do
       lineno=$((lineno + 1))
-      if [ "$line" = "## AI設定資産への変換" ]; then
-        in_ai_conversion=1
-        continue
-      fi
-      if [ "$in_ai_conversion" -eq 1 ] && printf '%s' "$line" | grep -q '^## '; then
-        in_ai_conversion=0
-      fi
-      [ "$in_ai_conversion" -eq 1 ] && continue
       case "$line" in
         '|'*) : ;;
         *) continue ;;
@@ -174,10 +157,7 @@ check_paths_exist() {
   for f in $PATH_CHECK_FILES; do
     path="$dir/$f"
     [ -f "$path" ] || continue
-    case "$f" in
-      規約/*) tokens="$(extract_backtick_tokens_without_ai_section "$path")" ;;
-      *) tokens="$(extract_backtick_tokens "$path")" ;;
-    esac
+    tokens="$(extract_backtick_tokens "$path")"
     while IFS= read -r tok; do
       [ -z "$tok" ] && continue
       if ! is_path_candidate "$tok"; then
@@ -289,10 +269,10 @@ run_all_checks() {
   repo="$2"
   rc=0
   check_files_exist "$dir" || rc=1
-  check_rule_rows "$dir" || rc=1
+  if [ "$SCOPE" = "full" ]; then check_rule_rows "$dir" || rc=1; fi
   check_paths_exist "$dir" "$repo" || rc=1
   check_no_placeholder "$dir" || rc=1
-  check_no_ideal_words "$dir" || rc=1
+  if [ "$SCOPE" = "full" ]; then check_no_ideal_words "$dir" || rc=1; fi
   check_message_scale "$dir" || rc=1
   return "$rc"
 }
@@ -383,6 +363,20 @@ MD
     echo "  [FAIL] 陽性フィクスチャがexit 0にならない" >&2
     rc=1
   fi
+
+  # common-only陽性: 規約4文書なしでも共通6文書とサンプル記録を検査する。
+  common_dir="$tmp/common-only"
+  build_docs "$common_dir"
+  rm -rf "$common_dir/規約"
+  old_scope="$SCOPE"; old_required="$REQUIRED_FILES"; old_paths="$PATH_CHECK_FILES"
+  SCOPE="common-only"; REQUIRED_FILES="$COMMON_ONLY_FILES"; PATH_CHECK_FILES="共通設計書.md メッセージ定義書.md DESIGN.md"
+  if run_all_checks "$common_dir" "$repo" >/dev/null 2>&1; then
+    echo "  [PASS] common-onlyフィクスチャが規約なしでexit 0"
+  else
+    echo "  [FAIL] common-onlyフィクスチャがexit 0にならない" >&2
+    rc=1
+  fi
+  SCOPE="$old_scope"; REQUIRED_FILES="$old_required"; PATH_CHECK_FILES="$old_paths"
 
   # 陰性1: 検査1のみ違反（DESIGN.mdを欠落）
   fail1_dir="$tmp/fail1"
@@ -493,8 +487,21 @@ if [ "${1:-}" = "--self-test" ]; then
   exit $?
 fi
 
-docs_dir="${1:?使い方: check-common-docs.sh <common_docs_dir> <target_repo_path>}"
-repo="${2:?使い方: check-common-docs.sh <common_docs_dir> <target_repo_path>}"
+if [ "${1:-}" = "--scope" ]; then
+  SCOPE="${2:?--scope requires common-only or full}"
+  shift 2
+fi
+case "$SCOPE" in
+  full) : ;;
+  common-only)
+    REQUIRED_FILES="$COMMON_ONLY_FILES"
+    PATH_CHECK_FILES="共通設計書.md メッセージ定義書.md DESIGN.md"
+    ;;
+  *) echo "エラー: unknown scope: $SCOPE" >&2; exit 2 ;;
+esac
+
+docs_dir="${1:?使い方: check-common-docs.sh [--scope common-only] <common_docs_dir> <target_repo_path>}"
+repo="${2:?使い方: check-common-docs.sh [--scope common-only] <common_docs_dir> <target_repo_path>}"
 
 if [ ! -d "$docs_dir" ]; then
   echo "エラー: common_docs_dir が見つかりません: $docs_dir" >&2

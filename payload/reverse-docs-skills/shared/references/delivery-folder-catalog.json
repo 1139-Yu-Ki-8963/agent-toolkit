@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "path_semantics_version": 1,
+  "deliverable_source": "shared/references/delivery-reverse-manifest.yml#deliverables[].outputs",
+  "portal_rule": "classification is deliverable and publish_status is implemented",
+  "control_artifacts": [
+    "一覧/画面一覧/複雑度プロファイル.json",
+    "一覧/reverse-screen-registry.yml",
+    "一覧/excluded-kinds.json",
+    "プロジェクト共通/アーキテクチャ調査書.md",
+    "画面/<screen-id>/シーケンス図-data.json"
+  ],
+  "assets": [
+    "画面/<screen-id>/詳細設計/original.png",
+    "画面/<screen-id>/詳細設計/rebuilt.png"
+  ],
+  "evidence": [
+    "verification/<unit-kind>-<unit-id>/facts/<run-id>/facts.yml",
+    "verification/<unit-kind>-<unit-id>/facts/<run-id>/facts.lock",
+    "verification/<unit-kind>-<unit-id>/facts/<run-id>/recount-report.txt",
+    "verification/<unit-kind>-<unit-id>/<timestamp>/修正指示書.md",
+    "verification/<unit-kind>-<unit-id>/<timestamp>/最終報告.md",
+    "verification/<unit-kind>-<unit-id>/<timestamp>/<test-log-or-diff>"
+  ],
+  "screen_deliverables": [
+    "画面/<screen-id>/詳細設計/画面詳細設計書.md",
+    "画面/<screen-id>/詳細設計/画面詳細設計書.html",
+    "画面/<screen-id>/詳細設計/DESIGN.md",
+    "画面/<screen-id>/詳細設計/単体テスト観点表.md",
+    "画面/<screen-id>/詳細設計/結合テスト観点表.md",
+    "画面/<screen-id>/基本設計/画面基本設計書.md",
+    "画面/<screen-id>/基本設計/画面基本設計書.html",
+    "画面/<screen-id>/シーケンス図.html",
+    "画面/<screen-id>/テスト項目書/単体テスト仕様書.md",
+    "画面/<screen-id>/テスト項目書/結合テスト仕様書.md",
+    "画面/<screen-id>/テスト項目書/操作シナリオ仕様書.md"
+  ]
+}

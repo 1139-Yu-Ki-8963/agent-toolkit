@@ -19,12 +19,12 @@
   --border-strong: #AFB8C1;
   --text: #1B1F26;
   --text-sub: #4A4F58;
-  --text-muted: #767B85;
+  --text-muted: #5F6670;
   --accent: #0969DA;
   --accent-2: #218BFF;
   --accent-soft: #DDF4FF;
   --accent-border: #54AEFF;
-  --gold: #BC4C00;
+  --gold: #934000;
   --gold-soft: #FFF1E5;
   --gold-border: #D18A5A;
   --success: #1A7F37;
@@ -138,14 +138,14 @@ a:hover { text-decoration: underline; }
 }
 .sec-label::before { content: ""; width: 4px; height: 14px; background: var(--accent); border-radius: 2px; }
 
-/* ============ PR 行（トップレベル <details> アコーディオン）============ */
+/* ============ PR 行（トップレベル開閉パネル）============ */
 .release-list { display: flex; flex-direction: column; gap: 10px; }
 .rn-pr {
   background: var(--panel); border: 1px solid var(--border);
   border-radius: var(--radius); box-shadow: var(--shadow-sm);
   overflow: hidden;
 }
-.rn-pr[data-flow="feature"]     { border-left: 4px solid #d97706; }
+.rn-pr[data-flow="feature"]     { border-left: 4px solid #934000; }
 .rn-pr[data-flow="maintenance"] { border-left: 4px solid var(--success); }
 .rn-pr[data-flow="docs"]        { border-left: 4px solid #7c3aed; }
 .rn-pr.is-done { background: var(--panel-2); box-shadow: none; }
@@ -166,7 +166,7 @@ a:hover { text-decoration: underline; }
   flex: none; padding: 2px 9px; border-radius: 999px;
   font-size: 10.5px; font-weight: 800; white-space: nowrap; color: #fff;
 }
-.rn-flow-pill--feature     { background: #d97706; }
+.rn-flow-pill--feature     { background: #934000; }
 .rn-flow-pill--maintenance { background: var(--success); }
 .rn-flow-pill--docs        { background: #7c3aed; }
 .rn-pr.is-done .rn-flow-pill { opacity: 0.75; }
@@ -218,14 +218,14 @@ a:hover { text-decoration: underline; }
 
 /* ============ 変更概要: ラベル付き箇条書き ============ */
 .rn-dl { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 6px; }
-.rn-dl > li { display: flex; flex-direction: column; gap: 2px; padding: 4px 0; border-bottom: 1px dashed var(--border); }
-.rn-dl > li:last-child { border-bottom: none; }
+.rn-dl > .rn-dl-item { display: flex; flex-direction: column; gap: 2px; padding: 4px 0; border-bottom: 1px dashed var(--border); }
+.rn-dl > .rn-dl-item:last-child { border-bottom: none; }
 .rn-dl-label { font-size: 11px; font-weight: 800; color: var(--accent); letter-spacing: 0.04em; }
 .rn-dl-text { font-size: 13px; line-height: 1.6; color: var(--text); overflow-wrap: break-word; }
 
 /* ============ 変更内容: 種別バッジ付き ============ */
 .rn-changes { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 4px; }
-.rn-changes li { display: flex; align-items: flex-start; gap: 8px; font-size: 12.5px; line-height: 1.55; padding: 4px 0; color: var(--text-sub); overflow-wrap: break-word; }
+.rn-changes .rn-change-item { display: flex; align-items: flex-start; gap: 8px; font-size: 12.5px; line-height: 1.55; padding: 4px 0; color: var(--text-sub); overflow-wrap: break-word; }
 .badge { padding: 1px 6px; border-radius: 3px; font-size: 10px; font-weight: 800; white-space: nowrap; flex: none; margin-top: 2px; }
 .badge-feat { background: var(--success-soft); color: var(--success); }
 .badge-fix  { background: var(--danger-soft);  color: var(--danger); }
@@ -279,6 +279,9 @@ a:hover { text-decoration: underline; }
   .dp-main { padding: 12px; }
   .rn-pr-title { font-size: 13.5px; }
 }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+}
 
 .hidden { display: none !important; }
 </style>
@@ -287,7 +290,7 @@ a:hover { text-decoration: underline; }
 <div class="dp-page">
   <header class="topbar">
     <a class="brand" href="index.html">
-      <span class="brand-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:middle"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zM13 9V3.5L18.5 9H13z"/></svg></span>
+      <span class="brand-icon"><svg role="img" aria-label="文書アイコン" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:middle"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zM13 9V3.5L18.5 9H13z"/></svg></span>
       <span class="brand-title">サンプルプロジェクト</span>
       <span class="brand-sub">設計ポータル</span>
     </a>
@@ -443,9 +446,9 @@ a:hover { text-decoration: underline; }
   }
 
   function buildSummaryBody(body, summary) {
-    var ul = el('ul', { class: 'rn-dl' });
+    var ul = el('div', { class: 'rn-dl' });
     (summary || []).forEach(function(item) {
-      var li = el('li', null, [
+      var li = el('div', { class: 'rn-dl-item' }, [
         el('span', { class: 'rn-dl-label' }, (item.label || '') + '：'),
         el('span', { class: 'rn-dl-text' }, item.text || '')
       ]);
@@ -455,10 +458,10 @@ a:hover { text-decoration: underline; }
   }
 
   function buildChangesBody(body, changes) {
-    var ul = el('ul', { class: 'rn-changes' });
+    var ul = el('div', { class: 'rn-changes' });
     (changes || []).forEach(function(c) {
       var badgeClass = ['feat', 'fix', 'docs', 'test', 'refactor', 'chore'].indexOf(c.type) !== -1 ? c.type : 'chore';
-      var li = el('li', null, [
+      var li = el('div', { class: 'rn-change-item' }, [
         el('span', { class: 'badge badge-' + badgeClass }, TYPE_LABEL[c.type] || c.type || ''),
         el('span', null, c.text || '')
       ]);
@@ -547,7 +550,7 @@ a:hover { text-decoration: underline; }
   var releases = data.releases || [];
 
   function render() {
-    // 開いている <details> の id を保持し、再描画後も展開状態を維持する
+    // 開いている開閉パネルの id を保持し、再描画後も展開状態を維持する
     var openIds = [];
     releaseMount.querySelectorAll('.rn-pr[open]').forEach(function(d) { openIds.push(d.dataset.id); });
 

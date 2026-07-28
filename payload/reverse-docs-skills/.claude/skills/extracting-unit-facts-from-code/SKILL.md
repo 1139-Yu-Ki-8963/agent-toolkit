@@ -21,7 +21,7 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, TaskCreate, TaskUpdate]
 ## 使用タイミング
 
 - 対象ユニット（画面）の原本コードから、後続の詳細設計執筆が参照する宣言的契約 facts を新規に抽出したいとき
-- 判定（Phase 7 / Step 30）が NG帰着(b)（事実抽出プロファイルが対象コードの挙動を捕捉できていない）と判定し、抽出プロファイルを改訂した上で再抽出したいとき
+- 判定（D8 / Step 18）がNG帰着(b)と判定したとき
 
 ### args（全量指定・対話ゼロ）
 

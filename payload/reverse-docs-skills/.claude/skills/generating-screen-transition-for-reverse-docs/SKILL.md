@@ -171,3 +171,9 @@ page-data.json の保存先は `$CLAUDE_JOB_DIR/tmp/screen-transition-page-data.
 - `../../../shared/scripts/detail-pages/page-data-schema.md` — page-data.json のスキーマ定義（T4: transition 節）
 - `references/transition-detection.md` — Router 種別ごとの検出戦略ガイダンス
 - `references/generating-screen-transition-for-reverse-docs-guide.html` — スキルガイド
+
+<!-- delivery-owner-contracts:start -->
+```json
+[{"failure_return_to":"orchestrating-reverse-docs-flow","id":"screen-transition","inputs":["screen list","routes"],"outputs":["画面遷移図.html"],"stop_conditions":["遷移根拠なし"],"validator":"check-delivery-artifacts.sh"}]
+```
+<!-- delivery-owner-contracts:end -->

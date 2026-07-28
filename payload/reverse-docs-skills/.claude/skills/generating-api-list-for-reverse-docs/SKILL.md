@@ -147,3 +147,9 @@ API 種別に組み込み検出器はない。抽出は **カスタム抽出パ�
 ## 設計判断
 
 本スキルは独自スクリプトを持たないため省略する。
+
+<!-- delivery-owner-contracts:start -->
+```json
+[{"failure_return_to":"orchestrating-reverse-docs-flow","id":"api-list","inputs":["API source"],"outputs":["一覧/API一覧/API一覧.html"],"stop_conditions":["0件"],"validator":"check-delivery-artifacts.sh"}]
+```
+<!-- delivery-owner-contracts:end -->

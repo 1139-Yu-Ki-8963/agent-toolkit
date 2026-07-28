@@ -207,3 +207,9 @@ comm -13 \
 **保守責任者**: 人手(ユーザー)。キーワード集合・優先順を変更する場合は `shared/references/manifest-schema-extensions.md`「features」節の値域定義と `shared/templates/unit-list/feature-list-template.html` のバッジ色分けを同時更新する
 
 **廃棄条件**: `operationClass` フィールドがスキーマから廃止された時、または分類ロジックが機械抽出ではなく人手判定に一本化された時
+
+<!-- delivery-owner-contracts:start -->
+```json
+[{"failure_return_to":"orchestrating-reverse-docs-flow","id":"feature-list","inputs":["screen list"],"outputs":["一覧/機能一覧/機能一覧.html"],"stop_conditions":["screen listなし"],"validator":"check-delivery-artifacts.sh"}]
+```
+<!-- delivery-owner-contracts:end -->

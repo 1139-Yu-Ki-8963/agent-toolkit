@@ -139,3 +139,9 @@ manifest.json の保存先は `$CLAUDE_JOB_DIR/tmp/test-viewpoint-manifest.json`
 **保守責任者**: 人手（ユーザー）。aggregate-test-viewpoints.sh の出力契約を変更する場合は本スクリプトの必須フィールドリストを同時に更新する
 
 **廃棄条件**: validate-manifest.sh が種別ごとの検証プロファイルを内蔵し、test_viewpoint 種別の転記契約に対応した時
+
+<!-- delivery-owner-contracts:start -->
+```json
+[{"failure_return_to":"orchestrating-reverse-docs-flow","id":"test-viewpoints","inputs":["test sources"],"outputs":["一覧/テスト観点表/テスト観点表.html"],"stop_conditions":["根拠なし"],"validator":"check-delivery-artifacts.sh"}]
+```
+<!-- delivery-owner-contracts:end -->

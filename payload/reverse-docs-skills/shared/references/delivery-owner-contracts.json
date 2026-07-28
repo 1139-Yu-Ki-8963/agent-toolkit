@@ -1,0 +1,765 @@
+{
+  "version": 2,
+  "defaults": {
+    "failure_return_to": "orchestrating-reverse-docs-flow"
+  },
+  "effective_contract_fields": [
+    "id",
+    "owner",
+    "title",
+    "inputs",
+    "outputs",
+    "validator",
+    "stop_conditions",
+    "failure_return_to"
+  ],
+  "contracts": [
+    {
+      "id": "tech-stack",
+      "owner": "generating-tech-stack-for-reverse-docs",
+      "title": "技術スタック",
+      "outputs": [
+        "技術スタック.html"
+      ],
+      "validator": "check-delivery-artifacts.sh",
+      "stop_conditions": [
+        "根拠なし"
+      ],
+      "inputs": [
+        "package manifests",
+        "lock files"
+      ],
+      "failure_return_to": "orchestrating-reverse-docs-flow"
+    },
+    {
+      "id": "environment-guide",
+      "owner": "generating-env-guide-for-reverse-docs",
+      "title": "環境構築手順",
+      "outputs": [
+        "環境構築手順.html"
+      ],
+      "validator": "check-delivery-artifacts.sh",
+      "stop_conditions": [
+        "実行根拠なし"
+      ],
+      "inputs": [
+        "configuration",
+        "scripts"
+      ],
+      "failure_return_to": "orchestrating-reverse-docs-flow"
+    },
+    {
+      "id": "glossary",
+      "owner": "generating-glossary-for-reverse-docs",
+      "title": "用語辞書",
+      "outputs": [
+        "用語辞書.html"
+      ],
+      "validator": "check-delivery-artifacts.sh",
+      "stop_conditions": [
+        "用語根拠なし"
+      ],
+      "inputs": [
+        "source",
+        "documents"
+      ],
+      "failure_return_to": "orchestrating-reverse-docs-flow"
+    },
+    {
+      "id": "release-notes",
+      "owner": "generating-release-notes-for-reverse-docs",
+      "title": "リリースノート",
+      "outputs": [
+        "リリースノート.html"
+      ],
+      "validator": "check-delivery-artifacts.sh",
+      "stop_conditions": [
+        "履歴なし"
+      ],
+      "inputs": [
+        "git history"
+      ],
+      "failure_return_to": "orchestrating-reverse-docs-flow"
+    },
+    {
+      "id": "coding-rules",
+      "owner": "generating-coding-rules-for-reverse-docs",
+      "title": "コーディング規約",
+      "outputs": [
+        "プロジェクト共通/コーディング規約.html",
+        "docs/rules/coding/<layer>/rule.md"
+      ],
+      "validator": "check-delivery-artifacts.sh",
+      "stop_conditions": [
+        "明示規範0"
+      ],
+      "inputs": [
+        "rule evidence",
+        "code examples"
+      ],
+      "failure_return_to": "orchestrating-reverse-docs-flow"
+    },
+    {
+      "id": "naming-rules",
+      "owner": "generating-naming-rules-for-reverse-docs",
+      "title": "命名規約",
+      "outputs": [
+        "プロジェクト共通/命名規約.html",
+        "docs/rules/naming/rule.md"
+      ],
+      "validator": "check-delivery-artifacts.sh",
+      "stop_conditions": [
+        "明示規範0"
+      ],
+      "inputs": [
+        "rule evidence",
+        "identifiers"
+      ],
+      "failure_return_to": "orchestrating-reverse-docs-flow"
+    },
+    {
+      "id": "placement-rules",
+      "owner": "generating-placement-rules-for-reverse-docs",
+      "title": "ディレクトリ構成規約",
+      "outputs": [
+        "プロジェクト共通/ディレクトリ構成規約.html",
+        "docs/rules/placement/rule.md"
+      ],
+      "validator": "check-delivery-artifacts.sh",
+      "stop_conditions": [
+        "明示規範0"
+      ],
+      "inputs": [
+        "rule evidence",
+        "directory tree"
+      ],
+      "failure_return_to": "orchestrating-reverse-docs-flow"
+    },
+    {
+      "id": "component-rules",
+      "owner": "generating-component-rules-for-reverse-docs",
+      "title": "コンポーネント設計規約",
+      "outputs": [
+        "プロジェクト共通/コンポーネント設計規約.html",
+        "docs/rules/architecture/<layer>/rule.md"
+      ],
+      "validator": "check-delivery-artifacts.sh",
+      "stop_conditions": [
+        "明示規範0"
+      ],
+      "inputs": [
+        "rule evidence",
+        "component code"
+      ],
+      "failure_return_to": "orchestrating-reverse-docs-flow"
+    },
+    {
+      "id": "review-checklist",
+      "owner": "template-only/review-checklist.html",
+      "title": "レビュー観点表",
+      "outputs": [
+        "プロジェクト共通/レビュー観点表.html"
+      ],
+      "validator": "check-delivery-artifacts.sh",
+      "stop_conditions": [
+        "根拠不足"
+      ],
+      "inputs": [],
+      "failure_return_to": "orchestrating-reverse-docs-flow"
+    },
+    {
+      "id": "test-policy",
+      "owner": "template-only/test-policy.html",
+      "title": "テスト方針書",
+      "outputs": [
+        "プロジェクト共通/テスト方針書.html"
+      ],
+      "validator": "check-delivery-artifacts.sh",
+      "stop_conditions": [
+        "根拠不足"
+      ],
+      "inputs": [],
+      "failure_return_to": "orchestrating-reverse-docs-flow"
+    },
+    {
+      "id": "common-design",
+      "owner": "generating-reverse-common-docs",
+      "title": "共通設計書",
+      "outputs": [
+        "プロジェクト共通/共通設計書.html"
+      ],
+      "validator": "check-delivery-artifacts.sh",
+      "stop_conditions": [
+        "根拠なし"
+      ],
+      "inputs": [
+        "architecture baseline",
+        "unit facts"
+      ],
+      "failure_return_to": "orchestrating-reverse-docs-flow"
+    },
+    {
+      "id": "message-definition",
+      "owner": "generating-reverse-common-docs",
+      "title": "メッセージ定義書",
+      "outputs": [
+        "プロジェクト共通/メッセージ定義書.html"
+      ],
+      "validator": "check-delivery-artifacts.sh",
+      "stop_conditions": [
+        "根拠なし"
+      ],
+      "inputs": [
+        "unit facts"
+      ],
+      "failure_return_to": "orchestrating-reverse-docs-flow"
+    },
+    {
+      "id": "design-md",
+      "owner": "generating-reverse-common-docs",
+      "title": "DESIGN",
+      "outputs": [
+        "プロジェクト共通/DESIGN.md"
+      ],
+      "validator": "check-delivery-artifacts.sh",
+      "stop_conditions": [
+        "根拠なし"
+      ],
+      "inputs": [
+        "style sources"
+      ],
+      "failure_return_to": "orchestrating-reverse-docs-flow"
+    },
+    {
+      "id": "platform-design",
+      "owner": "generating-reverse-common-docs",
+      "title": "基盤設計書",
+      "outputs": [
+        "プロジェクト共通/基盤設計.html"
+      ],
+      "validator": "check-delivery-artifacts.sh",
+      "stop_conditions": [
+        "根拠なし"
+      ],
+      "inputs": [
+        "architecture baseline"
+      ],
+      "failure_return_to": "orchestrating-reverse-docs-flow"
+    },
+    {
+      "id": "ui-common-design",
+      "owner": "generating-reverse-common-docs",
+      "title": "UI共通設計書",
+      "outputs": [
+        "プロジェクト共通/UI共通設計.html"
+      ],
+      "validator": "check-delivery-artifacts.sh",
+      "stop_conditions": [
+        "根拠なし"
+      ],
+      "inputs": [
+        "component facts"
+      ],
+      "failure_return_to": "orchestrating-reverse-docs-flow"
+    },
+    {
+      "id": "data-design",
+      "owner": "generating-reverse-common-docs",
+      "title": "データ設計書",
+      "outputs": [
+        "プロジェクト共通/データ設計.html"
+      ],
+      "validator": "check-delivery-artifacts.sh",
+      "stop_conditions": [
+        "根拠なし"
+      ],
+      "inputs": [
+        "table facts"
+      ],
+      "failure_return_to": "orchestrating-reverse-docs-flow"
+    },
+    {
+      "id": "screen-list",
+      "owner": "generating-screen-list-for-reverse-docs",
+      "title": "画面一覧",
+      "outputs": [
+        "一覧/画面一覧/画面一覧.html"
+      ],
+      "validator": "check-delivery-artifacts.sh",
+      "stop_conditions": [
+        "0件"
+      ],
+      "inputs": [
+        "screen source"
+      ],
+      "failure_return_to": "orchestrating-reverse-docs-flow"
+    },
+    {
+      "id": "api-list",
+      "owner": "generating-api-list-for-reverse-docs",
+      "title": "API一覧",
+      "outputs": [
+        "一覧/API一覧/API一覧.html"
+      ],
+      "validator": "check-delivery-artifacts.sh",
+      "stop_conditions": [
+        "0件"
+      ],
+      "inputs": [
+        "API source"
+      ],
+      "failure_return_to": "orchestrating-reverse-docs-flow"
+    },
+    {
+      "id": "table-list",
+      "owner": "generating-table-list-for-reverse-docs",
+      "title": "テーブル一覧",
+      "outputs": [
+        "一覧/テーブル一覧/テーブル一覧.html"
+      ],
+      "validator": "check-delivery-artifacts.sh",
+      "stop_conditions": [
+        "0件"
+      ],
+      "inputs": [
+        "schema source"
+      ],
+      "failure_return_to": "orchestrating-reverse-docs-flow"
+    },
+    {
+      "id": "batch-list",
+      "owner": "generating-batch-list-for-reverse-docs",
+      "title": "バッチ一覧",
+      "outputs": [
+        "一覧/バッチ一覧/バッチ一覧.html"
+      ],
+      "validator": "check-delivery-artifacts.sh",
+      "stop_conditions": [
+        "0件"
+      ],
+      "inputs": [
+        "batch source"
+      ],
+      "failure_return_to": "orchestrating-reverse-docs-flow"
+    },
+    {
+      "id": "report-list",
+      "owner": "generating-report-list-for-reverse-docs",
+      "title": "帳票一覧",
+      "outputs": [
+        "一覧/帳票一覧/帳票一覧.html"
+      ],
+      "validator": "check-delivery-artifacts.sh",
+      "stop_conditions": [
+        "0件"
+      ],
+      "inputs": [
+        "report source"
+      ],
+      "failure_return_to": "orchestrating-reverse-docs-flow"
+    },
+    {
+      "id": "external-list",
+      "owner": "generating-external-list-for-reverse-docs",
+      "title": "外部連携一覧",
+      "outputs": [
+        "一覧/外部連携一覧/外部連携一覧.html"
+      ],
+      "validator": "check-delivery-artifacts.sh",
+      "stop_conditions": [
+        "0件"
+      ],
+      "inputs": [
+        "integration source"
+      ],
+      "failure_return_to": "orchestrating-reverse-docs-flow"
+    },
+    {
+      "id": "feature-list",
+      "owner": "generating-feature-list-for-reverse-docs",
+      "title": "機能一覧",
+      "outputs": [
+        "一覧/機能一覧/機能一覧.html"
+      ],
+      "validator": "check-delivery-artifacts.sh",
+      "stop_conditions": [
+        "screen listなし"
+      ],
+      "inputs": [
+        "screen list"
+      ],
+      "failure_return_to": "orchestrating-reverse-docs-flow"
+    },
+    {
+      "id": "message-list",
+      "owner": "generating-message-list-for-reverse-docs",
+      "title": "メッセージ一覧",
+      "outputs": [
+        "一覧/メッセージ一覧/メッセージ一覧.html"
+      ],
+      "validator": "check-delivery-artifacts.sh",
+      "stop_conditions": [
+        "根拠なし"
+      ],
+      "inputs": [
+        "source messages"
+      ],
+      "failure_return_to": "orchestrating-reverse-docs-flow"
+    },
+    {
+      "id": "test-viewpoints",
+      "owner": "generating-test-viewpoint-list-for-reverse-docs",
+      "title": "テスト観点表",
+      "outputs": [
+        "一覧/テスト観点表/テスト観点表.html"
+      ],
+      "validator": "check-delivery-artifacts.sh",
+      "stop_conditions": [
+        "根拠なし"
+      ],
+      "inputs": [
+        "test sources"
+      ],
+      "failure_return_to": "orchestrating-reverse-docs-flow"
+    },
+    {
+      "id": "test-cases",
+      "owner": "generating-test-case-list-for-reverse-docs",
+      "title": "テストケース一覧",
+      "outputs": [
+        "一覧/テストケース一覧/テストケース一覧.html"
+      ],
+      "validator": "check-delivery-artifacts.sh",
+      "stop_conditions": [
+        "仕様書なし"
+      ],
+      "inputs": [
+        "screen test specifications"
+      ],
+      "failure_return_to": "orchestrating-reverse-docs-flow"
+    },
+    {
+      "id": "screen-transition",
+      "owner": "generating-screen-transition-for-reverse-docs",
+      "title": "画面遷移図",
+      "outputs": [
+        "画面遷移図.html"
+      ],
+      "validator": "check-delivery-artifacts.sh",
+      "stop_conditions": [
+        "遷移根拠なし"
+      ],
+      "inputs": [
+        "screen list",
+        "routes"
+      ],
+      "failure_return_to": "orchestrating-reverse-docs-flow"
+    },
+    {
+      "id": "er-diagram",
+      "owner": "generating-er-diagram-for-reverse-docs",
+      "title": "ER図",
+      "outputs": [
+        "ER図.html"
+      ],
+      "validator": "check-delivery-artifacts.sh",
+      "stop_conditions": [
+        "関係根拠なし"
+      ],
+      "inputs": [
+        "table list"
+      ],
+      "failure_return_to": "orchestrating-reverse-docs-flow"
+    },
+    {
+      "id": "state-diagram",
+      "owner": "generating-entity-state-for-reverse-docs",
+      "title": "状態遷移図",
+      "outputs": [
+        "状態遷移図.html"
+      ],
+      "validator": "check-delivery-artifacts.sh",
+      "stop_conditions": [
+        "状態根拠なし"
+      ],
+      "inputs": [
+        "state evidence"
+      ],
+      "failure_return_to": "orchestrating-reverse-docs-flow"
+    },
+    {
+      "id": "sequence-diagram",
+      "owner": "generating-sequence-diagram-for-reverse-docs",
+      "title": "シーケンス図",
+      "outputs": [
+        "画面/<unit>/シーケンス図.html"
+      ],
+      "validator": "check-delivery-artifacts.sh",
+      "stop_conditions": [
+        "呼出根拠なし"
+      ],
+      "inputs": [
+        "unit facts"
+      ],
+      "failure_return_to": "orchestrating-reverse-docs-flow"
+    },
+    {
+      "id": "permission-screen-matrix",
+      "owner": "generating-cross-views-for-reverse-docs",
+      "title": "権限画面マトリクス",
+      "outputs": [
+        "マトリクス・対応表/権限画面マトリクス/権限画面マトリクス.html"
+      ],
+      "validator": "check-delivery-artifacts.sh",
+      "stop_conditions": [
+        "関係根拠なし"
+      ],
+      "inputs": [
+        "unit lists",
+        "facts"
+      ],
+      "failure_return_to": "orchestrating-reverse-docs-flow"
+    },
+    {
+      "id": "permission-feature-matrix",
+      "owner": "generating-cross-views-for-reverse-docs",
+      "title": "権限機能マトリクス",
+      "outputs": [
+        "マトリクス・対応表/権限機能マトリクス/権限機能マトリクス.html"
+      ],
+      "validator": "check-delivery-artifacts.sh",
+      "stop_conditions": [
+        "関係根拠なし"
+      ],
+      "inputs": [
+        "unit lists",
+        "facts"
+      ],
+      "failure_return_to": "orchestrating-reverse-docs-flow"
+    },
+    {
+      "id": "crud-matrix",
+      "owner": "generating-cross-views-for-reverse-docs",
+      "title": "CRUD図",
+      "outputs": [
+        "マトリクス・対応表/CRUD図/CRUD図.html"
+      ],
+      "validator": "check-delivery-artifacts.sh",
+      "stop_conditions": [
+        "関係根拠なし"
+      ],
+      "inputs": [
+        "unit lists",
+        "facts"
+      ],
+      "failure_return_to": "orchestrating-reverse-docs-flow"
+    },
+    {
+      "id": "traceability-matrix",
+      "owner": "generating-cross-views-for-reverse-docs",
+      "title": "追跡可能性",
+      "outputs": [
+        "マトリクス・対応表/追跡可能性/追跡可能性.html"
+      ],
+      "validator": "check-delivery-artifacts.sh",
+      "stop_conditions": [
+        "関係根拠なし"
+      ],
+      "inputs": [
+        "unit lists",
+        "facts"
+      ],
+      "failure_return_to": "orchestrating-reverse-docs-flow"
+    },
+    {
+      "id": "ai-assets",
+      "owner": "generating-cross-views-for-reverse-docs",
+      "title": "AI設定資産",
+      "outputs": [
+        "AI設定資産/AI設定資産.html"
+      ],
+      "validator": "check-delivery-artifacts.sh",
+      "stop_conditions": [
+        "設定資産なし"
+      ],
+      "inputs": [
+        "agent configuration"
+      ],
+      "failure_return_to": "orchestrating-reverse-docs-flow"
+    },
+    {
+      "id": "design-system",
+      "owner": "generating-design-system-for-reverse-docs",
+      "title": "デザインシステム",
+      "outputs": [
+        "デザインシステム.html"
+      ],
+      "validator": "check-delivery-artifacts.sh",
+      "stop_conditions": [
+        "スタイル根拠なし"
+      ],
+      "inputs": [
+        "style source"
+      ],
+      "failure_return_to": "orchestrating-reverse-docs-flow"
+    },
+    {
+      "id": "component-inventory",
+      "owner": "generating-component-inventory-for-reverse-docs",
+      "title": "コンポーネント棚卸し",
+      "outputs": [
+        "コンポーネント棚卸し.html"
+      ],
+      "validator": "check-delivery-artifacts.sh",
+      "stop_conditions": [
+        "componentなし"
+      ],
+      "inputs": [
+        "component source"
+      ],
+      "failure_return_to": "orchestrating-reverse-docs-flow"
+    },
+    {
+      "id": "icon-catalog",
+      "owner": "generating-icon-catalog-for-reverse-docs",
+      "title": "アイコンカタログ",
+      "outputs": [
+        "アイコンカタログ.html"
+      ],
+      "validator": "check-delivery-artifacts.sh",
+      "stop_conditions": [
+        "iconなし"
+      ],
+      "inputs": [
+        "icon source"
+      ],
+      "failure_return_to": "orchestrating-reverse-docs-flow"
+    },
+    {
+      "id": "unit-designs",
+      "owner": "generating-unit-designs-for-reverse-docs",
+      "title": "API・テーブル・バッチ・帳票・外部連携設計書",
+      "outputs": [
+        "API/<id>/詳細設計/API詳細設計書.md",
+        "テーブル/<id>/詳細設計/テーブル定義書.md",
+        "バッチ/<id>/詳細設計/バッチ詳細設計書.md",
+        "バッチ/<id>/基本設計/バッチ基本設計書.md",
+        "帳票/<id>/詳細設計/帳票詳細設計書.md",
+        "帳票/<id>/基本設計/帳票基本設計書.md",
+        "外部連携/<id>/詳細設計/外部連携詳細設計書.md",
+        "外部連携/<id>/基本設計/外部連携基本設計書.md"
+      ],
+      "validator": "check-delivery-artifacts.sh",
+      "stop_conditions": [
+        "unit evidenceなし"
+      ],
+      "inputs": [
+        "unit source",
+        "unit facts"
+      ],
+      "failure_return_to": "orchestrating-reverse-docs-flow"
+    },
+    {
+      "id": "agent-instructions",
+      "owner": "generating-agent-config-index-from-repo",
+      "title": "AGENTS",
+      "outputs": [
+        "AGENTS.md"
+      ],
+      "validator": "check-delivery-artifacts.sh",
+      "stop_conditions": [
+        "設定資産なし"
+      ],
+      "inputs": [
+        "agent configuration"
+      ],
+      "failure_return_to": "orchestrating-reverse-docs-flow"
+    },
+    {
+      "id": "claude-instructions",
+      "owner": "generating-agent-config-index-from-repo",
+      "title": "CLAUDE",
+      "outputs": [
+        "CLAUDE.md"
+      ],
+      "validator": "check-delivery-artifacts.sh",
+      "stop_conditions": [
+        "設定資産なし"
+      ],
+      "inputs": [
+        "agent configuration"
+      ],
+      "failure_return_to": "orchestrating-reverse-docs-flow"
+    },
+    {
+      "id": "feature-requirements",
+      "owner": "template-only/feature-requirements.md",
+      "title": "機能要件一覧",
+      "outputs": [
+        "プロジェクト共通/機能要件一覧.md"
+      ],
+      "validator": "check-delivery-artifacts.sh",
+      "stop_conditions": [
+        "根拠不足"
+      ],
+      "inputs": [],
+      "failure_return_to": "orchestrating-reverse-docs-flow"
+    },
+    {
+      "id": "report-requirements",
+      "owner": "template-only/report-requirements.md",
+      "title": "帳票要件",
+      "outputs": [
+        "プロジェクト共通/帳票要件.md"
+      ],
+      "validator": "check-delivery-artifacts.sh",
+      "stop_conditions": [
+        "根拠不足"
+      ],
+      "inputs": [],
+      "failure_return_to": "orchestrating-reverse-docs-flow"
+    },
+    {
+      "id": "batch-requirements",
+      "owner": "template-only/batch-requirements.md",
+      "title": "バッチ要件",
+      "outputs": [
+        "プロジェクト共通/バッチ要件.md"
+      ],
+      "validator": "check-delivery-artifacts.sh",
+      "stop_conditions": [
+        "根拠不足"
+      ],
+      "inputs": [],
+      "failure_return_to": "orchestrating-reverse-docs-flow"
+    },
+    {
+      "id": "external-requirements",
+      "owner": "template-only/external-requirements.md",
+      "title": "外部連携要件",
+      "outputs": [
+        "プロジェクト共通/外部連携要件.md"
+      ],
+      "validator": "check-delivery-artifacts.sh",
+      "stop_conditions": [
+        "根拠不足"
+      ],
+      "inputs": [],
+      "failure_return_to": "orchestrating-reverse-docs-flow"
+    },
+    {
+      "id": "business-overview",
+      "owner": "template-only/business-overview.md",
+      "title": "ビジネス概要",
+      "outputs": [
+        "プロジェクト共通/ビジネス概要.md"
+      ],
+      "validator": "check-delivery-artifacts.sh",
+      "stop_conditions": [
+        "根拠不足"
+      ],
+      "inputs": [],
+      "failure_return_to": "orchestrating-reverse-docs-flow"
+    }
+  ]
+}

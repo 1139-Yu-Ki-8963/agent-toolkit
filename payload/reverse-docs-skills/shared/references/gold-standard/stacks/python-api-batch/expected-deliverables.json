@@ -1,0 +1,36 @@
+{
+  "fixture_decisions": {
+    "detected": ["api-list", "batch-list"],
+    "not_detected": ["screen-list", "table-list"],
+    "stopped_checks": ["coding-rules", "test-cases"]
+  },
+  "coverage_matrix": [
+    {"claim": "inventory-owner-results", "generated_by": "shared/scripts/generate-delivery-inventory.py", "validated_by": "exact expected inventory_owner_results comparison", "decision_source": "fixture source files"},
+    {"claim": "unit-artifacts", "generated_by": "shared/scripts/generate-unit-designs.py", "validated_by": "shared/scripts/check-unit-design-evidence.py + exact artifact SHA-256", "decision_source": "unit_records"},
+    {"claim": "test-case-stop", "generated_by": "shared/scripts/generate-test-case-list.py", "validated_by": "shared/scripts/check-test-case-list-evidence.py", "decision_source": "explicit STOPPED zero-case fixture"}
+  ],
+  "unit_status": "DONE",
+  "unit_records": [
+    {"kind": "api", "source": "app.py", "line": 3, "observed": "@app.get(\"/health\")"},
+    {"kind": "batch", "source": "jobs.py", "line": 1, "observed": "def run(): pass"},
+    {"kind": "external", "source": "external.py", "line": 1, "observed": "EXTERNAL_ENDPOINT = \"https://partner.invalid/orders\""},
+    {"kind": "report", "source": "report.py", "line": 1, "observed": "REPORT_FORMAT = \"monthly-sales-csv\""}
+  ],
+  "unit_artifact_sha256": {
+    "API/api-gold/詳細設計/API詳細設計書.md": "b2f82182818cfb071a8593694c43807f42ef1397adef9547d95701a2c7dbd25b",
+    "バッチ/batch-gold/詳細設計/バッチ詳細設計書.md": "7cad51e7e42564f572c47a21365e626bacc1412f4ab55cd3699c1b14a9367a6f",
+    "バッチ/batch-gold/基本設計/バッチ基本設計書.md": "176fd1e02a769d336232f63450df85e35c0ff21a56b69ed7d248e4aca870ea50",
+    "帳票/report-gold/詳細設計/帳票詳細設計書.md": "ca9d06d2dd8d319f44e55e30cba14f555cf67559b5108bbbc563cf1b6ef77754",
+    "帳票/report-gold/基本設計/帳票基本設計書.md": "9727613ba55d3a52e2c8fe137668299031732d9385a43cf3b58dd38e8037f600",
+    "外部連携/external-gold/詳細設計/外部連携詳細設計書.md": "8fe50e8449330bb93e3e173f0c9fded1da60bdffb7dc054710e0aa0ab5ea525a",
+    "外部連携/external-gold/基本設計/外部連携基本設計書.md": "b92c18b3c4430ecde7ad59d96d1c429d0dbac9f1fa43d0f72e5b3853bd13af6b"
+  },
+  "inventory_owner_results": {
+    "screen": {"unit_kind":"screen","status":"STOPPED","records":[]},
+    "api": {"unit_kind":"api","status":"DONE","records":[{"source_path":"app.py","source_sha256":"37c5e71921f56505a884cf5934fd4696ee46ae3d0581d3db6739fe28462f37bd"}]},
+    "table": {"unit_kind":"table","status":"STOPPED","records":[]},
+    "batch": {"unit_kind":"batch","status":"DONE","records":[{"source_path":"jobs.py","source_sha256":"c8327cd399024e76344103d38590d8e9c08a8dde6bd450efc1d48196c4c587c7"}]},
+    "report": {"unit_kind":"report","status":"DONE","records":[{"source_path":"report.py","source_sha256":"07b1cb71db85713e214f3a522c0cea37fe6c39d7675ddf09b6f54affbb61afe7"}]},
+    "external": {"unit_kind":"external","status":"DONE","records":[{"source_path":"external.py","source_sha256":"45d7e038c9ee514bbfd73701e04315d86f78a58d34b812e3c7bd8215bbd8c414"}]}
+  }
+}

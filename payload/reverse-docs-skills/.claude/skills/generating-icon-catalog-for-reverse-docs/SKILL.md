@@ -123,3 +123,9 @@ page-data.json の保存先は `$CLAUDE_JOB_DIR/tmp/icon-catalog-page-data.json`
 ## 参照資料
 
 - `../../../shared/scripts/detail-pages/page-data-schema.md` — page-data.json のスキーマ定義
+
+<!-- delivery-owner-contracts:start -->
+```json
+[{"failure_return_to":"orchestrating-reverse-docs-flow","id":"icon-catalog","inputs":["icon source"],"outputs":["アイコンカタログ.html"],"stop_conditions":["iconなし"],"validator":"check-delivery-artifacts.sh"}]
+```
+<!-- delivery-owner-contracts:end -->

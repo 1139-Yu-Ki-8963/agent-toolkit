@@ -124,3 +124,9 @@ page-data.json の保存先は `$CLAUDE_JOB_DIR/tmp/design-system-page-data.json
 ## 参照資料
 
 - `../../../shared/scripts/detail-pages/page-data-schema.md` — page-data.json のスキーマ定義
+
+<!-- delivery-owner-contracts:start -->
+```json
+[{"failure_return_to":"orchestrating-reverse-docs-flow","id":"design-system","inputs":["style source"],"outputs":["デザインシステム.html"],"stop_conditions":["スタイル根拠なし"],"validator":"check-delivery-artifacts.sh"}]
+```
+<!-- delivery-owner-contracts:end -->

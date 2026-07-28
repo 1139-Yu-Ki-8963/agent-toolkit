@@ -162,3 +162,9 @@ page-data.json の保存先は `$CLAUDE_JOB_DIR/tmp/entity-state-page-data.json`
 
 - `../../../shared/scripts/detail-pages/page-data-schema.md` — page-data.json のスキーマ定義（T7: entity-state 節）
 - `shared/templates/リバース検証/プロジェクト共通/データ設計.md` — §6 状態遷移表のテンプレート定義元
+
+<!-- delivery-owner-contracts:start -->
+```json
+[{"failure_return_to":"orchestrating-reverse-docs-flow","id":"state-diagram","inputs":["state evidence"],"outputs":["状態遷移図.html"],"stop_conditions":["状態根拠なし"],"validator":"check-delivery-artifacts.sh"}]
+```
+<!-- delivery-owner-contracts:end -->

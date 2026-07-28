@@ -38,18 +38,67 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>CRUD図</title>
 <style>
-  /* TOKENS_CSS */
+  :root,
+[data-theme="light"] {
+  --bg: #FFFFFF;
+  --panel: #FFFFFF;
+  --panel-2: #F6F8FA;
+  --border: #D1D9E0;
+  --border-strong: #AFB8C1;
+  --text: #1B1F26;
+  --text-sub: #4A4F58;
+  --text-muted: #767B85;
+  --accent: #0969DA;
+  --accent-2: #218BFF;
+  --accent-soft: #DDF4FF;
+  --accent-border: #54AEFF;
+  --gold: #BC4C00;
+  --gold-soft: #FFF1E5;
+  --gold-border: #D18A5A;
+  --success: #1A7F37;
+  --success-soft: #DAFBE1;
+  --warn: #BC4C00;
+  --danger: #CF222E;
+  --danger-soft: #FFEBE9;
+  --code-bg: #1B1F26;
+  --code-fg: #E8E5DC;
+  --font-body: "Hiragino Kaku Gothic ProN","Hiragino Sans","Noto Sans JP","BIZ UDPGothic","Yu Gothic","Meiryo",system-ui,-apple-system,sans-serif;
+  --mono: "SFMono-Regular","Menlo","Cascadia Code","Consolas",monospace;
+  --shadow-sm: 0 1px 3px rgba(27,31,38,.07), 0 2px 6px rgba(27,31,38,.05);
+  --shadow-md: 0 2px 8px rgba(27,31,38,.09), 0 8px 24px rgba(27,31,38,.07);
+  --radius: 10px;
+  --radius-sm: 6px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #15171C; --panel: #1C1F26; --panel-2: #21262D;
+    --border: #30363D; --border-strong: #484F58;
+    --text: #E8E5DC; --text-sub: #B6B3AB; --text-muted: #888784;
+    --accent: #58A6FF; --accent-2: #79C0FF; --accent-soft: #132D4B; --accent-border: #1F6FEB;
+    --gold: #DB6D28; --gold-soft: #311D08; --gold-border: #7A3E0D;
+    --success: #3FB950; --success-soft: #0D2818;
+    --warn: #DB6D28; --danger: #F85149; --danger-soft: #3D1214;
+    --code-bg: #0E1116; --code-fg: #E8E5DC;
+  }
+}
+[data-theme="dark"] {
+  --bg: #15171C; --panel: #1C1F26; --panel-2: #21262D;
+  --border: #30363D; --border-strong: #484F58;
+  --text: #E8E5DC; --text-sub: #B6B3AB; --text-muted: #888784;
+  --accent: #58A6FF; --accent-2: #79C0FF; --accent-soft: #132D4B; --accent-border: #1F6FEB;
+  --gold: #DB6D28; --gold-soft: #311D08; --gold-border: #7A3E0D;
+  --success: #3FB950; --success-soft: #0D2818;
+  --warn: #DB6D28; --danger: #F85149; --danger-soft: #3D1214;
+  --code-bg: #0E1116; --code-fg: #E8E5DC;
+}
 
-  html { height: 100vh; }
   * { box-sizing: border-box; }
   body {
-    margin: 0; padding: 0 24px;
+    margin: 0; padding: 0 24px 96px;
     font-family: var(--font-body);
     line-height: 1.7; color: var(--text); background: var(--bg);
     max-width: 1180px; margin-inline: auto;
-    height: 100%; overflow: hidden; display: flex; flex-direction: column;
   }
-  .matrix-content { flex: 1; min-height: 0; overflow-y: auto; padding-bottom: 96px; }
   .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
   header { padding: 40px 0 20px; border-bottom: 3px solid var(--border-strong); }
   .header-top { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
@@ -195,7 +244,6 @@
   </div>
 </section>
 
-<main class="matrix-content">
 <div class="toolbar">
   <input type="search" id="matrix-search" placeholder="機能名・テーブル物理名で絞り込み">
   <span class="note">セルにマウスを重ねると行・列を同時ハイライト</span>
@@ -213,7 +261,6 @@
     <tbody></tbody>
   </table>
 </div>
-</main>
 
 <script type="application/json" id="matrix-manifest">
 <!--MATRIX_JSON-->

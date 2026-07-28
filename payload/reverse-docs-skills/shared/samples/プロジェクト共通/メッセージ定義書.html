@@ -143,7 +143,7 @@
 <body>
 <header class="topbar">
   <a class="brand" href="../index.html">
-    <span class="brand-icon"><svg role="img" aria-label="ドキュメント" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:middle"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zM13 9V3.5L18.5 9H13z"/></svg></span>
+    <span class="brand-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:middle"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zM13 9V3.5L18.5 9H13z"/></svg></span>
     <span class="brand-title">サンプルプロジェクト</span>
     <span class="brand-sub">設計ポータル</span>
   </a>
@@ -155,17 +155,32 @@
   </div>
 </header>
 
-<h1 hidden>メッセージ定義書</h1>
-
 <main class="doc-main" id="doc-content"></main>
 
 <footer class="footer"></footer>
 
-<script type="application/json" id="doc-md">"# メッセージ定義書\n\n## 概要\n\nエラー・警告・確認等、画面表示メッセージの一覧と文言規則を定義する。\n\n## メッセージ分類\n\n- エラー: 処理継続不可を示す\n- 警告: 処理は継続するが注意喚起が必要\n- 確認: ユーザーの意思決定を要する\n\n## 文言規則\n\n- 語尾は「です・ます」調に統一する\n- エラーメッセージには原因と対処方法を含める"</script>
+<script type="text/plain" id="doc-md">
+# メッセージ定義書
+
+## 概要
+
+エラー・警告・確認等、画面表示メッセージの一覧と文言規則を定義する。
+
+## メッセージ分類
+
+- エラー: 処理継続不可を示す
+- 警告: 処理は継続するが注意喚起が必要
+- 確認: ユーザーの意思決定を要する
+
+## 文言規則
+
+- 語尾は「です・ます」調に統一する
+- エラーメッセージには原因と対処方法を含める
+</script>
 
 <script>
 (function () {
-  var src = JSON.parse(document.getElementById('doc-md').textContent || '""');
+  var src = document.getElementById('doc-md').textContent;
 
   // frontmatter 除去
   src = src.replace(/^\s*---[\s\S]*?---\s*/, '');

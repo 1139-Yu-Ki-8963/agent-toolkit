@@ -5,6 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ホーム 画面詳細設計書</title>
 <style>
+
+  :root {
+    --content-max: 1120px;
+    --reading-width: 72ch;
+    --page-gutter: clamp(20px, 4vw, 72px);
+    --section-gap: clamp(28px, 4vw, 44px);
+  }
   :root,
 [data-theme="light"] {
   /* Windows フォント上書き防止 */
@@ -42,8 +49,7 @@
   --code-bg: #1B1F26;
   --code-fg: #E8E5DC;
   --cat-list: #2563eb;
-  --cat-standards: #059669;
-  --cat-design: #D97706;
+  --cat-common: #059669;
   --cat-project: #7C3AED;
   --font-body: "Hiragino Kaku Gothic ProN","Hiragino Sans","Noto Sans JP","BIZ UDPGothic","Yu Gothic","Meiryo",system-ui,-apple-system,sans-serif;
   --mono: "SFMono-Regular","Menlo","Cascadia Code","Consolas",monospace;
@@ -65,7 +71,7 @@
     --nav-tag: #8E9ED0; --nav-tag-soft: rgba(142,158,208,0.15);
     --self-tag: #7DB87D; --self-tag-soft: rgba(125,184,125,0.15);
     --code-bg: #0E1116; --code-fg: #E8E5DC;
-    --cat-list: #60A5FA; --cat-standards: #34D399; --cat-design: #FBBF24; --cat-project: #A78BFA;
+    --cat-list: #60A5FA; --cat-common: #34D399; --cat-project: #A78BFA;
   }
 }
 [data-theme="dark"] {
@@ -80,16 +86,9 @@
   --nav-tag: #8E9ED0; --nav-tag-soft: rgba(142,158,208,0.15);
   --self-tag: #7DB87D; --self-tag-soft: rgba(125,184,125,0.15);
   --code-bg: #0E1116; --code-fg: #E8E5DC;
-  --cat-list: #60A5FA; --cat-standards: #34D399; --cat-design: #FBBF24; --cat-project: #A78BFA;
+  --cat-list: #60A5FA; --cat-common: #34D399; --cat-project: #A78BFA;
 }
 
-  :root {
-    --content-max: 1320px;
-    --reading-width: 72ch;
-    --page-gutter: clamp(20px, 4vw, 72px);
-    --section-gap: clamp(28px, 4vw, 44px);
-    --sidebar-width: 280px;
-  }
 
   * { box-sizing: border-box; }
   html { -webkit-text-size-adjust: 100%; }
@@ -100,9 +99,10 @@
   }
   a { color: var(--accent); text-decoration: none; }
   a:hover { text-decoration: underline; }
+  .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20; vertical-align: middle; }
 
   /* viewport-fit layout */
-  .dp-page { display: grid; grid-template-rows: auto 1fr; height: 100vh; height: 100dvh; overflow: hidden; }
+  .dp-page { display: grid; grid-template-rows: auto 1fr; height: 100vh; overflow: hidden; }
 
   /* topbar */
   .topbar {
@@ -130,37 +130,10 @@
 
   /* sidebar */
   .dp-sidebar {
-    width: var(--sidebar-width); flex-shrink: 0;
-    overflow-y: auto; padding: 18px 14px 24px;
+    width: 220px; flex-shrink: 0;
+    overflow-y: auto; padding: 16px 0 16px 16px;
     border-right: 1px solid var(--border);
     background: var(--panel);
-    scrollbar-gutter: stable;
-  }
-  .sidebar-parent {
-    display: flex; align-items: center; gap: 8px;
-    margin: 0 0 10px; padding: 8px 10px;
-    border-radius: var(--radius-sm); background: var(--panel-2);
-    color: var(--text); font-size: 13px; font-weight: 700; line-height: 1.4;
-  }
-  .sidebar-parent .material-symbols-outlined { color: var(--accent); font-size: 18px; flex: 0 0 auto; }
-  .sidebar-doc-nav {
-    display: flex; flex-direction: column; gap: 2px;
-    margin: 0 0 20px; padding: 0 0 14px 18px;
-    border-bottom: 1px solid var(--border);
-  }
-  .sidebar-doc-nav .back-link,
-  .sidebar-doc-nav .nav-item {
-    display: block; min-width: 0; padding: 7px 10px;
-    border: 0; border-radius: var(--radius-sm);
-    background: transparent; color: var(--text-sub);
-    font-size: 12.5px; line-height: 1.4; text-decoration: none;
-  }
-  .sidebar-doc-nav .back-link { order: 10; margin-top: 6px; color: var(--text-muted); font-size: 11.5px; }
-  .sidebar-doc-nav .nav-item:hover,
-  .sidebar-doc-nav .back-link:hover { background: var(--panel-2); color: var(--accent); text-decoration: none; }
-  .sidebar-doc-nav .nav-item.active {
-    background: var(--accent-soft); color: var(--accent); font-weight: 700;
-    box-shadow: inset 3px 0 0 var(--accent);
   }
   .toc-label {
     font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em;
@@ -176,6 +149,9 @@
   .toc-link:hover { background: var(--panel-2); color: var(--text); text-decoration: none; }
   .toc-link.active { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
   .toc-link .material-symbols-outlined { font-size: 16px; }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+  }
 
   /* main content */
   .dp-main {
@@ -188,6 +164,21 @@
   .doc-crumbs { font-size: 12px; color: var(--text-muted); margin-bottom: 8px; }
   .doc-crumbs a { color: var(--text-sub); }
   .doc-crumbs a:hover { color: var(--accent); }
+
+  /* screen doc タブナビ（基本設計 / 詳細設計 / シーケンス図） */
+  .doc-nav {
+    display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+    margin: 0 0 16px; border-bottom: 2px solid var(--border);
+  }
+  .doc-nav .back-link { margin-right: auto; font-size: 12px; color: var(--text-sub); text-decoration: none; }
+  .doc-nav .back-link:hover { color: var(--accent); text-decoration: none; }
+  .doc-tab {
+    padding: 5px 16px; border: 1px solid var(--border); border-bottom: none;
+    border-radius: 6px 6px 0 0; font-size: 13px; text-decoration: none; color: var(--text-sub);
+    background: var(--panel);
+  }
+  .doc-tab:hover { text-decoration: none; color: var(--accent); }
+  .doc-tab.active { color: var(--accent); font-weight: 700; border-color: var(--accent); background: var(--bg); }
 
   .dp-hero {
     display: flex; align-items: flex-end; justify-content: space-between; gap: 16px;
@@ -221,9 +212,8 @@
   #doc-content li { margin: 4px 0; }
   #doc-content img { max-width: 100%; border-radius: var(--radius-sm); }
   #doc-content code {
-    background: var(--panel-2); color: var(--text); padding: 1px 6px;
-    border: 1px solid var(--border); border-radius: 4px;
-    font-family: var(--mono); font-size: 0.85em;
+    background: var(--code-bg); color: var(--code-fg); padding: 1px 6px;
+    border-radius: 4px; font-family: var(--mono); font-size: 0.85em;
   }
   #doc-content blockquote {
     border-left: 3px solid var(--accent-border); margin: 12px 0; padding: 8px 16px;
@@ -255,53 +245,39 @@
   }
   .rule-item .material-symbols-outlined { font-size: 18px; margin-top: 2px; flex-shrink: 0; }
   .rule-item code {
-    background: var(--panel); color: var(--text); padding: 1px 5px;
-    border: 1px solid var(--border); border-radius: 3px;
-    font-family: var(--mono); font-size: .85em;
+    background: var(--code-bg); color: var(--code-fg); padding: 1px 5px;
+    border-radius: 3px; font-family: var(--mono); font-size: .85em;
   }
 
   /* tables */
-  .table-wrap {
-    width: 100%; overflow-x: auto; overscroll-behavior-inline: contain;
-    border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 14px;
-    scrollbar-gutter: stable;
-  }
+  .table-wrap { width: 100%; overflow-x: auto; border-radius: var(--radius); margin-bottom: 14px; }
   table.data-table {
-    width: max-content; min-width: 100%; border-collapse: collapse; font-size: 13px;
-    background: var(--panel);
+    width: 100%; min-width: 400px; border-collapse: collapse; font-size: 13px;
+    background: var(--panel); border: 1px solid var(--border);
   }
   table.data-table thead { position: sticky; top: 0; z-index: 1; }
   table.data-table th {
     text-align: left; font-size: 11.5px; font-weight: 700; color: var(--text-sub);
     background: var(--panel-2); padding: 8px 12px; border-bottom: 1px solid var(--border); white-space: nowrap;
   }
-  table.data-table td {
-    min-width: 11rem; max-width: 34rem; padding: 9px 12px;
-    border-bottom: 1px solid var(--border); vertical-align: top;
-    overflow-wrap: normal; word-break: normal; hyphens: none;
-  }
-  table.data-table td:first-child { min-width: 7rem; }
+  table.data-table td { padding: 9px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
   table.data-table tr:last-child td { border-bottom: none; }
   table.data-table code {
-    background: var(--panel-2); color: var(--text); padding: 1px 5px;
-    border: 1px solid var(--border); border-radius: 3px;
-    font-family: var(--mono); font-size: 11.5px; white-space: nowrap;
+    background: var(--code-bg); color: var(--code-fg); padding: 1px 5px; border-radius: 3px;
+    font-family: var(--mono); font-size: 11.5px;
   }
 
-  /* code blocks */
-  .code-block {
-    width: 100%; border: 1px solid var(--border); border-radius: var(--radius-sm);
-    overflow: hidden; background: var(--panel-2); margin-bottom: 14px;
-  }
+  /* code blocks（手動で span を書いた場合にのみ配色が効く。MD パーサーは自動適用しない） */
+  .code-block { width: 100%; border-radius: var(--radius-sm); overflow: hidden; background: var(--code-bg); margin-bottom: 14px; }
   .code-block-head {
     display: flex; align-items: center; gap: 6px;
     padding: 6px 14px; font-size: 11px; font-weight: 600;
-    color: var(--text-muted); border-bottom: 1px solid var(--border);
+    color: var(--text-muted); border-bottom: 1px solid rgba(255,255,255,.06);
     letter-spacing: .03em;
   }
   .code-block pre {
     margin: 0; padding: 12px 14px; overflow-x: auto;
-    font-family: var(--mono); font-size: 12.5px; line-height: 1.65; color: var(--text);
+    font-family: var(--mono); font-size: 12.5px; line-height: 1.65; color: var(--code-fg);
   }
   .code-block .kw { color: #CBA6F7; }
   .code-block .fn { color: #89B4FA; }
@@ -339,10 +315,10 @@
     display: flex; gap: 20px; justify-content: center;
   }
 
-  @media (max-width: 820px) {
+  @media (max-width: 760px) {
     .dp-sidebar { display: none; }
     .dp-sidebar.open {
-      display: block; position: fixed; top: 0; left: 0; bottom: 0; width: min(88vw, 320px);
+      display: block; position: fixed; top: 0; left: 0; bottom: 0; width: 260px;
       background: var(--panel); z-index: 55; border-right: 1px solid var(--border);
       box-shadow: var(--shadow-md); padding: 60px 16px 16px;
     }
@@ -366,28 +342,22 @@
   @media (max-width: 480px) {
     .dp-hero h1 { font-size: 20px; }
   }
-  @media (prefers-reduced-motion: reduce) {
-    *, *::before, *::after {
-      scroll-behavior: auto !important;
-      animation-duration: .01ms !important;
-      animation-iteration-count: 1 !important;
-      transition-duration: .01ms !important;
-    }
-  }
 </style>
 </head>
 <body>
 <div class="dp-page">
   <header class="topbar">
     <a class="brand" href="../../../index.html">
+      <span class="brand-icon"><span class="material-symbols-outlined" style="font-size:20px">description</span></span>
       <span class="brand-title">サンプルプロジェクト</span>
       <span class="brand-sub">設計ポータル</span>
     </a>
     <div class="header-meta">
-      <span>更新: 2026-07-24</span>
+      <span><span class="material-symbols-outlined" style="font-size:14px">schedule</span> 更新: 2026-07-24</span>
     </div>
     <div class="top-actions">
       <button id="theme-toggle" title="テーマ切替">
+        <span class="material-symbols-outlined" style="font-size:16px" id="theme-icon">light_mode</span>
         <span id="theme-label">ライト</span>
       </button>
     </div>
@@ -395,17 +365,14 @@
 
   <div class="dp-body">
     <aside class="dp-sidebar" id="sidebar">
-      <div class="sidebar-parent">
-        <span id="screen-nav-title">画面 / 設計書</span>
-      </div>
-      <nav class="sidebar-doc-nav" aria-label="画面設計書"><a class="back-link" href="../../../一覧/画面一覧/画面一覧.html">← 画面一覧へ戻る</a><a class="nav-item" href="../基本設計/画面基本設計書.html">基本設計</a><span class="nav-item active">詳細設計</span><a class="nav-item" href="../シーケンス図.html">シーケンス図</a></nav>
-      <div class="toc-label">この設計書内</div>
+      <div class="toc-label">目次</div>
       <ul class="toc-list" id="toc-list"></ul>
     </aside>
 
     <main class="dp-main" id="main-scroll">
       <div class="dp-inner">
         <div class="doc-crumbs"><a href="../../../index.html">← ポータル TOP へ戻る</a></div>
+        <nav class="doc-nav"><a class="back-link" href="../../../一覧/画面一覧/画面一覧.html">← 画面一覧へ戻る</a><a class="doc-tab" href="../基本設計/画面基本設計書.html">基本設計</a><span class="doc-tab active">詳細設計</span><a class="doc-tab" href="../シーケンス図.html">シーケンス図</a><a class="doc-tab" href="../テスト項目書/単体テスト仕様書.md">テストケース</a></nav>
         <div class="dp-hero">
           <div>
             <h1 id="dp-hero-title"></h1>
@@ -418,16 +385,633 @@
 </div>
 
 <button class="toc-toggle" id="tocToggle">
-  <span>目次</span>
+  <span class="material-symbols-outlined">menu</span>
 </button>
 
 <footer class="footer"></footer>
 
-<script type="application/json" id="doc-md">"\n# ホーム 画面詳細設計書\n\n## 関連資料（正の宣言）\n\n| 正の種類 | ファイル | 本書との役割分担 |\n|---|---|---|\n| スタイル・数値（共通） | `../../プロジェクト共通/DESIGN.md` | 複数画面共通のデザイン値の正 |\n| スタイル・数値（画面固有差分） | `./DESIGN.md` | 画面固有の差分の正。本書はキー名参照のみ |\n| 共通仕様 | `../../プロジェクト共通/共通設計書.md` | システム共通仕様の正。本書は準拠状況と画面固有制約のみ |\n| 文言 | `../../プロジェクト共通/メッセージ定義書.md` | 文言の正。本書はメッセージ ID で参照 |\n| テスト観点 | `./単体テスト観点表.md` / `./結合テスト観点表.md` | テスト観点・受け入れ条件の正。本書に含めない |\n| 単体テストケース | `../テスト項目書/単体テスト仕様書.md`（任意） | 具体的な入力値・アサーションの設計時契約。実装後はテストコードが正 |\n| 結合テストケース | `../テスト項目書/結合テスト仕様書.md`（任意） | 具体的な操作手順・入力値・アサーションの設計時契約。実装後はテストコードが正 |\n\n## 章マップ\n\n| 役割キー | § | 章名 | 区分 | 正 | 実装後の扱い | 保守方式 |\n|---|---|---|---|---|---|---|\n| 画面概要 | §1 | 画面概要 | 必須 | 本書 | 維持 | 手 |\n| 機能一覧 | §2 | 機能一覧 | 必須 | 本書 | 維持 | 手 |\n| 画面構造 | §3 | 画面構造 | 必須 | 本書（§3.6 の数値は DESIGN.md） | 維持 | 生成 |\n| 業務ルール | §4 | 業務ルール | 条件付き | 本書 | 維持 | 手 |\n| 状態管理 | §5 | 状態管理 | 必須 | 本書 | 維持 | 生成 |\n| データフロー | §6 | データフロー | 必須 | 本書 | 維持 | 生成 |\n| API通信 | §7 | API 通信仕様 | 条件付き | API 定義書（本書は画面固有の使い方のみ） | 維持 | 生成 |\n| イベント処理 | §8 | イベント処理 | 必須 | 本書 | 維持 | 生成 |\n| 領域別仕様 | §9 | 領域別仕様 | 必須 | 本書 | 維持 | 混在 |\n| 定数設定値 | §10 | 定数・設定値 | 条件付き | 設計時は本書 → 実装後は実装コード | 実装ファイルのパス参照に置換 | 混在 |\n| エラーハンドリング | §11 | エラーハンドリング | 必須 | 本書 | 維持 | 混在 |\n| 画面遷移 | §12 | 画面遷移仕様 | 必須 | 本書 | 維持 | 生成 |\n| 非機能要件 | §13 | 非機能要件 | 必須 | 共通設計書（画面固有制約のみ本書） | 維持 | 手 |\n| 共通準拠 | §14 | 共通仕様への準拠 | 必須 | 共通設計書（本書は逸脱のみ） | 維持 | 手 |\n| 実装契約 | §15 | 実装契約 | 必須 | 設計時は本書 → 実装後はコード（§15.6 は DESIGN.md） | 構造の骨子のみ維持 | 生成 |\n| 要確認事項 | §16 | 要確認事項一覧 | 必須 | 本書 | approved の条件は 0 件 | 手 |\n\n保守方式: 手 = 人が保守する正 / 生成 = 納品時にコードから自動生成 / 混在 = 生成した骨格に業務的意味を手で重ねる\n\n---\n\n## §1 画面概要\n\n### 1.1 基本情報\n\n| 項目 | 値 |\n|---|---|\n| 画面名 | ホーム |\n| 目的 | ログイン後の利用者に業務全体の状況を提示し、各業務画面への入り口を提供する |\n| ルート | / |\n| 遷移元 | ログイン画面 |\n| 遷移先 | サイドメニューで選択した各業務画面 |\n\n### 1.2 業務上の位置づけ\n\nダッシュボードとしてログイン直後に必ず経由する画面であり、利用者は本画面から通知の確認や各業務画面への遷移を行う。\n\n---\n\n## §2 機能一覧\n\n### 2.1 機能一覧表\n\n| キー | 機能名 | 概要 | 優先度 |\n|---|---|---|---|\n| 表示-ダッシュボード集計 | ダッシュボード集計表示 | ログインユーザーに関連する業務集計値をカード形式で表示する | 必須 |\n| ナビゲーション-サイドメニュー | サイドメニュー遷移 | サイドナビの項目クリックで各業務画面へ遷移する | 必須 |\n| 通知-確認 | 通知確認 | 通知パネルを開き未読通知を一覧表示し既読にする | 必須 |\n\n### 2.2 機能間の関係\n\n通知確認によって既読化された件数は、サイドメニューに付随する通知バッジの表示件数に即時反映される。\n\n---\n\n## §3 画面構造\n\n### 画面キャプチャ\n\n> 元コードの画面キャプチャーは、このサンプルには含まれません。\n\n### 部品構成（コンポーネント構造）\n\n```\n┌─ HomePage ──────────────────────────┐\n│ ┌─ TopHeader ─────────────────────┐ │\n│ │ UserMenu / NotificationBell     │ │\n│ └──────────────────────────────────┘ │\n│ ┌─ SideNav ─────┐ ┌─ MainArea ────┐ │\n│ │ NavMenuItem    │ │ SummaryCard   │ │\n│ └────────────────┘ └───────────────┘ │\n└────────────────────────────────────────┘\n```\n\n### 3.1 コンポーネント配置\n\n```\nHomePage\n├─ TopHeader\n│   ├─ UserMenu\n│   └─ NotificationBell\n├─ SideNav\n│   └─ NavMenuItem（繰り返し）\n└─ MainArea\n    └─ SummaryCard（繰り返し）\n```\n\n### 3.2 DOM 配置順序\n\n1. TopHeader — 利用者情報と通知の表示\n2. SideNav — 各業務画面への遷移メニュー\n3. MainArea — ダッシュボード集計カードの表示\n\n### 3.3 レイアウト制約\n\n| 制約 | 値 |\n|---|---|\n| レイアウト方式 | Flex（横並び：サイドナビ＋メインエリア） |\n| 最小幅 | 960px |\n| 最大幅 | 1440px |\n\n### 3.4 メニューバー設定（条件付き：メニューバーを持つ画面のみ）\n\n該当なし（サイドナビ形式のため専用メニューバーは持たない）\n\n### 3.5 設定オブジェクト構造（条件付き：設定オブジェクトを持つ場合のみ）\n\n該当なし（設定オブジェクトを持たない画面のため）\n\n### 3.6 スタイル適用パターン\n\n| 領域 | 適用パターン | 参照先 |\n|---|---|---|\n| NavMenuItem（非活性項目） | disabled-nav-item | `DESIGN.md > colors.disabledNav` |\n| NotificationBell（未読バッジ） | badge-count | `DESIGN.md > colors.badgeCount` |\n\n### 3.7 ボタン一覧\n\n| ボタン名 | 種別 | 位置 | 活性条件 |\n|---|---|---|---|\n| 通知ベル | 補助 | TopHeader 内 | 常時 |\n| サイドメニュー項目 | 主要 | SideNav 内 | 対応する権限を利用者が持つとき |\n\n---\n\n## §4 業務ルール（条件付き：業務モード・権限制御がある画面のみ）\n\n### 4.1 業務モードと切替条件\n\n| モード | 切替条件 | UI の変化 |\n|---|---|---|\n| 通常表示 | 既定 | 権限に応じたメニュー項目のみ表示 |\n| 管理者表示 | 利用者が管理者権限を持つ場合 | 管理系メニュー項目を追加表示 |\n\n### 4.2 業務判断ポイント\n\n利用者の権限区分（一般・管理者）によってサイドメニューに表示する項目が分岐する。\n\n### 4.3 業務フロー内の前後画面との関係\n\nログイン画面から遷移してくる起点画面であり、以降のあらゆる業務画面への分岐点となる。\n\n### 4.4 権限別の UI 制御\n\n| ロール | 管理系メニュー | 通常業務メニュー |\n|---|---|---|\n| 管理者 | 表示 | 表示 |\n| 一般利用者 | 非表示 | 表示 |\n\n---\n\n## §5 状態管理\n\n### 5.1 URL パラメータ\n\n該当なし（ホーム画面はURLパラメータを持たない）\n\n### 5.2 セッション・ストレージ参照\n\n| キー名 | 種別 | 用途 |\n|---|---|---|\n| home-notification-last-read | session | 直前に確認した通知の既読状態を復元する |\n\n### 5.3 メイン画面の状態変数\n\n| 変数名 | 型 | 初期値 | 役割 |\n|---|---|---|---|\n| summaryCards | 集計カードの配列 | 空配列 | ダッシュボード集計カードの表示内容を保持する |\n| unreadCount | 数値 | 0 | 未読通知件数を保持する |\n| isNotificationOpen | 真偽値 | 偽 | 通知パネルの開閉状態を保持する |\n| isLoading | 真偽値 | 偽 | 集計データ取得中かどうかを保持する |\n\n### 5.4 サブコンポーネントの状態変数\n\n| コンポーネント | 変数名 | 型 | 役割 |\n|---|---|---|---|\n| NotificationBell | notifications | 通知レコードの配列 | 通知パネルに表示する通知一覧を保持する |\n\n### 5.5 派生値（計算値）\n\n| 派生値名 | 算出ロジック概要 | 依存する状態変数 |\n|---|---|---|\n| hasUnread | unreadCount が1以上かを判定する | unreadCount |\n| visibleMenuItems | 利用者権限に基づきサイドメニュー項目を絞り込む | userRole |\n\n### 5.6 画面専用ストア（永続化）\n\n該当なし（画面固有の永続化なし）\n\n### 5.7 共有ストア参照\n\n| ストア / コンテキスト | 参照キー | 用途 |\n|---|---|---|\n| AuthContext | userRole | 管理系メニューの表示可否を判定する |\n| AuthContext | userName | TopHeader の利用者名表示に使用する |\n\n### 5.8 通知既読化関数\n\nmarkNotificationAsRead(通知ID) — 指定した通知IDを既読状態へ更新し、unreadCount を1減算する。\n\n### 5.9 初期値・デフォルト値一覧\n\n| 変数名 | 初期値 | 根拠 |\n|---|---|---|\n| isNotificationOpen | 偽 | 初期表示では通知パネルを閉じた状態とする業務要件のため |\n| unreadCount | 0 | API 取得完了まで暫定的に0件として扱う業務要件のため |\n\n---\n\n## §6 データフロー\n\n### 6.1 初期表示シーケンス\n\n1. ストア初期化（AuthContext から利用者権限・利用者名を取得）\n2. API 呼び出し（§7 参照）\n3. データ変換（§6.5 参照）\n4. 画面状態を ready に更新\n\n#### 6.1.1 起動時初期化（AuthContext → メニュー表示）\n\nAuthContext から取得した userRole を用いて表示するサイドメニュー項目を決定する。\n\n### 6.2 依存連鎖\n\nunreadCount が変化すると NotificationBell のバッジ表示が更新される。\n\n### 6.3 ユーザー操作確定時の処理フロー\n\n1. バリデーション（該当なし）\n2. 確認ダイアログ表示（該当なし）\n3. API 呼び出し\n4. 成功時: 通知一覧・未読件数を更新\n5. 失敗時: エラー表示（§11 参照）\n\n### 6.4 データ更新トリガーの分類\n\n| トリガー | 種別 | 処理概要 |\n|---|---|---|\n| 通知ベルクリック | ユーザー操作 | 通知一覧APIを呼び出し通知パネルを開く |\n| 通知項目クリック | ユーザー操作 | 該当通知を既読化しunreadCountを更新する |\n\n### 6.5 データ変換（API レスポンス → 画面表示用データ）\n\n| 変換名 | 入力型 | 出力型 | 変換概要 |\n|---|---|---|---|\n| formatSummaryCard | ダッシュボード集計APIレスポンス | カード表示用データ | 集計値をラベル付きカード表示用の構造へ変換する |\n\n### 6.6 画面状態の遷移\n\n| 状態 | 遷移条件 | UI の表示 |\n|---|---|---|\n| loading | 初期表示中 | ローディング表示 |\n| error | API エラー | エラーメッセージ（§11 参照） |\n| ready | データ取得成功 | メインコンテンツ |\n\n---\n\n## §7 API 通信仕様（条件付き：API を呼ぶ画面のみ）\n\n### 7.1 API 一覧\n\n| No | API 名 | メソッド | エンドポイント | 呼び出し契機 |\n|---|---|---|---|---|\n| 7.2 | ダッシュボード集計API | GET | /api/dashboard-summary | 初期表示時 |\n| 7.3 | 通知一覧API | GET | /api/notifications | 通知ベルクリック時 |\n\n### 7.2 ダッシュボード集計API\n\n| 項目 | 内容 |\n|---|---|\n| 概要 | ログイン利用者に関連する業務集計値を取得する |\n| エンドポイント | GET /api/dashboard-summary |\n| 呼び出し契機 | 初期表示時 |\n\n**リクエスト**\n\n```\n{ }\n```\n\n**レスポンス**\n\n```\n{ cards（集計カードの配列）; unreadNotificationCount; }\n```\n\n**エラーと画面側の扱い**\n\n| ステータス | 画面の挙動 | メッセージ ID |\n|---|---|---|\n| 401 | ログイン画面へ遷移 | — |\n| 500 | システムエラーメッセージ表示 | MSG-COMMON-500 |\n\n### 7.3 通知一覧API\n\n| 項目 | 内容 |\n|---|---|\n| 概要 | 未読・既読を問わず直近の通知一覧を取得する |\n| エンドポイント | GET /api/notifications |\n| 呼び出し契機 | 通知ベルクリック時 |\n\n**リクエスト**\n\n```\n{ }\n```\n\n**レスポンス**\n\n```\n{ items（通知レコードの配列）; unreadCount; }\n```\n\n**エラーと画面側の扱い**\n\n| ステータス | 画面の挙動 | メッセージ ID |\n|---|---|---|\n| 401 | ログイン画面へ遷移 | — |\n| 500 | システムエラーメッセージ表示 | MSG-COMMON-500 |\n\n---\n\n## §8 イベント処理\n\n### 8.1 メイン画面イベント\n\n| イベント | 発火要素 | 処理概要 |\n|---|---|---|\n| onNotificationBellClick | 通知ベル | 通知一覧APIを呼び出し通知パネルを開く |\n| onMenuItemClick | サイドメニュー項目 | 対象の業務画面へ遷移する |\n\n### 8.2 サブコンポーネントイベント\n\n| コンポーネント | イベント | 処理概要 |\n|---|---|---|\n| NotificationBell | onNotificationClick | 選択した通知を既読化し unreadCount を更新する |\n\n### 8.3 複数ステップ処理の詳細\n\n該当なし\n\n### 8.4 キーボード操作\n\n| キー | 発火条件 | 挙動 |\n|---|---|---|\n| Tab | フォーカス可能要素 | 通知ベル → サイドメニュー項目の順で移動する |\n| Enter | フォーカス中のメニュー項目 | 対象の業務画面へ遷移する |\n\n---\n\n## §9 領域別仕様\n\n### 9.1 サイドナビエリア（SideNav）\n\n#### 9.1.1 概要\n\n各業務画面への遷移メニューを表示する領域。利用者権限に応じて表示項目が絞り込まれる。\n\n#### 9.1.2 配置\n\nTopHeader の下、MainArea の左側に配置される。\n\n#### 9.1.3 項目定義\n\n| 項目名 | 型 | 必須 | 書式 | 状態別編集可否 |\n|---|---|---|---|---|\n| メニュー項目名 | 文字列 | ○ | 日本語ラベル | ready: 可（クリック可） / loading: 不可 |\n\n#### 9.1.4 イベント・挙動\n\n| イベント | 挙動 |\n|---|---|\n| onMenuItemClick | 対象画面へ遷移する |\n\n#### 9.1.5 領域固有の制約\n\n権限を持たない項目は非表示とし、グレー表示での提示は行わない。\n\n### 9.2 通知パネル（NotificationBell）\n\n#### 9.2.1 概要\n\n未読通知を含む通知一覧を表示し、クリックで既読化する領域。\n\n#### 9.2.2 配置\n\nTopHeader 内、利用者メニューの隣に配置される。\n\n#### 9.2.3 項目定義\n\n| 項目名 | 型 | 必須 | 書式 | 状態別編集可否 |\n|---|---|---|---|---|\n| 未読件数 | 数値 | ○ | バッジ表示 | ready: 不可 / loading: 不可 |\n\n#### 9.2.4 イベント・挙動\n\n| イベント | 挙動 |\n|---|---|\n| onNotificationClick | 通知を既読化する |\n\n#### 9.2.5 領域固有の制約\n\n未読件数が0件の場合はバッジ自体を表示しない。\n\n---\n\n## §10 定数・設定値（条件付き：画面固有の定数がある場合のみ）\n\n### 10.1 文字列定数\n\n| 定数名 | 値 | 用途 |\n|---|---|---|\n| MAX_NOTIFICATION_DISPLAY | \"10\" | 通知パネルに表示する最大件数 |\n\n### 10.2 選択肢定義\n\n該当なし\n\n### 10.3 列定義・表示設定\n\n該当なし（一覧テーブルを持たない画面のため）\n\n### 10.4 コード変換テーブル\n\n該当なし\n\n### 10.5 区分定数\n\n| 定数名 | 値一覧 |\n|---|---|\n| USER_ROLE | general / admin |\n\n---\n\n## §11 エラーハンドリング\n\n### 11.1 ユーザー入力チェック\n\n該当なし（入力フォームを持たない画面のため）\n\n### 11.2 エラーメッセージ・警告\n\n| タイミング | メッセージ ID | 表示位置 |\n|---|---|---|\n| 通知取得失敗 | MSG-COMMON-500 | トースト |\n\n### 11.3 システムエラー\n\n| エラー種別 | 画面の挙動 | メッセージ ID |\n|---|---|---|\n| ネットワーク断 | エラーバナー表示・リトライ促進 | MSG-COMMON-NET |\n| 認証切れ | ログイン画面へ遷移 | — |\n| 予期しないエラー | エラーメッセージ表示 | MSG-COMMON-500 |\n\n---\n\n## §12 画面遷移仕様\n\n### 12.1 遷移先一覧\n\n| 遷移先画面 | 遷移方式 | 条件 | 渡すパラメータ |\n|---|---|---|---|\n| 各業務画面 | push | サイドメニュー項目クリック時 | なし |\n\n### 12.2 遷移方式の方針\n\nサイドメニューからの遷移は push とし、ホーム画面の状態はブラウザの戻る操作で復帰できるようにする。\n\n---\n\n## §13 非機能要件\n\n### 13.1 表示件数・データ量制限\n\n| 対象 | 上限 | 超過時の挙動 |\n|---|---|---|\n| 通知パネル表示 | 10 件 | 「すべて見る」リンクで別画面へ誘導 |\n\n### 13.2 パフォーマンス目安\n\n| 操作 | 目標応答時間 |\n|---|---|\n| 初期表示 | 2 秒以内 |\n| 通知一覧取得 | 1 秒以内 |\n\n### 13.3 ローディング・処理中表示\n\n| 操作 | ローディング表示方式 |\n|---|---|\n| 初期表示 | スケルトン |\n| 通知取得 | パネル内スピナー |\n\n### 13.4 タイムアウト・リトライ方針\n\n| 項目 | 値 | 根拠 |\n|---|---|---|\n| タイムアウト時間 | 10 秒 | 共通設計書の標準API応答方針に準拠 |\n| リトライ回数 | 1 回 | 共通設計書の標準リトライ方針に準拠 |\n\n### 13.5 ブラウザ・画面解像度の動作保証範囲\n\n共通設計書準拠（差分なし）\n\n---\n\n## §14 共通仕様への準拠\n\n### 14.1 共通コンポーネント利用一覧\n\n| コンポーネント名 | 利用箇所 | 独自実装の場合の理由 |\n|---|---|---|\n| CommonBadge | NotificationBell | — |\n\n### 14.2 共通ソート・表示順ルールの適用\n\n| 対象リスト | 適用ルール | 逸脱理由 |\n|---|---|---|\n| 通知一覧 | 発生日時の新しい順 | — |\n\n### 14.3 用語・ラベルの統一\n\n共通設計書準拠（差分なし）\n\n### 14.4 日付・数値・コード値の表示フォーマット\n\n| 値の種類 | フォーマット | 空値時 |\n|---|---|---|\n| 日付 | YYYY/MM/DD | — |\n| 数値 | 3桁区切り | — |\n\n### 14.5 共通メッセージの利用\n\n| 用途 | メッセージ ID |\n|---|---|\n| システムエラー | MSG-COMMON-500 |\n\n---\n\n## §15 実装契約\n\n### 15.1 ファイル分割と export 一覧\n\n| ファイルパス | export 名 | 種別 | 実体形状 | 配置ディレクトリ |\n|---|---|---|---|---|\n| pages/HomePage.tsx | HomePage | コンポーネント | ページルートコンポーネント（サイドナビ・集計カードを内包） | pages/ |\n| components/NotificationBell.tsx | NotificationBell | コンポーネント | 通知ベル・通知パネル | components/ |\n| components/SideNav.tsx | SideNav | コンポーネント | サイドナビメニュー | components/ |\n| hooks/useDashboardSummary.ts | useDashboardSummary | フック | 集計データ・通知状態を管理する状態フック | hooks/ |\n\n### 15.2 型定義\n\n| 型名 | フィールド名 | 型 | 必須/任意 |\n|---|---|---|---|\n| SummaryCard | label | 文字列 | 必須 |\n| SummaryCard | count | 数値 | 必須 |\n| NotificationItem | notificationId | 文字列 | 必須 |\n| NotificationItem | isRead | 真偽値 | 必須 |\n\n### 15.3 依存（import）一覧\n\n| モジュール | import 内容 | 種別 |\n|---|---|---|\n| AuthContext | useAuthContext | 内部 |\n| CommonBadge | CommonBadge | 内部 |\n\n### 15.4 別画面コンポーネントとの型合わせ\n\nNotificationItem は通知一覧画面の Notification 型と通知IDの表現を統一している。\n\n### 15.5 スコープ分類\n\n| 対象 | スコープ | 理由 |\n|---|---|---|\n| isNotificationOpen | コンポーネントローカル | 通知パネルの開閉は本画面固有の一時状態のため |\n| userRole | コンテキスト | 複数画面で共有する認可情報のため |\n\n### 15.6 スタイル定数一覧\n\n| 定数名 | 用途 | 参照先 |\n|---|---|---|\n| badgeCountColor | 未読バッジの背景色 | `DESIGN.md > colors.badgeCount` |\n\n### 15.7 state 遷移シーケンス\n\n```\n初期化 → loading → ready\n                 ↘ error（リトライ可）\n```\n\n---\n\n## §16 要確認事項一覧\n\n| キー | 起票日 | 内容 | 暫定扱いにしている § | 解消条件 | 状態 |\n|---|---|---|---|---|---|\n| 通知パネル-表示上限件数の根拠 | 2026-07-24 | 通知パネルの表示上限10件が業務要件として妥当か企画部門へ確認する | §13.1 | 企画部門からの確認回答を得る | 未解消 |"</script>
+<script type="text/plain" id="doc-md">
+
+# ホーム 画面詳細設計書
+
+## 関連資料（正の宣言）
+
+| 正の種類 | ファイル | 本書との役割分担 |
+|---|---|---|
+| スタイル・数値（共通） | `../../プロジェクト共通/DESIGN.md` | 複数画面共通のデザイン値の正 |
+| スタイル・数値（画面固有差分） | `./DESIGN.md` | 画面固有の差分の正。本書はキー名参照のみ |
+| 共通仕様 | `../../プロジェクト共通/共通設計書.md` | システム共通仕様の正。本書は準拠状況と画面固有制約のみ |
+| 文言 | `../../プロジェクト共通/メッセージ定義書.md` | 文言の正。本書はメッセージ ID で参照 |
+| テスト観点 | `./単体テスト観点表.md` / `./結合テスト観点表.md` | テスト観点・受け入れ条件の正。本書に含めない |
+| 単体テストケース | `../テスト項目書/単体テスト仕様書.md`（任意） | 具体的な入力値・アサーションの設計時契約。実装後はテストコードが正 |
+| 結合テストケース | `../テスト項目書/結合テスト仕様書.md`（任意） | 具体的な操作手順・入力値・アサーションの設計時契約。実装後はテストコードが正 |
+
+## 章マップ
+
+| 役割キー | § | 章名 | 区分 | 正 | 実装後の扱い | 保守方式 |
+|---|---|---|---|---|---|---|
+| 画面概要 | §1 | 画面概要 | 必須 | 本書 | 維持 | 手 |
+| 機能一覧 | §2 | 機能一覧 | 必須 | 本書 | 維持 | 手 |
+| 画面構造 | §3 | 画面構造 | 必須 | 本書（§3.6 の数値は DESIGN.md） | 維持 | 生成 |
+| 業務ルール | §4 | 業務ルール | 条件付き | 本書 | 維持 | 手 |
+| 状態管理 | §5 | 状態管理 | 必須 | 本書 | 維持 | 生成 |
+| データフロー | §6 | データフロー | 必須 | 本書 | 維持 | 生成 |
+| API通信 | §7 | API 通信仕様 | 条件付き | API 定義書（本書は画面固有の使い方のみ） | 維持 | 生成 |
+| イベント処理 | §8 | イベント処理 | 必須 | 本書 | 維持 | 生成 |
+| 領域別仕様 | §9 | 領域別仕様 | 必須 | 本書 | 維持 | 混在 |
+| 定数設定値 | §10 | 定数・設定値 | 条件付き | 設計時は本書 → 実装後は実装コード | 実装ファイルのパス参照に置換 | 混在 |
+| エラーハンドリング | §11 | エラーハンドリング | 必須 | 本書 | 維持 | 混在 |
+| 画面遷移 | §12 | 画面遷移仕様 | 必須 | 本書 | 維持 | 生成 |
+| 非機能要件 | §13 | 非機能要件 | 必須 | 共通設計書（画面固有制約のみ本書） | 維持 | 手 |
+| 共通準拠 | §14 | 共通仕様への準拠 | 必須 | 共通設計書（本書は逸脱のみ） | 維持 | 手 |
+| 実装契約 | §15 | 実装契約 | 必須 | 設計時は本書 → 実装後はコード（§15.6 は DESIGN.md） | 構造の骨子のみ維持 | 生成 |
+| 要確認事項 | §16 | 要確認事項一覧 | 必須 | 本書 | approved の条件は 0 件 | 手 |
+
+保守方式: 手 = 人が保守する正 / 生成 = 納品時にコードから自動生成 / 混在 = 生成した骨格に業務的意味を手で重ねる
+
+---
+
+## §1 画面概要
+
+### 1.1 基本情報
+
+| 項目 | 値 |
+|---|---|
+| 画面名 | ホーム |
+| 目的 | ログイン後の利用者に業務全体の状況を提示し、各業務画面への入り口を提供する |
+| ルート | / |
+| 遷移元 | ログイン画面 |
+| 遷移先 | サイドメニューで選択した各業務画面 |
+
+### 1.2 業務上の位置づけ
+
+ダッシュボードとしてログイン直後に必ず経由する画面であり、利用者は本画面から通知の確認や各業務画面への遷移を行う。
+
+---
+
+## §2 機能一覧
+
+### 2.1 機能一覧表
+
+| キー | 機能名 | 概要 | 優先度 |
+|---|---|---|---|
+| 表示-ダッシュボード集計 | ダッシュボード集計表示 | ログインユーザーに関連する業務集計値をカード形式で表示する | 必須 |
+| ナビゲーション-サイドメニュー | サイドメニュー遷移 | サイドナビの項目クリックで各業務画面へ遷移する | 必須 |
+| 通知-確認 | 通知確認 | 通知パネルを開き未読通知を一覧表示し既読にする | 必須 |
+
+### 2.2 機能間の関係
+
+通知確認によって既読化された件数は、サイドメニューに付随する通知バッジの表示件数に即時反映される。
+
+---
+
+## §3 画面構造
+
+### 画面キャプチャ
+
+> 元コードの画面画像は未収録。画像証跡を取得できた場合だけ追加する。
+
+### 部品構成（コンポーネント構造）
+
+```
+┌─ HomePage ──────────────────────────┐
+│ ┌─ TopHeader ─────────────────────┐ │
+│ │ UserMenu / NotificationBell     │ │
+│ └──────────────────────────────────┘ │
+│ ┌─ SideNav ─────┐ ┌─ MainArea ────┐ │
+│ │ NavMenuItem    │ │ SummaryCard   │ │
+│ └────────────────┘ └───────────────┘ │
+└────────────────────────────────────────┘
+```
+
+### 3.1 コンポーネント配置
+
+```
+HomePage
+├─ TopHeader
+│   ├─ UserMenu
+│   └─ NotificationBell
+├─ SideNav
+│   └─ NavMenuItem（繰り返し）
+└─ MainArea
+    └─ SummaryCard（繰り返し）
+```
+
+### 3.2 DOM 配置順序
+
+1. TopHeader — 利用者情報と通知の表示
+2. SideNav — 各業務画面への遷移メニュー
+3. MainArea — ダッシュボード集計カードの表示
+
+### 3.3 レイアウト制約
+
+| 制約 | 値 |
+|---|---|
+| レイアウト方式 | Flex（横並び：サイドナビ＋メインエリア） |
+| 最小幅 | 960px |
+| 最大幅 | 1440px |
+
+### 3.4 メニューバー設定（条件付き：メニューバーを持つ画面のみ）
+
+該当なし（サイドナビ形式のため専用メニューバーは持たない）
+
+### 3.5 設定オブジェクト構造（条件付き：設定オブジェクトを持つ場合のみ）
+
+該当なし（設定オブジェクトを持たない画面のため）
+
+### 3.6 スタイル適用パターン
+
+| 領域 | 適用パターン | 参照先 |
+|---|---|---|
+| NavMenuItem（非活性項目） | disabled-nav-item | `DESIGN.md > colors.disabledNav` |
+| NotificationBell（未読バッジ） | badge-count | `DESIGN.md > colors.badgeCount` |
+
+### 3.7 ボタン一覧
+
+| ボタン名 | 種別 | 位置 | 活性条件 |
+|---|---|---|---|
+| 通知ベル | 補助 | TopHeader 内 | 常時 |
+| サイドメニュー項目 | 主要 | SideNav 内 | 対応する権限を利用者が持つとき |
+
+---
+
+## §4 業務ルール（条件付き：業務モード・権限制御がある画面のみ）
+
+### 4.1 業務モードと切替条件
+
+| モード | 切替条件 | UI の変化 |
+|---|---|---|
+| 通常表示 | 既定 | 権限に応じたメニュー項目のみ表示 |
+| 管理者表示 | 利用者が管理者権限を持つ場合 | 管理系メニュー項目を追加表示 |
+
+### 4.2 業務判断ポイント
+
+利用者の権限区分（一般・管理者）によってサイドメニューに表示する項目が分岐する。
+
+### 4.3 業務フロー内の前後画面との関係
+
+ログイン画面から遷移してくる起点画面であり、以降のあらゆる業務画面への分岐点となる。
+
+### 4.4 権限別の UI 制御
+
+| ロール | 管理系メニュー | 通常業務メニュー |
+|---|---|---|
+| 管理者 | 表示 | 表示 |
+| 一般利用者 | 非表示 | 表示 |
+
+---
+
+## §5 状態管理
+
+### 5.1 URL パラメータ
+
+該当なし（ホーム画面はURLパラメータを持たない）
+
+### 5.2 セッション・ストレージ参照
+
+| キー名 | 種別 | 用途 |
+|---|---|---|
+| home-notification-last-read | session | 直前に確認した通知の既読状態を復元する |
+
+### 5.3 メイン画面の状態変数
+
+| 変数名 | 型 | 初期値 | 役割 |
+|---|---|---|---|
+| summaryCards | 集計カードの配列 | 空配列 | ダッシュボード集計カードの表示内容を保持する |
+| unreadCount | 数値 | 0 | 未読通知件数を保持する |
+| isNotificationOpen | 真偽値 | 偽 | 通知パネルの開閉状態を保持する |
+| isLoading | 真偽値 | 偽 | 集計データ取得中かどうかを保持する |
+
+### 5.4 サブコンポーネントの状態変数
+
+| コンポーネント | 変数名 | 型 | 役割 |
+|---|---|---|---|
+| NotificationBell | notifications | 通知レコードの配列 | 通知パネルに表示する通知一覧を保持する |
+
+### 5.5 派生値（計算値）
+
+| 派生値名 | 算出ロジック概要 | 依存する状態変数 |
+|---|---|---|
+| hasUnread | unreadCount が1以上かを判定する | unreadCount |
+| visibleMenuItems | 利用者権限に基づきサイドメニュー項目を絞り込む | userRole |
+
+### 5.6 画面専用ストア（永続化）
+
+該当なし（画面固有の永続化なし）
+
+### 5.7 共有ストア参照
+
+| ストア / コンテキスト | 参照キー | 用途 |
+|---|---|---|
+| AuthContext | userRole | 管理系メニューの表示可否を判定する |
+| AuthContext | userName | TopHeader の利用者名表示に使用する |
+
+### 5.8 通知既読化関数
+
+markNotificationAsRead(通知ID) — 指定した通知IDを既読状態へ更新し、unreadCount を1減算する。
+
+### 5.9 初期値・デフォルト値一覧
+
+| 変数名 | 初期値 | 根拠 |
+|---|---|---|
+| isNotificationOpen | 偽 | 初期表示では通知パネルを閉じた状態とする業務要件のため |
+| unreadCount | 0 | API 取得完了まで暫定的に0件として扱う業務要件のため |
+
+---
+
+## §6 データフロー
+
+### 6.1 初期表示シーケンス
+
+1. ストア初期化（AuthContext から利用者権限・利用者名を取得）
+2. API 呼び出し（§7 参照）
+3. データ変換（§6.5 参照）
+4. 画面状態を ready に更新
+
+#### 6.1.1 起動時初期化（AuthContext → メニュー表示）
+
+AuthContext から取得した userRole を用いて表示するサイドメニュー項目を決定する。
+
+### 6.2 依存連鎖
+
+unreadCount が変化すると NotificationBell のバッジ表示が更新される。
+
+### 6.3 ユーザー操作確定時の処理フロー
+
+1. バリデーション（該当なし）
+2. 確認ダイアログ表示（該当なし）
+3. API 呼び出し
+4. 成功時: 通知一覧・未読件数を更新
+5. 失敗時: エラー表示（§11 参照）
+
+### 6.4 データ更新トリガーの分類
+
+| トリガー | 種別 | 処理概要 |
+|---|---|---|
+| 通知ベルクリック | ユーザー操作 | 通知一覧APIを呼び出し通知パネルを開く |
+| 通知項目クリック | ユーザー操作 | 該当通知を既読化しunreadCountを更新する |
+
+### 6.5 データ変換（API レスポンス → 画面表示用データ）
+
+| 変換名 | 入力型 | 出力型 | 変換概要 |
+|---|---|---|---|
+| formatSummaryCard | ダッシュボード集計APIレスポンス | カード表示用データ | 集計値をラベル付きカード表示用の構造へ変換する |
+
+### 6.6 画面状態の遷移
+
+| 状態 | 遷移条件 | UI の表示 |
+|---|---|---|
+| loading | 初期表示中 | ローディング表示 |
+| error | API エラー | エラーメッセージ（§11 参照） |
+| ready | データ取得成功 | メインコンテンツ |
+
+---
+
+## §7 API 通信仕様（条件付き：API を呼ぶ画面のみ）
+
+### 7.1 API 一覧
+
+| No | API 名 | メソッド | エンドポイント | 呼び出し契機 |
+|---|---|---|---|---|
+| 7.2 | ダッシュボード集計API | GET | /api/dashboard-summary | 初期表示時 |
+| 7.3 | 通知一覧API | GET | /api/notifications | 通知ベルクリック時 |
+
+### 7.2 ダッシュボード集計API
+
+| 項目 | 内容 |
+|---|---|
+| 概要 | ログイン利用者に関連する業務集計値を取得する |
+| エンドポイント | GET /api/dashboard-summary |
+| 呼び出し契機 | 初期表示時 |
+
+**リクエスト**
+
+```
+{ }
+```
+
+**レスポンス**
+
+```
+{ cards（集計カードの配列）; unreadNotificationCount; }
+```
+
+**エラーと画面側の扱い**
+
+| ステータス | 画面の挙動 | メッセージ ID |
+|---|---|---|
+| 401 | ログイン画面へ遷移 | — |
+| 500 | システムエラーメッセージ表示 | MSG-COMMON-500 |
+
+### 7.3 通知一覧API
+
+| 項目 | 内容 |
+|---|---|
+| 概要 | 未読・既読を問わず直近の通知一覧を取得する |
+| エンドポイント | GET /api/notifications |
+| 呼び出し契機 | 通知ベルクリック時 |
+
+**リクエスト**
+
+```
+{ }
+```
+
+**レスポンス**
+
+```
+{ items（通知レコードの配列）; unreadCount; }
+```
+
+**エラーと画面側の扱い**
+
+| ステータス | 画面の挙動 | メッセージ ID |
+|---|---|---|
+| 401 | ログイン画面へ遷移 | — |
+| 500 | システムエラーメッセージ表示 | MSG-COMMON-500 |
+
+---
+
+## §8 イベント処理
+
+### 8.1 メイン画面イベント
+
+| イベント | 発火要素 | 処理概要 |
+|---|---|---|
+| onNotificationBellClick | 通知ベル | 通知一覧APIを呼び出し通知パネルを開く |
+| onMenuItemClick | サイドメニュー項目 | 対象の業務画面へ遷移する |
+
+### 8.2 サブコンポーネントイベント
+
+| コンポーネント | イベント | 処理概要 |
+|---|---|---|
+| NotificationBell | onNotificationClick | 選択した通知を既読化し unreadCount を更新する |
+
+### 8.3 複数ステップ処理の詳細
+
+該当なし
+
+### 8.4 キーボード操作
+
+| キー | 発火条件 | 挙動 |
+|---|---|---|
+| Tab | フォーカス可能要素 | 通知ベル → サイドメニュー項目の順で移動する |
+| Enter | フォーカス中のメニュー項目 | 対象の業務画面へ遷移する |
+
+---
+
+## §9 領域別仕様
+
+### 9.1 サイドナビエリア（SideNav）
+
+#### 9.1.1 概要
+
+各業務画面への遷移メニューを表示する領域。利用者権限に応じて表示項目が絞り込まれる。
+
+#### 9.1.2 配置
+
+TopHeader の下、MainArea の左側に配置される。
+
+#### 9.1.3 項目定義
+
+| 項目名 | 型 | 必須 | 書式 | 状態別編集可否 |
+|---|---|---|---|---|
+| メニュー項目名 | 文字列 | ○ | 日本語ラベル | ready: 可（クリック可） / loading: 不可 |
+
+#### 9.1.4 イベント・挙動
+
+| イベント | 挙動 |
+|---|---|
+| onMenuItemClick | 対象画面へ遷移する |
+
+#### 9.1.5 領域固有の制約
+
+権限を持たない項目は非表示とし、グレー表示での提示は行わない。
+
+### 9.2 通知パネル（NotificationBell）
+
+#### 9.2.1 概要
+
+未読通知を含む通知一覧を表示し、クリックで既読化する領域。
+
+#### 9.2.2 配置
+
+TopHeader 内、利用者メニューの隣に配置される。
+
+#### 9.2.3 項目定義
+
+| 項目名 | 型 | 必須 | 書式 | 状態別編集可否 |
+|---|---|---|---|---|
+| 未読件数 | 数値 | ○ | バッジ表示 | ready: 不可 / loading: 不可 |
+
+#### 9.2.4 イベント・挙動
+
+| イベント | 挙動 |
+|---|---|
+| onNotificationClick | 通知を既読化する |
+
+#### 9.2.5 領域固有の制約
+
+未読件数が0件の場合はバッジ自体を表示しない。
+
+---
+
+## §10 定数・設定値（条件付き：画面固有の定数がある場合のみ）
+
+### 10.1 文字列定数
+
+| 定数名 | 値 | 用途 |
+|---|---|---|
+| MAX_NOTIFICATION_DISPLAY | "10" | 通知パネルに表示する最大件数 |
+
+### 10.2 選択肢定義
+
+該当なし
+
+### 10.3 列定義・表示設定
+
+該当なし（一覧テーブルを持たない画面のため）
+
+### 10.4 コード変換テーブル
+
+該当なし
+
+### 10.5 区分定数
+
+| 定数名 | 値一覧 |
+|---|---|
+| USER_ROLE | general / admin |
+
+---
+
+## §11 エラーハンドリング
+
+### 11.1 ユーザー入力チェック
+
+該当なし（入力フォームを持たない画面のため）
+
+### 11.2 エラーメッセージ・警告
+
+| タイミング | メッセージ ID | 表示位置 |
+|---|---|---|
+| 通知取得失敗 | MSG-COMMON-500 | トースト |
+
+### 11.3 システムエラー
+
+| エラー種別 | 画面の挙動 | メッセージ ID |
+|---|---|---|
+| ネットワーク断 | エラーバナー表示・リトライ促進 | MSG-COMMON-NET |
+| 認証切れ | ログイン画面へ遷移 | — |
+| 予期しないエラー | エラーメッセージ表示 | MSG-COMMON-500 |
+
+---
+
+## §12 画面遷移仕様
+
+### 12.1 遷移先一覧
+
+| 遷移先画面 | 遷移方式 | 条件 | 渡すパラメータ |
+|---|---|---|---|
+| 各業務画面 | push | サイドメニュー項目クリック時 | なし |
+
+### 12.2 遷移方式の方針
+
+サイドメニューからの遷移は push とし、ホーム画面の状態はブラウザの戻る操作で復帰できるようにする。
+
+---
+
+## §13 非機能要件
+
+### 13.1 表示件数・データ量制限
+
+| 対象 | 上限 | 超過時の挙動 |
+|---|---|---|
+| 通知パネル表示 | 10 件 | 「すべて見る」リンクで別画面へ誘導 |
+
+### 13.2 パフォーマンス目安
+
+| 操作 | 目標応答時間 |
+|---|---|
+| 初期表示 | 2 秒以内 |
+| 通知一覧取得 | 1 秒以内 |
+
+### 13.3 ローディング・処理中表示
+
+| 操作 | ローディング表示方式 |
+|---|---|
+| 初期表示 | スケルトン |
+| 通知取得 | パネル内スピナー |
+
+### 13.4 タイムアウト・リトライ方針
+
+| 項目 | 値 | 根拠 |
+|---|---|---|
+| タイムアウト時間 | 10 秒 | 共通設計書の標準API応答方針に準拠 |
+| リトライ回数 | 1 回 | 共通設計書の標準リトライ方針に準拠 |
+
+### 13.5 ブラウザ・画面解像度の動作保証範囲
+
+共通設計書準拠（差分なし）
+
+---
+
+## §14 共通仕様への準拠
+
+### 14.1 共通コンポーネント利用一覧
+
+| コンポーネント名 | 利用箇所 | 独自実装の場合の理由 |
+|---|---|---|
+| CommonBadge | NotificationBell | — |
+
+### 14.2 共通ソート・表示順ルールの適用
+
+| 対象リスト | 適用ルール | 逸脱理由 |
+|---|---|---|
+| 通知一覧 | 発生日時の新しい順 | — |
+
+### 14.3 用語・ラベルの統一
+
+共通設計書準拠（差分なし）
+
+### 14.4 日付・数値・コード値の表示フォーマット
+
+| 値の種類 | フォーマット | 空値時 |
+|---|---|---|
+| 日付 | YYYY/MM/DD | — |
+| 数値 | 3桁区切り | — |
+
+### 14.5 共通メッセージの利用
+
+| 用途 | メッセージ ID |
+|---|---|
+| システムエラー | MSG-COMMON-500 |
+
+---
+
+## §15 実装契約
+
+### 15.1 ファイル分割と export 一覧
+
+| ファイルパス | export 名 | 種別 | 実体形状 | 配置ディレクトリ |
+|---|---|---|---|---|
+| pages/HomePage.tsx | HomePage | コンポーネント | ページルートコンポーネント（サイドナビ・集計カードを内包） | pages/ |
+| components/NotificationBell.tsx | NotificationBell | コンポーネント | 通知ベル・通知パネル | components/ |
+| components/SideNav.tsx | SideNav | コンポーネント | サイドナビメニュー | components/ |
+| hooks/useDashboardSummary.ts | useDashboardSummary | フック | 集計データ・通知状態を管理する状態フック | hooks/ |
+
+### 15.2 型定義
+
+| 型名 | フィールド名 | 型 | 必須/任意 |
+|---|---|---|---|
+| SummaryCard | label | 文字列 | 必須 |
+| SummaryCard | count | 数値 | 必須 |
+| NotificationItem | notificationId | 文字列 | 必須 |
+| NotificationItem | isRead | 真偽値 | 必須 |
+
+### 15.3 依存（import）一覧
+
+| モジュール | import 内容 | 種別 |
+|---|---|---|
+| AuthContext | useAuthContext | 内部 |
+| CommonBadge | CommonBadge | 内部 |
+
+### 15.4 別画面コンポーネントとの型合わせ
+
+NotificationItem は通知一覧画面の Notification 型と通知IDの表現を統一している。
+
+### 15.5 スコープ分類
+
+| 対象 | スコープ | 理由 |
+|---|---|---|
+| isNotificationOpen | コンポーネントローカル | 通知パネルの開閉は本画面固有の一時状態のため |
+| userRole | コンテキスト | 複数画面で共有する認可情報のため |
+
+### 15.6 スタイル定数一覧
+
+| 定数名 | 用途 | 参照先 |
+|---|---|---|
+| badgeCountColor | 未読バッジの背景色 | `DESIGN.md > colors.badgeCount` |
+
+### 15.7 state 遷移シーケンス
+
+```
+初期化 → loading → ready
+                 ↘ error（リトライ可）
+```
+
+---
+
+## §16 要確認事項一覧
+
+| キー | 起票日 | 内容 | 暫定扱いにしている § | 解消条件 | 状態 |
+|---|---|---|---|---|---|
+| 通知パネル-表示上限件数の根拠 | 2026-07-24 | 通知パネルの表示上限10件が業務要件として妥当か企画部門へ確認する | §13.1 | 企画部門からの確認回答を得る | 未解消 |
+
+</script>
 
 <script>
 (function () {
-  var src = JSON.parse(document.getElementById('doc-md').textContent || '""');
+  var src = document.getElementById('doc-md').textContent;
 
   // frontmatter 除去
   src = src.replace(/^\s*---[\s\S]*?---\s*/, '');
@@ -442,26 +1026,11 @@
   function escHtml(s) {
     return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   }
-  function escAttr(s) {
-    return s.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-  }
-  function safeUrl(s) {
-    var value = s.replace(/[\u0000-\u001f\u007f]+/g, '').trim();
-    var scheme = value.match(/^([a-z][a-z0-9+.-]*):/i);
-    if (scheme && !/^(?:https?|mailto)$/i.test(scheme[1])) return '';
-    return escAttr(value);
-  }
   function inlineFormat(s) {
     s = escHtml(s);
     s = s.replace(/`([^`]+)`/g, '<code>$1</code>');
-    s = s.replace(/!\[([^\]]*)\]\(([^()\s]+)\)/g, function(_, alt, url) {
-      var sanitizedUrl = safeUrl(url);
-      return sanitizedUrl ? '<img src="' + sanitizedUrl + '" alt="' + escAttr(alt) + '" style="max-width:100%">' : alt;
-    });
-    s = s.replace(/\[([^\]]+)\]\(([^()\s]+)\)/g, function(_, label, url) {
-      var sanitizedUrl = safeUrl(url);
-      return sanitizedUrl ? '<a href="' + sanitizedUrl + '">' + label + '</a>' : label;
-    });
+    s = s.replace(/!\[([^\]]*)\]\(([^()\s]+)\)/g, '<img src="$2" alt="$1" style="max-width:100%">');
+    s = s.replace(/\[([^\]]+)\]\(([^()\s]+)\)/g, '<a href="$2">$1</a>');
     s = s.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
     s = s.replace(/\*([^*]+)\*/g, '<em>$1</em>');
     return s;
@@ -553,8 +1122,6 @@
     var h1 = container.querySelector('h1');
     if (h1) {
       heroTitle.textContent = h1.textContent;
-      var navTitle = document.getElementById('screen-nav-title');
-      if (navTitle) navTitle.textContent = '画面 / ' + h1.textContent.replace(/\s*画面(基本|詳細)設計書\s*$/, '');
       h1.parentNode.removeChild(h1);
     }
 
@@ -563,27 +1130,11 @@
       t.classList.add('data-table');
     });
 
-    function sectionSlug(text) {
-      var normalized = text.trim();
-      if (normalized.normalize) normalized = normalized.normalize('NFKC');
-      normalized = normalized.toLowerCase()
-        .replace(/[^a-z0-9\u3040-\u30ff\u3400-\u9fff._~-]+/g, '-')
-        .replace(/-+/g, '-')
-        .replace(/^-|-$/g, '');
-      return normalized || 'section';
-    }
-
     // h2 ごとにセクションブロック化 + 目次エントリを生成
     var h2s = Array.prototype.slice.call(container.querySelectorAll('h2'));
     h2s.forEach(function (h2, idx) {
       var text = h2.textContent;
-      var baseId = 'sec-' + sectionSlug(text);
-      var id = baseId;
-      var duplicate = 2;
-      while (document.getElementById(id)) {
-        id = baseId + '-' + duplicate;
-        duplicate += 1;
-      }
+      var id = 'sec-' + text.trim();
       var color = colors[idx % colors.length];
 
       var section = document.createElement('section');
@@ -612,8 +1163,13 @@
           Array.prototype.forEach.call(child.children, function (li) {
             if (li.tagName !== 'LI') return;
             li.classList.add('rule-item');
+            var icon = document.createElement('span');
+            icon.className = 'material-symbols-outlined';
+            icon.style.color = 'var(--' + color + ')';
+            icon.textContent = 'check_circle';
             var content = document.createElement('div');
             while (li.firstChild) content.appendChild(li.firstChild);
+            li.appendChild(icon);
             li.appendChild(content);
           });
         }
@@ -623,9 +1179,7 @@
       var a = document.createElement('a');
       a.className = 'toc-link';
       a.href = '#' + id;
-      var label = document.createElement('span');
-      label.textContent = text;
-      a.appendChild(label);
+      a.innerHTML = '<span class="material-symbols-outlined" style="font-size:16px;color:var(--' + color + ')">article</span>' + text;
       li.appendChild(a);
       tocList.appendChild(li);
     });
@@ -642,39 +1196,11 @@
   var sections = document.querySelectorAll('.sec-block');
   var mainEl = document.getElementById('main-scroll');
 
-  function prefersReducedMotion() {
-    return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  }
-
-  function fragmentToId(fragment) {
-    var raw = fragment && fragment.charAt(0) === '#' ? fragment.substring(1) : (fragment || '');
-    if (!raw) return '';
-    try {
-      return decodeURIComponent(raw);
-    } catch (error) {
-      return '';
-    }
-  }
-
-  function scrollToFragment(fragment, behavior) {
-    var targetId = fragmentToId(fragment);
-    var target = targetId ? document.getElementById(targetId) : null;
-    if (!target) return false;
-    target.scrollIntoView({behavior: behavior, block:'start'});
-    return true;
-  }
-
-  var linkBySectionId = {};
-  links.forEach(function(l){
-    var href = l.getAttribute('href');
-    if (href && href.charAt(0) === '#') linkBySectionId[href.substring(1)] = l;
-  });
-
   var observer = new IntersectionObserver(function(entries){
     entries.forEach(function(e){
       if(e.isIntersecting){
         links.forEach(function(l){l.classList.remove('active')});
-        var a = linkBySectionId[e.target.id];
+        var a = document.querySelector('.toc-link[href="#'+e.target.id+'"]');
         if(a) a.classList.add('active');
       }
     });
@@ -684,43 +1210,18 @@
   links.forEach(function(l){
     l.addEventListener('click',function(e){
       e.preventDefault();
-      var href = this.getAttribute('href');
-      if(scrollToFragment(href, prefersReducedMotion() ? 'auto' : 'smooth')) {
-        if (window.history && window.history.pushState) window.history.pushState(null, '', href);
-        else window.location.hash = fragmentToId(href);
-      }
+      var t = document.querySelector(this.getAttribute('href'));
+      if(t) t.scrollIntoView({behavior:'smooth',block:'start'});
       var sb = document.getElementById('sidebar');
       if (sb) sb.classList.remove('open');
-      var toggle = document.getElementById('tocToggle');
-      if (toggle) toggle.setAttribute('aria-expanded', 'false');
-    });
-  });
-
-  if (window.location.hash) {
-    requestAnimationFrame(function(){
-      scrollToFragment(window.location.hash, 'auto');
-    });
-  }
-
-  window.addEventListener('popstate', function(){
-    requestAnimationFrame(function(){
-      if (!scrollToFragment(window.location.hash, 'auto') && mainEl) {
-        mainEl.scrollTo({top: 0, behavior: 'auto'});
-      }
     });
   });
 
   var tocToggle = document.getElementById('tocToggle');
   if (tocToggle) {
-    tocToggle.setAttribute('aria-label', '目次を開閉');
-    tocToggle.setAttribute('aria-controls', 'sidebar');
-    tocToggle.setAttribute('aria-expanded', 'false');
     tocToggle.addEventListener('click',function(){
       var sb = document.getElementById('sidebar');
-      if (sb) {
-        var isOpen = sb.classList.toggle('open');
-        tocToggle.setAttribute('aria-expanded', String(isOpen));
-      }
+      if (sb) sb.classList.toggle('open');
     });
   }
 

@@ -17,14 +17,13 @@
     ASSETS_JSON (設定資産JSON埋め込みマーカー) :
       <script type="application/json" id="matrix-manifest"> の中身として
       {
-        "rules":     [{"ruleName","layer":"always|scoped|generated","declaredEnforcement":"block|advisory|なし","mechanicalEnforcement":false,"tags":["[TAG]"...],"summary"}...],
+        "rules":     [{"ruleName","layer":"always|scoped","enforcement":"block|advisory|なし","tags":["[TAG]"...],"summary"}...],
         "skills":    [{"skillName","category","trigger","summary"}...],
         "subagents": [{"name","classification":"計画系|実行系|調査系|判定系","verdict":"可|不可","mainTools"}...],
         "hooks":     [{"script","timing","matcher","tags":["[TAG]"...],"behavior":"block|advisory","summary"}...]
       }
       形式の JSON をそのまま埋め込む(二重管理・ドリフト禁止)。
-      rulesのdangerバッジは mechanicalEnforcement=true の場合だけ描画する。
-      宣言区分のadvisoryはgold、blockはaccentで描画し、宣言と機械強制を混同しない。
+      enforcement / behavior の "block" は danger バッジ、"advisory" は gold バッジで描画される。
 
   保守注記: トークンブロック・テーマ切替(data-theme二重定義・rd-portal-theme)は
   shared/templates/tokens.css(同 shared/templates/unit-list/unit-list-template.html のトークン注入結果)からの複製である。
@@ -246,7 +245,7 @@
 
 <div class="toolbar">
   <input type="search" id="assets-search" placeholder="名前・タグ・概要で絞り込み（全セクション横断）">
-  <span class="note">宣言区分と、実際に登録済みhookで機械強制される状態を分けて表示</span>
+  <span class="note">block は danger バッジ、advisory は gold バッジ</span>
 </div>
 
 <details class="module-group" open id="section-rules">
@@ -257,8 +256,7 @@
       <tr>
         <th>ルール名</th>
         <th>階層</th>
-        <th>宣言区分</th>
-        <th>機械強制</th>
+        <th>強制</th>
         <th>注入タグ</th>
         <th>概要</th>
       </tr>
@@ -347,22 +345,11 @@
       return node;
     }
 
-    /* hook挙動用バッジ: block=danger / advisory=gold / それ以外=neutral */
+    /* 強制・挙動バッジ: block=danger / advisory=gold / それ以外=neutral */
     function enforcementBadge(value) {
       var v = String(value || 'なし');
       var cls = v === 'block' ? 'badge danger' : (v === 'advisory' ? 'badge gold' : 'badge neutral');
       return el('span', cls, v);
-    }
-
-    /* ruleの宣言区分は機械強制と独立。宣言blockだけではdangerにしない。 */
-    function declaredBadge(value) {
-      var v = String(value || 'なし');
-      var cls = v === 'advisory' ? 'badge gold' : (v === 'block' ? 'badge accent' : 'badge neutral');
-      return el('span', cls, v);
-    }
-
-    function mechanicalBadge(value) {
-      return el('span', value === true ? 'badge danger' : 'badge neutral', value === true ? '有効' : 'なし');
     }
 
     function tagCell(tags) {
@@ -382,12 +369,9 @@
       var tdLayer = el('td');
       tdLayer.appendChild(el('span', 'badge accent', r.layer || ''));
       tr.appendChild(tdLayer);
-      var tdDeclared = el('td');
-      tdDeclared.appendChild(declaredBadge(r.declaredEnforcement));
-      tr.appendChild(tdDeclared);
-      var tdMechanical = el('td');
-      tdMechanical.appendChild(mechanicalBadge(r.mechanicalEnforcement));
-      tr.appendChild(tdMechanical);
+      var tdEnf = el('td');
+      tdEnf.appendChild(enforcementBadge(r.enforcement));
+      tr.appendChild(tdEnf);
       tr.appendChild(tagCell(r.tags));
       tr.appendChild(el('td', null, r.summary || ''));
       return tr;

@@ -16,7 +16,6 @@
     {{COMMIT_SHORT}}     — 対象リポジトリの短縮コミット SHA（git 管理外は空文字。区切り文字 " · " 込み）
     {{METRICS_JSON}}     — 解析概要 JSON オブジェクト（scale/tests/freshness/previous の構造化データ）
     {{CATEGORIES_JSON}}  — カテゴリ・ツール JSON 配列
-    {{SCREEN_MANIFEST_JSON}} — 画面派生元manifest（未指定時は空object）
 -->
 <style>
 /* TOKENS_CSS */
@@ -214,7 +213,7 @@ table.data-table code {
 <div class="pm-page">
   <header class="topbar">
     <a class="brand" href="#">
-      <span class="brand-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:middle" role="img" aria-label="設計ポータル"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zM13 9V3.5L18.5 9H13z"/></svg></span>
+      <span class="brand-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:middle"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zM13 9V3.5L18.5 9H13z"/></svg></span>
       <span class="brand-title">{{PROJECT_NAME}}</span>
       <span class="brand-sub">設計ポータル</span>
     </a>
@@ -244,7 +243,6 @@ table.data-table code {
 
 <script type="application/json" id="portal-metrics">{{METRICS_JSON}}</script>
 <script type="application/json" id="portal-categories">{{CATEGORIES_JSON}}</script>
-<script type="application/json" id="screen-manifest-source">{{SCREEN_MANIFEST_JSON}}</script>
 
 <script>
 (function() {

@@ -124,3 +124,9 @@ page-data.json の保存先は `$CLAUDE_JOB_DIR/tmp/component-inventory-page-dat
 ## 参照資料
 
 - `../../../shared/scripts/detail-pages/page-data-schema.md` — page-data.json のスキーマ定義
+
+<!-- delivery-owner-contracts:start -->
+```json
+[{"failure_return_to":"orchestrating-reverse-docs-flow","id":"component-inventory","inputs":["component source"],"outputs":["コンポーネント棚卸し.html"],"stop_conditions":["componentなし"],"validator":"check-delivery-artifacts.sh"}]
+```
+<!-- delivery-owner-contracts:end -->

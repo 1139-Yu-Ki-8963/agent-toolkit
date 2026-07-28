@@ -4,15 +4,15 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>{{DOC_TITLE}}</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
 <style>
   /* TOKENS_CSS */
 
   :root {
-    --content-max: 1320px;
+    --content-max: 1120px;
     --reading-width: 72ch;
     --page-gutter: clamp(20px, 4vw, 72px);
     --section-gap: clamp(28px, 4vw, 44px);
-    --sidebar-width: 280px;
   }
 
   * { box-sizing: border-box; }
@@ -24,8 +24,10 @@
   }
   a { color: var(--accent); text-decoration: none; }
   a:hover { text-decoration: underline; }
+  .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20; vertical-align: middle; }
+
   /* viewport-fit layout */
-  .dp-page { display: grid; grid-template-rows: auto 1fr; height: 100vh; height: 100dvh; overflow: hidden; }
+  .dp-page { display: grid; grid-template-rows: auto 1fr; height: 100vh; overflow: hidden; }
 
   /* topbar */
   .topbar {
@@ -53,37 +55,10 @@
 
   /* sidebar */
   .dp-sidebar {
-    width: var(--sidebar-width); flex-shrink: 0;
-    overflow-y: auto; padding: 18px 14px 24px;
+    width: 220px; flex-shrink: 0;
+    overflow-y: auto; padding: 16px 0 16px 16px;
     border-right: 1px solid var(--border);
     background: var(--panel);
-    scrollbar-gutter: stable;
-  }
-  .sidebar-parent {
-    display: flex; align-items: center; gap: 8px;
-    margin: 0 0 10px; padding: 8px 10px;
-    border-radius: var(--radius-sm); background: var(--panel-2);
-    color: var(--text); font-size: 13px; font-weight: 700; line-height: 1.4;
-  }
-  .sidebar-parent .material-symbols-outlined { color: var(--accent); font-size: 18px; flex: 0 0 auto; }
-  .sidebar-doc-nav {
-    display: flex; flex-direction: column; gap: 2px;
-    margin: 0 0 20px; padding: 0 0 14px 18px;
-    border-bottom: 1px solid var(--border);
-  }
-  .sidebar-doc-nav .back-link,
-  .sidebar-doc-nav .nav-item {
-    display: block; min-width: 0; padding: 7px 10px;
-    border: 0; border-radius: var(--radius-sm);
-    background: transparent; color: var(--text-sub);
-    font-size: 12.5px; line-height: 1.4; text-decoration: none;
-  }
-  .sidebar-doc-nav .back-link { order: 10; margin-top: 6px; color: var(--text-muted); font-size: 11.5px; }
-  .sidebar-doc-nav .nav-item:hover,
-  .sidebar-doc-nav .back-link:hover { background: var(--panel-2); color: var(--accent); text-decoration: none; }
-  .sidebar-doc-nav .nav-item.active {
-    background: var(--accent-soft); color: var(--accent); font-weight: 700;
-    box-shadow: inset 3px 0 0 var(--accent);
   }
   .toc-label {
     font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em;
@@ -111,6 +86,21 @@
   .doc-crumbs { font-size: 12px; color: var(--text-muted); margin-bottom: 8px; }
   .doc-crumbs a { color: var(--text-sub); }
   .doc-crumbs a:hover { color: var(--accent); }
+
+  /* screen doc タブナビ（基本設計 / 詳細設計 / シーケンス図） */
+  .doc-nav {
+    display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+    margin: 0 0 16px; border-bottom: 2px solid var(--border);
+  }
+  .doc-nav .back-link { margin-right: auto; font-size: 12px; color: var(--text-sub); text-decoration: none; }
+  .doc-nav .back-link:hover { color: var(--accent); text-decoration: none; }
+  .doc-tab {
+    padding: 5px 16px; border: 1px solid var(--border); border-bottom: none;
+    border-radius: 6px 6px 0 0; font-size: 13px; text-decoration: none; color: var(--text-sub);
+    background: var(--panel);
+  }
+  .doc-tab:hover { text-decoration: none; color: var(--accent); }
+  .doc-tab.active { color: var(--accent); font-weight: 700; border-color: var(--accent); background: var(--bg); }
 
   .dp-hero {
     display: flex; align-items: flex-end; justify-content: space-between; gap: 16px;
@@ -144,9 +134,8 @@
   #doc-content li { margin: 4px 0; }
   #doc-content img { max-width: 100%; border-radius: var(--radius-sm); }
   #doc-content code {
-    background: var(--panel-2); color: var(--text); padding: 1px 6px;
-    border: 1px solid var(--border); border-radius: 4px;
-    font-family: var(--mono); font-size: 0.85em;
+    background: var(--code-bg); color: var(--code-fg); padding: 1px 6px;
+    border-radius: 4px; font-family: var(--mono); font-size: 0.85em;
   }
   #doc-content blockquote {
     border-left: 3px solid var(--accent-border); margin: 12px 0; padding: 8px 16px;
@@ -178,53 +167,39 @@
   }
   .rule-item .material-symbols-outlined { font-size: 18px; margin-top: 2px; flex-shrink: 0; }
   .rule-item code {
-    background: var(--panel); color: var(--text); padding: 1px 5px;
-    border: 1px solid var(--border); border-radius: 3px;
-    font-family: var(--mono); font-size: .85em;
+    background: var(--code-bg); color: var(--code-fg); padding: 1px 5px;
+    border-radius: 3px; font-family: var(--mono); font-size: .85em;
   }
 
   /* tables */
-  .table-wrap {
-    width: 100%; overflow-x: auto; overscroll-behavior-inline: contain;
-    border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 14px;
-    scrollbar-gutter: stable;
-  }
+  .table-wrap { width: 100%; overflow-x: auto; border-radius: var(--radius); margin-bottom: 14px; }
   table.data-table {
-    width: max-content; min-width: 100%; border-collapse: collapse; font-size: 13px;
-    background: var(--panel);
+    width: 100%; min-width: 400px; border-collapse: collapse; font-size: 13px;
+    background: var(--panel); border: 1px solid var(--border);
   }
   table.data-table thead { position: sticky; top: 0; z-index: 1; }
   table.data-table th {
     text-align: left; font-size: 11.5px; font-weight: 700; color: var(--text-sub);
     background: var(--panel-2); padding: 8px 12px; border-bottom: 1px solid var(--border); white-space: nowrap;
   }
-  table.data-table td {
-    min-width: 11rem; max-width: 34rem; padding: 9px 12px;
-    border-bottom: 1px solid var(--border); vertical-align: top;
-    overflow-wrap: normal; word-break: normal; hyphens: none;
-  }
-  table.data-table td:first-child { min-width: 7rem; }
+  table.data-table td { padding: 9px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
   table.data-table tr:last-child td { border-bottom: none; }
   table.data-table code {
-    background: var(--panel-2); color: var(--text); padding: 1px 5px;
-    border: 1px solid var(--border); border-radius: 3px;
-    font-family: var(--mono); font-size: 11.5px; white-space: nowrap;
+    background: var(--code-bg); color: var(--code-fg); padding: 1px 5px; border-radius: 3px;
+    font-family: var(--mono); font-size: 11.5px;
   }
 
-  /* code blocks */
-  .code-block {
-    width: 100%; border: 1px solid var(--border); border-radius: var(--radius-sm);
-    overflow: hidden; background: var(--panel-2); margin-bottom: 14px;
-  }
+  /* code blocks（手動で span を書いた場合にのみ配色が効く。MD パーサーは自動適用しない） */
+  .code-block { width: 100%; border-radius: var(--radius-sm); overflow: hidden; background: var(--code-bg); margin-bottom: 14px; }
   .code-block-head {
     display: flex; align-items: center; gap: 6px;
     padding: 6px 14px; font-size: 11px; font-weight: 600;
-    color: var(--text-muted); border-bottom: 1px solid var(--border);
+    color: var(--text-muted); border-bottom: 1px solid rgba(255,255,255,.06);
     letter-spacing: .03em;
   }
   .code-block pre {
     margin: 0; padding: 12px 14px; overflow-x: auto;
-    font-family: var(--mono); font-size: 12.5px; line-height: 1.65; color: var(--text);
+    font-family: var(--mono); font-size: 12.5px; line-height: 1.65; color: var(--code-fg);
   }
   .code-block .kw { color: #CBA6F7; }
   .code-block .fn { color: #89B4FA; }
@@ -262,10 +237,10 @@
     display: flex; gap: 20px; justify-content: center;
   }
 
-  @media (max-width: 820px) {
+  @media (max-width: 760px) {
     .dp-sidebar { display: none; }
     .dp-sidebar.open {
-      display: block; position: fixed; top: 0; left: 0; bottom: 0; width: min(88vw, 320px);
+      display: block; position: fixed; top: 0; left: 0; bottom: 0; width: 260px;
       background: var(--panel); z-index: 55; border-right: 1px solid var(--border);
       box-shadow: var(--shadow-md); padding: 60px 16px 16px;
     }
@@ -289,28 +264,22 @@
   @media (max-width: 480px) {
     .dp-hero h1 { font-size: 20px; }
   }
-  @media (prefers-reduced-motion: reduce) {
-    *, *::before, *::after {
-      scroll-behavior: auto !important;
-      animation-duration: .01ms !important;
-      animation-iteration-count: 1 !important;
-      transition-duration: .01ms !important;
-    }
-  }
 </style>
 </head>
 <body>
 <div class="dp-page">
   <header class="topbar">
     <a class="brand" href="{{PORTAL_INDEX_HREF}}">
+      <span class="brand-icon"><span class="material-symbols-outlined" style="font-size:20px">description</span></span>
       <span class="brand-title">{{PROJECT_NAME}}</span>
       <span class="brand-sub">設計ポータル</span>
     </a>
     <div class="header-meta">
-      <span>更新: {{GENERATED_DATE}}{{COMMIT_SHORT}}</span>
+      <span><span class="material-symbols-outlined" style="font-size:14px">schedule</span> 更新: {{GENERATED_DATE}}{{COMMIT_SHORT}}</span>
     </div>
     <div class="top-actions">
       <button id="theme-toggle" title="テーマ切替">
+        <span class="material-symbols-outlined" style="font-size:16px" id="theme-icon">light_mode</span>
         <span id="theme-label">ライト</span>
       </button>
     </div>
@@ -318,17 +287,14 @@
 
   <div class="dp-body">
     <aside class="dp-sidebar" id="sidebar">
-      <div class="sidebar-parent">
-        <span id="screen-nav-title">画面 / 設計書</span>
-      </div>
-      <nav class="sidebar-doc-nav" aria-label="画面設計書">{{DOC_NAV}}</nav>
-      <div class="toc-label">この設計書内</div>
+      <div class="toc-label">目次</div>
       <ul class="toc-list" id="toc-list"></ul>
     </aside>
 
     <main class="dp-main" id="main-scroll">
       <div class="dp-inner">
         <div class="doc-crumbs"><a href="{{PORTAL_INDEX_HREF}}">← ポータル TOP へ戻る</a></div>
+        <nav class="doc-nav">{{DOC_NAV}}</nav>
         <div class="dp-hero">
           <div>
             <h1 id="dp-hero-title"></h1>
@@ -341,16 +307,18 @@
 </div>
 
 <button class="toc-toggle" id="tocToggle">
-  <span>目次</span>
+  <span class="material-symbols-outlined">menu</span>
 </button>
 
 <footer class="footer"></footer>
 
-<script type="application/json" id="doc-md">{{DOC_MARKDOWN_JSON}}</script>
+<script type="text/plain" id="doc-md">
+{{DOC_MARKDOWN}}
+</script>
 
 <script>
 (function () {
-  var src = JSON.parse(document.getElementById('doc-md').textContent || '""');
+  var src = document.getElementById('doc-md').textContent;
 
   // frontmatter 除去
   src = src.replace(/^\s*---[\s\S]*?---\s*/, '');
@@ -365,26 +333,11 @@
   function escHtml(s) {
     return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   }
-  function escAttr(s) {
-    return s.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-  }
-  function safeUrl(s) {
-    var value = s.replace(/[\u0000-\u001f\u007f]+/g, '').trim();
-    var scheme = value.match(/^([a-z][a-z0-9+.-]*):/i);
-    if (scheme && !/^(?:https?|mailto)$/i.test(scheme[1])) return '';
-    return escAttr(value);
-  }
   function inlineFormat(s) {
     s = escHtml(s);
     s = s.replace(/`([^`]+)`/g, '<code>$1</code>');
-    s = s.replace(/!\[([^\]]*)\]\(([^()\s]+)\)/g, function(_, alt, url) {
-      var sanitizedUrl = safeUrl(url);
-      return sanitizedUrl ? '<img src="' + sanitizedUrl + '" alt="' + escAttr(alt) + '" style="max-width:100%">' : alt;
-    });
-    s = s.replace(/\[([^\]]+)\]\(([^()\s]+)\)/g, function(_, label, url) {
-      var sanitizedUrl = safeUrl(url);
-      return sanitizedUrl ? '<a href="' + sanitizedUrl + '">' + label + '</a>' : label;
-    });
+    s = s.replace(/!\[([^\]]*)\]\(([^()\s]+)\)/g, '<img src="$2" alt="$1" style="max-width:100%">');
+    s = s.replace(/\[([^\]]+)\]\(([^()\s]+)\)/g, '<a href="$2">$1</a>');
     s = s.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
     s = s.replace(/\*([^*]+)\*/g, '<em>$1</em>');
     return s;
@@ -476,8 +429,6 @@
     var h1 = container.querySelector('h1');
     if (h1) {
       heroTitle.textContent = h1.textContent;
-      var navTitle = document.getElementById('screen-nav-title');
-      if (navTitle) navTitle.textContent = '画面 / ' + h1.textContent.replace(/\s*画面(基本|詳細)設計書\s*$/, '');
       h1.parentNode.removeChild(h1);
     }
 
@@ -486,27 +437,11 @@
       t.classList.add('data-table');
     });
 
-    function sectionSlug(text) {
-      var normalized = text.trim();
-      if (normalized.normalize) normalized = normalized.normalize('NFKC');
-      normalized = normalized.toLowerCase()
-        .replace(/[^a-z0-9\u3040-\u30ff\u3400-\u9fff._~-]+/g, '-')
-        .replace(/-+/g, '-')
-        .replace(/^-|-$/g, '');
-      return normalized || 'section';
-    }
-
     // h2 ごとにセクションブロック化 + 目次エントリを生成
     var h2s = Array.prototype.slice.call(container.querySelectorAll('h2'));
     h2s.forEach(function (h2, idx) {
       var text = h2.textContent;
-      var baseId = 'sec-' + sectionSlug(text);
-      var id = baseId;
-      var duplicate = 2;
-      while (document.getElementById(id)) {
-        id = baseId + '-' + duplicate;
-        duplicate += 1;
-      }
+      var id = 'sec-' + text.trim();
       var color = colors[idx % colors.length];
 
       var section = document.createElement('section');
@@ -535,8 +470,13 @@
           Array.prototype.forEach.call(child.children, function (li) {
             if (li.tagName !== 'LI') return;
             li.classList.add('rule-item');
+            var icon = document.createElement('span');
+            icon.className = 'material-symbols-outlined';
+            icon.style.color = 'var(--' + color + ')';
+            icon.textContent = 'check_circle';
             var content = document.createElement('div');
             while (li.firstChild) content.appendChild(li.firstChild);
+            li.appendChild(icon);
             li.appendChild(content);
           });
         }
@@ -546,9 +486,7 @@
       var a = document.createElement('a');
       a.className = 'toc-link';
       a.href = '#' + id;
-      var label = document.createElement('span');
-      label.textContent = text;
-      a.appendChild(label);
+      a.innerHTML = '<span class="material-symbols-outlined" style="font-size:16px;color:var(--' + color + ')">article</span>' + text;
       li.appendChild(a);
       tocList.appendChild(li);
     });
@@ -565,39 +503,11 @@
   var sections = document.querySelectorAll('.sec-block');
   var mainEl = document.getElementById('main-scroll');
 
-  function prefersReducedMotion() {
-    return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  }
-
-  function fragmentToId(fragment) {
-    var raw = fragment && fragment.charAt(0) === '#' ? fragment.substring(1) : (fragment || '');
-    if (!raw) return '';
-    try {
-      return decodeURIComponent(raw);
-    } catch (error) {
-      return '';
-    }
-  }
-
-  function scrollToFragment(fragment, behavior) {
-    var targetId = fragmentToId(fragment);
-    var target = targetId ? document.getElementById(targetId) : null;
-    if (!target) return false;
-    target.scrollIntoView({behavior: behavior, block:'start'});
-    return true;
-  }
-
-  var linkBySectionId = {};
-  links.forEach(function(l){
-    var href = l.getAttribute('href');
-    if (href && href.charAt(0) === '#') linkBySectionId[href.substring(1)] = l;
-  });
-
   var observer = new IntersectionObserver(function(entries){
     entries.forEach(function(e){
       if(e.isIntersecting){
         links.forEach(function(l){l.classList.remove('active')});
-        var a = linkBySectionId[e.target.id];
+        var a = document.querySelector('.toc-link[href="#'+e.target.id+'"]');
         if(a) a.classList.add('active');
       }
     });
@@ -607,43 +517,18 @@
   links.forEach(function(l){
     l.addEventListener('click',function(e){
       e.preventDefault();
-      var href = this.getAttribute('href');
-      if(scrollToFragment(href, prefersReducedMotion() ? 'auto' : 'smooth')) {
-        if (window.history && window.history.pushState) window.history.pushState(null, '', href);
-        else window.location.hash = fragmentToId(href);
-      }
+      var t = document.querySelector(this.getAttribute('href'));
+      if(t) t.scrollIntoView({behavior:'smooth',block:'start'});
       var sb = document.getElementById('sidebar');
       if (sb) sb.classList.remove('open');
-      var toggle = document.getElementById('tocToggle');
-      if (toggle) toggle.setAttribute('aria-expanded', 'false');
-    });
-  });
-
-  if (window.location.hash) {
-    requestAnimationFrame(function(){
-      scrollToFragment(window.location.hash, 'auto');
-    });
-  }
-
-  window.addEventListener('popstate', function(){
-    requestAnimationFrame(function(){
-      if (!scrollToFragment(window.location.hash, 'auto') && mainEl) {
-        mainEl.scrollTo({top: 0, behavior: 'auto'});
-      }
     });
   });
 
   var tocToggle = document.getElementById('tocToggle');
   if (tocToggle) {
-    tocToggle.setAttribute('aria-label', '目次を開閉');
-    tocToggle.setAttribute('aria-controls', 'sidebar');
-    tocToggle.setAttribute('aria-expanded', 'false');
     tocToggle.addEventListener('click',function(){
       var sb = document.getElementById('sidebar');
-      if (sb) {
-        var isOpen = sb.classList.toggle('open');
-        tocToggle.setAttribute('aria-expanded', String(isOpen));
-      }
+      if (sb) sb.classList.toggle('open');
     });
   }
 

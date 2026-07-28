@@ -143,29 +143,36 @@
 <body>
 <header class="topbar">
   <a class="brand" href="../index.html">
-    <span class="brand-icon"><svg role="img" aria-label="ドキュメント" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:middle"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zM13 9V3.5L18.5 9H13z"/></svg></span>
-    <span class="brand-title">サンプルプロジェクト</span>
+    <span class="brand-icon"><svg role="img" aria-label="文書アイコン" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:middle"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zM13 9V3.5L18.5 9H13z"/></svg></span>
+    <span class="brand-title">プロジェクト</span>
     <span class="brand-sub">設計ポータル</span>
   </a>
   <div class="header-meta">
-    <span class="pm-updated">更新: 2026-07-23</span>
+    <span class="pm-updated">更新日</span>
   </div>
   <div class="top-actions">
     <button id="theme-toggle" title="テーマ切替">ライト</button>
   </div>
 </header>
 
-<h1 hidden>レビュー観点表</h1>
-
-<main class="doc-main" id="doc-content"></main>
+<main class="doc-main" id="doc-content"><h1>レビュー観点表</h1></main>
 
 <footer class="footer"></footer>
 
-<script type="application/json" id="doc-md">"# レビュー観点表\n\n## コードレビュー観点\n\n- 命名規約への準拠\n- 型安全性（any の不使用）\n- エラーハンドリングの網羅性\n- テストカバレッジの充足\n\n## 文書レビュー観点\n\n- 被覆率（入力内容の漏れなし）\n- 図解の適切性\n- 用語の統一"</script>
+<script type="text/plain" id="doc-md">
+# レビュー観点表
+
+## レビュー観点
+
+| 観点 | 確認内容 | 根拠 | 結果 |
+|---|---|---|---|
+
+> 原本から確認できる観点だけを記入する。具体的な規約や判定値は推測しない。
+</script>
 
 <script>
 (function () {
-  var src = JSON.parse(document.getElementById('doc-md').textContent || '""');
+  var src = document.getElementById('doc-md').textContent;
 
   // frontmatter 除去
   src = src.replace(/^\s*---[\s\S]*?---\s*/, '');

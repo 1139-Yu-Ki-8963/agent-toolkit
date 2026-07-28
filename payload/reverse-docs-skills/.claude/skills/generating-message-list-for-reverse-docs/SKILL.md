@@ -139,3 +139,9 @@ manifest.json の保存先は `$CLAUDE_JOB_DIR/tmp/message-manifest.json` とす
 **保守責任者**: 人手（ユーザー）。convert-message-doc-to-manifest.sh の出力契約を変更する場合は本スクリプトの必須フィールドリストを同時に更新する
 
 **廃棄条件**: validate-manifest.sh が種別ごとの検証プロファイルを内蔵し、message 種別の転記契約に対応した時
+
+<!-- delivery-owner-contracts:start -->
+```json
+[{"failure_return_to":"orchestrating-reverse-docs-flow","id":"message-list","inputs":["source messages"],"outputs":["一覧/メッセージ一覧/メッセージ一覧.html"],"stop_conditions":["根拠なし"],"validator":"check-delivery-artifacts.sh"}]
+```
+<!-- delivery-owner-contracts:end -->

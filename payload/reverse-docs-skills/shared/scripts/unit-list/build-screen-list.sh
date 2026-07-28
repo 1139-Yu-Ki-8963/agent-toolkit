@@ -455,13 +455,12 @@ if [ "${1:-}" = "--self-test" ]; then
   exit $?
 fi
 
-MANIFEST="${1:?Usage: build-screen-list.sh <manifest.json> <output-html-path> [--portal-dir <path>] [--project-name <name>] [--generated-at <iso8601>]}"
-OUTPUT_HTML="${2:?Usage: build-screen-list.sh <manifest.json> <output-html-path> [--portal-dir <path>] [--project-name <name>] [--generated-at <iso8601>]}"
+MANIFEST="${1:?Usage: build-screen-list.sh <manifest.json> <output-html-path> [--portal-dir <path>] [--project-name <name>]}"
+OUTPUT_HTML="${2:?Usage: build-screen-list.sh <manifest.json> <output-html-path> [--portal-dir <path>] [--project-name <name>]}"
 shift 2 || true
 
 PORTAL_DIR_ARG=""
 PROJECT_NAME_ARG=""
-GENERATED_AT_ARG=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --portal-dir)
@@ -470,10 +469,6 @@ while [ $# -gt 0 ]; do
       ;;
     --project-name)
       PROJECT_NAME_ARG="${2:-}"
-      shift 2
-      ;;
-    --generated-at)
-      GENERATED_AT_ARG="${2:-}"
       shift 2
       ;;
     *)
@@ -490,11 +485,6 @@ fi
 
 if [ ! -f "$MANIFEST" ]; then
   echo "ERROR: manifest not found: $MANIFEST" >&2
-  exit 1
-fi
-if [ -n "$GENERATED_AT_ARG" ] \
-  && [ "$(jq -r '.generatedAt // ""' "$MANIFEST")" != "$GENERATED_AT_ARG" ]; then
-  echo "ERROR: manifest generatedAt does not match --generated-at" >&2
   exit 1
 fi
 

@@ -6,8 +6,7 @@
 #
 # Usage: extract-screen-metadata.sh <screen-manifest.json> <source-dir> <output.json> \
 #          [--api-manifest <api-manifest.json>] [--design-docs-dir <dir>] \
-#          [--link-base-dir <dir>] [--generated-at <iso8601>] \
-#          [--manifest-content-hash <sha256>]
+#          [--link-base-dir <dir>]
 #
 # 入力契約:
 #   <screen-manifest.json> : validate-manifest.sh --unit-kind screen をPASSする画面マニフェスト
@@ -281,7 +280,7 @@ fi
 # ---------------------------------------------------------------------------
 # 引数パース
 # ---------------------------------------------------------------------------
-USAGE="Usage: extract-screen-metadata.sh <screen-manifest.json> <source-dir> <output.json> [--api-manifest <api-manifest.json>] [--design-docs-dir <dir>] [--link-base-dir <dir>] [--generated-at <iso8601>] [--manifest-content-hash <sha256>]"
+USAGE="Usage: extract-screen-metadata.sh <screen-manifest.json> <source-dir> <output.json> [--api-manifest <api-manifest.json>] [--design-docs-dir <dir>] [--link-base-dir <dir>]"
 MANIFEST="${1:?$USAGE}"
 SOURCE_DIR="${2:?$USAGE}"
 OUTPUT="${3:?$USAGE}"
@@ -290,8 +289,6 @@ shift 3 || true
 API_MANIFEST=""
 DESIGN_DOCS_DIR=""
 LINK_BASE_DIR=""
-GENERATED_AT=""
-MANIFEST_CONTENT_HASH=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --api-manifest)
@@ -304,14 +301,6 @@ while [ $# -gt 0 ]; do
       ;;
     --link-base-dir)
       LINK_BASE_DIR="${2:-}"
-      shift 2
-      ;;
-    --generated-at)
-      GENERATED_AT="${2:-}"
-      shift 2
-      ;;
-    --manifest-content-hash)
-      MANIFEST_CONTENT_HASH="${2:-}"
       shift 2
       ;;
     *)
@@ -342,16 +331,6 @@ fi
 # そのため両ディレクトリは未作成でも許可し、全画面を未着手として扱う。
 if [ -n "$LINK_BASE_DIR" ] && [ -z "$DESIGN_DOCS_DIR" ]; then
   echo "ERROR: --link-base-dir requires --design-docs-dir" >&2
-  exit 1
-fi
-if { [ -n "$GENERATED_AT" ] && [ -z "$MANIFEST_CONTENT_HASH" ]; } \
-  || { [ -z "$GENERATED_AT" ] && [ -n "$MANIFEST_CONTENT_HASH" ]; }; then
-  echo "ERROR: --generated-at and --manifest-content-hash must be specified together" >&2
-  exit 1
-fi
-if [ -n "$MANIFEST_CONTENT_HASH" ] \
-  && ! printf '%s' "$MANIFEST_CONTENT_HASH" | grep -Eq '^[0-9a-f]{64}$'; then
-  echo "ERROR: --manifest-content-hash must be 64 lowercase hex" >&2
   exit 1
 fi
 
@@ -506,7 +485,7 @@ while IFS= read -r row; do
   fi
 
   # --- 5. sourceHash: 実在構成ファイル連結の sha256 先頭12桁 ---
-  if [ "${#existing_files[@]}" -gt 0 ] && [ "$(jq -r 'has("sourceHash")' <<<"$row")" != "true" ]; then
+  if [ "${#existing_files[@]}" -gt 0 ]; then
     source_hash="$(cat "${existing_files[@]}" | sha256_12)"
     add="$(jq --arg v "$source_hash" '. + {sourceHash: $v}' <<<"$add")"
   fi
@@ -519,14 +498,9 @@ done < <(jq -c '.screens[]?' "$MANIFEST")
 # マージ出力(既存フィールドは無変更。追加フィールドだけを各要素へ合成)
 # ---------------------------------------------------------------------------
 mkdir -p "$(dirname "$OUTPUT")"
-jq --slurpfile adds "$ADDS_FILE" \
-  --arg generatedAt "$GENERATED_AT" \
-  --arg manifestContentHash "$MANIFEST_CONTENT_HASH" '
+jq --slurpfile adds "$ADDS_FILE" '
   (reduce $adds[] as $a ({}; .[($a.index | tostring)] = $a.add)) as $m
   | .screens = [ .screens // [] | to_entries[] | .value + ($m[(.key | tostring)] // {}) ]
-  | if ($generatedAt | length) > 0
-    then .generatedAt = $generatedAt | .manifestContentHash = $manifestContentHash
-    else . end
 ' "$MANIFEST" > "$OUTPUT"
 
 echo "OK: wrote $OUTPUT" >&2

@@ -1,0 +1,23 @@
+{
+  "fixture_decisions": {
+    "detected": ["screen-list", "component-inventory"],
+    "not_detected": ["table-list", "batch-list"],
+    "stopped_checks": ["coding-rules", "test-cases"]
+  },
+  "coverage_matrix": [
+    {"claim": "inventory-owner-results", "generated_by": "shared/scripts/generate-delivery-inventory.py", "validated_by": "exact expected inventory_owner_results comparison", "decision_source": "fixture source files"},
+    {"claim": "unit-artifacts", "generated_by": "shared/scripts/generate-unit-designs.py", "validated_by": "shared/scripts/check-unit-design-evidence.py + exact artifact SHA-256", "decision_source": "unit_records"},
+    {"claim": "test-case-stop", "generated_by": "shared/scripts/generate-test-case-list.py", "validated_by": "shared/scripts/check-test-case-list-evidence.py", "decision_source": "explicit STOPPED zero-case fixture"}
+  ],
+  "unit_status": "STOPPED",
+  "unit_records": [],
+  "unit_artifact_sha256": {},
+  "inventory_owner_results": {
+    "screen": {"unit_kind":"screen","status":"DONE","records":[{"source_path":"package.json","source_sha256":"a8b710b324131bc7cedcd5ce5ec2241ddfebfd7f9f7644c5aedd9cfe639dfc17"}]},
+    "api": {"unit_kind":"api","status":"STOPPED","records":[]},
+    "table": {"unit_kind":"table","status":"STOPPED","records":[]},
+    "batch": {"unit_kind":"batch","status":"STOPPED","records":[]},
+    "report": {"unit_kind":"report","status":"STOPPED","records":[]},
+    "external": {"unit_kind":"external","status":"STOPPED","records":[]}
+  }
+}

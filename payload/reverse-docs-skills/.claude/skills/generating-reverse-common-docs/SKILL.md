@@ -1,6 +1,6 @@
 ---
 name: generating-reverse-common-docs
-description: "対象コードから層化サンプリングでプロジェクト共通10文書のv0を採録する。 TRIGGER when: アーキテクチャ調査書確定後の共通文書採録、NG帰着(c)共通文書欠落の追記。 SKIP: facts抽出・詳細設計執筆（→extracting-unit-facts-from-code / generating-reverse-detailed-design）。"
+description: "対象コードから層化サンプリングで共通6文書のv0を採録する。 TRIGGER when: アーキテクチャ調査書確定後の共通文書採録、NG帰着(c)共通文書欠落の追記。 SKIP: 規約4種・facts抽出・詳細設計執筆。"
 invocation: generating-reverse-common-docs
 type: orchestration
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, TaskCreate, TaskUpdate]
@@ -8,22 +8,22 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, TaskCreate, TaskUpdate]
 
 # プロジェクト共通採録スキル
 
-工程全体は orchestrating-reverse-docs-flow が案内する。本スキルはアーキテクチャ調査書を前提に、対象リポジトリのコードから層化サンプリングで「プロジェクト共通10文書」の v0 を採録するところまでを単独で担い、単独起動できる（起動引数を渡せば動く）。後続工程（facts抽出・詳細設計執筆）はこの共通文書を前提として動くが、本スキル自体は他スキルへの依存を持たない。
+工程全体は orchestrating-reverse-docs-flow が案内する。本スキルはアーキテクチャ調査書を前提に、対象リポジトリのコードから層化サンプリングで共通6文書の v0 を採録する。規約4種の調査・分類・生成は専用規約スキルの責務であり、本スキルは規約を作成・追記しない。
 
-対象リポジトリに対しては読み取り専用で動作する。書き込み・変更は一切行わない。出力は `output_dir` 側の11ファイル（規約4種＋共通設計書.md＋メッセージ定義書.md＋DESIGN.md＋基盤設計.md＋UI共通設計.md＋データ設計.md＋サンプル記録.md）のみ。v0 で確定して止める（完成を狙わない）。追記は `mode=append` の別起動でのみ行う。
+対象リポジトリに対しては読み取り専用で動作する。書き込み・変更は一切行わない。出力は `output_dir` 側の共通6文書とサンプル記録のみ。v0 で確定して止める（完成を狙わない）。追記は `mode=append` の別起動でのみ行う。
 
 ## 使用タイミング
 
-- アーキテクチャ調査書が確定した直後、対象リポジトリに実在する規約・共通仕様の事実だけを記録した v0 を採録したいとき
-- 判定（Phase 7 / Step 30）が NG帰着(c)（共通設計書・規約4種等のプロジェクト共通文書に該当挙動の記載が無い）と判定し、該当文書へ追記したいとき（`mode=append`）
+- 全実在種別のfactsと静的設計が確定した後、共通6文書を統合したいとき
+- 往復検証が共通6文書の欠落を検出し、該当文書へ追記したいとき（`mode=append`）
 
 ### args（全量指定・対話ゼロ）
 
 | 引数 | 必須 | 内容 |
 |---|---|---|
 | target_repo_path | 必須 | 対象リポジトリの絶対パス |
-| output_dir | 必須 | 出力先ルート。10文書は `<output_dir>/プロジェクト共通/` 配下に出力する |
-| template_root | 必須 | テンプレ一式のルート。`<template_root>/プロジェクト共通/` の既存テンプレ10文書（`規約/コーディング規約.md`・`規約/命名規約.md`・`規約/ディレクトリ構成規約.md`・`規約/コンポーネント設計規約.md`・`共通設計書.md`・`メッセージ定義書.md`・`DESIGN.md`・`基盤設計.md`・`UI共通設計.md`・`データ設計.md`）を雛形に使う |
+| output_dir | 必須 | 出力先ルート。共通6文書とサンプル記録は `<output_dir>/プロジェクト共通/` 配下に出力する |
+| template_root | 必須 | テンプレ一式のルート。`<template_root>/プロジェクト共通/` の共通6文書テンプレ（共通設計書・メッセージ定義書・DESIGN・基盤設計・UI共通設計・データ設計）を雛形に使う |
 | survey_doc_path | 必須 | アーキテクチャ調査書のパス（ディレクトリ責務マップを層化サンプリングの層定義に使う） |
 | mode | 任意（既定 `v0`） | `v0`（新規）／`append`（NG帰着(c)の追記。`append_findings` を受け取り該当文書へ追記して全ゲート再実行） |
 | append_findings | `mode=append` 時のみ必須 | 差し戻し元が指摘した欠落挙動・欠落文書の一覧 |
@@ -33,7 +33,6 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, TaskCreate, TaskUpdate]
 ## 設計原則
 
 - **読み取り専用**: 対象リポジトリへの書き込み・変更は一切行わない。出力は `output_dir` 配下のみ
-- **派生rule生成は別操作**: 規約4文書の「AI設定資産への変換」表は生成契約として出力するが、本スキルの採録中は対象リポジトリへruleを書かない。利用者が採録完了後に `shared/scripts/generate-rules-from-common-docs.sh` を明示実行した場合だけ、`--apply`先へ生成する
 - **実装事実主義**: サンプルに現れない規則を発明しない。理想論（あるべき姿）を書かず、実装済みコードに現に存在する事実だけを記録する
 - **サンプル外裏取り（但し書き）**: サンプル内コードから参照されている定義本体は、規模・件数・キー一覧の実測に限りサンプル外でも開いて裏取りする。カタログ規模の推測表現を禁止する
 - **三点セット必須**: 各規則行は実例（対象リポジトリ内の相対パス3件以上）・頻度（サンプル中の該当割合）・例外率（例外があれば例外の実例パスも）を必ず添える
@@ -45,9 +44,9 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, TaskCreate, TaskUpdate]
 
 ### Phase 1: 前提確認
 
-`target_repo_path`・`template_root`・`survey_doc_path` の実在を確認する（`test -d`/`test -f`）。調査書内「ユニット種別判定」節と「ディレクトリ責務マップ」節の実在を `grep` で確認する（調査書ゲートの再実行は行わない。既に確定済みの調査書を前提として読むのみ）。`output_dir/プロジェクト共通/規約/` ディレクトリを作成し、テンプレ10文書を出力先へ複製する。`mode=append` の場合は既存の11文書の実在を確認し、`append_findings` に列挙された指摘文書を洗い出す。
+`target_repo_path`・`template_root`・`survey_doc_path` の実在を確認する（`test -d`/`test -f`）。調査書内「ユニット種別判定」節と「ディレクトリ責務マップ」節の実在を `grep` で確認する。共通6文書テンプレを出力先へ複製する。`mode=append` の場合は既存の共通6文書とサンプル記録を確認し、`append_findings` から共通文書だけを洗い出す。
 
-完了条件: テンプレ10文書複製済み、調査書の2節（ユニット種別判定・ディレクトリ責務マップ）実在確認済み（`mode=append` 時は既存11文書と指摘文書の特定済み）
+完了条件: 共通6文書テンプレ複製済み、調査書の2節実在確認済み（`mode=append` 時は既存7文書と指摘文書の特定済み）
 
 ### Phase 2: 層化サンプリング
 
@@ -55,23 +54,21 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, TaskCreate, TaskUpdate]
 
 完了条件: サンプル記録.md に全層の選定コマンドと選定ファイル一覧が記録済み（合計20ファイル以上）
 
-### Phase 3: 規約4種採録
+### Phase 3: 規約成果物の受け渡し確認
 
-サンプル集合の実コードから、コーディング規約・命名規約・ディレクトリ構成規約・コンポーネント設計規約の各規則を採録する。各規則行には必ず ①実例（対象リポジトリ内の相対パス3件以上、backtick囲み） ②頻度（`N/M` 形式: サンプル中M件を調べN件が該当） ③例外率（`%` 表記。例外があれば例外の実例パスも）を記載する。サンプルに現れない規則を発明しない。
+規約4種は調査・分類・専用規約スキルが担当する。本スキルは規則を採録・生成・追記しない。
 
-各文書の `## AI設定資産への変換` はテンプレートに定義済みの構造化5列表（規約キー、対象パス、強制区分、規約要点、違反時手順）として保持する。この表は本文から規約を推測するためのものではなく、採録済み文書をruleへ決定的に変換する境界である。規約キーを4文書横断で重複させず、強制区分は `advisory` または `block` のまま保持する。
-
-完了条件: 全規則行が実例3件以上＋頻度＋例外率付き
+完了条件: 規約の不足は専用規約スキルへの差し戻しとして記録済み
 
 ### Phase 4: 共通文書採録
 
-共通設計書.md（アーキテクチャ・共通処理・状態管理・通信の実装事実）・メッセージ定義書.md（コード中の実メッセージ文字列と定義箇所）・DESIGN.md（実スタイル値）・基盤設計.md（アーキテクチャ調査書§2〜§4から抽出したフレームワーク構成・ビルド設定・デプロイ構成・ディレクトリ構成方針・環境変数管理・認証セッション・ストレージ方式）・UI共通設計.md（アーキテクチャ調査書とコンポーネント設計規約から抽出したデザインシステム・共通コンポーネント一覧・レイアウト方針・画面横断UI状態）・データ設計.md（アーキテクチャ調査書とPhase 2の層化サンプルを横断的に見て抽出したデータモデル概要・APIスキーマ・状態管理方針・状態遷移表（エンティティの状態と遷移・契機の一覧）。facts抽出は本スキルより後続の工程であり、本Phaseの時点ではまだ存在しないため、個別ユニットのfactsではなくPhase 2のサンプルを一次情報とする）を、Phase 3と同じ実例主義で採録する。理想論・あるべき仕様を書かず、既存コードに実際に存在する共通挙動のみを記載する。
+共通設計書.md、メッセージ定義書.md、DESIGN.md、基盤設計.md、UI共通設計.md、データ設計.mdを統合する。入力はアーキテクチャ調査書、層化サンプル、確定済みunit facts、静的設計である。各記述に根拠パスを残し、理想論や推測した意図は書かない。
 
 完了条件: 6文書のプレースホルダ残存ゼロ
 
 ### Phase 5: 機械ゲート
 
-`scripts/check-common-docs.sh <output_dir>/プロジェクト共通 <target_repo_path>` を実行する。FAILした場合はPhase 3〜4に戻り、指摘された実例不足・頻度欠落・例外率欠落・未実在パス・テンプレ残存・理想論表現・メッセージ定義書の規模不一致を修正して再実行する（上限5回。ループ設計は下表参照）。上限到達で収束しない場合は `status=中断` とし、hintに残欠落を記録する。
+`scripts/check-common-docs.sh --scope common-only <output_dir>/プロジェクト共通 <target_repo_path>` を実行する。規約に関する指摘は専用規約スキルへ、共通文書の指摘はPhase 4へ差し戻す。上限到達で収束しない場合は `status=中断` とし、hintに残欠落を記録する。
 
 再試行時の探索範囲拡大: check-common-docs.sh が「検出例不足」（frequency_gap / example_shortage を含む）を報告し、かつ Phase 2 のサンプリング範囲が全ディレクトリを未走査の場合、Phase 2 を scope=wider で再実行してからPhase 3-4 へ進む。全ディレクトリ走査済みの場合は「scope-exhausted」として発散検知と同等に中断する（status=中断、hint に scope-exhausted を記録）。
 
@@ -79,7 +76,7 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, TaskCreate, TaskUpdate]
 
 ### Phase 6: 返却
 
-返却ブロックを出力する。`mode=v0` の場合は `status=採録v0確定` とし、`artifacts` に11文書の絶対パスを、`scope` に `target_repo_path` のbasenameを、`common_docs_root` に `プロジェクト共通/` の絶対パスを、`sample_manifest_path` にサンプル記録.mdの絶対パスを記す。`hint` には後続工程（facts抽出）への申し送りを記す。`mode=append` の場合は指摘文書のみ追記して全ゲート再実行後に `status=追記完了` を返す。上限到達で未収束の場合は `status=中断` とし、`hint` にPhase 5で未解消のまま残った検査項目・理由を記す。
+`mode=v0`は`status=採録v0確定`を返す。返却には共通6文書、サンプル記録、共通文書ルートを含める。`mode=append`は共通文書だけを追記し、`status=追記完了`を返す。
 
 完了条件: `status` が確定している
 
@@ -87,13 +84,13 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, TaskCreate, TaskUpdate]
 
 | Phase | 完了条件 |
 |---|---|
-| Phase 1 | テンプレ10文書複製済み。調査書の2節実在確認済み（`mode=append` 時は既存11文書と指摘文書の特定済み） |
+| Phase 1 | 共通6文書テンプレ複製済み。調査書の2節実在確認済み（`mode=append` 時は既存6文書と指摘文書の特定済み） |
 | Phase 2 | サンプル記録.mdに全層の選定コマンドと選定ファイル一覧が記録済み（合計20ファイル以上） |
-| Phase 3 | 全規則行が実例3件以上＋頻度＋例外率付き |
+| Phase 3 | 規約成果物の担当外確認と、必要時の専用規約スキルへの差し戻し記録が完了 |
 | Phase 4 | 6文書のプレースホルダ残存ゼロ |
 | Phase 5 | `check-common-docs.sh` が `exit 0` |
 | Phase 6 | `status` 確定（`採録v0確定` \| `追記完了` \| `中断`） |
-| **Goal** | サンプルに現れた実装事実のみを根拠とするプロジェクト共通10文書が機械ゲート全6検査PASSの状態で `output_dir` に確定し、後続工程が前提として読み込める |
+| **Goal** | サンプルに現れた実装事実のみを根拠とする共通6文書とサンプル記録が common-only 機械ゲートで確定し、後続工程が前提として読み込める |
 
 ## 返却ブロック
 
@@ -103,7 +100,7 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, TaskCreate, TaskUpdate]
 |---|---|
 | status | `採録v0確定` \| `追記完了` \| `中断` |
 | scope | `target_repo_path` のbasename |
-| artifacts | `[11文書の絶対パス]` |
+| artifacts | `[共通6文書とサンプル記録の絶対パス]` |
 | hint | 次工程への申し送り、または中断理由 |
 | common_docs_root（拡張） | `プロジェクト共通/` の絶対パス |
 | sample_manifest_path（拡張） | サンプル記録.mdの絶対パス |
@@ -112,7 +109,7 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, TaskCreate, TaskUpdate]
 
 | 要素 | 内容 |
 |---|---|
-| 反復対象 | Phase 5（機械ゲート） `exit 1` → Phase 3〜4（規約4種採録・共通文書採録）へ戻る |
+| 反復対象 | Phase 5（機械ゲート） `exit 1` → Phase 4（共通文書採録）へ戻る |
 | 上限回数 | 5回 |
 | 収束条件 | `check-common-docs.sh` が `exit 0` |
 | 発散条件 | 同一のNG理由（同一検査項目の同一違反）が2回連続で再発した場合、発散として即中断する（上限回数消化前でも中断してよい） |
@@ -122,8 +119,7 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, TaskCreate, TaskUpdate]
 ## 重要な注意事項
 
 - 対象リポジトリに対しては読み取り専用。書き込み・変更は一切行わない
-- 出力は `output_dir` 側のみ（プロジェクト共通11ファイル）。対象リポジトリ側には何も生成しない
-- ruleが必要な場合は採録フロー完了後の独立操作として、まず既定dry-runを実行し、書き込みを承認した時だけ `bash shared/scripts/generate-rules-from-common-docs.sh <rule_source_root> --target-repo <target_repo_path> --apply` を使う。`--check`は既存生成treeのhash・所有集合・bytes一致を検査する
+- 出力は `output_dir` 側のみ（共通6文書とサンプル記録）。対象リポジトリ側には何も生成しない
 - サンプルに現れない規則を発明しない。実例3件以上・頻度・例外率が揃わない規則は書かない
 - 層化サンプリングの選定は決定的コマンド（`find`/`sort`/`head`）に固定する。乱数・目視選定を禁止する
 - v0で確定して止める。完成を狙わず、追記は `mode=append` の別起動でのみ行う
@@ -133,13 +129,11 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, TaskCreate, TaskUpdate]
 
 ## 予想を裏切る挙動
 
-- 機械ゲートの規則行完備性検査（検査2）は、規約4文書の各テーブル行のうちbacktick囲みの相対パス（「/」を含む）トークンを1件以上含む行だけを「規則行」とみなす。見出し行・区切り行はbacktickトークンを含まないため自動的に対象外になるが、意図的に規則行だけへ実例・頻度・例外率を書くこと（見出しセルに書いても検知されない）
-- 頻度は `N/M` 形式（例: `18/20`）、例外率は `%` を含む数値表記（例: `10.0%`）で、backtickの外（平文）に書く。backtick内に閉じ込めると相対パスとしても誤認識されうるため、テーブルセルの説明文として平文で記載する
-- 記載パスの実在チェック（機械ゲート検査3）は、規約4種＋共通設計書.md＋メッセージ定義書.md＋DESIGN.mdを対象に、backtickで囲んだ「/」を含む相対パスのみを対象とする。URL（`://`）・glob（`*`/`?`）・プレースホルダ（`<`/`>`）・絶対パス（先頭`/`）・空白や正規表現記号を含むトークン（コマンド例・grepパターン）は対象外
+- common-only は規約行を検証しない。規約の実例数・頻度・例外率・記載パスは専用規約スキルの検証器で判定する
+- common-only の記載パス実在チェックは、共通設計書.md・メッセージ定義書.md・DESIGN.mdを対象に、backtickで囲んだ相対パスだけを対象とする。
 - メッセージ定義書規模突合（機械ゲート検査6）は、メッセージ定義書.md内の「総件数: <N>件」宣言行と、backtickメッセージ文字列を含むテーブル行の実測件数を突合する。宣言行が無い場合もFAILとする（カタログ規模を推測表現で書けないようにするための機械検証）
-- 理想論表現検査（検査5）は規約4文書のみを走査する。共通設計書.md・メッセージ定義書.md・DESIGN.md・基盤設計.md・UI共通設計.md・データ設計.mdは対象外だが、これらも実装事実主義の原則自体は適用する（検査対象外というだけで理想論を書いてよいわけではない）
-- テンプレ残存検査（検査4）は11ファイルすべて（規約4種＋共通設計書.md＋メッセージ定義書.md＋DESIGN.md＋基盤設計.md＋UI共通設計.md＋データ設計.md＋サンプル記録.md）を走査する。テンプレの固定文にも検出正規表現（`<実測`/`<FILL`/`TBD`/`TODO`）に一致する語を書いてはならない
-- `AI設定資産への変換` 表は派生rule生成用なので、実例3件・頻度・例外率および対象repoパス実在検査の対象外である。表のschema・重複・hashは `generate-rules-from-common-docs.sh` が検査する
+- common-only は規約4文書を走査しない。共通6文書には実装事実主義を適用する
+- common-only のテンプレ残存検査は共通6文書とサンプル記録を走査する。
 - `mode=append` は指摘文書のみ追記すればよいが、機械ゲートは全項目を再実行する。部分ゲートは存在しない
 - 発散判定（同一NG理由2連続）は上限5回を消化する前でも即中断する
 - 層あたりのk値は層内ファイル数の平方根以上・3以上10以下に丸める。全層合計20ファイル未満だとPhase 2の完了条件を満たさない（詳細は `references/sampling-rules.md`）
@@ -165,12 +159,18 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, TaskCreate, TaskUpdate]
 
 **保守責任者**: 人手（ユーザー）。検査基準・除外規則を変更した時に更新する。
 
-**廃棄条件**: プロジェクト共通10文書のフォーマットが廃止された時、または本スキルが撤回された時。
+**廃棄条件**: 共通6文書のフォーマットが廃止された時、または本スキルが撤回された時。
 
 ## 参照資料
 
 - `~/reverse-docs-skills/.claude/skills/orchestrating-reverse-docs-flow/references/contract.md` — 返却ブロック契約・args仕様の正本
 - `references/sampling-rules.md`（本スキル同梱） — 層化サンプリングの層定義・k値の決め方・決定的選択手順・サンプル記録.mdの記載様式
-- `shared/templates/リバース検証/プロジェクト共通/`（本スキル同梱ではなくリポジトリ共有テンプレ） — 規約4種＋共通設計書.md＋メッセージ定義書.md＋DESIGN.md＋基盤設計.md＋UI共通設計.md＋データ設計.mdの雛形
-- `shared/references/リバース工程設計.md` — Phase/Step×スキル対応の正本（本スキルの位置づけ: Phase 4 共通採録 / Step 12-16）。NG帰着3系統の(c)共通文書欠落からの差し戻し先でもある
+- `shared/templates/リバース検証/プロジェクト共通/` — 共通6文書の雛形。規約4種は専用規約スキルが扱う。
+- `shared/references/リバース工程設計.md` — 工程対応の定義。本スキルはD5 / Step 15の共通統合を担当する
 - `.claude/skills/surveying-architecture-for-reverse-docs/SKILL.md` — 本スキルが前提とするアーキテクチャ調査書を確定する上流スキル
+
+<!-- delivery-owner-contracts:start -->
+```json
+[{"failure_return_to":"orchestrating-reverse-docs-flow","id":"common-design","inputs":["architecture baseline","unit facts"],"outputs":["プロジェクト共通/共通設計書.html"],"stop_conditions":["根拠なし"],"validator":"check-delivery-artifacts.sh"},{"failure_return_to":"orchestrating-reverse-docs-flow","id":"message-definition","inputs":["unit facts"],"outputs":["プロジェクト共通/メッセージ定義書.html"],"stop_conditions":["根拠なし"],"validator":"check-delivery-artifacts.sh"},{"failure_return_to":"orchestrating-reverse-docs-flow","id":"design-md","inputs":["style sources"],"outputs":["プロジェクト共通/DESIGN.md"],"stop_conditions":["根拠なし"],"validator":"check-delivery-artifacts.sh"},{"failure_return_to":"orchestrating-reverse-docs-flow","id":"platform-design","inputs":["architecture baseline"],"outputs":["プロジェクト共通/基盤設計.html"],"stop_conditions":["根拠なし"],"validator":"check-delivery-artifacts.sh"},{"failure_return_to":"orchestrating-reverse-docs-flow","id":"ui-common-design","inputs":["component facts"],"outputs":["プロジェクト共通/UI共通設計.html"],"stop_conditions":["根拠なし"],"validator":"check-delivery-artifacts.sh"},{"failure_return_to":"orchestrating-reverse-docs-flow","id":"data-design","inputs":["table facts"],"outputs":["プロジェクト共通/データ設計.html"],"stop_conditions":["根拠なし"],"validator":"check-delivery-artifacts.sh"}]
+```
+<!-- delivery-owner-contracts:end -->

@@ -229,21 +229,6 @@ Phase 1 の調査結果とアーキテクチャ調査書（`survey_doc_path`）�
 固有の検証行:
 - validate-manifest.sh --unit-kind screen が全項目 PASS・画面一覧.html の生成成功
 
-## 永続raw正本と一括再生成
-
-人が編集する唯一の画面生成元は`<output-dir>/一覧/画面一覧/screen-manifest.json`である。`screen-manifest.ext.json`と画面一覧・画面遷移・matrix・portalは直接編集しない。raw更新後は固定時刻を明示して次を実行する。
-
-```bash
-../../../shared/scripts/unit-list/rebuild-screen-derived-pages.sh \
-  --raw-manifest "<output-dir>/一覧/画面一覧/screen-manifest.json" \
-  --target-repo "<target_repo_path>" \
-  --api-manifest "<api_manifest_path>" \
-  --output-root "<output-dir>" \
-  --generated-at "<ISO8601 UTC>"
-```
-
-同スクリプトはrawの正規化bytesから`manifestContentHash`を算出し、全派生へ伝播する。全childと`check-screen-manifest-consistency.sh`がPASSしてから13fileをcommitし、失敗時は開始前のtreeへrollbackする。
-
 ## 設計判断
 
 ### エンジンスクリプトの共有配置（`shared/scripts/unit-list/`）
@@ -305,3 +290,9 @@ Phase 1 の調査結果とアーキテクチャ調査書（`survey_doc_path`）�
 **保守責任者**: 人手（ユーザー）
 
 **廃棄条件**: マニフェスト形式（JSONスキーマ）が廃止された時
+
+<!-- delivery-owner-contracts:start -->
+```json
+[{"failure_return_to":"orchestrating-reverse-docs-flow","id":"screen-list","inputs":["screen source"],"outputs":["一覧/画面一覧/画面一覧.html"],"stop_conditions":["0件"],"validator":"check-delivery-artifacts.sh"}]
+```
+<!-- delivery-owner-contracts:end -->

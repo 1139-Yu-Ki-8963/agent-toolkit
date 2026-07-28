@@ -1,8 +1,0 @@
-{
-  "generatedAt": "2026-07-28T00:00:00Z",
-  "dataSource": "api-manifest.json",
-  "tables": [],
-  "features": [],
-  "note": "feature-manifest未指定のためAPI単位で集約(featureIdはAPIのunitKey)",
-  "manifestContentHash": "c7d90a604412f8b7f047b9d3de9c723168e34b0215ac4d27e2c63a30a089a550"
-}
