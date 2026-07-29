@@ -54,13 +54,15 @@ sections:
 
 インデントは2スペース刻み固定とする（`sections` 配下のキー = 2段目、`reason`/`items` = 3段目、`- key:` = 4段目、`value:`/`evidence:` = 5段目）。この固定インデントは `scripts/recount-facts.sh` が awk で行位置ベースに解析するための契約であり、崩すと再計数ゲートが正しく集計できない。
 
-`meta` は `sections` と並ぶトップレベル必須節であり、以下の3フィールドを持つ。
+`meta` は `sections` と並ぶトップレベル必須節であり、以下の5フィールドを持つ。
 
 | フィールド | 内容 |
 |---|---|
 | source_repo | 対象リポジトリの絶対パス（`target_repo_path` と同値） |
 | source_ref | 抽出時点のコミットSHA（`git -C <target_repo_path> rev-parse HEAD` で実測） |
 | route | 画面のルートパス。`value`（実測したパス文字列）と `evidence`（ルーター定義ファイルの `file:line`）を持つ |
+| source_encoding | 原本ファイルの文字コード（`UTF-8`・`EUC-JP`・`Shift_JIS` 等）。原本が非UTF-8 の場合、この記録なしでは文字コード依存の変換処理を持つ画面を再生成しても動作しない。UTF-8 の場合も省略せず明記する |
+| source_line_ending | 原本ファイルの改行コード（`LF`・`CRLF`・`CR` のいずれか） |
 
 ### リポジトリ参照の解決規則
 

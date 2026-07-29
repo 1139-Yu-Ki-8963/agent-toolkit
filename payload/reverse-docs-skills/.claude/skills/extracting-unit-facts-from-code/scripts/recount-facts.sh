@@ -471,6 +471,7 @@ count_error_handling() {
       is_arrow_declaration = $0 ~ /^[ \t]*(export[ \t]+)?(const|let|var)[ \t]+[A-Za-z_$][A-Za-z0-9_$]*[ \t]*=[ \t]*(async[ \t]+)?\([^)]*\)[ \t]*=>/
       if ($0 ~ /(^|[^A-Za-z0-9_$])throw[ \t]/ ||
           $0 ~ /catch[ \t]*\(/ ||
+          $0 ~ /catch[ \t]*\{/ ||
           $0 ~ /window[.]alert[ \t]*\(/ ||
           (is_idiom_call && !is_function_declaration && !is_arrow_declaration)) {
         count++
@@ -1478,7 +1479,7 @@ EOF
     rc=1
   fi
 
-  # error_handling: throw+catch+alertの合算3件を検知する（陽性）。
+  # error_handling: throw+catch+alert+引数省略catchの合算4件を検知する（陽性）。
   error_handling_pos_file="$tmp/error-handling-pos.txt"
   cat > "$error_handling_pos_file" <<'EOF'
 function foo() {
@@ -1489,12 +1490,13 @@ function foo() {
     throw err;
   }
 }
+  try { doWork() } catch { recover() }
 EOF
   error_handling_pos_count="$(count_error_handling "$error_handling_pos_file")"
-  if [ "$error_handling_pos_count" = "3" ]; then
-    echo "  [PASS] error_handling陽性: throw+catch+alertの合算を検知（3件）"
+  if [ "$error_handling_pos_count" = "4" ]; then
+    echo "  [PASS] error_handling陽性: throw+catch+alert+引数省略catchの合算を検知（4件）"
   else
-    echo "  [FAIL] error_handling陽性: throw+catch+alertの合算を検知できない（実測=${error_handling_pos_count} 期待=3）" >&2
+    echo "  [FAIL] error_handling陽性: throw+catch+alert+引数省略catchの合算を検知できない（実測=${error_handling_pos_count} 期待=4）" >&2
     rc=1
   fi
 

@@ -50,6 +50,8 @@ self_test() {
     mkdir -p "$(dirname "$target")"
     cat > "$target" <<MDEOF
 ---
+source_encoding: UTF-8
+source_line_ending: LF
 unit_test_sheet: ./none.md
 integration_test_sheet: ./none.md
 ---
@@ -121,6 +123,8 @@ MDEOF
   mkdir -p "$tmp/e"
   cat > "$tmp/e/画面詳細設計書.md" <<'MDEOF'
 ---
+source_encoding: UTF-8
+source_line_ending: LF
 unit_test_sheet: ./none.md
 integration_test_sheet: ./none.md
 ---
@@ -237,6 +241,8 @@ MDEOF
   mkdir -p "$tmp/f"
   cat > "$tmp/f/画面詳細設計書.md" <<'MDEOF'
 ---
+source_encoding: UTF-8
+source_line_ending: LF
 unit_test_sheet: ./none.md
 integration_test_sheet: ./none.md
 ---
@@ -292,6 +298,8 @@ MDEOF
 EOF
   cat > "$tmp/g/画面詳細設計書.md" <<'MDEOF'
 ---
+source_encoding: UTF-8
+source_line_ending: LF
 unit_test_sheet: ./none.md
 integration_test_sheet: ./none.md
 ---
@@ -372,6 +380,8 @@ const value = 1;
 EOF
   cat > "$tmp/h/画面詳細設計書.md" <<'MDEOF'
 ---
+source_encoding: UTF-8
+source_line_ending: LF
 unit_test_sheet: ./none.md
 integration_test_sheet: ./none.md
 unit_test_spec: ./unit-test-spec.md
@@ -452,6 +462,8 @@ const value = 1;
 EOF
   cat > "$tmp/i/画面詳細設計書.md" <<'MDEOF'
 ---
+source_encoding: UTF-8
+source_line_ending: LF
 unit_test_sheet: ./none.md
 integration_test_sheet: ./none.md
 unit_test_spec: ./unit-test-spec.md
@@ -684,6 +696,204 @@ EOF
     fi
   else
     echo "[FAIL] 1-39: 詳細設計テンプレートのscaffoldに失敗しました: $scaffold_out"
+    fail=1
+  fi
+
+  # --- 検査r・検査s・検査tの追加フィクスチャ ---
+  # フィクスチャ r-missing: frontmatterに原本属性キー(source_encoding/source_line_ending)が
+  # 無い → 検査rが違反を出す
+  mkdir -p "$tmp/r"
+  cat > "$tmp/r/画面詳細設計書.md" <<'MDEOF'
+---
+unit_test_sheet: ./none.md
+integration_test_sheet: ./none.md
+---
+
+## 章マップ
+
+| 役割キー | § |
+|---|---|
+| 機能一覧 | §2 |
+| 実装契約 | §15 |
+| 要確認事項 | §16 |
+
+## §2 機能一覧
+
+| キー | 内容 |
+|---|---|
+| foo-view | 表示 |
+
+## §15 実装契約
+
+### 15.1 ファイル分割と export 一覧
+
+| ファイルパス | export 名 | 種別 | 配置ディレクトリ |
+|---|---|---|---|
+| components/Foo.tsx | Foo | コンポーネント | components/ |
+
+### 15.2 型定義
+
+| 型名 | フィールド名 | 型 | 必須/任意 |
+|---|---|---|---|
+| `FooValues` | `name` | `string` | 必須 |
+
+### 15.3 依存（import）一覧
+
+| モジュール | import 内容 | 種別 |
+|---|---|---|
+| `./Foo` | `Foo` | 内部 |
+
+## §16 要確認事項一覧
+
+| キー | 起票日 | 内容 | 暫定扱いにしている § | 解消条件 | 状態 |
+|---|---|---|---|---|---|
+| foo-issue | `2026-01-01` | 何らかの確認事項 | §15 | 実装完了 | 解消済み |
+MDEOF
+
+  # フィクスチャ s-undeclared: 章マップの「正」列が実装契約の外部文書
+  # （API定義書）を宣言しているが frontmatter に対応するパス欄が無い →
+  # 検査sが違反を出す
+  mkdir -p "$tmp/s"
+  cat > "$tmp/s/画面詳細設計書.md" <<'MDEOF'
+---
+source_encoding: UTF-8
+source_line_ending: LF
+unit_test_sheet: ./none.md
+integration_test_sheet: ./none.md
+---
+
+## 章マップ
+
+| 役割キー | § | 正 |
+|---|---|---|
+| 機能一覧 | §2 | - |
+| 実装契約 | §15 | API定義書 |
+| 要確認事項 | §16 | - |
+
+## §2 機能一覧
+
+| キー | 内容 |
+|---|---|
+| foo-view | 表示 |
+
+## §15 実装契約
+
+### 15.1 ファイル分割と export 一覧
+
+| ファイルパス | export 名 | 種別 | 配置ディレクトリ |
+|---|---|---|---|
+| components/Foo.tsx | Foo | コンポーネント | components/ |
+
+### 15.2 型定義
+
+| 型名 | フィールド名 | 型 | 必須/任意 |
+|---|---|---|---|
+| `FooValues` | `name` | `string` | 必須 |
+
+### 15.3 依存（import）一覧
+
+| モジュール | import 内容 | 種別 |
+|---|---|---|
+| `./Foo` | `Foo` | 内部 |
+
+## §16 要確認事項一覧
+
+| キー | 起票日 | 内容 | 暫定扱いにしている § | 解消条件 | 状態 |
+|---|---|---|---|---|---|
+| foo-issue | `2026-01-01` | 何らかの確認事項 | §15 | 実装完了 | 解消済み |
+MDEOF
+
+  # フィクスチャ t-contradiction: §6.6で画面内状態「該当なし」を宣言しつつ
+  # §6.1初期表示シーケンスに状態の語（ready）が書き残されている →
+  # 検査tが違反を出す
+  mkdir -p "$tmp/t"
+  cat > "$tmp/t/画面詳細設計書.md" <<'MDEOF'
+---
+source_encoding: UTF-8
+source_line_ending: LF
+unit_test_sheet: ./none.md
+integration_test_sheet: ./none.md
+---
+
+## 章マップ
+
+| 役割キー | § |
+|---|---|
+| 機能一覧 | §2 |
+| 実装契約 | §15 |
+| 要確認事項 | §16 |
+
+## §2 機能一覧
+
+| キー | 内容 |
+|---|---|
+| foo-view | 表示 |
+
+## §6 画面仕様
+
+### 6.1 初期表示シーケンス
+
+1. 画面をマウントする
+2. データを取得する
+3. 表示を更新する
+4. ローディングを解除する
+5. 画面状態を ready に更新
+
+### 6.6 画面状態の遷移
+
+該当なし（要求ごとに全体を描画するため画面内状態を持たない）
+
+## §15 実装契約
+
+### 15.1 ファイル分割と export 一覧
+
+| ファイルパス | export 名 | 種別 | 配置ディレクトリ |
+|---|---|---|---|
+| components/Foo.tsx | Foo | コンポーネント | components/ |
+
+### 15.2 型定義
+
+| 型名 | フィールド名 | 型 | 必須/任意 |
+|---|---|---|---|
+| `FooValues` | `name` | `string` | 必須 |
+
+### 15.3 依存（import）一覧
+
+| モジュール | import 内容 | 種別 |
+|---|---|---|
+| `./Foo` | `Foo` | 内部 |
+
+## §16 要確認事項一覧
+
+| キー | 起票日 | 内容 | 暫定扱いにしている § | 解消条件 | 状態 |
+|---|---|---|---|---|---|
+| foo-issue | `2026-01-01` | 何らかの確認事項 | §15 | 実装完了 | 解消済み |
+MDEOF
+
+  # ケース19: 検査r陽性（frontmatterに原本属性キーが無い場合を違反として検出する）
+  if out_r="$(bash "$script_path" "$tmp/r" 2>&1)"; then rc_r=0; else rc_r=$?; fi
+  if [ "$rc_r" -eq 1 ] && printf '%s' "$out_r" | grep -q "原本属性キーがありません"; then
+    echo "[PASS] 検査r陽性: frontmatterに原本属性キーが無い場合を違反として検出する"
+  else
+    echo "[FAIL] 検査r陽性: 原本属性キー欠落を検出できません（exit=${rc_r}）"
+    fail=1
+  fi
+
+  # ケース20: 検査s陽性（章マップの外部文書宣言に対応するfrontmatterのパス欄欠落を違反として検出する）
+  if out_s="$(bash "$script_path" "$tmp/s" 2>&1)"; then rc_s=0; else rc_s=$?; fi
+  if [ "$rc_s" -eq 1 ] && printf '%s' "$out_s" | grep -q "対応する frontmatter のパス欄がありません"; then
+    echo "[PASS] 検査s陽性: 章マップの外部文書宣言に対応するfrontmatterパス欄の欠落を違反として検出する"
+  else
+    echo "[FAIL] 検査s陽性: 外部文書宣言のfrontmatterパス欄欠落を検出できません（exit=${rc_s}）"
+    fail=1
+  fi
+
+  # ケース21: 検査t陽性（§6.6の「該当なし」宣言と他節の状態語残存の矛盾を違反として検出する）
+  if out_t="$(bash "$script_path" "$tmp/t" 2>&1)"; then rc_t=0; else rc_t=$?; fi
+  if [ "$rc_t" -eq 1 ] && printf '%s' "$out_t" | grep -q "状態の語が残っています"; then
+    echo "[PASS] 検査t陽性: 画面内状態「該当なし」宣言と他節の状態語残存の矛盾を違反として検出する"
+  else
+    echo "[FAIL] 検査t陽性: 画面内状態の節間矛盾を検出できません（exit=${rc_t}）"
     fail=1
   fi
 
@@ -1860,6 +2070,116 @@ if [ -n "$(printf '%s' "$UNREACHABLE_BODY_REFS" | tr -d '[:space:]')" ]; then
   VIOLATIONS=$((VIOLATIONS + 1))
 else
   echo "  本文の相対パス参照はすべて到達可能です（参照 0 件を含む）"
+fi
+
+# --- (r) frontmatter の原本属性キーの存在チェック（違反） ---
+echo ""
+echo "[検査 r] frontmatter の原本属性キー（source_encoding・source_line_ending）の存在チェック（違反・非UTF-8 原本の再生成に必要）"
+
+FM_BLOCK_R="$(awk '/^---$/{c++; next} c==1{print} c>=2{exit}' "$DESIGN_DOC")"
+MISSING_SOURCE_ATTRS=""
+for _key in source_encoding source_line_ending; do
+  if ! printf '%s\n' "$FM_BLOCK_R" | grep -qE "^${_key}:[[:blank:]]*[^[:blank:]#]"; then
+    MISSING_SOURCE_ATTRS="${MISSING_SOURCE_ATTRS}${_key}
+"
+  fi
+done
+
+if [ -n "$(printf '%s' "$MISSING_SOURCE_ATTRS" | tr -d '[:space:]')" ]; then
+  echo "  違反: frontmatter に原本属性キーがありません（値が空の場合を含む）:" >&2
+  printf '%s\n' "$MISSING_SOURCE_ATTRS" | grep . | sed 's/^/    - /' >&2
+  VIOLATIONS=$((VIOLATIONS + 1))
+else
+  echo "  frontmatter の原本属性キーはすべて存在します"
+fi
+
+# --- (s) 章マップが宣言する外部文書の frontmatter パス欄チェック（違反） ---
+echo ""
+echo "[検査 s] 章マップの「正」列に外部文書を宣言している章について frontmatter に対応するパス欄が存在するかのチェック（違反）"
+
+CHAPTER_MAP_HEADER="$(awk '/^## 章マップ/{f=1; next} f && /^\|/{print; exit}' "$DESIGN_DOC")"
+EXTERNAL_DOC_DECLS=""
+if printf '%s' "$CHAPTER_MAP_HEADER" | grep -q '正'; then
+  SEI_COL="$(printf '%s' "$CHAPTER_MAP_HEADER" | awk -F'|' '{for(i=2;i<NF;i++){h=$i; gsub(/^[ \t]+|[ \t]+$/,"",h); if(h=="正"){print i; exit}}}')"
+  if [ -n "$SEI_COL" ]; then
+    EXTERNAL_DOC_DECLS="$(awk -F'|' -v col="$SEI_COL" '
+      /^## 章マップ/ { f=1; next }
+      f && /^## / { exit }
+      f && /^\|/ {
+        if (col > NF) next
+        v = $col
+        gsub(/^[ \t]+|[ \t]+$/, "", v)
+        if (v == "" || v == "正") next
+        if (v ~ /^-+$/) next
+        sub(/（.*$/, "", v)
+        gsub(/[ \t]/, "", v)
+        if (v == "") next
+        if (v ~ /本書/) next
+        if (v ~ /共通設計書/) next
+        print v
+      }
+    ' "$DESIGN_DOC" | sort -u)"
+  fi
+fi
+
+UNDECLARED_EXTERNAL_DOCS=""
+if [ -n "$EXTERNAL_DOC_DECLS" ]; then
+  FM_BLOCK_S="$(awk '/^---$/{c++; next} c==1{print} c>=2{exit}' "$DESIGN_DOC" | sed -E 's/#.*$//')"
+  while IFS= read -r _doc; do
+    [ -z "$_doc" ] && continue
+    if ! printf '%s\n' "$FM_BLOCK_S" | grep -F "$_doc" >/dev/null 2>&1; then
+      UNDECLARED_EXTERNAL_DOCS="${UNDECLARED_EXTERNAL_DOCS}${_doc}
+"
+    fi
+  done <<< "$EXTERNAL_DOC_DECLS"
+fi
+
+if [ -n "$(printf '%s' "$UNDECLARED_EXTERNAL_DOCS" | tr -d '[:space:]')" ]; then
+  echo "  違反: 章マップが「正」として宣言する外部文書に対応する frontmatter のパス欄がありません:" >&2
+  printf '%s\n' "$UNDECLARED_EXTERNAL_DOCS" | grep . | sed 's/^/    - /' >&2
+  echo "    宣言先の実在を確認できません。パス欄を追加するか §16 要確認事項一覧へ起票してください" >&2
+  VIOLATIONS=$((VIOLATIONS + 1))
+else
+  echo "  章マップの外部文書宣言に対応する frontmatter のパス欄はすべて存在します（宣言 0 件を含む）"
+fi
+
+# --- (t) 画面内状態の節間矛盾チェック（違反） ---
+echo ""
+echo "[検査 t] 画面内状態を「該当なし」と宣言した設計書で初期表示シーケンス・state 遷移シーケンスに状態の語が書き残されていないかのチェック（違反）"
+
+extract_subsection_no_comment() {
+  local file="$1" heading="$2"
+  awk -v h="$heading" '
+    index($0, h) == 1 { f=1; next }
+    f && /^#{2,4} / { exit }
+    f { print }
+  ' "$file" | awk '
+    /<!--/ { in_c=1 }
+    in_c && /-->/ { in_c=0; next }
+    in_c { next }
+    { print }
+  '
+}
+
+STATE_SECTION="$(extract_subsection_no_comment "$DESIGN_DOC" "### 6.6 ")"
+STATE_CONTRADICTIONS=""
+if printf '%s' "$STATE_SECTION" | grep -q '該当なし'; then
+  for _h in "### 6.1 " "### 15.7 "; do
+    _body="$(extract_subsection_no_comment "$DESIGN_DOC" "$_h")"
+    _hits="$(printf '%s\n' "$_body" | grep -oE '(loading|ready|empty|error)' | sort -u | tr '\n' ' ' || true)"
+    if [ -n "$(printf '%s' "$_hits" | tr -d '[:space:]')" ]; then
+      STATE_CONTRADICTIONS="${STATE_CONTRADICTIONS}${_h}に残存: ${_hits}
+"
+    fi
+  done
+fi
+
+if [ -n "$(printf '%s' "$STATE_CONTRADICTIONS" | tr -d '[:space:]')" ]; then
+  echo "  違反: §6.6 で画面内状態を「該当なし」と宣言していますが他の節に状態の語が残っています:" >&2
+  printf '%s\n' "$STATE_CONTRADICTIONS" | grep . | sed 's/^/    - /' >&2
+  VIOLATIONS=$((VIOLATIONS + 1))
+else
+  echo "  画面内状態の節間矛盾はありません（該当なし宣言なしを含む）"
 fi
 
 # --- 結果集計 ---
