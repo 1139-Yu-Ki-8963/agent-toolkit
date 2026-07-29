@@ -145,7 +145,7 @@
   <p>本スキルを実行すると、対象画面 1 つにつき以下の 1 点が生まれる。</p>
   <div class="def">
     <dt>シーケンス図.html</dt>
-    <dd><code>&lt;output_dir&gt;/画面/screen-&lt;ID&gt;/</code> 直下に固定生成される、当該画面の操作単位（ボタン押下・フォーム送信等）を階層サイドバーから切り替えられるシーケンス図ページ。固定 3 本のレーン（<code>screen</code>=画面 / <code>api</code>=API / <code>table</code>=テーブル）上に、facts の call_order または手書き page-data から機械変換した呼び出し順序を、根拠パス（sourceRef）付きで表示する。画面基本設計書・詳細設計書と同じ体裁の左サイドバーを持ち、3 種の設計書間を子メニューで行き来できる。</dd>
+    <dd><code>&lt;output_dir&gt;/画面/screen-&lt;ID&gt;/</code> 直下に固定生成される、当該画面の操作単位（ボタン押下・フォーム送信等）を階層サイドバーから切り替えられるシーケンス図ページ。レーン（<code>lanes[]</code> で任意定義、省略時は固定 3 本 <code>screen</code>=画面 / <code>api</code>=API / <code>table</code>=テーブル）上に、facts の call_order または手書き page-data から機械変換した呼び出し順序を、業務名の表示文言と根拠パス（sourceRef）付きで表示する。画面基本設計書・詳細設計書と同じ体裁の左サイドバーを持ち、3 種の設計書間を子メニューで行き来できる。</dd>
   </div>
 </section>
 
@@ -167,25 +167,32 @@
   "screenId": "screen-order-list",
   "screenLabel": "注文一覧",
   "generatedAt": "ISO8601",
+  "lanes": [
+    {"key": "screen", "label": "画面"},
+    {"key": "api", "label": "API"},
+    {"key": "table", "label": "テーブル"}
+  ],
   "operations": [
     {
       "key": "save-click",
       "label": "保存ボタン押下",
       "handler": "handler-onSave-保存",
       "steps": [
-        {"seq": 1, "from": "screen", "to": "api", "label": "POST /orders", "sourceRef": "src/screens/Order.tsx:42"},
-        {"seq": 2, "from": "api", "to": "table", "label": "INSERT orders", "sourceRef": "server/orders.ts:10"},
-        {"seq": 3, "from": "api", "to": "screen", "label": "201 Created → 一覧再取得", "kind": "return"}
+        {"seq": 1, "from": "screen", "to": "api", "label": "注文登録", "sourceRef": "src/screens/Order.tsx:42"},
+        {"seq": 2, "from": "api", "to": "table", "label": "注文レコード登録", "sourceRef": "server/orders.ts:10"},
+        {"seq": 3, "from": "api", "to": "screen", "label": "登録完了 → 一覧再取得", "kind": "return", "sourceRef": "src/screens/Order.tsx:42"}
       ]
     }
   ]
 }</pre>
   <table class="spec">
     <tr><th>用語</th><th>内容</th></tr>
-    <tr><td>レーン（ライフライン）</td><td>固定 3 本: <code>screen</code>=画面 / <code>api</code>=API / <code>table</code>=テーブル。<code>steps[].from</code>/<code>to</code> はこの 3 値のみ</td></tr>
+    <tr><td>レーン（ライフライン）</td><td><code>lanes[]</code> で画面ごとに任意定義できる（<code>key</code>/<code>label</code> の組）。省略時は固定 3 本（<code>screen</code>=画面 / <code>api</code>=API / <code>table</code>=テーブル）にフォールバックする。<code>steps[].from</code>/<code>to</code> は <code>lanes[].key</code>（省略時は既定の 3 値）のみ</td></tr>
+    <tr><td>ステップ表示文言</td><td>呼び出し先の業務名（原本の日本語コメント、または関数名・BL 名から導出）。代入式・引数・分類タグは含めない。導出できない場合は識別子のみを使い、根拠のない機能名は作らない</td></tr>
     <tr><td><code>kind: "return"</code></td><td>破線で描画されるステップ。省略時は実線</td></tr>
-    <tr><td><code>sourceRef</code></td><td>任意。無いステップはテンプレート側で根拠列を空表示する</td></tr>
+    <tr><td><code>sourceRef</code></td><td>facts 由来のステップでは省略しない（<code>call_order</code> の <code>file:line</code> を転記）。手書き page-data で根拠が無い場合のみ省略可で、無いステップはテンプレート側で根拠列を空表示する</td></tr>
     <tr><td>call_order</td><td>facts.yml の⑤handler item が持つ任意フィールド。形式 <code>"&lt;連番&gt;:&lt;api分類のkey&gt;@&lt;file:line&gt;; ..."</code>。<code>shared/references/facts-schema.md</code> が定義元</td></tr>
+    <tr><td>1 operation あたりの分割上限</td><td>1 handler の <code>call_order</code> が 15 ステップを超える場合、機能単位・コメント区切り・15 ステップ機械区切りの優先順で複数 <code>operations[]</code> へ分割する。分割後のキーは連番禁止で内容要約語とする</td></tr>
   </table>
 </section>
 
@@ -194,7 +201,7 @@
   <p>スキル開始時に <code>TaskCreate</code> で Phase 1〜3 のタスクを登録する。各 Phase 開始時に該当タスクを <code>in_progress</code> に、完了時に <code>completed</code> へ <code>TaskUpdate</code> で更新する。</p>
   <table class="spec">
     <tr><th>Phase</th><th>内容</th><th>完了条件</th></tr>
-    <tr><td>1. page-data の確保</td><td>Step 1: シーケンス図-data.json の実在確認。Step 2: 不在画面は facts.yml の call_order を持つ handler を機械変換し、facts があって call_order が 0 件なら <code>operations: []</code> を生成。facts 自体がなければ変換不能として報告。Step 3: jq で必須キー・from/to の 3 値・seq 連番を検証</td><td>facts がある対象画面は操作 0 件を含め jq 検証通過済み。facts 不在画面は変換不能を報告済み</td></tr>
+    <tr><td>1. page-data の確保</td><td>Step 1: シーケンス図-data.json の実在確認。Step 2: 不在画面は facts.yml の call_order を持つ handler を機械変換し（表示文言は業務名を導出、15 ステップ超は複数 operations へ分割）、facts があって call_order が 0 件なら <code>operations: []</code> を生成。facts 自体がなければ変換不能として報告。Step 3: jq で必須キー・from/to が宣言済みレーン（省略時 3 値）内・操作ごとの seq 連番を検証</td><td>facts がある対象画面は操作 0 件を含め jq 検証通過済み。facts 不在画面は変換不能を報告済み</td></tr>
     <tr><td>2. DOC_NAV の組み立て</td><td>戻るリンク・基本設計項目・詳細設計項目・シーケンス図項目（自ページ）を、実在する項目だけで組み立てる（<code>build-portal.sh</code> セクション 3.5 と同一判定）</td><td>対象画面ごとに doc_nav 文字列が確定済み</td></tr>
     <tr><td>3. HTML 生成</td><td><code>render-template.sh</code> の <code>render_template</code> 関数を Bash から source して <code>シーケンス図.html</code> を生成。<code>portal_output_dir</code> 指定時は <code>build-portal.sh</code> を再実行</td><td>対象画面すべてで <code>シーケンス図.html</code> が生成済み</td></tr>
   </table>

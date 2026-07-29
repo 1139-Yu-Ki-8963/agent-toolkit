@@ -74,6 +74,21 @@ verify_rendered_screen_count() {
   fi
 }
 
+# 検出器と同じ4形式だけを表示境界で除去する最終防衛。マニフェストJSON自体は
+# 改変せず、語中・語頭のOKを含む業務名は保持する。
+# count_rendered_screen_rows() と同様の理由(--self-test は self_test() 呼び出し後に
+# 本スクリプトを exit するため、後方定義のままだと自己テスト内からの直接呼び出し時点で
+# 未定義になる)で、定義をここ(self-test セクション直前)へ前倒しする。
+strip_ok_marker() {
+  printf '%s' "$1" | sed -E '
+    s/[[:space:]]*\(OK\)[[:space:]]+\([^()]+\)[[:space:]]*$//
+    s/[[:space:]]*\(OK\)[[:space:]]+[[:alnum:]_.-]+[[:space:]]*$//
+    s/(）)OK[[:space:]]*$/\1/
+    s/[[:space:]]+OK[[:space:]]*$//
+    s/[[:space:]]*\(OK\)[[:space:]]*$//
+  ' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//'
+}
+
 # --- --self-test モード ---
 # render_template()の単一パス置換が、埋め込み値中の他マーカー文字列衝突・
 # バックスラッシュ・山括弧を含む自由記述フィールドでも誤爆しないことを検証する。
@@ -283,6 +298,66 @@ EOF
     echo "  [PASS] 回帰確認: 末尾4形式を除去し語頭・語中OKを保持、validate-manifest.shも引き続きPASS"
   else
     echo "  [FAIL] 回帰確認: 可視テーブル内容またはvalidate-manifest.shのPASSに退行が発生した" >&2
+    rc=1
+  fi
+
+  # --- 1-55: strip_ok_marker() 直接呼び出しで括弧付き識別子形式を検証 ---
+  # 画面一覧の可視セル自体はテンプレート側JSが再描画するため(screen_nameは
+  # 未使用の防衛的変数)、strip_ok_marker()の実挙動は関数を直接呼び出して検証する。
+  local ok_t1 ok_t2 ok_t3 ok_t4 ok_t5 ok_t6 ok_t7
+  ok_t1="$(strip_ok_marker "名称A(OK) (identA)")"
+  if [ "$ok_t1" = "名称A" ]; then
+    echo "  [PASS] 1-55-OKマーカー除去-括弧付き識別子二重括弧"
+  else
+    echo "  [FAIL] 1-55-OKマーカー除去-括弧付き識別子二重括弧: got='$ok_t1'" >&2
+    rc=1
+  fi
+
+  ok_t2="$(strip_ok_marker "名称F(OK) identF")"
+  if [ "$ok_t2" = "名称F" ]; then
+    echo "  [PASS] 1-55-OKマーカー除去-括弧付き識別子非括弧"
+  else
+    echo "  [FAIL] 1-55-OKマーカー除去-括弧付き識別子非括弧: got='$ok_t2'" >&2
+    rc=1
+  fi
+
+  ok_t3="$(strip_ok_marker "名称B(OK)")"
+  if [ "$ok_t3" = "名称B" ]; then
+    echo "  [PASS] 1-55-OKマーカー除去-括弧単体"
+  else
+    echo "  [FAIL] 1-55-OKマーカー除去-括弧単体: got='$ok_t3'" >&2
+    rc=1
+  fi
+
+  ok_t4="$(strip_ok_marker "名称C（内訳） OK")"
+  if [ "$ok_t4" = "名称C（内訳）" ]; then
+    echo "  [PASS] 1-55-OKマーカー除去-全角括弧補足後スペースOK"
+  else
+    echo "  [FAIL] 1-55-OKマーカー除去-全角括弧補足後スペースOK: got='$ok_t4'" >&2
+    rc=1
+  fi
+
+  ok_t5="$(strip_ok_marker "名称D OK")"
+  if [ "$ok_t5" = "名称D" ]; then
+    echo "  [PASS] 1-55-OKマーカー除去-末尾スペースOK"
+  else
+    echo "  [FAIL] 1-55-OKマーカー除去-末尾スペースOK: got='$ok_t5'" >&2
+    rc=1
+  fi
+
+  ok_t6="$(strip_ok_marker "決済OK着地")"
+  if [ "$ok_t6" = "決済OK着地" ]; then
+    echo "  [PASS] 1-55-OKマーカー除去-業務用語維持-着地"
+  else
+    echo "  [FAIL] 1-55-OKマーカー除去-業務用語維持-着地: got='$ok_t6'" >&2
+    rc=1
+  fi
+
+  ok_t7="$(strip_ok_marker "OK処理")"
+  if [ "$ok_t7" = "OK処理" ]; then
+    echo "  [PASS] 1-55-OKマーカー除去-業務用語維持-先頭"
+  else
+    echo "  [FAIL] 1-55-OKマーカー除去-業務用語維持-先頭: got='$ok_t7'" >&2
     rc=1
   fi
 
@@ -519,16 +594,8 @@ html_escape() {
   printf '%s' "$1" | sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g' -e 's/"/\&quot;/g' -e "s/'/\&#39;/g"
 }
 
-# 検出器と同じ4形式だけを表示境界で除去する最終防衛。マニフェストJSON自体は
-# 改変せず、語中・語頭のOKを含む業務名は保持する。
-strip_ok_marker() {
-  printf '%s' "$1" | sed -E '
-    s/[[:space:]]*\(OK\)[[:space:]]+[[:alnum:]_.-]+[[:space:]]*$//
-    s/(）)OK[[:space:]]*$/\1/
-    s/[[:space:]]+OK[[:space:]]*$//
-    s/[[:space:]]*\(OK\)[[:space:]]*$//
-  ' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//'
-}
+# strip_ok_marker() の定義は、--self-test セクションから直接呼び出すため
+# count_rendered_screen_rows() の直後(self-test セクション直前)へ移動済み。
 
 # render_template — 共通関数を source（shared/scripts/render-template.sh）
 source "$(cd "$(dirname "$0")/.." && pwd)/render-template.sh"

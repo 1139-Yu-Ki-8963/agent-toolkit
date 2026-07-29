@@ -575,9 +575,10 @@ while IFS= read -r row; do
     cols="$(printf '%s\n' "$block" | extract_columns)"
     if [ -n "$cols" ]; then
       col_count="$(printf '%s\n' "$cols" | grep -c .)"
-      main_cols_json="$(printf '%s\n' "$cols" | jq -Rsc 'split("\n") | map(select(length > 0)) | .[:5]')"
-      add="$(jq -c --argjson n "$col_count" --argjson m "$main_cols_json" \
-        '. + {columnCount: $n, mainColumns: $m}' <<<"$add")"
+      main_cols_file="$WORK/main-cols.json"
+      printf '%s\n' "$cols" | jq -Rsc 'split("\n") | map(select(length > 0)) | .[:5]' > "$main_cols_file"
+      add="$(jq -c --argjson n "$col_count" --slurpfile m "$main_cols_file" \
+        '. + {columnCount: $n, mainColumns: $m[0]}' <<<"$add")"
     fi
   fi
 
@@ -593,7 +594,7 @@ while IFS= read -r row; do
   add="$(jq -c --argjson f "$fk_keys" '. + {foreignKeys: $f}' <<<"$add")"
 
   if [ "$add" != "{}" ]; then
-    jq -c -n --arg k "$unit_key" --argjson a "$add" '{key: $k, value: $a}' >> "$PATCHES"
+    jq -c --arg k "$unit_key" '{key: $k, value: .}' <<<"$add" >> "$PATCHES"
   fi
 done < <(jq -c '.units[]' "$MANIFEST")
 

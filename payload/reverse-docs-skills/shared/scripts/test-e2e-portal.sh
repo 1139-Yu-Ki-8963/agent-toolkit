@@ -353,10 +353,11 @@ done
 for f in "${ALL_PAGES[@]}"; do
   page="$(rel "$f")"
   stripped="$TMP_DIR/stripped.html"
-  # HTML コメントに加え、JS の行頭 // コメント（タグ名への言及があり得る）も除外する。
+  # HTML コメントと CSS/JS の /* ... */ ブロックコメント（装飾コメント中のタグ名混入があり得る）に加え、
+  # JS の行頭 // コメント（タグ名への言及があり得る）も除外する。
   # <script type="text/plain"> の中身はブラウザが解釈しないリテラル文である。
   # 中身のリテラル <script 等を開閉カウントに含めないよう、開閉タグだけ残して除去する
-  perl -0777 -pe 's/<!--.*?-->//gs; s{(<script[^>]*type="text/plain"[^>]*>).*?(?=</script>)}{$1}gs' "$f" | grep -vE '^[[:space:]]*//' > "$stripped"
+  perl -0777 -pe 's/<!--.*?-->//gs; s{/\*.*?\*/}{}gs; s{(<script[^>]*type="text/plain"[^>]*>).*?(?=</script>)}{$1}gs' "$f" | grep -vE '^[[:space:]]*//' > "$stripped"
   probs=""
   for tag in table script details; do
     open="$(grep -oE "<${tag}[ >]" "$stripped" | wc -l | tr -d ' ')"

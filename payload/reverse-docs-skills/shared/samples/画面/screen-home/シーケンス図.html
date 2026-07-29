@@ -653,8 +653,11 @@ table.steps-table td.ref {
 
 <script>
 (function () {
-  var LANES = ['screen', 'api', 'table'];
-  var LANE_LABELS = { screen: '画面', api: 'API', table: 'テーブル' };
+  var DEFAULT_LANES = [
+    { key: 'screen', label: '画面' },
+    { key: 'api', label: 'API' },
+    { key: 'table', label: 'テーブル' }
+  ];
   var LANE_PITCH = 240;
   var LANE_MARGIN = 90;
   var ROW_HEIGHT = 56;
@@ -663,11 +666,19 @@ table.steps-table td.ref {
   var NODE_W = 100;
   var NODE_H = 28;
   var NODE_Y = 4;
+  var LABEL_FONT_SIZE = 11.5;
+  var LABEL_PAD = 6;
 
   var raw = document.getElementById('page-data').textContent;
   var data = {};
   try { data = JSON.parse(raw); } catch (e) { data = { operations: [] }; }
   var operations = data.operations || [];
+
+  // レーンは page-data の lanes[] で任意定義できる。未指定・空配列なら固定 3 本にフォールバックする
+  var laneDefs = (data.lanes && data.lanes.length) ? data.lanes : DEFAULT_LANES;
+  var LANES = laneDefs.map(function (l) { return l.key; });
+  var LANE_LABELS = {};
+  laneDefs.forEach(function (l) { LANE_LABELS[l.key] = l.label || l.key; });
 
   var operationList = document.getElementById('operation-list');
   var operationLabel = document.getElementById('operation-label');
@@ -693,6 +704,44 @@ table.steps-table td.ref {
     return el;
   }
 
+  // 矢印ラベルの描画幅見積り（フォントメトリクスへ直接アクセスできない静的テンプレートのための概算）。
+  // 全角文字は概ね 1em、半角文字は概ね 0.58em の字送りとして扱う。
+  function isFullWidthChar(ch) {
+    var code = ch.charCodeAt(0);
+    return code >= 0x1100 && (
+      code <= 0x115F ||
+      code === 0x2329 || code === 0x232A ||
+      (code >= 0x2E80 && code <= 0xA4CF && code !== 0x303F) ||
+      (code >= 0xAC00 && code <= 0xD7A3) ||
+      (code >= 0xF900 && code <= 0xFAFF) ||
+      (code >= 0xFF00 && code <= 0xFF60) ||
+      (code >= 0xFFE0 && code <= 0xFFE6)
+    );
+  }
+  function charWidth(ch) {
+    return LABEL_FONT_SIZE * (isFullWidthChar(ch) ? 1.0 : 0.58);
+  }
+  function estimateTextWidth(text) {
+    var w = 0;
+    for (var i = 0; i < text.length; i++) w += charWidth(text.charAt(i));
+    return w;
+  }
+  // maxWidth 以下に収まるよう末尾を省略記号で切り詰める。既に収まっていればそのまま返す。
+  function fitLabelText(text, maxWidth) {
+    if (estimateTextWidth(text) <= maxWidth) return text;
+    var ellipsis = '…';
+    var ellipsisW = estimateTextWidth(ellipsis);
+    var result = '';
+    var w = 0;
+    for (var i = 0; i < text.length; i++) {
+      var cw = charWidth(text.charAt(i));
+      if (w + cw + ellipsisW > maxWidth) break;
+      result += text.charAt(i);
+      w += cw;
+    }
+    return result + ellipsis;
+  }
+
   function renderOperation(op, activeIndex) {
     svg.innerHTML = '';
     tbody.innerHTML = '';
@@ -700,6 +749,8 @@ table.steps-table td.ref {
     var steps = (op && op.steps) || [];
     var height = TOP_PADDING + steps.length * ROW_HEIGHT + BOTTOM_PADDING;
     var width = LANE_MARGIN * 2 + (LANES.length - 1) * LANE_PITCH;
+    // ラベルの外接矩形が図の左端（0）・右端（width）をはみ出さないよう、描画可能幅を上限にして切り詰める
+    var maxLabelWidth = Math.max(20, width - LABEL_PAD * 2);
 
     svg.setAttribute('width', width);
     svg.setAttribute('height', height);
@@ -760,12 +811,17 @@ table.steps-table td.ref {
         svg.appendChild(line);
       }
 
+      var rawLabel = (step.seq != null ? step.seq + '. ' : '') + (step.label || '');
+      var fittedLabel = fitLabelText(rawLabel, maxLabelWidth);
+      var labelW = estimateTextWidth(fittedLabel);
       var midX = (x1 + x2) / 2;
+      // 中央揃えのまま、外接矩形が [0, width] からはみ出ないように中心座標を左右へクランプする
+      var textX = Math.max(LABEL_PAD + labelW / 2, Math.min(midX, width - LABEL_PAD - labelW / 2));
       var text = svgEl('text', {
-        x: midX, y: y - 8, class: 'step-label' + (isReturn ? ' return' : ''),
+        x: textX, y: y - 8, class: 'step-label' + (isReturn ? ' return' : ''),
         'text-anchor': 'middle'
       });
-      text.textContent = (step.seq != null ? step.seq + '. ' : '') + (step.label || '');
+      text.textContent = fittedLabel;
       svg.appendChild(text);
     });
 

@@ -12,7 +12,7 @@
 # screenKey/route/entryFile/screenIdRegex を使う。screen以外は units・unitKey/identifier/
 # sourceFile/unitIdRegex を使う。
 #
-# 検査項目(screen: 全11項目 / screen以外: 全8項目。結果は [PASS]/[FAIL] 項目名 — 詳細 の形式でstderrへ列挙):
+# 検査項目(screen: 全14項目 / screen以外: 全10項目。結果は [PASS]/[FAIL] 項目名 — 詳細 の形式でstderrへ列挙):
 #   1. schema-必須フィールド    : トップレベル必須キー + 各要素の必須キーの存在
 #                                  (screen: generatedAt,sourceDir,strategy,detectionSummary,screens /
 #                                   screenKey,kind,route,entryFile,confidence。
@@ -45,21 +45,31 @@
 #                                   存在する場合のみ型を検査する(不在はエラーにしない。後方互換):
 #                                   - 文字列配列: permissions/relatedApis/callers/foreignKeys/
 #                                     mainColumns/targetTables/downstreamJobs
-#                                   - boolean: authRequired / 数値: columnCount
+#                                   - boolean: authRequired/hasTemplate/isProcessingEndpoint / 数値: columnCount
 #                                   - 文字列: method/ioSummary/designDocStatus/category/format/
 #                                     trigger/direction/protocol/authMethod/execMethod/operationClass
 #                                   - object({cron, readable}を持つ): schedule
 #                                   - 2値制約: designDocStatus(着手済/未着手)・trigger(画面/バッチ)・
 #                                     direction(送信/受信)
-#   9. screenType-必須+値域     : screen専用(screen以外はskip)。全screensにscreenTypeフィールドが
+#   9. 名称-一意性               : 表示名(screen: confirmedScreenName優先・無ければscreenNameGuess /
+#                                   screen以外: unitNameGuess)が空でない要素間で重複していないか。
+#                                   1件でも重複があればFAILし、重複名称とそれを共有するキー全件を列挙する
+#  10. 実装参照-統合候補         : 同一の実装参照(screen: entryFile / screen以外: sourceFile)を持つ
+#                                   要素群のうち、identifier(screen: route)が引数プレースホルダ
+#                                   (`:name`または`{name}`)による分岐を示していないものを統合候補として
+#                                   列挙する(常にPASS。自動統合はしない。統合可否は利用者判断)
+#  11. screenType-必須+値域     : screen専用(screen以外はskip)。全screensにscreenTypeフィールドが
 #                                   存在し(不在・null不可)、値が list/detail/form/confirm/complete/
 #                                   error/top/processing_endpoint のいずれかであること
-#  10. accountGroup-値域         : screen専用。存在する場合は user/admin/editor/report/common のいずれか
-#  11. parent-child参照          : parentScreen と childComponents のscreenKey実在、componentType値域、
+#  12. accountGroup-値域         : screen専用。存在する場合は user/admin/editor/report/common のいずれか
+#  13. accountSubType-値域       : screen専用。存在する場合は文字列かつ識別子形式(^[A-Za-z_][A-Za-z0-9_]*$)
+#                                   であること(detect-screens.shの抽出値は role 名または common/role_checked
+#                                   のいずれかで、固定小集合の列挙ではなく識別子形式のみが不変契約のため)
+#  14. parent-child参照          : parentScreen と childComponents のscreenKey実在、componentType値域、
 #                                   親→子・子→親の双方向一致を検証する
 #
-# 全項目(screen: 11項目 / screen以外: 8項目)PASSでexit 0。1件でもFAILがあればexit 1
-# (--fixで解消された項目4はPASS扱い)。
+# 全項目(screen: 14項目 / screen以外: 10項目)PASSでexit 0。1件でもFAILがあればexit 1
+# (--fixで解消された項目4はPASS扱い。項目10は常にPASSする情報列挙)。
 
 set -uo pipefail
 
@@ -450,8 +460,9 @@ run_validate() {
           [ ("permissions","relatedApis","callers","foreignKeys","mainColumns","targetTables","downstreamJobs") as $f
             | select(has($f) and (.[$f] != null)) | select((.[$f] | is_str_arr) | not)
             | $f + "が文字列配列でない" ]
-        + [ select(has("authRequired") and (.authRequired != null)) | select((.authRequired | type) != "boolean")
-            | "authRequiredがbooleanでない" ]
+        + [ ("authRequired","hasTemplate","isProcessingEndpoint") as $f
+            | select(has($f) and (.[$f] != null)) | select((.[$f] | type) != "boolean")
+            | $f + "がbooleanでない" ]
         + [ select(has("columnCount") and (.columnCount != null)) | select((.columnCount | type) != "number")
             | "columnCountが数値でない" ]
         + [ ("method","ioSummary","designDocStatus","category","format","trigger","direction","protocol","authMethod","execMethod","operationClass") as $f
@@ -491,12 +502,62 @@ run_validate() {
   fi
 
   # ---------------------------------------------------------------------------
-  # 9. screenType-必須+値域(screen専用。screen以外はskip)
+  # 9. 名称-一意性
+  #    表示名(screen: confirmedScreenName優先・無ければscreenNameGuess / screen以外: unitNameGuess)が
+  #    空でない要素間で重複していないかを検査する。名称から内部識別子(モジュール接頭辞・ユニットキー併記等)を
+  #    除去する改修を行うと業務名だけでは一意性が担保されなくなるため、生成・検証の両工程で機械的に検知する。
+  # ---------------------------------------------------------------------------
+  local dup_names name_label="名称-一意性"
+  dup_names="$(jq -r --arg items "$ITEMS_KEY" --arg keyfield "$ITEM_KEY_FIELD" --arg kind "$UNIT_KIND" '
+    def itemname:
+      if $kind == "screen" then (.confirmedScreenName // .screenNameGuess // "")
+      else (.unitNameGuess // "")
+      end;
+    [ .[$items][]? | {name: itemname, key: (.[$keyfield] // "?")} ]
+    | map(select(.name != ""))
+    | group_by(.name)
+    | map(select(length > 1))
+    | map(.[0].name + ":[" + (map(.key) | join(",")) + "]")
+    | join("; ")
+  ' "$MANIFEST" 2>/dev/null)"
+
+  if [ -n "$dup_names" ]; then
+    overall_fail=1
+    echo "[FAIL] ${name_label} — 名称重複: ${dup_names}" >&2
+  else
+    echo "[PASS] ${name_label} — 名称重複0件" >&2
+  fi
+
+  # ---------------------------------------------------------------------------
+  # 10. 実装参照-統合候補
+  #     同一の実装参照(screen: entryFile / screen以外: sourceFile)を持つ要素が2件以上あるグループのうち、
+  #     identifier(screen: route)がいずれも引数プレースホルダ(`:name`または`{name}`)による分岐を
+  #     示していないグループを統合候補として列挙する。自動統合はしない(常にPASS。利用者判断に委ねる)。
+  # ---------------------------------------------------------------------------
+  local impl_ref_candidates impl_ref_label="実装参照-統合候補"
+  impl_ref_candidates="$(jq -r --arg items "$ITEMS_KEY" --arg keyfield "$ITEM_KEY_FIELD" --arg idf "$IDENTIFIER_FIELD" --arg srcf "$SOURCE_FIELD" '
+    def has_param: test(":[A-Za-z_][A-Za-z0-9_]*") or test("\\{[A-Za-z_][A-Za-z0-9_]*\\}");
+    [ .[$items][]? | select((.[$srcf] // "") != "") | {key: (.[$keyfield] // "?"), src: .[$srcf], ident: (.[$idf] // "")} ]
+    | group_by(.src)
+    | map(select(length > 1))
+    | map(select(all(.[]; (.ident | has_param) | not)))
+    | map(.[0].src + ":[" + (map(.key) | join(",")) + "]")
+    | join("; ")
+  ' "$MANIFEST" 2>/dev/null)"
+
+  if [ -n "$impl_ref_candidates" ]; then
+    echo "[PASS] ${impl_ref_label} — 統合候補(自動統合はしない・利用者判断): ${impl_ref_candidates}" >&2
+  else
+    echo "[PASS] ${impl_ref_label} — 統合候補0件" >&2
+  fi
+
+  # ---------------------------------------------------------------------------
+  # 11. screenType-必須+値域(screen専用。screen以外はskip)
   #    全screensにscreenTypeフィールドが存在し(不在・null不可)、値域内であることを検査する。
   # ---------------------------------------------------------------------------
-  local total_items=8
+  local total_items=10
   if [ "$UNIT_KIND" = "screen" ]; then
-    total_items=11
+    total_items=14
     local screen_type_issues
     screen_type_issues="$(jq -r '
       ["list","detail","form","confirm","complete","error","top","processing_endpoint"] as $allowed
@@ -536,6 +597,32 @@ run_validate() {
       echo "[PASS] accountGroup-値域 — user/admin/editor/report/commonのみ" >&2
     fi
 
+    # 13. accountSubType-値域(screen専用)
+    #     detect-screens.shの抽出値はrole名(識別子形式)またはcommon/role_checkedのいずれかであり、
+    #     accountGroupのような固定小集合ではないため、型と識別子形式(^[A-Za-z_][A-Za-z0-9_]*$)を検査する。
+    local account_sub_type_issues
+    account_sub_type_issues="$(jq -r '
+      [ .screens[]? |
+          (.screenKey // "?") as $k
+          | if (has("accountSubType") | not) or (.accountSubType == null) then
+              empty
+            elif (.accountSubType | type) != "string" then
+              $k + ":accountSubType=" + (.accountSubType | tostring) + "(型不正)"
+            elif (.accountSubType | test("^[A-Za-z_][A-Za-z0-9_]*$") | not) then
+              $k + ":accountSubType=" + .accountSubType + "(値域外)"
+            else
+              empty
+            end
+        ] | join("; ")
+    ' "$MANIFEST" 2>/dev/null)"
+    if [ -n "$account_sub_type_issues" ]; then
+      overall_fail=1
+      echo "[FAIL] accountSubType-値域 — ${account_sub_type_issues}" >&2
+    else
+      echo "[PASS] accountSubType-値域 — 文字列かつ識別子形式" >&2
+    fi
+
+    # 14. parent-child参照(screen専用)
     local parent_child_issues
     parent_child_issues="$(jq -r '
       (.screens // []) as $screens
@@ -713,6 +800,57 @@ JSON
     rc=1
   else
     echo "  [PASS] accountGroup陰性(値域外): 無効値でFAIL"
+  fi
+
+  # ---- accountSubType-値域・hasTemplate/isProcessingEndpoint-型の確認(1-71) ----
+  local screen_bad_account_sub_type="$tmp/screen-bad-account-sub-type.json"
+  jq '.screens[0].accountSubType = "editor role"' "$screen_pass" > "$screen_bad_account_sub_type"
+  if run_validate "$screen_bad_account_sub_type" "" "screen" >/dev/null 2>&1; then
+    echo "  [FAIL] accountSubType陰性(値域外): 識別子形式でない値なのにPASSした" >&2
+    rc=1
+  else
+    echo "  [PASS] accountSubType陰性(値域外): 識別子形式でない値でFAIL"
+  fi
+
+  local screen_bad_has_template="$tmp/screen-bad-has-template.json"
+  jq '.screens[0].hasTemplate = "yes"' "$screen_pass" > "$screen_bad_has_template"
+  if run_validate "$screen_bad_has_template" "" "screen" >/dev/null 2>&1; then
+    echo "  [FAIL] hasTemplate陰性(型不正): 文字列なのにPASSした" >&2
+    rc=1
+  else
+    echo "  [PASS] hasTemplate陰性(型不正): 文字列でFAIL"
+  fi
+
+  local screen_bad_is_processing_endpoint="$tmp/screen-bad-is-processing-endpoint.json"
+  jq '.screens[0].isProcessingEndpoint = "no"' "$screen_pass" > "$screen_bad_is_processing_endpoint"
+  if run_validate "$screen_bad_is_processing_endpoint" "" "screen" >/dev/null 2>&1; then
+    echo "  [FAIL] isProcessingEndpoint陰性(型不正): 文字列なのにPASSした" >&2
+    rc=1
+  else
+    echo "  [PASS] isProcessingEndpoint陰性(型不正): 文字列でFAIL"
+  fi
+
+  # ---- 名称-一意性の確認(1-51) ----
+  local screen_dup_name="$tmp/screen-dup-name.json"
+  jq '.detectionSummary.screenCount = 2
+      | .screens[0].screenNameGuess = "ホーム画面"
+      | .screens += [{screenKey:"home-alt", kind:"route", route:"/home-alt", entryFile:"src/screens/Home.tsx", confidence:"high", screenType:"top", accountGroup:"common", accountSubType:"common", hasTemplate:true, parentScreen:null, childComponents:[], isProcessingEndpoint:false, screenNameGuess:"ホーム画面"}]' "$screen_pass" > "$screen_dup_name"
+  if run_validate "$screen_dup_name" "" "screen" >/dev/null 2>&1; then
+    echo "  [FAIL] 名称-一意性陰性: screenNameGuessが重複するのにPASSした" >&2
+    rc=1
+  else
+    echo "  [PASS] 名称-一意性陰性: screenNameGuessの重複でFAIL"
+  fi
+
+  local screen_unique_name="$tmp/screen-unique-name.json"
+  jq '.detectionSummary.screenCount = 2
+      | .screens[0].screenNameGuess = "ホーム画面"
+      | .screens += [{screenKey:"home-alt", kind:"route", route:"/home-alt", entryFile:"src/screens/Home.tsx", confidence:"high", screenType:"top", accountGroup:"common", accountSubType:"common", hasTemplate:true, parentScreen:null, childComponents:[], isProcessingEndpoint:false, screenNameGuess:"別画面"}]' "$screen_pass" > "$screen_unique_name"
+  if run_validate "$screen_unique_name" "" "screen" >/dev/null 2>&1; then
+    echo "  [PASS] 名称-一意性陽性: screenNameGuessが一意なら全項目PASS"
+  else
+    echo "  [FAIL] 名称-一意性陽性: 一意なscreenNameGuessがFAILした" >&2
+    rc=1
   fi
 
   local screen_parent_child="$tmp/screen-parent-child.json"
@@ -928,6 +1066,36 @@ JSON
     echo "  [PASS] 拡張フィールドnull陽性: 任意フィールドが明示的nullでも全8項目PASS"
   else
     echo "  [FAIL] 拡張フィールドnull陽性: 任意フィールドの明示的nullがFAILした" >&2
+    rc=1
+  fi
+
+  # ---- 検査10(実装参照-統合候補)の確認(1-54) ----
+  # 分岐なしペア(同一sourceFileを引数プレースホルダなしの異なるidentifierで参照)は統合候補として列挙し、
+  # 分岐ありペア(users-list/users-detailは同一sourceFileだが:idで分岐)は列挙しないことを確認する。
+  cat > "$tmp/api-src/routes/legacy.ts" <<'EOF'
+export function legacyUsers() {}
+EOF
+
+  local impl_ref_manifest="$tmp/impl-ref.json"
+  jq --arg legacy "$tmp/api-src/routes/legacy.ts" --arg users "$tmp/api-src/routes/users.ts" '
+    .units = [
+      {unitKey:"legacy-portal-x", kind:"endpoint", identifier:"GET /portal-x/users", sourceFile:$legacy, confidence:"high"},
+      {unitKey:"legacy-portal-y", kind:"endpoint", identifier:"GET /portal-y/users", sourceFile:$legacy, confidence:"high"},
+      {unitKey:"users-list", kind:"endpoint", identifier:"GET /api/users", sourceFile:$users, confidence:"high"},
+      {unitKey:"users-detail", kind:"endpoint", identifier:"GET /api/users/:id", sourceFile:$users, confidence:"high"}
+    ]
+    | .detectionSummary.unitCount = 4
+    | .detectionSummary.unresolvedCount = 0
+  ' "$api_pass" > "$impl_ref_manifest"
+
+  local impl_ref_output
+  impl_ref_output="$(run_validate "$impl_ref_manifest" "" "api" 2>&1)"
+  if echo "$impl_ref_output" | grep -q '実装参照-統合候補.*legacy-portal-x,legacy-portal-y' \
+    && ! echo "$impl_ref_output" | grep -q 'users-list,users-detail'; then
+    echo "  [PASS] 実装参照-統合候補: 分岐なしペアのみ列挙し引数分岐ペアは列挙しない"
+  else
+    echo "  [FAIL] 実装参照-統合候補: 期待どおりの列挙にならなかった" >&2
+    echo "$impl_ref_output" | grep '実装参照-統合候補' >&2
     rc=1
   fi
 

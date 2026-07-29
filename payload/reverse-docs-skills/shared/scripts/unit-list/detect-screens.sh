@@ -902,6 +902,7 @@ extract_route_paths() {
 # 未定義になる)で、定義をここ(self-test セクション直前)へ前倒しする。
 strip_ok_marker() {
   printf '%s' "$1" | sed -E '
+    s/[[:space:]]*\(OK\)[[:space:]]+\([^()]+\)[[:space:]]*$//
     s/[[:space:]]*\(OK\)[[:space:]]+[[:alnum:]_.-]+[[:space:]]*$//
     s/(）)OK[[:space:]]*$/\1/
     s/[[:space:]]+OK[[:space:]]*$//
@@ -1693,6 +1694,57 @@ EOF
     test_report "1-8-OKマーカー除去-業務用語維持-先頭" 0
   else
     test_report "1-8-OKマーカー除去-業務用語維持-先頭" 1 "got='$ok_t6'"
+  fi
+
+  # --- 1-55: 括弧付き識別子「(OK) (identA)」形式への対応 ---
+  local ok_t7 ok_t8 ok_t9 ok_t10 ok_t11 ok_t12 ok_t13
+  ok_t7="$(strip_ok_marker "名称A(OK) (identA)")"
+  if [ "$ok_t7" = "名称A" ]; then
+    test_report "1-55-OKマーカー除去-括弧付き識別子二重括弧" 0
+  else
+    test_report "1-55-OKマーカー除去-括弧付き識別子二重括弧" 1 "got='$ok_t7'"
+  fi
+
+  ok_t8="$(strip_ok_marker "名称F(OK) identF")"
+  if [ "$ok_t8" = "名称F" ]; then
+    test_report "1-55-OKマーカー除去-括弧付き識別子非括弧" 0
+  else
+    test_report "1-55-OKマーカー除去-括弧付き識別子非括弧" 1 "got='$ok_t8'"
+  fi
+
+  ok_t9="$(strip_ok_marker "名称B(OK)")"
+  if [ "$ok_t9" = "名称B" ]; then
+    test_report "1-55-OKマーカー除去-括弧単体" 0
+  else
+    test_report "1-55-OKマーカー除去-括弧単体" 1 "got='$ok_t9'"
+  fi
+
+  ok_t10="$(strip_ok_marker "名称C（内訳） OK")"
+  if [ "$ok_t10" = "名称C（内訳）" ]; then
+    test_report "1-55-OKマーカー除去-全角括弧補足後スペースOK" 0
+  else
+    test_report "1-55-OKマーカー除去-全角括弧補足後スペースOK" 1 "got='$ok_t10'"
+  fi
+
+  ok_t11="$(strip_ok_marker "名称D OK")"
+  if [ "$ok_t11" = "名称D" ]; then
+    test_report "1-55-OKマーカー除去-末尾スペースOK" 0
+  else
+    test_report "1-55-OKマーカー除去-末尾スペースOK" 1 "got='$ok_t11'"
+  fi
+
+  ok_t12="$(strip_ok_marker "決済OK着地")"
+  if [ "$ok_t12" = "決済OK着地" ]; then
+    test_report "1-55-OKマーカー除去-業務用語維持-着地" 0
+  else
+    test_report "1-55-OKマーカー除去-業務用語維持-着地" 1 "got='$ok_t12'"
+  fi
+
+  ok_t13="$(strip_ok_marker "OK処理")"
+  if [ "$ok_t13" = "OK処理" ]; then
+    test_report "1-55-OKマーカー除去-業務用語維持-先頭" 0
+  else
+    test_report "1-55-OKマーカー除去-業務用語維持-先頭" 1 "got='$ok_t13'"
   fi
 
   # --- 1-8-5: screenNameGuess → nodes[].label 転記への連動確認

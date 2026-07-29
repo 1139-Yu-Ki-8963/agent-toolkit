@@ -495,6 +495,31 @@ TEST15CATALOG
   echo "PASS: embedded JSON is script-safe and JSON.parse restores the original title"
   rm -rf "$test15_dir"
 
+  echo "--- ケース17: 規約・設計いずれのパターンにも一致しない共通文書が『規約』カテゴリに混入しない ---"
+  test17_dir="$(mktemp -d)"
+  test17_repo="$test17_dir/repo"
+  test17_docs="$test17_dir/docs"
+  mkdir -p "$test17_repo" "$test17_docs/プロジェクト共通"
+  printf '# 作業記録\n\n本文。\n' > "$test17_docs/プロジェクト共通/作業記録.md"
+  "$SCRIPT_DIR/build-portal.sh" "$test17_repo" "$test17_docs" "$test17_docs" --generated-at 2026-07-28T00:00:00Z 2>/dev/null
+  if node -e '
+    const fs = require("fs");
+    const source = fs.readFileSync(process.argv[1], "utf8");
+    const match = source.match(/<script type="application\/json" id="portal-categories">([\s\S]*?)<\/script>/);
+    if (!match) process.exit(1);
+    const categories = JSON.parse(match[1]);
+    const standards = categories.find((c) => c.key === "standards");
+    const titles = (standards && standards.tools) ? standards.tools.map((t) => t.title) : [];
+    if (titles.includes("作業記録")) process.exit(1);
+  ' "$test17_docs/index.html"; then
+    echo "PASS: --self-test ケース17（規約・設計いずれにも一致しない文書が規約カテゴリに入らない）"
+  else
+    echo "FAIL: --self-test ケース17（規約・設計いずれにも一致しない文書が規約カテゴリへ混入した）" >&2
+    rm -rf "$test17_dir"
+    exit 1
+  fi
+  rm -rf "$test17_dir"
+
   echo "--- ケース16: ポータル規約検査 ---"
   CONVENTIONS_TEST="$SCRIPT_DIR/test-portal-conventions.sh"
   if [ -f "$CONVENTIONS_TEST" ]; then
@@ -617,19 +642,8 @@ kinds_json="[]"
 # --- 3. 共通文書リストの収集（standards: 規約系 / design: 設計書系 に分割。category-grouping/rule.md 準拠） ---
 common_dir="$DOCS_ROOT/プロジェクト共通"
 COMMON_DOC_TEMPLATE_FILE="$SCRIPT_DIR/../templates/common-doc-template.html"
-docs_relative="$(python3 -c 'import os,sys; print(os.path.relpath(sys.argv[1], sys.argv[2]))' "$DOCS_ROOT" "$PORTAL_DIR" 2>/dev/null || echo ".")"
 
 if [ "$PORTAL_ONLY" -eq 0 ]; then
-standards_titles=()
-standards_icons=()
-standards_hrefs=()
-standards_groups=()
-
-design_doc_titles=()
-design_doc_icons=()
-design_doc_hrefs=()
-design_doc_groups=()
-
 html_escape() {
   printf '%s' "$1" | sed 's/&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g'
 }
@@ -702,80 +716,8 @@ if [ -d "$common_dir" ]; then
       printf '%s\n' "$doc_html" > "$html_file"
     fi
 
-    # サブディレクトリ（規約/ 等）配下の共通文書もリンクを実在パスへ解決する（basename だけにしない）
-    rel_subpath="${md_file#"$common_dir"/}"
-    rel_href="$docs_relative/プロジェクト共通/${rel_subpath%.md}.html"
-
-    doc_icon="description"
-    case "$title" in
-      *規約*|*規則*) doc_icon="rule" ;;
-      *エラー*) doc_icon="error" ;;
-      *状態*|*ステート*) doc_icon="sync" ;;
-      *認証*|*認可*|*権限*) doc_icon="lock" ;;
-      *API*) doc_icon="api" ;;
-      *設計*) doc_icon="architecture" ;;
-      *データ*|*DB*) doc_icon="storage" ;;
-      *UI*|*画面*) doc_icon="desktop_windows" ;;
-      *メッセージ*) doc_icon="chat" ;;
-    esac
-
-    title_escaped="$(echo "$title" | sed 's/"/\\"/g')"
-
-    # カテゴリ振り分け（規約/規則/命名 → standards、設計/アーキテクチャ/データ/UI → design。既定は standards）
-    common_category="standards"
-    case "$(basename "$md_file") $title" in
-      *規約*|*規則*|*命名*) common_category="standards" ;;
-      *設計*|*アーキテクチャ*|*データ*|*UI*) common_category="design" ;;
-    esac
-
-    if [ "$common_category" = "standards" ]; then
-      doc_group=""
-      case "$title" in
-        *コーディング規約*|*命名規約*) doc_group="コード" ;;
-        *ディレクトリ構成規約*|*コンポーネント設計規約*) doc_group="構造" ;;
-        *レビュー観点表*|*テスト方針書*) doc_group="品質" ;;
-      esac
-      standards_titles+=("$title_escaped")
-      standards_icons+=("$doc_icon")
-      standards_hrefs+=("$rel_href")
-      standards_groups+=("$doc_group")
-    else
-      doc_group=""
-      case "$title" in
-        *基盤設計書*|*共通設計書*) doc_group="基盤" ;;
-        *データ設計書*|*メッセージ定義書*) doc_group="データ" ;;
-        *UI共通設計書*) doc_group="UI" ;;
-      esac
-      design_doc_titles+=("$title_escaped")
-      design_doc_icons+=("$doc_icon")
-      design_doc_hrefs+=("$rel_href")
-      design_doc_groups+=("$doc_group")
-    fi
   done < <(find "$common_dir" -name '*.md' -type f 2>/dev/null | sort)
 fi
-
-# 共通文書 JSON の組み立て（カテゴリ内アイテムが 4 件以上の場合のみ group フィールドを付与）
-build_common_category_json() {
-  local -a titles=("${!1}")
-  local -a icons=("${!2}")
-  local -a hrefs=("${!3}")
-  local -a groups=("${!4}")
-  local count=${#titles[@]}
-  local json=""
-  local i
-  for ((i = 0; i < count; i++)); do
-    [ -n "$json" ] && json="$json,"
-    if [ "$count" -ge 4 ] && [ -n "${groups[$i]}" ]; then
-      json="$json{\"title\":\"${titles[$i]}\",\"group\":\"${groups[$i]}\",\"icon\":\"${icons[$i]}\",\"href\":\"${hrefs[$i]}\",\"desc\":\"\",\"count\":\"詳細を見る\"}"
-    else
-      json="$json{\"title\":\"${titles[$i]}\",\"icon\":\"${icons[$i]}\",\"href\":\"${hrefs[$i]}\",\"desc\":\"\",\"count\":\"詳細を見る\"}"
-    fi
-  done
-  echo "$json"
-}
-
-standards_tools_json="$(build_common_category_json standards_titles[@] standards_icons[@] standards_hrefs[@] standards_groups[@])"
-design_common_json="$(build_common_category_json design_doc_titles[@] design_doc_icons[@] design_doc_hrefs[@] design_doc_groups[@])"
 
 # --- 3.5. 画面設計書の変換 ---
 SCREEN_DOC_TEMPLATE_FILE="$SCRIPT_DIR/../templates/screen-doc-template.html"
@@ -827,8 +769,8 @@ if [ -d "$DOCS_ROOT/画面" ] && [ -f "$SCREEN_DOC_TEMPLATE_FILE" ]; then
       if [ -f "${screen_dir}シーケンス図.html" ]; then
         doc_nav="$doc_nav<a class=\"nav-item\" href=\"../シーケンス図.html\">シーケンス図</a>"
       fi
-      if [ -f "${screen_dir}テスト項目書/単体テスト仕様書.html" ]; then
-        doc_nav="$doc_nav<a class=\"nav-item\" href=\"../テスト項目書/単体テスト仕様書.html\">テストケース</a>"
+      if [ -f "${screen_dir}テスト項目書/単体テスト仕様書.md" ]; then
+        doc_nav="$doc_nav<a class=\"nav-item\" href=\"../テスト項目書/単体テスト仕様書.md\">テストケース</a>"
       fi
 
       screen_render_args=(

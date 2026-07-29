@@ -26,24 +26,29 @@ allowed-tools: [Bash, Read, Write, Grep, Glob, AskUserQuestion, TaskCreate, Task
   "screenId": "screen-order-list",
   "screenLabel": "注文一覧",
   "generatedAt": "ISO8601",
+  "lanes": [
+    {"key": "screen", "label": "画面"},
+    {"key": "api", "label": "API"},
+    {"key": "table", "label": "テーブル"}
+  ],
   "operations": [
     {
       "key": "save-click",
       "label": "保存ボタン押下",
       "handler": "handler-onSave-保存",
       "steps": [
-        {"seq": 1, "from": "screen", "to": "api", "label": "POST /orders", "sourceRef": "src/screens/Order.tsx:42"},
-        {"seq": 2, "from": "api", "to": "table", "label": "INSERT orders", "sourceRef": "server/orders.ts:10"},
-        {"seq": 3, "from": "api", "to": "screen", "label": "201 Created → 一覧再取得", "kind": "return"}
+        {"seq": 1, "from": "screen", "to": "api", "label": "注文登録", "sourceRef": "src/screens/Order.tsx:42"},
+        {"seq": 2, "from": "api", "to": "table", "label": "注文レコード登録", "sourceRef": "server/orders.ts:10"},
+        {"seq": 3, "from": "api", "to": "screen", "label": "登録完了 → 一覧再取得", "kind": "return", "sourceRef": "src/screens/Order.tsx:42"}
       ]
     }
   ]
 }
 ```
 
-- レーン（ライフライン）は固定 3 本: `screen`=画面 / `api`=API / `table`=テーブル。`steps[].from`/`to` はこの 3 値のみ
+- **レーン（ライフライン）**: `lanes[]` で画面ごとに任意定義できる。各要素は `key`（`steps[].from`/`to` が参照する識別子）と `label`（見出し表示名）を持つ。`lanes` を省略した page-data は固定 3 本（`screen`=画面 / `api`=API / `table`=テーブル）にフォールバックする。`steps[].from`/`to` は `lanes[].key`（省略時は `screen`/`api`/`table`）のみを使う
 - `kind: "return"` のステップは破線で描画される。省略時は実線
-- `sourceRef` は任意（無いステップはテンプレート側で根拠列を空表示する）
+- `sourceRef` は facts（`call_order`）由来のステップでは省略しない。`call_order` エントリは必ず `file:line` を持つため、対応する `steps[].sourceRef` に転記する。手書き page-data で根拠が無いステップに限り省略でき、その場合はテンプレート側で根拠列を空表示する
 
 ## エンジンスクリプトの所在
 
@@ -72,22 +77,40 @@ Read / Glob で対象画面ごとに `<output_dir>/画面/screen-<ID>/シーケ�
 
 不在の画面については、Read で同ディレクトリの facts.yml（`facts_ref`。`extracting-unit-facts-from-code` が確定済みの前提）を読む。⑤handler の各 item が持つ任意フィールド `call_order`（形式 `"<連番>:<api分類のkey>@<file:line>; ..."`。`shared/references/facts-schema.md` の「call_order（⑤handlerの任意フィールド）」節が正本）を持つ handler だけを対象に、Write で `operations[]` へ機械変換する。
 
-  - `operations[].key`/`label` は handler item の `key`/`value`（発火要素・処理1行要約）から組み立てる
-  - `call_order` の各エントリを `steps[]` に変換する: `from: "screen"`・`to: "api"`・`label` は参照先の⑧api分類 item の `value`（BL 名・リクエスト形）・`sourceRef` は `call_order` エントリの `file:line`
-  - API 呼び出しに対応する DB アクセス（⑧api分類 item の value・evidence から読み取れる範囲）が facts 側に記録されている場合のみ `api→table` の step を追加する。記録がなければ `api→screen`（`kind: "return"`）で応答だけを 1 step として閉じる
-  - facts.yml が実在し、`call_order` を持つ handler が 1 件もない画面は、推測で操作を補わず `operations: []` の page-data を機械生成する。テンプレートの空状態までレンダリングし、「呼び出し順序の記録なし」と報告する
-  - facts.yml 自体が存在しない画面だけは変換不能として報告し、手書き page-data の作成をユーザーに依頼して当該画面をスキップする（捏造しない）
+### ステップ表示文言の導出
+
+- `steps[].label` に⑧api分類 item の `value` を生の文字列としてそのまま転記しない。`value` には代入式（`=`）・引数リテラル（丸括弧）・タブ区切りの分類タグが含まれ、そのまま表示すると呼び出しの意味が読み取れないため
+- 表示文言は呼び出し先の**業務名**にする。導出根拠は優先順に (1) 原本の該当行に付いた日本語コメント（`value`/`evidence` から読み取れる範囲）、(2) 呼び出し先の関数名・BL 名（⑧api分類 item の識別子部分。代入・引数を除く）とする
+- 代入演算子（`=`）・引数の丸括弧とその中身（`(...)`）・タブ区切りの分類タグは表示文言から落とす。これらは根拠欄（`sourceRef`）が追跡性を担うため、表示文言に原本の文字列を残す必要はない
+- **根拠のない機能名を作らない**。日本語コメントからも関数名・BL 名からも業務名を導出できない呼び出しは、呼び出し先の識別子（BL 名そのもの）だけを表示文言にする。読み手に伝わりやすくするための推測で業務的な名前を捏造しない
+- `sourceRef` は `call_order` エントリの `file:line` をそのまま転記する（facts 由来のステップでは省略しない）。`api→screen`（`kind: "return"`）の合成応答ステップは、対応する呼び出し元 `call_order` エントリと同一の `file:line` を `sourceRef` として引き継ぐ
+
+### operations[] への組み立てと分割
+
+- `operations[].key`/`label` は handler item の `key`/`value`（発火要素・処理1行要約）から組み立てる。1 handler の `call_order` から変換したステップ数が 15 を超える場合は、以下の基準の優先順で複数の `operations[]` へ分割する
+  1. 同じ画面の設計文書（画面基本設計書等）が機能の一覧を持つ場合は、その機能単位へ対応付けて分割する
+  2. 機能単位が無い、または分割後もなお 15 ステップを超える区分がある場合は、原本のコメント区切りのような根拠のある単位（関数内のブロックコメント境界等）で局面へ分ける
+  3. 上記いずれも適用できない場合は、ソース出現順（`call_order` の連番順）に 15 ステップごとで機械的に区切る
+  - 分割後の `operations[].key`/`label` は連番を使わない。各区切りの先頭ステップに導出できた業務名（導出できなければ先頭呼び出しの識別子）を局面名として使い、内容を要約した意味語で組み立てる（例: `save-click` の分割なら `save-click-validate` / `save-click-persist`）
+  - 分割後も各 `operations[].steps[].seq` は操作ごとに 1 始まりの連番へ振り直す（Step 1-3 の jq 検証は操作単位で連番性を見るため）
+  - 分割は呼び出しの追加・削除・重複を行わない。分割前後で `call_order` から機械変換されたステップの総数（合成 return ステップを除く）は変わらない
+  - 15 ステップ以下の handler は分割せず 1 handler = 1 operation のまま変換する
+- `call_order` の各エントリを `steps[]` に変換する: `from: "screen"`・`to: "api"`
+- API 呼び出しに対応する DB アクセス（⑧api分類 item の value・evidence から読み取れる範囲）が facts 側に記録されている場合のみ `api→table` の step を追加する。記録がなければ `api→screen`（`kind: "return"`）で応答だけを 1 step として閉じる
+- facts.yml が実在し、`call_order` を持つ handler が 1 件もない画面は、推測で操作を補わず `operations: []` の page-data を機械生成する。テンプレートの空状態までレンダリングし、「呼び出し順序の記録なし」と報告する
+- facts.yml 自体が存在しない画面だけは変換不能として報告し、手書き page-data の作成をユーザーに依頼して当該画面をスキップする（捏造しない）
 
 **完了**: facts.yml が実在する画面は、操作 0 件を含めすべて `シーケンス図-data.json` を書き出し済み。facts.yml 不在の画面は報告済み。
 
 ## Step 1-3: page-data の検証
 
-Bash で組み立てた JSON を jq 検証する。必須キー（`screenId`/`screenLabel`/`operations`）の存在、`operations[].steps[].from`/`to` が `screen`/`api`/`table` の 3 値のみであること、`operations[].steps[].seq` が 1 始まりの連番であることを確認する。
+Bash で組み立てた JSON を jq 検証する。必須キー（`screenId`/`screenLabel`/`operations`）の存在、`operations[].steps[].from`/`to` が `lanes[].key`（`lanes` 省略時は `screen`/`api`/`table` の 3 値）のみであること、`operations[].steps[].seq` が操作ごとに 1 始まりの連番であることを確認する。
 
 ```bash
 jq -e '
   (.screenId and .screenLabel and .operations) and
-  (.operations | all(.steps | all(.from as $f | .to as $t | (["screen","api","table"] | index($f)) != null and (["screen","api","table"] | index($t)) != null))) and
+  ((if (.lanes and (.lanes | length) > 0) then [.lanes[].key] else ["screen","api","table"] end) as $lanes |
+    .operations | all(.steps | all(.from as $f | .to as $t | ($lanes | index($f)) != null and ($lanes | index($t)) != null))) and
   (.operations | all((.steps | map(.seq)) as $seqs | $seqs == ([range(1; ($seqs | length) + 1)])))
 ' "<output_dir>/画面/screen-<ID>/シーケンス図-data.json"
 ```
@@ -124,14 +147,14 @@ Glob / Read で実在ファイルを確認し、対象画面の `<output_dir>/�
     render_args=(
       "{{PROJECT_NAME}}" "<プロジェクト名>" \
       "{{GENERATED_DATE}}" "<YYYY-MM-DD>" \
-      "{{COMMIT_SHORT}}" "<（空文字可）>" \
+      "{{COMMIT_SHORT}}" "<短縮コミットハッシュ本体のみ。空文字可>" \
       "{{PORTAL_INDEX_HREF}}" "<ポータルindex.htmlへの相対パス>" \
       "{{DOC_NAV}}" "<Phase 2で確定したdoc_nav文字列>" \
       "{{SCREEN_LABEL}}" "<画面ラベル>" \
       "/* TOKENS_CSS */" "$tokens_css" \
       "{{PAGE_DATA_JSON}}" "$page_data"
     )
-    shell_injection_args "<スキルフォルダ>/../../../shared/templates" "<スキルフォルダ>/../../../shared/templates/../references/portal-catalog.json" "<ポータルindex.htmlへの相対パス>" "<プロジェクト名>" "<YYYY-MM-DD>" "<（空文字可）>" "generating-sequence-diagram-for-reverse-docs" "list"
+    shell_injection_args "<スキルフォルダ>/../../../shared/templates" "<スキルフォルダ>/../../../shared/templates/../references/portal-catalog.json" "<ポータルindex.htmlへの相対パス>" "<プロジェクト名>" "<YYYY-MM-DD>" "<短縮コミットハッシュ本体のみ。空文字可>" "generating-sequence-diagram-for-reverse-docs" "list"
     if [ ${#SHELL_RENDER_ARGS[@]} -gt 0 ]; then
       render_args+=("${SHELL_RENDER_ARGS[@]}")
     fi
@@ -141,6 +164,8 @@ Glob / Read で実在ファイルを確認し、対象画面の `<output_dir>/�
   ```
 
 **手作業でのプレースホルダ置換（sed・perl 直書き等）は禁止する**。`render_template` は最短前方一致で置換するため、値の中に他プレースホルダ文字列が偶然含まれても誤爆しない。
+
+**`{{GENERATED_DATE}}`/`{{COMMIT_SHORT}}` の値の形**: `{{COMMIT_SHORT}}` には区切り文字・ラベル（「コミット」等）を含めず、短縮コミットハッシュ本体（例 `a1b2c3d4`）のみを渡す。日付との区切りとラベル表示は共通シェル（`shared/templates/partials/shell-sidebar.html`/`shell-footer.html`）側が担い、値が空文字の場合は当該シェルの実行時 JS（`removeIfEmptyCommit`）が空表示を自動で取り除く。呼び出し側で `" · コミット番号: <sha>"` のような区切り込みの値を渡すと二重表記になるため禁止する。
 
 **完了**: 対象画面すべてで `シーケンス図.html` が生成済み。
 

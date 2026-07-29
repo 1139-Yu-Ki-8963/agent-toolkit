@@ -44,7 +44,7 @@ function parseRows(sourcePath, text) {
   const normalized = normalizeDocument(text);
   const lines = normalized.split("\n");
   const heading = lines.findIndex((line) => line.trim() === "## AI設定資産への変換");
-  if (heading < 0) fail(`${sourcePath}: 「## AI設定資産への変換」がありません`);
+  if (heading < 0) return { normalized, rows: null };
   const rows = [];
   let inTable = false;
   for (let i = heading + 1; i < lines.length; i += 1) {
@@ -117,7 +117,8 @@ function buildModel(outputDir) {
     if (!fs.existsSync(absolute) || !fs.statSync(absolute).isFile()) fail(`入力文書がありません: ${absolute}`);
     const parsed = parseRows(sourcePath, fs.readFileSync(absolute, "utf8"));
     sourceDocumentSha256[sourcePath] = sha256(Buffer.from(parsed.normalized, "utf8"));
-    allRows.push(...parsed.rows);
+    // 「## AI設定資産への変換」見出しが無い文書は自由記述のみとみなし、rule.md化せずpath参照のみ扱う（rowsがnull）。
+    if (parsed.rows) allRows.push(...parsed.rows);
   }
   const seen = new Set();
   for (const row of allRows) {

@@ -47,7 +47,7 @@
 #                     基本設計/画面基本設計書.html   → designDocPath
 #                     詳細設計/画面詳細設計書.html   → detailDocPath
 #                     シーケンス図.html               → sequencePath
-#                     テスト項目書/単体テスト仕様書.html → testCasePath
+#                     テスト項目書/単体テスト仕様書.md → testCasePath（テスト項目書はHTML化せずmd参照で統一する）
 #                   画面フォルダ自体が不在、またはファイルが不在ならそのフィールドは付けない
 #   confirmedScreenName:
 #                   画面フォルダの基本設計書または詳細設計書の先頭見出しから確定画面名を
@@ -200,7 +200,7 @@ EOF
   : > "$docs_root/screen-user-admin/基本設計/画面基本設計書.html"
   : > "$docs_root/screen-user-admin/詳細設計/画面詳細設計書.html"
   : > "$docs_root/screen-user-admin/シーケンス図.html"
-  : > "$docs_root/screen-user-admin/テスト項目書/単体テスト仕様書.html"
+  : > "$docs_root/screen-user-admin/テスト項目書/単体テスト仕様書.md"
 
   check() {
     local label="$1" expr="$2" file="$3"
@@ -241,7 +241,7 @@ EOF
       .screens[0].designDocPath == "../../画面/screen-user-admin/基本設計/画面基本設計書.html"
       and .screens[0].detailDocPath == "../../画面/screen-user-admin/詳細設計/画面詳細設計書.html"
       and .screens[0].sequencePath == "../../画面/screen-user-admin/シーケンス図.html"
-      and .screens[0].testCasePath == "../../画面/screen-user-admin/テスト項目書/単体テスト仕様書.html"
+      and .screens[0].testCasePath == "../../画面/screen-user-admin/テスト項目書/単体テスト仕様書.md"
       and (.screens[1] | has("designDocPath") | not)
       and (.screens[1] | has("detailDocPath") | not)
       and (.screens[1] | has("sequencePath") | not)
@@ -482,8 +482,8 @@ while IFS= read -r row; do
       if [ -f "$screen_folder/シーケンス図.html" ]; then
         add="$(jq --arg v "$link_folder/シーケンス図.html" '. + {sequencePath: $v}' <<<"$add")"
       fi
-      if [ -f "$screen_folder/テスト項目書/単体テスト仕様書.html" ]; then
-        add="$(jq --arg v "$link_folder/テスト項目書/単体テスト仕様書.html" '. + {testCasePath: $v}' <<<"$add")"
+      if [ -f "$screen_folder/テスト項目書/単体テスト仕様書.md" ]; then
+        add="$(jq --arg v "$link_folder/テスト項目書/単体テスト仕様書.md" '. + {testCasePath: $v}' <<<"$add")"
       fi
 
       confirmed_name=""

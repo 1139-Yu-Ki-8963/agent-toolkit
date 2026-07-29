@@ -31,9 +31,11 @@
       該当画面を引けるようにする(不可視属性のため3列制約には抵触しない)
     - sharedWith(共有画面キー一覧) / embeddedIn(埋め込み元) / routeDupCount(route定義箇所数) は
       表示列から外し、展開行の「仕様」グループでマニフェストJSONから直接表示する
-    - 任意列(クライアント描画): manifest の category / permissions / relatedApis / designDocStatus に
-      値が1件でもあるフィールドだけ、任意列スクリプトが末尾へ「画面区分 / 必要権限 / 関連API / 設計書」列を
-      追加する。全フィールドが空なら列を追加しない(後方互換)
+    - 任意列(クライアント描画): manifest の category / permissions / relatedApis / designDocStatus /
+      accountGroup / screenType / hasTemplate / isProcessingEndpoint に値が1件でもあるフィールドだけ、
+      任意列スクリプトが末尾へ「画面区分 / 必要権限 / 関連API / 設計書 / アカウント区分 / 画面種別 /
+      テンプレート / 処理エンドポイント」列を追加する。全フィールドが空なら列を追加しない(後方互換)。
+      accountGroup は英字列挙値(user/admin/editor/report/common)をアカウント区分の日本語ラベルへ変換して表示する
     - 設計書列の補助フィールド(任意): designDocPath(設計書への相対パス。designDocStatus=着手済かつ
       パスありなら着手済バッジをリンク化) / sourceHash・designDocSourceHash(両方存在して不一致なら
       danger色の「陳腐化」バッジを併記)
@@ -303,11 +305,23 @@
     var items = (manifest && manifest.screens) || [];
     if (!items.length) return;
 
+    var ACCOUNT_GROUP_LABELS = {
+      user: '利用者',
+      admin: '管理者',
+      editor: '編集者',
+      report: 'レポート',
+      common: '共通'
+    };
+
     var FIELDS = [
       { key: 'category', label: '画面区分' },
       { key: 'permissions', label: '必要権限', emptyLabel: '全員' },
       { key: 'relatedApis', label: '関連API' },
-      { key: 'designDocStatus', label: '設計書' }
+      { key: 'designDocStatus', label: '設計書' },
+      { key: 'accountGroup', label: 'アカウント区分' },
+      { key: 'screenType', label: '画面種別' },
+      { key: 'hasTemplate', label: 'テンプレート', trueLabel: 'あり', falseLabel: 'なし' },
+      { key: 'isProcessingEndpoint', label: '処理エンドポイント', trueLabel: '該当', falseLabel: '非該当' }
     ];
 
     function isArray(v) {
@@ -403,8 +417,10 @@
       }
       if (typeof v === 'boolean') {
         var flag = document.createElement('span');
-        if (v) { flag.className = 'opt-badge gold'; flag.textContent = '要'; }
-        else { flag.className = 'opt-muted'; flag.textContent = '不要'; }
+        var trueLabel = field.trueLabel || '要';
+        var falseLabel = field.falseLabel || '不要';
+        if (v) { flag.className = 'opt-badge gold'; flag.textContent = trueLabel; }
+        else { flag.className = 'opt-muted'; flag.textContent = falseLabel; }
         td.appendChild(flag);
         return;
       }
@@ -413,6 +429,10 @@
         sched.textContent = v.readable || '';
         if (v.cron) sched.title = v.cron;
         td.appendChild(sched);
+        return;
+      }
+      if (field.key === 'accountGroup') {
+        td.textContent = ACCOUNT_GROUP_LABELS[v] || String(v);
         return;
       }
       var text = String(v);
@@ -510,7 +530,7 @@
     })();
 
     /* ===== 追加UI: コピーボタン / フィルタチップ / 行クリック展開 / CSVエクスポート ===== */
-    var CHIP_COLUMNS = ['区分', '画面区分'];  /* 列見出し名で指定。任意列(画面区分)は存在する時だけチップ化 */
+    var CHIP_COLUMNS = ['区分', '画面区分', 'アカウント区分', '画面種別', 'テンプレート', '処理エンドポイント'];  /* 列見出し名で指定。任意列は存在する時だけチップ化 */
     var COL_COUNT = table.querySelectorAll('thead th').length;
     var headerLabels = Array.prototype.map.call(table.querySelectorAll('thead th'), function (th) { return th.textContent.trim(); });
     var chipState = {};

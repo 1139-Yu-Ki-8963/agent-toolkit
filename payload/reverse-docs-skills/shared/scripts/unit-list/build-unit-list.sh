@@ -186,14 +186,19 @@ EOF
   # 4種類の末尾マーカーを除去し、語頭・語中のOKは保持する。
   local marker_manifest="$tmp/manifest-marker-forms.json" marker_out="$tmp/out-marker-forms.html"
   jq '
-    .detectionSummary.unitCount = 6
+    .detectionSummary.unitCount = 11
     | .units = [
         ["marker-space", "GET /marker-space", "末尾空白 OK"],
         ["marker-paren", "GET /marker-paren", "半角括弧(OK)"],
         ["marker-id", "GET /marker-id", "識別子付き(OK) API-001"],
         ["marker-wide", "GET /marker-wide", "全角括弧（補足）OK"],
         ["marker-leading", "GET /marker-leading", "OK処理"],
-        ["marker-middle", "GET /marker-middle", "決済OK着地"]
+        ["marker-middle", "GET /marker-middle", "決済OK着地"],
+        ["issue1-55-a", "GET /issue1-55-a", "名称A(OK) (identA)"],
+        ["issue1-55-b", "GET /issue1-55-b", "名称F(OK) identF"],
+        ["issue1-55-c", "GET /issue1-55-c", "名称B(OK)"],
+        ["issue1-55-d", "GET /issue1-55-d", "名称C（内訳） OK"],
+        ["issue1-55-e", "GET /issue1-55-e", "名称D OK"]
       ]
       | .units |= map({
           unitKey: .[0], kind: "endpoint", identifier: .[1], unitNameGuess: .[2],
@@ -206,7 +211,12 @@ EOF
     || ! grep -q '<td>識別子付き</td>' "$marker_out" \
     || ! grep -q '<td>全角括弧（補足）</td>' "$marker_out" \
     || ! grep -q '<td>OK処理</td>' "$marker_out" \
-    || ! grep -q '<td>決済OK着地</td>' "$marker_out"; then
+    || ! grep -q '<td>決済OK着地</td>' "$marker_out" \
+    || ! grep -q '<td>名称A</td>' "$marker_out" \
+    || ! grep -q '<td>名称F</td>' "$marker_out" \
+    || ! grep -q '<td>名称B</td>' "$marker_out" \
+    || ! grep -q '<td>名称C（内訳）</td>' "$marker_out" \
+    || ! grep -q '<td>名称D</td>' "$marker_out"; then
     regression_ok=0
   fi
 
@@ -444,6 +454,7 @@ html_escape() {
 # 埋め込みマニフェストは正本としてそのまま保持し、表示値だけを防衛的に正規化する。
 strip_ok_marker() {
   printf '%s' "$1" | sed -E '
+    s/[[:space:]]*\(OK\)[[:space:]]+\([^()]+\)[[:space:]]*$//
     s/[[:space:]]*\(OK\)[[:space:]]+[[:alnum:]_.-]+[[:space:]]*$//
     s/(）)OK[[:space:]]*$/\1/
     s/[[:space:]]+OK[[:space:]]*$//

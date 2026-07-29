@@ -6,9 +6,49 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 tmp="$(mktemp -d "${TMPDIR:-/tmp}/screen-rebuild-test.XXXXXX")"
 trap 'rm -rf "$tmp"' EXIT
 
-commit="${SCREEN_REBUILD_FIXTURE_COMMIT:-97f981267b8d36904486e309a99a6e0713edf3b2}"
-bash "$SCRIPT_DIR/prepare-screen-rebuild-sample-fixture.sh" \
-  --repo-root "$REPO_ROOT" --commit "$commit" --output "$tmp/fixture"
+# フィクスチャは shared/samples/ 配下のchecked-in実ファイルを直接参照する。
+# 旧実装はprepare-screen-rebuild-sample-fixture.sh経由で固定commitのGit履歴を参照していたが、
+# (1) 固定commitがチェックアウト環境のGit履歴に存在しない場合に「ERROR: commit not found」で
+#     即時停止し、(2) 当該スクリプトの`git show <commit>:shared/samples/...`は--repo-rootをGitの
+#     トップレベルと同一視する設計のため、本リポジトリがモノレポのサブディレクトリとして配置される
+#     環境ではパス解決が破綻していた。REPO_ROOTはこのスクリプト自身の相対位置から求めた実在ディレクトリ
+#     であり、Gitのトップレベルか否かによらず常に正しいため、Git・commitへの依存を排し実ファイルを
+#     直接読む方式に変更する。
+screen_html="$REPO_ROOT/shared/samples/一覧/画面一覧/画面一覧.html"
+api_html="$REPO_ROOT/shared/samples/一覧/API一覧/API一覧.html"
+[ -f "$screen_html" ] || { echo "ERROR: fixture source not found: $screen_html" >&2; exit 1; }
+[ -f "$api_html" ] || { echo "ERROR: fixture source not found: $api_html" >&2; exit 1; }
+mkdir -p "$tmp/fixture/raw"
+node - "$screen_html" screen-manifest "$tmp/fixture/raw/screen-manifest.json" \
+  "$api_html" unit-manifest "$tmp/fixture/raw/api-manifest.json" <<'NODE'
+const fs=require("fs");
+function extract(file,id,out){
+ const html=fs.readFileSync(file,"utf8").replace(/<!--[\s\S]*?-->/g,""), esc=id.replace(/[.*+?^${}()|[\]\\]/g,"\\$&");
+ const found=[...html.matchAll(new RegExp(`<script\\b(?=[^>]*\\btype=["']application/json["'])(?=[^>]*\\bid=["']${esc}["'])[^>]*>([\\s\\S]*?)<\\/script>`,"gi"))];
+ if(found.length!==1) throw new Error(`${file}#${id} count=${found.length}`);
+ const text=found[0][1].replace(/&lt;/g,"<").replace(/&gt;/g,">").replace(/&quot;/g,'"')
+   .replace(/&#39;/g,"'").replace(/&#x27;/gi,"'").replace(/&amp;/g,"&");
+ fs.writeFileSync(out,JSON.stringify(JSON.parse(text),null,2)+"\n");
+}
+const a=process.argv.slice(2); extract(a[0],a[1],a[2]); extract(a[3],a[4],a[5]);
+NODE
+jq '
+  del(.manifestContentHash)
+  | .strategy.extractionMethod = (.strategy.extractionMethod // "custom")
+  | .strategy.approvedByUser = true
+  | .strategy.screenIdRegex = (.strategy.screenIdRegex // null)
+  | .strategy.excludePatterns = (.strategy.excludePatterns // [])
+  | .screens = [.screens[] |
+      .screenType = (.screenType // "top")
+      | .accountGroup = (.accountGroup // "common")
+      | .accountSubType = (.accountSubType // "common")
+      | .hasTemplate = (.hasTemplate // true)
+      | .parentScreen = (.parentScreen // null)
+      | .childComponents = (.childComponents // [])
+      | .isProcessingEndpoint = (.isProcessingEndpoint // false)
+    ]
+' "$tmp/fixture/raw/screen-manifest.json" > "$tmp/fixture/raw/screen-manifest.clean.json"
+mv "$tmp/fixture/raw/screen-manifest.clean.json" "$tmp/fixture/raw/screen-manifest.json"
 raw="$tmp/fixture/raw/screen-manifest.json"
 api="$tmp/fixture/raw/api-manifest.json"
 
