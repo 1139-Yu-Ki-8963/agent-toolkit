@@ -3,7 +3,7 @@
 # page-data.json + --page 指定から、対応するテンプレートへ描画したHTMLを固定ファイル名で
 # <output-dir> 直下に書き出す。出力ファイル名は build-portal.sh の FUTURE_FILES と同値。
 #
-# Usage: build-detail-page.sh <page-data.json> <output-dir> --page glossary|techstack|transition|er|env|entity-state|release-notes|design-system|component-inventory|icon-catalog
+# Usage: build-detail-page.sh <page-data.json> <output-dir> --page glossary|techstack|transition|er|env|entity-state|release-notes|design-system|component-inventory|icon-catalog [--portal-dir <path>] [--generated-at <iso8601>] [--project-name <name>] [--catalog <file>]
 #        build-detail-page.sh --self-test
 #
 # page → (テンプレートファイル, 固定出力ファイル名) 対応は本スクリプト内の
@@ -355,13 +355,15 @@ if [ "${1:-}" = "--self-test" ]; then
   exit $?
 fi
 
-DATA="${1:?Usage: build-detail-page.sh <page-data.json> <output-dir> --page <kind> [--portal-dir <path>] [--generated-at <iso8601>]}"
-OUTPUT_DIR="${2:?Usage: build-detail-page.sh <page-data.json> <output-dir> --page <kind> [--portal-dir <path>] [--generated-at <iso8601>]}"
+DATA="${1:?Usage: build-detail-page.sh <page-data.json> <output-dir> --page <kind> [--portal-dir <path>] [--generated-at <iso8601>] [--project-name <name>] [--catalog <file>]}"
+OUTPUT_DIR="${2:?Usage: build-detail-page.sh <page-data.json> <output-dir> --page <kind> [--portal-dir <path>] [--generated-at <iso8601>] [--project-name <name>] [--catalog <file>]}"
 shift 2 || true
 
 PAGE=""
 PORTAL_DIR_ARG=""
 GENERATED_AT_ARG=""
+PROJECT_NAME_ARG=""
+CATALOG_FILE=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --page)
@@ -374,6 +376,15 @@ while [ $# -gt 0 ]; do
       ;;
     --generated-at)
       GENERATED_AT_ARG="${2:-}"
+      shift 2
+      ;;
+    --project-name)
+      PROJECT_NAME_ARG="${2:-}"
+      shift 2
+      ;;
+    --catalog)
+      # ポータルカタログの JSON。省略時はリポジトリ既定を使う
+      CATALOG_FILE="${2:-}"
       shift 2
       ;;
     *)
@@ -441,7 +452,8 @@ if [ -f "$SCRIPT_DIR/../shell-injection.sh" ]; then
   . "$SCRIPT_DIR/../shell-injection.sh"
 fi
 
-PROJECT_NAME="$(jq -r '.projectName // ""' "$DATA")"
+# --project-name オプションを優先し、未指定ならpage-data.jsonのprojectNameへフォールバックする
+PROJECT_NAME="${PROJECT_NAME_ARG:-$(jq -r '.projectName // ""' "$DATA")}"
 TITLE="$(jq -r '.title // ""' "$DATA")"
 DESCRIPTION="$(jq -r '.description // ""' "$DATA")"
 GENERATED_AT="$(jq -r '.generatedAt // ""' "$DATA")"
@@ -502,8 +514,9 @@ if [ -f "$TOKENS_CSS_FILE" ]; then
   render_args+=("/* TOKENS_CSS */" "$(cat "$TOKENS_CSS_FILE")")
 fi
 # 共通シェル注入（partials が存在する場合のみ）
+catalog_path="${CATALOG_FILE:-$SCRIPT_DIR/../../templates/../references/portal-catalog.json}"
 if type shell_injection_args >/dev/null 2>&1; then
-  shell_injection_args "$SCRIPT_DIR/../../templates" "$SCRIPT_DIR/../../templates/../references/portal-catalog.json" "$back_link" "$PROJECT_NAME" "$GENERATED_AT" "" "shared/scripts/detail-pages/build-detail-page.sh" "$(get_page_category "$PAGE")"
+  shell_injection_args "$SCRIPT_DIR/../../templates" "$catalog_path" "$back_link" "$PROJECT_NAME" "$GENERATED_AT" "" "shared/scripts/detail-pages/build-detail-page.sh" "$(get_page_category "$PAGE")"
   if [ ${#SHELL_RENDER_ARGS[@]} -gt 0 ]; then
     render_args+=("${SHELL_RENDER_ARGS[@]}")
   fi

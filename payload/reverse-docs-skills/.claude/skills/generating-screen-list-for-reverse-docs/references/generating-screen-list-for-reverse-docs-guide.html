@@ -181,7 +181,7 @@
   <h3>起動引数（2 つのみ）</h3>
   <table class="spec">
     <tr><th>引数</th><th>内容</th></tr>
-    <tr><td><code>source_dir</code></td><td>探索対象のソースコードディレクトリ。対象プロジェクトの実コードルート（例: <code>frontend/src</code>）を指定する。モノレポでアプリが複数ある場合は対象アプリのディレクトリのみを渡す（自動判別なし）</td></tr>
+    <tr><td><code>source_dir</code></td><td>探索対象のソースコードディレクトリ。対象プロジェクトの実コードルート（例: <code>frontend/src</code>）を指定する。モノレポの場合はアーキテクチャ調査書 §10 のサイト一覧で確定した当該サイトのルートディレクトリを渡す</td></tr>
     <tr><td><code>output_dir</code></td><td>画面一覧.html の書き出し先。この直下に <code>画面一覧/</code> フォルダを作成する</td></tr>
   </table>
   <p class="note">旧統合スキルにあった <code>unit_kind</code> 引数は存在しない。本スキルは screen 固定であり、他種別（API・テーブル・バッチ・帳票・外部連携）は対応する種別別一覧スキルを使う。</p>

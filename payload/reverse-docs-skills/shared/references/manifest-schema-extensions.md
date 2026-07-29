@@ -39,13 +39,18 @@
 | childComponents | object[] | 任意 | 紐づくコンポーネントの配列。各要素は `{"screenKey":"子画面キー","componentType":"modal\|popup\|iframe"}`。該当なしは `[]` | parentScreen の逆引き。統合前のモーダル候補から集約するため候補を失わない |
 | isProcessingEndpoint | boolean | 任意 | 処理エンドポイント（UI を持たない）か否か（hasTemplate=false かつ screenType=processing_endpoint で判定） | テンプレート不在かつリダイレクトのみ |
 
+値域の定義先は `shared/references/unit-axes.json` の `axes[].values` である。対象は screenType・accountGroup・accountSubType の3フィールドである。accountSubType は `valuePolicy: identifier` のため識別子形式で検査する。`validate-manifest.sh` は宣言を読んで検査し、宣言が読めない場合に限り本文書に記載の値でフォールバックする。
+
+designDocStatus（着手済/未着手）・trigger（画面/バッチ）・direction（送信/受信）の2値制約は上記の宣言化の対象外である。引き続き検査項目8（任意フィールド-型）内のハードコード制約として、本文書の記載値がそのまま定義となる。
+
 ### apis（API）
 
 | フィールド名 | 型 | 必須/任意 | 説明 | 抽出元の想定 |
 |---|---|---|---|---|
-| method | string | 任意 | HTTP メソッド。identifier 内包から独立フィールドへ昇格し、フィルタ可能にする | ルーティング定義のデコレータ・メソッド指定 |
+| method | string | 任意 | HTTP メソッド。identifier の先頭語を優先し、無い場合はコメント・文字列を除外した Express/Fastify/Hono 型の静的文字列ルート呼出しから一意の場合だけ補完する。曖昧なら欠落 | ルーティング定義のメソッド指定 |
 | authRequired | boolean | 任意 | 認証の要否 | 認可ミドルウェア・`Depends` 等の依存注入 |
 | callers | string[] | 任意 | 呼び出し元画面の screenKey 配列（screens.relatedApis の逆引き） | relatedApis 抽出結果からの機械生成 |
+| targetTables | string[] | 任意 | 読み書きするテーブルの unitKey 配列。空配列は調査済みゼロを表す | エンドポイント実装のクエリ・モデル操作 |
 | ioSummary | string | 任意 | 受け取る入力と返す出力の 1 行要約 | リクエスト/レスポンスの型定義・スキーマ |
 
 ### tables（テーブル）
@@ -174,10 +179,10 @@
 | スクリプト名 | 入力 | 出力 | 抽出・導出の方式 |
 |---|---|---|---|
 | extract-screen-metadata.sh | screen-manifest.json + 原本ソース（任意: api-manifest / 設計書ディレクトリ） | 拡張画面マニフェスト | route prefix 判定と構成ファイル内のロール指定・fetch パス grep で category / permissions / relatedApis / designDocStatus / sourceHash を追加 |
-| extract-api-metadata.sh | api-manifest.json + 原本ソース（任意: 拡張画面マニフェスト / table-manifest） | 拡張 API マニフェスト | identifier 先頭語の method 判定・エンドポイント近傍窓の認証パターン grep・relatedApis 逆引きで method / authRequired / callers / targetTables / ioSummary を追加 |
+| extract-api-metadata.sh | api-manifest.json + 原本ソース（任意: 拡張画面マニフェスト / table-manifest） | 拡張 API マニフェスト | identifier 先頭語を優先し、無い場合はコメント・文字列を除外した静的文字列ルート呼出しが一意な時だけ method を補完する。エンドポイント近傍窓の認証パターン grep・relatedApis 逆引きで authRequired / callers / targetTables / ioSummary を追加 |
 | extract-table-metadata.sh | table-manifest.json + マイグレーション SQL ディレクトリ | 拡張テーブルマニフェスト | CREATE TABLE ブロックの切り出しと REFERENCES 採取・unitKey 突合で foreignKeys / columnCount / mainColumns を追加 |
 | extract-batch-metadata.sh・extract-report-metadata.sh・extract-external-metadata.sh | 各種別マニフェスト + 原本ソース（batch のみ任意: cron ファイル / table-manifest） | 各種別の拡張マニフェスト | cron 式・帳票ライブラリ・送受信/認証パターンの grep で schedule / format / direction 等の種別別フィールドを追加 |
-| build-matrix-data.sh | 拡張済みマニフェスト群（screen / api 必須、table / feature 任意） | permission-matrix.json・crud-matrix.json・traceability.json | ソースコードは読まず、拡張フィールド（permissions / method / relatedApis / targetTables）からの jq 導出のみで 3 ファイルを合成 |
+| build-matrix-data.sh | 拡張済みマニフェスト群（screen / api 必須、table / feature 任意） | permission-matrix.json・crud-matrix.json・traceability.json | ソースコードは読まず、拡張フィールド（permissions / method / relatedApis / targetTables）から jq 導出する。CRUD対象APIの method / targetTables キー欠落時は不足名を報告して出力前に非ゼロ終了 |
 | extract-ai-assets.sh | リポジトリの `.claude/` 配下（rules / skills / agents / settings.json）と CLAUDE.md・flow-values.yml | AI設定資産ページ用 JSON（rules / skills / subagents / hooks + 設定索引） | rule.md の機械強制表・SKILL.md frontmatter・hooks 登録の grep/sed 抽出でマニフェスト形式に正規化 |
 
 いずれも検出根拠が弱い値は出力しない fail-safe 方針で、抽出できないフィールドは任意フィールドの欠落として扱う。推定・検出ルールは次節「抽出の推定・検出ルール（仕様）」に仕様として記載し、スクリプト実装と同時更新で一致を保つ。本表は索引のみを担う。
@@ -200,7 +205,7 @@
 
 | ルールキー | 対象フィールド | 仕様 |
 |---|---|---|
-| method-識別子先頭語判定 | method | identifier の先頭語（空白区切り）が GET / POST / PUT / PATCH / DELETE に完全一致する場合のみ採用する。トリガは identifier の先頭語であり、ソース内のデコレータ（`@app.get` 等）は判定根拠ではない。一致しなければ欠落 |
+| method-識別子先頭語・静的ルート判定 | method | identifier の先頭語（空白区切り）が GET / POST / PUT / PATCH / DELETE に完全一致すれば採用する。無い場合だけ、sourceFile のコメント・文字列を除外して `<receiver>.<lowercase-method>(<quote><path><quote>,...)` に一致する Express/Fastify/Hono 型の静的文字列ルート呼出しを探す。候補が1種類なら採用し、0件・複数種類・動的path・コメント・文字列内は根拠外として欠落 |
 | authRequired-判定窓 | authRequired | identifier のパス部（先頭メソッド語を除去した残り）を sourceFile 内で固定文字列検索し、最初のヒット行の前 3 行〜後 20 行を「エンドポイント近傍窓」として判定する |
 | authRequired-肯定パターン | authRequired | 窓内に `Depends(get_current_user` / `@login_required` / `requireAuth` / `verify_token` / `IsAuthenticated` のいずれかがあれば true |
 | authRequired-否定パターン | authRequired | 窓内に単語境界付きで `AllowAny` / `public` のいずれかがあれば false |
@@ -348,7 +353,7 @@ screenType を除く追加フィールドは任意とする。screenType は画�
 ### build-matrix-data.sh
 
 - 配置: shared/scripts/extract/build-matrix-data.sh
-- 必要性: マトリクス・対応表 3 ファイル（permission-matrix.json・crud-matrix.json・traceability.json）は、拡張済みマニフェスト群からの純粋な導出（ロール集合の合成・method→CRUD 文字の合成・relatedApis→targetTables の連結）であり、同一入力から同一出力を再現する決定的エンジンが必要。複数マニフェストの突合と fail-safe 除外（根拠フィールド欠落要素の不出力）を含む多段の jq 変換を持ち、都度手書きすると導出規則が実行ごとにぶれる。--self-test がフィクスチャ生成 → 導出 → jq 検証 → validate-manifest.sh 突合まで自動回帰する
+- 必要性: マトリクス・対応表 3 ファイル（permission-matrix.json・crud-matrix.json・traceability.json）は、拡張済みマニフェスト群からの純粋な導出（ロール集合の合成・method→CRUD 文字の合成・relatedApis→targetTables の連結）であり、同一入力から同一出力を再現する決定的エンジンが必要。CRUD対象APIの method / targetTables キー欠落は不足名付きで出力前に停止し、空配列は許容、対象外APIは検査外とする多段の jq 変換を持ち、都度手書きすると導出規則が実行ごとにぶれる。--self-test がフィクスチャ生成 → 導出 → jq 検証 → validate-manifest.sh 突合まで自動回帰する
 - 代替案を採用しなかった理由:
   - Bash ツール直叩き: 3 ファイル分の jq 導出と fail-safe 分岐を都度組み立てるとトークンを浪費し、決定的生成が成立しない
   - build-matrix-pages.sh への統合: あちらはテンプレート置換（表示側）担当。データ導出と表示生成を分離しないと、マニフェスト更新時にデータだけ再生成したい場面でページ生成まで巻き込まれる

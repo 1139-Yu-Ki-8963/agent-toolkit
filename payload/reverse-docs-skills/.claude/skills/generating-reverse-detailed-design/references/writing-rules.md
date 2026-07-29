@@ -4,7 +4,7 @@ facts.yml から設計書への転記を担当する際の執筆規律の定義�
 
 ## 章マップ（章役割キー）準拠の転記先決定
 
-転記先の章は「章の役割キー → §番号」の対応表である起動引数 chapter_map_path（実体: `shared/references/chapter-map.md`）で解決する。SKILL.md・本ファイルに書く §番号はすべて既定値であり、実際の設計書の章マップ表（テンプレート冒頭に埋め込まれた表）が優先する。§番号が食い違う場合は設計書側の章マップ表を正とする。
+転記先の章は「章の役割キー → §番号」の対応表である起動引数 chapter_map_path（実体: `shared/references/chapter-map.md`）で解決する。SKILL.md・本ファイルに書く §番号はすべて既定値であり、実際の設計書の章マップ表（本文末尾の付録B）が優先する。§番号が食い違う場合は設計書側の章マップ表を正とする。読者向けの本文は必ず §1 画面概要から開始し、関連資料の役割分担表と章マップを本文より前へ置かない。
 
 ## facts のキー→設計書章の対応規律（判定条件付き）
 
@@ -81,4 +81,10 @@ facts の value 内の `\n` エスケープを fenced code block（` ``` ` で�
 
 ## 画面キャプチャ参照の規律
 
-画面キャプチャ参照（`![](./original.png)` 等）は作業ワークスペースに画像実体が存在する場合のみ残す。存在しない場合は参照行を削除し「画面キャプチャ: 実測委譲（画面単位検証で確定）」の1行を置く（整合監査の到達性検査対象のため、実体のない相対参照を残さない）。
+画面キャプチャ参照（`![](./original.png)` 等）は作業ワークスペースに画像実体が存在する場合のみ残す。存在しない場合は参照行を削除し、次の読者向け placeholder を置く。
+
+```html
+<div class="screen-capture-placeholder" role="img" aria-label="画面キャプチャは未取得です。後続の画面確認で追加します。" style="box-sizing:border-box;display:flex;align-items:center;justify-content:center;min-height:180px;padding:24px;color:#64748b;background:#f8fafc;border:2px dashed #94a3b8;border-radius:8px;text-align:center;">画面キャプチャは未取得です。後続の画面確認で追加します。</div>
+```
+
+placeholder は読者に状態と今後の予定を伝える本文であり、執筆工程の内部語（`実測委譲`、`measurement_pending` 等）を含めない。`measurement_pending` の機械情報は、初期表示値・DOM 順・要素位置・レイアウト等の実測対象を扱う別契約であり、画面キャプチャ未取得の表示とは分離する。実体のない相対参照を残さない。

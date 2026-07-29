@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# check-architecture-survey.sh — アーキテクチャ調査書の機械ゲート（5検査すべて決定的）
+# check-architecture-survey.sh — アーキテクチャ調査書の機械ゲート（6検査すべて決定的）
 #
 # 使い方:
 #   check-architecture-survey.sh <調査書パス> <target_repo_path>
@@ -19,6 +19,10 @@ set -euo pipefail
 #   5. §4ディレクトリ網羅: §1のfindコマンドから走査範囲を決定的に再現し、直接ファイルを
 #      持つディレクトリがすべて§4（責務マップ本体または対象外ディレクトリ）もしくは
 #      §4に列挙された層の子ディレクトリとして包含されることを確認する。
+#   6. §10プロジェクト形態: §10節が存在し、プロジェクト形態が「単独プロジェクト」または
+#      「モノレポ」のいずれかであり、サイト一覧に1行以上あって各ルートディレクトリが
+#      target_repo_path配下に実在し、サイトキーが重複していないことを確認する。
+#      根拠パス列の書式は検査しない（パス実在は検査1が担当する）。
 #
 #   いずれか1件でも違反があれば exit 1（fail-closed）。全件PASSでexit 0。
 #   --self-test は合成フィクスチャで陽性exit 0・陰性(検査ごと)exit 1を自己検証する。
@@ -63,6 +67,11 @@ extract_section4() {
 # §4 内の「### 対象外ディレクトリ」サブセクションを抽出する
 extract_excluded_dirs() {
   awk '/^### .*対象外ディレクトリ/{f=1;next} /^## [^#]|^---$/{if(f)exit} f' "$1"
+}
+
+# §10 プロジェクト形態とサイト構成節を抽出する（### サブ見出しを含む）
+extract_section10() {
+  awk '/^## .*プロジェクト形態とサイト構成/{f=1;next} /^## [^#]/{if(f)exit} f' "$1"
 }
 
 # 検査1: 記載パス実在100%
@@ -273,7 +282,75 @@ DIREND
   return 0
 }
 
-# 5検査すべてを実行し集約結果を返す。
+# 検査6: §10 プロジェクト形態とサイト構成
+check_project_form() {
+  survey="$1"
+  repo="$2"
+
+  s10="$(extract_section10 "$survey")"
+  if [ -z "$s10" ]; then
+    echo "検査6失敗: §10 プロジェクト形態とサイト構成の節が見つかりません" >&2
+    return 1
+  fi
+
+  form_line="$(echo "$s10" | grep -E '^\|[^|]*プロジェクト形態' | head -1)"
+  if [ -z "$form_line" ]; then
+    echo "検査6失敗: §10 にプロジェクト形態の行がありません" >&2
+    return 1
+  fi
+  case "$form_line" in
+    *単独プロジェクト*|*モノレポ*) : ;;
+    *)
+      echo "検査6失敗: プロジェクト形態が「単独プロジェクト」「モノレポ」のいずれでもありません" >&2
+      echo "$form_line" >&2
+      return 1 ;;
+  esac
+
+  site_rows="$(echo "$s10" \
+    | awk '/^### .*サイト一覧/{f=1;next} f' \
+    | grep -E '^\|' \
+    | grep -v '^|[[:space:]]*---' \
+    | grep -v 'サイトキー')"
+  if [ -z "$site_rows" ]; then
+    echo "検査6失敗: サイト一覧に行がありません（単独プロジェクトでも1行必要）" >&2
+    return 1
+  fi
+
+  seen_keys=""
+  bad=0
+  while IFS= read -r line; do
+    [ -z "$line" ] && continue
+    key="$(echo "$line" | awk -F'|' '{gsub(/^[ \t]+|[ \t]+$/,"",$2); print $2}' | sed 's/^`//; s/`$//')"
+    root="$(echo "$line" | awk -F'|' '{gsub(/^[ \t]+|[ \t]+$/,"",$4); print $4}' | sed 's/^`//; s/`$//')"
+    [ -z "$key" ] && continue
+
+    case "$seen_keys" in
+      *"[$key]"*)
+        echo "  サイトキー重複: $key" >&2
+        bad=$((bad + 1)) ;;
+    esac
+    seen_keys="${seen_keys}[$key]"
+
+    if [ -z "$root" ]; then
+      echo "  ルートディレクトリ未記入: $key" >&2
+      bad=$((bad + 1))
+    elif [ ! -d "$repo/$root" ]; then
+      echo "  ルートディレクトリが実在しない: $key -> $root" >&2
+      bad=$((bad + 1))
+    fi
+  done <<S10END
+$site_rows
+S10END
+
+  if [ "$bad" -gt 0 ]; then
+    echo "検査6失敗: サイト一覧に $bad 件の問題があります" >&2
+    return 1
+  fi
+  echo "検査6通過: プロジェクト形態とサイト一覧OK"
+  return 0
+}
+
+# 6検査すべてを実行し集約結果を返す。
 run_all_checks() {
   survey="$1"
   repo="$2"
@@ -283,6 +360,7 @@ run_all_checks() {
   check_no_guess_words "$survey" || rc=1
   check_no_placeholder "$survey" || rc=1
   check_directory_coverage "$survey" "$repo" || rc=1
+  check_project_form "$survey" "$repo" || rc=1
   return "$rc"
 }
 
@@ -308,7 +386,7 @@ self_test() {
 | 帳票 | 実在しない（帳票生成ライブラリの使用箇所が見つからないため） | - | - |
 | 外部連携 | 実在しない（外部APIクライアントの使用箇所が見つからないため） | - | - |'
 
-  # 陽性フィクスチャ: 5検査すべてPASSする想定
+  # 陽性フィクスチャ: 6検査すべてPASSする想定
   cat > "$tmp/pass.md" <<MD
 ## 調査メタ
 
@@ -334,6 +412,17 @@ self_test() {
 
 ## ユニット種別判定
 $base_kinds
+
+## プロジェクト形態とサイト構成
+| 項目 | 内容 | 根拠パス |
+|---|---|---|
+| プロジェクト形態 | 単独プロジェクト | \`package.json\` |
+| ワークスペース定義 | 実在しない（ワークスペース定義ファイルが見つからないため） | \`package.json\` |
+
+### サイト一覧
+| サイトキー | 表示名 | ルートディレクトリ | ビルドコマンド | 起動コマンド | 根拠パス |
+|---|---|---|---|---|---|
+| main | 単一サイト | . | npm run build | npm run dev | \`package.json\` |
 MD
 
   # 陰性1: 検査1のみ違反（存在しないパスを記載）
@@ -445,6 +534,34 @@ MD
 $base_kinds
 MD
 
+  # 陰性7: 検査6のみ違反（§10節そのものが欠落）
+  cat > "$tmp/fail7.md" <<MD
+## エントリポイント
+\`package.json\` を確認した。
+
+## ユニット種別判定
+$base_kinds
+MD
+
+  # 陰性8: 検査6のみ違反（サイト一覧のルートディレクトリが実在しない）
+  cat > "$tmp/fail8.md" <<MD
+## エントリポイント
+\`package.json\` を確認した。
+
+## ユニット種別判定
+$base_kinds
+
+## プロジェクト形態とサイト構成
+| 項目 | 内容 | 根拠パス |
+|---|---|---|
+| プロジェクト形態 | モノレポ | \`package.json\` |
+
+### サイト一覧
+| サイトキー | 表示名 | ルートディレクトリ | ビルドコマンド | 起動コマンド | 根拠パス |
+|---|---|---|---|---|---|
+| web | 利用者サイト | apps/missing-site | npm run build | npm run dev | \`package.json\` |
+MD
+
   rc=0
 
   if run_all_checks "$tmp/pass.md" "$repo" >/dev/null 2>&1; then
@@ -501,6 +618,20 @@ MD
     rc=1
   else
     echo "  [PASS] 検査5: §4の\`.\`行はルート直下のみ網羅しsrc/appの未網羅でexit 1"
+  fi
+
+  if check_project_form "$tmp/fail7.md" "$repo" >/dev/null 2>&1; then
+    echo "  [FAIL] 検査6: §10節が欠落しているのにexit 0になった" >&2
+    rc=1
+  else
+    echo "  [PASS] 検査6: §10節の欠落でexit 1"
+  fi
+
+  if check_project_form "$tmp/fail8.md" "$repo" >/dev/null 2>&1; then
+    echo "  [FAIL] 検査6: サイトのルートディレクトリが未実在なのにexit 0になった" >&2
+    rc=1
+  else
+    echo "  [PASS] 検査6: サイトのルートディレクトリ未実在でexit 1"
   fi
 
   if [ "$rc" -eq 0 ]; then

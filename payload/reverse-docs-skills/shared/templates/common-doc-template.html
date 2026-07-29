@@ -17,7 +17,7 @@ a:hover { text-decoration: underline; }
 :root { --section-gap: clamp(28px, 4vw, 44px); }
 
 /* 文書 2 カラム（目次 + 本文） */
-.dp-layout { display: grid; grid-template-columns: 200px 1fr; gap: 36px; margin-top: 28px; align-items: start; }
+.dp-layout { display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 36px; margin-top: 28px; align-items: start; }
 .dp-toc { position: sticky; top: 24px; border-left: 1.5px solid var(--line2); padding-left: 16px; }
 .toc-label {
   font-family: var(--mono); font-size: 10px; font-weight: 700; letter-spacing: .06em;
@@ -33,7 +33,11 @@ a:hover { text-decoration: underline; }
 .toc-link:hover { color: var(--text); border-left-color: var(--accent); text-decoration: none; }
 .toc-link.active { color: var(--accent); border-left-color: var(--accent); font-weight: 600; }
 
-.dp-panel { border: 1.5px solid var(--line2); background: var(--panel); max-width: 760px; padding: 32px 40px; counter-reset: sec-num; }
+.dp-panel {
+  width: 100%; min-width: 0; max-width: none;
+  border: 1.5px solid var(--line2); background: var(--panel);
+  padding: 32px 40px; counter-reset: sec-num;
+}
 
 /* section */
 .sec-block { margin-bottom: var(--section-gap); scroll-margin-top: 24px; }
@@ -77,9 +81,23 @@ a:hover { text-decoration: underline; }
 }
 
 /* tables */
+.table-scroll-shell { position: relative; min-width: 0; margin-bottom: 14px; }
+.table-scroll-shell::before,
+.table-scroll-shell::after {
+  content: ""; position: absolute; z-index: 2; top: 1.5px; bottom: 1.5px; width: 30px;
+  opacity: 0; pointer-events: none; transition: opacity .12s;
+}
+.table-scroll-shell::before {
+  left: 1.5px; background: linear-gradient(to right, var(--panel), transparent);
+}
+.table-scroll-shell::after {
+  right: 1.5px; background: linear-gradient(to left, var(--panel), transparent);
+}
+.table-scroll-shell.can-scroll-left::before,
+.table-scroll-shell.can-scroll-right::after { opacity: .94; }
 .table-wrap {
   width: 100%; overflow-x: auto; overscroll-behavior-inline: contain;
-  border: 1.5px solid var(--line2); margin-bottom: 14px; scrollbar-gutter: stable;
+  border: 1.5px solid var(--line2); scrollbar-gutter: stable;
 }
 table.data-table { width: max-content; min-width: 100%; border-collapse: collapse; font-size: 13px; background: var(--panel); }
 table.data-table thead { position: sticky; top: 0; z-index: 1; }
@@ -125,7 +143,7 @@ table.data-table code {
   .dp-panel { max-width: none; padding: 20px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .toc-link { transition: none; }
+  .toc-link, .table-scroll-shell::before, .table-scroll-shell::after { transition: none; }
 }
 </style>
 </head>
@@ -274,6 +292,42 @@ table.data-table code {
     Array.prototype.forEach.call(container.querySelectorAll('table'), function (t) {
       t.classList.add('data-table');
     });
+
+    // 横スクロールが必要な表だけ端フェードとキーボード操作の手掛かりを付ける
+    var tableWraps = Array.prototype.slice.call(container.querySelectorAll('.table-wrap'));
+    var updateScrollCues = [];
+    tableWraps.forEach(function (wrap) {
+      var shell = document.createElement('div');
+      shell.className = 'table-scroll-shell';
+      wrap.parentNode.insertBefore(shell, wrap);
+      shell.appendChild(wrap);
+
+      function updateScrollCue() {
+        var overflowing = wrap.scrollWidth > wrap.clientWidth + 1;
+        var atStart = wrap.scrollLeft <= 1;
+        var atEnd = wrap.scrollLeft + wrap.offsetWidth >= wrap.scrollWidth - 1;
+        shell.classList.toggle('can-scroll-left', overflowing && !atStart);
+        shell.classList.toggle('can-scroll-right', overflowing && !atEnd);
+        if (overflowing) {
+          wrap.tabIndex = 0;
+          wrap.setAttribute('role', 'region');
+          wrap.setAttribute('aria-label', '横にスクロールできます');
+        } else {
+          wrap.removeAttribute('tabindex');
+          wrap.removeAttribute('role');
+          wrap.removeAttribute('aria-label');
+        }
+      }
+
+      wrap.addEventListener('scroll', updateScrollCue, {passive: true});
+      updateScrollCues.push(updateScrollCue);
+    });
+
+    function updateAllScrollCues() {
+      updateScrollCues.forEach(function (updateScrollCue) { updateScrollCue(); });
+    }
+    window.addEventListener('resize', updateAllScrollCues);
+    requestAnimationFrame(updateAllScrollCues);
 
     function sectionSlug(text) {
       var normalized = text.trim();

@@ -37,7 +37,8 @@
 #
 # 検出ヒューリスティック一覧(すべて grep/sed/awk ベース):
 #   1. method       : identifier の先頭語(空白区切り)が GET/POST/PUT/PATCH/DELETE に完全一致する
-#                     場合のみ採用。それ以外は付けない
+#                     場合を最優先で採用する。無い場合のみ sourceFile の独自ルート定義から、
+#                     固定文字列 path が第1引数である一意の method を採用する
 #   2. authRequired : 関数ブロック内(フォールバック時はパス部の最初のヒット行の前 3 行〜後 20 行)に
 #                     認証パターン
 #                       Depends(get_current_user / @login_required / requireAuth / verify_token / IsAuthenticated
@@ -117,19 +118,63 @@ def get_post(id: int, db: Session = Depends(get_db)):
     return row
 EOF
 
-  # APIマニフェスト(4 ユニット)
+  # 独自ルート方式: identifier に動詞が無い場合も、固定文字列 path の第1引数から method を抽出する。
+  cat > "$tmp/src/api/express_routes.js" <<'EOF'
+app.get(
+  "/api/express-users",
+  listUsers,
+)
+EOF
+
+  cat > "$tmp/src/api/fastify_routes.js" <<'EOF'
+server.post('/api/fastify-users', createUsers)
+EOF
+
+  cat > "$tmp/src/api/hono_routes.ts" <<'EOF'
+router.patch(`/api/hono-users`, updateUsers)
+EOF
+
+  # 同一 path の異なる method は根拠が一意でないため、method を推測しない。
+  cat > "$tmp/src/api/ambiguous_routes.js" <<'EOF'
+app.get('/api/ambiguous-users', listUsers)
+app.delete('/api/ambiguous-users', removeUsers)
+EOF
+
+  # コメント・文字列に見える疑似ルートは実装根拠にしない。
+  cat > "$tmp/src/api/comment_only_routes.js" <<'EOF'
+// app.get('/api/comment-only', listUsers)
+EOF
+
+  cat > "$tmp/src/api/block_comment_routes.js" <<'EOF'
+/*
+server.post('/api/block-comment-only', createUsers)
+*/
+EOF
+
+  cat > "$tmp/src/api/string_only_routes.js" <<'EOF'
+const example = "router.patch('/api/string-only', updateUsers)"
+EOF
+
+  # APIマニフェスト(独自ルート方式を含む 11 ユニット)
   local api_manifest="$tmp/api-manifest.json"
   jq -n \
     --arg sourceDir "$tmp/src" \
     --arg usersFile "$tmp/src/api/users.py" \
     --arg pingFile "$tmp/src/api/ping.py" \
     --arg postsFile "$tmp/src/api/posts.py" \
+    --arg expressFile "$tmp/src/api/express_routes.js" \
+    --arg fastifyFile "$tmp/src/api/fastify_routes.js" \
+    --arg honoFile "$tmp/src/api/hono_routes.ts" \
+    --arg ambiguousFile "$tmp/src/api/ambiguous_routes.js" \
+    --arg commentOnlyFile "$tmp/src/api/comment_only_routes.js" \
+    --arg blockCommentFile "$tmp/src/api/block_comment_routes.js" \
+    --arg stringOnlyFile "$tmp/src/api/string_only_routes.js" \
     '{
       generatedAt: "2026-01-01T00:00:00Z",
       sourceDir: $sourceDir,
       unitKind: "api",
       strategy: {extractionMethod: "custom", approvedByUser: true, unitIdRegex: null, excludePatterns: []},
-      detectionSummary: {unitCount: 4, unresolvedCount: 0},
+      detectionSummary: {unitCount: 11, unresolvedCount: 0},
       units: [
         {unitKey: "users-list", kind: "endpoint", identifier: "GET /api/users",
          unitNameGuess: "ユーザー一覧取得", sourceFile: $usersFile,
@@ -142,6 +187,27 @@ EOF
          confidence: "high", fileCount: 1, detectionMethod: "manual"},
         {unitKey: "posts-detail", kind: "endpoint", identifier: "GET /api/posts/{id}",
          unitNameGuess: "投稿詳細取得", sourceFile: $postsFile,
+         confidence: "high", fileCount: 1, detectionMethod: "manual"},
+        {unitKey: "express-users", kind: "endpoint", identifier: "/api/express-users",
+         unitNameGuess: "Expressユーザー取得", sourceFile: $expressFile,
+         confidence: "high", fileCount: 1, detectionMethod: "manual"},
+        {unitKey: "fastify-users", kind: "endpoint", identifier: "/api/fastify-users",
+         unitNameGuess: "Fastifyユーザー作成", sourceFile: $fastifyFile,
+         confidence: "high", fileCount: 1, detectionMethod: "manual"},
+        {unitKey: "hono-users", kind: "endpoint", identifier: "/api/hono-users",
+         unitNameGuess: "Honoユーザー更新", sourceFile: $honoFile,
+         confidence: "high", fileCount: 1, detectionMethod: "manual"},
+        {unitKey: "ambiguous-users", kind: "endpoint", identifier: "/api/ambiguous-users",
+         unitNameGuess: "曖昧なユーザー操作", sourceFile: $ambiguousFile,
+         confidence: "high", fileCount: 1, detectionMethod: "manual"},
+        {unitKey: "comment-only", kind: "endpoint", identifier: "/api/comment-only",
+         unitNameGuess: "コメントのみのルート", sourceFile: $commentOnlyFile,
+         confidence: "high", fileCount: 1, detectionMethod: "manual"},
+        {unitKey: "block-comment-only", kind: "endpoint", identifier: "/api/block-comment-only",
+         unitNameGuess: "ブロックコメントのみのルート", sourceFile: $blockCommentFile,
+         confidence: "high", fileCount: 1, detectionMethod: "manual"},
+        {unitKey: "string-only", kind: "endpoint", identifier: "/api/string-only",
+         unitNameGuess: "文字列のみのルート", sourceFile: $stringOnlyFile,
          confidence: "high", fileCount: 1, detectionMethod: "manual"}
       ]
     }' > "$api_manifest"
@@ -203,6 +269,17 @@ EOF
     '.units[3].targetTables == ["posts"]'
   check "混在ファイル posts-detail: 自ブロックの response_model=PostDetail から ioSummary 生成" \
     '.units[3].ioSummary == "なし → PostDetail"'
+  check "独自ルート Express: 動詞なしidentifierからGETを抽出" '.units[4].method == "GET"'
+  check "独自ルート Fastify: 動詞なしidentifierからPOSTを抽出" '.units[5].method == "POST"'
+  check "独自ルート Hono: 動詞なしidentifierからPATCHを抽出" '.units[6].method == "PATCH"'
+  check "独自ルート 曖昧: GETとDELETEが同一pathならmethodを付けない" \
+    '.units[7] | has("method") | not'
+  check "独自ルート 負例: 行コメントだけならmethodを付けない" \
+    '.units[8] | has("method") | not'
+  check "独自ルート 負例: ブロックコメントだけならmethodを付けない" \
+    '.units[9] | has("method") | not'
+  check "独自ルート 負例: 文字列内だけならmethodを付けない" \
+    '.units[10] | has("method") | not'
 
   # 既存フィールド無変更: 追加フィールドを除去すると入力と完全一致する
   local stripped="$tmp/stripped.json" expected="$tmp/expected.json"
@@ -283,6 +360,79 @@ resolve_source_file() {
   fi
 }
 
+# JS/TS のコメントと、ルートpath以外の文字列を除去したコードだけを返す。
+# 限定的な字句処理に留め、構文を解釈しない。判定不能なら抽出しないことで false-positive を避ける。
+route_source_code() {
+  awk '
+    function route_open(s) {
+      return s ~ /\.(get|post|put|patch|delete)[[:space:]]*\([[:space:]]*$/
+    }
+    {
+      text = $0 "\n"
+      for (i = 1; i <= length(text); i++) {
+        c = substr(text, i, 1)
+        next_c = substr(text, i + 1, 1)
+        if (state == "line_comment") {
+          if (c == "\n") { state = "code"; out = out c }
+          continue
+        }
+        if (state == "block_comment") {
+          if (c == "*" && next_c == "/") { state = "code"; i++ }
+          continue
+        }
+        if (state == "string") {
+          if (escaped) { escaped = 0 }
+          else if (c == "\\") { escaped = 1 }
+          else if (c == quote) { state = "code" }
+          continue
+        }
+        if (state == "route_string") {
+          out = out c
+          if (escaped) { escaped = 0 }
+          else if (c == "\\") { escaped = 1 }
+          else if (c == quote) { state = "code" }
+          continue
+        }
+        if (c == "/" && next_c == "/") { state = "line_comment"; i++; continue }
+        if (c == "/" && next_c == "*") { state = "block_comment"; i++; continue }
+        if (c == "#") { state = "line_comment"; continue }
+        if (c == "\"" || c == "\047" || c == "`") {
+          quote = c
+          if (route_open(out)) { state = "route_string"; out = out c }
+          else { state = "string" }
+          continue
+        }
+        out = out c
+      }
+    }
+    END { printf "%s", out }
+  ' "$1"
+}
+
+# identifier に method が無い場合の独自ルート定義から、path を第1引数に取る一意の HTTP method を返す。
+# コメント・文字列を根拠から除外後、receiver.<lowercase-method>(<quote><path><quote>,...) を固定文字列検索し、
+# GET/POST/PUT/PATCH/DELETE の候補がちょうど1種類の時だけ採用する。
+route_method_from_source() {
+  local src="$1" path="$2"
+  local route_source compact candidates="" candidate lower quote pattern
+  [ -z "$path" ] && return 0
+  route_source="$(route_source_code "$src")"
+  compact="$(LC_ALL=C tr -d '[:space:]' <<<"$route_source")"
+  for candidate in GET POST PUT PATCH DELETE; do
+    lower="$(printf '%s' "$candidate" | tr '[:upper:]' '[:lower:]')"
+    for quote in '"' "'" '`'; do
+      pattern=".${lower}(${quote}${path}${quote},"
+      if grep -Fq -- "$pattern" <<<"$compact"; then
+        candidates="${candidates:+$candidates }$candidate"
+        break
+      fi
+    done
+  done
+  case "$candidates" in
+    GET|POST|PUT|PATCH|DELETE) printf '%s' "$candidates" ;;
+  esac
+}
+
 # identifier のパス部を sourceFile 内で grep -nF し、最初のヒット行の前3行〜後20行を出力する。
 # ヒットしない場合は何も出力しない(endpoint_block が取れない場合のフォールバック専用)
 endpoint_window() {
@@ -345,6 +495,9 @@ while IFS= read -r row; do
       api_path="${identifier#* }"
       ;;
   esac
+  if [ -z "$method" ] && [ -n "$src_file" ]; then
+    method="$(route_method_from_source "$src_file" "$api_path")"
+  fi
 
   # --- 検査範囲の決定: 関数ブロック(正)→ 近傍窓(フォールバック) ---
   # block が取れた場合は authRequired / targetTables / ioSummary をブロック内に限定する

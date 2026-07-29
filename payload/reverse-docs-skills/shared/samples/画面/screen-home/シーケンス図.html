@@ -593,7 +593,7 @@ table.steps-table td.ref {
         </aside>
 
         <div class="dp-seq-main">
-          <p class="lead">左の操作メニューを選ぶと、画面 → API → テーブルの呼び出し順序を表示する。</p>
+          <p class="lead">左の操作メニューを選ぶと、利用者 → 画面 → API／内部処理 → テーブルの呼び出し順序を表示する。</p>
 
           <div class="diagram-wrap">
             <svg id="sequence-svg" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="ホームの操作シーケンス"></svg>
@@ -621,7 +621,6 @@ table.steps-table td.ref {
 </div>
 
 <script type="application/json" id="page-data">
-
 {
   "screenId": "screen-home",
   "screenLabel": "ホーム",
@@ -631,20 +630,33 @@ table.steps-table td.ref {
       "key": "initial-view",
       "label": "初期表示",
       "handler": "handler-onMount-初期表示",
+      "lanes": [
+        {"key": "user", "label": "利用者"},
+        {"key": "screen", "label": "画面"},
+        {"key": "api", "label": "API"},
+        {"key": "table", "label": "テーブル"}
+      ],
       "steps": [
-        {"seq": 1, "from": "screen", "to": "api", "label": "GET /api/dashboard-summary", "sourceRef": "pages/HomePage.tsx:28"},
-        {"seq": 2, "from": "api", "to": "table", "label": "SELECT summary FROM dashboard_view WHERE user_id = ?", "sourceRef": "server/api/dashboard-summary.ts:15"},
-        {"seq": 3, "from": "table", "to": "api", "label": "集計レコードを返却", "sourceRef": "server/api/dashboard-summary.ts:20"},
-        {"seq": 4, "from": "api", "to": "screen", "label": "200 OK { cards, unreadNotificationCount } → 集計カード再描画", "kind": "return", "sourceRef": "pages/HomePage.tsx:34"}
+        {"seq": 1, "from": "user", "to": "screen", "label": "操作開始", "kind": "trigger"},
+        {"seq": 2, "from": "screen", "to": "api", "label": "GET /api/dashboard-summary", "sourceRef": "pages/HomePage.tsx:28"},
+        {"seq": 3, "from": "api", "to": "table", "label": "SELECT summary FROM dashboard_view WHERE user_id = ?", "sourceRef": "server/api/dashboard-summary.ts:15"},
+        {"seq": 4, "from": "table", "to": "api", "label": "集計レコードを返却", "sourceRef": "server/api/dashboard-summary.ts:20"},
+        {"seq": 5, "from": "api", "to": "screen", "label": "200 OK { cards, unreadNotificationCount } → 集計カード再描画", "kind": "return", "sourceRef": "pages/HomePage.tsx:34"}
       ]
     },
     {
       "key": "notification-check",
       "label": "通知確認",
       "handler": "handler-onNotificationBellClick-通知確認",
+      "lanes": [
+        {"key": "user", "label": "利用者"},
+        {"key": "screen", "label": "画面"},
+        {"key": "internal", "label": "内部処理"}
+      ],
       "steps": [
-        {"seq": 1, "from": "screen", "to": "api", "label": "GET /api/notifications", "sourceRef": "components/NotificationBell.tsx:19"},
-        {"seq": 2, "from": "api", "to": "screen", "label": "200 OK { items, unreadCount } → 通知パネル描画", "kind": "return", "sourceRef": "components/NotificationBell.tsx:25"}
+        {"seq": 1, "from": "user", "to": "screen", "label": "操作開始", "kind": "trigger"},
+        {"seq": 2, "from": "screen", "to": "internal", "label": "GET /api/notifications", "sourceRef": "components/NotificationBell.tsx:19"},
+        {"seq": 3, "from": "internal", "to": "screen", "label": "200 OK { items, unreadCount } → 通知パネル描画", "kind": "return", "sourceRef": "components/NotificationBell.tsx:25"}
       ]
     }
   ]
@@ -654,6 +666,7 @@ table.steps-table td.ref {
 <script>
 (function () {
   var DEFAULT_LANES = [
+    { key: 'user', label: '利用者' },
     { key: 'screen', label: '画面' },
     { key: 'api', label: 'API' },
     { key: 'table', label: 'テーブル' }
@@ -674,11 +687,10 @@ table.steps-table td.ref {
   try { data = JSON.parse(raw); } catch (e) { data = { operations: [] }; }
   var operations = data.operations || [];
 
-  // レーンは page-data の lanes[] で任意定義できる。未指定・空配列なら固定 3 本にフォールバックする
-  var laneDefs = (data.lanes && data.lanes.length) ? data.lanes : DEFAULT_LANES;
-  var LANES = laneDefs.map(function (l) { return l.key; });
+  // レーンは operation.lanes > page-data.lanes > 既定値の順で採用する
+  var pageLaneDefs = (data.lanes && data.lanes.length) ? data.lanes : DEFAULT_LANES;
+  var LANES = [];
   var LANE_LABELS = {};
-  laneDefs.forEach(function (l) { LANE_LABELS[l.key] = l.label || l.key; });
 
   var operationList = document.getElementById('operation-list');
   var operationLabel = document.getElementById('operation-label');
@@ -745,6 +757,11 @@ table.steps-table td.ref {
   function renderOperation(op, activeIndex) {
     svg.innerHTML = '';
     tbody.innerHTML = '';
+
+    var laneDefs = (op && op.lanes && op.lanes.length) ? op.lanes : pageLaneDefs;
+    LANES = laneDefs.map(function (l) { return l.key; });
+    LANE_LABELS = {};
+    laneDefs.forEach(function (l) { LANE_LABELS[l.key] = l.label || l.key; });
 
     var steps = (op && op.steps) || [];
     var height = TOP_PADDING + steps.length * ROW_HEIGHT + BOTTOM_PADDING;

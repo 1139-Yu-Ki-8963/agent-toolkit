@@ -23,6 +23,8 @@ set -euo pipefail
 #     `recount-false-positive` を含む項目は値レベル検証の対象外とする。
 #   - --self-test は合成フィクスチャで陽性 exit 0・陰性 exit 1（未転記キー・未転記トークン）・
 #     除外セクション/キーでの非検出・座標ノイズ除去の各ケースを自己検証する。
+#   - 通常の run_check でも設計書の画面キャプチャ節と基本/詳細テンプレートを検査し、
+#     内部語の混入、許可文言・placeholder class/styleの欠落を fail-closed で検出する。
 #
 # 設計判断（ADR）の正本は本スキルの SKILL.md「## 設計判断」に記載する。
 # 保守責任者: 人手（ユーザー）。facts.yml の書式・除外分類を変更した時に更新する。
@@ -96,6 +98,71 @@ extract_value_tokens() {
   printf '%s' "$1" | grep -oE '[A-Za-z_$][A-Za-z0-9_$]*\.[A-Za-z_$][A-Za-z0-9_$]*|[0-9]{2,}' || true
 }
 
+extract_capture_section() {
+  awk '
+    /^### 画面キャプチャ[[:space:]]*$/ { inside = 1; next }
+    inside && /^### / { exit }
+    inside { print }
+  ' "$1"
+}
+
+extract_visible_capture_section() {
+  extract_capture_section "$1" | awk '
+    /<!--[[:space:]]*.*-->[[:space:]]*$/ { next }
+    /<!--[[:space:]]*$/ { comment = 1; next }
+    /-->/ { comment = 0; next }
+    !comment { print }
+  '
+}
+
+check_screen_capture_contract() {
+  doc="$1"
+  [ -f "$doc" ] || return 0
+  section="$(extract_visible_capture_section "$doc")"
+  [ -z "$section" ] && return 0
+
+  if printf '%s\n' "$section" | grep -Eq '実測委譲|measurement_pending'; then
+    echo "  禁止語: 画面キャプチャ節に内部語があります: $doc" >&2
+    return 1
+  fi
+
+  has_placeholder=0
+  if printf '%s\n' "$section" | grep -Fq 'class="screen-capture-placeholder"'; then
+    has_placeholder=1
+    if ! printf '%s\n' "$section" | grep -Fq '画面キャプチャは未取得です。後続の画面確認で追加します。'; then
+      echo "  契約違反: 読者向け未取得文言がありません: $doc" >&2
+      return 1
+    fi
+    if ! printf '%s\n' "$section" | grep -Eq 'color:[[:space:]]*#64748b.*background:[[:space:]]*#f8fafc.*border:[[:space:]]*2px[[:space:]]+dashed[[:space:]]+#94a3b8'; then
+      echo "  契約違反: placeholderの灰色・点線枠styleがありません: $doc" >&2
+      return 1
+    fi
+  fi
+
+  if [ "$has_placeholder" -eq 1 ] && printf '%s\n' "$section" | grep -Eq '!\[[^]]*\]\([^)]*\)'; then
+    echo "  契約違反: placeholderと画像参照が同時にあります: $doc" >&2
+    return 1
+  fi
+  if [ "$has_placeholder" -eq 0 ] && ! printf '%s\n' "$section" | grep -Eq '!\[[^]]*\]\([^)]*\)'; then
+    echo "  契約違反: 画面画像または読者向けplaceholderがありません: $doc" >&2
+    return 1
+  fi
+  return 0
+}
+
+check_screen_capture_templates() {
+  script_dir="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
+  repo_root="$(CDPATH= cd -- "$script_dir/../../../.." && pwd)"
+  basic="$repo_root/shared/templates/リバース検証/画面/基本設計/画面基本設計書.md"
+  detail="$repo_root/shared/templates/リバース検証/画面/詳細設計/画面詳細設計書.md"
+  for template in "$basic" "$detail"; do
+    if ! check_screen_capture_contract "$template"; then
+      return 1
+    fi
+  done
+  return 0
+}
+
 # facts.yml と設計書群を突合する。未転記があれば return 1。
 # 値レベル検証は、value からコード的トークンを抽出し、そのトークンが設計書本文に
 # 1箇所も出現しなければ「未転記トークン」としてfail-closed（exit 1）とする。
@@ -109,6 +176,15 @@ run_check() {
   missing=0
   total=0
   token_missing=0
+
+  for doc in "$@"; do
+    if ! check_screen_capture_contract "$doc"; then
+      return 1
+    fi
+  done
+  if ! check_screen_capture_templates; then
+    return 1
+  fi
 
   has_delegation_note=0
   for doc in "$@"; do
@@ -186,6 +262,50 @@ EOF
   fi
   echo "完全性ゲート通過: facts.yml $total 件すべてが設計書に転記済みです（値レベル検証含む）"
   return 0
+}
+
+screen_capture_placeholder_self_test() {
+  tmp="$1"
+  script_dir="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
+  repo_root="$(CDPATH= cd -- "$script_dir/../../../.." && pwd)"
+  template="$repo_root/shared/templates/リバース検証/画面/詳細設計/画面詳細設計書.md"
+  facts="$tmp/screen-capture-facts.yml"
+  positive="$tmp/screen-capture-positive.md"
+  negative="$tmp/screen-capture-negative.md"
+  template_section="$(extract_visible_capture_section "$template")"
+  [ -n "$template_section" ] || return 1
+  cat > "$facts" <<'YML'
+sections:
+  import:
+    reason: ""
+    items:
+      - key: capture-fixture-key
+        value: ""
+YML
+
+  {
+    printf '%s\n' '## §3 画面構造' '' '### 画面キャプチャ'
+    printf '%s\n' "$template_section"
+    printf '%s\n' '' '### 部品構成' '' 'capture-fixture-key'
+  } > "$positive"
+  printf '%s\n' "$template_section" | sed 's/画面キャプチャは未取得です。後続の画面確認で追加します。/実測委譲/g' | {
+    printf '%s\n' '## §3 画面構造' '' '### 画面キャプチャ'
+    cat
+    printf '%s\n' '' '### 部品構成' '' 'capture-fixture-key'
+  } > "$negative"
+
+  if run_check "$facts" "$positive" >/dev/null 2>&1; then
+    echo "  [PASS] 画面キャプチャplaceholder: 通常run_checkで実テンプレート由来の許可文言・style"
+  else
+    echo "  [FAIL] 画面キャプチャplaceholder: 通常run_checkの実テンプレート由来fixtureが不合格" >&2
+    return 1
+  fi
+  if run_check "$facts" "$negative" >/dev/null 2>&1; then
+    echo "  [FAIL] 画面キャプチャplaceholder: 通常run_checkで禁止語再混入を検出できない" >&2
+    return 1
+  else
+    echo "  [PASS] 画面キャプチャplaceholder: 通常run_checkで実テンプレート由来fixtureの禁止語再混入を検出"
+  fi
 }
 
 # 合成フィクスチャによる自己テスト。
@@ -528,6 +648,13 @@ MD
     rc=1
   fi
 
+  if [ "$rc" -eq 0 ]; then
+    if screen_capture_placeholder_self_test "$tmp"; then
+      :
+    else
+      rc=1
+    fi
+  fi
   if [ "$rc" -eq 0 ]; then
     echo "self-test 全項目 PASS"
   else

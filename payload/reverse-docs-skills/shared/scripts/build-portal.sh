@@ -9,6 +9,7 @@ command -v jq >/dev/null 2>&1 || { echo "ERROR: jq is required but not installed
 #   bash shared/scripts/build-portal.sh <target_repo_path> <output_dir> <portal_output_dir>
 #     [--catalog <portal-catalog.json>] [--generated-at <ISO-8601>]
 #     [--portal-only] [--screen-manifest <screen-manifest.ext.json>]
+#     [--sites <file>] [--site-key <key>]
 #
 # 処理:
 #   1. 対象リポジトリのコード行数・ファイル数を計測（FE/BE分離）
@@ -158,6 +159,13 @@ FIXTURE2
   fi
   if grep -q 'test-doc\.md"' "$test5_portal/index.html"; then
     echo "FAIL: ケース5 — ポータルにまだ .md リンクが残っている" >&2; rm -rf "$test5_dir"; exit 1
+  fi
+  if ! grep -qF 'grid-template-columns: 200px minmax(0, 1fr)' "$test5_docs/プロジェクト共通/test-doc.html" \
+     || ! grep -qF "className = 'table-scroll-shell'" "$test5_docs/プロジェクト共通/test-doc.html" \
+     || ! grep -qF 'can-scroll-right' "$test5_docs/プロジェクト共通/test-doc.html"; then
+    echo "FAIL: ケース5 — 詳細文書の可変幅カラムまたは横スクロール合図が欠落" >&2
+    rm -rf "$test5_dir"
+    exit 1
   fi
   echo "PASS: --self-test ケース5（共通文書 .md → .html 変換）"
   rm -rf "$test5_dir"
@@ -547,7 +555,7 @@ fi
 
 # --- 引数チェック ---
 if [ $# -lt 3 ]; then
-  echo "Usage: $0 <target_repo_path> <output_dir> <portal_output_dir> [--catalog <file>] [--generated-at <ISO-8601>] [--portal-only] [--screen-manifest <file>]" >&2
+  echo "Usage: $0 <target_repo_path> <output_dir> <portal_output_dir> [--catalog <file>] [--generated-at <ISO-8601>] [--portal-only] [--screen-manifest <file>] [--sites <file>] [--site-key <key>]" >&2
   exit 1
 fi
 
@@ -560,6 +568,8 @@ CATALOG="$DEFAULT_CATALOG"
 GENERATED_AT=""
 PORTAL_ONLY=0
 SCREEN_MANIFEST=""
+SITES_FILE=""
+SITE_KEY=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --catalog)
@@ -573,6 +583,12 @@ while [ $# -gt 0 ]; do
     --screen-manifest)
       [ $# -ge 2 ] || { echo "ERROR: --screen-manifest requires a value" >&2; exit 1; }
       SCREEN_MANIFEST="$2"; shift 2 ;;
+    --sites)
+      [ $# -ge 2 ] || { echo "ERROR: --sites requires a value" >&2; exit 1; }
+      SITES_FILE="$2"; shift 2 ;;
+    --site-key)
+      [ $# -ge 2 ] || { echo "ERROR: --site-key requires a value" >&2; exit 1; }
+      SITE_KEY="$2"; shift 2 ;;
     *)
       echo "ERROR: unknown argument: $1" >&2
       exit 1 ;;
@@ -706,7 +722,7 @@ if [ -d "$common_dir" ]; then
       fi
       # 共通シェル注入（partials が存在する場合のみ）
       if type shell_injection_args >/dev/null 2>&1; then
-        shell_injection_args "$SCRIPT_DIR/../templates" "$CATALOG" "$portal_index_href" "$PROJECT_NAME" "$GENERATED_DATE" "$COMMIT_SHORT" "shared/scripts/build-portal.sh" "design"
+        shell_injection_args "$SCRIPT_DIR/../templates" "$CATALOG" "$portal_index_href" "$PROJECT_NAME" "$GENERATED_DATE" "$COMMIT_SHORT" "shared/scripts/build-portal.sh" "design" "${SITES_FILE:-}" "${SITE_KEY:-}" "$(dirname "$md_file")"
         if [ ${#SHELL_RENDER_ARGS[@]} -gt 0 ]; then
           local_render_args+=("${SHELL_RENDER_ARGS[@]}")
         fi
@@ -786,7 +802,7 @@ if [ -d "$DOCS_ROOT/画面" ] && [ -f "$SCREEN_DOC_TEMPLATE_FILE" ]; then
       fi
       # 共通シェル注入（partials が存在する場合のみ）
       if type shell_injection_args >/dev/null 2>&1; then
-        shell_injection_args "$SCRIPT_DIR/../templates" "$CATALOG" "$portal_index_href" "$PROJECT_NAME" "$GENERATED_DATE" "$COMMIT_SHORT" "shared/scripts/build-portal.sh" "list"
+        shell_injection_args "$SCRIPT_DIR/../templates" "$CATALOG" "$portal_index_href" "$PROJECT_NAME" "$GENERATED_DATE" "$COMMIT_SHORT" "shared/scripts/build-portal.sh" "list" "${SITES_FILE:-}" "${SITE_KEY:-}" "$(dirname "$target_md")"
         if [ ${#SHELL_RENDER_ARGS[@]} -gt 0 ]; then
           screen_render_args+=("${SHELL_RENDER_ARGS[@]}")
         fi
@@ -883,7 +899,7 @@ if [ -f "$TOKENS_CSS_FILE" ]; then
 fi
 # 共通シェル注入（partials が存在する場合のみ）
 if type shell_injection_args >/dev/null 2>&1; then
-  shell_injection_args "$SCRIPT_DIR/../templates" "$CATALOG" "index.html" "$PROJECT_NAME" "$GENERATED_DATE" "$COMMIT_SHORT" "shared/scripts/build-portal.sh" ""
+  shell_injection_args "$SCRIPT_DIR/../templates" "$CATALOG" "index.html" "$PROJECT_NAME" "$GENERATED_DATE" "$COMMIT_SHORT" "shared/scripts/build-portal.sh" "" "${SITES_FILE:-}" "${SITE_KEY:-}" "$PORTAL_DIR"
   if [ ${#SHELL_RENDER_ARGS[@]} -gt 0 ]; then
     render_args+=("${SHELL_RENDER_ARGS[@]}")
   fi

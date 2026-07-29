@@ -200,7 +200,7 @@
       <section class="module-group">
         <h2>{{UNIT_KIND_LABEL}}一覧</h2>
         <div class="table-wrap">
-        <table class="units" id="unit-table">
+        <table class="units" id="unit-table" data-unit-table>
           <thead>
             <tr>
               <th data-key="unitNameGuess">{{UNIT_KIND_LABEL}}名</th>
@@ -234,6 +234,9 @@
       <script type="application/json" id="unit-manifest">
 {{MANIFEST_JSON}}
       </script>
+      <script type="application/json" id="column-spec">
+<!--COLUMN_SPEC_JSON-->
+      </script>
     </main>
   </div>
   <!--SHELL_FOOTER-->
@@ -254,17 +257,16 @@
     var optUnits = optManifest.units || optManifest.screens || [];
     if (!optUnits.length) return;
 
-    var FIELD_SETS = {
-      api:      [['method', 'メソッド'], ['authRequired', '認証'], ['callers', '呼び出し元画面'], ['ioSummary', 'I/O概要']],
-      table:    [['foreignKeys', 'FK参照先'], ['columnCount', 'カラム数'], ['mainColumns', '主要カラム']],
-      batch:    [['schedule', 'スケジュール'], ['targetTables', '対象テーブル'], ['downstreamJobs', '後続ジョブ'], ['execMethod', '実行方法']],
-      report:   [['format', '出力形式'], ['trigger', '出力契機']],
-      external: [['direction', '方向'], ['protocol', 'プロトコル'], ['authMethod', '認証方式']],
-      message:  [['sourceFile', '抽出元'], ['usedScreen', '使用画面']],
-      test_viewpoint: [['testType', 'テスト種別']]
-    };
-    var fields = FIELD_SETS[optManifest.unitKind];
-    if (!fields) return;
+    var specEl = document.getElementById('column-spec');
+    if (!specEl) return;
+    var spec;
+    try { spec = JSON.parse(specEl.textContent); } catch (e) { return; }
+    if (!spec) return;
+    var fields = []
+      .concat((spec.axes || []).filter(function (a) { return ((a.column || {}).show || 'auto') !== 'never'; }))
+      .concat(spec.columns || [])
+      .sort(function (a, b) { return (a.order || 999) - (b.order || 999); });
+    if (!fields.length) return;
 
     /* 相互参照リンク対応表: unitKind別に、配列タグを対応一覧ページへの ?q= リンクにする */
     var LINK_TARGETS = {
@@ -274,13 +276,24 @@
     };
     var linkMap = LINK_TARGETS[optManifest.unitKind] || {};
 
-    function hasValue(v) {
-      if (v === undefined || v === null || v === '') return false;
-      if (Array.isArray(v)) return v.length > 0;
+    function hasValue(v, field) {
+      if (v === null || v === undefined) return false;
+      if (Object.prototype.toString.call(v) === '[object Array]') {
+        return (field && field.presence === 'arrayOrEmptyLabel') ? true : v.length > 0;
+      }
+      if (typeof v === 'string') return v !== '';
       return true;
     }
+    function labelOf(field, raw) {
+      var vals = (field && field.values) || [];
+      for (var i = 0; i < vals.length; i++) {
+        if (vals[i].key === raw) return vals[i].label;
+      }
+      return String(raw);
+    }
     var activeFields = fields.filter(function (f) {
-      return optUnits.some(function (u) { return hasValue(u[f[0]]); });
+      return ((f.column || {}).show === 'always')
+          || optUnits.some(function (u) { return hasValue(u[f.key], f); });
     });
     if (!activeFields.length) return;
 
@@ -319,8 +332,9 @@
       return null;
     }
 
-    function renderValue(td, fieldName, v, u) {
-      if (!hasValue(v)) return;
+    function renderValue(td, field, v, u) {
+      var fieldName = field.key;
+      if (!hasValue(v, field)) return;
       /* 出力契機=バッチ はバッチ一覧への相互参照リンクにする（relatedBatch を ?q= に渡す） */
       if (fieldName === 'trigger' && String(v) === 'バッチ') {
         var batchLink = document.createElement('a');
@@ -349,8 +363,10 @@
       }
       if (typeof v === 'boolean') {
         var flag = document.createElement('span');
-        if (v) { flag.className = 'badge medium'; flag.textContent = '要'; }
-        else { flag.className = 'opt-muted'; flag.textContent = '不要'; }
+        var trueLabel = field.trueLabel || '要';
+        var falseLabel = field.falseLabel || '不要';
+        if (v) { flag.className = 'badge medium'; flag.textContent = trueLabel; }
+        else { flag.className = 'opt-muted'; flag.textContent = falseLabel; }
         td.appendChild(flag);
         return;
       }
@@ -366,19 +382,19 @@
         td.appendChild(docBadge);
         return;
       }
-      td.textContent = String(v);
+      td.textContent = labelOf(field, v);
     }
 
     activeFields.forEach(function (f) {
       var th = document.createElement('th');
-      th.setAttribute('data-key', f[0]);
+      th.setAttribute('data-key', f.key);
       th.style.width = '140px';
-      th.textContent = f[1];
+      th.textContent = f.label;
       headRow.appendChild(th);
       bodyRows.forEach(function (tr) {
         var td = document.createElement('td');
         var u = findUnit(tr);
-        if (u) renderValue(td, f[0], u[f[0]], u);
+        if (u) renderValue(td, f, u[f.key], u);
         tr.appendChild(td);
       });
     });

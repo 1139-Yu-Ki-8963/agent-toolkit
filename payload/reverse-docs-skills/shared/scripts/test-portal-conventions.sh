@@ -109,8 +109,8 @@ check_file() {
     fi
 
     if grep -q '<details.*class="module-group"' "$f" 2>/dev/null; then
-      if grep -q 'unitKind.*feature' "$f" 2>/dev/null; then
-        pass "一覧-details禁止（feature-listカテゴリ別は許可）"
+      if grep -q 'data-split-axis="[^"]\+"' "$f" 2>/dev/null; then
+        pass "一覧-details禁止（分割軸の宣言ありは許可）"
       else
         fail "一覧-details禁止（残存）"
       fi

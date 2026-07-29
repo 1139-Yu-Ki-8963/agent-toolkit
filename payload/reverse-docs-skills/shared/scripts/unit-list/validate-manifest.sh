@@ -4,8 +4,10 @@
 # 問わずマニフェスト品質を機械保証する。unit_kind=screen(デフォルト)の場合は従来と完全に同じ
 # 出力・挙動を保証する。
 #
-# Usage: validate-manifest.sh <manifest.json> [--fix <fixed-out.json>] [--unit-kind <kind>]
+# Usage: validate-manifest.sh <manifest.json> [--fix <fixed-out.json>] [--unit-kind <kind>] [--axes <file>]
 #        validate-manifest.sh --self-test
+#
+# --axes <file> は分類軸・任意列の宣言ファイルを受理する(現時点では受理するのみで検査には未使用)。
 #
 # --unit-kind 未指定時は、マニフェスト内の unitKind フィールド(jq -r '.unitKind // empty')を読み、
 # それも空なら screen にフォールバックする。unit_kind=screen の場合は配列キー screens・要素キー
@@ -81,6 +83,27 @@ if ! command -v jq >/dev/null 2>&1; then
   echo "ERROR: jq is required but not found in PATH" >&2
   exit 1
 fi
+
+# unit-axes.sh(分類軸・任意列の宣言解決)を source する。sourceは呼び出し元の
+# 位置引数を引き継ぐため、--self-test等の引数がunit-axes.sh自身の--self-test分岐に
+# 誤って渡らないよう、source中だけ位置引数を空にして復元する。
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+_ORIG_ARGS=("$@")
+set --
+. "$SCRIPT_DIR/../unit-axes.sh"
+set -- "${_ORIG_ARGS[@]}"
+unset _ORIG_ARGS
+
+# 宣言(axes_json)から指定キーのclosed値域(values[].key)をJSON配列文字列で返す。
+# 該当軸が無い/closedでない場合、またはaxes_jsonが空(宣言未解決)の場合は空文字を返す
+# (呼び出し側でハードコード値域へのフォールバック判定に使う)。
+axes_closed_values() {
+  local json="$1" key="$2"
+  [ -z "$json" ] && return 0
+  printf '%s' "$json" | jq -c --arg k "$key" '
+    [ .axes[]? | select(.key==$k and .valuePolicy=="closed") | .values[]?.key ]
+  ' 2>/dev/null
+}
 
 # ---------------------------------------------------------------------------
 # 検証本体。manifest・fix_out(空文字可)・unit_kind を受け取り、[PASS]/[FAIL]行を
@@ -556,16 +579,33 @@ run_validate() {
   fi
 
   # ---------------------------------------------------------------------------
-  # 11. screenType-必須+値域(screen専用。screen以外はskip)
-  #    全screensにscreenTypeフィールドが存在し(不在・null不可)、値域内であることを検査する。
+  # 11〜13. 分類軸の値域検査(screen専用。screen以外はskip)。
+  #    値域の正本は宣言(shared/references/unit-axes.json。プロジェクト上書き可。
+  #    詳細はshared/references/manifest-schema-extensions.md参照)である。
+  #    宣言が解決できない場合、または該当軸のvaluesが空(壊れている)場合は、
+  #    axes_closed_valuesが空文字を返すため、その軸だけハードコード値域へフォールバックする。
+  #    項目数(total_items)は増やさない。screenType/accountGroup/accountSubType以外の
+  #    closed/identifier軸(device等)は項目12(accountGroup-値域)にまとめて検査する。
   # ---------------------------------------------------------------------------
   local total_items=11
   if [ "$UNIT_KIND" = "screen" ]; then
     total_items=15
+
+    local axes_json="" axes_resolved
+    if axes_resolved="$(resolve_unit_axes "$MANIFEST" "${AXES_FILE:-}" 2>/dev/null)"; then
+      axes_json="$(unit_axes_for_kind "$axes_resolved" "$UNIT_KIND")"
+    fi
+
+    # 11. screenType-必須+値域
+    local screen_type_values_json
+    screen_type_values_json="$(axes_closed_values "$axes_json" "screenType")"
+    if [ -z "$screen_type_values_json" ] || [ "$screen_type_values_json" = "[]" ] || [ "$screen_type_values_json" = "null" ]; then
+      screen_type_values_json='["list","detail","form","confirm","complete","error","top","processing_endpoint"]'
+    fi
+
     local screen_type_issues
-    screen_type_issues="$(jq -r '
-      ["list","detail","form","confirm","complete","error","top","processing_endpoint"] as $allowed
-      | [ .screens[]? |
+    screen_type_issues="$(jq -r --argjson allowed "$screen_type_values_json" '
+      [ .screens[]? |
           (.screenKey // "?") as $k
           | (.screenType) as $st
           | if (has("screenType") | not) or ($st == null) then
@@ -585,40 +625,121 @@ run_validate() {
       echo "[PASS] screenType-必須+値域 — 全screensにscreenType存在し値域内" >&2
     fi
 
+    # 12. accountGroup-値域
+    #     accountGroup以外のclosed/identifier軸(device等。screenType/accountSubTypeを除く)は、
+    #     項目数を増やさずこの項目の枠内で検査するが、[FAIL]行は違反した軸ごとに
+    #     <軸キー>-値域として個別に出力する(検査名から違反軸を取り違えないようにするため)。
+    #     全軸PASSの場合のみ、従来どおりaccountGroup-値域の[PASS]行を1行出す。
+    local account_group_values_json account_group_values_str
+    account_group_values_json="$(axes_closed_values "$axes_json" "accountGroup")"
+    if [ -z "$account_group_values_json" ] || [ "$account_group_values_json" = "[]" ] || [ "$account_group_values_json" = "null" ]; then
+      account_group_values_json='["user","admin","editor","report","common"]'
+    fi
+    account_group_values_str="$(printf '%s' "$account_group_values_json" | jq -r 'join("/")')"
+
     local account_group_issues
-    account_group_issues="$(jq -r '
-      ["user","admin","editor","report","common"] as $allowed
-      | [ .screens[]? | select(has("accountGroup") and .accountGroup != null)
+    account_group_issues="$(jq -r --argjson allowed "$account_group_values_json" '
+      [ .screens[]? | select(has("accountGroup") and .accountGroup != null)
           | .accountGroup as $group
           | select(($group | type) != "string" or (($allowed | index($group)) == null))
           | (.screenKey // "?") + ":accountGroup=" + ($group | tostring) + "(値域外)"
         ] | join("; ")
     ' "$MANIFEST" 2>/dev/null)"
+
+    local extra_axis_keys any_axis_issue=0
+    extra_axis_keys="$(printf '%s' "$axes_json" | jq -r '
+      .axes[]?
+      | select(.key!="screenType" and .key!="accountGroup" and .key!="accountSubType")
+      | select(.valuePolicy=="closed" or .valuePolicy=="identifier")
+      | .key
+    ' 2>/dev/null)"
+
     if [ -n "$account_group_issues" ]; then
       overall_fail=1
+      any_axis_issue=1
       echo "[FAIL] accountGroup-値域 — ${account_group_issues}" >&2
-    else
-      echo "[PASS] accountGroup-値域 — user/admin/editor/report/commonのみ" >&2
+    fi
+
+    if [ -n "$extra_axis_keys" ]; then
+      while IFS= read -r axis_key; do
+        [ -z "$axis_key" ] && continue
+        local axis_policy axis_values_json axis_issue
+        axis_policy="$(printf '%s' "$axes_json" | jq -r --arg k "$axis_key" '.axes[]? | select(.key==$k) | .valuePolicy' 2>/dev/null)"
+        if [ "$axis_policy" = "closed" ]; then
+          axis_values_json="$(axes_closed_values "$axes_json" "$axis_key")"
+          [ -z "$axis_values_json" ] && axis_values_json='[]'
+          axis_issue="$(jq -r --arg f "$axis_key" --argjson allowed "$axis_values_json" '
+            [ .screens[]? | select(has($f) and .[$f] != null)
+              | .[$f] as $v
+              | select(($v | type) != "string" or (($allowed | index($v)) == null))
+              | (.screenKey // "?") + ":" + $f + "=" + ($v | tostring) + "(値域外)"
+            ] | join("; ")
+          ' "$MANIFEST" 2>/dev/null)"
+        else
+          axis_issue="$(jq -r --arg f "$axis_key" '
+            [ .screens[]? | select(has($f) and .[$f] != null)
+              | .[$f] as $v
+              | select(($v | type) != "string" or ($v | test("^[A-Za-z_][A-Za-z0-9_]*$") | not))
+              | (.screenKey // "?") + ":" + $f + "=" + ($v | tostring) + "(値域外)"
+            ] | join("; ")
+          ' "$MANIFEST" 2>/dev/null)"
+        fi
+        if [ -n "$axis_issue" ]; then
+          overall_fail=1
+          any_axis_issue=1
+          echo "[FAIL] ${axis_key}-値域 — ${axis_issue}" >&2
+        fi
+      done <<< "$extra_axis_keys"
+    fi
+
+    if [ "$any_axis_issue" -eq 0 ]; then
+      echo "[PASS] accountGroup-値域 — ${account_group_values_str}のみ" >&2
     fi
 
     # 13. accountSubType-値域(screen専用)
     #     detect-screens.shの抽出値はrole名(識別子形式)またはcommon/role_checkedのいずれかであり、
-    #     accountGroupのような固定小集合ではないため、型と識別子形式(^[A-Za-z_][A-Za-z0-9_]*$)を検査する。
+    #     accountGroupのような固定小集合ではないため、宣言のvaluePolicyがidentifierの場合は
+    #     型と識別子形式(^[A-Za-z_][A-Za-z0-9_]*$)を検査する(既定宣言と同じ挙動)。
+    local account_sub_type_policy
+    account_sub_type_policy="$(printf '%s' "$axes_json" | jq -r '.axes[]? | select(.key=="accountSubType") | .valuePolicy' 2>/dev/null)"
+    [ -z "$account_sub_type_policy" ] && account_sub_type_policy="identifier"
+
     local account_sub_type_issues
-    account_sub_type_issues="$(jq -r '
-      [ .screens[]? |
-          (.screenKey // "?") as $k
-          | if (has("accountSubType") | not) or (.accountSubType == null) then
-              empty
-            elif (.accountSubType | type) != "string" then
-              $k + ":accountSubType=" + (.accountSubType | tostring) + "(型不正)"
-            elif (.accountSubType | test("^[A-Za-z_][A-Za-z0-9_]*$") | not) then
-              $k + ":accountSubType=" + .accountSubType + "(値域外)"
-            else
-              empty
-            end
-        ] | join("; ")
-    ' "$MANIFEST" 2>/dev/null)"
+    if [ "$account_sub_type_policy" = "closed" ]; then
+      local account_sub_type_values_json
+      account_sub_type_values_json="$(axes_closed_values "$axes_json" "accountSubType")"
+      [ -z "$account_sub_type_values_json" ] && account_sub_type_values_json='[]'
+      account_sub_type_issues="$(jq -r --argjson allowed "$account_sub_type_values_json" '
+        [ .screens[]? |
+            (.screenKey // "?") as $k
+            | if (has("accountSubType") | not) or (.accountSubType == null) then
+                empty
+              elif (.accountSubType | type) != "string" then
+                $k + ":accountSubType=" + (.accountSubType | tostring) + "(型不正)"
+              elif ($allowed | index(.accountSubType)) == null then
+                $k + ":accountSubType=" + .accountSubType + "(値域外)"
+              else
+                empty
+              end
+          ] | join("; ")
+      ' "$MANIFEST" 2>/dev/null)"
+    else
+      account_sub_type_issues="$(jq -r '
+        [ .screens[]? |
+            (.screenKey // "?") as $k
+            | if (has("accountSubType") | not) or (.accountSubType == null) then
+                empty
+              elif (.accountSubType | type) != "string" then
+                $k + ":accountSubType=" + (.accountSubType | tostring) + "(型不正)"
+              elif (.accountSubType | test("^[A-Za-z_][A-Za-z0-9_]*$") | not) then
+                $k + ":accountSubType=" + .accountSubType + "(値域外)"
+              else
+                empty
+              end
+          ] | join("; ")
+      ' "$MANIFEST" 2>/dev/null)"
+    fi
+
     if [ -n "$account_sub_type_issues" ]; then
       overall_fail=1
       echo "[FAIL] accountSubType-値域 — ${account_sub_type_issues}" >&2
@@ -1170,6 +1291,7 @@ shift
 
 FIX_OUT=""
 UNIT_KIND_ARG=""
+AXES_FILE=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --fix)
@@ -1186,6 +1308,10 @@ while [ $# -gt 0 ]; do
         echo "Usage: validate-manifest.sh <manifest.json> [--fix <fixed-out.json>] [--unit-kind <kind>]" >&2
         exit 1
       fi
+      shift 2
+      ;;
+    --axes)
+      AXES_FILE="${2:-}"
       shift 2
       ;;
     *)

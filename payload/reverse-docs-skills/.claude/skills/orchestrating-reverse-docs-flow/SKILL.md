@@ -52,7 +52,7 @@ allowed-tools: [Read, Write, Bash, Grep, Glob, AskUserQuestion, TaskCreate, Task
 
 ## 基本ワークフロー
 
-成果物の実在から現在の状態を判定し、次に起動する子スキルを機械的に決定する。状態一覧（15状態）は下表のとおり。詳細な実在判定基準・args・返却フィールドの定義は `references/contract.md` の状態判定表を参照。
+成果物の実在から現在の状態を判定し、次に起動する子スキルを機械的に決定する。状態一覧（16状態）は下表のとおり。詳細な実在判定基準・args・返却フィールドの定義は `references/contract.md` の状態判定表を参照。
 
 | 状態キー | 判定の要点 | 次に起動する子スキル |
 |---|---|---|
@@ -60,6 +60,7 @@ allowed-tools: [Read, Write, Bash, Grep, Glob, AskUserQuestion, TaskCreate, Task
 | 一覧未生成 | unit_kinds_present のいずれかの種別について一覧HTMLが不在、または excluded-kinds.json が不在 | generating-<種別>-list-for-reverse-docs（不在種別に対応する種別別一覧スキル） |
 | 共通未採録 | プロジェクト共通10文書のいずれか不在、または機械ゲート再実行が失敗 | generating-reverse-common-docs（NG帰着(c)差し戻し時は mode=append） |
 | ポータル未生成 | `<output_dir>/index.html` が不在 | bash shared/scripts/build-portal.sh（Phase 4A） |
+| サイト定義未生成 | サイトが2件以上あり `<納品ルート>/sites.json` が不在 | `sites.json` を書き出す（統括スキル自身が実行。子スキル起動なし） |
 | 基盤ページ未生成（任意） | 用語辞書.html・技術スタック.html・画面遷移図.html・ER図.html・環境構築手順.html のいずれかが output_dir 直下に不在。任意工程のためデータ源未整備時はスキップしてよい（Phase 4B） | generating-tech-stack-for-reverse-docs / generating-env-guide-for-reverse-docs / generating-screen-transition-for-reverse-docs / generating-er-diagram-for-reverse-docs / generating-glossary-for-reverse-docs（不在ページに対応するスキルのみ） |
 | 状態遷移図未生成（任意） | 状態遷移図.html が output_dir 直下に不在。任意工程のためデータ源未整備時はスキップしてよい | generating-entity-state-for-reverse-docs |
 | シーケンス図未生成（任意） | 画面フォルダのシーケンス図.html が不在。任意工程のためデータ源未整備時はスキップしてよい | generating-sequence-diagram-for-reverse-docs |
@@ -71,6 +72,8 @@ allowed-tools: [Read, Write, Bash, Grep, Glob, AskUserQuestion, TaskCreate, Task
 | 基準未確立 | 設計書有・baseline_tag 未確立 | syncing-reverse-env（mode=setup → sync） |
 | 往復未検証 | baseline_tag有・reverse未実装 or 未突合 | rebuilding-code-from-docs（implement）→ syncing-reverse-env（sync,dry-run）→ rebuilding-code-from-docs（judge） |
 | 検証完了 | judge の status=PASS | syncing-reverse-env（mode=sync 本番 / 依頼時 teardown） |
+
+複数サイトの場合、上表の `<output_dir>` は「当該サイトのサイトルート」と読み替える。
 
 画面開通は facts 抽出・基本設計・詳細設計の前提条件ではない。原本コードと封印済み facts から静的リバースを先に完了し、画面開通はファイル単位検証・基準確立・往復検証へ進む直前にだけ要求する。開通できない場合も静的成果物は破棄せず「静的リバース完了・動的検証保留」として報告する。
 
@@ -118,6 +121,16 @@ Step 0-1 の回答に基づき実行モードを決定する:
 - **個別スキル利用**: 指定されたスキルを args 全量指定で単独起動し、完了をもって本フロー全体を終了する
 
 **完了**: 実行モード（フル実行 / 個別スキル名）が確定し、フル実行は`python`ならPhase 0P、`auto|screen`ならPhase 1、個別利用なら単独起動へ進む準備ができている。
+
+#### サイトを確定する（アーキテクチャ調査書 §10 が確定済みのとき）
+
+アーキテクチャ調査書 §10 のサイト一覧を提示し、どのサイトを対象にするかを確定する。単独プロジェクトならサイトは 1 件（キー `main`）で、確認は不要。モノレポで 2 件以上ある場合は、全サイトを対象にするか一部だけかをユーザーに確認する。§10 がまだ確定していない（初回起動でアーキ調査が未実施）場合は、Phase 2（アーキ調査）完了直後にあらためて本 Step を実行してから Phase 3 以降へ進む。
+
+**完了**: 対象サイト一覧（キー・ルートディレクトリ）が確定している。
+
+### サイトごとのループ（モノレポ・複数サイト時）
+
+前段の「サイトを確定する」段階で複数サイトを対象に確定した場合、Phase 2（アーキ調査）〜Phase 4A（ポータル生成）を確定した対象サイトごとに繰り返す。各サイトのループでは `output_dir` を `<納品ルート>/<サイトのルートディレクトリ>` に差し替えて実行する。サイト間は独立しており、あるサイトの失敗が他サイトの成果物を壊すことはない。いずれかのサイトで中断した場合はそのまま停止し、以降のサイトへは進まない。次回起動時は状態判定がサイトごとに行われるため、未完了のサイトから自動的に再開される。サイトをまたぐ巻き戻しは行わない。
 
 ### Phase 0P: 明示Python facts-only経路
 
@@ -172,7 +185,7 @@ Phase 1B（または Phase 3）で画面一覧HTMLが確立した後に、機能
 
 #### 再実行判定
 
-画面一覧HTMLが存在するのに `一覧/機能一覧/機能一覧.html` が不在の場合、状態判定の15状態には追加せず、本 Phase を再実行して補完する（派生一覧は15状態の判定フローの対象外）。
+画面一覧HTMLが存在するのに `一覧/機能一覧/機能一覧.html` が不在の場合、状態判定の16状態には追加せず、本 Phase を再実行して補完する（派生一覧は16状態の判定フローの対象外）。
 
 ### Phase 1D: マトリクス・対応表生成（Phase 1C 完了後・派生補完）
 
@@ -188,7 +201,7 @@ Phase 1C（機能一覧生成・派生一覧）が完了した後に、マトリ
 
 #### 再実行判定
 
-画面一覧HTML・API一覧HTMLが両方存在するのにマトリクス・対応表・AI設定資産ページが1つも存在しない場合、状態判定の15状態には追加せず、本 Phase を再実行して補完する（派生補完は15状態の判定フローの対象外）。
+画面一覧HTML・API一覧HTMLが両方存在するのにマトリクス・対応表・AI設定資産ページが1つも存在しない場合、本 Phase を再実行して補完する。この再実行は状態判定の16状態には追加しない（派生補完は16状態の判定フローの対象外）。
 
 ### Phase 4A: ポータル生成（共通採録完了後）
 
@@ -259,29 +272,30 @@ Skill ツールで running-reverse-screen-batch を以下の引数で起動す�
 
 ### Phase 1: 状態判定
 
-preflight では上表の15状態を確認する。事実封印後、状態9より前に著述モードを確定する。large-two-passでは状態10のdetail-onlyを先に評価し、有効なパス1証跡を得てから状態9とcompanion-docsを評価する。
+preflight では上表の16状態を確認する。事実封印後、状態10より前に著述モードを確定する。large-two-passでは状態11のdetail-onlyを先に評価し、有効なパス1証跡を得てから状態10とcompanion-docsを評価する。
 
 1. アーキ未調査
 2. 一覧未生成
 3. 共通未採録
 4. ポータル未生成
-5. 基盤ページ未生成（任意）
-6. 状態遷移図未生成（任意）
-7. シーケンス図未生成（任意）
-8. 事実未封印
-9. 基本設計未著述（large-two-passはパス1証跡取得後）
-10. 設計書未著述（large-two-passはdetail-onlyを先行し、その後companion-docs）
-11. 画面未開通
-12. ファイル単位未検証
-13. 基準未確立
-14. 往復未検証
-15. 検証完了
+5. サイト定義未生成
+6. 基盤ページ未生成（任意）
+7. 状態遷移図未生成（任意）
+8. シーケンス図未生成（任意）
+9. 事実未封印
+10. 基本設計未著述（large-two-passはパス1証跡取得後）
+11. 設計書未著述（large-two-passはdetail-onlyを先行し、その後companion-docs）
+12. 画面未開通
+13. ファイル単位未検証
+14. 基準未確立
+15. 往復未検証
+16. 検証完了
 
-任意状態は、データ源不足によるスキップ理由が記録済みなら次の状態へ進む。10の確認で facts・基本設計・詳細設計がすべて完成した直後、`verification_mode=docs-only` なら画面レジストリの `verification_url` の有無を見ずに「静的リバース完了」で終端する。この場合は11〜15を実行対象として判定せず、Phase 5・Phase 6の動的部分・Phase 7〜11のタスクも作成しない。`single-pass|iterative` の場合だけ11以降を確認する。
+任意状態は、データ源不足によるスキップ理由が記録済みなら次の状態へ進む。11の確認で facts・基本設計・詳細設計がすべて完成した直後の場合を扱う。`verification_mode=docs-only` なら画面レジストリの `verification_url` の有無を見ずに「静的リバース完了」で終端する。この場合は12〜16を実行対象として判定せず、Phase 5・Phase 6の動的部分・Phase 7〜11のタスクも作成しない。`single-pass|iterative` の場合だけ12以降を確認する。
 
 状態判定の冒頭で対象画面IDの実在を検証する。実在確認は画面一覧のマニフェスト（`<docs>/一覧/画面一覧/画面一覧.html` 内の embedded JSON の `screens[]` 配列）に対して行う。一覧外IDの場合は AskUserQuestion で対応を確認する。選択肢は (a) 一覧へ kind=`unrouted` として追記してから工程を継続するか、(b) エラー終端するかの2択（headless=true 時は (a) を自動選択する）。画面レジストリの `verification_url` が未実施・エラーページ・プレースホルダの場合でも、facts 抽出・基本設計・詳細設計は続行する。実レンダリング確認済みURLは動的検証へ移る時点でのみ必須とする。状態判定完了後、残り全工程を Step 単位で一括 TaskCreate する（マニフェスト先出し方式）。対象画面数×工程で展開する（フォーマットは後述「タスク一覧フォーマット」節を参照）。各工程の実行開始時に該当タスクを TaskUpdate(in_progress) に更新し、完了時に TaskUpdate(completed) に更新する。
 
-完了条件: 状態キー（15状態のいずれか）、または `docs-only` の静的リバース完了が確定し、実行対象に限った残り全工程のタスク一覧が TaskCreate で一括登録済み
+完了条件: 状態キー（16状態のいずれか）、または `docs-only` の静的リバース完了が確定し、実行対象に限った残り全工程のタスク一覧が TaskCreate で一括登録済み
 
 ### Phase 2: ①アーキ調査（アーキ未調査時）
 

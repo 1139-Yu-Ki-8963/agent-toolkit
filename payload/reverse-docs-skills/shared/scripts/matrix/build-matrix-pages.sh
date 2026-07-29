@@ -301,7 +301,7 @@ if [ "${1:-}" = "--self-test" ]; then
   exit $?
 fi
 
-USAGE="Usage: build-matrix-pages.sh <page-type> <data.json> <output-html-path> [--portal-dir <path>] [--project-name <name>] [--generated-at <iso8601>]
+USAGE="Usage: build-matrix-pages.sh <page-type> <data.json> <output-html-path> [--portal-dir <path>] [--project-name <name>] [--generated-at <iso8601>] [--catalog <file>]
   page-type: permission-screen | permission-function | crud | traceability | ai-assets"
 
 PAGE_TYPE="${1:?$USAGE}"
@@ -312,6 +312,7 @@ shift 3
 PORTAL_DIR_ARG=""
 PROJECT_NAME_ARG=""
 GENERATED_AT_ARG=""
+CATALOG_FILE=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --portal-dir)
@@ -320,6 +321,11 @@ while [ $# -gt 0 ]; do
       ;;
     --project-name)
       PROJECT_NAME_ARG="${2:-}"
+      shift 2
+      ;;
+    --catalog)
+      # ポータルカタログの JSON。省略時はリポジトリ既定を使う
+      CATALOG_FILE="${2:-}"
       shift 2
       ;;
     --generated-at)
@@ -465,8 +471,9 @@ if [ "$PAGE_TYPE" = "ai-assets" ]; then
 else
   shell_active_category="cross"
 fi
+catalog_path="${CATALOG_FILE:-$TEMPLATES_DIR/../references/portal-catalog.json}"
 if type shell_injection_args >/dev/null 2>&1; then
-  shell_injection_args "$TEMPLATES_DIR" "$TEMPLATES_DIR/../references/portal-catalog.json" "$back_link" "$project_name" "$generated_at" "" "shared/scripts/matrix/build-matrix-pages.sh" "$shell_active_category"
+  shell_injection_args "$TEMPLATES_DIR" "$catalog_path" "$back_link" "$project_name" "$generated_at" "" "shared/scripts/matrix/build-matrix-pages.sh" "$shell_active_category"
   if [ ${#SHELL_RENDER_ARGS[@]} -gt 0 ]; then
     render_args+=("${SHELL_RENDER_ARGS[@]}")
   fi

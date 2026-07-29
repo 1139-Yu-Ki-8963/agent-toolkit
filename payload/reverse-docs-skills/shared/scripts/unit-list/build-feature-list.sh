@@ -251,7 +251,7 @@ EOF
         ["issue1-55-a", "名称A(OK) (identA)"],
         ["issue1-55-b", "名称F(OK) identF"],
         ["issue1-55-c", "名称B(OK)"],
-        ["issue1-55-d", "名称C（内訳）OK"],
+        ["issue1-55-d", "名称C（内訳） OK"],
         ["issue1-55-e", "名称D OK"]
       ]
       | .units |= map({
@@ -296,12 +296,14 @@ if [ "${1:-}" = "--self-test" ]; then
   exit $?
 fi
 
-MANIFEST="${1:?Usage: build-feature-list.sh <manifest.json> <output-html-path> [--portal-dir <path>] [--project-name <name>]}"
-OUTPUT_HTML="${2:?Usage: build-feature-list.sh <manifest.json> <output-html-path> [--portal-dir <path>] [--project-name <name>]}"
+MANIFEST="${1:?Usage: build-feature-list.sh <manifest.json> <output-html-path> [--portal-dir <path>] [--project-name <name>] [--axes <file>] [--catalog <file>]}"
+OUTPUT_HTML="${2:?Usage: build-feature-list.sh <manifest.json> <output-html-path> [--portal-dir <path>] [--project-name <name>] [--axes <file>] [--catalog <file>]}"
 shift 2 || true
 
 PORTAL_DIR_ARG=""
 PROJECT_NAME_ARG=""
+AXES_FILE=""
+CATALOG_FILE=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --portal-dir)
@@ -310,6 +312,15 @@ while [ $# -gt 0 ]; do
       ;;
     --project-name)
       PROJECT_NAME_ARG="${2:-}"
+      shift 2
+      ;;
+    --catalog)
+      # ポータルカタログの JSON。省略時はリポジトリ既定を使う
+      CATALOG_FILE="${2:-}"
+      shift 2
+      ;;
+    --axes)
+      AXES_FILE="${2:-}"
       shift 2
       ;;
     *)
@@ -365,6 +376,7 @@ source "$(cd "$(dirname "$0")/.." && pwd)/render-template.sh"
 if [ -f "$SCRIPT_DIR/../shell-injection.sh" ]; then
   . "$SCRIPT_DIR/../shell-injection.sh"
 fi
+. "$SCRIPT_DIR/../unit-axes.sh"
 
 # --- メタ情報・サマリ集計をマニフェストから抽出 ---
 generated_at="$(jq -r '.generatedAt // ""' "$MANIFEST")"
@@ -444,7 +456,7 @@ if [ -n "$categories" ]; then
     category_sections="$(cat <<EOF
 ${category_sections}<details class="module-group" open>
 <summary class="cat-header"><span class="cat-name">${cat_esc}</span><span class="cat-count">${cat_feature_count} 機能</span></summary>
-<table class="units">
+<table class="units" data-unit-table>
 $(thead_html)
 <tbody>
 ${cat_rows}
@@ -458,6 +470,11 @@ fi
 
 if [ "$category_count" -eq 0 ]; then
   category_sections='<p class="note">なし</p>'
+else
+  # build-screen-list.sh の分割ON出力と同じ形(<div class="table-area" data-split-axis="...">
+  # でdetails群を包む)に揃える。details.module-groupを使うページは分割軸の宣言を
+  # 必須とする規約(一覧-分割軸マーカー)を満たすため。
+  category_sections="<div class=\"table-area\" data-split-axis=\"category\">${category_sections}</div>"
 fi
 
 while IFS= read -r row; do
@@ -470,7 +487,7 @@ if [ -z "$unresolved_rows" ]; then
   unresolved_class="empty"
 else
   unresolved_section="$(cat <<EOF
-<table class="units" id="unresolved-table">
+<table class="units" id="unresolved-table" data-unit-table>
 $(thead_html)
 <tbody>
 ${unresolved_rows}
@@ -494,6 +511,10 @@ else
   portal_relative="../../index.html"
 fi
 
+# --- 分類軸・任意列の宣言を解決して注入用 JSON を作る ---
+axes_resolved="$(resolve_unit_axes "$MANIFEST" "$AXES_FILE")" || exit 1
+column_spec_json="$(unit_axes_script_safe "$(unit_axes_for_kind "$axes_resolved" "feature")")"
+
 # --- テンプレートへの注入(単一パス方式。render_template()参照) ---
 # マニフェストJSONのマーカーはテンプレート内で物理的に最後に出現するため、
 # 単一パスのdocument-order走査により自動的に最後に処理される
@@ -510,19 +531,29 @@ render_args=(
   "{{UNRESOLVED_CLASS}}" "$unresolved_class"
   "{{PORTAL_RELATIVE}}" "$portal_relative"
   "{{MANIFEST_JSON}}" "$unit_manifest_json"
+  "<!--COLUMN_SPEC_JSON-->" "$column_spec_json"
 )
 # トークンCSS注入（tokens.css が存在する場合のみ）
 if [ -f "$TOKENS_CSS_FILE" ]; then
   render_args+=("/* TOKENS_CSS */" "$(cat "$TOKENS_CSS_FILE")")
 fi
 # 共通シェル注入（partials が存在する場合のみ）
+catalog_path="${CATALOG_FILE:-$SCRIPT_DIR/../../templates/../references/portal-catalog.json}"
 if type shell_injection_args >/dev/null 2>&1; then
-  shell_injection_args "$SCRIPT_DIR/../../templates" "$SCRIPT_DIR/../../templates/../references/portal-catalog.json" "$portal_relative" "$PROJECT_NAME_ARG" "$generated_at" "" "shared/scripts/unit-list/build-feature-list.sh" "list"
+  shell_injection_args "$SCRIPT_DIR/../../templates" "$catalog_path" "$portal_relative" "$PROJECT_NAME_ARG" "$generated_at" "" "shared/scripts/unit-list/build-feature-list.sh" "list"
   if [ ${#SHELL_RENDER_ARGS[@]} -gt 0 ]; then
     render_args+=("${SHELL_RENDER_ARGS[@]}")
   fi
 fi
 out="$(render_template "$(cat "$TEMPLATE")" "${render_args[@]}")"
+
+# 宣言が非空なのに column-spec が出力に無ければ、テンプレートのマーカー欠落。fail-closed。
+case "$out" in
+  *'id="column-spec"'*) : ;;
+  *)
+    echo "ERROR: column-spec が出力に注入されていません（テンプレートの <!--COLUMN_SPEC_JSON--> マーカー欠落）" >&2
+    exit 1 ;;
+esac
 
 printf '%s\n' "$out" > "$OUTPUT_HTML"
 

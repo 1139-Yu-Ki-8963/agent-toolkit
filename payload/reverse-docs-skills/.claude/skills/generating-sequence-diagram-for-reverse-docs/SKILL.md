@@ -8,7 +8,7 @@ allowed-tools: [Bash, Read, Write, Grep, Glob, AskUserQuestion, TaskCreate, Task
 
 # シーケンス図生成スキル
 
-画面ごとの操作（ボタン押下・フォーム送信等）を左サイドバーから選ぶと、画面→API→テーブル の呼び出し順序を表示するシーケンス図を生成する。左サイドバーは「画面 / 画面名」を親、「基本設計・詳細設計・シーケンス図」を子、「操作」を孫とする設計書共通の階層ナビゲーションであり、操作切り替えにドロップダウンを使わない。**本スキルは pageKind 体系（用語辞書・技術スタック・画面遷移図・ER図・環境構築手順・状態遷移図）には属さない**。1 pageKind = 1 固定ファイル名という pageKind 契約に対し、シーケンス図は画面ごとに複数生成される画面別ページであり、出力先も `画面/screen-<ID>/` 配下に画面ごとに存在するため、`shared/scripts/detail-pages/` の共通エンジン（`validate-page-data.sh` / `build-detail-page.sh`）は使わない。
+画面ごとの操作（ボタン押下・フォーム送信等）を左サイドバーから選ぶと、利用者→画面→API／内部処理→テーブル の呼び出し順序を表示するシーケンス図を生成する。左サイドバーは「画面 / 画面名」を親、「基本設計・詳細設計・シーケンス図」を子、「操作」を孫とする設計書共通の階層ナビゲーションであり、操作切り替えにドロップダウンを使わない。**本スキルは pageKind 体系（用語辞書・技術スタック・画面遷移図・ER図・環境構築手順・状態遷移図）には属さない**。1 pageKind = 1 固定ファイル名という pageKind 契約に対し、シーケンス図は画面ごとに複数生成される画面別ページであり、出力先も `画面/screen-<ID>/` 配下に画面ごとに存在するため、`shared/scripts/detail-pages/` の共通エンジン（`validate-page-data.sh` / `build-detail-page.sh`）は使わない。
 
 ## 使用タイミング
 
@@ -27,6 +27,7 @@ allowed-tools: [Bash, Read, Write, Grep, Glob, AskUserQuestion, TaskCreate, Task
   "screenLabel": "注文一覧",
   "generatedAt": "ISO8601",
   "lanes": [
+    {"key": "user", "label": "利用者"},
     {"key": "screen", "label": "画面"},
     {"key": "api", "label": "API"},
     {"key": "table", "label": "テーブル"}
@@ -36,18 +37,26 @@ allowed-tools: [Bash, Read, Write, Grep, Glob, AskUserQuestion, TaskCreate, Task
       "key": "save-click",
       "label": "保存ボタン押下",
       "handler": "handler-onSave-保存",
+      "lanes": [
+        {"key": "user", "label": "利用者"},
+        {"key": "screen", "label": "画面"},
+        {"key": "api", "label": "API"},
+        {"key": "table", "label": "テーブル"}
+      ],
       "steps": [
-        {"seq": 1, "from": "screen", "to": "api", "label": "注文登録", "sourceRef": "src/screens/Order.tsx:42"},
-        {"seq": 2, "from": "api", "to": "table", "label": "注文レコード登録", "sourceRef": "server/orders.ts:10"},
-        {"seq": 3, "from": "api", "to": "screen", "label": "登録完了 → 一覧再取得", "kind": "return", "sourceRef": "src/screens/Order.tsx:42"}
+        {"seq": 1, "from": "user", "to": "screen", "label": "操作開始", "kind": "trigger"},
+        {"seq": 2, "from": "screen", "to": "api", "label": "注文登録", "sourceRef": "src/screens/Order.tsx:42"},
+        {"seq": 3, "from": "api", "to": "table", "label": "注文レコード登録", "sourceRef": "server/orders.ts:10"},
+        {"seq": 4, "from": "api", "to": "screen", "label": "登録完了 → 一覧再取得", "kind": "return", "sourceRef": "src/screens/Order.tsx:42"}
       ]
     }
   ]
 }
 ```
 
-- **レーン（ライフライン）**: `lanes[]` で画面ごとに任意定義できる。各要素は `key`（`steps[].from`/`to` が参照する識別子）と `label`（見出し表示名）を持つ。`lanes` を省略した page-data は固定 3 本（`screen`=画面 / `api`=API / `table`=テーブル）にフォールバックする。`steps[].from`/`to` は `lanes[].key`（省略時は `screen`/`api`/`table`）のみを使う
+- **レーン（ライフライン）**: `operations[].lanes` で操作ごとに任意定義できる。各要素は `key`（`steps[].from`/`to` が参照する識別子）と `label`（見出し表示名）を持つ。テンプレートは `operation.lanes`、page-data直下の`lanes`、固定4本（`user`=利用者 / `screen`=画面 / `api`=API / `table`=テーブル）の順で採用する。page-data直下の`lanes`は後方互換のfallbackである
 - `kind: "return"` のステップは破線で描画される。省略時は実線
+- 各operationの先頭は`{"seq":1,"from":"user","to":"screen","label":"操作開始","kind":"trigger"}`とする。これは利用者起点を決定的に表す合成stepであり、call_orderの業務内容を推測しない。原本上の対応行がないため`sourceRef`は付けない
 - `sourceRef` は facts（`call_order`）由来のステップでは省略しない。`call_order` エントリは必ず `file:line` を持つため、対応する `steps[].sourceRef` に転記する。手書き page-data で根拠が無いステップに限り省略でき、その場合はテンプレート側で根拠列を空表示する
 
 ## エンジンスクリプトの所在
@@ -92,11 +101,14 @@ Read / Glob で対象画面ごとに `<output_dir>/画面/screen-<ID>/シーケ�
   2. 機能単位が無い、または分割後もなお 15 ステップを超える区分がある場合は、原本のコメント区切りのような根拠のある単位（関数内のブロックコメント境界等）で局面へ分ける
   3. 上記いずれも適用できない場合は、ソース出現順（`call_order` の連番順）に 15 ステップごとで機械的に区切る
   - 分割後の `operations[].key`/`label` は連番を使わない。各区切りの先頭ステップに導出できた業務名（導出できなければ先頭呼び出しの識別子）を局面名として使い、内容を要約した意味語で組み立てる（例: `save-click` の分割なら `save-click-validate` / `save-click-persist`）
-  - 分割後も各 `operations[].steps[].seq` は操作ごとに 1 始まりの連番へ振り直す（Step 1-3 の jq 検証は操作単位で連番性を見るため）
+  - 分割後も各operationの先頭に利用者→画面の「操作開始」を追加し、call_order由来stepの`seq`を1つ繰り下げる。各 `operations[].steps[].seq` は操作ごとに 1 始まりの連番へ振り直す（Step 1-3 の jq 検証は操作単位で連番性を見るため）
   - 分割は呼び出しの追加・削除・重複を行わない。分割前後で `call_order` から機械変換されたステップの総数（合成 return ステップを除く）は変わらない
   - 15 ステップ以下の handler は分割せず 1 handler = 1 operation のまま変換する
+- 各operationの先頭へ`from: "user"`・`to: "screen"`・`label: "操作開始"`・`kind: "trigger"`の合成stepを追加する。ドメイン固有文言と`sourceRef`は付けず、call_order由来stepの`seq`はすべて1つ繰り下げる
 - `call_order` の各エントリを `steps[]` に変換する: `from: "screen"`・`to: "api"`
 - API 呼び出しに対応する DB アクセス（⑧api分類 item の value・evidence から読み取れる範囲）が facts 側に記録されている場合のみ `api→table` の step を追加する。記録がなければ `api→screen`（`kind: "return"`）で応答だけを 1 step として閉じる
+- 合成した「操作開始」を除くstepに存在する`sourceRef`を行番号除去して正規化し、そのパスの一意数が1なら、そのoperationのstep endpointにある`api`を`internal`へ機械置換する。`operation.lanes`から`api`を除いて`{"key":"internal","label":"内部処理"}`を置き、table等の実際に使う他レーンは保持する。一意パス数が複数ならAPI endpointとレーンを維持する。0なら単一判定を適用せず、手書きpage-data等の既存endpointを変換しない
+- `operation.lanes`は`user`を先頭にし、続けて`screen`、`internal`または`api`、`table`等を、そのoperationのstep endpointに最初に現れる順で定義する。根拠なしに「内部処理」より具体的な実体名を推測しない
 - facts.yml が実在し、`call_order` を持つ handler が 1 件もない画面は、推測で操作を補わず `operations: []` の page-data を機械生成する。テンプレートの空状態までレンダリングし、「呼び出し順序の記録なし」と報告する
 - facts.yml 自体が存在しない画面だけは変換不能として報告し、手書き page-data の作成をユーザーに依頼して当該画面をスキップする（捏造しない）
 
@@ -104,14 +116,42 @@ Read / Glob で対象画面ごとに `<output_dir>/画面/screen-<ID>/シーケ�
 
 ## Step 1-3: page-data の検証
 
-Bash で組み立てた JSON を jq 検証する。必須キー（`screenId`/`screenLabel`/`operations`）の存在、`operations[].steps[].from`/`to` が `lanes[].key`（`lanes` 省略時は `screen`/`api`/`table` の 3 値）のみであること、`operations[].steps[].seq` が操作ごとに 1 始まりの連番であることを確認する。
+Bash で組み立てた JSON を jq 検証する。必須キー、操作ごとの有効レーン、seq連番、先頭の利用者起点step、単一sourceRef時の内部処理レーンを確認する。レーン検証は`operation.lanes`、page-data直下の`lanes`、固定4本の順で採用する。
 
 ```bash
 jq -e '
+  def source_path:
+    sub("(#[Ll][0-9]+(-[Ll]?[0-9]+)?|:[0-9]+(-[0-9]+)?)$"; "");
   (.screenId and .screenLabel and .operations) and
-  ((if (.lanes and (.lanes | length) > 0) then [.lanes[].key] else ["screen","api","table"] end) as $lanes |
-    .operations | all(.steps | all(.from as $f | .to as $t | ($lanes | index($f)) != null and ($lanes | index($t)) != null))) and
-  (.operations | all((.steps | map(.seq)) as $seqs | $seqs == ([range(1; ($seqs | length) + 1)])))
+  . as $page |
+  (.operations | all(
+    . as $op |
+    (if (($op.lanes // []) | length) > 0 then [$op.lanes[].key]
+     elif (($page.lanes // []) | length) > 0 then [$page.lanes[].key]
+     else ["user","screen","api","table"] end) as $lanes |
+    ($op.steps | all(.from as $f | .to as $t |
+      ($lanes | index($f)) != null and ($lanes | index($t)) != null)) and
+    (($op.steps | map(.seq)) as $seqs |
+      $seqs == ([range(1; ($seqs | length) + 1)])) and
+    ($op.steps[0].from == "user" and
+     $op.steps[0].to == "screen" and
+     $op.steps[0].label == "操作開始" and
+     $op.steps[0].kind == "trigger" and
+     ($op.steps[0] | has("sourceRef") | not)) and
+    ($op.steps | any(.from == "user")) and
+    ([$op.steps[1:][]] as $derived |
+     ([$derived[] | select((.sourceRef // "") != "") |
+       .sourceRef | source_path] | unique) as $paths |
+     (if (($paths | length) == 1)
+      then (($op.steps | all(.from != "api" and .to != "api")) and
+            ($op.steps | any(.from == "internal" or .to == "internal")) and
+            (($lanes | index("api")) == null) and
+            (($lanes | index("internal")) != null))
+      elif (($paths | length) > 1)
+      then (($op.steps | any(.from == "api" or .to == "api")) and
+            (($lanes | index("api")) != null))
+      else true end))
+  ))
 ' "<output_dir>/画面/screen-<ID>/シーケンス図-data.json"
 ```
 
@@ -182,11 +222,12 @@ Glob / Read で実在ファイルを確認し、対象画面の `<output_dir>/�
 | Phase 1 | facts.yml が実在する対象画面は操作 0 件を含め `シーケンス図-data.json` が実在し jq 検証を通過済み。facts.yml 不在の画面は変換不能を報告済み |
 | Phase 2 | 対象画面ごとに doc_nav 文字列（戻るリンク＋実在する設計書項目のみ）が確定済み |
 | Phase 3 | 対象画面ごとに `シーケンス図.html` が生成済み。指定時は `build-portal.sh` の再実行が完了している |
-| **Goal** | 画面ごとの操作単位について、画面→API→テーブル の呼び出し順序を階層サイドバーから切り替えて表示するシーケンス図.html が生成されている |
+| **Goal** | 全operationが利用者→画面の「操作開始」を持ち、単一sourceRefのoperationはAPIでなく内部処理レーンを使い、それ以外はfactsに沿う呼び出し順序を階層サイドバーから切り替えて表示するシーケンス図.html が生成されている |
 
 ## 重要な注意事項
 
 - 判定・評価はしない。呼び出し順序や処理内容の良否には踏み込まず、facts（call_order）または手書き page-data に記録された事実のみを転記する
+- 「操作開始」は利用者起点を表す非ドメインの合成triggerであり、call_orderの内容を補わない。対応する原本行がないため`sourceRef`を付けない
 - `call_order` を持つ handler が 0 件の画面で、AskUserQuestion を使って手動でステップを聞き出さない。`operations: []` として空状態を生成し、検出できない呼び出し順序を即興確定しない
 - `shared/scripts/detail-pages/` 配下・`extracting-unit-facts-from-code` 配下・`seal-facts.sh` は変更しない（別スキルの管轄）
 - 新規 `.sh` スクリプトファイルは作らない。`render-template.sh` の `render_template` 関数を Bash から直接 source して使う

@@ -1,0 +1,152 @@
+{
+  "cases": [
+    {
+      "name": "single-source",
+      "expected": {
+        "boundary": "single",
+        "laneSource": "operation",
+        "api": false,
+        "internal": true,
+        "laneLabels": ["利用者", "画面", "内部処理"]
+      },
+      "pageData": {
+        "screenId": "fixture-single-source",
+        "screenLabel": "単一根拠",
+        "operations": [
+          {
+            "key": "single-source-operation",
+            "label": "単一根拠操作",
+            "lanes": [
+              {"key": "user", "label": "利用者"},
+              {"key": "screen", "label": "画面"},
+              {"key": "internal", "label": "内部処理"}
+            ],
+            "steps": [
+              {"seq": 1, "from": "user", "to": "screen", "label": "操作開始", "kind": "trigger"},
+              {"seq": 2, "from": "screen", "to": "internal", "label": "内部処理を呼び出す", "sourceRef": "src/single-handler.ts:10"},
+              {"seq": 3, "from": "internal", "to": "screen", "label": "処理結果を返す", "kind": "return", "sourceRef": "src/single-handler.ts:20"}
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "multiple-source",
+      "expected": {
+        "boundary": "multiple",
+        "laneSource": "operation",
+        "api": true,
+        "internal": false,
+        "laneLabels": ["利用者", "画面", "API", "テーブル"]
+      },
+      "pageData": {
+        "screenId": "fixture-multiple-source",
+        "screenLabel": "複数根拠",
+        "operations": [
+          {
+            "key": "multiple-source-operation",
+            "label": "複数根拠操作",
+            "lanes": [
+              {"key": "user", "label": "利用者"},
+              {"key": "screen", "label": "画面"},
+              {"key": "api", "label": "API"},
+              {"key": "table", "label": "テーブル"}
+            ],
+            "steps": [
+              {"seq": 1, "from": "user", "to": "screen", "label": "操作開始", "kind": "trigger"},
+              {"seq": 2, "from": "screen", "to": "api", "label": "処理を要求する", "sourceRef": "src/request.ts:10"},
+              {"seq": 3, "from": "api", "to": "table", "label": "データを参照する", "sourceRef": "src/storage.ts:20"},
+              {"seq": 4, "from": "api", "to": "screen", "label": "処理結果を返す", "kind": "return", "sourceRef": "src/request.ts:30"}
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "page-lanes-fallback",
+      "expected": {
+        "boundary": "multiple",
+        "laneSource": "page",
+        "api": true,
+        "internal": false,
+        "laneLabels": ["利用者", "画面", "API"]
+      },
+      "pageData": {
+        "screenId": "fixture-page-lanes-fallback",
+        "screenLabel": "ページレーン",
+        "lanes": [
+          {"key": "user", "label": "利用者"},
+          {"key": "screen", "label": "画面"},
+          {"key": "api", "label": "API"}
+        ],
+        "operations": [
+          {
+            "key": "page-lanes-operation",
+            "label": "ページレーン操作",
+            "steps": [
+              {"seq": 1, "from": "user", "to": "screen", "label": "操作開始", "kind": "trigger"},
+              {"seq": 2, "from": "screen", "to": "api", "label": "処理を要求する", "sourceRef": "src/page-request.ts:10"},
+              {"seq": 3, "from": "api", "to": "screen", "label": "処理結果を返す", "kind": "return", "sourceRef": "src/page-response.ts:20"}
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "default-lanes-fallback",
+      "expected": {
+        "boundary": "multiple",
+        "laneSource": "default",
+        "api": true,
+        "internal": false,
+        "laneLabels": ["利用者", "画面", "API", "テーブル"]
+      },
+      "pageData": {
+        "screenId": "fixture-default-lanes-fallback",
+        "screenLabel": "既定レーン",
+        "operations": [
+          {
+            "key": "default-lanes-operation",
+            "label": "既定レーン操作",
+            "steps": [
+              {"seq": 1, "from": "user", "to": "screen", "label": "操作開始", "kind": "trigger"},
+              {"seq": 2, "from": "screen", "to": "api", "label": "処理を要求する", "sourceRef": "src/default-request.ts:10"},
+              {"seq": 3, "from": "api", "to": "table", "label": "データを参照する", "sourceRef": "src/default-storage.ts:20"},
+              {"seq": 4, "from": "api", "to": "screen", "label": "処理結果を返す", "kind": "return", "sourceRef": "src/default-request.ts:30"}
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "zero-source-api-preserved",
+      "expected": {
+        "boundary": "none",
+        "laneSource": "operation",
+        "api": true,
+        "internal": false,
+        "laneLabels": ["利用者", "画面", "API"]
+      },
+      "pageData": {
+        "screenId": "fixture-zero-source",
+        "screenLabel": "根拠なし",
+        "operations": [
+          {
+            "key": "zero-source-operation",
+            "label": "根拠なし操作",
+            "lanes": [
+              {"key": "user", "label": "利用者"},
+              {"key": "screen", "label": "画面"},
+              {"key": "api", "label": "API"}
+            ],
+            "steps": [
+              {"seq": 1, "from": "user", "to": "screen", "label": "操作開始", "kind": "trigger"},
+              {"seq": 2, "from": "screen", "to": "api", "label": "処理を要求する"},
+              {"seq": 3, "from": "api", "to": "screen", "label": "処理結果を返す", "kind": "return"}
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

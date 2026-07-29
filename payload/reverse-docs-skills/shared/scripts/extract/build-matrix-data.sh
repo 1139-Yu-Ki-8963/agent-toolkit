@@ -21,8 +21,8 @@
 #   定義」に完全準拠。同スキーマは shared/templates/matrix/ の各テンプレート内 JS が
 #   参照するトップレベルキー・フィールド名と一致させている。二重管理・ドリフト禁止)。
 #
-# 導出規則(fail-safe: 根拠フィールドが欠落した要素は誤った権限・アクセスを出力せず、
-#   理由を stderr へ出す):
+# 導出規則: CRUD対象APIで method / targetTables キーが欠落した場合は、不足フィールド名を
+#   stderr へ出して出力作成前に非ゼロ終了する。対象外APIは検査せず、空配列は調査済みゼロとして許容する。
 #   1. permission-matrix.json
 #      - roles: --roles 指定値。未指定なら全 screens の permissions に現れるロール集合
 #        + 暗黙ロール member/guest の和集合(重複除去・アルファベット順で決定的)
@@ -40,7 +40,7 @@
 #      - features[]: feature-manifest があれば feature 単位(relatedApis 経由)に集約
 #        (featureId=unitKey / featureName=identifier)、無ければ API 単位(featureId に
 #        api の unitKey を使い、その旨をトップレベル note フィールドに記録)。
-#        method・targetTables のいずれかが欠落した API は行の根拠に含めない
+#        CRUD対象APIの method・targetTables キー欠落は、行を省略せず出力前エラーとする
 #      - tables[]: table-manifest があれば全 units を収載順に
 #        {physicalName=identifier, logicalName(あれば転記)}、無ければ features[].cells
 #        に現れるテーブル名の集合(アルファベット順)
@@ -278,7 +278,7 @@ self_test() {
   assert "ケースd: stderrに重複するunitKeyのエラーが出力される" \
     grep -q "重複する unitKey" "$dup_stderr"
 
-  # --- ケースe: relatedApis参照先APIがmethodを持たない(検査B) ---
+  # --- ケースe: relatedApis参照先APIがmethodを持たない(CRUD判定材料の事前検査) ---
   local am_nomethod="$tmp/api-manifest-nomethod.json"
   jq -n --arg sourceDir "$tmp/src" --arg sf "$tmp/src/api/users.py" '{
     generatedAt: "2026-01-01T00:00:00Z",
@@ -310,12 +310,62 @@ self_test() {
     >/dev/null 2>"$nomethod_stderr" || nomethod_rc=$?
   assert "ケースe: method欠落APIのみ参照時に生成コマンドがexit 1" \
     bash -c "[ $nomethod_rc -eq 1 ]"
-  assert "ケースe: stderrに判定材料不足のエラーが出力される" \
-    grep -q "判定材料が不足" "$nomethod_stderr"
+  assert "ケースe: stderrにCRUD判定材料不足のエラーが出力される" \
+    grep -q "CRUD判定材料が不足" "$nomethod_stderr"
   assert "ケースe: stderrに不足フィールド(method)が列挙される" \
     grep -q "method" "$nomethod_stderr"
+  assert "ケースe: 失敗時に出力ファイルを残さない" \
+    bash -c "[ ! -e '$out_nomethod/permission-matrix.json' ] && [ ! -e '$out_nomethod/crud-matrix.json' ] && [ ! -e '$out_nomethod/traceability.json' ]"
 
-  # --- ケースf: feature-manifest指定だが units 空(検査A/Bともに対象外の回帰確認) ---
+  # --- ケースf: relatedApis参照先APIがtargetTablesを持たない(CRUD判定材料の事前検査) ---
+  local am_notables="$tmp/api-manifest-notables.json"
+  jq -n --arg sourceDir "$tmp/src" --arg sf "$tmp/src/api/users.py" '{
+    generatedAt: "2026-01-01T00:00:00Z",
+    sourceDir: $sourceDir,
+    unitKind: "api",
+    strategy: {extractionMethod: "custom", approvedByUser: true, unitIdRegex: null, excludePatterns: []},
+    detectionSummary: {unitCount: 1, unresolvedCount: 0},
+    units: [
+      {unitKey: "users-list", kind: "endpoint", identifier: "GET /api/users", sourceFile: $sf,
+       confidence: "high", method: "GET"}
+    ]
+  }' > "$am_notables"
+
+  local out_notables="$tmp/out-notables" notables_stderr="$tmp/notables-stderr.log" notables_rc=0
+  bash "$script_path" "$out_notables" --screen-manifest "$sm" --api-manifest "$am_notables" --feature-manifest "$fm_nomethod" \
+    >/dev/null 2>"$notables_stderr" || notables_rc=$?
+  assert "ケースf: targetTables欠落APIのみ参照時に生成コマンドがexit 1" \
+    bash -c "[ $notables_rc -eq 1 ]"
+  assert "ケースf: stderrに不足フィールド(targetTables)が列挙される" \
+    grep -q "targetTables" "$notables_stderr"
+  assert "ケースf: 失敗時に出力ファイルを残さない" \
+    bash -c "[ ! -e '$out_notables/permission-matrix.json' ] && [ ! -e '$out_notables/crud-matrix.json' ] && [ ! -e '$out_notables/traceability.json' ]"
+
+  # --- ケースg: relatedApis参照先APIがmethod/targetTablesの両方を持たない(CRUD判定材料の事前検査) ---
+  local am_missing_both="$tmp/api-manifest-missing-both.json"
+  jq -n --arg sourceDir "$tmp/src" --arg sf "$tmp/src/api/users.py" '{
+    generatedAt: "2026-01-01T00:00:00Z",
+    sourceDir: $sourceDir,
+    unitKind: "api",
+    strategy: {extractionMethod: "custom", approvedByUser: true, unitIdRegex: null, excludePatterns: []},
+    detectionSummary: {unitCount: 1, unresolvedCount: 0},
+    units: [
+      {unitKey: "users-list", kind: "endpoint", identifier: "GET /api/users", sourceFile: $sf,
+       confidence: "high"}
+    ]
+  }' > "$am_missing_both"
+
+  local out_missing_both="$tmp/out-missing-both" missing_both_stderr="$tmp/missing-both-stderr.log" missing_both_rc=0
+  bash "$script_path" "$out_missing_both" --screen-manifest "$sm" --api-manifest "$am_missing_both" --feature-manifest "$fm_nomethod" \
+    >/dev/null 2>"$missing_both_stderr" || missing_both_rc=$?
+  assert "ケースg: method/targetTables両欠落APIのみ参照時に生成コマンドがexit 1" \
+    bash -c "[ $missing_both_rc -eq 1 ]"
+  assert "ケースg: stderrに不足フィールド(method/targetTables)が両方列挙される" \
+    bash -c "grep -q method '$missing_both_stderr' && grep -q targetTables '$missing_both_stderr'"
+  assert "ケースg: 失敗時に出力ファイルを残さない" \
+    bash -c "[ ! -e '$out_missing_both/permission-matrix.json' ] && [ ! -e '$out_missing_both/crud-matrix.json' ] && [ ! -e '$out_missing_both/traceability.json' ]"
+
+  # --- ケースh: feature-manifest指定だが units 空(検査A/Bともに対象外の回帰確認) ---
   local fm_empty="$tmp/feature-manifest-empty.json"
   jq -n --arg sourceDir "$tmp/src" '{
     generatedAt: "2026-01-01T00:00:00Z",
@@ -327,9 +377,9 @@ self_test() {
   }' > "$fm_empty"
 
   local out_empty="$tmp/out-empty"
-  assert "ケースf: feature-manifestのunits空でも生成コマンドが成功(回帰確認)" \
+  assert "ケースh: feature-manifestのunits空でも生成コマンドが成功(回帰確認)" \
     bash "$script_path" "$out_empty" --screen-manifest "$sm" --api-manifest "$am" --feature-manifest "$fm_empty"
-  assert "ケースf: permission-matrix の features は空配列" \
+  assert "ケースh: permission-matrix の features は空配列" \
     jq -e '.features == []' "$out_empty/permission-matrix.json"
 
   if [ "$rc" -eq 0 ]; then
@@ -397,8 +447,6 @@ for f in "$SCREEN_MANIFEST" "$API_MANIFEST" ${TABLE_MANIFEST:+"$TABLE_MANIFEST"}
     exit 1
   fi
 done
-
-mkdir -p "$OUTPUT_DIR"
 
 GENERATED_AT="${GENERATED_AT_ARG:-$(date +%Y-%m-%dT%H:%M:%S%z | sed 's/\(..\)$/:\1/')}"
 if { [ -n "$GENERATED_AT_ARG" ] && [ -z "$MANIFEST_CONTENT_HASH" ]; } \
@@ -478,6 +526,54 @@ if [ "$HAS_FEATURES" = true ]; then
   fi
 fi
 
+# --- 検査B: CRUD判定材料の事前検査(出力作成前) ---
+# feature-manifest 指定時は relatedApis が参照する API だけ、未指定時は全 API を対象とする。
+# 解決不能な relatedApis は別課題のため、ここでは不足判定へ含めない。
+missing_method_apis="$(jq -n -r \
+  --slurpfile am "$API_MANIFEST" \
+  --slurpfile fm "$FEATURE_MANIFEST_FILE" \
+  --argjson hasFeatures "$HAS_FEATURES" \
+  '($am[0].units // []) as $apis
+   | ($fm[0].units // []) as $features
+   | (if $hasFeatures
+      then ([$features[]? | (.relatedApis // [])[]] | unique) as $relatedApis
+           | [$apis[] | select(.unitKey as $unitKey | $relatedApis | index($unitKey) != null)]
+      else $apis
+      end) as $targets
+   | [$targets[] | select(has("method") | not) | .unitKey] | unique | .[0:10][]')"
+missing_target_tables_apis="$(jq -n -r \
+  --slurpfile am "$API_MANIFEST" \
+  --slurpfile fm "$FEATURE_MANIFEST_FILE" \
+  --argjson hasFeatures "$HAS_FEATURES" \
+  '($am[0].units // []) as $apis
+   | ($fm[0].units // []) as $features
+   | (if $hasFeatures
+      then ([$features[]? | (.relatedApis // [])[]] | unique) as $relatedApis
+           | [$apis[] | select(.unitKey as $unitKey | $relatedApis | index($unitKey) != null)]
+      else $apis
+      end) as $targets
+   | [$targets[] | select(has("targetTables") | not) | .unitKey] | unique | .[0:10][]')"
+if [ -n "$missing_method_apis" ] || [ -n "$missing_target_tables_apis" ]; then
+  echo "ERROR: CRUD判定材料が不足しています:" >&2
+  if [ -n "$missing_method_apis" ]; then
+    echo "  不足フィールド: method" >&2
+    echo "  method を持たない API (最大10件):" >&2
+    while IFS= read -r unit_key; do
+      [ -n "$unit_key" ] && echo "  - $unit_key" >&2
+    done <<< "$missing_method_apis"
+  fi
+  if [ -n "$missing_target_tables_apis" ]; then
+    echo "  不足フィールド: targetTables" >&2
+    echo "  targetTables を持たない API (最大10件):" >&2
+    while IFS= read -r unit_key; do
+      [ -n "$unit_key" ] && echo "  - $unit_key" >&2
+    done <<< "$missing_target_tables_apis"
+  fi
+  exit 1
+fi
+
+mkdir -p "$OUTPUT_DIR"
+
 # --- table-manifest 収載確認(advisory。出力は変えない) ---
 if [ -n "$TABLE_MANIFEST" ]; then
   unknown_tables="$(jq -n -r \
@@ -556,30 +652,6 @@ jq -n \
     ]
   } + (if ($manifestContentHash | length) > 0 then {manifestContentHash: $manifestContentHash} else {} end))' > "$OUTPUT_DIR/permission-matrix.json"
 echo "OK: wrote $OUTPUT_DIR/permission-matrix.json" >&2
-
-# --- 検査B: 判定材料の欠落報告(permission-matrix.json 生成後。features が空の場合は対象外) ---
-pm_features_count="$(jq '.features | length' "$OUTPUT_DIR/permission-matrix.json")"
-if [ "$pm_features_count" -gt 0 ]; then
-  all_crud_empty="$(jq '[.features[].crud | to_entries[]?.value] | all(. == "")' "$OUTPUT_DIR/permission-matrix.json")"
-  if [ "$all_crud_empty" = "true" ]; then
-    missing_apis="$(jq -n -r \
-      --slurpfile fm "$FEATURE_MANIFEST_FILE" \
-      --slurpfile am "$API_MANIFEST" \
-      '($am[0].units // []) as $apis
-       | ([$apis[] | select(has("method") | not) | .unitKey]) as $noMethod
-       | ([$fm[0].units[]? | (.relatedApis // [])[]] | unique) as $refKeys
-       | [$refKeys[] | select(. as $k | $noMethod | index($k) != null)] | .[0:10][]')"
-    echo "ERROR: 権限マトリクスの操作判定が全件空です。判定材料が不足しています:" >&2
-    echo "  不足フィールド: method" >&2
-    if [ -n "$missing_apis" ]; then
-      echo "  method を持たない API (最大10件):" >&2
-      while IFS= read -r missing_key; do
-        [ -n "$missing_key" ] && echo "  - $missing_key" >&2
-      done <<< "$missing_apis"
-    fi
-    exit 1
-  fi
-fi
 
 # ---------------------------------------------------------------------------
 # 2. crud-matrix.json

@@ -89,7 +89,7 @@ facts.yml の各セクションを下記マップに従って各章へ転記す�
 
 **measurement_pending の§16自動計上**: measurement_pending の全項目を §16 要確認事項一覧へ自動計上する。計上形式: `| mp-<キー名> | 実測委譲（画面単位検証で確定） | facts由来 | 未解消 |`。Phase 5 の audit-consistency.sh 検査で §16 の measurement_pending 計上数と返却ブロック measurement_pending[] の件数が一致することを突合する。
 
-§3 画面構造の冒頭に画面キャプチャ（`![元コードの画面](./original.png)`）と、コンポーネント名（コード識別子）による入れ子構造の ASCII アートを配置する。ASCII アートは facts から抽出したコンポーネントツリー構造を箱図形（┌─ ComponentName ─┐）で視覚化したもの。基本設計書の部品構成（業務用語）とは異なり、実装のコンポーネント階層を反映する。
+§3 画面構造の冒頭に画面キャプチャ（`![元コードの画面](./original.png)`）と、コンポーネント名（コード識別子）による入れ子構造の ASCII アートを配置する。画像実体がない場合は `references/writing-rules.md` の読者向け `screen-capture-placeholder` を置き、執筆工程の内部語を本文へ出さない。ASCII アートは facts から抽出したコンポーネントツリー構造を箱図形（┌─ ComponentName ─┐）で視覚化したもの。基本設計書の部品構成（業務用語）とは異なり、実装のコンポーネント階層を反映する。
 
 章の役割キー → §番号の解決は起動引数 chapter_map_path を正本とする。§番号は既定値であり、設計書の章マップ表で解決する。
 

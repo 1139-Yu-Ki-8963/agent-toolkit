@@ -1,7 +1,9 @@
 <aside class="pt-sidebar" data-portal-href="{{PORTAL_HREF}}" data-active-category="{{ACTIVE_CATEGORY}}">
   <div class="pt-brand">
     <div class="pt-brand-stamp">DESIGN PORTAL</div>
-    <div class="pt-brand-name">{{PROJECT_NAME}}</div>
+    <div class="pt-brand-switch" id="pt-brand-switch">
+      <div class="pt-brand-name">{{PROJECT_NAME}}</div>
+    </div>
     <div class="pt-brand-sub">設計台帳 · 全{{TOTAL_ARTIFACTS}}資料</div>
   </div>
   <nav class="pt-nav" id="pt-nav" aria-label="資料カテゴリ"></nav>
@@ -11,6 +13,7 @@
   <div class="pt-sidebar-meta">更新 <span id="pt-sidebar-date">{{GENERATED_DATE}}</span><span id="pt-meta-commit"><br>コミット {{COMMIT_SHORT}}</span></div>
 </aside>
 <script type="application/json" id="pt-nav-data">/*SHELL_NAV_JSON*/</script>
+<script type="application/json" id="pt-sites-data">/*SHELL_SITES_JSON*/</script>
 <script>
 (function () {
   var root = document.documentElement;
@@ -112,6 +115,85 @@
   nav.appendChild(head);
   cats.forEach(function (c) {
     nav.appendChild(item(portalHref + '#cat-' + c.key, c.num, c.label, c.count, active === c.key));
+  });
+})();
+
+(function () {
+  var switchWrap = document.getElementById('pt-brand-switch');
+  var sitesEl = document.getElementById('pt-sites-data');
+  if (!switchWrap || !sitesEl) return;
+  var sites = [];
+  try { sites = JSON.parse(sitesEl.textContent) || []; } catch (e) { return; }
+  if (!Array.isArray(sites) || sites.length < 2) return;
+
+  var nameEl = switchWrap.querySelector('.pt-brand-name');
+  var label = nameEl ? nameEl.textContent : '';
+
+  var btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'pt-brand-toggle';
+  btn.id = 'pt-brand-toggle';
+  btn.setAttribute('aria-expanded', 'false');
+  btn.setAttribute('aria-controls', 'pt-brand-list');
+
+  var text = document.createElement('span');
+  text.className = 'pt-brand-toggle-label';
+  text.textContent = label;
+  btn.appendChild(text);
+
+  var caret = document.createElement('span');
+  caret.className = 'pt-brand-caret';
+  caret.setAttribute('aria-hidden', 'true');
+  btn.appendChild(caret);
+
+  if (nameEl) {
+    switchWrap.replaceChild(btn, nameEl);
+  } else {
+    switchWrap.appendChild(btn);
+  }
+
+  var list = document.createElement('div');
+  list.className = 'pt-brand-list';
+  list.id = 'pt-brand-list';
+  list.hidden = true;
+
+  sites.forEach(function (site) {
+    if (site.current) {
+      var current = document.createElement('div');
+      current.className = 'pt-brand-list-item is-current';
+      current.textContent = site.label;
+      list.appendChild(current);
+    } else {
+      var a = document.createElement('a');
+      a.className = 'pt-brand-list-item';
+      a.href = site.href;
+      a.textContent = site.label;
+      list.appendChild(a);
+    }
+  });
+
+  switchWrap.appendChild(list);
+
+  function close() {
+    btn.setAttribute('aria-expanded', 'false');
+    list.hidden = true;
+  }
+
+  btn.addEventListener('click', function () {
+    var expanded = btn.getAttribute('aria-expanded') === 'true';
+    if (expanded) {
+      close();
+    } else {
+      btn.setAttribute('aria-expanded', 'true');
+      list.hidden = false;
+    }
+  });
+
+  document.addEventListener('click', function (e) {
+    if (!switchWrap.contains(e.target)) close();
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') close();
   });
 })();
 </script>

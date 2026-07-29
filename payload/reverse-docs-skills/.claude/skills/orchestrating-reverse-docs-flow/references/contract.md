@@ -135,6 +135,8 @@
 
 各子スキルが単独起動で受け取る引数の全量。単独起動時はユーザーが同じ args を手渡しすれば動く。
 
+- site_key — 対象サイトのキー。単独プロジェクトなら `main`
+- sites_path — `sites.json` の絶対パス。サイトが1件なら省略
 - surveying-architecture-for-reverse-docs: target_repo_path, output_dir, template_root, target_branch（任意）, source_ref（任意）, mode（`survey`|`revise`、既定 `survey`）, revise_findings（mode=revise 時のみ必須）
 - generating-<種別>-list-for-reverse-docs（種別別一覧スキル6つ共通）: source_dir, output_dir（unit_kind はスキル名で固定されるため引数に無い。管理者は output_dir に `<output_dir>` を渡す。一覧HTMLは `<output_dir>/一覧/<種別ラベル>一覧/<種別ラベル>一覧.html` に出力され、ポータル `<output_dir>/index.html` への戻るリンクが張られる）, survey_doc_path（任意。unit_kind=screen のみ、Phase 1 共有ファイル・エイリアス調査の裏取り元として使用。他種別は未使用）
 - generating-feature-list-for-reverse-docs: source_dir, output_dir（管理者は `<output_dir>` を渡す。出力は `<output_dir>/一覧/機能一覧/機能一覧.html`）, survey_doc_path（任意。ルート定義等の所在特定の参考）
@@ -232,7 +234,7 @@ running-reverse-screen-batch の実行ログ（`log_path`）・failed リスト�
 
 ## 状態判定表
 
-成果物の実在から次工程を決める。15状態を漏れなく被覆する。
+成果物の実在から次工程を決める。16状態を漏れなく被覆する。
 
 状態判定の冒頭で、対象画面IDが画面一覧のマニフェスト（`<docs>/一覧/画面一覧/画面一覧.html` 内の embedded JSON の `screens[]` 配列）に存在することを検証する。一覧外IDの場合は (a) 一覧へ kind=`unrouted` として追記してから工程を継続するか (b) エラー終端するかを AskUserQuestion で確認する（headless=true 時は (a) を自動選択する）。
 
@@ -241,7 +243,8 @@ running-reverse-screen-batch の実行ログ（`log_path`）・failed リスト�
 | アーキ未調査 | `<output_dir>/プロジェクト共通/アーキテクチャ調査書.md` が不在、または `check-architecture-survey.sh` の再実行が exit 1 | surveying-architecture-for-reverse-docs | target_repo_path, output_dir, template_root, mode（調査書が不在なら survey。調査書はあるが再実行 exit 1 なら revise・revise_findings必須）（期待返却 調査確定） |
 | 一覧未生成 | unit_kinds_present のいずれかの実在種別について `一覧/<種別ラベル>一覧/<種別ラベル>一覧.html` が不在、または excluded-kinds.json に記載の対象外種別について `一覧/<種別ラベル>一覧（該当なし）.md` が不在 | generating-<種別>-list-for-reverse-docs（種別別一覧スキル） | source_dir, output_dir（固定値: `<output_dir>` を渡す。一覧HTMLは `<output_dir>/一覧/<種別ラベル>一覧/<種別ラベル>一覧.html` に出力される。不在種別ごとに対応スキルを起動） |
 | 共通未採録 | プロジェクト共通の10文書（規約4種・共通設計書・メッセージ定義書・DESIGN.md・基盤設計.md・UI共通設計.md・データ設計.md）のいずれか不在、または `check-common-docs.sh` が exit 1 | generating-reverse-common-docs | target_repo_path, output_dir, template_root, survey_doc_path, mode（10文書が未採録なら v0。NG帰着(c)差し戻し時のみ append・append_findings必須）（期待返却 採録v0確定） |
-| ポータル未生成 | `<output_dir>/index.html` が不在 | bash shared/scripts/build-portal.sh | target_repo_path, output_dir, portal_output_dir（固定値: `<output_dir>`。ポータルは納品物ルート（output_dir）直下の index.html として出力する。`<target_repo_path>/project-portal` 等の納品物ルート外への出力は正本レイアウト違反） |
+| ポータル未生成 | `<output_dir>/index.html` が不在 | bash shared/scripts/build-portal.sh | target_repo_path, output_dir, portal_output_dir（固定値: `<output_dir>`）。ポータルは納品物ルート（output_dir）直下の index.html として出力する。`<target_repo_path>/project-portal` 等の納品物ルート外への出力は定義レイアウト違反。複数サイトの場合、`<output_dir>` は当該サイトのサイトルートを指す |
+| サイト定義未生成 | サイトが2件以上あり `<納品ルート>/sites.json` が不在 | `sites.json` を書き出す（統括スキル自身が実行。子スキル起動なし） | site_key, sites_path（書き出し先。サイト一覧はアーキテクチャ調査書 §10 から転記する） |
 | 基盤ページ未生成（任意） | 用語辞書.html・技術スタック.html・画面遷移図.html・ER図.html・環境構築手順.html・リリースノート.html・デザインシステム.html・コンポーネント棚卸し.html・アイコンカタログ.html のいずれかが output_dir 直下に不在。データ源未整備時はスキップしてよい | generating-tech-stack-for-reverse-docs / generating-env-guide-for-reverse-docs / generating-screen-transition-for-reverse-docs / generating-er-diagram-for-reverse-docs / generating-glossary-for-reverse-docs / generating-release-notes-for-reverse-docs / generating-design-system-for-reverse-docs / generating-component-inventory-for-reverse-docs / generating-icon-catalog-for-reverse-docs（不在ページに対応するスキルのみ） | target_repo_path, output_dir, portal_output_dir（任意） |
 | 状態遷移図未生成（任意） | 状態遷移図.html が output_dir 直下に不在。データ源未整備時はスキップしてよい | generating-entity-state-for-reverse-docs | target_repo_path, output_dir, portal_output_dir（任意） |
 | シーケンス図未生成（任意） | 画面フォルダのシーケンス図.html が不在。データ源未整備時はスキップしてよい | generating-sequence-diagram-for-reverse-docs | target_repo_path, output_dir, screen_id, portal_output_dir（任意） |
@@ -254,25 +257,26 @@ running-reverse-screen-batch の実行ログ（`log_path`）・failed リスト�
 | 往復未検証 | baseline_tag有・judge の直近記録が PASS でない（judge 未実施の初回と、judge FAIL 後に再 implement 待ちの状態を区別せず同一状態として扱う。いずれも次に起動する子スキルは rebuilding-code-from-docs である）。`single-pass` で直近 judge が FAIL の場合は同じ明示起動内では終端し、自動再実行しない。後日の新しい明示起動では新たな単発検証として再開できる。**例外**: 直近の修正指示書.md が NG帰着(c)（共通文書欠落）に分類され、かつ対応する generating-reverse-common-docs の mode=append 再起動がまだ行われていない場合に限り、次に起動する子スキルを generating-reverse-common-docs（mode=append）に読み替える（詳細は下記「NG帰着3系統の配線」）。修正指示書.md 自体が無い、またはあっても NG帰着(c)以外・追記対応済みの場合はこの読み替えを評価せず、既定の rebuilding-code-from-docs を次に起動する（NG帰着(c)保留の証跡が無いことを「往復未検証＝未実施」の確定根拠とし、推測で個別分岐を補わない） | rebuilding-code-from-docs（mode=implement）→ syncing-reverse-env（mode=sync,dry-run）→ rebuilding-code-from-docs（mode=judge）。ただし上記例外時は generating-reverse-common-docs（mode=append）を先に起動する | screen_dir, scope, reverse_worktree, ports, output_dir（implement）／ design-doc, mode=sync, dry-run（sync,dry-run）／ screen_dir, compare_result, reverse_worktree, freeze_commit（judge）／ 例外時: target_repo_path, output_dir, template_root, survey_doc_path, mode=append, append_findings |
 | 検証完了 | rebuilding-code-from-docs judge が status=PASS | syncing-reverse-env（mode=sync 本番で基準タグ更新 / 依頼時 teardown。user-approved 必須） | design-doc, mode=sync, user-approved |
 
-判定は次の順に降りる判定フローで15状態を漏れなく被覆する。事実封印の検収直後、状態9より前に著述モードを確定する。large-two-passでは状態10のdetail-onlyを状態9より先に評価する。
+判定は次の順に降りる判定フローで16状態を漏れなく被覆する。事実封印の検収直後、状態10より前に著述モードを確定する。large-two-passでは状態11のdetail-onlyを状態10より先に評価する。
 
 1. アーキ未調査: アーキテクチャ調査書の実在と機械ゲート
 2. 一覧未生成: 各種別の一覧HTMLと excluded-kinds.json の実在
 3. 共通未採録: プロジェクト共通10文書の実在と機械ゲート
 4. ポータル未生成: output_dir 直下の index.html の実在
-5. 基盤ページ未生成（任意）: 基盤ページ群の実在。スキップ時はデータ源未整備の根拠を記録する
-6. 状態遷移図未生成（任意）: 状態遷移図.html の実在。スキップ時はデータ源未整備の根拠を記録する
-7. シーケンス図未生成（任意）: 画面フォルダのシーケンス図.html の実在。スキップ時はデータ源未整備の根拠を記録する
-8. 事実未封印: facts.lock の実在と封印検証
-9. 基本設計未著述: standardは通常判定。large-two-passは有効なパス1証跡がある場合だけ判定
-10. 設計書未著述: standardはfullを判定。large-two-passはdetail-onlyを先行し、その後companion-docsを判定
-11. 画面未開通: 実レンダリング確認済み verification_url の実在
-12. ファイル単位未検証: 検証記録の実在有無と直近の再現一致有無
-13. 基準未確立: syncing setup 返却の baseline_tag
-14. 往復未検証: judge の直近記録と NG帰着(c)保留の有無
-15. 検証完了: judge の直近 PASS
+5. サイト定義未生成: サイトが2件以上あるときの `<納品ルート>/sites.json` の実在
+6. 基盤ページ未生成（任意）: 基盤ページ群の実在。スキップ時はデータ源未整備の根拠を記録する
+7. 状態遷移図未生成（任意）: 状態遷移図.html の実在。スキップ時はデータ源未整備の根拠を記録する
+8. シーケンス図未生成（任意）: 画面フォルダのシーケンス図.html の実在。スキップ時はデータ源未整備の根拠を記録する
+9. 事実未封印: facts.lock の実在と封印検証
+10. 基本設計未著述: standardは通常判定。large-two-passは有効なパス1証跡がある場合だけ判定
+11. 設計書未著述: standardはfullを判定。large-two-passはdetail-onlyを先行し、その後companion-docsを判定
+12. 画面未開通: 実レンダリング確認済み verification_url の実在
+13. ファイル単位未検証: 検証記録の実在有無と直近の再現一致有無
+14. 基準未確立: syncing setup 返却の baseline_tag
+15. 往復未検証: judge の直近記録と NG帰着(c)保留の有無
+16. 検証完了: judge の直近 PASS
 
-`verification_mode=docs-only` は、standard では基本設計著述完了+AUTHORED、large-two-passではDETAIL_AUTHORED+基本設計著述完了+COMPANION_AUTHOREDの検収直後に、verification_url の有無を問わず「静的リバース完了」として必ず終端する。11〜15 および Phase 7〜11 の動的工程は判定も起動も行わない。
+`verification_mode=docs-only` は、standard では基本設計著述完了+AUTHORED の検収直後に成立する。large-two-passではDETAIL_AUTHORED+基本設計著述完了+COMPANION_AUTHOREDの検収直後に成立する。この場合、verification_url の有無を問わず「静的リバース完了」として必ず終端する。12〜16 および Phase 7〜11 の動的工程は判定・起動のいずれも行わない。
 
 「次に起動する子スキル」列は起動する子スキル名のみを記す。mode の選択・分岐条件は必ず「渡す主要 args」列または実在判定列を参照する（子スキル名に mode を併記しない）。
 
@@ -311,7 +315,7 @@ running-reverse-screen-batch の実行ログ（`log_path`）・failed リスト�
 
 管理者の最終報告には、無人モード（headless=true）実行時に限り、盲検分離の充足状況（同一プロセス実行か・分離実行か）も併せて記載する（正本は「無人モード仕様」の「盲検分離の必須要件」）。
 
-この種別ループは既存15状態の判定を変更しない（screen 以外の種別は一覧確立後に新しい状態へ遷移せず、終端状態の記録のみを行う）。
+この種別ループは既存16状態の判定を変更しない（screen 以外の種別は一覧確立後に新しい状態へ遷移せず、終端状態の記録のみを行う）。
 
 feature（機能一覧）は種別ループの対象外である。派生一覧のため presentKinds にも excludedKinds にも載らず、Phase 1C（画面一覧確立後）で生成される。到達状態の報告は 生成済み / 未生成 の2値で行う（表1に feature（派生）行として記載する）。
 

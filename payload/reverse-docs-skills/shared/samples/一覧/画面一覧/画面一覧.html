@@ -21,7 +21,12 @@
     TILE_SHARED_SCREEN_COUNT (共有画面数タイルマーカー): detectionSummary.sharedScreenCount
     TILE_EMBEDDED_COUNT (埋め込み候補数タイルマーカー)  : detectionSummary.embeddedCandidateCount
     TILE_UNRESOLVED_COUNT (要確認数タイルマーカー)      : detectionSummary.unresolvedCount
-    SCREEN_TABLE_ROWS (画面テーブル行マーカー)  : kind=route/embedded-view の行を1画面ごとに挿入
+    SCREEN_TABLE_SECTIONS (画面テーブルセクションマーカー) : table-areaブロックの開始タグから
+      module-groupセクションの閉じまでを丸ごと注入。分割なし(--split-by none相当)なら単一の
+      module-groupセクション、分割ありなら軸の値ごとのmodule-groupブロック(折りたたみ要素)を
+      複数並べる(見本: build-feature-list.shのcategory_sections)。table-areaブロックの閉じと
+      unresolvedセクションはテンプレート側に静的に残る。分割時は最初のテーブルにのみ
+      screen-table というid属性を付ける(同一id重複禁止)
     UNRESOLVED_SECTION (要手動確認セクションマーカー) : kind=unresolved の一覧テーブル、0件なら「なし」の文言
     SCREEN_MANIFEST_JSON (マニフェストJSON埋め込みマーカー) : manifest.json の内容をそのまま埋め込み(二重管理・ドリフト禁止)
     DIAGNOSTICS (診断・警告マーカー)            : diagnostics配列を警告リストとして表示。空配列なら何も出力しない
@@ -31,9 +36,11 @@
       該当画面を引けるようにする(不可視属性のため3列制約には抵触しない)
     - sharedWith(共有画面キー一覧) / embeddedIn(埋め込み元) / routeDupCount(route定義箇所数) は
       表示列から外し、展開行の「仕様」グループでマニフェストJSONから直接表示する
-    - 任意列(クライアント描画): manifest の category / permissions / relatedApis / designDocStatus に
-      値が1件でもあるフィールドだけ、任意列スクリプトが末尾へ「画面区分 / 必要権限 / 関連API / 設計書」列を
-      追加する。全フィールドが空なら列を追加しない(後方互換)
+    - 任意列(クライアント描画): manifest の category / permissions / relatedApis / designDocStatus /
+      accountGroup / screenType / hasTemplate / isProcessingEndpoint に値が1件でもあるフィールドだけ、
+      任意列スクリプトが末尾へ「画面区分 / 必要権限 / 関連API / 設計書 / アカウント区分 / 画面種別 /
+      テンプレート / 処理エンドポイント」列を追加する。全フィールドが空なら列を追加しない(後方互換)。
+      accountGroup は英字列挙値(user/admin/editor/report/common)をアカウント区分の日本語ラベルへ変換して表示する
     - 設計書列の補助フィールド(任意): designDocPath(設計書への相対パス。designDocStatus=着手済かつ
       パスありなら着手済バッジをリンク化) / sourceHash・designDocSourceHash(両方存在して不一致なら
       danger色の「陳腐化」バッジを併記)
@@ -281,6 +288,57 @@
 .pt-brand-name { font-size: 16px; font-weight: 700; letter-spacing: 0.5px; margin-top: 4px; line-height: 1.35; }
 .pt-brand-sub { font-family: var(--mono); font-size: 10.5px; color: var(--muted); margin-top: 5px; }
 
+/* サイト切替（モノレポ複数サイト時のみ JS が pt-brand-name を差し替える） */
+.pt-brand-switch { position: relative; }
+.pt-brand-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  margin-top: 4px;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  appearance: none;
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  line-height: 1.35;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+.pt-brand-toggle:hover { color: var(--accent); }
+.pt-brand-caret {
+  flex: none;
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 5px solid var(--text-muted);
+  transition: transform 0.12s;
+}
+.pt-brand-toggle[aria-expanded="true"] .pt-brand-caret { transform: rotate(180deg); }
+.pt-brand-list {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 100%;
+  margin-top: 8px;
+  border: 1.5px solid var(--border);
+  background: var(--panel-2);
+  z-index: 2;
+}
+.pt-brand-list-item {
+  display: block;
+  padding: 8px 12px;
+  font-size: 12px;
+  color: var(--text-sub);
+}
+a.pt-brand-list-item:hover { background: var(--panel3); color: var(--text); text-decoration: none; }
+.pt-brand-list-item.is-current { color: var(--text-muted); font-weight: 600; cursor: default; }
+
 .pt-nav { padding: 14px 12px; display: flex; flex-direction: column; gap: 2px; }
 .pt-nav-group { font-family: var(--mono); font-size: 9.5px; letter-spacing: 2px; color: var(--faint); padding: 14px 10px 5px; }
 .pt-nav-item {
@@ -434,6 +492,30 @@
   section.module-group { margin: 18px 0; background: var(--panel); border: 1.5px solid var(--line2); padding: 16px 20px; min-width: 0; }
   section.module-group h2 { font-size: 1.05rem; margin: 0 0 12px; }
 
+  /* 分割一覧(--split-by)の軸値ごとのグループ */
+  details.module-group { margin: 18px 0; background: var(--panel); border: 1.5px solid var(--line2); min-width: 0; }
+  details.module-group > summary {
+    cursor: pointer; padding: 12px 16px; font-weight: 700; list-style: none;
+  }
+  details.module-group > summary::-webkit-details-marker { display: none; }
+  details.module-group > summary::before {
+    content: "";
+    display: inline-block;
+    width: 0;
+    height: 0;
+    margin-right: 6px;
+    vertical-align: middle;
+    border-top: 5px solid transparent;
+    border-bottom: 5px solid transparent;
+    border-left: 6px solid var(--text-muted);
+    transition: transform 0.12s;
+  }
+  details.module-group[open] > summary::before { transform: rotate(90deg); }
+  @media (prefers-reduced-motion: reduce) {
+    details.module-group > summary::before { transition: none; }
+  }
+  details.module-group > .table-wrap { padding: 0 16px 16px; }
+
   table.screens {
     table-layout: fixed; width: 100%; min-width: 1100px; border-collapse: collapse; font-size: 0.88rem;
   }
@@ -580,7 +662,9 @@
     <aside class="pt-sidebar" data-portal-href="../../index.html" data-active-category="list">
   <div class="pt-brand">
     <div class="pt-brand-stamp">DESIGN PORTAL</div>
-    <div class="pt-brand-name">reverse-docs-1-62-impl</div>
+    <div class="pt-brand-switch" id="pt-brand-switch">
+      <div class="pt-brand-name">reverse-docs-1-62-impl</div>
+    </div>
     <div class="pt-brand-sub">設計台帳 · 全36資料</div>
   </div>
   <nav class="pt-nav" id="pt-nav" aria-label="資料カテゴリ"></nav>
@@ -590,6 +674,7 @@
   <div class="pt-sidebar-meta">更新 <span id="pt-sidebar-date">2026-07-28T00:00:00Z</span><span id="pt-meta-commit"><br>コミット </span></div>
 </aside>
 <script type="application/json" id="pt-nav-data">[{"key":"project","num":"01","label":"基盤情報","count":4},{"key":"standards","num":"02","label":"規約","count":6},{"key":"design","num":"03","label":"設計書","count":5},{"key":"list","num":"04","label":"一覧・設計図","count":13},{"key":"cross","num":"05","label":"マトリクス・対応表","count":4},{"key":"ai","num":"06","label":"AI設定資産","count":1},{"key":"design-tools","num":"07","label":"デザイン","count":3}]</script>
+<script type="application/json" id="pt-sites-data">[]</script>
 <script>
 (function () {
   var root = document.documentElement;
@@ -693,6 +778,85 @@
     nav.appendChild(item(portalHref + '#cat-' + c.key, c.num, c.label, c.count, active === c.key));
   });
 })();
+
+(function () {
+  var switchWrap = document.getElementById('pt-brand-switch');
+  var sitesEl = document.getElementById('pt-sites-data');
+  if (!switchWrap || !sitesEl) return;
+  var sites = [];
+  try { sites = JSON.parse(sitesEl.textContent) || []; } catch (e) { return; }
+  if (!Array.isArray(sites) || sites.length < 2) return;
+
+  var nameEl = switchWrap.querySelector('.pt-brand-name');
+  var label = nameEl ? nameEl.textContent : '';
+
+  var btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'pt-brand-toggle';
+  btn.id = 'pt-brand-toggle';
+  btn.setAttribute('aria-expanded', 'false');
+  btn.setAttribute('aria-controls', 'pt-brand-list');
+
+  var text = document.createElement('span');
+  text.className = 'pt-brand-toggle-label';
+  text.textContent = label;
+  btn.appendChild(text);
+
+  var caret = document.createElement('span');
+  caret.className = 'pt-brand-caret';
+  caret.setAttribute('aria-hidden', 'true');
+  btn.appendChild(caret);
+
+  if (nameEl) {
+    switchWrap.replaceChild(btn, nameEl);
+  } else {
+    switchWrap.appendChild(btn);
+  }
+
+  var list = document.createElement('div');
+  list.className = 'pt-brand-list';
+  list.id = 'pt-brand-list';
+  list.hidden = true;
+
+  sites.forEach(function (site) {
+    if (site.current) {
+      var current = document.createElement('div');
+      current.className = 'pt-brand-list-item is-current';
+      current.textContent = site.label;
+      list.appendChild(current);
+    } else {
+      var a = document.createElement('a');
+      a.className = 'pt-brand-list-item';
+      a.href = site.href;
+      a.textContent = site.label;
+      list.appendChild(a);
+    }
+  });
+
+  switchWrap.appendChild(list);
+
+  function close() {
+    btn.setAttribute('aria-expanded', 'false');
+    list.hidden = true;
+  }
+
+  btn.addEventListener('click', function () {
+    var expanded = btn.getAttribute('aria-expanded') === 'true';
+    if (expanded) {
+      close();
+    } else {
+      btn.setAttribute('aria-expanded', 'true');
+      list.hidden = false;
+    }
+  });
+
+  document.addEventListener('click', function (e) {
+    if (!switchWrap.contains(e.target)) close();
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') close();
+  });
+})();
 </script>
     <main class="pt-main is-fixed">
       <div class="pt-head">
@@ -721,20 +885,17 @@
         </div>
       </div>
 
-      <div class="table-area">
-      <section class="module-group">
-        <h2>画面一覧</h2>
-        <div class="table-wrap">
-        <table class="screens" id="screen-table">
-          <thead>
-            <tr>
-              <th data-key="screenNameGuess">画面名</th>
-              <th data-key="route">ルート</th>
-              <th data-key="kind">区分</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr data-screen-id="screen-home" data-screen-key="home" data-search-text="screen-home home pages/HomePage.tsx">
+      <div class="table-area" data-split-axis="accountGroup"><details class="module-group" open data-split-value="common">
+<summary class="cat-header"><span class="cat-name">共通</span><span class="cat-count">44 画面</span></summary>
+<div class="table-wrap">
+<table class="screens" id="screen-table" data-unit-table>
+<thead>
+<tr>
+<th data-key="screenNameGuess">画面名</th><th data-key="route">ルート</th><th data-key="kind">区分</th>
+</tr>
+</thead>
+<tbody>
+<tr data-screen-id="screen-home" data-screen-key="home" data-search-text="screen-home home pages/HomePage.tsx">
 <td class="screen-name-cell"></td>
 <td><code>/</code></td>
 <td><span class="badge kind-route">ルート</span></td>
@@ -911,18 +1072,10 @@
 <td><code>/settings/notifications</code></td>
 <td><span class="badge kind-route">ルート</span></td>
 </tr>
-          </tbody>
-        </table>
-        </div>
-      </section>
-
-      <div class="pagination" id="pagination">
-        <button id="page-first" title="先頭">≪</button>
-        <button id="page-prev" title="前">＜</button>
-        <span id="page-info" class="page-info"></span>
-        <button id="page-next" title="次">＞</button>
-        <button id="page-last" title="最後">≫</button>
-      </div>
+</tbody>
+</table>
+</div>
+</details>
 
       <section class="unresolved empty">
         <h2>要手動確認</h2>
@@ -934,6 +1087,9 @@
 
       <script type="application/json" id="screen-manifest">
 {"generatedAt":"2026-07-28T00:00:00Z","sourceDir":"shared/samples/一覧/画面一覧/fixtures","strategy":{"extractionMethod":"静的解析（ルーティング定義 + ファイル走査）","approvedByUser":true,"screenIdRegex":null,"excludePatterns":[]},"detectionSummary":{"method":"React Router v6 のルーティング定義から自動検出","screenCount":44,"clusterCount":1,"sharedScreenCount":2,"embeddedCandidateCount":1,"unresolvedCount":0},"screens":[{"screenId":"screen-home","screenKey":"home","kind":"route","screenNameGuess":"ホーム画面","route":"/","detectionMethod":"routing","confidence":"HIGH","sharedWith":null,"embeddedIn":null,"fileCount":5,"entryFile":"pages/HomePage.tsx","category":"一般","permissions":[],"relatedApis":["posts-list","notifications-list"],"designDocStatus":"着手済","designDocPath":"../../画面/screen-home/基本設計/画面基本設計書.html","detailDocPath":"../../画面/screen-home/詳細設計/画面詳細設計書.html","sequencePath":"../../画面/screen-home/シーケンス図.html","testCasePath":"../../画面/screen-home/テスト項目書/単体テスト仕様書.md","sourceHash":"a1b2c3d4e5f6","designDocSourceHash":"a1b2c3d4e5f6","existingTestCount":0,"screenType":"top","accountGroup":"common","accountSubType":"common","hasTemplate":true,"parentScreen":null,"childComponents":[],"isProcessingEndpoint":false},{"screenId":"screen-login","screenKey":"login","kind":"route","screenNameGuess":"ログイン画面","route":"/login","detectionMethod":"routing","confidence":"HIGH","sharedWith":null,"embeddedIn":null,"fileCount":3,"entryFile":"pages/auth/LoginPage.tsx","category":"一般","permissions":[],"relatedApis":["auth-login"],"designDocStatus":"着手済","existingTestCount":0,"screenType":"top","accountGroup":"common","accountSubType":"common","hasTemplate":true,"parentScreen":null,"childComponents":[],"isProcessingEndpoint":false},{"screenId":"screen-signup","screenKey":"signup","kind":"route","screenNameGuess":"新規登録画面","route":"/signup","detectionMethod":"routing","confidence":"HIGH","sharedWith":null,"embeddedIn":null,"fileCount":4,"entryFile":"pages/auth/SignupPage.tsx","category":"一般","permissions":[],"relatedApis":["users-create","auth-login"],"designDocStatus":"未着手","existingTestCount":0,"screenType":"top","accountGroup":"common","accountSubType":"common","hasTemplate":true,"parentScreen":null,"childComponents":[],"isProcessingEndpoint":false},{"screenId":"screen-forgot-pw","screenKey":"forgot-password","kind":"route","screenNameGuess":"パスワードリセット","route":"/forgot-password","detectionMethod":"routing","confidence":"HIGH","sharedWith":null,"embeddedIn":null,"fileCount":2,"entryFile":"pages/auth/ForgotPasswordPage.tsx","category":"一般","permissions":[],"relatedApis":[],"designDocStatus":"未着手","existingTestCount":0,"screenType":"top","accountGroup":"common","accountSubType":"common","hasTemplate":true,"parentScreen":null,"childComponents":[],"isProcessingEndpoint":false},{"screenId":"screen-dashboard","screenKey":"dashboard","kind":"route","screenNameGuess":"ダッシュボード","route":"/dashboard","detectionMethod":"routing","confidence":"HIGH","sharedWith":null,"embeddedIn":null,"fileCount":8,"entryFile":"pages/DashboardPage.tsx","category":"一般","permissions":[],"relatedApis":["posts-list","notifications-list","users-get"],"designDocStatus":"着手済","sourceHash":"f6e5d4c3b2a1","designDocSourceHash":"000000000000","existingTestCount":0,"screenType":"top","accountGroup":"common","accountSubType":"common","hasTemplate":true,"parentScreen":null,"childComponents":[],"isProcessingEndpoint":false},{"screenId":"screen-profile","screenKey":"profile","kind":"route","screenNameGuess":"プロフィール","route":"/profile","detectionMethod":"routing","confidence":"HIGH","sharedWith":null,"embeddedIn":null,"fileCount":3,"entryFile":"pages/settings/ProfilePage.tsx","category":"一般","permissions":[],"relatedApis":["users-get","users-update"],"designDocStatus":"未着手","existingTestCount":0,"screenType":"top","accountGroup":"common","accountSubType":"common","hasTemplate":true,"parentScreen":null,"childComponents":[],"isProcessingEndpoint":false},{"screenId":"screen-settings","screenKey":"settings","kind":"route","screenNameGuess":"設定画面","route":"/settings","detectionMethod":"routing","confidence":"HIGH","sharedWith":null,"embeddedIn":null,"fileCount":4,"entryFile":"pages/settings/SettingsPage.tsx","category":"一般","permissions":[],"relatedApis":["settings-get","settings-update"],"designDocStatus":"未着手","existingTestCount":0,"screenType":"top","accountGroup":"common","accountSubType":"common","hasTemplate":true,"parentScreen":null,"childComponents":[],"isProcessingEndpoint":false},{"screenId":"screen-users-list","screenKey":"users-list","kind":"route","screenNameGuess":"ユーザー一覧","route":"/admin/users","detectionMethod":"routing","confidence":"HIGH","sharedWith":["users-detail"],"embeddedIn":null,"fileCount":6,"entryFile":"pages/admin/UsersListPage.tsx","category":"管理","permissions":["admin"],"relatedApis":["users-list"],"designDocStatus":"未着手","clusterId":"users-cluster","existingTestCount":0,"screenType":"top","accountGroup":"common","accountSubType":"common","hasTemplate":true,"parentScreen":null,"childComponents":[],"isProcessingEndpoint":false},{"screenId":"screen-users-detail","screenKey":"users-detail","kind":"route","screenNameGuess":"ユーザー詳細","route":"/admin/users/:userId","detectionMethod":"routing","confidence":"HIGH","sharedWith":["users-list"],"embeddedIn":null,"fileCount":5,"entryFile":"pages/admin/UserDetailPage.tsx","category":"管理","permissions":["admin"],"relatedApis":["users-get"],"designDocStatus":"未着手","clusterId":"users-cluster","existingTestCount":0,"screenType":"top","accountGroup":"common","accountSubType":"common","hasTemplate":true,"parentScreen":null,"childComponents":[],"isProcessingEndpoint":false},{"screenId":"screen-users-edit","screenKey":"users-edit","kind":"route","screenNameGuess":"ユーザー編集","route":"/admin/users/:userId/edit","detectionMethod":"routing","confidence":"MEDIUM","sharedWith":null,"embeddedIn":null,"fileCount":4,"entryFile":"pages/admin/UserEditPage.tsx","category":"管理","permissions":["admin"],"relatedApis":["users-get","users-update"],"designDocStatus":"未着手","existingTestCount":0,"screenType":"top","accountGroup":"common","accountSubType":"common","hasTemplate":true,"parentScreen":null,"childComponents":[],"isProcessingEndpoint":false},{"screenId":"screen-roles","screenKey":"roles","kind":"route","screenNameGuess":"ロール管理","route":"/admin/roles","detectionMethod":"routing","confidence":"HIGH","sharedWith":null,"embeddedIn":null,"fileCount":3,"entryFile":"pages/admin/RolesPage.tsx","category":"管理","permissions":["admin"],"relatedApis":["users-list"],"designDocStatus":"未着手","existingTestCount":0,"screenType":"top","accountGroup":"common","accountSubType":"common","hasTemplate":true,"parentScreen":null,"childComponents":[],"isProcessingEndpoint":false},{"screenId":"screen-posts-list","screenKey":"posts-list","kind":"route","screenNameGuess":"投稿一覧","route":"/posts","detectionMethod":"routing","confidence":"HIGH","sharedWith":null,"embeddedIn":null,"fileCount":4,"entryFile":"pages/posts/PostsListPage.tsx","category":"一般","permissions":[],"relatedApis":["posts-list"],"designDocStatus":"未着手","existingTestCount":0,"screenType":"top","accountGroup":"common","accountSubType":"common","hasTemplate":true,"parentScreen":null,"childComponents":[],"isProcessingEndpoint":false},{"screenId":"screen-post-detail","screenKey":"post-detail","kind":"route","screenNameGuess":"投稿詳細","route":"/posts/:postId","detectionMethod":"routing","confidence":"HIGH","sharedWith":null,"embeddedIn":null,"fileCount":5,"entryFile":"pages/posts/PostDetailPage.tsx","category":"一般","permissions":[],"relatedApis":["posts-get","comments-create"],"designDocStatus":"未着手","existingTestCount":0,"screenType":"top","accountGroup":"common","accountSubType":"common","hasTemplate":true,"parentScreen":null,"childComponents":[],"isProcessingEndpoint":false},{"screenId":"screen-post-editor","screenKey":"post-editor","kind":"route","screenNameGuess":"投稿エディタ","route":"/posts/:postId/edit","detectionMethod":"routing","confidence":"MEDIUM","sharedWith":null,"embeddedIn":null,"fileCount":7,"entryFile":"pages/posts/PostEditorPage.tsx","category":"一般","permissions":[],"relatedApis":["posts-get","posts-update","files-upload"],"designDocStatus":"未着手","existingTestCount":0,"screenType":"top","accountGroup":"common","accountSubType":"common","hasTemplate":true,"parentScreen":null,"childComponents":[],"isProcessingEndpoint":false},{"screenId":"screen-notifications","screenKey":"notifications","kind":"route","screenNameGuess":"通知一覧","route":"/notifications","detectionMethod":"routing","confidence":"HIGH","sharedWith":null,"embeddedIn":null,"fileCount":3,"entryFile":"pages/NotificationsPage.tsx","category":"一般","permissions":[],"relatedApis":["notifications-list"],"designDocStatus":"未着手","existingTestCount":0,"screenType":"top","accountGroup":"common","accountSubType":"common","hasTemplate":true,"parentScreen":null,"childComponents":[],"isProcessingEndpoint":false},{"screenId":"screen-search","screenKey":"search","kind":"route","screenNameGuess":"検索結果","route":"/search","detectionMethod":"routing","confidence":"MEDIUM","sharedWith":null,"embeddedIn":null,"fileCount":2,"entryFile":"pages/SearchResultsPage.tsx","category":"一般","permissions":[],"relatedApis":["posts-list"],"designDocStatus":"未着手","existingTestCount":0,"screenType":"top","accountGroup":"common","accountSubType":"common","hasTemplate":true,"parentScreen":null,"childComponents":[],"isProcessingEndpoint":false},{"screenId":"screen-report-viewer","screenKey":"report-viewer","kind":"route","screenNameGuess":"レポート閲覧","route":"/reports/:reportId","detectionMethod":"routing","confidence":"HIGH","sharedWith":null,"embeddedIn":null,"fileCount":4,"entryFile":"pages/reports/ReportViewerPage.tsx","category":"一般","permissions":[],"relatedApis":[],"designDocStatus":"未着手","existingTestCount":0,"screenType":"top","accountGroup":"common","accountSubType":"common","hasTemplate":true,"parentScreen":null,"childComponents":[],"isProcessingEndpoint":false},{"screenId":"screen-sidebar-nav","screenKey":"sidebar-nav","kind":"embedded-view","screenNameGuess":"サイドバーナビ","route":null,"detectionMethod":"file-scan","confidence":"MEDIUM","sharedWith":null,"embeddedIn":"dashboard","fileCount":2,"entryFile":"components/layout/SidebarNav.tsx","category":"一般","permissions":[],"relatedApis":["notifications-list"],"designDocStatus":"未着手","existingTestCount":0,"screenType":"top","accountGroup":"common","accountSubType":"common","hasTemplate":true,"parentScreen":null,"childComponents":[],"isProcessingEndpoint":false},{"screenId":"screen-order-list","screenKey":"order-list","kind":"route","screenNameGuess":"注文一覧","route":"/orders","detectionMethod":"routing","confidence":"HIGH","sharedWith":null,"embeddedIn":null,"fileCount":6,"entryFile":"pages/orders/OrderListPage.tsx","category":"一般","permissions":[],"relatedApis":["orders-list"],"designDocStatus":"着手済","designDocPath":"../../画面/screen-order-list/基本設計/画面基本設計書.html","detailDocPath":"../../画面/screen-order-list/詳細設計/画面詳細設計書.html","sequencePath":"../../画面/screen-order-list/シーケンス図.html","testCasePath":"../../画面/screen-order-list/テスト項目書/単体テスト仕様書.md","existingTestCount":0,"screenType":"top","accountGroup":"common","accountSubType":"common","hasTemplate":true,"parentScreen":null,"childComponents":[],"isProcessingEndpoint":false},{"screenId":"screen-order-detail","screenKey":"order-detail","kind":"route","screenNameGuess":"注文詳細","route":"/orders/:orderId","detectionMethod":"routing","confidence":"HIGH","sharedWith":null,"embeddedIn":null,"fileCount":5,"entryFile":"pages/orders/OrderDetailPage.tsx","category":"一般","permissions":[],"relatedApis":["orders-get","shipments-get"],"designDocStatus":"着手済","designDocPath":"../../画面/screen-order-detail/基本設計/画面基本設計書.html","detailDocPath":"../../画面/screen-order-detail/詳細設計/画面詳細設計書.html","sequencePath":"../../画面/screen-order-detail/シーケンス図.html","testCasePath":"../../画面/screen-order-detail/テスト項目書/単体テスト仕様書.md","existingTestCount":0,"screenType":"top","accountGroup":"common","accountSubType":"common","hasTemplate":true,"parentScreen":null,"childComponents":[],"isProcessingEndpoint":false},{"screenId":"screen-order-confirm","screenKey":"order-confirm","kind":"route","screenNameGuess":"注文確定","route":"/orders/:orderId/confirm","detectionMethod":"routing","confidence":"MEDIUM","sharedWith":null,"embeddedIn":null,"fileCount":3,"entryFile":"pages/orders/OrderConfirmPage.tsx","category":"一般","permissions":[],"relatedApis":["orders-confirm"],"designDocStatus":"未着手","existingTestCount":0,"screenType":"top","accountGroup":"common","accountSubType":"common","hasTemplate":true,"parentScreen":null,"childComponents":[],"isProcessingEndpoint":false},{"screenId":"screen-order-cancel","screenKey":"order-cancel","kind":"route","screenNameGuess":"注文キャンセル","route":"/orders/:orderId/cancel","detectionMethod":"routing","confidence":"MEDIUM","sharedWith":null,"embeddedIn":null,"fileCount":2,"entryFile":"pages/orders/OrderCancelPage.tsx","category":"一般","permissions":[],"relatedApis":["orders-cancel"],"designDocStatus":"未着手","existingTestCount":0,"screenType":"top","accountGroup":"common","accountSubType":"common","hasTemplate":true,"parentScreen":null,"childComponents":[],"isProcessingEndpoint":false},{"screenId":"screen-order-search","screenKey":"order-search","kind":"route","screenNameGuess":"注文検索","route":"/orders/search","detectionMethod":"routing","confidence":"MEDIUM","sharedWith":null,"embeddedIn":null,"fileCount":3,"entryFile":"pages/orders/OrderSearchPage.tsx","category":"一般","permissions":[],"relatedApis":["orders-list"],"designDocStatus":"未着手","existingTestCount":0,"screenType":"top","accountGroup":"common","accountSubType":"common","hasTemplate":true,"parentScreen":null,"childComponents":[],"isProcessingEndpoint":false},{"screenId":"screen-shipment-list","screenKey":"shipment-list","kind":"route","screenNameGuess":"出荷一覧","route":"/shipments","detectionMethod":"routing","confidence":"HIGH","sharedWith":null,"embeddedIn":null,"fileCount":4,"entryFile":"pages/shipments/ShipmentListPage.tsx","category":"一般","permissions":[],"relatedApis":["shipments-list"],"designDocStatus":"未着手","existingTestCount":0,"screenType":"top","accountGroup":"common","accountSubType":"common","hasTemplate":true,"parentScreen":null,"childComponents":[],"isProcessingEndpoint":false},{"screenId":"screen-member-list","screenKey":"member-list","kind":"route","screenNameGuess":"会員一覧","route":"/members","detectionMethod":"routing","confidence":"HIGH","sharedWith":null,"embeddedIn":null,"fileCount":6,"entryFile":"pages/members/MemberListPage.tsx","category":"一般","permissions":[],"relatedApis":["members-list"],"designDocStatus":"未着手","existingTestCount":0,"screenType":"top","accountGroup":"common","accountSubType":"common","hasTemplate":true,"parentScreen":null,"childComponents":[],"isProcessingEndpoint":false},{"screenId":"screen-member-detail","screenKey":"member-detail","kind":"route","screenNameGuess":"会員詳細","route":"/members/:memberId","detectionMethod":"routing","confidence":"HIGH","sharedWith":null,"embeddedIn":null,"fileCount":5,"entryFile":"pages/members/MemberDetailPage.tsx","category":"一般","permissions":[],"relatedApis":["members-get"],"designDocStatus":"未着手","existingTestCount":0,"screenType":"top","accountGroup":"common","accountSubType":"common","hasTemplate":true,"parentScreen":null,"childComponents":[],"isProcessingEndpoint":false},{"screenId":"screen-member-edit","screenKey":"member-edit","kind":"route","screenNameGuess":"会員編集","route":"/members/:memberId/edit","detectionMethod":"routing","confidence":"HIGH","sharedWith":null,"embeddedIn":null,"fileCount":4,"entryFile":"pages/members/MemberEditPage.tsx","category":"一般","permissions":[],"relatedApis":["members-get","members-update"],"designDocStatus":"着手済","designDocPath":"../../画面/screen-member-edit/基本設計/画面基本設計書.html","detailDocPath":"../../画面/screen-member-edit/詳細設計/画面詳細設計書.html","sequencePath":"../../画面/screen-member-edit/シーケンス図.html","testCasePath":"../../画面/screen-member-edit/テスト項目書/単体テスト仕様書.md","existingTestCount":0,"screenType":"top","accountGroup":"common","accountSubType":"common","hasTemplate":true,"parentScreen":null,"childComponents":[],"isProcessingEndpoint":false},{"screenId":"screen-member-suspend","screenKey":"member-suspend","kind":"route","screenNameGuess":"会員休会・退会","route":"/members/:memberId/suspend","detectionMethod":"routing","confidence":"MEDIUM","sharedWith":null,"embeddedIn":null,"fileCount":3,"entryFile":"pages/members/MemberSuspendPage.tsx","category":"一般","permissions":[],"relatedApis":["members-suspend"],"designDocStatus":"未着手","existingTestCount":0,"screenType":"top","accountGroup":"common","accountSubType":"common","hasTemplate":true,"parentScreen":null,"childComponents":[],"isProcessingEndpoint":false},{"screenId":"screen-product-list","screenKey":"product-list","kind":"route","screenNameGuess":"商品一覧","route":"/products","detectionMethod":"routing","confidence":"HIGH","sharedWith":null,"embeddedIn":null,"fileCount":6,"entryFile":"pages/products/ProductListPage.tsx","category":"一般","permissions":[],"relatedApis":["products-list"],"designDocStatus":"未着手","existingTestCount":0,"screenType":"top","accountGroup":"common","accountSubType":"common","hasTemplate":true,"parentScreen":null,"childComponents":[],"isProcessingEndpoint":false},{"screenId":"screen-product-detail","screenKey":"product-detail","kind":"route","screenNameGuess":"商品詳細","route":"/products/:productId","detectionMethod":"routing","confidence":"HIGH","sharedWith":null,"embeddedIn":null,"fileCount":5,"entryFile":"pages/products/ProductDetailPage.tsx","category":"一般","permissions":[],"relatedApis":["products-get"],"designDocStatus":"未着手","existingTestCount":0,"screenType":"top","accountGroup":"common","accountSubType":"common","hasTemplate":true,"parentScreen":null,"childComponents":[],"isProcessingEndpoint":false},{"screenId":"screen-product-edit","screenKey":"product-edit","kind":"route","screenNameGuess":"商品編集","route":"/products/:productId/edit","detectionMethod":"routing","confidence":"HIGH","sharedWith":null,"embeddedIn":null,"fileCount":5,"entryFile":"pages/products/ProductEditPage.tsx","category":"一般","permissions":[],"relatedApis":["products-get","products-update"],"designDocStatus":"未着手","existingTestCount":0,"screenType":"top","accountGroup":"common","accountSubType":"common","hasTemplate":true,"parentScreen":null,"childComponents":[],"isProcessingEndpoint":false},{"screenId":"screen-product-inventory","screenKey":"product-inventory","kind":"route","screenNameGuess":"在庫管理","route":"/products/:productId/inventory","detectionMethod":"routing","confidence":"MEDIUM","sharedWith":null,"embeddedIn":null,"fileCount":3,"entryFile":"pages/products/ProductInventoryPage.tsx","category":"一般","permissions":[],"relatedApis":["inventory-get","inventory-update"],"designDocStatus":"未着手","existingTestCount":0,"screenType":"top","accountGroup":"common","accountSubType":"common","hasTemplate":true,"parentScreen":null,"childComponents":[],"isProcessingEndpoint":false},{"screenId":"screen-product-category","screenKey":"product-category","kind":"route","screenNameGuess":"商品カテゴリ管理","route":"/products/categories","detectionMethod":"routing","confidence":"MEDIUM","sharedWith":null,"embeddedIn":null,"fileCount":3,"entryFile":"pages/products/ProductCategoryPage.tsx","category":"一般","permissions":[],"relatedApis":["categories-list"],"designDocStatus":"未着手","existingTestCount":0,"screenType":"top","accountGroup":"common","accountSubType":"common","hasTemplate":true,"parentScreen":null,"childComponents":[],"isProcessingEndpoint":false},{"screenId":"screen-invoice-list","screenKey":"invoice-list","kind":"route","screenNameGuess":"請求一覧","route":"/invoices","detectionMethod":"routing","confidence":"HIGH","sharedWith":null,"embeddedIn":null,"fileCount":5,"entryFile":"pages/billing/InvoiceListPage.tsx","category":"一般","permissions":[],"relatedApis":["invoices-list"],"designDocStatus":"未着手","existingTestCount":0,"screenType":"top","accountGroup":"common","accountSubType":"common","hasTemplate":true,"parentScreen":null,"childComponents":[],"isProcessingEndpoint":false},{"screenId":"screen-invoice-detail","screenKey":"invoice-detail","kind":"route","screenNameGuess":"請求詳細","route":"/invoices/:invoiceId","detectionMethod":"routing","confidence":"HIGH","sharedWith":null,"embeddedIn":null,"fileCount":4,"entryFile":"pages/billing/InvoiceDetailPage.tsx","category":"一般","permissions":[],"relatedApis":["invoices-get"],"designDocStatus":"未着手","existingTestCount":0,"screenType":"top","accountGroup":"common","accountSubType":"common","hasTemplate":true,"parentScreen":null,"childComponents":[],"isProcessingEndpoint":false},{"screenId":"screen-payment-list","screenKey":"payment-list","kind":"route","screenNameGuess":"支払い一覧","route":"/payments","detectionMethod":"routing","confidence":"HIGH","sharedWith":null,"embeddedIn":null,"fileCount":4,"entryFile":"pages/billing/PaymentListPage.tsx","category":"一般","permissions":[],"relatedApis":["payments-list"],"designDocStatus":"未着手","existingTestCount":0,"screenType":"top","accountGroup":"common","accountSubType":"common","hasTemplate":true,"parentScreen":null,"childComponents":[],"isProcessingEndpoint":false},{"screenId":"screen-refund-list","screenKey":"refund-list","kind":"route","screenNameGuess":"返金一覧","route":"/refunds","detectionMethod":"routing","confidence":"MEDIUM","sharedWith":null,"embeddedIn":null,"fileCount":3,"entryFile":"pages/billing/RefundListPage.tsx","category":"一般","permissions":[],"relatedApis":["refunds-list"],"designDocStatus":"未着手","existingTestCount":0,"screenType":"top","accountGroup":"common","accountSubType":"common","hasTemplate":true,"parentScreen":null,"childComponents":[],"isProcessingEndpoint":false},{"screenId":"screen-sales-dashboard","screenKey":"sales-dashboard","kind":"route","screenNameGuess":"売上ダッシュボード","route":"/reports/sales","detectionMethod":"routing","confidence":"HIGH","sharedWith":null,"embeddedIn":null,"fileCount":6,"entryFile":"pages/reports/SalesDashboardPage.tsx","category":"一般","permissions":[],"relatedApis":["reports-sales"],"designDocStatus":"着手済","designDocPath":"../../画面/screen-sales-dashboard/基本設計/画面基本設計書.html","detailDocPath":"../../画面/screen-sales-dashboard/詳細設計/画面詳細設計書.html","sequencePath":"../../画面/screen-sales-dashboard/シーケンス図.html","testCasePath":"../../画面/screen-sales-dashboard/テスト項目書/単体テスト仕様書.md","existingTestCount":0,"screenType":"top","accountGroup":"common","accountSubType":"common","hasTemplate":true,"parentScreen":null,"childComponents":[],"isProcessingEndpoint":false},{"screenId":"screen-sales-report","screenKey":"sales-report","kind":"route","screenNameGuess":"売上レポート出力","route":"/reports/sales/export","detectionMethod":"routing","confidence":"MEDIUM","sharedWith":null,"embeddedIn":null,"fileCount":3,"entryFile":"pages/reports/SalesReportPage.tsx","category":"一般","permissions":[],"relatedApis":["reports-sales-export"],"designDocStatus":"未着手","existingTestCount":0,"screenType":"top","accountGroup":"common","accountSubType":"common","hasTemplate":true,"parentScreen":null,"childComponents":[],"isProcessingEndpoint":false},{"screenId":"screen-inventory-report","screenKey":"inventory-report","kind":"route","screenNameGuess":"在庫レポート","route":"/reports/inventory","detectionMethod":"routing","confidence":"MEDIUM","sharedWith":null,"embeddedIn":null,"fileCount":3,"entryFile":"pages/reports/InventoryReportPage.tsx","category":"一般","permissions":[],"relatedApis":["reports-inventory"],"designDocStatus":"未着手","existingTestCount":0,"screenType":"top","accountGroup":"common","accountSubType":"common","hasTemplate":true,"parentScreen":null,"childComponents":[],"isProcessingEndpoint":false},{"screenId":"screen-coupon-list","screenKey":"coupon-list","kind":"route","screenNameGuess":"クーポン一覧","route":"/settings/coupons","detectionMethod":"routing","confidence":"HIGH","sharedWith":null,"embeddedIn":null,"fileCount":4,"entryFile":"pages/settings/CouponListPage.tsx","category":"一般","permissions":[],"relatedApis":["coupons-list"],"designDocStatus":"未着手","existingTestCount":0,"screenType":"top","accountGroup":"common","accountSubType":"common","hasTemplate":true,"parentScreen":null,"childComponents":[],"isProcessingEndpoint":false},{"screenId":"screen-coupon-edit","screenKey":"coupon-edit","kind":"route","screenNameGuess":"クーポン編集","route":"/settings/coupons/:couponId/edit","detectionMethod":"routing","confidence":"MEDIUM","sharedWith":null,"embeddedIn":null,"fileCount":3,"entryFile":"pages/settings/CouponEditPage.tsx","category":"一般","permissions":[],"relatedApis":["coupons-get","coupons-update"],"designDocStatus":"未着手","existingTestCount":0,"screenType":"top","accountGroup":"common","accountSubType":"common","hasTemplate":true,"parentScreen":null,"childComponents":[],"isProcessingEndpoint":false},{"screenId":"screen-campaign-list","screenKey":"campaign-list","kind":"route","screenNameGuess":"キャンペーン一覧","route":"/settings/campaigns","detectionMethod":"routing","confidence":"MEDIUM","sharedWith":null,"embeddedIn":null,"fileCount":4,"entryFile":"pages/settings/CampaignListPage.tsx","category":"一般","permissions":[],"relatedApis":["campaigns-list"],"designDocStatus":"未着手","existingTestCount":0,"screenType":"top","accountGroup":"common","accountSubType":"common","hasTemplate":true,"parentScreen":null,"childComponents":[],"isProcessingEndpoint":false},{"screenId":"screen-notification-settings","screenKey":"notification-settings","kind":"route","screenNameGuess":"通知設定","route":"/settings/notifications","detectionMethod":"routing","confidence":"MEDIUM","sharedWith":null,"embeddedIn":null,"fileCount":2,"entryFile":"pages/settings/NotificationSettingsPage.tsx","category":"一般","permissions":[],"relatedApis":["notification-settings-get"],"designDocStatus":"未着手","existingTestCount":0,"screenType":"top","accountGroup":"common","accountSubType":"common","hasTemplate":true,"parentScreen":null,"childComponents":[],"isProcessingEndpoint":false}],"diagnostics":[],"manifestContentHash":"c7d90a604412f8b7f047b9d3de9c723168e34b0215ac4d27e2c63a30a089a550"}
+      </script>
+      <script type="application/json" id="column-spec">
+{"specVersion":1,"axes":[{"key":"category","label":"画面区分","appliesTo":["screen"],"order":10,"column":{"show":"auto"},"split":{"eligible":true,"default":false,"unknownLabel":"未分類","countUnit":"画面"},"valuePolicy":"open"},{"key":"accountGroup","label":"アカウント区分","appliesTo":["screen"],"order":50,"column":{"show":"auto"},"split":{"eligible":true,"default":true,"unknownLabel":"未分類","countUnit":"画面"},"valuePolicy":"closed","values":[{"key":"user","label":"利用者"},{"key":"admin","label":"管理者"},{"key":"editor","label":"編集者"},{"key":"report","label":"レポート"},{"key":"common","label":"共通"}]},{"key":"screenType","label":"画面種別","appliesTo":["screen"],"order":60,"required":true,"column":{"show":"auto"},"split":{"eligible":true,"default":false,"unknownLabel":"未分類","countUnit":"画面"},"valuePolicy":"closed","values":[{"key":"list","label":"list"},{"key":"detail","label":"detail"},{"key":"form","label":"form"},{"key":"confirm","label":"confirm"},{"key":"complete","label":"complete"},{"key":"error","label":"error"},{"key":"top","label":"top"},{"key":"processing_endpoint","label":"processing_endpoint"}]},{"key":"accountSubType","label":"利用者権限区分","appliesTo":["screen"],"order":90,"column":{"show":"never"},"split":{"eligible":false},"valuePolicy":"identifier"},{"key":"device","label":"デバイス","appliesTo":["screen"],"order":100,"column":{"show":"auto"},"split":{"eligible":true,"default":false,"unknownLabel":"共通","countUnit":"画面"},"valuePolicy":"closed","values":[{"key":"pc","label":"PC用"},{"key":"sp","label":"携帯用"}]}],"columns":[{"key":"permissions","label":"必要権限","appliesTo":["screen"],"order":20,"emptyLabel":"全員","presence":"arrayOrEmptyLabel"},{"key":"relatedApis","label":"関連API","appliesTo":["screen"],"order":30},{"key":"designDocStatus","label":"設計書","appliesTo":["screen"],"order":40},{"key":"hasTemplate","label":"テンプレート","appliesTo":["screen"],"order":70,"trueLabel":"あり","falseLabel":"なし"},{"key":"isProcessingEndpoint","label":"処理エンドポイント","appliesTo":["screen"],"order":80,"trueLabel":"該当","falseLabel":"非該当"}]}
       </script>
     </main>
   </div>
@@ -956,12 +1112,16 @@
     var items = (manifest && manifest.screens) || [];
     if (!items.length) return;
 
-    var FIELDS = [
-      { key: 'category', label: '画面区分' },
-      { key: 'permissions', label: '必要権限', emptyLabel: '全員' },
-      { key: 'relatedApis', label: '関連API' },
-      { key: 'designDocStatus', label: '設計書' }
-    ];
+    var specEl = document.getElementById('column-spec');
+    if (!specEl) return;
+    var spec;
+    try { spec = JSON.parse(specEl.textContent); } catch (e) { return; }
+    if (!spec) return;
+    var FIELDS = []
+      .concat((spec.axes || []).filter(function (a) { return ((a.column || {}).show || 'auto') !== 'never'; }))
+      .concat(spec.columns || [])
+      .sort(function (a, b) { return (a.order || 999) - (b.order || 999); });
+    if (!FIELDS.length) return;
 
     function isArray(v) {
       return Object.prototype.toString.call(v) === '[object Array]';
@@ -969,16 +1129,34 @@
 
     function hasValue(v, field) {
       if (v === null || v === undefined) return false;
-      if (isArray(v)) return v.length > 0 || !!field.emptyLabel;
+      if (Object.prototype.toString.call(v) === '[object Array]') {
+        return (field && field.presence === 'arrayOrEmptyLabel') ? true : v.length > 0;
+      }
       if (typeof v === 'string') return v !== '';
       return true;
     }
 
-    var table = document.getElementById('screen-table');
-    if (!table) return;
-    var headRow = table.querySelector('thead tr');
-    var bodyRows = document.querySelectorAll('#screen-table tbody tr, #unresolved-table tbody tr');
-    if (!headRow || !bodyRows.length) return;
+    function labelOf(field, raw) {
+      var vals = (field && field.values) || [];
+      for (var i = 0; i < vals.length; i++) {
+        if (vals[i].key === raw) return vals[i].label;
+      }
+      return String(raw);
+    }
+
+    /* 対象テーブルの集合: .table-area 内の data-unit-table テーブル(分割時は複数)に加え、
+       section.unresolved 配下の要手動確認テーブル(#unresolved-table)も対象へ含める。 */
+    var tables = Array.prototype.slice.call(
+      document.querySelectorAll('.table-area table[data-unit-table]')
+    );
+    var unresolvedTable = document.getElementById('unresolved-table');
+    if (unresolvedTable) tables.push(unresolvedTable);
+    if (!tables.length) return;
+    var bodyRows = [];
+    tables.forEach(function (tb) {
+      bodyRows = bodyRows.concat(Array.prototype.slice.call(tb.querySelectorAll('tbody tr')));
+    });
+    if (!bodyRows.length) return;
 
     var byId = {};
     var byKey = {};
@@ -989,6 +1167,7 @@
 
     function normalizeScreenName(value) {
       return String(value || '')
+        .replace(/\s*\(OK\)\s+\([^()]+\)\s*$/, '')
         .replace(/\s*\(OK\)\s+[A-Za-z0-9_.-]+\s*$/, '')
         .replace(/）OK\s*$/, '）')
         .replace(/\s+OK\s*$/, '')
@@ -1008,7 +1187,8 @@
     });
 
     var active = FIELDS.filter(function (f) {
-      return items.some(function (it) { return hasValue(it[f.key], f); });
+      return ((f.column || {}).show === 'always')
+          || items.some(function (it) { return hasValue(it[f.key], f); });
     });
     if (!active.length) return;
 
@@ -1056,8 +1236,10 @@
       }
       if (typeof v === 'boolean') {
         var flag = document.createElement('span');
-        if (v) { flag.className = 'opt-badge gold'; flag.textContent = '要'; }
-        else { flag.className = 'opt-muted'; flag.textContent = '不要'; }
+        var trueLabel = field.trueLabel || '要';
+        var falseLabel = field.falseLabel || '不要';
+        if (v) { flag.className = 'opt-badge gold'; flag.textContent = trueLabel; }
+        else { flag.className = 'opt-muted'; flag.textContent = falseLabel; }
         td.appendChild(flag);
         return;
       }
@@ -1068,7 +1250,7 @@
         td.appendChild(sched);
         return;
       }
-      var text = String(v);
+      var text = labelOf(field, v);
       if (field.key === 'designDocStatus') {
         var hasDoc = text === '着手済';
         var row = document.createElement('span');
@@ -1093,11 +1275,15 @@
       td.textContent = text;
     }
 
-    active.forEach(function (field) {
-      var th = document.createElement('th');
-      th.setAttribute('data-key', field.key);
-      th.textContent = field.label;
-      headRow.appendChild(th);
+    tables.forEach(function (tb) {
+      var hr = tb.querySelector('thead tr');
+      if (!hr) return;
+      active.forEach(function (field) {
+        var th = document.createElement('th');
+        th.setAttribute('data-key', field.key);
+        th.textContent = field.label;
+        hr.appendChild(th);
+      });
     });
 
     Array.prototype.forEach.call(bodyRows, function (tr) {
@@ -1122,51 +1308,15 @@
     try { manifest = JSON.parse(manifestEl.textContent); } catch (e) { /* ignore */ }
 
     var search = document.getElementById('screen-search');
-    var table = document.getElementById('screen-table');
-    if (!table) return;
-    var tbody = table.querySelector('tbody');
-    var allRows = Array.prototype.slice.call(tbody.querySelectorAll('tr'));
+    /* 対象テーブルの集合: .table-area 内の module-group セクションが持つ data-unit-table テーブルのみ。
+       要手動確認テーブル(#unresolved-table)は section.unresolved 配下にあり module-group ではないため対象外。 */
+    var tables = Array.prototype.slice.call(
+      document.querySelectorAll('.table-area .module-group table[data-unit-table]')
+    );
+    if (!tables.length) return;
 
     var PAGE_SIZE = 50;
-    var currentPage = 0;
-    var sortCol = -1;
-    var sortAsc = true;
-
-    var pagEl = document.getElementById('pagination');
-    var pageInfo = document.getElementById('page-info');
-    var btnFirst = document.getElementById('page-first');
-    var btnPrev = document.getElementById('page-prev');
-    var btnNext = document.getElementById('page-next');
-    var btnLast = document.getElementById('page-last');
-
-    /* ===== 展開インジケータ（シェブロン列） ===== */
-    (function () {
-      var headRow = table.querySelector('thead tr');
-      if (headRow) {
-        var chTh = document.createElement('th');
-        chTh.style.width = '32px';
-        chTh.style.padding = '8px 4px';
-        headRow.insertBefore(chTh, headRow.firstChild);
-      }
-      var CHEVRON_SVG = '<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" style="vertical-align:middle;transition:transform .15s"><path d="M6.22 3.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042L9.94 8 6.22 4.28a.75.75 0 0 1 0-1.06Z"/></svg>';
-      allRows.forEach(function (tr) {
-        var chTd = document.createElement('td');
-        chTd.style.width = '32px';
-        chTd.style.textAlign = 'center';
-        chTd.style.color = 'var(--text-muted)';
-        chTd.style.padding = '8px 4px';
-        chTd.className = 'expand-cell';
-        chTd.innerHTML = '<span class="chevron">' + CHEVRON_SVG + '</span>';
-        tr.insertBefore(chTd, tr.firstChild);
-      });
-
-    })();
-
-    /* ===== 追加UI: コピーボタン / フィルタチップ / 行クリック展開 / CSVエクスポート ===== */
-    var CHIP_COLUMNS = ['区分', '画面区分'];  /* 列見出し名で指定。任意列(画面区分)は存在する時だけチップ化 */
-    var COL_COUNT = table.querySelectorAll('thead th').length;
-    var headerLabels = Array.prototype.map.call(table.querySelectorAll('thead th'), function (th) { return th.textContent.trim(); });
-    var chipState = {};
+    var CHIP_COLUMNS = ['区分', '画面区分', 'アカウント区分', '画面種別', 'テンプレート', '処理エンドポイント'];  /* 列見出し名で指定。任意列は存在する時だけチップ化 */
 
     var COPY_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>';
     var CHECK_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>';
@@ -1209,76 +1359,18 @@
       return btn;
     }
 
-    /* 全セルコピー: 値のあるセル(空・「—」以外)すべてに付ける */
-    allRows.forEach(function (tr) {
-      Array.prototype.forEach.call(tr.children, function (td) {
-        var cellText = td.textContent.trim();
-        if (!cellText || cellText === '—') return;
-        td.appendChild(makeCopyBtn(function () { return td.textContent.trim(); }));
-      });
-    });
-
     var toolbarEl = document.querySelector('.toolbar');
-    var chipBar = document.createElement('div');
-    chipBar.className = 'filter-chips';
-    var chipClear = document.createElement('button');
-    if (toolbarEl) toolbarEl.parentNode.insertBefore(chipBar, toolbarEl.nextSibling);
 
-    CHIP_COLUMNS.forEach(function (colLabel) {
-      var ci = headerLabels.indexOf(colLabel);
-      if (ci === -1) return;
-      var values = [];
-      allRows.forEach(function (tr) {
-        var v = tr.children[ci] ? tr.children[ci].textContent.trim() : '';
-        if (v && v !== '—' && values.indexOf(v) === -1) values.push(v);
-      });
-      if (!values.length) return;
-      var colTag = document.createElement('span');
-      colTag.className = 'chip-col-label';
-      colTag.textContent = colLabel;
-      chipBar.appendChild(colTag);
-      values.forEach(function (v) {
-        var chip = document.createElement('button');
-        chip.type = 'button';
-        chip.className = 'chip';
-        chip.textContent = v;
-        chip.setAttribute('aria-pressed', 'false');
-        chip.addEventListener('click', function () {
-          var pressed = chip.getAttribute('aria-pressed') === 'true';
-          chip.setAttribute('aria-pressed', pressed ? 'false' : 'true');
-          if (!chipState[ci]) chipState[ci] = {};
-          if (pressed) { delete chipState[ci][v]; } else { chipState[ci][v] = true; }
-          currentPage = 0;
-          renderPage();
-        });
-        chipBar.appendChild(chip);
-      });
-    });
-
-    chipClear.type = 'button';
-    chipClear.className = 'chip chip-clear';
-    chipClear.textContent = 'クリア';
-    chipClear.style.display = 'none';
-    chipClear.addEventListener('click', function () {
-      chipState = {};
-      Array.prototype.forEach.call(chipBar.querySelectorAll('.chip[aria-pressed="true"]'), function (c) {
-        c.setAttribute('aria-pressed', 'false');
-      });
-      currentPage = 0;
-      renderPage();
-    });
-    chipBar.appendChild(chipClear);
-
-    function hasChipSelection() {
-      for (var k in chipState) {
-        if (Object.keys(chipState[k]).length > 0) return true;
+    function hasChipSelection(state) {
+      for (var k in state.chipState) {
+        if (Object.keys(state.chipState[k]).length > 0) return true;
       }
       return false;
     }
 
-    function matchesChips(tr) {
-      for (var k in chipState) {
-        var selected = Object.keys(chipState[k]);
+    function matchesChips(state, tr) {
+      for (var k in state.chipState) {
+        var selected = Object.keys(state.chipState[k]);
         if (selected.length === 0) continue;
         var v = tr.children[k] ? tr.children[k].textContent.trim() : '';
         if (selected.indexOf(v) === -1) return false;
@@ -1286,30 +1378,220 @@
       return true;
     }
 
-    function computeVisible() {
+    function computeVisible(state) {
       var q = search ? search.value.trim().toLowerCase() : '';
-      var visible = allRows.filter(function (tr) {
+      var visible = state.allRows.filter(function (tr) {
         var searchText = (tr.textContent + ' ' + (tr.getAttribute('data-search-text') || '')).toLowerCase();
         if (q && searchText.indexOf(q) === -1) return false;
-        return matchesChips(tr);
+        return matchesChips(state, tr);
       });
-      if (sortCol >= 0) {
+      if (state.sortCol >= 0) {
         visible.sort(function (a, b) {
-          var av = a.children[sortCol].textContent.trim();
-          var bv = b.children[sortCol].textContent.trim();
+          var av = a.children[state.sortCol].textContent.trim();
+          var bv = b.children[state.sortCol].textContent.trim();
           var an = parseFloat(av), bn = parseFloat(bv);
           var cmp = (!isNaN(an) && !isNaN(bn)) ? (an - bn) : av.localeCompare(bv, 'ja');
-          return sortAsc ? cmp : -cmp;
+          return state.sortAsc ? cmp : -cmp;
         });
       }
       return visible;
     }
 
-    function closeDetailRows() {
-      Array.prototype.forEach.call(tbody.querySelectorAll('tr.row-detail'), function (r) {
+    function closeDetailRows(state) {
+      Array.prototype.forEach.call(state.tbody.querySelectorAll('tr.row-detail'), function (r) {
         r.parentNode.removeChild(r);
       });
     }
+
+    function renderPage(state) {
+      closeDetailRows(state);
+      state.chipClear.style.display = hasChipSelection(state) ? '' : 'none';
+      var visible = computeVisible(state);
+
+      var totalPages = Math.max(1, Math.ceil(visible.length / PAGE_SIZE));
+      if (state.currentPage >= totalPages) state.currentPage = totalPages - 1;
+      if (state.currentPage < 0) state.currentPage = 0;
+      var start = state.currentPage * PAGE_SIZE;
+      var end = start + PAGE_SIZE;
+
+      state.allRows.forEach(function (tr) { tr.style.display = 'none'; });
+      visible.forEach(function (tr, i) {
+        tr.style.display = (i >= start && i < end) ? '' : 'none';
+        state.tbody.appendChild(tr);
+      });
+
+      if (state.pagEl) state.pagEl.style.display = visible.length <= PAGE_SIZE ? 'none' : '';
+      if (state.pageInfo) state.pageInfo.textContent = (state.currentPage + 1) + ' / ' + totalPages + '（' + visible.length + '件）';
+      if (state.btnFirst) state.btnFirst.disabled = state.currentPage === 0;
+      if (state.btnPrev) state.btnPrev.disabled = state.currentPage === 0;
+      if (state.btnNext) state.btnNext.disabled = state.currentPage >= totalPages - 1;
+      if (state.btnLast) state.btnLast.disabled = state.currentPage >= totalPages - 1;
+    }
+
+    var tableStates = tables.map(function (table) {
+      var tbody = table.querySelector('tbody');
+      var allRows = Array.prototype.slice.call(tbody.querySelectorAll('tr'));
+      var state = {
+        table: table,
+        tbody: tbody,
+        allRows: allRows,
+        currentPage: 0,
+        sortCol: -1,
+        sortAsc: true,
+        chipState: {}
+      };
+
+      /* ===== 展開インジケータ（シェブロン列） ===== */
+      (function () {
+        var headRow = table.querySelector('thead tr');
+        if (headRow) {
+          var chTh = document.createElement('th');
+          chTh.style.width = '32px';
+          chTh.style.padding = '8px 4px';
+          headRow.insertBefore(chTh, headRow.firstChild);
+        }
+        var CHEVRON_SVG = '<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" style="vertical-align:middle;transition:transform .15s"><path d="M6.22 3.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042L9.94 8 6.22 4.28a.75.75 0 0 1 0-1.06Z"/></svg>';
+        allRows.forEach(function (tr) {
+          var chTd = document.createElement('td');
+          chTd.style.width = '32px';
+          chTd.style.textAlign = 'center';
+          chTd.style.color = 'var(--text-muted)';
+          chTd.style.padding = '8px 4px';
+          chTd.className = 'expand-cell';
+          chTd.innerHTML = '<span class="chevron">' + CHEVRON_SVG + '</span>';
+          tr.insertBefore(chTd, tr.firstChild);
+        });
+      })();
+
+      state.colCount = table.querySelectorAll('thead th').length;
+      state.headerLabels = Array.prototype.map.call(table.querySelectorAll('thead th'), function (th) { return th.textContent.trim(); });
+
+      /* ===== 追加UI: コピーボタン / フィルタチップ ===== */
+
+      /* 全セルコピー: 値のあるセル(空・「—」以外)すべてに付ける */
+      allRows.forEach(function (tr) {
+        Array.prototype.forEach.call(tr.children, function (td) {
+          var cellText = td.textContent.trim();
+          if (!cellText || cellText === '—') return;
+          td.appendChild(makeCopyBtn(function () { return td.textContent.trim(); }));
+        });
+      });
+
+      var chipBar = document.createElement('div');
+      chipBar.className = 'filter-chips';
+      var chipClear = document.createElement('button');
+      if (toolbarEl) toolbarEl.parentNode.insertBefore(chipBar, toolbarEl.nextSibling);
+
+      CHIP_COLUMNS.forEach(function (colLabel) {
+        var ci = state.headerLabels.indexOf(colLabel);
+        if (ci === -1) return;
+        var values = [];
+        allRows.forEach(function (tr) {
+          var v = tr.children[ci] ? tr.children[ci].textContent.trim() : '';
+          if (v && v !== '—' && values.indexOf(v) === -1) values.push(v);
+        });
+        if (!values.length) return;
+        var colTag = document.createElement('span');
+        colTag.className = 'chip-col-label';
+        colTag.textContent = colLabel;
+        chipBar.appendChild(colTag);
+        values.forEach(function (v) {
+          var chip = document.createElement('button');
+          chip.type = 'button';
+          chip.className = 'chip';
+          chip.textContent = v;
+          chip.setAttribute('aria-pressed', 'false');
+          chip.addEventListener('click', function () {
+            var pressed = chip.getAttribute('aria-pressed') === 'true';
+            chip.setAttribute('aria-pressed', pressed ? 'false' : 'true');
+            if (!state.chipState[ci]) state.chipState[ci] = {};
+            if (pressed) { delete state.chipState[ci][v]; } else { state.chipState[ci][v] = true; }
+            state.currentPage = 0;
+            renderPage(state);
+          });
+          chipBar.appendChild(chip);
+        });
+      });
+
+      chipClear.type = 'button';
+      chipClear.className = 'chip chip-clear';
+      chipClear.textContent = 'クリア';
+      chipClear.style.display = 'none';
+      chipClear.addEventListener('click', function () {
+        state.chipState = {};
+        Array.prototype.forEach.call(chipBar.querySelectorAll('.chip[aria-pressed="true"]'), function (c) {
+          c.setAttribute('aria-pressed', 'false');
+        });
+        state.currentPage = 0;
+        renderPage(state);
+      });
+      chipBar.appendChild(chipClear);
+      state.chipBar = chipBar;
+      state.chipClear = chipClear;
+
+      /* ===== ページャ（テーブルごとに動的生成） ===== */
+      var pagEl = document.createElement('div');
+      pagEl.className = 'pagination';
+      var btnFirst = document.createElement('button');
+      btnFirst.type = 'button';
+      btnFirst.title = '先頭';
+      btnFirst.textContent = '≪';
+      var btnPrev = document.createElement('button');
+      btnPrev.type = 'button';
+      btnPrev.title = '前';
+      btnPrev.textContent = '＜';
+      var pageInfo = document.createElement('span');
+      pageInfo.className = 'page-info';
+      var btnNext = document.createElement('button');
+      btnNext.type = 'button';
+      btnNext.title = '次';
+      btnNext.textContent = '＞';
+      var btnLast = document.createElement('button');
+      btnLast.type = 'button';
+      btnLast.title = '最後';
+      btnLast.textContent = '≫';
+      pagEl.appendChild(btnFirst);
+      pagEl.appendChild(btnPrev);
+      pagEl.appendChild(pageInfo);
+      pagEl.appendChild(btnNext);
+      pagEl.appendChild(btnLast);
+      var pagAnchor = table.parentNode;
+      /* .table-wrap のように overflow を持つラッパの内側に入れると、 */
+      /* 横スクロール時にページャも一緒に流れる。ラッパの外側へ出す。 */
+      if (pagAnchor && pagAnchor.className && pagAnchor.className.indexOf('table-wrap') !== -1) {
+        pagAnchor.parentNode.insertBefore(pagEl, pagAnchor.nextSibling);
+      } else {
+        pagAnchor.insertBefore(pagEl, table.nextSibling);
+      }
+
+      state.pagEl = pagEl;
+      state.pageInfo = pageInfo;
+      state.btnFirst = btnFirst;
+      state.btnPrev = btnPrev;
+      state.btnNext = btnNext;
+      state.btnLast = btnLast;
+
+      btnFirst.addEventListener('click', function () { state.currentPage = 0; renderPage(state); });
+      btnPrev.addEventListener('click', function () { state.currentPage--; renderPage(state); });
+      btnNext.addEventListener('click', function () { state.currentPage++; renderPage(state); });
+      btnLast.addEventListener('click', function () {
+        state.currentPage = Math.max(0, Math.ceil(computeVisible(state).length / PAGE_SIZE) - 1);
+        renderPage(state);
+      });
+
+      Array.prototype.forEach.call(table.querySelectorAll('th[data-key]'), function (th) {
+        var colIndex = Array.prototype.indexOf.call(th.parentNode.children, th);
+        th.addEventListener('click', function () {
+          if (state.sortCol === colIndex) { state.sortAsc = !state.sortAsc; } else { state.sortCol = colIndex; state.sortAsc = true; }
+          Array.prototype.forEach.call(table.querySelectorAll('th[data-key]'), function (t) { t.removeAttribute('data-asc'); });
+          th.setAttribute('data-asc', state.sortAsc);
+          state.currentPage = 0;
+          renderPage(state);
+        });
+      });
+
+      return state;
+    });
 
     /* --- 行クリック展開: マニフェストJSONを直接参照し「仕様」「エビデンス」2グループに分離表示 ---
        画面は種別(kind=route/embedded-view)による項目差がないため、仕様グループはunitKind別マップではなく
@@ -1411,72 +1693,75 @@
       return group;
     }
 
-    allRows.forEach(function (tr) {
-      tr.addEventListener('click', function (ev) {
-        if (ev.target.closest && ev.target.closest('.copy-btn,a,button')) return;
-        var next = tr.nextElementSibling;
-        if (next && next.classList.contains('row-detail')) {
-          next.parentNode.removeChild(next);
-          tr.removeAttribute('data-expanded');
-          return;
-        }
-        var item = findDetailScreen(tr);
-        var detail = document.createElement('tr');
-        detail.className = 'row-detail';
-        var td = document.createElement('td');
-        td.colSpan = COL_COUNT;
-        var inner = document.createElement('div');
-        inner.className = 'detail-inner';
-        inner.appendChild(buildDetailGroup('仕様', false, DETAIL_SPEC_FIELDS, item));
-        inner.appendChild(buildDetailGroup('エビデンス（検出メタデータ）', true, EVIDENCE_FIELDS, item));
-        if (item) {
-          var docGroup = document.createElement('div');
-          docGroup.className = 'detail-group';
-          var docLabel = document.createElement('div');
-          docLabel.className = 'detail-group-label';
-          docLabel.textContent = '設計書';
-          docGroup.appendChild(docLabel);
-          var docLinks = document.createElement('div');
-          docLinks.className = 'doc-links';
-          var docDefs = [
-            {label: '基本設計書', pathField: 'designDocPath', kind: 'basic'},
-            {label: '詳細設計書', pathField: 'detailDocPath', kind: 'detail'},
-            {label: 'シーケンス図', pathField: 'sequencePath', kind: 'sequence'},
-            {label: 'テストケース', pathField: 'testCasePath', kind: 'test'}
-          ];
-          function isSafeRelativeUrl(value) {
-            return typeof value === 'string' &&
-              value.length > 0 &&
-              value === value.trim() &&
-              !/[\u0000-\u001f\u007f]/.test(value) &&
-              !/^[A-Za-z][A-Za-z0-9+.-]*:/.test(value) &&
-              !/^[\/\\]/.test(value) &&
-              value.indexOf('\\') === -1;
+    tableStates.forEach(function (state) {
+      state.allRows.forEach(function (tr) {
+        tr.addEventListener('click', function (ev) {
+          if (ev.target.closest && ev.target.closest('.copy-btn,a,button')) return;
+          var next = tr.nextElementSibling;
+          if (next && next.classList.contains('row-detail')) {
+            next.parentNode.removeChild(next);
+            tr.removeAttribute('data-expanded');
+            return;
           }
-          docDefs.forEach(function(doc) {
-            var a = document.createElement('a');
-            a.textContent = doc.label;
-            a.setAttribute('data-kind', doc.kind);
-            var href = item[doc.pathField];
-            if (isSafeRelativeUrl(href)) {
-              a.href = href;
-              a.className = 'doc-link';
-            } else {
-              a.className = 'doc-link disabled';
-              a.title = href ? '無効なリンク' : '未作成';
+          var item = findDetailScreen(tr);
+          var detail = document.createElement('tr');
+          detail.className = 'row-detail';
+          var td = document.createElement('td');
+          td.colSpan = state.colCount;
+          var inner = document.createElement('div');
+          inner.className = 'detail-inner';
+          inner.appendChild(buildDetailGroup('仕様', false, DETAIL_SPEC_FIELDS, item));
+          inner.appendChild(buildDetailGroup('エビデンス（検出メタデータ）', true, EVIDENCE_FIELDS, item));
+          if (item) {
+            var docGroup = document.createElement('div');
+            docGroup.className = 'detail-group';
+            var docLabel = document.createElement('div');
+            docLabel.className = 'detail-group-label';
+            docLabel.textContent = '設計書';
+            docGroup.appendChild(docLabel);
+            var docLinks = document.createElement('div');
+            docLinks.className = 'doc-links';
+            var docDefs = [
+              {label: '基本設計書', pathField: 'designDocPath', kind: 'basic'},
+              {label: '詳細設計書', pathField: 'detailDocPath', kind: 'detail'},
+              {label: 'シーケンス図', pathField: 'sequencePath', kind: 'sequence'},
+              {label: 'テストケース', pathField: 'testCasePath', kind: 'test'}
+            ];
+            function isSafeRelativeUrl(value) {
+              return typeof value === 'string' &&
+                value.length > 0 &&
+                value === value.trim() &&
+                !/[\u0000-\u001f\u007f]/.test(value) &&
+                !/^[A-Za-z][A-Za-z0-9+.-]*:/.test(value) &&
+                !/^[\/\\]/.test(value) &&
+                value.indexOf('\\') === -1;
             }
-            docLinks.appendChild(a);
-          });
-          docGroup.appendChild(docLinks);
-          inner.appendChild(docGroup);
-        }
-        td.appendChild(inner);
-        detail.appendChild(td);
-        tr.parentNode.insertBefore(detail, tr.nextSibling);
-        tr.setAttribute('data-expanded', 'true');
+            docDefs.forEach(function(doc) {
+              var a = document.createElement('a');
+              a.textContent = doc.label;
+              a.setAttribute('data-kind', doc.kind);
+              var href = item[doc.pathField];
+              if (isSafeRelativeUrl(href)) {
+                a.href = href;
+                a.className = 'doc-link';
+              } else {
+                a.className = 'doc-link disabled';
+                a.title = href ? '無効なリンク' : '未作成';
+              }
+              docLinks.appendChild(a);
+            });
+            docGroup.appendChild(docLinks);
+            inner.appendChild(docGroup);
+          }
+          td.appendChild(inner);
+          detail.appendChild(td);
+          tr.parentNode.insertBefore(detail, tr.nextSibling);
+          tr.setAttribute('data-expanded', 'true');
+        });
       });
     });
 
+    /* ページ全体に1つしかないUI(検索・CSV)は全テーブルを横断して処理する */
     var csvBtn = document.createElement('button');
     csvBtn.type = 'button';
     csvBtn.className = 'csv-btn';
@@ -1487,11 +1772,14 @@
       function csvEscape(v) {
         return /[",\n\r]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v;
       }
+      var headerLabels = tableStates.length ? tableStates[0].headerLabels : [];
       var lines = [headerLabels.map(csvEscape).join(',')];
-      computeVisible().forEach(function (tr) {
-        lines.push(Array.prototype.map.call(tr.children, function (td) {
-          return csvEscape(td.textContent.trim());
-        }).join(','));
+      tableStates.forEach(function (state) {
+        computeVisible(state).forEach(function (tr) {
+          lines.push(Array.prototype.map.call(tr.children, function (td) {
+            return csvEscape(td.textContent.trim());
+          }).join(','));
+        });
       });
       var blob = new Blob(['\uFEFF' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
       var url = URL.createObjectURL(blob);
@@ -1505,35 +1793,12 @@
     });
     /* ===== 追加UIここまで ===== */
 
-    function renderPage() {
-      closeDetailRows();
-      chipClear.style.display = hasChipSelection() ? '' : 'none';
-      var visible = computeVisible();
-
-      var totalPages = Math.max(1, Math.ceil(visible.length / PAGE_SIZE));
-      if (currentPage >= totalPages) currentPage = totalPages - 1;
-      if (currentPage < 0) currentPage = 0;
-      var start = currentPage * PAGE_SIZE;
-      var end = start + PAGE_SIZE;
-
-      allRows.forEach(function (tr) { tr.style.display = 'none'; });
-      visible.forEach(function (tr, i) {
-        tr.style.display = (i >= start && i < end) ? '' : 'none';
-        tbody.appendChild(tr);
-      });
-
-      if (pagEl) pagEl.style.display = visible.length <= PAGE_SIZE ? 'none' : '';
-      if (pageInfo) pageInfo.textContent = (currentPage + 1) + ' / ' + totalPages + '（' + visible.length + '件）';
-      if (btnFirst) btnFirst.disabled = currentPage === 0;
-      if (btnPrev) btnPrev.disabled = currentPage === 0;
-      if (btnNext) btnNext.disabled = currentPage >= totalPages - 1;
-      if (btnLast) btnLast.disabled = currentPage >= totalPages - 1;
-    }
-
     if (search) {
       search.addEventListener('input', function () {
-        currentPage = 0;
-        renderPage();
+        tableStates.forEach(function (state) {
+          state.currentPage = 0;
+          renderPage(state);
+        });
       });
       /* URLクエリ q での絞り込み受け口: <ページ>.html?q=<語> で絞り込み済み状態を開ける */
       try {
@@ -1542,26 +1807,7 @@
       } catch (e) { /* ignore */ }
     }
 
-    table.querySelectorAll('th[data-key]').forEach(function (th) {
-      var colIndex = Array.prototype.indexOf.call(th.parentNode.children, th);
-      th.addEventListener('click', function () {
-        if (sortCol === colIndex) { sortAsc = !sortAsc; } else { sortCol = colIndex; sortAsc = true; }
-        table.querySelectorAll('th[data-key]').forEach(function (t) { t.removeAttribute('data-asc'); });
-        th.setAttribute('data-asc', sortAsc);
-        currentPage = 0;
-        renderPage();
-      });
-    });
-
-    if (btnFirst) btnFirst.addEventListener('click', function () { currentPage = 0; renderPage(); });
-    if (btnPrev) btnPrev.addEventListener('click', function () { currentPage--; renderPage(); });
-    if (btnNext) btnNext.addEventListener('click', function () { currentPage++; renderPage(); });
-    if (btnLast) btnLast.addEventListener('click', function () {
-      currentPage = Math.max(0, Math.ceil(computeVisible().length / PAGE_SIZE) - 1);
-      renderPage();
-    });
-
-    renderPage();
+    tableStates.forEach(function (state) { renderPage(state); });
   })();
 </script>
 

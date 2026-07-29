@@ -106,7 +106,7 @@ allowed-tools: [Bash, Read, Write, Edit, Grep, Glob, AskUserQuestion, TaskCreate
 
 ## 推奨手順
 
-- ソースディレクトリは対象プロジェクトの実コードルート（例: `backend/src`）を指定する。モノレポでアプリが複数ある場合は対象アプリのディレクトリのみを渡す（自動判別なし）
+- ソースディレクトリは対象プロジェクトの実コードルート（例: `backend/src`）を指定する。モノレポの場合はアーキテクチャ調査書 §10 のサイト一覧で確定した当該サイトのルートディレクトリを渡す
 - Phase 1の調査を省略して汎用の `unit-id-regex` を当てない。プロジェクトごとにジョブ命名規約・スケジューラ方式は異なる
 - 定期実行（`kind: scheduled`）とトリガー起動（`kind: triggered`）の区別はPhase 1で確定させてから抽出する。区別が付かないものは `unresolved` に隔離する
 

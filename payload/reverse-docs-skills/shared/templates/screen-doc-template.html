@@ -136,6 +136,10 @@ table.data-table code {
   margin: 0; padding: 12px 14px; overflow-x: auto;
   font-family: var(--mono); font-size: 12px; line-height: 1.8; color: var(--codetext);
 }
+#doc-content .code-block code {
+  display: block; padding: 0; border: 0; background: transparent;
+  color: inherit; font: inherit; white-space: pre;
+}
 .code-block .kw { color: #CBA6F7; }
 .code-block .fn { color: #89B4FA; }
 .code-block .str { color: #A6E3A1; }
@@ -199,6 +203,8 @@ table.data-table code {
   var inList = false;
   var listType = '';
   var inBlockquote = false;
+  var inFence = false;
+  var fenceLines = [];
 
   function escHtml(s) {
     return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
@@ -237,10 +243,28 @@ table.data-table code {
   function closeTable() {
     if (inTable) { html.push('</tbody></table></div>'); inTable = false; }
   }
+  function closeFence() {
+    html.push('<div class="code-block"><pre><code>' + escHtml(fenceLines.join('\n')) + '</code></pre></div>');
+    inFence = false;
+    fenceLines = [];
+  }
 
   for (var i = 0; i < lines.length; i++) {
     var line = lines[i];
     var trimmed = line.trim();
+
+    // フェンス内はMarkdownとして解釈せず、終了行まで文字列のまま保持する
+    if (inFence) {
+      if (/^```\s*$/.test(trimmed)) closeFence();
+      else fenceLines.push(line);
+      continue;
+    }
+    if (/^```(?:\s*[^`\s]+)?\s*$/.test(trimmed)) {
+      closeList(); closeBlockquote(); closeTable();
+      inFence = true;
+      fenceLines = [];
+      continue;
+    }
 
     // 空行
     if (!trimmed) { closeList(); closeBlockquote(); continue; }
@@ -299,6 +323,7 @@ table.data-table code {
     closeList(); closeTable(); closeBlockquote();
     html.push('<p>' + inlineFormat(trimmed) + '</p>');
   }
+  if (inFence) closeFence();
   closeList(); closeTable(); closeBlockquote();
 
   document.getElementById('doc-content').innerHTML = html.join('\n');

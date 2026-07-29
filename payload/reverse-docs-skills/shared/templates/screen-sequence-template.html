@@ -120,7 +120,7 @@ table.steps-table td.ref {
         </aside>
 
         <div class="dp-seq-main">
-          <p class="lead">左の操作メニューを選ぶと、画面 → API → テーブルの呼び出し順序を表示する。</p>
+          <p class="lead">左の操作メニューを選ぶと、利用者 → 画面 → API／内部処理 → テーブルの呼び出し順序を表示する。</p>
 
           <div class="diagram-wrap">
             <svg id="sequence-svg" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="{{SCREEN_LABEL}}の操作シーケンス"></svg>
@@ -150,6 +150,7 @@ table.steps-table td.ref {
 <script>
 (function () {
   var DEFAULT_LANES = [
+    { key: 'user', label: '利用者' },
     { key: 'screen', label: '画面' },
     { key: 'api', label: 'API' },
     { key: 'table', label: 'テーブル' }
@@ -170,11 +171,10 @@ table.steps-table td.ref {
   try { data = JSON.parse(raw); } catch (e) { data = { operations: [] }; }
   var operations = data.operations || [];
 
-  // レーンは page-data の lanes[] で任意定義できる。未指定・空配列なら固定 3 本にフォールバックする
-  var laneDefs = (data.lanes && data.lanes.length) ? data.lanes : DEFAULT_LANES;
-  var LANES = laneDefs.map(function (l) { return l.key; });
+  // レーンは operation.lanes > page-data.lanes > 既定値の順で採用する
+  var pageLaneDefs = (data.lanes && data.lanes.length) ? data.lanes : DEFAULT_LANES;
+  var LANES = [];
   var LANE_LABELS = {};
-  laneDefs.forEach(function (l) { LANE_LABELS[l.key] = l.label || l.key; });
 
   var operationList = document.getElementById('operation-list');
   var operationLabel = document.getElementById('operation-label');
@@ -241,6 +241,11 @@ table.steps-table td.ref {
   function renderOperation(op, activeIndex) {
     svg.innerHTML = '';
     tbody.innerHTML = '';
+
+    var laneDefs = (op && op.lanes && op.lanes.length) ? op.lanes : pageLaneDefs;
+    LANES = laneDefs.map(function (l) { return l.key; });
+    LANE_LABELS = {};
+    laneDefs.forEach(function (l) { LANE_LABELS[l.key] = l.label || l.key; });
 
     var steps = (op && op.steps) || [];
     var height = TOP_PADDING + steps.length * ROW_HEIGHT + BOTTOM_PADDING;

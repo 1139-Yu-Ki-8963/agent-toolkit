@@ -197,7 +197,7 @@ EOF
         ["issue1-55-a", "GET /issue1-55-a", "名称A(OK) (identA)"],
         ["issue1-55-b", "GET /issue1-55-b", "名称F(OK) identF"],
         ["issue1-55-c", "GET /issue1-55-c", "名称B(OK)"],
-        ["issue1-55-d", "GET /issue1-55-d", "名称C（内訳）OK"],
+        ["issue1-55-d", "GET /issue1-55-d", "名称C（内訳） OK"],
         ["issue1-55-e", "GET /issue1-55-e", "名称D OK"]
       ]
       | .units |= map({
@@ -330,13 +330,18 @@ if [ "${1:-}" = "--self-test" ]; then
   exit $?
 fi
 
-MANIFEST="${1:?Usage: build-unit-list.sh <manifest.json> <output-html-path> [--unit-kind <kind>] [--portal-dir <path>] [--project-name <name>]}"
-OUTPUT_HTML="${2:?Usage: build-unit-list.sh <manifest.json> <output-html-path> [--unit-kind <kind>] [--portal-dir <path>] [--project-name <name>]}"
+MANIFEST="${1:?Usage: build-unit-list.sh <manifest.json> <output-html-path> [--unit-kind <kind>] [--portal-dir <path>] [--project-name <name>] [--axes <file>] [--split-by <axisKey>] [--catalog <file>] [--sites <file>] [--site-key <key>]}"
+OUTPUT_HTML="${2:?Usage: build-unit-list.sh <manifest.json> <output-html-path> [--unit-kind <kind>] [--portal-dir <path>] [--project-name <name>] [--axes <file>] [--split-by <axisKey>] [--catalog <file>] [--sites <file>] [--site-key <key>]}"
 shift 2 || true
 
 UNIT_KIND_ARG=""
 PORTAL_DIR_ARG=""
 PROJECT_NAME_ARG=""
+AXES_FILE=""
+SPLIT_BY=""
+CATALOG_FILE=""
+SITES_FILE=""
+SITE_KEY=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --unit-kind)
@@ -349,6 +354,30 @@ while [ $# -gt 0 ]; do
       ;;
     --project-name)
       PROJECT_NAME_ARG="${2:-}"
+      shift 2
+      ;;
+    --catalog)
+      # ポータルカタログの JSON。省略時はリポジトリ既定を使う
+      CATALOG_FILE="${2:-}"
+      shift 2
+      ;;
+    --axes)
+      AXES_FILE="${2:-}"
+      shift 2
+      ;;
+    --split-by)
+      # 一覧を指定した軸の値ごとに分割する。none で分割を無効化する
+      SPLIT_BY="${2:-}"
+      shift 2
+      ;;
+    --sites)
+      # サイト定義（sites.json）。指定するとサイドバーに切替が出る
+      SITES_FILE="${2:-}"
+      shift 2
+      ;;
+    --site-key)
+      # このポータルが属するサイトのキー
+      SITE_KEY="${2:-}"
       shift 2
       ;;
     *)
@@ -367,8 +396,13 @@ if [ ! -f "$MANIFEST" ]; then
   echo "ERROR: manifest not found: $MANIFEST" >&2
   exit 1
 fi
+if [ -n "$SITES_FILE" ] && [ ! -f "$SITES_FILE" ]; then
+  echo "ERROR: --sites で指定されたファイルが存在しません: $SITES_FILE" >&2
+  exit 1
+fi
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+. "$SCRIPT_DIR/../unit-axes.sh"
 
 if ! jq -e '(.generatedAt | type == "string") and (.generatedAt | length > 0)' "$MANIFEST" >/dev/null; then
   echo "ERROR: generatedAt must be a non-empty string" >&2
@@ -387,11 +421,34 @@ else
   UNIT_KIND="${manifest_unit_kind:-screen}"
 fi
 
+# --- 分類軸・任意列の宣言を解決し、委譲先(build-screen-list.sh/build-feature-list.sh)・
+# validate-manifest.sh の全呼び出しへ同一の解決結果を透過する。呼び出し元が --axes を
+# 指定していない場合、自身が解決した結果を一時ファイルへ書き出し、そのパスを渡す。
+# 付け忘れるとbuildとvalidateが別々の宣言を見て二重基準になるため。
+AXES_TMP_FILE=""
+cleanup_axes_tmp() {
+  [ -n "$AXES_TMP_FILE" ] && rm -f "$AXES_TMP_FILE"
+}
+trap cleanup_axes_tmp EXIT
+
+AXES_PASS_FILE="$AXES_FILE"
+if [ -z "$AXES_PASS_FILE" ]; then
+  axes_resolved_for_pass="$(resolve_unit_axes "$MANIFEST" "$AXES_FILE")" || exit 1
+  AXES_TMP_FILE="$(mktemp "${TMPDIR:-/tmp}/build-unit-list-axes.XXXXXX")"
+  printf '%s' "$axes_resolved_for_pass" > "$AXES_TMP_FILE"
+  AXES_PASS_FILE="$AXES_TMP_FILE"
+fi
+
 # --- unit_kind=screen: build-screen-list.sh に委譲(exit codeをそのまま返す) ---
 if [ "$UNIT_KIND" = "screen" ]; then
   delegate_args=("$MANIFEST" "$OUTPUT_HTML")
   [ -n "$PORTAL_DIR_ARG" ] && delegate_args+=(--portal-dir "$PORTAL_DIR_ARG")
   [ -n "$PROJECT_NAME_ARG" ] && delegate_args+=(--project-name "$PROJECT_NAME_ARG")
+  [ -n "$CATALOG_FILE" ] && delegate_args+=(--catalog "$CATALOG_FILE")
+  [ -n "$SITES_FILE" ] && delegate_args+=(--sites "$SITES_FILE")
+  [ -n "$SITE_KEY" ] && delegate_args+=(--site-key "$SITE_KEY")
+  delegate_args+=(--axes "$AXES_PASS_FILE")
+  [ -n "$SPLIT_BY" ] && delegate_args+=(--split-by "$SPLIT_BY")
   "$SCRIPT_DIR/build-screen-list.sh" "${delegate_args[@]}"
   exit $?
 fi
@@ -401,8 +458,16 @@ if [ "$UNIT_KIND" = "feature" ]; then
   delegate_args=("$MANIFEST" "$OUTPUT_HTML")
   [ -n "$PORTAL_DIR_ARG" ] && delegate_args+=(--portal-dir "$PORTAL_DIR_ARG")
   [ -n "$PROJECT_NAME_ARG" ] && delegate_args+=(--project-name "$PROJECT_NAME_ARG")
+  [ -n "$CATALOG_FILE" ] && delegate_args+=(--catalog "$CATALOG_FILE")
+  delegate_args+=(--axes "$AXES_PASS_FILE")
   "$SCRIPT_DIR/build-feature-list.sh" "${delegate_args[@]}"
   exit $?
+fi
+
+# --- unit_kind=screen 以外(汎用一覧を自前で生成する経路): --split-by は未対応 ---
+if [ -n "$SPLIT_BY" ]; then
+  echo "ERROR: --split-by は unit_kind=screen でのみ使用できます（指定された unit_kind: ${UNIT_KIND}）" >&2
+  exit 1
 fi
 
 # --- unit_kind=screen 以外: 検証してから汎用テンプレートで生成 ---
@@ -415,7 +480,7 @@ case "$UNIT_KIND" in
     VALIDATE_CMD=("$SCRIPT_DIR/validate-message-manifest.sh" "$MANIFEST")
     ;;
   *)
-    VALIDATE_CMD=("$SCRIPT_DIR/validate-manifest.sh" "$MANIFEST" --unit-kind "$UNIT_KIND")
+    VALIDATE_CMD=("$SCRIPT_DIR/validate-manifest.sh" "$MANIFEST" --unit-kind "$UNIT_KIND" --axes "$AXES_PASS_FILE")
     ;;
 esac
 
@@ -521,8 +586,12 @@ while IFS= read -r row; do
   fi
 done < <(jq -c '.units[]' "$MANIFEST")
 
+# 基本列（静的theadと要手動確認テーブルで共有する3列）
+BASE_COLUMNS="unitNameGuess:${label_esc}名 identifier:識別子 kind:区分"
+base_col_count="$(printf '%s\n' $BASE_COLUMNS | wc -l | tr -d ' ')"
+
 if [ -z "$unit_rows" ]; then
-  unit_rows='<tr><td colspan="3">なし</td></tr>'
+  unit_rows="<tr><td colspan=\"${base_col_count}\">なし</td></tr>"
 fi
 
 if [ -z "$unresolved_rows" ]; then
@@ -530,10 +599,10 @@ if [ -z "$unresolved_rows" ]; then
   unresolved_class="empty"
 else
   unresolved_section="$(cat <<EOF
-<table class="units" id="unresolved-table">
+<table class="units" id="unresolved-table" data-unit-table>
 <thead>
 <tr>
-<th>${label_esc}名</th><th>識別子</th><th>区分</th>
+<th data-key="unitNameGuess">${label_esc}名</th><th data-key="identifier">識別子</th><th data-key="kind">区分</th>
 </tr>
 </thead>
 <tbody>
@@ -559,6 +628,10 @@ else
   portal_relative="../../index.html"
 fi
 
+# --- 分類軸・任意列の宣言を解決して注入用 JSON を作る ---
+axes_resolved="$(resolve_unit_axes "$MANIFEST" "$AXES_FILE")" || exit 1
+column_spec_json="$(unit_axes_script_safe "$(unit_axes_for_kind "$axes_resolved" "$UNIT_KIND")")"
+
 # --- テンプレートへの注入(単一パス方式。render_template()参照) ---
 # マニフェストJSONのマーカーはテンプレート内で物理的に最後に出現するため、
 # 単一パスのdocument-order走査により自動的に最後に処理される
@@ -575,19 +648,29 @@ render_args=(
   "{{UNRESOLVED_CLASS}}" "$unresolved_class"
   "{{PORTAL_RELATIVE}}" "$portal_relative"
   "{{MANIFEST_JSON}}" "$unit_manifest_json"
+  "<!--COLUMN_SPEC_JSON-->" "$column_spec_json"
 )
 # トークンCSS注入（tokens.css が存在する場合のみ）
 if [ -f "$TOKENS_CSS_FILE" ]; then
   render_args+=("/* TOKENS_CSS */" "$(cat "$TOKENS_CSS_FILE")")
 fi
 # 共通シェル注入（partials が存在する場合のみ）
+catalog_path="${CATALOG_FILE:-$SCRIPT_DIR/../../templates/../references/portal-catalog.json}"
 if type shell_injection_args >/dev/null 2>&1; then
-  shell_injection_args "$SCRIPT_DIR/../../templates" "$SCRIPT_DIR/../../templates/../references/portal-catalog.json" "$portal_relative" "$PROJECT_NAME_ARG" "$generated_at" "" "shared/scripts/unit-list/build-unit-list.sh" "list"
+  shell_injection_args "$SCRIPT_DIR/../../templates" "$catalog_path" "$portal_relative" "$PROJECT_NAME_ARG" "$generated_at" "" "shared/scripts/unit-list/build-unit-list.sh" "list" "${SITES_FILE:-}" "${SITE_KEY:-}" "$(dirname "$OUTPUT_HTML")"
   if [ ${#SHELL_RENDER_ARGS[@]} -gt 0 ]; then
     render_args+=("${SHELL_RENDER_ARGS[@]}")
   fi
 fi
 out="$(render_template "$(cat "$TEMPLATE")" "${render_args[@]}")"
+
+# 宣言が非空なのに column-spec が出力に無ければ、テンプレートのマーカー欠落。fail-closed。
+case "$out" in
+  *'id="column-spec"'*) : ;;
+  *)
+    echo "ERROR: column-spec が出力に注入されていません（テンプレートの <!--COLUMN_SPEC_JSON--> マーカー欠落）" >&2
+    exit 1 ;;
+esac
 
 printf '%s\n' "$out" > "$OUTPUT_HTML"
 
