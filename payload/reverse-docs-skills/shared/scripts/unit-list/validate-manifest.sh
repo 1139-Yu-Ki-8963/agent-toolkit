@@ -12,7 +12,7 @@
 # screenKey/route/entryFile/screenIdRegex を使う。screen以外は units・unitKey/identifier/
 # sourceFile/unitIdRegex を使う。
 #
-# 検査項目(screen: 全14項目 / screen以外: 全10項目。結果は [PASS]/[FAIL] 項目名 — 詳細 の形式でstderrへ列挙):
+# 検査項目(screen: 全15項目 / screen以外: 全11項目。結果は [PASS]/[FAIL] 項目名 — 詳細 の形式でstderrへ列挙):
 #   1. schema-必須フィールド    : トップレベル必須キー + 各要素の必須キーの存在
 #                                  (screen: generatedAt,sourceDir,strategy,detectionSummary,screens /
 #                                   screenKey,kind,route,entryFile,confidence。
@@ -67,8 +67,12 @@
 #                                   のいずれかで、固定小集合の列挙ではなく識別子形式のみが不変契約のため)
 #  14. parent-child参照          : parentScreen と childComponents のscreenKey実在、componentType値域、
 #                                   親→子・子→親の双方向一致を検証する
+#  15. unitKey-一意性            : 集約キー(unitKey)の重複0件を検査する
+#                                   (screen: 要素がunitKeyを持たないため検査をスキップしPASS扱い /
+#                                   screen以外: unitKeyが重複していないか。unitKeyを持つ要素が
+#                                   0件、またはunitKeyを持つ要素が1件以下の場合もスキップしPASS扱い)
 #
-# 全項目(screen: 14項目 / screen以外: 10項目)PASSでexit 0。1件でもFAILがあればexit 1
+# 全項目(screen: 15項目 / screen以外: 11項目)PASSでexit 0。1件でもFAILがあればexit 1
 # (--fixで解消された項目4はPASS扱い。項目10は常にPASSする情報列挙)。
 
 set -uo pipefail
@@ -555,9 +559,9 @@ run_validate() {
   # 11. screenType-必須+値域(screen専用。screen以外はskip)
   #    全screensにscreenTypeフィールドが存在し(不在・null不可)、値域内であることを検査する。
   # ---------------------------------------------------------------------------
-  local total_items=10
+  local total_items=11
   if [ "$UNIT_KIND" = "screen" ]; then
-    total_items=14
+    total_items=15
     local screen_type_issues
     screen_type_issues="$(jq -r '
       ["list","detail","form","confirm","complete","error","top","processing_endpoint"] as $allowed
@@ -678,6 +682,25 @@ run_validate() {
   fi
 
   # ---------------------------------------------------------------------------
+  # 15. unitKey-一意性
+  #     集約キー(unitKey)の重複0件を検査する。screenの要素はunitKeyフィールドを持たないため
+  #     自然にスキップされPASS扱いとなる(screen以外はITEM_KEY_FIELD=unitKeyのため実質検査される)。
+  #     unitKeyを持つ要素が0件・1件の場合も重複は起こりえないためPASS扱いとする。
+  # ---------------------------------------------------------------------------
+  local dup_unit_keys unit_key_label="unitKey-一意性"
+  dup_unit_keys="$(jq -r --arg items "$ITEMS_KEY" '
+    [ .[$items][]? | select(has("unitKey") and (.unitKey != null) and ((.unitKey | type) == "string") and ((.unitKey | length) > 0)) | .unitKey ]
+    | group_by(.) | map(select(length > 1) | .[0]) | join(", ")
+  ' "$MANIFEST" 2>/dev/null)"
+
+  if [ -n "$dup_unit_keys" ]; then
+    overall_fail=1
+    echo "[FAIL] ${unit_key_label} — 重複キー: ${dup_unit_keys}" >&2
+  else
+    echo "[PASS] ${unit_key_label} — unitKey重複0件(unitKey不在の要素のみの場合・0/1件の場合はスキップしPASS扱い)" >&2
+  fi
+
+  # ---------------------------------------------------------------------------
   if [ "$overall_fail" -eq 0 ]; then
     echo "[OK] validate-manifest: 全${total_items}項目PASS" >&2
     return 0
@@ -740,7 +763,7 @@ EOF
 JSON
 
   if run_validate "$screen_pass" "" "screen" >/dev/null 2>&1; then
-    echo "  [PASS] screen陽性: 既定unitKind(screen)で全8項目PASS"
+    echo "  [PASS] screen陽性: 既定unitKind(screen)で全15項目PASS"
   else
     echo "  [FAIL] screen陽性: 正当なscreenマニフェストがFAILした" >&2
     rc=1
@@ -962,9 +985,32 @@ EOF
 JSON
 
   if run_validate "$api_pass" "" "api" >/dev/null 2>&1; then
-    echo "  [PASS] api陽性: unitKind=apiで全8項目PASS"
+    echo "  [PASS] api陽性: unitKind=apiで全11項目PASS"
   else
     echo "  [FAIL] api陽性: 正当なapiマニフェストがFAILした" >&2
+    rc=1
+  fi
+
+  # ---- 検査15(unitKey-一意性)の確認 ----
+  local api_dup_unit_key="$tmp/api-dup-unit-key.json"
+  jq '.units[1].unitKey = "users-list"' "$api_pass" > "$api_dup_unit_key"
+  local dup_unit_key_output
+  dup_unit_key_output="$(run_validate "$api_dup_unit_key" "" "api" 2>&1)"
+  if echo "$dup_unit_key_output" | grep -q '\[FAIL\] unitKey-一意性.*users-list'; then
+    echo "  [PASS] unitKey-一意性陰性: unitKeyの重複でFAIL"
+  else
+    echo "  [FAIL] unitKey-一意性陰性: unitKeyが重複するのにPASSした(またはFAIL文言不一致)" >&2
+    rc=1
+  fi
+
+  local api_unique_unit_key="$tmp/api-unique-unit-key.json"
+  cp "$api_pass" "$api_unique_unit_key"
+  local unique_unit_key_output
+  unique_unit_key_output="$(run_validate "$api_unique_unit_key" "" "api" 2>&1)"
+  if echo "$unique_unit_key_output" | grep -q '\[PASS\] unitKey-一意性'; then
+    echo "  [PASS] unitKey-一意性陽性: unitKeyが一意なら重複なしでPASS"
+  else
+    echo "  [FAIL] unitKey-一意性陽性: 一意なunitKeyがFAILした" >&2
     rc=1
   fi
 
@@ -1043,7 +1089,7 @@ JSON
         "ioSummary": "ユーザー一覧を返す"
       }' "$api_pass" > "$api_ext_pass"
   if run_validate "$api_ext_pass" "" "api" >/dev/null 2>&1; then
-    echo "  [PASS] 拡張フィールド陽性: 正しい型の任意フィールド付きでも全8項目PASS"
+    echo "  [PASS] 拡張フィールド陽性: 正しい型の任意フィールド付きでも全11項目PASS"
   else
     echo "  [FAIL] 拡張フィールド陽性: 正しい型の任意フィールドがFAILした" >&2
     rc=1
@@ -1063,7 +1109,7 @@ JSON
   local api_ext_null="$tmp/api-ext-null.json"
   jq '.units[0] += {"category": null, "authRequired": null, "columnCount": null}' "$api_pass" > "$api_ext_null"
   if run_validate "$api_ext_null" "" "api" >/dev/null 2>&1; then
-    echo "  [PASS] 拡張フィールドnull陽性: 任意フィールドが明示的nullでも全8項目PASS"
+    echo "  [PASS] 拡張フィールドnull陽性: 任意フィールドが明示的nullでも全11項目PASS"
   else
     echo "  [FAIL] 拡張フィールドnull陽性: 任意フィールドの明示的nullがFAILした" >&2
     rc=1

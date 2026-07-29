@@ -82,7 +82,7 @@ record() {
   local root="$1" out="$2" rel
   : > "$out"
   for rel in "${managed[@]}"; do
-    mode="$(stat -f '%Lp' "$root/$rel" 2>/dev/null || stat -c '%a' "$root/$rel")"
+    mode="$(stat -c '%a' "$root/$rel" 2>/dev/null || stat -f '%Lp' "$root/$rel")"
     if command -v shasum >/dev/null 2>&1; then hash="$(shasum -a 256 "$root/$rel" | awk '{print $1}')"
     else hash="$(sha256sum "$root/$rel" | awk '{print $1}')"; fi
     printf '%s\t%s\t%s\n' "$rel" "$mode" "$hash" >> "$out"

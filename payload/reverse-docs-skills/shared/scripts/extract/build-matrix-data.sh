@@ -254,6 +254,84 @@ self_test() {
            and ((.screens[] | select(.screenId == "user-admin") | .permissions) == {"admin": true, "editor": false})' \
     "$out3/permission-matrix.json"
 
+  # --- ケースd: feature-manifest の unitKey 重複(検査A) ---
+  local fm_dup="$tmp/feature-manifest-dup.json"
+  jq -n --arg sourceDir "$tmp/src" --arg sf "$tmp/src/features/user_management.py" '{
+    generatedAt: "2026-01-01T00:00:00Z",
+    sourceDir: $sourceDir,
+    unitKind: "feature",
+    strategy: {extractionMethod: "custom", approvedByUser: true, unitIdRegex: null, excludePatterns: []},
+    detectionSummary: {unitCount: 2, unresolvedCount: 0},
+    units: [
+      {unitKey: "user-management", kind: "feature", identifier: "user-management", sourceFile: $sf,
+       confidence: "high", relatedApis: ["users-list"]},
+      {unitKey: "user-management", kind: "feature", identifier: "user-management-dup", sourceFile: $sf,
+       confidence: "high", relatedApis: ["user-delete"]}
+    ]
+  }' > "$fm_dup"
+
+  local out_dup="$tmp/out-dup" dup_stderr="$tmp/dup-stderr.log" dup_rc=0
+  bash "$script_path" "$out_dup" --screen-manifest "$sm" --api-manifest "$am" --feature-manifest "$fm_dup" \
+    >/dev/null 2>"$dup_stderr" || dup_rc=$?
+  assert "ケースd: 重複unitKeyで生成コマンドがexit 1" \
+    bash -c "[ $dup_rc -eq 1 ]"
+  assert "ケースd: stderrに重複するunitKeyのエラーが出力される" \
+    grep -q "重複する unitKey" "$dup_stderr"
+
+  # --- ケースe: relatedApis参照先APIがmethodを持たない(検査B) ---
+  local am_nomethod="$tmp/api-manifest-nomethod.json"
+  jq -n --arg sourceDir "$tmp/src" --arg sf "$tmp/src/api/users.py" '{
+    generatedAt: "2026-01-01T00:00:00Z",
+    sourceDir: $sourceDir,
+    unitKind: "api",
+    strategy: {extractionMethod: "custom", approvedByUser: true, unitIdRegex: null, excludePatterns: []},
+    detectionSummary: {unitCount: 1, unresolvedCount: 0},
+    units: [
+      {unitKey: "users-list", kind: "endpoint", identifier: "GET /api/users", sourceFile: $sf,
+       confidence: "high", targetTables: ["users"]}
+    ]
+  }' > "$am_nomethod"
+
+  local fm_nomethod="$tmp/feature-manifest-nomethod.json"
+  jq -n --arg sourceDir "$tmp/src" --arg sf "$tmp/src/features/user_management.py" '{
+    generatedAt: "2026-01-01T00:00:00Z",
+    sourceDir: $sourceDir,
+    unitKind: "feature",
+    strategy: {extractionMethod: "custom", approvedByUser: true, unitIdRegex: null, excludePatterns: []},
+    detectionSummary: {unitCount: 1, unresolvedCount: 0},
+    units: [
+      {unitKey: "user-management", kind: "feature", identifier: "user-management", sourceFile: $sf,
+       confidence: "high", relatedApis: ["users-list"]}
+    ]
+  }' > "$fm_nomethod"
+
+  local out_nomethod="$tmp/out-nomethod" nomethod_stderr="$tmp/nomethod-stderr.log" nomethod_rc=0
+  bash "$script_path" "$out_nomethod" --screen-manifest "$sm" --api-manifest "$am_nomethod" --feature-manifest "$fm_nomethod" \
+    >/dev/null 2>"$nomethod_stderr" || nomethod_rc=$?
+  assert "ケースe: method欠落APIのみ参照時に生成コマンドがexit 1" \
+    bash -c "[ $nomethod_rc -eq 1 ]"
+  assert "ケースe: stderrに判定材料不足のエラーが出力される" \
+    grep -q "判定材料が不足" "$nomethod_stderr"
+  assert "ケースe: stderrに不足フィールド(method)が列挙される" \
+    grep -q "method" "$nomethod_stderr"
+
+  # --- ケースf: feature-manifest指定だが units 空(検査A/Bともに対象外の回帰確認) ---
+  local fm_empty="$tmp/feature-manifest-empty.json"
+  jq -n --arg sourceDir "$tmp/src" '{
+    generatedAt: "2026-01-01T00:00:00Z",
+    sourceDir: $sourceDir,
+    unitKind: "feature",
+    strategy: {extractionMethod: "custom", approvedByUser: true, unitIdRegex: null, excludePatterns: []},
+    detectionSummary: {unitCount: 0, unresolvedCount: 0},
+    units: []
+  }' > "$fm_empty"
+
+  local out_empty="$tmp/out-empty"
+  assert "ケースf: feature-manifestのunits空でも生成コマンドが成功(回帰確認)" \
+    bash "$script_path" "$out_empty" --screen-manifest "$sm" --api-manifest "$am" --feature-manifest "$fm_empty"
+  assert "ケースf: permission-matrix の features は空配列" \
+    jq -e '.features == []' "$out_empty/permission-matrix.json"
+
   if [ "$rc" -eq 0 ]; then
     echo "self-test 全項目 PASS"
   else
@@ -386,6 +464,20 @@ if [ "$feat_with_apis" -eq 0 ]; then
   fi
 fi
 
+# --- 検査A: feature-manifest の集約キー(unitKey)重複検出 ---
+# 機能一覧が空・未指定の場合は既存の安全機構(features: [])を壊さないためスキップする。
+if [ "$HAS_FEATURES" = true ]; then
+  feat_count="$(jq '(.units // []) | length' "$FEATURE_MANIFEST")"
+  if [ "$feat_count" -gt 0 ]; then
+    dup_unit_keys="$(jq -r '[.units[]?.unitKey] | group_by(.) | map(select(length > 1) | .[0]) | .[]' "$FEATURE_MANIFEST")"
+    if [ -n "$dup_unit_keys" ]; then
+      echo "ERROR: feature-manifest に重複する unitKey があります:" >&2
+      printf '%s\n' "$dup_unit_keys" >&2
+      exit 1
+    fi
+  fi
+fi
+
 # --- table-manifest 収載確認(advisory。出力は変えない) ---
 if [ -n "$TABLE_MANIFEST" ]; then
   unknown_tables="$(jq -n -r \
@@ -464,6 +556,30 @@ jq -n \
     ]
   } + (if ($manifestContentHash | length) > 0 then {manifestContentHash: $manifestContentHash} else {} end))' > "$OUTPUT_DIR/permission-matrix.json"
 echo "OK: wrote $OUTPUT_DIR/permission-matrix.json" >&2
+
+# --- 検査B: 判定材料の欠落報告(permission-matrix.json 生成後。features が空の場合は対象外) ---
+pm_features_count="$(jq '.features | length' "$OUTPUT_DIR/permission-matrix.json")"
+if [ "$pm_features_count" -gt 0 ]; then
+  all_crud_empty="$(jq '[.features[].crud | to_entries[]?.value] | all(. == "")' "$OUTPUT_DIR/permission-matrix.json")"
+  if [ "$all_crud_empty" = "true" ]; then
+    missing_apis="$(jq -n -r \
+      --slurpfile fm "$FEATURE_MANIFEST_FILE" \
+      --slurpfile am "$API_MANIFEST" \
+      '($am[0].units // []) as $apis
+       | ([$apis[] | select(has("method") | not) | .unitKey]) as $noMethod
+       | ([$fm[0].units[]? | (.relatedApis // [])[]] | unique) as $refKeys
+       | [$refKeys[] | select(. as $k | $noMethod | index($k) != null)] | .[0:10][]')"
+    echo "ERROR: 権限マトリクスの操作判定が全件空です。判定材料が不足しています:" >&2
+    echo "  不足フィールド: method" >&2
+    if [ -n "$missing_apis" ]; then
+      echo "  method を持たない API (最大10件):" >&2
+      while IFS= read -r missing_key; do
+        [ -n "$missing_key" ] && echo "  - $missing_key" >&2
+      done <<< "$missing_apis"
+    fi
+    exit 1
+  fi
+fi
 
 # ---------------------------------------------------------------------------
 # 2. crud-matrix.json

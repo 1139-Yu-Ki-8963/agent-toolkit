@@ -1719,7 +1719,7 @@ EOF
     test_report "1-55-OKマーカー除去-括弧単体" 1 "got='$ok_t9'"
   fi
 
-  ok_t10="$(strip_ok_marker "名称C（内訳） OK")"
+  ok_t10="$(strip_ok_marker "名称C（内訳）OK")"
   if [ "$ok_t10" = "名称C（内訳）" ]; then
     test_report "1-55-OKマーカー除去-全角括弧補足後スペースOK" 0
   else

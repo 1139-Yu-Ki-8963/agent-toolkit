@@ -329,7 +329,7 @@ EOF
     rc=1
   fi
 
-  ok_t4="$(strip_ok_marker "名称C（内訳） OK")"
+  ok_t4="$(strip_ok_marker "名称C（内訳）OK")"
   if [ "$ok_t4" = "名称C（内訳）" ]; then
     echo "  [PASS] 1-55-OKマーカー除去-全角括弧補足後スペースOK"
   else

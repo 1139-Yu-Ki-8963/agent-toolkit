@@ -251,7 +251,7 @@ EOF
         ["issue1-55-a", "名称A(OK) (identA)"],
         ["issue1-55-b", "名称F(OK) identF"],
         ["issue1-55-c", "名称B(OK)"],
-        ["issue1-55-d", "名称C（内訳） OK"],
+        ["issue1-55-d", "名称C（内訳）OK"],
         ["issue1-55-e", "名称D OK"]
       ]
       | .units |= map({
