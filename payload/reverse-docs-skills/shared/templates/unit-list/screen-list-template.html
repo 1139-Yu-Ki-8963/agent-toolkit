@@ -350,6 +350,7 @@
 
     function normalizeScreenName(value) {
       return String(value || '')
+        .replace(/\s*\(OK\)\s+\([^()]+\)\s*$/, '')
         .replace(/\s*\(OK\)\s+[A-Za-z0-9_.-]+\s*$/, '')
         .replace(/）OK\s*$/, '）')
         .replace(/\s+OK\s*$/, '')
