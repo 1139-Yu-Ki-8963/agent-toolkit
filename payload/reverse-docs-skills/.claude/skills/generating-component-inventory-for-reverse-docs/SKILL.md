@@ -6,7 +6,7 @@ description: |
   SKIP: 対象リポジトリに .tsx/.jsx/.vue ファイルが存在しない時。
 invocation: generating-component-inventory-for-reverse-docs
 type: transform
-allowed-tools: [Read, Bash, Write, Edit, Grep, Glob]
+allowed-tools: [Bash, Read, Write]
 ---
 
 # コンポーネント棚卸しページ生成スキル
@@ -39,13 +39,23 @@ allowed-tools: [Read, Bash, Write, Edit, Grep, Glob]
 | HTML生成 | `../../../shared/scripts/detail-pages/build-detail-page.sh` |
 | ポータル再生成（任意） | `../../../shared/scripts/build-portal.sh` |
 
-## Phase 手順
+## 実行手順
 
-### Phase 1: コンポーネントファイルの存在確認
+## Phase 1: コンポーネントファイルの存在確認
+
+## Step 1-1: コンポーネントファイルの存在確認
+
+**使用ツール**: Read / Bash / Write
 
 - **Step 1** — `target_repo_path` 配下に `.tsx`/`.jsx`/`.vue` ファイルが 1 件以上存在するか `find` で確認する（`node_modules`/`.next`/`dist`/`build` は除外）。存在しなければハード停止し、コンポーネントファイルが無い旨を報告して終了する。完了条件: 1 件以上の実在確認済み、または不在を報告して停止している
 
-### Phase 2: 棚卸し抽出（機械実行）
+**完了**: コンポーネントファイルの 1 件以上の実在確認済み、または不在を報告して停止している
+
+## Phase 2: 棚卸し抽出（機械実行）
+
+## Step 2-1: 棚卸し抽出（機械実行）
+
+**使用ツール**: Read / Bash / Write
 
 - **Step 1** — 抽出スクリプトを実行する。完了条件: page-data.json が生成済み
 
@@ -57,7 +67,13 @@ allowed-tools: [Read, Bash, Write, Edit, Grep, Glob]
 
 page-data.json の保存先は `$CLAUDE_JOB_DIR/tmp/component-inventory-page-data.json` とする。未設定時は `${TMPDIR:-/tmp}/claude-job-${session}/tmp/` 配下に置く。
 
-### Phase 3: 整合検証（機械実行）
+**完了**: 棚卸しが抽出済み、抽出結果（総数・分類内訳・被参照上位）を確認済み
+
+## Phase 3: 整合検証（機械実行）
+
+## Step 3-1: 整合検証（機械実行）
+
+**使用ツール**: Bash
 
 - **Step 1** — 整合検証スクリプトを実行する。完了条件: 全項目 PASS
 
@@ -67,7 +83,13 @@ page-data.json の保存先は `$CLAUDE_JOB_DIR/tmp/component-inventory-page-dat
 
 - **Step 2** — FAIL 時は指摘に応じて修正し Step 1 を再実行する。3 回失敗したら Phase 2（抽出手順）へ差し戻す。完了条件: exit 0
 
-### Phase 4: コンポーネント棚卸し.html 生成
+**完了**: `validate-page-data.sh --target-repo` が全項目 PASS
+
+## Phase 4: コンポーネント棚卸し.html 生成
+
+## Step 4-1: コンポーネント棚卸し.html 生成
+
+**使用ツール**: Bash / Write
 
 - **Step 1** — HTML 生成スクリプトを実行する。完了条件: `<output_dir>/コンポーネント棚卸し.html` が生成済み
 
@@ -82,6 +104,8 @@ page-data.json の保存先は `$CLAUDE_JOB_DIR/tmp/component-inventory-page-dat
   ```
 
 **手作業でのプレースホルダ置換は禁止する**。HTML 生成は必ず `build-detail-page.sh` 経由の決定的処理で行う。
+
+**完了**: `<output_dir>/コンポーネント棚卸し.html` が生成され、指定時は `build-portal.sh` の再実行が完了している
 
 ## 完了条件
 

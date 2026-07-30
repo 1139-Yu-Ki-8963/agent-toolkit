@@ -3,7 +3,7 @@ name: rebuilding-code-from-docs
 description: "設計書だけから画面単位でコード再生成し元と突合、欠落発見。 TRIGGER when: 往復品質検証。 SKIP: 通常の機能実装・環境同期。"
 invocation: rebuilding-code-from-docs
 type: orchestration
-allowed-tools: [Read, Write, Edit, Bash, Grep, Glob]
+allowed-tools: [Bash, Edit, Read, TaskCreate, TaskUpdate, Write]
 ---
 
 # 設計書からのコード再構築スキル
@@ -32,7 +32,11 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob]
 
 ## 基本ワークフロー（Phase 1〜9）
 
-### Phase 1: 入力ロード + preflight
+## Phase 1: 入力ロード + preflight
+
+## Step 1-1: 入力ロード + preflight
+
+**使用ツール**: Read / Bash / Write
 
 #### 起動引数の解決
 
@@ -58,26 +62,32 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob]
 上記のうち「キーがあるのに実体が無い」ファイルは preflight エラーとする。
 
 `scope`・両環境のパス（`reverse_worktree`）・確定ポート（`ports`）・基準タグ状態（`baseline_tag_status`）は、管理者が事前解決して args（env_block）で渡す値をそのまま使う（本スキルは自ら導出・取得しない。参考導出式: `<system>` は `source_repo` 末尾 basename から `.git` を除いた値、`<画面ID>` は frontmatter `doc_id: screen-<画面ID>` から `screen-` 接頭辞を除いた値、`<scope>` = `<system>-<画面ID>`）。`baseline_tag_status` が基準タグ未確立を示す場合は Phase 1 で停止し、`status=BLOCKED` を返して管理者へ差し戻す。
-完了条件: 設計書一式・規約ファイル群がロード済みで、基準タグの存在が確認できている（未確立なら `status=BLOCKED` で停止）
+**完了**: 設計書一式・規約ファイル群がロード済みで、基準タグの存在が確認できている（未確立なら `status=BLOCKED` で停止）
 
-### Phase 2: 設計書内部整合性監査
+## Phase 2: 設計書内部整合性監査
+
+## Step 2-1: 設計書内部整合性監査
 
 起動引数 `audit_script_path` を Bash 実行 + 目視で以下を突合する: 機能一覧章の機能一覧表（既定 §2）× 観点表の機能キー集合（両方向一致）、API通信章の API 型（既定 §7）× 実装契約章の型定義（既定 §15.2）、状態管理章の状態変数（既定 §5）× 領域別仕様章/実装契約章の経路（既定 §9/§15）、意味キー連番検出、未記入プレースホルダ検出。詳細な突合式は `references/phase-details.md` を参照。
 続いて`python3 shared/scripts/validate-reverse-authoring-inputs.py scenarios --design-doc <画面詳細設計書.md> [--verification-url <実測URL>] [--measurement-evidence <実測証跡ファイル>] --record <screen_dir>/検証記録/scenarios-input-check.json`を必ず実行する。path/ready欠落は常に内部矛盾とする。実測URL・実測証跡が無い未開通状態ではquery/path_params省略を受け入れ、いずれかの実測証跡がある場合は両キーの不足を内部矛盾としてPhase 8へ送る。helperを呼ばない目視判定は禁止する。
 **内部矛盾があれば実装せず Phase 8 へ直行する**（欠陥のある設計書からの実装は無意味なため）。
 併せて、§16要確認事項一覧に未解消（状態≠解消済み）の行が残っていないかを確認する（audit-consistency.shの検査i）。既定はWARNであり自動的にPhaseを止めない。往復検証に入る前に§16をゼロ解消へ揃えたい場合は、管理者がAUDIT_STRICT_P16=1を設定した上でaudit_script_pathを再実行し、違反として明示的にブロックさせることができる。
-完了条件: 監査結果（一致/不一致の一覧）とscenarios-input-check.jsonが記録され、両ゲートの進行可否が一致している
+**完了**: 監査結果（一致/不一致の一覧）とscenarios-input-check.jsonが記録され、両ゲートの進行可否が一致している
 
-### Phase 3: 白紙化ゲート
+## Phase 3: 白紙化ゲート
+
+## Step 3-1: 白紙化ゲート
 
 起動引数 `audit_script_path --list-contract-files <画面ディレクトリ>` を Bash 実行し、実装契約章のファイル分割表（既定 §15.1）に列挙された対象ファイル一覧を取得する（正常時は 1 行 1 パスで stdout に出力される）。取得不可（`exit 1`）の場合は Phase 3 を ERROR とし「実装契約章の不備」として Phase 8 へ直行する。**全消しフォールバックは禁止**（取得に失敗したからといって環境の全ファイルを削除してはならない、fail-closed）。取得できた対象ファイルのみを削除対象とする。削除コミットを打つ**前に**、起動引数 `user-approved`（白紙化承認。管理者が事前取得済みの値）を確認する。`user-approved` が無ければ Phase 3 を `status=BLOCKED` として管理者へ差し戻す。**全消しフォールバックは禁止**のため、`user-approved` が無い場合も取得済みの対象ファイル一覧はそのまま検証記録に残す。`user-approved` があれば対象ファイルを `git rm` で個別に削除する（追跡外・不存在のファイルは「既に白紙」として記録し続行する）。コミットメッセージは `【リファクタ】<画面ID> の設計書対象ファイルを白紙化` とする。以降 Phase 7 まで **オリジナルコード環境の Read を禁止**する（カンニング防止）。
-完了条件: 対象ファイル一覧を取得済み（取得不可なら ERROR で Phase 8 直行）・起動引数 `user-approved` 確認済み（無ければ `status=BLOCKED` で差し戻し）・白紙化コミットが完了し、以降の禁止事項をタスク内で宣言している
+**完了**: 対象ファイル一覧を取得済み（取得不可なら ERROR で Phase 8 直行）・起動引数 `user-approved` 確認済み（無ければ `status=BLOCKED` で差し戻し）・白紙化コミットが完了し、以降の禁止事項をタスク内で宣言している
 
-### Phase 4: 設計書からの TDD 実装
+## Phase 4: 設計書からの TDD 実装
 
 **唯一コードを書けるフェーズ**。本スキルを実行しているセッション自身が、以下の 4 ステップを直接実行する。進捗は Step 単位で TaskCreate/TaskUpdate により可視化する。
 
-#### Step 1: READ（設計書・規約の読み込み）
+## Step 4-1: READ（設計書・規約の読み込み）
+
+**使用ツール**: Read / Bash / Write / TaskCreate / TaskUpdate
 
 対象設計書の該当章のみを読む。オリジナルコード環境は一切読まない（カンニング防止）。加えて、Phase 1 でロード済みの規約ファイル群（`規約/` 配下）を参照し、コーディングスタイル・命名パターン・ディレクトリ配置・コンポーネント設計パターンを把握する。
 
@@ -93,9 +103,9 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob]
 - `規約/コンポーネント設計規約.md` — コンポーネントの構造パターン
 - reverse環境内の共通コンポーネント Props interface — 設計書 §9.n.1「使用する共通コンポーネント」に列挙された各コンポーネントの `src/components/` 配下の型定義ファイル。**共通コンポーネントの型定義ファイルはカンニング禁止の対象外**（禁止対象はオリジナル画面コードのみ）
 
-Step 1 完了条件: 上記の読み込みが完了し、DESIGN.md の `components.*` 全トークン（キーと具体値）を一覧化して検証記録に書き出したこと（後段 STYLE-GATE の入力になる）
+**完了**: 上記の読み込みが完了し、DESIGN.md の `components.*` 全トークン（キーと具体値）を一覧化して検証記録に書き出したこと（後段 STYLE-GATE の入力になる）
 
-#### Step 2: SPEC（テストコード調達 = TDD の Red）
+## Step 4-2: SPEC（テストコード調達 = TDD の Red）
 
 **単体テストコードは自作しない**。単体テストの正本は上流 rebuilding-screen-unit-from-docs が持つ。起動引数 `saved_test_paths`（上流が設計書リポジトリ `<画面ディレクトリ>/テスト項目書/テストコード/単体/<basename>/` 配下に保存済みの単体テストコード一覧）を受け取っている場合、そのテストコードを起動引数 `reverse_worktree`（本スキルが操作する対象コードリポジトリ。上流の起動引数 `target_repo_path` とは別スキルの別引数であり同一物ではない）の対応パス（`規約/ディレクトリ構成規約.md` に従う配置先）へ配置して実行する。単体テストコードの新規作成は行わない。
 
@@ -109,7 +119,11 @@ Step 1 完了条件: 上記の読み込みが完了し、DESIGN.md の `componen
 
 **既存テストの保護と配置衝突の回避**: テストコードを `reverse_worktree` へ配置する際、対象リポジトリに既存のテストファイルがある場合は上書き・削除を禁止する。配置先パスが既存ファイルと衝突する場合は別ディレクトリへ配置し、テストランナーへ実行対象のファイル引数を明示して実行する（既存テストスイートを侵さない）。
 
-#### Step 3: WRITE（最小実装 = TDD の Green）
+**完了**: 単体・結合・該当E2Eのテストコードが既存テストを上書きせず配置され、Red結果とベースライン実測可否が記録済み
+
+## Step 4-3: WRITE（最小実装 = TDD の Green）
+
+**使用ツール**: Read / Bash / Write / Edit
 
 テストを通す最小実装を書く。以下の規律を守る:
 
@@ -122,14 +136,22 @@ Step 1 完了条件: 上記の読み込みが完了し、DESIGN.md の `componen
 - **常時マウント則の完全履行**: 「DOM にマウントする」と「絶対配置 CSS で隠す」はセットで1つの実装。マウントだけ実装して隠す CSS を省略することを禁止する
 - **書き込み範囲**: Phase 3 の白紙化リスト（`--list-contract-files` の出力）内のファイルのみ。リスト外への書き込みは禁止
 
-#### Step 4: VERIFY（実装契約との過不足チェック）
+**完了**: 白紙化リスト内だけに最小実装が存在し、調達済みテストがGreenになっている
+
+## Step 4-4: VERIFY（実装契約との過不足チェック）
+
+**使用ツール**: Read
 
 実装契約章のファイル分割表（既定 §15.1）と実装ファイルの過不足を機械チェックする:
 - 設計書にあるが実装にないファイル → MISSING
 - 実装にあるが設計書にないファイル → EXTRA
 - MISSING または EXTRA が 1 件でもあれば Step 3 へ戻る
 
-#### Step 5: STYLE-GATE（DESIGN.md トークン突合）
+**完了**: 設計書のファイル分割表と実装ファイル集合のMISSING・EXTRAがともに0件
+
+## Step 4-5: STYLE-GATE（DESIGN.md トークン突合）
+
+**使用ツール**: Bash / Write
 
 DESIGN.md から数値トークン（px 値・色コード）を抽出し、白紙化リスト内の実装ファイル群と grep で機械突合する。
 
@@ -137,11 +159,15 @@ DESIGN.md から数値トークン（px 値・色コード）を抽出し、白�
 - 除外できるのは「共通コンポーネント固定値。画面コードでは指定しない」と DESIGN.md 自身に注記のあるトークンのみ。除外は理由付きで記録する
 - Step 1 で書き出したトークン一覧と突合することで、漏れを機械的に検出する
 
-Step 5 完了条件: 全トークンが実装ファイル内に出現する（除外分は理由付き記録済み）こと
+**完了**: 全トークンが実装ファイル内に出現する（除外分は理由付き記録済み）こと
 
 完了条件: 実装契約章のファイル分割表（既定 §15.1）と実装ファイルが過不足なく一致し、STYLE-GATE が PASS していること
 
-### Phase 5: 自己完結チェック
+## Phase 5: 自己完結チェック
+
+## Step 5-1: 自己完結チェック
+
+**使用ツール**: Read / Bash / Write
 
 本スキルを実行しているセッション自身が、型チェック・単体テスト（Step 2 で配置した上流提供の単体テストコード、または代替経路で自作した一時テストコード）・結合テスト・Playwright スモーク（reverse 側 9110 番台のみ）を直接実行する。内側ループは上限 3 回、同一エラーシグネチャ 3 連続で発散確定とし、発散したエラー自体を設計書欠落候補として Phase 8 へ渡す。検証コマンドの詳細は `references/phase-details.md` を参照。
 
@@ -150,9 +176,13 @@ Step 5 完了条件: 全トークンが実装ファイル内に出現する（�
 - テストランナーが vitest の場合は必ず `vitest run --ui=false` で実行する（対象リポジトリの vitest.config が `ui:true` でも watch/UI モードに入らせない。config は変更禁止）
 - E2E 系スクリプト（`RT-` / `SM-` / `IT-` / `CMP-` 接頭辞。Step 2 で本スキルが作成し元コードでベースライン実測済みのもの）を実行する。作成に至らなかった場合は「未実施」と記録し、PASS 判定の根拠に数えない
 
-完了条件: 型チェック・テスト・スモークの結果がすべて記録されている（PASS または発散確定のいずれか）。かつ全テストケースの実行結果（PASS/FAIL/未実施）が漏れなく記録されている（未実施を残したまま PASS としない）
+**完了**: 型チェック・テスト・スモークの結果がすべて記録されている（PASS または発散確定のいずれか）。かつ全テストケースの実行結果（PASS/FAIL/未実施）が漏れなく記録されている（未実施を残したまま PASS としない）
 
-### Phase 6: 凍結コミット
+## Phase 6: 凍結コミット
+
+## Step 6-1: 凍結コミット
+
+**使用ツール**: Bash / Write
 
 前提条件: Phase 4 の STYLE-GATE と Phase 5 の全ゲート（型チェック・テスト・スモーク）が PASS していること。ゲート未 PASS での凍結コミットを禁止する。
 
@@ -162,9 +192,13 @@ Step 5 完了条件: 全トークンが実装ファイル内に出現する（�
 
 **`mode=implement` はここで終了する**。`status=NEED-COMPARE` と拡張フィールド `compare_request { scope, design_doc（設計書パス）, freeze_commit（凍結コミットハッシュ）, scenarios_ready（真偽値） }` を返し、比較の実行は管理者に委ねて停止する（本スキルは比較エンジンを呼び出さない）。`scenarios_ready` は Step 2 で作成した E2E テストが元コードでのベースライン実測まで完了し、管理者が実行する dynamic 検査（`scenarios` 引数）で実行可能な状態にあるかを表す。
 
-完了条件: 凍結コミットハッシュが確定し、`status=NEED-COMPARE` と `compare_request` を返却している
+**完了**: 凍結コミットハッシュが確定し、`status=NEED-COMPARE` と `compare_request` を返却している
 
-### Phase 7: 答え合わせ（`mode=judge` の入口）
+## Phase 7: 答え合わせ（`mode=judge` の入口）
+
+## Step 7-1: 答え合わせ（`mode=judge` の入口）
+
+**使用ツール**: Read / Bash / Write
 
 `mode=judge` はここから開始する。判定根拠は、起動引数`compare_result`だけとする。
 この引数は管理者が比較を実行して取得した結果ブロックである。
@@ -195,9 +229,13 @@ Phase 9の最終報告には、動的未検証のため往復検証が未完了�
 
 **セレクタ確定責務**: judge PASS 時、操作シナリオ仕様書の実行用 YAML ブロック内に実測委譲プレースホルダが残っていれば、比較結果ブロックの dynamic（L5 操作突合の実測）で確認された実セレクタ・URL・断定値へ更新して確定する。更新は実測値の転記に限り、操作手順の創作・追加は禁止する。
 
-完了条件: 起動引数 `compare_result` を受領し、`static_diff` を除く `env_check`/`dynamic` のみで PASS/FAIL を判定している
+**完了**: 起動引数 `compare_result` を受領し、`static_diff` を除く `env_check`/`dynamic` のみで PASS/FAIL を判定している
 
-### Phase 8: NG 分類 → フィードバック
+## Phase 8: NG 分類 → フィードバック
+
+## Step 8-1: NG 分類 → フィードバック
+
+**使用ツール**: Write
 
 `references/ng-classification.md`で検出シグナルを失敗クラスに分類する。
 当該設計書の該当章への修正指示書を作成する。
@@ -209,9 +247,14 @@ Phase 9の最終報告には、動的未検証のため往復検証が未完了�
 `DYNAMIC-UNVERIFIED`は報告注記として扱い、NG一覧には計上しない。
 コードと設計書は修正せず、指示書の作成と台帳追記だけを許可する。
 書式は`references/report-format.md`に従う。
-完了条件: 修正指示書（NG があった場合）または「NG なし」の明示が完了している
 
-### Phase 9: 証跡保存 + 最終報告
+**完了**: 修正指示書（NG があった場合）または「NG なし」の明示が完了している
+
+## Phase 9: 証跡保存 + 最終報告
+
+## Step 9-1: 証跡保存 + 最終報告
+
+**使用ツール**: Read / Bash / Write
 
 起動引数 `reverse_worktree`・`freeze_commit` を用いて `scripts/check-freeze.sh <reverse_worktree> <freeze_commit>` を実行し、現状（HEAD・作業ツリー）と突合する。不一致なら結果全体を無効宣言する。全証跡・`[未実行]` 0 件・NG 分類を含む最終報告を `references/report-format.md` の書式で作成し、`status=PASS | FAIL | DESIGN-INCOMPLETE | DYNAMIC-UNVERIFIED` を返す。**基準タグ更新は本スキルでは実行しない**。最終報告には「PASS 時の基準タグ更新は管理者が比較エンジンの本番実行（非 dry-run）で行う」旨を明記する。
 
@@ -221,7 +264,7 @@ Phase 9の最終報告には、動的未検証のため往復検証が未完了�
 - L3 画素差分値（証跡パス付き。未実施の場合は「未実施」と明記）
 - テストケース識別子別 実行結果表（テストファイルが公開する test 名 / id → PASS / FAIL / 未実施）。連番 ID を発明せず、テストファイルが持つ識別子をそのまま列挙する。未実施が 1 件でもあれば `status=PASS` にできない
 
-完了条件: 最終報告が作成され、凍結検証の結果が明示されている
+**完了**: 最終報告が作成され、凍結検証の結果が明示されている
 
 最終報告作成後、チャットでの最終応答は `references/chat-report-format.md` の書式に従って作成する。設計書リポジトリに保存する最終報告（`references/report-format.md`）とは別に、ユーザーが今すぐ目視確認・判断できる要約として作成する。
 
@@ -311,8 +354,8 @@ Phase 9の最終報告には、動的未検証のため往復検証が未完了�
 - `references/report-format.md` — 修正指示書・最終報告の書式
 - `references/chat-report-format.md` — チャットでユーザーに返す最終報告の書式（`report-format.md` はファイル保存用、こちらは対話画面表示用）
 - `references/rebuilding-code-from-docs-guide.html` — スキルガイド（単一ファイル自己完結）
-- `~/reverse-docs-skills/.claude/skills/orchestrating-reverse-docs-flow/references/contract.md` — 完全仲介方式の契約正本。本スキルはこの契約に準拠し、`mode` を含む args 全量指定で単独起動できる
+- `<reverse_docs_root>/.claude/skills/orchestrating-reverse-docs-flow/references/contract.md` — 完全仲介方式の契約正本。本スキルはこの契約に準拠し、`mode` を含む args 全量指定で単独起動できる
 - 起動引数で受け取る資産の移設先（管理者が args で配布）:
-  - `audit_script_path`: `~/reverse-docs-skills/shared/scripts/audit-consistency.sh`
-  - `template_root`: `~/reverse-docs-skills/shared/templates/リバース検証`（画面詳細設計書テンプレート〔章の役割キー 16 種、既定 §1〜§16〕・プロジェクト共通規約〔コーディング規約・命名規約・ディレクトリ構成規約・コンポーネント設計規約〕を含む。Phase 1 でロード、Phase 4 で準拠）
-  - `chapter_map_path`: `~/reverse-docs-skills/shared/references/chapter-map.md`（章の役割キー→§対応表）
+  - `audit_script_path`: `<reverse_docs_root>/shared/scripts/audit-consistency.sh`
+  - `template_root`: `<reverse_docs_root>/shared/templates/リバース検証`（画面詳細設計書テンプレート〔章の役割キー 16 種、既定 §1〜§16〕・プロジェクト共通規約〔コーディング規約・命名規約・ディレクトリ構成規約・コンポーネント設計規約〕を含む。Phase 1 でロード、Phase 4 で準拠）
+  - `chapter_map_path`: `<reverse_docs_root>/shared/references/chapter-map.md`（章の役割キー→§対応表）

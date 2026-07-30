@@ -6,7 +6,7 @@ description: |
   SKIP: 規約本文の新規作成、既存規約の編集、単なるリンク確認。
 invocation: generating-agent-config-index-from-repo
 type: transform
-allowed-tools: [Read, Write, Edit, Bash, Grep, Glob]
+allowed-tools: [Bash, Read, Write]
 ---
 
 # AGENTS/CLAUDE索引生成スキル
@@ -36,23 +36,35 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob]
 
 ## Phase 1: 事実を収集する
 
+## Step 1-1: 事実を収集する
+
+**使用ツール**: Read / Bash / Write
+
 1. `README`、package/依存定義、ビルド・テスト設定、CI、実行スクリプト、主要ディレクトリを読む。
 2. 実行コマンドは記載元と実行検証結果があるものだけ採録する。未実行のコマンドを成功例として書かない。
 3. リバース対象は実在する種別・入口・出力ルートから確定する。業務目的・将来計画・非機能要求は索引へ推測記入しない。
 4. 正本と派生物は、生成元・manifest・既存文書に明示された関係だけを記録する。
 
-完了条件: 前半索引の各項目に根拠パスがあり、未確認事項が推測で埋まっていない。
+**完了**: 前半索引の各項目に根拠パスがあり、未確認事項が推測で埋まっていない。
 
 ## Phase 2: 規約参照を確定する
+
+## Step 2-1: 規約参照を確定する
+
+**使用ツール**: Read / Write
 
 1. `rules_root` が指定された場合、その配下の実在ファイルを列挙する。
 2. `rule.md` 等のパスは、対象リポジトリからの相対パスとして存在確認する。
 3. `AGENTS.md` には「どのフォルダの、どの意図の規約か」と正確なパスを記載する。
 4. 根拠がない規約カテゴリ、AIの振る舞い、承認・委任・停止条件を生成せず、不明事項として残す。
 
-完了条件: AGENTS.mdの規約参照が実在パスだけで構成され、CLAUDE.mdに規約一覧が複製されていない。
+**完了**: AGENTS.mdの規約参照が実在パスだけで構成され、CLAUDE.mdに規約一覧が複製されていない。
 
 ## Phase 3: 生成と検証
+
+## Step 3-1: 生成と検証
+
+**使用ツール**: Read / Bash / Write
 
 テンプレートへ事実を展開し、次を検査する。
 
@@ -64,7 +76,16 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob]
 
 検証が失敗したら生成を確定せず、根拠不足として返す。
 
-完了条件: 両ファイルと検証報告が `output_dir` に存在し、全検査が成功する。
+**完了**: 両ファイルと検証報告が `output_dir` に存在し、全検査が成功する。
+
+## 完了条件
+
+| Phase | 完了条件 |
+|---|---|
+| Phase 1 | 前半索引の全項目に実在する根拠パスがある |
+| Phase 2 | AGENTS.md の規約参照が実在パスだけで構成され、CLAUDE.md に規約一覧を複製していない |
+| Phase 3 | AGENTS.md・CLAUDE.md・検証報告が生成され、全検査が成功している |
+| **Goal** | 推測した規約やコマンドを含まず、実在証拠だけから再利用可能なAGENTS/CLAUDE索引が確定している |
 
 ## 返却形式
 

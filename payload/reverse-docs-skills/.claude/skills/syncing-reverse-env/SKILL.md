@@ -3,7 +3,7 @@ name: syncing-reverse-env
 description: "リバース元/設計書2環境同期・検証・基準コミット。 TRIGGER when: setup/sync/teardown・baseline。 SKIP: 設計書修正。"
 invocation: syncing-reverse-env
 type: orchestration
-allowed-tools: [Bash, Read, Write, Edit, Grep, Glob, AskUserQuestion]
+allowed-tools: [AskUserQuestion, Bash, Edit, Read, Write]
 ---
 
 # リバース環境同期スキル
@@ -12,7 +12,7 @@ allowed-tools: [Bash, Read, Write, Edit, Grep, Glob, AskUserQuestion]
 
 仕様の正は `references/syncing-reverse-env-guide.html`（確定仕様）。
 
-本スキルは orchestrating-reverse-docs-flow の契約（`~/reverse-docs-skills/.claude/skills/orchestrating-reverse-docs-flow/references/contract.md`）に準拠し、args 全量指定・対話ゼロで単独起動できる。
+本スキルは orchestrating-reverse-docs-flow の契約（`<reverse_docs_root>/.claude/skills/orchestrating-reverse-docs-flow/references/contract.md`）に準拠し、args 全量指定・対話ゼロで単独起動できる。
 
 ## 使用タイミング
 
@@ -91,14 +91,22 @@ sync のオプション: `dry-run`（整列・タグ更新なし）/ `reset-firs
 
 ## 基本ワークフロー
 
-### Phase 1: 起動契約解決
+## Phase 1: 起動契約解決
+
+## Step 1-1: 起動契約解決
+
+**使用ツール**: Read / Bash
 
 args を検証し、本スキルフォルダの `config.yml` を Read する。設計書 frontmatter から `<system>`・`<画面ID>`・`<scope>`・`source_repo`・`source_ref`・`scenarios`（`name`/`path`/`query`/`path_params`/`ready`/`assert`/`mask` を持つ画面単位の正本。旧 `route` 単一パスは `[{path: <パス>}]` に正規化）を導出する。`doc_id` が `screen-` 接頭辞を持たない場合は ERROR（前提不成立）で停止する。config.yml の `projects` 上書きはスキーマ検証する（services 非空・各 service に launch・services 数 ≤ reverse_offset。違反は ERROR）。セッション開始時（当該 mode 実行の最初の setup/sync）に `git rev-parse <source_ref>` で SHA へ解決して pin する。以後そのセッション（同一 `<system>` を対象とする一連の呼び出し）は全画面この pin 済み SHA を使い、ブランチが途中で動いても pin した SHA を使い続ける。
 作業リポジトリのローカルパスからの読み取り専用 fetch 経路: push 禁止の作業リポジトリ（worktree）からコミットを取得する場合、検証環境側リポジトリへ `git fetch <作業リポのローカル絶対パス> '+refs/heads/*:refs/remotes/worktree-origin/*'` で全ブランチを読み取り専用 fetch する。これにより push を一切前提にせず source_ref を解決できる。この手順は本流リポジトリからの通常 fetch で source_ref が解決できない場合（作業リポジトリのコミットが未 push の場合）のフォールバックとして実行する。
 
-完了条件: mode・design-doc・config 値・`<scope>`・pin 済み `source_ref` SHA がすべて確定している
+**完了**: mode・design-doc・config 値・`<scope>`・pin 済み `source_ref` SHA がすべて確定している
 
-### Phase 2: 環境確保 + プリフライト
+## Phase 2: 環境確保 + プリフライト
+
+## Step 2-1: 環境確保 + プリフライト
+
+**使用ツール**: AskUserQuestion / Read / Bash / Write
 
 命名規則で環境を検出し、無ければ本スキルが直接作成する（初回のみ。以後は再発見して使い回す。配置は `source_repo` の親ディレクトリ直下。通常開発用の worktree 管理の仕組みとは命名・配置規約が異なるため委譲しない）。Phase 2 開始時に、死んだセッション（pid 不在）が残した `.shared-original-refcount.d/` エントリを prune する。
 
@@ -113,19 +121,29 @@ args を検証し、本スキルフォルダの `config.yml` を Read する。�
 - `mode=teardown`: 明示依頼を確認（人間なら AskUserQuestion、スキル経由なら args の `user-approved`）できた場合のみ、死んだセッションのエントリを prune してから、当該 `<scope>` の reverse スロット帯（連続 20 ポート）を一括 kill → reverse worktree を削除し、共有オリジナルの `.shared-original-refcount.d/<session>-<pid>` エントリを削除する。削除後の参照カウントが 0 になった時だけ共有オリジナルの dev サーバーを kill して worktree も削除する（0 でなければ他画面が使用中のため共有オリジナルは残す。per-scope 時は当該 `<scope>` の original も併せて削除）。基準タグとブランチは残す（基準コミットは消えない）。確認できなければ何も削除せず status=ERROR で差し戻す
 - `mode=sync`: 基準タグの有無を確認（`git tag -l` + 参照先実在。なし・参照先不明は初回扱い）。`reset-first` 指定かつタグありなら `git reset --hard reverse-baseline/<scope>` してから Phase 3 へ。基準タグと reverse HEAD の乖離を検出したら件数を `baseline_tag` に付記する（reset-first は従来どおり opt-in）。基準タグメッセージに記録された検証時の `source_ref` SHA と、Phase 1 で pin した現在の SHA が異なる場合は「別オリジナルに対する古い基準」＝再検証必要と判定し、`baseline_tag` に付記する
 
-完了条件: 両環境が存在し、プリフライト全項目がすべて GO
+**完了**: 両環境が存在し、プリフライト全項目がすべて GO
 
-### Phase 3: 静的比較
+## Phase 3: 静的比較
+
+## Step 3-1: 静的比較
+
+**使用ツール**: Read / Bash / Write
 
 config.yml の `diff_exclude` を除外して全ファイルを diff し、残差分行にポート正規化判定を適用する（オリジナル側の値をサービス index へ逆引きし、リバース側の同位置の値が `reverse = original + reverse_offset` の期待値と一致する場合のみ許容。数字が違うだけでは許容しない）。結果を「一致 / ポート差のみ / 実差分」の 3 分類で集計する。
-完了条件: 3 分類の集計とファイル別内訳が記録されている
+**完了**: 3 分類の集計とファイル別内訳が記録されている
 
-### Phase 4: 整列（実差分あり かつ dry-run でない時のみ）
+## Phase 4: 整列（実差分あり かつ dry-run でない時のみ）
+
+## Step 4-1: 整列（実差分あり かつ dry-run でない時のみ）
+
+**使用ツール**: Read / Bash / Write / Edit
 
 ① リバース側のポート設定ファイル群を退避 ② オリジナル → リバースへミラーコピー（削除同期あり・除外は Phase 3 準拠・`*.lock` は転写対象（除外しない）。git 操作ではなく**ファイル転写**で行い、両ブランチの歴史を混ぜない） ③ 当該 `<scope>` のスロットから算出したリバース側ポートでポート設定を再生成 ④ `node_modules_strategy`（`auto` は常に `npm_ci` に解決済み。`symlink_main` は人間が明示指定した時のみ発生する）分岐で依存を再構築（`npm_ci`: `install_command`（既定 npm ci）で各環境に独立インストール／`symlink_main`（明示指定時のみ）: source_repo の node_modules へ symlink を張る＝drvfs での npm ci 低速回避。独立性の証明対象からは除外＝§7-2 参照。失敗 = lock 不整合は ERROR） ⑤ `bundler_cache_dirs` のキャッシュを削除。
-完了条件: 転写・ポート再生成・依存再構築が完了している
+**完了**: 転写・ポート再生成・依存再構築が完了している
 
-### Phase 5: 環境同一性チェック + 動的比較
+## Phase 5: 環境同一性チェック + 動的比較
+
+## Step 5-1: 環境同一性チェック + 動的比較
 
 起動前チェック → 両環境を固定ポートで起動 → 起動後チェック → scenario 単位の render-ready 到達確認 + 内容一致 + Playwright 5 層の順に実行する。判定基準の正は仕様書 §7。
 
@@ -145,9 +163,13 @@ config.yml の `diff_exclude` を除外して全ファイルを diff し、残�
 - 起動した両環境は報告後も停止しない（定型文の確認 URL で人間がそのまま見比べられる状態を維持する）
 - **静的一致・ARIA 構造一致だけでは PASS にしない**。両環境が同一スピナーで止まっていても（render-ready 未到達）PASS ではない
 
-完了条件: env_check 全項目・全 scenario の render-ready 到達可否・内容一致・L1〜L5（L5 は該当画面のみ）の判定がすべて記録されている
+**完了**: env_check 全項目・全 scenario の render-ready 到達可否・内容一致・L1〜L5（L5 は該当画面のみ）の判定がすべて記録されている
 
-### Phase 6: 収束判定
+## Phase 6: 収束判定
+
+## Step 6-1: 収束判定
+
+**使用ツール**: Bash / Write
 
 結果を PASS / FAIL / DESIGN-INCOMPLETE / ERROR / DYNAMIC-UNVERIFIED の 5 分類に落とす。
 
@@ -157,9 +179,13 @@ config.yml の `diff_exclude` を除外して全ファイルを diff し、残�
 - **ERROR**: 起動不能・依存不足など環境起因。FAIL と区別して報告する
 - **DYNAMIC-UNVERIFIED**: MCP も node-script も利用不能で動的検証が実行不能。静的一致は報告するが PASS は宣言しない（「コードは同一の可能性が高いが描画・データ未検証」と明記）
 
-完了条件: PASS 確定・FAIL 確定（上限到達）・DESIGN-INCOMPLETE・ERROR・DYNAMIC-UNVERIFIED のいずれかに到達している
+**完了**: PASS 確定・FAIL 確定（上限到達）・DESIGN-INCOMPLETE・ERROR・DYNAMIC-UNVERIFIED のいずれかに到達している
 
-### Phase 7: 基準確立（PASS かつ dry-run でない時のみ）
+## Phase 7: 基準確立（PASS かつ dry-run でない時のみ）
+
+## Step 7-1: 基準確立（PASS かつ dry-run でない時のみ）
+
+**使用ツール**: Bash
 
 リバースコード環境の変更を `git add -A` → `git commit` で直接コミットし（メッセージは日本語 prefix 規約に従う。例: `【機能追加】整列結果を反映`）、基準タグを打つ。整列が走らず新規コミット対象が無い場合（最初から完全一致）はコミットをスキップし、リバースコード環境の現 HEAD に基準タグを打ち直す:
 
@@ -167,12 +193,16 @@ config.yml の `diff_exclude` を除外して全ファイルを diff し、残�
 git tag -af "reverse-baseline/<scope>" -m "<検証日> 検証PASS: 実差分0 env_check 全項目PASS L1-L4全一致"
 ```
 
-完了条件: 基準タグが新しい基準コミットを指している
+**完了**: 基準タグが新しい基準コミットを指している
 
-### Phase 8: 結果報告
+## Phase 8: 結果報告
+
+## Step 8-1: 結果報告
+
+**使用ツール**: Read / Bash / Write
 
 機械向け返却ブロック（`status` / `mode` / `scope` / `screen_id` / `slot` / `ports`（サービス別 original/reverse 実値） / `original_code` / `reverse_code` / `baseline_tag` / `static_diff` / `dynamic` / `env_check` / `artifacts` / `output_dir`（config.yml から解決した設計書展開先ルート。null の場合はそのまま null を返す） / `hint`）と、ユーザー向け定型文（確認 URL・検証内容・環境情報・再起動手順・片付け方法）の両方を出力する。`status` は `PASS` / `FAIL` / `ERROR` / `INCOMPLETE` のいずれかを取る。`INCOMPLETE` の内訳（設計書の引数・ready 不足による `DESIGN-INCOMPLETE` か、動的検証手段が無い `DYNAMIC-UNVERIFIED` か）はフィールドを増やさず `hint` に記す。`dynamic` には route/scenario 別に render-ready 到達可否・内容一致（L2'）・L2/L3/L4 の結果を含め、`operations` を持つ scenario では L5（操作シーケンス突合。`postContent` の両環境一致可否）も同じ `dynamic` フィールド内に入れ子で含める（新規トップレベルフィールドは追加しない）。`DESIGN-INCOMPLETE` 時の `hint` には「`scenarios` に `query`/`path_params`/`ready` を追加」を出す。ユーザー向け定型文の環境情報には、Phase 2 で自動解決した `allow_mnt_fs` / `node_modules_strategy` / `playwright_exec.mode` / `node_path` の解決結果と根拠（drvfs 検出・MCP 可用性）を含める。`artifacts` の保存先は `<artifacts_root>/<scope>/<実行日時>/`（scenario 別サブディレクトリ）。`artifacts_root` が未解決（null）の場合、納品物ディレクトリ（docs/）配下に検証記録を書き出してはならない。このうちリバースコード環境側のスクリーンショットは `<screen_dir>/詳細設計/rebuilt.png` としても保存し、原本キャプチャ original.png と並置する。テストログの保存先は `<verification_dir>/screen-<画面ID>/<timestamp>/`（`verification_dir` は docs と同階層の `verification/`。検証記録の出力先は docs 内ではなく verification/ である）とする。書式の正は仕様書 §8。setup / teardown / ERROR の早期終了時も返却ブロックの形を保ち、未実施フィールドは「未実施」と記す。FAIL 時の `hint`（差分ファイル → 設計書章マップの対応推定）が呼び出し元（orchestrating-reverse-docs-flow が仲介）の修正ループ入力になる。
-完了条件: 返却ブロックと定型文の両方が出力されている
+**完了**: 返却ブロックと定型文の両方が出力されている
 
 ## ループ設計
 

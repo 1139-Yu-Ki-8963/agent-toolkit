@@ -3,7 +3,7 @@ name: generating-reverse-common-docs
 description: "対象コードから層化サンプリングでプロジェクト共通10文書のv0を採録する。 TRIGGER when: アーキテクチャ調査書確定後の共通文書採録、NG帰着(c)共通文書欠落の追記。 SKIP: facts抽出・詳細設計執筆（→extracting-unit-facts-from-code / generating-reverse-detailed-design）。"
 invocation: generating-reverse-common-docs
 type: orchestration
-allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, TaskCreate, TaskUpdate]
+allowed-tools: [Bash, Read, Write, Edit]
 ---
 
 # プロジェクト共通採録スキル
@@ -41,21 +41,33 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, TaskCreate, TaskUpdate]
 - **v0で止める**: 本スキルは完成を狙わない。v0確定後の追記は `mode=append` の別起動でのみ行う
 - **合格判定はスクリプトのexit codeのみ**: 自然文の自己申告での合格判定を行わない
 
-## Phase 手順
+## 実行手順
 
-### Phase 1: 前提確認
+## Phase 1: 前提確認
+
+## Step 1-1: 前提確認
+
+**使用ツール**: Read / Bash / Write
 
 `target_repo_path`・`template_root`・`survey_doc_path` の実在を確認する（`test -d`/`test -f`）。調査書内「ユニット種別判定」節と「ディレクトリ責務マップ」節の実在を `grep` で確認する（調査書ゲートの再実行は行わない。既に確定済みの調査書を前提として読むのみ）。`output_dir/規約/` と `output_dir/プロジェクト共通/` の2ディレクトリを作成し、雛形26文書を出力先へ複製する。`mode=append` の場合は既存の11文書の実在を確認し、`append_findings` に列挙された指摘文書を洗い出す。
 
-完了条件: 雛形26文書複製済み、調査書の2節（ユニット種別判定・ディレクトリ責務マップ）実在確認済み（`mode=append` 時は既存11文書と指摘文書の特定済み）
+**完了**: 雛形26文書複製済み、調査書の2節（ユニット種別判定・ディレクトリ責務マップ）実在確認済み（`mode=append` 時は既存11文書と指摘文書の特定済み）
 
-### Phase 2: 層化サンプリング
+## Phase 2: 層化サンプリング
+
+## Step 2-1: 層化サンプリング
+
+**使用ツール**: Read / Bash / Write / Edit
 
 調査書のディレクトリ責務マップの各層（責務ディレクトリ）ごとに、サブディレクトリ層化で決定的にサンプルファイル集合を確定する: 単純な `find <層> -type f | sort | head -n <k>` は先頭の辞書順サブディレクトリに偏るソート順バイアスを持つため、層の直下に存在するファイルと各サブディレクトリに存在するファイルとで均等に配分し、残余は辞書順で充当する。アーキテクチャ調査書がディレクトリ責務マップ・後続工程への申し送り等で名指ししたディレクトリは、均等配分に先立って必須サンプルとして先取りする（k値の残り枠から差し引く）。k は層あたり3〜10、詳細な決め方は `references/sampling-rules.md`。全層合計20ファイル以上を確保する。選定コマンドと結果一覧を `<output_dir>/プロジェクト共通/サンプル記録.md` に書き出す（再現可能性の担保）。
 
-完了条件: サンプル記録.md に全層の選定コマンドと選定ファイル一覧が記録済み（合計20ファイル以上）
+**完了**: サンプル記録.md に全層の選定コマンドと選定ファイル一覧が記録済み（合計20ファイル以上）
 
-### Phase 3: 規約4種採録
+## Phase 3: 規約4種採録
+
+## Step 3-1: 規約4種採録
+
+**使用ツール**: Write
 
 サンプル集合の実コードから、コーディング規約・命名規約・ディレクトリ構成規約・コンポーネント設計規約の各規則を採録する。各規則行には必ず ①実例（対象リポジトリ内の相対パス3件以上、backtick囲み） ②頻度（`N/M` 形式: サンプル中M件を調べN件が該当） ③例外率（`%` 表記。例外があれば例外の実例パスも）を記載する。サンプルに現れない規則を発明しない。
 
@@ -63,27 +75,39 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, TaskCreate, TaskUpdate]
 
 各文書の `## AI設定資産への変換` はテンプレートに定義済みの構造化5列表（規約キー、対象パス、強制区分、規約要点、違反時手順）として保持する。この表は本文から規約を推測するためのものではなく、採録済み文書をruleへ決定的に変換する境界である。規約キーを4文書横断で重複させず、強制区分は `advisory` または `block` のまま保持する。
 
-完了条件: 全規則行が実例3件以上＋頻度＋例外率付き
+**完了**: 全規則行が実例3件以上＋頻度＋例外率付き
 
-### Phase 4: 共通文書採録
+## Phase 4: 共通文書採録
+
+## Step 4-1: 共通文書採録
+
+**使用ツール**: Read / Bash / Write
 
 共通設計書.md（アーキテクチャ・共通処理・状態管理・通信の実装事実）・メッセージ定義書.md（コード中の実メッセージ文字列と定義箇所）・DESIGN.md（実スタイル値）・基盤設計.md（アーキテクチャ調査書§2〜§4から抽出したフレームワーク構成・ビルド設定・デプロイ構成・ディレクトリ構成方針・環境変数管理・認証セッション・ストレージ方式）・UI共通設計.md（アーキテクチャ調査書とコンポーネント設計規約から抽出したデザインシステム・共通コンポーネント一覧・レイアウト方針・画面横断UI状態）・データ設計.md（アーキテクチャ調査書とPhase 2の層化サンプルを横断的に見て抽出したデータモデル概要・APIスキーマ・状態管理方針・状態遷移表（エンティティの状態と遷移・契機の一覧）。facts抽出は本スキルより後続の工程であり、本Phaseの時点ではまだ存在しないため、個別ユニットのfactsではなくPhase 2のサンプルを一次情報とする）を、Phase 3と同じ実例主義で採録する。理想論・あるべき仕様を書かず、既存コードに実際に存在する共通挙動のみを記載する。
 
-完了条件: 6文書のプレースホルダ残存ゼロ
+**完了**: 6文書のプレースホルダ残存ゼロ
 
-### Phase 5: 機械ゲート
+## Phase 5: 機械ゲート
+
+## Step 5-1: 機械ゲート
+
+**使用ツール**: Read / Bash / Write
 
 `scripts/check-common-docs.sh <output_dir> <target_repo_path>` を実行する。FAILした場合はPhase 3〜4に戻り、指摘された実例不足・頻度欠落・例外率欠落・未実在パス・テンプレ残存・理想論表現・メッセージ定義書の規模不一致を修正して再実行する（上限5回。ループ設計は下表参照）。上限到達で収束しない場合は `status=中断` とし、hintに残欠落を記録する。
 
 再試行時の探索範囲拡大: check-common-docs.sh が「検出例不足」（frequency_gap / example_shortage を含む）を報告し、かつ Phase 2 のサンプリング範囲が全ディレクトリを未走査の場合、Phase 2 を scope=wider で再実行してからPhase 3-4 へ進む。全ディレクトリ走査済みの場合は「scope-exhausted」として発散検知と同等に中断する（status=中断、hint に scope-exhausted を記録）。
 
-完了条件: ゲート `exit 0`
+**完了**: ゲート `exit 0`
 
-### Phase 6: 返却
+## Phase 6: 返却
+
+## Step 6-1: 返却
+
+**使用ツール**: Bash / Write
 
 返却ブロックを出力する。`mode=v0` の場合は `status=採録v0確定` とし、`artifacts` に11文書の絶対パスを、`scope` に `target_repo_path` のbasenameを、`common_docs_root` に `プロジェクト共通/` の絶対パスを、`sample_manifest_path` にサンプル記録.mdの絶対パスを記す。`hint` には後続工程（facts抽出）への申し送りを記す。`mode=append` の場合は指摘文書のみ追記して全ゲート再実行後に `status=追記完了` を返す。上限到達で未収束の場合は `status=中断` とし、`hint` にPhase 5で未解消のまま残った検査項目・理由を記す。
 
-完了条件: `status` が確定している
+**完了**: `status` が確定している
 
 ## 完了条件
 
@@ -171,7 +195,7 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, TaskCreate, TaskUpdate]
 
 ## 参照資料
 
-- `~/reverse-docs-skills/.claude/skills/orchestrating-reverse-docs-flow/references/contract.md` — 返却ブロック契約・args仕様の正本
+- `<reverse_docs_root>/.claude/skills/orchestrating-reverse-docs-flow/references/contract.md` — 返却ブロック契約・args仕様の正本
 - `references/sampling-rules.md`（本スキル同梱） — 層化サンプリングの層定義・k値の決め方・決定的選択手順・サンプル記録.mdの記載様式
 - `shared/templates/リバース検証/規約/`（本スキル同梱ではなくリポジトリ共有テンプレ） — 規約20種の雛形（採録対象はコーディング規約・命名規約・ディレクトリ構成規約・コンポーネント設計規約の4種、残る16種は未記入の雛形）
 - `shared/templates/リバース検証/プロジェクト共通/`（本スキル同梱ではなくリポジトリ共有テンプレ） — 共通設計書.md＋メッセージ定義書.md＋DESIGN.md＋基盤設計.md＋UI共通設計.md＋データ設計.mdの雛形

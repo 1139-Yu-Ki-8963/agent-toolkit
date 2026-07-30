@@ -3,7 +3,7 @@ name: generating-feature-list-for-reverse-docs
 description: "機能一覧フォルダ・機能一覧HTML生成(unit_kind=feature 専用・派生一覧)。 TRIGGER when: 機能一覧作成、機能一覧生成、業務機能の横断目録。 SKIP: 種別別の技術一覧(→対応する種別別一覧スキル)、往復検証/同期/実装。"
 invocation: generating-feature-list-for-reverse-docs
 type: transform
-allowed-tools: [Bash, Read, Write, Edit, Grep, Glob, AskUserQuestion, TaskCreate, TaskUpdate]
+allowed-tools: [AskUserQuestion, Bash, Grep, Read, Write]
 ---
 
 # 機能一覧生成スキル(派生一覧)
@@ -51,18 +51,32 @@ feature 種別に組み込み検出器はない。抽出は **カスタム抽出
 
 グルーピング規約の詳細は `references/feature-detection.md` を参照する。
 
-### Phase 1: 入力収集
+## Phase 1: 入力収集
+
+## Step 1-1: 入力収集
 
 - **Step 1**: raw画面正本`<output_dir>/一覧/画面一覧/screen-manifest.json`を直接入力にし、`validate-manifest.sh <raw> --unit-kind screen`を実行する。**raw画面正本は必須**。不在またはschema不合格ならstatus=ERRORで停止し、hintに「先にgenerating-screen-list-for-reverse-docsを実行」と記録する。通常生成では画面一覧HTMLの埋め込みJSONを逆抽出しない。旧成果物からの移行・復元時だけ`restore-screen-manifest.sh`でrawを正規配置へ復元・検証してから本Phaseを再開する。他種別は`<output_dir>/一覧/`配下に実在する一覧HTMLを機械的に列挙し、`id="unit-manifest"`からJSONを抽出する。raw画面正本と実在した他種別一覧のパスをすべて`strategy.inputManifests`に記録する(ユーザー指示は不要)。完了条件: raw画面正本がschema検証済みで、inputManifestsが確定している
 - **Step 2**: `source_dir` からルート定義・ナビメニュー・バックエンドルーターの prefix/tags・ディレクトリ構造を Grep/Read で特定する。survey_doc_path があれば所在特定の参考にする。完了条件: 手がかり①〜④(feature-detection.md の優先度表)の抽出元ファイルが列挙済み
 
-### Phase 2: 大分類候補の導出
+**完了**: 画面一覧マニフェスト抽出済み・inputManifests 確定・手がかり①〜④の抽出元が列挙済み・API/テーブル grep パターン特定済み
+
+## Phase 2: 大分類候補の導出
+
+## Step 2-1: 大分類候補の導出
+
+**使用ツール**: Write
 
 - **Step 1**: ルートprefix第1セグメント(手がかり①)で大分類の境界を引く。ナビメニュー・設定ハブの表示文言(手がかり②)は名前付けのみに使い、境界の決定には使わない。完了条件: 候補表(大分類キー・根拠・所属画面数)が作成済み
 - **Step 2**: APIプレフィックス/tags(③)・ディレクトリ構造(④)で裏取りし、競合があれば feature-detection.md の競合解決フローに従う。完了条件: 全画面が大分類候補に割当済み、または割当根拠ゼロとして unresolved 候補に分類済み
 - **Step 3**: 大分類が細分化しすぎる場合(機能1件のみの大分類が過半、または大分類数が10超)、`references/feature-detection.md` の「大分類の統合規則」に従い上位の業務領域へ統合する。境界(機能の分割)は変えない。完了条件: 大分類数が目安(5〜10)に収まっている、または収まらない理由が記録済み
 
-### Phase 3: 画面→機能グルーピング + 完全性ゲート(Stage 1)
+**完了**: 候補表が作成済みで全画面が大分類候補または unresolved 候補に分類済み
+
+## Phase 3: 画面→機能グルーピング + 完全性ゲート(Stage 1)
+
+## Step 3-1: 画面→機能グルーピング + 完全性ゲート(Stage 1)
+
+**使用ツール**: Bash / Write
 
 - **Step 1**: 大分類内で画面群を機能単位(同一業務対象への操作一式。CRUD集約)に分割する。完了条件: グルーピングが完了し各画面に機能が割り当てられている
 
@@ -79,7 +93,13 @@ comm -13 \
 
 - **Step 3**: スキーマ準拠のマニフェスト JSON を一時ディレクトリ(`$CLAUDE_JOB_DIR/tmp/feature-manifest.json`、未設定時は `${TMPDIR:-/tmp}/claude-job-${session}/tmp/` 配下)に Write する。この時点で `relatedApis`・`relatedTables` は空配列とする。機能を捏造しない。完了条件: マニフェスト JSON が生成済みで完全性ゲート PASS
 
-### Phase 4: API紐付け + テーブル紐付け(Stage 2 + Stage 3)
+**完了**: 全画面が relatedScreens または unresolved に載り(完全性ゲート PASS)、マニフェスト JSON が生成済み(relatedApis/relatedTables は空配列)
+
+## Phase 4: API紐付け + テーブル紐付け(Stage 2 + Stage 3)
+
+## Step 4-1: API紐付け + テーブル紐付け(Stage 2 + Stage 3)
+
+**使用ツール**: Read / Bash / Write
 
 Phase 1 で特定したプロジェクト固有の API 呼び出しパターンと ORM/モデル参照パターンを使い、構造化された手順で related* を埋める。手順の詳細は `references/feature-detection.md` の「Stage 2: API紐付け手順」「Stage 3: テーブル紐付け手順」を参照する。
 
@@ -89,11 +109,21 @@ Phase 1 で特定したプロジェクト固有の API 呼び出しパターン�
 
 Stage 2 → Stage 3 の実行順はデータ依存(Stage 3 は Stage 2 の出力する API unitKey を入力とする)により固定。ただし各画面・各 API の処理は独立しておりサブエージェント並列委任が可能。API一覧またはテーブル一覧が未生成の場合、該当する related* は空配列のまま PASS とする。
 
-### Phase 5: 戦略・構成のユーザー承認
+**完了**: 全機能の relatedApis・relatedTables・confidence が確定済み
+
+## Phase 5: 戦略・構成のユーザー承認
+
+## Step 5-1: 戦略・構成のユーザー承認
 
 - **Step 1**: 大分類と機能の構成案(unresolved 行・relatedApis・relatedTables を含む)を AskUserQuestion で提示する。応答は (A) 構成案どおり承認 / (B) 修正指示(大分類・機能の統合/分割・unresolved の割当指示・related* の修正)の2系統で受け、(B) なら該当部分の Phase 2〜4 を再実行して再提示する。承認で `strategy.approvedByUser: true` をマニフェストに記録する。unresolved 行に割当指示がなければ unresolved のまま出力してよい(人間への引き継ぎ事項であり、残置もスキル完了とみなす)。完了条件: approvedByUser: true が記録済み
 
-### Phase 6: 検証とHTML生成(機械実行)
+**完了**: 構成案がユーザー承認済み(approvedByUser: true)
+
+## Phase 6: 検証とHTML生成(機械実行)
+
+## Step 6-1: 検証とHTML生成(機械実行)
+
+**使用ツール**: AskUserQuestion / Read / Bash / Write
 
 - **Step 1**: マニフェストへメタデータを付与する。`../../../shared/scripts/extract/extract-feature-metadata.sh <manifest.json> <manifest.ext.json>` を実行し、各機能に `operationClass`(照会/登録/更新/削除/承認/その他)フィールドを追加した拡張マニフェスト(`manifest.ext.json`)を生成する。以降の Step では `manifest.ext.json` を使用する。完了条件: 拡張マニフェストが生成済み
 - **Step 2**: `../../../shared/scripts/unit-list/validate-manifest.sh <manifest.ext.json> --unit-kind feature` を実行する。FAIL 時は指摘に応じて修正し再実行(3回失敗で Phase 3 へ差し戻し)。完了条件: 全項目 PASS
@@ -117,6 +147,8 @@ comm -13 \
 - **Step 4**: `../../../shared/scripts/unit-list/build-unit-list.sh <manifest.ext.json> <output_dir>/一覧/機能一覧/機能一覧.html --unit-kind feature --portal-dir <output_dir>` を実行する。`--portal-dir` にはポータル（`index.html`）の配置先＝納品物ルート（output_dir=output_dir）を渡し、「ポータルへ戻る」リンクを実在パスに解決させる。build 側が内部で validate を再実行するため、検証を経ない manifest からは生成できない。完了条件: HTML 生成済み
 
 **手作業でのプレースホルダ置換は禁止する**。HTML 生成は必ずスクリプト経由の決定的処理で行う。
+
+**完了**: Step 1で拡張マニフェストに operationClass が付与済み。validate 全項目 PASS・Gate A(dangling) PASS・Gate B(completeness) PASS・機能一覧.html 生成済み
 
 ## 完了条件
 

@@ -41,13 +41,23 @@ allowed-tools: [Read, Bash, Write, Edit, Grep, Glob]
 | HTML生成 | `../../../shared/scripts/unit-list/build-unit-list.sh` |
 | ポータル再生成（任意） | `../../../shared/scripts/build-portal.sh` |
 
-## Phase 手順
+## 実行手順
 
-### Phase 1: per-screen テスト仕様書の存在確認
+## Phase 1: per-screen テスト仕様書の存在確認
+
+## Step 1-1: per-screen テスト仕様書の存在確認
+
+**使用ツール**: Read / Bash / Glob / Grep
 
 - **Step 1** — `<output_dir>/画面/screen-*/テスト項目書/単体テスト仕様書.md`・`結合テスト仕様書.md`・`操作シナリオ仕様書.md` を `find`/`ls` で走査する。3 種とも 0 件ならハード停止し、テスト仕様書が未作成である旨を報告して終了する。完了条件: 1 件以上の実在確認済み、または不在を報告して停止している
 
-### Phase 2: manifest JSON 横断集約（機械実行）
+**完了**: per-screen テスト仕様書の 1 件以上の実在確認済み、または不在を報告して停止している
+
+## Phase 2: manifest JSON 横断集約（機械実行）
+
+## Step 2-1: manifest JSON 横断集約（機械実行）
+
+**使用ツール**: Read / Bash / Write
 
 - **Step 1** — 集約スクリプトを実行する。完了条件: manifest JSON が生成済み
 
@@ -59,7 +69,13 @@ allowed-tools: [Read, Bash, Write, Edit, Grep, Glob]
 
 manifest.json の保存先は `$CLAUDE_JOB_DIR/tmp/test-case-manifest.json` とする。未設定時は `${TMPDIR:-/tmp}/claude-job-${session}/tmp/` 配下に置く。
 
-### Phase 3: 整合検証（機械実行）
+**完了**: manifest JSON が横断集約済み、集約結果（件数・種別内訳・画面内訳）を確認済み
+
+## Phase 3: 整合検証（機械実行）
+
+## Step 3-1: 整合検証（機械実行）
+
+**使用ツール**: Read / Bash / Edit
 
 - **Step 1** — 整合検証スクリプトを実行する。完了条件: 全項目 PASS
 
@@ -69,7 +85,13 @@ manifest.json の保存先は `$CLAUDE_JOB_DIR/tmp/test-case-manifest.json` と�
 
 - **Step 2** — FAIL 時は指摘に応じて manifest を修正し Step 1 を再実行する。3 回失敗したら Phase 2（集約スクリプトの入力＝per-screen テスト仕様書.md の記法）の見直しへ差し戻す。完了条件: exit 0
 
-### Phase 4: テストケース一覧.html 生成
+**完了**: `validate-test-case-manifest.sh` が全項目 PASS
+
+## Phase 4: テストケース一覧.html 生成
+
+## Step 4-1: テストケース一覧.html 生成
+
+**使用ツール**: Bash / Write
 
 - **Step 1** — HTML 生成スクリプトを実行する。完了条件: `<output_dir>/一覧/テストケース一覧/テストケース一覧.html` が生成済み
 
@@ -84,6 +106,8 @@ manifest.json の保存先は `$CLAUDE_JOB_DIR/tmp/test-case-manifest.json` と�
   ```
 
 **手作業でのプレースホルダ置換は禁止する**。HTML 生成は必ず `build-unit-list.sh` 経由の決定的処理で行う。
+
+**完了**: `<output_dir>/一覧/テストケース一覧/テストケース一覧.html` が生成され、指定時は `build-portal.sh` の再実行が完了している
 
 ## 完了条件
 

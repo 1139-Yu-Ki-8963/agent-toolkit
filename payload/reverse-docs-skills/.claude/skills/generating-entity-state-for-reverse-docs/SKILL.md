@@ -3,7 +3,7 @@ name: generating-entity-state-for-reverse-docs
 description: "状態遷移図.html をデータ設計.mdの状態遷移表から機械生成する。 TRIGGER when: 状態遷移図生成、エンティティ状態遷移の図化、entity-state HTML作成。 SKIP: 状態遷移表自体の採録（→generating-reverse-common-docs）、他種別詳細ページ生成。"
 invocation: generating-entity-state-for-reverse-docs
 type: transform
-allowed-tools: [Bash, Read, Write, Grep, Glob, AskUserQuestion, TaskCreate, TaskUpdate]
+allowed-tools: [Bash, Read, Write]
 ---
 
 # 状態遷移図生成スキル
@@ -41,14 +41,24 @@ allowed-tools: [Bash, Read, Write, Grep, Glob, AskUserQuestion, TaskCreate, Task
 
 スキル開始時に `TaskCreate` で Phase 1〜4 のタスクを登録する。各 Phase 開始時に該当タスクを `in_progress` に、完了時に `completed` へ `TaskUpdate` で更新する。Phase 3 から Phase 2 へ差し戻す場合は Phase 2 タスクを `in_progress` に戻す。実行環境に TaskCreate/TaskUpdate が存在しない場合は、`output_dir` 内のタスク台帳ファイル（`task-ledger.md`）で同等の Phase 遷移記録を代替する。
 
-## Phase 手順
+## 実行手順
 
-### Phase 1: 前提確認
+## Phase 1: 前提確認
+
+## Step 1-1: 前提確認
+
+**使用ツール**: Read / Write
 
 - **Step 1** — `<output_dir>/プロジェクト共通/データ設計.md` の実在と、`## §6 状態遷移表` 見出し・表（列: エンティティ/状態/遷移前/契機/遷移後/根拠パス）の実在を確認する。不在ならハード停止する。この場合 `generating-reverse-common-docs` の先行実行（データ設計.md §6 の採録）を案内して終了する。完了条件: 表の実在確認済み、または不在を報告して停止している
 - **Step 2** — 表のデータ行数（プレースホルダ行 `<実測: ...>` のみの雛形状態は 0 件扱い）を確認する。0 件ならユーザーに報告してハード停止する（遷移を捏造しない）。完了条件: データ行 1 件以上を確認済み、または 0 件を報告して停止している
 
-### Phase 2: 抽出
+**完了**: データ設計.md §6 状態遷移表の実在・データ行 1 件以上を確認済み（または不在・0 件を報告して停止）
+
+## Phase 2: 抽出
+
+## Step 2-1: 抽出
+
+**使用ツール**: Read / Write
 
 - **Step 1（nodes組み立て）** — 表の各行から `(エンティティ, 状態)` の組を集める。加えて `遷移前`/`遷移後` の値も同一エンティティの状態として扱い、`状態` 列にない値があれば合わせて集める（表記漏れによる孤児参照を防ぐため）。集めた組の重複を除いた一覧を `nodes[]` とする。`key` は `<エンティティ>.<状態>`（例: `注文.下書き`）、`label` は状態名そのもの、`entity` はエンティティ名とする。完了条件: `nodes[]` が確定済み
 - **Step 2（edges組み立て）** — 表の各行を 1 edge に変換する。`from` は `<エンティティ>.<遷移前>`、`to` は `<エンティティ>.<遷移後>`、`trigger` は `契機` 列の値、`sourceRef` は `根拠パス` 列の値、`entity` はエンティティ名とする。完了条件: 表の全データ行が `edges[]` へ変換済み
@@ -56,7 +66,13 @@ allowed-tools: [Bash, Read, Write, Grep, Glob, AskUserQuestion, TaskCreate, Task
 
 page-data.json の保存先は `$CLAUDE_JOB_DIR/tmp/entity-state-page-data.json` とする。未設定時は `${TMPDIR:-/tmp}/claude-job-${session}/tmp/` 配下に置く。
 
-### Phase 3: 整合検証
+**完了**: 表の全行から `nodes[]`・`edges[]` へ変換済み
+
+## Phase 3: 整合検証
+
+## Step 3-1: 整合検証
+
+**使用ツール**: Read / Bash
 
 - **Step 1** — 整合検証スクリプトを実行する。`edges[].from`/`to` が `nodes[].key` に実在するかの孤児参照検査を含め、`validate-page-data.sh` が機械実行する（手動事前確認は不要）。完了条件: 全項目 PASS
 
@@ -66,7 +82,13 @@ page-data.json の保存先は `$CLAUDE_JOB_DIR/tmp/entity-state-page-data.json`
 
 - **Step 2** — Step 1 が FAIL したら `[FAIL]` 項目名で分岐する。「孤児参照」FAIL の場合は、表の `状態`/`遷移前`/`遷移後` の値に表記ゆれ（同一状態の異表記等）がないかを確認し、Phase 2 Step 1（nodes組み立て）へ戻って修正する。その他の FAIL（`sourceRef` 実在等）は該当箇所を修正し Step 1 を再実行する。3 回失敗したら Phase 2 Step 1 へ差し戻す。完了条件: exit 0（孤児参照検査を含め全項目 PASS）
 
-### Phase 4: 状態遷移図.html 生成
+**完了**: `validate-page-data.sh --target-repo` が全項目 PASS（孤児参照検査含む）
+
+## Phase 4: 状態遷移図.html 生成
+
+## Step 4-1: 状態遷移図.html 生成
+
+**使用ツール**: Bash / Write
 
 - **Step 1** — HTML 生成スクリプトを実行する。完了条件: `<output_dir>/状態遷移図.html` が生成済み
 
@@ -81,6 +103,8 @@ page-data.json の保存先は `$CLAUDE_JOB_DIR/tmp/entity-state-page-data.json`
   ```
 
 **手作業でのプレースホルダ置換は禁止する**。HTML 生成は必ず `build-detail-page.sh` 経由の決定的処理で行う。
+
+**完了**: `<output_dir>/状態遷移図.html` が生成済み
 
 ## 完了条件
 

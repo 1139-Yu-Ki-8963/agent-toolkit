@@ -3,7 +3,7 @@ name: generating-screen-list-for-reverse-docs
 description: "既存コードベースから画面単位の一覧フォルダ・画面一覧HTMLを生成する。 TRIGGER when: 画面一覧作成、画面一覧生成、画面の洗い出し。 SKIP: 他種別の一覧（→対応する種別別一覧スキル）、往復検証/同期/実装。"
 invocation: generating-screen-list-for-reverse-docs
 type: transform
-allowed-tools: [Bash, Read, Write, Edit, Grep, Glob, AskUserQuestion, TaskCreate, TaskUpdate]
+allowed-tools: [AskUserQuestion, Bash, Grep, Read, Write]
 ---
 
 # 画面一覧生成スキル
@@ -53,7 +53,11 @@ allowed-tools: [Bash, Read, Write, Edit, Grep, Glob, AskUserQuestion, TaskCreate
 
 ## 動作フロー（Phase 1〜4、任意でPhase 5）
 
-### Phase 1: スタック・画面規約の特定
+## Phase 1: スタック・画面規約の特定
+
+## Step 1-1: スタック・画面規約の特定
+
+**使用ツール**: AskUserQuestion / Bash / Grep / Read / Write
 
 画面固有の調査項目の詳細は `references/screen-detection.md` を参照する。
 
@@ -70,7 +74,11 @@ allowed-tools: [Bash, Read, Write, Edit, Grep, Glob, AskUserQuestion, TaskCreate
 
 直接element指定ルート（`element={<Foo/>}` のようにコンポーネント参照ではなくJSX要素をインライン指定するルート定義）は一律除外せず、ルートごとに個別分類する。実体ファイルへ解決できる場合はマニフェストへ画面として掲載する。除外する場合は除外根拠（例:「インラインJSXで実体ファイルを機械解決できないため対象外」）をdiagnosticsに記録する。
 
-### Phase 2: 戦略に基づく抽出
+**完了**: Step 1〜4の調査完了。Step 5の共有ファイル・エイリアス調査（sharedDirPatterns/pathAliases）完了。Step 6の検出戦略宣言（`unitKind: "screen"`/screenUnitDefinition/screenIdRegex/viewSwitchPattern/excludePatterns/sharedDirPatterns/pathAliases/importTraversalMaxDepth）がユーザー承認済み
+
+## Phase 2: 戦略に基づく抽出
+
+## Step 2-1: 戦略に基づく抽出
 
 - **Step 1**: 抽出方式を分岐判定する。組み込み検出器（Next.js App/Pages Router・React Router（`useRoutes`含む）・慣習ディレクトリ）がPhase 1の調査結果と適合する場合のみ組み込みパスを選べる。完了条件: `builtin-*` か `custom` かが決定済み
 - **Step 2（組み込みパス）**: `../../../shared/scripts/unit-list/detect-screens.sh <source-dir> <manifest-out> --strategy-json <strategy.json> [--screen-id-regex <re>] [--view-switch-pattern <re>] [--exclude <pattern>]` を実行する。0件ならハード停止（exit 3）。画面を捏造しない。ルート抽出前処理として、行コメント（`//`）・ブロックコメント（`/* */`）を除去してからルート定義を抽出する（コメントアウトされたルート定義を実在として誤検出することを防ぐ。カスタム抽出パスと同一の前処理方針）
@@ -82,11 +90,11 @@ allowed-tools: [Bash, Read, Write, Edit, Grep, Glob, AskUserQuestion, TaskCreate
 - **セルフチェックゲート**: Phase 2 完了後にエントリファイル実在数（`find <source_dir> -name '*.tsx' -path '*/pages/*' -o -name '*.tsx' -path '*/app/*' | wc -l` 等）と抽出件数を突合し、乖離が 20% を超える場合は警告を出力して AskUserQuestion で確認する。headless=true 時は AskUserQuestion が使用できないため、乖離 20% 超の場合は警告を `<verification_dir>/progress.jsonl` に記録し、工程を続行する（中断しない）。最終報告に乖離率を明記する。併せて、マニフェストの各 route がコメント除去後のルーター定義に有効に存在することを照合する。存在しない route が1件でもあれば、実在しないルートの誤検出としてPhase 2 Step 1（抽出方式再検討）へ差し戻す。
 - **ルート網羅性検査ゲート**: コメント除去後の有効ルート総数と、「マニフェストに掲載された画面数」＋「根拠付き除外記録の件数」の合計を突合する。一致しない場合はFAILとし、除外漏れ・二重計上のいずれかを特定してから再実行する。
 - **Step 4（既存テスト件数の走査）**: `source_dir` を `find <source_dir> -type f \( -name '*.test.*' -o -name '*.spec.*' \) -o -type d -name '__tests__'` 等で走査し、ヒットしたファイル名またはディレクトリ名から画面IDを推定して各画面に対応付ける。対応するテストファイルの件数を`existingTestCount`（整数フィールド。対応するテストが1件も無い画面は`0`）として、永続化前のraw作業コピーの各画面要素に付与する。完了条件: 全画面のraw作業コピーに`existingTestCount`が付与済み
-- **Step 5**: raw作業コピーをPhase 2Bへ渡す。この時点ではcanonical raw・extを確定せず、画面一覧HTMLも生成しない。完了条件: 既存テスト件数を含むraw作業コピーがPhase 2Bの入力として確定
+- **Step 5**: raw作業コピーを Step 2-2 以降へ渡す。この時点ではcanonical raw・extを確定せず、画面一覧HTMLも生成しない。完了条件: 既存テスト件数を含むraw作業コピーが Step 2-2 の入力として確定
 
-検出中の作業コピーは一時ディレクトリ（`$CLAUDE_JOB_DIR/tmp/screen-manifest.json`、未設定時は `${TMPDIR:-/tmp}/claude-job-${session}/tmp/` 配下。`${session}`はセッションIDが取得できなければ任意の一意な値でよい）に保存する。Step 2B-3完了後の正本は`<output_dir>/一覧/画面一覧/screen-manifest.json`と`screen-manifest.ext.json`であり、一時ファイルを後続・再開処理の入力にしてはならない。
+検出中の作業コピーは一時ディレクトリ（`$CLAUDE_JOB_DIR/tmp/screen-manifest.json`、未設定時は `${TMPDIR:-/tmp}/claude-job-${session}/tmp/` 配下。`${session}`はセッションIDが取得できなければ任意の一意な値でよい）に保存する。Step 2-4完了後の正本は`<output_dir>/一覧/画面一覧/screen-manifest.json`と`screen-manifest.ext.json`であり、一時ファイルを後続・再開処理の入力にしてはならない。
 
-### Phase 2B: 画面種別の階層分類
+**条件付き工程: 画面種別の階層分類**
 
 Phase 2で抽出したraw作業コピーの各画面に、コード分析に基づく階層分類を付与する。分類はラベルのキーワードマッチではなく、テンプレート実体の有無・構造・サーバサイドのルーティング実装・リダイレクト処理の有無等のコード分析に基づいて行う。
 
@@ -124,11 +132,19 @@ Level 1・2 の分類値はプロジェクトごとに異なるため、スキ�
 | childComponents | オブジェクト配列 | 紐づく子コンポーネント。各要素は `screenKey` と `componentType` を持つ | `[{"screenKey":"list-orders-detail-modal","componentType":"modal"}]` |
 | isProcessingEndpoint | 真偽値 | 処理エンドポイント（UIを持たない）か否か | `false` |
 
-#### Step 2B-1: 分類の実行
+**完了**: マニフェストの全エントリに screenType・accountGroup・hasTemplate・parentScreen・isProcessingEndpoint が付与され、検証項目がすべてPASS
+
+## Step 2-2: 分類の実行
+
+**使用ツール**: Read / Write
 
 Phase 1の調査結果とアーキテクチャ調査書（`survey_doc_path`）を参照し、raw作業コピーの各画面に上記フィールドを付与する。具体の検出パターン（ファイルパス規約・設定変数名・権限判定の実装形）はプロジェクトのアーキテクチャ調査書から導出する。
 
-#### Step 2B-2: 分類結果の検証
+**完了**: screen-manifestの全画面へscreenType・accountGroup・accountSubType・hasTemplate・parentScreen・childComponents・isProcessingEndpointが付与済み
+
+## Step 2-3: 分類結果の検証
+
+**使用ツール**: Read / Bash / Write
 
 - 全エントリに `screenType` フィールドが存在し、値が Level 3 の8種のいずれかであること
 - `hasTemplate: false` かつ `isProcessingEndpoint: true` の画面が、テンプレート実体が実在しないことと一致すること
@@ -136,42 +152,61 @@ Phase 1の調査結果とアーキテクチャ調査書（`survey_doc_path`）�
 - `childComponents` の各 `screenKey` が実在し、`componentType` が許可値であること
 - 親→子と子→親の参照が双方向に一致すること
 
-完了条件: マニフェストの全エントリに分類フィールドが付与され、検証項目がすべてPASS
+**完了**: マニフェストの全エントリに分類フィールドが付与され、検証項目がすべてPASS
 
-#### Step 2B-3: raw正本・raw由来extの確定
+## Step 2-4: raw正本とraw由来extを確定する
 
-検出・既存テスト件数・階層分類を含むraw作業コピーを一時ファイル+renameで`<output_dir>/一覧/画面一覧/screen-manifest.json`へ原子的に保存し、`validate-manifest.sh <raw> --unit-kind screen`を通す。固定した`generated_at`と、`jq -cjS .`したrawのSHA-256である`manifest_content_hash`を求め、`../../../shared/scripts/extract/extract-screen-metadata.sh <raw> <source_dir> <output_dir>/一覧/画面一覧/screen-manifest.ext.json --design-docs-dir <output_dir>/画面 --link-base-dir <output_dir>/一覧/画面一覧 --generated-at "$generated_at" --manifest-content-hash "$manifest_content_hash"`を実行する。extも一時ファイル+renameで原子的に保存し、rawの検出由来フィールドが保持され、`manifestContentHash`がrawの再計算値と一致することを確認する。設計書著述後に一覧を再生成する場合も永続rawから同じ固定時刻・hash付きコマンドを再実行する。完了条件: raw・raw由来extが永続化され、schema・検出由来フィールド・hashの検証がPASS
+**使用ツール**: Read / Bash / Write
 
-### Phase 3: 整合検証（機械実行）
+検出・既存テスト件数・階層分類を含むraw作業コピーを一時ファイル+renameで`<output_dir>/一覧/画面一覧/screen-manifest.json`へ原子的に保存し、`validate-manifest.sh <raw> --unit-kind screen`を通す。固定した`generated_at`と、`jq -cjS .`したrawのSHA-256である`manifest_content_hash`を求め、`../../../shared/scripts/extract/extract-screen-metadata.sh <raw> <source_dir> <output_dir>/一覧/画面一覧/screen-manifest.ext.json --design-docs-dir <output_dir>/画面 --link-base-dir <output_dir>/一覧/画面一覧 --generated-at "$generated_at" --manifest-content-hash "$manifest_content_hash"`を実行する。extも一時ファイル+renameで原子的に保存し、rawの検出由来フィールドが保持され、`manifestContentHash`がrawの再計算値と一致することを確認する。設計書著述後に一覧を再生成する場合も永続rawから同じ固定時刻・hash付きコマンドを再実行する。
+
+**完了**: raw・raw由来extが永続化され、schema・検出由来フィールド・hashの検証がPASS
+
+## Phase 3: 整合検証（機械実行）
+
+## Step 3-1: 整合検証（機械実行）
+
+**使用ツール**: Read / Bash / Write
 
 - **Step 1**: `../../../shared/scripts/unit-list/validate-manifest.sh`をrawとextへそれぞれ`--unit-kind screen`付きで実行し、rawの正規化SHA-256とextの`manifestContentHash`一致も検査する。完了条件: schemaとhashが全項目PASS
-- **Step 2**: FAIL時はraw作業コピーまたはcanonical rawを指摘に応じて修正する（entryFile不在は`--fix`でunresolved降格可）。rawを修正した場合はStep 2B-3へ戻り、hash再計算とext再生成を行ってからStep 1を再実行する。extだけを直接修正しない。3回失敗したら抽出方式の再検討（Phase 2 Step 1）へ差し戻す。完了条件: exit 0
+- **Step 2**: FAIL時はraw作業コピーまたはcanonical rawを指摘に応じて修正する（entryFile不在は`--fix`でunresolved降格可）。rawを修正した場合はStep 2-4へ戻り、hash再計算とext再生成を行ってからStep 1を再実行する。extだけを直接修正しない。3回失敗したら抽出方式の再検討（Phase 2 Step 1）へ差し戻す。完了条件: exit 0
 - **Step 3（レジストリ整合検査）**: 画面レジストリ（`<output_dir>/一覧/reverse-screen-registry.yml`。存在しない場合は本Stepをスキップする）に記帳済みの全画面キーを列挙し、マニフェスト掲載画面キーと突合する。レジストリにのみ存在するキーが1件でもあり、かつ根拠付き除外記録が無ければFAILとし、Phase 2の抽出漏れとして差し戻す。完了条件: 突合差分ゼロ（根拠付き除外記録がある場合のみ許容）
 
 `validate-manifest.sh` は抽出方式（組み込み/カスタム）を問わず同一基準で検証する。カスタム抽出パスであっても、この検証を通過しないマニフェストはPhase 4に進めない。
 
-### Phase 4: 画面一覧.html 生成
+**完了**: Step 1で `validate-manifest.sh --unit-kind screen` が11項目すべてPASS。Step 2のFAIL時修正ループは3回以内。Step 3のレジストリ整合検査で突合差分ゼロ（画面レジストリが存在する場合のみ）
+
+## Phase 4: 画面一覧.html 生成
+
+## Step 4-1: 画面一覧.html 生成
+
+**使用ツール**: Bash / Write
 
 - **Step 1**: `../../../shared/scripts/unit-list/build-unit-list.sh <manifest.ext.json> <output-dir>/一覧/画面一覧/画面一覧.html --unit-kind screen --portal-dir <output-dir>` を実行する。内部で `build-screen-list.sh` に委譲される。`--portal-dir` にはポータル（`index.html`）の配置先＝納品物ルート（output_dir=output_dir）を渡し、「ポータルへ戻る」リンクを実在パスに解決させる。build側が内部でvalidateを再実行するため、検証を経ないmanifestからは生成できない。完了条件: HTML生成済み
 - **Step 2**: 生成後に `../../../shared/scripts/extract/extract-screen-metadata.sh --self-test` と `../../../shared/scripts/unit-list/build-screen-list.sh --self-test` を実行する。1-40〜1-44の番号付き検査（設計書4リンク・確定画面名・画面キー/画面ID/入口ファイル検索・登録件数と表行数・任意ポータル出力先への戻りリンク）がすべてPASSすることを確認する。完了条件: 両self-testがexit 0
 
 **手作業でのプレースホルダ置換は禁止する**（過去に `entryFile=None` の混入という実害が発生している）。HTML生成は必ずスクリプト経由の決定的処理で行う。
 
-### Phase 5（任意）: 複雑度プロファイリング
+**完了**: Step 1で画面一覧.htmlが生成され、埋め込みJSONがマニフェストと一致している
+
+## Phase 5: 複雑度プロファイリング（任意）
+
+## Step 5-1: 複雑度プロファイリング（任意）
+
+**使用ツール**: Read / Bash / Write
 
 `--profile` サブコマンドで複雑度プロファイル.json を生成する。orchestrating-reverse-docs-flow が画面スコープ「複雑度層別サンプル」を選択した場合、または管理者が層別サンプリングの入力として要求した場合にのみ実行する任意工程であり、Phase 1〜4（画面一覧.html生成）の完了を前提とする。プロファイル未生成時（`<output_dir>/一覧/画面一覧/複雑度プロファイル.json` が不在）は、複雑度層別サンプルを要求された時点で本Phaseを先行起動する。
 
 - **Step 1**: `../../../shared/scripts/unit-list/detect-screens.sh --profile <manifest.json> <source-dir> <output-dir>/一覧/画面一覧/複雑度プロファイル.json --recount-script <extracting-unit-facts-from-code>/scripts/recount-facts.sh --repo-root <target_repo_path>` を実行し、画面ごとの複雑度指標（loc・8軸・スコア・層）を機械算出する。drvfs（Windows側パスをWSL2からマウントした場合のファイルシステム）上は極端に遅いため、Linux側の作業コピーでの実行を推奨する（260画面規模で数分〜10分程度かかる）。完了条件: 複雑度プロファイル.jsonが生成済み
 
-完了条件: 複雑度プロファイル.jsonが `<output_dir>/一覧/画面一覧/複雑度プロファイル.json` に生成されている（本Phaseを実行した場合のみ）
+**完了**: 複雑度プロファイル.jsonが `<output_dir>/一覧/画面一覧/複雑度プロファイル.json` に生成されている（本Phaseを実行した場合のみ）
 
 ## 完了条件
 
 | Phase | 完了条件 |
 |---|---|
 | Phase 1 | Step 1〜4の調査完了。Step 5の共有ファイル・エイリアス調査（sharedDirPatterns/pathAliases）完了。Step 6の検出戦略宣言（`unitKind: "screen"`/screenUnitDefinition/screenIdRegex/viewSwitchPattern/excludePatterns/sharedDirPatterns/pathAliases/importTraversalMaxDepth）がユーザー承認済み |
-| Phase 2 | Step 1で抽出方式（builtin/custom）が決定済み。Step 2でスキーマ準拠のraw作業コピーが1件以上確定、または0件検出をユーザーに報告して停止している。Step 3でdiagnosticsを確認済み。セルフチェックゲート（route実在照合含む）・ルート網羅性検査ゲートをPASS済み。Step 4で全画面のraw作業コピーにexistingTestCountが付与され、Step 5でPhase 2B入力が確定している |
-| Phase 2B | raw作業コピーの全エントリにscreenType・accountGroup・hasTemplate・parentScreen・isProcessingEndpoint等が付与され、検証項目がすべてPASS。Step 2B-3でcanonical raw・raw由来extが原子的に永続化され、schema・検出由来フィールド・hashが一致 |
+| Phase 2 | Step 2-1で抽出方式（builtin/custom）が決定済み。スキーマ準拠のraw作業コピーが1件以上確定、または0件検出をユーザーに報告して停止している。diagnosticsを確認済み。セルフチェックゲート（route実在照合含む）・ルート網羅性検査ゲートをPASS済み。全画面のraw作業コピーにexistingTestCountが付与されている。Step 2-2〜2-3でraw作業コピーの全エントリにscreenType・accountGroup・accountSubType・hasTemplate・parentScreen・childComponents・isProcessingEndpointが付与され、検証項目がすべてPASS。Step 2-4でcanonical raw・raw由来extが原子的に永続化され、schema・検出由来フィールド・hashが一致 |
 | Phase 3 | Step 1でraw/extの`validate-manifest.sh --unit-kind screen`とhash検査がPASS。Step 2のFAIL時修正ループは3回以内で、raw修正時はextを再生成する。Step 3のレジストリ整合検査で突合差分ゼロ（画面レジストリが存在する場合のみ） |
 | Phase 4 | Step 1で画面一覧.htmlが生成され、埋め込みJSONがマニフェストと一致している |
 | Phase 5（任意） | `--profile`サブコマンド実行時のみ、複雑度プロファイル.jsonが生成されている |

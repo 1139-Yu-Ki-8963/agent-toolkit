@@ -3,7 +3,7 @@ name: extracting-unit-facts-from-code
 description: "原本コードから宣言的契約factsを抽出し独立再計数・封印まで完走する。 TRIGGER when: リバース設計のfacts抽出、画面ユニットの事実表新規作成、facts欠落からの再抽出。 SKIP: 詳細設計執筆（→generating-reverse-detailed-design）、共通文書採録（→generating-reverse-common-docs）。"
 invocation: extracting-unit-facts-from-code
 type: orchestration
-allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, TaskCreate, TaskUpdate]
+allowed-tools: [Bash, Read, Write, Edit]
 ---
 
 # ユニット事実抽出スキル
@@ -54,35 +54,55 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, TaskCreate, TaskUpdate]
 - **再現性の担保**: 同一 args での抽出結果は（run_id を除き）決定的に一致することを diff で確認する
 - **合格判定はスクリプトのexit codeのみ**: 自然文の自己申告での合格判定を行わない
 
-## Phase 手順
+## 実行手順
 
-### Phase 1: 前提確認
+## Phase 1: 前提確認
+
+## Step 1-1: 前提確認
+
+**使用ツール**: Read / Bash / Write
 
 `target_repo_path`・`verification_dir`・`survey_doc_path`の実在を確認する（`test -d`/`test -f`）。`screen_dir`はbasenameから画面IDを確定するために使うが、実在を要求しない。`target_file_paths`全件について`target_repo_path`配下の実在を確認する。`profile`が`screen|python`のいずれかであることを確認し、`python`では全対象が`.py`であることを確認する。`run_id`（省略時`extract-1`）を確定し、`<verification_dir>/screen-<画面ID>/facts/<run_id>/`を作成する。これによりfacts抽出・封印がスキャフォールディングより先に完了できる。
 
-完了条件: 全args解決済み・target_file_paths全件実在確認済み・facts出力ディレクトリ作成済み
+**完了**: 全args解決済み・target_file_paths全件実在確認済み・facts出力ディレクトリ作成済み
 
-### Phase 2: 抽出
+## Phase 2: 抽出
+
+## Step 2-1: 抽出
+
+**使用ツール**: Read / Bash / Write / Edit
 
 `profile=screen`は`references/profile-screen.md`の分類別抽出手順に従い、12分類の`facts.yml`を作成する。`profile=python`は`references/profile-python.md`を正本として、`python3 scripts/extract-python-facts.py extract ...`で6分類の`facts.yml`を決定的に作成する。いずれも全項目は原本の行番号根拠付き（`file:line`）とし、推測・要約で補完しない。`measurement_pending`はkey・evidenceのみを記録しvalueを書かない。
 
-完了条件: screenは12分類とmeta、pythonは6分類を持つfacts.ymlが生成済み
+**完了**: screenは12分類（`sections` 配下12キー）と `meta`（source_repo・source_ref・route）、pythonは6分類を持つfacts.ymlが生成済み
 
-### Phase 3: 独立再計数ゲート
+## Phase 3: 独立再計数ゲート
+
+## Step 3-1: 独立再計数ゲート
+
+**使用ツール**: Read / Bash / Write
 
 `scripts/recount-facts.sh <facts.yml> <target_repo_path> <target_file_paths...>`を実行する。スクリプトはfacts.ymlの`profile`を読み、原本から対応分類を独立再計数してから記載件数と突合する。pythonでは件数・必須フィールド・孤児参照に加えて、関数本文が宣言先頭から本体末尾までvalueに保持されていることを検査する。標準出力を`recount-report.txt`へ保存する。FAILした場合はPhase 2へ戻り、上限3回で収束しなければ`status=中断`とする。
 
 facts.yml不要の軽量モードは`scripts/recount-facts.sh --recount-only [--profile screen|python] <target_repo_path> <target_file_paths...>`で呼べる。`screen`は従来分類、`python`は6分類を返し、最後にlocを返す。
 
-完了条件: `recount-facts.sh` が `exit 0` かつ recount-report.txt保存済み
+**完了**: `recount-facts.sh` が `exit 0` かつ recount-report.txt保存済み
 
-### Phase 4: 封印
+## Phase 4: 封印
+
+## Step 4-1: 封印
+
+**使用ツール**: Read / Bash / Write
 
 `bash <shared>/scripts/seal-facts.sh seal <facts_dir>` を実行し `facts.lock` を生成する。続けて `bash <shared>/scripts/seal-facts.sh verify <facts_dir>` を実行し、封印直後の整合性を確認する。
 
-完了条件: `seal-facts.sh verify` が `exit 0`
+**完了**: `seal-facts.sh verify` が `exit 0`
 
-### Phase 5: 再現性検証
+## Phase 5: 再現性検証
+
+## Step 5-1: 再現性検証
+
+**使用ツール**: Bash / Write
 
 同じ args で抽出（Phase 2〜4 相当。ただし封印は任意）をもう1度、`mktemp -d "${TMPDIR:-/tmp}/XXXXXX"` 形式で作成した一時ディレクトリに実行する。両方の `facts.yml` を `seal-facts.sh normalize` でそれぞれ一時ファイルへ書き出し、`diff` で比較する（プロセス置換 `<(...)` はサンドボックス環境で `/dev/fd` アクセスが権限拒否される場合があるため使わない。一時ファイル経由の比較に固定する）。diffが空なら通過。diffに差分がある場合は以下の診断ステップで分類する:
 1. **順序差異**: diff が行の順序のみの違い（キー名・値は同一）→ seal-facts.sh の正規化不足として status=中断、hint に ordering-divergence を記録
@@ -90,13 +110,17 @@ facts.yml不要の軽量モードは`scripts/recount-facts.sh --recount-only [--
 3. **共通文書由来の解釈分岐**: 差分の原因が共通文書に記載のない規約・パターンの解釈に起因する → status=共通文書帰着、hint に不足している共通文書の観点を記録。オーケストレーターは NG帰着(c) として generating-reverse-common-docs を mode=append で再起動する
 分類できない場合は status=中断（終端条件）とする。
 
-完了条件: 2回の正規化出力の diff が空
+**完了**: 2回の正規化出力の diff が空
 
-### Phase 6: 返却
+## Phase 6: 返却
+
+## Step 6-1: 返却
+
+**使用ツール**: Bash / Write
 
 返却ブロックを出力する。`封印済み` の場合は `artifacts` に facts.yml・facts.lock・recount-report.txt の絶対パスを、`facts_ref` に facts ディレクトリの絶対パスと facts.lock の sha256 を、`pending_measurements` に ⑨実測委譲キーの一覧を記す。`中断` の場合は hint に Phase 3 で未解消の検査項目・Phase 5 の非決定箇所・非対応プロファイル等、中断理由を記す。
 
-完了条件: `status` が確定している
+**完了**: `status` が確定している
 
 ## 完了条件
 
@@ -195,7 +219,7 @@ facts.yml不要の軽量モードは`scripts/recount-facts.sh --recount-only [--
 
 ## 参照資料
 
-- `~/reverse-docs-skills/.claude/skills/orchestrating-reverse-docs-flow/references/contract.md` — 返却ブロック契約・args仕様の正本
+- `<reverse_docs_root>/.claude/skills/orchestrating-reverse-docs-flow/references/contract.md` — 返却ブロック契約・args仕様の正本
 - `references/profile-screen.md`（本スキル同梱） — screen プロファイルの分類別抽出手順・独立再計数用の決定的パターン
 - `references/profile-python.md`（本スキル同梱） — pythonプロファイルの排他分類・AST抽出・文字コード契約
 - `scripts/extract-python-facts.py` — Python標準ライブラリだけで抽出・再計数・関数本文検査を行う決定的実装

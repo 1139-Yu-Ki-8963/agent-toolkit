@@ -78,7 +78,11 @@ allowed-tools: [Bash, Read, Write, Grep, Glob, AskUserQuestion, TaskCreate, Task
 
 ## Step 1-1: 既存 page-data の確認
 
-Read / Glob で対象画面ごとに `<output_dir>/画面/screen-<ID>/シーケンス図-data.json` の実在を確認する。存在すれば内容を読み、上記形状（`screenId`・`screenLabel`・`operations[].key`/`label`/`steps[]`）に合致するか確認する。
+**使用ツール**: Read / Glob / Grep / TaskCreate / TaskUpdate
+
+本Stepの冒頭で `TaskCreate` により Phase 1〜3 のタスクを登録し、以降は各 Phase の開始・完了で `TaskUpdate` を発行する（詳細は上記「進捗管理（必須手順）」節）。
+
+Read / Glob / Grep で対象画面ごとに `<output_dir>/画面/screen-<ID>/シーケンス図-data.json` の実在を確認する。存在すれば内容を読み、上記形状（`screenId`・`screenLabel`・`operations[].key`/`label`/`steps[]`）に合致するか確認する。
 
 **完了**: 各対象画面について page-data の実在有無と形状を確認済み。
 

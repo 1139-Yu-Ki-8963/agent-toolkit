@@ -3,7 +3,7 @@ name: generating-api-list-for-reverse-docs
 description: "API一覧フォルダ・API一覧HTML生成（unit_kind=api 専用）。 TRIGGER when: API一覧作成、API一覧生成、エンドポイント一覧。 SKIP: 他種別の一覧（→対応する種別別一覧スキル）、往復検証/同期/実装。"
 invocation: generating-api-list-for-reverse-docs
 type: transform
-allowed-tools: [Bash, Read, Write, Edit, Grep, Glob, AskUserQuestion, TaskCreate, TaskUpdate]
+allowed-tools: [AskUserQuestion, Bash, Grep, Read, Write]
 ---
 
 # API一覧生成スキル
@@ -50,7 +50,11 @@ API 種別に組み込み検出器はない。抽出は **カスタム抽出パ�
 
 ## 動作フロー（Phase 1〜4）
 
-### Phase 1: スタック・API規約の特定
+## Phase 1: スタック・API規約の特定
+
+## Step 1-1: スタック・API規約の特定
+
+**使用ツール**: AskUserQuestion / Bash / Grep / Read / Write
 
 調査項目の詳細は `references/api-detection.md` を参照する。
 
@@ -60,7 +64,11 @@ API 種別に組み込み検出器はない。抽出は **カスタム抽出パ�
 - **Step 4**: 除外パターンを確定する。テスト用エンドポイント・ヘルスチェック・`tests`/`mocks` 等のノイズを実際に `ls` で確認する。完了条件: `excludePatterns` 一覧が確定済み
 - **Step 5**: 検出戦略宣言を作成し、AskUserQuestion で承認を取る。宣言 JSON は一時ファイルに保存する。完了条件: 戦略 JSON（`unitKind: "api"`/`extractionMethod: "custom"`/`unitIdRegex`/`excludePatterns`/`approvedByUser: true`/`notes`）が保存済み
 
-### Phase 2: 戦略に基づく抽出
+**完了**: Step 1〜4 の調査完了（`references/api-detection.md` の調査項目に準拠）。Step 5 の検出戦略宣言（`unitKind: "api"`/`extractionMethod`/`unitIdRegex`/`excludePatterns`）がユーザー承認済み
+
+## Phase 2: 戦略に基づく抽出
+
+## Step 2-1: 戦略に基づく抽出
 
 - **Step 1**: 抽出方式を確認する。API 種別に組み込み検出器はないため、常にカスタム抽出パスとなる。完了条件: `extractionMethod: "custom"` が戦略宣言に記録済み
 - **Step 2**: Phase 1 で宣言した手順（例: ルート定義ファイルの走査・デコレータの収集・OpenAPI 定義の解析等）を Claude 自身が Bash/Grep/Read で実行し、スキーマ準拠のマニフェスト JSON（配列キー `units`）を Write する。**0 件検出ならハード停止** し、ユーザーに報告する。エンドポイントを捏造しない。完了条件: マニフェスト JSON が生成済み、または 0 件検出を報告して停止している
@@ -74,18 +82,32 @@ API 種別に組み込み検出器はない。抽出は **カスタム抽出パ�
 
 検出結果は一時ディレクトリ（`$CLAUDE_JOB_DIR/tmp/api-manifest.json`、未設定時は `${TMPDIR:-/tmp}/claude-job-${session}/tmp/` 配下。`${session}` はセッション ID が取得できなければ任意の一意な値でよい）に保存する。
 
-### Phase 3: 整合検証（機械実行）
+**完了**: Step 1 でカスタム抽出パスが確認済み。Step 2 でスキーマ準拠のマニフェストが 1 件以上確定、または 0 件検出をユーザーに報告して停止している。Step 3 で diagnostics を確認済み。Step 4 でマニフェストに method・authRequired フィールドが付与されている
+
+## Phase 3: 整合検証（機械実行）
+
+## Step 3-1: 整合検証（機械実行）
+
+**使用ツール**: Bash
 
 - **Step 1**: `../../../shared/scripts/unit-list/validate-manifest.sh <manifest.ext.json> --unit-kind api` を実行する。完了条件: 全項目 PASS
 - **Step 2**: FAIL 時は指摘に応じて修正する（sourceFile 不在は `--fix` で unresolved 降格可）。修正後 Step 1 を再実行する。3 回失敗したら抽出手順の再検討（Phase 2 Step 2）へ差し戻す。完了条件: exit 0
 
 `validate-manifest.sh` は抽出者に依存せず同一基準で検証する。Claude のカスタム抽出であっても、この検証を通過しないマニフェストは Phase 4 に進めない。
 
-### Phase 4: API一覧.html 生成
+**完了**: Step 1 で `validate-manifest.sh --unit-kind api` が全項目 PASS。Step 2 の FAIL 時修正ループは 3 回以内
+
+## Phase 4: API一覧.html 生成
+
+## Step 4-1: API一覧.html 生成
+
+**使用ツール**: Bash / Write
 
 - **Step 1**: `../../../shared/scripts/unit-list/build-unit-list.sh <manifest.ext.json> <output_dir>/一覧/API一覧/API一覧.html --unit-kind api --portal-dir <output_dir>` を実行する。`--portal-dir` にはポータル（`index.html`）の配置先＝納品物ルート（output_dir=output_dir）を渡し、「ポータルへ戻る」リンクを実在パスに解決させる。build 側が内部で validate を再実行するため、検証を経ない manifest からは生成できない。完了条件: HTML 生成済み
 
 **手作業でのプレースホルダ置換は禁止する**（過去に `entryFile=None` の混入という実害が発生している）。HTML 生成は必ずスクリプト経由の決定的処理で行う。
+
+**完了**: Step 1 で API一覧.html が生成され、埋め込み JSON がマニフェストと一致している
 
 ## 完了条件
 

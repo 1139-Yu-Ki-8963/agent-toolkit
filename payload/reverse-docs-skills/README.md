@@ -93,7 +93,7 @@
 
 ## 全体の流れ
 
-事前ヒアリングで対象パス・出力先・画面範囲を確定後、以下の状態機械で進行する。Phase 1B では 6 一覧を Agent 並列実行し、Phase 4C では画面数 4 件以上の場合に running-reverse-screen-batch で無人バッチ実行する。`docs-only` はバッチでも静的リバースだけで終端する。標準ユニットは基本設計と詳細設計を並列著述し、大規模ユニットは1回目に詳細設計だけを完成させ、2回目に基本設計・観点表・テスト仕様書を作る。
+事前ヒアリングで対象パス・出力先・画面範囲を確定後、Phase 1〜7 / global Step 1〜30の状態機械で進行する。global Step 9では6一覧をAgent並列実行でき、global Step 16の条件分岐で画面数4件以上の場合だけrunning-reverse-screen-batchへStep 17〜30を委譲する。条件分岐は新しいPhase番号を作らない。`docs-only` はglobal Step 28で静的リバース完了として終端する。標準ユニットは基本設計と詳細設計を並列著述し、大規模ユニットは1回目に詳細設計だけを完成させ、2回目に基本設計・観点表・テスト仕様書を作る。
 
 指揮役は成果物の実在から現在の状態を判定し（15 状態）、次に起動する子スキルを機械的に決める。判定は次の順に降りる判定フローで行う。
 
@@ -119,7 +119,7 @@
 
 画面が未開通でも、原本コードから facts を抽出し、基本設計・詳細設計まで静的リバースを完了できる。動的検証は `verification_mode` で選ぶ。既定の `single-pass` は1回だけ検証し、`docs-only` は静的リバースで終了、`iterative` を明示した場合だけ FAIL 後の再抽出・再著述・再比較を反復する。
 
-状態判定表・返却ブロック契約の正本は [contract.md](.claude/skills/orchestrating-reverse-docs-flow/references/contract.md)、Phase/Step とスキルの対応は [リバース工程設計.md](shared/references/リバース工程設計.md) を参照。全体ガイドは [reverse-docs-overview.html](reverse-docs-overview.html) を参照。
+状態判定表・返却ブロック契約の正本は [contract.md](.claude/skills/orchestrating-reverse-docs-flow/references/contract.md)、唯一のグローバル順序（Phase 1〜7 / Step 1〜30）と条件分岐・back-edge metadataは [リバース工程設計.md](shared/references/リバース工程設計.md) を参照。全体ガイドは [reverse-docs-overview.html](reverse-docs-overview.html) を参照。
 
 ## 使い方
 
@@ -177,9 +177,10 @@ Skill(orchestrating-reverse-docs-flow)
 
 ```bash
 bash shared/scripts/check-overview-consistency.sh
+bash shared/scripts/check-phase-step-structure.test.sh
 ```
 
-この検査は `shared/samples/index.html` のカテゴリ JSON と `reverse-docs-overview.html` の可視表記を突合する。失敗時は値を推測して埋めず、正本（サンプル、工程設計、契約、各スキル）へ戻って原因を修正する。なお、実行環境の hook が検査スクリプトを遮断した場合は、成功扱いにせず、遮断理由と未実行の検証を受入記録へ残す。
+前者は `shared/samples/index.html` のカテゴリ JSON と `reverse-docs-overview.html` の可視表記を突合する。後者は35個のSkillのPhase/Step構造、26件の operational refs における旧番号・Phase/Step再定義の不在、統括フローのPhase 1〜7 / global Step 1〜30、正本の親Phase対応、条件分岐・Back-edgeメタデータを検査する。失敗時は値を推測して埋めず、正本（サンプル、工程設計、契約、各スキル）へ戻って原因を修正する。なお、実行環境の hook が検査スクリプトを遮断した場合は、成功扱いにせず、遮断理由と未実行の検証を受入記録へ残す。
 
 各スキルの詳解ガイド:
 

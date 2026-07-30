@@ -6,6 +6,8 @@
 PASS=0
 FAIL=0
 SKIP=0
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd -P)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd -P)"
 
 pass() { PASS=$((PASS+1)); echo "  PASS: $1"; }
 fail() { FAIL=$((FAIL+1)); echo "  FAIL: $1"; }
@@ -27,27 +29,57 @@ check_file() {
   local is_doc_viewer=0
   grep -q 'class="doc-main"' "$f" 2>/dev/null && is_doc_viewer=1
 
-  local old_l; old_l=$(grep -cE "$OLD_COLORS_LIGHT" "$f" 2>/dev/null || true)
-  [ "$old_l" -eq 0 ] && pass "色トークン-旧値禁止（ライト）" || fail "色トークン-旧値禁止（ライト）: ${old_l}件"
-
-  local old_d; old_d=$(grep -cE "$OLD_COLORS_DARK" "$f" 2>/dev/null || true)
-  [ "$old_d" -eq 0 ] && pass "色トークン-旧値禁止（ダーク）" || fail "色トークン-旧値禁止（ダーク）: ${old_d}件"
-
-  if grep -q '#0F1217' "$f" 2>/dev/null && grep -q '#4CC2FE' "$f" 2>/dev/null && grep -q '#FF6E4F' "$f" 2>/dev/null; then
-    pass "色トークン-新値存在"
-  else
-    fail "色トークン-新値存在"
+  # TOKENS_CSS マーカーを持つ source template は、生成スクリプトが
+  # shared/templates/tokens.css を注入する前の入力である。raw template に
+  # 色値を二重管理させず、トークン検査は生成済み HTML 側で行う。
+  local has_token_marker=0
+  local absolute_file
+  absolute_file="$(cd "$(dirname "$f")" && pwd -P)/$(basename "$f")"
+  if [[ "$absolute_file" == "$REPO_ROOT"/shared/templates/* ]] \
+    && grep -q '/\* TOKENS_CSS \*/' "$f" 2>/dev/null; then
+    has_token_marker=1
   fi
 
-  if grep -q 'prefers-color-scheme' "$f" 2>/dev/null && grep -q 'data-theme="dark"' "$f" 2>/dev/null && grep -q 'data-theme="light"' "$f" 2>/dev/null; then
-    pass "テーマ-定義"
-  else
-    fail "テーマ-定義"
+  # SHELL_CSS マーカーを持つ source template は、共通シェル（サイドバー・方眼紙
+  # 背景・全画面フィットの各指定）が生成時に注入される前の入力である。トークンと
+  # 同じ理由で、シェル由来の検査は生成済み HTML 側で行う。
+  local has_shell_marker=0
+  if [[ "$absolute_file" == "$REPO_ROOT"/shared/templates/* ]] \
+    && grep -q '/\* SHELL_CSS \*/' "$f" 2>/dev/null; then
+    has_shell_marker=1
   fi
 
-  grep -q 'class="pt-sidebar"' "$f" 2>/dev/null && pass "共通シェル-サイドバー" || fail "共通シェル-サイドバー"
+  if [ "$has_token_marker" -eq 1 ]; then
+    skip "色トークン（生成時に tokens.css を注入）"
+    skip "テーマ-定義（生成時に tokens.css を注入）"
+  else
+    local old_l; old_l=$(grep -cE "$OLD_COLORS_LIGHT" "$f" 2>/dev/null || true)
+    [ "$old_l" -eq 0 ] && pass "色トークン-旧値禁止（ライト）" || fail "色トークン-旧値禁止（ライト）: ${old_l}件"
 
-  grep -q 'background-size' "$f" 2>/dev/null && pass "共通シェル-方眼紙" || fail "共通シェル-方眼紙"
+    local old_d; old_d=$(grep -cE "$OLD_COLORS_DARK" "$f" 2>/dev/null || true)
+    [ "$old_d" -eq 0 ] && pass "色トークン-旧値禁止（ダーク）" || fail "色トークン-旧値禁止（ダーク）: ${old_d}件"
+
+    if grep -q '#0F1217' "$f" 2>/dev/null && grep -q '#4CC2FE' "$f" 2>/dev/null && grep -q '#FF6E4F' "$f" 2>/dev/null; then
+      pass "色トークン-新値存在"
+    else
+      fail "色トークン-新値存在"
+    fi
+
+    if grep -q 'prefers-color-scheme' "$f" 2>/dev/null && grep -q 'data-theme="dark"' "$f" 2>/dev/null && grep -q 'data-theme="light"' "$f" 2>/dev/null; then
+      pass "テーマ-定義"
+    else
+      fail "テーマ-定義"
+    fi
+  fi
+
+  if [ "$has_shell_marker" -eq 1 ]; then
+    skip "共通シェル-サイドバー（生成時に partials を注入）"
+    skip "共通シェル-方眼紙（生成時に partials を注入）"
+  else
+    grep -q 'class="pt-sidebar"' "$f" 2>/dev/null && pass "共通シェル-サイドバー" || fail "共通シェル-サイドバー"
+
+    grep -q 'background-size' "$f" 2>/dev/null && pass "共通シェル-方眼紙" || fail "共通シェル-方眼紙"
+  fi
 
   local radius_count
   radius_count=$(grep -cE 'border-radius:[[:space:]]*[^0[:space:];]' "$f" 2>/dev/null || true)
@@ -57,7 +89,13 @@ check_file() {
   shadow_count=$(grep -cE 'box-shadow:[^;]*[0-9]px[[:space:]]+[-0-9.]+px[[:space:]]+[1-9]' "$f" 2>/dev/null || true)
   [ "$shadow_count" -eq 0 ] && pass "影-オフセットのみ" || fail "影-オフセットのみ: ${shadow_count}件"
 
-  if [ "$is_doc_viewer" -eq 1 ]; then
+  if [ "$has_shell_marker" -eq 1 ]; then
+    skip "全画面-高さ固定（生成時に partials を注入）"
+    skip "全画面-min-height禁止（生成時に partials を注入）"
+    skip "全画面-overflow制御（生成時に partials を注入）"
+    skip "全画面-スクロール領域（生成時に partials を注入）"
+    skip "sticky-thead（生成時に partials を注入）"
+  elif [ "$is_doc_viewer" -eq 1 ]; then
     skip "全画面-高さ固定（文書ビューア型は適用除外）"
     skip "全画面-min-height禁止（文書ビューア型は適用除外）"
     skip "全画面-overflow制御（文書ビューア型は適用除外）"
