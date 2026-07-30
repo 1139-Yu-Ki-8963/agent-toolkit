@@ -14,8 +14,8 @@ allowed-tools: [Bash, Read, Write, Grep, Glob, AskUserQuestion, TaskCreate, Task
 
 ## 使用タイミング
 
-- 画面一覧.html・API一覧.html が確定済みで、ポータルにマトリクス・対応表・AI設定資産のカードを追加したいとき
-- 起動引数: `target_repo_path`（対象リポジトリの絶対パス）・`output_dir`（一覧HTML所在 / マトリクス・対応表・AI設定資産の出力先）・`portal_output_dir`（任意）
+- raw画面正本・raw由来の拡張画面manifest・API一覧.htmlが確定済みで、ポータルにマトリクス・対応表・AI設定資産のカードを追加したいとき
+- 起動引数: `target_repo_path`（対象リポジトリの絶対パス）・`output_dir`（一覧HTML所在 / マトリクス・対応表・AI設定資産の出力先）・`portal_output_dir`（任意）・`sites_path`（任意。複数サイト時の`sites.json`）・`site_key`（任意。対象サイトキー）
 - `portal_output_dir` を指定した場合、生成後に `build-portal.sh` を再実行してカードへ反映する
 
 ## 出力先（固定・`build-portal.sh` の `get_cross_label`/`CROSS_ORDER` と同値）
@@ -53,33 +53,36 @@ allowed-tools: [Bash, Read, Write, Grep, Glob, AskUserQuestion, TaskCreate, Task
 
 ### Phase 1: 前提確認
 
-- **Step 1** — `<output_dir>/一覧/画面一覧/画面一覧.html` と `<output_dir>/一覧/API一覧/API一覧.html` の実在を確認する。いずれか不在ならハード停止する。この場合 `generating-screen-list-for-reverse-docs` / `generating-api-list-for-reverse-docs` の先行実行を案内して終了する。完了条件: 両ファイルの実在確認済み、または不在を報告して停止している
+- **Step 1** — `<output_dir>/一覧/画面一覧/screen-manifest.json`、同`screen-manifest.ext.json`、`<output_dir>/一覧/API一覧/API一覧.html`の実在を確認する。いずれか不在ならハード停止する。この場合`generating-screen-list-for-reverse-docs` / `generating-api-list-for-reverse-docs`の先行実行を案内して終了する。通常生成では画面一覧HTMLの埋め込みJSONを逆抽出しない。旧成果物からの移行・復元時だけ`restore-screen-manifest.sh`でrawを正規配置へ復元・検証し、メタデータ抽出でextを再生成してから本スキルを再開する。完了条件: raw・raw由来ext・API一覧HTMLの実在確認済み、または不在を報告して停止している
 - **Step 2** — `<output_dir>/一覧/テーブル一覧/テーブル一覧.html` と `<output_dir>/一覧/機能一覧/機能一覧.html` の実在を確認する。いずれも任意データ源であり、不在でも Phase 2 以降を続行する（`build-matrix-data.sh` は table-manifest・feature-manifest を省略しても動作する fail-safe 設計）。完了条件: 両ファイルの実在有無が確定済み
 
 ### Phase 2: 拡張マニフェスト抽出 + 交差データ導出
 
-- **Step 1** — 各一覧HTMLから埋め込み manifest を抽出する。抽出先は一時ディレクトリ（`$CLAUDE_JOB_DIR/tmp/`、未設定時は `${TMPDIR:-/tmp}/claude-job-${session}/tmp/` 配下）。
+- **Step 1** — 画面は正規配置のrawとraw由来extを直接入力にする。API・テーブル・機能は各一覧HTMLから埋め込みmanifestを抽出する。抽出先は一時ディレクトリ（`$CLAUDE_JOB_DIR/tmp/`、未設定時は `${TMPDIR:-/tmp}/claude-job-${session}/tmp/` 配下）。
 
   ```bash
-  sed -n '/<script type="application\/json" id="screen-manifest">/,/<\/script>/p' <画面一覧.html> | sed '1d;$d' > screen-manifest.json
+  screen_manifest=<output_dir>/一覧/画面一覧/screen-manifest.json
+  screen_manifest_ext=<output_dir>/一覧/画面一覧/screen-manifest.ext.json
+  ../../../shared/scripts/unit-list/validate-manifest.sh "$screen_manifest" --unit-kind screen
+  ../../../shared/scripts/unit-list/validate-manifest.sh "$screen_manifest_ext" --unit-kind screen
   sed -n '/<script type="application\/json" id="unit-manifest">/,/<\/script>/p' <API一覧.html> | sed '1d;$d' > api-manifest.json
   # テーブル一覧・機能一覧が実在する場合のみ
   sed -n '/<script type="application\/json" id="unit-manifest">/,/<\/script>/p' <テーブル一覧.html> | sed '1d;$d' > table-manifest.json
   sed -n '/<script type="application\/json" id="unit-manifest">/,/<\/script>/p' <機能一覧.html> | sed '1d;$d' > feature-manifest.json
   ```
 
-  画面一覧のみ埋め込みID が `screen-manifest`（`build-screen-list.sh` 固有仕様）。それ以外（API・テーブル・機能）は共通の `unit-manifest`。完了条件: 実在するHTMLすべてから manifest JSON を抽出済み
+  画面manifestは正規配置から直接読み、rawの正規化SHA-256とextの`manifestContentHash`が一致することも検査する。それ以外（API・テーブル・機能）は共通の`unit-manifest`を抽出する。完了条件: raw・raw由来extのschemaとhashが検証済みで、他の実在するHTMLすべてからmanifest JSONを抽出済み
 
-- **Step 2** — 画面メタ拡張抽出を実行する。完了条件: 拡張画面マニフェストが生成済み
+- **Step 2** — 検証済みのraw由来拡張画面manifestをそのまま使用する。通常生成では画面一覧HTMLからrawを復元せず、拡張画面manifestも再抽出しない。完了条件: `screen_manifest_ext`が後続入力として確定済み
 
   ```bash
-  ../../../shared/scripts/extract/extract-screen-metadata.sh screen-manifest.json <target_repo_path> screen-manifest.ext.json --api-manifest api-manifest.json
+  test -f "$screen_manifest_ext"
   ```
 
 - **Step 3** — APIメタ拡張抽出を実行する。完了条件: 拡張APIマニフェストが生成済み
 
   ```bash
-  ../../../shared/scripts/extract/extract-api-metadata.sh api-manifest.json <target_repo_path> api-manifest.ext.json --screen-manifest screen-manifest.ext.json --table-manifest table-manifest.json
+  ../../../shared/scripts/extract/extract-api-metadata.sh api-manifest.json <target_repo_path> api-manifest.ext.json --screen-manifest "$screen_manifest_ext" --table-manifest table-manifest.json
   ```
 
   `--table-manifest` はテーブル一覧が実在する場合のみ付与する。
@@ -88,7 +91,7 @@ allowed-tools: [Bash, Read, Write, Grep, Glob, AskUserQuestion, TaskCreate, Task
 
   ```bash
   ../../../shared/scripts/extract/build-matrix-data.sh <output-dir> \
-    --screen-manifest screen-manifest.ext.json \
+    --screen-manifest "$screen_manifest_ext" \
     --api-manifest api-manifest.ext.json \
     [--table-manifest table-manifest.json] \
     [--feature-manifest feature-manifest.json]
@@ -129,14 +132,16 @@ allowed-tools: [Bash, Read, Write, Grep, Glob, AskUserQuestion, TaskCreate, Task
 - **Step 2** — `portal_output_dir` が指定されていればポータル再生成スクリプトを実行しカードへ反映する。未指定なら省略し完了報告に注記する。完了条件: 再実行済み、または省略を注記済み
 
   ```bash
-  ../../../shared/scripts/build-portal.sh <target_repo_path> <output_dir> <portal_output_dir>
+  ../../../shared/scripts/build-portal.sh <target_repo_path> <output_dir> <portal_output_dir> \
+    --screen-manifest "$screen_manifest_ext" \
+    [--sites <sites_path> --site-key <site_key>]
   ```
 
 ## 完了条件
 
 | Phase | 完了条件 |
 |---|---|
-| Phase 1 | 画面一覧.html・API一覧.html の実在確認済み（不在時は停止）。テーブル一覧.html・機能一覧.html の実在有無が確定済み |
+| Phase 1 | raw画面正本・raw由来ext・API一覧.htmlの実在確認済み（不在時は停止）。テーブル一覧.html・機能一覧.htmlの実在有無が確定済み |
 | Phase 2 | 拡張画面/APIマニフェストが生成され、`permission-matrix.json`・`crud-matrix.json`・`traceability.json` が生成済み |
 | Phase 3 | `ai-assets-data.json` が生成済み |
 | Phase 4 | 全5ページ（permission-screen / permission-function / crud / traceability / ai-assets）が固定パスに出力され、指定時は `build-portal.sh` の再実行が完了している |

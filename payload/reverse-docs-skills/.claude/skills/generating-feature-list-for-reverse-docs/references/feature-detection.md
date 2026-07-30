@@ -14,7 +14,7 @@ generating-feature-list-for-reverse-docs の Phase 1〜3 が従うグルーピ�
 
 | 入力 | 必須/任意 | 取得方法 |
 |---|---|---|
-| 画面一覧マニフェスト | 必須 | `<output_dir>/画面一覧/画面一覧.html` 内の `<script type="application/json" id="screen-manifest">` から抽出。不在なら ERROR で停止する |
+| raw画面正本 | 必須 | `<output_dir>/一覧/画面一覧/screen-manifest.json`を直接入力にする。不在ならERRORで停止する。画面一覧HTMLからの逆抽出は旧成果物の移行・復元時だけとする |
 | API一覧・テーブル一覧・バッチ一覧・帳票一覧・外部連携一覧の各マニフェスト | 任意 | 各一覧HTML内の `<script type="application/json" id="unit-manifest">` から抽出。`<output_dir>` 配下に実在するものすべてを機械的に列挙して入力とする（ユーザー指示は不要） |
 | コード構造 | 必須 | `source_dir` からルート定義・ナビメニュー・バックエンドルーターの prefix/tags・ディレクトリ構造を Grep/Read で特定する |
 
@@ -105,7 +105,7 @@ validate-manifest.sh の非screen汎用分岐（`units`/`unitKey`/`identifier`/`
     "extractionMethod": "custom",
     "unitIdRegex": "^[a-z0-9-]+$",
     "approvedByUser": true,
-    "inputManifests": ["<output_dir>/画面一覧/画面一覧.html"],
+    "inputManifests": ["<output_dir>/一覧/画面一覧/screen-manifest.json"],
     "groupingSignals": ["route-prefix", "api-prefix", "nav-menu", "directory"],
     "excludePatterns": []
   },

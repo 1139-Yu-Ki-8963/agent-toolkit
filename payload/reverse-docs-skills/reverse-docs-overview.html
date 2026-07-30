@@ -246,27 +246,27 @@
 │   │   ├── 環境構築手順.html
 │   │   ├── 用語辞書.html
 │   │   └── リリースノート.html
-│   ├── 規約/                                  # docs/rules/を日本語の分類名・ページ名でレンダリング
-│   │   ├── AIエージェント運用/
-│   │   ├── 安全な操作/
-│   │   ├── 開発フロー/
-│   │   ├── ツール・コマンド実行/
-│   │   ├── 開発環境/
-│   │   ├── コミュニケーション/
-│   │   ├── セッション管理/
-│   │   ├── AI設定資産管理/
-│   │   ├── Git運用/
-│   │   ├── 配置/
-│   │   ├── 命名規則/
-│   │   ├── アーキテクチャ/
-│   │   ├── コーディング/
-│   │   ├── テスト/
-│   │   ├── レビュー観点/
-│   │   ├── セキュリティ/
-│   │   ├── デリバリー/
-│   │   ├── ドキュメント/
-│   │   ├── ポータル/
-│   │   └── 定型運用/
+│   ├── 規約/                                  # docs/rules/を日本語の分類名・ページ名でレンダリングしたHTMLファイル
+│   │   ├── AIエージェント運用.html
+│   │   ├── 安全な操作.html
+│   │   ├── セッション管理.html
+│   │   ├── AI設定資産管理.html
+│   │   ├── 定型運用.html
+│   │   ├── 開発フロー.html
+│   │   ├── ツール・コマンド実行.html
+│   │   ├── 開発環境.html
+│   │   ├── Git運用.html
+│   │   ├── デリバリー.html
+│   │   ├── コーディング規約.html
+│   │   ├── 命名規約.html
+│   │   ├── ディレクトリ構成規約.html
+│   │   ├── コンポーネント設計規約.html
+│   │   ├── テスト方針書.html
+│   │   ├── レビュー観点表.html
+│   │   ├── セキュリティ.html
+│   │   ├── ドキュメント.html
+│   │   ├── ポータル.html
+│   │   └── コミュニケーション.html
 │   ├── プロジェクト共通/
 │   │   ├── 共通設計書.html
 │   │   ├── メッセージ定義書.html
@@ -337,12 +337,26 @@
     <tr><td>基盤情報</td><td>用語辞書</td><td><code>project-portal/用語辞書.html</code></td><td><span class="tag reverse">実在語のみ記入</span><br><span class="tag template">定義不明はテンプレート</span></td><td>識別子、画面ラベル、メッセージ、既存文書に現れる語だけ。業務定義や略語の意味を推測しない。</td></tr>
     <tr><td>基盤情報</td><td>リリースノート</td><td><code>project-portal/リリースノート.html</code></td><td><span class="tag reverse">履歴がある場合のみ</span><br><span class="tag template">履歴なしはテンプレート</span></td><td>Git履歴、タグ、CHANGELOG、リリース記録など実在する変更証跡だけ。</td></tr>
     <tr><th colspan="5">共通 — 規約</th></tr>
-    <tr><td>規約</td><td>コーディング規約</td><td><code>project-portal/プロジェクト共通/コーディング規約.html</code><br><code>docs/rules/coding/&lt;scope&gt;/rule.md</code></td><td><span class="tag reverse">観測事実のみ</span><br><span class="tag template">規範はテンプレート</span></td><td>実装例と明示された規約だけ。コードから「〜すべき」を作らない。</td></tr>
-    <tr><td>規約</td><td>命名規約</td><td><code>project-portal/プロジェクト共通/命名規約.html</code><br><code>docs/rules/naming/</code></td><td><span class="tag reverse">観測事実のみ</span><br><span class="tag template">規範はテンプレート</span></td><td>実在する名前とパターンだけ。</td></tr>
-    <tr><td>規約</td><td>ディレクトリ構成規約</td><td><code>project-portal/プロジェクト共通/ディレクトリ構成規約.html</code><br><code>docs/rules/placement/</code></td><td><span class="tag reverse">観測事実のみ</span><br><span class="tag template">規範はテンプレート</span></td><td>実在するディレクトリ構成・配置例だけ。</td></tr>
-    <tr><td>規約</td><td>コンポーネント設計規約</td><td><code>project-portal/プロジェクト共通/コンポーネント設計規約.html</code><br><code>docs/rules/architecture/</code></td><td><span class="tag reverse">観測事実のみ</span><br><span class="tag template">規範はテンプレート</span></td><td>実装パターンだけ。設計意図を推測しない。</td></tr>
-    <tr><td>規約</td><td>レビュー観点表</td><td><code>project-portal/プロジェクト共通/レビュー観点表.html</code><br><code>docs/rules/review/</code></td><td><span class="tag template">テンプレートのみ</span></td><td>明示されたレビュー規約・承認済み基準がある場合だけ記入する。</td></tr>
-    <tr><td>規約</td><td>テスト方針書</td><td><code>project-portal/プロジェクト共通/テスト方針書.html</code><br><code>docs/rules/testing/</code></td><td><span class="tag template">テンプレートのみ</span></td><td>品質基準・カバレッジ・テスト方針はコードから確定しない。</td></tr>
+    <tr><td>規約</td><td>AIエージェント運用</td><td><code>project-portal/規約/AIエージェント運用.html</code></td><td><span class="tag template">テンプレートのみ</span></td><td>対応する英語カテゴリ名が未確定のため docs/rules のパスは空欄とする。明示された規約・運用文書・承認がない限り記入しない。</td></tr>
+    <tr><td>規約</td><td>安全な操作</td><td><code>project-portal/規約/安全な操作.html</code></td><td><span class="tag template">テンプレートのみ</span></td><td>対応する英語カテゴリ名が未確定のため docs/rules のパスは空欄とする。明示された規約・運用文書・承認がない限り記入しない。</td></tr>
+    <tr><td>規約</td><td>セッション管理</td><td><code>project-portal/規約/セッション管理.html</code></td><td><span class="tag template">テンプレートのみ</span></td><td>対応する英語カテゴリ名が未確定のため docs/rules のパスは空欄とする。明示された規約・運用文書・承認がない限り記入しない。</td></tr>
+    <tr><td>規約</td><td>AI設定資産管理</td><td><code>project-portal/規約/AI設定資産管理.html</code></td><td><span class="tag template">テンプレートのみ</span></td><td>対応する英語カテゴリ名が未確定のため docs/rules のパスは空欄とする。明示された規約・運用文書・承認がない限り記入しない。</td></tr>
+    <tr><td>規約</td><td>定型運用</td><td><code>project-portal/規約/定型運用.html</code></td><td><span class="tag template">テンプレートのみ</span></td><td>対応する英語カテゴリ名が未確定のため docs/rules のパスは空欄とする。明示された規約・運用文書・承認がない限り記入しない。</td></tr>
+    <tr><td>規約</td><td>開発フロー</td><td><code>project-portal/規約/開発フロー.html</code></td><td><span class="tag template">テンプレートのみ</span></td><td>対応する英語カテゴリ名が未確定のため docs/rules のパスは空欄とする。明示された規約・運用文書・承認がない限り記入しない。</td></tr>
+    <tr><td>規約</td><td>ツール・コマンド実行</td><td><code>project-portal/規約/ツール・コマンド実行.html</code></td><td><span class="tag template">テンプレートのみ</span></td><td>対応する英語カテゴリ名が未確定のため docs/rules のパスは空欄とする。明示された規約・運用文書・承認がない限り記入しない。</td></tr>
+    <tr><td>規約</td><td>開発環境</td><td><code>project-portal/規約/開発環境.html</code></td><td><span class="tag template">テンプレートのみ</span></td><td>対応する英語カテゴリ名が未確定のため docs/rules のパスは空欄とする。明示された規約・運用文書・承認がない限り記入しない。</td></tr>
+    <tr><td>規約</td><td>Git運用</td><td><code>project-portal/規約/Git運用.html</code></td><td><span class="tag template">テンプレートのみ</span></td><td>対応する英語カテゴリ名が未確定のため docs/rules のパスは空欄とする。明示された規約・運用文書・承認がない限り記入しない。</td></tr>
+    <tr><td>規約</td><td>デリバリー</td><td><code>project-portal/規約/デリバリー.html</code></td><td><span class="tag template">テンプレートのみ</span></td><td>対応する英語カテゴリ名が未確定のため docs/rules のパスは空欄とする。明示された規約・運用文書・承認がない限り記入しない。</td></tr>
+    <tr><td>規約</td><td>コーディング規約</td><td><code>project-portal/規約/コーディング規約.html</code><br><code>docs/rules/coding/&lt;scope&gt;/rule.md</code></td><td><span class="tag reverse">観測事実のみ</span><br><span class="tag template">規範はテンプレート</span></td><td>実装例と明示された規約だけ。コードから「〜すべき」を作らない。</td></tr>
+    <tr><td>規約</td><td>命名規約</td><td><code>project-portal/規約/命名規約.html</code><br><code>docs/rules/naming/</code></td><td><span class="tag reverse">観測事実のみ</span><br><span class="tag template">規範はテンプレート</span></td><td>実在する名前とパターンだけ。</td></tr>
+    <tr><td>規約</td><td>ディレクトリ構成規約</td><td><code>project-portal/規約/ディレクトリ構成規約.html</code><br><code>docs/rules/placement/</code></td><td><span class="tag reverse">観測事実のみ</span><br><span class="tag template">規範はテンプレート</span></td><td>実在するディレクトリ構成・配置例だけ。</td></tr>
+    <tr><td>規約</td><td>コンポーネント設計規約</td><td><code>project-portal/規約/コンポーネント設計規約.html</code><br><code>docs/rules/architecture/</code></td><td><span class="tag reverse">観測事実のみ</span><br><span class="tag template">規範はテンプレート</span></td><td>実装パターンだけ。設計意図を推測しない。</td></tr>
+    <tr><td>規約</td><td>テスト方針書</td><td><code>project-portal/規約/テスト方針書.html</code><br><code>docs/rules/testing/</code></td><td><span class="tag template">テンプレートのみ</span></td><td>品質基準・カバレッジ・テスト方針はコードから確定しない。</td></tr>
+    <tr><td>規約</td><td>レビュー観点表</td><td><code>project-portal/規約/レビュー観点表.html</code><br><code>docs/rules/review/</code></td><td><span class="tag template">テンプレートのみ</span></td><td>明示されたレビュー規約・承認済み基準がある場合だけ記入する。</td></tr>
+    <tr><td>規約</td><td>セキュリティ</td><td><code>project-portal/規約/セキュリティ.html</code></td><td><span class="tag template">テンプレートのみ</span></td><td>対応する英語カテゴリ名が未確定のため docs/rules のパスは空欄とする。明示された規約・運用文書・承認がない限り記入しない。</td></tr>
+    <tr><td>規約</td><td>ドキュメント</td><td><code>project-portal/規約/ドキュメント.html</code></td><td><span class="tag template">テンプレートのみ</span></td><td>対応する英語カテゴリ名が未確定のため docs/rules のパスは空欄とする。明示された規約・運用文書・承認がない限り記入しない。</td></tr>
+    <tr><td>規約</td><td>ポータル</td><td><code>project-portal/規約/ポータル.html</code></td><td><span class="tag template">テンプレートのみ</span></td><td>対応する英語カテゴリ名が未確定のため docs/rules のパスは空欄とする。明示された規約・運用文書・承認がない限り記入しない。</td></tr>
+    <tr><td>規約</td><td>コミュニケーション</td><td><code>project-portal/規約/コミュニケーション.html</code></td><td><span class="tag template">テンプレートのみ</span></td><td>対応する英語カテゴリ名が未確定のため docs/rules のパスは空欄とする。明示された規約・運用文書・承認がない限り記入しない。</td></tr>
     <tr><th colspan="5">共通 — 設計書</th></tr>
     <tr><td>設計書</td><td>基盤設計書</td><td><code>project-portal/プロジェクト共通/基盤設計.html</code></td><td><span class="tag reverse">実装構造のみ</span><br><span class="tag template">意図・要求はテンプレート</span></td><td>フレームワーク構成、ビルド、デプロイ、認証方式の実態だけ。</td></tr>
     <tr><td>設計書</td><td>共通設計書</td><td><code>project-portal/プロジェクト共通/共通設計書.html</code></td><td><span class="tag reverse">リバース記入</span></td><td>ログ、エラーコード、共通レスポンスなど実装に現れる共通構造だけ。</td></tr>
@@ -749,7 +763,7 @@
         </li>
         <li><span class="node dir">プロジェクト共通/</span>
           <ul>
-            <li><span class="node">規約/（コーディング・命名・ディレクトリ構成・コンポーネント設計・テスト方針・デザインガイド・フロー手順・自動化・文章品質の 9 種）</span><span class="by">generating-reverse-common-docs</span> <span class="tag done">済</span></li>
+            <li><span class="node">規約/（AIエージェント運用・安全な操作・セッション管理・AI設定資産管理・定型運用・開発フロー・ツール・コマンド実行・開発環境・Git運用・デリバリー・コーディング規約・命名規約・ディレクトリ構成規約・コンポーネント設計規約・テスト方針書・レビュー観点表・セキュリティ・ドキュメント・ポータル・コミュニケーションの 20 種。ツール・コマンド実行は 1 つのカテゴリ）</span><span class="by">generating-reverse-common-docs</span> <span class="tag done">済</span></li>
             <li><span class="node">共通設計書.md ・ メッセージ定義書.md ・ DESIGN.md</span><span class="by">generating-reverse-common-docs</span> <span class="tag done">済</span></li>
             <li><span class="node">アーキテクチャ調査書.md</span><span class="by">surveying-architecture-for-reverse-docs</span> <span class="tag done">済</span></li>
             <li><span class="node">基盤設計.md ・ UI共通設計.md ・ データ設計.md</span><span class="by">上位抽象化スキル（基本設計）</span> <span class="tag planned">段階計画 Cycle 4</span></li>

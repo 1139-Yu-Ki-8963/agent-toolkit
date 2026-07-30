@@ -177,7 +177,7 @@ Phase 1B（または Phase 3）で画面一覧HTMLが確立した後に、機能
 
 #### Step 1C-1: 機能一覧スキルを起動する
 
-`<output_dir>/一覧/画面一覧/画面一覧.html` が存在する場合のみ、Skill ツールで generating-feature-list-for-reverse-docs を source_dir・output_dir（・任意で survey_doc_path）で起動する。画面一覧が存在しない場合は本 Phase をスキップする（画面一覧の確立後に再実行する）。
+`<output_dir>/一覧/画面一覧/screen-manifest.json`が存在する場合のみ、Skillツールでgenerating-feature-list-for-reverse-docsをsource_dir・output_dir（・任意でsurvey_doc_path）で起動する。raw画面正本が存在しない場合は本Phaseをスキップする（画面一覧の正本確立後に再実行する）。
 
 返却 status=DONE なら `一覧/機能一覧/機能一覧.html` の実在を確認して次工程へ進む。status=ERROR なら hint を確認しユーザーに報告する。
 
@@ -193,7 +193,7 @@ Phase 1C（機能一覧生成・派生一覧）が完了した後に、マトリ
 
 #### Step 1D-1: マトリクス・対応表生成スキルを起動する
 
-`<output_dir>/一覧/画面一覧/画面一覧.html` と `<output_dir>/一覧/API一覧/API一覧.html` の両方が存在する場合のみ、Skill ツールで generating-cross-views-for-reverse-docs を target_repo_path・output_dir（・任意で portal_output_dir）で起動する。いずれか不在の場合は本 Phase をスキップする（両一覧の確立後に再実行する）。
+`<output_dir>/一覧/画面一覧/screen-manifest.json`、同`screen-manifest.ext.json`、`<output_dir>/一覧/API一覧/API一覧.html`がすべて存在する場合のみ、Skillツールでgenerating-cross-views-for-reverse-docsをtarget_repo_path・output_dir（・任意でportal_output_dir・sites_path・site_key）で起動する。いずれか不在の場合は本Phaseをスキップする（raw・raw由来ext・API一覧の確立後に再実行する）。
 
 返却 status=DONE なら生成済みページ（generated_pages）を確認して次工程へ進む。status=STOPPED/ERROR なら hint を確認しユーザーに報告する。permission-function（権限機能マトリクス）はデータ形状ギャップにより未生成のまま skipped_pages に記録される場合があるが、これは既知の制約でありエラー扱いしない（詳細は generating-cross-views-for-reverse-docs/SKILL.md の「予想を裏切る挙動」参照）。
 
@@ -228,7 +228,7 @@ bash shared/scripts/build-portal.sh \
 ```
 
 ポータルは納品物ルート（output_dir）直下の `index.html` として出力する（正本レイアウト。`references/contract.md` の「納品物ルート（output_dir）の正本レイアウト」参照）。
-カテゴリ、カード、探索条件、件数単位は`shared/references/portal-catalog.json`から導出する。カテゴリや成果物種別を追加する場合は、`build-portal.sh`へ分岐を足さずcatalogへblueprintを登録する。画面manifestから派生物を一括再生成する工程では、同じcatalogに加えて`--portal-only`、`--generated-at`、`--screen-manifest`を渡し、既存成果物を再変換せず`index.html`だけを更新する。
+カテゴリ、カード、探索条件、件数単位は`shared/references/portal-catalog.json`から導出する。カテゴリや成果物種別を追加する場合は、`build-portal.sh`へ分岐を足さずcatalogへblueprintを登録する。画面manifestから派生物を一括再生成する工程では、同じcatalogに加えて`--portal-only`、`--generated-at`、`--screen-manifest`を渡し、複数サイトでは`--sites`・`--site-key`も保持して、既存成果物を再変換せず`index.html`だけを更新する。
 
 **完了**: `<output_dir>/index.html` が存在する。
 
@@ -242,7 +242,7 @@ bash shared/scripts/build-portal.sh \
 
 - generating-tech-stack-for-reverse-docs（アーキテクチャ調査書 §2 が確定済みのとき）
 - generating-env-guide-for-reverse-docs（アーキテクチャ調査書 §3 が確定済みのとき）
-- generating-screen-transition-for-reverse-docs（画面一覧.html が確定済みのとき）
+- generating-screen-transition-for-reverse-docs（raw画面正本とraw由来extが確定済みのとき）
 - generating-er-diagram-for-reverse-docs（テーブル一覧.html が確定済みのとき）
 - generating-glossary-for-reverse-docs（プロジェクト共通文書とアーキテクチャ調査書が確定済みのとき。二段承認を伴う）
 
@@ -293,7 +293,7 @@ preflight では上表の16状態を確認する。事実封印後、状態10よ
 
 任意状態は、データ源不足によるスキップ理由が記録済みなら次の状態へ進む。11の確認で facts・基本設計・詳細設計がすべて完成した直後の場合を扱う。`verification_mode=docs-only` なら画面レジストリの `verification_url` の有無を見ずに「静的リバース完了」で終端する。この場合は12〜16を実行対象として判定せず、Phase 5・Phase 6の動的部分・Phase 7〜11のタスクも作成しない。`single-pass|iterative` の場合だけ12以降を確認する。
 
-状態判定の冒頭で対象画面IDの実在を検証する。実在確認は画面一覧のマニフェスト（`<docs>/一覧/画面一覧/画面一覧.html` 内の embedded JSON の `screens[]` 配列）に対して行う。一覧外IDの場合は AskUserQuestion で対応を確認する。選択肢は (a) 一覧へ kind=`unrouted` として追記してから工程を継続するか、(b) エラー終端するかの2択（headless=true 時は (a) を自動選択する）。画面レジストリの `verification_url` が未実施・エラーページ・プレースホルダの場合でも、facts 抽出・基本設計・詳細設計は続行する。実レンダリング確認済みURLは動的検証へ移る時点でのみ必須とする。状態判定完了後、残り全工程を Step 単位で一括 TaskCreate する（マニフェスト先出し方式）。対象画面数×工程で展開する（フォーマットは後述「タスク一覧フォーマット」節を参照）。各工程の実行開始時に該当タスクを TaskUpdate(in_progress) に更新し、完了時に TaskUpdate(completed) に更新する。
+状態判定の冒頭で対象画面IDの実在を検証する。実在確認は永続raw正本（`<docs>/一覧/画面一覧/screen-manifest.json` の `screens[]` 配列）に対して行う。一覧外IDの場合は AskUserQuestion で対応を確認する。選択肢は (a) 一覧へ `kind=route`・`route=""` として追記し、route空の未解決画面として工程を継続するか、(b) エラー終端するかの2択（headless=true 時は (a) を自動選択する）。画面レジストリの `verification_url` が未実施・エラーページ・プレースホルダの場合でも、facts 抽出・基本設計・詳細設計は続行する。実レンダリング確認済みURLは動的検証へ移る時点でのみ必須とする。状態判定完了後、残り全工程を Step 単位で一括 TaskCreate する（マニフェスト先出し方式）。対象画面数×工程で展開する（フォーマットは後述「タスク一覧フォーマット」節を参照）。各工程の実行開始時に該当タスクを TaskUpdate(in_progress) に更新し、完了時に TaskUpdate(completed) に更新する。
 
 完了条件: 状態キー（16状態のいずれか）、または `docs-only` の静的リバース完了が確定し、実行対象に限った残り全工程のタスク一覧が TaskCreate で一括登録済み
 
@@ -312,7 +312,7 @@ Bash で `<verification_dir>/progress.jsonl` に phase="Phase 3" status="started
 3. `unit_kinds_present` に含まれる各種別について、`一覧/<種別ラベル>一覧/<種別ラベル>一覧.html` の実在を確認する
 4. 不在の種別ごとに、対応する種別別一覧スキル generating-<種別>-list-for-reverse-docs（例: screen なら generating-screen-list-for-reverse-docs）を Skill で `source_dir`・`output_dir` 指定で起動する（種別はスキル名に固定されるため unit_kind 引数は渡さない）。画面については永続正本を`screen_manifest_path=<output_dir>/一覧/画面一覧/screen-manifest.json`、`screen_manifest_ext_path=<output_dir>/一覧/画面一覧/screen-manifest.ext.json`に固定し、検出直後の生マニフェストとメタデータ付与後マニフェストをそれぞれ原子的に保存する
 5. 返却 status=DONE なら次の種別へ進む。status=ERROR なら hint を確認しユーザーに報告する
-6. 画面一覧HTMLが既に存在する再開実行では、上記の永続screen_manifest_pathが無ければ`bash shared/scripts/unit-list/restore-screen-manifest.sh <output_dir>/一覧/画面一覧/画面一覧.html <screen_manifest_path>`を必ず実行して埋込`#screen-manifest`から復元する。続いてextract-screen-metadata.shでscreen_manifest_ext_pathを再生成する。復元・validate-manifest.sh・メタデータ付与のいずれかが失敗した場合は静的著述へ進まない
+6. 通常の再開実行は永続screen_manifest_pathを直接入力にする。旧成果物の明示的な移行・復元を行う場合に限り、画面一覧HTMLが存在して永続screen_manifest_pathが無ければ`bash shared/scripts/unit-list/restore-screen-manifest.sh <output_dir>/一覧/画面一覧/画面一覧.html <screen_manifest_path>`を実行して埋込`#screen-manifest`から一度だけ復元する。続いてvalidate-manifest.shを通し、固定したgenerated_atとrawの正規化SHA-256を`--generated-at`・`--manifest-content-hash`へ渡してextract-screen-metadata.shでscreen_manifest_ext_pathを再生成する。復元・検証・メタデータ付与・hash一致のいずれかが失敗した場合は通常工程へ合流しない
 7. 全種別の一覧が揃ったら（生成済みまたは対象外）、Phase 1C（機能一覧生成・派生一覧）を実行し、続けて Phase 1D（マトリクス・対応表生成・派生補完）を実行してから Phase 4 へ進む
 
 一覧生成は全種別について成果物を出す。`unit_kinds_present` に含まれる種別（present）は一覧HTMLを、含まれない種別は `<種別>一覧（該当なし）.md` を必ず生成する（成果物の実在有無だけで「対象外」の判定を後から復元できるようにするため）。
@@ -361,7 +361,9 @@ Bash で `<verification_dir>/progress.jsonl` に phase="Phase 6" status="started
 合流条件: standard は基本設計著述完了と AUTHORED、large-two-pass は DETAIL_AUTHORED・基本設計著述完了・COMPANION_AUTHOREDをすべて受領した後に、下記「静的完了ゲート」を評価する
 片方失敗時: 失敗側のみ再起動する（成功側の待機は不要）。基本設計著述失敗 / BLOCKED の場合は hint を確認しユーザーに報告する
 
-**静的完了ゲート**: facts・基本設計・詳細設計が完成したら、管理者が両著述スキルの完了statusを検収する。続いて、永続`screen_manifest_path=<output_dir>/一覧/画面一覧/screen-manifest.json`を解決する。不在なら`restore-screen-manifest.sh`で既存画面一覧HTMLの埋込manifestから復元し、validate-manifest.sh通過を確認する。そこから`extract-screen-metadata.sh <screen_manifest_path> <source_dir> <screen_manifest_ext_path> --design-docs-dir <output_dir>/画面 --link-base-dir <output_dir>/一覧/画面一覧`を再実行し、`build-unit-list.sh <screen_manifest_ext_path> <output_dir>/一覧/画面一覧/画面一覧.html --unit-kind screen --portal-dir <output_dir>`で画面一覧を必ず再生成する。復元・検証・再生成のいずれかが失敗した場合は静的完了を宣言しない。再生成後、当該画面の実在成果物だけに4リンクが付与され、確定画面名がある場合は`confirmedScreenName`が表示源へ反映され、マニフェスト登録件数と表行数が一致することを検収する。この後でのみ画面レジストリの当該エントリを作成または更新して`status=authored`とする。その後にURLの有無にかかわらず`verification_mode`を評価する。`docs-only`は「静的リバース完了」として直ちに終端し、(a)・Phase 5・(d)・Phase 7〜11をすべてスキップする。`single-pass|iterative`だけ(a)へ進む。
+**静的完了ゲート**: facts・基本設計・詳細設計が完成したら、管理者が両著述スキルの完了statusを検収する。続いて、永続`screen_manifest_path=<output_dir>/一覧/画面一覧/screen-manifest.json`を直接解決し、validate-manifest.sh通過を確認する。旧成果物の明示的な移行・復元でscreen_manifest_pathを作成する場合だけ、Phase 3 Step 6 の復元経路を先に完了させる。正本rawから`extract-screen-metadata.sh <screen_manifest_path> <source_dir> <screen_manifest_ext_path> --design-docs-dir <output_dir>/画面 --link-base-dir <output_dir>/一覧/画面一覧`を再実行し、`build-unit-list.sh <screen_manifest_ext_path> <output_dir>/一覧/画面一覧/画面一覧.html --unit-kind screen --portal-dir <output_dir>`で画面一覧を必ず再生成する。raw検証・メタデータ付与・再生成のいずれかが失敗した場合は静的完了を宣言しない。再生成後、当該画面の実在成果物だけに4リンクが付与され、確定画面名がある場合は`confirmedScreenName`が表示源へ反映され、マニフェスト登録件数と表行数が一致することを検収する。この後でのみ画面レジストリの当該エントリを作成または更新して`status=authored`とする。その後にURLの有無にかかわらず`verification_mode`を評価する。`docs-only`は「静的リバース完了」として直ちに終端し、(a)・Phase 5・(d)・Phase 7〜11をすべてスキップする。`single-pass|iterative`だけ(a)へ進む。
+
+上記`extract-screen-metadata.sh`再実行時は、固定したgenerated_atとrawの正規化SHA-256をそれぞれ`--generated-at`・`--manifest-content-hash`へ必ず渡し、extの`manifestContentHash`一致も静的完了条件に含める。
 
 **(a) 静的著述後に画面未開通の場合**: 実レンダリング確認済みURLが無い場合、Skill で ⑤unlocking-reverse-target-screens を `invocation_mode=dynamic-only`・system・screen_id・reverse_worktree・ports・output_dir・user-approved で起動する。返却 `status=UNLOCKED` かつ設計書 frontmatter の実測項目補完済みを確認する。既に実レンダリング確認済みURLがあり frontmatter の実測項目も確定済みなら本工程をスキップする。`dynamic-only` は基準確立を行わない。status=BLOCKED / ERROR の場合は静的成果物を保持し「静的リバース完了・動的検証保留」として報告する。開通済みまたは本工程完了後に Phase 5 の setup を実行し、env_block 確定後に (d) へ戻る。
 
@@ -491,7 +493,7 @@ feature（機能一覧）は派生一覧であり、実在判定（unit_kinds_pr
 | Phase 2（アーキ未調査時） | surveying-architecture-for-reverse-docs | target_repo_path, output_dir, template_root, mode | 調査確定 |
 | Phase 3（一覧未生成時） | generating-<種別>-list-for-reverse-docs（不在種別ごとに対応スキル） | source_dir, output_dir | DONE |
 | Phase 1C（画面一覧確立後） | generating-feature-list-for-reverse-docs | source_dir, output_dir | DONE |
-| Phase 1D（機能一覧確立後） | generating-cross-views-for-reverse-docs | target_repo_path, output_dir, portal_output_dir（任意） | DONE |
+| Phase 1D（機能一覧確立後） | generating-cross-views-for-reverse-docs | target_repo_path, output_dir, portal_output_dir（任意）, sites_path（任意）, site_key（任意） | DONE |
 | Phase 4（共通未採録時） | generating-reverse-common-docs | target_repo_path, output_dir, template_root, survey_doc_path, mode | 採録v0確定 |
 | Phase 5 | syncing-reverse-env | design-doc, mode=setup | PASS（env_block抽出） |
 | Phase 6（静的著述後の画面未開通時） | unlocking-reverse-target-screens | invocation_mode=dynamic-only, system, screen_id, reverse_worktree, ports, output_dir, user-approved | UNLOCKED |

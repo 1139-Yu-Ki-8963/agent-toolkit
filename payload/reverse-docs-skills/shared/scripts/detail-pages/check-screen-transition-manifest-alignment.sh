@@ -1,0 +1,71 @@
+#!/usr/bin/env bash
+# raw、raw由来ext、画面遷移page-dataの件数・ラベル・hash整合を検査する。
+set -euo pipefail
+
+usage="Usage: check-screen-transition-manifest-alignment.sh --raw-manifest <screen-manifest.json> --ext-manifest <screen-manifest.ext.json> --page-data <画面遷移図-data.json>"
+raw=""; ext=""; page=""
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --raw-manifest) raw="${2:-}"; shift 2 ;;
+    --ext-manifest) ext="${2:-}"; shift 2 ;;
+    --page-data) page="${2:-}"; shift 2 ;;
+    *) echo "$usage" >&2; exit 1 ;;
+  esac
+done
+[ -f "$raw" ] && [ -f "$ext" ] && [ -f "$page" ] \
+  && jq empty "$raw" "$ext" "$page" >/dev/null 2>&1 \
+  || { echo "$usage" >&2; exit 1; }
+jq -e 'has("manifestContentHash") | not' "$raw" >/dev/null \
+  || { echo "ERROR: raw manifest must not contain manifestContentHash" >&2; exit 1; }
+
+canonical="$(jq -cjS . "$raw")"
+if command -v shasum >/dev/null 2>&1; then
+  expected="$(printf '%s' "$canonical" | shasum -a 256 | awk '{print $1}')"
+else
+  expected="$(printf '%s' "$canonical" | sha256sum | awk '{print $1}')"
+fi
+
+jq -e -n \
+  --arg expected "$expected" \
+  --slurpfile raw "$raw" \
+  --slurpfile ext "$ext" \
+  --slurpfile page "$page" '
+  def effective_label: (.confirmedScreenName // .screenNameGuess // .screenKey);
+  def applicable: [
+    .screens[]
+    | select(
+        ((.kind == "route" or .kind == "embedded-view") and ((.route // "") | length) > 0)
+        or ((.route // "") | length) == 0
+      )
+  ];
+  def strip_ext_fields:
+    del(.generatedAt,.manifestContentHash)
+    | .screens = [(.screens // [])[] | del(
+        .category,.permissions,.relatedApis,.designDocStatus,.confirmedScreenName,
+        .designDocPath,.detailDocPath,.sequencePath,.testCasePath,.sourceHash,
+        .designDocSourceHash
+      )];
+  ($raw[0] | applicable) as $raw_screens
+  | ($ext[0] | applicable) as $ext_screens
+  | ($page[0].nodes // []) as $nodes
+  | ($page[0].unresolved // [] | map(select(.reason == "routeが空文字列のため遷移解決不能"))) as $route_empty
+  | (($ext[0].manifestContentHash // "") == $expected)
+    and (($page[0].manifestContentHash // "") == $expected)
+    and (($raw[0] | strip_ext_fields) == ($ext[0] | strip_ext_fields))
+    and (($raw[0].screens | length) == ($raw_screens | length))
+    and (($raw_screens | length) == (($nodes | length) + ($route_empty | length)))
+    and (all($nodes[];
+      . as $node
+      | any($ext_screens[];
+          .screenKey == $node.unitKey
+          and ((.route // "") | length) > 0
+          and effective_label == $node.label
+        )
+    ))
+    and (([$ext_screens[] | select(((.route // "") | length) == 0) | effective_label] | sort)
+      == ([$route_empty[].label] | sort))
+    and (([$nodes[].unitKey] | unique | length) == ($nodes | length))
+' >/dev/null \
+  || { echo "ERROR: raw/ext/page-data hash, coverage, or label alignment failed" >&2; exit 1; }
+
+echo "PASS: raw=nodes+route-empty-unresolved; label differences=0; manifestContentHash=$expected"

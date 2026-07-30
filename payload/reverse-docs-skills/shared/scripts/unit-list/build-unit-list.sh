@@ -25,7 +25,7 @@
 #   }]
 # }
 #
-# 出力: <output-html-path> に単一ファイル自己完結のHTMLを書き出す。
+# 出力: <output-html-path> に単一HTMLを書き出す。外部依存はMaterial Symbols OutlinedのGoogle Fonts CDNだけを許可する。
 #   - kind=unresolved は「要手動確認」セクションの別テーブルへ(0件なら「なし」)
 #   - manifest.json の内容は <script type="application/json" id="unit-manifest"> にそのまま埋め込む
 
@@ -611,7 +611,7 @@ ${unresolved_rows}
 </table>
 EOF
 )"
-  unresolved_class="has-items"
+  unresolved_class="has-items pt-callout pt-callout--warning"
 fi
 
 # application/json のraw text要素では文字列中の </script> が要素を閉じるため、

@@ -266,6 +266,57 @@
 .pt-brand-name { font-size: 16px; font-weight: 700; letter-spacing: 0.5px; margin-top: 4px; line-height: 1.35; }
 .pt-brand-sub { font-family: var(--mono); font-size: 10.5px; color: var(--muted); margin-top: 5px; }
 
+/* サイト切替（モノレポ複数サイト時のみ JS が pt-brand-name を差し替える） */
+.pt-brand-switch { position: relative; }
+.pt-brand-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  margin-top: 4px;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  appearance: none;
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  line-height: 1.35;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+.pt-brand-toggle:hover { color: var(--accent); }
+.pt-brand-caret {
+  flex: none;
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 5px solid var(--text-muted);
+  transition: transform 0.12s;
+}
+.pt-brand-toggle[aria-expanded="true"] .pt-brand-caret { transform: rotate(180deg); }
+.pt-brand-list {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 100%;
+  margin-top: 8px;
+  border: 1.5px solid var(--border);
+  background: var(--panel-2);
+  z-index: 2;
+}
+.pt-brand-list-item {
+  display: block;
+  padding: 8px 12px;
+  font-size: 12px;
+  color: var(--text-sub);
+}
+a.pt-brand-list-item:hover { background: var(--panel3); color: var(--text); text-decoration: none; }
+.pt-brand-list-item.is-current { color: var(--text-muted); font-weight: 600; cursor: default; }
+
 .pt-nav { padding: 14px 12px; display: flex; flex-direction: column; gap: 2px; }
 .pt-nav-group { font-family: var(--mono); font-size: 9.5px; letter-spacing: 2px; color: var(--faint); padding: 14px 10px 5px; }
 .pt-nav-item {
@@ -355,6 +406,50 @@
 .pt-badge.is-stale { color: var(--stamp); background: var(--stamp-soft); }
 .pt-badge.is-todo { color: var(--muted); background: var(--neutral-soft); }
 .pt-count { font-family: var(--mono); font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+/* Google Fonts障害時も3段階アイコンを保つ、公式サブセットのローカルフォールバック */
+@font-face {
+  font-family: "Material Symbols Outlined Local";
+  font-style: normal;
+  font-weight: 400;
+  font-display: block;
+  src: url("data:font/ttf;base64,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") format("truetype");
+}
+
+/* 重要度コールアウト。見出しを先頭要素に置き、色帯とMaterial Symbolsを併用する */
+.pt-callout {
+  --callout-color: var(--accent);
+  --callout-soft: var(--accent-soft);
+  position: relative;
+  background: var(--callout-soft);
+  color: var(--text);
+  box-shadow: inset 5px 0 0 var(--callout-color);
+}
+.pt-callout__icon {
+  display: none;
+  margin-right: 0.55em;
+  color: var(--callout-color);
+  font-family: "Material Symbols Outlined", "Material Symbols Outlined Local";
+  font-size: 1.45em;
+  font-style: normal;
+  font-weight: 400;
+  font-variation-settings: "FILL" 0, "wght" 500, "GRAD" 0, "opsz" 24;
+  line-height: 1;
+  vertical-align: -0.12em;
+}
+.pt-callout > :first-child > .pt-callout__icon { display: inline-block; }
+.pt-callout--caution {
+  --callout-color: var(--accent);
+  --callout-soft: var(--accent-soft);
+}
+.pt-callout--warning {
+  --callout-color: var(--stamp);
+  --callout-soft: var(--stamp-soft);
+}
+.pt-callout--important {
+  --callout-color: var(--green);
+  --callout-soft: var(--green-soft);
+}
 
 /* 表 */
 .pt-tablewrap { flex: 0 1 auto; min-height: 0; overflow: auto; border: 1.5px solid var(--line2); background: var(--panel); }
@@ -458,8 +553,10 @@ tr:hover .copy-btn, .copy-btn:focus { opacity: 1; }
     <aside class="pt-sidebar" data-portal-href="../../index.html" data-active-category="cross">
   <div class="pt-brand">
     <div class="pt-brand-stamp">DESIGN PORTAL</div>
-    <div class="pt-brand-name">sample-project</div>
-    <div class="pt-brand-sub">設計台帳 · 全36資料</div>
+    <div class="pt-brand-switch" id="pt-brand-switch">
+      <div class="pt-brand-name"></div>
+    </div>
+    <div class="pt-brand-sub">設計台帳 · 全51資料</div>
   </div>
   <nav class="pt-nav" id="pt-nav" aria-label="資料カテゴリ"></nav>
   <button type="button" class="pt-theme" id="pt-theme-toggle">
@@ -467,7 +564,8 @@ tr:hover .copy-btn, .copy-btn:focus { opacity: 1; }
   </button>
   <div class="pt-sidebar-meta">更新 <span id="pt-sidebar-date">2026-07-28T00:00:00Z</span><span id="pt-meta-commit"><br>コミット </span></div>
 </aside>
-<script type="application/json" id="pt-nav-data">[{"key":"project","num":"01","label":"基盤情報","count":4},{"key":"standards","num":"02","label":"規約","count":6},{"key":"design","num":"03","label":"設計書","count":5},{"key":"list","num":"04","label":"一覧・設計図","count":13},{"key":"cross","num":"05","label":"マトリクス・対応表","count":4},{"key":"ai","num":"06","label":"AI設定資産","count":1},{"key":"design-tools","num":"07","label":"デザイン","count":3}]</script>
+<script type="application/json" id="pt-nav-data">[{"key":"project","num":"01","label":"基盤情報","count":5},{"key":"standards","num":"02","label":"規約","count":20},{"key":"design","num":"03","label":"設計書","count":5},{"key":"list","num":"04","label":"一覧・設計図","count":13},{"key":"cross","num":"05","label":"マトリクス・対応表","count":4},{"key":"ai","num":"06","label":"AI設定資産","count":1},{"key":"design-tools","num":"07","label":"デザイン","count":3}]</script>
+<script type="application/json" id="pt-sites-data">[]</script>
 <script>
 (function () {
   var root = document.documentElement;
@@ -571,6 +669,85 @@ tr:hover .copy-btn, .copy-btn:focus { opacity: 1; }
     nav.appendChild(item(portalHref + '#cat-' + c.key, c.num, c.label, c.count, active === c.key));
   });
 })();
+
+(function () {
+  var switchWrap = document.getElementById('pt-brand-switch');
+  var sitesEl = document.getElementById('pt-sites-data');
+  if (!switchWrap || !sitesEl) return;
+  var sites = [];
+  try { sites = JSON.parse(sitesEl.textContent) || []; } catch (e) { return; }
+  if (!Array.isArray(sites) || sites.length < 2) return;
+
+  var nameEl = switchWrap.querySelector('.pt-brand-name');
+  var label = nameEl ? nameEl.textContent : '';
+
+  var btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'pt-brand-toggle';
+  btn.id = 'pt-brand-toggle';
+  btn.setAttribute('aria-expanded', 'false');
+  btn.setAttribute('aria-controls', 'pt-brand-list');
+
+  var text = document.createElement('span');
+  text.className = 'pt-brand-toggle-label';
+  text.textContent = label;
+  btn.appendChild(text);
+
+  var caret = document.createElement('span');
+  caret.className = 'pt-brand-caret';
+  caret.setAttribute('aria-hidden', 'true');
+  btn.appendChild(caret);
+
+  if (nameEl) {
+    switchWrap.replaceChild(btn, nameEl);
+  } else {
+    switchWrap.appendChild(btn);
+  }
+
+  var list = document.createElement('div');
+  list.className = 'pt-brand-list';
+  list.id = 'pt-brand-list';
+  list.hidden = true;
+
+  sites.forEach(function (site) {
+    if (site.current) {
+      var current = document.createElement('div');
+      current.className = 'pt-brand-list-item is-current';
+      current.textContent = site.label;
+      list.appendChild(current);
+    } else {
+      var a = document.createElement('a');
+      a.className = 'pt-brand-list-item';
+      a.href = site.href;
+      a.textContent = site.label;
+      list.appendChild(a);
+    }
+  });
+
+  switchWrap.appendChild(list);
+
+  function close() {
+    btn.setAttribute('aria-expanded', 'false');
+    list.hidden = true;
+  }
+
+  btn.addEventListener('click', function () {
+    var expanded = btn.getAttribute('aria-expanded') === 'true';
+    if (expanded) {
+      close();
+    } else {
+      btn.setAttribute('aria-expanded', 'true');
+      list.hidden = false;
+    }
+  });
+
+  document.addEventListener('click', function (e) {
+    if (!switchWrap.contains(e.target)) close();
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') close();
+  });
+})();
 </script>
     <main class="pt-main is-fixed">
       <div class="pt-head">
@@ -605,7 +782,7 @@ tr:hover .copy-btn, .copy-btn:focus { opacity: 1; }
   </div>
   <footer class="pt-footer">
   <span class="pt-footer-stamp">REVERSE-DOCS REGISTER</span>
-  <span class="pt-footer-meta">sample-project · 更新 <span id="pt-footer-date">2026-07-28T00:00:00Z</span><span id="pt-footer-commit"> · コミット </span></span>
+  <span class="pt-footer-meta"> · 更新 <span id="pt-footer-date">2026-07-28T00:00:00Z</span><span id="pt-footer-commit"> · コミット </span></span>
   <span class="pt-footer-gen">生成: shared/scripts/matrix/build-matrix-pages.sh</span>
 </footer>
 </div>

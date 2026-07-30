@@ -38,7 +38,7 @@
 - status: `DONE | ERROR`
 - 拡張: unit_list_html（= artifacts[0]）、embedded_json_ref（HTML内埋め込みマニフェストJSONへの参照）、unit_kind（`feature` 固定）
 - 機能は既存一覧の派生グルーピング（派生一覧）であり、unit_kinds_present の存在判定対象外。excluded-kinds.json の allKinds にも含めない
-- 入力前提: `<output_dir>/一覧/画面一覧/画面一覧.html` が存在すること（不在時は status=ERROR で hint に前提スキルを記録して返す）
+- 入力前提: `<output_dir>/一覧/画面一覧/screen-manifest.json`が存在し、`validate-manifest.sh --unit-kind screen`を通過すること（不在・不合格時はstatus=ERRORでhintに前提スキルを記録して返す）
 
 ### generating-message-list-for-reverse-docs（メッセージ一覧・派生一覧）
 
@@ -59,7 +59,7 @@
 - status: `DONE | STOPPED | ERROR`
 - 拡張: artifacts（生成した各ページの絶対パス配列）、generated_pages（生成した page-type の配列。`permission-screen`/`permission-function`/`crud`/`traceability`/`ai-assets` の部分集合）、skipped_pages（未生成の page-type と理由の配列）、portal_rebuilt（真偽値。`portal_output_dir` 指定時に build-portal.sh を再実行したか）
 - マトリクス・対応表4ページ（権限画面マトリクス・権限機能マトリクス・CRUD図・追跡可能性）とAI設定資産ページは、機能一覧と同様に既存一覧の派生補完であり、unit_kinds_present の存在判定対象外。excluded-kinds.json の allKinds にも含めない
-- 入力前提: `<output_dir>/一覧/画面一覧/画面一覧.html` と `<output_dir>/一覧/API一覧/API一覧.html` の両方が存在すること（いずれか不在時は status=STOPPED で hint に前提スキルを記録して返す）
+- 入力前提: `<output_dir>/一覧/画面一覧/screen-manifest.json`・同`screen-manifest.ext.json`・`<output_dir>/一覧/API一覧/API一覧.html`が存在し、raw/extのschemaとhashが一致すること（いずれか不在・不合格時はstatus=STOPPEDでhintに前提スキルを記録して返す）
 - permission-function（権限機能マトリクス）は、導出エンジン（`shared/scripts/extract/build-matrix-data.sh`）の出力形状がテンプレート要求形状と一致しない既知の制約により、生成できない場合がある。その場合も status=DONE のまま skipped_pages に記録する（他4ページが1件以上生成できていれば ERROR にしない）
 
 ### generating-reverse-common-docs（プロジェクト共通採録）
@@ -140,7 +140,7 @@
 - surveying-architecture-for-reverse-docs: target_repo_path, output_dir, template_root, target_branch（任意）, source_ref（任意）, mode（`survey`|`revise`、既定 `survey`）, revise_findings（mode=revise 時のみ必須）
 - generating-<種別>-list-for-reverse-docs（種別別一覧スキル6つ共通）: source_dir, output_dir（unit_kind はスキル名で固定されるため引数に無い。管理者は output_dir に `<output_dir>` を渡す。一覧HTMLは `<output_dir>/一覧/<種別ラベル>一覧/<種別ラベル>一覧.html` に出力され、ポータル `<output_dir>/index.html` への戻るリンクが張られる）, survey_doc_path（任意。unit_kind=screen のみ、Phase 1 共有ファイル・エイリアス調査の裏取り元として使用。他種別は未使用）
 - generating-feature-list-for-reverse-docs: source_dir, output_dir（管理者は `<output_dir>` を渡す。出力は `<output_dir>/一覧/機能一覧/機能一覧.html`）, survey_doc_path（任意。ルート定義等の所在特定の参考）
-- generating-cross-views-for-reverse-docs: target_repo_path, output_dir, portal_output_dir（任意。指定時は生成後に build-portal.sh を再実行してカードへ反映する）
+- generating-cross-views-for-reverse-docs: target_repo_path, output_dir, portal_output_dir（任意。指定時は生成後に build-portal.sh を再実行してカードへ反映する）, sites_path（任意）, site_key（任意）
 - generating-reverse-common-docs: target_repo_path, output_dir, template_root, survey_doc_path, mode（`v0`|`append`、既定 `v0`）, append_findings（mode=append 時のみ必須）
 - syncing-reverse-env: design-doc, mode（setup|sync|teardown）, dry-run, reset-first, user-approved, scenarios, max-loop（既存契約のまま）
 - unlocking-reverse-target-screens: system, screen_id, reverse_worktree, ports, output_dir, user-approved, invocation_mode（`standalone|dynamic-only`、既定 `standalone`。統括の静的著述後経路は `dynamic-only`）
@@ -236,7 +236,7 @@ running-reverse-screen-batch の実行ログ（`log_path`）・failed リスト�
 
 成果物の実在から次工程を決める。16状態を漏れなく被覆する。
 
-状態判定の冒頭で、対象画面IDが画面一覧のマニフェスト（`<docs>/一覧/画面一覧/画面一覧.html` 内の embedded JSON の `screens[]` 配列）に存在することを検証する。一覧外IDの場合は (a) 一覧へ kind=`unrouted` として追記してから工程を継続するか (b) エラー終端するかを AskUserQuestion で確認する（headless=true 時は (a) を自動選択する）。
+状態判定の冒頭で、対象画面IDが永続raw正本（`<docs>/一覧/画面一覧/screen-manifest.json` の `screens[]` 配列）に存在することを検証する。一覧外IDの場合は (a) 一覧へ `kind=route`・`route=""` として追記し、route空の未解決画面として工程を継続するか (b) エラー終端するかを AskUserQuestion で確認する（headless=true 時は (a) を自動選択する）。
 
 | 状態キー | 実在判定 | 次に起動する子スキル | 渡す主要 args |
 |---|---|---|---|
@@ -245,7 +245,7 @@ running-reverse-screen-batch の実行ログ（`log_path`）・failed リスト�
 | 共通未採録 | プロジェクト共通の10文書（規約4種・共通設計書・メッセージ定義書・DESIGN.md・基盤設計.md・UI共通設計.md・データ設計.md）のいずれか不在、または `check-common-docs.sh` が exit 1 | generating-reverse-common-docs | target_repo_path, output_dir, template_root, survey_doc_path, mode（10文書が未採録なら v0。NG帰着(c)差し戻し時のみ append・append_findings必須）（期待返却 採録v0確定） |
 | ポータル未生成 | `<output_dir>/index.html` が不在 | bash shared/scripts/build-portal.sh | target_repo_path, output_dir, portal_output_dir（固定値: `<output_dir>`）。ポータルは納品物ルート（output_dir）直下の index.html として出力する。`<target_repo_path>/project-portal` 等の納品物ルート外への出力は定義レイアウト違反。複数サイトの場合、`<output_dir>` は当該サイトのサイトルートを指す |
 | サイト定義未生成 | サイトが2件以上あり `<納品ルート>/sites.json` が不在 | `sites.json` を書き出す（統括スキル自身が実行。子スキル起動なし） | site_key, sites_path（書き出し先。サイト一覧はアーキテクチャ調査書 §10 から転記する） |
-| 基盤ページ未生成（任意） | 用語辞書.html・技術スタック.html・画面遷移図.html・ER図.html・環境構築手順.html・リリースノート.html・デザインシステム.html・コンポーネント棚卸し.html・アイコンカタログ.html のいずれかが output_dir 直下に不在。データ源未整備時はスキップしてよい | generating-tech-stack-for-reverse-docs / generating-env-guide-for-reverse-docs / generating-screen-transition-for-reverse-docs / generating-er-diagram-for-reverse-docs / generating-glossary-for-reverse-docs / generating-release-notes-for-reverse-docs / generating-design-system-for-reverse-docs / generating-component-inventory-for-reverse-docs / generating-icon-catalog-for-reverse-docs（不在ページに対応するスキルのみ） | target_repo_path, output_dir, portal_output_dir（任意） |
+| 基盤ページ未生成（任意） | 用語辞書.html・技術スタック.html・画面遷移図.html・ER図.html・環境構築手順.html・リリースノート.html・デザインシステム.html・コンポーネント棚卸し.html・アイコンカタログ.html のいずれかが output_dir 直下に不在。データ源未整備時はスキップしてよい | generating-tech-stack-for-reverse-docs / generating-env-guide-for-reverse-docs / generating-screen-transition-for-reverse-docs / generating-er-diagram-for-reverse-docs / generating-glossary-for-reverse-docs / generating-release-notes-for-reverse-docs / generating-design-system-for-reverse-docs / generating-component-inventory-for-reverse-docs / generating-icon-catalog-for-reverse-docs（不在ページに対応するスキルのみ） | target_repo_path, output_dir, portal_output_dir（任意）, sites_path（任意）, site_key（任意） |
 | 状態遷移図未生成（任意） | 状態遷移図.html が output_dir 直下に不在。データ源未整備時はスキップしてよい | generating-entity-state-for-reverse-docs | target_repo_path, output_dir, portal_output_dir（任意） |
 | シーケンス図未生成（任意） | 画面フォルダのシーケンス図.html が不在。データ源未整備時はスキップしてよい | generating-sequence-diagram-for-reverse-docs | target_repo_path, output_dir, screen_id, portal_output_dir（任意） |
 | 事実未封印 | `<verification_dir>/screen-<画面ID>/facts/*/facts.lock`が不在、または`seal-facts.sh verify`がexit 1 | extracting-unit-facts-from-code | target_repo_path, target_file_paths, screen_dir, verification_dir, profile=screen, survey_doc_path, run_id（期待返却 封印済み）。pythonは本状態表へ入る前のfacts-only入口で終端する |
@@ -337,9 +337,11 @@ Phase 6 は `target_file_paths` の合計行数・ファイル数を実測する
 
 大規模ユニットでは状態判定の「基本設計未著述」をパス1完了まで保留し、「設計書未著述」を先に解消する。パス1未完了でパス2を開始した場合は契約違反として fail-closed に停止する。基本設計書は完成済み詳細設計書を内容の出典にはせず、パス2開始の完了証跡・整合対象として扱い、本文の出典は封印済み facts と共通文書に限定する。(d) rebuilding-screen-unit-from-docs の `status=差し戻し` は `verification_mode=iterative` の場合だけ詳細設計へ戻す（基本設計への差し戻しは発生しない）。
 
-画面manifestの永続パスは`screen_manifest_path=<output_dir>/一覧/画面一覧/screen-manifest.json`、`screen_manifest_ext_path=<output_dir>/一覧/画面一覧/screen-manifest.ext.json`に固定する。新規一覧生成時は生manifestと拡張manifestをそれぞれ原子的に保存する。既存一覧からの再開時にscreen_manifest_pathが無ければ、`restore-screen-manifest.sh`で画面一覧HTMLの`<script type="application/json" id="screen-manifest">`から復元し、validate-manifest.shを通してからextract-screen-metadata.shでscreen_manifest_ext_pathを再生成する。復元・検証に失敗した場合は著述または静的完了へ進まない。
+画面manifestの永続パスは`screen_manifest_path=<output_dir>/一覧/画面一覧/screen-manifest.json`、`screen_manifest_ext_path=<output_dir>/一覧/画面一覧/screen-manifest.ext.json`に固定する。複数サイトでは`output_dir`を当該サイトのサイトルートとして同じ相対配置を適用する。新規一覧生成時は生manifestと拡張manifestをそれぞれ原子的に保存し、通常の再開はscreen_manifest_pathを直接入力にする。旧成果物の明示的な移行・復元時に限り、screen_manifest_pathが無ければ`restore-screen-manifest.sh`で画面一覧HTMLの`<script type="application/json" id="screen-manifest">`から一度だけ復元し、validate-manifest.shを通してからextract-screen-metadata.shでscreen_manifest_ext_pathを再生成する。復元・検証に失敗した場合は著述または静的完了へ進まない。
 
 著述の合流条件を満たした直後、静的完了を宣言する前に画面一覧を再生成する。管理者は上記の永続screen_manifest_pathを必ず解決し、extract-screen-metadata.shを`--design-docs-dir <output_dir>/画面 --link-base-dir <output_dir>/一覧/画面一覧`付きで再実行してscreen_manifest_ext_pathを更新する。続いてbuild-unit-list.shを同じ拡張マニフェスト、`--unit-kind screen --portal-dir <output_dir>`で実行する。当該画面の実在成果物だけに4リンクが付き、確定名がある場合は`confirmedScreenName`が反映され、登録件数と表行数が一致することを検収してからレジストリを`authored`へ更新する。この復元・再生成を省略した状態は`docs-only`を含め静的完了ではない。
+
+新規生成・移行復元・静的完了前の再生成のすべてで、extract-screen-metadata.shには固定したgenerated_atとrawの正規化SHA-256を`--generated-at`・`--manifest-content-hash`として渡す。extの`manifestContentHash`がrawの再計算値と一致しなければ後続へ進まない。
 
 ## 画面完了の定義
 

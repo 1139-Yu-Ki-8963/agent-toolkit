@@ -1087,26 +1087,62 @@ TEST17DCATALOG
   fi
   rm -rf "$test17d_dir"
 
-  echo "--- ケース18: 規約一式の正規配置をstandardsカテゴリへ反映する ---"
+  echo "--- ケース18: 規約20種の正規配置をstandardsカテゴリへ反映する ---"
   test18_dir="$(mktemp -d)"
   test18_repo="$test18_dir/repo"
   test18_docs="$test18_dir/docs"
   test18_portal="$test18_dir/portal"
-  mkdir -p "$test18_repo" "$test18_docs/プロジェクト共通/規約" "$test18_portal"
-  for standard_name in コーディング規約 命名規約 ディレクトリ構成規約 コンポーネント設計規約 レビュー観点表 テスト方針書; do
-    printf '# %s\n\n正規配置fixture。\n' "$standard_name" > "$test18_docs/プロジェクト共通/規約/$standard_name.md"
+  mkdir -p "$test18_repo" "$test18_docs/規約" "$test18_portal"
+  test18_fixture_dir="$SCRIPT_DIR/../templates/リバース検証/規約"
+  test18_standard_names=(
+    "コーディング規約"
+    "命名規約"
+    "ディレクトリ構成規約"
+    "コンポーネント設計規約"
+    "レビュー観点表"
+    "テスト方針書"
+    "AIエージェント運用"
+    "安全な操作"
+    "セッション管理"
+    "AI設定資産管理"
+    "定型運用"
+    "開発フロー"
+    "ツール・コマンド実行"
+    "開発環境"
+    "Git運用"
+    "デリバリー"
+    "セキュリティ"
+    "ドキュメント"
+    "ポータル"
+    "コミュニケーション"
+  )
+  test18_fixture_ok=1
+  for standard_name in "${test18_standard_names[@]}"; do
+    if [ -f "$test18_fixture_dir/$standard_name.md" ]; then
+      cp "$test18_fixture_dir/$standard_name.md" "$test18_docs/規約/$standard_name.md"
+    else
+      test18_fixture_ok=0
+    fi
   done
+  if [ "$test18_fixture_ok" -ne 1 ]; then
+    echo "FAIL: --self-test ケース18（規約雛形20種が $test18_fixture_dir に揃っていない）" >&2
+    rm -rf "$test18_dir"
+    exit 1
+  fi
   "$SCRIPT_DIR/build-portal.sh" "$test18_repo" "$test18_docs" "$test18_portal" --generated-at 2026-07-29T00:00:00Z 2>/dev/null
   if ! node - "$test18_docs" "$test18_portal/index.html" <<'NODE'
 const fs = require("fs");
 const path = require("path");
 const [docsRoot, portalHtml] = process.argv.slice(2);
 const standardNames = [
-  "コーディング規約", "命名規約", "ディレクトリ構成規約",
-  "コンポーネント設計規約", "レビュー観点表", "テスト方針書",
+  "コーディング規約", "命名規約", "ディレクトリ構成規約", "コンポーネント設計規約",
+  "レビュー観点表", "テスト方針書", "AIエージェント運用", "安全な操作",
+  "セッション管理", "AI設定資産管理", "定型運用", "開発フロー",
+  "ツール・コマンド実行", "開発環境", "Git運用", "デリバリー",
+  "セキュリティ", "ドキュメント", "ポータル", "コミュニケーション",
 ];
 for (const name of standardNames) {
-  if (!fs.existsSync(path.join(docsRoot, "プロジェクト共通", "規約", `${name}.html`))) process.exit(1);
+  if (!fs.existsSync(path.join(docsRoot, "規約", `${name}.html`))) process.exit(1);
 }
 const source = fs.readFileSync(portalHtml, "utf8");
 const match = source.match(/<script type="application\/json" id="portal-categories">([\s\S]*?)<\/script>/);
@@ -1114,14 +1150,14 @@ if (!match) process.exit(1);
 const categories = JSON.parse(match[1]);
 const standards = categories.find((category) => category.id === "standards");
 if (!standards || standards.tools.length !== standardNames.length) process.exit(1);
-if (standards.tools.some((tool) => !tool.href.startsWith("../docs/プロジェクト共通/規約/"))) process.exit(1);
+if (standards.tools.some((tool) => !tool.href.startsWith("../docs/規約/"))) process.exit(1);
 NODE
   then
-    echo "FAIL: --self-test ケース18（規約一式の正規配置がstandardsカテゴリへ反映されない）" >&2
+    echo "FAIL: --self-test ケース18（規約20種の正規配置がstandardsカテゴリへ反映されない）" >&2
     rm -rf "$test18_dir"
     exit 1
   fi
-  echo "PASS: --self-test ケース18（規約一式の正規配置・standards件数一致）"
+  echo "PASS: --self-test ケース18（規約20種の正規配置・standards件数一致）"
   rm -rf "$test18_dir"
 
   echo "--- ケース16: ポータル規約検査 ---"
@@ -1492,7 +1528,7 @@ fi
 kinds_json="[]"
 
 # --- 3. 共通文書リストの収集（standards: 規約系 / design: 設計書系 に分割。category-grouping/rule.md 準拠） ---
-common_dir="$DOCS_ROOT/プロジェクト共通"
+common_roots=("$DOCS_ROOT/プロジェクト共通" "$DOCS_ROOT/規約")
 COMMON_DOC_TEMPLATE_FILE="$SCRIPT_DIR/../templates/common-doc-template.html"
 
 if [ "$PORTAL_ONLY" -eq 0 ]; then
@@ -1540,6 +1576,12 @@ markdown_to_script_json() {
   printf '%s' "$1" | jq -Rsr 'tojson | gsub("<"; "\\u003c")'
 }
 
+for common_dir in "${common_roots[@]}"; do
+if [ "$common_dir" = "$DOCS_ROOT/規約" ]; then
+  common_category="standards"
+else
+  common_category="design"
+fi
 if [ -d "$common_dir" ]; then
   while IFS= read -r md_file; do
     md_content="$(prepare_md_content "$md_file")"
@@ -1566,7 +1608,7 @@ if [ -d "$common_dir" ]; then
       fi
       # 共通シェル注入（partials が存在する場合のみ）
       if type shell_injection_args >/dev/null 2>&1; then
-        shell_injection_args "$SCRIPT_DIR/../templates" "$CATALOG" "$portal_index_href" "$PROJECT_NAME" "$GENERATED_DATE" "$COMMIT_SHORT" "shared/scripts/build-portal.sh" "design" "${SITES_FILE:-}" "${SITE_KEY:-}" "$(dirname "$md_file")"
+        shell_injection_args "$SCRIPT_DIR/../templates" "$CATALOG" "$portal_index_href" "$PROJECT_NAME" "$GENERATED_DATE" "$COMMIT_SHORT" "shared/scripts/build-portal.sh" "$common_category" "${SITES_FILE:-}" "${SITE_KEY:-}" "$(dirname "$md_file")"
         if [ ${#SHELL_RENDER_ARGS[@]} -gt 0 ]; then
           local_render_args+=("${SHELL_RENDER_ARGS[@]}")
         fi
@@ -1578,6 +1620,7 @@ if [ -d "$common_dir" ]; then
 
   done < <(find "$common_dir" -name '*.md' -type f 2>/dev/null | sort)
 fi
+done
 
 # --- 3.5. 画面設計書の変換 ---
 SCREEN_DOC_TEMPLATE_FILE="$SCRIPT_DIR/../templates/screen-doc-template.html"

@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <!--
-  generating-screen-list-for-reverse-docs スキルガイド（単一ファイル自己完結型）
+  generating-screen-list-for-reverse-docs スキルガイド（単一HTML型）
 
-  - 外部リソース（CDN・画像・link）は一切使わず、完全自己完結に保つ
+  - 外部リソースはMaterial Symbols OutlinedのGoogle Fonts CDNだけを許可する。その他のCDN・フォント・画像は使わない
   - 視覚言語（CSS・配色・テーブル様式）は syncing-reverse-env-guide.html に合わせる
 -->
 <html lang="ja">
@@ -97,7 +97,7 @@
 
 <header>
   <h1>画面一覧生成スキル<br><span class="skill-name">generating-screen-list-for-reverse-docs</span></h1>
-  <p>既存コードベースを調査して画面単位にファイルをグルーピングし、画面詳細設計書の単位を正確に分けるための正本「画面一覧.html」を生成するスキルの確定仕様。画面種別（unit_kind=screen）専用。</p>
+  <p>既存コードベースを調査して画面単位にファイルをグルーピングし、raw画面正本・raw由来ext・画面一覧HTMLを生成するスキルの確定仕様。画面種別（unit_kind=screen）専用。</p>
 
   <table class="meta-table">
     <tr><td>対応 OS</td><td>Windows WSL2 環境</td></tr>
@@ -123,8 +123,8 @@
 
 <section id="s1">
   <h2><span class="sec-num">§1</span>概要</h2>
-  <p>リバース設計で最初に決めるべきは「設計書を何冊に分けるか」＝画面の境界である。本スキルは既存コードベースを、<strong>スタック調査 → 検出戦略の宣言 → 戦略に基づく抽出 → 整合検証</strong> の順で調査し、画面単位にファイルをグルーピングした「画面一覧.html」を生成する。この HTML が画面詳細設計書の単位を分けるための正本になる。</p>
-  <p>仕事は画面一覧.html の作成のみで、設計書の雛形展開・生成・記入は一切行わない。工程全体の案内は orchestrating-reverse-docs-flow が担い、本スキルは単独でも起動できる。</p>
+  <p>リバース設計で最初に決めるべきは「設計書を何冊に分けるか」＝画面の境界である。本スキルは既存コードベースを、<strong>スタック調査 → 検出戦略の宣言 → 戦略に基づく抽出・分類 → raw正本確定 → 整合検証</strong> の順で調査する。画面詳細設計書の単位と全派生物の入力正本は<code>screen-manifest.json</code>である。</p>
+  <p>仕事はraw・raw由来ext・画面一覧HTMLの生成までで、設計書の雛形展開・生成・記入は一切行わない。工程全体の案内は orchestrating-reverse-docs-flow が担い、本スキルは単独でも起動できる。</p>
   <pre class="flow"><span class="cap">── リバース設計工程における位置づけ ─────────────────────────</span>
 
   既存コードベース
@@ -137,7 +137,7 @@
 │                           │  Phase 4  画面一覧.html 生成
 └─────────────┬─────────────┘
               ▼
-      画面一覧/画面一覧.html ＝ 設計書の単位を分ける正本
+      一覧/画面一覧/screen-manifest.json ＝ raw正本
               │
               ▼
       画面詳細設計書の執筆工程（別スキルが担当）</pre>
@@ -151,10 +151,10 @@
   <h2><span class="sec-num">§2</span>出力</h2>
   <p>スキルを完走すると、以下の成果物が生まれる。</p>
   <div class="def">
-    <dt>画面一覧.html（<code>&lt;output_dir&gt;/画面一覧/画面一覧.html</code>）</dt>
+    <dt>画面一覧.html（<code>&lt;output_dir&gt;/一覧/画面一覧/画面一覧.html</code>）</dt>
     <dd>対象コードベースに存在する画面の全数を、画面キー・推定画面名・入口ファイル・構成ファイル群・検出根拠とともに一覧化した文書。読んだ人は「このシステムには画面が何枚あり、それぞれどのファイル群でできているか」を根拠付きで把握でき、画面詳細設計書を何冊書くべきかを迷わず決められる。共有部品・埋め込みビュー・未解決候補・診断警告も可視化される。</dd>
-    <dt>検証済みマニフェスト（永続JSON + HTML内埋め込みJSON）</dt>
-    <dd><code>screen-manifest.json</code> と <code>screen-manifest.ext.json</code> を画面一覧フォルダへ原子的に保存する。整合検証を通過した拡張JSONだけがHTMLにも埋め込まれるため、後続工程と再開実行は一時ファイルへ依存せず機械処理できる。配列キーは <code>screens</code>（後方互換）。</dd>
+    <dt>検証済みマニフェスト（<code>&lt;output_dir&gt;/一覧/画面一覧/</code>）</dt>
+    <dd><code>screen-manifest.json</code>を人が編集できる唯一のraw正本、<code>screen-manifest.ext.json</code>をraw由来の派生物として原子的に保存する。検出情報・既存テスト件数・階層分類をrawへ確定してからSHA-256を算出し、extの<code>manifestContentHash</code>へ伝播する。通常の後続工程と再開実行はrawまたはraw由来extを直接読み、HTML埋込JSONを逆抽出しない。</dd>
   </div>
 </section>
 
@@ -182,7 +182,7 @@
   <table class="spec">
     <tr><th>引数</th><th>内容</th></tr>
     <tr><td><code>source_dir</code></td><td>探索対象のソースコードディレクトリ。対象プロジェクトの実コードルート（例: <code>frontend/src</code>）を指定する。モノレポの場合はアーキテクチャ調査書 §10 のサイト一覧で確定した当該サイトのルートディレクトリを渡す</td></tr>
-    <tr><td><code>output_dir</code></td><td>画面一覧.html の書き出し先。この直下に <code>画面一覧/</code> フォルダを作成する</td></tr>
+    <tr><td><code>output_dir</code></td><td>納品物ルート。この配下の<code>一覧/画面一覧/</code>へraw・ext・画面一覧HTMLを書き出す</td></tr>
   </table>
   <p class="note">旧統合スキルにあった <code>unit_kind</code> 引数は存在しない。本スキルは screen 固定であり、他種別（API・テーブル・バッチ・帳票・外部連携）は対応する種別別一覧スキルを使う。</p>
 
@@ -211,17 +211,17 @@
     </tr>
     <tr>
       <td><span class="tag mode">Phase 2</span><br>戦略に基づく抽出</td>
-      <td>組み込みパスかカスタム抽出パスかを分岐判定 → 選んだ経路でマニフェスト JSON を生成 → diagnostics（entryFile 集中警告等）を確認 → 生/拡張manifestを画面一覧フォルダへ原子的に永続保存</td>
-      <td>スキーマ準拠の永続生/拡張マニフェストが確定。0 件検出はハード停止（画面を捏造しない）</td>
+      <td>組み込みパスかカスタム抽出パスかを分岐判定 → raw作業コピーを生成 → diagnostics確認 → 既存テスト件数と階層分類をrawへ付与 → rawを原子的に保存 → hash付きextを生成・原子的に保存</td>
+      <td>canonical raw・raw由来extのschemaとhashが一致。0件検出はハード停止（画面を捏造しない）</td>
     </tr>
     <tr>
       <td><span class="tag mode">Phase 3</span><br>整合検証（機械実行）</td>
-      <td><code>validate-manifest.sh &lt;manifest.json&gt; --unit-kind screen</code> を実行し、7 項目検証を全 PASS させる。FAIL 時は修正して再実行（3 回失敗で Phase 2 の抽出方式再検討へ差し戻し）</td>
+      <td><code>validate-manifest.sh</code>をraw/extへ実行し、rawの正規化SHA-256とextのhash一致も検査する。FAIL時はrawを修正してextを再生成する（3回失敗でPhase 2へ差し戻し）</td>
       <td>exit 0（全項目 <span class="tag pass">PASS</span>）</td>
     </tr>
     <tr>
       <td><span class="tag mode">Phase 4</span><br>画面一覧.html 生成</td>
-      <td><code>build-unit-list.sh &lt;manifest.json&gt; &lt;output_dir&gt;/画面一覧/画面一覧.html --unit-kind screen</code> を実行する（内部で <code>build-screen-list.sh</code> に委譲）。build 側が validate を再実行するため、未検証マニフェストからは生成できない</td>
+      <td><code>build-unit-list.sh &lt;screen-manifest.ext.json&gt; &lt;output_dir&gt;/一覧/画面一覧/画面一覧.html --unit-kind screen</code>を実行する（内部で<code>build-screen-list.sh</code>に委譲）。build側がvalidateを再実行するため、未検証マニフェストからは生成できない</td>
       <td>HTML 生成済み・埋め込み JSON がマニフェストと一致</td>
     </tr>
   </table>
@@ -262,7 +262,7 @@
     <tr><th>禁止・注意</th><th>理由</th></tr>
     <tr><td><strong>手作業でのプレースホルダ置換の禁止</strong>。HTML 生成は必ず <code>build-unit-list.sh</code> 経由で行う</td><td>過去に手動置換で <code>entryFile=None</code> が 10 件混入した実害がある。決定的スクリプトに固定して手作業経路を根絶する</td></tr>
     <tr><td><strong>0 件検出時のハード停止</strong>。AskUserQuestion で手動リストを聞き出さない</td><td>誤った画面境界を即興で確定させないため。0 件は戦略の不適合を示す信号であり、Phase 1 へ戻って調査し直す</td></tr>
-    <tr><td><strong>設計書の雛形展開・生成・記入はスコープ外</strong></td><td>本スキルの成果物は画面一覧.html のみ。設計書は後続工程の別スキルが担当する</td></tr>
+    <tr><td><strong>設計書の雛形展開・生成・記入はスコープ外</strong></td><td>本スキルの成果物はraw・raw由来ext・画面一覧HTML。設計書は後続工程の別スキルが担当する</td></tr>
     <tr><td>Phase 1 の調査を省略して汎用の <code>screen-id-regex</code> を当てない</td><td>命名規約・ナビゲーション方式はプロジェクトごとに異なり、汎用正規表現は境界の取り違えを生む</td></tr>
     <tr><td>カスタム抽出時はコメントアウトされた定義を除去してから抽出する</td><td>コメント内のルート定義・import 文を実在として誤検出した実害がある</td></tr>
     <tr><td>jq 未インストール環境では事前に導入する</td><td>検証・生成スクリプトが jq に依存する</td></tr>
@@ -275,7 +275,7 @@
     <tr><th>関連</th><th>関係</th></tr>
     <tr><td><code>orchestrating-reverse-docs-flow</code></td><td>工程全体の案内役。本スキルの返却契約（status/artifacts/unit_kind）の受け手</td></tr>
     <tr><td>他の種別別一覧スキル（API・テーブル・バッチ・帳票・外部連携）</td><td>画面以外のユニット種別を担当。本スキルと同じエンジンスクリプト群（<code>shared/scripts/unit-list/</code>）を共用する</td></tr>
-    <tr><td><code>generating-reverse-detailed-design</code> ほか後続工程</td><td>画面一覧.html を正本として設計書の単位を決め、執筆・検証を進める</td></tr>
+    <tr><td><code>generating-reverse-detailed-design</code> ほか後続工程</td><td>raw画面正本を入力として設計書の単位を決め、執筆・検証を進める</td></tr>
     <tr><td><code>references/screen-detection.md</code></td><td>Phase 1 の調査項目・マニフェストスキーマの詳細</td></tr>
   </table>
 </section>

@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <!--
-  generating-feature-list-for-reverse-docs スキルガイド（単一ファイル自己完結型）
+  generating-feature-list-for-reverse-docs スキルガイド（単一HTML型）
 
-  - 外部リソース（CDN・画像・link）は一切使わず、完全自己完結に保つ
+  - 外部リソースはMaterial Symbols OutlinedのGoogle Fonts CDNだけを許可する。その他のCDN・フォント・画像は使わない
 -->
 <html lang="ja">
 <head>
@@ -175,8 +175,8 @@
     <tr><th>Phase</th><th>内容</th><th>完了条件</th></tr>
     <tr>
       <td><strong>Phase 1</strong><br>入力収集</td>
-      <td>既存一覧HTMLを列挙し埋め込みマニフェストを抽出（画面一覧は必須）。<code>source_dir</code> からルート定義・ナビ・APIプレフィックス・ディレクトリ構造を特定する</td>
-      <td>画面一覧マニフェスト抽出済み・手がかり①〜④の抽出元が列挙済み</td>
+      <td>canonical raw画面正本を直接読みschema検証する。他種別だけ既存一覧HTMLを列挙して埋め込みマニフェストを抽出する。<code>source_dir</code>からルート定義・ナビ・APIプレフィックス・ディレクトリ構造を特定する</td>
+      <td>raw画面正本のschema検証済み・手がかり①〜④の抽出元が列挙済み</td>
     </tr>
     <tr>
       <td><strong>Phase 2</strong><br>大分類候補の導出</td>
@@ -264,7 +264,7 @@
   <h2><span class="sec-num">§7</span>関連スキル・規約</h2>
   <table class="spec">
     <tr><th>名前</th><th>関係</th></tr>
-    <tr><td><code>generating-screen-list-for-reverse-docs</code></td><td>本スキルの前提入力。画面一覧.html が生成済みであることを必須とする</td></tr>
+    <tr><td><code>generating-screen-list-for-reverse-docs</code></td><td>本スキルの前提入力。<code>&lt;output_dir&gt;/一覧/画面一覧/screen-manifest.json</code>が生成・schema検証済みであることを必須とする</td></tr>
     <tr><td><code>orchestrating-reverse-docs-flow</code></td><td>工程全体の進行役。画面一覧生成の Phase 1B 直後に本スキルを起動する。返却契約（status / artifacts / unit_list_html / embedded_json_ref / unit_kind）の受け手</td></tr>
     <tr><td><code>references/feature-detection.md</code></td><td>大分類・機能のグルーピング規約（手がかり優先度・競合解決フロー・マニフェストスキーマ）の正本</td></tr>
     <tr><td><code>shared/scripts/unit-list/</code></td><td>整合検証・HTML 生成のエンジンスクリプト置き場（リポジトリ共通）</td></tr>

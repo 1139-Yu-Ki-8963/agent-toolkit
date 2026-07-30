@@ -240,16 +240,22 @@ export function renderCatalog(catalog, outputRoot, portalDir) {
         });
       }
     }
-    if (tools.length > 0) {
-      categories.push({
-        id: category.key,
-        group: category.group,
-        title: category.label,
-        icon: category.icon,
-        sub: category.sub,
-        tools,
-      });
+    const renderedCategory = {
+      id: category.key,
+      group: category.group,
+      title: category.label,
+      icon: category.icon,
+      sub: category.sub,
+      tools,
+    };
+    if (tools.length === 0) {
+      renderedCategory.empty = {
+        title: "生成済み資料はありません",
+        desc: `${category.label}の資料はまだ生成されていません。`,
+        count: "0 件",
+      };
     }
+    categories.push(renderedCategory);
   }
   return { categories, kinds };
 }

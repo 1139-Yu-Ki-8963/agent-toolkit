@@ -1,48 +1,78 @@
 #!/usr/bin/env bash
-# 拡張screen manifestから画面遷移page-dataとHTMLを決定的に生成するbridge。
+# rawとraw由来の拡張screen manifestから画面遷移page-dataとHTMLを決定的に生成するbridge。
 set -euo pipefail
 
+manifest_hash() {
+  local file="$1"
+  if command -v shasum >/dev/null 2>&1; then
+    jq -cjS . "$file" | shasum -a 256 | awk '{print $1}'
+  else
+    jq -cjS . "$file" | sha256sum | awk '{print $1}'
+  fi
+}
+
 self_test() {
-  local script="$0" tmp
+  local script="$0" tmp hash
   tmp="$(mktemp -d "${TMPDIR:-/tmp}/screen-detail-bridge-self-test.XXXXXX")"
   trap 'rm -rf "$tmp"' RETURN
   mkdir -p "$tmp/out"
   jq -n '{
-    generatedAt:"2026-07-28T00:00:00Z",
-    manifestContentHash:("a"*64),
     screens:[
-      {screenKey:"admin",kind:"route",route:"/admin",confirmedScreenName:"管理",category:"管理"},
+      {screenKey:"admin",kind:"route",route:"/admin",screenNameGuess:"管理画面"},
       {screenKey:"home",kind:"route",route:"/home",screenNameGuess:"ホーム",accountGroup:"user"},
-      {screenKey:"missing",kind:"route",route:""}
+      {screenKey:"missing",kind:"unresolved",route:""}
     ]
-  }' > "$tmp/ext.json"
-  bash "$script" "$tmp/ext.json" "$tmp/out" --generated-at 2026-07-28T00:00:00Z
-  jq -e '
-    .manifestContentHash == ("a"*64)
+  }' > "$tmp/raw.json"
+  hash="$(manifest_hash "$tmp/raw.json")"
+  jq --arg hash "$hash" '
+    .generatedAt = "2026-07-28T00:00:00Z"
+    | .manifestContentHash = $hash
+    | .screens[0].confirmedScreenName = "管理"
+    | .screens[0].category = "管理"
+  ' "$tmp/raw.json" > "$tmp/ext.json"
+  bash "$script" "$tmp/ext.json" "$tmp/out" \
+    --raw-manifest "$tmp/raw.json" --generated-at 2026-07-28T00:00:00Z
+  jq -e --arg hash "$hash" '
+    .manifestContentHash == $hash
     and [.nodes[].unitKey] == ["admin","home"]
+    and [.nodes[].label] == ["管理","ホーム"]
     and .unresolved == [{label:"missing",reason:"routeが空文字列のため遷移解決不能"}]
+    and ((.nodes | length) + (.unresolved | length) == 3)
     and ([.flowCategories[].screenCount] | add) == 2
   ' "$tmp/out/画面遷移図-data.json" >/dev/null
   test -f "$tmp/out/画面遷移図.html"
+  jq '.screens[0].screenNameGuess = "改変"' "$tmp/raw.json" > "$tmp/tampered-raw.json"
+  if bash "$script" "$tmp/ext.json" "$tmp/rejected" \
+    --raw-manifest "$tmp/tampered-raw.json" --generated-at 2026-07-28T00:00:00Z >/dev/null 2>&1; then
+    echo "FAIL: rawとextのhash不一致を受理した" >&2
+    return 1
+  fi
   echo "self-test 全項目 PASS"
 }
 
 if [ "${1:-}" = "--self-test" ]; then self_test; exit $?; fi
-usage="Usage: build-detail-pages-from-screen-manifest.sh <screen-manifest.ext.json> <output-root> --generated-at <iso8601>"
+usage="Usage: build-detail-pages-from-screen-manifest.sh <screen-manifest.ext.json> <output-root> --raw-manifest <screen-manifest.json> --generated-at <iso8601>"
 manifest="${1:-}"; output_root="${2:-}"
 [ -n "$manifest" ] && [ -n "$output_root" ] || { echo "$usage" >&2; exit 1; }
 shift 2
-generated_at=""
+generated_at=""; raw=""
 while [ "$#" -gt 0 ]; do
   case "$1" in
+    --raw-manifest) raw="${2:-}"; shift 2 ;;
     --generated-at) generated_at="${2:-}"; shift 2 ;;
     *) echo "$usage" >&2; exit 1 ;;
   esac
 done
-[ -f "$manifest" ] && jq empty "$manifest" >/dev/null 2>&1 || { echo "ERROR: invalid manifest" >&2; exit 1; }
+[ -f "$manifest" ] && [ -f "$raw" ] \
+  && jq empty "$manifest" "$raw" >/dev/null 2>&1 \
+  || { echo "ERROR: invalid raw or extended manifest" >&2; exit 1; }
+jq -e 'has("manifestContentHash") | not' "$raw" >/dev/null \
+  || { echo "ERROR: raw manifest must not contain manifestContentHash" >&2; exit 1; }
 [ -n "$generated_at" ] || { echo "ERROR: --generated-at is required" >&2; exit 1; }
 hash="$(jq -r '.manifestContentHash // ""' "$manifest")"
 printf '%s' "$hash" | grep -Eq '^[0-9a-f]{64}$' || { echo "ERROR: manifestContentHash missing or invalid" >&2; exit 1; }
+[ "$hash" = "$(manifest_hash "$raw")" ] \
+  || { echo "ERROR: extended manifest is not derived from the supplied raw manifest" >&2; exit 1; }
 [ "$(jq -r '.generatedAt // ""' "$manifest")" = "$generated_at" ] \
   || { echo "ERROR: generatedAt mismatch" >&2; exit 1; }
 
@@ -66,7 +96,6 @@ jq -S --arg generatedAt "$generated_at" --arg manifestContentHash "$hash" '
   ] | sort_by(.unitKey) as $nodes
   | [
       $manifest.screens[]?
-      | select(.kind == "route" or .kind == "embedded-view")
       | select(((.route // "") | length) == 0)
       | {label:screen_label,reason:"routeが空文字列のため遷移解決不能"}
     ] | sort_by(.label) as $unresolved
@@ -89,6 +118,8 @@ jq -S --arg generatedAt "$generated_at" --arg manifestContentHash "$hash" '
 ' "$manifest" > "$tmp_data"
 
 "$(dirname "$0")/validate-page-data.sh" "$tmp_data" >/dev/null
+bash "$(dirname "$0")/check-screen-transition-manifest-alignment.sh" \
+  --raw-manifest "$raw" --ext-manifest "$manifest" --page-data "$tmp_data" >/dev/null
 mv "$tmp_data" "$page_data"
 trap - EXIT
 bash "$(dirname "$0")/build-detail-page.sh" "$page_data" "$output_root" \

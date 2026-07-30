@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 指定commitのchecked-in HTMLからraw screen/API manifest fixtureを復元する。
+# 旧成果物の移行・復元テスト専用: 指定commitのchecked-in HTMLからraw screen/API manifest fixtureを復元する。
 set -euo pipefail
 usage="Usage: prepare-screen-rebuild-sample-fixture.sh --repo-root <path> --commit <sha> --output <dir>"
 repo=""; commit=""; output=""

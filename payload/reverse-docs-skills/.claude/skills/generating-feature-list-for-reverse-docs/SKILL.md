@@ -32,7 +32,7 @@ feature 種別に組み込み検出器はない。抽出は **カスタム抽出
 ## 使用タイミング
 
 - 既存コードベースの機能一覧(業務機能の横断目録)を作りたいとき
-- 前提: 画面一覧(`<output_dir>/一覧/画面一覧/画面一覧.html`)が生成済みであること
+- 前提: raw画面正本(`<output_dir>/一覧/画面一覧/screen-manifest.json`)が生成済みであること
 - 起動引数: `source_dir`(ソースコードディレクトリ)・`output_dir`(一覧の出力先。既存6種と同じ)・`survey_doc_path`(任意。アーキテクチャ調査書。ルート定義等の所在特定の参考)
 
 ## 出力
@@ -53,7 +53,7 @@ feature 種別に組み込み検出器はない。抽出は **カスタム抽出
 
 ### Phase 1: 入力収集
 
-- **Step 1**: `<output_dir>/一覧/` 配下に実在する一覧HTMLを機械的に列挙し、各HTML内の埋め込みマニフェスト(画面一覧は `<script type="application/json" id="screen-manifest">`、他種別は `id="unit-manifest"`)から JSON を抽出する。**画面一覧は必須**。不在なら status=ERROR で停止し、hint に「先に generating-screen-list-for-reverse-docs を実行」と記録する。実在した一覧のパスをすべて `strategy.inputManifests` に記録する(ユーザー指示は不要)。完了条件: 画面一覧マニフェストが抽出済みで、inputManifests が確定している
+- **Step 1**: raw画面正本`<output_dir>/一覧/画面一覧/screen-manifest.json`を直接入力にし、`validate-manifest.sh <raw> --unit-kind screen`を実行する。**raw画面正本は必須**。不在またはschema不合格ならstatus=ERRORで停止し、hintに「先にgenerating-screen-list-for-reverse-docsを実行」と記録する。通常生成では画面一覧HTMLの埋め込みJSONを逆抽出しない。旧成果物からの移行・復元時だけ`restore-screen-manifest.sh`でrawを正規配置へ復元・検証してから本Phaseを再開する。他種別は`<output_dir>/一覧/`配下に実在する一覧HTMLを機械的に列挙し、`id="unit-manifest"`からJSONを抽出する。raw画面正本と実在した他種別一覧のパスをすべて`strategy.inputManifests`に記録する(ユーザー指示は不要)。完了条件: raw画面正本がschema検証済みで、inputManifestsが確定している
 - **Step 2**: `source_dir` からルート定義・ナビメニュー・バックエンドルーターの prefix/tags・ディレクトリ構造を Grep/Read で特定する。survey_doc_path があれば所在特定の参考にする。完了条件: 手がかり①〜④(feature-detection.md の優先度表)の抽出元ファイルが列挙済み
 
 ### Phase 2: 大分類候補の導出

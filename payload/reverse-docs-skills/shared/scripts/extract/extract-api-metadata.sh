@@ -37,8 +37,9 @@
 #
 # 検出ヒューリスティック一覧(すべて grep/sed/awk ベース):
 #   1. method       : identifier の先頭語(空白区切り)が GET/POST/PUT/PATCH/DELETE に完全一致する
-#                     場合を最優先で採用する。無い場合のみ sourceFile の独自ルート定義から、
-#                     固定文字列 path が第1引数である一意の method を採用する
+#                     場合を最優先で採用する。無い場合はframework factoryへ静的に1回だけ束縛され、
+#                     全receiver使用がその束縛またはroute callだけの識別子から一意のmethodを採用する。
+#                     再代入・shadowing・引数や式での使用があれば根拠外とする
 #   2. authRequired : 関数ブロック内(フォールバック時はパス部の最初のヒット行の前 3 行〜後 20 行)に
 #                     認証パターン
 #                       Depends(get_current_user / @login_required / requireAuth / verify_token / IsAuthenticated
@@ -118,8 +119,9 @@ def get_post(id: int, db: Session = Depends(get_db)):
     return row
 EOF
 
-  # 独自ルート方式: identifier に動詞が無い場合も、固定文字列 path の第1引数から method を抽出する。
+  # 独自ルート方式: framework生成式へ束縛されたreceiverだけを根拠にする。
   cat > "$tmp/src/api/express_routes.js" <<'EOF'
+const app = express();
 app.get(
   "/api/express-users",
   listUsers,
@@ -127,15 +129,18 @@ app.get(
 EOF
 
   cat > "$tmp/src/api/fastify_routes.js" <<'EOF'
+const server = Fastify();
 server.post('/api/fastify-users', createUsers)
 EOF
 
   cat > "$tmp/src/api/hono_routes.ts" <<'EOF'
+const router = new Hono();
 router.patch(`/api/hono-users`, updateUsers)
 EOF
 
   # 同一 path の異なる method は根拠が一意でないため、method を推測しない。
   cat > "$tmp/src/api/ambiguous_routes.js" <<'EOF'
+const app = express.Router();
 app.get('/api/ambiguous-users', listUsers)
 app.delete('/api/ambiguous-users', removeUsers)
 EOF
@@ -155,7 +160,132 @@ EOF
 const example = "router.patch('/api/string-only', updateUsers)"
 EOF
 
-  # APIマニフェスト(独自ルート方式を含む 11 ユニット)
+  cat > "$tmp/src/api/http_client_routes.js" <<'EOF'
+const httpClient = createHttpClient();
+httpClient.get('/api/http-client-only', requestUsers)
+EOF
+
+  cat > "$tmp/src/api/unbound_app_routes.js" <<'EOF'
+app.get('/api/unbound-app-only', listUsers)
+EOF
+
+  cat > "$tmp/src/api/receiver_collision_routes.js" <<'EOF'
+const app = express();
+const httpapp = createHttpClient();
+httpapp.get('/api/collision', requestUsers)
+EOF
+
+  cat > "$tmp/src/api/reassigned_receiver_routes.js" <<'EOF'
+let app = express();
+app = createHttpClient();
+app.get('/api/reassigned', requestUsers)
+EOF
+
+  cat > "$tmp/src/api/shadowed_receiver_routes.js" <<'EOF'
+const app = express();
+function configure() {
+  const app = createHttpClient();
+  app.get('/api/shadowed', requestUsers)
+}
+EOF
+
+  cat > "$tmp/src/api/parameter_shadow_routes.js" <<'EOF'
+const app = express();
+function configure(app) {
+  app.get('/api/parameter-shadow', requestUsers)
+}
+EOF
+
+  # 関数/クラス宣言もreceiver名をshadowingする。宣言後のroute callを外側factory束縛へ
+  # 帰属させないことを検証する。
+  cat > "$tmp/src/api/function_declaration_shadow_routes.js" <<'EOF'
+const app = express();
+function configure() {
+  function app() {}
+  app.get('/api/function-declaration-shadow', requestUsers)
+}
+EOF
+
+  cat > "$tmp/src/api/class_declaration_shadow_routes.js" <<'EOF'
+const app = express();
+function configure() {
+  class app {}
+  app.get('/api/class-declaration-shadow', requestUsers)
+}
+EOF
+
+  cat > "$tmp/src/api/logical_assign_routes.js" <<'EOF'
+let app = express();
+app ||= createHttpClient();
+app.get('/api/logical-assign', requestUsers)
+EOF
+
+  cat > "$tmp/src/api/destructured_receiver_routes.js" <<'EOF'
+const app = express();
+({app} = source);
+app.get('/api/destructured', requestUsers)
+EOF
+
+  # factory識別子自体が別物へ束縛・引数shadowing・function/class宣言でshadowingされる場合は、
+  # そのfactoryから生成されたように見えるreceiverも根拠外とする。
+  cat > "$tmp/src/api/factory-rebound_routes.js" <<'EOF'
+const express = createHttpClient;
+const app = express();
+app.get('/api/factory-rebound', listUsers)
+EOF
+
+  cat > "$tmp/src/api/factory-parameter-shadow_routes.js" <<'EOF'
+function configure(express) {
+  const app = express();
+  app.post('/api/factory-parameter-shadow', createUsers)
+}
+EOF
+
+  cat > "$tmp/src/api/factory-function-shadow_routes.js" <<'EOF'
+function Fastify() {}
+const server = Fastify();
+server.put('/api/factory-function-shadow', updateUsers)
+EOF
+
+  cat > "$tmp/src/api/factory-class-shadow_routes.js" <<'EOF'
+class Hono {}
+const router = new Hono();
+router.patch('/api/factory-class-shadow', updateUsers)
+EOF
+
+  # regex literal内の文字列は、route callの根拠にしない。
+  cat > "$tmp/src/api/regex-only_routes.js" <<'EOF'
+const app = express();
+const regex = /app.get("/api/regex-only",)/;
+EOF
+
+  # 除算演算子はregex literalの開始と誤認せず、後続の実ルートを抽出する。
+  cat > "$tmp/src/api/division_routes.js" <<'EOF'
+const app = express();
+const ratio = total / divisor;
+app.get('/api/division-safe', listUsers)
+EOF
+
+  # 通常のimport/require経由のfactoryは引き続き採用する。
+  cat > "$tmp/src/api/imported-express_routes.js" <<'EOF'
+import express from "express";
+const app = express();
+app.get('/api/imported-express', listUsers)
+EOF
+
+  cat > "$tmp/src/api/required-fastify_routes.js" <<'EOF'
+const Fastify = require("fastify");
+const server = Fastify();
+server.post('/api/required-fastify', createUsers)
+EOF
+
+  cat > "$tmp/src/api/imported-hono_routes.ts" <<'EOF'
+import { Hono } from "hono";
+const router = new Hono();
+router.patch('/api/imported-hono', updateUsers)
+EOF
+
+  # APIマニフェスト(独自ルート方式を含む 30 ユニット)
   local api_manifest="$tmp/api-manifest.json"
   jq -n \
     --arg sourceDir "$tmp/src" \
@@ -169,12 +299,31 @@ EOF
     --arg commentOnlyFile "$tmp/src/api/comment_only_routes.js" \
     --arg blockCommentFile "$tmp/src/api/block_comment_routes.js" \
     --arg stringOnlyFile "$tmp/src/api/string_only_routes.js" \
+    --arg httpClientFile "$tmp/src/api/http_client_routes.js" \
+    --arg unboundAppFile "$tmp/src/api/unbound_app_routes.js" \
+    --arg receiverCollisionFile "$tmp/src/api/receiver_collision_routes.js" \
+    --arg reassignedReceiverFile "$tmp/src/api/reassigned_receiver_routes.js" \
+    --arg shadowedReceiverFile "$tmp/src/api/shadowed_receiver_routes.js" \
+    --arg parameterShadowFile "$tmp/src/api/parameter_shadow_routes.js" \
+    --arg functionDeclarationShadowFile "$tmp/src/api/function_declaration_shadow_routes.js" \
+    --arg classDeclarationShadowFile "$tmp/src/api/class_declaration_shadow_routes.js" \
+    --arg logicalAssignFile "$tmp/src/api/logical_assign_routes.js" \
+    --arg destructuredReceiverFile "$tmp/src/api/destructured_receiver_routes.js" \
+    --arg factoryReboundFile "$tmp/src/api/factory-rebound_routes.js" \
+    --arg factoryParameterShadowFile "$tmp/src/api/factory-parameter-shadow_routes.js" \
+    --arg factoryFunctionShadowFile "$tmp/src/api/factory-function-shadow_routes.js" \
+    --arg factoryClassShadowFile "$tmp/src/api/factory-class-shadow_routes.js" \
+    --arg regexOnlyFile "$tmp/src/api/regex-only_routes.js" \
+    --arg divisionFile "$tmp/src/api/division_routes.js" \
+    --arg importedExpressFile "$tmp/src/api/imported-express_routes.js" \
+    --arg requiredFastifyFile "$tmp/src/api/required-fastify_routes.js" \
+    --arg importedHonoFile "$tmp/src/api/imported-hono_routes.ts" \
     '{
       generatedAt: "2026-01-01T00:00:00Z",
       sourceDir: $sourceDir,
       unitKind: "api",
       strategy: {extractionMethod: "custom", approvedByUser: true, unitIdRegex: null, excludePatterns: []},
-      detectionSummary: {unitCount: 11, unresolvedCount: 0},
+      detectionSummary: {unitCount: 30, unresolvedCount: 0},
       units: [
         {unitKey: "users-list", kind: "endpoint", identifier: "GET /api/users",
          unitNameGuess: "ユーザー一覧取得", sourceFile: $usersFile,
@@ -208,6 +357,63 @@ EOF
          confidence: "high", fileCount: 1, detectionMethod: "manual"},
         {unitKey: "string-only", kind: "endpoint", identifier: "/api/string-only",
          unitNameGuess: "文字列のみのルート", sourceFile: $stringOnlyFile,
+         confidence: "high", fileCount: 1, detectionMethod: "manual"},
+        {unitKey: "http-client-only", kind: "endpoint", identifier: "/api/http-client-only",
+         unitNameGuess: "HTTPクライアントのみ", sourceFile: $httpClientFile,
+         confidence: "high", fileCount: 1, detectionMethod: "manual"},
+        {unitKey: "unbound-app-only", kind: "endpoint", identifier: "/api/unbound-app-only",
+         unitNameGuess: "未束縛appのみ", sourceFile: $unboundAppFile,
+         confidence: "high", fileCount: 1, detectionMethod: "manual"},
+        {unitKey: "receiver-collision", kind: "endpoint", identifier: "/api/collision",
+         unitNameGuess: "receiver接尾辞衝突", sourceFile: $receiverCollisionFile,
+         confidence: "high", fileCount: 1, detectionMethod: "manual"},
+        {unitKey: "reassigned-receiver", kind: "endpoint", identifier: "/api/reassigned",
+         unitNameGuess: "再代入receiver", sourceFile: $reassignedReceiverFile,
+         confidence: "high", fileCount: 1, detectionMethod: "manual"},
+        {unitKey: "shadowed-receiver", kind: "endpoint", identifier: "/api/shadowed",
+         unitNameGuess: "shadowing receiver", sourceFile: $shadowedReceiverFile,
+         confidence: "high", fileCount: 1, detectionMethod: "manual"},
+        {unitKey: "parameter-shadow", kind: "endpoint", identifier: "/api/parameter-shadow",
+         unitNameGuess: "引数shadowing", sourceFile: $parameterShadowFile,
+         confidence: "high", fileCount: 1, detectionMethod: "manual"},
+        {unitKey: "function-declaration-shadow", kind: "endpoint", identifier: "/api/function-declaration-shadow",
+         unitNameGuess: "関数宣言shadowing", sourceFile: $functionDeclarationShadowFile,
+         confidence: "high", fileCount: 1, detectionMethod: "manual"},
+        {unitKey: "class-declaration-shadow", kind: "endpoint", identifier: "/api/class-declaration-shadow",
+         unitNameGuess: "クラス宣言shadowing", sourceFile: $classDeclarationShadowFile,
+         confidence: "high", fileCount: 1, detectionMethod: "manual"},
+        {unitKey: "logical-assign", kind: "endpoint", identifier: "/api/logical-assign",
+         unitNameGuess: "論理代入receiver", sourceFile: $logicalAssignFile,
+         confidence: "high", fileCount: 1, detectionMethod: "manual"},
+        {unitKey: "destructured-receiver", kind: "endpoint", identifier: "/api/destructured",
+         unitNameGuess: "分割代入receiver", sourceFile: $destructuredReceiverFile,
+         confidence: "high", fileCount: 1, detectionMethod: "manual"},
+        {unitKey: "factory-rebound", kind: "endpoint", identifier: "/api/factory-rebound",
+         unitNameGuess: "別値へ束縛されたfactory", sourceFile: $factoryReboundFile,
+         confidence: "high", fileCount: 1, detectionMethod: "manual"},
+        {unitKey: "factory-parameter-shadow", kind: "endpoint", identifier: "/api/factory-parameter-shadow",
+         unitNameGuess: "引数shadowingされたfactory", sourceFile: $factoryParameterShadowFile,
+         confidence: "high", fileCount: 1, detectionMethod: "manual"},
+        {unitKey: "factory-function-shadow", kind: "endpoint", identifier: "/api/factory-function-shadow",
+         unitNameGuess: "関数宣言shadowingされたfactory", sourceFile: $factoryFunctionShadowFile,
+         confidence: "high", fileCount: 1, detectionMethod: "manual"},
+        {unitKey: "factory-class-shadow", kind: "endpoint", identifier: "/api/factory-class-shadow",
+         unitNameGuess: "class宣言shadowingされたfactory", sourceFile: $factoryClassShadowFile,
+         confidence: "high", fileCount: 1, detectionMethod: "manual"},
+        {unitKey: "regex-only", kind: "endpoint", identifier: "/api/regex-only",
+         unitNameGuess: "正規表現のみのルート", sourceFile: $regexOnlyFile,
+         confidence: "high", fileCount: 1, detectionMethod: "manual"},
+        {unitKey: "division-safe", kind: "endpoint", identifier: "/api/division-safe",
+         unitNameGuess: "除算を含むルート", sourceFile: $divisionFile,
+         confidence: "high", fileCount: 1, detectionMethod: "manual"},
+        {unitKey: "imported-express", kind: "endpoint", identifier: "/api/imported-express",
+         unitNameGuess: "importされたExpress", sourceFile: $importedExpressFile,
+         confidence: "high", fileCount: 1, detectionMethod: "manual"},
+        {unitKey: "required-fastify", kind: "endpoint", identifier: "/api/required-fastify",
+         unitNameGuess: "requireされたFastify", sourceFile: $requiredFastifyFile,
+         confidence: "high", fileCount: 1, detectionMethod: "manual"},
+        {unitKey: "imported-hono", kind: "endpoint", identifier: "/api/imported-hono",
+         unitNameGuess: "importされたHono", sourceFile: $importedHonoFile,
          confidence: "high", fileCount: 1, detectionMethod: "manual"}
       ]
     }' > "$api_manifest"
@@ -280,6 +486,44 @@ EOF
     '.units[9] | has("method") | not'
   check "独自ルート 負例: 文字列内だけならmethodを付けない" \
     '.units[10] | has("method") | not'
+  check "独自ルート 負例: HTTPクライアントreceiverならmethodを付けない" \
+    '(.units[] | select(.unitKey == "http-client-only") | has("method")) | not'
+  check "独自ルート 負例: framework束縛のないappならmethodを付けない" \
+    '(.units[] | select(.unitKey == "unbound-app-only") | has("method")) | not'
+  check "独自ルート 負例: receiver接尾辞を持つ別識別子ならmethodを付けない" \
+    '(.units[] | select(.unitKey == "receiver-collision") | has("method")) | not'
+  check "独自ルート 負例: 再代入されたreceiverならmethodを付けない" \
+    '(.units[] | select(.unitKey == "reassigned-receiver") | has("method")) | not'
+  check "独自ルート 負例: 同名shadowingされたreceiverならmethodを付けない" \
+    '(.units[] | select(.unitKey == "shadowed-receiver") | has("method")) | not'
+  check "独自ルート 負例: 関数引数でshadowingされたreceiverならmethodを付けない" \
+    '(.units[] | select(.unitKey == "parameter-shadow") | has("method")) | not'
+  check "独自ルート 負例: 関数宣言でshadowingされたreceiverならmethodを付けない" \
+    '(.units[] | select(.unitKey == "function-declaration-shadow") | has("method")) | not'
+  check "独自ルート 負例: class宣言でshadowingされたreceiverならmethodを付けない" \
+    '(.units[] | select(.unitKey == "class-declaration-shadow") | has("method")) | not'
+  check "独自ルート 負例: 論理代入に使われたreceiverならmethodを付けない" \
+    '(.units[] | select(.unitKey == "logical-assign") | has("method")) | not'
+  check "独自ルート 負例: 分割代入に使われたreceiverならmethodを付けない" \
+    '(.units[] | select(.unitKey == "destructured-receiver") | has("method")) | not'
+  check "独自ルート 負例: 別値へ束縛されたexpress factoryならmethodを付けない" \
+    '(.units[] | select(.unitKey == "factory-rebound") | has("method")) | not'
+  check "独自ルート 負例: 関数引数でshadowingされたexpress factoryならmethodを付けない" \
+    '(.units[] | select(.unitKey == "factory-parameter-shadow") | has("method")) | not'
+  check "独自ルート 負例: function宣言でshadowingされたFastify factoryならmethodを付けない" \
+    '(.units[] | select(.unitKey == "factory-function-shadow") | has("method")) | not'
+  check "独自ルート 負例: class宣言でshadowingされたHono factoryならmethodを付けない" \
+    '(.units[] | select(.unitKey == "factory-class-shadow") | has("method")) | not'
+  check "独自ルート 負例: 正規表現リテラル内だけならmethodを付けない" \
+    '(.units[] | select(.unitKey == "regex-only") | has("method")) | not'
+  check "独自ルート: 除算演算子の後でもGETを抽出" \
+    '(.units[] | select(.unitKey == "division-safe") | .method) == "GET"'
+  check "独自ルート: importされたExpressからGETを抽出" \
+    '(.units[] | select(.unitKey == "imported-express") | .method) == "GET"'
+  check "独自ルート: requireされたFastifyからPOSTを抽出" \
+    '(.units[] | select(.unitKey == "required-fastify") | .method) == "POST"'
+  check "独自ルート: importされたHonoからPATCHを抽出" \
+    '(.units[] | select(.unitKey == "imported-hono") | .method) == "PATCH"'
 
   # 既存フィールド無変更: 追加フィールドを除去すると入力と完全一致する
   local stripped="$tmp/stripped.json" expected="$tmp/expected.json"
@@ -360,12 +604,19 @@ resolve_source_file() {
   fi
 }
 
-# JS/TS のコメントと、ルートpath以外の文字列を除去したコードだけを返す。
+# JS/TS のコメント・正規表現リテラルと、ルートpath以外の文字列を除去したコードだけを返す。
 # 限定的な字句処理に留め、構文を解釈しない。判定不能なら抽出しないことで false-positive を避ける。
 route_source_code() {
   awk '
     function route_open(s) {
       return s ~ /\.(get|post|put|patch|delete)[[:space:]]*\([[:space:]]*$/
+    }
+    function regex_open(s, i, c) {
+      for (i = length(s); i >= 1; i--) {
+        c = substr(s, i, 1)
+        if (c !~ /[[:space:]]/) break
+      }
+      return i == 0 || c == "=" || c == "(" || c == ":" || c == "," || c == "[" || c == "!" || c == "&" || c == "|" || c == "?" || c == ";" || c == "{"
     }
     {
       text = $0 "\n"
@@ -393,8 +644,17 @@ route_source_code() {
           else if (c == quote) { state = "code" }
           continue
         }
+        if (state == "regex") {
+          if (escaped) { escaped = 0 }
+          else if (c == "\\") { escaped = 1 }
+          else if (c == "[") { regex_class = 1 }
+          else if (c == "]") { regex_class = 0 }
+          else if (c == "/" && !regex_class) { state = "code" }
+          continue
+        }
         if (c == "/" && next_c == "/") { state = "line_comment"; i++; continue }
         if (c == "/" && next_c == "*") { state = "block_comment"; i++; continue }
+        if (c == "/" && regex_open(out)) { state = "regex"; regex_class = 0; continue }
         if (c == "#") { state = "line_comment"; continue }
         if (c == "\"" || c == "\047" || c == "`") {
           quote = c
@@ -409,28 +669,215 @@ route_source_code() {
   ' "$1"
 }
 
-# identifier に method が無い場合の独自ルート定義から、path を第1引数に取る一意の HTTP method を返す。
-# コメント・文字列を根拠から除外後、receiver.<lowercase-method>(<quote><path><quote>,...) を固定文字列検索し、
-# GET/POST/PUT/PATCH/DELETE の候補がちょうど1種類の時だけ採用する。
-route_method_from_source() {
-  local src="$1" path="$2"
-  local route_source compact candidates="" candidate lower quote pattern
-  [ -z "$path" ] && return 0
+# factory式の識別子を返す。対象は既知のframework factoryに限定する。
+factory_identifier_from_expression() {
+  case "$1" in
+    express\(*|express.Router\(*) printf '%s' "express" ;;
+    Fastify\(*) printf '%s' "Fastify" ;;
+    fastify\(*) printf '%s' "fastify" ;;
+    new\ Hono\(*) printf '%s' "Hono" ;;
+  esac
+}
+
+# factory識別子の明示的な別値束縛、関数/class宣言、または引数shadowingを検出する。
+# import文とrequire()による一般的な読込みは、factoryを別物へ置換する根拠ではないため許容する。
+factory_identifier_is_unshadowed() {
+  local compact="$1" factory="$2"
+  awk -v text="$compact" -v factory="$factory" '
+    function ident(c) { return c ~ /[A-Za-z0-9_$]/ }
+    function keyword_before(pos, keyword, start, before) {
+      start = pos - length(keyword)
+      if (start < 1 || substr(text, start, length(keyword)) != keyword) return 0
+      before = (start > 1 ? substr(text, start - 1, 1) : "")
+      return start == 1 || !ident(before)
+    }
+    function token_in(s, token, n, i, before, after) {
+      n = length(token)
+      for (i = 1; i <= length(s) - n + 1; i++) {
+        if (substr(s, i, n) != token) continue
+        before = (i > 1 ? substr(s, i - 1, 1) : "")
+        after = (i + n <= length(s) ? substr(s, i + n, 1) : "")
+        if (!ident(before) && !ident(after)) return 1
+      }
+      return 0
+    }
+    function parameters_shadow(open_pos, end_offset, close_pos, params) {
+      end_offset = index(substr(text, open_pos + 1), ")")
+      if (!end_offset) return 0
+      close_pos = end_offset + open_pos
+      params = substr(text, open_pos + 1, close_pos - open_pos - 1)
+      return token_in(params, factory)
+    }
+    BEGIN {
+      n = length(factory)
+      rejected = 0
+      for (i = 1; i <= length(text) - n + 1; i++) {
+        if (substr(text, i, n) != factory) continue
+        before = (i > 1 ? substr(text, i - 1, 1) : "")
+        after_pos = i + n
+        after = (after_pos <= length(text) ? substr(text, after_pos, 1) : "")
+        suffix = substr(text, after_pos)
+        declaration = keyword_before(i, "const") || keyword_before(i, "let") || keyword_before(i, "var")
+        named_declaration = keyword_before(i, "function") || keyword_before(i, "class")
+        if (declaration) {
+          if (suffix !~ /^=require\(\)(\.[A-Za-z_$][A-Za-z0-9_$]*)?;/) rejected = 1
+          i += n - 1
+          continue
+        }
+        if (named_declaration) {
+          rejected = 1
+          i += n - 1
+          continue
+        }
+        if (ident(before) || ident(after)) { i += n - 1; continue }
+        i += n - 1
+      }
+      for (i = 1; i <= length(text); i++) {
+        if (substr(text, i, 8) == "function" && (i == 1 || !ident(substr(text, i - 1, 1)))) {
+          open = index(substr(text, i + 8), "(")
+          if (open && parameters_shadow(i + 8 + open - 1)) rejected = 1
+        }
+        if (substr(text, i, 1) == "(" && parameters_shadow(i)) {
+          close_offset = index(substr(text, i + 1), ")")
+          if (close_offset && substr(text, i + close_offset + 1, 2) == "=>") rejected = 1
+        }
+      }
+      exit rejected
+    }
+  '
+}
+
+# identifier に method が無い場合の独自ルート定義から、framework生成式へ静的に束縛され、
+# factory識別子自身もshadowingされていないreceiver 名だけを返す。コメント・文字列は
+# route_source_code で除外済みで、const/let/var の同一行代入以外は根拠にしない。
+route_receivers_from_source() {
+  local src="$1" route_source compact receiver factory_expr factory candidates
   route_source="$(route_source_code "$src")"
   compact="$(LC_ALL=C tr -d '[:space:]' <<<"$route_source")"
-  for candidate in GET POST PUT PATCH DELETE; do
-    lower="$(printf '%s' "$candidate" | tr '[:upper:]' '[:lower:]')"
-    for quote in '"' "'" '`'; do
-      pattern=".${lower}(${quote}${path}${quote},"
-      if grep -Fq -- "$pattern" <<<"$compact"; then
-        candidates="${candidates:+$candidates }$candidate"
-        break
-      fi
+  candidates="$(printf '%s\n' "$route_source" | sed -nE \
+    's/^[[:space:]]*(const|let|var)[[:space:]]+([A-Za-z_$][A-Za-z0-9_$]*)[[:space:]]*=[[:space:]]*(express\(\)|express\.Router\(\)|Fastify\(\)|fastify\(\)|new[[:space:]]+Hono\(\))[[:space:]]*;?[[:space:]]*$/\2 \3/p'
+  )"
+  while IFS=' ' read -r receiver factory_expr; do
+    [ -n "$receiver" ] || continue
+    factory="$(factory_identifier_from_expression "$factory_expr")"
+    [ -n "$factory" ] || continue
+    factory_identifier_is_unshadowed "$compact" "$factory" || continue
+    receiver_all_uses_supported "$compact" "$receiver" && printf '%s\n' "$receiver"
+  done <<< "$candidates"
+}
+
+# sanitized compact source内のreceiver tokenを全走査する。
+# 唯一のsupported factory束縛とroute call以外の使用があれば、安全側にreceiver全体を棄却する。
+# function/class の同名宣言は、内側か同一解析対象かを問わずreceiver全体を棄却する。
+receiver_all_uses_supported() {
+  local compact="$1" receiver="$2"
+  awk -v text="$compact" -v receiver="$receiver" '
+    function ident(c) { return c ~ /[A-Za-z0-9_$]/ }
+    function factory_suffix(s) {
+      return s ~ /^=(express\(\)|express\.Router\(\)|Fastify\(\)|fastify\(\)|newHono\(\))/
+    }
+    function route_suffix(s) { return s ~ /^\.(get|post|put|patch|delete)\(/ }
+    function keyword_before(pos, keyword, start, before) {
+      start = pos - length(keyword)
+      if (start < 1 || substr(text, start, length(keyword)) != keyword) return 0
+      before = (start > 1 ? substr(text, start - 1, 1) : "")
+      return start == 1 || !ident(before)
+    }
+    BEGIN {
+      factory_bindings = 0
+      rejected = 0
+      n = length(receiver)
+      for (i = 1; i <= length(text) - n + 1; i++) {
+        c = substr(text, i, 1)
+        if (quote != "") {
+          if (escaped) escaped = 0
+          else if (c == "\\") escaped = 1
+          else if (c == quote) quote = ""
+          continue
+        }
+        if (c == "\"" || c == "\047" || c == "`") {
+          quote = c
+          continue
+        }
+        if (substr(text, i, n) != receiver) continue
+        before = (i > 1 ? substr(text, i - 1, 1) : "")
+        after_pos = i + n
+        after_char = (after_pos <= length(text) ? substr(text, after_pos, 1) : "")
+        suffix = substr(text, after_pos)
+        declaration = keyword_before(i, "const") || keyword_before(i, "let") || keyword_before(i, "var")
+        named_declaration = keyword_before(i, "function") || keyword_before(i, "class")
+        binding = factory_suffix(suffix) && declaration
+        if (binding) {
+          factory_bindings++
+          i += n - 1
+          continue
+        }
+        if (declaration) {
+          rejected = 1
+          i += n - 1
+          continue
+        }
+        if (named_declaration) {
+          rejected = 1
+          i += n - 1
+          continue
+        }
+        if (ident(before) || ident(after_char)) {
+          i += n - 1
+          continue
+        }
+        if (before != "." && route_suffix(suffix)) {
+          i += n - 1
+          continue
+        }
+        rejected = 1
+        i += n - 1
+      }
+      exit !(factory_bindings == 1 && rejected == 0)
+    }
+  '
+}
+
+# receiver は route_receivers_from_source で得た生成式への束縛に限定し、path を第1引数に取る
+# 一意の HTTP method だけを返す。送信側クライアントや未束縛識別子は採用しない。
+route_method_from_source() {
+  local src="$1" path="$2"
+  local route_source compact receivers candidates="" receiver candidate lower quote pattern
+  [ -z "$path" ] && return 0
+  route_source="$(route_source_code "$src")"
+  receivers="$(route_receivers_from_source "$src")"
+  [ -z "$receivers" ] && return 0
+  compact="$(LC_ALL=C tr -d '[:space:]' <<<"$route_source")"
+  while IFS= read -r receiver; do
+    [ -z "$receiver" ] && continue
+    for candidate in GET POST PUT PATCH DELETE; do
+      lower="$(printf '%s' "$candidate" | tr '[:upper:]' '[:lower:]')"
+      for quote in '"' "'" '`'; do
+        pattern="${receiver}.${lower}(${quote}${path}${quote},"
+        if fixed_call_has_receiver_boundary "$compact" "$pattern"; then
+          candidates="${candidates:+$candidates }$candidate"
+          break
+        fi
+      done
     done
-  done
+  done <<< "$receivers"
+  candidates="$(printf '%s\n' "$candidates" | tr ' ' '\n' | awk 'NF && !seen[$0]++' | tr '\n' ' ' | sed 's/[[:space:]]*$//')"
   case "$candidates" in
     GET|POST|PUT|PATCH|DELETE) printf '%s' "$candidates" ;;
   esac
+}
+
+# 固定文字列callの直前が識別子・プロパティ継続文字ならreceiver接尾辞衝突として除外する。
+fixed_call_has_receiver_boundary() {
+  local text="$1" needle="$2"
+  awk -v text="$text" -v needle="$needle" 'BEGIN {
+    while ((pos = index(text, needle)) > 0) {
+      before = (pos > 1 ? substr(text, pos - 1, 1) : "")
+      if (pos == 1 || before !~ /[A-Za-z0-9_$.]/) exit 0
+      text = substr(text, pos + 1)
+    }
+    exit 1
+  }'
 }
 
 # identifier のパス部を sourceFile 内で grep -nF し、最初のヒット行の前3行〜後20行を出力する。

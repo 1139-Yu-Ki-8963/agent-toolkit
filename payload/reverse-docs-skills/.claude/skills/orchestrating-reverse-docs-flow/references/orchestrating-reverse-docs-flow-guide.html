@@ -323,7 +323,7 @@
       <tr><td>Phase 0P</td><td>既存のアーキテクチャ調査書を検証し、不在・不合格なら調査スキルで生成・改訂してから、明示指定されたPythonファイル群のfacts抽出・再計数・封印だけを実行して終端する</td><td><code>facts_profile=python</code>を明示した場合だけ。事前ヒアリング後、画面一覧・画面状態判定より前に実行する</td></tr>
       <tr><td>Phase 1</td><td>状態判定。15状態から次工程を決定し、残り工程のタスクを登録する</td><td>常時</td></tr>
       <tr><td>Phase 2</td><td>アーキテクチャ調査</td><td>アーキ未調査時のみ</td></tr>
-      <tr><td>Phase 3</td><td>種別別一覧生成。画面manifestを一覧フォルダへ永続化し、既存一覧からの再開では埋込JSONから復元する</td><td>一覧生成時、および既存一覧に永続manifestが無い再開時</td></tr>
+      <tr><td>Phase 3</td><td>種別別一覧生成。画面manifestを一覧フォルダへ永続化する。画面一覧HTMLの埋込JSONからの復元は、rawが無い旧成果物を明示的に移行・復元する場合だけ行う</td><td>一覧生成時、および明示的な旧成果物移行時</td></tr>
       <tr><td>Phase 1C</td><td>機能一覧生成（派生一覧）</td><td>画面一覧確立後</td></tr>
       <tr><td>Phase 1D</td><td>マトリクス・対応表生成（派生補完）</td><td>機能一覧確立後</td></tr>
       <tr><td>Phase 4</td><td>プロジェクト共通10文書の採録</td><td>共通未採録時のみ</td></tr>
@@ -344,7 +344,7 @@
 
   <div class="constraint">
     <strong>静的完了前の画面一覧更新</strong><br>
-    基本設計・詳細設計の著述が合流したら、永続 <code>screen-manifest.json</code> を解決する。再開時に無ければ既存画面一覧HTMLの <code>#screen-manifest</code> から <code>restore-screen-manifest.sh</code> で復元・検証し、設計書メタデータ抽出と画面一覧生成を再実行する。実在する4成果物のリンク・確定画面名・登録件数と表行数を検収してから、画面レジストリを <code>authored</code> へ更新する。
+    基本設計・詳細設計の著述が合流したら、永続 <code>screen-manifest.json</code> を直接解決する。通常再開で不在なら停止する。rawが無い旧成果物を明示的に移行・復元する場合だけ、既存画面一覧HTMLの <code>#screen-manifest</code> から <code>restore-screen-manifest.sh</code> で復元・検証する。その後、設計書メタデータ抽出と画面一覧生成を再実行し、実在する4成果物のリンク・確定画面名・登録件数と表行数を検収してから、画面レジストリを <code>authored</code> へ更新する。
   </div>
 
   <div class="constraint">

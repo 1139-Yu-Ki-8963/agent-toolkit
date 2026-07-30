@@ -6,7 +6,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 
 usage() {
-  echo "Usage: rebuild-screen-derived-pages.sh --raw-manifest <path> --target-repo <path> --api-manifest <path> --output-root <path> (--generated-at <iso8601> | SOURCE_DATE_EPOCH=<epoch>) [--table-manifest <path>] [--feature-manifest <path>] [--roles <csv>] [--design-docs-dir <path>] [--catalog <path>] [--project-name <name>]" >&2
+  echo "Usage: rebuild-screen-derived-pages.sh --raw-manifest <path> --target-repo <path> --api-manifest <path> --output-root <path> (--generated-at <iso8601> | SOURCE_DATE_EPOCH=<epoch>) [--table-manifest <path>] [--feature-manifest <path>] [--roles <csv>] [--design-docs-dir <path>] [--catalog <path>] [--project-name <name>] [--sites <file>] [--site-key <key>]" >&2
 }
 
 if [ "${1:-}" = "--self-test" ]; then
@@ -16,6 +16,7 @@ fi
 
 raw=""; target_repo=""; api=""; output_root=""; generated_at=""
 table=""; feature=""; roles=""; design_docs=""; catalog=""; project_name=""
+sites=""; site_key=""
 while [ "$#" -gt 0 ]; do
   case "$1" in
     --raw-manifest) raw="${2:-}"; shift 2 ;;
@@ -29,6 +30,8 @@ while [ "$#" -gt 0 ]; do
     --design-docs-dir) design_docs="${2:-}"; shift 2 ;;
     --catalog) catalog="${2:-}"; shift 2 ;;
     --project-name) project_name="${2:-}"; shift 2 ;;
+    --sites) sites="${2:-}"; shift 2 ;;
+    --site-key) site_key="${2:-}"; shift 2 ;;
     *) usage; exit 1 ;;
   esac
 done
@@ -37,9 +40,17 @@ done
   || { usage; exit 1; }
 [ -f "$raw" ] && [ -f "$api" ] && [ -d "$target_repo" ] \
   || { echo "ERROR: required input missing" >&2; exit 1; }
+node - "$raw" "$output_root/一覧/画面一覧/screen-manifest.json" <<'NODE'
+const path = require("path");
+const [actual, expected] = process.argv.slice(2).map((value) => path.resolve(value));
+if (actual !== expected) {
+  throw new Error(`--raw-manifest must be the canonical output path: ${expected}`);
+}
+NODE
 jq empty "$raw" "$api" >/dev/null 2>&1 || { echo "ERROR: input JSON invalid" >&2; exit 1; }
 jq -e 'has("manifestContentHash") | not' "$raw" >/dev/null \
   || { echo "ERROR: raw manifest must not contain manifestContentHash" >&2; exit 1; }
+bash "$SCRIPT_DIR/validate-manifest.sh" "$raw" --unit-kind screen >/dev/null
 
 epoch="${SOURCE_DATE_EPOCH:-}"
 if { [ -n "$generated_at" ] && [ -n "$epoch" ]; } || { [ -z "$generated_at" ] && [ -z "$epoch" ]; }; then
@@ -180,8 +191,11 @@ bash "$REPO_ROOT/shared/scripts/extract/extract-screen-metadata.sh" "${extract_a
 
 screen_args=("$ext" "$transaction_root/一覧/画面一覧/画面一覧.html" --portal-dir "$transaction_root" --generated-at "$generated_at")
 [ -n "$project_name" ] && screen_args+=(--project-name "$project_name")
+[ -n "$sites" ] && screen_args+=(--sites "$sites")
+[ -n "$site_key" ] && screen_args+=(--site-key "$site_key")
 bash "$REPO_ROOT/shared/scripts/unit-list/build-screen-list.sh" "${screen_args[@]}"
-bash "$REPO_ROOT/shared/scripts/detail-pages/build-detail-pages-from-screen-manifest.sh" "$ext" "$transaction_root" --generated-at "$generated_at"
+bash "$REPO_ROOT/shared/scripts/detail-pages/build-detail-pages-from-screen-manifest.sh" \
+  "$ext" "$transaction_root" --raw-manifest "$raw" --generated-at "$generated_at"
 
 matrix_dir="$transaction_root/マトリクス・対応表/data"
 matrix_args=("$matrix_dir" --screen-manifest "$ext" --api-manifest "$api" --generated-at "$generated_at" --manifest-content-hash "$content_hash")
@@ -207,6 +221,8 @@ build_matrix traceability "$matrix_dir/traceability.json" "$transaction_root/マ
 
 portal_args=("$target_repo" "$transaction_root" "$transaction_root" --portal-only --generated-at "$generated_at" --screen-manifest "$ext")
 [ -n "$catalog" ] && portal_args+=(--catalog "$catalog")
+[ -n "$sites" ] && portal_args+=(--sites "$sites")
+[ -n "$site_key" ] && portal_args+=(--site-key "$site_key")
 bash "$REPO_ROOT/shared/scripts/build-portal.sh" "${portal_args[@]}"
 
 bash "$SCRIPT_DIR/check-screen-manifest-consistency.sh" --raw-manifest "$raw" --ext-manifest "$ext" --output-root "$transaction_root"

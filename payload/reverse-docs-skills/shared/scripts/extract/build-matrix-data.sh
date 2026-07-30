@@ -21,8 +21,12 @@
 #   定義」に完全準拠。同スキーマは shared/templates/matrix/ の各テンプレート内 JS が
 #   参照するトップレベルキー・フィールド名と一致させている。二重管理・ドリフト禁止)。
 #
-# 導出規則: CRUD対象APIで method / targetTables キーが欠落した場合は、不足フィールド名を
-#   stderr へ出して出力作成前に非ゼロ終了する。対象外APIは検査せず、空配列は調査済みゼロとして許容する。
+# 導出規則: method / targetTables が存在する場合の型・値域検査は全 API units に適用する。
+#   欠落 method の必須判定では kind=unresolved を除外し、次の CRUD/permission 対象だけを検査する。
+#   feature-manifest 指定時は解決済み relatedApis の method を必須とし、targetTables 欠落/[]は許容する。
+#   未指定時は targetTables 明示APIだけを候補とし、非空ならmethod必須、[]ならmethod欠落を許容する。
+#   method は5動詞、targetTables は空白トリム後に非空の文字列配列に限る。
+#   不正値または対象APIの必須値欠落があれば、出力公開前に非ゼロ終了する。
 #   1. permission-matrix.json
 #      - roles: --roles 指定値。未指定なら全 screens の permissions に現れるロール集合
 #        + 暗黙ロール member/guest の和集合(重複除去・アルファベット順で決定的)
@@ -40,7 +44,7 @@
 #      - features[]: feature-manifest があれば feature 単位(relatedApis 経由)に集約
 #        (featureId=unitKey / featureName=identifier)、無ければ API 単位(featureId に
 #        api の unitKey を使い、その旨をトップレベル note フィールドに記録)。
-#        CRUD対象APIの method・targetTables キー欠落は、行を省略せず出力前エラーとする
+#        上記の対象境界と値検証を満たしたAPIだけを集約する
 #      - tables[]: table-manifest があれば全 units を収載順に
 #        {physicalName=identifier, logicalName(あれば転記)}、無ければ features[].cells
 #        に現れるテーブル名の集合(アルファベット順)
@@ -183,6 +187,8 @@ self_test() {
   local pm="$out/permission-matrix.json" cm="$out/crud-matrix.json" tr_json="$out/traceability.json"
   assert "ケースa: 3ファイルがすべて生成される" \
     bash -c "[ -f '$pm' ] && [ -f '$cm' ] && [ -f '$tr_json' ]"
+  assert "ケースa: output親配下にstaging siblingが残らない" \
+    bash -c "! find '$tmp' -maxdepth 1 -type d -name '.out.matrix-staging.*' | grep -q ."
 
   # permission-matrix: roles・permissions真偽値/null・feature CRUD
   assert "permission-matrix: roles が検出ロール+暗黙member/guest" \
@@ -277,6 +283,8 @@ self_test() {
     bash -c "[ $dup_rc -eq 1 ]"
   assert "ケースd: stderrに重複するunitKeyのエラーが出力される" \
     grep -q "重複する unitKey" "$dup_stderr"
+  assert "ケースd: stderrに重複したunitKey(user-management)が出力される" \
+    grep -q "user-management" "$dup_stderr"
 
   # --- ケースe: relatedApis参照先APIがmethodを持たない(CRUD判定材料の事前検査) ---
   local am_nomethod="$tmp/api-manifest-nomethod.json"
@@ -311,13 +319,13 @@ self_test() {
   assert "ケースe: method欠落APIのみ参照時に生成コマンドがexit 1" \
     bash -c "[ $nomethod_rc -eq 1 ]"
   assert "ケースe: stderrにCRUD判定材料不足のエラーが出力される" \
-    grep -q "CRUD判定材料が不足" "$nomethod_stderr"
+    grep -q "CRUD判定材料が不正または不足" "$nomethod_stderr"
   assert "ケースe: stderrに不足フィールド(method)が列挙される" \
     grep -q "method" "$nomethod_stderr"
   assert "ケースe: 失敗時に出力ファイルを残さない" \
     bash -c "[ ! -e '$out_nomethod/permission-matrix.json' ] && [ ! -e '$out_nomethod/crud-matrix.json' ] && [ ! -e '$out_nomethod/traceability.json' ]"
 
-  # --- ケースf: relatedApis参照先APIがtargetTablesを持たない(CRUD判定材料の事前検査) ---
+  # --- ケースf: feature参照APIのtargetTables欠落は非CRUDとして許容 ---
   local am_notables="$tmp/api-manifest-notables.json"
   jq -n --arg sourceDir "$tmp/src" --arg sf "$tmp/src/api/users.py" '{
     generatedAt: "2026-01-01T00:00:00Z",
@@ -334,14 +342,14 @@ self_test() {
   local out_notables="$tmp/out-notables" notables_stderr="$tmp/notables-stderr.log" notables_rc=0
   bash "$script_path" "$out_notables" --screen-manifest "$sm" --api-manifest "$am_notables" --feature-manifest "$fm_nomethod" \
     >/dev/null 2>"$notables_stderr" || notables_rc=$?
-  assert "ケースf: targetTables欠落APIのみ参照時に生成コマンドがexit 1" \
-    bash -c "[ $notables_rc -eq 1 ]"
-  assert "ケースf: stderrに不足フィールド(targetTables)が列挙される" \
-    grep -q "targetTables" "$notables_stderr"
-  assert "ケースf: 失敗時に出力ファイルを残さない" \
-    bash -c "[ ! -e '$out_notables/permission-matrix.json' ] && [ ! -e '$out_notables/crud-matrix.json' ] && [ ! -e '$out_notables/traceability.json' ]"
+  assert "ケースf: targetTables欠落のfeature参照APIは非CRUDとして成功" \
+    bash -c "[ $notables_rc -eq 0 ]"
+  assert "ケースf: targetTables欠落でも3成果物を生成する" \
+    bash -c "[ -f '$out_notables/permission-matrix.json' ] && [ -f '$out_notables/crud-matrix.json' ] && [ -f '$out_notables/traceability.json' ]"
+  assert "ケースf: method由来のpermission CRUDは維持し、table CRUD行は作らない" \
+    bash -c "jq -e '.features == [{\"unitKey\": \"user-management\", \"crud\": {\"admin\": \"R\", \"guest\": \"R\", \"member\": \"R\"}}]' '$out_notables/permission-matrix.json' >/dev/null && jq -e '.features == []' '$out_notables/crud-matrix.json' >/dev/null"
 
-  # --- ケースg: relatedApis参照先APIがmethod/targetTablesの両方を持たない(CRUD判定材料の事前検査) ---
+  # --- ケースg: feature参照APIのmethod欠落は停止（targetTables欠落は許容） ---
   local am_missing_both="$tmp/api-manifest-missing-both.json"
   jq -n --arg sourceDir "$tmp/src" --arg sf "$tmp/src/api/users.py" '{
     generatedAt: "2026-01-01T00:00:00Z",
@@ -358,10 +366,10 @@ self_test() {
   local out_missing_both="$tmp/out-missing-both" missing_both_stderr="$tmp/missing-both-stderr.log" missing_both_rc=0
   bash "$script_path" "$out_missing_both" --screen-manifest "$sm" --api-manifest "$am_missing_both" --feature-manifest "$fm_nomethod" \
     >/dev/null 2>"$missing_both_stderr" || missing_both_rc=$?
-  assert "ケースg: method/targetTables両欠落APIのみ参照時に生成コマンドがexit 1" \
+  assert "ケースg: method/targetTables両欠落のfeature参照APIはexit 1" \
     bash -c "[ $missing_both_rc -eq 1 ]"
-  assert "ケースg: stderrに不足フィールド(method/targetTables)が両方列挙される" \
-    bash -c "grep -q method '$missing_both_stderr' && grep -q targetTables '$missing_both_stderr'"
+  assert "ケースg: stderrに不足フィールド(method)だけが列挙される" \
+    bash -c "grep -q '不足フィールド: method' '$missing_both_stderr' && ! grep -q '不足フィールド: targetTables' '$missing_both_stderr'"
   assert "ケースg: 失敗時に出力ファイルを残さない" \
     bash -c "[ ! -e '$out_missing_both/permission-matrix.json' ] && [ ! -e '$out_missing_both/crud-matrix.json' ] && [ ! -e '$out_missing_both/traceability.json' ]"
 
@@ -381,6 +389,195 @@ self_test() {
     bash "$script_path" "$out_empty" --screen-manifest "$sm" --api-manifest "$am" --feature-manifest "$fm_empty"
   assert "ケースh: permission-matrix の features は空配列" \
     jq -e '.features == []' "$out_empty/permission-matrix.json"
+
+  # --- ケースi: featureなしの非CRUD境界（unresolved / targetTables欠落 / 空配列） ---
+  local am_noncrud="$tmp/api-manifest-noncrud.json"
+  jq -n --arg sourceDir "$tmp/src" --arg sf "$tmp/src/api/users.py" '{
+    generatedAt: "2026-01-01T00:00:00Z", sourceDir: $sourceDir, unitKind: "api",
+    strategy: {extractionMethod: "custom", approvedByUser: true, unitIdRegex: null, excludePatterns: []},
+    detectionSummary: {unitCount: 3, unresolvedCount: 1},
+    units: [
+      {unitKey: "unresolved-api", kind: "unresolved", identifier: "unknown", sourceFile: $sf, confidence: "low"},
+      {unitKey: "no-table-evidence", kind: "endpoint", identifier: "GET /api/no-table-evidence", sourceFile: $sf, confidence: "high"},
+      {unitKey: "checked-zero-tables", kind: "endpoint", identifier: "GET /api/checked-zero", sourceFile: $sf, confidence: "high", method: "GET", targetTables: []}
+    ]
+  }' > "$am_noncrud"
+  local out_noncrud="$tmp/out-noncrud"
+  assert "ケースi: featureなしのunresolved・targetTables欠落・空配列APIは成功" \
+    bash "$script_path" "$out_noncrud" --screen-manifest "$sm" --api-manifest "$am_noncrud"
+  assert "ケースi: 非CRUD境界でも3成果物を生成する" \
+    bash -c "[ -f '$out_noncrud/permission-matrix.json' ] && [ -f '$out_noncrud/crud-matrix.json' ] && [ -f '$out_noncrud/traceability.json' ]"
+
+  # --- ケースj: featureなしでtargetTables非空かつmethod欠落は停止 ---
+  local out_nomethod_no_feature="$tmp/out-nomethod-no-feature" nomethod_no_feature_stderr="$tmp/nomethod-no-feature-stderr.log" nomethod_no_feature_rc=0
+  bash "$script_path" "$out_nomethod_no_feature" --screen-manifest "$sm" --api-manifest "$am_nomethod" \
+    >/dev/null 2>"$nomethod_no_feature_stderr" || nomethod_no_feature_rc=$?
+  assert "ケースj: featureなしのtargetTables非空かつmethod欠落はexit 1" \
+    bash -c "[ $nomethod_no_feature_rc -eq 1 ]"
+  assert "ケースj: method不足と出力0を報告する" \
+    bash -c "grep -q '不足フィールド: method' '$nomethod_no_feature_stderr' && [ ! -e '$out_nomethod_no_feature/permission-matrix.json' ] && [ ! -e '$out_nomethod_no_feature/crud-matrix.json' ] && [ ! -e '$out_nomethod_no_feature/traceability.json' ]"
+
+  # --- ケースk: methodの値域違反は出力前に停止 ---
+  local method_case method_filter method_stderr method_out method_rc
+  for method_case in null empty OPTIONS number; do
+    case "$method_case" in
+      null) method_filter='.units[0].method = null' ;;
+      empty) method_filter='.units[0].method = ""' ;;
+      OPTIONS) method_filter='.units[0].method = "OPTIONS"' ;;
+      number) method_filter='.units[0].method = 1' ;;
+    esac
+    jq "$method_filter" "$am" > "$tmp/api-manifest-method-$method_case.json"
+    method_stderr="$tmp/method-$method_case-stderr.log"
+    method_out="$tmp/out-method-$method_case"
+    method_rc=0
+    bash "$script_path" "$method_out" --screen-manifest "$sm" --api-manifest "$tmp/api-manifest-method-$method_case.json" \
+      >/dev/null 2>"$method_stderr" || method_rc=$?
+    assert "ケースk-$method_case: 不正methodはexit 1・不正フィールド表示・出力0" \
+      bash -c "[ $method_rc -eq 1 ] && grep -q '不正フィールド: method' '$method_stderr' && [ ! -e '$method_out/permission-matrix.json' ] && [ ! -e '$method_out/crud-matrix.json' ] && [ ! -e '$method_out/traceability.json' ]"
+  done
+
+  # --- ケースl: targetTablesの型・要素違反は出力前に停止 ---
+  local tables_case tables_filter tables_stderr tables_out tables_rc
+  for tables_case in null string empty-element number-element; do
+    case "$tables_case" in
+      null) tables_filter='.units[0].targetTables = null' ;;
+      string) tables_filter='.units[0].targetTables = "users"' ;;
+      empty-element) tables_filter='.units[0].targetTables = [""]' ;;
+      number-element) tables_filter='.units[0].targetTables = [1]' ;;
+    esac
+    jq "$tables_filter" "$am" > "$tmp/api-manifest-target-tables-$tables_case.json"
+    tables_stderr="$tmp/target-tables-$tables_case-stderr.log"
+    tables_out="$tmp/out-target-tables-$tables_case"
+    tables_rc=0
+    bash "$script_path" "$tables_out" --screen-manifest "$sm" --api-manifest "$tmp/api-manifest-target-tables-$tables_case.json" \
+      >/dev/null 2>"$tables_stderr" || tables_rc=$?
+    assert "ケースl-$tables_case: 不正targetTablesはexit 1・不正フィールド表示・出力0" \
+      bash -c "[ $tables_rc -eq 1 ] && grep -q '不正フィールド: targetTables' '$tables_stderr' && [ ! -e '$tables_out/permission-matrix.json' ] && [ ! -e '$tables_out/crud-matrix.json' ] && [ ! -e '$tables_out/traceability.json' ]"
+  done
+
+  # --- ケースm: 同梱API一覧をfeatureなしで導出できる ---
+  local repo_root sample_api sample_screen sample_out
+  repo_root="$(cd "$script_dir/../../.." && pwd)"
+  sample_api="$tmp/sample-api-manifest.json"
+  sample_screen="$repo_root/shared/samples/一覧/画面一覧/screen-manifest.ext.json"
+  sample_out="$tmp/out-sample"
+  awk '/^[[:space:]]*<script[^>]*id="unit-manifest"/{inside=1; next} inside && /<\/script>/{exit} inside{print}' \
+    "$repo_root/shared/samples/一覧/API一覧/API一覧.html" > "$sample_api"
+  assert "ケースm: 同梱API一覧JSONを抽出できる" jq empty "$sample_api"
+  assert "ケースm: 同梱サンプルをfeatureなしで導出できる" \
+    bash "$script_path" "$sample_out" --screen-manifest "$sample_screen" --api-manifest "$sample_api"
+  assert "ケースm: 同梱サンプルで3成果物を生成する" \
+    bash -c "[ -f '$sample_out/permission-matrix.json' ] && [ -f '$sample_out/crud-matrix.json' ] && [ -f '$sample_out/traceability.json' ]"
+
+  # --- ケースn: feature参照先がunresolvedならpermission/crudへ混入させない ---
+  local sm_unresolved="$tmp/screen-manifest-unresolved.json" am_unresolved="$tmp/api-manifest-unresolved.json"
+  local fm_unresolved="$tmp/feature-manifest-unresolved.json" out_unresolved="$tmp/out-unresolved"
+  jq -n '{screens:[{screenKey:"ghost-screen",route:"/ghost",permissions:[],relatedApis:["ghost-api"]}]}' > "$sm_unresolved"
+  jq -n '{units:[{unitKey:"ghost-api",kind:"unresolved",identifier:"GET /ghost",method:"GET",targetTables:["users"]}]}' > "$am_unresolved"
+  jq -n '{units:[{unitKey:"ghost-feature",kind:"feature",identifier:"ghost-feature",relatedApis:["ghost-api"]}]}' > "$fm_unresolved"
+  assert "ケースn: unresolved API参照でも生成コマンドが成功" \
+    bash "$script_path" "$out_unresolved" --screen-manifest "$sm_unresolved" --api-manifest "$am_unresolved" --feature-manifest "$fm_unresolved"
+  assert "ケースn: unresolved APIはpermission CRUD文字とcrud行へ混入しない" \
+    bash -c "jq -e '.features == [{\"unitKey\":\"ghost-feature\",\"crud\":{\"guest\":\"\",\"member\":\"\"}}]' '$out_unresolved/permission-matrix.json' >/dev/null && jq -e '.features == []' '$out_unresolved/crud-matrix.json' >/dev/null"
+
+  # --- ケースo: 失敗時は旧3成果物だけ除去し、無関係ファイルを保持 ---
+  local out_stale="$tmp/out-stale" stale_stderr="$tmp/stale-stderr.log" stale_rc=0
+  mkdir -p "$out_stale"
+  printf '%s\n' old > "$out_stale/permission-matrix.json"
+  printf '%s\n' old > "$out_stale/crud-matrix.json"
+  printf '%s\n' old > "$out_stale/traceability.json"
+  printf '%s\n' keep > "$out_stale/keep.txt"
+  bash "$script_path" "$out_stale" --screen-manifest "$sm" --api-manifest "$am_nomethod" \
+    >/dev/null 2>"$stale_stderr" || stale_rc=$?
+  assert "ケースo: method不足入力はexit 1" bash -c "[ $stale_rc -eq 1 ]"
+  assert "ケースo: 旧3成果物は消え、無関係keep.txtは残る" \
+    bash -c "[ ! -e '$out_stale/permission-matrix.json' ] && [ ! -e '$out_stale/crud-matrix.json' ] && [ ! -e '$out_stale/traceability.json' ] && [ -f '$out_stale/keep.txt' ]"
+
+  # --- ケースp: 公開途中の失敗でも対象3成果物をrollbackし、staging siblingを残さない ---
+  local out_rollback="$tmp/out-rollback" rollback_bin="$tmp/rollback-bin"
+  local rollback_counter="$tmp/rollback-mv-count" rollback_stderr="$tmp/rollback-stderr.log" rollback_rc=0
+  mkdir -p "$out_rollback" "$rollback_bin"
+  printf '%s\n' old > "$out_rollback/permission-matrix.json"
+  printf '%s\n' old > "$out_rollback/crud-matrix.json"
+  printf '%s\n' old > "$out_rollback/traceability.json"
+  printf '%s\n' keep > "$out_rollback/keep.txt"
+  printf '%s\n' 0 > "$rollback_counter"
+  cat > "$rollback_bin/mv" <<'EOF'
+#!/usr/bin/env bash
+count="$(cat "$MV_SHIM_COUNT_FILE")"
+count=$((count + 1))
+printf '%s\n' "$count" > "$MV_SHIM_COUNT_FILE"
+if [ "$count" -eq 2 ]; then
+  exit 97
+fi
+exec /bin/mv "$@"
+EOF
+  chmod +x "$rollback_bin/mv"
+  PATH="$rollback_bin:$PATH" MV_SHIM_COUNT_FILE="$rollback_counter" \
+    bash "$script_path" "$out_rollback" --screen-manifest "$sm" --api-manifest "$am" \
+    >/dev/null 2>"$rollback_stderr" || rollback_rc=$?
+  assert "ケースp: 2件目の公開mv失敗は非ゼロ終了" \
+    bash -c "[ $rollback_rc -ne 0 ] && [ \"\$(cat '$rollback_counter')\" -eq 2 ]"
+  assert "ケースp: rollbackで対象3成果物・staging siblingを除去し、無関係keep.txtを保持" \
+    bash -c "[ ! -e '$out_rollback/permission-matrix.json' ] && [ ! -e '$out_rollback/crud-matrix.json' ] && [ ! -e '$out_rollback/traceability.json' ] && [ -f '$out_rollback/keep.txt' ] && ! find '$tmp' -maxdepth 1 -type d -name '.out-rollback.matrix-staging.*' -print -quit | grep -q ."
+
+  # --- ケースq/r: unresolvedでも明示targetTablesの値・型は検査する ---
+  local unresolved_tables_case unresolved_tables_value unresolved_tables_manifest
+  local unresolved_tables_out unresolved_tables_stderr unresolved_tables_rc
+  for unresolved_tables_case in string whitespace; do
+    case "$unresolved_tables_case" in
+      string) unresolved_tables_value='"bad"' ;;
+      whitespace) unresolved_tables_value='["   "]' ;;
+    esac
+    unresolved_tables_manifest="$tmp/api-manifest-unresolved-target-tables-$unresolved_tables_case.json"
+    jq -n --argjson targetTables "$unresolved_tables_value" \
+      '{units:[{unitKey:"unresolved-invalid-tables",kind:"unresolved",identifier:"unknown",targetTables:$targetTables}]}' \
+      > "$unresolved_tables_manifest"
+    unresolved_tables_out="$tmp/out-unresolved-target-tables-$unresolved_tables_case"
+    unresolved_tables_stderr="$tmp/unresolved-target-tables-$unresolved_tables_case-stderr.log"
+    mkdir -p "$unresolved_tables_out"
+    printf '%s\n' old > "$unresolved_tables_out/permission-matrix.json"
+    printf '%s\n' old > "$unresolved_tables_out/crud-matrix.json"
+    printf '%s\n' old > "$unresolved_tables_out/traceability.json"
+    unresolved_tables_rc=0
+    bash "$script_path" "$unresolved_tables_out" --screen-manifest "$sm" --api-manifest "$unresolved_tables_manifest" \
+      >/dev/null 2>"$unresolved_tables_stderr" || unresolved_tables_rc=$?
+    assert "ケース$unresolved_tables_case: unresolvedの不正targetTablesはexit 1・unitKey表示・旧/部分成果物0" \
+      bash -c "[ $unresolved_tables_rc -eq 1 ] && grep -q '不正フィールド: targetTables' '$unresolved_tables_stderr' && grep -q 'unresolved-invalid-tables' '$unresolved_tables_stderr' && [ ! -e '$unresolved_tables_out/permission-matrix.json' ] && [ ! -e '$unresolved_tables_out/crud-matrix.json' ] && [ ! -e '$unresolved_tables_out/traceability.json' ]"
+  done
+
+  # --- ケースs: 生成済み機能一覧→matrix→permission-function連結 ---
+  local feature_html="$repo_root/shared/samples/一覧/機能一覧/機能一覧.html"
+  local api_html="$repo_root/shared/samples/一覧/API一覧/API一覧.html"
+  local screen_sample="$repo_root/shared/samples/一覧/画面一覧/screen-manifest.ext.json"
+  local feature_sample="$tmp/feature-manifest-sample.json"
+  local api_sample="$tmp/api-manifest-sample.json"
+  awk '/^[[:space:]]*<script[^>]*id="unit-manifest"/{inside=1; next} inside && /<\/script>/{exit} inside{print}' \
+    "$feature_html" > "$feature_sample"
+  awk '/^[[:space:]]*<script[^>]*id="unit-manifest"/{inside=1; next} inside && /<\/script>/{exit} inside{print}' \
+    "$api_html" > "$api_sample"
+  assert "ケースs: feature relatedApis は API unitKey に全件対応する" \
+    jq -s -e '(.[0].units | map(.unitKey) | unique) as $api_keys
+           | [.[1].units[] | (.relatedApis // [])[]
+              | select(. as $key | $api_keys | index($key) == null)]
+           | length == 0' "$api_sample" "$feature_sample"
+
+  local out_feature_chain="$tmp/out-feature-chain"
+  local sample_hash="aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  assert "ケースs: 生成済み一覧からmatrix生成が成功" \
+    bash "$script_path" "$out_feature_chain" --screen-manifest "$screen_sample" --api-manifest "$api_sample" \
+      --feature-manifest "$feature_sample" --generated-at 2026-07-29T00:00:00Z \
+      --manifest-content-hash "$sample_hash"
+
+  local permission_function="$out_feature_chain/permission-function.json"
+  assert "ケースs: permission-matrixから権限機能JSON生成が成功" \
+    bash "$script_dir/build-permission-function-data.sh" "$out_feature_chain/permission-matrix.json" "$permission_function" \
+      --generated-at 2026-07-29T00:00:00Z --manifest-content-hash "$sample_hash"
+  assert "ケースs: permission-matrix の features に unitKey 重複がない" \
+    jq -e '([.features[].unitKey] | length) == ([.features[].unitKey] | unique | length)' \
+      "$out_feature_chain/permission-matrix.json"
+  assert "ケースs: 権限機能JSONの functions が1件以上" \
+    jq -e '.functions | length >= 1' "$permission_function"
 
   if [ "$rc" -eq 0 ]; then
     echo "self-test 全項目 PASS"
@@ -425,6 +622,11 @@ while [ $# -gt 0 ]; do
       ;;
   esac
 done
+
+# 前回成功分を今回の失敗結果と誤認させない。既存ディレクトリ内の対象3成果物だけを除去する。
+if [ -d "$OUTPUT_DIR" ]; then
+  rm -f -- "$OUTPUT_DIR/permission-matrix.json" "$OUTPUT_DIR/crud-matrix.json" "$OUTPUT_DIR/traceability.json"
+fi
 
 if ! command -v jq >/dev/null 2>&1; then
   echo "ERROR: jq is required but not found in PATH" >&2
@@ -526,53 +728,55 @@ if [ "$HAS_FEATURES" = true ]; then
   fi
 fi
 
-# --- 検査B: CRUD判定材料の事前検査(出力作成前) ---
-# feature-manifest 指定時は relatedApis が参照する API だけ、未指定時は全 API を対象とする。
-# 解決不能な relatedApis は別課題のため、ここでは不足判定へ含めない。
+# --- 検査B: 全APIの存在値検証 + CRUD/permission対象のmethod必須検査（出力作成前） ---
+# 存在する method / targetTables の型・値域は unresolved を含む全 API units で検査する。
+# method の欠落は、feature 指定時は解決済み relatedApis の参照先、未指定時は
+# targetTables キーを明示した解決済み API だけを候補にする（欠落からCRUDを推測しない）。
+validation_targets='($am[0].units // []) as $apis
+  | ($fm[0].units // []) as $features
+  | (if $hasFeatures
+     then ([$features[]? | (.relatedApis // [])[]] | unique) as $relatedApis
+          | [$apis[] | select(.kind != "unresolved" and (.unitKey as $unitKey | $relatedApis | index($unitKey) != null))]
+     else [$apis[] | select(.kind != "unresolved" and has("targetTables"))]
+     end)'
 missing_method_apis="$(jq -n -r \
+  --slurpfile am "$API_MANIFEST" --slurpfile fm "$FEATURE_MANIFEST_FILE" --argjson hasFeatures "$HAS_FEATURES" \
+  "$validation_targets as \$targets
+   | [\$targets[]
+      | select((if \$hasFeatures then true else ((.targetTables | type) == \"array\" and (.targetTables | length) > 0) end))
+      | select(has(\"method\") | not) | .unitKey] | unique | .[0:10][]")"
+invalid_method_apis="$(jq -n -r \
   --slurpfile am "$API_MANIFEST" \
-  --slurpfile fm "$FEATURE_MANIFEST_FILE" \
-  --argjson hasFeatures "$HAS_FEATURES" \
-  '($am[0].units // []) as $apis
-   | ($fm[0].units // []) as $features
-   | (if $hasFeatures
-      then ([$features[]? | (.relatedApis // [])[]] | unique) as $relatedApis
-           | [$apis[] | select(.unitKey as $unitKey | $relatedApis | index($unitKey) != null)]
-      else $apis
-      end) as $targets
-   | [$targets[] | select(has("method") | not) | .unitKey] | unique | .[0:10][]')"
-missing_target_tables_apis="$(jq -n -r \
+  '[($am[0].units // [])[] | select(has("method"))
+     | select((.method | type) != "string" or (.method | test("^(GET|POST|PUT|PATCH|DELETE)$") | not))
+     | .unitKey] | unique | .[0:10][]')"
+invalid_target_tables_apis="$(jq -n -r \
   --slurpfile am "$API_MANIFEST" \
-  --slurpfile fm "$FEATURE_MANIFEST_FILE" \
-  --argjson hasFeatures "$HAS_FEATURES" \
-  '($am[0].units // []) as $apis
-   | ($fm[0].units // []) as $features
-   | (if $hasFeatures
-      then ([$features[]? | (.relatedApis // [])[]] | unique) as $relatedApis
-           | [$apis[] | select(.unitKey as $unitKey | $relatedApis | index($unitKey) != null)]
-      else $apis
-      end) as $targets
-   | [$targets[] | select(has("targetTables") | not) | .unitKey] | unique | .[0:10][]')"
-if [ -n "$missing_method_apis" ] || [ -n "$missing_target_tables_apis" ]; then
-  echo "ERROR: CRUD判定材料が不足しています:" >&2
+  '[($am[0].units // [])[] | select(has("targetTables"))
+     | select(if (.targetTables | type) != "array"
+              then true
+              else any(.targetTables[]; type != "string" or (test("\\S") | not))
+              end)
+     | .unitKey] | unique | .[0:10][]')"
+if [ -n "$missing_method_apis" ] || [ -n "$invalid_method_apis" ] || [ -n "$invalid_target_tables_apis" ]; then
+  echo "ERROR: CRUD判定材料が不正または不足しています:" >&2
   if [ -n "$missing_method_apis" ]; then
     echo "  不足フィールド: method" >&2
     echo "  method を持たない API (最大10件):" >&2
-    while IFS= read -r unit_key; do
-      [ -n "$unit_key" ] && echo "  - $unit_key" >&2
-    done <<< "$missing_method_apis"
+    while IFS= read -r unit_key; do [ -n "$unit_key" ] && echo "  - $unit_key" >&2; done <<< "$missing_method_apis"
   fi
-  if [ -n "$missing_target_tables_apis" ]; then
-    echo "  不足フィールド: targetTables" >&2
-    echo "  targetTables を持たない API (最大10件):" >&2
-    while IFS= read -r unit_key; do
-      [ -n "$unit_key" ] && echo "  - $unit_key" >&2
-    done <<< "$missing_target_tables_apis"
+  if [ -n "$invalid_method_apis" ]; then
+    echo "  不正フィールド: method" >&2
+    echo "  method がHTTP動詞として不正な API (最大10件):" >&2
+    while IFS= read -r unit_key; do [ -n "$unit_key" ] && echo "  - $unit_key" >&2; done <<< "$invalid_method_apis"
+  fi
+  if [ -n "$invalid_target_tables_apis" ]; then
+    echo "  不正フィールド: targetTables" >&2
+    echo "  targetTables が文字列配列でない API (最大10件):" >&2
+    while IFS= read -r unit_key; do [ -n "$unit_key" ] && echo "  - $unit_key" >&2; done <<< "$invalid_target_tables_apis"
   fi
   exit 1
 fi
-
-mkdir -p "$OUTPUT_DIR"
 
 # --- table-manifest 収載確認(advisory。出力は変えない) ---
 if [ -n "$TABLE_MANIFEST" ]; then
@@ -601,6 +805,24 @@ JQ_DEFS='
   def role_access($p; $r):
     (($p | length) == 0) or (($p | index($r)) != null);
 '
+
+# OUTPUT_DIR と同じ親にhidden siblingを作り、3成果物をまとめて公開する。
+OUTPUT_PARENT="$(dirname "$OUTPUT_DIR")"
+OUTPUT_NAME="$(basename "$OUTPUT_DIR")"
+mkdir -p "$OUTPUT_PARENT"
+STAGING_DIR="$(mktemp -d "$OUTPUT_PARENT/.${OUTPUT_NAME}.matrix-staging.XXXXXX")"
+PUBLISH_COMPLETE=false
+cleanup_matrix_transaction() {
+  local exit_code=$?
+  trap - EXIT
+  set +e
+  if [ "$PUBLISH_COMPLETE" != true ]; then
+    rm -f -- "$OUTPUT_DIR/permission-matrix.json" "$OUTPUT_DIR/crud-matrix.json" "$OUTPUT_DIR/traceability.json"
+  fi
+  rm -rf "$STAGING_DIR"
+  exit "$exit_code"
+}
+trap cleanup_matrix_transaction EXIT
 
 # ---------------------------------------------------------------------------
 # 1. permission-matrix.json
@@ -637,7 +859,7 @@ jq -n \
       | select(((.relatedApis // []) | length) > 0)
       | . as $f
       | ([ $f.relatedApis[] as $k
-           | $apis[] | select(.unitKey == $k and has("method"))
+           | $apis[] | select(.unitKey == $k and .kind != "unresolved" and has("method"))
            | {unitKey: .unitKey, letter: (.method | method_letter)}
            | select(.letter != "") ]) as $fapis
       | { unitKey: $f.unitKey,
@@ -650,8 +872,7 @@ jq -n \
                                  | $fa.letter ] | unique | crud_str) }
                  ] | from_entries) }
     ]
-  } + (if ($manifestContentHash | length) > 0 then {manifestContentHash: $manifestContentHash} else {} end))' > "$OUTPUT_DIR/permission-matrix.json"
-echo "OK: wrote $OUTPUT_DIR/permission-matrix.json" >&2
+  } + (if ($manifestContentHash | length) > 0 then {manifestContentHash: $manifestContentHash} else {} end))' > "$STAGING_DIR/permission-matrix.json"
 
 # ---------------------------------------------------------------------------
 # 2. crud-matrix.json
@@ -676,7 +897,8 @@ jq -n \
           | select(((.relatedApis // []) | length) > 0)
           | . as $f
           | ([ $f.relatedApis[] as $k
-               | $apis[] | select(.unitKey == $k and has("method") and has("targetTables"))
+               | $apis[] | select(.unitKey == $k and .kind != "unresolved" and has("method") and has("targetTables")
+                                  and (.targetTables | type == "array") and (.targetTables | length) > 0)
                | (.method | method_letter) as $l
                | select($l != "")
                | .targetTables[] as $t
@@ -689,7 +911,8 @@ jq -n \
                       | from_entries) } ]
       else
         [ $apis[]
-          | select(has("method") and has("targetTables"))
+          | select(.kind != "unresolved" and has("method") and has("targetTables")
+                   and (.targetTables | type == "array") and (.targetTables | length) > 0)
           | (.method | method_letter) as $l
           | select($l != "")
           | select((.targetTables | length) > 0)
@@ -709,8 +932,7 @@ jq -n \
       features: $featureRows }
   + (if $hasFeatures then {} else {note: "feature-manifest未指定のためAPI単位で集約(featureIdはAPIのunitKey)"} end)
   + (if ($manifestContentHash | length) > 0 then {manifestContentHash: $manifestContentHash} else {} end)
-  ' > "$OUTPUT_DIR/crud-matrix.json"
-echo "OK: wrote $OUTPUT_DIR/crud-matrix.json" >&2
+  ' > "$STAGING_DIR/crud-matrix.json"
 
 # ---------------------------------------------------------------------------
 # 3. traceability.json
@@ -752,5 +974,15 @@ jq -n \
              else ([ $apis[] | .targetTables // [] | .[] ] | unique | map({tableId: ., tableName: .}))
              end) }
     + (if ($manifestContentHash | length) > 0 then {manifestContentHash: $manifestContentHash} else {} end))
-  ' > "$OUTPUT_DIR/traceability.json"
+  ' > "$STAGING_DIR/traceability.json"
+
+mkdir -p "$OUTPUT_DIR"
+mv "$STAGING_DIR/permission-matrix.json" "$OUTPUT_DIR/permission-matrix.json"
+mv "$STAGING_DIR/crud-matrix.json" "$OUTPUT_DIR/crud-matrix.json"
+mv "$STAGING_DIR/traceability.json" "$OUTPUT_DIR/traceability.json"
+echo "OK: wrote $OUTPUT_DIR/permission-matrix.json" >&2
+echo "OK: wrote $OUTPUT_DIR/crud-matrix.json" >&2
 echo "OK: wrote $OUTPUT_DIR/traceability.json" >&2
+rm -rf "$STAGING_DIR"
+PUBLISH_COMPLETE=true
+trap - EXIT

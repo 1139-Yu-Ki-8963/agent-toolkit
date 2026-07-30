@@ -89,7 +89,7 @@
 
 <header>
   <h1>画面遷移図生成スキル<br><span class="skill-name">generating-screen-transition-for-reverse-docs</span></h1>
-  <p>画面一覧.html のマニフェストと対象リポジトリのルーティング定義を突合し、「画面遷移図.html」を機械検証付きで生成するスキルの確定仕様。</p>
+  <p>永続正本 screen-manifest.json、そこから生成した screen-manifest.ext.json、対象リポジトリのルーティング定義を突合し、「画面遷移図.html」を機械検証付きで生成するスキルの確定仕様。</p>
 
   <div class="def">
     <dt>こんな人向け</dt>
@@ -99,7 +99,7 @@
     </dd>
     <dt>こんな場面で使う</dt>
     <dd>
-      画面一覧.html が確定済みで、次にポータル基盤情報ページを揃えたい時 ／
+      screen-manifest.json と screen-manifest.ext.json が確定済みで、次にポータル基盤情報ページを揃えたい時 ／
       route 情報を持たない旧形式の画面や宛先未解決の遷移を可視化したい時
     </dd>
   </div>
@@ -126,12 +126,14 @@
 
 <section id="s1">
   <h2><span class="sec-num">§1</span>概要</h2>
-  <p>リバースエンジニアリング設計のポータルには、将来ページの受け口（<code>output_dir</code> 直下に該当 HTML が実在するときだけカード化される仕組み）がある。本スキルはそのうち画面遷移図（T4）専任の生成係として、画面一覧.html に埋め込まれたマニフェストと対象リポジトリのルーティング定義を突合し、<strong>画面遷移図.html</strong> を機械検証付きで作成する。</p>
+  <p>リバースエンジニアリング設計のポータルには、将来ページの受け口（<code>output_dir</code> 直下に該当 HTML が実在するときだけカード化される仕組み）がある。本スキルはそのうち画面遷移図（T4）専任の生成係として、<code>&lt;output_dir&gt;/一覧/画面一覧/screen-manifest.json</code> と、それから生成した <code>screen-manifest.ext.json</code> を対象リポジトリのルーティング定義と突合し、<strong>画面遷移図.html</strong> を機械検証付きで作成する。</p>
   <p>本スキルは判定・評価をしない。画面設計の良否は問わず、コードの実測から解決できた遷移のみを転記する。宛先を解決できない遷移や route 情報を持たない画面（旧形式マニフェスト）は捏造せず、未解決として可視化する。</p>
   <pre class="flow"><span class="cap">── 処理の全体像 ──────────────────────────────</span>
 
-  画面一覧.html（script#screen-manifest 埋め込み）
-       │  Phase 1  実在確認 + Router 種別判別 + 検出戦略宣言（承認）
+  一覧/画面一覧/screen-manifest.json（永続raw正本）
+       │
+       ├── screen-manifest.ext.json（raw由来・hash一致）
+       │  Phase 1  実在・hash確認 + Router 種別判別 + 検出戦略宣言（承認）
        ▼
   対象リポジトリのルーティング定義（Router 定義・navigate・Link・redirect）
        │  Phase 2  nodes 転記 + edges 抽出 + 宛先解決（未解決は分離）
@@ -155,7 +157,7 @@
     <dt>埋め込み page-data JSON</dt>
     <dd>画面遷移図.html の中に、生成の元になった page-data.json がそのまま埋め込まれる。読んだ人は「いつ・どの画面一覧・どのコード実測から生成されたか」を HTML 単体で追跡でき、機械処理（後続スキルからの参照）にも使える。</dd>
   </div>
-  <p class="note">画面一覧.html が不在の場合、本スキルは生成を行わず先行実行の案内のみで終わる。この場合、画面遷移図.html は生まれない。</p>
+  <p class="note">永続raw正本またはraw由来extが不在の場合、本スキルは生成を行わず先行実行の案内のみで終わる。画面一覧HTMLからの逆抽出は、旧成果物を明示的に移行・復元する工程でだけ使用し、通常生成では行わない。</p>
 </section>
 
 <section id="s3">
@@ -176,13 +178,13 @@
 
 <section id="s4">
   <h2><span class="sec-num">§4</span>動作フロー</h2>
-  <p>起動引数は <code>target_repo_path</code>・<code>output_dir</code>（必須）と <code>portal_output_dir</code>（任意）の 3 つ。種別は transition に固定されているため、種別を選ぶ引数はない。</p>
+  <p>起動引数は <code>target_repo_path</code>・<code>output_dir</code>（必須）と <code>portal_output_dir</code>（任意）の 3 つ。通常生成では <code>output_dir</code> 配下の正本raw/extを直接解決する。種別は transition に固定されているため、種別を選ぶ引数はない。</p>
   <table class="spec">
     <tr><th>Phase</th><th>内容</th><th>完了条件</th></tr>
     <tr>
       <td><strong>Phase 1</strong><br>前提確認・検出戦略の宣言</td>
-      <td>画面一覧.html の実在確認（不在ならハード停止し generating-screen-list-for-reverse-docs の先行実行を案内）、埋め込みマニフェストの確認、Router 種別の判別、検出戦略の AskUserQuestion 承認</td>
-      <td>実在確認済み（または停止）。Router 種別と検出戦略がユーザー承認済み</td>
+      <td>永続raw正本とraw由来extの実在確認（不在ならハード停止し generating-screen-list-for-reverse-docs の先行実行を案内）、rawにhashが無いこと・extのhashがraw正規化内容と一致することの確認、Router 種別の判別、検出戦略の AskUserQuestion 承認</td>
+      <td>raw/extの実在・由来検証済み（または停止）。Router 種別と検出戦略がユーザー承認済み</td>
     </tr>
     <tr>
       <td><strong>Phase 2</strong><br>抽出</td>
@@ -191,12 +193,12 @@
     </tr>
     <tr>
       <td><strong>Phase 3</strong><br>整合検証（機械実行）</td>
-      <td><code>validate-page-data.sh &lt;page-data.json&gt; --target-repo &lt;target_repo_path&gt;</code> の実行、孤児 edge の検査。FAIL は修正して再実行（3 回失敗で Phase 2 へ差し戻し）</td>
-      <td>全項目 PASS（exit 0）かつ孤児 edge 0 件</td>
+      <td><code>validate-page-data.sh &lt;page-data.json&gt; --target-repo &lt;target_repo_path&gt;</code> と <code>check-screen-transition-manifest-alignment.sh --raw-manifest ... --ext-manifest ... --page-data ...</code> を実行し、孤児 edge、raw件数 = nodes件数 + route空未解決件数、ext有効ラベルとのラベル差分0、raw/ext/page-dataのhash整合を検査。FAIL は修正して再実行（3 回失敗で Phase 2 へ差し戻し）</td>
+      <td>全項目 PASS（exit 0）、孤児 edge 0 件、件数・ラベル・hashが一致</td>
     </tr>
     <tr>
       <td><strong>Phase 4</strong><br>画面遷移図.html 生成</td>
-      <td><code>build-detail-page.sh &lt;page-data.json&gt; &lt;output_dir&gt; --page transition</code> を実行。<code>portal_output_dir</code> 指定時は <code>build-portal.sh</code> を再実行しカードへ反映</td>
+      <td><code>build-detail-page.sh &lt;page-data.json&gt; &lt;output_dir&gt; --page transition</code> を実行。<code>portal_output_dir</code> 指定時はraw由来extを<code>--screen-manifest</code>へ渡し、複数サイトでは<code>--sites</code>・<code>--site-key</code>も保持して<code>build-portal.sh</code>を再実行する</td>
       <td>HTML 生成済み。指定時は build-portal.sh 再実行済み</td>
     </tr>
   </table>
@@ -205,7 +207,7 @@
   <h3>返却（呼び出し元との契約）</h3>
   <table class="spec">
     <tr><th>キー</th><th>内容</th></tr>
-    <tr><td><code>status</code></td><td><code>DONE</code> | <code>STOPPED</code>（画面一覧.html 不在）| <code>ERROR</code></td></tr>
+    <tr><td><code>status</code></td><td><code>DONE</code> | <code>STOPPED</code>（永続raw正本またはraw由来ext不在）| <code>ERROR</code></td></tr>
     <tr><td><code>artifacts</code></td><td>生成した画面遷移図.html のパス（<code>STOPPED</code>/<code>ERROR</code> 時は空）</td></tr>
     <tr><td><code>page_kind</code></td><td><code>transition</code>（固定値）</td></tr>
     <tr><td><code>portal_rebuilt</code></td><td>build-portal.sh 再実行の有無</td></tr>
@@ -218,6 +220,10 @@
   <div class="constraint">
     <strong>手作業でのプレースホルダ置換は禁止。</strong>
     画面遷移図.html は必ず <code>build-detail-page.sh</code> 経由の決定的処理で生成する。
+  </div>
+  <div class="constraint">
+    <strong>通常生成でHTMLからマニフェストを逆抽出しない。</strong>
+    画面一覧HTMLの埋め込みJSONは単体閲覧用の派生情報であり、逆抽出は旧成果物の明示的な移行・復元にだけ使用する。
   </div>
   <div class="constraint">
     <strong>宛先未解決はハード停止せず未解決として可視化。</strong>
@@ -244,7 +250,7 @@
   <table class="spec">
     <tr><th>関連</th><th>関係</th></tr>
     <tr><td><code>orchestrating-reverse-docs-flow</code></td><td>工程全体の案内役。本スキルはポータル基盤情報ページの 1 種を担い、単独起動もできる</td></tr>
-    <tr><td><code>generating-screen-list-for-reverse-docs</code></td><td>本スキルのデータ源（画面一覧.html）を確定する前工程。不在時はこちらの先行実行が必要</td></tr>
+    <tr><td><code>generating-screen-list-for-reverse-docs</code></td><td>本スキルのデータ源（永続raw正本とraw由来ext）を確定する前工程。不在時はこちらの先行実行が必要</td></tr>
     <tr><td>他の detail-pages 系 4 スキル（用語辞書・技術スタック・ER図・環境構築手順）</td><td>同じエンジンスクリプト（validate-page-data.sh / build-detail-page.sh）を共用する兄弟スキル</td></tr>
     <tr><td><code>page-data-schema.md</code></td><td>page-data.json のスキーマ正本</td></tr>
     <tr><td><code>references/transition-detection.md</code></td><td>Router 種別ごとの検出戦略ガイダンス</td></tr>

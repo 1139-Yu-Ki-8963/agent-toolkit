@@ -30,7 +30,7 @@
   該当ユニットを引けるようにする(不可視属性のため3列制約には抵触しない)。
 
   制約:
-    - 外部リソース(CDN・フォント・画像)は一切使わない。単一ファイル自己完結
+    - 外部リソースはMaterial Symbols OutlinedのGoogle Fonts CDNだけを許可する。その他のCDN・フォント・画像は使わない
     - <script id="unit-manifest"> のJSON.parse結果は確定結果(manifest.json)と完全に一致させる。文字列中のHTML危険文字はJSONエスケープを許容する
     - 本テンプレートは<ラベル>一覧.HTMLの生成のみを対象とする。設計書の雛形展開・生成は本スキルの範囲外
 -->
@@ -39,6 +39,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>{{UNIT_KIND_LABEL}}一覧</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined&amp;icon_names=info,priority_high,warning&amp;display=block" />
 <style>
   /* TOKENS_CSS */
   /* SHELL_CSS */
@@ -224,7 +225,7 @@
       </div>
 
       <section class="unresolved {{UNRESOLVED_CLASS}}">
-        <h2>要手動確認</h2>
+        <h2><span class="material-symbols-outlined pt-callout__icon" aria-hidden="true">warning</span>要手動確認</h2>
         <div class="table-wrap">
         <!--UNRESOLVED_SECTION-->
         </div>

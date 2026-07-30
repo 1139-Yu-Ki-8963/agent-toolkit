@@ -109,7 +109,7 @@
 
 <header>
   <h1>プロジェクト共通採録スキル<br><span class="skill-name">generating-reverse-common-docs</span></h1>
-  <p>アーキテクチャ調査書を前提に、対象リポジトリのコードから層化サンプリングでプロジェクト共通10文書のv0を採録する。実装済みコードに現に存在する規約・共通仕様の事実だけを記録し、理想論は書かない。</p>
+  <p>アーキテクチャ調査書を前提に、対象リポジトリのコードから層化サンプリングでプロジェクト共通26文書のv0を採録する。実装済みコードに現に存在する規約・共通仕様の事実だけを記録し、理想論は書かない。</p>
 
   <div class="def">
     <dt>こんな人向け</dt>
@@ -145,12 +145,12 @@
 
 <section id="s1">
   <h2><span class="sec-num">§1</span>概要</h2>
-  <p>対象リポジトリを層化サンプリングで走査し、その結果を<strong>プロジェクト共通8ファイル</strong>（規約4種＋共通設計書.md＋メッセージ定義書.md＋DESIGN.md＋サンプル記録.md）として確定する。</p>
+  <p>対象リポジトリを層化サンプリングで走査し、その結果を<strong>プロジェクト共通11ファイル</strong>（規約4種＋共通設計書.md＋メッセージ定義書.md＋DESIGN.md＋基盤設計.md＋UI共通設計.md＋データ設計.md＋サンプル記録.md）として確定する。</p>
   <div class="constraint">
     <strong>単独動作</strong>: 他スキルへの依存を持たない。起動引数を渡せば単独で動く。工程全体は orchestrating-reverse-docs-flow が案内する。後続工程（facts抽出・詳細設計執筆）はこのプロジェクト共通文書を前提として動く。
   </div>
   <div class="constraint">
-    <strong>読み取り専用</strong>: 対象リポジトリへの書き込み・変更は一切行わない。出力は output_dir 配下の8ファイルのみ。
+    <strong>読み取り専用</strong>: 対象リポジトリへの書き込み・変更は一切行わない。出力は output_dir 配下の11ファイルのみ。
   </div>
   <div class="constraint">
     <strong>rule生成は独立操作</strong>: 規約4文書の構造化表は生成契約として出力するが、採録中は対象リポジトリへ書かない。採録完了後に生成スクリプトへ <code>--apply</code> を明示した場合だけ更新する。
@@ -189,8 +189,8 @@
   <table class="spec">
     <tr><th>引数</th><th>必須</th><th>内容</th></tr>
     <tr><td>target_repo_path</td><td>必須</td><td>対象リポジトリの絶対パス</td></tr>
-    <tr><td>output_dir</td><td>必須</td><td>出力先ルート。10文書は <code>&lt;output_dir&gt;/プロジェクト共通/</code> 配下に出力する</td></tr>
-    <tr><td>template_root</td><td>必須</td><td>テンプレ一式のルート。<code>&lt;template_root&gt;/プロジェクト共通/</code> の既存テンプレ10文書を雛形に使う</td></tr>
+    <tr><td>output_dir</td><td>必須</td><td>出力先ルート。規約20文書は <code>&lt;output_dir&gt;/規約/</code> 配下、共通6文書は <code>&lt;output_dir&gt;/プロジェクト共通/</code> 配下に出力する</td></tr>
+    <tr><td>template_root</td><td>必須</td><td>テンプレ一式のルート。<code>&lt;template_root&gt;/規約/</code> と <code>&lt;template_root&gt;/プロジェクト共通/</code> の既存テンプレ26文書を雛形に使う</td></tr>
     <tr><td>survey_doc_path</td><td>必須</td><td>アーキテクチャ調査書のパス（ディレクトリ責務マップを層化サンプリングの層定義に使う）</td></tr>
     <tr><td>mode</td><td>任意（既定 v0）</td><td>v0（新規）／append（NG帰着(c)の追記。append_findings を受け取り該当文書へ追記して全ゲートを再実行）</td></tr>
     <tr><td>append_findings</td><td>mode=append 時のみ必須</td><td>差し戻し元が指摘した欠落挙動・欠落文書の一覧</td></tr>
@@ -217,8 +217,8 @@
   target_repo_path・template_root・survey_doc_pathの実在を確認する
   調査書内「ユニット種別判定」節と「ディレクトリ責務マップ」節の
   実在をgrepで確認する(調査書ゲートの再実行はしない)
-  output_dir/プロジェクト共通/規約/を作成しテンプレ10文書を複製する
-  完了条件: テンプレ10文書複製済み・調査書の2節実在確認済み
+  output_dir/規約/とoutput_dir/プロジェクト共通/を作成し雛形26文書を複製する
+  完了条件: 雛形26文書複製済み・調査書の2節実在確認済み
    (mode=append時は既存11文書と指摘文書の特定済み)
 
 <span class="cap">Phase 2: 層化サンプリング</span>
@@ -245,7 +245,7 @@
   完了条件: 3文書のプレースホルダ残存ゼロ
 
 <span class="cap">Phase 5: 機械ゲート</span>
-  check-common-docs.sh &lt;output_dir&gt;/プロジェクト共通
+  check-common-docs.sh &lt;output_dir&gt;
    &lt;target_repo_path&gt; を実行
   FAILしたらPhase 3〜4に戻り、指摘された実例不足・頻度欠落・
   例外率欠落・未実在パス・テンプレ残存・理想論表現を修正して
@@ -267,10 +267,10 @@
   <p><code>check-common-docs.sh</code>は合否を exit code のみで判定する（自然文の自己申告は用いない）。</p>
   <table class="spec">
     <tr><th>検査</th><th>内容</th></tr>
-    <tr><td>実在検査</td><td>プロジェクト共通8ファイル（規約4種＋共通設計書.md＋メッセージ定義書.md＋DESIGN.md＋サンプル記録.md）すべてが実在するかを確認する</td></tr>
+    <tr><td>実在検査</td><td>プロジェクト共通11ファイル（規約4種＋共通設計書.md＋メッセージ定義書.md＋DESIGN.md＋基盤設計.md＋UI共通設計.md＋データ設計.md＋サンプル記録.md）すべてが実在するかを確認する</td></tr>
     <tr><td>規則行完備性検査</td><td>規約4文書内の各テーブル行のうち、backtick囲みの相対パス（「/」を含む）トークンを1件以上含む行を「規則行」とみなし、その行に実例パス3件以上・頻度（<code>[0-9]+/[0-9]+</code>形式）・例外率（<code>[0-9.]+%</code>形式）が揃っているかを確認する。「AI設定資産への変換」表は派生rule生成用なので対象外</td></tr>
     <tr><td>パス実在検査</td><td>規約4文書内のbacktick囲み相対パス全件が target_repo_path 配下に実在するかを確認する。URL・glob・プレースホルダ・絶対パス・空白や正規表現記号を含むトークンは対象外</td></tr>
-    <tr><td>テンプレ残存検査</td><td>プレースホルダ（<code>&lt;実測</code>・<code>&lt;FILL</code>・<code>TBD</code>・<code>TODO</code>）の残存ゼロを8ファイルすべてで確認する</td></tr>
+    <tr><td>テンプレ残存検査</td><td>プレースホルダ（<code>&lt;実測</code>・<code>&lt;FILL</code>・<code>TBD</code>・<code>TODO</code>）の残存ゼロを11ファイルすべてで確認する</td></tr>
     <tr><td>理想論表現検査</td><td>規約4文書に「すべきである」「望ましい」「べきだ」「理想的には」「今後は」等の理想論表現が無いかを確認する（実装事実の記録に限る）</td></tr>
   </table>
 </section>
@@ -309,7 +309,7 @@
     <li>頻度は <code>N/M</code> 形式（例: <code>18/20</code>）、例外率は <code>%</code> を含む数値表記（例: <code>10.0%</code>）で、backtickの外（平文）に書く。backtick内に閉じ込めると相対パスとしても誤認識されうる</li>
     <li>記載パスの実在チェック（機械ゲート検査3）は、backtickで囲んだ「/」を含む相対パスのみを対象とする。URL（<code>://</code>）・glob（<code>*</code>/<code>?</code>）・プレースホルダ（<code>&lt;</code>/<code>&gt;</code>）・絶対パス（先頭<code>/</code>）・空白や正規表現記号を含むトークン（コマンド例・grepパターン）は対象外</li>
     <li>理想論表現検査（検査5）は規約4文書のみを走査する。共通設計書.md・メッセージ定義書.md・DESIGN.mdは検査対象外だが、実装事実主義の原則自体はすべての文書に適用する</li>
-    <li>テンプレ残存検査（検査4）は8ファイルすべてを走査する。テンプレの固定文にも検出正規表現に一致する語を書いてはならない</li>
+    <li>テンプレ残存検査（検査4）は11ファイルすべてを走査する。テンプレの固定文にも検出正規表現に一致する語を書いてはならない</li>
     <li>mode=append は指摘文書のみ追記すればよいが、機械ゲートは全項目を再実行する。部分ゲートは存在しない</li>
     <li>発散判定（同一NG理由2連続）は上限5回を消化する前でも即中断する</li>
     <li>層あたりのk値は層内ファイル数の平方根以上・3以上10以下に丸める。全層合計20ファイル未満だとPhase 2の完了条件を満たさない。詳細は references/sampling-rules.md</li>

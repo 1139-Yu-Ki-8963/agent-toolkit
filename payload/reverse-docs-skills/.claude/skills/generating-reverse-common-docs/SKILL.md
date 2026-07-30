@@ -22,8 +22,8 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, TaskCreate, TaskUpdate]
 | 引数 | 必須 | 内容 |
 |---|---|---|
 | target_repo_path | 必須 | 対象リポジトリの絶対パス |
-| output_dir | 必須 | 出力先ルート。10文書は `<output_dir>/プロジェクト共通/` 配下に出力する |
-| template_root | 必須 | テンプレ一式のルート。`<template_root>/プロジェクト共通/` の既存テンプレ10文書（`規約/コーディング規約.md`・`規約/命名規約.md`・`規約/ディレクトリ構成規約.md`・`規約/コンポーネント設計規約.md`・`共通設計書.md`・`メッセージ定義書.md`・`DESIGN.md`・`基盤設計.md`・`UI共通設計.md`・`データ設計.md`）を雛形に使う |
+| output_dir | 必須 | 出力先ルート。規約20文書は `<output_dir>/規約/` 配下、共通6文書は `<output_dir>/プロジェクト共通/` 配下に出力する |
+| template_root | 必須 | テンプレ一式のルート。`<template_root>/規約/` の規約20種と `<template_root>/プロジェクト共通/` の共通6種、計26文書を雛形に使う（規約20種: `コーディング規約.md`・`命名規約.md`・`ディレクトリ構成規約.md`・`コンポーネント設計規約.md`・`レビュー観点表.md`・`テスト方針書.md`・`AIエージェント運用.md`・`安全な操作.md`・`セッション管理.md`・`AI設定資産管理.md`・`定型運用.md`・`開発フロー.md`・`ツール・コマンド実行.md`・`開発環境.md`・`Git運用.md`・`デリバリー.md`・`セキュリティ.md`・`ドキュメント.md`・`ポータル.md`・`コミュニケーション.md`。共通6種: `共通設計書.md`・`メッセージ定義書.md`・`DESIGN.md`・`基盤設計.md`・`UI共通設計.md`・`データ設計.md`） |
 | survey_doc_path | 必須 | アーキテクチャ調査書のパス（ディレクトリ責務マップを層化サンプリングの層定義に使う） |
 | mode | 任意（既定 `v0`） | `v0`（新規）／`append`（NG帰着(c)の追記。`append_findings` を受け取り該当文書へ追記して全ゲート再実行） |
 | append_findings | `mode=append` 時のみ必須 | 差し戻し元が指摘した欠落挙動・欠落文書の一覧 |
@@ -45,9 +45,9 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, TaskCreate, TaskUpdate]
 
 ### Phase 1: 前提確認
 
-`target_repo_path`・`template_root`・`survey_doc_path` の実在を確認する（`test -d`/`test -f`）。調査書内「ユニット種別判定」節と「ディレクトリ責務マップ」節の実在を `grep` で確認する（調査書ゲートの再実行は行わない。既に確定済みの調査書を前提として読むのみ）。`output_dir/プロジェクト共通/規約/` ディレクトリを作成し、テンプレ10文書を出力先へ複製する。`mode=append` の場合は既存の11文書の実在を確認し、`append_findings` に列挙された指摘文書を洗い出す。
+`target_repo_path`・`template_root`・`survey_doc_path` の実在を確認する（`test -d`/`test -f`）。調査書内「ユニット種別判定」節と「ディレクトリ責務マップ」節の実在を `grep` で確認する（調査書ゲートの再実行は行わない。既に確定済みの調査書を前提として読むのみ）。`output_dir/規約/` と `output_dir/プロジェクト共通/` の2ディレクトリを作成し、雛形26文書を出力先へ複製する。`mode=append` の場合は既存の11文書の実在を確認し、`append_findings` に列挙された指摘文書を洗い出す。
 
-完了条件: テンプレ10文書複製済み、調査書の2節（ユニット種別判定・ディレクトリ責務マップ）実在確認済み（`mode=append` 時は既存11文書と指摘文書の特定済み）
+完了条件: 雛形26文書複製済み、調査書の2節（ユニット種別判定・ディレクトリ責務マップ）実在確認済み（`mode=append` 時は既存11文書と指摘文書の特定済み）
 
 ### Phase 2: 層化サンプリング
 
@@ -58,6 +58,8 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, TaskCreate, TaskUpdate]
 ### Phase 3: 規約4種採録
 
 サンプル集合の実コードから、コーディング規約・命名規約・ディレクトリ構成規約・コンポーネント設計規約の各規則を採録する。各規則行には必ず ①実例（対象リポジトリ内の相対パス3件以上、backtick囲み） ②頻度（`N/M` 形式: サンプル中M件を調べN件が該当） ③例外率（`%` 表記。例外があれば例外の実例パスも）を記載する。サンプルに現れない規則を発明しない。
+
+採録対象は上記4種のみで、残る16種（レビュー観点表・テスト方針書等）は本Phaseでは未記入の雛形のまま残す。
 
 各文書の `## AI設定資産への変換` はテンプレートに定義済みの構造化5列表（規約キー、対象パス、強制区分、規約要点、違反時手順）として保持する。この表は本文から規約を推測するためのものではなく、採録済み文書をruleへ決定的に変換する境界である。規約キーを4文書横断で重複させず、強制区分は `advisory` または `block` のまま保持する。
 
@@ -71,7 +73,7 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, TaskCreate, TaskUpdate]
 
 ### Phase 5: 機械ゲート
 
-`scripts/check-common-docs.sh <output_dir>/プロジェクト共通 <target_repo_path>` を実行する。FAILした場合はPhase 3〜4に戻り、指摘された実例不足・頻度欠落・例外率欠落・未実在パス・テンプレ残存・理想論表現・メッセージ定義書の規模不一致を修正して再実行する（上限5回。ループ設計は下表参照）。上限到達で収束しない場合は `status=中断` とし、hintに残欠落を記録する。
+`scripts/check-common-docs.sh <output_dir> <target_repo_path>` を実行する。FAILした場合はPhase 3〜4に戻り、指摘された実例不足・頻度欠落・例外率欠落・未実在パス・テンプレ残存・理想論表現・メッセージ定義書の規模不一致を修正して再実行する（上限5回。ループ設計は下表参照）。上限到達で収束しない場合は `status=中断` とし、hintに残欠落を記録する。
 
 再試行時の探索範囲拡大: check-common-docs.sh が「検出例不足」（frequency_gap / example_shortage を含む）を報告し、かつ Phase 2 のサンプリング範囲が全ディレクトリを未走査の場合、Phase 2 を scope=wider で再実行してからPhase 3-4 へ進む。全ディレクトリ走査済みの場合は「scope-exhausted」として発散検知と同等に中断する（status=中断、hint に scope-exhausted を記録）。
 
@@ -87,7 +89,7 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, TaskCreate, TaskUpdate]
 
 | Phase | 完了条件 |
 |---|---|
-| Phase 1 | テンプレ10文書複製済み。調査書の2節実在確認済み（`mode=append` 時は既存11文書と指摘文書の特定済み） |
+| Phase 1 | 雛形26文書複製済み。調査書の2節実在確認済み（`mode=append` 時は既存11文書と指摘文書の特定済み） |
 | Phase 2 | サンプル記録.mdに全層の選定コマンドと選定ファイル一覧が記録済み（合計20ファイル以上） |
 | Phase 3 | 全規則行が実例3件以上＋頻度＋例外率付き |
 | Phase 4 | 6文書のプレースホルダ残存ゼロ |
@@ -171,6 +173,7 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, TaskCreate, TaskUpdate]
 
 - `~/reverse-docs-skills/.claude/skills/orchestrating-reverse-docs-flow/references/contract.md` — 返却ブロック契約・args仕様の正本
 - `references/sampling-rules.md`（本スキル同梱） — 層化サンプリングの層定義・k値の決め方・決定的選択手順・サンプル記録.mdの記載様式
-- `shared/templates/リバース検証/プロジェクト共通/`（本スキル同梱ではなくリポジトリ共有テンプレ） — 規約4種＋共通設計書.md＋メッセージ定義書.md＋DESIGN.md＋基盤設計.md＋UI共通設計.md＋データ設計.mdの雛形
+- `shared/templates/リバース検証/規約/`（本スキル同梱ではなくリポジトリ共有テンプレ） — 規約20種の雛形（採録対象はコーディング規約・命名規約・ディレクトリ構成規約・コンポーネント設計規約の4種、残る16種は未記入の雛形）
+- `shared/templates/リバース検証/プロジェクト共通/`（本スキル同梱ではなくリポジトリ共有テンプレ） — 共通設計書.md＋メッセージ定義書.md＋DESIGN.md＋基盤設計.md＋UI共通設計.md＋データ設計.mdの雛形
 - `shared/references/リバース工程設計.md` — Phase/Step×スキル対応の正本（本スキルの位置づけ: Phase 4 共通採録 / Step 12-16）。NG帰着3系統の(c)共通文書欠落からの差し戻し先でもある
 - `.claude/skills/surveying-architecture-for-reverse-docs/SKILL.md` — 本スキルが前提とするアーキテクチャ調査書を確定する上流スキル

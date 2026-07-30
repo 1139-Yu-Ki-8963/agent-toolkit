@@ -10,7 +10,7 @@ allowed-tools: [Bash, Read, Write, Edit, Grep, Glob, AskUserQuestion, TaskCreate
 
 工程全体は orchestrating-reverse-docs-flow が案内する。本スキルは画面（unit_kind=screen 固定）の一覧生成のみを担い、単独起動できる（起動引数 source_dir・output_dir の2つを渡せば動く）。任意引数 `survey_doc_path`（アーキテクチャ調査書のパス）を渡すと、Phase 1 の共有ファイル・エイリアス調査の裏取り元として参照する（本スキルは内容を読み込まず実在確認のみ行う。渡されない場合は Phase 1 の調査のみで判断する）。
 
-既存コードベースを、スタック調査→検出戦略の宣言→戦略に基づく抽出→整合検証、の順で調査し、画面単位にファイルをグルーピングして **画面一覧.html**（画面詳細設計書.md の単位を正確に分けるための正本）を作成する。**本スキルの仕事は画面一覧.htmlの作成のみ**であり、設計書の雛形展開・生成・記入は一切行わない。
+既存コードベースを、スタック調査→検出戦略の宣言→戦略に基づく抽出→整合検証、の順で調査し、画面単位にファイルをグルーピングしてraw画面正本・raw由来ext・**画面一覧.html**を作成する。**本スキルの仕事は画面一覧系成果物の生成まで**であり、設計書の雛形展開・生成・記入は一切行わない。
 
 他スキルへの依存を持たず、単独で動作する。
 
@@ -41,6 +41,8 @@ allowed-tools: [Bash, Read, Write, Edit, Grep, Glob, AskUserQuestion, TaskCreate
 ## 出力
 
 - 出力フォルダ: `<output_dir>/一覧/画面一覧/`
+- raw正本: `<output_dir>/一覧/画面一覧/screen-manifest.json`
+- raw由来の拡張manifest: `<output_dir>/一覧/画面一覧/screen-manifest.ext.json`
 - 出力ファイル: `<output_dir>/一覧/画面一覧/画面一覧.html`
 - マニフェスト配列キー: `screens`（後方互換）
 - 任意出力ファイル（Phase 5実行時のみ）: `<output_dir>/一覧/画面一覧/複雑度プロファイル.json`
@@ -79,14 +81,14 @@ allowed-tools: [Bash, Read, Write, Edit, Grep, Glob, AskUserQuestion, TaskCreate
 - **Step 3**: diagnosticsを確認する。entryFile集中警告等が出た場合はカスタム抽出パスへの切替を検討し、切替時はStep 1へ戻る。完了条件: diagnosticsが空、または警告を承知の上で続行と判断済み
 - **セルフチェックゲート**: Phase 2 完了後にエントリファイル実在数（`find <source_dir> -name '*.tsx' -path '*/pages/*' -o -name '*.tsx' -path '*/app/*' | wc -l` 等）と抽出件数を突合し、乖離が 20% を超える場合は警告を出力して AskUserQuestion で確認する。headless=true 時は AskUserQuestion が使用できないため、乖離 20% 超の場合は警告を `<verification_dir>/progress.jsonl` に記録し、工程を続行する（中断しない）。最終報告に乖離率を明記する。併せて、マニフェストの各 route がコメント除去後のルーター定義に有効に存在することを照合する。存在しない route が1件でもあれば、実在しないルートの誤検出としてPhase 2 Step 1（抽出方式再検討）へ差し戻す。
 - **ルート網羅性検査ゲート**: コメント除去後の有効ルート総数と、「マニフェストに掲載された画面数」＋「根拠付き除外記録の件数」の合計を突合する。一致しない場合はFAILとし、除外漏れ・二重計上のいずれかを特定してから再実行する。
-- **Step 4**: マニフェストへメタデータを付与する。`../../../shared/scripts/extract/extract-screen-metadata.sh <manifest.json> <source_dir> <manifest.ext.json> --design-docs-dir <output_dir>/画面 --link-base-dir <output_dir>/一覧/画面一覧` を実行し、各画面に `category`・`permissions`・`relatedApis`・`designDocStatus` と、実在する設計文書だけの4リンクを追加する。設計書の先頭見出しから確定画面名を取得できた場合は `confirmedScreenName` も追加する。設計書ディレクトリが未展開でも実行でき、その場合は `designDocStatus=未着手` として扱う。検証前に生manifestを`<output_dir>/一覧/画面一覧/screen-manifest.json`、拡張manifestを同`screen-manifest.ext.json`へ一時ファイル+renameで原子的に保存し、以降のPhase（Phase 2B含む）はこの永続拡張manifestを使用する。設計書著述後に一覧を再生成する場合も永続生manifestから同じコマンドを再実行し、確定名と実在リンクを書き戻す。完了条件: 永続生manifest・拡張manifestが生成済み
-- **Step 5（既存テスト件数の走査）**: `source_dir` を `find <source_dir> -type f \( -name '*.test.*' -o -name '*.spec.*' \) -o -type d -name '__tests__'` 等で走査し、ヒットしたファイル名またはディレクトリ名から画面IDを推定して各画面に対応付ける。対応するテストファイルの件数を `existingTestCount`（整数フィールド。対応するテストが1件も無い画面は `0`）として `manifest.ext.json` の各画面要素に付与する。完了条件: 全画面に `existingTestCount` が付与済み
+- **Step 4（既存テスト件数の走査）**: `source_dir` を `find <source_dir> -type f \( -name '*.test.*' -o -name '*.spec.*' \) -o -type d -name '__tests__'` 等で走査し、ヒットしたファイル名またはディレクトリ名から画面IDを推定して各画面に対応付ける。対応するテストファイルの件数を`existingTestCount`（整数フィールド。対応するテストが1件も無い画面は`0`）として、永続化前のraw作業コピーの各画面要素に付与する。完了条件: 全画面のraw作業コピーに`existingTestCount`が付与済み
+- **Step 5**: raw作業コピーをPhase 2Bへ渡す。この時点ではcanonical raw・extを確定せず、画面一覧HTMLも生成しない。完了条件: 既存テスト件数を含むraw作業コピーがPhase 2Bの入力として確定
 
-検出中の作業コピーは一時ディレクトリ（`$CLAUDE_JOB_DIR/tmp/screen-manifest.json`、未設定時は `${TMPDIR:-/tmp}/claude-job-${session}/tmp/` 配下。`${session}`はセッションIDが取得できなければ任意の一意な値でよい）に保存する。Phase 2 Step 4完了後の正本は`<output_dir>/一覧/画面一覧/screen-manifest.json`と`screen-manifest.ext.json`であり、一時ファイルを後続・再開処理の入力にしてはならない。
+検出中の作業コピーは一時ディレクトリ（`$CLAUDE_JOB_DIR/tmp/screen-manifest.json`、未設定時は `${TMPDIR:-/tmp}/claude-job-${session}/tmp/` 配下。`${session}`はセッションIDが取得できなければ任意の一意な値でよい）に保存する。Step 2B-3完了後の正本は`<output_dir>/一覧/画面一覧/screen-manifest.json`と`screen-manifest.ext.json`であり、一時ファイルを後続・再開処理の入力にしてはならない。
 
 ### Phase 2B: 画面種別の階層分類
 
-Phase 2 で抽出したマニフェストの各画面に、コード分析に基づく階層分類を付与する。分類はラベルのキーワードマッチではなく、テンプレート実体の有無・構造・サーバサイドのルーティング実装・リダイレクト処理の有無等のコード分析に基づいて行う。
+Phase 2で抽出したraw作業コピーの各画面に、コード分析に基づく階層分類を付与する。分類はラベルのキーワードマッチではなく、テンプレート実体の有無・構造・サーバサイドのルーティング実装・リダイレクト処理の有無等のコード分析に基づいて行う。
 
 #### 4階層の分類体系
 
@@ -124,7 +126,7 @@ Level 1・2 の分類値はプロジェクトごとに異なるため、スキ�
 
 #### Step 2B-1: 分類の実行
 
-Phase 1 の調査結果とアーキテクチャ調査書（`survey_doc_path`）を参照し、マニフェストの各画面に上記フィールドを付与する。具体の検出パターン（ファイルパス規約・設定変数名・権限判定の実装形）はプロジェクトのアーキテクチャ調査書から導出する。
+Phase 1の調査結果とアーキテクチャ調査書（`survey_doc_path`）を参照し、raw作業コピーの各画面に上記フィールドを付与する。具体の検出パターン（ファイルパス規約・設定変数名・権限判定の実装形）はプロジェクトのアーキテクチャ調査書から導出する。
 
 #### Step 2B-2: 分類結果の検証
 
@@ -136,11 +138,14 @@ Phase 1 の調査結果とアーキテクチャ調査書（`survey_doc_path`）�
 
 完了条件: マニフェストの全エントリに分類フィールドが付与され、検証項目がすべてPASS
 
+#### Step 2B-3: raw正本・raw由来extの確定
+
+検出・既存テスト件数・階層分類を含むraw作業コピーを一時ファイル+renameで`<output_dir>/一覧/画面一覧/screen-manifest.json`へ原子的に保存し、`validate-manifest.sh <raw> --unit-kind screen`を通す。固定した`generated_at`と、`jq -cjS .`したrawのSHA-256である`manifest_content_hash`を求め、`../../../shared/scripts/extract/extract-screen-metadata.sh <raw> <source_dir> <output_dir>/一覧/画面一覧/screen-manifest.ext.json --design-docs-dir <output_dir>/画面 --link-base-dir <output_dir>/一覧/画面一覧 --generated-at "$generated_at" --manifest-content-hash "$manifest_content_hash"`を実行する。extも一時ファイル+renameで原子的に保存し、rawの検出由来フィールドが保持され、`manifestContentHash`がrawの再計算値と一致することを確認する。設計書著述後に一覧を再生成する場合も永続rawから同じ固定時刻・hash付きコマンドを再実行する。完了条件: raw・raw由来extが永続化され、schema・検出由来フィールド・hashの検証がPASS
+
 ### Phase 3: 整合検証（機械実行）
 
-- **Step 1**: `../../../shared/scripts/unit-list/validate-manifest.sh` を実行する。
-  引数は `<manifest.ext.json> --unit-kind screen`。11項目検証が動く。完了条件: 全項目PASS
-- **Step 2**: FAIL時は指摘に応じて修正する（entryFile不在は `--fix` でunresolved降格可）。修正後Step 1を再実行する。3回失敗したら抽出方式の再検討（Phase 2 Step 1）へ差し戻す。完了条件: exit 0
+- **Step 1**: `../../../shared/scripts/unit-list/validate-manifest.sh`をrawとextへそれぞれ`--unit-kind screen`付きで実行し、rawの正規化SHA-256とextの`manifestContentHash`一致も検査する。完了条件: schemaとhashが全項目PASS
+- **Step 2**: FAIL時はraw作業コピーまたはcanonical rawを指摘に応じて修正する（entryFile不在は`--fix`でunresolved降格可）。rawを修正した場合はStep 2B-3へ戻り、hash再計算とext再生成を行ってからStep 1を再実行する。extだけを直接修正しない。3回失敗したら抽出方式の再検討（Phase 2 Step 1）へ差し戻す。完了条件: exit 0
 - **Step 3（レジストリ整合検査）**: 画面レジストリ（`<output_dir>/一覧/reverse-screen-registry.yml`。存在しない場合は本Stepをスキップする）に記帳済みの全画面キーを列挙し、マニフェスト掲載画面キーと突合する。レジストリにのみ存在するキーが1件でもあり、かつ根拠付き除外記録が無ければFAILとし、Phase 2の抽出漏れとして差し戻す。完了条件: 突合差分ゼロ（根拠付き除外記録がある場合のみ許容）
 
 `validate-manifest.sh` は抽出方式（組み込み/カスタム）を問わず同一基準で検証する。カスタム抽出パスであっても、この検証を通過しないマニフェストはPhase 4に進めない。
@@ -165,9 +170,9 @@ Phase 1 の調査結果とアーキテクチャ調査書（`survey_doc_path`）�
 | Phase | 完了条件 |
 |---|---|
 | Phase 1 | Step 1〜4の調査完了。Step 5の共有ファイル・エイリアス調査（sharedDirPatterns/pathAliases）完了。Step 6の検出戦略宣言（`unitKind: "screen"`/screenUnitDefinition/screenIdRegex/viewSwitchPattern/excludePatterns/sharedDirPatterns/pathAliases/importTraversalMaxDepth）がユーザー承認済み |
-| Phase 2 | Step 1で抽出方式（builtin/custom）が決定済み。Step 2でスキーマ準拠のマニフェストが1件以上確定、または0件検出をユーザーに報告して停止している。Step 3でdiagnosticsを確認済み。セルフチェックゲート（route実在照合含む）・ルート網羅性検査ゲートをPASS済み。Step 4で拡張マニフェストに種別固有フィールド（category・permissions・relatedApis等）が付与されている。Step 5で全画面に existingTestCount が付与されている |
-| Phase 2B | マニフェストの全エントリに screenType・accountGroup・hasTemplate・parentScreen・isProcessingEndpoint が付与され、検証項目がすべてPASS |
-| Phase 3 | Step 1で `validate-manifest.sh --unit-kind screen` が11項目すべてPASS。Step 2のFAIL時修正ループは3回以内。Step 3のレジストリ整合検査で突合差分ゼロ（画面レジストリが存在する場合のみ） |
+| Phase 2 | Step 1で抽出方式（builtin/custom）が決定済み。Step 2でスキーマ準拠のraw作業コピーが1件以上確定、または0件検出をユーザーに報告して停止している。Step 3でdiagnosticsを確認済み。セルフチェックゲート（route実在照合含む）・ルート網羅性検査ゲートをPASS済み。Step 4で全画面のraw作業コピーにexistingTestCountが付与され、Step 5でPhase 2B入力が確定している |
+| Phase 2B | raw作業コピーの全エントリにscreenType・accountGroup・hasTemplate・parentScreen・isProcessingEndpoint等が付与され、検証項目がすべてPASS。Step 2B-3でcanonical raw・raw由来extが原子的に永続化され、schema・検出由来フィールド・hashが一致 |
+| Phase 3 | Step 1でraw/extの`validate-manifest.sh --unit-kind screen`とhash検査がPASS。Step 2のFAIL時修正ループは3回以内で、raw修正時はextを再生成する。Step 3のレジストリ整合検査で突合差分ゼロ（画面レジストリが存在する場合のみ） |
 | Phase 4 | Step 1で画面一覧.htmlが生成され、埋め込みJSONがマニフェストと一致している |
 | Phase 5（任意） | `--profile`サブコマンド実行時のみ、複雑度プロファイル.jsonが生成されている |
 | **Goal** | 検証済みマニフェストのみからHTMLが生成され、共有/埋め込み/未解決/診断警告が可視化され、設計書単位の判断材料が揃っている |
@@ -231,15 +236,16 @@ Phase 1 の調査結果とアーキテクチャ調査書（`survey_doc_path`）�
 
 ## 永続raw正本と一括再生成
 
-人が編集する唯一の画面生成元は`<output-dir>/一覧/画面一覧/screen-manifest.json`である。`screen-manifest.ext.json`と画面一覧・画面遷移・matrix・portalは直接編集しない。raw更新後は固定時刻を明示して次を実行する。
+人が編集する唯一の画面生成元は`<output_dir>/一覧/画面一覧/screen-manifest.json`である。`screen-manifest.ext.json`と画面一覧・画面遷移・matrix・portalは直接編集しない。raw更新後は固定時刻を明示して次を実行する。
 
 ```bash
 ../../../shared/scripts/unit-list/rebuild-screen-derived-pages.sh \
-  --raw-manifest "<output-dir>/一覧/画面一覧/screen-manifest.json" \
+  --raw-manifest "<output_dir>/一覧/画面一覧/screen-manifest.json" \
   --target-repo "<target_repo_path>" \
   --api-manifest "<api_manifest_path>" \
-  --output-root "<output-dir>" \
-  --generated-at "<ISO8601 UTC>"
+  --output-root "<output_dir>" \
+  --generated-at "<ISO8601 UTC>" \
+  [--sites "<sites_path>" --site-key "<site_key>"]
 ```
 
 同スクリプトはrawの正規化bytesから`manifestContentHash`を算出し、全派生へ伝播する。全childと`check-screen-manifest-consistency.sh`がPASSしてから13fileをcommitし、失敗時は開始前のtreeへrollbackする。

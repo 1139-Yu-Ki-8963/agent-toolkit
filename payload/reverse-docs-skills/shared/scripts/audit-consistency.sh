@@ -803,7 +803,7 @@ integration_test_sheet: ./none.md
 | foo-issue | `2026-01-01` | 何らかの確認事項 | §15 | 実装完了 | 解消済み |
 MDEOF
 
-  # フィクスチャ t-contradiction: §6.6で画面内状態「該当なし」を宣言しつつ
+  # フィクスチャ t-contradiction: 章冒頭の新書式で§6.6を非該当に集約しつつ
   # §6.1初期表示シーケンスに状態の語（ready）が書き残されている →
   # 検査tが違反を出す
   mkdir -p "$tmp/t"
@@ -831,6 +831,8 @@ integration_test_sheet: ./none.md
 
 ## §6 画面仕様
 
+> 非該当項目: §6.6 画面状態の遷移（要求ごとに全体を描画するため画面内状態を持たない）
+
 ### 6.1 初期表示シーケンス
 
 1. 画面をマウントする
@@ -838,10 +840,6 @@ integration_test_sheet: ./none.md
 3. 表示を更新する
 4. ローディングを解除する
 5. 画面状態を ready に更新
-
-### 6.6 画面状態の遷移
-
-該当なし（要求ごとに全体を描画するため画面内状態を持たない）
 
 ## §15 実装契約
 
@@ -870,6 +868,68 @@ integration_test_sheet: ./none.md
 | foo-issue | `2026-01-01` | 何らかの確認事項 | §15 | 実装完了 | 解消済み |
 MDEOF
 
+  # フィクスチャ u: 章全体集約でも検査tが同じ矛盾を検出する
+  mkdir -p "$tmp/u"
+  awk '
+    /^> 非該当項目: §6\.6 / {
+      print "> 本領域は全項目非該当（根拠: state の全分類が0件。要求ごとに全体を描画するため画面内状態を持たない）"
+      next
+    }
+    { print }
+  ' "$tmp/t/画面詳細設計書.md" > "$tmp/u/画面詳細設計書.md"
+
+  # フィクスチャ v: 後方互換の旧個別書式でも検査tが同じ矛盾を検出する
+  mkdir -p "$tmp/v"
+  awk '
+    /^> 非該当項目: §6\.6 / {
+      print "### 6.6 画面状態の遷移"
+      print ""
+      print "該当なし（要求ごとに全体を描画するため画面内状態を持たない）"
+      next
+    }
+    { print }
+  ' "$tmp/t/画面詳細設計書.md" > "$tmp/v/画面詳細設計書.md"
+
+  # フィクスチャ w: 別項目の理由中で中黒後に§6.6参照があっても非該当宣言として誤認しない
+  mkdir -p "$tmp/w"
+  awk '
+    /^> 非該当項目: §6\.6 / {
+      print "> 非該当項目: §6.5 データ変換（正規化・§6.6の状態一覧を参照しない）"
+      next
+    }
+    { print }
+  ' "$tmp/t/画面詳細設計書.md" > "$tmp/w/画面詳細設計書.md"
+
+  # フィクスチャ x: セミコロン後の2項目目に空理由がある集約
+  mkdir -p "$tmp/x"
+  awk '
+    /^> 非該当項目: §6\.6 / {
+      print "> 非該当項目: §6.6 画面状態（画面内状態なし）; §6.5 理由なし項目（）"
+      next
+    }
+    { print }
+  ' "$tmp/t/画面詳細設計書.md" > "$tmp/x/画面詳細設計書.md"
+
+  # フィクスチャ y: セミコロン後の2項目目に節番号・理由がない集約
+  mkdir -p "$tmp/y"
+  awk '
+    /^> 非該当項目: §6\.6 / {
+      print "> 非該当項目: §6.6 画面状態（画面内状態なし）; 理由なし項目"
+      next
+    }
+    { print }
+  ' "$tmp/t/画面詳細設計書.md" > "$tmp/y/画面詳細設計書.md"
+
+  # フィクスチャ z: 章全体集約の根拠が空
+  mkdir -p "$tmp/z"
+  awk '
+    /^> 非該当項目: §6\.6 / {
+      print "> 本領域は全項目非該当（根拠: ）"
+      next
+    }
+    { print }
+  ' "$tmp/t/画面詳細設計書.md" > "$tmp/z/画面詳細設計書.md"
+
   # ケース19: 検査r陽性（frontmatterに原本属性キーが無い場合を違反として検出する）
   if out_r="$(bash "$script_path" "$tmp/r" 2>&1)"; then rc_r=0; else rc_r=$?; fi
   if [ "$rc_r" -eq 1 ] && printf '%s' "$out_r" | grep -q "原本属性キーがありません"; then
@@ -888,12 +948,66 @@ MDEOF
     fail=1
   fi
 
-  # ケース21: 検査t陽性（§6.6の「該当なし」宣言と他節の状態語残存の矛盾を違反として検出する）
+  # ケース21: 検査t陽性（§6.6の非該当集約と他節の状態語残存の矛盾を違反として検出する）
   if out_t="$(bash "$script_path" "$tmp/t" 2>&1)"; then rc_t=0; else rc_t=$?; fi
   if [ "$rc_t" -eq 1 ] && printf '%s' "$out_t" | grep -q "状態の語が残っています"; then
-    echo "[PASS] 検査t陽性: 画面内状態「該当なし」宣言と他節の状態語残存の矛盾を違反として検出する"
+    echo "[PASS] 検査t陽性: 画面内状態の非該当集約と他節の状態語残存の矛盾を違反として検出する"
   else
     echo "[FAIL] 検査t陽性: 画面内状態の節間矛盾を検出できません（exit=${rc_t}）"
+    fail=1
+  fi
+
+  # ケース22: 検査t章全体集約互換
+  if out_u="$(bash "$script_path" "$tmp/u" 2>&1)"; then rc_u=0; else rc_u=$?; fi
+  if [ "$rc_u" -eq 1 ] && printf '%s' "$out_u" | grep -q "状態の語が残っています"; then
+    echo "[PASS] 検査t章全体集約: 全項目非該当でも他節の状態語残存を検出する"
+  else
+    echo "[FAIL] 検査t章全体集約: 節間矛盾を検出できません（exit=${rc_u}）"
+    fail=1
+  fi
+
+  # ケース23: 検査t旧個別書式互換
+  if out_v="$(bash "$script_path" "$tmp/v" 2>&1)"; then rc_v=0; else rc_v=$?; fi
+  if [ "$rc_v" -eq 1 ] && printf '%s' "$out_v" | grep -q "状態の語が残っています"; then
+    echo "[PASS] 検査t旧個別書式: 旧「該当なし」でも他節の状態語残存を検出する"
+  else
+    echo "[FAIL] 検査t旧個別書式: 節間矛盾を検出できません（exit=${rc_v}）"
+    fail=1
+  fi
+
+  # ケース24: 検査tの§6.6参照誤認防止
+  if out_w="$(bash "$script_path" "$tmp/w" 2>&1)"; then rc_w=0; else rc_w=$?; fi
+  if [ "$rc_w" -eq 0 ] && ! printf '%s' "$out_w" | grep -q "状態の語が残っています"; then
+    echo "[PASS] 検査t参照誤認防止: 理由文中の§6.6参照を非該当宣言として扱わない"
+  else
+    echo "[FAIL] 検査t参照誤認防止: §6.6参照を誤認しました（exit=${rc_w}）"
+    fail=1
+  fi
+
+  # ケース25: 検査lの項目別空理由
+  if out_x="$(bash "$script_path" "$tmp/x" 2>&1)"; then rc_x=0; else rc_x=$?; fi
+  if printf '%s' "$out_x" | grep -q "節番号または根拠を伴わない非該当記述"; then
+    echo "[PASS] 検査l空理由: 2項目目の理由が空の集約を警告する"
+  else
+    echo "[FAIL] 検査l空理由: 2項目目の空理由を検出できません（exit=${rc_x}）"
+    fail=1
+  fi
+
+  # ケース26: 検査lの項目別節番号・根拠欠落
+  if out_y="$(bash "$script_path" "$tmp/y" 2>&1)"; then rc_y=0; else rc_y=$?; fi
+  if printf '%s' "$out_y" | grep -q "節番号または根拠を伴わない非該当記述"; then
+    echo "[PASS] 検査l項目別: 2項目目だけ節番号・理由が欠ける集約を警告する"
+  else
+    echo "[FAIL] 検査l項目別: 2項目目の根拠欠落を検出できません（exit=${rc_y}）"
+    fail=1
+  fi
+
+  # ケース27: 検査lの章全体集約の空根拠
+  if out_z="$(bash "$script_path" "$tmp/z" 2>&1)"; then rc_z=0; else rc_z=$?; fi
+  if printf '%s' "$out_z" | grep -q "節番号または根拠を伴わない非該当記述"; then
+    echo "[PASS] 検査l章全体: 章全体集約の空根拠を警告する"
+  else
+    echo "[FAIL] 検査l章全体: 空根拠を検出できません（exit=${rc_z}）"
     fail=1
   fi
 
@@ -1294,8 +1408,9 @@ scan_placeholder_lines() {
       rest=line
       while (match(rest, /<[^\/!<>][^<>]*>/)) {
         inner=substr(rest, RSTART+1, RLENGTH-2)
-        if (inner ~ /[^ -~]/ || inner ~ /Y{2,4}/ || inner ~ /MM-DD|HH:MM|MM:SS/ \
-            || inner ~ /^v?X\.Y/ || inner ~ /^[A-Z]+(-[A-Z]+)+$/ || inner ~ / \/ /) {
+        is_html_start_tag = inner ~ /^[A-Za-z][A-Za-z0-9:-]*[[:space:]][^<>]*=/
+        if (!is_html_start_tag && (inner ~ /[^ -~]/ || inner ~ /Y{2,4}/ || inner ~ /MM-DD|HH:MM|MM:SS/ \
+            || inner ~ /^v?X\.Y/ || inner ~ /^[A-Z]+(-[A-Z]+)+$/ || inner ~ / \/ /)) {
           print NR": "line; break
         }
         rest=substr(rest, RSTART+RLENGTH)
@@ -1775,17 +1890,46 @@ else
   echo "  未確定値のプレースホルダ文字列なし"
 fi
 
-# --- (l) 「該当なし」記述の根拠併記チェック（WARN・同一行に丸括弧の根拠が無い場合に警告） ---
+# --- (l) 非該当記述の根拠併記チェック（WARN） ---
 echo ""
-echo "[検査 l] 「該当なし」記述の根拠併記チェック（WARN・同一行に丸括弧の根拠が無い場合に警告）"
+echo "[検査 l] 非該当記述の根拠併記チェック（WARN・旧書式と章単位集約の両方を検査）"
 
 NO_GROUND_LINES="$(grep -nE '該当なし' "$DESIGN_DOC" | grep -vE '該当なし[[:space:]]*[（(]' || true)"
-if [ -n "$NO_GROUND_LINES" ]; then
-  echo "  WARN: 根拠（丸括弧書き）を伴わない「該当なし」が見つかりました:" >&2
-  printf '%s\n' "$NO_GROUND_LINES" >&2
+AGGREGATE_NO_GROUND_LINES="$(awk '
+  /^> 本領域は全項目非該当/ && $0 !~ /全項目非該当[[:space:]]*[（(]根拠:[[:space:]]*[^[:space:]）)]/ {
+    print FNR ":" $0
+  }
+  /^> 非該当項目:/ {
+    line = $0
+    sub(/^> 非該当項目:[[:space:]]*/, "", line)
+    n = split(line, items, ";")
+    for (i = 1; i <= n; i++) {
+      gsub(/^[[:space:]]+|[[:space:]]+$/, "", items[i])
+      reason = items[i]
+      if (index(reason, "（") > 0 && index(reason, "）") > 0) {
+        sub(/^.*（/, "", reason)
+        sub(/）.*$/, "", reason)
+      } else if (index(reason, "(") > 0 && index(reason, ")") > 0) {
+        sub(/^.*\(/, "", reason)
+        sub(/\).*$/, "", reason)
+      } else {
+        reason = ""
+      }
+      gsub(/[[:space:]]/, "", reason)
+      has_reason = length(reason) > 0
+      if (items[i] !~ /^§[0-9]/ || !has_reason) {
+        print FNR ":" items[i]
+      }
+    }
+  }
+' "$DESIGN_DOC")"
+if [ -n "$NO_GROUND_LINES$AGGREGATE_NO_GROUND_LINES" ]; then
+  echo "  WARN: 節番号または根拠を伴わない非該当記述が見つかりました:" >&2
+  [ -n "$NO_GROUND_LINES" ] && printf '%s\n' "$NO_GROUND_LINES" >&2
+  [ -n "$AGGREGATE_NO_GROUND_LINES" ] && printf '%s\n' "$AGGREGATE_NO_GROUND_LINES" >&2
   WARNINGS=$((WARNINGS + 1))
 else
-  echo "  「該当なし」はすべて根拠を伴っています（該当箇所なしを含む）"
+  echo "  非該当記述はすべて節番号と根拠を伴っています（該当箇所なしを含む）"
 fi
 
 # --- (m) テスト仕様書の空殻検出（違反）・draft据え置き検出・観点網羅チェック（WARN） ---
@@ -2145,7 +2289,7 @@ fi
 
 # --- (t) 画面内状態の節間矛盾チェック（違反） ---
 echo ""
-echo "[検査 t] 画面内状態を「該当なし」と宣言した設計書で初期表示シーケンス・state 遷移シーケンスに状態の語が書き残されていないかのチェック（違反）"
+echo "[検査 t] 画面内状態を非該当とした設計書で初期表示シーケンス・state 遷移シーケンスに状態の語が書き残されていないかのチェック（違反）"
 
 extract_subsection_no_comment() {
   local file="$1" heading="$2"
@@ -2162,8 +2306,31 @@ extract_subsection_no_comment() {
 }
 
 STATE_SECTION="$(extract_subsection_no_comment "$DESIGN_DOC" "### 6.6 ")"
+DATA_FLOW_SECTION="$(extract_design_section_body 6)"
+PARTIAL_STATE_NON_APPLICABLE="$(
+  printf '%s\n' "$DATA_FLOW_SECTION" | awk '
+    /^> 非該当項目:/ {
+      line = $0
+      sub(/^> 非該当項目:[[:space:]]*/, "", line)
+      n = split(line, items, ";")
+      for (i = 1; i <= n; i++) {
+        gsub(/^[[:space:]]+/, "", items[i])
+        if (items[i] ~ /^§6\.6([^0-9]|$)/) {
+          print "yes"
+          exit
+        }
+      }
+    }
+  '
+)"
+STATE_NON_APPLICABLE=0
+if printf '%s' "$STATE_SECTION" | grep -q '該当なし' \
+  || printf '%s\n' "$DATA_FLOW_SECTION" | grep -qE '^> 本領域は全項目非該当[（(]' \
+  || [ "$PARTIAL_STATE_NON_APPLICABLE" = "yes" ]; then
+  STATE_NON_APPLICABLE=1
+fi
 STATE_CONTRADICTIONS=""
-if printf '%s' "$STATE_SECTION" | grep -q '該当なし'; then
+if [ "$STATE_NON_APPLICABLE" -eq 1 ]; then
   for _h in "### 6.1 " "### 15.7 "; do
     _body="$(extract_subsection_no_comment "$DESIGN_DOC" "$_h")"
     _hits="$(printf '%s\n' "$_body" | grep -oE '(loading|ready|empty|error)' | sort -u | tr '\n' ' ' || true)"
@@ -2175,11 +2342,11 @@ if printf '%s' "$STATE_SECTION" | grep -q '該当なし'; then
 fi
 
 if [ -n "$(printf '%s' "$STATE_CONTRADICTIONS" | tr -d '[:space:]')" ]; then
-  echo "  違反: §6.6 で画面内状態を「該当なし」と宣言していますが他の節に状態の語が残っています:" >&2
+  echo "  違反: §6.6 で画面内状態を非該当としていますが他の節に状態の語が残っています:" >&2
   printf '%s\n' "$STATE_CONTRADICTIONS" | grep . | sed 's/^/    - /' >&2
   VIOLATIONS=$((VIOLATIONS + 1))
 else
-  echo "  画面内状態の節間矛盾はありません（該当なし宣言なしを含む）"
+  echo "  画面内状態の節間矛盾はありません（非該当宣言なしを含む）"
 fi
 
 # --- 結果集計 ---

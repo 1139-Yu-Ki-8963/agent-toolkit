@@ -10,15 +10,15 @@ allowed-tools: [Bash, Read, Write, Grep, Glob, AskUserQuestion, TaskCreate, Task
 
 工程全体は orchestrating-reverse-docs-flow が案内する。本スキルはポータルの将来ページ受け口のうち画面遷移図（T4）のみを担い、単独起動できる（起動引数を渡せば動く）。
 
-画面一覧.html に埋め込まれたマニフェスト（画面の集合）と、対象リポジトリのルーティング定義を突合する。ルーティング定義とは Router 定義・`navigate()`・`<Link>`・`redirect` を指す。突合結果から **画面遷移図.html** を機械検証付きで生成する。**本スキルは判定・評価を一切行わない**。宛先を解決できない遷移は捏造せず `unresolved[]` へ隔離する。`route` が空文字列の画面（`validate-manifest.sh` は `route` キー自体の欠落を許さないため、実際に起こるのは空文字）も同様に隔離する。
+永続raw正本とraw由来の拡張マニフェストを、対象リポジトリのルーティング定義と突合する。ルーティング定義とは Router 定義・`navigate()`・`<Link>`・`redirect` を指す。突合結果から **画面遷移図.html** を機械検証付きで生成する。**本スキルは判定・評価を一切行わない**。宛先を解決できない遷移は捏造せず `unresolved[]` へ隔離する。`route` が空文字列の画面も同様に隔離する。
 
 ## 使用タイミング
 
-- 画面一覧.html が確定済みで、ポータルに画面遷移図カードを追加したいとき
-- 起動引数: `target_repo_path`（調査対象リポジトリの絶対パス）・`output_dir`（画面一覧.html の所在かつ出力先）・`portal_output_dir`（任意）
+- `<output_dir>/一覧/画面一覧/screen-manifest.json` と同`screen-manifest.ext.json`が確定済みで、ポータルに画面遷移図カードを追加したいとき
+- 起動引数: `target_repo_path`（調査対象リポジトリの絶対パス）・`output_dir`（永続manifestの所在かつ出力先）・`portal_output_dir`（任意）・`sites_path`（任意。複数サイト時の`sites.json`）・`site_key`（任意。対象サイトキー）
 - `portal_output_dir` を指定した場合、生成後に `build-portal.sh` を再実行してカードへ反映する
 
-出力先は `<output_dir>/画面遷移図.html` に固定する（`build-portal.sh` の `FUTURE_FILES` と同値）。前提となる画面一覧.html は `<output_dir>/一覧/画面一覧/画面一覧.html`（正本レイアウト）を見に行く。不在の場合のみ後方互換として旧レイアウト `<output_dir>/画面一覧/画面一覧.html` も探索する。
+出力先は `<output_dir>/画面遷移図.html` に固定する（`build-portal.sh` の `FUTURE_FILES` と同値）。通常生成ではHTMLの埋め込みJSONを入力にしない。rawが無い旧成果物からのHTML逆抽出は、`restore-screen-manifest.sh`を明示的に使う移行・復元工程だけに限定する。
 
 ## 設計原則: 固定と可変の分離
 
@@ -46,14 +46,14 @@ allowed-tools: [Bash, Read, Write, Grep, Glob, AskUserQuestion, TaskCreate, Task
 
 ### Phase 1: 前提確認・検出戦略の宣言
 
-- **Step 1** — `<output_dir>/一覧/画面一覧/画面一覧.html`（正本レイアウト。不在時のみ後方互換で `<output_dir>/画面一覧/画面一覧.html`）の実在を確認する。いずれも不在ならハード停止する。この場合 `generating-screen-list-for-reverse-docs` の先行実行を案内して終了する。完了条件: 実在確認済み、または不在を報告して停止している
-- **Step 2** — 画面一覧.html 内の `<script type="application/json" id="screen-manifest">` を抽出する。`screens[]` の件数・`route` の値が空文字列の画面の件数を確認する（`validate-manifest.sh` は `route` キー自体の欠落を許さないため、実際に起こるのは空文字）。完了条件: `screens[]` 件数と route 空文字件数が確定済み
+- **Step 1** — raw正本`<output_dir>/一覧/画面一覧/screen-manifest.json`とraw由来`screen-manifest.ext.json`の実在を確認する。いずれかが不在ならハード停止し、通常生成では画面一覧HTMLから復元しない。旧成果物を移行する場合だけ、別工程として`restore-screen-manifest.sh`を実行してrawを復元し、メタデータ抽出でextを再生成してから本スキルを再開する。完了条件: rawとextの実在確認済み、または不在を報告して停止している
+- **Step 2** — rawを`validate-manifest.sh --unit-kind screen`で検証し、`jq -cjS '.'`のSHA-256とextの`manifestContentHash`が一致することを確認する。画面集合・`screenKey`・`kind`・`route`はrawを正とし、表示名・カテゴリはraw由来extの`confirmedScreenName // screenNameGuess // screenKey`を使う。完了条件: raw検証、hash一致、screens件数、route空文字件数が確定済み
 - **Step 3** — `target_repo_path` の定義ファイル（`package.json` の依存関係・import 文の形跡）から Router 種別を判別する。候補は React Router・Next.js App Router・Next.js Pages Router・Vue Router 等。完了条件: Router 種別が特定済み、または特定不能の根拠（推定経路）が記録済み
 - **Step 4** — 検出戦略宣言を作成する。内容は `routerKind`・抽出対象 API（`navigate`・`<Link>`・`redirect` 等のうち実在するもの）・confidence 判定基準の 3 点。AskUserQuestion で承認を取り、宣言 JSON は一時ファイルに保存する。完了条件: 戦略 JSON が保存済みかつユーザー承認済み
 
 ### Phase 2: 抽出
 
-- **Step 1** — `screens[]` から、`kind` が `route` または `embedded-view` で `route` が空文字列でない画面を選ぶ。選んだ画面を `nodes[]` へ転記する（`unitKey` = `screenKey`、`label` = `screenNameGuess`）。`route` が空文字列の画面は `nodes[]` に含めない。代わりに `unresolved[]` へ、理由「routeが空文字列のため遷移解決不能」を添えて登録する。完了条件: `nodes[]` と route 空文字画面の `unresolved[]` 登録が確定済み
+- **Step 1** — rawの`screens[]`から、`kind`が`route`または`embedded-view`で`route`が空文字列でない画面を選ぶ。選んだ画面を`nodes[]`へ転記し、`unitKey`はrawの`screenKey`、`label`は対応するraw由来extの`confirmedScreenName // screenNameGuess // screenKey`とする。`route`が空文字列の画面は`nodes[]`に含めず、同じ有効表示名と理由「routeが空文字列のため遷移解決不能」を`unresolved[]`へ登録する。完了条件: raw画面数=`nodes[]`件数+route空文字由来`unresolved[]`件数、nodeラベル差分0
 - **Step 2** — Phase 1 で宣言した戦略に沿って、Router 定義・`navigate()`・`<Link>`・`redirect` を Grep/Read で走査する。走査対象から遷移候補を洗い出す。各候補には `from`（発生元画面の `unitKey`）・`to`（遷移先 route。ブラウザバックの場合は空文字列）・`trigger`（契機）・`sourceRef`（file:line）・`confidence`・`condition`（任意。遷移条件） の 6 項目を記録する。完了条件: 遷移候補一覧が確定済み
   - **`section`**: sourceRef の行を含む最も近い親セクション要素から推定する。探索優先順位: (1) `<section>`/`<article>` 内の直近の見出し（h2〜h4）テキスト (2) `<nav>` の aria-label 属性値 (3) `<form>` の legend テキストまたは直前の見出し (4) 直近の祖先 `<div>` のクラス名から意味を推定。いずれにも該当しない場合は省略する
   - **`triggerType`**: 要素の種類から判定する。`<a>`/`<Link>`/`router-link` → 「リンク遷移」、`<form>` submit/`<button type="submit">` → 「フォーム送信」、`redirect()`/`navigate()`/`router.push()` → 「リダイレクト」、`history.back()`/`history.go(-N)`/`router.back()`/`navigate(-1)` → 「ブラウザバック」（`to` は空文字列にする）、上記以外 → 省略（テンプレート側で「リンク遷移」にフォールバック）
@@ -78,7 +78,13 @@ page-data.json の保存先は `$CLAUDE_JOB_DIR/tmp/screen-transition-page-data.
 
   ```
   ../../../shared/scripts/detail-pages/validate-page-data.sh <page-data.json> --target-repo <target_repo_path>
+  ../../../shared/scripts/detail-pages/check-screen-transition-manifest-alignment.sh \
+    --raw-manifest <output_dir>/一覧/画面一覧/screen-manifest.json \
+    --ext-manifest <output_dir>/一覧/画面一覧/screen-manifest.ext.json \
+    --page-data <page-data.json>
   ```
+
+  併せてraw画面数=`nodes[]`件数+route空文字由来`unresolved[]`件数、raw由来extとのnodeラベル差分0、page-dataの`manifestContentHash`とraw正規化bytesのSHA-256一致を機械検査する。
 
 - **Step 2** — Step 1 が FAIL したら `[FAIL]` 項目名で分岐する。「孤児参照」FAIL の場合は該当 edge を `edges[]` から外し `unresolved[]` へ差し戻して Phase 2 Step 3 へ戻る。その他の FAIL（`sourceRef` 実在等）は該当箇所を修正し Step 1 を再実行する。3 回失敗したら Phase 2 Step 5（page-data 組み立て）へ差し戻す。完了条件: `validate-page-data.sh` が exit 0（孤児参照検査を含め全項目 PASS）
 
@@ -93,7 +99,9 @@ page-data.json の保存先は `$CLAUDE_JOB_DIR/tmp/screen-transition-page-data.
 - **Step 2** — `portal_output_dir` が指定されていればポータル再生成スクリプトを実行しカードへ反映する。未指定（ポータル未生成環境）なら省略し完了報告に注記する。完了条件: 再実行済み、または省略を注記済み
 
   ```
-  ../../../shared/scripts/build-portal.sh <target_repo_path> <output_dir> <portal_output_dir>
+  ../../../shared/scripts/build-portal.sh <target_repo_path> <output_dir> <portal_output_dir> \
+    --screen-manifest <output_dir>/一覧/画面一覧/screen-manifest.ext.json \
+    [--sites <sites_path> --site-key <site_key>]
   ```
 
 **手作業でのプレースホルダ置換は禁止する**。HTML 生成は必ず `build-detail-page.sh` 経由の決定的処理で行う。
@@ -102,11 +110,11 @@ page-data.json の保存先は `$CLAUDE_JOB_DIR/tmp/screen-transition-page-data.
 
 | Phase | 完了条件 |
 |---|---|
-| Phase 1 | 画面一覧.html の実在確認済み（または不在を報告して停止）。Router 種別と検出戦略がユーザー承認済み |
+| Phase 1 | 永続raw正本とraw由来extの実在・hash一致を確認済み（または不在を報告して停止）。Router種別と検出戦略がユーザー承認済み |
 | Phase 2 | `nodes[]`／`edges[]` が確定し page-data.json を保存済み。全ノードの `category`/`categorySrc` が確定済み。route 空文字画面・宛先未解決の遷移は `unresolved[]` へ隔離済み |
 | Phase 3 | `validate-page-data.sh --target-repo` が全項目 PASS（孤児参照検査含む） |
 | Phase 4 | `<output_dir>/画面遷移図.html` が生成され、指定時は `build-portal.sh` の再実行が完了している |
-| **Goal** | 画面一覧マニフェストとコードの実測から解決できた遷移のみから画面遷移図.html が生成され、route空文字画面・宛先未解決の遷移は捏造せず可視化されている |
+| **Goal** | 永続raw正本とraw由来ext、コードの実測から解決できた遷移だけで画面遷移図.htmlが生成され、raw件数・nodeラベル・hashが一致し、HTML逆抽出は移行・復元専用に限定されている |
 
 ## 返却ブロック
 
@@ -114,7 +122,7 @@ page-data.json の保存先は `$CLAUDE_JOB_DIR/tmp/screen-transition-page-data.
 
 | キー | 値 |
 |---|---|
-| status | `DONE`（生成完了）\| `STOPPED`（画面一覧.html 不在）\| `ERROR` |
+| status | `DONE`（生成完了）\| `STOPPED`（rawまたはext不在）\| `ERROR` |
 | artifacts | 生成した画面遷移図.html のパス（`STOPPED`/`ERROR` 時は空） |
 | page_kind | `transition`（固定値） |
 | portal_rebuilt | `true`（build-portal.sh 再実行済み）\| `false`（`portal_output_dir` 未指定のため省略） |
@@ -149,6 +157,19 @@ page-data.json の保存先は `$CLAUDE_JOB_DIR/tmp/screen-transition-page-data.
 - `portal_output_dir` 未指定時は `build-portal.sh` を実行しない。生成済み画面遷移図.html はそのまま残り、次回ポータル生成時に自動でカード化される
 
 ## 設計判断
+
+### check-screen-transition-manifest-alignment.sh の追加
+
+**必要性**: raw 画面マニフェストを正本として画面遷移を生成する通常経路で、raw 件数と nodes・route 空 unresolved の合計、raw/ext の有効ラベル、raw/ext/page-data の hash を同じ規則で繰り返し検査する。複数の生成入口から同一の機械検査を呼び出し、検査規則の分岐と同期漏れを防ぐためスクリプト化する。
+
+**代替案を採用しなかった理由**:
+- Bash ツール直叩き: JSON 3ファイルの対応付けと4項目の判定を各呼び出し元へ展開すると、通常生成とfull rebuildで判定が分岐する
+- 既存 Makefile ターゲット拡張: このリポジトリに当該生成フローを管理する既存Makefileターゲットがなく、スキルから引数付きで直接呼ぶ契約を表現できない
+- package.json scripts 追加: Nodeパッケージの実行契約ではなく、既存のシェル生成パイプライン内で一時ファイルを受け取る検査である
+
+**保守責任者**: 人手（画面遷移スキルと `shared/scripts/detail-pages/` の保守担当者）
+
+**廃棄条件**: raw/ext/page-data の3層契約が廃止されるか、同じ4項目を強制する上位の共通検証器へ全呼び出し元が移行した時
 
 ### validate-page-data.sh / build-detail-page.sh の共用
 

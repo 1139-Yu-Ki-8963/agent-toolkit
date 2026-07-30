@@ -7,8 +7,8 @@ set -euo pipefail
 #   check-common-docs.sh <common_docs_dir> <target_repo_path>
 #   check-common-docs.sh --self-test
 #
-# <common_docs_dir> は `<output_dir>/プロジェクト共通` を指す（10文書＋サンプル記録.mdの
-# 親ディレクトリ）。
+# <common_docs_dir> は `<output_dir>` を指す（規約/ 配下に規約4文書、プロジェクト共通/ 配下に
+# 共通6文書＋サンプル記録.mdを持つ親ディレクトリ）。
 #
 # 検査:
 #   1. 実在検査: 10文書＋サンプル記録.md（計11ファイル。規約4種は規約/サブディレクトリ）
@@ -36,11 +36,11 @@ set -euo pipefail
 # 保守責任者: 人手（ユーザー）。検査基準・除外規則を変更した時に更新する。
 # macOS bash 3.2 互換（mapfile 不使用）。
 
-REQUIRED_FILES="規約/コーディング規約.md 規約/命名規約.md 規約/ディレクトリ構成規約.md 規約/コンポーネント設計規約.md 共通設計書.md メッセージ定義書.md DESIGN.md 基盤設計.md UI共通設計.md データ設計.md サンプル記録.md"
+REQUIRED_FILES="規約/コーディング規約.md 規約/命名規約.md 規約/ディレクトリ構成規約.md 規約/コンポーネント設計規約.md プロジェクト共通/共通設計書.md プロジェクト共通/メッセージ定義書.md プロジェクト共通/DESIGN.md プロジェクト共通/基盤設計.md プロジェクト共通/UI共通設計.md プロジェクト共通/データ設計.md プロジェクト共通/サンプル記録.md"
 CONVENTION_FILES="規約/コーディング規約.md 規約/命名規約.md 規約/ディレクトリ構成規約.md 規約/コンポーネント設計規約.md"
 # 検査3（パス実在検査）は規約4種に加え、共通設計書・メッセージ定義書・DESIGN.mdも対象にする
-PATH_CHECK_FILES="$CONVENTION_FILES 共通設計書.md メッセージ定義書.md DESIGN.md"
-MESSAGE_DOC_FILE="メッセージ定義書.md"
+PATH_CHECK_FILES="$CONVENTION_FILES プロジェクト共通/共通設計書.md プロジェクト共通/メッセージ定義書.md プロジェクト共通/DESIGN.md"
+MESSAGE_DOC_FILE="プロジェクト共通/メッセージ定義書.md"
 PLACEHOLDER_RE='<実測|<FILL|TBD|TODO'
 IDEAL_WORDS_RE='すべきである|望ましい|べきだ|理想的には|今後は'
 FREQ_RE='[0-9]+/[0-9]+'
@@ -313,7 +313,7 @@ self_test() {
 
   build_docs() {
     target="$1"
-    mkdir -p "$target/規約"
+    mkdir -p "$target/規約" "$target/プロジェクト共通"
     for f in コーディング規約 命名規約 ディレクトリ構成規約 コンポーネント設計規約; do
       cat > "$target/規約/${f}.md" <<MD
 # ${f}（リバース版）
@@ -323,13 +323,13 @@ self_test() {
 $rule_row
 MD
     done
-    cat > "$target/共通設計書.md" <<'MD'
+    cat > "$target/プロジェクト共通/共通設計書.md" <<'MD'
 # 共通設計書（リバース版）
 
 ## §1 共通画面状態の規則（実測）
 loading状態はスケルトン表示。
 MD
-    cat > "$target/メッセージ定義書.md" <<'MD'
+    cat > "$target/プロジェクト共通/メッセージ定義書.md" <<'MD'
 # 共通メッセージ定義書（リバース版）
 
 総件数: 2件
@@ -341,30 +341,30 @@ MD
 | `保存に成功しました` | 保存成功トースト |
 | `保存に失敗しました` | 保存失敗トースト |
 MD
-    cat > "$target/DESIGN.md" <<'MD'
+    cat > "$target/プロジェクト共通/DESIGN.md" <<'MD'
 # 共通デザインシステム（リバース版）
 
 primary色は#1a73e8。
 MD
-    cat > "$target/基盤設計.md" <<'MD'
+    cat > "$target/プロジェクト共通/基盤設計.md" <<'MD'
 # 基盤設計書（リバース版）
 
 ## §1 フレームワーク構成（実測）
 Reactを採用。
 MD
-    cat > "$target/UI共通設計.md" <<'MD'
+    cat > "$target/プロジェクト共通/UI共通設計.md" <<'MD'
 # UI共通設計書（リバース版）
 
 ## §1 デザインシステム（実測）
 独自コンポーネントライブラリを使用。
 MD
-    cat > "$target/データ設計.md" <<'MD'
+    cat > "$target/プロジェクト共通/データ設計.md" <<'MD'
 # データ設計書（リバース版）
 
 ## §1 データモデル概要（実測）
 ユーザーエンティティを保有。
 MD
-    cat > "$target/サンプル記録.md" <<'MD'
+    cat > "$target/プロジェクト共通/サンプル記録.md" <<'MD'
 # サンプル記録
 
 ## 選定コマンド
@@ -387,7 +387,7 @@ MD
   # 陰性1: 検査1のみ違反（DESIGN.mdを欠落）
   fail1_dir="$tmp/fail1"
   build_docs "$fail1_dir"
-  rm -f "$fail1_dir/DESIGN.md"
+  rm -f "$fail1_dir/プロジェクト共通/DESIGN.md"
   if check_files_exist "$fail1_dir" >/dev/null 2>&1; then
     echo "  [FAIL] 検査1: ファイル欠落があるのにexit 0になった" >&2
     rc=1
@@ -433,7 +433,7 @@ MD
   # 陰性4: 検査4のみ違反（テンプレ残存）
   fail4_dir="$tmp/fail4"
   build_docs "$fail4_dir"
-  cat >> "$fail4_dir/DESIGN.md" <<'MD'
+  cat >> "$fail4_dir/プロジェクト共通/DESIGN.md" <<'MD'
 
 surface色は TBD。
 MD
@@ -461,7 +461,7 @@ MD
   # 陰性6: 検査6のみ違反（メッセージ定義書の宣言件数と実測件数が不一致）
   fail6_dir="$tmp/fail6"
   build_docs "$fail6_dir"
-  cat > "$fail6_dir/メッセージ定義書.md" <<'MD'
+  cat > "$fail6_dir/プロジェクト共通/メッセージ定義書.md" <<'MD'
 # 共通メッセージ定義書（リバース版）
 
 総件数: 3件

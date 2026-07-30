@@ -125,6 +125,16 @@ check_file() {
     else
       fail "unresolved-条件付き"
     fi
+
+    if grep -qE 'class="unresolved has-items' "$f" 2>/dev/null; then
+      grep -qF 'class="unresolved has-items pt-callout pt-callout--warning"' "$f" \
+        && pass "unresolved-非空警告コールアウト" \
+        || fail "unresolved-非空警告コールアウト"
+    else
+      grep -qE 'class="unresolved empty[^"]*pt-callout' "$f" \
+        && fail "unresolved-空状態は非警告" \
+        || pass "unresolved-空状態は非警告"
+    fi
   fi
 }
 
@@ -158,6 +168,109 @@ check_matrix_template_tokens() {
   done
 }
 
+check_callout_contract() {
+  local script_dir templates_dir shell_css representative builder template guide
+  local material_symbols_href expected_font_sha shell_font_sha representative_font_sha
+  script_dir="$(cd "$(dirname "$0")" && pwd)"
+  templates_dir="$script_dir/../templates"
+  shell_css="$templates_dir/partials/shell.css"
+  representative="$script_dir/../samples/一覧/API一覧/API一覧.html"
+  material_symbols_href='https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined&amp;icon_names=info,priority_high,warning&amp;display=block'
+  expected_font_sha='8f1b843abe398437ce5b3194a9f060f45534414e1fd6bced2521d39ca3d5a778'
+  shell_font_sha="$(grep -o 'data:font/ttf;base64,[^"]*' "$shell_css" | head -1 | cut -d, -f2- | base64 --decode | shasum -a 256 | awk '{print $1}')"
+  representative_font_sha="$(grep -o 'data:font/ttf;base64,[^"]*' "$representative" | head -1 | cut -d, -f2- | base64 --decode | shasum -a 256 | awk '{print $1}')"
+
+  echo ""
+  echo "=== importance callout contract ==="
+
+  if grep -qF '.pt-callout {' "$shell_css" \
+    && grep -qF '.pt-callout--caution {' "$shell_css" \
+    && grep -qF '.pt-callout--warning {' "$shell_css" \
+    && grep -qF '.pt-callout--important {' "$shell_css" \
+    && grep -qF 'box-shadow: inset 5px 0 0 var(--callout-color)' "$shell_css" \
+    && grep -qF '.pt-callout__icon {' "$shell_css" \
+    && grep -A2 -F '.pt-callout__icon {' "$shell_css" | grep -qF 'display: none' \
+    && grep -qF 'font-family: "Material Symbols Outlined Local"' "$shell_css" \
+    && grep -qF 'data:font/ttf;base64,' "$shell_css" \
+    && grep -qF 'font-family: "Material Symbols Outlined", "Material Symbols Outlined Local"' "$shell_css" \
+    && [ "$shell_font_sha" = "$expected_font_sha" ] \
+    && grep -qF '.pt-callout > :first-child > .pt-callout__icon { display: inline-block; }' "$shell_css" \
+    && grep -qF -- '--callout-color: var(--accent)' "$shell_css" \
+    && grep -qF -- '--callout-color: var(--stamp)' "$shell_css" \
+    && grep -qF -- '--callout-color: var(--green)' "$shell_css"; then
+    pass "コールアウト-3重要度CSS"
+  else
+    fail "コールアウト-3重要度CSS"
+  fi
+
+  for builder in \
+    "$script_dir/unit-list/build-unit-list.sh" \
+    "$script_dir/unit-list/build-screen-list.sh" \
+    "$script_dir/unit-list/build-feature-list.sh"; do
+    if grep -qF 'unresolved_class="has-items pt-callout pt-callout--warning"' "$builder" \
+      && grep -qF 'unresolved_class="empty"' "$builder" \
+      && ! grep -qF '単一ファイル自己完結' "$builder"; then
+      pass "コールアウト-要確認事項への生成規律: $(basename "$builder")"
+    else
+      fail "コールアウト-要確認事項への生成規律: $(basename "$builder")"
+    fi
+  done
+
+  for template in \
+    "$templates_dir/unit-list/unit-list-template.html" \
+    "$templates_dir/unit-list/screen-list-template.html" \
+    "$templates_dir/unit-list/feature-list-template.html"; do
+    if grep -qF "$material_symbols_href" "$template" \
+      && grep -qF '<span class="material-symbols-outlined pt-callout__icon" aria-hidden="true">warning</span>' "$template" \
+      && ! grep -qF '外部リソース(CDN・フォント・画像)は一切使わない' "$template"; then
+      pass "コールアウト-Material Symbols規律: $(basename "$template")"
+    else
+      fail "コールアウト-Material Symbols規律: $(basename "$template")"
+    fi
+  done
+
+  for guide in \
+    "$script_dir/../../.claude/skills/generating-api-list-for-reverse-docs/references/generating-api-list-for-reverse-docs-guide.html" \
+    "$script_dir/../../.claude/skills/generating-screen-list-for-reverse-docs/references/generating-screen-list-for-reverse-docs-guide.html" \
+    "$script_dir/../../.claude/skills/generating-feature-list-for-reverse-docs/references/generating-feature-list-for-reverse-docs-guide.html" \
+    "$script_dir/../../.claude/skills/generating-table-list-for-reverse-docs/references/generating-table-list-for-reverse-docs-guide.html" \
+    "$script_dir/../../.claude/skills/generating-batch-list-for-reverse-docs/references/generating-batch-list-for-reverse-docs-guide.html" \
+    "$script_dir/../../.claude/skills/generating-report-list-for-reverse-docs/references/generating-report-list-for-reverse-docs-guide.html" \
+    "$script_dir/../../.claude/skills/generating-external-list-for-reverse-docs/references/generating-external-list-for-reverse-docs-guide.html"; do
+    if grep -qF 'Material Symbols OutlinedのGoogle Fonts CDNだけを許可する' "$guide" \
+      && ! grep -qF '外部リソース（CDN・画像・link）は一切使わず' "$guide"; then
+      pass "コールアウト-一覧ガイドの外部依存規律: $(basename "$guide")"
+    else
+      fail "コールアウト-一覧ガイドの外部依存規律: $(basename "$guide")"
+    fi
+  done
+
+  if grep -qF 'class="unresolved has-items pt-callout pt-callout--warning"' "$representative" \
+    && grep -qF "$material_symbols_href" "$representative" \
+    && grep -qF '<span class="material-symbols-outlined pt-callout__icon" aria-hidden="true">warning</span>' "$representative" \
+    && [ "$representative_font_sha" = "$expected_font_sha" ] \
+    && ! grep -qF '外部リソース(CDN・フォント・画像)は一切使わない' "$representative"; then
+    pass "コールアウト-代表生成HTMLへの適用"
+  else
+    fail "コールアウト-代表生成HTMLへの適用"
+  fi
+
+  if grep -qF '| 注意 | `.pt-callout.pt-callout--caution` | `info` |' "$script_dir/../../.claude/rules/scoped/portal/page-conventions/rule.md" \
+    && grep -qF '| 警告 | `.pt-callout.pt-callout--warning` | `warning` |' "$script_dir/../../.claude/rules/scoped/portal/page-conventions/rule.md" \
+    && grep -qF '| 重要 | `.pt-callout.pt-callout--important` | `priority_high` |' "$script_dir/../../.claude/rules/scoped/portal/page-conventions/rule.md"; then
+    pass "コールアウト-重要度とアイコンの対応規律"
+  else
+    fail "コールアウト-重要度とアイコンの対応規律"
+  fi
+
+  if grep -qF '<span class="ex">単一HTML生成</span>' "$script_dir/../references/ポータル設計基盤.html" \
+    && grep -qF '<span class="ex">外部依存はMaterial Symbolsのみ</span>' "$script_dir/../references/ポータル設計基盤.html"; then
+    pass "コールアウト-ポータル設計基盤の外部依存規律"
+  else
+    fail "コールアウト-ポータル設計基盤の外部依存規律"
+  fi
+}
+
 target="${1:-.}"
 if [ -d "$target" ]; then
   while IFS= read -r f; do
@@ -168,6 +281,7 @@ else
 fi
 
 check_matrix_template_tokens
+check_callout_contract
 
 echo ""
 echo "========================================="

@@ -135,6 +135,8 @@ a:hover { text-decoration: underline; }
   transition: background .12s;
 }
 .card:hover { background: var(--panel3); box-shadow: inset 0 -3px 0 var(--accent); text-decoration: none; }
+.card.is-empty { color: var(--muted); cursor: default; }
+.card.is-empty:hover { background: transparent; box-shadow: none; }
 .card-num { font-family: var(--mono); font-size: 10.5px; color: var(--faint); }
 .card-title { font-size: 14px; font-weight: 700; margin-top: 2px; }
 .card-desc { font-size: 12px; color: var(--sub); line-height: 1.6; margin-top: 4px; }
@@ -196,7 +198,7 @@ a:hover { text-decoration: underline; }
         <input type="text" class="pt-input" id="pm-search-input" placeholder="資料を横断検索…（/ でフォーカス）">
       </div>
 
-      <div class="pm-cats" id="pm-cats"></div>
+      <div class="pm-cats" id="pm-cats">{{CATEGORY_SECTIONS_HTML}}</div>
     </main>
   </div>
   <!--SHELL_FOOTER-->
@@ -312,7 +314,8 @@ a:hover { text-decoration: underline; }
   var catsMount = document.getElementById('pm-cats');
 
   categories.forEach(function(cat, catIdx) {
-    var section = el('section', { class: 'pm-cat', id: 'cat-' + cat.id });
+    var section = document.getElementById('cat-' + cat.id)
+      || el('section', { class: 'pm-cat', id: 'cat-' + cat.id });
 
     var head = el('div', { class: 'pm-cat-head' });
     head.appendChild(el('span', { class: 'pm-cat-num' }, padNum(catIdx + 1)));
@@ -323,6 +326,19 @@ a:hover { text-decoration: underline; }
 
     var grid = el('div', { class: 'cards' });
     var currentGroup = '';
+    if (cat.tools.length === 0) {
+      var empty = cat.empty || {
+        title: '生成済み資料はありません',
+        desc: 'このカテゴリの資料はまだ生成されていません。',
+        count: '0 件'
+      };
+      var emptyCard = el('div', { class: 'card is-empty', role: 'status' });
+      emptyCard.appendChild(el('div', { class: 'card-num' }, '00'));
+      emptyCard.appendChild(el('div', { class: 'card-title' }, empty.title));
+      emptyCard.appendChild(el('div', { class: 'card-desc' }, empty.desc));
+      emptyCard.appendChild(el('div', { class: 'card-count' }, empty.count));
+      grid.appendChild(emptyCard);
+    }
     cat.tools.forEach(function(tool, toolIdx) {
       var isExtra = toolIdx >= CARD_CAP;
       if (tool.group && tool.group !== currentGroup) {

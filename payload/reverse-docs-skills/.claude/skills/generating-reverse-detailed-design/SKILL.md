@@ -31,7 +31,9 @@ facts 抽出・設計書執筆・盲検検証の3スキルは情報アクセス�
 ## 設計原則
 
 1. **正本一元化**: facts.yml は封印済みの確定情報であり第二の正本ではない。正は設計書。設計書と facts.yml が食い違ったら設計書を直す（facts.yml 自体の誤りは extracting-unit-facts-from-code への差し戻し対象であり本スキルは書き換えない）
-2. **「該当なし」に根拠を必須とする**（例:「該当なし（facts.yml の const セクションに項目なし）」）。根拠なしの裸の「未確認」は完了条件違反
+2. **対象外に根拠を必須とする**
+   複数の対象外項目は `references/writing-rules.md` の章単位集約書式でまとめる。
+   各項目の理由を残し、根拠なしの裸の「未確認」を禁止する
 3. **プロジェクト非依存**: リバース対象の固有値（対象リポジトリパス・画面 ID・BL 名）はすべて起動引数・設計書側に置き、本 SKILL.md 本文には書かない。完成後に固有文字列ゼロを確認する（環境名の直書き禁止規約にも整合させる）
 4. **原本 Read 禁止**: 本スキル実行中に対象リポジトリの原本コードを Read することを全面禁止する。情報源は起動引数 facts_ref 配下の facts.yml と common_docs_root 配下の共通文書に限定する。原本を読むことは検証の盲検性を壊す契約違反であり、facts の欠落に気づいた場合でも自ら原本を確認せず extracting-unit-facts-from-code への差し戻しとして扱う
 5. **検証スキルとの関係を明記**: 上記「使用タイミング」の通り、AUTHORED 後に検証スキルを起動し、検証 差し戻し の差し戻し先は本スキルである
@@ -110,7 +112,10 @@ facts.yml の各セクションを下記マップに従って各章へ転記す�
 ## Phase 5: 完全性ゲート
 
 1. `scripts/check-fact-coverage.sh <facts_ref>/facts.yml <画面詳細設計書.md> [<DESIGN.md>]` を実行し exit 0 を確認する。facts.yml の全項目（`measurement_pending` は「実測委譲」表記があれば転記済み扱い）が設計書いずれかの章に転記済みかを機械突合し、未転記が 1 件でもあれば exit 1（fail-closed）。未転記キーを Phase 4 のマップに従って転記してから再実行する
-2. 起動引数 audit_script_path（`shared/scripts/audit-consistency.sh`）を通常モードで実行し、exit 0（内部整合性の違反 0 件）を確認する。§15.2 が facts.yml の export_type「型定義なし」に基づく根拠付き該当なし文であっても exit 0 になる（型を捏造して検査を通すことは禁止）。返却ブロックの `measurement_pending[]` 件数を `AUDIT_EXPECTED_MP_COUNT=<件数>` として渡して再実行し、検査 i-2（§16のmeasurement_pending計上数と`AUDIT_EXPECTED_MP_COUNT`の突合）の WARN が出ないことを確認する
+2. 起動引数 audit_script_path（`shared/scripts/audit-consistency.sh`）を通常モードで実行し、exit 0（内部整合性の違反 0 件）を確認する。
+   §15.2 が facts.yml の export_type「型定義なし」に基づく§15章冒頭の非該当集約でも、型を捏造せず exit 0 になる。
+   返却ブロックの `measurement_pending[]` 件数を `AUDIT_EXPECTED_MP_COUNT=<件数>` として渡し、再実行する。
+   §16 の計上数と指定件数の突合で警告が出ないことを確認する
 3. `awk '/^---$/{n++; next} n==1' <画面詳細設計書.md> | grep -c 実測委譲` が `0` であることを確認する（frontmatter の `scenarios` に実測委譲プレースホルダが残っていないかの機械検査）。非0なら著述未完了として Phase 4 へ差し戻す
 4. Phase 4 で `prefill-design-from-facts.sh` を使った場合のみ、`shared/scripts/check-prefill-markers.sh <画面詳細設計書.md>` を実行し exit 0（残存マーカー0件）を確認する。残存があれば当該箇所を著述で埋めてから再実行する
 5. `python3 shared/scripts/validate-reverse-authoring-inputs.py scenarios --design-doc <画面詳細設計書.md> [--verification-url <verification_url>] --record <verification_dir>/screen-<画面ID>/authoring/scenarios-input-check.json`を必ず実行する。全scenarioのpath/readyは常時必須。verification_urlが無い未開通状態ではquery/path_params省略をPASSとし、実測URLの証跡がある場合は両キーが不足・空ならexit 1とする。exit 1はPhase 4へ差し戻し、AUTHORED系statusを返さない
@@ -167,8 +172,10 @@ facts 読込・執筆（Phase 2〜4）はサブエージェントへ委任しな
 - 原本コードの Read は全面禁止。情報源は facts_ref 配下の facts.yml と common_docs_root 配下の共通文書のみ（設計原則4）
 - facts.yml の字面（`value` 列）をそのまま書き写すだけでなく、章の文脈に沿って正規化して書く。ただし facts に無い事実を創作しない（境界例は `references/writing-rules.md`）
 - `measurement_pending`（⑨実測系: 初期表示値・DOM 順・要素位置・レイアウト）を目視転記・推測で確定しない。画面未開通でも著述を止めず、`実測委譲（画面単位検証で確定）` に留め measurement_pending へ回す
-- 「該当なし」は必ず根拠を添える。裸の「未確認」は完了条件違反
-- §15.2 が facts.yml export_type「型定義なし」の根拠付き該当なし文でも audit_script_path は exit 0 になる（検査gの型名抽出は無マッチ許容）。exit 1 は常に実違反として扱い、型を捏造して検査を通すことは絶対にしない
+- 対象外は必ず根拠を添える。章内の全下位項目が対象外なら `references/writing-rules.md` の章単位集約書式を使う
+  個別の見出し・空表・「該当なし」行へ展開しない。裸の「未確認」は完了条件違反とする
+- §15.2を「型定義なし」と集約した場合も、audit_script_path は exit 0 になる
+  型名抽出は型定義表がない場合を許容する。exit 1 は実違反として扱い、型を捏造して検査を通さない
 - facts.yml 自体の誤り・欠落に気づいても本スキルは書き換えない。extracting-unit-facts-from-code への差し戻しとして hint に記録する
 - 本 SKILL.md 本文にリバース対象の固有値（対象リポジトリパス・画面 ID・BL 名）を書かない。固有値は起動引数・設計書側に置く
 - 進捗は Step 単位で TaskCreate/TaskUpdate する（一括登録しない）
@@ -189,7 +196,12 @@ mode=screen が著述する画面横断章（§1 画面概要・§2 機能一覧
 
 ## 未確定値の記載ルール
 
-未確定値はプレースホルダ文字列（`実測委譲`・`TBD`・`TODO`・`未定` 等）をリテラル記入せず、キー省略または §16 要確認事項へ回す。唯一の許容表記は `実測委譲（画面単位検証で確定）`（`measurement_pending` 由来の実測委譲。根拠の丸括弧を伴う固定書式）であり、根拠を伴わない裸の「実測委譲」は許容しない。「該当なし」と記す場合は根拠（何をどう調べて該当なしと判断したか）の併記を必須とする。DESIGN.md の雛形が要求する「実測値の抽出元」欄の省略も同様に禁止（省略は未記入プレースホルダとして扱う）。これらは audit_script_path が機械検査する。
+未確定値は「未定」等のプレースホルダを記入せず、キーを省略するか §16 要確認事項へ回す。
+唯一の許容表記は `measurement_pending` 由来の `実測委譲（画面単位検証で確定）` とする。
+根拠を伴わない裸の「実測委譲」は許容しない。
+対象外には判断根拠を残し、複数の対象外項目は `references/writing-rules.md` の章単位集約書式を使う。
+DESIGN.md の雛形が要求する「実測値の抽出元」欄も省略してはならない。
+audit_script_path はこれらを機械検査する。
 
 ## 完了報告
 

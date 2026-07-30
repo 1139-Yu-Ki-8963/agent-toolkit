@@ -17,12 +17,12 @@
 #   "units": [{
 #     "unitKey": "...", "unitId": null, "unitNameGuess": "...", "kind": "feature|unresolved",
 #     "category": "...", "identifier": "...", "sourceFile": "...", "summary": "...",
-#     "relatedScreens": [], "relatedApis": [], "relatedTables": [],
+#     "relatedScreens": [], "relatedApis": [], "relatedTables": [], # relatedApis は API一覧manifest の units[].unitKey を参照する
 #     "confidence": "high|medium|low", "fileCount": 0, "detectionMethod": "..."
 #   }]
 # }
 #
-# 出力: <output-html-path> に単一ファイル自己完結のHTMLを書き出す。
+# 出力: <output-html-path> に単一HTMLを書き出す。外部依存はMaterial Symbols OutlinedのGoogle Fonts CDNだけを許可する。
 #   - kind!=unresolved の units は category(未指定は「未分類」)ごとに大分類セクションへ分けて出力
 #   - kind=unresolved は「要手動確認」セクションの別テーブルへ(0件なら「なし」)
 #   - manifest.json の内容は <script type="application/json" id="unit-manifest"> にそのまま埋め込む
@@ -186,7 +186,7 @@ EOF
           summary: "ユーザー一覧を表示する",
           sourceFile: $sourceFileA,
           relatedScreens: ["user-list-screen"],
-          relatedApis: ["GET /api/users"],
+          relatedApis: ["users-list"],
           relatedTables: ["users"],
           confidence: "high",
           fileCount: 1,
@@ -201,7 +201,7 @@ EOF
           summary: "在庫データを外部システムと同期する",
           sourceFile: $sourceFileB,
           relatedScreens: [],
-          relatedApis: ["POST /api/inventory/sync"],
+          relatedApis: ["inventory-sync"],
           relatedTables: ["inventory", "inventory_log"],
           confidence: "medium",
           fileCount: 1,
@@ -234,6 +234,9 @@ EOF
   elif ! grep -q 'data-unit-key="user-list-view"' "$out_normal"; then
     regression_ok=0
   elif ! bash "$script_dir/validate-manifest.sh" "$manifest_normal" --unit-kind feature >/dev/null 2>&1; then
+    regression_ok=0
+  elif ! jq -e '[.units[] | (.relatedApis // [])[]]
+                | all(test("^[A-Z]+[[:space:]]+/") | not)' "$manifest_normal" >/dev/null 2>&1; then
     regression_ok=0
   fi
 
@@ -495,7 +498,7 @@ ${unresolved_rows}
 </table>
 EOF
 )"
-  unresolved_class="has-items"
+  unresolved_class="has-items pt-callout pt-callout--warning"
 fi
 
 # application/json のraw text要素では文字列中の </script> が要素を閉じるため、
