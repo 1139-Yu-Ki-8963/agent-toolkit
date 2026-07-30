@@ -25,6 +25,11 @@
 #   }]
 # }
 #
+# unit_kind=message の専用契約:
+#   トップレベルに sourceDir(string), strategy(object), detectionSummary(object), units(array),
+#   summary(object) を持つ。units[].sourceFile は単一文字列ではなく string[] とし、複数の原本
+#   ファイルを列挙する。message 専用の詳細契約は shared/references/manifest-schema-extensions.md に記載する。
+#
 # 出力: <output-html-path> に単一HTMLを書き出す。外部依存はMaterial Symbols OutlinedのGoogle Fonts CDNだけを許可する。
 #   - kind=unresolved は「要手動確認」セクションの別テーブルへ(0件なら「なし」)
 #   - manifest.json の内容は <script type="application/json" id="unit-manifest"> にそのまま埋め込む
@@ -277,7 +282,8 @@ EOF
   }' > "$message_manifest"
   if ! bash "$script_path" "$message_manifest" "$message_out" --unit-kind message >/dev/null 2>&1 \
     || ! grep -q '<code>login-required</code>' "$message_out" \
-    || ! grep -q 'href="../../index.html"' "$message_out"; then
+    || ! grep -q 'href="../../index.html"' "$message_out" \
+    || ! grep -q 'source-file' "$message_out"; then
     derived_ok=0
   fi
   extract_manifest_json "$message_out" | jq -cS . > "$tmp/message-embedded.json" 2>/dev/null || derived_ok=0
