@@ -29,6 +29,111 @@ if [ -f "$SCRIPT_DIR/shell-injection.sh" ]; then
   . "$SCRIPT_DIR/shell-injection.sh"
 fi
 
+# backfill_shell_shared_state — discovery 結果（カテゴリ別実カード数・総資料数・更新日）を
+# 生成済み HTML 群へ一括反映する。6 経路（build-portal.sh 本体・unit-list 3 種・
+# matrix・detail-pages）がそれぞれ別プロセスで焼いたシェル（サイドバー・フッター）の値を、
+# discovery を持つ build-portal.sh の実行末尾で単一の情報源に揃え直すためのバックフィル。
+# 対象外（pt-nav-data マーカーを持たない HTML）は無変更のまま skip する。
+#
+# 引数:
+#   $1 shell_counts_json — `[{"key":"<カテゴリキー>","count":<実カード数>},...]`
+#   $2 generated_date    — YYYY-MM-DD 形式の更新日
+# 標準入力: バックフィル対象の HTML ファイルパス（1 行 1 パス）
+backfill_shell_shared_state() {
+  local counts_json="$1"
+  local generated_date="$2"
+  # `node -` はスクリプト自体を標準入力から読むため、ファイル一覧の標準入力は
+  # 先に fd 3 へ退避してから node に渡す（link_related_material_paths と同じ作法）。
+  node - "$counts_json" "$generated_date" 3<&0 <<'NODE'
+const fs = require('node:fs');
+
+const countsJson = process.argv[2];
+const generatedDate = process.argv[3];
+
+let counts;
+try {
+  counts = JSON.parse(countsJson);
+} catch (e) {
+  process.stderr.write('ERROR: backfill_shell_shared_state: invalid shell_counts_json\n');
+  process.exit(1);
+}
+const countByKey = new Map(counts.map((c) => [c.key, c.count]));
+const total = counts.reduce((sum, c) => sum + (Number(c.count) || 0), 0);
+
+// nav_json を script 要素から抜け出させない無害化（shell-injection.sh と同じ規則）
+function escapeForScript(json) {
+  return json.replace(/</g, '\\u003c').replace(/>/g, '\\u003e').replace(/&/g, '\\u0026');
+}
+
+function processFile(filePath) {
+  let html;
+  try {
+    html = fs.readFileSync(filePath, 'utf8');
+  } catch (e) {
+    return;
+  }
+  let changed = false;
+
+  const navPattern = /(<script type="application\/json" id="pt-nav-data">)([\s\S]*?)(<\/script>)/;
+  const navMatch = html.match(navPattern);
+  if (navMatch) {
+    let navArray = null;
+    try {
+      navArray = JSON.parse(navMatch[2]);
+    } catch (e) {
+      navArray = null;
+    }
+    if (Array.isArray(navArray)) {
+      const updated = navArray.map((entry) => {
+        if (entry && typeof entry === 'object' && countByKey.has(entry.key)) {
+          return Object.assign({}, entry, { count: countByKey.get(entry.key) });
+        }
+        return entry;
+      });
+      const newNavJson = escapeForScript(JSON.stringify(updated));
+      if (newNavJson !== navMatch[2]) {
+        html = html.slice(0, navMatch.index) + navMatch[1] + newNavJson + navMatch[3]
+          + html.slice(navMatch.index + navMatch[0].length);
+        changed = true;
+      }
+    }
+  }
+
+  const totalPattern = /(設計台帳\s*·\s*全)(\d+)(資料)/;
+  const totalMatch = html.match(totalPattern);
+  if (totalMatch && totalMatch[2] !== String(total)) {
+    html = html.replace(totalPattern, `$1${total}$3`);
+    changed = true;
+  }
+
+  // unit-list/matrix/detail-pages の各経路は manifest.generatedAt をそのまま
+  // {{GENERATED_DATE}} へ渡すため、ISO-8601 の日時表現（末尾 T00:00:00Z 等）が
+  // そのまま焼き込まれることがある。バックフィルは日付のみの形式に限定せず、
+  // タグ間の内容を無条件に GENERATED_DATE（YYYY-MM-DD）へ揃える。
+  const sidebarDatePattern = /(id="pt-sidebar-date">)([^<]*)(<\/span>)/;
+  const sidebarDateMatch = html.match(sidebarDatePattern);
+  if (sidebarDateMatch && sidebarDateMatch[2] !== generatedDate) {
+    html = html.replace(sidebarDatePattern, `$1${generatedDate}$3`);
+    changed = true;
+  }
+
+  const footerDatePattern = /(id="pt-footer-date">)([^<]*)(<\/span>)/;
+  const footerDateMatch = html.match(footerDatePattern);
+  if (footerDateMatch && footerDateMatch[2] !== generatedDate) {
+    html = html.replace(footerDatePattern, `$1${generatedDate}$3`);
+    changed = true;
+  }
+
+  if (changed) {
+    fs.writeFileSync(filePath, html);
+  }
+}
+
+const fileList = fs.readFileSync(3, 'utf8').split('\n').map((s) => s.trim()).filter(Boolean);
+fileList.forEach(processFile);
+NODE
+}
+
 script_safe_json() {
   node -e '
     let input = "";
@@ -753,11 +858,9 @@ const categoryIds = categories.map((category) => category.id);
 assert.equal(new Set(sidebarKeys).size, sidebarKeys.length, 'sidebar category keys must be unique');
 assert.equal(new Set(categoryIds).size, categoryIds.length, 'rendered category ids must be unique');
 assert.deepEqual(sidebarKeys, categoryIds, 'sidebar keys and rendered category ids must match in order');
-const catalogCategories = new Map(catalog.categories.map((category) => [category.key, category]));
-assert(sidebar.every((item) => {
-  const definition = catalogCategories.get(item.key);
-  return definition && item.count === definition.blueprints.length;
-}), 'sidebar counts must match catalog blueprint counts');
+const toolCountById = new Map(categories.map((category) => [category.id, category.tools.length]));
+assert(sidebar.every((item) => item.count === toolCountById.get(item.key)),
+  'sidebar counts must match discovered card counts (写真指摘 1-98: 旧基準はblueprint数固定で不具合そのものを検証していた)');
 const catsMountMatch = source.match(/<div\b(?=[^>]*\bid=["']pm-cats["'])(?=[^>]*\bclass=["'][^"']*\bpm-cats\b[^"']*["'])[^>]*>([\s\S]*?)<\/div>/);
 assert(catsMountMatch, 'generated HTML must contain the pm-cats container');
 function attributesFromStartTag(startTag) {
@@ -1446,6 +1549,137 @@ NODE
 
   run_related_material_links_self_test
 
+  echo "--- ケース24: nav件数とカード件数の一致（写真指摘1-98の検収方法。blueprint定義があるのに実体が無いカテゴリを含む合成カタログ） ---"
+  test24_dir="$(mktemp -d)"
+  test24_repo="$test24_dir/repo"
+  test24_docs="$test24_dir/docs"
+  mkdir -p "$test24_repo" "$test24_docs/a" "$test24_docs/b"
+  printf '<h1>A One Doc</h1>\n' > "$test24_docs/a/one.html"
+  printf '<h1>B One Doc</h1>\n' > "$test24_docs/b/one.html"
+  # cat-a は blueprint 3件中1件のみ実体あり（a-two・a-three は定義のみで実ファイル無し）。
+  # cat-b は blueprint 1件・実体1件で完全一致させ、両パターンを混在させる。
+  cat > "$test24_dir/catalog.json" <<'TEST24CATALOG'
+{"schemaVersion":1,"categories":[{"key":"cat-a","label":"CatA","group":"Test","icon":"folder","sub":"test","blueprints":[{"kind":"a-one","label":"A One","icon":"desc","desc":"test","dir":"a","generator":"test-generator","unit":"件","countFormat":"detail","discovery":{"artifactType":"a-one-page","root":"output-dir","glob":"a/one.html","matchKind":"file","titleSource":"html-h1","dirSource":"match-parent","instanceKeySource":"relative-path","sort":"relative-path-bytewise"}},{"kind":"a-two","label":"A Two","icon":"desc","desc":"test","dir":"a","generator":"test-generator","unit":"件","countFormat":"detail","discovery":{"artifactType":"a-two-page","root":"output-dir","glob":"a/two.html","matchKind":"file","titleSource":"html-h1","dirSource":"match-parent","instanceKeySource":"relative-path","sort":"relative-path-bytewise"}},{"kind":"a-three","label":"A Three","icon":"desc","desc":"test","dir":"a","generator":"test-generator","unit":"件","countFormat":"detail","discovery":{"artifactType":"a-three-page","root":"output-dir","glob":"a/three.html","matchKind":"file","titleSource":"html-h1","dirSource":"match-parent","instanceKeySource":"relative-path","sort":"relative-path-bytewise"}}]},{"key":"cat-b","label":"CatB","group":"Test","icon":"folder","sub":"test","blueprints":[{"kind":"b-one","label":"B One","icon":"desc","desc":"test","dir":"b","generator":"test-generator","unit":"件","countFormat":"detail","discovery":{"artifactType":"b-one-page","root":"output-dir","glob":"b/one.html","matchKind":"file","titleSource":"html-h1","dirSource":"match-parent","instanceKeySource":"relative-path","sort":"relative-path-bytewise"}}]}]}
+TEST24CATALOG
+  # 陰性フィクスチャ健全性確認: cat-a は blueprint数(3)と実体数(1)が意図的に異なる。
+  # 一致していたら本ケースの検査は不一致を検知できないため、まずフィクスチャ自体を検証する。
+  test24_blueprint_count_a="$(jq -r '.categories[] | select(.key=="cat-a") | .blueprints | length' "$test24_dir/catalog.json")"
+  if [ "$test24_blueprint_count_a" -eq 1 ]; then
+    echo "FAIL: --self-test ケース24（フィクスチャ不備: cat-aのblueprint数と実体数が一致しており検査として機能しない）" >&2
+    rm -rf "$test24_dir"
+    exit 1
+  fi
+  "$SCRIPT_DIR/build-portal.sh" "$test24_repo" "$test24_docs" "$test24_docs" \
+    --portal-only --catalog "$test24_dir/catalog.json" --generated-at 2026-07-28T00:00:00Z 2>/dev/null
+  if node -e '
+    const fs = require("fs");
+    const html = fs.readFileSync(process.argv[1], "utf8");
+    const navMatch = html.match(/<script type="application\/json" id="pt-nav-data">([\s\S]*?)<\/script>/);
+    const catMatch = html.match(/<script type="application\/json" id="portal-categories">([\s\S]*?)<\/script>/);
+    if (!navMatch || !catMatch) process.exit(1);
+    const nav = JSON.parse(navMatch[1]);
+    const categories = JSON.parse(catMatch[1]);
+    const cardCountById = new Map(categories.map((c) => [c.id, c.tools.length]));
+    if (nav.length !== categories.length) process.exit(1);
+    for (const item of nav) {
+      if (item.count !== cardCountById.get(item.key)) {
+        console.error(`mismatch: ${item.key} nav=${item.count} cards=${cardCountById.get(item.key)}`);
+        process.exit(1);
+      }
+    }
+  ' "$test24_docs/index.html"; then
+    echo "PASS: --self-test ケース24（nav件数と実カード件数が全カテゴリで一致。blueprint数固定の不具合は再発していない）"
+  else
+    echo "FAIL: --self-test ケース24（nav件数と実カード件数が不一致）" >&2
+    rm -rf "$test24_dir"
+    exit 1
+  fi
+  rm -rf "$test24_dir"
+
+  echo "--- ケース25: 全ページのシェル表示値の単一性（写真指摘1-99の検収方法。カテゴリ別件数・総資料数・更新日が全ページで一致し、一部ページ再生成後もbuild-portal.sh再実行でPASSする） ---"
+  test25_dir="$(mktemp -d)"
+  test25_repo="$test25_dir/repo"
+  test25_docs="$test25_dir/docs"
+  mkdir -p "$test25_repo/src/routes" "$test25_docs/一覧/API一覧"
+  echo "export function usersRoute() {}" > "$test25_repo/src/routes/users.ts"
+
+  test25_manifest="$test25_dir/manifest-api.json"
+  jq -n --arg sourceDir "$test25_repo/src" --arg sourceFile "$test25_repo/src/routes/users.ts" '
+    {
+      generatedAt: "2026-07-28T00:00:00Z",
+      sourceDir: $sourceDir,
+      unitKind: "api",
+      strategy: {extractionMethod: "custom", approvedByUser: true, unitIdRegex: null, excludePatterns: []},
+      detectionSummary: {unitCount: 1, unresolvedCount: 0},
+      units: [{unitKey: "users-list", kind: "endpoint", identifier: "GET /api/users", unitNameGuess: "ユーザー一覧", sourceFile: $sourceFile, confidence: "high", fileCount: 1, detectionMethod: "manual"}]
+    }' > "$test25_manifest"
+
+  compare_shell_state_across_pages() {
+    # 引数: HTMLファイルパス群。全ページで nav件数・総資料数・更新日(サイドバー/フッター)が
+    # 一致すれば "MATCH"、1件でも不一致があれば "MISMATCH" を標準出力へ返す。
+    node -e '
+      const fs = require("fs");
+      const files = process.argv.slice(1);
+      const states = files.map((f) => {
+        const html = fs.readFileSync(f, "utf8");
+        const navMatch = html.match(/<script type="application\/json" id="pt-nav-data">([\s\S]*?)<\/script>/);
+        const totalMatch = html.match(/設計台帳\s*·\s*全(\d+)資料/);
+        const sidebarDateMatch = html.match(/id="pt-sidebar-date">([^<]*)</);
+        const footerDateMatch = html.match(/id="pt-footer-date">([^<]*)</);
+        if (!navMatch || !totalMatch || !sidebarDateMatch || !footerDateMatch) { process.exit(2); }
+        return JSON.stringify({
+          nav: JSON.parse(navMatch[1]).map((item) => [item.key, item.count]).sort(),
+          total: totalMatch[1],
+          sidebarDate: sidebarDateMatch[1],
+          footerDate: footerDateMatch[1],
+        });
+      });
+      process.stdout.write(new Set(states).size === 1 ? "MATCH" : "MISMATCH");
+    ' "$@"
+  }
+
+  # 手順1: unit-listビルダー単独でAPI一覧ページを生成する（shell_counts_json未指定のため
+  # blueprint数のまま焼かれる = discoveryを持たない5経路の実際の挙動を再現）
+  "$SCRIPT_DIR/unit-list/build-unit-list.sh" "$test25_manifest" "$test25_docs/一覧/API一覧/API一覧.html" \
+    --unit-kind api --portal-dir "$test25_docs" --project-name test25 >/dev/null 2>&1
+
+  # 手順2: build-portal.sh フル生成（discoveryを持つ唯一の経路。末尾でDOCS_ROOT配下の
+  # 全HTMLをバックフィルし、単一の情報源に揃える）
+  "$SCRIPT_DIR/build-portal.sh" "$test25_repo" "$test25_docs" "$test25_docs" --generated-at 2026-07-28T00:00:00Z >/dev/null 2>&1
+
+  test25_result1="$(compare_shell_state_across_pages "$test25_docs/index.html" "$test25_docs/一覧/API一覧/API一覧.html")"
+  if [ "$test25_result1" != "MATCH" ]; then
+    echo "FAIL: --self-test ケース25（フル生成直後に全ページのシェル表示値が一致しない）" >&2
+    rm -rf "$test25_dir"
+    exit 1
+  fi
+
+  # 手順3（陰性フィクスチャ健全性確認）: build-portal.sh を経由せずAPI一覧ページのみを
+  # 再生成する（更新日も変えて stale 状態を作る）。この単独再生成はバックフィルを経ないため、
+  # 全ページの表示値は不一致に戻るはずである。不一致にならなければ検査に判別力が無い。
+  test25_manifest2="$test25_dir/manifest-api2.json"
+  jq '.generatedAt = "2026-07-29T00:00:00Z"' "$test25_manifest" > "$test25_manifest2"
+  "$SCRIPT_DIR/unit-list/build-unit-list.sh" "$test25_manifest2" "$test25_docs/一覧/API一覧/API一覧.html" \
+    --unit-kind api --portal-dir "$test25_docs" --project-name test25 >/dev/null 2>&1
+  test25_result2="$(compare_shell_state_across_pages "$test25_docs/index.html" "$test25_docs/一覧/API一覧/API一覧.html")"
+  if [ "$test25_result2" != "MISMATCH" ]; then
+    echo "FAIL: --self-test ケース25（フィクスチャ不備: 一部ページ単独再生成後も不一致を検知できず検査として機能しない）" >&2
+    rm -rf "$test25_dir"
+    exit 1
+  fi
+
+  # 手順4: build-portal.sh を再実行する（一部ページのみ再生成した直後でもPASSすることの
+  # 検収方法。バックフィルがDOCS_ROOT配下の全HTMLを再度単一の情報源へ揃え直す）
+  "$SCRIPT_DIR/build-portal.sh" "$test25_repo" "$test25_docs" "$test25_docs" --generated-at 2026-07-28T00:00:00Z >/dev/null 2>&1
+  test25_result3="$(compare_shell_state_across_pages "$test25_docs/index.html" "$test25_docs/一覧/API一覧/API一覧.html")"
+  if [ "$test25_result3" != "MATCH" ]; then
+    echo "FAIL: --self-test ケース25（一部ページ再生成後にbuild-portal.shを再実行しても全ページが一致しない）" >&2
+    rm -rf "$test25_dir"
+    exit 1
+  fi
+  echo "PASS: --self-test ケース25（フル生成直後は全ページ一致・一部ページ単独再生成直後は不一致・build-portal.sh再実行で再び全ページ一致）"
+  rm -rf "$test25_dir"
+
   exit 0
 fi
 
@@ -1776,6 +2010,10 @@ CATEGORIES_JSON="$(jq -c '.categories' <<<"$catalog_render")"
 CATEGORY_SECTIONS_HTML="$(jq -r '.categories[] | "<section class=\"pm-cat\" id=\"cat-\(.id)\"></section>"' <<<"$catalog_render")"
 kinds_json="$(jq -c '.kinds' <<<"$catalog_render")"
 
+# discovery で実在が確認されたカテゴリ別カード数（写真指摘 1-98 の単一情報源）。
+# シェル（サイドバー・フッター）のナビ件数・総資料数のバックフィルに使う。
+shell_counts_json="$(jq -c '[.categories[] | {key: .id, count: (.tools | length)}]' <<<"$catalog_render")"
+
 # catalogから導出した一覧件数をmetricsにも渡す。カード定義と規模表示の二重管理をしない。
 scale_json="$(jq -n --argjson total "$total_lines" --argjson fe "$fe_lines" --argjson be "$be_lines" --argjson files "$total_files" --argjson kinds "$kinds_json" \
   '{total:$total, fe:$fe, be:$be, files:$files, kinds:$kinds}')"
@@ -1814,7 +2052,7 @@ if [ -f "$TOKENS_CSS_FILE" ]; then
 fi
 # 共通シェル注入（partials が存在する場合のみ）
 if type shell_injection_args >/dev/null 2>&1; then
-  shell_injection_args "$SCRIPT_DIR/../templates" "$CATALOG" "index.html" "$PROJECT_NAME" "$GENERATED_DATE" "$COMMIT_SHORT" "shared/scripts/build-portal.sh" "" "${SITES_FILE:-}" "${SITE_KEY:-}" "$PORTAL_DIR"
+  shell_injection_args "$SCRIPT_DIR/../templates" "$CATALOG" "index.html" "$PROJECT_NAME" "$GENERATED_DATE" "$COMMIT_SHORT" "shared/scripts/build-portal.sh" "" "${SITES_FILE:-}" "${SITE_KEY:-}" "$PORTAL_DIR" "" "$shell_counts_json"
   if [ ${#SHELL_RENDER_ARGS[@]} -gt 0 ]; then
     render_args+=("${SHELL_RENDER_ARGS[@]}")
   fi
@@ -1823,3 +2061,17 @@ output="$(render_template "$template_content" "${render_args[@]}")"
 
 printf '%s' "$output" > "$PORTAL_DIR/index.html"
 echo "OK: wrote $PORTAL_DIR/index.html" >&2
+
+# --- 8. シェル（サイドバー・フッター）の件数・更新日を discovery 結果で一括バックフィル ---
+# 写真指摘 1-98（カード数の単一情報源化）・1-99（更新日の単一情報源化）の対応。
+# unit-list / matrix / detail-pages の 5 経路は discovery を持たないため、blueprints 数で
+# 暫定的にシェルを焼く。ここで DOCS_ROOT 配下の全 HTML を discovery 結果で上書きし、
+# 6 経路すべての生成物を単一の情報源に揃える。
+if type shell_injection_args >/dev/null 2>&1; then
+  if [ "$PORTAL_ONLY" -eq 1 ]; then
+    # --portal-only は index.html 以外を変更しない既存挙動（--self-test ケース13）を維持する。
+    printf '%s\n' "$PORTAL_DIR/index.html" | backfill_shell_shared_state "$shell_counts_json" "$GENERATED_DATE"
+  else
+    find "$DOCS_ROOT" -name '*.html' -type f 2>/dev/null | backfill_shell_shared_state "$shell_counts_json" "$GENERATED_DATE"
+  fi
+fi

@@ -7,7 +7,7 @@
 #   shell_injection_args <templates_dir> <catalog_json> <portal_href> <project_name> \
 #                        <generated_date> <commit_short> <generator> [active_category] \
 #                        [sites_json_path] [current_site_key] [current_page_dir] \
-#                        [doc_sidebar_html]
+#                        [doc_sidebar_html] [shell_counts_json]
 #   render_args+=("${SHELL_RENDER_ARGS[@]}")
 #
 # 展開するマーカーは 3 つ。
@@ -17,7 +17,10 @@
 #
 # サイドバー内の /*SHELL_NAV_JSON*/ には、カタログのカテゴリ一覧から組み立てた JSON を差し込む。
 # 各要素は key（カテゴリキー）・num（01 始まりの通し番号）・label（表示名）・count（資料数）を持つ。
-# 資料数はカタログの定義から数えるため、生成済みページの有無に依存しない。
+# 13 番目の shell_counts_json（`[{"key":"<カテゴリキー>","count":<実カード数>},...]` 形式）が
+# 指定された場合、count と総資料数（{{TOTAL_ARTIFACTS}}）はその値を使う。
+# discovery で実在が確認されたカード数を単一の情報源として揃えるための引数であり、
+# 未指定（空文字）の場合は従来どおりカタログの blueprints 数を数える（後方互換）。
 #
 # サイドバー内の /*SHELL_SITES_JSON*/ には、モノレポ複数サイトの切替候補一覧を差し込む。
 # 9 番目の sites_json_path（納品ルート直下の sites.json）・10 番目の current_site_key・
@@ -49,6 +52,7 @@ shell_injection_args() {
   local current_site_key="${10:-}"
   local current_page_dir="${11:-}"
   local doc_sidebar_html="${12:-}"
+  local shell_counts_json="${13:-}"
 
   local partials_dir="$templates_dir/partials"
   local css_file="$partials_dir/shell.css"
@@ -72,6 +76,14 @@ shell_injection_args() {
   else
     nav_json='[]'
     total='0'
+  fi
+
+  if [ -n "$shell_counts_json" ]; then
+    nav_json="$(jq -c --argjson counts "$shell_counts_json" '
+      ($counts | map({(.key): .count}) | add // {}) as $countByKey
+      | map(.count = ($countByKey[.key] // .count))
+    ' <<<"$nav_json")"
+    total="$(jq -r '[.[].count] | add // 0' <<<"$shell_counts_json")"
   fi
 
   # 埋め込み JSON から script 要素を抜け出せないようにする（他ビルダーと同じ無害化）

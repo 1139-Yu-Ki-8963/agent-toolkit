@@ -624,19 +624,19 @@ table.assets tbody tr:hover td { background: var(--panel3); }
   <div class="pt-brand">
     <div class="pt-brand-stamp">DESIGN PORTAL</div>
     <div class="pt-brand-switch" id="pt-brand-switch">
-      <div class="pt-brand-name"></div>
+      <div class="pt-brand-name">sample-project</div>
     </div>
-    <div class="pt-brand-sub">設計台帳 · 全51資料</div>
+    <div class="pt-brand-sub">設計台帳 · 全49資料</div>
   </div>
   <nav class="pt-nav" id="pt-nav" aria-label="資料カテゴリ"></nav>
   
   <button type="button" class="pt-theme" id="pt-theme-toggle">
     <span id="pt-theme-label">テーマ: ダーク</span><span class="pt-theme-next" id="pt-theme-next">→ LIGHT</span>
   </button>
-  <div class="pt-sidebar-meta">更新 <span id="pt-sidebar-date">2026-07-21T10:00:00+09:00</span><span id="pt-meta-commit"><br>コミット </span></div>
+  <div class="pt-sidebar-meta">更新 <span id="pt-sidebar-date">2026-07-30</span><span id="pt-meta-commit"><br>コミット </span></div>
 </aside>
 <div class="pt-sidebar-scrim" id="pt-sidebar-scrim" hidden></div>
-<script type="application/json" id="pt-nav-data">[{"key":"project","num":"01","label":"基盤情報","count":5},{"key":"standards","num":"02","label":"規約","count":20},{"key":"design","num":"03","label":"設計書","count":5},{"key":"list","num":"04","label":"一覧・設計図","count":13},{"key":"cross","num":"05","label":"マトリクス・対応表","count":4},{"key":"ai","num":"06","label":"AI設定資産","count":1},{"key":"design-tools","num":"07","label":"デザイン","count":3}]</script>
+<script type="application/json" id="pt-nav-data">[{"key":"project","num":"01","label":"基盤情報","count":4},{"key":"standards","num":"02","label":"規約","count":20},{"key":"design","num":"03","label":"設計書","count":5},{"key":"list","num":"04","label":"一覧・設計図","count":12},{"key":"cross","num":"05","label":"マトリクス・対応表","count":4},{"key":"ai","num":"06","label":"AI設定資産","count":1},{"key":"design-tools","num":"07","label":"デザイン","count":3}]</script>
 <script type="application/json" id="pt-sites-data">[]</script>
 <script>
 (function () {
@@ -856,7 +856,7 @@ table.assets tbody tr:hover td { background: var(--panel3); }
         <div class="pt-crumb"><a href="../index.html">TOP</a> ／ AI設定資産 ／ <span class="pt-crumb-current">AI設定資産</span></div>
         <div class="pt-title-row">
           <h1 class="pt-title">AI設定資産</h1>
-          <span class="pt-title-sub">更新 2026-07-21T10:00:00+09:00</span>
+          <span class="pt-title-sub">更新 2026-07-30T00:00:00Z</span>
         </div>
       </div>
 
@@ -948,46 +948,174 @@ table.assets tbody tr:hover td { background: var(--panel3); }
   </div>
   <footer class="pt-footer">
   <span class="pt-footer-stamp">REVERSE-DOCS REGISTER</span>
-  <span class="pt-footer-meta"> · 更新 <span id="pt-footer-date">2026-07-21T10:00:00+09:00</span><span id="pt-footer-commit"> · コミット </span></span>
+  <span class="pt-footer-meta">sample-project · 更新 <span id="pt-footer-date">2026-07-30</span><span id="pt-footer-commit"> · コミット </span></span>
   <span class="pt-footer-gen">生成: shared/scripts/matrix/build-matrix-pages.sh</span>
 </footer>
 </div>
 
 <script type="application/json" id="matrix-manifest">
-
 {
-  "generatedAt": "2026-07-21T10:00:00+09:00",
+  "generatedAt": "2026-07-30T00:00:00Z",
   "dataSource": ".claude/rules/ ・ .claude/settings.json ・ .claude/skills/ ・ グローバルサブエージェント定義",
   "rules": [
-    {"ruleName": "公開完遂ガード（PUBLISH-COMPLETE）", "layer": "always", "enforcement": "block", "tags": ["[PUBLISH-COMPLETE-BLOCK]", "[PUBLISH-SYNC-REQUIRED]"], "summary": "正本 commit → payload 同期 → agent-toolkit の origin/main へ統合 push まで完遂してから完了報告させる。Stop で block、git commit 後の同期検査は advisory"},
-    {"ruleName": "スキルガイド HTML 統一規約（SKILL-GUIDE-HTML）", "layer": "always", "enforcement": "なし", "tags": [], "summary": ".claude/skills/*/references/*-guide.html のメタテーブル必須 4 行と出力セクション（§2）の構成を統一する行動規範"},
-    {"ruleName": "プロジェクトコンテキスト（PROJECT-CONTEXT）", "layer": "always", "enforcement": "なし", "tags": [], "summary": "プロジェクト概要・技術スタック・設定索引・ルート直下許可ディレクトリ（shared のみ）の定義"}
+    {
+      "ruleName": "公開完遂ガード（PUBLISH-COMPLETE）",
+      "layer": "always",
+      "enforcement": "block",
+      "tags": [
+        "[PUBLISH-COMPLETE-BLOCK]",
+        "[PUBLISH-SYNC-REQUIRED]"
+      ],
+      "summary": "正本 commit → payload 同期 → agent-toolkit の origin/main へ統合 push まで完遂してから完了報告させる。Stop で block、git commit 後の同期検査は advisory"
+    },
+    {
+      "ruleName": "スキルガイド HTML 統一規約（SKILL-GUIDE-HTML）",
+      "layer": "always",
+      "enforcement": "なし",
+      "tags": [],
+      "summary": ".claude/skills/*/references/*-guide.html のメタテーブル必須 4 行と出力セクション（§2）の構成を統一する行動規範"
+    },
+    {
+      "ruleName": "プロジェクトコンテキスト（PROJECT-CONTEXT）",
+      "layer": "always",
+      "enforcement": "なし",
+      "tags": [],
+      "summary": "プロジェクト概要・技術スタック・設定索引・ルート直下許可ディレクトリ（shared のみ）の定義"
+    }
   ],
   "skills": [
-    {"skillName": "orchestrating-docs-flow", "category": "指揮", "trigger": "設計検証の進行・工程統括・画面一覧から基準確立まで", "summary": "設計書往復検証フロー全体を統括する指揮役スキル"},
-    {"skillName": "generating-screen-list", "category": "一覧生成", "trigger": "画面一覧作成・画面の洗い出し", "summary": "既存コードベースから画面単位の一覧フォルダ・画面一覧 HTML を生成する"},
-    {"skillName": "generating-api-list", "category": "一覧生成", "trigger": "API一覧作成・エンドポイント一覧", "summary": "API 一覧フォルダ・API一覧 HTML を生成する（unit_kind=api 専用）"},
-    {"skillName": "generating-table-list", "category": "一覧生成", "trigger": "テーブル一覧作成・スキーマ一覧", "summary": "テーブル種別専用の一覧フォルダ・一覧 HTML を生成する"},
-    {"skillName": "generating-feature-list", "category": "一覧生成", "trigger": "機能一覧作成・業務機能の横断目録", "summary": "機能一覧フォルダ・機能一覧 HTML を生成する（unit_kind=feature 専用・派生一覧）"},
-    {"skillName": "generating-er-diagram", "category": "基盤ページ生成", "trigger": "ER図生成・テーブル関連図作成", "summary": "ER図.html をテーブル一覧 manifest とマイグレーション/モデルの FK 定義から機械生成する"},
-    {"skillName": "surveying-architecture", "category": "工程", "trigger": "設計着手前の前提調査", "summary": "既存リポジトリを走査しアーキテクチャ調査書を機械検証付きで確定する"},
-    {"skillName": "extracting-unit-facts-from-code", "category": "工程", "trigger": "設計の facts 抽出・事実表新規作成", "summary": "原本コードから宣言的契約 facts を抽出し独立再計数・封印まで完走する"},
-    {"skillName": "generating-detailed-design", "category": "工程", "trigger": "facts 封印後の設計書執筆・再執筆", "summary": "封印済み facts と共通文書から画面詳細設計書を執筆する執筆役"},
-    {"skillName": "rebuilding-code-from-docs", "category": "工程", "trigger": "往復品質検証", "summary": "設計書だけから画面単位でコードを再生成し原本と突合して欠落を発見する"}
+    {
+      "skillName": "orchestrating-docs-flow",
+      "category": "指揮",
+      "trigger": "設計検証の進行・工程統括・画面一覧から基準確立まで",
+      "summary": "設計書往復検証フロー全体を統括する指揮役スキル"
+    },
+    {
+      "skillName": "generating-screen-list",
+      "category": "一覧生成",
+      "trigger": "画面一覧作成・画面の洗い出し",
+      "summary": "既存コードベースから画面単位の一覧フォルダ・画面一覧 HTML を生成する"
+    },
+    {
+      "skillName": "generating-api-list",
+      "category": "一覧生成",
+      "trigger": "API一覧作成・エンドポイント一覧",
+      "summary": "API 一覧フォルダ・API一覧 HTML を生成する（unit_kind=api 専用）"
+    },
+    {
+      "skillName": "generating-table-list",
+      "category": "一覧生成",
+      "trigger": "テーブル一覧作成・スキーマ一覧",
+      "summary": "テーブル種別専用の一覧フォルダ・一覧 HTML を生成する"
+    },
+    {
+      "skillName": "generating-feature-list",
+      "category": "一覧生成",
+      "trigger": "機能一覧作成・業務機能の横断目録",
+      "summary": "機能一覧フォルダ・機能一覧 HTML を生成する（unit_kind=feature 専用・派生一覧）"
+    },
+    {
+      "skillName": "generating-er-diagram",
+      "category": "基盤ページ生成",
+      "trigger": "ER図生成・テーブル関連図作成",
+      "summary": "ER図.html をテーブル一覧 manifest とマイグレーション/モデルの FK 定義から機械生成する"
+    },
+    {
+      "skillName": "surveying-architecture",
+      "category": "工程",
+      "trigger": "設計着手前の前提調査",
+      "summary": "既存リポジトリを走査しアーキテクチャ調査書を機械検証付きで確定する"
+    },
+    {
+      "skillName": "extracting-unit-facts-from-code",
+      "category": "工程",
+      "trigger": "設計の facts 抽出・事実表新規作成",
+      "summary": "原本コードから宣言的契約 facts を抽出し独立再計数・封印まで完走する"
+    },
+    {
+      "skillName": "generating-detailed-design",
+      "category": "工程",
+      "trigger": "facts 封印後の設計書執筆・再執筆",
+      "summary": "封印済み facts と共通文書から画面詳細設計書を執筆する執筆役"
+    },
+    {
+      "skillName": "rebuilding-code-from-docs",
+      "category": "工程",
+      "trigger": "往復品質検証",
+      "summary": "設計書だけから画面単位でコードを再生成し原本と突合して欠落を発見する"
+    }
   ],
   "subagents": [
-    {"name": "brain", "classification": "計画系", "verdict": "不可", "mainTools": "計画立案・タスク分解・作業指示の組み立て（実行・合否判定はしない）"},
-    {"name": "worker-sonnet", "classification": "実行系", "verdict": "不可", "mainTools": "Write / Edit / Bash（確定済み内容のファイル反映）"},
-    {"name": "worker-haiku", "classification": "実行系", "verdict": "不可", "mainTools": "Bash（コマンド実行と結果報告のみ。編集ツールなし）"},
-    {"name": "investigator", "classification": "調査系", "verdict": "不可", "mainTools": "Read / Grep（読み取り専用のローカル事実収集）"},
-    {"name": "researcher", "classification": "調査系", "verdict": "不可", "mainTools": "Web 検索・外部ドキュメント収集"},
-    {"name": "code-reviewer", "classification": "判定系", "verdict": "可", "mainTools": "Read / Grep + rules 照合（コード成果物の PASS / FAIL 宣言）"},
-    {"name": "document-reviewer", "classification": "判定系", "verdict": "可", "mainTools": "Read / Grep + rules 照合（文書成果物の PASS / FAIL 宣言）"},
-    {"name": "report-reviewer", "classification": "判定系", "verdict": "可", "mainTools": "チェックリスト照合 + 事実性検証（調査報告の PASS / FAIL 宣言）"}
+    {
+      "name": "brain",
+      "classification": "計画系",
+      "verdict": "不可",
+      "mainTools": "計画立案・タスク分解・作業指示の組み立て（実行・合否判定はしない）"
+    },
+    {
+      "name": "worker-sonnet",
+      "classification": "実行系",
+      "verdict": "不可",
+      "mainTools": "Write / Edit / Bash（確定済み内容のファイル反映）"
+    },
+    {
+      "name": "worker-haiku",
+      "classification": "実行系",
+      "verdict": "不可",
+      "mainTools": "Bash（コマンド実行と結果報告のみ。編集ツールなし）"
+    },
+    {
+      "name": "investigator",
+      "classification": "調査系",
+      "verdict": "不可",
+      "mainTools": "Read / Grep（読み取り専用のローカル事実収集）"
+    },
+    {
+      "name": "researcher",
+      "classification": "調査系",
+      "verdict": "不可",
+      "mainTools": "Web 検索・外部ドキュメント収集"
+    },
+    {
+      "name": "code-reviewer",
+      "classification": "判定系",
+      "verdict": "可",
+      "mainTools": "Read / Grep + rules 照合（コード成果物の PASS / FAIL 宣言）"
+    },
+    {
+      "name": "document-reviewer",
+      "classification": "判定系",
+      "verdict": "可",
+      "mainTools": "Read / Grep + rules 照合（文書成果物の PASS / FAIL 宣言）"
+    },
+    {
+      "name": "report-reviewer",
+      "classification": "判定系",
+      "verdict": "可",
+      "mainTools": "チェックリスト照合 + 事実性検証（調査報告の PASS / FAIL 宣言）"
+    }
   ],
   "hooks": [
-    {"script": "check-publish-complete.sh", "timing": "Stop", "matcher": "—（全応答終了時）", "tags": ["[PUBLISH-COMPLETE-BLOCK]"], "behavior": "block", "summary": "正本-未コミット検査。git status が空でなければ完了報告を止める（3 回連続で自動解除）"},
-    {"script": "check-publish-sync-gate.sh", "timing": "PostToolUse", "matcher": "Bash（git commit 成功直後）", "tags": ["[PUBLISH-SYNC-REQUIRED]"], "behavior": "advisory", "summary": "main-未反映検査。payload/docs-skills と正本の不一致を通知する（block なし）"}
+    {
+      "script": "check-publish-complete.sh",
+      "timing": "Stop",
+      "matcher": "—（全応答終了時）",
+      "tags": [
+        "[PUBLISH-COMPLETE-BLOCK]"
+      ],
+      "behavior": "block",
+      "summary": "正本-未コミット検査。git status が空でなければ完了報告を止める（3 回連続で自動解除）"
+    },
+    {
+      "script": "check-publish-sync-gate.sh",
+      "timing": "PostToolUse",
+      "matcher": "Bash（git commit 成功直後）",
+      "tags": [
+        "[PUBLISH-SYNC-REQUIRED]"
+      ],
+      "behavior": "advisory",
+      "summary": "main-未反映検査。payload/docs-skills と正本の不一致を通知する（block なし）"
+    }
   ]
 }
 </script>
