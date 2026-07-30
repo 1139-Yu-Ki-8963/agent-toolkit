@@ -15,7 +15,7 @@
 #
 # 汎用マニフェストの入力JSONスキーマ(契約。詳細は references/kind-detection-strategies.md):
 # {
-#   "generatedAt": "...", "sourceDir": "...", "unitKind": "api|table|batch|report|external|message|test_viewpoint",
+#   "generatedAt": "...", "sourceDir": "...", "unitKind": "api|table|batch|report|external|message|test_viewpoint|test_case",
 #   "strategy": {"extractionMethod": "...", "approvedByUser": true, ...},
 #   "detectionSummary": {"method": "...", "unitCount": 0, "unresolvedCount": 0},
 #   "units": [{
@@ -310,10 +310,26 @@ EOF
   extract_manifest_json "$viewpoint_out" | jq -cS . > "$tmp/viewpoint-embedded.json" 2>/dev/null || derived_ok=0
   jq -cS . "$viewpoint_manifest" > "$tmp/viewpoint-original.json"
   diff -q "$tmp/viewpoint-embedded.json" "$tmp/viewpoint-original.json" >/dev/null 2>&1 || derived_ok=0
+
+  local test_case_manifest="$tmp/test-case.json" test_case_out="$tmp/test-case.html"
+  jq -n '{
+    unitKind:"test_case", generatedAt:"2026-01-01T00:00:00Z",
+    units:[{unitKey:"screen-login-unit-1",screenKey:"screen-login",testType:"unit",unitNameGuess:"合計0円-登録不可",kind:"unit",caseKey:"合計0円-登録不可",viewpointKey:"金額-下限境界",input:"total: 0",steps:"",expected:"isRegisterableがfalseを返す"}],
+    summary:{totalCount:1,byTestType:{unit:1},byScreen:{"screen-login":1}}
+  }' > "$test_case_manifest"
+  if ! bash "$script_path" "$test_case_manifest" "$test_case_out" --unit-kind test_case >/dev/null 2>&1 \
+    || ! grep -q '<code>screen-login</code>' "$test_case_out" \
+    || ! grep -q 'href="../../index.html"' "$test_case_out"; then
+    derived_ok=0
+  fi
+  extract_manifest_json "$test_case_out" | jq -cS . > "$tmp/test-case-embedded.json" 2>/dev/null || derived_ok=0
+  jq -cS . "$test_case_manifest" > "$tmp/test-case-original.json"
+  diff -q "$tmp/test-case-embedded.json" "$tmp/test-case-original.json" >/dev/null 2>&1 || derived_ok=0
+
   if [ "$derived_ok" -eq 1 ]; then
-    echo "  [PASS] 派生一覧: message/test_viewpointの表示値・埋め込み完全JSON・戻りリンクを維持"
+    echo "  [PASS] 派生一覧: message/test_viewpoint/test_caseの表示値・埋め込み完全JSON・戻りリンクを維持"
   else
-    echo "  [FAIL] 派生一覧: message/test_viewpointの完全契約出力に退行" >&2
+    echo "  [FAIL] 派生一覧: message/test_viewpoint/test_caseの完全契約出力に退行" >&2
     rc=1
   fi
 
@@ -471,13 +487,16 @@ if [ -n "$SPLIT_BY" ]; then
 fi
 
 # --- unit_kind=screen 以外: 検証してから汎用テンプレートで生成 ---
-# test_viewpoint/message はスキーマ契約が異なるため専用検証スクリプトへ委譲する。
+# test_viewpoint/message/test_case はスキーマ契約が異なるため専用検証スクリプトへ委譲する。
 case "$UNIT_KIND" in
   test_viewpoint)
     VALIDATE_CMD=("$SCRIPT_DIR/validate-test-viewpoint-manifest.sh" "$MANIFEST")
     ;;
   message)
     VALIDATE_CMD=("$SCRIPT_DIR/validate-message-manifest.sh" "$MANIFEST")
+    ;;
+  test_case)
+    VALIDATE_CMD=("$SCRIPT_DIR/validate-test-case-manifest.sh" "$MANIFEST")
     ;;
   *)
     VALIDATE_CMD=("$SCRIPT_DIR/validate-manifest.sh" "$MANIFEST" --unit-kind "$UNIT_KIND" --axes "$AXES_PASS_FILE")
@@ -498,6 +517,7 @@ case "$UNIT_KIND" in
   external) LABEL="外部連携" ;;
   message) LABEL="メッセージ" ;;
   test_viewpoint) LABEL="テスト観点" ;;
+  test_case) LABEL="テストケース" ;;
   *) echo "ERROR: unknown unit_kind: $UNIT_KIND" >&2; exit 1 ;;
 esac
 

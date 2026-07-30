@@ -82,7 +82,13 @@ html, body { margin: 0; padding: 0; }
   flex-wrap: wrap;
 }
 .rn-pr-sum::-webkit-details-marker { display: none; }
-.rn-pr-caret { flex: none; font-size: 9px; color: var(--muted); transition: transform .15s; }
+.rn-pr-caret {
+  flex: none;
+  width: 0; height: 0;
+  border-top: 4px solid transparent; border-bottom: 4px solid transparent;
+  border-left: 6px solid var(--muted);
+  transition: transform .15s;
+}
 .rn-pr[open] .rn-pr-caret { transform: rotate(90deg); }
 
 .rn-tick { flex: none; color: var(--green); font-weight: 800; font-size: 14px; }
@@ -118,7 +124,13 @@ html, body { margin: 0; padding: 0; }
   display: flex; align-items: center; gap: 8px;
 }
 .rn-fold-sum::-webkit-details-marker { display: none; }
-.rn-fold-sum::before { content: "▶"; flex: none; font-size: 9px; transition: transform .15s; }
+.rn-fold-sum::before {
+  content: ""; flex: none;
+  width: 0; height: 0;
+  border-top: 4px solid transparent; border-bottom: 4px solid transparent;
+  border-left: 6px solid currentColor;
+  transition: transform .15s;
+}
 .rn-fold[open] .rn-fold-sum::before { transform: rotate(90deg); }
 .rn-fold-label { flex: 1; }
 
@@ -190,6 +202,10 @@ html, body { margin: 0; padding: 0; }
 @media (max-width: 760px) {
   .rn-row { grid-template-columns: 64px 1fr; gap: 10px; }
   .rn-pr-title { font-size: 13.5px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rn-fold-sum::before { transition: none; }
+  .rn-pr-caret { transition: none; }
 }
 </style>
 </head>
@@ -335,7 +351,7 @@ html, body { margin: 0; padding: 0; }
     var det = el('details', { class: 'rn-pr' + (isDone ? ' is-done' : ''), 'data-flow': release.flow || 'feature' });
 
     var sum = el('summary', { class: 'rn-pr-sum' });
-    sum.appendChild(el('span', { class: 'rn-pr-caret' }, '▶'));
+    sum.appendChild(el('span', { class: 'rn-pr-caret' }));
     if (isDone) sum.appendChild(el('span', { class: 'rn-tick' }, '✓'));
     sum.appendChild(el('span', { class: 'rn-flow-pill rn-flow-pill--' + (release.flow || 'feature') }, FLOW_LABEL[release.flow] || release.flow || ''));
     if (release.prUrl) {

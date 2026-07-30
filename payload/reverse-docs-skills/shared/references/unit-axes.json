@@ -111,7 +111,7 @@
     { "key": "sourceFile", "label": "抽出元", "appliesTo": ["message"], "order": 10 },
     { "key": "usedScreen", "label": "使用画面", "appliesTo": ["message"], "order": 20 },
 
-    { "key": "testType", "label": "テスト種別", "appliesTo": ["test_viewpoint"], "order": 10 },
+    { "key": "testType", "label": "テスト種別", "appliesTo": ["test_case", "test_viewpoint"], "order": 10 },
 
     { "key": "operationClass", "label": "操作区分", "appliesTo": ["feature"], "order": 10 }
   ]

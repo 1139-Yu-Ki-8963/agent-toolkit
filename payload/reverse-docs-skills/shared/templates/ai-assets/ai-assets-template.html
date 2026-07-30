@@ -59,8 +59,17 @@ details.module-group > summary {
   cursor: pointer; padding: 12px 16px; font-weight: 700; list-style: none;
 }
 details.module-group > summary::-webkit-details-marker { display: none; }
-details.module-group > summary::before { content: "▸ "; }
-details.module-group[open] > summary::before { content: "▾ "; }
+details.module-group > summary::before {
+  content: ""; display: inline-block;
+  width: 0; height: 0;
+  margin-right: 6px;
+  vertical-align: middle;
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+  border-left: 6px solid var(--muted);
+  transition: transform 0.12s;
+}
+details.module-group[open] > summary::before { transform: rotate(90deg); }
 details.module-group > summary .count { font-weight: 400; font-size: 0.82rem; color: var(--muted); margin-left: 8px; }
 
 table.assets {
@@ -84,6 +93,10 @@ table.assets tbody tr:hover td { background: var(--panel3); }
 .badge.accent  { background: var(--accent-soft); color: var(--accent); }  /* 階層・分類・可 等 */
 
 .empty-note { padding: 10px 16px 16px; font-size: 0.85rem; color: var(--muted); }
+
+@media (prefers-reduced-motion: reduce) {
+  details.module-group > summary::before { transition: none; }
+}
 </style>
 </head>
 <body>

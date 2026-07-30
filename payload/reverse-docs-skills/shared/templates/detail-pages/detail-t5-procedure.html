@@ -83,7 +83,12 @@ table.data-table code {
   border: 1px solid var(--line2); padding: 10px 14px; margin: 20px 0 0;
 }
 .note-box div { position: relative; padding-left: 16px; }
-.note-box div::before { content: "▸"; position: absolute; left: 0; color: var(--accent); }
+.note-box div::before {
+  content: ""; position: absolute; left: 1px; top: 4px;
+  width: 0; height: 0;
+  border-top: 4px solid transparent; border-bottom: 4px solid transparent;
+  border-left: 5px solid var(--accent);
+}
 
 .hidden { display: none !important; }
 
