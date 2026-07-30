@@ -778,6 +778,18 @@ source_dir="$(jq -r '.sourceDir // ""' "$MANIFEST")"
 tile_screen_count="$(jq -r '.screens | length' "$MANIFEST")"
 tile_cluster_count="$(jq -r '.detectionSummary.clusterCount // 0' "$MANIFEST")"
 tile_shared_screen_count="$(jq -r '.detectionSummary.sharedScreenCount // 0' "$MANIFEST")"
+# クラスタ数0なのに関与画面数が0でない状態は、manifestとして不正(validate-manifest.shが拒否済み)
+# ではなく、clusterId未付与のままsharedWithだけ実データが入った、というより起こりうる
+# 半端な検出結果を示す。表示上は注記を出さないことで矛盾表示を防ぐが、この状態自体は
+# クラスタ判定ロジック側の潜在的な見落としの可能性があるため警告として残す。
+if [ "$tile_cluster_count" = "0" ] && [ "$tile_shared_screen_count" != "0" ]; then
+  echo "WARN: detectionSummary.clusterCount が 0 なのに sharedScreenCount が ${tile_shared_screen_count} です(clusterId未付与のままsharedWithが実データを持つ半端な検出結果の疑い)。関与画面数の注記は出力しません。" >&2
+fi
+if [ "$tile_cluster_count" = "0" ]; then
+  tile_cluster_summary_html="<strong>${tile_cluster_count}</strong>共有クラスタ数"
+else
+  tile_cluster_summary_html="<strong>${tile_cluster_count}</strong>共有クラスタ数（${tile_shared_screen_count}画面が関与）"
+fi
 tile_embedded_count="$(jq -r '.detectionSummary.embeddedCandidateCount // 0' "$MANIFEST")"
 tile_unresolved_count="$(jq -r '.detectionSummary.unresolvedCount // 0' "$MANIFEST")"
 
@@ -1058,8 +1070,7 @@ render_args=(
   "{{PROJECT_NAME}}" "$(html_escape "$PROJECT_NAME_ARG")"
   "{{GENERATED_AT}}" "$(html_escape "$generated_at")"
   "{{TILE_SCREEN_COUNT}}" "$tile_screen_count"
-  "{{TILE_CLUSTER_COUNT}}" "$tile_cluster_count"
-  "{{TILE_SHARED_SCREEN_COUNT}}" "$tile_shared_screen_count"
+  "{{TILE_CLUSTER_SUMMARY_HTML}}" "$tile_cluster_summary_html"
   "{{TILE_EMBEDDED_COUNT}}" "$tile_embedded_count"
   "{{TILE_UNRESOLVED_COUNT}}" "$tile_unresolved_count"
   "<!--SCREEN_TABLE_SECTIONS-->" "$screen_table_sections"

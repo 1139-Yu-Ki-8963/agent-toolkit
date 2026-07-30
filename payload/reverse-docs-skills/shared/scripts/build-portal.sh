@@ -1680,6 +1680,104 @@ TEST24CATALOG
   echo "PASS: --self-test ケース25（フル生成直後は全ページ一致・一部ページ単独再生成直後は不一致・build-portal.sh再実行で再び全ページ一致）"
   rm -rf "$test25_dir"
 
+  echo "--- ケース26: クラスタ数0のとき関与件数の注記を出さない（写真指摘1-106の検収方法1） ---"
+  test26_dir="$(mktemp -d)"
+  mkdir -p "$test26_dir/src/screens"
+  echo "export function A() { return null; }" > "$test26_dir/src/screens/A.tsx"
+  echo "export function B() { return null; }" > "$test26_dir/src/screens/B.tsx"
+
+  # 実際の写真指摘の再現データ: 2画面が互いにsharedWithで参照し合う(=画面同士は
+  # 現に共有関係にある)のに、clusterId付与だけが実行されておらず全screenでnull。
+  # validate-manifest.shはdetectionSummaryを screens 配列から再計算して照合するため、
+  # ここではclusterCount=0・sharedScreenCount=2の組合せが「screens配列とは矛盾しない」
+  # 状態として検証を通過する(=実際に起こりうるバグの形)。
+  test26_manifest_zero="$test26_dir/manifest-cluster-zero.json"
+  jq -n --arg sourceDir "$test26_dir/src" --arg entryA "$test26_dir/src/screens/A.tsx" --arg entryB "$test26_dir/src/screens/B.tsx" '
+    {
+      generatedAt: "2026-07-30T00:00:00Z",
+      sourceDir: $sourceDir,
+      strategy: {extractionMethod: "custom", approvedByUser: true, screenIdRegex: null, excludePatterns: []},
+      detectionSummary: {screenCount: 2, clusterCount: 0, sharedScreenCount: 2, embeddedCandidateCount: 0, unresolvedCount: 0},
+      screens: [
+        {screenKey: "screen-a", screenNameGuess: "画面A", kind: "route", route: "/a", entryFile: $entryA, detectionMethod: "route-static", confidence: "high", screenType: "list", accountGroup: "common", accountSubType: "common", hasTemplate: true, parentScreen: null, childComponents: [], isProcessingEndpoint: false, sharedWith: ["screen-b"]},
+        {screenKey: "screen-b", screenNameGuess: "画面B", kind: "route", route: "/b", entryFile: $entryB, detectionMethod: "route-static", confidence: "high", screenType: "list", accountGroup: "common", accountSubType: "common", hasTemplate: true, parentScreen: null, childComponents: [], isProcessingEndpoint: false, sharedWith: ["screen-a"]}
+      ]
+    }' > "$test26_manifest_zero"
+
+  test26_out_zero="$test26_dir/out-zero.html"
+  "$SCRIPT_DIR/unit-list/build-screen-list.sh" "$test26_manifest_zero" "$test26_out_zero" >/dev/null 2>/dev/null || {
+    echo "FAIL: --self-test ケース26（clusterCount=0フィクスチャの生成コマンド自体が失敗した）" >&2
+    rm -rf "$test26_dir"
+    exit 1
+  }
+  # タイル本体(class="tile"のdiv)だけを対象にする。テンプレート冒頭のマーカー説明コメントに
+  # 「画面が関与」という語自体が含まれるため、文書全体への単純grepは常にヒットしてしまう。
+  test26_tile_zero="$(grep -o '<div class="tile"><strong>[0-9]*</strong>共有クラスタ数[^<]*</div>' "$test26_out_zero" || true)"
+  if [ -z "$test26_tile_zero" ]; then
+    echo "FAIL: --self-test ケース26（共有クラスタ数タイル自体が出力に見つからない）" >&2
+    rm -rf "$test26_dir"
+    exit 1
+  fi
+  if printf '%s' "$test26_tile_zero" | grep -q '画面が関与'; then
+    echo "FAIL: --self-test ケース26（clusterCount=0なのに関与件数の注記が出力されている: ${test26_tile_zero}）" >&2
+    rm -rf "$test26_dir"
+    exit 1
+  fi
+
+  # 矛盾のない正常系(clusterId付与済み・clusterCount>=1)では注記が出ることも確認する
+  # (片側だけだと「常に注記を出さない」実装でも通ってしまうため)
+  test26_manifest_nonzero="$test26_dir/manifest-cluster-nonzero.json"
+  jq '.detectionSummary.clusterCount = 1 | .screens[0].clusterId = "cluster-1" | .screens[1].clusterId = "cluster-1"' \
+    "$test26_manifest_zero" > "$test26_manifest_nonzero"
+  test26_out_nonzero="$test26_dir/out-nonzero.html"
+  "$SCRIPT_DIR/unit-list/build-screen-list.sh" "$test26_manifest_nonzero" "$test26_out_nonzero" >/dev/null 2>&1 || {
+    echo "FAIL: --self-test ケース26（clusterCount>=1フィクスチャの生成コマンド自体が失敗した）" >&2
+    rm -rf "$test26_dir"
+    exit 1
+  }
+  test26_tile_nonzero="$(grep -o '<div class="tile"><strong>[0-9]*</strong>共有クラスタ数[^<]*</div>' "$test26_out_nonzero" || true)"
+  if ! printf '%s' "$test26_tile_nonzero" | grep -q '2画面が関与'; then
+    echo "FAIL: --self-test ケース26（clusterCountが1以上なのに関与件数の注記が出力されない: ${test26_tile_nonzero}）" >&2
+    rm -rf "$test26_dir"
+    exit 1
+  fi
+  echo "PASS: --self-test ケース26（クラスタ数0では関与件数の注記を出力せず、1以上では出力する）"
+  rm -rf "$test26_dir"
+
+  echo "--- ケース27: 未計測タイルに計測手段の案内が出る（写真指摘1-106の検収方法2） ---"
+  test27_dir="$(mktemp -d)"
+  mkdir -p "$test27_dir/repo/misc" "$test27_dir/docs" "$test27_dir/portal"
+  echo "const x = 1;" > "$test27_dir/repo/misc/util.ts"
+  # code-metrics.json をあえて配置しない(=テスト規模が未計測の状態を再現)
+
+  if ! bash "$0" "$test27_dir/repo" "$test27_dir/docs" "$test27_dir/portal" >/dev/null 2>/dev/null; then
+    echo "FAIL: --self-test ケース27（code-metrics.json不在時に生成コマンド自体が失敗した）" >&2
+    rm -rf "$test27_dir"
+    exit 1
+  fi
+  test27_out="$test27_dir/portal/index.html"
+  node -e '
+    const fs = require("fs");
+    const html = fs.readFileSync(process.argv[1], "utf8");
+    const m = html.match(/<script type="application\/json" id="portal-metrics">([\s\S]*?)<\/script>/);
+    if (!m) { console.error("portal-metrics script tag not found"); process.exit(1); }
+    const metrics = JSON.parse(m[1]);
+    if (metrics.tests !== null) {
+      console.error("tests is not null (unmeasured state not reached): " + JSON.stringify(metrics.tests));
+      process.exit(1);
+    }
+    if (!html.includes("未計測") || !html.includes("counting-code-lines")) {
+      console.error("unmeasured guidance text not found");
+      process.exit(1);
+    }
+  ' "$test27_out" || {
+    echo "FAIL: --self-test ケース27（未計測タイルに計測手段の案内文言が出力されていない、または未計測状態に到達していない）" >&2
+    rm -rf "$test27_dir"
+    exit 1
+  }
+  echo "PASS: --self-test ケース27（未計測タイルにcounting-code-linesでの計測案内が出力される）"
+  rm -rf "$test27_dir"
+
   exit 0
 fi
 

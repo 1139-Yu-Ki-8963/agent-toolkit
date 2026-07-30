@@ -287,7 +287,7 @@ a:hover { text-decoration: underline; }
       testsCard.appendChild(el('div', { class: 'metric-sub' }, 'FE ' + fmtNum(tests.fe) + ' · BE ' + fmtNum(tests.be) + ' · 密度 ' + tests.density));
     } else {
       testsCard.appendChild(el('div', { class: 'metric-value' }, '—'));
-      testsCard.appendChild(el('div', { class: 'metric-sub' }, '未計測'));
+      testsCard.appendChild(el('div', { class: 'metric-sub' }, '未計測 · counting-code-lines で計測'));
     }
     metricsMount.appendChild(testsCard);
 

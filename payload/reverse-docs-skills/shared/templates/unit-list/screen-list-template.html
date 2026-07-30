@@ -17,8 +17,10 @@
   二重置換事故を避けるため意図的に波括弧・HTMLコメント記法を外して記載する):
     GENERATED_AT (生成日時マーカー)            : ISO8601 生成日時
     TILE_SCREEN_COUNT (画面数タイルマーカー)    : detectionSummary.screenCount
-    TILE_CLUSTER_COUNT (クラスタ数タイルマーカー): detectionSummary.clusterCount
-    TILE_SHARED_SCREEN_COUNT (共有画面数タイルマーカー): detectionSummary.sharedScreenCount
+    TILE_CLUSTER_SUMMARY_HTML (クラスタ数タイル本体マーカー): detectionSummary.clusterCountと
+      detectionSummary.sharedScreenCountから組み立て済みのHTML片(<strong>数値</strong>共有クラスタ数、
+      クラスタ数が1以上の時だけ「（N画面が関与）」を付ける)。値と注記の組合せ不整合を防ぐため、
+      2つのマーカーへ分けず1つのHTML片として注入する
     TILE_EMBEDDED_COUNT (埋め込み候補数タイルマーカー)  : detectionSummary.embeddedCandidateCount
     TILE_UNRESOLVED_COUNT (要確認数タイルマーカー)      : detectionSummary.unresolvedCount
     SCREEN_TABLE_SECTIONS (画面テーブルセクションマーカー) : table-areaブロックの開始タグから
@@ -277,7 +279,7 @@
         </div>
         <div class="summary-tiles">
           <div class="tile"><strong>{{TILE_SCREEN_COUNT}}</strong>検出画面数</div>
-          <div class="tile"><strong>{{TILE_CLUSTER_COUNT}}</strong>共有クラスタ数（{{TILE_SHARED_SCREEN_COUNT}}画面が関与）</div>
+          <div class="tile">{{TILE_CLUSTER_SUMMARY_HTML}}</div>
           <div class="tile"><strong>{{TILE_EMBEDDED_COUNT}}</strong>埋め込みビュー候補数</div>
           <div class="tile"><strong>{{TILE_UNRESOLVED_COUNT}}</strong>要手動確認数</div>
         </div>
