@@ -495,7 +495,8 @@ run_validate() {
         + [ ("method","ioSummary","designDocStatus","category","format","trigger","direction","protocol","authMethod","execMethod","operationClass") as $f
             | select(has($f) and (.[$f] != null)) | select((.[$f] | type) != "string")
             | $f + "が文字列でない" ]
-        + [ ("designDocPath","detailDocPath","sequencePath","testCasePath") as $f
+        + [ ("designDocPath","detailDocPath","sequencePath","testCasePath",
+             "unitTestViewpointPath","integrationTestViewpointPath","integrationTestCasePath","scenarioPath") as $f
             | select(has($f) and (.[$f] != null))
             | select((.[$f] | is_safe_relative_url) | not)
             | $f + "が安全な相対URLでない" ]
@@ -1041,7 +1042,11 @@ JSON
         designDocPath: "../../画面/home/基本設計.html",
         detailDocPath: "../../画面/home/詳細設計.html",
         sequencePath: "../../画面/home/シーケンス図.html",
-        testCasePath: "../../画面/home/テスト仕様書.html"
+        testCasePath: "../../画面/home/テスト仕様書.html",
+        unitTestViewpointPath: "../../画面/home/単体テスト観点表.html",
+        integrationTestViewpointPath: "../../画面/home/結合テスト観点表.html",
+        integrationTestCasePath: "../../画面/home/結合テスト仕様書.html",
+        scenarioPath: "../../画面/home/操作シナリオ仕様書.html"
       }' "$screen_pass" > "$screen_safe_doc_urls"
   if run_validate "$screen_safe_doc_urls" "" "screen" >/dev/null 2>&1; then
     echo "  [PASS] 設計書URL陽性: 安全な相対URLを受け入れる"
@@ -1055,6 +1060,10 @@ JSON
         designDocPath: "javascript:alert(1)",
         detailDocPath: "https://attacker.invalid/doc.html",
         sequencePath: "//attacker.invalid/sequence.html",
+        unitTestViewpointPath: "javascript:alert(2)",
+        integrationTestViewpointPath: "https://attacker.invalid/viewpoint.html",
+        integrationTestCasePath: "//attacker.invalid/integration.html",
+        scenarioPath: "/absolute/scenario.html",
         testCasePath: "unsafe\u000aurl.html"
       }' "$screen_pass" > "$screen_bad_doc_urls"
   if run_validate "$screen_bad_doc_urls" "" "screen" >/dev/null 2>&1; then

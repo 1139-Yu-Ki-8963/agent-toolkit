@@ -31,7 +31,7 @@
 #   }]
 # }
 #
-# 出力: <output-html-path> に単一ファイル自己完結のHTMLを書き出す。
+# 出力: <output-html-path> に単一HTMLを書き出す。外部依存はMaterial Symbols OutlinedのGoogle Fonts CDNだけを許可する。
 #   - kind=route / kind=embedded-view は通常テーブルへ
 #   - kind=unresolved は「要手動確認」セクションの別テーブルへ(0件なら「なし」)
 #   - screen-manifest.json の内容は <script type="application/json"> にそのまま埋め込む
@@ -415,7 +415,11 @@ EOF
           designDocPath: "../../画面/screen-confirmed-home/基本設計/画面基本設計書.html",
           detailDocPath: "../../画面/screen-confirmed-home/詳細設計/画面詳細設計書.html",
           sequencePath: "../../画面/screen-confirmed-home/シーケンス図.html",
-          testCasePath: "../../画面/screen-confirmed-home/テスト項目書/単体テスト仕様書.html"
+          testCasePath: "../../画面/screen-confirmed-home/テスト項目書/単体テスト仕様書.html",
+          unitTestViewpointPath: "../../画面/screen-confirmed-home/詳細設計/単体テスト観点表.html",
+          integrationTestViewpointPath: "../../画面/screen-confirmed-home/詳細設計/結合テスト観点表.html",
+          integrationTestCasePath: "../../画面/screen-confirmed-home/テスト項目書/結合テスト仕様書.html",
+          scenarioPath: "../../画面/screen-confirmed-home/テスト項目書/操作シナリオ仕様書.html"
         },
         {
           screenKey: "unresolved-one",
@@ -534,6 +538,96 @@ print(os.path.abspath(os.path.join(sys.argv[1], "index.html")))
     rc=1
   else
     echo "  [PASS] 設計書URL陰性: 生成入口で拒否し描画側も安全な相対URLだけを有効化"
+  fi
+
+  # --- 1-94: 展開操作前の主テーブル行にリンク要素が存在することをDOM検査で確認する ---
+  # 行クリック展開ハンドラのスクリプトは一切実行しない(=展開機構自体が存在しない状態で検査する)ため、
+  # リンクが見つかれば構造的に「展開前」であることが保証される。
+  local dom_check_log="$tmp/dom-check-1-94.log"
+  if node -e '
+    const fs = require("node:fs");
+    const vm = require("node:vm");
+    const file = process.argv[1];
+    const source = fs.readFileSync(file, "utf8");
+
+    function extractScript(marker) {
+      const start = source.indexOf("// " + marker + "_START");
+      const end = source.indexOf("// " + marker + "_END");
+      if (start === -1 || end === -1) return null;
+      return source.slice(start, end);
+    }
+    const libScript = extractScript("SCREEN_DOC_LINKS_LIB");
+    const colScript = extractScript("SCREEN_DOC_LINKS_COLUMN");
+    if (!libScript || !colScript) {
+      console.error("スクリプト抽出失敗(マーカー欠落): lib=" + !!libScript + " col=" + !!colScript);
+      process.exit(1);
+    }
+
+    const manifestMatch = source.match(/<script type="application\/json" id="screen-manifest">([\s\S]*?)<\/script>/);
+    if (!manifestMatch) {
+      console.error("埋め込みマニフェストJSON抽出失敗");
+      process.exit(1);
+    }
+
+    function makeEl(tag) {
+      return {
+        tagName: String(tag).toUpperCase(),
+        _attrs: {},
+        style: {},
+        className: "",
+        textContent: "",
+        children: [],
+        appendChild(child) { this.children.push(child); return child; },
+        setAttribute(k, v) { this._attrs[k] = String(v); },
+        getAttribute(k) { return Object.prototype.hasOwnProperty.call(this._attrs, k) ? this._attrs[k] : null; },
+        querySelector(sel) { return sel === "thead tr" ? (this._theadTr || null) : null; },
+        querySelectorAll(sel) { return sel === "tbody tr" ? (this._tbodyTrs || []) : []; }
+      };
+    }
+
+    const theadTr = makeEl("tr");
+    const rowA = makeEl("tr");
+    rowA.setAttribute("data-screen-id", "SCR-041");
+    rowA.setAttribute("data-screen-key", "confirmed-home");
+    const rowB = makeEl("tr");
+    rowB.setAttribute("data-screen-key", "unresolved-one");
+
+    const table = makeEl("table");
+    table._theadTr = theadTr;
+    table._tbodyTrs = [rowA, rowB];
+
+    const manifestEl = { textContent: manifestMatch[1] };
+
+    const document = {
+      getElementById(id) { return id === "screen-manifest" ? manifestEl : null; },
+      querySelectorAll(sel) { return sel === ".table-area table[data-unit-table]" ? [table] : []; },
+      createElement(tag) { return makeEl(tag); }
+    };
+
+    const sandbox = { document, console };
+    sandbox.window = sandbox;
+    vm.createContext(sandbox);
+    vm.runInContext(libScript, sandbox);
+    vm.runInContext(colScript, sandbox);
+
+    const td = rowA.children[rowA.children.length - 1];
+    const anchors = td ? td.children.filter(function (c) { return c.tagName === "A"; }) : [];
+    const realLinks = anchors.filter(function (a) {
+      return a.className.indexOf("disabled") === -1 && typeof a.href === "string" && a.href.length > 0;
+    });
+
+    if (td && realLinks.length > 0) {
+      console.log("展開前の主テーブル行に有効なリンク要素が" + realLinks.length + "件存在");
+      process.exit(0);
+    }
+    console.error("展開前の主テーブル行に有効なリンク要素が存在しない(td-children=" + (td ? td.children.length : "no-td") + ")");
+    process.exit(1);
+  ' "$out_findings" > "$dom_check_log" 2>&1; then
+    echo "  [PASS] 1-94: 展開操作前の主テーブル行にリンク要素が存在(DOM検査): $(cat "$dom_check_log")"
+  else
+    echo "  [FAIL] 1-94: 展開操作前の主テーブル行にリンク要素が存在しない(DOM検査)" >&2
+    sed 's/^/    /' "$dom_check_log" >&2
+    rc=1
   fi
 
   if [ "$rc" -eq 0 ]; then
@@ -776,7 +870,7 @@ ${unresolved_rows}
 </table>
 EOF
 )"
-  unresolved_class="has-items"
+  unresolved_class="has-items pt-callout pt-callout--warning"
 fi
 
 # --- 通常テーブルのthead(単一テーブル・分割テーブル共通) ---

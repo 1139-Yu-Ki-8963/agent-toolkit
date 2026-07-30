@@ -26,7 +26,7 @@ fi
 [ "$(jq -r '.manifestContentHash // ""' "$ext")" = "$expected" ] \
   || { echo "ERROR: ext manifestContentHash mismatch" >&2; exit 1; }
 
-allowed='["category","permissions","relatedApis","designDocStatus","confirmedScreenName","designDocPath","detailDocPath","sequencePath","testCasePath","sourceHash"]'
+allowed='["category","permissions","relatedApis","designDocStatus","confirmedScreenName","designDocPath","detailDocPath","sequencePath","testCasePath","unitTestViewpointPath","integrationTestViewpointPath","integrationTestCasePath","scenarioPath","sourceHash","designDocSourceHash"]'
 jq -S --argjson allowed "$allowed" '
   del(.generatedAt,.manifestContentHash)
   | .screens = [(.screens // [])[] | delpaths([$allowed[] | [.]])]
@@ -77,6 +77,10 @@ json_files=(
 )
 for file in "${json_files[@]}"; do check_json_hash "$file"; done
 
+transition_data="$root/画面遷移図-data.json"
+bash "$(dirname "$0")/../detail-pages/check-screen-transition-manifest-alignment.sh" \
+  --raw-manifest "$raw" --ext-manifest "$ext" --page-data "$transition_data" >/dev/null
+
 html_specs=(
   "一覧/画面一覧/画面一覧.html|screen-manifest"
   "index.html|screen-manifest-source"
@@ -93,4 +97,4 @@ for spec in "${html_specs[@]}"; do
   [ "$(jq -r '.manifestContentHash // ""' "${TMPDIR:-/tmp}/screen-consistency-embedded.$$.json")" = "$expected" ] \
     || { echo "ERROR: embedded hash mismatch: $html#$id" >&2; exit 1; }
 done
-echo "PASS: raw/ext/13 derived outputs share manifestContentHash=$expected"
+echo "PASS: raw/ext/13 derived outputs share manifestContentHash=$expected; raw=nodes+route-empty-unresolved; label differences=0"

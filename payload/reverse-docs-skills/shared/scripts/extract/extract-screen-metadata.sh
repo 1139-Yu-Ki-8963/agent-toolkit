@@ -41,13 +41,19 @@
 #   designDocStatus: --design-docs-dir 配下に <screenKey> 名のフォルダ/ファイル
 #                   (または <screenKey>.* ファイル)が実在すれば「着手済」、無ければ「未着手」。
 #                   オプション未指定ならフィールド自体を付けない
-#   designDocPath / detailDocPath / sequencePath / testCasePath:
+#   designDocPath / detailDocPath / sequencePath / testCasePath / unitTestViewpointPath /
+#   integrationTestViewpointPath / integrationTestCasePath / scenarioPath:
 #                   --design-docs-dir 配下の画面フォルダ(<screenKey> または screen-<screenKey>)内で
-#                   以下のファイル実在を個別に判定し、実在するものだけを画面フォルダからの相対パスで付与する:
-#                     基本設計/画面基本設計書.html   → designDocPath
-#                     詳細設計/画面詳細設計書.html   → detailDocPath
-#                     シーケンス図.html               → sequencePath
-#                     テスト項目書/単体テスト仕様書.md → testCasePath（テスト項目書はHTML化せずmd参照で統一する）
+#                   以下のファイル実在を個別に判定し、実在するものだけを画面フォルダからの相対パスで付与する
+#                   (1画面あたり読者向け成果物8種類の全量。テスト項目書・観点表はHTML化せずmd参照で統一する):
+#                     基本設計/画面基本設計書.html       → designDocPath
+#                     詳細設計/画面詳細設計書.html       → detailDocPath
+#                     シーケンス図.html                   → sequencePath
+#                     テスト項目書/単体テスト仕様書.md     → testCasePath
+#                     詳細設計/単体テスト観点表.md         → unitTestViewpointPath
+#                     詳細設計/結合テスト観点表.md         → integrationTestViewpointPath
+#                     テスト項目書/結合テスト仕様書.md     → integrationTestCasePath
+#                     テスト項目書/操作シナリオ仕様書.md   → scenarioPath
 #                   画面フォルダ自体が不在、またはファイルが不在ならそのフィールドは付けない
 #   confirmedScreenName:
 #                   画面フォルダの基本設計書または詳細設計書の先頭見出しから確定画面名を
@@ -138,7 +144,7 @@ EOF
     "excludePatterns": []
   },
   "detectionSummary": {
-    "screenCount": 2,
+    "screenCount": 3,
     "clusterCount": 0,
     "sharedScreenCount": 0,
     "embeddedCandidateCount": 0,
@@ -172,6 +178,20 @@ EOF
       "parentScreen": null,
       "childComponents": [],
       "isProcessingEndpoint": false
+    },
+    {
+      "screenKey": "partial-screen",
+      "kind": "route",
+      "route": "/partial",
+      "entryFile": "screens/Home.tsx",
+      "confidence": "high",
+      "screenType": "top",
+      "accountGroup": "user",
+      "accountSubType": "common",
+      "hasTemplate": true,
+      "parentScreen": null,
+      "childComponents": [],
+      "isProcessingEndpoint": false
     }
   ]
 }
@@ -193,14 +213,24 @@ JSON
     "$docs_root/screen-user-admin/基本設計" \
     "$docs_root/screen-user-admin/詳細設計" \
     "$docs_root/screen-user-admin/テスト項目書" \
+    "$docs_root/screen-partial-screen/基本設計" \
+    "$docs_root/screen-partial-screen/テスト項目書" \
     "$list_dir"
   cat > "$docs_root/screen-user-admin/基本設計/画面基本設計書.md" <<'EOF'
 # 確定ユーザー管理 画面基本設計書
 EOF
+  # --- 8種類全量(1-92): 画面フォルダ内に読者向け成果物8種類すべてを配置 ---
   : > "$docs_root/screen-user-admin/基本設計/画面基本設計書.html"
   : > "$docs_root/screen-user-admin/詳細設計/画面詳細設計書.html"
   : > "$docs_root/screen-user-admin/シーケンス図.html"
   : > "$docs_root/screen-user-admin/テスト項目書/単体テスト仕様書.md"
+  : > "$docs_root/screen-user-admin/詳細設計/単体テスト観点表.md"
+  : > "$docs_root/screen-user-admin/詳細設計/結合テスト観点表.md"
+  : > "$docs_root/screen-user-admin/テスト項目書/結合テスト仕様書.md"
+  : > "$docs_root/screen-user-admin/テスト項目書/操作シナリオ仕様書.md"
+  # --- 一部欠落フィクスチャ(1-92): 8種類のうち2種類(基本設計書・結合テスト仕様書)だけ実在 ---
+  : > "$docs_root/screen-partial-screen/基本設計/画面基本設計書.html"
+  : > "$docs_root/screen-partial-screen/テスト項目書/結合テスト仕様書.md"
 
   check() {
     local label="$1" expr="$2" file="$3"
@@ -223,7 +253,7 @@ EOF
     check "ケースa: 一般画面 permissions=[](検出なし)" '.screens[1].permissions == []' "$out_a"
     check "ケースa: 一般画面 relatedApis 欠落(fetchなし)" '.screens[1] | has("relatedApis") | not' "$out_a"
     check "ケースa: designDocStatus 欠落(オプション未指定)" '[.screens[] | has("designDocStatus")] | any | not' "$out_a"
-    check "ケースa: 既存フィールド無変更" '(.screens[0].route == "/admin/users") and (.screens[1].entryFile == "screens/Home.tsx") and (.detectionSummary.screenCount == 2)' "$out_a"
+    check "ケースa: 既存フィールド無変更" '(.screens[0].route == "/admin/users") and (.screens[1].entryFile == "screens/Home.tsx") and (.detectionSummary.screenCount == 3)' "$out_a"
   else
     echo "  [FAIL] ケースa: 抽出コマンド自体が失敗した" >&2
     rc=1
@@ -237,19 +267,37 @@ EOF
     check "ケースb: relatedApis が unitKey に解決" '.screens[0].relatedApis == ["users-list"]' "$out_b"
     check "ケースb: 管理画面 designDocStatus=着手済" '.screens[0].designDocStatus == "着手済"' "$out_b"
     check "ケースb: 一般画面 designDocStatus=未着手" '.screens[1].designDocStatus == "未着手"' "$out_b"
-    check "1-40: 実在する設計書4リンクだけを一覧基準の相対パスで付与" '
+    check "1-40: 実在する設計書8リンクだけを一覧基準の相対パスで付与" '
       .screens[0].designDocPath == "../../画面/screen-user-admin/基本設計/画面基本設計書.html"
       and .screens[0].detailDocPath == "../../画面/screen-user-admin/詳細設計/画面詳細設計書.html"
       and .screens[0].sequencePath == "../../画面/screen-user-admin/シーケンス図.html"
       and .screens[0].testCasePath == "../../画面/screen-user-admin/テスト項目書/単体テスト仕様書.md"
+      and .screens[0].unitTestViewpointPath == "../../画面/screen-user-admin/詳細設計/単体テスト観点表.md"
+      and .screens[0].integrationTestViewpointPath == "../../画面/screen-user-admin/詳細設計/結合テスト観点表.md"
+      and .screens[0].integrationTestCasePath == "../../画面/screen-user-admin/テスト項目書/結合テスト仕様書.md"
+      and .screens[0].scenarioPath == "../../画面/screen-user-admin/テスト項目書/操作シナリオ仕様書.md"
       and (.screens[1] | has("designDocPath") | not)
       and (.screens[1] | has("detailDocPath") | not)
       and (.screens[1] | has("sequencePath") | not)
       and (.screens[1] | has("testCasePath") | not)
+      and (.screens[1] | has("unitTestViewpointPath") | not)
+      and (.screens[1] | has("integrationTestViewpointPath") | not)
+      and (.screens[1] | has("integrationTestCasePath") | not)
+      and (.screens[1] | has("scenarioPath") | not)
     ' "$out_b"
     check "1-41: 設計書見出しの確定画面名を書き戻し、推定名は保持" '
       .screens[0].confirmedScreenName == "確定ユーザー管理"
       and (.screens[0].screenNameGuess | not)
+    ' "$out_b"
+    check "1-92: 一部欠落フィクスチャは実在する2種別だけpathを持ち残り6種別は省略" '
+      .screens[2].designDocPath == "../../画面/screen-partial-screen/基本設計/画面基本設計書.html"
+      and .screens[2].integrationTestCasePath == "../../画面/screen-partial-screen/テスト項目書/結合テスト仕様書.md"
+      and (.screens[2] | has("detailDocPath") | not)
+      and (.screens[2] | has("sequencePath") | not)
+      and (.screens[2] | has("testCasePath") | not)
+      and (.screens[2] | has("unitTestViewpointPath") | not)
+      and (.screens[2] | has("integrationTestViewpointPath") | not)
+      and (.screens[2] | has("scenarioPath") | not)
     ' "$out_b"
   else
     echo "  [FAIL] ケースb: 抽出コマンド自体が失敗した" >&2
@@ -262,6 +310,28 @@ EOF
     echo "  [PASS] validate-manifest.sh: 拡張マニフェストが全項目PASS"
   else
     echo "  [FAIL] validate-manifest.sh: 拡張マニフェストが検証FAIL" >&2
+    rc=1
+  fi
+
+  # --- 1-93: 抽出→一覧生成のフルパイプラインを同一フィクスチャで通し、最終HTMLへ8リンクが反映されること ---
+  local builder="$script_dir/../unit-list/build-screen-list.sh"
+  local pipeline_html="$tmp/pipeline-screen-list.html"
+  if [ -f "$builder" ] && bash "$builder" "$out_b" "$pipeline_html" >/dev/null 2>&1; then
+    if grep -Fq '../../画面/screen-user-admin/基本設計/画面基本設計書.html' "$pipeline_html" \
+      && grep -Fq '../../画面/screen-user-admin/詳細設計/画面詳細設計書.html' "$pipeline_html" \
+      && grep -Fq '../../画面/screen-user-admin/シーケンス図.html' "$pipeline_html" \
+      && grep -Fq '../../画面/screen-user-admin/テスト項目書/単体テスト仕様書.md' "$pipeline_html" \
+      && grep -Fq '../../画面/screen-user-admin/詳細設計/単体テスト観点表.md' "$pipeline_html" \
+      && grep -Fq '../../画面/screen-user-admin/詳細設計/結合テスト観点表.md' "$pipeline_html" \
+      && grep -Fq '../../画面/screen-user-admin/テスト項目書/結合テスト仕様書.md' "$pipeline_html" \
+      && grep -Fq '../../画面/screen-user-admin/テスト項目書/操作シナリオ仕様書.md' "$pipeline_html"; then
+      echo "  [PASS] 1-93: 抽出→一覧生成のフルパイプラインで8種類リンクが最終HTMLへ反映"
+    else
+      echo "  [FAIL] 1-93: フルパイプライン出力に8種類リンクが反映されていない" >&2
+      rc=1
+    fi
+  else
+    echo "  [FAIL] 1-93: build-screen-list.sh を通したフルパイプライン実行自体が失敗した" >&2
     rc=1
   fi
 
@@ -484,6 +554,18 @@ while IFS= read -r row; do
       fi
       if [ -f "$screen_folder/テスト項目書/単体テスト仕様書.md" ]; then
         add="$(jq --arg v "$link_folder/テスト項目書/単体テスト仕様書.md" '. + {testCasePath: $v}' <<<"$add")"
+      fi
+      if [ -f "$screen_folder/詳細設計/単体テスト観点表.md" ]; then
+        add="$(jq --arg v "$link_folder/詳細設計/単体テスト観点表.md" '. + {unitTestViewpointPath: $v}' <<<"$add")"
+      fi
+      if [ -f "$screen_folder/詳細設計/結合テスト観点表.md" ]; then
+        add="$(jq --arg v "$link_folder/詳細設計/結合テスト観点表.md" '. + {integrationTestViewpointPath: $v}' <<<"$add")"
+      fi
+      if [ -f "$screen_folder/テスト項目書/結合テスト仕様書.md" ]; then
+        add="$(jq --arg v "$link_folder/テスト項目書/結合テスト仕様書.md" '. + {integrationTestCasePath: $v}' <<<"$add")"
+      fi
+      if [ -f "$screen_folder/テスト項目書/操作シナリオ仕様書.md" ]; then
+        add="$(jq --arg v "$link_folder/テスト項目書/操作シナリオ仕様書.md" '. + {scenarioPath: $v}' <<<"$add")"
       fi
 
       confirmed_name=""

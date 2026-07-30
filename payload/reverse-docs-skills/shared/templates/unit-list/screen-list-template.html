@@ -44,9 +44,16 @@
     - 設計書列の補助フィールド(任意): designDocPath(設計書への相対パス。designDocStatus=着手済かつ
       パスありなら着手済バッジをリンク化) / sourceHash・designDocSourceHash(両方存在して不一致なら
       danger色の「陳腐化」バッジを併記)
+    - 関連資料リンク(1-92〜1-94): 読者向け成果物8種類(基本設計書designDocPath・詳細設計書detailDocPath・
+      シーケンス図sequencePath・単体テスト仕様書testCasePath・単体テスト観点表unitTestViewpointPath・
+      結合テスト観点表integrationTestViewpointPath・結合テスト仕様書integrationTestCasePath・
+      操作シナリオ仕様書scenarioPath)へのリンク組み立ては window.ScreenDocLinks(共通ライブラリ)に
+      一本化し、展開パネルの「設計書」グループと主テーブル行末尾の任意列「関連資料」の両方から
+      同じ関数を呼ぶ(二重管理禁止)。関連資料列はいずれかの画面に1件でもリンクがあれば追加し、
+      colCount計算より前に実行してcolSpanのズレを防ぐ(静的theadの3列は増やさない)
 
   制約:
-    - 外部リソース(CDN・フォント・画像)は一切使わない。単一ファイル自己完結
+    - 外部リソースはMaterial Symbols OutlinedのGoogle Fonts CDNだけを許可する。その他のCDN・フォント・画像は使わない
     - <script id="screen-manifest"> の中身は Phase 2 の確定結果(manifest.json)と完全に一致させる
     - 本テンプレートは画面一覧.HTMLの生成のみを対象とする。設計書の雛形展開・生成は本スキルの範囲外
 -->
@@ -58,6 +65,7 @@
 <meta http-equiv="Expires" content="0">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>画面一覧</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined&amp;icon_names=info,priority_high,warning&amp;display=block" />
 <style>
   /* TOKENS_CSS */
   /* SHELL_CSS */
@@ -287,7 +295,7 @@
       <!--SCREEN_TABLE_SECTIONS-->
 
       <section class="unresolved {{UNRESOLVED_CLASS}}">
-        <h2>要手動確認</h2>
+        <h2><span class="material-symbols-outlined pt-callout__icon" aria-hidden="true">warning</span>要手動確認</h2>
         <div class="table-wrap">
         <!--UNRESOLVED_SECTION-->
         </div>
@@ -304,6 +312,131 @@
   </div>
   <!--SHELL_FOOTER-->
 </div>
+
+<script>
+  // SCREEN_DOC_LINKS_LIB_START
+  /* 1-92/1-94: 読者向け成果物8種類のリンク定義・安全URL判定・リンク要素組み立てを1箇所に集約する
+     共有ライブラリ。展開パネル(buildDetailGroup)と主テーブル行の任意列「関連資料」の両方が
+     window.ScreenDocLinks を参照することで、リンク定義の二重管理を避ける。 */
+  window.ScreenDocLinks = (function () {
+    var DOC_DEFS = [
+      {label: '基本設計書', pathField: 'designDocPath', kind: 'basic'},
+      {label: '詳細設計書', pathField: 'detailDocPath', kind: 'detail'},
+      {label: 'シーケンス図', pathField: 'sequencePath', kind: 'sequence'},
+      {label: 'テストケース', pathField: 'testCasePath', kind: 'test'},
+      {label: '単体テスト観点表', pathField: 'unitTestViewpointPath', kind: 'unit-viewpoint'},
+      {label: '結合テスト観点表', pathField: 'integrationTestViewpointPath', kind: 'integration-viewpoint'},
+      {label: '結合テスト仕様書', pathField: 'integrationTestCasePath', kind: 'integration-case'},
+      {label: '操作シナリオ仕様書', pathField: 'scenarioPath', kind: 'scenario'}
+    ];
+
+    function isSafeRelativeUrl(value) {
+      return typeof value === 'string' &&
+        value.length > 0 &&
+        value === value.trim() &&
+        !/[\x00-\x1f\x7f]/.test(value) &&
+        !/^[A-Za-z][A-Za-z0-9+.-]*:/.test(value) &&
+        !/^[\/\\]/.test(value) &&
+        value.indexOf('\\') === -1;
+    }
+
+    function hasAnyDocLink(item) {
+      if (!item) return false;
+      for (var i = 0; i < DOC_DEFS.length; i++) {
+        if (item[DOC_DEFS[i].pathField]) return true;
+      }
+      return false;
+    }
+
+    /* item(画面) 1件分の<a>要素配列を組み立てる。実在しないリンクも disabled 状態の<a>として
+       返す(展開パネルは「未作成」提示のため常に8件必要)。呼び出し側で用途に応じて絞り込む。 */
+    function buildDocLinkElements(item) {
+      return DOC_DEFS.map(function (doc) {
+        var a = document.createElement('a');
+        a.textContent = doc.label;
+        a.setAttribute('data-kind', doc.kind);
+        var href = item[doc.pathField];
+        if (isSafeRelativeUrl(href)) {
+          a.href = href;
+          a.className = 'doc-link';
+        } else {
+          a.className = 'doc-link disabled';
+          a.title = href ? '無効なリンク' : '未作成';
+        }
+        return a;
+      });
+    }
+
+    return {
+      DOC_DEFS: DOC_DEFS,
+      isSafeRelativeUrl: isSafeRelativeUrl,
+      hasAnyDocLink: hasAnyDocLink,
+      buildDocLinkElements: buildDocLinkElements
+    };
+  })();
+  // SCREEN_DOC_LINKS_LIB_END
+</script>
+
+<script>
+  // SCREEN_DOC_LINKS_COLUMN_START
+  (function () {
+    /* 1-94: 実在する成果物リンクを、行展開を待たず主テーブルからも直接遷移できるようにする。
+       静的theadは増やさず(全3列のまま)、JSによる任意列として末尾に「関連資料」列を追加する。
+       任意列の他フィールドと同じ「値が1件でもあれば列追加」方針。リンク定義はwindow.ScreenDocLinks
+       (展開パネルと共有)を使い、二重管理を避ける。colCount計算(次スクリプト)より前に実行し、
+       展開行のcolSpanズレを防ぐ。 */
+    var linkApi = window.ScreenDocLinks;
+    if (!linkApi) return;
+    var manifestEl = document.getElementById('screen-manifest');
+    if (!manifestEl) return;
+    var manifest;
+    try { manifest = JSON.parse(manifestEl.textContent); } catch (e) { return; }
+    var items = (manifest && manifest.screens) || [];
+    if (!items.length) return;
+    if (!items.some(linkApi.hasAnyDocLink)) return;
+
+    var tables = Array.prototype.slice.call(
+      document.querySelectorAll('.table-area table[data-unit-table]')
+    );
+    var unresolvedTable = document.getElementById('unresolved-table');
+    if (unresolvedTable) tables.push(unresolvedTable);
+    if (!tables.length) return;
+
+    var byId = {};
+    var byKey = {};
+    items.forEach(function (it) {
+      if (it.screenId) byId[it.screenId] = it;
+      if (it.screenKey) byKey[it.screenKey] = it;
+    });
+
+    tables.forEach(function (tb) {
+      var hr = tb.querySelector('thead tr');
+      if (hr) {
+        var th = document.createElement('th');
+        th.textContent = '関連資料';
+        th.style.width = '170px';
+        hr.appendChild(th);
+      }
+      var rows = Array.prototype.slice.call(tb.querySelectorAll('tbody tr'));
+      rows.forEach(function (tr) {
+        var idText = tr.getAttribute('data-screen-id') || '';
+        var keyText = tr.getAttribute('data-screen-key') || '';
+        var item = byId[idText] || byKey[keyText] || null;
+        var td = document.createElement('td');
+        td.className = 'doc-links-cell';
+        if (item) {
+          linkApi.buildDocLinkElements(item).forEach(function (a) {
+            /* 主テーブル行では実在するリンクだけを表示する(未作成の8バッジ常時表示は主表示では
+               冗長なため、展開パネル側の「未作成」提示と役割を分ける)。 */
+            if (a.className.indexOf('disabled') === -1) td.appendChild(a);
+          });
+        }
+        tr.appendChild(td);
+      });
+    });
+  })();
+  // SCREEN_DOC_LINKS_COLUMN_END
+</script>
 
 <script>
   (function () {
@@ -904,33 +1037,9 @@
             docGroup.appendChild(docLabel);
             var docLinks = document.createElement('div');
             docLinks.className = 'doc-links';
-            var docDefs = [
-              {label: '基本設計書', pathField: 'designDocPath', kind: 'basic'},
-              {label: '詳細設計書', pathField: 'detailDocPath', kind: 'detail'},
-              {label: 'シーケンス図', pathField: 'sequencePath', kind: 'sequence'},
-              {label: 'テストケース', pathField: 'testCasePath', kind: 'test'}
-            ];
-            function isSafeRelativeUrl(value) {
-              return typeof value === 'string' &&
-                value.length > 0 &&
-                value === value.trim() &&
-                !/[\u0000-\u001f\u007f]/.test(value) &&
-                !/^[A-Za-z][A-Za-z0-9+.-]*:/.test(value) &&
-                !/^[\/\\]/.test(value) &&
-                value.indexOf('\\') === -1;
-            }
-            docDefs.forEach(function(doc) {
-              var a = document.createElement('a');
-              a.textContent = doc.label;
-              a.setAttribute('data-kind', doc.kind);
-              var href = item[doc.pathField];
-              if (isSafeRelativeUrl(href)) {
-                a.href = href;
-                a.className = 'doc-link';
-              } else {
-                a.className = 'doc-link disabled';
-                a.title = href ? '無効なリンク' : '未作成';
-              }
+            /* リンク定義・安全URL判定・<a>要素組み立ては window.ScreenDocLinks(共通ライブラリ)を使う。
+               主テーブル行の任意列「関連資料」と同じ関数を呼び、二重管理を避ける(1-94)。 */
+            (window.ScreenDocLinks ? window.ScreenDocLinks.buildDocLinkElements(item) : []).forEach(function (a) {
               docLinks.appendChild(a);
             });
             docGroup.appendChild(docLinks);

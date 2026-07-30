@@ -29,6 +29,10 @@
 | detailDocPath | string | 任意 | 画面一覧HTMLから詳細設計書への相対パス。ファイル実在時だけ付与する | 設計書リポジトリの該当フォルダ |
 | sequencePath | string | 任意 | 画面一覧HTMLからシーケンス図への相対パス。ファイル実在時だけ付与する | 設計書リポジトリの該当フォルダ |
 | testCasePath | string | 任意 | 画面一覧HTMLから単体テスト仕様書への相対パス。ファイル実在時だけ付与する | 設計書リポジトリの該当フォルダ |
+| unitTestViewpointPath | string | 任意 | 画面一覧HTMLから単体テスト観点表への相対パス。ファイル実在時だけ付与する | 設計書リポジトリの該当フォルダ |
+| integrationTestViewpointPath | string | 任意 | 画面一覧HTMLから結合テスト観点表への相対パス。ファイル実在時だけ付与する | 設計書リポジトリの該当フォルダ |
+| integrationTestCasePath | string | 任意 | 画面一覧HTMLから結合テスト仕様書への相対パス。ファイル実在時だけ付与する | 設計書リポジトリの該当フォルダ |
+| scenarioPath | string | 任意 | 画面一覧HTMLから操作シナリオ仕様書への相対パス。ファイル実在時だけ付与する | 設計書リポジトリの該当フォルダ |
 | sourceHash | string | 任意 | 画面ユニットの原本ソース連結ハッシュ（sha256 先頭12桁） | 原本コードの走査 |
 | designDocSourceHash | string | 任意 | 設計書生成時に記録した sourceHash。sourceHash と不一致なら一覧に陳腐化バッジを表示 | 設計書生成工程の記録 |
 | screenType | string | 必須 | 画面種別（Level 3 分類。8 種: top/list/detail/form/confirm/complete/error/processing_endpoint） | entryFile と幅優先探索（BFS）で解決した関連ファイルのDOM構造・テンプレート有無で判定 |
@@ -47,11 +51,25 @@ designDocStatus（着手済/未着手）・trigger（画面/バッチ）・direc
 
 | フィールド名 | 型 | 必須/任意 | 説明 | 抽出元の想定 |
 |---|---|---|---|---|
-| method | string | 任意 | HTTP メソッド。identifier の先頭語を優先し、無い場合はコメント・文字列を除外した Express/Fastify/Hono 型の静的文字列ルート呼出しから一意の場合だけ補完する。曖昧なら欠落 | ルーティング定義のメソッド指定 |
+| method | string | 任意 | HTTP メソッド。identifier の先頭語を優先する。無い場合は、framework factory（ルーティングを登録する router / app 等を生成する関数）の結果を receiver（`receiver.get(...)` の左辺オブジェクト）へ一意に静的束縛したルート呼出しだけから補完する。shadowing（内側の範囲等で同名変数・`function`・`class` を宣言し、外側の束縛を隠すこと）はreceiverだけでなくfactory識別子にも適用し、factory識別子の別値への`const`束縛・引数・`function`・`class`によるshadowing、未束縛receiver・receiver自身の再代入・送信クライアント・正規表現リテラル内の疑似ルートも根拠外 | ルーティング定義のメソッド指定 |
 | authRequired | boolean | 任意 | 認証の要否 | 認可ミドルウェア・`Depends` 等の依存注入 |
 | callers | string[] | 任意 | 呼び出し元画面の screenKey 配列（screens.relatedApis の逆引き） | relatedApis 抽出結果からの機械生成 |
 | targetTables | string[] | 任意 | 読み書きするテーブルの unitKey 配列。空配列は調査済みゼロを表す | エンドポイント実装のクエリ・モデル操作 |
 | ioSummary | string | 任意 | 受け取る入力と返す出力の 1 行要約 | リクエスト/レスポンスの型定義・スキーマ |
+
+`build-matrix-data.sh` は、存在する `method` / `targetTables` の値を全 API units で検査する。
+この値検査には `kind: "unresolved"` も含む。
+「解決済み `relatedApis`」は、参照値と API の `unitKey` が一致し、API が unresolved でない状態を指す。
+feature-manifest がある場合、解決済み参照 API の `method` は permission 導出用に必須である。
+同じ場合でも、`targetTables` 欠落または `[]` は非 CRUD として許容する。
+feature-manifest がない場合、`targetTables` キー欠落と `targetTables: []` の API はどちらも CRUD 候補にしないため、`method` 欠落を許容する。
+キー欠落から CRUD を推測しない。
+欠落 `method` の必須判定は、この CRUD / permission 対象 API だけに適用する。
+存在する `method` は、`GET` / `POST` / `PUT` / `PATCH` / `DELETE` の文字列に限る。
+存在する `targetTables` は、空白トリム後に非空の文字列だけから成る配列に限る。
+引数解析の直後に、既存出力ディレクトリ内の旧3成果物だけを除去する。したがって、依存関係・入力JSON・フィールド値の検査（検査Bを含む）で停止した場合も、対象3成果物は残さない。無関係ファイルは除去しない。
+検査を通過した後、3成果物は出力先と同じ親ディレクトリ内の隠し兄弟ディレクトリ（hidden sibling）に生成する。
+3件の生成完了後に同じ親配下で順に移動する。公開完了前に `mv` を含む処理が非ゼロ終了した場合は EXIT cleanup が最終出力の対象3ファイル（すでに移動済みの1件を含む）をrollbackし、staging siblingも除去する。公開完了後はcleanupを解除する。
 
 ### tables（テーブル）
 
@@ -179,10 +197,10 @@ designDocStatus（着手済/未着手）・trigger（画面/バッチ）・direc
 | スクリプト名 | 入力 | 出力 | 抽出・導出の方式 |
 |---|---|---|---|
 | extract-screen-metadata.sh | screen-manifest.json + 原本ソース（任意: api-manifest / 設計書ディレクトリ） | 拡張画面マニフェスト | route prefix 判定と構成ファイル内のロール指定・fetch パス grep で category / permissions / relatedApis / designDocStatus / sourceHash を追加 |
-| extract-api-metadata.sh | api-manifest.json + 原本ソース（任意: 拡張画面マニフェスト / table-manifest） | 拡張 API マニフェスト | identifier 先頭語を優先し、無い場合はコメント・文字列を除外した静的文字列ルート呼出しが一意な時だけ method を補完する。エンドポイント近傍窓の認証パターン grep・relatedApis 逆引きで authRequired / callers / targetTables / ioSummary を追加 |
+| extract-api-metadata.sh | api-manifest.json + 原本ソース（任意: 拡張画面マニフェスト / table-manifest） | 拡張 API マニフェスト | identifier 先頭語を優先する。無い場合はframework factoryへの唯一の静的束縛を探す。receiverの全使用が束縛とroute callだけで、factory識別子も別値束縛・引数・`function`・`class`によるshadowingがなければmethodを補完する。コメント・文字列・正規表現リテラル内の疑似ルート、他使用・再代入・shadowingは根拠外。認証・呼出元・テーブル・I/Oも抽出する |
 | extract-table-metadata.sh | table-manifest.json + マイグレーション SQL ディレクトリ | 拡張テーブルマニフェスト | CREATE TABLE ブロックの切り出しと REFERENCES 採取・unitKey 突合で foreignKeys / columnCount / mainColumns を追加 |
 | extract-batch-metadata.sh・extract-report-metadata.sh・extract-external-metadata.sh | 各種別マニフェスト + 原本ソース（batch のみ任意: cron ファイル / table-manifest） | 各種別の拡張マニフェスト | cron 式・帳票ライブラリ・送受信/認証パターンの grep で schedule / format / direction 等の種別別フィールドを追加 |
-| build-matrix-data.sh | 拡張済みマニフェスト群（screen / api 必須、table / feature 任意） | permission-matrix.json・crud-matrix.json・traceability.json | ソースコードは読まず、拡張フィールド（permissions / method / relatedApis / targetTables）から jq 導出する。CRUD対象APIの method / targetTables キー欠落時は不足名を報告して出力前に非ゼロ終了 |
+| build-matrix-data.sh | 拡張済みマニフェスト群（screen / api 必須、table / feature 任意） | permission-matrix.json・crud-matrix.json・traceability.json | ソースコードは読まず、拡張フィールド（permissions / method / relatedApis / targetTables）から jq 導出する。引数解析後に旧3成果物だけを除去してから、存在値を全 API で検査する。欠落methodの必須判定は feature 有無に応じた CRUD / permission 対象だけに適用し、`targetTables` 欠落から CRUD を推測しない。不足・不正は名前を報告して非ゼロ終了する。検査通過後はhidden siblingで3件を生成し、公開途中の失敗なら対象3成果物とstaging siblingを除去する |
 | extract-ai-assets.sh | リポジトリの `.claude/` 配下（rules / skills / agents / settings.json）と CLAUDE.md・flow-values.yml | AI設定資産ページ用 JSON（rules / skills / subagents / hooks + 設定索引） | rule.md の機械強制表・SKILL.md frontmatter・hooks 登録の grep/sed 抽出でマニフェスト形式に正規化 |
 
 いずれも検出根拠が弱い値は出力しない fail-safe 方針で、抽出できないフィールドは任意フィールドの欠落として扱う。推定・検出ルールは次節「抽出の推定・検出ルール（仕様）」に仕様として記載し、スクリプト実装と同時更新で一致を保つ。本表は索引のみを担う。
@@ -205,7 +223,7 @@ designDocStatus（着手済/未着手）・trigger（画面/バッチ）・direc
 
 | ルールキー | 対象フィールド | 仕様 |
 |---|---|---|
-| method-識別子先頭語・静的ルート判定 | method | identifier の先頭語（空白区切り）が GET / POST / PUT / PATCH / DELETE に完全一致すれば採用する。無い場合だけ、sourceFile のコメント・文字列を除外して `<receiver>.<lowercase-method>(<quote><path><quote>,...)` に一致する Express/Fastify/Hono 型の静的文字列ルート呼出しを探す。候補が1種類なら採用し、0件・複数種類・動的path・コメント・文字列内は根拠外として欠落 |
+| method-識別子先頭語・静的ルート判定 | method | identifier 先頭の有効HTTP動詞を優先する。無い場合はframework factoryへの唯一の静的束縛を探す。receiver tokenの全使用が束縛とroute callだけで、factory識別子が別値への`const`束縛・引数・`function`・`class`でshadowingされていなければ採用する。コメント・文字列・正規表現リテラル内の疑似ルート、receiverの他使用・再代入・shadowingは根拠外。候補が0件または複数種類でも欠落させる |
 | authRequired-判定窓 | authRequired | identifier のパス部（先頭メソッド語を除去した残り）を sourceFile 内で固定文字列検索し、最初のヒット行の前 3 行〜後 20 行を「エンドポイント近傍窓」として判定する |
 | authRequired-肯定パターン | authRequired | 窓内に `Depends(get_current_user` / `@login_required` / `requireAuth` / `verify_token` / `IsAuthenticated` のいずれかがあれば true |
 | authRequired-否定パターン | authRequired | 窓内に単語境界付きで `AllowAny` / `public` のいずれかがあれば false |
@@ -353,7 +371,7 @@ screenType を除く追加フィールドは任意とする。screenType は画�
 ### build-matrix-data.sh
 
 - 配置: shared/scripts/extract/build-matrix-data.sh
-- 必要性: マトリクス・対応表 3 ファイル（permission-matrix.json・crud-matrix.json・traceability.json）は、拡張済みマニフェスト群からの純粋な導出（ロール集合の合成・method→CRUD 文字の合成・relatedApis→targetTables の連結）であり、同一入力から同一出力を再現する決定的エンジンが必要。CRUD対象APIの method / targetTables キー欠落は不足名付きで出力前に停止し、空配列は許容、対象外APIは検査外とする多段の jq 変換を持ち、都度手書きすると導出規則が実行ごとにぶれる。--self-test がフィクスチャ生成 → 導出 → jq 検証 → validate-manifest.sh 突合まで自動回帰する
+- 必要性: マトリクス・対応表 3 ファイル（permission-matrix.json・crud-matrix.json・traceability.json）は、拡張済みマニフェスト群からの純粋な導出（ロール集合の合成・method→CRUD 文字の合成・relatedApis→targetTables の連結）であり、同一入力から同一出力を再現する決定的エンジンが必要。存在する method / targetTables は unresolved を含む全 API で検査する。欠落methodの必須判定では unresolved を除外し、feature 有無ごとの CRUD / permission 対象だけに限定する。`targetTables` 欠落から CRUD を推測せず、不足・不正は名前付きで出力前に停止し、空配列は許容する多段の jq 変換を持つ。公開はhidden siblingから3件を順に移動し、途中失敗時は対象3成果物とstaging siblingを除去する。--self-test がフィクスチャ生成 → 導出 → jq 検証 → validate-manifest.sh 突合に加え、2件目の公開 `mv` をtmp内のshimで失敗させるrollback回帰まで自動検証する
 - 代替案を採用しなかった理由:
   - Bash ツール直叩き: 3 ファイル分の jq 導出と fail-safe 分岐を都度組み立てるとトークンを浪費し、決定的生成が成立しない
   - build-matrix-pages.sh への統合: あちらはテンプレート置換（表示側）担当。データ導出と表示生成を分離しないと、マニフェスト更新時にデータだけ再生成したい場面でページ生成まで巻き込まれる
