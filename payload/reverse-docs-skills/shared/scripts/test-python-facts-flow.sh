@@ -157,6 +157,7 @@ if [ "$entry_ready" -ne 1 ] || [ -e "$survey_doc" ]; then
   survey_rc=1
 else
   mkdir -p "$(dirname "$survey_doc")"
+  # 調査書の必須節を追加する際は本フィクスチャの追従を同一コミットで行う
   cat > "$survey_doc" <<'MD'
 ## 調査メタ
 
@@ -186,6 +187,19 @@ else
 | バッチ | 実在しない（Python facts-only fixtureのため） | - | - |
 | 帳票 | 実在しない（Python facts-only fixtureのため） | - | - |
 | 外部連携 | 実在しない（Python facts-only fixtureのため） | - | - |
+
+## プロジェクト形態とサイト構成
+
+| 項目 | 内容 | 根拠パス |
+|---|---|---|
+| プロジェクト形態 | 単独プロジェクト | `src/service.py` |
+| ワークスペース定義 | 実在しない（ワークスペース定義ファイルが見つからないため） | `src/service.py` |
+
+### サイト一覧
+
+| サイトキー | 表示名 | ルートディレクトリ | ビルドコマンド | 起動コマンド | 根拠パス |
+|---|---|---|---|---|---|
+| main | 単一サイト | . | - | - | `src/service.py` |
 MD
   bash "$SURVEY_CHECK" "$survey_doc" "$fixture_repo" >/dev/null || survey_rc=$?
 fi
@@ -246,9 +260,10 @@ fi
 static_gate="$(sed -n '/^\*\*静的完了ゲート\*\*/,/^\*\*(a)/p' "$ORCHESTRATOR")"
 if grep -q 'extract-screen-metadata.sh' <<<"$static_gate" \
   && grep -q 'build-unit-list.sh' <<<"$static_gate" \
-  && grep -q 'restore-screen-manifest.sh' <<<"$static_gate" \
+  && grep -q 'Phase 3 Step 6' <<<"$static_gate" \
   && grep -q 'screen-manifest.json' "$ORCHESTRATOR_CONTRACT" \
-  && grep -q '既存一覧からの再開時' "$ORCHESTRATOR_CONTRACT" \
+  && grep -q 'restore-screen-manifest.sh' "$ORCHESTRATOR_CONTRACT" \
+  && grep -q '明示的な移行・復元時' "$ORCHESTRATOR_CONTRACT" \
   && grep -q 'この後でのみ画面レジストリ' <<<"$static_gate" \
   && grep -q 'この復元・再生成を省略した状態は.*静的完了ではない' "$ORCHESTRATOR_CONTRACT"; then
   report "1-40/1-41 永続manifest復元→metadata抽出→一覧再生成を静的完了ゲートに接続" 0
