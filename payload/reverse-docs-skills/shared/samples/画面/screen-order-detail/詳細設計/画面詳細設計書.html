@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>注文詳細 画面詳細設計書</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined&amp;icon_names=info,priority_high,warning&amp;display=block" />
 <style>
 /* 設計ポータルのデザイントークン。
    本ファイルの全文が、ビルド時に各テンプレートのトークン注入マーカーへ差し込まれる。
@@ -234,6 +235,57 @@
 .pt-brand-name { font-size: 16px; font-weight: 700; letter-spacing: 0.5px; margin-top: 4px; line-height: 1.35; }
 .pt-brand-sub { font-family: var(--mono); font-size: 10.5px; color: var(--muted); margin-top: 5px; }
 
+/* サイト切替（モノレポ複数サイト時のみ JS が pt-brand-name を差し替える） */
+.pt-brand-switch { position: relative; }
+.pt-brand-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  margin-top: 4px;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  appearance: none;
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  line-height: 1.35;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+.pt-brand-toggle:hover { color: var(--accent); }
+.pt-brand-caret {
+  flex: none;
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 5px solid var(--text-muted);
+  transition: transform 0.12s;
+}
+.pt-brand-toggle[aria-expanded="true"] .pt-brand-caret { transform: rotate(180deg); }
+.pt-brand-list {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 100%;
+  margin-top: 8px;
+  border: 1.5px solid var(--border);
+  background: var(--panel-2);
+  z-index: 2;
+}
+.pt-brand-list-item {
+  display: block;
+  padding: 8px 12px;
+  font-size: 12px;
+  color: var(--text-sub);
+}
+a.pt-brand-list-item:hover { background: var(--panel3); color: var(--text); text-decoration: none; }
+.pt-brand-list-item.is-current { color: var(--text-muted); font-weight: 600; cursor: default; }
+
 .pt-nav { padding: 14px 12px; display: flex; flex-direction: column; gap: 2px; }
 .pt-nav-group { font-family: var(--mono); font-size: 9.5px; letter-spacing: 2px; color: var(--faint); padding: 14px 10px 5px; }
 .pt-nav-item {
@@ -324,6 +376,50 @@
 .pt-badge.is-todo { color: var(--muted); background: var(--neutral-soft); }
 .pt-count { font-family: var(--mono); font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
 
+/* Google Fonts障害時も3段階アイコンを保つ、公式サブセットのローカルフォールバック */
+@font-face {
+  font-family: "Material Symbols Outlined Local";
+  font-style: normal;
+  font-weight: 400;
+  font-display: block;
+  src: url("data:font/ttf;base64,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") format("truetype");
+}
+
+/* 重要度コールアウト。見出しを先頭要素に置き、色帯とMaterial Symbolsを併用する */
+.pt-callout {
+  --callout-color: var(--accent);
+  --callout-soft: var(--accent-soft);
+  position: relative;
+  background: var(--callout-soft);
+  color: var(--text);
+  box-shadow: inset 5px 0 0 var(--callout-color);
+}
+.pt-callout__icon {
+  display: none;
+  margin-right: 0.55em;
+  color: var(--callout-color);
+  font-family: "Material Symbols Outlined", "Material Symbols Outlined Local";
+  font-size: 1.45em;
+  font-style: normal;
+  font-weight: 400;
+  font-variation-settings: "FILL" 0, "wght" 500, "GRAD" 0, "opsz" 24;
+  line-height: 1;
+  vertical-align: -0.12em;
+}
+.pt-callout > :first-child > .pt-callout__icon { display: inline-block; }
+.pt-callout--caution {
+  --callout-color: var(--accent);
+  --callout-soft: var(--accent-soft);
+}
+.pt-callout--warning {
+  --callout-color: var(--stamp);
+  --callout-soft: var(--stamp-soft);
+}
+.pt-callout--important {
+  --callout-color: var(--green);
+  --callout-soft: var(--green-soft);
+}
+
 /* 表 */
 .pt-tablewrap { flex: 0 1 auto; min-height: 0; overflow: auto; border: 1.5px solid var(--line2); background: var(--panel); }
 .pt-tablewrap table { width: 100%; border-collapse: separate; border-spacing: 0; }
@@ -374,7 +470,7 @@ a:hover { text-decoration: underline; }
 :root { --section-gap: clamp(28px, 4vw, 44px); }
 
 /* 文書 2 カラム（目次 + 本文） */
-.dp-layout { display: grid; grid-template-columns: 200px 1fr; gap: 36px; margin-top: 28px; align-items: start; }
+.dp-layout { display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 36px; margin-top: 28px; align-items: start; }
 .dp-toc { position: sticky; top: 24px; border-left: 1.5px solid var(--line2); padding-left: 16px; }
 
 /* 画面ドキュメント間ナビ（基本設計・詳細設計・シーケンス図・テストケース） */
@@ -414,7 +510,11 @@ a:hover { text-decoration: underline; }
 .toc-link:hover { color: var(--text); border-left-color: var(--accent); text-decoration: none; }
 .toc-link.active { color: var(--accent); border-left-color: var(--accent); font-weight: 600; }
 
-.dp-panel { border: 1.5px solid var(--line2); background: var(--panel); max-width: 760px; padding: 32px 40px; counter-reset: sec-num; }
+.dp-panel {
+  width: 100%; min-width: 0; max-width: none;
+  border: 1.5px solid var(--line2); background: var(--panel);
+  padding: 32px 40px; counter-reset: sec-num;
+}
 
 /* section */
 .sec-block { margin-bottom: var(--section-gap); scroll-margin-top: 24px; }
@@ -449,6 +549,22 @@ a:hover { text-decoration: underline; }
 }
 #doc-content hr { border: none; border-top: 1px solid var(--line); margin: 24px 0; }
 
+/* 参照用付録（生コード全文・API全量列挙等の折りたたみ。ネイティブdetails/summaryのみ使用） */
+.appendix-details {
+  border: 1.5px solid var(--line2); background: var(--panel3);
+  margin: 12px 0; padding: 0 14px 2px;
+}
+.appendix-details > summary {
+  cursor: pointer; list-style: none; padding: 10px 0;
+  font-size: 13px; font-weight: 700; color: var(--sub);
+}
+.appendix-details > summary::-webkit-details-marker { display: none; }
+.appendix-details > summary::before {
+  content: "\25b8"; display: inline-block; margin-right: 6px; color: var(--accent);
+  transition: transform .12s;
+}
+.appendix-details[open] > summary::before { transform: rotate(90deg); }
+
 /* rule items（トップレベル ul のチェックリスト装飾。箇条書きと同じ体裁） */
 .rule-list { list-style: none; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; margin: 8px 0 0; }
 .rule-item { position: relative; font-size: 13.5px; line-height: 1.75; color: var(--sub); }
@@ -459,9 +575,23 @@ a:hover { text-decoration: underline; }
 }
 
 /* tables */
+.table-scroll-shell { position: relative; min-width: 0; margin-bottom: 14px; }
+.table-scroll-shell::before,
+.table-scroll-shell::after {
+  content: ""; position: absolute; z-index: 2; top: 1.5px; bottom: 1.5px; width: 30px;
+  opacity: 0; pointer-events: none; transition: opacity .12s;
+}
+.table-scroll-shell::before {
+  left: 1.5px; background: linear-gradient(to right, var(--panel), transparent);
+}
+.table-scroll-shell::after {
+  right: 1.5px; background: linear-gradient(to left, var(--panel), transparent);
+}
+.table-scroll-shell.can-scroll-left::before,
+.table-scroll-shell.can-scroll-right::after { opacity: .94; }
 .table-wrap {
   width: 100%; overflow-x: auto; overscroll-behavior-inline: contain;
-  border: 1.5px solid var(--line2); margin-bottom: 14px; scrollbar-gutter: stable;
+  border: 1.5px solid var(--line2); scrollbar-gutter: stable;
 }
 table.data-table { width: max-content; min-width: 100%; border-collapse: collapse; font-size: 13px; background: var(--panel); }
 table.data-table thead { position: sticky; top: 0; z-index: 1; }
@@ -493,6 +623,10 @@ table.data-table code {
   margin: 0; padding: 12px 14px; overflow-x: auto;
   font-family: var(--mono); font-size: 12px; line-height: 1.8; color: var(--codetext);
 }
+#doc-content .code-block code {
+  display: block; padding: 0; border: 0; background: transparent;
+  color: inherit; font: inherit; white-space: pre;
+}
 .code-block .kw { color: #CBA6F7; }
 .code-block .fn { color: #89B4FA; }
 .code-block .str { color: #A6E3A1; }
@@ -507,7 +641,7 @@ table.data-table code {
   .dp-panel { max-width: none; padding: 20px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .toc-link { transition: none; }
+  .toc-link, .table-scroll-shell::before, .table-scroll-shell::after { transition: none; }
 }
 </style>
 </head>
@@ -518,8 +652,10 @@ table.data-table code {
     <aside class="pt-sidebar" data-portal-href="../../../index.html" data-active-category="list">
   <div class="pt-brand">
     <div class="pt-brand-stamp">DESIGN PORTAL</div>
-    <div class="pt-brand-name">reverse-docs-1-62-impl</div>
-    <div class="pt-brand-sub">設計台帳 · 全36資料</div>
+    <div class="pt-brand-switch" id="pt-brand-switch">
+      <div class="pt-brand-name">sample-project</div>
+    </div>
+    <div class="pt-brand-sub">設計台帳 · 全37資料</div>
   </div>
   <nav class="pt-nav" id="pt-nav" aria-label="資料カテゴリ"></nav>
   <button type="button" class="pt-theme" id="pt-theme-toggle">
@@ -527,7 +663,8 @@ table.data-table code {
   </button>
   <div class="pt-sidebar-meta">更新 <span id="pt-sidebar-date">2026-07-29</span><span id="pt-meta-commit"><br>コミット </span></div>
 </aside>
-<script type="application/json" id="pt-nav-data">[{"key":"project","num":"01","label":"基盤情報","count":4},{"key":"standards","num":"02","label":"規約","count":6},{"key":"design","num":"03","label":"設計書","count":5},{"key":"list","num":"04","label":"一覧・設計図","count":13},{"key":"cross","num":"05","label":"マトリクス・対応表","count":4},{"key":"ai","num":"06","label":"AI設定資産","count":1},{"key":"design-tools","num":"07","label":"デザイン","count":3}]</script>
+<script type="application/json" id="pt-nav-data">[{"key":"project","num":"01","label":"基盤情報","count":5},{"key":"standards","num":"02","label":"規約","count":6},{"key":"design","num":"03","label":"設計書","count":5},{"key":"list","num":"04","label":"一覧・設計図","count":13},{"key":"cross","num":"05","label":"マトリクス・対応表","count":4},{"key":"ai","num":"06","label":"AI設定資産","count":1},{"key":"design-tools","num":"07","label":"デザイン","count":3}]</script>
+<script type="application/json" id="pt-sites-data">[]</script>
 <script>
 (function () {
   var root = document.documentElement;
@@ -631,6 +768,85 @@ table.data-table code {
     nav.appendChild(item(portalHref + '#cat-' + c.key, c.num, c.label, c.count, active === c.key));
   });
 })();
+
+(function () {
+  var switchWrap = document.getElementById('pt-brand-switch');
+  var sitesEl = document.getElementById('pt-sites-data');
+  if (!switchWrap || !sitesEl) return;
+  var sites = [];
+  try { sites = JSON.parse(sitesEl.textContent) || []; } catch (e) { return; }
+  if (!Array.isArray(sites) || sites.length < 2) return;
+
+  var nameEl = switchWrap.querySelector('.pt-brand-name');
+  var label = nameEl ? nameEl.textContent : '';
+
+  var btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'pt-brand-toggle';
+  btn.id = 'pt-brand-toggle';
+  btn.setAttribute('aria-expanded', 'false');
+  btn.setAttribute('aria-controls', 'pt-brand-list');
+
+  var text = document.createElement('span');
+  text.className = 'pt-brand-toggle-label';
+  text.textContent = label;
+  btn.appendChild(text);
+
+  var caret = document.createElement('span');
+  caret.className = 'pt-brand-caret';
+  caret.setAttribute('aria-hidden', 'true');
+  btn.appendChild(caret);
+
+  if (nameEl) {
+    switchWrap.replaceChild(btn, nameEl);
+  } else {
+    switchWrap.appendChild(btn);
+  }
+
+  var list = document.createElement('div');
+  list.className = 'pt-brand-list';
+  list.id = 'pt-brand-list';
+  list.hidden = true;
+
+  sites.forEach(function (site) {
+    if (site.current) {
+      var current = document.createElement('div');
+      current.className = 'pt-brand-list-item is-current';
+      current.textContent = site.label;
+      list.appendChild(current);
+    } else {
+      var a = document.createElement('a');
+      a.className = 'pt-brand-list-item';
+      a.href = site.href;
+      a.textContent = site.label;
+      list.appendChild(a);
+    }
+  });
+
+  switchWrap.appendChild(list);
+
+  function close() {
+    btn.setAttribute('aria-expanded', 'false');
+    list.hidden = true;
+  }
+
+  btn.addEventListener('click', function () {
+    var expanded = btn.getAttribute('aria-expanded') === 'true';
+    if (expanded) {
+      close();
+    } else {
+      btn.setAttribute('aria-expanded', 'true');
+      list.hidden = false;
+    }
+  });
+
+  document.addEventListener('click', function (e) {
+    if (!switchWrap.contains(e.target)) close();
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') close();
+  });
+})();
 </script>
     <main class="pt-main" id="main-scroll">
       <div class="pt-head">
@@ -644,7 +860,7 @@ table.data-table code {
           <div class="sidebar-parent">
             <span id="screen-nav-title">画面 / 設計書</span>
           </div>
-          <nav class="sidebar-doc-nav" aria-label="画面設計書"><a class="back-link" href="../../../一覧/画面一覧/画面一覧.html">← 画面一覧へ戻る</a><a class="nav-item" href="../基本設計/画面基本設計書.html">基本設計</a><span class="nav-item active">詳細設計</span><a class="nav-item" href="../シーケンス図.html">シーケンス図</a></nav>
+          <nav class="sidebar-doc-nav" aria-label="画面設計書"><a class="back-link" href="../../../一覧/画面一覧/画面一覧.html">← 画面一覧へ戻る</a><a class="nav-item" href="../基本設計/画面基本設計書.html">基本設計</a><span class="nav-item active">詳細設計</span><a class="nav-item" href="../シーケンス図.html">シーケンス図</a><a class="nav-item" href="../テスト項目書/単体テスト仕様書.md">テストケース</a></nav>
           <div class="toc-label">この設計書内</div>
           <ul class="toc-list" id="toc-list"></ul>
         </aside>
@@ -656,12 +872,12 @@ table.data-table code {
   </div>
   <footer class="pt-footer">
   <span class="pt-footer-stamp">REVERSE-DOCS REGISTER</span>
-  <span class="pt-footer-meta">reverse-docs-1-62-impl · 更新 <span id="pt-footer-date">2026-07-29</span><span id="pt-footer-commit"> · コミット </span></span>
+  <span class="pt-footer-meta">sample-project · 更新 <span id="pt-footer-date">2026-07-29</span><span id="pt-footer-commit"> · コミット </span></span>
   <span class="pt-footer-gen">生成: shared/scripts/build-portal.sh</span>
 </footer>
 </div>
 
-<script type="application/json" id="doc-md">"\n# 注文詳細 画面詳細設計書\n\n## 関連資料（正の宣言）\n\n| 正の種類 | ファイル | 本書との役割分担 |\n|---|---|---|\n| スタイル・数値（共通） | `../../プロジェクト共通/DESIGN.md` | 複数画面共通のデザイン値の正 |\n| スタイル・数値（画面固有差分） | `./DESIGN.md` | 画面固有の差分の正。本書はキー名参照のみ |\n| 共通仕様 | `../../プロジェクト共通/共通設計書.md` | システム共通仕様の正。本書は準拠状況と画面固有制約のみ |\n| 文言 | `../../プロジェクト共通/メッセージ定義書.md` | 文言の正。本書はメッセージ ID で参照 |\n| テスト観点 | `./単体テスト観点表.md` / `./結合テスト観点表.md` | テスト観点・受け入れ条件の正。本書に含めない |\n| 単体テストケース | `../テスト項目書/単体テスト仕様書.md`（任意） | 具体的な入力値・アサーションの設計時契約。実装後はテストコードが正 |\n| 結合テストケース | `../テスト項目書/結合テスト仕様書.md`（任意） | 具体的な操作手順・入力値・アサーションの設計時契約。実装後はテストコードが正 |\n\n## 章マップ\n\n| 役割キー | § | 章名 | 区分 | 正 | 実装後の扱い | 保守方式 |\n|---|---|---|---|---|---|---|\n| 画面概要 | §1 | 画面概要 | 必須 | 本書 | 維持 | 手 |\n| 機能一覧 | §2 | 機能一覧 | 必須 | 本書 | 維持 | 手 |\n| 画面構造 | §3 | 画面構造 | 必須 | 本書（§3.6 の数値は DESIGN.md） | 維持 | 生成 |\n| 業務ルール | §4 | 業務ルール | 条件付き | 本書 | 維持 | 手 |\n| 状態管理 | §5 | 状態管理 | 必須 | 本書 | 維持 | 生成 |\n| データフロー | §6 | データフロー | 必須 | 本書 | 維持 | 生成 |\n| API通信 | §7 | API 通信仕様 | 条件付き | API 定義書（本書は画面固有の使い方のみ） | 維持 | 生成 |\n| イベント処理 | §8 | イベント処理 | 必須 | 本書 | 維持 | 生成 |\n| 領域別仕様 | §9 | 領域別仕様 | 必須 | 本書 | 維持 | 混在 |\n| 定数設定値 | §10 | 定数・設定値 | 条件付き | 設計時は本書 → 実装後は実装コード | 実装ファイルのパス参照に置換 | 混在 |\n| エラーハンドリング | §11 | エラーハンドリング | 必須 | 本書 | 維持 | 混在 |\n| 画面遷移 | §12 | 画面遷移仕様 | 必須 | 本書 | 維持 | 生成 |\n| 非機能要件 | §13 | 非機能要件 | 必須 | 共通設計書（画面固有制約のみ本書） | 維持 | 手 |\n| 共通準拠 | §14 | 共通仕様への準拠 | 必須 | 共通設計書（本書は逸脱のみ） | 維持 | 手 |\n| 実装契約 | §15 | 実装契約 | 必須 | 設計時は本書 → 実装後はコード（§15.6 は DESIGN.md） | 構造の骨子のみ維持 | 生成 |\n| 要確認事項 | §16 | 要確認事項一覧 | 必須 | 本書 | approved の条件は 0 件 | 手 |\n\n保守方式: 手 = 人が保守する正 / 生成 = 納品時にコードから生成 / 混在 = 生成した骨格に業務的意味を手で重ねる\n\n---\n\n## §1 画面概要\n\n### 1.1 基本情報\n\n| 項目 | 値 |\n|---|---|\n| 画面名 | 注文詳細 |\n| 目的 | 個別注文の明細・配送先を確認し、ステータスを更新する |\n| ルート | /orders/:id |\n| 遷移元 | 注文一覧 |\n| 遷移先 | 注文一覧（一覧へ戻る操作時） |\n\n### 1.2 業務上の位置づけ\n\n注文一覧から個別注文を選んだ後の確認・処理段階に位置し、ステータス更新によって後続の出荷業務や経理処理を進める役割を持つ。\n\n---\n\n## §2 機能一覧\n\n### 2.1 機能一覧表\n\n| キー | 機能名 | 概要 | 優先度 |\n|---|---|---|---|\n| 詳細-明細確認 | 注文明細確認 | 注文に含まれる商品・数量・単価を確認する | 必須 |\n| 詳細-配送確認 | 配送先情報確認 | 配送先住所・配送方法を確認する | 必須 |\n| 詳細-ステータス更新 | 注文ステータス更新 | 注文の進行状況を次の段階へ更新する | 必須 |\n\n### 2.2 機能間の関係\n\nステータス更新は明細・配送先の確認が完了していることを前提として実行される想定であり、確認機能と更新機能は連続して利用される。\n\n---\n\n## §3 画面構造\n\n### 画面キャプチャ\n\n> 元コードの画面キャプチャーは、このサンプルには含まれません。\n\n### 部品構成（コンポーネント構造）\n\n```\n┌─ OrderDetailPage ───────────────────┐\n│ ┌─ OrderSummaryPanel ────────────┐ │\n│ │ OrderStatusBadge                │ │\n│ └────────────────────────────────┘ │\n│ ┌─ OrderItemTable ───────────────┐ │\n│ │ OrderItemRow                    │ │\n│ └────────────────────────────────┘ │\n│ ┌─ ShippingInfoPanel ────────────┐ │\n│ └────────────────────────────────┘ │\n│ ┌─ StatusUpdatePanel ────────────┐ │\n│ │ StatusSelect / CommentInput     │ │\n│ └────────────────────────────────┘ │\n└──────────────────────────────────────┘\n```\n\n### 3.1 コンポーネント配置\n\n```\nOrderDetailPage\n├─ OrderSummaryPanel\n│   └─ OrderStatusBadge\n├─ OrderItemTable\n│   └─ OrderItemRow（繰り返し）\n├─ ShippingInfoPanel\n└─ StatusUpdatePanel\n    ├─ StatusSelect\n    └─ CommentInput\n```\n\n### 3.2 DOM 配置順序\n\n1. OrderSummaryPanel — 受注番号・顧客情報・現在のステータス\n2. OrderItemTable — 商品明細\n3. ShippingInfoPanel — 配送先情報\n4. StatusUpdatePanel — ステータス更新操作\n\n### 3.3 レイアウト制約\n\n| 制約 | 値 |\n|---|---|\n| レイアウト方式 | Flex（縦積み） |\n| 最小幅 | 800px |\n| 最大幅 | 1200px |\n\n### 3.4 メニューバー設定（条件付き：メニューバーを持つ画面のみ）\n\n該当なし（メニューバーが存在しない画面のため）\n\n### 3.5 設定オブジェクト構造（条件付き：設定オブジェクトを持つ場合のみ）\n\n該当なし（設定オブジェクトを持たない画面のため）\n\n### 3.6 スタイル適用パターン\n\n| 領域 | 適用パターン | 参照先 |\n|---|---|---|\n| OrderStatusBadge | status-badge | `DESIGN.md > colors.statusBadge` |\n| StatusUpdatePanel（送信中） | disabled-panel | `DESIGN.md > colors.disabledPanel` |\n\n### 3.7 ボタン一覧\n\n| ボタン名 | 種別 | 位置 | 活性条件 |\n|---|---|---|---|\n| ステータス更新実行 | 危険 | StatusUpdatePanel 内 | 更新後ステータスが選択され、現在のステータスから遷移可能な場合 |\n| 一覧へ戻る | 補助 | OrderSummaryPanel 内 | 常時 |\n\n---\n\n## §4 業務ルール（条件付き：業務モード・権限制御がある画面のみ）\n\n### 4.1 業務モードと切替条件\n\n| モード | 切替条件 | UI の変化 |\n|---|---|---|\n| 通常編集モード | ステータスが下書きまたは確定の場合 | ステータス更新操作を活性化する |\n| 閲覧専用モード | ステータスが出荷済またはキャンセルの場合 | キャンセルへの更新操作を無効化する |\n\n### 4.2 業務判断ポイント\n\n現在のステータスによって次に選択できるステータス（確定・出荷済・キャンセル）が変化する。\n\n### 4.3 業務フロー内の前後画面との関係\n\n注文一覧から受注番号を受け取り表示する。更新完了後は一覧へ戻り、更新結果が反映された一覧を再表示する。\n\n### 4.4 権限別の UI 制御\n\n| ロール | ステータス更新実行ボタン | 配送先情報 |\n|---|---|---|\n| 出荷担当者 | 表示 | 表示 |\n| 受注担当者 | 表示 | 表示 |\n\n---\n\n## §5 状態管理\n\n### 5.1 URL パラメータ\n\n| パラメータ名 | 型 | 必須 | 用途 |\n|---|---|---|---|\n| id | 文字列 | ○ | 表示対象の注文を受注番号で特定する |\n\n### 5.2 セッション・ストレージ参照\n\n| キー名 | 種別 | 用途 |\n|---|---|---|\n| order-list-last-search | session | 一覧へ戻る際に直前の検索条件を復元する |\n\n### 5.3 メイン画面の状態変数\n\n| 変数名 | 型 | 初期値 | 役割 |\n|---|---|---|---|\n| order | 注文詳細レコード | 空値 | 表示中の注文の全項目を保持する |\n| selectedNextStatus | 文字列 | 空文字 | ステータス更新操作で選択された遷移先を保持する |\n| updateComment | 文字列 | 空文字 | ステータス更新時の備考入力値を保持する |\n| isSubmitting | 真偽値 | 偽 | ステータス更新API呼び出し中かどうかを保持する |\n| statusHistory | ステータス変更履歴の配列 | 空配列 | ステータス変更履歴を保持する |\n\n### 5.4 サブコンポーネントの状態変数\n\n| コンポーネント | 変数名 | 型 | 役割 |\n|---|---|---|---|\n| StatusUpdatePanel | isConfirmDialogOpen | 真偽値 | 更新確認ダイアログの表示状態を保持する |\n\n### 5.5 派生値（計算値）\n\n| 派生値名 | 算出ロジック概要 | 依存する状態変数 |\n|---|---|---|\n| availableNextStatuses | order.status を起点に遷移可能な次ステータスの一覧を算出する | order |\n| isEditable | order.status が下書きまたは確定かどうかを判定する | order |\n\n### 5.6 画面専用ストア（永続化）\n\n該当なし（画面固有の永続化なし）\n\n### 5.7 共有ストア参照\n\n| ストア / コンテキスト | 参照キー | 用途 |\n|---|---|---|\n| AuthContext | userRole | 出荷担当者・受注担当者の権限区分を判定する |\n\n### 5.8 検索条件更新関数\n\n該当なし\n\n### 5.9 初期値・デフォルト値一覧\n\n| 変数名 | 初期値 | 根拠 |\n|---|---|---|\n| selectedNextStatus | 空文字 | 更新操作前は未選択状態から開始する業務要件のため |\n| isSubmitting | 偽 | 画面表示直後は更新処理中ではないため |\n\n---\n\n## §6 データフロー\n\n### 6.1 初期表示シーケンス\n\n1. URL パラメータ取得（受注番号）\n2. ストア初期化（AuthContext から利用者権限を取得）\n3. API 呼び出し（§7 参照）\n4. データ変換（§6.5 参照）\n5. 画面状態を ready に更新\n\n#### 6.1.1 起動時初期化（URL パラメータ → ストア書き戻し）\n\nid パラメータを受注番号として order 取得APIの呼び出し引数に用いる。ストアへの書き戻しは行わない。\n\n### 6.2 依存連鎖\n\norder.status が変化すると availableNextStatuses が再算出される。\n\n### 6.3 ユーザー操作確定時の処理フロー\n\n1. バリデーション（§11 参照）\n2. 確認ダイアログ表示（ステータス更新実行時）\n3. API 呼び出し\n4. 成功時: order を更新し statusHistory に追記\n5. 失敗時: エラー表示（§11 参照）\n\n### 6.4 データ更新トリガーの分類\n\n| トリガー | 種別 | 処理概要 |\n|---|---|---|\n| ステータス更新実行ボタン押下 | ユーザー操作 | 選択された次ステータスへ更新APIを呼び出す |\n\n### 6.5 データ変換（API レスポンス → 画面表示用データ）\n\n| 変換名 | 入力型 | 出力型 | 変換概要 |\n|---|---|---|---|\n| formatOrderDetail | 注文詳細APIレスポンス | 画面表示用の注文詳細 | 金額の3桁区切り変換、ステータスコードの表示ラベル変換、明細行の小計算出を行う |\n\n### 6.6 画面状態の遷移\n\n| 状態 | 遷移条件 | UI の表示 |\n|---|---|---|\n| loading | 初期表示・更新処理中 | ローディング表示 |\n| empty | 該当データなし | 空状態メッセージ |\n| error | API エラー | エラーメッセージ（§11 参照） |\n| ready | データ取得・更新成功 | メインコンテンツ |\n\n---\n\n## §7 API 通信仕様（条件付き：API を呼ぶ画面のみ）\n\n### 7.1 API 一覧\n\n| No | API 名 | メソッド | エンドポイント | 呼び出し契機 |\n|---|---|---|---|---|\n| 7.2 | 注文詳細取得API | GET | /api/orders/:id | 初期表示時 |\n| 7.3 | 注文ステータス更新API | PATCH | /api/orders/:id/status | ステータス更新実行時 |\n\n### 7.2 注文詳細取得API\n\n| 項目 | 内容 |\n|---|---|\n| 概要 | 指定した受注番号の注文詳細を取得する |\n| エンドポイント | GET /api/orders/:id |\n| 呼び出し契機 | 初期表示時 |\n\n**リクエスト**\n\n```\n{ id（パスパラメータ）; }\n```\n\n**レスポンス**\n\n```\n{ orderId; customerName; items（明細の配列）; shippingAddress; status; statusHistory; }\n```\n\n**エラーと画面側の扱い**\n\n| ステータス | 画面の挙動 | メッセージ ID |\n|---|---|---|\n| 401 | ログイン画面へ遷移 | — |\n| 404 | 該当注文なしメッセージ表示 | MSG-ORDER-003 |\n| 500 | システムエラーメッセージ表示 | MSG-COMMON-500 |\n\n### 7.3 注文ステータス更新API\n\n| 項目 | 内容 |\n|---|---|\n| 概要 | 注文のステータスを次の段階へ更新する |\n| エンドポイント | PATCH /api/orders/:id/status |\n| 呼び出し契機 | ステータス更新実行時 |\n\n**リクエスト**\n\n```\n{ nextStatus; comment; }\n```\n\n**レスポンス**\n\n```\n{ status; updatedAt; statusHistory（更新後の配列）; }\n```\n\n**エラーと画面側の扱い**\n\n| ステータス | 画面の挙動 | メッセージ ID |\n|---|---|---|\n| 400 | 遷移不可エラー表示 | MSG-ORDER-004 |\n| 409 | 競合エラー表示・最新状態を再取得 | MSG-ORDER-005 |\n| 500 | システムエラーメッセージ表示 | MSG-COMMON-500 |\n\n---\n\n## §8 イベント処理\n\n### 8.1 メイン画面イベント\n\n| イベント | 発火要素 | 処理概要 |\n|---|---|---|\n| onStatusUpdateSubmit | ステータス更新実行ボタン | 確認ダイアログを経て注文ステータス更新APIを呼び出す |\n| onBackToList | 一覧へ戻るボタン | 直前の検索条件を維持したまま注文一覧へ遷移する |\n\n### 8.2 サブコンポーネントイベント\n\n| コンポーネント | イベント | 処理概要 |\n|---|---|---|\n| StatusUpdatePanel | onNextStatusChange | selectedNextStatus を更新する |\n| StatusUpdatePanel | onCommentChange | updateComment を更新する |\n\n### 8.3 複数ステップ処理の詳細\n\nステータス更新実行ボタン押下時、確認ダイアログを表示して利用者の最終確認を得たうえでAPIを呼び出す。\n\n### 8.4 キーボード操作\n\n| キー | 発火条件 | 挙動 |\n|---|---|---|\n| Tab | フォーカス可能要素 | ステータス選択 → 備考入力 → 更新実行ボタンの順で移動する |\n| Enter | 確認ダイアログ内 | 確認を確定し更新処理を実行する |\n\n---\n\n## §9 領域別仕様\n\n### 9.1 注文基本情報エリア（OrderSummaryPanel）\n\n#### 9.1.1 概要\n\n受注番号・顧客情報・現在のステータスを表示する領域。\n\n#### 9.1.2 配置\n\nOrderDetailPage 直下、最上部に配置される。\n\n#### 9.1.3 項目定義\n\n| 項目名 | 型 | 必須 | 書式 | 状態別編集可否 |\n|---|---|---|---|---|\n| 受注番号 | 文字列 | ○ | 半角英数字 | ready: 不可 / loading: 不可 |\n| ステータス | 区分値 | ○ | バッジ表示 | ready: 不可 / loading: 不可 |\n\n#### 9.1.4 イベント・挙動\n\n| イベント | 挙動 |\n|---|---|\n| onBackToList | 注文一覧へ遷移する |\n\n#### 9.1.5 領域固有の制約\n\n該当なし\n\n### 9.2 ステータス更新操作エリア（StatusUpdatePanel）\n\n#### 9.2.1 概要\n\n次のステータスと備考を入力し、更新を実行する領域。\n\n#### 9.2.2 配置\n\nOrderDetailPage 直下、最下部に配置される。\n\n#### 9.2.3 項目定義\n\n| 項目名 | 型 | 必須 | 書式 | 状態別編集可否 |\n|---|---|---|---|---|\n| 更新後ステータス | 選択肢 | ○ | 遷移可能な区分のみ選択可 | ready: 可 / loading: 不可 |\n| 更新備考 | 文字列 | × | 自由記述（200文字以内） | ready: 可 / loading: 不可 |\n\n#### 9.2.4 イベント・挙動\n\n| イベント | 挙動 |\n|---|---|\n| onStatusUpdateSubmit | 確認ダイアログを経てステータス更新APIを呼び出す |\n\n#### 9.2.5 領域固有の制約\n\n出荷済・キャンセル状態からはキャンセルへの更新を選択できない。\n\n---\n\n## §10 定数・設定値（条件付き：画面固有の定数がある場合のみ）\n\n### 10.1 文字列定数\n\n| 定数名 | 値 | 用途 |\n|---|---|---|\n| COMMENT_MAX_LENGTH | \"200\" | 更新備考の最大文字数 |\n\n### 10.2 選択肢定義\n\n| 定数名 | 選択肢 | 用途 |\n|---|---|---|\n| STATUS_TRANSITION_MAP | 下書き→確定 / 確定→出荷済 / 下書き→キャンセル / 確定→キャンセル | ステータス更新時に選択可能な遷移先の定義 |\n\n### 10.3 列定義・表示設定\n\n商品明細テーブルは商品名・数量・単価・小計の4列で構成する。\n\n### 10.4 コード変換テーブル\n\n| コード | 表示ラベル |\n|---|---|\n| draft | 下書き |\n| confirmed | 確定 |\n| shipped | 出荷済 |\n| cancelled | キャンセル |\n\n### 10.5 区分定数\n\n| 定数名 | 値一覧 |\n|---|---|\n| ORDER_STATUS | draft / confirmed / shipped / cancelled |\n\n---\n\n## §11 エラーハンドリング\n\n### 11.1 ユーザー入力チェック\n\n| チェック対象 | 条件 | エラー種別 |\n|---|---|---|\n| 更新後ステータス | 現在のステータスから遷移可能な区分であること | 形式 |\n| 更新備考 | 200文字以内であること | 形式 |\n\n### 11.2 エラーメッセージ・警告\n\n| タイミング | メッセージ ID | 表示位置 |\n|---|---|---|\n| 遷移不可な更新操作 | MSG-ORDER-004 | インライン |\n| 更新時の競合検出 | MSG-ORDER-005 | トースト |\n\n### 11.3 システムエラー\n\n| エラー種別 | 画面の挙動 | メッセージ ID |\n|---|---|---|\n| ネットワーク断 | エラーバナー表示・リトライ促進 | MSG-COMMON-NET |\n| 認証切れ | ログイン画面へ遷移 | — |\n| 予期しないエラー | エラーメッセージ表示 | MSG-COMMON-500 |\n\n---\n\n## §12 画面遷移仕様\n\n### 12.1 遷移先一覧\n\n| 遷移先画面 | 遷移方式 | 条件 | 渡すパラメータ |\n|---|---|---|---|\n| 注文一覧 | back | 一覧へ戻るボタン押下時 | なし（直前の検索条件はセッションから復元） |\n\n### 12.2 遷移方式の方針\n\n一覧へ戻る操作は back 方式とし、一覧画面の検索条件・スクロール位置を維持したまま復帰する。\n\n---\n\n## §13 非機能要件\n\n### 13.1 表示件数・データ量制限\n\n| 対象 | 上限 | 超過時の挙動 |\n|---|---|---|\n| 商品明細 | 100 件 | 明細テーブル内でスクロール表示 |\n\n### 13.2 パフォーマンス目安\n\n| 操作 | 目標応答時間 |\n|---|---|\n| 初期表示 | 2 秒以内 |\n| ステータス更新 | 1.5 秒以内 |\n\n### 13.3 ローディング・処理中表示\n\n| 操作 | ローディング表示方式 |\n|---|---|\n| 初期表示 | スケルトン |\n| ステータス更新 | ボタン無効化 |\n\n### 13.4 タイムアウト・リトライ方針\n\n| 項目 | 値 | 根拠 |\n|---|---|---|\n| タイムアウト時間 | 10 秒 | 共通設計書の標準API応答方針に準拠 |\n| リトライ回数 | 0 回 | 更新系APIのため自動リトライは行わない方針 |\n\n### 13.5 ブラウザ・画面解像度の動作保証範囲\n\n共通設計書準拠（差分なし）\n\n---\n\n## §14 共通仕様への準拠\n\n### 14.1 共通コンポーネント利用一覧\n\n| コンポーネント名 | 利用箇所 | 独自実装の場合の理由 |\n|---|---|---|\n| CommonTable | OrderItemTable | — |\n| CommonDialog | StatusUpdatePanel の確認ダイアログ | — |\n\n### 14.2 共通ソート・表示順ルールの適用\n\n| 対象リスト | 適用ルール | 逸脱理由 |\n|---|---|---|\n| statusHistory | 更新日時の新しい順 | — |\n\n### 14.3 用語・ラベルの統一\n\n共通設計書準拠（差分なし）\n\n### 14.4 日付・数値・コード値の表示フォーマット\n\n| 値の種類 | フォーマット | 空値時 |\n|---|---|---|\n| 日付 | YYYY/MM/DD HH:mm | — |\n| 数値 | 3桁区切り | — |\n| コード値 | 表示ラベルに変換 | — |\n\n### 14.5 共通メッセージの利用\n\n| 用途 | メッセージ ID |\n|---|---|\n| システムエラー | MSG-COMMON-500 |\n\n---\n\n## §15 実装契約\n\n### 15.1 ファイル分割と export 一覧\n\n| ファイルパス | export 名 | 種別 | 実体形状 | 配置ディレクトリ |\n|---|---|---|---|---|\n| pages/OrderDetailPage.tsx | OrderDetailPage | コンポーネント | ページルートコンポーネント（基本情報・明細・配送先・更新操作を内包） | pages/ |\n| components/OrderItemTable.tsx | OrderItemTable | コンポーネント | 商品明細テーブル | components/ |\n| components/StatusUpdatePanel.tsx | StatusUpdatePanel | コンポーネント | ステータス更新操作パネル | components/ |\n| hooks/useOrderDetailState.ts | useOrderDetailState | フック | 注文詳細データとステータス更新状態を管理する状態フック | hooks/ |\n\n### 15.2 型定義\n\n| 型名 | フィールド名 | 型 | 必須/任意 |\n|---|---|---|---|\n| OrderDetail | orderId | 文字列 | 必須 |\n| OrderDetail | customerName | 文字列 | 必須 |\n| OrderDetail | items | 明細レコードの配列 | 必須 |\n| OrderDetail | shippingAddress | 文字列 | 必須 |\n| OrderDetail | status | 区分値 | 必須 |\n| OrderDetail | statusHistory | 履歴レコードの配列 | 必須 |\n\n### 15.3 依存（import）一覧\n\n| モジュール | import 内容 | 種別 |\n|---|---|---|\n| AuthContext | useAuthContext | 内部 |\n| CommonDialog | CommonDialog | 内部 |\n\n### 15.4 別画面コンポーネントとの型合わせ\n\nOrderDetail は注文一覧画面の OrderListItem 型と受注番号・ステータスの表現を統一している。\n\n### 15.5 スコープ分類\n\n| 対象 | スコープ | 理由 |\n|---|---|---|\n| order | コンポーネントローカル | 表示中の注文1件に閉じたデータのため |\n| userRole | コンテキスト | 複数画面で共有する認可情報のため |\n\n### 15.6 スタイル定数一覧\n\n| 定数名 | 用途 | 参照先 |\n|---|---|---|\n| statusBadgeColor | ステータスバッジの配色 | `DESIGN.md > colors.statusBadge` |\n\n### 15.7 state 遷移シーケンス\n\n```\n初期化 → loading → ready\n                 ↘ error（リトライ可）\n       → loading → empty（対象注文が存在しない場合）\n```\n\n---\n\n## §16 要確認事項一覧\n\n| キー | 起票日 | 内容 | 暫定扱いにしている § | 解消条件 | 状態 |\n|---|---|---|---|---|---|\n| キャンセル理由-必須化 | 2026-07-20 | キャンセルへの更新時に備考入力を必須にすべきか業務部門へ確認する | §9.2 | 業務部門からの確認回答を得る | 未解消 |"</script>
+<script type="application/json" id="doc-md">"\n# 注文詳細 画面詳細設計書\n\n## 関連資料（正の宣言）\n\n| 正の種類 | ファイル | 本書との役割分担 |\n|---|---|---|\n| スタイル・数値（共通） | `../../プロジェクト共通/DESIGN.md` | 複数画面共通のデザイン値の正 |\n| スタイル・数値（画面固有差分） | `./DESIGN.md` | 画面固有の差分の正。本書はキー名参照のみ |\n| 共通仕様 | `../../プロジェクト共通/共通設計書.md` | システム共通仕様の正。本書は準拠状況と画面固有制約のみ |\n| 文言 | `../../プロジェクト共通/メッセージ定義書.md` | 文言の正。本書はメッセージ ID で参照 |\n| テスト観点 | [./単体テスト観点表.md](%E5%8D%98%E4%BD%93%E3%83%86%E3%82%B9%E3%83%88%E8%A6%B3%E7%82%B9%E8%A1%A8.md) / [./結合テスト観点表.md](%E7%B5%90%E5%90%88%E3%83%86%E3%82%B9%E3%83%88%E8%A6%B3%E7%82%B9%E8%A1%A8.md) | テスト観点・受け入れ条件の正。本書に含めない |\n| 単体テストケース | [../テスト項目書/単体テスト仕様書.md](../%E3%83%86%E3%82%B9%E3%83%88%E9%A0%85%E7%9B%AE%E6%9B%B8/%E5%8D%98%E4%BD%93%E3%83%86%E3%82%B9%E3%83%88%E4%BB%95%E6%A7%98%E6%9B%B8.md)（任意） | 具体的な入力値・アサーションの設計時契約。実装後はテストコードが正 |\n| 結合テストケース | [../テスト項目書/結合テスト仕様書.md](../%E3%83%86%E3%82%B9%E3%83%88%E9%A0%85%E7%9B%AE%E6%9B%B8/%E7%B5%90%E5%90%88%E3%83%86%E3%82%B9%E3%83%88%E4%BB%95%E6%A7%98%E6%9B%B8.md)（任意） | 具体的な操作手順・入力値・アサーションの設計時契約。実装後はテストコードが正 |\n\n## 章マップ\n\n| 役割キー | § | 章名 | 区分 | 正 | 実装後の扱い | 保守方式 |\n|---|---|---|---|---|---|---|\n| 画面概要 | §1 | 画面概要 | 必須 | 本書 | 維持 | 手 |\n| 機能一覧 | §2 | 機能一覧 | 必須 | 本書 | 維持 | 手 |\n| 画面構造 | §3 | 画面構造 | 必須 | 本書（§3.6 の数値は DESIGN.md） | 維持 | 生成 |\n| 業務ルール | §4 | 業務ルール | 条件付き | 本書 | 維持 | 手 |\n| 状態管理 | §5 | 状態管理 | 必須 | 本書 | 維持 | 生成 |\n| データフロー | §6 | データフロー | 必須 | 本書 | 維持 | 生成 |\n| API通信 | §7 | API 通信仕様 | 条件付き | API 定義書（本書は画面固有の使い方のみ） | 維持 | 生成 |\n| イベント処理 | §8 | イベント処理 | 必須 | 本書 | 維持 | 生成 |\n| 領域別仕様 | §9 | 領域別仕様 | 必須 | 本書 | 維持 | 混在 |\n| 定数設定値 | §10 | 定数・設定値 | 条件付き | 設計時は本書 → 実装後は実装コード | 実装ファイルのパス参照に置換 | 混在 |\n| エラーハンドリング | §11 | エラーハンドリング | 必須 | 本書 | 維持 | 混在 |\n| 画面遷移 | §12 | 画面遷移仕様 | 必須 | 本書 | 維持 | 生成 |\n| 非機能要件 | §13 | 非機能要件 | 必須 | 共通設計書（画面固有制約のみ本書） | 維持 | 手 |\n| 共通準拠 | §14 | 共通仕様への準拠 | 必須 | 共通設計書（本書は逸脱のみ） | 維持 | 手 |\n| 実装契約 | §15 | 実装契約 | 必須 | 設計時は本書 → 実装後はコード（§15.6 は DESIGN.md） | 構造の骨子のみ維持 | 生成 |\n| 要確認事項 | §16 | 要確認事項一覧 | 必須 | 本書 | approved の条件は 0 件 | 手 |\n\n保守方式: 手 = 人が保守する正 / 生成 = 納品時にコードから生成 / 混在 = 生成した骨格に業務的意味を手で重ねる\n\n---\n\n## §1 画面概要\n\n### 1.1 基本情報\n\n| 項目 | 値 |\n|---|---|\n| 画面名 | 注文詳細 |\n| 目的 | 個別注文の明細・配送先を確認し、ステータスを更新する |\n| ルート | /orders/:id |\n| 遷移元 | 注文一覧 |\n| 遷移先 | 注文一覧（一覧へ戻る操作時） |\n\n### 1.2 業務上の位置づけ\n\n注文一覧から個別注文を選んだ後の確認・処理段階に位置し、ステータス更新によって後続の出荷業務や経理処理を進める役割を持つ。\n\n---\n\n## §2 機能一覧\n\n### 2.1 機能一覧表\n\n| キー | 機能名 | 概要 | 優先度 |\n|---|---|---|---|\n| 詳細-明細確認 | 注文明細確認 | 注文に含まれる商品・数量・単価を確認する | 必須 |\n| 詳細-配送確認 | 配送先情報確認 | 配送先住所・配送方法を確認する | 必須 |\n| 詳細-ステータス更新 | 注文ステータス更新 | 注文の進行状況を次の段階へ更新する | 必須 |\n\n### 2.2 機能間の関係\n\nステータス更新は明細・配送先の確認が完了していることを前提として実行される想定であり、確認機能と更新機能は連続して利用される。\n\n---\n\n## §3 画面構造\n\n> 非該当項目: §3.4 メニューバー設定（メニューバーが存在しない画面のため）; §3.5 設定オブジェクト構造（設定オブジェクトを持たない画面のため）\n\n### 画面キャプチャ\n\n\u003cdiv class=\"screen-capture-placeholder\" role=\"img\" aria-label=\"画面キャプチャは未取得です。後続の画面確認で追加します。\" style=\"box-sizing:border-box;display:flex;align-items:center;justify-content:center;min-height:180px;padding:24px;color:#64748b;background:#f8fafc;border:2px dashed #94a3b8;border-radius:8px;text-align:center;\">画面キャプチャは未取得です。後続の画面確認で追加します。\u003c/div>\n\n### 部品構成（コンポーネント構造）\n\n```\n┌─ OrderDetailPage ───────────────────┐\n│ ┌─ OrderSummaryPanel ────────────┐ │\n│ │ OrderStatusBadge                │ │\n│ └────────────────────────────────┘ │\n│ ┌─ OrderItemTable ───────────────┐ │\n│ │ OrderItemRow                    │ │\n│ └────────────────────────────────┘ │\n│ ┌─ ShippingInfoPanel ────────────┐ │\n│ └────────────────────────────────┘ │\n│ ┌─ StatusUpdatePanel ────────────┐ │\n│ │ StatusSelect / CommentInput     │ │\n│ └────────────────────────────────┘ │\n└──────────────────────────────────────┘\n```\n\n### 3.1 コンポーネント配置\n\n```\nOrderDetailPage\n├─ OrderSummaryPanel\n│   └─ OrderStatusBadge\n├─ OrderItemTable\n│   └─ OrderItemRow（繰り返し）\n├─ ShippingInfoPanel\n└─ StatusUpdatePanel\n    ├─ StatusSelect\n    └─ CommentInput\n```\n\n### 3.2 DOM 配置順序\n\n1. OrderSummaryPanel — 受注番号・顧客情報・現在のステータス\n2. OrderItemTable — 商品明細\n3. ShippingInfoPanel — 配送先情報\n4. StatusUpdatePanel — ステータス更新操作\n\n### 3.3 レイアウト制約\n\n| 制約 | 値 |\n|---|---|\n| レイアウト方式 | Flex（縦積み） |\n| 最小幅 | 800px |\n| 最大幅 | 1200px |\n\n### 3.6 スタイル適用パターン\n\n| 領域 | 適用パターン | 参照先 |\n|---|---|---|\n| OrderStatusBadge | status-badge | `DESIGN.md > colors.statusBadge` |\n| StatusUpdatePanel（送信中） | disabled-panel | `DESIGN.md > colors.disabledPanel` |\n\n### 3.7 ボタン一覧\n\n| ボタン名 | 種別 | 位置 | 活性条件 |\n|---|---|---|---|\n| ステータス更新実行 | 危険 | StatusUpdatePanel 内 | 更新後ステータスが選択され、現在のステータスから遷移可能な場合 |\n| 一覧へ戻る | 補助 | OrderSummaryPanel 内 | 常時 |\n\n---\n\n## §4 業務ルール（条件付き：業務モード・権限制御がある画面のみ）\n\n### 4.1 業務モードと切替条件\n\n| モード | 切替条件 | UI の変化 |\n|---|---|---|\n| 通常編集モード | ステータスが下書きまたは確定の場合 | ステータス更新操作を活性化する |\n| 閲覧専用モード | ステータスが出荷済またはキャンセルの場合 | キャンセルへの更新操作を無効化する |\n\n### 4.2 業務判断ポイント\n\n現在のステータスによって次に選択できるステータス（確定・出荷済・キャンセル）が変化する。\n\n### 4.3 業務フロー内の前後画面との関係\n\n注文一覧から受注番号を受け取り表示する。更新完了後は一覧へ戻り、更新結果が反映された一覧を再表示する。\n\n### 4.4 権限別の UI 制御\n\n| ロール | ステータス更新実行ボタン | 配送先情報 |\n|---|---|---|\n| 出荷担当者 | 表示 | 表示 |\n| 受注担当者 | 表示 | 表示 |\n\n---\n\n## §5 状態管理\n\n> 非該当項目: §5.6 画面専用ストア（画面固有の永続化なし）; §5.8 検索条件更新関数（検索フォームを持たない）\n\n### 5.1 URL パラメータ\n\n| パラメータ名 | 型 | 必須 | 用途 |\n|---|---|---|---|\n| id | 文字列 | ○ | 表示対象の注文を受注番号で特定する |\n\n### 5.2 セッション・ストレージ参照\n\n| キー名 | 種別 | 用途 |\n|---|---|---|\n| order-list-last-search | session | 一覧へ戻る際に直前の検索条件を復元する |\n\n### 5.3 メイン画面の状態変数\n\n| 変数名 | 型 | 初期値 | 役割 |\n|---|---|---|---|\n| order | 注文詳細レコード | 空値 | 表示中の注文の全項目を保持する |\n| selectedNextStatus | 文字列 | 空文字 | ステータス更新操作で選択された遷移先を保持する |\n| updateComment | 文字列 | 空文字 | ステータス更新時の備考入力値を保持する |\n| isSubmitting | 真偽値 | 偽 | ステータス更新API呼び出し中かどうかを保持する |\n| statusHistory | ステータス変更履歴の配列 | 空配列 | ステータス変更履歴を保持する |\n\n### 5.4 サブコンポーネントの状態変数\n\n| コンポーネント | 変数名 | 型 | 役割 |\n|---|---|---|---|\n| StatusUpdatePanel | isConfirmDialogOpen | 真偽値 | 更新確認ダイアログの表示状態を保持する |\n\n### 5.5 派生値（計算値）\n\n| 派生値名 | 算出ロジック概要 | 依存する状態変数 |\n|---|---|---|\n| availableNextStatuses | order.status を起点に遷移可能な次ステータスの一覧を算出する | order |\n| isEditable | order.status が下書きまたは確定かどうかを判定する | order |\n\n### 5.7 共有ストア参照\n\n| ストア / コンテキスト | 参照キー | 用途 |\n|---|---|---|\n| AuthContext | userRole | 出荷担当者・受注担当者の権限区分を判定する |\n\n### 5.9 初期値・デフォルト値一覧\n\n| 変数名 | 初期値 | 根拠 |\n|---|---|---|\n| selectedNextStatus | 空文字 | 更新操作前は未選択状態から開始する業務要件のため |\n| isSubmitting | 偽 | 画面表示直後は更新処理中ではないため |\n\n---\n\n## §6 データフロー\n\n### 6.1 初期表示シーケンス\n\n1. URL パラメータ取得（受注番号）\n2. ストア初期化（AuthContext から利用者権限を取得）\n3. API 呼び出し（§7 参照）\n4. データ変換（§6.5 参照）\n5. 画面状態を ready に更新\n\n#### 6.1.1 起動時初期化（URL パラメータ → ストア書き戻し）\n\nid パラメータを受注番号として order 取得APIの呼び出し引数に用いる。ストアへの書き戻しは行わない。\n\n### 6.2 依存連鎖\n\norder.status が変化すると availableNextStatuses が再算出される。\n\n### 6.3 ユーザー操作確定時の処理フロー\n\n1. バリデーション（§11 参照）\n2. 確認ダイアログ表示（ステータス更新実行時）\n3. API 呼び出し\n4. 成功時: order を更新し statusHistory に追記\n5. 失敗時: エラー表示（§11 参照）\n\n### 6.4 データ更新トリガーの分類\n\n| トリガー | 種別 | 処理概要 |\n|---|---|---|\n| ステータス更新実行ボタン押下 | ユーザー操作 | 選択された次ステータスへ更新APIを呼び出す |\n\n### 6.5 データ変換（API レスポンス → 画面表示用データ）\n\n| 変換名 | 入力型 | 出力型 | 変換概要 |\n|---|---|---|---|\n| formatOrderDetail | 注文詳細APIレスポンス | 画面表示用の注文詳細 | 金額の3桁区切り変換、ステータスコードの表示ラベル変換、明細行の小計算出を行う |\n\n### 6.6 画面状態の遷移\n\n| 状態 | 遷移条件 | UI の表示 |\n|---|---|---|\n| loading | 初期表示・更新処理中 | ローディング表示 |\n| empty | 該当データなし | 空状態メッセージ |\n| error | API エラー | エラーメッセージ（§11 参照） |\n| ready | データ取得・更新成功 | メインコンテンツ |\n\n---\n\n## §7 API 通信仕様（条件付き：API を呼ぶ画面のみ）\n\n### 7.1 API 一覧\n\n| No | API 名 | メソッド | エンドポイント | 呼び出し契機 |\n|---|---|---|---|---|\n| 7.2 | 注文詳細取得API | GET | /api/orders/:id | 初期表示時 |\n| 7.3 | 注文ステータス更新API | PATCH | /api/orders/:id/status | ステータス更新実行時 |\n\n### 7.2 注文詳細取得API\n\n| 項目 | 内容 |\n|---|---|\n| 概要 | 指定した受注番号の注文詳細を取得する |\n| エンドポイント | GET /api/orders/:id |\n| 呼び出し契機 | 初期表示時 |\n\n**リクエスト**\n\n```\n{ id（パスパラメータ）; }\n```\n\n**レスポンス**\n\n```\n{ orderId; customerName; items（明細の配列）; shippingAddress; status; statusHistory; }\n```\n\n**エラーと画面側の扱い**\n\n| ステータス | 画面の挙動 | メッセージ ID |\n|---|---|---|\n| 401 | ログイン画面へ遷移 | — |\n| 404 | 該当注文なしメッセージ表示 | MSG-ORDER-003 |\n| 500 | システムエラーメッセージ表示 | MSG-COMMON-500 |\n\n### 7.3 注文ステータス更新API\n\n| 項目 | 内容 |\n|---|---|\n| 概要 | 注文のステータスを次の段階へ更新する |\n| エンドポイント | PATCH /api/orders/:id/status |\n| 呼び出し契機 | ステータス更新実行時 |\n\n**リクエスト**\n\n```\n{ nextStatus; comment; }\n```\n\n**レスポンス**\n\n```\n{ status; updatedAt; statusHistory（更新後の配列）; }\n```\n\n**エラーと画面側の扱い**\n\n| ステータス | 画面の挙動 | メッセージ ID |\n|---|---|---|\n| 400 | 遷移不可エラー表示 | MSG-ORDER-004 |\n| 409 | 競合エラー表示・最新状態を再取得 | MSG-ORDER-005 |\n| 500 | システムエラーメッセージ表示 | MSG-COMMON-500 |\n\n---\n\n## §8 イベント処理\n\n### 8.1 メイン画面イベント\n\n| イベント | 発火要素 | 処理概要 |\n|---|---|---|\n| onStatusUpdateSubmit | ステータス更新実行ボタン | 確認ダイアログを経て注文ステータス更新APIを呼び出す |\n| onBackToList | 一覧へ戻るボタン | 直前の検索条件を維持したまま注文一覧へ遷移する |\n\n### 8.2 サブコンポーネントイベント\n\n| コンポーネント | イベント | 処理概要 |\n|---|---|---|\n| StatusUpdatePanel | onNextStatusChange | selectedNextStatus を更新する |\n| StatusUpdatePanel | onCommentChange | updateComment を更新する |\n\n### 8.3 複数ステップ処理の詳細\n\nステータス更新実行ボタン押下時、確認ダイアログを表示して利用者の最終確認を得たうえでAPIを呼び出す。\n\n### 8.4 キーボード操作\n\n| キー | 発火条件 | 挙動 |\n|---|---|---|\n| Tab | フォーカス可能要素 | ステータス選択 → 備考入力 → 更新実行ボタンの順で移動する |\n| Enter | 確認ダイアログ内 | 確認を確定し更新処理を実行する |\n\n---\n\n## §9 領域別仕様\n\n### 9.1 注文基本情報エリア（OrderSummaryPanel）\n\n#### 9.1.1 概要\n\n受注番号・顧客情報・現在のステータスを表示する領域。\n\n#### 9.1.2 配置\n\nOrderDetailPage 直下、最上部に配置される。\n\n#### 9.1.3 項目定義\n\n| 項目名 | 型 | 必須 | 書式 | 状態別編集可否 |\n|---|---|---|---|---|\n| 受注番号 | 文字列 | ○ | 半角英数字 | ready: 不可 / loading: 不可 |\n| ステータス | 区分値 | ○ | バッジ表示 | ready: 不可 / loading: 不可 |\n\n#### 9.1.4 イベント・挙動\n\n| イベント | 挙動 |\n|---|---|\n| onBackToList | 注文一覧へ遷移する |\n\n#### 9.1.5 領域固有の制約\n\n固有制約なし（facts.yml に対象項目なし）\n\n### 9.2 ステータス更新操作エリア（StatusUpdatePanel）\n\n#### 9.2.1 概要\n\n次のステータスと備考を入力し、更新を実行する領域。\n\n#### 9.2.2 配置\n\nOrderDetailPage 直下、最下部に配置される。\n\n#### 9.2.3 項目定義\n\n| 項目名 | 型 | 必須 | 書式 | 状態別編集可否 |\n|---|---|---|---|---|\n| 更新後ステータス | 選択肢 | ○ | 遷移可能な区分のみ選択可 | ready: 可 / loading: 不可 |\n| 更新備考 | 文字列 | × | 自由記述（200文字以内） | ready: 可 / loading: 不可 |\n\n#### 9.2.4 イベント・挙動\n\n| イベント | 挙動 |\n|---|---|\n| onStatusUpdateSubmit | 確認ダイアログを経てステータス更新APIを呼び出す |\n\n#### 9.2.5 領域固有の制約\n\n出荷済・キャンセル状態からはキャンセルへの更新を選択できない。\n\n---\n\n## §10 定数・設定値（条件付き：画面固有の定数がある場合のみ）\n\n### 10.1 文字列定数\n\n| 定数名 | 値 | 用途 |\n|---|---|---|\n| COMMENT_MAX_LENGTH | \"200\" | 更新備考の最大文字数 |\n\n### 10.2 選択肢定義\n\n| 定数名 | 選択肢 | 用途 |\n|---|---|---|\n| STATUS_TRANSITION_MAP | 下書き→確定 / 確定→出荷済 / 下書き→キャンセル / 確定→キャンセル | ステータス更新時に選択可能な遷移先の定義 |\n\n### 10.3 列定義・表示設定\n\n商品明細テーブルは商品名・数量・単価・小計の4列で構成する。\n\n### 10.4 コード変換テーブル\n\n| コード | 表示ラベル |\n|---|---|\n| draft | 下書き |\n| confirmed | 確定 |\n| shipped | 出荷済 |\n| cancelled | キャンセル |\n\n### 10.5 区分定数\n\n| 定数名 | 値一覧 |\n|---|---|\n| ORDER_STATUS | draft / confirmed / shipped / cancelled |\n\n---\n\n## §11 エラーハンドリング\n\n### 11.1 ユーザー入力チェック\n\n| チェック対象 | 条件 | エラー種別 |\n|---|---|---|\n| 更新後ステータス | 現在のステータスから遷移可能な区分であること | 形式 |\n| 更新備考 | 200文字以内であること | 形式 |\n\n### 11.2 エラーメッセージ・警告\n\n| タイミング | メッセージ ID | 表示位置 |\n|---|---|---|\n| 遷移不可な更新操作 | MSG-ORDER-004 | インライン |\n| 更新時の競合検出 | MSG-ORDER-005 | トースト |\n\n### 11.3 システムエラー\n\n| エラー種別 | 画面の挙動 | メッセージ ID |\n|---|---|---|\n| ネットワーク断 | エラーバナー表示・リトライ促進 | MSG-COMMON-NET |\n| 認証切れ | ログイン画面へ遷移 | — |\n| 予期しないエラー | エラーメッセージ表示 | MSG-COMMON-500 |\n\n---\n\n## §12 画面遷移仕様\n\n### 12.1 遷移先一覧\n\n| 遷移先画面 | 遷移方式 | 条件 | 渡すパラメータ |\n|---|---|---|---|\n| 注文一覧 | back | 一覧へ戻るボタン押下時 | なし（直前の検索条件はセッションから復元） |\n\n### 12.2 遷移方式の方針\n\n一覧へ戻る操作は back 方式とし、一覧画面の検索条件・スクロール位置を維持したまま復帰する。\n\n---\n\n## §13 非機能要件\n\n### 13.1 表示件数・データ量制限\n\n| 対象 | 上限 | 超過時の挙動 |\n|---|---|---|\n| 商品明細 | 100 件 | 明細テーブル内でスクロール表示 |\n\n### 13.2 パフォーマンス目安\n\n| 操作 | 目標応答時間 |\n|---|---|\n| 初期表示 | 2 秒以内 |\n| ステータス更新 | 1.5 秒以内 |\n\n### 13.3 ローディング・処理中表示\n\n| 操作 | ローディング表示方式 |\n|---|---|\n| 初期表示 | スケルトン |\n| ステータス更新 | ボタン無効化 |\n\n### 13.4 タイムアウト・リトライ方針\n\n| 項目 | 値 | 根拠 |\n|---|---|---|\n| タイムアウト時間 | 10 秒 | 共通設計書の標準API応答方針に準拠 |\n| リトライ回数 | 0 回 | 更新系APIのため自動リトライは行わない方針 |\n\n### 13.5 ブラウザ・画面解像度の動作保証範囲\n\n共通設計書準拠（差分なし）\n\n---\n\n## §14 共通仕様への準拠\n\n### 14.1 共通コンポーネント利用一覧\n\n| コンポーネント名 | 利用箇所 | 独自実装の場合の理由 |\n|---|---|---|\n| CommonTable | OrderItemTable | — |\n| CommonDialog | StatusUpdatePanel の確認ダイアログ | — |\n\n### 14.2 共通ソート・表示順ルールの適用\n\n| 対象リスト | 適用ルール | 逸脱理由 |\n|---|---|---|\n| statusHistory | 更新日時の新しい順 | — |\n\n### 14.3 用語・ラベルの統一\n\n共通設計書準拠（差分なし）\n\n### 14.4 日付・数値・コード値の表示フォーマット\n\n| 値の種類 | フォーマット | 空値時 |\n|---|---|---|\n| 日付 | YYYY/MM/DD HH:mm | — |\n| 数値 | 3桁区切り | — |\n| コード値 | 表示ラベルに変換 | — |\n\n### 14.5 共通メッセージの利用\n\n| 用途 | メッセージ ID |\n|---|---|\n| システムエラー | MSG-COMMON-500 |\n\n---\n\n## §15 実装契約\n\n### 15.1 ファイル分割と export 一覧\n\n| ファイルパス | export 名 | 種別 | 実体形状 | 配置ディレクトリ |\n|---|---|---|---|---|\n| pages/OrderDetailPage.tsx | OrderDetailPage | コンポーネント | ページルートコンポーネント（基本情報・明細・配送先・更新操作を内包） | pages/ |\n| components/OrderItemTable.tsx | OrderItemTable | コンポーネント | 商品明細テーブル | components/ |\n| components/StatusUpdatePanel.tsx | StatusUpdatePanel | コンポーネント | ステータス更新操作パネル | components/ |\n| hooks/useOrderDetailState.ts | useOrderDetailState | フック | 注文詳細データとステータス更新状態を管理する状態フック | hooks/ |\n\n### 15.2 型定義\n\n| 型名 | フィールド名 | 型 | 必須/任意 |\n|---|---|---|---|\n| OrderDetail | orderId | 文字列 | 必須 |\n| OrderDetail | customerName | 文字列 | 必須 |\n| OrderDetail | items | 明細レコードの配列 | 必須 |\n| OrderDetail | shippingAddress | 文字列 | 必須 |\n| OrderDetail | status | 区分値 | 必須 |\n| OrderDetail | statusHistory | 履歴レコードの配列 | 必須 |\n\n### 15.3 依存（import）一覧\n\n| モジュール | import 内容 | 種別 |\n|---|---|---|\n| AuthContext | useAuthContext | 内部 |\n| CommonDialog | CommonDialog | 内部 |\n\n### 15.4 別画面コンポーネントとの型合わせ\n\nOrderDetail は注文一覧画面の OrderListItem 型と受注番号・ステータスの表現を統一している。\n\n### 15.5 スコープ分類\n\n| 対象 | スコープ | 理由 |\n|---|---|---|\n| order | コンポーネントローカル | 表示中の注文1件に閉じたデータのため |\n| userRole | コンテキスト | 複数画面で共有する認可情報のため |\n\n### 15.6 スタイル定数一覧\n\n| 定数名 | 用途 | 参照先 |\n|---|---|---|\n| statusBadgeColor | ステータスバッジの配色 | `DESIGN.md > colors.statusBadge` |\n\n### 15.7 state 遷移シーケンス\n\n```\n初期化 → loading → ready\n                 ↘ error（リトライ可）\n       → loading → empty（対象注文が存在しない場合）\n```\n\n---\n\n## §16 要確認事項一覧\n\n| キー | 起票日 | 内容 | 暫定扱いにしている § | 解消条件 | 状態 |\n|---|---|---|---|---|---|\n| キャンセル理由-必須化 | 2026-07-20 | キャンセルへの更新時に備考入力を必須にすべきか業務部門へ確認する | §9.2 | 業務部門からの確認回答を得る | 未解消 |"</script>
 
 <script>
 (function () {
@@ -676,6 +892,8 @@ table.data-table code {
   var inList = false;
   var listType = '';
   var inBlockquote = false;
+  var inFence = false;
+  var fenceLines = [];
 
   function escHtml(s) {
     return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
@@ -714,10 +932,28 @@ table.data-table code {
   function closeTable() {
     if (inTable) { html.push('</tbody></table></div>'); inTable = false; }
   }
+  function closeFence() {
+    html.push('<div class="code-block"><pre><code>' + escHtml(fenceLines.join('\n')) + '</code></pre></div>');
+    inFence = false;
+    fenceLines = [];
+  }
 
   for (var i = 0; i < lines.length; i++) {
     var line = lines[i];
     var trimmed = line.trim();
+
+    // フェンス内はMarkdownとして解釈せず、終了行まで文字列のまま保持する
+    if (inFence) {
+      if (/^```\s*$/.test(trimmed)) closeFence();
+      else fenceLines.push(line);
+      continue;
+    }
+    if (/^```(?:\s*[^`\s]+)?\s*$/.test(trimmed)) {
+      closeList(); closeBlockquote(); closeTable();
+      inFence = true;
+      fenceLines = [];
+      continue;
+    }
 
     // 空行
     if (!trimmed) { closeList(); closeBlockquote(); continue; }
@@ -776,6 +1012,7 @@ table.data-table code {
     closeList(); closeTable(); closeBlockquote();
     html.push('<p>' + inlineFormat(trimmed) + '</p>');
   }
+  if (inFence) closeFence();
   closeList(); closeTable(); closeBlockquote();
 
   document.getElementById('doc-content').innerHTML = html.join('\n');
@@ -799,6 +1036,42 @@ table.data-table code {
     Array.prototype.forEach.call(container.querySelectorAll('table'), function (t) {
       t.classList.add('data-table');
     });
+
+    // 横スクロールが必要な表だけ端フェードとキーボード操作の手掛かりを付ける
+    var tableWraps = Array.prototype.slice.call(container.querySelectorAll('.table-wrap'));
+    var updateScrollCues = [];
+    tableWraps.forEach(function (wrap) {
+      var shell = document.createElement('div');
+      shell.className = 'table-scroll-shell';
+      wrap.parentNode.insertBefore(shell, wrap);
+      shell.appendChild(wrap);
+
+      function updateScrollCue() {
+        var overflowing = wrap.scrollWidth > wrap.clientWidth + 1;
+        var atStart = wrap.scrollLeft <= 1;
+        var atEnd = wrap.scrollLeft + wrap.offsetWidth >= wrap.scrollWidth - 1;
+        shell.classList.toggle('can-scroll-left', overflowing && !atStart);
+        shell.classList.toggle('can-scroll-right', overflowing && !atEnd);
+        if (overflowing) {
+          wrap.tabIndex = 0;
+          wrap.setAttribute('role', 'region');
+          wrap.setAttribute('aria-label', '横にスクロールできます');
+        } else {
+          wrap.removeAttribute('tabindex');
+          wrap.removeAttribute('role');
+          wrap.removeAttribute('aria-label');
+        }
+      }
+
+      wrap.addEventListener('scroll', updateScrollCue, {passive: true});
+      updateScrollCues.push(updateScrollCue);
+    });
+
+    function updateAllScrollCues() {
+      updateScrollCues.forEach(function (updateScrollCue) { updateScrollCue(); });
+    }
+    window.addEventListener('resize', updateAllScrollCues);
+    requestAnimationFrame(updateAllScrollCues);
 
     function sectionSlug(text) {
       var normalized = text.trim();
@@ -840,6 +1113,20 @@ table.data-table code {
         node = next;
       }
 
+      // §16 要確認事項一覧: 行数を自動判定し、1行以上なら重要度コールアウト（警告）を付与する。
+      // 0件は通常表示のまま（目視判断に依存させない機械判定）。
+      if (/要確認事項一覧/.test(text)) {
+        var unresolvedRowCount = section.querySelectorAll('table.data-table tbody tr').length;
+        if (unresolvedRowCount >= 1) {
+          section.classList.add('pt-callout', 'pt-callout--warning');
+          var unresolvedIcon = document.createElement('span');
+          unresolvedIcon.className = 'material-symbols-outlined pt-callout__icon';
+          unresolvedIcon.setAttribute('aria-hidden', 'true');
+          unresolvedIcon.textContent = 'warning';
+          label.insertBefore(unresolvedIcon, label.firstChild);
+        }
+      }
+
       // セクション直下（トップレベル）の ul のみをチェックリスト装飾する。入れ子リストは変換しない
       Array.prototype.forEach.call(section.children, function (child) {
         if (child.tagName === 'UL') {
@@ -853,6 +1140,37 @@ table.data-table code {
           });
         }
       });
+
+      // 参照用付録（生コード全文・API全量列挙等）の折りたたみ化。
+      // 見出しテキストが「付録:」で始まる h3/h4 を <details><summary> へ変換し、
+      // 次の同階層以上の見出しまでの内容をまとめて折りたたむ（JSトグルなし・ネイティブdetails利用）。
+      (function wrapAppendixHeadings() {
+        function headingLevel(el) { return Number(el.tagName.charAt(1)); }
+        var heading = label.nextElementSibling;
+        while (heading) {
+          var nextHeading = heading.nextElementSibling;
+          var isHeading = /^H[1-6]$/.test(heading.tagName);
+          if (isHeading && /^付録[:：]/.test((heading.textContent || '').trim())) {
+            var level = headingLevel(heading);
+            var details = document.createElement('details');
+            details.className = 'appendix-details';
+            var summary = document.createElement('summary');
+            summary.textContent = heading.textContent;
+            details.appendChild(summary);
+            section.insertBefore(details, heading);
+            section.removeChild(heading);
+            var node = nextHeading;
+            while (node && !(node.nodeType === 1 && /^H[1-6]$/.test(node.tagName) && headingLevel(node) <= level)) {
+              var following = node.nextElementSibling;
+              details.appendChild(node);
+              node = following;
+            }
+            heading = node;
+            continue;
+          }
+          heading = nextHeading;
+        }
+      })();
 
       var li = document.createElement('li');
       var a = document.createElement('a');

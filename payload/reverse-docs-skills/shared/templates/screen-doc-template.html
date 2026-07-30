@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>{{DOC_TITLE}}</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined&amp;icon_names=info,priority_high,warning&amp;display=block" />
 <style>
 /* TOKENS_CSS */
 /* SHELL_CSS */
@@ -17,7 +18,7 @@ a:hover { text-decoration: underline; }
 :root { --section-gap: clamp(28px, 4vw, 44px); }
 
 /* 文書 2 カラム（目次 + 本文） */
-.dp-layout { display: grid; grid-template-columns: 200px 1fr; gap: 36px; margin-top: 28px; align-items: start; }
+.dp-layout { display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 36px; margin-top: 28px; align-items: start; }
 .dp-toc { position: sticky; top: 24px; border-left: 1.5px solid var(--line2); padding-left: 16px; }
 
 /* 画面ドキュメント間ナビ（基本設計・詳細設計・シーケンス図・テストケース） */
@@ -57,7 +58,11 @@ a:hover { text-decoration: underline; }
 .toc-link:hover { color: var(--text); border-left-color: var(--accent); text-decoration: none; }
 .toc-link.active { color: var(--accent); border-left-color: var(--accent); font-weight: 600; }
 
-.dp-panel { border: 1.5px solid var(--line2); background: var(--panel); max-width: 760px; padding: 32px 40px; counter-reset: sec-num; }
+.dp-panel {
+  width: 100%; min-width: 0; max-width: none;
+  border: 1.5px solid var(--line2); background: var(--panel);
+  padding: 32px 40px; counter-reset: sec-num;
+}
 
 /* section */
 .sec-block { margin-bottom: var(--section-gap); scroll-margin-top: 24px; }
@@ -92,6 +97,22 @@ a:hover { text-decoration: underline; }
 }
 #doc-content hr { border: none; border-top: 1px solid var(--line); margin: 24px 0; }
 
+/* 参照用付録（生コード全文・API全量列挙等の折りたたみ。ネイティブdetails/summaryのみ使用） */
+.appendix-details {
+  border: 1.5px solid var(--line2); background: var(--panel3);
+  margin: 12px 0; padding: 0 14px 2px;
+}
+.appendix-details > summary {
+  cursor: pointer; list-style: none; padding: 10px 0;
+  font-size: 13px; font-weight: 700; color: var(--sub);
+}
+.appendix-details > summary::-webkit-details-marker { display: none; }
+.appendix-details > summary::before {
+  content: "\25b8"; display: inline-block; margin-right: 6px; color: var(--accent);
+  transition: transform .12s;
+}
+.appendix-details[open] > summary::before { transform: rotate(90deg); }
+
 /* rule items（トップレベル ul のチェックリスト装飾。箇条書きと同じ体裁） */
 .rule-list { list-style: none; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; margin: 8px 0 0; }
 .rule-item { position: relative; font-size: 13.5px; line-height: 1.75; color: var(--sub); }
@@ -102,9 +123,23 @@ a:hover { text-decoration: underline; }
 }
 
 /* tables */
+.table-scroll-shell { position: relative; min-width: 0; margin-bottom: 14px; }
+.table-scroll-shell::before,
+.table-scroll-shell::after {
+  content: ""; position: absolute; z-index: 2; top: 1.5px; bottom: 1.5px; width: 30px;
+  opacity: 0; pointer-events: none; transition: opacity .12s;
+}
+.table-scroll-shell::before {
+  left: 1.5px; background: linear-gradient(to right, var(--panel), transparent);
+}
+.table-scroll-shell::after {
+  right: 1.5px; background: linear-gradient(to left, var(--panel), transparent);
+}
+.table-scroll-shell.can-scroll-left::before,
+.table-scroll-shell.can-scroll-right::after { opacity: .94; }
 .table-wrap {
   width: 100%; overflow-x: auto; overscroll-behavior-inline: contain;
-  border: 1.5px solid var(--line2); margin-bottom: 14px; scrollbar-gutter: stable;
+  border: 1.5px solid var(--line2); scrollbar-gutter: stable;
 }
 table.data-table { width: max-content; min-width: 100%; border-collapse: collapse; font-size: 13px; background: var(--panel); }
 table.data-table thead { position: sticky; top: 0; z-index: 1; }
@@ -154,7 +189,7 @@ table.data-table code {
   .dp-panel { max-width: none; padding: 20px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .toc-link { transition: none; }
+  .toc-link, .table-scroll-shell::before, .table-scroll-shell::after { transition: none; }
 }
 </style>
 </head>
@@ -348,6 +383,42 @@ table.data-table code {
       t.classList.add('data-table');
     });
 
+    // 横スクロールが必要な表だけ端フェードとキーボード操作の手掛かりを付ける
+    var tableWraps = Array.prototype.slice.call(container.querySelectorAll('.table-wrap'));
+    var updateScrollCues = [];
+    tableWraps.forEach(function (wrap) {
+      var shell = document.createElement('div');
+      shell.className = 'table-scroll-shell';
+      wrap.parentNode.insertBefore(shell, wrap);
+      shell.appendChild(wrap);
+
+      function updateScrollCue() {
+        var overflowing = wrap.scrollWidth > wrap.clientWidth + 1;
+        var atStart = wrap.scrollLeft <= 1;
+        var atEnd = wrap.scrollLeft + wrap.offsetWidth >= wrap.scrollWidth - 1;
+        shell.classList.toggle('can-scroll-left', overflowing && !atStart);
+        shell.classList.toggle('can-scroll-right', overflowing && !atEnd);
+        if (overflowing) {
+          wrap.tabIndex = 0;
+          wrap.setAttribute('role', 'region');
+          wrap.setAttribute('aria-label', '横にスクロールできます');
+        } else {
+          wrap.removeAttribute('tabindex');
+          wrap.removeAttribute('role');
+          wrap.removeAttribute('aria-label');
+        }
+      }
+
+      wrap.addEventListener('scroll', updateScrollCue, {passive: true});
+      updateScrollCues.push(updateScrollCue);
+    });
+
+    function updateAllScrollCues() {
+      updateScrollCues.forEach(function (updateScrollCue) { updateScrollCue(); });
+    }
+    window.addEventListener('resize', updateAllScrollCues);
+    requestAnimationFrame(updateAllScrollCues);
+
     function sectionSlug(text) {
       var normalized = text.trim();
       if (normalized.normalize) normalized = normalized.normalize('NFKC');
@@ -388,6 +459,20 @@ table.data-table code {
         node = next;
       }
 
+      // §16 要確認事項一覧: 行数を自動判定し、1行以上なら重要度コールアウト（警告）を付与する。
+      // 0件は通常表示のまま（目視判断に依存させない機械判定）。
+      if (/要確認事項一覧/.test(text)) {
+        var unresolvedRowCount = section.querySelectorAll('table.data-table tbody tr').length;
+        if (unresolvedRowCount >= 1) {
+          section.classList.add('pt-callout', 'pt-callout--warning');
+          var unresolvedIcon = document.createElement('span');
+          unresolvedIcon.className = 'material-symbols-outlined pt-callout__icon';
+          unresolvedIcon.setAttribute('aria-hidden', 'true');
+          unresolvedIcon.textContent = 'warning';
+          label.insertBefore(unresolvedIcon, label.firstChild);
+        }
+      }
+
       // セクション直下（トップレベル）の ul のみをチェックリスト装飾する。入れ子リストは変換しない
       Array.prototype.forEach.call(section.children, function (child) {
         if (child.tagName === 'UL') {
@@ -401,6 +486,37 @@ table.data-table code {
           });
         }
       });
+
+      // 参照用付録（生コード全文・API全量列挙等）の折りたたみ化。
+      // 見出しテキストが「付録:」で始まる h3/h4 を <details><summary> へ変換し、
+      // 次の同階層以上の見出しまでの内容をまとめて折りたたむ（JSトグルなし・ネイティブdetails利用）。
+      (function wrapAppendixHeadings() {
+        function headingLevel(el) { return Number(el.tagName.charAt(1)); }
+        var heading = label.nextElementSibling;
+        while (heading) {
+          var nextHeading = heading.nextElementSibling;
+          var isHeading = /^H[1-6]$/.test(heading.tagName);
+          if (isHeading && /^付録[:：]/.test((heading.textContent || '').trim())) {
+            var level = headingLevel(heading);
+            var details = document.createElement('details');
+            details.className = 'appendix-details';
+            var summary = document.createElement('summary');
+            summary.textContent = heading.textContent;
+            details.appendChild(summary);
+            section.insertBefore(details, heading);
+            section.removeChild(heading);
+            var node = nextHeading;
+            while (node && !(node.nodeType === 1 && /^H[1-6]$/.test(node.tagName) && headingLevel(node) <= level)) {
+              var following = node.nextElementSibling;
+              details.appendChild(node);
+              node = following;
+            }
+            heading = node;
+            continue;
+          }
+          heading = nextHeading;
+        }
+      })();
 
       var li = document.createElement('li');
       var a = document.createElement('a');

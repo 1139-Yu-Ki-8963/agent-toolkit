@@ -1345,6 +1345,45 @@ NODE
   fi
   rm -rf "$test20_dir"
 
+  echo "--- ケース21: 画面詳細/基本設計書テンプレートのコンテンツカラム幅拡張・横スクロール発生率（DOM計測） ---"
+  COLUMN_WIDTH_TEST="$SCRIPT_DIR/test-screen-doc-column-width.cjs"
+  if [ ! -f "$COLUMN_WIDTH_TEST" ]; then
+    echo "FAIL: --self-test ケース21（コンテンツカラム幅検査スクリプトが見つからない）" >&2
+    exit 1
+  fi
+  if node "$COLUMN_WIDTH_TEST"; then
+    :
+  else
+    echo "FAIL: --self-test ケース21（コンテンツカラム幅拡張・横スクロール発生率の検証に失敗）" >&2
+    exit 1
+  fi
+
+  echo "--- ケース22: 画面詳細設計書テンプレートの参照用付録折りたたみ（生コード全文・API全量列挙、DOM計測） ---"
+  APPENDIX_COLLAPSE_TEST="$SCRIPT_DIR/test-screen-doc-appendix-collapse.cjs"
+  if [ ! -f "$APPENDIX_COLLAPSE_TEST" ]; then
+    echo "FAIL: --self-test ケース22（付録折りたたみ検査スクリプトが見つからない）" >&2
+    exit 1
+  fi
+  if node "$APPENDIX_COLLAPSE_TEST"; then
+    :
+  else
+    echo "FAIL: --self-test ケース22（参照用付録折りたたみの検証に失敗）" >&2
+    exit 1
+  fi
+
+  echo "--- ケース23: §16要確認事項一覧の行数自動判定によるpt-calloutコールアウト付与（DOM計測） ---"
+  UNRESOLVED_CALLOUT_TEST="$SCRIPT_DIR/test-screen-doc-unresolved-callout.cjs"
+  if [ ! -f "$UNRESOLVED_CALLOUT_TEST" ]; then
+    echo "FAIL: --self-test ケース23（要確認事項コールアウト検査スクリプトが見つからない）" >&2
+    exit 1
+  fi
+  if node "$UNRESOLVED_CALLOUT_TEST"; then
+    :
+  else
+    echo "FAIL: --self-test ケース23（要確認事項コールアウトの検証に失敗）" >&2
+    exit 1
+  fi
+
   run_related_material_links_self_test
 
   exit 0

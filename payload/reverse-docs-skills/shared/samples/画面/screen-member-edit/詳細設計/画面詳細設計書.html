@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>会員編集 画面詳細設計書</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined&amp;icon_names=info,priority_high,warning&amp;display=block" />
 <style>
 /* 設計ポータルのデザイントークン。
    本ファイルの全文が、ビルド時に各テンプレートのトークン注入マーカーへ差し込まれる。
@@ -234,6 +235,57 @@
 .pt-brand-name { font-size: 16px; font-weight: 700; letter-spacing: 0.5px; margin-top: 4px; line-height: 1.35; }
 .pt-brand-sub { font-family: var(--mono); font-size: 10.5px; color: var(--muted); margin-top: 5px; }
 
+/* サイト切替（モノレポ複数サイト時のみ JS が pt-brand-name を差し替える） */
+.pt-brand-switch { position: relative; }
+.pt-brand-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  margin-top: 4px;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  appearance: none;
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  line-height: 1.35;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+.pt-brand-toggle:hover { color: var(--accent); }
+.pt-brand-caret {
+  flex: none;
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 5px solid var(--text-muted);
+  transition: transform 0.12s;
+}
+.pt-brand-toggle[aria-expanded="true"] .pt-brand-caret { transform: rotate(180deg); }
+.pt-brand-list {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 100%;
+  margin-top: 8px;
+  border: 1.5px solid var(--border);
+  background: var(--panel-2);
+  z-index: 2;
+}
+.pt-brand-list-item {
+  display: block;
+  padding: 8px 12px;
+  font-size: 12px;
+  color: var(--text-sub);
+}
+a.pt-brand-list-item:hover { background: var(--panel3); color: var(--text); text-decoration: none; }
+.pt-brand-list-item.is-current { color: var(--text-muted); font-weight: 600; cursor: default; }
+
 .pt-nav { padding: 14px 12px; display: flex; flex-direction: column; gap: 2px; }
 .pt-nav-group { font-family: var(--mono); font-size: 9.5px; letter-spacing: 2px; color: var(--faint); padding: 14px 10px 5px; }
 .pt-nav-item {
@@ -324,6 +376,50 @@
 .pt-badge.is-todo { color: var(--muted); background: var(--neutral-soft); }
 .pt-count { font-family: var(--mono); font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
 
+/* Google Fonts障害時も3段階アイコンを保つ、公式サブセットのローカルフォールバック */
+@font-face {
+  font-family: "Material Symbols Outlined Local";
+  font-style: normal;
+  font-weight: 400;
+  font-display: block;
+  src: url("data:font/ttf;base64,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") format("truetype");
+}
+
+/* 重要度コールアウト。見出しを先頭要素に置き、色帯とMaterial Symbolsを併用する */
+.pt-callout {
+  --callout-color: var(--accent);
+  --callout-soft: var(--accent-soft);
+  position: relative;
+  background: var(--callout-soft);
+  color: var(--text);
+  box-shadow: inset 5px 0 0 var(--callout-color);
+}
+.pt-callout__icon {
+  display: none;
+  margin-right: 0.55em;
+  color: var(--callout-color);
+  font-family: "Material Symbols Outlined", "Material Symbols Outlined Local";
+  font-size: 1.45em;
+  font-style: normal;
+  font-weight: 400;
+  font-variation-settings: "FILL" 0, "wght" 500, "GRAD" 0, "opsz" 24;
+  line-height: 1;
+  vertical-align: -0.12em;
+}
+.pt-callout > :first-child > .pt-callout__icon { display: inline-block; }
+.pt-callout--caution {
+  --callout-color: var(--accent);
+  --callout-soft: var(--accent-soft);
+}
+.pt-callout--warning {
+  --callout-color: var(--stamp);
+  --callout-soft: var(--stamp-soft);
+}
+.pt-callout--important {
+  --callout-color: var(--green);
+  --callout-soft: var(--green-soft);
+}
+
 /* 表 */
 .pt-tablewrap { flex: 0 1 auto; min-height: 0; overflow: auto; border: 1.5px solid var(--line2); background: var(--panel); }
 .pt-tablewrap table { width: 100%; border-collapse: separate; border-spacing: 0; }
@@ -374,7 +470,7 @@ a:hover { text-decoration: underline; }
 :root { --section-gap: clamp(28px, 4vw, 44px); }
 
 /* 文書 2 カラム（目次 + 本文） */
-.dp-layout { display: grid; grid-template-columns: 200px 1fr; gap: 36px; margin-top: 28px; align-items: start; }
+.dp-layout { display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 36px; margin-top: 28px; align-items: start; }
 .dp-toc { position: sticky; top: 24px; border-left: 1.5px solid var(--line2); padding-left: 16px; }
 
 /* 画面ドキュメント間ナビ（基本設計・詳細設計・シーケンス図・テストケース） */
@@ -414,7 +510,11 @@ a:hover { text-decoration: underline; }
 .toc-link:hover { color: var(--text); border-left-color: var(--accent); text-decoration: none; }
 .toc-link.active { color: var(--accent); border-left-color: var(--accent); font-weight: 600; }
 
-.dp-panel { border: 1.5px solid var(--line2); background: var(--panel); max-width: 760px; padding: 32px 40px; counter-reset: sec-num; }
+.dp-panel {
+  width: 100%; min-width: 0; max-width: none;
+  border: 1.5px solid var(--line2); background: var(--panel);
+  padding: 32px 40px; counter-reset: sec-num;
+}
 
 /* section */
 .sec-block { margin-bottom: var(--section-gap); scroll-margin-top: 24px; }
@@ -449,6 +549,22 @@ a:hover { text-decoration: underline; }
 }
 #doc-content hr { border: none; border-top: 1px solid var(--line); margin: 24px 0; }
 
+/* 参照用付録（生コード全文・API全量列挙等の折りたたみ。ネイティブdetails/summaryのみ使用） */
+.appendix-details {
+  border: 1.5px solid var(--line2); background: var(--panel3);
+  margin: 12px 0; padding: 0 14px 2px;
+}
+.appendix-details > summary {
+  cursor: pointer; list-style: none; padding: 10px 0;
+  font-size: 13px; font-weight: 700; color: var(--sub);
+}
+.appendix-details > summary::-webkit-details-marker { display: none; }
+.appendix-details > summary::before {
+  content: "\25b8"; display: inline-block; margin-right: 6px; color: var(--accent);
+  transition: transform .12s;
+}
+.appendix-details[open] > summary::before { transform: rotate(90deg); }
+
 /* rule items（トップレベル ul のチェックリスト装飾。箇条書きと同じ体裁） */
 .rule-list { list-style: none; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; margin: 8px 0 0; }
 .rule-item { position: relative; font-size: 13.5px; line-height: 1.75; color: var(--sub); }
@@ -459,9 +575,23 @@ a:hover { text-decoration: underline; }
 }
 
 /* tables */
+.table-scroll-shell { position: relative; min-width: 0; margin-bottom: 14px; }
+.table-scroll-shell::before,
+.table-scroll-shell::after {
+  content: ""; position: absolute; z-index: 2; top: 1.5px; bottom: 1.5px; width: 30px;
+  opacity: 0; pointer-events: none; transition: opacity .12s;
+}
+.table-scroll-shell::before {
+  left: 1.5px; background: linear-gradient(to right, var(--panel), transparent);
+}
+.table-scroll-shell::after {
+  right: 1.5px; background: linear-gradient(to left, var(--panel), transparent);
+}
+.table-scroll-shell.can-scroll-left::before,
+.table-scroll-shell.can-scroll-right::after { opacity: .94; }
 .table-wrap {
   width: 100%; overflow-x: auto; overscroll-behavior-inline: contain;
-  border: 1.5px solid var(--line2); margin-bottom: 14px; scrollbar-gutter: stable;
+  border: 1.5px solid var(--line2); scrollbar-gutter: stable;
 }
 table.data-table { width: max-content; min-width: 100%; border-collapse: collapse; font-size: 13px; background: var(--panel); }
 table.data-table thead { position: sticky; top: 0; z-index: 1; }
@@ -493,6 +623,10 @@ table.data-table code {
   margin: 0; padding: 12px 14px; overflow-x: auto;
   font-family: var(--mono); font-size: 12px; line-height: 1.8; color: var(--codetext);
 }
+#doc-content .code-block code {
+  display: block; padding: 0; border: 0; background: transparent;
+  color: inherit; font: inherit; white-space: pre;
+}
 .code-block .kw { color: #CBA6F7; }
 .code-block .fn { color: #89B4FA; }
 .code-block .str { color: #A6E3A1; }
@@ -507,7 +641,7 @@ table.data-table code {
   .dp-panel { max-width: none; padding: 20px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .toc-link { transition: none; }
+  .toc-link, .table-scroll-shell::before, .table-scroll-shell::after { transition: none; }
 }
 </style>
 </head>
@@ -518,8 +652,10 @@ table.data-table code {
     <aside class="pt-sidebar" data-portal-href="../../../index.html" data-active-category="list">
   <div class="pt-brand">
     <div class="pt-brand-stamp">DESIGN PORTAL</div>
-    <div class="pt-brand-name">reverse-docs-1-62-impl</div>
-    <div class="pt-brand-sub">設計台帳 · 全36資料</div>
+    <div class="pt-brand-switch" id="pt-brand-switch">
+      <div class="pt-brand-name">sample-project</div>
+    </div>
+    <div class="pt-brand-sub">設計台帳 · 全37資料</div>
   </div>
   <nav class="pt-nav" id="pt-nav" aria-label="資料カテゴリ"></nav>
   <button type="button" class="pt-theme" id="pt-theme-toggle">
@@ -527,7 +663,8 @@ table.data-table code {
   </button>
   <div class="pt-sidebar-meta">更新 <span id="pt-sidebar-date">2026-07-29</span><span id="pt-meta-commit"><br>コミット </span></div>
 </aside>
-<script type="application/json" id="pt-nav-data">[{"key":"project","num":"01","label":"基盤情報","count":4},{"key":"standards","num":"02","label":"規約","count":6},{"key":"design","num":"03","label":"設計書","count":5},{"key":"list","num":"04","label":"一覧・設計図","count":13},{"key":"cross","num":"05","label":"マトリクス・対応表","count":4},{"key":"ai","num":"06","label":"AI設定資産","count":1},{"key":"design-tools","num":"07","label":"デザイン","count":3}]</script>
+<script type="application/json" id="pt-nav-data">[{"key":"project","num":"01","label":"基盤情報","count":5},{"key":"standards","num":"02","label":"規約","count":6},{"key":"design","num":"03","label":"設計書","count":5},{"key":"list","num":"04","label":"一覧・設計図","count":13},{"key":"cross","num":"05","label":"マトリクス・対応表","count":4},{"key":"ai","num":"06","label":"AI設定資産","count":1},{"key":"design-tools","num":"07","label":"デザイン","count":3}]</script>
+<script type="application/json" id="pt-sites-data">[]</script>
 <script>
 (function () {
   var root = document.documentElement;
@@ -631,6 +768,85 @@ table.data-table code {
     nav.appendChild(item(portalHref + '#cat-' + c.key, c.num, c.label, c.count, active === c.key));
   });
 })();
+
+(function () {
+  var switchWrap = document.getElementById('pt-brand-switch');
+  var sitesEl = document.getElementById('pt-sites-data');
+  if (!switchWrap || !sitesEl) return;
+  var sites = [];
+  try { sites = JSON.parse(sitesEl.textContent) || []; } catch (e) { return; }
+  if (!Array.isArray(sites) || sites.length < 2) return;
+
+  var nameEl = switchWrap.querySelector('.pt-brand-name');
+  var label = nameEl ? nameEl.textContent : '';
+
+  var btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'pt-brand-toggle';
+  btn.id = 'pt-brand-toggle';
+  btn.setAttribute('aria-expanded', 'false');
+  btn.setAttribute('aria-controls', 'pt-brand-list');
+
+  var text = document.createElement('span');
+  text.className = 'pt-brand-toggle-label';
+  text.textContent = label;
+  btn.appendChild(text);
+
+  var caret = document.createElement('span');
+  caret.className = 'pt-brand-caret';
+  caret.setAttribute('aria-hidden', 'true');
+  btn.appendChild(caret);
+
+  if (nameEl) {
+    switchWrap.replaceChild(btn, nameEl);
+  } else {
+    switchWrap.appendChild(btn);
+  }
+
+  var list = document.createElement('div');
+  list.className = 'pt-brand-list';
+  list.id = 'pt-brand-list';
+  list.hidden = true;
+
+  sites.forEach(function (site) {
+    if (site.current) {
+      var current = document.createElement('div');
+      current.className = 'pt-brand-list-item is-current';
+      current.textContent = site.label;
+      list.appendChild(current);
+    } else {
+      var a = document.createElement('a');
+      a.className = 'pt-brand-list-item';
+      a.href = site.href;
+      a.textContent = site.label;
+      list.appendChild(a);
+    }
+  });
+
+  switchWrap.appendChild(list);
+
+  function close() {
+    btn.setAttribute('aria-expanded', 'false');
+    list.hidden = true;
+  }
+
+  btn.addEventListener('click', function () {
+    var expanded = btn.getAttribute('aria-expanded') === 'true';
+    if (expanded) {
+      close();
+    } else {
+      btn.setAttribute('aria-expanded', 'true');
+      list.hidden = false;
+    }
+  });
+
+  document.addEventListener('click', function (e) {
+    if (!switchWrap.contains(e.target)) close();
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') close();
+  });
+})();
 </script>
     <main class="pt-main" id="main-scroll">
       <div class="pt-head">
@@ -644,7 +860,7 @@ table.data-table code {
           <div class="sidebar-parent">
             <span id="screen-nav-title">画面 / 設計書</span>
           </div>
-          <nav class="sidebar-doc-nav" aria-label="画面設計書"><a class="back-link" href="../../../一覧/画面一覧/画面一覧.html">← 画面一覧へ戻る</a><a class="nav-item" href="../基本設計/画面基本設計書.html">基本設計</a><span class="nav-item active">詳細設計</span><a class="nav-item" href="../シーケンス図.html">シーケンス図</a></nav>
+          <nav class="sidebar-doc-nav" aria-label="画面設計書"><a class="back-link" href="../../../一覧/画面一覧/画面一覧.html">← 画面一覧へ戻る</a><a class="nav-item" href="../基本設計/画面基本設計書.html">基本設計</a><span class="nav-item active">詳細設計</span><a class="nav-item" href="../シーケンス図.html">シーケンス図</a><a class="nav-item" href="../テスト項目書/単体テスト仕様書.md">テストケース</a></nav>
           <div class="toc-label">この設計書内</div>
           <ul class="toc-list" id="toc-list"></ul>
         </aside>
@@ -656,12 +872,12 @@ table.data-table code {
   </div>
   <footer class="pt-footer">
   <span class="pt-footer-stamp">REVERSE-DOCS REGISTER</span>
-  <span class="pt-footer-meta">reverse-docs-1-62-impl · 更新 <span id="pt-footer-date">2026-07-29</span><span id="pt-footer-commit"> · コミット </span></span>
+  <span class="pt-footer-meta">sample-project · 更新 <span id="pt-footer-date">2026-07-29</span><span id="pt-footer-commit"> · コミット </span></span>
   <span class="pt-footer-gen">生成: shared/scripts/build-portal.sh</span>
 </footer>
 </div>
 
-<script type="application/json" id="doc-md">"\n# 会員編集 画面詳細設計書\n\n## 関連資料（正の宣言）\n\n| 正の種類 | ファイル | 本書との役割分担 |\n|---|---|---|\n| スタイル・数値（共通） | `../../プロジェクト共通/DESIGN.md` | 複数画面共通のデザイン値の正 |\n| スタイル・数値（画面固有差分） | `./DESIGN.md` | 画面固有の差分の正。本書はキー名参照のみ |\n| 共通仕様 | `../../プロジェクト共通/共通設計書.md` | システム共通仕様の正。本書は準拠状況と画面固有制約のみ |\n| 文言 | `../../プロジェクト共通/メッセージ定義書.md` | 文言の正。本書はメッセージ ID で参照 |\n| テスト観点 | `./単体テスト観点表.md` / `./結合テスト観点表.md` | テスト観点・受け入れ条件の正。本書に含めない |\n| 単体テストケース | `../テスト項目書/単体テスト仕様書.md`（任意） | 具体的な入力値・アサーションの設計時契約。実装後はテストコードが正 |\n| 結合テストケース | `../テスト項目書/結合テスト仕様書.md`（任意） | 具体的な操作手順・入力値・アサーションの設計時契約。実装後はテストコードが正 |\n\n## 章マップ\n\n| 役割キー | § | 章名 | 区分 | 正 | 実装後の扱い | 保守方式 |\n|---|---|---|---|---|---|---|\n| 画面概要 | §1 | 画面概要 | 必須 | 本書 | 維持 | 手 |\n| 機能一覧 | §2 | 機能一覧 | 必須 | 本書 | 維持 | 手 |\n| 画面構造 | §3 | 画面構造 | 必須 | 本書（§3.6 の数値は DESIGN.md） | 維持 | 生成 |\n| 業務ルール | §4 | 業務ルール | 条件付き | 本書 | 維持 | 手 |\n| 状態管理 | §5 | 状態管理 | 必須 | 本書 | 維持 | 生成 |\n| データフロー | §6 | データフロー | 必須 | 本書 | 維持 | 生成 |\n| API通信 | §7 | API 通信仕様 | 条件付き | API 定義書（本書は画面固有の使い方のみ） | 維持 | 生成 |\n| イベント処理 | §8 | イベント処理 | 必須 | 本書 | 維持 | 生成 |\n| 領域別仕様 | §9 | 領域別仕様 | 必須 | 本書 | 維持 | 混在 |\n| 定数設定値 | §10 | 定数・設定値 | 条件付き | 設計時は本書 → 実装後は実装コード | 実装ファイルのパス参照に置換 | 混在 |\n| エラーハンドリング | §11 | エラーハンドリング | 必須 | 本書 | 維持 | 混在 |\n| 画面遷移 | §12 | 画面遷移仕様 | 必須 | 本書 | 維持 | 生成 |\n| 非機能要件 | §13 | 非機能要件 | 必須 | 共通設計書（画面固有制約のみ本書） | 維持 | 手 |\n| 共通準拠 | §14 | 共通仕様への準拠 | 必須 | 共通設計書（本書は逸脱のみ） | 維持 | 手 |\n| 実装契約 | §15 | 実装契約 | 必須 | 設計時は本書 → 実装後はコード（§15.6 は DESIGN.md） | 構造の骨子のみ維持 | 生成 |\n| 要確認事項 | §16 | 要確認事項一覧 | 必須 | 本書 | approved の条件は 0 件 | 手 |\n\n保守方式: 手 = 人が保守する正 / 生成 = 納品時にコードから生成 / 混在 = 生成した骨格に業務的意味を手で重ねる\n\n---\n\n## §1 画面概要\n\n### 1.1 基本情報\n\n| 項目 | 値 |\n|---|---|\n| 画面名 | 会員編集 |\n| 目的 | 会員の登録情報を修正し、会員状態（有効・休会・退会）を切り替える |\n| ルート | /members/:id/edit |\n| 遷移元 | 会員一覧 |\n| 遷移先 | 会員詳細（保存操作完了時）、会員一覧（削除完了時または戻る操作時） |\n\n### 1.2 業務上の位置づけ\n\n会員管理業務における会員情報の維持・更新工程の中核画面であり、会員からの申告内容の反映と会員状態の切り替えを一元的に担う。\n\n---\n\n## §2 機能一覧\n\n### 2.1 機能一覧表\n\n| キー | 機能名 | 概要 | 優先度 |\n|---|---|---|---|\n| 会員情報-編集保存 | 会員情報編集 | 氏名・連絡先・住所・会員区分を編集して保存する | 必須 |\n| 会員状態-変更 | 会員状態変更 | 会員状態を有効・休会・退会の間で切り替える | 必須 |\n| 会員-削除退会 | 会員削除 | 退会確定済みの会員情報を削除する | 必須 |\n| 編集内容-下書き保持 | 編集内容の自動下書き保持 | 保存前の入力内容をブラウザに保持し、再訪時に復元する | 任意 |\n\n### 2.2 機能間の関係\n\n会員削除は会員状態が退会である場合にのみ活性化する。会員状態変更（退会への変更）が先行条件となる直列の依存関係を持つ。\n\n---\n\n## §3 画面構造\n\n### 画面キャプチャ\n\n> 元コードの画面キャプチャーは、このサンプルには含まれません。\n\n### 部品構成（コンポーネント構造）\n\n```\n┌─ MemberEditPage ──────────────────┐\n│ ┌─ MemberEditHeader ────────────┐ │\n│ │ MemberStatusBadge              │ │\n│ └────────────────────────────────┘ │\n│ ┌─ MemberEditForm ──────────────┐ │\n│ │ ContactFieldGroup              │ │\n│ │ MemberTypeSelect                │ │\n│ └────────────────────────────────┘ │\n│ ┌─ MemberEditActionBar ─────────┐ │\n│ │ DeleteConfirmDialog             │ │\n│ └────────────────────────────────┘ │\n└────────────────────────────────────┘\n```\n\n### 3.1 コンポーネント配置\n\n```\nMemberEditPage\n├─ MemberEditHeader\n│   └─ MemberStatusBadge\n├─ MemberEditForm\n│   ├─ ContactFieldGroup\n│   └─ MemberTypeSelect\n└─ MemberEditActionBar\n    └─ DeleteConfirmDialog\n```\n\n### 3.2 DOM 配置順序\n\n1. MemberEditHeader — 会員番号と現在の会員状態を提示する\n2. MemberEditForm — 氏名・連絡先・会員区分の入力欄を提示する\n3. MemberEditActionBar — 保存・削除・戻るの操作ボタンを提示する\n\n### 3.3 レイアウト制約\n\n| 制約 | 値 |\n|---|---|\n| レイアウト方式 | Flex（縦積み1カラム） |\n| 最小幅 | 360px |\n| 最大幅 | 960px |\n\n### 3.4 メニューバー設定（条件付き：メニューバーを持つ画面のみ）\n\n該当なし（メニューバーが存在しない画面のため）\n\n### 3.5 設定オブジェクト構造（条件付き：設定オブジェクトを持つ場合のみ）\n\n該当なし（設定オブジェクトを持たない画面のため）\n\n### 3.6 スタイル適用パターン\n\n| 領域 | 適用パターン | 参照先 |\n|---|---|---|\n| フォーム全体 | card-panel | `DESIGN.md > colors.panel` |\n| 会員状態バッジ | status-badge | `DESIGN.md > colors.statusMember` |\n| 危険操作ボタン | danger-button | `DESIGN.md > colors.danger` |\n\n### 3.7 ボタン一覧\n\n| ボタン名 | 種別 | 位置 | 活性条件 |\n|---|---|---|---|\n| 保存 | 主要 | アクションバー右 | 必須項目がすべて入力済みのとき |\n| 削除 | 危険 | アクションバー左 | 会員状態が退会かつ出荷待ち注文が0件のとき |\n| 戻る | 補助 | アクションバー左端 | 常時 |\n\n---\n\n## §4 業務ルール（条件付き：業務モード・権限制御がある画面のみ）\n\n### 4.1 業務モードと切替条件\n\n| モード | 切替条件 | UI の変化 |\n|---|---|---|\n| 通常編集モード | 会員状態が有効または休会 | 全入力欄が編集可能 |\n| 退会済み閲覧モード | 会員状態が退会 | 連絡先入力欄が読み取り専用になり、削除ボタンが活性化する |\n\n### 4.2 業務判断ポイント\n\n会員状態を退会へ変更する操作は、出荷待ち注文の有無によって確認ダイアログの文言が分岐する。出荷待ち注文がある場合は注文キャンセルを促す警告を追加表示する。\n\n### 4.3 業務フロー内の前後画面との関係\n\n会員一覧から選択された会員番号を受け取り、保存完了後は更新済みの会員情報を伴って会員詳細へ引き継ぐ。\n\n### 4.4 権限別の UI 制御\n\n| ロール | 保存 | 削除 |\n|---|---|---|\n| 会員管理担当者 | 表示 | 非表示 |\n| 会員管理責任者 | 表示 | 表示 |\n\n---\n\n## §5 状態管理\n\n### 5.1 URL パラメータ\n\n| パラメータ名 | 型 | 必須 | 用途 |\n|---|---|---|---|\n| id | string | ○ | 編集対象の会員番号を特定する |\n\n### 5.2 セッション・ストレージ参照\n\n| キー名 | 種別 | 用途 |\n|---|---|---|\n| member-edit-draft-{id} | local | 保存前の入力内容を下書きとして保持し、再訪時に復元する |\n\n### 5.3 メイン画面の状態変数\n\n| 変数名 | 型 | 初期値 | 役割 |\n|---|---|---|---|\n| memberForm | object | APIから取得した会員情報 | 氏名・連絡先・会員区分・会員状態の編集対象値を保持する |\n| isSaving | boolean | false | 保存API呼び出し中のボタン多重押下を防止する |\n| isDeleteConfirmOpen | boolean | false | 削除確認ダイアログの表示状態を保持する |\n| validationErrors | object | 空オブジェクト | 入力チェックで検出したエラー内容を項目単位で保持する |\n| pendingStatusChange | string または null | null | 会員状態変更の確認待ち値を一時保持する |\n\n### 5.4 サブコンポーネントの状態変数\n\n| コンポーネント | 変数名 | 型 | 役割 |\n|---|---|---|---|\n| DeleteConfirmDialog | isOutstandingOrderChecked | boolean | 出荷待ち注文の有無確認済みフラグを保持する |\n\n### 5.5 派生値（計算値）\n\n| 派生値名 | 算出ロジック概要 | 依存する状態変数 |\n|---|---|---|\n| isDeleteEnabled | 会員状態が退会かつ出荷待ち注文が0件のとき true | memberForm, pendingStatusChange |\n| isSaveEnabled | 必須項目がすべて入力済みかつバリデーションエラーが0件のとき true | memberForm, validationErrors |\n\n### 5.6 画面専用ストア（永続化）\n\n該当なし（画面固有の永続化なし。下書き保持は §5.2 のローカルストレージ参照で完結する）\n\n### 5.7 共有ストア参照\n\n該当なし（他画面と共有するストア参照は使用しない）\n\n### 5.8 検索条件更新関数\n\n該当なし\n\n### 5.9 初期値・デフォルト値一覧\n\n| 変数名 | 初期値 | 根拠 |\n|---|---|---|\n| isSaving | false | 画面表示直後は保存操作が発生していないため |\n| validationErrors | 空オブジェクト | 画面表示直後は未入力チェック未実施のため |\n\n---\n\n## §6 データフロー\n\n### 6.1 初期表示シーケンス\n\n1. URL パラメータ（会員番号）取得\n2. ローカルストレージの下書き有無を確認\n3. 会員情報取得APIを呼び出す（§7参照）\n4. 取得結果を編集フォーム用データへ変換（§6.5参照）\n5. 画面状態をreadyに更新\n\n#### 6.1.1 起動時初期化（URL パラメータ → ストア書き戻し）\n\n該当なし（URL 状態同期なし。会員番号は取得APIの引数としてのみ使用する）\n\n### 6.2 依存連鎖\n\n該当なし（独立したデータ取得のみ）\n\n### 6.3 ユーザー操作確定時の処理フロー\n\n1. バリデーション（§11参照）\n2. 確認ダイアログ表示（会員状態を退会に変更する場合、または削除操作の場合）\n3. 保存APIまたは削除APIを呼び出す\n4. 成功時: 会員詳細または会員一覧へ遷移\n5. 失敗時: エラー表示（§11参照）\n\n### 6.4 データ更新トリガーの分類\n\n| トリガー | 種別 | 処理概要 |\n|---|---|---|\n| 保存ボタン押下 | ユーザー操作 | 入力内容を会員更新APIへ送信する |\n| 削除ボタン押下 | ユーザー操作 | 会員削除APIを呼び出す |\n| 下書き自動保存 | 自動 | 入力欄の変更を検知しローカルストレージへ書き込む |\n\n### 6.5 データ変換（API レスポンス → 画面表示用データ）\n\n| 変換名 | 入力型 | 出力型 | 変換概要 |\n|---|---|---|---|\n| toMemberFormValues | MemberResponse | MemberFormValues | APIレスポンスの会員情報を編集フォーム用の項目値へマッピングする |\n\n### 6.6 画面状態の遷移\n\n| 状態 | 遷移条件 | UI の表示 |\n|---|---|---|\n| loading | 初期表示・再取得中 | ローディング表示 |\n| empty | データ0件 | 空状態メッセージ（該当会員が存在しない旨） |\n| error | APIエラー | エラーメッセージ（§11参照） |\n| ready | データ取得成功 | メインコンテンツ（編集フォーム） |\n\n---\n\n## §7 API 通信仕様（条件付き：API を呼ぶ画面のみ）\n\n### 7.1 API 一覧\n\n| No | API 名 | メソッド | エンドポイント | 呼び出し契機 |\n|---|---|---|---|---|\n| 7.2 | 会員情報取得 | GET | /api/members/:id | 初期表示 |\n| 7.3 | 会員情報更新 | PUT | /api/members/:id | 保存ボタン押下 |\n| 7.4 | 会員削除 | DELETE | /api/members/:id | 削除ボタン押下 |\n\n### 7.2 会員情報取得\n\n| 項目 | 内容 |\n|---|---|\n| 概要 | 編集対象の会員情報を取得する |\n| エンドポイント | GET /api/members/:id |\n| 呼び出し契機 | 初期表示 |\n\n**リクエスト**\n\n```typescript\n{ id: string; }\n```\n\n**レスポンス**\n\n```typescript\n{ id: string; name: string; email: string; phone: string; address: string; memberType: string; memberStatus: string; registeredAt: string; updatedAt: string; totalOrderCount: number; }\n```\n\n**エラーと画面側の扱い**\n\n| ステータス | 画面の挙動 | メッセージ ID |\n|---|---|---|\n| 400 | バリデーションエラー表示 | MSG-MEMBER-001 |\n| 401 | ログイン画面へ遷移 | — |\n| 500 | システムエラーメッセージ表示 | MSG-SYSTEM-500 |\n\n### 7.3 会員情報更新\n\n| 項目 | 内容 |\n|---|---|\n| 概要 | 編集内容を保存し、会員情報を更新する |\n| エンドポイント | PUT /api/members/:id |\n| 呼び出し契機 | 保存ボタン押下 |\n\n**リクエスト**\n\n```typescript\n{ name: string; email: string; phone: string; address: string; memberType: string; memberStatus: string; }\n```\n\n**レスポンス**\n\n```typescript\n{ id: string; updatedAt: string; }\n```\n\n**エラーと画面側の扱い**\n\n| ステータス | 画面の挙動 | メッセージ ID |\n|---|---|---|\n| 400 | バリデーションエラー表示 | MSG-MEMBER-002 |\n| 401 | ログイン画面へ遷移 | — |\n| 500 | システムエラーメッセージ表示 | MSG-SYSTEM-500 |\n\n### 7.4 会員削除\n\n| 項目 | 内容 |\n|---|---|\n| 概要 | 退会確定済みの会員情報を削除する |\n| エンドポイント | DELETE /api/members/:id |\n| 呼び出し契機 | 削除ボタン押下（削除確認ダイアログの承認後） |\n\n**リクエスト**\n\n```typescript\n{ id: string; }\n```\n\n**レスポンス**\n\n```typescript\n{ deleted: boolean; }\n```\n\n**エラーと画面側の扱い**\n\n| ステータス | 画面の挙動 | メッセージ ID |\n|---|---|---|\n| 400 | バリデーションエラー表示（出荷待ち注文が残存する旨） | MSG-MEMBER-003 |\n| 401 | ログイン画面へ遷移 | — |\n| 500 | システムエラーメッセージ表示 | MSG-SYSTEM-500 |\n\n---\n\n## §8 イベント処理\n\n### 8.1 メイン画面イベント\n\n| イベント | 発火要素 | 処理概要 |\n|---|---|---|\n| onSave | 保存ボタン | バリデーション後、会員情報更新APIを呼び出す |\n| onDeleteRequest | 削除ボタン | 削除確認ダイアログを表示する |\n| onFieldChange | 各入力欄 | 状態変数を更新し、下書き自動保存をトリガーする |\n\n### 8.2 サブコンポーネントイベント\n\n| コンポーネント | イベント | 処理概要 |\n|---|---|---|\n| DeleteConfirmDialog | onConfirm | 会員削除APIを呼び出す |\n| DeleteConfirmDialog | onCancel | ダイアログを閉じ、削除操作を取り消す |\n\n### 8.3 複数ステップ処理の詳細\n\n会員状態を退会へ変更する操作は、(1) 状態変更の一時保持、(2) 確認ダイアログでの承認、(3) 保存APIの呼び出し、の3ステップを踏む。承認前にキャンセルした場合は一時保持した値を破棄し元の状態に戻す。\n\n### 8.4 キーボード操作\n\n| キー | 発火条件 | 挙動 |\n|---|---|---|\n| Tab | フォーカス可能要素 | 氏名 → 連絡先 → 会員区分 → 会員状態 → 保存 → 削除 → 戻る の順で移動する |\n| Enter | 入力欄フォーカス時 | フォームを送信せず次項目へフォーカスを移す |\n\n---\n\n## §9 領域別仕様\n\n### 9.1 連絡先情報入力欄\n\n#### 9.1.1 概要\n\n会員のメールアドレス・電話番号・住所を編集する領域である。\n\n#### 9.1.2 配置\n\nMemberEditForm内、会員基本情報入力欄の直下に配置される。\n\n#### 9.1.3 項目定義\n\n| 項目名 | 型 | 必須 | 書式 | 状態別編集可否 |\n|---|---|---|---|---|\n| メールアドレス | string | ○ | user@example.com形式 | ready: 可 / loading: 不可 |\n| 電話番号 | string | ○ | ハイフン区切り数字 | ready: 可 / loading: 不可 |\n| 住所 | string | × | 自由入力 | ready: 可 / loading: 不可 |\n\n#### 9.1.4 イベント・挙動\n\n| イベント | 挙動 |\n|---|---|\n| メールアドレス変更 | 形式チェックを即時実行し、不正な場合はインラインエラーを表示する |\n\n#### 9.1.5 領域固有の制約\n\n会員状態が退会の場合、この領域は読み取り専用になる。\n\n---\n\n## §10 定数・設定値（条件付き：画面固有の定数がある場合のみ）\n\n### 10.1 文字列定数\n\n該当なし\n\n### 10.2 選択肢定義\n\n| 定数名 | 選択肢 | 用途 |\n|---|---|---|\n| MEMBER_TYPE_OPTIONS | 一般会員 / 優待会員 | 会員区分選択欄の選択肢 |\n| MEMBER_STATUS_OPTIONS | 有効 / 休会 / 退会 | 会員状態選択欄の選択肢 |\n\n### 10.3 列定義・表示設定\n\n該当なし（テーブル・グリッドを持たない画面のため）\n\n### 10.4 コード変換テーブル\n\n| コード | 表示ラベル |\n|---|---|\n| active | 有効 |\n| suspended | 休会 |\n| withdrawn | 退会 |\n\n### 10.5 区分定数\n\n| 定数名 | 値一覧 |\n|---|---|\n| MEMBER_TYPE | general / preferred |\n\n---\n\n## §11 エラーハンドリング\n\n### 11.1 ユーザー入力チェック\n\n| チェック対象 | 条件 | エラー種別 |\n|---|---|---|\n| 氏名 | 空欄不可 | 必須 |\n| メールアドレス | 空欄不可・形式チェック | 必須・形式 |\n| 電話番号 | 空欄不可 | 必須 |\n\n### 11.2 エラーメッセージ・警告\n\n| タイミング | メッセージ ID | 表示位置 |\n|---|---|---|\n| 保存時のバリデーション失敗 | MSG-MEMBER-002 | インライン |\n| 削除時の出荷待ち注文残存 | MSG-MEMBER-003 | トースト |\n\n### 11.3 システムエラー\n\n| エラー種別 | 画面の挙動 | メッセージ ID |\n|---|---|---|\n| ネットワーク断 | エラーバナー表示・リトライ促進 | MSG-SYSTEM-NETWORK |\n| 認証切れ | ログイン画面へ遷移 | — |\n| 予期しないエラー | エラーメッセージ表示 | MSG-SYSTEM-500 |\n\n---\n\n## §12 画面遷移仕様\n\n### 12.1 遷移先一覧\n\n| 遷移先画面 | 遷移方式 | 条件 | 渡すパラメータ |\n|---|---|---|---|\n| 会員詳細 | replace | 保存操作の完了 | 会員番号 |\n| 会員一覧 | push | 削除操作の完了、または戻る操作 | なし |\n\n### 12.2 遷移方式の方針\n\n保存完了時は編集画面へ戻れないようreplaceで会員詳細へ遷移する。戻る操作・削除完了時は履歴を残すpushで会員一覧へ遷移する。\n\n---\n\n## §13 非機能要件\n\n### 13.1 表示件数・データ量制限\n\n該当なし（単一会員の編集画面のため一覧表示を持たない）\n\n### 13.2 パフォーマンス目安\n\n| 操作 | 目標応答時間 |\n|---|---|\n| 初期表示 | 2秒以内 |\n| 保存操作 | 1秒以内 |\n\n### 13.3 ローディング・処理中表示\n\n| 操作 | ローディング表示方式 |\n|---|---|\n| 初期表示 | スケルトン |\n| 保存操作 | ボタン無効化 |\n\n### 13.4 タイムアウト・リトライ方針\n\n| 項目 | 値 | 根拠 |\n|---|---|---|\n| タイムアウト時間 | 10秒 | 会員更新APIの想定応答時間の5倍を確保するため |\n| リトライ回数 | 1回 | ネットワーク瞬断からの自動復帰を許容するため |\n\n### 13.5 ブラウザ・画面解像度の動作保証範囲\n\n共通設計書準拠（差分なし）\n\n---\n\n## §14 共通仕様への準拠\n\n### 14.1 共通コンポーネント利用一覧\n\n| コンポーネント名 | 利用箇所 | 独自実装の場合の理由 |\n|---|---|---|\n| 共通確認ダイアログ | DeleteConfirmDialog | — |\n| 共通トースト通知 | 保存・削除完了通知 | — |\n\n### 14.2 共通ソート・表示順ルールの適用\n\n該当なし（一覧を持たない画面のため）\n\n### 14.3 用語・ラベルの統一\n\n共通設計書準拠（差分なし）\n\n### 14.4 日付・数値・コード値の表示フォーマット\n\n| 値の種類 | フォーマット | 空値時 |\n|---|---|---|\n| 日付 | YYYY/MM/DD | — |\n| 数値 | 桁区切りカンマ | — |\n| コード値 | §10.4の変換テーブルに従い表示ラベルへ変換 | — |\n\n### 14.5 共通メッセージの利用\n\n| 用途 | メッセージ ID |\n|---|---|\n| システムエラー全般 | MSG-SYSTEM-500 |\n\n---\n\n## §15 実装契約\n\n### 15.1 ファイル分割と export 一覧\n\n| ファイルパス | export 名 | 種別 | 実体形状 | 配置ディレクトリ |\n|---|---|---|---|---|\n| pages/members/MemberEditPage.tsx | MemberEditPage | コンポーネント | 会員編集画面のルートコンポーネント | pages/ |\n| components/members/MemberEditForm.tsx | MemberEditForm | コンポーネント | 会員情報入力フォーム | components/ |\n| components/members/DeleteConfirmDialog.tsx | DeleteConfirmDialog | コンポーネント | 削除確認ダイアログ | components/ |\n| hooks/useMemberEditDraft.ts | useMemberEditDraft | フック | ローカルストレージ下書きの読み書きを行う関数群を返す | hooks/ |\n\n### 15.2 型定義\n\n| 型名 | フィールド名 | 型 | 必須/任意 |\n|---|---|---|---|\n| MemberFormValues | name | string | 必須 |\n| MemberFormValues | email | string | 必須 |\n| MemberFormValues | phone | string | 必須 |\n| MemberFormValues | address | string | 任意 |\n| MemberFormValues | memberType | string | 必須 |\n| MemberFormValues | memberStatus | string | 必須 |\n\n### 15.3 依存（import）一覧\n\n| モジュール | import 内容 | 種別 |\n|---|---|---|\n| api/members | fetchMember, updateMember, deleteMember | 内部 |\n| ui/dialog | ConfirmDialog | 内部 |\n\n### 15.4 別画面コンポーネントとの型合わせ\n\n該当なし（画面間型共有なし）\n\n### 15.5 スコープ分類\n\n| 対象 | スコープ | 理由 |\n|---|---|---|\n| memberForm | コンポーネントローカル | 編集対象は当該画面でのみ使用するため |\n| isSaving | コンポーネントローカル | ボタン多重押下防止のみに使うため |\n\n### 15.6 スタイル定数一覧\n\n| 定数名 | 用途 | 参照先 |\n|---|---|---|\n| PANEL_BACKGROUND | フォーム背景色 | `DESIGN.md > colors.panel` |\n| DANGER_BUTTON_COLOR | 削除ボタン色 | `DESIGN.md > colors.danger` |\n\n### 15.7 state 遷移シーケンス\n\n```\n初期化 → loading → ready\n                 ↘ error（リトライ可）\n       → loading → empty（0 件時）\n```\n\n---\n\n## §16 要確認事項一覧\n\n| キー | 起票日 | 内容 | 暫定扱いにしている § | 解消条件 | 状態 |\n|---|---|---|---|---|---|\n| 削除権限-範囲確認 | 2026-07-23 | 会員削除の権限を会員管理責任者のみとする方針で暫定しているが、運用部門との最終合意は未取得 | §4.4 | 運用部門との権限方針レビュー完了 | 未解消 |"</script>
+<script type="application/json" id="doc-md">"\n# 会員編集 画面詳細設計書\n\n## 関連資料（正の宣言）\n\n| 正の種類 | ファイル | 本書との役割分担 |\n|---|---|---|\n| スタイル・数値（共通） | `../../プロジェクト共通/DESIGN.md` | 複数画面共通のデザイン値の正 |\n| スタイル・数値（画面固有差分） | `./DESIGN.md` | 画面固有の差分の正。本書はキー名参照のみ |\n| 共通仕様 | `../../プロジェクト共通/共通設計書.md` | システム共通仕様の正。本書は準拠状況と画面固有制約のみ |\n| 文言 | `../../プロジェクト共通/メッセージ定義書.md` | 文言の正。本書はメッセージ ID で参照 |\n| テスト観点 | [./単体テスト観点表.md](%E5%8D%98%E4%BD%93%E3%83%86%E3%82%B9%E3%83%88%E8%A6%B3%E7%82%B9%E8%A1%A8.md) / [./結合テスト観点表.md](%E7%B5%90%E5%90%88%E3%83%86%E3%82%B9%E3%83%88%E8%A6%B3%E7%82%B9%E8%A1%A8.md) | テスト観点・受け入れ条件の正。本書に含めない |\n| 単体テストケース | [../テスト項目書/単体テスト仕様書.md](../%E3%83%86%E3%82%B9%E3%83%88%E9%A0%85%E7%9B%AE%E6%9B%B8/%E5%8D%98%E4%BD%93%E3%83%86%E3%82%B9%E3%83%88%E4%BB%95%E6%A7%98%E6%9B%B8.md)（任意） | 具体的な入力値・アサーションの設計時契約。実装後はテストコードが正 |\n| 結合テストケース | [../テスト項目書/結合テスト仕様書.md](../%E3%83%86%E3%82%B9%E3%83%88%E9%A0%85%E7%9B%AE%E6%9B%B8/%E7%B5%90%E5%90%88%E3%83%86%E3%82%B9%E3%83%88%E4%BB%95%E6%A7%98%E6%9B%B8.md)（任意） | 具体的な操作手順・入力値・アサーションの設計時契約。実装後はテストコードが正 |\n\n## 章マップ\n\n| 役割キー | § | 章名 | 区分 | 正 | 実装後の扱い | 保守方式 |\n|---|---|---|---|---|---|---|\n| 画面概要 | §1 | 画面概要 | 必須 | 本書 | 維持 | 手 |\n| 機能一覧 | §2 | 機能一覧 | 必須 | 本書 | 維持 | 手 |\n| 画面構造 | §3 | 画面構造 | 必須 | 本書（§3.6 の数値は DESIGN.md） | 維持 | 生成 |\n| 業務ルール | §4 | 業務ルール | 条件付き | 本書 | 維持 | 手 |\n| 状態管理 | §5 | 状態管理 | 必須 | 本書 | 維持 | 生成 |\n| データフロー | §6 | データフロー | 必須 | 本書 | 維持 | 生成 |\n| API通信 | §7 | API 通信仕様 | 条件付き | API 定義書（本書は画面固有の使い方のみ） | 維持 | 生成 |\n| イベント処理 | §8 | イベント処理 | 必須 | 本書 | 維持 | 生成 |\n| 領域別仕様 | §9 | 領域別仕様 | 必須 | 本書 | 維持 | 混在 |\n| 定数設定値 | §10 | 定数・設定値 | 条件付き | 設計時は本書 → 実装後は実装コード | 実装ファイルのパス参照に置換 | 混在 |\n| エラーハンドリング | §11 | エラーハンドリング | 必須 | 本書 | 維持 | 混在 |\n| 画面遷移 | §12 | 画面遷移仕様 | 必須 | 本書 | 維持 | 生成 |\n| 非機能要件 | §13 | 非機能要件 | 必須 | 共通設計書（画面固有制約のみ本書） | 維持 | 手 |\n| 共通準拠 | §14 | 共通仕様への準拠 | 必須 | 共通設計書（本書は逸脱のみ） | 維持 | 手 |\n| 実装契約 | §15 | 実装契約 | 必須 | 設計時は本書 → 実装後はコード（§15.6 は DESIGN.md） | 構造の骨子のみ維持 | 生成 |\n| 要確認事項 | §16 | 要確認事項一覧 | 必須 | 本書 | approved の条件は 0 件 | 手 |\n\n保守方式: 手 = 人が保守する正 / 生成 = 納品時にコードから生成 / 混在 = 生成した骨格に業務的意味を手で重ねる\n\n---\n\n## §1 画面概要\n\n### 1.1 基本情報\n\n| 項目 | 値 |\n|---|---|\n| 画面名 | 会員編集 |\n| 目的 | 会員の登録情報を修正し、会員状態（有効・休会・退会）を切り替える |\n| ルート | /members/:id/edit |\n| 遷移元 | 会員一覧 |\n| 遷移先 | 会員詳細（保存操作完了時）、会員一覧（削除完了時または戻る操作時） |\n\n### 1.2 業務上の位置づけ\n\n会員管理業務における会員情報の維持・更新工程の中核画面であり、会員からの申告内容の反映と会員状態の切り替えを一元的に担う。\n\n---\n\n## §2 機能一覧\n\n### 2.1 機能一覧表\n\n| キー | 機能名 | 概要 | 優先度 |\n|---|---|---|---|\n| 会員情報-編集保存 | 会員情報編集 | 氏名・連絡先・住所・会員区分を編集して保存する | 必須 |\n| 会員状態-変更 | 会員状態変更 | 会員状態を有効・休会・退会の間で切り替える | 必須 |\n| 会員-削除退会 | 会員削除 | 退会確定済みの会員情報を削除する | 必須 |\n| 編集内容-下書き保持 | 編集内容の自動下書き保持 | 保存前の入力内容をブラウザに保持し、再訪時に復元する | 任意 |\n\n### 2.2 機能間の関係\n\n会員削除は会員状態が退会である場合にのみ活性化する。会員状態変更（退会への変更）が先行条件となる直列の依存関係を持つ。\n\n---\n\n## §3 画面構造\n\n> 非該当項目: §3.4 メニューバー設定（メニューバーが存在しない画面のため）; §3.5 設定オブジェクト構造（設定オブジェクトを持たない画面のため）\n\n### 画面キャプチャ\n\n> 元コードの画面キャプチャーは、このサンプルには含まれません。\n\n### 部品構成（コンポーネント構造）\n\n```\n┌─ MemberEditPage ──────────────────┐\n│ ┌─ MemberEditHeader ────────────┐ │\n│ │ MemberStatusBadge              │ │\n│ └────────────────────────────────┘ │\n│ ┌─ MemberEditForm ──────────────┐ │\n│ │ ContactFieldGroup              │ │\n│ │ MemberTypeSelect                │ │\n│ └────────────────────────────────┘ │\n│ ┌─ MemberEditActionBar ─────────┐ │\n│ │ DeleteConfirmDialog             │ │\n│ └────────────────────────────────┘ │\n└────────────────────────────────────┘\n```\n\n### 3.1 コンポーネント配置\n\n```\nMemberEditPage\n├─ MemberEditHeader\n│   └─ MemberStatusBadge\n├─ MemberEditForm\n│   ├─ ContactFieldGroup\n│   └─ MemberTypeSelect\n└─ MemberEditActionBar\n    └─ DeleteConfirmDialog\n```\n\n### 3.2 DOM 配置順序\n\n1. MemberEditHeader — 会員番号と現在の会員状態を提示する\n2. MemberEditForm — 氏名・連絡先・会員区分の入力欄を提示する\n3. MemberEditActionBar — 保存・削除・戻るの操作ボタンを提示する\n\n### 3.3 レイアウト制約\n\n| 制約 | 値 |\n|---|---|\n| レイアウト方式 | Flex（縦積み1カラム） |\n| 最小幅 | 360px |\n| 最大幅 | 960px |\n\n### 3.6 スタイル適用パターン\n\n| 領域 | 適用パターン | 参照先 |\n|---|---|---|\n| フォーム全体 | card-panel | `DESIGN.md > colors.panel` |\n| 会員状態バッジ | status-badge | `DESIGN.md > colors.statusMember` |\n| 危険操作ボタン | danger-button | `DESIGN.md > colors.danger` |\n\n### 3.7 ボタン一覧\n\n| ボタン名 | 種別 | 位置 | 活性条件 |\n|---|---|---|---|\n| 保存 | 主要 | アクションバー右 | 必須項目がすべて入力済みのとき |\n| 削除 | 危険 | アクションバー左 | 会員状態が退会かつ出荷待ち注文が0件のとき |\n| 戻る | 補助 | アクションバー左端 | 常時 |\n\n---\n\n## §4 業務ルール（条件付き：業務モード・権限制御がある画面のみ）\n\n### 4.1 業務モードと切替条件\n\n| モード | 切替条件 | UI の変化 |\n|---|---|---|\n| 通常編集モード | 会員状態が有効または休会 | 全入力欄が編集可能 |\n| 退会済み閲覧モード | 会員状態が退会 | 連絡先入力欄が読み取り専用になり、削除ボタンが活性化する |\n\n### 4.2 業務判断ポイント\n\n会員状態を退会へ変更する操作は、出荷待ち注文の有無によって確認ダイアログの文言が分岐する。出荷待ち注文がある場合は注文キャンセルを促す警告を追加表示する。\n\n### 4.3 業務フロー内の前後画面との関係\n\n会員一覧から選択された会員番号を受け取り、保存完了後は更新済みの会員情報を伴って会員詳細へ引き継ぐ。\n\n### 4.4 権限別の UI 制御\n\n| ロール | 保存 | 削除 |\n|---|---|---|\n| 会員管理担当者 | 表示 | 非表示 |\n| 会員管理責任者 | 表示 | 表示 |\n\n---\n\n## §5 状態管理\n\n> 非該当項目: §5.6 画面専用ストア（画面固有の永続化なし。下書き保持は §5.2 のローカルストレージ参照で完結する）; §5.7 共有ストア（他画面と共有するストア参照は使用しない）; §5.8 検索条件更新関数（検索フォームを持たない）\n\n### 5.1 URL パラメータ\n\n| パラメータ名 | 型 | 必須 | 用途 |\n|---|---|---|---|\n| id | string | ○ | 編集対象の会員番号を特定する |\n\n### 5.2 セッション・ストレージ参照\n\n| キー名 | 種別 | 用途 |\n|---|---|---|\n| member-edit-draft-{id} | local | 保存前の入力内容を下書きとして保持し、再訪時に復元する |\n\n### 5.3 メイン画面の状態変数\n\n| 変数名 | 型 | 初期値 | 役割 |\n|---|---|---|---|\n| memberForm | object | APIから取得した会員情報 | 氏名・連絡先・会員区分・会員状態の編集対象値を保持する |\n| isSaving | boolean | false | 保存API呼び出し中のボタン多重押下を防止する |\n| isDeleteConfirmOpen | boolean | false | 削除確認ダイアログの表示状態を保持する |\n| validationErrors | object | 空オブジェクト | 入力チェックで検出したエラー内容を項目単位で保持する |\n| pendingStatusChange | string または null | null | 会員状態変更の確認待ち値を一時保持する |\n\n### 5.4 サブコンポーネントの状態変数\n\n| コンポーネント | 変数名 | 型 | 役割 |\n|---|---|---|---|\n| DeleteConfirmDialog | isOutstandingOrderChecked | boolean | 出荷待ち注文の有無確認済みフラグを保持する |\n\n### 5.5 派生値（計算値）\n\n| 派生値名 | 算出ロジック概要 | 依存する状態変数 |\n|---|---|---|\n| isDeleteEnabled | 会員状態が退会かつ出荷待ち注文が0件のとき true | memberForm, pendingStatusChange |\n| isSaveEnabled | 必須項目がすべて入力済みかつバリデーションエラーが0件のとき true | memberForm, validationErrors |\n\n### 5.9 初期値・デフォルト値一覧\n\n| 変数名 | 初期値 | 根拠 |\n|---|---|---|\n| isSaving | false | 画面表示直後は保存操作が発生していないため |\n| validationErrors | 空オブジェクト | 画面表示直後は未入力チェック未実施のため |\n\n---\n\n## §6 データフロー\n\n> 非該当項目: §6.1.1 URL 状態同期（会員番号は取得APIの引数としてのみ使用する）; §6.2 依存連鎖（独立したデータ取得のみ）\n\n### 6.1 初期表示シーケンス\n\n1. URL パラメータ（会員番号）取得\n2. ローカルストレージの下書き有無を確認\n3. 会員情報取得APIを呼び出す（§7参照）\n4. 取得結果を編集フォーム用データへ変換（§6.5参照）\n5. 画面状態をreadyに更新\n\n### 6.3 ユーザー操作確定時の処理フロー\n\n1. バリデーション（§11参照）\n2. 確認ダイアログ表示（会員状態を退会に変更する場合、または削除操作の場合）\n3. 保存APIまたは削除APIを呼び出す\n4. 成功時: 会員詳細または会員一覧へ遷移\n5. 失敗時: エラー表示（§11参照）\n\n### 6.4 データ更新トリガーの分類\n\n| トリガー | 種別 | 処理概要 |\n|---|---|---|\n| 保存ボタン押下 | ユーザー操作 | 入力内容を会員更新APIへ送信する |\n| 削除ボタン押下 | ユーザー操作 | 会員削除APIを呼び出す |\n| 下書き自動保存 | 自動 | 入力欄の変更を検知しローカルストレージへ書き込む |\n\n### 6.5 データ変換（API レスポンス → 画面表示用データ）\n\n| 変換名 | 入力型 | 出力型 | 変換概要 |\n|---|---|---|---|\n| toMemberFormValues | MemberResponse | MemberFormValues | APIレスポンスの会員情報を編集フォーム用の項目値へマッピングする |\n\n### 6.6 画面状態の遷移\n\n| 状態 | 遷移条件 | UI の表示 |\n|---|---|---|\n| loading | 初期表示・再取得中 | ローディング表示 |\n| empty | データ0件 | 空状態メッセージ（該当会員が存在しない旨） |\n| error | APIエラー | エラーメッセージ（§11参照） |\n| ready | データ取得成功 | メインコンテンツ（編集フォーム） |\n\n---\n\n## §7 API 通信仕様（条件付き：API を呼ぶ画面のみ）\n\n### 7.1 API 一覧\n\n| No | API 名 | メソッド | エンドポイント | 呼び出し契機 |\n|---|---|---|---|---|\n| 7.2 | 会員情報取得 | GET | /api/members/:id | 初期表示 |\n| 7.3 | 会員情報更新 | PUT | /api/members/:id | 保存ボタン押下 |\n| 7.4 | 会員削除 | DELETE | /api/members/:id | 削除ボタン押下 |\n\n### 7.2 会員情報取得\n\n| 項目 | 内容 |\n|---|---|\n| 概要 | 編集対象の会員情報を取得する |\n| エンドポイント | GET /api/members/:id |\n| 呼び出し契機 | 初期表示 |\n\n**リクエスト**\n\n```typescript\n{ id: string; }\n```\n\n**レスポンス**\n\n```typescript\n{ id: string; name: string; email: string; phone: string; address: string; memberType: string; memberStatus: string; registeredAt: string; updatedAt: string; totalOrderCount: number; }\n```\n\n**エラーと画面側の扱い**\n\n| ステータス | 画面の挙動 | メッセージ ID |\n|---|---|---|\n| 400 | バリデーションエラー表示 | MSG-MEMBER-001 |\n| 401 | ログイン画面へ遷移 | — |\n| 500 | システムエラーメッセージ表示 | MSG-SYSTEM-500 |\n\n### 7.3 会員情報更新\n\n| 項目 | 内容 |\n|---|---|\n| 概要 | 編集内容を保存し、会員情報を更新する |\n| エンドポイント | PUT /api/members/:id |\n| 呼び出し契機 | 保存ボタン押下 |\n\n**リクエスト**\n\n```typescript\n{ name: string; email: string; phone: string; address: string; memberType: string; memberStatus: string; }\n```\n\n**レスポンス**\n\n```typescript\n{ id: string; updatedAt: string; }\n```\n\n**エラーと画面側の扱い**\n\n| ステータス | 画面の挙動 | メッセージ ID |\n|---|---|---|\n| 400 | バリデーションエラー表示 | MSG-MEMBER-002 |\n| 401 | ログイン画面へ遷移 | — |\n| 500 | システムエラーメッセージ表示 | MSG-SYSTEM-500 |\n\n### 7.4 会員削除\n\n| 項目 | 内容 |\n|---|---|\n| 概要 | 退会確定済みの会員情報を削除する |\n| エンドポイント | DELETE /api/members/:id |\n| 呼び出し契機 | 削除ボタン押下（削除確認ダイアログの承認後） |\n\n**リクエスト**\n\n```typescript\n{ id: string; }\n```\n\n**レスポンス**\n\n```typescript\n{ deleted: boolean; }\n```\n\n**エラーと画面側の扱い**\n\n| ステータス | 画面の挙動 | メッセージ ID |\n|---|---|---|\n| 400 | バリデーションエラー表示（出荷待ち注文が残存する旨） | MSG-MEMBER-003 |\n| 401 | ログイン画面へ遷移 | — |\n| 500 | システムエラーメッセージ表示 | MSG-SYSTEM-500 |\n\n---\n\n## §8 イベント処理\n\n### 8.1 メイン画面イベント\n\n| イベント | 発火要素 | 処理概要 |\n|---|---|---|\n| onSave | 保存ボタン | バリデーション後、会員情報更新APIを呼び出す |\n| onDeleteRequest | 削除ボタン | 削除確認ダイアログを表示する |\n| onFieldChange | 各入力欄 | 状態変数を更新し、下書き自動保存をトリガーする |\n\n### 8.2 サブコンポーネントイベント\n\n| コンポーネント | イベント | 処理概要 |\n|---|---|---|\n| DeleteConfirmDialog | onConfirm | 会員削除APIを呼び出す |\n| DeleteConfirmDialog | onCancel | ダイアログを閉じ、削除操作を取り消す |\n\n### 8.3 複数ステップ処理の詳細\n\n会員状態を退会へ変更する操作は、(1) 状態変更の一時保持、(2) 確認ダイアログでの承認、(3) 保存APIの呼び出し、の3ステップを踏む。承認前にキャンセルした場合は一時保持した値を破棄し元の状態に戻す。\n\n### 8.4 キーボード操作\n\n| キー | 発火条件 | 挙動 |\n|---|---|---|\n| Tab | フォーカス可能要素 | 氏名 → 連絡先 → 会員区分 → 会員状態 → 保存 → 削除 → 戻る の順で移動する |\n| Enter | 入力欄フォーカス時 | フォームを送信せず次項目へフォーカスを移す |\n\n---\n\n## §9 領域別仕様\n\n### 9.1 連絡先情報入力欄\n\n#### 9.1.1 概要\n\n会員のメールアドレス・電話番号・住所を編集する領域である。\n\n#### 9.1.2 配置\n\nMemberEditForm内、会員基本情報入力欄の直下に配置される。\n\n#### 9.1.3 項目定義\n\n| 項目名 | 型 | 必須 | 書式 | 状態別編集可否 |\n|---|---|---|---|---|\n| メールアドレス | string | ○ | user@example.com形式 | ready: 可 / loading: 不可 |\n| 電話番号 | string | ○ | ハイフン区切り数字 | ready: 可 / loading: 不可 |\n| 住所 | string | × | 自由入力 | ready: 可 / loading: 不可 |\n\n#### 9.1.4 イベント・挙動\n\n| イベント | 挙動 |\n|---|---|\n| メールアドレス変更 | 形式チェックを即時実行し、不正な場合はインラインエラーを表示する |\n\n#### 9.1.5 領域固有の制約\n\n会員状態が退会の場合、この領域は読み取り専用になる。\n\n---\n\n## §10 定数・設定値（条件付き：画面固有の定数がある場合のみ）\n\n> 非該当項目: §10.1 文字列定数（画面固有の文字列定数を持たない）; §10.3 列定義・表示設定（テーブル・グリッドを持たない画面のため）\n\n### 10.2 選択肢定義\n\n| 定数名 | 選択肢 | 用途 |\n|---|---|---|\n| MEMBER_TYPE_OPTIONS | 一般会員 / 優待会員 | 会員区分選択欄の選択肢 |\n| MEMBER_STATUS_OPTIONS | 有効 / 休会 / 退会 | 会員状態選択欄の選択肢 |\n\n### 10.4 コード変換テーブル\n\n| コード | 表示ラベル |\n|---|---|\n| active | 有効 |\n| suspended | 休会 |\n| withdrawn | 退会 |\n\n### 10.5 区分定数\n\n| 定数名 | 値一覧 |\n|---|---|\n| MEMBER_TYPE | general / preferred |\n\n---\n\n## §11 エラーハンドリング\n\n### 11.1 ユーザー入力チェック\n\n| チェック対象 | 条件 | エラー種別 |\n|---|---|---|\n| 氏名 | 空欄不可 | 必須 |\n| メールアドレス | 空欄不可・形式チェック | 必須・形式 |\n| 電話番号 | 空欄不可 | 必須 |\n\n### 11.2 エラーメッセージ・警告\n\n| タイミング | メッセージ ID | 表示位置 |\n|---|---|---|\n| 保存時のバリデーション失敗 | MSG-MEMBER-002 | インライン |\n| 削除時の出荷待ち注文残存 | MSG-MEMBER-003 | トースト |\n\n### 11.3 システムエラー\n\n| エラー種別 | 画面の挙動 | メッセージ ID |\n|---|---|---|\n| ネットワーク断 | エラーバナー表示・リトライ促進 | MSG-SYSTEM-NETWORK |\n| 認証切れ | ログイン画面へ遷移 | — |\n| 予期しないエラー | エラーメッセージ表示 | MSG-SYSTEM-500 |\n\n---\n\n## §12 画面遷移仕様\n\n### 12.1 遷移先一覧\n\n| 遷移先画面 | 遷移方式 | 条件 | 渡すパラメータ |\n|---|---|---|---|\n| 会員詳細 | replace | 保存操作の完了 | 会員番号 |\n| 会員一覧 | push | 削除操作の完了、または戻る操作 | なし |\n\n### 12.2 遷移方式の方針\n\n保存完了時は編集画面へ戻れないようreplaceで会員詳細へ遷移する。戻る操作・削除完了時は履歴を残すpushで会員一覧へ遷移する。\n\n---\n\n## §13 非機能要件\n\n> 非該当項目: §13.1 表示件数・データ量制限（単一会員の編集画面のため一覧表示を持たない）\n\n### 13.2 パフォーマンス目安\n\n| 操作 | 目標応答時間 |\n|---|---|\n| 初期表示 | 2秒以内 |\n| 保存操作 | 1秒以内 |\n\n### 13.3 ローディング・処理中表示\n\n| 操作 | ローディング表示方式 |\n|---|---|\n| 初期表示 | スケルトン |\n| 保存操作 | ボタン無効化 |\n\n### 13.4 タイムアウト・リトライ方針\n\n| 項目 | 値 | 根拠 |\n|---|---|---|\n| タイムアウト時間 | 10秒 | 会員更新APIの想定応答時間の5倍を確保するため |\n| リトライ回数 | 1回 | ネットワーク瞬断からの自動復帰を許容するため |\n\n### 13.5 ブラウザ・画面解像度の動作保証範囲\n\n共通設計書準拠（差分なし）\n\n---\n\n## §14 共通仕様への準拠\n\n> 非該当項目: §14.2 共通ソート・表示順ルール（一覧を持たない画面のため）\n\n### 14.1 共通コンポーネント利用一覧\n\n| コンポーネント名 | 利用箇所 | 独自実装の場合の理由 |\n|---|---|---|\n| 共通確認ダイアログ | DeleteConfirmDialog | — |\n| 共通トースト通知 | 保存・削除完了通知 | — |\n\n### 14.3 用語・ラベルの統一\n\n共通設計書準拠（差分なし）\n\n### 14.4 日付・数値・コード値の表示フォーマット\n\n| 値の種類 | フォーマット | 空値時 |\n|---|---|---|\n| 日付 | YYYY/MM/DD | — |\n| 数値 | 桁区切りカンマ | — |\n| コード値 | §10.4の変換テーブルに従い表示ラベルへ変換 | — |\n\n### 14.5 共通メッセージの利用\n\n| 用途 | メッセージ ID |\n|---|---|\n| システムエラー全般 | MSG-SYSTEM-500 |\n\n---\n\n## §15 実装契約\n\n> 非該当項目: §15.4 別画面コンポーネントとの型合わせ（画面間型共有なし）\n\n### 15.1 ファイル分割と export 一覧\n\n| ファイルパス | export 名 | 種別 | 実体形状 | 配置ディレクトリ |\n|---|---|---|---|---|\n| pages/members/MemberEditPage.tsx | MemberEditPage | コンポーネント | 会員編集画面のルートコンポーネント | pages/ |\n| components/members/MemberEditForm.tsx | MemberEditForm | コンポーネント | 会員情報入力フォーム | components/ |\n| components/members/DeleteConfirmDialog.tsx | DeleteConfirmDialog | コンポーネント | 削除確認ダイアログ | components/ |\n| hooks/useMemberEditDraft.ts | useMemberEditDraft | フック | ローカルストレージ下書きの読み書きを行う関数群を返す | hooks/ |\n\n### 15.2 型定義\n\n| 型名 | フィールド名 | 型 | 必須/任意 |\n|---|---|---|---|\n| MemberFormValues | name | string | 必須 |\n| MemberFormValues | email | string | 必須 |\n| MemberFormValues | phone | string | 必須 |\n| MemberFormValues | address | string | 任意 |\n| MemberFormValues | memberType | string | 必須 |\n| MemberFormValues | memberStatus | string | 必須 |\n\n### 15.3 依存（import）一覧\n\n| モジュール | import 内容 | 種別 |\n|---|---|---|\n| api/members | fetchMember, updateMember, deleteMember | 内部 |\n| ui/dialog | ConfirmDialog | 内部 |\n\n### 15.5 スコープ分類\n\n| 対象 | スコープ | 理由 |\n|---|---|---|\n| memberForm | コンポーネントローカル | 編集対象は当該画面でのみ使用するため |\n| isSaving | コンポーネントローカル | ボタン多重押下防止のみに使うため |\n\n### 15.6 スタイル定数一覧\n\n| 定数名 | 用途 | 参照先 |\n|---|---|---|\n| PANEL_BACKGROUND | フォーム背景色 | `DESIGN.md > colors.panel` |\n| DANGER_BUTTON_COLOR | 削除ボタン色 | `DESIGN.md > colors.danger` |\n\n### 15.7 state 遷移シーケンス\n\n```\n初期化 → loading → ready\n                 ↘ error（リトライ可）\n       → loading → empty（0 件時）\n```\n\n---\n\n## §16 要確認事項一覧\n\n| キー | 起票日 | 内容 | 暫定扱いにしている § | 解消条件 | 状態 |\n|---|---|---|---|---|---|\n| 削除権限-範囲確認 | 2026-07-23 | 会員削除の権限を会員管理責任者のみとする方針で暫定しているが、運用部門との最終合意は未取得 | §4.4 | 運用部門との権限方針レビュー完了 | 未解消 |"</script>
 
 <script>
 (function () {
@@ -676,6 +892,8 @@ table.data-table code {
   var inList = false;
   var listType = '';
   var inBlockquote = false;
+  var inFence = false;
+  var fenceLines = [];
 
   function escHtml(s) {
     return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
@@ -714,10 +932,28 @@ table.data-table code {
   function closeTable() {
     if (inTable) { html.push('</tbody></table></div>'); inTable = false; }
   }
+  function closeFence() {
+    html.push('<div class="code-block"><pre><code>' + escHtml(fenceLines.join('\n')) + '</code></pre></div>');
+    inFence = false;
+    fenceLines = [];
+  }
 
   for (var i = 0; i < lines.length; i++) {
     var line = lines[i];
     var trimmed = line.trim();
+
+    // フェンス内はMarkdownとして解釈せず、終了行まで文字列のまま保持する
+    if (inFence) {
+      if (/^```\s*$/.test(trimmed)) closeFence();
+      else fenceLines.push(line);
+      continue;
+    }
+    if (/^```(?:\s*[^`\s]+)?\s*$/.test(trimmed)) {
+      closeList(); closeBlockquote(); closeTable();
+      inFence = true;
+      fenceLines = [];
+      continue;
+    }
 
     // 空行
     if (!trimmed) { closeList(); closeBlockquote(); continue; }
@@ -776,6 +1012,7 @@ table.data-table code {
     closeList(); closeTable(); closeBlockquote();
     html.push('<p>' + inlineFormat(trimmed) + '</p>');
   }
+  if (inFence) closeFence();
   closeList(); closeTable(); closeBlockquote();
 
   document.getElementById('doc-content').innerHTML = html.join('\n');
@@ -799,6 +1036,42 @@ table.data-table code {
     Array.prototype.forEach.call(container.querySelectorAll('table'), function (t) {
       t.classList.add('data-table');
     });
+
+    // 横スクロールが必要な表だけ端フェードとキーボード操作の手掛かりを付ける
+    var tableWraps = Array.prototype.slice.call(container.querySelectorAll('.table-wrap'));
+    var updateScrollCues = [];
+    tableWraps.forEach(function (wrap) {
+      var shell = document.createElement('div');
+      shell.className = 'table-scroll-shell';
+      wrap.parentNode.insertBefore(shell, wrap);
+      shell.appendChild(wrap);
+
+      function updateScrollCue() {
+        var overflowing = wrap.scrollWidth > wrap.clientWidth + 1;
+        var atStart = wrap.scrollLeft <= 1;
+        var atEnd = wrap.scrollLeft + wrap.offsetWidth >= wrap.scrollWidth - 1;
+        shell.classList.toggle('can-scroll-left', overflowing && !atStart);
+        shell.classList.toggle('can-scroll-right', overflowing && !atEnd);
+        if (overflowing) {
+          wrap.tabIndex = 0;
+          wrap.setAttribute('role', 'region');
+          wrap.setAttribute('aria-label', '横にスクロールできます');
+        } else {
+          wrap.removeAttribute('tabindex');
+          wrap.removeAttribute('role');
+          wrap.removeAttribute('aria-label');
+        }
+      }
+
+      wrap.addEventListener('scroll', updateScrollCue, {passive: true});
+      updateScrollCues.push(updateScrollCue);
+    });
+
+    function updateAllScrollCues() {
+      updateScrollCues.forEach(function (updateScrollCue) { updateScrollCue(); });
+    }
+    window.addEventListener('resize', updateAllScrollCues);
+    requestAnimationFrame(updateAllScrollCues);
 
     function sectionSlug(text) {
       var normalized = text.trim();
@@ -840,6 +1113,20 @@ table.data-table code {
         node = next;
       }
 
+      // §16 要確認事項一覧: 行数を自動判定し、1行以上なら重要度コールアウト（警告）を付与する。
+      // 0件は通常表示のまま（目視判断に依存させない機械判定）。
+      if (/要確認事項一覧/.test(text)) {
+        var unresolvedRowCount = section.querySelectorAll('table.data-table tbody tr').length;
+        if (unresolvedRowCount >= 1) {
+          section.classList.add('pt-callout', 'pt-callout--warning');
+          var unresolvedIcon = document.createElement('span');
+          unresolvedIcon.className = 'material-symbols-outlined pt-callout__icon';
+          unresolvedIcon.setAttribute('aria-hidden', 'true');
+          unresolvedIcon.textContent = 'warning';
+          label.insertBefore(unresolvedIcon, label.firstChild);
+        }
+      }
+
       // セクション直下（トップレベル）の ul のみをチェックリスト装飾する。入れ子リストは変換しない
       Array.prototype.forEach.call(section.children, function (child) {
         if (child.tagName === 'UL') {
@@ -853,6 +1140,37 @@ table.data-table code {
           });
         }
       });
+
+      // 参照用付録（生コード全文・API全量列挙等）の折りたたみ化。
+      // 見出しテキストが「付録:」で始まる h3/h4 を <details><summary> へ変換し、
+      // 次の同階層以上の見出しまでの内容をまとめて折りたたむ（JSトグルなし・ネイティブdetails利用）。
+      (function wrapAppendixHeadings() {
+        function headingLevel(el) { return Number(el.tagName.charAt(1)); }
+        var heading = label.nextElementSibling;
+        while (heading) {
+          var nextHeading = heading.nextElementSibling;
+          var isHeading = /^H[1-6]$/.test(heading.tagName);
+          if (isHeading && /^付録[:：]/.test((heading.textContent || '').trim())) {
+            var level = headingLevel(heading);
+            var details = document.createElement('details');
+            details.className = 'appendix-details';
+            var summary = document.createElement('summary');
+            summary.textContent = heading.textContent;
+            details.appendChild(summary);
+            section.insertBefore(details, heading);
+            section.removeChild(heading);
+            var node = nextHeading;
+            while (node && !(node.nodeType === 1 && /^H[1-6]$/.test(node.tagName) && headingLevel(node) <= level)) {
+              var following = node.nextElementSibling;
+              details.appendChild(node);
+              node = following;
+            }
+            heading = node;
+            continue;
+          }
+          heading = nextHeading;
+        }
+      })();
 
       var li = document.createElement('li');
       var a = document.createElement('a');
