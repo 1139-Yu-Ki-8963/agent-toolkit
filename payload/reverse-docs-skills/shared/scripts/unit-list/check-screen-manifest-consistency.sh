@@ -92,7 +92,18 @@ html_specs=(
 )
 for spec in "${html_specs[@]}"; do
   rel="${spec%%|*}"; id="${spec#*|}"; html="$root/$rel"
-  [ -f "$html" ] || { echo "ERROR: missing derived HTML: $html" >&2; exit 1; }
+  if [ ! -f "$html" ]; then
+    case "$rel" in
+      マトリクス・対応表/*/*.html)
+        # 必須成分0件でbuild-matrix-pages.shが生成をスキップした任意出力(写真指摘1-101)。
+        echo "SKIP: 必須成分0件で生成されなかった任意出力のためhash検査を省略: $html" >&2
+        continue
+        ;;
+      *)
+        echo "ERROR: missing derived HTML: $html" >&2; exit 1
+        ;;
+    esac
+  fi
   extract_script "$html" "$id" "${TMPDIR:-/tmp}/screen-consistency-embedded.$$.json"
   [ "$(jq -r '.manifestContentHash // ""' "${TMPDIR:-/tmp}/screen-consistency-embedded.$$.json")" = "$expected" ] \
     || { echo "ERROR: embedded hash mismatch: $html#$id" >&2; exit 1; }

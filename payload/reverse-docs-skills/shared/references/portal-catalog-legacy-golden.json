@@ -387,14 +387,6 @@
         "group": "権限"
       },
       {
-        "title": "CRUD図",
-        "icon": "grid_on",
-        "href": "./マトリクス・対応表/CRUD図/CRUD図.html",
-        "desc": "機能×テーブルの行×列でCRUD操作の関係を示すマトリクス。",
-        "count": "詳細を見る",
-        "group": "データ"
-      },
-      {
         "title": "追跡可能性",
         "icon": "route",
         "href": "./マトリクス・対応表/追跡可能性/追跡可能性.html",

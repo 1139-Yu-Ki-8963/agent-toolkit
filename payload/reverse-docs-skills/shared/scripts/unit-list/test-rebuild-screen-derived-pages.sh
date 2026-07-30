@@ -88,6 +88,28 @@ echo "PASS: noncanonical raw manifest path rejected"
 
 run_rebuild "$tmp/out-a"
 run_rebuild "$tmp/out-b"
+
+# この fixture は --table-manifest / --feature-manifest を渡さないため
+# crud-matrix.json の tables・features は決定的に0件になり、CRUD図(任意出力)は
+# build-matrix-pages.sh の必須成分0件ガードでスキップされる(写真指摘1-101)。
+# rebuild全体が失敗しないことと、陳腐化した既存ページが残らないことを確認する。
+if [ -f "$tmp/out-a/マトリクス・対応表/CRUD図/CRUD図.html" ]; then
+  echo "FAIL: expected CRUD図 to be skipped (tables/features are both empty for this fixture)" >&2
+  exit 1
+fi
+echo "PASS: CRUD図(任意出力)は必須成分0件のためスキップされ、rebuildは失敗しなかった"
+
+# 陳腐化した既存CRUD図(前回実行の生成物)がある状態から再実行しても、
+# 今回tables/featuresが0件ならコミット時にそのページが除去されることを確認する。
+mkdir -p "$tmp/stale/マトリクス・対応表/CRUD図"
+printf '<html>stale</html>\n' > "$tmp/stale/マトリクス・対応表/CRUD図/CRUD図.html"
+run_rebuild "$tmp/stale"
+if [ -f "$tmp/stale/マトリクス・対応表/CRUD図/CRUD図.html" ]; then
+  echo "FAIL: 陳腐化したCRUD図が除去されずに残存した" >&2
+  exit 1
+fi
+echo "PASS: 陳腐化した既存CRUD図はコミットで除去される"
+
 jq -e '
   .screens[0].existingTestCount == 3
 ' "$tmp/out-a/一覧/画面一覧/screen-manifest.ext.json" >/dev/null
@@ -109,6 +131,19 @@ record() {
   local root="$1" out="$2" rel
   : > "$out"
   for rel in "${managed[@]}"; do
+    if [ ! -f "$root/$rel" ]; then
+      case "$rel" in
+        マトリクス・対応表/*/*.html)
+          # 必須成分0件でbuild-matrix-pages.shが生成をスキップした任意出力(写真指摘1-101)。
+          printf '%s\tMISSING\tMISSING\n' "$rel" >> "$out"
+          continue
+          ;;
+        *)
+          echo "ERROR: expected managed output missing: $root/$rel" >&2
+          return 1
+          ;;
+      esac
+    fi
     mode="$(stat -c '%a' "$root/$rel" 2>/dev/null || stat -f '%Lp' "$root/$rel")"
     if command -v shasum >/dev/null 2>&1; then hash="$(shasum -a 256 "$root/$rel" | awk '{print $1}')"
     else hash="$(sha256sum "$root/$rel" | awk '{print $1}')"; fi

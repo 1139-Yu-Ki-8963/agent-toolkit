@@ -32,6 +32,11 @@
 # 出力: <output-html-path> に単一ファイル自己完結の HTML を書き出す。
 #   data.json の内容は <script type="application/json" id="matrix-manifest"> に
 #   そのまま埋め込む(埋め込み JSON は原本と完全一致させる)。
+#
+# 生成条件: 必須キーが揃っていても、その値(配列)がすべて0件なら空白の表だけの
+#   ページを公開しないため生成をスキップする(exit 0・既存の旧ページがあれば削除)。
+#   一部キーのみ0件の場合はページを生成し、テンプレート内JSが欠けた成分を示す
+#   空状態コールアウトを表示する(写真指摘1-101)。
 
 ## 設計判断
 ##
@@ -414,6 +419,29 @@ for key in $REQUIRED_KEYS; do
     exit 1
   fi
 done
+
+# --- 必須成分がすべて0件ならページを生成しない(空白の表だけを公開する経路を断つ。
+# shared/references/manifest-schema-extensions.md「マトリクス・対応表用の新規データ
+# ファイル定義」: 該当データが揃った時のみ生成する契約に従う)。既存の旧ページが
+# あれば陳腐化を防ぐため削除する。一部成分のみ0件の場合はページを生成し、
+# テンプレート側JSが空状態コールアウトを表示する ---
+all_required_empty=true
+for key in $REQUIRED_KEYS; do
+  key_length="$(jq -r --arg k "$key" '(.[$k] // []) | if type == "array" then length else 1 end' "$DATA_JSON")"
+  if [ "$key_length" -gt 0 ]; then
+    all_required_empty=false
+    break
+  fi
+done
+if [ "$all_required_empty" = true ]; then
+  if [ -f "$OUTPUT_HTML" ]; then
+    rm -f "$OUTPUT_HTML"
+    echo "SKIP: 必須成分($REQUIRED_KEYS)がすべて0件のため既存ページを削除しました(page-type: $PAGE_TYPE): $OUTPUT_HTML" >&2
+  else
+    echo "SKIP: 必須成分($REQUIRED_KEYS)がすべて0件のためページを生成しません(page-type: $PAGE_TYPE)" >&2
+  fi
+  exit 0
+fi
 
 # --- HTMLエスケープ(& < > のみ。& を最初に処理する) ---
 html_escape() {

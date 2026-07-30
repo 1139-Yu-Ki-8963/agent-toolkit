@@ -1778,6 +1778,81 @@ TEST24CATALOG
   echo "PASS: --self-test ケース27（未計測タイルにcounting-code-linesでの計測案内が出力される）"
   rm -rf "$test27_dir"
 
+  echo "--- ケース28: 必須成分が全て0件の合成データではマトリクスページが生成されない（写真指摘1-101の検収方法1） ---"
+  test28_dir="$(mktemp -d)"
+  test28_matrix_script="$SCRIPT_DIR/matrix/build-matrix-pages.sh"
+  test28_out="$test28_dir/CRUD図.html"
+  jq -n '{generatedAt: "2026-01-01T00:00:00Z", dataSource: "test", tables: [], features: []}' \
+    > "$test28_dir/crud-matrix-empty.json"
+  if ! bash "$test28_matrix_script" crud "$test28_dir/crud-matrix-empty.json" "$test28_out" >/dev/null 2>"$test28_dir/stderr.log"; then
+    echo "FAIL: --self-test ケース28（必須成分0件のcrudデータで生成コマンド自体が非0終了した。仕様はexit 0でのスキップ）" >&2
+    rm -rf "$test28_dir"
+    exit 1
+  fi
+  if [ -e "$test28_out" ]; then
+    echo "FAIL: --self-test ケース28（tables/features両方0件なのにページファイルが生成された: $test28_out）" >&2
+    rm -rf "$test28_dir"
+    exit 1
+  fi
+  if ! grep -q 'SKIP' "$test28_dir/stderr.log"; then
+    echo "FAIL: --self-test ケース28（スキップ理由がstderrに出力されていない）" >&2
+    rm -rf "$test28_dir"
+    exit 1
+  fi
+  echo "PASS: --self-test ケース28（必須成分が全て0件のcrudデータではページが生成されない）"
+  rm -rf "$test28_dir"
+
+  echo "--- ケース29: 全成分ありの合成データでは現行同等にマトリクスページが生成される（写真指摘1-101の検収方法2。一部成分欠落時の空状態表示も検査） ---"
+  test29_dir="$(mktemp -d)"
+  test29_matrix_script="$SCRIPT_DIR/matrix/build-matrix-pages.sh"
+  test29_full_out="$test29_dir/CRUD図-full.html"
+  test29_partial_out="$test29_dir/CRUD図-partial.html"
+  jq -n '{
+    generatedAt: "2026-01-01T00:00:00Z", dataSource: "test",
+    tables: [{physicalName: "users", logicalName: "ユーザー"}],
+    features: [{featureId: "user-manage", featureName: "ユーザー管理", cells: {users: "CRUD"}}]
+  }' > "$test29_dir/crud-matrix-full.json"
+  jq -n '{
+    generatedAt: "2026-01-01T00:00:00Z", dataSource: "test",
+    tables: [], features: [{featureId: "user-manage", featureName: "ユーザー管理", cells: {}}]
+  }' > "$test29_dir/crud-matrix-partial.json"
+  if ! bash "$test29_matrix_script" crud "$test29_dir/crud-matrix-full.json" "$test29_full_out" >/dev/null 2>&1; then
+    echo "FAIL: --self-test ケース29（全成分ありのcrudデータで生成コマンド自体が失敗した）" >&2
+    rm -rf "$test29_dir"
+    exit 1
+  fi
+  if ! bash "$test29_matrix_script" crud "$test29_dir/crud-matrix-partial.json" "$test29_partial_out" >/dev/null 2>&1; then
+    echo "FAIL: --self-test ケース29（tables欠落のcrudデータで生成コマンド自体が失敗した）" >&2
+    rm -rf "$test29_dir"
+    exit 1
+  fi
+  node -e '
+    const fs = require("fs");
+    const fullHtml = fs.readFileSync(process.argv[1], "utf8");
+    const partialHtml = fs.readFileSync(process.argv[2], "utf8");
+    const m = fullHtml.match(/<script type="application\/json" id="matrix-manifest">([\s\S]*?)<\/script>/);
+    if (!m) { console.error("matrix-manifest script tag not found in full-data page"); process.exit(1); }
+    const manifest = JSON.parse(m[1]);
+    if (!(manifest.tables.length > 0) || !(manifest.features.length > 0)) {
+      console.error("full-data page does not retain non-empty tables/features rows");
+      process.exit(1);
+    }
+    if (!partialHtml.includes("matrix-empty-callout")) {
+      console.error("partial-data page does not contain empty-state callout markup");
+      process.exit(1);
+    }
+    if (!partialHtml.includes("テーブル") || !partialHtml.includes("原因区分")) {
+      console.error("partial-data page empty-state message does not name the missing component or the cause category");
+      process.exit(1);
+    }
+  ' "$test29_full_out" "$test29_partial_out" || {
+    echo "FAIL: --self-test ケース29（全成分ありページのデータ行維持、または一部成分欠落ページの空状態表示に不備がある）" >&2
+    rm -rf "$test29_dir"
+    exit 1
+  }
+  echo "PASS: --self-test ケース29（全成分ありでは現行同等のページが生成され、一部成分欠落時は空状態コールアウトが表示される）"
+  rm -rf "$test29_dir"
+
   exit 0
 fi
 

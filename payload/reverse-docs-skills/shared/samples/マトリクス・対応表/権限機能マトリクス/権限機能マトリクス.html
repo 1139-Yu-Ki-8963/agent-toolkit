@@ -586,6 +586,10 @@ html, body { margin: 0; padding: 0; }
 
 .table-area { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 8px; }
 
+.matrix-empty-callout { margin: 0; padding: 10px 14px; font-size: 0.85rem; line-height: 1.5; }
+.matrix-empty-callout p { margin: 0; }
+.matrix-empty-callout[hidden] { display: none; }
+
 table.matrix { table-layout: fixed; width: 100%; min-width: 840px; border-collapse: collapse; font-size: 0.88rem; }
 table.matrix th, table.matrix td { border-top: 1px solid var(--line); padding: 7px 10px; text-align: left; vertical-align: top; }
 table.matrix thead th { white-space: nowrap; }
@@ -634,7 +638,7 @@ tr:hover .copy-btn, .copy-btn:focus { opacity: 1; }
     <div class="pt-brand-switch" id="pt-brand-switch">
       <div class="pt-brand-name">sample-project</div>
     </div>
-    <div class="pt-brand-sub">設計台帳 · 全49資料</div>
+    <div class="pt-brand-sub">設計台帳 · 全48資料</div>
   </div>
   <nav class="pt-nav" id="pt-nav" aria-label="資料カテゴリ"></nav>
   
@@ -644,7 +648,7 @@ tr:hover .copy-btn, .copy-btn:focus { opacity: 1; }
   <div class="pt-sidebar-meta">更新 <span id="pt-sidebar-date">2026-07-30</span><span id="pt-meta-commit"><br>コミット </span></div>
 </aside>
 <div class="pt-sidebar-scrim" id="pt-sidebar-scrim" hidden></div>
-<script type="application/json" id="pt-nav-data">[{"key":"project","num":"01","label":"基盤情報","count":4},{"key":"standards","num":"02","label":"規約","count":20},{"key":"design","num":"03","label":"設計書","count":5},{"key":"list","num":"04","label":"一覧・設計図","count":12},{"key":"cross","num":"05","label":"マトリクス・対応表","count":4},{"key":"ai","num":"06","label":"AI設定資産","count":1},{"key":"design-tools","num":"07","label":"デザイン","count":3}]</script>
+<script type="application/json" id="pt-nav-data">[{"key":"project","num":"01","label":"基盤情報","count":4},{"key":"standards","num":"02","label":"規約","count":20},{"key":"design","num":"03","label":"設計書","count":5},{"key":"list","num":"04","label":"一覧・設計図","count":12},{"key":"cross","num":"05","label":"マトリクス・対応表","count":3},{"key":"ai","num":"06","label":"AI設定資産","count":1},{"key":"design-tools","num":"07","label":"デザイン","count":3}]</script>
 <script type="application/json" id="pt-sites-data">[]</script>
 <script>
 (function () {
@@ -880,6 +884,9 @@ tr:hover .copy-btn, .copy-btn:focus { opacity: 1; }
       </div>
 
       <div class="table-area">
+        <div id="matrix-empty-callout" class="pt-callout pt-callout--warning matrix-empty-callout" role="status" hidden>
+          <p><span class="material-symbols-outlined pt-callout__icon" aria-hidden="true">warning</span><span id="matrix-empty-callout-msg"></span></p>
+        </div>
         <div class="pt-tablewrap">
           <table class="matrix" id="matrix-table">
             <thead><tr id="matrix-head-row"></tr></thead>
@@ -926,6 +933,21 @@ tr:hover .copy-btn, .copy-btn:focus { opacity: 1; }
     try { manifest = JSON.parse(manifestEl.textContent); } catch (e) { /* プレースホルダ未注入時は空描画 */ }
     var roles = manifest.roles || [];
     var functions = manifest.functions || [];
+
+    /* 一部成分が0件の場合は原因区分を判別できない旨を明示する空状態表示を出す
+       (写真指摘1-101: 空白の表だけを公開せず、欠けた成分と理由区分の有無を示す) */
+    var missingParts = [];
+    if (roles.length === 0) missingParts.push('ロール');
+    if (functions.length === 0) missingParts.push('機能');
+    var emptyCallout = document.getElementById('matrix-empty-callout');
+    if (emptyCallout && missingParts.length > 0) {
+      var emptyMsg = document.getElementById('matrix-empty-callout-msg');
+      if (emptyMsg) {
+        emptyMsg.textContent = missingParts.join('・') + 'が0件のため、該当する行または列がありません。' +
+          '原因区分（抽出未対応・データ不在のいずれか）は入力データからは判別できません。';
+      }
+      emptyCallout.hidden = false;
+    }
 
     var headRow = document.getElementById('matrix-head-row');
     var tbody = document.getElementById('matrix-body');

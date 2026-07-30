@@ -230,8 +230,21 @@ snapshot_unmanaged "$transaction_root" "$backup_root/unmanaged-after"
 cmp "$backup_root/unmanaged-before" "$backup_root/unmanaged-after" \
   || { echo "ERROR: child changed unmanaged output" >&2; exit 1; }
 
+# マトリクス・対応表配下の各ページ専用ディレクトリ内HTML(権限画面/権限機能/CRUD図/追跡可能性)は
+# build-matrix-pages.sh が必須成分すべて0件のとき生成をスキップ(exit 0・既存ファイルは削除)する
+# 任意出力である(写真指摘1-101)。パスの列挙ではなく「マトリクス・対応表/<ページ専用dir>/*.html」という
+# ディレクトリ構造で判定する(data/*.json は常時生成される必須出力のため対象外)。
 for rel in "${managed[@]}"; do
-  [ -f "$transaction_root/$rel" ] || { echo "ERROR: managed output missing: $rel" >&2; exit 1; }
+  if [ ! -f "$transaction_root/$rel" ]; then
+    case "$rel" in
+      マトリクス・対応表/*/*.html)
+        : # 必須成分0件によるスキップ。任意出力のため実在検査を免除する
+        ;;
+      *)
+        echo "ERROR: managed output missing: $rel" >&2; exit 1
+        ;;
+    esac
+  fi
   if [ -f "$output_root/$rel" ]; then
     mkdir -p "$backup_root/existing/$(dirname "$rel")"
     cp -p "$output_root/$rel" "$backup_root/existing/$rel"
@@ -242,12 +255,17 @@ commit_started=1
 index=0
 for rel in "${managed[@]}"; do
   index=$((index+1))
-  mkdir -p "$(dirname "$output_root/$rel")"
   if [ "${SCREEN_REBUILD_INJECT_FAIL:-}" = "commit-5" ] && [ "$index" -eq 5 ]; then
     echo "INJECTED: commit-5" >&2
     exit 90
   fi
-  mv "$transaction_root/$rel" "$output_root/$rel"
+  if [ -f "$transaction_root/$rel" ]; then
+    mkdir -p "$(dirname "$output_root/$rel")"
+    mv "$transaction_root/$rel" "$output_root/$rel"
+  else
+    # 任意出力が今回スキップされた。既存の陳腐化ページをコミット結果からも取り除く。
+    rm -f "$output_root/$rel"
+  fi
 done
 commit_done=1
 echo "PASS: rebuilt and committed ${#managed[@]} derived outputs (manifestContentHash=$content_hash)"

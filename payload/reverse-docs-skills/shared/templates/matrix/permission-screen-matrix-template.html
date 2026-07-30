@@ -65,6 +65,10 @@ html, body { margin: 0; padding: 0; }
 
 .table-area { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 8px; }
 
+.matrix-empty-callout { margin: 0; padding: 10px 14px; font-size: 0.85rem; line-height: 1.5; }
+.matrix-empty-callout p { margin: 0; }
+.matrix-empty-callout[hidden] { display: none; }
+
 table.matrix { table-layout: fixed; width: 100%; min-width: 840px; border-collapse: collapse; font-size: 0.88rem; }
 table.matrix th, table.matrix td { border-top: 1px solid var(--line); padding: 7px 10px; text-align: left; vertical-align: top; }
 table.matrix thead th.role-col {
@@ -131,6 +135,9 @@ tr:hover .copy-btn, .copy-btn:focus { opacity: 1; }
       </div>
 
       <div class="table-area">
+        <div id="matrix-empty-callout" class="pt-callout pt-callout--warning matrix-empty-callout" role="status" hidden>
+          <p><span class="material-symbols-outlined pt-callout__icon" aria-hidden="true">warning</span><span id="matrix-empty-callout-msg"></span></p>
+        </div>
         <div class="pt-tablewrap">
           <table class="matrix" id="matrix-table">
             <thead>
@@ -164,6 +171,22 @@ tr:hover .copy-btn, .copy-btn:focus { opacity: 1; }
 
     var roles = manifest.roles;
     var screens = manifest.screens;
+
+    /* 一部成分が0件の場合は原因区分を判別できない旨を明示する空状態表示を出す
+       (写真指摘1-101: 空白の表だけを公開せず、欠けた成分と理由区分の有無を示す) */
+    var missingParts = [];
+    if (roles.length === 0) missingParts.push('ロール');
+    if (screens.length === 0) missingParts.push('画面');
+    var emptyCallout = document.getElementById('matrix-empty-callout');
+    if (emptyCallout && missingParts.length > 0) {
+      var emptyMsg = document.getElementById('matrix-empty-callout-msg');
+      if (emptyMsg) {
+        emptyMsg.textContent = missingParts.join('・') + 'が0件のため、該当する行または列がありません。' +
+          '原因区分（抽出未対応・データ不在のいずれか）は入力データからは判別できません。';
+      }
+      emptyCallout.hidden = false;
+    }
+
     var headRow = document.getElementById('matrix-head-row');
     var tbody = document.getElementById('matrix-body');
     var countEl = document.getElementById('matrix-count');
