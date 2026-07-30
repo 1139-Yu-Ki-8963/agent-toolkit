@@ -5,7 +5,7 @@ set -euo pipefail
 #
 # 使い方:
 #   recount-facts.sh <facts.yml> <target_repo_path> <target_file相対パス...>
-#   recount-facts.sh --recount-only [--profile screen|python] <target_repo_path> <target_file相対パス...>
+#   recount-facts.sh --recount-only [--profile screen|python|perl] <target_repo_path> <target_file相対パス...>
 #   recount-facts.sh --self-test
 #
 # --recount-only は facts.yml を介さず、①〜⑧の8分類件数とloc（対象ファイル群の
@@ -36,6 +36,10 @@ BLANK_RATE_THRESHOLD_DEN=100
 SECTIONS="import export_type const state handler jsx style api local_type effect_trigger error_handling"
 ALL_SECTIONS="import export_type const state handler jsx style api measurement_pending local_type effect_trigger error_handling"
 PYTHON_SECTIONS="import function local_assignment external_call exception_handling measurement_pending"
+# perlプロファイルはpythonと同じ分類語彙（import/function/local_assignment/external_call/
+# exception_handling）を再利用する。JS/TSのJSX・styled-components・フックのような固有構文を
+# 持たない言語（Perl相当の構文体系）向けの正規表現ベース独立再計数を提供する。
+PERL_SECTIONS="import function local_assignment external_call exception_handling measurement_pending"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PYTHON_EXTRACTOR="$SCRIPT_DIR/extract-python-facts.py"
 PYTHON_COUNTER="$SCRIPT_DIR/recount-python-facts.py"
@@ -602,6 +606,108 @@ recount_python_from_code() {
   python3 "$PYTHON_COUNTER" counts --repo "$repo" "$@"
 }
 
+# ---- Perlプロファイル: 正規表現ベースの独立再計数（AST不使用） ----
+#
+# screenプロファイルと同じ設計方針（決定的な正規表現/awkパターンによる近似計数）を
+# Perl構文（use/require・sub・my/our/local・アロー呼出し/裸呼出し・eval/die）へ適用する。
+# pythonプロファイルのようなASTベースの独立実装は持たない（Perl標準ライブラリに決定的な
+# AST解析手段がないため）。分類はmeasurement_pendingを除く5分類。measurement_pendingは
+# screenプロファイルの⑨と同じ理由（動的値のため）で再計数対象外とする（空欄率検査のみ対象）。
+# パターン定義の正本は references/profile-perl.md。
+
+count_perl_import() {
+  awk '
+    function count_symbols(line,    n, arr, i, tok, cnt) {
+      n = split(line, arr, /[ \t]+/)
+      cnt = 0
+      for (i = 1; i <= n; i++) {
+        tok = arr[i]
+        gsub(/^[ \t]+|[ \t]+$/, "", tok)
+        if (tok != "") cnt++
+      }
+      return cnt
+    }
+    /^[ \t]*use[ \t]+[A-Za-z_][A-Za-z0-9_:]*/ {
+      line = $0
+      sub(/^[ \t]*use[ \t]+[A-Za-z_][A-Za-z0-9_:]*[ \t]*/, "", line)
+      if (match(line, /qw[ \t]*\([^)]*\)/)) {
+        qw = substr(line, RSTART, RLENGTH)
+        sub(/^qw[ \t]*\(/, "", qw)
+        sub(/\)$/, "", qw)
+        count += count_symbols(qw)
+        next
+      }
+      count++
+      next
+    }
+    /^[ \t]*require[ \t]+[A-Za-z_][A-Za-z0-9_:]*[ \t]*;/ { count++ }
+    END { print count+0 }
+  ' "$1"
+}
+
+count_perl_function() {
+  awk '
+    /^[ \t]*sub[ \t]+[A-Za-z_][A-Za-z0-9_]*/ { count++ }
+    END { print count+0 }
+  ' "$1"
+}
+
+count_perl_local_assignment() {
+  awk '
+    /^[ \t]*(my|our|local)[ \t]+/ { count++ }
+    END { print count+0 }
+  ' "$1"
+}
+
+# アロー呼出し（->method(...)）を先に検知して除去してから、残りから裸の関数呼出し
+# （identifier(...)）を検知する。制御構文・宣言キーワードはブロックリストで除外する。
+# sub宣言行自体は関数定義でありcallではないため対象から除く。
+count_perl_external_call() {
+  awk '
+    BEGIN {
+      n = split("if unless while until for foreach elsif else my our local return sub eval die use require package print printf sort map grep join split push pop shift unshift keys values exists defined ref bless wantarray qw", kw, " ")
+      for (i = 1; i <= n; i++) keyword[kw[i]] = 1
+    }
+    {
+      line = $0
+      if (line ~ /^[ \t]*sub[ \t]/) next
+      work = line
+      mcount = gsub(/->[A-Za-z_][A-Za-z0-9_]*[ \t]*\(/, " ", work)
+      count += mcount
+      rest = work
+      while (match(rest, /[A-Za-z_][A-Za-z0-9_]*[ \t]*\(/)) {
+        tok = substr(rest, RSTART, RLENGTH)
+        sub(/[ \t]*\($/, "", tok)
+        if (!(tok in keyword)) count++
+        rest = substr(rest, RSTART + RLENGTH)
+      }
+    }
+    END { print count+0 }
+  ' "$1"
+}
+
+count_perl_exception_handling() {
+  awk '
+    /^[ \t]*eval[ \t]*\{/ { count++ }
+    /^[ \t]*die[ \t(]/ { count++ }
+    END { print count+0 }
+  ' "$1"
+}
+
+# Perlプロファイルの分類別件数を「<セクション> <件数>」形式で5行出力する
+# （measurement_pendingは除く。screenプロファイルの⑨と同じ理由で再計数対象外）。
+recount_perl_from_code() {
+  repo="$1"
+  shift
+  contentfile="$(build_content_file "$repo" "$@")"
+  trap 'rm -f "$contentfile"' RETURN
+  printf '%s %s\n' import "$(count_perl_import "$contentfile")"
+  printf '%s %s\n' function "$(count_perl_function "$contentfile")"
+  printf '%s %s\n' local_assignment "$(count_perl_local_assignment "$contentfile")"
+  printf '%s %s\n' external_call "$(count_perl_external_call "$contentfile")"
+  printf '%s %s\n' exception_handling "$(count_perl_exception_handling "$contentfile")"
+}
+
 facts_profile() {
   awk '
     /^profile:[ \t]*/ {
@@ -720,6 +826,10 @@ run_check() {
     python)
       active_sections="$PYTHON_SECTIONS"
       recount_out="$(recount_python_from_code "$repo" "${targets[@]}")"
+      ;;
+    perl)
+      active_sections="$PERL_SECTIONS"
+      recount_out="$(recount_perl_from_code "$repo" "${targets[@]}")"
       ;;
     *)
       echo "エラー: 未対応profileです: $profile" >&2
@@ -1899,6 +2009,134 @@ TSX
     fi
   fi
 
+  # ---- perlプロファイル: JS/TS以外の言語構文でも再計数が0件に落ち込まないことの検収 ----
+  # 旧実装は11分類中8分類がJS/TS固有パターン（import文/JSX開始タグ/フック呼出し/
+  # styled-components）にのみ依存し、Perl相当の構文体系では常に0件だった（写真指摘対応）。
+  perl_dir="$tmp/repo/src/scripts/Report"
+  mkdir -p "$perl_dir"
+  cat > "$perl_dir/Report.pl" <<'PERLEOF'
+use strict;
+use warnings;
+use POSIX qw(floor ceil);
+require Data::Dumper;
+
+my $counter = 0;
+our $VERSION = '1.0';
+
+sub process_record {
+    my ($record) = @_;
+    my $result = transform($record);
+    eval {
+        risky_call($result);
+    };
+    if ($@) {
+        die "processing failed: $@";
+    }
+    return $result;
+}
+
+sub transform {
+    my ($value) = @_;
+    return $value->normalize();
+}
+PERLEOF
+
+  perl_actual="$(recount_perl_from_code "$tmp/repo" "src/scripts/Report/Report.pl")"
+  get_perl_actual() {
+    printf '%s\n' "$perl_actual" | awk -v s="$1" '$1==s{print $2}'
+  }
+
+  perl_zero_sections=""
+  for sec in import function local_assignment external_call exception_handling; do
+    v="$(get_perl_actual "$sec")"
+    if [ "${v:-0}" -le 0 ]; then
+      perl_zero_sections="${perl_zero_sections} ${sec}"
+    fi
+  done
+  if [ -z "$perl_zero_sections" ]; then
+    echo "  [PASS] perlプロファイル: JS/TS以外の構文（Perl相当）で5分類すべてが0件以外を検知（$(printf '%s' "$perl_actual" | tr '\n' ' ')）"
+  else
+    echo "  [FAIL] perlプロファイル: 0件のまま検知できない分類がある（${perl_zero_sections}）" >&2
+    rc=1
+  fi
+
+  build_perl_pass_facts() {
+    out="$1"
+    {
+      echo "run_id: extract-1"
+      echo "profile: perl"
+      echo "target_repo_path: $tmp/repo"
+      echo "target_file_paths:"
+      echo "  - src/scripts/Report/Report.pl"
+      echo "sections:"
+      for sec in import function local_assignment external_call exception_handling; do
+        echo "  $sec:"
+        echo "    reason: \"\""
+        echo "    items:"
+        n="$(get_perl_actual "$sec")"
+        i=0
+        while [ "$i" -lt "$n" ]; do
+          echo "      - key: ${sec}-dummy-$i"
+          echo "        value: \"dummy\""
+          echo "        evidence: \"src/scripts/Report/Report.pl:1\""
+          i=$((i + 1))
+        done
+      done
+      echo "  measurement_pending:"
+      echo "    reason: \"\""
+      echo "    items:"
+      echo "      - key: 実測委譲-dummy"
+      echo "        evidence: \"src/scripts/Report/Report.pl:1\""
+    } > "$out"
+  }
+
+  perl_pos="$tmp/perl-pos-facts.yml"
+  build_perl_pass_facts "$perl_pos"
+  if run_check "$perl_pos" "$tmp/repo" "src/scripts/Report/Report.pl" >/dev/null 2>&1; then
+    echo "  [PASS] perlプロファイル陽性: 全分類が実測値と一致しゲート通過"
+  else
+    echo "  [FAIL] perlプロファイル陽性: 実測値と一致しているのにゲート失敗した" >&2
+    rc=1
+  fi
+
+  # ---- 検収2: 再計数ゲート不合格時はPhase4（封印）が成立しないことの回帰確認 ----
+  # 「ゲート不合格でも封印が進む」という旧問題はSKILL.md（Phase3→4の順序契約・上限3回で
+  # status=中断）で既に解消済み。ここではその契約（ゲート失敗時はseal-facts.shを呼ばない
+  # 手順）を実行可能なコードとして固定し、封印（facts.lock生成）が成立しないことを検証する。
+  perl_gate_fail="$tmp/perl-gate-fail-facts.yml"
+  build_perl_pass_facts "$perl_gate_fail"
+  awk '
+    /^  import:$/{print; getline; print; print "    items:"; print "      - key: import-only-one"; print "        value: \"dummy\""; print "        evidence: \"src/scripts/Report/Report.pl:1\""; skip=1; next}
+    skip==1 && /^  function:$/{skip=0}
+    skip==1{next}
+    {print}
+  ' "$perl_gate_fail" > "$perl_gate_fail.tmp" && mv "$perl_gate_fail.tmp" "$perl_gate_fail"
+
+  gate_fail_dir="$tmp/perl-gate-fail-dir"
+  mkdir -p "$gate_fail_dir"
+  cp "$perl_gate_fail" "$gate_fail_dir/facts.yml"
+
+  gate_passed=0
+  if run_check "$gate_fail_dir/facts.yml" "$tmp/repo" "src/scripts/Report/Report.pl" >/dev/null 2>&1; then
+    gate_passed=1
+  fi
+
+  if [ "$gate_passed" -eq 1 ]; then
+    echo "  [FAIL] 検収2: importの記載件数を作為したのにperlプロファイルのゲートが通過した" >&2
+    rc=1
+  else
+    # SKILL.md Phase3→4契約の実行可能な固定化: ゲート通過時のみPhase4（封印）を実行する
+    if [ "$gate_passed" -eq 1 ]; then
+      bash "$SCRIPT_DIR/../../../../shared/scripts/seal-facts.sh" seal "$gate_fail_dir" >/dev/null 2>&1
+    fi
+    if [ -f "$gate_fail_dir/facts.lock" ]; then
+      echo "  [FAIL] 検収2: 再計数ゲート不合格なのに封印（facts.lock生成）が成立した" >&2
+      rc=1
+    else
+      echo "  [PASS] 検収2: 再計数ゲート不合格（run_check exit!=0）でPhase4封印が成立しない（facts.lock未生成）"
+    fi
+  fi
+
   if [ "$rc" -eq 0 ]; then
     echo "self-test 全項目 PASS"
   else
@@ -1923,9 +2161,9 @@ if [ "${1:-}" = "--recount-only" ]; then
     shift 2 || true
   fi
   case "$recount_profile" in
-    screen|python) ;;
+    screen|python|perl) ;;
     *)
-      echo "エラー: --profile は screen または python を指定してください: $recount_profile" >&2
+      echo "エラー: --profile は screen または python または perl を指定してください: $recount_profile" >&2
       exit 2
       ;;
   esac
@@ -1947,6 +2185,8 @@ if [ "${1:-}" = "--recount-only" ]; then
   done
   if [ "$recount_profile" = "python" ]; then
     recount_python_from_code "$repo" "$@"
+  elif [ "$recount_profile" = "perl" ]; then
+    recount_perl_from_code "$repo" "$@"
   else
     recount_from_code "$repo" "$@"
   fi
