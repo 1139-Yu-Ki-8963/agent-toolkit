@@ -337,7 +337,14 @@ documentHtml = replaceAll(
   ':root{--mono:monospace;--line:#ccc;--line2:#aaa;--panel:#fff;--panel3:#eee;--text:#111;--sub:#222;--muted:#555;--accent:#06c;--head:#eee;--headtext:#111;--code:#111;--codetext:#eee;--stamp:#06c;}',
 );
 documentHtml = replaceAll(documentHtml, '/* SHELL_CSS */', '');
-documentHtml = replaceAll(documentHtml, '<!--SHELL_SIDEBAR-->', '');
+documentHtml = replaceAll(
+  documentHtml,
+  '<!--SHELL_SIDEBAR-->',
+  '<aside class="pt-sidebar">'
+    + '<nav class="pt-doc-nav" aria-label="画面設計書"><div class="pt-doc-nav__group">画面 / 設計書</div>'
+    + '<div class="pt-doc-nav__group">この設計書内</div><ul class="pt-doc-nav__toc" id="toc-list"></ul></nav>'
+    + '</aside>',
+);
 documentHtml = replaceAll(documentHtml, '<!--SHELL_FOOTER-->', '');
 
 const fixtureHtmlPath = path.join(fixtureRoot, 'code-fence-dom-test.html');

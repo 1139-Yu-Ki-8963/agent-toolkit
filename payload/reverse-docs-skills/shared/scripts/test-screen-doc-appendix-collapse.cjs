@@ -357,7 +357,14 @@ function buildDocumentHtml(templateSource) {
       + '.pt-sidebar{width:var(--sidebar-w);flex:none;}'
       + '.pt-main{flex:1;min-width:0;overflow-y:auto;padding:0 var(--page-gutter) 72px;}',
   );
-  html = replaceAll(html, '<!--SHELL_SIDEBAR-->', '<aside class="pt-sidebar"></aside>');
+  html = replaceAll(
+    html,
+    '<!--SHELL_SIDEBAR-->',
+    '<aside class="pt-sidebar">'
+      + '<nav class="pt-doc-nav" aria-label="画面設計書"><div class="pt-doc-nav__group">画面 / 設計書</div>'
+      + '<div class="pt-doc-nav__group">この設計書内</div><ul class="pt-doc-nav__toc" id="toc-list"></ul></nav>'
+      + '</aside>',
+  );
   html = replaceAll(html, '<!--SHELL_FOOTER-->', '');
   return html;
 }

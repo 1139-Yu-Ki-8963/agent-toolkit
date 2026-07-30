@@ -6,7 +6,8 @@
 #   source "path/to/shell-injection.sh"
 #   shell_injection_args <templates_dir> <catalog_json> <portal_href> <project_name> \
 #                        <generated_date> <commit_short> <generator> [active_category] \
-#                        [sites_json_path] [current_site_key] [current_page_dir]
+#                        [sites_json_path] [current_site_key] [current_page_dir] \
+#                        [doc_sidebar_html]
 #   render_args+=("${SHELL_RENDER_ARGS[@]}")
 #
 # 展開するマーカーは 3 つ。
@@ -24,6 +25,10 @@
 # 省略時（または current_page_dir 省略時）はサイト一覧を空配列にし、切替 UI を出さない。
 # sites_json_path が指定されているのにファイルの形式が壊れている場合は ERROR を出して
 # return 1 する（fail-fast。他の入力欠落は fail-open）。
+#
+# サイドバー内の {{DOC_SIDEBAR}} には、12 番目の doc_sidebar_html（文書ビューア型ページの
+# 章目次ブロックの HTML。未指定なら空文字）を差し込む。共通サイドバーへ統合済みの
+# ページ固有 TOC（旧 .dp-toc）はここで注入する。
 #
 # partials が 1 つでも欠けている場合は SHELL_RENDER_ARGS を空にして戻る。
 # 呼び出し側のテンプレートにマーカーが無い場合も render_template は素通りするため、
@@ -43,6 +48,7 @@ shell_injection_args() {
   local sites_json_path="${9:-}"
   local current_site_key="${10:-}"
   local current_page_dir="${11:-}"
+  local doc_sidebar_html="${12:-}"
 
   local partials_dir="$templates_dir/partials"
   local css_file="$partials_dir/shell.css"
@@ -140,7 +146,8 @@ sys.stdout.write(json.dumps(result))
     "{{PROJECT_NAME}}" "$project_name" \
     "{{TOTAL_ARTIFACTS}}" "$total" \
     "{{GENERATED_DATE}}" "$generated_date" \
-    "{{COMMIT_SHORT}}" "$commit_short")"
+    "{{COMMIT_SHORT}}" "$commit_short" \
+    "{{DOC_SIDEBAR}}" "$doc_sidebar_html")"
 
   footer="$(render_template "$footer" \
     "{{PROJECT_NAME}}" "$project_name" \

@@ -1,4 +1,7 @@
-<aside class="pt-sidebar" data-portal-href="{{PORTAL_HREF}}" data-active-category="{{ACTIVE_CATEGORY}}">
+<button type="button" class="pt-sidebar-toggle" id="pt-sidebar-toggle" aria-expanded="false" aria-controls="pt-sidebar-aside" aria-label="ナビゲーションを開く">
+  <span></span><span></span><span></span>
+</button>
+<aside class="pt-sidebar" id="pt-sidebar-aside" data-portal-href="{{PORTAL_HREF}}" data-active-category="{{ACTIVE_CATEGORY}}">
   <div class="pt-brand">
     <div class="pt-brand-stamp">DESIGN PORTAL</div>
     <div class="pt-brand-switch" id="pt-brand-switch">
@@ -7,11 +10,13 @@
     <div class="pt-brand-sub">設計台帳 · 全{{TOTAL_ARTIFACTS}}資料</div>
   </div>
   <nav class="pt-nav" id="pt-nav" aria-label="資料カテゴリ"></nav>
+  {{DOC_SIDEBAR}}
   <button type="button" class="pt-theme" id="pt-theme-toggle">
     <span id="pt-theme-label">テーマ: ダーク</span><span class="pt-theme-next" id="pt-theme-next">→ LIGHT</span>
   </button>
   <div class="pt-sidebar-meta">更新 <span id="pt-sidebar-date">{{GENERATED_DATE}}</span><span id="pt-meta-commit"><br>コミット {{COMMIT_SHORT}}</span></div>
 </aside>
+<div class="pt-sidebar-scrim" id="pt-sidebar-scrim" hidden></div>
 <script type="application/json" id="pt-nav-data">/*SHELL_NAV_JSON*/</script>
 <script type="application/json" id="pt-sites-data">/*SHELL_SITES_JSON*/</script>
 <script>
@@ -194,6 +199,36 @@
   });
   document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape') close();
+  });
+})();
+
+(function () {
+  var toggle = document.getElementById('pt-sidebar-toggle');
+  var aside = document.getElementById('pt-sidebar-aside');
+  var scrim = document.getElementById('pt-sidebar-scrim');
+  if (!toggle || !aside || !scrim) return;
+
+  function openSidebar() {
+    aside.classList.add('is-open');
+    toggle.setAttribute('aria-expanded', 'true');
+    scrim.hidden = false;
+  }
+  function closeSidebar() {
+    aside.classList.remove('is-open');
+    toggle.setAttribute('aria-expanded', 'false');
+    scrim.hidden = true;
+  }
+
+  toggle.addEventListener('click', function () {
+    if (aside.classList.contains('is-open')) {
+      closeSidebar();
+    } else {
+      openSidebar();
+    }
+  });
+  scrim.addEventListener('click', closeSidebar);
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') closeSidebar();
   });
 })();
 </script>

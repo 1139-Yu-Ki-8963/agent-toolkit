@@ -184,17 +184,19 @@ Glob / Read で実在ファイルを確認し、対象画面の `<output_dir>/�
     template="$(cat "<スキルフォルダ>/../../../shared/templates/screen-sequence-template.html")"
     tokens_css="$(cat "<スキルフォルダ>/../../../shared/templates/tokens.css")"
     page_data="$(cat "<output_dir>/画面/screen-<ID>/シーケンス図-data.json")"
+    doc_nav="<Phase 2で確定したdoc_nav文字列>"
+    operation_list="<div class=\"operation-list\" id=\"operation-list\"></div>"
+    doc_sidebar_html="<nav class=\"pt-doc-nav\" aria-label=\"操作\"><div class=\"pt-doc-nav__group\">画面 / 設計書</div>${doc_nav}<div class=\"pt-doc-nav__group\">操作</div>${operation_list}</nav>"
     render_args=(
       "{{PROJECT_NAME}}" "<プロジェクト名>" \
       "{{GENERATED_DATE}}" "<YYYY-MM-DD>" \
       "{{COMMIT_SHORT}}" "<短縮コミットハッシュ本体のみ。空文字可>" \
       "{{PORTAL_INDEX_HREF}}" "<ポータルindex.htmlへの相対パス>" \
-      "{{DOC_NAV}}" "<Phase 2で確定したdoc_nav文字列>" \
       "{{SCREEN_LABEL}}" "<画面ラベル>" \
       "/* TOKENS_CSS */" "$tokens_css" \
       "{{PAGE_DATA_JSON}}" "$page_data"
     )
-    shell_injection_args "<スキルフォルダ>/../../../shared/templates" "<スキルフォルダ>/../../../shared/templates/../references/portal-catalog.json" "<ポータルindex.htmlへの相対パス>" "<プロジェクト名>" "<YYYY-MM-DD>" "<短縮コミットハッシュ本体のみ。空文字可>" "generating-sequence-diagram-for-reverse-docs" "list"
+    shell_injection_args "<スキルフォルダ>/../../../shared/templates" "<スキルフォルダ>/../../../shared/templates/../references/portal-catalog.json" "<ポータルindex.htmlへの相対パス>" "<プロジェクト名>" "<YYYY-MM-DD>" "<短縮コミットハッシュ本体のみ。空文字可>" "generating-sequence-diagram-for-reverse-docs" "list" "" "" "$(dirname "<output_dir>/画面/screen-<ID>/シーケンス図.html")" "$doc_sidebar_html"
     if [ ${#SHELL_RENDER_ARGS[@]} -gt 0 ]; then
       render_args+=("${SHELL_RENDER_ARGS[@]}")
     fi
@@ -203,7 +205,7 @@ Glob / Read で実在ファイルを確認し、対象画面の `<output_dir>/�
   '
   ```
 
-**手作業でのプレースホルダ置換（sed・perl 直書き等）は禁止する**。`render_template` は最短前方一致で置換するため、値の中に他プレースホルダ文字列が偶然含まれても誤爆しない。
+**手作業でのプレースホルダ置換（sed・perl 直書き等）は禁止する**。`render_template` は最短前方一致で置換するため、値の中に他プレースホルダ文字列が偶然含まれても誤爆しない。`{{DOC_NAV}}` はテンプレート本体からは削除済みで、Phase 2 で確定した doc_nav 文字列は `doc_sidebar_html`（共通サイドバーの `{{DOC_SIDEBAR}}` へ注入される操作ナビ）の組み立てにのみ使う。
 
 **`{{GENERATED_DATE}}`/`{{COMMIT_SHORT}}` の値の形**: `{{COMMIT_SHORT}}` には区切り文字・ラベル（「コミット」等）を含めず、短縮コミットハッシュ本体（例 `a1b2c3d4`）のみを渡す。日付との区切りとラベル表示は共通シェル（`shared/templates/partials/shell-sidebar.html`/`shell-footer.html`）側が担い、値が空文字の場合は当該シェルの実行時 JS（`removeIfEmptyCommit`）が空表示を自動で取り除く。呼び出し側で `" · コミット番号: <sha>"` のような区切り込みの値を渡すと二重表記になるため禁止する。
 

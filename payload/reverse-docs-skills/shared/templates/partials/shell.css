@@ -123,6 +123,36 @@ a.pt-brand-list-item:hover { background: var(--panel3); color: var(--text); text
 .pt-nav-num { font-family: var(--mono); font-size: 10px; color: var(--muted); }
 .pt-nav-count { margin-left: auto; font-family: var(--mono); font-size: 10px; color: var(--faint); font-variant-numeric: tabular-nums; }
 
+/* 文書ビューア型ページの章目次ブロック（旧 .dp-toc を共通サイドバーへ統合） */
+.pt-doc-nav { padding: 14px 12px; display: flex; flex-direction: column; gap: 2px; border-top: 1.5px solid var(--line2); }
+.pt-doc-nav__group { font-family: var(--mono); font-size: 9.5px; letter-spacing: 2px; color: var(--faint); padding: 14px 10px 5px; }
+.pt-doc-nav .nav-item,
+.pt-doc-nav .back-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  font-size: 12.5px;
+  color: var(--sub);
+  border-left: 3px solid transparent;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.pt-doc-nav .nav-item:hover,
+.pt-doc-nav .back-link:hover { background: var(--panel2); color: var(--text); text-decoration: none; }
+.pt-doc-nav .nav-item.active { color: var(--navon); background: var(--accent-soft); border-left-color: var(--accent); font-weight: 600; }
+.pt-doc-nav__toc { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 1px; }
+.pt-doc-nav__toc a {
+  display: block;
+  padding: 6px 10px 6px 20px;
+  font-size: 11px;
+  color: var(--sub);
+  border-left: 3px solid transparent;
+  transition: all 0.12s;
+}
+.pt-doc-nav__toc a:hover { background: var(--panel2); color: var(--text); text-decoration: none; }
+.pt-doc-nav__toc a.active { color: var(--navon); border-left-color: var(--accent); font-weight: 600; }
+
 .pt-theme {
   margin: auto 12px 0;
   display: flex;
@@ -142,6 +172,51 @@ a.pt-brand-list-item:hover { background: var(--panel3); color: var(--text); text
 .pt-theme:hover { border-color: var(--accent); color: var(--accent); }
 .pt-theme-next { font-family: var(--mono); font-size: 10px; color: var(--faint); }
 .pt-sidebar-meta { padding: 14px 20px; font-family: var(--mono); font-size: 10px; color: var(--muted); line-height: 1.9; }
+
+/* サイドバー開閉ボタン（狭幅時のみ表示。広幅では常に非表示） */
+.pt-sidebar-toggle {
+  display: none;
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  z-index: 30;
+  width: 40px;
+  height: 40px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  border: 1.5px solid var(--line2);
+  background: var(--panel3);
+  padding: 0;
+  cursor: pointer;
+}
+.pt-sidebar-toggle span { display: block; width: 20px; height: 2px; background: var(--text); }
+
+/* サイドバー開放中に背後を覆うオーバーレイ */
+.pt-sidebar-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 15;
+  background: rgba(0, 0, 0, 0.5);
+}
+.pt-sidebar-scrim[hidden] { display: none; }
+
+@media (max-width: 900px) {
+  :root { --page-gutter: 16px; }
+  .pt-sidebar-toggle { display: flex; }
+  .pt-sidebar {
+    position: fixed;
+    inset: 0 auto 0 0;
+    z-index: 20;
+    width: var(--sidebar-w);
+    max-width: 82vw;
+    transform: translateX(-100%);
+    transition: transform 0.2s ease;
+  }
+  .pt-sidebar.is-open { transform: translateX(0); }
+  .pt-main { padding-top: 64px; }
+}
 
 /* メインペイン */
 .pt-main {

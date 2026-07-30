@@ -422,14 +422,38 @@ FIXTURE2
   if grep -q 'test-doc\.md"' "$test5_portal/index.html"; then
     echo "FAIL: ケース5 — ポータルにまだ .md リンクが残っている" >&2; rm -rf "$test5_dir"; exit 1
   fi
-  if ! grep -qF 'grid-template-columns: 200px minmax(0, 1fr)' "$test5_docs/プロジェクト共通/test-doc.html" \
+  if ! grep -qF 'width: 100%; min-width: 0; max-width: 1400px;' "$test5_docs/プロジェクト共通/test-doc.html" \
+     || grep -qF 'grid-template-columns: 200px' "$test5_docs/プロジェクト共通/test-doc.html" \
      || ! grep -qF "className = 'table-scroll-shell'" "$test5_docs/プロジェクト共通/test-doc.html" \
      || ! grep -qF 'can-scroll-right' "$test5_docs/プロジェクト共通/test-doc.html"; then
-    echo "FAIL: ケース5 — 詳細文書の可変幅カラムまたは横スクロール合図が欠落" >&2
+    echo "FAIL: ケース5 — 詳細文書の可変幅パネルまたは横スクロール合図が欠落" >&2
     rm -rf "$test5_dir"
     exit 1
   fi
   echo "PASS: --self-test ケース5（共通文書 .md → .html 変換）"
+
+  echo "--- ケース5d: 共通文書がサイドバー統合済みで dp-toc を持たない ---"
+  pt_sidebar_count="$(grep -o 'class="pt-sidebar"' "$test5_docs/プロジェクト共通/test-doc.html" | wc -l | tr -d ' ')" || pt_sidebar_count=0
+  dp_toc_count="$(grep -o 'class="dp-toc"' "$test5_docs/プロジェクト共通/test-doc.html" | wc -l | tr -d ' ')" || dp_toc_count=0
+  pt_doc_nav_count="$(grep -o 'class="pt-doc-nav"' "$test5_docs/プロジェクト共通/test-doc.html" | wc -l | tr -d ' ')" || pt_doc_nav_count=0
+  toc_list_count="$(grep -o 'id="toc-list"' "$test5_docs/プロジェクト共通/test-doc.html" | wc -l | tr -d ' ')" || toc_list_count=0
+  if [ "$pt_sidebar_count" != "1" ] || [ "$dp_toc_count" != "0" ] || [ "$pt_doc_nav_count" -lt 1 ] || [ "$toc_list_count" != "1" ]; then
+    echo "FAIL: ケース5d — サイドバー統合が崩れている pt-sidebar=$pt_sidebar_count dp-toc=$dp_toc_count pt-doc-nav=$pt_doc_nav_count toc-list=$toc_list_count" >&2
+    rm -rf "$test5_dir"
+    exit 1
+  fi
+  echo "PASS: --self-test ケース5d（共通文書のサイドバー統合）"
+
+  echo "--- ケース5e: 共通文書に狭幅対応 CSS が含まれる ---"
+  if ! grep -qF '@media (max-width: 900px)' "$test5_docs/プロジェクト共通/test-doc.html" \
+     || ! grep -qF 'pt-sidebar-toggle' "$test5_docs/プロジェクト共通/test-doc.html" \
+     || ! grep -qF 'pt-sidebar-scrim' "$test5_docs/プロジェクト共通/test-doc.html" \
+     || ! grep -A2 -F '@media (max-width: 900px)' "$test5_docs/プロジェクト共通/test-doc.html" | grep -qF -- '--page-gutter: 16px;'; then
+    echo "FAIL: ケース5e — 狭幅対応 CSS（メディアクエリ・トグル・スクリム・page-gutter上書き）が欠落" >&2
+    rm -rf "$test5_dir"
+    exit 1
+  fi
+  echo "PASS: --self-test ケース5e（共通文書の狭幅対応CSS）"
   rm -rf "$test5_dir"
 
   echo "--- ケース5b: サブディレクトリ配下の共通文書リンクがパスを保持する ---"
@@ -1608,7 +1632,8 @@ if [ -d "$common_dir" ]; then
       fi
       # 共通シェル注入（partials が存在する場合のみ）
       if type shell_injection_args >/dev/null 2>&1; then
-        shell_injection_args "$SCRIPT_DIR/../templates" "$CATALOG" "$portal_index_href" "$PROJECT_NAME" "$GENERATED_DATE" "$COMMIT_SHORT" "shared/scripts/build-portal.sh" "$common_category" "${SITES_FILE:-}" "${SITE_KEY:-}" "$(dirname "$md_file")"
+        doc_sidebar_html="<nav class=\"pt-doc-nav\" aria-label=\"目次\"><div class=\"pt-doc-nav__group\">目次</div><ul class=\"pt-doc-nav__toc\" id=\"toc-list\"></ul></nav>"
+        shell_injection_args "$SCRIPT_DIR/../templates" "$CATALOG" "$portal_index_href" "$PROJECT_NAME" "$GENERATED_DATE" "$COMMIT_SHORT" "shared/scripts/build-portal.sh" "$common_category" "${SITES_FILE:-}" "${SITE_KEY:-}" "$(dirname "$md_file")" "$doc_sidebar_html"
         if [ ${#SHELL_RENDER_ARGS[@]} -gt 0 ]; then
           local_render_args+=("${SHELL_RENDER_ARGS[@]}")
         fi
@@ -1679,14 +1704,14 @@ if [ -d "$DOCS_ROOT/画面" ] && [ -f "$SCREEN_DOC_TEMPLATE_FILE" ]; then
         "{{GENERATED_DATE}}" "$GENERATED_DATE"
         "{{COMMIT_SHORT}}" "$COMMIT_SHORT"
         "{{PORTAL_INDEX_HREF}}" "$portal_index_href"
-        "{{DOC_NAV}}" "$doc_nav"
       )
       if [ -f "$TOKENS_CSS_FILE" ]; then
         screen_render_args+=("/* TOKENS_CSS */" "$(cat "$TOKENS_CSS_FILE")")
       fi
       # 共通シェル注入（partials が存在する場合のみ）
       if type shell_injection_args >/dev/null 2>&1; then
-        shell_injection_args "$SCRIPT_DIR/../templates" "$CATALOG" "$portal_index_href" "$PROJECT_NAME" "$GENERATED_DATE" "$COMMIT_SHORT" "shared/scripts/build-portal.sh" "list" "${SITES_FILE:-}" "${SITE_KEY:-}" "$(dirname "$target_md")"
+        doc_sidebar_html="<nav class=\"pt-doc-nav\" aria-label=\"画面設計書\"><div class=\"pt-doc-nav__group\">画面 / 設計書</div>${doc_nav}<div class=\"pt-doc-nav__group\">この設計書内</div><ul class=\"pt-doc-nav__toc\" id=\"toc-list\"></ul></nav>"
+        shell_injection_args "$SCRIPT_DIR/../templates" "$CATALOG" "$portal_index_href" "$PROJECT_NAME" "$GENERATED_DATE" "$COMMIT_SHORT" "shared/scripts/build-portal.sh" "list" "${SITES_FILE:-}" "${SITE_KEY:-}" "$(dirname "$target_md")" "$doc_sidebar_html"
         if [ ${#SHELL_RENDER_ARGS[@]} -gt 0 ]; then
           screen_render_args+=("${SHELL_RENDER_ARGS[@]}")
         fi
