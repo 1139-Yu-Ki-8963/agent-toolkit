@@ -81,7 +81,7 @@ allowed-tools: [AskUserQuestion, Bash, Grep, Read, Write]
 ## Step 2-1: 戦略に基づく抽出
 
 - **Step 1**: 抽出方式を分岐判定する。組み込み検出器（Next.js App/Pages Router・React Router（`useRoutes`含む）・慣習ディレクトリ）がPhase 1の調査結果と適合する場合のみ組み込みパスを選べる。完了条件: `builtin-*` か `custom` かが決定済み
-- **Step 2（組み込みパス）**: `../../../shared/scripts/unit-list/detect-screens.sh <source-dir> <manifest-out> --strategy-json <strategy.json> [--screen-id-regex <re>] [--view-switch-pattern <re>] [--exclude <pattern>]` を実行する。0件ならハード停止（exit 3）。画面を捏造しない。ルート抽出前処理として、行コメント（`//`）・ブロックコメント（`/* */`）を除去してからルート定義を抽出する（コメントアウトされたルート定義を実在として誤検出することを防ぐ。カスタム抽出パスと同一の前処理方針）
+- **Step 2（組み込みパス）**: `../../../shared/scripts/unit-list/detect-screens.sh <source-dir> <manifest-out> --strategy-json <strategy.json> [--screen-id-regex <re>] [--view-switch-pattern <re>] [--exclude <pattern>]` を実行する。0件の場合 detect-screens.sh は exit 3 を返す。これは検出失敗の信号であり、受けた側は「0件時の分岐」節に従って処理する。画面を捏造しない。ルート抽出前処理として、行コメント（`//`）・ブロックコメント（`/* */`）を除去してからルート定義を抽出する（コメントアウトされたルート定義を実在として誤検出することを防ぐ。カスタム抽出パスと同一の前処理方針）
 - **Step 2（カスタム抽出パス）**: Phase 1で宣言した手順をClaude自身がBash/Grep/Readで実行する。
   element属性の`viewId`/`pageId`からの物理ファイル組み立てや、カスタムルート配列のJSON解析などを行い、スキーマ準拠のマニフェストJSONをWriteする。
   - 末尾マーカー規則: 手作業で `screenNameGuess` を与える場合も、末尾の ` 空白+OK`・`(OK)`・`(OK) 識別子`・`）OK` を除去する。語頭・語中のOKは業務語として保持する。
@@ -93,6 +93,17 @@ allowed-tools: [AskUserQuestion, Bash, Grep, Read, Write]
 - **Step 5**: raw作業コピーを Step 2-2 以降へ渡す。この時点ではcanonical raw・extを確定せず、画面一覧HTMLも生成しない。完了条件: 既存テスト件数を含むraw作業コピーが Step 2-2 の入力として確定
 
 **非UTF-8原本への対応**: 原本が UTF-8 以外のエンコーディングで書かれている場合、通常の文字列検索はバイナリ扱いとなりマッチ 0 件を返す。走査の前に `shared/scripts/detect-encoding.sh encoding <file>` でエンコーディングを確定し、UTF-8 以外なら `detect-encoding.sh to-utf8` で変換した一時コピーに対して走査する。変換結果は永続化せず一時コピーで足りる。マッチ 0 件を「該当なし」と結論する前に、エンコーディングが原因でないことを確認する。
+
+## 0件時の分岐
+
+検出 0 件は 2 つの状態を区別する。アーキテクチャ調査書（`survey_doc_path`）の画面種別の実在判定と突合して分岐する。エンコーディング起因の 0 件でないことを先に確認する（上記「非UTF-8原本への対応」）。
+
+| 調査書の判定 | 意味 | 動作 |
+|---|---|---|
+| 画面は実在しない | 画面を持たないプロジェクト（バックエンドのみのサブプロジェクト等） | `一覧/画面一覧（該当なし）.md` を判定理由の転記付きで生成し、status=`NONE` で正常終了する。API とテーブル等の対象外記録と同型。呼び出し元は excluded-kinds.json の excludedKinds へ screen を記録する |
+| 画面は実在する | 検出失敗（戦略の不適合、境界の誤り） | 停止する。headless=false なら AskUserQuestion で報告し、headless=true なら `<verification_dir>/progress.jsonl` へ記録して status=`ERROR` を返す。手動リストは聞き出さない |
+
+`survey_doc_path` が未指定で調査書と突合できない場合は、実在判定を推測せず検出失敗として扱う（fail-closed）。
 
 検出中の作業コピーは一時ディレクトリ（`$CLAUDE_JOB_DIR/tmp/screen-manifest.json`、未設定時は `${TMPDIR:-/tmp}/claude-job-${session}/tmp/` 配下。`${session}`はセッションIDが取得できなければ任意の一意な値でよい）に保存する。Step 2-4完了後の正本は`<output_dir>/一覧/画面一覧/screen-manifest.json`と`screen-manifest.ext.json`であり、一時ファイルを後続・再開処理の入力にしてはならない。
 
@@ -216,7 +227,7 @@ Phase 1の調査結果とアーキテクチャ調査書（`survey_doc_path`）�
 | Phase | 完了条件 |
 |---|---|
 | Phase 1 | Step 1〜4の調査完了。Step 5の共有ファイル・エイリアス調査（sharedDirPatterns/pathAliases）完了。Step 6の検出戦略宣言（`unitKind: "screen"`/screenUnitDefinition/screenIdRegex/viewSwitchPattern/excludePatterns/sharedDirPatterns/pathAliases/importTraversalMaxDepth）がユーザー承認済み |
-| Phase 2 | Step 2-1で抽出方式（builtin/custom）が決定済み。スキーマ準拠のraw作業コピーが1件以上確定、または0件検出をユーザーに報告して停止している。diagnosticsを確認済み。セルフチェックゲート（route実在照合含む）・ルート網羅性検査ゲートをPASS済み。全画面のraw作業コピーにexistingTestCountが付与されている。Step 2-2〜2-3でraw作業コピーの全エントリにscreenType・accountGroup・accountSubType・hasTemplate・parentScreen・childComponents・isProcessingEndpointが付与され、検証項目がすべてPASS。Step 2-4でcanonical raw・raw由来extが原子的に永続化され、schema・検出由来フィールド・hashが一致 |
+| Phase 2 | Step 2-1で抽出方式（builtin/custom）が決定済み。スキーマ準拠のraw作業コピーが1件以上確定、または0件検出を「0件時の分岐」に従い処理している（該当なし生成による正常終了、または検出失敗の停止）。diagnosticsを確認済み。セルフチェックゲート（route実在照合含む）・ルート網羅性検査ゲートをPASS済み。全画面のraw作業コピーにexistingTestCountが付与されている。Step 2-2〜2-3でraw作業コピーの全エントリにscreenType・accountGroup・accountSubType・hasTemplate・parentScreen・childComponents・isProcessingEndpointが付与され、検証項目がすべてPASS。Step 2-4でcanonical raw・raw由来extが原子的に永続化され、schema・検出由来フィールド・hashが一致 |
 | Phase 3 | Step 1でraw/extの`validate-manifest.sh --unit-kind screen`とhash検査がPASS。Step 2のFAIL時修正ループは3回以内で、raw修正時はextを再生成する。Step 3のレジストリ整合検査で突合差分ゼロ（画面レジストリが存在する場合のみ） |
 | Phase 4 | Step 1で画面一覧.htmlが生成され、埋め込みJSONがマニフェストと一致している |
 | Phase 5（任意） | `--profile`サブコマンド実行時のみ、複雑度プロファイル.jsonが生成されている |
@@ -224,7 +235,7 @@ Phase 1の調査結果とアーキテクチャ調査書（`survey_doc_path`）�
 
 ## 返却
 
-本スキルは orchestrating-reverse-docs-flow の契約に準拠する。完了時に status（`DONE | ERROR`）と artifacts（生成した画面一覧.htmlのパス）を返す。artifacts[0] を汎用名 unit_list_html として返し、`unit_kind: screen`（固定値）、`screen_manifest_path`（永続生manifest）、`screen_manifest_ext_path`（永続拡張manifest）を返却ブロックに含める。HTML内に埋め込んだマニフェストJSONへの参照を embedded_json_ref として併せて返す。従来互換のため screen_list_html を unit_list_html のエイリアスとして併せて返す。Phase 5（複雑度プロファイリング）を実行した場合のみ、拡張フィールド complexity_profile_path（複雑度プロファイル.json の絶対パス）を併せて返す。
+本スキルは orchestrating-reverse-docs-flow の契約に準拠する。完了時に status（`DONE | NONE | ERROR`）と artifacts を返す。`DONE` の artifacts は生成した画面一覧.html のパス、`NONE` の artifacts は `一覧/画面一覧（該当なし）.md` のパスである。`NONE` は調査書が画面の実在しないことを判定済みの場合だけ返す（「0件時の分岐」節を参照）。artifacts[0] を汎用名 unit_list_html として返し、`unit_kind: screen`（固定値）、`screen_manifest_path`（永続生manifest）、`screen_manifest_ext_path`（永続拡張manifest）を返却ブロックに含める。HTML内に埋め込んだマニフェストJSONへの参照を embedded_json_ref として併せて返す。従来互換のため screen_list_html を unit_list_html のエイリアスとして併せて返す。Phase 5（複雑度プロファイリング）を実行した場合のみ、拡張フィールド complexity_profile_path（複雑度プロファイル.json の絶対パス）を併せて返す。
 
 ## ツールリファレンス
 
@@ -248,7 +259,7 @@ Phase 1の調査結果とアーキテクチャ調査書（`survey_doc_path`）�
 - 設計書（`画面詳細設計書.md` 等）の雛形展開・生成・記入は一切行わない。本スキルの成果物は画面一覧.htmlのみ
 - Phase 4のHTML手作業組み立てを禁止する。`build-unit-list.sh` を必ず経由し、プレースホルダの手動置換による `entryFile=None` 等のデータ混入を防ぐ
 - 組み込み検出器のファイル収集はBFS（import再帰追跡・深さ上限importTraversalMaxDepth既定6・sharedDirPatterns/pathAliases/screenIdRegexの3除外境界）で行う。拡張子解決順は「そのまま→.tsx→.ts→.jsx→.js→/index.{tsx,ts,jsx,js}」で非コード拡張子（css/json/画像等）は集合に含めない
-- 0件検出時にAskUserQuestionで手動リストを聞き出さない。誤った境界を即興確定させない
+- 0件検出時にAskUserQuestionで手動リストを聞き出さない。誤った境界を即興確定させない。該当なしの正常終了と検出失敗の停止の区別は「0件時の分岐」の表が正である
 
 ## テンプレート/コード分析時の注意
 
