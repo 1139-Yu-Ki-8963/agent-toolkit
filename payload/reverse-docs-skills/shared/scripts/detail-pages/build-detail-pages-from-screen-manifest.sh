@@ -78,9 +78,30 @@ printf '%s' "$hash" | grep -Eq '^[0-9a-f]{64}$' || { echo "ERROR: manifestConten
 
 mkdir -p "$output_root"
 page_data="$output_root/画面遷移図-data.json"
+
+# 既存page-dataのedges引き継ぎ判定: 同一manifestContentHashの場合のみ既存edgesを
+# 信頼できるとみなして引き継ぐ(bridgeは検出器を持たないため、遷移抽出スキルが
+# 過去に書き込んだedgesを一括再生成で失わないための決定的な照合)。
+existing_edges="[]"
+existing_edges_status="未抽出"
+if [ -f "$page_data" ] && jq empty "$page_data" >/dev/null 2>&1; then
+  existing_hash="$(jq -r '.manifestContentHash // ""' "$page_data")"
+  if [ "$existing_hash" = "$hash" ]; then
+    existing_edges="$(jq -c '.edges // []' "$page_data")"
+    existing_edges_status="$(jq -r '.edgesStatus // "抽出済み"' "$page_data")"
+    edge_count="$(jq 'length' <<<"$existing_edges")"
+    echo "INFO: 既存の edges ${edge_count}件を引き継ぎました" >&2
+  else
+    echo "INFO: manifest が変化したため edges を空にしました" >&2
+  fi
+else
+  echo "INFO: 既存の画面遷移図-data.jsonが無いため edges を空にしました" >&2
+fi
+
 tmp_data="$(mktemp "$output_root/.transition-data.XXXXXX")"
 trap 'rm -f "$tmp_data"' EXIT
-jq -S --arg generatedAt "$generated_at" --arg manifestContentHash "$hash" '
+jq -S --arg generatedAt "$generated_at" --arg manifestContentHash "$hash" \
+  --argjson edgesArg "$existing_edges" --arg edgesStatusArg "$existing_edges_status" '
   def screen_label: (.confirmedScreenName // .screenNameGuess // .screenKey);
   def category:
     if ((.category // "") | length) > 0 then {value:.category, src:"url-segment"}
@@ -108,7 +129,8 @@ jq -S --arg generatedAt "$generated_at" --arg manifestContentHash "$hash" '
       description:"画面manifestから生成した画面一覧",
       legend:[{symbol:"□",meaning:"画面"}],
       nodes:$nodes,
-      edges:[],
+      edges:$edgesArg,
+      edgesStatus:$edgesStatusArg,
       unresolved:$unresolved,
       flowCategories:(
         $nodes | group_by([.category,.categorySrc])

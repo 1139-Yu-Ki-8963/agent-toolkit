@@ -20,6 +20,9 @@
     CATEGORY_COUNT (大分類数タイルマーカー)     : 検出された大分類の数
     UNIT_COUNT (検出機能数タイルマーカー)       : detectionSummary.unitCount
     UNRESOLVED_COUNT (要確認数タイルマーカー)   : detectionSummary.unresolvedCount
+    EMPTY_RELATION_COUNT (関連空機能数タイルマーカー) : detectionSummary.diagnostics.emptyRelation.count(1-152)
+    EXTRA_DIAGNOSTICS (診断マーカー・任意)      : emptyRelation(1-152)の比率コールアウト。
+                                                   閾値超過時は pt-callout--warning、それ以外は note
     CATEGORY_SECTIONS (大分類セクションマーカー): 大分類ごとの details.module-group + table を丸ごと挿入
     UNRESOLVED_SECTION (要手動確認セクションマーカー) : kind=unresolved の一覧テーブル、0件なら「なし」の文言
     MANIFEST_JSON (マニフェストJSON埋め込みマーカー) : manifest.json の内容をそのまま埋め込み(二重管理・ドリフト禁止)
@@ -727,17 +730,17 @@ a.pt-brand-list-item:hover { background: var(--panel3); color: var(--text); text
     <div class="pt-brand-switch" id="pt-brand-switch">
       <div class="pt-brand-name">sample-project</div>
     </div>
-    <div class="pt-brand-sub">設計台帳 · 全48資料</div>
+    <div class="pt-brand-sub">設計台帳 · 全51資料</div>
   </div>
   <nav class="pt-nav" id="pt-nav" aria-label="資料カテゴリ"></nav>
   
   <button type="button" class="pt-theme" id="pt-theme-toggle">
     <span id="pt-theme-label">テーマ: ダーク</span><span class="pt-theme-next" id="pt-theme-next">→ LIGHT</span>
   </button>
-  <div class="pt-sidebar-meta">更新 <span id="pt-sidebar-date">2026-07-30</span><span id="pt-meta-commit"><br>コミット </span></div>
+  <div class="pt-sidebar-meta">更新 <span id="pt-sidebar-date">2026-07-30T00:00:00Z</span><span id="pt-meta-commit"><br>コミット </span></div>
 </aside>
 <div class="pt-sidebar-scrim" id="pt-sidebar-scrim" hidden></div>
-<script type="application/json" id="pt-nav-data">[{"key":"project","num":"01","label":"基盤情報","count":4},{"key":"standards","num":"02","label":"規約","count":20},{"key":"design","num":"03","label":"設計書","count":5},{"key":"list","num":"04","label":"一覧・設計図","count":12},{"key":"cross","num":"05","label":"マトリクス・対応表","count":3},{"key":"ai","num":"06","label":"AI設定資産","count":1},{"key":"design-tools","num":"07","label":"デザイン","count":3}]</script>
+<script type="application/json" id="pt-nav-data">[{"key":"project","num":"01","label":"基盤情報","count":5},{"key":"standards","num":"02","label":"規約","count":20},{"key":"design","num":"03","label":"設計書","count":5},{"key":"list","num":"04","label":"一覧・設計図","count":13},{"key":"cross","num":"05","label":"マトリクス・対応表","count":4},{"key":"ai","num":"06","label":"AI設定資産","count":1},{"key":"design-tools","num":"07","label":"デザイン","count":3}]</script>
 <script type="application/json" id="pt-sites-data">[]</script>
 <script>
 (function () {
@@ -963,8 +966,11 @@ a.pt-brand-list-item:hover { background: var(--panel3); color: var(--text); text
           <div class="tile"><strong>4</strong>大分類数</div>
           <div class="tile"><strong>16</strong>検出機能数</div>
           <div class="tile"><strong>0</strong>要手動確認数</div>
+          <div class="tile"><strong>0</strong>関連空機能数</div>
         </div>
       </div>
+
+      <p class="note">関連空機能 <strong>0</strong> / 16 件（0%）が関連API・関連テーブルの両方とも空です。</p>
 
       <div class="toolbar-area">
         <div class="toolbar">
@@ -1108,7 +1114,7 @@ a.pt-brand-list-item:hover { background: var(--panel3); color: var(--text); text
   </div>
   <footer class="pt-footer">
   <span class="pt-footer-stamp">REVERSE-DOCS REGISTER</span>
-  <span class="pt-footer-meta">sample-project · 更新 <span id="pt-footer-date">2026-07-30</span><span id="pt-footer-commit"> · コミット </span></span>
+  <span class="pt-footer-meta">sample-project · 更新 <span id="pt-footer-date">2026-07-30T00:00:00Z</span><span id="pt-footer-commit"> · コミット </span></span>
   <span class="pt-footer-gen">生成: shared/scripts/unit-list/build-feature-list.sh</span>
 </footer>
 </div>

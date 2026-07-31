@@ -609,7 +609,13 @@ html, body { margin: 0; padding: 0; }
   flex-wrap: wrap;
 }
 .rn-pr-sum::-webkit-details-marker { display: none; }
-.rn-pr-caret { flex: none; font-size: 9px; color: var(--muted); transition: transform .15s; }
+.rn-pr-caret {
+  flex: none;
+  width: 0; height: 0;
+  border-top: 4px solid transparent; border-bottom: 4px solid transparent;
+  border-left: 6px solid var(--muted);
+  transition: transform .15s;
+}
 .rn-pr[open] .rn-pr-caret { transform: rotate(90deg); }
 
 .rn-tick { flex: none; color: var(--green); font-weight: 800; font-size: 14px; }
@@ -645,7 +651,13 @@ html, body { margin: 0; padding: 0; }
   display: flex; align-items: center; gap: 8px;
 }
 .rn-fold-sum::-webkit-details-marker { display: none; }
-.rn-fold-sum::before { content: "▶"; flex: none; font-size: 9px; transition: transform .15s; }
+.rn-fold-sum::before {
+  content: ""; flex: none;
+  width: 0; height: 0;
+  border-top: 4px solid transparent; border-bottom: 4px solid transparent;
+  border-left: 6px solid currentColor;
+  transition: transform .15s;
+}
 .rn-fold[open] .rn-fold-sum::before { transform: rotate(90deg); }
 .rn-fold-label { flex: 1; }
 
@@ -718,6 +730,10 @@ html, body { margin: 0; padding: 0; }
   .rn-row { grid-template-columns: 64px 1fr; gap: 10px; }
   .rn-pr-title { font-size: 13.5px; }
 }
+@media (prefers-reduced-motion: reduce) {
+  .rn-fold-sum::before { transition: none; }
+  .rn-pr-caret { transition: none; }
+}
 </style>
 </head>
 <body>
@@ -733,17 +749,17 @@ html, body { margin: 0; padding: 0; }
     <div class="pt-brand-switch" id="pt-brand-switch">
       <div class="pt-brand-name">sample-project</div>
     </div>
-    <div class="pt-brand-sub">設計台帳 · 全48資料</div>
+    <div class="pt-brand-sub">設計台帳 · 全51資料</div>
   </div>
   <nav class="pt-nav" id="pt-nav" aria-label="資料カテゴリ"></nav>
   
   <button type="button" class="pt-theme" id="pt-theme-toggle">
     <span id="pt-theme-label">テーマ: ダーク</span><span class="pt-theme-next" id="pt-theme-next">→ LIGHT</span>
   </button>
-  <div class="pt-sidebar-meta">更新 <span id="pt-sidebar-date">2026-07-30</span><span id="pt-meta-commit"><br>コミット </span></div>
+  <div class="pt-sidebar-meta">更新 <span id="pt-sidebar-date">2026-07-30T00:00:00Z</span><span id="pt-meta-commit"><br>コミット </span></div>
 </aside>
 <div class="pt-sidebar-scrim" id="pt-sidebar-scrim" hidden></div>
-<script type="application/json" id="pt-nav-data">[{"key":"project","num":"01","label":"基盤情報","count":4},{"key":"standards","num":"02","label":"規約","count":20},{"key":"design","num":"03","label":"設計書","count":5},{"key":"list","num":"04","label":"一覧・設計図","count":12},{"key":"cross","num":"05","label":"マトリクス・対応表","count":3},{"key":"ai","num":"06","label":"AI設定資産","count":1},{"key":"design-tools","num":"07","label":"デザイン","count":3}]</script>
+<script type="application/json" id="pt-nav-data">[{"key":"project","num":"01","label":"基盤情報","count":5},{"key":"standards","num":"02","label":"規約","count":20},{"key":"design","num":"03","label":"設計書","count":5},{"key":"list","num":"04","label":"一覧・設計図","count":13},{"key":"cross","num":"05","label":"マトリクス・対応表","count":4},{"key":"ai","num":"06","label":"AI設定資産","count":1},{"key":"design-tools","num":"07","label":"デザイン","count":3}]</script>
 <script type="application/json" id="pt-sites-data">[]</script>
 <script>
 (function () {
@@ -977,7 +993,7 @@ html, body { margin: 0; padding: 0; }
   </div>
   <footer class="pt-footer">
   <span class="pt-footer-stamp">REVERSE-DOCS REGISTER</span>
-  <span class="pt-footer-meta">sample-project · 更新 <span id="pt-footer-date">2026-07-30</span><span id="pt-footer-commit"> · コミット </span></span>
+  <span class="pt-footer-meta">sample-project · 更新 <span id="pt-footer-date">2026-07-30T00:00:00Z</span><span id="pt-footer-commit"> · コミット </span></span>
   <span class="pt-footer-gen">生成: shared/scripts/detail-pages/build-detail-page.sh</span>
 </footer>
 </div>
@@ -1231,7 +1247,7 @@ html, body { margin: 0; padding: 0; }
     var det = el('details', { class: 'rn-pr' + (isDone ? ' is-done' : ''), 'data-flow': release.flow || 'feature' });
 
     var sum = el('summary', { class: 'rn-pr-sum' });
-    sum.appendChild(el('span', { class: 'rn-pr-caret' }, '▶'));
+    sum.appendChild(el('span', { class: 'rn-pr-caret' }));
     if (isDone) sum.appendChild(el('span', { class: 'rn-tick' }, '✓'));
     sum.appendChild(el('span', { class: 'rn-flow-pill rn-flow-pill--' + (release.flow || 'feature') }, FLOW_LABEL[release.flow] || release.flow || ''));
     if (release.prUrl) {

@@ -1,6 +1,7 @@
 {
   "description": "画面manifestから生成した画面一覧",
   "edges": [],
+  "edgesStatus": "未抽出",
   "flowCategories": [
     {
       "name": "一般",
@@ -13,7 +14,7 @@
       "source": "url-segment"
     }
   ],
-  "generatedAt": "2026-07-28T00:00:00Z",
+  "generatedAt": "2026-07-30T00:00:00Z",
   "legend": [
     {
       "meaning": "画面",
@@ -21,6 +22,7 @@
     }
   ],
   "manifestContentHash": "c7d90a604412f8b7f047b9d3de9c723168e34b0215ac4d27e2c63a30a089a550",
+  "manifestScreenCount": 44,
   "nodes": [
     {
       "category": "一般",

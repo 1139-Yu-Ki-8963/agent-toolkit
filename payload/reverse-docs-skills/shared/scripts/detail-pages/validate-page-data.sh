@@ -19,6 +19,8 @@
 #      そのファイルの総行数(wc -l)以内であることを検証する
 #   8. columns型検証(erのみ): entities[].columns[]が存在する場合、name/typeがstring、
 #      pk/fk/unique/nullableがboolean(いずれも存在時のみ)であることを検証する
+#   9. edgesStatus値(transitionのみ): edgesStatusキーが存在する場合、値が「未抽出」または
+#      「抽出済み」のいずれかであることを検証する。未指定は後方互換のため許容する
 #
 # envのenvironment[]は任意フィールド(page-data-schema.mdのT5節が正)。get_slot_keysの必須
 # キー(prerequisites/steps/allocations)には含めない。未知キーを拒否する仕組みは無いため、
@@ -353,6 +355,21 @@ if [ "$PAGE_KIND" = "transition" ]; then
           ;;
       esac
     fi
+  fi
+  edges_status="$(jq -r 'if has("edgesStatus") then .edgesStatus else null end' "$MANIFEST")"
+  if [ "$edges_status" = "null" ]; then
+    echo "[PASS] edgesStatus値 — 未指定(後方互換のため検査対象外)" >&2
+  else
+    case "$edges_status" in
+      未抽出|抽出済み)
+        echo "[PASS] edgesStatus値 — '${edges_status}'は許可値" >&2
+        ;;
+      *)
+        overall_fail=1
+        ln="$(line_of "\"edgesStatus\"")"
+        echo "[FAIL] edgesStatus値 — 不正な値: '${edges_status}'(行番号: ${ln:-不明})。未抽出|抽出済みのいずれかである必要があります" >&2
+        ;;
+    esac
   fi
 fi
 

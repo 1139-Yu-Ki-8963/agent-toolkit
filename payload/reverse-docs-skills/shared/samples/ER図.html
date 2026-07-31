@@ -721,6 +721,10 @@ a:hover { text-decoration: underline; }
   line-height: 1; min-width: 32px;
 }
 .er-zoom-btns button:hover { background: var(--accent-soft); color: var(--accent); border-color: var(--accent-border); }
+
+.er-flat-list { flex: none; }
+.er-flat-table { width: 100%; border-collapse: collapse; margin-top: 6px; }
+.er-flat-table th, .er-flat-table td { text-align: left; padding: 6px 10px; font-size: 12.5px; border-bottom: 1px solid var(--border); }
 </style>
 </head>
 <body>
@@ -736,17 +740,17 @@ a:hover { text-decoration: underline; }
     <div class="pt-brand-switch" id="pt-brand-switch">
       <div class="pt-brand-name">sample-project</div>
     </div>
-    <div class="pt-brand-sub">設計台帳 · 全48資料</div>
+    <div class="pt-brand-sub">設計台帳 · 全51資料</div>
   </div>
   <nav class="pt-nav" id="pt-nav" aria-label="資料カテゴリ"></nav>
   
   <button type="button" class="pt-theme" id="pt-theme-toggle">
     <span id="pt-theme-label">テーマ: ダーク</span><span class="pt-theme-next" id="pt-theme-next">→ LIGHT</span>
   </button>
-  <div class="pt-sidebar-meta">更新 <span id="pt-sidebar-date">2026-07-30</span><span id="pt-meta-commit"><br>コミット </span></div>
+  <div class="pt-sidebar-meta">更新 <span id="pt-sidebar-date">2026-07-30T00:00:00Z</span><span id="pt-meta-commit"><br>コミット </span></div>
 </aside>
 <div class="pt-sidebar-scrim" id="pt-sidebar-scrim" hidden></div>
-<script type="application/json" id="pt-nav-data">[{"key":"project","num":"01","label":"基盤情報","count":4},{"key":"standards","num":"02","label":"規約","count":20},{"key":"design","num":"03","label":"設計書","count":5},{"key":"list","num":"04","label":"一覧・設計図","count":12},{"key":"cross","num":"05","label":"マトリクス・対応表","count":3},{"key":"ai","num":"06","label":"AI設定資産","count":1},{"key":"design-tools","num":"07","label":"デザイン","count":3}]</script>
+<script type="application/json" id="pt-nav-data">[{"key":"project","num":"01","label":"基盤情報","count":5},{"key":"standards","num":"02","label":"規約","count":20},{"key":"design","num":"03","label":"設計書","count":5},{"key":"list","num":"04","label":"一覧・設計図","count":13},{"key":"cross","num":"05","label":"マトリクス・対応表","count":4},{"key":"ai","num":"06","label":"AI設定資産","count":1},{"key":"design-tools","num":"07","label":"デザイン","count":3}]</script>
 <script type="application/json" id="pt-sites-data">[]</script>
 <script>
 (function () {
@@ -970,6 +974,7 @@ a:hover { text-decoration: underline; }
       </div>
     </div>
 
+    
     <div class="er-toolbar" id="er-toolbar">
       <div class="er-search">
         <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><circle cx="7" cy="7" r="5" stroke="currentColor" stroke-width="1.5"/><line x1="11" y1="11" x2="14" y2="14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
@@ -1031,7 +1036,7 @@ a:hover { text-decoration: underline; }
   </div>
   <footer class="pt-footer">
   <span class="pt-footer-stamp">REVERSE-DOCS REGISTER</span>
-  <span class="pt-footer-meta">sample-project · 更新 <span id="pt-footer-date">2026-07-30</span><span id="pt-footer-commit"> · コミット </span></span>
+  <span class="pt-footer-meta">sample-project · 更新 <span id="pt-footer-date">2026-07-30T00:00:00Z</span><span id="pt-footer-commit"> · コミット </span></span>
   <span class="pt-footer-gen">生成: shared/scripts/detail-pages/build-detail-page.sh</span>
 </footer>
 </div>
@@ -3177,6 +3182,17 @@ a:hover { text-decoration: underline; }
   var data = JSON.parse(document.getElementById('page-data').textContent);
   var entities = data.entities || [];
   var relationsRaw = data.relations || [];
+
+  // --- 外部キー0件(1-151): クラスタ探索Canvasは意味を成さないため、
+  //     サーバー側で静的レンダリング済みのエンティティ一覧(.er-flat-list)のみを表示し、
+  //     ツールバー・Canvasステージ一式は初期化せず隠す ---
+  if (relationsRaw.length === 0) {
+    var toolbarEl = document.getElementById('er-toolbar');
+    var stageEl = document.getElementById('er-stage');
+    if (toolbarEl) toolbarEl.style.display = 'none';
+    if (stageEl) stageEl.style.display = 'none';
+    return;
+  }
 
   function el(tag, attrs, children) {
     var node = document.createElement(tag);
