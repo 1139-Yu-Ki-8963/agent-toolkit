@@ -21,15 +21,19 @@
 #                   (分・時が数値かつ 日=月=曜=* → 「毎日 H:MM」/ 曜日 0-6 → 「毎週X曜 H:MM」/
 #                    日が数値 → 「毎月D日 H:MM」/ 分=*/N かつ他=* → 「N分ごと」)。
 #                   変換不能なら cron 式をそのまま readable に入れる
-#   targetTables:   --table-manifest の各 unit の identifier を sourceFile 内で grep -F。
-#                   ヒットしたテーブルの unitKey を配列で格納(0 件なら付けない)
+#   targetTables:   --table-manifest の全 unit の identifier を 1 つのパターンファイルにまとめ、
+#                   sourceFile ごとに grep -oFf を 1 回だけ実行してヒットしたテーブルの unitKey を
+#                   配列で格納する(0 件なら付けない)。判定の意味は「identifier を sourceFile 内で
+#                   grep -F」と同じ(1 unit あたりの grep 起動をテーブル数分ではなく 1 回にする最適化)
 #   execMethod:     sourceFile の shebang 行(#!...)からインタプリタ名を取得、shebang 不在でも
 #                   if __name__ == '__main__' があれば python3 とみなし、
 #                   「<インタプリタ> <sourceFile相対パス>」を生成(どちらも無ければ付けない)
-#   downstreamJobs: sourceFile 内で「呼び出し・enqueue 系キーワード
+#   downstreamJobs: 同マニフェストの全バッチの identifier/unitKey を 1 つのパターンファイルに
+#                   まとめ、sourceFile 内で「呼び出し・enqueue 系キーワード
 #                   (enqueue|delay|apply_async|subprocess|run(|call|invoke|trigger|import)を含む行」に
-#                   同マニフェストの他バッチの identifier/unitKey が grep -F でヒットしたものを格納
-#                   (0 件なら付けない)
+#                   対して grep -oFf を 1 回だけ実行してヒットしたものを格納する(自ユニット自身への
+#                   ヒットは除外。0 件なら付けない。1 unit あたりの grep 起動を他バッチ数×2 回では
+#                   なく 1 回にする最適化)
 #
 # 出力 JSON は unit-list/validate-manifest.sh --unit-kind batch で検証可能であること
 # (self-test 内で validate-manifest.sh も実行して PASS を確認する)。
@@ -155,6 +159,142 @@ EOF
     rc=1
   fi
 
+  # 1-127: 複数ユニット・複数テーブルでも抽出結果が単純比較と一致すること
+  # (targetTables: 一部テーブルのみヒットし他は除外、downstreamJobs: identifier一致と
+  #  unitKey一致の双方を検出しつつ自ユニット自身への言及は加算しない)を、
+  # パターンファイルへの単一 grep 実装で確認する。
+  mkdir -p "$tmp/multi/jobs"
+  cat > "$tmp/multi/jobs/job_a.py" <<'EOF'
+#!/usr/bin/env python3
+import subprocess
+from app.models import orders  # orders テーブル参照
+from app.models import invoices  # invoices テーブル参照
+
+def main():
+    print("running jobs/job_a.py")
+    # avoid recursive trigger of jobs/job_a.py
+    subprocess.run(["python3", "jobs/job_b.py"])
+    subprocess.run(["python3", "job-c"])
+
+if __name__ == '__main__':
+    main()
+EOF
+  cat > "$tmp/multi/jobs/job_b.py" <<'EOF'
+#!/usr/bin/env python3
+def main():
+    pass
+
+if __name__ == '__main__':
+    main()
+EOF
+  cat > "$tmp/multi/jobs/job_c.py" <<'EOF'
+#!/usr/bin/env python3
+def main():
+    pass
+
+if __name__ == '__main__':
+    main()
+EOF
+
+  jq -n --arg sourceDir "$tmp/multi" '{
+    generatedAt: "2026-01-01T00:00:00Z",
+    sourceDir: $sourceDir,
+    unitKind: "table",
+    strategy: {extractionMethod: "custom", approvedByUser: true, unitIdRegex: null, excludePatterns: []},
+    detectionSummary: {unitCount: 3, unresolvedCount: 0},
+    units: [
+      {unitKey: "orders-table", kind: "table", identifier: "orders", sourceFile: "jobs/job_a.py", confidence: "high"},
+      {unitKey: "users-table2", kind: "table", identifier: "users", sourceFile: "jobs/job_a.py", confidence: "high"},
+      {unitKey: "invoices-table", kind: "table", identifier: "invoices", sourceFile: "jobs/job_a.py", confidence: "high"}
+    ]
+  }' > "$tmp/multi/table-manifest.json"
+
+  local multi_manifest="$tmp/multi/batch-manifest.json" multi_out="$tmp/multi/out.json"
+  jq -n --arg sourceDir "$tmp/multi" '{
+    generatedAt: "2026-01-01T00:00:00Z",
+    sourceDir: $sourceDir,
+    unitKind: "batch",
+    strategy: {extractionMethod: "custom", approvedByUser: true, unitIdRegex: null, excludePatterns: []},
+    detectionSummary: {unitCount: 3, unresolvedCount: 0},
+    units: [
+      {unitKey: "job-a", kind: "job", identifier: "jobs/job_a.py", unitNameGuess: "ジョブA",
+       sourceFile: "jobs/job_a.py", confidence: "high", fileCount: 1, detectionMethod: "manual"},
+      {unitKey: "job-b", kind: "job", identifier: "jobs/job_b.py", unitNameGuess: "ジョブB",
+       sourceFile: "jobs/job_b.py", confidence: "high", fileCount: 1, detectionMethod: "manual"},
+      {unitKey: "job-c", kind: "job", identifier: "job-c", unitNameGuess: "ジョブC",
+       sourceFile: "jobs/job_c.py", confidence: "high", fileCount: 1, detectionMethod: "manual"}
+    ]
+  }' > "$multi_manifest"
+
+  if ! bash "$script_path" "$multi_manifest" "$tmp/multi" "$multi_out" \
+        --table-manifest "$tmp/multi/table-manifest.json" >/dev/null 2>&1; then
+    echo "  [FAIL] 1-127: 複数ユニット抽出コマンド自体が失敗した" >&2
+    rc=1
+  else
+    if jq -e '.units[] | select(.unitKey=="job-a") | .targetTables == ["invoices-table","orders-table"]' \
+        "$multi_out" >/dev/null 2>&1; then
+      echo "  [PASS] 1-127 targetTables: 単一grepでも一部テーブルのみヒットし他は除外"
+    else
+      echo "  [FAIL] 1-127 targetTables: 期待値と不一致" >&2
+      rc=1
+    fi
+    if jq -e '.units[] | select(.unitKey=="job-a") | .downstreamJobs == ["job-b","job-c"]' \
+        "$multi_out" >/dev/null 2>&1; then
+      echo "  [PASS] 1-127 downstreamJobs: identifier一致とunitKey一致の双方を検出し自ユニットは除外"
+    else
+      echo "  [FAIL] 1-127 downstreamJobs: 期待値と不一致" >&2
+      rc=1
+    fi
+  fi
+
+  # 1-127-scale: 500ユニット規模でも実行時間の上限内で完了すること。旧実装であれば
+  # targetTables/downstreamJobs のループがユニット数の2乗に比例したgrep起動を伴う規模。
+  local scale_dir="$tmp/scale" n padded
+  mkdir -p "$scale_dir/jobs"
+  for ((n = 1; n <= 500; n++)); do
+    padded="$(printf '%04d' "$n")"
+    printf '#!/usr/bin/env python3\ndef main():\n    pass\n\nif __name__ == "__main__":\n    main()\n' \
+      > "$scale_dir/jobs/job_${padded}.py"
+  done
+
+  local scale_units="$scale_dir/units.jsonl" scale_table_units="$scale_dir/table-units.jsonl"
+  : > "$scale_units"
+  : > "$scale_table_units"
+  for ((n = 1; n <= 500; n++)); do
+    padded="$(printf '%04d' "$n")"
+    printf '{"unitKey":"job-%d","kind":"job","identifier":"jobs/job_%s.py","unitNameGuess":"ジョブ%d","sourceFile":"jobs/job_%s.py","confidence":"high","fileCount":1,"detectionMethod":"manual"}\n' \
+      "$n" "$padded" "$n" "$padded" >> "$scale_units"
+    printf '{"unitKey":"table-%d","kind":"table","identifier":"table_%d","sourceFile":"jobs/job_0001.py","confidence":"high"}\n' \
+      "$n" "$n" >> "$scale_table_units"
+  done
+
+  local scale_batch_manifest="$scale_dir/batch-manifest.json" scale_table_manifest="$scale_dir/table-manifest.json" \
+    scale_out="$scale_dir/out.json"
+  jq -n --arg sourceDir "$scale_dir" --slurpfile units "$scale_units" '{
+    generatedAt: "2026-01-01T00:00:00Z",
+    sourceDir: $sourceDir,
+    unitKind: "batch",
+    strategy: {extractionMethod: "custom", approvedByUser: true, unitIdRegex: null, excludePatterns: []},
+    detectionSummary: {unitCount: 500, unresolvedCount: 0},
+    units: $units
+  }' > "$scale_batch_manifest"
+  jq -n --arg sourceDir "$scale_dir" --slurpfile units "$scale_table_units" '{
+    generatedAt: "2026-01-01T00:00:00Z",
+    sourceDir: $sourceDir,
+    unitKind: "table",
+    strategy: {extractionMethod: "custom", approvedByUser: true, unitIdRegex: null, excludePatterns: []},
+    detectionSummary: {unitCount: 500, unresolvedCount: 0},
+    units: $units
+  }' > "$scale_table_manifest"
+
+  if bash "$script_path" "$scale_batch_manifest" "$scale_dir" "$scale_out" \
+        --table-manifest "$scale_table_manifest" >/dev/null 2>&1; then
+    echo "  [PASS] 1-127-scale: 500ユニット規模でも抽出コマンドが終了コード0で完了"
+  else
+    echo "  [FAIL] 1-127-scale: 500ユニット規模の抽出コマンドが完了しなかった" >&2
+    rc=1
+  fi
+
   if [ "$rc" -eq 0 ]; then
     echo "self-test 全項目 PASS"
   else
@@ -247,8 +387,33 @@ cron_readable() {
 
 mkdir -p "$(dirname "$OUTPUT_JSON")"
 
-units_tmp="$(mktemp "${TMPDIR:-/tmp}/extract-batch-units.XXXXXX")"
-trap 'rm -f "$units_tmp"' EXIT
+work_dir="$(mktemp -d "${TMPDIR:-/tmp}/extract-batch-work.XXXXXX")"
+trap 'rm -rf "$work_dir"' EXIT
+units_tmp="$work_dir/units.jsonl"
+: > "$units_tmp"
+
+# --- targetTables 用: --table-manifest の identifier↔unitKey 対応表とパターンファイルを
+#     ループの外で 1 回だけ構築する(1 ユニットあたり grep を 1 回で済ませるため) ---
+table_map="$work_dir/table-map.tsv"   # 1列目=identifier, 2列目=unitKey
+table_pat="$work_dir/table-ids.txt"   # grep -oFf 用パターン(identifier のみ・重複排除)
+: > "$table_map"
+: > "$table_pat"
+if [ -n "$TABLE_MANIFEST" ] && [ -f "$TABLE_MANIFEST" ]; then
+  jq -r '.units[]? | select(.kind != "unresolved") | [(.identifier // ""), (.unitKey // "")] | @tsv' "$TABLE_MANIFEST" \
+    | awk -F'\t' 'NF==2 && $1 != "" && $2 != ""' > "$table_map"
+  cut -f1 "$table_map" | sort -u > "$table_pat"
+fi
+
+# --- downstreamJobs 用: 同マニフェスト内の全バッチの unitKey↔(identifier/unitKey) 対応表と
+#     パターンファイルをループの外で 1 回だけ構築する。自ユニットの除外はパターンファイルではなく
+#     照合結果側で行う(パターンファイルは全ユニット共通で 1 回だけ作るため) ---
+other_map="$work_dir/downstream-map.tsv"   # 1列目=unitKey, 2列目=identifierまたはunitKey
+other_pat="$work_dir/downstream-ids.txt"   # grep -oFf 用パターン(identifier/unitKeyの和集合・重複排除)
+jq -r '.units[]? | select(.kind != "unresolved") | select((.unitKey // "") != "") |
+    ({key: .unitKey, val: .unitKey},
+     (if (.identifier // "") != "" then {key: .unitKey, val: .identifier} else empty end))
+  | [.key, .val] | @tsv' "$MANIFEST" > "$other_map"
+cut -f2 "$other_map" | sort -u > "$other_pat"
 
 while IFS= read -r row; do
   [ -z "$row" ] && continue
@@ -284,16 +449,20 @@ while IFS= read -r row; do
     fi
   fi
 
-  # --- targetTables: テーブルマニフェストの identifier を sourceFile 内で grep -F ---
-  if [ -n "$TABLE_MANIFEST" ] && [ -f "$TABLE_MANIFEST" ] && [ -f "$src_path" ]; then
+  # --- targetTables: パターンファイルへの単一 grep でヒットした identifier から unitKey を解決 ---
+  if [ -s "$table_pat" ] && [ -f "$src_path" ]; then
     tables_json="[]"
-    while IFS=$'\t' read -r t_key t_id; do
-      [ -z "$t_key" ] && continue
-      [ -z "$t_id" ] && continue
-      if grep -Fq -- "$t_id" "$src_path" 2>/dev/null; then
-        tables_json="$(jq --arg k "$t_key" '. + [$k]' <<<"$tables_json")"
-      fi
-    done < <(jq -r '.units[]? | select(.kind != "unresolved") | [(.unitKey // ""), (.identifier // "")] | @tsv' "$TABLE_MANIFEST")
+    hit_ids="$(grep -oFf "$table_pat" "$src_path" 2>/dev/null | sort -u || true)"
+    if [ -n "$hit_ids" ]; then
+      while IFS= read -r hid; do
+        [ -z "$hid" ] && continue
+        while IFS=$'\t' read -r m_id m_key; do
+          [ "$m_id" = "$hid" ] || continue
+          tables_json="$(jq --arg k "$m_key" '. + [$k]' <<<"$tables_json")"
+        done < "$table_map"
+      done <<<"$hit_ids"
+      tables_json="$(jq 'unique' <<<"$tables_json")"
+    fi
     if [ "$(jq 'length' <<<"$tables_json")" -gt 0 ]; then
       aug="$(jq --argjson t "$tables_json" '. + {targetTables: $t}' <<<"$aug")"
     fi
@@ -320,28 +489,22 @@ while IFS= read -r row; do
     fi
   fi
 
-  # --- downstreamJobs: 呼び出し/enqueue 系キーワード行 × 他バッチ identifier/unitKey ---
-  if [ -f "$src_path" ]; then
+  # --- downstreamJobs: 呼び出し/enqueue 系キーワード行に対する単一 grep で他バッチを解決 ---
+  if [ -f "$src_path" ] && [ -s "$other_pat" ]; then
     downstream_json="[]"
-    while IFS=$'\t' read -r o_key o_id; do
-      [ -z "$o_key" ] && continue
-      hit=0
-      if [ -n "$o_id" ]; then
-        if grep -E 'enqueue|delay|apply_async|subprocess|run\(|call|invoke|trigger|import' "$src_path" 2>/dev/null \
-             | grep -Fq -- "$o_id"; then
-          hit=1
-        fi
-      fi
-      if [ "$hit" -eq 0 ]; then
-        if grep -E 'enqueue|delay|apply_async|subprocess|run\(|call|invoke|trigger|import' "$src_path" 2>/dev/null \
-             | grep -Fq -- "$o_key"; then
-          hit=1
-        fi
-      fi
-      if [ "$hit" -eq 1 ]; then
-        downstream_json="$(jq --arg k "$o_key" '. + [$k]' <<<"$downstream_json")"
-      fi
-    done < <(jq -r --arg self "$unit_key" '.units[]? | select(.kind != "unresolved" and (.unitKey // "") != $self) | [(.unitKey // ""), (.identifier // "")] | @tsv' "$MANIFEST")
+    hit_vals="$(grep -E 'enqueue|delay|apply_async|subprocess|run\(|call|invoke|trigger|import' "$src_path" 2>/dev/null \
+                | grep -oFf "$other_pat" 2>/dev/null | sort -u || true)"
+    if [ -n "$hit_vals" ]; then
+      while IFS= read -r hval; do
+        [ -z "$hval" ] && continue
+        while IFS=$'\t' read -r m_key m_val; do
+          [ "$m_val" = "$hval" ] || continue
+          [ "$m_key" = "$unit_key" ] && continue
+          downstream_json="$(jq --arg k "$m_key" 'if index($k) then . else . + [$k] end' <<<"$downstream_json")"
+        done < "$other_map"
+      done <<<"$hit_vals"
+      downstream_json="$(jq 'unique' <<<"$downstream_json")"
+    fi
     if [ "$(jq 'length' <<<"$downstream_json")" -gt 0 ]; then
       aug="$(jq --argjson d "$downstream_json" '. + {downstreamJobs: $d}' <<<"$aug")"
     fi
