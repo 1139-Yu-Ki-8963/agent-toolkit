@@ -64,18 +64,30 @@ tools_python3=$(command -v python3 &>/dev/null && echo true || echo false)
 tools_jq=$(command -v jq &>/dev/null && echo true || echo false)
 tools_git=$(command -v git &>/dev/null && echo true || echo false)
 
-# cloc のインストールコマンドを生成
-install_cloc=""
-case "$pkg_manager" in
-  brew)    install_cloc="brew install cloc" ;;
-  apt-get) install_cloc="sudo apt-get install -y cloc" ;;
-  yum|dnf) install_cloc="sudo $pkg_manager install -y cloc" ;;
-  pacman)  install_cloc="sudo pacman -S cloc" ;;
-  apk)     install_cloc="sudo apk add cloc" ;;
-esac
+# 5種のインストールコマンドを生成する（パッケージ管理ツール別の導出は共通関数に揃える）
+install_cmd_for() {
+  local tool="$1" pkgname="$1"
+  case "$tool" in
+    node)    if [ "$pkg_manager" = "brew" ]; then pkgname="node"; else pkgname="nodejs"; fi ;;
+    python3) if [ "$pkg_manager" = "pacman" ]; then pkgname="python"; else pkgname="python3"; fi ;;
+  esac
+  case "$pkg_manager" in
+    brew)    echo "brew install $pkgname" ;;
+    apt-get) echo "sudo apt-get install -y $pkgname" ;;
+    yum|dnf) echo "sudo $pkg_manager install -y $pkgname" ;;
+    pacman)  echo "sudo pacman -S $pkgname" ;;
+    apk)     echo "sudo apk add $pkgname" ;;
+  esac
+}
+
+install_cloc="$(install_cmd_for cloc)"
+install_node="$(install_cmd_for node)"
+install_python3="$(install_cmd_for python3)"
+install_jq="$(install_cmd_for jq)"
+install_git="$(install_cmd_for git)"
 ```
 
-**完了**: OS・アーキテクチャ・Linux 互換環境フラグ・パッケージ管理ツール・5開発ツールの有無が取得済み
+**完了**: OS・アーキテクチャ・Linux 互換環境フラグ・パッケージ管理ツール・5開発ツールの有無・5開発ツール分のインストールコマンドが取得済み
 
 ## Phase 3: env-config.json の出力
 
@@ -97,7 +109,11 @@ esac
     "git": <true|false>
   },
   "install_commands": {
-    "cloc": "<install_cloc>"
+    "cloc": "<install_cloc>",
+    "node": "<install_node>",
+    "python3": "<install_python3>",
+    "jq": "<install_jq>",
+    "git": "<install_git>"
   },
   "surveyed_at": "<ISO8601 タイムスタンプ>"
 }
@@ -129,19 +145,29 @@ esac
 
 **完了**: `validate-env-config.sh` の終了コードが 0
 
-## Phase 4: cloc 未インストール時の案内
+## Phase 4: 未インストールツールの案内
 
-## Step 4-1: cloc 未インストール時の案内
+## Step 4-1: 未インストールツールの案内
 
 **使用ツール**: Read
 
-`tools.cloc` が false の場合、以下を報告する:
+`tools` 配下の5種（cloc/node/python3/jq/git）のうち `false` のものをすべて対象に、それぞれ以下の形式で報告する:
 
-「cloc が未インストールです。コード行数の計測精度が向上します。インストールコマンド: `<install_commands.cloc>`。インストール後に env-config.json を削除して再実行すると反映されます。」
+「<ツール名> が未インストールです。<用途>。インストールコマンド: `<install_commands.<ツール名>>`。インストール後に env-config.json を削除して再実行すると反映されます。」
 
-cloc が既にインストール済みの場合はこの案内を省略する。
+用途の文言は以下を使う:
 
-**完了**: cloc未導入時は実行可能な導入コマンドを報告済み、導入済み時は案内不要と記録済み
+| ツール | 用途 |
+|---|---|
+| cloc | コード行数の計測精度が向上します |
+| node | Node.js製スクリプトの実行に必要です |
+| python3 | Python製抽出処理の実行に必要です |
+| jq | JSON処理を伴うスクリプトの実行に必要です |
+| git | バージョン管理操作に必要です |
+
+5種すべてが既にインストール済みの場合はこの案内を省略する。
+
+**完了**: 未導入ツールがあれば全種について実行可能な導入コマンドを報告済み、5種とも導入済み時は案内不要と記録済み
 
 ## 完了条件
 
@@ -150,7 +176,7 @@ cloc が既にインストール済みの場合はこの案内を省略する。
 | Phase 1 | env-config.json の存在有無が確認済み |
 | Phase 2 | OS・アーキテクチャ・Linux 互換環境フラグ・パッケージ管理ツール・ツール有無が収集済み |
 | Phase 3 | `shared/scripts/validate-env-config.sh "$output_dir/env-config.json"` の終了コードが 0 であること。終了コード 0 は必須キー（os/arch/linux_compat_env/pkg_manager/tools/install_commands/surveyed_at・tools配下5キー）の値が妥当であることの機械的な合格判定であり、自然文の自己申告に代える |
-| Phase 4 | cloc 未インストール時の案内が完了している（該当時のみ） |
+| Phase 4 | 未インストールツール（5種のうちfalseのもの全て）の案内が完了している（該当時のみ） |
 | **Goal** | `shared/scripts/validate-env-config.sh "$output_dir/env-config.json"` の終了コードが 0 であること |
 
 ## 使用タイミング

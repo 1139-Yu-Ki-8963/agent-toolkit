@@ -32,6 +32,8 @@ usage() {
 REQUIRED_TOP_KEYS="os arch linux_compat_env pkg_manager tools install_commands surveyed_at"
 # 必須キー（tools オブジェクト配下）
 REQUIRED_TOOLS_KEYS="cloc node python3 jq git"
+# 必須キー（install_commands オブジェクト配下。改善課題1-107: 全5種分のインストールコマンドを必須化）
+REQUIRED_INSTALL_COMMANDS_KEYS="cloc node python3 jq git"
 
 # $1 = json ファイル, $2 = jq has フィルタ, $3 = 報告用キー名
 report_missing_key() {
@@ -64,6 +66,11 @@ validate_file() {
   for key in $REQUIRED_TOOLS_KEYS; do
     local m
     m="$(report_missing_key "$file" "(.tools // {}) | has(\"${key}\")" "tools.${key}")"
+    [ -n "$m" ] && missing="${missing}${missing:+ }${m}"
+  done
+  for key in $REQUIRED_INSTALL_COMMANDS_KEYS; do
+    local m
+    m="$(report_missing_key "$file" "(.install_commands // {}) | has(\"${key}\")" "install_commands.${key}")"
     [ -n "$m" ] && missing="${missing}${missing:+ }${m}"
   done
 
@@ -102,7 +109,13 @@ self_test() {
     "jq": true,
     "git": true
   },
-  "install_commands": { "cloc": "brew install cloc" },
+  "install_commands": {
+    "cloc": "brew install cloc",
+    "node": "brew install node",
+    "python3": "brew install python3",
+    "jq": "brew install jq",
+    "git": "brew install git"
+  },
   "surveyed_at": "2026-07-31T00:00:00Z"
 }
 JSON
@@ -133,6 +146,18 @@ JSON
       echo "PASS: ケース3 tools配下欠落で終了コード1・欠落キー列挙"; pass=$((pass+1))
     else
       echo "FAIL: ケース3 欠落キーがtools.jqを含んでいない（$(cat "$tmp/missing-tools.err")）"; fail=$((fail+1))
+    fi
+  fi
+
+  # ケース4: install_commands 配下の一部キーが欠落した JSON（改善課題1-107）
+  jq 'del(.install_commands.node)' "$tmp/valid.json" > "$tmp/missing-install-cmd.json"
+  if validate_file "$tmp/missing-install-cmd.json" 2>"$tmp/missing-install-cmd.err"; then
+    echo "FAIL: ケース4 install_commands.node欠落で終了コード1になるべき"; fail=$((fail+1))
+  else
+    if grep -q "install_commands.node" "$tmp/missing-install-cmd.err"; then
+      echo "PASS: ケース4 install_commands配下欠落で終了コード1・欠落キー列挙"; pass=$((pass+1))
+    else
+      echo "FAIL: ケース4 欠落キーがinstall_commands.nodeを含んでいない（$(cat "$tmp/missing-install-cmd.err")）"; fail=$((fail+1))
     fi
   fi
 
