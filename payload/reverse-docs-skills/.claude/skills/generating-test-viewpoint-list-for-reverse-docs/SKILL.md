@@ -3,7 +3,7 @@ name: generating-test-viewpoint-list-for-reverse-docs
 description: |
   per-screen テスト観点表を横断集約し、テスト観点表 HTML を生成する。
   TRIGGER when: orchestrating-reverse-docs-flow の派生一覧状態キーから起動された時、「テスト観点表を生成」と言われた時。
-  SKIP: per-screen 観点表が output_dir に 1 件も存在しない時。
+  SKIP: output_dir 自体が存在しない時。
 invocation: generating-test-viewpoint-list-for-reverse-docs
 type: transform
 allowed-tools: [Bash, Read, Write]
@@ -17,7 +17,7 @@ allowed-tools: [Bash, Read, Write]
 
 ## 使用タイミング
 
-- 1 画面以上で単体/結合テスト観点表.md が確定済みで、ポータルにテスト観点表カードを追加したいとき
+- ポータルにテスト観点表カードを追加したいとき（観点表が 0 件でも空状態のページを生成する）
 - 起動引数: `output_dir`（per-screen 観点表の所在かつ出力先）・`portal_output_dir`（任意）
 - `portal_output_dir` を指定した場合、生成後に `build-portal.sh` を再実行してカードへ反映する
 
@@ -48,9 +48,15 @@ allowed-tools: [Bash, Read, Write]
 
 **使用ツール**: Read / Bash / Write
 
-- **Step 1** — `<output_dir>/画面/screen-*/詳細設計/単体テスト観点表.md` および `結合テスト観点表.md` を `find`/`ls` で走査する。1 件も存在しなければハード停止し、観点表が未作成である旨を報告して終了する。完了条件: 1 件以上の実在確認済み、または不在を報告して停止している
+- **Step 1** — `<output_dir>` を起点とした再帰探索でファイル名を絞り込み、per-screen 観点表を走査する。中間ディレクトリが存在しなくてもエラーにならない形にする。完了条件: 走査が終了コード 0 で終わり、件数が確定している
 
-**完了**: per-screen 観点表の 1 件以上の実在確認済み、または不在を報告して停止している
+  ```
+  find <output_dir> -type f \( -name '単体テスト観点表.md' -o -name '結合テスト観点表.md' \) | wc -l
+  ```
+
+- **Step 2** — 件数が 0 でも停止しない。0 件は「観点表が 1 件も無い」という事実として後続へ引き渡し、Phase 4 で空状態のページを生成する。完了条件: 件数（0 を含む）が確定している
+
+**完了**: per-screen 観点表の件数（0 件を含む）が確定している
 
 ## Phase 2: manifest JSON 横断集約（機械実行）
 
@@ -92,7 +98,7 @@ manifest.json の保存先は `$CLAUDE_JOB_DIR/tmp/test-viewpoint-manifest.json`
 
 **使用ツール**: Bash / Write
 
-- **Step 1** — HTML 生成スクリプトを実行する。完了条件: `<output_dir>/一覧/テスト観点表/テスト観点表.html` が生成済み
+- **Step 1** — HTML 生成スクリプトを実行する。集約結果が 0 件でも実行し、0 件である旨が読み手に伝わる空状態のページを生成する。完了条件: `<output_dir>/一覧/テスト観点表/テスト観点表.html` が生成済み
 
   ```
   ../../../shared/scripts/unit-list/build-unit-list.sh <manifest.json> <output_dir>/一覧/テスト観点表/テスト観点表.html --unit-kind test_viewpoint
@@ -112,7 +118,7 @@ manifest.json の保存先は `$CLAUDE_JOB_DIR/tmp/test-viewpoint-manifest.json`
 
 | Phase | 完了条件 |
 |---|---|
-| Phase 1 | per-screen 観点表の 1 件以上の実在確認済み、または不在を報告して停止している |
+| Phase 1 | per-screen 観点表の件数（0 件を含む）が確定している |
 | Phase 2 | manifest JSON が横断集約済み、集約結果（件数・種別内訳・画面内訳）を確認済み |
 | Phase 3 | `validate-test-viewpoint-manifest.sh` が全項目 PASS |
 | Phase 4 | `<output_dir>/一覧/テスト観点表/テスト観点表.html` が生成され、指定時は `build-portal.sh` の再実行が完了している |
@@ -124,11 +130,11 @@ manifest.json の保存先は `$CLAUDE_JOB_DIR/tmp/test-viewpoint-manifest.json`
 
 | キー | 値 |
 |---|---|
-| status | `DONE`（生成完了）\| `STOPPED`（観点表 1 件も不在）\| `ERROR` |
-| artifacts | 生成したテスト観点表.html のパス（`STOPPED`/`ERROR` 時は空） |
+| status | `DONE`（生成完了。観点表 0 件でも空状態ページを生成して `DONE`）\| `ERROR` |
+| artifacts | 生成したテスト観点表.html のパス（`ERROR` 時は空） |
 | unit_kind | `test_viewpoint`（固定値） |
 | portal_rebuilt | `true`（build-portal.sh 再実行済み）\| `false`（`portal_output_dir` 未指定のため省略） |
-| hint | 停止理由（観点表不在）、または次工程への申し送り |
+| hint | 観点表が 0 件だった場合はその旨、または次工程への申し送り |
 
 ## 重要な注意事項
 
@@ -139,6 +145,7 @@ manifest.json の保存先は `$CLAUDE_JOB_DIR/tmp/test-viewpoint-manifest.json`
 ## 予想を裏切る挙動
 
 - `aggregate-test-viewpoints.sh` は観点表が 1 件も見つからない場合もエラーにせず `units:[]` で正常終了する（fail-safe）。0 件を異常とみなしてリトライしない
+- 観点表が 0 件でも本スキルは停止せず、空状態のページを生成して `DONE` を返す。0 件は異常ではなく「まだ観点表が無い」という事実として成果物に残す
 - `screenKey` はパス中の `screen-` で始まるディレクトリ名をそのまま使う。画面一覧の `screenKey` 命名と食い違う場合があっても本スキルは正規化しない（画面一覧側の命名を正とし、乖離は集約結果の `byScreen` から目視確認する）
 - `build-unit-list.sh` の `--unit-kind` は `screen` の場合のみ `build-screen-list.sh` へ委譲される。`test_viewpoint` は汎用テンプレート経路で生成される
 

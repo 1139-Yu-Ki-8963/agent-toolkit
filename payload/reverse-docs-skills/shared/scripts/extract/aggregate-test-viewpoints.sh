@@ -90,6 +90,26 @@ EOF
     echo "self-test FAIL: テスト観点表の連結結果または正本パスが不正" >&2
     return 1
   fi
+
+  # --- 0件ケース: per-screen観点表が1件も無いoutput_dirでも集約→検証→HTML生成が完走すること ---
+  local zero_docs zero_manifest zero_html
+  zero_docs="$tmp/zero-docs"
+  zero_manifest="$tmp/zero-manifest.json"
+  zero_html="$zero_docs/一覧/テスト観点表/テスト観点表.html"
+  mkdir -p "$zero_docs"
+  if ! bash "$script_path" "$zero_docs" "$zero_manifest" >/dev/null 2>&1 \
+    || ! bash "$script_dir/../unit-list/validate-test-viewpoint-manifest.sh" "$zero_manifest" >/dev/null 2>&1 \
+    || ! bash "$script_dir/../unit-list/build-unit-list.sh" "$zero_manifest" "$zero_html" --unit-kind test_viewpoint >/dev/null 2>&1; then
+    echo "self-test FAIL: 0件のoutput_dirで集約→検証→HTML生成が失敗" >&2
+    return 1
+  fi
+  if jq -e '.summary.totalCount == 0' "$zero_manifest" >/dev/null 2>&1 \
+    && [ -f "$zero_html" ]; then
+    echo "self-test PASS: 0件のoutput_dirでも集約→検証→HTML生成が完走（空状態ページ生成）"
+  else
+    echo "self-test FAIL: 0件ケースのmanifestまたはHTML出力が不正" >&2
+    return 1
+  fi
 }
 
 if [ "${1:-}" = "--self-test" ]; then
