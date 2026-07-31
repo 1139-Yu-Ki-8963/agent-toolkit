@@ -1,0 +1,25 @@
+{
+  "specVersion": 1,
+  "layout": {
+    "unitsRoot": "一覧",
+    "commonRoot": "プロジェクト共通",
+    "unitListDir": "一覧/{label}一覧",
+    "unitListHtml": "一覧/{label}一覧/{label}一覧.html",
+    "unitListAbsentMd": "一覧/{label}一覧（該当なし）.md",
+    "screenListDir": "一覧/画面一覧",
+    "screenListHtml": "一覧/画面一覧/画面一覧.html",
+    "screenManifest": "一覧/画面一覧/screen-manifest.json",
+    "screenManifestExt": "一覧/画面一覧/screen-manifest.ext.json",
+    "excludedKinds": "一覧/excluded-kinds.json",
+    "screenRegistry": "一覧/reverse-screen-registry.yml",
+    "surveyDoc": "プロジェクト共通/アーキテクチャ調査書.md",
+    "commonDesignDoc": "プロジェクト共通/共通設計書.md",
+    "messageDoc": "プロジェクト共通/メッセージ定義書.md",
+    "designDoc": "プロジェクト共通/DESIGN.md",
+    "foundationDoc": "プロジェクト共通/基盤設計.md",
+    "uiCommonDoc": "プロジェクト共通/UI共通設計.md",
+    "dataDesignDoc": "プロジェクト共通/データ設計.md",
+    "workRecordDoc": "プロジェクト共通/作業記録.md",
+    "sampleRecordDoc": "プロジェクト共通/サンプル記録.md"
+  }
+}
