@@ -186,6 +186,60 @@ EOF
     rc=1
   fi
 
+  # --- ケースe: 日本語の番号付き見出し・日本語列名(1-173)からの記載件数一致 + 判定不能表の計上 ---
+  local design_md_ja="$tmp/DESIGN-table-ja.md"
+  cat > "$design_md_ja" <<'EOF'
+# 共通デザインシステム(表形式のみ・frontmatterなし・日本語番号付き見出し)
+
+### 1. 色
+
+| 色名 | HEXコード | 用途 |
+|---|---|---|
+| プライマリ | #3366FF | 主要ボタン |
+| サーフェス | #FFFFFF | 画面背景 |
+| エラー | #D92D20 | エラー表示 |
+| 警告 | #F79009 | 警告表示 |
+
+### 2. 書体
+
+| 書体名 | サイズ行間 | 用途 |
+|---|---|---|
+| 見出し | 24px/1.4 | 画面タイトル |
+| 本文 | 14px/1.7 | 本文 |
+
+### 3. 余白
+
+| 余白名 | 値 | 用途 |
+|---|---|---|
+| 基準 | 8px | 基準スペーシング |
+
+### 4. 附録(カテゴリ判定不能な表)
+
+| 項目 | 説明 |
+|---|---|
+| 予備 | 対象外表のテスト用 |
+EOF
+
+  local out_json_ja="$tmp/page-data-ja.json"
+  bash "$script_path" "$design_md_ja" "$out_json_ja"
+  local n_colors_ja n_typography_ja n_spacing_ja n_skipped_ja
+  n_colors_ja="$(jq '.tokens.colors | length' "$out_json_ja")"
+  n_typography_ja="$(jq '.tokens.typography | length' "$out_json_ja")"
+  n_spacing_ja="$(jq '.tokens.spacing | length' "$out_json_ja")"
+  n_skipped_ja="$(jq '.summary[] | select(.label == "判定できない表") | .value' "$out_json_ja")"
+  if [ "$n_colors_ja" = "4" ] && [ "$n_typography_ja" = "2" ] && [ "$n_spacing_ja" = "1" ]; then
+    echo "  [PASS] ケースe-1: 日本語番号付き見出し・日本語列名から記載件数どおりに抽出(colors=4,typography=2,spacing=1)"
+  else
+    echo "  [FAIL] ケースe-1: 日本語見出し・列名からの抽出件数が記載件数と不一致(colors=${n_colors_ja},typography=${n_typography_ja},spacing=${n_spacing_ja})" >&2
+    rc=1
+  fi
+  if [ "$n_skipped_ja" = "1" ]; then
+    echo "  [PASS] ケースe-2: カテゴリ判定できない表(附録)の件数(1件)が出力に現れる"
+  else
+    echo "  [FAIL] ケースe-2: 判定できない表の件数が出力に現れない、または不一致(実際: ${n_skipped_ja})" >&2
+    rc=1
+  fi
+
   # --- ケースd: 生成HTMLをNodeのDOMスタブで実行し、実行時例外が発生しないこと ---
   if command -v node >/dev/null 2>&1; then
     local outdir_html="$tmp/out-html"
@@ -308,6 +362,8 @@ FRONTMATTER_TXT="$TMP_DIR/frontmatter.txt"
 FM_RAW_TSV="$TMP_DIR/fm-raw.tsv"       # section \t name \t value（frontmatter全キー、未フィルタ）
 : > "$TOKENS_TSV"
 : > "$COMPONENTS_TSV"
+SKIPPED_TABLE_COUNT_FILE="$TMP_DIR/skipped-tables.count"
+: > "$SKIPPED_TABLE_COUNT_FILE"
 
 GENERATED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 
@@ -354,25 +410,83 @@ lookup_role() {
 }
 
 # ---------------------------------------------------------------------------
-# extract_table_tokens: frontmatterが無いDESIGN.md向けの表形式フォールバック。
-#   見出し $1 配下の Markdown 表「トークン名 | 実測値 | 用途」(3列)から
-#   category=$2 の TOKENS_TSV 行(category\tname\tvalue\trole)を追加する。
-#   frontmatterありの表(トークン名 | 用途 | 実測値の抽出元)とは列の意味が異なる点に注意。
-#   frontmatter が無い場合は値の置き場が他に無いため、表の2列目に実測値そのものを書く運用とする。
+# classify_table_header: 表の直前の見出し行($1)とヘッダ行($2)を合わせた文字列から
+#   colors/typography/spacingのいずれかを判定する。固定英語見出し名や番号付けには
+#   依存せず、日本語・英語いずれのキーワードでも判定できるようにする。
+#   どの語にも一致しない場合は空文字を返す(呼び出し側で「判定できない表」として計上)。
 # ---------------------------------------------------------------------------
-extract_table_tokens() {
-  local heading="$1" category="$2"
-  awk -v h="$heading" '
-    $0 == h { insec = 1; next }
-    insec && /^## / { insec = 0 }
-    insec && /^\|/ { print }
-  ' "$DESIGN_MD" | tail -n +3 | while IFS= read -r row; do
-    name="$(printf '%s' "$row" | awk -F'|' '{print $2}' | sed -E 's/^[[:space:]]+//; s/[[:space:]]+$//; s/`//g')"
-    value="$(printf '%s' "$row" | awk -F'|' '{print $3}' | sed -E 's/^[[:space:]]+//; s/[[:space:]]+$//; s/`//g')"
-    usage="$(printf '%s' "$row" | awk -F'|' '{print $4}' | sed -E 's/^[[:space:]]+//; s/[[:space:]]+$//')"
+classify_table_header() {
+  local combined="$1 $2"
+  if printf '%s' "$combined" | grep -qiE '色|カラー|color|hex'; then
+    printf 'colors'
+  elif printf '%s' "$combined" | grep -qiE '書体|フォント|font|typo|文字'; then
+    printf 'typography'
+  elif printf '%s' "$combined" | grep -qiE '余白|スペーシング|spacing|間隔'; then
+    printf 'spacing'
+  else
+    printf ''
+  fi
+}
+
+# ---------------------------------------------------------------------------
+# extract_tables_by_column_name: frontmatterが無いDESIGN.md向けの表形式フォールバック。
+#   固定英語見出し名(旧: "## Colors"等との完全一致)には依存せず、本文中の全Markdown表を
+#   検出し、各表の直前の見出し行+ヘッダ行(列名)を classify_table_header に渡して
+#   カテゴリを判定する。判定できた表は category\tname\tvalue\trole 行を TOKENS_TSV へ
+#   追加する。判定できない表は抽出対象外とし、件数を SKIPPED_TABLE_COUNT_FILE へ
+#   1行ずつ積み上げる(呼び出し元が行数で件数を数える)。
+#   列の意味(name/value/usage)は表内の並び順(1,2,3列目)に従う(列名テキストは
+#   カテゴリ判定にのみ使い、値の抽出は位置ベースを維持する)。
+# ---------------------------------------------------------------------------
+extract_tables_by_column_name() {
+  awk '
+    /^#/ { last_heading = $0 }
+    /^\|/ {
+      if (state == 0) { header = $0; state = 1; next }
+      if (state == 1) {
+        if ($0 ~ /^\|[ :|-]+\|?[ \t]*$/) {
+          print "###TABLE###"
+          print last_heading
+          print header
+          print "###ROWS###"
+          state = 2
+          next
+        } else { header = $0; next }
+      }
+      if (state == 2) { print; next }
+    }
+    !/^\|/ { if (state) { print "###END###"; state = 0 } }
+    END { if (state) print "###END###" }
+  ' "$DESIGN_MD" > "$TMP_DIR/tables_raw.txt"
+
+  local line mode=0 heading="" header="" cur_category=""
+  while IFS= read -r line; do
+    case "$line" in
+      "###TABLE###") mode=1; heading=""; header=""; cur_category=""; continue ;;
+      "###ROWS###") mode=3; continue ;;
+      "###END###") cur_category=""; mode=0; continue ;;
+    esac
+    if [ "$mode" -eq 1 ]; then
+      heading="$line"
+      mode=2
+      continue
+    fi
+    if [ "$mode" -eq 2 ]; then
+      header="$line"
+      cur_category="$(classify_table_header "$heading" "$header")"
+      if [ -z "$cur_category" ]; then
+        echo x >> "$SKIPPED_TABLE_COUNT_FILE"
+      fi
+      mode=3
+      continue
+    fi
+    [ -z "$cur_category" ] && continue
+    name="$(printf '%s' "$line" | awk -F'|' '{print $2}' | sed -E 's/^[[:space:]]+//; s/[[:space:]]+$//; s/`//g')"
+    value="$(printf '%s' "$line" | awk -F'|' '{print $3}' | sed -E 's/^[[:space:]]+//; s/[[:space:]]+$//; s/`//g')"
+    usage="$(printf '%s' "$line" | awk -F'|' '{print $4}' | sed -E 's/^[[:space:]]+//; s/[[:space:]]+$//')"
     [ -z "$name" ] && continue
-    printf '%s\t%s\t%s\t%s\n' "$category" "$name" "$value" "$usage" >> "$TOKENS_TSV"
-  done
+    printf '%s\t%s\t%s\t%s\n' "$cur_category" "$name" "$value" "$usage" >> "$TOKENS_TSV"
+  done < "$TMP_DIR/tables_raw.txt"
 }
 
 # ---------------------------------------------------------------------------
@@ -475,13 +589,13 @@ else
   extract_css_vars "font" "typography" || true
   extract_css_vars "spacing" "spacing" || true
 
-  # CSS変数宣言が0件の場合、表形式フォールバック(トークン名 | 実測値 | 用途)を試みる
+  # CSS変数宣言が0件の場合、表形式フォールバック(見出し文字列に依存せず列名でカテゴリ判定)を試みる
   if [ ! -s "$TOKENS_TSV" ]; then
-    extract_table_tokens "## Colors" "colors" || true
-    extract_table_tokens "## Typography" "typography" || true
-    extract_table_tokens "## Spacing" "spacing" || true
+    extract_tables_by_column_name || true
   fi
 fi
+
+SKIPPED_TABLE_COUNT="$(wc -l < "$SKIPPED_TABLE_COUNT_FILE" | tr -d ' ')"
 
 # components: frontmatter有無を問わず0件なら「## Components」表へフォールバックする(共通処理)
 if [ ! -s "$COMPONENTS_TSV" ]; then
@@ -503,6 +617,7 @@ DESCRIPTION="DESIGN.md から抽出したデザイントークン一覧(Colors $
 jq -n \
   --arg generatedAt "$GENERATED_AT" \
   --arg description "$DESCRIPTION" \
+  --argjson skippedTables "$SKIPPED_TABLE_COUNT" \
   --rawfile tokensRaw "$TOKENS_TSV" \
   --rawfile componentsRaw "$COMPONENTS_TSV" \
   '
@@ -542,7 +657,8 @@ jq -n \
       {label: "Colors", value: ($colors | length)},
       {label: "Typography", value: ($typography | length)},
       {label: "Spacing", value: ($spacing | length)},
-      {label: "Components", value: ($components | length)}
+      {label: "Components", value: ($components | length)},
+      {label: "判定できない表", value: $skippedTables}
     ]
   }
   ' > "$OUTPUT_JSON"
