@@ -94,15 +94,20 @@ while IFS= read -r f; do
   ALL_PAGES+=("$f")
 done < <(find "$SAMPLES_DIR" -name '*.html' | LC_ALL=C sort)
 
-# 一覧ページの探索: 「一覧/<種別一覧>/」（サンプル配置）と「<種別一覧>/」（生成配置）の
+# shellcheck source=output-layout.sh
+source "$SCRIPT_DIR/output-layout.sh"
+LAYOUT_JSON="$(resolve_output_layout "$SAMPLES_DIR")" || exit 2
+UNITS_ROOT="$(output_layout_get "$LAYOUT_JSON" unitsRoot)" || exit 2
+
+# 一覧ページの探索: 「<unitsRoot>/<種別一覧>/」（サンプル配置）と「<種別一覧>/」（生成配置）の
 # 両レイアウトを種別ごとに探索し、見つかった方を検査対象にする（ヘッダ方針コメント参照）
 LIST_TYPES=(画面一覧 機能一覧 API一覧 テーブル一覧 バッチ一覧 帳票一覧 外部連携一覧 メッセージ一覧 テスト観点表)
 LIST_PAGES=()
 NESTED_COUNT=0
 FLAT_COUNT=0
 for t in "${LIST_TYPES[@]}"; do
-  if [ -f "$SAMPLES_DIR/一覧/$t/$t.html" ]; then
-    LIST_PAGES+=("$SAMPLES_DIR/一覧/$t/$t.html")
+  if [ -f "$SAMPLES_DIR/$UNITS_ROOT/$t/$t.html" ]; then
+    LIST_PAGES+=("$SAMPLES_DIR/$UNITS_ROOT/$t/$t.html")
     NESTED_COUNT=$((NESTED_COUNT + 1))
   elif [ -f "$SAMPLES_DIR/$t/$t.html" ]; then
     LIST_PAGES+=("$SAMPLES_DIR/$t/$t.html")

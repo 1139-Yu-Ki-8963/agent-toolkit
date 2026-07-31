@@ -4,6 +4,8 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+# shellcheck source=../output-layout.sh
+source "$REPO_ROOT/shared/scripts/output-layout.sh"
 
 usage() {
   echo "Usage: rebuild-screen-derived-pages.sh --raw-manifest <path> --target-repo <path> --api-manifest <path> --output-root <path> (--generated-at <iso8601> | SOURCE_DATE_EPOCH=<epoch>) [--table-manifest <path>] [--feature-manifest <path>] [--roles <csv>] [--design-docs-dir <path>] [--catalog <path>] [--project-name <name>] [--sites <file>] [--site-key <key>]" >&2
@@ -40,7 +42,14 @@ done
   || { usage; exit 1; }
 [ -f "$raw" ] && [ -f "$api" ] && [ -d "$target_repo" ] \
   || { echo "ERROR: required input missing" >&2; exit 1; }
-node - "$raw" "$output_root/一覧/画面一覧/screen-manifest.json" <<'NODE'
+
+LAYOUT_JSON="$(resolve_output_layout "$output_root")" || exit 1
+SCREEN_MANIFEST="$(output_layout_get "$LAYOUT_JSON" screenManifest)" || exit 1
+SCREEN_MANIFEST_EXT="$(output_layout_get "$LAYOUT_JSON" screenManifestExt)" || exit 1
+SCREEN_LIST_DIR="$(output_layout_get "$LAYOUT_JSON" screenListDir)" || exit 1
+SCREEN_LIST_HTML="$(output_layout_get "$LAYOUT_JSON" screenListHtml)" || exit 1
+
+node - "$raw" "$output_root/$SCREEN_MANIFEST" <<'NODE'
 const path = require("path");
 const [actual, expected] = process.argv.slice(2).map((value) => path.resolve(value));
 if (actual !== expected) {
@@ -72,8 +81,8 @@ else
 fi
 
 managed=(
-  "一覧/画面一覧/screen-manifest.ext.json"
-  "一覧/画面一覧/画面一覧.html"
+  "$SCREEN_MANIFEST_EXT"
+  "$SCREEN_LIST_HTML"
   "画面遷移図-data.json"
   "画面遷移図.html"
   "マトリクス・対応表/data/permission-matrix.json"
@@ -181,15 +190,15 @@ NODE
 }
 snapshot_unmanaged "$output_root" "$backup_root/unmanaged-before"
 
-ext="$transaction_root/一覧/画面一覧/screen-manifest.ext.json"
+ext="$transaction_root/$SCREEN_MANIFEST_EXT"
 mkdir -p "$(dirname "$ext")"
 extract_args=("$raw" "$target_repo" "$ext" --api-manifest "$api" --generated-at "$generated_at" --manifest-content-hash "$content_hash")
 if [ -n "$design_docs" ]; then
-  extract_args+=(--design-docs-dir "$design_docs" --link-base-dir "$transaction_root/一覧/画面一覧")
+  extract_args+=(--design-docs-dir "$design_docs" --link-base-dir "$transaction_root/$SCREEN_LIST_DIR")
 fi
 bash "$REPO_ROOT/shared/scripts/extract/extract-screen-metadata.sh" "${extract_args[@]}"
 
-screen_args=("$ext" "$transaction_root/一覧/画面一覧/画面一覧.html" --portal-dir "$transaction_root" --generated-at "$generated_at")
+screen_args=("$ext" "$transaction_root/$SCREEN_LIST_HTML" --portal-dir "$transaction_root" --generated-at "$generated_at")
 [ -n "$project_name" ] && screen_args+=(--project-name "$project_name")
 [ -n "$sites" ] && screen_args+=(--sites "$sites")
 [ -n "$site_key" ] && screen_args+=(--site-key "$site_key")

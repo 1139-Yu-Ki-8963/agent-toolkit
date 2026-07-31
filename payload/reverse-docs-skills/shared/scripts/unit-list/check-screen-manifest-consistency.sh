@@ -139,8 +139,14 @@ transition_data="$root/画面遷移図-data.json"
 bash "$(dirname "$0")/../detail-pages/check-screen-transition-manifest-alignment.sh" \
   --raw-manifest "$raw" --ext-manifest "$ext" --page-data "$transition_data" >/dev/null
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=../output-layout.sh
+source "$SCRIPT_DIR/../output-layout.sh"
+LAYOUT_JSON="$(resolve_output_layout "$root")" || exit 1
+SCREEN_LIST_HTML="$(output_layout_get "$LAYOUT_JSON" screenListHtml)" || exit 1
+
 html_specs=(
-  "一覧/画面一覧/画面一覧.html|screen-manifest"
+  "${SCREEN_LIST_HTML}|screen-manifest"
   "index.html|screen-manifest-source"
   "画面遷移図.html|page-data"
   "マトリクス・対応表/権限画面マトリクス/権限画面マトリクス.html|matrix-manifest"

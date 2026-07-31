@@ -13,6 +13,8 @@ if [ "${1:-}" = "--self-test" ]; then
 
   mkdir -p "$tmp/shared/scripts" "$tmp/shared/samples" "$tmp/shared/references"
   cp "${BASH_SOURCE[0]}" "$tmp/shared/scripts/check-overview-consistency.sh"
+  cp "$(dirname "${BASH_SOURCE[0]}")/output-layout.sh" "$tmp/shared/scripts/output-layout.sh"
+  cp "$(dirname "${BASH_SOURCE[0]}")/../references/output-layout.json" "$tmp/shared/references/output-layout.json"
 
   cat > "$tmp/shared/references/portal-catalog.json" <<'JSON'
 { "categories": [ { "key": "demo", "label": "デモカテゴリ" } ] }
@@ -80,7 +82,12 @@ if [[ ! -f "${OVERVIEW}" || ! -f "${SAMPLE}" || ! -f "${CATALOG}" || ! -f "${DEL
   exit 1
 fi
 
-python3 - "${OVERVIEW}" "${SAMPLE}" "${CATALOG}" "${DELIVERY}" <<'PY'
+# shellcheck source=output-layout.sh
+source "${ROOT_DIR}/shared/scripts/output-layout.sh"
+LAYOUT_JSON="$(resolve_output_layout "")" || exit 1
+TEST_CASE_LIST_HTML="project-portal/$(output_layout_get "$LAYOUT_JSON" unitListHtml テストケース)" || exit 1
+
+python3 - "${OVERVIEW}" "${SAMPLE}" "${CATALOG}" "${DELIVERY}" "${TEST_CASE_LIST_HTML}" <<'PY'
 import json
 import re
 import sys
@@ -90,6 +97,7 @@ overview_path = Path(sys.argv[1])
 sample_path = Path(sys.argv[2])
 catalog_path = Path(sys.argv[3])
 delivery_path = Path(sys.argv[4])
+test_case_list_html = sys.argv[5]
 overview = overview_path.read_text(encoding="utf-8")
 sample = sample_path.read_text(encoding="utf-8")
 catalog = json.loads(catalog_path.read_text(encoding="utf-8"))
@@ -167,7 +175,7 @@ required_markers = [
     "generating-reverse-basic-design ∥ generating-reverse-detailed-design",
     "詳細設計パス1 → 基本設計・テスト資料パス2",
     "通常の状態遷移:",
-    "project-portal/一覧/テストケース一覧/テストケース一覧.html",
+    test_case_list_html,
 ]
 missing_markers = [marker for marker in required_markers if marker not in visible]
 if missing_markers:

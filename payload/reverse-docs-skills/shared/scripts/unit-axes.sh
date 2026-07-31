@@ -427,7 +427,8 @@ JSON
   return "$rc"
 }
 
-if [ "${1:-}" = "--self-test" ]; then
+# 直接実行時のみディスパッチする（source 時は呼び出し元の位置引数を誤読しない）
+if [ "${BASH_SOURCE[0]:-$0}" = "$0" ] && [ "${1:-}" = "--self-test" ]; then
   unit_axes_self_test
   exit $?
 fi

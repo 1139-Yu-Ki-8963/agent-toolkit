@@ -38,11 +38,23 @@ set -euo pipefail
 # 保守責任者: 人手（ユーザー）。検査基準・除外規則を変更した時に更新する。
 # macOS bash 3.2 互換（mapfile 不使用）。
 
-REQUIRED_FILES="規約/コーディング規約.md 規約/命名規約.md 規約/ディレクトリ構成規約.md 規約/コンポーネント設計規約.md プロジェクト共通/共通設計書.md プロジェクト共通/メッセージ定義書.md プロジェクト共通/DESIGN.md プロジェクト共通/基盤設計.md プロジェクト共通/UI共通設計.md プロジェクト共通/データ設計.md プロジェクト共通/サンプル記録.md"
-CONVENTION_FILES="規約/コーディング規約.md 規約/命名規約.md 規約/ディレクトリ構成規約.md 規約/コンポーネント設計規約.md"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../../../.." && pwd)"
+
+# shellcheck source=../../../../shared/scripts/output-layout.sh
+. "$REPO_ROOT/shared/scripts/output-layout.sh"
+
+if [ "${1:-}" = "--self-test" ]; then
+  LAYOUT_JSON="$(resolve_output_layout "")" || exit 1
+else
+  LAYOUT_JSON="$(resolve_output_layout "${1:-}")" || exit 1
+fi
+
+CONVENTION_FILES="$(output_layout_get "$LAYOUT_JSON" conventionCodingDoc) $(output_layout_get "$LAYOUT_JSON" conventionNamingDoc) $(output_layout_get "$LAYOUT_JSON" conventionDirectoryDoc) $(output_layout_get "$LAYOUT_JSON" conventionComponentDoc)"
+REQUIRED_FILES="$CONVENTION_FILES $(output_layout_get "$LAYOUT_JSON" commonDesignDoc) $(output_layout_get "$LAYOUT_JSON" messageDoc) $(output_layout_get "$LAYOUT_JSON" designDoc) $(output_layout_get "$LAYOUT_JSON" foundationDoc) $(output_layout_get "$LAYOUT_JSON" uiCommonDoc) $(output_layout_get "$LAYOUT_JSON" dataDesignDoc) $(output_layout_get "$LAYOUT_JSON" sampleRecordDoc)"
 # 検査3（パス実在検査）は規約4種に加え、共通設計書・メッセージ定義書・DESIGN.mdも対象にする
-PATH_CHECK_FILES="$CONVENTION_FILES プロジェクト共通/共通設計書.md プロジェクト共通/メッセージ定義書.md プロジェクト共通/DESIGN.md"
-MESSAGE_DOC_FILE="プロジェクト共通/メッセージ定義書.md"
+PATH_CHECK_FILES="$CONVENTION_FILES $(output_layout_get "$LAYOUT_JSON" commonDesignDoc) $(output_layout_get "$LAYOUT_JSON" messageDoc) $(output_layout_get "$LAYOUT_JSON" designDoc)"
+MESSAGE_DOC_FILE="$(output_layout_get "$LAYOUT_JSON" messageDoc)"
 PLACEHOLDER_RE='<実測|<FILL|TBD|TODO'
 IDEAL_WORDS_RE='すべきである|望ましい|べきだ|理想的には|今後は'
 FREQ_RE='[0-9]+/[0-9]+'

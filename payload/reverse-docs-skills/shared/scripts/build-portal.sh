@@ -25,6 +25,7 @@ DEFAULT_CATALOG="$SCRIPT_DIR/../references/portal-catalog.json"
 CATALOG_ENGINE="$SCRIPT_DIR/portal-catalog.mjs"
 
 source "$SCRIPT_DIR/render-template.sh"
+source "$SCRIPT_DIR/output-layout.sh"
 if [ -f "$SCRIPT_DIR/shell-injection.sh" ]; then
   . "$SCRIPT_DIR/shell-injection.sh"
 fi
@@ -2084,6 +2085,11 @@ DOCS_ROOT="$2"
 PORTAL_DIR="$3"
 shift 3
 
+LAYOUT_JSON="$(resolve_output_layout "$DOCS_ROOT")" || exit 1
+LAYOUT_COMMON_ROOT="$(output_layout_get "$LAYOUT_JSON" commonRoot)" || exit 1
+LAYOUT_CONVENTION_ROOT="$(output_layout_get "$LAYOUT_JSON" conventionRoot)" || exit 1
+LAYOUT_SCREEN_LIST_DIR="$(output_layout_get "$LAYOUT_JSON" screenListDir)" || exit 1
+
 CATALOG="$DEFAULT_CATALOG"
 GENERATED_AT=""
 PORTAL_ONLY=0
@@ -2184,7 +2190,7 @@ fi
 kinds_json="[]"
 
 # --- 3. 共通文書リストの収集（standards: 規約系 / design: 設計書系 に分割。category-grouping/rule.md 準拠） ---
-common_roots=("$DOCS_ROOT/プロジェクト共通" "$DOCS_ROOT/規約")
+common_roots=("$DOCS_ROOT/$LAYOUT_COMMON_ROOT" "$DOCS_ROOT/$LAYOUT_CONVENTION_ROOT")
 COMMON_DOC_TEMPLATE_FILE="$SCRIPT_DIR/../templates/common-doc-template.html"
 
 if [ "$PORTAL_ONLY" -eq 0 ]; then
@@ -2281,7 +2287,7 @@ done
 
 # --- 3.5. 画面設計書の変換 ---
 SCREEN_DOC_TEMPLATE_FILE="$SCRIPT_DIR/../templates/screen-doc-template.html"
-screen_list_dir="$DOCS_ROOT/一覧/画面一覧"
+screen_list_dir="$DOCS_ROOT/$LAYOUT_SCREEN_LIST_DIR"
 
 if [ -d "$DOCS_ROOT/画面" ] && [ -f "$SCREEN_DOC_TEMPLATE_FILE" ]; then
   for screen_dir in "$DOCS_ROOT"/画面/screen-*/; do

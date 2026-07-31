@@ -26,7 +26,8 @@ output_layout_merge_files() {
   jq -s '
     {
       specVersion: (.[0].specVersion // 1),
-      layout: (reduce .[] as $f ({}; . * ($f.layout // {})))
+      layout: (reduce .[] as $f ({}; . * ($f.layout // {}))),
+      kindLabels: (reduce .[] as $f ({}; . * ($f.kindLabels // {})))
     }
   ' "$@"
 }
@@ -87,6 +88,21 @@ output_layout_get() {
   esac
 
   printf '%s' "$value"
+  return 0
+}
+
+# 合成済み宣言から種別キーの日本語ラベルを取り出す。
+# output_layout_kind_label <合成JSON> <kind>
+output_layout_kind_label() {
+  layout_json="$1"
+  kind="$2"
+
+  if ! printf '%s' "$layout_json" | jq -e --arg k "$kind" '.kindLabels | has($k)' >/dev/null 2>&1; then
+    echo "ERROR: output-layout の kindLabels に存在しない種別です: $kind" >&2
+    return 2
+  fi
+
+  printf '%s' "$layout_json" | jq -r --arg k "$kind" '.kindLabels[$k]'
   return 0
 }
 
@@ -163,6 +179,45 @@ JSON
     rc=1
   fi
 
+  # ケース7: 既定解決で kind_label screen が「画面」を返す
+  kl7="$(output_layout_kind_label "$base" screen 2>/dev/null)" || true
+  if [ "$kl7" = "画面" ]; then
+    echo "  [PASS] ケース7: kind_label screen が「画面」を返す"
+  else
+    echo "  [FAIL] ケース7: kind_label screen が不正: $kl7" >&2
+    rc=1
+  fi
+
+  # ケース8: 不在 kind で return 2
+  output_layout_kind_label "$base" nonExistentKind >/dev/null 2>&1
+  rc8=$?
+  if [ "$rc8" -eq 2 ]; then
+    echo "  [PASS] ケース8: 不在 kind で return 2"
+  else
+    echo "  [FAIL] ケース8: 不在 kind の返り値が不正 (rc=$rc8, 期待 2)" >&2
+    rc=1
+  fi
+
+  # ケース9: 対象側上書きで kindLabels の1キーだけ差し替え、他キーは既定のまま残る
+  cat > "$tmp/output-layout.json" <<'JSON'
+{ "specVersion": 1, "kindLabels": { "screen": "スクリーン" } }
+JSON
+  ov9="$(resolve_output_layout "$tmp")" || true
+  ok9=0
+  if printf '%s' "$ov9" | jq -e '.kindLabels.screen == "スクリーン"' >/dev/null 2>&1; then
+    ok9=$((ok9 + 1))
+  fi
+  if printf '%s' "$ov9" | jq -e '.kindLabels.api == "API"' >/dev/null 2>&1; then
+    ok9=$((ok9 + 1))
+  fi
+  if [ "$ok9" -eq 2 ]; then
+    echo "  [PASS] ケース9: kindLabels の上書きはキー単位でマージされる（他キーは既定が残る）"
+  else
+    echo "  [FAIL] ケース9: kindLabels のキー単位マージが不正" >&2
+    rc=1
+  fi
+  rm -f "$tmp/output-layout.json"
+
   if [ "$rc" -eq 0 ]; then
     echo "self-test 全項目 PASS"
   else
@@ -171,7 +226,8 @@ JSON
   return "$rc"
 }
 
-if [ "${1:-}" = "--self-test" ]; then
+# 直接実行時のみディスパッチする（source 時は呼び出し元の位置引数を誤読しない）
+if [ "${BASH_SOURCE[0]:-$0}" = "$0" ] && [ "${1:-}" = "--self-test" ]; then
   output_layout_self_test
   exit $?
 fi

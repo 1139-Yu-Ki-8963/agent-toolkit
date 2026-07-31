@@ -105,6 +105,7 @@ output_dir="${1:?引数1 output_dir が必要です}"
 screen_id="${2:?引数2 画面ID が必要です}"
 screen_name="${3:-$screen_id}"
 script_dir="$(cd "$(dirname "$0")" && pwd)"
+source "$script_dir/output-layout.sh"
 template_root="${4:-$script_dir/../templates/リバース検証}"
 today="$(date +%Y-%m-%d)"
 
@@ -134,8 +135,11 @@ if [ ! -d "$template_root" ]; then
 fi
 template_dir="$(cd "$template_root" && pwd)"
 
+LAYOUT_JSON="$(resolve_output_layout "$output_dir")" || exit 1
+LAYOUT_COMMON_ROOT="$(output_layout_get "$LAYOUT_JSON" commonRoot)" || exit 1
+
 screen_dir="$output_dir/画面/screen-${screen_id}"
-common_dir="$output_dir/プロジェクト共通"
+common_dir="$output_dir/$LAYOUT_COMMON_ROOT"
 
 if [ -d "$screen_dir" ]; then
   echo "エラー: 画面ディレクトリが既に存在します: $screen_dir" >&2

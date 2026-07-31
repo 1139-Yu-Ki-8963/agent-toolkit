@@ -20,6 +20,21 @@
     "uiCommonDoc": "プロジェクト共通/UI共通設計.md",
     "dataDesignDoc": "プロジェクト共通/データ設計.md",
     "workRecordDoc": "プロジェクト共通/作業記録.md",
-    "sampleRecordDoc": "プロジェクト共通/サンプル記録.md"
+    "sampleRecordDoc": "プロジェクト共通/サンプル記録.md",
+    "conventionRoot": "規約",
+    "conventionCodingDoc": "規約/コーディング規約.md",
+    "conventionNamingDoc": "規約/命名規約.md",
+    "conventionDirectoryDoc": "規約/ディレクトリ構成規約.md",
+    "conventionComponentDoc": "規約/コンポーネント設計規約.md"
+  },
+  "kindLabels": {
+    "screen": "画面",
+    "api": "API",
+    "table": "テーブル",
+    "batch": "バッチ",
+    "report": "帳票",
+    "external": "外部連携",
+    "feature": "機能",
+    "message": "メッセージ"
   }
 }

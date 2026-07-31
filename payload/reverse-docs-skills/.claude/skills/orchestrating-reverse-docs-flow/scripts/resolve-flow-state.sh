@@ -55,16 +55,11 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../../../.." && pwd)"
 
+# shellcheck source=../../../../shared/scripts/output-layout.sh
+. "$REPO_ROOT/shared/scripts/output-layout.sh"
+
 KIND_LABEL() {
-  case "$1" in
-    screen) echo "画面" ;;
-    api) echo "API" ;;
-    table) echo "テーブル" ;;
-    batch) echo "バッチ" ;;
-    report) echo "帳票" ;;
-    external) echo "外部連携" ;;
-    *) echo "" ;;
-  esac
+  output_layout_kind_label "$LAYOUT_JSON" "$1" 2>/dev/null
 }
 
 # ---------------------------------------------------------------------------
@@ -194,7 +189,7 @@ extract_verdict() {
 }
 
 resolve_default_screen_id() {
-  local manifest="$OUTPUT_DIR/一覧/画面一覧/screen-manifest.json"
+  local manifest="$OUTPUT_DIR/$(output_layout_get "$LAYOUT_JSON" screenManifest)"
   [ -f "$manifest" ] || return 0
   command -v jq >/dev/null 2>&1 || return 0
   jq -r '.screens[0].id // empty' "$manifest" 2>/dev/null
@@ -205,7 +200,7 @@ resolve_default_screen_id() {
 # ---------------------------------------------------------------------------
 
 check_arch_unsurveyed() {
-  local doc="$OUTPUT_DIR/プロジェクト共通/アーキテクチャ調査書.md"
+  local doc="$OUTPUT_DIR/$(output_layout_get "$LAYOUT_JSON" surveyDoc)"
   [ -f "$doc" ] || return 0
   local gate="$REPO_ROOT/.claude/skills/surveying-architecture-for-reverse-docs/scripts/check-architecture-survey.sh"
   if [ -n "$TARGET_REPO_PATH" ] && [ -x "$gate" ]; then
@@ -215,28 +210,35 @@ check_arch_unsurveyed() {
 }
 
 check_list_ungenerated() {
-  local excluded_json="$OUTPUT_DIR/一覧/excluded-kinds.json"
+  local excluded_json="$OUTPUT_DIR/$(output_layout_get "$LAYOUT_JSON" excludedKinds)"
   [ -f "$excluded_json" ] || return 0
   command -v jq >/dev/null 2>&1 || return 1
   local kind label html md
   for kind in $(jq -r '.presentKinds[]?' "$excluded_json" 2>/dev/null); do
     label="$(KIND_LABEL "$kind")"
     [ -n "$label" ] || continue
-    html="$OUTPUT_DIR/一覧/${label}一覧/${label}一覧.html"
+    html="$OUTPUT_DIR/$(output_layout_get "$LAYOUT_JSON" unitListHtml "$label")"
     [ -f "$html" ] || return 0
   done
   for label in $(jq -r '.excludedKinds[]?.label' "$excluded_json" 2>/dev/null); do
-    md="$OUTPUT_DIR/一覧/${label}一覧（該当なし）.md"
+    md="$OUTPUT_DIR/$(output_layout_get "$LAYOUT_JSON" unitListAbsentMd "$label")"
     [ -f "$md" ] || return 0
   done
   return 1
 }
 
-COMMON_DOC_FILES="規約/コーディング規約.md 規約/命名規約.md 規約/ディレクトリ構成規約.md 規約/コンポーネント設計規約.md プロジェクト共通/共通設計書.md プロジェクト共通/メッセージ定義書.md プロジェクト共通/DESIGN.md プロジェクト共通/基盤設計.md プロジェクト共通/UI共通設計.md プロジェクト共通/データ設計.md"
+common_doc_files() {
+  local keys="conventionCodingDoc conventionNamingDoc conventionDirectoryDoc conventionComponentDoc commonDesignDoc messageDoc designDoc foundationDoc uiCommonDoc dataDesignDoc"
+  local k out=""
+  for k in $keys; do
+    out="$out $(output_layout_get "$LAYOUT_JSON" "$k")"
+  done
+  printf '%s' "${out# }"
+}
 
 check_common_undocumented() {
   local f
-  for f in $COMMON_DOC_FILES; do
+  for f in $(common_doc_files); do
     [ -f "$OUTPUT_DIR/$f" ] || return 0
   done
   local gate="$REPO_ROOT/.claude/skills/generating-reverse-common-docs/scripts/check-common-docs.sh"
@@ -252,7 +254,7 @@ check_portal_ungenerated() {
 }
 
 check_site_def_missing() {
-  local doc="$OUTPUT_DIR/プロジェクト共通/アーキテクチャ調査書.md"
+  local doc="$OUTPUT_DIR/$(output_layout_get "$LAYOUT_JSON" surveyDoc)"
   local rows
   rows="$(count_site_rows "$doc")"
   if [ "${rows:-0}" -ge 2 ] && [ ! -f "$OUTPUT_DIR/sites.json" ]; then
@@ -306,7 +308,7 @@ check_detail_design_missing() {
 }
 
 check_screen_unlocked_missing() {
-  local registry="$OUTPUT_DIR/一覧/reverse-screen-registry.yml"
+  local registry="$OUTPUT_DIR/$(output_layout_get "$LAYOUT_JSON" screenRegistry)"
   [ -f "$registry" ] || return 0
   local scope="${SYSTEM_NAME}-${SCREEN_ID}"
   local url
@@ -428,6 +430,8 @@ self_test() {
   tmp="$(mktemp -d "${TMPDIR:-/tmp}/resolve-flow-state-self-test.XXXXXX")"
   trap 'rm -rf "$tmp"' RETURN
 
+  LAYOUT_JSON="$(resolve_output_layout "")" || return 1
+
   local pass=0 fail=0
   local docs="$tmp/docs"
   local verification="$tmp/verification"
@@ -446,9 +450,9 @@ self_test() {
     local got
     got="$(resolve_state)"
     if [ "$got" = "$expected" ]; then
-      echo "PASS: $label（$got）"; pass=$((pass + 1))
+      echo "PASS: ${label}（${got}）"; pass=$((pass + 1))
     else
-      echo "FAIL: $label（期待=$expected 実測=$got）"; fail=$((fail + 1))
+      echo "FAIL: ${label}（期待=${expected} 実測=${got}）"; fail=$((fail + 1))
     fi
   }
 
@@ -650,9 +654,9 @@ MD
   local got
   got="$(resolve_state)"
   if [ "$got" = "未判定" ]; then
-    echo "PASS: 未判定 screen_id解決不能で未判定（$got）"; pass=$((pass + 1))
+    echo "PASS: 未判定 screen_id解決不能で未判定（${got}）"; pass=$((pass + 1))
   else
-    echo "FAIL: 未判定 screen_id解決不能で未判定（期待=未判定 実測=$got）"; fail=$((fail + 1))
+    echo "FAIL: 未判定 screen_id解決不能で未判定（期待=未判定 実測=${got}）"; fail=$((fail + 1))
   fi
 
   echo "self-test: $pass PASS, $fail FAIL"
@@ -679,5 +683,7 @@ if [ ! -d "$OUTPUT_DIR" ]; then
   echo "ERROR: output_dir が存在しません: $OUTPUT_DIR" >&2
   exit 1
 fi
+
+LAYOUT_JSON="$(resolve_output_layout "$OUTPUT_DIR")" || exit 1
 
 resolve_state

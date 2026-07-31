@@ -15,6 +15,9 @@
 #        check-manifest-persistence.sh --self-test
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/../output-layout.sh"
+
 # ---------------------------------------------------------------------------
 # 対応表: 一覧フォルダ名 -> 期待するマニフェストファイル名
 # 対応表に無いフォルダ（テスト観点表・テストケース一覧・メッセージ一覧等）は
@@ -38,7 +41,10 @@ manifest_name_for_folder() {
 # ---------------------------------------------------------------------------
 run_check() {
   local output_dir="$1"
-  local list_root="$output_dir/一覧"
+  local layout_json units_root list_root
+  layout_json="$(resolve_output_layout "$output_dir")" || return 1
+  units_root="$(output_layout_get "$layout_json" unitsRoot)" || return 1
+  list_root="$output_dir/$units_root"
   local fail_count=0
   local checked_count=0
 
