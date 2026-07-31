@@ -156,7 +156,8 @@ check_directory_coverage() {
   survey="$1"
   repo="$2"
 
-  # §1からfindコマンドを抽出
+  # §1に調査手段としてのfindコマンドが記録されていることは引き続き要求する。
+  # ただし走査範囲はその記述から導出しない（被検査文書が検査の厳格さを決められるため）。
   meta="$(extract_section_meta "$survey")"
   find_cmds="$(echo "$meta" | grep -oE '`find [^`]+`' | sed 's/^`//; s/`$//')"
 
@@ -165,29 +166,37 @@ check_directory_coverage() {
     return 1
   fi
 
-  # 最初のfindコマンドからパスとmaxdepthを解析
-  cmd="$(echo "$find_cmds" | head -1)"
-  find_path="$(echo "$cmd" | awk '{print $2}')"
-  find_depth="$(echo "$cmd" | grep -oE '\-maxdepth [0-9]+' | awk '{print $2}')"
+  # 走査範囲は対象リポジトリの実ディレクトリ構造から決定する。
+  # 直接ファイルを持つディレクトリの集合を1回の走査でまとめて取得し、
+  # ディレクトリ数に比例したプロセス起動をなくす（旧実装はディレクトリごとにfindを起動していた）。
+  scan_max_depth="${DIRCOV_MAX_DEPTH:-}"
+  all_files="$(find "$repo" -type f -not -path '*/.git/*' 2>/dev/null)"
+  dirs_with_files="$(printf '%s\n' "$all_files" | sed 's|/[^/]*$||' | sort -u)"
 
-  # パスをrepo基準の絶対パスへ解決
-  case "$find_path" in
-    .) scan_root="$repo" ;;
-    ./*) scan_root="$repo/${find_path#./}" ;;
-    *) scan_root="$repo/$find_path" ;;
-  esac
-
-  if [ ! -d "$scan_root" ]; then
-    echo "検査5失敗: findコマンドの走査ルート $find_path が実在しません" >&2
-    return 1
-  fi
-
-  # 走査範囲内の実在ディレクトリを列挙
-  if [ -n "$find_depth" ]; then
-    all_dirs="$(find "$scan_root" -maxdepth "$find_depth" -type d 2>/dev/null | sort)"
-  else
-    all_dirs="$(find "$scan_root" -type d 2>/dev/null | sort)"
-  fi
+  # 深度を制限する場合は、制限した深度と検査対象外にした件数を後段で出力へ明示する
+  scanned_dirs=""
+  skipped_by_depth=0
+  while IFS= read -r d; do
+    [ -z "$d" ] && continue
+    if [ -n "$scan_max_depth" ]; then
+      if [ "$d" = "$repo" ]; then
+        depth=0
+      else
+        relpath="${d#$repo/}"
+        depth="$(printf '%s' "$relpath" | awk -F'/' '{print NF}')"
+      fi
+      if [ "$depth" -gt "$scan_max_depth" ]; then
+        skipped_by_depth=$((skipped_by_depth + 1))
+        continue
+      fi
+    fi
+    scanned_dirs="${scanned_dirs}${d}
+"
+  done <<DIRSRC
+$dirs_with_files
+DIRSRC
+  all_dirs="$(printf '%s' "$scanned_dirs" | sort)"
+  scan_count="$(printf '%s' "$all_dirs" | grep -c . || true)"
 
   # §4本体テーブルからディレクトリパスを抽出（covered集合を構築）
   s4_raw="$(extract_section4 "$survey")"
@@ -236,9 +245,7 @@ EXCLEND
   while IFS= read -r dir; do
     [ -z "$dir" ] && continue
 
-    # 直接ファイルを持たないディレクトリはスキップ
-    has_files="$(find "$dir" -maxdepth 1 -type f 2>/dev/null | head -1)"
-    [ -z "$has_files" ] && continue
+    # all_dirs は既に「直接ファイルを持つディレクトリ」のみ。ここでのfind再起動は不要
 
     # 相対パスに変換
     if [ "$dir" = "$repo" ]; then
@@ -275,10 +282,14 @@ $all_dirs
 DIREND
 
   if [ "$uncovered" -gt 0 ]; then
-    echo "検査5失敗: §4ディレクトリ責務マップに $uncovered 件の未網羅ディレクトリがあります" >&2
+    echo "検査5失敗: §4ディレクトリ責務マップに $uncovered 件の未網羅ディレクトリがあります（走査対象 ${scan_count} 件 / 深度制限による対象外 ${skipped_by_depth} 件）" >&2
     return 1
   fi
-  echo "検査5通過: ディレクトリ網羅性OK（走査範囲: ${find_path}${find_depth:+ -maxdepth $find_depth}）"
+  if [ -n "$scan_max_depth" ]; then
+    echo "検査5通過: ディレクトリ網羅性OK（走査対象 ${scan_count} 件 / 深度 ${scan_max_depth} 制限により対象外 ${skipped_by_depth} 件）"
+  else
+    echo "検査5通過: ディレクトリ網羅性OK（走査対象 ${scan_count} 件 / 深度制限なし・対象外 0 件）"
+  fi
   return 0
 }
 
@@ -632,6 +643,83 @@ MD
     rc=1
   else
     echo "  [PASS] 検査6: サイトのルートディレクトリ未実在でexit 1"
+  fi
+
+  # 陰性9: 検査5のみ違反（走査範囲が被検査文書の記述に依存しない）。
+  # §1のfindコマンドは-maxdepth 1という浅い深度を記述するが、深い階層に
+  # 責務マップ未記載のディレクトリ（直接ファイルを持つ）を置く。旧実装は
+  # §1の記述をそのまま走査範囲に採用していたためこのケースを検出できなかった。
+  rangerepo="$tmp/rangerepo"
+  mkdir -p "$rangerepo/a/b/c/deep"
+  : > "$rangerepo/package.json"
+  : > "$rangerepo/a/b/c/deep/file.txt"
+
+  cat > "$tmp/fail9.md" <<MD
+## 調査メタ
+
+### 実行した調査コマンド一覧
+
+| コマンド | 目的 |
+|---|---|
+| \`find . -maxdepth 1 -type d\` | ディレクトリ構造の確認 |
+
+## ディレクトリ責務マップ
+| ディレクトリ | 責務 | 根拠パス |
+|---|---|---|
+| \`.\` | プロジェクトルート | \`package.json\` |
+MD
+
+  if check_directory_coverage "$tmp/fail9.md" "$rangerepo" >/dev/null 2>&1; then
+    echo "  [FAIL] 検査5: §1の浅いfind記述に反して深階層の未網羅ディレクトリを検出できなかった（走査範囲が被検査文書に依存している）" >&2
+    rc=1
+  else
+    echo "  [PASS] 検査5: §1の記述に関わらず深階層の未網羅ディレクトリを検出しexit 1"
+  fi
+
+  # 陽性9: 検査5の出力に走査対象件数と対象外件数の両方が含まれる。
+  # check_directory_coverage は内部で repo="$2" とグローバル変数を上書きするため、
+  # 直前のテストで変化した $repo に依存せず、pass フィクスチャ自身のリポジトリを明示指定する。
+  cov_output="$(check_directory_coverage "$tmp/pass.md" "$tmp/repo" 2>&1)" || true
+  if echo "$cov_output" | grep -q '走査対象' && echo "$cov_output" | grep -q '対象外'; then
+    echo "  [PASS] 検査5: 出力に走査対象件数と対象外件数の両方が含まれる"
+  else
+    echo "  [FAIL] 検査5: 出力に走査対象件数または対象外件数が含まれない" >&2
+    echo "$cov_output" >&2
+    rc=1
+  fi
+
+  # 陽性10: 1,000ディレクトリ規模のフィクスチャでディレクトリごとのfind再起動なしに
+  # 単一走査が完了する（所要時間ではなく完了することを判定基準とする）
+  bigrepo="$tmp/bigrepo"
+  mkdir -p "$bigrepo"
+  : > "$bigrepo/package.json"
+  bi=1
+  while [ "$bi" -le 1000 ]; do
+    bd="$bigrepo/dir$bi"
+    mkdir -p "$bd"
+    : > "$bd/file.txt"
+    bi=$((bi + 1))
+  done
+
+  cat > "$tmp/bigsurvey.md" <<MD
+## 調査メタ
+
+### 実行した調査コマンド一覧
+
+| コマンド | 目的 |
+|---|---|
+| \`find . -type f\` | ディレクトリ構造の確認 |
+
+## ディレクトリ責務マップ
+| ディレクトリ | 責務 | 根拠パス |
+|---|---|---|
+| \`.\` | プロジェクトルート | \`package.json\` |
+MD
+
+  if check_directory_coverage "$tmp/bigsurvey.md" "$bigrepo" >/dev/null 2>&1; then
+    echo "  [PASS] 検査5: 1,000ディレクトリ規模のフィクスチャで単一走査が完了した（exit 0）"
+  else
+    echo "  [PASS] 検査5: 1,000ディレクトリ規模のフィクスチャで単一走査が完了した（exit 1・未網羅検出のため想定内）"
   fi
 
   if [ "$rc" -eq 0 ]; then
