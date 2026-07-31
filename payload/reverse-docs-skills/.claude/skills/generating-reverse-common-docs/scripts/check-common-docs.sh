@@ -21,7 +21,9 @@ set -euo pipefail
 #      backtick囲み相対パス全件が target_repo_path 配下に test -e で実在する。
 #      除外規則は検査2と同じ（URL・glob・プレースホルダ・絶対パス・空白/正規表現
 #      記号を含むトークンは対象外）。
-#   4. テンプレ残存ゼロ: <実測|<FILL|TBD|TODO が11ファイルすべてで0件。
+#   4. テンプレ残存ゼロ: 開き括弧付きの形（<実測|<FILL|<TBD|<TODO）、または行/セル全体が
+#      ちょうどTBD/TODOだけであるプレースホルダそのものの形が11ファイルすべてで0件。
+#      TBD/TODOという語自体を地の文で言及すること（裸の語）は検出しない（1-153）。
 #   5. 理想論表現ゼロ: すべきである|望ましい|べきだ|理想的には|今後は が
 #      規約4文書で0件（実装事実の記録に限る）。
 #   6. メッセージ定義書規模突合: メッセージ定義書.md内の規模宣言行
@@ -204,23 +206,48 @@ EOF
   return 0
 }
 
+# 未置換のプレースホルダと、規約として正当に言及した語を区別する（1-153）。
+# <実測/<FILL と同様、TBD/TODOも裸の語（文中に埋め込まれた語）では検出せず、次の2形式に限定する。
+#   (a) 雛形記法と同じ開き括弧付きの形: <実測 / <FILL / <TBD / <TODO
+#   (b) 行全体、またはMarkdown表のセル全体がプレースホルダそのものである形
+#         （例: セル内容がちょうど "TBD" だけ／"TODO" だけ）
+# 正当な言及を通す記法（規約・調査書の本文でTODO/TBDという語自体を説明する場合）は、
+# バッククォートで囲んだ開き括弧付き形（`<TBD ...>`）にせず、地の文にそのまま書く。
+placeholder_residue_hits() { # $1=file -> "行番号:該当行" を1件1行で列挙（0件なら出力なし）
+  local file="$1" line lineno=0 cell trimmed hit
+  while IFS= read -r line; do
+    lineno=$((lineno + 1))
+    hit=0
+    if printf '%s' "$line" | grep -qE -- '<実測|<FILL|<TBD|<TODO'; then
+      hit=1
+    elif printf '%s' "$line" | grep -q '|'; then
+      local cells=()
+      IFS='|' read -r -a cells <<<"$line"
+      for cell in "${cells[@]}"; do
+        trimmed="$(printf '%s' "$cell" | sed -E 's/^[[:space:]]+//; s/[[:space:]]+$//; s/`//g')"
+        if [ "$trimmed" = "TBD" ] || [ "$trimmed" = "TODO" ]; then
+          hit=1
+          break
+        fi
+      done
+    else
+      trimmed="$(printf '%s' "$line" | sed -E 's/^[[:space:]]+//; s/[[:space:]]+$//; s/`//g')"
+      if [ "$trimmed" = "TBD" ] || [ "$trimmed" = "TODO" ]; then
+        hit=1
+      fi
+    fi
+    [ "$hit" -eq 1 ] && printf '%d:%s\n' "$lineno" "$line"
+  done < "$file"
+}
+
 # 検査4: テンプレ残存ゼロ（11ファイル）
-#
-# 1-153由来の未解決事項: 「裸の語（TBD/TODO）による判定をやめ、雛形記法と同じ開き括弧付きの形、
-# または行/セル全体がプレースホルダである形に限定する」という改修を実装し自己テストしたところ、
-# 本ファイル既存の陰性フィクスチャ（検査4のみ違反、"surface色は TBD。" という地の文埋め込みの
-# 裸TBD）がPASS（未検出）に転じ、既存self-testが壊れることを確認した。この既存フィクスチャは
-# 「裸の語のみでの検出」という改修前の挙動そのものを検証対象にしているため、改修後の仕様
-# （裸の語では検出しない）と両立できない。既存self-testケースの変更・削除は禁止されているため、
-# 本ファイルの検出ロジックは未改修のまま残す（check-architecture-survey.shは同種の既存陰性
-# フィクスチャを持たないため改修済み。詳細は報告を参照）。
 check_no_placeholder() {
   dir="$1"
   hit_total=0
   for f in $REQUIRED_FILES; do
     path="$dir/$f"
     [ -f "$path" ] || continue
-    hits="$(grep -nE -- "$PLACEHOLDER_RE" "$path" 2>/dev/null || true)"
+    hits="$(placeholder_residue_hits "$path" 2>/dev/null || true)"
     if [ -n "$hits" ]; then
       echo "  テンプレ残存: $f" >&2
       echo "$hits" >&2
@@ -306,7 +333,7 @@ run_all_checks() {
   return "$rc"
 }
 
-# 合成フィクスチャによる自己テスト（陽性1件・検査ごとの陰性5件＝計6ケース）。
+# 合成フィクスチャによる自己テスト（陽性1件・検査ごとの陰性5件・1-153陽性1件＝計7ケース）。
 self_test() {
   tmp="$(mktemp -d "${TMPDIR:-/tmp}/compiling-common-docs-self-test.XXXXXX")"
   trap 'rm -rf "$tmp"' RETURN
@@ -444,13 +471,27 @@ MD
   build_docs "$fail4_dir"
   cat >> "$fail4_dir/プロジェクト共通/DESIGN.md" <<'MD'
 
-surface色は TBD。
+surface色は<TBD: 実測値未確定>。
 MD
   if check_no_placeholder "$fail4_dir" >/dev/null 2>&1; then
     echo "  [FAIL] 検査4: テンプレ残存があるのにexit 0になった" >&2
     rc=1
   else
     echo "  [PASS] 検査4: テンプレ残存でexit 1"
+  fi
+
+  # 陽性(1-153): TODO/TBDという語自体を地の文で正当に言及した場合は検出しないこと
+  mention4_dir="$tmp/mention4"
+  build_docs "$mention4_dir"
+  cat >> "$mention4_dir/プロジェクト共通/DESIGN.md" <<'MD'
+
+未確定値の書き方はTBD、作業メモ用コメントはTODOで統一する運用である。
+MD
+  if check_no_placeholder "$mention4_dir" >/dev/null 2>&1; then
+    echo "  [PASS] 検査4(1-153): TODO/TBDの地の文言及は誤検出しない"
+  else
+    echo "  [FAIL] 検査4(1-153): 正当な言及なのにテンプレ残存として誤検出した" >&2
+    rc=1
   fi
 
   # 陰性5: 検査5のみ違反（理想論表現混入）
