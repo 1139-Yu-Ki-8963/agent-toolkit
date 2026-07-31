@@ -9,7 +9,53 @@ const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../
 const skillsRoot = path.join(repoRoot, ".claude", "skills");
 const failures = [];
 const warnings = [];
-const strictWarnings = process.argv.includes("--strict-warnings");
+
+// --- 引数処理（改善課題1-168: 位置引数を無警告で無視する経路を無くす） ---
+const KNOWN_FLAGS = new Set(["--strict-warnings"]);
+const rawArgs = process.argv.slice(2);
+const strictWarnings = rawArgs.includes("--strict-warnings");
+const unknownFlags = rawArgs.filter((arg) => arg.startsWith("--") && !KNOWN_FLAGS.has(arg));
+const positionalArgs = rawArgs.filter((arg) => !arg.startsWith("--"));
+
+if (unknownFlags.length > 0) {
+  console.error(`ERROR unrecognized argument(s): ${unknownFlags.join(" ")}`);
+  process.exit(1);
+}
+if (positionalArgs.length > 1) {
+  console.error(
+    `ERROR too many positional arguments (expected at most 1: a single SKILL.md file or skill folder): ${positionalArgs.join(" ")}`,
+  );
+  process.exit(1);
+}
+
+let singleTarget = null;
+if (positionalArgs.length === 1) {
+  const requested = positionalArgs[0];
+  const resolved = path.resolve(requested);
+  if (!fs.existsSync(resolved)) {
+    console.error(
+      `ERROR unrecognized argument (not an existing SKILL.md file or skill folder): ${requested}`,
+    );
+    process.exit(1);
+  }
+  const stat = fs.statSync(resolved);
+  if (stat.isDirectory()) {
+    const candidate = path.join(resolved, "SKILL.md");
+    if (!fs.existsSync(candidate)) {
+      console.error(`ERROR target folder has no SKILL.md: ${requested}`);
+      process.exit(1);
+    }
+    singleTarget = candidate;
+  } else if (stat.isFile() && path.basename(resolved) === "SKILL.md") {
+    singleTarget = resolved;
+  } else {
+    console.error(
+      `ERROR unrecognized argument (not a SKILL.md file or skill folder): ${requested}`,
+    );
+    process.exit(1);
+  }
+}
+
 const toolNames = [
   "Agent",
   "AskUserQuestion",
@@ -25,11 +71,13 @@ const toolNames = [
   "Write",
 ];
 
-const skillFiles = fs
-  .readdirSync(skillsRoot)
-  .map((name) => path.join(skillsRoot, name, "SKILL.md"))
-  .filter((file) => fs.existsSync(file))
-  .sort();
+const skillFiles = singleTarget
+  ? [singleTarget]
+  : fs
+      .readdirSync(skillsRoot)
+      .map((name) => path.join(skillsRoot, name, "SKILL.md"))
+      .filter((file) => fs.existsSync(file))
+      .sort();
 
 function fail(file, line, message, code = "E_STRUCTURE") {
   failures.push(`[${code}] ${path.relative(repoRoot, file)}:${line}: ${message}`);
@@ -187,7 +235,12 @@ for (const file of skillFiles) {
   }
 }
 
-const referenceFiles = fs
+// 単一対象モード（改善課題1-168）では、指定された定義文書1件の構造検査のみを行い、
+// リポジトリ全体を前提とする以下の横断整合性チェック（補足資料・統括・正本・Back-edge）は
+// 対象外とする（「その対象のみの検査結果」を返すため）。
+let referenceFiles = [];
+if (!singleTarget) {
+referenceFiles = fs
   .readdirSync(skillsRoot, { recursive: true, withFileTypes: true })
   .filter((entry) => entry.isFile() && entry.name.endsWith(".md"))
   .map((entry) => path.join(entry.parentPath, entry.name))
@@ -334,6 +387,7 @@ if (JSON.stringify(orchestratorBackEdges) !== JSON.stringify(canonicalBackEdges)
     "E_BACK_EDGE",
   );
 }
+} // end if (!singleTarget)
 
 if (failures.length > 0) {
   console.error(`FAIL phase-step structure (${failures.length})`);
@@ -350,5 +404,7 @@ if (warnings.length > 0) {
 }
 
 console.log(
-  `PASS phase-step structure: skills=${skillFiles.length}, references=${referenceFiles.length}, orchestrator_phases=7, global_steps=30, warnings=${warnings.length}`,
+  singleTarget
+    ? `PASS phase-step structure (single target): file=${path.relative(repoRoot, singleTarget)}, warnings=${warnings.length}`
+    : `PASS phase-step structure: skills=${skillFiles.length}, references=${referenceFiles.length}, orchestrator_phases=7, global_steps=30, warnings=${warnings.length}`,
 );

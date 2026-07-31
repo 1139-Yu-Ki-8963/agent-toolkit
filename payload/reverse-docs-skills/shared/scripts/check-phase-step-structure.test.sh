@@ -131,4 +131,68 @@ cp "$tmp/original-skill.md" "$target"
 perl -pi -e 's/^allowed-tools: \[Bash, Read, Write\]$/allowed-tools: [Bash, Read, Write, Glob]/' "$target"
 assert_warned "allowed-toolsの未使用ツール" "W_ALLOWED_TOOLS"
 
+# 改善課題1-168: 位置引数で単一の定義文書を指定した場合、その対象のみの検査結果が返ること
+# （リポジトリ全体を前提とする横断チェックの影響を受けないことも合わせて確認する）
+if single_target_out="$(node "$tmp/shared/scripts/check-phase-step-structure.mjs" "$target" 2>&1)"; then
+  if grep -q "single target" <<< "$single_target_out" && grep -q "counting-code-lines/SKILL.md" <<< "$single_target_out"; then
+    echo "PASS single-target: 単一の定義文書指定でその対象のみの結果が返る(exit 0)"
+  else
+    echo "FAIL: 単一対象指定(正常系)の出力形式が不正" >&2
+    echo "$single_target_out" >&2
+    exit 1
+  fi
+else
+  echo "FAIL: 単一対象指定(正常系)がexit 0にならない" >&2
+  echo "$single_target_out" >&2
+  exit 1
+fi
+
+# 1-168: 単一対象指定時も、その対象自体の構造違反は実際に検出されること（フィルタが検査自体を素通りさせていないことの確認）
+perl -pi -e 's/^## Step 2-1:/### Step 2-1:/' "$target"
+if single_target_broken_out="$(node "$tmp/shared/scripts/check-phase-step-structure.mjs" "$target" 2>&1)"; then
+  cp "$tmp/original-skill.md" "$target"
+  echo "FAIL: 単一対象指定で対象自体の構造違反を拒否しなかった" >&2
+  echo "$single_target_broken_out" >&2
+  exit 1
+else
+  cp "$tmp/original-skill.md" "$target"
+  if grep -Fq "[E_STRUCTURE]" <<< "$single_target_broken_out"; then
+    echo "PASS single-target: 単一対象指定でもその対象の構造違反を検出する"
+  else
+    echo "FAIL: 単一対象指定で対象自体の違反コードがE_STRUCTUREではない" >&2
+    echo "$single_target_broken_out" >&2
+    exit 1
+  fi
+fi
+
+# 1-168: 認識しない引数を渡した場合は無視せず警告（エラー出力）して非0で終了すること
+if unknown_out="$(node "$tmp/shared/scripts/check-phase-step-structure.mjs" --unknown-flag 2>&1)"; then
+  echo "FAIL: 認識しない引数を無視して終了コード0を返した" >&2
+  echo "$unknown_out" >&2
+  exit 1
+else
+  if grep -qi "ERROR unrecognized" <<< "$unknown_out"; then
+    echo "PASS unknown-arg: 認識しない引数を無視せず警告し非0終了"
+  else
+    echo "FAIL: 認識しない引数のエラーメッセージが出力されていない" >&2
+    echo "$unknown_out" >&2
+    exit 1
+  fi
+fi
+
+# 1-168: 実在しないパスを位置引数に渡した場合も無視せず警告して非0で終了すること
+if missing_out="$(node "$tmp/shared/scripts/check-phase-step-structure.mjs" "$tmp/no-such-file.md" 2>&1)"; then
+  echo "FAIL: 実在しない位置引数を無視して終了コード0を返した" >&2
+  echo "$missing_out" >&2
+  exit 1
+else
+  if grep -qi "ERROR unrecognized" <<< "$missing_out"; then
+    echo "PASS unknown-path: 実在しない位置引数を無視せず警告し非0終了"
+  else
+    echo "FAIL: 実在しない位置引数のエラーメッセージが出力されていない" >&2
+    echo "$missing_out" >&2
+    exit 1
+  fi
+fi
+
 echo "PASS phase-step structure regression"
