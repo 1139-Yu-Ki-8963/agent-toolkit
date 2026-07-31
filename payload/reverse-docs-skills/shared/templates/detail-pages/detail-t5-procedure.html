@@ -118,6 +118,7 @@ table.data-table code {
       <div class="doc-grid">
         <nav class="doc-toc">
           <a href="#sec-prereq" class="doc-toc-item">前提ツール</a>
+          <a href="#sec-env" class="doc-toc-item">実行環境</a>
           <a href="#sec-steps" class="doc-toc-item">実行手順</a>
           <a href="#sec-alloc" class="doc-toc-item">割当</a>
         </nav>
@@ -130,7 +131,15 @@ table.data-table code {
             </table>
           </div>
 
-          <div class="doc-h" id="sec-steps"><span class="doc-h-num">02</span><h2>実行手順</h2></div>
+          <div class="doc-h" id="sec-env"><span class="doc-h-num">02</span><h2>実行環境</h2></div>
+          <div class="table-wrap">
+            <table class="data-table" id="env-table">
+              <thead><tr><th>項目</th><th>値</th></tr></thead>
+              <tbody id="env-table-body"></tbody>
+            </table>
+          </div>
+
+          <div class="doc-h" id="sec-steps"><span class="doc-h-num">03</span><h2>実行手順</h2></div>
           <div class="table-wrap">
             <table class="data-table" id="steps-table">
               <thead><tr><th>番号</th><th>コマンド</th><th>備考</th></tr></thead>
@@ -138,7 +147,7 @@ table.data-table code {
             </table>
           </div>
 
-          <div class="doc-h" id="sec-alloc"><span class="doc-h-num">03</span><h2>割当</h2></div>
+          <div class="doc-h" id="sec-alloc"><span class="doc-h-num">04</span><h2>割当</h2></div>
           <div class="table-wrap">
             <table class="data-table" id="alloc-table">
               <thead><tr><th>対象</th><th>値</th><th>出所</th></tr></thead>
@@ -188,6 +197,20 @@ table.data-table code {
       prereqBody.appendChild(el('tr', null, [
         el('td', null, p.name || ''),
         el('td', null, p.note || '')
+      ]));
+    });
+  }
+
+  // --- 実行環境表(environment[]) ---
+  var envBody = document.getElementById('env-table-body');
+  var environment = data.environment || [];
+  if (environment.length === 0) {
+    envBody.appendChild(el('tr', null, el('td', { colspan: '2' }, 'なし')));
+  } else {
+    environment.forEach(function(e) {
+      envBody.appendChild(el('tr', null, [
+        el('td', null, e.name || ''),
+        el('td', null, e.value || '')
       ]));
     });
   }

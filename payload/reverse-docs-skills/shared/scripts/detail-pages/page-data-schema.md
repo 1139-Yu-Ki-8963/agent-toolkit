@@ -95,10 +95,11 @@ detail-pages 系（用語辞書 / 技術スタック / 画面遷移図 / ER図 /
 | キー | 型 | 内容 |
 |---|---|---|
 | prerequisites | array | `{ "name": string, "note": string }` の配列 |
+| environment | array（任意） | `{ "name": string, "value": string }` の配列。実行環境の実測値（OS・アーキテクチャ・Linux 互換環境フラグ等）。省略時は空配列として扱う |
 | steps | array | `{ "order": number, "command": string, "note": string }` の配列。`order` は表示前にテンプレート側で昇順ソートする（順序 = 実行順） |
 | allocations | array | `{ "target": string, "value": string, "sourceRef": string }` の配列。ポート割当等 |
 
-テンプレート挙動: 前提ツール表 → 手順表 → 割当表の順に固定表示する。各配列が空の場合は該当表に「なし」を 1 行表示する。
+テンプレート挙動: 前提ツール表 → 実行環境表 → 手順表 → 割当表の順に固定表示する。各配列が空の場合は該当表に「なし」を 1 行表示する。
 
 ### T7: release-notes（確定仕様）
 

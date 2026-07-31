@@ -45,6 +45,10 @@ get_page_category() { case "$1" in glossary) echo "project";; techstack) echo "p
 #         「関連エンティティ」セクションと日本語ラベル+値一覧が出力されることを検証する
 #     無: 拡張フィールドを持たないケースaの出力に「関連エンティティ」文字列・
 #         未置換マーカー(RELATED_ENTITIES)が含まれないことを検証する(後方互換の証拠)
+# (g) env の environment[](linux_compat_env)の描画有無:
+#     true: 互換環境である旨の表記が出力に含まれることを検証する
+#     false: 同じ表記が出力に含まれないことを検証する
+#     空配列: エラーにならず生成できることを検証する
 self_test() {
   local script_path="$0"
   local script_dir
@@ -257,6 +261,10 @@ self_test() {
     title: "環境構築手順",
     description: "self-test用フィクスチャ",
     prerequisites: [{name: "Node.js", note: "v18以上"}],
+    environment: [
+      {name: "OS", value: "linux"},
+      {name: "linux_compat_env", value: "Linux 互換環境上での実行"}
+    ],
     steps: [
       {order: 2, command: "npm run dev", note: "開発サーバー起動"},
       {order: 1, command: "npm install", note: "依存関係インストール"}
@@ -265,6 +273,65 @@ self_test() {
     unresolved: []
   }' > "$data_env"
   check_page_fixture env "$data_env"
+
+  # --- ケースg: environment[](linux_compat_env)の描画有無 ---
+  local out_env_html="$tmp/out-env/環境構築手順.html"
+  if [ -f "$out_env_html" ] && grep -qF 'Linux 互換環境上での実行' "$out_env_html"; then
+    echo "  [PASS] ケースg(env-true): linux_compat_env=trueの表記がHTMLに出力される"
+  else
+    echo "  [FAIL] ケースg(env-true): linux_compat_env=trueの表記がHTMLに出力されない" >&2
+    rc=1
+  fi
+
+  local data_env_false="$tmp/page-data-env-false.json"
+  jq -n '{
+    pageKind: "env",
+    generatedAt: "2026-01-01T00:00:00Z",
+    title: "環境構築手順",
+    description: "self-test用フィクスチャ(linux_compat_env=false)",
+    prerequisites: [],
+    environment: [
+      {name: "OS", value: "darwin"},
+      {name: "linux_compat_env", value: "該当なし"}
+    ],
+    steps: [],
+    allocations: [],
+    unresolved: []
+  }' > "$data_env_false"
+  local outdir_env_false="$tmp/out-env-false"
+  if bash "$script_path" "$data_env_false" "$outdir_env_false" --page env >/dev/null 2>&1; then
+    local out_env_false_html="$outdir_env_false/環境構築手順.html"
+    if [ -f "$out_env_false_html" ] && ! grep -qF 'Linux 互換環境上での実行' "$out_env_false_html"; then
+      echo "  [PASS] ケースg(env-false): linux_compat_env=falseの表記は出力されない"
+    else
+      echo "  [FAIL] ケースg(env-false): linux_compat_env=falseなのに互換環境表記が出力された" >&2
+      rc=1
+    fi
+  else
+    echo "  [FAIL] ケースg(env-false): 生成コマンド自体が失敗した" >&2
+    rc=1
+  fi
+
+  local data_env_empty="$tmp/page-data-env-empty.json"
+  jq -n '{
+    pageKind: "env",
+    generatedAt: "2026-01-01T00:00:00Z",
+    title: "環境構築手順",
+    description: "self-test用フィクスチャ(environment[]空配列)",
+    prerequisites: [],
+    environment: [],
+    steps: [],
+    allocations: [],
+    unresolved: []
+  }' > "$data_env_empty"
+  local outdir_env_empty="$tmp/out-env-empty"
+  if bash "$script_path" "$data_env_empty" "$outdir_env_empty" --page env >/dev/null 2>&1 \
+     && [ -f "$outdir_env_empty/環境構築手順.html" ]; then
+    echo "  [PASS] ケースg(env-empty): environment[]が空配列でもエラーにならず生成できる"
+  else
+    echo "  [FAIL] ケースg(env-empty): environment[]が空配列の場合に生成が失敗した" >&2
+    rc=1
+  fi
 
   local data_entity_state="$tmp/page-data-entity-state.json"
   jq -n '{

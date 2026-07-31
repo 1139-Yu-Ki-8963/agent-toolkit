@@ -20,6 +20,10 @@
 #   8. columns型検証(erのみ): entities[].columns[]が存在する場合、name/typeがstring、
 #      pk/fk/unique/nullableがboolean(いずれも存在時のみ)であることを検証する
 #
+# envのenvironment[]は任意フィールド(page-data-schema.mdのT5節が正)。get_slot_keysの必須
+# キー(prerequisites/steps/allocations)には含めない。未知キーを拒否する仕組みは無いため、
+# environment[]の有無・値は本スクリプトの検証対象外(存在しても失敗しない)。
+#
 # 違反は該当値の page-data.json 内での行番号(grep -nF で特定。特定不能時は「不明」)付きでstderrへ
 # [PASS]/[FAIL] 項目名 — 詳細 の形式で列挙する。1件でもFAILがあればexit 1。全項目PASSでexit 0。
 #

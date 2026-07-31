@@ -58,13 +58,14 @@ allowed-tools: [Bash, Read, Write]
 **使用ツール**: Read / Bash / Write
 
 - **Step 1（prerequisites[]）** — env-config.json が存在する場合、`tools` の実測結果を `{name, note}` へ変換する。対象は cloc/node/python3/jq/git の 5 種。`note` にはインストール有無を記載し、未インストール時は `install_commands` の値も記載する。env-config.json が不在の場合、prerequisites[] は空配列のまま Phase 4 へ渡す（テンプレート側が「なし」を表示する）。完了条件: prerequisites[] を確定済み（空配列を含む）
+- **Step 1b（environment[]）** — env-config.json が存在する場合、`os`・`arch`・`linux_compat_env` を `{name, value}` へ変換して environment[] に格納する。`linux_compat_env` が true の場合は「Linux 互換環境上での実行」と読み手に伝わる表記にする。env-config.json が不在の場合、environment[] は空配列のまま Phase 4 へ渡す（テンプレート側が「なし」を表示する）。完了条件: environment[] を確定済み（空配列を含む）
 - **Step 2（steps[]）** — 調査書 §3 の「ビルドコマンド」「起動コマンド（開発）」「起動コマンド（本番）」の 3 行を読む。記載値が「実在しない（理由: …）」でない行だけを対象にする。対象行を `order` 昇順（ビルド=1、開発起動=2、本番起動=3。欠番があれば詰めずそのまま欠落させる）で `steps[]` に変換する。`command` には §3 の「内容」列をそのまま転記する。`note` には「出所: <§3 の根拠パス>」の形式で根拠パスを埋め込む。steps[] にはスキーマ上 sourceRef フィールドが存在しないため、根拠パスは note へテキストとして埋め込む運用にする。完了条件: steps[] を確定済み
 - **Step 3（allocations[]）** — 調査書 §3 の「環境変数定義の所在」行の根拠パスが指すファイルを実際に Read する。ポート番号・ホスト名等の割当を示す行（`PORT=`・`HOST=` 等の代入や設定キー）を抽出する。1 件ごとに `{target: 変数名またはキー名, value: 値, sourceRef: "<根拠パス>:<行番号>"}` を組み立てる。該当ファイルが不在の場合や、割当を示す記載が見つからない場合は、allocations[] を空配列のまま進める（捏造しない）。完了条件: allocations[] を確定済み（空配列を含む）
-- **Step 4** — page-data.json を組み立てる。`pageKind: "env"`、Step 1〜3 の prerequisites[]/steps[]/allocations[] を埋める。Write ツールで page-data.json を書き出す。完了条件: page-data.json を一時ディレクトリへ保存済み
+- **Step 4** — page-data.json を組み立てる。`pageKind: "env"`、Step 1〜3 の prerequisites[]/environment[]/steps[]/allocations[] を埋める。Write ツールで page-data.json を書き出す。完了条件: page-data.json を一時ディレクトリへ保存済み
 
 page-data.json の保存先は `$CLAUDE_JOB_DIR/tmp/env-guide-page-data.json` とする。未設定時は `${TMPDIR:-/tmp}/claude-job-${session}/tmp/` 配下に置く。
 
-**完了**: prerequisites[]/steps[]/allocations[] を確定し page-data.json を保存済み
+**完了**: prerequisites[]/environment[]/steps[]/allocations[] を確定し page-data.json を保存済み
 
 ## Phase 3: 整合検証（機械実行）
 
@@ -111,7 +112,7 @@ page-data.json の保存先は `$CLAUDE_JOB_DIR/tmp/env-guide-page-data.json` �
 | Phase | 完了条件 |
 |---|---|
 | Phase 1 | 調査書の実在確認済み、または不在を報告して停止している。env-config.json の有無が確定済み |
-| Phase 2 | prerequisites[]/steps[]/allocations[] を確定し page-data.json を保存済み |
+| Phase 2 | prerequisites[]/environment[]/steps[]/allocations[] を確定し page-data.json を保存済み |
 | Phase 3 | `validate-page-data.sh --target-repo` が全項目 PASS |
 | Phase 4 | `<output_dir>/環境構築手順.html` が生成され、指定時は `build-portal.sh` の再実行が完了している |
 | **Goal** | 調査書 §3（および任意で env-config.json）の記載値のみから環境構築手順.html が生成され、割当の根拠が sourceRef で追跡できる |
@@ -152,6 +153,7 @@ page-data.json の保存先は `$CLAUDE_JOB_DIR/tmp/env-guide-page-data.json` �
 - `steps[]`/`prerequisites[]` には `sourceRef` フィールドが存在しない（page-data-schema.md の T5 節が正）。根拠パスは `note` へテキストとして埋め込む運用とする。`validate-page-data.sh` の sourceRef 実在検査は `allocations[].sourceRef` のみを対象にする。これは省略ではなくスキーマの確定仕様である。両フィールドに形式的な `sourceRef` を追加しても、検証・描画のどちらにも反映されない
 - `env_config_path` は既定で `<output_dir>/env-config.json` を見る。ただし `surveying-local-environment` の出力先は呼び出し時の `output_dir` 引数次第で変わる。既定パスに存在しない場合は明示的に `env_config_path` を渡す
 - env-config.json が存在しても `tools` に含まれないツール（§3 の起動コマンドが要求する言語ランタイム等）は prerequisites[] に自動追加しない。env-config.json の `tools` キー（cloc/node/python3/jq/git）に限定して転記する
+- `os`・`arch`・`linux_compat_env` は prerequisites[]（ツールの一覧）ではなく environment[]（実行環境の実測値）へ転記する。両者は表として別に描画する
 - 調査書の記載値が「実在しない（理由: …）」の行は steps[] に含めない（存在しない手順を転記しない）
 
 ## 設計判断

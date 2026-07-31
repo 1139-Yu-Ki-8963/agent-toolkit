@@ -42,6 +42,12 @@ allowed-tools: [Bash, Read, Write]
 os_name="$(uname -s | tr '[:upper:]' '[:lower:]')"
 arch="$(uname -m)"
 
+# Linux 互換環境かどうか（カーネル情報にホスト OS のベンダー名を含むかで判定）
+linux_compat_env=false
+if [ "$os_name" = "linux" ] && [ -r /proc/version ]; then
+  grep -qiE 'microsoft|wsl' /proc/version && linux_compat_env=true
+fi
+
 # パッケージ管理ツール（最初に見つかったものを採用）
 pkg_manager=""
 for cmd in brew apt-get yum dnf pacman apk; do
@@ -69,7 +75,7 @@ case "$pkg_manager" in
 esac
 ```
 
-**完了**: OS・アーキテクチャ・パッケージ管理ツール・5開発ツールの有無が取得済み
+**完了**: OS・アーキテクチャ・Linux 互換環境フラグ・パッケージ管理ツール・5開発ツールの有無が取得済み
 
 ## Phase 3: env-config.json の出力
 
@@ -81,6 +87,7 @@ esac
 {
   "os": "<os_name>",
   "arch": "<arch>",
+  "linux_compat_env": <true|false>,
   "pkg_manager": "<pkg_manager>",
   "tools": {
     "cloc": <true|false>,
@@ -95,6 +102,22 @@ esac
   "surveyed_at": "<ISO8601 タイムスタンプ>"
 }
 ```
+
+### 出力フィールドの消費経路
+
+全トップレベルフィールドは「消費経路あり」であることを条件とする。消費経路を持たないフィールドをスキーマに残さない。
+
+| フィールド | 消費経路 |
+|---|---|
+| os | generating-env-guide-for-reverse-docs の前提条件表へ実測値として転記される |
+| arch | 同上 |
+| linux_compat_env | 同上。互換環境上での実行であることを成果物に残す |
+| pkg_manager | 本スキル内部で install_commands の導出に使う（成果物へは導出結果のみが載る） |
+| tools | counting-code-lines が tools.cloc を読む。generating-env-guide-for-reverse-docs が前提ツール表へ転記する |
+| install_commands | generating-env-guide-for-reverse-docs が未インストール時の注記へ転記する |
+| surveyed_at | 調査時点の記録。成果物の鮮度判断に使う |
+
+フィールドを追加する場合は本表に消費経路の行を足す。消費先が無いフィールドは追加しない。
 
 **完了**: `$output_dir/env-config.json` が正しいJSONとして存在し、全調査キーが記録済み
 
@@ -117,7 +140,7 @@ cloc が既にインストール済みの場合はこの案内を省略する。
 | Phase | 条件 |
 |---|---|
 | Phase 1 | env-config.json の存在有無が確認済み |
-| Phase 2 | OS・パッケージ管理ツール・ツール有無が収集済み |
+| Phase 2 | OS・アーキテクチャ・Linux 互換環境フラグ・パッケージ管理ツール・ツール有無が収集済み |
 | Phase 3 | env-config.json が出力先に存在する |
 | Phase 4 | cloc 未インストール時の案内が完了している（該当時のみ） |
 | **Goal** | env-config.json が正しい JSON で出力されている |
@@ -130,7 +153,7 @@ cloc が既にインストール済みの場合はこの案内を省略する。
 
 ## 予想を裏切る挙動
 
-- WSL 環境では `uname -s` が `Linux` を返す。WSL 固有の判定が必要な場合は `/proc/version` に `microsoft` が含まれるかで判別できるが、本スキルでは区別しない
+- Linux 互換環境では `uname -s` が `Linux` を返すため、OS 種別だけでは素の Linux と区別できない。本スキルは `/proc/version` にホスト OS のベンダー名が含まれるかで判別し、`linux_compat_env` として記録する。ファイルシステムのマウント種別・性能特性は記録しない
 - `command -v` はエイリアスも検出する。実際のバイナリが存在しない場合（エイリアスのみ）でも true を返す可能性がある
 
 ## 設計判断
