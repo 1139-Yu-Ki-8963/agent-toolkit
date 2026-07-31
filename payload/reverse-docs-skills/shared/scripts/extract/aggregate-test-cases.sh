@@ -17,7 +17,13 @@
 #     unitKind: "test_case",
 #     generatedAt: string(UTC ISO8601),
 #     units: [{ unitKey, screenKey, testType, unitNameGuess, kind, caseKey, viewpointKey, input, steps, expected }],
-#     summary: { totalCount: number, byTestType: {...}, byScreen: {...} }
+#     summary: {
+#       totalCount: number,
+#       byTestType: {unit, integration, scenario}(3種固定キー。検出0件も0で出力し、キーは脱落させない),
+#       byScreen: {...},
+#       scannedByTestType: {unit, integration, scenario}(3種固定キー。走査対象として実在した仕様書ファイルの件数),
+#       excludedExampleRows: {unit, integration, scenario}(3種固定キー。記入例プレースホルダ行として除外した件数)
+#     }
 #   }
 #
 # パース仕様:
@@ -63,6 +69,7 @@ extract_named_table_awk='
   BEGIN {
     nWant = split(wantNames, wantArr, ",")
     state = 0
+    excluded = 0
   }
   {
     line = $0
@@ -82,7 +89,7 @@ extract_named_table_awk='
     }
     if (state == 2) {
       if (!isPipe || trim(line) == "") { state = 0; next }
-      if (cols[1] ~ /^<.*>$/) next
+      if (cols[1] ~ /^<.*>$/) { excluded++; next }
       out = cols[1]
       for (i = 1; i <= nWant; i++) {
         idx = 0
@@ -94,6 +101,9 @@ extract_named_table_awk='
       print out
       next
     }
+  }
+  END {
+    printf "%d\n", excluded > "/dev/stderr"
   }
 '
 
@@ -213,6 +223,53 @@ EOF
     echo "self-test FAIL: テストケースの連結結果が不正" >&2
     return 1
   fi
+
+  # --- 追加ケース: 仕様書は実在するが確定行0件の種別がある場合 ---
+  local tmp2 docs2 manifest2
+  tmp2="$(mktemp -d "${TMPDIR:-/tmp}/aggregate-test-cases-self-test2.XXXXXX")"
+  docs2="$tmp2/docs"
+  manifest2="$tmp2/test-case-manifest.json"
+  mkdir -p "$docs2/画面/screen-orders/テスト項目書"
+  cat > "$docs2/画面/screen-orders/テスト項目書/単体テスト仕様書.md" <<'EOF'
+## テストケース一覧
+
+| キー | 対応観点キー | 入力値 | 期待結果（アサーション） | 実装後のテストファイル参照 |
+|---|---|---|---|---|
+| 合計0円-登録不可 | 金額-下限境界 | `total: 0` | `isRegisterable` が `false` を返す | |
+EOF
+  cat > "$docs2/画面/screen-orders/テスト項目書/結合テスト仕様書.md" <<'EOF'
+## テストケース一覧
+
+| キー | 対応観点キー | 操作手順 | 入力値 | 期待結果（アサーション） | 実装後のテストファイル参照 |
+|---|---|---|---|---|---|
+| 登録実行-一覧反映 | 登録-一覧反映 | 登録ボタンを押す | 必須項目入力済み | 一覧に新規行が追加される | |
+EOF
+  cat > "$docs2/画面/screen-orders/テスト項目書/操作シナリオ仕様書.md" <<'EOF'
+## シナリオ一覧表
+
+| シナリオ名 | 対応往復検証観点キー | 前提条件 |
+|---|---|---|
+| <シナリオ名> | <観点キー> | <前提条件> |
+EOF
+
+  if ! bash "$script_path" "$docs2" "$manifest2" >/dev/null 2>&1 \
+    || ! bash "$script_dir/../unit-list/validate-test-case-manifest.sh" "$manifest2" >/dev/null 2>&1; then
+    echo "self-test FAIL: 確定行0件種別ケースの集約・検証が失敗" >&2
+    rm -rf "$tmp2"
+    return 1
+  fi
+
+  if jq -e '.summary.byTestType.scenario == 0
+    and .summary.scannedByTestType.scenario == 1
+    and .summary.byTestType.unit >= 1
+    and .summary.byTestType.integration >= 1' "$manifest2" >/dev/null 2>&1; then
+    echo "self-test PASS: 仕様書実在・確定行0件種別のキー保持（scannedByTestTypeで区別）"
+  else
+    echo "self-test FAIL: 確定行0件種別のキーが脱落、またはscannedByTestTypeが不正" >&2
+    rm -rf "$tmp2"
+    return 1
+  fi
+  rm -rf "$tmp2"
 }
 
 if [ "${1:-}" = "--self-test" ]; then
@@ -237,8 +294,17 @@ generated_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 
 tmp_tsv="$(mktemp "${TMPDIR:-/tmp}/aggregate-test-cases.XXXXXX")"
 tmp_scenario_expected="$(mktemp "${TMPDIR:-/tmp}/aggregate-test-cases-scenario.XXXXXX")"
-cleanup() { rm -f "$tmp_tsv" "$tmp_scenario_expected"; }
+tmp_excl="$(mktemp "${TMPDIR:-/tmp}/aggregate-test-cases-excl.XXXXXX")"
+cleanup() { rm -f "$tmp_tsv" "$tmp_scenario_expected" "$tmp_excl"; }
 trap cleanup EXIT
+
+# 種別別の走査対象仕様書件数・記入例除外行数(3種固定キー・0初期化)
+scanned_unit=0
+scanned_integration=0
+scanned_scenario=0
+excluded_unit=0
+excluded_integration=0
+excluded_scenario=0
 
 # 単体/結合: screenKey \t testType \t unitKey \t caseKey \t viewpointKey \t input \t steps \t expected
 while IFS= read -r -d '' file; do
@@ -262,7 +328,12 @@ while IFS= read -r -d '' file; do
     *) continue ;;
   esac
 
-  awk -v firstHeader="キー" -v wantNames="$want_names" "$extract_named_table_awk" "$file" \
+  case "$test_type" in
+    unit) scanned_unit=$((scanned_unit + 1)) ;;
+    integration) scanned_integration=$((scanned_integration + 1)) ;;
+  esac
+
+  awk -v firstHeader="キー" -v wantNames="$want_names" "$extract_named_table_awk" "$file" 2>"$tmp_excl" \
     | awk -v screenKey="$screen_key" -v testType="$test_type" -v hasSteps="$has_steps" -F'\t' '
     {
       rownum++
@@ -275,6 +346,12 @@ while IFS= read -r -d '' file; do
       printf "%s\t%s\t%s-%s-%d\t%s\t%s\t%s\t%s\t%s\n", screenKey, testType, screenKey, testType, rownum, caseKey, viewpointKey, input, steps, expected
     }
   ' >> "$tmp_tsv"
+  excl_n="$(cat "$tmp_excl" 2>/dev/null || true)"
+  [ -z "$excl_n" ] && excl_n=0
+  case "$test_type" in
+    unit) excluded_unit=$((excluded_unit + excl_n)) ;;
+    integration) excluded_integration=$((excluded_integration + excl_n)) ;;
+  esac
 done < <(find "$output_dir" \
   \( -path "*/画面/screen-*/テスト項目書/単体テスト仕様書.md" -o -path "*/画面/screen-*/テスト項目書/結合テスト仕様書.md" \) \
   -print0)
@@ -286,10 +363,15 @@ while IFS= read -r -d '' file; do
   }')"
   [ -z "$screen_key" ] && continue
 
+  scanned_scenario=$((scanned_scenario + 1))
+
   tmp_top="$(mktemp "${TMPDIR:-/tmp}/aggregate-test-cases-top.XXXXXX")"
   tmp_expected="$(mktemp "${TMPDIR:-/tmp}/aggregate-test-cases-exp.XXXXXX")"
-  awk -v firstHeader="シナリオ名" -v wantNames="対応往復検証観点キー,前提条件" "$extract_named_table_awk" "$file" > "$tmp_top"
+  awk -v firstHeader="シナリオ名" -v wantNames="対応往復検証観点キー,前提条件" "$extract_named_table_awk" "$file" > "$tmp_top" 2>"$tmp_excl"
   awk "$extract_scenario_expected_awk" "$file" > "$tmp_expected"
+  excl_n="$(cat "$tmp_excl" 2>/dev/null || true)"
+  [ -z "$excl_n" ] && excl_n=0
+  excluded_scenario=$((excluded_scenario + excl_n))
 
   scenario_rownum=0
   while IFS=$'\t' read -r scene_name viewpoint_key precondition; do
@@ -303,12 +385,22 @@ while IFS= read -r -d '' file; do
 done < <(find "$output_dir" -path "*/画面/screen-*/テスト項目書/操作シナリオ仕様書.md" -print0)
 
 if [ ! -s "$tmp_tsv" ]; then
-  jq -n --arg generatedAt "$generated_at" '{
-    unitKind: "test_case",
-    generatedAt: $generatedAt,
-    units: [],
-    summary: { totalCount: 0, byTestType: {}, byScreen: {} }
-  }' > "$output_file"
+  jq -n \
+    --arg generatedAt "$generated_at" \
+    --argjson scannedByTestType "{\"unit\":$scanned_unit,\"integration\":$scanned_integration,\"scenario\":$scanned_scenario}" \
+    --argjson excludedExampleRows "{\"unit\":$excluded_unit,\"integration\":$excluded_integration,\"scenario\":$excluded_scenario}" \
+    '{
+      unitKind: "test_case",
+      generatedAt: $generatedAt,
+      units: [],
+      summary: {
+        totalCount: 0,
+        byTestType: { unit: 0, integration: 0, scenario: 0 },
+        byScreen: {},
+        scannedByTestType: $scannedByTestType,
+        excludedExampleRows: $excludedExampleRows
+      }
+    }' > "$output_file"
   exit 0
 fi
 
@@ -330,6 +422,8 @@ units_json="$(jq -R -s '
 jq -n \
   --arg generatedAt "$generated_at" \
   --argjson units "$units_json" \
+  --argjson scannedByTestType "{\"unit\":$scanned_unit,\"integration\":$scanned_integration,\"scenario\":$scanned_scenario}" \
+  --argjson excludedExampleRows "{\"unit\":$excluded_unit,\"integration\":$excluded_integration,\"scenario\":$excluded_scenario}" \
   '
   {
     unitKind: "test_case",
@@ -337,8 +431,10 @@ jq -n \
     units: $units,
     summary: {
       totalCount: ($units | length),
-      byTestType: ($units | group_by(.testType) | map({key: .[0].testType, value: length}) | from_entries),
-      byScreen: ($units | group_by(.screenKey) | map({key: .[0].screenKey, value: length}) | from_entries)
+      byTestType: ({unit: 0, integration: 0, scenario: 0} + ($units | group_by(.testType) | map({key: .[0].testType, value: length}) | from_entries)),
+      byScreen: ($units | group_by(.screenKey) | map({key: .[0].screenKey, value: length}) | from_entries),
+      scannedByTestType: $scannedByTestType,
+      excludedExampleRows: $excludedExampleRows
     }
   }
   ' > "$output_file"

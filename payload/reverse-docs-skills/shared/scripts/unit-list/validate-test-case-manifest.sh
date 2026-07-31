@@ -103,8 +103,10 @@ run_validate() {
   local declared_total actual_total declared_by_test_type actual_by_test_type declared_by_screen actual_by_screen
   declared_total=$(jq '.summary.totalCount // -1' "$manifest" 2>/dev/null || echo -1)
   actual_total=$(jq '.units | length' "$manifest" 2>/dev/null || echo 0)
-  declared_by_test_type=$(jq -cS '.summary.byTestType // null' "$manifest" 2>/dev/null || echo null)
-  actual_by_test_type=$(jq -cS '[.units[]?] | group_by(.testType) | map({key: .[0].testType, value: length}) | from_entries' "$manifest" 2>/dev/null || echo '{}')
+  # byTestType は3種固定キー(unit/integration/scenario)で0件も出力する契約(aggregate-test-cases.sh)。
+  # 検出0件のキー省略も許容するため、両辺とも0デフォルトで補完してから比較する。
+  declared_by_test_type=$(jq -cS '{unit: 0, integration: 0, scenario: 0} + (.summary.byTestType // {})' "$manifest" 2>/dev/null || echo null)
+  actual_by_test_type=$(jq -cS '{unit: 0, integration: 0, scenario: 0} + ([.units[]?] | group_by(.testType) | map({key: .[0].testType, value: length}) | from_entries)' "$manifest" 2>/dev/null || echo '{}')
   declared_by_screen=$(jq -cS '.summary.byScreen // null' "$manifest" 2>/dev/null || echo null)
   actual_by_screen=$(jq -cS '[.units[]?] | group_by(.screenKey) | map({key: .[0].screenKey, value: length}) | from_entries' "$manifest" 2>/dev/null || echo '{}')
   if ! jq -e '

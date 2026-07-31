@@ -24,6 +24,7 @@
     UNIT_TABLE_ROWS (ユニットテーブル行マーカー): kind!=unresolved の行を1ユニットごとに挿入
     UNRESOLVED_SECTION (要手動確認セクションマーカー) : kind=unresolved の一覧テーブル、0件なら「なし」の文言
     MANIFEST_JSON (マニフェストJSON埋め込みマーカー) : manifest.json とJSON値が同値な安全エスケープ済みJSONを埋め込み(二重管理・ドリフト禁止)
+    EXTRA_TILES (種別内訳タイルマーカー・任意) : unit_kind=test_case の場合のみ挿入(正本は build-unit-list.sh 冒頭コメント)
 
   テーブル列順(固定・全3列): <ラベル>名 / 識別子 / 区分(種別固有列はJSのFIELD_SETSが動的追加)。
   行の<tr>には data-unit-id / data-unit-key 属性を持たせ、展開行JSがマニフェストJSONから
@@ -186,6 +187,7 @@
         <div class="summary-tiles">
           <div class="tile"><strong>{{UNIT_COUNT}}</strong>検出{{UNIT_KIND_LABEL}}数</div>
           <div class="tile"><strong>{{UNRESOLVED_COUNT}}</strong>要手動確認数</div>
+          <!--EXTRA_TILES-->
         </div>
       </div>
 

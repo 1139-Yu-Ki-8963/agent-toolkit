@@ -33,6 +33,9 @@
 # 出力: <output-html-path> に単一HTMLを書き出す。外部依存はMaterial Symbols OutlinedのGoogle Fonts CDNだけを許可する。
 #   - kind=unresolved は「要手動確認」セクションの別テーブルへ(0件なら「なし」)
 #   - manifest.json の内容は <script type="application/json" id="unit-manifest"> にそのまま埋め込む
+#   - EXTRA_TILES (種別内訳タイルマーカー・任意): unit_kind=test_case の場合のみ、
+#     summary.byTestType(unit/integration/scenario)の3種内訳タイルを挿入する。0件も表示する。
+#     他のunit_kindでは空文字列を注入し、テンプレートにマーカー文字列を残さない
 
 set -euo pipefail
 
@@ -332,6 +335,46 @@ EOF
   jq -cS . "$test_case_manifest" > "$tmp/test-case-original.json"
   diff -q "$tmp/test-case-embedded.json" "$tmp/test-case-original.json" >/dev/null 2>&1 || derived_ok=0
 
+  # test_case以外(api/message)に未置換のEXTRA_TILESマーカーが残っていないことを確認する
+  # (テンプレート冒頭のマーカー一覧コメント内には"EXTRA_TILES"という語自体が残るため、
+  #  未置換を示すコメント記法込みの文字列で判定する)
+  if grep -Fq '<!--EXTRA_TILES-->' "$out_normal" "$message_out"; then
+    derived_ok=0
+  fi
+
+  # 種別内訳: 単体/結合/操作シナリオの3種を含むmanifestで、3表示語がすべて出現すること
+  local test_case_all_manifest="$tmp/test-case-alltypes.json" test_case_all_out="$tmp/test-case-alltypes.html"
+  jq -n '{
+    unitKind:"test_case", generatedAt:"2026-01-01T00:00:00Z",
+    units:[
+      {unitKey:"screen-login-unit-1",screenKey:"screen-login",testType:"unit",unitNameGuess:"合計0円-登録不可",kind:"unit",caseKey:"合計0円-登録不可",viewpointKey:"金額-下限境界",input:"total: 0",steps:"",expected:"isRegisterableがfalseを返す"},
+      {unitKey:"screen-login-integration-1",screenKey:"screen-login",testType:"integration",unitNameGuess:"登録実行-一覧反映",kind:"integration",caseKey:"登録実行-一覧反映",viewpointKey:"登録-一覧反映",input:"必須項目入力済み",steps:"登録ボタンを押す",expected:"一覧に新規行が追加される"},
+      {unitKey:"screen-login-scenario-1",screenKey:"screen-login",testType:"scenario",unitNameGuess:"検索条件の絞り込み",kind:"scenario",caseKey:"検索条件の絞り込み",viewpointKey:"操作後-画面反映",input:"一覧に複数件表示中",steps:"",expected:"検索実行後、一覧テーブルが即座に更新される。"}
+    ],
+    summary:{totalCount:3,byTestType:{unit:1,integration:1,scenario:1},byScreen:{"screen-login":3}}
+  }' > "$test_case_all_manifest"
+  if ! bash "$script_path" "$test_case_all_manifest" "$test_case_all_out" --unit-kind test_case >/dev/null 2>&1 \
+    || ! grep -Fq '>単体</span>' "$test_case_all_out" \
+    || ! grep -Fq '>結合</span>' "$test_case_all_out" \
+    || ! grep -Fq '>操作シナリオ</span>' "$test_case_all_out"; then
+    derived_ok=0
+  fi
+
+  # 種別内訳: 操作シナリオが0件のmanifestで、0件タイルが表示されること
+  local test_case_zero_manifest="$tmp/test-case-zero-scenario.json" test_case_zero_out="$tmp/test-case-zero-scenario.html"
+  jq -n '{
+    unitKind:"test_case", generatedAt:"2026-01-01T00:00:00Z",
+    units:[
+      {unitKey:"screen-login-unit-1",screenKey:"screen-login",testType:"unit",unitNameGuess:"合計0円-登録不可",kind:"unit",caseKey:"合計0円-登録不可",viewpointKey:"金額-下限境界",input:"total: 0",steps:"",expected:"isRegisterableがfalseを返す"},
+      {unitKey:"screen-login-integration-1",screenKey:"screen-login",testType:"integration",unitNameGuess:"登録実行-一覧反映",kind:"integration",caseKey:"登録実行-一覧反映",viewpointKey:"登録-一覧反映",input:"必須項目入力済み",steps:"登録ボタンを押す",expected:"一覧に新規行が追加される"}
+    ],
+    summary:{totalCount:2,byTestType:{unit:1,integration:1,scenario:0},byScreen:{"screen-login":2}}
+  }' > "$test_case_zero_manifest"
+  if ! bash "$script_path" "$test_case_zero_manifest" "$test_case_zero_out" --unit-kind test_case >/dev/null 2>&1 \
+    || ! grep -Fq '<div class="tile"><strong>0</strong>操作シナリオ件数</div>' "$test_case_zero_out"; then
+    derived_ok=0
+  fi
+
   if [ "$derived_ok" -eq 1 ]; then
     echo "  [PASS] 派生一覧: message/test_viewpoint/test_caseの表示値・埋め込み完全JSON・戻りリンクを維持"
   else
@@ -567,6 +610,20 @@ source_dir="$(jq -r '.sourceDir // ""' "$MANIFEST")"
 tile_unit_count="$(jq -r '.detectionSummary.unitCount // .summary.totalCount // 0' "$MANIFEST")"
 tile_unresolved_count="$(jq -r '.detectionSummary.unresolvedCount // ([.units[]? | select(.kind == "unresolved")] | length)' "$MANIFEST")"
 
+# --- 種別内訳タイル(test_caseのみ。0件も表示する) ---
+extra_tiles=""
+if [ "$UNIT_KIND" = "test_case" ]; then
+  tile_unit_type_count="$(jq -r '.summary.byTestType.unit // 0' "$MANIFEST")"
+  tile_integration_type_count="$(jq -r '.summary.byTestType.integration // 0' "$MANIFEST")"
+  tile_scenario_type_count="$(jq -r '.summary.byTestType.scenario // 0' "$MANIFEST")"
+  extra_tiles="$(cat <<EOF
+<div class="tile"><strong>${tile_unit_type_count}</strong>単体件数</div>
+<div class="tile"><strong>${tile_integration_type_count}</strong>結合件数</div>
+<div class="tile"><strong>${tile_scenario_type_count}</strong>操作シナリオ件数</div>
+EOF
+)"
+fi
+
 # --- 1ユニット分の <tr> を生成する ---
 # 行データはjqの@tsv+bash readではなく、1行1JSONオブジェクト(jq -c)を個別に
 # jq -r抽出する方式を採る。@tsv+IFS=タブのreadはタブがPOSIX上「IFS空白」に
@@ -587,7 +644,19 @@ row_html() {
 
   case "$kind" in
     unresolved) kind_class="kind-unresolved"; kind_label="要確認" ;;
-    *)          kind_class="kind-generic";    kind_label="$(html_escape "$kind")" ;;
+    *)
+      kind_class="kind-generic"
+      if [ "$UNIT_KIND" = "test_case" ]; then
+        case "$kind" in
+          unit)        kind_label="単体" ;;
+          integration) kind_label="結合" ;;
+          scenario)    kind_label="操作シナリオ" ;;
+          *)           kind_label="$(html_escape "$kind")" ;;
+        esac
+      else
+        kind_label="$(html_escape "$kind")"
+      fi
+      ;;
   esac
 
   # unitId/unitKey は表示列から外したが、展開行JSのユニット特定(findUnit等)のため
@@ -668,6 +737,7 @@ render_args=(
   "{{GENERATED_AT}}" "$(html_escape "$generated_at")"
   "{{UNIT_COUNT}}" "$tile_unit_count"
   "{{UNRESOLVED_COUNT}}" "$tile_unresolved_count"
+  "<!--EXTRA_TILES-->" "$extra_tiles"
   "<!--UNIT_TABLE_ROWS-->" "$unit_rows"
   "<!--UNRESOLVED_SECTION-->" "$unresolved_section"
   "{{UNRESOLVED_CLASS}}" "$unresolved_class"

@@ -69,7 +69,7 @@ allowed-tools: [Read, Bash, Write, Edit, Grep, Glob]
 
 manifest.json の保存先は `$CLAUDE_JOB_DIR/tmp/test-case-manifest.json` とする。未設定時は `${TMPDIR:-/tmp}/claude-job-${session}/tmp/` 配下に置く。
 
-**完了**: manifest JSON が横断集約済み、集約結果（件数・種別内訳・画面内訳）を確認済み
+**完了**: manifest JSON が横断集約済み、集約結果（件数・種別内訳・画面内訳）を確認済み。種別内訳（`summary.byTestType`）は単体/結合/操作シナリオの3種を検出0件も含めて記録する
 
 ## Phase 3: 整合検証（機械実行）
 
@@ -114,7 +114,7 @@ manifest.json の保存先は `$CLAUDE_JOB_DIR/tmp/test-case-manifest.json` と�
 | Phase | 完了条件 |
 |---|---|
 | Phase 1 | per-screen テスト仕様書の 1 件以上の実在確認済み、または不在を報告して停止している |
-| Phase 2 | manifest JSON が横断集約済み、集約結果（件数・種別内訳・画面内訳）を確認済み |
+| Phase 2 | manifest JSON が横断集約済み、集約結果（件数・種別内訳・画面内訳）を確認済み。種別内訳は検出0件も含めて記録済み |
 | Phase 3 | `validate-test-case-manifest.sh` が全項目 PASS |
 | Phase 4 | `<output_dir>/一覧/テストケース一覧/テストケース一覧.html` が生成され、指定時は `build-portal.sh` の再実行が完了している |
 | **Goal** | per-screen テスト仕様書.md の事実のみからテストケース一覧.html が画面横断で生成され、0 件の場合もその旨が可視化されている |
@@ -144,6 +144,7 @@ manifest.json の保存先は `$CLAUDE_JOB_DIR/tmp/test-case-manifest.json` と�
 - 操作シナリオ仕様書.md は「シナリオ一覧表」（シナリオ名・対応往復検証観点キー・前提条件）と、`### <シナリオ名>` 節の「**期待結果**」直後の段落を、シナリオ名で突合して1件のケースに合成する。操作手順のサブテーブル（順序・アクション・対象セレクタ・入力値）は転記対象に含めない（`steps` は空文字列になる）
 - `aggregate-test-cases.sh` は `aggregate-test-viewpoints.sh` と同じ fail-safe 方針とする。テスト仕様書が 0 件でもエラーにせず空集合で正常終了させる
 - 観点表側の観点網羅（カバー率）は本スキルの出力に含まない。観点の網羅状況を確認したい場合は `generating-test-viewpoint-list-for-reverse-docs` が生成するテスト観点表一覧を別途参照する
+- 種別内訳は検出0件の種別もキーを残して0で出力する。仕様書が不在で走査対象にならなかった場合と、仕様書は実在するが確定行が0件だった場合は `scannedByTestType` で区別する
 
 ## 完了報告
 
