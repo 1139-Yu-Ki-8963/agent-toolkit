@@ -2,6 +2,29 @@
 
 この契約は管理者スキル orchestrating-reverse-docs-flow が正本を持つ。子スキル33個（surveying-architecture-for-reverse-docs / 種別別一覧スキル6つ（`generating-<種別>-list-for-reverse-docs`、例: generating-screen-list-for-reverse-docs） / generating-feature-list-for-reverse-docs（機能一覧・派生一覧） / generating-reverse-common-docs / syncing-reverse-env / unlocking-reverse-target-screens / extracting-unit-facts-from-code / generating-reverse-basic-design / generating-reverse-detailed-design / rebuilding-screen-unit-from-docs / rebuilding-code-from-docs / running-reverse-screen-batch）は自分の SKILL.md 内で「この契約に準拠する」と宣言するのみで、contract.md 自体は読まず args だけで動く。管理者は各子スキルの返却ブロックを本契約の共通サブセットで検収し、状態判定表に従って次工程を機械的に決定する。これにより管理者と子スキルの間には契約書という単一の仲介点だけが存在し、子スキル同士が互いの内部仕様を知る必要がない完全仲介方式が成立する。
 
+## 子スキル33個の内訳
+
+- 一覧生成6: 種別別一覧スキル（`generating-<種別>-list-for-reverse-docs`、例: generating-screen-list-for-reverse-docs）
+- 機能一覧1: generating-feature-list-for-reverse-docs（派生一覧）
+- マトリクス・対応表生成1: generating-cross-views-for-reverse-docs（派生補完。機能一覧確立後にマトリクス・対応表4ページ+AI設定資産ページを生成）
+- 基盤ページ生成5:
+  - generating-tech-stack-for-reverse-docs
+  - generating-env-guide-for-reverse-docs
+  - generating-screen-transition-for-reverse-docs
+  - generating-er-diagram-for-reverse-docs
+  - generating-glossary-for-reverse-docs
+- 工程10:
+  - surveying-architecture-for-reverse-docs
+  - generating-reverse-common-docs
+  - syncing-reverse-env
+  - unlocking-reverse-target-screens
+  - extracting-unit-facts-from-code
+  - generating-reverse-basic-design
+  - generating-reverse-detailed-design
+  - rebuilding-screen-unit-from-docs
+  - rebuilding-code-from-docs
+  - running-reverse-screen-batch
+
 ## グローバル工程順序
 
 全体順序は `shared/references/リバース工程設計.md` の Phase 1〜7 / Step 1〜30だけを正とする。統括SKILL.mdのローカル見出し `Step N-M` は親PhaseとPhase内順序を表し、直下の `global_step` が本契約のStep 1〜30へ一意に対応する。条件分岐は `conditional_step_id`、反復は `back_edge_id`・from/to Step・条件・上限で表現し、英字接尾辞・Phase 0・Step 0・暗黙の差し戻しを使用しない。

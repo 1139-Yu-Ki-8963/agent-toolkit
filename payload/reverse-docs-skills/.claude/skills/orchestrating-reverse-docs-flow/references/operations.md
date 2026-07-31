@@ -138,6 +138,35 @@ Phase 1 の状態判定完了後に一括登録するタスク一覧の設計。
 | 停止条件 | ① 収束停止: rebuilding-screen-unit-from-docs が status=再現一致 を返す ② リソース上限: 5回到達しても差し戻しが続く場合はユーザーに報告する |
 | 検証役の分離 | 設計書未著述（著述）とファイル単位未検証（盲検検証）は別スキル・別セッションで実行され、判定は自身の完全性ゲート・6計測の決定的出力のみで行う |
 
+## 条件分岐メタデータ
+
+| conditional_step_id | 判定Step | 条件 | 実行経路 |
+|---|---|---|---|
+| screen-batch-route | global Step 16 | 対象画面4件以上 | running-reverse-screen-batchへglobal Step 17〜30を委譲 |
+| screen-batch-route | global Step 16 | 対象画面3件以下 | 本スキルがglobal Step 17〜30を逐次仲介 |
+| docs-only-terminal | global Step 28 | verification_mode=docs-only | 静的完了で終端しglobal Step 29〜30を起動しない |
+| dynamic-route | global Step 28 | verification_mode=single-pass または iterative | global Step 29へ進む |
+
+## Back-edgeメタデータ
+
+| back_edge_id | from_global_step | to_global_step | 条件 | 上限 | 停止条件 |
+|---|---:|---:|---|---:|---|
+| architecture-revise | 8 | 5 | 下流が検出手がかり不足を決定的に報告 | 3 | 調査ゲートPASS / 同一FAIL 2連続 |
+| facts-reextract | 29 | 18 | iterativeかつファイル検証がfacts欠落へ分類 | 5 | 再現一致 / 5回到達 |
+| detail-rewrite | 29 | 26 | iterativeかつファイル検証が著述不足へ分類 | 5 | 再現一致 / 5回到達 |
+| common-docs-append | 30 | 14 | iterativeかつjudge FAILが共通文書欠落 | 3 | judge PASS / 同一差分2連続 |
+| dynamic-retry | 30 | 29 | iterativeかつ再比較可能な一時FAIL | 3 | judge PASS / 同一差分2連続 |
+
+back-edgeは通常順序を上書きする唯一の例外である。戻り先・条件・上限をprogress.jsonlとTaskCreateへ記録し、暗黙の「前工程へ戻る」表現を禁止する。
+
+## 重要な注意事項
+
+- 子スキルは args 全量指定・対話ゼロで起動する（子は AskUserQuestion を発行しない契約）
+- 白紙化などの破壊的操作のユーザー承認は管理者が事前に取り、user-approved として args で渡す（子はユーザーに直接聞かない）
+- output_dir が null のときの展開先確認も管理者が担う
+- 各子スキルは単独起動可能（ユーザーが同じ args を手渡せば動く）。工程順序を知るのは管理者だけ
+- 無人モードを含む全モードで、各工程は必ず Skill ツールで子スキルを起動すること。子スキルの手順を管理者が直接実行することを禁止する。Skill 起動が失敗する場合は失敗として記録し、代替実行しない
+
 ## 設計判断
 
 ### build-portal / render-template

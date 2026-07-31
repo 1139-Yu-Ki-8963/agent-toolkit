@@ -10,28 +10,7 @@ allowed-tools: [Agent, AskUserQuestion, Bash, Edit, Glob, Read, Skill, TaskCreat
 
 リバース設計書往復検証フローの進行係（管理者）。自分では検証・比較・実装を行わず、状態判定 → 子スキルを args 全量指定で Skill 起動 → 返却ブロックの status で検収 → 次工程決定、というループで工程全体を統括する。
 
-子スキル33個は互いを知らず、工程間の受け渡しはすべて本スキルが仲介する（完全仲介方式）。契約の定義は `references/contract.md`。内訳は以下のとおり。
-
-- 一覧生成6: 種別別一覧スキル（`generating-<種別>-list-for-reverse-docs`、例: generating-screen-list-for-reverse-docs）
-- 機能一覧1: generating-feature-list-for-reverse-docs（派生一覧）
-- マトリクス・対応表生成1: generating-cross-views-for-reverse-docs（派生補完。機能一覧確立後にマトリクス・対応表4ページ+AI設定資産ページを生成）
-- 基盤ページ生成5:
-  - generating-tech-stack-for-reverse-docs
-  - generating-env-guide-for-reverse-docs
-  - generating-screen-transition-for-reverse-docs
-  - generating-er-diagram-for-reverse-docs
-  - generating-glossary-for-reverse-docs
-- 工程10:
-  - surveying-architecture-for-reverse-docs
-  - generating-reverse-common-docs
-  - syncing-reverse-env
-  - unlocking-reverse-target-screens
-  - extracting-unit-facts-from-code
-  - generating-reverse-basic-design
-  - generating-reverse-detailed-design
-  - rebuilding-screen-unit-from-docs
-  - rebuilding-code-from-docs
-  - running-reverse-screen-batch
+子スキル33個は互いを知らず、工程間の受け渡しはすべて本スキルが仲介する（完全仲介方式）。契約の定義と33個の内訳（一覧生成6・機能一覧1・マトリクス対応表生成1・基盤ページ生成5・工程10の区分と個別スキル名）は `references/contract.md` 冒頭の「子スキル33個の内訳」節を正本とする。
 
 ## 使用タイミング
 
@@ -59,30 +38,11 @@ allowed-tools: [Agent, AskUserQuestion, Bash, Edit, Glob, Read, Skill, TaskCreat
 
 ## 基本ワークフロー
 
-成果物の実在から現在の状態を判定し、次に起動する子スキルを機械的に決定する。状態一覧（16状態）は下表のとおり。詳細な実在判定基準・args・返却フィールドの定義は `references/contract.md` の状態判定表を参照。
+成果物の実在から現在の状態を判定し、次に起動する子スキルを機械的に決定する。状態一覧（16状態）の実在判定基準・args・返却フィールドの定義は `references/contract.md` の状態判定表を正本とする。
 
-**状態判定の採用元**: 下表と `references/contract.md` の状態判定表は判定根拠の説明である。実際の状態判定は `bash scripts/resolve-flow-state.sh <output_dir> [<target_repo_path>] --screen-id <画面ID> [--system <システム名>] [--reverse-worktree <reverse_worktree>] [--target-file <対象ファイルbasename>]` を実行し、標準出力の状態キー1行をそのまま採用する（自然文の自己申告に代える機械判定）。空文字や未定義の状態キーは返さず、判定不能時は「未判定」を返す。「未判定」を受け取った場合は screen_id の解決状況（画面一覧マニフェストの実在・`--screen-id` 指定漏れ）を確認してから再実行する。
+**状態判定の採用元**: `references/contract.md` の状態判定表は判定根拠の説明である。実際の状態判定は `bash scripts/resolve-flow-state.sh <output_dir> [<target_repo_path>] --screen-id <画面ID> [--system <システム名>] [--reverse-worktree <reverse_worktree>] [--target-file <対象ファイルbasename>]` を実行し、標準出力の状態キー1行をそのまま採用する（自然文の自己申告に代える機械判定）。空文字や未定義の状態キーは返さず、判定不能時は「未判定」を返す。「未判定」を受け取った場合は screen_id の解決状況（画面一覧マニフェストの実在・`--screen-id` 指定漏れ）を確認してから再実行する。
 
-| 状態キー | 判定の要点 | 次に起動する子スキル |
-|---|---|---|
-| アーキ未調査 | アーキテクチャ調査書が不在、または機械ゲート再実行が失敗 | surveying-architecture-for-reverse-docs |
-| 一覧未生成 | unit_kinds_present のいずれかの種別について一覧HTMLが不在、または excluded-kinds.json が不在 | generating-<種別>-list-for-reverse-docs（不在種別に対応する種別別一覧スキル） |
-| 共通未採録 | プロジェクト共通10文書のいずれか不在、または機械ゲート再実行が失敗 | generating-reverse-common-docs（NG帰着(c)差し戻し時は mode=append） |
-| ポータル未生成 | `<output_dir>/index.html` が不在 | bash shared/scripts/build-portal.sh（global Step 16） |
-| サイト定義未生成 | サイトが2件以上あり `<納品ルート>/sites.json` が不在 | `sites.json` を書き出す（統括スキル自身が実行。子スキル起動なし） |
-| 基盤ページ未生成（任意） | 用語辞書.html・技術スタック.html・画面遷移図.html・ER図.html・環境構築手順.html のいずれかが output_dir 直下に不在。任意工程のためデータ源未整備時はスキップしてよい（global Step 16） | generating-tech-stack-for-reverse-docs / generating-env-guide-for-reverse-docs / generating-screen-transition-for-reverse-docs / generating-er-diagram-for-reverse-docs / generating-glossary-for-reverse-docs（不在ページに対応するスキルのみ） |
-| 状態遷移図未生成（任意） | 状態遷移図.html が output_dir 直下に不在。任意工程のためデータ源未整備時はスキップしてよい | generating-entity-state-for-reverse-docs |
-| シーケンス図未生成（任意） | 画面フォルダのシーケンス図.html が不在。任意工程のためデータ源未整備時はスキップしてよい | generating-sequence-diagram-for-reverse-docs |
-| 事実未封印 | facts.lock が不在、または封印検証が失敗 | extracting-unit-facts-from-code |
-| 基本設計未著述 | 画面基本設計書（`<screen_dir>/基本設計/画面基本設計書.md`）が不在 | generating-reverse-basic-design |
-| 設計書未著述 | 画面ディレクトリ不在 or §15.1に対象ファイル行なし or 著者スキルの完全性ゲート成果物不在 or facts更新後の再著述未実施 | generating-reverse-detailed-design |
-| 画面未開通 | 静的リバース成果物は著述済みだが、動的検証に必要な実レンダリング確認済みURLがない | unlocking-reverse-target-screens（`verification_mode=docs-only` では起動せず「静的リバース完了」で終端） |
-| ファイル単位未検証 | 著述済み（設計書未著述の成果物実在）かつ当該ファイルの検証記録に再現一致なし（任意工程） | rebuilding-screen-unit-from-docs |
-| 基準未確立 | 設計書有・baseline_tag 未確立 | syncing-reverse-env（mode=setup → sync） |
-| 往復未検証 | baseline_tag有・reverse未実装 or 未突合 | rebuilding-code-from-docs（implement）→ syncing-reverse-env（sync,dry-run）→ rebuilding-code-from-docs（judge） |
-| 検証完了 | judge の status=PASS | syncing-reverse-env（mode=sync 本番 / 依頼時 teardown） |
-
-複数サイトの場合、上表の `<output_dir>` は「当該サイトのサイトルート」と読み替える。
+複数サイトの場合、`references/contract.md` の状態判定表にある `<output_dir>` は「当該サイトのサイトルート」と読み替える。
 
 画面開通は facts 抽出・基本設計・詳細設計の前提条件ではない。原本コードと封印済み facts から静的リバースを先に完了し、画面開通はファイル単位検証・基準確立・往復検証へ進む直前にだけ要求する。開通できない場合も静的成果物は破棄せず「静的リバース完了・動的検証保留」として報告する。
 
@@ -104,7 +64,6 @@ headless=trueではAskUserQuestionを使わず、選択したprofileの必須引
 
 AskUserQuestionツールでprofileに応じた必須項目を確定する。起動引数が空の対話実行では、最初に`facts_profile=auto|screen|python`を選ばせてから同じ規則を適用する。`facts_profile=auto|screen`では対象プロジェクトパス・出力先パス・画面範囲・実行モードの4項目を確定する。
 
-
 起動引数の `reverse_docs_root`・`target_repo_path`・`output_dir`・`screen_scope` を解決する。`reverse_docs_root` は配布rootの絶対パスとして実在確認し、固定インストール先を仮定しない。未指定かつ `headless=false` の場合だけ AskUserQuestion で対象プロジェクト、出力先、画面範囲を確認する。`headless=true` では引数不足を ERROR として終端し、値を推測しない。成果物の実在から16状態を順に判定し、実行対象の global Step を TaskCreate で先出し登録する。
 
 `facts_profile=python`では画面範囲を尋ねず、対象プロジェクトパス・出力先パス・実行モードに加えて以下の3項目を確定する:
@@ -124,7 +83,6 @@ AskUserQuestionツールでprofileに応じた必須項目を確定する。起�
 - global_step: 2
 - tool: AskUserQuestion / Read
 - condition: headless=true または全引数指定済みなら確認を省略
-
 
 `verification_mode=docs-only|single-pass|iterative`、対象画面、フル実行か個別スキル利用かを確定する。「複雑度層別サンプル」は既存の複雑度プロファイルから sampledScreenKeys の和集合を screen_ids に変換し、未生成なら画面一覧スキルのプロファイル工程を先行する。
 
@@ -162,7 +120,6 @@ survey_doc_path確定後に限り、Skillでextracting-unit-facts-from-codeをta
 - tool: Read / Skill
 - condition: アーキ未調査または back_edge_id=architecture-revise のとき実行
 
-
 surveying-architecture-for-reverse-docs へ target_repo_path・output_dir・template_root・mode を渡して、このブロックでは1回だけ起動する。既存調査書が無ければ mode=survey、下流の検出手がかり不足から戻った場合は mode=revise と revise_findings を渡す。返却ブロックと機械証拠を保持し、global Step 4〜7は同じ起動結果を順に検収する。部分起動modeがない子スキルをStepごとに再起動しない。
 
 **完了**: 子スキルが調査に必要な入力を受理し、前提検査を通過している。
@@ -172,7 +129,6 @@ surveying-architecture-for-reverse-docs へ target_repo_path・output_dir・temp
 - global_step: 4
 - tool: Read
 - condition: Step 2-1 通過時
-
 
 global Step 3の同一起動が返した走査証拠から、技術スタック、ルーティング、6種別の検出根拠をReadで検収する。管理者は子スキルの走査手順を代行せず、再起動もしない。
 
@@ -184,7 +140,6 @@ global Step 3の同一起動が返した走査証拠から、技術スタック�
 - tool: Read
 - condition: Step 2-2 通過時、または architecture-revise の戻り先
 
-
 global Step 3の同一起動が生成した調査書をReadで検収する。revision では revise_findings の範囲だけが追記・修正され、既存の確定事実が保持されていることを確認する。
 
 **完了**: survey_doc_path の候補が生成されている。
@@ -195,7 +150,6 @@ global Step 3の同一起動が生成した調査書をReadで検収する。rev
 - tool: Read
 - condition: Step 2-3 完了時
 
-
 global Step 3の同一起動が実行した check-architecture-survey.sh の終了コードと出力をReadで受領する。管理者の自然文判断で PASS を代替しない。
 
 **完了**: 機械ゲートが PASS、または再修正に必要な決定的FAILが得られている。
@@ -205,7 +159,6 @@ global Step 3の同一起動が実行した check-architecture-survey.sh の終�
 - global_step: 7
 - tool: Read / TaskUpdate
 - condition: Step 2-4 PASS時
-
 
 global Step 3の同一起動から返された status=調査確定 と artifacts[0]=survey_doc_path を検収し、unit_kinds_present を保持する。status=中断は hint を報告して停止する。
 
@@ -232,7 +185,6 @@ revise_findings を固定し、Step 2-3へ戻す。既存タスクを巻き戻�
 - tool: Agent / Skill
 - condition: 一覧未生成時
 
-
 unit_kinds_present に含まれる種別だけ、対応する6一覧スキルを起動する。対話モードは Agent で並列、headless は Skill で逐次実行する。各子へ source_dir・output_dir を渡し、status=DONE を検収する。画面については永続正本を `screen_manifest_path=<output_dir>/一覧/画面一覧/screen-manifest.json`、`screen_manifest_ext_path=<output_dir>/一覧/画面一覧/screen-manifest.ext.json` に固定し、検出直後の生マニフェストとメタデータ付与後マニフェストをそれぞれ原子的に保存する。
 
 通常の再開実行は永続 screen_manifest_path を直接入力にする。旧成果物の明示的な移行・復元を行う場合に限り、画面一覧HTMLが存在して永続 screen_manifest_path が無ければ `bash shared/scripts/unit-list/restore-screen-manifest.sh <output_dir>/一覧/画面一覧/画面一覧.html <screen_manifest_path>` を実行して埋込 `#screen-manifest` から一度だけ復元する。続いて validate-manifest.sh を通し、固定した generated_at と raw の正規化SHA-256を `--generated-at`・`--manifest-content-hash` へ渡して extract-screen-metadata.sh で screen_manifest_ext_path を再生成する。復元・検証・メタデータ付与・hash一致のいずれかが失敗した場合は通常工程へ合流しない。
@@ -247,7 +199,6 @@ unit_kinds_present に含まれる種別だけ、対応する6一覧スキルを
 - tool: Write / Edit / Skill
 - condition: Step 3-1 完了時
 
-
 unit_kinds_present に含まれない種別を excluded-kinds.json と「該当なし」文書へ記録する。`<output_dir>/一覧/画面一覧/screen-manifest.json`（raw画面正本）が存在する場合のみ generating-feature-list-for-reverse-docs を source_dir・output_dir（・任意で survey_doc_path）で起動する。raw画面正本が存在しない場合は機能一覧をスキップし、画面一覧の正本確立後に本Stepを再実行する。生成結果の空判定で対象外を再評価しない。画面一覧HTMLが存在するのに `一覧/機能一覧/機能一覧.html` が不在の場合、状態判定の16状態には追加せず本Stepを再実行して補完する（派生一覧は16状態の判定フローの対象外）。
 
 **完了**: 6種別の生成済み/対象外が復元可能で、生成可能な機能一覧が存在する。
@@ -257,7 +208,6 @@ unit_kinds_present に含まれない種別を excluded-kinds.json と「該当�
 - global_step: 11
 - tool: Skill
 - condition: 画面一覧とAPI一覧が存在する場合のみ
-
 
 機能一覧確立後、`<output_dir>/一覧/画面一覧/screen-manifest.json`・同`screen-manifest.ext.json`・`<output_dir>/一覧/API一覧/API一覧.html`がすべて存在する場合のみ generating-cross-views-for-reverse-docs を target_repo_path・output_dir（・任意で portal_output_dir・sites_path・site_key）で起動し、生成可能なマトリクス・対応表4ページとAI設定資産ページを生成する。いずれか不在の場合はスキップし、raw・raw由来ext・API一覧の確立後に再実行する。既知の permission-function データ形状ギャップは skipped_pages として保持する。画面一覧HTML・API一覧HTMLが両方存在するのにマトリクス・対応表・AI設定資産ページが1つも存在しない場合は本Stepを再実行して補完する（派生補完は16状態の判定フローの対象外）。
 
@@ -271,7 +221,6 @@ unit_kinds_present に含まれない種別を excluded-kinds.json と「該当�
 - tool: Skill
 - condition: 共通未採録または common-docs-append のとき実行
 
-
 survey_doc_path を渡して generating-reverse-common-docs をこのブロックで1回だけ起動する。初回は mode=v0、共通文書欠落の差し戻しは mode=append と append_findings を使う。返却ブロックと機械証拠を保持し、global Step 13〜15は同じ起動結果を検収する。
 
 **完了**: 採録対象の層化サンプルが確定している。
@@ -281,7 +230,6 @@ survey_doc_path を渡して generating-reverse-common-docs をこのブロッ�
 - global_step: 13
 - tool: Read
 - condition: Step 4-1 通過時
-
 
 global Step 12の同一起動が生成した規約4種の実在をReadで検収する。管理者は原本走査や文書生成を代行せず、子スキルを再起動しない。
 
@@ -293,7 +241,6 @@ global Step 12の同一起動が生成した規約4種の実在をReadで検収�
 - tool: Read
 - condition: Step 4-2 通過時、または common-docs-append の戻り先
 
-
 global Step 12の同一起動が生成した共通設計書・メッセージ定義書・DESIGN.mdをReadで検収し、append時は指摘対象だけが追記された証拠を確認する。
 
 **完了**: common_docs_root 配下の必須文書が生成済み。
@@ -303,7 +250,6 @@ global Step 12の同一起動が生成した共通設計書・メッセージ定
 - global_step: 15
 - tool: Read / TaskUpdate
 - condition: Step 4-3 完了時
-
 
 global Step 12の同一起動が返した機械ゲート証拠とstatus=採録v0確定または追記完了を検収し、common_docs_root を保持する。
 
@@ -349,7 +295,6 @@ bash shared/scripts/build-portal.sh \
 - tool: Read / Bash
 - condition: screen種別のみ。その他5種別は「後続未対応」で終端
 
-
 対象画面IDを一覧マニフェストで検証し、`target_file_paths` の合計行数とファイル数を実測して authoring_mode を決定する（合計1,500行超または4ファイル超なら `large-two-pass`、それ以外は `standard`）。画面未開通は静的処理の阻害条件にしない。通常の画面ループは `facts_profile=auto|screen` のどちらでも常に `profile=screen` を渡し、対象ファイルが全件 `.py` でも python へ自動変更しない。`facts_profile=python` は global Step 2 の明示Python facts-only経路で終端済みのため本ループへ到達しない。スキャフォールディングは事実封印完了（facts_ref確定）後に1回だけ実施し（`bash <scaffold_script_path> <output_dir> <画面ID> [<画面名>]` を画面ディレクトリ未存在時のみ実行。既存の場合は `--verify` のみで健全性確認する）、facts抽出より前へ移動してはならない。
 
 **完了**: 対象ユニット・対象ファイル・著述モードが確定している。
@@ -359,7 +304,6 @@ bash shared/scripts/build-portal.sh \
 - global_step: 18
 - tool: Skill
 - condition: 事実未封印時
-
 
 extracting-unit-facts-from-code を profile=screen と必要args全量で、このブロックでは1回だけ起動する。原本コードからfactsを抽出させ、返却ブロックと再計数・封印・再現性の機械証拠を保持する。global Step 19〜21は同じ起動結果を検収し、部分起動modeのない子スキルを再起動しない。
 
@@ -371,7 +315,6 @@ extracting-unit-facts-from-code を profile=screen と必要args全量で、こ�
 - tool: Read
 - condition: Step 5-2 完了時
 
-
 global Step 18の同一起動が返した独立再計数ゲートの終了コードと突合結果をReadで検収する。
 
 **完了**: 再計数ゲートがPASSしている。
@@ -381,7 +324,6 @@ global Step 18の同一起動が返した独立再計数ゲートの終了コー
 - global_step: 20
 - tool: Read
 - condition: Step 5-3 PASS時
-
 
 global Step 18の同一起動が返したfacts.lockの実在・ハッシュ・status=封印済みをReadで検収する。
 
@@ -393,7 +335,6 @@ global Step 18の同一起動が返したfacts.lockの実在・ハッシュ・st
 - tool: Read
 - condition: Step 5-4 完了時
 
-
 global Step 18の同一起動が返した決定的再現性検査のPASS証拠をReadで検収する。
 
 **完了**: 再現性検証がPASSしている。
@@ -403,7 +344,6 @@ global Step 18の同一起動が返した決定的再現性検査のPASS証拠�
 - global_step: 22
 - tool: Read / Bash
 - condition: facts_ref と common_docs_root 確定後
-
 
 画面ディレクトリを1回だけscaffoldまたはverifyし、generating-reverse-basic-designへ渡すテンプレート・facts・共通文書のargsを準備する。このStepでは子スキルを起動しない。
 
@@ -415,7 +355,6 @@ global Step 18の同一起動が返した決定的再現性検査のPASS証拠�
 - tool: Skill / Agent
 - condition: standardは詳細設計と並列、large-two-passは詳細設計パス1後
 
-
 準備済みargsでgenerating-reverse-basic-designをこのブロックで1回だけ起動する。standardはdetailedと同時起動し、large-two-passはdetail-onlyの開始証跡を受領してからbasicのlarge-pass2を起動する。
 
 **完了**: 基本設計著述完了を受領している。
@@ -425,7 +364,6 @@ global Step 18の同一起動が返した決定的再現性検査のPASS証拠�
 - global_step: 24
 - tool: Read
 - condition: Step 5-7 完了時
-
 
 global Step 23の同一起動が返した実装用語混入検査の終了コード、基本設計書パス、status=基本設計著述完了をReadで検収する。
 
@@ -437,7 +375,6 @@ global Step 23の同一起動が返した実装用語混入検査の終了コー
 - tool: Read
 - condition: facts_ref と common_docs_root 確定後
 
-
 generating-reverse-detailed-designへ渡す封印検証・章マップ・監査スクリプト・著述モードのargsを準備する。このStepでは子スキルを起動しない。
 
 **完了**: 詳細設計著述の入力と封印状態が検収済み。
@@ -448,7 +385,6 @@ generating-reverse-detailed-designへ渡す封印検証・章マップ・監査�
 - tool: Skill / Agent
 - condition: authoring_modeに従う
 
-
 準備済みargsでgenerating-reverse-detailed-designを起動する。standardはauthoring_pass=fullで1回だけ起動する。large-two-passはauthoring_pass=detail-onlyを1回起動してDETAIL_AUTHOREDと開始証跡を検収し、その証跡を渡してauthoring_pass=companion-docsを別のSkill/Agentとして2回目に起動する。2回目はbasicのlarge-pass2と並列化できるが、パス1返却前の起動は禁止する。
 
 **完了**: 詳細設計と周辺文書の生成パスが返却候補として存在する。
@@ -458,7 +394,6 @@ generating-reverse-detailed-designへ渡す封印検証・章マップ・監査�
 - global_step: 27
 - tool: Read / Bash
 - condition: Step 5-10 完了時。gold標準不在は理由付きスキップ
-
 
 global Step 26の該当起動（standardはfull、large-two-passはdetail-onlyとcompanion-docs）が返した完全性ゲート証拠をReadで検収し、gold標準が存在する場合だけ backtest-facts-against-gold.sh と check-doc-coverage-against-gold.sh を実行する。ゲート検収だけを目的とした再起動はしない。
 
@@ -488,7 +423,6 @@ global Step 26の該当起動から、standardは最終返却status=AUTHORED、l
 - tool: AskUserQuestion / Skill
 - condition: verification_mode=single-pass|iterative
 
-
 実レンダリング確認済みURLが無ければ unlocking-reverse-target-screens を dynamic-only で起動する。次に syncing-reverse-env(mode=setup) でenv_blockを取得し、承認後に rebuilding-screen-unit-from-docs でファイル単位検証を行う。続けて syncing-reverse-env(mode=sync) でbaseline_tagを確立し、rebuilding-code-from-docs(mode=implement)のcompare_requestを受領し、syncing-reverse-env(mode=sync,dry-run)の比較結果全文を保持する。順序は unlock → setup → file verify → baseline sync → implement → compare で固定する。
 
 **完了**: compare_result全文とfreeze_commitが揃うか、静的成果物を保持した動的検証保留理由が確定している。
@@ -501,31 +435,17 @@ global Step 26の該当起動から、standardは最終返却status=AUTHORED、l
 - tool: Skill / AskUserQuestion / TaskCreate
 - condition: Step 6-1でcompare_result取得済み
 
-
 rebuilding-code-from-docs(mode=judge)へcompare_result全文とfreeze_commitを渡す。PASS時は承認後に syncing-reverse-env(mode=sync)で基準タグを本番更新し、依頼時だけteardownする。FAIL時はNG帰着3系統へ分類し、single-passは改善候補を報告して停止、iterativeだけ下記back-edge metadataに従って戻す。
 
 **完了**: PASS・FAIL・動的検証保留のいずれかが確定し、PASS時は基準更新または依頼時teardownが完了している。
 
 ## 条件分岐メタデータ
 
-| conditional_step_id | 判定Step | 条件 | 実行経路 |
-|---|---|---|---|
-| screen-batch-route | global Step 16 | 対象画面4件以上 | running-reverse-screen-batchへglobal Step 17〜30を委譲 |
-| screen-batch-route | global Step 16 | 対象画面3件以下 | 本スキルがglobal Step 17〜30を逐次仲介 |
-| docs-only-terminal | global Step 28 | verification_mode=docs-only | 静的完了で終端しglobal Step 29〜30を起動しない |
-| dynamic-route | global Step 28 | verification_mode=single-pass または iterative | global Step 29へ進む |
+各 conditional_step_id（screen-batch-route・docs-only-terminal・dynamic-route）の判定Step・条件・実行経路の対応表は `references/operations.md` の「条件分岐メタデータ」節を正本とする。宣言自体は各Stepブロックの `conditional_step_id` 行に本文として存在する。
 
 ## Back-edgeメタデータ
 
-| back_edge_id | from_global_step | to_global_step | 条件 | 上限 | 停止条件 |
-|---|---:|---:|---|---:|---|
-| architecture-revise | 8 | 5 | 下流が検出手がかり不足を決定的に報告 | 3 | 調査ゲートPASS / 同一FAIL 2連続 |
-| facts-reextract | 29 | 18 | iterativeかつファイル検証がfacts欠落へ分類 | 5 | 再現一致 / 5回到達 |
-| detail-rewrite | 29 | 26 | iterativeかつファイル検証が著述不足へ分類 | 5 | 再現一致 / 5回到達 |
-| common-docs-append | 30 | 14 | iterativeかつjudge FAILが共通文書欠落 | 3 | judge PASS / 同一差分2連続 |
-| dynamic-retry | 30 | 29 | iterativeかつ再比較可能な一時FAIL | 3 | judge PASS / 同一差分2連続 |
-
-back-edgeは通常順序を上書きする唯一の例外である。戻り先・条件・上限をprogress.jsonlとTaskCreateへ記録し、暗黙の「前工程へ戻る」表現を禁止する。
+各 back_edge_id（architecture-revise・facts-reextract・detail-rewrite・common-docs-append・dynamic-retry）の戻り先global Step・条件・上限・停止条件の対応表は `references/operations.md` の「Back-edgeメタデータ」節を正本とする。back-edgeは通常順序を上書きする唯一の例外であり、戻り先・条件・上限をprogress.jsonlとTaskCreateへ記録し、暗黙の「前工程へ戻る」表現を禁止する。
 
 ## 完了条件
 
@@ -545,11 +465,7 @@ Phase 1 の開始前に Read で `references/operations.md` を全文読み込�
 
 ## 重要な注意事項
 
-- 子スキルは args 全量指定・対話ゼロで起動する（子は AskUserQuestion を発行しない契約）
-- 白紙化などの破壊的操作のユーザー承認は管理者が事前に取り、user-approved として args で渡す（子はユーザーに直接聞かない）
-- output_dir が null のときの展開先確認も管理者が担う
-- 各子スキルは単独起動可能（ユーザーが同じ args を手渡せば動く）。工程順序を知るのは管理者だけ
-- 無人モードを含む全モードで、各工程は必ず Skill ツールで子スキルを起動すること。子スキルの手順を管理者が直接実行することを禁止する。Skill 起動が失敗する場合は失敗として記録し、代替実行しない
+子スキル起動の対話ゼロ契約・破壊的操作の承認委譲・output_dir null時の展開先確認・単独起動可能性・Skill起動の必須化（直接実行の禁止）の5項目は `references/operations.md` の「重要な注意事項」節を正本とする。
 
 ## 予想を裏切る挙動
 
