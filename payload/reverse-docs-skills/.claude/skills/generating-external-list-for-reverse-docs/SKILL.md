@@ -74,7 +74,7 @@ allowed-tools: [AskUserQuestion, Bash, Grep, Read, Write]
 | ユニットキー | 現行の名称 | 命名 | 根拠 | 断定可否 |
 |---|---|---|---|---|
 
-検出結果は一時ディレクトリ（`$CLAUDE_JOB_DIR/tmp/external-manifest.json`、未設定時は `${TMPDIR:-/tmp}/claude-job-${session}/tmp/` 配下。`${session}`はセッションIDが取得できなければ任意の一意な値でよい）に保存する。
+検出結果は一時ディレクトリ（`$CLAUDE_JOB_DIR/tmp/external-manifest.json`、未設定時は `${TMPDIR:-/tmp}/claude-job-${session}/tmp/` 配下。`${session}`はセッションIDが取得できなければ任意の一意な値でよい）に保存する。確定後は `<output_dir>/一覧/外部連携一覧/external-manifest.json` へ一時ファイル + rename で原子的に永続化する。一時ファイルを後続・再開処理の入力にしてはならない。
 
 **完了**: Step 2でスキーマ準拠のマニフェスト（配列キー `units`）が1件以上確定、または0件検出をユーザーに報告して停止している。Step 3で自己点検済み。Step 4で拡張マニフェストに種別固有フィールド（direction・protocol・authMethod）が付与されている
 
@@ -101,7 +101,7 @@ allowed-tools: [AskUserQuestion, Bash, Grep, Read, Write]
 
 **手作業でのプレースホルダ置換は禁止する**（過去に `entryFile=None` の混入という実害が発生している）。HTML生成は必ずスクリプト経由の決定的処理で行う。
 
-**完了**: Step 1で外部連携一覧.htmlが生成され、埋め込みJSONがマニフェストと一致している
+**完了**: Step 1で外部連携一覧.htmlが生成され、埋め込みJSONがマニフェストと一致している。永続マニフェストが `<output_dir>/一覧/外部連携一覧/external-manifest.json` に実在する
 
 ## 完了条件
 
@@ -110,7 +110,7 @@ allowed-tools: [AskUserQuestion, Bash, Grep, Read, Write]
 | Phase 1 | Step 1〜4の調査完了（`references/external-detection.md` の調査項目に準拠）。Step 5の検出戦略宣言（`unitKind: "external"`/`unitIdRegex`/`excludePatterns`）がユーザー承認済み |
 | Phase 2 | Step 2でスキーマ準拠のマニフェスト（配列キー `units`）が1件以上確定、または0件検出をユーザーに報告して停止している。Step 3で自己点検済み。Step 4で拡張マニフェストに種別固有フィールド（direction・protocol・authMethod）が付与されている |
 | Phase 3 | Step 1で `validate-manifest.sh --unit-kind external` が全項目PASS。Step 2のFAIL時修正ループは3回以内 |
-| Phase 4 | Step 1で外部連携一覧.htmlが生成され、埋め込みJSONがマニフェストと一致している |
+| Phase 4 | Step 1で外部連携一覧.htmlが生成され、埋め込みJSONがマニフェストと一致している。永続マニフェストが `<output_dir>/一覧/外部連携一覧/external-manifest.json` に実在する |
 | **Goal** | 検証済みマニフェストのみからHTMLが生成され、未解決・警告が可視化され、設計書単位の判断材料が揃っている |
 
 ## 返却

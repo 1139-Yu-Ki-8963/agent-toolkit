@@ -28,7 +28,7 @@ claude CLI のヘッドレスモード（`claude -p`、対話画面を介さず1
 |---|---|---|
 | target_repo_path | 必須 | 対象プロジェクトのリポジトリルートパス |
 | output_dir | 必須 | 設計書の書き出し先ルートパス |
-| screen_ids | 必須 | 対象画面IDリスト（配列）。"all" で画面一覧HTMLから全画面を対象にする |
+| screen_ids | 必須 | 対象画面IDリスト（配列）。"all" で画面一覧の永続マニフェストから全画面を対象にする |
 | template_root | 必須 | テンプレートディレクトリパス（shared/templates/リバース検証/画面/） |
 | common_docs_root | 必須 | プロジェクト共通設計書ディレクトリパス |
 | survey_doc_path | 必須 | アーキテクチャ調査書のファイルパス |
@@ -65,7 +65,7 @@ claude CLI 2.1.206 で実機確認済みの仕様。
 
 **使用ツール**: Read / Bash / Write
 
-screen_ids が "all" の場合は画面一覧HTML（`<output_dir>/一覧/画面一覧.html`）のマニフェストJSONから全画面IDを抽出する。指定リストの場合はそのまま使う。1行1画面IDのテキストファイル（`<output_dir>/batch-targets.txt`）に書き出す。既検証画面（レジストリで status=baseline-established）をカウントし、未検証件数を確認する。
+screen_ids が "all" の場合は画面一覧の永続マニフェスト（`<output_dir>/一覧/画面一覧/screen-manifest.json` の `screens[]`）から全画面IDを抽出する。HTML埋め込みマニフェストは復元用の副次経路であり、展開元には使わない。指定リストの場合はそのまま使う。1行1画面IDのテキストファイル（`<output_dir>/batch-targets.txt`）に書き出す。既検証画面（レジストリで status=baseline-established）をカウントし、未検証件数を確認する。
 
 **完了**: 対象画面一覧ファイルが生成され、総数と既検証数が確認済み。
 

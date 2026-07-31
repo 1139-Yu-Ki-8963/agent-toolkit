@@ -80,7 +80,7 @@ API 種別に組み込み検出器はない。抽出は **カスタム抽出パ�
 | ユニットキー | 現行の名称 | 命名 | 根拠 | 断定可否 |
 |---|---|---|---|---|
 
-検出結果は一時ディレクトリ（`$CLAUDE_JOB_DIR/tmp/api-manifest.json`、未設定時は `${TMPDIR:-/tmp}/claude-job-${session}/tmp/` 配下。`${session}` はセッション ID が取得できなければ任意の一意な値でよい）に保存する。
+検出結果は一時ディレクトリ（`$CLAUDE_JOB_DIR/tmp/api-manifest.json`、未設定時は `${TMPDIR:-/tmp}/claude-job-${session}/tmp/` 配下。`${session}` はセッション ID が取得できなければ任意の一意な値でよい）に保存する。確定後は `<output_dir>/一覧/API一覧/api-manifest.json` へ一時ファイル + rename で原子的に永続化する。一時ファイルを後続・再開処理の入力にしてはならない。
 
 **完了**: Step 1 でカスタム抽出パスが確認済み。Step 2 でスキーマ準拠のマニフェストが 1 件以上確定、または 0 件検出をユーザーに報告して停止している。Step 3 で diagnostics を確認済み。Step 4 でマニフェストに method・authRequired フィールドが付与されている
 
@@ -107,7 +107,7 @@ API 種別に組み込み検出器はない。抽出は **カスタム抽出パ�
 
 **手作業でのプレースホルダ置換は禁止する**（過去に `entryFile=None` の混入という実害が発生している）。HTML 生成は必ずスクリプト経由の決定的処理で行う。
 
-**完了**: Step 1 で API一覧.html が生成され、埋め込み JSON がマニフェストと一致している
+**完了**: Step 1 で API一覧.html が生成され、埋め込み JSON がマニフェストと一致している。永続マニフェストが `<output_dir>/一覧/API一覧/api-manifest.json` に実在する
 
 ## 完了条件
 
@@ -116,7 +116,7 @@ API 種別に組み込み検出器はない。抽出は **カスタム抽出パ�
 | Phase 1 | Step 1〜4 の調査完了（`references/api-detection.md` の調査項目に準拠）。Step 5 の検出戦略宣言（`unitKind: "api"`/`extractionMethod`/`unitIdRegex`/`excludePatterns`）がユーザー承認済み |
 | Phase 2 | Step 1 でカスタム抽出パスが確認済み。Step 2 でスキーマ準拠のマニフェストが 1 件以上確定、または 0 件検出をユーザーに報告して停止している。Step 3 で diagnostics を確認済み。Step 4 でマニフェストに method・authRequired フィールドが付与されている |
 | Phase 3 | Step 1 で `validate-manifest.sh --unit-kind api` が全項目 PASS。Step 2 の FAIL 時修正ループは 3 回以内 |
-| Phase 4 | Step 1 で API一覧.html が生成され、埋め込み JSON がマニフェストと一致している |
+| Phase 4 | Step 1 で API一覧.html が生成され、埋め込み JSON がマニフェストと一致している。永続マニフェストが `<output_dir>/一覧/API一覧/api-manifest.json` に実在する |
 | **Goal** | 検証済みマニフェストのみから HTML が生成され、未解決・診断警告が可視化され、設計書単位の判断材料が揃っている |
 
 ## 返却

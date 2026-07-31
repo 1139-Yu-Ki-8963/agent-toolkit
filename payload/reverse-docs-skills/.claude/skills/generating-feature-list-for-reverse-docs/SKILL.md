@@ -91,7 +91,7 @@ comm -13 \
   <(jq -r '.screens[].screenKey' screen-manifest.json | sort -u)
 ```
 
-- **Step 3**: スキーマ準拠のマニフェスト JSON を一時ディレクトリ(`$CLAUDE_JOB_DIR/tmp/feature-manifest.json`、未設定時は `${TMPDIR:-/tmp}/claude-job-${session}/tmp/` 配下)に Write する。この時点で `relatedApis`・`relatedTables` は空配列とする。機能を捏造しない。完了条件: マニフェスト JSON が生成済みで完全性ゲート PASS
+- **Step 3**: スキーマ準拠のマニフェスト JSON を一時ディレクトリ(`$CLAUDE_JOB_DIR/tmp/feature-manifest.json`、未設定時は `${TMPDIR:-/tmp}/claude-job-${session}/tmp/` 配下)に Write する。確定後は `<output_dir>/一覧/機能一覧/feature-manifest.json` へ一時ファイル + rename で原子的に永続化する。一時ファイルを後続・再開処理の入力にしてはならない。この時点で `relatedApis`・`relatedTables` は空配列とする。機能を捏造しない。完了条件: マニフェスト JSON が生成済みで完全性ゲート PASS
 
 **完了**: 全画面が relatedScreens または unresolved に載り(完全性ゲート PASS)、マニフェスト JSON が生成済み(relatedApis/relatedTables は空配列)
 
@@ -148,7 +148,7 @@ comm -13 \
 
 **手作業でのプレースホルダ置換は禁止する**。HTML 生成は必ずスクリプト経由の決定的処理で行う。
 
-**完了**: Step 1で拡張マニフェストに operationClass が付与済み。validate 全項目 PASS・Gate A(dangling) PASS・Gate B(completeness) PASS・機能一覧.html 生成済み
+**完了**: Step 1で拡張マニフェストに operationClass が付与済み。validate 全項目 PASS・Gate A(dangling) PASS・Gate B(completeness) PASS・機能一覧.html 生成済み。永続マニフェストが `<output_dir>/一覧/機能一覧/feature-manifest.json` に実在する
 
 ## 完了条件
 
@@ -159,7 +159,7 @@ comm -13 \
 | Phase 3 | 全画面が relatedScreens または unresolved に載り(完全性ゲート PASS)、マニフェスト JSON が生成済み(relatedApis/relatedTables は空配列) |
 | Phase 4 | 全機能の relatedApis・relatedTables・confidence が確定済み |
 | Phase 5 | 構成案がユーザー承認済み(approvedByUser: true) |
-| Phase 6 | Step 1で拡張マニフェストに operationClass が付与済み。validate 全項目 PASS・Gate A(dangling) PASS・Gate B(completeness) PASS・機能一覧.html 生成済み |
+| Phase 6 | Step 1で拡張マニフェストに operationClass が付与済み。validate 全項目 PASS・Gate A(dangling) PASS・Gate B(completeness) PASS・機能一覧.html 生成済み。永続マニフェストが `<output_dir>/一覧/機能一覧/feature-manifest.json` に実在する |
 | **Goal** | 検証済みマニフェストのみから HTML が生成され、大分類ごとの機能と関連画面・API・テーブルの対応、および要手動確認が可視化されている |
 
 ## 返却
