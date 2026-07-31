@@ -2,6 +2,64 @@
 # raw screen manifest、ext、全派生JSON/HTMLのmanifestContentHash一致を検査する。
 set -euo pipefail
 
+# 改善課題 1-138: 横断検収条件（本番経路スクリプトへの --self-test 実装）に対応する。
+# 必要性: raw/ext/13派生出力のmanifestContentHash一致検査は画面一覧確立の完全性ゲート（本番経路）
+#   で使われる決定的チェックであり、正常系（全出力が同一hashを共有）・異常系（派生JSONの
+#   hash不一致）を自己テストで固定しておく。マトリクス・対応表4HTMLは必須成分0件時にSKIPされる
+#   任意出力のため、self-testの正常系フィクスチャからは意図的に省く（SKIP経路も同時に検証する）。
+if [ "${1:-}" = "--self-test" ]; then
+  tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-screen-manifest-consistency-self-test.XXXXXX")"
+  trap 'rm -rf "$tmp"' EXIT
+
+  cat > "$tmp/raw.json" <<'JSON'
+{"screens":[{"screenKey":"home","kind":"route","route":"/home","screenNameGuess":"ホーム"}]}
+JSON
+  canonical="$(jq -cjS . "$tmp/raw.json")"
+  if command -v shasum >/dev/null 2>&1; then
+    expected="$(printf '%s' "$canonical" | shasum -a 256 | awk '{print $1}')"
+  else
+    expected="$(printf '%s' "$canonical" | sha256sum | awk '{print $1}')"
+  fi
+  jq --arg h "$expected" --arg t "2026-07-31T00:00:00Z" \
+    '. + {generatedAt: $t, manifestContentHash: $h} | .screens[0].confirmedScreenName = "ホーム画面"' \
+    "$tmp/raw.json" > "$tmp/ext.json"
+
+  root="$tmp/output-root"
+  mkdir -p "$root/一覧/画面一覧" "$root/マトリクス・対応表/data"
+  jq -n --arg h "$expected" '{manifestContentHash: $h, nodes: [{unitKey: "home", label: "ホーム画面"}], unresolved: []}' \
+    > "$root/画面遷移図-data.json"
+  for f in permission-matrix.json permission-function-matrix.json crud-matrix.json traceability.json; do
+    jq -n --arg h "$expected" '{manifestContentHash: $h}' > "$root/マトリクス・対応表/data/$f"
+  done
+  embed() {
+    local out="$1" id="$2"
+    printf '<html><body><script type="application/json" id="%s">{"manifestContentHash":"%s"}</script></body></html>' \
+      "$id" "$expected" > "$out"
+  }
+  embed "$root/一覧/画面一覧/画面一覧.html" "screen-manifest"
+  embed "$root/index.html" "screen-manifest-source"
+  embed "$root/画面遷移図.html" "page-data"
+
+  pass=0 fail=0
+  if bash "${BASH_SOURCE[0]}" --raw-manifest "$tmp/raw.json" --ext-manifest "$tmp/ext.json" --output-root "$root" >/dev/null 2>&1; then
+    echo "PASS: 正常系（raw/ext/13派生出力がhash共有・任意4HTMLはSKIP）で終了コード0"; pass=$((pass + 1))
+  else
+    echo "FAIL: 正常系で終了コード0になるべき"; fail=$((fail + 1))
+  fi
+
+  jq '.manifestContentHash = "0000000000000000000000000000000000000000000000000000000000000000"' \
+    "$root/マトリクス・対応表/data/crud-matrix.json" > "$root/マトリクス・対応表/data/crud-matrix.bad.json"
+  mv "$root/マトリクス・対応表/data/crud-matrix.bad.json" "$root/マトリクス・対応表/data/crud-matrix.json"
+  if bash "${BASH_SOURCE[0]}" --raw-manifest "$tmp/raw.json" --ext-manifest "$tmp/ext.json" --output-root "$root" >/dev/null 2>&1; then
+    echo "FAIL: 異常系（派生JSONのhash不一致）で終了コード1になるべき"; fail=$((fail + 1))
+  else
+    echo "PASS: 異常系（派生JSONのhash不一致）で終了コード1"; pass=$((pass + 1))
+  fi
+
+  echo "self-test: $pass PASS, $fail FAIL"
+  if [ "$fail" -eq 0 ]; then exit 0; else exit 1; fi
+fi
+
 usage="Usage: check-screen-manifest-consistency.sh --raw-manifest <path> --ext-manifest <path> --output-root <dir>"
 raw=""; ext=""; root=""
 while [ "$#" -gt 0 ]; do

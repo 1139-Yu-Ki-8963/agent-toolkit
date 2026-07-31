@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 # measure-file-diff.test.sh — measure-file-diff.sh の自己テスト（合成フィクスチャ）。
 #
+# 改善課題 1-138 の横断検収条件の対象外: 本ファイル自体が measure-file-diff.sh の
+# 自己テストであり、--self-test フラグを持つ本番経路スクリプトではないため、
+# 追加の --self-test 実装は行わない（本ファイルの実行自体が回帰検証にあたる）。
+#
 # ## 設計判断
 #
 # **必要性**: measure-file-diff.sh は契約突合（6カテゴリの正規表現抽出＋集合突合）を

@@ -121,6 +121,14 @@ esac
 
 **完了**: `$output_dir/env-config.json` が正しいJSONとして存在し、全調査キーが記録済み
 
+## Step 3-2: env-config.json を機械検査する
+
+**使用ツール**: Bash
+
+出力直後に `shared/scripts/validate-env-config.sh "$output_dir/env-config.json"` を実行し、終了コードで合否を判定する。終了コード 0 は正しい JSON かつ必須キー（`os`・`arch`・`linux_compat_env`・`pkg_manager`・`tools`・`install_commands`・`surveyed_at`、および `tools` 配下の cloc/node/python3/jq/git の 5 キー）が揃っていることの機械的な合格判定であり、自然文の自己申告に代える。終了コード 1 の場合は標準エラーに列挙された不足キーを確認し、Phase 2〜3 の収集・出力をやり直す。
+
+**完了**: `validate-env-config.sh` の終了コードが 0
+
 ## Phase 4: cloc 未インストール時の案内
 
 ## Step 4-1: cloc 未インストール時の案内
@@ -141,9 +149,9 @@ cloc が既にインストール済みの場合はこの案内を省略する。
 |---|---|
 | Phase 1 | env-config.json の存在有無が確認済み |
 | Phase 2 | OS・アーキテクチャ・Linux 互換環境フラグ・パッケージ管理ツール・ツール有無が収集済み |
-| Phase 3 | env-config.json が出力先に存在する |
+| Phase 3 | `shared/scripts/validate-env-config.sh "$output_dir/env-config.json"` の終了コードが 0 であること。終了コード 0 は必須キー（os/arch/linux_compat_env/pkg_manager/tools/install_commands/surveyed_at・tools配下5キー）の値が妥当であることの機械的な合格判定であり、自然文の自己申告に代える |
 | Phase 4 | cloc 未インストール時の案内が完了している（該当時のみ） |
-| **Goal** | env-config.json が正しい JSON で出力されている |
+| **Goal** | `shared/scripts/validate-env-config.sh "$output_dir/env-config.json"` の終了コードが 0 であること |
 
 ## 使用タイミング
 
@@ -158,7 +166,14 @@ cloc が既にインストール済みの場合はこの案内を省略する。
 
 ## 設計判断
 
-本スキルは独自スクリプトを持たないため省略する。
+### shared/scripts/validate-env-config.sh
+
+- **必要性**: 改善課題 1-109 が指摘するとおり、本スキルは出力 JSON の構文検証・キー充足検証の手順を持たず完了判定が自己申告になっている。決定的な検査の exit code を完了判定に使うため、`validate-env-config.sh` を新設した
+- **代替案を採用しなかった理由**: SKILL.md 本文への検査手順の直書きは、検査ロジックが自然文に埋もれて機械実行できない。他スキルの `validate-*.sh` と同様に独立スクリプト化し、終了コードで合否を判定できる形にした
+- **保守責任者**: 人手（ユーザー）。env-config.json のスキーマ（必須キー・tools の内訳）を変更した場合は `validate-env-config.sh` の必須キー対応表を同時に更新する
+- **廃棄条件**: 本スキル自体が廃止された時、またはスキーマ検証をビルド基盤が標準で提供するようになった時
+
+詳細は `shared/scripts/validate-env-config.sh` 本体のヘッダコメントを参照する。
 
 ## 完了報告
 
@@ -166,3 +181,4 @@ cloc が既にインストール済みの場合はこの案内を省略する。
 
 固有の検証行:
 - env-config.json が正しい JSON で出力されている
+- `shared/scripts/validate-env-config.sh "$output_dir/env-config.json"` の終了コードが 0

@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+# 改善課題 1-138 の横断検収条件の対象外: 本ファイル自体が固定5サンプルに対する回帰試験
+# （writing-rules.md の密度上限の再現確認）であり、--self-test フラグを持つ本番経路
+# スクリプトではないため、追加の --self-test 実装は行わない（本ファイルの実行自体が
+# 回帰検証にあたる）。
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "$0")/../.." && pwd)"

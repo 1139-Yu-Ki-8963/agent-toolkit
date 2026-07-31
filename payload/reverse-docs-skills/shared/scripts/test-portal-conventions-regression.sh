@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# 改善課題 1-138 の横断検収条件の対象外: 本ファイル自体が test-portal-conventions.sh の
+# 回帰テストであり、--self-test フラグを持つ本番経路スクリプトではないため、追加の
+# --self-test 実装は行わない（本ファイルの実行自体が回帰検証にあたる）。
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd -P)"

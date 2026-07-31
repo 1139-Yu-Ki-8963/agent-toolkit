@@ -28,6 +28,51 @@
 
 set -euo pipefail
 
+# 改善課題 1-138: 横断検収条件（本番経路スクリプトへの --self-test 実装）に対応する。
+# 必要性: コンポーネント棚卸しの抽出はgenerating-component-inventory-for-reverse-docsの
+#   本番経路で使われる決定的な抽出処理であり、正常系（export名・カテゴリ・被参照カウントの
+#   抽出）・異常系（source-dir不在）を自己テストで固定しておく。
+if [ "${1:-}" = "--self-test" ]; then
+  tmp="$(mktemp -d "${TMPDIR:-/tmp}/extract-component-inventory-self-test.XXXXXX")"
+  trap 'rm -rf "$tmp"' EXIT
+
+  mkdir -p "$tmp/src/components" "$tmp/src/pages"
+  cat > "$tmp/src/components/Foo.tsx" <<'TSX'
+type Props = { label: string };
+export default function Foo(props: Props) {
+  return null;
+}
+TSX
+  cat > "$tmp/src/pages/Home.tsx" <<'TSX'
+import Foo from "../components/Foo";
+export default function Home() {
+  return Foo;
+}
+TSX
+
+  pass=0 fail=0
+  if bash "${BASH_SOURCE[0]}" "$tmp/src" "$tmp/out.json" >/dev/null 2>&1; then
+    total="$(jq '.summary.totalComponents' "$tmp/out.json" 2>/dev/null || echo -1)"
+    foo_count="$(jq '[.components[] | select(.name == "Foo") | .importCount][0] // -1' "$tmp/out.json" 2>/dev/null)"
+    if [ "$total" = "2" ] && [ "$foo_count" = "1" ]; then
+      echo "PASS: 正常系（component 2件・Foo importCount=1）で終了コード0"; pass=$((pass + 1))
+    else
+      echo "FAIL: 抽出結果が期待と異なる（totalComponents=$total, Foo importCount=$foo_count）"; fail=$((fail + 1))
+    fi
+  else
+    echo "FAIL: 正常系で終了コード0になるべき"; fail=$((fail + 1))
+  fi
+
+  if bash "${BASH_SOURCE[0]}" "$tmp/存在しないsource" "$tmp/out2.json" >/dev/null 2>&1; then
+    echo "FAIL: 異常系（source-dir不在）で終了コード1になるべき"; fail=$((fail + 1))
+  else
+    echo "PASS: 異常系（source-dir不在）で終了コード1"; pass=$((pass + 1))
+  fi
+
+  echo "self-test: $pass PASS, $fail FAIL"
+  if [ "$fail" -eq 0 ]; then exit 0; else exit 1; fi
+fi
+
 if [ "$#" -lt 2 ]; then
   echo "Usage: $0 <source-dir> <output.json>" >&2
   exit 1

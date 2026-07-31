@@ -37,6 +37,45 @@ usage() {
   echo "Usage: $(basename "$0") <メッセージ定義書.md> <output.json>" >&2
 }
 
+# 改善課題 1-138: 横断検収条件（本番経路スクリプトへの --self-test 実装）に対応する。
+# 必要性: メッセージ定義書からのmanifest変換はgenerating-message-list-for-reverse-docsの
+#   本番経路で使われる決定的な抽出処理であり、正常系（5列テーブルからunits抽出）・
+#   異常系（入力ファイル不在）を自己テストで固定しておく。
+if [ "${1:-}" = "--self-test" ]; then
+  tmp="$(mktemp -d "${TMPDIR:-/tmp}/convert-message-doc-self-test.XXXXXX")"
+  trap 'rm -rf "$tmp"' EXIT
+
+  cat > "$tmp/メッセージ定義書.md" <<'MD'
+# メッセージ定義書
+
+| キー | 文言(実測) | 種別 | 抽出元 | 使用画面 |
+|---|---|---|---|---|
+| `E001` | `必須項目です` | `error` | `src/validators.ts` | `home` |
+| `I001` | `保存しました` | `info` | `src/save.ts` | `home` |
+MD
+
+  pass=0 fail=0
+  if bash "${BASH_SOURCE[0]}" "$tmp/メッセージ定義書.md" "$tmp/out.json" >/dev/null 2>&1; then
+    count="$(jq '.units | length' "$tmp/out.json" 2>/dev/null || echo -1)"
+    if [ "$count" = "2" ]; then
+      echo "PASS: 正常系（5列テーブル2件からunits 2件抽出）で終了コード0"; pass=$((pass + 1))
+    else
+      echo "FAIL: unitsの件数が2件ではない（実測=$count）"; fail=$((fail + 1))
+    fi
+  else
+    echo "FAIL: 正常系で終了コード0になるべき"; fail=$((fail + 1))
+  fi
+
+  if bash "${BASH_SOURCE[0]}" "$tmp/存在しない定義書.md" "$tmp/out2.json" >/dev/null 2>&1; then
+    echo "FAIL: 異常系（入力ファイル不在）で終了コード1になるべき"; fail=$((fail + 1))
+  else
+    echo "PASS: 異常系（入力ファイル不在）で終了コード1"; pass=$((pass + 1))
+  fi
+
+  echo "self-test: $pass PASS, $fail FAIL"
+  if [ "$fail" -eq 0 ]; then exit 0; else exit 1; fi
+fi
+
 if [ "$#" -lt 2 ]; then
   usage
   exit 1

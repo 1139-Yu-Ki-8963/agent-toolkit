@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 # 旧成果物の移行・復元テスト専用: 指定commitのchecked-in HTMLからraw screen/API manifest fixtureを復元する。
+#
+# 改善課題 1-138 の横断検収条件の対象外: 本ファイルはコメントの通りテスト専用のフィクスチャ
+# 生成スクリプトであり、本番経路のスクリプトではないため、追加の --self-test 実装は
+# 行わない（消費側の test-rebuild-screen-derived-pages.sh が実際のfixtureで検証する）。
 set -euo pipefail
 usage="Usage: prepare-screen-rebuild-sample-fixture.sh --repo-root <path> --commit <sha> --output <dir>"
 repo=""; commit=""; output=""

@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 # 実サンプルfixtureによるfull rebuild決定性・child失敗・commit途中rollback試験。
+#
+# 改善課題 1-138 の横断検収条件の対象外: 本ファイル自体が試験スクリプトであり、
+# --self-test フラグを持つ本番経路スクリプトではないため、追加の --self-test 実装は
+# 行わない（本ファイルの実行自体が回帰検証にあたる）。
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"

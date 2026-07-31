@@ -37,9 +37,14 @@ get_page_category() { case "$1" in glossary) echo "project";; techstack) echo "p
 #     build-detail-page.sh自体もpageKind不一致データをexit 1で拒否することを検証する。
 #     加えて、存在しないtoを1本混ぜたtransitionの孤児edgeが、validate-page-data.shの
 #     孤児参照検査でFAILし、build-detail-page.sh自体もexit 1で拒否することを検証する
-# (d) glossary/transition/er/env/entity-state の5種別それぞれについて、ファイル名対応(PAGE_FILENAME)・
-#     埋め込みJSON完全一致・未解決{{なしを検証する(techstackはケースa/bで検証済み。
-#     6種別全てのPASS行が出揃うことを条件とする)
+# (d) glossary/transition/er/env/entity-state/release-notes/design-system/component-inventory/
+#     icon-catalog の9種別それぞれについて、ファイル名対応(PAGE_FILENAME)・埋め込みJSON完全一致・
+#     未解決{{なしを検証する(techstackはケースa/bで検証済み。10種別全てのPASS行が出揃うことを
+#     条件とする。改善課題1-150: 従来は6種別のみが対象で、release-notes/design-system/
+#     component-inventory/icon-catalogの4種別が自己テスト対象から漏れていた)
+# (h) shared/templates/detail-pages/配下のテンプレート数と、本自己テストが扱うページ種別数が
+#     一致することを検証する(改善課題1-150: 新規ページ種別の追加時に自己テスト対象への
+#     追加漏れを機械的に検知するためのガード)
 # (e) 関連エンティティ(スキーマ拡張フィールド)の有/無:
 #     有: 拡張フィールド(relatedApis/targetTables/downstreamJobs)を持つtransitionフィクスチャで
 #         「関連エンティティ」セクションと日本語ラベル+値一覧が出力されることを検証する
@@ -352,6 +357,70 @@ self_test() {
     unresolved: []
   }' > "$data_entity_state"
   check_page_fixture entity-state "$data_entity_state"
+
+  # --- 改善課題 1-150: release-notes/design-system/component-inventory/icon-catalog を
+  #     ケースd相当の自己テスト対象へ追加する(従来はtechstack/glossary/transition/er/env/
+  #     entity-stateの6種別のみが対象だった) ---
+  local data_release_notes="$tmp/page-data-release-notes.json"
+  jq -n '{
+    pageKind: "release-notes",
+    generatedAt: "2026-01-01T00:00:00Z",
+    title: "リリースノート",
+    description: "self-test用フィクスチャ",
+    releases: [{
+      id: "2026-01-01-demo", date: "2026-01-01", title: "デモ機能追加", pr: 1, prUrl: "https://example.com/pr/1",
+      flow: "feature",
+      summary: [{label: "概要", text: "デモ機能を追加した"}],
+      changes: [{type: "feat", text: "デモ画面を追加"}],
+      verifySteps: [{title: "動作確認", checks: ["デモ画面が表示される"]}]
+    }]
+  }' > "$data_release_notes"
+  check_page_fixture release-notes "$data_release_notes"
+
+  local data_design_system="$tmp/page-data-design-system.json"
+  jq -n '{
+    pageKind: "design-system",
+    generatedAt: "2026-01-01T00:00:00Z",
+    title: "デザインシステム",
+    description: "self-test用フィクスチャ",
+    tokens: [{category: "color", name: "accent", value: "#FF6E4F", usage: "強調表示"}]
+  }' > "$data_design_system"
+  check_page_fixture design-system "$data_design_system"
+
+  local data_component_inventory="$tmp/page-data-component-inventory.json"
+  jq -n '{
+    pageKind: "component-inventory",
+    generatedAt: "2026-01-01T00:00:00Z",
+    title: "コンポーネント棚卸し",
+    description: "self-test用フィクスチャ",
+    components: [{name: "Foo", path: "src/components/Foo.tsx", props: 1, usageCount: 2, files: ["src/components/Foo.tsx"]}]
+  }' > "$data_component_inventory"
+  check_page_fixture component-inventory "$data_component_inventory"
+
+  local data_icon_catalog="$tmp/page-data-icon-catalog.json"
+  jq -n '{
+    pageKind: "icon-catalog",
+    generatedAt: "2026-01-01T00:00:00Z",
+    title: "アイコンカタログ",
+    description: "self-test用フィクスチャ",
+    icons: [{name: "home", sourceType: "material", usageCount: 3, files: ["src/components/Foo.tsx"]}]
+  }' > "$data_icon_catalog"
+  check_page_fixture icon-catalog "$data_icon_catalog"
+
+  # --- 改善課題 1-150: テンプレート数と自己テストが扱う種別数の一致を検査する ---
+  # ページ種別を追加した際に自己テストの対象へ入れ忘れることを機械的に検知するためのガード。
+  local template_dir="$script_dir/../../templates/detail-pages"
+  local template_count
+  template_count="$(find "$template_dir" -maxdepth 1 -name '*.html' -type f 2>/dev/null | wc -l | tr -d ' ')"
+  local tested_kinds="glossary techstack transition er env entity-state release-notes design-system component-inventory icon-catalog"
+  local tested_count
+  tested_count="$(printf '%s\n' $tested_kinds | wc -l | tr -d ' ')"
+  if [ "$template_count" = "$tested_count" ]; then
+    echo "  [PASS] ケースh: テンプレート数(${template_count})と自己テスト対象種別数(${tested_count})が一致"
+  else
+    echo "  [FAIL] ケースh: テンプレート数(${template_count})と自己テスト対象種別数(${tested_count})が不一致。新規ページ種別が自己テスト対象から漏れている可能性がある" >&2
+    rc=1
+  fi
 
   # --- ケースe: 関連エンティティ(スキーマ拡張フィールド)の有/無 ---
   local data_rel="$tmp/page-data-rel.json"

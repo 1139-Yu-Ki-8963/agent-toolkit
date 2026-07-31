@@ -2,6 +2,48 @@
 # raw、raw由来ext、画面遷移page-dataの件数・ラベル・hash整合を検査する。
 set -euo pipefail
 
+# 改善課題 1-138: 横断検収条件（本番経路スクリプトへの --self-test 実装）に対応する。
+# 必要性: raw/ext/page-data 3資産のhash・件数・ラベル整合検査は generating-screen-transition
+#   -for-reverse-docs の本番経路で使われる決定的チェックであり、正常系（3資産が整合）・
+#   異常系（manifestContentHash不一致）を自己テストで固定しておく。
+if [ "${1:-}" = "--self-test" ]; then
+  tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-screen-transition-alignment-self-test.XXXXXX")"
+  trap 'rm -rf "$tmp"' EXIT
+
+  cat > "$tmp/raw.json" <<'JSON'
+{"screens":[{"screenKey":"home","kind":"route","route":"/home","screenNameGuess":"ホーム"}]}
+JSON
+  canonical="$(jq -cjS . "$tmp/raw.json")"
+  if command -v shasum >/dev/null 2>&1; then
+    expected="$(printf '%s' "$canonical" | shasum -a 256 | awk '{print $1}')"
+  else
+    expected="$(printf '%s' "$canonical" | sha256sum | awk '{print $1}')"
+  fi
+  jq --arg h "$expected" --arg t "2026-07-31T00:00:00Z" \
+    '. + {generatedAt: $t, manifestContentHash: $h} | .screens[0].confirmedScreenName = "ホーム画面"' \
+    "$tmp/raw.json" > "$tmp/ext.json"
+  jq -n --arg h "$expected" \
+    '{manifestContentHash: $h, nodes: [{unitKey: "home", label: "ホーム画面"}], unresolved: []}' \
+    > "$tmp/page.json"
+
+  pass=0 fail=0
+  if bash "${BASH_SOURCE[0]}" --raw-manifest "$tmp/raw.json" --ext-manifest "$tmp/ext.json" --page-data "$tmp/page.json" >/dev/null 2>&1; then
+    echo "PASS: 正常系（raw/ext/page-data整合）で終了コード0"; pass=$((pass + 1))
+  else
+    echo "FAIL: 正常系で終了コード0になるべき"; fail=$((fail + 1))
+  fi
+
+  jq '.manifestContentHash = "0000000000000000000000000000000000000000000000000000000000000000"' "$tmp/page.json" > "$tmp/page.bad.json"
+  if bash "${BASH_SOURCE[0]}" --raw-manifest "$tmp/raw.json" --ext-manifest "$tmp/ext.json" --page-data "$tmp/page.bad.json" >/dev/null 2>&1; then
+    echo "FAIL: 異常系（manifestContentHash不一致）で終了コード1になるべき"; fail=$((fail + 1))
+  else
+    echo "PASS: 異常系（manifestContentHash不一致）で終了コード1"; pass=$((pass + 1))
+  fi
+
+  echo "self-test: $pass PASS, $fail FAIL"
+  if [ "$fail" -eq 0 ]; then exit 0; else exit 1; fi
+fi
+
 usage="Usage: check-screen-transition-manifest-alignment.sh --raw-manifest <screen-manifest.json> --ext-manifest <screen-manifest.ext.json> --page-data <画面遷移図-data.json>"
 raw=""; ext=""; page=""
 while [ "$#" -gt 0 ]; do

@@ -1,6 +1,74 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# 改善課題 1-138: 横断検収条件（本番経路スクリプトへの --self-test 実装）に対応する。
+# 必要性: catalog/portal/overview/delivery 4資産の整合検査は build-portal.sh の生成物と
+#   人間向けガイドの乖離を防ぐ決定的チェックであり、正常系（4資産が整合）・異常系（必須マーカー
+#   欠落）を自己テストで固定しておくことで、検査条件を変更した際のリグレッションを検知できる。
+#   本スクリプトは ROOT_DIR を自身の配置位置から算出するため、self-test は合成リポジトリ構造
+#   （tmp配下に4資産一式を複製）を作り、本スクリプトのコピーをその中で実行する形にする。
+if [ "${1:-}" = "--self-test" ]; then
+  tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-overview-consistency-self-test.XXXXXX")"
+  trap 'rm -rf "$tmp"' EXIT
+
+  mkdir -p "$tmp/shared/scripts" "$tmp/shared/samples" "$tmp/shared/references"
+  cp "${BASH_SOURCE[0]}" "$tmp/shared/scripts/check-overview-consistency.sh"
+
+  cat > "$tmp/shared/references/portal-catalog.json" <<'JSON'
+{ "categories": [ { "key": "demo", "label": "デモカテゴリ" } ] }
+JSON
+
+  cat > "$tmp/shared/samples/index.html" <<'HTML'
+<html><body>
+<script type="application/json" id="portal-categories">
+[{"id":"demo","title":"デモカテゴリ","tools":[{"title":"デモツール","href":"/demo/demo.html"}]}]
+</script>
+</body></html>
+HTML
+
+  cat > "$tmp/shared/references/納品物フォルダ体系.md" <<'MD'
+## ポータルカテゴリ対応表
+
+| カテゴリキー | カテゴリ名 |
+|---|---|
+| `demo` | デモカテゴリ |
+MD
+
+  cat > "$tmp/reverse-docs-overview.html" <<'HTML'
+<html><body>
+<p>デモカテゴリ / デモツール / demo/demo.html</p>
+<p>generating-reverse-basic-design ∥ generating-reverse-detailed-design</p>
+<p>詳細設計パス1 → 基本設計・テスト資料パス2</p>
+<p>通常の状態遷移:</p>
+<p>project-portal/一覧/テストケース一覧/テストケース一覧.html</p>
+</body></html>
+HTML
+
+  pass=0 fail=0
+  if ( cd "$tmp" && bash shared/scripts/check-overview-consistency.sh ) >/dev/null 2>&1; then
+    echo "PASS: 正常系（4資産整合）で終了コード0"; pass=$((pass + 1))
+  else
+    echo "FAIL: 正常系で終了コード0になるべき"; fail=$((fail + 1))
+  fi
+
+  # 異常系: 必須マーカーの1つを overview.html から欠落させる
+  cat > "$tmp/reverse-docs-overview.html" <<'HTML'
+<html><body>
+<p>デモカテゴリ / デモツール / demo/demo.html</p>
+<p>通常の状態遷移:</p>
+<p>project-portal/一覧/テストケース一覧/テストケース一覧.html</p>
+</body></html>
+HTML
+  if ( cd "$tmp" && bash shared/scripts/check-overview-consistency.sh ) >/dev/null 2>&1; then
+    echo "FAIL: 異常系（必須マーカー欠落）で終了コード1になるべき"; fail=$((fail + 1))
+  else
+    echo "PASS: 異常系（必須マーカー欠落）で終了コード1"; pass=$((pass + 1))
+  fi
+
+  echo "self-test: $pass PASS, $fail FAIL"
+  if [ "$fail" -eq 0 ]; then exit 0; else exit 1; fi
+fi
+
 ROOT_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
 OVERVIEW="${ROOT_DIR}/reverse-docs-overview.html"
 SAMPLE="${ROOT_DIR}/shared/samples/index.html"

@@ -55,6 +55,8 @@ allowed-tools: [Agent, AskUserQuestion, Bash, Edit, Glob, Read, Skill, TaskCreat
 
 成果物の実在から現在の状態を判定し、次に起動する子スキルを機械的に決定する。状態一覧（16状態）は下表のとおり。詳細な実在判定基準・args・返却フィールドの定義は `references/contract.md` の状態判定表を参照。
 
+**状態判定の採用元**: 下表と `references/contract.md` の状態判定表は判定根拠の説明である。実際の状態判定は `bash scripts/resolve-flow-state.sh <output_dir> [<target_repo_path>] --screen-id <画面ID> [--system <システム名>] [--reverse-worktree <reverse_worktree>] [--target-file <対象ファイルbasename>]` を実行し、標準出力の状態キー1行をそのまま採用する（自然文の自己申告に代える機械判定）。空文字や未定義の状態キーは返さず、判定不能時は「未判定」を返す。「未判定」を受け取った場合は screen_id の解決状況（画面一覧マニフェストの実在・`--screen-id` 指定漏れ）を確認してから再実行する。
+
 | 状態キー | 判定の要点 | 次に起動する子スキル |
 |---|---|---|
 | アーキ未調査 | アーキテクチャ調査書が不在、または機械ゲート再実行が失敗 | surveying-architecture-for-reverse-docs |

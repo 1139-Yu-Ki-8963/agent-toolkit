@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 # test-e2e-portal.sh — ポータル静的 E2E テスト
 #
+# 改善課題 1-138 の横断検収条件の対象外: 本ファイル自体が shared/samples/ の生成済み
+# ポータル一式に対する試験用スクリプト（E2Eテストスイート）であり、--self-test フラグを
+# 持つ本番経路スクリプトではないため、追加の --self-test 実装は行わない（本ファイルの
+# 実行自体が検証にあたる）。
+#
 # Usage: test-e2e-portal.sh <portal-root-dir>
 #   引数省略時はスクリプト位置から ../samples を解決する。
 #
