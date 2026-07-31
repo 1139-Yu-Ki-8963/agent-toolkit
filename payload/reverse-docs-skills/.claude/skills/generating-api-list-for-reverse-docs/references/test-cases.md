@@ -18,5 +18,5 @@
 
 ## 機械検証との対応
 
-- 機械検証列が「手動」の行は、検証状況（references/generating-api-list-for-reverse-docs-guide.html のメタテーブル）へ手動確認の記録を残す
+- 機械検証が「手動」の行は、generating-api-list-for-reverse-docs-guide.html の検証状況へ手動確認を記録する
 - self-test に対応ケースを追加したら、この表の機械検証列を同じコミットで更新する
