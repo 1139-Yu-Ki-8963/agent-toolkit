@@ -11,7 +11,9 @@ set -euo pipefail
 #   1. 記載パス実在100%: 調査書内のbacktick囲みトークンのうち「/」を含む相対パスとみなせるものを
 #      抽出し、全件 target_repo_path 配下に test -e で実在確認する。URL（://）・glob（* ?）・
 #      プレースホルダ（< >）・絶対パス（先頭/）・空白/正規表現記号を含むトークン（grepパターン等の
-#      コード例）は対象外とする。
+#      コード例）は対象外とする。トークンが否定文脈マーカー「非実在:」で始まる場合
+#      （例: `非実在:.github/workflows/ci.yml`）も対象外とする。これは「このパスは実在しない」と
+#      本文で明示的に述べるための記法であり、実在チェックを免除する（改善課題1-115）。
 #   2. 6種別網羅: 画面・API・テーブル・バッチ・帳票・外部連携の6語すべてについて、種別名と
 #      判定語（実在する / 実在しない（）が同一行に存在する判定行があるか確認する。加えて、
 #      §6ユニット種別判定テーブルの検出手がかり列に記録されたgrep/rg/find系コマンドを実際に
@@ -49,11 +51,18 @@ DETECT_ENCODING_SH="$SCRIPT_DIR/../../../../shared/scripts/detect-encoding.sh"
 UNIT_KINDS="画面 API テーブル バッチ 帳票 外部連携"
 GUESS_WORDS_RE='おそらく|と思われ|かもしれ|推測|たぶん|恐らく|でしょう|のはず'
 PLACEHOLDER_RE='<実測|<FILL|TBD|TODO|調査結果を記入'
+# 実在しないことを述べるための否定文脈マーカー（改善課題1-115）。backtickトークンの先頭に
+# このマーカーを付けると（例: `非実在:src/legacy/old.ts`）、検査1の実在チェックを免除する。
+NOT_EXIST_MARKER="非実在:"
 
 # backtick囲みトークンのうち「相対パス」とみなせるもの以外を除外する判定。
-# 除外: 「/」を含まない / URL / glob / プレースホルダ / 絶対パス / 空白・正規表現記号を含む
+# 除外: 「/」を含まない / URL / glob / プレースホルダ / 絶対パス / 空白・正規表現記号を含む /
+#       否定文脈マーカー（非実在:）で始まる
 is_path_candidate() {
   tok="$1"
+  case "$tok" in
+    "${NOT_EXIST_MARKER}"*) return 1 ;;
+  esac
   case "$tok" in
     */*) : ;;
     *) return 1 ;;
@@ -554,18 +563,27 @@ S8END
   return 0
 }
 
-# 7検査すべてを実行し集約結果を返す。
+# 登録済み検査の唯一の一覧（検査数はこの一覧から導出する。固定文字列で件数を書かない）。
+# 検査を追加・削除する場合はこの一覧のみを更新すればよい（成功時メッセージ・失敗時メッセージは
+# CHECK_COUNT を通じて自動追従する）。
+CHECK_NAMES="check_paths_exist check_unit_kinds check_no_guess_words check_no_placeholder check_directory_coverage check_project_form check_encoding_hints"
+
+# CHECK_NAMES 内の検査すべてを実行し集約結果を返す。実行後 CHECK_COUNT に登録検査数を格納する。
 run_all_checks() {
   survey="$1"
   repo="$2"
   rc=0
-  check_paths_exist "$survey" "$repo" || rc=1
-  check_unit_kinds "$survey" "$repo" || rc=1
-  check_no_guess_words "$survey" || rc=1
-  check_no_placeholder "$survey" || rc=1
-  check_directory_coverage "$survey" "$repo" || rc=1
-  check_project_form "$survey" "$repo" || rc=1
-  check_encoding_hints "$survey" "$repo" || rc=1
+  count=0
+  for name in $CHECK_NAMES; do
+    count=$((count + 1))
+    case "$name" in
+      check_no_guess_words|check_no_placeholder)
+        "$name" "$survey" || rc=1 ;;
+      *)
+        "$name" "$survey" "$repo" || rc=1 ;;
+    esac
+  done
+  CHECK_COUNT="$count"
   return "$rc"
 }
 
@@ -602,7 +620,7 @@ sys.stdout.buffer.write('経理システムのルーティング定義。\n'.enc
 | 帳票 | 実在しない（帳票生成ライブラリの使用箇所が見つからないため） | - | - |
 | 外部連携 | 実在しない（外部APIクライアントの使用箇所が見つからないため） | - | - |'
 
-  # 陽性フィクスチャ: 6検査すべてPASSする想定
+  # 陽性フィクスチャ: 7検査すべてPASSする想定
   cat > "$tmp/pass.md" <<MD
 ## 調査メタ
 
@@ -1010,6 +1028,70 @@ MD
     echo "  [PASS] 検査5: 1,000ディレクトリ規模のフィクスチャで単一走査が完了した（exit 1・未網羅検出のため想定内）"
   fi
 
+  # --- 1-111自己テスト追加分: 成功時メッセージの検査数がCHECK_NAMES登録数と一致すること ---
+  registered_count="$(printf '%s\n' $CHECK_NAMES | wc -l | tr -d ' ')"
+  full_output="$(bash "$0" "$tmp/pass.md" "$tmp/repo" 2>&1)" || true
+  if echo "$full_output" | grep -q "全${registered_count}検査PASS"; then
+    echo "  [PASS] 1-111: 成功時メッセージの検査数(${registered_count})がCHECK_NAMES登録数と一致"
+  else
+    echo "  [FAIL] 1-111: 成功時メッセージの検査数がCHECK_NAMES登録数(${registered_count})と一致しない" >&2
+    echo "$full_output" >&2
+    rc=1
+  fi
+
+  # --- 1-115自己テスト追加分: 実在しないことを示す否定文脈マーカー「非実在:」 ---
+  cat > "$tmp/notexist-pass.md" <<MD
+## エントリポイント
+\`非実在:src/legacy/removed.ts\` は過去に存在したが削除済みで、現在は存在しない。
+MD
+
+  if check_paths_exist "$tmp/notexist-pass.md" "$tmp/repo" >/dev/null 2>&1; then
+    echo "  [PASS] 検査1(1-115): 非実在マーカー付きの実在しないパスは実在チェック対象外として通過"
+  else
+    echo "  [FAIL] 検査1(1-115): 非実在マーカー付きなのにexit 1になった" >&2
+    rc=1
+  fi
+
+  cat > "$tmp/notexist-fail.md" <<MD
+## エントリポイント
+\`src/legacy/removed.ts\` は過去に存在したが削除済みで、現在は存在しない。
+MD
+
+  if check_paths_exist "$tmp/notexist-fail.md" "$tmp/repo" >/dev/null 2>&1; then
+    echo "  [FAIL] 検査1(1-115): マーカー無しで実在しないパスを記述したのにexit 0になった" >&2
+    rc=1
+  else
+    echo "  [PASS] 検査1(1-115): マーカー無しで実在しないパスを記述するとexit 1"
+  fi
+
+  # --- 1-116自己テスト追加分: ワークスペース定義なしで複数サイト行を持つ調査書 ---
+  # Webサーバー設定のドキュメントルート検出（SKILL.md手順）の結果、ワークスペース定義が
+  # 無くてもサイト一覧が2行以上になり得ることを検査6で確認する。
+  multisite_repo="$tmp/multisite-repo"
+  mkdir -p "$multisite_repo/public" "$multisite_repo/admin-assets"
+  : > "$multisite_repo/package.json"
+
+  cat > "$tmp/multisite.md" <<MD
+## プロジェクト形態とサイト構成
+| 項目 | 内容 | 根拠パス |
+|---|---|---|
+| プロジェクト形態 | 単独プロジェクト | \`package.json\` |
+| ワークスペース定義 | 実在しない（ワークスペース定義ファイルが見つからないため） | \`package.json\` |
+
+### サイト一覧
+| サイトキー | 表示名 | ルートディレクトリ | ビルドコマンド | 起動コマンド | 根拠パス |
+|---|---|---|---|---|---|
+| web | 利用者サイト | public | npm run build | npm run dev | \`nginx.conf\` |
+| admin | 管理画面 | admin-assets | npm run build:admin | npm run dev:admin | \`nginx.conf\` |
+MD
+
+  if check_project_form "$tmp/multisite.md" "$multisite_repo" >/dev/null 2>&1; then
+    echo "  [PASS] 検査6(1-116): ワークスペース定義なしでも複数サイト行(2件)が実在ルートで通過"
+  else
+    echo "  [FAIL] 検査6(1-116): ワークスペース定義なしの複数サイト行がexit 1になった" >&2
+    rc=1
+  fi
+
   if [ "$rc" -eq 0 ]; then
     echo "self-test 全項目 PASS"
   else
@@ -1036,9 +1118,9 @@ if [ ! -d "$repo" ]; then
 fi
 
 if run_all_checks "$survey" "$repo"; then
-  echo "アーキテクチャ調査書ゲート: 全7検査PASS"
+  echo "アーキテクチャ調査書ゲート: 全${CHECK_COUNT}検査PASS"
   exit 0
 else
-  echo "アーキテクチャ調査書ゲート: FAIL" >&2
+  echo "アーキテクチャ調査書ゲート: FAIL（登録検査数: ${CHECK_COUNT}）" >&2
   exit 1
 fi
