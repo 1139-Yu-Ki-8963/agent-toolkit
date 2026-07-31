@@ -57,8 +57,8 @@
 - `meta.source_repo`: `target_repo_path` の値をそのまま転記する
 - `meta.source_ref`: `git -C <target_repo_path> rev-parse HEAD` を実行し、その標準出力（コミットSHA）を転記する
 - `meta.route`: `target_file_paths` に含めたルーター定義ファイルを grep で検索し、当該画面のルートパスを特定して `value` に記録する。根拠は特定に使った行を `file:line` 形式で `evidence` に記録する
-- `meta.source_encoding`: `target_file_paths` の各ファイルの文字コードを判定して記録する（`file --mime-encoding <ファイル>` の出力を `UTF-8`・`EUC-JP`・`Shift_JIS` 等の正規名へ正規化した値）。全ファイルが同一なら1件、異なる場合はファイルごとに記録する。UTF-8 の場合も省略しない
-- `meta.source_line_ending`: `target_file_paths` の各ファイルの改行コードを判定して記録する（`LF`・`CRLF`・`CR` のいずれか）
+- `meta.source_encoding`: `target_file_paths` の各ファイルの文字コードを `shared/scripts/detect-encoding.sh encoding <ファイル>` で判定して記録する。判定は候補エンコーディングでの復号可否による実測であり、推測ではない。`file --mime-encoding` は EUC-JP と Shift_JIS を判別できないため使わない。全ファイルが同一なら1件、異なる場合はファイルごとに記録する。UTF-8 の場合も省略しない
+- `meta.source_line_ending`: `target_file_paths` の各ファイルの改行コードを `shared/scripts/detect-encoding.sh line-ending <ファイル>` で判定して記録する（`LF`・`CRLF`・`CR` のいずれか）
 
 ## 大規模ユニットの分割抽出
 

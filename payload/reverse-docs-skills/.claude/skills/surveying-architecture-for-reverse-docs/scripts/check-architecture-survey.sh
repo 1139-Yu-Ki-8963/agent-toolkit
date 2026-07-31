@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# check-architecture-survey.sh — アーキテクチャ調査書の機械ゲート（6検査すべて決定的）
+# check-architecture-survey.sh — アーキテクチャ調査書の機械ゲート（7検査すべて決定的）
 #
 # 使い方:
 #   check-architecture-survey.sh <調査書パス> <target_repo_path>
@@ -13,7 +13,12 @@ set -euo pipefail
 #      プレースホルダ（< >）・絶対パス（先頭/）・空白/正規表現記号を含むトークン（grepパターン等の
 #      コード例）は対象外とする。
 #   2. 6種別網羅: 画面・API・テーブル・バッチ・帳票・外部連携の6語すべてについて、種別名と
-#      判定語（実在する / 実在しない（）が同一行に存在する判定行があるか確認する。
+#      判定語（実在する / 実在しない（）が同一行に存在する判定行があるか確認する。加えて、
+#      §6ユニット種別判定テーブルの検出手がかり列に記録されたgrep/rg/find系コマンドを実際に
+#      target_repo_path に対して再実行し、「実在する」なら1件以上・「実在しない」なら0件を
+#      返すことを確認する（改善課題1-140）。検索系コマンド以外・手がかり未記載（「-」等）は
+#      再実行せず検証不能として通過扱いにする。非UTF-8ファイルは detect-encoding.sh で
+#      UTF-8変換した一時ミラーに対して再実行する。
 #   3. 推測語ゼロ: おそらく|と思われ|かもしれ|推測|たぶん|恐らく|でしょう|のはず が0件。
 #   4. テンプレ残存ゼロ: <実測|<FILL|TBD|TODO|（調査結果を記入） が0件（§9テスト基盤のプレースホルダ残存を含む）。
 #   5. §4ディレクトリ網羅: §1のfindコマンドから走査範囲を決定的に再現し、直接ファイルを
@@ -23,6 +28,13 @@ set -euo pipefail
 #      「モノレポ」のいずれかであり、サイト一覧に1行以上あって各ルートディレクトリが
 #      target_repo_path配下に実在し、サイトキーが重複していないことを確認する。
 #      根拠パス列の書式は検査しない（パス実在は検査1が担当する）。
+#   7. §8申し送りエンコーディング実測整合: §8後続工程への申し送りに記載された
+#      「エンコーディング-」始まりのキー行について、内容セルの先頭backtickトークンを
+#      エンコーディング名、後続のbacktickトークンを対象ファイル群として抽出し、
+#      各ファイルが実バイトでそのエンコーディング名により復号できることを
+#      detect-encoding.sh decodable で確認する（改善課題1-126）。UNKNOWNと記載された
+#      行は復号可否検査の対象外とする（UNKNOWNは明示的な判定不能の申告であり、検証不能な
+#      値との復号照合はできないため）。
 #
 #   いずれか1件でも違反があれば exit 1（fail-closed）。全件PASSでexit 0。
 #   --self-test は合成フィクスチャで陽性exit 0・陰性(検査ごと)exit 1を自己検証する。
@@ -30,6 +42,9 @@ set -euo pipefail
 # 設計判断（ADR）の正本は本スキルの SKILL.md「## 設計判断」に記載する。
 # 保守責任者: 人手（ユーザー）。検査基準・除外規則を変更した時に更新する。
 # macOS bash 3.2 互換（mapfile 不使用）。
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
+DETECT_ENCODING_SH="$SCRIPT_DIR/../../../../shared/scripts/detect-encoding.sh"
 
 UNIT_KINDS="画面 API テーブル バッチ 帳票 外部連携"
 GUESS_WORDS_RE='おそらく|と思われ|かもしれ|推測|たぶん|恐らく|でしょう|のはず'
@@ -74,6 +89,38 @@ extract_section10() {
   awk '/^## .*プロジェクト形態とサイト構成/{f=1;next} /^## [^#]/{if(f)exit} f' "$1"
 }
 
+# §6 ユニット種別判定の本体テーブルを抽出する（1-140: 検出手がかりの再実行に使う）
+extract_section6() {
+  awk '/^## .*ユニット種別判定/{f=1;next} /^## [^#]|^---$/{if(f)exit} f' "$1"
+}
+
+# §8 後続工程への申し送り節を抽出する（1-126: エンコーディング申し送りの実測整合に使う）
+extract_section8() {
+  awk '/^## .*後続工程への申し送り/{f=1;next} /^## [^#]|^---$/{if(f)exit} f' "$1"
+}
+
+# repo を丸ごとコピーし、非UTF-8ファイルを detect-encoding.sh でUTF-8へ変換した
+# 一時ミラーを作る（1-140: 検出手がかりコマンドの再実行を非UTF-8原本に対しても
+# 正しく行うため）。呼び出し元がミラーパスをrm -rfで片付ける。
+prepare_utf8_mirror() {
+  src="$1"
+  mirror="$(mktemp -d "${TMPDIR:-/tmp}/architecture-survey-mirror.XXXXXX")"
+  cp -R "$src/." "$mirror/" 2>/dev/null || true
+  files="$(find "$mirror" -type f 2>/dev/null || true)"
+  while IFS= read -r f; do
+    [ -z "$f" ] && continue
+    enc="$(bash "$DETECT_ENCODING_SH" encoding "$f" 2>/dev/null || true)"
+    if [ -n "$enc" ] && [ "$enc" != "UTF-8" ]; then
+      if bash "$DETECT_ENCODING_SH" to-utf8 "$f" "${f}.utf8mirrortmp" 2>/dev/null; then
+        mv "${f}.utf8mirrortmp" "$f"
+      fi
+    fi
+  done <<MIRRORFILES
+$files
+MIRRORFILES
+  echo "$mirror"
+}
+
 # 検査1: 記載パス実在100%
 check_paths_exist() {
   survey="$1"
@@ -106,9 +153,15 @@ EOF
   return 0
 }
 
-# 検査2: 6種別網羅（判定語が同一行に存在するか）
+# 検査2: 6種別網羅（判定語が同一行に存在するか）＋ 検出手がかりの再実行整合（1-140）
+# repo（第2引数）は任意。単体で呼び出す既存の使い方（判定行の存否のみ検査）を壊さないため、
+# repo指定時のみ§6検出手がかりの再実行整合チェックを追加で行う。
 check_unit_kinds() {
   survey="$1"
+  # 引数名はhint_repoとし、他検査（check_directory_coverage等）が使うグローバル変数
+  # repoを本関数が上書きしないようにする（単一引数の既存呼び出しでrepoが空文字に
+  # クリアされ、後続検査が壊れる事故を防ぐ）。
+  hint_repo="${2:-}"
   missing=0
   for k in $UNIT_KINDS; do
     line="$(grep -F -- "$k" "$survey" 2>/dev/null | grep -E '実在する|実在しない（' || true)"
@@ -121,7 +174,87 @@ check_unit_kinds() {
     echo "検査2失敗: 6種別中 $missing 種別の判定行が見つかりません" >&2
     return 1
   fi
-  echo "検査2通過: 6種別すべてに判定行あり"
+
+  hint_bad=0
+  if [ -n "$hint_repo" ]; then
+    s6="$(extract_section6 "$survey")"
+    mirror_dir=""
+    while IFS= read -r line6; do
+      [ -z "$line6" ] && continue
+      case "$line6" in '|'*) ;; *) continue ;; esac
+      case "$line6" in *'|---|'*) continue ;; esac
+
+      kind_cell="$(echo "$line6" | awk -F'|' '{gsub(/^[ \t]+|[ \t]+$/,"",$2); print $2}')"
+      is_kind=0
+      for k in $UNIT_KINDS; do
+        if [ "$kind_cell" = "$k" ]; then
+          is_kind=1
+          break
+        fi
+      done
+      if [ "$is_kind" -eq 0 ]; then
+        continue
+      fi
+
+      verdict_cell="$(echo "$line6" | awk -F'|' '{gsub(/^[ \t]+|[ \t]+$/,"",$3); print $3}')"
+      hint_cell="$(echo "$line6" | awk -F'|' '{gsub(/^[ \t]+|[ \t]+$/,"",$4); print $4}')"
+
+      case "$verdict_cell" in
+        実在する*) expect="positive" ;;
+        実在しない*) expect="zero" ;;
+        *) continue ;;
+      esac
+
+      hint_cmd="$(echo "$hint_cell" | grep -oE '`[^`]+`' 2>/dev/null | head -1 | sed 's/^`//; s/`$//' || true)"
+      if [ -z "$hint_cmd" ] || [ "$hint_cmd" = "-" ]; then
+        echo "  検証不能: ${kind_cell}の検出手がかりが記録されていないため再実行できません（そのまま通過）" >&2
+        continue
+      fi
+
+      # 安全のため検索系(grep/rg/find)で始まるコマンドのみ再実行する。
+      # シェルメタ文字（; & | ` $( ）で追加コマンドが連結されている場合も、
+      # 「検索系コマンドのみ」とはみなさず再実行しない。
+      case "$hint_cmd" in
+        'grep '*|'rg '*|'find '*) is_search=1 ;;
+        *) is_search=0 ;;
+      esac
+      case "$hint_cmd" in
+        *';'*|*'&&'*|*'||'*|*'|'*|*'`'*|*'$('*) is_search=0 ;;
+      esac
+      if [ "$is_search" -eq 0 ]; then
+        echo "  検証不能: ${kind_cell}の検出手がかりは検索系コマンド（grep/rg/find）でないため再実行しません: ${hint_cmd}" >&2
+        continue
+      fi
+
+      if [ -z "$mirror_dir" ]; then
+        mirror_dir="$(prepare_utf8_mirror "$hint_repo")"
+      fi
+
+      hint_output="$( (cd "$mirror_dir" && eval "$hint_cmd") 2>/dev/null || true )"
+      if [ -n "$hint_output" ]; then
+        result="positive"
+      else
+        result="zero"
+      fi
+
+      if [ "$expect" != "$result" ]; then
+        echo "  検出手がかり不整合: ${kind_cell}は「${verdict_cell}」と判定されているが検出手がかり再実行結果は${result}件相当です: ${hint_cmd}" >&2
+        hint_bad=$((hint_bad + 1))
+      fi
+    done <<S6END
+$s6
+S6END
+    if [ -n "$mirror_dir" ]; then
+      rm -rf "$mirror_dir"
+    fi
+  fi
+
+  if [ "$hint_bad" -gt 0 ]; then
+    echo "検査2失敗: 検出手がかりの再実行結果が判定語と $hint_bad 件不整合です" >&2
+    return 1
+  fi
+
+  echo "検査2通過: 6種別すべてに判定行あり（検出手がかり再実行の整合確認込み）"
   return 0
 }
 
@@ -361,17 +494,78 @@ S10END
   return 0
 }
 
-# 6検査すべてを実行し集約結果を返す。
+# 検査7: §8申し送りエンコーディング実測整合（1-126）
+# 「エンコーディング-」で始まるキー行のみを対象とする。内容セルの先頭backtickトークンを
+# エンコーディング名、後続backtickトークンを対象ファイル群として、各ファイルが実バイトで
+# そのエンコーディング名により復号できることを detect-encoding.sh decodable で確認する。
+# UNKNOWN行は復号可否検査の対象外（明示的な判定不能の申告のため）。
+check_encoding_hints() {
+  survey="$1"
+  repo="$2"
+  bad=0
+  total=0
+  s8="$(extract_section8 "$survey")"
+  while IFS= read -r line8; do
+    [ -z "$line8" ] && continue
+    case "$line8" in '|'*) ;; *) continue ;; esac
+    case "$line8" in *'|---|'*) continue ;; esac
+
+    key_cell="$(echo "$line8" | awk -F'|' '{gsub(/^[ \t]+|[ \t]+$/,"",$2); print $2}')"
+    case "$key_cell" in
+      エンコーディング-*) : ;;
+      *) continue ;;
+    esac
+
+    content_cell="$(echo "$line8" | awk -F'|' '{gsub(/^[ \t]+|[ \t]+$/,"",$3); print $3}')"
+    cell_tokens="$(echo "$content_cell" | grep -oE '`[^`]+`' 2>/dev/null | sed 's/^`//; s/`$//' || true)"
+    enc="$(echo "$cell_tokens" | head -1)"
+    files="$(echo "$cell_tokens" | tail -n +2)"
+    [ -z "$enc" ] && continue
+
+    if [ "$enc" = "UNKNOWN" ]; then
+      continue
+    fi
+
+    while IFS= read -r f; do
+      [ -z "$f" ] && continue
+      total=$((total + 1))
+      path="$repo/$f"
+      if [ ! -f "$path" ]; then
+        echo "  対象ファイル不在: ${f}（キー=${key_cell}, エンコーディング=${enc}）" >&2
+        bad=$((bad + 1))
+        continue
+      fi
+      if ! bash "$DETECT_ENCODING_SH" decodable "$path" "$enc" >/dev/null 2>&1; then
+        echo "  復号不可: ${f} はエンコーディング ${enc} で復号できません（キー=${key_cell}）" >&2
+        bad=$((bad + 1))
+      fi
+    done <<FILESEND
+$files
+FILESEND
+  done <<S8END
+$s8
+S8END
+
+  if [ "$bad" -gt 0 ]; then
+    echo "検査7失敗: 申し送りのエンコーディング記載 $bad 件が実バイトで復号できません（対象 $total 件中）" >&2
+    return 1
+  fi
+  echo "検査7通過: 申し送りのエンコーディング記載はすべて実バイトで復号可能（対象 $total 件。UNKNOWN行は対象外）"
+  return 0
+}
+
+# 7検査すべてを実行し集約結果を返す。
 run_all_checks() {
   survey="$1"
   repo="$2"
   rc=0
   check_paths_exist "$survey" "$repo" || rc=1
-  check_unit_kinds "$survey" || rc=1
+  check_unit_kinds "$survey" "$repo" || rc=1
   check_no_guess_words "$survey" || rc=1
   check_no_placeholder "$survey" || rc=1
   check_directory_coverage "$survey" "$repo" || rc=1
   check_project_form "$survey" "$repo" || rc=1
+  check_encoding_hints "$survey" "$repo" || rc=1
   return "$rc"
 }
 
@@ -387,6 +581,17 @@ self_test() {
   : > "$repo/src/app/page.tsx"
   : > "$repo/src/app/api/route.ts"
   : > "$repo/src/styles/shared-theme.ts"
+
+  # 1-126自己テスト用: §8申し送りエンコーディング実測整合(検査7)の材料となる
+  # 非UTF-8ファイル（EUC-JPとShift_JISを取り違えないことも兼ねて確認する）。
+  # 既存の$repo（検査5の§4網羅性テストが厳密に対応付けている）を汚さないよう、
+  # 独立したencoding_repoに置く。
+  encoding_repo="$tmp/encoding-repo"
+  mkdir -p "$encoding_repo/src/legacy"
+  python3 -c "
+import sys
+sys.stdout.buffer.write('経理システムのルーティング定義。\n'.encode('euc-jp'))
+" > "$encoding_repo/src/legacy/routes.euc.txt"
 
   base_kinds='| 種別 | 実在判定 | 検出手がかり | 根拠パス |
 |---|---|---|---|
@@ -688,6 +893,89 @@ MD
     rc=1
   fi
 
+  # --- 1-140自己テスト追加分: 検査2への検出手がかり再実行整合チェック ---
+  # 陰性10: 「実在しない」と記録しながら再実行すると1件以上返す合成調査書でexit 1になること
+  mismatch_kinds='| 種別 | 実在判定 | 検出手がかり | 根拠パス |
+|---|---|---|---|
+| 画面 | 実在する | `find src/app -name page.tsx` で検出 | `src/app/page.tsx` |
+| API | 実在する | `find src/app/api -name route.ts` で検出 | `src/app/api/route.ts` |
+| テーブル | 実在しない（マイグレーション・ORMスキーマが見つからないため） | `find src/app -name page.tsx` で検出 | - |
+| バッチ | 実在しない（cron/ジョブランナー定義が見つからないため） | - | - |
+| 帳票 | 実在しない（帳票生成ライブラリの使用箇所が見つからないため） | - | - |
+| 外部連携 | 実在しない（外部APIクライアントの使用箇所が見つからないため） | - | - |'
+
+  cat > "$tmp/fail10.md" <<MD
+## エントリポイント
+\`package.json\` を確認した。
+
+## ユニット種別判定
+$mismatch_kinds
+MD
+
+  if check_unit_kinds "$tmp/fail10.md" "$tmp/repo" >/dev/null 2>&1; then
+    echo "  [FAIL] 検査2(1-140): 「実在しない」判定なのに検出手がかり再実行が1件以上返すのにexit 0になった" >&2
+    rc=1
+  else
+    echo "  [PASS] 検査2(1-140): 判定と検出手がかり再実行結果の不整合でexit 1"
+  fi
+
+  # 陽性: 判定と検出手がかり再実行結果が整合する合成調査書（pass.md）は通過すること
+  if check_unit_kinds "$tmp/pass.md" "$tmp/repo" >/dev/null 2>&1; then
+    echo "  [PASS] 検査2(1-140): 判定と検出手がかり再実行結果が整合する合成調査書は通過"
+  else
+    echo "  [FAIL] 検査2(1-140): 整合しているのにexit 1になった" >&2
+    rc=1
+  fi
+
+  # --- 1-126自己テスト追加分: 検査7(§8申し送りエンコーディング実測整合) ---
+  # 陽性: 記録されたエンコーディング名で対象ファイルが実際に復号できる
+  cat > "$tmp/encoding-pass.md" <<MD
+## §8 後続工程への申し送り
+
+| キー | 内容 |
+|---|---|
+| エンコーディング-legacyルーティング定義 | \`EUC-JP\`（対象: \`src/legacy/routes.euc.txt\`） |
+MD
+
+  if check_encoding_hints "$tmp/encoding-pass.md" "$encoding_repo" >/dev/null 2>&1; then
+    echo "  [PASS] 検査7(1-126): 記録されたエンコーディング名で対象ファイルが復号できる場合は通過"
+  else
+    echo "  [FAIL] 検査7(1-126): 復号できるのにexit 1になった" >&2
+    rc=1
+  fi
+
+  # 陰性: 記録されたエンコーディング名では対象ファイルを復号できない（EUC-JPの実バイトにShift_JISと誤記）
+  cat > "$tmp/encoding-fail.md" <<MD
+## §8 後続工程への申し送り
+
+| キー | 内容 |
+|---|---|
+| エンコーディング-legacyルーティング定義誤記 | \`Shift_JIS\`（対象: \`src/legacy/routes.euc.txt\`） |
+MD
+
+  if check_encoding_hints "$tmp/encoding-fail.md" "$encoding_repo" >/dev/null 2>&1; then
+    echo "  [FAIL] 検査7(1-126): 復号できない値が記録されているのにexit 0になった" >&2
+    rc=1
+  else
+    echo "  [PASS] 検査7(1-126): 復号できない値の記録でexit 1"
+  fi
+
+  # UNKNOWN行は復号可否検査の対象外として通過すること
+  cat > "$tmp/encoding-unknown.md" <<MD
+## §8 後続工程への申し送り
+
+| キー | 内容 |
+|---|---|
+| エンコーディング-判定不能ファイル | \`UNKNOWN\`（対象: \`src/legacy/routes.euc.txt\`） |
+MD
+
+  if check_encoding_hints "$tmp/encoding-unknown.md" "$encoding_repo" >/dev/null 2>&1; then
+    echo "  [PASS] 検査7(1-126): UNKNOWN行は復号可否検査の対象外として通過"
+  else
+    echo "  [FAIL] 検査7(1-126): UNKNOWN行が誤ってexit 1になった" >&2
+    rc=1
+  fi
+
   # 陽性10: 1,000ディレクトリ規模のフィクスチャでディレクトリごとのfind再起動なしに
   # 単一走査が完了する（所要時間ではなく完了することを判定基準とする）
   bigrepo="$tmp/bigrepo"
@@ -748,7 +1036,7 @@ if [ ! -d "$repo" ]; then
 fi
 
 if run_all_checks "$survey" "$repo"; then
-  echo "アーキテクチャ調査書ゲート: 全5検査PASS"
+  echo "アーキテクチャ調査書ゲート: 全7検査PASS"
   exit 0
 else
   echo "アーキテクチャ調査書ゲート: FAIL" >&2

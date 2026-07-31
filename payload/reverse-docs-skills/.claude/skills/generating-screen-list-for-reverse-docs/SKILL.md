@@ -92,6 +92,8 @@ allowed-tools: [AskUserQuestion, Bash, Grep, Read, Write]
 - **Step 4（既存テスト件数の走査）**: `source_dir` を `find <source_dir> -type f \( -name '*.test.*' -o -name '*.spec.*' \) -o -type d -name '__tests__'` 等で走査し、ヒットしたファイル名またはディレクトリ名から画面IDを推定して各画面に対応付ける。対応するテストファイルの件数を`existingTestCount`（整数フィールド。対応するテストが1件も無い画面は`0`）として、永続化前のraw作業コピーの各画面要素に付与する。完了条件: 全画面のraw作業コピーに`existingTestCount`が付与済み
 - **Step 5**: raw作業コピーを Step 2-2 以降へ渡す。この時点ではcanonical raw・extを確定せず、画面一覧HTMLも生成しない。完了条件: 既存テスト件数を含むraw作業コピーが Step 2-2 の入力として確定
 
+**非UTF-8原本への対応**: 原本が UTF-8 以外のエンコーディングで書かれている場合、通常の文字列検索はバイナリ扱いとなりマッチ 0 件を返す。走査の前に `shared/scripts/detect-encoding.sh encoding <file>` でエンコーディングを確定し、UTF-8 以外なら `detect-encoding.sh to-utf8` で変換した一時コピーに対して走査する。変換結果は永続化せず一時コピーで足りる。マッチ 0 件を「該当なし」と結論する前に、エンコーディングが原因でないことを確認する。
+
 検出中の作業コピーは一時ディレクトリ（`$CLAUDE_JOB_DIR/tmp/screen-manifest.json`、未設定時は `${TMPDIR:-/tmp}/claude-job-${session}/tmp/` 配下。`${session}`はセッションIDが取得できなければ任意の一意な値でよい）に保存する。Step 2-4完了後の正本は`<output_dir>/一覧/画面一覧/screen-manifest.json`と`screen-manifest.ext.json`であり、一時ファイルを後続・再開処理の入力にしてはならない。
 
 **条件付き工程: 画面種別の階層分類**

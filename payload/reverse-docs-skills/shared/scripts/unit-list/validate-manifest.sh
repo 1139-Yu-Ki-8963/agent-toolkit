@@ -14,7 +14,7 @@
 # screenKey/route/entryFile/screenIdRegex を使う。screen以外は units・unitKey/identifier/
 # sourceFile/unitIdRegex を使う。
 #
-# 検査項目(screen: 全15項目 / screen以外: 全11項目。結果は [PASS]/[FAIL] 項目名 — 詳細 の形式でstderrへ列挙):
+# 検査項目(screen: 全16項目 / screen以外: 全12項目。結果は [PASS]/[FAIL] 項目名 — 詳細 の形式でstderrへ列挙):
 #   1. schema-必須フィールド    : トップレベル必須キー + 各要素の必須キーの存在
 #                                  (screen: generatedAt,sourceDir,strategy,detectionSummary,screens /
 #                                   screenKey,kind,route,entryFile,confidence。
@@ -73,8 +73,12 @@
 #                                   (screen: 要素がunitKeyを持たないため検査をスキップしPASS扱い /
 #                                   screen以外: unitKeyが重複していないか。unitKeyを持つ要素が
 #                                   0件、またはunitKeyを持つ要素が1件以下の場合もスキップしPASS扱い)
+#  16. 置換文字-非混入           : マニフェスト内の全文字列値に置換文字(U+FFFD, \357\277\275)が
+#                                   含まれていないかを検査する(screen/screen以外を問わず共通。1-135)。
+#                                   非UTF-8原本を誤ってUTF-8として読み込んだ場合に生じる文字化けを
+#                                   機械検知する。含まれる場合は該当パス(キー)と件数を列挙する
 #
-# 全項目(screen: 15項目 / screen以外: 11項目)PASSでexit 0。1件でもFAILがあればexit 1
+# 全項目(screen: 16項目 / screen以外: 12項目)PASSでexit 0。1件でもFAILがあればexit 1
 # (--fixで解消された項目4はPASS扱い。項目10は常にPASSする情報列挙)。
 
 set -uo pipefail
@@ -588,9 +592,9 @@ run_validate() {
   #    項目数(total_items)は増やさない。screenType/accountGroup/accountSubType以外の
   #    closed/identifier軸(device等)は項目12(accountGroup-値域)にまとめて検査する。
   # ---------------------------------------------------------------------------
-  local total_items=11
+  local total_items=12
   if [ "$UNIT_KIND" = "screen" ]; then
-    total_items=15
+    total_items=16
 
     local axes_json="" axes_resolved
     if axes_resolved="$(resolve_unit_axes "$MANIFEST" "${AXES_FILE:-}" 2>/dev/null)"; then
@@ -820,6 +824,31 @@ run_validate() {
     echo "[FAIL] ${unit_key_label} — 重複キー: ${dup_unit_keys}" >&2
   else
     echo "[PASS] ${unit_key_label} — unitKey重複0件(unitKey不在の要素のみの場合・0/1件の場合はスキップしPASS扱い)" >&2
+  fi
+
+  # ---------------------------------------------------------------------------
+  # 16. 置換文字-非混入(1-135)
+  #     マニフェスト全体(トップレベル・要素配列問わず)の全文字列値を走査し、置換文字
+  #     (U+FFFD)が1件でも含まれていないかを検査する。非UTF-8原本を誤ってUTF-8として
+  #     読み込んだ場合に生じる文字化けが、整合検証を無警告で通過することを防ぐ。
+  #     screen/screen以外を問わず共通の検査(total_itemsを両方+1する)。
+  # ---------------------------------------------------------------------------
+  local replacement_issues replacement_label="置換文字-非混入"
+  replacement_issues="$(jq -r '
+    [ paths(scalars) as $p
+      | getpath($p) as $v
+      | select(($v | type) == "string")
+      | ([$v | scan("�")] | length) as $cnt
+      | select($cnt > 0)
+      | ($p | map(tostring) | join(".")) + ":" + ($cnt | tostring) + "件"
+    ] | join("; ")
+  ' "$MANIFEST" 2>/dev/null)"
+
+  if [ -n "$replacement_issues" ]; then
+    overall_fail=1
+    echo "[FAIL] ${replacement_label} — 置換文字(U+FFFD)混入: ${replacement_issues}" >&2
+  else
+    echo "[PASS] ${replacement_label} — 置換文字(U+FFFD)混入0件" >&2
   fi
 
   # ---------------------------------------------------------------------------
@@ -1272,6 +1301,31 @@ EOF
   else
     echo "  [FAIL] 実装参照-統合候補: 期待どおりの列挙にならなかった" >&2
     echo "$impl_ref_output" | grep '実装参照-統合候補' >&2
+    rc=1
+  fi
+
+  # ---- 検査16(置換文字-非混入)の確認(1-135) ----
+  # 陰性: 置換文字(U+FFFD)を含む合成マニフェストでexit 1になり、件数が列挙されること
+  local api_replacement_char="$tmp/api-replacement-char.json"
+  jq '.units[0].unitNameGuess = "利用者一覧�"' "$api_pass" > "$api_replacement_char"
+  local replacement_char_output
+  replacement_char_output="$(run_validate "$api_replacement_char" "" "api" 2>&1)"
+  if run_validate "$api_replacement_char" "" "api" >/dev/null 2>&1; then
+    echo "  [FAIL] 置換文字-非混入陰性: 置換文字を含むのにPASSした" >&2
+    rc=1
+  elif echo "$replacement_char_output" | grep -q '\[FAIL\] 置換文字-非混入.*1件'; then
+    echo "  [PASS] 置換文字-非混入陰性: 置換文字混入でFAILし件数が列挙される"
+  else
+    echo "  [FAIL] 置換文字-非混入陰性: FAILしたが件数が出力に含まれない" >&2
+    echo "$replacement_char_output" | grep '置換文字-非混入' >&2
+    rc=1
+  fi
+
+  # 陽性: 置換文字を含まない合成マニフェストでは従来どおり通過すること
+  if run_validate "$api_pass" "" "api" >/dev/null 2>&1; then
+    echo "  [PASS] 置換文字-非混入陽性: 置換文字を含まないマニフェストは従来どおりPASS"
+  else
+    echo "  [FAIL] 置換文字-非混入陽性: 置換文字を含まないのにFAILした" >&2
     rc=1
   fi
 
