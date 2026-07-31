@@ -32,6 +32,20 @@ SCALAR_CANONICALIZER="$SCRIPT_DIR/canonicalize-facts-scalars.py"
 # 保守責任者: 人手（ユーザー）。facts.ymlのフィールド構成を変更した時に更新する。
 # macOS bash 3.2 互換（mapfile 不使用）。
 #
+# 封印記録の正規化バージョン管理:
+#   facts.lock の1行目は「SEALED sha256=<hash> normalize=<版>」の形式を持つ。
+#   normalize= を持たない記録（本仕組み導入前に作られた封印）は版1として扱う。
+#   verify は照合前にまず版の一致を確認する。版が現行のNORMALIZE_VERSIONと異なる場合、
+#   facts.ymlの改変とは区別し、正規化規則の変更として報告する（要再封印）。
+#   正規化規則（normalize_file()の処理内容）を変更する場合は必ずNORMALIZE_VERSIONを
+#   上げること。上げ忘れると、規則変更前後の封印を同一版として誤って比較してしまう。
+#
+# verify の終了コード:
+#   0 = 検証通過
+#   1 = 改竄検知（facts.ymlが封印時から改変されている）
+#   2 = 入力不備（facts.lock/facts.ymlが見つからない）
+#   3 = 正規化規則の版が異なる（改竄ではない。要再封印）
+#
 # ファイル単位モードとの関係（--file-scope は本スクリプトには存在しない）:
 #   本スクリプトの seal/verify/normalize はいずれも facts_dir 単位（facts.yml 全体）で
 #   ハッシュ計算・照合・正規化を行い、target_file_paths 内の個別ファイルへ限定するオプ
@@ -40,6 +54,13 @@ SCALAR_CANONICALIZER="$SCRIPT_DIR/canonicalize-facts-scalars.py"
 #   （scripts/check-fact-coverage.sh 等）が facts.yml 読込後に evidence のパス部分で
 #   フィルタする。seal-facts.sh 自体への --file-scope 相当オプションの追加は本改修の
 #   対象外（スクリプト本体のロジック変更なし）。
+
+# 正規化規則の版。normalize_file() の処理内容を変えたら必ずこの値を上げる。
+# 封印記録に埋め込み、verify は版の一致を先に確認する。版が違う場合は改竄ではなく
+# 規則変更として区別して報告し、再封印を促す。
+# 版 1: run_id 行・行末空白・空行の除去のみ（sed のみ）
+# 版 2: 版 1 に加えて canonicalize-facts-scalars.py によるスカラー正規化
+NORMALIZE_VERSION=2
 
 normalize_file() {
   f="$1"
@@ -71,10 +92,10 @@ cmd_seal() {
   fi
   hash="$(normalize_file "$facts" | sha256_of)"
   {
-    echo "SEALED sha256=$hash"
+    echo "SEALED sha256=$hash normalize=$NORMALIZE_VERSION"
     (cd "$dir" && find . -maxdepth 1 -type f ! -name 'facts.lock' | sed 's|^\./||' | sort)
   } > "$dir/facts.lock"
-  echo "封印完了: $dir/facts.lock（sha256=${hash}）"
+  echo "封印完了: $dir/facts.lock（sha256=${hash} normalize=v${NORMALIZE_VERSION}）"
 }
 
 cmd_verify() {
@@ -89,13 +110,25 @@ cmd_verify() {
     echo "エラー: facts.yml が見つかりません: $facts" >&2
     return 2
   fi
-  recorded="$(head -n 1 "$lock" | sed -E 's/^SEALED sha256=//')"
+  lock_head="$(head -n 1 "$lock")"
+  recorded="$(printf '%s' "$lock_head" | sed -E 's/^SEALED sha256=([0-9a-f]+).*$/\1/')"
+  # normalize= を持たない封印記録は版 1（canonicalize 導入前）として扱う
+  recorded_version="$(printf '%s' "$lock_head" | sed -nE 's/.*normalize=([0-9]+).*/\1/p')"
+  [ -z "$recorded_version" ] && recorded_version=1
+
+  if [ "$recorded_version" != "$NORMALIZE_VERSION" ]; then
+    echo "封印検証保留: 正規化規則が封印時から変わっています（記録=v${recorded_version} 現行=v${NORMALIZE_VERSION}）。" >&2
+    echo "  facts.yml の改変ではありません。内容を確認したうえで再封印してください:" >&2
+    echo "    seal-facts.sh seal ${dir}" >&2
+    return 3
+  fi
+
   actual="$(normalize_file "$facts" | sha256_of)"
   if [ "$recorded" != "$actual" ]; then
     echo "封印検証失敗: facts.yml が封印時から改変されています（記録=${recorded} 実際=${actual}）" >&2
     return 1
   fi
-  echo "封印検証通過: facts.yml は封印時から改変されていません（sha256=${actual}）"
+  echo "封印検証通過: facts.yml は封印時から改変されていません（sha256=${actual} normalize=v${NORMALIZE_VERSION}）"
   return 0
 }
 
@@ -255,6 +288,58 @@ YML
     echo "  [PASS] 1-32陰性: 文字列nullとYAML null型を区別する"
   else
     echo "  [FAIL] 1-32陰性: 文字列nullとYAML null型を同一化した" >&2
+    rc=1
+  fi
+
+  # 1-154/1-167: 正規化バージョン管理
+  ver_dir="$tmp/facts/version-1"
+  mkdir -p "$ver_dir"
+  cat > "$ver_dir/facts.yml" <<'YML'
+run_id: extract-ver
+profile: screen
+target_repo_path: /abs/path/to/repo
+target_file_paths:
+  - src/screens/Bar/Bar.tsx
+sections:
+  import:
+    reason: ""
+    items:
+      - key: import-react-useEffect
+        value: "react から useEffect"
+        evidence: "src/screens/Bar/Bar.tsx:1"
+YML
+
+  # 1-154a: 版が一致する封印は通過する
+  cmd_seal "$ver_dir" >/dev/null 2>&1
+  ver_verify_rc=0
+  ver_verify_out="$(cmd_verify "$ver_dir" 2>&1)" || ver_verify_rc=$?
+  if [ "$ver_verify_rc" -eq 0 ] && grep -q 'normalize=2' "$ver_dir/facts.lock"; then
+    echo "  [PASS] 1-154a: 版が一致する封印はverifyが通過し、facts.lockにnormalize=2が記録される"
+  else
+    echo "  [FAIL] 1-154a: 版が一致する封印のverifyが期待通りに通過しなかった（rc=${ver_verify_rc}）" >&2
+    rc=1
+  fi
+
+  # 1-154b: 版が異なる封印は改竄と区別される（normalize=を持たない=版1相当の記録を模擬）
+  sed -E 's/^(SEALED sha256=[0-9a-f]+).*$/\1/' "$ver_dir/facts.lock" > "$ver_dir/facts.lock.tmp" && mv "$ver_dir/facts.lock.tmp" "$ver_dir/facts.lock"
+  ver_mismatch_rc=0
+  ver_mismatch_out="$(cmd_verify "$ver_dir" 2>&1)" || ver_mismatch_rc=$?
+  if [ "$ver_mismatch_rc" -eq 3 ] && printf '%s' "$ver_mismatch_out" | grep -q '改変ではありません' && printf '%s' "$ver_mismatch_out" | grep -q 'seal-facts.sh seal'; then
+    echo "  [PASS] 1-154b: 版が異なる封印は改竄ではなく規則変更として exit 3 で報告される"
+  else
+    echo "  [FAIL] 1-154b: 版が異なる封印の扱いが期待通りでなかった（rc=${ver_mismatch_rc}）" >&2
+    rc=1
+  fi
+
+  # 1-154c: 版が一致していて内容が改変された場合は従来どおり改竄として検知する
+  cmd_seal "$ver_dir" >/dev/null 2>&1
+  sed -E 's/useEffect/useLayoutEffect/' "$ver_dir/facts.yml" > "$ver_dir/facts.yml.tmp" && mv "$ver_dir/facts.yml.tmp" "$ver_dir/facts.yml"
+  ver_tamper_rc=0
+  cmd_verify "$ver_dir" >/dev/null 2>&1 || ver_tamper_rc=$?
+  if [ "$ver_tamper_rc" -eq 1 ]; then
+    echo "  [PASS] 1-154c: 版が一致していても内容改変は従来どおり改竄としてexit 1で検知される"
+  else
+    echo "  [FAIL] 1-154c: 版一致下での内容改変が改竄として検知されなかった（rc=${ver_tamper_rc}）" >&2
     rc=1
   fi
 

@@ -48,6 +48,12 @@ def canonical_scalar(raw):
 
 
 def main():
+    # stdin/stdout の encoding を明示し、実行環境の locale に依存しないようにする。
+    # strict locale 環境（LC_ALL=C 等）でも UnicodeDecodeError を出さず、
+    # 復号できないバイト列は surrogateescape で保持して往復させる。
+    sys.stdin.reconfigure(encoding="utf-8", errors="surrogateescape")
+    sys.stdout.reconfigure(encoding="utf-8", errors="surrogateescape")
+
     for raw_line in sys.stdin:
         line = raw_line.rstrip("\n")
         match = FIELD_RE.match(line)
