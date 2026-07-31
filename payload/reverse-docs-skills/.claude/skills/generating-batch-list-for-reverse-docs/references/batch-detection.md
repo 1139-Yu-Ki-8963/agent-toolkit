@@ -41,6 +41,7 @@ Phase 1（スタック・バッチ規約の特定）で調査すべき対象と�
       "unitKey": "意味キー",
       "unitId": "業務ID（任意）",
       "unitNameGuess": "推定名",
+      "nameConfidence": "confirmed|inferred",
       "kind": "scheduled|triggered|unresolved",
       "identifier": "主識別子（ジョブ名・cron エントリ名等）",
       "sourceFile": "主ファイルパス",

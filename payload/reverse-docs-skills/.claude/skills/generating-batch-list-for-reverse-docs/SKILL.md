@@ -74,9 +74,27 @@ allowed-tools: [AskUserQuestion, Bash, Grep, Read, Write]
 | ユニットキー | 現行の名称 | 命名 | 根拠 | 断定可否 |
 |---|---|---|---|---|
 
+各ユニットには、上表の「断定可否」と対になる機械可読フィールド `nameConfidence` を付与する。値は `confirmed`（実装コードの根拠から業務名を断定できた）または `inferred`（根拠が弱く推定にとどまる）の2値。省略しない。
+
+#### 推定名称比率の可視化（1-128）
+
+`nameConfidence` が `inferred` のユニットが多いと、一覧の大半が推定名称で埋まる実害がある。この事実を隠さず可視化する。
+
+- 指標名は `inferredName`。値は `count`（inferred件数）・`total`（全ユニット数）・`ratio`（count/total）・`threshold`（0.5固定）・`warning`（ratio > threshold）
+- 集計は Phase 4 の HTML 生成時に `build-unit-list.sh` が manifest の `nameConfidence` から機械算出する
+- バッチ一覧.html には推定名称件数のタイルと、比率超過時のみ警告表示するコールアウトを常に表示する（0 件でも非表示にしない）
+
+#### 大量ユニット時の名称確定手順（1-128）
+
+対象コードベースの実装読解は実行時間内に収まらないことがある。ユニット数が閾値（既定100件）を超える場合は、以下の優先順位付き分割・段階的確定を行う。
+
+1. **優先順位付き分割**: `schedule.cron` が定義済み（定期実行）のユニットを最優先、次に呼び出し元・enqueue元が判明しているユニット、最後に手がかりの薄いユニットの順で3群に分ける
+2. **段階的確定**: 優先群から順に実装を読み `nameConfidence: confirmed` を積み上げる。時間内に読み切れなかった残群は `nameConfidence: inferred` のまま確定し、捏造しない
+3. **記録**: どこまで読み切ったか（優先群1〜Nまで確定・以降は推定）を完了報告の hint に残す
+
 検出結果は一時ディレクトリ（`$CLAUDE_JOB_DIR/tmp/batch-manifest.json`、未設定時は `${TMPDIR:-/tmp}/claude-job-${session}/tmp/` 配下。`${session}`はセッションIDが取得できなければ任意の一意な値でよい）に保存する。確定後は `<output_dir>/一覧/バッチ一覧/batch-manifest.json` へ一時ファイル + rename で原子的に永続化する。一時ファイルを後続・再開処理の入力にしてはならない。
 
-**完了**: Step 1でスキーマ準拠のマニフェストが1件以上確定、または0件検出をユーザーに報告して停止している。Step 2でdiagnosticsを確認済み。Step 3で拡張マニフェストに種別固有フィールド（schedule・targetTables・execMethod等）が付与されている
+**完了**: Step 1でスキーマ準拠のマニフェストが1件以上確定、または0件検出をユーザーに報告して停止している。Step 2でdiagnosticsを確認済み。Step 3で拡張マニフェストに種別固有フィールド（schedule・targetTables・execMethod等）が付与されている。全ユニットに `nameConfidence` が付与されている
 
 ## Phase 3: 整合検証（機械実行）
 

@@ -25,6 +25,8 @@
     UNRESOLVED_SECTION (要手動確認セクションマーカー) : kind=unresolved の一覧テーブル、0件なら「なし」の文言
     MANIFEST_JSON (マニフェストJSON埋め込みマーカー) : manifest.json とJSON値が同値な安全エスケープ済みJSONを埋め込み(二重管理・ドリフト禁止)
     EXTRA_TILES (種別内訳タイルマーカー・任意) : unit_kind=test_case の場合のみ挿入(正本は build-unit-list.sh 冒頭コメント)
+    EXTRA_DIAGNOSTICS (種別固有診断マーカー・任意) : unit_kind=batch の場合のみ、推定名称比率(1-128)の
+      タイルと警告コールアウトを挿入(正本は build-unit-list.sh 冒頭コメント)。0件でも必ず表示する
 
   テーブル列順(固定・全3列): <ラベル>名 / 識別子 / 区分(種別固有列はJSのFIELD_SETSが動的追加)。
   行の<tr>には data-unit-id / data-unit-key 属性を持たせ、展開行JSがマニフェストJSONから
@@ -192,6 +194,8 @@
           <!--EXTRA_TILES-->
         </div>
       </div>
+
+      <!--EXTRA_DIAGNOSTICS-->
 
       <div class="toolbar-area">
         <div class="toolbar">

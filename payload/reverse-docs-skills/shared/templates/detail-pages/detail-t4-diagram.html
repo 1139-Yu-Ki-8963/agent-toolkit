@@ -397,6 +397,10 @@ table.data-table code {
 }
 .isolated-card-label { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
 .isolated-card-key { font-family: var(--mono); font-size: 11px; color: var(--text-muted); }
+
+/* 走査元として未走査の画面(1-145): 破線で「走査済みだが遷移0件」と描き分ける */
+.isolated-card--unscanned { border-style: dashed; }
+.unscanned-note { font-size: 12.5px; color: var(--text-muted); margin: 4px 0 10px; }
 </style>
 </head>
 <body>
@@ -586,6 +590,16 @@ table.data-table code {
     if (outDegree[k] + inDegree[k] === 0) isolatedNodes.push(k);
     else normalNodes.push(k);
   });
+
+  // --- 走査可否の区別(1-145): sourceScanned未設定は後方互換でtrue扱い(走査済み) ---
+  function isSourceScanned(k) {
+    var n = nodeByKey[k];
+    return !n || n.sourceScanned !== false;
+  }
+  var unscannedCount = kind === 'transition' ? keys.filter(function(k) { return !isSourceScanned(k); }).length : 0;
+  var unscannedTotal = kind === 'transition' ? keys.length : 0;
+  var unscannedRatio = unscannedTotal > 0 ? unscannedCount / unscannedTotal : 0;
+  var unscannedWarning = unscannedRatio > 0.5;
 
   // --- 画面ごとのソート済みエッジ(共通->固有->自己ループ)+通し番号 ---
   var sortedOutEdges = {};
@@ -1395,6 +1409,21 @@ table.data-table code {
     el('span', { class: 'unconnected-count' }, unconnectedTotal + '件'),
     el('span', { class: 'unconnected-label' }, '遷移が静的に検出されなかった画面・参照')
   ]));
+
+  // --- 走査可否diagnostics(1-145): 0件でも必ず表示する。破線カード = 遷移元として未走査 ---
+  if (kind === 'transition') {
+    var unscannedPct = Math.round(unscannedRatio * 1000) / 10;
+    var unscannedMessage = '遷移元として走査できなかった画面 ' + unscannedCount + ' / ' + unscannedTotal + ' 件（' + unscannedPct + '%）。破線カードが該当画面です。';
+    if (unscannedWarning) {
+      modeUnconnected.appendChild(el('div', { class: 'pt-callout pt-callout--warning' }, [
+        el('span', { class: 'material-symbols-outlined pt-callout__icon', 'aria-hidden': 'true' }, 'warning'),
+        unscannedMessage
+      ]));
+    } else {
+      modeUnconnected.appendChild(el('p', { class: 'unscanned-note' }, unscannedMessage));
+    }
+  }
+
   var unconnectedContent = el('div', { id: 'unconnected-content' });
   if (unconnectedTotal === 0) {
     unconnectedContent.appendChild(el('div', { class: 'unconnected-ok' }, '全画面の遷移が検出済みです'));
@@ -1413,6 +1442,9 @@ table.data-table code {
 
     if (isolatedNodes.length > 0) {
       unconnectedContent.appendChild(el('div', { class: 'sec-label' }, '孤立画面（' + isolatedNodes.length + '件）'));
+      if (kind === 'transition' && isolatedNodes.some(function(k) { return !isSourceScanned(k); })) {
+        unconnectedContent.appendChild(el('p', { class: 'unscanned-note' }, '凡例: 破線カードは遷移元として走査できなかった画面（実線は走査済みで遷移0件）'));
+      }
       var isoGroupMap = {};
       isolatedNodes.forEach(function(k) {
         var g = groupName(k);
@@ -1427,7 +1459,8 @@ table.data-table code {
       function buildIsolatedGrid(list) {
         var grid = el('div', { class: 'isolated-grid' });
         list.forEach(function(k) {
-          grid.appendChild(el('div', { class: 'isolated-card' }, [
+          var cardClass = 'isolated-card' + (isSourceScanned(k) ? '' : ' isolated-card--unscanned');
+          grid.appendChild(el('div', { class: cardClass }, [
             el('div', { class: 'isolated-card-label' }, nodeLabel(k)),
             el('code', { class: 'isolated-card-key' }, k)
           ]));

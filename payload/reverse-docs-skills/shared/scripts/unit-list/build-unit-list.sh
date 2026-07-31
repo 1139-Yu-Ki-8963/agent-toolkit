@@ -680,6 +680,30 @@ EOF
 )"
 fi
 
+# --- 推定名称比率(1-128・batchのみ)。検出できなかった事実として比率を集計しHTMLへ必ず表示する ---
+extra_diagnostics_html=""
+if [ "$UNIT_KIND" = "batch" ]; then
+  inferred_diagnostics_json="$(jq -c '
+    (.units // []) as $u
+    | ($u | length) as $total
+    | ($u | map(select(.nameConfidence == "inferred")) | length) as $count
+    | {count: $count, total: $total,
+       ratio: (if $total > 0 then ($count / $total) else 0 end),
+       threshold: 0.5,
+       warning: (if $total > 0 then (($count / $total) > 0.5) else false end)}
+  ' "$MANIFEST")"
+  tile_inferred_count="$(jq -r '.count' <<<"$inferred_diagnostics_json")"
+  tile_inferred_ratio_pct="$(jq -r '(.ratio * 1000 | round) / 10' <<<"$inferred_diagnostics_json")"
+  inferred_warning="$(jq -r '.warning' <<<"$inferred_diagnostics_json")"
+  extra_tiles="${extra_tiles}<div class=\"tile\"><strong>${tile_inferred_count}</strong>推定名称件数</div>"
+  inferred_message="推定名称 <strong>${tile_inferred_count}</strong> / ${tile_unit_count} 件（${tile_inferred_ratio_pct}%）が業務名を断定できていません。"
+  if [ "$inferred_warning" = "true" ]; then
+    extra_diagnostics_html="<div class=\"pt-callout pt-callout--warning\"><span class=\"material-symbols-outlined pt-callout__icon\" aria-hidden=\"true\">warning</span>${inferred_message}</div>"
+  else
+    extra_diagnostics_html="<p class=\"note\">${inferred_message}</p>"
+  fi
+fi
+
 # --- 1ユニット分の <tr> を生成する ---
 # 行データはjqの@tsv+bash readではなく、1行1JSONオブジェクト(jq -c)を個別に
 # jq -r抽出する方式を採る。@tsv+IFS=タブのreadはタブがPOSIX上「IFS空白」に
@@ -794,6 +818,7 @@ render_args=(
   "{{UNIT_COUNT}}" "$tile_unit_count"
   "{{UNRESOLVED_COUNT}}" "$tile_unresolved_count"
   "<!--EXTRA_TILES-->" "$extra_tiles"
+  "<!--EXTRA_DIAGNOSTICS-->" "$extra_diagnostics_html"
   "<!--UNIT_TABLE_ROWS-->" "$unit_rows"
   "<!--UNRESOLVED_SECTION-->" "$unresolved_section"
   "{{UNRESOLVED_CLASS}}" "$unresolved_class"

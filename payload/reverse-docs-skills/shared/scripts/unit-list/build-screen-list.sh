@@ -793,6 +793,27 @@ fi
 tile_embedded_count="$(jq -r '.detectionSummary.embeddedCandidateCount // 0' "$MANIFEST")"
 tile_unresolved_count="$(jq -r '.detectionSummary.unresolvedCount // 0' "$MANIFEST")"
 
+# --- 低信頼度分布(1-125): confidence=low の画面が過半数だと種別分類がフォールバック値へ
+# 寄る実害があるため、検出できなかった事実として比率を集計しHTMLへ必ず表示する(0件でも表示)。
+lowconf_diagnostics_json="$(jq -c '
+  (.screens // []) as $s
+  | ($s | length) as $total
+  | ($s | map(select(.confidence == "low")) | length) as $count
+  | {count: $count, total: $total,
+     ratio: (if $total > 0 then ($count / $total) else 0 end),
+     threshold: 0.5,
+     warning: (if $total > 0 then (($count / $total) > 0.5) else false end)}
+' "$MANIFEST")"
+tile_lowconf_count="$(jq -r '.count' <<<"$lowconf_diagnostics_json")"
+tile_lowconf_ratio_pct="$(jq -r '(.ratio * 1000 | round) / 10' <<<"$lowconf_diagnostics_json")"
+lowconf_warning="$(jq -r '.warning' <<<"$lowconf_diagnostics_json")"
+lowconf_message="低信頼度画面 <strong>${tile_lowconf_count}</strong> / ${tile_screen_count} 件（${tile_lowconf_ratio_pct}%）が検出信頼度 low です。"
+if [ "$lowconf_warning" = "true" ]; then
+  lowconf_callout_html="<div class=\"pt-callout pt-callout--warning\"><span class=\"material-symbols-outlined pt-callout__icon\" aria-hidden=\"true\">warning</span>${lowconf_message}画面種別分類がフォールバック値へ偏っている可能性があります。</div>"
+else
+  lowconf_callout_html="<p class=\"note\">${lowconf_message}</p>"
+fi
+
 # --- 分類軸・任意列の宣言(axes_resolvedはdetect適用時に解決済み)から注入用 JSON を作る ---
 screen_axes_json="$(unit_axes_for_kind "$axes_resolved" "screen")"
 column_spec_json="$(unit_axes_script_safe "$screen_axes_json")"
@@ -1073,6 +1094,8 @@ render_args=(
   "{{TILE_CLUSTER_SUMMARY_HTML}}" "$tile_cluster_summary_html"
   "{{TILE_EMBEDDED_COUNT}}" "$tile_embedded_count"
   "{{TILE_UNRESOLVED_COUNT}}" "$tile_unresolved_count"
+  "{{TILE_LOWCONF_COUNT}}" "$tile_lowconf_count"
+  "<!--LOWCONF_CALLOUT-->" "$lowconf_callout_html"
   "<!--SCREEN_TABLE_SECTIONS-->" "$screen_table_sections"
   "<!--UNRESOLVED_SECTION-->" "$unresolved_section"
   "{{UNRESOLVED_CLASS}}" "$unresolved_class"

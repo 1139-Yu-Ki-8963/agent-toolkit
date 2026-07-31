@@ -12,6 +12,7 @@ detail-pages 系（用語辞書 / 技術スタック / 画面遷移図 / ER図 /
 | title | string | 必須 | ページ見出し |
 | description | string | 必須 | ページ概要（1〜2 文） |
 | unresolved | array | 任意 | 未解決項目の配列。要素は `{ "label": string, "reason": string, "sourceRef"?: string }`。省略時は空扱い |
+| diagnostics | object | 任意 | 検出できなかった事実の集計。キーは指標名、値は `{ "count": number, "total": number, "ratio": number, "threshold": number, "warning": boolean }`。省略時は空扱い（1-145: transitionの`unscannedSource`、1-148: glossaryの`missingSource`/`unimplementedLayer`） |
 | flowCategories | array（transition のみ・任意） | 任意 | 動線カテゴリの要約。要素は `{ "name": string, "source": string, "screenCount": number }`。`categories[]`（glossary の分類軸）とは別物のため `flowCategories` と命名する |
 | （型別スロット） | object | 必須 | pageKind に応じたキーをトップレベルへ直接持つ（下記「型別スロット」参照） |
 
@@ -66,6 +67,7 @@ detail-pages 系（用語辞書 / 技術スタック / 画面遷移図 / ER図 /
 |---|---|---|
 | category | string（任意） | 動線カテゴリ名。未設定の場合はテンプレート側で「その他」に集約 |
 | categorySrc | string（任意） | カテゴリの導出元。`routing-group` \| `url-segment` \| `account-group` \| `fallback` のいずれか |
+| sourceScanned | boolean（任意） | 遷移元としてこの画面のファイルを実際に走査できたか（1-145）。省略時はテンプレート側で `true` 扱い（後方互換）。`false` は「走査した結果0件」ではなく「そもそも走査できなかった」ことを示す |
 
 `edges[]` は上記に加え、次の任意フィールドを持つ。
 

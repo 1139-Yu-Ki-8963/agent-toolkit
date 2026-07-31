@@ -45,7 +45,7 @@ allowed-tools: [AskUserQuestion, Bash, Read, Write]
 ## Step 1-1: 採録方針の承認（二段承認・1段目）
 
 - **Step 1** — 分類軸を決定する。既定は「業務用語／技術用語／略語」の 3 軸。プロジェクトの実態に応じてユーザーが分類軸を追加・変更できる。完了条件: 分類軸（`categories[]` の `key`/`label` 候補）が確定済み
-- **Step 2** — 採録源を確認する。採録源は 3 系統ある。`<output_dir>/プロジェクト共通/` 配下の共通文書一式（`generating-reverse-common-docs` の出力）。`<output_dir>/プロジェクト共通/アーキテクチャ調査書.md`。`target_repo_path` 配下のコード識別子（層化サンプリング対象）。この 3 系統の実在を確認する。共通文書・調査書がいずれも不在ならハード停止し、該当スキルの先行実行を案内する。完了条件: 3 系統の採録源の実在確認済み、または不在を報告して停止している
+- **Step 2** — 採録源を確認する。採録源は 3 系統ある。`<output_dir>/プロジェクト共通/` 配下の共通文書一式（`generating-reverse-common-docs` の出力）。`<output_dir>/プロジェクト共通/アーキテクチャ調査書.md`。`target_repo_path` 配下のコード識別子（層化サンプリング対象）。この 3 系統の実在を確認する。**3 系統すべてが不在の場合のみ**ハード停止し、該当スキルの先行実行を案内する。1〜2 系統のみ不在の場合は停止せず、欠落した系統を `missingSourceLayers`（一時ファイル）へ記録して続行する（1-148。欠落を黙って進めない）。完了条件: 3 系統の採録源の実在確認済み（欠落があれば記録済み）、または全系統不在を報告して停止している
 - **Step 3** — 除外パターンを確定する。既定は一般英単語・フレームワーク API 名（`references/glossary-extraction.md`「除外既定」節参照）。プロジェクト固有の除外語があればユーザーから追加を受ける。完了条件: 除外パターン一覧が確定済み
 - **Step 4** — Step 1〜3 の採録方針を AskUserQuestion でまとめて提示し承認を取る。宣言内容（分類軸・採録源・除外パターン）は一時ファイルに保存する。完了条件: 採録方針が承認済み（ヘッドレス実行時の扱いは「無人実行時の扱い」節を参照）
 
@@ -57,13 +57,20 @@ allowed-tools: [AskUserQuestion, Bash, Read, Write]
 
 **使用ツール**: AskUserQuestion / Read / Bash / Write
 
-- **Step 1** — プロジェクト共通文書・アーキテクチャ調査書から、Phase 1 で承認した分類軸に該当する語を抽出する。各語について記述箇所を `sourceRef` として控える（文書参照形式 `<文書名>.md#<見出し>`）。サンプルに現れない語を発明しない。完了条件: 文書由来の用語候補が抽出済み
-- **Step 2** — `target_repo_path` のコード識別子を層化サンプリングで抽出する。層定義・snake_case/camelCase 分解規則は `references/glossary-extraction.md` を参照する。除外パターンに一致する識別子は候補から外す。分解して得た語のうち、Step 1 の文書側記述と対応が取れたものだけを候補にする。または、コード上の使用文脈から定義を復元できたものも候補にする。完了条件: コード由来の用語候補が抽出済み（`codeRefs[]` に実ファイルパス:行番号を記録）
+- **Step 1** — プロジェクト共通文書・アーキテクチャ調査書から、Phase 1 で承認した分類軸に該当する語を抽出する。各語について記述箇所を `sourceRef` として控える（文書参照形式 `<文書名>.md#<見出し>`）。サンプルに現れない語を発明しない。共通文書一式が不在の場合、規約層・設計層・メッセージ層の採録は実施できない。実施できなかった層を `unimplementedLayers`（一時ファイル）へ追記する。完了条件: 文書由来の用語候補が抽出済み（共通文書不在なら未実施の層を記録済み）
+- **Step 2** — `target_repo_path` のコード識別子を層化サンプリングで抽出する。層定義・snake_case/camelCase 分解規則は `references/glossary-extraction.md` を参照する。層はアーキテクチャ調査書の「ディレクトリ責務マップ」の行数ぶん存在する。除外パターンに一致する識別子は候補から外す。分解して得た語のうち、Step 1 の文書側記述と対応が取れたものだけを候補にする。または、コード上の使用文脈から定義を復元できたものも候補にする。実行時間内に抽出しきれなかった層があれば `unimplementedLayers` へ追記する。完了条件: コード由来の用語候補が抽出済み（`codeRefs[]` に実ファイルパス:行番号を記録）。未実施の層があれば記録済み
 - **Step 3** — Step 1・Step 2 の候補を統合し、各語について `term`/`definition`/`codeRefs`/`category`/`sourceRef` を構築する。`category` は `categories[].key` のいずれかと一致させる。定義の根拠（記述または識別子の使用文脈）が採録源に無い語は `terms[]` に含めず、`unresolved[]`（`label`/`reason`/`sourceRef`〈任意〉）へ退避する。完了条件: `terms[]` と（該当があれば）`unresolved[]` が確定済み
 
 候補一覧は一時ファイル `$CLAUDE_JOB_DIR/tmp/glossary-candidates.json` に保存する。未設定時は `${TMPDIR:-/tmp}/claude-job-${session}/tmp/` 配下に置く。
 
-**完了**: `terms[]` と（該当があれば）`unresolved[]` が確定済み（採録源に根拠のある語のみ）
+**完了**: `terms[]` と（該当があれば）`unresolved[]` が確定済み（採録源に根拠のある語のみ）。`missingSourceLayers`／`unimplementedLayers` の記録が確定済み
+
+#### 欠落した採録源・未実施の層の可視化（1-148）
+
+Phase 1 Step 2 の `missingSourceLayers`、本 Phase の `unimplementedLayers` を、Phase 3 Step 3 で page-data.json の `diagnostics` へ機械算出して埋める。
+
+- `diagnostics.missingSource`: `count`＝不在だった採録源系統数（0〜3）・`total`＝3・`ratio`＝count/3・`threshold`＝0.5・`warning`＝ratio > threshold
+- `diagnostics.unimplementedLayer`: `count`＝未実施の層数・`total`＝定義された全層数（文書種別層4＋コード層。コード層数はアーキテクチャ調査書のディレクトリ責務マップの行数）・`ratio`＝count/total・`threshold`＝0.5・`warning`＝ratio > threshold
 
 ## Phase 3: 候補一覧の承認（二段承認・2段目）
 
@@ -71,11 +78,11 @@ allowed-tools: [AskUserQuestion, Bash, Read, Write]
 
 - **Step 1** — Phase 2 で確定した `terms[]` を HTML 化前にユーザーへ提示する（`term`/`definition`/`category`/`sourceRef` の一覧）。完了条件: 候補一覧が提示済み
 - **Step 2** — AskUserQuestion で取捨（削除・言い換え）の指示を受ける。削除指示があった語は `terms[]` から除く。言い換え指示があった語は `definition` を指示内容へ置換する（採録源に無い新規事実の追加は禁止。既存記述の言い回し変更に限る）。完了条件: 取捨結果が確定済み（ヘッドレス実行時の扱いは「無人実行時の扱い」節を参照）
-- **Step 3** — 確定した `categories[]`/`terms[]`/`unresolved[]` から page-data.json を組み立てる。`pageKind` は `"glossary"` 固定とし、`title`・`description` も併せて埋める。完了条件: page-data.json を一時ディレクトリへ保存済み
+- **Step 3** — 確定した `categories[]`/`terms[]`/`unresolved[]` から page-data.json を組み立てる。`pageKind` は `"glossary"` 固定とし、`title`・`description` も併せて埋める。あわせて Phase 2 の「欠落した採録源・未実施の層の可視化（1-148）」節の式で `diagnostics.missingSource`／`diagnostics.unimplementedLayer` を算出して埋める。完了条件: page-data.json を一時ディレクトリへ保存済み
 
 page-data.json の保存先は `$CLAUDE_JOB_DIR/tmp/glossary-page-data.json` とする。未設定時は `${TMPDIR:-/tmp}/claude-job-${session}/tmp/` 配下に置く。
 
-**完了**: 候補一覧の取捨結果を反映した page-data.json を保存済み
+**完了**: 候補一覧の取捨結果を反映した page-data.json を保存済み。`diagnostics.missingSource`／`diagnostics.unimplementedLayer` が算出済み
 
 ## Phase 4: 整合検証・用語辞書.html 生成
 
@@ -121,11 +128,11 @@ page-data.json の保存先は `$CLAUDE_JOB_DIR/tmp/glossary-page-data.json` と
 
 | Phase | 完了条件 |
 |---|---|
-| Phase 1 | 分類軸・採録源・除外パターンの採録方針が承認済み、または不在を報告して停止している |
-| Phase 2 | `terms[]` と（該当があれば）`unresolved[]` が確定済み（採録源に根拠のある語のみ） |
-| Phase 3 | 候補一覧の取捨結果を反映した page-data.json を保存済み |
+| Phase 1 | 分類軸・採録源・除外パターンの採録方針が承認済み、または全採録源不在を報告して停止している。欠落した採録源があれば `missingSourceLayers` に記録済み |
+| Phase 2 | `terms[]` と（該当があれば）`unresolved[]` が確定済み（採録源に根拠のある語のみ）。未実施の層があれば `unimplementedLayers` に記録済み |
+| Phase 3 | 候補一覧の取捨結果を反映した page-data.json を保存済み。`diagnostics.missingSource`／`diagnostics.unimplementedLayer` が算出済み |
 | Phase 4 | `validate-page-data.sh --target-repo` が全項目 PASS し、`<output_dir>/用語辞書.html` が生成され、指定時は `build-portal.sh` の再実行が完了している |
-| **Goal** | 採録源に実在する記述・識別子のみを根拠とする用語辞書.html が二段承認と機械検証を経て生成され、根拠の無い語は unresolved として可視化されている |
+| **Goal** | 採録源に実在する記述・識別子のみを根拠とする用語辞書.html が二段承認と機械検証を経て生成され、根拠の無い語は unresolved として、欠落した採録源・未実施の層は diagnostics として可視化されている |
 
 ## 返却ブロック
 
@@ -133,11 +140,11 @@ page-data.json の保存先は `$CLAUDE_JOB_DIR/tmp/glossary-page-data.json` と
 
 | キー | 値 |
 |---|---|
-| status | `DONE`（生成完了）\| `STOPPED`（採録源不在）\| `ERROR` |
+| status | `DONE`（生成完了）\| `STOPPED`（3系統すべて採録源不在）\| `ERROR` |
 | artifacts | 生成した用語辞書.html のパス（`STOPPED`/`ERROR` 時は空） |
 | page_kind | `glossary`（固定値） |
 | portal_rebuilt | `true`（build-portal.sh 再実行済み）\| `false`（`portal_output_dir` 未指定のため省略） |
-| hint | 停止理由（採録源不在パス）、ヘッドレス自動承認の既定値適用記録、または次工程への申し送り |
+| hint | 停止理由（採録源不在パス）、欠落した採録源・未実施の層の一覧、ヘッドレス自動承認の既定値適用記録、または次工程への申し送り |
 
 ## ループ設計
 

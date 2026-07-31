@@ -5,7 +5,8 @@
 # 欠落を優先する fail-safe。欠落は任意フィールドの不在として扱われる)。
 #
 # Usage: extract-api-metadata.sh <api-manifest.json> <source-dir> <output.json> \
-#          [--screen-manifest <extended-screen-manifest.json>] [--table-manifest <table-manifest.json>]
+#          [--screen-manifest <extended-screen-manifest.json>] [--table-manifest <table-manifest.json>] \
+#          [--survey-doc-path <architecture-survey.md>]
 #        extract-api-metadata.sh --self-test
 #
 # 入力契約:
@@ -14,6 +15,11 @@
 #                           確認にのみ使用。sourceFile が相対パスの場合は source-dir 起点で解決する)
 #   --screen-manifest     : relatedApis 抽出済みの拡張画面マニフェスト(callers 逆引きに使用。省略可)
 #   --table-manifest      : テーブルマニフェスト(targetTables 抽出に使用。省略可)
+#   --survey-doc-path     : アーキテクチャ調査書のパス(省略可)。「ルーティング方式」の記載が
+#                           メソッドチェーン呼び出し系(Express/Fastify/Hono等)を明示している場合のみ、
+#                           関数ブロック検査をメソッド呼び出し境界(次のルート呼び出し行またはEOFまで)
+#                           でも試みる(デコレータ境界に次ぐ第2の手がかり)。未指定時・不一致時は
+#                           従来のデコレータ境界のみで判定し、挙動は変わらない
 #
 # 出力契約:
 #   <output.json> に拡張マニフェストを書き出す。追加されうるフィールド
@@ -24,6 +30,11 @@
 #     targetTables : string[] 参照テーブルの unitKey 配列(空なら付けない)
 #     ioSummary    : string   「<入力> → <出力>」形式の 1 行要約
 #   既存フィールドと衝突した場合は既存値を保持する(上書きしない)。
+#   加えて detectionSummary.diagnostics.fallback に以下を記録する(検出できなかった事実の可視化):
+#     count/total  : 関数ブロックを特定できずファイル単位・近傍窓へフォールバックしたユニット数/全体数
+#     ratio        : count/total(totalが0ならratio=0・warning=false)
+#     threshold    : 0.5(固定)
+#     warning      : ratio > threshold
 #   出力は validate-manifest.sh <output.json> --unit-kind api で検証可能。
 #
 # 検査範囲(関数ブロック):
@@ -526,8 +537,11 @@ EOF
     '(.units[] | select(.unitKey == "imported-hono") | .method) == "PATCH"'
 
   # 既存フィールド無変更: 追加フィールドを除去すると入力と完全一致する
+  # (detectionSummary.diagnostics.fallback は本スクリプトが新規に追加するため、
+  #  ユニット単位の追加5フィールドと同様に除去してから比較する)
   local stripped="$tmp/stripped.json" expected="$tmp/expected.json"
-  jq -S '.units = [.units[] | del(.method, .authRequired, .callers, .targetTables, .ioSummary)]' "$out" > "$stripped"
+  jq -S '.units = [.units[] | del(.method, .authRequired, .callers, .targetTables, .ioSummary)]
+         | del(.detectionSummary.diagnostics)' "$out" > "$stripped"
   jq -S . "$api_manifest" > "$expected"
   if diff -q "$stripped" "$expected" >/dev/null 2>&1; then
     echo "  [PASS] 既存フィールド無変更: 追加フィールド除去後に入力マニフェストと完全一致"
@@ -536,12 +550,76 @@ EOF
     rc=1
   fi
 
+  # フォールバック率diagnostics(1-130): 30ユニット中、関数ブロックをデコレータ境界で
+  # 特定できたのはusers/ping/posts-list/posts-detailの4件のみ。残り26件は独自ルート方式
+  # (デコレータ非対応)でファイル単位・近傍窓へフォールバックする。survey-doc-path未指定なら
+  # ratio=26/30(≈0.867) > 0.5 でwarning: trueになるはず
+  check "fallback診断: count=26" '.detectionSummary.diagnostics.fallback.count == 26'
+  check "fallback診断: total=30" '.detectionSummary.diagnostics.fallback.total == 30'
+  check "fallback診断: threshold=0.5" '.detectionSummary.diagnostics.fallback.threshold == 0.5'
+  check "fallback診断: ratio>0.5でwarning: true" '.detectionSummary.diagnostics.fallback.warning == true'
+
   if bash "$validate" "$out" --unit-kind api >/dev/null 2>&1; then
     echo "  [PASS] validate-manifest.sh: 拡張マニフェストが --unit-kind api で PASS"
   else
     echo "  [FAIL] validate-manifest.sh: 拡張マニフェストの検証が FAIL" >&2
     rc=1
   fi
+
+  # --- survey-doc-path によるメソッド呼び出し境界フォールバック(1-130) ---
+  # デコレータの無いメソッドチェーン方式(Express風)の2ユニットで、
+  # 記法が一致するsurvey-doc-pathを渡すとフォールバックが解消しwarning: falseになり、
+  # 記法が不一致(またはsurvey-doc-path省略)ならフォールバックが残りwarning: trueのままになることを検証する。
+  mkdir -p "$tmp/callstyle/src"
+  cat > "$tmp/callstyle/src/routes.js" <<'EOF'
+const app = express();
+app.get('/api/call-a', handlerA)
+app.post('/api/call-b', handlerB)
+EOF
+  local cs_manifest="$tmp/callstyle/manifest.json" cs_routes="$tmp/callstyle/src/routes.js"
+  jq -n --arg f "$cs_routes" '{
+    generatedAt: "2026-01-01T00:00:00Z", sourceDir: "x", unitKind: "api",
+    strategy: {extractionMethod: "custom", approvedByUser: true, unitIdRegex: null, excludePatterns: []},
+    detectionSummary: {unitCount: 2, unresolvedCount: 0},
+    units: [
+      {unitKey: "call-a", kind: "endpoint", identifier: "GET /api/call-a",
+       unitNameGuess: "呼び出しA", sourceFile: $f, confidence: "high", fileCount: 1, detectionMethod: "manual"},
+      {unitKey: "call-b", kind: "endpoint", identifier: "POST /api/call-b",
+       unitNameGuess: "呼び出しB", sourceFile: $f, confidence: "high", fileCount: 1, detectionMethod: "manual"}
+    ]
+  }' > "$cs_manifest"
+
+  echo "## ルーティング方式
+Express のメソッドチェーン呼び出し(app.get/app.post)でルーティングを定義する。" > "$tmp/callstyle/survey-match.md"
+  echo "## ルーティング方式
+FastAPI のデコレータでルーティングを定義する。" > "$tmp/callstyle/survey-mismatch.md"
+
+  local cs_out_none="$tmp/callstyle/out-none.json" \
+        cs_out_match="$tmp/callstyle/out-match.json" \
+        cs_out_mismatch="$tmp/callstyle/out-mismatch.json"
+
+  bash "$script_path" "$cs_manifest" "$tmp/callstyle/src" "$cs_out_none" >/dev/null 2>&1
+  bash "$script_path" "$cs_manifest" "$tmp/callstyle/src" "$cs_out_match" \
+    --survey-doc-path "$tmp/callstyle/survey-match.md" >/dev/null 2>&1
+  bash "$script_path" "$cs_manifest" "$tmp/callstyle/src" "$cs_out_mismatch" \
+    --survey-doc-path "$tmp/callstyle/survey-mismatch.md" >/dev/null 2>&1
+
+  check_file() {
+    local label="$1" file="$2" jq_expr="$3"
+    if [ "$(jq -r "$jq_expr" "$file" 2>/dev/null)" = "true" ]; then
+      echo "  [PASS] $label"
+    else
+      echo "  [FAIL] $label" >&2
+      rc=1
+    fi
+  }
+
+  check_file "survey-doc-path未指定: メソッド呼び出し境界を試みずfallback.warning: true" \
+    "$cs_out_none" '.detectionSummary.diagnostics.fallback.warning == true'
+  check_file "survey-doc-path一致(Express明記): fallbackが解消しwarning: false" \
+    "$cs_out_match" '.detectionSummary.diagnostics.fallback == {count:0, total:2, ratio:0, threshold:0.5, warning:false}'
+  check_file "survey-doc-path不一致(FastAPI明記): fallbackが残りwarning: true" \
+    "$cs_out_mismatch" '.detectionSummary.diagnostics.fallback.warning == true'
 
   if [ "$rc" -eq 0 ]; then
     echo "self-test 全項目 PASS"
@@ -556,7 +634,7 @@ if [ "${1:-}" = "--self-test" ]; then
   exit $?
 fi
 
-USAGE="Usage: extract-api-metadata.sh <api-manifest.json> <source-dir> <output.json> [--screen-manifest <json>] [--table-manifest <json>]"
+USAGE="Usage: extract-api-metadata.sh <api-manifest.json> <source-dir> <output.json> [--screen-manifest <json>] [--table-manifest <json>] [--survey-doc-path <md>]"
 MANIFEST="${1:?$USAGE}"
 SOURCE_DIR="${2:?$USAGE}"
 OUTPUT="${3:?$USAGE}"
@@ -564,13 +642,25 @@ shift 3 || true
 
 SCREEN_MANIFEST=""
 TABLE_MANIFEST=""
+SURVEY_DOC_PATH=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --screen-manifest) SCREEN_MANIFEST="${2:-}"; shift 2 ;;
     --table-manifest)  TABLE_MANIFEST="${2:-}";  shift 2 ;;
+    --survey-doc-path) SURVEY_DOC_PATH="${2:-}"; shift 2 ;;
     *) echo "ERROR: unknown argument: $1" >&2; exit 1 ;;
   esac
 done
+
+# 調査書のルーティング方式記載がメソッドチェーン呼び出し系を明示している場合のみ、
+# endpoint_block のメソッド呼び出し境界フォールバックを有効化する(opt-in。深い構文解析はしない)。
+CALL_STYLE_BLOCK_ENABLED="false"
+if [ -n "$SURVEY_DOC_PATH" ] && [ -f "$SURVEY_DOC_PATH" ]; then
+  if grep -A3 -iE 'ルーティング方式' "$SURVEY_DOC_PATH" 2>/dev/null \
+    | grep -qiE 'Express|Fastify|Hono|メソッドチェーン|メソッド呼び出し'; then
+    CALL_STYLE_BLOCK_ENABLED="true"
+  fi
+fi
 
 if ! command -v jq >/dev/null 2>&1; then
   echo "ERROR: jq is required but not found in PATH" >&2
@@ -921,12 +1011,34 @@ endpoint_block() {
   ' "$src"
 }
 
+# メソッド呼び出し境界(第2の手がかり。CALL_STYLE_BLOCK_ENABLED=trueのときのみ呼び出し側が使う):
+# 開始行 = identifier のパス部を含む最初の行(endpoint_windowと同じgrep -nFで特定)。
+# 終了行 = それ以降で最初に .get(/.post(/.put(/.patch(/.delete( のいずれかを含む行の直前、または
+# ファイル末尾。デコレータが無いメソッドチェーン方式ルーティング専用のフォールバック。
+endpoint_block_call_style() {
+  local src="$1" path="$2"
+  local start_line end_line total
+  [ -z "$path" ] && return 1
+  start_line="$(grep -nF -- "$path" "$src" 2>/dev/null | head -1 | cut -d: -f1 || true)"
+  [ -z "$start_line" ] && return 1
+  total="$(wc -l < "$src" | tr -d ' ')"
+  end_line="$(grep -nE '\.(get|post|put|patch|delete)[[:space:]]*\(' "$src" 2>/dev/null \
+    | awk -F: -v s="$start_line" '$1 > s { print $1; exit }')"
+  if [ -z "$end_line" ]; then
+    end_line=$((total + 1))
+  fi
+  sed -n "${start_line},$((end_line - 1))p" "$src"
+}
+
 patches_jsonl="$(mktemp "${TMPDIR:-/tmp}/extract-api-patches.XXXXXX")"
 patches_json="$(mktemp "${TMPDIR:-/tmp}/extract-api-patches-arr.XXXXXX")"
 trap 'rm -f "$patches_jsonl" "$patches_json"' EXIT
 
+fallback_count=0
+total_count=0
 while IFS= read -r row; do
   [ -z "$row" ] && continue
+  total_count=$((total_count + 1))
   unit_key="$(jq -r '.unitKey // ""' <<<"$row")"
   identifier="$(jq -r '.identifier // ""' <<<"$row")"
   source_file_raw="$(jq -r '.sourceFile // ""' <<<"$row")"
@@ -953,10 +1065,16 @@ while IFS= read -r row; do
   window=""
   if [ -n "$src_file" ]; then
     block="$(endpoint_block "$src_file" "$api_path" "$method" || true)"
+    if [ -z "$block" ] && [ "$CALL_STYLE_BLOCK_ENABLED" = "true" ]; then
+      block="$(endpoint_block_call_style "$src_file" "$api_path" || true)"
+    fi
     if [ -z "$block" ]; then
       echo "WARN: 関数ブロックを特定できないため従来のファイル単位検査にフォールバック: ${identifier} (${src_file})" >&2
       window="$(endpoint_window "$src_file" "$api_path" || true)"
     fi
+  fi
+  if [ -z "$block" ]; then
+    fallback_count=$((fallback_count + 1))
   fi
   scan="${block:-$window}"
 
@@ -1031,9 +1149,19 @@ jq -s '.' "$patches_jsonl" > "$patches_json"
 
 mkdir -p "$(dirname "$OUTPUT")"
 
+# フォールバック率(検出できなかった事実の記録。1-130): 関数ブロックを特定できずファイル単位・
+# 近傍窓へフォールバックしたユニット数/全体数。ratio > 0.5 で warning。ゼロ除算はratio=0・warning=falseにする
+fallback_diagnostics_json="$(jq -n \
+  --argjson count "$fallback_count" --argjson total "$total_count" --argjson threshold 0.5 \
+  '{count: $count, total: $total,
+    ratio: (if $total > 0 then ($count / $total) else 0 end),
+    threshold: $threshold,
+    warning: (if $total > 0 then (($count / $total) > $threshold) else false end)}')"
+
 # 既存フィールドは patch より優先する((patch + 原本) の合成順で原本値が常に勝つ)
-jq --slurpfile P "$patches_json" \
-  '.units = ([(.units // []), $P[0]] | transpose | map(((.[1]) // {}) + .[0]))' \
+jq --slurpfile P "$patches_json" --argjson fb "$fallback_diagnostics_json" \
+  '.units = ([(.units // []), $P[0]] | transpose | map(((.[1]) // {}) + .[0]))
+   | .detectionSummary.diagnostics.fallback = $fb' \
   "$MANIFEST" > "$OUTPUT"
 
 echo "OK: wrote $OUTPUT" >&2

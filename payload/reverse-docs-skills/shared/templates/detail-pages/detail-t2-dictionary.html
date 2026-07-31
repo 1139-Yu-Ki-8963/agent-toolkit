@@ -114,6 +114,7 @@ html, body { margin: 0; padding: 0; }
         </table>
       </div>
 
+      <div id="diagnostics-mount"></div>
       <!--RELATED_ENTITIES--><div id="unresolved-mount"></div>
     </main>
   </div>
@@ -218,6 +219,26 @@ html, body { margin: 0; padding: 0; }
   renderRows();
   applyFilter();
   document.getElementById('term-search').addEventListener('input', applyFilter);
+
+  // --- 採録源・層の欠落diagnostics(1-148)。0件でも必ず表示する ---
+  var diagMount = document.getElementById('diagnostics-mount');
+  var diagnostics = data.diagnostics || {};
+  function renderDiagnostic(mount, d, labelPrefix) {
+    if (!d) return;
+    var count = d.count || 0, total = d.total || 0;
+    var pct = total > 0 ? Math.round((count / total) * 1000) / 10 : 0;
+    var message = labelPrefix + ' ' + count + ' / ' + total + ' 件（' + pct + '%）';
+    if (d.warning) {
+      mount.appendChild(el('div', { class: 'pt-callout pt-callout--warning' }, [
+        el('span', { class: 'material-symbols-outlined pt-callout__icon', 'aria-hidden': 'true' }, 'warning'),
+        message
+      ]));
+    } else {
+      mount.appendChild(el('p', { class: 'note-box' }, message));
+    }
+  }
+  renderDiagnostic(diagMount, diagnostics.missingSource, '欠落した採録源');
+  renderDiagnostic(diagMount, diagnostics.unimplementedLayer, '未実施の層');
 
   // --- 未解決節(unresolved[]) ---
   var unresolvedMount = document.getElementById('unresolved-mount');

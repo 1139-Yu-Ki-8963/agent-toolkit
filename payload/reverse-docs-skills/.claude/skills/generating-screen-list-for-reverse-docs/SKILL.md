@@ -136,6 +136,14 @@ Level 1・2 の分類値はプロジェクトごとに異なるため、スキ�
 
 **完了**: マニフェストの全エントリに screenType・accountGroup・hasTemplate・parentScreen・isProcessingEndpoint が付与され、検証項目がすべてPASS
 
+#### 低信頼度分布の可視化（1-125）
+
+`confidence` が low の画面は、種別分類の根拠が弱い。低信頼画面の比率が高いと、種別が単一のフォールバック値へ偏る実害がある。この事実を隠さず可視化する。
+
+- 指標名は `lowConfidence`。値は `count`（confidence=low の件数）・`total`（全画面数）・`ratio`（count/total）・`threshold`（0.5固定）・`warning`（ratio > threshold）
+- 集計は Phase 4 の HTML 生成時に `build-screen-list.sh` が manifest の `confidence` から機械算出する。手計算・手記入はしない
+- 画面一覧.html には低信頼度画面数のタイルと、比率超過時のみ警告表示するコールアウトを常に表示する（0 件でも非表示にしない）
+
 ## Step 2-2: 分類の実行
 
 **使用ツール**: Read / Write

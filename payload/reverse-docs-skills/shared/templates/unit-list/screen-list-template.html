@@ -23,6 +23,9 @@
       2つのマーカーへ分けず1つのHTML片として注入する
     TILE_EMBEDDED_COUNT (埋め込み候補数タイルマーカー)  : detectionSummary.embeddedCandidateCount
     TILE_UNRESOLVED_COUNT (要確認数タイルマーカー)      : detectionSummary.unresolvedCount
+    TILE_LOWCONF_COUNT (低信頼度画面数タイルマーカー)   : screens[]のconfidence=low件数(1-125)
+    LOWCONF_CALLOUT (低信頼度分布コールアウトマーカー)  : 低信頼度件数・比率・閾値超過時の警告文。
+      0件でも必ず表示し(無表示を許さない)、比率が0.5を超えた場合のみpt-callout--warningを付ける
     SCREEN_TABLE_SECTIONS (画面テーブルセクションマーカー) : table-areaブロックの開始タグから
       module-groupセクションの閉じまでを丸ごと注入。分割なし(--split-by none相当)なら単一の
       module-groupセクション、分割ありなら軸の値ごとのmodule-groupブロック(折りたたみ要素)を
@@ -284,8 +287,11 @@
           <div class="tile">{{TILE_CLUSTER_SUMMARY_HTML}}</div>
           <div class="tile"><strong>{{TILE_EMBEDDED_COUNT}}</strong>埋め込みビュー候補数</div>
           <div class="tile"><strong>{{TILE_UNRESOLVED_COUNT}}</strong>要手動確認数</div>
+          <div class="tile"><strong>{{TILE_LOWCONF_COUNT}}</strong>低信頼度画面数</div>
         </div>
       </div>
+
+      <!--LOWCONF_CALLOUT-->
 
       <!--DIAGNOSTICS-->
 
