@@ -2049,9 +2049,17 @@ else
   GENERATED_DATE="$(date +%Y-%m-%d)"
 fi
 
-# 対象リポジトリの短縮コミット SHA（git 管理外は空文字）
-if git -C "$TARGET_REPO" rev-parse --git-dir >/dev/null 2>&1; then
-  COMMIT_SHORT=" · コミット番号: $(git -C "$TARGET_REPO" rev-parse --short HEAD)"
+# 表示コミット: 画面詳細設計書 frontmatter の source_ref を集計する（定義由来）。
+# 生成時 HEAD の直接表示は廃止（表示値と設計書の根拠コミットの乖離を防ぐ。AI駆動開発セットアップ構想「コミット値-単一化」）。
+SOURCE_REF_VALUES="$(grep -h '^source_ref:' "$PORTAL_DIR"/画面/*/詳細設計/画面詳細設計書.md 2>/dev/null \
+  | sed -e 's/^source_ref:[[:space:]]*//' -e 's/[[:space:]]*$//' \
+  | grep -v '^SOURCECOMMIT$' | grep -v '^$' | sort -u || true)"
+SOURCE_REF_COUNT=0
+[ -n "$SOURCE_REF_VALUES" ] && SOURCE_REF_COUNT="$(printf '%s\n' "$SOURCE_REF_VALUES" | wc -l | tr -d ' ')"
+if [ "$SOURCE_REF_COUNT" -eq 1 ]; then
+  COMMIT_SHORT=" · コミット番号: $(printf '%s' "$SOURCE_REF_VALUES" | cut -c1-7)"
+elif [ "$SOURCE_REF_COUNT" -gt 1 ]; then
+  COMMIT_SHORT=" · コミット番号: 画面ごとに異なる"
 else
   COMMIT_SHORT=""
 fi
@@ -2186,6 +2194,17 @@ if [ -d "$DOCS_ROOT/画面" ] && [ -f "$SCREEN_DOC_TEMPLATE_FILE" ]; then
     base_md="${screen_dir}基本設計/画面基本設計書.md"
     detail_md="${screen_dir}詳細設計/画面詳細設計書.md"
 
+    # 表示コミット（画面単位）: 画面詳細設計書 frontmatter の source_ref から算出する。
+    # 基本設計書・詳細設計書のどちらをレンダリングする場合も同じ値を使う。
+    page_source_ref="$(grep -h '^source_ref:' "$detail_md" 2>/dev/null \
+      | sed -e 's/^source_ref:[[:space:]]*//' -e 's/[[:space:]]*$//' \
+      | grep -v '^SOURCECOMMIT$' | grep -v '^$' | head -n1 || true)"
+    if [ -n "$page_source_ref" ]; then
+      PAGE_COMMIT=" · コミット番号: $(printf '%s' "$page_source_ref" | cut -c1-7)"
+    else
+      PAGE_COMMIT="$COMMIT_SHORT"
+    fi
+
     for target_md in "$base_md" "$detail_md"; do
       [ -f "$target_md" ] || continue
 
@@ -2239,7 +2258,7 @@ if [ -d "$DOCS_ROOT/画面" ] && [ -f "$SCREEN_DOC_TEMPLATE_FILE" ]; then
       # 共通シェル注入（partials が存在する場合のみ）
       if type shell_injection_args >/dev/null 2>&1; then
         doc_sidebar_html="<nav class=\"pt-doc-nav\" aria-label=\"画面設計書\"><div class=\"pt-doc-nav__group\">画面 / 設計書</div>${doc_nav}<div class=\"pt-doc-nav__group\">この設計書内</div><ul class=\"pt-doc-nav__toc\" id=\"toc-list\"></ul></nav>"
-        shell_injection_args "$SCRIPT_DIR/../templates" "$CATALOG" "$portal_index_href" "$PROJECT_NAME" "$GENERATED_DATE" "$COMMIT_SHORT" "shared/scripts/build-portal.sh" "list" "${SITES_FILE:-}" "${SITE_KEY:-}" "$(dirname "$target_md")" "$doc_sidebar_html"
+        shell_injection_args "$SCRIPT_DIR/../templates" "$CATALOG" "$portal_index_href" "$PROJECT_NAME" "$GENERATED_DATE" "$PAGE_COMMIT" "shared/scripts/build-portal.sh" "list" "${SITES_FILE:-}" "${SITE_KEY:-}" "$(dirname "$target_md")" "$doc_sidebar_html"
         if [ ${#SHELL_RENDER_ARGS[@]} -gt 0 ]; then
           screen_render_args+=("${SHELL_RENDER_ARGS[@]}")
         fi
