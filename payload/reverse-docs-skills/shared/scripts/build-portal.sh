@@ -1974,6 +1974,102 @@ TEST24CATALOG
   echo "PASS: --self-test ケース33（manifestContentHashが変化すると既存edgesは破棄されedgesStatusが未抽出に戻る）"
   rm -rf "$test33_dir"
 
+  echo "--- ケース34: 表示コミットの source_ref 集計（画面詳細設計書 frontmatter からの表示。混在時は「画面ごとに異なる」の注記、同一値なら短縮表示、frontmatter 不在なら空、設計書ページ個別ではその画面自身の値を表示することの検収方法） ---"
+  test34_dir="$(mktemp -d)"
+  test34_repo="$test34_dir/repo"
+  test34_docs="$test34_dir/docs"
+  mkdir -p "$test34_repo" "$test34_docs/画面/screen-a/詳細設計" "$test34_docs/画面/screen-b/詳細設計"
+
+  cat > "$test34_docs/画面/screen-a/詳細設計/画面詳細設計書.md" <<'TEST34_A_MD'
+---
+source_repo: sample-repo
+source_ref: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+source_encoding: UTF-8
+source_line_ending: LF
+---
+# 画面A詳細設計書
+本文
+TEST34_A_MD
+
+  cat > "$test34_docs/画面/screen-b/詳細設計/画面詳細設計書.md" <<'TEST34_B_MD'
+---
+source_repo: sample-repo
+source_ref: bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+source_encoding: UTF-8
+source_line_ending: LF
+---
+# 画面B詳細設計書
+本文
+TEST34_B_MD
+
+  # パターン1: 2画面のsource_refが異なる → index.htmlに「画面ごとに異なる」の注記が出る
+  "$SCRIPT_DIR/build-portal.sh" "$test34_repo" "$test34_docs" "$test34_docs" --generated-at 2026-07-28T00:00:00Z >/dev/null 2>&1
+  if ! grep -q "画面ごとに異なる" "$test34_docs/index.html"; then
+    echo "FAIL: --self-test ケース34（値が異なる2画面でindex.htmlに『画面ごとに異なる』の注記が出ない）" >&2
+    rm -rf "$test34_dir"
+    exit 1
+  fi
+
+  # パターン3（混在状態のまま）: 設計書ページ個別ではその画面自身のsource_ref値を表示する
+  if ! grep -q "コミット番号: aaaaaaa" "$test34_docs/画面/screen-a/詳細設計/画面詳細設計書.html"; then
+    echo "FAIL: --self-test ケース34（混在時にscreen-aのページ自身がaaaaaaaを表示しない）" >&2
+    rm -rf "$test34_dir"
+    exit 1
+  fi
+  if ! grep -q "コミット番号: bbbbbbb" "$test34_docs/画面/screen-b/詳細設計/画面詳細設計書.html"; then
+    echo "FAIL: --self-test ケース34（混在時にscreen-bのページ自身がbbbbbbbを表示しない）" >&2
+    rm -rf "$test34_dir"
+    exit 1
+  fi
+
+  # パターン2: 2画面のsource_refを同一値へ変更して再生成 → index.htmlにその値の先頭7文字が出る
+  cat > "$test34_docs/画面/screen-a/詳細設計/画面詳細設計書.md" <<'TEST34_A_SAME_MD'
+---
+source_repo: sample-repo
+source_ref: cccccccccccccccccccccccccccccccccccccccc
+source_encoding: UTF-8
+source_line_ending: LF
+---
+# 画面A詳細設計書
+本文
+TEST34_A_SAME_MD
+  cat > "$test34_docs/画面/screen-b/詳細設計/画面詳細設計書.md" <<'TEST34_B_SAME_MD'
+---
+source_repo: sample-repo
+source_ref: cccccccccccccccccccccccccccccccccccccccc
+source_encoding: UTF-8
+source_line_ending: LF
+---
+# 画面B詳細設計書
+本文
+TEST34_B_SAME_MD
+  "$SCRIPT_DIR/build-portal.sh" "$test34_repo" "$test34_docs" "$test34_docs" --generated-at 2026-07-28T00:00:00Z >/dev/null 2>&1
+  if ! grep -q "コミット番号: ccccccc" "$test34_docs/index.html"; then
+    echo "FAIL: --self-test ケース34（値が一致する2画面でindex.htmlに短縮表示cccccccが出ない）" >&2
+    rm -rf "$test34_dir"
+    exit 1
+  fi
+
+  # パターン4: source_refを持たないmdだけにして再生成 → index.htmlのコミット表示が空になる
+  cat > "$test34_docs/画面/screen-a/詳細設計/画面詳細設計書.md" <<'TEST34_A_NOREF_MD'
+# 画面A詳細設計書
+本文
+TEST34_A_NOREF_MD
+  cat > "$test34_docs/画面/screen-b/詳細設計/画面詳細設計書.md" <<'TEST34_B_NOREF_MD'
+# 画面B詳細設計書
+本文
+TEST34_B_NOREF_MD
+  "$SCRIPT_DIR/build-portal.sh" "$test34_repo" "$test34_docs" "$test34_docs" --generated-at 2026-07-28T00:00:00Z >/dev/null 2>&1
+  test34_footer="$(grep -o '<span id="pt-footer-commit">[^<]*</span>' "$test34_docs/index.html")"
+  if printf '%s' "$test34_footer" | grep -q "番号"; then
+    echo "FAIL: --self-test ケース34（source_ref不在後もindex.htmlのコミット表示が空にならない: ${test34_footer}）" >&2
+    rm -rf "$test34_dir"
+    exit 1
+  fi
+
+  echo "PASS: --self-test ケース34（表示コミットの source_ref 集計: 混在で注記・同一で短縮表示・不在で空・ページ個別値）"
+  rm -rf "$test34_dir"
+
   exit 0
 fi
 
