@@ -2121,12 +2121,49 @@ TEST34_B_NOREF_MD
   echo "PASS: --self-test ケース35b（意図的な不一致1件を正しく検出する: ${test35_bad_mismatch}/${test35_bad_total}件）"
   rm -rf "$test35_dir"
 
+  # --- ケース36: --project-name明示指定時は指定名がタイトル・ブランド名・見出し・フッターへ
+  # 反映され、未指定時は従来どおりディレクトリ名(basename)が使われること(1-172) ---
+  test36_dir="$(mktemp -d "${TMPDIR:-/tmp}/build-portal-test36.XXXXXX")"
+  test36_repo="$test36_dir/一時作業ディレクトリ名"
+  mkdir -p "$test36_repo"
+
+  test36_docs="$test36_dir/docs"
+  mkdir -p "$test36_docs"
+  "$SCRIPT_DIR/build-portal.sh" "$test36_repo" "$test36_docs" "$test36_docs" \
+    --catalog "$DEFAULT_CATALOG" --project-name "実際のプロジェクト名" >/dev/null 2>&1
+  test36_index="$test36_docs/index.html"
+  if [ -f "$test36_index" ] \
+    && grep -q '<title>実際のプロジェクト名 — 設計ポータル</title>' "$test36_index" \
+    && grep -q '<h1>実際のプロジェクト名</h1>' "$test36_index" \
+    && grep -q 'pt-brand-name">実際のプロジェクト名<' "$test36_index" \
+    && grep -q 'pt-footer-meta">実際のプロジェクト名 ' "$test36_index"; then
+    echo "PASS: --self-test ケース36a（--project-name明示指定がタイトル・見出し・ブランド名・フッターへ反映）"
+  else
+    echo "FAIL: --self-test ケース36a（--project-name明示指定が反映されない）" >&2
+    rm -rf "$test36_dir"
+    exit 1
+  fi
+
+  test36_docs2="$test36_dir/docs2"
+  mkdir -p "$test36_docs2"
+  "$SCRIPT_DIR/build-portal.sh" "$test36_repo" "$test36_docs2" "$test36_docs2" \
+    --catalog "$DEFAULT_CATALOG" >/dev/null 2>&1
+  test36_index2="$test36_docs2/index.html"
+  if [ -f "$test36_index2" ] && grep -q "<h1>一時作業ディレクトリ名</h1>" "$test36_index2"; then
+    echo "PASS: --self-test ケース36b（--project-name未指定時はディレクトリ名basenameへフォールバック）"
+  else
+    echo "FAIL: --self-test ケース36b（未指定時のフォールバックが機能しない）" >&2
+    rm -rf "$test36_dir"
+    exit 1
+  fi
+  rm -rf "$test36_dir"
+
   exit 0
 fi
 
 # --- 引数チェック ---
 if [ $# -lt 3 ]; then
-  echo "Usage: $0 <target_repo_path> <output_dir> <portal_output_dir> [--catalog <file>] [--generated-at <ISO-8601>] [--portal-only] [--screen-manifest <file>] [--sites <file>] [--site-key <key>]" >&2
+  echo "Usage: $0 <target_repo_path> <output_dir> <portal_output_dir> [--catalog <file>] [--generated-at <ISO-8601>] [--portal-only] [--screen-manifest <file>] [--sites <file>] [--site-key <key>] [--project-name <name>]" >&2
   exit 1
 fi
 
@@ -2146,6 +2183,7 @@ PORTAL_ONLY=0
 SCREEN_MANIFEST=""
 SITES_FILE=""
 SITE_KEY=""
+PROJECT_NAME_ARG=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --catalog)
@@ -2165,6 +2203,9 @@ while [ $# -gt 0 ]; do
     --site-key)
       [ $# -ge 2 ] || { echo "ERROR: --site-key requires a value" >&2; exit 1; }
       SITE_KEY="$2"; shift 2 ;;
+    --project-name)
+      [ $# -ge 2 ] || { echo "ERROR: --project-name requires a value" >&2; exit 1; }
+      PROJECT_NAME_ARG="$2"; shift 2 ;;
     *)
       echo "ERROR: unknown argument: $1" >&2
       exit 1 ;;
@@ -2193,7 +2234,11 @@ if [ -n "$SCREEN_MANIFEST" ] && [ ! -f "$SCREEN_MANIFEST" ]; then
   exit 1
 fi
 
-PROJECT_NAME="$(basename "$TARGET_REPO")"
+if [ -n "$PROJECT_NAME_ARG" ]; then
+  PROJECT_NAME="$PROJECT_NAME_ARG"
+else
+  PROJECT_NAME="$(basename "$TARGET_REPO")"
+fi
 if [ -n "$GENERATED_AT" ]; then
   GENERATED_DATE="$(node -e 'const d=new Date(process.argv[1]);if(Number.isNaN(d.valueOf()))process.exit(1);process.stdout.write(d.toISOString().slice(0,10))' "$GENERATED_AT")" \
     || { echo "ERROR: --generated-at must be a valid ISO-8601 value" >&2; exit 1; }

@@ -273,7 +273,7 @@ bash shared/scripts/build-portal.sh \
   --catalog shared/references/portal-catalog.json
 ```
 
-ポータルは納品物ルート（output_dir）直下の `index.html` として出力する（正本レイアウト。`references/contract.md` の「納品物ルート（output_dir）の正本レイアウト」参照）。カテゴリ、カード、探索条件、件数単位は `shared/references/portal-catalog.json` から導出する。カテゴリや成果物種別を追加する場合は、`build-portal.sh` へ分岐を足さず catalog へ blueprint を登録する。画面manifestから派生物を一括再生成する工程では、同じ catalog に加えて `--portal-only`・`--generated-at`・`--screen-manifest` を渡し、複数サイトでは `--sites`・`--site-key` も保持して、既存成果物を再変換せず `index.html` だけを更新する。サイトが2件以上あり `<納品ルート>/sites.json` が不在なら、統括スキル自身が `sites.json` を書き出す。
+ポータルは納品物ルート（output_dir）直下の `index.html` として出力する（正本レイアウト。`references/contract.md` の「納品物ルート（output_dir）の正本レイアウト」参照）。カテゴリ、カード、探索条件、件数単位は `shared/references/portal-catalog.json` から導出する。カテゴリや成果物種別を追加する場合は、`build-portal.sh` へ分岐を足さず catalog へ blueprint を登録する。画面manifestから派生物を一括再生成する工程では、同じ catalog に加えて `--portal-only`・`--generated-at`・`--screen-manifest` を渡し、複数サイトでは `--sites`・`--site-key` も保持して、既存成果物を再変換せず `index.html` だけを更新する。サイトが2件以上あり `<納品ルート>/sites.json` が不在なら、統括スキル自身が `sites.json` を書き出す。`target_repo_path` が本来のプロジェクトではなく検証用の複製（worktree等の一時ディレクトリ）を指す場合は、`--project-name <本来のプロジェクト名>` を明示指定し、複製のディレクトリ名がタイトル・ブランド名・見出し・フッターへ混入することを防ぐ。
 
 データ源が揃う任意基盤ページだけ対応スキルで生成し、ポータルを再生成する。
 
