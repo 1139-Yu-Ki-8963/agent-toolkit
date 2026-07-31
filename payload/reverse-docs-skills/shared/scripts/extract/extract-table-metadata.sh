@@ -132,7 +132,7 @@ extract_create_block() {
   table_lc="$(lc "$2")"
   # 字句除去結果を先に読み切ってから対象ブロックを切り出す。早期終了する下流へ
   # ファイル読込をパイプしないため、pipefail下でもSIGPIPE(141)を発生させない。
-  sql_code="$(sql_code_only "$file")"
+  sql_code="$(sql_code_only_cached "$file")"
   # 1-134: 終端判定は文末記号(;)の有無・位置に依存せず、カラム定義を囲む括弧の深さが
   # 0 へ戻った行までをブロックとする。開始行の `CREATE TABLE ... (` が開く 1 段目の
   # 括弧を depth=1 として起点に取り、以降の行で depth が 0 へ戻った時点を終端とみなす。
@@ -193,7 +193,7 @@ extract_columns() {
 collect_fk_targets() {
   local block="$1" file="$2" table_lc l tname alter_code
   table_lc="$(lc "$3")"
-  alter_code="$(sql_code_only "$file")"
+  alter_code="$(sql_code_only_cached "$file")"
   {
     if [ -n "$block" ]; then
       printf '%s\n' "$block" | grep -oiE 'references[[:space:]]+[^[:space:](,;]+' || true
@@ -624,6 +624,67 @@ EOF
     rc=1
   fi
 
+  # --- 1-127: 500ユニットが同一の大きなスキーマファイルを共有する規模でも、
+  # sql_code_only のファイル単位キャッシュにより単一走査で完了し、各ユニットの抽出結果が
+  # 個々のCREATE TABLE定義と一致すること ---
+  local scale_dir="$tmp/scale"
+  mkdir -p "$scale_dir/migrations"
+  local scale_schema="$scale_dir/migrations/schema.sql"
+  : > "$scale_schema"
+  local n
+  for ((n = 1; n <= 500; n++)); do
+    if [ "$n" -eq 1 ]; then
+      printf 'CREATE TABLE scale_table_%04d (\n  id BIGINT NOT NULL,\n  name VARCHAR(100),\n  PRIMARY KEY (id)\n);\n\n' "$n" >> "$scale_schema"
+    else
+      printf 'CREATE TABLE scale_table_%04d (\n  id BIGINT NOT NULL,\n  parent_id BIGINT NOT NULL REFERENCES scale_table_%04d(id),\n  name VARCHAR(100),\n  PRIMARY KEY (id)\n);\n\n' "$n" "$((n - 1))" >> "$scale_schema"
+    fi
+  done
+
+  local scale_units="$scale_dir/units.jsonl"
+  : > "$scale_units"
+  for ((n = 1; n <= 500; n++)); do
+    printf '{"unitKey":"scale-table-%d","kind":"table","identifier":"scale_table_%04d","unitNameGuess":"table%d","sourceFile":"%s","confidence":"high","fileCount":1,"detectionMethod":"create-table"}\n' \
+      "$n" "$n" "$n" "$scale_schema" >> "$scale_units"
+  done
+
+  local scale_manifest="$scale_dir/table-manifest.json" scale_out="$scale_dir/out.json"
+  jq -n --arg sourceDir "$scale_dir/migrations" --slurpfile units "$scale_units" '{
+    generatedAt: "2026-01-01T00:00:00Z",
+    sourceDir: $sourceDir,
+    unitKind: "table",
+    strategy: {extractionMethod: "migration-sql", approvedByUser: true, unitIdRegex: null, excludePatterns: []},
+    detectionSummary: {unitCount: 500, unresolvedCount: 0},
+    units: $units
+  }' > "$scale_manifest"
+
+  local scale_err="$scale_dir/stderr.txt"
+  if ! bash "$script_path" "$scale_manifest" "$scale_dir/migrations" "$scale_out" >/dev/null 2>"$scale_err"; then
+    echo "  [FAIL] 1-127-scale: 500ユニット(同一ファイル共有)規模の抽出コマンドが完了しなかった" >&2
+    rc=1
+  else
+    local scale_diag
+    scale_diag="$(grep '^SCAN-DIAGNOSTIC:' "$scale_err" || true)"
+    # 500ユニットが同一ファイルを共有するフィクスチャでは、字句除去(sql_code_only)がユニークな
+    # ファイル数(=1)に比例して1回だけ走ることを検収する(検収方法1「単一走査で完了する」の直訳。
+    # マシン依存でflakyなwall-clock時間ではなく走査回数そのものを assert する)。
+    if printf '%s' "$scale_diag" | grep -q 'unique_files_lexically_scanned=1 units=500'; then
+      echo "  [PASS] 1-127-scale: 500ユニット(同一ファイル共有)規模でも字句除去はユニークファイル数(1件)分だけ実行される単一走査 (${scale_diag})"
+    else
+      echo "  [FAIL] 1-127-scale: 単一走査になっていない (${scale_diag:-診断行が出力されなかった})" >&2
+      rc=1
+    fi
+    if jq -e '
+        (.units[] | select(.unitKey=="scale-table-1") | .columnCount == 2 and .foreignKeys == [])
+        and (.units[] | select(.unitKey=="scale-table-2") | .columnCount == 3 and .foreignKeys == ["scale-table-1"])
+        and (.units[] | select(.unitKey=="scale-table-500") | .columnCount == 3 and .foreignKeys == ["scale-table-499"])
+      ' "$scale_out" >/dev/null 2>&1; then
+      echo "  [PASS] 1-127-scale: 共有ファイルのキャッシュ経由でも各ユニットの抽出結果(columnCount/foreignKeys)が個々のCREATE TABLE定義と一致"
+    else
+      echo "  [FAIL] 1-127-scale: 共有ファイルキャッシュ経由の抽出結果が期待値と不一致" >&2
+      rc=1
+    fi
+  fi
+
   if [ "$rc" -eq 0 ]; then
     echo "self-test 全項目 PASS"
   else
@@ -657,18 +718,49 @@ fi
 WORK="$(mktemp -d "${TMPDIR:-/tmp}/extract-table-metadata.XXXXXX")"
 trap 'rm -rf "$WORK"' EXIT
 
-# identifier(小文字) → unitKey の突合表
-LOOKUP_JSON="$(jq -c '[.units[] | {key: (.identifier // "" | ascii_downcase), value: .unitKey}] | from_entries' "$MANIFEST")"
+# --- sql_code_only のファイル単位キャッシュ(1-127) ---
+# sql_code_only は文字単位の字句除去処理でファイルサイズに比例して重い。複数ユニットが
+# 同一sourceFile(例: 全テーブルを1本のスキーマファイルにまとめた構成)を共有する場合、
+# ユニットごとに再計算するとファイルサイズ×ユニット数に比例して実行時間が膨らむ。
+# キーは解決済みパス文字列のハッシュ(ファイル内容は読まない・軽量)とし、1ユニークパスにつき
+# 1回だけ sql_code_only(ファイル内容の読み取りと字句除去)を実行してキャッシュへ書き出す。
+# 以降の同一ファイルを参照するユニットはキャッシュを読むだけで済ませる(ユニット数に比例した
+# 字句除去走査を、ユニークなファイル数に比例した単一走査へ集約する)。
+CODE_CACHE_DIR="$WORK/code-cache"
+mkdir -p "$CODE_CACHE_DIR"
+CODE_CACHE_SCAN_COUNT_FILE="$WORK/code-cache-scan-count.txt"
+: > "$CODE_CACHE_SCAN_COUNT_FILE"
+sql_code_only_cached() {
+  local file="$1" key cache_file
+  key="$(printf '%s' "$file" | shasum -a 256 | awk '{print $1}')"
+  cache_file="$CODE_CACHE_DIR/$key"
+  if [ ! -f "$cache_file" ]; then
+    sql_code_only "$file" > "$cache_file"
+    printf '.' >> "$CODE_CACHE_SCAN_COUNT_FILE"
+  fi
+  cat "$cache_file"
+}
+
+# identifier(小文字) → unitKey の突合表(1-127: FK解決のたびにjqを起動しないよう、TSVへ1回だけ書き出し
+# awkで引く。ユニット数に比例したjq起動を無くす)
+LOOKUP_TSV="$WORK/lookup.tsv"
+jq -r '.units[] | [(.identifier // "" | ascii_downcase), (.unitKey // "")] | @tsv' "$MANIFEST" \
+  | awk -F'\t' 'NF==2 && $1 != "" && $2 != ""' > "$LOOKUP_TSV"
+lookup_unit_key() {
+  awk -F'\t' -v k="$1" '$1 == k { print $2; exit }' "$LOOKUP_TSV"
+}
+
+# 全ユニットの基本フィールドを1回のjqでTSV化(1-127: ユニットごとにunitKey/kind/identifier/
+# sourceFileを個別jq呼び出しで取り出すと、ユニット数に比例してjqプロセス起動が膨らむ。
+# 1回のjq呼び出しでTSVへ書き出し、以降はプレーンなbashの行読みだけで処理する)
+UNITS_TSV="$WORK/units.tsv"
+jq -r '.units[]? | [(.unitKey // ""), (.kind // ""), (.identifier // ""), (.sourceFile // "")] | @tsv' "$MANIFEST" \
+  > "$UNITS_TSV"
 
 PATCHES="$WORK/patches.jsonl"
 : > "$PATCHES"
 
-while IFS= read -r row; do
-  [ -z "$row" ] && continue
-  unit_key="$(jq -r '.unitKey // ""' <<<"$row")"
-  kind="$(jq -r '.kind // ""' <<<"$row")"
-  identifier="$(jq -r '.identifier // ""' <<<"$row")"
-  source_file="$(jq -r '.sourceFile // ""' <<<"$row")"
+while IFS=$'\t' read -r unit_key kind identifier source_file; do
   [ "$kind" = "unresolved" ] && continue
   [ -z "$unit_key" ] && continue
   [ -z "$identifier" ] && continue
@@ -702,7 +794,7 @@ while IFS= read -r row; do
   fk_keys='[]'
   while IFS= read -r target; do
     [ -z "$target" ] && continue
-    resolved="$(jq -r --arg k "$target" '.[$k] // empty' <<<"$LOOKUP_JSON")"
+    resolved="$(lookup_unit_key "$target")"
     [ -z "$resolved" ] && continue
     fk_keys="$(jq -c --arg k "$resolved" 'if index($k) then . else . + [$k] end' <<<"$fk_keys")"
   done < <(collect_fk_targets "$block" "$file" "$identifier")
@@ -711,7 +803,7 @@ while IFS= read -r row; do
   if [ "$add" != "{}" ]; then
     jq -c --arg k "$unit_key" '{key: $k, value: .}' <<<"$add" >> "$PATCHES"
   fi
-done < <(jq -c '.units[]' "$MANIFEST")
+done < "$UNITS_TSV"
 
 mkdir -p "$(dirname "$OUTPUT")"
 jq --slurpfile patches "$PATCHES" '
@@ -720,3 +812,6 @@ jq --slurpfile patches "$PATCHES" '
 ' "$MANIFEST" > "$OUTPUT"
 
 echo "OK: wrote $OUTPUT" >&2
+unit_count_diag="$(wc -l < "$UNITS_TSV" | tr -d ' ')"
+scan_count_diag="$(wc -c < "$CODE_CACHE_SCAN_COUNT_FILE" | tr -d ' ')"
+echo "SCAN-DIAGNOSTIC: unique_files_lexically_scanned=$scan_count_diag units=$unit_count_diag" >&2
