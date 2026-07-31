@@ -939,6 +939,23 @@ MDEOF
     fail=1
   fi
 
+  # フィクスチャ r-present: frontmatterに原本属性キー(source_encoding: UTF-8 /
+  # source_line_ending: LF)が揃っている → 検査rは違反を出さず通過する
+  make_fixture "$tmp/r-present" '| キー | 起票日 | 内容 | 暫定扱いにしている § | 解消条件 | 状態 |
+|---|---|---|---|---|---|
+| foo-issue | `2026-01-01` | 何らかの確認事項 | §15 | 実装完了 | 解消済み |'
+
+  # ケース19b: 検査r陰性（frontmatterに原本属性キーが揃っている場合は違反を出さず通過する）
+  if out_r_present="$(bash "$script_path" "$tmp/r-present" 2>&1)"; then rc_r_present=0; else rc_r_present=$?; fi
+  if [ "$rc_r_present" -eq 0 ] \
+     && printf '%s' "$out_r_present" | grep -q "frontmatter の原本属性キーはすべて存在します" \
+     && ! printf '%s' "$out_r_present" | grep -q "原本属性キーがありません"; then
+    echo "[PASS] 検査r陰性: frontmatterに原本属性キーが揃っている場合は違反を出さず通過する"
+  else
+    echo "[FAIL] 検査r陰性: 原本属性キーが揃っているのに通過しません（exit=${rc_r_present}）"
+    fail=1
+  fi
+
   # ケース20: 検査s陽性（章マップの外部文書宣言に対応するfrontmatterのパス欄欠落を違反として検出する）
   if out_s="$(bash "$script_path" "$tmp/s" 2>&1)"; then rc_s=0; else rc_s=$?; fi
   if [ "$rc_s" -eq 1 ] && printf '%s' "$out_s" | grep -q "対応する frontmatter のパス欄がありません"; then

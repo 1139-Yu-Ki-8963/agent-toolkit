@@ -78,7 +78,7 @@ facts.yml の `meta` 節は以下の通り frontmatter へ転記する（`shared
 
 - `meta.source_repo` → frontmatter の `source_repo` へそのまま転記する（必須）
 - `meta.source_ref` → frontmatter の `source_ref` へそのまま転記する（必須）
-- `meta.source_encoding` → frontmatter の `source_encoding` へそのまま転記する（必須）。原本が非UTF-8（EUC-JP 等）の場合、この記録がないと文字コード依存の変換処理を持つ画面を再生成しても動作しない。UTF-8 の場合も省略せず明記する。facts.yml の `meta` に当該フィールドが無い場合は転記せず、§16 要確認事項一覧へ起票する
+- `meta.source_encoding` → frontmatter の `source_encoding` へそのまま転記する（必須）。原本が非UTF-8（EUC-JP 等）の場合、この記録がないと文字コード依存の変換処理を持つ画面を再生成しても動作しない。UTF-8 の場合も省略せず明記する。facts.yml の `meta` には上流の抽出スキルが必ず当該フィールドを格納する。それでも欠落していた場合は facts の再抽出を促す。転記せず §16 要確認事項一覧へ起票するだけの対応は取らない。監査の検査 r が frontmatter の当該キーを無条件で必須とするため、起票のみでは完全性ゲートが収束しない
 - `meta.source_line_ending` → frontmatter の `source_line_ending` へそのまま転記する（必須）。値は `LF`・`CRLF`・`CR` のいずれかとする
 - `meta.route`（`value`）→ frontmatter の `scenarios[].path` を構成する。`ready`（描画到達判定に使う要素）は facts.yml の `jsx` セクションの分岐別ルート要素（`jsx-path-*`）から確定する。起動引数 `verification_url` がある場合だけ、実レンダリング確認済みURLから `query` / `path_params` を確定転記する。未開通で `verification_url` がない場合は `path` と `ready` を静的事実から記載し、`query` / `path_params` を省略して `measurement_pending` に留保項目を記録したうえで `AUTHORED` を返してよい。`scenarios: []` は禁止する。動的検証へ進む前に `unlocking-reverse-target-screens(invocation_mode=dynamic-only)` が実測URLで留保項目を補完する
 

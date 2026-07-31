@@ -74,7 +74,7 @@ allowed-tools: [Bash, Read, Write, Edit]
 
 `profile=screen`は`references/profile-screen.md`の分類別抽出手順に従い、12分類の`facts.yml`を作成する。`profile=python`は`references/profile-python.md`を正本として、`python3 scripts/extract-python-facts.py extract ...`で6分類の`facts.yml`を決定的に作成する。いずれも全項目は原本の行番号根拠付き（`file:line`）とし、推測・要約で補完しない。`measurement_pending`はkey・evidenceのみを記録しvalueを書かない。
 
-**完了**: screenは12分類（`sections` 配下12キー）と `meta`（source_repo・source_ref・route）、pythonは6分類を持つfacts.ymlが生成済み
+**完了**: screenは12分類（`sections` 配下12キー）と `meta`（source_repo・source_ref・route・source_encoding・source_line_ending）、pythonは6分類を持つfacts.ymlが生成済み
 
 ## Phase 3: 独立再計数ゲート
 

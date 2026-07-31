@@ -111,7 +111,7 @@ facts.yml の各セクションを下記マップに従って各章へ転記す�
 
 章の役割キー → §番号の解決は起動引数 chapter_map_path を正本とする。§番号は既定値であり、設計書の章マップ表で解決する。
 
-あわせて facts.yml の `meta` 節を frontmatter へ転記する（`meta.source_repo`→`source_repo`・`meta.source_ref`→`source_ref`・`meta.route`→`scenarios[].path`）。転記規律は `references/writing-rules.md` の「frontmatter 転記規律」を正本とする。
+あわせて facts.yml の `meta` 節を frontmatter へ転記する（`meta.source_repo`→`source_repo`・`meta.source_ref`→`source_ref`・`meta.route`→`scenarios[].path`・`meta.source_encoding`→`source_encoding`・`meta.source_line_ending`→`source_line_ending`）。転記規律は `references/writing-rules.md` の「frontmatter 転記規律」を正本とする。
 
 `scenarios[].path` は facts の `meta.route` から必ず確定する。`ready` は facts の jsx 分岐別ルート要素から確定する。実レンダリング確認済みの `verification_url` がある場合だけ `query/path_params` の具体値を転記し、無い場合はテンプレート値を残さず両キーを省略する（該当なしなら省略可という frontmatter 契約に従う）。画面未開通を AUTHORED の差し戻し理由にしてはならない。実測が必要な値は本文の `measurement_pending` と §16 に留保し、後続の動的検証で補完する。
 
