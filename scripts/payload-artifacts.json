@@ -1,15 +1,5 @@
 {
-  "names": [
-    "flow-config",
-    "flow-context.yml",
-    ".flow-progress.json",
-    ".port-slot",
-    ".investigation-checklist.md",
-    "local-environment",
-    ".cc-writes"
-  ],
-  "pathSuffixes": [
-    ".claude/markers"
-  ],
+  "names": [],
+  "pathSuffixes": [],
   "forbiddenContent": []
 }

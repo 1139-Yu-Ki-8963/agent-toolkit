@@ -316,9 +316,9 @@ function cmdCheckArtifacts() {
     }
     console.log("─".repeat(70));
     console.log(
-      `禁止アーティファクトが ${hits.length} 件見つかりました。scripts/payload-artifacts.json ` +
-      `を参照し、該当ファイルを payload/ から削除してください（正本側の除外が漏れている場合は ` +
-      `sync-manifest.json の mapping 見直しも検討する）。`
+      `禁止アーティファクトが ${hits.length} 件見つかりました。該当ファイルを payload/ から削除して` +
+      `ください。除外パターンの追加先は ~/agent-home/state/payload-forbidden-content.json です` +
+      `（正本側の除外が漏れている場合は sync-manifest.json の mapping 見直しも検討する）。`
     );
     hasViolation = true;
   }

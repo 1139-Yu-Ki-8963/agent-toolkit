@@ -142,9 +142,16 @@ fail-safe で素通りします（乖離検知不能なため block しない）
 
 ### 禁止パターンデータファイル
 
-`scripts/payload-artifacts.json` の `names`（パスの各セグメントとの完全一致）/
-`pathSuffixes`（相対パス末尾一致）に追加することで、今後同種の事故パターンを
-機械的に除外できる。
+禁止パターンは 2 つのファイルの合成で決まる。
+
+| ファイル | 役割 |
+|---|---|
+| `scripts/payload-artifacts.json` | 公開側。キーの枠だけを保持し、値は空 |
+| `~/agent-home/state/payload-forbidden-content.json` | 非公開側（リポジトリ外）。実際の値を持つ |
+
+合成の対象は 3 キー。`names` はパスの各セグメントとの完全一致、`pathSuffixes` は相対パスの末尾一致、`forbiddenContent` はファイル内容の部分一致で判定する。合成処理は `sync-payload.mjs` の `loadForbiddenPatterns()` にある。
+
+新しい除外対象は非公開側へ追加する。公開リポジトリにプロジェクト固有名を残さないための分離であり、公開側へ値を書き戻してはならない。
 
 ### mirror コピー時の除外（予防）
 
@@ -166,8 +173,7 @@ manual mapping 経由や手動コピーでの混入も捕捉する。
 
 1. stderr の FOUND 一覧を確認する
 2. 該当ファイルを payload/ から削除する（`git rm`）
-3. 正本側の mirror mapping が構造的に混入源になっている場合は
-   `scripts/payload-artifacts.json` にパターンを追加する
+3. 正本側の mirror mapping が構造的な混入源になっている場合は、非公開側の `~/agent-home/state/payload-forbidden-content.json` へパターンを追加する
 4. 緊急口（常用禁止）: `CLAUDE_PAYLOAD_ARTIFACTS_SKIP=1 git commit ...`
 
 ### 設計判断
