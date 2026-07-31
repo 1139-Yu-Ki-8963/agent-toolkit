@@ -56,7 +56,9 @@
 
   制約:
     - 外部リソースはMaterial Symbols OutlinedのGoogle Fonts CDNだけを許可する。その他のCDN・フォント・画像は使わない
-    - <script id="screen-manifest"> の中身は Phase 2 の確定結果(manifest.json)と完全に一致させる
+    - <script id="screen-manifest"> の中身は、build-screen-list.shへ渡された入力マニフェスト(引数<manifest.json>。
+      実運用ではscreen-manifest.ext.json=派生フィールドcategory/permissions/designDocStatus/existingTestCount/sourceHash等を
+      付与した拡張マニフェスト)と完全に一致させる。Phase 2 の生検出結果そのものではない点に注意する
     - 本テンプレートは画面一覧.HTMLの生成のみを対象とする。設計書の雛形展開・生成は本スキルの範囲外
 -->
 <html lang="ja">

@@ -32,7 +32,9 @@
 
   制約:
     - 外部リソースはMaterial Symbols OutlinedのGoogle Fonts CDNだけを許可する。その他のCDN・フォント・画像は使わない
-    - <script id="unit-manifest"> のJSON.parse結果は確定結果(manifest.json)と完全に一致させる。文字列中のHTML危険文字はJSONエスケープを許容する
+    - <script id="unit-manifest"> のJSON.parse結果は、build-unit-list.shへ渡された入力マニフェスト(引数<manifest.json>)と完全に一致させる。この入力は抽出Phaseの生結果そのものとは限らず、
+      派生フィールド(category/permissions/designDocStatus/existingTestCount/sourceHash等。screen種別のみ)を付与した拡張マニフェストであることが正本の埋め込み対象である。
+      派生フィールドを付与しない種別では、拡張マニフェスト=入力マニフェストとなるため、この一致要件は単純化される。文字列中のHTML危険文字はJSONエスケープを許容する
     - 本テンプレートは<ラベル>一覧.HTMLの生成のみを対象とする。設計書の雛形展開・生成は本スキルの範囲外
 -->
 <html lang="ja">

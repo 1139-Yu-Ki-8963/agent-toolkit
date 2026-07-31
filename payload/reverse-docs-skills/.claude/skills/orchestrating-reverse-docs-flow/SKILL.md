@@ -229,6 +229,8 @@ unit_kinds_present に含まれる種別だけ、対応する6一覧スキルを
 
 通常の再開実行は永続 screen_manifest_path を直接入力にする。旧成果物の明示的な移行・復元を行う場合に限り、画面一覧HTMLが存在して永続 screen_manifest_path が無ければ `bash shared/scripts/unit-list/restore-screen-manifest.sh <output_dir>/一覧/画面一覧/画面一覧.html <screen_manifest_path>` を実行して埋込 `#screen-manifest` から一度だけ復元する。続いて validate-manifest.sh を通し、固定した generated_at と raw の正規化SHA-256を `--generated-at`・`--manifest-content-hash` へ渡して extract-screen-metadata.sh で screen_manifest_ext_path を再生成する。復元・検証・メタデータ付与・hash一致のいずれかが失敗した場合は通常工程へ合流しない。
 
+**注記**: 画面一覧.HTMLへ実際に埋め込まれているのは、build-unit-list.sh(内部でbuild-screen-list.shへ委譲)に渡した入力(`screen_manifest_ext_path`)そのものであり、派生フィールド(category/permissions/designDocStatus/existingTestCount/sourceHash等)を含む**拡張マニフェスト**である。したがって上記の復元手順で得られる内容も拡張マニフェスト相当であり、Phase 2の生検出結果そのものではない。extract-screen-metadata.shでのscreen_manifest_ext_path再生成は、この拡張マニフェストへgenerated_at・hashを確定付与し直す工程として扱う。
+
 **完了**: 実在種別の一覧HTMLがすべて存在し、画面一覧が存在する場合は永続 screen_manifest_path / screen_manifest_ext_path が実在して両方とも検証済み。
 
 ## Step 3-2: 対象外種別と派生一覧を確定する

@@ -382,6 +382,62 @@ EOF
     rc=1
   fi
 
+  # --- 1-123: 拡張マニフェスト(派生フィールド付き)でも「埋め込み == 復元元」が成り立つこと ---
+  # screen種別はbuild-screen-list.shへ委譲されるため、category/permissions/designDocStatus/
+  # existingTestCount/sourceHashを付与した拡張マニフェストで検証する。
+  local roundtrip_ok=1
+  mkdir -p "$tmp/src/screens"
+  cat > "$tmp/src/screens/Home.tsx" <<'EOF'
+export default function Home() { return null }
+EOF
+  local ext_manifest="$tmp/screen-manifest-ext.json" ext_out="$tmp/screen-manifest-ext.html"
+  jq -n --arg entryFile "$tmp/src/screens/Home.tsx" --arg sourceDir "$tmp/src" '{
+    generatedAt: "2026-07-28T00:00:00Z",
+    sourceDir: $sourceDir,
+    strategy: {extractionMethod: "custom", approvedByUser: true, screenIdRegex: null, excludePatterns: []},
+    detectionSummary: {screenCount: 1, clusterCount: 0, sharedScreenCount: 0, embeddedCandidateCount: 0, unresolvedCount: 0},
+    screens: [{
+      screenKey: "home-screen", kind: "route", route: "/home", entryFile: $entryFile,
+      detectionMethod: "manual", confidence: "high", screenNameGuess: "Home",
+      parentScreen: null, childComponents: [], accountGroup: "common", accountSubType: "common",
+      screenType: "detail", hasTemplate: true, isProcessingEndpoint: false,
+      category: "一般", permissions: ["admin"], designDocStatus: "着手済",
+      existingTestCount: 3, sourceHash: "a1b2c3d4e5f6"
+    }]
+  }' > "$ext_manifest"
+
+  if bash "$script_path" "$ext_manifest" "$ext_out" --unit-kind screen >/dev/null 2>&1; then
+    extract_manifest_json() { sed -n '/<script type="application\/json" id="screen-manifest">/,/<\/script>/p' "$1" | sed '1d;$d'; }
+    local embedded_keys expected_keys
+    extract_manifest_json "$ext_out" | jq -r '.screens[0] | keys | sort | join(",")' > "$tmp/embedded-screen-keys.txt" 2>/dev/null || echo "FAIL" > "$tmp/embedded-screen-keys.txt"
+    jq -r '.screens[0] | keys | sort | join(",")' "$ext_manifest" > "$tmp/expected-screen-keys.txt"
+    if ! diff -q "$tmp/embedded-screen-keys.txt" "$tmp/expected-screen-keys.txt" >/dev/null 2>&1; then
+      roundtrip_ok=0
+      echo "  [FAIL] 1-123: 拡張マニフェストの埋め込みキー集合が入力と不一致" >&2
+    fi
+
+    if bash "$script_dir/restore-screen-manifest.sh" "$ext_out" "$tmp/restored-ext.json" >/dev/null 2>&1; then
+      jq -S . "$ext_manifest" > "$tmp/ext-sorted.json"
+      jq -S . "$tmp/restored-ext.json" > "$tmp/restored-ext-sorted.json"
+      if ! diff -q "$tmp/ext-sorted.json" "$tmp/restored-ext-sorted.json" >/dev/null 2>&1; then
+        roundtrip_ok=0
+        echo "  [FAIL] 1-123: 復元したマニフェストが拡張マニフェスト原本と不一致(往復非同一)" >&2
+      fi
+    else
+      roundtrip_ok=0
+      echo "  [FAIL] 1-123: restore-screen-manifest.shが拡張マニフェスト埋め込みHTMLからの復元に失敗した" >&2
+    fi
+  else
+    roundtrip_ok=0
+    echo "  [FAIL] 1-123: 派生フィールド付き拡張マニフェストでの生成コマンド自体が失敗した" >&2
+  fi
+
+  if [ "$roundtrip_ok" -eq 1 ]; then
+    echo "  [PASS] 1-123: 派生フィールド付き拡張マニフェストでも埋め込みキー集合が入力と一致し、復元したマニフェストが原本と完全一致(往復同一性)"
+  else
+    rc=1
+  fi
+
   if [ "$rc" -eq 0 ]; then
     echo "self-test 全項目 PASS"
   else

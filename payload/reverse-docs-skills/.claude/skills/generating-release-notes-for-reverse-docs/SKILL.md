@@ -26,8 +26,42 @@ allowed-tools: [Bash, Read, Write]
 ## 設計原則
 
 - **転記のみ** — コミットメッセージの内容の良否・粒度の妥当性は判定しない。`git log` に記録された事実（日時・メッセージ・種別分類）のみを転記する
-- **種別判定は機械的パターンのみ** — コミットメッセージの日本語角括弧プレフィックス（例: `【機能追加】` `【バグ修正】` `【改善】`）または先頭語からの文字列パターンマッチで種別を判定する。プレフィックスがなく判定できないものは「その他」に分類し、恣意的な解釈を行わない
+- **種別判定は機械的パターンのみ** — コミットメッセージの日本語角括弧プレフィックス（例: `【機能追加】` `【バグ修正】` `【改善】`）または先頭語からの文字列パターンマッチで、下記「プレフィックス対応表」に従って種別を判定する。対応表に無い件名は「その他」に分類し、恣意的な解釈を行わない
 - **固定と可変の分離** — 整合検証（`validate-page-data.sh`）と HTML 生成（`build-detail-page.sh`）は決定的スクリプトに固定する。抽出（`git log` の取得・日付グルーピング・種別判定）は Claude 自身が Bash/Read/Grep で行う
+
+## プレフィックス対応表
+
+コミット件名先頭のプレフィックスから `releases[].flow` を判定する。`flow` の許容値は `feature` | `maintenance` | `docs` の3値（定義: `page-data-schema.md` T7・`shared/templates/detail-pages/detail-t7-release-notes.html` の `FLOW_LABEL`）で、この3値がそのまま「分類」列の値になる。日本語プレフィックスは `~/agent-home/rules/always/naming/commit-branch/naming-values.txt` の英語 type 対応表を網羅し、慣習的な英語プレフィックスも行として加える。対応表に無いプレフィックスは「その他」として `maintenance` に分類する。
+
+| プレフィックス | 分類 |
+|---|---|
+| 【機能追加】 | feature |
+| 【バグ修正】 | maintenance |
+| 【ドキュメント】 | docs |
+| 【設定変更】 | maintenance |
+| 【リファクタ】 | maintenance |
+| 【テスト】 | maintenance |
+| 【スタイル】 | maintenance |
+| 【CI】 | maintenance |
+| 【パフォーマンス】 | maintenance |
+| 【取り消し】 | maintenance |
+| feat | feature |
+| fix | maintenance |
+| docs | docs |
+| refactor | maintenance |
+| chore | maintenance |
+| test | maintenance |
+
+### 旧分類との対応
+
+本スキルの説明文・設計原則・Step 2 は従来「機能追加・バグ修正・改善・その他」の4分類で `変更種別` を説明してきた。上記対応表への統一に伴い、この4分類は以下のとおり `flow` 値へ写像する（語彙は上記の3値へ一本化し、旧4分類は説明用の別名として扱う）。
+
+| 旧分類 | flow値 |
+|---|---|
+| 機能追加 | feature |
+| バグ修正 | maintenance |
+| 改善 | maintenance |
+| その他 | maintenance |
 
 ## エンジンスクリプトの所在
 
@@ -59,12 +93,13 @@ allowed-tools: [Bash, Read, Write]
 **使用ツール**: Bash / Write
 
 - **Step 1** — Phase 1 Step 2 で取得した全コミットを `ad`（日付）でグルーピングする。完了条件: 日付単位のコミット群が確定済み
-- **Step 2** — 各コミットの件名を先頭の日本語角括弧プレフィックスで走査し、変更種別（機能追加・バグ修正・改善・その他）を判定する。プレフィックスが無い、またはプレフィックス対応表に無い件名は「その他」に分類する。完了条件: 全コミットの種別分類が確定済み
+- **Step 2** — 各コミットの件名を先頭のプレフィックスで走査し、上記「プレフィックス対応表」に従って `flow`（`feature` | `maintenance` | `docs`）を判定する。プレフィックスが無い、または対応表に無い件名は「その他」として `maintenance` に分類する。完了条件: 全コミットの `flow` 分類が確定済み
 - **Step 3** — 日付グループごとに、コミット一覧（ハッシュ・件名・種別）を要約したエントリを組み立て、page-data.json を構築する。`pageKind: "release-notes"`、`tiles[]`（直近の変更種別内訳などの要約タイル）を埋める。`releases[]`（`{id, date, title, pr, prUrl, flow, summary, changes, verifySteps}`。PR 単位のリリースエントリ。コミット情報は `changes` と `summary` に要約する。`sourceRef` は使わない）も埋める。完了条件: page-data.json を一時ディレクトリへ保存済み
+- **Step 4** — 機械検査: `jq -r '[.releases[].flow] | unique[]' <page-data.json>` を実行し、出力される値がすべて `feature`/`maintenance`/`docs` のいずれかであることを確認する（プレフィックス対応表に無い値が紛れ込んでいないことの機械的な証拠とする。専用の `--self-test` スクリプトは存在しないため、本コマンドの実行結果を完了条件の証拠として残す）。完了条件: 出力値が3値の部分集合のみ
 
 page-data.json の保存先は `$CLAUDE_JOB_DIR/tmp/release-notes-page-data.json` とする。未設定時は `${TMPDIR:-/tmp}/claude-job-${session}/tmp/` 配下に置く。
 
-**完了**: 全コミットの日付グルーピング・種別分類を終え page-data.json を保存済み
+**完了**: 全コミットの日付グルーピング・種別分類を終え page-data.json を保存済み、かつ `flow` 値が3値の部分集合のみであることを機械検査済み
 
 ## Phase 3: 整合検証（機械実行）
 
@@ -109,7 +144,7 @@ page-data.json の保存先は `$CLAUDE_JOB_DIR/tmp/release-notes-page-data.json
 | Phase | 完了条件 |
 |---|---|
 | Phase 1 | git リポジトリの実在確認済み、または不在を報告して停止している |
-| Phase 2 | 全コミットの日付グルーピング・種別分類を終え page-data.json を保存済み |
+| Phase 2 | 全コミットの日付グルーピング・種別分類を終え page-data.json を保存済み、かつ `flow` 値が feature/maintenance/docs の3値の部分集合のみであることを機械検査済み |
 | Phase 3 | `validate-page-data.sh --target-repo` が全項目 PASS |
 | Phase 4 | `<output_dir>/リリースノート.html` が生成され、指定時は `build-portal.sh` の再実行が完了している |
 | **Goal** | git log の事実のみからリリースノート.html が生成され、種別判定不能なコミットは「その他」として捏造なく分類されている |
