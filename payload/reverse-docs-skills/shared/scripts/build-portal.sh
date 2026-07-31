@@ -1853,6 +1853,127 @@ TEST24CATALOG
   echo "PASS: --self-test ケース29（全成分ありでは現行同等のページが生成され、一部成分欠落時は空状態コールアウトが表示される）"
   rm -rf "$test29_dir"
 
+  echo "--- ケース30: 画面遷移図を開いた直後のDOMに空でない規模サマリが存在する（写真指摘1-104の検収方法1、DOM計測） ---"
+  TRANSITION_INITIAL_SUMMARY_TEST="$SCRIPT_DIR/test-transition-diagram-initial-summary.cjs"
+  if [ ! -f "$TRANSITION_INITIAL_SUMMARY_TEST" ]; then
+    echo "FAIL: --self-test ケース30（画面遷移図初期表示検査スクリプトが見つからない）" >&2
+    exit 1
+  fi
+  if node "$TRANSITION_INITIAL_SUMMARY_TEST"; then
+    :
+  else
+    echo "FAIL: --self-test ケース30（画面遷移図の初期DOMに空でない規模サマリが存在することの検証に失敗）" >&2
+    exit 1
+  fi
+
+  echo "--- ケース31: ER図の巨大ハブ(200テーブル)カード内、最小フォントサイズが10px以上（写真指摘1-104の検収方法2、Canvas計測） ---"
+  ER_HUB_FONT_SIZE_TEST="$SCRIPT_DIR/test-er-diagram-hub-card-font-size.cjs"
+  if [ ! -f "$ER_HUB_FONT_SIZE_TEST" ]; then
+    echo "FAIL: --self-test ケース31（ER図巨大ハブ検査スクリプトが見つからない）" >&2
+    exit 1
+  fi
+  if node "$ER_HUB_FONT_SIZE_TEST"; then
+    :
+  else
+    echo "FAIL: --self-test ケース31（ER図の巨大ハブカード内、最小フォントサイズ10px以上であることの検証に失敗）" >&2
+    exit 1
+  fi
+
+  echo "--- ケース32: 画面遷移bridgeの再実行で、同一manifestContentHashなら既存edges/edgesStatusが引き継がれる（画面遷移図edges消失バグ修正の検収方法1） ---"
+  BRIDGE_SCRIPT="$SCRIPT_DIR/detail-pages/build-detail-pages-from-screen-manifest.sh"
+  test32_dir="$(mktemp -d)"
+  mkdir -p "$test32_dir/out"
+  jq -n '{screens:[{screenKey:"a",kind:"route",route:"/a",screenNameGuess:"画面A"},{screenKey:"b",kind:"route",route:"/b",screenNameGuess:"画面B"}]}' \
+    > "$test32_dir/raw.json"
+  test32_hash="$(jq -cjS . "$test32_dir/raw.json" | shasum -a 256 | awk '{print $1}')"
+  jq --arg hash "$test32_hash" '.generatedAt = "2026-01-01T00:00:00Z" | .manifestContentHash = $hash' \
+    "$test32_dir/raw.json" > "$test32_dir/ext.json"
+  if ! bash "$BRIDGE_SCRIPT" "$test32_dir/ext.json" "$test32_dir/out" \
+    --raw-manifest "$test32_dir/raw.json" --generated-at 2026-01-01T00:00:00Z \
+    >/dev/null 2>"$test32_dir/run1.log"; then
+    echo "FAIL: --self-test ケース32（1回目のbridge実行が失敗した）" >&2
+    cat "$test32_dir/run1.log" >&2
+    rm -rf "$test32_dir"
+    exit 1
+  fi
+  # 遷移抽出スキルがedgesを書き込んだ状態を模擬する
+  jq '.edges = [{from:"a",to:"b",trigger:"リンク遷移",sourceRef:"src/router.tsx:1",confidence:"高"}] | .edgesStatus = "抽出済み"' \
+    "$test32_dir/out/画面遷移図-data.json" > "$test32_dir/out/画面遷移図-data.json.tmp" \
+    && mv "$test32_dir/out/画面遷移図-data.json.tmp" "$test32_dir/out/画面遷移図-data.json"
+  # 同一raw/extでbridgeを再実行(一括再生成を模擬)
+  if ! bash "$BRIDGE_SCRIPT" "$test32_dir/ext.json" "$test32_dir/out" \
+    --raw-manifest "$test32_dir/raw.json" --generated-at 2026-01-01T00:00:00Z \
+    >/dev/null 2>"$test32_dir/run2.log"; then
+    echo "FAIL: --self-test ケース32（2回目のbridge実行が失敗した）" >&2
+    cat "$test32_dir/run2.log" >&2
+    rm -rf "$test32_dir"
+    exit 1
+  fi
+  if ! grep -q "既存の edges" "$test32_dir/run2.log"; then
+    echo "FAIL: --self-test ケース32（edges引き継ぎのINFOログが出力されていない）" >&2
+    cat "$test32_dir/run2.log" >&2
+    rm -rf "$test32_dir"
+    exit 1
+  fi
+  test32_edge_count="$(jq '.edges | length' "$test32_dir/out/画面遷移図-data.json")"
+  test32_status="$(jq -r '.edgesStatus' "$test32_dir/out/画面遷移図-data.json")"
+  if [ "$test32_edge_count" != "1" ] || [ "$test32_status" != "抽出済み" ]; then
+    echo "FAIL: --self-test ケース32（同一manifestContentHashで既存edges/edgesStatusが引き継がれていない: edges=${test32_edge_count} edgesStatus=${test32_status}）" >&2
+    rm -rf "$test32_dir"
+    exit 1
+  fi
+  echo "PASS: --self-test ケース32（同一manifestContentHashで既存のedges/edgesStatusが引き継がれる）"
+  rm -rf "$test32_dir"
+
+  echo "--- ケース33: 画面遷移bridgeの再実行で、manifestContentHashが変わると既存edgesは破棄されedgesStatusが未抽出に戻る（画面遷移図edges消失バグ修正の検収方法2） ---"
+  test33_dir="$(mktemp -d)"
+  mkdir -p "$test33_dir/out"
+  jq -n '{screens:[{screenKey:"a",kind:"route",route:"/a",screenNameGuess:"画面A"},{screenKey:"b",kind:"route",route:"/b",screenNameGuess:"画面B"}]}' \
+    > "$test33_dir/raw.json"
+  test33_hash="$(jq -cjS . "$test33_dir/raw.json" | shasum -a 256 | awk '{print $1}')"
+  jq --arg hash "$test33_hash" '.generatedAt = "2026-01-01T00:00:00Z" | .manifestContentHash = $hash' \
+    "$test33_dir/raw.json" > "$test33_dir/ext.json"
+  if ! bash "$BRIDGE_SCRIPT" "$test33_dir/ext.json" "$test33_dir/out" \
+    --raw-manifest "$test33_dir/raw.json" --generated-at 2026-01-01T00:00:00Z \
+    >/dev/null 2>"$test33_dir/run1.log"; then
+    echo "FAIL: --self-test ケース33（1回目のbridge実行が失敗した）" >&2
+    cat "$test33_dir/run1.log" >&2
+    rm -rf "$test33_dir"
+    exit 1
+  fi
+  jq '.edges = [{from:"a",to:"b",trigger:"リンク遷移",sourceRef:"src/router.tsx:1",confidence:"高"}] | .edgesStatus = "抽出済み"' \
+    "$test33_dir/out/画面遷移図-data.json" > "$test33_dir/out/画面遷移図-data.json.tmp" \
+    && mv "$test33_dir/out/画面遷移図-data.json.tmp" "$test33_dir/out/画面遷移図-data.json"
+  # 画面を追加してrawを変化させ、manifestContentHash不一致を発生させる
+  jq '.screens += [{screenKey:"c",kind:"route",route:"/c",screenNameGuess:"画面C"}]' "$test33_dir/raw.json" \
+    > "$test33_dir/raw2.json"
+  test33_hash2="$(jq -cjS . "$test33_dir/raw2.json" | shasum -a 256 | awk '{print $1}')"
+  jq --arg hash "$test33_hash2" '.generatedAt = "2026-01-01T00:00:00Z" | .manifestContentHash = $hash' \
+    "$test33_dir/raw2.json" > "$test33_dir/ext2.json"
+  if ! bash "$BRIDGE_SCRIPT" "$test33_dir/ext2.json" "$test33_dir/out" \
+    --raw-manifest "$test33_dir/raw2.json" --generated-at 2026-01-01T00:00:00Z \
+    >/dev/null 2>"$test33_dir/run2.log"; then
+    echo "FAIL: --self-test ケース33（manifest変化後のbridge実行が失敗した）" >&2
+    cat "$test33_dir/run2.log" >&2
+    rm -rf "$test33_dir"
+    exit 1
+  fi
+  if ! grep -q "manifest が変化したため" "$test33_dir/run2.log"; then
+    echo "FAIL: --self-test ケース33（manifest変化を示すINFOログが出力されていない）" >&2
+    cat "$test33_dir/run2.log" >&2
+    rm -rf "$test33_dir"
+    exit 1
+  fi
+  test33_edge_count="$(jq '.edges | length' "$test33_dir/out/画面遷移図-data.json")"
+  test33_status="$(jq -r '.edgesStatus' "$test33_dir/out/画面遷移図-data.json")"
+  if [ "$test33_edge_count" != "0" ] || [ "$test33_status" != "未抽出" ]; then
+    echo "FAIL: --self-test ケース33（manifestContentHash変化時にedgesが空・edgesStatusが未抽出になっていない: edges=${test33_edge_count} edgesStatus=${test33_status}）" >&2
+    rm -rf "$test33_dir"
+    exit 1
+  fi
+  echo "PASS: --self-test ケース33（manifestContentHashが変化すると既存edgesは破棄されedgesStatusが未抽出に戻る）"
+  rm -rf "$test33_dir"
+
   exit 0
 fi
 

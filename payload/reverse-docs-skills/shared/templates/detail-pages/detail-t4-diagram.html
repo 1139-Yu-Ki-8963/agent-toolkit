@@ -237,6 +237,12 @@ table.data-table code {
 .iso-group summary { cursor: pointer; font-size: 13px; font-weight: 600; padding: 8px 0; }
 .iso-group summary:hover { color: var(--accent); }
 
+/* 未選択時の規模要約(写真指摘1-104: 初期表示の空状態解消) */
+.summary-stat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; margin: 8px 0 20px; }
+.summary-rank-table { margin-bottom: 20px; }
+.summary-rank-row { cursor: pointer; }
+.summary-rank-row:hover td { background: var(--accent-soft); }
+
 /* モード切り替えタブ(画面別/動線別/未接続) */
 .mode-tabs { display: flex; gap: 4px; margin-bottom: 20px; border-bottom: 1px solid var(--border); }
 .mode-tab { background: none; border: none; border-bottom: 2px solid transparent; margin-bottom: -1px; padding: 10px 18px; font-size: 14px; font-weight: 600; color: var(--text-muted); cursor: pointer; font-family: inherit; transition: color .15s, border-color .15s; }
@@ -997,11 +1003,82 @@ table.data-table code {
     // 'none' の場合は何もしない(ブラウザの戻る/進む操作からの呼び出し)
   }
 
+  // --- 未選択時の規模要約(写真指摘1-104: 初期表示が空になる問題の解消) ---
+  // 「未選択時に個別の遷移図を勝手に出さない」という既存方針(870/971行目のコメント参照)は維持し、
+  // 代わりに全体を俯瞰できる要約(区分別の画面数+遷移数上位の画面)を表示する。
+  function buildCategoryBreakdown() {
+    var entries;
+    if (Array.isArray(data.flowCategories) && data.flowCategories.length > 0) {
+      entries = data.flowCategories.map(function(c) {
+        return { name: c.name || 'その他', count: c.screenCount || 0 };
+      });
+    } else {
+      var counts = {};
+      nodesRaw.forEach(function(n) {
+        var name = n.category || 'その他';
+        counts[name] = (counts[name] || 0) + 1;
+      });
+      entries = Object.keys(counts).map(function(name) { return { name: name, count: counts[name] }; });
+    }
+    return entries.sort(function(a, b) { return b.count - a.count; });
+  }
+
+  function buildSummaryView() {
+    var wrap = el('div', { class: 'view-summary' });
+    wrap.appendChild(el('div', { class: 'diagram-empty' }, '上のドロップダウンから画面を選択すると、その画面のワイヤーフレームと遷移先の一覧が表示されます。以下は全' + nodesRaw.length + '画面の規模要約です。'));
+
+    var categoryEntries = buildCategoryBreakdown();
+    if (categoryEntries.length > 0) {
+      wrap.appendChild(el('div', { class: 'sec-label' }, '区分別の画面数'));
+      var statGrid = el('div', { class: 'summary-stat-grid' });
+      categoryEntries.forEach(function(c) {
+        statGrid.appendChild(el('div', { class: 'cov-stat' }, [
+          el('div', { class: 'cov-stat-value' }, String(c.count)),
+          el('div', { class: 'cov-stat-label' }, c.name)
+        ]));
+      });
+      wrap.appendChild(statGrid);
+    }
+
+    wrap.appendChild(el('div', { class: 'sec-label' }, '遷移数上位の画面'));
+    var totalEdgeCount = edgesResolved.length + browserBackEdges.length;
+    if (totalEdgeCount === 0) {
+      var edgesEmptyMsg = data.edgesStatus === '未抽出'
+        ? '遷移は未抽出です。遷移抽出スキルの実行後に再生成すると、遷移数ランキングと個別の遷移先一覧が表示されます。'
+        : '遷移は0件です。ドロップダウンから画面を選択すると、個別の遷移先一覧を確認できます。';
+      wrap.appendChild(el('div', { class: 'diagram-empty' }, edgesEmptyMsg));
+    } else {
+      var TOP_N = 10;
+      var ranked = normalNodes.slice().sort(function(a, b) { return outDegree[b] - outDegree[a]; }).slice(0, TOP_N);
+      var tbody = el('tbody');
+      ranked.forEach(function(k, idx) {
+        var tr = el('tr', { class: 'summary-rank-row', tabindex: '0' }, [
+          el('td', null, String(idx + 1)),
+          el('td', null, nodeLabel(k)),
+          el('td', null, outDegree[k] + '件')
+        ]);
+        tr.addEventListener('click', function() {
+          for (var i = 0; i < select.options.length; i++) {
+            if (select.options[i].value === k) { select.selectedIndex = i; break; }
+          }
+          applyState('screen', k, 'push');
+        });
+        tbody.appendChild(tr);
+      });
+      wrap.appendChild(el('table', { class: 'trans-table summary-rank-table' }, [
+        el('thead', null, el('tr', null, [el('th', null, '順位'), el('th', null, '画面'), el('th', null, '遷移数')])),
+        tbody
+      ]));
+    }
+
+    return wrap;
+  }
+
   function renderView(key) {
     viewContent.innerHTML = '';
     selectedBadge = null;
     if (!key) {
-      viewContent.appendChild(el('div', { class: 'diagram-empty' }, '上のドロップダウンから画面を選択すると、ワイヤーフレームと遷移先の一覧が表示されます。'));
+      viewContent.appendChild(buildSummaryView());
     } else if (!nodeByKey[key]) {
       viewContent.appendChild(el('div', { class: 'diagram-empty' }, '表示できる画面がありません'));
     } else {
