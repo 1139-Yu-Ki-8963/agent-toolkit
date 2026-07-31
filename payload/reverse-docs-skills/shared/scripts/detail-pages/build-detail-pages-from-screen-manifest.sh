@@ -103,6 +103,7 @@ jq -S --arg generatedAt "$generated_at" --arg manifestContentHash "$hash" '
       pageKind:"transition",
       generatedAt:$generatedAt,
       manifestContentHash:$manifestContentHash,
+      manifestScreenCount:($manifest.screens | length),
       title:"画面遷移図",
       description:"画面manifestから生成した画面一覧",
       legend:[{symbol:"□",meaning:"画面"}],

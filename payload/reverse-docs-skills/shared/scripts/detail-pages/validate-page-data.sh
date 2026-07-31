@@ -39,6 +39,12 @@ fi
 # --- --self-test モード ---
 # (a) entities[].columns[]の型が正しいerフィクスチャで、本体がPASS(exit 0)することを検証する
 # (b) columns[]内のいずれかのフィールド型が不正なerフィクスチャで、本体がFAIL(exit 1)することを検証する
+# (c) 1-144: 存在しないnodes[].unitKeyをtoに持つ孤児edgeを含むtransitionフィクスチャがFAILすることを検証する
+# (d) 1-144: manifestScreenCountとnodes[]+route空文字unresolved[]件数が一致しないtransitionフィクスチャがFAILすることを検証する
+# (e) 1-144: manifestScreenCountが正しいtransitionフィクスチャがPASSすることを検証する(正常系対照)
+# (f) 1-133: steps[].orderに欠番があるenvフィクスチャがFAILすることを検証する
+# (g) 1-133: steps[].commandに句点を含む散文が混入したenvフィクスチャがFAILすることを検証する
+# (i) 1-133: steps[].orderが連番でcommandが純粋なenvフィクスチャがPASSすることを検証する(正常系対照)
 self_test() {
   local script_path="$0"
   local tmp rc=0
@@ -92,6 +98,137 @@ self_test() {
     rc=1
   else
     echo "  [PASS] ケースb: columns[]の型が不正なerフィクスチャで正しくFAIL"
+  fi
+
+  # --- ケースc: 孤児edge(存在しないunitKeyへのto)を含むtransitionフィクスチャはFAIL(1-144) ---
+  local data_orphan="$tmp/page-data-orphan.json"
+  jq -n '{
+    pageKind: "transition",
+    manifestContentHash: ("a" * 64),
+    manifestScreenCount: 2,
+    generatedAt: "2026-01-01T00:00:00Z",
+    title: "画面遷移図",
+    description: "self-test用フィクスチャ(孤児edge混入)",
+    legend: [],
+    nodes: [{unitKey: "home", label: "ホーム"}, {unitKey: "detail", label: "詳細"}],
+    edges: [{from: "home", to: "ghost", trigger: "クリック", sourceRef: "src/router.tsx:10", confidence: "high"}],
+    unresolved: []
+  }' > "$data_orphan"
+
+  if bash "$script_path" "$data_orphan" >/dev/null 2>&1; then
+    echo "  [FAIL] ケースc: 孤児edge混入のtransitionフィクスチャが誤ってPASSした" >&2
+    rc=1
+  else
+    echo "  [PASS] ケースc: 孤児edge混入のtransitionフィクスチャで正しくFAIL"
+  fi
+
+  # --- ケースd: manifestScreenCountとnodes[]+route空文字unresolved件数が不一致ならFAIL(1-144) ---
+  local data_count_bad="$tmp/page-data-count-bad.json"
+  jq -n '{
+    pageKind: "transition",
+    manifestContentHash: ("a" * 64),
+    manifestScreenCount: 3,
+    generatedAt: "2026-01-01T00:00:00Z",
+    title: "画面遷移図",
+    description: "self-test用フィクスチャ(ノード件数不一致)",
+    legend: [],
+    nodes: [{unitKey: "home", label: "ホーム"}, {unitKey: "detail", label: "詳細"}],
+    edges: [],
+    unresolved: []
+  }' > "$data_count_bad"
+
+  if bash "$script_path" "$data_count_bad" >/dev/null 2>&1; then
+    echo "  [FAIL] ケースd: manifestScreenCount不一致のtransitionフィクスチャが誤ってPASSした" >&2
+    rc=1
+  else
+    echo "  [PASS] ケースd: manifestScreenCount不一致のtransitionフィクスチャで正しくFAIL"
+  fi
+
+  # --- ケースe: manifestScreenCountが正しいtransitionフィクスチャはPASS(正常系対照) ---
+  local data_count_ok="$tmp/page-data-count-ok.json"
+  jq -n '{
+    pageKind: "transition",
+    manifestContentHash: ("a" * 64),
+    manifestScreenCount: 3,
+    generatedAt: "2026-01-01T00:00:00Z",
+    title: "画面遷移図",
+    description: "self-test用フィクスチャ(ノード件数一致。route空文字unresolved1件込み)",
+    legend: [],
+    nodes: [{unitKey: "home", label: "ホーム"}, {unitKey: "detail", label: "詳細"}],
+    edges: [{from: "home", to: "detail", trigger: "クリック", sourceRef: "src/router.tsx:10", confidence: "high"}],
+    unresolved: [{label: "旧画面", reason: "routeが空文字列のため遷移解決不能"}]
+  }' > "$data_count_ok"
+
+  if bash "$script_path" "$data_count_ok" >/dev/null 2>&1; then
+    echo "  [PASS] ケースe: manifestScreenCountがnodes[]+route空文字unresolved件数と一致するtransitionフィクスチャでPASS"
+  else
+    echo "  [FAIL] ケースe: manifestScreenCountが正しいtransitionフィクスチャが誤ってFAILした" >&2
+    rc=1
+  fi
+
+  # --- ケースf: steps[].orderに欠番(1と3で2が欠番)があるenvフィクスチャはFAIL(1-133) ---
+  local data_env_gap="$tmp/page-data-env-gap.json"
+  jq -n '{
+    pageKind: "env",
+    generatedAt: "2026-01-01T00:00:00Z",
+    title: "環境構築手順",
+    description: "self-test用フィクスチャ(order欠番)",
+    prerequisites: [],
+    steps: [
+      {order: 1, command: "npm install", note: "依存関係インストール"},
+      {order: 3, command: "npm run start", note: "本番起動"}
+    ],
+    allocations: []
+  }' > "$data_env_gap"
+
+  if bash "$script_path" "$data_env_gap" >/dev/null 2>&1; then
+    echo "  [FAIL] ケースf: order欠番(1,3)のenvフィクスチャが誤ってPASSした" >&2
+    rc=1
+  else
+    echo "  [PASS] ケースf: order欠番(1,3)のenvフィクスチャで正しくFAIL"
+  fi
+
+  # --- ケースg: steps[].commandに句点を含む散文が混入したenvフィクスチャはFAIL(1-133) ---
+  local data_env_prose="$tmp/page-data-env-prose.json"
+  jq -n '{
+    pageKind: "env",
+    generatedAt: "2026-01-01T00:00:00Z",
+    title: "環境構築手順",
+    description: "self-test用フィクスチャ(command散文混入)",
+    prerequisites: [],
+    steps: [
+      {order: 1, command: "リポジトリ全体を対象とする単一のビルドコマンドは検出されない。", note: "出所: アーキテクチャ調査書.md#§3"}
+    ],
+    allocations: []
+  }' > "$data_env_prose"
+
+  if bash "$script_path" "$data_env_prose" >/dev/null 2>&1; then
+    echo "  [FAIL] ケースg: command欄に散文が混入したenvフィクスチャが誤ってPASSした" >&2
+    rc=1
+  else
+    echo "  [PASS] ケースg: command欄に散文が混入したenvフィクスチャで正しくFAIL"
+  fi
+
+  # --- ケースi: orderが連番(1,2)でcommandが純粋、かつ"該当なし"も許容されるenvフィクスチャはPASS(正常系対照) ---
+  local data_env_ok="$tmp/page-data-env-ok.json"
+  jq -n '{
+    pageKind: "env",
+    generatedAt: "2026-01-01T00:00:00Z",
+    title: "環境構築手順",
+    description: "self-test用フィクスチャ(order連番・command純粋)",
+    prerequisites: [],
+    steps: [
+      {order: 1, command: "該当なし", note: "リポジトリ全体を対象とする単一のビルドコマンドは検出されない(出所: アーキテクチャ調査書.md#§3)"},
+      {order: 2, command: "npm run dev", note: "開発サーバー起動"}
+    ],
+    allocations: []
+  }' > "$data_env_ok"
+
+  if bash "$script_path" "$data_env_ok" >/dev/null 2>&1; then
+    echo "  [PASS] ケースi: order連番・command純粋(該当なし含む)のenvフィクスチャでPASS"
+  else
+    echo "  [FAIL] ケースi: order連番・command純粋なenvフィクスチャが誤ってFAILした" >&2
+    rc=1
   fi
 
   if [ "$rc" -eq 0 ]; then
@@ -181,6 +318,77 @@ if [ "$PAGE_KIND" = "transition" ]; then
     echo "[FAIL] manifestContentHash — transitionでは64桁lowercase hexが必須" >&2
   else
     echo "[PASS] manifestContentHash — 64桁lowercase hex" >&2
+  fi
+
+  # --- manifestScreenCount必須 + ノード件数整合(1-144) ---
+  # nodes[]件数 + unresolved[](routeが空文字列のため遷移解決不能)件数が、raw manifestの
+  # 全screens件数(manifestScreenCount)と一致することを検証する。入力マニフェストの画面が
+  # ノードにもroute空文字unresolvedにも現れず欠落する事故(1-144)を機械検知する。
+  has_screen_count="$(jq -r 'has("manifestScreenCount")' "$MANIFEST")"
+  if [ "$has_screen_count" != "true" ]; then
+    overall_fail=1
+    echo "[FAIL] manifestScreenCount — transitionでは必須キーです(欠落)" >&2
+  else
+    screen_count_type="$(jq -r '.manifestScreenCount | type' "$MANIFEST")"
+    if [ "$screen_count_type" != "number" ]; then
+      overall_fail=1
+      echo "[FAIL] manifestScreenCount — 数値ではありません(型: ${screen_count_type})" >&2
+    else
+      node_count_check="$(jq -r '
+        (.manifestScreenCount) as $declared
+        | ((.nodes // []) | length) as $nodeCount
+        | ([(.unresolved // [])[] | select(.reason == "routeが空文字列のため遷移解決不能")] | length) as $routeEmptyCount
+        | ($nodeCount + $routeEmptyCount) as $actual
+        | if $actual == $declared then "PASS" else "FAIL:\($declared):\($actual)" end
+      ' "$MANIFEST")"
+      case "$node_count_check" in
+        PASS)
+          echo "[PASS] ノード件数整合 — nodes[]件数+route空文字unresolved件数がmanifestScreenCountと一致" >&2
+          ;;
+        FAIL:*)
+          overall_fail=1
+          declared_val="$(printf '%s' "$node_count_check" | cut -d: -f2)"
+          actual_val="$(printf '%s' "$node_count_check" | cut -d: -f3)"
+          echo "[FAIL] ノード件数整合 — manifestScreenCount(${declared_val})とnodes[]+route空文字unresolved件数(${actual_val})が不一致。画面がノードから欠落している可能性があります" >&2
+          ;;
+      esac
+    fi
+  fi
+fi
+
+if [ "$PAGE_KIND" = "env" ]; then
+  # --- steps[].order 連番性(1-133) ---
+  order_check="$(jq -r '
+    (.steps // []) as $steps
+    | ($steps | length) as $n
+    | if $n == 0 then "PASS" else
+        ([$steps[].order] | sort) as $sorted
+        | ([range(1; $n + 1)]) as $expected
+        | if $sorted == $expected then "PASS" else "FAIL:\($sorted | tostring)" end
+      end
+  ' "$MANIFEST" 2>/dev/null)"
+  case "$order_check" in
+    PASS)
+      echo "[PASS] steps[].order連番性 — 1..N(欠番・重複なし)、またはsteps[]が空" >&2
+      ;;
+    FAIL:*)
+      overall_fail=1
+      actual_orders="$(printf '%s' "$order_check" | cut -d: -f2-)"
+      echo "[FAIL] steps[].order連番性 — 1..Nの連番になっていません(実際の値: ${actual_orders})" >&2
+      ;;
+    *)
+      overall_fail=1
+      echo "[FAIL] steps[].order連番性 — 検証に失敗しました(不正なorder値の可能性)" >&2
+      ;;
+  esac
+
+  # --- steps[].command 純度(散文混入検知。1-133) ---
+  prose_commands="$(jq -r '[(.steps // [])[] | select((.command // "") | contains("。"))] | length' "$MANIFEST" 2>/dev/null)"
+  if [ "${prose_commands:-0}" -gt 0 ] 2>/dev/null; then
+    overall_fail=1
+    echo "[FAIL] steps[].command純度 — command欄に句点「。」を含む行が${prose_commands}件あります(散文混入。実行不可能なコマンドは\"該当なし\"としnoteへ説明を移すこと)" >&2
+  else
+    echo "[PASS] steps[].command純度 — command欄に句点「。」を含む行はありません" >&2
   fi
 fi
 

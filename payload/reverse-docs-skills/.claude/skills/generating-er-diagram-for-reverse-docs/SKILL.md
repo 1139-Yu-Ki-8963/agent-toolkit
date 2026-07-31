@@ -10,7 +10,7 @@ allowed-tools: [AskUserQuestion, Bash, Read, Write]
 
 工程全体は orchestrating-reverse-docs-flow が案内する。本スキルはポータルの将来ページ受け口のうち ER図（T4）のみを担い、単独起動できる（起動引数を渡せば動く）。
 
-テーブル一覧.html に埋め込まれた manifest（`unit_kind=table`）をエンティティの正とする。対象リポジトリのマイグレーション/ORM モデル定義から外部キー（以下 FK）を抽出し、**ER図.html** として書き出す。**本スキルは判定・評価を一切行わない**。FK として検出できた関連のみを転記する。参照先テーブルが manifest に存在しない FK は、捏造せず `unresolved[]` に分離する。FK が 1 件も見つからない場合は、生成せず事実として停止報告する。
+テーブル一覧.html に埋め込まれた manifest（`unit_kind=table`）をエンティティの正とする。対象リポジトリのマイグレーション/ORM モデル定義から外部キー（以下 FK）を抽出し、**ER図.html** として書き出す。**本スキルは判定・評価を一切行わない**。FK として検出できた関連のみを転記する。参照先テーブルが manifest に存在しない FK は、捏造せず `unresolved[]` に分離する。FK が 1 件も見つからない場合は、関連を推定・捏造せず、エンティティ一覧のみの俯瞰ページを生成する（1-151）。生成対象のエンティティ自体が 1 件も無い場合のみ、生成せず事実として停止報告する。
 
 ## 使用タイミング
 
@@ -24,7 +24,8 @@ allowed-tools: [AskUserQuestion, Bash, Read, Write]
 
 - **抽出元は 2 段** — エンティティは確定済みのテーブル一覧 manifest（`units[]`）から取る。関連（FK）だけを対象リポジトリから新規抽出する
 - **manifest 外参照は捏造しない** — FK の参照先テーブルが manifest の `units[]` に存在しない場合、関連として転記せず `unresolved[]` へ分離する
-- **FK 0 件は停止** — 検出戦略に沿って走査しても FK が 1 件も見つからない場合、page-data を生成せずユーザーへ報告して停止する
+- **エンティティ 0 件は停止** — テーブル一覧 manifest に `entities[]` が 1 件も無い場合、page-data を生成せずユーザーへ報告して停止する
+- **FK 0 件は俯瞰ページで代替** — 検出戦略に沿って走査しても FK が 1 件も見つからない場合、`relations[]` を空配列のまま進め、エンティティ一覧のみの ER図.html を生成する（1-151: 関連を捏造しない代わりに何も生成しないのではなく、実在するテーブルの俯瞰は提供する）
 - **固定と可変の分離** — 整合検証（`validate-page-data.sh`）と HTML 生成（`build-detail-page.sh`）は決定的スクリプトに固定する。抽出（FK 走査・entities/relations の組み立て）は Claude 自身が Bash/Read/Grep で行う
 
 ## エンジンスクリプトの所在
@@ -64,12 +65,12 @@ allowed-tools: [AskUserQuestion, Bash, Read, Write]
 - **Step 1** — テーブル一覧 manifest の `units[]` から `entities[]` を組み立てる。`kind != "unresolved"` の各 unit について `identifier` を `key`、`unitNameGuess` または `identifier` を `label` とする。完了条件: `entities[]` が確定済み
 - **Step 1b（columns の収集）** — 各 `entities[]` 要素へ `columns`（`page-data-schema.md` 定義の任意フィールド。`{ name, type, pk?, fk?, unique?, nullable? }` の配列）を付与する。テーブル一覧 manifest の該当 unit が外部キー・カラム情報（`foreignKeys`/`mainColumns` 等）を保持していればそこから組み立てる（推奨・追加の走査コストがない）。保持していない場合は Phase 1 で判別した ORM/マイグレーション種別に従い、DDL・マイグレーションファイルから直接カラム定義を抽出する。カラム定義を抽出できないテーブルは `columns` を付けない（省略時はテンプレート側でカラム明細を表示しない。fail-safe）。完了条件: 抽出できた `entities[]` 要素すべてに `columns` が付与済み、または抽出不能の根拠が記録済み
 - **Step 2** — Phase 1 で確定した検出戦略に沿って FK を走査する。検出した FK ごとに参照元・参照先テーブルを特定する。両方が `entities[].key` に存在すれば `relations[]`（`from`/`to`/`cardinality`/`sourceRef`）へ分類する。参照先が `entities[].key` に存在しなければ `unresolved[]`（`label`/`reason`/`sourceRef`）へ分類する。`cardinality` の導出規則は `references/er-detection.md` を参照する。完了条件: 検出した FK すべてについて `relations[]` または `unresolved[]` への振り分けが完了済み
-- **Step 3** — 検出件数を確認する。`relations[]` が 0 件ならユーザーに報告してハード停止する（関連を捏造しない）。完了条件: `relations[]` 1 件以上を確認済み、または 0 件を報告して停止している
-- **Step 4** — page-data.json を組み立てる。`pageKind: "er"`、`legend[]`（`cardinality` の記号説明）、`entities[]`・`relations[]`・`unresolved[]` を埋める。完了条件: page-data.json を一時ディレクトリへ保存済み
+- **Step 3** — 検出件数を確認する。`entities[]` が 0 件ならユーザーに報告してハード停止する（描画対象が何も無いため）。`entities[]` が 1 件以上あれば `relations[]` が 0 件でも停止しない（1-151: 外部キー 0 件でも実在するテーブルの俯瞰は提供する。テーブルが 1 件以上実在するのに関連図が 1 度も生成されない事故の再発防止）。完了条件: `entities[]` 1 件以上を確認済み、または 0 件を報告して停止している
+- **Step 4** — page-data.json を組み立てる。`pageKind: "er"`、`legend[]`（`cardinality` の記号説明。`relations[]` が 0 件なら空配列でよい）、`entities[]`・`relations[]`・`unresolved[]` を埋める。`relations[]` が 0 件の場合は `description` に「外部キーが宣言されていない（0 件）ため関連は未記載である」旨を明記する（捏造せず事実として書く）。完了条件: page-data.json を一時ディレクトリへ保存済み
 
 page-data.json の保存先は `$CLAUDE_JOB_DIR/tmp/er-page-data.json` とする。未設定時は `${TMPDIR:-/tmp}/claude-job-${session}/tmp/` 配下に置く。
 
-**完了**: `entities[]` を manifest から確定済み。`entities[]` へ `columns` を付与済み（抽出できた範囲）。FK 走査で `relations[]`/`unresolved[]` へ振り分け済み、または 0 件を報告して停止している
+**完了**: `entities[]` を manifest から確定済み。`entities[]` へ `columns` を付与済み（抽出できた範囲）。FK 走査で `relations[]`/`unresolved[]` へ振り分け済み（0 件を含む）、または `entities[]` 0 件を報告して停止している
 
 ## Phase 3: 整合検証
 
@@ -114,10 +115,10 @@ page-data.json の保存先は `$CLAUDE_JOB_DIR/tmp/er-page-data.json` とする
 | Phase | 完了条件 |
 |---|---|
 | Phase 1 | テーブル一覧 manifest の実在確認済み（または不在を報告して停止）。検出戦略がユーザー承認済み |
-| Phase 2 | `entities[]` を manifest から確定済み。`entities[]` へ `columns` を付与済み（抽出できた範囲）。FK 走査で `relations[]`/`unresolved[]` へ振り分け済み、または 0 件を報告して停止している |
+| Phase 2 | `entities[]` を manifest から確定済み。`entities[]` へ `columns` を付与済み（抽出できた範囲）。FK 走査で `relations[]`/`unresolved[]` へ振り分け済み（0 件を含む）、または `entities[]` 0 件を報告して停止している |
 | Phase 3 | `validate-page-data.sh --target-repo` が全項目 PASS（孤児関連検査含む） |
 | Phase 4 | `<output_dir>/ER図.html` が生成され、指定時は `build-portal.sh` の再実行が完了している |
-| **Goal** | テーブル一覧 manifest と対象リポジトリの FK 定義から検証済みの ER図.html が生成され、manifest 外参照・0 件検出時は捏造せず停止報告されている |
+| **Goal** | テーブル一覧 manifest と対象リポジトリの FK 定義から検証済みの ER図.html が生成され、manifest 外参照は捏造せず分離される。FK が 0 件でもエンティティが 1 件以上あれば俯瞰ページが生成され、`entities[]` 自体が 0 件の場合のみ停止報告される |
 
 ## 返却ブロック
 
@@ -125,11 +126,11 @@ page-data.json の保存先は `$CLAUDE_JOB_DIR/tmp/er-page-data.json` とする
 
 | キー | 値 |
 |---|---|
-| status | `DONE`（生成完了）\| `STOPPED`（テーブル一覧不在・FK 0 件）\| `ERROR` |
+| status | `DONE`（生成完了。FK 0 件時の俯瞰ページ生成を含む）\| `STOPPED`（テーブル一覧不在・`entities[]` 0 件）\| `ERROR` |
 | artifacts | 生成した ER図.html のパス（`STOPPED`/`ERROR` 時は空） |
 | page_kind | `er`（固定値） |
 | portal_rebuilt | `true`（build-portal.sh 再実行済み）\| `false`（`portal_output_dir` 未指定のため省略） |
-| hint | 停止理由（テーブル一覧不在・FK 0 件）、または次工程への申し送り |
+| hint | 停止理由（テーブル一覧不在・`entities[]` 0 件）、FK 0 件で俯瞰ページのみ生成した旨、または次工程への申し送り |
 
 ## ループ設計
 
@@ -144,7 +145,7 @@ page-data.json の保存先は `$CLAUDE_JOB_DIR/tmp/er-page-data.json` とする
 ## 重要な注意事項
 
 - 判定・評価はしない。テーブル設計の良否・正規化の妥当性には一切踏み込まず、FK として検出できた関連の事実のみを転記する
-- FK 0 件・参照先不明時に AskUserQuestion で手動関連を聞き出さない。検出できない関連を即興確定しない
+- FK 0 件・参照先不明時に AskUserQuestion で手動関連を聞き出さない。検出できない関連を即興確定しない。FK 0 件は関連図生成の停止事由ではなく、俯瞰ページへの明示事項である
 - Phase 4 の HTML 手作業組み立てを禁止する。`build-detail-page.sh` を必ず経由する
 - 対象リポジトリへの書き込み・変更は一切行わない。出力は `output_dir` 配下の ER図.html のみ
 
@@ -155,6 +156,7 @@ page-data.json の保存先は `$CLAUDE_JOB_DIR/tmp/er-page-data.json` とする
 - マイグレーションと ORM モデルの両方が存在する場合、テーブル一覧生成時に確定した定義（Phase 1 の判別結果）と同じ側から FK を抽出する。両方を無差別に走査すると同一関連の重複検出になる
 - 自己参照 FK（同一テーブル内の親子関係等）は `from`/`to` が同一の `entities[].key` になる。孤児関連には該当しない
 - `portal_output_dir` 未指定時は `build-portal.sh` を実行しない。生成済み ER図.html はそのまま残り、次回ポータル生成時に自動でカード化される
+- `relations[]` が 0 件の場合、ER図.html はクラスタ探索 Canvas を表示せず、`entities[]` 全件をサーバー側で静的にレンダリングしたエンティティ一覧セクションと「外部キー宣言 0 件」の明示に切り替わる（1-151）。命名規約からの関連推定は行わない
 
 ## 設計判断
 

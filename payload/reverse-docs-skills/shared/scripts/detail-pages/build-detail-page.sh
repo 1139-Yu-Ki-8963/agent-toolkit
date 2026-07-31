@@ -142,6 +142,7 @@ self_test() {
   jq -n '{
     pageKind: "transition",
     manifestContentHash: ("a"*64),
+    manifestScreenCount: 2,
     generatedAt: "2026-01-01T00:00:00Z",
     title: "画面遷移図",
     description: "self-test用フィクスチャ(孤児edge混入)",
@@ -228,6 +229,7 @@ self_test() {
   jq -n '{
     pageKind: "transition",
     manifestContentHash: ("a"*64),
+    manifestScreenCount: 2,
     generatedAt: "2026-01-01T00:00:00Z",
     title: "画面遷移図",
     description: "self-test用フィクスチャ",
@@ -256,6 +258,55 @@ self_test() {
     echo "  [PASS] ケースf(er): clipboard フォールバック(execCommand)が出力に含まれる"
   else
     echo "  [FAIL] ケースf(er): clipboard フォールバック(execCommand)が出力に含まれない" >&2
+    rc=1
+  fi
+
+  if [ -f "$out_er_html" ] && ! grep -qF 'class="er-flat-list"' "$out_er_html"; then
+    echo "  [PASS] ケースk(er-relations有): relations[]が非空の通常系ではer-flat-listセクションが出力されない(後方互換)"
+  else
+    echo "  [FAIL] ケースk(er-relations有): relations[]が非空なのにer-flat-listセクションが出力された" >&2
+    rc=1
+  fi
+
+  # --- 改善課題 1-151: 外部キー(relations[])0件でもentities[]全件のエンティティ俯瞰ページを生成する ---
+  local data_er_no_fk="$tmp/page-data-er-no-fk.json"
+  jq -n '{
+    pageKind: "er",
+    generatedAt: "2026-01-01T00:00:00Z",
+    title: "ER図",
+    description: "self-test用フィクスチャ(外部キー0件)",
+    legend: [],
+    entities: [
+      {key: "tbl_users", label: "tbl_users", columns: [{name: "id", type: "BIGINT", pk: true}]},
+      {key: "tbl_orders", label: "tbl_orders"},
+      {key: "tbl_products", label: "tbl_products"}
+    ],
+    relations: [],
+    unresolved: []
+  }' > "$data_er_no_fk"
+
+  local outdir_er_no_fk="$tmp/out-er-no-fk"
+  local out_er_no_fk_html="$outdir_er_no_fk/ER図.html"
+  if bash "$script_path" "$data_er_no_fk" "$outdir_er_no_fk" --page er >/dev/null 2>&1 \
+     && [ -f "$out_er_no_fk_html" ]; then
+    local outside_er_no_fk="$tmp/outside-er-no-fk.html"
+    sed '/<script type="application\/json" id="page-data">/,/<\/script>/d' "$out_er_no_fk_html" > "$outside_er_no_fk"
+    if grep -qF 'tbl_users' "$outside_er_no_fk" \
+       && grep -qF 'tbl_orders' "$outside_er_no_fk" \
+       && grep -qF 'tbl_products' "$outside_er_no_fk"; then
+      echo "  [PASS] ケースk(er-relations無): エンティティ全件がpage-data埋め込み範囲外の静的HTMLに描画される"
+    else
+      echo "  [FAIL] ケースk(er-relations無): エンティティが静的HTMLに全件描画されていない" >&2
+      rc=1
+    fi
+    if grep -qF '外部キーが宣言されていません' "$outside_er_no_fk"; then
+      echo "  [PASS] ケースk(er-relations無): 外部キー0件である旨の明示が出力に含まれる"
+    else
+      echo "  [FAIL] ケースk(er-relations無): 外部キー0件である旨の明示が出力に含まれない" >&2
+      rc=1
+    fi
+  else
+    echo "  [FAIL] ケースk(er-relations無): 生成コマンド自体が失敗した" >&2
     rc=1
   fi
 
@@ -407,6 +458,41 @@ self_test() {
   }' > "$data_icon_catalog"
   check_page_fixture icon-catalog "$data_icon_catalog"
 
+  # --- 改善課題 1-132: 実在しないと判定された項目もabsentRows[]で根拠(sourceRef)を保持して描画する ---
+  local data_techstack_absent="$tmp/page-data-techstack-absent.json"
+  jq -n '{
+    pageKind: "techstack",
+    generatedAt: "2026-01-01T00:00:00Z",
+    title: "技術スタック",
+    description: "self-test用フィクスチャ(absentRows有)",
+    tiles: [{label: "言語", value: "TypeScript", note: "package.jsonから実測"}],
+    columns: {item: "項目", value: "値", sourceRef: "出所"},
+    rows: [{item: "言語", value: "TypeScript 5.4", sourceRef: "package.json:1"}],
+    absentRows: [
+      {item: "GraphQL", value: "実在しない（理由: schemaファイル未検出）", sourceRef: "アーキテクチャ調査書.md#§2"},
+      {item: "gRPC", value: "実在しない（理由: protoファイル未検出）", sourceRef: "アーキテクチャ調査書.md#§2"}
+    ]
+  }' > "$data_techstack_absent"
+
+  local outdir_techstack_absent="$tmp/out-techstack-absent"
+  local out_techstack_absent_html="$outdir_techstack_absent/技術スタック.html"
+  if bash "$script_path" "$data_techstack_absent" "$outdir_techstack_absent" --page techstack >/dev/null 2>&1 \
+     && [ -f "$out_techstack_absent_html" ]; then
+    local outside_absent="$tmp/outside-techstack-absent.html"
+    sed '/<script type="application\/json" id="page-data">/,/<\/script>/d' "$out_techstack_absent_html" > "$outside_absent"
+    if grep -qF 'GraphQL' "$outside_absent" \
+       && grep -qF 'gRPC' "$outside_absent" \
+       && grep -qF 'アーキテクチャ調査書.md#§2' "$outside_absent"; then
+      echo "  [PASS] ケースj(techstack-absent): absentRows[]の項目名・根拠パスがpage-data埋め込み範囲外の静的HTMLに現れる"
+    else
+      echo "  [FAIL] ケースj(techstack-absent): absentRows[]の項目名または根拠パスが静的HTMLに現れない" >&2
+      rc=1
+    fi
+  else
+    echo "  [FAIL] ケースj(techstack-absent): 生成コマンド自体が失敗した" >&2
+    rc=1
+  fi
+
   # --- 改善課題 1-150: テンプレート数と自己テストが扱う種別数の一致を検査する ---
   # ページ種別を追加した際に自己テストの対象へ入れ忘れることを機械的に検知するためのガード。
   local template_dir="$script_dir/../../templates/detail-pages"
@@ -427,6 +513,7 @@ self_test() {
   jq -n '{
     pageKind: "transition",
     manifestContentHash: ("a"*64),
+    manifestScreenCount: 2,
     generatedAt: "2026-01-01T00:00:00Z",
     title: "画面遷移図",
     description: "self-test用フィクスチャ(関連エンティティ有)",
@@ -624,6 +711,34 @@ RELATED_ENTITIES_HTML="$(jq -r '
     end
 ' "$DATA")"
 
+# --- 実在しない判定の項目(absentRows[]。techstackのみ。1-132)セクションの生成 ---
+# 調査書が「実在しない（理由: …）」と判定した項目も、根拠(sourceRef)を保持したまま
+# 別表として静的にレンダリングする。absentRows[]が無い/空配列なら空文字(後方互換)。
+ABSENT_ROWS_HTML="$(jq -r '
+  (.absentRows // []) as $rows
+  | if ($rows | length) == 0 then "" else
+      "<section class=\"absent-rows-section\">\n      <div class=\"sec-label\">実在しない判定（根拠付き）</div>\n      <div class=\"pt-callout pt-callout--warning\">\n        <span class=\"material-symbols-outlined pt-callout__icon\" aria-hidden=\"true\">warning</span>\n        調査書が「実在しない」と判定した項目です。根拠パスとあわせて記録しています。\n      </div>\n      <table class=\"absent-table\">\n        <thead><tr><th>項目</th><th>値</th><th>出所</th></tr></thead>\n        <tbody>\n"
+      + ([$rows[] | "          <tr><td>\(.item // "" | tostring | @html)</td><td>\(.value // "" | tostring | @html)</td><td><code>\(.sourceRef // "" | tostring | @html)</code></td></tr>\n"] | join(""))
+      + "        </tbody>\n      </table>\n    </section>\n    "
+    end
+' "$DATA")"
+
+# --- ERエンティティ俯瞰(relations[]が0件の場合のみ。1-151)セクションの生成 ---
+# 外部キーが0件で関連図(クラスタ探索Canvas)を描けない場合、entities[]全件をサーバー側で
+# 静的にレンダリングした一覧へ切り替える。pageKind!="er"、またはrelations[]が1件以上なら
+# 空文字(後方互換)。
+ER_FLAT_LIST_HTML="$(jq -r '
+  if (.pageKind // "") != "er" then "" else
+    (.entities // []) as $entities
+    | (.relations // []) as $relations
+    | if ($relations | length) > 0 then "" else
+        "<section class=\"er-flat-list\">\n      <div class=\"pt-callout pt-callout--warning\">\n        <span class=\"material-symbols-outlined pt-callout__icon\" aria-hidden=\"true\">warning</span>\n        外部キーが宣言されていません（0件）。関連（リレーション）は未記載です。\n      </div>\n      <div class=\"sec-label\">エンティティ一覧（\($entities | length)件）</div>\n      <table class=\"er-flat-table\">\n        <thead><tr><th>テーブル</th><th>カラム数</th></tr></thead>\n        <tbody>\n"
+        + ([$entities[] | "          <tr><td>\(.label // .key // "" | tostring | @html)</td><td>\((.columns // []) | length)</td></tr>\n"] | join(""))
+        + "        </tbody>\n      </table>\n    </section>\n    "
+      end
+  end
+' "$DATA")"
+
 # --- テンプレートへの注入(単一パス方式。render_template()参照) ---
 # page-dataのJSONはテンプレート内で物理的に最後に出現するため、単一パスの
 # document-order走査により自動的に最後に処理される(JSON内容に他マーカー文字列が
@@ -643,6 +758,8 @@ render_args=(
   "{{COMMIT_SHORT}}" ""
   "{{BACK_LINK}}" "$back_link"
   "<!--RELATED_ENTITIES-->" "$RELATED_ENTITIES_HTML"
+  "<!--ABSENT_ROWS-->" "$ABSENT_ROWS_HTML"
+  "<!--ER_FLAT_LIST-->" "$ER_FLAT_LIST_HTML"
   "{{PAGE_DATA_JSON}}" "$PAGE_DATA_JSON"
 )
 # トークンCSS注入（tokens.css が存在する場合のみ）

@@ -63,6 +63,11 @@ html, body { margin: 0; padding: 0; }
   margin: 14px 0 0;
 }
 
+.absent-rows-section { flex: none; }
+.absent-table { width: 100%; border-collapse: collapse; }
+.absent-table th, .absent-table td { text-align: left; padding: 6px 10px; font-size: 12.5px; border-bottom: 1px solid var(--line2); }
+.absent-table code { font-family: var(--mono); font-size: 11.5px; color: var(--accent); }
+
 #unresolved-mount, .related-entities { flex: none; }
 
 .hidden { display: none !important; }
@@ -105,6 +110,7 @@ html, body { margin: 0; padding: 0; }
         </table>
       </div>
 
+      <!--ABSENT_ROWS-->
       <!--RELATED_ENTITIES--><div id="unresolved-mount"></div>
     </main>
   </div>

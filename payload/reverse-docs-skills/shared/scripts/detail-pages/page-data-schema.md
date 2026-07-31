@@ -9,6 +9,7 @@ detail-pages 系（用語辞書 / 技術スタック / 画面遷移図 / ER図 /
 | pageKind | string | 必須 | `glossary` \| `techstack` \| `transition` \| `er` \| `env` \| `entity-state` \| `release-notes` \| `design-system` \| `component-inventory` \| `icon-catalog` のいずれか |
 | generatedAt | string | 必須 | ISO8601 形式の生成日時（例: `2026-01-01T00:00:00Z`） |
 | manifestContentHash | string | transitionのみ必須 | raw `screen-manifest.json`を`jq -cjS`した改行なしbytesのSHA-256（64桁lowercase hex） |
+| manifestScreenCount | number | transitionのみ必須 | raw `screen-manifest.json`の`screens[]`件数（全件。1-144）。`validate-page-data.sh`が`nodes[]`件数+`unresolved[]`のうち`reason`が`"routeが空文字列のため遷移解決不能"`の件数の合計と一致することを検証し、ノード欠落を機械検知する |
 | title | string | 必須 | ページ見出し |
 | description | string | 必須 | ページ概要（1〜2 文） |
 | unresolved | array | 任意 | 未解決項目の配列。要素は `{ "label": string, "reason": string, "sourceRef"?: string }`。省略時は空扱い |
@@ -35,6 +36,9 @@ detail-pages 系（用語辞書 / 技術スタック / 画面遷移図 / ER図 /
 | tiles | array | `{ "label": string, "value": string, "note"?: string }` の配列。要約タイル列 |
 | columns | object | 明細表の列ラベル。`{ "item": "項目", "value": "値", "sourceRef": "出所" }`（値はページ側で上書き可） |
 | rows | array | `{ "item": string, "value": string, "sourceRef": string }` の配列。明細表 1 行 = 1 要素。sourceRef は必須（出所の検証可能性を担保するため） |
+| absentRows | array（任意） | `{ "item": string, "value": string, "sourceRef": string }` の配列。調査書が「実在しない（理由: …）」と判定した項目を、根拠パスを保持したまま記録する別表（1-132）。`value` には理由文をそのまま入れる。省略時は空扱い。`rows[]` とは別の表としてテンプレート側が描画するため、`rows[]` へ混在させない |
+
+`absentRows[].sourceRef` は `validate-page-data.sh` の sourceRef 実在検査（検査7）の対象外とする。理由: 「実在しない」と判定した根拠は調査書の記述箇所や対象リポジトリに存在しないファイルを指すことがあり、対象リポジトリでの実在確認を要求すると正当なデータが誤ってFAILする（意図的な設計判断。`rows[].sourceRef` は既存どおり実在必須のまま変更しない）。
 
 ### T2: glossary（確定仕様）
 
@@ -84,6 +88,8 @@ detail-pages 系（用語辞書 / 技術スタック / 画面遷移図 / ER図 /
 
 矢印（`marker-end`）は `transition` のみに付与する。エッジ/リレーションのラベルは `transition` が `trigger`、`er` は選択中テーブルの詳細パネル内で `cardinality` を表示する。`from`/`to` が `nodes`/`entities` に存在しないエッジは描画をスキップする（データ不整合時のフェイルセーフ。`unresolved[]` での明示が本来の解決手段）。`transition` は図の下に `edges[]` の詳細（`from`/`to`/`trigger`/`sourceRef`/`confidence`）を補足表として一覧表示し、大規模時は `.diagram-wrap` 内で横スクロールする（ページ本体は横スクロールしない）。`er` は補足表を持たず、テーブルクリックで開く詳細パネルに選択テーブルのカラム定義（PK/FK/UQ/NULL バッジ）・リレーション一覧（相手テーブル・カーディナリティ）を表示する（テーブル定義コピー機能付き）。
 
+`er` は `relations[]` が空配列の場合（1-151: 外部キー0件）、インタラクティブなクラスタ探索 Canvas を表示せず、代わりに `entities[]` 全件をサーバー側で静的にレンダリングした「エンティティ一覧」セクション（`<!--ER_FLAT_LIST-->` マーカー。`RELATED_ENTITIES` と同型の jq 生成・空文字なら後方互換）と、外部キーが0件で関連が未記載である旨の `pt-callout--warning` を表示する。`relations[]` が1件以上ある通常時はこのセクションは空文字に置換され、既存のクラスタ探索 Canvas のみが表示される。
+
 ### T7: entity-state（確定仕様）
 
 | キー | 型 | 内容 |
@@ -102,6 +108,11 @@ detail-pages 系（用語辞書 / 技術スタック / 画面遷移図 / ER図 /
 | allocations | array | `{ "target": string, "value": string, "sourceRef": string }` の配列。ポート割当等 |
 
 テンプレート挙動: 前提ツール表 → 実行環境表 → 手順表 → 割当表の順に固定表示する。各配列が空の場合は該当表に「なし」を 1 行表示する。
+
+`validate-page-data.sh` は `steps[]` に対し次の 2 点を検証する（1-133）。
+
+1. **順序番号の連番性**: `order` の値集合が `1..N`（`N = steps[].length`）と重複・欠番なく一致すること。`steps` が空配列の場合は無条件 PASS
+2. **command 欄の純度**: `command` に句点「。」を含まないこと（散文の混入検知）。実行可能なコマンドが存在しない行は `command: "該当なし"` とし、説明文は `note` へ入れる
 
 ### T7: release-notes（確定仕様）
 

@@ -59,7 +59,7 @@ allowed-tools: [Bash, Read, Write]
 
 - **Step 1（prerequisites[]）** — env-config.json が存在する場合、`tools` の実測結果を `{name, note}` へ変換する。対象は cloc/node/python3/jq/git の 5 種。`note` にはインストール有無を記載し、未インストール時は `install_commands` の値も記載する。env-config.json が不在の場合、prerequisites[] は空配列のまま Phase 4 へ渡す（テンプレート側が「なし」を表示する）。完了条件: prerequisites[] を確定済み（空配列を含む）
 - **Step 1b（environment[]）** — env-config.json が存在する場合、`os`・`arch`・`linux_compat_env` を `{name, value}` へ変換して environment[] に格納する。`linux_compat_env` が true の場合は「Linux 互換環境上での実行」と読み手に伝わる表記にする。env-config.json が不在の場合、environment[] は空配列のまま Phase 4 へ渡す（テンプレート側が「なし」を表示する）。完了条件: environment[] を確定済み（空配列を含む）
-- **Step 2（steps[]）** — 調査書 §3 の「ビルドコマンド」「起動コマンド（開発）」「起動コマンド（本番）」の 3 行を読む。記載値が「実在しない（理由: …）」でない行だけを対象にする。対象行を `order` 昇順（ビルド=1、開発起動=2、本番起動=3。欠番があれば詰めずそのまま欠落させる）で `steps[]` に変換する。`command` には §3 の「内容」列をそのまま転記する。`note` には「出所: <§3 の根拠パス>」の形式で根拠パスを埋め込む。steps[] にはスキーマ上 sourceRef フィールドが存在しないため、根拠パスは note へテキストとして埋め込む運用にする。完了条件: steps[] を確定済み
+- **Step 2（steps[]）** — 調査書 §3 の「ビルドコマンド」「起動コマンド（開発）」「起動コマンド（本番）」の 3 行を読む。記載値が「実在しない（理由: …）」でない行だけを対象にする。対象行を、ビルド→開発起動→本番起動の順に並べたうえで **除外後の並びに `order` を 1 から連番で振り直す**（欠番を残さない。1-133: 除外前の固定番号 1/2/3 をそのまま転記しない）。各行について、§3 の「内容」列が実行可能なコマンド文字列であれば `command` へそのまま転記し、`note` には「出所: <§3 の根拠パス>」を埋め込む。「内容」列が句点「。」を含む説明文（実行できない散文）の場合は `command` を `"該当なし"` とし、その説明文は `note`（「出所: <§3 の根拠パス>」に続けて）へ回す。steps[] にはスキーマ上 sourceRef フィールドが存在しないため、根拠パスは note へテキストとして埋め込む運用にする。完了条件: steps[] の `order` が 1 から欠番なく連番になっており、`command` に句点を含む散文が無いこと
 - **Step 3（allocations[]）** — 調査書 §3 の「環境変数定義の所在」行の根拠パスが指すファイルを実際に Read する。ポート番号・ホスト名等の割当を示す行（`PORT=`・`HOST=` 等の代入や設定キー）を抽出する。1 件ごとに `{target: 変数名またはキー名, value: 値, sourceRef: "<根拠パス>:<行番号>"}` を組み立てる。該当ファイルが不在の場合や、割当を示す記載が見つからない場合は、allocations[] を空配列のまま進める（捏造しない）。完了条件: allocations[] を確定済み（空配列を含む）
 - **Step 4** — page-data.json を組み立てる。`pageKind: "env"`、Step 1〜3 の prerequisites[]/environment[]/steps[]/allocations[] を埋める。Write ツールで page-data.json を書き出す。完了条件: page-data.json を一時ディレクトリへ保存済み
 
@@ -79,9 +79,9 @@ page-data.json の保存先は `$CLAUDE_JOB_DIR/tmp/env-guide-page-data.json` �
   ../../../shared/scripts/detail-pages/validate-page-data.sh <page-data.json> --target-repo <target_repo_path>
   ```
 
-  検証対象は `allocations[].sourceRef` のみ。`validate-page-data.sh` は steps[]/prerequisites[] を sourceRef 検査の対象にしない（page-data-schema.md の T5 節が正）。
+  sourceRef 実在検査の対象は `allocations[].sourceRef` のみ。加えて `validate-page-data.sh` は `steps[].order` の連番性（1..N、欠番・重複なし）と `steps[].command` の純度（句点「。」を含まないこと）を検証する（1-133）。prerequisites[] は sourceRef 検査の対象にしない（page-data-schema.md の T5 節が正）。
 
-- **Step 2** — FAIL 時は `allocations[].sourceRef` を修正し Step 1 を再実行する。3 回失敗したら Phase 2 Step 3（allocations 抽出）へ差し戻す。完了条件: exit 0
+- **Step 2** — FAIL 時は `[FAIL]` 項目名で分岐する。「steps[].order連番性」FAIL は Phase 2 Step 2 へ差し戻し `order` を振り直す。「steps[].command純度」FAIL は該当行の `command` を `"該当なし"` にし説明を `note` へ移す。それ以外（`allocations[].sourceRef` 等）は該当箇所を修正して Step 1 を再実行する。3 回失敗したら Phase 2 Step 3（allocations 抽出）へ差し戻す。完了条件: exit 0
 
 **完了**: `validate-page-data.sh --target-repo` が全項目 PASS
 
