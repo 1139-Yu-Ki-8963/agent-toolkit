@@ -2071,6 +2071,56 @@ TEST34_B_NOREF_MD
   echo "PASS: --self-test ケース34（表示コミットの source_ref 集計: 混在で注記・同一で短縮表示・不在で空・ページ個別値）"
   rm -rf "$test34_dir"
 
+  echo "--- ケース35: standardsカテゴリのdiscovery.globとoutput-layout.jsonのconventionRootの不一致を検出する（改善課題1-88） ---"
+  test35_dir="$(mktemp -d)"
+  test35_layout="$(resolve_output_layout "")" || {
+    echo "FAIL: --self-test ケース35（output-layout解決に失敗）" >&2
+    rm -rf "$test35_dir"
+    exit 1
+  }
+  test35_convention_root="$(output_layout_get "$test35_layout" conventionRoot)" || {
+    echo "FAIL: --self-test ケース35（conventionRootキーが取得できない）" >&2
+    rm -rf "$test35_dir"
+    exit 1
+  }
+
+  test35_count_mismatches() {
+    local catalog_file="$1" root="$2" total=0 mismatch=0 glob
+    while IFS= read -r glob; do
+      [ -z "$glob" ] && continue
+      total=$((total + 1))
+      case "$glob" in
+        "$root"/*) ;;
+        *) mismatch=$((mismatch + 1)) ;;
+      esac
+    done < <(jq -r '.categories[] | select(.key=="standards") | .blueprints[].discovery.glob' "$catalog_file")
+    printf '%s %s\n' "$total" "$mismatch"
+  }
+
+  read -r test35_total test35_mismatch <<< "$(test35_count_mismatches "$DEFAULT_CATALOG" "$test35_convention_root")"
+  if [ "$test35_total" -eq 0 ]; then
+    echo "FAIL: --self-test ケース35（standardsカテゴリのblueprintが1件も見つからない）" >&2
+    rm -rf "$test35_dir"
+    exit 1
+  fi
+  if [ "$test35_mismatch" -ne 0 ]; then
+    echo "FAIL: --self-test ケース35（standardsカテゴリのdiscovery.globが output-layout.json の conventionRoot=\"$test35_convention_root\" と不一致: ${test35_mismatch}/${test35_total}件）" >&2
+    rm -rf "$test35_dir"
+    exit 1
+  fi
+  echo "PASS: --self-test ケース35a（standardsカテゴリのdiscovery.glob全${test35_total}件がconventionRoot=\"$test35_convention_root\"と一致）"
+
+  test35_bad_catalog="$test35_dir/bad-catalog.json"
+  jq '(.categories[] | select(.key=="standards") | .blueprints[0].discovery.glob) |= "誤った場所/コーディング規約.html"' "$DEFAULT_CATALOG" > "$test35_bad_catalog"
+  read -r test35_bad_total test35_bad_mismatch <<< "$(test35_count_mismatches "$test35_bad_catalog" "$test35_convention_root")"
+  if [ "$test35_bad_mismatch" -eq 0 ]; then
+    echo "FAIL: --self-test ケース35b（意図的に不一致にしたglob 1件を検出できない）" >&2
+    rm -rf "$test35_dir"
+    exit 1
+  fi
+  echo "PASS: --self-test ケース35b（意図的な不一致1件を正しく検出する: ${test35_bad_mismatch}/${test35_bad_total}件）"
+  rm -rf "$test35_dir"
+
   exit 0
 fi
 
