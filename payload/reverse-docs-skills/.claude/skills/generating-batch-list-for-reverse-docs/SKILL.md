@@ -52,7 +52,7 @@ allowed-tools: [AskUserQuestion, Bash, Grep, Read, Write]
 調査項目の詳細は `references/batch-detection.md` を参照する。
 
 - **Step 1**: `package.json`・lockファイル（`package-lock.json`/`yarn.lock`/`pnpm-lock.yaml`）や依存定義（`requirements.txt`/`pyproject.toml` 等）からジョブスケジューラ・cron系ライブラリを確定する。これらが存在しないコードベースでは import 文・API 使用形跡から推定する。完了条件: ライブラリ名とバージョンが特定済み、または特定不能の根拠（推定経路）が記録済み
-- **Step 2**: バッチ定義の所在と方式を特定する（cron 定義・ジョブスケジューラ設定・CLI コマンド定義。`references/batch-detection.md` の調査対象表に従う）。完了条件: バッチ定義を含む実ファイルパスが列挙済み
+- **Step 2**: バッチ定義の所在と方式を特定する（cron 定義・ジョブスケジューラ設定・CLI コマンド定義。`references/batch-detection.md` の調査対象表に従う）。定期実行の登録エントリが記載された定義ファイル（cron 設定・スケジューラ設定・付随ドキュメント等）は、Phase 2 の抽出結果（実ファイル走査で検出したユニット）との突合に使う**副次的な入力**として保持しておく（1-129。定義はあるが実装ファイルが存在しないエントリの見落とし防止）。完了条件: バッチ定義を含む実ファイルパスが列挙済み。定義ファイルが存在すればそのパスも保持済み
 - **Step 3**: バッチ固有の識別要素を調査する（ジョブ名の命名パターン・実行スケジュール（cron 式・実行間隔・トリガー条件）・入出力（処理対象データソース・出力先））。完了条件: `unit-id-regex` の候補値または「なし」が確定済み
 - **Step 4**: 除外パターンを確定する。ワンショットスクリプト・マイグレーション・`tests` 等のノイズを実際に `ls` で確認する。完了条件: `excludePatterns` 一覧が確定済み
 - **Step 5**: 検出戦略宣言を作成し、AskUserQuestionで承認を取る。宣言JSONは一時ファイルに保存する。完了条件: 戦略JSON（`unitKind: "batch"`/`extractionMethod: "custom"`/`unitIdRegex`/`excludePatterns`/`approvedByUser: true`/`notes`）が保存済み
@@ -65,7 +65,7 @@ allowed-tools: [AskUserQuestion, Bash, Grep, Read, Write]
 
 - **Step 1**: Phase 1で宣言した手順（例: cron 設定ファイルのエントリ走査・ジョブ登録呼び出し（`schedule()`/`cron.schedule()` 等）の収集・CLI コマンド定義の列挙）をClaude自身がBash/Grep/Readで実行し、スキーマ準拠のマニフェストJSON（配列キー `units`）をWriteする。0件検出ならユーザーに報告してハード停止する。バッチを捏造しない。完了条件: マニフェストJSONが生成済み、または0件停止を報告済み
 - **Step 2**: diagnosticsを確認する。警告が出た場合は抽出手順を見直し、見直し時はStep 1へ戻る。完了条件: diagnosticsが空、または警告を承知の上で続行と判断済み
-- **Step 3**: マニフェストへメタデータを付与する。`../../../shared/scripts/extract/extract-batch-metadata.sh <manifest.json> <source_dir> <manifest.ext.json>` を実行し、各ユニットに `schedule`・`targetTables`・`downstreamJobs`・`execMethod` フィールドを追加した拡張マニフェスト（`manifest.ext.json`）を生成する。以降のPhaseでは `manifest.ext.json` を使用する。完了条件: 拡張マニフェストが生成済み
+- **Step 3**: マニフェストへメタデータを付与する。`../../../shared/scripts/extract/extract-batch-metadata.sh <manifest.json> <source_dir> <manifest.ext.json>` を実行し、各ユニットに `schedule`・`targetTables`・`downstreamJobs`・`execMethod` フィールドを追加した拡張マニフェスト（`manifest.ext.json`）を生成する。Step 1 で定義ファイル（cron 設定等）を保持できた場合は `--cron-file <定義ファイルのパス>` も渡し、定義エントリと実装（現マニフェストのユニット）の突合結果を `detectionSummary.diagnostics.definitionWithoutImplementation`（1-129）として拡張マニフェストへ記録する。実装のない定義エントリは一覧本体（units）には載せない。以降のPhaseでは `manifest.ext.json` を使用する。完了条件: 拡張マニフェストが生成済み
 
 **非UTF-8原本への対応**: 原本が UTF-8 以外のエンコーディングで書かれている場合、通常の文字列検索はバイナリ扱いとなりマッチ 0 件を返す。走査の前に `shared/scripts/detect-encoding.sh encoding <file>` でエンコーディングを確定し、UTF-8 以外なら `detect-encoding.sh to-utf8` で変換した一時コピーに対して走査する。変換結果は永続化せず一時コピーで足りる。マッチ 0 件を「該当なし」と結論する前に、エンコーディングが原因でないことを確認する。
 

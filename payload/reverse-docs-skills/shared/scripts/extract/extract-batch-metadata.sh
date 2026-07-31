@@ -35,6 +35,23 @@
 #                   ヒットは除外。0 件なら付けない。1 unit あたりの grep 起動を他バッチ数×2 回では
 #                   なく 1 回にする最適化)
 #
+# 定義と実装の突合(1-129・detectionSummary.diagnostics.definitionWithoutImplementation):
+#   --cron-file に記載された定期実行の登録エントリのうち、現マニフェストのどのユニットにも
+#   対応しないもの(定義はあるが実装が存在しないエントリ)を検出し、検出できなかった事実として
+#   比率を記録する(誤検出より見落としの可視化を優先。定義ファイルの記法網羅は求めない)。
+#   検出手順(1ルールに固定。grep ベース):
+#     1. --cron-file の各行から先頭 5 フィールド(cron 式)を sed で取り除き、残りの文字列から
+#        拡張子付きファイルパストークン(grep -oE '[[:alnum:]_./-]+\.(py|sh|js|ts)' の最後の一致)を
+#        ジョブ指定子として抽出する。5 フィールドを取り除けない行(コメント・空行等)は対象外とし
+#        total に含めない
+#     2. 現マニフェストの kind!=unresolved な全ユニットの identifier/sourceFile を 1 つの
+#        パターンファイルにまとめ、ジョブ指定子がそのいずれかを部分文字列として含むか
+#        grep -qFf で判定する(1 エントリ 1 回の grep 呼び出し)
+#     3. 一致すれば「実装あり」、一致しなければ definitionWithoutImplementation の count に加算する
+#   出力: count(実装なしエントリ数)/total(判定可能だった登録エントリ総数)/
+#         ratio(count/total。total=0ならratio=0)/threshold(0.5固定)/warning(ratio>threshold)。
+#   --cron-file 未指定時はキー自体を付けない(比較対象の定義ファイルが無いため)。
+#
 # 出力 JSON は unit-list/validate-manifest.sh --unit-kind batch で検証可能であること
 # (self-test 内で validate-manifest.sh も実行して PASS を確認する)。
 
@@ -77,6 +94,7 @@ EOF
   cat > "$tmp/crontab.txt" <<'EOF'
 0 3 * * * python3 /app/jobs/daily_summary.py
 30 1 1 * * python3 /app/jobs/monthly_report.py
+0 4 * * * python3 /app/jobs/nonexistent_job.py
 EOF
 
   jq -n --arg sourceDir "$tmp/src" '{
@@ -141,8 +159,21 @@ EOF
   check "downstreamJobs: ヒット無しユニットにはフィールドを付けない(fail-safe)" \
     '.units[1] | has("downstreamJobs") | not'
 
+  # 1-129: 定義(crontab)にはあるが実装(ユニット)が存在しないエントリの検出
+  check "definitionWithoutImplementation診断: count=1(nonexistent_jobのみ実装なし)" \
+    '.detectionSummary.diagnostics.definitionWithoutImplementation.count == 1'
+  check "definitionWithoutImplementation診断: total=3(crontab全登録エントリ数)" \
+    '.detectionSummary.diagnostics.definitionWithoutImplementation.total == 3'
+  check "definitionWithoutImplementation診断: threshold=0.5" \
+    '.detectionSummary.diagnostics.definitionWithoutImplementation.threshold == 0.5'
+  check "definitionWithoutImplementation診断: 実装ありエントリは一覧本体(units)に載らない" \
+    '[.units[].identifier] | index("jobs/nonexistent_job.py") | not'
+
   # 既存フィールド不変: 追加フィールドを取り除くと入力と完全一致する
-  jq -S 'del(.units[].schedule, .units[].targetTables, .units[].downstreamJobs, .units[].execMethod)' \
+  # (detectionSummary.diagnostics.definitionWithoutImplementation は本スクリプトが新規に追加するため、
+  #  ユニット単位の追加4フィールドと同様に除去してから比較する)
+  jq -S 'del(.units[].schedule, .units[].targetTables, .units[].downstreamJobs, .units[].execMethod)
+         | del(.detectionSummary.diagnostics)' \
     "$out" > "$tmp/stripped.json"
   jq -S . "$manifest" > "$tmp/orig.json"
   if diff -q "$tmp/stripped.json" "$tmp/orig.json" >/dev/null 2>&1; then
@@ -415,6 +446,34 @@ jq -r '.units[]? | select(.kind != "unresolved") | select((.unitKey // "") != ""
   | [.key, .val] | @tsv' "$MANIFEST" > "$other_map"
 cut -f2 "$other_map" | sort -u > "$other_pat"
 
+# --- definitionWithoutImplementation(1-129): --cron-file の登録エントリと現ユニットの突合 ---
+diagnostics_json="{}"
+if [ -n "$CRON_FILE" ] && [ -f "$CRON_FILE" ]; then
+  unit_refs_pat="$work_dir/unit-refs.txt"
+  jq -r '.units[]? | select(.kind != "unresolved") | (.identifier // ""), (.sourceFile // "")' "$MANIFEST" \
+    | awk 'NF' > "$unit_refs_pat"
+  def_total=0
+  def_missing=0
+  while IFS= read -r cron_line; do
+    rest="$(printf '%s\n' "$cron_line" | sed -E 's/^[[:space:]]*[^[:space:]]+([[:space:]]+[^[:space:]]+){4}[[:space:]]*//')"
+    [ "$rest" = "$cron_line" ] && continue
+    job_spec="$(printf '%s\n' "$rest" | grep -oE '[[:alnum:]_./-]+\.(py|sh|js|ts)' | tail -n 1 || true)"
+    [ -z "$job_spec" ] && continue
+    def_total=$((def_total + 1))
+    if [ -s "$unit_refs_pat" ] && printf '%s\n' "$job_spec" | grep -qFf "$unit_refs_pat"; then
+      continue
+    fi
+    def_missing=$((def_missing + 1))
+  done < "$CRON_FILE"
+  diagnostics_json="$(jq -n --argjson c "$def_missing" --argjson t "$def_total" '
+    {definitionWithoutImplementation:
+      {count: $c, total: $t,
+       ratio: (if $t > 0 then ($c / $t) else 0 end),
+       threshold: 0.5,
+       warning: (if $t > 0 then (($c / $t) > 0.5) else false end)}}
+  ')"
+fi
+
 while IFS= read -r row; do
   [ -z "$row" ] && continue
   kind="$(jq -r '.kind // ""' <<<"$row")"
@@ -513,6 +572,9 @@ while IFS= read -r row; do
   printf '%s\n' "$aug" >> "$units_tmp"
 done < <(jq -c '.units[]?' "$MANIFEST")
 
-jq --slurpfile newunits "$units_tmp" '.units = $newunits' "$MANIFEST" > "$OUTPUT_JSON"
+jq --slurpfile newunits "$units_tmp" --argjson diag "$diagnostics_json" '
+  .units = $newunits
+  | if ($diag | length) > 0 then .detectionSummary.diagnostics = (.detectionSummary.diagnostics // {}) + $diag else . end
+' "$MANIFEST" > "$OUTPUT_JSON"
 
 echo "OK: wrote $OUTPUT_JSON" >&2

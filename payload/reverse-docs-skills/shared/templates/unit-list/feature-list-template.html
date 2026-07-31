@@ -20,6 +20,9 @@
     CATEGORY_COUNT (大分類数タイルマーカー)     : 検出された大分類の数
     UNIT_COUNT (検出機能数タイルマーカー)       : detectionSummary.unitCount
     UNRESOLVED_COUNT (要確認数タイルマーカー)   : detectionSummary.unresolvedCount
+    EMPTY_RELATION_COUNT (関連空機能数タイルマーカー) : detectionSummary.diagnostics.emptyRelation.count(1-152)
+    EXTRA_DIAGNOSTICS (診断マーカー・任意)      : emptyRelation(1-152)の比率コールアウト。
+                                                   閾値超過時は pt-callout--warning、それ以外は note
     CATEGORY_SECTIONS (大分類セクションマーカー): 大分類ごとの details.module-group + table を丸ごと挿入
     UNRESOLVED_SECTION (要手動確認セクションマーカー) : kind=unresolved の一覧テーブル、0件なら「なし」の文言
     MANIFEST_JSON (マニフェストJSON埋め込みマーカー) : manifest.json の内容をそのまま埋め込み(二重管理・ドリフト禁止)
@@ -203,8 +206,11 @@
           <div class="tile"><strong>{{CATEGORY_COUNT}}</strong>大分類数</div>
           <div class="tile"><strong>{{UNIT_COUNT}}</strong>検出機能数</div>
           <div class="tile"><strong>{{UNRESOLVED_COUNT}}</strong>要手動確認数</div>
+          <div class="tile"><strong>{{EMPTY_RELATION_COUNT}}</strong>関連空機能数</div>
         </div>
       </div>
+
+      <!--EXTRA_DIAGNOSTICS-->
 
       <div class="toolbar-area">
         <div class="toolbar">

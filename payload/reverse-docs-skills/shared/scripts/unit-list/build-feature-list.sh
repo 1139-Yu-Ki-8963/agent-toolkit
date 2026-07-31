@@ -387,6 +387,28 @@ source_dir="$(jq -r '.sourceDir // ""' "$MANIFEST")"
 tile_unit_count="$(jq -r '.detectionSummary.unitCount // 0' "$MANIFEST")"
 tile_unresolved_count="$(jq -r '.detectionSummary.unresolvedCount // 0' "$MANIFEST")"
 
+# --- emptyRelation(1-152)。検出できなかった事実として比率を集計しHTMLへ必ず表示する(0件でも表示) ---
+empty_relation_diagnostics_json="$(jq -c '
+  .detectionSummary.diagnostics.emptyRelation //
+  ( [.units[]? | select(.kind == "feature")] as $f
+    | ($f | length) as $total
+    | ($f | map(select(((.relatedApis // []) | length) == 0 and ((.relatedTables // []) | length) == 0)) | length) as $count
+    | {count: $count, total: $total,
+       ratio: (if $total > 0 then ($count / $total) else 0 end),
+       threshold: 0.5,
+       warning: (if $total > 0 then (($count / $total) > 0.5) else false end)}
+  )
+' "$MANIFEST")"
+tile_empty_relation_count="$(jq -r '.count' <<<"$empty_relation_diagnostics_json")"
+tile_empty_relation_ratio_pct="$(jq -r '(.ratio * 1000 | round) / 10' <<<"$empty_relation_diagnostics_json")"
+empty_relation_warning="$(jq -r '.warning' <<<"$empty_relation_diagnostics_json")"
+empty_relation_message="関連空機能 <strong>${tile_empty_relation_count}</strong> / ${tile_unit_count} 件（${tile_empty_relation_ratio_pct}%）が関連API・関連テーブルの両方とも空です。"
+if [ "$empty_relation_warning" = "true" ]; then
+  extra_diagnostics_html="<div class=\"pt-callout pt-callout--warning\"><span class=\"material-symbols-outlined pt-callout__icon\" aria-hidden=\"true\">warning</span>${empty_relation_message}</div>"
+else
+  extra_diagnostics_html="<p class=\"note\">${empty_relation_message}</p>"
+fi
+
 # --- 1機能分の <tr> を生成する ---
 # 行データはjqの@tsv+bash readではなく、1行1JSONオブジェクト(jq -c)を個別に
 # jq -r抽出する方式を採る。@tsv+IFS=タブのreadはタブがPOSIX上「IFS空白」に
@@ -528,6 +550,8 @@ render_args=(
   "{{CATEGORY_COUNT}}" "$category_count"
   "{{UNIT_COUNT}}" "$tile_unit_count"
   "{{UNRESOLVED_COUNT}}" "$tile_unresolved_count"
+  "{{EMPTY_RELATION_COUNT}}" "$tile_empty_relation_count"
+  "<!--EXTRA_DIAGNOSTICS-->" "$extra_diagnostics_html"
   "<!--CATEGORY_SECTIONS-->" "$category_sections"
   "<!--UNRESOLVED_SECTION-->" "$unresolved_section"
   "{{UNRESOLVED_CLASS}}" "$unresolved_class"

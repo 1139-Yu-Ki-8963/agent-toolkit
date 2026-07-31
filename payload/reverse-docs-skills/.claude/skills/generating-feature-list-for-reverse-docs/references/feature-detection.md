@@ -217,3 +217,35 @@ Phase 4 Step 2 が従うテーブル紐付けの詳細手順。Stage 2 の出力
 ### 出力
 
 各機能の `relatedTables` に一致したテーブル unitKey の配列を記録する。1つの API が複数テーブルを参照する場合はすべて記録する。
+
+## Stage 3b: 直接データアクセス経路（1-152）
+
+Stage 2（API紐付け）を実行しても `relatedApis` が空のまま残る機能がある。画面が API を経由せず、画面のモジュール内に問い合わせ文（生SQL・ORMクエリ呼び出し）を直接埋め込んでテーブルへアクセスする構成（BFF層・API層を持たない実装）では、Stage 2 の前提（画面→API→テーブル）が成立しない。この場合にテーブル紐付けが常に空になり、関連の欠落が可視化されないまま成果物へ伝播した実例がある。
+
+Stage 3b は、`relatedApis` が空の機能について、画面の直接アクセスを経路として追加する。
+
+### 入力
+
+- Stage 3 完了後も `relatedApis` かつ `relatedTables` が空配列の機能
+- 画面マニフェスト（`screens[].screenKey`, `files[]`, `entryFile`）
+- テーブル一覧マニフェスト（`units[].unitKey`, `identifier`）。未生成の場合は本 Stage をスキップする
+
+### 処理手順
+
+Phase 6 Step 1（`extract-feature-metadata.sh`）が `--screen-manifest`・`--table-manifest`・`--source-dir` を受け取り機械実行する。
+
+1. 対象機能の `relatedScreens[]` から画面マニフェストを引き、`files[]`（空なら `entryFile`。Stage 2 と同じフォールバック）を取得する
+2. 各ファイルから Stage 3 の生SQLパターン（`FROM\s+\w+`・`INSERT\s+INTO\s+\w+`・`UPDATE\s+\w+`）でテーブル名を抽出する
+3. 抽出したテーブル名をテーブル一覧マニフェストの `units[].unitKey`/`identifier` と照合し、一致した unitKey を `relatedTables` に記録する
+4. 既存の `relatedApis`/`relatedTables` が非空の機能は対象外（上書きしない）
+
+### 出力
+
+対象機能の `relatedTables` に、直接アクセス経路で見つかったテーブル unitKey の配列を記録する。Stage 2/3 と異なり `relatedApis` は空のままでよい（画面が直接アクセスする構成である旨は related* の組み合わせ（relatedApis 空・relatedTables 非空）から読み取れる）。
+
+## emptyRelation 診断（1-152）
+
+Stage 3b を経ても `relatedApis` と `relatedTables` の両方が空のままの機能が多いと、機能一覧の大半が関連情報を持たない実害がある。`extract-feature-metadata.sh` が Phase 6 Step 1 で以下を機械算出し、機能一覧.html へ必ず表示する（0件でも表示する）。
+
+- 指標名は `emptyRelation`。値は `count`（`relatedApis` と `relatedTables` の両方が空配列の機能数）・`total`（kind=feature の機能数。unresolved を除く）・`ratio`（count/total）・`threshold`（0.5固定）・`warning`（ratio > threshold）
+- 関連の網羅率そのものの向上は求めない。全件空が無警告で成果物を通過しないことが目的

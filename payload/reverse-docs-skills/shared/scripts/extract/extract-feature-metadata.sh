@@ -6,6 +6,7 @@
 # (機能は既存一覧の派生グルーピングであり、判定材料は manifest 内の識別子文字列のみ)。
 #
 # Usage: extract-feature-metadata.sh <feature-manifest.json> <output.json>
+#            [--screen-manifest <path>] [--table-manifest <path>] [--source-dir <path>]
 #        extract-feature-metadata.sh --self-test
 #
 # 入出力契約:
@@ -27,6 +28,20 @@
 #   3. いずれにもヒットしなければ「その他」
 #   operationClass は kind != "unresolved" の全行に必ず付与する(欠落なし。6値目「その他」が
 #   キーワード不一致の受け皿となるため、他フィールドのような fail-safe 欠落は行わない)。
+#
+# 直接データアクセス経路(1-152・feature-detection.md Stage 3b): --screen-manifest・
+# --table-manifest・--source-dir がすべて指定された場合のみ、relatedApis かつ relatedTables が
+# 空配列の feature(kind!=unresolved)について、relatedScreens[] が指す画面の files[](空なら
+# entryFile)を生SQLパターン(FROM\s+\w+|INSERT\s+INTO\s+\w+|UPDATE\s+\w+。大小文字無視)で走査し、
+# ヒットしたテーブル名をテーブル一覧マニフェストの identifier/unitKey と照合して relatedTables に
+# 記録する(既存の relatedApis/relatedTables が非空の feature は対象外。上書きしない)。
+#
+# emptyRelation 診断(1-152・detectionSummary.diagnostics.emptyRelation): 直接データアクセス経路の
+# 適用後も relatedApis と relatedTables の両方が空配列のままの feature(kind="feature"。unresolved
+# 除く)の比率を検出できなかった事実として記録する。
+#   出力: count(両方空のfeature数)/total(kind="feature"の総数)/ratio/threshold(0.5固定)/warning。
+#   --screen-manifest 等の指定有無によらず常に算出する(relatedApis/relatedTables は常に manifest に
+#   存在するフィールドのため)。
 #
 # 出力 JSON は unit-list/validate-manifest.sh --unit-kind feature で検証可能であること
 # (self-test 内で validate-manifest.sh も実行して PASS を確認する)。
@@ -129,8 +144,18 @@ self_test() {
   check "その他: 該当キーワードなしのpingが「その他」に分類される" \
     '.units[5].operationClass == "その他"'
 
+  # 1-152: 全6機能がrelatedApis/relatedTables空のフィクスチャで、全件空が無警告で通らないこと
+  check "emptyRelation診断: count=6(全featureがrelatedApis/relatedTables空)" \
+    '.detectionSummary.diagnostics.emptyRelation.count == 6'
+  check "emptyRelation診断: total=6(kind=featureの総数)" \
+    '.detectionSummary.diagnostics.emptyRelation.total == 6'
+  check "emptyRelation診断: 全件空でwarning: true" \
+    '.detectionSummary.diagnostics.emptyRelation.warning == true'
+
   # 既存フィールド不変: operationClass を取り除くと入力と完全一致する
-  jq -S 'del(.units[].operationClass)' "$out" > "$tmp/stripped.json"
+  # (detectionSummary.diagnostics.emptyRelation は本スクリプトが新規に追加するため、
+  #  ユニット単位の追加フィールドと同様に除去してから比較する)
+  jq -S 'del(.units[].operationClass) | del(.detectionSummary.diagnostics)' "$out" > "$tmp/stripped.json"
   jq -S . "$manifest" > "$tmp/orig.json"
   if diff -q "$tmp/stripped.json" "$tmp/orig.json" >/dev/null 2>&1; then
     echo "  [PASS] 既存フィールド不変: operationClass除去後は入力マニフェストと完全一致"
@@ -143,6 +168,66 @@ self_test() {
     echo "  [PASS] validate-manifest: 拡張マニフェストが全項目PASS"
   else
     echo "  [FAIL] validate-manifest: 拡張マニフェストが検証FAILした" >&2
+    rc=1
+  fi
+
+  # --- 1-152: 直接データアクセス経路のフィクスチャ(画面が生SQLを直接埋め込み) ---
+  mkdir -p "$tmp/direct/src/pages" "$tmp/direct/src/pages_norel"
+  cat > "$tmp/direct/src/pages/widget_list.ts" <<'EOF'
+export async function loadWidgets(db) {
+  return db.query("SELECT id, name FROM widgets WHERE active = 1");
+}
+EOF
+  cat > "$tmp/direct/src/pages_norel/other_view.ts" <<'EOF'
+export function renderOther() {
+  return null;
+}
+EOF
+
+  local direct_screen_manifest="$tmp/direct/screen-manifest.json"
+  jq -n --arg f "pages/widget_list.ts" --arg f2 "pages_norel/other_view.ts" '{
+    generatedAt: "2026-01-01T00:00:00Z", sourceDir: "x", unitKind: "screen",
+    strategy: {extractionMethod: "custom", approvedByUser: true, screenIdRegex: null, excludePatterns: []},
+    detectionSummary: {screenCount: 2, clusterCount: 0, sharedScreenCount: 0, embeddedCandidateCount: 0, unresolvedCount: 0},
+    screens: [
+      {screenKey: "widget-list-screen", kind: "route", route: "/widgets", entryFile: $f,
+       screenNameGuess: "ウィジェット一覧", confidence: "high", files: [$f]},
+      {screenKey: "other-screen", kind: "route", route: "/other", entryFile: $f2,
+       screenNameGuess: "他画面", confidence: "high", files: [$f2]}
+    ]
+  }' > "$direct_screen_manifest"
+
+  local direct_table_manifest="$tmp/direct/table-manifest.json"
+  jq -n '{
+    generatedAt: "2026-01-01T00:00:00Z", sourceDir: "x", unitKind: "table",
+    strategy: {extractionMethod: "custom", approvedByUser: true, unitIdRegex: null, excludePatterns: []},
+    detectionSummary: {unitCount: 1, unresolvedCount: 0},
+    units: [
+      {unitKey: "widgets-table", kind: "table", identifier: "widgets", sourceFile: "pages/widget_list.ts", confidence: "high"}
+    ]
+  }' > "$direct_table_manifest"
+
+  local direct_feature_manifest="$tmp/direct/feature-manifest.json"
+  jq -n '{
+    generatedAt: "2026-01-01T00:00:00Z", sourceDir: "x", unitKind: "feature",
+    strategy: {extractionMethod: "custom", approvedByUser: true, unitIdRegex: null, excludePatterns: []},
+    detectionSummary: {unitCount: 1, unresolvedCount: 0},
+    units: [
+      {unitKey: "widget-management", kind: "feature", category: "在庫管理", identifier: "/widgets",
+       unitNameGuess: "ウィジェット管理", summary: "ウィジェットを一覧表示する", sourceFile: "pages/widget_list.ts",
+       relatedScreens: ["widget-list-screen"], relatedApis: [], relatedTables: [],
+       confidence: "high", fileCount: 1, detectionMethod: "manual"}
+    ]
+  }' > "$direct_feature_manifest"
+
+  local direct_out="$tmp/direct/out.json"
+  if bash "$script_path" "$direct_feature_manifest" "$direct_out" \
+       --screen-manifest "$direct_screen_manifest" --table-manifest "$direct_table_manifest" \
+       --source-dir "$tmp/direct/src" >/dev/null 2>&1 \
+     && jq -e '.units[0].relatedTables == ["widgets-table"]' "$direct_out" >/dev/null 2>&1; then
+    echo "  [PASS] 直接データアクセス経路: 画面が直接持つ生SQLからrelatedTablesが紐付く"
+  else
+    echo "  [FAIL] 直接データアクセス経路: relatedTablesが期待通りに紐付かなかった" >&2
     rc=1
   fi
 
@@ -159,9 +244,22 @@ if [ "${1:-}" = "--self-test" ]; then
   exit $?
 fi
 
-USAGE="Usage: extract-feature-metadata.sh <feature-manifest.json> <output.json>"
+USAGE="Usage: extract-feature-metadata.sh <feature-manifest.json> <output.json> [--screen-manifest <path>] [--table-manifest <path>] [--source-dir <path>]"
 MANIFEST="${1:?$USAGE}"
 OUTPUT_JSON="${2:?$USAGE}"
+shift 2
+
+SCREEN_MANIFEST=""
+TABLE_MANIFEST=""
+SOURCE_DIR=""
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --screen-manifest) SCREEN_MANIFEST="${2:-}"; shift 2 ;;
+    --table-manifest) TABLE_MANIFEST="${2:-}"; shift 2 ;;
+    --source-dir) SOURCE_DIR="${2:-}"; shift 2 ;;
+    *) echo "ERROR: unknown argument: $1" >&2; exit 1 ;;
+  esac
+done
 
 if ! command -v jq >/dev/null 2>&1; then
   echo "ERROR: jq is required but not found in PATH" >&2
@@ -181,6 +279,34 @@ mkdir -p "$(dirname "$OUTPUT_JSON")"
 units_tmp="$(mktemp "${TMPDIR:-/tmp}/extract-feature-units.XXXXXX")"
 trap 'rm -f "$units_tmp"' EXIT
 
+# --- 直接データアクセス経路(1-152・Stage 3b)の有効化判定 ---
+DIRECT_ACCESS_ENABLED="false"
+table_map=""
+if [ -n "$SCREEN_MANIFEST" ] && [ -f "$SCREEN_MANIFEST" ] \
+  && [ -n "$TABLE_MANIFEST" ] && [ -f "$TABLE_MANIFEST" ] \
+  && [ -n "$SOURCE_DIR" ] && [ -d "$SOURCE_DIR" ]; then
+  DIRECT_ACCESS_ENABLED="true"
+  table_map="$(mktemp "${TMPDIR:-/tmp}/extract-feature-table-map.XXXXXX")"
+  jq -r '.units[]? | select(.kind != "unresolved") | [(.identifier // ""), (.unitKey // "")] | @tsv' "$TABLE_MANIFEST" \
+    | awk -F'\t' 'NF==2 && $1 != "" && $2 != ""' > "$table_map"
+fi
+
+# --- relatedScreens[] の画面が持つ files[](空なら entryFile)を1行1パスで返す ---
+screen_files_for() {
+  local screen_key="$1"
+  jq -r --arg k "$screen_key" '
+    (.screens // [])[] | select(.screenKey == $k) |
+    if ((.files // []) | length) > 0 then .files[] else (.entryFile // empty) end
+  ' "$SCREEN_MANIFEST" 2>/dev/null
+}
+
+# --- ファイル内の生SQL(FROM/INSERT INTO/UPDATE)からテーブル名だけを1行1件で返す ---
+direct_sql_table_names() {
+  local fpath="$1"
+  grep -Eio 'FROM[[:space:]]+[[:alnum:]_]+|INSERT[[:space:]]+INTO[[:space:]]+[[:alnum:]_]+|UPDATE[[:space:]]+[[:alnum:]_]+' "$fpath" 2>/dev/null \
+    | sed -E 's/^[Ff][Rr][Oo][Mm][[:space:]]+//; s/^[Ii][Nn][Ss][Ee][Rr][Tt][[:space:]]+[Ii][Nn][Tt][Oo][[:space:]]+//; s/^[Uu][Pp][Dd][Aa][Tt][Ee][[:space:]]+//'
+}
+
 while IFS= read -r row; do
   [ -z "$row" ] && continue
   kind="$(jq -r '.kind // ""' <<<"$row")"
@@ -197,9 +323,56 @@ while IFS= read -r row; do
   class="$(classify_haystack "$haystack")"
   aug="$(jq --arg c "$class" '. + {operationClass: $c}' <<<"$row")"
 
+  # --- Stage 3b: relatedApis/relatedTables が両方空のfeatureのみ、画面の直接アクセスを試みる ---
+  if [ "$DIRECT_ACCESS_ENABLED" = "true" ]; then
+    related_apis_empty="$(jq -r '((.relatedApis // []) | length) == 0' <<<"$aug")"
+    related_tables_empty="$(jq -r '((.relatedTables // []) | length) == 0' <<<"$aug")"
+    if [ "$related_apis_empty" = "true" ] && [ "$related_tables_empty" = "true" ]; then
+      found_tables="[]"
+      while IFS= read -r screen_key; do
+        [ -z "$screen_key" ] && continue
+        while IFS= read -r f; do
+          [ -z "$f" ] && continue
+          case "$f" in
+            /*) fpath="$f" ;;
+            *) fpath="${SOURCE_DIR%/}/$f" ;;
+          esac
+          [ -f "$fpath" ] || continue
+          while IFS= read -r table_name; do
+            [ -z "$table_name" ] && continue
+            while IFS=$'\t' read -r m_id m_key; do
+              [ -z "$m_id" ] && continue
+              if [ "$(printf '%s' "$m_id" | tr '[:upper:]' '[:lower:]')" = "$(printf '%s' "$table_name" | tr '[:upper:]' '[:lower:]')" ]; then
+                found_tables="$(jq --arg k "$m_key" 'if index($k) then . else . + [$k] end' <<<"$found_tables")"
+              fi
+            done < "$table_map"
+          done < <(direct_sql_table_names "$fpath")
+        done < <(screen_files_for "$screen_key")
+      done < <(jq -r '.relatedScreens // [] | .[]' <<<"$aug")
+      found_tables="$(jq 'unique' <<<"$found_tables")"
+      if [ "$(jq 'length' <<<"$found_tables")" -gt 0 ]; then
+        aug="$(jq --argjson t "$found_tables" '.relatedTables = $t' <<<"$aug")"
+      fi
+    fi
+  fi
+
   printf '%s\n' "$aug" >> "$units_tmp"
 done < <(jq -c '.units[]?' "$MANIFEST")
 
-jq --slurpfile newunits "$units_tmp" '.units = $newunits' "$MANIFEST" > "$OUTPUT_JSON"
+# --- emptyRelation(1-152): relatedApis/relatedTables が両方空のままのfeature比率(0件でも算出) ---
+empty_relation_json="$(jq -sc '
+  [.[] | select(.kind == "feature")] as $f
+  | ($f | length) as $total
+  | ($f | map(select(((.relatedApis // []) | length) == 0 and ((.relatedTables // []) | length) == 0)) | length) as $count
+  | {count: $count, total: $total,
+     ratio: (if $total > 0 then ($count / $total) else 0 end),
+     threshold: 0.5,
+     warning: (if $total > 0 then (($count / $total) > 0.5) else false end)}
+' "$units_tmp")"
+
+jq --slurpfile newunits "$units_tmp" --argjson er "$empty_relation_json" '
+  .units = $newunits
+  | .detectionSummary.diagnostics = ((.detectionSummary.diagnostics // {}) + {emptyRelation: $er})
+' "$MANIFEST" > "$OUTPUT_JSON"
 
 echo "OK: wrote $OUTPUT_JSON" >&2

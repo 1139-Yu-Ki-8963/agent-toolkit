@@ -5,6 +5,7 @@
 # (送信・受信の両パターンに同時ヒット等)は出力しない(誤った値より欠落を優先する fail-safe)。
 #
 # Usage: extract-external-metadata.sh <external-manifest.json> <source-dir> <output.json>
+#            [--definition-file <path>] [--declaration-candidates <path>]
 #        extract-external-metadata.sh --self-test
 #
 # 出力フィールド(スキーマ正本: shared/references/manifest-schema-extensions.md「externals」節):
@@ -27,6 +28,26 @@
 #                 - grep -Eiq 'api_key|X-API-Key|apikey'             → APIキー
 #                 - grep -Eiq 'HTTPBasicAuth|basic_auth'             → Basic
 #               どれにもヒットしなければ付けない
+#
+# 定義と実装の突合(1-129・detectionSummary.diagnostics.definitionWithoutImplementation):
+#   --definition-file(連携先定義ファイル。1行1エントリ、`#`始まりはコメント扱いで除外)の各行が、
+#   source-dir 配下のいずれかのファイルで実際に参照されているかを検出する(定義ファイルの記法
+#   網羅は求めない。1ルールに固定)。
+#     1. 定義ファイルの非コメント・非空行をパターンファイルにする
+#     2. source-dir 配下(拡張子 py/js/ts/json/yml/yaml に限定)を grep -rhoFf で 1 回だけ走査し、
+#        ヒットしたエントリ文字列の集合を得る(全エントリ×全ファイルの総当りgrepを避ける最適化)
+#     3. パターンファイルの各行がヒット集合に含まれるかを照合し、含まれないものを
+#        definitionWithoutImplementation の count に加算する
+#   出力: count/total(判定対象の定義エントリ数)/ratio/threshold(0.5固定)/warning。
+#   --definition-file 未指定時はキー自体を付けない。
+#
+# 宣言のみと実呼び出しの区別(1-139・detectionSummary.diagnostics.declarationOnly):
+#   --declaration-candidates(通信モジュールの読み込み宣言を持つ候補ファイルパス一覧。1行1パス。
+#   source-dir 起点の相対パスまたは絶対パス)の各ファイルについて、宣言(IMPORT_PATTERN)はあるが
+#   実呼び出し(既存の SEND_PATTERN/RECV_PATTERN)が無いものを検出する。
+#   宣言のみのファイルは units[] に含めない(Phase 2 の抽出時点で除外する運用が前提)。
+#   出力: count(宣言のみのファイル数)/total(候補ファイル総数)/ratio/threshold(0.5固定)/warning。
+#   --declaration-candidates 未指定時はキー自体を付けない。
 #
 # 出力 JSON は unit-list/validate-manifest.sh --unit-kind external で検証可能であること
 # (self-test 内で validate-manifest.sh も実行して PASS を確認する)。
@@ -92,8 +113,32 @@ EOF
     ]
   }' > "$manifest"
 
+  # --- 1-129: 定義ファイル(連携先定義)に実装が無いエントリを検出するフィクスチャ ---
+  cat > "$tmp/src/clients/payment_gateway_consumer.py" <<'EOF'
+CONSUMES_TARGET = "payment-gateway"
+EOF
+  local definition_file="$tmp/definitions.txt"
+  cat > "$definition_file" <<'EOF'
+# 連携先定義(コメント行は除外対象)
+payment-gateway
+unused-shipping-api
+EOF
+
+  # --- 1-139: 読み込み宣言のみで実呼び出しが無いファイルを検出するフィクスチャ ---
+  cat > "$tmp/src/clients/unused_client.py" <<'EOF'
+import requests
+
+UNUSED_BASE_URL = "https://example.invalid"
+EOF
+  local declaration_candidates="$tmp/declaration-candidates.txt"
+  cat > "$declaration_candidates" <<EOF
+clients/payment_client.py
+clients/unused_client.py
+EOF
+
   local out="$tmp/out.json"
-  if ! bash "$script_path" "$manifest" "$tmp/src" "$out" >/dev/null 2>&1; then
+  if ! bash "$script_path" "$manifest" "$tmp/src" "$out" \
+        --definition-file "$definition_file" --declaration-candidates "$declaration_candidates" >/dev/null 2>&1; then
     echo "  [FAIL] 実行: 抽出コマンド自体が失敗した" >&2
     echo "self-test FAIL" >&2
     return 1
@@ -120,8 +165,25 @@ EOF
   check "authMethod: 検出根拠が無ければフィールドを付けない(fail-safe)" \
     '.units[2] | has("authMethod") | not'
 
+  # 1-129: 定義ファイルにはあるが実装から参照されないエントリの検出
+  check "definitionWithoutImplementation診断: count=1(unused-shipping-apiのみ実装なし)" \
+    '.detectionSummary.diagnostics.definitionWithoutImplementation.count == 1'
+  check "definitionWithoutImplementation診断: total=2(コメント行を除いた定義エントリ数)" \
+    '.detectionSummary.diagnostics.definitionWithoutImplementation.total == 2'
+
+  # 1-139: 読み込み宣言のみで実呼び出しの無いファイルの検出
+  check "declarationOnly診断: count=1(unused_client.pyのみ宣言のみ)" \
+    '.detectionSummary.diagnostics.declarationOnly.count == 1'
+  check "declarationOnly診断: total=2(候補ファイル総数)" \
+    '.detectionSummary.diagnostics.declarationOnly.total == 2'
+  check "宣言のみのファイルは一覧本体(units)に載らない" \
+    '[.units[].sourceFile] | index("clients/unused_client.py") | not'
+
   # 既存フィールド不変: 追加フィールドを取り除くと入力と完全一致する
-  jq -S 'del(.units[].direction, .units[].protocol, .units[].authMethod)' "$out" > "$tmp/stripped.json"
+  # (detectionSummary.diagnostics.definitionWithoutImplementation/declarationOnly は本スクリプトが
+  #  新規に追加するため、ユニット単位の追加3フィールドと同様に除去してから比較する)
+  jq -S 'del(.units[].direction, .units[].protocol, .units[].authMethod)
+         | del(.detectionSummary.diagnostics)' "$out" > "$tmp/stripped.json"
   jq -S . "$manifest" > "$tmp/orig.json"
   if diff -q "$tmp/stripped.json" "$tmp/orig.json" >/dev/null 2>&1; then
     echo "  [PASS] 既存フィールド不変: 追加フィールド除去後は入力マニフェストと完全一致"
@@ -150,14 +212,21 @@ if [ "${1:-}" = "--self-test" ]; then
   exit $?
 fi
 
-USAGE="Usage: extract-external-metadata.sh <external-manifest.json> <source-dir> <output.json>"
+USAGE="Usage: extract-external-metadata.sh <external-manifest.json> <source-dir> <output.json> [--definition-file <path>] [--declaration-candidates <path>]"
 MANIFEST="${1:?$USAGE}"
 SOURCE_DIR="${2:?$USAGE}"
 OUTPUT_JSON="${3:?$USAGE}"
-if [ $# -gt 3 ]; then
-  echo "ERROR: unknown argument: $4" >&2
-  exit 1
-fi
+shift 3
+
+DEFINITION_FILE=""
+DECLARATION_CANDIDATES=""
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --definition-file) DEFINITION_FILE="${2:-}"; shift 2 ;;
+    --declaration-candidates) DECLARATION_CANDIDATES="${2:-}"; shift 2 ;;
+    *) echo "ERROR: unknown argument: $1" >&2; exit 1 ;;
+  esac
+done
 
 if ! command -v jq >/dev/null 2>&1; then
   echo "ERROR: jq is required but not found in PATH" >&2
@@ -191,6 +260,8 @@ trap 'rm -f "$units_tmp"' EXIT
 
 SEND_PATTERN='requests\.(get|post|put|patch|delete)|httpx|fetch\(|axios|paramiko|SFTPClient'
 RECV_PATTERN='@app\.(get|post|put|patch|delete)|@router\.(get|post|put|patch|delete)|@app\.route'
+# 通信モジュールの読み込み宣言(実呼び出しの有無は問わない。1-139 declarationOnly 判定専用)
+IMPORT_PATTERN='import[[:space:]]+requests|from[[:space:]]+requests|import[[:space:]]+httpx|from[[:space:]]+httpx|import[[:space:]]+paramiko|from[[:space:]]+paramiko|require\((\x27|")axios|import[^;]*axios'
 
 while IFS= read -r row; do
   [ -z "$row" ] && continue
@@ -250,6 +321,64 @@ while IFS= read -r row; do
   printf '%s\n' "$aug" >> "$units_tmp"
 done < <(jq -c '.units[]?' "$MANIFEST")
 
-jq --slurpfile newunits "$units_tmp" '.units = $newunits' "$MANIFEST" > "$OUTPUT_JSON"
+diagnostics_json="{}"
+
+# --- definitionWithoutImplementation(1-129): --definition-file の各エントリが source-dir 配下の
+#     実装コードから参照されているかを、パターンファイルへの単一 grep -rhoFf 走査で判定する ---
+if [ -n "$DEFINITION_FILE" ] && [ -f "$DEFINITION_FILE" ]; then
+  def_entries="$(mktemp "${TMPDIR:-/tmp}/extract-external-defs.XXXXXX")"
+  grep -vE '^[[:space:]]*(#|$)' "$DEFINITION_FILE" > "$def_entries" || true
+  def_total="$(wc -l < "$def_entries" | tr -d ' ')"
+  def_missing=0
+  if [ "$def_total" -gt 0 ]; then
+    hit_entries="$(grep -rhoFf "$def_entries" \
+      --include='*.py' --include='*.js' --include='*.ts' --include='*.json' --include='*.yml' --include='*.yaml' \
+      "$SOURCE_DIR" 2>/dev/null | sort -u || true)"
+    while IFS= read -r entry; do
+      [ -z "$entry" ] && continue
+      if ! printf '%s\n' "$hit_entries" | grep -qFx -- "$entry"; then
+        def_missing=$((def_missing + 1))
+      fi
+    done < "$def_entries"
+  fi
+  rm -f "$def_entries"
+  diagnostics_json="$(jq --argjson c "$def_missing" --argjson t "$def_total" '
+    . + {definitionWithoutImplementation:
+      {count: $c, total: $t,
+       ratio: (if $t > 0 then ($c / $t) else 0 end),
+       threshold: 0.5,
+       warning: (if $t > 0 then (($c / $t) > 0.5) else false end)}}
+  ' <<<"$diagnostics_json")"
+fi
+
+# --- declarationOnly(1-139): --declaration-candidates の各ファイルが、通信モジュールの読み込み
+#     宣言を持ちながら実呼び出し(SEND_PATTERN/RECV_PATTERN)を持たないかを判定する ---
+if [ -n "$DECLARATION_CANDIDATES" ] && [ -f "$DECLARATION_CANDIDATES" ]; then
+  decl_total=0
+  decl_only=0
+  while IFS= read -r cand; do
+    [ -z "$cand" ] && continue
+    decl_total=$((decl_total + 1))
+    cand_path="$(resolve_path "$cand")"
+    [ -f "$cand_path" ] || continue
+    if grep -Eq "$IMPORT_PATTERN" "$cand_path" 2>/dev/null \
+      && ! grep -Eq "$SEND_PATTERN" "$cand_path" 2>/dev/null \
+      && ! grep -Eq "$RECV_PATTERN" "$cand_path" 2>/dev/null; then
+      decl_only=$((decl_only + 1))
+    fi
+  done < "$DECLARATION_CANDIDATES"
+  diagnostics_json="$(jq --argjson c "$decl_only" --argjson t "$decl_total" '
+    . + {declarationOnly:
+      {count: $c, total: $t,
+       ratio: (if $t > 0 then ($c / $t) else 0 end),
+       threshold: 0.5,
+       warning: (if $t > 0 then (($c / $t) > 0.5) else false end)}}
+  ' <<<"$diagnostics_json")"
+fi
+
+jq --slurpfile newunits "$units_tmp" --argjson diag "$diagnostics_json" '
+  .units = $newunits
+  | if ($diag | length) > 0 then .detectionSummary.diagnostics = (.detectionSummary.diagnostics // {}) + $diag else . end
+' "$MANIFEST" > "$OUTPUT_JSON"
 
 echo "OK: wrote $OUTPUT_JSON" >&2

@@ -104,12 +104,12 @@ comm -13 \
 Phase 1 で特定したプロジェクト固有の API 呼び出しパターンと ORM/モデル参照パターンを使い、構造化された手順で related* を埋める。手順の詳細は `references/feature-detection.md` の「Stage 2: API紐付け手順」「Stage 3: テーブル紐付け手順」を参照する。
 
 - **Step 1(Stage 2: API紐付け)**: 各機能の relatedScreens に含まれる画面について、画面マニフェストの `files[]`(なければ `entryFile` にフォールバック)から API 呼び出しパターンを grep し、API一覧マニフェストの `units[].identifier` に照合する。一致した `unitKey` を当該機能の `relatedApis` に記録する。照合できない endpoint は残余リストに記録し、パスパラメータ差異等の曖昧一致のみ Claude が裁定する(推測禁止)。完了条件: 全機能の relatedApis が確定済み(空配列を含む)
-- **Step 2(Stage 3: テーブル紐付け)**: Step 1 で紐付いた API unitKey について、API一覧マニフェストの `units[].sourceFile` からモデル/テーブル参照を grep し、テーブル一覧マニフェストの `units[].unitKey` に照合する。一致した `unitKey` を当該機能の `relatedTables` に記録する。照合できない参照は残余リストに記録し Claude が裁定する。完了条件: 全機能の relatedTables が確定済み(空配列を含む)
+- **Step 2(Stage 3: テーブル紐付け)**: Step 1 で紐付いた API unitKey について、API一覧マニフェストの `units[].sourceFile` からモデル/テーブル参照を grep し、テーブル一覧マニフェストの `units[].unitKey` に照合する。一致した `unitKey` を当該機能の `relatedTables` に記録する。照合できない参照は残余リストに記録し Claude が裁定する。**relatedApis が空のまま残った機能**(画面が API を経由せず直接データアクセスする構成。1-152)は、本 Step では手を出さず Phase 6 Step 1 の直接データアクセス経路(Stage 3b・`extract-feature-metadata.sh`)に委ねる。完了条件: 全機能の relatedTables が確定済み(空配列を含む)
 - **Step 3(組み立て)**: Stage 2・Stage 3 の結果をマニフェスト JSON にマージする。各機能の confidence を確定する。完了条件: マニフェスト JSON の relatedApis・relatedTables・confidence が全機能分記録済み
 
 Stage 2 → Stage 3 の実行順はデータ依存(Stage 3 は Stage 2 の出力する API unitKey を入力とする)により固定。ただし各画面・各 API の処理は独立しておりサブエージェント並列委任が可能。API一覧またはテーブル一覧が未生成の場合、該当する related* は空配列のまま PASS とする。
 
-**完了**: 全機能の relatedApis・relatedTables・confidence が確定済み
+**完了**: 全機能の relatedApis・relatedTables・confidence が確定済み(直接データアクセス経路が必要な機能は Phase 6 Step 1 で確定)
 
 ## Phase 5: 戦略・構成のユーザー承認
 
@@ -125,7 +125,7 @@ Stage 2 → Stage 3 の実行順はデータ依存(Stage 3 は Stage 2 の出力
 
 **使用ツール**: AskUserQuestion / Read / Bash / Write
 
-- **Step 1**: マニフェストへメタデータを付与する。`../../../shared/scripts/extract/extract-feature-metadata.sh <manifest.json> <manifest.ext.json>` を実行し、各機能に `operationClass`(照会/登録/更新/削除/承認/その他)フィールドを追加した拡張マニフェスト(`manifest.ext.json`)を生成する。以降の Step では `manifest.ext.json` を使用する。完了条件: 拡張マニフェストが生成済み
+- **Step 1**: マニフェストへメタデータを付与する。`../../../shared/scripts/extract/extract-feature-metadata.sh <manifest.json> <manifest.ext.json> --screen-manifest <output_dir>/一覧/画面一覧/screen-manifest.json --table-manifest <output_dir>/一覧/テーブル一覧/table-manifest.json --source-dir <source_dir>` を実行する(テーブル一覧未生成の場合は `--table-manifest` を省略してよい。その場合は直接データアクセス経路がスキップされる)。各機能に `operationClass`(照会/登録/更新/削除/承認/その他)フィールドを追加し、`relatedApis`・`relatedTables` が両方空のまま残った機能について画面の直接データアクセス経路(1-152・feature-detection.md「Stage 3b」参照)で `relatedTables` を補完し、`detectionSummary.diagnostics.emptyRelation` に「関連が全件空の機能」の比率を機械算出した拡張マニフェスト(`manifest.ext.json`)を生成する。以降の Step では `manifest.ext.json` を使用する。完了条件: 拡張マニフェストが生成済み・`diagnostics.emptyRelation` が算出済み
 - **Step 2**: `../../../shared/scripts/unit-list/validate-manifest.sh <manifest.ext.json> --unit-kind feature` を実行する。FAIL 時は指摘に応じて修正し再実行(3回失敗で Phase 3 へ差し戻し)。完了条件: 全項目 PASS
 - **Step 3**: 両方向の参照検査を実行する。いずれかが非空なら該当 Phase へ差し戻す
 
@@ -148,7 +148,7 @@ comm -13 \
 
 **手作業でのプレースホルダ置換は禁止する**。HTML 生成は必ずスクリプト経由の決定的処理で行う。
 
-**完了**: Step 1で拡張マニフェストに operationClass が付与済み。validate 全項目 PASS・Gate A(dangling) PASS・Gate B(completeness) PASS・機能一覧.html 生成済み。永続マニフェストが `<output_dir>/一覧/機能一覧/feature-manifest.json` に実在する
+**完了**: Step 1で拡張マニフェストに operationClass・`diagnostics.emptyRelation` が付与済み。validate 全項目 PASS・Gate A(dangling) PASS・Gate B(completeness) PASS・機能一覧.html 生成済み。永続マニフェストが `<output_dir>/一覧/機能一覧/feature-manifest.json` に実在する
 
 ## 完了条件
 
@@ -159,7 +159,7 @@ comm -13 \
 | Phase 3 | 全画面が relatedScreens または unresolved に載り(完全性ゲート PASS)、マニフェスト JSON が生成済み(relatedApis/relatedTables は空配列) |
 | Phase 4 | 全機能の relatedApis・relatedTables・confidence が確定済み |
 | Phase 5 | 構成案がユーザー承認済み(approvedByUser: true) |
-| Phase 6 | Step 1で拡張マニフェストに operationClass が付与済み。validate 全項目 PASS・Gate A(dangling) PASS・Gate B(completeness) PASS・機能一覧.html 生成済み。永続マニフェストが `<output_dir>/一覧/機能一覧/feature-manifest.json` に実在する |
+| Phase 6 | Step 1で拡張マニフェストに operationClass・`diagnostics.emptyRelation` が付与済み。validate 全項目 PASS・Gate A(dangling) PASS・Gate B(completeness) PASS・機能一覧.html 生成済み。永続マニフェストが `<output_dir>/一覧/機能一覧/feature-manifest.json` に実在する |
 | **Goal** | 検証済みマニフェストのみから HTML が生成され、大分類ごとの機能と関連画面・API・テーブルの対応、および要手動確認が可視化されている |
 
 ## 返却
