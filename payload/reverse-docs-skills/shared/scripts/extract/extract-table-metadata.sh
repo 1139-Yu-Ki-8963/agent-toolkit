@@ -23,12 +23,19 @@
 # 検出ヒューリスティック(grep/sed ベース。何を grep するか):
 #   1. CREATE TABLE ブロック検出: sourceFile 内を grep -niE 'create[[:space:]]+table' し、
 #      テーブル名(引用符 ` " [ ] ・スキーマ修飾・IF NOT EXISTS を除去。大文字小文字無視)が
-#      units[].identifier と一致する行から `);` で終わる行までをブロックとして切り出す。
-#      1 行完結の CREATE TABLE はカラム抽出の対象外(欠落として扱う)
+#      units[].identifier と一致する行から、カラム定義を囲む括弧の深さが 0 へ戻る行までを
+#      ブロックとして切り出す(1-134: 終端判定は閉じ括弧の深さ復帰のみで行い、文末記号(;)の
+#      有無・位置は問わない。MySQL 等、閉じ括弧に ENGINE=/DEFAULT CHARSET= 等の記憶域指定が
+#      続き、文末記号(;)が数行後の別行に置かれる方言でも、閉じ括弧の行までを正しくブロックの
+#      終端とみなす。閉じ括弧から文末記号までの間に置かれる記憶域指定行はブロックに含めず、
+#      後続の無関係な定義を誤って取り込まない)。1 行完結の CREATE TABLE はカラム抽出の対象外
+#      (欠落として扱う)
 #   2. columnCount / mainColumns: ブロックの中間行(先頭行と閉じ行を除く)のうち、空行・
-#      コメント行(--)・先頭語が制約キーワード(PRIMARY/FOREIGN/UNIQUE/CHECK/CONSTRAINT/
-#      INDEX/KEY/EXCLUDE)の行を除いた行をカラム定義とみなし、行頭トークン(引用符除去)を
-#      物理名として採取する
+#      コメント行(-- または #)・先頭語が制約キーワード(PRIMARY/FOREIGN/UNIQUE/CHECK/
+#      CONSTRAINT/INDEX/KEY/EXCLUDE)の行を除いた行をカラム定義とみなし、行頭トークン
+#      (引用符除去)を物理名として採取する。列の抽出前に行内コメント(-- 以降・# 以降。
+#      文字列・ブロックコメット内の疑似コメント記号は sql_code_only で除去済み)を除去して
+#      から抽出するため、コメント文言がカラム物理名へ連結されない(1-134)
 #   3. foreignKeys: ブロック内の `REFERENCES <table>` (カラムインライン・FOREIGN KEY 句の両方)を
 #      grep -oiE 'references[[:space:]]+[^[:space:](,;]+' で採取し、加えて sourceFile 内の
 #      同一行完結 `ALTER TABLE <対象テーブル> ... REFERENCES <table>` 行からも採取する。
@@ -84,6 +91,7 @@ sql_code_only() {
           continue
         }
         if (c == "-" && next_c == "-") break
+        if (c == "#") break
         if (c == "/" && next_c == "*") {
           block_depth = 1
           result = result " "
@@ -125,8 +133,13 @@ extract_create_block() {
   # 字句除去結果を先に読み切ってから対象ブロックを切り出す。早期終了する下流へ
   # ファイル読込をパイプしないため、pipefail下でもSIGPIPE(141)を発生させない。
   sql_code="$(sql_code_only "$file")"
+  # 1-134: 終端判定は文末記号(;)の有無・位置に依存せず、カラム定義を囲む括弧の深さが
+  # 0 へ戻った行までをブロックとする。開始行の `CREATE TABLE ... (` が開く 1 段目の
+  # 括弧を depth=1 として起点に取り、以降の行で depth が 0 へ戻った時点を終端とみなす。
+  # これにより、閉じ括弧の直後に ENGINE=/DEFAULT CHARSET= 等の記憶域指定が続き、文末記号が
+  # 数行後の別行に置かれる方言でも、後続の無関係な定義を取り込まずに正しく打ち切れる。
   awk -v target="$table_lc" '
-    BEGIN { target = tolower(target); started = 0 }
+    BEGIN { target = tolower(target); started = 0; depth = 0 }
     {
       code = $0
       lower = tolower(code)
@@ -141,7 +154,15 @@ extract_create_block() {
       }
       if (started) {
         print code
-        if (code ~ /\)[^;]*;[[:space:]]*$/) exit
+        n = length(code)
+        for (i = 1; i <= n; i++) {
+          ch = substr(code, i, 1)
+          if (ch == "(") depth++
+          else if (ch == ")") {
+            depth--
+            if (depth == 0) exit
+          }
+        }
       }
     }
   ' <<< "$sql_code"
@@ -155,7 +176,7 @@ extract_columns() {
     {
       line=$0
       sub(/^[[:space:]]+/, "", line)
-      if (line == "" || line ~ /^--/ || line ~ /^\(/) next
+      if (line == "" || line ~ /^--/ || line ~ /^\(/ || line ~ /^\)/) next
       first=tolower(line)
       sub(/[[:space:],(].*/, "", first)
       gsub(/[`"\[\]]/, "", first)
@@ -506,6 +527,100 @@ EOF
     fi
   else
     echo "  [FAIL] stress: 900列または大規模パッチ集合の出力内容が不正" >&2
+    rc=1
+  fi
+
+  # 1-134: 終端の閉じ括弧に記憶域指定(ENGINE=/DEFAULT CHARSET=/COLLATE=)が続き、
+  # 文末記号(;)が数行後の別行に置かれる方言。実数7カラムに対し、旧ロジックは
+  # 文末記号を持たない閉じ括弧行で打ち切れず後続の無関係な定義まで取り込んでいた。
+  local dialect_file="$tmp/migrations/005_create_dialect_orders.sql"
+  cat > "$dialect_file" <<'EOF'
+CREATE TABLE dialect_orders (
+  id BIGINT NOT NULL,
+  customer_id BIGINT NOT NULL REFERENCES users(id),
+  status VARCHAR(20) NOT NULL DEFAULT 'pending',
+  total_amount DECIMAL(10,2) NOT NULL,
+  note TEXT,
+  created_at TIMESTAMP,
+  updated_at TIMESTAMP,
+  PRIMARY KEY (id)
+)
+ENGINE=InnoDB
+DEFAULT CHARSET=utf8mb4
+COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE dialect_shipments (
+  id BIGINT NOT NULL,
+  order_id BIGINT NOT NULL REFERENCES dialect_orders(id),
+  address VARCHAR(255) NOT NULL,
+  PRIMARY KEY (id)
+);
+EOF
+  local dialect_manifest="$tmp/dialect-table-manifest.json" dialect_out="$tmp/dialect-out.json"
+  jq -n \
+    --arg sourceDir "$tmp/migrations" \
+    --arg dialectFile "$dialect_file" \
+    --arg usersFile "$tmp/migrations/001_create_users.sql" \
+    '{
+      generatedAt: "2026-01-01T00:00:00Z",
+      sourceDir: $sourceDir,
+      unitKind: "table",
+      strategy: {extractionMethod: "migration-sql", approvedByUser: true, unitIdRegex: null, excludePatterns: []},
+      detectionSummary: {unitCount: 2, unresolvedCount: 0},
+      units: [
+        {unitKey: "dialect-orders", kind: "table", identifier: "dialect_orders", unitNameGuess: "受注(方言)",
+         sourceFile: $dialectFile, confidence: "high", fileCount: 1, detectionMethod: "create-table"},
+        {unitKey: "users-master", kind: "table", identifier: "users", unitNameGuess: "ユーザー",
+         sourceFile: $usersFile, confidence: "high", fileCount: 1, detectionMethod: "create-table"}
+      ]
+    }' > "$dialect_manifest"
+  if bash "$script_path" "$dialect_manifest" "$tmp/migrations" "$dialect_out" >/dev/null 2>&1 \
+    && jq -e '.units[0]
+      | .columnCount == 7
+        and .mainColumns == ["id", "customer_id", "status", "total_amount", "note"]
+        and .foreignKeys == ["users-master"]' "$dialect_out" >/dev/null 2>&1; then
+    echo "  [PASS] 1-134 終端判定: ENGINE=/CHARSET=等の記憶域指定を挟み文末記号が数行後にある方言でも実数どおりcolumnCount=7(後続の無関係なdialect_shipmentsの列を取り込まない)"
+  else
+    echo "  [FAIL] 1-134 終端判定: 方言定義ファイルでcolumnCountが実数7と不一致、または後続定義を誤って取り込んだ" >&2
+    jq -c '.units[0] | {columnCount, mainColumns, foreignKeys}' "$dialect_out" 2>/dev/null >&2 || true
+    rc=1
+  fi
+
+  # 1-134: 行内コメント(--・#いずれも)を除去してからカラムを抽出する。コメント行・
+  # 行末コメントの文言が主要カラム欄(mainColumns)へ連結されないことを確認する。
+  local commented_cols_file="$tmp/migrations/006_create_commented_columns.sql"
+  cat > "$commented_cols_file" <<'EOF'
+CREATE TABLE commented_columns (
+  id BIGINT NOT NULL, -- 主キー
+  name VARCHAR(100) NOT NULL, # 氏名
+  # ここはコメント専用行
+  status VARCHAR(20) DEFAULT 'active',
+  PRIMARY KEY (id)
+);
+EOF
+  local commented_cols_manifest="$tmp/commented-columns-manifest.json" commented_cols_out="$tmp/commented-columns-out.json"
+  jq -n \
+    --arg sourceDir "$tmp/migrations" \
+    --arg sourceFile "$commented_cols_file" \
+    '{
+      generatedAt: "2026-01-01T00:00:00Z",
+      sourceDir: $sourceDir,
+      unitKind: "table",
+      strategy: {extractionMethod: "migration-sql", approvedByUser: true, unitIdRegex: null, excludePatterns: []},
+      detectionSummary: {unitCount: 1, unresolvedCount: 0},
+      units: [
+        {unitKey: "commented-columns", kind: "table", identifier: "commented_columns", unitNameGuess: "コメント混在",
+         sourceFile: $sourceFile, confidence: "high", fileCount: 1, detectionMethod: "create-table"}
+      ]
+    }' > "$commented_cols_manifest"
+  if bash "$script_path" "$commented_cols_manifest" "$tmp/migrations" "$commented_cols_out" >/dev/null 2>&1 \
+    && jq -e '.units[0]
+      | .columnCount == 3
+        and .mainColumns == ["id", "name", "status"]' "$commented_cols_out" >/dev/null 2>&1; then
+    echo "  [PASS] 1-134 行内コメント除去: --・#いずれの行内コメントもmainColumnsへ連結されずcolumnCount=3"
+  else
+    echo "  [FAIL] 1-134 行内コメント除去: コメント文言がmainColumnsへ混入、またはcolumnCountが不一致" >&2
+    jq -c '.units[0] | {columnCount, mainColumns}' "$commented_cols_out" 2>/dev/null >&2 || true
     rc=1
   fi
 
