@@ -138,7 +138,7 @@ facts.yml の各セクションを下記マップに従って各章へ転記す�
    §16 の計上数と指定件数の突合で警告が出ないことを確認する
 3. `awk '/^---$/{n++; next} n==1' <画面詳細設計書.md> | grep -c 実測委譲` が `0` であることを確認する（frontmatter の `scenarios` に実測委譲プレースホルダが残っていないかの機械検査）。非0なら著述未完了として Phase 4 へ差し戻す
 4. Phase 4 で `prefill-design-from-facts.sh` を使った場合のみ、`shared/scripts/check-prefill-markers.sh <画面詳細設計書.md>` を実行し exit 0（残存マーカー0件）を確認する。残存があれば当該箇所を著述で埋めてから再実行する
-5. `python3 shared/scripts/validate-reverse-authoring-inputs.py scenarios --design-doc <画面詳細設計書.md> [--verification-url <verification_url>] --record <verification_dir>/screen-<画面ID>/authoring/scenarios-input-check.json`を必ず実行する。全scenarioのpath/readyは常時必須。verification_urlが無い未開通状態ではquery/path_params省略をPASSとし、実測URLの証跡がある場合は両キーが不足・空ならexit 1とする。exit 1はPhase 4へ差し戻し、AUTHORED系statusを返さない
+5. `python3 shared/scripts/validate-reverse-authoring-inputs.py scenarios --design-doc <画面詳細設計書.md> --facts <facts_ref>/facts.yml [--verification-url <verification_url>] --record <verification_dir>/screen-<画面ID>/authoring/scenarios-input-check.json`を必ず実行する。全scenarioのpathは常時必須。readyは要素構造（facts.yml の jsx セクション）を持つ対象では必須、持たない対象（サーバー側描画等）では任意とする（`--facts`が`facts_ref`から判定する）。verification_urlが無い未開通状態ではquery/path_params省略をPASSとし、実測URLの証跡がある場合は両キーが不足・空ならexit 1とする。exit 1はPhase 4へ差し戻し、AUTHORED系statusを返さない
 
 **完了**: `check-fact-coverage.sh` と `audit-consistency.sh` がともに exit 0・§16 の measurement_pending 計上数（mp-接頭辞キー）が返却ブロック `measurement_pending[]` の件数と一致・frontmatter の実測委譲プレースホルダ検査（`grep -c 実測委譲` が `0`）通過・（prefill-design-from-facts.sh 使用時のみ）`check-prefill-markers.sh` が exit 0・scenarios-input-check.jsonがPASS
 

@@ -55,7 +55,11 @@
 #                                     direction(送信/受信)
 #   9. 名称-一意性               : 表示名(screen: confirmedScreenName優先・無ければscreenNameGuess /
 #                                   screen以外: unitNameGuess)が空でない要素間で重複していないか。
-#                                   1件でも重複があればFAILし、重複名称とそれを共有するキー全件を列挙する
+#                                   任意フィールド nameScope(未指定は空文字列)が判定範囲を定める。
+#                                   同一nameScope内の重複だけをFAILとし、異なるnameScope間の同名は
+#                                   許容する(例: 画面はサイト単位、バッチは配置ディレクトリ単位。1-124)。
+#                                   1件でも同一スコープ内重複があればFAILし、重複名称とそれを共有する
+#                                   キー全件を列挙する
 #  10. 実装参照-統合候補         : 同一の実装参照(screen: entryFile / screen以外: sourceFile)を持つ
 #                                   要素群のうち、identifier(screen: route)が引数プレースホルダ
 #                                   (`:name`または`{name}`)による分岐を示していないものを統合候補として
@@ -538,6 +542,10 @@ run_validate() {
   #    表示名(screen: confirmedScreenName優先・無ければscreenNameGuess / screen以外: unitNameGuess)が
   #    空でない要素間で重複していないかを検査する。名称から内部識別子(モジュール接頭辞・ユニットキー併記等)を
   #    除去する改修を行うと業務名だけでは一意性が担保されなくなるため、生成・検証の両工程で機械的に検知する。
+  #    任意フィールド nameScope(未指定は空文字列扱い)が要素に存在する場合、判定範囲を
+  #    nameScope単位に限定する(例: 画面はサイト、バッチは配置ディレクトリ)。異なるnameScope間の
+  #    同名は許容し、同一nameScope内の重複だけをFAILとする。nameScope不在の要素は全件が
+  #    同一の既定スコープ("")に属するため、従来どおりマニフェスト全体で判定される(1-124)。
   # ---------------------------------------------------------------------------
   local dup_names name_label="名称-一意性"
   dup_names="$(jq -r --arg items "$ITEMS_KEY" --arg keyfield "$ITEM_KEY_FIELD" --arg kind "$UNIT_KIND" '
@@ -545,11 +553,11 @@ run_validate() {
       if $kind == "screen" then (.confirmedScreenName // .screenNameGuess // "")
       else (.unitNameGuess // "")
       end;
-    [ .[$items][]? | {name: itemname, key: (.[$keyfield] // "?")} ]
+    [ .[$items][]? | {name: itemname, scope: (.nameScope // ""), key: (.[$keyfield] // "?")} ]
     | map(select(.name != ""))
-    | group_by(.name)
+    | group_by([.scope, .name])
     | map(select(length > 1))
-    | map(.[0].name + ":[" + (map(.key) | join(",")) + "]")
+    | map((if .[0].scope != "" then .[0].name + "(scope=" + .[0].scope + ")" else .[0].name end) + ":[" + (map(.key) | join(",")) + "]")
     | join("; ")
   ' "$MANIFEST" 2>/dev/null)"
 
@@ -1025,6 +1033,31 @@ JSON
   else
     echo "  [FAIL] 名称-一意性陽性: 一意なscreenNameGuessがFAILした" >&2
     rc=1
+  fi
+
+  # ---- 名称-一意性のスコープ限定の確認(1-124) ----
+  local screen_dup_name_diff_scope="$tmp/screen-dup-name-diff-scope.json"
+  jq '.detectionSummary.screenCount = 2
+      | .screens[0].screenNameGuess = "ユーザー一覧"
+      | .screens[0].nameScope = "site-a"
+      | .screens += [{screenKey:"home-alt", kind:"route", route:"/home-alt", entryFile:"src/screens/Home.tsx", confidence:"high", screenType:"top", accountGroup:"common", accountSubType:"common", hasTemplate:true, parentScreen:null, childComponents:[], isProcessingEndpoint:false, screenNameGuess:"ユーザー一覧", nameScope:"site-b"}]' "$screen_pass" > "$screen_dup_name_diff_scope"
+  if run_validate "$screen_dup_name_diff_scope" "" "screen" >/dev/null 2>&1; then
+    echo "  [PASS] 名称-一意性スコープ限定陽性: 異なるnameScope間の同名はPASS"
+  else
+    echo "  [FAIL] 名称-一意性スコープ限定陽性: 異なるnameScope間の同名なのにFAILした" >&2
+    rc=1
+  fi
+
+  local screen_dup_name_same_scope="$tmp/screen-dup-name-same-scope.json"
+  jq '.detectionSummary.screenCount = 2
+      | .screens[0].screenNameGuess = "ユーザー一覧"
+      | .screens[0].nameScope = "site-a"
+      | .screens += [{screenKey:"home-alt", kind:"route", route:"/home-alt", entryFile:"src/screens/Home.tsx", confidence:"high", screenType:"top", accountGroup:"common", accountSubType:"common", hasTemplate:true, parentScreen:null, childComponents:[], isProcessingEndpoint:false, screenNameGuess:"ユーザー一覧", nameScope:"site-a"}]' "$screen_pass" > "$screen_dup_name_same_scope"
+  if run_validate "$screen_dup_name_same_scope" "" "screen" >/dev/null 2>&1; then
+    echo "  [FAIL] 名称-一意性スコープ限定陰性: 同一nameScope内の同名なのにPASSした" >&2
+    rc=1
+  else
+    echo "  [PASS] 名称-一意性スコープ限定陰性: 同一nameScope内の同名でFAIL"
   fi
 
   local screen_parent_child="$tmp/screen-parent-child.json"

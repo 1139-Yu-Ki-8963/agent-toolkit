@@ -280,10 +280,46 @@ check_no_guess_words() {
   return 0
 }
 
+# 未置換のプレースホルダと、規約として正当に言及した語を区別する（1-153）。
+# <実測/<FILL と同様、TBD/TODOも裸の語（文中に埋め込まれた語）では検出せず、次の2形式に限定する。
+#   (a) 雛形記法と同じ開き括弧付きの形: <実測 / <FILL / <TBD / <TODO
+#   (b) 行全体、またはMarkdown表のセル全体がプレースホルダそのものである形
+#         （例: セル内容がちょうど "TBD" だけ／"TODO" だけ）
+# 「調査結果を記入」は独立した定型フレーズであり誤検知の実例が無いため、従来どおり地の文への
+# 出現も検出する（検出対象語の追加・削除ではないため本改修の対象外）。
+# 正当な言及を通す記法（規約・調査書の本文でTODO/TBDという語自体を説明する場合）は、
+# バッククォートで囲んだ開き括弧付き形（`<TBD ...>`）にせず、地の文にそのまま書く。
+placeholder_residue_hits() { # $1=file -> "行番号:該当行" を1件1行で列挙（0件なら出力なし）
+  local file="$1" line lineno=0 cell trimmed hit
+  while IFS= read -r line; do
+    lineno=$((lineno + 1))
+    hit=0
+    if printf '%s' "$line" | grep -qE -- '<実測|<FILL|<TBD|<TODO|調査結果を記入'; then
+      hit=1
+    elif printf '%s' "$line" | grep -q '|'; then
+      local cells=()
+      IFS='|' read -r -a cells <<<"$line"
+      for cell in "${cells[@]}"; do
+        trimmed="$(printf '%s' "$cell" | sed -E 's/^[[:space:]]+//; s/[[:space:]]+$//; s/`//g')"
+        if [ "$trimmed" = "TBD" ] || [ "$trimmed" = "TODO" ]; then
+          hit=1
+          break
+        fi
+      done
+    else
+      trimmed="$(printf '%s' "$line" | sed -E 's/^[[:space:]]+//; s/[[:space:]]+$//; s/`//g')"
+      if [ "$trimmed" = "TBD" ] || [ "$trimmed" = "TODO" ]; then
+        hit=1
+      fi
+    fi
+    [ "$hit" -eq 1 ] && printf '%d:%s\n' "$lineno" "$line"
+  done < "$file"
+}
+
 # 検査4: テンプレ残存ゼロ
 check_no_placeholder() {
   survey="$1"
-  hits="$(grep -nE -- "$PLACEHOLDER_RE" "$survey" 2>/dev/null || true)"
+  hits="$(placeholder_residue_hits "$survey" 2>/dev/null || true)"
   if [ -n "$hits" ]; then
     echo "検査4失敗: テンプレ残存トークンを検出" >&2
     echo "$hits" >&2
@@ -838,6 +874,21 @@ MD
     rc=1
   else
     echo "  [PASS] 検査4: §9テスト基盤のプレースホルダ残存でexit 1"
+  fi
+
+  # 陽性(1-153): TODO/TBDという語自体を地の文で正当に言及した場合は検出しないこと
+  cat > "$tmp/mention4.md" <<MD
+## エントリポイント
+\`package.json\` を確認した。作業メモ用コメントはTODOで統一し、確定していない値はTBDと書く運用である。
+
+## ユニット種別判定
+$base_kinds
+MD
+  if check_no_placeholder "$tmp/mention4.md" >/dev/null 2>&1; then
+    echo "  [PASS] 検査4(1-153): TODO/TBDの地の文言及は誤検出しない"
+  else
+    echo "  [FAIL] 検査4(1-153): 正当な言及なのにテンプレ残存として誤検出した" >&2
+    rc=1
   fi
 
   if check_directory_coverage "$tmp/fail5.md" "$repo" >/dev/null 2>&1; then

@@ -630,6 +630,23 @@ validate_markdown_table_widths() { # $1=design.md
   ' "$1"
 }
 
+# 置換文字-非混入（1-160）: 転記後の出力に置換文字(U+FFFD, UTF-8で\xef\xbf\xbd)が
+# 含まれていないかを検査する。根本原因（転記処理でどこが複数バイト文字を破損させるか）が
+# 再検証（LC_ALL=C・標準ロケール双方、12分類拡張フィクスチャ）でも特定できなかったため、
+# 原因不明でも成果物への無警告混入だけは防ぐ防御的検査として追加する（validate-manifest.sh
+# の検査16「置換文字-非混入」と同じ検出対象・同じ判定方針）。0件ならexit 0、1件以上でexit 1。
+check_no_replacement_char() { # $1=md file
+  local count
+  count="$(LC_ALL=C grep -o $'\xef\xbf\xbd' "$1" 2>/dev/null | wc -l | tr -d ' ')"
+  [ -z "$count" ] && count=0
+  if [ "$count" -gt 0 ]; then
+    echo "$count"
+    return 1
+  fi
+  echo 0
+  return 0
+}
+
 count_remaining_placeholders() { # $1=md file （frontmatter・フェンス・HTMLコメントは対象外で数える）
   awk '
     BEGIN { fmseen = 0; fmdone = 0; infence = 0; cnt = 0 }
@@ -711,7 +728,7 @@ main() {
 
   remaining="$(count_remaining_placeholders "$workdir/pass2.md")"
 
-  local ok=1
+  local ok=1 replacement_count
   if [ "$remaining" -ne 0 ]; then
     echo "self-verify失敗: テンプレート原文プレースホルダが${remaining}件残存しています" >&2
     ok=0
@@ -722,6 +739,10 @@ main() {
   fi
   if ! validate_markdown_table_widths "$workdir/pass2.md"; then
     echo "self-verify失敗: Markdown表のヘッダーとデータ行でセル数が一致しません" >&2
+    ok=0
+  fi
+  if ! replacement_count="$(check_no_replacement_char "$workdir/pass2.md")"; then
+    echo "self-verify失敗: 転記結果に置換文字(U+FFFD)が${replacement_count}件混入しています" >&2
     ok=0
   fi
   if [ "$ok" -ne 1 ]; then
@@ -961,6 +982,34 @@ YML
   else
     echo "  [FAIL] マーカーが1件も挿入されていない" >&2
     rc=1
+  fi
+
+  # ---- 置換文字-非混入の確認(1-160) ----
+  # 陽性: 複数バイト文字（読点・全角括弧・矢印・カギ括弧を含む）を大量に含む転記結果に
+  # 置換文字(U+FFFD)が混入していないこと
+  local rc_count
+  if rc_count="$(check_no_replacement_char "$design_md")" && [ "$rc_count" = "0" ]; then
+    echo "  [PASS] 置換文字-非混入陽性: 複数バイト文字を含む転記結果に置換文字0件"
+  else
+    echo "  [FAIL] 置換文字-非混入陽性: 置換文字が${rc_count}件検出された（複数バイト文字破損の疑い）" >&2
+    rc=1
+  fi
+
+  # 陰性: 置換文字を注入したコピーではexit 1になること（検査自体が有効な回帰ガードであることの確認）
+  local design_md_broken="$tmp/画面詳細設計書-broken.md"
+  cp "$design_md" "$design_md_broken"
+  printf '\xef\xbf\xbd\xef\xbf\xbd\xef\xbf\xbd\n' >> "$design_md_broken"
+  local rc_count_broken
+  if rc_count_broken="$(check_no_replacement_char "$design_md_broken")"; then
+    echo "  [FAIL] 置換文字-非混入陰性: 置換文字を注入したのにPASSした" >&2
+    rc=1
+  else
+    if [ "$rc_count_broken" = "3" ]; then
+      echo "  [PASS] 置換文字-非混入陰性: 注入した置換文字3件をexit 1で検出"
+    else
+      echo "  [FAIL] 置換文字-非混入陰性: FAILしたが件数が${rc_count_broken}件（期待3件）" >&2
+      rc=1
+    fi
   fi
 
   if [ "$rc" -eq 0 ]; then

@@ -43,6 +43,12 @@ allowed-tools: [Agent, AskUserQuestion, Bash, Edit, Glob, Read, Skill, TaskCreat
 | 引数 | 必須 | 内容 |
 |---|---|---|
 | reverse_docs_root | 必須 | 配布されたreverse-docs-skillsルートの絶対パス。統括が実在確認して解決し、共有スクリプト・テンプレート・契約を使う全子スキルへ渡す |
+| target_repo_path | 必須 | リバース対象プロジェクトの絶対パス。全工程・全子スキルへ渡す入力の正 |
+| output_dir | 必須 | 納品物ルートの絶対パス。ポータル・一覧・設計書等すべての出力先の正（「納品物ルート（output_dir）の正本レイアウト」参照） |
+| screen_scope | `facts_profile=auto|screen`時必須（`python`時は不要。画面範囲を問わないため） | 対象画面範囲（全画面／個別画面ID列挙等）。種別ループ・画面状態判定の起点 |
+| verification_dir | 任意 | 既定 `<output_dirの親>/verification/`。facts・再計数・封印記録・修正指示書・最終報告・テストログの出力先 |
+| template_root | 任意 | 既定 `<reverse_docs_root>/shared/templates/リバース検証/`（`shared/templates/リバース検証/` 配下のテンプレート一式。「共有資産」節参照）。テンプレート一式を使う全子スキルへ絶対パスとして渡す |
+| survey_doc_path | 任意 | 既定候補 `<output_dir>/プロジェクト共通/アーキテクチャ調査書.md`。候補が不在、または調査ゲート不合格の場合は surveying-architecture-for-reverse-docs を起動し、返却 `status=調査確定` の `artifacts[0]` を確定値として採用する（Step 3 参照） |
 | headless | 任意（既定 false） | true の場合、無人モードで実行する。AskUserQuestion を発行せず、破壊的操作の承認は起動時に一括付与済みとして扱う |
 | verification_mode | 任意（既定 `single-pass`） | `docs-only` は facts 抽出・基本設計・詳細設計まで、`single-pass` は動的検証を1回実行、`iterative` は FAIL 後の改善反復も行う |
 | facts_profile | 任意（既定 `auto`） | `auto|screen|python`。`auto|screen`は通常の画面フローを`profile=screen`で実行する。`python`は明示指定時だけ、画面一覧・画面状態判定へ入る前のfacts-only経路を実行して終端する |
