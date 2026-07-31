@@ -12,7 +12,9 @@
 # 改善課題 1-138 の横断検収条件の対象外: 本ファイルは source される共通関数ライブラリで
 # あり、単体で実行される本番経路のスクリプトではない（トップレベルの引数解析・実行文を
 # 持たない）。回帰検証は本関数を source する各consumer（build-portal.sh・
-# build-unit-list.sh 等）自身の --self-test を通じて間接的に行う。
+# build-unit-list.sh 等）自身の --self-test を通じて間接的に行うのが基本だが、改善課題
+# 1-156（doc_nav 等の二重引用符を含む値をファイル経由で安全に渡す経路の検証）は
+# shared/scripts/shell-injection.sh --self-test が本関数を source して間接的にカバーする。
 
 render_template() {
   local template="$1"; shift

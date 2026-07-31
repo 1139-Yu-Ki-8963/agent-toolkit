@@ -182,6 +182,7 @@ def check_scenarios(
     verification_url: str | None,
     measurement_evidence: Path | None,
     record: Path | None,
+    has_element_structure: bool = True,
 ) -> int:
     evidence_present = bool(verification_url and verification_url.strip())
     if measurement_evidence is not None:
@@ -204,10 +205,19 @@ def check_scenarios(
     failures: list[str] = []
     if not scenarios:
         failures.append("scenarios must contain at least one item")
+    # 準備状態フィールド（ready）は画面要素の指定子を記入する設計だが、対象がサーバー側で
+    # 描画され要素構造の記述（facts.yml の jsx セクション）を持たない場合は記入根拠が
+    # 存在しない（改善課題 1-161）。has_element_structure=False のときは ready を任意にし、
+    # 根拠が無い旨を extract-api-metadata.sh の fallback diagnostics と同じ
+    # {count, total, ratio, threshold, warning} 形式で記録する。
+    ready_without_evidence = 0
+    required_keys = ("path", "ready") if has_element_structure else ("path",)
     for index, scenario in enumerate(scenarios, start=1):
-        for key in ("path", "ready"):
+        for key in required_keys:
             if not scenario.get(key, False):
                 failures.append(f"scenarios[{index}].{key} is required")
+        if not has_element_structure and not scenario.get("ready", False):
+            ready_without_evidence += 1
         if evidence_present:
             for key in ("query", "path_params"):
                 if not scenario.get(key, False):
@@ -215,8 +225,20 @@ def check_scenarios(
                         f"scenarios[{index}].{key} is required when measured evidence exists"
                     )
 
+    total = len(scenarios)
+    threshold = 0.5
+    ratio = (ready_without_evidence / total) if total > 0 else 0
+    ready_diagnostics = {
+        "count": ready_without_evidence,
+        "total": total,
+        "ratio": ratio,
+        "threshold": threshold,
+        "warning": ratio > threshold,
+    }
+
     result = {
         "check": "scenarios",
+        "diagnostics": {"readyWithoutEvidence": ready_diagnostics},
         "failures": failures,
         "measuredEvidence": evidence_present,
         "scenarioCount": len(scenarios),
@@ -307,12 +329,57 @@ def run_self_test() -> int:
                     f"1-24 branch {document.name}: expected {expected}, got {rc}"
                 )
 
+        # 1-161: 要素構造の記述を持たない対象（サーバー側描画等）では ready を任意とし、
+        # 根拠が無い旨を diagnostics.readyWithoutEvidence へ記録する。
+        # 要素構造を持つ対象では従来どおり ready を必須とする。
+        no_element_structure_doc = write_design(
+            "no-element-structure.md",
+            "scenarios:\n  - path: /server-rendered\n",
+        )
+        record_path = root / "no-element-structure.json"
+        rc = check_scenarios(
+            no_element_structure_doc,
+            None,
+            None,
+            record_path,
+            has_element_structure=False,
+        )
+        if rc != 0:
+            failures.append(
+                f"1-161 branch has_element_structure=False: expected 0, got {rc}"
+            )
+        recorded = json.loads(record_path.read_text(encoding="utf-8"))
+        diagnostics = recorded.get("diagnostics", {}).get("readyWithoutEvidence", {})
+        if diagnostics != {
+            "count": 1,
+            "total": 1,
+            "ratio": 1,
+            "threshold": 0.5,
+            "warning": True,
+        }:
+            failures.append(
+                f"1-161 diagnostics not recorded as expected: {diagnostics}"
+            )
+
+        rc = check_scenarios(
+            no_element_structure_doc,
+            None,
+            None,
+            root / "no-element-structure-required.json",
+            has_element_structure=True,
+        )
+        if rc != 1:
+            failures.append(
+                f"1-161 branch has_element_structure=True: expected 1 (ready still required), got {rc}"
+            )
+
     if failures:
         for failure in failures:
             print(f"FAIL: {failure}", file=sys.stderr)
         return 1
     print("PASS: 1-23 original.png有無×facts jsx有無の4分岐")
     print("PASS: 1-24 scenarios必須値・未開通省略・実測証跡不足の実動分岐")
+    print("PASS: 1-161 要素構造の有無によるready任意化と根拠なし記録")
     return 0
 
 
@@ -330,6 +397,7 @@ def main() -> int:
     scenarios_parser.add_argument("--design-doc", type=Path, required=True)
     scenarios_parser.add_argument("--verification-url")
     scenarios_parser.add_argument("--measurement-evidence", type=Path)
+    scenarios_parser.add_argument("--facts", type=Path)
     scenarios_parser.add_argument("--record", type=Path)
 
     args = parser.parse_args()
@@ -341,11 +409,15 @@ def main() -> int:
     if args.command == "screen-composition":
         return check_screen_composition(args.screen_dir, args.facts, args.record)
     if args.command == "scenarios":
+        has_element_structure = True
+        if args.facts is not None:
+            has_element_structure = facts_has_jsx_structure(args.facts)
         return check_scenarios(
             args.design_doc,
             args.verification_url,
             args.measurement_evidence,
             args.record,
+            has_element_structure=has_element_structure,
         )
     return 2
 

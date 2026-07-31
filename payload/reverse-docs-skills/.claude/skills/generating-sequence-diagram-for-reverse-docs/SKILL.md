@@ -103,7 +103,9 @@ Read / Glob / Grep で対象画面ごとに `<output_dir>/画面/screen-<ID>/シ
 - `operations[].key`/`label` は handler item の `key`/`value`（発火要素・処理1行要約）から組み立てる。1 handler の `call_order` から変換したステップ数が 15 を超える場合は、以下の基準の優先順で複数の `operations[]` へ分割する
   1. 同じ画面の設計文書（画面基本設計書等）が機能の一覧を持つ場合は、その機能単位へ対応付けて分割する
   2. 機能単位が無い、または分割後もなお 15 ステップを超える区分がある場合は、原本のコメント区切りのような根拠のある単位（関数内のブロックコメント境界等）で局面へ分ける
-  3. 上記いずれも適用できない場合は、ソース出現順（`call_order` の連番順）に 15 ステップごとで機械的に区切る
+  3. 2 を適用してもなお 15 ステップを超える区分が残る場合は、その区分内に限り 3（機械的な15ステップ区切り）を併用してよい。2 と 3 は排他ではなく、2 で収束しない区分だけに 3 を重ねて適用し収束させる。1・2 のいずれも適用できない場合（コメント境界そのものが無い等）は、全体をソース出現順（`call_order` の連番順）に 15 ステップごとで機械的に区切る
+  - **呼び出しが0件の区分の扱い**: コメント境界で区切った結果、呼び出し（`call_order` エントリ）を1件も含まない区分は、局面として生成しない。当該区分の見出し・コメント自体は局面名の根拠にせず、直前または直後の区分（呼び出しを含む側）へ吸収する。前後どちらに吸収するかはソース出現順で連続する側を優先する
+  - **分断してはならない呼び出しの並びの扱い**: 単一のAPI呼び出しに対応する一連の呼び出し（例: データベース直接アクセスの準備・実行・取得のような、同一の呼び出し先に対する連続したstepの塊）は、3 の機械的な15ステップ区切りの境界で分断しない。3 を適用する場合、区切り境界はこの塊の直前・直後（塊全体が同じ局面に収まる位置）にのみ置く。塊の内部で15ステップに達した場合は、その塊を含む局面の上限を一時的に緩め、塊の終端まで含めてから次の局面へ区切る
   - 分割後の `operations[].key`/`label` は連番を使わない。各区切りの先頭ステップに導出できた業務名（導出できなければ先頭呼び出しの識別子）を局面名として使い、内容を要約した意味語で組み立てる（例: `save-click` の分割なら `save-click-validate` / `save-click-persist`）
   - 分割後も各operationの先頭に利用者→画面の「操作開始」を追加し、call_order由来stepの`seq`を1つ繰り下げる。各 `operations[].steps[].seq` は操作ごとに 1 始まりの連番へ振り直す（Step 1-3 の jq 検証は操作単位で連番性を見るため）
   - 分割は呼び出しの追加・削除・重複を行わない。分割前後で `call_order` から機械変換されたステップの総数（合成 return ステップを除く）は変わらない
@@ -173,13 +175,15 @@ Glob / Read で実在ファイルを確認し、対象画面の `<output_dir>/�
 - **シーケンス図項目**: 自ページなので `<span class="nav-item active">シーケンス図</span>`
 - 実在しない項目は追加しない（存在しない基本設計・詳細設計への空リンクを作らない）
 
-**完了**: 対象画面ごとに doc_nav 文字列が確定済み。
+**完了**: 対象画面ごとに doc_nav 文字列が確定済み、かつ Write ツールで `$CLAUDE_JOB_DIR/tmp/doc-nav-<ID>.html`（`~/.claude/rules/always/placement/file-guard/rule.md` の正規一時退避先）へ書き出し済み。doc_nav は二重引用符を含む HTML 属性（`href="..."` 等）を持つため、Step 3-1 の `bash -c '...'`（単一引用符のシェルブロック）内へ文字列結合で埋め込まない。ファイル経由で渡すことで、Step 3-1 側の引用符境界が doc_nav の内容に左右されないようにする。
 
 ## Phase 3: HTML 生成
 
 ## Step 3-1: テンプレートのレンダリング
 
 以下のように Bash から `render_template` を呼び出し、Write で `<output_dir>/画面/screen-<ID>/シーケンス図.html` を生成する。`render-template.sh` は bash 関数を提供するのみで CLI エントリポイントを持たないため、Bash ツールから以下のようなインライン bash で実行する（新規 `.sh` ファイルは作らない）。他ページと共通の階層サイドバー・フッター（partials）も `shell-injection.sh` の `shell_injection_args` で注入する。
+
+**doc_nav はファイル経由で渡す（必須）**: Step 2-1 で書き出した `$CLAUDE_JOB_DIR/tmp/doc-nav-<ID>.html` を、単一引用符のシェルブロック内で `cat` して読み込む。`page_data`／`template`／`tokens_css` と同じ「実体はファイルに置き、スクリプト本体には値を直接埋め込まない」形にする。doc_nav の文字列そのものをシェルブロック内の二重引用符代入へ文字列結合で埋め込むことを禁止する（引用符境界が壊れ、シェルが閉じない引用符を待って停止する）。
 
   ```bash
   bash -c '
@@ -188,7 +192,7 @@ Glob / Read で実在ファイルを確認し、対象画面の `<output_dir>/�
     template="$(cat "<スキルフォルダ>/../../../shared/templates/screen-sequence-template.html")"
     tokens_css="$(cat "<スキルフォルダ>/../../../shared/templates/tokens.css")"
     page_data="$(cat "<output_dir>/画面/screen-<ID>/シーケンス図-data.json")"
-    doc_nav="<Phase 2で確定したdoc_nav文字列>"
+    doc_nav="$(cat "$CLAUDE_JOB_DIR/tmp/doc-nav-<ID>.html")"
     operation_list="<div class=\"operation-list\" id=\"operation-list\"></div>"
     doc_sidebar_html="<nav class=\"pt-doc-nav\" aria-label=\"操作\"><div class=\"pt-doc-nav__group\">画面 / 設計書</div>${doc_nav}<div class=\"pt-doc-nav__group\">操作</div>${operation_list}</nav>"
     render_args=(

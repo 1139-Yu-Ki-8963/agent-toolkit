@@ -40,7 +40,102 @@
 # 改善課題 1-138 の横断検収条件の対象外: 本ファイルは source される共通関数ライブラリで
 # あり、単体で実行される本番経路のスクリプトではない（トップレベルの引数解析・実行文を
 # 持たない）。回帰検証は本関数を source する各consumer（build-portal.sh 等）自身の
-# --self-test を通じて間接的に行う。
+# --self-test を通じて間接的に行うのが基本だが、改善課題 1-156 により doc_nav（二重引用符を
+# 含む HTML 文字列）をファイル経由で安全に受け渡せることを検証する self-test を本ファイルにも
+# 追加した（直接 `bash shell-injection.sh --self-test` で実行した場合のみ発火し、他スクリプトに
+# source された際は発火しない。詳細は下記ガード条件を参照）。
+
+if [ "${BASH_SOURCE[0]}" = "$0" ] && [ "${1:-}" = "--self-test" ]; then
+  # 改善課題 1-156: generating-sequence-diagram-for-reverse-docs の Step 3-1 は、
+  # 二重引用符を含む doc_nav（戻るリンク・設計書項目のナビHTML）を、単一引用符の
+  # bash -c スクリプト内へ文字列結合で埋め込まず、ファイル経由（cat）で読み込む形に
+  # 修正した。本 self-test はその手順を再現し、(1) 生成が停止せず終了コード0で完了する
+  # こと (2) ナビゲーションの表示テキストが出力に実在すること、の2点を検証する。
+  self_test() {
+    local script_dir pass=0 fail=0 tmp
+    script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    tmp="$(mktemp -d "${TMPDIR:-/tmp}/shell-injection-self-test.XXXXXX")"
+    trap 'rm -rf "$tmp"' EXIT
+
+    mkdir -p "$tmp/partials"
+    printf '.pt-sidebar{}\n' > "$tmp/partials/shell.css"
+    printf '<nav class="pt-sidebar">{{DOC_SIDEBAR}}</nav>\n' > "$tmp/partials/shell-sidebar.html"
+    printf '<footer>{{PROJECT_NAME}}/{{GENERATED_DATE}}/{{COMMIT_SHORT}}/{{GENERATOR}}</footer>\n' > "$tmp/partials/shell-footer.html"
+
+    # 二重引用符を含む doc_nav フィクスチャ（実データの戻るリンク・nav-item を模す）
+    cat > "$tmp/doc-nav-quoted.html" <<'NAV'
+<a class="back-link" href="../../一覧/画面一覧/画面一覧.html">← 画面一覧へ戻る</a><a class="nav-item" href="基本設計/画面基本設計書.html">基本設計</a>
+NAV
+    # 引用符を含まない doc_nav フィクスチャ（従来ケースの回帰確認用）
+    printf 'plain-nav-without-quotes' > "$tmp/doc-nav-plain.html"
+
+    # doc_nav をファイル経由（cat）で読み込み、shell_injection_args → render_template の
+    # 実経路を通す。script_dir・doc_nav_file・tmp はすべて位置引数($1/$2/$3)として渡し、
+    # スクリプト本文の文字列へは一切結合しない（1-156 が禁止する「文字列結合での埋め込み」を
+    # self-test 自身が再現しないため）。
+    local out rc
+    out="$(
+      bash -c '
+        set -e
+        script_dir="$1"; doc_nav_file="$2"; work="$3"
+        source "$script_dir/render-template.sh"
+        . "$script_dir/shell-injection.sh"
+        doc_nav="$(cat "$doc_nav_file")"
+        doc_sidebar_html="<div class=\"pt-doc-nav__group\">画面 / 設計書</div>${doc_nav}"
+        shell_injection_args "$work" "$work/nonexistent-catalog.json" "index.html" "テストプロジェクト" "2026-07-31" "" "generator" "" "" "" "" "$doc_sidebar_html"
+        if [ ${#SHELL_RENDER_ARGS[@]} -eq 0 ]; then
+          echo "EMPTY_SHELL_RENDER_ARGS" >&2
+          exit 1
+        fi
+        render_template "<html>/* SHELL_CSS */<!--SHELL_SIDEBAR--><!--SHELL_FOOTER--></html>" "${SHELL_RENDER_ARGS[@]}"
+      ' _ "$script_dir" "$tmp/doc-nav-quoted.html" "$tmp"
+    )"
+    rc=$?
+    if [ "$rc" -eq 0 ]; then
+      echo "PASS: 二重引用符を含むdoc_navでも生成が停止せず終了コード0" >&2
+      pass=$((pass + 1))
+    else
+      echo "FAIL: 二重引用符を含むdoc_navで終了コード0にならない（rc=$rc）" >&2
+      fail=$((fail + 1))
+    fi
+    case "$out" in
+      *"画面一覧へ戻る"*)
+        echo "PASS: ナビゲーションの表示テキストが出力に実在する" >&2
+        pass=$((pass + 1))
+        ;;
+      *)
+        echo "FAIL: ナビゲーションの表示テキストが出力から欠落している" >&2
+        fail=$((fail + 1))
+        ;;
+    esac
+
+    local out_plain rc_plain
+    out_plain="$(
+      bash -c '
+        set -e
+        script_dir="$1"; doc_nav_file="$2"; work="$3"
+        source "$script_dir/render-template.sh"
+        . "$script_dir/shell-injection.sh"
+        doc_nav="$(cat "$doc_nav_file")"
+        doc_sidebar_html="<div class=\"pt-doc-nav__group\">画面 / 設計書</div>${doc_nav}"
+        shell_injection_args "$work" "$work/nonexistent-catalog.json" "index.html" "テストプロジェクト" "2026-07-31" "" "generator" "" "" "" "" "$doc_sidebar_html"
+        render_template "<html>/* SHELL_CSS */<!--SHELL_SIDEBAR--><!--SHELL_FOOTER--></html>" "${SHELL_RENDER_ARGS[@]}"
+      ' _ "$script_dir" "$tmp/doc-nav-plain.html" "$tmp"
+    )"
+    rc_plain=$?
+    if [ "$rc_plain" -eq 0 ] && case "$out_plain" in *"plain-nav-without-quotes"*) true ;; *) false ;; esac; then
+      echo "PASS: 引用符を含まないdoc_navも従来どおり生成できる" >&2
+      pass=$((pass + 1))
+    else
+      echo "FAIL: 引用符を含まないdoc_navの回帰生成に失敗した（rc=$rc_plain）" >&2
+      fail=$((fail + 1))
+    fi
+
+    echo "self-test: ${pass} PASS, ${fail} FAIL" >&2
+    [ "$fail" -eq 0 ]
+  }
+  if self_test; then exit 0; else exit 1; fi
+fi
 
 SHELL_RENDER_ARGS=()
 
