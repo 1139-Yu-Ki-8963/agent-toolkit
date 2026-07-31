@@ -289,6 +289,7 @@ Phase 1の調査結果とアーキテクチャ調査書（`survey_doc_path`）�
 
 固有の検証行:
 - validate-manifest.sh --unit-kind screen が全項目 PASS・画面一覧.html の生成成功
+- 低信頼度分布（1-125）: confidence=low の件数・全体数・比率・閾値超過の有無を報告に明記する。閾値超過時は警告として明示する
 
 ## 永続raw正本と一括再生成
 

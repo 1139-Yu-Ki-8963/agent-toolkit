@@ -630,6 +630,68 @@ print(os.path.abspath(os.path.join(sys.argv[1], "index.html")))
     rc=1
   fi
 
+  # --- 1-125: 低信頼度が過半数の合成マニフェストで警告コールアウトと分布が出力される ---
+  local manifest_lowconf_majority="$tmp/manifest-lowconf-majority.json"
+  jq -n \
+    --arg sourceDir "$tmp/src" \
+    --arg entryFile "$tmp/src/screens/Home.tsx" \
+    '{
+      generatedAt: "2026-01-01T00:00:00Z",
+      sourceDir: $sourceDir,
+      strategy: {extractionMethod: "custom", approvedByUser: true, screenIdRegex: null, excludePatterns: []},
+      detectionSummary: {screenCount: 3, clusterCount: 0, sharedScreenCount: 0, embeddedCandidateCount: 0, unresolvedCount: 0},
+      screens: [
+        {screenKey: "screen-alpha-lowconf", kind: "route", route: "/a", entryFile: $entryFile, detectionMethod: "manual", confidence: "low", screenType: "top", accountGroup: "common", accountSubType: "common", hasTemplate: true, parentScreen: null, childComponents: [], isProcessingEndpoint: false},
+        {screenKey: "screen-beta-lowconf", kind: "route", route: "/b", entryFile: $entryFile, detectionMethod: "manual", confidence: "low", screenType: "top", accountGroup: "common", accountSubType: "common", hasTemplate: true, parentScreen: null, childComponents: [], isProcessingEndpoint: false},
+        {screenKey: "screen-gamma-highconf", kind: "route", route: "/c", entryFile: $entryFile, detectionMethod: "manual", confidence: "high", screenType: "top", accountGroup: "common", accountSubType: "common", hasTemplate: true, parentScreen: null, childComponents: [], isProcessingEndpoint: false}
+      ]
+    }' > "$manifest_lowconf_majority"
+
+  local out_lowconf_majority="$tmp/out-lowconf-majority.html"
+  if bash "$script_path" "$manifest_lowconf_majority" "$out_lowconf_majority" >/dev/null 2>&1; then
+    if grep -Fq '画面種別分類がフォールバック値へ偏っている可能性があります' "$out_lowconf_majority" && grep -Fq '低信頼度画面 <strong>2</strong> / 3 件' "$out_lowconf_majority"; then
+      echo "  [PASS] 1-125: 低信頼度が過半数(2/3)の合成マニフェストで警告コールアウトと分布(2/3件)が出力される"
+    else
+      echo "  [FAIL] 1-125: 低信頼度過半数で警告コールアウトまたは分布表示が出力されない" >&2
+      rc=1
+    fi
+  else
+    echo "  [FAIL] 1-125: 低信頼度過半数マニフェストの生成コマンド自体が失敗した" >&2
+    rc=1
+  fi
+
+  # --- 1-125: 低信頼度0件では警告コールアウトを出さず、分布(0件)のみ表示される ---
+  local manifest_lowconf_zero="$tmp/manifest-lowconf-zero.json"
+  jq -n \
+    --arg sourceDir "$tmp/src" \
+    --arg entryFile "$tmp/src/screens/Home.tsx" \
+    '{
+      generatedAt: "2026-01-01T00:00:00Z",
+      sourceDir: $sourceDir,
+      strategy: {extractionMethod: "custom", approvedByUser: true, screenIdRegex: null, excludePatterns: []},
+      detectionSummary: {screenCount: 2, clusterCount: 0, sharedScreenCount: 0, embeddedCandidateCount: 0, unresolvedCount: 0},
+      screens: [
+        {screenKey: "screen-delta-highconf", kind: "route", route: "/a", entryFile: $entryFile, detectionMethod: "manual", confidence: "high", screenType: "top", accountGroup: "common", accountSubType: "common", hasTemplate: true, parentScreen: null, childComponents: [], isProcessingEndpoint: false},
+        {screenKey: "screen-epsilon-highconf", kind: "route", route: "/b", entryFile: $entryFile, detectionMethod: "manual", confidence: "high", screenType: "top", accountGroup: "common", accountSubType: "common", hasTemplate: true, parentScreen: null, childComponents: [], isProcessingEndpoint: false}
+      ]
+    }' > "$manifest_lowconf_zero"
+
+  local out_lowconf_zero="$tmp/out-lowconf-zero.html"
+  if bash "$script_path" "$manifest_lowconf_zero" "$out_lowconf_zero" >/dev/null 2>&1; then
+    if grep -Fq '画面種別分類がフォールバック値へ偏っている可能性があります' "$out_lowconf_zero"; then
+      echo "  [FAIL] 1-125: 低信頼度0件なのに警告コールアウトが出力された" >&2
+      rc=1
+    elif grep -Fq '低信頼度画面 <strong>0</strong> / 2 件' "$out_lowconf_zero"; then
+      echo "  [PASS] 1-125: 低信頼度0件では警告を出さずに分布(0/2件)のみ表示される"
+    else
+      echo "  [FAIL] 1-125: 低信頼度0件の分布表示(0/2件)が出力されない" >&2
+      rc=1
+    fi
+  else
+    echo "  [FAIL] 1-125: 低信頼度0件マニフェストの生成コマンド自体が失敗した" >&2
+    rc=1
+  fi
+
   if [ "$rc" -eq 0 ]; then
     echo "self-test 全項目 PASS"
   else
