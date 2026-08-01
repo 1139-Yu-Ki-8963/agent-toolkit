@@ -125,10 +125,28 @@ EOF
   # build-screen-list.sh は manifest を unit_axes_apply_detect(自動判定) 適用後の
   # 一時ファイルへ差し替えてから埋め込むため、埋め込みJSONの比較対象も
   # 「判定適用後のmanifest」に変える(判定の有無ではなく、JSONが壊れずに一致するかを検証する)。
+  # sourceDir/entryFileが絶対パスの場合は1-102対応で正規化されるため、期待値にも同じ規則を適用する。
   expected_manifest_json() {
     local mpath="$1" ax
     ax="$(resolve_unit_axes "$mpath")" || return 1
-    unit_axes_apply_detect "$ax" screen "$mpath" | jq -c -S .
+    unit_axes_apply_detect "$ax" screen "$mpath" \
+      | jq -c -S '
+        def normPath($origSd):
+          if (type == "string") and startswith("/") then
+            if startswith($origSd) then
+              (.[($origSd | length):] | ltrimstr("/"))
+            else
+              (split("/") | last)
+            end
+          else
+            .
+          end;
+        (.sourceDir // "") as $origSd
+        | .sourceDir |= (if test("^/") then (split("/") | last) else . end)
+        | .screens |= (map(
+            if has("entryFile") then .entryFile |= normPath($origSd) else . end
+          ))
+      '
   }
 
   # --- ケースa: バックスラッシュ(正規表現風 \d+)を含む detectionMethod ---
@@ -692,6 +710,96 @@ print(os.path.abspath(os.path.join(sys.argv[1], "index.html")))
     rc=1
   fi
 
+  # --- 1-102: sourceDirが絶対パスの場合、埋め込みJSON内でbasenameへ正規化されること ---
+  local abs_manifest="$tmp/manifest-abs-sourcedir.json" abs_out="$tmp/manifest-abs-sourcedir.html"
+  jq -n \
+    --arg entryFile "$tmp/src/screens/Home.tsx" \
+    '{
+      generatedAt: "2026-01-01T00:00:00Z",
+      sourceDir: "/tmp/fake-absolute-repo/src",
+      strategy: {extractionMethod: "custom", approvedByUser: true, screenIdRegex: null, excludePatterns: []},
+      detectionSummary: {screenCount: 1, clusterCount: 0, sharedScreenCount: 0, embeddedCandidateCount: 0, unresolvedCount: 0},
+      screens: [
+        {
+          screenKey: "home-screen",
+          screenNameGuess: "トップ",
+          kind: "route",
+          route: "/home",
+          entryFile: $entryFile,
+          detectionMethod: "manual",
+          confidence: "high",
+          screenType: "top",
+          accountGroup: "common",
+          accountSubType: "common",
+          hasTemplate: true,
+          parentScreen: null,
+          childComponents: [],
+          isProcessingEndpoint: false
+        }
+      ]
+    }' > "$abs_manifest"
+
+  if bash "$script_path" "$abs_manifest" "$abs_out" >/dev/null 2>&1; then
+    local embedded_source_dir embedded_entry_file
+    embedded_source_dir="$(sed -n '/<script type="application\/json" id="screen-manifest">/,/<\/script>/p' "$abs_out" | sed '1d;$d' | jq -r '.sourceDir' 2>/dev/null || echo "FAIL")"
+    embedded_entry_file="$(sed -n '/<script type="application\/json" id="screen-manifest">/,/<\/script>/p' "$abs_out" | sed '1d;$d' | jq -r '.screens[0].entryFile' 2>/dev/null || echo "FAIL")"
+    # entryFileはsourceDir("/tmp/fake-absolute-repo/src")配下でない絶対パスのため、フォールバックのbasenameになる
+    if [ "$embedded_source_dir" = "src" ] && [ "$embedded_entry_file" = "Home.tsx" ]; then
+      echo "  [PASS] 1-102: 絶対パスsourceDirがbasename(src)へ、sourceDir配下でない絶対パスentryFileがbasename(Home.tsx)へ正規化される"
+    else
+      echo "  [FAIL] 1-102: 絶対パスの正規化に失敗(embedded sourceDir=${embedded_source_dir}, entryFile=${embedded_entry_file})" >&2
+      rc=1
+    fi
+  else
+    echo "  [FAIL] 1-102: 絶対パスsourceDirを持つマニフェストの生成コマンド自体が失敗した" >&2
+    rc=1
+  fi
+
+  # --- 1-102: entryFileがsourceDir配下の絶対パスの場合、sourceDirプレフィックスを除いた
+  # 相対パスへ正規化されること(basenameへの過剰な切り詰めをしない) ---
+  local prefix_manifest="$tmp/manifest-abs-entryfile-prefix.json" prefix_out="$tmp/manifest-abs-entryfile-prefix.html"
+  jq -n \
+    --arg sourceDir "$tmp/src" \
+    --arg entryFile "$tmp/src/screens/Home.tsx" \
+    '{
+      generatedAt: "2026-01-01T00:00:00Z",
+      sourceDir: $sourceDir,
+      strategy: {extractionMethod: "custom", approvedByUser: true, screenIdRegex: null, excludePatterns: []},
+      detectionSummary: {screenCount: 1, clusterCount: 0, sharedScreenCount: 0, embeddedCandidateCount: 0, unresolvedCount: 0},
+      screens: [
+        {
+          screenKey: "home-screen",
+          screenNameGuess: "トップ",
+          kind: "route",
+          route: "/home",
+          entryFile: $entryFile,
+          detectionMethod: "manual",
+          confidence: "high",
+          screenType: "top",
+          accountGroup: "common",
+          accountSubType: "common",
+          hasTemplate: true,
+          parentScreen: null,
+          childComponents: [],
+          isProcessingEndpoint: false
+        }
+      ]
+    }' > "$prefix_manifest"
+
+  if bash "$script_path" "$prefix_manifest" "$prefix_out" >/dev/null 2>&1; then
+    local embedded_entry_file_prefix
+    embedded_entry_file_prefix="$(sed -n '/<script type="application\/json" id="screen-manifest">/,/<\/script>/p' "$prefix_out" | sed '1d;$d' | jq -r '.screens[0].entryFile' 2>/dev/null || echo "FAIL")"
+    if [ "$embedded_entry_file_prefix" = "screens/Home.tsx" ]; then
+      echo "  [PASS] 1-102: sourceDir配下の絶対パスentryFileがsourceDirプレフィックス除去(screens/Home.tsx)へ正規化される"
+    else
+      echo "  [FAIL] 1-102: sourceDir配下の絶対パスentryFileの正規化に失敗(entryFile=${embedded_entry_file_prefix})" >&2
+      rc=1
+    fi
+  else
+    echo "  [FAIL] 1-102: sourceDir配下の絶対パスentryFileを持つマニフェストの生成コマンド自体が失敗した" >&2
+    rc=1
+  fi
+
   if [ "$rc" -eq 0 ]; then
     echo "self-test 全項目 PASS"
   else
@@ -800,7 +908,8 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 axes_resolved="$(resolve_unit_axes "$MANIFEST" "$AXES_FILE")" || exit 1
 DETECTED_MANIFEST="$(mktemp "${TMPDIR:-/tmp}/build-screen-list-detected.XXXXXX")"
 AXES_RESOLVED_FILE="$(mktemp "${TMPDIR:-/tmp}/build-screen-list-axes-resolved.XXXXXX")"
-trap 'rm -f "$DETECTED_MANIFEST" "$AXES_RESOLVED_FILE"' EXIT
+EMBED_MANIFEST_TMP_FILE=""
+trap 'rm -f "$DETECTED_MANIFEST" "$AXES_RESOLVED_FILE" "$EMBED_MANIFEST_TMP_FILE"' EXIT
 printf '%s' "$axes_resolved" > "$AXES_RESOLVED_FILE"
 unit_axes_apply_detect "$axes_resolved" "screen" "$MANIFEST" > "$DETECTED_MANIFEST"
 MANIFEST="$DETECTED_MANIFEST"
@@ -1119,9 +1228,42 @@ else
   diagnostics_html="<div class=\"diag-warn\"><strong>診断・警告</strong><ul>${diag_items}</ul></div>"
 fi
 
+# --- sourceDir/entryFileの絶対パス正規化(1-102): 生成HTMLへ実行環境の絶対パスを焼き込まないため、
+# 埋め込み直前にsourceDirが絶対パス(/始まり)ならbasenameへ正規化した一時コピーを作り、
+# 以降の埋め込み処理はこちらを参照する。screens[].entryFileがsourceDir配下の絶対パスであれば、
+# sourceDirプレフィックスを除いた相対パスへ正規化する(原本ファイルへの手がかりを保つため
+# 単純basenameにはしない)。sourceDir配下でない想定外の絶対パスはbasenameへフォールバックする。
+# 相対パスの場合は無加工(既存の完全一致自己テストへの影響なし)。既存フィクスチャは
+# 相対パス("$tmp/src"等)のため退行しない
+EMBED_MANIFEST="$MANIFEST"
+_manifest_source_dir="$(jq -r '.sourceDir // ""' "$MANIFEST")"
+case "$_manifest_source_dir" in
+  /*)
+    _normalized_source_dir="$(basename "$_manifest_source_dir")"
+    EMBED_MANIFEST="$(mktemp "${TMPDIR:-/tmp}/$(basename "$0" .sh)-normalized.XXXXXX.json")"
+    EMBED_MANIFEST_TMP_FILE="$EMBED_MANIFEST"
+    jq --arg sd "$_normalized_source_dir" --arg origSd "$_manifest_source_dir" '
+      def normPath:
+        if (type == "string") and startswith("/") then
+          if startswith($origSd) then
+            (.[($origSd | length):] | ltrimstr("/"))
+          else
+            (split("/") | last)
+          end
+        else
+          .
+        end;
+      .sourceDir = $sd
+      | .screens |= (map(
+          if has("entryFile") then .entryFile |= normPath else . end
+        ))
+    ' "$MANIFEST" > "$EMBED_MANIFEST"
+    ;;
+esac
+
 # application/json のraw text要素では文字列中の </script> が要素を閉じるため、
 # JSON値を変えずにHTML構文上の危険文字だけをJSONエスケープへ正規化する。
-screen_manifest_json="$(jq -c . "$MANIFEST" | sed 's/</\\u003c/g; s/>/\\u003e/g; s/\&/\\u0026/g')"
+screen_manifest_json="$(jq -c . "$EMBED_MANIFEST" | sed 's/</\\u003c/g; s/>/\\u003e/g; s/\&/\\u0026/g')"
 
 # --- ポータルへの相対パス算出(--portal-dir 未指定時は正本レイアウトの既定値) ---
 # 正本レイアウト: <output_dir>/index.html と <output_dir>/一覧/<種別>一覧/<種別>一覧.html。

@@ -49,6 +49,31 @@ EOF
     sed -n '/<script type="application\/json" id="unit-manifest">/,/<\/script>/p' "$1" | sed '1d;$d'
   }
 
+  # sourceDir/sourceFileが絶対パス(1-102対応で正規化される)なマニフェストの期待値を、
+  # 生成側と同じ規則(sourceDirはbasename・sourceFileはsourceDirプレフィックス除去)で
+  # 正規化してから比較するためのヘルパー。相対パスの場合は無加工。
+  expected_normalized_manifest() {
+    jq -c -S '
+      def normPath($origSd):
+        if (type == "string") and startswith("/") then
+          if startswith($origSd) then
+            (.[($origSd | length):] | ltrimstr("/"))
+          else
+            (split("/") | last)
+          end
+        else
+          .
+        end;
+      (.sourceDir // "") as $origSd
+      | .sourceDir |= (if test("^/") then (split("/") | last) else . end)
+      | .units |= (map(
+          if has("sourceFile") then
+            .sourceFile |= (if type == "array" then map(normPath($origSd)) else normPath($origSd) end)
+          else . end
+        ))
+    ' "$1"
+  }
+
   # --- ケースa: バックスラッシュ(正規表現風 \d+)を含むidentifier ---
   local manifest_a="$tmp/manifest-a.json"
   jq -n \
@@ -85,7 +110,8 @@ EOF
     local embedded_a="$tmp/embedded-a.json"
     local expected_a="$tmp/expected-a.json"
     extract_manifest_json "$out_a" | jq -c -S . > "$embedded_a" 2>/dev/null || true
-    jq -c -S . "$manifest_a" > "$expected_a"
+    # sourceDir/sourceFileは絶対パス(1-102対応で正規化される)なので、期待値も同じ正規化を適用してから比較する
+    expected_normalized_manifest "$manifest_a" > "$expected_a"
     if diff -q "$embedded_a" "$expected_a" >/dev/null 2>&1; then
       echo "  [PASS] ケースa: バックスラッシュ(\\d+)を含むidentifierでも埋め込みJSONが原本と完全一致"
     else
@@ -134,7 +160,8 @@ EOF
     local embedded_b="$tmp/embedded-b.json"
     local expected_b="$tmp/expected-b.json"
     extract_manifest_json "$out_b" | jq -c -S . > "$embedded_b" 2>/dev/null || true
-    jq -c -S . "$manifest_b" > "$expected_b"
+    # sourceDir/sourceFileは絶対パス(1-102対応で正規化される)なので、期待値も同じ正規化を適用してから比較する
+    expected_normalized_manifest "$manifest_b" > "$expected_b"
     if diff -q "$embedded_b" "$expected_b" >/dev/null 2>&1; then
       if grep -Fq '</script><script>alert(1)</script>' "$out_b" \
         || ! grep -Fq '\u003c/script\u003e\u003cscript\u003ealert(1)\u003c/script\u003e' "$out_b" \
@@ -283,6 +310,96 @@ EOF
     echo "  [PASS] 回帰確認: 末尾4形式を除去し語頭・語中OKを保持、feature検証もPASS"
   else
     echo "  [FAIL] 回帰確認: 可視テーブル内容またはvalidate-manifest.shのPASSに退行が発生した" >&2
+    rc=1
+  fi
+
+  # --- 1-102: sourceDirが絶対パスの場合、埋め込みJSON内でbasenameへ正規化されること ---
+  local abs_manifest="$tmp/manifest-abs-sourcedir.json" abs_out="$tmp/manifest-abs-sourcedir.html"
+  jq -n \
+    --arg sourceFile "$tmp/src/features/user-list.ts" \
+    '{
+      generatedAt: "2026-01-01T00:00:00Z",
+      sourceDir: "/tmp/fake-absolute-repo/src",
+      unitKind: "feature",
+      strategy: {extractionMethod: "custom", approvedByUser: true, unitIdRegex: null, excludePatterns: []},
+      detectionSummary: {unitCount: 1, unresolvedCount: 0},
+      units: [
+        {
+          unitKey: "user-list-view",
+          kind: "feature",
+          category: "ユーザー管理",
+          identifier: "/master/users",
+          unitNameGuess: "ユーザー一覧表示",
+          summary: "ユーザー一覧を表示する",
+          sourceFile: $sourceFile,
+          relatedScreens: [],
+          relatedApis: [],
+          relatedTables: [],
+          confidence: "high",
+          fileCount: 1,
+          detectionMethod: "manual"
+        }
+      ]
+    }' > "$abs_manifest"
+
+  if bash "$script_path" "$abs_manifest" "$abs_out" >/dev/null 2>&1; then
+    local embedded_source_dir embedded_source_file
+    embedded_source_dir="$(extract_manifest_json "$abs_out" | jq -r '.sourceDir' 2>/dev/null || echo "FAIL")"
+    embedded_source_file="$(extract_manifest_json "$abs_out" | jq -r '.units[0].sourceFile' 2>/dev/null || echo "FAIL")"
+    # sourceFileはsourceDir("/tmp/fake-absolute-repo/src")配下でない絶対パスのため、フォールバックのbasenameになる
+    if [ "$embedded_source_dir" = "src" ] && [ "$embedded_source_file" = "user-list.ts" ]; then
+      echo "  [PASS] 1-102: 絶対パスsourceDirがbasename(src)へ、sourceDir配下でない絶対パスsourceFileがbasename(user-list.ts)へ正規化される"
+    else
+      echo "  [FAIL] 1-102: 絶対パスの正規化に失敗(embedded sourceDir=${embedded_source_dir}, sourceFile=${embedded_source_file})" >&2
+      rc=1
+    fi
+  else
+    echo "  [FAIL] 1-102: 絶対パスsourceDirを持つマニフェストの生成コマンド自体が失敗した" >&2
+    rc=1
+  fi
+
+  # --- 1-102: sourceFileがsourceDir配下の絶対パスの場合、sourceDirプレフィックスを除いた
+  # 相対パスへ正規化されること(basenameへの過剰な切り詰めをしない) ---
+  local prefix_manifest="$tmp/manifest-abs-sourcefile-prefix.json" prefix_out="$tmp/manifest-abs-sourcefile-prefix.html"
+  jq -n \
+    --arg sourceDir "$tmp/src" \
+    --arg sourceFile "$tmp/src/features/user-list.ts" \
+    '{
+      generatedAt: "2026-01-01T00:00:00Z",
+      sourceDir: $sourceDir,
+      unitKind: "feature",
+      strategy: {extractionMethod: "custom", approvedByUser: true, unitIdRegex: null, excludePatterns: []},
+      detectionSummary: {unitCount: 1, unresolvedCount: 0},
+      units: [
+        {
+          unitKey: "user-list-view",
+          kind: "feature",
+          category: "ユーザー管理",
+          identifier: "/master/users",
+          unitNameGuess: "ユーザー一覧表示",
+          summary: "ユーザー一覧を表示する",
+          sourceFile: $sourceFile,
+          relatedScreens: [],
+          relatedApis: [],
+          relatedTables: [],
+          confidence: "high",
+          fileCount: 1,
+          detectionMethod: "manual"
+        }
+      ]
+    }' > "$prefix_manifest"
+
+  if bash "$script_path" "$prefix_manifest" "$prefix_out" >/dev/null 2>&1; then
+    local embedded_source_file_prefix
+    embedded_source_file_prefix="$(extract_manifest_json "$prefix_out" | jq -r '.units[0].sourceFile' 2>/dev/null || echo "FAIL")"
+    if [ "$embedded_source_file_prefix" = "features/user-list.ts" ]; then
+      echo "  [PASS] 1-102: sourceDir配下の絶対パスsourceFileがsourceDirプレフィックス除去(features/user-list.ts)へ正規化される"
+    else
+      echo "  [FAIL] 1-102: sourceDir配下の絶対パスsourceFileの正規化に失敗(sourceFile=${embedded_source_file_prefix})" >&2
+      rc=1
+    fi
+  else
+    echo "  [FAIL] 1-102: sourceDir配下の絶対パスsourceFileを持つマニフェストの生成コマンド自体が失敗した" >&2
     rc=1
   fi
 
@@ -523,9 +640,44 @@ EOF
   unresolved_class="has-items pt-callout pt-callout--warning"
 fi
 
+# --- sourceDir/sourceFileの絶対パス正規化(1-102): 生成HTMLへ実行環境の絶対パスを焼き込まないため、
+# 埋め込み直前にsourceDirが絶対パス(/始まり)ならbasenameへ正規化した一時コピーを作り、
+# 以降の埋め込み処理はこちらを参照する。units[].sourceFile(string または string[])が
+# sourceDir配下の絶対パスであれば、sourceDirプレフィックスを除いた相対パスへ正規化する
+# (原本ファイルへの手がかりを保つため単純basenameにはしない)。sourceDir配下でない
+# 想定外の絶対パスはbasenameへフォールバックする。相対パスの場合は無加工(既存の完全一致
+# 自己テストへの影響なし)。既存フィクスチャは相対パス("$tmp/src"等)のため退行しない
+EMBED_MANIFEST="$MANIFEST"
+_manifest_source_dir="$(jq -r '.sourceDir // ""' "$MANIFEST")"
+case "$_manifest_source_dir" in
+  /*)
+    _normalized_source_dir="$(basename "$_manifest_source_dir")"
+    EMBED_MANIFEST="$(mktemp "${TMPDIR:-/tmp}/$(basename "$0" .sh)-normalized.XXXXXX.json")"
+    trap 'rm -f "$EMBED_MANIFEST"' EXIT
+    jq --arg sd "$_normalized_source_dir" --arg origSd "$_manifest_source_dir" '
+      def normPath:
+        if (type == "string") and startswith("/") then
+          if startswith($origSd) then
+            (.[($origSd | length):] | ltrimstr("/"))
+          else
+            (split("/") | last)
+          end
+        else
+          .
+        end;
+      .sourceDir = $sd
+      | .units |= (map(
+          if has("sourceFile") then
+            .sourceFile |= (if type == "array" then map(normPath) else normPath end)
+          else . end
+        ))
+    ' "$MANIFEST" > "$EMBED_MANIFEST"
+    ;;
+esac
+
 # application/json のraw text要素では文字列中の </script> が要素を閉じるため、
 # JSON値を変えずにHTML構文上の危険文字だけをJSONエスケープへ正規化する。
-unit_manifest_json="$(jq -c . "$MANIFEST" | sed 's/</\\u003c/g; s/>/\\u003e/g; s/\&/\\u0026/g')"
+unit_manifest_json="$(jq -c . "$EMBED_MANIFEST" | sed 's/</\\u003c/g; s/>/\\u003e/g; s/\&/\\u0026/g')"
 
 # --- ポータルへの相対パス算出(--portal-dir 未指定時は正本レイアウトの既定値) ---
 # 正本レイアウト: <output_dir>/index.html と <output_dir>/一覧/<種別>一覧/<種別>一覧.html。

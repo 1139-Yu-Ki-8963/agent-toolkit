@@ -36,6 +36,8 @@
 #   構造-グループ整合 group フィールドを持つカテゴリ・ツールで、同一 group 内のカードが
 #                     連続配置されているか（レンダラは group 変化時にのみ見出しを描画するため、
 #                     非連続だと同一グループ見出しが重複表示される）
+#   絶対パス断片-0件  全ページ内容に実行環境の絶対パス断片(/Users/... または /home/...)が
+#                     残存していないか（改善課題1-102: 実行環境の絶対パスの焼き込み防止）
 #   フッター-空確認   全ページの <footer> 内にスキル名・生成ツール名が含まれていないか
 #   リンク-文書存在確認 画面一覧の screens[].designDocPath/detailDocPath/sequencePath/testCasePath
 #                     が指す全ファイルが実在するか（値が有る画面のみ検査）
@@ -455,6 +457,18 @@ else
     fi
   fi
 fi
+
+# ---- 検査キー: 絶対パス断片-0件（改善課題1-102）----
+ABS_PATH_PATTERN='/Users/[^"'\''`[:space:]]+|/home/[^"'\''`[:space:]]+'
+for f in "${ALL_PAGES[@]}"; do
+  page="$(rel "$f")"
+  hits="$(grep -oE "$ABS_PATH_PATTERN" "$f" 2>/dev/null | LC_ALL=C sort -u | tr '\n' ' ')"
+  if [ -n "$hits" ]; then
+    report FAIL "絶対パス断片-0件" "$page" "検出:${hits}"
+  else
+    report PASS "絶対パス断片-0件" "$page" "絶対パス断片なし"
+  fi
+done
 
 # ---- 検査キー: フッター-空確認 ----
 FOOTER_BAN_PATTERN='スキルにより生成|により自動生成|設計スキル群'

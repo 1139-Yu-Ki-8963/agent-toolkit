@@ -357,7 +357,7 @@ run_extract() {
   mkdir -p "$(dirname "$output")"
   jq -n \
     --arg generatedAt "$(date +%Y-%m-%dT%H:%M:%S%z)" \
-    --arg dataSource "$repo" \
+    --arg dataSource "$(basename "$repo")" \
     --argjson rules "$(jq -s -c . "$work/rules.jsonl")" \
     --argjson skills "$(jq -s -c . "$work/skills.jsonl")" \
     --argjson subagents "$(jq -s -c . "$work/subagents.jsonl")" \

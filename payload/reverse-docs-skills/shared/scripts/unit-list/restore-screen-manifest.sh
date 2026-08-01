@@ -104,6 +104,51 @@ run_self_test() {
     return 1
   fi
   echo "PASS: 埋込manifestから永続screen_manifest_pathを原子的に復元(複数行・同一行の両形式)"
+
+  # --- 1-102随伴修正: --repo-root の指定あり/なし ---
+  # build-screen-list.shが1-102対応でsourceDirをbasename化・entryFileをsourceDir
+  # プレフィックス除去した「サニタイズ済み」埋め込みJSONを模したHTMLで検証する。
+  local sanitized_html sanitized_out_no_root sanitized_out_with_root
+  sanitized_html="$tmp/画面一覧_sanitized.html"
+  sanitized_out_no_root="$tmp/restored-no-root.json"
+  sanitized_out_with_root="$tmp/restored-with-root.json"
+  jq -n '{
+    generatedAt: "2026-07-28T00:00:00Z",
+    sourceDir: "src",
+    strategy: {extractionMethod: "custom", approvedByUser: true, screenIdRegex: null, excludePatterns: []},
+    detectionSummary: {screenCount: 1, clusterCount: 0, sharedScreenCount: 0, embeddedCandidateCount: 0, unresolvedCount: 0},
+    screens: [{
+      screenKey: "home-screen", kind: "route", route: "/home", entryFile: "screens/Home.tsx",
+      detectionMethod: "manual", confidence: "high", screenNameGuess: "Home",
+      parentScreen: null, childComponents: [], accountGroup: "common", accountSubType: "common",
+      screenType: "detail", hasTemplate: true, isProcessingEndpoint: false
+    }]
+  }' > "$tmp/sanitized-expected.json"
+  {
+    printf '%s\n' '<!doctype html><html><body>'
+    printf '%s\n' '<script type="application/json" id="screen-manifest">'
+    jq -c . "$tmp/sanitized-expected.json" | sed 's/</\\u003c/g; s/>/\\u003e/g; s/\&/\\u0026/g'
+    printf '%s\n' '</script></body></html>'
+  } > "$sanitized_html"
+
+  # --repo-root 未指定: サニタイズ済みsourceDir("src")のままentryFile-実在検査へ渡され、
+  # 実ファイルへ解決できず検証失敗する(1-102の設計上のトレードオフとして期待される挙動)
+  if bash "$0" "$sanitized_html" "$sanitized_out_no_root" >/dev/null 2>&1; then
+    echo "FAIL: --repo-root未指定でもsourceDir='src'がentryFile解決に成功してしまった(想定外)" >&2
+    return 1
+  fi
+
+  # --repo-root 指定: sourceDirを実リポジトリの場所へ上書きしてから検証するため、
+  # entryFile-実在が正しく解決できる
+  if ! bash "$0" "$sanitized_html" "$sanitized_out_with_root" --repo-root "$tmp/src" >/dev/null 2>&1; then
+    echo "FAIL: --repo-root指定時にentryFile-実在の解決へ失敗した" >&2
+    return 1
+  fi
+  if [ "$(jq -r '.sourceDir' "$sanitized_out_with_root")" != "$tmp/src" ]; then
+    echo "FAIL: --repo-root指定時にsourceDirが上書きされていない" >&2
+    return 1
+  fi
+  echo "PASS: --repo-root未指定はサニタイズ済みsourceDirのまま検証失敗・指定時はsourceDirを実パスへ上書きして検証成功"
 }
 
 if [ "${1:-}" = "--self-test" ]; then
@@ -111,8 +156,30 @@ if [ "${1:-}" = "--self-test" ]; then
   exit $?
 fi
 
-HTML_PATH="${1:?Usage: restore-screen-manifest.sh <screen-list.html> <manifest-out.json>}"
-MANIFEST_OUT="${2:?Usage: restore-screen-manifest.sh <screen-list.html> <manifest-out.json>}"
+HTML_PATH="${1:?Usage: restore-screen-manifest.sh <screen-list.html> <manifest-out.json> [--repo-root <path>]}"
+MANIFEST_OUT="${2:?Usage: restore-screen-manifest.sh <screen-list.html> <manifest-out.json> [--repo-root <path>]}"
+shift 2 || true
+
+# --repo-root <path>(任意・1-102随伴修正): 埋め込みJSONのsourceDirは1-102対応で
+# basename化されたサニタイズ済みの値であり、実ファイルパスとしては解決できない。
+# 呼び出し側が実リポジトリの場所を把握している場合は --repo-root で明示することで、
+# 復元後manifestのsourceDirをその実パスへ上書きしてから検証する(entryFile-実在の
+# 解決を可能にする)。未指定時は従来どおり埋め込み値(サニタイズ済み)をそのまま使い、
+# entryFile-実在が解決できない可能性を許容する(生成HTMLに絶対パスを残さないという
+# 1-102の設計上のトレードオフ)。
+REPO_ROOT_ARG=""
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --repo-root)
+      REPO_ROOT_ARG="${2:-}"
+      shift 2
+      ;;
+    *)
+      echo "ERROR: unknown argument: $1" >&2
+      exit 1
+      ;;
+  esac
+done
 
 if [ ! -f "$HTML_PATH" ]; then
   echo "ERROR: screen-list HTML not found: $HTML_PATH" >&2
@@ -155,6 +222,13 @@ if ! jq -e '.screens | type == "array"' "$tmp_out" >/dev/null; then
   echo "ERROR: embedded screen-manifest is invalid JSON or has no screens array" >&2
   exit 1
 fi
+
+if [ -n "$REPO_ROOT_ARG" ]; then
+  tmp_out_repo_root="$(mktemp "$(dirname "$MANIFEST_OUT")/.screen-manifest-repo-root.XXXXXX")"
+  jq --arg sd "$REPO_ROOT_ARG" '.sourceDir = $sd' "$tmp_out" > "$tmp_out_repo_root"
+  mv "$tmp_out_repo_root" "$tmp_out"
+fi
+
 if ! "$SCRIPT_DIR/validate-manifest.sh" "$tmp_out" >/dev/null; then
   echo "ERROR: restored screen-manifest failed schema validation" >&2
   exit 1
