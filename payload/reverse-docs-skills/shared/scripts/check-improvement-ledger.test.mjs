@@ -266,7 +266,7 @@ test('CLI parses stdin and returns JSON for normal and raw-pipe fixtures', () =>
 });
 
 test('the checked-in improvement ledger satisfies every condition', () => {
-  const source = readFileSync(new URL('../references/改善反映台帳.md', import.meta.url), 'utf8');
+  const source = readFileSync(new URL('../../docs/ledgers/改善反映台帳.md', import.meta.url), 'utf8');
   const result = parseImprovementLedger(source);
   assert.equal(result.totalDataRows, 259);
   assert.deepEqual(result.columnCountHistogram, { 6: 259 });

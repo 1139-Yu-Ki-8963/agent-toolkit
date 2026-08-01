@@ -11,7 +11,7 @@ if [ "${1:-}" = "--self-test" ]; then
   tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-overview-consistency-self-test.XXXXXX")"
   trap 'rm -rf "$tmp"' EXIT
 
-  mkdir -p "$tmp/shared/scripts" "$tmp/shared/samples" "$tmp/shared/references"
+  mkdir -p "$tmp/shared/scripts" "$tmp/shared/samples" "$tmp/shared/references" "$tmp/docs"
   cp "${BASH_SOURCE[0]}" "$tmp/shared/scripts/check-overview-consistency.sh"
   cp "$(dirname "${BASH_SOURCE[0]}")/output-layout.sh" "$tmp/shared/scripts/output-layout.sh"
   cp "$(dirname "${BASH_SOURCE[0]}")/../references/output-layout.json" "$tmp/shared/references/output-layout.json"
@@ -36,7 +36,7 @@ HTML
 | `demo` | デモカテゴリ |
 MD
 
-  cat > "$tmp/reverse-docs-overview.html" <<'HTML'
+  cat > "$tmp/docs/reverse-docs-overview.html" <<'HTML'
 <html><body>
 <p>デモカテゴリ / デモツール / demo/demo.html</p>
 <p>generating-reverse-basic-design ∥ generating-reverse-detailed-design</p>
@@ -54,7 +54,7 @@ HTML
   fi
 
   # 異常系: 必須マーカーの1つを overview.html から欠落させる
-  cat > "$tmp/reverse-docs-overview.html" <<'HTML'
+  cat > "$tmp/docs/reverse-docs-overview.html" <<'HTML'
 <html><body>
 <p>デモカテゴリ / デモツール / demo/demo.html</p>
 <p>通常の状態遷移:</p>
@@ -72,7 +72,7 @@ HTML
 fi
 
 ROOT_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
-OVERVIEW="${ROOT_DIR}/reverse-docs-overview.html"
+OVERVIEW="${ROOT_DIR}/docs/reverse-docs-overview.html"
 SAMPLE="${ROOT_DIR}/shared/samples/index.html"
 CATALOG="${ROOT_DIR}/shared/references/portal-catalog.json"
 DELIVERY="${ROOT_DIR}/shared/references/納品物フォルダ体系.md"

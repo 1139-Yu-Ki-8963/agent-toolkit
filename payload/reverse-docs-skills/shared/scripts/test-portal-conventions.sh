@@ -336,7 +336,7 @@ check_callout_contract() {
     fail "コールアウト-重要度とアイコンの対応規律"
   fi
 
-  local design_foundation_doc="$script_dir/../references/ポータル設計基盤.html"
+  local design_foundation_doc="$script_dir/../../docs/design/ポータル設計基盤.html"
   if ! ref_exists "$design_foundation_doc"; then
     fail "コールアウト-ポータル設計基盤の外部依存規律（参照先ファイル不在: $design_foundation_doc）"
   elif grep -qF '<span class="ex">単一HTML生成</span>' "$design_foundation_doc" \

@@ -2,7 +2,7 @@
 set -euo pipefail
 
 repo_root="$(cd "$(dirname "$0")/../.." && pwd)"
-ledger="$repo_root/shared/references/改善反映台帳.md"
+ledger="$repo_root/docs/ledgers/改善反映台帳.md"
 basic_skill="$repo_root/.claude/skills/generating-reverse-basic-design/SKILL.md"
 rebuild_skill="$repo_root/.claude/skills/rebuilding-code-from-docs/SKILL.md"
 ng_contract="$repo_root/.claude/skills/rebuilding-code-from-docs/references/ng-classification.md"

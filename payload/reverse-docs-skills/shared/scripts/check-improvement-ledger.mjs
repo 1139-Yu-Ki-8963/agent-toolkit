@@ -226,7 +226,7 @@ function runCli() {
   const scriptDirectory = dirname(fileURLToPath(import.meta.url));
   const targetPath = process.argv[2]
     ? resolve(process.cwd(), process.argv[2])
-    : resolve(scriptDirectory, '../references/改善反映台帳.md');
+    : resolve(scriptDirectory, '../../docs/ledgers/改善反映台帳.md');
   const result = parseImprovementLedger(readFileSync(targetPath, 'utf8'));
   process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
   if (!result.passed) process.exitCode = 1;

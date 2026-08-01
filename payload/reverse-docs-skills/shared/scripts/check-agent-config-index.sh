@@ -136,7 +136,7 @@ if "## 後半" not in agents_text or "正確な参照パス" not in agents_text:
 # それ以外（対象リポジトリのディレクトリ構成を列挙するパス）は target_root を基準にする。
 # 旧実装は4接頭辞に一致しないパスを実在確認の対象外としていたため、対象リポジトリの
 # パス（本来の索引記載対象の大半）が一度も検証されていなかった。
-own_prefixes = (".claude/", "shared/", "README.md", "reverse-docs-overview.html")
+own_prefixes = (".claude/", "shared/", "README.md", "docs/reverse-docs-overview.html")
 for raw_path in re.findall(r"`([^`]+)`", agents_text):
     if any(mark in raw_path for mark in ("{{", "<", ">", "*")):
         continue

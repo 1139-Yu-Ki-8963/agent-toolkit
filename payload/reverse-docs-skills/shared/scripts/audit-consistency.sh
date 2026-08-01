@@ -2102,7 +2102,7 @@ elif [ -f "$REPO_ROOT_O/.claude/rules/always/publish/complete/rule.md" ]; then
   # 正本リポジトリ（reverse-docs-skills）自体の判定は basename（worktree ではリポジトリ名と
   # 一致しないため使えない）ではなく、正本にのみ存在し配布先へは同期されないファイル
   # （publish-complete 規約。sync-manifest.json の同期対象は .claude/skills・shared・
-  # README.md・reverse-docs-overview.html の4点のみで .claude/rules は含まれない）の
+  # README.md・docs/reverse-docs-overview.html の4点のみで .claude/rules は含まれない）の
   # 実在をフィンガープリントとして使う。worktree でも同一リポジトリなら実在するため正しく判定できる。
   echo "  正本リポジトリ（reverse-docs-skills）自体での実行のため検査 o をスキップします"
 elif [ ! -d "$REPO_ROOT_O/.claude/skills" ]; then

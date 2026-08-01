@@ -78,7 +78,7 @@
 
 ## 種別×工程の対応表
 
-6 種別 × 4 工程の対応状況。画面のみ全工程が確立済みで、他 5 種別は一覧生成まで対応済み（facts 抽出以降は「[段階計画](#段階計画)」の対象）。ポータルで扱う納品物カテゴリ全体（基盤情報・規約・設計書・一覧/設計図・マトリクス/対応表・AI設定資産・デザイン）は [reverse-docs-overview.html](reverse-docs-overview.html) の納品物表を正本とする。
+6 種別 × 4 工程の対応状況。画面のみ全工程が確立済みで、他 5 種別は一覧生成まで対応済み（facts 抽出以降は「[段階計画](#段階計画)」の対象）。ポータルで扱う納品物カテゴリ全体（基盤情報・規約・設計書・一覧/設計図・マトリクス/対応表・AI設定資産・デザイン）は [reverse-docs-overview.html](docs/reverse-docs-overview.html) の納品物表を正本とする。
 
 | 種別 | 一覧生成 | facts 抽出 | 設計書執筆 | 往復検証 |
 |---|---|---|---|---|
@@ -119,7 +119,7 @@
 
 画面が未開通でも、原本コードから facts を抽出し、基本設計・詳細設計まで静的リバースを完了できる。動的検証は `verification_mode` で選ぶ。既定の `single-pass` は1回だけ検証し、`docs-only` は静的リバースで終了、`iterative` を明示した場合だけ FAIL 後の再抽出・再著述・再比較を反復する。
 
-状態判定表・返却ブロック契約の正本は [contract.md](.claude/skills/orchestrating-reverse-docs-flow/references/contract.md)、唯一のグローバル順序（Phase 1〜7 / Step 1〜30）と条件分岐・back-edge metadataは [リバース工程設計.md](shared/references/リバース工程設計.md) を参照。全体ガイドは [reverse-docs-overview.html](reverse-docs-overview.html) を参照。
+状態判定表・返却ブロック契約の正本は [contract.md](.claude/skills/orchestrating-reverse-docs-flow/references/contract.md)、唯一のグローバル順序（Phase 1〜7 / Step 1〜30）と条件分岐・back-edge metadataは [リバース工程設計.md](shared/references/リバース工程設計.md) を参照。全体ガイドは [reverse-docs-overview.html](docs/reverse-docs-overview.html) を参照。
 
 ## 使い方
 
@@ -149,7 +149,7 @@ Skill(orchestrating-reverse-docs-flow)
 
 ## 段階計画
 
-確立済みの範囲と今後の拡張方針。正本は [リバース工程設計.md](shared/references/リバース工程設計.md) の「段階計画（Cycle 0〜4）」、実装順序の正本は [スキル実装計画.md](shared/references/スキル実装計画.md) を参照。各 Cycle の合格条件は既存原則を踏襲する: 異種プロジェクトでスキル無改造成立・決定的出力のみで検収。
+確立済みの範囲と今後の拡張方針。正本は [リバース工程設計.md](shared/references/リバース工程設計.md) の「段階計画（Cycle 0〜4）」、実装順序の正本は [スキル実装計画.md](docs/design/スキル実装計画.md) を参照。各 Cycle の合格条件は既存原則を踏襲する: 異種プロジェクトでスキル無改造成立・決定的出力のみで検収。
 
 | Cycle | 状態 | 内容 |
 |---|---|---|
@@ -163,11 +163,11 @@ Skill(orchestrating-reverse-docs-flow)
 
 | 文書 | 内容 |
 |---|---|
-| [reverse-docs-overview.html](reverse-docs-overview.html) | 全体ガイド（工程フロー図・スキル→成果物対応表・種別×工程の実装状況） |
+| [reverse-docs-overview.html](docs/reverse-docs-overview.html) | 全体ガイド（工程フロー図・スキル→成果物対応表・種別×工程の実装状況） |
 | [contract.md](.claude/skills/orchestrating-reverse-docs-flow/references/contract.md) | 返却ブロック契約・args 仕様・状態判定表の正本 |
 | [リバース工程設計.md](shared/references/リバース工程設計.md) | Phase/Step×スキル対応・NG 帰着 3 系統の正本 |
 | [納品物フォルダ体系.md](shared/references/納品物フォルダ体系.md) | 成果物の置き場（`<output_dir>` 配下構成）の正本 |
-| [スキル実装計画.md](shared/references/スキル実装計画.md) | 実装順序・完了条件・検証想定の正本 |
+| [スキル実装計画.md](docs/design/スキル実装計画.md) | 実装順序・完了条件・検証想定の正本 |
 | [facts-schema.md](shared/references/facts-schema.md) | facts の共有スキーマ |
 | [chapter-map.md](shared/references/chapter-map.md) | 設計書の章マップ |
 
@@ -180,7 +180,7 @@ bash shared/scripts/check-overview-consistency.sh
 bash shared/scripts/check-phase-step-structure.test.sh
 ```
 
-前者は `shared/samples/index.html` のカテゴリ JSON と `reverse-docs-overview.html` の可視表記を突合する。後者は35個のSkillのPhase/Step構造、26件の operational refs における旧番号・Phase/Step再定義の不在、統括フローのPhase 1〜7 / global Step 1〜30、正本の親Phase対応、条件分岐・Back-edgeメタデータを検査する。失敗時は値を推測して埋めず、正本（サンプル、工程設計、契約、各スキル）へ戻って原因を修正する。なお、実行環境の hook が検査スクリプトを遮断した場合は、成功扱いにせず、遮断理由と未実行の検証を受入記録へ残す。
+前者は `shared/samples/index.html` のカテゴリ JSON と `docs/reverse-docs-overview.html` の可視表記を突合する。後者は35個のSkillのPhase/Step構造、26件の operational refs における旧番号・Phase/Step再定義の不在、統括フローのPhase 1〜7 / global Step 1〜30、正本の親Phase対応、条件分岐・Back-edgeメタデータを検査する。失敗時は値を推測して埋めず、正本（サンプル、工程設計、契約、各スキル）へ戻って原因を修正する。なお、実行環境の hook が検査スクリプトを遮断した場合は、成功扱いにせず、遮断理由と未実行の検証を受入記録へ残す。
 
 各スキルの詳解ガイド:
 
