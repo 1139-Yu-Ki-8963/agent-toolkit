@@ -5,6 +5,7 @@
   - 外部リソース（CDN・画像・link）は一切使わず、完全自己完結に保つ
   - スキル個別の確定仕様は各 .claude/skills/<name>/references/<name>-guide.html を参照する
   - 納品物ツリーの構成と実装状況（Cycle 番号）の定義元は shared/references/納品物フォルダ体系.md
+  - 章構成: §1 概要 / §2 生成される成果物 / §3 スキル / §4 進め方 / §5 仕組みの裏側
 -->
 <html lang="ja">
 <head>
@@ -58,6 +59,11 @@
   .sidebar li a.current {
     border-left-color: var(--guide-accent); color: var(--guide-accent); font-weight: 700;
   }
+  .sidebar ol.toc { padding-left: 0; }
+  .sidebar ol.toc > li { margin: 12px 0; }
+  .sidebar ol.toc > li > a { font-weight: 700; }
+  .sidebar ol.toc ol { margin: 4px 0 0; }
+  .sidebar ol.toc ol a { font-size: 0.88rem; font-weight: 400; }
 
   .theme-toggle {
     display: block; width: 100%; margin: 0 0 16px; padding: 6px 10px;
@@ -87,7 +93,9 @@
     background: var(--guide-accent-2); color: #14181F; text-align: center;
     padding: 1px 8px; vertical-align: 2px;
   }
+  section section { margin-top: 40px; scroll-margin-top: 20px; }
   h3 { font-size: 1.05rem; margin: 32px 0 10px; }
+  h4 { font-size: 0.95rem; margin: 22px 0 8px; color: var(--guide-text-sub); }
   .note { color: var(--guide-text-sub); font-size: 0.92rem; }
 
   .tablewrap { overflow-x: auto; margin: 14px 0; }
@@ -187,7 +195,8 @@
       width: auto; flex: none; overflow-y: visible; position: static;
       border-right: none; border-bottom: 1px solid var(--guide-border);
     }
-    .sidebar ol { columns: 2; column-gap: 24px; }
+    .sidebar ol.toc { columns: initial; }
+    .sidebar ol.toc > li { break-inside: avoid; }
     .doc { overflow-y: visible; max-width: 100%; padding: 0 16px 64px; }
     .flowgrid { grid-template-columns: 1fr; }
     .flowstep::after { left: 24px; transform: none; }
@@ -199,15 +208,44 @@
 <nav class="sidebar">
   <button type="button" id="theme-toggle" class="theme-toggle" aria-pressed="false">表示テーマ切替</button>
   <div class="sidebar-title">目次</div>
-  <ol>
-    <li><a href="#s1">これは何か</a></li>
-    <li><a href="#s2">特徴</a></li>
-    <li><a href="#s3">入口のモード判定</a></li>
-    <li><a href="#s4">セットアップ後のリポジトリ体系</a></li>
-    <li><a href="#s5">判定原則と規約の流れ</a></li>
-    <li><a href="#s6">保守の仕組みとスキル</a></li>
-    <li><a href="#s7">納品物の作成区分</a></li>
-    <li><a href="#s8">ポータルが充実していく仕組み</a></li>
+  <ol class="toc">
+    <li><a href="#s1">§1 概要</a>
+      <ol>
+        <li><a href="#s1-1">1.1 これは何か</a></li>
+        <li><a href="#s1-2">1.2 特徴</a></li>
+        <li><a href="#s1-3">1.3 入口のモード判定</a></li>
+        <li><a href="#s1-4">1.4 取り扱い対象</a></li>
+      </ol>
+    </li>
+    <li><a href="#s2">§2 生成される成果物</a>
+      <ol>
+        <li><a href="#s2-1">2.1 リポジトリ体系</a></li>
+        <li><a href="#s2-2">2.2 プロジェクトポータル</a></li>
+        <li><a href="#s2-3">2.3 AIツール設定</a></li>
+        <li><a href="#s2-4">2.4 作成区分と判定原則</a></li>
+      </ol>
+    </li>
+    <li><a href="#s3">§3 スキル</a>
+      <ol>
+        <li><a href="#s3-1">3.1 全体の地図</a></li>
+        <li><a href="#s3-2">3.2 管理するスキル</a></li>
+        <li><a href="#s3-3">3.3 セットアップと調査のスキル</a></li>
+        <li><a href="#s3-4">3.4 リバースするスキル</a></li>
+        <li><a href="#s3-5">3.5 保守するスキル</a></li>
+      </ol>
+    </li>
+    <li><a href="#s4">§4 進め方</a>
+      <ol>
+        <li><a href="#s4-1">4.1 フェーズごとのポータル充実度</a></li>
+        <li><a href="#s4-2">4.2 工程ごとの詳細</a></li>
+      </ol>
+    </li>
+    <li><a href="#s5">§5 仕組みの裏側</a>
+      <ol>
+        <li><a href="#s5-1">5.1 規約の流れ</a></li>
+        <li><a href="#s5-2">5.2 ずれ検知</a></li>
+      </ol>
+    </li>
   </ol>
 </nav>
 
@@ -231,50 +269,93 @@
 </header>
 
 <section id="s1">
-  <h2><span class="sec-num">§1</span>これは何か</h2>
-  <p>対象リポジトリへの働きかけを 3 つの役割に分ける。役割ごとの入力と出力は次のとおり。</p>
-  <div class="tablewrap">
-  <table class="spec">
-    <tr><th>役割</th><th>入力</th><th>出力</th></tr>
-    <tr><td>セットアップ</td><td>対象リポジトリ（コードの有無を問わない）</td><td>AI が読む定義、各 AI ツールの設定フォルダ、人間向けポータル</td></tr>
-    <tr><td>リバース</td><td>既存コード</td><td>定義への事実の書き込みと、そこから導出される設計書・一覧・ポータル</td></tr>
-    <tr><td>保守</td><td>生成済みの定義と派生物</td><td>定義と派生物のずれの検知と再生成</td></tr>
-  </table>
-  </div>
-  <p class="note">統括スキル 1 本（現行名 <code>orchestrating-reverse-docs-flow</code>。<code>orchestrating-ai-development-setup</code> への改称を予定するが、本稿ではこの現行名で記す）が、セットアップとリバースとポータル生成のすべてを扱う。保守は別スキルとして枝分かれし、統括経由でも単独起動でも呼び出せる。</p>
+  <h2><span class="sec-num">§1</span>概要</h2>
+
+  <section id="s1-1">
+    <h3>1.1 これは何か</h3>
+    <p>対象リポジトリへの働きかけを 3 つの役割に分ける。役割ごとの入力と出力は次のとおり。</p>
+    <div class="tablewrap">
+    <table class="spec">
+      <tr><th>役割</th><th>入力</th><th>出力</th></tr>
+      <tr><td>セットアップ</td><td>対象リポジトリ（コードの有無を問わない）</td><td>AI が読む定義、各 AI ツールの設定フォルダ、人間向けポータル</td></tr>
+      <tr><td>リバース</td><td>既存コード</td><td>定義への事実の書き込みと、そこから導出される設計書・一覧・ポータル</td></tr>
+      <tr><td>保守</td><td>生成済みの定義と派生物</td><td>定義と派生物のずれの検知と再生成</td></tr>
+    </table>
+    </div>
+    <p class="note">統括スキル 1 本（現行名 <code>orchestrating-reverse-docs-flow</code>。<code>orchestrating-ai-development-setup</code> への改称を予定するが、本稿ではこの現行名で記す）が、セットアップとリバースとポータル生成のすべてを扱う。保守は別スキルとして枝分かれし、統括経由でも単独起動でも呼び出せる。</p>
+  </section>
+
+  <section id="s1-2">
+    <h3>1.2 特徴</h3>
+    <dl class="def">
+      <dt>プロジェクトポータル</dt>
+      <dd>人間が読む HTML の集まり。スキルを実行するたびにカードが増え、使い込むほど内容が育つ。</dd>
+      <dt>リバーススキル</dt>
+      <dd>facts（原本コードから抽出した宣言的契約の事実表）の封印と、再実装・比較による往復検証で、実装されていない機能を設計書へ書き込むことを防ぐ。</dd>
+      <dt>AI 駆動開発に必要なファイル群</dt>
+      <dd><code>AGENTS.md</code>・<code>CLAUDE.md</code>・<code>.claude/</code>・<code>.cursor/</code>・<code>.codex/</code>。同じ形式で読めるツール同士は symlink で共有し、形式が異なるツールへは変換して用意する。</dd>
+      <dt>保守の仕組み</dt>
+      <dd>規約の連動、ポータルの保守、フィンガープリント台帳による定義と派生物のずれ検知。</dd>
+    </dl>
+  </section>
+
+  <section id="s1-3">
+    <h3>1.3 入口のモード判定</h3>
+    <p>対象リポジトリのコードの有無と画面の有無から、実行するモードを 3 通りに分ける。判定はサブプロジェクト単位でも行う。モノレポではバックエンドだけのサブプロジェクトがありうるため、リポジトリ全体で 1 つのモードには決めない。</p>
+    <div class="tablewrap">
+    <table class="spec">
+      <tr><th>判定</th><th>モード</th><th>動作</th></tr>
+      <tr><td>コードなし、または設計書のみ</td><td>セットアップのみ</td><td>各 AI ツールの設定フォルダと定義の骨組みを作り、ポータルは空のカードで作る</td></tr>
+      <tr><td>コードあり、画面あり</td><td>リバース全工程</td><td>現行の工程をそのまま実行する</td></tr>
+      <tr><td>コードあり、画面なし</td><td>リバース縮退</td><td>画面に依存する工程を飛ばし、画面カードは選べない状態で表示する</td></tr>
+    </table>
+    </div>
+    <p>モードごとに、生成する成果物と生成しない成果物が分かれる。</p>
+    <div class="tablewrap">
+    <table class="spec">
+      <tr><th>成果物</th><th>セットアップのみ</th><th>リバース全工程</th><th>リバース縮退（画面なし）</th></tr>
+      <tr><td>docs の規約（空雛形）</td><td>生成する</td><td>生成する</td><td>生成する</td></tr>
+      <tr><td>AI ツール設定（アダプター）</td><td>生成する</td><td>生成する</td><td>生成する</td></tr>
+      <tr><td>ポータル</td><td>空カードの状態で生成</td><td>全カテゴリが充実</td><td>画面カードは選択できない表示。他カテゴリは充実</td></tr>
+      <tr><td>調査書と一覧と共通文書</td><td>生成しない</td><td>生成する</td><td>生成する（画面一覧は「該当なし」の記録になる）</td></tr>
+      <tr><td>画面の設計書とテスト資料</td><td>生成しない</td><td>生成する</td><td>生成しない</td></tr>
+      <tr><td>往復検証の記録</td><td>生成しない</td><td>生成する</td><td>画面の検証は生成しない</td></tr>
+      <tr><td>規約提案</td><td>生成しない（観測対象のコードがない）</td><td>生成する</td><td>生成する</td></tr>
+    </table>
+    </div>
+  </section>
+
+  <section id="s1-4">
+    <h3>1.4 取り扱い対象</h3>
+    <p>対応する AI ツールと、その設定の到達方法は次のとおり。</p>
+    <div class="tablewrap">
+    <table class="spec">
+      <tr><th>ツール</th><th>生成される設定</th><th>到達方法</th></tr>
+      <tr><td>Claude Code</td><td><code>CLAUDE.md</code>、<code>.claude/</code>（skills、settings、hooks）。納品保守スキル 3 本の実体もここ</td><td>ネイティブに読む</td></tr>
+      <tr><td>Cursor</td><td><code>.cursor/rules/</code>（front matter 付き <code>.mdc</code> を生成。素の md は無視されるため）、<code>mcp.json</code>、hooks</td><td>rules と hooks の機構で読む</td></tr>
+      <tr><td>Codex</td><td><code>AGENTS.md</code>（各階層を連結、下位優先）、<code>.codex/config.toml</code>（MCP 設定）</td><td><code>AGENTS.md</code> の索引から保守手順書へ到達する</td></tr>
+    </table>
+    </div>
+    <p>対応する言語と検出方式は次のとおり。誇張せず、未対応の範囲も明記する。</p>
+    <div class="tablewrap">
+    <table class="spec">
+      <tr><th>対象</th><th>対応の実態</th></tr>
+      <tr><td>リポジトリ走査、一覧、共通文書、ポータル</td><td>言語を問わない（決定的走査と Claude の読解。UTF-8 以外のエンコーディングにも変換対応）</td></tr>
+      <tr><td>画面の自動検出</td><td>組み込み検出は Next.js（App と Pages Router）、React Router（useRoutes 含む）、慣習ディレクトリ。その他のフレームワークはカスタム抽出（宣言した手順で Claude が抽出）で対応</td></tr>
+      <tr><td>facts 抽出（設計書の情報源）</td><td>実装済みは screen（TS と JS の画面ユニット、12 分類）と python（<code>.py</code>、6 分類、Python 3.8 以上）。API、テーブル、バッチ、帳票、外部連携の専用プロファイルは未対応（中断を返す）</td></tr>
+      <tr><td>往復検証（動的）</td><td>Web 画面前提（2 環境の worktree、ポート管理、実描画比較）</td></tr>
+    </table>
+    </div>
+  </section>
 </section>
 
 <section id="s2">
-  <h2><span class="sec-num">§2</span>特徴</h2>
-  <dl class="def">
-    <dt>プロジェクトポータル</dt>
-    <dd>人間が読む HTML の集まり。スキルを実行するたびにカードが増え、使い込むほど内容が育つ。</dd>
-    <dt>リバーススキル</dt>
-    <dd>facts（原本コードから抽出した宣言的契約の事実表）の封印と、再実装・比較による往復検証で、実装されていない機能を設計書へ書き込むことを防ぐ。</dd>
-    <dt>AI 駆動開発に必要なファイル群</dt>
-    <dd><code>AGENTS.md</code>・<code>CLAUDE.md</code>・<code>.claude/</code>・<code>.cursor/</code>・<code>.codex/</code>。同じ形式で読めるツール同士は symlink で共有し、形式が異なるツールへは変換して用意する。</dd>
-    <dt>保守の仕組み</dt>
-    <dd>規約の連動、ポータルの保守、フィンガープリント台帳による定義と派生物のずれ検知。</dd>
-  </dl>
-</section>
+  <h2><span class="sec-num">§2</span>生成される成果物</h2>
 
-<section id="s3">
-  <h2><span class="sec-num">§3</span>入口のモード判定</h2>
-  <p>対象リポジトリのコードの有無と画面の有無から、実行するモードを 3 通りに分ける。判定はサブプロジェクト単位でも行う。モノレポではバックエンドだけのサブプロジェクトがありうるため、リポジトリ全体で 1 つのモードには決めない。</p>
-  <div class="tablewrap">
-  <table class="spec">
-    <tr><th>判定</th><th>モード</th><th>動作</th></tr>
-    <tr><td>コードなし、または設計書のみ</td><td>セットアップのみ</td><td>各 AI ツールの設定フォルダと定義の骨組みを作り、ポータルは空のカードで作る</td></tr>
-    <tr><td>コードあり、画面あり</td><td>リバース全工程</td><td>現行の工程をそのまま実行する</td></tr>
-    <tr><td>コードあり、画面なし</td><td>リバース縮退</td><td>画面に依存する工程を飛ばし、画面カードは選べない状態で表示する</td></tr>
-  </table>
-  </div>
-</section>
-
-<section id="s4">
-  <h2><span class="sec-num">§4</span>セットアップ後のリポジトリ体系</h2>
-  <p>セットアップ完了後にプロジェクトへ追加される領域の完成形を示す。既存のアプリケーションコードは省略している。物理配置の定義は、AI が直接読む Markdown と根拠画像を置く <code>docs/</code>、人間向け HTML を置く <code>project-portal/</code>、各 AI ツールが定義へ到達するための派生アダプターの 3 層に分ける。</p>
-  <pre class="project-tree"><code>&lt;project-root&gt;/
+  <section id="s2-1">
+    <h3>2.1 リポジトリ体系</h3>
+    <p>セットアップ完了後にプロジェクトへ追加される領域の完成形を示す。既存のアプリケーションコードは省略している。物理配置の定義は、AI が直接読む Markdown と根拠画像を置く <code>docs/</code>、人間向け HTML を置く <code>project-portal/</code>、各 AI ツールが定義へ到達するための派生アダプターの 3 層に分ける。</p>
+    <pre class="project-tree"><code>&lt;project-root&gt;/
 ├── docs/                                      # AIが読む定義。許可する直下は rules/ と screens/ と common/ のみ
 │   ├── rules/                                 # プロジェクト規約の定義。各末端カテゴリに rule.md を置く
 │   │   ├── agent-operation/                   # AIエージェント運用
@@ -438,245 +519,383 @@
 │   └── mcp.json                               # MCPサーバー設定（派生物）
 └── .codex/
     └── config.toml                            # MCPサーバー設定（派生物）。規約と指示はAGENTS.mdの階層連結で届く</code></pre>
-  <dl class="def">
-    <dt>定義と表示名</dt>
-    <dd><code>docs/rules/</code> と <code>docs/screens/</code> は英語の機械安定パスを使い、Markdownの日本語タイトルと分類メタデータから <code>project-portal/規約/</code>・<code>project-portal/画面/</code> の日本語表示を生成する。日本語表示のためにMarkdownのファイル名を日本語へ統一する必要はない。</dd>
-    <dt>HTMLの配置</dt>
-    <dd><code>docs/</code> 配下にHTMLポータルを置かない。規約以外の一覧・共通設計・API・テーブル・バッチ・帳票・外部連携・対応表・デザインも、閲覧用成果物はすべて <code>project-portal/</code> 配下へ生成する。</dd>
-    <dt>規約本文の生成</dt>
-    <dd><code>docs/rules/</code> は型と定義だけの空雛形で納品し、コードから観測した実装慣行は規約本文へ書かない。観測は規約提案という別の成果物へ出し、取り込みの判断は現場のエンジニアが行う（取り込みスキル <code>importing-rule-proposals</code>）。</dd>
-    <dt>docs/common/の永続性</dt>
-    <dd>アーキテクチャ調査書と設計6文書（共通設計書・基盤設計・データ設計・UI共通設計・DESIGN.md・メッセージ定義書）は、再リバース時に更新され続ける永続文書として <code>docs/common/</code> に置く。規約提案とページ証跡がこの文書を参照先として指すため、消してはならない。</dd>
-    <dt>検証用出力</dt>
-    <dd>プロジェクト内に <code>verification/</code> を作らない。facts・比較ログ・スクリーンショット・往復検証の証跡、および作業記録・サンプル記録が必要な処理は、作成前に「リバース検証用の一時成果物を保存するフォルダを作成します。プロジェクト外の出力先を指定してください」と説明し、Claude Code は <code>AskUserQuestion</code>、Codex は <code>request_user_input</code> で保存先を確認する。確認ツールを利用できない場合は <code>OUTPUT_PATH_REQUIRED</code> で停止する。</dd>
-  </dl>
+    <dl class="def">
+      <dt>定義と表示名</dt>
+      <dd><code>docs/rules/</code> と <code>docs/screens/</code> は英語の機械安定パスを使い、Markdownの日本語タイトルと分類メタデータから <code>project-portal/規約/</code>・<code>project-portal/画面/</code> の日本語表示を生成する。日本語表示のためにMarkdownのファイル名を日本語へ統一する必要はない。</dd>
+      <dt>HTMLの配置</dt>
+      <dd><code>docs/</code> 配下にHTMLポータルを置かない。規約以外の一覧・共通設計・API・テーブル・バッチ・帳票・外部連携・対応表・デザインも、閲覧用成果物はすべて <code>project-portal/</code> 配下へ生成する。</dd>
+      <dt>規約本文の生成</dt>
+      <dd><code>docs/rules/</code> は型と定義だけの空雛形で納品し、コードから観測した実装慣行は規約本文へ書かない。観測は規約提案という別の成果物へ出し、取り込みの判断は現場のエンジニアが行う（取り込みスキル <code>importing-rule-proposals</code>）。</dd>
+      <dt>docs/common/の永続性</dt>
+      <dd>アーキテクチャ調査書と設計6文書（共通設計書・基盤設計・データ設計・UI共通設計・DESIGN.md・メッセージ定義書）は、再リバース時に更新され続ける永続文書として <code>docs/common/</code> に置く。規約提案とページ証跡がこの文書を参照先として指すため、消してはならない。</dd>
+      <dt>検証用出力</dt>
+      <dd>プロジェクト内に <code>verification/</code> を作らない。facts・比較ログ・スクリーンショット・往復検証の証跡、および作業記録・サンプル記録が必要な処理は、作成前に「リバース検証用の一時成果物を保存するフォルダを作成します。プロジェクト外の出力先を指定してください」と説明し、Claude Code は <code>AskUserQuestion</code>、Codex は <code>request_user_input</code> で保存先を確認する。確認ツールを利用できない場合は <code>OUTPUT_PATH_REQUIRED</code> で停止する。</dd>
+    </dl>
+  </section>
+
+  <section id="s2-2">
+    <h3>2.2 プロジェクトポータル</h3>
+    <p><code>project-portal/</code> 配下に生成する、人間が読むための HTML の集まりである。<code>docs/</code> の配下にはポータルを置かず、規約以外の一覧・共通設計・API・テーブル・バッチ・帳票・外部連携・対応表・デザインも、閲覧用の成果物はすべて <code>project-portal/</code> へ生成する（配置定義は §2.1 を参照）。スキルを実行するたびにカードが増え、使い込むほど内容が育つ。</p>
+  </section>
+
+  <section id="s2-3">
+    <h3>2.3 AIツール設定</h3>
+    <p>各 AI ツールが <code>docs/</code> の定義へ到達するための派生アダプター一式。<code>AGENTS.md</code>・<code>CLAUDE.md</code>・<code>.claude/</code>・<code>.cursor/</code>・<code>.codex/</code> がこれにあたる。同じ形式で読めるツール同士は symlink で共有し、形式が異なるツールへは変換して用意する（<code>.cursor/rules/</code> は front matter 付き <code>.mdc</code> への変換、<code>.codex/config.toml</code> は MCP サーバー設定を持ち、規約と指示は <code>AGENTS.md</code> の階層連結で届く）。</p>
+  </section>
+
+  <section id="s2-4">
+    <h3>2.4 作成区分と判定原則</h3>
+    <p>この表は、リバース対象プロジェクトへ納品する成果物を、<strong>コード・設定・実測から事実を記入するもの</strong>と、<strong>構造だけをテンプレートとして作成し、現場の明示的な根拠・判断・承認を後から記入するもの</strong>に分けた一覧である。テンプレート専用の行には、架空の値・架空の規約・架空のサンプルを入れない。根拠が揃わない項目は空欄、対象外、または未確定として扱う。</p>
+    <div class="legend"><span class="tag reverse">リバース記入</span> コード・設定・facts・実測などの根拠から記入　<span class="tag template">テンプレートのみ</span> 構造だけを納品し、現場の根拠・判断後に記入</div>
+    <div class="tablewrap">
+    <table class="spec">
+      <tr><th>ポータルカテゴリ</th><th>納品物</th><th>正本 / 出力パス</th><th>作成区分</th><th>記入する情報源・条件</th></tr>
+      <tr><th colspan="5">共通 — 基盤情報</th></tr>
+      <tr><td>基盤情報</td><td>技術スタック</td><td><code>project-portal/技術スタック.html</code></td><td><span class="tag reverse">リバース記入</span></td><td>package manifest、lockfile、設定、実行環境、依存関係から確認できる値だけ。</td></tr>
+      <tr><td>基盤情報</td><td>環境構築手順</td><td><code>project-portal/環境構築手順.html</code></td><td><span class="tag reverse">根拠がある手順のみ</span><br><span class="tag template">未確認手順はテンプレート</span></td><td>README、セットアップスクリプト、設定、実行検証から再現できる手順だけ。</td></tr>
+      <tr><td>基盤情報</td><td>用語辞書</td><td><code>project-portal/用語辞書.html</code></td><td><span class="tag reverse">実在語のみ記入</span><br><span class="tag template">定義不明はテンプレート</span></td><td>識別子、画面ラベル、メッセージ、既存文書に現れる語だけ。業務定義や略語の意味を推測しない。</td></tr>
+      <tr><td>基盤情報</td><td>リリースノート</td><td><code>project-portal/リリースノート.html</code></td><td><span class="tag reverse">履歴がある場合のみ</span><br><span class="tag template">履歴なしはテンプレート</span></td><td>Git履歴、タグ、CHANGELOG、リリース記録など実在する変更証跡だけ。</td></tr>
+      <tr><th colspan="5">共通 — 規約</th></tr>
+      <tr><td>規約</td><td>AIエージェント運用</td><td><code>project-portal/規約/AIエージェント運用.html</code></td><td><span class="tag template">テンプレートのみ</span></td><td>対応する英語カテゴリ名が未確定のため docs/rules のパスは空欄とする。明示された規約・運用文書・承認がない限り記入しない。</td></tr>
+      <tr><td>規約</td><td>安全な操作</td><td><code>project-portal/規約/安全な操作.html</code></td><td><span class="tag template">テンプレートのみ</span></td><td>対応する英語カテゴリ名が未確定のため docs/rules のパスは空欄とする。明示された規約・運用文書・承認がない限り記入しない。</td></tr>
+      <tr><td>規約</td><td>セッション管理</td><td><code>project-portal/規約/セッション管理.html</code></td><td><span class="tag template">テンプレートのみ</span></td><td>対応する英語カテゴリ名が未確定のため docs/rules のパスは空欄とする。明示された規約・運用文書・承認がない限り記入しない。</td></tr>
+      <tr><td>規約</td><td>AI設定資産管理</td><td><code>project-portal/規約/AI設定資産管理.html</code></td><td><span class="tag template">テンプレートのみ</span></td><td>対応する英語カテゴリ名が未確定のため docs/rules のパスは空欄とする。明示された規約・運用文書・承認がない限り記入しない。</td></tr>
+      <tr><td>規約</td><td>定型運用</td><td><code>project-portal/規約/定型運用.html</code></td><td><span class="tag template">テンプレートのみ</span></td><td>対応する英語カテゴリ名が未確定のため docs/rules のパスは空欄とする。明示された規約・運用文書・承認がない限り記入しない。</td></tr>
+      <tr><td>規約</td><td>開発フロー</td><td><code>project-portal/規約/開発フロー.html</code></td><td><span class="tag template">テンプレートのみ</span></td><td>対応する英語カテゴリ名が未確定のため docs/rules のパスは空欄とする。明示された規約・運用文書・承認がない限り記入しない。</td></tr>
+      <tr><td>規約</td><td>ツール・コマンド実行</td><td><code>project-portal/規約/ツール・コマンド実行.html</code></td><td><span class="tag template">テンプレートのみ</span></td><td>対応する英語カテゴリ名が未確定のため docs/rules のパスは空欄とする。明示された規約・運用文書・承認がない限り記入しない。</td></tr>
+      <tr><td>規約</td><td>開発環境</td><td><code>project-portal/規約/開発環境.html</code></td><td><span class="tag template">テンプレートのみ</span></td><td>対応する英語カテゴリ名が未確定のため docs/rules のパスは空欄とする。明示された規約・運用文書・承認がない限り記入しない。</td></tr>
+      <tr><td>規約</td><td>Git運用</td><td><code>project-portal/規約/Git運用.html</code></td><td><span class="tag template">テンプレートのみ</span></td><td>対応する英語カテゴリ名が未確定のため docs/rules のパスは空欄とする。明示された規約・運用文書・承認がない限り記入しない。</td></tr>
+      <tr><td>規約</td><td>デリバリー</td><td><code>project-portal/規約/デリバリー.html</code></td><td><span class="tag template">テンプレートのみ</span></td><td>対応する英語カテゴリ名が未確定のため docs/rules のパスは空欄とする。明示された規約・運用文書・承認がない限り記入しない。</td></tr>
+      <tr><td>規約</td><td>コーディング規約</td><td><code>project-portal/規約/コーディング規約.html</code><br><code>docs/rules/coding/&lt;scope&gt;/rule.md</code></td><td><span class="tag template">テンプレートのみ</span></td><td><code>docs/rules/coding/</code> は型と定義だけの空雛形。実装例の観測は規約本文へ書かず、規約提案として出す。取り込みの判断は現場のエンジニアが行う。</td></tr>
+      <tr><td>規約</td><td>命名規約</td><td><code>project-portal/規約/命名規約.html</code><br><code>docs/rules/naming/</code></td><td><span class="tag template">テンプレートのみ</span></td><td><code>docs/rules/naming/</code> は型と定義だけの空雛形。実在する名前・パターンの観測は規約提案として出す。</td></tr>
+      <tr><td>規約</td><td>ディレクトリ構成規約</td><td><code>project-portal/規約/ディレクトリ構成規約.html</code><br><code>docs/rules/placement/</code></td><td><span class="tag template">テンプレートのみ</span></td><td><code>docs/rules/placement/</code> は型と定義だけの空雛形。実在する配置例の観測は規約提案として出す。</td></tr>
+      <tr><td>規約</td><td>コンポーネント設計規約</td><td><code>project-portal/規約/コンポーネント設計規約.html</code><br><code>docs/rules/architecture/</code></td><td><span class="tag template">テンプレートのみ</span></td><td><code>docs/rules/architecture/</code> は型と定義だけの空雛形。実装パターンの観測は規約提案として出す。設計意図を推測しない。</td></tr>
+      <tr><td>規約</td><td>テスト方針書</td><td><code>project-portal/規約/テスト方針書.html</code><br><code>docs/rules/testing/</code></td><td><span class="tag template">テンプレートのみ</span></td><td>品質基準・カバレッジ・テスト方針はコードから確定しない。</td></tr>
+      <tr><td>規約</td><td>レビュー観点表</td><td><code>project-portal/規約/レビュー観点表.html</code><br><code>docs/rules/review/</code></td><td><span class="tag template">テンプレートのみ</span></td><td>明示されたレビュー規約・承認済み基準がある場合だけ記入する。</td></tr>
+      <tr><td>規約</td><td>セキュリティ</td><td><code>project-portal/規約/セキュリティ.html</code></td><td><span class="tag template">テンプレートのみ</span></td><td>対応する英語カテゴリ名が未確定のため docs/rules のパスは空欄とする。明示された規約・運用文書・承認がない限り記入しない。</td></tr>
+      <tr><td>規約</td><td>ドキュメント</td><td><code>project-portal/規約/ドキュメント.html</code></td><td><span class="tag template">テンプレートのみ</span></td><td>対応する英語カテゴリ名が未確定のため docs/rules のパスは空欄とする。明示された規約・運用文書・承認がない限り記入しない。</td></tr>
+      <tr><td>規約</td><td>ポータル</td><td><code>project-portal/規約/ポータル.html</code></td><td><span class="tag template">テンプレートのみ</span></td><td>対応する英語カテゴリ名が未確定のため docs/rules のパスは空欄とする。明示された規約・運用文書・承認がない限り記入しない。</td></tr>
+      <tr><td>規約</td><td>コミュニケーション</td><td><code>project-portal/規約/コミュニケーション.html</code></td><td><span class="tag template">テンプレートのみ</span></td><td>対応する英語カテゴリ名が未確定のため docs/rules のパスは空欄とする。明示された規約・運用文書・承認がない限り記入しない。</td></tr>
+      <tr><th colspan="5">共通 — 設計書</th></tr>
+      <tr><td>設計書</td><td>基盤設計書</td><td><code>project-portal/プロジェクト共通/基盤設計.html</code></td><td><span class="tag reverse">実装構造のみ</span><br><span class="tag template">意図・要求はテンプレート</span></td><td>フレームワーク構成、ビルド、デプロイ、認証方式の実態だけ。</td></tr>
+      <tr><td>設計書</td><td>共通設計書</td><td><code>project-portal/プロジェクト共通/共通設計書.html</code></td><td><span class="tag reverse">リバース記入</span></td><td>ログ、エラーコード、共通レスポンスなど実装に現れる共通構造だけ。</td></tr>
+      <tr><td>設計書</td><td>データ設計書</td><td><code>project-portal/プロジェクト共通/データ設計.html</code></td><td><span class="tag reverse">構造のみ</span><br><span class="tag template">意味はテンプレート</span></td><td>スキーマ、型、制約、参照関係は定義から。業務上の意味は推測しない。</td></tr>
+      <tr><td>設計書</td><td>メッセージ定義書</td><td><code>project-portal/プロジェクト共通/メッセージ定義書.html</code></td><td><span class="tag reverse">リバース記入</span></td><td>実在する識別子、文言、表示箇所だけ。</td></tr>
+      <tr><td>設計書</td><td>UI共通設計書</td><td><code>project-portal/プロジェクト共通/UI共通設計.html</code></td><td><span class="tag reverse">実装要素のみ</span><br><span class="tag template">意図はテンプレート</span></td><td>トークン、スタイル、共通コンポーネントなど実装に存在するものだけ。</td></tr>
+      <tr><th colspan="5">一覧 — 一覧・設計図</th></tr>
+      <tr><td>一覧・設計図</td><td>画面一覧</td><td><code>project-portal/一覧/画面一覧/画面一覧.html</code></td><td><span class="tag reverse">リバース記入</span></td><td>画面レジストリと実在する画面実体から生成する。</td></tr>
+      <tr><td>一覧・設計図</td><td>画面遷移図</td><td><code>project-portal/画面遷移図.html</code></td><td><span class="tag reverse">リバース記入</span></td><td>ルーティング、リンク、ナビゲーション、実測で確認できる遷移だけ。</td></tr>
+      <tr><td>一覧・設計図</td><td>API一覧</td><td><code>project-portal/一覧/API一覧/API一覧.html</code></td><td><span class="tag reverse">リバース記入</span></td><td>ルート、ハンドラ、schema、呼出元など実在する定義から生成する。</td></tr>
+      <tr><td>一覧・設計図</td><td>バッチ一覧</td><td><code>project-portal/一覧/バッチ一覧/バッチ一覧.html</code></td><td><span class="tag reverse">リバース記入</span></td><td>ジョブ定義、スケジュール、起動処理など実在する定義から生成する。</td></tr>
+      <tr><td>一覧・設計図</td><td>テーブル一覧</td><td><code>project-portal/一覧/テーブル一覧/テーブル一覧.html</code></td><td><span class="tag reverse">リバース記入</span></td><td>DDL、ORM、migration、参照定義など実在する定義から生成する。</td></tr>
+      <tr><td>一覧・設計図</td><td>ER図</td><td><code>project-portal/ER図.html</code></td><td><span class="tag reverse">リバース記入</span></td><td>schema、外部キー、ORM、migrationなど実在する関係だけ。</td></tr>
+      <tr><td>一覧・設計図</td><td>状態遷移図</td><td><code>project-portal/状態遷移図.html</code></td><td><span class="tag reverse">根拠がある場合のみ</span><br><span class="tag template">根拠がない場合はテンプレート</span></td><td>状態値、分岐、イベント、遷移処理が確認できる場合だけ。</td></tr>
+      <tr><td>一覧・設計図</td><td>帳票一覧</td><td><code>project-portal/一覧/帳票一覧/帳票一覧.html</code></td><td><span class="tag reverse">リバース記入</span></td><td>帳票実体、テンプレート、出力処理など確認できるものだけ。</td></tr>
+      <tr><td>一覧・設計図</td><td>外部連携一覧</td><td><code>project-portal/一覧/外部連携一覧/外部連携一覧.html</code></td><td><span class="tag reverse">リバース記入</span></td><td>クライアント、接続設定、schema、送受信処理など実在する定義から生成する。</td></tr>
+      <tr><td>一覧・設計図</td><td>機能一覧</td><td><code>project-portal/一覧/機能一覧/機能一覧.html</code></td><td><span class="tag reverse">導出記入</span></td><td>画面・API・コード上の機能単位など導出元が存在するものだけ。</td></tr>
+      <tr><td>一覧・設計図</td><td>メッセージ一覧</td><td><code>project-portal/一覧/メッセージ一覧/メッセージ一覧.html</code></td><td><span class="tag reverse">導出記入</span></td><td>コード・設定・メッセージ定義に実在する識別子と文言だけ。</td></tr>
+      <tr><td>一覧・設計図</td><td>テスト観点表</td><td><code>project-portal/一覧/テスト観点表/テスト観点表.html</code></td><td><span class="tag reverse">根拠がある場合のみ</span><br><span class="tag template">根拠がない場合はテンプレート</span></td><td>既存テスト・分岐・バリデーション・実測から確認できる観点だけ。</td></tr>
+      <tr><td>一覧・設計図</td><td>テストケース一覧</td><td><code>project-portal/一覧/テストケース一覧/テストケース一覧.html</code></td><td><span class="tag reverse">既存ケースのみ</span><br><span class="tag template">新規ケースはテンプレート</span></td><td>既存の単体・結合・操作シナリオ仕様だけを集約する。</td></tr>
+      <tr><th colspan="5">一覧 — マトリクス・対応表</th></tr>
+      <tr><td>マトリクス・対応表</td><td>権限画面マトリクス</td><td><code>project-portal/マトリクス・対応表/権限画面マトリクス/権限画面マトリクス.html</code></td><td><span class="tag reverse">根拠がある場合のみ</span><br><span class="tag template">未確定時はテンプレート</span></td><td>認証・認可設定と画面経路が確認できる場合だけ。</td></tr>
+      <tr><td>マトリクス・対応表</td><td>権限機能マトリクス</td><td><code>project-portal/マトリクス・対応表/権限機能マトリクス/権限機能マトリクス.html</code></td><td><span class="tag reverse">根拠がある場合のみ</span><br><span class="tag template">未確定時はテンプレート</span></td><td>認可処理と機能実体の対応が確認できる場合だけ。</td></tr>
+      <tr><td>マトリクス・対応表</td><td>CRUD図</td><td><code>project-portal/マトリクス・対応表/CRUD図/CRUD図.html</code></td><td><span class="tag reverse">リバース記入</span></td><td>実装された作成・参照・更新・削除処理と対象データの対応だけ。</td></tr>
+      <tr><td>マトリクス・対応表</td><td>追跡可能性</td><td><code>project-portal/マトリクス・対応表/追跡可能性/追跡可能性.html</code></td><td><span class="tag reverse">根拠がある場合のみ</span><br><span class="tag template">未確定時はテンプレート</span></td><td>要求・設計・実装・テストの各証跡が実在する場合だけ。</td></tr>
+      <tr><th colspan="5">ツール — AI設定資産</th></tr>
+      <tr><td>AI設定資産</td><td>AI設定資産</td><td><code>project-portal/AI設定資産/AI設定資産.html</code></td><td><span class="tag reverse">正本から派生生成</span></td><td>実在するrules、skills、agents、hooks、routinesのmanifestと正確なパスから生成する。</td></tr>
+      <tr><th colspan="5">ツール — デザイン</th></tr>
+      <tr><td>デザイン</td><td>デザインシステム</td><td><code>project-portal/デザインシステム.html</code></td><td><span class="tag reverse">実装要素のみ</span><br><span class="tag template">意図・評価はテンプレート</span></td><td>トークン、スタイル、コンポーネント、使用箇所など実装に存在するものだけ。</td></tr>
+      <tr><td>デザイン</td><td>コンポーネント棚卸し</td><td><code>project-portal/コンポーネント棚卸し.html</code></td><td><span class="tag reverse">リバース記入</span></td><td>実在するコンポーネント、props、使用箇所、重複をコードから記入する。</td></tr>
+      <tr><td>デザイン</td><td>アイコンカタログ</td><td><code>project-portal/アイコンカタログ.html</code></td><td><span class="tag reverse">リバース記入</span></td><td>実在するアイコン資産、名前、参照箇所だけ。</td></tr>
+      <tr><th colspan="5">サンプル掲載外 — 正本・個別資料</th></tr>
+      <tr><td>サンプル掲載外</td><td>プロジェクト索引</td><td><code>AGENTS.md</code><br><code>CLAUDE.md</code></td><td><span class="tag reverse">前半はリバース</span><br><span class="tag template">後半はテンプレート</span></td><td>前半はリポジトリ分析で確定。規約本文は記載せず、AGENTS.mdだけが後半の読み込みを持つ。</td></tr>
+      <tr><td>サンプル掲載外</td><td>画面正本・個別画面資料</td><td><code>docs/screens/reverse-screen-registry.yml</code><br><code>docs/screens/screen-&lt;screen-id&gt;/</code></td><td><span class="tag reverse">根拠がある範囲のみ</span><br><span class="tag template">要求・業務判断はテンプレート</span></td><td>画面基本設計、詳細設計、テスト観点、テスト仕様、操作シナリオ、sequence-data、画像を個別ファイルとして保持する。</td></tr>
+      <tr><td>サンプル掲載外</td><td>種別別個別設計資料</td><td><code>project-portal/API/</code>・<code>テーブル/</code>・<code>バッチ/</code>・<code>帳票/</code>・<code>外部連携/</code></td><td><span class="tag reverse">実装構造のみ</span><br><span class="tag template">業務意味・契約はテンプレート</span></td><td>API、テーブル、バッチ、帳票、外部連携の基本・詳細設計は、サンプルのトップカテゴリにはない個別資料として管理する。</td></tr>
+      <tr><td>サンプル掲載外</td><td>ポータル索引</td><td><code>project-portal/index.html</code></td><td><span class="tag reverse">正本から派生生成</span></td><td>サンプルのカテゴリJSON、実在ファイル、生成規約から生成する。架空の件数・リンクを手入力しない。</td></tr>
+    </table>
+    </div>
+    <p class="note">「テンプレートのみ」は空の構造・列・見出しだけを納品するという意味であり、もっともらしい値を埋めたサンプルを納品する意味ではない。現場で根拠が確認できた時点で、テンプレートへ事実を記入する。</p>
+    <p class="note"><strong>判定原則:</strong> コードから直接確認できる構造・値・参照はリバース記入可。コードから業務目的、設計意図、要求水準、規範、承認事項を補うことは禁止。規約は、明示された規約・運用文書・承認がない限り「観測された実装慣行」に留め、<code>docs/rules/</code> の規範として確定しない。</p>
+  </section>
+</section>
+
+<section id="s3">
+  <h2><span class="sec-num">§3</span>スキル</h2>
+
+  <section id="s3-1">
+    <h3>3.1 全体の地図</h3>
+    <p>スキル群を役割で 4 つに分ける。詳細は 3.2〜3.5 で表にする。</p>
+    <div class="tablewrap">
+    <table class="spec">
+      <tr><th>スキル群</th><th>件数</th><th>概要</th></tr>
+      <tr><td>管理する</td><td>3 本</td><td>工程の統括、画面単位の無人一括運転、改善課題の登録と優先順位付けを担う。</td></tr>
+      <tr><td>セットアップと調査</td><td>4 本</td><td>対象リポジトリの構造・実行環境・規模を調査し、後続工程の前提を確定する。</td></tr>
+      <tr><td>リバースする</td><td>30 本</td><td>既存コードから一覧・基盤ページ・図と対応表・設計書を書き起こし、往復検証で裏付ける中核群。</td></tr>
+      <tr><td>保守する</td><td>3 本</td><td>生成済みの定義と派生物を対象リポジトリへ届け、片側編集によるずれを検知・復旧する。</td></tr>
+    </table>
+    </div>
+  </section>
+
+  <section id="s3-2">
+    <h3>3.2 管理するスキル</h3>
+    <div class="tablewrap">
+    <table class="spec">
+      <tr><th>スキル</th><th>役割</th></tr>
+      <tr><td><code><a href=".claude/skills/orchestrating-reverse-docs-flow/references/orchestrating-reverse-docs-flow-guide.html">orchestrating-reverse-docs-flow</a></code></td><td>リバース設計書往復検証フローの進行を統括する。</td></tr>
+      <tr><td><code><a href=".claude/skills/running-reverse-screen-batch/references/running-reverse-screen-batch-guide.html">running-reverse-screen-batch</a></code></td><td>画面単位のリバース設計検証を無人バッチで実行する。</td></tr>
+      <tr><td><code><a href=".claude/skills/prioritizing-improvement-tasks-from-images/references/prioritizing-improvement-tasks-from-images-guide.html">prioritizing-improvement-tasks-from-images</a></code></td><td>画像から改善課題を台帳へ登録し、調査してグループ化・優先順位付けする。</td></tr>
+    </table>
+    </div>
+  </section>
+
+  <section id="s3-3">
+    <h3>3.3 セットアップと調査のスキル</h3>
+    <div class="tablewrap">
+    <table class="spec">
+      <tr><th>スキル</th><th>役割</th></tr>
+      <tr><td><code><a href=".claude/skills/surveying-architecture-for-reverse-docs/references/surveying-architecture-for-reverse-docs-guide.html">surveying-architecture-for-reverse-docs</a></code></td><td>既存リポジトリを走査し、アーキテクチャ調査書を機械検証付きで確定する。</td></tr>
+      <tr><td><code><a href=".claude/skills/surveying-local-environment/references/surveying-local-environment-guide.html">surveying-local-environment</a></code></td><td>OS・パッケージ管理・開発ツールを調査して JSON 出力する。</td></tr>
+      <tr><td><code><a href=".claude/skills/counting-code-lines/references/counting-code-lines-guide.html">counting-code-lines</a></code></td><td>コード行数・ファイル数を FE / BE 別に計測して JSON 出力する。</td></tr>
+      <tr><td><code><a href=".claude/skills/generating-agent-config-index-from-repo/references/generating-agent-config-index-from-repo-guide.html">generating-agent-config-index-from-repo</a></code></td><td>リポジトリ分析から <code>AGENTS.md</code>・<code>CLAUDE.md</code> の索引を生成する。</td></tr>
+    </table>
+    </div>
+  </section>
+
+  <section id="s3-4">
+    <h3>3.4 リバースするスキル</h3>
+    <p>既存コードから一覧・基盤ページ・図と対応表・設計書を書き起こし、往復検証で裏付ける 30 本を、5 つの小分類で紹介する。</p>
+
+    <h4>一覧（10 本）</h4>
+    <div class="tablewrap">
+    <table class="spec">
+      <tr><th>スキル</th><th>役割</th></tr>
+      <tr><td><code><a href=".claude/skills/generating-screen-list-for-reverse-docs/references/generating-screen-list-for-reverse-docs-guide.html">generating-screen-list-for-reverse-docs</a></code></td><td>画面一覧フォルダと画面一覧 HTML を生成する。</td></tr>
+      <tr><td><code><a href=".claude/skills/generating-api-list-for-reverse-docs/references/generating-api-list-for-reverse-docs-guide.html">generating-api-list-for-reverse-docs</a></code></td><td>API 一覧フォルダと API 一覧 HTML を生成する。</td></tr>
+      <tr><td><code><a href=".claude/skills/generating-table-list-for-reverse-docs/references/generating-table-list-for-reverse-docs-guide.html">generating-table-list-for-reverse-docs</a></code></td><td>テーブル一覧フォルダとテーブル一覧 HTML を生成する。</td></tr>
+      <tr><td><code><a href=".claude/skills/generating-batch-list-for-reverse-docs/references/generating-batch-list-for-reverse-docs-guide.html">generating-batch-list-for-reverse-docs</a></code></td><td>バッチ一覧フォルダとバッチ一覧 HTML を生成する。</td></tr>
+      <tr><td><code><a href=".claude/skills/generating-report-list-for-reverse-docs/references/generating-report-list-for-reverse-docs-guide.html">generating-report-list-for-reverse-docs</a></code></td><td>帳票一覧フォルダと帳票一覧 HTML を生成する。</td></tr>
+      <tr><td><code><a href=".claude/skills/generating-external-list-for-reverse-docs/references/generating-external-list-for-reverse-docs-guide.html">generating-external-list-for-reverse-docs</a></code></td><td>外部連携一覧フォルダと外部連携一覧 HTML を生成する。</td></tr>
+      <tr><td><code><a href=".claude/skills/generating-feature-list-for-reverse-docs/references/generating-feature-list-for-reverse-docs-guide.html">generating-feature-list-for-reverse-docs</a></code></td><td>画面・API など既存の一覧から機能一覧 HTML を導出生成する。</td></tr>
+      <tr><td><code><a href=".claude/skills/generating-message-list-for-reverse-docs/references/generating-message-list-for-reverse-docs-guide.html">generating-message-list-for-reverse-docs</a></code></td><td>メッセージ定義書を manifest 化してメッセージ一覧 HTML を生成する。</td></tr>
+      <tr><td><code><a href=".claude/skills/generating-test-case-list-for-reverse-docs/references/test-cases.md">generating-test-case-list-for-reverse-docs</a></code></td><td>画面ごとのテスト仕様書を横断集約し、テストケース一覧 HTML を生成する。</td></tr>
+      <tr><td><code><a href=".claude/skills/generating-test-viewpoint-list-for-reverse-docs/references/generating-test-viewpoint-list-for-reverse-docs-guide.html">generating-test-viewpoint-list-for-reverse-docs</a></code></td><td>画面ごとのテスト観点表を横断集約し、テスト観点表 HTML を生成する。</td></tr>
+    </table>
+    </div>
+
+    <h4>基盤ページ（7 本）</h4>
+    <div class="tablewrap">
+    <table class="spec">
+      <tr><th>スキル</th><th>役割</th></tr>
+      <tr><td><code><a href=".claude/skills/generating-tech-stack-for-reverse-docs/references/generating-tech-stack-for-reverse-docs-guide.html">generating-tech-stack-for-reverse-docs</a></code></td><td>調査書と定義ファイルの実測突合から技術スタックページを生成する。</td></tr>
+      <tr><td><code><a href=".claude/skills/generating-env-guide-for-reverse-docs/references/generating-env-guide-for-reverse-docs-guide.html">generating-env-guide-for-reverse-docs</a></code></td><td>調査書とローカル環境調査結果から環境構築手順ページを生成する。</td></tr>
+      <tr><td><code><a href=".claude/skills/generating-glossary-for-reverse-docs/references/generating-glossary-for-reverse-docs-guide.html">generating-glossary-for-reverse-docs</a></code></td><td>層化サンプリングによる採録から用語辞書ページを生成する。</td></tr>
+      <tr><td><code><a href=".claude/skills/generating-release-notes-for-reverse-docs/references/generating-release-notes-for-reverse-docs-guide.html">generating-release-notes-for-reverse-docs</a></code></td><td>対象リポジトリの git log からリリースノート HTML を生成する。</td></tr>
+      <tr><td><code><a href=".claude/skills/generating-design-system-for-reverse-docs/references/generating-design-system-for-reverse-docs-guide.html">generating-design-system-for-reverse-docs</a></code></td><td>共通 <code>DESIGN.md</code> の CSS トークンを抽出し、デザインシステム HTML を生成する。</td></tr>
+      <tr><td><code><a href=".claude/skills/generating-component-inventory-for-reverse-docs/references/generating-component-inventory-for-reverse-docs-guide.html">generating-component-inventory-for-reverse-docs</a></code></td><td>対象リポジトリのコンポーネントファイルを走査し、棚卸し HTML を生成する。</td></tr>
+      <tr><td><code><a href=".claude/skills/generating-icon-catalog-for-reverse-docs/references/generating-icon-catalog-for-reverse-docs-guide.html">generating-icon-catalog-for-reverse-docs</a></code></td><td>対象リポジトリの JSX / HTML からアイコン参照を抽出し、カタログ HTML を生成する。</td></tr>
+    </table>
+    </div>
+
+    <h4>図と対応表（5 本）</h4>
+    <div class="tablewrap">
+    <table class="spec">
+      <tr><th>スキル</th><th>役割</th></tr>
+      <tr><td><code><a href=".claude/skills/generating-er-diagram-for-reverse-docs/references/generating-er-diagram-for-reverse-docs-guide.html">generating-er-diagram-for-reverse-docs</a></code></td><td>テーブル一覧と外部キー定義から ER 図を機械生成する。</td></tr>
+      <tr><td><code><a href=".claude/skills/generating-screen-transition-for-reverse-docs/references/generating-screen-transition-for-reverse-docs-guide.html">generating-screen-transition-for-reverse-docs</a></code></td><td>画面一覧マニフェストとコード内のルーティング定義から画面遷移図を生成する。</td></tr>
+      <tr><td><code><a href=".claude/skills/generating-sequence-diagram-for-reverse-docs/references/generating-sequence-diagram-for-reverse-docs-guide.html">generating-sequence-diagram-for-reverse-docs</a></code></td><td>画面フォルダに操作単位のシーケンス図 HTML を機械生成する。</td></tr>
+      <tr><td><code><a href=".claude/skills/generating-entity-state-for-reverse-docs/references/generating-entity-state-for-reverse-docs-guide.html">generating-entity-state-for-reverse-docs</a></code></td><td>データ設計.md の状態遷移表から状態遷移図を機械生成する。</td></tr>
+      <tr><td><code><a href=".claude/skills/generating-cross-views-for-reverse-docs/references/generating-cross-views-for-reverse-docs-guide.html">generating-cross-views-for-reverse-docs</a></code></td><td>manifest 群からマトリクス・対応表と AI 設定資産ページを機械生成する。</td></tr>
+    </table>
+    </div>
+
+    <h4>設計書（4 本）</h4>
+    <div class="tablewrap">
+    <table class="spec">
+      <tr><th>スキル</th><th>役割</th></tr>
+      <tr><td><code><a href=".claude/skills/generating-reverse-common-docs/references/generating-reverse-common-docs-guide.html">generating-reverse-common-docs</a></code></td><td>対象コードから層化サンプリングでプロジェクト共通 10 文書の v0 を採録する。</td></tr>
+      <tr><td><code><a href=".claude/skills/extracting-unit-facts-from-code/references/extracting-unit-facts-from-code-guide.html">extracting-unit-facts-from-code</a></code></td><td>原本コードから宣言的契約 facts を抽出し、独立再計数・封印まで完走する。</td></tr>
+      <tr><td><code><a href=".claude/skills/generating-reverse-basic-design/references/generating-reverse-basic-design-guide.html">generating-reverse-basic-design</a></code></td><td>封印済み facts から業務語彙のみで基本設計書を執筆する。</td></tr>
+      <tr><td><code><a href=".claude/skills/generating-reverse-detailed-design/references/generating-reverse-detailed-design-guide.html">generating-reverse-detailed-design</a></code></td><td>封印済み facts と共通文書から画面詳細設計書を執筆する。</td></tr>
+    </table>
+    </div>
+
+    <h4>往復検証（4 本）</h4>
+    <div class="tablewrap">
+    <table class="spec">
+      <tr><th>スキル</th><th>役割</th></tr>
+      <tr><td><code><a href=".claude/skills/syncing-reverse-env/references/syncing-reverse-env-guide.html">syncing-reverse-env</a></code></td><td>リバース元と設計書の 2 環境を同期・検証し、基準コミットを打つ。</td></tr>
+      <tr><td><code><a href=".claude/skills/unlocking-reverse-target-screens/references/unlocking-reverse-target-screens-guide.html">unlocking-reverse-target-screens</a></code></td><td>既存画面をモック API で開通し、起動モード別の検証準備を行う。</td></tr>
+      <tr><td><code><a href=".claude/skills/rebuilding-screen-unit-from-docs/references/rebuilding-screen-unit-from-docs-guide.html">rebuilding-screen-unit-from-docs</a></code></td><td>設計書だけから 1 ファイルを再生成し原本と突合する、ファイル単位検証専任。</td></tr>
+      <tr><td><code><a href=".claude/skills/rebuilding-code-from-docs/references/rebuilding-code-from-docs-guide.html">rebuilding-code-from-docs</a></code></td><td>設計書だけから画面単位でコードを再生成し原本と突合、欠落を発見する。</td></tr>
+    </table>
+    </div>
+  </section>
+
+  <section id="s3-5">
+    <h3>3.5 保守するスキル</h3>
+    <p>納品する保守スキルは 3 本である。全モードで同一セットを納品し、実体は <code>.claude/skills/</code> に置く。この 3 本は対象リポジトリへ納品される側のスキルであり、このリポジトリ自身の <code>.claude/skills/</code> には存在しない。</p>
+    <div class="tablewrap">
+    <table class="spec">
+      <tr><th>スキル</th><th>役割</th></tr>
+      <tr><td><code>syncing-derived-artifacts</code></td><td>状態表示・適用・復旧の 3 操作を 1 本で担う。既定値なしの必須引数でモードを指定する</td></tr>
+      <tr><td><code>importing-rule-proposals</code></td><td>規約提案の取り込みを担う。取り込みの判断は現場のエンジニアが行う</td></tr>
+      <tr><td><code>enabling-new-units</code></td><td>後から現れた画面や種別を対象範囲へ加え、内部で適用操作へ委譲する</td></tr>
+    </table>
+    </div>
+    <p class="note">ずれ検知の基盤 <code>shared/scripts/check-derived-drift.sh</code> の詳細は §5.2 を参照。</p>
+  </section>
+</section>
+
+<section id="s4">
+  <h2><span class="sec-num">§4</span>進め方</h2>
+
+  <section id="s4-1">
+    <h3>4.1 フェーズごとのポータル充実度</h3>
+    <p>ポータル（<code>project-portal/index.html</code>）は <code>project-portal/</code> 配下に生成された HTML だけを検知してカードを動的に生成する。スキルが <code>docs/rules/</code>・<code>docs/screens/</code> の正本を更新した場合は対応する HTML をレンダリングし、HTMLを直接生成する一覧・設計図系スキルは所定のカテゴリへ出力する。<code>build-portal.sh</code> を再実行すると、新しいカードが現れる。右列は、ポータル上のどのカテゴリにカードが追加されるかを示す。</p>
+    <p class="note">指揮役（<code>orchestrating-reverse-docs-flow</code>）は成果物の実在と契約に基づく依存順で自動実行する。任意スキルの単独起動は、そのスキルの入力契約と前提成果物が揃っている場合だけ許可する。「facts」は原本コードから抽出した宣言的契約の事実表を指す。「基準タグ」は、2 環境の完全一致を証明できた時点のコミットに打つ git タグ <code>reverse-baseline/&lt;scope&gt;</code> を指す。</p>
+    <p class="note">各フェーズで新たに追加されるカード数を <span class="tag done">+N</span> で示す。最終行は <code>shared/samples/index.html</code> の完成形（7カテゴリ・36カード）と一致させる。</p>
+    <div class="tablewrap">
+    <table class="spec">
+      <tr>
+        <th>フェーズ</th>
+        <th>基盤情報</th>
+        <th>規約</th>
+        <th>設計書</th>
+        <th>一覧・設計図</th>
+        <th>マトリクス・対応表</th>
+        <th>AI設定資産</th>
+        <th>デザイン</th>
+        <th>累計</th>
+      </tr>
+      <tr>
+        <td>一覧生成（6 種別）</td>
+        <td>—</td>
+        <td>—</td>
+        <td>—</td>
+        <td><span class="tag done">+6</span></td>
+        <td>—</td>
+        <td>—</td>
+        <td>—</td>
+        <td>6</td>
+      </tr>
+      <tr>
+        <td>共通文書採録</td>
+        <td>—</td>
+        <td><span class="tag done">+6</span></td>
+        <td><span class="tag done">+5</span></td>
+        <td>—</td>
+        <td>—</td>
+        <td>—</td>
+        <td>—</td>
+        <td>17</td>
+      </tr>
+      <tr>
+        <td>基盤ページ生成（10 種）</td>
+        <td><span class="tag done">+4</span></td>
+        <td>—</td>
+        <td>—</td>
+        <td><span class="tag done">+4</span></td>
+        <td>—</td>
+        <td>—</td>
+        <td><span class="tag done">+3</span></td>
+        <td>27</td>
+      </tr>
+      <tr>
+        <td>派生一覧</td>
+        <td>—</td>
+        <td>—</td>
+        <td>—</td>
+        <td><span class="tag done">+4</span></td>
+        <td>—</td>
+        <td>—</td>
+        <td>—</td>
+        <td>31</td>
+      </tr>
+      <tr>
+        <td>マトリクス・AI</td>
+        <td>—</td>
+        <td>—</td>
+        <td>—</td>
+        <td>—</td>
+        <td><span class="tag done">+4</span></td>
+        <td><span class="tag done">+1</span></td>
+        <td>—</td>
+        <td>36</td>
+      </tr>
+      <tr style="border-top:2px solid #1a1a1a">
+        <td><b>最終形</b></td>
+        <td><b>4</b></td>
+        <td><b>6</b></td>
+        <td><b>5</b></td>
+        <td><b>13</b></td>
+        <td><b>4</b></td>
+        <td><b>1</b></td>
+        <td><b>3</b></td>
+        <td><b>36</b></td>
+      </tr>
+    </table>
+    </div>
+    <p class="note">カテゴリ名はポータルの実際のセクション名と一致する（<code>shared/samples/index.html</code> で実測）。対象外種別がある場合は一覧の件数が減る。</p>
+  </section>
+
+  <section id="s4-2">
+    <h3>4.2 工程ごとの詳細（スキルとポータルカテゴリの対応）</h3>
+
+    <div class="flowgrid">
+      <div>
+        <div class="flowstep"><span class="stepname">01. リポジトリ調査・前提確立</span><span class="stepskill">surveying-architecture-for-reverse-docs / surveying-local-environment / counting-code-lines</span></div>
+      </div>
+      <div class="flowgain"><span class="gainlabel">ポータル外の前提データ</span><div><code>env-config.json</code>、<code>code-metrics.json</code>、アーキテクチャ調査書。存在する構成・種別・実行条件を確定し、架空の種別を追加しない。</div></div>
+
+      <div><div class="flowstep"><span class="stepname">02. 種別一覧・画面レジストリ確立</span><span class="stepskill">generating-&lt;kind&gt;-list-for-reverse-docs ×6 / unlocking-reverse-target-screens</span></div></div>
+      <div class="flowgain"><span class="gainlabel">一覧・設計図</span><div>画面一覧 / API一覧 / テーブル一覧 / バッチ一覧 / 帳票一覧 / 外部連携一覧 / <code>docs/screens/reverse-screen-registry.yml</code>。対象外種別は <code>excluded-kinds.json</code> に理由を記録する。</div></div>
+
+      <div><div class="flowstep"><span class="stepname">03. 共通規約・共通設計の採録</span><span class="stepskill">generating-reverse-common-docs / surveying-architecture-for-reverse-docs</span></div></div>
+      <div class="flowgain"><span class="gainlabel">規約・設計書</span><div>コーディング規約 / 命名規約 / ディレクトリ構成規約 / コンポーネント設計規約 / レビュー観点表 / テスト方針書 → 共通設計書 / メッセージ定義書 / データ設計書 / UI共通設計書 / 基盤設計書。明示根拠のない規範・意図はテンプレートに残す。</div></div>
+
+      <div><div class="flowstep"><span class="stepname">04. 基盤情報の生成</span><span class="stepskill">generating-tech-stack-for-reverse-docs / generating-env-guide-for-reverse-docs / generating-glossary-for-reverse-docs / generating-release-notes-for-reverse-docs</span></div></div>
+      <div class="flowgain"><span class="gainlabel">基盤情報</span><div>技術スタック → 環境構築手順 → 用語辞書 → リリースノート。各ページは実在する設定・履歴・語彙だけを記入し、根拠がない箇所はテンプレートのままにする。</div></div>
+
+      <div><div class="flowstep loop"><span class="stepname">05. facts封印・設計書執筆の開始</span><span class="stepskill">extracting-unit-facts-from-code → shared/scripts/seal-facts.sh verify</span></div></div>
+      <div class="flowgain"><span class="gainlabel">画面単位の設計執筆開始条件</span><div>factsの独立再計数・封印・再現性検証を通過してから、基本設計と詳細設計の執筆を開始する。原本コードは執筆スキルが直接読まない。</div></div>
+
+      <div><div class="flowstep loop"><span class="stepname">06. 基本設計・詳細設計（実行方式を分岐）</span><span class="stepskill">generating-reverse-basic-design ∥ generating-reverse-detailed-design</span><div class="note">統括の状態判定は基本設計未著述 → 設計書未著述。執筆スキルはスキャフォールド後に並列起動可能。</div></div></div>
+      <div class="flowgain"><span class="gainlabel">画面ごとの設計書</span><ul style="margin:4px 0 0;padding-left:1.2em;font-size:0.88rem"><li><b>通常の状態遷移:</b> facts → 基本設計 → 詳細設計として完了判定する</li><li><b>実行:</b> 基本設計と詳細設計は独立したfacts入力で並列起動できる</li><li><b>大規模画面:</b> 詳細設計パス1 → 基本設計・テスト資料パス2の順で実行する</li></ul><code>screen-basic-design.md</code>、<code>screen-detailed-design.md</code>、<code>design.md</code>を、実際に採用した実行方式に従って記録する。</div>
+
+      <div><div class="flowstep loop"><span class="stepname">07. 画面テスト観点・テスト仕様</span><span class="stepskill">generating-unit-test-viewpoints / generating-integration-test-viewpoints / rebuilding-screen-unit-from-docs</span></div></div>
+      <div class="flowgain"><span class="gainlabel">画面ごとのテスト資料</span><div><code>unit-test-viewpoints.md</code> → <code>integration-test-viewpoints.md</code> → <code>test-specifications/unit-test-specification.md</code> → <code>integration-test-specification.md</code> → <code>operation-scenarios.md</code>。既存根拠のない期待値・合否はテンプレートにする。</div></div>
+
+      <div><div class="flowstep loop"><span class="stepname">08. 画面シーケンス・画像・往復検証</span><span class="stepskill">generating-sequence-diagram-for-reverse-docs / rebuilding-code-from-docs / syncing-reverse-env</span></div></div>
+      <div class="flowgain"><span class="gainlabel">画面ごとの検証成果物</span><div><code>sequence-data.json</code>、<code>original.png</code>、<code>rebuilt.png</code>、比較結果、判定記録。設計書だけを先に確定し、再実装・比較・判定の順で検証する。</div></div>
+
+      <div><div class="flowstep"><span class="stepname">09. 種別別の基本設計 → 詳細設計</span><span class="stepskill">上位抽象化スキル（基本設計・要件定義） → 詳細設計執筆スキル</span></div></div>
+      <div class="flowgain"><span class="gainlabel">サンプル掲載外の個別設計資料</span><div>API / テーブル / バッチ / 帳票 / 外部連携について、まず基本設計・要件の根拠を確定し、その後に詳細設計へ進む。業務目的・契約・責任分界は現場資料がない限りテンプレート。</div></div>
+
+      <div><div class="flowstep"><span class="stepname">10. 派生一覧の集約</span><span class="stepskill">generating-feature-list-for-reverse-docs / generating-message-list-for-reverse-docs / generating-test-viewpoint-list-for-reverse-docs</span></div></div>
+      <div class="flowgain"><span class="gainlabel">一覧・設計図</span><div>機能一覧 → メッセージ一覧 → テスト観点表 → テストケース一覧。導出元が存在する資料だけを集約する。</div></div>
+
+      <div><div class="flowstep"><span class="stepname">11. マトリクス・対応表の生成</span><span class="stepskill">generating-cross-views-for-reverse-docs</span></div></div>
+      <div class="flowgain"><span class="gainlabel">マトリクス・対応表</span><div>権限画面マトリクス / 権限機能マトリクス / CRUD図 / 追跡可能性。画面・API・機能・テーブル・権限の対応根拠が揃った後に生成する。</div></div>
+
+      <div><div class="flowstep"><span class="stepname">12. デザイン・AI設定資産・ポータル索引の生成</span><span class="stepskill">generating-design-system-for-reverse-docs / generating-component-inventory-for-reverse-docs / generating-icon-catalog-for-reverse-docs / build-portal.sh</span></div></div>
+      <div class="flowgain"><span class="gainlabel">デザイン・AI設定資産・ポータル索引</span><div>デザインシステム / コンポーネント棚卸し / アイコンカタログ / AI設定資産を正本から生成し、最後にカテゴリJSON・実在ファイルから <code>project-portal/index.html</code> を生成する。</div></div>
+
+    </div>
+  </section>
 </section>
 
 <section id="s5">
-  <h2><span class="sec-num">§5</span>判定原則と規約の流れ</h2>
-  <p class="note"><strong>判定原則:</strong> コードから直接確認できる構造・値・参照はリバース記入可。コードから業務目的、設計意図、要求水準、規範、承認事項を補うことは禁止。規約は、明示された規約・運用文書・承認がない限り「観測された実装慣行」に留め、<code>docs/rules/</code> の規範として確定しない。</p>
-  <p>規約の扱いはこの原則を配置で保証する。<code>docs/rules/</code> は空雛形で納品し、コードからの観測はそこへ書かない → 観測は規約提案として <code>project-portal/</code> へ出す → 取り込みの判断は現場のエンジニアが行う → 取り込み後は適用操作で <code>project-portal/規約/</code> と各 AI ツール形式（<code>.mdc</code> 生成等）の双方へ反映される、という流れを踏む。</p>
-</section>
+  <h2><span class="sec-num">§5</span>仕組みの裏側</h2>
 
-<section id="s6">
-  <h2><span class="sec-num">§6</span>保守の仕組みとスキル</h2>
-  <p>納品する保守スキルは 3 本である。全モードで同一セットを納品し、実体は <code>.claude/skills/</code> に置く。</p>
-  <div class="tablewrap">
-  <table class="spec">
-    <tr><th>スキル</th><th>役割</th></tr>
-    <tr><td><code>syncing-derived-artifacts</code></td><td>状態表示・適用・復旧の 3 操作を 1 本で担う。既定値なしの必須引数でモードを指定する</td></tr>
-    <tr><td><code>importing-rule-proposals</code></td><td>規約提案の取り込みを担う。取り込みの判断は現場のエンジニアが行う</td></tr>
-    <tr><td><code>enabling-new-units</code></td><td>後から現れた画面や種別を対象範囲へ加え、内部で適用操作へ委譲する</td></tr>
-  </table>
-  </div>
-  <p>片側編集の検知は <code>shared/scripts/check-derived-drift.sh</code> に集約する。適用のたびに各派生物のハッシュを台帳（record）へ記録し、検査（status）が現在値と台帳を突合して不一致を報告する。判定にファイルの更新時刻は使わない。git checkout や別ツールの操作でも時刻は動くためである。画面名と表示コミットのずれ検知も同じ機構を使う。</p>
-</section>
+  <section id="s5-1">
+    <h3>5.1 規約の流れ</h3>
+    <p>規約の扱いはこの原則を配置で保証する。<code>docs/rules/</code> は空雛形で納品し、コードからの観測はそこへ書かない → 観測は規約提案として <code>project-portal/</code> へ出す → 取り込みの判断は現場のエンジニアが行う → 取り込み後は適用操作で <code>project-portal/規約/</code> と各 AI ツール形式（<code>.mdc</code> 生成等）の双方へ反映される、という流れを踏む。</p>
+  </section>
 
-<section id="s7">
-  <h2><span class="sec-num">§7</span>納品物の作成区分</h2>
-  <p>この表は、リバース対象プロジェクトへ納品する成果物を、<strong>コード・設定・実測から事実を記入するもの</strong>と、<strong>構造だけをテンプレートとして作成し、現場の明示的な根拠・判断・承認を後から記入するもの</strong>に分けた一覧である。テンプレート専用の行には、架空の値・架空の規約・架空のサンプルを入れない。根拠が揃わない項目は空欄、対象外、または未確定として扱う。</p>
-  <div class="legend"><span class="tag reverse">リバース記入</span> コード・設定・facts・実測などの根拠から記入　<span class="tag template">テンプレートのみ</span> 構造だけを納品し、現場の根拠・判断後に記入</div>
-  <div class="tablewrap">
-  <table class="spec">
-    <tr><th>ポータルカテゴリ</th><th>納品物</th><th>正本 / 出力パス</th><th>作成区分</th><th>記入する情報源・条件</th></tr>
-    <tr><th colspan="5">共通 — 基盤情報</th></tr>
-    <tr><td>基盤情報</td><td>技術スタック</td><td><code>project-portal/技術スタック.html</code></td><td><span class="tag reverse">リバース記入</span></td><td>package manifest、lockfile、設定、実行環境、依存関係から確認できる値だけ。</td></tr>
-    <tr><td>基盤情報</td><td>環境構築手順</td><td><code>project-portal/環境構築手順.html</code></td><td><span class="tag reverse">根拠がある手順のみ</span><br><span class="tag template">未確認手順はテンプレート</span></td><td>README、セットアップスクリプト、設定、実行検証から再現できる手順だけ。</td></tr>
-    <tr><td>基盤情報</td><td>用語辞書</td><td><code>project-portal/用語辞書.html</code></td><td><span class="tag reverse">実在語のみ記入</span><br><span class="tag template">定義不明はテンプレート</span></td><td>識別子、画面ラベル、メッセージ、既存文書に現れる語だけ。業務定義や略語の意味を推測しない。</td></tr>
-    <tr><td>基盤情報</td><td>リリースノート</td><td><code>project-portal/リリースノート.html</code></td><td><span class="tag reverse">履歴がある場合のみ</span><br><span class="tag template">履歴なしはテンプレート</span></td><td>Git履歴、タグ、CHANGELOG、リリース記録など実在する変更証跡だけ。</td></tr>
-    <tr><th colspan="5">共通 — 規約</th></tr>
-    <tr><td>規約</td><td>AIエージェント運用</td><td><code>project-portal/規約/AIエージェント運用.html</code></td><td><span class="tag template">テンプレートのみ</span></td><td>対応する英語カテゴリ名が未確定のため docs/rules のパスは空欄とする。明示された規約・運用文書・承認がない限り記入しない。</td></tr>
-    <tr><td>規約</td><td>安全な操作</td><td><code>project-portal/規約/安全な操作.html</code></td><td><span class="tag template">テンプレートのみ</span></td><td>対応する英語カテゴリ名が未確定のため docs/rules のパスは空欄とする。明示された規約・運用文書・承認がない限り記入しない。</td></tr>
-    <tr><td>規約</td><td>セッション管理</td><td><code>project-portal/規約/セッション管理.html</code></td><td><span class="tag template">テンプレートのみ</span></td><td>対応する英語カテゴリ名が未確定のため docs/rules のパスは空欄とする。明示された規約・運用文書・承認がない限り記入しない。</td></tr>
-    <tr><td>規約</td><td>AI設定資産管理</td><td><code>project-portal/規約/AI設定資産管理.html</code></td><td><span class="tag template">テンプレートのみ</span></td><td>対応する英語カテゴリ名が未確定のため docs/rules のパスは空欄とする。明示された規約・運用文書・承認がない限り記入しない。</td></tr>
-    <tr><td>規約</td><td>定型運用</td><td><code>project-portal/規約/定型運用.html</code></td><td><span class="tag template">テンプレートのみ</span></td><td>対応する英語カテゴリ名が未確定のため docs/rules のパスは空欄とする。明示された規約・運用文書・承認がない限り記入しない。</td></tr>
-    <tr><td>規約</td><td>開発フロー</td><td><code>project-portal/規約/開発フロー.html</code></td><td><span class="tag template">テンプレートのみ</span></td><td>対応する英語カテゴリ名が未確定のため docs/rules のパスは空欄とする。明示された規約・運用文書・承認がない限り記入しない。</td></tr>
-    <tr><td>規約</td><td>ツール・コマンド実行</td><td><code>project-portal/規約/ツール・コマンド実行.html</code></td><td><span class="tag template">テンプレートのみ</span></td><td>対応する英語カテゴリ名が未確定のため docs/rules のパスは空欄とする。明示された規約・運用文書・承認がない限り記入しない。</td></tr>
-    <tr><td>規約</td><td>開発環境</td><td><code>project-portal/規約/開発環境.html</code></td><td><span class="tag template">テンプレートのみ</span></td><td>対応する英語カテゴリ名が未確定のため docs/rules のパスは空欄とする。明示された規約・運用文書・承認がない限り記入しない。</td></tr>
-    <tr><td>規約</td><td>Git運用</td><td><code>project-portal/規約/Git運用.html</code></td><td><span class="tag template">テンプレートのみ</span></td><td>対応する英語カテゴリ名が未確定のため docs/rules のパスは空欄とする。明示された規約・運用文書・承認がない限り記入しない。</td></tr>
-    <tr><td>規約</td><td>デリバリー</td><td><code>project-portal/規約/デリバリー.html</code></td><td><span class="tag template">テンプレートのみ</span></td><td>対応する英語カテゴリ名が未確定のため docs/rules のパスは空欄とする。明示された規約・運用文書・承認がない限り記入しない。</td></tr>
-    <tr><td>規約</td><td>コーディング規約</td><td><code>project-portal/規約/コーディング規約.html</code><br><code>docs/rules/coding/&lt;scope&gt;/rule.md</code></td><td><span class="tag template">テンプレートのみ</span></td><td><code>docs/rules/coding/</code> は型と定義だけの空雛形。実装例の観測は規約本文へ書かず、規約提案として出す。取り込みの判断は現場のエンジニアが行う。</td></tr>
-    <tr><td>規約</td><td>命名規約</td><td><code>project-portal/規約/命名規約.html</code><br><code>docs/rules/naming/</code></td><td><span class="tag template">テンプレートのみ</span></td><td><code>docs/rules/naming/</code> は型と定義だけの空雛形。実在する名前・パターンの観測は規約提案として出す。</td></tr>
-    <tr><td>規約</td><td>ディレクトリ構成規約</td><td><code>project-portal/規約/ディレクトリ構成規約.html</code><br><code>docs/rules/placement/</code></td><td><span class="tag template">テンプレートのみ</span></td><td><code>docs/rules/placement/</code> は型と定義だけの空雛形。実在する配置例の観測は規約提案として出す。</td></tr>
-    <tr><td>規約</td><td>コンポーネント設計規約</td><td><code>project-portal/規約/コンポーネント設計規約.html</code><br><code>docs/rules/architecture/</code></td><td><span class="tag template">テンプレートのみ</span></td><td><code>docs/rules/architecture/</code> は型と定義だけの空雛形。実装パターンの観測は規約提案として出す。設計意図を推測しない。</td></tr>
-    <tr><td>規約</td><td>テスト方針書</td><td><code>project-portal/規約/テスト方針書.html</code><br><code>docs/rules/testing/</code></td><td><span class="tag template">テンプレートのみ</span></td><td>品質基準・カバレッジ・テスト方針はコードから確定しない。</td></tr>
-    <tr><td>規約</td><td>レビュー観点表</td><td><code>project-portal/規約/レビュー観点表.html</code><br><code>docs/rules/review/</code></td><td><span class="tag template">テンプレートのみ</span></td><td>明示されたレビュー規約・承認済み基準がある場合だけ記入する。</td></tr>
-    <tr><td>規約</td><td>セキュリティ</td><td><code>project-portal/規約/セキュリティ.html</code></td><td><span class="tag template">テンプレートのみ</span></td><td>対応する英語カテゴリ名が未確定のため docs/rules のパスは空欄とする。明示された規約・運用文書・承認がない限り記入しない。</td></tr>
-    <tr><td>規約</td><td>ドキュメント</td><td><code>project-portal/規約/ドキュメント.html</code></td><td><span class="tag template">テンプレートのみ</span></td><td>対応する英語カテゴリ名が未確定のため docs/rules のパスは空欄とする。明示された規約・運用文書・承認がない限り記入しない。</td></tr>
-    <tr><td>規約</td><td>ポータル</td><td><code>project-portal/規約/ポータル.html</code></td><td><span class="tag template">テンプレートのみ</span></td><td>対応する英語カテゴリ名が未確定のため docs/rules のパスは空欄とする。明示された規約・運用文書・承認がない限り記入しない。</td></tr>
-    <tr><td>規約</td><td>コミュニケーション</td><td><code>project-portal/規約/コミュニケーション.html</code></td><td><span class="tag template">テンプレートのみ</span></td><td>対応する英語カテゴリ名が未確定のため docs/rules のパスは空欄とする。明示された規約・運用文書・承認がない限り記入しない。</td></tr>
-    <tr><th colspan="5">共通 — 設計書</th></tr>
-    <tr><td>設計書</td><td>基盤設計書</td><td><code>project-portal/プロジェクト共通/基盤設計.html</code></td><td><span class="tag reverse">実装構造のみ</span><br><span class="tag template">意図・要求はテンプレート</span></td><td>フレームワーク構成、ビルド、デプロイ、認証方式の実態だけ。</td></tr>
-    <tr><td>設計書</td><td>共通設計書</td><td><code>project-portal/プロジェクト共通/共通設計書.html</code></td><td><span class="tag reverse">リバース記入</span></td><td>ログ、エラーコード、共通レスポンスなど実装に現れる共通構造だけ。</td></tr>
-    <tr><td>設計書</td><td>データ設計書</td><td><code>project-portal/プロジェクト共通/データ設計.html</code></td><td><span class="tag reverse">構造のみ</span><br><span class="tag template">意味はテンプレート</span></td><td>スキーマ、型、制約、参照関係は定義から。業務上の意味は推測しない。</td></tr>
-    <tr><td>設計書</td><td>メッセージ定義書</td><td><code>project-portal/プロジェクト共通/メッセージ定義書.html</code></td><td><span class="tag reverse">リバース記入</span></td><td>実在する識別子、文言、表示箇所だけ。</td></tr>
-    <tr><td>設計書</td><td>UI共通設計書</td><td><code>project-portal/プロジェクト共通/UI共通設計.html</code></td><td><span class="tag reverse">実装要素のみ</span><br><span class="tag template">意図はテンプレート</span></td><td>トークン、スタイル、共通コンポーネントなど実装に存在するものだけ。</td></tr>
-    <tr><th colspan="5">一覧 — 一覧・設計図</th></tr>
-    <tr><td>一覧・設計図</td><td>画面一覧</td><td><code>project-portal/一覧/画面一覧/画面一覧.html</code></td><td><span class="tag reverse">リバース記入</span></td><td>画面レジストリと実在する画面実体から生成する。</td></tr>
-    <tr><td>一覧・設計図</td><td>画面遷移図</td><td><code>project-portal/画面遷移図.html</code></td><td><span class="tag reverse">リバース記入</span></td><td>ルーティング、リンク、ナビゲーション、実測で確認できる遷移だけ。</td></tr>
-    <tr><td>一覧・設計図</td><td>API一覧</td><td><code>project-portal/一覧/API一覧/API一覧.html</code></td><td><span class="tag reverse">リバース記入</span></td><td>ルート、ハンドラ、schema、呼出元など実在する定義から生成する。</td></tr>
-    <tr><td>一覧・設計図</td><td>バッチ一覧</td><td><code>project-portal/一覧/バッチ一覧/バッチ一覧.html</code></td><td><span class="tag reverse">リバース記入</span></td><td>ジョブ定義、スケジュール、起動処理など実在する定義から生成する。</td></tr>
-    <tr><td>一覧・設計図</td><td>テーブル一覧</td><td><code>project-portal/一覧/テーブル一覧/テーブル一覧.html</code></td><td><span class="tag reverse">リバース記入</span></td><td>DDL、ORM、migration、参照定義など実在する定義から生成する。</td></tr>
-    <tr><td>一覧・設計図</td><td>ER図</td><td><code>project-portal/ER図.html</code></td><td><span class="tag reverse">リバース記入</span></td><td>schema、外部キー、ORM、migrationなど実在する関係だけ。</td></tr>
-    <tr><td>一覧・設計図</td><td>状態遷移図</td><td><code>project-portal/状態遷移図.html</code></td><td><span class="tag reverse">根拠がある場合のみ</span><br><span class="tag template">根拠がない場合はテンプレート</span></td><td>状態値、分岐、イベント、遷移処理が確認できる場合だけ。</td></tr>
-    <tr><td>一覧・設計図</td><td>帳票一覧</td><td><code>project-portal/一覧/帳票一覧/帳票一覧.html</code></td><td><span class="tag reverse">リバース記入</span></td><td>帳票実体、テンプレート、出力処理など確認できるものだけ。</td></tr>
-    <tr><td>一覧・設計図</td><td>外部連携一覧</td><td><code>project-portal/一覧/外部連携一覧/外部連携一覧.html</code></td><td><span class="tag reverse">リバース記入</span></td><td>クライアント、接続設定、schema、送受信処理など実在する定義から生成する。</td></tr>
-    <tr><td>一覧・設計図</td><td>機能一覧</td><td><code>project-portal/一覧/機能一覧/機能一覧.html</code></td><td><span class="tag reverse">導出記入</span></td><td>画面・API・コード上の機能単位など導出元が存在するものだけ。</td></tr>
-    <tr><td>一覧・設計図</td><td>メッセージ一覧</td><td><code>project-portal/一覧/メッセージ一覧/メッセージ一覧.html</code></td><td><span class="tag reverse">導出記入</span></td><td>コード・設定・メッセージ定義に実在する識別子と文言だけ。</td></tr>
-    <tr><td>一覧・設計図</td><td>テスト観点表</td><td><code>project-portal/一覧/テスト観点表/テスト観点表.html</code></td><td><span class="tag reverse">根拠がある場合のみ</span><br><span class="tag template">根拠がない場合はテンプレート</span></td><td>既存テスト・分岐・バリデーション・実測から確認できる観点だけ。</td></tr>
-    <tr><td>一覧・設計図</td><td>テストケース一覧</td><td><code>project-portal/一覧/テストケース一覧/テストケース一覧.html</code></td><td><span class="tag reverse">既存ケースのみ</span><br><span class="tag template">新規ケースはテンプレート</span></td><td>既存の単体・結合・操作シナリオ仕様だけを集約する。</td></tr>
-    <tr><th colspan="5">一覧 — マトリクス・対応表</th></tr>
-    <tr><td>マトリクス・対応表</td><td>権限画面マトリクス</td><td><code>project-portal/マトリクス・対応表/権限画面マトリクス/権限画面マトリクス.html</code></td><td><span class="tag reverse">根拠がある場合のみ</span><br><span class="tag template">未確定時はテンプレート</span></td><td>認証・認可設定と画面経路が確認できる場合だけ。</td></tr>
-    <tr><td>マトリクス・対応表</td><td>権限機能マトリクス</td><td><code>project-portal/マトリクス・対応表/権限機能マトリクス/権限機能マトリクス.html</code></td><td><span class="tag reverse">根拠がある場合のみ</span><br><span class="tag template">未確定時はテンプレート</span></td><td>認可処理と機能実体の対応が確認できる場合だけ。</td></tr>
-    <tr><td>マトリクス・対応表</td><td>CRUD図</td><td><code>project-portal/マトリクス・対応表/CRUD図/CRUD図.html</code></td><td><span class="tag reverse">リバース記入</span></td><td>実装された作成・参照・更新・削除処理と対象データの対応だけ。</td></tr>
-    <tr><td>マトリクス・対応表</td><td>追跡可能性</td><td><code>project-portal/マトリクス・対応表/追跡可能性/追跡可能性.html</code></td><td><span class="tag reverse">根拠がある場合のみ</span><br><span class="tag template">未確定時はテンプレート</span></td><td>要求・設計・実装・テストの各証跡が実在する場合だけ。</td></tr>
-    <tr><th colspan="5">ツール — AI設定資産</th></tr>
-    <tr><td>AI設定資産</td><td>AI設定資産</td><td><code>project-portal/AI設定資産/AI設定資産.html</code></td><td><span class="tag reverse">正本から派生生成</span></td><td>実在するrules、skills、agents、hooks、routinesのmanifestと正確なパスから生成する。</td></tr>
-    <tr><th colspan="5">ツール — デザイン</th></tr>
-    <tr><td>デザイン</td><td>デザインシステム</td><td><code>project-portal/デザインシステム.html</code></td><td><span class="tag reverse">実装要素のみ</span><br><span class="tag template">意図・評価はテンプレート</span></td><td>トークン、スタイル、コンポーネント、使用箇所など実装に存在するものだけ。</td></tr>
-    <tr><td>デザイン</td><td>コンポーネント棚卸し</td><td><code>project-portal/コンポーネント棚卸し.html</code></td><td><span class="tag reverse">リバース記入</span></td><td>実在するコンポーネント、props、使用箇所、重複をコードから記入する。</td></tr>
-    <tr><td>デザイン</td><td>アイコンカタログ</td><td><code>project-portal/アイコンカタログ.html</code></td><td><span class="tag reverse">リバース記入</span></td><td>実在するアイコン資産、名前、参照箇所だけ。</td></tr>
-    <tr><th colspan="5">サンプル掲載外 — 正本・個別資料</th></tr>
-    <tr><td>サンプル掲載外</td><td>プロジェクト索引</td><td><code>AGENTS.md</code><br><code>CLAUDE.md</code></td><td><span class="tag reverse">前半はリバース</span><br><span class="tag template">後半はテンプレート</span></td><td>前半はリポジトリ分析で確定。規約本文は記載せず、AGENTS.mdだけが後半の読み込みを持つ。</td></tr>
-    <tr><td>サンプル掲載外</td><td>画面正本・個別画面資料</td><td><code>docs/screens/reverse-screen-registry.yml</code><br><code>docs/screens/screen-&lt;screen-id&gt;/</code></td><td><span class="tag reverse">根拠がある範囲のみ</span><br><span class="tag template">要求・業務判断はテンプレート</span></td><td>画面基本設計、詳細設計、テスト観点、テスト仕様、操作シナリオ、sequence-data、画像を個別ファイルとして保持する。</td></tr>
-    <tr><td>サンプル掲載外</td><td>種別別個別設計資料</td><td><code>project-portal/API/</code>・<code>テーブル/</code>・<code>バッチ/</code>・<code>帳票/</code>・<code>外部連携/</code></td><td><span class="tag reverse">実装構造のみ</span><br><span class="tag template">業務意味・契約はテンプレート</span></td><td>API、テーブル、バッチ、帳票、外部連携の基本・詳細設計は、サンプルのトップカテゴリにはない個別資料として管理する。</td></tr>
-    <tr><td>サンプル掲載外</td><td>ポータル索引</td><td><code>project-portal/index.html</code></td><td><span class="tag reverse">正本から派生生成</span></td><td>サンプルのカテゴリJSON、実在ファイル、生成規約から生成する。架空の件数・リンクを手入力しない。</td></tr>
-  </table>
-  </div>
-  <p class="note">「テンプレートのみ」は空の構造・列・見出しだけを納品するという意味であり、もっともらしい値を埋めたサンプルを納品する意味ではない。現場で根拠が確認できた時点で、テンプレートへ事実を記入する。</p>
-</section>
-
-<section id="s8">
-  <h2><span class="sec-num">§8</span>ポータルが充実していく仕組み</h2>
-  <p>ポータル（<code>project-portal/index.html</code>）は <code>project-portal/</code> 配下に生成された HTML だけを検知してカードを動的に生成する。スキルが <code>docs/rules/</code>・<code>docs/screens/</code> の正本を更新した場合は対応する HTML をレンダリングし、HTMLを直接生成する一覧・設計図系スキルは所定のカテゴリへ出力する。<code>build-portal.sh</code> を再実行すると、新しいカードが現れる。右列は、ポータル上のどのカテゴリにカードが追加されるかを示す。</p>
-  <p class="note">指揮役（<code>orchestrating-reverse-docs-flow</code>）は成果物の実在と契約に基づく依存順で自動実行する。任意スキルの単独起動は、そのスキルの入力契約と前提成果物が揃っている場合だけ許可する。「facts」は原本コードから抽出した宣言的契約の事実表を指す。「基準タグ」は、2 環境の完全一致を証明できた時点のコミットに打つ git タグ <code>reverse-baseline/&lt;scope&gt;</code> を指す。</p>
-  <h3>フェーズごとのポータル充実度</h3>
-  <p class="note">各フェーズで新たに追加されるカード数を <span class="tag done">+N</span> で示す。最終行は <code>shared/samples/index.html</code> の完成形（7カテゴリ・36カード）と一致させる。</p>
-  <div class="tablewrap">
-  <table class="spec">
-    <tr>
-      <th>フェーズ</th>
-      <th>基盤情報</th>
-      <th>規約</th>
-      <th>設計書</th>
-      <th>一覧・設計図</th>
-      <th>マトリクス・対応表</th>
-      <th>AI設定資産</th>
-      <th>デザイン</th>
-      <th>累計</th>
-    </tr>
-    <tr>
-      <td>一覧生成（6 種別）</td>
-      <td>—</td>
-      <td>—</td>
-      <td>—</td>
-      <td><span class="tag done">+6</span></td>
-      <td>—</td>
-      <td>—</td>
-      <td>—</td>
-      <td>6</td>
-    </tr>
-    <tr>
-      <td>共通文書採録</td>
-      <td>—</td>
-      <td><span class="tag done">+6</span></td>
-      <td><span class="tag done">+5</span></td>
-      <td>—</td>
-      <td>—</td>
-      <td>—</td>
-      <td>—</td>
-      <td>17</td>
-    </tr>
-    <tr>
-      <td>基盤ページ生成（10 種）</td>
-      <td><span class="tag done">+4</span></td>
-      <td>—</td>
-      <td>—</td>
-      <td><span class="tag done">+4</span></td>
-      <td>—</td>
-      <td>—</td>
-      <td><span class="tag done">+3</span></td>
-      <td>27</td>
-    </tr>
-    <tr>
-      <td>派生一覧</td>
-      <td>—</td>
-      <td>—</td>
-      <td>—</td>
-      <td><span class="tag done">+4</span></td>
-      <td>—</td>
-      <td>—</td>
-      <td>—</td>
-      <td>31</td>
-    </tr>
-    <tr>
-      <td>マトリクス・AI</td>
-      <td>—</td>
-      <td>—</td>
-      <td>—</td>
-      <td>—</td>
-      <td><span class="tag done">+4</span></td>
-      <td><span class="tag done">+1</span></td>
-      <td>—</td>
-      <td>36</td>
-    </tr>
-    <tr style="border-top:2px solid #1a1a1a">
-      <td><b>最終形</b></td>
-      <td><b>4</b></td>
-      <td><b>6</b></td>
-      <td><b>5</b></td>
-      <td><b>13</b></td>
-      <td><b>4</b></td>
-      <td><b>1</b></td>
-      <td><b>3</b></td>
-      <td><b>36</b></td>
-    </tr>
-  </table>
-  </div>
-  <p class="note">カテゴリ名はポータルの実際のセクション名と一致する（<code>shared/samples/index.html</code> で実測）。対象外種別がある場合は一覧の件数が減る。</p>
-
-<h3>工程ごとの詳細（スキルとポータルカテゴリの対応）</h3>
-
-  <div class="flowgrid">
-    <div>
-      <div class="flowstep"><span class="stepname">01. リポジトリ調査・前提確立</span><span class="stepskill">surveying-architecture-for-reverse-docs / surveying-local-environment / counting-code-lines</span></div>
-    </div>
-    <div class="flowgain"><span class="gainlabel">ポータル外の前提データ</span><div><code>env-config.json</code>、<code>code-metrics.json</code>、アーキテクチャ調査書。存在する構成・種別・実行条件を確定し、架空の種別を追加しない。</div></div>
-
-    <div><div class="flowstep"><span class="stepname">02. 種別一覧・画面レジストリ確立</span><span class="stepskill">generating-&lt;kind&gt;-list-for-reverse-docs ×6 / unlocking-reverse-target-screens</span></div></div>
-    <div class="flowgain"><span class="gainlabel">一覧・設計図</span><div>画面一覧 / API一覧 / テーブル一覧 / バッチ一覧 / 帳票一覧 / 外部連携一覧 / <code>docs/screens/reverse-screen-registry.yml</code>。対象外種別は <code>excluded-kinds.json</code> に理由を記録する。</div></div>
-
-    <div><div class="flowstep"><span class="stepname">03. 共通規約・共通設計の採録</span><span class="stepskill">generating-reverse-common-docs / surveying-architecture-for-reverse-docs</span></div></div>
-    <div class="flowgain"><span class="gainlabel">規約・設計書</span><div>コーディング規約 / 命名規約 / ディレクトリ構成規約 / コンポーネント設計規約 / レビュー観点表 / テスト方針書 → 共通設計書 / メッセージ定義書 / データ設計書 / UI共通設計書 / 基盤設計書。明示根拠のない規範・意図はテンプレートに残す。</div></div>
-
-    <div><div class="flowstep"><span class="stepname">04. 基盤情報の生成</span><span class="stepskill">generating-tech-stack-for-reverse-docs / generating-env-guide-for-reverse-docs / generating-glossary-for-reverse-docs / generating-release-notes-for-reverse-docs</span></div></div>
-    <div class="flowgain"><span class="gainlabel">基盤情報</span><div>技術スタック → 環境構築手順 → 用語辞書 → リリースノート。各ページは実在する設定・履歴・語彙だけを記入し、根拠がない箇所はテンプレートのままにする。</div></div>
-
-    <div><div class="flowstep loop"><span class="stepname">05. facts封印・設計書執筆の開始</span><span class="stepskill">extracting-unit-facts-from-code → shared/scripts/seal-facts.sh verify</span></div></div>
-    <div class="flowgain"><span class="gainlabel">画面単位の設計執筆開始条件</span><div>factsの独立再計数・封印・再現性検証を通過してから、基本設計と詳細設計の執筆を開始する。原本コードは執筆スキルが直接読まない。</div></div>
-
-    <div><div class="flowstep loop"><span class="stepname">06. 基本設計・詳細設計（実行方式を分岐）</span><span class="stepskill">generating-reverse-basic-design ∥ generating-reverse-detailed-design</span><div class="note">統括の状態判定は基本設計未著述 → 設計書未著述。執筆スキルはスキャフォールド後に並列起動可能。</div></div></div>
-    <div class="flowgain"><span class="gainlabel">画面ごとの設計書</span><ul style="margin:4px 0 0;padding-left:1.2em;font-size:0.88rem"><li><b>通常の状態遷移:</b> facts → 基本設計 → 詳細設計として完了判定する</li><li><b>実行:</b> 基本設計と詳細設計は独立したfacts入力で並列起動できる</li><li><b>大規模画面:</b> 詳細設計パス1 → 基本設計・テスト資料パス2の順で実行する</li></ul><code>screen-basic-design.md</code>、<code>screen-detailed-design.md</code>、<code>design.md</code>を、実際に採用した実行方式に従って記録する。</div>
-
-    <div><div class="flowstep loop"><span class="stepname">07. 画面テスト観点・テスト仕様</span><span class="stepskill">generating-unit-test-viewpoints / generating-integration-test-viewpoints / rebuilding-screen-unit-from-docs</span></div></div>
-    <div class="flowgain"><span class="gainlabel">画面ごとのテスト資料</span><div><code>unit-test-viewpoints.md</code> → <code>integration-test-viewpoints.md</code> → <code>test-specifications/unit-test-specification.md</code> → <code>integration-test-specification.md</code> → <code>operation-scenarios.md</code>。既存根拠のない期待値・合否はテンプレートにする。</div></div>
-
-    <div><div class="flowstep loop"><span class="stepname">08. 画面シーケンス・画像・往復検証</span><span class="stepskill">generating-sequence-diagram-for-reverse-docs / rebuilding-code-from-docs / syncing-reverse-env</span></div></div>
-    <div class="flowgain"><span class="gainlabel">画面ごとの検証成果物</span><div><code>sequence-data.json</code>、<code>original.png</code>、<code>rebuilt.png</code>、比較結果、判定記録。設計書だけを先に確定し、再実装・比較・判定の順で検証する。</div></div>
-
-    <div><div class="flowstep"><span class="stepname">09. 種別別の基本設計 → 詳細設計</span><span class="stepskill">上位抽象化スキル（基本設計・要件定義） → 詳細設計執筆スキル</span></div></div>
-    <div class="flowgain"><span class="gainlabel">サンプル掲載外の個別設計資料</span><div>API / テーブル / バッチ / 帳票 / 外部連携について、まず基本設計・要件の根拠を確定し、その後に詳細設計へ進む。業務目的・契約・責任分界は現場資料がない限りテンプレート。</div></div>
-
-    <div><div class="flowstep"><span class="stepname">10. 派生一覧の集約</span><span class="stepskill">generating-feature-list-for-reverse-docs / generating-message-list-for-reverse-docs / generating-test-viewpoint-list-for-reverse-docs</span></div></div>
-    <div class="flowgain"><span class="gainlabel">一覧・設計図</span><div>機能一覧 → メッセージ一覧 → テスト観点表 → テストケース一覧。導出元が存在する資料だけを集約する。</div></div>
-
-    <div><div class="flowstep"><span class="stepname">11. マトリクス・対応表の生成</span><span class="stepskill">generating-cross-views-for-reverse-docs</span></div></div>
-    <div class="flowgain"><span class="gainlabel">マトリクス・対応表</span><div>権限画面マトリクス / 権限機能マトリクス / CRUD図 / 追跡可能性。画面・API・機能・テーブル・権限の対応根拠が揃った後に生成する。</div></div>
-
-    <div><div class="flowstep"><span class="stepname">12. デザイン・AI設定資産・ポータル索引の生成</span><span class="stepskill">generating-design-system-for-reverse-docs / generating-component-inventory-for-reverse-docs / generating-icon-catalog-for-reverse-docs / build-portal.sh</span></div></div>
-    <div class="flowgain"><span class="gainlabel">デザイン・AI設定資産・ポータル索引</span><div>デザインシステム / コンポーネント棚卸し / アイコンカタログ / AI設定資産を正本から生成し、最後にカテゴリJSON・実在ファイルから <code>project-portal/index.html</code> を生成する。</div></div>
-
-  </div>
+  <section id="s5-2">
+    <h3>5.2 ずれ検知</h3>
+    <p>片側編集の検知は <code>shared/scripts/check-derived-drift.sh</code> に集約する。適用のたびに各派生物のハッシュを台帳（record）へ記録し、検査（status）が現在値と台帳を突合して不一致を報告する。判定にファイルの更新時刻は使わない。git checkout や別ツールの操作でも時刻は動くためである。画面名と表示コミットのずれ検知も同じ機構を使う。</p>
+  </section>
 </section>
 
 </main>
@@ -718,9 +937,9 @@
 
   syncToggleLabel();
 
-  /* サイドバー: 現在表示中の章をIntersectionObserverで検出して強調する */
+  /* サイドバー: 現在表示中の中カテゴリ（x.y 単位）をIntersectionObserverで検出して強調する */
   var doc = document.querySelector(".doc");
-  var sections = document.querySelectorAll("main.doc > section[id]");
+  var sections = document.querySelectorAll("main.doc section[id*='-']");
   var navLinks = document.querySelectorAll(".sidebar ol a[href^='#']");
   var linkBySectionId = {};
   navLinks.forEach(function (a) {
