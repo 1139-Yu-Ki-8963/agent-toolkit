@@ -2158,6 +2158,39 @@ TEST34_B_NOREF_MD
   fi
   rm -rf "$test36_dir"
 
+  # --- ケース37: 信頼境界の宣言がポータルTOP・画面詳細設計書・画面基本設計書へ
+  # 機械挿入されること(1-171) ---
+  test37_dir="$(mktemp -d "${TMPDIR:-/tmp}/build-portal-test37.XXXXXX")"
+  test37_repo="$test37_dir/repo"
+  mkdir -p "$test37_repo"
+
+  test37_docs="$test37_dir/docs"
+  mkdir -p "$test37_docs/画面/screen-trust-boundary/基本設計" "$test37_docs/画面/screen-trust-boundary/詳細設計"
+  # 実サンプル（shared/samples配下）と同じく1行目が空行・2行目がタイトルの形にする
+  # （NR==1限定のawk実装だと検出できない回帰を防ぐフィクスチャ）
+  printf '\n# 信頼境界検証画面 画面基本設計書\n本文' > "$test37_docs/画面/screen-trust-boundary/基本設計/画面基本設計書.md"
+  printf '\n# 信頼境界検証画面 画面詳細設計書\n本文' > "$test37_docs/画面/screen-trust-boundary/詳細設計/画面詳細設計書.md"
+
+  "$SCRIPT_DIR/build-portal.sh" "$test37_repo" "$test37_docs" "$test37_docs" --catalog "$DEFAULT_CATALOG" >/dev/null 2>&1
+
+  test37_index="$test37_docs/index.html"
+  test37_detail_html="$test37_docs/画面/screen-trust-boundary/詳細設計/画面詳細設計書.html"
+  test37_base_html="$test37_docs/画面/screen-trust-boundary/基本設計/画面基本設計書.html"
+
+  test37_ok=1
+  grep -q '現行実装をそのまま記録' "$test37_index" 2>/dev/null || test37_ok=0
+  grep -q '現行実装をそのまま記録' "$test37_detail_html" 2>/dev/null || test37_ok=0
+  grep -q '現行実装をそのまま記録' "$test37_base_html" 2>/dev/null || test37_ok=0
+
+  if [ "$test37_ok" = "1" ]; then
+    echo "PASS: --self-test ケース37（信頼境界の宣言がポータルTOP・画面詳細設計書・画面基本設計書へ機械挿入される: 改善課題1-171）"
+  else
+    echo "FAIL: --self-test ケース37（信頼境界の宣言がポータルTOP・画面詳細設計書・画面基本設計書へ機械挿入される: 改善課題1-171）" >&2
+    rm -rf "$test37_dir"
+    exit 1
+  fi
+  rm -rf "$test37_dir"
+
   exit 0
 fi
 
@@ -2293,6 +2326,10 @@ html_escape() {
   printf '%s' "$1" | sed 's/&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g'
 }
 
+# 信頼境界の宣言文言（改善課題1-171）: 生成される全設計書ページに機械挿入する固定文言。
+# 執筆側が手書きで追加する運用は禁止し、本スクリプトが一律に注入する。
+TRUST_BOUNDARY_NOTICE_MD='> **本書の位置づけ**: 本書は現行実装をそのまま記録したものであり、業務要件・非機能要件・設計意図・運用実態は対象外です。未確定の事項は「要確認事項一覧」を参照してください。'
+
 # md 本文の前処理（BOM 除去・frontmatter スキップ・HTML コメント除去）
 # 共通文書ループ・画面設計書ループの両方から使う共通関数。挙動は従来のインライン処理と同一。
 prepare_md_content() {
@@ -2408,6 +2445,10 @@ if [ -d "$DOCS_ROOT/画面" ] && [ -f "$SCREEN_DOC_TEMPLATE_FILE" ]; then
       html_basename="$(basename "$target_md" .md).html"
       html_file="$(dirname "$target_md")/$html_basename"
       md_content="$(prepare_md_content "$target_md")"
+      md_content="$(printf '%s\n' "$md_content" | awk -v notice="$TRUST_BOUNDARY_NOTICE_MD" '
+        !inserted && /^#[[:space:]]/ { print; print ""; print notice; inserted=1; next }
+        { print }
+      ')"
       md_content="$(link_related_material_paths "$(dirname "$target_md")" "$(dirname "$html_file")" <<< "$md_content")"
       title="$(extract_md_title "$md_content" "$(basename "$target_md" .md)")"
       md_content_json="$(markdown_to_script_json "$md_content")"
