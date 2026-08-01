@@ -17,6 +17,11 @@
 #                       マーカー: MATRIX_JSON / 必須キー: tables, features
 #   traceability        shared/templates/matrix/traceability-template.html
 #                       マーカー: MATRIX_JSON / 必須キー: screens, apis, tables
+#   confirmation-survey  shared/templates/matrix/confirmation-survey-template.html
+#                       マーカー: MATRIX_JSON / 必須キー: questions
+#                       (必須キーが0件でも空状態ページを生成する唯一の例外。
+#                        改善課題1-169: 欠落0件は良い状態であり、その旨を示す
+#                        ページ自体は常に公開する)
 #   ai-assets           shared/templates/ai-assets/ai-assets-template.html
 #                       マーカー: ASSETS_JSON / 必須キー: rules, skills, subagents, hooks
 #
@@ -37,6 +42,8 @@
 #   ページを公開しないため生成をスキップする(exit 0・既存の旧ページがあれば削除)。
 #   一部キーのみ0件の場合はページを生成し、テンプレート内JSが欠けた成分を示す
 #   空状態コールアウトを表示する(写真指摘1-101)。
+#   例外: confirmation-survey は必須キー(questions)が0件でも常にページを生成する
+#   (改善課題1-169: 確認事項が0件という状態そのものが利用者に伝えるべき結果のため)。
 
 ## 設計判断
 ##
@@ -171,6 +178,42 @@ self_test() {
     tables: [{tableId: "users", tableName: "users", logicalName: "ユーザー"}]
   }' > "$tmp/fixture-traceability.json"
   run_case "traceability" "traceability" "$tmp/fixture-traceability.json"
+
+  # --- confirmation-survey: 横断確認事項質問票(questions 1件以上) ---
+  jq -n '{
+    generatedAt: "2026-01-01T00:00:00Z",
+    dataSource: "test",
+    questions: [
+      {questionKey: "unit-1-業務名未確定", targetUnit: "unit-1",
+       question: "業務名を確定してください（現在の推定名: 日次集計）",
+       evidence: "batch-manifest.json: nameConfidence=inferred", answerTarget: ""}
+    ]
+  }' > "$tmp/fixture-confirmation-survey.json"
+  run_case "confirmation-survey" "confirmation-survey" "$tmp/fixture-confirmation-survey.json"
+
+  # --- confirmation-survey: questions 0件でも ALWAYS_GENERATE によりページを生成する
+  # (改善課題1-169の検収方法2。run_case を使い回すと出力パスが page-type 単位で
+  # 固定され1件目のケースと衝突するため、専用の出力パスで個別に検証する) ---
+  jq -n '{generatedAt: "2026-01-01T00:00:00Z", dataSource: "test", questions: []}' \
+    > "$tmp/fixture-confirmation-survey-empty.json"
+  local cs_empty_out="$tmp/out-confirmation-survey-empty.html"
+  if bash "$script_path" confirmation-survey "$tmp/fixture-confirmation-survey-empty.json" "$cs_empty_out" >/dev/null 2>&1 \
+    && [ -f "$cs_empty_out" ]; then
+    echo "  [PASS] confirmation-survey(questions 0件): ALWAYS_GENERATEによりSKIPされずページを生成"
+  else
+    echo "  [FAIL] confirmation-survey(questions 0件): ページが生成されなかった(ALWAYS_GENERATEが機能していない)" >&2
+    rc=1
+  fi
+  local cs_empty_embedded="$tmp/embedded-confirmation-survey-empty.json"
+  local cs_empty_expected="$tmp/expected-confirmation-survey-empty.json"
+  extract_manifest_json "$cs_empty_out" | jq -c -S . > "$cs_empty_embedded" 2>/dev/null || true
+  jq -c -S . "$tmp/fixture-confirmation-survey-empty.json" > "$cs_empty_expected"
+  if diff -q "$cs_empty_embedded" "$cs_empty_expected" >/dev/null 2>&1; then
+    echo "  [PASS] confirmation-survey(questions 0件): 埋め込みJSONが原本フィクスチャと完全一致"
+  else
+    echo "  [FAIL] confirmation-survey(questions 0件): 埋め込みJSONが原本フィクスチャと不一致" >&2
+    rc=1
+  fi
 
   # --- tokens.css変更追従: 隔離したbuilder一式の正本にfixture tokenを追加 ---
   local token_fixture_root token_fixture_script token_fixture_out
@@ -307,7 +350,7 @@ if [ "${1:-}" = "--self-test" ]; then
 fi
 
 USAGE="Usage: build-matrix-pages.sh <page-type> <data.json> <output-html-path> [--portal-dir <path>] [--project-name <name>] [--generated-at <iso8601>] [--catalog <file>]
-  page-type: permission-screen | permission-function | crud | traceability | ai-assets"
+  page-type: permission-screen | permission-function | crud | traceability | confirmation-survey | ai-assets"
 
 PAGE_TYPE="${1:?$USAGE}"
 DATA_JSON="${2:?$USAGE}"
@@ -365,6 +408,7 @@ TEMPLATES_DIR="$SCRIPT_DIR/../../templates"
 TOKENS_CSS_FILE="$TEMPLATES_DIR/tokens.css"
 
 # --- page-type からテンプレート・JSON埋め込みマーカー・必須トップレベルキーを解決 ---
+ALWAYS_GENERATE=false
 case "$PAGE_TYPE" in
   permission-screen)
     TEMPLATE="$TEMPLATES_DIR/matrix/permission-screen-matrix-template.html"
@@ -385,6 +429,12 @@ case "$PAGE_TYPE" in
     TEMPLATE="$TEMPLATES_DIR/matrix/traceability-template.html"
     JSON_MARKER="<!--MATRIX_JSON-->"
     REQUIRED_KEYS="screens apis tables"
+    ;;
+  confirmation-survey)
+    TEMPLATE="$TEMPLATES_DIR/matrix/confirmation-survey-template.html"
+    JSON_MARKER="<!--MATRIX_JSON-->"
+    REQUIRED_KEYS="questions"
+    ALWAYS_GENERATE=true
     ;;
   ai-assets)
     TEMPLATE="$TEMPLATES_DIR/ai-assets/ai-assets-template.html"
@@ -424,7 +474,9 @@ done
 # shared/references/manifest-schema-extensions.md「マトリクス・対応表用の新規データ
 # ファイル定義」: 該当データが揃った時のみ生成する契約に従う)。既存の旧ページが
 # あれば陳腐化を防ぐため削除する。一部成分のみ0件の場合はページを生成し、
-# テンプレート側JSが空状態コールアウトを表示する ---
+# テンプレート側JSが空状態コールアウトを表示する。
+# 例外: ALWAYS_GENERATE=true(confirmation-survey)は必須成分が0件でも生成する
+# (改善課題1-169: 確認事項0件という状態自体を利用者に示すページを常に公開する) ---
 all_required_empty=true
 for key in $REQUIRED_KEYS; do
   key_length="$(jq -r --arg k "$key" '(.[$k] // []) | if type == "array" then length else 1 end' "$DATA_JSON")"
@@ -433,7 +485,7 @@ for key in $REQUIRED_KEYS; do
     break
   fi
 done
-if [ "$all_required_empty" = true ]; then
+if [ "$all_required_empty" = true ] && [ "$ALWAYS_GENERATE" != true ]; then
   if [ -f "$OUTPUT_HTML" ]; then
     rm -f "$OUTPUT_HTML"
     echo "SKIP: 必須成分($REQUIRED_KEYS)がすべて0件のため既存ページを削除しました(page-type: $PAGE_TYPE): $OUTPUT_HTML" >&2

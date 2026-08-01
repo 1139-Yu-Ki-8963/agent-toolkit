@@ -1,0 +1,34 @@
+{
+  "generatedAt": "2026-07-28T00:00:00Z",
+  "dataSource": "画面一覧.html + バッチ一覧.html + permission-matrix.json",
+  "questions": [
+    {
+      "questionKey": "job-daily-summary-業務名未確定",
+      "targetUnit": "job-daily-summary",
+      "question": "業務名を確定してください（現在の推定名: 日次集計）",
+      "evidence": "バッチ一覧.html: nameConfidence=inferred",
+      "answerTarget": ""
+    },
+    {
+      "questionKey": "job-monthly-report-要手動確認",
+      "targetUnit": "job-monthly-report",
+      "question": "対象の実体を確認してください（identifier: jobs/monthly_report.py）",
+      "evidence": "バッチ一覧.html: kind=unresolved",
+      "answerTarget": ""
+    },
+    {
+      "questionKey": "legacy-report-権限未設定",
+      "targetUnit": "legacy-report",
+      "question": "legacy-reportのロール別アクセス可否を確定してください",
+      "evidence": "permission-matrix.json: permissions=null",
+      "answerTarget": ""
+    },
+    {
+      "questionKey": "screen-user-admin-要確認事項-96e1a3f2",
+      "targetUnit": "screen-user-admin",
+      "question": "削除ボタン押下後の確認ダイアログの有無を確認してください",
+      "evidence": "画面詳細設計書: 要確認事項一覧",
+      "answerTarget": ""
+    }
+  ]
+}

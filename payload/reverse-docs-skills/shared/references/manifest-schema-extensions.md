@@ -186,6 +186,25 @@ feature-manifest がない場合、`targetTables` キー欠落と `targetTables:
 - 画面→テーブルの対応は `screens[].apis` と `apis[].tables` からテンプレート JS が導出する（二重データ禁止）。`tables[]` は table-manifest の全 units（不在時は apis[].tables に現れる unitKey の集合）。どの画面からも使われないテーブルは描画側で「孤立」バッジになるため、全テーブルの収載が前提
 - `sourceHash` は画面ユニットの原本ソース連結ハッシュ。設計書生成時の値と比較し、不一致なら一覧ページに陳腐化バッジを表示する
 
+### confirmation-survey.json（横断確認事項質問票）
+
+```json
+{
+  "generatedAt": "2026-08-01T00:00:00+09:00",
+  "dataSource": "screen-manifest.json + permission-matrix.json",
+  "questions": [
+    {"questionKey": "batch-0042-業務名未確定", "targetUnit": "batch-0042",
+     "question": "業務名を確定してください（現在の推定名: 日次集計）",
+     "evidence": "batch-manifest.json: nameConfidence=inferred", "answerTarget": ""}
+  ]
+}
+```
+
+- 推定名称（unit-manifestの`nameConfidence == "inferred"`）・要手動確認（`kind == "unresolved"`）・権限未設定（permission-matrix.jsonの`permissions == null`）・要確認事項（画面詳細設計書の要確認事項一覧）の4系統を横断集約する
+- `questionKey` は `<対象unitKey>-<欠落種別>` 形式（連番禁止。内容要約キー規約に従う）
+- `answerTarget` は現状は常に空文字列（ヒアリング回答の取り込み自動化は対象外）
+- `questions` が空配列でもページ自体は生成し、確認事項が無い旨の空状態表示にする（他3スキーマの「該当データが揃った時のみ生成」という契約の例外）
+
 ## AI設定資産ページのデータ源
 
 対象リポジトリ内の設定資産から次の方針で抽出する。マニフェスト形式（`unitKind: "ai-config"` の unit-manifest 互換）に正規化して他種別と同じビルド経路に載せる。
