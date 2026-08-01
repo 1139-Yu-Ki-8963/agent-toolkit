@@ -596,10 +596,16 @@ table.matrix thead th { white-space: nowrap; }
 table.matrix thead th.role-col {
   font-family: var(--mono); font-size: 10px; font-weight: 600; text-align: center;
   cursor: pointer; user-select: none;
-  height: 130px; width: 44px; vertical-align: bottom; padding: 8px 4px;
+  height: auto; width: auto; min-width: 44px; vertical-align: bottom; padding: 8px 6px;
 }
 table.matrix thead th.role-col span {
-  writing-mode: vertical-rl; text-orientation: mixed; white-space: nowrap; pointer-events: none;
+  writing-mode: horizontal-tb; text-orientation: initial; white-space: nowrap; pointer-events: none;
+}
+table.matrix thead th.role-col.is-vertical {
+  height: 130px; width: 44px; padding: 8px 4px;
+}
+table.matrix thead th.role-col.is-vertical span {
+  writing-mode: vertical-rl; text-orientation: mixed;
 }
 table.matrix thead th.role-col:hover { background: var(--panel2); }
 table.matrix thead th.role-col.role-active { color: var(--accent); box-shadow: inset 0 -2px 0 var(--accent); }
@@ -609,7 +615,7 @@ table.matrix th.fn-col, table.matrix td.fn-col {
   position: sticky; left: 0; z-index: 2; background: var(--panel);
   border-right: 2px solid var(--line2); white-space: nowrap; width: 150px; text-align: left;
 }
-table.matrix thead th.fn-col { z-index: 3; }
+table.matrix thead th.fn-col { z-index: 3; color: var(--text); }
 table.matrix td.perm-cell {
   font-family: var(--mono); text-align: center; letter-spacing: 0.22em;
   font-size: 11.5px; font-weight: 600; white-space: nowrap;
@@ -1022,9 +1028,10 @@ tr:hover .copy-btn, .copy-btn:focus { opacity: 1; }
       var thCat = document.createElement('th');
       thCat.textContent = 'カテゴリ';
       headRow.appendChild(thCat);
+      var isVertical = roles.length > 8;
       roles.forEach(function (role) {
         var th = document.createElement('th');
-        th.className = 'role-col';
+        th.className = 'role-col' + (isVertical ? ' is-vertical' : '');
         var label = document.createElement('span');
         label.textContent = role.name;
         th.appendChild(label);

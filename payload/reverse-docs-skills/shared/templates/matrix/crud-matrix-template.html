@@ -71,10 +71,16 @@ table.crud thead th {
 
 /* 列ヘッダ(テーブル物理名)は縦書きで省スペース化。機能名列(feature-col)は横書きのまま */
 table.crud thead th.tbl-col {
-  height: 150px; width: 40px; vertical-align: bottom; padding: 8px 4px;
+  height: auto; width: auto; min-width: 40px; vertical-align: bottom; padding: 8px 6px;
 }
 table.crud thead th.tbl-col span {
-  writing-mode: vertical-rl; text-orientation: mixed; white-space: nowrap;
+  writing-mode: horizontal-tb; text-orientation: initial; white-space: nowrap;
+}
+table.crud thead th.tbl-col.is-vertical {
+  height: 150px; width: 40px; padding: 8px 4px;
+}
+table.crud thead th.tbl-col.is-vertical span {
+  writing-mode: vertical-rl; text-orientation: mixed;
 }
 
 /* 1列目(機能名)は sticky で固定 */
@@ -84,7 +90,7 @@ table.crud th.feature-col, table.crud td.feature-name {
   border-right: 2px solid var(--line2);
   text-align: left; white-space: nowrap; width: 150px;
 }
-table.crud thead th.feature-col { z-index: 3; }
+table.crud thead th.feature-col { z-index: 3; color: var(--text); }
 table.crud td.feature-name { font-weight: 600; font-size: 0.85rem; }
 
 table.crud td.crud-cell {
@@ -194,8 +200,9 @@ tr:hover .copy-btn, .copy-btn:focus { opacity: 1; }
 
     /* ヘッダ描画(1列目=機能名 sticky、以降=テーブル物理名) */
     var headHtml = '<tr><th class="feature-col">機能＼テーブル</th>';
+    var isVertical = tables.length > 8;
     tables.forEach(function (t) {
-      headHtml += '<th class="tbl-col" title="' + esc(t.logicalName || '') + '"><span>' + esc(t.physicalName) + '</span></th>';
+      headHtml += '<th class="tbl-col' + (isVertical ? ' is-vertical' : '') + '" title="' + esc(t.logicalName || '') + '"><span>' + esc(t.physicalName) + '</span></th>';
     });
     headHtml += '</tr>';
     thead.innerHTML = headHtml;

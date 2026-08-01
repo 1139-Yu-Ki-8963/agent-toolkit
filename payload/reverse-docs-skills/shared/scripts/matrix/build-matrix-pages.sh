@@ -336,6 +336,20 @@ self_test() {
     echo "  [PASS] 負ケース: 未知のpage-typeを非0 exitで拒否"
   fi
 
+  # --- 改善課題1-105: ヘッダ行高さ比率(3倍以下)と左上見出しセルのコントラスト比
+  # (4.5以上)をCDP実描画で検証する(列数8以下=デフォルト水平見出しレイアウト) ---
+  local header_layout_test
+  header_layout_test="$(cd "$(dirname "$script_path")/.." && pwd)/test-matrix-header-compact-layout.cjs"
+  if [ ! -f "$header_layout_test" ]; then
+    echo "  [FAIL] 改善課題1-105: ヘッダ行コンパクトレイアウト検査スクリプトが見つからない: $header_layout_test" >&2
+    rc=1
+  elif node "$header_layout_test"; then
+    echo "  [PASS] 改善課題1-105: ヘッダ行高さ比率3倍以下・左上見出しコントラスト比4.5以上を3種すべてで満たす"
+  else
+    echo "  [FAIL] 改善課題1-105: ヘッダ行高さ比率またはコントラスト比が基準を満たさない" >&2
+    rc=1
+  fi
+
   if [ "$rc" -eq 0 ]; then
     echo "self-test 全項目 PASS"
   else
