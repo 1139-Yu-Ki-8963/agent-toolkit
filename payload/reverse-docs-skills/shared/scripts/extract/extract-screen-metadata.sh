@@ -247,10 +247,12 @@ EOF
   if bash "$script_path" "$manifest" "$tmp/src" "$out_a" >/dev/null 2>&1; then
     check "ケースa: 管理画面 category=管理" '.screens[0].category == "管理"' "$out_a"
     check "ケースa: 管理画面 permissions=[\"admin\"](requireRole検出)" '.screens[0].permissions == ["admin"]' "$out_a"
+    check "1-170: requireRole検出 permissions は valueProvenance=measured" '.screens[0].valueProvenance.permissions == "measured"' "$out_a"
     check "ケースa: 管理画面 relatedApis=[\"/api/users\"](生パス)" '.screens[0].relatedApis == ["/api/users"]' "$out_a"
     check "ケースa: 管理画面 sourceHash が12桁hex" '.screens[0].sourceHash | test("^[0-9a-f]{12}$")' "$out_a"
     check "ケースa: 一般画面 category=一般" '.screens[1].category == "一般"' "$out_a"
     check "ケースa: 一般画面 permissions=[](検出なし)" '.screens[1].permissions == []' "$out_a"
+    check "1-170: 一般画面の[]推定 permissions は valueProvenance=inferred" '.screens[1].valueProvenance.permissions == "inferred"' "$out_a"
     check "ケースa: 一般画面 relatedApis 欠落(fetchなし)" '.screens[1] | has("relatedApis") | not' "$out_a"
     check "ケースa: designDocStatus 欠落(オプション未指定)" '[.screens[] | has("designDocStatus")] | any | not' "$out_a"
     check "ケースa: 既存フィールド無変更" '(.screens[0].route == "/admin/users") and (.screens[1].entryFile == "screens/Home.tsx") and (.detectionSummary.screenCount == 3)' "$out_a"
@@ -487,10 +489,13 @@ while IFS= read -r row; do
   if [ -n "$roles" ]; then
     roles_json="$(printf '%s\n' "$roles" | jq -R 'select(length > 0)' | jq -s .)"
     add="$(jq --argjson v "$roles_json" '. + {permissions: $v}' <<<"$add")"
+    add="$(jq '. + {valueProvenance: ((.valueProvenance // {}) + {permissions: "measured"})}' <<<"$add")"
   elif [ "$category" = "管理" ]; then
     add="$(jq '. + {permissions: ["admin"]}' <<<"$add")"
+    add="$(jq '. + {valueProvenance: ((.valueProvenance // {}) + {permissions: "inferred"})}' <<<"$add")"
   elif [ "$category" = "一般" ]; then
     add="$(jq '. + {permissions: []}' <<<"$add")"
+    add="$(jq '. + {valueProvenance: ((.valueProvenance // {}) + {permissions: "inferred"})}' <<<"$add")"
   fi
 
   # --- 3. relatedApis: '/api/...' パス収集(+ api-manifest 突合で unitKey 解決) ---

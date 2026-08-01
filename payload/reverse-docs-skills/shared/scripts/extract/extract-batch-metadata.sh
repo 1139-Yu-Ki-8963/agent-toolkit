@@ -148,6 +148,8 @@ EOF
     '.units[0].schedule == {cron: "0 3 * * *", readable: "毎日 3:00"}'
   check "schedule: 毎月パターンのcron式と平易表記" \
     '.units[1].schedule == {cron: "30 1 1 * *", readable: "毎月1日 1:30"}'
+  check "1-170: cron検出schedule は valueProvenance=measured" \
+    '.units[0].valueProvenance.schedule == "measured" and .units[1].valueProvenance.schedule == "measured"'
   check "targetTables: テーブルidentifierヒットでunitKey配列" \
     '.units[0].targetTables == ["users-table"]'
   check "targetTables: ヒット無しユニットにはフィールドを付けない(fail-safe)" \
@@ -172,7 +174,7 @@ EOF
   # 既存フィールド不変: 追加フィールドを取り除くと入力と完全一致する
   # (detectionSummary.diagnostics.definitionWithoutImplementation は本スクリプトが新規に追加するため、
   #  ユニット単位の追加4フィールドと同様に除去してから比較する)
-  jq -S 'del(.units[].schedule, .units[].targetTables, .units[].downstreamJobs, .units[].execMethod)
+  jq -S 'del(.units[].schedule, .units[].targetTables, .units[].downstreamJobs, .units[].execMethod, .units[].valueProvenance)
          | del(.detectionSummary.diagnostics)' \
     "$out" > "$tmp/stripped.json"
   jq -S . "$manifest" > "$tmp/orig.json"
@@ -504,6 +506,7 @@ while IFS= read -r row; do
       if [ -n "$cron_expr" ] && [ "$(printf '%s\n' "$cron_expr" | wc -w | tr -d ' ')" -eq 5 ]; then
         readable="$(cron_readable "$cron_expr")"
         aug="$(jq --arg c "$cron_expr" --arg r "$readable" '. + {schedule: {cron: $c, readable: $r}}' <<<"$aug")"
+        aug="$(jq '. + {valueProvenance: ((.valueProvenance // {}) + {schedule: "measured"})}' <<<"$aug")"
       fi
     fi
   fi

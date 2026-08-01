@@ -600,9 +600,9 @@ run_validate() {
   #    項目数(total_items)は増やさない。screenType/accountGroup/accountSubType以外の
   #    closed/identifier軸(device等)は項目12(accountGroup-値域)にまとめて検査する。
   # ---------------------------------------------------------------------------
-  local total_items=12
+  local total_items=13
   if [ "$UNIT_KIND" = "screen" ]; then
-    total_items=16
+    total_items=17
 
     local axes_json="" axes_resolved
     if axes_resolved="$(resolve_unit_axes "$MANIFEST" "${AXES_FILE:-}" 2>/dev/null)"; then
@@ -857,6 +857,31 @@ run_validate() {
     echo "[FAIL] ${replacement_label} — 置換文字(U+FFFD)混入: ${replacement_issues}" >&2
   else
     echo "[PASS] ${replacement_label} — 置換文字(U+FFFD)混入0件" >&2
+  fi
+
+  # ---------------------------------------------------------------------------
+  # 17(screen)/13(screen以外). valueProvenance-値域(1-170)
+  #     各要素のvalueProvenance(存在する場合のみ)について、objectの各値が
+  #     measured/inferred/confirmedの3語彙のいずれかであることを検査する。
+  #     nameConfidenceフィールドは既存の2値(confirmed/inferred)のままであり
+  #     本検査の対象外(3値厳格検査は新規valueProvenanceにのみ適用する)。
+  # ---------------------------------------------------------------------------
+  local value_provenance_issues value_provenance_label="valueProvenance-値域"
+  value_provenance_issues="$(jq -r --arg items "$ITEMS_KEY" --arg keyfield "$ITEM_KEY_FIELD" '
+    [ .[$items][]? | select(has("valueProvenance") and (.valueProvenance != null))
+      | (.[$keyfield] // .screenKey // "?") as $k
+      | .valueProvenance | to_entries[]
+      | . as $e
+      | select((["measured","inferred","confirmed"] | index($e.value)) == null)
+      | $k + ":valueProvenance." + $e.key + "=" + ($e.value | tostring) + "(値域外)"
+    ] | join("; ")
+  ' "$MANIFEST" 2>/dev/null)"
+
+  if [ -n "$value_provenance_issues" ]; then
+    overall_fail=1
+    echo "[FAIL] ${value_provenance_label} — ${value_provenance_issues}" >&2
+  else
+    echo "[PASS] ${value_provenance_label} — measured/inferred/confirmedのいずれかのみ" >&2
   fi
 
   # ---------------------------------------------------------------------------
@@ -1359,6 +1384,35 @@ EOF
     echo "  [PASS] 置換文字-非混入陽性: 置換文字を含まないマニフェストは従来どおりPASS"
   else
     echo "  [FAIL] 置換文字-非混入陽性: 置換文字を含まないのにFAILした" >&2
+    rc=1
+  fi
+
+  # ---- 検査(valueProvenance-値域)の確認(1-170) ----
+  # 陽性: measured/inferred/confirmedの3値のみを持つマニフェストはPASSすること
+  local vp_pass="$tmp/api-value-provenance-pass.json"
+  jq '.units[0].valueProvenance = {permissions: "measured"}
+      | .units[1].valueProvenance = {schedule: "inferred", relatedField: "confirmed"}' \
+    "$api_pass" > "$vp_pass"
+  if run_validate "$vp_pass" "" "api" >/dev/null 2>&1; then
+    echo "  [PASS] valueProvenance-値域陽性: measured/inferred/confirmedのみならPASS"
+  else
+    echo "  [FAIL] valueProvenance-値域陽性: 正しい3値のみなのにFAILした" >&2
+    rc=1
+  fi
+
+  # 陰性: 値域外の値を含むマニフェストはFAILし、該当キーが列挙されること
+  local vp_fail="$tmp/api-value-provenance-fail.json"
+  jq '.units[0].valueProvenance = {permissions: "guessed"}' "$api_pass" > "$vp_fail"
+  local vp_fail_output
+  vp_fail_output="$(run_validate "$vp_fail" "" "api" 2>&1)"
+  if run_validate "$vp_fail" "" "api" >/dev/null 2>&1; then
+    echo "  [FAIL] valueProvenance-値域陰性: 値域外の値を含むのにPASSした" >&2
+    rc=1
+  elif echo "$vp_fail_output" | grep -q '\[FAIL\] valueProvenance-値域.*valueProvenance\.permissions=guessed'; then
+    echo "  [PASS] valueProvenance-値域陰性: 値域外の値でFAILし該当キーが列挙される"
+  else
+    echo "  [FAIL] valueProvenance-値域陰性: FAILしたが該当キーが出力に含まれない" >&2
+    echo "$vp_fail_output" | grep 'valueProvenance-値域' >&2
     rc=1
   fi
 

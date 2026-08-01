@@ -22,6 +22,24 @@
 |---|---|---|---|---|
 | nameScope | string | 任意 | `validate-manifest.sh` 検査9（名称-一意性）の判定範囲を限定するスコープ識別子（例: screenはサイトキー、batchは配置ディレクトリ）。未指定の要素は既定スコープ（空文字列）に属し、マニフェスト全体で一意性判定される。異なるnameScope間の同名は許容し、同一nameScope内の重複だけをFAILとする（1-124） | 複数サイト・複数配置ディレクトリを横断するリポジトリで、業務名が同一コードベース内で正当に重複する場合の判定範囲。自動判定は行わず、マニフェスト生成側が該当スコープの識別子をそのまま設定する |
 
+### 全種別共通（値の出所区分）
+
+| フィールド名 | 型 | 必須/任意 | 説明 | 抽出元の想定 |
+|---|---|---|---|---|
+| valueProvenance | object | 任意 | 表示値の出所区分。フィールド名をキーとし、値は `measured`（実測。コード・設定から機械的に検出した値）/ `inferred`（推定。他の値からのヒューリスティック推定）/ `confirmed`（人間確認済み）の3値のみ。キー・値ともに検出できたフィールドだけを持つ（欠落=出所未記録） | 各抽出スクリプト（extract-screen-metadata.sh の permissions、extract-batch-metadata.sh の schedule 等）が値付与と同じ箇所で設定する |
+| confirmedPermissions | string[] | 任意 | 人間確定済みの権限ロール配列。表示時は `permissions` より優先する | 設計書・ヒアリングでの人手上書き（自動生成する仕組みは無い） |
+| confirmedSchedule | object | 任意 | 人間確定済みのスケジュール（`{"cron": "...", "readable": "..."}`）。表示時は `schedule` より優先する | 設計書・ヒアリングでの人手上書き（自動生成する仕組みは無い） |
+
+`permissions` の出所対応（extract-screen-metadata.sh が付与）:
+- 認可イディオム検出（`requireRole` 等の実コード検出）= `measured`
+- 管理画面区分からの `["admin"]` 推定 = `inferred`
+- 管理画面区分でない場合の `[]` 推定 = `inferred`
+- `permissions` 自体が欠落する場合は `valueProvenance` も付与しない
+
+`schedule` の出所対応（extract-batch-metadata.sh が付与）:
+- cron 検出 = `measured`
+- `confirmed` を生産する抽出処理は現状無く、`confirmedSchedule` は人手上書き用の解決口としてのみ定義する
+
 ### screens（画面）
 
 | フィールド名 | 型 | 必須/任意 | 説明 | 抽出元の想定 |

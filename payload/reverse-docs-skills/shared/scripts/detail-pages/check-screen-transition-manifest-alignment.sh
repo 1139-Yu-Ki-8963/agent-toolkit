@@ -19,8 +19,14 @@ JSON
   else
     expected="$(printf '%s' "$canonical" | sha256sum | awk '{print $1}')"
   fi
+  # 1-170: valueProvenance/confirmedPermissions/confirmedScheduleをextのみに追加し、
+  # del()登録漏れがあれば正常系がFAILすることを実測で保証する(2026-08-01時点の実測確認)。
   jq --arg h "$expected" --arg t "2026-07-31T00:00:00Z" \
-    '. + {generatedAt: $t, manifestContentHash: $h} | .screens[0].confirmedScreenName = "ホーム画面"' \
+    '. + {generatedAt: $t, manifestContentHash: $h}
+     | .screens[0].confirmedScreenName = "ホーム画面"
+     | .screens[0].valueProvenance = {permissions: "measured"}
+     | .screens[0].confirmedPermissions = ["admin"]
+     | .screens[0].confirmedSchedule = {cron: "0 3 * * *", readable: "毎日 3:00"}' \
     "$tmp/raw.json" > "$tmp/ext.json"
   jq -n --arg h "$expected" \
     '{manifestContentHash: $h, nodes: [{unitKey: "home", label: "ホーム画面"}], unresolved: []}' \
@@ -85,7 +91,8 @@ jq -e -n \
     | .screens = [(.screens // [])[] | del(
         .category,.permissions,.relatedApis,.designDocStatus,.confirmedScreenName,
         .designDocPath,.detailDocPath,.sequencePath,.testCasePath,.sourceHash,
-        .designDocSourceHash
+        .designDocSourceHash,
+        .valueProvenance,.confirmedPermissions,.confirmedSchedule
       )];
   ($raw[0] | applicable) as $raw_screens
   | ($ext[0] | applicable) as $ext_screens

@@ -476,6 +476,16 @@ EOF
   fi
 
   if [ "$findings_ok" -eq 1 ] \
+    && grep -Fq 'prov-badge prov-confirmed' "$out_findings" \
+    && grep -Fq 'prov-badge prov-inferred' "$out_findings" \
+    && grep -Fq "if (item.confirmedScreenName)" "$out_findings"; then
+    echo "  [PASS] 1-170: confirmedScreenName有無から確認済/推定バッジの描画分岐を生成"
+  else
+    echo "  [FAIL] 1-170: 名称の出所バッジ描画分岐が出力に含まれない" >&2
+    rc=1
+  fi
+
+  if [ "$findings_ok" -eq 1 ] \
     && grep -Fq "getElementById('unresolved-table')" "$out_findings" \
     && grep -Fq '.table-area table[data-unit-table]' "$out_findings" \
     && grep -Fq 'data-screen-key="unresolved-one"' "$out_findings" \

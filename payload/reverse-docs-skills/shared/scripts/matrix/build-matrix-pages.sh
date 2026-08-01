@@ -143,6 +143,48 @@ self_test() {
   }' > "$tmp/fixture-permission-screen.json"
   run_case "permission-screen" "permission-screen" "$tmp/fixture-permission-screen.json"
 
+  # --- 1-170: permission-screen に3値(measured/inferred/confirmed)混在のvalueProvenanceを含めて
+  #     出力HTMLへバッジCSSクラスが出現することを確認する ---
+  jq -n '{
+    generatedAt: "2026-01-01T00:00:00Z",
+    dataSource: "画面一覧マニフェスト + 権限定義",
+    roles: ["管理者", "一般"],
+    screens: [
+      {screenId: "login", screenName: "ログイン", route: "/login",
+       permissions: {"管理者": true, "一般": true},
+       valueProvenance: {permissions: "measured"}},
+      {screenId: "user-admin", screenName: "ユーザー管理", route: "/admin/users",
+       permissions: {"管理者": true, "一般": false},
+       valueProvenance: {permissions: "inferred"}},
+      {screenId: "reports", screenName: "レポート", route: "/reports",
+       permissions: {"管理者": true, "一般": true},
+       valueProvenance: {permissions: "confirmed"}}
+    ]
+  }' > "$tmp/fixture-permission-screen-provenance.json"
+  local prov_out="$tmp/out-permission-screen-provenance.html"
+  # 注: CSS内の.prov-measured等はデータに関わらず常に出現するため、それだけでは
+  # 描画ロジックの存在を証明しない。JS側の実装固有の文字列(呼び出し・分岐条件・
+  # クラス連結式)を grep することで、ロジックが削除されれば必ず FAIL するようにする。
+  if bash "$script_path" permission-screen "$tmp/fixture-permission-screen-provenance.json" "$prov_out" >/dev/null 2>&1 \
+    && grep -Fq 'permissionsProvenance(s)' "$prov_out" \
+    && grep -Fq "provenance === 'inferred'" "$prov_out" \
+    && grep -Fq "'prov-badge prov-' + provenance" "$prov_out"; then
+    echo "  [PASS] 1-170: permission-screen出力にvalueProvenance判定・推定バッジ描画ロジックが存在(inferredのみ描画。measured/confirmedはCSS定義のみで丸印表示は変更なし)"
+  else
+    echo "  [FAIL] 1-170: permission-screen出力にvalueProvenance描画ロジックが含まれない" >&2
+    rc=1
+  fi
+  local prov_embedded="$tmp/embedded-permission-screen-provenance.json"
+  local prov_expected="$tmp/expected-permission-screen-provenance.json"
+  extract_manifest_json "$prov_out" | jq -c -S . > "$prov_embedded" 2>/dev/null || true
+  jq -c -S . "$tmp/fixture-permission-screen-provenance.json" > "$prov_expected"
+  if diff -q "$prov_embedded" "$prov_expected" >/dev/null 2>&1; then
+    echo "  [PASS] 1-170: valueProvenance付きpermission-screenの埋め込みJSONが原本フィクスチャと完全一致"
+  else
+    echo "  [FAIL] 1-170: valueProvenance付きpermission-screenの埋め込みJSONが原本フィクスチャと不一致" >&2
+    rc=1
+  fi
+
   # --- permission-function: マーカー文字列衝突をあえて含む(誤爆検証) ---
   jq -n \
     --arg functionName 'ユーザー編集{{GENERATED_AT}}<!--MATRIX_JSON--><!--ASSETS_JSON-->{{DATA_SOURCE}}' \

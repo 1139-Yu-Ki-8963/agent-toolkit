@@ -20,8 +20,14 @@ JSON
   else
     expected="$(printf '%s' "$canonical" | sha256sum | awk '{print $1}')"
   fi
+  # 1-170: valueProvenance/confirmedPermissions/confirmedScheduleをextのみに追加し、
+  # 許可リスト登録漏れがあれば正常系がFAILすることを実測で保証する(2026-08-01時点の実測確認)。
   jq --arg h "$expected" --arg t "2026-07-31T00:00:00Z" \
-    '. + {generatedAt: $t, manifestContentHash: $h} | .screens[0].confirmedScreenName = "ホーム画面"' \
+    '. + {generatedAt: $t, manifestContentHash: $h}
+     | .screens[0].confirmedScreenName = "ホーム画面"
+     | .screens[0].valueProvenance = {permissions: "measured"}
+     | .screens[0].confirmedPermissions = ["admin"]
+     | .screens[0].confirmedSchedule = {cron: "0 3 * * *", readable: "毎日 3:00"}' \
     "$tmp/raw.json" > "$tmp/ext.json"
 
   root="$tmp/output-root"
@@ -84,7 +90,7 @@ fi
 [ "$(jq -r '.manifestContentHash // ""' "$ext")" = "$expected" ] \
   || { echo "ERROR: ext manifestContentHash mismatch" >&2; exit 1; }
 
-allowed='["category","permissions","relatedApis","designDocStatus","confirmedScreenName","designDocPath","detailDocPath","sequencePath","testCasePath","unitTestViewpointPath","integrationTestViewpointPath","integrationTestCasePath","scenarioPath","sourceHash","designDocSourceHash"]'
+allowed='["category","permissions","relatedApis","designDocStatus","confirmedScreenName","designDocPath","detailDocPath","sequencePath","testCasePath","unitTestViewpointPath","integrationTestViewpointPath","integrationTestCasePath","scenarioPath","sourceHash","designDocSourceHash","valueProvenance","confirmedPermissions","confirmedSchedule"]'
 jq -S --argjson allowed "$allowed" '
   del(.generatedAt,.manifestContentHash)
   | .screens = [(.screens // [])[] | delpaths([$allowed[] | [.]])]

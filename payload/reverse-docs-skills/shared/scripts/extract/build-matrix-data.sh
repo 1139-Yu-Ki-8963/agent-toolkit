@@ -115,10 +115,11 @@ self_test() {
     screens: [
       {screenKey: "user-admin", kind: "route", route: "/admin/users", entryFile: "screens/UserAdmin.tsx",
        confidence: "high", screenType: "top", accountGroup: "admin", accountSubType: "common", hasTemplate: true, parentScreen: null, childComponents: [], isProcessingEndpoint: false,
-       permissions: ["admin"], relatedApis: ["users-list", "user-delete"], sourceHash: "abcdef123456"},
+       permissions: ["admin"], relatedApis: ["users-list", "user-delete"], sourceHash: "abcdef123456",
+       valueProvenance: {permissions: "measured"}},
       {screenKey: "home", kind: "route", route: "/", entryFile: "screens/Home.tsx",
        confidence: "high", screenType: "top", accountGroup: "user", accountSubType: "common", hasTemplate: true, parentScreen: null, childComponents: [], isProcessingEndpoint: false,
-       permissions: [], relatedApis: ["users-list"]},
+       permissions: [], relatedApis: ["users-list"], valueProvenance: {permissions: "inferred"}},
       {screenKey: "legacy-report", kind: "route", route: "/legacy/report", entryFile: "screens/Home.tsx",
        confidence: "low", screenType: "detail", accountGroup: "report", accountSubType: "common", hasTemplate: true, parentScreen: null, childComponents: [], isProcessingEndpoint: false}
     ]
@@ -205,6 +206,10 @@ self_test() {
     jq -e '(.screens[] | select(.screenId == "legacy-report") | .permissions) == null' "$pm"
   assert "permission-matrix: feature CRUD(admin=RD/member=R/guest=R)" \
     jq -e '.features == [{"unitKey": "user-management", "crud": {"admin": "RD", "guest": "R", "member": "R"}}]' "$pm"
+  assert "1-170: valueProvenance.permissionsがscreen-manifestからpermission-matrixへ中継される" \
+    jq -e '(.screens[] | select(.screenId == "user-admin") | .valueProvenance.permissions) == "measured"
+           and (.screens[] | select(.screenId == "home") | .valueProvenance.permissions) == "inferred"
+           and (.screens[] | select(.screenId == "legacy-report") | has("valueProvenance") | not)' "$pm"
 
   # crud-matrix: tables列(物理名解決)・feature単位集約・CRUD文字の合成
   assert "crud-matrix: tables は table-manifest 全収載(physicalName=identifier/logicalName転記)" \
@@ -853,6 +858,9 @@ jq -n \
                         then (.permissions as $p
                               | [ $roles[] | {key: ., value: role_access($p; .)} ] | from_entries)
                         else null end) }
+          + (if (.valueProvenance.permissions // "" ) != ""
+             then {valueProvenance: {permissions: .valueProvenance.permissions}}
+             else {} end)
     ],
     features: [
       $features[]

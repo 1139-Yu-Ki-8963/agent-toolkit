@@ -113,6 +113,11 @@ tr:hover .copy-btn, .copy-btn:focus { opacity: 1; }
 .legend { font-size: 0.8rem; color: var(--muted); margin: 0; }
 .legend .perm-yes { color: var(--accent); font-weight: 700; }
 .legend .perm-unset { color: var(--stamp); font-weight: 700; }
+
+.prov-badge { display: inline-block; font-size: 0.7em; padding: 1px 4px; margin-left: 4px; border: 1px solid; }
+.prov-badge.prov-measured { color: var(--accent); border-color: var(--accent); }
+.prov-badge.prov-inferred { color: var(--stamp); border-color: var(--stamp); }
+.prov-badge.prov-confirmed { color: var(--green); border-color: var(--green); }
 </style>
 </head>
 <body>
@@ -157,7 +162,7 @@ tr:hover .copy-btn, .copy-btn:focus { opacity: 1; }
             </tbody>
           </table>
         </div>
-        <p class="legend">凡例: <span class="perm-yes">○</span> = 閲覧可 / — = 閲覧不可 / <span class="perm-unset">?</span> = 権限未設定（権限情報を取得できなかった画面。要確認）</p>
+        <p class="legend">凡例: <span class="perm-yes">○</span> = 閲覧可 / — = 閲覧不可 / <span class="perm-unset">?</span> = 権限未設定（権限情報を取得できなかった画面。要確認） / <span class="prov-badge prov-inferred">推定</span> = 権限が管理画面区分等から推定された値（実測ではない）</p>
       </div>
     </main>
   </div>
@@ -202,6 +207,20 @@ tr:hover .copy-btn, .copy-btn:focus { opacity: 1; }
     function permOf(screen, role) {
       if (!screen.permissions) return null; /* 権限未設定 */
       return screen.permissions[role] === true;
+    }
+
+    /* 1-170: permissionsの出所区分(measured/inferred/confirmed)。推定値だけを目立たせて識別する */
+    var PROV_LABELS = { measured: '実測', inferred: '推定', confirmed: '確認済' };
+    function permissionsProvenance(screen) {
+      return (screen.valueProvenance && screen.valueProvenance.permissions) || '';
+    }
+    function buildProvBadge(provenance) {
+      var label = PROV_LABELS[provenance];
+      if (!label) return null;
+      var badge = document.createElement('span');
+      badge.className = 'prov-badge prov-' + provenance;
+      badge.textContent = label;
+      return badge;
     }
 
     /* コピーボタン(一覧ページと同じ inline SVG 方式) */
@@ -294,6 +313,13 @@ tr:hover .copy-btn, .copy-btn:focus { opacity: 1; }
       route.className = 'route';
       route.textContent = s.route || '—';
       tdScreen.appendChild(route);
+      /* 1-170: permissionsが推定値(inferred)の場合のみ推定バッジを画面名の隣に追加表示する。
+         measured/confirmedは既存の丸印表示のみとし、低コントラストな推定値だけを目立たせる */
+      var provenance = permissionsProvenance(s);
+      if (provenance === 'inferred') {
+        var provBadge = buildProvBadge(provenance);
+        if (provBadge) tdScreen.appendChild(provBadge);
+      }
       tr.appendChild(tdScreen);
 
       roles.forEach(function (r) {

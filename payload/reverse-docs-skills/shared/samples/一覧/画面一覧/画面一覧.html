@@ -792,6 +792,11 @@ a.pt-brand-list-item:hover { background: var(--panel3); color: var(--text); text
     color: var(--text-sub); cursor: pointer; padding: 5px 12px; font-size: 0.82rem; font-family: inherit;
   }
   .csv-btn:hover { background: var(--accent-soft); color: var(--accent); border-color: var(--accent-border); }
+
+  .prov-badge { display: inline-block; font-size: 0.7em; padding: 1px 4px; margin-left: 4px; border: 1px solid; }
+  .prov-badge.prov-measured { color: var(--accent); border-color: var(--accent); }
+  .prov-badge.prov-inferred { color: var(--stamp); border-color: var(--stamp); }
+  .prov-badge.prov-confirmed { color: var(--green); border-color: var(--green); }
 </style>
 </head>
 <body>
@@ -1486,6 +1491,18 @@ a.pt-brand-list-item:hover { background: var(--panel3); color: var(--text); text
       var nameCell = tr.querySelector('.screen-name-cell');
       if (item && nameCell) {
         nameCell.textContent = normalizeScreenName(item.confirmedScreenName || item.screenNameGuess || '');
+        /* 1-170: 確定名(confirmedScreenName)があれば確認済バッジ、推定名(screenNameGuess)のみなら推定バッジを付す */
+        if (item.confirmedScreenName) {
+          var confirmedBadge = document.createElement('span');
+          confirmedBadge.className = 'prov-badge prov-confirmed';
+          confirmedBadge.textContent = '確認済';
+          nameCell.appendChild(confirmedBadge);
+        } else if (item.screenNameGuess) {
+          var inferredBadge = document.createElement('span');
+          inferredBadge.className = 'prov-badge prov-inferred';
+          inferredBadge.textContent = '推定';
+          nameCell.appendChild(inferredBadge);
+        }
       }
     });
 

@@ -701,6 +701,11 @@ a.pt-brand-list-item:hover { background: var(--panel3); color: var(--text); text
   .detail-grid { display: grid; grid-template-columns: max-content 1fr; gap: 3px 14px; }
   .detail-grid dt { color: var(--text-muted); font-size: 0.78rem; white-space: nowrap; }
   .detail-grid dd { margin: 0; font-size: 0.84rem; word-break: break-all; }
+
+  .prov-badge { display: inline-block; font-size: 0.7em; padding: 1px 4px; margin-left: 4px; border: 1px solid; }
+  .prov-badge.prov-measured { color: var(--accent); border-color: var(--accent); }
+  .prov-badge.prov-inferred { color: var(--stamp); border-color: var(--stamp); }
+  .prov-badge.prov-confirmed { color: var(--green); border-color: var(--green); }
 </style>
 </head>
 <body>
@@ -1186,6 +1191,14 @@ a.pt-brand-list-item:hover { background: var(--panel3); color: var(--text); text
       if (typeof v === 'object') {
         td.textContent = (v.readable !== undefined && v.readable !== null) ? String(v.readable) : '';
         if (v.cron) td.title = String(v.cron);
+        /* 1-170: confirmedScheduleでの上書きがなく、cron検出(measured)の場合のみ実測バッジを表示する */
+        if (fieldName === 'schedule' && u && !u.confirmedSchedule
+            && u.valueProvenance && u.valueProvenance.schedule === 'measured') {
+          var scheduleBadge = document.createElement('span');
+          scheduleBadge.className = 'prov-badge prov-measured';
+          scheduleBadge.textContent = '実測';
+          td.appendChild(scheduleBadge);
+        }
         return;
       }
       if (fieldName === 'designDocStatus') {
@@ -1207,7 +1220,11 @@ a.pt-brand-list-item:hover { background: var(--panel3); color: var(--text); text
       bodyRows.forEach(function (tr) {
         var td = document.createElement('td');
         var u = findUnit(tr);
-        if (u) renderValue(td, f, u[f.key], u);
+        if (u) {
+          /* 1-170: scheduleは人間確定値(confirmedSchedule)を推定/実測値より優先して表示する */
+          var fieldValue = (f.key === 'schedule' && u.confirmedSchedule) ? u.confirmedSchedule : u[f.key];
+          renderValue(td, f, fieldValue, u);
+        }
         tr.appendChild(td);
       });
     });
@@ -1236,6 +1253,49 @@ a.pt-brand-list-item:hover { background: var(--panel3); color: var(--text); text
       extraCols += 1;
     }
     optTable.style.minWidth = (900 + extraCols * 140) + 'px';
+  })();
+</script>
+
+<script>
+  /* 1-170: unitKind=batch のみ、nameConfidence由来の確認済/推定バッジを名称セルに追加する。
+     任意列(axes/column-spec)の有無に関わらず動作させるため、上のIIFEとは独立させる。 */
+  (function () {
+    var nameManifestEl = document.getElementById('unit-manifest');
+    if (!nameManifestEl) return;
+    var nameManifest;
+    try { nameManifest = JSON.parse(nameManifestEl.textContent); } catch (e) { return; }
+    if (!nameManifest || nameManifest.unitKind !== 'batch') return;
+
+    var nameTable = document.getElementById('unit-table');
+    if (!nameTable) return;
+    var nameRows = Array.prototype.slice.call(nameTable.querySelectorAll('tbody tr'));
+
+    var nameById = {};
+    var nameByKey = {};
+    (nameManifest.units || []).forEach(function (u) {
+      if (u.unitId !== undefined && u.unitId !== null) nameById[String(u.unitId)] = u;
+      if (u.unitKey !== undefined && u.unitKey !== null) nameByKey[String(u.unitKey)] = u;
+    });
+
+    nameRows.forEach(function (tr) {
+      var idAttr = tr.getAttribute('data-unit-id') || '';
+      var keyAttr = tr.getAttribute('data-unit-key') || '';
+      var u = (idAttr && nameById[idAttr]) || (keyAttr && nameByKey[keyAttr]) || null;
+      if (!u || !u.nameConfidence) return;
+      var nameCell = tr.children[0];
+      if (!nameCell) return;
+      var badge = document.createElement('span');
+      if (u.nameConfidence === 'confirmed') {
+        badge.className = 'prov-badge prov-confirmed';
+        badge.textContent = '確認済';
+      } else if (u.nameConfidence === 'inferred') {
+        badge.className = 'prov-badge prov-inferred';
+        badge.textContent = '推定';
+      } else {
+        return;
+      }
+      nameCell.appendChild(badge);
+    });
   })();
 </script>
 
