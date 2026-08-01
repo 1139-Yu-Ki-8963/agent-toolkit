@@ -107,7 +107,7 @@ run_suite detect-screens bash "$repo_root/shared/scripts/unit-list/detect-screen
 run_suite table-metadata bash "$repo_root/shared/scripts/extract/extract-table-metadata.sh" --self-test
 run_suite test-viewpoints bash "$repo_root/shared/scripts/extract/aggregate-test-viewpoints.sh" --self-test
 run_suite authoring-inputs python3 "$repo_root/shared/scripts/validate-reverse-authoring-inputs.py" --self-test
-run_suite python-facts env PYTHONDONTWRITEBYTECODE=1 bash "$repo_root/shared/scripts/test-python-facts-flow.sh"
+run_suite python-facts env PYTHONDONTWRITEBYTECODE=1 bash "$repo_root/shared/scripts/tests/test-python-facts-flow.sh"
 run_suite seal-facts bash "$repo_root/shared/scripts/seal-facts.sh" --self-test
 run_suite prefill-design bash "$repo_root/shared/scripts/prefill-design-from-facts.sh" --self-test
 run_suite fact-coverage bash "$repo_root/.claude/skills/generating-reverse-detailed-design/scripts/check-fact-coverage.sh" --self-test

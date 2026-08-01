@@ -6,7 +6,7 @@
 # 行わない（本ファイルの実行自体が回帰検証にあたる）。
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../../../.." && pwd)"
 tmp="$(mktemp -d "${TMPDIR:-/tmp}/screen-rebuild-test.XXXXXX")"
 trap 'rm -rf "$tmp"' EXIT
 
@@ -73,7 +73,7 @@ run_rebuild() {
   shift
   mkdir -p "$out/一覧/画面一覧"
   cp "$raw" "$out/一覧/画面一覧/screen-manifest.json"
-  bash "$SCRIPT_DIR/rebuild-screen-derived-pages.sh" \
+  bash "$SCRIPT_DIR/../../unit-list/rebuild-screen-derived-pages.sh" \
     --raw-manifest "$out/一覧/画面一覧/screen-manifest.json" \
     --target-repo "$REPO_ROOT" --api-manifest "$api" \
     --output-root "$out" --generated-at 2026-07-28T00:00:00Z \
@@ -81,7 +81,7 @@ run_rebuild() {
 }
 
 mkdir -p "$tmp/noncanonical"
-if bash "$SCRIPT_DIR/rebuild-screen-derived-pages.sh" \
+if bash "$SCRIPT_DIR/../../unit-list/rebuild-screen-derived-pages.sh" \
   --raw-manifest "$raw" --target-repo "$REPO_ROOT" --api-manifest "$api" \
   --output-root "$tmp/noncanonical" --generated-at 2026-07-28T00:00:00Z \
   --project-name "sample" >/dev/null 2>&1; then
@@ -198,7 +198,7 @@ const fs=require("fs"),path=require("path"),crypto=require("crypto"),[root,out]=
 function walk(p,r=""){for(const n of fs.readdirSync(p).sort()){const q=path.join(p,n),x=r?`${r}/${n}`:n,s=fs.lstatSync(q);if(s.isDirectory())walk(q,x);else if(s.isSymbolicLink())rows.push(`${x}\t${s.mode&0o7777}\tsymlink:${fs.readlinkSync(q)}`);else rows.push(`${x}\t${s.mode&0o7777}\t${crypto.createHash("sha256").update(fs.readFileSync(q)).digest("hex")}`)}} walk(root);fs.writeFileSync(out,rows.join("\n")+"\n");
 NODE
 tree_record "$tmp/symlink-external" "$tmp/symlink-external-before"
-if bash "$SCRIPT_DIR/rebuild-screen-derived-pages.sh" \
+if bash "$SCRIPT_DIR/../../unit-list/rebuild-screen-derived-pages.sh" \
   --raw-manifest "$tmp/symlink-output/一覧/画面一覧/screen-manifest.json" \
   --target-repo "$REPO_ROOT" --api-manifest "$api" \
   --output-root "$tmp/symlink-output" --generated-at 2026-07-28T00:00:00Z \
@@ -218,7 +218,7 @@ echo "PASS: managed ancestor symlink rejected without changing output or externa
 for injection in after-matrix commit-5; do
   cp -a "$tmp/out-a" "$tmp/rollback-$injection"
   tree_record "$tmp/rollback-$injection" "$tmp/$injection-before"
-  if SCREEN_REBUILD_INJECT_FAIL="$injection" bash "$SCRIPT_DIR/rebuild-screen-derived-pages.sh" \
+  if SCREEN_REBUILD_INJECT_FAIL="$injection" bash "$SCRIPT_DIR/../../unit-list/rebuild-screen-derived-pages.sh" \
     --raw-manifest "$tmp/rollback-$injection/一覧/画面一覧/screen-manifest.json" \
     --target-repo "$REPO_ROOT" --api-manifest "$api" \
     --output-root "$tmp/rollback-$injection" --generated-at 2026-07-28T00:00:00Z \
@@ -234,13 +234,13 @@ done
 mkdir -p "$tmp/no-clock/一覧/画面一覧" "$tmp/two-clocks/一覧/画面一覧"
 cp "$raw" "$tmp/no-clock/一覧/画面一覧/screen-manifest.json"
 cp "$raw" "$tmp/two-clocks/一覧/画面一覧/screen-manifest.json"
-if bash "$SCRIPT_DIR/rebuild-screen-derived-pages.sh" \
+if bash "$SCRIPT_DIR/../../unit-list/rebuild-screen-derived-pages.sh" \
   --raw-manifest "$tmp/no-clock/一覧/画面一覧/screen-manifest.json" \
   --target-repo "$REPO_ROOT" --api-manifest "$api" \
   --output-root "$tmp/no-clock" >/dev/null 2>&1; then
   echo "FAIL: missing clock accepted" >&2; exit 1
 fi
-if SOURCE_DATE_EPOCH=0 bash "$SCRIPT_DIR/rebuild-screen-derived-pages.sh" \
+if SOURCE_DATE_EPOCH=0 bash "$SCRIPT_DIR/../../unit-list/rebuild-screen-derived-pages.sh" \
   --raw-manifest "$tmp/two-clocks/一覧/画面一覧/screen-manifest.json" \
   --target-repo "$REPO_ROOT" --api-manifest "$api" \
   --output-root "$tmp/two-clocks" --generated-at 2026-07-28T00:00:00Z >/dev/null 2>&1; then

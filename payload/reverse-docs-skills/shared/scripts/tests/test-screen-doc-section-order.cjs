@@ -292,7 +292,7 @@ function extractSectionHeadings(html) {
 }
 
 const scriptDir = __dirname;
-const repositoryRoot = path.resolve(scriptDir, '..', '..');
+const repositoryRoot = path.resolve(scriptDir, '..', '..', '..');
 const templatePath = path.join(
   repositoryRoot,
   'shared/templates/リバース検証/画面/詳細設計/画面詳細設計書.md',
@@ -334,7 +334,7 @@ function generateScreenDetailDocument() {
   fs.copyFileSync(templatePath, path.join(detailDir, '画面詳細設計書.md'));
   console.log('INFO: build-portalで画面詳細設計書HTMLを生成');
   run('bash', [
-    path.join(scriptDir, 'build-portal.sh'),
+    path.join(scriptDir, '..', 'build-portal.sh'),
     temporaryRoot,
     docsRoot,
     docsRoot,

@@ -50,9 +50,9 @@
 set -uo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-SAMPLES_DIR="${1:-$SCRIPT_DIR/../samples}"
+SAMPLES_DIR="${1:-$SCRIPT_DIR/../../samples}"
 SAMPLES_DIR="$(cd "$SAMPLES_DIR" 2>/dev/null && pwd)" || {
-  echo "ERROR: samples ディレクトリが見つからない: ${1:-$SCRIPT_DIR/../samples}" >&2
+  echo "ERROR: samples ディレクトリが見つからない: ${1:-$SCRIPT_DIR/../../samples}" >&2
   exit 2
 }
 
@@ -97,7 +97,7 @@ while IFS= read -r f; do
 done < <(find "$SAMPLES_DIR" -name '*.html' | LC_ALL=C sort)
 
 # shellcheck source=output-layout.sh
-source "$SCRIPT_DIR/output-layout.sh"
+source "$SCRIPT_DIR/../output-layout.sh"
 LAYOUT_JSON="$(resolve_output_layout "$SAMPLES_DIR")" || exit 2
 UNITS_ROOT="$(output_layout_get "$LAYOUT_JSON" unitsRoot)" || exit 2
 
@@ -530,7 +530,7 @@ fi
 # ---- 検査キー: 整合-リンク設計 ----
 LINK_DESIGN_TARGETS=()
 [ -n "$SCREEN_LIST_PAGE" ] && LINK_DESIGN_TARGETS+=("$SCREEN_LIST_PAGE")
-TEMPLATE_SCREEN_LIST="$SCRIPT_DIR/../templates/unit-list/screen-list-template.html"
+TEMPLATE_SCREEN_LIST="$SCRIPT_DIR/../../templates/unit-list/screen-list-template.html"
 [ -f "$TEMPLATE_SCREEN_LIST" ] && LINK_DESIGN_TARGETS+=("$TEMPLATE_SCREEN_LIST")
 
 if [ "${#LINK_DESIGN_TARGETS[@]}" -eq 0 ]; then

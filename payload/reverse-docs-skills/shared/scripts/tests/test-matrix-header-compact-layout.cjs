@@ -318,7 +318,7 @@ function contrastRatio(rgb1, rgb2) {
   return (lighter + 0.05) / (darker + 0.05);
 }
 
-const repoRoot = path.resolve(__dirname, '..', '..');
+const repoRoot = path.resolve(__dirname, '..', '..', '..');
 const builderPath = path.join(repoRoot, 'shared', 'scripts', 'matrix', 'build-matrix-pages.sh');
 
 // --- 検証対象3種の合成フィクスチャ(列数は8以下=デフォルト水平見出しになる想定) ---

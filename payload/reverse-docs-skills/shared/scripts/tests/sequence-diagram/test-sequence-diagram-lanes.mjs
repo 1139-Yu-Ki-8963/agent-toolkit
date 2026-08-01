@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 import vm from 'node:vm';
 
 const scriptDir = dirname(fileURLToPath(import.meta.url));
-const repoRoot = resolve(scriptDir, '../../..');
+const repoRoot = resolve(scriptDir, '../../../..');
 const fixturePath = join(scriptDir, 'fixtures/lane-boundaries.json');
 const templatePath = join(repoRoot, 'shared/templates/screen-sequence-template.html');
 const samplesRoot = join(repoRoot, 'shared/samples/画面');

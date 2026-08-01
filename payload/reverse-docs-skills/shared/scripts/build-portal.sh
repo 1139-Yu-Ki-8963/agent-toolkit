@@ -1289,7 +1289,7 @@ NODE
   rm -rf "$test18_dir"
 
   echo "--- ケース16: ポータル規約検査 ---"
-  CONVENTIONS_TEST="$SCRIPT_DIR/test-portal-conventions.sh"
+  CONVENTIONS_TEST="$SCRIPT_DIR/tests/test-portal-conventions.sh"
   if [ -f "$CONVENTIONS_TEST" ]; then
     test16_dir="$(mktemp -d)"
     test16_repo="$test16_dir/repo"
@@ -1311,7 +1311,7 @@ NODE
   fi
 
   echo "--- ケース19: 画面詳細設計書の本文・付録順序 ---"
-  SECTION_ORDER_TEST="$SCRIPT_DIR/test-screen-doc-section-order.cjs"
+  SECTION_ORDER_TEST="$SCRIPT_DIR/tests/test-screen-doc-section-order.cjs"
   if [ ! -f "$SECTION_ORDER_TEST" ]; then
     echo "FAIL: --self-test ケース19（章順序検査スクリプトが見つからない）" >&2
     exit 1
@@ -1510,7 +1510,7 @@ NODE
   rm -rf "$test20_dir"
 
   echo "--- ケース21: 画面詳細/基本設計書テンプレートのコンテンツカラム幅拡張・横スクロール発生率（DOM計測） ---"
-  COLUMN_WIDTH_TEST="$SCRIPT_DIR/test-screen-doc-column-width.cjs"
+  COLUMN_WIDTH_TEST="$SCRIPT_DIR/tests/test-screen-doc-column-width.cjs"
   if [ ! -f "$COLUMN_WIDTH_TEST" ]; then
     echo "FAIL: --self-test ケース21（コンテンツカラム幅検査スクリプトが見つからない）" >&2
     exit 1
@@ -1523,7 +1523,7 @@ NODE
   fi
 
   echo "--- ケース22: 画面詳細設計書テンプレートの参照用付録折りたたみ（生コード全文・API全量列挙、DOM計測） ---"
-  APPENDIX_COLLAPSE_TEST="$SCRIPT_DIR/test-screen-doc-appendix-collapse.cjs"
+  APPENDIX_COLLAPSE_TEST="$SCRIPT_DIR/tests/test-screen-doc-appendix-collapse.cjs"
   if [ ! -f "$APPENDIX_COLLAPSE_TEST" ]; then
     echo "FAIL: --self-test ケース22（付録折りたたみ検査スクリプトが見つからない）" >&2
     exit 1
@@ -1536,7 +1536,7 @@ NODE
   fi
 
   echo "--- ケース23: §16要確認事項一覧の行数自動判定によるpt-calloutコールアウト付与（DOM計測） ---"
-  UNRESOLVED_CALLOUT_TEST="$SCRIPT_DIR/test-screen-doc-unresolved-callout.cjs"
+  UNRESOLVED_CALLOUT_TEST="$SCRIPT_DIR/tests/test-screen-doc-unresolved-callout.cjs"
   if [ ! -f "$UNRESOLVED_CALLOUT_TEST" ]; then
     echo "FAIL: --self-test ケース23（要確認事項コールアウト検査スクリプトが見つからない）" >&2
     exit 1
@@ -1855,7 +1855,7 @@ TEST24CATALOG
   rm -rf "$test29_dir"
 
   echo "--- ケース30: 画面遷移図を開いた直後のDOMに空でない規模サマリが存在する（写真指摘1-104の検収方法1、DOM計測） ---"
-  TRANSITION_INITIAL_SUMMARY_TEST="$SCRIPT_DIR/test-transition-diagram-initial-summary.cjs"
+  TRANSITION_INITIAL_SUMMARY_TEST="$SCRIPT_DIR/tests/test-transition-diagram-initial-summary.cjs"
   if [ ! -f "$TRANSITION_INITIAL_SUMMARY_TEST" ]; then
     echo "FAIL: --self-test ケース30（画面遷移図初期表示検査スクリプトが見つからない）" >&2
     exit 1
@@ -1868,7 +1868,7 @@ TEST24CATALOG
   fi
 
   echo "--- ケース31: ER図の巨大ハブ(200テーブル)カード内、最小フォントサイズが10px以上（写真指摘1-104の検収方法2、Canvas計測） ---"
-  ER_HUB_FONT_SIZE_TEST="$SCRIPT_DIR/test-er-diagram-hub-card-font-size.cjs"
+  ER_HUB_FONT_SIZE_TEST="$SCRIPT_DIR/tests/test-er-diagram-hub-card-font-size.cjs"
   if [ ! -f "$ER_HUB_FONT_SIZE_TEST" ]; then
     echo "FAIL: --self-test ケース31（ER図巨大ハブ検査スクリプトが見つからない）" >&2
     exit 1

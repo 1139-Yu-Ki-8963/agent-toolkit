@@ -1,22 +1,6 @@
 #!/usr/bin/env node
 'use strict';
 
-// 写真指摘 1-104 検収方法2: 1ハブに200テーブルを持つ合成データでER図を生成し、
-// 巨大ハブのクラスタ概観カード内の最小フォントサイズが10px以上であることを検証する。
-//
-// ER図はCanvas 2D(<canvas id="er-canvas-el">)へclient-sideで描画するため、実DOMの
-// text要素は存在せずgetComputedStyleでは計測できない。そのため
-// CanvasRenderingContext2D.prototype.fillText をページ読込前に計装(instrument)し、
-// 実際に描画命令へ渡された ctx.font 文字列からpx値を抽出して計測する。
-// これはDOM計測(getComputedStyle)と同じ検証意図(実際に描画されるフォントサイズの下限)を、
-// Canvas描画という実装技術に合わせて代替した手法である。
-//
-// 調査済みの現状(detail-t6-er.html): クラスタ概観カード(drawClusterCard)のフォントは
-// 15px/11px/11px(bold)/10pxの固定値で、メンバー数に応じて縮小するロジックは存在しない。
-// 名称列挙は clusterMemberNamesTruncated が測定幅で打ち切り、全列挙はしない。
-// 巨大クラスタへの「展開操作」は enterExpand (クリックでドリルダウン)として既存実装済み。
-// 本テストはこれらの既存実装が200テーブル規模でも成立することの回帰保証を追加する。
-
 const assert = require('node:assert/strict');
 const { execFileSync, spawn } = require('node:child_process');
 const fs = require('node:fs');
@@ -300,70 +284,36 @@ async function stopBrowser(browser) {
   browser.unref();
 }
 
-const repoRoot = path.resolve(__dirname, '..', '..');
-const builderPath = path.join(repoRoot, 'shared', 'scripts', 'detail-pages', 'build-detail-page.sh');
+const repoRoot = path.resolve(__dirname, '..', '..', '..');
+const templatePath = path.join(repoRoot, 'shared', 'templates', 'screen-doc-template.html');
 
-// --- 合成データ: 1ハブ(hub)にスポーク199件(=クラスタ計200件) + 孤立エンティティ150件 ---
-// 孤立エンティティは、巨大成分がhub分割(出次数上位3ノードへの分解)されない比率(<=0.6)を
-// 維持するための調整用(200/(200+150)=0.571)。分割されると単一ハブ200件の条件を満たさない。
-const SPOKE_COUNT = 199;
-const ISOLATED_COUNT = 150;
-const entities = [{ key: 'hub', label: 'ハブテーブル' }];
-const relations = [];
-for (let i = 1; i <= SPOKE_COUNT; i += 1) {
-  const key = `spoke${i}`;
-  entities.push({ key, label: `スポークテーブル${i}` });
-  relations.push({ from: 'hub', to: key, cardinality: '1:N', sourceRef: 'db/schema.sql:1' });
+const fencedBlocks = [
+  '# コメントとして表示する',
+  '┌─ Component ─┐\n└───────────────┘',
+  '~~取り消し線にしない~~',
+  '---',
+  '| テーブルに | しない |',
+  '- リストにしない',
+  '> 引用にしない',
+  '<script>window.__fenceScriptExecuted=true</script>',
+];
+
+const markdown = [
+  '# コードフェンス検証',
+  '',
+  ...fencedBlocks.flatMap((block, index) => [
+    index === 0 ? '```text' : '```',
+    block,
+    '```',
+    '',
+  ]),
+].join('\n');
+
+function replaceAll(source, token, value) {
+  return source.split(token).join(value);
 }
-for (let i = 1; i <= ISOLATED_COUNT; i += 1) {
-  entities.push({ key: `iso${i}`, label: `孤立テーブル${i}` });
-}
 
-const erData = {
-  pageKind: 'er',
-  generatedAt: '2026-07-30T00:00:00Z',
-  title: 'ER図',
-  description: 'self-test用フィクスチャ(1ハブ200テーブル)',
-  legend: [{ symbol: '━', meaning: 'リレーション' }],
-  entities,
-  relations,
-};
-
-const INSTRUMENT_SCRIPT = `(function () {
-  window.__fillTextLog = [];
-  var proto = CanvasRenderingContext2D.prototype;
-  var orig = proto.fillText;
-  proto.fillText = function (text) {
-    window.__fillTextLog.push({ text: String(text), font: this.font });
-    return orig.apply(this, arguments);
-  };
-})();`;
-
-const MEASURE_SCRIPT = `(async function () {
-  var deadline = Date.now() + 15000;
-  while (
-    (document.readyState !== 'complete' || !document.getElementById('er-canvas-el'))
-    && Date.now() < deadline
-  ) {
-    await new Promise(function (resolve) { setTimeout(resolve, 20); });
-  }
-  for (var i = 0; i < 6; i += 1) {
-    await new Promise(function (resolve) { requestAnimationFrame(resolve); });
-  }
-  var log = window.__fillTextLog || [];
-  var fontSizes = log.map(function (entry) {
-    var m = entry.font.match(/(\\d+(?:\\.\\d+)?)px/);
-    return m ? parseFloat(m[1]) : null;
-  }).filter(function (v) { return v !== null; });
-  var hubCountEntry = log.find(function (entry) { return /^テーブル\\d+件/.test(entry.text); });
-  return JSON.stringify({
-    logCount: log.length,
-    minFontSize: fontSizes.length > 0 ? Math.min.apply(null, fontSizes) : null,
-    hubCountText: hubCountEntry ? hubCountEntry.text : null,
-  });
-})()`;
-
-const fixtureRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'er-hub-card-font-size-'));
+const fixtureRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'screen-doc-markdown-'));
 const cleanupFixture = () => fs.rmSync(fixtureRoot, {
   recursive: true,
   force: true,
@@ -372,26 +322,39 @@ const cleanupFixture = () => fs.rmSync(fixtureRoot, {
 });
 process.on('exit', cleanupFixture);
 
-function buildErPage(data) {
-  const dataDir = path.join(fixtureRoot, 'fixture');
-  fs.mkdirSync(dataDir, { recursive: true });
-  const dataPath = path.join(dataDir, 'page-data.json');
-  fs.writeFileSync(dataPath, JSON.stringify(data));
-  const outputDir = path.join(dataDir, 'out');
-  execFileSync('bash', [
-    builderPath, dataPath, outputDir,
-    '--page', 'er',
-    '--generated-at', data.generatedAt,
-  ], { stdio: 'pipe' });
-  return path.join(outputDir, 'ER図.html');
-}
+let documentHtml = fs.readFileSync(templatePath, 'utf8');
+documentHtml = replaceAll(documentHtml, '{{DOC_TITLE}}', 'コードフェンス検証');
+documentHtml = replaceAll(documentHtml, '{{PORTAL_INDEX_HREF}}', 'index.html');
+documentHtml = replaceAll(documentHtml, '{{DOC_NAV}}', '');
+documentHtml = replaceAll(
+  documentHtml,
+  '{{DOC_MARKDOWN_JSON}}',
+  JSON.stringify(markdown).replaceAll('<', '\\u003c'),
+);
+documentHtml = replaceAll(
+  documentHtml,
+  '/* TOKENS_CSS */',
+  ':root{--mono:monospace;--line:#ccc;--line2:#aaa;--panel:#fff;--panel3:#eee;--text:#111;--sub:#222;--muted:#555;--accent:#06c;--head:#eee;--headtext:#111;--code:#111;--codetext:#eee;--stamp:#06c;}',
+);
+documentHtml = replaceAll(documentHtml, '/* SHELL_CSS */', '');
+documentHtml = replaceAll(
+  documentHtml,
+  '<!--SHELL_SIDEBAR-->',
+  '<aside class="pt-sidebar">'
+    + '<nav class="pt-doc-nav" aria-label="画面設計書"><div class="pt-doc-nav__group">画面 / 設計書</div>'
+    + '<div class="pt-doc-nav__group">この設計書内</div><ul class="pt-doc-nav__toc" id="toc-list"></ul></nav>'
+    + '</aside>',
+);
+documentHtml = replaceAll(documentHtml, '<!--SHELL_FOOTER-->', '');
+
+const fixtureHtmlPath = path.join(fixtureRoot, 'code-fence-dom-test.html');
+const browserProfilePath = path.join(fixtureRoot, 'browser-profile');
+fs.writeFileSync(fixtureHtmlPath, documentHtml);
 
 (async () => {
   let browser;
   let cdp;
   try {
-    const erPath = buildErPage(erData);
-
     const browserPath = findBrowser();
     assert.notEqual(browserPath, '', 'ChromeまたはChromiumの実行ファイルを検出できる');
     const launched = await launchBrowser(browserPath, [
@@ -402,53 +365,61 @@ function buildErPage(data) {
       '--no-first-run',
       '--no-default-browser-check',
       '--allow-file-access-from-files',
-      '--window-size=1280,900',
-      `--user-data-dir=${path.join(fixtureRoot, 'browser-profile')}`,
+      `--user-data-dir=${browserProfilePath}`,
       '--remote-debugging-port=0',
       'about:blank',
     ]);
     browser = launched.browser;
     cdp = await connectCdp(launched.websocketUrl);
-
-    const target = await cdp.send('Target.createTarget', { url: 'about:blank' });
+    const target = await cdp.send('Target.createTarget', {
+      url: `file://${fixtureHtmlPath}`,
+    });
     const attached = await cdp.send('Target.attachToTarget', {
       targetId: target.targetId,
       flatten: true,
     });
-    const sessionId = attached.sessionId;
-    await cdp.send('Runtime.enable', {}, sessionId);
-    await cdp.send('Page.enable', {}, sessionId);
-    // fillTextの計装はアプリのスクリプトが走る前に仕込む必要があるため、
-    // ナビゲーション前にaddScriptToEvaluateOnNewDocumentで登録する。
-    await cdp.send('Page.addScriptToEvaluateOnNewDocument', { source: INSTRUMENT_SCRIPT }, sessionId);
-    await cdp.send('Page.navigate', { url: `file://${erPath}` }, sessionId);
-
+    await cdp.send('Runtime.enable', {}, attached.sessionId);
     const evaluated = await cdp.send('Runtime.evaluate', {
-      expression: MEASURE_SCRIPT,
+      expression: `(async function () {
+        var deadline = Date.now() + 15000;
+        while (
+          (document.readyState !== 'complete' || !document.getElementById('doc-content'))
+          && Date.now() < deadline
+        ) {
+          await new Promise(function (resolve) { setTimeout(resolve, 20); });
+        }
+        var container = document.getElementById('doc-content');
+        if (!container) throw new Error('doc-contentが見つかりません');
+        var code = container.querySelector('pre > code');
+        return JSON.stringify({
+          text: container.textContent,
+          codeTexts: Array.from(container.querySelectorAll('pre > code'), function (element) {
+            return element.textContent;
+          }),
+          preCount: container.querySelectorAll('pre').length,
+          headingCount: container.querySelectorAll('h1,h2,h3,h4,h5,h6').length,
+          strikeCount: container.querySelectorAll('del,s,strike').length,
+          scriptCount: container.querySelectorAll('script').length,
+          scriptExecuted: window.__fenceScriptExecuted === true,
+          codeFont: code ? getComputedStyle(code).fontFamily : ''
+        });
+      })()`,
       awaitPromise: true,
       returnByValue: true,
-    }, sessionId);
-    assert.equal(evaluated.exceptionDetails, undefined, `DOM/Canvas計測を実行できる: ${erPath}`);
-    const result = JSON.parse(evaluated.result.value);
-    await cdp.send('Target.closeTarget', { targetId: target.targetId });
+    }, attached.sessionId);
+    assert.equal(evaluated.exceptionDetails, undefined, '実行後DOMを評価できる');
+    const actual = JSON.parse(evaluated.result.value);
 
-    assert.ok(result.logCount > 0, `fillTextの描画ログが記録される: ${result.logCount}件`);
-    assert.notEqual(result.hubCountText, null, 'クラスタ概観カードに「テーブルN件」の表記が描画される');
-    assert.ok(
-      result.hubCountText && result.hubCountText.includes(`テーブル${SPOKE_COUNT + 1}件`),
-      `巨大成分がhub分割(3分割)されず1クラスタ${SPOKE_COUNT + 1}件のままである: ${result.hubCountText}`,
-    );
-    assert.notEqual(result.minFontSize, null, 'カード内フォントサイズを計測できる');
-    assert.ok(
-      result.minFontSize >= 10,
-      `巨大ハブのクラスタカード内、最小フォントサイズが10px以上: ${result.minFontSize}px`,
-    );
+    assert.equal(actual.text.includes('```'), false, 'フェンス記号を画面へ露出しない');
+    assert.equal(actual.preCount, fencedBlocks.length, '全フェンスをpre要素へ格納する');
+    assert.deepEqual(actual.codeTexts, fencedBlocks, 'フェンス内の文字列と改行を保持する');
+    assert.equal(actual.headingCount, 0, 'フェンス内の#行を見出し化しない');
+    assert.equal(actual.strikeCount, 0, 'フェンス内の~~を取り消し線化しない');
+    assert.equal(actual.scriptCount, 0, 'フェンス内のHTMLを要素化しない');
+    assert.equal(actual.scriptExecuted, false, 'フェンス内のスクリプトを実行しない');
+    assert.match(actual.codeFont, /monospace/i, 'コードを等幅表示する');
 
-    console.log(
-      `PASS: --self-test ケース31（ER図の巨大ハブ(${SPOKE_COUNT + 1}テーブル)カード内、`
-      + `最小フォントサイズ${result.minFontSize}px。既存のclusterMemberNamesTruncated打ち切りと`
-      + `固定フォント指定により10px下限を維持）`,
-    );
+    console.log('PASS: 画面設計書MarkdownコードフェンスDOM検収（8フェンス）');
   } finally {
     if (cdp) {
       try {

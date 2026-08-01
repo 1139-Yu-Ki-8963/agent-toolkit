@@ -7,18 +7,18 @@ set -euo pipefail
 # Python抽出 → 独立再計数 → 封印 → scaffold順序を検証する。
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 EXTRACTOR="$REPO_ROOT/.claude/skills/extracting-unit-facts-from-code/scripts/extract-python-facts.py"
 COUNTER="$REPO_ROOT/.claude/skills/extracting-unit-facts-from-code/scripts/recount-python-facts.py"
 RECOUNT="$REPO_ROOT/.claude/skills/extracting-unit-facts-from-code/scripts/recount-facts.sh"
-SEAL="$SCRIPT_DIR/seal-facts.sh"
-SCAFFOLD="$SCRIPT_DIR/scaffold-screen.sh"
-PREFILL="$SCRIPT_DIR/prefill-design-from-facts.sh"
+SEAL="$SCRIPT_DIR/../seal-facts.sh"
+SCAFFOLD="$SCRIPT_DIR/../scaffold-screen.sh"
+PREFILL="$SCRIPT_DIR/../prefill-design-from-facts.sh"
 COVERAGE="$REPO_ROOT/.claude/skills/generating-reverse-detailed-design/scripts/check-fact-coverage.sh"
 ORCHESTRATOR="$REPO_ROOT/.claude/skills/orchestrating-reverse-docs-flow/SKILL.md"
 ORCHESTRATOR_CONTRACT="$REPO_ROOT/.claude/skills/orchestrating-reverse-docs-flow/references/contract.md"
 ORCHESTRATOR_GUIDE="$REPO_ROOT/.claude/skills/orchestrating-reverse-docs-flow/references/orchestrating-reverse-docs-flow-guide.html"
-RESTORE_SCREEN_MANIFEST="$SCRIPT_DIR/unit-list/restore-screen-manifest.sh"
+RESTORE_SCREEN_MANIFEST="$SCRIPT_DIR/../unit-list/restore-screen-manifest.sh"
 SURVEY_CHECK="$REPO_ROOT/.claude/skills/surveying-architecture-for-reverse-docs/scripts/check-architecture-survey.sh"
 
 tmp="$(mktemp -d "${TMPDIR:-/tmp}/python-facts-flow.XXXXXX")"

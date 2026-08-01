@@ -13,7 +13,7 @@ PASS=0
 FAIL=0
 SKIP=0
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd -P)"
-REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd -P)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd -P)"
 
 pass() { PASS=$((PASS+1)); echo "  PASS: $1"; }
 fail() { FAIL=$((FAIL+1)); echo "  FAIL: $1"; }
@@ -185,7 +185,7 @@ check_file() {
 check_matrix_template_tokens() {
   local script_dir templates_dir template definitions markers
   script_dir="$(cd "$(dirname "$0")" && pwd)"
-  templates_dir="$script_dir/../templates/matrix"
+  templates_dir="$script_dir/../../templates/matrix"
   echo ""
   echo "=== matrix template token contract ==="
   for template in \
@@ -226,9 +226,9 @@ check_callout_contract() {
   local script_dir templates_dir shell_css representative builder template guide
   local material_symbols_href expected_font_sha shell_font_sha representative_font_sha
   script_dir="$(cd "$(dirname "$0")" && pwd)"
-  templates_dir="$script_dir/../templates"
+  templates_dir="$script_dir/../../templates"
   shell_css="$templates_dir/partials/shell.css"
-  representative="$script_dir/../samples/一覧/API一覧/API一覧.html"
+  representative="$script_dir/../../samples/一覧/API一覧/API一覧.html"
   material_symbols_href='https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined&amp;icon_names=info,priority_high,warning&amp;display=block'
   expected_font_sha='8f1b843abe398437ce5b3194a9f060f45534414e1fd6bced2521d39ca3d5a778'
   shell_font_sha=""
@@ -266,9 +266,9 @@ check_callout_contract() {
   fi
 
   for builder in \
-    "$script_dir/unit-list/build-unit-list.sh" \
-    "$script_dir/unit-list/build-screen-list.sh" \
-    "$script_dir/unit-list/build-feature-list.sh"; do
+    "$script_dir/../unit-list/build-unit-list.sh" \
+    "$script_dir/../unit-list/build-screen-list.sh" \
+    "$script_dir/../unit-list/build-feature-list.sh"; do
     if ! ref_exists "$builder"; then
       fail "コールアウト-要確認事項への生成規律: $(basename "$builder")（参照先ファイル不在: $builder）"
     elif grep -qF 'unresolved_class="has-items pt-callout pt-callout--warning"' "$builder" \
@@ -296,13 +296,13 @@ check_callout_contract() {
   done
 
   for guide in \
-    "$script_dir/../../.claude/skills/generating-api-list-for-reverse-docs/references/generating-api-list-for-reverse-docs-guide.html" \
-    "$script_dir/../../.claude/skills/generating-screen-list-for-reverse-docs/references/generating-screen-list-for-reverse-docs-guide.html" \
-    "$script_dir/../../.claude/skills/generating-feature-list-for-reverse-docs/references/generating-feature-list-for-reverse-docs-guide.html" \
-    "$script_dir/../../.claude/skills/generating-table-list-for-reverse-docs/references/generating-table-list-for-reverse-docs-guide.html" \
-    "$script_dir/../../.claude/skills/generating-batch-list-for-reverse-docs/references/generating-batch-list-for-reverse-docs-guide.html" \
-    "$script_dir/../../.claude/skills/generating-report-list-for-reverse-docs/references/generating-report-list-for-reverse-docs-guide.html" \
-    "$script_dir/../../.claude/skills/generating-external-list-for-reverse-docs/references/generating-external-list-for-reverse-docs-guide.html"; do
+    "$script_dir/../../../.claude/skills/generating-api-list-for-reverse-docs/references/generating-api-list-for-reverse-docs-guide.html" \
+    "$script_dir/../../../.claude/skills/generating-screen-list-for-reverse-docs/references/generating-screen-list-for-reverse-docs-guide.html" \
+    "$script_dir/../../../.claude/skills/generating-feature-list-for-reverse-docs/references/generating-feature-list-for-reverse-docs-guide.html" \
+    "$script_dir/../../../.claude/skills/generating-table-list-for-reverse-docs/references/generating-table-list-for-reverse-docs-guide.html" \
+    "$script_dir/../../../.claude/skills/generating-batch-list-for-reverse-docs/references/generating-batch-list-for-reverse-docs-guide.html" \
+    "$script_dir/../../../.claude/skills/generating-report-list-for-reverse-docs/references/generating-report-list-for-reverse-docs-guide.html" \
+    "$script_dir/../../../.claude/skills/generating-external-list-for-reverse-docs/references/generating-external-list-for-reverse-docs-guide.html"; do
     if ! ref_exists "$guide"; then
       fail "コールアウト-一覧ガイドの外部依存規律: $(basename "$guide")（参照先ファイル不在: $guide）"
     elif grep -qF 'Material Symbols OutlinedのGoogle Fonts CDNだけを許可する' "$guide" \
@@ -325,7 +325,7 @@ check_callout_contract() {
     fail "コールアウト-代表生成HTMLへの適用"
   fi
 
-  local page_conventions_rule="$script_dir/../../.claude/rules/scoped/portal/page-conventions/rule.md"
+  local page_conventions_rule="$script_dir/../../../.claude/rules/scoped/portal/page-conventions/rule.md"
   if ! ref_exists "$page_conventions_rule"; then
     fail "コールアウト-重要度とアイコンの対応規律（参照先ファイル不在: $page_conventions_rule）"
   elif grep -qF '| 注意 | `.pt-callout.pt-callout--caution` | `info` |' "$page_conventions_rule" \
@@ -336,7 +336,7 @@ check_callout_contract() {
     fail "コールアウト-重要度とアイコンの対応規律"
   fi
 
-  local design_foundation_doc="$script_dir/../../docs/design/ポータル設計基盤.html"
+  local design_foundation_doc="$script_dir/../../../docs/design/ポータル設計基盤.html"
   if ! ref_exists "$design_foundation_doc"; then
     fail "コールアウト-ポータル設計基盤の外部依存規律（参照先ファイル不在: $design_foundation_doc）"
   elif grep -qF '<span class="ex">単一HTML生成</span>' "$design_foundation_doc" \

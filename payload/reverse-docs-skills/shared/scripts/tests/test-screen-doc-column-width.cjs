@@ -1,10 +1,12 @@
 #!/usr/bin/env node
 'use strict';
 
-// 写真指摘 1-82: 画面詳細設計書で生コード全文ダンプと API 全量列挙テーブルが本文の 65.7% を占め、
-// 主要読解パス（画面概要〜業務ルール〜領域別仕様〜要確認事項）を塞いでいた問題の回帰検証。
-// 見出しテキストが「付録:」で始まる h3/h4 を <details><summary>（ネイティブHTML要素のみ・JSトグルなし）へ
-// 変換し、初期表示（未展開）の本文高さが全展開時に比べて大幅に縮むことを実ブラウザのDOM計測で確認する。
+// 写真指摘 1-79: 画面詳細/基本設計書テンプレートのコンテンツカラムが 760px に固定され、
+// 1920px ビューポートでテーブルの大半に不要な横スクロールが発生していた問題の回帰検証。
+// 実ブラウザ（Chrome DevTools Protocol）でレイアウトを描画し、
+// (a) コンテンツカラム幅がビューポートに応じて拡張されること、
+// (b) 横スクロールを要するテーブルの割合が指摘値（76%）の半分以下へ減ることを、
+// 修正前 CSS を再現した文書と現行テンプレートの文書を同一 fixture で比較して確認する。
 
 const assert = require('node:assert/strict');
 const { execFileSync, spawn } = require('node:child_process');
@@ -293,48 +295,28 @@ function replaceAll(source, token, value) {
   return source.split(token).join(value);
 }
 
-const repoRoot = path.resolve(__dirname, '..', '..');
+const repoRoot = path.resolve(__dirname, '..', '..', '..');
 const templatePath = path.join(repoRoot, 'shared', 'templates', 'screen-doc-template.html');
 
-// 指摘1-82の実測構図（イベント処理の生コード全文ダンプ・API通信仕様の機械列挙テーブル）を模した合成fixture。
-const codeLines = Array.from({ length: 200 }, (_, i) => `  handleAction${i}();`).join('\n');
-const tableRows = Array.from({ length: 100 }, (_, i) => (
-  `| ${i} | api-${i} | GET | /api/resource/${i} | 初期表示時 |`
-)).join('\n');
-
-const fixtureMarkdown = [
-  '# テスト設計書',
-  '',
-  '## §1 画面概要',
-  '',
-  '主要読解パスの本文。',
-  '',
-  '## §7 API 通信仕様',
-  '',
-  '### 付録: API 一覧',
-  '',
-  '| No | API 名 | メソッド | エンドポイント | 呼び出し契機 |',
-  '|---|---|---|---|---|',
-  tableRows,
-  '',
-  '## §8 イベント処理',
-  '',
-  '主要読解パスに残る要約説明。',
-  '',
-  '### 付録: イベントハンドラー原本コード',
-  '',
-  '```',
-  codeLines,
-  '```',
-  '',
-  '## §16 要確認事項一覧',
-  '',
-  '特になし',
-].join('\n');
+// 列数だけを変化させた合成 fixture（20 テーブル）。指摘 1-79 の実測（55 テーブル中 42 個・76% が横スクロール要）を
+// 同一手法で再現できるよう、列数分布を調整してある（後述の閾値は指摘値そのものに対して判定する）。
+function tableMarkdown(cols, rows) {
+  const header = Array.from({ length: cols }, (_, i) => `列${i + 1}見出し語`);
+  const sep = header.map(() => '---');
+  const lines = [`| ${header.join(' | ')} |`, `| ${sep.join(' | ')} |`];
+  for (let r = 0; r < rows; r += 1) {
+    const cells = Array.from({ length: cols }, (_, i) => `値${r}${i}相当`);
+    lines.push(`| ${cells.join(' | ')} |`);
+  }
+  return lines.join('\n');
+}
+const columnCounts = [2, 3, 4, 4, 5, 5, 6, 6, 6, 7, 7, 7, 8, 8, 8, 5, 6, 7, 6, 5];
+const tableSections = columnCounts.map((cols, i) => `## 節${i + 1}\n\n${tableMarkdown(cols, 2)}\n`);
+const fixtureMarkdown = ['# テスト設計書', '', ...tableSections].join('\n');
 
 function buildDocumentHtml(templateSource) {
   let html = templateSource;
-  html = replaceAll(html, '{{DOC_TITLE}}', '生コード全文・API全量列挙の折りたたみ検証');
+  html = replaceAll(html, '{{DOC_TITLE}}', 'コンテンツカラム幅検証');
   html = replaceAll(html, '{{PORTAL_INDEX_HREF}}', 'index.html');
   html = replaceAll(html, '{{DOC_NAV}}', '');
   html = replaceAll(
@@ -369,6 +351,17 @@ function buildDocumentHtml(templateSource) {
   return html;
 }
 
+// 修正前 CSS（指摘 1-79 の再現）を、現行テンプレートの後ろへ上書き注入して構成する。
+// テンプレート内部の文字列一致に依存させず、CSS カスケードの後勝ちだけで再現する。
+const REGRESSION_OVERRIDE_CSS = '<style id="regression-override">'
+  + '.dp-layout{grid-template-columns:200px 1fr!important;}'
+  + '.dp-panel{max-width:760px!important;}'
+  + '</style>';
+
+const templateSource = fs.readFileSync(templatePath, 'utf8');
+const afterHtml = buildDocumentHtml(templateSource);
+const beforeHtml = buildDocumentHtml(templateSource).replace('</head>', `${REGRESSION_OVERRIDE_CSS}</head>`);
+
 const MEASURE_SCRIPT = `(async function () {
   var deadline = Date.now() + 15000;
   while (
@@ -377,34 +370,22 @@ const MEASURE_SCRIPT = `(async function () {
   ) {
     await new Promise(function (resolve) { setTimeout(resolve, 20); });
   }
-  var container = document.getElementById('doc-content');
-  var detailsEls = Array.from(container.querySelectorAll('details.appendix-details'));
-  var summaries = detailsEls.map(function (element) {
-    return element.querySelector('summary') ? element.querySelector('summary').textContent : '';
-  });
-  var hasNativeToggleOnly = detailsEls.every(function (element) {
-    return !element.hasAttribute('onclick') && !element.querySelector('[onclick]');
-  });
-  var tableInAppendix = detailsEls.some(function (element) { return !!element.querySelector('table'); });
-  var codeInAppendix = detailsEls.some(function (element) { return !!element.querySelector('.code-block'); });
-  var closedHeight = container.scrollHeight;
-  detailsEls.forEach(function (element) { element.open = true; });
   await new Promise(function (resolve) {
     requestAnimationFrame(function () { requestAnimationFrame(resolve); });
   });
-  var openHeight = container.scrollHeight;
+  var panel = document.querySelector('.dp-panel');
+  var wraps = Array.from(document.querySelectorAll('.table-wrap'));
+  var overflowing = wraps.filter(function (wrap) {
+    return wrap.scrollWidth > wrap.clientWidth + 1;
+  });
   return JSON.stringify({
-    detailsCount: detailsEls.length,
-    summaries: summaries,
-    hasNativeToggleOnly: hasNativeToggleOnly,
-    tableInAppendix: tableInAppendix,
-    codeInAppendix: codeInAppendix,
-    closedHeight: closedHeight,
-    openHeight: openHeight,
+    panelWidth: panel ? panel.clientWidth : null,
+    tableCount: wraps.length,
+    overflowCount: overflowing.length,
   });
 })()`;
 
-const fixtureRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'screen-doc-appendix-'));
+const fixtureRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'screen-doc-column-width-'));
 const cleanupFixture = () => fs.rmSync(fixtureRoot, {
   recursive: true,
   force: true,
@@ -413,8 +394,10 @@ const cleanupFixture = () => fs.rmSync(fixtureRoot, {
 });
 process.on('exit', cleanupFixture);
 
-const documentPath = path.join(fixtureRoot, 'appendix.html');
-fs.writeFileSync(documentPath, buildDocumentHtml(fs.readFileSync(templatePath, 'utf8')));
+const beforePath = path.join(fixtureRoot, 'before.html');
+const afterPath = path.join(fixtureRoot, 'after.html');
+fs.writeFileSync(beforePath, beforeHtml);
+fs.writeFileSync(afterPath, afterHtml);
 
 (async () => {
   let browser;
@@ -438,41 +421,55 @@ fs.writeFileSync(documentPath, buildDocumentHtml(fs.readFileSync(templatePath, '
     browser = launched.browser;
     cdp = await connectCdp(launched.websocketUrl);
 
-    const target = await cdp.send('Target.createTarget', { url: `file://${documentPath}` });
-    const attached = await cdp.send('Target.attachToTarget', {
-      targetId: target.targetId,
-      flatten: true,
-    });
-    await cdp.send('Runtime.enable', {}, attached.sessionId);
-    const evaluated = await cdp.send('Runtime.evaluate', {
-      expression: MEASURE_SCRIPT,
-      awaitPromise: true,
-      returnByValue: true,
-    }, attached.sessionId);
-    assert.equal(evaluated.exceptionDetails, undefined, 'DOM計測を実行できる');
-    await cdp.send('Target.closeTarget', { targetId: target.targetId });
-    const result = JSON.parse(evaluated.result.value);
+    async function measure(filePath) {
+      const target = await cdp.send('Target.createTarget', { url: `file://${filePath}` });
+      const attached = await cdp.send('Target.attachToTarget', {
+        targetId: target.targetId,
+        flatten: true,
+      });
+      await cdp.send('Runtime.enable', {}, attached.sessionId);
+      const evaluated = await cdp.send('Runtime.evaluate', {
+        expression: MEASURE_SCRIPT,
+        awaitPromise: true,
+        returnByValue: true,
+      }, attached.sessionId);
+      assert.equal(evaluated.exceptionDetails, undefined, `DOM計測を実行できる: ${filePath}`);
+      await cdp.send('Target.closeTarget', { targetId: target.targetId });
+      return JSON.parse(evaluated.result.value);
+    }
 
-    assert.equal(result.detailsCount, 2, '原本literal節（生コード全文）とAPI全量テーブルの両方が付録として検出される');
-    assert.deepEqual(
-      result.summaries,
-      ['付録: API 一覧', '付録: イベントハンドラー原本コード'],
-      '付録見出しのテキストが折りたたみのsummaryへ引き継がれる',
-    );
-    assert.ok(result.tableInAppendix, 'API全量列挙テーブルが付録内に格納される');
-    assert.ok(result.codeInAppendix, '生コード全文（原本literal）が付録内に格納される');
-    assert.ok(result.hasNativeToggleOnly, 'onclick等のJSトグルを使わずネイティブdetails/summaryのみで開閉する');
+    const before = await measure(beforePath);
+    const after = await measure(afterPath);
 
-    const collapsedRatio = (result.closedHeight / result.openHeight) * 100;
+    assert.equal(before.tableCount, after.tableCount, '同一fixtureであり表の総数が一致する');
+    assert.ok(before.tableCount > 0, 'fixtureに表が含まれる');
+
+    const beforePercent = (before.overflowCount / before.tableCount) * 100;
+    const afterPercent = (after.overflowCount / after.tableCount) * 100;
+    const REPORTED_BEFORE_PERCENT = 76; // 指摘1-79の実測値（全55テーブル中42個）
+    const HALF_OF_REPORTED = REPORTED_BEFORE_PERCENT / 2;
+
     assert.ok(
-      collapsedRatio <= 50,
-      `初期表示（未展開）の本文高さが全展開時の半分以下: ${collapsedRatio.toFixed(1)}% `
-        + `(closed=${result.closedHeight}px open=${result.openHeight}px)`,
+      before.panelWidth !== null && before.panelWidth <= 760,
+      `修正前相当のコンテンツカラム幅は760px以下: ${before.panelWidth}`,
+    );
+    assert.ok(
+      after.panelWidth !== null && after.panelWidth > before.panelWidth,
+      `コンテンツカラム幅がビューポートに応じて拡張される: before=${before.panelWidth} after=${after.panelWidth}`,
+    );
+    assert.ok(
+      beforePercent >= 60,
+      `合成fixtureが指摘1-79の実測（76%）に近い横スクロール発生率を再現する: ${beforePercent.toFixed(1)}%`,
+    );
+    assert.ok(
+      afterPercent <= HALF_OF_REPORTED,
+      `横スクロールを要するテーブルの割合が指摘値76%の半分（${HALF_OF_REPORTED}%）以下: ${afterPercent.toFixed(1)}%`,
     );
 
     console.log(
-      `PASS: --self-test ケース22（画面詳細設計書テンプレートの参照用付録折りたたみ・`
-      + `初期表示本文高さ ${result.closedHeight}px / 全展開 ${result.openHeight}px = ${collapsedRatio.toFixed(1)}%）`,
+      `PASS: --self-test ケース21（画面詳細/基本設計書テンプレートのコンテンツカラム幅拡張・横スクロール発生率 `
+      + `${beforePercent.toFixed(1)}% → ${afterPercent.toFixed(1)}%、`
+      + `カラム幅 ${before.panelWidth}px → ${after.panelWidth}px）`,
     );
   } finally {
     if (cdp) {

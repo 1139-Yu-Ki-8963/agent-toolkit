@@ -1,12 +1,10 @@
 #!/usr/bin/env node
 'use strict';
 
-// 写真指摘 1-79: 画面詳細/基本設計書テンプレートのコンテンツカラムが 760px に固定され、
-// 1920px ビューポートでテーブルの大半に不要な横スクロールが発生していた問題の回帰検証。
-// 実ブラウザ（Chrome DevTools Protocol）でレイアウトを描画し、
-// (a) コンテンツカラム幅がビューポートに応じて拡張されること、
-// (b) 横スクロールを要するテーブルの割合が指摘値（76%）の半分以下へ減ることを、
-// 修正前 CSS を再現した文書と現行テンプレートの文書を同一 fixture で比較して確認する。
+// 写真指摘 1-84: 画面詳細設計書に重要度による視覚的強調が無く、§16 要確認事項一覧が
+// 通常表として埋没していた問題の回帰検証。§16 の行数を自動判定し、1行以上なら
+// pt-callout（重要度: 警告）を、0行なら通常表示のままにすることを実ブラウザのDOM計測で確認する。
+// 判定は目視ではなく生成時のJS（screen-doc-template.htmlのenhance()）が機械的に行う。
 
 const assert = require('node:assert/strict');
 const { execFileSync, spawn } = require('node:child_process');
@@ -295,41 +293,41 @@ function replaceAll(source, token, value) {
   return source.split(token).join(value);
 }
 
-const repoRoot = path.resolve(__dirname, '..', '..');
+const repoRoot = path.resolve(__dirname, '..', '..', '..');
 const templatePath = path.join(repoRoot, 'shared', 'templates', 'screen-doc-template.html');
 
-// 列数だけを変化させた合成 fixture（20 テーブル）。指摘 1-79 の実測（55 テーブル中 42 個・76% が横スクロール要）を
-// 同一手法で再現できるよう、列数分布を調整してある（後述の閾値は指摘値そのものに対して判定する）。
-function tableMarkdown(cols, rows) {
-  const header = Array.from({ length: cols }, (_, i) => `列${i + 1}見出し語`);
-  const sep = header.map(() => '---');
-  const lines = [`| ${header.join(' | ')} |`, `| ${sep.join(' | ')} |`];
-  for (let r = 0; r < rows; r += 1) {
-    const cells = Array.from({ length: cols }, (_, i) => `値${r}${i}相当`);
-    lines.push(`| ${cells.join(' | ')} |`);
-  }
-  return lines.join('\n');
-}
-const columnCounts = [2, 3, 4, 4, 5, 5, 6, 6, 6, 7, 7, 7, 8, 8, 8, 5, 6, 7, 6, 5];
-const tableSections = columnCounts.map((cols, i) => `## 節${i + 1}\n\n${tableMarkdown(cols, 2)}\n`);
-const fixtureMarkdown = ['# テスト設計書', '', ...tableSections].join('\n');
+const markdownWithItems = [
+  '# テスト設計書',
+  '',
+  '## §16 要確認事項一覧',
+  '',
+  '| キー | 起票日 | 内容 | 暫定扱いにしている § | 解消条件 | 状態 |',
+  '|---|---|---|---|---|---|',
+  '| キャンセル理由-必須化 | 2026-07-20 | 備考入力の要否を確認する | §9.2 | 業務部門からの回答 | 未解消 |',
+].join('\n');
 
-function buildDocumentHtml(templateSource) {
-  let html = templateSource;
-  html = replaceAll(html, '{{DOC_TITLE}}', 'コンテンツカラム幅検証');
+const markdownEmpty = [
+  '# テスト設計書',
+  '',
+  '## §16 要確認事項一覧',
+  '',
+  '| キー | 起票日 | 内容 | 暫定扱いにしている § | 解消条件 | 状態 |',
+  '|---|---|---|---|---|---|',
+].join('\n');
+
+function buildDocumentHtml(markdown) {
+  let html = fs.readFileSync(templatePath, 'utf8');
+  html = replaceAll(html, '{{DOC_TITLE}}', '要確認事項コールアウト検証');
   html = replaceAll(html, '{{PORTAL_INDEX_HREF}}', 'index.html');
   html = replaceAll(html, '{{DOC_NAV}}', '');
-  html = replaceAll(
-    html,
-    '{{DOC_MARKDOWN_JSON}}',
-    JSON.stringify(fixtureMarkdown).replaceAll('<', '\\u003c'),
-  );
+  html = replaceAll(html, '{{DOC_MARKDOWN_JSON}}', JSON.stringify(markdown).replaceAll('<', '\\u003c'));
   html = replaceAll(
     html,
     '/* TOKENS_CSS */',
     ':root{--mono:monospace;--line:#ccc;--line2:#aaa;--panel:#fff;--panel3:#eee;'
-      + '--text:#111;--sub:#222;--muted:#555;--accent:#06c;--head:#eee;--headtext:#111;'
-      + '--code:#111;--codetext:#eee;--stamp:#06c;--sidebar-w:248px;--page-gutter:40px;}',
+      + '--text:#111;--sub:#222;--muted:#555;--accent:#06c;--accent-soft:#def;'
+      + '--head:#eee;--headtext:#111;--code:#111;--codetext:#eee;--stamp:#c60;--stamp-soft:#fed;'
+      + '--green:#0a5;--green-soft:#dfd;--sidebar-w:248px;--page-gutter:40px;}',
   );
   html = replaceAll(
     html,
@@ -337,7 +335,11 @@ function buildDocumentHtml(templateSource) {
     '.pt{height:100vh;overflow:hidden;display:flex;flex-direction:column;}'
       + '.pt-row{display:flex;flex:1;min-height:0;}'
       + '.pt-sidebar{width:var(--sidebar-w);flex:none;}'
-      + '.pt-main{flex:1;min-width:0;overflow-y:auto;padding:0 var(--page-gutter) 72px;}',
+      + '.pt-main{flex:1;min-width:0;overflow-y:auto;padding:0 var(--page-gutter) 72px;}'
+      + '.pt-callout{box-shadow:inset 5px 0 0 var(--accent);}'
+      + '.pt-callout--warning{box-shadow:inset 5px 0 0 var(--stamp);}'
+      + '.pt-callout__icon{display:none;}'
+      + '.pt-callout > :first-child > .pt-callout__icon{display:inline-block;}',
   );
   html = replaceAll(
     html,
@@ -351,17 +353,6 @@ function buildDocumentHtml(templateSource) {
   return html;
 }
 
-// 修正前 CSS（指摘 1-79 の再現）を、現行テンプレートの後ろへ上書き注入して構成する。
-// テンプレート内部の文字列一致に依存させず、CSS カスケードの後勝ちだけで再現する。
-const REGRESSION_OVERRIDE_CSS = '<style id="regression-override">'
-  + '.dp-layout{grid-template-columns:200px 1fr!important;}'
-  + '.dp-panel{max-width:760px!important;}'
-  + '</style>';
-
-const templateSource = fs.readFileSync(templatePath, 'utf8');
-const afterHtml = buildDocumentHtml(templateSource);
-const beforeHtml = buildDocumentHtml(templateSource).replace('</head>', `${REGRESSION_OVERRIDE_CSS}</head>`);
-
 const MEASURE_SCRIPT = `(async function () {
   var deadline = Date.now() + 15000;
   while (
@@ -370,22 +361,19 @@ const MEASURE_SCRIPT = `(async function () {
   ) {
     await new Promise(function (resolve) { setTimeout(resolve, 20); });
   }
-  await new Promise(function (resolve) {
-    requestAnimationFrame(function () { requestAnimationFrame(resolve); });
-  });
-  var panel = document.querySelector('.dp-panel');
-  var wraps = Array.from(document.querySelectorAll('.table-wrap'));
-  var overflowing = wraps.filter(function (wrap) {
-    return wrap.scrollWidth > wrap.clientWidth + 1;
-  });
+  var section = document.querySelector('.sec-block');
+  var icon = section.querySelector('.pt-callout__icon');
   return JSON.stringify({
-    panelWidth: panel ? panel.clientWidth : null,
-    tableCount: wraps.length,
-    overflowCount: overflowing.length,
+    className: section.className,
+    hasWarningIcon: !!icon && icon.textContent === 'warning',
+    iconIsFirstOfFirstChild: !!icon
+      && section.firstElementChild
+      && section.firstElementChild.firstElementChild === icon,
+    rowCount: section.querySelectorAll('table.data-table tbody tr').length,
   });
 })()`;
 
-const fixtureRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'screen-doc-column-width-'));
+const fixtureRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'screen-doc-unresolved-callout-'));
 const cleanupFixture = () => fs.rmSync(fixtureRoot, {
   recursive: true,
   force: true,
@@ -394,10 +382,10 @@ const cleanupFixture = () => fs.rmSync(fixtureRoot, {
 });
 process.on('exit', cleanupFixture);
 
-const beforePath = path.join(fixtureRoot, 'before.html');
-const afterPath = path.join(fixtureRoot, 'after.html');
-fs.writeFileSync(beforePath, beforeHtml);
-fs.writeFileSync(afterPath, afterHtml);
+const withItemsPath = path.join(fixtureRoot, 'with-items.html');
+const emptyPath = path.join(fixtureRoot, 'empty.html');
+fs.writeFileSync(withItemsPath, buildDocumentHtml(markdownWithItems));
+fs.writeFileSync(emptyPath, buildDocumentHtml(markdownEmpty));
 
 (async () => {
   let browser;
@@ -413,7 +401,6 @@ fs.writeFileSync(afterPath, afterHtml);
       '--no-first-run',
       '--no-default-browser-check',
       '--allow-file-access-from-files',
-      '--window-size=1920,1200',
       `--user-data-dir=${path.join(fixtureRoot, 'browser-profile')}`,
       '--remote-debugging-port=0',
       'about:blank',
@@ -438,38 +425,29 @@ fs.writeFileSync(afterPath, afterHtml);
       return JSON.parse(evaluated.result.value);
     }
 
-    const before = await measure(beforePath);
-    const after = await measure(afterPath);
+    const withItems = await measure(withItemsPath);
+    const empty = await measure(emptyPath);
 
-    assert.equal(before.tableCount, after.tableCount, '同一fixtureであり表の総数が一致する');
-    assert.ok(before.tableCount > 0, 'fixtureに表が含まれる');
+    assert.equal(withItems.rowCount, 1, '1行以上のfixtureで行数を正しく検出する');
+    assert.ok(
+      withItems.className.split(' ').includes('pt-callout')
+        && withItems.className.split(' ').includes('pt-callout--warning'),
+      `1行以上でpt-callout pt-callout--warningが付与される: ${withItems.className}`,
+    );
+    assert.ok(withItems.hasWarningIcon, '警告アイコン(material-symbols warning)が挿入される');
+    assert.ok(withItems.iconIsFirstOfFirstChild, 'アイコンが見出し（先頭要素）の先頭に置かれる');
 
-    const beforePercent = (before.overflowCount / before.tableCount) * 100;
-    const afterPercent = (after.overflowCount / after.tableCount) * 100;
-    const REPORTED_BEFORE_PERCENT = 76; // 指摘1-79の実測値（全55テーブル中42個）
-    const HALF_OF_REPORTED = REPORTED_BEFORE_PERCENT / 2;
-
-    assert.ok(
-      before.panelWidth !== null && before.panelWidth <= 760,
-      `修正前相当のコンテンツカラム幅は760px以下: ${before.panelWidth}`,
+    assert.equal(empty.rowCount, 0, '0行のfixtureで行数を正しく検出する');
+    assert.equal(
+      empty.className,
+      'sec-block',
+      `0行ではpt-callout修飾が付かず通常表示のまま: ${empty.className}`,
     );
-    assert.ok(
-      after.panelWidth !== null && after.panelWidth > before.panelWidth,
-      `コンテンツカラム幅がビューポートに応じて拡張される: before=${before.panelWidth} after=${after.panelWidth}`,
-    );
-    assert.ok(
-      beforePercent >= 60,
-      `合成fixtureが指摘1-79の実測（76%）に近い横スクロール発生率を再現する: ${beforePercent.toFixed(1)}%`,
-    );
-    assert.ok(
-      afterPercent <= HALF_OF_REPORTED,
-      `横スクロールを要するテーブルの割合が指摘値76%の半分（${HALF_OF_REPORTED}%）以下: ${afterPercent.toFixed(1)}%`,
-    );
+    assert.ok(!empty.hasWarningIcon, '0行では警告アイコンが挿入されない');
 
     console.log(
-      `PASS: --self-test ケース21（画面詳細/基本設計書テンプレートのコンテンツカラム幅拡張・横スクロール発生率 `
-      + `${beforePercent.toFixed(1)}% → ${afterPercent.toFixed(1)}%、`
-      + `カラム幅 ${before.panelWidth}px → ${after.panelWidth}px）`,
+      'PASS: --self-test ケース23（§16要確認事項一覧の行数自動判定によるpt-calloutコールアウト付与・'
+      + `1行以上=${withItems.className} / 0行=${empty.className}）`,
     );
   } finally {
     if (cdp) {

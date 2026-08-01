@@ -2,9 +2,9 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-ENGINE="$SCRIPT_DIR/portal-catalog.mjs"
-DEFAULT_CATALOG="$SCRIPT_DIR/../references/portal-catalog.json"
-DEFAULT_GOLDEN="$SCRIPT_DIR/../references/portal-catalog-legacy-golden.json"
+ENGINE="$SCRIPT_DIR/../portal-catalog.mjs"
+DEFAULT_CATALOG="$SCRIPT_DIR/../../references/portal-catalog.json"
+DEFAULT_GOLDEN="$SCRIPT_DIR/../../references/portal-catalog-legacy-golden.json"
 
 usage() {
   cat >&2 <<'USAGE'
@@ -44,7 +44,7 @@ capture_golden() {
 }
 
 self_test() {
-  local repo_root="$SCRIPT_DIR/../.."
+  local repo_root="$SCRIPT_DIR/../../.."
   local tmpdir
   tmpdir="$(mktemp -d)"
   trap 'rm -rf "$tmpdir"' RETURN
@@ -94,7 +94,11 @@ JSON
   echo "PASS: every blueprint in categories with 4 or more entries requires a group"
 
   for script in build-portal.sh test-e2e-portal.sh check-overview-consistency.sh; do
-    if rg -q 'get_(kind|future|derived|cross)_(label|icon|desc|dir|group)|CATEGORIES_JSON=.*"id"' "$SCRIPT_DIR/$script"; then
+    case "$script" in
+      build-portal.sh) script_path="$SCRIPT_DIR/../$script" ;;
+      *) script_path="$SCRIPT_DIR/$script" ;;
+    esac
+    if rg -q 'get_(kind|future|derived|cross)_(label|icon|desc|dir|group)|CATEGORIES_JSON=.*"id"' "$script_path"; then
       echo "FAIL: duplicated portal card literals remain in $script" >&2
       return 1
     fi
@@ -109,7 +113,7 @@ case "${1:-}" in
   --self-test) self_test ;;
   "")
     node "$ENGINE" validate --catalog "$DEFAULT_CATALOG"
-    node "$ENGINE" compare --catalog "$DEFAULT_CATALOG" --output-root "$SCRIPT_DIR/../samples" --portal-dir "$SCRIPT_DIR/../samples" --golden "$DEFAULT_GOLDEN"
+    node "$ENGINE" compare --catalog "$DEFAULT_CATALOG" --output-root "$SCRIPT_DIR/../../samples" --portal-dir "$SCRIPT_DIR/../../samples" --golden "$DEFAULT_GOLDEN"
     ;;
   *) usage; exit 1 ;;
 esac

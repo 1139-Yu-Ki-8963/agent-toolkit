@@ -176,8 +176,8 @@ Skill(orchestrating-reverse-docs-flow)
 全体ガイドの表示内容は、ポータルサンプルのカテゴリ・カード名・リンク先と一致させる。工程表は、状態遷移の順序と実行時の並列化（大規模画面の二段パスを含む）を混同しない。変更後は次の検査を実行する。
 
 ```bash
-bash shared/scripts/check-overview-consistency.sh
-bash shared/scripts/check-phase-step-structure.test.sh
+bash shared/scripts/tests/check-overview-consistency.sh
+bash shared/scripts/tests/check-phase-step-structure.test.sh
 ```
 
 前者は `shared/samples/index.html` のカテゴリ JSON と `docs/reverse-docs-overview.html` の可視表記を突合する。後者は35個のSkillのPhase/Step構造、26件の operational refs における旧番号・Phase/Step再定義の不在、統括フローのPhase 1〜7 / global Step 1〜30、正本の親Phase対応、条件分岐・Back-edgeメタデータを検査する。失敗時は値を推測して埋めず、正本（サンプル、工程設計、契約、各スキル）へ戻って原因を修正する。なお、実行環境の hook が検査スクリプトを遮断した場合は、成功扱いにせず、遮断理由と未実行の検証を受入記録へ残す。

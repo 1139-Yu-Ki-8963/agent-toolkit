@@ -381,7 +381,7 @@ self_test() {
   # --- 改善課題1-105: ヘッダ行高さ比率(3倍以下)と左上見出しセルのコントラスト比
   # (4.5以上)をCDP実描画で検証する(列数8以下=デフォルト水平見出しレイアウト) ---
   local header_layout_test
-  header_layout_test="$(cd "$(dirname "$script_path")/.." && pwd)/test-matrix-header-compact-layout.cjs"
+  header_layout_test="$(cd "$(dirname "$script_path")/.." && pwd)/tests/test-matrix-header-compact-layout.cjs"
   if [ ! -f "$header_layout_test" ]; then
     echo "  [FAIL] 改善課題1-105: ヘッダ行コンパクトレイアウト検査スクリプトが見つからない: $header_layout_test" >&2
     rc=1

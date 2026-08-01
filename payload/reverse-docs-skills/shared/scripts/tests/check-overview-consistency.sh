@@ -11,10 +11,10 @@ if [ "${1:-}" = "--self-test" ]; then
   tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-overview-consistency-self-test.XXXXXX")"
   trap 'rm -rf "$tmp"' EXIT
 
-  mkdir -p "$tmp/shared/scripts" "$tmp/shared/samples" "$tmp/shared/references" "$tmp/docs"
-  cp "${BASH_SOURCE[0]}" "$tmp/shared/scripts/check-overview-consistency.sh"
-  cp "$(dirname "${BASH_SOURCE[0]}")/output-layout.sh" "$tmp/shared/scripts/output-layout.sh"
-  cp "$(dirname "${BASH_SOURCE[0]}")/../references/output-layout.json" "$tmp/shared/references/output-layout.json"
+  mkdir -p "$tmp/shared/scripts/tests" "$tmp/shared/samples" "$tmp/shared/references" "$tmp/docs"
+  cp "${BASH_SOURCE[0]}" "$tmp/shared/scripts/tests/check-overview-consistency.sh"
+  cp "$(dirname "${BASH_SOURCE[0]}")/../output-layout.sh" "$tmp/shared/scripts/output-layout.sh"
+  cp "$(dirname "${BASH_SOURCE[0]}")/../../references/output-layout.json" "$tmp/shared/references/output-layout.json"
 
   cat > "$tmp/shared/references/portal-catalog.json" <<'JSON'
 { "categories": [ { "key": "demo", "label": "デモカテゴリ" } ] }
@@ -47,7 +47,7 @@ MD
 HTML
 
   pass=0 fail=0
-  if ( cd "$tmp" && bash shared/scripts/check-overview-consistency.sh ) >/dev/null 2>&1; then
+  if ( cd "$tmp" && bash shared/scripts/tests/check-overview-consistency.sh ) >/dev/null 2>&1; then
     echo "PASS: 正常系（4資産整合）で終了コード0"; pass=$((pass + 1))
   else
     echo "FAIL: 正常系で終了コード0になるべき"; fail=$((fail + 1))
@@ -61,7 +61,7 @@ HTML
 <p>project-portal/一覧/テストケース一覧/テストケース一覧.html</p>
 </body></html>
 HTML
-  if ( cd "$tmp" && bash shared/scripts/check-overview-consistency.sh ) >/dev/null 2>&1; then
+  if ( cd "$tmp" && bash shared/scripts/tests/check-overview-consistency.sh ) >/dev/null 2>&1; then
     echo "FAIL: 異常系（必須マーカー欠落）で終了コード1になるべき"; fail=$((fail + 1))
   else
     echo "PASS: 異常系（必須マーカー欠落）で終了コード1"; pass=$((pass + 1))
@@ -71,7 +71,7 @@ HTML
   if [ "$fail" -eq 0 ]; then exit 0; else exit 1; fi
 fi
 
-ROOT_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
+ROOT_DIR="$(cd "$(dirname "$0")/../../.." && pwd)"
 OVERVIEW="${ROOT_DIR}/docs/reverse-docs-overview.html"
 SAMPLE="${ROOT_DIR}/shared/samples/index.html"
 CATALOG="${ROOT_DIR}/shared/references/portal-catalog.json"

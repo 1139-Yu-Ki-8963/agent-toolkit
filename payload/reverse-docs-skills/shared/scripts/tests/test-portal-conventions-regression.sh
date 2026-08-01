@@ -6,7 +6,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd -P)"
 CHECK="$SCRIPT_DIR/test-portal-conventions.sh"
-REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd -P)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd -P)"
 
 positive_output="$(bash "$CHECK" "$REPO_ROOT/shared/templates/common-doc-template.html")"
 if ! grep -Fq 'SKIP: 色トークン（生成時に tokens.css を注入）' <<< "$positive_output"; then

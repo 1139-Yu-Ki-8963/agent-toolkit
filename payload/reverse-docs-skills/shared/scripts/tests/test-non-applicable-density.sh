@@ -5,7 +5,7 @@
 # 回帰検証にあたる）。
 set -euo pipefail
 
-ROOT_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
+ROOT_DIR="$(cd "$(dirname "$0")/../../.." && pwd)"
 TEMPLATE="$ROOT_DIR/shared/templates/リバース検証/画面/詳細設計/画面詳細設計書.md"
 WRITING_RULES="$ROOT_DIR/.claude/skills/generating-reverse-detailed-design/references/writing-rules.md"
 SAMPLES=(

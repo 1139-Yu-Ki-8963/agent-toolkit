@@ -12,7 +12,7 @@ usage() {
 }
 
 if [ "${1:-}" = "--self-test" ]; then
-  bash "$SCRIPT_DIR/test-rebuild-screen-derived-pages.sh" --self-test
+  bash "$SCRIPT_DIR/../tests/unit-list/test-rebuild-screen-derived-pages.sh" --self-test
   exit $?
 fi
 

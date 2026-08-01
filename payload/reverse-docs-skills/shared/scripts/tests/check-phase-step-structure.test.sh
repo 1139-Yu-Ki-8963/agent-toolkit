@@ -5,8 +5,8 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
-CHECK="$SCRIPT_DIR/check-phase-step-structure.mjs"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+CHECK="$SCRIPT_DIR/../check-phase-step-structure.mjs"
 
 node "$CHECK" --strict-warnings
 

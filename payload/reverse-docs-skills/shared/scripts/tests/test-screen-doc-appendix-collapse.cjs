@@ -1,15 +1,10 @@
 #!/usr/bin/env node
 'use strict';
 
-// 写真指摘 1-104 検収方法1: 画面遷移図ページを開いた直後(未選択状態)のDOMに、
-// 空でない描画内容(区分別の画面数・遷移数上位の画面のいずれかを含む規模サマリ)が
-// 存在することを、実ブラウザ(Chrome DevTools Protocol)でレイアウトを描画して検証する。
-// ドロップダウンと案内文だけの状態(修正前の挙動)はFAILとする。
-//
-// 実データの生成器(build-detail-pages-from-screen-manifest.sh)は edges を常に空配列で
-// 出力する(遷移抽出は別工程)。この実態に合わせ、fixture1はedges:[]で規模サマリの
-// 「区分別の画面数」のみを検証し、fixture2はedges付きで「遷移数上位の画面」の
-// ランキング表示まで検証する。
+// 写真指摘 1-82: 画面詳細設計書で生コード全文ダンプと API 全量列挙テーブルが本文の 65.7% を占め、
+// 主要読解パス（画面概要〜業務ルール〜領域別仕様〜要確認事項）を塞いでいた問題の回帰検証。
+// 見出しテキストが「付録:」で始まる h3/h4 を <details><summary>（ネイティブHTML要素のみ・JSトグルなし）へ
+// 変換し、初期表示（未展開）の本文高さが全展開時に比べて大幅に縮むことを実ブラウザのDOM計測で確認する。
 
 const assert = require('node:assert/strict');
 const { execFileSync, spawn } = require('node:child_process');
@@ -294,86 +289,122 @@ async function stopBrowser(browser) {
   browser.unref();
 }
 
-const repoRoot = path.resolve(__dirname, '..', '..');
-const builderPath = path.join(repoRoot, 'shared', 'scripts', 'detail-pages', 'build-detail-page.sh');
-
-function node(unitKey, label, category) {
-  return { unitKey, label, category, categorySrc: 'url-segment' };
+function replaceAll(source, token, value) {
+  return source.split(token).join(value);
 }
 
-// --- fixture1: 実データと同じ形(edges:[])。「区分別の画面数」のみで空でない内容になること ---
-const fixture1Nodes = [
-  node('a1', '画面A1', '一般'), node('a2', '画面A2', '一般'), node('a3', '画面A3', '一般'),
-  node('a4', '画面A4', '一般'), node('a5', '画面A5', '一般'), node('a6', '画面A6', '一般'),
-  node('m1', '管理M1', '管理'), node('m2', '管理M2', '管理'),
-];
-const fixture1Data = {
-  pageKind: 'transition',
-  generatedAt: '2026-07-30T00:00:00Z',
-  manifestContentHash: 'a'.repeat(64),
-  manifestScreenCount: 8,
-  title: '画面遷移図',
-  description: 'self-test用フィクスチャ(edges:0件)',
-  legend: [{ symbol: '□', meaning: '画面' }],
-  nodes: fixture1Nodes,
-  edges: [],
-};
+const repoRoot = path.resolve(__dirname, '..', '..', '..');
+const templatePath = path.join(repoRoot, 'shared', 'templates', 'screen-doc-template.html');
 
-// --- fixture2: edges付き。「遷移数上位の画面」ランキングが表示され、
-//     最多遷移(画面A1・出次数4)が1位に来ること ---
-const fixture2Data = {
-  pageKind: 'transition',
-  generatedAt: '2026-07-30T00:00:00Z',
-  manifestContentHash: 'a'.repeat(64),
-  manifestScreenCount: 8,
-  title: '画面遷移図',
-  description: 'self-test用フィクスチャ(edgesあり)',
-  legend: [{ symbol: '□', meaning: '画面' }],
-  nodes: fixture1Nodes,
-  edges: [
-    { from: 'a1', to: 'a2', trigger: 'クリック', sourceRef: 'src/router.tsx:1', confidence: 'high' },
-    { from: 'a1', to: 'a3', trigger: 'クリック', sourceRef: 'src/router.tsx:2', confidence: 'high' },
-    { from: 'a1', to: 'a4', trigger: 'クリック', sourceRef: 'src/router.tsx:3', confidence: 'high' },
-    { from: 'a1', to: 'a5', trigger: 'クリック', sourceRef: 'src/router.tsx:4', confidence: 'high' },
-    { from: 'a2', to: 'a3', trigger: 'クリック', sourceRef: 'src/router.tsx:5', confidence: 'high' },
-    { from: 'm1', to: 'a1', trigger: 'クリック', sourceRef: 'src/router.tsx:6', confidence: 'high' },
-  ],
-};
+// 指摘1-82の実測構図（イベント処理の生コード全文ダンプ・API通信仕様の機械列挙テーブル）を模した合成fixture。
+const codeLines = Array.from({ length: 200 }, (_, i) => `  handleAction${i}();`).join('\n');
+const tableRows = Array.from({ length: 100 }, (_, i) => (
+  `| ${i} | api-${i} | GET | /api/resource/${i} | 初期表示時 |`
+)).join('\n');
+
+const fixtureMarkdown = [
+  '# テスト設計書',
+  '',
+  '## §1 画面概要',
+  '',
+  '主要読解パスの本文。',
+  '',
+  '## §7 API 通信仕様',
+  '',
+  '### 付録: API 一覧',
+  '',
+  '| No | API 名 | メソッド | エンドポイント | 呼び出し契機 |',
+  '|---|---|---|---|---|',
+  tableRows,
+  '',
+  '## §8 イベント処理',
+  '',
+  '主要読解パスに残る要約説明。',
+  '',
+  '### 付録: イベントハンドラー原本コード',
+  '',
+  '```',
+  codeLines,
+  '```',
+  '',
+  '## §16 要確認事項一覧',
+  '',
+  '特になし',
+].join('\n');
+
+function buildDocumentHtml(templateSource) {
+  let html = templateSource;
+  html = replaceAll(html, '{{DOC_TITLE}}', '生コード全文・API全量列挙の折りたたみ検証');
+  html = replaceAll(html, '{{PORTAL_INDEX_HREF}}', 'index.html');
+  html = replaceAll(html, '{{DOC_NAV}}', '');
+  html = replaceAll(
+    html,
+    '{{DOC_MARKDOWN_JSON}}',
+    JSON.stringify(fixtureMarkdown).replaceAll('<', '\\u003c'),
+  );
+  html = replaceAll(
+    html,
+    '/* TOKENS_CSS */',
+    ':root{--mono:monospace;--line:#ccc;--line2:#aaa;--panel:#fff;--panel3:#eee;'
+      + '--text:#111;--sub:#222;--muted:#555;--accent:#06c;--head:#eee;--headtext:#111;'
+      + '--code:#111;--codetext:#eee;--stamp:#06c;--sidebar-w:248px;--page-gutter:40px;}',
+  );
+  html = replaceAll(
+    html,
+    '/* SHELL_CSS */',
+    '.pt{height:100vh;overflow:hidden;display:flex;flex-direction:column;}'
+      + '.pt-row{display:flex;flex:1;min-height:0;}'
+      + '.pt-sidebar{width:var(--sidebar-w);flex:none;}'
+      + '.pt-main{flex:1;min-width:0;overflow-y:auto;padding:0 var(--page-gutter) 72px;}',
+  );
+  html = replaceAll(
+    html,
+    '<!--SHELL_SIDEBAR-->',
+    '<aside class="pt-sidebar">'
+      + '<nav class="pt-doc-nav" aria-label="画面設計書"><div class="pt-doc-nav__group">画面 / 設計書</div>'
+      + '<div class="pt-doc-nav__group">この設計書内</div><ul class="pt-doc-nav__toc" id="toc-list"></ul></nav>'
+      + '</aside>',
+  );
+  html = replaceAll(html, '<!--SHELL_FOOTER-->', '');
+  return html;
+}
 
 const MEASURE_SCRIPT = `(async function () {
   var deadline = Date.now() + 15000;
   while (
-    (document.readyState !== 'complete' || !document.getElementById('view-content'))
+    (document.readyState !== 'complete' || !document.getElementById('doc-content'))
     && Date.now() < deadline
   ) {
     await new Promise(function (resolve) { setTimeout(resolve, 20); });
   }
+  var container = document.getElementById('doc-content');
+  var detailsEls = Array.from(container.querySelectorAll('details.appendix-details'));
+  var summaries = detailsEls.map(function (element) {
+    return element.querySelector('summary') ? element.querySelector('summary').textContent : '';
+  });
+  var hasNativeToggleOnly = detailsEls.every(function (element) {
+    return !element.hasAttribute('onclick') && !element.querySelector('[onclick]');
+  });
+  var tableInAppendix = detailsEls.some(function (element) { return !!element.querySelector('table'); });
+  var codeInAppendix = detailsEls.some(function (element) { return !!element.querySelector('.code-block'); });
+  var closedHeight = container.scrollHeight;
+  detailsEls.forEach(function (element) { element.open = true; });
   await new Promise(function (resolve) {
     requestAnimationFrame(function () { requestAnimationFrame(resolve); });
   });
-  var vc = document.getElementById('view-content');
-  var statGrid = vc.querySelector('.summary-stat-grid');
-  var statValues = statGrid
-    ? Array.from(statGrid.querySelectorAll('.cov-stat-value')).map(function (e) { return parseInt(e.textContent, 10); })
-    : [];
-  var statTotal = statValues.reduce(function (a, b) { return a + b; }, 0);
-  var rankRows = Array.from(vc.querySelectorAll('.summary-rank-row'));
-  var onlyPlaceholder = vc.children.length === 1
-    && vc.children[0].classList.contains('diagram-empty')
-    && !statGrid
-    && !vc.querySelector('.summary-rank-table');
+  var openHeight = container.scrollHeight;
   return JSON.stringify({
-    childCount: vc.children.length,
-    statTotal: statTotal,
-    statCount: statValues.length,
-    rankRowCount: rankRows.length,
-    rankFirstText: rankRows.length > 0 ? rankRows[0].textContent.trim() : '',
-    onlyPlaceholder: onlyPlaceholder,
-    textLength: vc.textContent.trim().length,
+    detailsCount: detailsEls.length,
+    summaries: summaries,
+    hasNativeToggleOnly: hasNativeToggleOnly,
+    tableInAppendix: tableInAppendix,
+    codeInAppendix: codeInAppendix,
+    closedHeight: closedHeight,
+    openHeight: openHeight,
   });
 })()`;
 
-const fixtureRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'transition-initial-summary-'));
+const fixtureRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'screen-doc-appendix-'));
 const cleanupFixture = () => fs.rmSync(fixtureRoot, {
   recursive: true,
   force: true,
@@ -382,27 +413,13 @@ const cleanupFixture = () => fs.rmSync(fixtureRoot, {
 });
 process.on('exit', cleanupFixture);
 
-function buildTransitionPage(data, dirName) {
-  const dataDir = path.join(fixtureRoot, dirName);
-  fs.mkdirSync(dataDir, { recursive: true });
-  const dataPath = path.join(dataDir, 'page-data.json');
-  fs.writeFileSync(dataPath, JSON.stringify(data));
-  const outputDir = path.join(dataDir, 'out');
-  execFileSync('bash', [
-    builderPath, dataPath, outputDir,
-    '--page', 'transition',
-    '--generated-at', data.generatedAt,
-  ], { stdio: 'pipe' });
-  return path.join(outputDir, '画面遷移図.html');
-}
+const documentPath = path.join(fixtureRoot, 'appendix.html');
+fs.writeFileSync(documentPath, buildDocumentHtml(fs.readFileSync(templatePath, 'utf8')));
 
 (async () => {
   let browser;
   let cdp;
   try {
-    const fixture1Path = buildTransitionPage(fixture1Data, 'fixture1');
-    const fixture2Path = buildTransitionPage(fixture2Data, 'fixture2');
-
     const browserPath = findBrowser();
     assert.notEqual(browserPath, '', 'ChromeまたはChromiumの実行ファイルを検出できる');
     const launched = await launchBrowser(browserPath, [
@@ -413,7 +430,7 @@ function buildTransitionPage(data, dirName) {
       '--no-first-run',
       '--no-default-browser-check',
       '--allow-file-access-from-files',
-      '--window-size=1280,900',
+      '--window-size=1920,1200',
       `--user-data-dir=${path.join(fixtureRoot, 'browser-profile')}`,
       '--remote-debugging-port=0',
       'about:blank',
@@ -421,46 +438,41 @@ function buildTransitionPage(data, dirName) {
     browser = launched.browser;
     cdp = await connectCdp(launched.websocketUrl);
 
-    async function measure(filePath) {
-      const target = await cdp.send('Target.createTarget', { url: `file://${filePath}` });
-      const attached = await cdp.send('Target.attachToTarget', {
-        targetId: target.targetId,
-        flatten: true,
-      });
-      await cdp.send('Runtime.enable', {}, attached.sessionId);
-      const evaluated = await cdp.send('Runtime.evaluate', {
-        expression: MEASURE_SCRIPT,
-        awaitPromise: true,
-        returnByValue: true,
-      }, attached.sessionId);
-      assert.equal(evaluated.exceptionDetails, undefined, `DOM計測を実行できる: ${filePath}`);
-      await cdp.send('Target.closeTarget', { targetId: target.targetId });
-      return JSON.parse(evaluated.result.value);
-    }
+    const target = await cdp.send('Target.createTarget', { url: `file://${documentPath}` });
+    const attached = await cdp.send('Target.attachToTarget', {
+      targetId: target.targetId,
+      flatten: true,
+    });
+    await cdp.send('Runtime.enable', {}, attached.sessionId);
+    const evaluated = await cdp.send('Runtime.evaluate', {
+      expression: MEASURE_SCRIPT,
+      awaitPromise: true,
+      returnByValue: true,
+    }, attached.sessionId);
+    assert.equal(evaluated.exceptionDetails, undefined, 'DOM計測を実行できる');
+    await cdp.send('Target.closeTarget', { targetId: target.targetId });
+    const result = JSON.parse(evaluated.result.value);
 
-    const result1 = await measure(fixture1Path);
-    const result2 = await measure(fixture2Path);
+    assert.equal(result.detailsCount, 2, '原本literal節（生コード全文）とAPI全量テーブルの両方が付録として検出される');
+    assert.deepEqual(
+      result.summaries,
+      ['付録: API 一覧', '付録: イベントハンドラー原本コード'],
+      '付録見出しのテキストが折りたたみのsummaryへ引き継がれる',
+    );
+    assert.ok(result.tableInAppendix, 'API全量列挙テーブルが付録内に格納される');
+    assert.ok(result.codeInAppendix, '生コード全文（原本literal）が付録内に格納される');
+    assert.ok(result.hasNativeToggleOnly, 'onclick等のJSトグルを使わずネイティブdetails/summaryのみで開閉する');
 
-    // fixture1(edges:0件): 区分別の画面数(8画面・一般6+管理2)が表示され、
-    // プレースホルダ文のみの状態(修正前の挙動)ではないこと
-    assert.equal(result1.onlyPlaceholder, false, 'fixture1: 案内文のみの空状態ではない');
-    assert.equal(result1.statCount, 2, 'fixture1: 区分(一般・管理)が2件表示される');
-    assert.equal(result1.statTotal, 8, 'fixture1: 区分別の画面数の合計がnodes総数(8)と一致する');
-    assert.ok(result1.textLength > 30, `fixture1: 描画テキストが十分な分量を持つ: ${result1.textLength}文字`);
-
-    // fixture2(edgesあり): 遷移数上位の画面ランキングが表示され、最多遷移(画面A1・4件)が1位
-    assert.equal(result2.onlyPlaceholder, false, 'fixture2: 案内文のみの空状態ではない');
-    assert.equal(result2.statTotal, 8, 'fixture2: 区分別の画面数の合計がnodes総数(8)と一致する');
-    assert.ok(result2.rankRowCount > 0, 'fixture2: 遷移数上位の画面ランキングが表示される');
+    const collapsedRatio = (result.closedHeight / result.openHeight) * 100;
     assert.ok(
-      result2.rankFirstText.includes('画面A1') && result2.rankFirstText.includes('4件'),
-      `fixture2: ランキング1位が最多遷移(画面A1・4件)である: ${result2.rankFirstText}`,
+      collapsedRatio <= 50,
+      `初期表示（未展開）の本文高さが全展開時の半分以下: ${collapsedRatio.toFixed(1)}% `
+        + `(closed=${result.closedHeight}px open=${result.openHeight}px)`,
     );
 
     console.log(
-      'PASS: --self-test ケース30（画面遷移図の初期DOMに空でない規模サマリが存在する。'
-      + `fixture1: 区分${result1.statCount}件・合計${result1.statTotal}画面 / `
-      + `fixture2: ランキング${result2.rankRowCount}件・1位「${result2.rankFirstText}」）`,
+      `PASS: --self-test ケース22（画面詳細設計書テンプレートの参照用付録折りたたみ・`
+      + `初期表示本文高さ ${result.closedHeight}px / 全展開 ${result.openHeight}px = ${collapsedRatio.toFixed(1)}%）`,
     );
   } finally {
     if (cdp) {

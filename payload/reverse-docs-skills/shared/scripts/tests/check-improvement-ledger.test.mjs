@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import test from 'node:test';
 
-import { parseImprovementLedger, splitMarkdownTableRow } from './check-improvement-ledger.mjs';
+import { parseImprovementLedger, splitMarkdownTableRow } from '../check-improvement-ledger.mjs';
 
 function ledger(...rows) {
   return [
@@ -247,7 +247,7 @@ test('unclassifiable classification labels are reported', () => {
 });
 
 test('CLI parses stdin and returns JSON for normal and raw-pipe fixtures', () => {
-  const scriptPath = fileURLToPath(new URL('./check-improvement-ledger.mjs', import.meta.url));
+  const scriptPath = fileURLToPath(new URL('../check-improvement-ledger.mjs', import.meta.url));
   const normal = spawnSync(process.execPath, [scriptPath, '/dev/stdin'], {
     input: outerlessLedger('1 | name | asset | location | route | 未検証'),
     encoding: 'utf8',
@@ -266,7 +266,7 @@ test('CLI parses stdin and returns JSON for normal and raw-pipe fixtures', () =>
 });
 
 test('the checked-in improvement ledger satisfies every condition', () => {
-  const source = readFileSync(new URL('../../docs/ledgers/改善反映台帳.md', import.meta.url), 'utf8');
+  const source = readFileSync(new URL('../../../docs/ledgers/改善反映台帳.md', import.meta.url), 'utf8');
   const result = parseImprovementLedger(source);
   assert.equal(result.totalDataRows, 259);
   assert.deepEqual(result.columnCountHistogram, { 6: 259 });
