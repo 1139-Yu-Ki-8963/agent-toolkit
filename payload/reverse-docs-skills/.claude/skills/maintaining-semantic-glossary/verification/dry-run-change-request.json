@@ -1,0 +1,23 @@
+{
+  "status": "review_required",
+  "operation": "update",
+  "targetKey": "customer",
+  "dryRun": true,
+  "proposalRef": "shared/scripts/glossary/fixtures/valid-update-proposal.yaml",
+  "registryRef": "shared/scripts/glossary/fixtures/valid-glossary.yaml",
+  "validation": {
+    "exit": 0,
+    "status": "valid",
+    "counts": {"error": 0, "warning": 0, "review_required": 0}
+  },
+  "impactSummary": {
+    "scannedScopes": [],
+    "humanCheckRequired": true,
+    "reason": "資産scopeを指定した参照走査はこの契約サンプルの入力に含まれない"
+  },
+  "decision": {
+    "recommendedAction": "request_human_review",
+    "reasons": ["proposalはdetected状態であり、AIは最終承認者にならない"]
+  },
+  "sourceMutation": false
+}

@@ -1,8 +1,8 @@
 # orchestrating-reverse-docs-flow 契約正本
 
-この契約は管理者スキル orchestrating-reverse-docs-flow が正本を持つ。子スキル33個（surveying-architecture-for-reverse-docs / 種別別一覧スキル6つ（`generating-<種別>-list-for-reverse-docs`、例: generating-screen-list-for-reverse-docs） / generating-feature-list-for-reverse-docs（機能一覧・派生一覧） / generating-reverse-common-docs / syncing-reverse-env / unlocking-reverse-target-screens / extracting-unit-facts-from-code / generating-reverse-basic-design / generating-reverse-detailed-design / rebuilding-screen-unit-from-docs / rebuilding-code-from-docs / running-reverse-screen-batch）は自分の SKILL.md 内で「この契約に準拠する」と宣言するのみで、contract.md 自体は読まず args だけで動く。管理者は各子スキルの返却ブロックを本契約の共通サブセットで検収し、状態判定表に従って次工程を機械的に決定する。これにより管理者と子スキルの間には契約書という単一の仲介点だけが存在し、子スキル同士が互いの内部仕様を知る必要がない完全仲介方式が成立する。
+この契約の正式な参照先は管理者スキル orchestrating-reverse-docs-flow である。子スキル群は自分の SKILL.md 内で「この契約に準拠する」と宣言するのみで、contract.md 自体は読まず args だけで動く。管理者は各子スキルの返却ブロックを本契約の共通サブセットで検収し、状態判定表に従って次工程を機械的に決定する。これにより管理者と子スキルの間には契約書という単一の仲介点だけが存在し、子スキル同士が互いの内部仕様を知る必要がない完全仲介方式が成立する。
 
-## 子スキル33個の内訳
+## 子スキルの内訳
 
 - 一覧生成6: 種別別一覧スキル（`generating-<種別>-list-for-reverse-docs`、例: generating-screen-list-for-reverse-docs）
 - 機能一覧1: generating-feature-list-for-reverse-docs（派生一覧）
@@ -12,7 +12,9 @@
   - generating-env-guide-for-reverse-docs
   - generating-screen-transition-for-reverse-docs
   - generating-er-diagram-for-reverse-docs
-  - generating-glossary-for-reverse-docs
+  - managing-semantic-glossary（承認済み用語YAMLのportal publish）
+- 用語候補生成互換1:
+  - generating-glossary-for-reverse-docs（対象repo外への `detected` proposal生成だけを行い、`NEEDS_REVIEW` で停止）
 - 工程10:
   - surveying-architecture-for-reverse-docs
   - generating-reverse-common-docs
@@ -204,7 +206,7 @@
 | AskUserQuestion でユーザーに選択を仰ぐ | 使用しない。スキルと契約書の既定に従い判断を実行し、その判断内容を実行レポートに記録する |
 | 「ユーザーに報告して中断」に該当する事象が起きる | 実行レポートに記録し、失敗ステータスで当該画面を終端する。バッチ実行時は次の画面へ進む |
 | 設計書ルート（output_dir）が未指定 | 即エラー終端とする（推測補完しない） |
-| generating-glossary-for-reverse-docs の二段承認（Phase 1 採録方針・Phase 3 候補一覧の取捨） | 既定値（層化サンプリングの既定分類軸・抽出済み候補の全採用）で自動承認し、承認内容と既定値を実行レポートに明記する |
+| generating-glossary-for-reverse-docs の用語候補生成 | `proposal_output_ref` が未指定・相対パス・対象repo内なら生成せず停止する。指定済みでも `detected` / `NEEDS_REVIEW` で停止し、自動承認・用語集適用・portal publishを行わない |
 
 ### headless でも変えないもの
 
@@ -273,7 +275,9 @@ running-reverse-screen-batch の実行ログ（`log_path`）・failed リスト�
 | 共通未採録 | プロジェクト共通の10文書（規約4種・共通設計書・メッセージ定義書・DESIGN.md・基盤設計.md・UI共通設計.md・データ設計.md）のいずれか不在、または `check-common-docs.sh` が exit 1 | generating-reverse-common-docs | target_repo_path, output_dir, template_root, survey_doc_path, mode（10文書が未採録なら v0。NG帰着(c)差し戻し時のみ append・append_findings必須）（期待返却 採録v0確定） |
 | ポータル未生成 | `<output_dir>/index.html` が不在 | bash shared/scripts/build-portal.sh | target_repo_path, output_dir, portal_output_dir（固定値: `<output_dir>`）。ポータルは納品物ルート（output_dir）直下の index.html として出力する。`<target_repo_path>/project-portal` 等の納品物ルート外への出力は定義レイアウト違反。複数サイトの場合、`<output_dir>` は当該サイトのサイトルートを指す |
 | サイト定義未生成 | サイトが2件以上あり `<納品ルート>/sites.json` が不在 | `sites.json` を書き出す（統括スキル自身が実行。子スキル起動なし） | site_key, sites_path（書き出し先。サイト一覧はアーキテクチャ調査書 §10 から転記する） |
-| 基盤ページ未生成（任意） | 用語辞書.html・技術スタック.html・画面遷移図.html・ER図.html・環境構築手順.html・リリースノート.html・デザインシステム.html・コンポーネント棚卸し.html・アイコンカタログ.html のいずれかが output_dir 直下に不在。データ源未整備時はスキップしてよい | generating-tech-stack-for-reverse-docs / generating-env-guide-for-reverse-docs / generating-screen-transition-for-reverse-docs / generating-er-diagram-for-reverse-docs / generating-glossary-for-reverse-docs / generating-release-notes-for-reverse-docs / generating-design-system-for-reverse-docs / generating-component-inventory-for-reverse-docs / generating-icon-catalog-for-reverse-docs（不在ページに対応するスキルのみ） | target_repo_path, output_dir, portal_output_dir（任意）, sites_path（任意）, site_key（任意） |
+| 用語候補未生成（任意） | 呼び出し元が用語候補生成を要求し、対象repo外の絶対 `proposal_output_ref` が明示済みで、提案YAMLが不在 | generating-glossary-for-reverse-docs | target_repo_path, proposal_output_ref, target_glossary_key, base_content_version, source_revision（期待返却 `NEEDS_REVIEW`） |
+| 承認済み用語ページ未生成（任意） | schema検証済みかつ承認済みの `approved_glossary_ref` が明示済みで、`<output_dir>/一覧/用語辞書/用語辞書.html` が不在 | managing-semantic-glossary（portal publish） | operation=portal-publish, approved_glossary_ref, output_dir, portal_output_dir（任意） |
+| 基盤ページ未生成（任意） | 技術スタック.html・画面遷移図.html・ER図.html・環境構築手順.html・リリースノート.html・デザインシステム.html・コンポーネント棚卸し.html・アイコンカタログ.html のいずれかが output_dir 直下に不在。データ源未整備時はスキップしてよい | generating-tech-stack-for-reverse-docs / generating-env-guide-for-reverse-docs / generating-screen-transition-for-reverse-docs / generating-er-diagram-for-reverse-docs / generating-release-notes-for-reverse-docs / generating-design-system-for-reverse-docs / generating-component-inventory-for-reverse-docs / generating-icon-catalog-for-reverse-docs（不在ページに対応するスキルのみ） | target_repo_path, output_dir, portal_output_dir（任意）, sites_path（任意）, site_key（任意） |
 | 状態遷移図未生成（任意） | 状態遷移図.html が output_dir 直下に不在。データ源未整備時はスキップしてよい | generating-entity-state-for-reverse-docs | target_repo_path, output_dir, portal_output_dir（任意） |
 | シーケンス図未生成（任意） | 画面フォルダのシーケンス図.html が不在。データ源未整備時はスキップしてよい | generating-sequence-diagram-for-reverse-docs | target_repo_path, output_dir, screen_id, portal_output_dir（任意） |
 | 事実未封印 | `<verification_dir>/screen-<画面ID>/facts/*/facts.lock`が不在、または`seal-facts.sh verify`がexit 1 | extracting-unit-facts-from-code | target_repo_path, target_file_paths, screen_dir, verification_dir, profile=screen, survey_doc_path, run_id（期待返却 封印済み）。pythonは本状態表へ入る前のfacts-only入口で終端する |
@@ -367,7 +371,7 @@ global Step 17 は `target_file_paths` の合計行数・ファイル数を実�
 
 画面manifestの永続パスは`screen_manifest_path=<output_dir>/一覧/画面一覧/screen-manifest.json`、`screen_manifest_ext_path=<output_dir>/一覧/画面一覧/screen-manifest.ext.json`に固定する。複数サイトでは`output_dir`を当該サイトのサイトルートとして同じ相対配置を適用する。新規一覧生成時は生manifestと拡張manifestをそれぞれ原子的に保存し、通常の再開はscreen_manifest_pathを直接入力にする。旧成果物の明示的な移行・復元時に限り、screen_manifest_pathが無ければ`restore-screen-manifest.sh`で画面一覧HTMLの`<script type="application/json" id="screen-manifest">`から一度だけ復元し、validate-manifest.shを通してからextract-screen-metadata.shでscreen_manifest_ext_pathを再生成する。復元・検証に失敗した場合は著述または静的完了へ進まない。
 
-著述の合流条件を満たした直後、静的完了を宣言する前に画面一覧を再生成する。管理者は上記の永続screen_manifest_pathを必ず解決し、extract-screen-metadata.shを`--design-docs-dir <output_dir>/画面 --link-base-dir <output_dir>/一覧/画面一覧`付きで再実行してscreen_manifest_ext_pathを更新する。続いてbuild-unit-list.shを同じ拡張マニフェスト、`--unit-kind screen --portal-dir <output_dir>`で実行する。当該画面の実在成果物だけに4リンクが付き、確定名がある場合は`confirmedScreenName`が反映され、登録件数と表行数が一致することを検収してからレジストリを`authored`へ更新する。この復元・再生成を省略した状態は`docs-only`を含め静的完了ではない。
+著述の合流条件を満たした直後、静的完了を宣言する前に画面一覧を再生成する。管理者は output-layout.json の `layout.screenUnitRoot` を解決し、上記の永続screen_manifest_pathとともに、extract-screen-metadata.shを`--design-docs-dir <output_dir>/<screenUnitRoot> --link-base-dir <output_dir>/一覧/画面一覧`付きで再実行してscreen_manifest_ext_pathを更新する。続いてbuild-unit-list.shを同じ拡張マニフェスト、`--unit-kind screen --portal-dir <output_dir>`で実行する。当該画面の実在成果物だけに4リンクが付き、確定名がある場合は`confirmedScreenName`が反映され、登録件数と表行数が一致することを検収してからレジストリを`authored`へ更新する。この復元・再生成を省略した状態は`docs-only`を含め静的完了ではない。
 
 新規生成・移行復元・静的完了前の再生成のすべてで、extract-screen-metadata.shには固定したgenerated_atとrawの正規化SHA-256を`--generated-at`・`--manifest-content-hash`として渡す。extの`manifestContentHash`がrawの再計算値と一致しなければ後続へ進まない。
 
@@ -480,9 +484,9 @@ feature（機能一覧）は派生一覧のため本ファイルの管理対象�
 
 一覧HTMLの「ポータルへ戻る」リンクは正本レイアウトの相対位置 `../../index.html` を既定とする（`--portal-dir` 指定時は指定位置から算出）。`build-portal.sh` は件数集計・カードリンクの探索で正本レイアウトを優先し、後方互換として旧レイアウト（`<output_dir>/<種別ラベル>一覧/` 直下）も探索する。新規生成は必ず正本レイアウトに従う。
 
-## 基盤ページ5枚の出力パス契約
+## 基盤ページ4枚と用語辞書の出力パス契約
 
-基盤ページ生成スキル5本（下表）は、いずれも `<output_dir>` 直下に固定ファイル名で HTML を書き出す。ファイル名は `shared/scripts/build-portal.sh` の FUTURE_FILES と同値である。不一致はポータルカードが無言で出ない事故になるため機械保証する。
+基盤ページ生成スキル4本は`<output_dir>`直下へ書き出す。用語辞書は一覧ページとして`<output_dir>/一覧/用語辞書/`へ書き出す。不一致はポータルカードが無言で出ない事故になるため機械保証する。
 
 | スキル | 出力ファイル |
 |---|---|
@@ -490,9 +494,11 @@ feature（機能一覧）は派生一覧のため本ファイルの管理対象�
 | generating-env-guide-for-reverse-docs | `<output_dir>/環境構築手順.html` |
 | generating-screen-transition-for-reverse-docs | `<output_dir>/画面遷移図.html` |
 | generating-er-diagram-for-reverse-docs | `<output_dir>/ER図.html` |
-| generating-glossary-for-reverse-docs | `<output_dir>/用語辞書.html` |
+| managing-semantic-glossary | `<output_dir>/一覧/用語辞書/用語辞書.html`（schema検証済みかつ承認済み用語YAMLのportal publish） |
 
-`portal_output_dir` を指定した場合、各スキルは生成後に `build-portal.sh` を再実行してカードへ反映する。
+`portal_output_dir` を指定した場合、各ページ生成スキルは生成後に `build-portal.sh` を再実行してカードへ反映する。
+
+互換Skill `generating-glossary-for-reverse-docs` の出力は納品物ではない。明示された対象repo外の `<proposal_output_ref>` と隣接する diagnostics JSON だけへ出力し、`<output_dir>`、用語辞書HTML、承認済み用語YAMLには書き込まない。
 
 ## マトリクス・対応表4ページ+AI設定資産ページの出力パス契約
 

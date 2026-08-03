@@ -1,0 +1,42 @@
+proposal_key: customer_id_from_schema
+proposal_operation: add
+proposal_schema_version: 1.0.0
+target_glossary_key: commerce_platform
+base_content_version: 1.0.0
+target_content_version: 2.0.0
+merge_key: merge_customer_id_from_schema
+proposed_term:
+  key: customer_id
+  label: 顧客ID
+  definition: 顧客を他の顧客から一意に識別する値
+  kind: identifier
+  category: business
+  scope: {level: product, includes: [commerce_platform], excludes: []}
+  representations:
+    - {channel: database, value: customers.customer_id, location: 'db/schema.sql:41'}
+  lifecycle: {status: active, introduced_in: 1.0.0}
+  stewardship: {approvers: [business_approver:domain-reviewer, technical_approver:architecture-reviewer]}
+  provenance:
+    sources:
+      - {type: database_schema, ref: 'db/schema.sql:41', supports: representation}
+proposal:
+  extracted_facts:
+    - {subject: customer_id, predicate: database_identifier, object: customers.customer_id, evidence_ref: 'db/schema.sql:41'}
+  inferences: []
+  evidence:
+    - {ref: 'db/schema.sql:41', excerpt_hash: 'sha256:1111111111111111111111111111111111111111111111111111111111111111', observed_at: '2026-08-01T00:00:00Z', source_revision: abc1234}
+  confidence: {score: 0.95, level: high, rationale: DB主キー定義と業務識別子が一致する}
+  approval:
+    status: merged
+    reviewers:
+      - {actor: domain-reviewer, role: business_approver, decision: approved, decided_at: '2026-08-01T00:30:00Z'}
+      - {actor: architecture-reviewer, role: technical_approver, decision: approved, decided_at: '2026-08-01T00:40:00Z'}
+    reviewed_at: '2026-08-01T00:45:00Z'
+    decision_reason: 二者承認を完了
+    events:
+      - {from: null, to: detected, actor: database-analyzer, actor_role: analyzer, occurred_at: '2026-08-01T00:00:00Z', reason: 識別子候補を検出}
+      - {from: detected, to: needs_review, actor: glossary-maintainer, actor_role: maintainer, occurred_at: '2026-08-01T00:10:00Z', reason: 審査開始}
+      - {from: needs_review, to: approved, actor: glossary-maintainer, actor_role: maintainer, occurred_at: '2026-08-01T00:50:00Z', reason: 二者承認を確認}
+      - {from: approved, to: merged, actor: glossary-maintainer, actor_role: maintainer, occurred_at: '2026-08-01T01:00:00Z', reason: 変更記録を適用}
+  detected_by: {skill: analyzing-database-glossary-candidates, version: 1.0.0}
+merged_revision: abc5678

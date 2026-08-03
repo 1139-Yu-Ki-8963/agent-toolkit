@@ -275,7 +275,7 @@
   </div>
   <table class="spec">
     <tr><th>項目</th><th>内容</th></tr>
-    <tr><td>mode=implement の起動引数</td><td><code>screen_dir</code>・<code>scope</code>・<code>reverse_worktree</code>・<code>ports</code>・<code>baseline_tag_status</code>・<code>output_dir</code>・<code>template_root</code>・<code>audit_script_path</code>・<code>chapter_map_path</code>・<code>user-approved</code></td></tr>
+    <tr><td>mode=implement の起動引数</td><td><code>screen_dir</code>（output-layout の <code>layout.screenUnitRoot</code> 解決済み）・<code>scope</code>・<code>reverse_worktree</code>・<code>ports</code>・<code>baseline_tag_status</code>・<code>output_dir</code>・<code>template_root</code>・<code>audit_script_path</code>・<code>chapter_map_path</code>・<code>user-approved</code></td></tr>
     <tr><td>mode=judge の起動引数</td><td><code>screen_dir</code>・<code>compare_result</code>・<code>reverse_worktree</code>・<code>freeze_commit</code></td></tr>
     <tr><td>環境値の取得元</td><td>管理者が事前解決した args（env_block）。本スキルは自ら取得・導出しない</td></tr>
     <tr><td>比較エンジン</td><td>自前実装しない。<code>mode=judge</code> は起動引数 <code>compare_result</code> のみを判定根拠とする</td></tr>

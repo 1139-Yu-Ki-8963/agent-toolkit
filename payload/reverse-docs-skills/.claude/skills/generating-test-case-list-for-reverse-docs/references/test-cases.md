@@ -4,6 +4,7 @@
 
 | 観点キー | 前提 | 操作 | 期待結果 | 機械検証 |
 |---|---|---|---|---|
+| 画面単位root上書き-decoy除外 | screenUnitRootがスクリーンで旧画面rootにも仕様書がある | aggregate-test-cases.shを実行する | スクリーン配下3種だけを集約する | aggregate-test-cases.sh self-test「screenUnitRoot上書きだけを探索し既定rootのdecoyを除外」 |
 | per-screen仕様書0件-ハード停止 | 単体と結合と操作シナリオの仕様書がいずれも0件 | Phase 1 Step 1を実行する | テスト仕様書未作成の旨を報告して停止する | 手動 |
 | 3種横断集約-連結成功 | 単体と結合と操作シナリオの3仕様書が実在する | aggregate-test-cases.shから検証とHTMLとポータルまで連結実行する | 3種のケースが横断集約されHTMLとポータルへ反映される | aggregate-test-cases.shのself-testケース「self-test PASS: テストケースの集約→検証→HTML→ポータル連結（単体/結合/操作シナリオ）」 |
 | 結合-操作手順の転記 | 結合テスト仕様書に操作手順列がある | aggregate-test-cases.shで集約する | stepsに操作手順の値が転記される | aggregate-test-cases.shのself-testケース「self-test PASS: テストケースの集約→検証→HTML→ポータル連結」内のsteps一致検証 |

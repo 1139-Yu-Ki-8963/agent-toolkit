@@ -16,6 +16,7 @@
 | E2E作成責務-元コードでのベースライン実測 | Step 4-2でE2Eテストを作成する | mode=implementを実行する | オリジナルコード環境で実行しベースラインを検証記録に残す | 手動 |
 | 単体テスト保護-上流提供分の改変禁止 | 上流が保存した単体テストコードが壊れている | Phase 5で自己完結チェックを行う | 実装で辻褄を合わせずstatus=BLOCKEDで差し戻す | 手動 |
 | 最終報告-未実施ゼロの原則 | テストケース識別子別の実行結果表を作る | Phase 9の最終報告を作成する | 未実施が1件でもあればstatus=PASSにできない | 手動 |
+| screen_dir-screenUnitRoot解決 | output-layoutでscreenUnitRoot=スクリーン | mode=implement引数を組み立てる | <output_dir>/スクリーン/screen-<ID>/詳細設計を渡し旧画面rootを参照しない | 手動 |
 
 ## 機械検証との対応
 

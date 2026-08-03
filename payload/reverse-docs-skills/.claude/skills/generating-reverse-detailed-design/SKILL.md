@@ -261,6 +261,8 @@ audit_script_path はこれらを機械検査する。
 
 **保守責任者**: 人手（ユーザー）。テンプレート構造の変更時に `shared/scripts/scaffold-screen.sh`（正本の1本）を更新する。
 
+展開先・`--verify` の画面単位文書rootは `<output_dir>/output-layout.json` の `layout.screenUnitRoot` で解決する。これは物理配置キーであり、表示用 `kindLabels.screen`、一覧、画面遷移、matrix、テンプレート原本、repo外verificationには連動させない。
+
 **廃棄条件**: 本スキル廃止時、またはスキャフォールディングがテンプレートエンジンに統合された時。
 
 ### prefill-design-from-facts.sh

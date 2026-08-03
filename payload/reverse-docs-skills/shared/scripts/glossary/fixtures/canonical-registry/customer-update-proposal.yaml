@@ -1,0 +1,46 @@
+proposal_key: customer_update_from_document
+proposal_operation: update
+proposal_schema_version: 1.0.0
+target_glossary_key: commerce_platform
+base_content_version: 1.9.0
+target_content_version: 2.0.0
+merge_key: update_customer_from_document
+proposed_term:
+  key: customer
+  label: 顧客
+  definition: 商品またはサービスを購入し継続的な取引関係を持つ主体
+  kind: entity
+  category: business
+  scope: {level: product, includes: [commerce_platform], excludes: []}
+  representations:
+    - {channel: code, value: Customer, symbol_kind: class, location: src/domain/customer.ts:12}
+  aliases:
+    - {value: お客様, type: synonym, language: ja, usage: allowed}
+  relations:
+    - {type: has_identifier, target_key: customer_id}
+  lifecycle: {status: active, introduced_in: 1.0.0}
+  stewardship: {approvers: [business_approver:domain-reviewer, technical_approver:architecture-reviewer]}
+  provenance:
+    sources:
+      - {type: domain_document, ref: docs/domain/customer.md#customer, supports: definition}
+proposal:
+  extracted_facts:
+    - {subject: customer, predicate: definition_refined, object: continuing_business_relationship, evidence_ref: docs/domain/customer.md#customer}
+  inferences: []
+  evidence:
+    - {ref: docs/domain/customer.md#customer, excerpt_hash: 'sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef', observed_at: '2026-08-02T00:00:00Z', source_revision: def5678}
+  confidence: {score: 0.9, level: high, rationale: 業務文書と既存コード表現が一致する}
+  approval:
+    status: merged
+    reviewers:
+      - {actor: domain-reviewer, role: business_approver, decision: approved, decided_at: '2026-08-02T01:00:00Z'}
+      - {actor: architecture-reviewer, role: technical_approver, decision: approved, decided_at: '2026-08-02T01:10:00Z'}
+    reviewed_at: '2026-08-02T01:15:00Z'
+    decision_reason: 二者承認を完了
+    events:
+      - {from: null, to: detected, actor: document-analyzer, actor_role: analyzer, occurred_at: '2026-08-02T00:00:00Z', reason: 定義差分を検出}
+      - {from: detected, to: needs_review, actor: glossary-maintainer, actor_role: maintainer, occurred_at: '2026-08-02T00:10:00Z', reason: 審査開始}
+      - {from: needs_review, to: approved, actor: glossary-maintainer, actor_role: maintainer, occurred_at: '2026-08-02T01:20:00Z', reason: 二者承認を確認}
+      - {from: approved, to: merged, actor: glossary-maintainer, actor_role: maintainer, occurred_at: '2026-08-02T01:30:00Z', reason: 変更記録を適用}
+  detected_by: {skill: analyzing-document-glossary-candidates, version: 1.0.0}
+merged_revision: fed9876

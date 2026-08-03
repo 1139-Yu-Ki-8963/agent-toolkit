@@ -233,6 +233,145 @@ self_test() {
     rc=1
   fi
 
+  # --- ケースj: legacy glossaryはexit 0を維持しつつ移行warningを返す ---
+  local data_glossary_legacy="$tmp/page-data-glossary-legacy.json"
+  local legacy_stderr="$tmp/glossary-legacy.stderr"
+  jq -n '{
+    pageKind:"glossary", generatedAt:"2026-01-01T00:00:00Z", title:"用語辞書", description:"legacy warning確認",
+    categories:[{key:"domain",label:"業務"}],
+    terms:[{term:"顧客",definition:"商品を購入する主体",codeRefs:["Customer"],category:"domain",sourceRef:"src/customer.ts:1"}]
+  }' > "$data_glossary_legacy"
+  if bash "$script_path" "$data_glossary_legacy" >/dev/null 2>"$legacy_stderr" && grep -q '^\[WARN\].*legacy.*次major' "$legacy_stderr"; then
+    echo "  [PASS] ケースj: legacy glossaryはexit 0と移行warningを返す"
+  else
+    echo "  [FAIL] ケースj: legacy glossaryのexit 0または移行warningが欠落" >&2
+    rc=1
+  fi
+
+  # --- ケースk: semantic v0.2 glossaryはlegacy warningを返さない ---
+  local data_glossary_semantic="$tmp/page-data-glossary-semantic.json"
+  local semantic_stderr="$tmp/glossary-semantic.stderr"
+  jq -n '{
+    pageKind:"glossary", generatedAt:"2026-01-01T00:00:00Z", title:"用語辞書", description:"semantic warning確認",
+    projectionVersion:"0.2", glossarySchemaVersion:"1.0.0", glossaryContentVersion:"1.0.0",
+    categories:[{key:"entity",label:"エンティティ"}],
+    terms:[{key:"customer",term_ja:"顧客",term_en:"Customer",definition:"商品を購入する主体",scope:"sales",category:"entity",code_name:"customer",type_name:"Customer",db_name:"customers",api_name:"customer",ui_label:"顧客",allowed_values:[],status:"active",notes:"",representations:[],sourceRefs:[]}]
+  }' > "$data_glossary_semantic"
+  if bash "$script_path" "$data_glossary_semantic" >/dev/null 2>"$semantic_stderr" && ! grep -q '^\[WARN\].*legacy' "$semantic_stderr"; then
+    echo "  [PASS] ケースk: semantic v0.2 glossaryはlegacy warningなしでPASS"
+  else
+    echo "  [FAIL] ケースk: semantic glossaryがFAILまたはlegacy warningを誤出力" >&2
+    rc=1
+  fi
+
+  # --- ケースl: legacyとsemanticの同一terms[]混在はerror ---
+  local data_glossary_mixed="$tmp/page-data-glossary-mixed.json"
+  local mixed_stderr="$tmp/glossary-mixed.stderr"
+  jq -n '{
+    pageKind:"glossary", generatedAt:"2026-01-01T00:00:00Z", title:"用語辞書", description:"混在拒否確認",
+    projectionVersion:"0.1", glossarySchemaVersion:"1.0.0", glossaryContentVersion:"1.0.0",
+    categories:[{key:"business",label:"業務"}],
+    terms:[
+      {term:"顧客",definition:"商品を購入する主体",codeRefs:["Customer"],category:"domain",sourceRef:"src/customer.ts:1"},
+      {key:"order",label:"注文",definition:"顧客の購入意思",kind:"entity",category:"business",representations:[],status:"active",sourceRefs:[]}
+    ]
+  }' > "$data_glossary_mixed"
+  if bash "$script_path" "$data_glossary_mixed" >/dev/null 2>"$mixed_stderr"; then
+    echo "  [FAIL] ケースl: 新旧混在glossaryが誤ってPASS" >&2
+    rc=1
+  elif grep -q '新旧混在' "$mixed_stderr"; then
+    echo "  [PASS] ケースl: 新旧混在glossaryをerrorで拒否"
+  else
+    echo "  [FAIL] ケースl: 新旧混在glossaryの診断が不明確" >&2
+    rc=1
+  fi
+
+  # --- ケースm: semantic term配下の候補専用keyはネスト位置にかかわらずerror ---
+  local data_glossary_nested_candidate="$tmp/page-data-glossary-nested-candidate.json"
+  local nested_candidate_stderr="$tmp/glossary-nested-candidate.stderr"
+  jq -n '{
+    pageKind:"glossary", generatedAt:"2026-01-01T00:00:00Z", title:"用語辞書", description:"候補混入拒否確認",
+    projectionVersion:"0.1", glossarySchemaVersion:"1.0.0", glossaryContentVersion:"1.0.0",
+    categories:[{key:"business",label:"業務"}],
+    terms:[{key:"customer",label:"顧客",definition:"商品を購入する主体",kind:"entity",category:"business",representations:[],status:"active",sourceRefs:[],relations:[{type:"related_to",targetKey:"order",analysis:{approval:{status:"detected"},confidence:{score:0.7},detected_by:{skill:"reverse"},reviewers:[{role:"business"}]}}]}]
+  }' > "$data_glossary_nested_candidate"
+  if bash "$script_path" "$data_glossary_nested_candidate" >/dev/null 2>"$nested_candidate_stderr"; then
+    echo "  [FAIL] ケースm: semantic term内の候補専用key混入が誤ってPASS" >&2
+    rc=1
+  elif grep -q '候補専用key' "$nested_candidate_stderr"; then
+    echo "  [PASS] ケースm: semantic term内のnested候補専用keyをerrorで拒否"
+  else
+    echo "  [FAIL] ケースm: nested候補専用keyの診断が不明確" >&2
+    rc=1
+  fi
+
+  # --- ケースn: semantic term rootのprojection v0.1 allowlist外keyはerror ---
+  local data_glossary_unknown_root="$tmp/page-data-glossary-unknown-root.json"
+  local unknown_root_stderr="$tmp/glossary-unknown-root.stderr"
+  jq -n '{
+    pageKind:"glossary", generatedAt:"2026-01-01T00:00:00Z", title:"用語辞書", description:"root allowlist確認",
+    projectionVersion:"0.1", glossarySchemaVersion:"1.0.0", glossaryContentVersion:"1.0.0",
+    categories:[{key:"business",label:"業務"}],
+    terms:[{key:"customer",label:"顧客",definition:"商品を購入する主体",kind:"entity",category:"business",representations:[],status:"active",sourceRefs:[],reviewers:[{role:"business",actor:"domain-reviewer"}]}]
+  }' > "$data_glossary_unknown_root"
+  if bash "$script_path" "$data_glossary_unknown_root" >/dev/null 2>"$unknown_root_stderr"; then
+    echo "  [FAIL] ケースn: semantic term rootのallowlist外keyが誤ってPASS" >&2
+    rc=1
+  elif grep -q 'semantic root key.*reviewers' "$unknown_root_stderr"; then
+    echo "  [PASS] ケースn: semantic term rootのallowlist外reviewersをerrorで拒否"
+  else
+    echo "  [FAIL] ケースn: semantic term root allowlist違反の診断が不明確" >&2
+    rc=1
+  fi
+
+  # --- ケースo: semantic page-data rootの候補監査keyと未知keyはerror ---
+  local data_glossary_root_attack="$tmp/page-data-glossary-root-attack.json"
+  local root_attack_stderr="$tmp/glossary-root-attack.stderr"
+  jq -n '{
+    pageKind:"glossary", generatedAt:"2026-01-01T00:00:00Z", title:"用語辞書", description:"page root allowlist確認",
+    projectionVersion:"0.1", glossarySchemaVersion:"1.0.0", glossaryContentVersion:"1.0.0",
+    categories:[{key:"business",label:"業務"}], terms:[],
+    proposalAudit:{secret:"must-not-reach-html"}
+  }' > "$data_glossary_root_attack"
+  if bash "$script_path" "$data_glossary_root_attack" >/dev/null 2>"$root_attack_stderr"; then
+    echo "  [FAIL] ケースo: semantic page-data rootのproposalAuditが誤ってPASS" >&2
+    rc=1
+  elif grep -Eq 'glossary.*root.*key|glossary候補分離' "$root_attack_stderr"; then
+    echo "  [PASS] ケースo: semantic page-data rootのproposalAuditをerrorで拒否"
+  else
+    echo "  [FAIL] ケースo: semantic page-data root allowlist違反の診断が不明確" >&2
+    rc=1
+  fi
+
+  # --- ケースp: legacy page-data rootの互換allowlist外keyはerror ---
+  local data_glossary_legacy_root_attack="$tmp/page-data-glossary-legacy-root-attack.json"
+  local legacy_root_attack_stderr="$tmp/glossary-legacy-root-attack.stderr"
+  jq '. + {unknownRootKey:"must-be-rejected"}' "$data_glossary_legacy" > "$data_glossary_legacy_root_attack"
+  if bash "$script_path" "$data_glossary_legacy_root_attack" >/dev/null 2>"$legacy_root_attack_stderr"; then
+    echo "  [FAIL] ケースp: legacy page-data rootの未知keyが誤ってPASS" >&2
+    rc=1
+  elif grep -q 'glossary page root key.*legacy.*unknownRootKey' "$legacy_root_attack_stderr"; then
+    echo "  [PASS] ケースp: legacy互換root allowlist外の未知keyをerrorで拒否"
+  else
+    echo "  [FAIL] ケースp: legacy page-data root allowlist違反の診断が不明確" >&2
+    rc=1
+  fi
+
+  # --- ケースq: allowlist済みnested object内でも未知keyはerror ---
+  local data_glossary_nested_unknown="$tmp/page-data-glossary-nested-unknown.json"
+  local nested_unknown_stderr="$tmp/glossary-nested-unknown.stderr"
+  jq '.terms[0].representations = [{channel:"code",value:"Customer",location:"src/customer.ts:1",candidatePayload:{status:"detected"}}]' \
+    "$data_glossary_semantic" > "$data_glossary_nested_unknown"
+  if bash "$script_path" "$data_glossary_nested_unknown" >/dev/null 2>"$nested_unknown_stderr"; then
+    echo "  [FAIL] ケースq: representation内の未知candidatePayloadが誤ってPASS" >&2
+    rc=1
+  elif grep -q 'semantic nested key.*representations.*candidatePayload' "$nested_unknown_stderr"; then
+    echo "  [PASS] ケースq: allowlist済みnested object内の未知candidatePayloadをerrorで拒否"
+  else
+    echo "  [FAIL] ケースq: nested object allowlist違反の診断が不明確" >&2
+    rc=1
+  fi
+
   if [ "$rc" -eq 0 ]; then
     echo "self-test 全項目 PASS"
   else
@@ -494,6 +633,241 @@ case "$PAGE_KIND" in
     ;;
 esac
 
+# --- glossaryの形式排他・v0.1 page-data検証 ---
+# legacyとsemantic v0.1は受理するが、同じterms[]への混在は意味の捏造を招くため拒否する。
+# proposal/candidate/changeは承認済み用語の表示面へ持ち込まない。
+if [ "$PAGE_KIND" = "glossary" ]; then
+  forbidden_candidate_slots="$(jq -r '
+    . as $root
+    | [
+        "proposals","proposal","candidates","candidate","changes","change","proposalAudit","proposal_audit",
+        "reviewers","approval","confidence","observations","inferences","evidence","extractedFacts","extracted_facts",
+        "approvalEvents","approval_events","detectedBy","detected_by","mergeKey","merge_key","mergedRevision","merged_revision"
+      ] as $bad
+    | [$bad[] | . as $key | select($root | has($key))] | join(",")
+  ' "$MANIFEST" 2>/dev/null || true)"
+  if [ -n "$forbidden_candidate_slots" ]; then
+    overall_fail=1
+    echo "[FAIL] glossary候補分離 — 承認済みpage-dataに候補・変更スロットを含められません: ${forbidden_candidate_slots}" >&2
+  else
+    echo "[PASS] glossary候補分離 — 候補・変更スロットなし" >&2
+  fi
+
+  terms_is_array="$(jq -r '(.terms | type) == "array"' "$MANIFEST")"
+  if [ "$terms_is_array" != "true" ]; then
+    overall_fail=1
+    echo "[FAIL] glossary terms型 — termsはarrayである必要があります" >&2
+  fi
+  term_count="$(jq -r 'if (.terms | type)=="array" then (.terms|length) else 0 end' "$MANIFEST")"
+  legacy_count="$(jq -r '[if (.terms | type)=="array" then .terms[] else empty end | select(type=="object" and has("term") and ((has("key") or has("label"))|not))] | length' "$MANIFEST")"
+  semantic_count="$(jq -r '[if (.terms | type)=="array" then .terms[] else empty end | select(type=="object" and (has("key") or has("label") or has("term_ja")) and (has("term")|not))] | length' "$MANIFEST")"
+  invalid_count=$((term_count - legacy_count - semantic_count))
+  if [ "$invalid_count" -gt 0 ]; then
+    overall_fail=1
+    echo "[FAIL] glossary未分類term — legacy/semanticのどちらにも一意分類できないtermsが${invalid_count}件あります" >&2
+  else
+    echo "[PASS] glossary term分類 — 全${term_count}件をlegacyまたはsemanticへ一意分類" >&2
+  fi
+  if [ "$legacy_count" -gt 0 ] && [ "$semantic_count" -gt 0 ]; then
+    overall_fail=1
+    echo "[FAIL] glossary形式 — terms[]のlegacy形式とsemantic v0.1形式の新旧混在は禁止です" >&2
+  else
+    echo "[PASS] glossary形式 — terms[]は単一形式（legacyまたはsemantic projection）" >&2
+  fi
+
+  semantic_root_present="$(jq -r 'has("projectionVersion") or has("glossarySchemaVersion") or has("glossaryContentVersion")' "$MANIFEST")"
+  semantic_mode=0
+  if [ "$semantic_count" -gt 0 ] && [ "$legacy_count" -eq 0 ] && [ "$invalid_count" -eq 0 ]; then
+    semantic_mode=1
+  elif [ "$term_count" -eq 0 ] && [ "$semantic_root_present" = "true" ]; then
+    semantic_mode=1
+  fi
+  if [ "$semantic_mode" -eq 1 ]; then
+    semantic_unknown_page_root_keys="$(jq -r '
+      [
+        "pageKind","generatedAt","title","description","projectName","projectionVersion","glossarySchemaVersion",
+        "glossaryContentVersion","categories","terms","unresolved","diagnostics"
+      ] as $allowed
+      | [keys[] | . as $key | select($allowed | index($key) | not)] | unique | join(",")
+    ' "$MANIFEST" 2>/dev/null || true)"
+    if [ -n "$semantic_unknown_page_root_keys" ]; then
+      overall_fail=1
+      echo "[FAIL] glossary page root key — semantic v0.1 allowlist外のkeyです: ${semantic_unknown_page_root_keys}" >&2
+    else
+      echo "[PASS] glossary page root key — semantic v0.1 rootはallowlist内" >&2
+    fi
+  elif [ "$legacy_count" -gt 0 ] && [ "$semantic_count" -eq 0 ] && [ "$invalid_count" -eq 0 ]; then
+    legacy_unknown_page_root_keys="$(jq -r '
+      ["pageKind","generatedAt","title","description","projectName","categories","terms","unresolved","diagnostics"] as $allowed
+      | [keys[] | . as $key | select($allowed | index($key) | not)] | unique | join(",")
+    ' "$MANIFEST" 2>/dev/null || true)"
+    if [ -n "$legacy_unknown_page_root_keys" ]; then
+      overall_fail=1
+      echo "[FAIL] glossary page root key — legacy allowlist外のkeyです: ${legacy_unknown_page_root_keys}" >&2
+    else
+      echo "[PASS] glossary page root key — legacy rootはallowlist内" >&2
+    fi
+  fi
+  if [ "$semantic_mode" -eq 1 ]; then
+    semantic_unknown_root_keys="$(jq -r '
+      [
+        "key","term_ja","term_en","definition","scope","category","code_name","type_name","db_name","api_name","ui_label","allowed_values","status","notes",
+        "label","kind","representations","aliases","forbiddenTerms","relations",
+        "examples","counterExamples","constraints","tags","securityClassification","notes","status","introducedIn",
+        "deprecatedIn","retiredIn","migrationDeadline","replacementKey","replacedBy","lifecycleReason","approvers",
+        "sourceRefs","decisionRef","changeRef"
+      ] as $allowed
+      | [(.terms // [])[]? | keys[] | . as $key | select($allowed | index($key) | not)]
+      | unique | join(",")
+    ' "$MANIFEST" 2>/dev/null || true)"
+    if [ -n "$semantic_unknown_root_keys" ]; then
+      overall_fail=1
+      echo "[FAIL] glossary semantic root key — projection v0.1 allowlist外のterm root keyです: ${semantic_unknown_root_keys}" >&2
+    else
+      echo "[PASS] glossary semantic root key — term rootはprojection v0.1 allowlist内" >&2
+    fi
+
+    semantic_unknown_nested_keys="$(jq -r '
+      [
+        (.categories[]? | objects | keys[] as $key
+          | select(["key","label"] | index($key) | not)
+          | "categories[].\($key)"),
+        (.terms[]? | .scope? | objects | keys[] as $key
+          | select(["level","includes","excludes"] | index($key) | not)
+          | "terms[].scope.\($key)"),
+        (.terms[]? | .representations[]? | objects | keys[] as $key
+          | select(["channel","value","location","symbolKind"] | index($key) | not)
+          | "terms[].representations[].\($key)"),
+        (.terms[]? | .forbiddenTerms[]? | objects | keys[] as $key
+          | select(["term","reason","replacementKey"] | index($key) | not)
+          | "terms[].forbiddenTerms[].\($key)"),
+        (.terms[]? | .relations[]? | objects | keys[] as $key
+          | select(["type","targetKey"] | index($key) | not)
+          | "terms[].relations[].\($key)"),
+        (.unresolved[]? | objects | keys[] as $key
+          | select(["label","reason","sourceRef"] | index($key) | not)
+          | "unresolved[].\($key)"),
+        (.diagnostics? | objects | keys[] as $key
+          | select(["missingSource","unimplementedLayer"] | index($key) | not)
+          | "diagnostics.\($key)"),
+        (.diagnostics? | objects | to_entries[] | .key as $metric | .value | objects | keys[] as $key
+          | select(["count","total","ratio","threshold","warning"] | index($key) | not)
+          | "diagnostics.\($metric).\($key)")
+      ] | unique | join(",")
+    ' "$MANIFEST" 2>/dev/null || true)"
+    if [ -n "$semantic_unknown_nested_keys" ]; then
+      overall_fail=1
+      echo "[FAIL] glossary semantic nested key — projection v0.1 allowlist外のnested keyです: ${semantic_unknown_nested_keys}" >&2
+    else
+      echo "[PASS] glossary semantic nested key — 全nested objectはprojection v0.1 allowlist内" >&2
+    fi
+
+    semantic_candidate_keys="$(jq -r '
+      [
+        "proposal","proposalKey","proposal_key","proposalSchemaVersion","proposal_schema_version","proposedTerm","proposed_term",
+        "targetGlossaryKey","target_glossary_key","baseContentVersion","base_content_version","targetContentVersion","target_content_version",
+        "approval","confidence","observations","inferences","evidence","extractedFacts","extracted_facts","reviewers",
+        "reviewedAt","reviewed_at","decisionReason","decision_reason","approvalEvents","approval_events","detectedBy","detected_by",
+        "mergeKey","merge_key","mergedRevision","merged_revision","proposalAudit","proposal_audit","requestedBy","requested_by",
+        "approvedBy","approved_by","affectedTermKeys","affected_term_keys","changeKey","change_key","changeType","change_type",
+        "beforeHash","before_hash","afterHash","after_hash","appliedAt","applied_at","appliedRevision","applied_revision"
+      ] as $forbidden
+      | [(.terms // [])[]? | .. | objects | keys[] | . as $key | select($forbidden | index($key))]
+      | unique | join(",")
+    ' "$MANIFEST" 2>/dev/null || true)"
+    if [ -n "$semantic_candidate_keys" ]; then
+      overall_fail=1
+      echo "[FAIL] glossary候補専用key — semantic terms配下へ候補情報を混入できません: ${semantic_candidate_keys}" >&2
+    else
+      echo "[PASS] glossary候補専用key — semantic terms配下に候補情報なし" >&2
+    fi
+  fi
+  if [ "$legacy_count" -gt 0 ] && [ "$semantic_count" -eq 0 ] && [ "$invalid_count" -eq 0 ]; then
+    legacy_invalid="$(jq -r '[(.terms // [])[] | select(
+      (["term","definition","codeRefs","category","sourceRef"] - keys | length) > 0
+      or (.term|type)!="string" or (.definition|type)!="string"
+      or (.codeRefs|type)!="array" or ([.codeRefs[]|select(type!="string")]|length)>0
+      or (.category|type)!="string" or (.sourceRef|type)!="string"
+    )] | length' "$MANIFEST" 2>/dev/null || echo 1)"
+    if [ "$legacy_invalid" -gt 0 ]; then
+      overall_fail=1
+      echo "[FAIL] glossary legacy型 — 必須キーまたは型が不正なtermsが${legacy_invalid}件あります" >&2
+    else
+      echo "[PASS] glossary legacy型 — 旧5項目形式は妥当（表示時keyは未移行）" >&2
+      echo "[WARN] glossary legacy互換 — meaningful keyを生成せず未移行として受理しました。reverse adapter完了後の次majorで廃止候補です" >&2
+    fi
+  elif [ "$semantic_mode" -eq 1 ]; then
+    semantic_root_invalid="$(jq -r '
+      . as $root
+      | ((["0.1","0.2"] | index($root.projectionVersion)) == null)
+      or (.glossarySchemaVersion != "1.0.0")
+      or ((.glossaryContentVersion | type) != "string")
+      or ((.categories | type) != "array")
+      or ([.categories[] | . as $category | select(((["key","label"] - keys | length)>0) or (.key|type)!="string" or (.label|type)!="string" or (["business","technical","ai","cross_cutting","entity","attribute","value","process","event","role","rule","metric"]|index($category.key))==null)] | length)>0
+    ' "$MANIFEST" 2>/dev/null || echo true)"
+    if [ "$semantic_root_invalid" = "true" ]; then
+      overall_fail=1
+      echo "[FAIL] glossary semantic root — projection/schema/content versionまたはcategoriesが不正です" >&2
+    else
+      echo "[PASS] glossary semantic root — versionとcategoriesは妥当" >&2
+    fi
+    semantic_invalid="$(jq -r '
+      if .projectionVersion == "0.2" then
+        [(.terms // [])[] | . as $term | select(
+          (["key","term_ja","term_en","definition","scope","category","code_name","type_name","db_name","api_name","ui_label","allowed_values","status","notes"] - keys | length) > 0
+          or ([.key,.term_ja,.term_en,.definition,.scope,.category,.code_name,.db_name,.api_name,.status,.notes] | any(type!="string"))
+          or ((.type_name|type)!="string" and (.type_name|type)!="null")
+          or ((.ui_label|type)!="string" and (.ui_label|type)!="null")
+          or (.allowed_values|type)!="array" or ([.allowed_values[]|select(type!="string")]|length)>0
+          or (.representations|type)!="array" or (.sourceRefs|type)!="array"
+          or ([.representations[] | select(((["channel","value","location"] - keys | length)>0) or (.channel|type)!="string" or (.value|type)!="string" or (.location|type)!="string")]|length)>0
+          or ([.sourceRefs[]|select(type!="string")]|length)>0
+          or (has("aliases") and ((.aliases|type)!="array" or ([.aliases[]|select(type!="string")]|length)>0))
+          or (has("forbiddenTerms") and ((.forbiddenTerms|type)!="array" or ([.forbiddenTerms[] | select(
+            (type!="string") and (type!="object" or (has("term")|not) or (.term|type)!="string" or (has("reason") and (.reason|type)!="string") or (has("replacementKey") and (.replacementKey|type)!="string"))
+          )]|length)>0))
+          or (has("relations") and ((.relations|type)!="array" or ([.relations[] | select(type!="string" and type!="object")]|length)>0))
+          or (has("examples") and ((.examples|type)!="array" or ([.examples[]|select(type!="string")]|length)>0))
+          or (has("counterExamples") and ((.counterExamples|type)!="array" or ([.counterExamples[]|select(type!="string")]|length)>0))
+          or (has("constraints") and ((.constraints|type)!="array" or ([.constraints[]|select(type!="string")]|length)>0))
+          or (has("securityClassification") and (.securityClassification|type)!="string")
+          or (has("replacementKey") and (.replacementKey|type)!="string")
+          or (["active","deprecated","retired"]|index($term.status))==null
+          or (["entity","attribute","value","process","event","role","rule","metric"]|index($term.category))==null
+        )] | length
+      else
+        [(.terms // [])[] | . as $term | select(
+      (["key","label","definition","kind","category","representations","status","sourceRefs"] - keys | length) > 0
+      or (.key|type)!="string" or (.label|type)!="string" or (.definition|type)!="string"
+      or (.kind|type)!="string" or (.category|type)!="string"
+      or (.representations|type)!="array" or (.sourceRefs|type)!="array"
+      or ([.representations[] | select(((["channel","value","location"] - keys | length)>0) or (.channel|type)!="string" or (.value|type)!="string" or (.location|type)!="string")]|length)>0
+      or ([.sourceRefs[]|select(type!="string")]|length)>0
+      or (has("aliases") and ((.aliases|type)!="array" or ([.aliases[]|select(type!="string")]|length)>0))
+      or (has("forbiddenTerms") and ((.forbiddenTerms|type)!="array" or ([.forbiddenTerms[] | select(
+        (type!="string") and (type!="object" or (has("term")|not) or (.term|type)!="string" or (has("reason") and (.reason|type)!="string") or (has("replacementKey") and (.replacementKey|type)!="string"))
+      )]|length)>0))
+      or (has("relations") and ((.relations|type)!="array" or ([.relations[] | select(type!="string" and type!="object")]|length)>0))
+      or (has("scope") and ((.scope|type)!="object" or (.scope.level|type)!="string" or (.scope.includes|type)!="array" or (.scope.excludes|type)!="array" or ([.scope.includes[],.scope.excludes[]|select(type!="string")]|length)>0))
+      or (has("examples") and ((.examples|type)!="array" or ([.examples[]|select(type!="string")]|length)>0))
+      or (has("counterExamples") and ((.counterExamples|type)!="array" or ([.counterExamples[]|select(type!="string")]|length)>0))
+      or (has("constraints") and ((.constraints|type)!="array" or ([.constraints[]|select(type!="string")]|length)>0))
+      or (has("notes") and ((.notes|type)!="array" or ([.notes[]|select(type!="string")]|length)>0))
+      or (has("securityClassification") and (.securityClassification|type)!="string")
+      or (has("replacementKey") and (.replacementKey|type)!="string")
+      or (["active","deprecated","retired"]|index($term.status))==null
+      or (["business","technical","ai","cross_cutting"]|index($term.category))==null
+        )] | length
+      end' "$MANIFEST" 2>/dev/null || echo 1)"
+    if [ "$semantic_invalid" -gt 0 ]; then
+      overall_fail=1
+      echo "[FAIL] glossary semantic型 — 必須キー・型・状態・分類が不正なtermsが${semantic_invalid}件あります" >&2
+    else
+      echo "[PASS] glossary semantic型 — semantic projection termsは妥当" >&2
+    fi
+  fi
+fi
+
 # --- 6. categorySrc整合性(transitionのみ) ---
 # nodes[]にcategoryを持つノードが1件以上あれば、全ノードのcategorySrcが
 # 非空であることを検査する(片方だけ付与された中途半端な状態を検出する)。
@@ -524,6 +898,7 @@ if [ -n "$TARGET_REPO" ]; then
     source_refs="$(jq -r '[
       (.rows // [])[]?.sourceRef?,
       (.terms // [])[]?.sourceRef?,
+      (.terms // [])[]?.sourceRefs[]?,
       (.edges // [])[]?.sourceRef?,
       (.relations // [])[]?.sourceRef?,
       (.allocations // [])[]?.sourceRef?,

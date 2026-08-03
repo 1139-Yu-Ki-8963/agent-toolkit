@@ -16,6 +16,7 @@
 | standalone-基準確立の決定的確認 | syncing-reverse-envがPASSを返した | 基準タグ確立を確認する | 決定的コマンド出力で確認し自己申告で済ませない | 手動 |
 | ポート上限-BLOCKEDへの分類 | syncing-reverse-envがスロット上限到達のERRORを返す | Phase 5の結果を判定する | status=BLOCKEDとしhintに3点の確認事項を記す | 手動 |
 | 並列実行-レジストリ記帳のみ直列化 | 複数実行者が同時に開通作業を行う | Phase 5の記帳を行う | 記帳のみ排他し他の作業は並列のままとする | 手動 |
+| screenshot-screenUnitRoot上書き | output-layoutでscreenUnitRoot=スクリーン | original.pngを保存する | <output_dir>/スクリーン/screen-<ID>/詳細設計へ保存し旧画面rootへ書かない | 手動 |
 
 ## 機械検証との対応
 

@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=output-layout.sh
+source "$script_dir/output-layout.sh"
+
 # scaffold-screen.sh — リバース検証テンプレートを対象プロジェクトへ展開する
 #
 # 使い方:
@@ -17,16 +21,73 @@ set -euo pipefail
 #
 # 処理:
 #   1. template_root（引数指定 or 既定値）からテンプレートを特定
-#   2. <output_dir>/画面/screen-<画面ID>/ へ画面単位テンプレートをコピー
+#   2. <output_dir>/<screenUnitRoot>/screen-<画面ID>/ へ画面単位テンプレートをコピー
 #   3. <output_dir>/プロジェクト共通/ が未存在なら初回コピー
 #   4. 全 .md の <画面ID> <画面名> プレースホルダを sed 置換
 #   5. 展開結果を tree で表示
+
+# 書込先自身と、そこへ至る既存path componentをlstatで検査する。
+# symlinkを1つでも含む場合は、リンク先のrepo外treeへ書かないようfail closedにする。
+assert_no_symlink_output_path() {
+  node - "$1" "$2" <<'NODE'
+const fs = require("fs");
+const path = require("path");
+function lexicalAbsolute(raw) {
+  return path.isAbsolute(raw) ? raw : `${process.cwd()}${path.sep}${raw}`;
+}
+function assertNoLexicalSymlink(raw) {
+  const absolute = lexicalAbsolute(raw);
+  const parsed = path.parse(absolute);
+  let current = parsed.root;
+  for (const segment of absolute.slice(parsed.root.length).split(path.sep)) {
+    if (!segment || segment === ".") continue;
+    if (segment === "..") {
+      current = path.dirname(current);
+      continue;
+    }
+    current = path.join(current, segment);
+    try {
+      if (fs.lstatSync(current).isSymbolicLink()) {
+        throw new Error(`write path must not contain a symbolic link: ${current}`);
+      }
+    } catch (error) {
+      if (error && error.code === "ENOENT") continue;
+      throw error;
+    }
+  }
+}
+assertNoLexicalSymlink(process.argv[2]);
+assertNoLexicalSymlink(process.argv[3]);
+const outputRoot = path.resolve(process.argv[2]);
+const target = path.resolve(process.argv[3]);
+const relative = path.relative(outputRoot, target);
+if (relative === ".." || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative)) {
+  throw new Error(`write path must stay under output_dir: ${target}`);
+}
+const parsed = path.parse(target);
+let current = parsed.root;
+for (const segment of target.slice(parsed.root.length).split(path.sep).filter(Boolean)) {
+  current = path.join(current, segment);
+  let stat;
+  try {
+    stat = fs.lstatSync(current);
+  } catch (error) {
+    if (error && error.code === "ENOENT") break;
+    throw error;
+  }
+  if (stat.isSymbolicLink()) {
+    throw new Error(`write path must not contain a symbolic link: ${current}`);
+  }
+}
+NODE
+}
 
 if [ "${1:-}" = "--self-test" ]; then
   self_test() {
     local self_path pass=0 fail=0
     self_path="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$(basename "${BASH_SOURCE[0]}")"
     tmp="$(mktemp -d)"
+    tmp="$(cd "$tmp" && pwd -P)"
     trap 'rm -rf "$tmp"' EXIT
 
     # 正常系: 実テンプレートで新規展開した後、--verify が健全性をexit0で確認する
@@ -59,6 +120,83 @@ if [ "${1:-}" = "--self-test" ]; then
       pass=$((pass + 1))
     fi
 
+    # output-layout上書き: 表示ラベルではなくscreenUnitRootへ展開し、verifyも同じ配置を読む
+    mkdir -p "$tmp/docs_override/画面/screen-decoy"
+    cat > "$tmp/docs_override/output-layout.json" <<'JSON'
+{ "specVersion": 1, "layout": { "screenUnitRoot": "スクリーン" } }
+JSON
+    if bash "$self_path" "$tmp/docs_override" custom-root "配置上書き画面" >/dev/null 2>&1 \
+       && bash "$self_path" --verify "$tmp/docs_override" custom-root >/dev/null 2>&1 \
+       && [ -d "$tmp/docs_override/スクリーン/screen-custom-root" ] \
+       && [ ! -d "$tmp/docs_override/画面/screen-custom-root" ]; then
+      echo "PASS: screenUnitRoot上書きへ展開しverifyも同じ配置を検証" >&2
+      pass=$((pass + 1))
+    else
+      echo "FAIL: screenUnitRoot上書きの展開・verify" >&2
+      fail=$((fail + 1))
+    fi
+
+    # 異常系: output_dir自身またはscreenUnitRoot祖先がsymlinkなら外部treeへ書かない
+    mkdir -p "$tmp/symlink-external-root" "$tmp/symlink-parent-docs" "$tmp/symlink-external-screen-root" \
+      "$tmp/symlink-external-parent/docs" "$tmp/lexical-base" "$tmp/lexical-external/child" \
+      "$tmp/lexical-external/docs"
+    ln -s "$tmp/symlink-external-root" "$tmp/docs-root-link"
+    cat > "$tmp/symlink-parent-docs/output-layout.json" <<'JSON'
+{ "specVersion": 1, "layout": { "screenUnitRoot": "スクリーン" } }
+JSON
+    ln -s "$tmp/symlink-external-screen-root" "$tmp/symlink-parent-docs/スクリーン"
+    ln -s "$tmp/symlink-external-parent" "$tmp/link-parent"
+    ln -s "$tmp/lexical-external/child" "$tmp/lexical-base/link"
+    if bash "$self_path" "$tmp/docs-root-link" root-link "root symlink" >/dev/null 2>&1 \
+       || [ -e "$tmp/symlink-external-root/画面/screen-root-link" ] \
+       || [ -e "$tmp/symlink-external-root/スクリーン/screen-root-link" ]; then
+      echo "FAIL: symlinkのoutput_dirを拒否して外部treeを不変に保つ" >&2
+      fail=$((fail + 1))
+    else
+      echo "PASS: symlinkのoutput_dirを拒否して外部treeを不変に保つ" >&2
+      pass=$((pass + 1))
+    fi
+    if bash "$self_path" "$tmp/symlink-parent-docs" ancestor-link "ancestor symlink" >/dev/null 2>&1 \
+       || [ -e "$tmp/symlink-external-screen-root/screen-ancestor-link" ]; then
+      echo "FAIL: screenUnitRootのsymlink祖先を拒否して外部treeを不変に保つ" >&2
+      fail=$((fail + 1))
+    else
+      echo "PASS: screenUnitRootのsymlink祖先を拒否して外部treeを不変に保つ" >&2
+      pass=$((pass + 1))
+    fi
+    if bash "$self_path" "$tmp/link-parent/docs" parent-component "parent component symlink" >/dev/null 2>&1 \
+       || [ -e "$tmp/symlink-external-parent/docs/画面/screen-parent-component" ]; then
+      echo "FAIL: output_dirへ至る親component symlinkを拒否して外部treeを不変に保つ" >&2
+      fail=$((fail + 1))
+    else
+      echo "PASS: output_dirへ至る親component symlinkを拒否して外部treeを不変に保つ" >&2
+      pass=$((pass + 1))
+    fi
+    if bash "$self_path" "$tmp/lexical-base/link/../docs" lexical-collapse "lexical symlink" >/dev/null 2>&1 \
+       || [ -e "$tmp/lexical-external/docs/画面/screen-lexical-collapse" ]; then
+      echo "FAIL: collapse前の字句component symlinkを拒否して外部treeを不変に保つ" >&2
+      fail=$((fail + 1))
+    else
+      echo "PASS: collapse前の字句component symlinkを拒否して外部treeを不変に保つ" >&2
+      pass=$((pass + 1))
+    fi
+
+    # 異常系: screenUnitRootがcommonRootと衝突する宣言は共通文書を変更せず拒否する
+    mkdir -p "$tmp/collision-docs/プロジェクト共通"
+    printf '%s\n' 'preserve-common-docs' > "$tmp/collision-docs/プロジェクト共通/marker.txt"
+    cat > "$tmp/collision-docs/output-layout.json" <<'JSON'
+{ "specVersion": 1, "layout": { "screenUnitRoot": "プロジェクト共通" } }
+JSON
+    if bash "$self_path" "$tmp/collision-docs" collision "root collision" >/dev/null 2>&1 \
+       || [ "$(cat "$tmp/collision-docs/プロジェクト共通/marker.txt")" != "preserve-common-docs" ] \
+       || [ -e "$tmp/collision-docs/プロジェクト共通/screen-collision" ]; then
+      echo "FAIL: screenUnitRootとcommonRootの衝突を拒否して共通文書を保全" >&2
+      fail=$((fail + 1))
+    else
+      echo "PASS: screenUnitRootとcommonRootの衝突を拒否して共通文書を保全" >&2
+      pass=$((pass + 1))
+    fi
+
     echo "self-test: ${pass} PASS, ${fail} FAIL" >&2
     [ "$fail" -eq 0 ]
   }
@@ -69,7 +207,11 @@ if [ "${1:-}" = "--verify" ]; then
   shift
   output_dir="${1:?引数 output_dir が必要です}"
   screen_id="${2:?引数 画面ID が必要です}"
-  screen_dir="$output_dir/画面/screen-${screen_id}"
+  assert_no_symlink_output_path "$output_dir" "$output_dir" || exit 1
+  LAYOUT_JSON="$(resolve_output_layout "$output_dir")" || exit 1
+  LAYOUT_SCREEN_UNIT_ROOT="$(output_layout_get "$LAYOUT_JSON" screenUnitRoot)" || exit 1
+  screen_dir="$output_dir/$LAYOUT_SCREEN_UNIT_ROOT/screen-${screen_id}"
+  assert_no_symlink_output_path "$output_dir" "$screen_dir" || exit 1
   errors=0
   for req in 詳細設計/画面詳細設計書.md 詳細設計/単体テスト観点表.md 詳細設計/結合テスト観点表.md \
              詳細設計/DESIGN.md テスト項目書/単体テスト仕様書.md テスト項目書/結合テスト仕様書.md \
@@ -104,8 +246,6 @@ fi
 output_dir="${1:?引数1 output_dir が必要です}"
 screen_id="${2:?引数2 画面ID が必要です}"
 screen_name="${3:-$screen_id}"
-script_dir="$(cd "$(dirname "$0")" && pwd)"
-source "$script_dir/output-layout.sh"
 template_root="${4:-$script_dir/../templates/リバース検証}"
 today="$(date +%Y-%m-%d)"
 
@@ -128,6 +268,7 @@ if [ ! -d "$output_dir" ]; then
   echo "エラー: output_dir が存在しません（タイポ防止のため自動作成しません）: $output_dir" >&2
   exit 1
 fi
+assert_no_symlink_output_path "$output_dir" "$output_dir" || exit 1
 
 if [ ! -d "$template_root" ]; then
   echo "エラー: テンプレートディレクトリが見つかりません: $template_root" >&2
@@ -137,9 +278,12 @@ template_dir="$(cd "$template_root" && pwd)"
 
 LAYOUT_JSON="$(resolve_output_layout "$output_dir")" || exit 1
 LAYOUT_COMMON_ROOT="$(output_layout_get "$LAYOUT_JSON" commonRoot)" || exit 1
+LAYOUT_SCREEN_UNIT_ROOT="$(output_layout_get "$LAYOUT_JSON" screenUnitRoot)" || exit 1
 
-screen_dir="$output_dir/画面/screen-${screen_id}"
+screen_dir="$output_dir/$LAYOUT_SCREEN_UNIT_ROOT/screen-${screen_id}"
 common_dir="$output_dir/$LAYOUT_COMMON_ROOT"
+assert_no_symlink_output_path "$output_dir" "$screen_dir" || exit 1
+assert_no_symlink_output_path "$output_dir" "$common_dir" || exit 1
 
 if [ -d "$screen_dir" ]; then
   echo "エラー: 画面ディレクトリが既に存在します: $screen_dir" >&2
@@ -190,7 +334,7 @@ fi
 
 # プレースホルダ置換（GNU/BSD sed 両対応: -i.bak + rm を使用）+ 相対パス補正を1回のfindループで行う。
 # 相対パス補正: テンプレートは 画面/詳細設計/ を想定した ../../プロジェクト共通/... だが、
-# 展開先は 画面/screen-<画面ID>/詳細設計/ で1階層深い。../../../プロジェクト共通/... に補正する。
+# 展開先は <screenUnitRoot>/screen-<画面ID>/詳細設計/ で1階層深い。../../../プロジェクト共通/... に補正する。
 echo "プレースホルダを置換: <画面ID> → $screen_id, <画面名> → $screen_name"
 while IFS= read -r file; do
   ok=1

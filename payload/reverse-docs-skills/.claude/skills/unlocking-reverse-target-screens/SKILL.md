@@ -125,7 +125,7 @@ TaskCreate で本前提ゲートを含む全Phase分のタスクを1つずつ登
 
 `standalone` の返却 `status=PASS` なら、画面レジストリの該当エントリを `status=baseline-established` に更新し、`git tag -l "reverse-baseline/<scope>"` 等の決定的コマンド出力でタグ確立を確認する（自然文の自己申告で完了と判定しない）。
 
-開通完了後、Playwright で対象画面のスクリーンショットを撮影し `<output_dir>/画面/screen-<screen_id>/詳細設計/original.png` として保存する。これは基本設計書・詳細設計書の画面キャプチャとして参照される。撮影には syncing-reverse-env の既存 Playwright 設定（viewport・loading 待機条件）を流用する。
+開通完了後、output-layout の `layout.screenUnitRoot` を `output_dir` から解決し、Playwright で対象画面のスクリーンショットを撮影して `<output_dir>/<screenUnitRoot>/screen-<screen_id>/詳細設計/original.png` として保存する。表示用 `kindLabels.screen` や既定文字列「画面」は物理pathに使わない。これは基本設計書・詳細設計書の画面キャプチャとして参照される。撮影には syncing-reverse-env の既存 Playwright 設定（viewport・loading 待機条件）を流用する。
 
 `standalone` で確認できたら `status=BASELINE-ESTABLISHED` で返却する（返却フィールドに `baseline_tag` を追加し、`syncing-reverse-env` の返却値をそのまま転記する）。返却が `PASS` 以外（`FAIL`/`ERROR`/`INCOMPLETE`）の場合は、画面レジストリを `status=unlocked` のまま残し、`status=UNLOCKED`（部分完了）で hint に理由を記して差し戻す。返却が `status=ERROR` かつポートスロット上限（`max_slots`）到達が理由の場合は `status=BLOCKED` とし、hint に「(a) 並行検証の要否再確認」「(b) baseline-established済み環境のteardown可否」「(c) 上限拡張要否のユーザー確認」の3点を記す。
 

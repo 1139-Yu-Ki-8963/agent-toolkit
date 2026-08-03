@@ -1,0 +1,40 @@
+proposal_key: customer_status_from_api
+proposal_operation: add
+proposal_schema_version: 1.0.0
+target_glossary_key: commerce_platform
+base_content_version: 1.9.0
+target_content_version: 2.1.0
+merge_key: add_customer_status_to_commerce_platform
+proposed_term:
+  key: customer_status
+  label: 顧客状態
+  definition: 顧客との取引関係が現在どの段階にあるかを示す区分
+  kind: status
+  category: business
+  scope: {level: product, includes: [commerce_platform], excludes: []}
+  representations:
+    - {channel: api, value: customerStatus, location: openapi/customer.yaml#/customerStatus}
+  lifecycle: {status: active, introduced_in: 2.1.0}
+  stewardship: {approvers: [business-reviewer, architecture-reviewer]}
+  provenance:
+    sources:
+      - {type: openapi, ref: openapi/customer.yaml#/customerStatus, supports: representation}
+proposal:
+  extracted_facts:
+    - {subject: customerStatus, predicate: declared_as, object: enum, evidence_ref: openapi/customer.yaml#/customerStatus}
+  inferences: []
+  evidence:
+    - {ref: openapi/customer.yaml#/customerStatus, excerpt_hash: 'sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef', observed_at: '2026-08-01T00:00:00Z', source_revision: abc1234}
+  confidence: {score: 0.9, level: low, rationale: 意図的なlevel不一致}
+  approval:
+    status: approved
+    reviewers:
+      - {actor: business-reviewer, role: business_approver, decision: approved, decided_at: '2026-08-01T01:00:00Z'}
+    reviewed_at: '2026-08-01T01:00:00Z'
+    decision_reason: null
+    events:
+      - {from: null, to: detected, actor: analyzer, actor_role: analyzer, occurred_at: '2026-08-01T00:00:00Z', reason: 検出}
+      - {from: detected, to: needs_review, actor: maintainer, actor_role: maintainer, occurred_at: '2026-08-01T00:10:00Z', reason: 審査開始}
+      - {from: needs_review, to: approved, actor: analyzer, actor_role: analyzer, occurred_at: '2026-08-01T01:00:00Z', reason: 不正な自己承認}
+  detected_by: {skill: analyzing-api-glossary-candidates, version: 1.0.0}
+merged_revision: null

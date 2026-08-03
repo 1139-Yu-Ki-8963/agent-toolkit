@@ -1,0 +1,27 @@
+schema_version: 1.0.0
+content_version: 1.0.0
+glossary_key: approved_legacy_marker_catalog
+title: Approved legacy marker glossary
+scope: {level: application, includes: [approved_legacy_marker_application], excludes: []}
+scope_catalog:
+  - {key: approved_legacy_marker_application, level: application, parent_key: null, source_ref: docs/legacy-marker.md}
+default_language: ja
+terms:
+  - key: customer_relationship_status
+    label: 顧客関係状態
+    definition: 顧客との取引関係が継続しているかを示す状態
+    kind: status
+    category: business
+    scope: {level: application, includes: [approved_legacy_marker_application], excludes: []}
+    representations:
+      - {channel: code, value: CustomerRelationshipStatus, location: src/status.ts:1}
+    lifecycle: {status: active, introduced_in: 1.0.0}
+    stewardship:
+      approvers: [business_approver:domain-reviewer, technical_approver:architecture-reviewer]
+    provenance:
+      publication_status: approved
+      decision_ref: proposals/customer_relationship_status_approval
+      change_ref: changes/add_customer_relationship_status
+      legacy_source_ref: legacy/customer-dictionary.yaml
+      sources:
+        - {type: domain_document, ref: docs/status.md, supports: definition}

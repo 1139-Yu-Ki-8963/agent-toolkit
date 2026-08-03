@@ -4,6 +4,7 @@
 
 | 観点キー | 前提 | 操作 | 期待結果 | 機械検証 |
 |---|---|---|---|---|
+| 画面単位root上書き-scaffold | screenUnitRootがスクリーン | scaffold後に--verifyする | スクリーン/screen-*へ展開され同じrootをverifyする | scaffold-screen.sh self-test「screenUnitRoot上書きへ展開しverifyも同じ配置を検証」 |
 | 画面構成入力判定-helper単一判定源 | 著述前にscreen-composition判定を行う | validate-reverse-authoring-inputs.pyを実行する | 終了コードとstatusの不一致はfail-closedで停止する | 手動 |
 | 画面構成4ケース-両方無しは著述停止 | original.pngもfacts.ymlの利用可能な構造も無い | Phase 2の画面構成生成を行う | status=基本設計著述失敗とし両方の根拠が無い旨を返す | validate-reverse-authoring-inputs.pyのself-testが検証する分岐「1-23 branch original=False jsx=False」（expected=1） |
 | 画面構成4ケース-画像優先 | original.pngがある | Phase 2の画面構成生成を行う | 構造の有無にかかわらず画像を優先する | validate-reverse-authoring-inputs.pyのself-testが検証する分岐「1-23 branch original=True jsx=False」（expected=0） |

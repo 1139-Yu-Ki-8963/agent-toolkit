@@ -1,0 +1,13 @@
+change_key: update_customer_unqualified_approvers
+glossary_key: commerce_platform
+change_type: update
+affected_term_keys: [customer]
+base_content_version: 1.9.0
+target_content_version: 2.0.0
+before_hash: sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+after_hash: sha256:fedcba9876543210
+requested_by: customer-domain-team
+approved_by: [business-reviewer, architecture-reviewer]
+reason: role修飾のない二文字列を拒否するため
+applied_at: '2026-08-02T04:00:00Z'
+applied_revision: invalid-approvers

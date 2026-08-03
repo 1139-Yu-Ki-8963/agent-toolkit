@@ -1,0 +1,9 @@
+proposal_key: invalid_registry_proposal
+proposal_operation: add
+proposal_schema_version: 1.0.0
+target_glossary_key: commerce_platform
+base_content_version: 2.0.0
+target_content_version: 2.1.0
+merge_key: invalid_registry_merge
+proposed_term: {}
+proposal: {}

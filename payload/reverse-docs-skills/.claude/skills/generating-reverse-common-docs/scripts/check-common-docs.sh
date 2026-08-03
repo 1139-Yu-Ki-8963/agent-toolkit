@@ -1,18 +1,17 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# check-common-docs.sh — プロジェクト共通10文書の機械ゲート（6検査すべて決定的）
+# check-common-docs.sh — 永続するプロジェクト共通6文書の機械ゲート（6検査すべて決定的）
 #
 # 使い方:
 #   check-common-docs.sh <common_docs_dir> <target_repo_path>
 #   check-common-docs.sh --self-test
 #
-# <common_docs_dir> は `<output_dir>` を指す（規約/ 配下に規約4文書、プロジェクト共通/ 配下に
-# 共通6文書＋サンプル記録.mdを持つ親ディレクトリ）。
+# <common_docs_dir> は `<output_dir>` を指す（プロジェクト共通/ 配下に共通6文書を持つ親ディレクトリ）。
+# 規約4文書は非永続の移行対象であり、存在する場合だけ補助検査する。サンプル記録はゲート対象外。
 #
 # 検査:
-#   1. 実在検査: 10文書＋サンプル記録.md（計11ファイル。規約4種は規約/サブディレクトリ）
-#      すべてが実在する。
+#   1. 実在検査: 永続する共通6文書がすべて実在する。
 #   2. 規則行完備性: 規約4文書内の各テーブル行のうち、backtick囲みの相対パス
 #      （「/」を含む）トークンを1件以上含む行を「規則行」とみなし、その行に
 #      ①実例パス3件以上 ②頻度（[0-9]+/[0-9]+形式） ③例外率（[0-9.]+%形式）
@@ -22,7 +21,7 @@ set -euo pipefail
 #      除外規則は検査2と同じ（URL・glob・プレースホルダ・絶対パス・空白/正規表現
 #      記号を含むトークンは対象外）。
 #   4. テンプレ残存ゼロ: 開き括弧付きの形（<実測|<FILL|<TBD|<TODO）、または行/セル全体が
-#      ちょうどTBD/TODOだけであるプレースホルダそのものの形が11ファイルすべてで0件。
+#      ちょうどTBD/TODOだけであるプレースホルダそのものの形が永続6文書すべてで0件。
 #      TBD/TODOという語自体を地の文で言及すること（裸の語）は検出しない（1-153）。
 #   5. 理想論表現ゼロ: すべきである|望ましい|べきだ|理想的には|今後は が
 #      規約4文書で0件（実装事実の記録に限る）。
@@ -51,7 +50,7 @@ else
 fi
 
 CONVENTION_FILES="$(output_layout_get "$LAYOUT_JSON" conventionCodingDoc) $(output_layout_get "$LAYOUT_JSON" conventionNamingDoc) $(output_layout_get "$LAYOUT_JSON" conventionDirectoryDoc) $(output_layout_get "$LAYOUT_JSON" conventionComponentDoc)"
-REQUIRED_FILES="$CONVENTION_FILES $(output_layout_get "$LAYOUT_JSON" commonDesignDoc) $(output_layout_get "$LAYOUT_JSON" messageDoc) $(output_layout_get "$LAYOUT_JSON" designDoc) $(output_layout_get "$LAYOUT_JSON" foundationDoc) $(output_layout_get "$LAYOUT_JSON" uiCommonDoc) $(output_layout_get "$LAYOUT_JSON" dataDesignDoc) $(output_layout_get "$LAYOUT_JSON" sampleRecordDoc)"
+REQUIRED_FILES="$(output_layout_get "$LAYOUT_JSON" commonDesignDoc) $(output_layout_get "$LAYOUT_JSON" messageDoc) $(output_layout_get "$LAYOUT_JSON" designDoc) $(output_layout_get "$LAYOUT_JSON" foundationDoc) $(output_layout_get "$LAYOUT_JSON" uiCommonDoc) $(output_layout_get "$LAYOUT_JSON" dataDesignDoc)"
 # 検査3（パス実在検査）は規約4種に加え、共通設計書・メッセージ定義書・DESIGN.mdも対象にする
 PATH_CHECK_FILES="$CONVENTION_FILES $(output_layout_get "$LAYOUT_JSON" commonDesignDoc) $(output_layout_get "$LAYOUT_JSON" messageDoc) $(output_layout_get "$LAYOUT_JSON" designDoc)"
 MESSAGE_DOC_FILE="$(output_layout_get "$LAYOUT_JSON" messageDoc)"
@@ -97,7 +96,7 @@ is_separator_row() {
   [ -z "$stripped" ]
 }
 
-# 検査1: 実在検査（11ファイル）
+# 検査1: 実在検査（永続6ファイル）
 check_files_exist() {
   dir="$1"
   missing=0
@@ -108,10 +107,10 @@ check_files_exist() {
     fi
   done
   if [ "$missing" -gt 0 ]; then
-    echo "検査1失敗: プロジェクト共通11ファイル中 $missing 件が未実在です" >&2
+    echo "検査1失敗: 永続するプロジェクト共通6ファイル中 $missing 件が未実在です" >&2
     return 1
   fi
-  echo "検査1通過: 11ファイルすべて実在"
+  echo "検査1通過: 永続する6ファイルすべて実在"
   return 0
 }
 
@@ -252,7 +251,7 @@ placeholder_residue_hits() { # $1=file -> "行番号:該当行" を1件1行で�
   done < "$file"
 }
 
-# 検査4: テンプレ残存ゼロ（11ファイル）
+# 検査4: テンプレ残存ゼロ（永続6ファイル）
 check_no_placeholder() {
   dir="$1"
   hit_total=0
@@ -270,7 +269,7 @@ check_no_placeholder() {
     echo "検査4失敗: $hit_total ファイルにテンプレ残存トークンを検出" >&2
     return 1
   fi
-  echo "検査4通過: 11ファイルすべてテンプレ残存0件"
+  echo "検査4通過: 永続する6ファイルすべてテンプレ残存0件"
   return 0
 }
 
@@ -432,6 +431,18 @@ MD
     rc=1
   fi
 
+  # 陽性(Phase A): 規約4文書とサンプル記録が無くても永続6文書のゲートは通る
+  persistent_only_dir="$tmp/persistent-only"
+  build_docs "$persistent_only_dir"
+  rm -rf "$persistent_only_dir/規約"
+  rm -f "$persistent_only_dir/プロジェクト共通/サンプル記録.md"
+  if run_all_checks "$persistent_only_dir" "$repo" >/dev/null 2>&1; then
+    echo "  [PASS] Phase A: 規約4文書・サンプル記録なしで永続6文書がexit 0"
+  else
+    echo "  [FAIL] Phase A: 非永続文書の欠落を必須違反にした" >&2
+    rc=1
+  fi
+
   # 陰性1: 検査1のみ違反（DESIGN.mdを欠落）
   fail1_dir="$tmp/fail1"
   build_docs "$fail1_dir"
@@ -459,6 +470,12 @@ MD
   else
     echo "  [PASS] 検査2: 実例/頻度/例外率欠落でexit 1"
   fi
+  if run_all_checks "$fail2_dir" "$repo" >/dev/null 2>&1; then
+    echo "  [FAIL] 集約入口: 検査2違反を見逃した" >&2
+    rc=1
+  else
+    echo "  [PASS] 集約入口: 検査2違反でexit 1"
+  fi
 
   # 陰性3: 検査3のみ違反（存在しないパスを記載）
   fail3_dir="$tmp/fail3"
@@ -469,13 +486,25 @@ MD
 | 項目 | 実測内容 | 抽出元 |
 |---|---|---|
 $rule_row
-| ファイル名 | \`src/components/Missing.tsx\` を確認。頻度 5/5。例外率 0.0% | \`src/utils/format.ts\` |
+| ファイル名 | \`src/components/Missing.tsx\`・\`src/components/Button.tsx\`・\`src/hooks/useAuth.ts\` を確認。頻度 5/5。例外率 0.0% | \`src/utils/format.ts\` |
 MD
+  if check_rule_rows "$fail3_dir" >/dev/null 2>&1; then
+    echo "  [PASS] 検査3fixture: 検査2には違反しない"
+  else
+    echo "  [FAIL] 検査3fixture: 検査2の違反も混入した" >&2
+    rc=1
+  fi
   if check_paths_exist "$fail3_dir" "$repo" >/dev/null 2>&1; then
     echo "  [FAIL] 検査3: 未実在パスがあるのにexit 0になった" >&2
     rc=1
   else
     echo "  [PASS] 検査3: 未実在パスでexit 1"
+  fi
+  if run_all_checks "$fail3_dir" "$repo" >/dev/null 2>&1; then
+    echo "  [FAIL] 集約入口: 検査3違反を見逃した" >&2
+    rc=1
+  else
+    echo "  [PASS] 集約入口: 検査3違反でexit 1"
   fi
 
   # 陰性4: 検査4のみ違反（テンプレ残存）
@@ -518,6 +547,26 @@ MD
     rc=1
   else
     echo "  [PASS] 検査5: 理想論表現でexit 1"
+  fi
+  if run_all_checks "$fail5_dir" "$repo" >/dev/null 2>&1; then
+    echo "  [FAIL] 集約入口: 検査5違反を見逃した" >&2
+    rc=1
+  else
+    echo "  [PASS] 集約入口: 検査5違反でexit 1"
+  fi
+
+  # 陽性(Phase A): sample記録は存在してもゲート対象外
+  ignored_sample_dir="$tmp/ignored-sample"
+  build_docs "$ignored_sample_dir"
+  cat >> "$ignored_sample_dir/プロジェクト共通/サンプル記録.md" <<'MD'
+
+<TBD: verification外部化までの一時記録>
+MD
+  if run_all_checks "$ignored_sample_dir" "$repo" >/dev/null 2>&1; then
+    echo "  [PASS] Phase A: sample記録の内容をゲート対象外として扱う"
+  else
+    echo "  [FAIL] Phase A: sample記録をゲート対象として評価した" >&2
+    rc=1
   fi
 
   # 陰性6: 検査6のみ違反（メッセージ定義書の宣言件数と実測件数が不一致）

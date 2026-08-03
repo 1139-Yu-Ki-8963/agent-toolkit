@@ -4,26 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>用語辞書 — 設計ポータル</title>
-<!--
-  detail-pages T2 対訳辞書型テンプレート — 設計スキル群
-  生成: shared/scripts/detail-pages/build-detail-page.sh
-  プレースホルダ置換は build-detail-page.sh の render_template() が行う。
-  手作業によるプレースホルダ置換は禁止。生成は必ずスクリプト経由で行う。
-
-  保守注記: トークン・共通シェル(サイドバー・フッター・全画面レイアウトのCSS)は
-  shared/templates/partials 配下の共通ファイルを注入マーカー経由で読み込む。
-  テーマ切替はサイドバー側に一本化されており、本テンプレートに複製は無い。
-
-  プレースホルダ(build-detail-page.shが注入。実際のマーカー記法は
-  scripts/detail-pages/build-detail-page.sh 冒頭コメントを正本とする。本コメントでは
-  二重置換事故を避けるため意図的に波括弧を外して記載する):
-    TITLE (ページ見出しマーカー)          : page-data.json の title
-    DESCRIPTION (ページ概要マーカー)      : page-data.json の description
-    BACK_LINK (ポータルTOPへの戻りリンク) : ポータルからの相対パス
-    PAGE_DATA_JSON (page-data埋め込みマーカー) : page-data.json の内容全体(本ファイル物理末尾のscriptタグへ注入)
-    PROJECT_NAME・GENERATED_AT・COMMIT_SHORT は本ファイル本体では使わず、共通シェル
-    (サイドバー・フッター)側でのみ消費される。
--->
+<!-- T2 semantic glossary. build-detail-page.shだけがプレースホルダを置換する。 -->
 <style>
 /* 設計ポータルのデザイントークン。
    本ファイルの全文が、ビルド時に各テンプレートのトークン注入マーカーへ差し込まれる。
@@ -554,81 +535,86 @@ a.pt-brand-list-item:hover { background: var(--panel3); color: var(--text); text
 @media (prefers-reduced-motion: reduce) {
   .pt *, .pt *::before, .pt *::after { transition: none !important; }
 }
-
 * { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; }
 html, body { margin: 0; padding: 0; }
-
-.dp-controls { flex: none; display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin: 24px 0 14px; }
-.dp-controls .pt-input { flex: 1; min-width: 220px; }
-
-.chip-row { flex: none; display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 18px; }
-.chip {
-  font-family: inherit;
-  font-size: 12.5px;
-  color: var(--sub);
-  background: var(--panel);
-  border: 1px solid var(--line2);
-  padding: 5px 14px;
-  cursor: pointer;
-  transition: all 0.12s;
+.dp-controls { flex:none; display:flex; flex-wrap:wrap; align-items:center; gap:12px; margin:24px 0 12px; }
+.dp-controls .pt-input { flex:1; min-width:260px; }
+.filter-bar { display:flex; flex-wrap:wrap; align-items:center; gap:8px 16px; margin-bottom:12px; }
+.filter-set { display:flex; flex-wrap:wrap; align-items:center; gap:7px; }
+.filter-label,.sec-label { color:var(--muted); font:600 11px var(--mono); letter-spacing:.08em; text-transform:uppercase; }
+.chip { border:1px solid var(--line2); background:var(--panel); color:var(--sub); padding:5px 12px; font:inherit; font-size:12px; cursor:pointer; }
+.chip:hover,.chip:focus-visible { border-color:var(--accent); color:var(--accent); }
+.chip.active { border-color:var(--accent); background:var(--accent); color:var(--chipontext); font-weight:700; }
+.registry-note { margin:0 0 12px; border-left:4px solid var(--accent); background:var(--panel3); color:var(--sub); padding:9px 12px; font-size:12px; }
+.dp-tablewrap { flex:1; min-height:0; overflow-x:auto; border:1px solid var(--line2); }
+#dict-table { min-width:2380px; }
+#dict-table th { white-space:nowrap; }
+#dict-table td { vertical-align:top; }
+#dict-table tbody tr[data-interactive="true"] { cursor:pointer; }
+#dict-table tbody tr[data-interactive="true"]:hover td,#dict-table tbody tr[aria-selected="true"] td { background:var(--panel3); }
+#dict-table tbody tr:focus-visible { outline:2px solid var(--accent); outline-offset:-2px; }
+#dict-table code { color:var(--accent); font:11.5px var(--mono); }
+.term-label { font-weight:700; }
+.meaning-key { display:block; border-left:4px solid var(--accent); padding:2px 0 2px 8px; color:var(--accent); font:600 11.5px var(--mono); white-space:nowrap; }
+.meaning-key.unmigrated { border-left-color:var(--muted); color:var(--muted); }
+.meaning-key.deprecated { border-left-color:var(--warning,var(--accent)); }
+.kind { font-weight:650; }
+.category { margin-top:3px; color:var(--muted); font-size:11px; }
+.state { display:inline-block; border:1px solid var(--line2); padding:2px 7px; white-space:nowrap; font-size:11px; }
+.state.active { border-color:var(--success,var(--accent)); }
+.state.deprecated { border-color:var(--warning,var(--accent)); }
+.state.retired,.state.unmigrated { color:var(--muted); }
+.successor { display:block; margin-top:4px; color:var(--muted); font:10.5px var(--mono); }
+.note-box { margin:14px 0 0; border:1px solid var(--line2); background:var(--panel3); color:var(--sub); padding:10px 14px; font-size:12.5px; }
+#unresolved-mount,.related-entities { flex:none; }
+.drawer-scrim { display:none; position:fixed; inset:0; z-index:100; background:rgba(0,0,0,.46); }
+.drawer-scrim.is-open { display:block; }
+.drawer { position:fixed; z-index:101; top:0; right:0; bottom:0; width:min(460px,44vw); overflow:auto; transform:translateX(105%); transition:transform .18s ease; border-left:1px solid var(--line2); background:var(--panel); box-shadow:-7px 0 0 var(--accent-soft); }
+.drawer.is-open { transform:translateX(0); }
+.drawer-head { position:sticky; top:0; z-index:1; display:flex; justify-content:space-between; gap:16px; padding:22px; border-bottom:1px solid var(--line2); background:var(--panel); }
+.drawer-head h2 { margin:3px 0 0; font-size:19px; }
+.drawer-close { flex:none; width:34px; height:34px; border:1px solid var(--line2); background:var(--panel3); color:var(--text); cursor:pointer; }
+.drawer-body { padding:18px 22px 34px; }
+.drawer-definition { margin:0 0 14px; color:var(--sub); }
+.detail-group { padding:13px 0; border-top:1px solid var(--line2); }
+.detail-group h3 { margin:0 0 8px; color:var(--muted); font:600 11px var(--mono); letter-spacing:.08em; }
+.detail-group ul { margin:0; padding-left:18px; }
+.detail-group li { margin:4px 0; overflow-wrap:anywhere; }
+[hidden] { display:none !important; }
+@media (max-width:760px) {
+  .dp-controls .pt-input { min-width:0; width:100%; flex-basis:100%; }
+  .filter-set { flex-wrap:nowrap; max-width:100%; overflow-x:auto; padding-bottom:3px; }
+  .chip { flex:none; white-space:nowrap; }
+  .drawer { width:100vw; max-width:none; }
 }
-.chip:hover { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); }
-.chip.active { background: var(--accent); color: var(--chipontext); border-color: var(--accent); font-weight: 600; }
-
-.dp-tablewrap { flex: 1; min-height: 0; }
-#dict-table code { font-family: var(--mono); font-size: 11.5px; color: var(--accent); }
-
-.sec-label {
-  font-family: var(--mono);
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 1px;
-  color: var(--muted);
-  margin: 6px 0 10px;
-}
-.note-box {
-  font-size: 12.5px;
-  color: var(--sub);
-  background: var(--panel3);
-  border: 1px solid var(--line2);
-  padding: 10px 14px;
-  margin: 14px 0 0;
-}
-
-#unresolved-mount, .related-entities { flex: none; }
-
-.hidden { display: none !important; }
-
-@media (max-width: 760px) {
-  .dp-controls .pt-input { min-width: 0; }
-}
+@media (prefers-reduced-motion:reduce) { .drawer { transition:none; } }
 </style>
 </head>
 <body>
-<div class="pt">
+<div class="pt" id="dictionary-background">
   <div class="pt-grid"></div>
   <div class="pt-row">
     <button type="button" class="pt-sidebar-toggle" id="pt-sidebar-toggle" aria-expanded="false" aria-controls="pt-sidebar-aside" aria-label="ナビゲーションを開く">
   <span></span><span></span><span></span>
 </button>
-<aside class="pt-sidebar" id="pt-sidebar-aside" data-portal-href="./index.html" data-active-category="project">
+<aside class="pt-sidebar" id="pt-sidebar-aside" data-portal-href="../../index.html" data-active-category="project">
   <div class="pt-brand">
     <div class="pt-brand-stamp">DESIGN PORTAL</div>
     <div class="pt-brand-switch" id="pt-brand-switch">
-      <div class="pt-brand-name">sample-project</div>
+      <div class="pt-brand-name">commerce_platform</div>
     </div>
-    <div class="pt-brand-sub">設計台帳 · 全51資料</div>
+    <div class="pt-brand-sub">設計台帳 · 全52資料</div>
   </div>
   <nav class="pt-nav" id="pt-nav" aria-label="資料カテゴリ"></nav>
   
   <button type="button" class="pt-theme" id="pt-theme-toggle">
     <span id="pt-theme-label">テーマ: ダーク</span><span class="pt-theme-next" id="pt-theme-next">→ LIGHT</span>
   </button>
-  <div class="pt-sidebar-meta">更新 <span id="pt-sidebar-date">2026-07-30T00:00:00Z</span><span id="pt-meta-commit"><br>コミット </span></div>
+  <div class="pt-sidebar-meta">更新 <span id="pt-sidebar-date">2026-08-01T00:00:00Z</span><span id="pt-meta-commit"><br>コミット </span></div>
 </aside>
 <div class="pt-sidebar-scrim" id="pt-sidebar-scrim" hidden></div>
-<script type="application/json" id="pt-nav-data">[{"key":"project","num":"01","label":"基盤情報","count":5},{"key":"standards","num":"02","label":"規約","count":20},{"key":"design","num":"03","label":"設計書","count":5},{"key":"list","num":"04","label":"一覧・設計図","count":13},{"key":"cross","num":"05","label":"マトリクス・対応表","count":4},{"key":"ai","num":"06","label":"AI設定資産","count":1},{"key":"design-tools","num":"07","label":"デザイン","count":3}]</script>
+<script type="application/json" id="pt-nav-data">[{"key":"project","num":"01","label":"基盤情報","count":4},{"key":"standards","num":"02","label":"規約","count":20},{"key":"design","num":"03","label":"設計書","count":5},{"key":"list","num":"04","label":"一覧・設計図","count":14},{"key":"cross","num":"05","label":"マトリクス・対応表","count":5},{"key":"ai","num":"06","label":"AI設定資産","count":1},{"key":"design-tools","num":"07","label":"デザイン","count":3}]</script>
 <script type="application/json" id="pt-sites-data">[]</script>
 <script>
 (function () {
@@ -845,257 +831,264 @@ html, body { margin: 0; padding: 0; }
 </script>
     <main class="pt-main is-fixed">
       <div class="pt-head">
-        <div class="pt-crumb"><a href="./index.html">TOP</a> ／ 基盤情報 ／ <span class="pt-crumb-current">用語辞書</span></div>
-        <div class="pt-title-row">
-          <h1 class="pt-title">用語辞書</h1>
-          <span class="pt-title-sub">業務用語・技術用語の定義とコード上の対応識別子</span>
-        </div>
+        <div class="pt-crumb"><a href="../../index.html">TOP</a> ／ 一覧・設計図 ／ <span class="pt-crumb-current">用語辞書</span></div>
+        <div class="pt-title-row"><h1 class="pt-title">用語辞書</h1><span class="pt-title-sub">承認済みの業務概念とコード上の名称を対応付けます。</span></div>
       </div>
-
       <div class="dp-controls">
-        <input type="search" id="term-search" class="pt-input" placeholder="用語・定義・コード上の対応で絞り込み">
-        <span class="pt-count" id="term-count"></span>
+        <input type="search" id="term-search" class="pt-input" aria-label="用語辞書を検索" placeholder="意味キー・日本語名・英語名・定義・各実装名で絞り込み">
+        <span class="pt-count" id="term-count" aria-live="polite"></span>
       </div>
-      <div class="chip-row" id="chips-mount"></div>
-
-      <div class="sec-label">対訳表</div>
+      <div class="filter-bar">
+        <div class="filter-set"><span class="filter-label">分類</span><span id="category-chips"></span></div>
+        <div class="filter-set"><span class="filter-label">状態</span><span id="status-chips"></span></div>
+      </div>
+      <p class="registry-note">意味キーは業務概念を一意に示します。コード名・型名・DB名・API名・UI表示名を分離して管理し、解析候補は承認されるまで表示しません。</p>
+      <div class="sec-label">承認済み用語</div>
       <div class="pt-tablewrap dp-tablewrap">
         <table id="dict-table">
-          <thead>
-            <tr>
-              <th>用語</th>
-              <th>定義</th>
-              <th>コード上の対応</th>
-              <th>分類</th>
-              <th>出所</th>
-            </tr>
-          </thead>
+          <thead><tr><th>意味キー</th><th>日本語名</th><th>英語名</th><th>定義</th><th>適用範囲</th><th>分類</th><th>コード名</th><th>型名</th><th>DB名</th><th>API名</th><th>UI表示名</th><th>許容値</th><th>状態</th><th>備考</th></tr></thead>
           <tbody id="dict-table-body"></tbody>
         </table>
       </div>
-
       <div id="diagnostics-mount"></div>
       <div id="unresolved-mount"></div>
     </main>
   </div>
   <footer class="pt-footer">
   <span class="pt-footer-stamp">REVERSE-DOCS REGISTER</span>
-  <span class="pt-footer-meta">sample-project · 更新 <span id="pt-footer-date">2026-07-30T00:00:00Z</span><span id="pt-footer-commit"> · コミット </span></span>
+  <span class="pt-footer-meta">commerce_platform · 更新 <span id="pt-footer-date">2026-08-01T00:00:00Z</span><span id="pt-footer-commit"> · コミット </span></span>
   <span class="pt-footer-gen">生成: shared/scripts/detail-pages/build-detail-page.sh</span>
 </footer>
 </div>
-
+<div class="drawer-scrim" id="drawer-scrim" aria-hidden="true"></div>
+<aside class="drawer" id="term-drawer" role="dialog" aria-modal="true" aria-labelledby="drawer-title" aria-hidden="true" tabindex="-1" hidden>
+  <div class="drawer-head"><div><div class="filter-label">承認済み用語の詳細</div><h2 id="drawer-title"></h2><div id="drawer-key" class="meaning-key"></div></div><button type="button" class="drawer-close" id="drawer-close" aria-label="詳細を閉じる"><span class="material-symbols-outlined" aria-hidden="true">close</span></button></div>
+  <div class="drawer-body"><p class="drawer-definition" id="drawer-definition"></p><div id="drawer-groups"></div></div>
+</aside>
 <script type="application/json" id="page-data">
 {
   "pageKind": "glossary",
+  "generatedAt": "2026-08-01T00:00:00Z",
   "title": "用語辞書",
-  "description": "業務用語・技術用語の定義とコード上の対応識別子",
-  "generatedAt": "2026-07-30T00:00:00Z",
-  "portalRelative": "../index.html",
+  "description": "承認済みの業務概念とコード上の名称を対応付けます。",
+  "projectName": "commerce_platform",
+  "projectionVersion": "0.2",
+  "glossarySchemaVersion": "1.0.0",
+  "glossaryContentVersion": "2.0.0",
   "categories": [
     {
-      "key": "domain",
-      "label": "業務用語"
+      "key": "entity",
+      "label": "エンティティ"
     },
     {
-      "key": "tech",
-      "label": "技術用語"
+      "key": "attribute",
+      "label": "属性"
+    },
+    {
+      "key": "value",
+      "label": "値"
+    },
+    {
+      "key": "process",
+      "label": "処理"
+    },
+    {
+      "key": "event",
+      "label": "イベント"
+    },
+    {
+      "key": "role",
+      "label": "役割"
+    },
+    {
+      "key": "rule",
+      "label": "ルール"
+    },
+    {
+      "key": "metric",
+      "label": "指標"
     }
   ],
   "terms": [
     {
-      "term": "ユーザー",
-      "definition": "システムを利用する人物。認証済みのアカウント保持者",
-      "codeRefs": [
-        "User",
-        "UserModel"
+      "key": "customer",
+      "term_ja": "顧客",
+      "term_en": "",
+      "definition": "商品またはサービスを購入し継続的な取引関係を持つ主体",
+      "scope": "commerce_platform",
+      "category": "entity",
+      "code_name": "Customer",
+      "type_name": "Customer",
+      "db_name": "",
+      "api_name": "",
+      "ui_label": "顧客",
+      "allowed_values": [],
+      "status": "active",
+      "notes": "",
+      "representations": [
+        {
+          "channel": "code",
+          "value": "Customer",
+          "location": "src/domain/customer.ts:12",
+          "symbolKind": "class"
+        }
       ],
-      "category": "domain",
-      "sourceRef": "models/user.py"
+      "sourceRefs": [
+        "docs/domain/customer.md#customer"
+      ],
+      "aliases": [
+        "お客様"
+      ],
+      "relations": [
+        {
+          "type": "has_identifier",
+          "targetKey": "customer_id"
+        }
+      ],
+      "introducedIn": "1.0.0",
+      "approvers": [
+        "business_approver:domain-reviewer",
+        "technical_approver:architecture-reviewer"
+      ],
+      "decisionRef": "proposals/customer_update_from_document",
+      "changeRef": "changes/update_customer_from_proposal"
     },
     {
-      "term": "セッション",
-      "definition": "ログインからログアウトまでの一連の操作期間",
-      "codeRefs": [
-        "Session",
-        "session_token"
+      "key": "customer_id",
+      "term_ja": "顧客ID",
+      "term_en": "",
+      "definition": "顧客を他の顧客から一意に識別する値",
+      "scope": "commerce_platform",
+      "category": "attribute",
+      "code_name": "",
+      "type_name": "",
+      "db_name": "customers.customer_id",
+      "api_name": "",
+      "ui_label": "顧客ID",
+      "allowed_values": [],
+      "status": "active",
+      "notes": "",
+      "representations": [
+        {
+          "channel": "database",
+          "value": "customers.customer_id",
+          "location": "db/schema.sql:41"
+        }
       ],
-      "category": "domain",
-      "sourceRef": "models/session.py"
-    },
-    {
-      "term": "ダッシュボード",
-      "definition": "ログイン後に表示されるメインのサマリ画面",
-      "codeRefs": [
-        "DashboardPage"
+      "sourceRefs": [
+        "db/schema.sql:41"
       ],
-      "category": "domain",
-      "sourceRef": "pages/DashboardPage.tsx"
-    },
-    {
-      "term": "マイグレーション",
-      "definition": "データベーススキーマの変更を管理する仕組み",
-      "codeRefs": [
-        "migration",
-        "alembic"
+      "introducedIn": "1.0.0",
+      "approvers": [
+        "business_approver:domain-reviewer",
+        "technical_approver:architecture-reviewer"
       ],
-      "category": "tech",
-      "sourceRef": "alembic/"
-    },
-    {
-      "term": "ミドルウェア",
-      "definition": "リクエスト処理の前後に割り込む共通処理層",
-      "codeRefs": [
-        "middleware",
-        "AuthMiddleware"
-      ],
-      "category": "tech",
-      "sourceRef": "middleware/auth.py"
-    },
-    {
-      "term": "エンドポイント",
-      "definition": "API の個別の URL パスとメソッドの組み合わせ",
-      "codeRefs": [
-        "router",
-        "APIRouter"
-      ],
-      "category": "tech",
-      "sourceRef": "routers/"
+      "decisionRef": "proposals/customer_id_from_schema",
+      "changeRef": "changes/add_customer_id_from_schema"
     }
-  ],
-  "unresolved": [],
-  "projectName": "sample-project"
+  ]
 }
 </script>
-
 <script>
 (function() {
+  'use strict';
   var data = JSON.parse(document.getElementById('page-data').textContent);
-
+  var projectionLegacy = data.projectionVersion === '0.1';
+  var stateLabels = {active:'現行',deprecated:'非推奨',retired:'履歴',unmigrated:'未移行'};
+  var categoryLabels = {entity:'エンティティ',attribute:'属性',value:'値',process:'プロセス',event:'イベント',role:'役割',rule:'ルール',metric:'指標'};
+  function clear(node) { while (node.firstChild) node.removeChild(node.firstChild); }
   function el(tag, attrs, children) {
     var node = document.createElement(tag);
-    if (attrs) Object.keys(attrs).forEach(function(k) {
-      if (k === 'html') node.innerHTML = attrs[k];
-      else node.setAttribute(k, attrs[k]);
+    Object.keys(attrs || {}).forEach(function(key) { node.setAttribute(key, String(attrs[key])); });
+    (Array.isArray(children) ? children : [children]).forEach(function(child) {
+      if (child === null || child === undefined) return;
+      node.appendChild(typeof child === 'string' ? document.createTextNode(child) : child);
     });
-    if (children) {
-      if (!Array.isArray(children)) children = [children];
-      children.forEach(function(c) {
-        if (typeof c === 'string') node.appendChild(document.createTextNode(c));
-        else if (c) node.appendChild(c);
-      });
-    }
     return node;
   }
-
-  var categories = data.categories || [];
-  var terms = data.terms || [];
-  var activeCategory = 'all';
-  var rowEls = [];
-
-  // --- 分類チップ(categories[]) ---
-  var chipsMount = document.getElementById('chips-mount');
-  function renderChips() {
-    chipsMount.innerHTML = '';
-    var chips = [{ key: 'all', label: 'すべて' }].concat(categories.map(function(c) {
-      return { key: c.key, label: c.label || c.key };
-    }));
-    chips.forEach(function(c) {
-      var btn = el('button', { class: 'chip' + (activeCategory === c.key ? ' active' : ''), type: 'button' }, c.label);
-      btn.addEventListener('click', function() {
-        activeCategory = c.key;
-        renderChips();
-        applyFilter();
-      });
-      chipsMount.appendChild(btn);
+  function values(value) { return Array.isArray(value) ? value : []; }
+  function normalize(term) {
+    if (Object.prototype.hasOwnProperty.call(term, 'term_ja')) return term;
+    if (Object.prototype.hasOwnProperty.call(term, 'term')) {
+      return {key:'',term_ja:term.term||'',term_en:'',definition:term.definition||'',scope:'',category:term.category||'',code_name:values(term.codeRefs)[0]||'',type_name:'',db_name:'',api_name:'',ui_label:term.term||'',allowed_values:[],status:'unmigrated',notes:term.sourceRef||'',representations:values(term.codeRefs).map(function(ref){return {channel:'code',value:String(ref),location:''};}),sourceRefs:term.sourceRef?[term.sourceRef]:[],aliases:[],forbiddenTerms:[],relations:[],examples:[],counterExamples:[],constraints:[],securityClassification:'未設定'};
+    }
+    if (projectionLegacy) {
+      return {key:term.key||'',term_ja:term.label||'',term_en:'',definition:term.definition||'',scope:typeof term.scope==='string'?term.scope:'',category:term.category||term.kind||'',code_name:values(term.representations)[0]&&values(term.representations)[0].value||'',type_name:'',db_name:'',api_name:'',ui_label:term.label||'',allowed_values:[],status:term.status||'unmigrated',notes:'',representations:values(term.representations),sourceRefs:values(term.sourceRefs),aliases:values(term.aliases),forbiddenTerms:values(term.forbiddenTerms),relations:values(term.relations),examples:values(term.examples),counterExamples:values(term.counterExamples),constraints:values(term.constraints),securityClassification:term.securityClassification||'未設定'};
+    }
+    return term;
+  }
+  var terms = values(data.terms).map(normalize);
+  var activeCategory = 'all', activeStatus = 'normal', lastTrigger = null;
+  function addList(cell, list, limit) {
+    values(list).slice(0, limit || list.length).forEach(function(item, index) { if (index) cell.appendChild(document.createTextNode(' · ')); cell.appendChild(el('code', null, String(item))); });
+  }
+  function renderButtons(mount, choices, active, onSelect) {
+    clear(mount);
+    choices.forEach(function(choice) {
+      var button = el('button',{type:'button',class:'chip' + (choice.key === active ? ' active' : ''),'aria-pressed':choice.key === active},choice.label);
+      button.addEventListener('click',function(){onSelect(choice.key);}); mount.appendChild(button);
     });
   }
-
-  // --- 対訳表(terms[]) ---
-  var tbody = document.getElementById('dict-table-body');
+  function categoryChoices() {
+    var fromData = values(data.categories).map(function(category){return {key:category.key,label:category.label || categoryLabels[category.key] || category.key};});
+    return [{key:'all',label:'すべて'}].concat(fromData);
+  }
+  function renderFilters() {
+    renderButtons(document.getElementById('category-chips'),categoryChoices(),activeCategory,function(key){activeCategory=key === activeCategory && key !== 'all' ? 'all' : key;renderFilters();renderRows();});
+    renderButtons(document.getElementById('status-chips'),[{key:'normal',label:'通常'},{key:'active',label:'現行'},{key:'deprecated',label:'非推奨'},{key:'unmigrated',label:'未移行'},{key:'retired',label:'履歴'}],activeStatus,function(key){activeStatus=key === activeStatus && key !== 'normal' ? 'normal' : key;renderFilters();renderRows();});
+  }
+  function visibleTerms() {
+    var query = document.getElementById('term-search').value.trim().toLowerCase();
+    return terms.filter(function(term) {
+      var stateOk = activeStatus === 'normal' ? term.status !== 'retired' : term.status === activeStatus;
+      var categoryOk = activeCategory === 'all' || term.category === activeCategory;
+      var haystack = [term.key,term.term_ja,term.term_en,term.definition,term.scope,term.category,term.code_name,term.type_name,term.db_name,term.api_name,term.ui_label,values(term.allowed_values).join(' '),term.status,term.notes].concat(values(term.representations).map(function(rep){return rep.value;})).join(' ').toLowerCase();
+      return stateOk && categoryOk && (!query || haystack.indexOf(query) !== -1);
+    });
+  }
+  function formatForbidden(entry) { return typeof entry === 'string' ? entry : (entry.term || '') + (entry.reason ? ' — ' + entry.reason : ''); }
+  function formatRepresentation(rep) { return [rep.channel,rep.value,rep.location].filter(Boolean).join(': '); }
+  function formatRelation(relation) { return typeof relation === 'string' ? relation : [relation.type,relation.targetKey || relation.target_key].filter(Boolean).join(': '); }
+  function openDrawer(term, trigger) {
+    lastTrigger = trigger;
+    document.getElementById('drawer-title').textContent = term.term_ja;
+    document.getElementById('drawer-definition').textContent = term.definition;
+    var key = document.getElementById('drawer-key'); key.textContent = term.key || '未移行'; key.className = 'meaning-key ' + (!term.key ? 'unmigrated' : term.status === 'deprecated' ? 'deprecated' : '');
+    var groups = document.getElementById('drawer-groups'); clear(groups);
+    var examples = values(term.examples).map(function(item){return '例: ' + item;}).concat(values(term.counterExamples).map(function(item){return '反例: ' + item;}));
+    var details = [
+      {key:'aliases',label:'別名',items:values(term.aliases)},
+      {key:'forbidden',label:'禁止語',items:values(term.forbiddenTerms).map(formatForbidden)},
+      {key:'representations',label:'全representations',items:values(term.representations).map(formatRepresentation)},
+      {key:'relations',label:'relations',items:values(term.relations).map(formatRelation)},
+      {key:'examples',label:'例 / 反例',items:examples},
+      {key:'constraints',label:'constraints',items:values(term.constraints)},
+      {key:'security',label:'security',items:[term.securityClassification || term.security || '未設定']},
+      {key:'evidence',label:'全根拠',items:values(term.sourceRefs).concat(term.notes ? [term.notes] : [])}
+    ];
+    details.forEach(function(detail){var list=el('ul');(detail.items.length?detail.items:['なし']).forEach(function(item){list.appendChild(el('li',null,String(item)));});groups.appendChild(el('section',{class:'detail-group','data-group':detail.key},[el('h3',null,detail.label),list]));});
+    var drawer=document.getElementById('term-drawer'),background=document.getElementById('dictionary-background'); drawer.hidden=false; drawer.classList.add('is-open'); drawer.setAttribute('aria-hidden','false'); document.getElementById('drawer-scrim').classList.add('is-open'); background.inert=true; background.setAttribute('aria-hidden','true'); document.getElementById('drawer-close').focus();
+  }
+  function closeDrawer() { var drawer=document.getElementById('term-drawer'); if(drawer.hidden)return; drawer.classList.remove('is-open');drawer.hidden=true;drawer.setAttribute('aria-hidden','true');document.getElementById('drawer-scrim').classList.remove('is-open');var background=document.getElementById('dictionary-background');background.inert=false;background.removeAttribute('aria-hidden');if(lastTrigger){lastTrigger.setAttribute('aria-expanded','false');lastTrigger.setAttribute('aria-selected','false');lastTrigger.focus();} }
+  function trapDrawerFocus(event) { if(event.key!=='Tab')return;var nodes=Array.prototype.slice.call(document.getElementById('term-drawer').querySelectorAll('button:not([disabled]),[href],[tabindex]:not([tabindex="-1"])'));if(!nodes.length)return;var first=nodes[0],last=nodes[nodes.length-1];if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus();}else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus();} }
   function renderRows() {
-    tbody.innerHTML = '';
-    rowEls = [];
-    if (terms.length === 0) {
-      tbody.appendChild(el('tr', null, el('td', { colspan: '5' }, 'なし')));
-      return;
-    }
-    terms.forEach(function(t) {
-      var codeCell = el('td', null);
-      var codeRefs = t.codeRefs || [];
-      codeRefs.forEach(function(ref, i) {
-        if (i > 0) codeCell.appendChild(document.createTextNode(' '));
-        codeCell.appendChild(el('code', null, String(ref)));
-      });
-      var tr = el('tr', { 'data-category': t.category || '' }, [
-        el('td', null, t.term || ''),
-        el('td', null, t.definition || ''),
-        codeCell,
-        el('td', null, t.category || ''),
-        el('td', null, el('code', null, t.sourceRef || ''))
-      ]);
-      tbody.appendChild(tr);
-      rowEls.push(tr);
+    var body=document.getElementById('dict-table-body'),list=visibleTerms();clear(body);
+    if(!list.length){body.appendChild(el('tr',null,el('td',{colspan:'15'},'なし')));}
+    list.forEach(function(term){
+      var keyValue=term.key||'未移行',allowed=el('td');addList(allowed,values(term.allowed_values));
+      var status=el('td');status.appendChild(el('span',{class:'state '+term.status},stateLabels[term.status]||term.status));if(term.replacementKey)status.appendChild(el('span',{class:'successor'},'後継: '+term.replacementKey));
+      var row=el('tr',{tabindex:'0',role:'button','aria-controls':'term-drawer','aria-expanded':'false','aria-selected':'false','data-interactive':'true'},[el('td',null,el('span',{class:'meaning-key '+(!term.key?'unmigrated':term.status==='deprecated'?'deprecated':'')},keyValue)),el('td',{class:'term-label'},term.term_ja||'—'),el('td',null,term.term_en||'—'),el('td',null,term.definition||'—'),el('td',null,term.scope||'—'),el('td',null,categoryLabels[term.category]||term.category||'—'),el('td',null,el('code',null,term.code_name||'—')),el('td',null,el('code',null,term.type_name||'—')),el('td',null,el('code',null,term.db_name||'—')),el('td',null,el('code',null,term.api_name||'—')),el('td',null,term.ui_label||'—'),allowed,status,el('td',null,term.notes||'—')]);
+      function activate(){Array.prototype.forEach.call(body.querySelectorAll('tr'),function(item){item.setAttribute('aria-selected',String(item===row));item.setAttribute('aria-expanded',String(item===row));});openDrawer(term,row);}
+      row.addEventListener('click',activate);row.addEventListener('keydown',function(event){if(event.key === 'Enter' || event.key === ' '){event.preventDefault();activate();}});body.appendChild(row);
     });
+    document.getElementById('term-count').textContent=list.length+' / '+terms.length+' 件';
   }
-
-  // --- 件数表示 ---
-  function updateCount() {
-    var total = terms.length;
-    var visible = rowEls.filter(function(tr) { return tr.style.display !== 'none'; }).length;
-    var countEl = document.getElementById('term-count');
-    if (countEl) countEl.textContent = visible + ' / ' + total + ' 件';
-  }
-
-  // --- 検索(部分一致) + 分類チップ絞り込み ---
-  function applyFilter() {
-    var q = (document.getElementById('term-search').value || '').trim().toLowerCase();
-    rowEls.forEach(function(tr) {
-      var catOk = activeCategory === 'all' || tr.getAttribute('data-category') === activeCategory;
-      var textOk = q === '' || tr.textContent.toLowerCase().indexOf(q) !== -1;
-      tr.style.display = (catOk && textOk) ? '' : 'none';
-    });
-    updateCount();
-  }
-
-  renderChips();
-  renderRows();
-  applyFilter();
-  document.getElementById('term-search').addEventListener('input', applyFilter);
-
-  // --- 採録源・層の欠落diagnostics(1-148)。0件でも必ず表示する ---
-  var diagMount = document.getElementById('diagnostics-mount');
-  var diagnostics = data.diagnostics || {};
-  function renderDiagnostic(mount, d, labelPrefix) {
-    if (!d) return;
-    var count = d.count || 0, total = d.total || 0;
-    var pct = total > 0 ? Math.round((count / total) * 1000) / 10 : 0;
-    var message = labelPrefix + ' ' + count + ' / ' + total + ' 件（' + pct + '%）';
-    if (d.warning) {
-      mount.appendChild(el('div', { class: 'pt-callout pt-callout--warning' }, [
-        el('span', { class: 'material-symbols-outlined pt-callout__icon', 'aria-hidden': 'true' }, 'warning'),
-        message
-      ]));
-    } else {
-      mount.appendChild(el('p', { class: 'note-box' }, message));
-    }
-  }
-  renderDiagnostic(diagMount, diagnostics.missingSource, '欠落した採録源');
-  renderDiagnostic(diagMount, diagnostics.unimplementedLayer, '未実施の層');
-
-  // --- 未解決節(unresolved[]) ---
-  var unresolvedMount = document.getElementById('unresolved-mount');
-  var unresolved = data.unresolved || [];
-  if (unresolved.length > 0) {
-    unresolvedMount.appendChild(el('div', { class: 'sec-label' }, '未解決'));
-    var box = el('div', { class: 'note-box' });
-    unresolved.forEach(function(u) {
-      var line = (u.label || '') + '（' + (u.reason || '') + '）';
-      box.appendChild(el('div', null, line));
-    });
-    unresolvedMount.appendChild(box);
-  }
-})();
+  function diagnostic(mount,entry,label){if(!entry)return;mount.appendChild(el(entry.warning?'div':'p',{class:entry.warning?'pt-callout pt-callout--warning':'note-box'},label+' '+(entry.count||0)+' / '+(entry.total||0)+' 件'));}
+  var diagnostics=data.diagnostics||{},diagMount=document.getElementById('diagnostics-mount');diagnostic(diagMount,diagnostics.missingSource,'欠落した採録源');diagnostic(diagMount,diagnostics.unimplementedLayer,'未実施の層');
+  if(values(data.unresolved).length){var unresolvedMount=document.getElementById('unresolved-mount'),box=el('div',{class:'note-box'});values(data.unresolved).forEach(function(item){box.appendChild(el('div',null,(item.label||'')+'（'+(item.reason||'')+'）'));});unresolvedMount.appendChild(el('div',{class:'sec-label'},'未解決'));unresolvedMount.appendChild(box);}
+  document.getElementById('term-search').addEventListener('input',renderRows);document.getElementById('drawer-close').addEventListener('click',closeDrawer);document.getElementById('drawer-scrim').addEventListener('click',closeDrawer);document.getElementById('term-drawer').addEventListener('keydown',trapDrawerFocus);document.addEventListener('keydown',function(event){if(event.key === 'Escape')closeDrawer();});
+  renderFilters();renderRows();
+}());
 </script>
 </body>
 </html>

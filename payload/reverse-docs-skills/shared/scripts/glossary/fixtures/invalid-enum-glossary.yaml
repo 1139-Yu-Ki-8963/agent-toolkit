@@ -1,0 +1,22 @@
+schema_version: 1.0.0
+content_version: 1.0.0
+glossary_key: invalid_enum_catalog
+title: 列挙値異常検証
+scope: {level: application, includes: [test_application], excludes: []}
+scope_catalog:
+  - {key: test_application, level: application, parent_key: null, source_ref: docs/test.md}
+default_language: ja
+terms:
+  - key: enum_term
+    label: 列挙値検証
+    definition: 許可されない概念種別を検出するための用語
+    kind: unsupported_kind
+    category: business
+    scope: {level: application, includes: [test_application], excludes: []}
+    representations:
+      - {channel: code, value: EnumTerm, location: src/enum.ts:1}
+    lifecycle: {status: active, introduced_in: 1.0.0}
+    stewardship: {approvers: [business-reviewer]}
+    provenance:
+      sources:
+        - {type: document, ref: docs/test.md, supports: definition}

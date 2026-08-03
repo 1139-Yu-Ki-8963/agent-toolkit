@@ -4,6 +4,7 @@
 
 | 観点キー | 前提 | 操作 | 期待結果 | 機械検証 |
 |---|---|---|---|---|
+| 画面単位root上書き-rebuild呼出契約 | screenUnitRootがスクリーン | 呼出側で解決したrootを--design-docs-dirに渡してfull rebuildする | 宣言と画面単位文書rootを保持し一覧・遷移・matrixへ連動させない | test-rebuild-screen-derived-pages.sh「rebuildはscreenUnitRoot宣言と画面単位文書rootを保持」 |
 | 検出失敗-画面実在なのに0件 | 調査書が画面の実在を判定済みである | 組み込み検出器またはカスタム抽出で画面を0件検出する | 停止して報告し、手動リストは聞き出さず、誤った境界を即興確定させない | 手動 |
 | 該当なし-画面不在での0件正常終了 | 調査書が画面の不在を判定済みである | 検出0件のまま処理を進める | 判定理由付きの該当なし文書を生成し、status=NONEで終える | 手動 |
 | manifest-陽性検証-screen15項目 | 15項目の必須フィールドを満たす正当なmanifestがある | validate-manifest.shをunit-kind screenで実行する | 全15項目がPASSする | validate-manifest.shのself-testケース「screen陽性: 既定unitKind(screen)で全15項目PASS」 |

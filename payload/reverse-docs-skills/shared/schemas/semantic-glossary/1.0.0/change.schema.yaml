@@ -1,0 +1,107 @@
+$schema: https://json-schema.org/draft/2020-12/schema
+$id: https://schemas.reverse-docs.local/semantic-glossary/1.0.0/change.schema.yaml
+title: Semantic Glossary Change Record
+type: object
+additionalProperties: false
+required: [change_key, glossary_key, change_type, affected_term_keys, base_content_version, target_content_version, requested_by, approved_by, reason, after_hash, applied_at, applied_revision]
+properties:
+  change_key: {$ref: 'glossary.schema.yaml#/$defs/semantic_key'}
+  glossary_key: {$ref: 'glossary.schema.yaml#/$defs/semantic_key'}
+  change_type: {enum: [add, update, deprecate, retire, split, merge]}
+  affected_term_keys:
+    type: array
+    minItems: 1
+    uniqueItems: true
+    items: {$ref: 'glossary.schema.yaml#/$defs/semantic_key'}
+  proposal_key:
+    oneOf: [{$ref: 'glossary.schema.yaml#/$defs/semantic_key'}, {type: 'null'}]
+  proposal_content_hash:
+    type: string
+    pattern: '^sha256:[a-f0-9]{64}$'
+    description: SHA-256 of canonical semantic proposal content under contract v0.1.6; approval metadata is preserved separately in proposal_audit.
+  base_content_version: {$ref: 'glossary.schema.yaml#/$defs/semver'}
+  target_content_version: {$ref: 'glossary.schema.yaml#/$defs/semver'}
+  before_hash:
+    oneOf: [{type: string, pattern: '^sha256:[a-f0-9]{64}$'}, {type: 'null'}]
+  after_hash:
+    type: string
+    pattern: '^sha256:[a-f0-9]{64}$'
+    description: SHA-256 of the canonical key-sorted array of affected semantic term snapshots after application.
+  requested_by: {type: string, pattern: '.*\S.*'}
+  approved_by:
+    type: array
+    minItems: 2
+    uniqueItems: true
+    description: Two unique role-qualified approval identities are required. One actor may hold both roles when recorded as business_approver:actor and technical_approver:actor.
+    items:
+      type: string
+      minLength: 1
+      pattern: '^(?:business_approver|technical_approver):\S+$'
+      description: A required role-qualified approval identity.
+    allOf:
+      - contains: {type: string, pattern: '^business_approver:\S+$'}
+        minContains: 1
+      - contains: {type: string, pattern: '^technical_approver:\S+$'}
+        minContains: 1
+  reason: {type: string, minLength: 1}
+  evidence:
+    type: array
+    items: {$ref: 'proposal.schema.yaml#/$defs/evidence'}
+  proposal_audit:
+    type: object
+    additionalProperties: false
+    required: [inferences, confidence, decision_reason, reviewers, approval_events, detected_by]
+    properties:
+      inferences: {type: array, items: {type: object}}
+      confidence:
+        type: object
+        additionalProperties: false
+        required: [score, level, rationale]
+        properties:
+          score: {type: number, minimum: 0, maximum: 1}
+          level: {enum: [low, medium, high]}
+          rationale: {type: string, minLength: 1}
+      decision_reason: {type: string, minLength: 1}
+      reviewers:
+        type: array
+        minItems: 2
+        uniqueItems: true
+        items: {$ref: 'proposal.schema.yaml#/$defs/reviewer'}
+        allOf:
+          - contains:
+              type: object
+              required: [role, decision]
+              properties:
+                role: {const: business_approver}
+                decision: {const: approved}
+            minContains: 1
+          - contains:
+              type: object
+              required: [role, decision]
+              properties:
+                role: {const: technical_approver}
+                decision: {const: approved}
+            minContains: 1
+      approval_events:
+        type: array
+        minItems: 1
+        items: {$ref: 'proposal.schema.yaml#/$defs/approval_event'}
+      detected_by: {$ref: 'proposal.schema.yaml#/$defs/producer'}
+  applied_at: {type: string, format: date-time}
+  applied_revision: {type: string, minLength: 1}
+allOf:
+  - if:
+      properties: {change_type: {const: add}}
+      required: [change_type]
+    then:
+      properties: {before_hash: {type: 'null'}}
+    else:
+      properties: {before_hash: {type: string, pattern: '^sha256:[a-f0-9]{64}$'}}
+  - if:
+      properties: {proposal_key: {type: string}}
+      required: [proposal_key]
+    then:
+      required: [proposal_content_hash, evidence, proposal_audit]
+      properties:
+        change_type: {enum: [add, update]}
+        affected_term_keys: {maxItems: 1}

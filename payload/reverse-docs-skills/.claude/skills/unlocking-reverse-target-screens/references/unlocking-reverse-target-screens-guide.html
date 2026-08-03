@@ -214,7 +214,7 @@
     <tr><td>screen_id</td><td>対象画面ID</td></tr>
     <tr><td>reverse_worktree</td><td>対象画面のソースコードを持つ worktree の絶対パス</td></tr>
     <tr><td>ports</td><td>動作確認に使うポート情報</td></tr>
-    <tr><td>output_dir</td><td>今後の設計書配置ルート（design_doc_path の組み立てに使用）</td></tr>
+    <tr><td>output_dir</td><td>今後の設計書配置ルート。output-layout の layout.screenUnitRoot を解決し、original.png は &lt;output_dir&gt;/&lt;screenUnitRoot&gt;/screen-&lt;screen_id&gt;/詳細設計へ保存する</td></tr>
     <tr><td>user-approved</td><td>レジストリ記録の承認情報。<code>standalone</code> のみ Phase 5 で <code>syncing-reverse-env(mode=registry)</code> へ転送する</td></tr>
     <tr><td>invocation_mode</td><td><code>standalone</code>（既定）または <code>dynamic-only</code></td></tr>
   </table>

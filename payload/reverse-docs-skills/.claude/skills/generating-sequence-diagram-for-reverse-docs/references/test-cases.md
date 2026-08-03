@@ -15,7 +15,8 @@
 | doc_nav-ファイル経由必須 | 戻るリンクや設計書項目に二重引用符を含むdoc_nav文字列がある | Step 3-1でrender_templateへdoc_navを渡す | ファイル経由(cat)で読み込み、生成が停止せず終了コード0で完了しナビゲーション表示テキストが出力に実在する | shell-injection.shのself-testケース「PASS: 二重引用符を含むdoc_navでも生成が停止せず終了コード0」と「PASS: ナビゲーションの表示テキストが出力に実在する」 |
 | doc_nav-引用符なし回帰 | 引用符を含まないdoc_nav文字列がある | Step 3-1でrender_templateへdoc_navを渡す | 従来どおり生成が成功し内容が出力に含まれる | shell-injection.shのself-testケース「PASS: 引用符を含まないdoc_navも従来どおり生成できる」 |
 | 新規sh作成禁止-render_template直接source | render-template.shのrender_template関数を使う場面がある | Step 3-1を実行する | 新規.shファイルを作らずBashからのインラインsourceで完結する | 手動 |
-| pageKind体系外-出力先分岐 | シーケンス図はpageKind契約（1固定ファイル名）に属さない | 出力先を決定する | output_dir直下ではなく画面ごとのフォルダ(画面/screen-<ID>/)直下に生成する | 手動 |
+| pageKind体系外-出力先分岐 | シーケンス図はpageKind契約（1固定ファイル名）に属さない | 出力先を決定する | output_dir直下ではなく画面ごとのフォルダ(<screenUnitRoot>/screen-<ID>/)直下に生成する | 手動 |
+| screenUnitRoot上書き-物理path | output-layoutでscreenUnitRoot=スクリーン、kindLabels.screen=画面 | page-dataとHTMLを生成する | スクリーン/screen-<ID>だけを読み書きし表示ラベルをpathへ流用しない | 手動 |
 
 ## 機械検証との対応
 

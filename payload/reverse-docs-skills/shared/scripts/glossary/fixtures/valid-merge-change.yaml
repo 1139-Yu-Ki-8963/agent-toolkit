@@ -1,0 +1,14 @@
+change_key: merge_customer_into_customer_id
+glossary_key: commerce_platform
+change_type: merge
+affected_term_keys: [customer, customer_id]
+proposal_key: null
+base_content_version: 2.0.0
+target_content_version: 2.1.0
+before_hash: sha256:3333333333333333333333333333333333333333333333333333333333333333
+after_hash: sha256:b78b495328d77cab58f10314cddcd5a2c531a0f8aaa89b282d5dc321786bbffb
+requested_by: customer-domain-team
+approved_by: [business_approver:domain-reviewer, technical_approver:architecture-reviewer]
+reason: 顧客概念を顧客IDへ統合するため
+applied_at: '2026-08-03T01:10:00Z'
+applied_revision: merge123

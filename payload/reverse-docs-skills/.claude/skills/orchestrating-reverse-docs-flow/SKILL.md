@@ -10,7 +10,7 @@ allowed-tools: [Agent, AskUserQuestion, Bash, Edit, Glob, Read, Skill, TaskCreat
 
 リバース設計書往復検証フローの進行係（管理者）。自分では検証・比較・実装を行わず、状態判定 → 子スキルを args 全量指定で Skill 起動 → 返却ブロックの status で検収 → 次工程決定、というループで工程全体を統括する。
 
-子スキル33個は互いを知らず、工程間の受け渡しはすべて本スキルが仲介する（完全仲介方式）。契約の定義と33個の内訳（一覧生成6・機能一覧1・マトリクス対応表生成1・基盤ページ生成5・工程10の区分と個別スキル名）は `references/contract.md` 冒頭の「子スキル33個の内訳」節を正本とする。
+子スキル群は互いを知らず、工程間の受け渡しはすべて本スキルが仲介する（完全仲介方式）。契約の定義と内訳は `references/contract.md` 冒頭の「子スキルの内訳」節を正本とする。
 
 ## 使用タイミング
 
@@ -33,6 +33,8 @@ allowed-tools: [Agent, AskUserQuestion, Bash, Edit, Glob, Read, Skill, TaskCreat
 | facts_profile | 任意（既定 `auto`） | `auto|screen|python`。`auto|screen`は通常の画面フローを`profile=screen`で実行する。`python`は明示指定時だけ、画面一覧・画面状態判定へ入る前のfacts-only経路を実行して終端する |
 | target_file_paths | `facts_profile=python`時必須 | Python facts-only経路で抽出する、`target_repo_path`からの相対`.py`パス配列。全件`.py`でなければ中断する |
 | facts_unit_id | `facts_profile=python`時必須 | Python facts-only出力を識別する論理ID。画面IDではなく、`<verification_dir>/screen-<facts_unit_id>/facts/<run_id>/`の識別子としてだけ使う |
+| proposal_output_ref | 用語候補生成を要求する場合のみ必須 | `target_repo_path` の外にある、明示的な絶対 `.yaml` / `.yml` パス。省略・対象repo内・相対パスなら候補生成を開始しない。推測補完は禁止 |
+| approved_glossary_ref | 承認済み用語ページを生成する場合のみ必須 | schema検証済みかつ承認済みの用語YAMLへの絶対パス。候補proposalを直接指定してはならない |
 
 無人モード（headless=true）の詳細仕様（置き換え表・盲検分離の必須要件・安全設計・実行レポートの置き場・前提事実）は `references/contract.md` の「無人モード仕様」節を正本とする。無人モード（headless=true）では工程の開始・完了のたびに `<verification_dir>/progress.jsonl` へ JSON 行を追記する（形式: `{"ts":"<ISO8601>","screen_id":"<画面ID>","phase":"<工程名>","status":"started|completed|failed"}`）。呼び出し元セッションや人間はこのファイルの監視で現在工程を把握できる。
 
@@ -281,7 +283,8 @@ bash shared/scripts/build-portal.sh \
 - generating-env-guide-for-reverse-docs（アーキテクチャ調査書 §3 が確定済みのとき）
 - generating-screen-transition-for-reverse-docs（raw画面正本とraw由来extが確定済みのとき）
 - generating-er-diagram-for-reverse-docs（テーブル一覧.html が確定済みのとき）
-- generating-glossary-for-reverse-docs（プロジェクト共通文書とアーキテクチャ調査書が確定済みのとき。二段承認を伴う）
+- generating-glossary-for-reverse-docs（互換入口。`proposal_output_ref` が対象repo外の絶対パスとして明示されたときだけ、`detected` 状態の提案YAMLとdiagnosticsを生成して `NEEDS_REVIEW` で停止する。用語辞書・HTML・承認済みYAMLは生成しない）
+- managing-semantic-glossary（`approved_glossary_ref` がschema検証済みかつ承認済みのときだけ、portal publishとして `一覧/用語辞書/用語辞書.html` を生成する）
 
 対象画面が4件以上なら running-reverse-screen-batch に global Step 17〜30の実行を委譲し、3件以下は本スキルが同じglobal Stepを逐次仲介する。条件分岐は新しいPhase番号を作らない。
 
@@ -409,7 +412,7 @@ global Step 26の該当起動（standardはfull、large-two-passはdetail-only�
 
 global Step 26の該当起動から、standardは最終返却status=AUTHORED、large-two-passはパス1のDETAIL_AUTHOREDとパス2のCOMPANION_AUTHOREDの双方を受領して合流条件を検収する。
 
-**静的完了ゲート**: 続いて、永続 `screen_manifest_path=<output_dir>/一覧/画面一覧/screen-manifest.json` を直接解決し、validate-manifest.sh 通過を確認する。旧成果物の明示的な移行・復元で screen_manifest_path を作成する場合だけ、global Step 9 の復元経路を先に完了させる。正本rawから `extract-screen-metadata.sh <screen_manifest_path> <source_dir> <screen_manifest_ext_path> --design-docs-dir <output_dir>/画面 --link-base-dir <output_dir>/一覧/画面一覧` を再実行し、`build-unit-list.sh <screen_manifest_ext_path> <output_dir>/一覧/画面一覧/画面一覧.html --unit-kind screen --portal-dir <output_dir>` で画面一覧を必ず再生成する。再実行時は固定した generated_at と raw の正規化SHA-256をそれぞれ `--generated-at`・`--manifest-content-hash` へ必ず渡し、ext の `manifestContentHash` 一致も静的完了条件に含める。raw検証・メタデータ付与・再生成のいずれかが失敗した場合は静的完了を宣言しない。再生成後、当該画面の実在成果物だけに4リンクが付与され、確定画面名がある場合は `confirmedScreenName` が表示源へ反映され、マニフェスト登録件数と表行数が一致することを検収する。
+**静的完了ゲート**: 続いて、永続 `screen_manifest_path=<output_dir>/一覧/画面一覧/screen-manifest.json` を直接解決し、validate-manifest.sh 通過を確認する。旧成果物の明示的な移行・復元で screen_manifest_path を作成する場合だけ、global Step 9 の復元経路を先に完了させる。output-layout の物理配置キー `layout.screenUnitRoot` を解決し、正本rawから `extract-screen-metadata.sh <screen_manifest_path> <source_dir> <screen_manifest_ext_path> --design-docs-dir <output_dir>/<screenUnitRoot> --link-base-dir <output_dir>/一覧/画面一覧` を再実行し、`build-unit-list.sh <screen_manifest_ext_path> <output_dir>/一覧/画面一覧/画面一覧.html --unit-kind screen --portal-dir <output_dir>` で画面一覧を必ず再生成する。表示用 `kindLabels.screen` はpathに使わない。再実行時は固定した generated_at と raw の正規化SHA-256をそれぞれ `--generated-at`・`--manifest-content-hash` へ必ず渡し、ext の `manifestContentHash` 一致も静的完了条件に含める。raw検証・メタデータ付与・再生成のいずれかが失敗した場合は静的完了を宣言しない。再生成後、当該画面の実在成果物だけに4リンクが付与され、確定画面名がある場合は `confirmedScreenName` が表示源へ反映され、マニフェスト登録件数と表行数が一致することを検収する。
 
 この後でのみ画面レジストリの当該エントリを作成または更新して status=authored とする。その後にURLの有無にかかわらず `verification_mode` を評価する。docs-onlyはここで「静的リバース完了」として終端し、global Step 29〜30を起動しない。single-pass|iterativeだけ動的検証へ進む。
 

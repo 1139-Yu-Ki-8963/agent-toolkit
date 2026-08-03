@@ -26,9 +26,91 @@ CATALOG_ENGINE="$SCRIPT_DIR/portal-catalog.mjs"
 
 source "$SCRIPT_DIR/render-template.sh"
 source "$SCRIPT_DIR/output-layout.sh"
+
+# 書込先自身と、そこへ至る既存path componentをlstatで検査する。
+# symlinkを1つでも含む場合は、リンク先のrepo外treeへ書かないようfail closedにする。
+assert_no_symlink_output_path() {
+  node - "$1" "$2" <<'NODE'
+const fs = require("fs");
+const path = require("path");
+function lexicalAbsolute(raw) {
+  return path.isAbsolute(raw) ? raw : `${process.cwd()}${path.sep}${raw}`;
+}
+function assertNoLexicalSymlink(raw) {
+  const absolute = lexicalAbsolute(raw);
+  const parsed = path.parse(absolute);
+  let current = parsed.root;
+  for (const segment of absolute.slice(parsed.root.length).split(path.sep)) {
+    if (!segment || segment === ".") continue;
+    if (segment === "..") {
+      current = path.dirname(current);
+      continue;
+    }
+    current = path.join(current, segment);
+    try {
+      if (fs.lstatSync(current).isSymbolicLink()) {
+        throw new Error(`write path must not contain a symbolic link: ${current}`);
+      }
+    } catch (error) {
+      if (error && error.code === "ENOENT") continue;
+      throw error;
+    }
+  }
+}
+assertNoLexicalSymlink(process.argv[2]);
+assertNoLexicalSymlink(process.argv[3]);
+const outputRoot = path.resolve(process.argv[2]);
+const target = path.resolve(process.argv[3]);
+const relative = path.relative(outputRoot, target);
+if (relative === ".." || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative)) {
+  throw new Error(`write path must stay under output_dir: ${target}`);
+}
+const parsed = path.parse(target);
+let current = parsed.root;
+for (const segment of target.slice(parsed.root.length).split(path.sep).filter(Boolean)) {
+  current = path.join(current, segment);
+  let stat;
+  try {
+    stat = fs.lstatSync(current);
+  } catch (error) {
+    if (error && error.code === "ENOENT") break;
+    throw error;
+  }
+  if (stat.isSymbolicLink()) {
+    throw new Error(`write path must not contain a symbolic link: ${current}`);
+  }
+}
+NODE
+}
 if [ -f "$SCRIPT_DIR/shell-injection.sh" ]; then
   . "$SCRIPT_DIR/shell-injection.sh"
 fi
+
+# Markdown先頭のYAML frontmatter内だけから単一キーを読む。
+# 本文中の同名行は設計根拠ではないため、表示コミットへ混入させない。
+frontmatter_value() {
+  local file="$1"
+  local key="$2"
+  [ -f "$file" ] || return 0
+  awk -v key="$key" '
+    { sub(/\r$/, "", $0) }
+    NR == 1 && $0 == "---" { in_frontmatter = 1; next }
+    in_frontmatter && $0 == "---" { exit }
+    in_frontmatter && $0 ~ ("^[[:space:]]*" key "[[:space:]]*:") {
+      value = $0
+      sub("^[[:space:]]*" key "[[:space:]]*:[[:space:]]*", "", value)
+      sub("[[:space:]]*$", "", value)
+      print value
+      exit
+    }
+  ' "$file"
+}
+
+# source_ref は設計書の原本コミットを示すSHAだけを受け入れる。
+# 表示値としてHTMLへ渡すため、形式外の値は出力せずfail closedにする。
+is_commit_sha() {
+  [[ "$1" =~ ^([[:xdigit:]]{7}|[[:xdigit:]]{40}|[[:xdigit:]]{64})$ ]]
+}
 
 # backfill_shell_shared_state — discovery 結果（カテゴリ別実カード数・総資料数・更新日）を
 # 生成済み HTML 群へ一括反映する。6 経路（build-portal.sh 本体・unit-list 3 種・
@@ -344,6 +426,10 @@ if [ "${1:-}" = "--self-test-related-material-links" ]; then
 fi
 
 if [ "${1:-}" = "--self-test" ]; then
+  if [ -d "${TMPDIR:-/tmp}" ]; then
+    TMPDIR="$(cd "${TMPDIR:-/tmp}" && pwd -P)"
+    export TMPDIR
+  fi
   tmpdir="$(mktemp -d)"
   tmpdir2="$(mktemp -d)"
   trap 'rm -rf "$tmpdir" "$tmpdir2"' EXIT
@@ -401,16 +487,20 @@ FIXTURE2
     exit 1
   fi
 
-  echo "--- ケース3: FUTURE_PAGES 実在チェック ---"
+  echo "--- ケース3: 承認済み意味用語のportal discovery ---"
   test3_dir="$(mktemp -d)"
   test3_docs="$test3_dir/docs"
   test3_portal="$test3_dir/portal"
   mkdir -p "$test3_docs" "$test3_portal"
   echo '{"total":100,"fe":50,"be":50,"file_count":10}' > "$test3_docs/code-metrics.json"
-  echo '<html><body>test glossary</body></html>' > "$test3_docs/用語辞書.html"
+  mkdir -p "$test3_docs/一覧/用語辞書"
+  echo '<html><body>test glossary</body></html>' > "$test3_docs/一覧/用語辞書/用語辞書.html"
   "$SCRIPT_DIR/build-portal.sh" "$test3_dir" "$test3_docs" "$test3_portal" 2>/dev/null
-  if grep -q "用語辞書" "$test3_portal/index.html" && grep -q "基盤情報" "$test3_portal/index.html"; then
-    echo "PASS: --self-test ケース3（FUTURE_PAGES 実在チェック, 用語辞書カード出現）"
+  if grep -q 'href":"[^"]*用語辞書.html"' "$test3_portal/index.html" \
+    && grep -q '"kind":"semantic-glossary"' "$DEFAULT_CATALOG" \
+    && grep -q '"generator":"managing-semantic-glossary"' "$DEFAULT_CATALOG" \
+    && ! grep -q '"generator":"generating-glossary-for-reverse-docs"' "$DEFAULT_CATALOG"; then
+    echo "PASS: --self-test ケース3（旧reverse generatorなし・承認済みsemantic-glossaryカードから用語辞書へ到達）"
   else
     echo "FAIL: --self-test ケース3" >&2; rm -rf "$test3_dir"; exit 1
   fi
@@ -1036,9 +1126,9 @@ TEST12HTML
   test13_dir="$(mktemp -d)"
   test13_repo="$test13_dir/repo"
   test13_docs="$test13_dir/docs"
-  mkdir -p "$test13_repo" "$test13_docs/プロジェクト共通"
+  mkdir -p "$test13_repo" "$test13_docs/プロジェクト共通" "$test13_docs/一覧/用語辞書"
   printf '# 変換禁止\n\n本文。\n' > "$test13_docs/プロジェクト共通/source.md"
-  printf '<html><body>glossary</body></html>\n' > "$test13_docs/用語辞書.html"
+  printf '<html><body>glossary</body></html>\n' > "$test13_docs/一覧/用語辞書/用語辞書.html"
   before13="$(find "$test13_docs" -type f ! -name index.html -print0 | sort -z | xargs -0 shasum -a 256)"
   "$SCRIPT_DIR/build-portal.sh" "$test13_repo" "$test13_docs" "$test13_docs" --portal-only --generated-at 2026-07-28T00:00:00Z 2>/dev/null
   after13="$(find "$test13_docs" -type f ! -name index.html -print0 | sort -z | xargs -0 shasum -a 256)"
@@ -1979,7 +2069,10 @@ TEST24CATALOG
   test34_dir="$(mktemp -d)"
   test34_repo="$test34_dir/repo"
   test34_docs="$test34_dir/docs"
-  mkdir -p "$test34_repo" "$test34_docs/画面/screen-a/詳細設計" "$test34_docs/画面/screen-b/詳細設計"
+  test34_portal="$test34_dir/portal"
+  mkdir -p "$test34_repo" "$test34_portal" "$test34_docs/画面/screen-a/基本設計" \
+    "$test34_docs/画面/screen-a/詳細設計" "$test34_docs/画面/screen-b/基本設計" \
+    "$test34_docs/画面/screen-b/詳細設計" "$test34_docs/画面/archive/詳細設計"
 
   cat > "$test34_docs/画面/screen-a/詳細設計/画面詳細設計書.md" <<'TEST34_A_MD'
 ---
@@ -1992,6 +2085,11 @@ source_line_ending: LF
 本文
 TEST34_A_MD
 
+  cat > "$test34_docs/画面/screen-a/基本設計/画面基本設計書.md" <<'TEST34_A_BASIC_MD'
+# 画面A基本設計書
+本文
+TEST34_A_BASIC_MD
+
   cat > "$test34_docs/画面/screen-b/詳細設計/画面詳細設計書.md" <<'TEST34_B_MD'
 ---
 source_repo: sample-repo
@@ -2003,9 +2101,22 @@ source_line_ending: LF
 本文
 TEST34_B_MD
 
+  cat > "$test34_docs/画面/screen-b/基本設計/画面基本設計書.md" <<'TEST34_B_BASIC_MD'
+# 画面B基本設計書
+本文
+TEST34_B_BASIC_MD
+
+  cat > "$test34_docs/画面/archive/詳細設計/画面詳細設計書.md" <<'TEST34_DECOY_MD'
+---
+source_repo: sample-repo
+source_ref: dddddddddddddddddddddddddddddddddddddddd
+---
+# 集約対象外decoy
+TEST34_DECOY_MD
+
   # パターン1: 2画面のsource_refが異なる → index.htmlに「画面ごとに異なる」の注記が出る
-  "$SCRIPT_DIR/build-portal.sh" "$test34_repo" "$test34_docs" "$test34_docs" --generated-at 2026-07-28T00:00:00Z >/dev/null 2>&1
-  if ! grep -q "画面ごとに異なる" "$test34_docs/index.html"; then
+  "$SCRIPT_DIR/build-portal.sh" "$test34_repo" "$test34_docs" "$test34_portal" --generated-at 2026-07-28T00:00:00Z >/dev/null 2>&1
+  if ! grep -q "画面ごとに異なる" "$test34_portal/index.html"; then
     echo "FAIL: --self-test ケース34（値が異なる2画面でindex.htmlに『画面ごとに異なる』の注記が出ない）" >&2
     rm -rf "$test34_dir"
     exit 1
@@ -2022,6 +2133,12 @@ TEST34_B_MD
     rm -rf "$test34_dir"
     exit 1
   fi
+  if ! grep -q "コミット番号: aaaaaaa" "$test34_docs/画面/screen-a/基本設計/画面基本設計書.html" \
+    || ! grep -q "コミット番号: bbbbbbb" "$test34_docs/画面/screen-b/基本設計/画面基本設計書.html"; then
+    echo "FAIL: --self-test ケース34（異なるsource_ref時に画面A/Bの基本設計書が各画面の7桁commitを表示しない）" >&2
+    rm -rf "$test34_dir"
+    exit 1
+  fi
 
   # パターン2: 2画面のsource_refを同一値へ変更して再生成 → index.htmlにその値の先頭7文字が出る
   cat > "$test34_docs/画面/screen-a/詳細設計/画面詳細設計書.md" <<'TEST34_A_SAME_MD'
@@ -2033,6 +2150,7 @@ source_line_ending: LF
 ---
 # 画面A詳細設計書
 本文
+source_ref: ffffffffffffffffffffffffffffffffffffffff
 TEST34_A_SAME_MD
   cat > "$test34_docs/画面/screen-b/詳細設計/画面詳細設計書.md" <<'TEST34_B_SAME_MD'
 ---
@@ -2043,10 +2161,19 @@ source_line_ending: LF
 ---
 # 画面B詳細設計書
 本文
+source_ref: ffffffffffffffffffffffffffffffffffffffff
 TEST34_B_SAME_MD
-  "$SCRIPT_DIR/build-portal.sh" "$test34_repo" "$test34_docs" "$test34_docs" --generated-at 2026-07-28T00:00:00Z >/dev/null 2>&1
-  if ! grep -q "コミット番号: ccccccc" "$test34_docs/index.html"; then
-    echo "FAIL: --self-test ケース34（値が一致する2画面でindex.htmlに短縮表示cccccccが出ない）" >&2
+  "$SCRIPT_DIR/build-portal.sh" "$test34_repo" "$test34_docs" "$test34_portal" --generated-at 2026-07-28T00:00:00Z >/dev/null 2>&1
+  if ! grep -q "コミット番号: ccccccc" "$test34_portal/index.html" \
+    || grep -q "画面ごとに異なる" "$test34_portal/index.html"; then
+    echo "FAIL: --self-test ケース34（値が一致する2画面のccccccc表示にdirect-child decoyが混入）" >&2
+    rm -rf "$test34_dir"
+    exit 1
+  fi
+  test34_page_footer="$(grep -o '<span id="pt-footer-commit">[^<]*</span>' "$test34_docs/画面/screen-a/詳細設計/画面詳細設計書.html")"
+  if ! printf '%s' "$test34_page_footer" | grep -q 'コミット番号: ccccccc' \
+    || printf '%s' "$test34_page_footer" | grep -q 'fffffff'; then
+    echo "FAIL: --self-test ケース34（本文source_refが画面個別footerへ混入: ${test34_page_footer}）" >&2
     rm -rf "$test34_dir"
     exit 1
   fi
@@ -2060,16 +2187,89 @@ TEST34_A_NOREF_MD
 # 画面B詳細設計書
 本文
 TEST34_B_NOREF_MD
-  "$SCRIPT_DIR/build-portal.sh" "$test34_repo" "$test34_docs" "$test34_docs" --generated-at 2026-07-28T00:00:00Z >/dev/null 2>&1
-  test34_footer="$(grep -o '<span id="pt-footer-commit">[^<]*</span>' "$test34_docs/index.html")"
+  "$SCRIPT_DIR/build-portal.sh" "$test34_repo" "$test34_docs" "$test34_portal" --generated-at 2026-07-28T00:00:00Z >/dev/null 2>&1
+  test34_footer="$(grep -o '<span id="pt-footer-commit">[^<]*</span>' "$test34_portal/index.html")"
   if printf '%s' "$test34_footer" | grep -q "番号"; then
     echo "FAIL: --self-test ケース34（source_ref不在後もindex.htmlのコミット表示が空にならない: ${test34_footer}）" >&2
+    rm -rf "$test34_dir"
+    exit 1
+  fi
+  test34_no_ref_page_footer="$(grep -o '<span id="pt-footer-commit">[^<]*</span>' "$test34_docs/画面/screen-a/詳細設計/画面詳細設計書.html")"
+  if printf '%s' "$test34_no_ref_page_footer" | grep -q "番号"; then
+    echo "FAIL: --self-test ケース34（source_ref不在画面が全体コミットへfallbackした: ${test34_no_ref_page_footer}）" >&2
     rm -rf "$test34_dir"
     exit 1
   fi
 
   echo "PASS: --self-test ケース34（表示コミットの source_ref 集計: 混在で注記・同一で短縮表示・不在で空・ページ個別値）"
   rm -rf "$test34_dir"
+
+  echo "--- ケース34b: screenUnitRoot の外部symlinkを拒否する ---"
+  test34b_dir="$(mktemp -d)"
+  test34b_repo="$test34b_dir/repo"
+  test34b_docs="$test34b_dir/docs"
+  test34b_portal="$test34b_dir/portal"
+  test34b_external="$test34b_dir/external"
+  mkdir -p "$test34b_repo" "$test34b_docs" "$test34b_portal" "$test34b_external/screen-a/詳細設計"
+  ln -s "$test34b_external" "$test34b_docs/画面"
+  if "$SCRIPT_DIR/build-portal.sh" "$test34b_repo" "$test34b_docs" "$test34b_portal" --generated-at 2026-07-28T00:00:00Z >/dev/null 2>&1; then
+    echo "FAIL: --self-test ケース34b（screenUnitRootが外部symlinkでもbuildが成功した）" >&2
+    rm -rf "$test34b_dir"
+    exit 1
+  fi
+  if find "$test34b_external" -type f -name '*.html' -print -quit | grep -q .; then
+    echo "FAIL: --self-test ケース34b（screenUnitRoot外部symlink先にHTMLが生成された）" >&2
+    rm -rf "$test34b_dir"
+    exit 1
+  fi
+  echo "PASS: --self-test ケース34b（screenUnitRootの外部symlinkを拒否し外部treeへHTMLを生成しない）"
+  rm -rf "$test34b_dir"
+
+  echo "--- ケース34c: screen child の外部symlinkを拒否する ---"
+  test34c_dir="$(mktemp -d)"
+  test34c_repo="$test34c_dir/repo"
+  test34c_docs="$test34c_dir/docs"
+  test34c_portal="$test34c_dir/portal"
+  test34c_external="$test34c_dir/external"
+  mkdir -p "$test34c_repo" "$test34c_docs/画面/screen-a" "$test34c_portal" "$test34c_external"
+  ln -s "$test34c_external" "$test34c_docs/画面/screen-a/詳細設計"
+  if "$SCRIPT_DIR/build-portal.sh" "$test34c_repo" "$test34c_docs" "$test34c_portal" --generated-at 2026-07-28T00:00:00Z >/dev/null 2>&1; then
+    echo "FAIL: --self-test ケース34c（screen childが外部symlinkでもbuildが成功した）" >&2
+    rm -rf "$test34c_dir"
+    exit 1
+  fi
+  if find "$test34c_external" -type f -name '*.html' -print -quit | grep -q .; then
+    echo "FAIL: --self-test ケース34c（screen child外部symlink先にHTMLが生成された）" >&2
+    rm -rf "$test34c_dir"
+    exit 1
+  fi
+  echo "PASS: --self-test ケース34c（screen childの外部symlinkを拒否し外部treeへHTMLを生成しない）"
+  rm -rf "$test34c_dir"
+
+  echo "--- ケース34d: 不正source_refを拒否する ---"
+  test34d_dir="$(mktemp -d)"
+  test34d_repo="$test34d_dir/repo"
+  test34d_docs="$test34d_dir/docs"
+  test34d_portal="$test34d_dir/portal"
+  mkdir -p "$test34d_repo" "$test34d_docs/画面/screen-a/詳細設計" "$test34d_portal"
+  cat > "$test34d_docs/画面/screen-a/詳細設計/画面詳細設計書.md" <<'TEST34_D_MD'
+---
+source_ref: <style>body{display:none}</style>
+---
+# 悪性source_ref
+TEST34_D_MD
+  if "$SCRIPT_DIR/build-portal.sh" "$test34d_repo" "$test34d_docs" "$test34d_portal" --generated-at 2026-07-28T00:00:00Z >/dev/null 2>&1; then
+    echo "FAIL: --self-test ケース34d（不正source_refでbuildが成功した）" >&2
+    rm -rf "$test34d_dir"
+    exit 1
+  fi
+  if find "$test34d_docs" "$test34d_portal" -type f -name '*.html' -print -quit | grep -q .; then
+    echo "FAIL: --self-test ケース34d（不正source_refでHTMLが生成された）" >&2
+    rm -rf "$test34d_dir"
+    exit 1
+  fi
+  echo "PASS: --self-test ケース34d（不正source_refを拒否しHTMLを生成しない）"
+  rm -rf "$test34d_dir"
 
   echo "--- ケース35: standardsカテゴリのdiscovery.globとoutput-layout.jsonのconventionRootの不一致を検出する（改善課題1-88） ---"
   test35_dir="$(mktemp -d)"
@@ -2209,6 +2409,9 @@ LAYOUT_JSON="$(resolve_output_layout "$DOCS_ROOT")" || exit 1
 LAYOUT_COMMON_ROOT="$(output_layout_get "$LAYOUT_JSON" commonRoot)" || exit 1
 LAYOUT_CONVENTION_ROOT="$(output_layout_get "$LAYOUT_JSON" conventionRoot)" || exit 1
 LAYOUT_SCREEN_LIST_DIR="$(output_layout_get "$LAYOUT_JSON" screenListDir)" || exit 1
+LAYOUT_SCREEN_UNIT_ROOT="$(output_layout_get "$LAYOUT_JSON" screenUnitRoot)" || exit 1
+assert_no_symlink_output_path "$DOCS_ROOT" "$DOCS_ROOT" || exit 1
+assert_no_symlink_output_path "$DOCS_ROOT" "$DOCS_ROOT/$LAYOUT_SCREEN_UNIT_ROOT" || exit 1
 
 CATALOG="$DEFAULT_CATALOG"
 GENERATED_AT=""
@@ -2281,9 +2484,19 @@ fi
 
 # 表示コミット: 画面詳細設計書 frontmatter の source_ref を集計する（定義由来）。
 # 生成時 HEAD の直接表示は廃止（表示値と設計書の根拠コミットの乖離を防ぐ。AI駆動開発セットアップ構想「コミット値-単一化」）。
-SOURCE_REF_VALUES="$(grep -h '^source_ref:' "$PORTAL_DIR"/画面/*/詳細設計/画面詳細設計書.md 2>/dev/null \
-  | sed -e 's/^source_ref:[[:space:]]*//' -e 's/[[:space:]]*$//' \
-  | grep -v '^SOURCECOMMIT$' | grep -v '^$' | sort -u || true)"
+SOURCE_REF_VALUES=""
+for source_ref_file in "$DOCS_ROOT/$LAYOUT_SCREEN_UNIT_ROOT"/screen-*/詳細設計/画面詳細設計書.md; do
+  [ -f "$source_ref_file" ] || continue
+  source_ref_value="$(frontmatter_value "$source_ref_file" source_ref)"
+  [ -n "$source_ref_value" ] || continue
+  [ "$source_ref_value" != "SOURCECOMMIT" ] || continue
+  if ! is_commit_sha "$source_ref_value"; then
+    echo "ERROR: source_ref must be a short or full commit SHA: $source_ref_file" >&2
+    exit 1
+  fi
+  SOURCE_REF_VALUES="${SOURCE_REF_VALUES}${source_ref_value}"$'\n'
+done
+SOURCE_REF_VALUES="$(printf '%s' "$SOURCE_REF_VALUES" | sort -u | sed '/^$/d')"
 SOURCE_REF_COUNT=0
 [ -n "$SOURCE_REF_VALUES" ] && SOURCE_REF_COUNT="$(printf '%s\n' "$SOURCE_REF_VALUES" | wc -l | tr -d ' ')"
 if [ "$SOURCE_REF_COUNT" -eq 1 ]; then
@@ -2421,22 +2634,24 @@ done
 SCREEN_DOC_TEMPLATE_FILE="$SCRIPT_DIR/../templates/screen-doc-template.html"
 screen_list_dir="$DOCS_ROOT/$LAYOUT_SCREEN_LIST_DIR"
 
-if [ -d "$DOCS_ROOT/画面" ] && [ -f "$SCREEN_DOC_TEMPLATE_FILE" ]; then
-  for screen_dir in "$DOCS_ROOT"/画面/screen-*/; do
+if [ -d "$DOCS_ROOT/$LAYOUT_SCREEN_UNIT_ROOT" ] && [ -f "$SCREEN_DOC_TEMPLATE_FILE" ]; then
+  for screen_dir in "$DOCS_ROOT/$LAYOUT_SCREEN_UNIT_ROOT"/screen-*/; do
     [ -d "$screen_dir" ] || continue
+    assert_no_symlink_output_path "$DOCS_ROOT" "$screen_dir" || exit 1
 
     base_md="${screen_dir}基本設計/画面基本設計書.md"
     detail_md="${screen_dir}詳細設計/画面詳細設計書.md"
+    assert_no_symlink_output_path "$DOCS_ROOT" "$(dirname "$base_md")" || exit 1
+    assert_no_symlink_output_path "$DOCS_ROOT" "$(dirname "$detail_md")" || exit 1
 
     # 表示コミット（画面単位）: 画面詳細設計書 frontmatter の source_ref から算出する。
     # 基本設計書・詳細設計書のどちらをレンダリングする場合も同じ値を使う。
-    page_source_ref="$(grep -h '^source_ref:' "$detail_md" 2>/dev/null \
-      | sed -e 's/^source_ref:[[:space:]]*//' -e 's/[[:space:]]*$//' \
+    page_source_ref="$(frontmatter_value "$detail_md" source_ref \
       | grep -v '^SOURCECOMMIT$' | grep -v '^$' | head -n1 || true)"
-    if [ -n "$page_source_ref" ]; then
+    if [ -n "$page_source_ref" ] && is_commit_sha "$page_source_ref"; then
       PAGE_COMMIT=" · コミット番号: $(printf '%s' "$page_source_ref" | cut -c1-7)"
     else
-      PAGE_COMMIT="$COMMIT_SHORT"
+      PAGE_COMMIT=""
     fi
 
     for target_md in "$base_md" "$detail_md"; do
@@ -2487,7 +2702,7 @@ if [ -d "$DOCS_ROOT/画面" ] && [ -f "$SCREEN_DOC_TEMPLATE_FILE" ]; then
         "{{PROJECT_NAME}}" "$PROJECT_NAME"
         "{{DOC_TITLE}}" "$(html_escape "$title")"
         "{{GENERATED_DATE}}" "$GENERATED_DATE"
-        "{{COMMIT_SHORT}}" "$COMMIT_SHORT"
+        "{{COMMIT_SHORT}}" "$PAGE_COMMIT"
         "{{PORTAL_INDEX_HREF}}" "$portal_index_href"
       )
       if [ -f "$TOKENS_CSS_FILE" ]; then

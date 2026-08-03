@@ -33,12 +33,49 @@ output_layout_merge_files() {
 }
 
 # 解決後の宣言の妥当性を fail-fast で検査する。
+# screenUnitRoot の安全境界:
+# - Unicode general category C（制御・format等）/ Z（separator・各種空白）を含まず、`.` で始まらない単一segment
+# - 入力自体がNFCである（macOS上の正規化別名を許可しない）
+# - NFC比較で物理top-level root（unitsRoot/commonRoot/conventionRoot）と衝突しない
+# 日本語の可視文字とASCIIハイフンは許可する。
+# Unicode判定・正規化にはリポジトリ既存runtimeのNode.jsを使う。
 output_layout_validate() {
   spec_version="$(printf '%s' "$1" | jq -r '.specVersion // 0')"
   if [ "$spec_version" != "1" ]; then
     echo "ERROR: output-layout.json の specVersion が 1 ではありません" >&2
     return 2
   fi
+  if ! printf '%s' "$1" | jq -e '.layout.screenUnitRoot | type == "string"' >/dev/null 2>&1; then
+    echo "ERROR: output-layout の screenUnitRoot は文字列で必須です" >&2
+    return 2
+  fi
+  if ! printf '%s' "$1" | node -e '
+    const fs = require("fs");
+    const doc = JSON.parse(fs.readFileSync(0, "utf8"));
+    const layout = doc.layout || {};
+    const root = layout.screenUnitRoot;
+    if (typeof root !== "string") process.exit(1);
+    if (/[\p{C}\p{Z}]/u.test(root)) process.exit(1);
+    if (root.normalize("NFC") !== root) process.exit(1);
+    for (const key of ["unitsRoot", "commonRoot", "conventionRoot"]) {
+      const other = layout[key];
+      if (typeof other === "string" && root.normalize("NFC") === other.normalize("NFC")) process.exit(1);
+    }
+  ' >/dev/null 2>&1; then
+    echo "ERROR: output-layout の screenUnitRoot はUnicode C/Zを含まず、NFCで、他の物理rootと非衝突である必要があります" >&2
+    return 2
+  fi
+  screen_unit_root="$(printf '%s' "$1" | jq -r '.layout.screenUnitRoot')"
+  if [ -z "$screen_unit_root" ] || [ "$screen_unit_root" = "." ] || [ "$screen_unit_root" = ".." ]; then
+    echo "ERROR: output-layout の screenUnitRoot は空・.・.. 以外の単一相対segmentで指定してください" >&2
+    return 2
+  fi
+  case "$screen_unit_root" in
+    .*|*'/'*|*'\'*|*'*'*|*'?'*|*'['*|*']'*)
+      echo "ERROR: output-layout の screenUnitRoot は . で始まらず、/・backslash・find globメタ文字を含まない単一相対segmentで指定してください" >&2
+      return 2
+      ;;
+  esac
   return 0
 }
 
@@ -217,6 +254,77 @@ JSON
     rc=1
   fi
   rm -f "$tmp/output-layout.json"
+
+  # ケース10: screenUnitRoot の既定値と対象側上書きを解決できる
+  sur10="$(output_layout_get "$base" screenUnitRoot 2>/dev/null)" || true
+  cat > "$tmp/output-layout.json" <<'JSON'
+{ "specVersion": 1, "layout": { "screenUnitRoot": "スクリーン" } }
+JSON
+  ov10="$(resolve_output_layout "$tmp")" || true
+  sur10_override="$(output_layout_get "$ov10" screenUnitRoot 2>/dev/null)" || true
+  if [ "$sur10" = "画面" ] && [ "$sur10_override" = "スクリーン" ]; then
+    echo "  [PASS] ケース10: screenUnitRoot の既定値・上書きを解決"
+  else
+    echo "  [FAIL] ケース10: screenUnitRoot の解決が不正 (default=$sur10 override=$sur10_override)" >&2
+    rc=1
+  fi
+  rm -f "$tmp/output-layout.json"
+
+  # ケース11: null・空・危険な非単一segmentを拒否する
+  invalid11=0
+  cat > "$tmp/output-layout.json" <<'JSON'
+{ "specVersion": 1, "layout": { "screenUnitRoot": null } }
+JSON
+  resolve_output_layout "$tmp" >/dev/null 2>&1 && invalid11=$((invalid11 + 1))
+  for value11 in "" "." ".." ".git" ".claude" "a/b" 'a\b' 'a*b' 'a?b' 'a[b' 'a]b'; do
+    jq -n --arg value "$value11" \
+      '{specVersion: 1, layout: {screenUnitRoot: $value}}' > "$tmp/output-layout.json"
+    resolve_output_layout "$tmp" >/dev/null 2>&1 && invalid11=$((invalid11 + 1))
+  done
+  for value11 in $'line\nbreak' $'tab\tbreak' $'cr\rbreak' $'del\x7fbreak' \
+    $'nel\u0085break' $'zero\u200bwidth' $'line\u2028separator' $'no\u00a0break' \
+    'has space' '   ' ' leading' 'trailing '; do
+    jq -n --arg value "$value11" \
+      '{specVersion: 1, layout: {screenUnitRoot: $value}}' > "$tmp/output-layout.json"
+    resolve_output_layout "$tmp" >/dev/null 2>&1 && invalid11=$((invalid11 + 1))
+  done
+  jq -n --arg value 'screen-root' \
+    '{specVersion: 1, layout: {screenUnitRoot: $value}}' > "$tmp/output-layout.json"
+  resolve_output_layout "$tmp" >/dev/null 2>&1 || invalid11=$((invalid11 + 1))
+  for collision_root in commonRoot unitsRoot; do
+    jq -n --arg key "$collision_root" \
+      '{specVersion: 1, layout: {screenUnitRoot: (if $key == "commonRoot" then "プロジェクト共通" else "一覧" end)}}' \
+      > "$tmp/output-layout.json"
+    resolve_output_layout "$tmp" >/dev/null 2>&1 && invalid11=$((invalid11 + 1))
+  done
+  nfd_common="$(printf '%s' 'プロジェクト共通' | node -e \
+    'const fs=require("fs");process.stdout.write(fs.readFileSync(0,"utf8").normalize("NFD"))')"
+  nfd_general="$(printf '%s' 'ガイド' | node -e \
+    'const fs=require("fs");process.stdout.write(fs.readFileSync(0,"utf8").normalize("NFD"))')"
+  for value11 in "$nfd_common" "$nfd_general"; do
+    jq -n --arg value "$value11" \
+      '{specVersion: 1, layout: {screenUnitRoot: $value}}' > "$tmp/output-layout.json"
+    resolve_output_layout "$tmp" >/dev/null 2>&1 && invalid11=$((invalid11 + 1))
+  done
+  if [ "$invalid11" -eq 0 ]; then
+    echo "  [PASS] ケース11: 危険文字・Unicode C/Z・NFD・NFC物理root衝突を拒否しNFC日本語/ハイフンを許可"
+  else
+    echo "  [FAIL] ケース11: 不正なscreenUnitRootを${invalid11}件受理" >&2
+    rc=1
+  fi
+  rm -f "$tmp/output-layout.json"
+
+  # ケース12: 非永続の作業記録・サンプル記録は納品layoutに持たない
+  invalid12=0
+  for removed_key in workRecordDoc sampleRecordDoc; do
+    output_layout_get "$base" "$removed_key" >/dev/null 2>&1 && invalid12=$((invalid12 + 1))
+  done
+  if [ "$invalid12" -eq 0 ]; then
+    echo "  [PASS] ケース12: 非永続記録キーを納品layoutから除外"
+  else
+    echo "  [FAIL] ケース12: 除外済み記録キーを${invalid12}件解決できた" >&2
+    rc=1
+  fi
 
   if [ "$rc" -eq 0 ]; then
     echo "self-test 全項目 PASS"

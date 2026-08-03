@@ -1,6 +1,6 @@
-# page-data.json スキーマ正本
+# page-data.json スキーマ定義
 
-detail-pages 系（用語辞書 / 技術スタック / 画面遷移図 / ER図 / 環境構築手順）が共有する入力 JSON `page-data.json` の完全スキーマ。`build-detail-page.sh` / `validate-page-data.sh` / 5 生成スキルはすべて本ファイルを正本とする。
+detail-pages 系（用語辞書 / 技術スタック / 画面遷移図 / ER図 / 環境構築手順）が共有する入力 JSON `page-data.json` の完全スキーマ。`build-detail-page.sh` / `validate-page-data.sh` / 5 生成スキルはすべて本ファイルを定義とする。
 
 ## トップレベル
 
@@ -39,16 +39,108 @@ detail-pages 系（用語辞書 / 技術スタック / 画面遷移図 / ER図 /
 | rows | array | `{ "item": string, "value": string, "sourceRef": string }` の配列。明細表 1 行 = 1 要素。sourceRef は必須（出所の検証可能性を担保するため） |
 | absentRows | array（任意） | `{ "item": string, "value": string, "sourceRef": string }` の配列。調査書が「実在しない（理由: …）」と判定した項目を、根拠パスを保持したまま記録する別表（1-132）。`value` には理由文をそのまま入れる。省略時は空扱い。`rows[]` とは別の表としてテンプレート側が描画するため、`rows[]` へ混在させない |
 
-`absentRows[].sourceRef` は `validate-page-data.sh` の sourceRef 実在検査（検査7）の対象外とする。理由: 「実在しない」と判定した根拠は調査書の記述箇所や対象リポジトリに存在しないファイルを指すことがあり、対象リポジトリでの実在確認を要求すると正当なデータが誤ってFAILする（意図的な設計判断。`rows[].sourceRef` は既存どおり実在必須のまま変更しない）。
+`absentRows[].sourceRef`はsourceRef実在検査の対象外とする。
+「実在しない」という根拠は、調査書や対象リポジトリに存在しないファイルを指す場合があるためである。
+実在確認を要求すると正当なデータが誤ってFAILする。`rows[].sourceRef`は実在必須のままとする。
 
 ### T2: glossary（確定仕様）
 
 | キー | 型 | 内容 |
 |---|---|---|
 | categories | array | 分類軸。`{ "key": string, "label": string }` の配列。テンプレート側は先頭に「すべて」チップを自動付加する |
-| terms | array | `{ "term": string, "definition": string, "codeRefs": string[], "category": string, "sourceRef": string }` の配列。`category` は `categories[].key` のいずれかと一致させる（チップ絞り込みの対象キー） |
+| projectionVersion | string（semanticのみ） | portal投影形式。現行は`0.2` |
+| glossarySchemaVersion | string（semanticのみ） | 投影元glossary schemaのversion |
+| glossaryContentVersion | string（semanticのみ） | 投影元glossary contentのversion |
+| terms | array | 下記legacy形式、semantic v0.1互換形式、semantic v0.2形式のいずれか。同じ配列への新旧混在は禁止 |
 
-テンプレート挙動: 検索ボックスは行の `textContent` 部分一致（大小文字無視）、分類チップは `category` の完全一致で絞り込む（AND 条件）。`terms` が空配列の場合は表本体に「なし」を 1 行表示する。
+#### legacy形式
+
+旧形式は`term`、`definition`、`codeRefs`、`category`、`sourceRef`を持つ。
+表示時だけ各値を用語、コード表現、根拠へ写像する。
+意味keyと状態は`未移行`とする。入力JSONは変更しない。
+
+legacy page-data rootは既定の表示項目、`categories`、`terms`、診断項目だけを許可する。
+semantic用version項目、候補・監査項目、その他の未知keyは拒否する。
+
+#### semantic v0.2形式
+
+semantic page-data rootは既定の表示項目、3つのversion、分類、用語、診断項目だけを許可する。
+`proposalAudit`、`reviewers`、`approval`、`confidence`などの候補・監査keyは拒否する。
+その他の未知keyも拒否する。
+
+必須項目は次のとおり。
+
+| キー | 型 | 内容 |
+|---|---|---|
+| key | string | meaningful snake_caseの一意key |
+| term_ja | string | 日本語の代表用語 |
+| term_en | string | 英語の代表用語 |
+| definition | string | 概念の定義 |
+| scope | string | 適用範囲 |
+| category | string | `entity` \| `attribute` \| `value` \| `process` \| `event` \| `role` \| `rule` \| `metric` |
+| code_name | string | 代表コード名 |
+| type_name | string/null | クラス・型・enum等の型名 |
+| db_name | string | テーブル・列等のDB名 |
+| api_name | string | APIのfield・parameter名 |
+| ui_label | string/null | 画面表示名 |
+| allowed_values | string[] | 許容値 |
+| status | string | `active` \| `deprecated` \| `retired` |
+| notes | string | 補足 |
+| representations | array | `{ "channel": string, "value": string, "location": string }`。一覧は先頭2件、drawerは全件を表示 |
+| sourceRefs | string[] | 根拠参照。全件をdrawerへ表示 |
+
+semantic v0.1のterm rootは、次の明示allowlist以外を拒否する。
+
+- 基本情報は標準14項目と`representations`。
+- 補足情報は`aliases`、`forbiddenTerms`、`relations`、`examples`、`counterExamples`、`constraints`、`tags`。
+- 状態情報は`status`、`introducedIn`、`deprecatedIn`、`retiredIn`、`migrationDeadline`、`replacementKey`、`lifecycleReason`。
+- 管理情報は`securityClassification`、`notes`、`approvers`、`sourceRefs`、`decisionRef`、`changeRef`。
+
+正式な後継用語fieldは`replacementKey`だけとする。`replacedBy`は予約fieldではなく禁止する。
+旧page-dataに`replacedBy`がある場合はsemantic v0.1として受理しない。
+`replacementKey`へ移行してから再検証する。
+
+nested objectも明示allowlistとする。
+`categories[]`、`scope`、`representations[]`、`forbiddenTerms[]`、`relations[]`、`unresolved[]`ごとに許可keyを固定する。
+glossaryの`diagnostics`は`missingSource,unimplementedLayer`だけを指標名に使う。
+各指標は`count,total,ratio,threshold,warning`だけを持つ。候補専用keyと未知keyは位置にかかわらず拒否する。
+
+#### 表示・安全性
+
+- 一覧の14列は次のとおり。
+  - `key`、`term_ja`、`term_en`、`definition`、`scope`、`category`、`code_name`
+  - `type_name`、`db_name`、`api_name`、`ui_label`、`allowed_values`、`status`、`notes`
+- drawerは「別名、禁止語、全representations、relations、例/反例、constraints、security、全根拠」の8群とする。
+- 通常filterはactive、deprecated、legacyの未移行を表示する。retiredは履歴filterだけに表示する。
+- proposal、candidate、changeに相当するトップレベルslotは拒否する。
+- semantic `terms[]`配下は全ネストobjectを走査し、候補・監査用keyを拒否する。
+- snake_caseとcamelCaseの両表記を検査し、allowlist内のnested objectへ混入した場合も拒否する。
+- 検索は標準14項目とコード表現の部分一致（大小文字無視）とする。分類・状態filterとはAND条件にする。
+- 行はclick、Enter、Spaceでdrawerを開き、Escapeで閉じる。modal中は背景をinertにし、focusをdrawer内へ閉じ込め、閉じたら起点行へ戻す。
+- 狭幅では14列を省略せず横scrollとし、drawerは画面幅全体を使う。
+- `terms`が空配列、またはfilter結果が0件の場合は表本体に「なし」を1行表示する。
+- HTMLの`application/json`へ埋め込む際は`<`、literal U+2028、literal U+2029をUnicode escapeする。入力JSONと埋込JSONをparseし、key順に依存しない意味一致で検証する。
+
+#### 正式glossaryからの投影
+
+`project-semantic-glossary.py`をinput、registry、outputの各引数付きで実行する。
+投影前に正式validatorを実行する。解決不能ref、exit 1/2、error、review_requiredでは出力を作らない。
+warningだけなら生成できる。一時fileからatomic replaceし、入力YAMLは変更しない。
+
+主な写像はsourceを`sourceRefs`、stewardshipのapproversを`approvers`、lifecycle statusを`status`とする。
+snake_caseの各値はcamelCaseへ決定変換する。aliasの`value`は文字列配列へ投影する。
+retiredもpage-dataへ含め、履歴filterで表示する。
+
+実サンプルの基準fixtureは`semantic-glossary-sample-page-data.json`である。
+次のbuilder wrapperで再生成する。現行fixtureはactiveを2件含み、deprecatedとretiredは含まない。
+
+```bash
+bash shared/scripts/detail-pages/regenerate-semantic-glossary-sample.sh
+```
+
+wrapperは`build-detail-page.sh --page glossary`を呼ぶ。
+`shared/samples/一覧/用語辞書/用語辞書.html`は現行T2 templateから再生成する。
+HTMLの手修正は禁止する。画面の列見出しは日本語14列とする。埋め込みpage-dataのキーは英語14キーを維持する。
 
 ### T4: transition / er（確定仕様）
 
@@ -82,14 +174,23 @@ detail-pages 系（用語辞書 / 技術スタック / 画面遷移図 / ER図 /
 | triggerType | string（任意） | 遷移の種別。「リンク遷移」「フォーム送信」「リダイレクト」「ブラウザバック」の4値。未設定の場合はテンプレート側で「リンク遷移」にフォールバック。triggerType が「ブラウザバック」の場合、`to` は空文字列とする（遷移先がランタイム依存で静的に確定しないため）。テンプレート側で「(前画面)」と表示し、孤児参照検査は `to` のみスキップする（`from` は通常通り検査する） |
 | condition | string（任意） | 遷移が発火する条件の自由記述（例: "未認証の場合"、"管理者権限ありの場合"）。認証ガード・ルートガード・条件分岐内の遷移に該当する場合に記録する。未設定の場合はテンプレート側で非表示 |
 
-テンプレート挙動: `transition` は埋め込み JSON からワイヤーフレーム + 遷移先テーブルの split-view 形式で client-side 構築する（画面ごとの表示を画面選択ドロップダウン + 前後ボタンで切り替える）。`er` は Canvas 2D を埋め込み JSON から client-side で構築する（サーバー側ではノード・エッジ要素を生成しない。静的 HTML の `<canvas>` は空要素）。レイアウトは pageKind で分岐する。
+`transition`は埋込JSONからワイヤーフレームと遷移先表をclient-sideで構築する。
+画面選択と前後ボタンで表示を切り替える。`er`はCanvas 2Dをclient-sideで構築する。
+サーバー側ではノードとエッジを生成しない。レイアウトはpageKindで分岐する。
 
 - `transition`: 画面ごとの split-view 表示。エッジを出現率 30% 以上で「共通ナビゲーション」と判定し、画面固有（橙）/ 共通ナビ（青）/ 自己ループ（緑）の 3 層に分類する。出次数がしきい値（`MAX_EDGES_PER_VIEW`）超のノードは中央ナビゲーション画面として折りたたみ表示、入出次数 0 のノードは未接続画面一覧として分離表示する
-- `er`: FK 接続グラフの連結成分をクラスタ化し（巨大成分は出次数上位ノードのハブ分割で分解。乱数・物理シミュレーション不使用の決定的アルゴリズム）、クラスタカード俯瞰 → ドメインズームイン → テーブルフォーカスの 3段階探索を、Canvas 上のカメラのパン・ズームアニメーションで実現する。ドメイン（クラスタ）の色分けは算出したクラスタのインデックスから自動導出する
+- `er`: FK接続グラフの連結成分を決定的にクラスタ化する。
+  クラスタ俯瞰、ドメイン拡大、テーブル選択の3段階探索を提供する。
+  ドメインの色はクラスタのインデックスから導出する。
 
-矢印（`marker-end`）は `transition` のみに付与する。エッジ/リレーションのラベルは `transition` が `trigger`、`er` は選択中テーブルの詳細パネル内で `cardinality` を表示する。`from`/`to` が `nodes`/`entities` に存在しないエッジは描画をスキップする（データ不整合時のフェイルセーフ。`unresolved[]` での明示が本来の解決手段）。`transition` は図の下に `edges[]` の詳細（`from`/`to`/`trigger`/`sourceRef`/`confidence`）を補足表として一覧表示し、大規模時は `.diagram-wrap` 内で横スクロールする（ページ本体は横スクロールしない）。`er` は補足表を持たず、テーブルクリックで開く詳細パネルに選択テーブルのカラム定義（PK/FK/UQ/NULL バッジ）・リレーション一覧（相手テーブル・カーディナリティ）を表示する（テーブル定義コピー機能付き）。
+矢印は`transition`だけに付与する。transitionは`trigger`、erは`cardinality`を表示する。
+参照先が存在しないエッジは描画をスキップし、`unresolved[]`で明示する。
+transitionは図の下に`edges[]`の詳細を補足表として表示する。
+大規模時はdiagram内だけを横スクロールする。erは詳細パネルにカラム定義とrelationを表示する。
 
-`er` は `relations[]` が空配列の場合（1-151: 外部キー0件）、インタラクティブなクラスタ探索 Canvas を表示せず、代わりに `entities[]` 全件をサーバー側で静的にレンダリングした「エンティティ一覧」セクション（`<!--ER_FLAT_LIST-->` マーカー。`RELATED_ENTITIES` と同型の jq 生成・空文字なら後方互換）と、外部キーが0件で関連が未記載である旨の `pt-callout--warning` を表示する。`relations[]` が1件以上ある通常時はこのセクションは空文字に置換され、既存のクラスタ探索 Canvas のみが表示される。
+`relations[]`が空の場合はクラスタ探索Canvasを表示しない。
+代わりに`entities[]`全件の静的なエンティティ一覧と、外部キー0件の警告を表示する。
+`relations[]`が1件以上の場合は一覧を空文字に置換し、クラスタ探索Canvasだけを表示する。
 
 ### T7: entity-state（確定仕様）
 
@@ -112,8 +213,8 @@ detail-pages 系（用語辞書 / 技術スタック / 画面遷移図 / ER図 /
 
 `validate-page-data.sh` は `steps[]` に対し次の 2 点を検証する（1-133）。
 
-1. **順序番号の連番性**: `order` の値集合が `1..N`（`N = steps[].length`）と重複・欠番なく一致すること。`steps` が空配列の場合は無条件 PASS
-2. **command 欄の純度**: `command` に句点「。」を含まないこと（散文の混入検知）。実行可能なコマンドが存在しない行は `command: "該当なし"` とし、説明文は `note` へ入れる
+1. 順序番号は、`order`の値集合を重複・欠番のない`1..N`とする。空配列はPASSとする。
+2. command欄に句点を含めない。実行可能なコマンドがない行は`該当なし`とし、説明はnoteへ入れる。
 
 ### T7: release-notes（確定仕様）
 
@@ -152,7 +253,8 @@ detail-pages 系（用語辞書 / 技術スタック / 画面遷移図 / ER図 /
 | icons | array | `{ name: string, sourceType: string, usageCount: number, files: string[] }` の配列。アイコン 1 個 = 1 要素 |
 | summary | array | `{ label: string, value: string, note?: string }` の配列。要約タイル（任意） |
 
-テンプレート挙動: `icons[]` をカードグリッドで表示する。`sourceType` に応じてカード上部にグリフ（`material` は Material Symbols フォント、`emoji` はテキストそのもの、それ以外は代替アイコン）を描画し、ソース種別チップ＋名前部分一致検索＋`usageCount` 降順ソートで絞り込む。使用ファイル一覧は `<details>` 展開式。
+`icons[]`をカードグリッドで表示する。`sourceType`に応じたグリフをカード上部へ描画する。
+ソース種別、名前検索、`usageCount`降順で絞り込む。使用ファイル一覧は`details`で展開する。
 
 ## 出力ファイル名との対応
 
@@ -166,3 +268,15 @@ pageKind と固定出力ファイル名の対応は `build-detail-page.sh` 側�
 | er | ER図.html |
 | env | 環境構築手順.html |
 | entity-state | 状態遷移図.html |
+
+## C統合テストの実行
+
+意味基盤用語辞書の統合テストは、Node.js 20以上、`playwright`パッケージ、Chromiumを実行依存とする。依存versionはリポジトリルートの`package.json`と`package-lock.json`で固定する。
+
+```bash
+npm ci
+npx playwright install chromium
+npm run test:semantic-glossary-page
+```
+
+通常の依存導入後は`NODE_PATH`を指定しない。`playwright`を読み込めない場合はテスト失敗とし、静的検査だけの成功やSKIPにはしない。

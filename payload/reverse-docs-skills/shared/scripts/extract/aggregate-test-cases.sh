@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 # 抽出エンジン: per-screen テスト仕様書(単体/結合/操作シナリオ, Markdown)群から
 # テストケースmanifest(JSON)への横断集約。
-# output_dir 配下の 画面/screen-*/テスト項目書/{単体テスト仕様書.md,結合テスト仕様書.md,操作シナリオ仕様書.md}
+# output_dir 配下の <screenUnitRoot>/screen-*/テスト項目書/{単体テスト仕様書.md,結合テスト仕様書.md,操作シナリオ仕様書.md}
 # をすべて走査し、テストケース単位に集約した1つのJSONを出力する。
 #
 # Usage: aggregate-test-cases.sh <output_dir> <output.json>
 #
 # 入力契約:
-#   <output_dir> : 画面/screen-<ID>/テスト項目書/単体テスト仕様書.md・結合テスト仕様書.md・
+#   <output_dir> : <screenUnitRoot>/screen-<ID>/テスト項目書/単体テスト仕様書.md・結合テスト仕様書.md・
 #                 操作シナリオ仕様書.md を含むディレクトリツリーのルート
 #                 （形式は shared/templates/リバース検証/画面/テスト項目書/*.md 準拠）
 #   <output.json> : 出力先パス
@@ -143,6 +143,10 @@ extract_scenario_expected_awk='
 
 self_test() {
   local script_path="$0" script_dir tmp docs manifest html portal
+  if [ -d "${TMPDIR:-/tmp}" ]; then
+    TMPDIR="$(cd "${TMPDIR:-/tmp}" && pwd -P)"
+    export TMPDIR
+  fi
   script_dir="$(cd "$(dirname "$script_path")" && pwd)"
   tmp="$(mktemp -d "${TMPDIR:-/tmp}/aggregate-test-cases-self-test.XXXXXX")"
   trap 'rm -rf "$tmp"' RETURN
@@ -270,6 +274,44 @@ EOF
     return 1
   fi
   rm -rf "$tmp2"
+
+  local override_docs override_manifest
+  override_docs="$tmp/override-docs"
+  override_manifest="$tmp/override-test-case-manifest.json"
+  mkdir -p "$override_docs/スクリーン/screen-orders/テスト項目書" \
+    "$override_docs/画面/screen-decoy/テスト項目書" \
+    "$override_docs/archive/スクリーン/screen-archive-decoy/テスト項目書" \
+    "$override_docs/スクリーン/archive/スクリーン/screen-nested/テスト項目書"
+  cp -R "$docs/画面/screen-orders/テスト項目書/." "$override_docs/スクリーン/screen-orders/テスト項目書/"
+  cp -R "$docs/画面/screen-orders/テスト項目書/." "$override_docs/画面/screen-decoy/テスト項目書/"
+  cp -R "$docs/画面/screen-orders/テスト項目書/." "$override_docs/archive/スクリーン/screen-archive-decoy/テスト項目書/"
+  cp -R "$docs/画面/screen-orders/テスト項目書/." "$override_docs/スクリーン/archive/スクリーン/screen-nested/テスト項目書/"
+  cat > "$override_docs/output-layout.json" <<'JSON'
+{ "specVersion": 1, "layout": { "screenUnitRoot": "スクリーン" } }
+JSON
+  if bash "$script_path" "$override_docs" "$override_manifest" >/dev/null 2>&1 \
+    && jq -e '.summary.totalCount == 3 and ([.units[].screenKey] | unique == ["screen-orders"])' "$override_manifest" >/dev/null 2>&1; then
+    echo "self-test PASS: output_dir直下のscreenUnitRootだけを探索し既定root・nested同名rootのdecoyを除外"
+  else
+    echo "self-test FAIL: screenUnitRoot上書きの探索またはdecoy除外が不正" >&2
+    return 1
+  fi
+
+  local prefix_docs prefix_manifest
+  prefix_docs="$tmp/prefix-root-docs"
+  prefix_manifest="$tmp/prefix-root-test-case-manifest.json"
+  mkdir -p "$prefix_docs/screen-root/screen-alpha/テスト項目書"
+  cp -R "$docs/画面/screen-orders/テスト項目書/." "$prefix_docs/screen-root/screen-alpha/テスト項目書/"
+  cat > "$prefix_docs/output-layout.json" <<'JSON'
+{ "specVersion": 1, "layout": { "screenUnitRoot": "screen-root" } }
+JSON
+  if bash "$script_path" "$prefix_docs" "$prefix_manifest" >/dev/null 2>&1 \
+    && jq -e '.summary.totalCount == 3 and ([.units[].screenKey] | unique == ["screen-alpha"])' "$prefix_manifest" >/dev/null 2>&1; then
+    echo "self-test PASS: screen-接頭辞のscreenUnitRootでも直下unit名をscreenKeyにする"
+  else
+    echo "self-test FAIL: screenUnitRoot名をscreenKeyとして誤抽出" >&2
+    return 1
+  fi
 }
 
 if [ "${1:-}" = "--self-test" ]; then
@@ -290,6 +332,12 @@ if [ ! -d "$output_dir" ]; then
   exit 1
 fi
 
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=../output-layout.sh
+source "$script_dir/../output-layout.sh"
+layout_json="$(resolve_output_layout "$output_dir")" || exit 1
+screen_unit_root="$(output_layout_get "$layout_json" screenUnitRoot)" || exit 1
+
 generated_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 
 tmp_tsv="$(mktemp "${TMPDIR:-/tmp}/aggregate-test-cases.XXXXXX")"
@@ -308,10 +356,9 @@ excluded_scenario=0
 
 # 単体/結合: screenKey \t testType \t unitKey \t caseKey \t viewpointKey \t input \t steps \t expected
 while IFS= read -r -d '' file; do
-  screen_key="$(printf '%s\n' "$file" | awk -F'/' '{
-    for (i = 1; i <= NF; i++) { if ($i ~ /^screen-/) { print $i; exit } }
-  }')"
-  [ -z "$screen_key" ] && continue
+  relative_file="${file#"$output_dir/$screen_unit_root"/}"
+  screen_key="${relative_file%%/*}"
+  case "$screen_key" in screen-*) ;; *) continue ;; esac
 
   base="$(basename "$file")"
   case "$base" in
@@ -352,16 +399,15 @@ while IFS= read -r -d '' file; do
     unit) excluded_unit=$((excluded_unit + excl_n)) ;;
     integration) excluded_integration=$((excluded_integration + excl_n)) ;;
   esac
-done < <(find "$output_dir" \
-  \( -path "*/画面/screen-*/テスト項目書/単体テスト仕様書.md" -o -path "*/画面/screen-*/テスト項目書/結合テスト仕様書.md" \) \
+done < <(find "$output_dir/$screen_unit_root" -mindepth 3 -maxdepth 3 -type f \
+  \( -path "*/screen-*/テスト項目書/単体テスト仕様書.md" -o -path "*/screen-*/テスト項目書/結合テスト仕様書.md" \) \
   -print0)
 
 # 操作シナリオ: シナリオ一覧表 + 各節の期待結果段落を screenKey ごとに突合する
 while IFS= read -r -d '' file; do
-  screen_key="$(printf '%s\n' "$file" | awk -F'/' '{
-    for (i = 1; i <= NF; i++) { if ($i ~ /^screen-/) { print $i; exit } }
-  }')"
-  [ -z "$screen_key" ] && continue
+  relative_file="${file#"$output_dir/$screen_unit_root"/}"
+  screen_key="${relative_file%%/*}"
+  case "$screen_key" in screen-*) ;; *) continue ;; esac
 
   scanned_scenario=$((scanned_scenario + 1))
 
@@ -382,7 +428,8 @@ while IFS= read -r -d '' file; do
       "$screen_key" "$screen_key" "$scenario_rownum" "$scene_name" "$viewpoint_key" "$precondition" "" "$expected" >> "$tmp_tsv"
   done < "$tmp_top"
   rm -f "$tmp_top" "$tmp_expected"
-done < <(find "$output_dir" -path "*/画面/screen-*/テスト項目書/操作シナリオ仕様書.md" -print0)
+done < <(find "$output_dir/$screen_unit_root" -mindepth 3 -maxdepth 3 -type f \
+  -path "*/screen-*/テスト項目書/操作シナリオ仕様書.md" -print0)
 
 if [ ! -s "$tmp_tsv" ]; then
   jq -n \

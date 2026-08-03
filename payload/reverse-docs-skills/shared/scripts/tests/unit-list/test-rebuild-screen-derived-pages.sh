@@ -93,6 +93,35 @@ echo "PASS: noncanonical raw manifest path rejected"
 run_rebuild "$tmp/out-a"
 run_rebuild "$tmp/out-b"
 
+# screenUnitRoot上書きの呼出契約: output-rootの宣言と画面単位文書rootをunmanaged入力として保持する。
+custom_root_out="$tmp/out-custom-screen-root"
+mkdir -p "$custom_root_out/スクリーン/screen-home/基本設計" \
+  "$custom_root_out/スクリーン/screen-home/詳細設計" \
+  "$custom_root_out/スクリーン/screen-home/テスト項目書" \
+  "$custom_root_out/画面/screen-home/基本設計" \
+  "$custom_root_out/画面/screen-home/詳細設計" \
+  "$custom_root_out/画面/screen-home/テスト項目書"
+cat > "$custom_root_out/output-layout.json" <<'JSON'
+{ "specVersion": 1, "layout": { "screenUnitRoot": "スクリーン" } }
+JSON
+: > "$custom_root_out/スクリーン/screen-home/基本設計/画面基本設計書.html"
+: > "$custom_root_out/スクリーン/screen-home/詳細設計/画面詳細設計書.html"
+: > "$custom_root_out/スクリーン/screen-home/シーケンス図.html"
+: > "$custom_root_out/スクリーン/screen-home/テスト項目書/単体テスト仕様書.md"
+: > "$custom_root_out/画面/screen-home/基本設計/画面基本設計書.html"
+: > "$custom_root_out/画面/screen-home/詳細設計/画面詳細設計書.html"
+: > "$custom_root_out/画面/screen-home/シーケンス図.html"
+: > "$custom_root_out/画面/screen-home/テスト項目書/単体テスト仕様書.md"
+run_rebuild "$custom_root_out" --design-docs-dir "$custom_root_out/スクリーン"
+if jq -e '.layout.screenUnitRoot == "スクリーン"' "$custom_root_out/output-layout.json" >/dev/null \
+  && jq -e '.screens[] | select(.screenKey == "home") | .designDocPath == "../../スクリーン/screen-home/基本設計/画面基本設計書.html" and .detailDocPath == "../../スクリーン/screen-home/詳細設計/画面詳細設計書.html" and .sequencePath == "../../スクリーン/screen-home/シーケンス図.html" and .testCasePath == "../../スクリーン/screen-home/テスト項目書/単体テスト仕様書.md"' "$custom_root_out/一覧/画面一覧/screen-manifest.ext.json" >/dev/null \
+  && ! jq -e '.. | strings | select(contains("../../画面/screen-home/"))' "$custom_root_out/一覧/画面一覧/screen-manifest.ext.json" >/dev/null; then
+  echo "PASS: rebuildへcustom design-docs-dirを渡しext manifestはスクリーンだけを指す"
+else
+  echo "FAIL: rebuildのscreenUnitRoot呼出契約またはext manifest linkが不正" >&2
+  exit 1
+fi
+
 # この fixture は --table-manifest / --feature-manifest を渡さないため
 # crud-matrix.json の tables・features は決定的に0件になり、CRUD図(任意出力)は
 # build-matrix-pages.sh の必須成分0件ガードでスキップされる(写真指摘1-101)。

@@ -1,0 +1,30 @@
+change_key: add_customer_id_from_schema
+glossary_key: commerce_platform
+change_type: add
+affected_term_keys: [customer_id]
+proposal_key: customer_id_from_schema
+proposal_content_hash: sha256:ec25fe5d2af0cc1877948fae7902551d7d04a505fe74994a4c43c2e7e41351a3
+base_content_version: 1.0.0
+target_content_version: 2.0.0
+before_hash: null
+after_hash: sha256:e2ac3d94b429f70f930e2b6b3fea23f8e8b5c4c52e643e81bd8ffd85f701d75e
+requested_by: customer-domain-team
+approved_by: [business_approver:domain-reviewer, technical_approver:architecture-reviewer]
+reason: DB主キーを業務識別子として登録するため
+evidence:
+  - {ref: 'db/schema.sql:41', excerpt_hash: 'sha256:1111111111111111111111111111111111111111111111111111111111111111', observed_at: '2026-08-01T00:00:00Z', source_revision: abc1234}
+proposal_audit:
+  decision_reason: 二者承認を完了
+  inferences: []
+  confidence: {score: 0.95, level: high, rationale: DB主キー定義と業務識別子が一致する}
+  reviewers:
+    - {actor: domain-reviewer, role: business_approver, decision: approved, decided_at: '2026-08-01T00:30:00Z'}
+    - {actor: architecture-reviewer, role: technical_approver, decision: approved, decided_at: '2026-08-01T00:40:00Z'}
+  approval_events:
+    - {from: null, to: detected, actor: database-analyzer, actor_role: analyzer, occurred_at: '2026-08-01T00:00:00Z', reason: 識別子候補を検出}
+    - {from: detected, to: needs_review, actor: glossary-maintainer, actor_role: maintainer, occurred_at: '2026-08-01T00:10:00Z', reason: 審査開始}
+    - {from: needs_review, to: approved, actor: glossary-maintainer, actor_role: maintainer, occurred_at: '2026-08-01T00:50:00Z', reason: 二者承認を確認}
+    - {from: approved, to: merged, actor: glossary-maintainer, actor_role: maintainer, occurred_at: '2026-08-01T01:00:00Z', reason: 変更記録を適用}
+  detected_by: {skill: analyzing-database-glossary-candidates, version: 1.0.0}
+applied_at: '2026-08-01T01:05:00Z'
+applied_revision: abc5678

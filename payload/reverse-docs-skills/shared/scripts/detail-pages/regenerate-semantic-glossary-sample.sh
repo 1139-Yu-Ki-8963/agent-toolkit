@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+repo_root="$(cd "$script_dir/../../.." && pwd)"
+fixture="$repo_root/shared/scripts/glossary/fixtures/valid-glossary.yaml"
+registry="$repo_root/shared/scripts/glossary/fixtures/canonical-registry"
+projector="$script_dir/project-semantic-glossary.py"
+portal_root="${1:-$repo_root/shared/samples}"
+output_dir="$portal_root/一覧/用語辞書"
+tmp="$(mktemp -d "${TMPDIR:-/tmp}/semantic-glossary-sample.XXXXXX")"
+trap 'rm -rf "$tmp"' EXIT
+if [ "$#" -eq 0 ]; then
+  page_data="$repo_root/shared/scripts/detail-pages/fixtures/semantic-glossary-sample-page-data.json"
+else
+  page_data="$tmp/semantic-glossary-sample-page-data.json"
+fi
+
+python3 "$projector" \
+  --input "$fixture" \
+  --registry "$registry" \
+  --output "$page_data"
+
+sample_page_data="$(mktemp "$tmp/semantic-glossary-page-data.XXXXXX")"
+jq '.title = "用語辞書" | .description = "承認済みの業務概念とコード上の名称を対応付けます。"' "$page_data" > "$sample_page_data"
+mv "$sample_page_data" "$page_data"
+
+bash "$script_dir/build-detail-page.sh" "$page_data" "$output_dir" --page glossary --portal-dir "$portal_root"
+
+printf 'generated: %s/用語辞書.html\n' "$output_dir"

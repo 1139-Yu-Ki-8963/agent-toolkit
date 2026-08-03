@@ -4,6 +4,7 @@
 
 | 観点キー | 前提 | 操作 | 期待結果 | 機械検証 |
 |---|---|---|---|---|
+| 画面単位root上書き-状態検査 | output-layoutのscreenUnitRootがスクリーンで旧画面rootにdecoyがある | 状態8〜12の画面単位文書検査を行う | スクリーン配下だけを認識し旧rootを読まない | resolve-flow-state.sh self-test「screenUnitRoot上書きだけを状態検査し既定rootのdecoyを除外」 |
 | 状態判定-機械出力採用 | 状態判定の根拠が複数の成果物の実在にわたる | resolve-flow-state.shを実行する | 標準出力の状態キー1行をそのまま採用する | resolve-flow-state.shのself-testケース「状態1 アーキ未調査」ほか16状態 |
 | 状態判定-未判定時の対応 | 状態8までの実在条件が確定しない | resolve-flow-state.shを実行する | 未判定を返しscreen_idの解決状況を確認する | resolve-flow-state.shのself-testケース「未判定 screen_id解決不能で未判定」 |
 | 起動引数表-掲載漏れ検出 | 起動引数表とcontract.mdのargs仕様に差分がある | check-arg-table-coverage.shを実行する | 表に載らない子スキル起動引数を差分として検出する | check-arg-table-coverage.shのself-testケース「合成陰性: 表未掲載のgammaを差分として検出」 |

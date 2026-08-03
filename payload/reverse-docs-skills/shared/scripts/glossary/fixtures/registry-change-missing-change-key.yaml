@@ -1,0 +1,11 @@
+glossary_key: commerce_platform
+change_type: update
+affected_term_keys: [customer]
+base_content_version: 1.9.0
+target_content_version: 2.0.0
+requested_by: customer-team
+approved_by: [business_approver:business-reviewer, technical_approver:architecture-reviewer]
+reason: change_key欠落検証
+after_hash: sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+applied_at: '2026-08-02T00:00:00Z'
+applied_revision: abc1234

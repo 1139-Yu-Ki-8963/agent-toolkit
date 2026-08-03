@@ -13,7 +13,7 @@ allowed-tools: [Bash, Read, Write]
 
 工程全体は orchestrating-reverse-docs-flow が案内する。本スキルはポータルの派生一覧のうちテスト観点表一覧（`unit_kind=test_viewpoint`）のみを担い、単独起動できる（起動引数を渡せば動く）。
 
-`<output_dir>` 配下の `画面/screen-*/詳細設計/単体テスト観点表.md` および `結合テスト観点表.md` を単一の事実源とし、画面横断で集約した manifest JSON を組み立ててテスト観点表.html を生成する。**本スキルは判定・評価を一切行わない**。各画面の観点表に記載された事実（章見出し・観点）の転記に徹する。
+`<output_dir>` 配下の `<screenUnitRoot>/screen-*/詳細設計/単体テスト観点表.md` および `結合テスト観点表.md` を単一の事実源とし、画面横断で集約した manifest JSON を組み立ててテスト観点表.html を生成する。`screenUnitRoot` は output-layout の物理配置キーから解決し、表示用 `kindLabels.screen` はpathに使わない。**本スキルは判定・評価を一切行わない**。各画面の観点表に記載された事実（章見出し・観点）の転記に徹する。
 
 ## 使用タイミング
 

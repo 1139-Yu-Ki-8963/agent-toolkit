@@ -1,0 +1,37 @@
+proposal_key: boundary_confidence_proposal
+proposal_operation: add
+proposal_schema_version: 1.0.0
+target_glossary_key: commerce_platform
+base_content_version: 2.0.0
+target_content_version: 2.0.1
+merge_key: add_boundary_term_to_commerce_platform
+proposed_term:
+  key: boundary_term
+  label: 境界用語
+  definition: 信頼度の下限境界を検証するための業務概念
+  kind: technical_concept
+  category: technical
+  scope: {level: product, includes: [commerce_platform], excludes: []}
+  representations:
+    - {channel: code, value: BoundaryTerm, location: src/boundary.ts:1}
+  lifecycle: {status: active, introduced_in: 2.0.1}
+  stewardship: {approvers: [architecture-reviewer]}
+  provenance:
+    sources:
+      - {type: source, ref: src/boundary.ts:1, supports: representation}
+proposal:
+  extracted_facts:
+    - {subject: BoundaryTerm, predicate: declared_as, object: class, evidence_ref: src/boundary.ts:1}
+  inferences: []
+  evidence:
+    - {ref: src/boundary.ts:1, excerpt_hash: 'sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef', observed_at: '2026-08-02T00:00:00Z', source_revision: def5678}
+  confidence: {score: 0, level: low, rationale: 検出のみで意味根拠が未確認}
+  approval:
+    status: detected
+    reviewers: []
+    reviewed_at: null
+    decision_reason: null
+    events:
+      - {from: null, to: detected, actor: code-analyzer, actor_role: analyzer, occurred_at: '2026-08-02T00:00:00Z', reason: コードから検出}
+  detected_by: {skill: analyzing-code-glossary-candidates, version: 1.0.0}
+merged_revision: null

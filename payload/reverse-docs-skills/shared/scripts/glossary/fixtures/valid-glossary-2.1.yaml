@@ -1,0 +1,27 @@
+schema_version: 1.0.0
+content_version: 2.1.0
+glossary_key: commerce_platform
+title: Commerce platform glossary 2.1
+scope: {level: product, includes: [commerce_platform], excludes: []}
+scope_catalog:
+  - {key: commerce_platform, level: product, parent_key: null, source_ref: docs/domain/commerce.md}
+default_language: ja
+terms:
+  - key: customer
+    label: 顧客
+    definition: 商品またはサービスを購入し継続的な取引関係を持つ主体
+    kind: entity
+    category: business
+    scope: {level: product, includes: [commerce_platform], excludes: []}
+    representations:
+      - {channel: code, value: Customer, symbol_kind: class, location: src/domain/customer.ts:12}
+    aliases:
+      - {value: お客様, type: synonym, language: ja, usage: allowed}
+    lifecycle: {status: active, introduced_in: 1.0.0}
+    stewardship: {approvers: [business-reviewer, architecture-reviewer]}
+    provenance:
+      publication_status: approved
+      decision_ref: proposals/merged_customer_definition
+      change_ref: changes/update_customer_definition
+      sources:
+        - {type: domain_document, ref: docs/domain/customer.md#customer, supports: definition}

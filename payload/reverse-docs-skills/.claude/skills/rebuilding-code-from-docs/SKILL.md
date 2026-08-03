@@ -40,16 +40,16 @@ allowed-tools: [Bash, Edit, Read, TaskCreate, TaskUpdate, Write]
 
 #### 起動引数の解決
 
-`mode=implement` は args として `screen_dir`（画面ディレクトリパス。例: `<output_dir>/画面/screen-<画面ID>/詳細設計`）・`scope`・`reverse_worktree`・`ports`・`baseline_tag_status`・`output_dir`・`template_root`・`audit_script_path`・`chapter_map_path`・`user-approved`・`saved_test_paths`（上流 rebuilding-screen-unit-from-docs が保存した単体テストコードのパス一覧。上流未実施の画面では省略される）を受け取る。これらは管理者が事前解決して渡す値であり、本スキル自身は取得・導出しない。`output_dir` が欠落している場合は Phase 1 で `status=BLOCKED` として管理者へ差し戻す。
+`mode=implement` は args として `screen_dir`（output-layout の `layout.screenUnitRoot` を解決した画面ディレクトリパス。例: `<output_dir>/<screenUnitRoot>/screen-<画面ID>/詳細設計`）・`scope`・`reverse_worktree`・`ports`・`baseline_tag_status`・`output_dir`・`template_root`・`audit_script_path`・`chapter_map_path`・`user-approved`・`saved_test_paths`（上流 rebuilding-screen-unit-from-docs が保存した単体テストコードのパス一覧。上流未実施の画面では省略される）を受け取る。管理者は `screenUnitRoot` を `output_dir` の宣言から解決し、表示用 `kindLabels.screen` や既定文字列「画面」をpathに使わない。これらは管理者が事前解決して渡す値であり、本スキル自身は取得・導出しない。`output_dir` が欠落している場合は Phase 1 で `status=BLOCKED` として管理者へ差し戻す。
 
 起動引数の `screen_dir` から以下の設計資産を frontmatter 経由でロードする。
 
-**画面単位（`画面/詳細設計/` 配下）**:
+**画面単位（`<screen_dir>` 配下）**:
 - 画面詳細設計書.md（必須。無ければ即エラー）
 - DESIGN.md（frontmatter `design_md` キーがあれば必須）
 - 単体テスト観点表.md・結合テスト観点表.md（frontmatter `unit_test_sheet` / `integration_test_sheet` キーがあれば必須）
 
-**画面単位（`画面/テスト項目書/` 配下）**:
+**画面単位（`<screen_dir>/../テスト項目書/` 配下）**:
 - 単体テスト仕様書.md・結合テスト仕様書.md（frontmatter `unit_test_spec` / `integration_test_spec` キーがあれば必須。キー自体が無ければ「不在」と記録し、Phase 4 では観点表から直接テストケースを作成する）
 - 操作シナリオ仕様書.md（frontmatter `operation_test_spec` キーがあれば必須）
 
@@ -92,8 +92,8 @@ allowed-tools: [Bash, Edit, Read, TaskCreate, TaskUpdate, Write]
 対象設計書の該当章のみを読む。オリジナルコード環境は一切読まない（カンニング防止）。加えて、Phase 1 でロード済みの規約ファイル群（`規約/` 配下）を参照し、コーディングスタイル・命名パターン・ディレクトリ配置・コンポーネント設計パターンを把握する。
 
 読み込み対象:
-- `画面/詳細設計/画面詳細設計書.md` — 実装の元となる設計書
-- `画面/詳細設計/DESIGN.md` — スタイル数値の正
+- `<screen_dir>/画面詳細設計書.md` — 実装の元となる設計書
+- `<screen_dir>/DESIGN.md` — スタイル数値の正
 - `プロジェクト共通/共通設計書.md` — 共通挙動の正
 - `プロジェクト共通/メッセージ定義書.md` — 文言の正
 - `プロジェクト共通/DESIGN.md` — 共通デザイン値の正
@@ -109,9 +109,9 @@ allowed-tools: [Bash, Edit, Read, TaskCreate, TaskUpdate, Write]
 
 **単体テストコードは自作しない**。単体テストの正本は上流 rebuilding-screen-unit-from-docs が持つ。起動引数 `saved_test_paths`（上流が設計書リポジトリ `<画面ディレクトリ>/テスト項目書/テストコード/単体/<basename>/` 配下に保存済みの単体テストコード一覧）を受け取っている場合、そのテストコードを起動引数 `reverse_worktree`（本スキルが操作する対象コードリポジトリ。上流の起動引数 `target_repo_path` とは別スキルの別引数であり同一物ではない）の対応パス（`規約/ディレクトリ構成規約.md` に従う配置先）へ配置して実行する。単体テストコードの新規作成は行わない。
 
-**代替経路（上流未実施画面）**: `saved_test_paths` が空または未提供の画面（基準未確立/往復未検証 開始でファイル単位検証をスキップした画面等、上流の単体テストが存在しない場合）に限り、単体テスト観点表（`画面/詳細設計/単体テスト観点表.md`）の各観点キーから直接テストケースを導出して自作する。これは正規の代替経路だが、自作した単体テストは検証用の一時テストであり、テストコード正本ディレクトリ（`<画面ディレクトリ>/テスト項目書/テストコード/単体/`）への保存を禁止する。単体テストコード正本の生産者は rebuilding-screen-unit-from-docs のみである（一本化）。自作した場合は、一時テストである旨を検証記録に明記する。
+**代替経路（上流未実施画面）**: `saved_test_paths` が空または未提供の画面（基準未確立/往復未検証 開始でファイル単位検証をスキップした画面等、上流の単体テストが存在しない場合）に限り、単体テスト観点表（`<screen_dir>/単体テスト観点表.md`）の各観点キーから直接テストケースを導出して自作する。これは正規の代替経路だが、自作した単体テストは検証用の一時テストであり、テストコード正本ディレクトリ（`<画面ディレクトリ>/テスト項目書/テストコード/単体/`）への保存を禁止する。単体テストコード正本の生産者は rebuilding-screen-unit-from-docs のみである（一本化）。自作した場合は、一時テストである旨を検証記録に明記する。
 
-結合テストコードは従来どおり本スキルが自作する。結合テスト仕様書（`画面/テスト項目書/結合テスト仕様書.md`）が存在すれば、その具体的な入力値・期待結果に基づいてテストコードを書く。結合テスト仕様書が不在の場合は、結合テスト観点表（`画面/詳細設計/結合テスト観点表.md`）の各観点キーから直接テストケースを導出する。
+結合テストコードは従来どおり本スキルが自作する。結合テスト仕様書（`<screen_dir>/../テスト項目書/結合テスト仕様書.md`）が存在すれば、その具体的な入力値・期待結果に基づいてテストコードを書く。結合テスト仕様書が不在の場合は、結合テスト観点表（`<screen_dir>/結合テスト観点表.md`）の各観点キーから直接テストケースを導出する。
 
 **E2E テストの作成とベースライン実測（本スキルの確定責務）**: E2E（`RT-` / `SM-` / `IT-` / `CMP-` 接頭辞）テストの作成と、元コード（オリジナルコード環境）でのベースライン実測は本スキル（`mode=implement`）が担う。操作シナリオ仕様書・結合テスト観点表・設計書 frontmatter の `scenarios` に基づいて E2E テストを作成し、オリジナルコード環境に対して実行してベースライン結果を検証記録に残す（実測はオリジナル環境の起動・操作のみで行い、オリジナルコードの Read は行わない。カンニング禁止は維持される）。作成とベースライン実測の完了可否は Phase 6 で返す `compare_request.scenarios_ready` に反映し、両環境突合としての実行は管理者（orchestrating-reverse-docs-flow）が dynamic 検査（`scenarios` 引数）として担う。
 

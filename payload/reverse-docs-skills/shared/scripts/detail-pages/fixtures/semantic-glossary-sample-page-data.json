@@ -1,0 +1,122 @@
+{
+  "pageKind": "glossary",
+  "generatedAt": "2026-08-01T00:00:00Z",
+  "title": "用語辞書",
+  "description": "承認済みの業務概念とコード上の名称を対応付けます。",
+  "projectName": "commerce_platform",
+  "projectionVersion": "0.2",
+  "glossarySchemaVersion": "1.0.0",
+  "glossaryContentVersion": "2.0.0",
+  "categories": [
+    {
+      "key": "entity",
+      "label": "エンティティ"
+    },
+    {
+      "key": "attribute",
+      "label": "属性"
+    },
+    {
+      "key": "value",
+      "label": "値"
+    },
+    {
+      "key": "process",
+      "label": "処理"
+    },
+    {
+      "key": "event",
+      "label": "イベント"
+    },
+    {
+      "key": "role",
+      "label": "役割"
+    },
+    {
+      "key": "rule",
+      "label": "ルール"
+    },
+    {
+      "key": "metric",
+      "label": "指標"
+    }
+  ],
+  "terms": [
+    {
+      "key": "customer",
+      "term_ja": "顧客",
+      "term_en": "",
+      "definition": "商品またはサービスを購入し継続的な取引関係を持つ主体",
+      "scope": "commerce_platform",
+      "category": "entity",
+      "code_name": "Customer",
+      "type_name": "Customer",
+      "db_name": "",
+      "api_name": "",
+      "ui_label": "顧客",
+      "allowed_values": [],
+      "status": "active",
+      "notes": "",
+      "representations": [
+        {
+          "channel": "code",
+          "value": "Customer",
+          "location": "src/domain/customer.ts:12",
+          "symbolKind": "class"
+        }
+      ],
+      "sourceRefs": [
+        "docs/domain/customer.md#customer"
+      ],
+      "aliases": [
+        "お客様"
+      ],
+      "relations": [
+        {
+          "type": "has_identifier",
+          "targetKey": "customer_id"
+        }
+      ],
+      "introducedIn": "1.0.0",
+      "approvers": [
+        "business_approver:domain-reviewer",
+        "technical_approver:architecture-reviewer"
+      ],
+      "decisionRef": "proposals/customer_update_from_document",
+      "changeRef": "changes/update_customer_from_proposal"
+    },
+    {
+      "key": "customer_id",
+      "term_ja": "顧客ID",
+      "term_en": "",
+      "definition": "顧客を他の顧客から一意に識別する値",
+      "scope": "commerce_platform",
+      "category": "attribute",
+      "code_name": "",
+      "type_name": "",
+      "db_name": "customers.customer_id",
+      "api_name": "",
+      "ui_label": "顧客ID",
+      "allowed_values": [],
+      "status": "active",
+      "notes": "",
+      "representations": [
+        {
+          "channel": "database",
+          "value": "customers.customer_id",
+          "location": "db/schema.sql:41"
+        }
+      ],
+      "sourceRefs": [
+        "db/schema.sql:41"
+      ],
+      "introducedIn": "1.0.0",
+      "approvers": [
+        "business_approver:domain-reviewer",
+        "technical_approver:architecture-reviewer"
+      ],
+      "decisionRef": "proposals/customer_id_from_schema",
+      "changeRef": "changes/add_customer_id_from_schema"
+    }
+  ]
+}

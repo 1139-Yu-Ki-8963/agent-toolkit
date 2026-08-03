@@ -43,7 +43,7 @@ unit_kind パラメータで screen / batch / report / external を区別する�
 
 起動引数を検収する: screen_dir / output_dir / template_root / scaffold_script_path / facts_ref / common_docs_root / unit_kind（既定 screen）/ authoring_pass（`standard|large-pass2`、既定 `standard`）。unit_kind が screen 以外の場合は著述せず `status=基本設計著述失敗` とする（「対象範囲」節を参照）。`authoring_pass=large-pass2` では detail_design_path と pass1_receipt_path を必須とする。証跡JSONの `status=DETAIL_AUTHORED`、`detail_design_path` の一致、`facts_lock_sha256` と現在の facts.lock の SHA-256 の一致、`coverage_check=PASS`、`audit_check=PASS`、詳細設計書の実在を機械検収し、1条件でも満たさなければ fail-closed で `status=基本設計著述失敗` とする。
 
-統括（orchestrator）が著述スキル起動前にスキャフォールディングを実施済みの前提で動作する（標準の並列起動・大規模パス2のいずれでも競合を避けるため、実施主体は統括に一本化されている）。ただし単独起動（統括を介さず本スキルを直接起動する経路）でスキャフォールディングが未実施のまま渡された場合は、本スキル自身が以下の手順で実施してから継続する。画面IDは `screen_dir`（`<output_dir>/画面/screen-<画面ID>`）の末尾から復元する。scaffold_script_path は管理者が解決して渡すスキャフォールディングスクリプトのパス（実体: `shared/scripts/scaffold-screen.sh`。正本はこの1本のみ）。
+統括（orchestrator）が著述スキル起動前にスキャフォールディングを実施済みの前提で動作する（標準の並列起動・大規模パス2のいずれでも競合を避けるため、実施主体は統括に一本化されている）。ただし単独起動（統括を介さず本スキルを直接起動する経路）でスキャフォールディングが未実施のまま渡された場合は、本スキル自身が以下の手順で実施してから継続する。画面IDは `screen_dir`（`<output_dir>/<screenUnitRoot>/screen-<画面ID>`。`screenUnitRoot` は output-layout の物理配置キー）の末尾から復元する。表示用 `kindLabels.screen` はpathに使わない。scaffold_script_path は管理者が解決して渡すスキャフォールディングスクリプトのパス（実体: `shared/scripts/scaffold-screen.sh`。正本はこの1本のみ）。
 
 1. `screen_dir` が存在しない場合: `bash <scaffold_script_path> <output_dir> <画面ID>` を実行してテンプレート一式を新規展開する
 2. `screen_dir` が存在する場合: `bash <scaffold_script_path> --verify <output_dir> <画面ID>` で構造の健全性を確認する。exit 1（必須ファイルの欠落等）なら `template_root` 起点の原本から欠落ファイルのみ復元し、`--verify` を再実行する（fail-closed）。再実行してもなお exit 1 なら著述を行わず `status=基本設計著述失敗` とする

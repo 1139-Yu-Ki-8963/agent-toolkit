@@ -1,0 +1,33 @@
+$schema: https://json-schema.org/draft/2020-12/schema
+$id: https://schemas.reverse-docs.local/semantic-glossary/1.0.0/validation-report.schema.yaml
+title: Semantic Glossary Validation Report
+type: object
+additionalProperties: false
+required: [contractVersion, status, sourceKind, sourceRef, counts, findings]
+properties:
+  contractVersion: {const: 0.1.6}
+  status: {enum: [valid, invalid, unavailable]}
+  sourceKind: {enum: [glossary, proposal, change]}
+  sourceRef: {type: string, minLength: 1}
+  counts:
+    type: object
+    additionalProperties: false
+    required: [error, warning, review_required]
+    properties:
+      error: {type: integer, minimum: 0}
+      warning: {type: integer, minimum: 0}
+      review_required: {type: integer, minimum: 0}
+  findings:
+    type: array
+    items:
+      type: object
+      additionalProperties: false
+      required: [severity, code, path, message, relatedRefs]
+      properties:
+        severity: {enum: [error, warning, review_required]}
+        code: {type: string, pattern: '^(?:SGS|SGK|SGR|SGL|SGP|SGV|SGD)_[A-Z0-9_]+$'}
+        path: {type: string}
+        message: {type: string, minLength: 1}
+        relatedRefs:
+          type: array
+          items: {type: string}

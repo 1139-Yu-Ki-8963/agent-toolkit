@@ -1,0 +1,8 @@
+proposal_schema_version: 1.0.0
+proposal_operation: add
+target_glossary_key: commerce_platform
+base_content_version: 2.0.0
+target_content_version: 2.1.0
+merge_key: missing_proposal_key_merge
+proposed_term: {}
+proposal: {}

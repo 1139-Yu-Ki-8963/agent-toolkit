@@ -1,0 +1,12 @@
+change_key: invalid_registry_change
+glossary_key: commerce_platform
+change_type: update
+affected_term_keys: [customer]
+base_content_version: 2.0.0
+target_content_version: 2.1.0
+requested_by: customer-team
+approved_by: [business_approver:business-reviewer]
+reason: registry内changeのschema検証用
+after_hash: sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+applied_at: '2026-08-02T00:00:00Z'
+applied_revision: abc1234

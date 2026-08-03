@@ -1,0 +1,4 @@
+interface:
+  display_name: "用語保守"
+  short_description: "用語変更の品質検査・影響分析・レビュー補助を安全に実行"
+  default_prompt: "$maintaining-semantic-glossary を使って用語変更案の品質と影響を確認してください。"

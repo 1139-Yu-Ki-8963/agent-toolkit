@@ -297,7 +297,9 @@ const templatePath = path.join(
   repositoryRoot,
   'shared/templates/リバース検証/画面/詳細設計/画面詳細設計書.md',
 );
-const temporaryRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'screen-doc-order-'));
+const temporaryRoot = fs.realpathSync(
+  fs.mkdtempSync(path.join(os.tmpdir(), 'screen-doc-order-')),
+);
 const docsRoot = path.join(temporaryRoot, 'docs');
 const detailDir = path.join(docsRoot, '画面/screen-order-test/詳細設計');
 const outputPath = path.join(detailDir, '画面詳細設計書.html');

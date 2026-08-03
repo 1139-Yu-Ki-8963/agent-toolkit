@@ -14,7 +14,7 @@
 <output_dir>/
 ├── 一覧/                  # 種別ごとの目録（画面一覧.html 等6種 + 機能一覧（派生）） + excluded-kinds.json + 画面レジストリ
 ├── プロジェクト共通/      # アーキテクチャ調査書 + 規約4種 + 共通設計書 + メッセージ定義書 + DESIGN.md
-├── 画面/screen-<ID>/      # 詳細設計（画面詳細設計書.md・original.png・rebuilt.png 等）+ 基本設計 + テスト項目書
+├── <screenUnitRoot>/screen-<ID>/ # 画面単位の物理root（output-layout.jsonで解決、既定値: 画面）+ 詳細設計・基本設計・テスト項目書
 └── API/ テーブル/ バッチ/ 帳票/ 外部連携/   # 各種別の詳細設計置き場（現時点は一覧確立まで）
 ```
 
@@ -29,8 +29,8 @@
 | unlocking-reverse-target-screens | `一覧/reverse-screen-registry.yml` への記帳と、対象コード側の基準タグ（`reverse-baseline/<scope>`） |
 | generating-reverse-common-docs | `プロジェクト共通/` の 7 文書 v0（規約 4 種・共通設計書・メッセージ定義書・DESIGN.md） |
 | extracting-unit-facts-from-code | `verification/screen-<ID>/facts/<run_id>/`（facts 一式 + 封印 facts.lock） |
-| generating-reverse-basic-design | `画面/screen-<ID>/基本設計/画面基本設計書.md` |
-| generating-reverse-detailed-design | `画面/screen-<ID>/詳細設計/画面詳細設計書.md`・`DESIGN.md`・`original.png`（画面キャプチャ） |
+| generating-reverse-basic-design | `<screenUnitRoot>/screen-<ID>/基本設計/画面基本設計書.md`（`screenUnitRoot` は output-layout.json で解決） |
+| generating-reverse-detailed-design | `<screenUnitRoot>/screen-<ID>/詳細設計/画面詳細設計書.md`・`DESIGN.md`・`original.png`（画面キャプチャ） |
 | rebuilding-screen-unit-from-docs | `verification/screen-<ID>/単体-<対象ファイル>/` の検証記録と `テスト項目書/テストコード/単体/` の最終テストコード |
 | rebuilding-code-from-docs + syncing-reverse-env | `verification/screen-<ID>/<timestamp>/修正指示書.md`・`最終報告.md`、判定 PASS 時は基準タグの本番更新と `詳細設計/rebuilt.png`（画面キャプチャ）の更新 |
 
@@ -52,7 +52,9 @@
 | generating-env-guide-for-reverse-docs | 調査書とローカル環境調査結果から環境構築手順ページを生成 | 環境構築手順.html |
 | generating-screen-transition-for-reverse-docs | 画面一覧マニフェストとルーティング定義から画面遷移図を生成 | 画面遷移図.html |
 | generating-er-diagram-for-reverse-docs | テーブル一覧マニフェストと FK 定義から ER 図を生成 | ER図.html |
-| generating-glossary-for-reverse-docs | 層化サンプリングによる採録から用語辞書ページを生成 | 用語辞書.html |
+| generating-glossary-for-reverse-docs | リバース解析から未承認の用語候補を生成する互換入口 | 対象repo外の proposal YAML・diagnostics |
+| maintaining-semantic-glossary | 用語追加・更新・廃止・重複検出・影響分析・レビュー補助 | glossary change・検査結果 |
+| managing-semantic-glossary | 承認済み用語YAMLの検証・適用・portal publishを統括 | 用語辞書.html・実行結果 |
 | surveying-architecture-for-reverse-docs | 対象リポジトリの前提調査を機械検証付きで確定 | アーキテクチャ調査書.md |
 | unlocking-reverse-target-screens | 設計書が無い画面をモック API で開通させ基準タグ確立まで単独完走 | 画面レジストリ記帳・基準タグ |
 | syncing-reverse-env | リバース元と設計書の 2 環境同期・比較・基準タグ操作 | 基準タグ・比較結果ブロック |
@@ -205,7 +207,9 @@ bash shared/scripts/tests/check-phase-step-structure.test.sh
 - [環境構築手順ページ生成（generating-env-guide-for-reverse-docs）](.claude/skills/generating-env-guide-for-reverse-docs/references/generating-env-guide-for-reverse-docs-guide.html)
 - [画面遷移図生成（generating-screen-transition-for-reverse-docs）](.claude/skills/generating-screen-transition-for-reverse-docs/references/generating-screen-transition-for-reverse-docs-guide.html)
 - [ER図生成（generating-er-diagram-for-reverse-docs）](.claude/skills/generating-er-diagram-for-reverse-docs/references/generating-er-diagram-for-reverse-docs-guide.html)
-- [用語辞書ページ生成（generating-glossary-for-reverse-docs）](.claude/skills/generating-glossary-for-reverse-docs/references/generating-glossary-for-reverse-docs-guide.html)
+- [用語候補生成互換（generating-glossary-for-reverse-docs）](.claude/skills/generating-glossary-for-reverse-docs/references/generating-glossary-for-reverse-docs-guide.html)
+- [用語保守（maintaining-semantic-glossary）](.claude/skills/maintaining-semantic-glossary/references/maintaining-semantic-glossary-guide.html)
+- [用語管理統括（managing-semantic-glossary）](.claude/skills/managing-semantic-glossary/references/managing-semantic-glossary-guide.html)
 - [画面単位リバース検証バッチ（running-reverse-screen-batch）](.claude/skills/running-reverse-screen-batch/references/running-reverse-screen-batch-guide.html)
 - [コード行数計測（counting-code-lines）](.claude/skills/counting-code-lines/references/counting-code-lines-guide.html)
 - [ローカル環境調査（surveying-local-environment）](.claude/skills/surveying-local-environment/references/surveying-local-environment-guide.html)

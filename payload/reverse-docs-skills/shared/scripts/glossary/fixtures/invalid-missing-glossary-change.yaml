@@ -1,0 +1,13 @@
+change_key: update_missing_catalog_customer
+glossary_key: missing_catalog
+change_type: update
+affected_term_keys: [customer]
+base_content_version: 1.9.0
+target_content_version: 2.0.0
+before_hash: sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+after_hash: sha256:fedcba9876543210
+requested_by: customer-domain-team
+approved_by: [business_approver:business-reviewer, technical_approver:architecture-reviewer]
+reason: 存在しないregistry参照を拒否する検証
+applied_at: '2026-08-02T02:00:00Z'
+applied_revision: fed9876

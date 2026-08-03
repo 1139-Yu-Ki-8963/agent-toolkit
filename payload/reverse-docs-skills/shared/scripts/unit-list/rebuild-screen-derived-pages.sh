@@ -194,7 +194,8 @@ ext="$transaction_root/$SCREEN_MANIFEST_EXT"
 mkdir -p "$(dirname "$ext")"
 extract_args=("$raw" "$target_repo" "$ext" --api-manifest "$api" --generated-at "$generated_at" --manifest-content-hash "$content_hash")
 if [ -n "$design_docs" ]; then
-  extract_args+=(--design-docs-dir "$design_docs" --link-base-dir "$transaction_root/$SCREEN_LIST_DIR")
+  # link値はtransaction一時pathではなくcommit後の最終配置を基準に固定する。
+  extract_args+=(--design-docs-dir "$design_docs" --link-base-dir "$output_root/$SCREEN_LIST_DIR")
 fi
 bash "$REPO_ROOT/shared/scripts/extract/extract-screen-metadata.sh" "${extract_args[@]}"
 

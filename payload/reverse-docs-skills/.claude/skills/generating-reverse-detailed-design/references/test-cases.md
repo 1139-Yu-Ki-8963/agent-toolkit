@@ -4,6 +4,7 @@
 
 | 観点キー | 前提 | 操作 | 期待結果 | 機械検証 |
 |---|---|---|---|---|
+| 画面単位root上書き-verify | screenUnitRootがスクリーンで旧画面rootにdecoyがある | scaffold-screen.sh --verifyを実行する | 物理配置キーのrootだけを検証する | scaffold-screen.sh self-test「screenUnitRoot上書きへ展開しverifyも同じ配置を検証」 |
 | 充足検査-孤児参照の検出 | facts.ymlのevidenceが対象ファイル集合と一致しない | check-facts-sufficiency.shを実行する | orphan-evidenceとしてexit1になる | check-facts-sufficiency.shのself-testケース「陰性: orphan-evidence で exit 1」 |
 | 充足検査-根拠形式の検出 | evidenceの記載形式が規約に合わない | check-facts-sufficiency.shを実行する | evidence-formatとしてexit1になる | check-facts-sufficiency.shのself-testケース「陰性: evidence-format で exit 1」 |
 | 完全性ゲート-未転記キー検出 | facts.ymlのimportに未転記の項目がある | check-fact-coverage.shを実行する | 未転記1件でもexit1のfail-closedとなる | check-fact-coverage.shのself-testケース「陰性1: import未転記1件で exit 1」 |

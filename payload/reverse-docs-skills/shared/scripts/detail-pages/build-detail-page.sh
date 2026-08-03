@@ -680,7 +680,16 @@ PROJECT_NAME="${PROJECT_NAME_ARG:-$(jq -r '.projectName // ""' "$DATA")}"
 TITLE="$(jq -r '.title // ""' "$DATA")"
 DESCRIPTION="$(jq -r '.description // ""' "$DATA")"
 GENERATED_AT="$(jq -r '.generatedAt // ""' "$DATA")"
-PAGE_DATA_JSON="$(cat "$DATA")"
+# application/json script要素内でもHTML parserはscript終端を解釈する。
+# JSONの意味を変えずに「<」とliteral U+2028/U+2029をUnicode escapeし、
+# </script>注入とJavaScript行区切り文字の混入を防ぐ。入力page-dataは変更しない。
+PAGE_DATA_JSON="$(python3 -c '
+import json, sys
+with open(sys.argv[1], encoding="utf-8") as source:
+    value = json.load(source)
+text = json.dumps(value, ensure_ascii=False, indent=2)
+sys.stdout.write(text.replace("<", "\\u003c").replace("\u2028", "\\u2028").replace("\u2029", "\\u2029"))
+' "$DATA")"
 
 # --- 関連エンティティ(スキーマ拡張フィールド)セクションの生成 ---
 # page-data内の全オブジェクトを走査し、拡張フィールド(非空配列)を1つ以上持つ要素ごとに

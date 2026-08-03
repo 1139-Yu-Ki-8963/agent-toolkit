@@ -1,0 +1,48 @@
+schema_version: 0.9.0
+content_version: 1.0.0
+glossary_key: item_001
+title: Invalid glossary
+scope:
+  level: application
+  includes: [missing_scope]
+  excludes: []
+scope_catalog:
+  - key: application_scope
+    level: application
+    parent_key: missing_parent
+    source_ref: docs/invalid.md
+default_language: ja
+terms:
+  - key: term_001
+    label: 顧客
+    definition: 不正な参照を含む顧客概念の定義
+    kind: entity
+    category: business
+    scope:
+      level: application
+      includes: [missing_scope]
+      excludes: []
+    representations:
+      - channel: code
+        value: Customer
+        location: src/customer.ts:1
+    forbidden_terms:
+      - value: 顧客
+        reason: 許可表記と衝突するため
+        replacement_key: missing_term
+    relations:
+      - type: part_of
+        target_key: missing_term
+    lifecycle:
+      status: active
+      introduced_in: 2.0.0
+      deprecated_in: 1.0.0
+      replaced_by: missing_term
+      reason: active状態に廃止値を持たせる不正検証
+    stewardship:
+      approvers: []
+    provenance:
+      sources:
+        - type: source
+          ref: docs/invalid.md
+          supports: definition

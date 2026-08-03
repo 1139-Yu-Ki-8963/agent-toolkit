@@ -263,7 +263,7 @@ check_site_def_missing() {
   return 1
 }
 
-FOUNDATION_PAGES="用語辞書.html 技術スタック.html 画面遷移図.html ER図.html 環境構築手順.html リリースノート.html デザインシステム.html コンポーネント棚卸し.html アイコンカタログ.html"
+FOUNDATION_PAGES="技術スタック.html 画面遷移図.html ER図.html 環境構築手順.html リリースノート.html デザインシステム.html コンポーネント棚卸し.html アイコンカタログ.html"
 
 check_foundation_pages_missing() {
   local p
@@ -280,7 +280,7 @@ check_state_transition_missing() {
 
 check_sequence_diagram_missing() {
   [ -n "$SCREEN_ID" ] || return 1
-  [ -f "$OUTPUT_DIR/画面/screen-$SCREEN_ID/シーケンス図.html" ] && return 1
+  [ -f "$OUTPUT_DIR/$SCREEN_UNIT_ROOT/screen-$SCREEN_ID/シーケンス図.html" ] && return 1
   return 0
 }
 
@@ -298,12 +298,12 @@ check_facts_unsealed() {
 }
 
 check_basic_design_missing() {
-  [ -f "$OUTPUT_DIR/画面/screen-$SCREEN_ID/基本設計/画面基本設計書.md" ] && return 1
+  [ -f "$OUTPUT_DIR/$SCREEN_UNIT_ROOT/screen-$SCREEN_ID/基本設計/画面基本設計書.md" ] && return 1
   return 0
 }
 
 check_detail_design_missing() {
-  [ -f "$OUTPUT_DIR/画面/screen-$SCREEN_ID/詳細設計/画面詳細設計書.md" ] && return 1
+  [ -f "$OUTPUT_DIR/$SCREEN_UNIT_ROOT/screen-$SCREEN_ID/詳細設計/画面詳細設計書.md" ] && return 1
   return 0
 }
 
@@ -431,6 +431,7 @@ self_test() {
   trap 'rm -rf "$tmp"' RETURN
 
   LAYOUT_JSON="$(resolve_output_layout "")" || return 1
+  SCREEN_UNIT_ROOT="$(output_layout_get "$LAYOUT_JSON" screenUnitRoot)" || return 1
 
   local pass=0 fail=0
   local docs="$tmp/docs"
@@ -536,8 +537,8 @@ JSON
   assert_state "シーケンス図未生成（任意）" "状態8 シーケンス図未生成（任意）"
 
   # 状態9: 事実未封印（シーケンス図.htmlを追加）
-  mkdir -p "$docs/画面/screen-$SCREEN_ID_FIXED"
-  : > "$docs/画面/screen-$SCREEN_ID_FIXED/シーケンス図.html"
+  mkdir -p "$docs/$SCREEN_UNIT_ROOT/screen-$SCREEN_ID_FIXED"
+  : > "$docs/$SCREEN_UNIT_ROOT/screen-$SCREEN_ID_FIXED/シーケンス図.html"
   assert_state "事実未封印" "状態9 事実未封印"
 
   # 状態10: 基本設計未著述（factsを実際にseal-facts.shで封印する）
@@ -551,13 +552,13 @@ YML
   assert_state "基本設計未著述" "状態10 基本設計未著述"
 
   # 状態11: 設計書未著述（画面基本設計書.mdを追加）
-  mkdir -p "$docs/画面/screen-$SCREEN_ID_FIXED/基本設計"
-  : > "$docs/画面/screen-$SCREEN_ID_FIXED/基本設計/画面基本設計書.md"
+  mkdir -p "$docs/$SCREEN_UNIT_ROOT/screen-$SCREEN_ID_FIXED/基本設計"
+  : > "$docs/$SCREEN_UNIT_ROOT/screen-$SCREEN_ID_FIXED/基本設計/画面基本設計書.md"
   assert_state "設計書未著述" "状態11 設計書未著述"
 
   # 状態12: 画面未開通（画面詳細設計書.mdを追加）
-  mkdir -p "$docs/画面/screen-$SCREEN_ID_FIXED/詳細設計"
-  : > "$docs/画面/screen-$SCREEN_ID_FIXED/詳細設計/画面詳細設計書.md"
+  mkdir -p "$docs/$SCREEN_UNIT_ROOT/screen-$SCREEN_ID_FIXED/詳細設計"
+  : > "$docs/$SCREEN_UNIT_ROOT/screen-$SCREEN_ID_FIXED/詳細設計/画面詳細設計書.md"
   assert_state "画面未開通" "状態12 画面未開通"
 
   # 状態13: ファイル単位未検証（画面レジストリにverification_urlを記帳。--target-fileを指定してNG一覧ありの記録を追加）
@@ -642,8 +643,8 @@ MD
   : > "$undetermined_docs/sites.json"
   for p in $FOUNDATION_PAGES; do : > "$undetermined_docs/$p"; done
   : > "$undetermined_docs/状態遷移図.html"
-  mkdir -p "$undetermined_docs/画面/screen-XXX"
-  : > "$undetermined_docs/画面/screen-XXX/シーケンス図.html"
+  mkdir -p "$undetermined_docs/$SCREEN_UNIT_ROOT/screen-XXX"
+  : > "$undetermined_docs/$SCREEN_UNIT_ROOT/screen-XXX/シーケンス図.html"
   OUTPUT_DIR="$undetermined_docs"
   TARGET_REPO_PATH=""
   SCREEN_ID=""
@@ -657,6 +658,35 @@ MD
     echo "PASS: 未判定 screen_id解決不能で未判定（${got}）"; pass=$((pass + 1))
   else
     echo "FAIL: 未判定 screen_id解決不能で未判定（期待=未判定 実測=${got}）"; fail=$((fail + 1))
+  fi
+
+  # screenUnitRoot上書き: 状態8〜12の画面単位文書検査は上書きrootだけを参照する
+  local custom_docs="$tmp/docs-custom-root"
+  mkdir -p "$custom_docs/画面/screen-$SCREEN_ID_FIXED/基本設計" \
+    "$custom_docs/画面/screen-$SCREEN_ID_FIXED/詳細設計" \
+    "$custom_docs/スクリーン/screen-$SCREEN_ID_FIXED/基本設計" \
+    "$custom_docs/スクリーン/screen-$SCREEN_ID_FIXED/詳細設計"
+  cat > "$custom_docs/output-layout.json" <<'JSON'
+{ "specVersion": 1, "layout": { "screenUnitRoot": "スクリーン" } }
+JSON
+  : > "$custom_docs/画面/screen-$SCREEN_ID_FIXED/シーケンス図.html"
+  : > "$custom_docs/画面/screen-$SCREEN_ID_FIXED/基本設計/画面基本設計書.md"
+  : > "$custom_docs/画面/screen-$SCREEN_ID_FIXED/詳細設計/画面詳細設計書.md"
+  OUTPUT_DIR="$custom_docs"
+  SCREEN_ID="$SCREEN_ID_FIXED"
+  LAYOUT_JSON="$(resolve_output_layout "$OUTPUT_DIR")" || return 1
+  SCREEN_UNIT_ROOT="$(output_layout_get "$LAYOUT_JSON" screenUnitRoot)" || return 1
+  if check_sequence_diagram_missing && check_basic_design_missing && check_detail_design_missing; then
+    : > "$custom_docs/スクリーン/screen-$SCREEN_ID_FIXED/シーケンス図.html"
+    : > "$custom_docs/スクリーン/screen-$SCREEN_ID_FIXED/基本設計/画面基本設計書.md"
+    : > "$custom_docs/スクリーン/screen-$SCREEN_ID_FIXED/詳細設計/画面詳細設計書.md"
+    if ! check_sequence_diagram_missing && ! check_basic_design_missing && ! check_detail_design_missing; then
+      echo "PASS: screenUnitRoot上書きだけを状態検査し既定rootのdecoyを除外"; pass=$((pass + 1))
+    else
+      echo "FAIL: screenUnitRoot上書きの状態検査が実在文書を認識しない"; fail=$((fail + 1))
+    fi
+  else
+    echo "FAIL: screenUnitRoot上書きの状態検査が既定rootのdecoyを読み込んだ"; fail=$((fail + 1))
   fi
 
   echo "self-test: $pass PASS, $fail FAIL"
@@ -685,5 +715,6 @@ if [ ! -d "$OUTPUT_DIR" ]; then
 fi
 
 LAYOUT_JSON="$(resolve_output_layout "$OUTPUT_DIR")" || exit 1
+SCREEN_UNIT_ROOT="$(output_layout_get "$LAYOUT_JSON" screenUnitRoot)" || exit 1
 
 resolve_state

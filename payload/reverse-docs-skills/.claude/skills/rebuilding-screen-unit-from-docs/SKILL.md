@@ -18,6 +18,7 @@ allowed-tools: [Agent, Bash, Edit, Read, Skill, TaskCreate, TaskUpdate, Write]
 
 - リバース済み設計書のファイル単位往復検証を行いたいとき（設計書の著述・品質ブートストラップは `generating-reverse-detailed-design` が担当）
 - 起動引数は **画面ディレクトリ + 対象ファイルパス**（実装契約章のファイル分割表〔既定 §15.1〕の 1 エントリ）
+- 管理者は output-layout の `layout.screenUnitRoot` を `output_dir` から解決して画面ディレクトリを渡す。表示用 `kindLabels.screen` や既定文字列「画面」を物理pathに使わない
 - 起動引数 `verification_mode` は `single-pass|iterative`（既定 `single-pass`）。`single-pass` は Phase 2〜5 を1回だけ実行して差分を報告し、設計書修正・再投入を行わない。`iterative` の場合だけ Phase 6 の精度向上ループを使う
 - 前提: 対象ファイルが §15.1 のファイル分割表に列挙されていること。列挙が無い場合は `status=差し戻し` として Phase 1 で終了し、`generating-reverse-detailed-design` の実行を hint に記録する
 - 画面単位の結合・e2e 検証（Playwright スモーク・複数ファイル横断の突合）が必要なときは画面単位検証（後続工程）を使う（起動判断・引き継ぎは管理者 orchestrating-reverse-docs-flow が行う）。本スキルは単体（small）観点のみを扱う

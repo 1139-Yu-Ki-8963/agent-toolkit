@@ -56,6 +56,25 @@ self_test() {
     --portal-dir "$repo_root/shared/samples" \
     --golden "$DEFAULT_GOLDEN"
 
+  if [ "$(jq -r '[.categories[].blueprints[] | select(.kind=="semantic-glossary" and .generator=="managing-semantic-glossary" and .discovery.artifactType=="glossary-page")] | length' "$DEFAULT_CATALOG")" -ne 1 ]; then
+    echo "FAIL: approved semantic glossary blueprint is missing or duplicated" >&2
+    return 1
+  fi
+  if [ "$(jq -r '.categories[] | select(any(.blueprints[]; .kind=="semantic-glossary")) | .key' "$DEFAULT_CATALOG")" != "list" ]; then
+    echo "FAIL: semantic glossary must belong to list (一覧・設計図), not project (基盤情報)" >&2
+    exit 1
+  fi
+  if [ "$(jq -r '.categories[].blueprints[] | select(.kind=="semantic-glossary") | .dir' "$DEFAULT_CATALOG")" != "一覧/用語辞書" ] \
+    || [ "$(jq -r '.categories[].blueprints[] | select(.kind=="semantic-glossary") | .discovery.glob' "$DEFAULT_CATALOG")" != "一覧/用語辞書/用語辞書.html" ]; then
+    echo "FAIL: semantic glossary must be physically located under 一覧/用語辞書" >&2
+    exit 1
+  fi
+  if jq -e '.categories[].blueprints[] | select(.generator=="generating-glossary-for-reverse-docs")' "$DEFAULT_CATALOG" >/dev/null; then
+    echo "FAIL: obsolete reverse glossary generator returned to portal catalog" >&2
+    return 1
+  fi
+  echo "PASS: approved semantic glossary blueprint replaces obsolete reverse generator"
+
   mkdir -p "$tmpdir/output/pages"
   printf '<h1>Beta</h1><script type="application/json" id="broken">{</script>' > "$tmpdir/output/pages/b.html"
   printf '<h1>Alpha</h1>' > "$tmpdir/output/pages/a.html"

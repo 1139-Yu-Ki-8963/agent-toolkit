@@ -4,6 +4,7 @@
 
 | 観点キー | 前提 | 操作 | 期待結果 | 機械検証 |
 |---|---|---|---|---|
+| 画面単位root上書き-decoy除外 | screenUnitRootがスクリーンで旧画面rootにも観点表がある | aggregate-test-viewpoints.shを実行する | スクリーン配下2種だけを集約する | aggregate-test-viewpoints.sh self-test「screenUnitRoot上書きだけを探索し既定rootのdecoyを除外」 |
 | 観点表横断集約-連結成功 | 単体・結合の2観点表が実在する | aggregate-test-viewpoints.shから検証・HTML・ポータルまで連結実行する | 2種のカテゴリと観点が可視表示されポータルへ反映される | aggregate-test-viewpoints.shのself-testケース「self-test PASS: テスト観点表の集約→検証→HTML→ポータル連結」 |
 | manifest埋め込み範囲-非表示確認 | 観点データがpage-data埋め込みJSONに含まれる | 生成HTMLのscriptタグのみを抽出する | manifest内容が可視表示テーブルとは別に埋め込まれていることを区別できる | aggregate-test-viewpoints.shのself-testケース「self-test PASS: テスト観点表の集約→検証→HTML→ポータル連結」内のmanifest_only検査 |
 | 観点表0件-空状態完走 | output_dir配下に観点表が1件も無い | Phase 1〜4を実行する | エラーにせず units:[] で正常終了し空状態ページを生成する | aggregate-test-viewpoints.shのself-testケース「self-test PASS: 0件のoutput_dirでも集約→検証→HTML生成が完走（空状態ページ生成）」 |

@@ -49,7 +49,7 @@ allowed-tools: [Read, Bash, Write, Edit, Grep, Glob]
 
 **使用ツール**: Read / Bash / Glob / Grep
 
-- **Step 1** — `<output_dir>/画面/screen-*/テスト項目書/単体テスト仕様書.md`・`結合テスト仕様書.md`・`操作シナリオ仕様書.md` を `find`/`ls` で走査する。3 種とも 0 件ならハード停止し、テスト仕様書が未作成である旨を報告して終了する。完了条件: 1 件以上の実在確認済み、または不在を報告して停止している
+- **Step 1** — output-layout の `layout.screenUnitRoot` を解決し、`<output_dir>/<screenUnitRoot>/screen-*/テスト項目書/単体テスト仕様書.md`・`結合テスト仕様書.md`・`操作シナリオ仕様書.md` を走査する。表示用 `kindLabels.screen` や既定文字列「画面」をpathに流用しない。3 種とも 0 件ならハード停止し、テスト仕様書が未作成である旨を報告して終了する。完了条件: 1 件以上の実在確認済み、または不在を報告して停止している
 
 **完了**: per-screen テスト仕様書の 1 件以上の実在確認済み、または不在を報告して停止している
 

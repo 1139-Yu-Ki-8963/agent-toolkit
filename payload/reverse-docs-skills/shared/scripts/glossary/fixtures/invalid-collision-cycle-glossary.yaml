@@ -1,0 +1,61 @@
+schema_version: 1.0.0
+content_version: 2.0.0
+glossary_key: collision_catalog
+title: Collision glossary
+scope:
+  level: product
+  includes: [collision_product]
+  excludes: []
+scope_catalog:
+  - key: collision_product
+    level: product
+    parent_key: null
+    source_ref: docs/collision.md
+default_language: ja
+terms:
+  - key: customer
+    label: Customer
+    definition: 商品またはサービスを購入する顧客主体
+    kind: entity
+    category: business
+    scope: {level: product, includes: [collision_product], excludes: []}
+    representations:
+      - {channel: code, value: Customer, location: src/customer.ts:1}
+    aliases:
+      - {value: 'ＣＵＳＴＯＭＥＲ ', type: legacy, language: en, usage: read_only}
+    forbidden_terms:
+      - {value: customer, reason: 許可表記との衝突検証, replacement_key: customer}
+    relations:
+      - {type: part_of, target_key: order}
+    lifecycle:
+      status: deprecated
+      introduced_in: 1.0.0
+      deprecated_in: 2.0.0
+      migration_deadline: '2026-12-31'
+      replaced_by: order
+      reason: 置換循環を検証するため
+    stewardship: {approvers: [business-reviewer]}
+    provenance:
+      sources:
+        - {type: domain_document, ref: docs/customer.md, supports: definition}
+  - key: order
+    label: 注文
+    definition: 顧客が商品またはサービスを購入する意思表示
+    kind: entity
+    category: business
+    scope: {level: product, includes: [collision_product], excludes: []}
+    representations:
+      - {channel: code, value: Order, location: src/order.ts:1}
+    relations:
+      - {type: part_of, target_key: customer}
+    lifecycle:
+      status: deprecated
+      introduced_in: 1.0.0
+      deprecated_in: 2.0.0
+      migration_deadline: '2026-12-31'
+      replaced_by: customer
+      reason: 置換循環を検証するため
+    stewardship: {approvers: [business-reviewer]}
+    provenance:
+      sources:
+        - {type: domain_document, ref: docs/order.md, supports: definition}

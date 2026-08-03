@@ -1,0 +1,37 @@
+proposal_key: cross_kind_operation_proposal
+proposal_operation: add
+proposal_schema_version: 1.0.0
+target_glossary_key: commerce_platform
+base_content_version: 2.0.0
+target_content_version: 2.1.0
+merge_key: add_customer_status
+proposed_term:
+  key: account_status
+  label: アカウント状態
+  definition: アカウントが現在利用できる状態かを示す区分
+  kind: status
+  category: business
+  scope: {level: product, includes: [commerce_platform], excludes: []}
+  representations:
+    - {channel: api, value: accountStatus, location: openapi/account.yaml#/accountStatus}
+  lifecycle: {status: active, introduced_in: 2.1.0}
+  stewardship: {approvers: [business-reviewer, architecture-reviewer]}
+  provenance:
+    sources:
+      - {type: openapi, ref: openapi/account.yaml#/accountStatus, supports: representation}
+proposal:
+  extracted_facts:
+    - {subject: accountStatus, predicate: declared_as, object: enum, evidence_ref: openapi/account.yaml#/accountStatus}
+  inferences: []
+  evidence:
+    - {ref: openapi/account.yaml#/accountStatus, excerpt_hash: 'sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef', observed_at: '2026-08-02T00:00:00Z', source_revision: abc1234}
+  confidence: {score: 0.7, level: medium, rationale: API定義のみ確認済み}
+  approval:
+    status: detected
+    reviewers: []
+    reviewed_at: null
+    decision_reason: null
+    events:
+      - {from: null, to: detected, actor: analyzer, actor_role: analyzer, occurred_at: '2026-08-02T00:00:00Z', reason: API解析で検出}
+  detected_by: {skill: analyzing-api-glossary-candidates, version: 1.0.0}
+merged_revision: null

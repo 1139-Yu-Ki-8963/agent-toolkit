@@ -179,7 +179,7 @@ Phase 1の調査結果とアーキテクチャ調査書（`survey_doc_path`）�
 
 **使用ツール**: Read / Bash / Write
 
-検出・既存テスト件数・階層分類を含むraw作業コピーを一時ファイル+renameで`<output_dir>/一覧/画面一覧/screen-manifest.json`へ原子的に保存し、`validate-manifest.sh <raw> --unit-kind screen`を通す。固定した`generated_at`と、`jq -cjS .`したrawのSHA-256である`manifest_content_hash`を求め、`../../../shared/scripts/extract/extract-screen-metadata.sh <raw> <source_dir> <output_dir>/一覧/画面一覧/screen-manifest.ext.json --design-docs-dir <output_dir>/画面 --link-base-dir <output_dir>/一覧/画面一覧 --generated-at "$generated_at" --manifest-content-hash "$manifest_content_hash"`を実行する。extも一時ファイル+renameで原子的に保存し、rawの検出由来フィールドが保持され、`manifestContentHash`がrawの再計算値と一致することを確認する。設計書著述後に一覧を再生成する場合も永続rawから同じ固定時刻・hash付きコマンドを再実行する。
+検出・既存テスト件数・階層分類を含むraw作業コピーを一時ファイル+renameで`<output_dir>/一覧/画面一覧/screen-manifest.json`へ原子的に保存し、`validate-manifest.sh <raw> --unit-kind screen`を通す。固定した`generated_at`と、`jq -cjS .`したrawのSHA-256である`manifest_content_hash`を求め、output-layout の `layout.screenUnitRoot` を解決して `../../../shared/scripts/extract/extract-screen-metadata.sh <raw> <source_dir> <output_dir>/一覧/画面一覧/screen-manifest.ext.json --design-docs-dir <output_dir>/<screenUnitRoot> --link-base-dir <output_dir>/一覧/画面一覧 --generated-at "$generated_at" --manifest-content-hash "$manifest_content_hash"`を実行する。extも一時ファイル+renameで原子的に保存し、rawの検出由来フィールドが保持され、`manifestContentHash`がrawの再計算値と一致することを確認する。設計書著述後に一覧を再生成する場合も永続rawから同じ固定時刻・hash付きコマンドを再実行する。
 
 **完了**: raw・raw由来extが永続化され、schema・検出由来フィールド・hashの検証がPASS
 
@@ -301,11 +301,14 @@ Phase 1の調査結果とアーキテクチャ調査書（`survey_doc_path`）�
   --target-repo "<target_repo_path>" \
   --api-manifest "<api_manifest_path>" \
   --output-root "<output_dir>" \
+  --design-docs-dir "<output_dir>/<screenUnitRoot>" \
   --generated-at "<ISO8601 UTC>" \
   [--sites "<sites_path>" --site-key "<site_key>"]
 ```
 
 同スクリプトはrawの正規化bytesから`manifestContentHash`を算出し、全派生へ伝播する。全childと`check-screen-manifest-consistency.sh`がPASSしてから13fileをcommitし、失敗時は開始前のtreeへrollbackする。
+
+`screenUnitRoot` は `--output-root` 直下の output-layout から呼出側が解決し、`--design-docs-dir "<output_dir>/<screenUnitRoot>"` として明示する。一覧・画面遷移・matrixの配置はこのキーへ連動しない。
 
 ## 設計判断
 
