@@ -133,7 +133,11 @@ find "$target_dir" \
 - `*.test.ts` / `*.test.tsx` / `*.spec.ts` / `*.spec.tsx`
 - `test_*.py` / `*_test.py`
 
-列挙したテストファイルに対して、ファイル内容から `it(` / `test(` / `def test_` の出現数を grep で計数する。テストファイルを先に列挙してから計数することで、テスト以外のファイル内の偶発的な文字列一致を防ぐ。FE/BE の内訳は Phase 4 と同じ判定パスをそのまま適用する。判定パスは、パスに `backend/` `api/` `server/` を含めば BE とする。パスに `frontend/` `src/pages/` `src/components/` `src/app/` を含めば FE とする。テストファイル数も同じ判定パスで分類する。
+列挙したテストファイルに対して、ファイル内容からアサーション出現数を grep で計数する。計数パターンは、`survey_doc_path` が指定されている場合はアーキテクチャ調査書のテスト規約（フレームワーク）から決定する。
+
+指定されていない場合は既定パターン（`it(` / `test(` / `def test_` / Perl Test::More形式の `ok(` / `is(` / `like(`）を全て試す。テストファイルを先に列挙してから計数することで、テスト以外のファイル内の偶発的な文字列一致を防ぐ。テストファイルが1件以上検出されているにもかかわらず既定パターンに一致しない場合は `tests.assertionPatternUnsupported` を `true` として記録する。`tests.count` は 0 のままにして、「アサーションが存在しない」場合と区別する。
+
+FE/BE の内訳は Phase 4 と同じ判定パスをそのまま適用する。判定パスは、パスに `backend/` `api/` `server/` を含めば BE とする。パスに `frontend/` `src/pages/` `src/components/` `src/app/` を含めば FE とする。テストファイル数も同じ判定パスで分類する。
 
 テストファイルの列挙パターンは、`survey_doc_path` が指定されている場合、アーキテクチャ調査書の技術スタック節に記載されたテスト規約（フレームワーク・命名規則）から決定する。`survey_doc_path` が指定されていない場合のみ既定 6 種（`*.test.ts` `*.test.tsx` `*.spec.ts` `*.spec.tsx` `test_*.py` `*_test.py`）を使う。
 
@@ -166,7 +170,7 @@ Write 前に `$output_dir/code-metrics.json` が既存であれば読み込む�
   "method": "cloc",
   "measured_at": "<ISO8601 タイムスタンプ>",
   "commit": "<git rev-parse HEAD の値 | null>",
-  "tests": { "count": 128, "fe": 84, "be": 44, "files": 37 },
+  "tests": { "count": 128, "fe": 84, "be": 44, "files": 37, "assertionPatternUnsupported": false },
   "previous": { "total": 66210, "tests_count": 120, "measured_at": "<前回計測時の ISO8601 タイムスタンプ>" },
   "scanScope": {
     "extensions": ["<採用した対象拡張子>"],
@@ -185,7 +189,7 @@ Write 前に `$output_dir/code-metrics.json` が既存であれば読み込む�
 }
 ```
 
-`method` は `"cloc"` または `"wc"` を記録する。`previous` はファイル不在（初回計測）時のみ `null` を記録する。`scanScope`・`unclassified`・`testDetectionFailed` は既存キーに追加する新規キーであり、既存キーの値・意味は変更しない。`unclassified.warning` は `unclassified.ratio` が 0.5 を超えたときに `true` とする。
+`method` は `"cloc"` または `"wc"` を記録する。`previous` はファイル不在（初回計測）時のみ `null` を記録する。`scanScope`・`unclassified`・`testDetectionFailed` は既存キーに追加する新規キーであり、既存キーの値・意味は変更しない。`unclassified.warning` は `unclassified.ratio` が 0.5 を超えたときに `true` とする。`tests.assertionPatternUnsupported` は、既定パターンが対応しない言語のテストファイルが検出された場合に `true` とする。
 
 ## 完了条件
 
@@ -195,7 +199,7 @@ Write 前に `$output_dir/code-metrics.json` が既存であれば読み込む�
 | Phase 2 | 計測方式（cloc/wc）が決定済み |
 | Phase 3 | コード行数の計測が完了。scanScope（対象拡張子・除外ディレクトリ）が記録済み |
 | Phase 4 | FE/BE の分離が完了。unclassified（件数・行数・率・警告）が記録済み |
-| Phase 5 | テスト計測（件数・FE/BE 内訳・ファイル数）が完了。testDetectionFailed が記録済み |
+| Phase 5 | テスト計測（件数・FE/BE 内訳・ファイル数）が完了。testDetectionFailed・tests.assertionPatternUnsupported が記録済み |
 | Phase 6 | code-metrics.json が出力先に存在する |
 | **Goal** | `shared/scripts/validate-code-metrics.sh "$output_dir/code-metrics.json"` の終了コードが 0 であること。終了コード 0 は total/fe/be/file_count/tests/commit/previous/scanScope/unclassified/testDetectionFailed の値が妥当であることの機械的な合格判定であり、自然文の自己申告に代える |
 
@@ -211,7 +215,7 @@ Write 前に `$output_dir/code-metrics.json` が既存であれば読み込む�
 - 未分類率は `unclassified.ratio` として計測結果に記録され、0.5 を超えると `unclassified.warning` が真になる
 - 大規模リポジトリ（10万行超）では cloc の実行に数十秒かかる場合がある
 - `it.each` / パラメタライズドテスト / `describe.each` は展開後の実行時ケース数ではなく 1 件として計数される。グロブ・grep ベースの静的計数のため、実行時に動的展開されるケース数までは追跡しない
-- テスト以外の種類のファイル（ドキュメント・スクリプト等）に書かれた `it(` / `test(` / `def test_` 相当の文字列は計数されない。テストファイル名パターンに一致するファイルのみが計数対象
+- テスト以外の種類のファイル（ドキュメント・スクリプト等）に書かれた `it(` / `test(` / `def test_` / `ok(` / `is(` / `like(` 相当の文字列は計数されない。テストファイル名パターンに一致するファイルのみが計数対象
 
 ## 完了報告
 

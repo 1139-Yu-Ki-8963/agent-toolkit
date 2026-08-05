@@ -12,6 +12,7 @@
 | テスト検出失敗-設定不在との区別 | 既定パターンでのテストファイル列挙が0件になる | Phase 5でテストランナー設定の実在を確認する | 設定もテスト用ディレクトリも実在しなければtestDetectionFailedをtrueにする | 手動 |
 | 初回計測-previousのnull化 | code-metrics.jsonが出力先に存在しない初回計測である | Phase 6でWriteを実行する | previousをnullとし、デフォルト値を作らない | 手動 |
 | 未分類ファイル-total不一致の許容 | FE/BEいずれのパターンにも一致しないファイルがある | Phase 4でFE/BE分離を実行する | totalにのみ計上し、totalとfe足すbeの合計が一致しない状態を許容する | 手動 |
+| Perlテスト-アサーション計数 | Test::More形式（`ok(` / `is(` / `like(`）で書かれたPerlテストファイルがある | Phase 5でアサーション出現数を計数する | `ok(` / `is(` / `like(`の出現数を合算し、tests.countに0以外の値が記録される | 手動 |
 
 ## 機械検証との対応
 
