@@ -385,8 +385,6 @@ self_test() {
   mkdir -p "$fx/.claude/rules/always/test-gate" \
            "$fx/.claude/rules/scoped/adv-note" \
            "$fx/.claude/rules/always/plain-doc" \
-           "$fx/.claude/rules/generated/generated-advisory" \
-           "$fx/.claude/rules/generated/generated-block" \
            "$fx/.claude/skills/testing-fixture-skill" \
            "$fx/.claude/agents"
 
@@ -404,62 +402,6 @@ self_test() {
 ## 関連
 
 - なし
-EOF
-
-  cat > "$fx/.claude/rules/generated/generated-advisory/rule.md" <<'EOF'
----
-generatedBy: generate-rules-from-common-docs.sh
-ruleKey: "generated-advisory"
-sourcePath: "共通規約/コーディング規約.md"
-sourceSha256: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
-targetPath: "**/*"
-declaredEnforcement: advisory
-mechanicalEnforcement: false
----
-
-# 生成助言規約
-EOF
-
-  cat > "$fx/.claude/rules/generated/generated-block/rule.md" <<'EOF'
----
-generatedBy: generate-rules-from-common-docs.sh
-ruleKey: "generated-block"
-sourcePath: "共通規約/命名規約.md"
-sourceSha256: bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
-targetPath: "**/*"
-declaredEnforcement: block
-mechanicalEnforcement: false
----
-
-# 生成block規約
-EOF
-
-  cat > "$fx/.claude/rules/generated/index.json" <<'EOF'
-{
-  "generatedBy": "generate-rules-from-common-docs.sh",
-  "schemaVersion": 1,
-  "sourceDocumentSha256": {},
-  "entries": [
-    {
-      "key": "generated-advisory",
-      "rulePath": ".claude/rules/generated/generated-advisory/rule.md",
-      "sourcePath": "共通規約/コーディング規約.md",
-      "sourceSha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-      "declaredEnforcement": "advisory",
-      "mechanicalEnforcement": false,
-      "summary": "生成助言規約"
-    },
-    {
-      "key": "generated-block",
-      "rulePath": ".claude/rules/generated/generated-block/rule.md",
-      "sourcePath": "共通規約/命名規約.md",
-      "sourceSha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-      "declaredEnforcement": "block",
-      "mechanicalEnforcement": false,
-      "summary": "生成block規約"
-    }
-  ]
-}
 EOF
 
   cat > "$fx/.claude/rules/scoped/adv-note/rule.md" <<'EOF'
@@ -534,7 +476,7 @@ EOF
     local checks_a
     checks_a="$(jq -r '
       [
-        (.rules | length) == 5,
+        (.rules | length) == 3,
         ([.rules[] | select(.ruleName == "テストゲート規約（TEST-GATE）")][0]
           | .layer == "always" and .declaredEnforcement == "block" and .mechanicalEnforcement == true
             and .tags == ["[TEST-GATE-BLOCK]"]
@@ -545,12 +487,6 @@ EOF
             and .mechanicalEnforcement == false and .tags == ["[ADV-NOTE]"]),
         ([.rules[] | select(.ruleName == "素の文書規約（PLAIN-DOC）")][0]
           | .declaredEnforcement == "なし" and .mechanicalEnforcement == false and .tags == []),
-        ([.rules[] | select(.ruleName == "生成助言規約")][0]
-          | .layer == "generated" and .declaredEnforcement == "advisory"
-            and .mechanicalEnforcement == false and .tags == []),
-        ([.rules[] | select(.ruleName == "生成block規約")][0]
-          | .layer == "generated" and .declaredEnforcement == "block"
-            and .mechanicalEnforcement == false and .tags == []),
         (.skills | length) == 1,
         (.skills[0] | .skillName == "testing-fixture-skill"
           and .category == "工程"

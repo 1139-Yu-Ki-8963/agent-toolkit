@@ -927,7 +927,7 @@ table.data-table code {
 </footer>
 </div>
 
-<script type="application/json" id="doc-md">"# コンポーネント設計規約\n\n## AI設定資産への変換\n\n| 規約キー | 対象パス | 強制区分 | 規約要点 | 違反時手順 |\n|---|---|---|---|---|\n| `component-classification` | `**/*` | `advisory` | page、container、presentationの実測責務分担を維持する | 責務を実測分類へ分割し、利用側を更新する |\n| `component-props` | `**/*` | `advisory` | Propsの渡し方、default値、children利用を実測patternに合わせる | Props契約と呼び出し側を実測patternへ直す |\n| `component-state` | `**/*` | `advisory` | local、global、server stateを実測patternで管理する | stateの置き場を実測patternへ移し、動作testする |\n| `component-error-handling` | `**/*` | `advisory` | Error Boundary、try-catch、error表示を実測patternに合わせる | error処理と表示を実測patternへ直し、失敗caseを再testする |"</script>
+<script type="application/json" id="doc-md">"# コンポーネント設計規約\n\n\n## 概要\n\nコンポーネント分割の粒度・props設計・状態管理の方針。\n\n（未記入）\n\n## 規則\n\n| 規則 | 実例 | 頻度 | 例外率 |\n|---|---|---|---|\n| （未記入） | （未記入） | （未記入） | （未記入） |\n\n記入規則: 各規則行には実例（対象リポジトリ内の相対パス3件以上）・頻度（`N/M` 形式）・例外率（`%` 表記）を必ず添える。実装に現れない規則を発明しない。\n\n## 未記入の理由\n\nこの文書はコードからの採録対象外である。明示された規約・運用文書・承認がない限り、規範として確定しない。"</script>
 
 <script>
 (function () {

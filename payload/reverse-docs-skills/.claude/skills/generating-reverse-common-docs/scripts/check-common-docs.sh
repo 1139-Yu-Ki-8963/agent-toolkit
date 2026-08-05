@@ -1,30 +1,25 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# check-common-docs.sh — 永続するプロジェクト共通6文書の機械ゲート（6検査すべて決定的）
+# check-common-docs.sh — 永続するプロジェクト共通6文書の機械ゲート（検査1・3・4・6が決定的）
 #
 # 使い方:
 #   check-common-docs.sh <common_docs_dir> <target_repo_path>
 #   check-common-docs.sh --self-test
 #
 # <common_docs_dir> は `<output_dir>` を指す（プロジェクト共通/ 配下に共通6文書を持つ親ディレクトリ）。
-# 規約4文書は非永続の移行対象であり、存在する場合だけ補助検査する。サンプル記録はゲート対象外。
+# 規約4文書（コーディング規約・命名規約・ディレクトリ構成規約・コンポーネント設計規約）は
+# コードからの採録をやめ空雛形へ変更済みのため、本ゲートの走査対象から除外する。サンプル記録も対象外。
 #
-# 検査:
+# 検査（検査2・5は規約4文書の非採録化に伴い撤去。番号は繰り上げない＝欠番）:
 #   1. 実在検査: 永続する共通6文書がすべて実在する。
-#   2. 規則行完備性: 規約4文書内の各テーブル行のうち、backtick囲みの相対パス
-#      （「/」を含む）トークンを1件以上含む行を「規則行」とみなし、その行に
-#      ①実例パス3件以上 ②頻度（[0-9]+/[0-9]+形式） ③例外率（[0-9.]+%形式）
-#      が揃っているかを確認する。
-#   3. パス実在検査: 規約4種＋共通設計書.md＋メッセージ定義書.md＋DESIGN.md内の
+#   3. パス実在検査: 共通設計書.md＋メッセージ定義書.md＋DESIGN.md内の
 #      backtick囲み相対パス全件が target_repo_path 配下に test -e で実在する。
-#      除外規則は検査2と同じ（URL・glob・プレースホルダ・絶対パス・空白/正規表現
-#      記号を含むトークンは対象外）。
+#      除外規則: URL・glob・プレースホルダ・絶対パス・空白/正規表現記号を含む
+#      トークンは対象外。
 #   4. テンプレ残存ゼロ: 開き括弧付きの形（<実測|<FILL|<TBD|<TODO）、または行/セル全体が
 #      ちょうどTBD/TODOだけであるプレースホルダそのものの形が永続6文書すべてで0件。
 #      TBD/TODOという語自体を地の文で言及すること（裸の語）は検出しない（1-153）。
-#   5. 理想論表現ゼロ: すべきである|望ましい|べきだ|理想的には|今後は が
-#      規約4文書で0件（実装事実の記録に限る）。
 #   6. メッセージ定義書規模突合: メッセージ定義書.md内の規模宣言行
 #      （「総件数: <N>件」形式）と、同ファイル内のbacktickメッセージ文字列を
 #      含むテーブル行の実測件数が一致する。宣言行が無い場合もFAILとする
@@ -49,15 +44,11 @@ else
   LAYOUT_JSON="$(resolve_output_layout "${1:-}")" || exit 1
 fi
 
-CONVENTION_FILES="$(output_layout_get "$LAYOUT_JSON" conventionCodingDoc) $(output_layout_get "$LAYOUT_JSON" conventionNamingDoc) $(output_layout_get "$LAYOUT_JSON" conventionDirectoryDoc) $(output_layout_get "$LAYOUT_JSON" conventionComponentDoc)"
 REQUIRED_FILES="$(output_layout_get "$LAYOUT_JSON" commonDesignDoc) $(output_layout_get "$LAYOUT_JSON" messageDoc) $(output_layout_get "$LAYOUT_JSON" designDoc) $(output_layout_get "$LAYOUT_JSON" foundationDoc) $(output_layout_get "$LAYOUT_JSON" uiCommonDoc) $(output_layout_get "$LAYOUT_JSON" dataDesignDoc)"
-# 検査3（パス実在検査）は規約4種に加え、共通設計書・メッセージ定義書・DESIGN.mdも対象にする
-PATH_CHECK_FILES="$CONVENTION_FILES $(output_layout_get "$LAYOUT_JSON" commonDesignDoc) $(output_layout_get "$LAYOUT_JSON" messageDoc) $(output_layout_get "$LAYOUT_JSON" designDoc)"
+# 検査3（パス実在検査）の対象は共通設計書・メッセージ定義書・DESIGN.mdの3文書
+PATH_CHECK_FILES="$(output_layout_get "$LAYOUT_JSON" commonDesignDoc) $(output_layout_get "$LAYOUT_JSON" messageDoc) $(output_layout_get "$LAYOUT_JSON" designDoc)"
 MESSAGE_DOC_FILE="$(output_layout_get "$LAYOUT_JSON" messageDoc)"
 PLACEHOLDER_RE='<実測|<FILL|TBD|TODO'
-IDEAL_WORDS_RE='すべきである|望ましい|べきだ|理想的には|今後は'
-FREQ_RE='[0-9]+/[0-9]+'
-EXCEPTION_RE='[0-9]+(\.[0-9]+)?%'
 MESSAGE_SCALE_RE='総件数[:：] *[0-9]+件'
 
 # backtick囲みトークンのうち「相対パス」とみなせるもの以外を除外する判定。
@@ -77,16 +68,6 @@ is_path_candidate() {
 
 extract_backtick_tokens() {
   grep -oE '`[^`]+`' "$1" 2>/dev/null | sed -E 's/^`//; s/`$//' || true
-}
-
-# 「AI設定資産への変換」は派生rule生成用の構造化契約であり、実測規則行ではない。
-# 既存の実例・頻度・例外率ゲートおよび対象repoパス実在検査から除外する。
-extract_backtick_tokens_without_ai_section() {
-  awk '
-    /^## AI設定資産への変換[[:space:]]*$/ { skip = 1; next }
-    skip && /^## / { skip = 0 }
-    !skip { print }
-  ' "$1" | grep -oE '`[^`]+`' 2>/dev/null | sed -E 's/^`//; s/`$//' || true
 }
 
 # 表の区切り行（|---|---|等）かどうかを判定する
@@ -114,71 +95,7 @@ check_files_exist() {
   return 0
 }
 
-# 検査2: 規則行完備性（規約4文書）
-check_rule_rows() {
-  dir="$1"
-  violations=0
-  for f in $CONVENTION_FILES; do
-    path="$dir/$f"
-    [ -f "$path" ] || continue
-    lineno=0
-    in_ai_conversion=0
-    while IFS= read -r line; do
-      lineno=$((lineno + 1))
-      if [ "$line" = "## AI設定資産への変換" ]; then
-        in_ai_conversion=1
-        continue
-      fi
-      if [ "$in_ai_conversion" -eq 1 ] && printf '%s' "$line" | grep -q '^## '; then
-        in_ai_conversion=0
-      fi
-      [ "$in_ai_conversion" -eq 1 ] && continue
-      case "$line" in
-        '|'*) : ;;
-        *) continue ;;
-      esac
-      is_separator_row "$line" && continue
-
-      tokens="$(printf '%s' "$line" | grep -oE '`[^`]+`' 2>/dev/null | sed -E 's/^`//; s/`$//' || true)"
-      path_count=0
-      while IFS= read -r tok; do
-        [ -z "$tok" ] && continue
-        if is_path_candidate "$tok"; then
-          path_count=$((path_count + 1))
-        fi
-      done <<EOF
-$tokens
-EOF
-      # backtickパス候補が1件も無い行は規則行とみなさない（見出し・区切り行等）
-      [ "$path_count" -eq 0 ] && continue
-
-      row_ng=0
-      if [ "$path_count" -lt 3 ]; then
-        echo "  実例不足: ${f}:${lineno}（実例パス ${path_count} 件、3件以上必要）" >&2
-        row_ng=1
-      fi
-      if ! printf '%s' "$line" | grep -qE -- "$FREQ_RE"; then
-        echo "  頻度欠落: ${f}:${lineno}（[0-9]+/[0-9]+ 形式が見つからない）" >&2
-        row_ng=1
-      fi
-      if ! printf '%s' "$line" | grep -qE -- "$EXCEPTION_RE"; then
-        echo "  例外率欠落: ${f}:${lineno}（[0-9.]+% 形式が見つからない）" >&2
-        row_ng=1
-      fi
-      if [ "$row_ng" -eq 1 ]; then
-        violations=$((violations + 1))
-      fi
-    done < "$path"
-  done
-  if [ "$violations" -gt 0 ]; then
-    echo "検査2失敗: 規則行 $violations 件が実例/頻度/例外率のいずれかを欠いています" >&2
-    return 1
-  fi
-  echo "検査2通過: 規則行すべてに実例3件以上・頻度・例外率あり"
-  return 0
-}
-
-# 検査3: パス実在検査（規約4種＋共通設計書＋メッセージ定義書＋DESIGN.md）
+# 検査3: パス実在検査（共通設計書＋メッセージ定義書＋DESIGN.md）
 check_paths_exist() {
   dir="$1"
   repo="$2"
@@ -187,10 +104,7 @@ check_paths_exist() {
   for f in $PATH_CHECK_FILES; do
     path="$dir/$f"
     [ -f "$path" ] || continue
-    case "$f" in
-      規約/*) tokens="$(extract_backtick_tokens_without_ai_section "$path")" ;;
-      *) tokens="$(extract_backtick_tokens "$path")" ;;
-    esac
+    tokens="$(extract_backtick_tokens "$path")"
     while IFS= read -r tok; do
       [ -z "$tok" ] && continue
       if ! is_path_candidate "$tok"; then
@@ -273,28 +187,6 @@ check_no_placeholder() {
   return 0
 }
 
-# 検査5: 理想論表現ゼロ（規約4文書）
-check_no_ideal_words() {
-  dir="$1"
-  hit_total=0
-  for f in $CONVENTION_FILES; do
-    path="$dir/$f"
-    [ -f "$path" ] || continue
-    hits="$(grep -nE -- "$IDEAL_WORDS_RE" "$path" 2>/dev/null || true)"
-    if [ -n "$hits" ]; then
-      echo "  理想論表現: $f" >&2
-      echo "$hits" >&2
-      hit_total=$((hit_total + 1))
-    fi
-  done
-  if [ "$hit_total" -gt 0 ]; then
-    echo "検査5失敗: $hit_total ファイルに理想論表現を検出" >&2
-    return 1
-  fi
-  echo "検査5通過: 規約4文書すべて理想論表現0件"
-  return 0
-}
-
 # 検査6: メッセージ定義書規模突合
 check_message_scale() {
   dir="$1"
@@ -330,21 +222,19 @@ check_message_scale() {
   return 0
 }
 
-# 6検査すべてを実行し集約結果を返す。
+# 検査1・3・4・6を実行し集約結果を返す（検査2・5は撤去済み）。
 run_all_checks() {
   dir="$1"
   repo="$2"
   rc=0
   check_files_exist "$dir" || rc=1
-  check_rule_rows "$dir" || rc=1
   check_paths_exist "$dir" "$repo" || rc=1
   check_no_placeholder "$dir" || rc=1
-  check_no_ideal_words "$dir" || rc=1
   check_message_scale "$dir" || rc=1
   return "$rc"
 }
 
-# 合成フィクスチャによる自己テスト（陽性1件・検査ごとの陰性5件・1-153陽性1件＝計7ケース）。
+# 合成フィクスチャによる自己テスト（陽性1件・検査ごとの陰性4件・1-153陽性1件＝計6ケース）。
 self_test() {
   tmp="$(mktemp -d "${TMPDIR:-/tmp}/compiling-common-docs-self-test.XXXXXX")"
   trap 'rm -rf "$tmp"' RETURN
@@ -356,20 +246,9 @@ self_test() {
   : > "$repo/src/hooks/useAuth.ts"
   : > "$repo/src/legacy/OldForm.tsx"
 
-  rule_row='| インデント | スペース2個。`src/components/Button.tsx`・`src/utils/format.ts`・`src/hooks/useAuth.ts` で確認。頻度 18/20。例外率 10.0%（例外: `src/legacy/OldForm.tsx`） | `.eslintrc.json` |'
-
   build_docs() {
     target="$1"
-    mkdir -p "$target/規約" "$target/プロジェクト共通"
-    for f in コーディング規約 命名規約 ディレクトリ構成規約 コンポーネント設計規約; do
-      cat > "$target/規約/${f}.md" <<MD
-# ${f}（リバース版）
-
-| 項目 | 実測内容 | 抽出元 |
-|---|---|---|
-$rule_row
-MD
-    done
+    mkdir -p "$target/プロジェクト共通"
     cat > "$target/プロジェクト共通/共通設計書.md" <<'MD'
 # 共通設計書（リバース版）
 
@@ -421,7 +300,7 @@ MD
 
   rc=0
 
-  # 陽性フィクスチャ: 6検査すべてPASSする想定
+  # 陽性フィクスチャ: 検査1・3・4・6すべてPASSする想定
   pass_dir="$tmp/pass"
   build_docs "$pass_dir"
   if run_all_checks "$pass_dir" "$repo" >/dev/null 2>&1; then
@@ -454,46 +333,13 @@ MD
     echo "  [PASS] 検査1: ファイル欠落でexit 1"
   fi
 
-  # 陰性2: 検査2のみ違反（実例パス2件のみ・頻度/例外率欠落）
-  fail2_dir="$tmp/fail2"
-  build_docs "$fail2_dir"
-  cat > "$fail2_dir/規約/コーディング規約.md" <<MD
-# コーディング規約（リバース版）
-
-| 項目 | 実測内容 | 抽出元 |
-|---|---|---|
-| インデント | \`src/components/Button.tsx\`・\`src/utils/format.ts\` で確認 | \`.eslintrc.json\` |
-MD
-  if check_rule_rows "$fail2_dir" >/dev/null 2>&1; then
-    echo "  [FAIL] 検査2: 実例/頻度/例外率欠落があるのにexit 0になった" >&2
-    rc=1
-  else
-    echo "  [PASS] 検査2: 実例/頻度/例外率欠落でexit 1"
-  fi
-  if run_all_checks "$fail2_dir" "$repo" >/dev/null 2>&1; then
-    echo "  [FAIL] 集約入口: 検査2違反を見逃した" >&2
-    rc=1
-  else
-    echo "  [PASS] 集約入口: 検査2違反でexit 1"
-  fi
-
   # 陰性3: 検査3のみ違反（存在しないパスを記載）
   fail3_dir="$tmp/fail3"
   build_docs "$fail3_dir"
-  cat > "$fail3_dir/規約/命名規約.md" <<MD
-# 命名規約（リバース版）
+  cat >> "$fail3_dir/プロジェクト共通/DESIGN.md" <<'MD'
 
-| 項目 | 実測内容 | 抽出元 |
-|---|---|---|
-$rule_row
-| ファイル名 | \`src/components/Missing.tsx\`・\`src/components/Button.tsx\`・\`src/hooks/useAuth.ts\` を確認。頻度 5/5。例外率 0.0% | \`src/utils/format.ts\` |
+参照コンポーネントは `src/components/Missing.tsx`。
 MD
-  if check_rule_rows "$fail3_dir" >/dev/null 2>&1; then
-    echo "  [PASS] 検査3fixture: 検査2には違反しない"
-  else
-    echo "  [FAIL] 検査3fixture: 検査2の違反も混入した" >&2
-    rc=1
-  fi
   if check_paths_exist "$fail3_dir" "$repo" >/dev/null 2>&1; then
     echo "  [FAIL] 検査3: 未実在パスがあるのにexit 0になった" >&2
     rc=1
@@ -533,26 +379,6 @@ MD
   else
     echo "  [FAIL] 検査4(1-153): 正当な言及なのにテンプレ残存として誤検出した" >&2
     rc=1
-  fi
-
-  # 陰性5: 検査5のみ違反（理想論表現混入）
-  fail5_dir="$tmp/fail5"
-  build_docs "$fail5_dir"
-  cat >> "$fail5_dir/規約/ディレクトリ構成規約.md" <<'MD'
-
-今後は共通コンポーネントをまとめるべきである。
-MD
-  if check_no_ideal_words "$fail5_dir" >/dev/null 2>&1; then
-    echo "  [FAIL] 検査5: 理想論表現があるのにexit 0になった" >&2
-    rc=1
-  else
-    echo "  [PASS] 検査5: 理想論表現でexit 1"
-  fi
-  if run_all_checks "$fail5_dir" "$repo" >/dev/null 2>&1; then
-    echo "  [FAIL] 集約入口: 検査5違反を見逃した" >&2
-    rc=1
-  else
-    echo "  [PASS] 集約入口: 検査5違反でexit 1"
   fi
 
   # 陽性(Phase A): sample記録は存在してもゲート対象外
@@ -617,7 +443,7 @@ if [ ! -d "$repo" ]; then
 fi
 
 if run_all_checks "$docs_dir" "$repo"; then
-  echo "プロジェクト共通文書ゲート: 全6検査PASS"
+  echo "プロジェクト共通文書ゲート: 検査1・3・4・6すべてPASS"
   exit 0
 else
   echo "プロジェクト共通文書ゲート: FAIL" >&2

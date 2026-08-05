@@ -217,47 +217,39 @@ unit_kinds_present に含まれない種別を excluded-kinds.json と「該当�
 
 ## Phase 4: 共通採録とポータル
 
+global_step 13 は規約4種の採録工程の撤去により欠番。
+
 ## Step 4-1: 共通文書の層化サンプルを確定する
 
 - global_step: 12
 - tool: Skill
 - condition: 共通未採録または common-docs-append のとき実行
 
-survey_doc_path を渡して generating-reverse-common-docs をこのブロックで1回だけ起動する。初回は mode=v0、共通文書欠落の差し戻しは mode=append と append_findings を使う。返却ブロックと機械証拠を保持し、global Step 13〜15は同じ起動結果を検収する。
+survey_doc_path を渡して generating-reverse-common-docs をこのブロックで1回だけ起動する。初回は mode=v0、共通文書欠落の差し戻しは mode=append と append_findings を使う。返却ブロックと機械証拠を保持し、global Step 14〜15は同じ起動結果を検収する。
 
 **完了**: 採録対象の層化サンプルが確定している。
 
-## Step 4-2: 規約4種を採録する
-
-- global_step: 13
-- tool: Read
-- condition: Step 4-1 通過時
-
-global Step 12の同一起動が生成した規約4種の実在をReadで検収する。管理者は原本走査や文書生成を代行せず、子スキルを再起動しない。
-
-**完了**: 規約4種が子スキルの機械検査対象として生成済み。
-
-## Step 4-3: 共通設計文書を採録する
+## Step 4-2: 共通設計文書を採録する
 
 - global_step: 14
 - tool: Read
-- condition: Step 4-2 通過時、または common-docs-append の戻り先
+- condition: Step 4-1 通過時、または common-docs-append の戻り先
 
 global Step 12の同一起動が生成した共通設計書・メッセージ定義書・DESIGN.mdをReadで検収し、append時は指摘対象だけが追記された証拠を確認する。
 
 **完了**: common_docs_root 配下の必須文書が生成済み。
 
-## Step 4-4: 共通文書ゲートとv0確定を検収する
+## Step 4-3: 共通文書ゲートとv0確定を検収する
 
 - global_step: 15
 - tool: Read / TaskUpdate
-- condition: Step 4-3 完了時
+- condition: Step 4-2 完了時
 
 global Step 12の同一起動が返した機械ゲート証拠とstatus=採録v0確定または追記完了を検収し、common_docs_root を保持する。
 
 **完了**: common_docs_root が確定している。
 
-## Step 4-5: ポータルと任意基盤ページを確定する
+## Step 4-4: ポータルと任意基盤ページを確定する
 
 - global_step: 16
 - tool: Skill / Bash

@@ -228,7 +228,7 @@ check_list_ungenerated() {
 }
 
 common_doc_files() {
-  local keys="conventionCodingDoc conventionNamingDoc conventionDirectoryDoc conventionComponentDoc commonDesignDoc messageDoc designDoc foundationDoc uiCommonDoc dataDesignDoc"
+  local keys="commonDesignDoc messageDoc designDoc foundationDoc uiCommonDoc dataDesignDoc"
   local k out=""
   for k in $keys; do
     out="$out $(output_layout_get "$LAYOUT_JSON" "$k")"
@@ -505,12 +505,7 @@ JSON
   : > "$docs/一覧/外部連携一覧（該当なし）.md"
   assert_state "共通未採録" "状態3 共通未採録"
 
-  # 状態4: ポータル未生成（10文書を追加）
-  mkdir -p "$docs/規約"
-  : > "$docs/規約/コーディング規約.md"
-  : > "$docs/規約/命名規約.md"
-  : > "$docs/規約/ディレクトリ構成規約.md"
-  : > "$docs/規約/コンポーネント設計規約.md"
+  # 状態4: ポータル未生成（6文書を追加）
   : > "$docs/プロジェクト共通/共通設計書.md"
   : > "$docs/プロジェクト共通/メッセージ定義書.md"
   : > "$docs/プロジェクト共通/DESIGN.md"
@@ -628,11 +623,7 @@ MD
   : > "$undetermined_docs/一覧/バッチ一覧（該当なし）.md"
   : > "$undetermined_docs/一覧/帳票一覧（該当なし）.md"
   : > "$undetermined_docs/一覧/外部連携一覧（該当なし）.md"
-  mkdir -p "$undetermined_docs/規約" "$undetermined_docs/プロジェクト共通"
-  : > "$undetermined_docs/規約/コーディング規約.md"
-  : > "$undetermined_docs/規約/命名規約.md"
-  : > "$undetermined_docs/規約/ディレクトリ構成規約.md"
-  : > "$undetermined_docs/規約/コンポーネント設計規約.md"
+  mkdir -p "$undetermined_docs/プロジェクト共通"
   : > "$undetermined_docs/プロジェクト共通/共通設計書.md"
   : > "$undetermined_docs/プロジェクト共通/メッセージ定義書.md"
   : > "$undetermined_docs/プロジェクト共通/DESIGN.md"

@@ -927,7 +927,7 @@ table.data-table code {
 </footer>
 </div>
 
-<script type="application/json" id="doc-md">"# 命名規約\n\n## データベース\n\n- テーブル名は複数形スネークケース（`user_accounts`）\n- カラム名はスネークケース（`created_at`）\n- 外部キーは `参照先テーブル単数形_id`（`user_id`）\n- インデックス名は `idx_テーブル名_カラム名`\n\n## API エンドポイント\n\n- リソース名は複数形（`/api/v1/users`）\n- アクションは HTTP メソッドで表現（GET/POST/PUT/DELETE）\n- クエリパラメータはキャメルケース（`?pageSize=20`）\n\n## フロントエンド\n\n- コンポーネント名はパスカルケース（`UserProfileCard`）\n- イベントハンドラは `handle` + イベント名（`handleSubmit`）\n- CSS クラスはBEM記法（`block__element--modifier`）\n- 状態管理のキーはドット区切り（`user.profile.name`）\n\n## AI設定資産への変換\n\n| 規約キー | 対象パス | 強制区分 | 規約要点 | 違反時手順 |\n|---|---|---|---|---|\n| `naming-files` | `**/*` | `advisory` | component、hook、utility、test、styleのfile名を実測patternに合わせる | 対象fileと参照を実測patternへrenameする |\n| `naming-symbols` | `**/*` | `advisory` | 変数、関数、定数、Props型、event handlerを実測patternに合わせる | symbolと全参照を実測patternへrenameしてtestする |\n| `naming-css-classes` | `**/*` | `advisory` | CSS class名を実測patternに合わせる | class定義と参照を同時に直し、表示を再確認する |"</script>
+<script type="application/json" id="doc-md">"# 命名規約\n\n\n## 概要\n\n変数・クラス・ファイル・ディレクトリの命名パターンと禁止事項。\n\n（未記入）\n\n## 規則\n\n| 規則 | 実例 | 頻度 | 例外率 |\n|---|---|---|---|\n| （未記入） | （未記入） | （未記入） | （未記入） |\n\n記入規則: 各規則行には実例（対象リポジトリ内の相対パス3件以上）・頻度（`N/M` 形式）・例外率（`%` 表記）を必ず添える。実装に現れない規則を発明しない。\n\n## 未記入の理由\n\nこの文書はコードからの採録対象外である。明示された規約・運用文書・承認がない限り、規範として確定しない。"</script>
 
 <script>
 (function () {

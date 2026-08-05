@@ -927,7 +927,7 @@ table.data-table code {
 </footer>
 </div>
 
-<script type="application/json" id="doc-md">"# コーディング規約\n\n## 命名規則\n\n- 変数名・関数名はキャメルケース（`getUserName`）\n- クラス名はパスカルケース（`UserService`）\n- 定数は大文字スネークケース（`MAX_RETRY_COUNT`）\n- ファイル名はケバブケース（`user-service.ts`）\n\n## インデント・フォーマット\n\n- インデントはスペース2つ\n- 行末セミコロン必須（TypeScript）\n- 1行は120文字以内\n\n## コメント\n\n- 関数には JSDoc 形式でコメントを付与する\n- TODO コメントには担当者と期限を記載する（`// TODO(yamada): 2026-08 までに対応`）\n\n## エラー処理\n\n- try-catch は最小限のスコープで使用する\n- エラーログには操作コンテキスト（ユーザーID・リクエストID）を含める\n- ユーザー向けエラーメッセージと内部ログは分離する\n\n## AI設定資産への変換\n\n| 規約キー | 対象パス | 強制区分 | 規約要点 | 違反時手順 |\n|---|---|---|---|---|\n| `coding-format` | `**/*` | `advisory` | 実測したインデント、セミコロン、引用符、最大行長に合わせる | 抽出元を再確認し、実測値に合うよう整形する |\n| `coding-lint-formatter` | `**/*` | `advisory` | 実在するlint・formatter設定と有効ルールに従う | 設定fileの実行commandで修正し、違反が消えたことを確認する |\n| `coding-import-order` | `**/*` | `advisory` | 実測したimport category順を維持する | importを実測順へ並べ直してlintを再実行する |\n| `coding-comments` | `**/*` | `advisory` | 関数commentと作業注記を実測記法に合わせる | commentを実測記法へ直し、抽出元との不一致を解消する |"</script>
+<script type="application/json" id="doc-md">"# コーディング規約\n\n\n## 概要\n\n命名ケース・インデント・コメント・エラー処理の統一ルール。\n\n（未記入）\n\n## 規則\n\n| 規則 | 実例 | 頻度 | 例外率 |\n|---|---|---|---|\n| （未記入） | （未記入） | （未記入） | （未記入） |\n\n記入規則: 各規則行には実例（対象リポジトリ内の相対パス3件以上）・頻度（`N/M` 形式）・例外率（`%` 表記）を必ず添える。実装に現れない規則を発明しない。\n\n## 未記入の理由\n\nこの文書はコードからの採録対象外である。明示された規約・運用文書・承認がない限り、規範として確定しない。"</script>
 
 <script>
 (function () {

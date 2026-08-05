@@ -272,7 +272,7 @@ running-reverse-screen-batch の実行ログ（`log_path`）・failed リスト�
 |---|---|---|---|
 | アーキ未調査 | `<output_dir>/プロジェクト共通/アーキテクチャ調査書.md` が不在、または `check-architecture-survey.sh` の再実行が exit 1 | surveying-architecture-for-reverse-docs | target_repo_path, output_dir, template_root, mode（調査書が不在なら survey。調査書はあるが再実行 exit 1 なら revise・revise_findings必須）（期待返却 調査確定） |
 | 一覧未生成 | unit_kinds_present のいずれかの実在種別について `一覧/<種別ラベル>一覧/<種別ラベル>一覧.html` が不在、または excluded-kinds.json に記載の対象外種別について `一覧/<種別ラベル>一覧（該当なし）.md` が不在 | generating-<種別>-list-for-reverse-docs（種別別一覧スキル） | source_dir, output_dir（固定値: `<output_dir>` を渡す。一覧HTMLは `<output_dir>/一覧/<種別ラベル>一覧/<種別ラベル>一覧.html` に出力される。不在種別ごとに対応スキルを起動） |
-| 共通未採録 | プロジェクト共通の10文書（規約4種・共通設計書・メッセージ定義書・DESIGN.md・基盤設計.md・UI共通設計.md・データ設計.md）のいずれか不在、または `check-common-docs.sh` が exit 1 | generating-reverse-common-docs | target_repo_path, output_dir, template_root, survey_doc_path, mode（10文書が未採録なら v0。NG帰着(c)差し戻し時のみ append・append_findings必須）（期待返却 採録v0確定） |
+| 共通未採録 | プロジェクト共通の6文書（共通設計書・メッセージ定義書・DESIGN.md・基盤設計.md・UI共通設計.md・データ設計.md）のいずれか不在、または `check-common-docs.sh` が exit 1 | generating-reverse-common-docs | target_repo_path, output_dir, template_root, survey_doc_path, mode（6文書が未採録なら v0。NG帰着(c)差し戻し時のみ append・append_findings必須）（期待返却 採録v0確定） |
 | ポータル未生成 | `<output_dir>/index.html` が不在 | bash shared/scripts/build-portal.sh | target_repo_path, output_dir, portal_output_dir（固定値: `<output_dir>`）。ポータルは納品物ルート（output_dir）直下の index.html として出力する。`<target_repo_path>/project-portal` 等の納品物ルート外への出力は定義レイアウト違反。複数サイトの場合、`<output_dir>` は当該サイトのサイトルートを指す |
 | サイト定義未生成 | サイトが2件以上あり `<納品ルート>/sites.json` が不在 | `sites.json` を書き出す（統括スキル自身が実行。子スキル起動なし） | site_key, sites_path（書き出し先。サイト一覧はアーキテクチャ調査書 §10 から転記する） |
 | 用語候補未生成（任意） | 呼び出し元が用語候補生成を要求し、対象repo外の絶対 `proposal_output_ref` が明示済みで、提案YAMLが不在 | generating-glossary-for-reverse-docs | target_repo_path, proposal_output_ref, target_glossary_key, base_content_version, source_revision（期待返却 `NEEDS_REVIEW`） |
@@ -293,7 +293,7 @@ running-reverse-screen-batch の実行ログ（`log_path`）・failed リスト�
 
 1. アーキ未調査: アーキテクチャ調査書の実在と機械ゲート
 2. 一覧未生成: 各種別の一覧HTMLと excluded-kinds.json の実在
-3. 共通未採録: プロジェクト共通10文書の実在と機械ゲート
+3. 共通未採録: プロジェクト共通6文書の実在と機械ゲート
 4. ポータル未生成: output_dir 直下の index.html の実在
 5. サイト定義未生成: サイトが2件以上あるときの `<納品ルート>/sites.json` の実在
 6. 基盤ページ未生成（任意）: 基盤ページ群の実在。スキップ時はデータ源未整備の根拠を記録する
@@ -391,7 +391,7 @@ judge（rebuilding-code-from-docs mode=judge）が `status=FAIL` を返した場
 |---|---|---|
 | (a) 執筆規律不足 | 詳細設計書の執筆規律・転記精度に起因する不一致 | generating-reverse-detailed-design のスキル資産（`references/writing-rules.md` 等）の改訂が必要なため、管理者は自動配線せずユーザーに報告する |
 | (b) facts欠落 | 事実抽出プロファイルが対象コードの挙動を捕捉できていない | extracting-unit-facts-from-code のスキル資産（`references/profile-screen.md` 等）の改訂が必要なため、管理者は自動配線せずユーザーに報告する |
-| (c) 共通文書欠落 | 共通設計書・規約4種等のプロジェクト共通文書に該当挙動の記載が無い | back_edge_id=common-docs-appendとしてglobal Step 14へ戻し、`mode=append`・`append_findings=`で追記後にglobal Step 29を再実行する |
+| (c) 共通文書欠落 | 共通設計書等のプロジェクト共通文書に該当挙動の記載が無い | back_edge_id=common-docs-appendとしてglobal Step 14へ戻し、`mode=append`・`append_findings=`で追記後にglobal Step 29を再実行する |
 
 (a)・(b) はスキル資産（reference・プロファイル）そのものの改訂を要するため、管理者が代わりに再実行しても解消しない。(c) のみ、管理者が既存の子スキルを再起動するだけで自動的に解消できる。
 

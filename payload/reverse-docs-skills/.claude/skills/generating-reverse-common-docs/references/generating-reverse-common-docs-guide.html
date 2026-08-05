@@ -138,7 +138,7 @@
 
 <header>
   <h1>プロジェクト共通採録スキル<br><span class="skill-name">generating-reverse-common-docs</span></h1>
-  <p>アーキテクチャ調査書を前提に、対象リポジトリのコードから層化サンプリングでプロジェクト共通26文書のv0を採録する。実装済みコードに現に存在する規約・共通仕様の事実だけを記録し、理想論は書かない。</p>
+  <p>アーキテクチャ調査書を前提に、対象リポジトリのコードから層化サンプリングでプロジェクト共通6文書のv0を採録する。実装済みコードに現に存在する規約・共通仕様の事実だけを記録し、理想論は書かない。</p>
 
   <div class="def">
     <dt>こんな人向け</dt>
@@ -164,7 +164,7 @@
     <li><a href="#s4">使い方（起動引数）</a></li>
     <li><a href="#s5">設計原則</a></li>
     <li><a href="#s6">動作フロー（Phase 1〜6）</a></li>
-    <li><a href="#s7">機械ゲート5検査</a></li>
+    <li><a href="#s7">機械ゲート4検査</a></li>
     <li><a href="#s8">返却ブロック</a></li>
     <li><a href="#s9">ループ設計</a></li>
     <li><a href="#s10">予想を裏切る挙動</a></li>
@@ -174,16 +174,13 @@
 
 <section id="s1">
   <h2><span class="sec-num">§1</span>概要</h2>
-  <p>対象リポジトリを層化サンプリングで走査し、その結果を<strong>プロジェクト共通11ファイル</strong>（規約4種＋共通設計書.md＋メッセージ定義書.md＋DESIGN.md＋基盤設計.md＋UI共通設計.md＋データ設計.md＋サンプル記録.md）として確定する。</p>
-  <p class="note">Phase A移行中のため、現行producerは規約4文書とサンプル記録も出力するが、納品物の機械ゲートで必須なのは永続する共通6文書だけである。規約proposalとverificationへの出力切替は各契約確定後に行う。</p>
+  <p>対象リポジトリを層化サンプリングで走査し、その結果を<strong>プロジェクト共通7ファイル</strong>（共通設計書.md＋メッセージ定義書.md＋DESIGN.md＋基盤設計.md＋UI共通設計.md＋データ設計.md＋サンプル記録.md）として確定する。</p>
+  <p class="note">規約4文書（コーディング規約・命名規約・ディレクトリ構成規約・コンポーネント設計規約）はコードからの採録をやめ空雛形へ変更済みのため、雛形として複製はされるが本スキルの採録・機械ゲートの対象には含まれない。納品物の機械ゲートで必須なのは永続する共通6文書だけである。</p>
   <div class="constraint">
     <strong>単独動作</strong>: 他スキルへの依存を持たない。起動引数を渡せば単独で動く。工程全体は orchestrating-reverse-docs-flow が案内する。後続工程（facts抽出・詳細設計執筆）はこのプロジェクト共通文書を前提として動く。
   </div>
   <div class="constraint">
-    <strong>読み取り専用</strong>: 対象リポジトリへの書き込み・変更は一切行わない。出力は output_dir 配下の11ファイルのみ。
-  </div>
-  <div class="constraint">
-    <strong>rule生成は独立操作</strong>: 規約4文書の構造化表は生成契約として出力するが、採録中は対象リポジトリへ書かない。採録完了後に生成スクリプトへ <code>--apply</code> を明示した場合だけ更新する。
+    <strong>読み取り専用</strong>: 対象リポジトリへの書き込み・変更は一切行わない。出力は output_dir 配下の7ファイルのみ。
   </div>
   <div class="constraint">
     <strong>v0で止める</strong>: 完成を狙わない。v0確定後の追記は mode=append の別起動でのみ行う。
@@ -192,10 +189,12 @@
 
 <section id="s2">
   <h2><span class="sec-num">§2</span>出力</h2>
-  <p>プロジェクト全体で共通する技術方針をまとめた文書群が生まれる。</p>
+  <p>プロジェクト全体で共通する技術方針をまとめた、共通6文書とサンプル記録の計7ファイルが生まれる。</p>
   <div class="def">
-    <dt>プロジェクト共通文書</dt>
-    <dd>認証方式・エラーハンドリング規約・API 設計規約・状態管理パターン・ルーティング構成・共通コンポーネント仕様・テスト方針など、個別の画面設計書が「前提」として参照する共通知識を体系化した文書群。これがあることで、各画面の設計書は共通部分を繰り返し書かずに済む。</dd>
+    <dt>共通6文書</dt>
+    <dd>共通設計書.md（アーキテクチャ・共通処理・状態管理・通信の実装事実）・メッセージ定義書.md（コード中の実メッセージ文字列と定義箇所）・DESIGN.md（実スタイル値）・基盤設計.md（フレームワーク構成・ビルド設定・デプロイ構成・環境変数管理等）・UI共通設計.md（デザインシステム・共通コンポーネント一覧・レイアウト方針）・データ設計.md（データモデル概要・APIスキーマ・状態遷移表）。個別の画面設計書が「前提」として参照する共通知識を体系化した文書群で、これがあることで各画面の設計書は共通部分を繰り返し書かずに済む。</dd>
+    <dt>サンプル記録.md</dt>
+    <dd>層化サンプリングの選定コマンドと選定ファイル一覧の記録。共通6文書の記述根拠を再現可能にする。</dd>
   </div>
 </section>
 
@@ -232,7 +231,6 @@
   <table class="spec">
     <tr><th>原則</th><th>内容</th></tr>
     <tr><td>読み取り専用</td><td>対象リポジトリへの書き込み・変更は一切行わない。出力は output_dir 配下のみ</td></tr>
-    <tr><td>派生rule生成は別操作</td><td><code>generate-rules-from-common-docs.sh</code> は既定dry-run。<code>--apply</code>時だけ所有index配下を更新し、<code>--check</code>で文書hash・entry hash・bytes一致を検査する</td></tr>
     <tr><td>実装事実主義</td><td>サンプルに現れない規則を発明しない。理想論（あるべき姿）を書かず、実装済みコードに現に存在する事実だけを記録する</td></tr>
     <tr><td>三点セット必須</td><td>各規則行は実例（3件以上）・頻度・例外率を必ず添える</td></tr>
     <tr><td>決定的サンプリング</td><td>層化サンプリングの選定は find / sort / head の決定的コマンドに固定する。乱数・目視選定を禁止する</td></tr>
@@ -242,14 +240,14 @@
 </section>
 
 <section id="s6">
-  <h2><span class="sec-num">§6</span>動作フロー（Phase 1〜6）</h2>
+  <h2><span class="sec-num">§6</span>動作フロー（Phase 1〜5）</h2>
   <pre class="flow"><span class="cap">Phase 1: 前提確認</span>
   target_repo_path・template_root・survey_doc_pathの実在を確認する
   調査書内「ユニット種別判定」節と「ディレクトリ責務マップ」節の
   実在をgrepで確認する(調査書ゲートの再実行はしない)
   output_dir/規約/とoutput_dir/プロジェクト共通/を作成し雛形26文書を複製する
   完了条件: 雛形26文書複製済み・調査書の2節実在確認済み
-   (mode=append時は既存11文書と指摘文書の特定済み)
+   (mode=append時は既存7文書と指摘文書の特定済み)
 
 <span class="cap">Phase 2: 層化サンプリング</span>
   調査書のディレクトリ責務マップの各層ごとに
@@ -259,30 +257,22 @@
   完了条件: サンプル記録.mdに全層のコマンドと選定ファイル一覧が
    記録済み(合計20ファイル以上)
 
-<span class="cap">Phase 3: 規約4種採録</span>
-  コーディング規約・命名規約・ディレクトリ構成規約・
-  コンポーネント設計規約の各規則を採録する
-  各規則行に①実例(相対パス3件以上) ②頻度(N/M形式)
-  ③例外率(%表記)を記載する。サンプルに無い規則は発明しない
-  「AI設定資産への変換」の5列表はテンプレートどおり保持し、
-  4文書横断で規約キーを重複させない
-  完了条件: 全規則行が実例3件以上+頻度+例外率付き
-
-<span class="cap">Phase 4: 共通文書採録</span>
+<span class="cap">Phase 3: 共通文書採録</span>
   共通設計書.md(アーキテクチャ・共通処理・状態管理・通信)
   メッセージ定義書.md(実メッセージ文字列と定義箇所)
-  DESIGN.md(実スタイル値)を同じ実例主義で採録する
-  完了条件: 3文書のプレースホルダ残存ゼロ
+  DESIGN.md(実スタイル値)・基盤設計.md・UI共通設計.md・
+  データ設計.mdを実例主義で採録する
+  完了条件: 6文書のプレースホルダ残存ゼロ
 
-<span class="cap">Phase 5: 機械ゲート</span>
+<span class="cap">Phase 4: 機械ゲート</span>
   check-common-docs.sh &lt;output_dir&gt;
    &lt;target_repo_path&gt; を実行
-  FAILしたらPhase 3〜4に戻り、指摘された実例不足・頻度欠落・
-  例外率欠落・未実在パス・テンプレ残存・理想論表現を修正して
-  再実行する(上限5回)
+  FAILしたらPhase 3に戻り、指摘された未実在パス・
+  テンプレ残存・ファイル欠落・メッセージ定義書の規模不一致を
+  修正して再実行する(上限5回)
   完了条件: ゲート exit 0
 
-<span class="cap">Phase 6: 返却</span>
+<span class="cap">Phase 5: 返却</span>
   返却ブロックを出力する
   mode=v0: status=採録v0確定。artifacts/scope/
    common_docs_root/sample_manifest_pathを記す
@@ -293,15 +283,14 @@
 </section>
 
 <section id="s7">
-  <h2><span class="sec-num">§7</span>機械ゲート5検査</h2>
-  <p><code>check-common-docs.sh</code>は合否を exit code のみで判定する（自然文の自己申告は用いない）。</p>
+  <h2><span class="sec-num">§7</span>機械ゲート4検査</h2>
+  <p><code>check-common-docs.sh</code>は合否を exit code のみで判定する（自然文の自己申告は用いない）。検査2・検査5は規約4文書の非採録化に伴い撤去済みで、番号は繰り上げず欠番のままとする（残るのは検査1・3・4・6）。</p>
   <table class="spec">
     <tr><th>検査</th><th>内容</th></tr>
-    <tr><td>実在検査</td><td>永続する共通6文書（共通設計書.md・メッセージ定義書.md・DESIGN.md・基盤設計.md・UI共通設計.md・データ設計.md）が実在するかを確認する。規約4文書とサンプル記録は欠落を許可する</td></tr>
-    <tr><td>規則行完備性検査</td><td>規約4文書内の各テーブル行のうち、backtick囲みの相対パス（「/」を含む）トークンを1件以上含む行を「規則行」とみなし、その行に実例パス3件以上・頻度（<code>[0-9]+/[0-9]+</code>形式）・例外率（<code>[0-9.]+%</code>形式）が揃っているかを確認する。「AI設定資産への変換」表は派生rule生成用なので対象外</td></tr>
-    <tr><td>パス実在検査</td><td>規約4文書内のbacktick囲み相対パス全件が target_repo_path 配下に実在するかを確認する。URL・glob・プレースホルダ・絶対パス・空白や正規表現記号を含むトークンは対象外</td></tr>
-    <tr><td>テンプレ残存検査</td><td>プレースホルダ（<code>&lt;実測</code>・<code>&lt;FILL</code>・<code>TBD</code>・<code>TODO</code>）の残存ゼロを永続する共通6文書で確認する。規約4文書とサンプル記録は非永続の移行対象であり、欠落だけではFAILにしない</td></tr>
-    <tr><td>理想論表現検査</td><td>規約4文書に「すべきである」「望ましい」「べきだ」「理想的には」「今後は」等の理想論表現が無いかを確認する（実装事実の記録に限る）</td></tr>
+    <tr><td>検査1: 実在検査</td><td>永続する共通6文書（共通設計書.md・メッセージ定義書.md・DESIGN.md・基盤設計.md・UI共通設計.md・データ設計.md）が実在するかを確認する。規約4文書とサンプル記録は欠落を許可する</td></tr>
+    <tr><td>検査3: パス実在検査</td><td>共通設計書.md・メッセージ定義書.md・DESIGN.mdのbacktick囲み相対パス全件が target_repo_path 配下に実在するかを確認する。URL・glob・プレースホルダ・絶対パス・空白や正規表現記号を含むトークンは対象外</td></tr>
+    <tr><td>検査4: テンプレ残存検査</td><td>プレースホルダ（<code>&lt;実測</code>・<code>&lt;FILL</code>・<code>TBD</code>・<code>TODO</code>）の残存ゼロを永続する共通6文書で確認する。規約4文書は空雛形へ変更済みのため、サンプル記録とあわせて本ゲートの走査対象から除外する</td></tr>
+    <tr><td>検査6: メッセージ定義書規模突合</td><td>メッセージ定義書.md内の「総件数: &lt;N&gt;件」宣言行と、backtickメッセージ文字列を含むテーブル行の実測件数が一致するかを確認する。宣言行が無い場合もFAILとする</td></tr>
   </table>
 </section>
 
@@ -312,7 +301,7 @@
     <tr><th>キー</th><th>値</th></tr>
     <tr><td>status</td><td><span class="tag pass">採録v0確定</span> ／ <span class="tag mode">追記完了</span> ／ <span class="tag fail">中断</span></td></tr>
     <tr><td>scope</td><td>target_repo_path のbasename</td></tr>
-    <tr><td>artifacts</td><td>8文書の絶対パス（配列）</td></tr>
+    <tr><td>artifacts</td><td>7文書の絶対パス（配列）</td></tr>
     <tr><td>hint</td><td>次工程への申し送り、または中断理由</td></tr>
     <tr><td>common_docs_root（拡張）</td><td>プロジェクト共通/ の絶対パス</td></tr>
     <tr><td>sample_manifest_path（拡張）</td><td>サンプル記録.mdの絶対パス</td></tr>
@@ -323,7 +312,7 @@
   <h2><span class="sec-num">§9</span>ループ設計</h2>
   <table class="spec">
     <tr><th>要素</th><th>内容</th></tr>
-    <tr><td>反復対象</td><td>Phase 5（機械ゲート）exit 1 → Phase 3〜4（規約4種採録・共通文書採録）へ戻る</td></tr>
+    <tr><td>反復対象</td><td>Phase 4（機械ゲート）exit 1 → Phase 3（共通文書採録）へ戻る</td></tr>
     <tr><td>上限回数</td><td>5回</td></tr>
     <tr><td>収束条件</td><td>check-common-docs.sh が exit 0</td></tr>
     <tr><td>発散条件</td><td>同一のNG理由（同一検査項目の同一違反）が2回連続で再発した場合、発散として即中断する（上限回数消化前でも中断してよい）</td></tr>
@@ -335,11 +324,8 @@
 <section id="s10">
   <h2><span class="sec-num">§10</span>予想を裏切る挙動</h2>
   <ul>
-    <li>機械ゲートの規則行完備性検査（検査2）は、規約4文書の各テーブル行のうちbacktick囲みの相対パス（「/」を含む）トークンを1件以上含む行だけを「規則行」とみなす。見出し行・区切り行はbacktickトークンを含まないため自動的に対象外になるが、意図的に規則行だけへ実例・頻度・例外率を書くこと</li>
-    <li>頻度は <code>N/M</code> 形式（例: <code>18/20</code>）、例外率は <code>%</code> を含む数値表記（例: <code>10.0%</code>）で、backtickの外（平文）に書く。backtick内に閉じ込めると相対パスとしても誤認識されうる</li>
-    <li>記載パスの実在チェック（機械ゲート検査3）は、backtickで囲んだ「/」を含む相対パスのみを対象とする。URL（<code>://</code>）・glob（<code>*</code>/<code>?</code>）・プレースホルダ（<code>&lt;</code>/<code>&gt;</code>）・絶対パス（先頭<code>/</code>）・空白や正規表現記号を含むトークン（コマンド例・grepパターン）は対象外</li>
-    <li>理想論表現検査（検査5）は規約4文書のみを走査する。共通設計書.md・メッセージ定義書.md・DESIGN.mdは検査対象外だが、実装事実主義の原則自体はすべての文書に適用する</li>
-    <li>テンプレ残存検査（検査4）は永続する共通6文書を走査する。規約4文書とサンプル記録は必須実在・テンプレ残存ゲートの対象外</li>
+    <li>記載パスの実在チェック（機械ゲート検査3）は、共通設計書.md・メッセージ定義書.md・DESIGN.mdのbacktickで囲んだ「/」を含む相対パスのみを対象とする。URL（<code>://</code>）・glob（<code>*</code>/<code>?</code>）・プレースホルダ（<code>&lt;</code>/<code>&gt;</code>）・絶対パス（先頭<code>/</code>）・空白や正規表現記号を含むトークン（コマンド例・grepパターン）は対象外</li>
+    <li>テンプレ残存検査（検査4）は永続する共通6文書を走査する。規約4文書はコードからの採録をやめ空雛形へ変更済みのため、サンプル記録とあわせて必須実在・テンプレ残存ゲートの対象外</li>
     <li>mode=append は指摘文書のみ追記すればよいが、機械ゲートは全項目を再実行する。部分ゲートは存在しない</li>
     <li>発散判定（同一NG理由2連続）は上限5回を消化する前でも即中断する</li>
     <li>層あたりのk値は層内ファイル数の平方根以上・3以上10以下に丸める。全層合計20ファイル未満だとPhase 2の完了条件を満たさない。詳細は references/sampling-rules.md</li>

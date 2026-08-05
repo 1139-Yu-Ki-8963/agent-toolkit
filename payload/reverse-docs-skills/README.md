@@ -13,7 +13,8 @@
 ```
 <output_dir>/
 ├── 一覧/                  # 種別ごとの目録（画面一覧.html 等6種 + 機能一覧（派生）） + excluded-kinds.json + 画面レジストリ
-├── プロジェクト共通/      # アーキテクチャ調査書 + 規約4種 + 共通設計書 + メッセージ定義書 + DESIGN.md
+├── 規約/                  # 規約20種の空雛形（コードからの採録は行わない）
+├── プロジェクト共通/      # アーキテクチャ調査書 + 共通設計書 + メッセージ定義書 + DESIGN.md 等 7 文書
 ├── <screenUnitRoot>/screen-<ID>/ # 画面単位の物理root（output-layout.jsonで解決、既定値: 画面）+ 詳細設計・基本設計・テスト項目書
 └── API/ テーブル/ バッチ/ 帳票/ 外部連携/   # 各種別の詳細設計置き場（現時点は一覧確立まで）
 ```
@@ -27,7 +28,7 @@
 | surveying-architecture-for-reverse-docs | `プロジェクト共通/アーキテクチャ調査書.md`（機械検証済み） |
 | generating-<種別>-list-for-reverse-docs（実在種別ごと） | `一覧/<種別>一覧/<種別>一覧.html`。全種別確定後に指揮役が `一覧/excluded-kinds.json` を書き出す |
 | unlocking-reverse-target-screens | `一覧/reverse-screen-registry.yml` への記帳と、対象コード側の基準タグ（`reverse-baseline/<scope>`） |
-| generating-reverse-common-docs | `プロジェクト共通/` の 7 文書 v0（規約 4 種・共通設計書・メッセージ定義書・DESIGN.md） |
+| generating-reverse-common-docs | `プロジェクト共通/` の 7 文書 v0（共通設計書・メッセージ定義書・DESIGN.md 等 6 文書 + サンプル記録.md）。規約20種は `規約/` へ空雛形として複製するのみで、コードからの採録は行わない |
 | extracting-unit-facts-from-code | `verification/screen-<ID>/facts/<run_id>/`（facts 一式 + 封印 facts.lock） |
 | generating-reverse-basic-design | `<screenUnitRoot>/screen-<ID>/基本設計/画面基本設計書.md`（`screenUnitRoot` は output-layout.json で解決） |
 | generating-reverse-detailed-design | `<screenUnitRoot>/screen-<ID>/詳細設計/画面詳細設計書.md`・`DESIGN.md`・`original.png`（画面キャプチャ） |
