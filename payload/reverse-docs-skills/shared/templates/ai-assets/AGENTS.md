@@ -14,14 +14,14 @@
 
 ## 後半: 規約の読み込み
 
-以下は対象リポジトリで実在・適用範囲・読み込み順を確認できた規約だけを記載する。規約本文はここへ複製しない。
+規約の索引は `docs/rules/` から機械が生成する。下のマーカーに挟まれた範囲が生成物であり、直接編集しない。承認済み（`status: approved`）の規約だけが載る。
 
-### {{RULES_FOLDER_OR_SCOPE}}
-
-- 意図: {{WHY_THIS_RULE_FOLDER_EXISTS}}
-- 常時または対象別の適用条件: {{APPLICABILITY_FROM_EVIDENCE}}
-- 正確な参照パス: `{{EXACT_RULE_PATH}}`
+<!-- RULES-INDEX:START -->
+<!-- ここは build-derived-rules.sh が生成する。直接編集しない -->
+<!-- RULES-INDEX:END -->
 
 ### 未確定事項
+
+規約ルートが見つからない・パスが解決できないといった構造的な未確定だけを書く。承認件数など後から変わる数は書かない。
 
 - {{UNCONFIRMED_RULE_OR_MISSING_EVIDENCE}}

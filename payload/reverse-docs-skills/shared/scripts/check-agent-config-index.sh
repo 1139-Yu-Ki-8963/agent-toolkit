@@ -122,14 +122,59 @@ for label in required:
     if label not in agents_text or label not in claude_text:
         raise SystemExit(f"FAIL: common index item missing: {label}")
 
-if re.search(r"(?m)^.*docs/rules/", claude_text):
+# 判定対象は「規約本文または規約一覧の複製」に限定する。ディレクトリ構造の記載として
+# `docs/rules/` というフォルダ名を1回書くのは正当であり（旧実装の行単位一致は
+# ディレクトリ構造の記載と衝突していた）、複製とみなすのは次の3条件のいずれかのみとする。
+# (1) RULES-INDEX マーカー（規約索引そのもの）を CLAUDE.md が持っている
+# (2) 規約本文の見出し（## 規則 / ## 違反時の手順）がある
+# (3) 具体的な規約ファイルへのパス（docs/rules/<親>/<子>/rule.md 形式）が2件以上並んでいる
+if re.search(r"(?m)^\s*<!--\s*RULES-INDEX:(START|END)\s*-->", claude_text):
+    raise SystemExit("FAIL: CLAUDE.md contains duplicated rule index/body")
+
+if len(re.findall(r"docs/rules/[^\s`]+/[^\s`]+/rule\.md", claude_text)) >= 2:
     raise SystemExit("FAIL: CLAUDE.md contains duplicated rule index/body")
 
 if re.search(r"(?m)^## .*規約.*(一覧|読み込み)", claude_text):
     raise SystemExit("FAIL: CLAUDE.md contains a rule-loading section")
 
-if "## 後半" not in agents_text or "正確な参照パス" not in agents_text:
+if re.search(r"(?m)^##\s*(規則|違反時の手順)\b", claude_text):
+    raise SystemExit("FAIL: CLAUDE.md contains a rule-loading section")
+
+# AGENTS.md の規約読み込み節は、build-derived-rules.sh が生成する RULES-INDEX マーカー、
+# または（自己テスト等の）明示的な参照パス記載のいずれかを持てば有効とみなす。
+agents_has_marker = (
+    "<!-- RULES-INDEX:START -->" in agents_text and "<!-- RULES-INDEX:END -->" in agents_text
+)
+agents_has_manual_ref = "正確な参照パス" in agents_text
+if "## 後半" not in agents_text or not (agents_has_marker or agents_has_manual_ref):
     raise SystemExit("FAIL: AGENTS.md lacks the rule-reference section")
+
+# 1-144: バッククォートで囲まれた文字列は「実在すべきファイルパス」とは限らない。
+# フォルダ名の言及（`docs/rules/`）・front matter の項目説明（`status: approved`）・
+# コマンド名（`npm run build`）・JSONキー参照（`scripts.build`）等、パスではない
+# 説明的表記を無条件に実在チェックすると、正当な記述が誤って不合格になる
+# （前回の `docs/rules` 行単位一致がディレクトリ構造の記載と衝突した問題と同種）。
+# 次の7条件をすべて満たす文字列だけを「ファイルパスらしい」対象として絞り込む。
+def looks_like_file_path(raw_path: str) -> bool:
+    if "/" not in raw_path:  # (1) スラッシュを1つ以上含む
+        return False
+    if re.search(r"\s", raw_path):  # (3) 空白を含まない
+        return False
+    if raw_path.startswith("/"):  # (4) 先頭が / でない（絶対パスは対象外）
+        return False
+    if "://" in raw_path:  # (5) URL は対象外
+        return False
+    if any(ch in raw_path for ch in "*?[]"):  # (6) glob は対象外
+        return False
+    if any(ch in raw_path for ch in "<>"):  # (7) プレースホルダは対象外
+        return False
+    last_segment = raw_path.rsplit("/", 1)[-1]
+    if "." not in last_segment:  # (2) 拡張子を持つ
+        return False
+    ext = last_segment.rsplit(".", 1)[-1]
+    if not ext or not ext.isalnum():  # (2) 拡張子は1文字以上の英数字
+        return False
+    return True
 
 # 1-143: 索引に列挙されたパスは帰属先に応じて基準ディレクトリを切り替えて実在確認する。
 # reverse-docs-skills 自身の資産（4接頭辞）は AGENTS.md の配置ディレクトリを基準にし、
@@ -138,7 +183,9 @@ if "## 後半" not in agents_text or "正確な参照パス" not in agents_text:
 # パス（本来の索引記載対象の大半）が一度も検証されていなかった。
 own_prefixes = (".claude/", "shared/", "README.md", "docs/reverse-docs-overview.html")
 for raw_path in re.findall(r"`([^`]+)`", agents_text):
-    if any(mark in raw_path for mark in ("{{", "<", ">", "*")):
+    if "{{" in raw_path:
+        continue
+    if not looks_like_file_path(raw_path):
         continue
     base = agents.parent if raw_path.startswith(own_prefixes) else target_root
     candidate = (base / raw_path).resolve()
