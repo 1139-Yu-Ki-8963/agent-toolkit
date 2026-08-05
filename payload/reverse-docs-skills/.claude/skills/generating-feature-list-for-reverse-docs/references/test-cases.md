@@ -14,6 +14,9 @@
 | html-危険文字を含むunitNameGuessの安全化 | 山括弧とマーカー文字列が衝突するunitNameGuessがある | build-feature-list.shで生成する | application/json埋め込みが安全化され、埋め込みJSONは原本と一致する | build-feature-list.shのself-testケース「ケースb: 危険文字+実マーカー文字列衝突を含むunitNameGuessでも埋め込みJSONが原本と完全一致」 |
 | 大分類境界-ルートprefix単独判定 | ナビメニューの区分がルートprefixと食い違う機能がある | Phase 1で大分類の境界を確定する | ルートprefixのみで境界を引き、ナビは命名の参考にとどめる | 手動 |
 | related参照整合-未検査の自前検査 | related系フィールドが実在しない参照を含むmanifestがある | Phase 5 Step 2でjqによる自前検査を実行する | 不在参照を検出し、成果物への混入を防ぐ | 手動 |
+| 画面不在-該当なし通過 | `一覧/画面一覧（該当なし）.md` が実在する対象で、raw画面正本が無い | Phase 1〜6を実行する | raw画面正本が無くても status=DONE で完了し `strategy.screenPresence` が `none` になる | 手動（対象コードベースを要する） |
+| 境界決定-読み替え記録 | 画面を持たない対象で大分類境界を決定する | Phase 2で境界を確定する | `strategy.boundarySource` に `api-prefix` または `build-target` が記録される | 手動（対象コードベースを要する） |
+| 参照実在-画面照合の除外 | `strategy.screenPresence` が `none` の対象で `relatedScreens` が空配列のmanifestがある | Phase 5 Step 2でjqによる自前検査を実行する | 参照実在の検査が FAIL しない | 手動（対象コードベースを要する） |
 
 ## 機械検証との対応
 

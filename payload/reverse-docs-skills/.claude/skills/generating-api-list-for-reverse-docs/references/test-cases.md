@@ -15,6 +15,10 @@
 | html-属性注入防止 | 引用符を含むunitKeyがある | build-unit-list.shで生成する | 属性値として安全にエスケープし、埋め込みJSONは原本と一致する | build-unit-list.shのself-testケース「ケースb: 引用符を含むunitKeyを属性値として安全にエスケープし、埋め込みJSONも原本と完全一致」 |
 | metadata-method抽出 | GET /api/usersのような識別子を持つunitがある | extract-api-metadata.shを実行する | methodフィールドにGETが抽出される | extract-api-metadata.shのself-testケース「method: GET /api/users から GET を抽出」 |
 | metadata-認証根拠なしでfail-safe | 認証判定の根拠となるコードが無いunitがある | extract-api-metadata.shを実行する | authRequired等の根拠が無いフィールドを付けない | extract-api-metadata.shのself-testケース「fail-safe: 根拠の無い authRequired/callers/targetTables/ioSummary は欠落」 |
+| 対象形態-非HTTP判定 | 依存定義に Web フレームワークが実在せず、ビルド定義から実行ファイルを生成する対象である | Phase 1 Step 1で対象形態を判定する | 非 HTTP 系と判定され「非 HTTP 系の調査項目」の表が使われる | 手動（対象コードベースを要する） |
+| 単位種別-実行ファイル | 非 HTTP 系のコードベースがある | Phase 2の抽出を実行する | 検出結果のunitに`kind: entrypoint`が付与される | 手動（対象コードベースを要する） |
+| 単位種別-ディスパッチ分割 | ディスパッチ表を持つ実行ファイルがある | Phase 2の抽出を実行する | ディスパッチ表の各行に`kind: dispatch-entry`が付与され、親の`entrypoint`が単位数のカウント対象から外れる | 手動（対象コードベースを要する） |
+| 識別子-非HTTP形式 | 非 HTTP 系のunitがある | Phase 2の抽出を実行する | `identifier`が実行ファイルの相対パス、または「実行ファイル名 + コード値」の形式で記録され、独自に採番した値が含まれない | 手動（対象コードベースを要する） |
 
 ## 機械検証との対応
 

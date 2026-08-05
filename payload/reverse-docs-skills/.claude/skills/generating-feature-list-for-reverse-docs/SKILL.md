@@ -10,7 +10,7 @@ allowed-tools: [AskUserQuestion, Bash, Grep, Read, Write]
 
 工程全体は orchestrating-reverse-docs-flow が案内する。本スキルは機能一覧の生成のみを担い、単独起動できる(起動引数 source_dir・output_dir の 2 つを渡せば動く)。`unit_kind` は **feature 固定** であり、引数では受け取らない。
 
-既存の種別別一覧(画面一覧は必須、API・テーブル等の一覧は任意)を入力として、業務機能の単位(2階層: 大分類 + 機能)に画面・APIをグルーピングして **機能一覧.html** を作成する。**本スキルの仕事は機能一覧.html の作成のみ** であり、設計書の雛形展開・生成・記入は一切行わない。
+既存の種別別一覧(画面を持つ対象では画面一覧が必須、画面を持たない対象では画面該当なしの記録で代替する。API・テーブル等の一覧は任意)を入力として、業務機能の単位(2階層: 大分類 + 機能)に画面・APIをグルーピングして **機能一覧.html** を作成する。**本スキルの仕事は機能一覧.html の作成のみ** であり、設計書の雛形展開・生成・記入は一切行わない。
 
 機能は「コードから直接検出するユニット」ではなく **既存一覧の派生グルーピング(派生一覧)** である。アーキテクチャ調査の存在判定(unit_kinds_present)の対象にならず(機能は常に存在する)、excluded-kinds.json の allKinds にも含めない。
 
@@ -55,7 +55,7 @@ feature 種別に組み込み検出器はない。抽出は **カスタム抽出
 
 ## Step 1-1: 入力収集
 
-- **Step 1**: raw画面正本`<output_dir>/一覧/画面一覧/screen-manifest.json`を直接入力にし、`validate-manifest.sh <raw> --unit-kind screen`を実行する。**raw画面正本は必須**。不在またはschema不合格ならstatus=ERRORで停止し、hintに「先にgenerating-screen-list-for-reverse-docsを実行」と記録する。通常生成では画面一覧HTMLの埋め込みJSONを逆抽出しない。旧成果物からの移行・復元時だけ`restore-screen-manifest.sh`でrawを正規配置へ復元・検証してから本Phaseを再開する。他種別は`<output_dir>/一覧/`配下に実在する一覧HTMLを機械的に列挙し、`id="unit-manifest"`からJSONを抽出する。raw画面正本と実在した他種別一覧のパスをすべて`strategy.inputManifests`に記録する(ユーザー指示は不要)。完了条件: raw画面正本がschema検証済みで、inputManifestsが確定している
+- **Step 1**: raw画面正本`<output_dir>/一覧/画面一覧/screen-manifest.json`を直接入力にし、`validate-manifest.sh <raw> --unit-kind screen`を実行する。raw画面正本の扱いは画面種別の実在で分岐する。`<output_dir>/一覧/画面一覧（該当なし）.md` が実在する場合、画面を持たない対象と判定し、raw画面正本を要求せず `strategy.screenPresence` に `none` を記録して次へ進む。該当なしの記録が無く raw画面正本も不在、または schema 不合格なら status=ERROR で停止し、hintに「先にgenerating-screen-list-for-reverse-docsを実行」と記録する。raw画面正本が実在する場合は `strategy.screenPresence` に `present` を記録する。通常生成では画面一覧HTMLの埋め込みJSONを逆抽出しない。旧成果物からの移行・復元時だけ`restore-screen-manifest.sh`でrawを正規配置へ復元・検証してから本Phaseを再開する。他種別は`<output_dir>/一覧/`配下に実在する一覧HTMLを機械的に列挙し、`id="unit-manifest"`からJSONを抽出する。raw画面正本と実在した他種別一覧のパスをすべて`strategy.inputManifests`に記録する(ユーザー指示は不要)。完了条件: raw画面正本がschema検証済みで、inputManifestsが確定している
 - **Step 2**: `source_dir` からルート定義・ナビメニュー・バックエンドルーターの prefix/tags・ディレクトリ構造を Grep/Read で特定する。survey_doc_path があれば所在特定の参考にする。完了条件: 手がかり①〜④(feature-detection.md の優先度表)の抽出元ファイルが列挙済み
 
 **完了**: 画面一覧マニフェスト抽出済み・inputManifests 確定・手がかり①〜④の抽出元が列挙済み・API/テーブル grep パターン特定済み
@@ -82,7 +82,7 @@ feature 種別に組み込み検出器はない。抽出は **カスタム抽出
 
 集約キー(`unitKey`)は機能一覧の全要素で一意にする。同一の集約キーが2件以上生じた場合、集約元の情報を付加して個別の値にするか、集約の単位そのものを見直す。重複したまま出力すると、権限マトリクス生成の入力検証で停止する(`shared/scripts/unit-list/validate-manifest.sh` の一意性検査と `shared/scripts/extract/build-matrix-data.sh` の重複検出が捕捉する)。
 
-- **Step 2(完全性ゲート)**: 画面一覧の全 screenKey が「いずれかの機能の relatedScreens」または「unresolved 行」に載っているかを機械検査する。未割当が1件でもあれば Step 1 へ差し戻す
+- **Step 2(完全性ゲート)**: 画面一覧の全 screenKey が「いずれかの機能の relatedScreens」または「unresolved 行」に載っているかを機械検査する。未割当が1件でもあれば Step 1 へ差し戻す。`strategy.screenPresence` が `none` の対象では、画面に関する照合を対象外とする。
 
 ```bash
 # 未割当の screenKey を検出(空なら PASS、非空なら Step 1 へ差し戻し)
@@ -125,19 +125,19 @@ Stage 2 → Stage 3 の実行順はデータ依存(Stage 3 は Stage 2 の出力
 
 **使用ツール**: AskUserQuestion / Read / Bash / Write
 
-- **Step 1**: マニフェストへメタデータを付与する。`../../../shared/scripts/extract/extract-feature-metadata.sh <manifest.json> <manifest.ext.json> --screen-manifest <output_dir>/一覧/画面一覧/screen-manifest.json --table-manifest <output_dir>/一覧/テーブル一覧/table-manifest.json --source-dir <source_dir>` を実行する(テーブル一覧未生成の場合は `--table-manifest` を省略してよい。その場合は直接データアクセス経路がスキップされる)。各機能に `operationClass`(照会/登録/更新/削除/承認/その他)フィールドを追加し、`relatedApis`・`relatedTables` が両方空のまま残った機能について画面の直接データアクセス経路(1-152・feature-detection.md「Stage 3b」参照)で `relatedTables` を補完し、`detectionSummary.diagnostics.emptyRelation` に「関連が全件空の機能」の比率を機械算出した拡張マニフェスト(`manifest.ext.json`)を生成する。以降の Step では `manifest.ext.json` を使用する。完了条件: 拡張マニフェストが生成済み・`diagnostics.emptyRelation` が算出済み
+- **Step 1**: マニフェストへメタデータを付与する。`../../../shared/scripts/extract/extract-feature-metadata.sh <manifest.json> <manifest.ext.json> --screen-manifest <output_dir>/一覧/画面一覧/screen-manifest.json --table-manifest <output_dir>/一覧/テーブル一覧/table-manifest.json --source-dir <source_dir>` を実行する(テーブル一覧未生成の場合は `--table-manifest` を省略してよい。その場合は直接データアクセス経路がスキップされる)。各機能に `operationClass`(照会/登録/更新/削除/承認/その他)フィールドを追加し、`relatedApis`・`relatedTables` が両方空のまま残った機能について画面の直接データアクセス経路(1-152・feature-detection.md「Stage 3b」参照)で `relatedTables` を補完し、`detectionSummary.diagnostics.emptyRelation` に「関連が全件空の機能」の比率を機械算出した拡張マニフェスト(`manifest.ext.json`)を生成する。以降の Step では `manifest.ext.json` を使用する。完了条件: 拡張マニフェストが生成済み・`diagnostics.emptyRelation` が算出済み。`strategy.screenPresence` が `none` の対象では `--screen-manifest` を渡さない。スクリプト側は当該引数の不在を許容する。
 - **Step 2**: `../../../shared/scripts/unit-list/validate-manifest.sh <manifest.ext.json> --unit-kind feature` を実行する。FAIL 時は指摘に応じて修正し再実行(3回失敗で Phase 3 へ差し戻し)。完了条件: 全項目 PASS
 - **Step 3**: 両方向の参照検査を実行する。いずれかが非空なら該当 Phase へ差し戻す
 
 ```bash
-# Gate A(既存): dangling reference — relatedScreens の参照先が画面一覧に実在するか
+# Gate A(既存): dangling reference — relatedScreens の参照先が画面一覧に実在するか。strategy.screenPresence が none の対象では、画面に関する照合を対象外とする。
 # (relatedApis/relatedTables も対応一覧の units[].unitKey で同型。
 # 参照先一覧が未生成の種別は related* が空配列のため自動的に PASS)
 comm -23 \
   <(jq -r '.units[] | .relatedScreens[]?' feature-manifest.ext.json | sort -u) \
   <(jq -r '.screens[].screenKey' screen-manifest.json | sort -u)
 
-# Gate B(新設): completeness — 画面一覧の全 screenKey が機能に割り当て済みか
+# Gate B(新設): completeness — 画面一覧の全 screenKey が機能に割り当て済みか。strategy.screenPresence が none の対象では、画面に関する照合を対象外とする。
 comm -13 \
   <(jq -r '.units[] | .relatedScreens[]?' feature-manifest.ext.json | sort -u) \
   <(jq -r '.screens[].screenKey' screen-manifest.json | sort -u)
@@ -195,12 +195,12 @@ comm -13 \
 - Phase 5 の HTML 手作業組み立てを禁止する。`build-unit-list.sh` を必ず経由する
 - 機能・大分類を捏造しない。すべての割当に手がかり①〜④いずれかの根拠を持たせ、根拠ゼロは unresolved とする
 - related* を推測で埋めない。突合で解決できないものは空のままとする
-- 画面一覧が空(screens が 0 件)の場合はハード停止しユーザーに報告する。手動リストを聞き出さない
+- 画面該当なしの記録が無い状態で画面一覧が空(screens が 0 件)の場合はハード停止しユーザーに報告する。手動リストを聞き出さない。画面該当なしが記録済みの対象では停止せず、API等の他種別だけで機能を立てる
 
 ## 予想を裏切る挙動
 
 - `validate-manifest.sh`・`build-unit-list.sh` は jq に依存する。未インストール環境では事前に導入する
-- 大分類の境界はルートprefix(手がかり①)のみで引く。ナビメニューが境界を示唆しても境界には使わない(ナビは全機能を網羅しないため。命名のみに使う)。なお境界を保ったまま大分類名を上位業務領域へ統合することは統合規則(feature-detection.md)で許可されている
+- 大分類の境界はルートprefix(手がかり①)のみで引く。ナビメニューが境界を示唆しても境界には使わない(ナビは全機能を網羅しないため。命名のみに使う)。なお境界を保ったまま大分類名を上位業務領域へ統合することは統合規則(feature-detection.md)で許可されている。画面を持たない対象ではルートprefixが存在しないため、feature-detection.md の「画面を持たない対象の境界決定」に従い APIプレフィックスまたはビルド定義の生成ターゲットへ読み替える
 - unresolved が残った状態も status=DONE で完了とする(既存6種の「要手動確認」と同じ扱い。ERROR ではない)
 - validate-manifest.sh は related* の参照実在を検査しない(参照整合検査は screen 専用)。Phase 5 Step 2 の jq 自前検査を省略すると不在参照が成果物に混入する
 - detectionSummary.unitCount は units 配列の全要素数(unresolved 含む)。機能数として報告する場合は kind=feature 行のみを数える

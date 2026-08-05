@@ -58,8 +58,8 @@ API 種別に組み込み検出器はない。抽出は **カスタム抽出パ�
 
 調査項目の詳細は `references/api-detection.md` を参照する。
 
-- **Step 1**: `package.json`・lockファイル（`package-lock.json`/`yarn.lock`/`pnpm-lock.yaml`）またはバックエンド相当（`requirements.txt`/`pyproject.toml`/`go.mod` 等）からフレームワーク・ルーターライブラリを確定する。これらが存在しないコードベースでは import 文・API 使用形跡から推定する。完了条件: ライブラリ名とバージョンが特定済み、または特定不能の根拠（推定経路）が記録済み
-- **Step 2**: エンドポイント定義の所在と方式を特定する（OpenAPI/Swagger 定義ファイル、ルート定義、コントローラ、デコレータ等）。**定義と登録が別ファイルの場合（ルーターの分割マウント等）は定義ファイルまで追跡して所在を確定する**。完了条件: エンドポイント定義を含む実ファイルパスが列挙済み
+- **Step 1**: 対象形態を判定する。`references/api-detection.md` の「対象形態の判定」に従い、HTTP 系・非 HTTP 系・併存のいずれかを確定する。HTTP 系では `package.json`・lockファイル（`package-lock.json`/`yarn.lock`/`pnpm-lock.yaml`）またはバックエンド相当（`requirements.txt`/`pyproject.toml`/`go.mod` 等）からフレームワーク・ルーターライブラリを確定する。これらが存在しないコードベースでは import 文・API 使用形跡から推定する。非 HTTP 系ではビルド定義（Makefile・CMakeLists.txt 等）から、生成される実行ファイルの一覧を確定する。完了条件: 対象形態が確定済み。あわせて HTTP 系はライブラリ名とバージョンが特定済みまたは特定不能の根拠（推定経路）が記録済み、非 HTTP 系は実行ファイル一覧が確定済み
+- **Step 2**: 呼び出し境界の定義の所在と方式を特定する。HTTP 系は OpenAPI/Swagger 定義ファイル・ルート定義・コントローラ・デコレータ等を対象とする。**定義と登録が別ファイルの場合（ルーターの分割マウント等）は定義ファイルまで追跡して所在を確定する**。非 HTTP 系は `references/api-detection.md` の「非 HTTP 系の調査項目」の優先度表に従い、ビルド定義の生成ターゲットを主手段として境界を引く。完了条件: 境界の定義を含む実ファイルパスが列挙済み
 - **Step 3**: API 規約を調査する（API ID 命名パターン・HTTP メソッドとパスの記述方式・ミドルウェアの適用方式）。完了条件: `unitIdRegex` の候補値または「なし」が確定済み
 - **Step 4**: 除外パターンを確定する。テスト用エンドポイント・ヘルスチェック・`tests`/`mocks` 等のノイズを実際に `ls` で確認する。完了条件: `excludePatterns` 一覧が確定済み
 - **Step 5**: 検出戦略宣言を作成し、AskUserQuestion で承認を取る。宣言 JSON は一時ファイルに保存する。完了条件: 戦略 JSON（`unitKind: "api"`/`extractionMethod: "custom"`/`unitIdRegex`/`excludePatterns`/`approvedByUser: true`/`notes`）が保存済み
