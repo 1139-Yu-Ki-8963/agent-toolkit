@@ -1,0 +1,74 @@
+{
+  "specVersion": 1,
+  "parents": [
+    {
+      "key": "agent-operations",
+      "title": "AIエージェント運用",
+      "children": [
+        { "key": "ai-behavior", "title": "AIエージェント行動規約", "summary": "AIエージェントへの作業委任・役割分担・実行方式の取り決め。", "toolDefined": false },
+        { "key": "destructive-operation-safety", "title": "破壊的操作の安全規約", "summary": "rm -rf・force push・reset --hard 等の破壊的操作を実行する前の確認と検査の取り決め。", "toolDefined": false },
+        { "key": "session-management", "title": "セッション管理規約", "summary": "作業セッションの開始・終了・記録・引き継ぎに関する取り決め。", "toolDefined": false },
+        { "key": "ai-config-asset-management", "title": "AI設定資産の管理規約", "summary": "スキル・規約・フックなどAI設定資産の作成・変更・配置・レビューの手順。", "toolDefined": true },
+        { "key": "routine-operations", "title": "定型運用の規約", "summary": "定期的に繰り返す定型作業の手順と実行タイミングの取り決め。", "toolDefined": false }
+      ]
+    },
+    {
+      "key": "development-process",
+      "title": "開発プロセス",
+      "children": [
+        { "key": "development-flow", "title": "開発フロー規約", "summary": "設計から実装・レビュー・統合までの開発工程の順序と各段階の完了条件。", "toolDefined": false },
+        { "key": "tools-and-commands", "title": "ツールとコマンド実行の規約", "summary": "開発で使うツールとコマンドの実行方法・権限・実行前確認の取り決め。", "toolDefined": false },
+        { "key": "development-environment", "title": "開発環境規約", "summary": "ローカル開発環境の構築手順・依存関係・環境変数の管理方法。", "toolDefined": false },
+        { "key": "git-operations", "title": "Git運用規約", "summary": "コミット・ブランチ・マージ・プルリクエストの運用ルール。", "toolDefined": false },
+        { "key": "release-and-delivery", "title": "リリースとデリバリーの規約", "summary": "リリース手順・デプロイ方法・バージョン管理の取り決め。", "toolDefined": false }
+      ]
+    },
+    {
+      "key": "code-standards",
+      "title": "コード規約",
+      "children": [
+        { "key": "coding-style", "title": "コーディング規約", "summary": "コードの書き方・関数分割・ファイル行数など実装スタイルの取り決め。", "toolDefined": false },
+        { "key": "naming", "title": "命名規約", "summary": "変数・関数・ファイル・ディレクトリなど識別子の命名パターン。", "toolDefined": false },
+        { "key": "directory-structure", "title": "ディレクトリ構成規約", "summary": "リポジトリのディレクトリ配置とレイヤー構成の取り決め。", "toolDefined": false },
+        { "key": "component-architecture", "title": "コンポーネント設計規約", "summary": "コンポーネントの分割方針・責務分担・依存関係の設計指針。", "toolDefined": false }
+      ]
+    },
+    {
+      "key": "quality-assurance",
+      "title": "品質保証",
+      "children": [
+        { "key": "test-policy", "title": "テスト方針書", "summary": "テストの種類・カバレッジ目標・実行タイミングの取り決め。", "toolDefined": false },
+        { "key": "review-checklist", "title": "レビュー観点表", "summary": "コードレビューで確認する観点と合格基準の一覧。", "toolDefined": false }
+      ]
+    },
+    {
+      "key": "documentation-standards",
+      "title": "文書化規約",
+      "children": [
+        { "key": "document-writing", "title": "ドキュメント作成規約", "summary": "設計書・手順書などドキュメントの記述形式と更新手順の取り決め。", "toolDefined": false },
+        { "key": "portal-maintenance", "title": "ポータル保守規約", "summary": "ポータルと一覧のHTMLを保守するときの取り決め。", "toolDefined": true }
+      ]
+    },
+    {
+      "key": "non-functional-requirements",
+      "title": "非機能要件",
+      "children": [
+        { "key": "security", "title": "セキュリティ要件", "summary": "認証・認可・入力検証など安全性に関する要件。", "toolDefined": false },
+        { "key": "performance", "title": "性能要件", "summary": "応答時間・処理件数などパフォーマンスに関する要件。", "toolDefined": false },
+        { "key": "availability", "title": "可用性要件", "summary": "システムの稼働継続性と障害時の復旧に関する要件。", "toolDefined": false },
+        { "key": "scalability", "title": "拡張性要件", "summary": "利用量の増加に対応するための拡張方針に関する要件。", "toolDefined": false },
+        { "key": "observability", "title": "監視要件", "summary": "ログ出力・監視・アラートに関する要件。", "toolDefined": false }
+      ]
+    },
+    {
+      "key": "business-domain",
+      "title": "業務ドメイン規約",
+      "children": [
+        { "key": "glossary", "title": "用語定義", "summary": "業務用語とコード上の識別子の対応関係の定義。", "toolDefined": false },
+        { "key": "business-rules", "title": "業務規則", "summary": "業務上守るべき判定ロジックと制約の取り決め。", "toolDefined": false },
+        { "key": "state-transitions", "title": "状態遷移の制約", "summary": "業務エンティティが取りうる状態と許可される遷移の取り決め。", "toolDefined": false },
+        { "key": "calculation-rules", "title": "計算規則", "summary": "金額・数量などの計算ロジックとその根拠の取り決め。", "toolDefined": false }
+      ]
+    }
+  ]
+}

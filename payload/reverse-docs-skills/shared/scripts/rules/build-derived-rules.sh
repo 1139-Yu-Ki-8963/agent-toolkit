@@ -363,6 +363,18 @@ ${toml_block}"
     echo "DRY-RUN: 以下を生成予定（--apply未指定のため書き込みなし）:"
   fi
   printf '%s' "$PLAN_LINES"
+
+  # --apply のときだけ、生成直後に台帳（derived-rule-fingerprints.json）を更新する。
+  # dry-run では台帳を触らない（設計6節: 判定はハッシュのみ・更新時刻は使わない）。
+  if [ "$APPLY" -eq 1 ]; then
+    local drift_out
+    if ! drift_out="$("${SCRIPT_DIR}/check-rule-drift.sh" record "$out_root" 2>&1)"; then
+      echo "ERROR: check-rule-drift.sh record が失敗した" >&2
+      printf '%s\n' "$drift_out" >&2
+      return 1
+    fi
+    printf '%s\n' "$drift_out"
+  fi
   return 0
 }
 
@@ -378,7 +390,7 @@ deploy_tooling() {
   mkdir -p "$tooling_dir"
 
   local src name dest
-  for name in build-derived-rules.sh validate-rule-definitions.sh; do
+  for name in build-derived-rules.sh validate-rule-definitions.sh check-rule-drift.sh; do
     src="${SCRIPT_DIR}/${name}"
     dest="${tooling_dir}/${name}"
     {
@@ -533,6 +545,9 @@ EOF
 self_test() {
   local rc=0
   local src out1 out2 bst_run1_log bst_diff_log
+  # 台帳（check-rule-drift.sh record）の recordedAt を固定し、
+  # ケース6（決定的生成のbyte単位一致）が実行時刻差で崩れないようにする。
+  export RULE_DRIFT_RECORDED_AT="2020-01-01T00:00:00Z"
   src="$(mktemp -d "${TMPDIR:-/tmp}/build-derived-rules-self-test-src.XXXXXX")"
   bst_write_fixture "$src"
 
@@ -657,17 +672,43 @@ self_test() {
     rc=1
   fi
 
+  # ケース9: --apply の直後に台帳が作られ、直後の status がずれなしになる
+  local out9 ok9 status_out status_rc drift_script
+  out9="$(mktemp -d "${TMPDIR:-/tmp}/build-derived-rules-self-test-out9.XXXXXX")"
+  APPLY=1
+  run_build "$src" "$out9" >/dev/null 2>&1
+  ok9=1
+  drift_script="${SCRIPT_DIR}/check-rule-drift.sh"
+  [ -f "${out9}/docs/rules-tooling/derived-rule-fingerprints.json" ] || ok9=0
+  if [ "$ok9" -eq 1 ]; then
+    status_rc=0
+    status_out="$(bash "$drift_script" status "$out9" 2>&1)" || status_rc=$?
+    [ "$status_rc" -eq 0 ] || ok9=0
+  fi
+  if [ "$ok9" -eq 1 ]; then
+    echo "  [PASS] ケース9: --apply 直後に台帳が作られ、直後の status がずれなし"
+  else
+    echo "  [FAIL] ケース9: 台帳作成または直後の status が不正" >&2
+    echo "$status_out" | sed 's/^/    /' >&2
+    rc=1
+  fi
+  rm -rf "$out9"
+
   rm -rf "$src" "$out1" "$out2"
 
-  # ケース8: --deploy-tooling で2本が配備され、実行可能である
+  # ケース8: --deploy-tooling で3本が配備され、実行可能である
   local deploy_out ok8
   deploy_out="$(mktemp -d "${TMPDIR:-/tmp}/build-derived-rules-self-test-deploy.XXXXXX")"
   deploy_tooling "$deploy_out" >/dev/null 2>&1
   ok8=1
   [ -x "${deploy_out}/docs/rules-tooling/build-derived-rules.sh" ] || ok8=0
   [ -x "${deploy_out}/docs/rules-tooling/validate-rule-definitions.sh" ] || ok8=0
+  [ -x "${deploy_out}/docs/rules-tooling/check-rule-drift.sh" ] || ok8=0
   if [ "$ok8" -eq 1 ]; then
     bash "${deploy_out}/docs/rules-tooling/validate-rule-definitions.sh" --self-test >/dev/null 2>&1 || ok8=0
+  fi
+  if [ "$ok8" -eq 1 ]; then
+    bash "${deploy_out}/docs/rules-tooling/check-rule-drift.sh" --self-test >/dev/null 2>&1 || ok8=0
   fi
   if [ "$ok8" -eq 1 ]; then
     local usage_out
@@ -675,7 +716,7 @@ self_test() {
     printf '%s' "$usage_out" | grep -q "使い方" || ok8=0
   fi
   if [ "$ok8" -eq 1 ]; then
-    echo "  [PASS] ケース8: --deploy-tooling で2本が配備され、実行可能である"
+    echo "  [PASS] ケース8: --deploy-tooling で3本が配備され、実行可能である"
   else
     echo "  [FAIL] ケース8: --deploy-toolingの配備または実行に失敗した" >&2
     rc=1

@@ -59,7 +59,7 @@ allowed-tools: [Bash, Read, Write, Grep, Glob]
 
 **使用ツール**: Read / Grep / Glob
 
-- **Step 1** 親7・子27の構成（下表）を対象リポジトリへ当てる。この構成は `docs/rules/<親>/<子>/` の階層と一致する契約値であり、章slugと子keyは変更しない。完了条件: 27カテゴリ全件に対応する行を用意済み
+- **Step 1** 親7・子27の構成を対象リポジトリへ当てる。この構成は `shared/references/rule-taxonomy.json` を定義とする。章の `slug` は親の `key`、カテゴリの `key` は子の `key` をそのまま使う。表示名も同宣言の `title` を使う。**この文書に構成の表を複製しない。** 複製すると宣言との食い違いが起き、取り込み時に既存の空雛形を埋めずに新しいフォルダが増える事故になる。完了条件: 27カテゴリ全件に対応する行を用意済み
 - **Step 2** 各カテゴリについて、対象リポジトリに観測できる材料があるかを判定し `state` を決める。値域は次の4つ。完了条件: 27カテゴリ全件に `state` が確定済み
 
 | state | 意味 |
@@ -71,37 +71,15 @@ allowed-tools: [Bash, Read, Write, Grep, Glob]
 
 材料が無いカテゴリを無理に `proposal` にしない。`na` として理由を書く。観測できないことを書けるのが、この工程の質である。
 
-### 親7・子27の構成
+### 親7・子27の構成の確認手順
 
-| 章index | 章 | 章slug | 子key | 子カテゴリ |
-|---|---|---|---|---|
-| 1 | AIエージェント運用 | agent-operations | agent-behavior | AIエージェント行動規約 |
-| 1 | AIエージェント運用 | agent-operations | destructive-safety | 破壊的操作の安全規約 |
-| 1 | AIエージェント運用 | agent-operations | session-management | セッション管理規約 |
-| 1 | AIエージェント運用 | agent-operations | ai-asset-management | AI設定資産の管理規約 |
-| 1 | AIエージェント運用 | agent-operations | routine-operations | 定型運用の規約 |
-| 2 | 開発プロセス | development-process | dev-flow | 開発フロー規約 |
-| 2 | 開発プロセス | development-process | tooling-commands | ツールとコマンド実行の規約 |
-| 2 | 開発プロセス | development-process | dev-environment | 開発環境規約 |
-| 2 | 開発プロセス | development-process | git-operations | Git運用規約 |
-| 2 | 開発プロセス | development-process | release-delivery | リリースとデリバリーの規約 |
-| 3 | コード規約 | code-standards | coding-standards | コーディング規約 |
-| 3 | コード規約 | code-standards | naming-convention | 命名規約 |
-| 3 | コード規約 | code-standards | directory-structure | ディレクトリ構成規約 |
-| 3 | コード規約 | code-standards | component-design | コンポーネント設計規約 |
-| 4 | 品質保証 | quality-assurance | test-policy | テスト方針書 |
-| 4 | 品質保証 | quality-assurance | review-checklist | レビュー観点表 |
-| 5 | 文書化規約 | documentation-standards | documentation-standards | ドキュメント作成規約 |
-| 5 | 文書化規約 | documentation-standards | portal-maintenance | ポータル保守規約 |
-| 6 | 非機能要件 | non-functional-requirements | security-requirements | セキュリティ要件 |
-| 6 | 非機能要件 | non-functional-requirements | performance-requirements | 性能要件 |
-| 6 | 非機能要件 | non-functional-requirements | availability-requirements | 可用性要件 |
-| 6 | 非機能要件 | non-functional-requirements | scalability-requirements | 拡張性要件 |
-| 6 | 非機能要件 | non-functional-requirements | monitoring-requirements | 監視要件 |
-| 7 | 業務ドメイン規約 | business-domain | terminology | 用語定義 |
-| 7 | 業務ドメイン規約 | business-domain | business-rules | 業務規則 |
-| 7 | 業務ドメイン規約 | business-domain | state-transition | 状態遷移の制約 |
-| 7 | 業務ドメイン規約 | business-domain | calculation-rules | 計算規則 |
+構成を確認するときは次のコマンドで `shared/references/rule-taxonomy.json` を直接読む。
+
+```
+jq -r '.parents[] | "\(.key) / \(.title)", (.children[] | "  \(.key) / \(.title)")' shared/references/rule-taxonomy.json
+```
+
+`toolDefined: true` の2件（`ai-config-asset-management` / `portal-maintenance`）は提案の対象外である。ツール側が本文を書いて納品するため、提案して採否を問う対象ではない。
 
 **完了**: 27カテゴリ全件に `state` が確定済み
 

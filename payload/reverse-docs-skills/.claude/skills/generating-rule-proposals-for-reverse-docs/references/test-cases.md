@@ -16,6 +16,7 @@
 | 未解決マーカーなし | 任意の入力JSONで生成する | `build-rule-proposal.sh` を実行する | 出力に未解決の `{{` が残らない | `build-rule-proposal.sh --self-test` のケース6 |
 | na-理由必須 | `state: "na"` のカテゴリがある | Phase 2 Step 2を実行する | 判定ボタンを出さず、対象外の理由（`reason`）のみを示す | 手動 |
 | 観測-根拠の同伴 | `state` が `proposal` か `proposal-limited` のカテゴリがある | Phase 3を実行する | 観測ごとにパスと行番号が付き、断定できない事項は「未確認」と明記される | 手動 |
+| キー-宣言一致 | 提案データの `key` と `slug` を組み立てる | Phase 2 Step 1を実行する | 提案データの `key` と `slug` が `shared/references/rule-taxonomy.json` の親 `key`・子 `key` と一致する | 手動 |
 
 ## 機械検証との対応
 

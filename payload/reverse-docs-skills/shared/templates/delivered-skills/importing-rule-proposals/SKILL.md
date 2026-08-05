@@ -28,8 +28,7 @@ allowed-tools: [Bash, Read, Write]
 
 - トップレベルに `proposalId`・`generatedAt`・`total`・`judged`・`decisions` の5鍵があること
 - `decisions_path` がリポジトリの外を指していること
-- `decisions` の各要素が前半6鍵（`parent`・`key`・`chapter`・`title`・`decision`・`proposedRule`）を持つこと
-- `decisions` の各要素が後半6鍵（`scope`・`globs`・`enforcement`・`checkable`・`checkMethod`・`sources`）を持つこと
+- `decisions` の各要素が13鍵（`parent`・`key`・`chapter`・`title`・`summary`・`decision`・`proposedRule`・`scope`・`globs`・`enforcement`・`checkable`・`checkMethod`・`sources`）を持つこと
 
 1件でも満たさなければ、不足箇所を列挙して停止する。書き込みは行わない。
 

@@ -58,7 +58,7 @@
       "description": "agent-operations",
       "categories": [
         {
-          "key": "agent-behavior",
+          "key": "ai-behavior",
           "title": "AIエージェント行動規約",
           "state": "proposal",
           "summary": "AIエージェントのレビュー権限をPRコメント投稿に限定する規約である。",
@@ -80,7 +80,7 @@
           "reason": ""
         },
         {
-          "key": "destructive-safety",
+          "key": "destructive-operation-safety",
           "title": "破壊的操作の安全規約",
           "state": "proposal",
           "summary": "破壊的コマンドの実行前チェックを安全規約として明文化するものである。",
@@ -116,7 +116,7 @@
           "reason": "調査範囲内に、AIエージェントの対話単位（開始・終了・引き継ぎ）を扱うコードや設定は存在しなかった。CI上のワンショット実行のみが確認され、セッションという概念自体が本サンプルアプリの開発体制に存在しない。"
         },
         {
-          "key": "ai-asset-management",
+          "key": "ai-config-asset-management",
           "title": "AI設定資産の管理規約",
           "state": "proposal",
           "summary": "AI関連設定ファイルの変更にレビューを必須化する規約である。",
@@ -161,7 +161,7 @@
       "description": "development-process",
       "categories": [
         {
-          "key": "dev-flow",
+          "key": "development-flow",
           "title": "開発フロー規約",
           "state": "proposal",
           "summary": "mainブランチへのマージ条件としてCI全通過を必須化する規約である。",
@@ -182,7 +182,7 @@
           "reason": ""
         },
         {
-          "key": "tooling-commands",
+          "key": "tools-and-commands",
           "title": "ツールとコマンド実行の規約",
           "state": "proposal",
           "summary": "マイグレーション実行コマンドをpackage.jsonへ登録し手順書と一致させる規約である。",
@@ -205,7 +205,7 @@
           "reason": ""
         },
         {
-          "key": "dev-environment",
+          "key": "development-environment",
           "title": "開発環境規約",
           "state": "proposal",
           "summary": "config.tsが参照する環境変数をenv.exampleへ記載しCIで差分検知する規約である。",
@@ -250,7 +250,7 @@
           "reason": ""
         },
         {
-          "key": "release-delivery",
+          "key": "release-and-delivery",
           "title": "リリースとデリバリーの規約",
           "state": "common",
           "summary": "リリース手順は組織共通規約が既に扱う領域であり対象外とする。",
@@ -273,7 +273,7 @@
       "description": "code-standards",
       "categories": [
         {
-          "key": "coding-standards",
+          "key": "coding-style",
           "title": "コーディング規約",
           "state": "proposal",
           "summary": "コントローラファイルの行数上限とサービス層分割を定める規約である。",
@@ -294,7 +294,7 @@
           "reason": ""
         },
         {
-          "key": "naming-convention",
+          "key": "naming",
           "title": "命名規約",
           "state": "proposal",
           "summary": "サービス層ファイル名を<domain>.service.ts形式へ統一する規約である。",
@@ -364,7 +364,7 @@
           }
         },
         {
-          "key": "component-design",
+          "key": "component-architecture",
           "title": "コンポーネント設計規約",
           "state": "na",
           "summary": "調査範囲がサーバサイドAPIでありフロントエンド実装は対象外とする。",
@@ -433,7 +433,7 @@
       "description": "documentation-standards",
       "categories": [
         {
-          "key": "documentation-standards",
+          "key": "document-writing",
           "title": "ドキュメント作成規約",
           "state": "proposal",
           "summary": "openapi.yamlへの追記とREADMEからの導線明記を必須化する規約である。",
@@ -480,7 +480,7 @@
       "description": "non-functional-requirements",
       "categories": [
         {
-          "key": "security-requirements",
+          "key": "security",
           "title": "セキュリティ要件",
           "state": "proposal",
           "summary": "署名付きURL発行APIに所有者チェックの呼び出しを必須化する規約である。",
@@ -501,7 +501,7 @@
           "reason": ""
         },
         {
-          "key": "performance-requirements",
+          "key": "performance",
           "title": "性能要件",
           "state": "proposal-limited",
           "summary": "検索条件をWHERE句へ反映しアプリ側の全件filterを禁止する規約である。",
@@ -523,7 +523,7 @@
           "reason": ""
         },
         {
-          "key": "availability-requirements",
+          "key": "availability",
           "title": "可用性要件",
           "state": "na",
           "summary": "冗長構成の設定はコード調査範囲外であり対象外とする。",
@@ -538,7 +538,7 @@
           "reason": "冗長構成・フェイルオーバーに関する設定（インフラ定義）は調査範囲（config/・.github/workflows/）に含まれておらず、コードからは判断できない。"
         },
         {
-          "key": "scalability-requirements",
+          "key": "scalability",
           "title": "拡張性要件",
           "state": "na",
           "summary": "拡張ポイントが現状のコードに存在せず評価対象がない。",
@@ -553,7 +553,7 @@
           "reason": "将来の機能追加を見据えた拡張ポイント（プラグイン機構等）は現状のコードに存在せず、評価対象がない。"
         },
         {
-          "key": "monitoring-requirements",
+          "key": "observability",
           "title": "監視要件",
           "state": "proposal",
           "summary": "業務影響が大きいserviceに主要処理のログ出力を必須化する規約である。",
@@ -584,7 +584,7 @@
       "description": "business-domain",
       "categories": [
         {
-          "key": "terminology",
+          "key": "glossary",
           "title": "用語定義",
           "state": "proposal",
           "summary": "業務用語「レシピ」に対応する識別子をrecipeへ統一する規約である。",
@@ -627,7 +627,7 @@
           "reason": ""
         },
         {
-          "key": "state-transition",
+          "key": "state-transitions",
           "title": "状態遷移の制約",
           "state": "proposal",
           "summary": "レシピの状態遷移を許可された遷移のみへ制限する規約である。",

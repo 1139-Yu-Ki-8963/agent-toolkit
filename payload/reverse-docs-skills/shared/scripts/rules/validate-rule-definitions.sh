@@ -3,7 +3,7 @@ set -euo pipefail
 
 # validate-rule-definitions.sh — docs/rules/ 配下の規約定義の整合性検査
 #
-# 設計正本: shared/references/規約定義と派生生成の設計.md（3節・9節）
+# 設計の定義: shared/references/規約定義と派生生成の設計.md（3節・9節）
 #
 # 目的:
 #   docs/rules/<親>/<子>/rule.md の front matter を読み、設計9節が定める6検査と
@@ -340,6 +340,27 @@ check_formatter_conflict() {
   fi
 }
 
+# 引数が docs/rules を指していないと疑われる場合（渡されたディレクトリの直下に
+# parent.yml を持たないフォルダが1つでもある場合）に使い方を標準エラーへ出す。
+# 誤検出で止めるのではなく、通常の検査はそのまま続ける（呼び出し元がexitしない）。
+check_rules_root_hint() {
+  local root="$1"
+  local subdir suspect
+  suspect=0
+  for subdir in "$root"/*/; do
+    [ -d "$subdir" ] || continue
+    if [ ! -f "${subdir}parent.yml" ]; then
+      suspect=1
+      break
+    fi
+  done
+  if [ "$suspect" -eq 1 ]; then
+    echo "使い方: $(basename "$0") <docs/rules のルート>" >&2
+    echo "渡されたディレクトリの直下に parent.yml を持たないフォルダがあります。" >&2
+    echo "リポジトリルートではなく docs/rules を指してください。" >&2
+  fi
+}
+
 run_validate() {
   local root="$1"
   FAILURES=""
@@ -574,6 +595,7 @@ main() {
     echo "        $(basename "$0") --self-test" >&2
     exit 1
   fi
+  check_rules_root_hint "$1"
   run_validate "$1"
   exit $?
 }
