@@ -65,11 +65,22 @@ allowed-tools: [AskUserQuestion, Bash, Grep, Read, Write]
 ## Step 2-1: 戦略に基づく抽出
 
 - **Step 1**: 抽出方式はカスタム抽出パスに固定される（external に組み込み検出器はない）。完了条件: `custom` で確定済み
-- **Step 2**: Phase 1で宣言した手順（例: APIクライアントラッパーの走査・webhookハンドラ登録の解析・キューコンシューマ定義の収集等）をClaude自身がBash/Grep/Readで実行し、スキーマ準拠のマニフェストJSONをWriteする。走査は**読み込み宣言と実呼び出しの双方を確認する2段の走査**とする（1-139）。1段目で通信モジュールの読み込み宣言（`import requests`等）を手がかりにファイルを候補として拾い、2段目でそのファイルに実際の要求送信・受信の呼び出し（`requests.post(...)`等。既存の送信/受信パターンと同一）があるかを確認する。宣言のみで実呼び出しが無いファイルはユニットとしてマニフェストに含めず、候補ファイルパス一覧を一時ファイルに控えて Phase 2 Step 4 の `--declaration-candidates` に渡す。**0件検出の場合はその旨をユーザーに報告してハード停止する**。連携を捏造しない。完了条件: マニフェストJSONが1件以上で生成済み、または0件を報告して停止。宣言のみで実呼び出しの無い候補ファイルがあれば一覧を保持済み
+- **Step 2**: Phase 1で宣言した手順（例: APIクライアントラッパーの走査・webhookハンドラ登録の解析・キューコンシューマ定義の収集等）をClaude自身がBash/Grep/Readで実行し、スキーマ準拠のマニフェストJSONをWriteする。走査は**読み込み宣言と実呼び出しの双方を確認する2段の走査**とする（1-139）。1段目で通信モジュールの読み込み宣言（`import requests`等）を手がかりにファイルを候補として拾い、2段目でそのファイルに実際の要求送信・受信の呼び出し（`requests.post(...)`等。既存の送信/受信パターンと同一）があるかを確認する。宣言のみで実呼び出しが無いファイルはユニットとしてマニフェストに含めず、候補ファイルパス一覧を一時ファイルに控えて Phase 2 Step 4 の `--declaration-candidates` に渡す。0件検出の場合は「0件時の分岐」節に従って処理する。連携を捏造しない。完了条件: マニフェストJSONが1件以上で生成済み、または「0件時の分岐」に従って処理済み。宣言のみで実呼び出しの無い候補ファイルがあれば一覧を保持済み
 - **Step 3**: diagnostics相当の自己点検を行う（同一 `sourceFile` への集中・`unresolved` の多発等）。問題があれば抽出手順を見直し、Step 2をやり直す。完了条件: 点検済み、または警告を承知の上で続行と判断済み
 - **Step 4**: マニフェストへメタデータを付与する。`../../../shared/scripts/extract/extract-external-metadata.sh <manifest.json> <source_dir> <manifest.ext.json>` を実行し、各ユニットに `direction`・`protocol`・`authMethod` フィールドを追加した拡張マニフェスト（`manifest.ext.json`）を生成する。Step 2 で連携先定義ファイルを保持できた場合は `--definition-file <定義ファイルのパス>` を渡し、定義エントリと実装の突合結果を `detectionSummary.diagnostics.definitionWithoutImplementation`（1-129）として記録する。Step 2 で宣言のみの候補ファイル一覧を保持できた場合は `--declaration-candidates <一時ファイルのパス>` を渡し、宣言のみで実呼び出しの無いファイル数を `detectionSummary.diagnostics.declarationOnly`（1-139）として記録する。以降のPhaseでは `manifest.ext.json` を使用する。完了条件: 拡張マニフェストが生成済み
 
 **非UTF-8原本への対応**: 原本が UTF-8 以外のエンコーディングで書かれている場合、通常の文字列検索はバイナリ扱いとなりマッチ 0 件を返す。走査の前に `shared/scripts/detect-encoding.sh encoding <file>` でエンコーディングを確定し、UTF-8 以外なら `detect-encoding.sh to-utf8` で変換した一時コピーに対して走査する。変換結果は永続化せず一時コピーで足りる。マッチ 0 件を「該当なし」と結論する前に、エンコーディングが原因でないことを確認する。
+
+## 0件時の分岐
+
+検出0件は2つの状態を区別する。アーキテクチャ調査書（`survey_doc_path`）の外部連携の実在判定と突合して分岐する。エンコーディング起因の0件でないことを先に確認する（上記「非UTF-8原本への対応」）。
+
+| 調査書の判定 | 意味 | 動作 |
+|---|---|---|
+| 外部連携は実在しない | 外部連携を持たないプロジェクト | `一覧/外部連携一覧（該当なし）.md` を判定理由の転記付きで生成し、status=`NONE` で正常終了する。呼び出し元は excluded-kinds.json の excludedKinds へ external を記録する |
+| 外部連携は実在する | 検出失敗（抽出パスの不適合、境界の誤り） | 停止する。headless=false なら AskUserQuestion で報告し、headless=true なら `<verification_dir>/progress.jsonl` へ記録して status=`ERROR` を返す。手動リストは聞き出さない |
+
+`survey_doc_path` が未指定で調査書と突合できない場合は、実在判定を推測せず検出失敗として扱う（fail-closed）。
 
 **名称（name）の起こし方**: マニフェストの各ユニットに付与する名称は、実装モジュール名・サブ名・ユニットキー・実装状態マーカー等の内部識別子を機械連結して生成しない。業務語のみで名称を構成する。設定ファイルのコメント等から得た業務名がそれ単体で一意にならない場合は、実装が属する機能グループを業務語へ訳して前置きする。訳語は参照テーブル名・コード内コメント・呼び出し関数名・テンプレート名等、実装コードの根拠に基づかせ、根拠のないものは推定と明示する。業務名が「テスト用」「一覧」「トップ」のように実態を表していない場合は、実装を読んで連携の実態に即した名称を起こす。設定ファイルのコメントが空欄でフォールバックが必要な場合も、＜系統名：ユニットキー（サブ名）＞のような内部識別子の連結を名称にしない。参照テーブル名・データ操作の種別・呼び出し関数名・テンプレート名・出力される固定文言を手がかりに実装から業務名を起こす。実装からも業務名を断定できない場合は捏造せず、推定であることと手がかりを記録に残す。当該ユニットは名称を空にせず「業務名が未確定である」旨が利用者に伝わる表記にし、要確認として別掲する。要確認件数は成果物のサマリへ表示する。名称の根拠と確信度は次の列構成で記録する。
 
@@ -78,7 +89,7 @@ allowed-tools: [AskUserQuestion, Bash, Grep, Read, Write]
 
 検出結果は一時ディレクトリ（`$CLAUDE_JOB_DIR/tmp/external-manifest.json`、未設定時は `${TMPDIR:-/tmp}/claude-job-${session}/tmp/` 配下。`${session}`はセッションIDが取得できなければ任意の一意な値でよい）に保存する。確定後は `<output_dir>/一覧/外部連携一覧/external-manifest.json` へ一時ファイル + rename で原子的に永続化する。一時ファイルを後続・再開処理の入力にしてはならない。
 
-**完了**: Step 2でスキーマ準拠のマニフェスト（配列キー `units`）が1件以上確定、または0件検出をユーザーに報告して停止している。Step 3で自己点検済み。Step 4で拡張マニフェストに種別固有フィールド（direction・protocol・authMethod）が付与されている
+**完了**: Step 2でスキーマ準拠のマニフェスト（配列キー `units`）が1件以上確定、または「0件時の分岐」に従って処理済み。Step 3で自己点検済み。Step 4で拡張マニフェストに種別固有フィールド（direction・protocol・authMethod）が付与されている
 
 ## Phase 3: 整合検証（機械実行）
 
@@ -110,7 +121,7 @@ allowed-tools: [AskUserQuestion, Bash, Grep, Read, Write]
 | Phase | 完了条件 |
 |---|---|
 | Phase 1 | Step 1〜4の調査完了（`references/external-detection.md` の調査項目に準拠）。Step 5の検出戦略宣言（`unitKind: "external"`/`unitIdRegex`/`excludePatterns`）がユーザー承認済み |
-| Phase 2 | Step 2でスキーマ準拠のマニフェスト（配列キー `units`）が1件以上確定、または0件検出をユーザーに報告して停止している。Step 3で自己点検済み。Step 4で拡張マニフェストに種別固有フィールド（direction・protocol・authMethod）が付与されている |
+| Phase 2 | Step 2でスキーマ準拠のマニフェスト（配列キー `units`）が1件以上確定、または「0件時の分岐」に従って処理済み。Step 3で自己点検済み。Step 4で拡張マニフェストに種別固有フィールド（direction・protocol・authMethod）が付与されている |
 | Phase 3 | Step 1で `validate-manifest.sh --unit-kind external` が全項目PASS。Step 2のFAIL時修正ループは3回以内 |
 | Phase 4 | Step 1で外部連携一覧.htmlが生成され、埋め込みJSONがマニフェストと一致している。永続マニフェストが `<output_dir>/一覧/外部連携一覧/external-manifest.json` に実在する |
 | **Goal** | 検証済みマニフェストのみからHTMLが生成され、未解決・警告が可視化され、設計書単位の判断材料が揃っている |
@@ -119,11 +130,13 @@ allowed-tools: [AskUserQuestion, Bash, Grep, Read, Write]
 
 本スキルは orchestrating-reverse-docs-flow の契約に準拠する。完了時に以下を返す。
 
-- `status`: `DONE | ERROR`
-- `artifacts`: 生成した外部連携一覧.htmlのパス
+- `status`: `DONE | NONE | ERROR`。`NONE` はアーキテクチャ調査書が外部連携の実在しないことを判定済みの場合だけ返す（「0件時の分岐」参照）
+- `artifacts`: 生成した外部連携一覧.htmlのパス（`NONE` の場合は外部連携一覧（該当なし）.mdのパス）
 - `unit_list_html`: artifacts[0] の汎用名
 - `embedded_json_ref`: HTML内に埋め込んだマニフェストJSONへの参照
 - `unit_kind`: `external`（固定値）
+
+`status`が`NONE`の場合、呼び出し元はexcluded-kinds.jsonのexcludedKindsへ`external`を記録する。
 
 ## ツールリファレンス
 
@@ -146,7 +159,7 @@ allowed-tools: [AskUserQuestion, Bash, Grep, Read, Write]
 
 - 設計書の雛形展開・生成・記入は一切行わない。本スキルの成果物は外部連携一覧.htmlのみ
 - Phase 4のHTML手作業組み立てを禁止する。`build-unit-list.sh` を必ず経由し、プレースホルダの手動置換による `entryFile=None` 等のデータ混入を防ぐ
-- 0件検出時にAskUserQuestionで手動リストを聞き出さない。誤った境界を即興確定させない
+- 0件検出時にAskUserQuestionで手動リストを聞き出さない。誤った境界を即興確定させない。該当なしの正常終了と検出失敗の停止の区別は「0件時の分岐」の表が正である
 
 ## 予想を裏切る挙動
 

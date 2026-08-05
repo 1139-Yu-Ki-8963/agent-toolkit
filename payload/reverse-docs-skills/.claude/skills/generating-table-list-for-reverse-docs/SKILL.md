@@ -64,10 +64,21 @@ allowed-tools: [AskUserQuestion, Bash, Grep, Read, Write]
 
 - **Step 1**: 抽出方式はカスタム抽出パスに固定される（テーブル種別に組み込み検出器はない）。Phase 1で宣言した抽出手順を確認する。完了条件: 抽出手順（走査対象・グルーピング規則）が確定済み
 - **Step 2**: 宣言した手順（例: マイグレーションファイルの走査・ORM モデル定義の解析・SQL DDL の `CREATE TABLE`/`CREATE VIEW` 抽出等）をClaude自身がBash/Grep/Readで実行し、スキーマ準拠のマニフェストJSONをWriteする。完了条件: マニフェストJSONが生成済み
-- **Step 3**: 検出件数と内訳を確認する。0件検出ならユーザーに報告してハード停止する（テーブルを捏造しない）。完了条件: 1件以上の検出を確認済み、または0件を報告して停止している
+- **Step 3**: 検出件数と内訳を確認する。0件検出は「0件時の分岐」節に従って処理する（テーブルを捏造しない）。完了条件: 1件以上の検出を確認済み、または「0件時の分岐」に従い該当なし生成による正常終了、または検出失敗の停止をしている
 - **Step 4**: マニフェストへメタデータを付与する。`../../../shared/scripts/extract/extract-table-metadata.sh <manifest.json> <migrations_dir> <manifest.ext.json>` を実行し、各ユニットに `foreignKeys`・`columnCount`・`mainColumns` フィールドを追加した拡張マニフェスト（`manifest.ext.json`）を生成する。`<migrations_dir>` はPhase 1 Step 2で特定したマイグレーション/DDLディレクトリを渡す。以降のPhaseでは `manifest.ext.json` を使用する。完了条件: 拡張マニフェストが生成済み
 
 **非UTF-8原本への対応**: 原本が UTF-8 以外のエンコーディングで書かれている場合、通常の文字列検索はバイナリ扱いとなりマッチ 0 件を返す。走査の前に `shared/scripts/detect-encoding.sh encoding <file>` でエンコーディングを確定し、UTF-8 以外なら `detect-encoding.sh to-utf8` で変換した一時コピーに対して走査する。変換結果は永続化せず一時コピーで足りる。マッチ 0 件を「該当なし」と結論する前に、エンコーディングが原因でないことを確認する。
+
+## 0件時の分岐
+
+検出0件は2つの状態を区別する。アーキテクチャ調査書（`survey_doc_path`）のテーブル種別の実在判定と突合して分岐する。エンコーディング起因の0件でないことを先に確認する（上記「非UTF-8原本への対応」）。
+
+| 調査書の判定 | 意味 | 動作 |
+|---|---|---|
+| テーブルは実在しない | テーブルを持たないプロジェクト | `一覧/テーブル一覧（該当なし）.md` を判定理由の転記付きで生成し、status=`NONE` で正常終了する。呼び出し元は excluded-kinds.json の excludedKinds へ table を記録する |
+| テーブルは実在する | 検出失敗（抽出パスの不適合、境界の誤り） | 停止する。headless=false なら AskUserQuestion で報告し、headless=true なら `<verification_dir>/progress.jsonl` へ記録して status=`ERROR` を返す。手動リストは聞き出さない |
+
+`survey_doc_path` が未指定で調査書と突合できない場合は、実在判定を推測せず検出失敗として扱う（fail-closed）。
 
 **名称（name）の起こし方**: マニフェストの各ユニットに付与する名称は、実装モジュール名・サブ名・ユニットキー・実装状態マーカー等の内部識別子を機械連結して生成しない。業務語のみで名称を構成する。設定ファイルのコメント等から得た業務名がそれ単体で一意にならない場合は、実装が属する機能グループを業務語へ訳して前置きする。訳語は参照テーブル名・コード内コメント・呼び出し関数名・テンプレート名等、実装コードの根拠に基づかせ、根拠のないものは推定と明示する。業務名が「テスト用」「一覧」「トップ」のように実態を表していない場合は、実装を読んでテーブルの実態に即した名称を起こす。設定ファイルのコメントが空欄でフォールバックが必要な場合も、＜系統名：ユニットキー（サブ名）＞のような内部識別子の連結を名称にしない。参照テーブル名・データ操作の種別・呼び出し関数名・テンプレート名・出力される固定文言を手がかりに実装から業務名を起こす。実装からも業務名を断定できない場合は捏造せず、推定であることと手がかりを記録に残す。当該ユニットは名称を空にせず「業務名が未確定である」旨が利用者に伝わる表記にし、要確認として別掲する。要確認件数は成果物のサマリへ表示する。名称の根拠と確信度は次の列構成で記録する。
 
@@ -76,7 +87,7 @@ allowed-tools: [AskUserQuestion, Bash, Grep, Read, Write]
 
 検出結果は一時ディレクトリ（`$CLAUDE_JOB_DIR/tmp/table-manifest.json`、未設定時は `${TMPDIR:-/tmp}/claude-job-${session}/tmp/` 配下。`${session}`はセッションIDが取得できなければ任意の一意な値でよい）に保存する。確定後は `<output_dir>/一覧/テーブル一覧/table-manifest.json` へ一時ファイル + rename で原子的に永続化する。一時ファイルを後続・再開処理の入力にしてはならない。
 
-**完了**: Step 2でスキーマ準拠のマニフェスト（配列キー `units`）が1件以上確定、または0件検出をユーザーに報告して停止している。Step 3で検出内訳を確認済み。Step 4で拡張マニフェストに種別固有フィールド（foreignKeys・columnCount・mainColumns等）が付与されている
+**完了**: Step 2でスキーマ準拠のマニフェスト（配列キー `units`）が1件以上確定、または0件検出を「0件時の分岐」に従い処理している（該当なし生成による正常終了、または検出失敗の停止）。Step 3で検出内訳を確認済み。Step 4で拡張マニフェストに種別固有フィールド（foreignKeys・columnCount・mainColumns等）が付与されている
 
 ## Phase 3: 整合検証（機械実行）
 
@@ -108,7 +119,7 @@ allowed-tools: [AskUserQuestion, Bash, Grep, Read, Write]
 | Phase | 完了条件 |
 |---|---|
 | Phase 1 | Step 1〜4の調査完了（`references/table-detection.md` の調査項目に準拠）。Step 5の検出戦略宣言（`unitKind: "table"`/`extractionMethod: "custom"`/`unitIdRegex`/`excludePatterns`）がユーザー承認済み |
-| Phase 2 | Step 2でスキーマ準拠のマニフェスト（配列キー `units`）が1件以上確定、または0件検出をユーザーに報告して停止している。Step 3で検出内訳を確認済み。Step 4で拡張マニフェストに種別固有フィールド（foreignKeys・columnCount・mainColumns等）が付与されている |
+| Phase 2 | Step 2でスキーマ準拠のマニフェスト（配列キー `units`）が1件以上確定、または0件検出を「0件時の分岐」に従い処理している（該当なし生成による正常終了、または検出失敗の停止）。Step 3で検出内訳を確認済み。Step 4で拡張マニフェストに種別固有フィールド（foreignKeys・columnCount・mainColumns等）が付与されている |
 | Phase 3 | Step 1で `validate-manifest.sh --unit-kind table` が全項目PASS。Step 2のFAIL時修正ループは3回以内 |
 | Phase 4 | Step 1でテーブル一覧.htmlが生成され、埋め込みJSONがマニフェストと一致している。永続マニフェストが `<output_dir>/一覧/テーブル一覧/table-manifest.json` に実在する |
 | **Goal** | 検証済みマニフェストのみからHTMLが生成され、未解決・診断警告が可視化され、設計書単位の判断材料が揃っている |
@@ -117,11 +128,13 @@ allowed-tools: [AskUserQuestion, Bash, Grep, Read, Write]
 
 本スキルは orchestrating-reverse-docs-flow の契約に準拠する。完了時に以下を返す。
 
-- `status`: `DONE | ERROR`
-- `artifacts`: 生成したテーブル一覧.htmlのパス
+- `status`: `DONE | NONE | ERROR`
+- `artifacts`: `DONE` は生成したテーブル一覧.htmlのパス、`NONE` は `一覧/テーブル一覧（該当なし）.md` のパス
 - `unit_list_html`: artifacts[0] の汎用名
 - `embedded_json_ref`: HTML内に埋め込んだマニフェストJSONへの参照
 - `unit_kind`: `table`（固定値）
+
+`NONE` は調査書がテーブルの実在しないことを判定済みの場合だけ返す（「0件時の分岐」節を参照）。呼び出し元は excluded-kinds.json の excludedKinds へ table を記録する。
 
 ## ツールリファレンス
 
@@ -144,7 +157,7 @@ allowed-tools: [AskUserQuestion, Bash, Grep, Read, Write]
 
 - 設計書の雛形展開・生成・記入は一切行わない。本スキルの成果物はテーブル一覧.htmlのみ
 - Phase 4のHTML手作業組み立てを禁止する。`build-unit-list.sh` を必ず経由し、プレースホルダの手動置換による `entryFile=None` 等のデータ混入を防ぐ
-- 0件検出時にAskUserQuestionで手動リストを聞き出さない。誤った境界を即興確定させない
+- 0件検出時にAskUserQuestionで手動リストを聞き出さない。誤った境界を即興確定させない。該当なしの正常終了と検出失敗の停止の区別は「0件時の分岐」の表が正である
 - Phase 2の抽出で全ツリーを対象とする文字列検索を行う場合は、走査範囲を対象拡張子で絞る。絞り込みなしの全ツリー再帰検索は、単一ディレクトリだけで数百メガバイト規模の対象があると実行時間の上限を超える。絞り込んだ拡張子と、走査対象外にした件数を抽出結果へ記録する
 
 ## 予想を裏切る挙動

@@ -63,11 +63,22 @@ allowed-tools: [AskUserQuestion, Bash, Grep, Read, Write]
 
 ## Step 2-1: 戦略に基づく抽出（カスタム抽出パスのみ）
 
-- **Step 1**: Phase 1で宣言した手順（例: cron 設定ファイルのエントリ走査・ジョブ登録呼び出し（`schedule()`/`cron.schedule()` 等）の収集・CLI コマンド定義の列挙）をClaude自身がBash/Grep/Readで実行し、スキーマ準拠のマニフェストJSON（配列キー `units`）をWriteする。0件検出ならユーザーに報告してハード停止する。バッチを捏造しない。完了条件: マニフェストJSONが生成済み、または0件停止を報告済み
+- **Step 1**: Phase 1で宣言した手順（例: cron 設定ファイルのエントリ走査・ジョブ登録呼び出し（`schedule()`/`cron.schedule()` 等）の収集・CLI コマンド定義の列挙）をClaude自身がBash/Grep/Readで実行し、スキーマ準拠のマニフェストJSON（配列キー `units`）をWriteする。0件検出時は下記「0件時の分岐」節に従う。バッチを捏造しない。完了条件: マニフェストJSONが生成済み、または「0件時の分岐」節に従った処理が完了済み
 - **Step 2**: diagnosticsを確認する。警告が出た場合は抽出手順を見直し、見直し時はStep 1へ戻る。完了条件: diagnosticsが空、または警告を承知の上で続行と判断済み
 - **Step 3**: マニフェストへメタデータを付与する。`../../../shared/scripts/extract/extract-batch-metadata.sh <manifest.json> <source_dir> <manifest.ext.json>` を実行し、各ユニットに `schedule`・`targetTables`・`downstreamJobs`・`execMethod` フィールドを追加した拡張マニフェスト（`manifest.ext.json`）を生成する。Step 1 で定義ファイル（cron 設定等）を保持できた場合は `--cron-file <定義ファイルのパス>` も渡し、定義エントリと実装（現マニフェストのユニット）の突合結果を `detectionSummary.diagnostics.definitionWithoutImplementation`（1-129）として拡張マニフェストへ記録する。実装のない定義エントリは一覧本体（units）には載せない。以降のPhaseでは `manifest.ext.json` を使用する。完了条件: 拡張マニフェストが生成済み
 
 **非UTF-8原本への対応**: 原本が UTF-8 以外のエンコーディングで書かれている場合、通常の文字列検索はバイナリ扱いとなりマッチ 0 件を返す。走査の前に `shared/scripts/detect-encoding.sh encoding <file>` でエンコーディングを確定し、UTF-8 以外なら `detect-encoding.sh to-utf8` で変換した一時コピーに対して走査する。変換結果は永続化せず一時コピーで足りる。マッチ 0 件を「該当なし」と結論する前に、エンコーディングが原因でないことを確認する。
+
+## 0件時の分岐
+
+検出0件は2つの状態を区別する。アーキテクチャ調査書（`survey_doc_path`）のバッチ種別の実在判定と突合して分岐する。エンコーディング起因の0件でないことを先に確認する（上記「非UTF-8原本への対応」）。
+
+| 調査書の判定 | 意味 | 動作 |
+|---|---|---|
+| バッチは実在しない | バッチを持たないプロジェクト | `一覧/バッチ一覧（該当なし）.md` を判定理由の転記付きで生成し、status=`NONE` で正常終了する。呼び出し元は excluded-kinds.json の excludedKinds へ batch を記録する |
+| バッチは実在する | 検出失敗（抽出パスの不適合、境界の誤り） | 停止する。headless=false なら AskUserQuestion で報告し、headless=true なら `<verification_dir>/progress.jsonl` へ記録して status=`ERROR` を返す。手動リストは聞き出さない |
+
+`survey_doc_path` が未指定で調査書と突合できない場合は、実在判定を推測せず検出失敗として扱う（fail-closed）。
 
 **名称（name）の起こし方**: マニフェストの各ユニットに付与する名称は、実装モジュール名・サブ名・ユニットキー・実装状態マーカー等の内部識別子を機械連結して生成しない。業務語のみで名称を構成する。設定ファイルのコメント等から得た業務名がそれ単体で一意にならない場合は、実装が属する機能グループを業務語へ訳して前置きする。訳語は参照テーブル名・コード内コメント・呼び出し関数名・テンプレート名等、実装コードの根拠に基づかせ、根拠のないものは推定と明示する。業務名が「テスト用」「一覧」「トップ」のように実態を表していない場合は、実装を読んでバッチの実態に即した名称を起こす。設定ファイルのコメントが空欄でフォールバックが必要な場合も、＜系統名：ユニットキー（サブ名）＞のような内部識別子の連結を名称にしない。参照テーブル名・データ操作の種別・呼び出し関数名・テンプレート名・出力される固定文言を手がかりに実装から業務名を起こす。実装からも業務名を断定できない場合は捏造せず、推定であることと手がかりを記録に残す。当該ユニットは名称を空にせず「業務名が未確定である」旨が利用者に伝わる表記にし、要確認として別掲する。要確認件数は成果物のサマリへ表示する。名称の根拠と確信度は次の列構成で記録する。
 
@@ -133,7 +144,7 @@ allowed-tools: [AskUserQuestion, Bash, Grep, Read, Write]
 
 ## 返却
 
-本スキルは orchestrating-reverse-docs-flow の契約に準拠する。完了時に status（`DONE | ERROR`）と artifacts（生成したバッチ一覧.htmlのパス）を返す。artifacts[0] を汎用名 unit_list_html として返し、`unit_kind: batch`（固定値）を返却ブロックに含める。HTML内に埋め込んだマニフェストJSONへの参照を embedded_json_ref として併せて返す。
+本スキルは orchestrating-reverse-docs-flow の契約に準拠する。完了時に status（`DONE | NONE | ERROR`）と artifacts を返す。`DONE` の artifacts は生成したバッチ一覧.htmlのパス、`NONE` の artifacts は `一覧/バッチ一覧（該当なし）.md` のパスである。`NONE` はバッチの実在しないことを判定済みの場合だけ返す（「0件時の分岐」節を参照）。呼び出し元は excluded-kinds.json の excludedKinds へ batch を記録する。artifacts[0] を汎用名 unit_list_html として返し、`unit_kind: batch`（固定値）を返却ブロックに含める。HTML内に埋め込んだマニフェストJSONへの参照を embedded_json_ref として併せて返す。
 
 ## ツールリファレンス
 
@@ -156,7 +167,7 @@ allowed-tools: [AskUserQuestion, Bash, Grep, Read, Write]
 
 - 設計書の雛形展開・生成・記入は一切行わない。本スキルの成果物はバッチ一覧.htmlのみ
 - Phase 4のHTML手作業組み立てを禁止する。`build-unit-list.sh` を必ず経由し、プレースホルダの手動置換によるデータ混入を防ぐ
-- 0件検出時にAskUserQuestionで手動リストを聞き出さない。誤った境界を即興確定させない
+- 0件検出時にAskUserQuestionで手動リストを聞き出さない。誤った境界を即興確定させない。該当なしの正常終了と検出失敗の停止の区別は「0件時の分岐」節の表が正である
 - Phase 2の抽出で全ツリーを対象とする文字列検索を行う場合は、走査範囲を対象拡張子で絞る。絞り込みなしの全ツリー再帰検索は、単一ディレクトリだけで数百メガバイト規模の対象があると実行時間の上限を超える。絞り込んだ拡張子と、走査対象外にした件数を抽出結果へ記録する
 
 ## 予想を裏切る挙動
