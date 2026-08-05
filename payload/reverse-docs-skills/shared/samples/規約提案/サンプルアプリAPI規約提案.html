@@ -1,0 +1,899 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>サンプルアプリAPI規約提案</title>
+<style>
+:root{
+  --paper:#FFFFFF; --paper-tint:#F8F5EC; --mono-bg:#F5F1E5;
+  --ink:#152922; --ink-soft:#3E5C52; --ink-faint:#6B8578;
+  --line:#E2DAC5; --line-strong:#152922;
+  --green:#1F6E5C;  --green-ink:#0F3E33;  --green-bg:#EBF3EF;
+  --amber:#A6702A;  --amber-ink:#6E4A1A;  --amber-bg:#F8F0DF;
+  --brick:#9C3D2E;  --brick-ink:#6E2A1F;  --brick-bg:#F8EBE6;
+  --violet:#5B4B9C; --violet-bg:#EFECF8;
+}
+*{box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:"Hiragino Sans","Noto Sans JP","Yu Gothic",sans-serif;font-size:13px;line-height:1.9;}
+code{font-family:ui-monospace,Menlo,Consolas,monospace;background:var(--mono-bg);padding:1px 5px;border-radius:4px;font-size:0.95em;color:var(--ink);}
+.page{display:flex;max-width:1180px;margin:0 auto;align-items:flex-start;}
+.sidebar{width:258px;flex:0 0 258px;position:sticky;top:0;height:100vh;overflow-y:auto;border-right:1px solid var(--line);padding:28px 20px;}
+.eyebrow{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10px;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-faint);}
+.sb-title{font-weight:700;font-size:14px;margin:6px 0 22px;color:var(--ink);}
+.decision-panel{border-top:2px solid var(--ink);padding-top:14px;margin-bottom:24px;}
+.dp-head{display:flex;align-items:baseline;gap:6px;}
+.dp-label{font-weight:700;font-size:12px;}
+.dp-counter{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;color:var(--ink-soft);}
+.progress{height:6px;border-radius:999px;background:var(--paper-tint);border:1px solid var(--line);overflow:hidden;display:flex;margin:10px 0;}
+.progress span{height:100%;display:block;transition:width .25s;}
+.seg-adopt{background:var(--green);}
+.seg-hold{background:var(--amber);}
+.seg-reject{background:var(--brick);}
+.legend{font-size:11px;color:var(--ink-soft);display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px;}
+.legend .swatch{display:inline-block;width:7px;height:7px;border-radius:999px;margin-right:4px;}
+.swatch--adopt{background:var(--green);}
+.swatch--hold{background:var(--amber);}
+.swatch--reject{background:var(--brick);}
+.dp-actions{display:flex;flex-direction:column;gap:8px;}
+.btn-pill{border-radius:999px;padding:7px 14px;font-size:11.5px;cursor:pointer;font-family:inherit;border:1px solid var(--green);}
+.btn-pill--solid{background:var(--green);color:#FFFFFF;}
+.btn-pill--outline{background:var(--paper);color:var(--green);}
+.toc-chapter{font-weight:700;font-size:12px;margin:16px 0 4px;color:var(--ink);}
+.toc-list{list-style:none;margin:0 0 6px;padding:0;}
+.toc-list a{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-soft);text-decoration:none;padding:4px 6px;border-radius:4px;}
+.toc-list a:hover{background:var(--paper-tint);}
+.dot{width:8px;height:8px;border-radius:999px;background:var(--line);flex:0 0 8px;display:inline-block;}
+.dot--adopt{background:var(--green);}
+.dot--hold{background:var(--amber);}
+.dot--reject{background:var(--brick);}
+.dot--na{background:transparent;border:1px dashed var(--ink-faint);}
+.toc-label{flex:1;}
+.toc-tag{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:9.5px;color:var(--ink-faint);}
+.sb-note{font-size:11px;color:var(--ink-faint);margin-top:20px;padding-top:12px;border-top:1px dashed var(--line);}
+main{flex:1;max-width:760px;padding:40px 44px;}
+.badge{display:inline-block;background:var(--amber-bg);color:var(--amber-ink);font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10px;letter-spacing:.08em;padding:4px 10px;border-radius:999px;margin-bottom:14px;}
+h1{font-size:25px;margin:0 0 8px;color:var(--ink);}
+.lead{color:var(--ink-soft);font-size:13.5px;margin:0 0 24px;}
+dl.meta{display:grid;grid-template-columns:100px 1fr;margin:0 0 28px;border-bottom:1px solid var(--line);}
+dl.meta dt{padding:10px 0;border-top:1px solid var(--line);font-weight:700;font-size:12.5px;color:var(--ink-soft);}
+dl.meta dd{padding:10px 0;border-top:1px solid var(--line);margin:0;font-size:13px;}
+details.fig{margin:0 0 28px;border:1px solid var(--line);border-radius:4px;background:var(--paper-tint);}
+details.fig summary{cursor:pointer;padding:10px 14px;font-weight:700;font-size:12.5px;}
+.flow{display:flex;align-items:center;gap:8px;overflow-x:auto;padding:16px;}
+.flow-node{min-width:102px;background:var(--paper);border:1px solid var(--line);border-radius:4px;padding:8px 10px;flex:0 0 auto;}
+.flow-node b{display:block;font-size:12px;margin-bottom:2px;}
+.flow-node span{font-size:9.5px;color:var(--ink-faint);}
+.flow-arrow{color:var(--ink-faint);font-family:ui-monospace,Menlo,Consolas,monospace;padding:0 2px;flex:0 0 auto;}
+.figcaption{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:9.5px;color:var(--ink-faint);padding:6px 14px 12px;margin:0;}
+.notes{display:flex;flex-direction:column;gap:10px;margin-bottom:32px;}
+.note{border-left:3px solid;padding:10px 14px;border-radius:0 6px 6px 0;}
+.note--brick{border-color:var(--brick);background:var(--brick-bg);}
+.note--amber{border-color:var(--amber);background:var(--amber-bg);}
+.note--violet{border-color:var(--violet);background:var(--violet-bg);}
+.note-title{font-weight:700;font-size:13px;margin:0 0 4px;}
+.note-body{margin:0;font-size:12.5px;color:var(--ink-soft);}
+section.chapter{padding-top:28px;margin-top:28px;border-top:2px solid var(--ink);scroll-margin-top:20px;}
+.chapter-head{display:flex;align-items:baseline;gap:10px;}
+.chapter-num{font-family:ui-monospace,Menlo,Consolas,monospace;color:var(--green);font-weight:700;font-size:13px;}
+h2{font-size:17px;margin:0;}
+.chapter-desc{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;color:var(--ink-faint);margin:4px 0 20px;}
+.category{padding:20px 0;border-bottom:1px solid var(--line);scroll-margin-top:20px;}
+.category:last-child{border-bottom:none;}
+.cat-head{display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:10px;}
+h3{font-size:14.5px;margin:0;}
+.pill{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10.5px;padding:3px 10px;border-radius:999px;}
+.pill--green{background:var(--green-bg);color:var(--green-ink);}
+.pill--amber{background:var(--amber-bg);color:var(--amber-ink);}
+.pill--violet{background:var(--violet-bg);color:var(--violet);}
+.pill--na{background:var(--paper-tint);color:var(--ink-faint);}
+.decision-buttons{display:flex;gap:6px;margin-left:auto;}
+.decision-btn{border-radius:999px;padding:5px 12px;font-size:11.5px;border:1px solid var(--line);background:var(--paper);color:var(--ink-soft);cursor:pointer;font-family:inherit;}
+.decision-btn.active.kind-adopt{background:var(--green);border-color:var(--green);color:#FFFFFF;}
+.decision-btn.active.kind-hold{background:var(--amber);border-color:var(--amber);color:#FFFFFF;}
+.decision-btn.active.kind-reject{background:var(--brick);border-color:var(--brick);color:#FFFFFF;}
+.evidence-list{margin:0 0 14px;padding-left:18px;font-size:12.8px;color:var(--ink-soft);}
+.evidence-list li{margin-bottom:6px;}
+.sub-label{font-size:11.5px;color:var(--ink-faint);border-bottom:1px dashed var(--line);padding-bottom:2px;margin:10px 0 6px;}
+.proposal{border-left:3px solid var(--green);background:var(--green-bg);border-radius:0 6px 6px 0;padding:12px 14px;margin-bottom:10px;}
+.proposal-label{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10.5px;color:var(--green-ink);margin:0 0 4px;letter-spacing:.04em;}
+.proposal-text{font-size:13px;margin:0;color:var(--ink);}
+.source{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10.8px;color:var(--ink-faint);border-top:1px dashed var(--line);padding-top:8px;margin:0;}
+.reason{font-size:12.5px;color:var(--ink-faint);margin:0;}
+.layer-fig{background:var(--paper-tint);border:1px solid var(--line);border-radius:4px;padding:14px;margin:12px 0;}
+.layer-row{display:flex;align-items:baseline;gap:10px;border-left:3px solid;padding:8px 10px;background:var(--paper);margin-bottom:6px;font-size:12px;}
+.layer-row:last-child{margin-bottom:0;}
+.state-fig{background:var(--paper-tint);border:1px solid var(--line);border-radius:4px;padding:14px;margin:12px 0;display:flex;align-items:center;flex-wrap:wrap;gap:6px;}
+.state-node{background:var(--paper);border:1px solid var(--line);border-radius:999px;padding:6px 14px;font-size:11.5px;font-family:ui-monospace,Menlo,Consolas,monospace;}
+.state-arrow{color:var(--ink-faint);font-family:ui-monospace,Menlo,Consolas,monospace;}
+footer{border-top:2px solid var(--ink);padding-top:20px;margin-top:36px;padding-bottom:60px;}
+.footer-pill{display:inline-block;background:var(--brick-bg);color:var(--brick-ink);font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10.5px;padding:4px 10px;border-radius:999px;margin-bottom:10px;}
+footer p{font-size:12.5px;color:var(--ink-soft);margin:6px 0;}
+</style>
+</head>
+<body>
+<div class="page">
+  <aside class="sidebar">
+    <p class="eyebrow">rule proposal / sample-app</p>
+    <p class="sb-title">サンプルアプリAPI規約提案</p>
+
+    <div class="decision-panel">
+      <div class="dp-head">
+        <span class="dp-label">判定状況</span>
+        <span class="dp-counter" id="dp-counter">判定 0/18</span>
+      </div>
+      <div class="progress">
+        <span class="seg-adopt" id="seg-adopt" style="width:0%"></span>
+        <span class="seg-hold" id="seg-hold" style="width:0%"></span>
+        <span class="seg-reject" id="seg-reject" style="width:0%"></span>
+      </div>
+      <div class="legend">
+        <span><span class="swatch swatch--adopt"></span>採用 <span id="legend-adopt-count">0</span></span>
+        <span><span class="swatch swatch--hold"></span>保留 <span id="legend-hold-count">0</span></span>
+        <span><span class="swatch swatch--reject"></span>却下 <span id="legend-reject-count">0</span></span>
+      </div>
+      <div class="dp-actions">
+        <button type="button" id="copy-decisions" class="btn-pill btn-pill--solid">判定結果をコピー</button>
+        <button type="button" id="download-decisions" class="btn-pill btn-pill--outline">判定結果をJSONで保存</button>
+      </div>
+    </div>
+
+    <nav class="toc">
+        <p class="toc-chapter">01 AIエージェント運用</p>
+        <ul class="toc-list">
+          <li><a href="#cat-agent-behavior"><span class="dot" id="dot-agent-behavior"></span><span class="toc-label">AIエージェント行動規約</span></a></li>
+          <li><a href="#cat-destructive-safety"><span class="dot" id="dot-destructive-safety"></span><span class="toc-label">破壊的操作の安全規約</span></a></li>
+          <li><a href="#cat-session-management"><span class="dot dot--na"></span><span class="toc-label">セッション管理規約</span><span class="toc-tag">対象外</span></a></li>
+          <li><a href="#cat-ai-asset-management"><span class="dot" id="dot-ai-asset-management"></span><span class="toc-label">AI設定資産の管理規約</span></a></li>
+          <li><a href="#cat-routine-operations"><span class="dot dot--na"></span><span class="toc-label">定型運用の規約</span><span class="toc-tag">対象外</span></a></li>
+        </ul>
+        <p class="toc-chapter">02 開発プロセス</p>
+        <ul class="toc-list">
+          <li><a href="#cat-dev-flow"><span class="dot" id="dot-dev-flow"></span><span class="toc-label">開発フロー規約</span></a></li>
+          <li><a href="#cat-tooling-commands"><span class="dot" id="dot-tooling-commands"></span><span class="toc-label">ツールとコマンド実行の規約</span></a></li>
+          <li><a href="#cat-dev-environment"><span class="dot" id="dot-dev-environment"></span><span class="toc-label">開発環境規約</span></a></li>
+          <li><a href="#cat-git-operations"><span class="dot" id="dot-git-operations"></span><span class="toc-label">Git運用規約</span></a></li>
+          <li><a href="#cat-release-delivery"><span class="dot dot--na"></span><span class="toc-label">リリースとデリバリーの規約</span><span class="toc-tag">&#8594;共通</span></a></li>
+        </ul>
+        <p class="toc-chapter">03 コード規約</p>
+        <ul class="toc-list">
+          <li><a href="#cat-coding-standards"><span class="dot" id="dot-coding-standards"></span><span class="toc-label">コーディング規約</span></a></li>
+          <li><a href="#cat-naming-convention"><span class="dot" id="dot-naming-convention"></span><span class="toc-label">命名規約</span></a></li>
+          <li><a href="#cat-directory-structure"><span class="dot" id="dot-directory-structure"></span><span class="toc-label">ディレクトリ構成規約</span></a></li>
+          <li><a href="#cat-component-design"><span class="dot dot--na"></span><span class="toc-label">コンポーネント設計規約</span><span class="toc-tag">対象外</span></a></li>
+        </ul>
+        <p class="toc-chapter">04 品質保証</p>
+        <ul class="toc-list">
+          <li><a href="#cat-test-policy"><span class="dot" id="dot-test-policy"></span><span class="toc-label">テスト方針書</span></a></li>
+          <li><a href="#cat-review-checklist"><span class="dot dot--na"></span><span class="toc-label">レビュー観点表</span><span class="toc-tag">対象外</span></a></li>
+        </ul>
+        <p class="toc-chapter">05 文書化規約</p>
+        <ul class="toc-list">
+          <li><a href="#cat-documentation-standards"><span class="dot" id="dot-documentation-standards"></span><span class="toc-label">ドキュメント作成規約</span></a></li>
+          <li><a href="#cat-portal-maintenance"><span class="dot dot--na"></span><span class="toc-label">ポータル保守規約</span><span class="toc-tag">&#8594;共通</span></a></li>
+        </ul>
+        <p class="toc-chapter">06 非機能要件</p>
+        <ul class="toc-list">
+          <li><a href="#cat-security-requirements"><span class="dot" id="dot-security-requirements"></span><span class="toc-label">セキュリティ要件</span></a></li>
+          <li><a href="#cat-performance-requirements"><span class="dot" id="dot-performance-requirements"></span><span class="toc-label">性能要件</span></a></li>
+          <li><a href="#cat-availability-requirements"><span class="dot dot--na"></span><span class="toc-label">可用性要件</span><span class="toc-tag">対象外</span></a></li>
+          <li><a href="#cat-scalability-requirements"><span class="dot dot--na"></span><span class="toc-label">拡張性要件</span><span class="toc-tag">対象外</span></a></li>
+          <li><a href="#cat-monitoring-requirements"><span class="dot" id="dot-monitoring-requirements"></span><span class="toc-label">監視要件</span></a></li>
+        </ul>
+        <p class="toc-chapter">07 業務ドメイン規約</p>
+        <ul class="toc-list">
+          <li><a href="#cat-terminology"><span class="dot" id="dot-terminology"></span><span class="toc-label">用語定義</span></a></li>
+          <li><a href="#cat-business-rules"><span class="dot" id="dot-business-rules"></span><span class="toc-label">業務規則</span></a></li>
+          <li><a href="#cat-state-transition"><span class="dot" id="dot-state-transition"></span><span class="toc-label">状態遷移の制約</span></a></li>
+          <li><a href="#cat-calculation-rules"><span class="dot dot--na"></span><span class="toc-label">計算規則</span><span class="toc-tag">対象外</span></a></li>
+        </ul>
+    </nav>
+
+    <p class="sb-note">判定結果はこの端末のブラウザ（localStorage）にのみ保存される。他の端末やレビュー担当とは共有されないため、確定した判定はコピーまたはダウンロードで別途記録すること。</p>
+  </aside>
+
+  <main>
+    <span class="badge">SAMPLE</span>
+    <h1>サンプルアプリAPI規約提案</h1>
+    <p class="lead">既存コードの実装事実から起こした規約提案である。確定した規約ではなく、カテゴリごとに現場エンジニアが採用・保留・却下を判定するための叩き台として作成した。</p>
+
+    <dl class="meta">
+      <dt>位置づけ</dt>
+      <dd>「規約提案」であり確定した規約ではない。docs/rules/ への取り込みは現場エンジニアの判断による。</dd>
+      <dt>調査範囲</dt>
+      <dd>src/api/sample_app/* とその呼び出し経路、migrations/・config/・.github/workflows/。リポジトリ全体の悉皆調査ではない。</dd>
+      <dt>検証</dt>
+      <dd>investigator 2体（並列調査） &#8594; report-reviewer 1体（事実性検証・PASS）。</dd>
+    </dl>
+
+    <details class="fig">
+      <summary>図1: リクエスト処理フロー</summary>
+      <div class="flow">
+        <div class="flow-node"><b>クライアント</b><span>Web / モバイル</span></div>
+        <span class="flow-arrow">&#8594;</span>
+        <div class="flow-node"><b>routes/</b><span>認証・入力検証</span></div>
+        <span class="flow-arrow">&#8594;</span>
+        <div class="flow-node"><b>services/</b><span>業務ロジック</span></div>
+        <span class="flow-arrow">&#8594;</span>
+        <div class="flow-node"><b>repositories/</b><span>DBアクセス</span></div>
+        <span class="flow-arrow">&#8594;</span>
+        <div class="flow-node"><b>PostgreSQL</b><span>永続化</span></div>
+      </div>
+      <p class="figcaption">図1: routes &#8594; services &#8594; repositories &#8594; DB の4段構成</p>
+    </details>
+
+    <div class="notes">
+      <div class="note note--brick">
+        <p class="note-title">openapi.yaml未記載のエンドポイントが実装上2件存在する</p>
+        <p class="note-body">routes/ の実装は38件だが、うち <code>POST /recipes/:id/duplicate</code> と <code>GET /admin/reports</code> の2件が openapi.yaml に未記載。ドキュメント漏れか廃止予定かの判断材料はコード上になく、現場での棚卸しを推奨する。</p>
+      </div>
+      <div class="note note--amber">
+        <p class="note-title">画像アップロードの署名付きURL発行に所有者チェックがない</p>
+        <p class="note-body"><code>POST /uploads/sign</code> は認証済みであれば任意の recipe_id を指定して署名付きURLを取得できる（uploads.service.ts:32-58）。他人のレシピへの画像添付が可能かは後続処理の検証に依存し、静的解析のみでは断定できない。実挙動の確認を推奨する。</p>
+      </div>
+      <div class="note note--violet">
+        <p class="note-title">service層のユニットテストが決済・通報まわりで薄い</p>
+        <p class="note-body">契約テストは38エンドポイント全カバーだが、service層カバレッジは31%。billing.service.ts は8%、report.service.ts は0%であり、業務ルールが最も集中する領域が最も薄い。</p>
+      </div>
+    </div>
+
+    <section class="chapter" id="chapter-agent-operations">
+      <div class="chapter-head">
+        <span class="chapter-num">01</span>
+        <h2>AIエージェント運用</h2>
+      </div>
+      <p class="chapter-desc">agent-operations</p>
+      <div class="category" id="cat-agent-behavior" data-report-row="agent-behavior" data-chapter-index="1" data-chapter-name="AIエージェント運用" data-cat-name="AIエージェント行動規約" data-parent="agent-operations" data-key="ai-behavior" data-scope="scoped" data-globs='[".github/workflows/ai-review.yml","scripts/ai/**"]' data-enforcement="advisory" data-checkable="false" data-check-method="" data-proposed-rule="AIエージェントによるレビュー・修正提案は、PRコメントへの提案投稿に限定する。mainブランチへの直接pushやマージ操作は行わない旨を、本規約として明文化する。" data-sources='[".github/workflows/ai-review.yml:14-22"]'>
+        <div class="cat-head">
+          <h3>AIエージェント行動規約</h3>
+          <span class="pill pill--green">提案あり</span>
+          <div class="decision-buttons">
+          <button type="button" id="adopt-agent-behavior" class="decision-btn kind-adopt" data-decision="adopt" data-cat="agent-behavior">採用</button>
+          <button type="button" id="hold-agent-behavior" class="decision-btn kind-hold" data-decision="hold" data-cat="agent-behavior">保留</button>
+          <button type="button" id="reject-agent-behavior" class="decision-btn kind-reject" data-decision="reject" data-cat="agent-behavior">却下</button>
+          </div>
+        </div>
+        <ul class="evidence-list">
+          <li><code>.github/workflows/ai-review.yml:14-22</code> は全PR上で <code>claude-review</code> ジョブを実行し、レビュー結果をPRコメントへ投稿する。呼び出し先の <code>scripts/ai/run-review.sh:9-15</code> には、AIエージェントが変更してよい範囲・禁止操作の明示的な記述がない。</li>
+        </ul>
+        <div class="proposal">
+          <p class="proposal-label">規約提案文(案)</p>
+          <p class="proposal-text">AIエージェントによるレビュー・修正提案は、PRコメントへの提案投稿に限定する。mainブランチへの直接pushやマージ操作は行わない旨を、本規約として明文化する。</p>
+        </div>
+        <p class="source">出典: <code>.github/workflows/ai-review.yml:14-22</code></p>
+      </div>
+      <div class="category" id="cat-destructive-safety" data-report-row="destructive-safety" data-chapter-index="1" data-chapter-name="AIエージェント運用" data-cat-name="破壊的操作の安全規約" data-parent="agent-operations" data-key="destructive-safety" data-scope="scoped" data-globs='["scripts/ai/**"]' data-enforcement="advisory" data-checkable="true" data-check-method="scripts/ai/run-review.sh が rm -rf・git push --force・git reset --hard を含むコマンド文字列を実行前に検知し、該当時は実行を中断する処理を持つことを検査する。" data-proposed-rule="破壊的コマンド（rm -rf・git push --force・git reset --hard）の実行前チェックは、scripts/ai/run-review.sh に実装済みの挙動を追認し、正式な安全規約として明文化する。" data-sources='["scripts/ai/run-review.sh:31-40"]'>
+        <div class="cat-head">
+          <h3>破壊的操作の安全規約</h3>
+          <span class="pill pill--green">提案あり</span>
+          <div class="decision-buttons">
+          <button type="button" id="adopt-destructive-safety" class="decision-btn kind-adopt" data-decision="adopt" data-cat="destructive-safety">採用</button>
+          <button type="button" id="hold-destructive-safety" class="decision-btn kind-hold" data-decision="hold" data-cat="destructive-safety">保留</button>
+          <button type="button" id="reject-destructive-safety" class="decision-btn kind-reject" data-decision="reject" data-cat="destructive-safety">却下</button>
+          </div>
+        </div>
+        <ul class="evidence-list">
+          <li><code>scripts/ai/run-review.sh:31-40</code> は <code>rm -rf</code>・<code>git push --force</code>・<code>git reset --hard</code> を含むコマンド文字列を実行前に検査し、該当した場合は実行を中断する処理が既に実装されている。この挙動を明文化した規約は見当たらない。</li>
+        </ul>
+        <div class="proposal">
+          <p class="proposal-label">規約提案文(案)</p>
+          <p class="proposal-text">破壊的コマンド（rm -rf・git push --force・git reset --hard）の実行前チェックは、scripts/ai/run-review.sh に実装済みの挙動を追認し、正式な安全規約として明文化する。</p>
+        </div>
+        <p class="source">出典: <code>scripts/ai/run-review.sh:31-40</code></p>
+      </div>
+      <div class="category" id="cat-session-management">
+        <div class="cat-head">
+          <h3>セッション管理規約</h3>
+          <span class="pill pill--na">対象外</span>
+        </div>
+        <p class="reason">調査範囲内に、AIエージェントの対話単位（開始・終了・引き継ぎ）を扱うコードや設定は存在しなかった。CI上のワンショット実行のみが確認され、セッションという概念自体が本サンプルアプリの開発体制に存在しない。</p>
+      </div>
+      <div class="category" id="cat-ai-asset-management" data-report-row="ai-asset-management" data-chapter-index="1" data-chapter-name="AIエージェント運用" data-cat-name="AI設定資産の管理規約" data-parent="agent-operations" data-key="ai-asset-management" data-scope="scoped" data-globs='["scripts/ai/**",".github/workflows/ai-review.yml"]' data-enforcement="advisory" data-checkable="false" data-check-method="" data-proposed-rule="scripts/ai/ および .github/workflows/ai-review.yml の変更はコードレビューを必須とし、単独コミットでのマージを禁止する。" data-sources='["scripts/ai/run-review.sh:1-8"]'>
+        <div class="cat-head">
+          <h3>AI設定資産の管理規約</h3>
+          <span class="pill pill--green">提案あり</span>
+          <div class="decision-buttons">
+          <button type="button" id="adopt-ai-asset-management" class="decision-btn kind-adopt" data-decision="adopt" data-cat="ai-asset-management">採用</button>
+          <button type="button" id="hold-ai-asset-management" class="decision-btn kind-hold" data-decision="hold" data-cat="ai-asset-management">保留</button>
+          <button type="button" id="reject-ai-asset-management" class="decision-btn kind-reject" data-decision="reject" data-cat="ai-asset-management">却下</button>
+          </div>
+        </div>
+        <ul class="evidence-list">
+          <li><code>.github/workflows/ai-review.yml</code> と <code>scripts/ai/</code> 配下のAI関連設定ファイルは3件存在するが、直近のコミット履歴では、レビューを経ずに単独コミットで変更されたものが5件確認された（未確認: コミット権限自体の制限有無）。</li>
+        </ul>
+        <div class="proposal">
+          <p class="proposal-label">規約提案文(案)</p>
+          <p class="proposal-text">scripts/ai/ および .github/workflows/ai-review.yml の変更はコードレビューを必須とし、単独コミットでのマージを禁止する。</p>
+        </div>
+        <p class="source">出典: <code>scripts/ai/run-review.sh:1-8</code></p>
+      </div>
+      <div class="category" id="cat-routine-operations">
+        <div class="cat-head">
+          <h3>定型運用の規約</h3>
+          <span class="pill pill--na">対象外</span>
+        </div>
+        <p class="reason">定型的な運用手順（日次バッチの再実行手順・障害時のロールバック手順等）を記述したドキュメントやスクリプトは、調査範囲内に見つからなかった。</p>
+      </div>
+    </section>
+
+    <section class="chapter" id="chapter-development-process">
+      <div class="chapter-head">
+        <span class="chapter-num">02</span>
+        <h2>開発プロセス</h2>
+      </div>
+      <p class="chapter-desc">development-process</p>
+      <div class="category" id="cat-dev-flow" data-report-row="dev-flow" data-chapter-index="2" data-chapter-name="開発プロセス" data-cat-name="開発フロー規約" data-parent="development-process" data-key="dev-flow" data-scope="scoped" data-globs='[".github/workflows/ci.yml"]' data-enforcement="advisory" data-checkable="true" data-check-method=".github/workflows/ci.yml の pull_request トリガージョブが test → lint → build の順で定義されていることを検査する。" data-proposed-rule="mainブランチへのマージは CI（test → lint → build）の全通過を必須条件とし、.github/workflows/ci.yml の実行結果をレビュー承認の前提とする。" data-sources='[".github/workflows/ci.yml:1-40"]'>
+        <div class="cat-head">
+          <h3>開発フロー規約</h3>
+          <span class="pill pill--green">提案あり</span>
+          <div class="decision-buttons">
+          <button type="button" id="adopt-dev-flow" class="decision-btn kind-adopt" data-decision="adopt" data-cat="dev-flow">採用</button>
+          <button type="button" id="hold-dev-flow" class="decision-btn kind-hold" data-decision="hold" data-cat="dev-flow">保留</button>
+          <button type="button" id="reject-dev-flow" class="decision-btn kind-reject" data-decision="reject" data-cat="dev-flow">却下</button>
+          </div>
+        </div>
+        <ul class="evidence-list">
+          <li><code>.github/workflows/ci.yml:1-40</code> には <code>pull_request</code> トリガーのジョブが定義され、test → lint → build の順で実行される。一方、mainブランチへのマージ条件としてCI全通過を強制する設定（branch protection）はコード上からは確認できない（GitHub側の設定でありコード調査範囲外）。</li>
+        </ul>
+        <div class="proposal">
+          <p class="proposal-label">規約提案文(案)</p>
+          <p class="proposal-text">mainブランチへのマージは CI（test → lint → build）の全通過を必須条件とし、.github/workflows/ci.yml の実行結果をレビュー承認の前提とする。</p>
+        </div>
+        <p class="source">出典: <code>.github/workflows/ci.yml:1-40</code></p>
+      </div>
+      <div class="category" id="cat-tooling-commands" data-report-row="tooling-commands" data-chapter-index="2" data-chapter-name="開発プロセス" data-cat-name="ツールとコマンド実行の規約" data-parent="development-process" data-key="tooling-commands" data-scope="scoped" data-globs='["package.json","migrations/**"]' data-enforcement="advisory" data-checkable="true" data-check-method="package.json の scripts に migrate コマンドが定義されていることを検査する。" data-proposed-rule="DBマイグレーション実行コマンド（npm run migrate）を package.json の scripts に登録し、手順書と実行コマンドを一致させる。" data-sources='["package.json:12-18","migrations/README.md:3"]'>
+        <div class="cat-head">
+          <h3>ツールとコマンド実行の規約</h3>
+          <span class="pill pill--green">提案あり</span>
+          <div class="decision-buttons">
+          <button type="button" id="adopt-tooling-commands" class="decision-btn kind-adopt" data-decision="adopt" data-cat="tooling-commands">採用</button>
+          <button type="button" id="hold-tooling-commands" class="decision-btn kind-hold" data-decision="hold" data-cat="tooling-commands">保留</button>
+          <button type="button" id="reject-tooling-commands" class="decision-btn kind-reject" data-decision="reject" data-cat="tooling-commands">却下</button>
+          </div>
+        </div>
+        <ul class="evidence-list">
+          <li><code>package.json:12-18</code> の scripts には dev・test・lint・build の4コマンドが定義されている。一方、DBマイグレーション実行手順は <code>migrations/README.md:3</code> に文章で書かれているのみで、<code>package.json</code> には対応するコマンドが登録されていない。</li>
+        </ul>
+        <div class="proposal">
+          <p class="proposal-label">規約提案文(案)</p>
+          <p class="proposal-text">DBマイグレーション実行コマンド（npm run migrate）を package.json の scripts に登録し、手順書と実行コマンドを一致させる。</p>
+        </div>
+        <p class="source">出典: <code>package.json:12-18</code>、<code>migrations/README.md:3</code></p>
+      </div>
+      <div class="category" id="cat-dev-environment" data-report-row="dev-environment" data-chapter-index="2" data-chapter-name="開発プロセス" data-cat-name="開発環境規約" data-parent="development-process" data-key="dev-environment" data-scope="scoped" data-globs='["src/api/sample_app/config.ts","config/env.example"]' data-enforcement="advisory" data-checkable="true" data-check-method="src/api/sample_app/config.ts が参照する環境変数がすべて config/env.example に記載されていることを差分検査する。" data-proposed-rule="config.ts が参照する環境変数はすべて config/env.example に記載し、両者の差分をCIで検知する。" data-sources='["src/api/sample_app/config.ts:5-30","config/env.example:1-20"]'>
+        <div class="cat-head">
+          <h3>開発環境規約</h3>
+          <span class="pill pill--green">提案あり</span>
+          <div class="decision-buttons">
+          <button type="button" id="adopt-dev-environment" class="decision-btn kind-adopt" data-decision="adopt" data-cat="dev-environment">採用</button>
+          <button type="button" id="hold-dev-environment" class="decision-btn kind-hold" data-decision="hold" data-cat="dev-environment">保留</button>
+          <button type="button" id="reject-dev-environment" class="decision-btn kind-reject" data-decision="reject" data-cat="dev-environment">却下</button>
+          </div>
+        </div>
+        <p class="sub-label">ドキュメント記載</p>
+        <ul class="evidence-list">
+          <li><code>config/env.example:1-20</code> には環境変数22件が列挙されている。</li>
+        </ul>
+        <p class="sub-label">実装参照</p>
+        <ul class="evidence-list">
+          <li><code>src/api/sample_app/config.ts:5-30</code> が実際に読み込む環境変数は26件あり、うち4件（<code>RECIPE_IMAGE_BUCKET</code>・<code>REPORT_WEBHOOK_URL</code>・<code>SESSION_SECRET_ROTATE_AT</code>・<code>ADMIN_ALLOWLIST</code>）が env.example に未記載。</li>
+        </ul>
+        <div class="proposal">
+          <p class="proposal-label">規約提案文(案)</p>
+          <p class="proposal-text">config.ts が参照する環境変数はすべて config/env.example に記載し、両者の差分をCIで検知する。</p>
+        </div>
+        <p class="source">出典: <code>src/api/sample_app/config.ts:5-30</code>、<code>config/env.example:1-20</code></p>
+      </div>
+      <div class="category" id="cat-git-operations" data-report-row="git-operations" data-chapter-index="2" data-chapter-name="開発プロセス" data-cat-name="Git運用規約" data-parent="development-process" data-key="git-operations" data-scope="always" data-globs='["**/*"]' data-enforcement="advisory" data-checkable="true" data-check-method="コミットメッセージが fix・update・wip のみの単語で構成されていないこと、ブランチ名が feature/&lt;slug&gt; 形式であることを検査する。" data-proposed-rule="コミットメッセージは変更内容を要約した文を必須とし、ブランチ命名は feature/&lt;slug&gt; 形式に統一する。" data-sources='["git log（直近50件のコミット履歴）"]'>
+        <div class="cat-head">
+          <h3>Git運用規約</h3>
+          <span class="pill pill--green">提案あり</span>
+          <div class="decision-buttons">
+          <button type="button" id="adopt-git-operations" class="decision-btn kind-adopt" data-decision="adopt" data-cat="git-operations">採用</button>
+          <button type="button" id="hold-git-operations" class="decision-btn kind-hold" data-decision="hold" data-cat="git-operations">保留</button>
+          <button type="button" id="reject-git-operations" class="decision-btn kind-reject" data-decision="reject" data-cat="git-operations">却下</button>
+          </div>
+        </div>
+        <ul class="evidence-list">
+          <li>直近50件のコミット履歴のうち18件が「fix」「update」「wip」のみの単語で、変更内容の説明を伴わない。ブランチ命名も <code>feature/*</code> と <code>feat-*</code> が混在（それぞれ6件・4件）している。</li>
+        </ul>
+        <div class="proposal">
+          <p class="proposal-label">規約提案文(案)</p>
+          <p class="proposal-text">コミットメッセージは変更内容を要約した文を必須とし、ブランチ命名は feature/&lt;slug&gt; 形式に統一する。</p>
+        </div>
+        <p class="source">出典: git log（直近50件のコミット履歴。リポジトリ内ファイルではなく履歴調査）</p>
+      </div>
+      <div class="category" id="cat-release-delivery">
+        <div class="cat-head">
+          <h3>リリースとデリバリーの規約</h3>
+          <span class="pill pill--violet">&#8594;共通規約を参照</span>
+        </div>
+        <p class="reason">リリース手順・デリバリー手順は本サンプルアプリ固有ではなく、組織共通規約に既に定義されている領域であり、コード調査からは組織共通規約との重複以外の固有事項が見つからなかった。</p>
+      </div>
+    </section>
+
+    <section class="chapter" id="chapter-code-standards">
+      <div class="chapter-head">
+        <span class="chapter-num">03</span>
+        <h2>コード規約</h2>
+      </div>
+      <p class="chapter-desc">code-standards</p>
+      <div class="category" id="cat-coding-standards" data-report-row="coding-standards" data-chapter-index="3" data-chapter-name="コード規約" data-cat-name="コーディング規約" data-parent="code-standards" data-key="coding-standards" data-scope="scoped" data-globs='["src/api/sample_app/routes/**"]' data-enforcement="advisory" data-checkable="true" data-check-method="コントローラファイルの行数が200行を超えていないこと、超過時にハンドラ単位でサービス層へ分割されていることを検査する。" data-proposed-rule="1コントローラファイルは200行を目安とし、超過する場合はハンドラ単位でのサービス層への分割を必須とする。" data-sources='["src/api/sample_app/routes/recipes.controller.ts:1-420"]'>
+        <div class="cat-head">
+          <h3>コーディング規約</h3>
+          <span class="pill pill--green">提案あり</span>
+          <div class="decision-buttons">
+          <button type="button" id="adopt-coding-standards" class="decision-btn kind-adopt" data-decision="adopt" data-cat="coding-standards">採用</button>
+          <button type="button" id="hold-coding-standards" class="decision-btn kind-hold" data-decision="hold" data-cat="coding-standards">保留</button>
+          <button type="button" id="reject-coding-standards" class="decision-btn kind-reject" data-decision="reject" data-cat="coding-standards">却下</button>
+          </div>
+        </div>
+        <ul class="evidence-list">
+          <li><code>src/api/sample_app/routes/recipes.controller.ts</code> は420行あり、他コントローラの平均140行と比べて突出している。同ファイルには6つのハンドラが定義され、うち <code>updateRecipe</code> ハンドラ単体で95行を占める。</li>
+        </ul>
+        <div class="proposal">
+          <p class="proposal-label">規約提案文(案)</p>
+          <p class="proposal-text">1コントローラファイルは200行を目安とし、超過する場合はハンドラ単位でのサービス層への分割を必須とする。</p>
+        </div>
+        <p class="source">出典: <code>src/api/sample_app/routes/recipes.controller.ts:1-420</code></p>
+      </div>
+      <div class="category" id="cat-naming-convention" data-report-row="naming-convention" data-chapter-index="3" data-chapter-name="コード規約" data-cat-name="命名規約" data-parent="code-standards" data-key="naming" data-scope="scoped" data-globs='["src/api/sample_app/services/**"]' data-enforcement="advisory" data-checkable="true" data-check-method="src/api/sample_app/services/配下の全ファイル名が &lt;domain&gt;.service.ts 形式であることを検査する。" data-proposed-rule="service層のファイル名は &lt;domain&gt;.service.ts 形式に統一する。" data-sources='["src/api/sample_app/services/recipeHelper.ts","src/api/sample_app/services/imgUtil.ts","src/api/sample_app/services/mailer.ts"]'>
+        <div class="cat-head">
+          <h3>命名規約</h3>
+          <span class="pill pill--green">提案あり</span>
+          <div class="decision-buttons">
+          <button type="button" id="adopt-naming-convention" class="decision-btn kind-adopt" data-decision="adopt" data-cat="naming-convention">採用</button>
+          <button type="button" id="hold-naming-convention" class="decision-btn kind-hold" data-decision="hold" data-cat="naming-convention">保留</button>
+          <button type="button" id="reject-naming-convention" class="decision-btn kind-reject" data-decision="reject" data-cat="naming-convention">却下</button>
+          </div>
+        </div>
+        <ul class="evidence-list">
+          <li><code>src/api/sample_app/services/</code> 配下14ファイルのうち11ファイルは <code>&lt;domain&gt;.service.ts</code> 形式だが、3ファイル（<code>recipeHelper.ts</code>・<code>imgUtil.ts</code>・<code>mailer.ts</code>）がこの命名から外れている。</li>
+        </ul>
+        <div class="proposal">
+          <p class="proposal-label">規約提案文(案)</p>
+          <p class="proposal-text">service層のファイル名は &lt;domain&gt;.service.ts 形式に統一する。</p>
+        </div>
+        <p class="source">出典: <code>src/api/sample_app/services/recipeHelper.ts</code>、<code>imgUtil.ts</code>、<code>mailer.ts</code></p>
+      </div>
+      <div class="category" id="cat-directory-structure" data-report-row="directory-structure" data-chapter-index="3" data-chapter-name="コード規約" data-cat-name="ディレクトリ構成規約" data-parent="code-standards" data-key="directory-structure" data-scope="scoped" data-globs='["src/api/sample_app/**"]' data-enforcement="advisory" data-checkable="true" data-check-method="src/api/sample_app/配下が routes / services / repositories / models の4層構成に従い、層をまたぐ配置がないことを検査する。" data-proposed-rule="routes / services / repositories / models の4層構成を正とし、層をまたぐ配置（routes/uploads/uploads.service.ts 等）を禁止する。" data-sources='["src/api/sample_app/routes/uploads/uploads.service.ts"]'>
+        <div class="cat-head">
+          <h3>ディレクトリ構成規約</h3>
+          <span class="pill pill--green">提案あり</span>
+          <div class="decision-buttons">
+          <button type="button" id="adopt-directory-structure" class="decision-btn kind-adopt" data-decision="adopt" data-cat="directory-structure">採用</button>
+          <button type="button" id="hold-directory-structure" class="decision-btn kind-hold" data-decision="hold" data-cat="directory-structure">保留</button>
+          <button type="button" id="reject-directory-structure" class="decision-btn kind-reject" data-decision="reject" data-cat="directory-structure">却下</button>
+          </div>
+        </div>
+        <ul class="evidence-list">
+          <li><code>src/api/sample_app/</code> 直下は routes / services / repositories / models の4層構成である。一方 <code>uploads.service.ts</code> のみ <code>services/</code> ではなく <code>routes/uploads/</code> 配下に配置されており、層構成から逸脱している唯一の例外である。</li>
+        </ul>
+
+        <div class="layer-fig">
+          <div class="layer-row" style="border-left-color:var(--green)"><b>routes/</b><span>HTTPハンドラ。recipes.controller.ts 等</span></div>
+          <div class="layer-row" style="border-left-color:var(--amber)"><b>services/</b><span>業務ロジック。recipe.service.ts 等（uploads.service.ts のみ routes/uploads/ 配下に例外配置）</span></div>
+          <div class="layer-row" style="border-left-color:var(--violet)"><b>repositories/</b><span>DBアクセス。recipe.repository.ts 等</span></div>
+          <div class="layer-row" style="border-left-color:var(--brick)"><b>models/</b><span>型定義。recipe.model.ts 等</span></div>
+        </div>
+        <p class="figcaption">図2: routes / services / repositories / models の層構造</p>
+        <div class="proposal">
+          <p class="proposal-label">規約提案文(案)</p>
+          <p class="proposal-text">routes / services / repositories / models の4層構成を正とし、層をまたぐ配置（routes/uploads/uploads.service.ts 等）を禁止する。</p>
+        </div>
+        <p class="source">出典: <code>src/api/sample_app/routes/uploads/uploads.service.ts</code></p>
+      </div>
+      <div class="category" id="cat-component-design">
+        <div class="cat-head">
+          <h3>コンポーネント設計規約</h3>
+          <span class="pill pill--na">対象外</span>
+        </div>
+        <p class="reason">調査範囲はサーバサイドAPI（src/api/sample_app/*）であり、フロントエンドのコンポーネント実装は含まれない。</p>
+      </div>
+    </section>
+
+    <section class="chapter" id="chapter-quality-assurance">
+      <div class="chapter-head">
+        <span class="chapter-num">04</span>
+        <h2>品質保証</h2>
+      </div>
+      <p class="chapter-desc">quality-assurance</p>
+      <div class="category" id="cat-test-policy" data-report-row="test-policy" data-chapter-index="4" data-chapter-name="品質保証" data-cat-name="テスト方針書" data-parent="quality-assurance" data-key="test-policy" data-scope="scoped" data-globs='["src/api/sample_app/services/**","tests/unit/services/**"]' data-enforcement="advisory" data-checkable="true" data-check-method="service層の各ファイルに対応するunit testファイルが存在し、coverage/coverage-summary.json のカバレッジが70%を下回らないことを検査する。" data-proposed-rule="service層はunit testの実装を必須とし、カバレッジ70%を下回るサービスファイルはマージ不可とする。" data-sources='["coverage/coverage-summary.json",".github/workflows/ci.yml:18-25"]'>
+        <div class="cat-head">
+          <h3>テスト方針書</h3>
+          <span class="pill pill--green">提案あり</span>
+          <div class="decision-buttons">
+          <button type="button" id="adopt-test-policy" class="decision-btn kind-adopt" data-decision="adopt" data-cat="test-policy">採用</button>
+          <button type="button" id="hold-test-policy" class="decision-btn kind-hold" data-decision="hold" data-cat="test-policy">保留</button>
+          <button type="button" id="reject-test-policy" class="decision-btn kind-reject" data-decision="reject" data-cat="test-policy">却下</button>
+          </div>
+        </div>
+        <ul class="evidence-list">
+          <li><code>.github/workflows/ci.yml:18-25</code> のtestジョブは契約テスト（<code>tests/contract/</code>）38件を全エンドポイント分実行している。一方 service層のunit test（<code>tests/unit/services/</code>）は14ファイル中5ファイルにしか存在せず、カバレッジは31%（<code>coverage/coverage-summary.json</code> 記載値）。</li>
+        </ul>
+        <div class="proposal">
+          <p class="proposal-label">規約提案文(案)</p>
+          <p class="proposal-text">service層はunit testの実装を必須とし、カバレッジ70%を下回るサービスファイルはマージ不可とする。</p>
+        </div>
+        <p class="source">出典: <code>coverage/coverage-summary.json</code>、<code>.github/workflows/ci.yml:18-25</code></p>
+      </div>
+      <div class="category" id="cat-review-checklist">
+        <div class="cat-head">
+          <h3>レビュー観点表</h3>
+          <span class="pill pill--na">対象外</span>
+        </div>
+        <p class="reason">レビューの合格基準を定めた文書は確認できなかった。PRテンプレートにチェック項目はあるが、何をもって合格とするかの記述がない。証拠が揃うまで規約化を保留。</p>
+      </div>
+    </section>
+
+    <section class="chapter" id="chapter-documentation-standards">
+      <div class="chapter-head">
+        <span class="chapter-num">05</span>
+        <h2>文書化規約</h2>
+      </div>
+      <p class="chapter-desc">documentation-standards</p>
+      <div class="category" id="cat-documentation-standards" data-report-row="documentation-standards" data-chapter-index="5" data-chapter-name="文書化規約" data-cat-name="ドキュメント作成規約" data-parent="documentation-standards" data-key="documentation-standards" data-scope="scoped" data-globs='["openapi.yaml","README.md","migrations/README.md"]' data-enforcement="advisory" data-checkable="true" data-check-method="新規追加されたエンドポイントが openapi.yaml に記載されていること、README.md から migrations/README.md 等の関連手順書への導線があることを検査する。" data-proposed-rule="新規エンドポイント追加時は openapi.yaml への追記をPRの必須チェック項目とし、README.md から関連手順書（migrations/README.md 等）への導線を明記する。" data-sources='["openapi.yaml","README.md"]'>
+        <div class="cat-head">
+          <h3>ドキュメント作成規約</h3>
+          <span class="pill pill--green">提案あり</span>
+          <div class="decision-buttons">
+          <button type="button" id="adopt-documentation-standards" class="decision-btn kind-adopt" data-decision="adopt" data-cat="documentation-standards">採用</button>
+          <button type="button" id="hold-documentation-standards" class="decision-btn kind-hold" data-decision="hold" data-cat="documentation-standards">保留</button>
+          <button type="button" id="reject-documentation-standards" class="decision-btn kind-reject" data-decision="reject" data-cat="documentation-standards">却下</button>
+          </div>
+        </div>
+        <ul class="evidence-list">
+          <li><code>openapi.yaml</code> は38エンドポイント中36件を記載しているが、横断的所見のとおり2件が未記載。また <code>README.md</code> のセットアップ手順は <code>npm install</code> から始まり、<code>migrations/README.md</code> のDB初期化手順への導線がない。</li>
+        </ul>
+        <div class="proposal">
+          <p class="proposal-label">規約提案文(案)</p>
+          <p class="proposal-text">新規エンドポイント追加時は openapi.yaml への追記をPRの必須チェック項目とし、README.md から関連手順書（migrations/README.md 等）への導線を明記する。</p>
+        </div>
+        <p class="source">出典: <code>openapi.yaml</code>、<code>README.md</code></p>
+      </div>
+      <div class="category" id="cat-portal-maintenance">
+        <div class="cat-head">
+          <h3>ポータル保守規約</h3>
+          <span class="pill pill--violet">&#8594;共通規約を参照</span>
+        </div>
+        <p class="reason">開発ポータル・ドキュメントサイトの保守手順は組織共通基盤（本リポジトリ外）で管理されており、本サンプルアプリ固有の逸脱は確認されなかった。</p>
+      </div>
+    </section>
+
+    <section class="chapter" id="chapter-non-functional-requirements">
+      <div class="chapter-head">
+        <span class="chapter-num">06</span>
+        <h2>非機能要件</h2>
+      </div>
+      <p class="chapter-desc">non-functional-requirements</p>
+      <div class="category" id="cat-security-requirements" data-report-row="security-requirements" data-chapter-index="6" data-chapter-name="非機能要件" data-cat-name="セキュリティ要件" data-parent="non-functional-requirements" data-key="security-requirements" data-scope="scoped" data-globs='["src/api/sample_app/routes/uploads/**"]' data-enforcement="advisory" data-checkable="false" data-check-method="" data-proposed-rule="署名付きURL発行APIは、対象リソースIDに対する所有者チェック（または権限チェック）の呼び出しを必須とする。" data-sources='["src/api/sample_app/routes/uploads/uploads.service.ts:32-58"]'>
+        <div class="cat-head">
+          <h3>セキュリティ要件</h3>
+          <span class="pill pill--green">提案あり</span>
+          <div class="decision-buttons">
+          <button type="button" id="adopt-security-requirements" class="decision-btn kind-adopt" data-decision="adopt" data-cat="security-requirements">採用</button>
+          <button type="button" id="hold-security-requirements" class="decision-btn kind-hold" data-decision="hold" data-cat="security-requirements">保留</button>
+          <button type="button" id="reject-security-requirements" class="decision-btn kind-reject" data-decision="reject" data-cat="security-requirements">却下</button>
+          </div>
+        </div>
+        <ul class="evidence-list">
+          <li>横断的所見のとおり <code>uploads.service.ts:32-58</code> の <code>POST /uploads/sign</code> は、認証済みであれば任意の recipe_id を指定して署名付きURLを取得できる。所有者チェックの呼び出しは確認できない。</li>
+        </ul>
+        <div class="proposal">
+          <p class="proposal-label">規約提案文(案)</p>
+          <p class="proposal-text">署名付きURL発行APIは、対象リソースIDに対する所有者チェック（または権限チェック）の呼び出しを必須とする。</p>
+        </div>
+        <p class="source">出典: <code>src/api/sample_app/routes/uploads/uploads.service.ts:32-58</code></p>
+      </div>
+      <div class="category" id="cat-performance-requirements" data-report-row="performance-requirements" data-chapter-index="6" data-chapter-name="非機能要件" data-cat-name="性能要件" data-parent="non-functional-requirements" data-key="performance-requirements" data-scope="scoped" data-globs='["src/api/sample_app/routes/recipes.controller.ts","src/api/sample_app/repositories/recipe.repository.ts"]' data-enforcement="advisory" data-checkable="true" data-check-method="listRecipes系ハンドラの実装で、SQLクエリにWHERE句による絞り込みがなく取得後にアプリ側でfilterしている箇所がないことを検査する。" data-proposed-rule="検索条件はSQLのWHERE句へ反映し、アプリ側での全件filterを禁止する。ただし本提案は listRecipes 系エンドポイントに限定し、他エンドポイントへの一般化は別途検証を要する。" data-sources='["src/api/sample_app/repositories/recipe.repository.ts:88-102"]'>
+        <div class="cat-head">
+          <h3>性能要件</h3>
+          <span class="pill pill--amber">提案あり(範囲限定)</span>
+          <div class="decision-buttons">
+          <button type="button" id="adopt-performance-requirements" class="decision-btn kind-adopt" data-decision="adopt" data-cat="performance-requirements">採用</button>
+          <button type="button" id="hold-performance-requirements" class="decision-btn kind-hold" data-decision="hold" data-cat="performance-requirements">保留</button>
+          <button type="button" id="reject-performance-requirements" class="decision-btn kind-reject" data-decision="reject" data-cat="performance-requirements">却下</button>
+          </div>
+        </div>
+        <ul class="evidence-list">
+          <li><code>routes/recipes.controller.ts:210-240</code> の <code>listRecipes</code> ハンドラは、検索条件を都度SELECT *で全件取得したうえでアプリ側でfilterしている（<code>repositories/recipe.repository.ts:88-102</code>）。ページネーションのLIMITは適用されているが、WHERE句への条件反映はない。負荷試験の実測データは調査範囲になく、性能劣化そのものは未確認。</li>
+        </ul>
+        <div class="proposal">
+          <p class="proposal-label">規約提案文(案)</p>
+          <p class="proposal-text">検索条件はSQLのWHERE句へ反映し、アプリ側での全件filterを禁止する。ただし本提案は listRecipes 系エンドポイントに限定し、他エンドポイントへの一般化は別途検証を要する。</p>
+        </div>
+        <p class="source">出典: <code>src/api/sample_app/repositories/recipe.repository.ts:88-102</code></p>
+      </div>
+      <div class="category" id="cat-availability-requirements">
+        <div class="cat-head">
+          <h3>可用性要件</h3>
+          <span class="pill pill--na">対象外</span>
+        </div>
+        <p class="reason">冗長構成・フェイルオーバーに関する設定（インフラ定義）は調査範囲（config/・.github/workflows/）に含まれておらず、コードからは判断できない。</p>
+      </div>
+      <div class="category" id="cat-scalability-requirements">
+        <div class="cat-head">
+          <h3>拡張性要件</h3>
+          <span class="pill pill--na">対象外</span>
+        </div>
+        <p class="reason">将来の機能追加を見据えた拡張ポイント（プラグイン機構等）は現状のコードに存在せず、評価対象がない。</p>
+      </div>
+      <div class="category" id="cat-monitoring-requirements" data-report-row="monitoring-requirements" data-chapter-index="6" data-chapter-name="非機能要件" data-cat-name="監視要件" data-parent="non-functional-requirements" data-key="monitoring-requirements" data-scope="scoped" data-globs='["src/api/sample_app/services/billing.service.ts","src/api/sample_app/services/report.service.ts"]' data-enforcement="advisory" data-checkable="true" data-check-method="billing.service.ts・report.service.ts 等、業務影響度の高いserviceファイルに logger.info・logger.error の呼び出しが1箇所以上存在することを検査する。" data-proposed-rule="決済（billing）・通報（report）など業務影響が大きいserviceは、主要処理の開始・終了・異常系にログ出力を必須とする。" data-sources='["src/api/sample_app/services/billing.service.ts","src/api/sample_app/services/report.service.ts"]'>
+        <div class="cat-head">
+          <h3>監視要件</h3>
+          <span class="pill pill--green">提案あり</span>
+          <div class="decision-buttons">
+          <button type="button" id="adopt-monitoring-requirements" class="decision-btn kind-adopt" data-decision="adopt" data-cat="monitoring-requirements">採用</button>
+          <button type="button" id="hold-monitoring-requirements" class="decision-btn kind-hold" data-decision="hold" data-cat="monitoring-requirements">保留</button>
+          <button type="button" id="reject-monitoring-requirements" class="decision-btn kind-reject" data-decision="reject" data-cat="monitoring-requirements">却下</button>
+          </div>
+        </div>
+        <ul class="evidence-list">
+          <li><code>services/billing.service.ts</code> と <code>report.service.ts</code> にはログ出力（logger.info / logger.error）が1箇所も無い（該当箇所のgrep結果0件）。他のserviceファイルの平均は6.4箇所。</li>
+        </ul>
+        <div class="proposal">
+          <p class="proposal-label">規約提案文(案)</p>
+          <p class="proposal-text">決済（billing）・通報（report）など業務影響が大きいserviceは、主要処理の開始・終了・異常系にログ出力を必須とする。</p>
+        </div>
+        <p class="source">出典: <code>src/api/sample_app/services/billing.service.ts</code>、<code>report.service.ts</code></p>
+      </div>
+    </section>
+
+    <section class="chapter" id="chapter-business-domain">
+      <div class="chapter-head">
+        <span class="chapter-num">07</span>
+        <h2>業務ドメイン規約</h2>
+      </div>
+      <p class="chapter-desc">business-domain</p>
+      <div class="category" id="cat-terminology" data-report-row="terminology" data-chapter-index="7" data-chapter-name="業務ドメイン規約" data-cat-name="用語定義" data-parent="business-domain" data-key="terminology" data-scope="scoped" data-globs='["src/api/sample_app/models/**"]' data-enforcement="advisory" data-checkable="true" data-check-method="src/api/sample_app/models/配下で dish・menuItem の識別子が新規に追加されていないことをgrepで検査する。" data-proposed-rule="業務用語「レシピ」に対応する識別子は recipe に統一し、dish・menuItem を廃止する。" data-sources='["src/api/sample_app/models/"]'>
+        <div class="cat-head">
+          <h3>用語定義</h3>
+          <span class="pill pill--green">提案あり</span>
+          <div class="decision-buttons">
+          <button type="button" id="adopt-terminology" class="decision-btn kind-adopt" data-decision="adopt" data-cat="terminology">採用</button>
+          <button type="button" id="hold-terminology" class="decision-btn kind-hold" data-decision="hold" data-cat="terminology">保留</button>
+          <button type="button" id="reject-terminology" class="decision-btn kind-reject" data-decision="reject" data-cat="terminology">却下</button>
+          </div>
+        </div>
+        <ul class="evidence-list">
+          <li><code>models/</code> 配下で「レシピ」を指す識別子が recipe・dish・menuItem の3種類混在している（grep集計: recipe 42件・dish 6件・menuItem 3件）。</li>
+        </ul>
+        <div class="proposal">
+          <p class="proposal-label">規約提案文(案)</p>
+          <p class="proposal-text">業務用語「レシピ」に対応する識別子は recipe に統一し、dish・menuItem を廃止する。</p>
+        </div>
+        <p class="source">出典: <code>src/api/sample_app/models/</code>（grep集計）</p>
+      </div>
+      <div class="category" id="cat-business-rules" data-report-row="business-rules" data-chapter-index="7" data-chapter-name="業務ドメイン規約" data-cat-name="業務規則" data-parent="business-domain" data-key="business-rules" data-scope="scoped" data-globs='["src/api/sample_app/services/recipe.service.ts","src/api/sample_app/services/billing.service.ts"]' data-enforcement="advisory" data-checkable="false" data-check-method="" data-proposed-rule="公開判定ロジックは status と isPremiumOnly の両方を参照する単一関数に集約する。ただし本提案は公開判定処理に限定し、他の会員種別ロジックへの拡張は別途調査を要する。" data-sources='["src/api/sample_app/services/recipe.service.ts:120-145"]'>
+        <div class="cat-head">
+          <h3>業務規則</h3>
+          <span class="pill pill--amber">提案あり(範囲限定)</span>
+          <div class="decision-buttons">
+          <button type="button" id="adopt-business-rules" class="decision-btn kind-adopt" data-decision="adopt" data-cat="business-rules">採用</button>
+          <button type="button" id="hold-business-rules" class="decision-btn kind-hold" data-decision="hold" data-cat="business-rules">保留</button>
+          <button type="button" id="reject-business-rules" class="decision-btn kind-reject" data-decision="reject" data-cat="business-rules">却下</button>
+          </div>
+        </div>
+        <ul class="evidence-list">
+          <li><code>services/recipe.service.ts:120-145</code> の公開レシピ判定は <code>status === 'published'</code> のみで判定しており、<code>billing.service.ts</code> 側の有料会員限定フラグ（<code>isPremiumOnly</code>）との整合チェックが recipe.service.ts には存在しない（未確認: 実際に有料限定レシピが無料公開される事象が起きるか）。</li>
+        </ul>
+        <div class="proposal">
+          <p class="proposal-label">規約提案文(案)</p>
+          <p class="proposal-text">公開判定ロジックは status と isPremiumOnly の両方を参照する単一関数に集約する。ただし本提案は公開判定処理に限定し、他の会員種別ロジックへの拡張は別途調査を要する。</p>
+        </div>
+        <p class="source">出典: <code>src/api/sample_app/services/recipe.service.ts:120-145</code></p>
+      </div>
+      <div class="category" id="cat-state-transition" data-report-row="state-transition" data-chapter-index="7" data-chapter-name="業務ドメイン規約" data-cat-name="状態遷移の制約" data-parent="business-domain" data-key="state-transition" data-scope="scoped" data-globs='["src/api/sample_app/routes/recipes.controller.ts","src/api/sample_app/services/recipe.service.ts"]' data-enforcement="advisory" data-checkable="true" data-check-method="レシピの状態更新処理が draft→in_review→published→archived の許可された遷移のみを検証する関数を経由しており、コントローラから直接書き込みされていないことを検査する。" data-proposed-rule="レシピの状態遷移は許可された遷移（draft→in_review・in_review→published・published→archived等）のみを許容する検証関数を設け、コントローラでの直接書き込みを禁止する。" data-sources='["src/api/sample_app/routes/recipes.controller.ts:180-195","src/api/sample_app/models/recipe.model.ts:8"]'>
+        <div class="cat-head">
+          <h3>状態遷移の制約</h3>
+          <span class="pill pill--green">提案あり</span>
+          <div class="decision-buttons">
+          <button type="button" id="adopt-state-transition" class="decision-btn kind-adopt" data-decision="adopt" data-cat="state-transition">採用</button>
+          <button type="button" id="hold-state-transition" class="decision-btn kind-hold" data-decision="hold" data-cat="state-transition">保留</button>
+          <button type="button" id="reject-state-transition" class="decision-btn kind-reject" data-decision="reject" data-cat="state-transition">却下</button>
+          </div>
+        </div>
+        <ul class="evidence-list">
+          <li>レシピの状態は draft → in_review → published → archived の4状態が <code>models/recipe.model.ts:8</code> の型定義から確認できる。一方、状態遷移を検証する関数は <code>services/recipe.service.ts</code> に存在せず、<code>updateRecipe</code> ハンドラ（<code>recipes.controller.ts:180-195</code>）がリクエストのstatusフィールドをそのままDBへ書き込んでいる。</li>
+        </ul>
+
+        <div class="state-fig">
+          <span class="state-node">draft</span><span class="state-arrow">&#8594;</span>
+          <span class="state-node">in_review</span><span class="state-arrow">&#8594;</span>
+          <span class="state-node">published</span><span class="state-arrow">&#8594;</span>
+          <span class="state-node">archived</span>
+        </div>
+        <p class="figcaption">図3: レシピの状態遷移（許可された遷移のみを想定）</p>
+        <div class="proposal">
+          <p class="proposal-label">規約提案文(案)</p>
+          <p class="proposal-text">レシピの状態遷移は許可された遷移（draft→in_review・in_review→published・published→archived等）のみを許容する検証関数を設け、コントローラでの直接書き込みを禁止する。</p>
+        </div>
+        <p class="source">出典: <code>src/api/sample_app/routes/recipes.controller.ts:180-195</code>、<code>src/api/sample_app/models/recipe.model.ts:8</code></p>
+      </div>
+      <div class="category" id="cat-calculation-rules">
+        <div class="cat-head">
+          <h3>計算規則</h3>
+          <span class="pill pill--na">対象外</span>
+        </div>
+        <p class="reason">価格計算・割引計算等のロジックは billing.service.ts に存在するが、カバレッジ8%（横断的所見のとおり）で実装の意図が読み取れる形のコメントがなく、規約提案の根拠となる観測事実を確保できなかった。</p>
+      </div>
+    </section>
+
+    <footer>
+      <span class="footer-pill">要・現場エンジニア判断</span>
+      <p>本文書はコード調査から起こした規約提案であり、そのままdocs/rules/へ確定させるものではない。各カテゴリの判定（採用・保留・却下）は、実際の運用実態と照らして現場エンジニアが行うこと。</p>
+      <p>次のアクション: 判定結果をコピーまたはダウンロードし、採用判定分から順に正式な規約文書として整備する。</p>
+    </footer>
+  </main>
+</div>
+<script>
+(function(){
+  var STORAGE_KEY = "sample-app-rule-decisions";
+  var CATS = ["agent-behavior","destructive-safety","ai-asset-management","dev-flow","tooling-commands","dev-environment","git-operations","coding-standards","naming-convention","directory-structure","test-policy","documentation-standards","security-requirements","performance-requirements","monitoring-requirements","terminology","business-rules","state-transition"];
+  var TOTAL = CATS.length;
+  var decisions = {};
+  try {
+    var raw = window.localStorage.getItem(STORAGE_KEY);
+    if (raw) { var parsed = JSON.parse(raw); if (parsed && typeof parsed === "object") decisions = parsed; }
+  } catch (err) { decisions = {}; }
+
+  function save() {
+    try { window.localStorage.setItem(STORAGE_KEY, JSON.stringify(decisions)); } catch (err) { /* noop */ }
+  }
+
+  function countBy() {
+    var c = { adopt: 0, hold: 0, reject: 0 };
+    for (var i = 0; i < CATS.length; i += 1) {
+      var d = decisions[CATS[i]];
+      if (d === "adopt" || d === "hold" || d === "reject") c[d] += 1;
+    }
+    return c;
+  }
+
+  function setWidth(id, ratio) {
+    var el = document.getElementById(id);
+    if (el) el.style.width = (ratio * 100) + "%";
+  }
+
+  function render() {
+    var counts = countBy();
+    var judged = counts.adopt + counts.hold + counts.reject;
+    var counterEl = document.getElementById("dp-counter");
+    if (counterEl) counterEl.textContent = "\u5224\u5b9a " + judged + "/" + TOTAL;
+    var legendAdopt = document.getElementById("legend-adopt-count");
+    if (legendAdopt) legendAdopt.textContent = counts.adopt;
+    var legendHold = document.getElementById("legend-hold-count");
+    if (legendHold) legendHold.textContent = counts.hold;
+    var legendReject = document.getElementById("legend-reject-count");
+    if (legendReject) legendReject.textContent = counts.reject;
+    setWidth("seg-adopt", TOTAL ? counts.adopt / TOTAL : 0);
+    setWidth("seg-hold", TOTAL ? counts.hold / TOTAL : 0);
+    setWidth("seg-reject", TOTAL ? counts.reject / TOTAL : 0);
+
+    for (var i = 0; i < CATS.length; i += 1) {
+      var slug = CATS[i];
+      var d = decisions[slug];
+      ["adopt", "hold", "reject"].forEach(function (kind) {
+        var btn = document.getElementById(kind + "-" + slug);
+        if (btn) btn.classList.toggle("active", d === kind);
+      });
+      var dot = document.getElementById("dot-" + slug);
+      if (dot) {
+        dot.classList.remove("dot--adopt", "dot--hold", "dot--reject");
+        if (d === "adopt" || d === "hold" || d === "reject") dot.classList.add("dot--" + d);
+      }
+    }
+  }
+
+  document.querySelectorAll(".decision-btn").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var slug = btn.dataset.cat;
+      var kind = btn.dataset.decision;
+      if (!slug || !kind) return;
+      if (decisions[slug] === kind) delete decisions[slug];
+      else decisions[slug] = kind;
+      save();
+      render();
+    });
+  });
+
+  function labelFor(kind) {
+    if (kind === "adopt") return "\u63a1\u7528";
+    if (kind === "hold") return "\u4fdd\u7559";
+    if (kind === "reject") return "\u5374\u4e0b";
+    return "\u672a\u5224\u5b9a";
+  }
+
+  function buildReportText() {
+    var counts = countBy();
+    var judged = counts.adopt + counts.hold + counts.reject;
+    var lines = ["\u5224\u5b9a\u7d50\u679c(" + judged + "/" + TOTAL + " \u5224\u5b9a\u6e08\u307f)"];
+    document.querySelectorAll("[data-report-row]").forEach(function (el) {
+      var slug = el.getAttribute("data-report-row");
+      var chapterIndex = el.getAttribute("data-chapter-index");
+      var chapterName = el.getAttribute("data-chapter-name");
+      var catName = el.getAttribute("data-cat-name");
+      var d = decisions[slug];
+      lines.push("\u3010" + labelFor(d) + "\u3011" + chapterIndex + ". " + chapterName + " / " + catName);
+    });
+    return lines.join("\n");
+  }
+
+  var copyBtn = document.getElementById("copy-decisions");
+  if (copyBtn) {
+    var copyOriginalText = copyBtn.textContent;
+    copyBtn.addEventListener("click", function () {
+      var text = buildReportText();
+      var flash = function () {
+        copyBtn.textContent = "\u30b3\u30d4\u30fc\u3057\u307e\u3057\u305f \u2713";
+        setTimeout(function () { copyBtn.textContent = copyOriginalText; }, 2000);
+      };
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).then(flash, flash);
+        } else {
+          flash();
+        }
+      } catch (err) { flash(); }
+    });
+  }
+
+  function buildReportJson() {
+    var counts = countBy();
+    var judged = counts.adopt + counts.hold + counts.reject;
+    var decisionList = [];
+    document.querySelectorAll("[data-report-row]").forEach(function (el) {
+      var slug = el.getAttribute("data-report-row");
+      var d = decisions[slug] || "pending";
+      var globs = [];
+      var sources = [];
+      try { globs = JSON.parse(el.getAttribute("data-globs") || "[]"); } catch (err) { globs = []; }
+      try { sources = JSON.parse(el.getAttribute("data-sources") || "[]"); } catch (err) { sources = []; }
+      decisionList.push({
+        parent: el.getAttribute("data-parent") || "",
+        key: el.getAttribute("data-key") || "",
+        chapter: el.getAttribute("data-chapter-index") + " " + el.getAttribute("data-chapter-name"),
+        title: el.getAttribute("data-cat-name") || "",
+        decision: d,
+        proposedRule: el.getAttribute("data-proposed-rule") || "",
+        scope: el.getAttribute("data-scope") || "",
+        globs: globs,
+        enforcement: el.getAttribute("data-enforcement") || "",
+        checkable: el.getAttribute("data-checkable") === "true",
+        checkMethod: el.getAttribute("data-check-method") || "",
+        sources: sources
+      });
+    });
+    return {
+      proposalId: "sample-app-api",
+      generatedAt: new Date().toISOString(),
+      total: TOTAL,
+      judged: judged,
+      decisions: decisionList
+    };
+  }
+
+  var downloadBtn = document.getElementById("download-decisions");
+  if (downloadBtn) {
+    downloadBtn.addEventListener("click", function () {
+      try {
+        var json = JSON.stringify(buildReportJson(), null, 2);
+        var blob = new Blob([json], { type: "application/json" });
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement("a");
+        a.href = url;
+        a.download = "\u30b5\u30f3\u30d7\u30eb\u30a2\u30d7\u30eaAPI\u898f\u7d04\u63d0\u6848-\u5224\u5b9a\u7d50\u679c.json";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+      } catch (err) { /* noop */ }
+    });
+  }
+
+  render();
+})();
+</script>
+</body>
+</html>
