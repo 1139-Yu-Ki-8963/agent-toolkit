@@ -1,0 +1,688 @@
+{
+  "proposalId": "sample-app-api",
+  "title": "サンプルアプリAPI規約提案",
+  "lead": "既存コードの実装事実から起こした規約提案である。確定した規約ではなく、カテゴリごとに現場エンジニアが採用・保留・却下を判定するための叩き台として作成した。",
+  "isSample": true,
+  "flowDiagram": {
+    "caption": "図1: routes → services → repositories → DB の4段構成",
+    "nodes": [
+      {
+        "name": "クライアント",
+        "desc": "Web / モバイル"
+      },
+      {
+        "name": "routes/",
+        "desc": "認証・入力検証"
+      },
+      {
+        "name": "services/",
+        "desc": "業務ロジック"
+      },
+      {
+        "name": "repositories/",
+        "desc": "DBアクセス"
+      },
+      {
+        "name": "PostgreSQL",
+        "desc": "永続化"
+      }
+    ]
+  },
+  "meta": {
+    "positioning": "「規約提案」であり確定した規約ではない。docs/rules/ への取り込みは現場エンジニアの判断による。",
+    "scope": "src/api/sample_app/* とその呼び出し経路、migrations/・config/・.github/workflows/。リポジトリ全体の悉皆調査ではない。",
+    "verification": "investigator 2体（並列調査） → report-reviewer 1体（事実性検証・PASS）。"
+  },
+  "crossFindings": [
+    {
+      "severity": "risk",
+      "title": "openapi.yaml未記載のエンドポイントが実装上2件存在する",
+      "body": "routes/ の実装は38件だが、うち <code>POST /recipes/:id/duplicate</code> と <code>GET /admin/reports</code> の2件が openapi.yaml に未記載。ドキュメント漏れか廃止予定かの判断材料はコード上になく、現場での棚卸しを推奨する。"
+    },
+    {
+      "severity": "caution",
+      "title": "画像アップロードの署名付きURL発行に所有者チェックがない",
+      "body": "<code>POST /uploads/sign</code> は認証済みであれば任意の recipe_id を指定して署名付きURLを取得できる（uploads.service.ts:32-58）。他人のレシピへの画像添付が可能かは後続処理の検証に依存し、静的解析のみでは断定できない。実挙動の確認を推奨する。"
+    },
+    {
+      "severity": "reference",
+      "title": "service層のユニットテストが決済・通報まわりで薄い",
+      "body": "契約テストは38エンドポイント全カバーだが、service層カバレッジは31%。billing.service.ts は8%、report.service.ts は0%であり、業務ルールが最も集中する領域が最も薄い。"
+    }
+  ],
+  "chapters": [
+    {
+      "index": 1,
+      "title": "AIエージェント運用",
+      "slug": "agent-operations",
+      "description": "agent-operations",
+      "categories": [
+        {
+          "key": "agent-behavior",
+          "title": "AIエージェント行動規約",
+          "state": "proposal",
+          "summary": "AIエージェントのレビュー権限をPRコメント投稿に限定する規約である。",
+          "observations": [
+            "<code>.github/workflows/ai-review.yml:14-22</code> は全PR上で <code>claude-review</code> ジョブを実行し、レビュー結果をPRコメントへ投稿する。呼び出し先の <code>scripts/ai/run-review.sh:9-15</code> には、AIエージェントが変更してよい範囲・禁止操作の明示的な記述がない。"
+          ],
+          "proposedRule": "AIエージェントによるレビュー・修正提案は、PRコメントへの提案投稿に限定する。mainブランチへの直接pushやマージ操作は行わない旨を、本規約として明文化する。",
+          "sources": [
+            ".github/workflows/ai-review.yml:14-22"
+          ],
+          "scope": "scoped",
+          "globs": [
+            ".github/workflows/ai-review.yml",
+            "scripts/ai/**"
+          ],
+          "enforcement": "advisory",
+          "checkable": false,
+          "checkMethod": "",
+          "reason": ""
+        },
+        {
+          "key": "destructive-safety",
+          "title": "破壊的操作の安全規約",
+          "state": "proposal",
+          "summary": "破壊的コマンドの実行前チェックを安全規約として明文化するものである。",
+          "observations": [
+            "<code>scripts/ai/run-review.sh:31-40</code> は <code>rm -rf</code>・<code>git push --force</code>・<code>git reset --hard</code> を含むコマンド文字列を実行前に検査し、該当した場合は実行を中断する処理が既に実装されている。この挙動を明文化した規約は見当たらない。"
+          ],
+          "proposedRule": "破壊的コマンド（rm -rf・git push --force・git reset --hard）の実行前チェックは、scripts/ai/run-review.sh に実装済みの挙動を追認し、正式な安全規約として明文化する。",
+          "sources": [
+            "scripts/ai/run-review.sh:31-40"
+          ],
+          "scope": "scoped",
+          "globs": [
+            "scripts/ai/**"
+          ],
+          "enforcement": "advisory",
+          "checkable": true,
+          "checkMethod": "scripts/ai/run-review.sh が rm -rf・git push --force・git reset --hard を含むコマンド文字列を実行前に検知し、該当時は実行を中断する処理を持つことを検査する。",
+          "reason": ""
+        },
+        {
+          "key": "session-management",
+          "title": "セッション管理規約",
+          "state": "na",
+          "summary": "AIエージェントのセッション概念が調査範囲に存在しないため対象外とする。",
+          "observations": [],
+          "proposedRule": "",
+          "sources": [],
+          "scope": "always",
+          "globs": [],
+          "enforcement": "advisory",
+          "checkable": false,
+          "checkMethod": "",
+          "reason": "調査範囲内に、AIエージェントの対話単位（開始・終了・引き継ぎ）を扱うコードや設定は存在しなかった。CI上のワンショット実行のみが確認され、セッションという概念自体が本サンプルアプリの開発体制に存在しない。"
+        },
+        {
+          "key": "ai-asset-management",
+          "title": "AI設定資産の管理規約",
+          "state": "proposal",
+          "summary": "AI関連設定ファイルの変更にレビューを必須化する規約である。",
+          "observations": [
+            "<code>.github/workflows/ai-review.yml</code> と <code>scripts/ai/</code> 配下のAI関連設定ファイルは3件存在するが、直近のコミット履歴では、レビューを経ずに単独コミットで変更されたものが5件確認された（未確認: コミット権限自体の制限有無）。"
+          ],
+          "proposedRule": "scripts/ai/ および .github/workflows/ai-review.yml の変更はコードレビューを必須とし、単独コミットでのマージを禁止する。",
+          "sources": [
+            "scripts/ai/run-review.sh:1-8"
+          ],
+          "scope": "scoped",
+          "globs": [
+            "scripts/ai/**",
+            ".github/workflows/ai-review.yml"
+          ],
+          "enforcement": "advisory",
+          "checkable": false,
+          "checkMethod": "",
+          "reason": ""
+        },
+        {
+          "key": "routine-operations",
+          "title": "定型運用の規約",
+          "state": "na",
+          "summary": "定型運用手順を記述した資料が見つからず対象外とする。",
+          "observations": [],
+          "proposedRule": "",
+          "sources": [],
+          "scope": "always",
+          "globs": [],
+          "enforcement": "advisory",
+          "checkable": false,
+          "checkMethod": "",
+          "reason": "定型的な運用手順（日次バッチの再実行手順・障害時のロールバック手順等）を記述したドキュメントやスクリプトは、調査範囲内に見つからなかった。"
+        }
+      ]
+    },
+    {
+      "index": 2,
+      "title": "開発プロセス",
+      "slug": "development-process",
+      "description": "development-process",
+      "categories": [
+        {
+          "key": "dev-flow",
+          "title": "開発フロー規約",
+          "state": "proposal",
+          "summary": "mainブランチへのマージ条件としてCI全通過を必須化する規約である。",
+          "observations": [
+            "<code>.github/workflows/ci.yml:1-40</code> には <code>pull_request</code> トリガーのジョブが定義され、test → lint → build の順で実行される。一方、mainブランチへのマージ条件としてCI全通過を強制する設定（branch protection）はコード上からは確認できない（GitHub側の設定でありコード調査範囲外）。"
+          ],
+          "proposedRule": "mainブランチへのマージは CI（test → lint → build）の全通過を必須条件とし、.github/workflows/ci.yml の実行結果をレビュー承認の前提とする。",
+          "sources": [
+            ".github/workflows/ci.yml:1-40"
+          ],
+          "scope": "scoped",
+          "globs": [
+            ".github/workflows/ci.yml"
+          ],
+          "enforcement": "advisory",
+          "checkable": true,
+          "checkMethod": ".github/workflows/ci.yml の pull_request トリガージョブが test → lint → build の順で定義されていることを検査する。",
+          "reason": ""
+        },
+        {
+          "key": "tooling-commands",
+          "title": "ツールとコマンド実行の規約",
+          "state": "proposal",
+          "summary": "マイグレーション実行コマンドをpackage.jsonへ登録し手順書と一致させる規約である。",
+          "observations": [
+            "<code>package.json:12-18</code> の scripts には dev・test・lint・build の4コマンドが定義されている。一方、DBマイグレーション実行手順は <code>migrations/README.md:3</code> に文章で書かれているのみで、<code>package.json</code> には対応するコマンドが登録されていない。"
+          ],
+          "proposedRule": "DBマイグレーション実行コマンド（npm run migrate）を package.json の scripts に登録し、手順書と実行コマンドを一致させる。",
+          "sources": [
+            "package.json:12-18",
+            "migrations/README.md:3"
+          ],
+          "scope": "scoped",
+          "globs": [
+            "package.json",
+            "migrations/**"
+          ],
+          "enforcement": "advisory",
+          "checkable": true,
+          "checkMethod": "package.json の scripts に migrate コマンドが定義されていることを検査する。",
+          "reason": ""
+        },
+        {
+          "key": "dev-environment",
+          "title": "開発環境規約",
+          "state": "proposal",
+          "summary": "config.tsが参照する環境変数をenv.exampleへ記載しCIで差分検知する規約である。",
+          "observations": [
+            "<code>config/env.example:1-20</code> には環境変数22件が列挙されている。",
+            "<code>src/api/sample_app/config.ts:5-30</code> が実際に読み込む環境変数は26件あり、うち4件（<code>RECIPE_IMAGE_BUCKET</code>・<code>REPORT_WEBHOOK_URL</code>・<code>SESSION_SECRET_ROTATE_AT</code>・<code>ADMIN_ALLOWLIST</code>）が env.example に未記載。"
+          ],
+          "proposedRule": "config.ts が参照する環境変数はすべて config/env.example に記載し、両者の差分をCIで検知する。",
+          "sources": [
+            "src/api/sample_app/config.ts:5-30",
+            "config/env.example:1-20"
+          ],
+          "scope": "scoped",
+          "globs": [
+            "src/api/sample_app/config.ts",
+            "config/env.example"
+          ],
+          "enforcement": "advisory",
+          "checkable": true,
+          "checkMethod": "src/api/sample_app/config.ts が参照する環境変数がすべて config/env.example に記載されていることを差分検査する。",
+          "reason": ""
+        },
+        {
+          "key": "git-operations",
+          "title": "Git運用規約",
+          "state": "proposal",
+          "summary": "コミットメッセージとブランチ命名を統一する規約である。",
+          "observations": [
+            "直近50件のコミット履歴のうち18件が「fix」「update」「wip」のみの単語で、変更内容の説明を伴わない。ブランチ命名も <code>feature/*</code> と <code>feat-*</code> が混在（それぞれ6件・4件）している。"
+          ],
+          "proposedRule": "コミットメッセージは変更内容を要約した文を必須とし、ブランチ命名は feature/<slug> 形式に統一する。",
+          "sources": [
+            "git log（直近50件のコミット履歴）"
+          ],
+          "scope": "always",
+          "globs": [
+            "**/*"
+          ],
+          "enforcement": "advisory",
+          "checkable": true,
+          "checkMethod": "コミットメッセージが fix・update・wip のみの単語で構成されていないこと、ブランチ名が feature/<slug> 形式であることを検査する。",
+          "reason": ""
+        },
+        {
+          "key": "release-delivery",
+          "title": "リリースとデリバリーの規約",
+          "state": "common",
+          "summary": "リリース手順は組織共通規約が既に扱う領域であり対象外とする。",
+          "observations": [],
+          "proposedRule": "",
+          "sources": [],
+          "scope": "always",
+          "globs": [],
+          "enforcement": "advisory",
+          "checkable": false,
+          "checkMethod": "",
+          "reason": "リリース手順・デリバリー手順は本サンプルアプリ固有ではなく、組織共通規約に既に定義されている領域であり、コード調査からは組織共通規約との重複以外の固有事項が見つからなかった。"
+        }
+      ]
+    },
+    {
+      "index": 3,
+      "title": "コード規約",
+      "slug": "code-standards",
+      "description": "code-standards",
+      "categories": [
+        {
+          "key": "coding-standards",
+          "title": "コーディング規約",
+          "state": "proposal",
+          "summary": "コントローラファイルの行数上限とサービス層分割を定める規約である。",
+          "observations": [
+            "<code>src/api/sample_app/routes/recipes.controller.ts</code> は420行あり、他コントローラの平均140行と比べて突出している。同ファイルには6つのハンドラが定義され、うち <code>updateRecipe</code> ハンドラ単体で95行を占める。"
+          ],
+          "proposedRule": "1コントローラファイルは200行を目安とし、超過する場合はハンドラ単位でのサービス層への分割を必須とする。",
+          "sources": [
+            "src/api/sample_app/routes/recipes.controller.ts:1-420"
+          ],
+          "scope": "scoped",
+          "globs": [
+            "src/api/sample_app/routes/**"
+          ],
+          "enforcement": "advisory",
+          "checkable": true,
+          "checkMethod": "コントローラファイルの行数が200行を超えていないこと、超過時にハンドラ単位でサービス層へ分割されていることを検査する。",
+          "reason": ""
+        },
+        {
+          "key": "naming-convention",
+          "title": "命名規約",
+          "state": "proposal",
+          "summary": "サービス層ファイル名を<domain>.service.ts形式へ統一する規約である。",
+          "observations": [
+            "<code>src/api/sample_app/services/</code> 配下14ファイルのうち11ファイルは <code>&lt;domain&gt;.service.ts</code> 形式だが、3ファイル（<code>recipeHelper.ts</code>・<code>imgUtil.ts</code>・<code>mailer.ts</code>）がこの命名から外れている。"
+          ],
+          "proposedRule": "service層のファイル名は <domain>.service.ts 形式に統一する。",
+          "sources": [
+            "src/api/sample_app/services/recipeHelper.ts",
+            "src/api/sample_app/services/imgUtil.ts",
+            "src/api/sample_app/services/mailer.ts"
+          ],
+          "scope": "scoped",
+          "globs": [
+            "src/api/sample_app/services/**"
+          ],
+          "enforcement": "advisory",
+          "checkable": true,
+          "checkMethod": "src/api/sample_app/services/配下の全ファイル名が <domain>.service.ts 形式であることを検査する。",
+          "reason": ""
+        },
+        {
+          "key": "directory-structure",
+          "title": "ディレクトリ構成規約",
+          "state": "proposal",
+          "summary": "routes/services/repositories/modelsの4層構成からの逸脱を禁止する規約である。",
+          "observations": [
+            "<code>src/api/sample_app/</code> 直下は routes / services / repositories / models の4層構成である。一方 <code>uploads.service.ts</code> のみ <code>services/</code> ではなく <code>routes/uploads/</code> 配下に配置されており、層構成から逸脱している唯一の例外である。"
+          ],
+          "proposedRule": "routes / services / repositories / models の4層構成を正とし、層をまたぐ配置（routes/uploads/uploads.service.ts 等）を禁止する。",
+          "sources": [
+            "src/api/sample_app/routes/uploads/uploads.service.ts"
+          ],
+          "scope": "scoped",
+          "globs": [
+            "src/api/sample_app/**"
+          ],
+          "enforcement": "advisory",
+          "checkable": true,
+          "checkMethod": "src/api/sample_app/配下が routes / services / repositories / models の4層構成に従い、層をまたぐ配置がないことを検査する。",
+          "reason": "",
+          "figure": {
+            "kind": "layers",
+            "caption": "図2: routes / services / repositories / models の層構造",
+            "items": [
+              {
+                "label": "routes/",
+                "desc": "HTTPハンドラ。recipes.controller.ts 等",
+                "tone": "green"
+              },
+              {
+                "label": "services/",
+                "desc": "業務ロジック。recipe.service.ts 等（uploads.service.ts のみ routes/uploads/ 配下に例外配置）",
+                "tone": "amber"
+              },
+              {
+                "label": "repositories/",
+                "desc": "DBアクセス。recipe.repository.ts 等",
+                "tone": "violet"
+              },
+              {
+                "label": "models/",
+                "desc": "型定義。recipe.model.ts 等",
+                "tone": "brick"
+              }
+            ]
+          }
+        },
+        {
+          "key": "component-design",
+          "title": "コンポーネント設計規約",
+          "state": "na",
+          "summary": "調査範囲がサーバサイドAPIでありフロントエンド実装は対象外とする。",
+          "observations": [],
+          "proposedRule": "",
+          "sources": [],
+          "scope": "always",
+          "globs": [],
+          "enforcement": "advisory",
+          "checkable": false,
+          "checkMethod": "",
+          "reason": "調査範囲はサーバサイドAPI（src/api/sample_app/*）であり、フロントエンドのコンポーネント実装は含まれない。"
+        }
+      ]
+    },
+    {
+      "index": 4,
+      "title": "品質保証",
+      "slug": "quality-assurance",
+      "description": "quality-assurance",
+      "categories": [
+        {
+          "key": "test-policy",
+          "title": "テスト方針書",
+          "state": "proposal",
+          "summary": "サービス層のunit test実装とカバレッジ70%を必須化する規約である。",
+          "observations": [
+            "<code>.github/workflows/ci.yml:18-25</code> のtestジョブは契約テスト（<code>tests/contract/</code>）38件を全エンドポイント分実行している。一方 service層のunit test（<code>tests/unit/services/</code>）は14ファイル中5ファイルにしか存在せず、カバレッジは31%（<code>coverage/coverage-summary.json</code> 記載値）。"
+          ],
+          "proposedRule": "service層はunit testの実装を必須とし、カバレッジ70%を下回るサービスファイルはマージ不可とする。",
+          "sources": [
+            "coverage/coverage-summary.json",
+            ".github/workflows/ci.yml:18-25"
+          ],
+          "scope": "scoped",
+          "globs": [
+            "src/api/sample_app/services/**",
+            "tests/unit/services/**"
+          ],
+          "enforcement": "advisory",
+          "checkable": true,
+          "checkMethod": "service層の各ファイルに対応するunit testファイルが存在し、coverage/coverage-summary.json のカバレッジが70%を下回らないことを検査する。",
+          "reason": ""
+        },
+        {
+          "key": "review-checklist",
+          "title": "レビュー観点表",
+          "state": "na",
+          "summary": "レビューの合格基準を定めた文書が確認できず対象外とする。",
+          "observations": [],
+          "proposedRule": "",
+          "sources": [],
+          "scope": "always",
+          "globs": [],
+          "enforcement": "advisory",
+          "checkable": false,
+          "checkMethod": "",
+          "reason": "レビューの合格基準を定めた文書は確認できなかった。PRテンプレートにチェック項目はあるが、何をもって合格とするかの記述がない。証拠が揃うまで規約化を保留。"
+        }
+      ]
+    },
+    {
+      "index": 5,
+      "title": "文書化規約",
+      "slug": "documentation-standards",
+      "description": "documentation-standards",
+      "categories": [
+        {
+          "key": "documentation-standards",
+          "title": "ドキュメント作成規約",
+          "state": "proposal",
+          "summary": "openapi.yamlへの追記とREADMEからの導線明記を必須化する規約である。",
+          "observations": [
+            "<code>openapi.yaml</code> は38エンドポイント中36件を記載しているが、横断的所見のとおり2件が未記載。また <code>README.md</code> のセットアップ手順は <code>npm install</code> から始まり、<code>migrations/README.md</code> のDB初期化手順への導線がない。"
+          ],
+          "proposedRule": "新規エンドポイント追加時は openapi.yaml への追記をPRの必須チェック項目とし、README.md から関連手順書（migrations/README.md 等）への導線を明記する。",
+          "sources": [
+            "openapi.yaml",
+            "README.md"
+          ],
+          "scope": "scoped",
+          "globs": [
+            "openapi.yaml",
+            "README.md",
+            "migrations/README.md"
+          ],
+          "enforcement": "advisory",
+          "checkable": true,
+          "checkMethod": "新規追加されたエンドポイントが openapi.yaml に記載されていること、README.md から migrations/README.md 等の関連手順書への導線があることを検査する。",
+          "reason": ""
+        },
+        {
+          "key": "portal-maintenance",
+          "title": "ポータル保守規約",
+          "state": "common",
+          "summary": "ポータル保守手順は組織共通基盤の管轄でありサンプルアプリ固有の逸脱がない。",
+          "observations": [],
+          "proposedRule": "",
+          "sources": [],
+          "scope": "always",
+          "globs": [],
+          "enforcement": "advisory",
+          "checkable": false,
+          "checkMethod": "",
+          "reason": "開発ポータル・ドキュメントサイトの保守手順は組織共通基盤（本リポジトリ外）で管理されており、本サンプルアプリ固有の逸脱は確認されなかった。"
+        }
+      ]
+    },
+    {
+      "index": 6,
+      "title": "非機能要件",
+      "slug": "non-functional-requirements",
+      "description": "non-functional-requirements",
+      "categories": [
+        {
+          "key": "security-requirements",
+          "title": "セキュリティ要件",
+          "state": "proposal",
+          "summary": "署名付きURL発行APIに所有者チェックの呼び出しを必須化する規約である。",
+          "observations": [
+            "横断的所見のとおり <code>uploads.service.ts:32-58</code> の <code>POST /uploads/sign</code> は、認証済みであれば任意の recipe_id を指定して署名付きURLを取得できる。所有者チェックの呼び出しは確認できない。"
+          ],
+          "proposedRule": "署名付きURL発行APIは、対象リソースIDに対する所有者チェック（または権限チェック）の呼び出しを必須とする。",
+          "sources": [
+            "src/api/sample_app/routes/uploads/uploads.service.ts:32-58"
+          ],
+          "scope": "scoped",
+          "globs": [
+            "src/api/sample_app/routes/uploads/**"
+          ],
+          "enforcement": "advisory",
+          "checkable": false,
+          "checkMethod": "",
+          "reason": ""
+        },
+        {
+          "key": "performance-requirements",
+          "title": "性能要件",
+          "state": "proposal-limited",
+          "summary": "検索条件をWHERE句へ反映しアプリ側の全件filterを禁止する規約である。",
+          "observations": [
+            "<code>routes/recipes.controller.ts:210-240</code> の <code>listRecipes</code> ハンドラは、検索条件を都度SELECT *で全件取得したうえでアプリ側でfilterしている（<code>repositories/recipe.repository.ts:88-102</code>）。ページネーションのLIMITは適用されているが、WHERE句への条件反映はない。負荷試験の実測データは調査範囲になく、性能劣化そのものは未確認。"
+          ],
+          "proposedRule": "検索条件はSQLのWHERE句へ反映し、アプリ側での全件filterを禁止する。ただし本提案は listRecipes 系エンドポイントに限定し、他エンドポイントへの一般化は別途検証を要する。",
+          "sources": [
+            "src/api/sample_app/repositories/recipe.repository.ts:88-102"
+          ],
+          "scope": "scoped",
+          "globs": [
+            "src/api/sample_app/routes/recipes.controller.ts",
+            "src/api/sample_app/repositories/recipe.repository.ts"
+          ],
+          "enforcement": "advisory",
+          "checkable": true,
+          "checkMethod": "listRecipes系ハンドラの実装で、SQLクエリにWHERE句による絞り込みがなく取得後にアプリ側でfilterしている箇所がないことを検査する。",
+          "reason": ""
+        },
+        {
+          "key": "availability-requirements",
+          "title": "可用性要件",
+          "state": "na",
+          "summary": "冗長構成の設定はコード調査範囲外であり対象外とする。",
+          "observations": [],
+          "proposedRule": "",
+          "sources": [],
+          "scope": "always",
+          "globs": [],
+          "enforcement": "advisory",
+          "checkable": false,
+          "checkMethod": "",
+          "reason": "冗長構成・フェイルオーバーに関する設定（インフラ定義）は調査範囲（config/・.github/workflows/）に含まれておらず、コードからは判断できない。"
+        },
+        {
+          "key": "scalability-requirements",
+          "title": "拡張性要件",
+          "state": "na",
+          "summary": "拡張ポイントが現状のコードに存在せず評価対象がない。",
+          "observations": [],
+          "proposedRule": "",
+          "sources": [],
+          "scope": "always",
+          "globs": [],
+          "enforcement": "advisory",
+          "checkable": false,
+          "checkMethod": "",
+          "reason": "将来の機能追加を見据えた拡張ポイント（プラグイン機構等）は現状のコードに存在せず、評価対象がない。"
+        },
+        {
+          "key": "monitoring-requirements",
+          "title": "監視要件",
+          "state": "proposal",
+          "summary": "業務影響が大きいserviceに主要処理のログ出力を必須化する規約である。",
+          "observations": [
+            "<code>services/billing.service.ts</code> と <code>report.service.ts</code> にはログ出力（logger.info / logger.error）が1箇所も無い（該当箇所のgrep結果0件）。他のserviceファイルの平均は6.4箇所。"
+          ],
+          "proposedRule": "決済（billing）・通報（report）など業務影響が大きいserviceは、主要処理の開始・終了・異常系にログ出力を必須とする。",
+          "sources": [
+            "src/api/sample_app/services/billing.service.ts",
+            "src/api/sample_app/services/report.service.ts"
+          ],
+          "scope": "scoped",
+          "globs": [
+            "src/api/sample_app/services/billing.service.ts",
+            "src/api/sample_app/services/report.service.ts"
+          ],
+          "enforcement": "advisory",
+          "checkable": true,
+          "checkMethod": "billing.service.ts・report.service.ts 等、業務影響度の高いserviceファイルに logger.info・logger.error の呼び出しが1箇所以上存在することを検査する。",
+          "reason": ""
+        }
+      ]
+    },
+    {
+      "index": 7,
+      "title": "業務ドメイン規約",
+      "slug": "business-domain",
+      "description": "business-domain",
+      "categories": [
+        {
+          "key": "terminology",
+          "title": "用語定義",
+          "state": "proposal",
+          "summary": "業務用語「レシピ」に対応する識別子をrecipeへ統一する規約である。",
+          "observations": [
+            "<code>models/</code> 配下で「レシピ」を指す識別子が recipe・dish・menuItem の3種類混在している（grep集計: recipe 42件・dish 6件・menuItem 3件）。"
+          ],
+          "proposedRule": "業務用語「レシピ」に対応する識別子は recipe に統一し、dish・menuItem を廃止する。",
+          "sources": [
+            "src/api/sample_app/models/"
+          ],
+          "scope": "scoped",
+          "globs": [
+            "src/api/sample_app/models/**"
+          ],
+          "enforcement": "advisory",
+          "checkable": true,
+          "checkMethod": "src/api/sample_app/models/配下で dish・menuItem の識別子が新規に追加されていないことをgrepで検査する。",
+          "reason": ""
+        },
+        {
+          "key": "business-rules",
+          "title": "業務規則",
+          "state": "proposal-limited",
+          "summary": "公開判定ロジックをstatusとisPremiumOnlyを参照する単一関数へ集約する規約である。",
+          "observations": [
+            "<code>services/recipe.service.ts:120-145</code> の公開レシピ判定は <code>status === 'published'</code> のみで判定しており、<code>billing.service.ts</code> 側の有料会員限定フラグ（<code>isPremiumOnly</code>）との整合チェックが recipe.service.ts には存在しない（未確認: 実際に有料限定レシピが無料公開される事象が起きるか）。"
+          ],
+          "proposedRule": "公開判定ロジックは status と isPremiumOnly の両方を参照する単一関数に集約する。ただし本提案は公開判定処理に限定し、他の会員種別ロジックへの拡張は別途調査を要する。",
+          "sources": [
+            "src/api/sample_app/services/recipe.service.ts:120-145"
+          ],
+          "scope": "scoped",
+          "globs": [
+            "src/api/sample_app/services/recipe.service.ts",
+            "src/api/sample_app/services/billing.service.ts"
+          ],
+          "enforcement": "advisory",
+          "checkable": false,
+          "checkMethod": "",
+          "reason": ""
+        },
+        {
+          "key": "state-transition",
+          "title": "状態遷移の制約",
+          "state": "proposal",
+          "summary": "レシピの状態遷移を許可された遷移のみへ制限する規約である。",
+          "observations": [
+            "レシピの状態は draft → in_review → published → archived の4状態が <code>models/recipe.model.ts:8</code> の型定義から確認できる。一方、状態遷移を検証する関数は <code>services/recipe.service.ts</code> に存在せず、<code>updateRecipe</code> ハンドラ（<code>recipes.controller.ts:180-195</code>）がリクエストのstatusフィールドをそのままDBへ書き込んでいる。"
+          ],
+          "proposedRule": "レシピの状態遷移は許可された遷移（draft→in_review・in_review→published・published→archived等）のみを許容する検証関数を設け、コントローラでの直接書き込みを禁止する。",
+          "sources": [
+            "src/api/sample_app/routes/recipes.controller.ts:180-195",
+            "src/api/sample_app/models/recipe.model.ts:8"
+          ],
+          "scope": "scoped",
+          "globs": [
+            "src/api/sample_app/routes/recipes.controller.ts",
+            "src/api/sample_app/services/recipe.service.ts"
+          ],
+          "enforcement": "advisory",
+          "checkable": true,
+          "checkMethod": "レシピの状態更新処理が draft→in_review→published→archived の許可された遷移のみを検証する関数を経由しており、コントローラから直接書き込みされていないことを検査する。",
+          "reason": "",
+          "figure": {
+            "kind": "states",
+            "caption": "図3: レシピの状態遷移（許可された遷移のみを想定）",
+            "items": [
+              {
+                "label": "draft"
+              },
+              {
+                "label": "in_review"
+              },
+              {
+                "label": "published"
+              },
+              {
+                "label": "archived"
+              }
+            ]
+          }
+        },
+        {
+          "key": "calculation-rules",
+          "title": "計算規則",
+          "state": "na",
+          "summary": "計算ロジックのカバレッジが低く規約提案の根拠が確保できなかった。",
+          "observations": [],
+          "proposedRule": "",
+          "sources": [],
+          "scope": "always",
+          "globs": [],
+          "enforcement": "advisory",
+          "checkable": false,
+          "checkMethod": "",
+          "reason": "価格計算・割引計算等のロジックは billing.service.ts に存在するが、カバレッジ8%（横断的所見のとおり）で実装の意図が読み取れる形のコメントがなく、規約提案の根拠となる観測事実を確保できなかった。"
+        }
+      ]
+    }
+  ]
+}

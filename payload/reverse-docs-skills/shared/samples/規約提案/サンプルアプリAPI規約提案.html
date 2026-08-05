@@ -111,11 +111,12 @@ footer{border-top:2px solid var(--ink);padding-top:20px;margin-top:36px;padding-
 .footer-pill{display:inline-block;background:var(--brick-bg);color:var(--brick-ink);font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10.5px;padding:4px 10px;border-radius:999px;margin-bottom:10px;}
 footer p{font-size:12.5px;color:var(--ink-soft);margin:6px 0;}
 </style>
+<!-- generatedAt: 2026-01-01T00:00:00Z -->
 </head>
 <body>
 <div class="page">
   <aside class="sidebar">
-    <p class="eyebrow">rule proposal / sample-app</p>
+    <p class="eyebrow">rule proposal / sample-app-api</p>
     <p class="sb-title">サンプルアプリAPI規約提案</p>
 
     <div class="decision-panel">
@@ -188,6 +189,7 @@ footer p{font-size:12.5px;color:var(--ink-soft);margin:6px 0;}
           <li><a href="#cat-state-transition"><span class="dot" id="dot-state-transition"></span><span class="toc-label">状態遷移の制約</span></a></li>
           <li><a href="#cat-calculation-rules"><span class="dot dot--na"></span><span class="toc-label">計算規則</span><span class="toc-tag">対象外</span></a></li>
         </ul>
+
     </nav>
 
     <p class="sb-note">判定結果はこの端末のブラウザ（localStorage）にのみ保存される。他の端末やレビュー担当とは共有されないため、確定した判定はコピーまたはダウンロードで別途記録すること。</p>
@@ -204,7 +206,7 @@ footer p{font-size:12.5px;color:var(--ink-soft);margin:6px 0;}
       <dt>調査範囲</dt>
       <dd>src/api/sample_app/* とその呼び出し経路、migrations/・config/・.github/workflows/。リポジトリ全体の悉皆調査ではない。</dd>
       <dt>検証</dt>
-      <dd>investigator 2体（並列調査） &#8594; report-reviewer 1体（事実性検証・PASS）。</dd>
+      <dd>investigator 2体（並列調査） → report-reviewer 1体（事実性検証・PASS）。</dd>
     </dl>
 
     <details class="fig">
@@ -220,7 +222,7 @@ footer p{font-size:12.5px;color:var(--ink-soft);margin:6px 0;}
         <span class="flow-arrow">&#8594;</span>
         <div class="flow-node"><b>PostgreSQL</b><span>永続化</span></div>
       </div>
-      <p class="figcaption">図1: routes &#8594; services &#8594; repositories &#8594; DB の4段構成</p>
+      <p class="figcaption">図1: routes → services → repositories → DB の4段構成</p>
     </details>
 
     <div class="notes">
@@ -244,7 +246,7 @@ footer p{font-size:12.5px;color:var(--ink-soft);margin:6px 0;}
         <h2>AIエージェント運用</h2>
       </div>
       <p class="chapter-desc">agent-operations</p>
-      <div class="category" id="cat-agent-behavior" data-report-row="agent-behavior" data-chapter-index="1" data-chapter-name="AIエージェント運用" data-cat-name="AIエージェント行動規約" data-parent="agent-operations" data-key="ai-behavior" data-scope="scoped" data-globs='[".github/workflows/ai-review.yml","scripts/ai/**"]' data-enforcement="advisory" data-checkable="false" data-check-method="" data-proposed-rule="AIエージェントによるレビュー・修正提案は、PRコメントへの提案投稿に限定する。mainブランチへの直接pushやマージ操作は行わない旨を、本規約として明文化する。" data-sources='[".github/workflows/ai-review.yml:14-22"]'>
+      <div class="category" id="cat-agent-behavior" data-report-row="agent-behavior" data-chapter-index="1" data-chapter-name="AIエージェント運用" data-cat-name="AIエージェント行動規約" data-summary="AIエージェントのレビュー権限をPRコメント投稿に限定する規約である。" data-parent="agent-operations" data-key="agent-behavior" data-scope="scoped" data-globs='[&quot;.github/workflows/ai-review.yml&quot;,&quot;scripts/ai/**&quot;]' data-enforcement="advisory" data-checkable="false" data-check-method="" data-proposed-rule="AIエージェントによるレビュー・修正提案は、PRコメントへの提案投稿に限定する。mainブランチへの直接pushやマージ操作は行わない旨を、本規約として明文化する。" data-sources='[&quot;.github/workflows/ai-review.yml:14-22&quot;]'>
         <div class="cat-head">
           <h3>AIエージェント行動規約</h3>
           <span class="pill pill--green">提案あり</span>
@@ -263,7 +265,7 @@ footer p{font-size:12.5px;color:var(--ink-soft);margin:6px 0;}
         </div>
         <p class="source">出典: <code>.github/workflows/ai-review.yml:14-22</code></p>
       </div>
-      <div class="category" id="cat-destructive-safety" data-report-row="destructive-safety" data-chapter-index="1" data-chapter-name="AIエージェント運用" data-cat-name="破壊的操作の安全規約" data-parent="agent-operations" data-key="destructive-safety" data-scope="scoped" data-globs='["scripts/ai/**"]' data-enforcement="advisory" data-checkable="true" data-check-method="scripts/ai/run-review.sh が rm -rf・git push --force・git reset --hard を含むコマンド文字列を実行前に検知し、該当時は実行を中断する処理を持つことを検査する。" data-proposed-rule="破壊的コマンド（rm -rf・git push --force・git reset --hard）の実行前チェックは、scripts/ai/run-review.sh に実装済みの挙動を追認し、正式な安全規約として明文化する。" data-sources='["scripts/ai/run-review.sh:31-40"]'>
+      <div class="category" id="cat-destructive-safety" data-report-row="destructive-safety" data-chapter-index="1" data-chapter-name="AIエージェント運用" data-cat-name="破壊的操作の安全規約" data-summary="破壊的コマンドの実行前チェックを安全規約として明文化するものである。" data-parent="agent-operations" data-key="destructive-safety" data-scope="scoped" data-globs='[&quot;scripts/ai/**&quot;]' data-enforcement="advisory" data-checkable="true" data-check-method="scripts/ai/run-review.sh が rm -rf・git push --force・git reset --hard を含むコマンド文字列を実行前に検知し、該当時は実行を中断する処理を持つことを検査する。" data-proposed-rule="破壊的コマンド（rm -rf・git push --force・git reset --hard）の実行前チェックは、scripts/ai/run-review.sh に実装済みの挙動を追認し、正式な安全規約として明文化する。" data-sources='[&quot;scripts/ai/run-review.sh:31-40&quot;]'>
         <div class="cat-head">
           <h3>破壊的操作の安全規約</h3>
           <span class="pill pill--green">提案あり</span>
@@ -289,7 +291,7 @@ footer p{font-size:12.5px;color:var(--ink-soft);margin:6px 0;}
         </div>
         <p class="reason">調査範囲内に、AIエージェントの対話単位（開始・終了・引き継ぎ）を扱うコードや設定は存在しなかった。CI上のワンショット実行のみが確認され、セッションという概念自体が本サンプルアプリの開発体制に存在しない。</p>
       </div>
-      <div class="category" id="cat-ai-asset-management" data-report-row="ai-asset-management" data-chapter-index="1" data-chapter-name="AIエージェント運用" data-cat-name="AI設定資産の管理規約" data-parent="agent-operations" data-key="ai-asset-management" data-scope="scoped" data-globs='["scripts/ai/**",".github/workflows/ai-review.yml"]' data-enforcement="advisory" data-checkable="false" data-check-method="" data-proposed-rule="scripts/ai/ および .github/workflows/ai-review.yml の変更はコードレビューを必須とし、単独コミットでのマージを禁止する。" data-sources='["scripts/ai/run-review.sh:1-8"]'>
+      <div class="category" id="cat-ai-asset-management" data-report-row="ai-asset-management" data-chapter-index="1" data-chapter-name="AIエージェント運用" data-cat-name="AI設定資産の管理規約" data-summary="AI関連設定ファイルの変更にレビューを必須化する規約である。" data-parent="agent-operations" data-key="ai-asset-management" data-scope="scoped" data-globs='[&quot;scripts/ai/**&quot;,&quot;.github/workflows/ai-review.yml&quot;]' data-enforcement="advisory" data-checkable="false" data-check-method="" data-proposed-rule="scripts/ai/ および .github/workflows/ai-review.yml の変更はコードレビューを必須とし、単独コミットでのマージを禁止する。" data-sources='[&quot;scripts/ai/run-review.sh:1-8&quot;]'>
         <div class="cat-head">
           <h3>AI設定資産の管理規約</h3>
           <span class="pill pill--green">提案あり</span>
@@ -316,14 +318,13 @@ footer p{font-size:12.5px;color:var(--ink-soft);margin:6px 0;}
         <p class="reason">定型的な運用手順（日次バッチの再実行手順・障害時のロールバック手順等）を記述したドキュメントやスクリプトは、調査範囲内に見つからなかった。</p>
       </div>
     </section>
-
     <section class="chapter" id="chapter-development-process">
       <div class="chapter-head">
         <span class="chapter-num">02</span>
         <h2>開発プロセス</h2>
       </div>
       <p class="chapter-desc">development-process</p>
-      <div class="category" id="cat-dev-flow" data-report-row="dev-flow" data-chapter-index="2" data-chapter-name="開発プロセス" data-cat-name="開発フロー規約" data-parent="development-process" data-key="dev-flow" data-scope="scoped" data-globs='[".github/workflows/ci.yml"]' data-enforcement="advisory" data-checkable="true" data-check-method=".github/workflows/ci.yml の pull_request トリガージョブが test → lint → build の順で定義されていることを検査する。" data-proposed-rule="mainブランチへのマージは CI（test → lint → build）の全通過を必須条件とし、.github/workflows/ci.yml の実行結果をレビュー承認の前提とする。" data-sources='[".github/workflows/ci.yml:1-40"]'>
+      <div class="category" id="cat-dev-flow" data-report-row="dev-flow" data-chapter-index="2" data-chapter-name="開発プロセス" data-cat-name="開発フロー規約" data-summary="mainブランチへのマージ条件としてCI全通過を必須化する規約である。" data-parent="development-process" data-key="dev-flow" data-scope="scoped" data-globs='[&quot;.github/workflows/ci.yml&quot;]' data-enforcement="advisory" data-checkable="true" data-check-method=".github/workflows/ci.yml の pull_request トリガージョブが test → lint → build の順で定義されていることを検査する。" data-proposed-rule="mainブランチへのマージは CI（test → lint → build）の全通過を必須条件とし、.github/workflows/ci.yml の実行結果をレビュー承認の前提とする。" data-sources='[&quot;.github/workflows/ci.yml:1-40&quot;]'>
         <div class="cat-head">
           <h3>開発フロー規約</h3>
           <span class="pill pill--green">提案あり</span>
@@ -342,7 +343,7 @@ footer p{font-size:12.5px;color:var(--ink-soft);margin:6px 0;}
         </div>
         <p class="source">出典: <code>.github/workflows/ci.yml:1-40</code></p>
       </div>
-      <div class="category" id="cat-tooling-commands" data-report-row="tooling-commands" data-chapter-index="2" data-chapter-name="開発プロセス" data-cat-name="ツールとコマンド実行の規約" data-parent="development-process" data-key="tooling-commands" data-scope="scoped" data-globs='["package.json","migrations/**"]' data-enforcement="advisory" data-checkable="true" data-check-method="package.json の scripts に migrate コマンドが定義されていることを検査する。" data-proposed-rule="DBマイグレーション実行コマンド（npm run migrate）を package.json の scripts に登録し、手順書と実行コマンドを一致させる。" data-sources='["package.json:12-18","migrations/README.md:3"]'>
+      <div class="category" id="cat-tooling-commands" data-report-row="tooling-commands" data-chapter-index="2" data-chapter-name="開発プロセス" data-cat-name="ツールとコマンド実行の規約" data-summary="マイグレーション実行コマンドをpackage.jsonへ登録し手順書と一致させる規約である。" data-parent="development-process" data-key="tooling-commands" data-scope="scoped" data-globs='[&quot;package.json&quot;,&quot;migrations/**&quot;]' data-enforcement="advisory" data-checkable="true" data-check-method="package.json の scripts に migrate コマンドが定義されていることを検査する。" data-proposed-rule="DBマイグレーション実行コマンド（npm run migrate）を package.json の scripts に登録し、手順書と実行コマンドを一致させる。" data-sources='[&quot;package.json:12-18&quot;,&quot;migrations/README.md:3&quot;]'>
         <div class="cat-head">
           <h3>ツールとコマンド実行の規約</h3>
           <span class="pill pill--green">提案あり</span>
@@ -361,7 +362,7 @@ footer p{font-size:12.5px;color:var(--ink-soft);margin:6px 0;}
         </div>
         <p class="source">出典: <code>package.json:12-18</code>、<code>migrations/README.md:3</code></p>
       </div>
-      <div class="category" id="cat-dev-environment" data-report-row="dev-environment" data-chapter-index="2" data-chapter-name="開発プロセス" data-cat-name="開発環境規約" data-parent="development-process" data-key="dev-environment" data-scope="scoped" data-globs='["src/api/sample_app/config.ts","config/env.example"]' data-enforcement="advisory" data-checkable="true" data-check-method="src/api/sample_app/config.ts が参照する環境変数がすべて config/env.example に記載されていることを差分検査する。" data-proposed-rule="config.ts が参照する環境変数はすべて config/env.example に記載し、両者の差分をCIで検知する。" data-sources='["src/api/sample_app/config.ts:5-30","config/env.example:1-20"]'>
+      <div class="category" id="cat-dev-environment" data-report-row="dev-environment" data-chapter-index="2" data-chapter-name="開発プロセス" data-cat-name="開発環境規約" data-summary="config.tsが参照する環境変数をenv.exampleへ記載しCIで差分検知する規約である。" data-parent="development-process" data-key="dev-environment" data-scope="scoped" data-globs='[&quot;src/api/sample_app/config.ts&quot;,&quot;config/env.example&quot;]' data-enforcement="advisory" data-checkable="true" data-check-method="src/api/sample_app/config.ts が参照する環境変数がすべて config/env.example に記載されていることを差分検査する。" data-proposed-rule="config.ts が参照する環境変数はすべて config/env.example に記載し、両者の差分をCIで検知する。" data-sources='[&quot;src/api/sample_app/config.ts:5-30&quot;,&quot;config/env.example:1-20&quot;]'>
         <div class="cat-head">
           <h3>開発環境規約</h3>
           <span class="pill pill--green">提案あり</span>
@@ -371,12 +372,8 @@ footer p{font-size:12.5px;color:var(--ink-soft);margin:6px 0;}
           <button type="button" id="reject-dev-environment" class="decision-btn kind-reject" data-decision="reject" data-cat="dev-environment">却下</button>
           </div>
         </div>
-        <p class="sub-label">ドキュメント記載</p>
         <ul class="evidence-list">
           <li><code>config/env.example:1-20</code> には環境変数22件が列挙されている。</li>
-        </ul>
-        <p class="sub-label">実装参照</p>
-        <ul class="evidence-list">
           <li><code>src/api/sample_app/config.ts:5-30</code> が実際に読み込む環境変数は26件あり、うち4件（<code>RECIPE_IMAGE_BUCKET</code>・<code>REPORT_WEBHOOK_URL</code>・<code>SESSION_SECRET_ROTATE_AT</code>・<code>ADMIN_ALLOWLIST</code>）が env.example に未記載。</li>
         </ul>
         <div class="proposal">
@@ -385,7 +382,7 @@ footer p{font-size:12.5px;color:var(--ink-soft);margin:6px 0;}
         </div>
         <p class="source">出典: <code>src/api/sample_app/config.ts:5-30</code>、<code>config/env.example:1-20</code></p>
       </div>
-      <div class="category" id="cat-git-operations" data-report-row="git-operations" data-chapter-index="2" data-chapter-name="開発プロセス" data-cat-name="Git運用規約" data-parent="development-process" data-key="git-operations" data-scope="always" data-globs='["**/*"]' data-enforcement="advisory" data-checkable="true" data-check-method="コミットメッセージが fix・update・wip のみの単語で構成されていないこと、ブランチ名が feature/&lt;slug&gt; 形式であることを検査する。" data-proposed-rule="コミットメッセージは変更内容を要約した文を必須とし、ブランチ命名は feature/&lt;slug&gt; 形式に統一する。" data-sources='["git log（直近50件のコミット履歴）"]'>
+      <div class="category" id="cat-git-operations" data-report-row="git-operations" data-chapter-index="2" data-chapter-name="開発プロセス" data-cat-name="Git運用規約" data-summary="コミットメッセージとブランチ命名を統一する規約である。" data-parent="development-process" data-key="git-operations" data-scope="always" data-globs='[&quot;**/*&quot;]' data-enforcement="advisory" data-checkable="true" data-check-method="コミットメッセージが fix・update・wip のみの単語で構成されていないこと、ブランチ名が feature/&lt;slug&gt; 形式であることを検査する。" data-proposed-rule="コミットメッセージは変更内容を要約した文を必須とし、ブランチ命名は feature/&lt;slug&gt; 形式に統一する。" data-sources='[&quot;git log（直近50件のコミット履歴）&quot;]'>
         <div class="cat-head">
           <h3>Git運用規約</h3>
           <span class="pill pill--green">提案あり</span>
@@ -402,7 +399,7 @@ footer p{font-size:12.5px;color:var(--ink-soft);margin:6px 0;}
           <p class="proposal-label">規約提案文(案)</p>
           <p class="proposal-text">コミットメッセージは変更内容を要約した文を必須とし、ブランチ命名は feature/&lt;slug&gt; 形式に統一する。</p>
         </div>
-        <p class="source">出典: git log（直近50件のコミット履歴。リポジトリ内ファイルではなく履歴調査）</p>
+        <p class="source">出典: <code>git log（直近50件のコミット履歴）</code></p>
       </div>
       <div class="category" id="cat-release-delivery">
         <div class="cat-head">
@@ -412,14 +409,13 @@ footer p{font-size:12.5px;color:var(--ink-soft);margin:6px 0;}
         <p class="reason">リリース手順・デリバリー手順は本サンプルアプリ固有ではなく、組織共通規約に既に定義されている領域であり、コード調査からは組織共通規約との重複以外の固有事項が見つからなかった。</p>
       </div>
     </section>
-
     <section class="chapter" id="chapter-code-standards">
       <div class="chapter-head">
         <span class="chapter-num">03</span>
         <h2>コード規約</h2>
       </div>
       <p class="chapter-desc">code-standards</p>
-      <div class="category" id="cat-coding-standards" data-report-row="coding-standards" data-chapter-index="3" data-chapter-name="コード規約" data-cat-name="コーディング規約" data-parent="code-standards" data-key="coding-standards" data-scope="scoped" data-globs='["src/api/sample_app/routes/**"]' data-enforcement="advisory" data-checkable="true" data-check-method="コントローラファイルの行数が200行を超えていないこと、超過時にハンドラ単位でサービス層へ分割されていることを検査する。" data-proposed-rule="1コントローラファイルは200行を目安とし、超過する場合はハンドラ単位でのサービス層への分割を必須とする。" data-sources='["src/api/sample_app/routes/recipes.controller.ts:1-420"]'>
+      <div class="category" id="cat-coding-standards" data-report-row="coding-standards" data-chapter-index="3" data-chapter-name="コード規約" data-cat-name="コーディング規約" data-summary="コントローラファイルの行数上限とサービス層分割を定める規約である。" data-parent="code-standards" data-key="coding-standards" data-scope="scoped" data-globs='[&quot;src/api/sample_app/routes/**&quot;]' data-enforcement="advisory" data-checkable="true" data-check-method="コントローラファイルの行数が200行を超えていないこと、超過時にハンドラ単位でサービス層へ分割されていることを検査する。" data-proposed-rule="1コントローラファイルは200行を目安とし、超過する場合はハンドラ単位でのサービス層への分割を必須とする。" data-sources='[&quot;src/api/sample_app/routes/recipes.controller.ts:1-420&quot;]'>
         <div class="cat-head">
           <h3>コーディング規約</h3>
           <span class="pill pill--green">提案あり</span>
@@ -438,7 +434,7 @@ footer p{font-size:12.5px;color:var(--ink-soft);margin:6px 0;}
         </div>
         <p class="source">出典: <code>src/api/sample_app/routes/recipes.controller.ts:1-420</code></p>
       </div>
-      <div class="category" id="cat-naming-convention" data-report-row="naming-convention" data-chapter-index="3" data-chapter-name="コード規約" data-cat-name="命名規約" data-parent="code-standards" data-key="naming" data-scope="scoped" data-globs='["src/api/sample_app/services/**"]' data-enforcement="advisory" data-checkable="true" data-check-method="src/api/sample_app/services/配下の全ファイル名が &lt;domain&gt;.service.ts 形式であることを検査する。" data-proposed-rule="service層のファイル名は &lt;domain&gt;.service.ts 形式に統一する。" data-sources='["src/api/sample_app/services/recipeHelper.ts","src/api/sample_app/services/imgUtil.ts","src/api/sample_app/services/mailer.ts"]'>
+      <div class="category" id="cat-naming-convention" data-report-row="naming-convention" data-chapter-index="3" data-chapter-name="コード規約" data-cat-name="命名規約" data-summary="サービス層ファイル名を&lt;domain&gt;.service.ts形式へ統一する規約である。" data-parent="code-standards" data-key="naming-convention" data-scope="scoped" data-globs='[&quot;src/api/sample_app/services/**&quot;]' data-enforcement="advisory" data-checkable="true" data-check-method="src/api/sample_app/services/配下の全ファイル名が &lt;domain&gt;.service.ts 形式であることを検査する。" data-proposed-rule="service層のファイル名は &lt;domain&gt;.service.ts 形式に統一する。" data-sources='[&quot;src/api/sample_app/services/recipeHelper.ts&quot;,&quot;src/api/sample_app/services/imgUtil.ts&quot;,&quot;src/api/sample_app/services/mailer.ts&quot;]'>
         <div class="cat-head">
           <h3>命名規約</h3>
           <span class="pill pill--green">提案あり</span>
@@ -455,9 +451,9 @@ footer p{font-size:12.5px;color:var(--ink-soft);margin:6px 0;}
           <p class="proposal-label">規約提案文(案)</p>
           <p class="proposal-text">service層のファイル名は &lt;domain&gt;.service.ts 形式に統一する。</p>
         </div>
-        <p class="source">出典: <code>src/api/sample_app/services/recipeHelper.ts</code>、<code>imgUtil.ts</code>、<code>mailer.ts</code></p>
+        <p class="source">出典: <code>src/api/sample_app/services/recipeHelper.ts</code>、<code>src/api/sample_app/services/imgUtil.ts</code>、<code>src/api/sample_app/services/mailer.ts</code></p>
       </div>
-      <div class="category" id="cat-directory-structure" data-report-row="directory-structure" data-chapter-index="3" data-chapter-name="コード規約" data-cat-name="ディレクトリ構成規約" data-parent="code-standards" data-key="directory-structure" data-scope="scoped" data-globs='["src/api/sample_app/**"]' data-enforcement="advisory" data-checkable="true" data-check-method="src/api/sample_app/配下が routes / services / repositories / models の4層構成に従い、層をまたぐ配置がないことを検査する。" data-proposed-rule="routes / services / repositories / models の4層構成を正とし、層をまたぐ配置（routes/uploads/uploads.service.ts 等）を禁止する。" data-sources='["src/api/sample_app/routes/uploads/uploads.service.ts"]'>
+      <div class="category" id="cat-directory-structure" data-report-row="directory-structure" data-chapter-index="3" data-chapter-name="コード規約" data-cat-name="ディレクトリ構成規約" data-summary="routes/services/repositories/modelsの4層構成からの逸脱を禁止する規約である。" data-parent="code-standards" data-key="directory-structure" data-scope="scoped" data-globs='[&quot;src/api/sample_app/**&quot;]' data-enforcement="advisory" data-checkable="true" data-check-method="src/api/sample_app/配下が routes / services / repositories / models の4層構成に従い、層をまたぐ配置がないことを検査する。" data-proposed-rule="routes / services / repositories / models の4層構成を正とし、層をまたぐ配置（routes/uploads/uploads.service.ts 等）を禁止する。" data-sources='[&quot;src/api/sample_app/routes/uploads/uploads.service.ts&quot;]'>
         <div class="cat-head">
           <h3>ディレクトリ構成規約</h3>
           <span class="pill pill--green">提案あり</span>
@@ -470,7 +466,6 @@ footer p{font-size:12.5px;color:var(--ink-soft);margin:6px 0;}
         <ul class="evidence-list">
           <li><code>src/api/sample_app/</code> 直下は routes / services / repositories / models の4層構成である。一方 <code>uploads.service.ts</code> のみ <code>services/</code> ではなく <code>routes/uploads/</code> 配下に配置されており、層構成から逸脱している唯一の例外である。</li>
         </ul>
-
         <div class="layer-fig">
           <div class="layer-row" style="border-left-color:var(--green)"><b>routes/</b><span>HTTPハンドラ。recipes.controller.ts 等</span></div>
           <div class="layer-row" style="border-left-color:var(--amber)"><b>services/</b><span>業務ロジック。recipe.service.ts 等（uploads.service.ts のみ routes/uploads/ 配下に例外配置）</span></div>
@@ -492,14 +487,13 @@ footer p{font-size:12.5px;color:var(--ink-soft);margin:6px 0;}
         <p class="reason">調査範囲はサーバサイドAPI（src/api/sample_app/*）であり、フロントエンドのコンポーネント実装は含まれない。</p>
       </div>
     </section>
-
     <section class="chapter" id="chapter-quality-assurance">
       <div class="chapter-head">
         <span class="chapter-num">04</span>
         <h2>品質保証</h2>
       </div>
       <p class="chapter-desc">quality-assurance</p>
-      <div class="category" id="cat-test-policy" data-report-row="test-policy" data-chapter-index="4" data-chapter-name="品質保証" data-cat-name="テスト方針書" data-parent="quality-assurance" data-key="test-policy" data-scope="scoped" data-globs='["src/api/sample_app/services/**","tests/unit/services/**"]' data-enforcement="advisory" data-checkable="true" data-check-method="service層の各ファイルに対応するunit testファイルが存在し、coverage/coverage-summary.json のカバレッジが70%を下回らないことを検査する。" data-proposed-rule="service層はunit testの実装を必須とし、カバレッジ70%を下回るサービスファイルはマージ不可とする。" data-sources='["coverage/coverage-summary.json",".github/workflows/ci.yml:18-25"]'>
+      <div class="category" id="cat-test-policy" data-report-row="test-policy" data-chapter-index="4" data-chapter-name="品質保証" data-cat-name="テスト方針書" data-summary="サービス層のunit test実装とカバレッジ70%を必須化する規約である。" data-parent="quality-assurance" data-key="test-policy" data-scope="scoped" data-globs='[&quot;src/api/sample_app/services/**&quot;,&quot;tests/unit/services/**&quot;]' data-enforcement="advisory" data-checkable="true" data-check-method="service層の各ファイルに対応するunit testファイルが存在し、coverage/coverage-summary.json のカバレッジが70%を下回らないことを検査する。" data-proposed-rule="service層はunit testの実装を必須とし、カバレッジ70%を下回るサービスファイルはマージ不可とする。" data-sources='[&quot;coverage/coverage-summary.json&quot;,&quot;.github/workflows/ci.yml:18-25&quot;]'>
         <div class="cat-head">
           <h3>テスト方針書</h3>
           <span class="pill pill--green">提案あり</span>
@@ -526,14 +520,13 @@ footer p{font-size:12.5px;color:var(--ink-soft);margin:6px 0;}
         <p class="reason">レビューの合格基準を定めた文書は確認できなかった。PRテンプレートにチェック項目はあるが、何をもって合格とするかの記述がない。証拠が揃うまで規約化を保留。</p>
       </div>
     </section>
-
     <section class="chapter" id="chapter-documentation-standards">
       <div class="chapter-head">
         <span class="chapter-num">05</span>
         <h2>文書化規約</h2>
       </div>
       <p class="chapter-desc">documentation-standards</p>
-      <div class="category" id="cat-documentation-standards" data-report-row="documentation-standards" data-chapter-index="5" data-chapter-name="文書化規約" data-cat-name="ドキュメント作成規約" data-parent="documentation-standards" data-key="documentation-standards" data-scope="scoped" data-globs='["openapi.yaml","README.md","migrations/README.md"]' data-enforcement="advisory" data-checkable="true" data-check-method="新規追加されたエンドポイントが openapi.yaml に記載されていること、README.md から migrations/README.md 等の関連手順書への導線があることを検査する。" data-proposed-rule="新規エンドポイント追加時は openapi.yaml への追記をPRの必須チェック項目とし、README.md から関連手順書（migrations/README.md 等）への導線を明記する。" data-sources='["openapi.yaml","README.md"]'>
+      <div class="category" id="cat-documentation-standards" data-report-row="documentation-standards" data-chapter-index="5" data-chapter-name="文書化規約" data-cat-name="ドキュメント作成規約" data-summary="openapi.yamlへの追記とREADMEからの導線明記を必須化する規約である。" data-parent="documentation-standards" data-key="documentation-standards" data-scope="scoped" data-globs='[&quot;openapi.yaml&quot;,&quot;README.md&quot;,&quot;migrations/README.md&quot;]' data-enforcement="advisory" data-checkable="true" data-check-method="新規追加されたエンドポイントが openapi.yaml に記載されていること、README.md から migrations/README.md 等の関連手順書への導線があることを検査する。" data-proposed-rule="新規エンドポイント追加時は openapi.yaml への追記をPRの必須チェック項目とし、README.md から関連手順書（migrations/README.md 等）への導線を明記する。" data-sources='[&quot;openapi.yaml&quot;,&quot;README.md&quot;]'>
         <div class="cat-head">
           <h3>ドキュメント作成規約</h3>
           <span class="pill pill--green">提案あり</span>
@@ -560,14 +553,13 @@ footer p{font-size:12.5px;color:var(--ink-soft);margin:6px 0;}
         <p class="reason">開発ポータル・ドキュメントサイトの保守手順は組織共通基盤（本リポジトリ外）で管理されており、本サンプルアプリ固有の逸脱は確認されなかった。</p>
       </div>
     </section>
-
     <section class="chapter" id="chapter-non-functional-requirements">
       <div class="chapter-head">
         <span class="chapter-num">06</span>
         <h2>非機能要件</h2>
       </div>
       <p class="chapter-desc">non-functional-requirements</p>
-      <div class="category" id="cat-security-requirements" data-report-row="security-requirements" data-chapter-index="6" data-chapter-name="非機能要件" data-cat-name="セキュリティ要件" data-parent="non-functional-requirements" data-key="security-requirements" data-scope="scoped" data-globs='["src/api/sample_app/routes/uploads/**"]' data-enforcement="advisory" data-checkable="false" data-check-method="" data-proposed-rule="署名付きURL発行APIは、対象リソースIDに対する所有者チェック（または権限チェック）の呼び出しを必須とする。" data-sources='["src/api/sample_app/routes/uploads/uploads.service.ts:32-58"]'>
+      <div class="category" id="cat-security-requirements" data-report-row="security-requirements" data-chapter-index="6" data-chapter-name="非機能要件" data-cat-name="セキュリティ要件" data-summary="署名付きURL発行APIに所有者チェックの呼び出しを必須化する規約である。" data-parent="non-functional-requirements" data-key="security-requirements" data-scope="scoped" data-globs='[&quot;src/api/sample_app/routes/uploads/**&quot;]' data-enforcement="advisory" data-checkable="false" data-check-method="" data-proposed-rule="署名付きURL発行APIは、対象リソースIDに対する所有者チェック（または権限チェック）の呼び出しを必須とする。" data-sources='[&quot;src/api/sample_app/routes/uploads/uploads.service.ts:32-58&quot;]'>
         <div class="cat-head">
           <h3>セキュリティ要件</h3>
           <span class="pill pill--green">提案あり</span>
@@ -586,7 +578,7 @@ footer p{font-size:12.5px;color:var(--ink-soft);margin:6px 0;}
         </div>
         <p class="source">出典: <code>src/api/sample_app/routes/uploads/uploads.service.ts:32-58</code></p>
       </div>
-      <div class="category" id="cat-performance-requirements" data-report-row="performance-requirements" data-chapter-index="6" data-chapter-name="非機能要件" data-cat-name="性能要件" data-parent="non-functional-requirements" data-key="performance-requirements" data-scope="scoped" data-globs='["src/api/sample_app/routes/recipes.controller.ts","src/api/sample_app/repositories/recipe.repository.ts"]' data-enforcement="advisory" data-checkable="true" data-check-method="listRecipes系ハンドラの実装で、SQLクエリにWHERE句による絞り込みがなく取得後にアプリ側でfilterしている箇所がないことを検査する。" data-proposed-rule="検索条件はSQLのWHERE句へ反映し、アプリ側での全件filterを禁止する。ただし本提案は listRecipes 系エンドポイントに限定し、他エンドポイントへの一般化は別途検証を要する。" data-sources='["src/api/sample_app/repositories/recipe.repository.ts:88-102"]'>
+      <div class="category" id="cat-performance-requirements" data-report-row="performance-requirements" data-chapter-index="6" data-chapter-name="非機能要件" data-cat-name="性能要件" data-summary="検索条件をWHERE句へ反映しアプリ側の全件filterを禁止する規約である。" data-parent="non-functional-requirements" data-key="performance-requirements" data-scope="scoped" data-globs='[&quot;src/api/sample_app/routes/recipes.controller.ts&quot;,&quot;src/api/sample_app/repositories/recipe.repository.ts&quot;]' data-enforcement="advisory" data-checkable="true" data-check-method="listRecipes系ハンドラの実装で、SQLクエリにWHERE句による絞り込みがなく取得後にアプリ側でfilterしている箇所がないことを検査する。" data-proposed-rule="検索条件はSQLのWHERE句へ反映し、アプリ側での全件filterを禁止する。ただし本提案は listRecipes 系エンドポイントに限定し、他エンドポイントへの一般化は別途検証を要する。" data-sources='[&quot;src/api/sample_app/repositories/recipe.repository.ts:88-102&quot;]'>
         <div class="cat-head">
           <h3>性能要件</h3>
           <span class="pill pill--amber">提案あり(範囲限定)</span>
@@ -619,7 +611,7 @@ footer p{font-size:12.5px;color:var(--ink-soft);margin:6px 0;}
         </div>
         <p class="reason">将来の機能追加を見据えた拡張ポイント（プラグイン機構等）は現状のコードに存在せず、評価対象がない。</p>
       </div>
-      <div class="category" id="cat-monitoring-requirements" data-report-row="monitoring-requirements" data-chapter-index="6" data-chapter-name="非機能要件" data-cat-name="監視要件" data-parent="non-functional-requirements" data-key="monitoring-requirements" data-scope="scoped" data-globs='["src/api/sample_app/services/billing.service.ts","src/api/sample_app/services/report.service.ts"]' data-enforcement="advisory" data-checkable="true" data-check-method="billing.service.ts・report.service.ts 等、業務影響度の高いserviceファイルに logger.info・logger.error の呼び出しが1箇所以上存在することを検査する。" data-proposed-rule="決済（billing）・通報（report）など業務影響が大きいserviceは、主要処理の開始・終了・異常系にログ出力を必須とする。" data-sources='["src/api/sample_app/services/billing.service.ts","src/api/sample_app/services/report.service.ts"]'>
+      <div class="category" id="cat-monitoring-requirements" data-report-row="monitoring-requirements" data-chapter-index="6" data-chapter-name="非機能要件" data-cat-name="監視要件" data-summary="業務影響が大きいserviceに主要処理のログ出力を必須化する規約である。" data-parent="non-functional-requirements" data-key="monitoring-requirements" data-scope="scoped" data-globs='[&quot;src/api/sample_app/services/billing.service.ts&quot;,&quot;src/api/sample_app/services/report.service.ts&quot;]' data-enforcement="advisory" data-checkable="true" data-check-method="billing.service.ts・report.service.ts 等、業務影響度の高いserviceファイルに logger.info・logger.error の呼び出しが1箇所以上存在することを検査する。" data-proposed-rule="決済（billing）・通報（report）など業務影響が大きいserviceは、主要処理の開始・終了・異常系にログ出力を必須とする。" data-sources='[&quot;src/api/sample_app/services/billing.service.ts&quot;,&quot;src/api/sample_app/services/report.service.ts&quot;]'>
         <div class="cat-head">
           <h3>監視要件</h3>
           <span class="pill pill--green">提案あり</span>
@@ -636,17 +628,16 @@ footer p{font-size:12.5px;color:var(--ink-soft);margin:6px 0;}
           <p class="proposal-label">規約提案文(案)</p>
           <p class="proposal-text">決済（billing）・通報（report）など業務影響が大きいserviceは、主要処理の開始・終了・異常系にログ出力を必須とする。</p>
         </div>
-        <p class="source">出典: <code>src/api/sample_app/services/billing.service.ts</code>、<code>report.service.ts</code></p>
+        <p class="source">出典: <code>src/api/sample_app/services/billing.service.ts</code>、<code>src/api/sample_app/services/report.service.ts</code></p>
       </div>
     </section>
-
     <section class="chapter" id="chapter-business-domain">
       <div class="chapter-head">
         <span class="chapter-num">07</span>
         <h2>業務ドメイン規約</h2>
       </div>
       <p class="chapter-desc">business-domain</p>
-      <div class="category" id="cat-terminology" data-report-row="terminology" data-chapter-index="7" data-chapter-name="業務ドメイン規約" data-cat-name="用語定義" data-parent="business-domain" data-key="terminology" data-scope="scoped" data-globs='["src/api/sample_app/models/**"]' data-enforcement="advisory" data-checkable="true" data-check-method="src/api/sample_app/models/配下で dish・menuItem の識別子が新規に追加されていないことをgrepで検査する。" data-proposed-rule="業務用語「レシピ」に対応する識別子は recipe に統一し、dish・menuItem を廃止する。" data-sources='["src/api/sample_app/models/"]'>
+      <div class="category" id="cat-terminology" data-report-row="terminology" data-chapter-index="7" data-chapter-name="業務ドメイン規約" data-cat-name="用語定義" data-summary="業務用語「レシピ」に対応する識別子をrecipeへ統一する規約である。" data-parent="business-domain" data-key="terminology" data-scope="scoped" data-globs='[&quot;src/api/sample_app/models/**&quot;]' data-enforcement="advisory" data-checkable="true" data-check-method="src/api/sample_app/models/配下で dish・menuItem の識別子が新規に追加されていないことをgrepで検査する。" data-proposed-rule="業務用語「レシピ」に対応する識別子は recipe に統一し、dish・menuItem を廃止する。" data-sources='[&quot;src/api/sample_app/models/&quot;]'>
         <div class="cat-head">
           <h3>用語定義</h3>
           <span class="pill pill--green">提案あり</span>
@@ -663,9 +654,9 @@ footer p{font-size:12.5px;color:var(--ink-soft);margin:6px 0;}
           <p class="proposal-label">規約提案文(案)</p>
           <p class="proposal-text">業務用語「レシピ」に対応する識別子は recipe に統一し、dish・menuItem を廃止する。</p>
         </div>
-        <p class="source">出典: <code>src/api/sample_app/models/</code>（grep集計）</p>
+        <p class="source">出典: <code>src/api/sample_app/models/</code></p>
       </div>
-      <div class="category" id="cat-business-rules" data-report-row="business-rules" data-chapter-index="7" data-chapter-name="業務ドメイン規約" data-cat-name="業務規則" data-parent="business-domain" data-key="business-rules" data-scope="scoped" data-globs='["src/api/sample_app/services/recipe.service.ts","src/api/sample_app/services/billing.service.ts"]' data-enforcement="advisory" data-checkable="false" data-check-method="" data-proposed-rule="公開判定ロジックは status と isPremiumOnly の両方を参照する単一関数に集約する。ただし本提案は公開判定処理に限定し、他の会員種別ロジックへの拡張は別途調査を要する。" data-sources='["src/api/sample_app/services/recipe.service.ts:120-145"]'>
+      <div class="category" id="cat-business-rules" data-report-row="business-rules" data-chapter-index="7" data-chapter-name="業務ドメイン規約" data-cat-name="業務規則" data-summary="公開判定ロジックをstatusとisPremiumOnlyを参照する単一関数へ集約する規約である。" data-parent="business-domain" data-key="business-rules" data-scope="scoped" data-globs='[&quot;src/api/sample_app/services/recipe.service.ts&quot;,&quot;src/api/sample_app/services/billing.service.ts&quot;]' data-enforcement="advisory" data-checkable="false" data-check-method="" data-proposed-rule="公開判定ロジックは status と isPremiumOnly の両方を参照する単一関数に集約する。ただし本提案は公開判定処理に限定し、他の会員種別ロジックへの拡張は別途調査を要する。" data-sources='[&quot;src/api/sample_app/services/recipe.service.ts:120-145&quot;]'>
         <div class="cat-head">
           <h3>業務規則</h3>
           <span class="pill pill--amber">提案あり(範囲限定)</span>
@@ -684,7 +675,7 @@ footer p{font-size:12.5px;color:var(--ink-soft);margin:6px 0;}
         </div>
         <p class="source">出典: <code>src/api/sample_app/services/recipe.service.ts:120-145</code></p>
       </div>
-      <div class="category" id="cat-state-transition" data-report-row="state-transition" data-chapter-index="7" data-chapter-name="業務ドメイン規約" data-cat-name="状態遷移の制約" data-parent="business-domain" data-key="state-transition" data-scope="scoped" data-globs='["src/api/sample_app/routes/recipes.controller.ts","src/api/sample_app/services/recipe.service.ts"]' data-enforcement="advisory" data-checkable="true" data-check-method="レシピの状態更新処理が draft→in_review→published→archived の許可された遷移のみを検証する関数を経由しており、コントローラから直接書き込みされていないことを検査する。" data-proposed-rule="レシピの状態遷移は許可された遷移（draft→in_review・in_review→published・published→archived等）のみを許容する検証関数を設け、コントローラでの直接書き込みを禁止する。" data-sources='["src/api/sample_app/routes/recipes.controller.ts:180-195","src/api/sample_app/models/recipe.model.ts:8"]'>
+      <div class="category" id="cat-state-transition" data-report-row="state-transition" data-chapter-index="7" data-chapter-name="業務ドメイン規約" data-cat-name="状態遷移の制約" data-summary="レシピの状態遷移を許可された遷移のみへ制限する規約である。" data-parent="business-domain" data-key="state-transition" data-scope="scoped" data-globs='[&quot;src/api/sample_app/routes/recipes.controller.ts&quot;,&quot;src/api/sample_app/services/recipe.service.ts&quot;]' data-enforcement="advisory" data-checkable="true" data-check-method="レシピの状態更新処理が draft→in_review→published→archived の許可された遷移のみを検証する関数を経由しており、コントローラから直接書き込みされていないことを検査する。" data-proposed-rule="レシピの状態遷移は許可された遷移（draft→in_review・in_review→published・published→archived等）のみを許容する検証関数を設け、コントローラでの直接書き込みを禁止する。" data-sources='[&quot;src/api/sample_app/routes/recipes.controller.ts:180-195&quot;,&quot;src/api/sample_app/models/recipe.model.ts:8&quot;]'>
         <div class="cat-head">
           <h3>状態遷移の制約</h3>
           <span class="pill pill--green">提案あり</span>
@@ -697,7 +688,6 @@ footer p{font-size:12.5px;color:var(--ink-soft);margin:6px 0;}
         <ul class="evidence-list">
           <li>レシピの状態は draft → in_review → published → archived の4状態が <code>models/recipe.model.ts:8</code> の型定義から確認できる。一方、状態遷移を検証する関数は <code>services/recipe.service.ts</code> に存在せず、<code>updateRecipe</code> ハンドラ（<code>recipes.controller.ts:180-195</code>）がリクエストのstatusフィールドをそのままDBへ書き込んでいる。</li>
         </ul>
-
         <div class="state-fig">
           <span class="state-node">draft</span><span class="state-arrow">&#8594;</span>
           <span class="state-node">in_review</span><span class="state-arrow">&#8594;</span>
@@ -720,6 +710,7 @@ footer p{font-size:12.5px;color:var(--ink-soft);margin:6px 0;}
       </div>
     </section>
 
+
     <footer>
       <span class="footer-pill">要・現場エンジニア判断</span>
       <p>本文書はコード調査から起こした規約提案であり、そのままdocs/rules/へ確定させるものではない。各カテゴリの判定（採用・保留・却下）は、実際の運用実態と照らして現場エンジニアが行うこと。</p>
@@ -729,8 +720,10 @@ footer p{font-size:12.5px;color:var(--ink-soft);margin:6px 0;}
 </div>
 <script>
 (function(){
-  var STORAGE_KEY = "sample-app-rule-decisions";
-  var CATS = ["agent-behavior","destructive-safety","ai-asset-management","dev-flow","tooling-commands","dev-environment","git-operations","coding-standards","naming-convention","directory-structure","test-policy","documentation-standards","security-requirements","performance-requirements","monitoring-requirements","terminology","business-rules","state-transition"];
+  var STORAGE_KEY = "sample-app-api-rule-decisions";
+  var CATS = Array.prototype.map.call(document.querySelectorAll("[data-report-row]"), function (el) {
+    return el.getAttribute("data-report-row");
+  });
   var TOTAL = CATS.length;
   var decisions = {};
   try {
@@ -760,7 +753,7 @@ footer p{font-size:12.5px;color:var(--ink-soft);margin:6px 0;}
     var counts = countBy();
     var judged = counts.adopt + counts.hold + counts.reject;
     var counterEl = document.getElementById("dp-counter");
-    if (counterEl) counterEl.textContent = "\u5224\u5b9a " + judged + "/" + TOTAL;
+    if (counterEl) counterEl.textContent = "判定 " + judged + "/" + TOTAL;
     var legendAdopt = document.getElementById("legend-adopt-count");
     if (legendAdopt) legendAdopt.textContent = counts.adopt;
     var legendHold = document.getElementById("legend-hold-count");
@@ -799,23 +792,23 @@ footer p{font-size:12.5px;color:var(--ink-soft);margin:6px 0;}
   });
 
   function labelFor(kind) {
-    if (kind === "adopt") return "\u63a1\u7528";
-    if (kind === "hold") return "\u4fdd\u7559";
-    if (kind === "reject") return "\u5374\u4e0b";
-    return "\u672a\u5224\u5b9a";
+    if (kind === "adopt") return "採用";
+    if (kind === "hold") return "保留";
+    if (kind === "reject") return "却下";
+    return "未判定";
   }
 
   function buildReportText() {
     var counts = countBy();
     var judged = counts.adopt + counts.hold + counts.reject;
-    var lines = ["\u5224\u5b9a\u7d50\u679c(" + judged + "/" + TOTAL + " \u5224\u5b9a\u6e08\u307f)"];
+    var lines = ["判定結果(" + judged + "/" + TOTAL + " 判定済み)"];
     document.querySelectorAll("[data-report-row]").forEach(function (el) {
       var slug = el.getAttribute("data-report-row");
       var chapterIndex = el.getAttribute("data-chapter-index");
       var chapterName = el.getAttribute("data-chapter-name");
       var catName = el.getAttribute("data-cat-name");
       var d = decisions[slug];
-      lines.push("\u3010" + labelFor(d) + "\u3011" + chapterIndex + ". " + chapterName + " / " + catName);
+      lines.push("【" + labelFor(d) + "】" + chapterIndex + ". " + chapterName + " / " + catName);
     });
     return lines.join("\n");
   }
@@ -826,7 +819,7 @@ footer p{font-size:12.5px;color:var(--ink-soft);margin:6px 0;}
     copyBtn.addEventListener("click", function () {
       var text = buildReportText();
       var flash = function () {
-        copyBtn.textContent = "\u30b3\u30d4\u30fc\u3057\u307e\u3057\u305f \u2713";
+        copyBtn.textContent = "コピーしました ✓";
         setTimeout(function () { copyBtn.textContent = copyOriginalText; }, 2000);
       };
       try {
@@ -855,6 +848,7 @@ footer p{font-size:12.5px;color:var(--ink-soft);margin:6px 0;}
         key: el.getAttribute("data-key") || "",
         chapter: el.getAttribute("data-chapter-index") + " " + el.getAttribute("data-chapter-name"),
         title: el.getAttribute("data-cat-name") || "",
+        summary: el.getAttribute("data-summary") || "",
         decision: d,
         proposedRule: el.getAttribute("data-proposed-rule") || "",
         scope: el.getAttribute("data-scope") || "",
@@ -883,7 +877,7 @@ footer p{font-size:12.5px;color:var(--ink-soft);margin:6px 0;}
         var url = URL.createObjectURL(blob);
         var a = document.createElement("a");
         a.href = url;
-        a.download = "\u30b5\u30f3\u30d7\u30eb\u30a2\u30d7\u30eaAPI\u898f\u7d04\u63d0\u6848-\u5224\u5b9a\u7d50\u679c.json";
+        a.download = "sample-app-api-判定結果.json";
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);

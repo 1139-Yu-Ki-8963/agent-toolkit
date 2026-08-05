@@ -58,7 +58,7 @@ allowed-tools: [Bash, Read, Write]
 | `key` | JSONの `key` |
 | `title` | JSONの `title` |
 | `parent` | JSONの `parent` |
-| `summary` | JSONの `proposedRule` の1文目を要約したもの |
+| `summary` | JSONの `summary` |
 | `scope` | JSONの `scope` |
 | `globs` | JSONの `globs`（`jq -c` で1行のJSON配列として出力する。`scope: always` でも省略せず書く） |
 | `enforcement` | JSONの `enforcement` |

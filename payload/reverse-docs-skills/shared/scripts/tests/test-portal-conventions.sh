@@ -355,10 +355,12 @@ if [ -d "$target" ]; then
     -not -path '*/node_modules/*' \
     -not -path '*/fixtures/*' \
     -not -path '*/shared/samples/規約提案/*' \
+    -not -path '*/shared/templates/rule-proposal/*' \
     | sort)
-    # shared/samples/規約提案/ 配下はポータルのページではなく、リポジトリ外へ出力して
-    # 現場のエンジニアが判定するための独立した成果物である。ポータル共通シェルを使わず
-    # 意匠も別に定義されているため、本規約の検査対象から外す
+    # shared/samples/規約提案/ と shared/templates/rule-proposal/ 配下はポータルのページ
+    # ではなく、リポジトリ外へ出力して現場のエンジニアが判定するための独立した成果物
+    # （テンプレートとその生成物）である。ポータル共通シェルを使わず意匠も別に定義されて
+    # いるため、本規約の検査対象から外す
     # （.claude/rules/scoped/portal/page-conventions/rule.md「## 適用対象」参照）。
 else
   check_file "$target"

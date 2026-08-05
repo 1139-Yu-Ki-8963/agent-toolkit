@@ -3,7 +3,7 @@ set -euo pipefail
 
 # build-derived-rules.sh — docs/rules/ の規約定義から派生物を生成する
 #
-# 設計正本: shared/references/規約定義と派生生成の設計.md（5節・6節）
+# 設計の定義: shared/references/規約定義と派生生成の設計.md（5節・6節）
 #
 # 目的:
 #   docs/rules/<親>/<子>/rule.md から、.claude/rules/・.cursor/rules/・AGENTS.md索引・
@@ -12,7 +12,13 @@ set -euo pipefail
 #
 # 使い方:
 #   build-derived-rules.sh <docs/rules のルート> <出力先リポジトリルート> [--apply]
+#   build-derived-rules.sh --deploy-tooling <出力先リポジトリルート>
 #   build-derived-rules.sh --self-test
+#
+# --deploy-tooling は、本スクリプトと validate-rule-definitions.sh の2本を
+# 出力先リポジトリの docs/rules-tooling/ へ複製する。複製先の先頭には
+# 生成物である旨のコメントを入れる。定義（docs/rules/）の生成とは独立した
+# 動作であり、docs/rules のルートを必要としない。
 #
 # 既定はdry-run。生成予定のパスと内容の要約を標準出力へ出すのみで書き込みをしない。
 # --apply を付けたときだけ出力先リポジトリルートへ実際に書き込む。
@@ -28,7 +34,7 @@ set -euo pipefail
 #   (3) AGENTS.md の <!-- RULES-INDEX:START/END --> 間   規約本文を複製しない索引
 #   (4) checkable:true の規約について .claude/settings.json・.cursor/hooks.json・
 #       .codex/config.toml へ checker 呼び出しを登録（スクリプト実体は複製しない。
-#       常に "docs/rules/<parent>/<key>/<checker>" という設計上の正本配置パスを
+#       常に "docs/rules/<parent>/<key>/<checker>" という設計上の定義配置パスを
 #       参照する。JSONはコメントを持てないため "_generatedNotice" フィールドで
 #       生成物であることを示し、TOMLは "# BEGIN/END" コメントで印を付ける）
 #
@@ -361,6 +367,31 @@ ${toml_block}"
 }
 
 # ---------------------------------------------------------------------------
+# --deploy-tooling
+# ---------------------------------------------------------------------------
+
+DEPLOY_NOTICE="生成物である。直接編集しない（定義: shared/scripts/rules/"
+
+deploy_tooling() {
+  local out_root="$1"
+  local tooling_dir="${out_root}/docs/rules-tooling"
+  mkdir -p "$tooling_dir"
+
+  local src name dest
+  for name in build-derived-rules.sh validate-rule-definitions.sh; do
+    src="${SCRIPT_DIR}/${name}"
+    dest="${tooling_dir}/${name}"
+    {
+      printf '#!/usr/bin/env bash\n'
+      printf '# %s%s）\n' "$DEPLOY_NOTICE" "$name"
+      tail -n +2 "$src"
+    } > "$dest"
+    chmod +x "$dest"
+    echo "配備完了: ${dest}"
+  done
+}
+
+# ---------------------------------------------------------------------------
 # self-test
 # ---------------------------------------------------------------------------
 
@@ -628,6 +659,29 @@ self_test() {
 
   rm -rf "$src" "$out1" "$out2"
 
+  # ケース8: --deploy-tooling で2本が配備され、実行可能である
+  local deploy_out ok8
+  deploy_out="$(mktemp -d "${TMPDIR:-/tmp}/build-derived-rules-self-test-deploy.XXXXXX")"
+  deploy_tooling "$deploy_out" >/dev/null 2>&1
+  ok8=1
+  [ -x "${deploy_out}/docs/rules-tooling/build-derived-rules.sh" ] || ok8=0
+  [ -x "${deploy_out}/docs/rules-tooling/validate-rule-definitions.sh" ] || ok8=0
+  if [ "$ok8" -eq 1 ]; then
+    bash "${deploy_out}/docs/rules-tooling/validate-rule-definitions.sh" --self-test >/dev/null 2>&1 || ok8=0
+  fi
+  if [ "$ok8" -eq 1 ]; then
+    local usage_out
+    usage_out="$(bash "${deploy_out}/docs/rules-tooling/build-derived-rules.sh" 2>&1 || true)"
+    printf '%s' "$usage_out" | grep -q "使い方" || ok8=0
+  fi
+  if [ "$ok8" -eq 1 ]; then
+    echo "  [PASS] ケース8: --deploy-tooling で2本が配備され、実行可能である"
+  else
+    echo "  [FAIL] ケース8: --deploy-toolingの配備または実行に失敗した" >&2
+    rc=1
+  fi
+  rm -rf "$deploy_out"
+
   if [ "$rc" -eq 0 ]; then
     echo "self-test 全項目 PASS"
   else
@@ -646,6 +700,16 @@ main() {
     exit $?
   fi
 
+  if [ "${1:-}" = "--deploy-tooling" ]; then
+    local deploy_target="${2:-}"
+    if [ -z "$deploy_target" ]; then
+      echo "使い方: $(basename "$0") --deploy-tooling <出力先リポジトリルート>" >&2
+      exit 1
+    fi
+    deploy_tooling "$deploy_target"
+    exit $?
+  fi
+
   local root="" out_root="" apply_flag=0
   local args=()
   for a in "$@"; do
@@ -658,6 +722,7 @@ main() {
 
   if [ "${#args[@]}" -ne 2 ]; then
     echo "使い方: $(basename "$0") <docs/rules のルート> <出力先リポジトリルート> [--apply]" >&2
+    echo "        $(basename "$0") --deploy-tooling <出力先リポジトリルート>" >&2
     echo "        $(basename "$0") --self-test" >&2
     exit 1
   fi

@@ -1,0 +1,349 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{DOC_TITLE}}</title>
+<style>
+:root{
+  --paper:#FFFFFF; --paper-tint:#F8F5EC; --mono-bg:#F5F1E5;
+  --ink:#152922; --ink-soft:#3E5C52; --ink-faint:#6B8578;
+  --line:#E2DAC5; --line-strong:#152922;
+  --green:#1F6E5C;  --green-ink:#0F3E33;  --green-bg:#EBF3EF;
+  --amber:#A6702A;  --amber-ink:#6E4A1A;  --amber-bg:#F8F0DF;
+  --brick:#9C3D2E;  --brick-ink:#6E2A1F;  --brick-bg:#F8EBE6;
+  --violet:#5B4B9C; --violet-bg:#EFECF8;
+}
+*{box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:"Hiragino Sans","Noto Sans JP","Yu Gothic",sans-serif;font-size:13px;line-height:1.9;}
+code{font-family:ui-monospace,Menlo,Consolas,monospace;background:var(--mono-bg);padding:1px 5px;border-radius:4px;font-size:0.95em;color:var(--ink);}
+.page{display:flex;max-width:1180px;margin:0 auto;align-items:flex-start;}
+.sidebar{width:258px;flex:0 0 258px;position:sticky;top:0;height:100vh;overflow-y:auto;border-right:1px solid var(--line);padding:28px 20px;}
+.eyebrow{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10px;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-faint);}
+.sb-title{font-weight:700;font-size:14px;margin:6px 0 22px;color:var(--ink);}
+.decision-panel{border-top:2px solid var(--ink);padding-top:14px;margin-bottom:24px;}
+.dp-head{display:flex;align-items:baseline;gap:6px;}
+.dp-label{font-weight:700;font-size:12px;}
+.dp-counter{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;color:var(--ink-soft);}
+.progress{height:6px;border-radius:999px;background:var(--paper-tint);border:1px solid var(--line);overflow:hidden;display:flex;margin:10px 0;}
+.progress span{height:100%;display:block;transition:width .25s;}
+.seg-adopt{background:var(--green);}
+.seg-hold{background:var(--amber);}
+.seg-reject{background:var(--brick);}
+.legend{font-size:11px;color:var(--ink-soft);display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px;}
+.legend .swatch{display:inline-block;width:7px;height:7px;border-radius:999px;margin-right:4px;}
+.swatch--adopt{background:var(--green);}
+.swatch--hold{background:var(--amber);}
+.swatch--reject{background:var(--brick);}
+.dp-actions{display:flex;flex-direction:column;gap:8px;}
+.btn-pill{border-radius:999px;padding:7px 14px;font-size:11.5px;cursor:pointer;font-family:inherit;border:1px solid var(--green);}
+.btn-pill--solid{background:var(--green);color:#FFFFFF;}
+.btn-pill--outline{background:var(--paper);color:var(--green);}
+.toc-chapter{font-weight:700;font-size:12px;margin:16px 0 4px;color:var(--ink);}
+.toc-list{list-style:none;margin:0 0 6px;padding:0;}
+.toc-list a{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-soft);text-decoration:none;padding:4px 6px;border-radius:4px;}
+.toc-list a:hover{background:var(--paper-tint);}
+.dot{width:8px;height:8px;border-radius:999px;background:var(--line);flex:0 0 8px;display:inline-block;}
+.dot--adopt{background:var(--green);}
+.dot--hold{background:var(--amber);}
+.dot--reject{background:var(--brick);}
+.dot--na{background:transparent;border:1px dashed var(--ink-faint);}
+.toc-label{flex:1;}
+.toc-tag{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:9.5px;color:var(--ink-faint);}
+.sb-note{font-size:11px;color:var(--ink-faint);margin-top:20px;padding-top:12px;border-top:1px dashed var(--line);}
+main{flex:1;max-width:760px;padding:40px 44px;}
+.badge{display:inline-block;background:var(--amber-bg);color:var(--amber-ink);font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10px;letter-spacing:.08em;padding:4px 10px;border-radius:999px;margin-bottom:14px;}
+h1{font-size:25px;margin:0 0 8px;color:var(--ink);}
+.lead{color:var(--ink-soft);font-size:13.5px;margin:0 0 24px;}
+dl.meta{display:grid;grid-template-columns:100px 1fr;margin:0 0 28px;border-bottom:1px solid var(--line);}
+dl.meta dt{padding:10px 0;border-top:1px solid var(--line);font-weight:700;font-size:12.5px;color:var(--ink-soft);}
+dl.meta dd{padding:10px 0;border-top:1px solid var(--line);margin:0;font-size:13px;}
+details.fig{margin:0 0 28px;border:1px solid var(--line);border-radius:4px;background:var(--paper-tint);}
+details.fig summary{cursor:pointer;padding:10px 14px;font-weight:700;font-size:12.5px;}
+.flow{display:flex;align-items:center;gap:8px;overflow-x:auto;padding:16px;}
+.flow-node{min-width:102px;background:var(--paper);border:1px solid var(--line);border-radius:4px;padding:8px 10px;flex:0 0 auto;}
+.flow-node b{display:block;font-size:12px;margin-bottom:2px;}
+.flow-node span{font-size:9.5px;color:var(--ink-faint);}
+.flow-arrow{color:var(--ink-faint);font-family:ui-monospace,Menlo,Consolas,monospace;padding:0 2px;flex:0 0 auto;}
+.figcaption{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:9.5px;color:var(--ink-faint);padding:6px 14px 12px;margin:0;}
+.notes{display:flex;flex-direction:column;gap:10px;margin-bottom:32px;}
+.note{border-left:3px solid;padding:10px 14px;border-radius:0 6px 6px 0;}
+.note--brick{border-color:var(--brick);background:var(--brick-bg);}
+.note--amber{border-color:var(--amber);background:var(--amber-bg);}
+.note--violet{border-color:var(--violet);background:var(--violet-bg);}
+.note-title{font-weight:700;font-size:13px;margin:0 0 4px;}
+.note-body{margin:0;font-size:12.5px;color:var(--ink-soft);}
+section.chapter{padding-top:28px;margin-top:28px;border-top:2px solid var(--ink);scroll-margin-top:20px;}
+.chapter-head{display:flex;align-items:baseline;gap:10px;}
+.chapter-num{font-family:ui-monospace,Menlo,Consolas,monospace;color:var(--green);font-weight:700;font-size:13px;}
+h2{font-size:17px;margin:0;}
+.chapter-desc{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;color:var(--ink-faint);margin:4px 0 20px;}
+.category{padding:20px 0;border-bottom:1px solid var(--line);scroll-margin-top:20px;}
+.category:last-child{border-bottom:none;}
+.cat-head{display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:10px;}
+h3{font-size:14.5px;margin:0;}
+.pill{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10.5px;padding:3px 10px;border-radius:999px;}
+.pill--green{background:var(--green-bg);color:var(--green-ink);}
+.pill--amber{background:var(--amber-bg);color:var(--amber-ink);}
+.pill--violet{background:var(--violet-bg);color:var(--violet);}
+.pill--na{background:var(--paper-tint);color:var(--ink-faint);}
+.decision-buttons{display:flex;gap:6px;margin-left:auto;}
+.decision-btn{border-radius:999px;padding:5px 12px;font-size:11.5px;border:1px solid var(--line);background:var(--paper);color:var(--ink-soft);cursor:pointer;font-family:inherit;}
+.decision-btn.active.kind-adopt{background:var(--green);border-color:var(--green);color:#FFFFFF;}
+.decision-btn.active.kind-hold{background:var(--amber);border-color:var(--amber);color:#FFFFFF;}
+.decision-btn.active.kind-reject{background:var(--brick);border-color:var(--brick);color:#FFFFFF;}
+.evidence-list{margin:0 0 14px;padding-left:18px;font-size:12.8px;color:var(--ink-soft);}
+.evidence-list li{margin-bottom:6px;}
+.sub-label{font-size:11.5px;color:var(--ink-faint);border-bottom:1px dashed var(--line);padding-bottom:2px;margin:10px 0 6px;}
+.proposal{border-left:3px solid var(--green);background:var(--green-bg);border-radius:0 6px 6px 0;padding:12px 14px;margin-bottom:10px;}
+.proposal-label{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10.5px;color:var(--green-ink);margin:0 0 4px;letter-spacing:.04em;}
+.proposal-text{font-size:13px;margin:0;color:var(--ink);}
+.source{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10.8px;color:var(--ink-faint);border-top:1px dashed var(--line);padding-top:8px;margin:0;}
+.reason{font-size:12.5px;color:var(--ink-faint);margin:0;}
+.layer-fig{background:var(--paper-tint);border:1px solid var(--line);border-radius:4px;padding:14px;margin:12px 0;}
+.layer-row{display:flex;align-items:baseline;gap:10px;border-left:3px solid;padding:8px 10px;background:var(--paper);margin-bottom:6px;font-size:12px;}
+.layer-row:last-child{margin-bottom:0;}
+.state-fig{background:var(--paper-tint);border:1px solid var(--line);border-radius:4px;padding:14px;margin:12px 0;display:flex;align-items:center;flex-wrap:wrap;gap:6px;}
+.state-node{background:var(--paper);border:1px solid var(--line);border-radius:999px;padding:6px 14px;font-size:11.5px;font-family:ui-monospace,Menlo,Consolas,monospace;}
+.state-arrow{color:var(--ink-faint);font-family:ui-monospace,Menlo,Consolas,monospace;}
+footer{border-top:2px solid var(--ink);padding-top:20px;margin-top:36px;padding-bottom:60px;}
+.footer-pill{display:inline-block;background:var(--brick-bg);color:var(--brick-ink);font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10.5px;padding:4px 10px;border-radius:999px;margin-bottom:10px;}
+footer p{font-size:12.5px;color:var(--ink-soft);margin:6px 0;}
+</style>
+<!-- generatedAt: {{GENERATED_AT}} -->
+</head>
+<body>
+<div class="page">
+  <aside class="sidebar">
+    <p class="eyebrow">rule proposal / {{PROPOSAL_ID}}</p>
+    <p class="sb-title">{{DOC_TITLE}}</p>
+
+    <div class="decision-panel">
+      <div class="dp-head">
+        <span class="dp-label">判定状況</span>
+        <span class="dp-counter" id="dp-counter">判定 0/{{TOTAL}}</span>
+      </div>
+      <div class="progress">
+        <span class="seg-adopt" id="seg-adopt" style="width:0%"></span>
+        <span class="seg-hold" id="seg-hold" style="width:0%"></span>
+        <span class="seg-reject" id="seg-reject" style="width:0%"></span>
+      </div>
+      <div class="legend">
+        <span><span class="swatch swatch--adopt"></span>採用 <span id="legend-adopt-count">0</span></span>
+        <span><span class="swatch swatch--hold"></span>保留 <span id="legend-hold-count">0</span></span>
+        <span><span class="swatch swatch--reject"></span>却下 <span id="legend-reject-count">0</span></span>
+      </div>
+      <div class="dp-actions">
+        <button type="button" id="copy-decisions" class="btn-pill btn-pill--solid">判定結果をコピー</button>
+        <button type="button" id="download-decisions" class="btn-pill btn-pill--outline">判定結果をJSONで保存</button>
+      </div>
+    </div>
+
+    <nav class="toc">
+{{TOC}}
+    </nav>
+
+    <p class="sb-note">判定結果はこの端末のブラウザ（localStorage）にのみ保存される。他の端末やレビュー担当とは共有されないため、確定した判定はコピーまたはダウンロードで別途記録すること。</p>
+  </aside>
+
+  <main>
+{{SAMPLE_BADGE}}
+    <h1>{{DOC_TITLE}}</h1>
+    <p class="lead">{{LEAD}}</p>
+
+    <dl class="meta">
+      <dt>位置づけ</dt>
+      <dd>{{META_POSITIONING}}</dd>
+      <dt>調査範囲</dt>
+      <dd>{{META_SCOPE}}</dd>
+      <dt>検証</dt>
+      <dd>{{META_VERIFICATION}}</dd>
+    </dl>
+
+{{FLOW_DIAGRAM}}
+
+{{CROSS_FINDINGS}}
+
+{{CHAPTERS}}
+
+    <footer>
+      <span class="footer-pill">要・現場エンジニア判断</span>
+      <p>本文書はコード調査から起こした規約提案であり、そのままdocs/rules/へ確定させるものではない。各カテゴリの判定（採用・保留・却下）は、実際の運用実態と照らして現場エンジニアが行うこと。</p>
+      <p>次のアクション: 判定結果をコピーまたはダウンロードし、採用判定分から順に正式な規約文書として整備する。</p>
+    </footer>
+  </main>
+</div>
+<script>
+(function(){
+  var STORAGE_KEY = "{{PROPOSAL_ID}}-rule-decisions";
+  var CATS = Array.prototype.map.call(document.querySelectorAll("[data-report-row]"), function (el) {
+    return el.getAttribute("data-report-row");
+  });
+  var TOTAL = CATS.length;
+  var decisions = {};
+  try {
+    var raw = window.localStorage.getItem(STORAGE_KEY);
+    if (raw) { var parsed = JSON.parse(raw); if (parsed && typeof parsed === "object") decisions = parsed; }
+  } catch (err) { decisions = {}; }
+
+  function save() {
+    try { window.localStorage.setItem(STORAGE_KEY, JSON.stringify(decisions)); } catch (err) { /* noop */ }
+  }
+
+  function countBy() {
+    var c = { adopt: 0, hold: 0, reject: 0 };
+    for (var i = 0; i < CATS.length; i += 1) {
+      var d = decisions[CATS[i]];
+      if (d === "adopt" || d === "hold" || d === "reject") c[d] += 1;
+    }
+    return c;
+  }
+
+  function setWidth(id, ratio) {
+    var el = document.getElementById(id);
+    if (el) el.style.width = (ratio * 100) + "%";
+  }
+
+  function render() {
+    var counts = countBy();
+    var judged = counts.adopt + counts.hold + counts.reject;
+    var counterEl = document.getElementById("dp-counter");
+    if (counterEl) counterEl.textContent = "判定 " + judged + "/" + TOTAL;
+    var legendAdopt = document.getElementById("legend-adopt-count");
+    if (legendAdopt) legendAdopt.textContent = counts.adopt;
+    var legendHold = document.getElementById("legend-hold-count");
+    if (legendHold) legendHold.textContent = counts.hold;
+    var legendReject = document.getElementById("legend-reject-count");
+    if (legendReject) legendReject.textContent = counts.reject;
+    setWidth("seg-adopt", TOTAL ? counts.adopt / TOTAL : 0);
+    setWidth("seg-hold", TOTAL ? counts.hold / TOTAL : 0);
+    setWidth("seg-reject", TOTAL ? counts.reject / TOTAL : 0);
+
+    for (var i = 0; i < CATS.length; i += 1) {
+      var slug = CATS[i];
+      var d = decisions[slug];
+      ["adopt", "hold", "reject"].forEach(function (kind) {
+        var btn = document.getElementById(kind + "-" + slug);
+        if (btn) btn.classList.toggle("active", d === kind);
+      });
+      var dot = document.getElementById("dot-" + slug);
+      if (dot) {
+        dot.classList.remove("dot--adopt", "dot--hold", "dot--reject");
+        if (d === "adopt" || d === "hold" || d === "reject") dot.classList.add("dot--" + d);
+      }
+    }
+  }
+
+  document.querySelectorAll(".decision-btn").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var slug = btn.dataset.cat;
+      var kind = btn.dataset.decision;
+      if (!slug || !kind) return;
+      if (decisions[slug] === kind) delete decisions[slug];
+      else decisions[slug] = kind;
+      save();
+      render();
+    });
+  });
+
+  function labelFor(kind) {
+    if (kind === "adopt") return "採用";
+    if (kind === "hold") return "保留";
+    if (kind === "reject") return "却下";
+    return "未判定";
+  }
+
+  function buildReportText() {
+    var counts = countBy();
+    var judged = counts.adopt + counts.hold + counts.reject;
+    var lines = ["判定結果(" + judged + "/" + TOTAL + " 判定済み)"];
+    document.querySelectorAll("[data-report-row]").forEach(function (el) {
+      var slug = el.getAttribute("data-report-row");
+      var chapterIndex = el.getAttribute("data-chapter-index");
+      var chapterName = el.getAttribute("data-chapter-name");
+      var catName = el.getAttribute("data-cat-name");
+      var d = decisions[slug];
+      lines.push("【" + labelFor(d) + "】" + chapterIndex + ". " + chapterName + " / " + catName);
+    });
+    return lines.join("\n");
+  }
+
+  var copyBtn = document.getElementById("copy-decisions");
+  if (copyBtn) {
+    var copyOriginalText = copyBtn.textContent;
+    copyBtn.addEventListener("click", function () {
+      var text = buildReportText();
+      var flash = function () {
+        copyBtn.textContent = "コピーしました ✓";
+        setTimeout(function () { copyBtn.textContent = copyOriginalText; }, 2000);
+      };
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).then(flash, flash);
+        } else {
+          flash();
+        }
+      } catch (err) { flash(); }
+    });
+  }
+
+  function buildReportJson() {
+    var counts = countBy();
+    var judged = counts.adopt + counts.hold + counts.reject;
+    var decisionList = [];
+    document.querySelectorAll("[data-report-row]").forEach(function (el) {
+      var slug = el.getAttribute("data-report-row");
+      var d = decisions[slug] || "pending";
+      var globs = [];
+      var sources = [];
+      try { globs = JSON.parse(el.getAttribute("data-globs") || "[]"); } catch (err) { globs = []; }
+      try { sources = JSON.parse(el.getAttribute("data-sources") || "[]"); } catch (err) { sources = []; }
+      decisionList.push({
+        parent: el.getAttribute("data-parent") || "",
+        key: el.getAttribute("data-key") || "",
+        chapter: el.getAttribute("data-chapter-index") + " " + el.getAttribute("data-chapter-name"),
+        title: el.getAttribute("data-cat-name") || "",
+        summary: el.getAttribute("data-summary") || "",
+        decision: d,
+        proposedRule: el.getAttribute("data-proposed-rule") || "",
+        scope: el.getAttribute("data-scope") || "",
+        globs: globs,
+        enforcement: el.getAttribute("data-enforcement") || "",
+        checkable: el.getAttribute("data-checkable") === "true",
+        checkMethod: el.getAttribute("data-check-method") || "",
+        sources: sources
+      });
+    });
+    return {
+      proposalId: "{{PROPOSAL_ID}}",
+      generatedAt: new Date().toISOString(),
+      total: TOTAL,
+      judged: judged,
+      decisions: decisionList
+    };
+  }
+
+  var downloadBtn = document.getElementById("download-decisions");
+  if (downloadBtn) {
+    downloadBtn.addEventListener("click", function () {
+      try {
+        var json = JSON.stringify(buildReportJson(), null, 2);
+        var blob = new Blob([json], { type: "application/json" });
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement("a");
+        a.href = url;
+        a.download = "{{PROPOSAL_ID}}-判定結果.json";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+      } catch (err) { /* noop */ }
+    });
+  }
+
+  render();
+})();
+</script>
+</body>
+</html>

@@ -57,11 +57,15 @@ allowed-tools: [Bash, Read, Write]
 
 ### apply
 
-まず `status` と同じ確認をし、結果を示す。
+最初に `build-derived-rules.sh --deploy-tooling <実リポジトリルート>` を実行し、`docs/rules-tooling/` へ2本を配備する。既に配備済みでも最新の内容で上書きする。
 
-続けて、実リポジトリに現存する派生ファイル一式を `docs/rules-tooling/backups/<実行時刻>/` へまるごと複製する。生成前に必ずこの複製を取ってから次へ進む。
+続けて `status` と同じ確認をし、結果を示す。
+
+実リポジトリに現存する派生ファイル一式を `docs/rules-tooling/backups/<実行時刻>/` へまるごと複製する。生成前に必ずこの複製を取ってから次へ進む。
 
 複製の後、`build-derived-rules.sh <rules_root> <実リポジトリルート> --apply` を実行する。`status: draft` の規約は生成対象から除外され、その件数は上記のとおりスクリプト自身が報告する。
+
+承認済みの規約が0件でも、`AGENTS.md` の索引ブロックは空の内容で書き換わる。書き込み自体は必ず起きる。
 
 生成が終わったら、台帳の対象2種類のハッシュを取り直す。ハッシュは `docs/rules-tooling/derived-fingerprints.json` へ記録する。記録の形式は「相対パスをキー、`sha256` ハッシュ値を値とするJSONオブジェクト」とする。
 
