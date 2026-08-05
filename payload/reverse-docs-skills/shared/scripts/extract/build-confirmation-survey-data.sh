@@ -31,7 +31,10 @@
 #     対象外)を持つオブジェクトの配列。questionKey は
 #     <unitKeyまたはscreenId>-業務名未確定 / -要手動確認 / -権限未設定 /
 #     -要確認事項-<item要約スラッグ> の4系統。同一 questionKey が複数入力から
-#     生じた場合は初出のみを残し重複除去する。
+#     生じた場合は初出(挿入順で最初のもの)を代表として残し、他は代表へ集約する。
+#     代表が2件以上を集約した場合、代表オブジェクトに mergedCount(集約件数)・
+#     mergedQuestions(集約された全questionの配列)を追加する
+#     (詳細: shared/references/manifest-schema-extensions.md「confirmation-survey.json」節)。
 
 set -euo pipefail
 
@@ -156,6 +159,35 @@ self_test() {
     bash "$script_path" "$out3"
   assert "ケース3: questionsが空配列・dataSourceが空文字" \
     jq -e '.questions == [] and .dataSource == ""' "$out3"
+
+  # --- ケース4: 同一unitKey内で先頭16文字が一致する異なる要確認事項が
+  #     questionKey衝突してもmergedCount/mergedQuestionsで欠落を検知可能なこと ---
+  local uq4="$tmp/unresolved-questions-collision.json"
+  jq -n '{
+    unitKey: "screen-collision",
+    items: [
+      "この画面の権限設定について確認してください（詳細は別紙参照）",
+      "この画面の権限設定について確認してください（実装後に再確認）",
+      "別の項目についての確認事項です"
+    ]
+  }' > "$uq4"
+
+  local out4="$tmp/confirmation-survey-collision.json"
+  assert "ケース4: questionKey衝突フィクスチャで生成コマンドが成功" \
+    bash "$script_path" "$out4" --unresolved-questions "$uq4"
+  assert "ケース4: 衝突キーはquestions内に1件のみ残る" \
+    jq -e '[.questions[] | select(.questionKey == "screen-collision-要確認事項-この画面の権限設定について確認し")] | length == 1' "$out4"
+  assert "ケース4: 衝突した代表行にmergedCount=2が記録される" \
+    jq -e '.questions[] | select(.questionKey == "screen-collision-要確認事項-この画面の権限設定について確認し") | .mergedCount == 2' "$out4"
+  assert "ケース4: mergedQuestionsに衝突した2件の質問文が両方含まれる" \
+    jq -e '.questions[] | select(.questionKey == "screen-collision-要確認事項-この画面の権限設定について確認し")
+           | .mergedQuestions == [
+               "この画面の権限設定について確認してください（詳細は別紙参照）",
+               "この画面の権限設定について確認してください（実装後に再確認）"
+             ]' "$out4"
+  assert "ケース4: 衝突しなかった項目にはmergedCount/mergedQuestionsが付与されない" \
+    jq -e '.questions[] | select(.question == "別の項目についての確認事項です")
+           | has("mergedCount") == false and has("mergedQuestions") == false' "$out4"
 
   if [ "$rc" -eq 0 ]; then
     echo "self-test 全項目 PASS"
@@ -294,14 +326,29 @@ for f in "${UNRESOLVED_QUESTIONS[@]:-}"; do
   ' "$f" >> "$QUESTION_BLOCKS_FILE"
 done
 
-# --- 結合 + questionKey重複除去(初出のみ残す。挿入順は保持する) ---
+# --- 結合 + questionKey重複除去(初出を代表として残す。挿入順は保持する。
+#     同一questionKeyに2件以上が集約された場合は代表へmergedCount/mergedQuestionsを付与する) ---
 jq -n \
   --arg generatedAt "$GENERATED_AT" \
   --arg dataSource "$DATA_SOURCE" \
   --slurpfile blocks "$QUESTION_BLOCKS_FILE" \
   '
   def dedupe_by_key:
-    reduce .[] as $x ([]; if (any(.[]; .questionKey == $x.questionKey)) then . else . + [$x] end);
+    reduce .[] as $x (
+      {order: [], byKey: {}};
+      ($x.questionKey) as $k
+      | if (.byKey | has($k))
+        then (.byKey[$k] += [$x])
+        else (.order += [$k]) | (.byKey[$k] = [$x])
+        end
+    )
+    | . as $acc
+    | $acc.order
+    | map($acc.byKey[.] as $group
+          | if ($group | length) > 1
+            then ($group[0] + {mergedCount: ($group | length), mergedQuestions: ($group | map(.question))})
+            else $group[0]
+            end);
   ($blocks | add // []) as $all
   | { generatedAt: $generatedAt,
       dataSource: $dataSource,
