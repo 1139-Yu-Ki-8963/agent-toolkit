@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <!--
-  generating-api-detail-design-for-reverse-docs スキルガイド（単一ファイル自己完結型）
+  generating-feature-design-for-reverse-docs スキルガイド（単一ファイル自己完結型）
 
   - 外部リソース（CDN・画像・link）は一切使わず、完全自己完結に保つ
 -->
@@ -8,7 +8,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>generating-api-detail-design-for-reverse-docs スキルガイド</title>
+<title>generating-feature-design-for-reverse-docs スキルガイド</title>
 <style>
   * { box-sizing: border-box; }
   body {
@@ -142,14 +142,14 @@
 <body>
 
 <header>
-  <h1>API詳細設計書生成スキル<br><span class="skill-name">generating-api-detail-design-for-reverse-docs</span></h1>
-  <p>既存のバックエンドコードから API 1 本ごとの詳細設計書を、原本コードの読解によって起こすスキルの確定仕様。対象はエンドポイント単位であり、複数の API をまとめた機能単位の設計書とは別物である。</p>
+  <h1>機能設計書生成スキル<br><span class="skill-name">generating-feature-design-for-reverse-docs</span></h1>
+  <p>機能一覧マニフェストと配下ユニットの拡張マニフェストから、機能単位の集約設計書を執筆するスキルの確定仕様。機能一覧の生成スキルは一覧HTMLのみを担い、設計書の雛形展開・生成・記入をしないと明記しており、本スキルがその先を引き受ける。</p>
 
   <table class="meta-table">
     <tr><td>対応 OS</td><td>Windows WSL2 環境</td></tr>
-    <tr><td>検証状況</td><td>未検証。対象リポジトリでの実行実績はまだない</td></tr>
-    <tr><td>依存</td><td>API 一覧の拡張マニフェスト（<code>api-manifest.ext.json</code>）、テンプレート <code>shared/templates/リバース検証/API/API詳細設計書.md</code></td></tr>
-    <tr><td>関連資料</td><td><code>shared/references/chapter-map.md</code>, <code>shared/references/納品物フォルダ体系.md</code>, <code>generating-api-list-for-reverse-docs</code></td></tr>
+    <tr><td>検証状況</td><td>合成フィクスチャで実走確認済み。実在リポジトリでの実行実績はまだない</td></tr>
+    <tr><td>依存</td><td>機能一覧マニフェスト（<code>feature-manifest.json</code>）、配下ユニットの拡張マニフェスト、テンプレート <code>shared/templates/リバース検証/機能/機能設計書.md</code></td></tr>
+    <tr><td>関連資料</td><td><code>shared/references/chapter-map.md</code>, <code>shared/references/納品物フォルダ体系.md</code>, <code>generating-feature-list-for-reverse-docs</code>, <code>generating-api-detail-design-for-reverse-docs</code></td></tr>
   </table>
 </header>
 
@@ -159,7 +159,7 @@
     <li><a href="#s1">概要</a></li>
     <li><a href="#s2">出力</a></li>
     <li><a href="#s3">用語</a></li>
-    <li><a href="#s4">情報源と盲検を採らない理由</a></li>
+    <li><a href="#s4">集約設計書としての書き分け</a></li>
     <li><a href="#s5">動作フロー</a></li>
     <li><a href="#s6">検証</a></li>
     <li><a href="#s7">制約と既知の限界</a></li>
@@ -168,90 +168,91 @@
 
 <section id="s1">
   <h2><span class="sec-num">§1</span>概要</h2>
-  <p>このスキルは、既存のバックエンドコードから API 1 本ごとの詳細設計書を起こす。対象はエンドポイント単位であり、複数の API をまとめた機能単位の設計書とは別物である。情報源は API 一覧の拡張マニフェストと、そのマニフェストが指す原本コードの 2 つに限る。原本から確定できない事項は推測で埋めず、要確認事項として残す。</p>
+  <p>このスキルは、機能単位の集約設計書を書く。機能一覧の生成スキルは一覧 HTML だけを担い、設計書の雛形展開・生成・記入をしないと明記している。本スキルがその先を引き受け、機能設計書のテンプレートを展開して記入する。情報源は機能一覧マニフェストと配下ユニットのマニフェスト、そして構成要素の個別設計書の 3 つに限り、原本コードは読まない。</p>
 </section>
 
 <section id="s2">
   <h2><span class="sec-num">§2</span>出力</h2>
-  <p>エンドポイント 1 本につき、以下の 3 点が生まれる。</p>
+  <p>機能 1 つにつき、以下の 3 点が生まれる。</p>
   <div class="def">
-    <dt>エンドポイント 1 本ぶんの実装契約</dt>
-    <dd>受け取るパラメータの名前・型・必須の別・制約、返す構造とステータスコード、処理の順序、触るテーブルとトランザクションの範囲が、それぞれ原本の行番号を根拠として並ぶ。読んだ人は、そのエンドポイントを呼ぶ側の実装と、内部の振る舞いの両方を、原本を開かずに把握できる。</dd>
+    <dt>機能 1 つぶんの全体像</dt>
+    <dd>その機能を構成する画面・API・実行ファイルが一覧になり、それぞれの個別設計書へのパスが並ぶ。読んだ人は、業務としてひとまとまりの操作が、どの実装要素の組み合わせで成り立っているかを把握できる。</dd>
+    <dt>構成要素をまたぐ事項だけを集めた記述</dt>
+    <dd>業務フロー、業務ルール、状態のライフサイクル、そして複数の構成要素が共有する処理と記憶域が記される。どの個別設計書にも収まらない情報がここに集まる。</dd>
     <dt>確定できなかったことの一覧</dt>
-    <dd>原本を読んでも型や制約が決まらなかった項目が、推測で埋められずに列挙される。読んだ人は、どこを人に聞く必要があるかを最初に把握できる。</dd>
-    <dt>章の役割キーによる機械的な参照点</dt>
-    <dd>付録 B の章マップが、章の役割キーと節番号の対応を持つ。他のスキルや検査がこの設計書の特定の章を指すときに使える。</dd>
+    <dd>個別設計書が存在しない構成要素や、マニフェストと突合できなかった参照が、推測で埋められずに列挙される。</dd>
   </div>
 </section>
 
 <section id="s3">
   <h2><span class="sec-num">§3</span>用語</h2>
   <dl class="def">
-    <dt>拡張マニフェスト</dt>
-    <dd>API 一覧スキルが出力する JSON に、メソッド・認証要否・入出力の要約を付け足したもの。</dd>
-    <dt>盲検</dt>
-    <dd>設計書の執筆役が原本コードを読まず、封印済みの事実表だけを情報源にする進め方。このスキルは採らない。</dd>
-    <dt>要確認事項</dt>
-    <dd>原本から確定できず、人が判断するほかない事項。設計書の §10 に集約する。</dd>
+    <dt>集約設計書</dt>
+    <dd>構成要素の個別設計書から値を再掲せず、パスで参照する設計書。構成要素をまたいで初めて意味を持つ事項だけを正として持つ。</dd>
+    <dt>共通処理</dt>
+    <dd>複数の構成要素が呼ぶ内部ヘルパー。機能側に 1 箇所だけ記述する。</dd>
+    <dt>共有状態</dt>
+    <dd>複数の構成要素が同じ記憶域を介して受け渡す情報。機能側に 1 箇所だけ記述する。</dd>
   </dl>
 </section>
 
 <section id="s4">
-  <h2><span class="sec-num">§4</span>情報源と盲検を採らない理由</h2>
-  <p>画面詳細設計書は盲検で書かれ、設計書だけからコードを再生成して原本と突き合わせる往復検証が成立する。API 単位ではその前提が置けない。事実表を供給する経路が存在しないためである。したがってこのスキルは原本読解型とし、生成した設計書を往復検証の対象にしない。品質は §6 の 3 つの機械検査で担保する。この違いを表で示す。</p>
+  <h2><span class="sec-num">§4</span>集約設計書としての書き分け</h2>
+  <p>機能設計書は集約設計書である。構成要素（API・画面・実行ファイル）の個別仕様は各構成要素の設計書を正とし、本書は値を再掲せずパスで参照する。1 つの機能に複数のエンドポイントが同居する構成を前提とし、本書が担う固有の役割は次の 2 つで、いずれも機能側に 1 箇所だけ記述する。</p>
   <table class="spec">
-    <tr><th>観点</th><th>画面詳細設計書</th><th>API詳細設計書（本スキル）</th></tr>
-    <tr><td>情報源</td><td>封印済みの事実表のみ</td><td>拡張マニフェストと原本コードの 2 つ</td></tr>
-    <tr><td>執筆時のコード読解</td><td>禁止（盲検）</td><td>必須（原本読解型）</td></tr>
-    <tr><td>品質保証の方法</td><td>設計書だけからのコード再生成と原本突合（往復検証）</td><td>§6 の 3 つの機械検査</td></tr>
+    <tr><th>対象</th><th>記述先</th><th>規約</th></tr>
+    <tr><td>共通処理</td><td>§7.1 機能内の呼び出し一覧</td><td>複数の構成要素が同じ内部ヘルパーを呼ぶ場合、そのヘルパーを機能設計書に 1 回だけ記述する。各構成要素の個別設計書には重複して書かず、参照に留める</td></tr>
+    <tr><td>共有状態</td><td>§6.2 共有ストア・共有領域</td><td>複数の構成要素が同じ記憶域（セッションテーブル・共有ストア・一時領域）を介して連携する場合、その受け渡しを機能設計書に 1 回だけ記述する</td></tr>
   </table>
+  <p class="note">同じ内容を機能設計書と個別設計書の両方へ書くことを禁止する。2 つ目の実体を作ると、片方だけが更新される穴が生まれる。</p>
 </section>
 
 <section id="s5">
   <h2><span class="sec-num">§5</span>動作フロー</h2>
   <table class="spec">
     <tr><th>Phase</th><th>名前</th><th>完了条件</th></tr>
-    <tr><td>Phase 1</td><td>起動引数の検収と対象確定</td><td>4 引数が実在し、マニフェストが検収済みで、言語プロファイルが確定し、対象ユニットが確定している</td></tr>
-    <tr><td>Phase 2</td><td>原本読解</td><td>対象ユニット全件について、根拠付きの記入材料が揃っている</td></tr>
-    <tr><td>Phase 3</td><td>執筆</td><td>全対象ユニットの設計書が記入済みである</td></tr>
-    <tr><td>Phase 4</td><td>検証</td><td>3 検査すべてが合格している</td></tr>
+    <tr><td>Phase 1</td><td>起動引数の検収と対象確定</td><td>3 引数が実在し、マニフェストが検収済みで、配下ユニットと対象機能が確定している</td></tr>
+    <tr><td>Phase 2</td><td>集約材料の収集</td><td>対象機能全件について、構成要素一覧と集約対象が揃っている</td></tr>
+    <tr><td>Phase 3</td><td>執筆</td><td>全対象機能の設計書が記入済みである</td></tr>
+    <tr><td>Phase 4</td><td>検証</td><td>4 検査すべてが合格している</td></tr>
   </table>
   <pre class="flow"><span class="cap">── 動作フロー ─────────────────────────────</span>
 
 Phase 1  起動引数の検収と対象確定
-   │  4引数の実在確認 → マニフェスト検収 → 言語判定 → 対象ユニット確定
+   │  3引数の実在確認 → マニフェスト検収 → 配下ユニット確定 → 対象機能確定
    ▼
-Phase 2  原本読解
-   │  ユニットごとに原本を読み、file:line根拠付きの材料を抽出
+Phase 2  集約材料の収集
+   │  構成要素の突合 → 共通処理/共有状態の集約対象を特定 → 不足分を要確認事項へ
    ▼
 Phase 3  執筆
-   │  テンプレート展開 → §1〜§9記入 → 空欄を§10要確認事項へ
+   │  テンプレート展開 → §1〜§10記入 → 空欄を§11要確認事項へ
    ▼
 Phase 4  検証
-   │  検査1 章の完備 / 検査2 根拠の実在 / 検査3 プレースホルダの残存
+   │  検査1 章の完備 / 検査2 全章の充足 / 検査3 参照実在 / 検査4 プレースホルダの残存
    │  不合格ならPhase 3へ差し戻し（上限3回）
    ▼
-完了  対象エンドポイントごとに根拠付きの実装契約と要確認事項を持つ設計書</pre>
+完了  機能ごとに構成要素の参照と、機能側に1箇所だけ集約した共通処理・共有状態を持つ設計書</pre>
 </section>
 
 <section id="s6">
   <h2><span class="sec-num">§6</span>検証</h2>
-  <p>Phase 4 で実行する 3 つの機械検査。1 つでも不合格なら Phase 3 へ差し戻し、上限 3 回で収束しなければ <code>status=ERROR</code> とする。</p>
+  <p>Phase 4 で実行する 4 つの機械検査。1 つでも不合格なら Phase 3 へ差し戻し、上限 3 回で収束しなければ <code>status=ERROR</code> とする。</p>
   <table class="spec">
     <tr><th>検査</th><th>内容</th></tr>
-    <tr><td><strong>検査1 章の完備</strong></td><td>生成した各設計書に §1 から §10 が存在し、あわせて付録 A・B も存在する。§ の章は <code>grep -c '^## §'</code> が 10 を返すことで確認し、付録は <code>grep -c '^## 関連資料\|^## 章マップ'</code> が 2 を返すことで確認する。付録の見出しは <code>§</code> を持たないため、前者の条件だけでは付録の存在を検証できない</td></tr>
-    <tr><td><strong>検査2 根拠の実在</strong></td><td>記入した <code>file:line</code> 形式の根拠について、ファイルが <code>source_dir</code> 配下に実在することを確認する。実在しない根拠が 1 件でもあれば不合格とする</td></tr>
-    <tr><td><strong>検査3 プレースホルダの残存</strong></td><td><code>APIKEY</code>・<code>APIID</code>・<code>METHOD</code>・<code>PATH</code>・<code>FEATUREKEY</code>・<code>SOURCEREF</code> が本文に残っていないことを確認する</td></tr>
+    <tr><td><strong>検査1 章の完備</strong></td><td>生成した各設計書に §1 から §11 が存在し、あわせて付録 A・B も存在する。§ の章は <code>grep -c '^## §'</code> が 11 を返すことで確認し、付録は <code>grep -c '^## 関連資料\|^## 章マップ'</code> が 2 を返すことで確認する</td></tr>
+    <tr><td><strong>検査2 全章の充足</strong></td><td>§1 から §11 の各章について、表の本文行が 1 行以上あるか、または当該章に対応する項目が §11 要確認事項へ回っているかのいずれかを満たす。どちらも満たさない空章があれば不合格とする</td></tr>
+    <tr><td><strong>検査3 参照実在</strong></td><td>§2.1 に記載した個別設計書のパスが実在する。<code>design_docs_root</code> が渡されていない場合は本検査を skip し、その旨を返却の hint に記録する</td></tr>
+    <tr><td><strong>検査4 プレースホルダの残存</strong></td><td><code>FEATUREKEY</code>・<code>FEATUREID</code>・<code>CATEGORY</code>・<code>SOURCEREF</code> が本文に残っていない</td></tr>
   </table>
 </section>
 
 <section id="s7">
   <h2><span class="sec-num">§7</span>制約と既知の限界</h2>
   <ul>
-    <li>実装済みの言語プロファイルは python と perl の 2 つで、どちらにも該当しない言語だけ <code>status=ERROR</code> を返して中断する</li>
-    <li>呼び出しの追跡は 2 段までとし、それ以上は要確認事項へ積む</li>
-    <li>盲検ではないため、画面詳細設計書と同じ品質保証を期待できない</li>
-    <li><code>middleware</code> と <code>unresolved</code> のユニットは対象外とする</li>
+    <li>原本コードを読まないため、個別設計書の質が本書の質の上限になる</li>
+    <li>構成要素の個別設計書が 1 枚も無い場合でも中断せず、要確認事項だけを持つ設計書を生成する</li>
+    <li>往復検証の対象外である。機能には対応する原本ファイルが存在せず、突合の相手がない</li>
+    <li>検査3 の参照実在は <code>design_docs_root</code> が渡されない場合に skip する</li>
   </ul>
 </section>
 
