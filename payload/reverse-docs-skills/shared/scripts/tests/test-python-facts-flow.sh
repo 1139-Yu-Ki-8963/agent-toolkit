@@ -22,6 +22,7 @@ RESTORE_SCREEN_MANIFEST="$SCRIPT_DIR/../unit-list/restore-screen-manifest.sh"
 SURVEY_CHECK="$REPO_ROOT/.claude/skills/surveying-architecture-for-reverse-docs/scripts/check-architecture-survey.sh"
 
 tmp="$(mktemp -d "${TMPDIR:-/tmp}/python-facts-flow.XXXXXX")"
+tmp="$(cd "$tmp" && pwd -P)"
 trap 'rm -rf "$tmp"' EXIT
 fixture_repo="$tmp/repo"
 facts_dir="$tmp/verification/screen-python-fixture/facts/extract-1"
@@ -216,13 +217,13 @@ else
 fi
 
 # 統括到達性: pythonは明示facts-only入口、通常の画面ループは常にscreen。
-phase_0p="$(sed -n '/^### Phase 0P:/,/^### Phase 1B:/p' "$ORCHESTRATOR")"
-phase_6="$(sed -n '/^### Phase 6:/,/^### Phase 7:/p' "$ORCHESTRATOR")"
+phase_0p="$(sed -n '/^### 明示Python facts-only経路/,/^## Phase 2:/p' "$ORCHESTRATOR")"
+phase_6="$(sed -n '/^## Step 5-1:/,/^## Step 5-2:/p' "$ORCHESTRATOR")"
 if grep -q 'profile=python' <<<"$phase_0p" \
   && grep -q 'survey_doc_path.*解決' <<<"$phase_0p" \
   && grep -q 'surveying-architecture-for-reverse-docs' <<<"$phase_0p" \
   && grep -q '画面一覧生成・対象画面ID実在確認' <<<"$phase_0p" \
-  && grep -q '常に`profile=screen`' <<<"$phase_6" \
+  && grep -q '常に.*profile=screen' <<<"$phase_6" \
   && ! grep -q '全件.*py.*pythonへ確定' <<<"$phase_6"; then
   report "1-29/1-45 pythonは明示facts-only、画面ループはscreen固定" 0
 else
@@ -238,13 +239,13 @@ guide_extract_pos="$(grep -n -m1 'facts抽出へ進み' "$ORCHESTRATOR_GUIDE" | 
 
 if grep -q 'Python facts-only入口契約' "$ORCHESTRATOR_CONTRACT" \
   && grep -q '通常の画面フローを意味し、画面ループ.*常に.*screen' "$ORCHESTRATOR_CONTRACT" \
-  && grep -q 'Phase 0P（明示Python facts-only）' "$ORCHESTRATOR_GUIDE" \
+  && grep -q 'global Step 2（明示Python facts-only）' "$ORCHESTRATOR_GUIDE" \
   && grep -q 'target_file_paths・facts_unit_id・verification_dir・実行モード' "$ORCHESTRATOR" \
-  && grep -q 'フル実行（facts_profile=python）.*Phase 0P' "$ORCHESTRATOR" \
+  && grep -q 'フル実行（facts_profile=python）.*明示Python facts-only経路' "$ORCHESTRATOR" \
   && grep -q '起動引数が空の対話実行ではAskUserQuestion' "$ORCHESTRATOR_CONTRACT" \
-  && grep -q 'フル実行の事前ヒアリング完了後はPhase 1でなくPhase 0P' "$ORCHESTRATOR_CONTRACT" \
+  && grep -q 'フル実行の事前ヒアリング完了後はglobal Step 3以降へ進まず明示Python facts-only経路' "$ORCHESTRATOR_CONTRACT" \
   && grep -q '起動引数が空の対話実行ではprofileを質問' "$ORCHESTRATOR_GUIDE" \
-  && grep -q 'フル実行はPhase 1ではなくPhase 0P' "$ORCHESTRATOR_GUIDE" \
+  && grep -q 'フル実行は global Step 3 以降へ進まず' "$ORCHESTRATOR_GUIDE" \
   && [ -n "$skill_survey_pos" ] && [ -n "$skill_extract_pos" ] \
   && [ -n "$contract_survey_pos" ] && [ -n "$contract_extract_pos" ] \
   && [ -n "$guide_survey_pos" ] && [ -n "$guide_extract_pos" ] \
@@ -257,10 +258,10 @@ else
 fi
 
 # 1-40/1-41: 著述合流後、静的完了より前にmetadata抽出と一覧再生成を必須化。
-static_gate="$(sed -n '/^\*\*静的完了ゲート\*\*/,/^\*\*(a)/p' "$ORCHESTRATOR")"
+static_gate="$(sed -n '/^\*\*静的完了ゲート\*\*/,/^## Phase 6:/p' "$ORCHESTRATOR")"
 if grep -q 'extract-screen-metadata.sh' <<<"$static_gate" \
   && grep -q 'build-unit-list.sh' <<<"$static_gate" \
-  && grep -q 'Phase 3 Step 6' <<<"$static_gate" \
+  && grep -q 'global Step 9' <<<"$static_gate" \
   && grep -q 'screen-manifest.json' "$ORCHESTRATOR_CONTRACT" \
   && grep -q 'restore-screen-manifest.sh' "$ORCHESTRATOR_CONTRACT" \
   && grep -q '明示的な移行・復元時' "$ORCHESTRATOR_CONTRACT" \

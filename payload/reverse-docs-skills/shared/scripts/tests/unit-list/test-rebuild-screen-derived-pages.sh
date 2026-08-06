@@ -8,6 +8,11 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../../../.." && pwd)"
 tmp="$(mktemp -d "${TMPDIR:-/tmp}/screen-rebuild-test.XXXXXX")"
+# macOSでは/tmpや$TMPDIR配下が/privateへのsymlinkであり、build-portal.shの
+# assertNoLexicalSymlink（書込先の祖先path componentにsymlinkを許さないfail-closed検査）が
+# symlink祖先を理由にrebuildそのものを拒否してしまう(改善課題1-97)。
+# mktemp直後に物理pathへ解決し、以降のrun_rebuild出力がsymlink祖先を持たないようにする。
+tmp="$(cd "$tmp" && pwd -P)"
 trap 'rm -rf "$tmp"' EXIT
 
 # フィクスチャは shared/samples/ 配下のchecked-in raw manifestを正本として直接参照する。

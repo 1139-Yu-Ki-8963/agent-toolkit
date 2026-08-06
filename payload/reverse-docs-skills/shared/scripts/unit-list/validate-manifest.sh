@@ -45,12 +45,12 @@
 #   8. 任意フィールド-型         : スキーマ拡張(shared/references/manifest-schema-extensions.md
 #                                   「種別ごとの追加フィールド定義」が正本)の任意フィールドが要素に
 #                                   存在する場合のみ型を検査する(不在はエラーにしない。後方互換):
-#                                   - 文字列配列: permissions/relatedApis/callers/foreignKeys/
-#                                     mainColumns/targetTables/downstreamJobs
+#                                   - 文字列配列: permissions/confirmedPermissions/relatedApis/callers/
+#                                     foreignKeys/mainColumns/targetTables/downstreamJobs
 #                                   - boolean: authRequired/hasTemplate/isProcessingEndpoint / 数値: columnCount
 #                                   - 文字列: method/ioSummary/designDocStatus/category/format/
 #                                     trigger/direction/protocol/authMethod/execMethod/operationClass
-#                                   - object({cron, readable}を持つ): schedule
+#                                   - object({cron, readable}を持つ): schedule/confirmedSchedule
 #                                   - 2値制約: designDocStatus(着手済/未着手)・trigger(画面/バッチ)・
 #                                     direction(送信/受信)
 #   9. 名称-一意性               : 表示名(screen: confirmedScreenName優先・無ければscreenNameGuess /
@@ -492,7 +492,7 @@ run_validate() {
     [ .[$items][]? |
       (.[$keyfield] // "?") as $k
       | (
-          [ ("permissions","relatedApis","callers","foreignKeys","mainColumns","targetTables","downstreamJobs") as $f
+          [ ("permissions","confirmedPermissions","relatedApis","callers","foreignKeys","mainColumns","targetTables","downstreamJobs") as $f
             | select(has($f) and (.[$f] != null)) | select((.[$f] | is_str_arr) | not)
             | $f + "が文字列配列でない" ]
         + [ ("authRequired","hasTemplate","isProcessingEndpoint") as $f
@@ -511,6 +511,9 @@ run_validate() {
         + [ select(has("schedule") and (.schedule != null))
             | select(((.schedule | type) != "object") or (((.schedule | has("cron")) and (.schedule | has("readable"))) | not))
             | "scheduleが{cron, readable}を持つobjectでない" ]
+        + [ select(has("confirmedSchedule") and (.confirmedSchedule != null))
+            | select(((.confirmedSchedule | type) != "object") or (((.confirmedSchedule | has("cron")) and (.confirmedSchedule | has("readable"))) | not))
+            | "confirmedScheduleが{cron, readable}を持つobjectでない" ]
         + [ select(has("designDocStatus") and ((.designDocStatus | type) == "string"))
             | .designDocStatus as $v | select((["着手済","未着手"] | index($v)) == null)
             | "designDocStatusが2値(着手済/未着手)外" ]
@@ -1330,6 +1333,27 @@ JSON
   else
     echo "  [FAIL] 拡張フィールドnull陽性: 任意フィールドの明示的nullがFAILした" >&2
     rc=1
+  fi
+
+  # ---- 1-170: confirmedPermissions/confirmedScheduleの型検査の確認 ----
+  local api_confirmed_pass="$tmp/api-confirmed-pass.json"
+  jq '.units[0] += {"confirmedPermissions": ["admin"], "confirmedSchedule": {"cron": "0 3 * * *", "readable": "毎日 3:00"}}' \
+    "$api_pass" > "$api_confirmed_pass"
+  if run_validate "$api_confirmed_pass" "" "api" >/dev/null 2>&1; then
+    echo "  [PASS] 1-170: confirmedPermissions(文字列配列)・confirmedSchedule(cron/readable)が正しい型ならPASS"
+  else
+    echo "  [FAIL] 1-170: 正しい型のconfirmedPermissions/confirmedScheduleがFAILした" >&2
+    rc=1
+  fi
+
+  local api_confirmed_bad="$tmp/api-confirmed-bad.json"
+  jq '.units[0] += {"confirmedPermissions": [1, 2], "confirmedSchedule": {"cron": "0 3 * * *"}}' \
+    "$api_pass" > "$api_confirmed_bad"
+  if run_validate "$api_confirmed_bad" "" "api" >/dev/null 2>&1; then
+    echo "  [FAIL] 1-170: confirmedPermissions(数値配列)・confirmedSchedule(readable欠落)なのにPASSした" >&2
+    rc=1
+  else
+    echo "  [PASS] 1-170: confirmedPermissions/confirmedScheduleの型違反でFAIL"
   fi
 
   # ---- 検査10(実装参照-統合候補)の確認(1-54) ----

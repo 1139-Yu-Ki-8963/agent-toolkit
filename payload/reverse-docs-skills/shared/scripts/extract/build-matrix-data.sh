@@ -11,7 +11,7 @@
 # 入力契約: 各マニフェストは shared/scripts/unit-list/validate-manifest.sh で PASS する
 #   拡張済みマニフェスト(スキーマ正本: shared/references/manifest-schema-extensions.md)。
 #   導出の根拠に使う任意フィールド:
-#     screen-manifest:  screens[].permissions / relatedApis / sourceHash
+#     screen-manifest:  screens[].permissions(confirmedPermissionsがあれば優先) / relatedApis / sourceHash
 #     api-manifest:     units[].method / targetTables
 #     feature-manifest: units[].relatedApis
 #     table-manifest:   units[].unitKey(targetTables の収載確認のみ。出力には影響しない)
@@ -28,13 +28,14 @@
 #   method は5動詞、targetTables は空白トリム後に非空の文字列配列に限る。
 #   不正値または対象APIの必須値欠落があれば、出力公開前に非ゼロ終了する。
 #   1. permission-matrix.json
-#      - roles: --roles 指定値。未指定なら全 screens の permissions に現れるロール集合
-#        + 暗黙ロール member/guest の和集合(重複除去・アルファベット順で決定的)
+#      - roles: --roles 指定値。未指定なら全 screens の実効permissions(confirmedPermissions
+#        優先・無ければpermissions)に現れるロール集合 + 暗黙ロール member/guest の和集合
+#        (重複除去・アルファベット順で決定的)
 #      - screens[]: 全画面を出力する。screenId/screenName は screenKey、route は
-#        route(無ければ空文字)。permissions フィールドを持つ画面は
-#        {ロール: 真偽値} オブジェクト(空配列なら全ロール true、非空なら該当ロールを
-#        含む時のみ true)。permissions 未抽出の画面は誤った全許可を出さないため
-#        permissions: null(権限未設定)として出力する
+#        route(無ければ空文字)。permissions または confirmedPermissions を持つ画面は
+#        {ロール: 真偽値} オブジェクト(confirmedPermissionsがあればpermissionsより優先。
+#        空配列なら全ロール true、非空なら該当ロールを含む時のみ true)。どちらも
+#        未抽出の画面は誤った全許可を出さないため permissions: null(権限未設定)として出力する
 #      - features[].crud: feature.relatedApis の API 群の method から C=POST / R=GET /
 #        U=PUT・PATCH / D=DELETE を合成(文字は常に C→R→U→D 順)。ロール別には、その
 #        API を relatedApis に持つ画面のいずれかにそのロールがアクセス可能な場合のみ
@@ -111,7 +112,7 @@ self_test() {
     generatedAt: "2026-01-01T00:00:00Z",
     sourceDir: $sourceDir,
     strategy: {extractionMethod: "custom", approvedByUser: true, screenIdRegex: null, excludePatterns: []},
-    detectionSummary: {screenCount: 3, clusterCount: 0, sharedScreenCount: 0, embeddedCandidateCount: 0, unresolvedCount: 0},
+    detectionSummary: {screenCount: 5, clusterCount: 0, sharedScreenCount: 0, embeddedCandidateCount: 0, unresolvedCount: 0},
     screens: [
       {screenKey: "user-admin", kind: "route", route: "/admin/users", entryFile: "screens/UserAdmin.tsx",
        confidence: "high", screenType: "top", accountGroup: "admin", accountSubType: "common", hasTemplate: true, parentScreen: null, childComponents: [], isProcessingEndpoint: false,
@@ -121,7 +122,13 @@ self_test() {
        confidence: "high", screenType: "top", accountGroup: "user", accountSubType: "common", hasTemplate: true, parentScreen: null, childComponents: [], isProcessingEndpoint: false,
        permissions: [], relatedApis: ["users-list"], valueProvenance: {permissions: "inferred"}},
       {screenKey: "legacy-report", kind: "route", route: "/legacy/report", entryFile: "screens/Home.tsx",
-       confidence: "low", screenType: "detail", accountGroup: "report", accountSubType: "common", hasTemplate: true, parentScreen: null, childComponents: [], isProcessingEndpoint: false}
+       confidence: "low", screenType: "detail", accountGroup: "report", accountSubType: "common", hasTemplate: true, parentScreen: null, childComponents: [], isProcessingEndpoint: false},
+      {screenKey: "confirmed-override", kind: "route", route: "/confirmed/override", entryFile: "screens/Home.tsx",
+       confidence: "high", screenType: "detail", accountGroup: "user", accountSubType: "common", hasTemplate: true, parentScreen: null, childComponents: [], isProcessingEndpoint: false,
+       permissions: [], confirmedPermissions: ["admin"], valueProvenance: {permissions: "inferred"}},
+      {screenKey: "confirmed-only", kind: "route", route: "/confirmed/only", entryFile: "screens/Home.tsx",
+       confidence: "high", screenType: "detail", accountGroup: "user", accountSubType: "common", hasTemplate: true, parentScreen: null, childComponents: [], isProcessingEndpoint: false,
+       confirmedPermissions: ["admin"]}
     ]
   }' > "$sm"
 
@@ -195,7 +202,7 @@ self_test() {
   assert "permission-matrix: roles が検出ロール+暗黙member/guest" \
     jq -e '.roles == ["admin","guest","member"]' "$pm"
   assert "permission-matrix: 全画面(permissions未抽出含む)が screens に出力される" \
-    jq -e '.screens | length == 3' "$pm"
+    jq -e '.screens | length == 5' "$pm"
   assert "permission-matrix: admin限定画面は admin のみ true(screenId/screenName/route 付き)" \
     jq -e '.screens[] | select(.screenId == "user-admin")
            | .screenName == "user-admin" and .route == "/admin/users"
@@ -210,6 +217,12 @@ self_test() {
     jq -e '(.screens[] | select(.screenId == "user-admin") | .valueProvenance.permissions) == "measured"
            and (.screens[] | select(.screenId == "home") | .valueProvenance.permissions) == "inferred"
            and (.screens[] | select(.screenId == "legacy-report") | has("valueProvenance") | not)' "$pm"
+  assert "1-170: confirmedPermissionsが未確定のpermissions([])より優先される(admin限定に上書き)" \
+    jq -e '(.screens[] | select(.screenId == "confirmed-override") | .permissions)
+           == {"admin": true, "guest": false, "member": false}' "$pm"
+  assert "1-170: permissionsが欠落してもconfirmedPermissionsだけでnullにならず権限判定が成立する" \
+    jq -e '(.screens[] | select(.screenId == "confirmed-only") | .permissions)
+           == {"admin": true, "guest": false, "member": false}' "$pm"
 
   # crud-matrix: tables列(物理名解決)・feature単位集約・CRUD文字の合成
   assert "crud-matrix: tables は table-manifest 全収載(physicalName=identifier/logicalName転記)" \
@@ -696,12 +709,12 @@ DS_TRACE="screen-manifest.ext.json + api-manifest.json${TABLE_MANIFEST:+ + table
 if [ -n "$ROLES_CSV" ]; then
   ROLES_JSON="$(printf '%s' "$ROLES_CSV" | jq -R -c 'split(",") | map(gsub("^\\s+|\\s+$"; "")) | map(select(length > 0))')"
 else
-  ROLES_JSON="$(jq -c '([.screens[]? | .permissions // [] | .[]] + ["member", "guest"]) | unique' "$SCREEN_MANIFEST")"
+  ROLES_JSON="$(jq -c '([.screens[]? | ((.confirmedPermissions // .permissions) // []) | .[]] + ["member", "guest"]) | unique' "$SCREEN_MANIFEST")"
 fi
 
 # --- fail-safe の除外理由を stderr へ ---
 total_screens="$(jq '(.screens // []) | length' "$SCREEN_MANIFEST")"
-perm_screens_count="$(jq '[.screens[]? | select(has("permissions"))] | length' "$SCREEN_MANIFEST")"
+perm_screens_count="$(jq '[.screens[]? | select(has("permissions") or has("confirmedPermissions"))] | length' "$SCREEN_MANIFEST")"
 if [ "$perm_screens_count" -lt "$total_screens" ]; then
   echo "NOTE: permissions 未抽出の画面 $((total_screens - perm_screens_count)) 件は permission-matrix で permissions: null(権限未設定)として出力しました(fail-safe: 誤った全許可を出さない)" >&2
 fi
@@ -809,6 +822,8 @@ JQ_DEFS='
     . as $ls | ["C", "R", "U", "D"] | map(select(. as $x | ($ls | index($x)) != null)) | join("");
   def role_access($p; $r):
     (($p | length) == 0) or (($p | index($r)) != null);
+  def effective_permissions:
+    (.confirmedPermissions // .permissions);
 '
 
 # OUTPUT_DIR と同じ親にhidden siblingを作り、3成果物をまとめて公開する。
@@ -842,7 +857,7 @@ jq -n \
   --slurpfile featureManifest "$FEATURE_MANIFEST_FILE" \
   "$JQ_DEFS"'
   ($screenManifest[0].screens // []) as $allScreens
-  | ([ $allScreens[] | select(has("permissions")) ]) as $screens
+  | ([ $allScreens[] | select(has("permissions") or has("confirmedPermissions")) ]) as $screens
   | ($apiManifest[0].units // []) as $apis
   | ($featureManifest[0].units // []) as $features
   | ({
@@ -854,8 +869,8 @@ jq -n \
       | { screenId: .screenKey,
           screenName: .screenKey,
           route: (.route // ""),
-          permissions: (if has("permissions")
-                        then (.permissions as $p
+          permissions: (if (has("permissions") or has("confirmedPermissions"))
+                        then (effective_permissions as $p
                               | [ $roles[] | {key: ., value: role_access($p; .)} ] | from_entries)
                         else null end) }
           + (if (.valueProvenance.permissions // "" ) != ""
@@ -876,7 +891,7 @@ jq -n \
                        value: ([ $fapis[] as $fa
                                  | select(any($screens[];
                                      (((.relatedApis // []) | index($fa.unitKey)) != null)
-                                     and role_access(.permissions; $r)))
+                                     and role_access(effective_permissions; $r)))
                                  | $fa.letter ] | unique | crud_str) }
                  ] | from_entries) }
     ]

@@ -652,11 +652,20 @@ while [ $# -gt 0 ]; do
   esac
 done
 
+# --- 非UTF-8原本の走査対応(改善課題1-131): detect-encoding.sh の走査ヘルパーを読み込む ---
+# source される側では set -e / CLI ディスパッチが波及しないよう detect-encoding.sh 側で
+# ガード済み(BASH_SOURCE[0] != $0 判定)。
+_EXTRACT_API_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=../detect-encoding.sh
+source "$_EXTRACT_API_SCRIPT_DIR/../detect-encoding.sh"
+SCAN_WORKDIR="$(mktemp -d "${TMPDIR:-/tmp}/extract-api-metadata-scan.XXXXXX")"
+
 # 調査書のルーティング方式記載がメソッドチェーン呼び出し系を明示している場合のみ、
 # endpoint_block のメソッド呼び出し境界フォールバックを有効化する(opt-in。深い構文解析はしない)。
 CALL_STYLE_BLOCK_ENABLED="false"
 if [ -n "$SURVEY_DOC_PATH" ] && [ -f "$SURVEY_DOC_PATH" ]; then
-  if grep -A3 -iE 'ルーティング方式' "$SURVEY_DOC_PATH" 2>/dev/null \
+  survey_scan_path="$(to_utf8_for_scan "$SURVEY_DOC_PATH" "$SCAN_WORKDIR")"
+  if grep -A3 -iE 'ルーティング方式' "$survey_scan_path" 2>/dev/null \
     | grep -qiE 'Express|Fastify|Hono|メソッドチェーン|メソッド呼び出し'; then
     CALL_STYLE_BLOCK_ENABLED="true"
   fi
@@ -1032,7 +1041,7 @@ endpoint_block_call_style() {
 
 patches_jsonl="$(mktemp "${TMPDIR:-/tmp}/extract-api-patches.XXXXXX")"
 patches_json="$(mktemp "${TMPDIR:-/tmp}/extract-api-patches-arr.XXXXXX")"
-trap 'rm -f "$patches_jsonl" "$patches_json"' EXIT
+trap 'rm -f "$patches_jsonl" "$patches_json"; rm -rf "$SCAN_WORKDIR"' EXIT
 
 fallback_count=0
 total_count=0
@@ -1043,6 +1052,10 @@ while IFS= read -r row; do
   identifier="$(jq -r '.identifier // ""' <<<"$row")"
   source_file_raw="$(jq -r '.sourceFile // ""' <<<"$row")"
   src_file="$(resolve_source_file "$source_file_raw")"
+  # scan_file: 非UTF-8原本ならUTF-8一時コピー(改善課題1-131)。src_file自体は出力に使う
+  # パスのため変更しない。走査(grep/awk/sed)には常にscan_fileを使う
+  scan_file=""
+  [ -n "$src_file" ] && scan_file="$(to_utf8_for_scan "$src_file" "$SCAN_WORKDIR")"
 
   # --- 1. method: identifier の先頭語 ---
   method=""
@@ -1054,8 +1067,8 @@ while IFS= read -r row; do
       api_path="${identifier#* }"
       ;;
   esac
-  if [ -z "$method" ] && [ -n "$src_file" ]; then
-    method="$(route_method_from_source "$src_file" "$api_path")"
+  if [ -z "$method" ] && [ -n "$scan_file" ]; then
+    method="$(route_method_from_source "$scan_file" "$api_path")"
   fi
 
   # --- 検査範囲の決定: 関数ブロック(正)→ 近傍窓(フォールバック) ---
@@ -1063,14 +1076,14 @@ while IFS= read -r row; do
   # (同一ファイル内の別エンドポイントの認証・テーブル参照の誤帰属防止)
   block=""
   window=""
-  if [ -n "$src_file" ]; then
-    block="$(endpoint_block "$src_file" "$api_path" "$method" || true)"
+  if [ -n "$scan_file" ]; then
+    block="$(endpoint_block "$scan_file" "$api_path" "$method" || true)"
     if [ -z "$block" ] && [ "$CALL_STYLE_BLOCK_ENABLED" = "true" ]; then
-      block="$(endpoint_block_call_style "$src_file" "$api_path" || true)"
+      block="$(endpoint_block_call_style "$scan_file" "$api_path" || true)"
     fi
     if [ -z "$block" ]; then
       echo "WARN: 関数ブロックを特定できないため従来のファイル単位検査にフォールバック: ${identifier} (${src_file})" >&2
-      window="$(endpoint_window "$src_file" "$api_path" || true)"
+      window="$(endpoint_window "$scan_file" "$api_path" || true)"
     fi
   fi
   if [ -z "$block" ]; then
@@ -1100,7 +1113,7 @@ while IFS= read -r row; do
 
   # --- 4. targetTables: テーブル物理名の grep(関数ブロック内。フォールバック時はファイル全体) ---
   tables_json="[]"
-  if [ -n "$TABLE_MANIFEST" ] && [ -n "$src_file" ]; then
+  if [ -n "$TABLE_MANIFEST" ] && [ -n "$scan_file" ]; then
     while IFS= read -r trow; do
       [ -z "$trow" ] && continue
       t_key="$(jq -r '.unitKey // ""' <<<"$trow")"
@@ -1111,7 +1124,7 @@ while IFS= read -r row; do
       if [ -n "$block" ]; then
         printf '%s\n' "$block" | grep -qwF -- "$t_ident" || continue
       else
-        grep -qwF -- "$t_ident" "$src_file" 2>/dev/null || continue
+        grep -qwF -- "$t_ident" "$scan_file" 2>/dev/null || continue
       fi
       tables_json="$(jq -c --arg k "$t_key" '. + [$k]' <<<"$tables_json")"
     done < <(jq -c '(.units // [])[] | select(.kind != "unresolved")' "$TABLE_MANIFEST")

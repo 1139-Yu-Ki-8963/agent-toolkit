@@ -21,15 +21,30 @@ html, body { margin: 0; padding: 0; }
 .chip.active { border-color:var(--accent); background:var(--accent); color:var(--chipontext); font-weight:700; }
 .registry-note { margin:0 0 12px; border-left:4px solid var(--accent); background:var(--panel3); color:var(--sub); padding:9px 12px; font-size:12px; }
 .dp-tablewrap { flex:1; min-height:0; overflow-x:auto; border:1px solid var(--line2); }
-#dict-table { min-width:2380px; }
+#dict-table { min-width:2380px; table-layout:fixed; }
 #dict-table th { white-space:nowrap; }
-#dict-table td { vertical-align:top; }
+#dict-table td { vertical-align:top; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+#dict-table th:nth-child(1),#dict-table td:nth-child(1) { width:130px; }
+#dict-table th:nth-child(2),#dict-table td:nth-child(2) { width:150px; }
+#dict-table th:nth-child(3),#dict-table td:nth-child(3) { width:150px; }
+#dict-table th:nth-child(4),#dict-table td:nth-child(4) { width:470px; }
+#dict-table th:nth-child(5),#dict-table td:nth-child(5) { width:130px; }
+#dict-table th:nth-child(6),#dict-table td:nth-child(6) { width:100px; }
+#dict-table th:nth-child(7),#dict-table td:nth-child(7) { width:150px; }
+#dict-table th:nth-child(8),#dict-table td:nth-child(8) { width:120px; }
+#dict-table th:nth-child(9),#dict-table td:nth-child(9) { width:150px; }
+#dict-table th:nth-child(10),#dict-table td:nth-child(10) { width:150px; }
+#dict-table th:nth-child(11),#dict-table td:nth-child(11) { width:150px; }
+#dict-table th:nth-child(12),#dict-table td:nth-child(12) { width:200px; }
+#dict-table th:nth-child(13),#dict-table td:nth-child(13) { width:110px; }
+#dict-table th:nth-child(14),#dict-table td:nth-child(14) { width:220px; }
+#dict-table td:nth-child(4),#dict-table td:nth-child(12),#dict-table td:nth-child(14) { overflow:visible; text-overflow:clip; white-space:normal; overflow-wrap:anywhere; }
 #dict-table tbody tr[data-interactive="true"] { cursor:pointer; }
 #dict-table tbody tr[data-interactive="true"]:hover td,#dict-table tbody tr[aria-selected="true"] td { background:var(--panel3); }
 #dict-table tbody tr:focus-visible { outline:2px solid var(--accent); outline-offset:-2px; }
 #dict-table code { color:var(--accent); font:11.5px var(--mono); }
 .term-label { font-weight:700; }
-.meaning-key { display:block; border-left:4px solid var(--accent); padding:2px 0 2px 8px; color:var(--accent); font:600 11.5px var(--mono); white-space:nowrap; }
+.meaning-key { display:block; border-left:4px solid var(--accent); padding:2px 0 2px 8px; color:var(--accent); font:600 11.5px var(--mono); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%; }
 .meaning-key.unmigrated { border-left-color:var(--muted); color:var(--muted); }
 .meaning-key.deprecated { border-left-color:var(--warning,var(--accent)); }
 .kind { font-weight:650; }

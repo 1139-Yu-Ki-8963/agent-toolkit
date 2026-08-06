@@ -48,7 +48,13 @@ unit_kind パラメータで screen / batch / report / external を区別する�
 1. `screen_dir` が存在しない場合: `bash <scaffold_script_path> <output_dir> <画面ID>` を実行してテンプレート一式を新規展開する
 2. `screen_dir` が存在する場合: `bash <scaffold_script_path> --verify <output_dir> <画面ID>` で構造の健全性を確認する。exit 1（必須ファイルの欠落等）なら `template_root` 起点の原本から欠落ファイルのみ復元し、`--verify` を再実行する（fail-closed）。再実行してもなお exit 1 なら著述を行わず `status=基本設計著述失敗` とする
 
-統括からの起動では、統括が事前に完了させたスキャフォールディングにより手順1・2のいずれも `--verify` が初回で exit 0 になるため、本手順を経ても二重にスキャフォールディングは発生しない。
+復元（手順2）でコピーした欠落ファイルは、原本のまま `<画面ID>`・`<画面名>`・`<YYYY-MM-DD>` の3種のプレースホルダを含んでおり、コピーしただけでは未置換のまま残る。`--verify` はこの3種の残留を検査しており（`scaffold-screen.sh` の `--verify` 実装、未置換プレースホルダ検査）、置換せずに再実行すると「未置換のプレースホルダが残っています」で exit 1 になる。新規展開の経路（手順1）は `scaffold-screen.sh` が展開と同じ処理内でこの3種を自動置換するため対応不要だが、復元の経路（手順2）はコピーのみを本スキルが行うため、`--verify` を再実行する前に本スキル自身がコピーした欠落ファイルへ次の値で置換する。
+
+- `<画面ID>`: 本手順冒頭で `screen_dir` の末尾から復元した画面ID
+- `<画面名>`: 本スキルの起動引数に画面名は含まれないため、`<画面ID>` と同じ値を充てる（`scaffold-screen.sh` 自身も画面名省略時は screen_id を既定値として使う仕様と同型）
+- `<YYYY-MM-DD>`: 復元作業を実施した日付（`date +%Y-%m-%d` で取得した値）
+
+統括からの起動では、統括が事前に完了させたスキャフォールディングにより手順1・2のいずれも `--verify` が初回で exit 0 になるため、本手順（復元とプレースホルダ置換）を経ても二重にスキャフォールディングは発生しない。
 
 `shared/scripts/seal-facts.sh verify <facts_ref>` を実行し exit 0 を確認する（必須ゲート）。exit 1（facts.yml が封印時から改変されている）なら著述を行わず `status=基本設計著述失敗` とし、hint に「extracting-unit-facts-from-code で再封印せよ」と記す。
 

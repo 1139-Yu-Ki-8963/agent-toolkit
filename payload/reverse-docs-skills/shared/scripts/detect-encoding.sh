@@ -1,14 +1,23 @@
 #!/usr/bin/env bash
-set -euo pipefail
 
 # detect-encoding.sh — 非UTF-8原本の文字コードを候補復号可否の実測で決定的に判定する共通スクリプト
 #
-# 使い方:
+# 使い方（単独実行）:
 #   detect-encoding.sh encoding <file>              — UTF-8/EUC-JP/Shift_JIS/ISO-2022-JP/UNKNOWNを判定
 #   detect-encoding.sh line-ending <file>            — LF/CRLF/CRを判定
 #   detect-encoding.sh decodable <file> <encoding>   — 指定エンコーディングで復号できるか（0=可, 1=不可）
 #   detect-encoding.sh to-utf8 <file> [出力先]        — UTF-8へ変換（出力先省略時は標準出力）
 #   detect-encoding.sh --self-test
+#
+# 使い方（source される側。改善課題1-131）:
+#   他スクリプトから `source ".../detect-encoding.sh"` すると、CLI ディスパッチ（--self-test・
+#   サブコマンド分岐）は実行されず、関数 to_utf8_for_scan のみが呼び出し元シェルに追加される。
+#   呼び出し元は原本ファイルを grep 等で走査する直前に次のように使う:
+#     scan_file="$(to_utf8_for_scan "$src_file" "$SCAN_WORKDIR")"
+#     grep ... "$scan_file"
+#   $SCAN_WORKDIR は呼び出し元が mktemp -d で用意し、既存の trap ... EXIT に
+#   rm -rf "$SCAN_WORKDIR" を畳み込んで使用後に削除すること（bash は EXIT trap を
+#   上書きするため、新規に trap を追加すると既存の後始末が失われる）。
 #
 # 判定は推測ではなく実際の復号可否で行う。候補の順序は UTF-8 → EUC-JP → Shift_JIS → ISO-2022-JP とし、
 # 最初に復号できたものを採用する（先勝ち。曖昧な場合の優先順位はこの並びに固定する）。
@@ -23,10 +32,21 @@ set -euo pipefail
 #   廃棄条件: 対象リポジトリがUTF-8に統一され、非UTF-8原本を扱わなくなった時。
 #
 # macOS bash 3.2 互換（mapfile 不使用）。
+#
+# 実行 vs source の判定: BASH_SOURCE[0] と $0 が一致するのは直接実行時のみ。source された
+# 場合は一致しないため、この分岐で set -e・python3 必須チェック・CLI ディスパッチを
+# 呼び出し元シェルへ波及させない。
+if [ "${BASH_SOURCE[0]}" = "${0}" ]; then
+  set -euo pipefail
+fi
 
 if ! command -v python3 >/dev/null 2>&1; then
   echo "ERROR: python3 is required but not found in PATH" >&2
-  exit 1
+  if [ "${BASH_SOURCE[0]}" = "${0}" ]; then
+    exit 1
+  else
+    return 1
+  fi
 fi
 
 # ---------------------------------------------------------------------------
@@ -131,6 +151,44 @@ else:
 
 _run_py() {
   python3 -c "$_PY_MAIN" "$@"
+}
+
+# ---------------------------------------------------------------------------
+# to_utf8_for_scan <file> <workdir>
+#   走査スクリプト（extract/*.sh 等）が原本ファイルを grep 等で走査する直前に呼ぶヘルパー。
+#   <file> が UTF-8 以外の判定可能なエンコーディング（EUC-JP/Shift_JIS/ISO-2022-JP）なら、
+#   UTF-8 へ変換した一時コピーを <workdir> 内に作成し、そのパスを標準出力へ返す。
+#   <file> が UTF-8、または候補復号できず判定不能（UNKNOWN）の場合は <file> をそのまま返す
+#   （UNKNOWN は変換できないため、原本パスのまま渡してフォールバックさせる。呼び出し元は
+#   このケースでも警告が出ないよう grep 呼び出し側で LC_ALL=C 等の対処を検討すること）。
+#   常に exit 0（変換失敗時も原本パスを返してフォールバックさせるため、呼び出し元の
+#   set -e を止めない）。<workdir> は呼び出し元が用意し、使用後に rm -rf すること。
+# ---------------------------------------------------------------------------
+to_utf8_for_scan() {
+  local file="$1" workdir="$2"
+  if [ -z "$file" ] || [ ! -f "$file" ]; then
+    printf '%s' "$file"
+    return 0
+  fi
+  local enc
+  enc="$(_run_py encoding "$file" 2>/dev/null || true)"
+  case "$enc" in
+    UTF-8|UNKNOWN|"")
+      printf '%s' "$file"
+      ;;
+    *)
+      mkdir -p "$workdir" 2>/dev/null || true
+      local key dest
+      key="$(printf '%s' "$file" | cksum | awk '{print $1}')"
+      dest="$workdir/scan-${key}.utf8"
+      if _run_py to-utf8 "$file" "$dest" 2>/dev/null; then
+        printf '%s' "$dest"
+      else
+        printf '%s' "$file"
+      fi
+      ;;
+  esac
+  return 0
 }
 
 # ---------------------------------------------------------------------------
@@ -283,6 +341,33 @@ sys.stdout.buffer.write('日本語のテストです。全角文字を含みま�
     rc=1
   fi
 
+  # --- to_utf8_for_scan: 走査ヘルパー（改善課題1-131） ---
+  scan_workdir="$tmp/scan-workdir"
+  scan_path_euc="$(to_utf8_for_scan "$tmp/eucjp.txt" "$scan_workdir")"
+  if [ -f "$scan_path_euc" ] && [ "$scan_path_euc" != "$tmp/eucjp.txt" ] \
+    && [ "$(cat "$scan_path_euc")" = "$expected_text" ]; then
+    echo "  [PASS] to_utf8_for_scan: EUC-JPファイルをUTF-8一時コピーへ変換して返す"
+  else
+    echo "  [FAIL] to_utf8_for_scan: EUC-JPファイルの変換結果が不正 (got=${scan_path_euc})" >&2
+    rc=1
+  fi
+
+  scan_path_utf8="$(to_utf8_for_scan "$tmp/utf8.txt" "$scan_workdir")"
+  if [ "$scan_path_utf8" = "$tmp/utf8.txt" ]; then
+    echo "  [PASS] to_utf8_for_scan: UTF-8ファイルは原本パスをそのまま返す"
+  else
+    echo "  [FAIL] to_utf8_for_scan: UTF-8ファイルなのに変換コピーへ差し替えられた" >&2
+    rc=1
+  fi
+
+  scan_path_unknown="$(to_utf8_for_scan "$tmp/unknown.bin" "$scan_workdir")"
+  if [ "$scan_path_unknown" = "$tmp/unknown.bin" ]; then
+    echo "  [PASS] to_utf8_for_scan: 判定不能バイト列は原本パスをそのまま返す（フォールバック）"
+  else
+    echo "  [FAIL] to_utf8_for_scan: 判定不能バイト列の戻り値が不正 (got=${scan_path_unknown})" >&2
+    rc=1
+  fi
+
   if [ "$rc" -eq 0 ]; then
     echo "self-test 全項目 PASS"
   else
@@ -291,41 +376,46 @@ sys.stdout.buffer.write('日本語のテストです。全角文字を含みま�
   return "$rc"
 }
 
-if [ "${1:-}" = "--self-test" ]; then
-  self_test
-  exit $?
-fi
+# CLI ディスパッチ（--self-test・サブコマンド分岐）は直接実行時のみ走らせる。
+# source された場合はここで抜け、呼び出し元シェルには関数（_run_py・to_utf8_for_scan等）
+# だけが残る。
+if [ "${BASH_SOURCE[0]}" = "${0}" ]; then
+  if [ "${1:-}" = "--self-test" ]; then
+    self_test
+    exit $?
+  fi
 
-sub="${1:-}"
-case "$sub" in
-  encoding|to-utf8)
-    file="${2:?使い方: detect-encoding.sh $sub <file> [出力先]}"
-    if [ ! -f "$file" ]; then
-      echo "ERROR: file not found: $file" >&2
-      exit 2
-    fi
-    _run_py "$@"
-    ;;
-  line-ending)
-    file="${2:?使い方: detect-encoding.sh line-ending <file>}"
-    if [ ! -f "$file" ]; then
-      echo "ERROR: file not found: $file" >&2
-      exit 2
-    fi
-    _run_py "$@"
-    ;;
-  decodable)
-    file="${2:?使い方: detect-encoding.sh decodable <file> <encoding>}"
-    enc="${3:?使い方: detect-encoding.sh decodable <file> <encoding>}"
-    if [ ! -f "$file" ]; then
-      echo "ERROR: file not found: $file" >&2
-      exit 2
-    fi
-    _run_py "$@"
-    ;;
-  *)
-    echo "使い方: detect-encoding.sh {encoding|line-ending|decodable|to-utf8} <file> [args...]" >&2
-    echo "        detect-encoding.sh --self-test" >&2
-    exit 1
-    ;;
-esac
+  sub="${1:-}"
+  case "$sub" in
+    encoding|to-utf8)
+      file="${2:?使い方: detect-encoding.sh $sub <file> [出力先]}"
+      if [ ! -f "$file" ]; then
+        echo "ERROR: file not found: $file" >&2
+        exit 2
+      fi
+      _run_py "$@"
+      ;;
+    line-ending)
+      file="${2:?使い方: detect-encoding.sh line-ending <file>}"
+      if [ ! -f "$file" ]; then
+        echo "ERROR: file not found: $file" >&2
+        exit 2
+      fi
+      _run_py "$@"
+      ;;
+    decodable)
+      file="${2:?使い方: detect-encoding.sh decodable <file> <encoding>}"
+      enc="${3:?使い方: detect-encoding.sh decodable <file> <encoding>}"
+      if [ ! -f "$file" ]; then
+        echo "ERROR: file not found: $file" >&2
+        exit 2
+      fi
+      _run_py "$@"
+      ;;
+    *)
+      echo "使い方: detect-encoding.sh {encoding|line-ending|decodable|to-utf8} <file> [args...]" >&2
+      echo "        detect-encoding.sh --self-test" >&2
+      exit 1
+      ;;
+  esac
+fi

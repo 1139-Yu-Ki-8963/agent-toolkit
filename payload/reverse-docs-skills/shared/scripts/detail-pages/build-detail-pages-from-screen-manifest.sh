@@ -110,7 +110,6 @@ jq -S --arg generatedAt "$generated_at" --arg manifestContentHash "$hash" \
   . as $manifest
   | [
     $manifest.screens[]?
-    | select(.kind == "route" or .kind == "embedded-view")
     | select(((.route // "") | length) > 0)
     | category as $cat
     | {unitKey:.screenKey,label:screen_label,route:.route,category:$cat.value,categorySrc:$cat.src}

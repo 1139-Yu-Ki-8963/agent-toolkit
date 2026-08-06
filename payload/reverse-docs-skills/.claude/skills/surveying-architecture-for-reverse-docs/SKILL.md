@@ -77,6 +77,7 @@ allowed-tools: [Bash, Edit, Read, Write]
 | Ruby | `spec/` | `*_spec.rb` | `.rspec`・`Gemfile` のrspec依存 |
 | PHP | `tests/` | `*Test.php` | `phpunit.xml`・`composer.json` の `require-dev` |
 | C#/.NET | `*.Tests/`（プロジェクト単位） | `*Tests.cs`・`*Test.cs` | `*.csproj` のtest系パッケージ参照 |
+| Perl | `t/` | `*.t` | `cpanfile`・`Makefile.PL`・`Build.PL` |
 
 技術スタック節で判定された言語がこの表に無い場合、当該言語の標準テスト規約の網羅は求めない。既定コマンド・言語別規約のいずれでも検出結果が0件、または依存パッケージ配布物配下のみだった場合は、そのまま§9へ「実在しない（理由: …）」と記録する。
 

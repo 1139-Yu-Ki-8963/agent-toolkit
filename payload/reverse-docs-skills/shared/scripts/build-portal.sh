@@ -307,7 +307,7 @@ run_related_material_links_self_test() {
   local test_dir test_repo test_docs test_portal test_detail test_edge test_html test_edge_html test_log
 
   echo "--- 関連資料リンク self-test: 主fixture リンク4/code4・混在セル、補助edge検査 ---"
-  test_dir="$(mktemp -d)"
+  test_dir="$(create_physical_tmpdir)"
   test_repo="$test_dir/repo"
   test_docs="$test_dir/docs"
   test_portal="$test_dir/portal"
@@ -419,6 +419,15 @@ NODE
   rm -rf "$test_dir"
 }
 
+# mktemp -d の戻り値を物理パスへ解決して返す。
+# macOS では /var が /private/var へのシンボリックリンクのため、
+# assertNoLexicalSymlink が書き込み先を拒否する。
+create_physical_tmpdir() {
+  local d
+  d="$(mktemp -d "$@")" || return 1
+  (cd "$d" && pwd -P)
+}
+
 # --- self-test ---
 if [ "${1:-}" = "--self-test-related-material-links" ]; then
   run_related_material_links_self_test
@@ -430,8 +439,8 @@ if [ "${1:-}" = "--self-test" ]; then
     TMPDIR="$(cd "${TMPDIR:-/tmp}" && pwd -P)"
     export TMPDIR
   fi
-  tmpdir="$(mktemp -d)"
-  tmpdir2="$(mktemp -d)"
+  tmpdir="$(create_physical_tmpdir)"
+  tmpdir2="$(create_physical_tmpdir)"
   trap 'rm -rf "$tmpdir" "$tmpdir2"' EXIT
 
   # ケース1: 旧スキーマ互換（既存フィクスチャそのまま。tests/commit/previous なし）
@@ -488,7 +497,7 @@ FIXTURE2
   fi
 
   echo "--- ケース3: 承認済み意味用語のportal discovery ---"
-  test3_dir="$(mktemp -d)"
+  test3_dir="$(create_physical_tmpdir)"
   test3_docs="$test3_dir/docs"
   test3_portal="$test3_dir/portal"
   mkdir -p "$test3_docs" "$test3_portal"
@@ -507,7 +516,7 @@ FIXTURE2
   rm -rf "$test3_dir"
 
   echo "--- ケース4: BOM付き・frontmatter付きmdファイルからのタイトル抽出 ---"
-  test4_dir="$(mktemp -d)"
+  test4_dir="$(create_physical_tmpdir)"
   test4_repo="$test4_dir/repo"
   test4_docs="$test4_dir/docs"
   test4_portal="$test4_dir/portal"
@@ -602,7 +611,7 @@ FIXTURE2
   rm -rf "$test4_dir"
 
   echo "--- ケース5: 共通文書 .md → .html 変換 ---"
-  test5_dir="$(mktemp -d)"
+  test5_dir="$(create_physical_tmpdir)"
   test5_repo="$test5_dir/repo"
   test5_docs="$test5_dir/docs"
   test5_portal="$test5_dir/portal"
@@ -653,7 +662,7 @@ FIXTURE2
   rm -rf "$test5_dir"
 
   echo "--- ケース5b: サブディレクトリ配下の共通文書リンクがパスを保持する ---"
-  test5b_dir="$(mktemp -d)"
+  test5b_dir="$(create_physical_tmpdir)"
   test5b_repo="$test5b_dir/repo"
   test5b_docs="$test5b_dir/docs"
   test5b_portal="$test5b_dir/portal"
@@ -667,7 +676,7 @@ FIXTURE2
   rm -rf "$test5b_dir"
 
   echo "--- ケース5c: 共通文書の戻るリンクが出力先の深さに応じた相対パスになる ---"
-  test5c_dir="$(mktemp -d)"
+  test5c_dir="$(create_physical_tmpdir)"
   test5c_repo="$test5c_dir/repo"
   test5c_docs="$test5c_dir/docs"
   mkdir -p "$test5c_repo" "$test5c_docs/プロジェクト共通/規約"
@@ -685,7 +694,7 @@ FIXTURE2
   rm -rf "$test5c_dir"
 
   echo "--- ケース6: frontmatter 付き md → html で frontmatter が本文に表示されない ---"
-  test6_dir="$(mktemp -d)"
+  test6_dir="$(create_physical_tmpdir)"
   test6_repo="$test6_dir/repo"
   test6_docs="$test6_dir/docs"
   test6_portal="$test6_dir/portal"
@@ -706,7 +715,7 @@ FIXTURE2
   rm -rf "$test6_dir"
 
   echo "--- ケース6b: 単一行 HTML コメントの除去 ---"
-  test6b_dir="$(mktemp -d)"
+  test6b_dir="$(create_physical_tmpdir)"
   test6b_repo="$test6b_dir/repo"
   test6b_docs="$test6b_dir/docs"
   test6b_portal="$test6b_dir/portal"
@@ -727,7 +736,7 @@ FIXTURE2
   rm -rf "$test6b_dir"
 
   echo "--- ケース6c: 複数行 HTML コメントブロックの除去 ---"
-  test6c_dir="$(mktemp -d)"
+  test6c_dir="$(create_physical_tmpdir)"
   test6c_repo="$test6c_dir/repo"
   test6c_docs="$test6c_dir/docs"
   test6c_portal="$test6c_dir/portal"
@@ -748,7 +757,7 @@ FIXTURE2
   rm -rf "$test6c_dir"
 
   echo "--- ケース6d: 行内コメントは除去しない ---"
-  test6d_dir="$(mktemp -d)"
+  test6d_dir="$(create_physical_tmpdir)"
   test6d_repo="$test6d_dir/repo"
   test6d_docs="$test6d_dir/docs"
   test6d_portal="$test6d_dir/portal"
@@ -765,7 +774,7 @@ FIXTURE2
   rm -rf "$test6d_dir"
 
   echo "--- ケース7: 複数行 unit-manifest JSON からの件数抽出 ---"
-  test7_dir="$(mktemp -d)"
+  test7_dir="$(create_physical_tmpdir)"
   test7_repo="$test7_dir/repo"
   test7_docs="$test7_dir/docs"
   test7_portal="$test7_dir/portal"
@@ -795,7 +804,7 @@ TEST7HTML
   rm -rf "$test7_dir"
 
   echo "--- ケース8: screen-manifest + screenCount からの件数抽出 ---"
-  test8_dir="$(mktemp -d)"
+  test8_dir="$(create_physical_tmpdir)"
   test8_repo="$test8_dir/repo"
   test8_docs="$test8_dir/docs"
   test8_portal="$test8_dir/portal"
@@ -825,7 +834,7 @@ TEST8HTML
   rm -rf "$test8_dir"
 
   echo "--- ケース9: マトリクス・対応表・AI設定資産カード（実在時のみ出現、全不在時は空状態表示） ---"
-  test9_dir="$(mktemp -d)"
+  test9_dir="$(create_physical_tmpdir)"
   test9_repo="$test9_dir/repo"
   test9_docs="$test9_dir/docs"
   test9_portal="$test9_dir/portal"
@@ -1061,7 +1070,7 @@ NODE
   rm -rf "$test9_dir"
 
   echo "--- ケース10: catalog外の旧レイアウトを暗黙発見しない ---"
-  test10_dir="$(mktemp -d)"
+  test10_dir="$(create_physical_tmpdir)"
   test10_repo="$test10_dir/repo"
   test10_docs="$test10_dir/docs"
   test10_portal="$test10_dir/portal"
@@ -1086,7 +1095,7 @@ TEST10HTML
   rm -rf "$test10_dir"
 
   echo "--- ケース11: .pt-main の縦スクロール指定 ---"
-  test11_dir="$(mktemp -d)"
+  test11_dir="$(create_physical_tmpdir)"
   test11_repo="$test11_dir/repo"
   test11_docs="$test11_dir/docs"
   test11_portal="$test11_dir/portal"
@@ -1103,7 +1112,7 @@ TEST10HTML
   rm -rf "$test11_dir"
 
   echo "--- ケース12: テスト観点表は正本ディレクトリから派生一覧カードになる ---"
-  test12_dir="$(mktemp -d)"
+  test12_dir="$(create_physical_tmpdir)"
   test12_repo="$test12_dir/repo"
   test12_docs="$test12_dir/docs"
   test12_portal="$test12_dir/portal"
@@ -1123,7 +1132,7 @@ TEST12HTML
   rm -rf "$test12_dir"
 
   echo "--- ケース13: --portal-only は index.html 以外を変更しない ---"
-  test13_dir="$(mktemp -d)"
+  test13_dir="$(create_physical_tmpdir)"
   test13_repo="$test13_dir/repo"
   test13_docs="$test13_dir/docs"
   mkdir -p "$test13_repo" "$test13_docs/プロジェクト共通" "$test13_docs/一覧/用語辞書"
@@ -1141,7 +1150,7 @@ TEST12HTML
   rm -rf "$test13_dir"
 
   echo "--- ケース14: generatedAt と manifestContentHash の受け渡し（ラベルの文言に依存せず、値が埋め込まれていることを確認する） ---"
-  test14_dir="$(mktemp -d)"
+  test14_dir="$(create_physical_tmpdir)"
   test14_repo="$test14_dir/repo"
   test14_docs="$test14_dir/docs"
   mkdir -p "$test14_repo" "$test14_docs"
@@ -1160,7 +1169,7 @@ TEST12HTML
   rm -rf "$test14_dir"
 
   echo "--- ケース15: 埋め込みJSONのscript終端文字列を無害化して復号できる ---"
-  test15_dir="$(mktemp -d)"
+  test15_dir="$(create_physical_tmpdir)"
   test15_repo="$test15_dir/repo"
   test15_docs="$test15_dir/docs"
   mkdir -p "$test15_repo" "$test15_docs/pages"
@@ -1191,7 +1200,7 @@ TEST15CATALOG
   rm -rf "$test15_dir"
 
   echo "--- ケース17: 規約・設計いずれのパターンにも一致しない共通文書が『規約』カテゴリに混入しない ---"
-  test17_dir="$(mktemp -d)"
+  test17_dir="$(create_physical_tmpdir)"
   test17_repo="$test17_dir/repo"
   test17_docs="$test17_dir/docs"
   mkdir -p "$test17_repo" "$test17_docs/プロジェクト共通"
@@ -1217,7 +1226,7 @@ TEST15CATALOG
   rm -rf "$test17_dir"
 
   echo "--- ケース17b: standardsカテゴリが欠落した合成カタログでは、ケース17の検査ロジックがFAILを返す（検査自体の健全性確認・陰性フィクスチャ） ---"
-  test17b_dir="$(mktemp -d)"
+  test17b_dir="$(create_physical_tmpdir)"
   test17b_repo="$test17b_dir/repo"
   test17b_docs="$test17b_dir/docs"
   mkdir -p "$test17b_repo" "$test17b_docs"
@@ -1246,7 +1255,7 @@ TEST17BCATALOG
   rm -rf "$test17b_dir"
 
   echo "--- ケース17c: 想定外タイトルがstandardsカテゴリへ混入した合成カタログでは、ケース17の検査ロジックがFAILを返す（検査自体の健全性確認・陰性フィクスチャ） ---"
-  test17c_dir="$(mktemp -d)"
+  test17c_dir="$(create_physical_tmpdir)"
   test17c_repo="$test17c_dir/repo"
   test17c_docs="$test17c_dir/docs"
   mkdir -p "$test17c_repo" "$test17c_docs/プロジェクト共通"
@@ -1276,7 +1285,7 @@ TEST17CCATALOG
   rm -rf "$test17c_dir"
 
   echo "--- ケース17d: 合成カタログ経由でも汚染が無ければケース17の検査ロジックはPASSする（正常系） ---"
-  test17d_dir="$(mktemp -d)"
+  test17d_dir="$(create_physical_tmpdir)"
   test17d_repo="$test17d_dir/repo"
   test17d_docs="$test17d_dir/docs"
   mkdir -p "$test17d_repo" "$test17d_docs/プロジェクト共通"
@@ -1306,7 +1315,7 @@ TEST17DCATALOG
   rm -rf "$test17d_dir"
 
   echo "--- ケース18: 規約20種の正規配置をstandardsカテゴリへ反映する ---"
-  test18_dir="$(mktemp -d)"
+  test18_dir="$(create_physical_tmpdir)"
   test18_repo="$test18_dir/repo"
   test18_docs="$test18_dir/docs"
   test18_portal="$test18_dir/portal"
@@ -1381,7 +1390,7 @@ NODE
   echo "--- ケース16: ポータル規約検査 ---"
   CONVENTIONS_TEST="$SCRIPT_DIR/tests/test-portal-conventions.sh"
   if [ -f "$CONVENTIONS_TEST" ]; then
-    test16_dir="$(mktemp -d)"
+    test16_dir="$(create_physical_tmpdir)"
     test16_repo="$test16_dir/repo"
     test16_docs="$test16_dir/docs"
     test16_portal="$test16_dir/portal"
@@ -1414,7 +1423,7 @@ NODE
   fi
 
   echo "--- ケース20: サイドバーとメインコンテンツの見出し番号が全カテゴリで一致する（DOM比較） ---"
-  test20_dir="$(mktemp -d)"
+  test20_dir="$(create_physical_tmpdir)"
   test20_repo="$test20_dir/repo"
   test20_docs="$test20_dir/docs"
   mkdir -p "$test20_repo" "$test20_docs/docs"
@@ -1641,7 +1650,7 @@ NODE
   run_related_material_links_self_test
 
   echo "--- ケース24: nav件数とカード件数の一致（写真指摘1-98の検収方法。blueprint定義があるのに実体が無いカテゴリを含む合成カタログ） ---"
-  test24_dir="$(mktemp -d)"
+  test24_dir="$(create_physical_tmpdir)"
   test24_repo="$test24_dir/repo"
   test24_docs="$test24_dir/docs"
   mkdir -p "$test24_repo" "$test24_docs/a" "$test24_docs/b"
@@ -1688,7 +1697,7 @@ TEST24CATALOG
   rm -rf "$test24_dir"
 
   echo "--- ケース25: 全ページのシェル表示値の単一性（写真指摘1-99の検収方法。カテゴリ別件数・総資料数・更新日が全ページで一致し、一部ページ再生成後もbuild-portal.sh再実行でPASSする） ---"
-  test25_dir="$(mktemp -d)"
+  test25_dir="$(create_physical_tmpdir)"
   test25_repo="$test25_dir/repo"
   test25_docs="$test25_dir/docs"
   mkdir -p "$test25_repo/src/routes" "$test25_docs/一覧/API一覧"
@@ -1772,7 +1781,7 @@ TEST24CATALOG
   rm -rf "$test25_dir"
 
   echo "--- ケース26: クラスタ数0のとき関与件数の注記を出さない（写真指摘1-106の検収方法1） ---"
-  test26_dir="$(mktemp -d)"
+  test26_dir="$(create_physical_tmpdir)"
   mkdir -p "$test26_dir/src/screens"
   echo "export function A() { return null; }" > "$test26_dir/src/screens/A.tsx"
   echo "export function B() { return null; }" > "$test26_dir/src/screens/B.tsx"
@@ -1836,7 +1845,7 @@ TEST24CATALOG
   rm -rf "$test26_dir"
 
   echo "--- ケース27: 未計測タイルに計測手段の案内が出る（写真指摘1-106の検収方法2） ---"
-  test27_dir="$(mktemp -d)"
+  test27_dir="$(create_physical_tmpdir)"
   mkdir -p "$test27_dir/repo/misc" "$test27_dir/docs" "$test27_dir/portal"
   echo "const x = 1;" > "$test27_dir/repo/misc/util.ts"
   # code-metrics.json をあえて配置しない(=テスト規模が未計測の状態を再現)
@@ -1870,7 +1879,7 @@ TEST24CATALOG
   rm -rf "$test27_dir"
 
   echo "--- ケース28: 必須成分が全て0件の合成データではマトリクスページが生成されない（写真指摘1-101の検収方法1） ---"
-  test28_dir="$(mktemp -d)"
+  test28_dir="$(create_physical_tmpdir)"
   test28_matrix_script="$SCRIPT_DIR/matrix/build-matrix-pages.sh"
   test28_out="$test28_dir/CRUD図.html"
   jq -n '{generatedAt: "2026-01-01T00:00:00Z", dataSource: "test", tables: [], features: []}' \
@@ -1894,7 +1903,7 @@ TEST24CATALOG
   rm -rf "$test28_dir"
 
   echo "--- ケース29: 全成分ありの合成データでは現行同等にマトリクスページが生成される（写真指摘1-101の検収方法2。一部成分欠落時の空状態表示も検査） ---"
-  test29_dir="$(mktemp -d)"
+  test29_dir="$(create_physical_tmpdir)"
   test29_matrix_script="$SCRIPT_DIR/matrix/build-matrix-pages.sh"
   test29_full_out="$test29_dir/CRUD図-full.html"
   test29_partial_out="$test29_dir/CRUD図-partial.html"
@@ -1972,7 +1981,7 @@ TEST24CATALOG
 
   echo "--- ケース32: 画面遷移bridgeの再実行で、同一manifestContentHashなら既存edges/edgesStatusが引き継がれる（画面遷移図edges消失バグ修正の検収方法1） ---"
   BRIDGE_SCRIPT="$SCRIPT_DIR/detail-pages/build-detail-pages-from-screen-manifest.sh"
-  test32_dir="$(mktemp -d)"
+  test32_dir="$(create_physical_tmpdir)"
   mkdir -p "$test32_dir/out"
   jq -n '{screens:[{screenKey:"a",kind:"route",route:"/a",screenNameGuess:"画面A"},{screenKey:"b",kind:"route",route:"/b",screenNameGuess:"画面B"}]}' \
     > "$test32_dir/raw.json"
@@ -2017,7 +2026,7 @@ TEST24CATALOG
   rm -rf "$test32_dir"
 
   echo "--- ケース33: 画面遷移bridgeの再実行で、manifestContentHashが変わると既存edgesは破棄されedgesStatusが未抽出に戻る（画面遷移図edges消失バグ修正の検収方法2） ---"
-  test33_dir="$(mktemp -d)"
+  test33_dir="$(create_physical_tmpdir)"
   mkdir -p "$test33_dir/out"
   jq -n '{screens:[{screenKey:"a",kind:"route",route:"/a",screenNameGuess:"画面A"},{screenKey:"b",kind:"route",route:"/b",screenNameGuess:"画面B"}]}' \
     > "$test33_dir/raw.json"
@@ -2066,7 +2075,7 @@ TEST24CATALOG
   rm -rf "$test33_dir"
 
   echo "--- ケース34: 表示コミットの source_ref 集計（画面詳細設計書 frontmatter からの表示。混在時は「画面ごとに異なる」の注記、同一値なら短縮表示、frontmatter 不在なら空、設計書ページ個別ではその画面自身の値を表示することの検収方法） ---"
-  test34_dir="$(mktemp -d)"
+  test34_dir="$(create_physical_tmpdir)"
   test34_repo="$test34_dir/repo"
   test34_docs="$test34_dir/docs"
   test34_portal="$test34_dir/portal"
@@ -2205,7 +2214,7 @@ TEST34_B_NOREF_MD
   rm -rf "$test34_dir"
 
   echo "--- ケース34b: screenUnitRoot の外部symlinkを拒否する ---"
-  test34b_dir="$(mktemp -d)"
+  test34b_dir="$(create_physical_tmpdir)"
   test34b_repo="$test34b_dir/repo"
   test34b_docs="$test34b_dir/docs"
   test34b_portal="$test34b_dir/portal"
@@ -2226,7 +2235,7 @@ TEST34_B_NOREF_MD
   rm -rf "$test34b_dir"
 
   echo "--- ケース34c: screen child の外部symlinkを拒否する ---"
-  test34c_dir="$(mktemp -d)"
+  test34c_dir="$(create_physical_tmpdir)"
   test34c_repo="$test34c_dir/repo"
   test34c_docs="$test34c_dir/docs"
   test34c_portal="$test34c_dir/portal"
@@ -2247,7 +2256,7 @@ TEST34_B_NOREF_MD
   rm -rf "$test34c_dir"
 
   echo "--- ケース34d: 不正source_refを拒否する ---"
-  test34d_dir="$(mktemp -d)"
+  test34d_dir="$(create_physical_tmpdir)"
   test34d_repo="$test34d_dir/repo"
   test34d_docs="$test34d_dir/docs"
   test34d_portal="$test34d_dir/portal"
@@ -2272,7 +2281,7 @@ TEST34_D_MD
   rm -rf "$test34d_dir"
 
   echo "--- ケース35: standardsカテゴリのdiscovery.globとoutput-layout.jsonのconventionRootの不一致を検出する（改善課題1-88） ---"
-  test35_dir="$(mktemp -d)"
+  test35_dir="$(create_physical_tmpdir)"
   test35_layout="$(resolve_output_layout "")" || {
     echo "FAIL: --self-test ケース35（output-layout解決に失敗）" >&2
     rm -rf "$test35_dir"
@@ -2323,7 +2332,7 @@ TEST34_D_MD
 
   # --- ケース36: --project-name明示指定時は指定名がタイトル・ブランド名・見出し・フッターへ
   # 反映され、未指定時は従来どおりディレクトリ名(basename)が使われること(1-172) ---
-  test36_dir="$(mktemp -d "${TMPDIR:-/tmp}/build-portal-test36.XXXXXX")"
+  test36_dir="$(create_physical_tmpdir "${TMPDIR:-/tmp}/build-portal-test36.XXXXXX")"
   test36_repo="$test36_dir/一時作業ディレクトリ名"
   mkdir -p "$test36_repo"
 
@@ -2360,7 +2369,7 @@ TEST34_D_MD
 
   # --- ケース37: 信頼境界の宣言がポータルTOP・画面詳細設計書・画面基本設計書へ
   # 機械挿入されること(1-171) ---
-  test37_dir="$(mktemp -d "${TMPDIR:-/tmp}/build-portal-test37.XXXXXX")"
+  test37_dir="$(create_physical_tmpdir "${TMPDIR:-/tmp}/build-portal-test37.XXXXXX")"
   test37_repo="$test37_dir/repo"
   mkdir -p "$test37_repo"
 

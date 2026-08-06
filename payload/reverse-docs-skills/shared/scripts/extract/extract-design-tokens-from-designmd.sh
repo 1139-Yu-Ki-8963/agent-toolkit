@@ -353,8 +353,18 @@ fi
 
 mkdir -p "$(dirname "$OUTPUT_JSON")"
 
+# --- 非UTF-8原本の走査対応(改善課題1-131): detect-encoding.sh の走査ヘルパーを読み込む ---
+_EXTRACT_DESIGN_TOKENS_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=../detect-encoding.sh
+source "$_EXTRACT_DESIGN_TOKENS_SCRIPT_DIR/../detect-encoding.sh"
+SCAN_WORKDIR="$(mktemp -d "${TMPDIR:-/tmp}/extract-design-tokens-scan.XXXXXX")"
+
 TMP_DIR="$(mktemp -d)"
-trap 'rm -rf "$TMP_DIR"' EXIT
+trap 'rm -rf "$TMP_DIR" "$SCAN_WORKDIR"' EXIT
+
+# scan_design_md: 非UTF-8原本ならUTF-8一時コピー(改善課題1-131)。DESIGN_MD自体は
+# メッセージ表示に使うため変更しない。走査(awk/grep)には常にscan_design_mdを使う
+scan_design_md="$(to_utf8_for_scan "$DESIGN_MD" "$SCAN_WORKDIR")"
 
 TOKENS_TSV="$TMP_DIR/tokens.tsv"       # category \t name \t value \t role
 COMPONENTS_TSV="$TMP_DIR/components.tsv" # name \t desc
@@ -370,7 +380,7 @@ GENERATED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 # ---------------------------------------------------------------------------
 # has_frontmatter: 先頭行が厳密に "---" かどうかで frontmatter の有無を判定する
 # ---------------------------------------------------------------------------
-FIRST_LINE="$(head -n1 "$DESIGN_MD" || true)"
+FIRST_LINE="$(head -n1 "$scan_design_md" || true)"
 HAS_FRONTMATTER=0
 if [ "$FIRST_LINE" = "---" ]; then
   HAS_FRONTMATTER=1
@@ -387,7 +397,7 @@ extract_role_map() {
     $0 == h { insec = 1; next }
     insec && /^## / { insec = 0 }
     insec && /^\|/ { print }
-  ' "$DESIGN_MD" | tail -n +3 | while IFS= read -r row; do
+  ' "$scan_design_md" | tail -n +3 | while IFS= read -r row; do
     name="$(printf '%s' "$row" | awk -F'|' '{print $2}' | sed -E 's/^[[:space:]]+//; s/[[:space:]]+$//; s/`//g')"
     role="$(printf '%s' "$row" | awk -F'|' '{print $3}' | sed -E 's/^[[:space:]]+//; s/[[:space:]]+$//')"
     [ -z "$name" ] && continue
@@ -457,7 +467,7 @@ extract_tables_by_column_name() {
     }
     !/^\|/ { if (state) { print "###END###"; state = 0 } }
     END { if (state) print "###END###" }
-  ' "$DESIGN_MD" > "$TMP_DIR/tables_raw.txt"
+  ' "$scan_design_md" > "$TMP_DIR/tables_raw.txt"
 
   local line mode=0 heading="" header="" cur_category=""
   while IFS= read -r line; do
@@ -498,7 +508,7 @@ extract_components_table() {
     $0 == "## Components" { insec = 1; next }
     insec && /^## / { insec = 0 }
     insec && /^\|/ { print }
-  ' "$DESIGN_MD" | tail -n +3 | while IFS= read -r row; do
+  ' "$scan_design_md" | tail -n +3 | while IFS= read -r row; do
     cname="$(printf '%s' "$row" | awk -F'|' '{print $2}' | sed -E 's/^[[:space:]]+//; s/[[:space:]]+$//; s/`//g')"
     cdesc="$(printf '%s' "$row" | awk -F'|' '{print $3}' | sed -E 's/^[[:space:]]+//; s/[[:space:]]+$//; s/`//g')"
     [ -z "$cname" ] && continue
@@ -508,7 +518,7 @@ extract_components_table() {
 
 if [ "$HAS_FRONTMATTER" -eq 1 ]; then
   # 1行目・2行目の "---" に挟まれた本体を取り出す
-  awk 'BEGIN{c=0} /^---[ \t]*$/{c++; if(c==2){exit} else {next}} c==1{print}' "$DESIGN_MD" > "$FRONTMATTER_TXT"
+  awk 'BEGIN{c=0} /^---[ \t]*$/{c++; if(c==2){exit} else {next}} c==1{print}' "$scan_design_md" > "$FRONTMATTER_TXT"
 
   # frontmatter 固定インデント(2スペース)パーサ。
   #   トップレベル "key:"(値なし) → section 見出し(colors: / typography: / components:)
@@ -577,7 +587,7 @@ else
   # frontmatter 不在: 本文の CSS 変数定義から正規表現フォールバック抽出する(usage/descriptionは空文字)
   extract_css_vars() {
     local prefix="$1" category="$2"
-    grep -oE -- "--${prefix}-[A-Za-z0-9_-]+[[:space:]]*:[[:space:]]*[^;]+" "$DESIGN_MD" 2>/dev/null | while IFS= read -r decl; do
+    grep -oE -- "--${prefix}-[A-Za-z0-9_-]+[[:space:]]*:[[:space:]]*[^;]+" "$scan_design_md" 2>/dev/null | while IFS= read -r decl; do
       varname="$(printf '%s' "$decl" | sed -E 's/[[:space:]]*:.*$//; s/^[[:space:]]+//; s/[[:space:]]+$//')"
       value="$(printf '%s' "$decl" | sed -E 's/^[^:]+:[[:space:]]*//; s/[[:space:]]+$//')"
       [ -z "$varname" ] && continue

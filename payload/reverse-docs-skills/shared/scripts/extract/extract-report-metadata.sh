@@ -219,8 +219,11 @@ imported_from_jobs_dirs() {
   done
 
   # パターン1: import a.b.c / from a.b.c import x(ドット付きモジュール参照)
+  # ディレクトリ横断の再帰走査は1ファイルずつのUTF-8変換を適用できないため、
+  # LC_ALL=C でバイト単位走査にし、非UTF-8原本でも「不正なマルチバイト列」警告と
+  # 誤ったバイナリ判定を避ける(改善課題1-131。importモジュール名はASCII識別子のためバイト一致で足りる)。
   if [ -n "$alts" ] && \
-     grep -rqE "(^|[^A-Za-z0-9_.])(${alts})([^A-Za-z0-9_]|\$)" "${jobs_dirs[@]}" 2>/dev/null; then
+     LC_ALL=C grep -rqE "(^|[^A-Za-z0-9_.])(${alts})([^A-Za-z0-9_]|\$)" "${jobs_dirs[@]}" 2>/dev/null; then
     return 0
   fi
 
@@ -231,13 +234,19 @@ imported_from_jobs_dirs() {
   else
     pat2="(^|[^A-Za-z0-9_.])(from|import)[[:space:]]+${base_esc}([^A-Za-z0-9_]|\$)"
   fi
-  grep -rqE "$pat2" "${jobs_dirs[@]}" 2>/dev/null
+  LC_ALL=C grep -rqE "$pat2" "${jobs_dirs[@]}" 2>/dev/null
 }
 
 mkdir -p "$(dirname "$OUTPUT_JSON")"
 
+# --- 非UTF-8原本の走査対応(改善課題1-131): detect-encoding.sh の走査ヘルパーを読み込む ---
+_EXTRACT_REPORT_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=../detect-encoding.sh
+source "$_EXTRACT_REPORT_SCRIPT_DIR/../detect-encoding.sh"
+SCAN_WORKDIR="$(mktemp -d "${TMPDIR:-/tmp}/extract-report-metadata-scan.XXXXXX")"
+
 units_tmp="$(mktemp "${TMPDIR:-/tmp}/extract-report-units.XXXXXX")"
-trap 'rm -f "$units_tmp"' EXIT
+trap 'rm -f "$units_tmp"; rm -rf "$SCAN_WORKDIR"' EXIT
 
 while IFS= read -r row; do
   [ -z "$row" ] && continue
@@ -253,17 +262,20 @@ while IFS= read -r row; do
 
   # --- format: 帳票ライブラリ・拡張子の grep。ちょうど 1 形式ヒット時のみ出力 ---
   if [ -f "$src_path" ]; then
+    # scan_src_path: 非UTF-8原本ならUTF-8一時コピー(改善課題1-131)。src_path自体は出力に
+    # 使うパスのため変更しない。走査(grep)には常にscan_src_pathを使う
+    scan_src_path="$(to_utf8_for_scan "$src_path" "$SCAN_WORKDIR")"
     fmt=""
     fmt_count=0
-    if grep -Eiq 'reportlab|fpdf|pdf' "$src_path" 2>/dev/null; then
+    if grep -Eiq 'reportlab|fpdf|pdf' "$scan_src_path" 2>/dev/null; then
       fmt="PDF"
       fmt_count=$((fmt_count + 1))
     fi
-    if grep -Eq 'csv\.writer|to_csv' "$src_path" 2>/dev/null; then
+    if grep -Eq 'csv\.writer|to_csv' "$scan_src_path" 2>/dev/null; then
       fmt="CSV"
       fmt_count=$((fmt_count + 1))
     fi
-    if grep -Eiq 'openpyxl|xlsxwriter' "$src_path" 2>/dev/null; then
+    if grep -Eiq 'openpyxl|xlsxwriter' "$scan_src_path" 2>/dev/null; then
       fmt="Excel"
       fmt_count=$((fmt_count + 1))
     fi

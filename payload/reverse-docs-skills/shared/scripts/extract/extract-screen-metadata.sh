@@ -445,8 +445,14 @@ sys.stdout.write(relative.replace(os.sep, "/"))
 ' "$LINK_BASE_DIR" "$DESIGN_DOCS_DIR")"
 fi
 
+# --- 非UTF-8原本の走査対応(改善課題1-131): detect-encoding.sh の走査ヘルパーを読み込む ---
+_EXTRACT_SCREEN_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=../detect-encoding.sh
+source "$_EXTRACT_SCREEN_SCRIPT_DIR/../detect-encoding.sh"
+SCAN_WORKDIR="$(mktemp -d "${TMPDIR:-/tmp}/extract-screen-metadata-scan.XXXXXX")"
+
 TMP_WORK="$(mktemp -d "${TMPDIR:-/tmp}/extract-screen-metadata.XXXXXX")"
-trap 'rm -rf "$TMP_WORK"' EXIT
+trap 'rm -rf "$TMP_WORK" "$SCAN_WORKDIR"' EXIT
 ADDS_FILE="$TMP_WORK/adds.jsonl"
 : > "$ADDS_FILE"
 
@@ -472,6 +478,13 @@ while IFS= read -r row; do
     [ -f "$resolved" ] && existing_files+=("$resolved")
   done < <(jq -r 'if ((.files // []) | length) > 0 then .files[] else (.entryFile // .sourceFile // .mainFile // empty) end' <<<"$row")
 
+  # scan_files: 非UTF-8原本ならUTF-8一時コピー(改善課題1-131)。existing_files自体は
+  # sourceHash算出(原本バイト列のハッシュ)に使うため変更しない。grep走査には常にscan_filesを使う
+  scan_files=()
+  for ef in ${existing_files[@]+"${existing_files[@]}"}; do
+    scan_files+=("$(to_utf8_for_scan "$ef" "$SCAN_WORKDIR")")
+  done
+
   add='{}'
 
   # --- 1. category: route の先頭 prefix 判定 ---
@@ -485,7 +498,7 @@ while IFS= read -r row; do
   fi
 
   # --- 2. permissions: ロール名 grep 収集 + category ベースの推定 ---
-  roles="$(extract_roles ${existing_files[@]+"${existing_files[@]}"})"
+  roles="$(extract_roles ${scan_files[@]+"${scan_files[@]}"})"
   if [ -n "$roles" ]; then
     roles_json="$(printf '%s\n' "$roles" | jq -R 'select(length > 0)' | jq -s .)"
     add="$(jq --argjson v "$roles_json" '. + {permissions: $v}' <<<"$add")"
@@ -499,7 +512,7 @@ while IFS= read -r row; do
   fi
 
   # --- 3. relatedApis: '/api/...' パス収集(+ api-manifest 突合で unitKey 解決) ---
-  api_paths="$(extract_api_paths ${existing_files[@]+"${existing_files[@]}"})"
+  api_paths="$(extract_api_paths ${scan_files[@]+"${scan_files[@]}"})"
   if [ -n "$api_paths" ]; then
     paths_json="$(printf '%s\n' "$api_paths" | jq -R 'select(length > 0)' | jq -s .)"
     if [ -n "$API_MANIFEST" ]; then

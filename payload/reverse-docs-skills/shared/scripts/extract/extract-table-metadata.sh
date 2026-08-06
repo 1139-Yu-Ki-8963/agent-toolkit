@@ -715,8 +715,14 @@ if [ ! -d "$MIGRATIONS_DIR" ]; then
   exit 1
 fi
 
+# --- 非UTF-8原本の走査対応(改善課題1-131): detect-encoding.sh の走査ヘルパーを読み込む ---
+_EXTRACT_TABLE_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=../detect-encoding.sh
+source "$_EXTRACT_TABLE_SCRIPT_DIR/../detect-encoding.sh"
+SCAN_WORKDIR="$(mktemp -d "${TMPDIR:-/tmp}/extract-table-metadata-scan.XXXXXX")"
+
 WORK="$(mktemp -d "${TMPDIR:-/tmp}/extract-table-metadata.XXXXXX")"
-trap 'rm -rf "$WORK"' EXIT
+trap 'rm -rf "$WORK" "$SCAN_WORKDIR"' EXIT
 
 # --- sql_code_only のファイル単位キャッシュ(1-127) ---
 # sql_code_only は文字単位の字句除去処理でファイルサイズに比例して重い。複数ユニットが
@@ -731,11 +737,14 @@ mkdir -p "$CODE_CACHE_DIR"
 CODE_CACHE_SCAN_COUNT_FILE="$WORK/code-cache-scan-count.txt"
 : > "$CODE_CACHE_SCAN_COUNT_FILE"
 sql_code_only_cached() {
-  local file="$1" key cache_file
+  local file="$1" key cache_file scan_file
   key="$(printf '%s' "$file" | shasum -a 256 | awk '{print $1}')"
   cache_file="$CODE_CACHE_DIR/$key"
   if [ ! -f "$cache_file" ]; then
-    sql_code_only "$file" > "$cache_file"
+    # scan_file: 非UTF-8原本ならUTF-8一時コピー(改善課題1-131)。file自体はキャッシュキー算出に
+    # 使うため変更しない。字句除去(sql_code_only)には常にscan_fileを使う
+    scan_file="$(to_utf8_for_scan "$file" "$SCAN_WORKDIR")"
+    sql_code_only "$scan_file" > "$cache_file"
     printf '.' >> "$CODE_CACHE_SCAN_COUNT_FILE"
   fi
   cat "$cache_file"

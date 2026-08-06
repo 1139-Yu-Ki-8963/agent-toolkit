@@ -420,8 +420,14 @@ cron_readable() {
 
 mkdir -p "$(dirname "$OUTPUT_JSON")"
 
+# --- 非UTF-8原本の走査対応(改善課題1-131): detect-encoding.sh の走査ヘルパーを読み込む ---
+_EXTRACT_BATCH_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=../detect-encoding.sh
+source "$_EXTRACT_BATCH_SCRIPT_DIR/../detect-encoding.sh"
+SCAN_WORKDIR="$(mktemp -d "${TMPDIR:-/tmp}/extract-batch-metadata-scan.XXXXXX")"
+
 work_dir="$(mktemp -d "${TMPDIR:-/tmp}/extract-batch-work.XXXXXX")"
-trap 'rm -rf "$work_dir"' EXIT
+trap 'rm -rf "$work_dir" "$SCAN_WORKDIR"' EXIT
 units_tmp="$work_dir/units.jsonl"
 : > "$units_tmp"
 
@@ -451,6 +457,7 @@ cut -f2 "$other_map" | sort -u > "$other_pat"
 # --- definitionWithoutImplementation(1-129): --cron-file の登録エントリと現ユニットの突合 ---
 diagnostics_json="{}"
 if [ -n "$CRON_FILE" ] && [ -f "$CRON_FILE" ]; then
+  cron_scan_file="$(to_utf8_for_scan "$CRON_FILE" "$SCAN_WORKDIR")"
   unit_refs_pat="$work_dir/unit-refs.txt"
   jq -r '.units[]? | select(.kind != "unresolved") | (.identifier // ""), (.sourceFile // "")' "$MANIFEST" \
     | awk 'NF' > "$unit_refs_pat"
@@ -466,7 +473,7 @@ if [ -n "$CRON_FILE" ] && [ -f "$CRON_FILE" ]; then
       continue
     fi
     def_missing=$((def_missing + 1))
-  done < "$CRON_FILE"
+  done < "$cron_scan_file"
   diagnostics_json="$(jq -n --argjson c "$def_missing" --argjson t "$def_total" '
     {definitionWithoutImplementation:
       {count: $c, total: $t,
@@ -489,15 +496,19 @@ while IFS= read -r row; do
   source_file="$(jq -r '.sourceFile // ""' <<<"$row")"
   src_path="$(resolve_path "$source_file")"
   aug="$row"
+  # scan_src_path: 非UTF-8原本ならUTF-8一時コピー(改善課題1-131)。src_path自体は出力・相対パス
+  # 算出に使うため変更しない。走査(grep)には常にscan_src_pathを使う
+  scan_src_path=""
+  [ -f "$src_path" ] && scan_src_path="$(to_utf8_for_scan "$src_path" "$SCAN_WORKDIR")"
 
   # --- schedule: cron ファイルから identifier/unitKey を含む行の cron 式を抽出 ---
   if [ -n "$CRON_FILE" ] && [ -f "$CRON_FILE" ]; then
     match_line=""
     if [ -n "$identifier" ]; then
-      match_line="$(grep -F -- "$identifier" "$CRON_FILE" 2>/dev/null | head -n 1 || true)"
+      match_line="$(grep -F -- "$identifier" "$cron_scan_file" 2>/dev/null | head -n 1 || true)"
     fi
     if [ -z "$match_line" ] && [ -n "$unit_key" ]; then
-      match_line="$(grep -F -- "$unit_key" "$CRON_FILE" 2>/dev/null | head -n 1 || true)"
+      match_line="$(grep -F -- "$unit_key" "$cron_scan_file" 2>/dev/null | head -n 1 || true)"
     fi
     if [ -n "$match_line" ]; then
       cron_expr="$(printf '%s\n' "$match_line" \
@@ -514,7 +525,7 @@ while IFS= read -r row; do
   # --- targetTables: パターンファイルへの単一 grep でヒットした identifier から unitKey を解決 ---
   if [ -s "$table_pat" ] && [ -f "$src_path" ]; then
     tables_json="[]"
-    hit_ids="$(grep -oFf "$table_pat" "$src_path" 2>/dev/null | sort -u || true)"
+    hit_ids="$(grep -oFf "$table_pat" "$scan_src_path" 2>/dev/null | sort -u || true)"
     if [ -n "$hit_ids" ]; then
       while IFS= read -r hid; do
         [ -z "$hid" ] && continue
@@ -539,7 +550,7 @@ while IFS= read -r row; do
         interp="$(printf '%s' "$shebang" | sed -E 's|^#![[:space:]]*||; s|^/usr/bin/env[[:space:]]+||; s|^[^[:space:]]*/||; s|[[:space:]].*$||')"
         ;;
     esac
-    if [ -z "$interp" ] && grep -Eq "if __name__ == ['\"]__main__['\"]" "$src_path" 2>/dev/null; then
+    if [ -z "$interp" ] && grep -Eq "if __name__ == ['\"]__main__['\"]" "$scan_src_path" 2>/dev/null; then
       interp="python3"
     fi
     if [ -n "$interp" ]; then
@@ -554,7 +565,7 @@ while IFS= read -r row; do
   # --- downstreamJobs: 呼び出し/enqueue 系キーワード行に対する単一 grep で他バッチを解決 ---
   if [ -f "$src_path" ] && [ -s "$other_pat" ]; then
     downstream_json="[]"
-    hit_vals="$(grep -E 'enqueue|delay|apply_async|subprocess|run\(|call|invoke|trigger|import' "$src_path" 2>/dev/null \
+    hit_vals="$(grep -E 'enqueue|delay|apply_async|subprocess|run\(|call|invoke|trigger|import' "$scan_src_path" 2>/dev/null \
                 | grep -oFf "$other_pat" 2>/dev/null | sort -u || true)"
     if [ -n "$hit_vals" ]; then
       while IFS= read -r hval; do

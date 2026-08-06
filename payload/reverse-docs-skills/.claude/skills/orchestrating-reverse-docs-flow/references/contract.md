@@ -192,7 +192,7 @@
 
 起動引数が空の対話実行ではAskUserQuestionでprofileを選ばせる。`facts_profile=python`を選択または明示した場合、screen_scopeは質問せず、target_repo_path・output_dir・target_file_paths・facts_unit_id・verification_dir・実行モードを収集する。target_file_pathsはtarget_repo_pathからの相対`.py`パスの非空配列とし、全件の実在・リポジトリ内包を検証して外部絶対パス・`..`・symlink脱出を拒否する。verification_dirの既定値は`<output_dirの親>/verification/`とする。これら6項目が確定するまで事前ヒアリングは未完了であり、headless=trueでは不足値を推測せず中断する。
 
-`facts_profile=python`は明示指定時だけ使えるfacts-only入口である。フル実行の事前ヒアリング完了後はPhase 1でなくPhase 0Pへ遷移し、facts抽出より先にsurvey_doc_pathを解決する。明示パスまたは`<output_dir>/プロジェクト共通/アーキテクチャ調査書.md`が実在して調査ゲートを通れば再利用し、不在ならsurveying-architecture-for-reverse-docs(mode=survey)、不合格なら同(mode=revise, revise_findings)を起動する。`status=調査確定`のartifacts[0]を再検証してから、画面一覧生成・対象画面ID実在確認・種別ループより先にextracting-unit-facts-from-codeを`profile=python`で起動する。`screen_dir`引数には実在不要の論理パス`<verification_dir>/logical/<facts_unit_id>`を渡す。`status=封印済み`、recount通過、facts.lock検証通過を検収したら「Python facts封印完了」で終端し、画面スキャフォールディング・基本設計・詳細設計・動的検証へ進まない。
+`facts_profile=python`は明示指定時だけ使えるfacts-only入口である。フル実行の事前ヒアリング完了後はglobal Step 3以降へ進まず明示Python facts-only経路へ遷移し、facts抽出より先にsurvey_doc_pathを解決する。明示パスまたは`<output_dir>/プロジェクト共通/アーキテクチャ調査書.md`が実在して調査ゲートを通れば再利用し、不在ならsurveying-architecture-for-reverse-docs(mode=survey)、不合格なら同(mode=revise, revise_findings)を起動する。`status=調査確定`のartifacts[0]を再検証してから、画面一覧生成・対象画面ID実在確認・種別ループより先にextracting-unit-facts-from-codeを`profile=python`で起動する。`screen_dir`引数には実在不要の論理パス`<verification_dir>/logical/<facts_unit_id>`を渡す。`status=封印済み`、recount通過、facts.lock検証通過を検収したら「Python facts封印完了」で終端し、画面スキャフォールディング・基本設計・詳細設計・動的検証へ進まない。
 
 ## 無人モード仕様
 

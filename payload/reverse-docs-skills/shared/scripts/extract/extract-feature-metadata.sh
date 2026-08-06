@@ -276,8 +276,14 @@ fi
 
 mkdir -p "$(dirname "$OUTPUT_JSON")"
 
+# --- 非UTF-8原本の走査対応(改善課題1-131): detect-encoding.sh の走査ヘルパーを読み込む ---
+_EXTRACT_FEATURE_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=../detect-encoding.sh
+source "$_EXTRACT_FEATURE_SCRIPT_DIR/../detect-encoding.sh"
+SCAN_WORKDIR="$(mktemp -d "${TMPDIR:-/tmp}/extract-feature-metadata-scan.XXXXXX")"
+
 units_tmp="$(mktemp "${TMPDIR:-/tmp}/extract-feature-units.XXXXXX")"
-trap 'rm -f "$units_tmp"' EXIT
+trap 'rm -f "$units_tmp"; rm -rf "$SCAN_WORKDIR"' EXIT
 
 # --- 直接データアクセス経路(1-152・Stage 3b)の有効化判定 ---
 DIRECT_ACCESS_ENABLED="false"
@@ -302,8 +308,10 @@ screen_files_for() {
 
 # --- ファイル内の生SQL(FROM/INSERT INTO/UPDATE)からテーブル名だけを1行1件で返す ---
 direct_sql_table_names() {
-  local fpath="$1"
-  grep -Eio 'FROM[[:space:]]+[[:alnum:]_]+|INSERT[[:space:]]+INTO[[:space:]]+[[:alnum:]_]+|UPDATE[[:space:]]+[[:alnum:]_]+' "$fpath" 2>/dev/null \
+  local fpath="$1" scan_fpath
+  # scan_fpath: 非UTF-8原本ならUTF-8一時コピー(改善課題1-131)。走査(grep)には常にscan_fpathを使う
+  scan_fpath="$(to_utf8_for_scan "$fpath" "$SCAN_WORKDIR")"
+  grep -Eio 'FROM[[:space:]]+[[:alnum:]_]+|INSERT[[:space:]]+INTO[[:space:]]+[[:alnum:]_]+|UPDATE[[:space:]]+[[:alnum:]_]+' "$scan_fpath" 2>/dev/null \
     | sed -E 's/^[Ff][Rr][Oo][Mm][[:space:]]+//; s/^[Ii][Nn][Ss][Ee][Rr][Tt][[:space:]]+[Ii][Nn][Tt][Oo][[:space:]]+//; s/^[Uu][Pp][Dd][Aa][Tt][Ee][[:space:]]+//'
 }
 

@@ -90,7 +90,14 @@ fi
 SOURCE_DIR="${SOURCE_DIR%/}"
 
 TMP_DIR="$(mktemp -d)"
-trap 'rm -rf "$TMP_DIR"' EXIT
+
+# --- 非UTF-8原本の走査対応(改善課題1-131): detect-encoding.sh の走査ヘルパーを読み込む ---
+_EXTRACT_COMPONENT_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=../detect-encoding.sh
+source "$_EXTRACT_COMPONENT_SCRIPT_DIR/../detect-encoding.sh"
+SCAN_WORKDIR="$(mktemp -d "${TMPDIR:-/tmp}/extract-component-inventory-scan.XXXXXX")"
+
+trap 'rm -rf "$TMP_DIR" "$SCAN_WORKDIR"' EXIT
 
 META_TSV="$TMP_DIR/meta.tsv"
 NAMES_TXT="$TMP_DIR/names.txt"
@@ -166,10 +173,14 @@ extract_export_name() {
 while IFS= read -r -d '' file; do
   relpath="${file#"$SOURCE_DIR"/}"
 
-  name="$(extract_export_name "$file")"
+  # scan_file: 非UTF-8原本ならUTF-8一時コピー(改善課題1-131)。file自体は出力パス算出に
+  # 使うため変更しない。走査(grep)には常にscan_fileを使う
+  scan_file="$(to_utf8_for_scan "$file" "$SCAN_WORKDIR")"
+
+  name="$(extract_export_name "$scan_file")"
 
   hasprops="false"
-  if grep -qE 'Props' "$file" 2>/dev/null; then
+  if grep -qE 'Props' "$scan_file" 2>/dev/null; then
     hasprops="true"
   fi
 
@@ -207,7 +218,10 @@ cut -f1 "$META_TSV" | sort -u > "$NAMES_TXT"
 while IFS= read -r name; do
   [ -z "$name" ] && continue
   escaped="$(regex_escape "$name")"
-  count="$(grep -rlE "import.*\\b${escaped}\\b" \
+  # ディレクトリ横断の再帰走査は1ファイルずつのUTF-8変換を適用できないため、
+  # LC_ALL=C でバイト単位走査にし、非UTF-8原本でも「不正なマルチバイト列」警告と
+  # 誤ったバイナリ判定を避ける(改善課題1-131。export名はASCII識別子のためバイト一致で足りる)。
+  count="$(LC_ALL=C grep -rlE "import.*\\b${escaped}\\b" \
     --include='*.tsx' --include='*.jsx' --include='*.ts' \
     "$SOURCE_DIR" 2>/dev/null | wc -l | tr -d ' ' || true)"
   [ -z "$count" ] && count=0

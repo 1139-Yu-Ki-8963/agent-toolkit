@@ -256,7 +256,14 @@ resolve_path() {
 mkdir -p "$(dirname "$OUTPUT_JSON")"
 
 units_tmp="$(mktemp "${TMPDIR:-/tmp}/extract-external-units.XXXXXX")"
-trap 'rm -f "$units_tmp"' EXIT
+
+# --- 非UTF-8原本の走査対応(改善課題1-131): detect-encoding.sh の走査ヘルパーを読み込む ---
+_EXTRACT_EXTERNAL_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=../detect-encoding.sh
+source "$_EXTRACT_EXTERNAL_SCRIPT_DIR/../detect-encoding.sh"
+SCAN_WORKDIR="$(mktemp -d "${TMPDIR:-/tmp}/extract-external-metadata-scan.XXXXXX")"
+
+trap 'rm -f "$units_tmp"; rm -rf "$SCAN_WORKDIR"' EXIT
 
 SEND_PATTERN='requests\.(get|post|put|patch|delete)|httpx|fetch\(|axios|paramiko|SFTPClient'
 RECV_PATTERN='@app\.(get|post|put|patch|delete)|@router\.(get|post|put|patch|delete)|@app\.route'
@@ -276,13 +283,17 @@ while IFS= read -r row; do
   aug="$row"
 
   if [ -f "$src_path" ]; then
+    # scan_path: 非UTF-8原本ならUTF-8一時コピー(改善課題1-131)。src_pathは出力に使う
+    # パスのため変更しない。走査(grep)には常にscan_pathを使う
+    scan_path="$(to_utf8_for_scan "$src_path" "$SCAN_WORKDIR")"
+
     # --- direction: 送信クライアント記述 / 受け口定義の排他判定 ---
     send_hit=0
     recv_hit=0
-    if grep -Eq "$SEND_PATTERN" "$src_path" 2>/dev/null; then
+    if grep -Eq "$SEND_PATTERN" "$scan_path" 2>/dev/null; then
       send_hit=1
     fi
-    if grep -Eq "$RECV_PATTERN" "$src_path" 2>/dev/null; then
+    if grep -Eq "$RECV_PATTERN" "$scan_path" 2>/dev/null; then
       recv_hit=1
     fi
     if [ "$send_hit" -eq 1 ] && [ "$recv_hit" -eq 0 ]; then
@@ -293,11 +304,11 @@ while IFS= read -r row; do
 
     # --- protocol: SFTP > Webhook > REST の優先順で先勝ち判定 ---
     protocol=""
-    if grep -Eiq 'paramiko|sftp' "$src_path" 2>/dev/null; then
+    if grep -Eiq 'paramiko|sftp' "$scan_path" 2>/dev/null; then
       protocol="SFTP"
-    elif grep -iq 'webhook' "$src_path" 2>/dev/null; then
+    elif grep -iq 'webhook' "$scan_path" 2>/dev/null; then
       protocol="Webhook"
-    elif grep -Eq 'requests\.|httpx|fetch\(|axios|urllib' "$src_path" 2>/dev/null; then
+    elif grep -Eq 'requests\.|httpx|fetch\(|axios|urllib' "$scan_path" 2>/dev/null; then
       protocol="REST"
     fi
     if [ -n "$protocol" ]; then
@@ -306,11 +317,11 @@ while IFS= read -r row; do
 
     # --- authMethod: OAuth2 > APIキー > Basic の優先順で先勝ち判定 ---
     auth_method=""
-    if grep -Eq 'Authorization.*Bearer|OAuth' "$src_path" 2>/dev/null; then
+    if grep -Eq 'Authorization.*Bearer|OAuth' "$scan_path" 2>/dev/null; then
       auth_method="OAuth2"
-    elif grep -Eiq 'api_key|X-API-Key|apikey' "$src_path" 2>/dev/null; then
+    elif grep -Eiq 'api_key|X-API-Key|apikey' "$scan_path" 2>/dev/null; then
       auth_method="APIキー"
-    elif grep -Eiq 'HTTPBasicAuth|basic_auth' "$src_path" 2>/dev/null; then
+    elif grep -Eiq 'HTTPBasicAuth|basic_auth' "$scan_path" 2>/dev/null; then
       auth_method="Basic"
     fi
     if [ -n "$auth_method" ]; then
@@ -331,7 +342,10 @@ if [ -n "$DEFINITION_FILE" ] && [ -f "$DEFINITION_FILE" ]; then
   def_total="$(wc -l < "$def_entries" | tr -d ' ')"
   def_missing=0
   if [ "$def_total" -gt 0 ]; then
-    hit_entries="$(grep -rhoFf "$def_entries" \
+    # ディレクトリ横断の再帰走査は1ファイルずつのUTF-8変換を適用できないため、
+    # LC_ALL=C でバイト単位走査にし、非UTF-8原本でも「不正なマルチバイト列」警告と
+    # 誤ったバイナリ判定を避ける(改善課題1-131。エントリはASCII識別子のためバイト一致で足りる)。
+    hit_entries="$(LC_ALL=C grep -rhoFf "$def_entries" \
       --include='*.py' --include='*.js' --include='*.ts' --include='*.json' --include='*.yml' --include='*.yaml' \
       "$SOURCE_DIR" 2>/dev/null | sort -u || true)"
     while IFS= read -r entry; do
