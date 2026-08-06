@@ -22,6 +22,7 @@ const { execFileSync, spawn } = require('node:child_process');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
+const { findCachedBrowser } = require('./lib/find-cached-browser.cjs');
 
 function isExecutable(filePath) {
   try {
@@ -115,40 +116,6 @@ function findWindowsBrowser() {
     }
   }
   return '';
-}
-
-function collectCachedBrowsers(directory, results) {
-  if (!fs.existsSync(directory)) return;
-  for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
-    const entryPath = path.join(directory, entry.name);
-    if (entry.isDirectory()) {
-      collectCachedBrowsers(entryPath, results);
-    } else if (
-      [
-        'chrome',
-        'chromium',
-        'chrome-headless-shell',
-        'chrome.exe',
-        'chromium.exe',
-        'chrome-headless-shell.exe',
-      ].includes(entry.name)
-      && isExecutable(entryPath)
-    ) {
-      results.push(entryPath);
-    }
-  }
-}
-
-function findCachedBrowser() {
-  const cacheRoots = [
-    process.env.PLAYWRIGHT_BROWSERS_PATH,
-    path.join(os.homedir(), 'Library', 'Caches', 'ms-playwright'),
-    path.join(os.homedir(), '.cache', 'ms-playwright'),
-    process.env.LOCALAPPDATA && path.join(process.env.LOCALAPPDATA, 'ms-playwright'),
-  ].filter(Boolean);
-  const browsers = [];
-  cacheRoots.forEach((cacheRoot) => collectCachedBrowsers(cacheRoot, browsers));
-  return browsers.sort().at(-1) || '';
 }
 
 function findBrowser() {

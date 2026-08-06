@@ -73,7 +73,7 @@ API 種別に組み込み検出器はない。抽出は **カスタム抽出パ�
 - **Step 1**: 抽出方式を確認する。API 種別に組み込み検出器はないため、常にカスタム抽出パスとなる。完了条件: `extractionMethod: "custom"` が戦略宣言に記録済み
 - **Step 2**: Phase 1 で宣言した手順（例: ルート定義ファイルの走査・デコレータの収集・OpenAPI 定義の解析等）を Claude 自身が Bash/Grep/Read で実行し、スキーマ準拠のマニフェスト JSON（配列キー `units`）を Write する。エンドポイントを捏造しない。0 件検出時は「0件時の分岐」に従い判定する。完了条件: マニフェスト JSON が 1 件以上確定、または 0 件検出を「0件時の分岐」に従い処理している（該当なし生成による正常終了、または検出失敗の停止）
 - **Step 3**: diagnostics を確認する。sourceFile 集中警告等が出た場合は抽出手順を見直し、見直し時は Step 2 へ戻る。完了条件: diagnostics が空、または警告を承知の上で続行と判断済み
-- **Step 4**: マニフェストへメタデータを付与する。`../../../shared/scripts/extract/extract-api-metadata.sh <manifest.json> <source_dir> <manifest.ext.json>` を実行し、各ユニットに `method`・`authRequired`・`ioSummary` フィールドを追加した拡張マニフェスト（`manifest.ext.json`）を生成する。`callers`・`targetTables` は画面一覧・テーブル一覧の拡張マニフェストを要する（`--screen-manifest`/`--table-manifest`）ため、本スキル単独実行では付与されない（マトリクス・対応表生成時に generating-cross-views-for-reverse-docs が担う）。以降の Phase では `manifest.ext.json` を使用する。完了条件: 拡張マニフェストが生成済み
+- **Step 4**: マニフェストへメタデータを付与する。`../../../shared/scripts/extract/extract-api-metadata.sh <manifest.json> <source_dir> <output_dir>/一覧/API一覧/api-manifest.ext.json` を実行し、各ユニットに `method`・`authRequired`・`ioSummary` フィールドを追加した拡張マニフェストを一時ファイル + rename で `<output_dir>/一覧/API一覧/api-manifest.ext.json` へ原子的に永続化する。`callers`・`targetTables` は画面一覧・テーブル一覧の拡張マニフェストを要する（`--screen-manifest`/`--table-manifest`）ため、本スキル単独実行では付与されない（マトリクス・対応表生成時に generating-cross-views-for-reverse-docs が担う）。以降の Phase では永続化した `api-manifest.ext.json` を使用する。完了条件: 拡張マニフェストが `<output_dir>/一覧/API一覧/api-manifest.ext.json` に永続化済み
 
 **非UTF-8原本への対応**: 原本が UTF-8 以外のエンコーディングで書かれている場合、通常の文字列検索はバイナリ扱いとなりマッチ 0 件を返す。走査の前に `shared/scripts/detect-encoding.sh encoding <file>` でエンコーディングを確定し、UTF-8 以外なら `detect-encoding.sh to-utf8` で変換した一時コピーに対して走査する。変換結果は永続化せず一時コピーで足りる。マッチ 0 件を「該当なし」と結論する前に、エンコーディングが原因でないことを確認する。
 
@@ -141,6 +141,8 @@ API 種別に組み込み検出器はない。抽出は **カスタム抽出パ�
 - `unit_list_html`: artifacts[0] の汎用名
 - `embedded_json_ref`: HTML 内に埋め込んだマニフェスト JSON への参照
 - `unit_kind`: `api`（固定値）
+- `api_manifest_path`: 永続生マニフェスト（`<output_dir>/一覧/API一覧/api-manifest.json`）
+- `api_manifest_ext_path`: 永続拡張マニフェスト（`<output_dir>/一覧/API一覧/api-manifest.ext.json`）
 
 `NONE` は調査書が API の実在しないことを判定済みの場合だけ返す（「0件時の分岐」節を参照）。呼び出し元は excluded-kinds.json の excludedKinds へ api を記録する。
 

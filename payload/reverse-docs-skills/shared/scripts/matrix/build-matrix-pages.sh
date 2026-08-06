@@ -165,13 +165,22 @@ self_test() {
   # 注: CSS内の.prov-measured等はデータに関わらず常に出現するため、それだけでは
   # 描画ロジックの存在を証明しない。JS側の実装固有の文字列(呼び出し・分岐条件・
   # クラス連結式)を grep することで、ロジックが削除されれば必ず FAIL するようにする。
+  # 1-170再検証: 3値(measured/inferred/confirmed)すべてにバッジを描画する仕様に変更した。
+  # inferred限定の条件分岐(if (provenance === 'inferred'))が復活していないことを確認しつつ、
+  # 推定値だけを視覚的に目立たせる設計意図(背景塗り+太字のprov-inferred CSS)が
+  # 維持されていることも合わせて確認する。
   if bash "$script_path" permission-screen "$tmp/fixture-permission-screen-provenance.json" "$prov_out" >/dev/null 2>&1 \
     && grep -Fq 'permissionsProvenance(s)' "$prov_out" \
-    && grep -Fq "provenance === 'inferred'" "$prov_out" \
-    && grep -Fq "'prov-badge prov-' + provenance" "$prov_out"; then
-    echo "  [PASS] 1-170: permission-screen出力にvalueProvenance判定・推定バッジ描画ロジックが存在(inferredのみ描画。measured/confirmedはCSS定義のみで丸印表示は変更なし)"
+    && grep -Fq "'prov-badge prov-' + provenance" "$prov_out" \
+    && grep -Fq 'var provBadge = buildProvBadge(provenance);' "$prov_out" \
+    && grep -Fq 'if (provBadge) tdScreen.appendChild(provBadge);' "$prov_out" \
+    && ! grep -Fq "if (provenance === 'inferred')" "$prov_out" \
+    && grep -Fq '.prov-badge.prov-inferred { color: var(--stamp); border-color: var(--stamp); background: var(--stamp-soft); font-weight: 700; }' "$prov_out" \
+    && grep -Fq '.prov-badge.prov-measured { color: var(--accent); border-color: var(--accent); }' "$prov_out" \
+    && grep -Fq '.prov-badge.prov-confirmed { color: var(--green); border-color: var(--green); }' "$prov_out"; then
+    echo "  [PASS] 1-170: permission-screen出力でmeasured/inferred/confirmedの3値すべてにバッジ描画ロジックが無条件で適用され(inferred限定の条件分岐は撤去)、推定値のみ背景塗り+太字で視覚的に目立たせる設計意図(CSS)が維持されている"
   else
-    echo "  [FAIL] 1-170: permission-screen出力にvalueProvenance描画ロジックが含まれない" >&2
+    echo "  [FAIL] 1-170: permission-screen出力で3値統一バッジ描画または推定値強調のCSSが確認できない" >&2
     rc=1
   fi
   local prov_embedded="$tmp/embedded-permission-screen-provenance.json"

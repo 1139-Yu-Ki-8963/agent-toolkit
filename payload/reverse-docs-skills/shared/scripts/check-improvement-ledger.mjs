@@ -190,7 +190,7 @@ export function parseImprovementLedger(markdown) {
 
     const matches = [
       ['実データ相当', /^実データ相当(?::|：|・合成データでの検証あり:)/.test(verification)],
-      ['自己テストのみ', /^自己テストのみ(?:$|[:：（])/.test(verification)],
+      ['自己テストのみ', /^(?:自己テストのみ(?:$|[:：（])|self-test 実走:|静的確認実走:|実走確認:)/.test(verification)],
       ['未検証', /^未検証(?:$|[:：（])/.test(verification)],
     ].filter(([, matched]) => matched).map(([type]) => type);
 
@@ -224,10 +224,16 @@ export function parseImprovementLedger(markdown) {
 
 function runCli() {
   const scriptDirectory = dirname(fileURLToPath(import.meta.url));
-  const targetPath = process.argv[2]
-    ? resolve(process.cwd(), process.argv[2])
-    : resolve(scriptDirectory, '../../docs/ledgers/改善反映台帳.md');
-  const result = parseImprovementLedger(readFileSync(targetPath, 'utf8'));
+  const arg = process.argv[2];
+  // '-' はファイルパスではなく標準入力を意味する。ファイルディスクリプタ 0 を
+  // 直接読むことで、環境依存のパス '/dev/stdin' を経由せず標準入力を取得できる。
+  const source = arg === '-'
+    ? readFileSync(0, 'utf8')
+    : readFileSync(
+      arg ? resolve(process.cwd(), arg) : resolve(scriptDirectory, '../../docs/ledgers/改善反映台帳.md'),
+      'utf8',
+    );
+  const result = parseImprovementLedger(source);
   process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
   if (!result.passed) process.exitCode = 1;
 }

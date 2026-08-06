@@ -70,7 +70,7 @@ allowed-tools: [AskUserQuestion, Bash, Grep, Read, Write]
 
 - **Step 1**: Phase 1で宣言した手順（例: テンプレートファイルの走査・帳票生成関数の呼び出し元収集・レポート定義設定のJSON解析等）をClaude自身がBash/Grep/Readで実行し、スキーマ準拠のマニフェストJSONをWriteする。0件検出の場合は「0件時の分岐」節に従って処理する。帳票を捏造しない。完了条件: マニフェストJSONが生成済み、または0件検出を「0件時の分岐」に従い処理している
 - **Step 2**: diagnosticsを確認する。sourceFile集中警告等が出た場合は抽出手順を見直し、見直し時はStep 1へ戻る。完了条件: diagnosticsが空、または警告を承知の上で続行と判断済み
-- **Step 3**: マニフェストへメタデータを付与する。`../../../shared/scripts/extract/extract-report-metadata.sh <manifest.json> <source_dir> <manifest.ext.json>` を実行し、各ユニットに `format`・`trigger` フィールドを追加した拡張マニフェスト（`manifest.ext.json`）を生成する。以降のPhaseでは `manifest.ext.json` を使用する。完了条件: 拡張マニフェストが生成済み
+- **Step 3**: マニフェストへメタデータを付与する。`../../../shared/scripts/extract/extract-report-metadata.sh <manifest.json> <source_dir> <output_dir>/一覧/帳票一覧/report-manifest.ext.json` を実行し、各ユニットに `format`・`trigger` フィールドを追加した拡張マニフェストを一時ファイル + rename で `<output_dir>/一覧/帳票一覧/report-manifest.ext.json` へ原子的に永続化する。以降のPhaseでは永続化した `report-manifest.ext.json` を使用する。完了条件: 拡張マニフェストが `<output_dir>/一覧/帳票一覧/report-manifest.ext.json` に永続化済み
 
 **非UTF-8原本への対応**: 原本が UTF-8 以外のエンコーディングで書かれている場合、通常の文字列検索はバイナリ扱いとなりマッチ 0 件を返す。走査の前に `shared/scripts/detect-encoding.sh encoding <file>` でエンコーディングを確定し、UTF-8 以外なら `detect-encoding.sh to-utf8` で変換した一時コピーに対して走査する。変換結果は永続化せず一時コピーで足りる。マッチ 0 件を「該当なし」と結論する前に、エンコーディングが原因でないことを確認する。
 
@@ -140,6 +140,8 @@ allowed-tools: [AskUserQuestion, Bash, Grep, Read, Write]
 | unit_list_html | artifacts[0] の汎用名エイリアス |
 | embedded_json_ref | HTML内に埋め込んだマニフェストJSONへの参照 |
 | unit_kind | `report`（固定値） |
+| report_manifest_path | 永続生マニフェスト（`<output_dir>/一覧/帳票一覧/report-manifest.json`） |
+| report_manifest_ext_path | 永続拡張マニフェスト（`<output_dir>/一覧/帳票一覧/report-manifest.ext.json`） |
 
 本スキルの status は `DONE | NONE | ERROR` のいずれかを返す。`NONE` は調査書が帳票の実在しないことを判定済みの場合だけ返す（「0件時の分岐」節を参照）。`NONE` で終了する場合、呼び出し元は excluded-kinds.json の excludedKinds へ report を記録する。
 

@@ -193,7 +193,9 @@ unit_kinds_present に含まれる種別だけ、対応する6一覧スキルを
 
 **注記**: 画面一覧.HTMLへ実際に埋め込まれているのは、build-unit-list.sh(内部でbuild-screen-list.shへ委譲)に渡した入力(`screen_manifest_ext_path`)そのものであり、派生フィールド(category/permissions/designDocStatus/existingTestCount/sourceHash等)を含む**拡張マニフェスト**である。したがって上記の復元手順で得られる内容も拡張マニフェスト相当であり、Phase 2の生検出結果そのものではない。extract-screen-metadata.shでのscreen_manifest_ext_path再生成は、この拡張マニフェストへgenerated_at・hashを確定付与し直す工程として扱う。
 
-**完了**: 実在種別の一覧HTMLがすべて存在し、画面一覧が存在する場合は永続 screen_manifest_path / screen_manifest_ext_path が実在して両方とも検証済み。
+全種別の子スキルが status=DONE を返した後、`bash shared/scripts/unit-list/check-manifest-persistence.sh <output_dir>` を実行し、生成済みの一覧フォルダ（画面一覧・API一覧・テーブル一覧・バッチ一覧・帳票一覧・外部連携一覧・機能一覧のうち生成済みのもの）すべてで生マニフェスト・拡張マニフェストが `<output_dir>/一覧/<種別>一覧/` 配下へ実際に永続化されていることを機械検査する。各子スキルの SKILL.md 記述だけでは実際に永続化されたかを確認できないため（改善課題 1-136）、本 Step の完了条件として exit 0 を必須とする。FAIL 時は不足が報告されたフォルダの子スキルへ差し戻し、拡張マニフェストの永続先パス指定を確認する。
+
+**完了**: 実在種別の一覧HTMLがすべて存在し、画面一覧が存在する場合は永続 screen_manifest_path / screen_manifest_ext_path が実在して両方とも検証済み。`check-manifest-persistence.sh <output_dir>` が exit 0。
 
 ## Step 3-2: 対象外種別と派生一覧を確定する
 

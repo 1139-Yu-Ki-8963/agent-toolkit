@@ -65,7 +65,7 @@ allowed-tools: [AskUserQuestion, Bash, Grep, Read, Write]
 - **Step 1**: 抽出方式はカスタム抽出パスに固定される（テーブル種別に組み込み検出器はない）。Phase 1で宣言した抽出手順を確認する。完了条件: 抽出手順（走査対象・グルーピング規則）が確定済み
 - **Step 2**: 宣言した手順（例: マイグレーションファイルの走査・ORM モデル定義の解析・SQL DDL の `CREATE TABLE`/`CREATE VIEW` 抽出等）をClaude自身がBash/Grep/Readで実行し、スキーマ準拠のマニフェストJSONをWriteする。完了条件: マニフェストJSONが生成済み
 - **Step 3**: 検出件数と内訳を確認する。0件検出は「0件時の分岐」節に従って処理する（テーブルを捏造しない）。完了条件: 1件以上の検出を確認済み、または「0件時の分岐」に従い該当なし生成による正常終了、または検出失敗の停止をしている
-- **Step 4**: マニフェストへメタデータを付与する。`../../../shared/scripts/extract/extract-table-metadata.sh <manifest.json> <migrations_dir> <manifest.ext.json>` を実行し、各ユニットに `foreignKeys`・`columnCount`・`mainColumns` フィールドを追加した拡張マニフェスト（`manifest.ext.json`）を生成する。`<migrations_dir>` はPhase 1 Step 2で特定したマイグレーション/DDLディレクトリを渡す。以降のPhaseでは `manifest.ext.json` を使用する。完了条件: 拡張マニフェストが生成済み
+- **Step 4**: マニフェストへメタデータを付与する。`../../../shared/scripts/extract/extract-table-metadata.sh <manifest.json> <migrations_dir> <output_dir>/一覧/テーブル一覧/table-manifest.ext.json` を実行し、各ユニットに `foreignKeys`・`columnCount`・`mainColumns` フィールドを追加した拡張マニフェストを一時ファイル + rename で `<output_dir>/一覧/テーブル一覧/table-manifest.ext.json` へ原子的に永続化する。`<migrations_dir>` はPhase 1 Step 2で特定したマイグレーション/DDLディレクトリを渡す。以降のPhaseでは永続化した `table-manifest.ext.json` を使用する。完了条件: 拡張マニフェストが `<output_dir>/一覧/テーブル一覧/table-manifest.ext.json` に永続化済み
 
 **非UTF-8原本への対応**: 原本が UTF-8 以外のエンコーディングで書かれている場合、通常の文字列検索はバイナリ扱いとなりマッチ 0 件を返す。走査の前に `shared/scripts/detect-encoding.sh encoding <file>` でエンコーディングを確定し、UTF-8 以外なら `detect-encoding.sh to-utf8` で変換した一時コピーに対して走査する。変換結果は永続化せず一時コピーで足りる。マッチ 0 件を「該当なし」と結論する前に、エンコーディングが原因でないことを確認する。
 
@@ -133,6 +133,8 @@ allowed-tools: [AskUserQuestion, Bash, Grep, Read, Write]
 - `unit_list_html`: artifacts[0] の汎用名
 - `embedded_json_ref`: HTML内に埋め込んだマニフェストJSONへの参照
 - `unit_kind`: `table`（固定値）
+- `table_manifest_path`: 永続生マニフェスト（`<output_dir>/一覧/テーブル一覧/table-manifest.json`）
+- `table_manifest_ext_path`: 永続拡張マニフェスト（`<output_dir>/一覧/テーブル一覧/table-manifest.ext.json`）
 
 `NONE` は調査書がテーブルの実在しないことを判定済みの場合だけ返す（「0件時の分岐」節を参照）。呼び出し元は excluded-kinds.json の excludedKinds へ table を記録する。
 

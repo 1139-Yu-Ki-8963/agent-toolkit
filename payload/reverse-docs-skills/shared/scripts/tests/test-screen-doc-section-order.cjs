@@ -7,6 +7,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const { pathToFileURL } = require('node:url');
+const { findCachedBrowser } = require('./lib/find-cached-browser.cjs');
 
 const MAX_DUMP_BYTES = 20 * 1024 * 1024;
 const DUMP_DOM_TIMEOUT_MS = 180000;
@@ -151,7 +152,7 @@ function findBrowser() {
     const browser = findOnPath(command);
     if (browser) return browser;
   }
-  return findMacBrowser() || findWindowsBrowser();
+  return findMacBrowser() || findWindowsBrowser() || findCachedBrowser();
 }
 
 function hasCompleteDocument(html) {

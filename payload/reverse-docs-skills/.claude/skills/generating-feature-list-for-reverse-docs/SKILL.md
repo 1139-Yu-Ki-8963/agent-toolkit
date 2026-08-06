@@ -125,7 +125,7 @@ Stage 2 → Stage 3 の実行順はデータ依存(Stage 3 は Stage 2 の出力
 
 **使用ツール**: AskUserQuestion / Read / Bash / Write
 
-- **Step 1**: マニフェストへメタデータを付与する。`../../../shared/scripts/extract/extract-feature-metadata.sh <manifest.json> <manifest.ext.json> --screen-manifest <output_dir>/一覧/画面一覧/screen-manifest.json --table-manifest <output_dir>/一覧/テーブル一覧/table-manifest.json --source-dir <source_dir>` を実行する(テーブル一覧未生成の場合は `--table-manifest` を省略してよい。その場合は直接データアクセス経路がスキップされる)。各機能に `operationClass`(照会/登録/更新/削除/承認/その他)フィールドを追加し、`relatedApis`・`relatedTables` が両方空のまま残った機能について画面の直接データアクセス経路(1-152・feature-detection.md「Stage 3b」参照)で `relatedTables` を補完し、`detectionSummary.diagnostics.emptyRelation` に「関連が全件空の機能」の比率を機械算出した拡張マニフェスト(`manifest.ext.json`)を生成する。以降の Step では `manifest.ext.json` を使用する。完了条件: 拡張マニフェストが生成済み・`diagnostics.emptyRelation` が算出済み。`strategy.screenPresence` が `none` の対象では `--screen-manifest` を渡さない。スクリプト側は当該引数の不在を許容する。
+- **Step 1**: マニフェストへメタデータを付与する。`../../../shared/scripts/extract/extract-feature-metadata.sh <manifest.json> <output_dir>/一覧/機能一覧/feature-manifest.ext.json --screen-manifest <output_dir>/一覧/画面一覧/screen-manifest.json --table-manifest <output_dir>/一覧/テーブル一覧/table-manifest.json --source-dir <source_dir>` を実行する(テーブル一覧未生成の場合は `--table-manifest` を省略してよい。その場合は直接データアクセス経路がスキップされる)。各機能に `operationClass`(照会/登録/更新/削除/承認/その他)フィールドを追加し、`relatedApis`・`relatedTables` が両方空のまま残った機能について画面の直接データアクセス経路(1-152・feature-detection.md「Stage 3b」参照)で `relatedTables` を補完し、`detectionSummary.diagnostics.emptyRelation` に「関連が全件空の機能」の比率を機械算出した拡張マニフェストを一時ファイル + rename で `<output_dir>/一覧/機能一覧/feature-manifest.ext.json` へ原子的に永続化する。以降の Step では永続化した `feature-manifest.ext.json` を使用する。完了条件: 拡張マニフェストが `<output_dir>/一覧/機能一覧/feature-manifest.ext.json` に永続化済み・`diagnostics.emptyRelation` が算出済み。`strategy.screenPresence` が `none` の対象では `--screen-manifest` を渡さない。スクリプト側は当該引数の不在を許容する。
 - **Step 2**: `../../../shared/scripts/unit-list/validate-manifest.sh <manifest.ext.json> --unit-kind feature` を実行する。FAIL 時は指摘に応じて修正し再実行(3回失敗で Phase 3 へ差し戻し)。完了条件: 全項目 PASS
 - **Step 3**: 両方向の参照検査を実行する。いずれかが非空なら該当 Phase へ差し戻す
 
@@ -171,6 +171,8 @@ comm -13 \
 - `unit_list_html`: artifacts[0] の汎用名
 - `embedded_json_ref`: HTML 内に埋め込んだマニフェスト JSON への参照
 - `unit_kind`: `feature`(固定値)
+- `feature_manifest_path`: 永続生マニフェスト（`<output_dir>/一覧/機能一覧/feature-manifest.json`）
+- `feature_manifest_ext_path`: 永続拡張マニフェスト（`<output_dir>/一覧/機能一覧/feature-manifest.ext.json`）
 
 ## ツールリファレンス
 

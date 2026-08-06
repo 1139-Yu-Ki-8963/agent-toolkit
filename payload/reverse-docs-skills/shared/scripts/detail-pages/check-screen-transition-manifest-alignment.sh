@@ -46,6 +46,39 @@ JSON
     echo "PASS: 異常系（manifestContentHash不一致）で終了コード1"; pass=$((pass + 1))
   fi
 
+  # 1-144再検証: kind:"unresolved"かつrouteが非空文字列の画面を含む合成フィクスチャ。
+  # bridge(build-detail-pages-from-screen-manifest.sh)はkindを見ずroute有無だけで
+  # nodes/unresolvedを振り分けるため、applicableもkindで絞り込んではならない
+  # (kind制限が残っているとこの画面がapplicableから漏れ、raw.screens長との
+  # 不一致でFAILする)。
+  cat > "$tmp/raw2.json" <<'JSON'
+{"screens":[{"screenKey":"home","kind":"route","route":"/home","screenNameGuess":"ホーム"},{"screenKey":"www2-animax_regist","kind":"unresolved","route":"/regist","screenNameGuess":"登録"}]}
+JSON
+  canonical2="$(jq -cjS . "$tmp/raw2.json")"
+  if command -v shasum >/dev/null 2>&1; then
+    expected2="$(printf '%s' "$canonical2" | shasum -a 256 | awk '{print $1}')"
+  else
+    expected2="$(printf '%s' "$canonical2" | sha256sum | awk '{print $1}')"
+  fi
+  jq --arg h "$expected2" --arg t "2026-08-06T00:00:00Z" \
+    '. + {generatedAt: $t, manifestContentHash: $h}
+     | .screens[0].confirmedScreenName = "ホーム画面"' \
+    "$tmp/raw2.json" > "$tmp/ext2.json"
+  jq -n --arg h "$expected2" \
+    '{manifestContentHash: $h,
+      nodes: [
+        {unitKey: "home", label: "ホーム画面"},
+        {unitKey: "www2-animax_regist", label: "登録"}
+      ],
+      unresolved: []}' \
+    > "$tmp/page2.json"
+
+  if bash "${BASH_SOURCE[0]}" --raw-manifest "$tmp/raw2.json" --ext-manifest "$tmp/ext2.json" --page-data "$tmp/page2.json" >/dev/null 2>&1; then
+    echo "PASS: kind:unresolvedかつroute非空の画面をnodesとして整合判定"; pass=$((pass + 1))
+  else
+    echo "FAIL: kind:unresolvedかつroute非空の画面がapplicableから漏れkindで絞り込まれた"; fail=$((fail + 1))
+  fi
+
   echo "self-test: $pass PASS, $fail FAIL"
   if [ "$fail" -eq 0 ]; then exit 0; else exit 1; fi
 fi
@@ -79,13 +112,10 @@ jq -e -n \
   --slurpfile ext "$ext" \
   --slurpfile page "$page" '
   def effective_label: (.confirmedScreenName // .screenNameGuess // .screenKey);
-  def applicable: [
-    .screens[]
-    | select(
-        ((.kind == "route" or .kind == "embedded-view") and ((.route // "") | length) > 0)
-        or ((.route // "") | length) == 0
-      )
-  ];
+  # 1-144再検証: bridge(build-detail-pages-from-screen-manifest.sh)はnodes/unresolvedの
+  # 振り分けをroute有無のみで行いkindを見ない。ここでもkindによる絞り込みをやめ、
+  # 全screenをapplicableとして扱う(kind=unresolvedかつroute非空の画面も対象に含める)。
+  def applicable: .screens;
   def strip_ext_fields:
     del(.generatedAt,.manifestContentHash)
     | .screens = [(.screens // [])[] | del(

@@ -116,7 +116,8 @@ tr:hover .copy-btn, .copy-btn:focus { opacity: 1; }
 
 .prov-badge { display: inline-block; font-size: 0.7em; padding: 1px 4px; margin-left: 4px; border: 1px solid; }
 .prov-badge.prov-measured { color: var(--accent); border-color: var(--accent); }
-.prov-badge.prov-inferred { color: var(--stamp); border-color: var(--stamp); }
+/* 1-170: 推定値は背景を塗って太字にし、実測・確認済の枠線のみ表示より視覚的に目立たせる */
+.prov-badge.prov-inferred { color: var(--stamp); border-color: var(--stamp); background: var(--stamp-soft); font-weight: 700; }
 .prov-badge.prov-confirmed { color: var(--green); border-color: var(--green); }
 </style>
 </head>
@@ -313,13 +314,12 @@ tr:hover .copy-btn, .copy-btn:focus { opacity: 1; }
       route.className = 'route';
       route.textContent = s.route || '—';
       tdScreen.appendChild(route);
-      /* 1-170: permissionsが推定値(inferred)の場合のみ推定バッジを画面名の隣に追加表示する。
-         measured/confirmedは既存の丸印表示のみとし、低コントラストな推定値だけを目立たせる */
+      /* 1-170: permissionsの出所区分(measured/inferred/confirmed)いずれもバッジを画面名の隣に表示する。
+         推定値(inferred)だけは背景塗り+太字(.prov-badge.prov-inferred)で視覚的に目立たせ、
+         measured/confirmedは枠線のみの控えめな表示に留める */
       var provenance = permissionsProvenance(s);
-      if (provenance === 'inferred') {
-        var provBadge = buildProvBadge(provenance);
-        if (provBadge) tdScreen.appendChild(provBadge);
-      }
+      var provBadge = buildProvBadge(provenance);
+      if (provBadge) tdScreen.appendChild(provBadge);
       tr.appendChild(tdScreen);
 
       roles.forEach(function (r) {

@@ -67,7 +67,7 @@ allowed-tools: [AskUserQuestion, Bash, Grep, Read, Write]
 - **Step 1**: 抽出方式はカスタム抽出パスに固定される（external に組み込み検出器はない）。完了条件: `custom` で確定済み
 - **Step 2**: Phase 1で宣言した手順（例: APIクライアントラッパーの走査・webhookハンドラ登録の解析・キューコンシューマ定義の収集等）をClaude自身がBash/Grep/Readで実行し、スキーマ準拠のマニフェストJSONをWriteする。走査は**読み込み宣言と実呼び出しの双方を確認する2段の走査**とする（1-139）。1段目で通信モジュールの読み込み宣言（`import requests`等）を手がかりにファイルを候補として拾い、2段目でそのファイルに実際の要求送信・受信の呼び出し（`requests.post(...)`等。既存の送信/受信パターンと同一）があるかを確認する。宣言のみで実呼び出しが無いファイルはユニットとしてマニフェストに含めず、候補ファイルパス一覧を一時ファイルに控えて Phase 2 Step 4 の `--declaration-candidates` に渡す。0件検出の場合は「0件時の分岐」節に従って処理する。連携を捏造しない。完了条件: マニフェストJSONが1件以上で生成済み、または「0件時の分岐」に従って処理済み。宣言のみで実呼び出しの無い候補ファイルがあれば一覧を保持済み
 - **Step 3**: diagnostics相当の自己点検を行う（同一 `sourceFile` への集中・`unresolved` の多発等）。問題があれば抽出手順を見直し、Step 2をやり直す。完了条件: 点検済み、または警告を承知の上で続行と判断済み
-- **Step 4**: マニフェストへメタデータを付与する。`../../../shared/scripts/extract/extract-external-metadata.sh <manifest.json> <source_dir> <manifest.ext.json>` を実行し、各ユニットに `direction`・`protocol`・`authMethod` フィールドを追加した拡張マニフェスト（`manifest.ext.json`）を生成する。Step 2 で連携先定義ファイルを保持できた場合は `--definition-file <定義ファイルのパス>` を渡し、定義エントリと実装の突合結果を `detectionSummary.diagnostics.definitionWithoutImplementation`（1-129）として記録する。Step 2 で宣言のみの候補ファイル一覧を保持できた場合は `--declaration-candidates <一時ファイルのパス>` を渡し、宣言のみで実呼び出しの無いファイル数を `detectionSummary.diagnostics.declarationOnly`（1-139）として記録する。以降のPhaseでは `manifest.ext.json` を使用する。完了条件: 拡張マニフェストが生成済み
+- **Step 4**: マニフェストへメタデータを付与する。`../../../shared/scripts/extract/extract-external-metadata.sh <manifest.json> <source_dir> <output_dir>/一覧/外部連携一覧/external-manifest.ext.json` を実行し、各ユニットに `direction`・`protocol`・`authMethod` フィールドを追加した拡張マニフェストを一時ファイル + rename で `<output_dir>/一覧/外部連携一覧/external-manifest.ext.json` へ原子的に永続化する。Step 2 で連携先定義ファイルを保持できた場合は `--definition-file <定義ファイルのパス>` を渡し、定義エントリと実装の突合結果を `detectionSummary.diagnostics.definitionWithoutImplementation`（1-129）として記録する。Step 2 で宣言のみの候補ファイル一覧を保持できた場合は `--declaration-candidates <一時ファイルのパス>` を渡し、宣言のみで実呼び出しの無いファイル数を `detectionSummary.diagnostics.declarationOnly`（1-139）として記録する。以降のPhaseでは永続化した `external-manifest.ext.json` を使用する。完了条件: 拡張マニフェストが `<output_dir>/一覧/外部連携一覧/external-manifest.ext.json` に永続化済み
 
 **非UTF-8原本への対応**: 原本が UTF-8 以外のエンコーディングで書かれている場合、通常の文字列検索はバイナリ扱いとなりマッチ 0 件を返す。走査の前に `shared/scripts/detect-encoding.sh encoding <file>` でエンコーディングを確定し、UTF-8 以外なら `detect-encoding.sh to-utf8` で変換した一時コピーに対して走査する。変換結果は永続化せず一時コピーで足りる。マッチ 0 件を「該当なし」と結論する前に、エンコーディングが原因でないことを確認する。
 
@@ -135,6 +135,8 @@ allowed-tools: [AskUserQuestion, Bash, Grep, Read, Write]
 - `unit_list_html`: artifacts[0] の汎用名
 - `embedded_json_ref`: HTML内に埋め込んだマニフェストJSONへの参照
 - `unit_kind`: `external`（固定値）
+- `external_manifest_path`: 永続生マニフェスト（`<output_dir>/一覧/外部連携一覧/external-manifest.json`）
+- `external_manifest_ext_path`: 永続拡張マニフェスト（`<output_dir>/一覧/外部連携一覧/external-manifest.ext.json`）
 
 `status`が`NONE`の場合、呼び出し元はexcluded-kinds.jsonのexcludedKindsへ`external`を記録する。
 
