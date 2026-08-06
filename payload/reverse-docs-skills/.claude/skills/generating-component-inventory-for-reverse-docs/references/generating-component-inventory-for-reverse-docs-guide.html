@@ -1,4 +1,95 @@
-<!doctype html><html lang="ja"><head><meta charset="utf-8"><title>generating-component-inventory-for-reverse-docs</title><style>
+<!DOCTYPE html>
+<!--
+  generating-component-inventory-for-reverse-docs スキルガイド（単一HTML型）
+
+  - 外部リソースはMaterial Symbols OutlinedのGoogle Fonts CDNだけを許可する。その他のCDN・フォント・画像は使わない
+-->
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>コンポーネント棚卸し生成スキル</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 0 24px 96px;
+    font-family: system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif;
+    line-height: 1.85; color: #1a1a1a; background: #fafafa;
+    max-width: 980px; margin-inline: auto;
+  }
+  header { padding: 56px 0 24px; border-bottom: 3px solid #1a1a1a; }
+  header h1 { font-size: 1.9rem; margin: 0 0 10px; letter-spacing: 0.01em; }
+  header .skill-name {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 1.0rem; background: #1a1a1a; color: #fafafa;
+    padding: 2px 10px; border-radius: 4px; vertical-align: middle;
+  }
+  header p { margin: 6px 0 0; color: #555; }
+  .meta-table { margin-top: 16px; font-size: 0.9rem; color: #555; }
+  .meta-table td { padding: 1px 16px 1px 0; }
+
+  nav.toc {
+    margin-top: 32px; padding: 18px 22px;
+    background: #fff; border: 1px solid #e0e0e0; border-radius: 8px;
+  }
+  nav.toc .toc-title { font-weight: 700; margin-bottom: 6px; }
+  nav.toc ol { margin: 0; padding-left: 1.4em; columns: 2; column-gap: 40px; }
+  nav.toc li { margin: 2px 0; }
+  nav.toc a { color: #1a1a1a; text-decoration: none; border-bottom: 1px dotted #999; }
+  nav.toc a:hover { border-bottom-style: solid; }
+
+  section { margin-top: 64px; }
+  section > h2 {
+    font-size: 1.35rem; padding-bottom: 8px; margin-bottom: 20px;
+    border-bottom: 2px solid #1a1a1a;
+  }
+  section > h2 .sec-num {
+    display: inline-block; min-width: 2.4em; margin-right: 10px;
+    font-family: ui-monospace, monospace; font-size: 0.95rem;
+    background: #1a1a1a; color: #fafafa; text-align: center;
+    padding: 1px 8px; border-radius: 4px; vertical-align: 2px;
+  }
+  h3 { font-size: 1.05rem; margin: 32px 0 10px; }
+  .note { color: #555; font-size: 0.92rem; }
+
+  table.spec { border-collapse: collapse; width: 100%; margin: 14px 0; background: #fff; font-size: 0.93rem; }
+  table.spec th, table.spec td { border: 1px solid #d8d8d8; padding: 8px 12px; text-align: left; vertical-align: top; }
+  table.spec th { background: #f0f0ee; font-weight: 700; white-space: nowrap; }
+  table.spec td code, li code, p code, dd code, table.spec th code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.86em; background: #eeeeea; padding: 1px 5px; border-radius: 3px;
+  }
+
+  pre.flow {
+    background: #16211c; color: #d7e6dc; border-radius: 8px;
+    padding: 20px 24px; overflow-x: auto;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.82rem; line-height: 1.55;
+  }
+  pre.flow .cap { color: #8fb8a0; }
+
+  .def {
+    background: #fff; border-left: 4px solid #1a1a1a;
+    padding: 12px 18px; margin: 14px 0; border-radius: 0 6px 6px 0;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  }
+  .def dt { font-weight: 700; margin-top: 8px; }
+  .def dt:first-child { margin-top: 0; }
+  .def dd { margin: 2px 0 0 0; color: #333; }
+
+  .constraint {
+    background: #eef2f7; border: 1px solid #c8d4e3; border-radius: 8px;
+    padding: 12px 18px; margin: 16px 0; font-size: 0.93rem;
+  }
+  .constraint strong:first-child { color: #2a4a7a; }
+
+  .tag {
+    display: inline-block; font-family: ui-monospace, monospace; font-size: 0.78rem;
+    font-weight: 700; padding: 0 8px; border-radius: 3px; border: 1px solid transparent;
+  }
+  .tag.pass  { background: #e7f3e7; color: #23662a; border-color: #b9d9ba; }
+  .tag.fail  { background: #fbe9e7; color: #9c2b1a; border-color: #ecc0b8; }
+
 
   /* portal-conventions: canonical viewport and theme compatibility */
   :root, [data-theme="light"] {
@@ -27,4 +118,108 @@
   table.spec th { background: var(--panel-2); }
   table.spec td code, table.spec th code, li code, p code, dd code { background: var(--guide-code-bg); }
   table thead { position: sticky; top: 0; z-index: 1; }
-</style></head><body><h1>コンポーネント棚卸し</h1><section id="s1"><h2>概要</h2><p>.tsx/.jsx/.vueの実在ファイルから棚卸しを生成する。</p></section><section id="s2"><h2>出力</h2><p>コンポーネント棚卸し.html。</p></section><section id="s3"><h2>入力</h2><p>target_repo_path、output_dir。</p></section><section id="s4"><h2>抽出</h2><p>export名、props有無、ディレクトリ分類、被参照件数。</p></section><section id="s5"><h2>分類</h2><p>components/pages/layouts等のディレクトリから機械的に導出する。</p></section><section id="s6"><h2>制約</h2><p>責務や意味の推定をしない。</p></section><section id="s7"><h2>検証</h2><p>決定的な整合検証を行う。</p></section><section id="s8"><h2>予想を裏切る挙動</h2><p>自動分類はtaxonomy inferenceではない。</p></section><section id="s9"><h2>参照</h2><p>SKILL.md。</p></section><section id="s10"><h2>完了</h2><p>生成物と検証結果を返す。</p></section></body></html>
+</style>
+</head>
+<body>
+
+<header>
+  <h1>コンポーネント棚卸し生成スキル<br><span class="skill-name">generating-component-inventory-for-reverse-docs</span></h1>
+  <p>対象リポジトリの UI 部品ファイルを走査し、ディレクトリ由来の分類だけを付けた <strong>コンポーネント棚卸し.html</strong> を生成する基盤ページ生成スキルの確定仕様。</p>
+
+  <table class="meta-table">
+    <tr><td>対応 OS</td><td>Windows WSL2 環境</td></tr>
+    <tr><td>検証状況</td><td>共有エンジン（<code>validate-page-data.sh</code>・<code>build-detail-page.sh</code>）は他の詳細ページ生成スキルで動作確認済み。コンポーネント抽出（<code>extract-component-inventory.sh</code>）の単独実機検証は未実施。スキル専用のテストスクリプトは持たない</td></tr>
+    <tr><td>依存</td><td>共有スクリプト <code>shared/scripts/extract/extract-component-inventory.sh</code>・<code>shared/scripts/detail-pages/validate-page-data.sh</code>・<code>shared/scripts/detail-pages/build-detail-page.sh</code> ／ 任意 <code>shared/scripts/build-portal.sh</code></td></tr>
+    <tr><td>関連資料</td><td><code>SKILL.md</code>, <code>references/test-cases.md</code></td></tr>
+  </table>
+</header>
+
+<nav class="toc">
+  <div class="toc-title">目次</div>
+  <ol>
+    <li><a href="#s1">概要</a></li>
+    <li><a href="#s2">出力</a></li>
+    <li><a href="#s3">用語</a></li>
+    <li><a href="#s4">動作フロー（Phase 1〜4）</a></li>
+    <li><a href="#s5">守り（禁止事項と機械検証）</a></li>
+    <li><a href="#s6">関連スキル・資料</a></li>
+  </ol>
+</nav>
+
+<section id="s1">
+  <h2><span class="sec-num">§1</span>概要</h2>
+  <p>リバース設計で UI の実装状況を把握するには、どの部品がどこに定義され、どれだけの数があるかを最初に確定させる必要がある。本スキルは対象リポジトリの <code>.tsx</code>・<code>.jsx</code>・<code>.vue</code> を走査し、ファイル単位で UI 部品を洗い出してコンポーネント棚卸し.html を作成する。</p>
+  <p>分類はディレクトリのパスから機械的に導く。責務が適切か、再利用できているか、重複していないかといった評価は一切行わない。良し悪しの判断は人間の担当であり、本スキルは事実の棚卸しに徹する。</p>
+
+  <div class="def">
+    <dt>本スキルがやること</dt>
+    <dd>UI 部品ファイルの走査・ディレクトリ由来の分類付け・コンポーネント棚卸し.html の生成</dd>
+    <dt>本スキルがやらないこと</dt>
+    <dd>コンポーネント設計の良否判定・重複の指摘・統合の提案（いずれも人間の判断） ／ アイコン参照の抽出（generating-icon-catalog-for-reverse-docs の担当）</dd>
+  </div>
+
+  <h3>起動引数</h3>
+  <table class="spec">
+    <tr><th>引数</th><th>内容</th></tr>
+    <tr><td><code>target_repo_path</code></td><td>走査対象のリポジトリルート。ここから下の .tsx・.jsx・.vue を探す</td></tr>
+    <tr><td><code>output_dir</code></td><td>コンポーネント棚卸し.html の書き出し先ディレクトリ</td></tr>
+    <tr><td><code>portal_output_dir</code></td><td>任意。渡された場合のみポータルへ反映する</td></tr>
+  </table>
+  <p class="note">対象リポジトリに <code>.tsx</code>・<code>.jsx</code>・<code>.vue</code> が 1 件も無い場合、本スキルは生成せず SKIP を返す。</p>
+</section>
+
+<section id="s2">
+  <h2><span class="sec-num">§2</span>出力</h2>
+  <p>対象リポジトリ 1 つにつき、次の 1 点が生まれる。</p>
+  <div class="def">
+    <dt>コンポーネント棚卸し.html</dt>
+    <dd>検出した UI 部品の一覧。部品名・定義ファイルのパス・ディレクトリ由来の分類・総件数を持つ。<code>output_dir</code> の直下に置かれる</dd>
+  </div>
+</section>
+
+<section id="s3">
+  <h2><span class="sec-num">§3</span>用語</h2>
+  <div class="def">
+    <dt>コンポーネント</dt>
+    <dd><code>.tsx</code>・<code>.jsx</code>・<code>.vue</code> のファイル単位で検出した UI 部品。1 ファイルを 1 件として数える</dd>
+    <dt>ディレクトリ由来の分類</dt>
+    <dd>定義ファイルが置かれたディレクトリ名をそのまま分類名に使う方式。ディレクトリ名の意図を推測して読み替えることはしない</dd>
+  </div>
+</section>
+
+<section id="s4">
+  <h2><span class="sec-num">§4</span>動作フロー（Phase 1〜4）</h2>
+  <table class="spec">
+    <tr><th>Phase</th><th>内容</th></tr>
+    <tr><td>Phase 1 走査対象の確認</td><td><code>target_repo_path</code> 配下に対象拡張子のファイルが存在するかを確認する。0 件なら生成せず SKIP を返す</td></tr>
+    <tr><td>Phase 2 抽出</td><td><code>extract-component-inventory.sh</code> が UI 部品を抽出し、ページデータの JSON を組み立てる</td></tr>
+    <tr><td>Phase 3 整合検証（機械実行）</td><td><code>validate-page-data.sh --target-repo</code> を実行する。全項目 PASS が次へ進む条件。FAIL は 3 回まで修正を試み、超過したら Phase 2 へ差し戻す</td></tr>
+    <tr><td>Phase 4 生成</td><td><code>build-detail-page.sh</code> がコンポーネント棚卸し.html を出力する。<code>portal_output_dir</code> が渡されていれば <code>build-portal.sh</code> でポータルへ反映する</td></tr>
+  </table>
+</section>
+
+<section id="s5">
+  <h2><span class="sec-num">§5</span>守り（禁止事項と機械検証）</h2>
+  <h3>禁止事項</h3>
+  <ul>
+    <li>抽出結果の JSON や生成後の HTML を手作業で編集しない。直すのは抽出スクリプトの側</li>
+    <li>実コードに存在しない部品を補完しない</li>
+    <li>責務・再利用性・重複の評価を成果物に書き込まない</li>
+  </ul>
+  <h3>機械検証</h3>
+  <p>Phase 3 の <code>validate-page-data.sh</code> が全項目 PASS しない限り HTML は生成されない。3 回の修正で PASS しない場合は Phase 2 へ差し戻し、原因が抽出側にあることを明示して止まる。</p>
+</section>
+
+<section id="s6">
+  <h2><span class="sec-num">§6</span>関連スキル・資料</h2>
+  <table class="spec">
+    <tr><th>対象</th><th>内容</th></tr>
+    <tr><td><code>SKILL.md</code></td><td>本スキルの手順の定義</td></tr>
+    <tr><td><code>references/test-cases.md</code></td><td>本スキルの検証観点</td></tr>
+    <tr><td>generating-icon-catalog-for-reverse-docs</td><td>同じ基盤ページ群。アイコン参照の抽出を担当する</td></tr>
+    <tr><td>generating-design-system-for-reverse-docs</td><td>同じ基盤ページ群。CSS トークンの転記を担当する</td></tr>
+  </table>
+</section>
+
+</body>
+</html>

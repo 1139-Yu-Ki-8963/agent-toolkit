@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <!--
-  generating-icon-catalog-for-reverse-docs スキルガイド（単一HTML型）
+  generating-test-case-list-for-reverse-docs スキルガイド（単一HTML型）
 
   - 外部リソースはMaterial Symbols OutlinedのGoogle Fonts CDNだけを許可する。その他のCDN・フォント・画像は使わない
 -->
@@ -8,7 +8,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>アイコンカタログ生成スキル</title>
+<title>テストケース一覧生成スキル</title>
 <style>
   * { box-sizing: border-box; }
   body {
@@ -123,13 +123,13 @@
 <body>
 
 <header>
-  <h1>アイコンカタログ生成スキル<br><span class="skill-name">generating-icon-catalog-for-reverse-docs</span></h1>
-  <p>対象リポジトリの JSX・HTML に現れるアイコン参照を 3 つのパターンで抽出し、<strong>アイコンカタログ.html</strong> を生成する基盤ページ生成スキルの確定仕様。</p>
+  <h1>テストケース一覧生成スキル<br><span class="skill-name">generating-test-case-list-for-reverse-docs</span></h1>
+  <p>画面ごとの単体・結合・操作シナリオの 3 種のテスト仕様書を横断集約し、整合検証を通過したデータだけから <strong>テストケース一覧.html</strong> を生成する派生一覧スキルの確定仕様。</p>
 
   <table class="meta-table">
     <tr><td>対応 OS</td><td>Windows WSL2 環境</td></tr>
-    <tr><td>検証状況</td><td>共有エンジン（<code>validate-page-data.sh</code>・<code>build-detail-page.sh</code>）は他の詳細ページ生成スキルで動作確認済み。アイコン抽出（<code>extract-icon-usage.sh</code>）の単独実機検証は未実施。スキル専用のテストスクリプトは持たない</td></tr>
-    <tr><td>依存</td><td>共有スクリプト <code>shared/scripts/extract/extract-icon-usage.sh</code>・<code>shared/scripts/detail-pages/validate-page-data.sh</code>・<code>shared/scripts/detail-pages/build-detail-page.sh</code> ／ 任意 <code>shared/scripts/build-portal.sh</code></td></tr>
+    <tr><td>検証状況</td><td>一覧生成エンジン（<code>build-unit-list.sh</code>）は画面一覧生成で実プロジェクト動作確認済み。3 種の横断集約と専用検証（<code>aggregate-test-cases.sh</code>・<code>validate-test-case-manifest.sh</code>）の単独実機検証は未実施。スキル専用のテストスクリプトは持たない</td></tr>
+    <tr><td>依存</td><td>共有スクリプト <code>shared/scripts/aggregate-test-cases.sh</code>・<code>shared/scripts/validate-test-case-manifest.sh</code>・<code>shared/scripts/unit-list/build-unit-list.sh</code> ／ 任意 <code>shared/scripts/build-portal.sh</code></td></tr>
     <tr><td>関連資料</td><td><code>SKILL.md</code>, <code>references/test-cases.md</code></td></tr>
   </table>
 </header>
@@ -148,44 +148,43 @@
 
 <section id="s1">
   <h2><span class="sec-num">§1</span>概要</h2>
-  <p>アイコンは画面の意味を担う要素でありながら、コード上は import 文や文字列として散在するため、全体像がつかみにくい。本スキルは対象リポジトリの JSX・HTML を走査し、アイコンの参照箇所を 1 か所に集めたアイコンカタログ.html を作成する。</p>
-  <p>抽出の対象は Material Icons の参照・SVG ファイルの import・React のアイコンコンポーネントの 3 パターンに限る。使い方が妥当か、同じ意味のアイコンが重複していないかといった評価は行わない。</p>
+  <p>テストケースは画面ごとの仕様書に分かれて書かれるうえ、単体・結合・操作シナリオの 3 種に分かれている。システム全体で何件のケースがあり、どの画面が手薄かは、この状態では分からない。本スキルは 3 種を横断で集約し、1 つの表として引けるテストケース一覧.html を作成する。</p>
+  <p>出力はタブを持たない単一の表である。3 種を切り替えて見るのではなく、種別を列として持つ 1 枚の表にまとめることで、種別をまたいだ比較を可能にする。</p>
 
   <div class="def">
     <dt>本スキルがやること</dt>
-    <dd>3 パターンのアイコン参照の抽出・参照元と行番号の記録・アイコンカタログ.html の生成</dd>
+    <dd>3 種のテスト仕様書の横断集約・整合検証・テストケース一覧.html の生成</dd>
     <dt>本スキルがやらないこと</dt>
-    <dd>アイコン選定の妥当性の評価・重複の指摘（いずれも人間の判断） ／ UI 部品そのものの棚卸し（generating-component-inventory-for-reverse-docs の担当）</dd>
+    <dd>画面ごとのテスト仕様書の執筆（画面詳細設計書の生成工程の担当） ／ 観点の網羅性の評価（generating-test-viewpoint-list-for-reverse-docs の担当）</dd>
   </div>
 
   <h3>起動引数</h3>
   <table class="spec">
     <tr><th>引数</th><th>内容</th></tr>
-    <tr><td><code>target_repo_path</code></td><td>走査対象のリポジトリルート</td></tr>
-    <tr><td><code>output_dir</code></td><td>アイコンカタログ.html の書き出し先ディレクトリ</td></tr>
+    <tr><td><code>output_dir</code></td><td>画面ごとのテスト仕様書の所在であり、テストケース一覧.html の書き出し先でもあるディレクトリ</td></tr>
     <tr><td><code>portal_output_dir</code></td><td>任意。渡された場合のみポータルへ反映する</td></tr>
   </table>
-  <p class="note">対象リポジトリにアイコン参照が 1 件も無い場合、本スキルは生成せず SKIP を返す。</p>
+  <p class="note">画面ごとのテスト仕様書が 1 件も存在しない場合、本スキルは生成せず SKIP を返す。</p>
 </section>
 
 <section id="s2">
   <h2><span class="sec-num">§2</span>出力</h2>
   <p>対象リポジトリ 1 つにつき、次の 1 点が生まれる。</p>
   <div class="def">
-    <dt>アイコンカタログ.html</dt>
-    <dd>検出したアイコン参照の一覧。アイコン名・参照元のファイルパス・行番号・参照件数を持つ。<code>output_dir</code> の直下に置かれる</dd>
+    <dt>テストケース一覧.html</dt>
+    <dd>単体・結合・操作シナリオの 3 種を横断集約した単一の表。タブを持たない。<code>output_dir</code> 配下の <code>一覧/テストケース一覧/</code> に置かれる</dd>
   </div>
 </section>
 
 <section id="s3">
   <h2><span class="sec-num">§3</span>用語</h2>
   <div class="def">
-    <dt>Material Icons の参照</dt>
-    <dd>Google Material Symbols のアイコン名を文字列として書いた箇所</dd>
-    <dt>SVG の import</dt>
-    <dd>SVG ファイルを import 文で読み込んでいる箇所</dd>
-    <dt>React のアイコンコンポーネント</dt>
-    <dd>アイコンを描画するコンポーネントとして呼び出されている箇所</dd>
+    <dt>単体</dt>
+    <dd>画面内の部品や関数の単位で確認するテスト。操作手順は持たない</dd>
+    <dt>結合</dt>
+    <dd>複数の要素をつないだ状態で確認するテスト。操作手順を持つ</dd>
+    <dt>操作シナリオ</dt>
+    <dd>利用者の一連の操作をたどるテスト。シナリオ名で仕様書の該当節と突き合わせる</dd>
   </div>
 </section>
 
@@ -193,10 +192,10 @@
   <h2><span class="sec-num">§4</span>動作フロー（Phase 1〜4）</h2>
   <table class="spec">
     <tr><th>Phase</th><th>内容</th></tr>
-    <tr><td>Phase 1 走査対象の確認</td><td><code>target_repo_path</code> 配下の JSX・HTML にアイコン参照が存在するかを確認する。0 件なら生成せず SKIP を返す</td></tr>
-    <tr><td>Phase 2 抽出</td><td><code>extract-icon-usage.sh</code> が 3 パターンのアイコン参照を抽出し、ページデータの JSON を組み立てる</td></tr>
-    <tr><td>Phase 3 整合検証（機械実行）</td><td><code>validate-page-data.sh --target-repo</code> を実行する。全項目 PASS が次へ進む条件。FAIL は 3 回まで修正を試み、超過したら Phase 2 へ差し戻す</td></tr>
-    <tr><td>Phase 4 生成</td><td><code>build-detail-page.sh</code> がアイコンカタログ.html を出力する。<code>portal_output_dir</code> が渡されていれば <code>build-portal.sh</code> でポータルへ反映する</td></tr>
+    <tr><td>Phase 1 集約対象の確認</td><td><code>output_dir</code> 配下に画面ごとのテスト仕様書が存在するかを確認する。0 件なら生成せず SKIP を返す</td></tr>
+    <tr><td>Phase 2 横断集約（機械実行）</td><td><code>aggregate-test-cases.sh</code> が 3 種の仕様書を走査し、マニフェストの JSON を組み立てる。確定行が 0 件の種別も、集約対象として走査した記録を残す</td></tr>
+    <tr><td>Phase 3 整合検証（機械実行）</td><td><code>validate-test-case-manifest.sh</code> を実行する。全項目 PASS が次へ進む条件。FAIL は 3 回まで修正を試み、超過したら Phase 2 へ差し戻す</td></tr>
+    <tr><td>Phase 4 生成</td><td><code>build-unit-list.sh</code> がテストケース一覧.html を出力する。<code>portal_output_dir</code> が渡されていれば <code>build-portal.sh</code> でポータルへ反映する</td></tr>
   </table>
 </section>
 
@@ -204,12 +203,13 @@
   <h2><span class="sec-num">§5</span>守り（禁止事項と機械検証）</h2>
   <h3>禁止事項</h3>
   <ul>
-    <li>抽出結果の JSON や生成後の HTML を手作業で編集しない。直すのは抽出スクリプトの側</li>
-    <li>実コードに存在しないアイコンを補完しない</li>
-    <li>3 パターン以外の参照を推測で拾わない</li>
+    <li>マニフェストや生成後の HTML を手作業で編集しない。直すのは集約スクリプトの側</li>
+    <li>テスト仕様書に書かれていないケースを補完しない</li>
+    <li>確定行が 0 件の種別を、集約の記録から脱落させない</li>
+    <li><code>build-unit-list.sh</code> を経由せず HTML を組み立てない</li>
   </ul>
   <h3>機械検証</h3>
-  <p>Phase 3 の <code>validate-page-data.sh</code> が全項目 PASS しない限り HTML は生成されない。3 回の修正で PASS しない場合は Phase 2 へ差し戻し、原因が抽出側にあることを明示して止まる。</p>
+  <p>Phase 3 の <code>validate-test-case-manifest.sh</code> が全項目 PASS しない限り HTML は生成されない。3 回の修正で PASS しない場合は Phase 2 へ差し戻し、原因が集約側にあることを明示して止まる。</p>
 </section>
 
 <section id="s6">
@@ -218,8 +218,8 @@
     <tr><th>対象</th><th>内容</th></tr>
     <tr><td><code>SKILL.md</code></td><td>本スキルの手順の定義</td></tr>
     <tr><td><code>references/test-cases.md</code></td><td>本スキルの検証観点</td></tr>
-    <tr><td>generating-component-inventory-for-reverse-docs</td><td>同じ基盤ページ群。UI 部品の棚卸しを担当する</td></tr>
-    <tr><td>generating-design-system-for-reverse-docs</td><td>同じ基盤ページ群。CSS トークンの転記を担当する</td></tr>
+    <tr><td>generating-test-viewpoint-list-for-reverse-docs</td><td>同じ派生一覧群。テスト観点の横断集約を担当する</td></tr>
+    <tr><td>generating-reverse-detailed-design</td><td>本スキルが集約する画面ごとのテスト仕様書を執筆する</td></tr>
   </table>
 </section>
 

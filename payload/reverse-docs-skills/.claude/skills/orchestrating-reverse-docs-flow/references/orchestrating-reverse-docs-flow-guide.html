@@ -153,9 +153,9 @@
   </dl>
 
   <table class="meta-table">
-    <tr><td>対応 OS</td><td>Windows WSL2 環境（統括対象の子スキル群と同一環境）</td></tr>
+    <tr><td>対応 OS</td><td>Windows WSL2 環境</td></tr>
     <tr><td>検証状況</td><td>2026-07-28: Phase 1〜7 / global Step 1〜30、条件分岐、Back-edge、35 Skillと26 operational refsの番号整合を構造検査で確認済み</td></tr>
-    <tr><td>依存</td><td>ツール: Read, Bash, Grep, Glob, AskUserQuestion, TaskCreate, TaskUpdate, Skill, Agent ／ 子スキル: surveying-architecture-for-reverse-docs, 種別別一覧生成スキル6種（generating-screen-list-for-reverse-docs / generating-api-list-for-reverse-docs / generating-table-list-for-reverse-docs / generating-batch-list-for-reverse-docs / generating-report-list-for-reverse-docs / generating-external-list-for-reverse-docs）, generating-reverse-common-docs, syncing-reverse-env, unlocking-reverse-target-screens, extracting-unit-facts-from-code, generating-reverse-detailed-design, rebuilding-screen-unit-from-docs, rebuilding-code-from-docs</td></tr>
+    <tr><td>依存</td><td>ツール: Read, Bash, Grep, Glob, AskUserQuestion, TaskCreate, TaskUpdate, Skill, Agent ／ 子スキル: surveying-architecture-for-reverse-docs, 種別別一覧生成スキル6種（generating-screen-list-for-reverse-docs / generating-api-list-for-reverse-docs / generating-table-list-for-reverse-docs / generating-batch-list-for-reverse-docs / generating-report-list-for-reverse-docs / generating-external-list-for-reverse-docs）, generating-reverse-common-docs, syncing-reverse-env, unlocking-reverse-target-screens, extracting-unit-facts-from-code, generating-reverse-detailed-design, rebuilding-screen-unit-from-docs, rebuilding-code-from-docs ／ 統括対象の子スキル群と同一環境で動作する</td></tr>
     <tr><td>関連資料</td><td><code>SKILL.md</code>、<code>references/contract.md</code>（返却ブロック契約・args仕様・状態判定表の正本）、<code>references/chapter-map.md</code>、<code>assets/リバース検証/</code>、<code>scripts/audit-consistency.sh</code></td></tr>
   </table>
 </header>
