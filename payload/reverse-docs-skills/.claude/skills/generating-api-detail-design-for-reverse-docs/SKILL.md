@@ -1,0 +1,149 @@
+---
+name: generating-api-detail-design-for-reverse-docs
+description: "API 1本ごとの詳細設計書を原本読解から生成する（unit_kind=api 専用）。 TRIGGER when: API詳細設計書の作成、エンドポイント単位の設計書生成、API仕様の書き起こし。 SKIP: API一覧の作成（→generating-api-list-for-reverse-docs）、機能単位の集約設計書、画面詳細設計書（→generating-reverse-detailed-design）。"
+invocation: generating-api-detail-design-for-reverse-docs
+type: transform
+allowed-tools: [AskUserQuestion, Bash, Grep, Read, Write]
+---
+
+# API詳細設計書の生成スキル
+
+工程全体は orchestrating-reverse-docs-flow が案内する。本スキルは API 1 本ごとの詳細設計書の執筆のみを担い、単独起動できる。起動引数は api_manifest_path・source_dir・output_dir・template_root の 4 つで、これらを渡せば動く。`unit_kind` は **api 固定** であり、引数では受け取らない。
+
+## 情報源と盲検の扱い
+
+画面詳細設計書（generating-reverse-detailed-design）は封印済み facts だけを情報源とし、原本コードの読解を禁じる。本スキルはこの制約を採らない。API 単位の facts を供給する経路が存在しないためである。
+
+したがって本スキルは **原本読解型** である。情報源は次の 2 つに限る。
+
+1. API 一覧の拡張マニフェスト（`api-manifest.ext.json`。`method`・`authRequired`・`ioSummary` を含む）
+2. マニフェストの `files` が指す原本コード
+
+この帰結として、本スキルが生成した設計書は往復検証（設計書だけからコードを再生成して原本と突き合わせる検証）の対象にならない。設計書と原本が同じ情報源を共有しており、突合が独立した検証にならないためである。品質は §検証 の 3 つの機械検査で担保する。
+
+## 対象言語
+
+Python（FastAPI 等の HTTP フレームワーク）を実装済みとする。他の言語は `status=ERROR` を返して中断し、hint に「Python 以外は未実装」と記録する。この契約は extracting-unit-facts-from-code の `profile=screen|python のみ実装` と同型である。
+
+判定は `api-manifest.ext.json` の `units[].files` の拡張子で行う。`.py` 以外が過半を占める場合を Python 以外と判定する。
+
+## 使用タイミング
+
+- API 一覧が生成済みで、エンドポイント単位の詳細設計書を作りたいとき
+- 前提: `<output_dir>/一覧/API一覧/api-manifest.ext.json` が生成済みであること
+- 起動引数:
+  - `api_manifest_path`（必須。API 一覧の拡張マニフェストの絶対パス）
+  - `source_dir`（必須。原本コードのルート）
+  - `output_dir`（必須。設計書の出力先ルート）
+  - `template_root`（必須。テンプレート群のルート。実体は `shared/templates/`）
+  - `unit_keys`（任意。対象を絞る場合のマニフェスト上のキー配列。省略時は全件）
+  - `common_docs_root`（任意。プロジェクト共通文書のルート。メッセージ定義との突合に使う）
+
+## 出力
+
+| 項目 | 値 |
+|---|---|
+| 出力フォルダ | `<output_dir>/API/api-<API ID>/詳細設計/` |
+| 出力ファイル | `API詳細設計書.md` |
+| テンプレート | `<template_root>/リバース検証/API/API詳細設計書.md` |
+
+## 進捗管理（必須手順）
+
+スキル開始時に `TaskCreate` で Phase 1〜4 のタスクを登録する。各 Phase 開始時に該当タスクを `in_progress` に、完了時に `completed` へ `TaskUpdate` で更新する。Phase 4 から Phase 3 へ差し戻す場合は該当タスクを `in_progress` に戻す。実行環境に TaskCreate/TaskUpdate が存在しない場合は、出力先ディレクトリ内のタスク台帳ファイル（`task-ledger.md`）で同等の Phase 遷移記録を代替する。
+
+## Phase 1: 起動引数の検収と対象確定
+
+## Step 1-1: 起動引数の検収と対象確定
+
+- **Step 1**: 必須 4 引数の実在を確認する（`test -f` / `test -d`）。いずれかが欠ける場合は `status=ERROR` で停止する。完了条件: 4 引数すべてが実在する
+- **Step 2**: `api_manifest_path` を Read し、`unitKind` が `api` であること、`units` が 1 件以上あることを確認する。完了条件: マニフェストが検収済み
+- **Step 3**: 対象言語を判定する。`units[].files` の拡張子を集計し、`.py` が過半でなければ `status=ERROR` で停止し、hint に「Python 以外は未実装」と記録する。完了条件: Python と判定済み
+- **Step 4**: 対象ユニットを確定する。`unit_keys` が渡されていればその集合、無ければ `kind` が `endpoint` の全件とする。`middleware` と `unresolved` は対象外とする。完了条件: 対象ユニットの一覧が確定済み
+
+**完了**: 4 引数が実在し、マニフェストが検収済みで、Python と判定され、対象ユニットが確定している
+
+## Phase 2: 原本読解
+
+## Step 2-1: ユニットごとの原本読解
+
+対象ユニット 1 件につき次を行う。
+
+- **Step 1**: マニフェストの `files` が指すファイルを Read する。`sourceFile` を起点に、そこから呼ばれる関数の定義元まで追う。追跡は 2 段までとし、それ以上は §10 要確認事項へ記録する。完了条件: 読解対象のファイル一覧が確定済み
+- **Step 2**: テンプレートの §2 から §9 に対応する事実を原本から抽出する。各項目に `file:line` 形式の根拠を付ける。根拠を付けられない項目は空欄のままとし、§10 へ回す。完了条件: 全章の記入材料が揃っている
+- **Step 3**: メッセージ定義書が `common_docs_root` にあれば、§7.2 のメッセージ ID を突合する。無ければ §7.2 は空欄とし、その旨を §10 へ記録する。完了条件: メッセージの突合が済んでいる
+
+**完了**: 対象ユニット全件について、根拠付きの記入材料が揃っている
+
+## Phase 3: 執筆
+
+## Step 3-1: テンプレートの展開と記入
+
+- **Step 1**: `<template_root>/リバース検証/API/API詳細設計書.md` を Read する。読み込んだ内容を `<output_dir>/API/api-<API ID>/詳細設計/API詳細設計書.md` へ書き出す。`<API ID>` はマニフェストの `unitId` を使う。中間ディレクトリが無ければ作成する。frontmatter の `APIKEY`・`APIID`・`METHOD`・`PATH`・`FEATUREKEY`・`SOURCEREF` をマニフェストの値で置換する。完了条件: 全対象ユニットのファイルが配置済み
+- **Step 2**: Phase 2 で得た材料を各章へ記入する。原本に無い値を書かない。推測で埋めない。完了条件: §1 から §9 の記入が完了している
+- **Step 3**: 空欄のまま残った項目を §10 要確認事項一覧へ列挙する。キーは連番を禁じ、内容を要約した意味語で付ける。完了条件: §10 が埋まっている
+
+**完了**: 全対象ユニットの設計書が記入済みである
+
+## Phase 4: 検証
+
+## Step 4-1: 機械検査
+
+次の 3 つを実行する。1 つでも不合格なら Phase 3 へ戻る。上限 3 回で収束しなければ `status=ERROR` とする。
+
+- **検査1 章の完備**: 生成した各設計書に §1 から §10 が存在し、あわせて付録 A・B も存在する。§ の章は `grep -c '^## §'` が 10 を返すことで確認し、付録は `grep -c '^## 関連資料\|^## 章マップ'` が 2 を返すことで確認する。付録の見出しは `§` を持たないため、前者の条件だけでは付録の存在を検証できない
+- **検査2 根拠の実在**: 記入した `file:line` 形式の根拠について、ファイルが `source_dir` 配下に実在することを確認する。実在しない根拠が 1 件でもあれば不合格とする
+- **検査3 プレースホルダの残存**: `APIKEY`・`APIID`・`METHOD`・`PATH`・`FEATUREKEY`・`SOURCEREF` が本文に残っていないことを確認する
+
+**完了**: 3 検査すべてが合格している
+
+## 返却
+
+本スキルは orchestrating-reverse-docs-flow の契約に準拠する。完了時に以下を返す。
+
+- `status`: `DONE | ERROR`
+- `artifacts`: 生成した API詳細設計書.md のパスの配列
+- `unit_kind`: `api`（固定値）
+- `authored_count`: 生成した設計書の枚数
+- `unresolved_count`: 全設計書の §10 に記録された要確認事項の合計件数
+
+## ツールリファレンス
+
+| ツール | 用途 |
+|---|---|
+| Read | マニフェスト・原本コード・テンプレート・メッセージ定義書の参照 |
+| Grep/Glob | 呼び出し先の定義元の追跡、プレースホルダ残存の確認 |
+| Bash | 根拠ファイルの実在確認、章の完備の確認 |
+| Write | 設計書の書き出し |
+| AskUserQuestion | Phase 1 の言語判定が割れた場合の確認 |
+| TaskCreate/TaskUpdate | Phase 1〜4 の進捗管理 |
+
+## 重要な注意事項
+
+- 原本に無い値を書かない。型・制約・既定値を推測で補わない
+- 根拠のない項目は空欄のままとし、§10 へ回す。空欄を埋めるために推測しない
+- 本スキルの成果物は API詳細設計書.md のみ。一覧・マニフェストの生成・更新は行わない
+- 往復検証の対象外である。この設計書だけからコードを再生成して原本と突き合わせる検証は行わない
+- `middleware` と `unresolved` のユニットは対象外とする。エンドポイントとして確定していないものに実装契約は書けない
+
+## 予想を裏切る挙動
+
+- Python 以外は未実装。判定は `files` の拡張子の過半で行うため、多言語混在のリポジトリでは意図しない中断が起こりうる。その場合は `unit_keys` で Python のユニットだけに絞って起動する
+- 呼び出し追跡は 2 段まで。深い委譲構造を持つ実装では、末端の処理が §10 要確認事項に積み上がる
+- 本スキルは盲検ではない。画面詳細設計書と同じ品質保証を期待しない
+
+## 完了条件
+
+| Phase | 完了条件 |
+|---|---|
+| Phase 1 | 4 引数が実在し、マニフェストが検収済みで、Python と判定され、対象ユニットが確定している |
+| Phase 2 | 対象ユニット全件について、根拠付きの記入材料が揃っている |
+| Phase 3 | 全対象ユニットの設計書が記入済みである |
+| Phase 4 | 3 検査すべてが合格している |
+| **Goal** | 対象エンドポイントごとに、根拠付きの実装契約と要確認事項を持つ設計書が生成されている |
+
+## 関連
+
+- `.claude/skills/generating-api-list-for-reverse-docs/SKILL.md` — 入力となるマニフェストの生成元
+- `.claude/skills/generating-reverse-detailed-design/SKILL.md` — 画面単位の詳細設計書（盲検型。本スキルとは情報源の扱いが異なる）
+- `shared/references/chapter-map.md` — 章の役割キーの対応表
+- `shared/references/納品物フォルダ体系.md` — 成果物の配置

@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<!--
+  generating-api-detail-design-for-reverse-docs スキルガイド（単一ファイル自己完結型）
+
+  - 外部リソース（CDN・画像・link）は一切使わず、完全自己完結に保つ
+-->
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>generating-api-detail-design-for-reverse-docs スキルガイド</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 0 24px 96px;
+    font-family: system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif;
+    line-height: 1.85; color: #1a1a1a; background: #fafafa;
+    max-width: 980px; margin-inline: auto;
+  }
+  header { padding: 56px 0 24px; border-bottom: 3px solid #1a1a1a; }
+  header h1 { font-size: 1.9rem; margin: 0 0 10px; letter-spacing: 0.01em; }
+  header .skill-name {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 1.0rem; background: #1a1a1a; color: #fafafa;
+    padding: 2px 10px; border-radius: 4px; vertical-align: middle;
+  }
+  header p { margin: 6px 0 0; color: #555; }
+  .meta-table { margin-top: 16px; font-size: 0.9rem; color: #555; }
+  .meta-table td { padding: 1px 16px 1px 0; }
+
+  nav.toc {
+    margin-top: 32px; padding: 18px 22px;
+    background: #fff; border: 1px solid #e0e0e0; border-radius: 8px;
+  }
+  nav.toc .toc-title { font-weight: 700; margin-bottom: 6px; }
+  nav.toc ol { margin: 0; padding-left: 1.4em; columns: 2; column-gap: 40px; }
+  nav.toc li { margin: 2px 0; }
+  nav.toc a { color: #1a1a1a; text-decoration: none; border-bottom: 1px dotted #999; }
+  nav.toc a:hover { border-bottom-style: solid; }
+
+  section { margin-top: 64px; }
+  section > h2 {
+    font-size: 1.35rem; padding-bottom: 8px; margin-bottom: 20px;
+    border-bottom: 2px solid #1a1a1a;
+  }
+  section > h2 .sec-num {
+    display: inline-block; min-width: 2.4em; margin-right: 10px;
+    font-family: ui-monospace, monospace; font-size: 0.95rem;
+    background: #1a1a1a; color: #fafafa; text-align: center;
+    padding: 1px 8px; border-radius: 4px; vertical-align: 2px;
+  }
+  h3 { font-size: 1.05rem; margin: 32px 0 10px; }
+  .note { color: #555; font-size: 0.92rem; }
+
+  table.spec { border-collapse: collapse; width: 100%; margin: 14px 0; background: #fff; font-size: 0.93rem; }
+  table.spec th, table.spec td { border: 1px solid #d8d8d8; padding: 8px 12px; text-align: left; vertical-align: top; }
+  table.spec th { background: #f0f0ee; font-weight: 700; white-space: nowrap; }
+  table.spec td code, li code, p code, table.spec th code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.86em; background: #eeeeea; padding: 1px 5px; border-radius: 3px;
+  }
+
+  pre.flow {
+    background: #16211c; color: #d7e6dc; border-radius: 8px;
+    padding: 20px 24px; overflow-x: auto;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.82rem; line-height: 1.55;
+  }
+  pre.flow .cap { color: #8fb8a0; }
+
+  figure.diagram { margin: 20px 0; padding: 8px; background: #fff;
+    border: 1px solid #e0e0e0; border-radius: 8px; }
+  figure.diagram svg { width: 100%; height: auto; display: block; cursor: zoom-in; }
+  figure.diagram figcaption { padding: 8px 10px 2px; }
+
+  .zoom-overlay {
+    position: fixed; inset: 0; z-index: 1000;
+    background: rgba(15, 23, 42, 0.93);
+    overflow: auto; padding: 24px; cursor: zoom-out;
+    -webkit-overflow-scrolling: touch;
+  }
+  .zoom-overlay svg {
+    width: 1880px; max-width: none; height: auto;
+    display: block; margin: 0 auto;
+    background: #fff; border-radius: 8px;
+  }
+
+  .def {
+    background: #fff; border-left: 4px solid #1a1a1a;
+    padding: 12px 18px; margin: 14px 0; border-radius: 0 6px 6px 0;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  }
+  .def dt { font-weight: 700; margin-top: 8px; }
+  .def dt:first-child { margin-top: 0; }
+  .def dd { margin: 2px 0 0 0; color: #333; }
+
+  .constraint {
+    background: #eef2f7; border: 1px solid #c8d4e3; border-radius: 8px;
+    padding: 12px 18px; margin: 16px 0; font-size: 0.93rem;
+  }
+  .constraint strong:first-child { color: #2a4a7a; }
+
+  .tag {
+    display: inline-block; font-family: ui-monospace, monospace; font-size: 0.78rem;
+    font-weight: 700; padding: 0 8px; border-radius: 3px; border: 1px solid transparent;
+  }
+  .tag.pass  { background: #e7f3e7; color: #23662a; border-color: #b9d9ba; }
+  .tag.fail  { background: #fbe9e7; color: #9c2b1a; border-color: #ecc0b8; }
+  .tag.error { background: #fdf3d7; color: #7a5d10; border-color: #e8d59a; }
+  .tag.mode  { background: #e8eef7; color: #2a4a7a; border-color: #c2d2e8; }
+
+
+  /* portal-conventions: canonical viewport and theme compatibility */
+  :root, [data-theme="light"] {
+    --guide-bg: #FFFFFF; --guide-panel: #FFFFFF; --panel-2: #F6F8FA; --guide-border: #D1D9E0;
+    --guide-text: #1B1F26; --guide-text-sub: #4A4F58; --guide-accent: #0969DA; --guide-code-bg: #F6F8FA;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --guide-bg: #15171C; --guide-panel: #1C1F26; --panel-2: #21262D; --guide-border: #30363D;
+      --guide-text: #E8E5DC; --guide-text-sub: #B6B3AB; --guide-accent: #58A6FF; --guide-code-bg: #21262D;
+    }
+  }
+  [data-theme="dark"] {
+    --guide-bg: #15171C; --guide-panel: #1C1F26; --panel-2: #21262D; --guide-border: #30363D;
+    --guide-text: #E8E5DC; --guide-text-sub: #B6B3AB; --guide-accent: #58A6FF; --guide-code-bg: #21262D;
+  }
+  html { height: 100vh; overflow: hidden; background: var(--guide-bg); }
+  body { height: 100vh; overflow-y: auto; color: var(--guide-text); background: var(--guide-bg); }
+  header, section > h2 { border-color: var(--guide-text); }
+  header p, .meta-table, .note, .def dd { color: var(--guide-text-sub); }
+  nav.toc, table.spec, .def, .flowstep, .flowgain, ul.tree, ul.tree .substeps li, pre.project-tree {
+    color: var(--guide-text); background: var(--guide-panel); border-color: var(--guide-border);
+  }
+  nav.toc a, table.spec a { color: var(--guide-accent); }
+  table.spec th, table.spec td { border-color: var(--guide-border); }
+  table.spec th { background: var(--panel-2); }
+  table.spec td code, table.spec th code, li code, p code, dd code { background: var(--guide-code-bg); }
+  table thead { position: sticky; top: 0; z-index: 1; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>API詳細設計書生成スキル<br><span class="skill-name">generating-api-detail-design-for-reverse-docs</span></h1>
+  <p>既存のバックエンドコードから API 1 本ごとの詳細設計書を、原本コードの読解によって起こすスキルの確定仕様。対象はエンドポイント単位であり、複数の API をまとめた機能単位の設計書とは別物である。</p>
+
+  <table class="meta-table">
+    <tr><td>対応 OS</td><td>Windows WSL2 環境</td></tr>
+    <tr><td>検証状況</td><td>未検証。対象リポジトリでの実行実績はまだない</td></tr>
+    <tr><td>依存</td><td>API 一覧の拡張マニフェスト（<code>api-manifest.ext.json</code>）、テンプレート <code>shared/templates/リバース検証/API/API詳細設計書.md</code></td></tr>
+    <tr><td>関連資料</td><td><code>shared/references/chapter-map.md</code>, <code>shared/references/納品物フォルダ体系.md</code>, <code>generating-api-list-for-reverse-docs</code></td></tr>
+  </table>
+</header>
+
+<nav class="toc">
+  <div class="toc-title">目次</div>
+  <ol>
+    <li><a href="#s1">概要</a></li>
+    <li><a href="#s2">出力</a></li>
+    <li><a href="#s3">用語</a></li>
+    <li><a href="#s4">情報源と盲検を採らない理由</a></li>
+    <li><a href="#s5">動作フロー</a></li>
+    <li><a href="#s6">検証</a></li>
+    <li><a href="#s7">制約と既知の限界</a></li>
+  </ol>
+</nav>
+
+<section id="s1">
+  <h2><span class="sec-num">§1</span>概要</h2>
+  <p>このスキルは、既存のバックエンドコードから API 1 本ごとの詳細設計書を起こす。対象はエンドポイント単位であり、複数の API をまとめた機能単位の設計書とは別物である。情報源は API 一覧の拡張マニフェストと、そのマニフェストが指す原本コードの 2 つに限る。原本から確定できない事項は推測で埋めず、要確認事項として残す。</p>
+</section>
+
+<section id="s2">
+  <h2><span class="sec-num">§2</span>出力</h2>
+  <p>エンドポイント 1 本につき、以下の 3 点が生まれる。</p>
+  <div class="def">
+    <dt>エンドポイント 1 本ぶんの実装契約</dt>
+    <dd>受け取るパラメータの名前・型・必須の別・制約、返す構造とステータスコード、処理の順序、触るテーブルとトランザクションの範囲が、それぞれ原本の行番号を根拠として並ぶ。読んだ人は、そのエンドポイントを呼ぶ側の実装と、内部の振る舞いの両方を、原本を開かずに把握できる。</dd>
+    <dt>確定できなかったことの一覧</dt>
+    <dd>原本を読んでも型や制約が決まらなかった項目が、推測で埋められずに列挙される。読んだ人は、どこを人に聞く必要があるかを最初に把握できる。</dd>
+    <dt>章の役割キーによる機械的な参照点</dt>
+    <dd>付録 B の章マップが、章の役割キーと節番号の対応を持つ。他のスキルや検査がこの設計書の特定の章を指すときに使える。</dd>
+  </div>
+</section>
+
+<section id="s3">
+  <h2><span class="sec-num">§3</span>用語</h2>
+  <dl class="def">
+    <dt>拡張マニフェスト</dt>
+    <dd>API 一覧スキルが出力する JSON に、メソッド・認証要否・入出力の要約を付け足したもの。</dd>
+    <dt>盲検</dt>
+    <dd>設計書の執筆役が原本コードを読まず、封印済みの事実表だけを情報源にする進め方。このスキルは採らない。</dd>
+    <dt>要確認事項</dt>
+    <dd>原本から確定できず、人が判断するほかない事項。設計書の §10 に集約する。</dd>
+  </dl>
+</section>
+
+<section id="s4">
+  <h2><span class="sec-num">§4</span>情報源と盲検を採らない理由</h2>
+  <p>画面詳細設計書は盲検で書かれ、設計書だけからコードを再生成して原本と突き合わせる往復検証が成立する。API 単位ではその前提が置けない。事実表を供給する経路が存在しないためである。したがってこのスキルは原本読解型とし、生成した設計書を往復検証の対象にしない。品質は §6 の 3 つの機械検査で担保する。この違いを表で示す。</p>
+  <table class="spec">
+    <tr><th>観点</th><th>画面詳細設計書</th><th>API詳細設計書（本スキル）</th></tr>
+    <tr><td>情報源</td><td>封印済みの事実表のみ</td><td>拡張マニフェストと原本コードの 2 つ</td></tr>
+    <tr><td>執筆時のコード読解</td><td>禁止（盲検）</td><td>必須（原本読解型）</td></tr>
+    <tr><td>品質保証の方法</td><td>設計書だけからのコード再生成と原本突合（往復検証）</td><td>§6 の 3 つの機械検査</td></tr>
+  </table>
+</section>
+
+<section id="s5">
+  <h2><span class="sec-num">§5</span>動作フロー</h2>
+  <table class="spec">
+    <tr><th>Phase</th><th>名前</th><th>完了条件</th></tr>
+    <tr><td>Phase 1</td><td>起動引数の検収と対象確定</td><td>4 引数が実在し、マニフェストが検収済みで、Python と判定され、対象ユニットが確定している</td></tr>
+    <tr><td>Phase 2</td><td>原本読解</td><td>対象ユニット全件について、根拠付きの記入材料が揃っている</td></tr>
+    <tr><td>Phase 3</td><td>執筆</td><td>全対象ユニットの設計書が記入済みである</td></tr>
+    <tr><td>Phase 4</td><td>検証</td><td>3 検査すべてが合格している</td></tr>
+  </table>
+  <pre class="flow"><span class="cap">── 動作フロー ─────────────────────────────</span>
+
+Phase 1  起動引数の検収と対象確定
+   │  4引数の実在確認 → マニフェスト検収 → 言語判定 → 対象ユニット確定
+   ▼
+Phase 2  原本読解
+   │  ユニットごとに原本を読み、file:line根拠付きの材料を抽出
+   ▼
+Phase 3  執筆
+   │  テンプレート展開 → §1〜§9記入 → 空欄を§10要確認事項へ
+   ▼
+Phase 4  検証
+   │  検査1 章の完備 / 検査2 根拠の実在 / 検査3 プレースホルダの残存
+   │  不合格ならPhase 3へ差し戻し（上限3回）
+   ▼
+完了  対象エンドポイントごとに根拠付きの実装契約と要確認事項を持つ設計書</pre>
+</section>
+
+<section id="s6">
+  <h2><span class="sec-num">§6</span>検証</h2>
+  <p>Phase 4 で実行する 3 つの機械検査。1 つでも不合格なら Phase 3 へ差し戻し、上限 3 回で収束しなければ <code>status=ERROR</code> とする。</p>
+  <table class="spec">
+    <tr><th>検査</th><th>内容</th></tr>
+    <tr><td><strong>検査1 章の完備</strong></td><td>生成した各設計書に §1 から §10 が存在し、あわせて付録 A・B も存在する。§ の章は <code>grep -c '^## §'</code> が 10 を返すことで確認し、付録は <code>grep -c '^## 関連資料\|^## 章マップ'</code> が 2 を返すことで確認する。付録の見出しは <code>§</code> を持たないため、前者の条件だけでは付録の存在を検証できない</td></tr>
+    <tr><td><strong>検査2 根拠の実在</strong></td><td>記入した <code>file:line</code> 形式の根拠について、ファイルが <code>source_dir</code> 配下に実在することを確認する。実在しない根拠が 1 件でもあれば不合格とする</td></tr>
+    <tr><td><strong>検査3 プレースホルダの残存</strong></td><td><code>APIKEY</code>・<code>APIID</code>・<code>METHOD</code>・<code>PATH</code>・<code>FEATUREKEY</code>・<code>SOURCEREF</code> が本文に残っていないことを確認する</td></tr>
+  </table>
+</section>
+
+<section id="s7">
+  <h2><span class="sec-num">§7</span>制約と既知の限界</h2>
+  <ul>
+    <li>Python 以外の言語は未実装で、<code>status=ERROR</code> を返して中断する</li>
+    <li>呼び出しの追跡は 2 段までとし、それ以上は要確認事項へ積む</li>
+    <li>盲検ではないため、画面詳細設計書と同じ品質保証を期待できない</li>
+    <li><code>middleware</code> と <code>unresolved</code> のユニットは対象外とする</li>
+  </ul>
+</section>
+
+</body>
+</html>
