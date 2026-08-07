@@ -154,8 +154,8 @@
 
   <table class="meta-table">
     <tr><td>対応 OS</td><td>Windows WSL2 環境</td></tr>
-    <tr><td>検証状況</td><td>2026-07-28: Phase 1〜7 / global Step 1〜32、条件分岐、Back-edge、35 Skillと26 operational refsの番号整合を構造検査で確認済み</td></tr>
-    <tr><td>依存</td><td>ツール: Read, Bash, Grep, Glob, AskUserQuestion, TaskCreate, TaskUpdate, Skill, Agent ／ 子スキル: surveying-architecture-for-reverse-docs, 種別別一覧生成スキル6種（generating-screen-list-for-reverse-docs / generating-api-list-for-reverse-docs / generating-table-list-for-reverse-docs / generating-batch-list-for-reverse-docs / generating-report-list-for-reverse-docs / generating-external-list-for-reverse-docs）, generating-reverse-common-docs, syncing-reverse-env, unlocking-reverse-target-screens, extracting-unit-facts-from-code, generating-reverse-detailed-design, rebuilding-screen-unit-from-docs, rebuilding-code-from-docs, generating-api-detail-design-for-reverse-docs, generating-feature-design-for-reverse-docs ／ 統括対象の子スキル群と同一環境で動作する</td></tr>
+    <tr><td>検証状況</td><td>2026-07-28: Phase 1〜7 / global Step 1〜41、条件分岐、Back-edge、35 Skillと26 operational refsの番号整合を構造検査で確認済み</td></tr>
+    <tr><td>依存</td><td>ツール: Read, Bash, Grep, Glob, AskUserQuestion, TaskCreate, TaskUpdate, Skill, Agent ／ 子スキル: surveying-architecture-for-reverse-docs, 種別別一覧生成スキル6種（generating-screen-list-for-reverse-docs / generating-api-list-for-reverse-docs / generating-table-list-for-reverse-docs / generating-batch-list-for-reverse-docs / generating-report-list-for-reverse-docs / generating-external-list-for-reverse-docs）, generating-reverse-common-docs, syncing-reverse-env, unlocking-reverse-target-screens, extracting-unit-facts-from-code, generating-reverse-detailed-design, rebuilding-screen-unit-from-docs, rebuilding-code-from-docs, generating-api-detail-design-for-reverse-docs, generating-api-basic-design-for-reverse-docs, generating-feature-design-for-reverse-docs, generating-table-logical-model-for-reverse-docs, generating-table-definition-for-reverse-docs, generating-batch-basic-design-for-reverse-docs, generating-batch-detail-design-for-reverse-docs, generating-report-basic-design-for-reverse-docs, generating-report-detail-design-for-reverse-docs, generating-external-basic-design-for-reverse-docs, generating-external-detail-design-for-reverse-docs ／ 統括対象の子スキル群と同一環境で動作する</td></tr>
     <tr><td>関連資料</td><td><code>SKILL.md</code>、<code>references/contract.md</code>（返却ブロック契約・args仕様・状態判定表の正本）、<code>references/chapter-map.md</code>、<code>assets/リバース検証/</code>、<code>scripts/audit-consistency.sh</code></td></tr>
   </table>
 </header>
@@ -166,7 +166,7 @@
     <li><a href="#s1">概要</a></li>
     <li><a href="#s2">出力</a></li>
     <li><a href="#s3">状態判定表と判定フロー（15状態）</a></li>
-    <li><a href="#s4">事前ヒアリングと Phase 1〜7 / global Step 1〜32 のワークフロー</a></li>
+    <li><a href="#s4">事前ヒアリングと Phase 1〜7 / global Step 1〜41 のワークフロー</a></li>
     <li><a href="#s5">サブエージェント委任仕様</a></li>
     <li><a href="#s6">返却ブロック契約</a></li>
     <li><a href="#s7">args 仕様</a></li>
@@ -207,7 +207,7 @@
 <!-- ===== §2 出力 ===== -->
 <section id="s2">
   <h2><span class="sec-num">§2</span>出力</h2>
-  <p>統括スキル自体はファイルを生成しない。以下の最終状態を、事前ヒアリングと Phase 1〜7 / global Step 1〜32 の工程を依存順に制御して達成する。</p>
+  <p>統括スキル自体はファイルを生成しない。以下の最終状態を、事前ヒアリングと Phase 1〜7 / global Step 1〜41 の工程を依存順に制御して達成する。</p>
   <div class="def">
     <dt>全画面の設計書一式</dt>
     <dd>対象アプリケーションのすべての画面について、コードの事実に基づいた詳細設計書が揃い、「設計書だけからコードを再構築→元と一致」の往復検証に合格した状態。新規参画者がコードを読まなくても画面仕様を把握できるドキュメント群が最終成果物になる。</dd>
@@ -339,9 +339,9 @@
   </figure>
 </section>
 
-<!-- ===== §4 Phase 1〜7 / global Step 1〜32 ===== -->
+<!-- ===== §4 Phase 1〜7 / global Step 1〜41 ===== -->
 <section id="s4">
-  <h2><span class="sec-num">§4</span>Phase 1〜7 / global Step 1〜32</h2>
+  <h2><span class="sec-num">§4</span>Phase 1〜7 / global Step 1〜41</h2>
 
   <table class="spec">
     <thead>
@@ -352,7 +352,7 @@
       <tr><td>Phase 2 / Step 3〜8</td><td>アーキテクチャ調査と明示的なrevise back-edge</td><td>アーキ未調査または検出手がかり不足時</td></tr>
       <tr><td>Phase 3 / Step 9〜11</td><td>種別別一覧、対象外記録、機能一覧、マトリクス・対応表を確定する</td><td>一覧・派生成果物が未生成時</td></tr>
       <tr><td>Phase 4 / Step 12〜16</td><td>共通文書、ポータル、任意基盤ページを確定する</td><td>共通未採録またはポータル未生成時</td></tr>
-      <tr><td>Phase 5 / Step 17〜28・31〜32</td><td>facts封印、基本設計・詳細設計の静的リバース（31〜32は非画面ユニットの静的著述）</td><td>screen種別。docs-onlyはStep 28で終端。api種別はStep 31、機能はStep 32で終端</td></tr>
+      <tr><td>Phase 5 / Step 17〜28・31〜41</td><td>facts封印、基本設計・詳細設計の静的リバース（31〜41は非画面ユニットの静的著述）</td><td>screen種別。docs-onlyはStep 28で終端。api種別はStep 31、機能はStep 32で終端</td></tr>
       <tr><td>Phase 6 / Step 29</td><td>unlock→setup→file verify→baseline sync→implement→compare</td><td><code>single-pass</code> / <code>iterative</code>のみ</td></tr>
       <tr><td>Phase 7 / Step 30</td><td>judge、基準更新、必要時teardown、明示back-edge</td><td>比較結果取得後</td></tr>
     </tbody>

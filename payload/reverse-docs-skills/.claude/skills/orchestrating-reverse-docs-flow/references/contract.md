@@ -344,13 +344,13 @@ running-reverse-screen-batch の実行ログ（`log_path`）・failed リスト�
 管理者は excluded-kinds.json の presentKinds に記載された各種別についてループする。種別ごとの進み方は次のとおり。
 
 - screen: 画面単位で静的リバース（facts抽出〜基本設計・詳細設計）を先に完了する。`docs-only` はここで終端し、`single-pass` / `iterative` は画面開通〜ファイル単位検証〜基準確立〜往復検証へ進む
-- api: facts工程を経由しない原本読解型のAPI詳細設計（generating-api-detail-design-for-reverse-docs）へ進み、詳細設計書の生成をもって終端する（往復検証の対象にはならない）。table / batch / report / external: 設計書生成スキルが実在しないため、一覧確立をもって「後続未対応」の終端状態として記録する
+- api: facts工程を経由しない原本読解型の設計書著述へ進む。API詳細設計（generating-api-detail-design-for-reverse-docs）とAPI基本設計（generating-api-basic-design-for-reverse-docs）の両方を生成し、その完了をもって終端する（往復検証の対象にはならない）。table / batch / report / external: facts工程を経由しない原本読解型の基本設計と詳細設計へ進み、両方の生成をもって終端する（往復検証の対象にはならない）。
 
 「後続未対応」は excluded-kinds.json の「対象外」（アーキテクチャ調査書で実在しないと判定された種別。後述の3状態の区別を参照）とは別の状態である。「対象外＝そもそも実在しない」のに対し、「後続未対応＝実在し一覧化済みだが facts 抽出に進めない」という違いがある。
 
 一覧生成は全種別について成果物を出す。unit_kinds_present に含まれる種別（present）は一覧HTMLを、含まれない種別（excluded）は `<種別>一覧（該当なし）.md`（判定理由を転記した1枚もの）を必ず生成する。成果物の実在有無だけで各種別の判定を後から復元できる状態を保つ。
 
-管理者の最終報告（Goal）には、全6種別の到達状態レポートを必ず含める。到達状態は次の3値で記す。
+管理者の最終報告（Goal）には、全6種別の到達状態レポートを必ず含める。到達状態は次の5値で記す。
 
 | 到達状態 | 意味 |
 |---|---|
@@ -358,12 +358,13 @@ running-reverse-screen-batch の実行ログ（`log_path`）・failed リスト�
 | 対象外 | アーキテクチャ調査書で実在しないと判定（excluded-kinds.json に記載） |
 | 後続未対応 | 実在し一覧化済みだが、facts抽出以降の工程が未対応のため一覧確立の時点で終端 |
 | 詳細設計生成済み | api種別限定。facts工程を経由しない原本読解型のAPI詳細設計著述が完了し終端 |
+| 基本設計生成済み | table/batch/report/external種別限定。facts工程を経由しない原本読解型の基本設計と詳細設計の著述が完了し終端 |
 
 管理者の最終報告には、全6種別それぞれについてアーキテクチャ調査書の実在判定（実在する／実在しない・理由）と対応する成果物パス（一覧HTML または `<種別>一覧（該当なし）.md`）を記す種別判定結果の報告義務を含める（書式は orchestrating-reverse-docs-flow SKILL.md の「報告書式（3表テンプレート）」表1を正とする）。
 
 管理者の最終報告には、無人モード（headless=true）実行時に限り、盲検分離の充足状況（同一プロセス実行か・分離実行か）も併せて記載する（正本は「無人モード仕様」の「盲検分離の必須要件」）。
 
-この種別ループは既存16状態の判定を変更しない（screen 以外の種別は一覧確立後に新しい状態へ遷移せず、終端状態の記録のみを行う）。
+screen 以外の種別も、api と table と batch と report と external は基本設計と詳細設計の生成へ進む。feature と message は派生一覧のため単位種別の到達状態を持たない。
 
 feature（機能一覧）は種別ループの対象外である。派生一覧のため presentKinds にも excludedKinds にも載らず、global Step 10（画面一覧確立後）で生成される。到達状態の報告は 生成済み / 未生成 の2値で行う（表1に feature（派生）行として記載する）。
 

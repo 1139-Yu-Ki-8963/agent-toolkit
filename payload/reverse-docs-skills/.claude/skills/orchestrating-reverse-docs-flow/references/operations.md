@@ -9,7 +9,7 @@
 | フィールド | 内容 |
 |---|---|
 | 種別判定結果 | 全6種別それぞれについて、アーキテクチャ調査書の実在判定（実在する／実在しない・理由）と対応する成果物パス（一覧HTML または `<種別>一覧（該当なし）.md`）を記す |
-| 6種別到達状態 | 全6種別（screen/api/table/batch/report/external）それぞれの到達状態を4値（生成済み / 対象外 / 後続未対応 / 詳細設計生成済み）で記す（正本は `references/contract.md` の「種別ループ」） |
+| 6種別到達状態 | 全6種別（screen/api/table/batch/report/external）それぞれの到達状態を5値（生成済み / 対象外 / 後続未対応 / 基本設計生成済み / 詳細設計生成済み）で記す（正本は `references/contract.md` の「種別ループ」） |
 | 盲検分離充足状況（無人時のみ） | headless=true 実行時に限り、原本を読む工程と設計書のみで判定する工程が同一プロセスか分離実行かを記す（正本は `references/contract.md` の「無人モード仕様」の「盲検分離の必須要件」） |
 | 部分著述 | 画面ごとに「対象ファイルn件/全m件」の形式で著述完了対象ファイル数と当該画面の全対象ファイル数を記す（正本は `references/contract.md` の「画面完了の定義」） |
 | テスト実行結果 | 保存済みテストコード（rebuilding-screen-unit-from-docs の saved_test_paths 由来）の実行結果一覧を画面ごとに記す |
@@ -28,7 +28,10 @@
 |---|---|---|---|
 | screen | 実在する | `一覧/画面一覧/画面一覧.html` | 生成済み |
 | api | 実在する | `一覧/API一覧/API一覧.html` | 詳細設計生成済み |
-| table | 実在しない（理由: …） | `一覧/テーブル一覧（該当なし）.md` | 対象外 |
+| table | 実在しない（理由: …） | `一覧/テーブル一覧（該当なし）.md` | 基本設計生成済み |
+| batch | 実在しない（理由: …） | `一覧/バッチ一覧（該当なし）.md` | 基本設計生成済み |
+| report | 実在しない（理由: …） | `一覧/帳票一覧（該当なし）.md` | 基本設計生成済み |
+| external | 実在しない（理由: …） | `一覧/外部連携一覧（該当なし）.md` | 基本設計生成済み |
 | feature（派生） | 判定対象外（派生一覧） | `一覧/機能一覧/機能一覧.html` | 生成済み |
 | … | … | … | … |
 
@@ -79,6 +82,15 @@ feature（機能一覧）は派生一覧であり、実在判定（unit_kinds_pr
 | global Step 30 | rebuilding-code-from-docs / syncing-reverse-env | mode=judge と compare_result / mode=syncまたはteardown | PASS/FAIL |
 | global Step 31 | generating-api-detail-design-for-reverse-docs | target_repo_path, output_dir, api-manifest.ext.json由来のAPI一覧 | API詳細設計著述完了 |
 | global Step 32 | generating-feature-design-for-reverse-docs | target_repo_path, output_dir, feature-manifest.json由来の機能一覧 | 機能設計著述完了 |
+| global Step 33 | generating-api-basic-design-for-reverse-docs | target_repo_path, output_dir, api-manifest.ext.json由来のAPI一覧 | API基本設計著述完了 |
+| global Step 34 | generating-table-logical-model-for-reverse-docs | target_repo_path, output_dir, table-manifest.ext.json由来のテーブル一覧 | 論理データモデル著述完了 |
+| global Step 35 | generating-table-definition-for-reverse-docs | target_repo_path, output_dir, table-manifest.ext.json由来のテーブル一覧 | テーブル定義書著述完了 |
+| global Step 36 | generating-batch-basic-design-for-reverse-docs | target_repo_path, output_dir, batch-manifest.ext.json由来のバッチ一覧 | バッチ基本設計著述完了 |
+| global Step 37 | generating-batch-detail-design-for-reverse-docs | target_repo_path, output_dir, batch-manifest.ext.json由来のバッチ一覧 | バッチ詳細設計著述完了 |
+| global Step 38 | generating-report-basic-design-for-reverse-docs | target_repo_path, output_dir, report-manifest.ext.json由来の帳票一覧 | 帳票基本設計著述完了 |
+| global Step 39 | generating-report-detail-design-for-reverse-docs | target_repo_path, output_dir, report-manifest.ext.json由来の帳票一覧 | 帳票詳細設計著述完了 |
+| global Step 40 | generating-external-basic-design-for-reverse-docs | target_repo_path, output_dir, external-manifest.ext.json由来の外部連携一覧 | 外部連携基本設計著述完了 |
+| global Step 41 | generating-external-detail-design-for-reverse-docs | target_repo_path, output_dir, external-manifest.ext.json由来の外部連携一覧 | 外部連携詳細設計著述完了 |
 
 Agent（サブエージェント）は preflight の並行事実確認等に限定して用いる。実検証は子スキルへ委ねる。
 
@@ -119,7 +131,7 @@ Phase 1 の状態判定完了後に一括登録するタスク一覧の設計。
 - screen-batch-route 選択時はglobal Step 17〜30を「条件付きStep: 画面バッチ実行」1タスクに集約し、新しいPhase番号を作らない
 - 差し戻し発生時は差し戻し先工程を新規 TaskCreate で末尾に追加（既存タスクの状態は変更しない）
 - headless=true 時もタスク一覧は同じ形式で生成する（進捗の可視化用途。実行制御は per-item prompt が担う）
-- global Step 31〜32 は画面ループの外で1回だけ実行する非画面の工程であり、画面IDを持たない。画面バッチへの委譲の対象外とする。
+- global Step 31〜41 は画面ループの外で1回だけ実行する非画面の工程であり、画面IDを持たない。画面バッチへの委譲の対象外とする。
 
 ## ループ設計
 

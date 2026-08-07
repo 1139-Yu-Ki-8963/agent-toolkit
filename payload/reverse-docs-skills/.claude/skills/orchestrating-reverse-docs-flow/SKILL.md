@@ -52,7 +52,7 @@ allowed-tools: [Agent, AskUserQuestion, Bash, Edit, Glob, Read, Skill, TaskCreat
 
 ## 実行手順
 
-グローバル順序の正本は `shared/references/リバース工程設計.md` の Phase 1〜7 / global Step 1〜30 とする。本節の見出しは `Step <親Phase>-<Phase内連番>`、直下の `global_step` は全体で一意な実行順を表す。英字接尾辞・Phase 0・Step 0・重複番号は使用しない。
+グローバル順序の正本は `shared/references/リバース工程設計.md` の Phase 1〜7 / global Step 1〜41 とする。本節の見出しは `Step <親Phase>-<Phase内連番>`、直下の `global_step` は全体で一意な実行順を表す。英字接尾辞・Phase 0・Step 0・重複番号は使用しない。
 
 ## Phase 1: 準備
 
@@ -75,7 +75,7 @@ target_repo_path が確定した直後に `bash scripts/resolve-flow-mode.sh <ta
 | モード | 動作 |
 |---|---|
 | setup-only | `bash shared/scripts/rules/scaffold-rule-definitions.sh <target_repo_path> --apply --with-skills` で規約定義一式と納品スキル2本を対象リポジトリへ配り、続けて `bash shared/scripts/rules/build-derived-rules.sh <target_repo_path>/docs/rules <target_repo_path> --apply` で各AIツール設定（`.claude`・`.cursor`・`.codex`）を生成する。生成が終わったら「セットアップ完了」として本フローを終端し、global Step 2以降（アーキテクチャ調査以下のリバース工程）へは進まない |
-| reverse-degraded | screen_scope を確認せずに進む。Step 5-1 の「screen種別のみ。その他5種別は『後続未対応』で終端」という既存条件がそのまま画面依存工程を素通りさせ、Step 3-2 の excluded-kinds.json 記録とポータルの `disabledWhenEmpty` が画面カードを選べない状態で表示する。global Step 2以降は現行どおり進める |
+| reverse-degraded | screen_scope を確認せずに進む。Step 5-1 の「screen種別はfacts工程へ、api種別はStep 5-13/5-15へ、table・batch・report・externalの4種別はStep 5-16〜5-23へ分岐する」という既存条件がそのまま画面依存工程を素通りさせ、Step 3-2 の excluded-kinds.json 記録とポータルの `disabledWhenEmpty` が画面カードを選べない状態で表示する。global Step 2以降は現行どおり進める |
 | reverse-full | global Step 2以降を現行どおり進める |
 
 `setup-only` の場合はここで本フローを終端し、以降の対象プロジェクトパス・出力先パス・画面範囲の確認へは進まない。
@@ -302,7 +302,7 @@ bash shared/scripts/build-portal.sh \
 
 - global_step: 17
 - tool: Read / Bash
-- condition: screen種別は本Step以降のfacts工程へ進む。api種別はfacts工程を経由せず原本読解型のStep 5-13（API詳細設計著述）へ分岐する。table・batch・report・external の4種別は設計書生成スキルが実在しないため「後続未対応」で終端する
+- condition: screen種別は本Step以降のfacts工程へ進む。api種別はfacts工程を経由せず原本読解型のStep 5-13（API詳細設計著述）と Step 5-15（API基本設計著述）へ分岐する。table・batch・report・external の4種別は、facts工程を経由せず原本読解型の基本設計と詳細設計（Step 5-16〜5-23）へ分岐する
 
 対象画面IDを一覧マニフェストで検証し、`target_file_paths` の合計行数とファイル数を実測して authoring_mode を決定する（合計1,500行超または4ファイル超なら `large-two-pass`、それ以外は `standard`）。画面未開通は静的処理の阻害条件にしない。通常の画面ループは `facts_profile=auto|screen` のどちらでも常に `profile=screen` を渡し、対象ファイルが全件 `.py` でも python へ自動変更しない。`facts_profile=python` は global Step 2 の明示Python facts-only経路で終端済みのため本ループへ到達しない。スキャフォールディングは事実封印完了（facts_ref確定）後に1回だけ実施し（`bash <scaffold_script_path> <output_dir> <画面ID> [<画面名>]` を画面ディレクトリ未存在時のみ実行。既存の場合は `--verify` のみで健全性確認する）、facts抽出より前へ移動してはならない。
 
@@ -443,6 +443,96 @@ global Step 9（API一覧の確立）が完了していることを前提に、g
 global Step 10（機能一覧の確立）とStep 5-12（画面詳細設計）・Step 5-13（API詳細設計）が先に完了していることを前提に、generating-feature-design-for-reverse-docs を起動する。機能一覧マニフェスト（`一覧/機能一覧/feature-manifest.json`）に載る機能1件ごとに機能設計書.mdを生成する。機能設計書は構成要素の設計書をパスで参照する集約設計書のため、参照先が実在する状態で実行する。機能は派生一覧であり `unit_kinds_present` の判定対象外である。種別ループには載せず、機能一覧の確立を前提に単独で起動する。
 
 **完了**: 機能一覧に載る全機能について機能設計書.mdが生成されている。機能が0件の場合は生成せず完了とする。
+
+## Step 5-15: API基本設計の著述
+
+- global_step: 33
+- tool: Skill
+- condition: unit_kind=api。画面ループの外・画面バッチへの委譲の外で、全画面の処理が終わったあとに1回だけ実行する。`verification_mode` に依存せず、docs-onlyでも実行する
+
+global Step 9（API一覧の確立）が完了していることを前提に、generating-api-basic-design-for-reverse-docs を起動する。API一覧マニフェスト（`一覧/API一覧/api-manifest.ext.json`）に載るAPI1本ごとにAPI基本設計書.mdを生成する。本Stepは業務語彙のみで書く。実装の詳細はStep 5-13のAPI詳細設計が担う。両者は同じ情報源を読み、抽出する内容と出力の関門が異なる。
+
+**完了**: API一覧に載る全APIについてAPI基本設計書.mdが生成されている。APIが0件の場合は生成せず完了とする。
+
+## Step 5-16: テーブル基本設計（論理データモデル）の著述
+
+- global_step: 34
+- tool: Skill
+- condition: unit_kind=table。画面ループの外・画面バッチへの委譲の外で、全画面の処理が終わったあとに1回だけ実行する。`verification_mode` に依存せず、docs-onlyでも実行する
+
+global Step 9（テーブル一覧の確立）が完了していることを前提に、generating-table-logical-model-for-reverse-docs を起動する。テーブル一覧マニフェスト（`一覧/テーブル一覧/table-manifest.ext.json`）に載るテーブル1件ごとに論理データモデル.mdを生成する。本Stepは業務語彙のみで書く。導出できない事項は要確認事項一覧へ移す。実装の詳細はStep 5-17のテーブル詳細設計が担う。
+
+**完了**: テーブル一覧に載る全テーブルについて論理データモデル.mdが生成されている。テーブルが0件の場合は生成せず完了とする。
+
+## Step 5-17: テーブル詳細設計（テーブル定義書）の著述
+
+- global_step: 35
+- tool: Skill
+- condition: unit_kind=table。画面ループの外・画面バッチへの委譲の外で、全画面の処理が終わったあとに1回だけ実行する。`verification_mode` に依存せず、docs-onlyでも実行する
+
+global Step 9（テーブル一覧の確立）が完了していることを前提に、generating-table-definition-for-reverse-docs を起動する。テーブル一覧マニフェスト（`一覧/テーブル一覧/table-manifest.ext.json`）に載るテーブル1件ごとにテーブル定義書.mdを生成する。本Stepは実装用語を使ってよい。根拠を本文へ書く。本Stepはfacts工程を経由しない原本読解型であり、往復検証の対象にはならない。
+
+**完了**: テーブル一覧に載る全テーブルについてテーブル定義書.mdが生成されている。テーブルが0件の場合は生成せず完了とする。
+
+## Step 5-18: バッチ基本設計書の著述
+
+- global_step: 36
+- tool: Skill
+- condition: unit_kind=batch。画面ループの外・画面バッチへの委譲の外で、全画面の処理が終わったあとに1回だけ実行する。`verification_mode` に依存せず、docs-onlyでも実行する
+
+global Step 9（バッチ一覧の確立）が完了していることを前提に、generating-batch-basic-design-for-reverse-docs を起動する。バッチ一覧マニフェスト（`一覧/バッチ一覧/batch-manifest.ext.json`）に載るバッチ1本ごとにバッチ基本設計書.mdを生成する。本Stepは業務語彙のみで書く。導出できない事項は要確認事項一覧へ移す。実装の詳細はStep 5-19のバッチ詳細設計が担う。
+
+**完了**: バッチ一覧に載る全バッチについてバッチ基本設計書.mdが生成されている。バッチが0件の場合は生成せず完了とする。
+
+## Step 5-19: バッチ詳細設計書の著述
+
+- global_step: 37
+- tool: Skill
+- condition: unit_kind=batch。画面ループの外・画面バッチへの委譲の外で、全画面の処理が終わったあとに1回だけ実行する。`verification_mode` に依存せず、docs-onlyでも実行する
+
+global Step 9（バッチ一覧の確立）が完了していることを前提に、generating-batch-detail-design-for-reverse-docs を起動する。バッチ一覧マニフェスト（`一覧/バッチ一覧/batch-manifest.ext.json`）に載るバッチ1本ごとにバッチ詳細設計書.mdを生成する。本Stepは実装用語を使ってよい。根拠を本文へ書く。本Stepはfacts工程を経由しない原本読解型であり、往復検証の対象にはならない。
+
+**完了**: バッチ一覧に載る全バッチについてバッチ詳細設計書.mdが生成されている。バッチが0件の場合は生成せず完了とする。
+
+## Step 5-20: 帳票基本設計書の著述
+
+- global_step: 38
+- tool: Skill
+- condition: unit_kind=report。画面ループの外・画面バッチへの委譲の外で、全画面の処理が終わったあとに1回だけ実行する。`verification_mode` に依存せず、docs-onlyでも実行する
+
+global Step 9（帳票一覧の確立）が完了していることを前提に、generating-report-basic-design-for-reverse-docs を起動する。帳票一覧マニフェスト（`一覧/帳票一覧/report-manifest.ext.json`）に載る帳票1本ごとに帳票基本設計書.mdを生成する。本Stepは業務語彙のみで書く。導出できない事項は要確認事項一覧へ移す。実装の詳細はStep 5-21の帳票詳細設計が担う。
+
+**完了**: 帳票一覧に載る全帳票について帳票基本設計書.mdが生成されている。帳票が0件の場合は生成せず完了とする。
+
+## Step 5-21: 帳票詳細設計書の著述
+
+- global_step: 39
+- tool: Skill
+- condition: unit_kind=report。画面ループの外・画面バッチへの委譲の外で、全画面の処理が終わったあとに1回だけ実行する。`verification_mode` に依存せず、docs-onlyでも実行する
+
+global Step 9（帳票一覧の確立）が完了していることを前提に、generating-report-detail-design-for-reverse-docs を起動する。帳票一覧マニフェスト（`一覧/帳票一覧/report-manifest.ext.json`）に載る帳票1本ごとに帳票詳細設計書.mdを生成する。本Stepは実装用語を使ってよい。根拠を本文へ書く。本Stepはfacts工程を経由しない原本読解型であり、往復検証の対象にはならない。
+
+**完了**: 帳票一覧に載る全帳票について帳票詳細設計書.mdが生成されている。帳票が0件の場合は生成せず完了とする。
+
+## Step 5-22: 外部連携基本設計書の著述
+
+- global_step: 40
+- tool: Skill
+- condition: unit_kind=external。画面ループの外・画面バッチへの委譲の外で、全画面の処理が終わったあとに1回だけ実行する。`verification_mode` に依存せず、docs-onlyでも実行する
+
+global Step 9（外部連携一覧の確立）が完了していることを前提に、generating-external-basic-design-for-reverse-docs を起動する。外部連携一覧マニフェスト（`一覧/外部連携一覧/external-manifest.ext.json`）に載る外部連携1本ごとに外部連携基本設計書.mdを生成する。本Stepは業務語彙のみで書く。導出できない事項は要確認事項一覧へ移す。実装の詳細はStep 5-23の外部連携詳細設計が担う。
+
+**完了**: 外部連携一覧に載る全外部連携について外部連携基本設計書.mdが生成されている。外部連携が0件の場合は生成せず完了とする。
+
+## Step 5-23: 外部連携詳細設計書の著述
+
+- global_step: 41
+- tool: Skill
+- condition: unit_kind=external。画面ループの外・画面バッチへの委譲の外で、全画面の処理が終わったあとに1回だけ実行する。`verification_mode` に依存せず、docs-onlyでも実行する
+
+global Step 9（外部連携一覧の確立）が完了していることを前提に、generating-external-detail-design-for-reverse-docs を起動する。外部連携一覧マニフェスト（`一覧/外部連携一覧/external-manifest.ext.json`）に載る外部連携1本ごとに外部連携詳細設計書.mdを生成する。本Stepは実装用語を使ってよい。根拠を本文へ書く。本Stepはfacts工程を経由しない原本読解型であり、往復検証の対象にはならない。
+
+**完了**: 外部連携一覧に載る全外部連携について外部連携詳細設計書.mdが生成されている。外部連携が0件の場合は生成せず完了とする。
 
 ## Phase 6: 動的往復検証
 
