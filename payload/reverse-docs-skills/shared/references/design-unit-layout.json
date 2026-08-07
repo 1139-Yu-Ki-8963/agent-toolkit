@@ -1,0 +1,45 @@
+{
+  "specVersion": "1.0.0",
+  "kinds": {
+    "api": {
+      "label": "API",
+      "token": "<API名>",
+      "phases": {
+        "basic": ["API基本設計書.md", "API単体テスト設計書.md"],
+        "detail": ["API詳細設計書.md"]
+      }
+    },
+    "table": {
+      "label": "テーブル",
+      "token": "<TABLENAME>",
+      "phases": {
+        "basic": ["論理データモデル.md", "テーブル単体テスト設計書.md"],
+        "detail": ["テーブル定義書.md"]
+      }
+    },
+    "batch": {
+      "label": "バッチ",
+      "token": "<BATCHNAME>",
+      "phases": {
+        "basic": ["バッチ基本設計書.md", "バッチ単体テスト設計書.md"],
+        "detail": ["バッチ詳細設計書.md"]
+      }
+    },
+    "report": {
+      "label": "帳票",
+      "token": "<REPORTNAME>",
+      "phases": {
+        "basic": ["帳票基本設計書.md", "帳票単体テスト設計書.md"],
+        "detail": ["帳票詳細設計書.md"]
+      }
+    },
+    "external": {
+      "label": "外部連携",
+      "token": "<EXTERNALNAME>",
+      "phases": {
+        "basic": ["外部連携基本設計書.md", "外部連携単体テスト設計書.md"],
+        "detail": ["外部連携詳細設計書.md"]
+      }
+    }
+  }
+}

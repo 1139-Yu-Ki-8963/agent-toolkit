@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<!--
+  generating-report-basic-design-for-reverse-docs スキルガイド（単一HTML型）
+
+  - 外部リソースはMaterial Symbols OutlinedのGoogle Fonts CDNだけを許可する。その他のCDN・フォント・画像は使わない
+-->
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>帳票基本設計生成スキル</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 0 24px 96px;
+    font-family: system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif;
+    line-height: 1.85; color: #1a1a1a; background: #fafafa;
+    max-width: 980px; margin-inline: auto;
+  }
+  header { padding: 56px 0 24px; border-bottom: 3px solid #1a1a1a; }
+  header h1 { font-size: 1.9rem; margin: 0 0 10px; letter-spacing: 0.01em; }
+  header .skill-name {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 1.0rem; background: #1a1a1a; color: #fafafa;
+    padding: 2px 10px; border-radius: 4px; vertical-align: middle;
+  }
+  header p { margin: 6px 0 0; color: #555; }
+  .meta-table { margin-top: 16px; font-size: 0.9rem; color: #555; }
+  .meta-table td { padding: 1px 16px 1px 0; }
+
+  nav.toc {
+    margin-top: 32px; padding: 18px 22px;
+    background: #fff; border: 1px solid #e0e0e0; border-radius: 8px;
+  }
+  nav.toc .toc-title { font-weight: 700; margin-bottom: 6px; }
+  nav.toc ol { margin: 0; padding-left: 1.4em; columns: 2; column-gap: 40px; }
+  nav.toc li { margin: 2px 0; }
+  nav.toc a { color: #1a1a1a; text-decoration: none; border-bottom: 1px dotted #999; }
+  nav.toc a:hover { border-bottom-style: solid; }
+
+  section { margin-top: 64px; }
+  section > h2 {
+    font-size: 1.35rem; padding-bottom: 8px; margin-bottom: 20px;
+    border-bottom: 2px solid #1a1a1a;
+  }
+  section > h2 .sec-num {
+    display: inline-block; min-width: 2.4em; margin-right: 10px;
+    font-family: ui-monospace, monospace; font-size: 0.95rem;
+    background: #1a1a1a; color: #fafafa; text-align: center;
+    padding: 1px 8px; border-radius: 4px; vertical-align: 2px;
+  }
+  h3 { font-size: 1.05rem; margin: 32px 0 10px; }
+  .note { color: #555; font-size: 0.92rem; }
+
+  table.spec { border-collapse: collapse; width: 100%; margin: 14px 0; background: #fff; font-size: 0.93rem; }
+  table.spec th, table.spec td { border: 1px solid #d8d8d8; padding: 8px 12px; text-align: left; vertical-align: top; }
+  table.spec th { background: #f0f0ee; font-weight: 700; white-space: nowrap; }
+  table.spec td code, li code, p code, dd code, table.spec th code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.86em; background: #eeeeea; padding: 1px 5px; border-radius: 3px;
+  }
+
+  pre.flow {
+    background: #16211c; color: #d7e6dc; border-radius: 8px;
+    padding: 20px 24px; overflow-x: auto;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.82rem; line-height: 1.55;
+  }
+  pre.flow .cap { color: #8fb8a0; }
+
+  .def {
+    background: #fff; border-left: 4px solid #1a1a1a;
+    padding: 12px 18px; margin: 14px 0; border-radius: 0 6px 6px 0;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  }
+  .def dt { font-weight: 700; margin-top: 8px; }
+  .def dt:first-child { margin-top: 0; }
+  .def dd { margin: 2px 0 0 0; color: #333; }
+
+  .constraint {
+    background: #eef2f7; border: 1px solid #c8d4e3; border-radius: 8px;
+    padding: 12px 18px; margin: 16px 0; font-size: 0.93rem;
+  }
+  .constraint strong:first-child { color: #2a4a7a; }
+
+  .tag {
+    display: inline-block; font-family: ui-monospace, monospace; font-size: 0.78rem;
+    font-weight: 700; padding: 0 8px; border-radius: 3px; border: 1px solid transparent;
+  }
+  .tag.pass  { background: #e7f3e7; color: #23662a; border-color: #b9d9ba; }
+  .tag.fail  { background: #fbe9e7; color: #9c2b1a; border-color: #ecc0b8; }
+
+
+  /* portal-conventions: canonical viewport and theme compatibility */
+  :root, [data-theme="light"] {
+    --guide-bg: #FFFFFF; --guide-panel: #FFFFFF; --panel-2: #F6F8FA; --guide-border: #D1D9E0;
+    --guide-text: #1B1F26; --guide-text-sub: #4A4F58; --guide-accent: #0969DA; --guide-code-bg: #F6F8FA;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --guide-bg: #15171C; --guide-panel: #1C1F26; --panel-2: #21262D; --guide-border: #30363D;
+      --guide-text: #E8E5DC; --guide-text-sub: #B6B3AB; --guide-accent: #58A6FF; --guide-code-bg: #21262D;
+    }
+  }
+  [data-theme="dark"] {
+    --guide-bg: #15171C; --guide-panel: #1C1F26; --panel-2: #21262D; --guide-border: #30363D;
+    --guide-text: #E8E5DC; --guide-text-sub: #B6B3AB; --guide-accent: #58A6FF; --guide-code-bg: #21262D;
+  }
+  html { height: 100vh; overflow: hidden; background: var(--guide-bg); }
+  body { height: 100vh; overflow-y: auto; color: var(--guide-text); background: var(--guide-bg); }
+  header, section > h2 { border-color: var(--guide-text); }
+  header p, .meta-table, .note, .def dd { color: var(--guide-text-sub); }
+  nav.toc, table.spec, .def, .flowstep, .flowgain, ul.tree, ul.tree .substeps li, pre.project-tree {
+    color: var(--guide-text); background: var(--guide-panel); border-color: var(--guide-border);
+  }
+  nav.toc a, table.spec a { color: var(--guide-accent); }
+  table.spec th, table.spec td { border-color: var(--guide-border); }
+  table.spec th { background: var(--panel-2); }
+  table.spec td code, table.spec th code, li code, p code, dd code { background: var(--guide-code-bg); }
+  table thead { position: sticky; top: 0; z-index: 1; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>帳票基本設計生成スキル<br><span class="skill-name">generating-report-basic-design-for-reverse-docs</span></h1>
+  <p>帳票 1 本ごとに、何のために出力され、いつ出力されるかを業務語彙だけで書いた <strong>帳票基本設計書.md</strong> と、その基本設計書から起こした <strong>帳票単体テスト設計書.md</strong> を生成するスキルの確定仕様。実装の詳細は書かない。</p>
+
+  <table class="meta-table">
+    <tr><td>対応 OS</td><td>Windows WSL2 環境</td></tr>
+    <tr><td>検証状況</td><td>新規作成のため単独実機検証は未実施。Phase 構成と機械検査は型となる generating-api-basic-design-for-reverse-docs から踏襲した。スキル専用のテストスクリプトは持たない</td></tr>
+    <tr><td>依存</td><td>拡張マニフェスト <code>一覧/帳票一覧/report-manifest.ext.json</code> ／ テンプレート <code>shared/templates/リバース検証/帳票/帳票基本設計書.md</code>, <code>帳票単体テスト設計書.md</code></td></tr>
+    <tr><td>関連資料</td><td><code>SKILL.md</code>, <code>references/test-cases.md</code></td></tr>
+  </table>
+</header>
+
+<nav class="toc">
+  <div class="toc-title">目次</div>
+  <ol>
+    <li><a href="#s1">概要</a></li>
+    <li><a href="#s2">出力</a></li>
+    <li><a href="#s3">用語</a></li>
+    <li><a href="#s4">動作フロー</a></li>
+    <li><a href="#s5">守り（禁止事項と機械検証）</a></li>
+    <li><a href="#s6">関連スキル・資料</a></li>
+  </ol>
+</nav>
+
+<section id="s1">
+  <h2><span class="sec-num">§1</span>概要</h2>
+  <p>その帳票がどんな項目をどんなレイアウトで出力するかは、帳票詳細設計書が書く。しかし、その帳票が何のために出力され、いつ出力され、誰が読むものかという問いには、実装の詳細とは別に答える必要がある。</p>
+  <p>本スキルは業務語彙だけで基本設計書を書く。項目の編集の処理・改ページ・集計といった実装の詳細は抽出しない。読み手は業務担当者である。</p>
+
+  <div class="def">
+    <dt>本スキルがやること</dt>
+    <dd>帳票 1 本ごとの業務的な意味（項目の定義・出力の条件・出力の契機・レイアウトの要件）を業務語彙のみで記入した帳票基本設計書の生成、およびその基本設計書だけを情報源とした帳票単体テスト設計書の生成</dd>
+    <dt>本スキルがやらないこと</dt>
+    <dd>項目の編集の処理・改ページ・集計の記述（帳票詳細設計書の担当）／ 帳票一覧の生成（generating-report-list-for-reverse-docsの担当）</dd>
+  </div>
+
+  <h3>起動引数</h3>
+  <table class="spec">
+    <tr><th>引数</th><th>必須</th><th>内容</th></tr>
+    <tr><td><code>report_manifest_path</code></td><td>必須</td><td>帳票一覧の拡張マニフェストの絶対パス</td></tr>
+    <tr><td><code>source_dir</code></td><td>必須</td><td>原本コードのルート</td></tr>
+    <tr><td><code>output_dir</code></td><td>必須</td><td>出力先のルート</td></tr>
+    <tr><td><code>template_root</code></td><td>必須</td><td>テンプレート群のルート</td></tr>
+    <tr><td><code>unit_keys</code></td><td>任意</td><td>対象を絞るキーの配列</td></tr>
+    <tr><td><code>common_docs_root</code></td><td>任意</td><td>共通文書のルート。業務語彙とメッセージの突合に使う</td></tr>
+  </table>
+  <p class="note"><code>unit_kind</code> は <code>report</code> 固定であり、引数には取らない。</p>
+</section>
+
+<section id="s2">
+  <h2><span class="sec-num">§2</span>出力</h2>
+  <p>帳票 1 本につき、次の 2 点が生まれる。</p>
+  <div class="def">
+    <dt>帳票基本設計書.md（<code>&lt;output_dir&gt;/帳票/report-&lt;帳票識別子&gt;/基本設計/帳票基本設計書.md</code>）</dt>
+    <dd>その帳票の項目の定義・出力の条件・出力の契機・レイアウトの要件を、業務語彙のみで記入した文書。コードから確定できなかった事項は要確認事項一覧へまとめて記載される。</dd>
+    <dt>帳票単体テスト設計書.md（<code>&lt;output_dir&gt;/帳票/report-&lt;帳票識別子&gt;/基本設計/帳票単体テスト設計書.md</code>）</dt>
+    <dd>帳票基本設計書だけを情報源として起こしたテストの観点をまとめた文書。原本コードもマニフェストも参照しない。各観点には由来する基本設計書の章が記録される。</dd>
+  </div>
+</section>
+
+<section id="s3">
+  <h2><span class="sec-num">§3</span>用語</h2>
+  <dl class="def">
+    <dt>業務語彙</dt>
+    <dd>コード識別子・フレームワーク用語・型構文・パス・ライブラリ名を使わず、業務担当者が読める言葉だけで書く記述の方針。</dd>
+    <dt>要確認事項</dt>
+    <dd>コードから確定できない事項を推測で埋めず、確認事項として記録したもの。キーは連番を禁じ、内容を要約した意味語で付ける。</dd>
+    <dt>由来の記録</dt>
+    <dd>帳票単体テスト設計書の各観点に、その観点を起こした基本設計書の章を記録すること。コードを根拠にせず、基本設計書だけを情報源とする方針を担保する。</dd>
+  </dl>
+</section>
+
+<section id="s4">
+  <h2><span class="sec-num">§4</span>動作フロー</h2>
+  <table class="spec">
+    <tr><th>Phase</th><th>やること</th><th>完了条件</th></tr>
+    <tr>
+      <td><strong>Phase 1</strong><br>起動引数の検収と対象の確定</td>
+      <td>必須4引数の実在確認、マニフェストの検収（<code>unitKind</code> が <code>report</code>・<code>units</code> が1件以上）、対象ユニットの確定を行う</td>
+      <td>4引数が実在し、マニフェストが検収済みで、対象ユニットが確定している</td>
+    </tr>
+    <tr>
+      <td><strong>Phase 2</strong><br>業務的な意味の抽出</td>
+      <td>マニフェストの記載事項（<code>format</code>・<code>trigger</code>等）を把握し、原本コードから項目の定義・出力の条件・出力の契機・レイアウトの要件を読み取る。確定できない事項は推測で埋めず要確認事項として記録する</td>
+      <td>対象ユニット全件について、業務的な意味の記入材料が揃っている</td>
+    </tr>
+    <tr>
+      <td><strong>Phase 3</strong><br>執筆</td>
+      <td>テンプレートを展開・配置し、業務語彙のみで各章へ記入する。空欄のまま残った項目を要確認事項一覧へ列挙し、frontmatter の <code>status</code> を <code>draft</code> から <code>authored</code> へ更新する</td>
+      <td>全対象ユニットの設計書が業務語彙のみで記入済みである</td>
+    </tr>
+    <tr>
+      <td><strong>Phase 4</strong><br>単体テスト設計書の執筆</td>
+      <td>Phase 3 で書き上げた基本設計書だけを情報源として、外部仕様・業務仕様・エラーと例外の各章からテストの観点を起こす。各観点に由来する基本設計書の章を記録し、確定していない事項は要確認事項一覧へ移す</td>
+      <td>単体テスト設計書が出力され、全ての観点に由来する章が記録されている</td>
+    </tr>
+    <tr>
+      <td><strong>Phase 5</strong><br>機械検査</td>
+      <td>業務語彙の検査・注記の残存検査・frontmatter の検査・章の完備検査・由来の記録検査・情報源の検査の6検査を実行する。不合格が1件でもあれば Phase 3 または Phase 4 へ戻る（上限3回）</td>
+      <td>6検査すべてが合格している</td>
+    </tr>
+  </table>
+</section>
+
+<section id="s5">
+  <h2><span class="sec-num">§5</span>守り（禁止事項と機械検証）</h2>
+  <h3>禁止事項</h3>
+  <ul>
+    <li>コード識別子・フレームワーク用語・型構文・ファイルパス・ライブラリ名を本文に書かない</li>
+    <li>項目の編集の処理・改ページ・集計を書かない（帳票詳細設計書の担当）</li>
+    <li>コードから確定できない事項を推測で埋めない</li>
+    <li>根拠を本文に <code>file:line</code> の形で書かない。業務語彙の検査がファイルパス形式の文字列そのものを不合格の対象とするため</li>
+    <li>帳票単体テスト設計書の情報源を基本設計書だけに限る。原本コードもマニフェストも読まない</li>
+    <li>子スキルへ委任しない。原本読解と執筆（Phase 1〜3）は業務語彙の一貫性を保つため単一のメインエージェントが通しで担う</li>
+  </ul>
+  <h3>機械検証</h3>
+  <p>Phase 5 で次の6検査を実行する。検査1は生成した本文に実装用語（フレームワーク用語・型構文・原本の拡張子・内部の成果物名等）が含まれないことを grep で確認する。検査2はテンプレートの記入規則を書いた HTML コメントが残っていないことを確認する。検査3は frontmatter の <code>status</code> が <code>authored</code> になっていることを確認する。検査4はテンプレートが持つ全ての章見出しが出力に存在することを確認する。由来の記録検査は単体テスト設計書の全行に由来する基本設計書の章が記録されていることを確認する。情報源の検査は単体テスト設計書の本文に基本設計書に現れない語（原本のファイル名・関数名・変数名）が含まれていないことを確認する。1つでも不合格なら該当する Phase へ戻り、上限3回で収束しなければ <code>status=ERROR</code> とする。</p>
+</section>
+
+<section id="s6">
+  <h2><span class="sec-num">§6</span>関連スキル・資料</h2>
+  <table class="spec">
+    <tr><th>関連</th><th>関係</th></tr>
+    <tr><td><code>SKILL.md</code></td><td>本スキルの確定仕様の定義。本ガイドの内容の出どころ</td></tr>
+    <tr><td><code>references/test-cases.md</code></td><td>本スキルの検証観点の一覧</td></tr>
+    <tr><td><code>generating-report-detail-design-for-reverse-docs</code></td><td>帳票単位の詳細設計書を担う兄弟スキル。<code>file:line</code> で根拠を本文に書く点が本スキルと逆</td></tr>
+    <tr><td><code>generating-report-list-for-reverse-docs</code></td><td>本スキルの入力となる帳票一覧の拡張マニフェストの生成元</td></tr>
+    <tr><td><code>generating-reverse-basic-design</code></td><td>業務語彙限定・根拠を本文に書かない方針の引用元</td></tr>
+  </table>
+</section>
+
+</body>
+</html>

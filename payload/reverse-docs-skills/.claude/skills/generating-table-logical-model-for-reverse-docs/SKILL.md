@@ -1,7 +1,7 @@
 ---
 name: generating-table-logical-model-for-reverse-docs
 description: |
-  テーブル 1件ごとの論理データモデルを業務語彙のみで生成する（unit_kind=table 専用）。
+  テーブルの論理データモデルを業務語彙のみで生成する（unit_kind=table 専用）。
   TRIGGER when: 論理データモデルの作成、テーブル単位の業務的な意味の記述。
   SKIP: テーブル定義書の生成（→generating-table-definition-for-reverse-docs）、ER図の生成（→generating-er-diagram-for-reverse-docs）、テーブル一覧の作成（→generating-table-list-for-reverse-docs）。
 invocation: generating-table-logical-model-for-reverse-docs
@@ -92,6 +92,18 @@ allowed-tools: [AskUserQuestion, Bash, Grep, Read, Write]
 
 ## Phase 3: 執筆
 
+### テンプレートの配置
+
+執筆の前に、テンプレートを出力先へ配置する。手作業で Read と Write を行わず、次のスクリプトを呼ぶ。
+
+```bash
+bash shared/scripts/scaffold-design-unit.sh table basic <output_dir> <識別子> <表示名> <template_root>
+```
+
+`<kind>` と `<phase>` は本スキルの担当に固定する。配置済みのファイルへ記入する形で執筆する。
+
+配置に失敗した場合は執筆へ進まず、`status=ERROR` を返す。
+
 ## Step 3-1: テンプレートの展開と記入
 
 - **Step 1**: `<template_root>/リバース検証/テーブル/論理データモデル.md` を Read する。読み込んだ内容を `<output_dir>/テーブル/table-<テーブル識別子>/基本設計/論理データモデル.md` へ書き出す。`<テーブル識別子>` の決め方は「成果物」節の規約に従う。中間ディレクトリが無ければ作成する。完了条件: 全対象ユニットのファイルが配置済み
@@ -117,7 +129,7 @@ allowed-tools: [AskUserQuestion, Bash, Grep, Read, Write]
 
 ## Step 5-1: 機械検査
 
-次の 7 つを実行する。1 つでも不合格なら Phase 3 または Phase 4 へ戻る。上限 3 回で収束しなければ `status=ERROR` とする。
+次の 8 つを実行する。1 つでも不合格なら Phase 3 または Phase 4 へ戻る。上限 3 回で収束しなければ `status=ERROR` とする。
 
 - **検査1 業務語彙の検査**: 生成した本文に実装用語が含まれないことを grep で確認する。検出対象は型構文・`interface` の宣言・型注釈・ORM/DDL の構文語・原本の拡張子（`.sql`・`.py`・`.ts`・`.js`・`.prisma`）・内部の成果物名（`table-manifest`・`unitId`・`unitKey`・`foreignKeys`・`columnCount`・`mainColumns`・`detectionMethod`）。検出 0 件で合格
 
@@ -131,8 +143,9 @@ allowed-tools: [AskUserQuestion, Bash, Grep, Read, Write]
 - **根拠の追跡検査**: 本文の各記述について、導出元のマニフェスト項目または原本コードの箇所を検証記録へ列挙する。導出元を示せない記述が本文に残っていないことを確認する。§7 要確認事項一覧が 0 件の場合、テーブルが業務上の何を表すか・保存期間の根拠・整合性を保つ理由のいずれも書かなかったことを意味するため、書いた内容を再点検する
 - **由来の記録検査**: 単体テスト設計書の §1 テスト観点と §5 異常系の全行に、由来する基本設計書の章が記録されていることを確認する
 - **情報源の検査**: 単体テスト設計書の本文に、基本設計書に現れない語（原本のファイル名・関数名・変数名）が含まれていないことを確認する
+- **配置の検査**: `bash shared/scripts/scaffold-design-unit.sh --verify table basic <output_dir> <識別子>` を実行し、必須ファイルの存在・トークンの残存なし・章の完備・配置先の妥当性を確認する
 
-**完了**: 7 検査すべてが合格している
+**完了**: 8 検査すべてが合格している
 
 ## 根拠の書き方
 
@@ -177,7 +190,7 @@ ER 図はテーブル間の関連を図で示すが、各テーブルが業務�
 | Phase 2 | 対象ユニット全件について、業務的な意味の記入材料が揃っている |
 | Phase 3 | 全対象ユニットの設計書が業務語彙のみで記入済みである |
 | Phase 4 | 単体テスト設計書が出力され、全ての観点に由来する章が記録されている |
-| Phase 5 | 7 検査すべてが合格している |
+| Phase 5 | 8 検査すべてが合格している |
 | **Goal** | 対象テーブルごとに、業務語彙のみで書かれた論理データモデル・単体テスト設計書と要確認事項一覧が生成されている |
 
 ## 完了報告

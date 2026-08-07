@@ -1,7 +1,7 @@
 ---
 name: generating-external-detail-design-for-reverse-docs
 description: |
-  外部連携 1本ごとの詳細設計書を原本コードの電文定義から生成する（unit_kind=external 専用）。
+  外部連携詳細設計書を原本の電文定義から生成する（unit_kind=external 専用）。
   TRIGGER when: 外部連携詳細設計書の作成、電文項目・変換処理・タイムアウトの書き起こし。
   SKIP: 外部連携基本設計書の生成（→generating-external-basic-design-for-reverse-docs）、外部連携一覧の作成（→generating-external-list-for-reverse-docs）。
 invocation: generating-external-detail-design-for-reverse-docs
@@ -82,6 +82,18 @@ allowed-tools: [AskUserQuestion, Bash, Grep, Read, Write]
 
 ## Phase 3: 執筆
 
+### テンプレートの配置
+
+執筆の前に、テンプレートを出力先へ配置する。手作業で Read と Write を行わず、次のスクリプトを呼ぶ。
+
+```bash
+bash shared/scripts/scaffold-design-unit.sh external detail <output_dir> <識別子> <表示名> <template_root>
+```
+
+`<kind>` と `<phase>` は本スキルの担当に固定する。配置済みのファイルへ記入する形で執筆する。
+
+配置に失敗した場合は執筆へ進まず、`status=ERROR` を返す。
+
 ## Step 3-1: テンプレートの展開と記入
 
 - **Step 1**: `<template_root>/リバース検証/外部連携/外部連携詳細設計書.md` を Read する。読み込んだ内容を `<output_dir>/外部連携/external-<外部連携識別子>/詳細設計/外部連携詳細設計書.md` へ書き出す。`<外部連携識別子>` の決め方は「成果物」節の規約に従う。中間ディレクトリが無ければ作成する。完了条件: 全対象ユニットのファイルが配置済み
@@ -95,14 +107,15 @@ allowed-tools: [AskUserQuestion, Bash, Grep, Read, Write]
 
 ## Step 4-1: 機械検査
 
-次の 4 つを実行する。1 つでも不合格なら Phase 3 へ戻る。上限 3 回で収束しなければ `status=ERROR` とする。
+次の 5 つを実行する。1 つでも不合格なら Phase 3 へ戻る。上限 3 回で収束しなければ `status=ERROR` とする。
 
 - **検査1 拡張マニフェスト記載事項の一致**: マニフェストの `direction`・`protocol`・`authMethod` のうち値を持つフィールドが、生成した本文に反映されていることを確認する。不一致 0 件で合格
 - **検査2 注記の残存検査**: テンプレートの記入規則を書いた HTML コメント（`<!-- -->`）が残っていないことを確認する。残存 0 件で合格
 - **検査3 frontmatter の検査**: `status` が `authored` になっていることを確認する
 - **検査4 章の完備検査**: テンプレートが持つ全ての章見出しが出力に存在することを確認する
+- **配置の検査**: `bash shared/scripts/scaffold-design-unit.sh --verify external detail <output_dir> <識別子>` を実行し、必須ファイルの存在・トークンの残存なし・章の完備・配置先の妥当性を確認する
 
-**完了**: 4 検査すべてが合格している
+**完了**: 5 検査すべてが合格している
 
 ## 根拠の書き方
 
@@ -142,7 +155,7 @@ Phase 4（機械検査）で不合格が検出された場合、該当箇所を 
 | Phase 1 | 4 引数が実在し、マニフェストが検収済みで、対象ユニットが確定している |
 | Phase 2 | 対象ユニット全件について、根拠付きの記入材料が揃っている |
 | Phase 3 | 全対象ユニットの設計書が記入済みである |
-| Phase 4 | 4 検査すべてが合格している |
+| Phase 4 | 5 検査すべてが合格している |
 | **Goal** | 対象外部連携ごとに、根拠付きの電文定義と要確認事項を持つ設計書が生成されている |
 
 ## 完了報告

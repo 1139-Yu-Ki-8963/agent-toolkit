@@ -104,6 +104,18 @@ allowed-tools: [AskUserQuestion, Bash, Grep, Read, Write]
 
 ## Phase 3: 執筆
 
+### テンプレートの配置
+
+執筆の前に、テンプレートを出力先へ配置する。手作業で Read と Write を行わず、次のスクリプトを呼ぶ。
+
+```bash
+bash shared/scripts/scaffold-design-unit.sh api detail <output_dir> <識別子> <表示名> <template_root>
+```
+
+`<kind>` と `<phase>` は本スキルの担当に固定する。配置済みのファイルへ記入する形で執筆する。
+
+配置に失敗した場合は執筆へ進まず、`status=ERROR` を返す。
+
 ## Step 3-1: テンプレートの展開と記入
 
 - **Step 1**: `<template_root>/リバース検証/API/API詳細設計書.md` を Read する。読み込んだ内容を `<output_dir>/API/api-<API 識別子>/詳細設計/API詳細設計書.md` へ書き出す。`<API 識別子>` の決め方は「出力」節の規約に従う。中間ディレクトリが無ければ作成する。frontmatter の `APIKEY`・`APIID`・`METHOD`・`PATH`・`FEATUREKEY`・`SOURCEREF` をマニフェストの値で置換する。`unitId` が空の場合、frontmatter の `APIID` は空欄のままとし、その旨を §10 要確認事項へ記録する。完了条件: 全対象ユニットのファイルが配置済み
@@ -116,13 +128,14 @@ allowed-tools: [AskUserQuestion, Bash, Grep, Read, Write]
 
 ## Step 4-1: 機械検査
 
-次の 3 つを実行する。1 つでも不合格なら Phase 3 へ戻る。上限 3 回で収束しなければ `status=ERROR` とする。
+次の 4 つを実行する。1 つでも不合格なら Phase 3 へ戻る。上限 3 回で収束しなければ `status=ERROR` とする。
 
 - **検査1 章の完備**: 生成した各設計書に §1 から §10 が存在し、あわせて付録 A・B も存在する。§ の章は `grep -c '^## §'` が 10 を返すことで確認し、付録は `grep -c '^## 関連資料\|^## 章マップ'` が 2 を返すことで確認する。付録の見出しは `§` を持たないため、前者の条件だけでは付録の存在を検証できない
 - **検査2 根拠の実在**: 記入した `file:line` 形式の根拠について、ファイルが `source_dir` 配下に実在することを確認する。実在しない根拠が 1 件でもあれば不合格とする
 - **検査3 プレースホルダの残存**: `APIKEY`・`APIID`・`METHOD`・`PATH`・`FEATUREKEY`・`SOURCEREF` が本文に残っていないことを確認する
+- **配置の検査**: `bash shared/scripts/scaffold-design-unit.sh --verify api detail <output_dir> <識別子>` を実行し、必須ファイルの存在・トークンの残存なし・章の完備・配置先の妥当性を確認する
 
-**完了**: 3 検査すべてが合格している
+**完了**: 4 検査すべてが合格している
 
 ## 返却
 
@@ -171,7 +184,7 @@ allowed-tools: [AskUserQuestion, Bash, Grep, Read, Write]
 | Phase 1 | 4 引数が実在し、マニフェストが検収済みで、言語プロファイルが確定し、対象ユニットが確定している |
 | Phase 2 | 対象ユニット全件について、根拠付きの記入材料が揃っている |
 | Phase 3 | 全対象ユニットの設計書が記入済みである |
-| Phase 4 | 3 検査すべてが合格している |
+| Phase 4 | 4 検査すべてが合格している |
 | **Goal** | 対象エンドポイントごとに、根拠付きの実装契約と要確認事項を持つ設計書が生成されている |
 
 ## 関連
