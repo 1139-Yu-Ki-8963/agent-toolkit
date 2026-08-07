@@ -329,7 +329,7 @@ running-reverse-screen-batch の実行ログ（`log_path`）・failed リスト�
 管理者は excluded-kinds.json の presentKinds に記載された各種別についてループする。種別ごとの進み方は次のとおり。
 
 - screen: 画面単位で静的リバース（facts抽出〜基本設計・詳細設計）を先に完了する。`docs-only` はここで終端し、`single-pass` / `iterative` は画面開通〜ファイル単位検証〜基準確立〜往復検証へ進む
-- screen 以外（api / table / batch / report / external）: facts抽出以降の工程（extracting-unit-facts-from-code から往復検証まで）が現時点で未対応のため、一覧確立をもって「後続未対応」の終端状態として記録する
+- api: facts工程を経由しない原本読解型のAPI詳細設計（generating-api-detail-design-for-reverse-docs）へ進み、詳細設計書の生成をもって終端する（往復検証の対象にはならない）。table / batch / report / external: 設計書生成スキルが実在しないため、一覧確立をもって「後続未対応」の終端状態として記録する
 
 「後続未対応」は excluded-kinds.json の「対象外」（アーキテクチャ調査書で実在しないと判定された種別。後述の3状態の区別を参照）とは別の状態である。「対象外＝そもそも実在しない」のに対し、「後続未対応＝実在し一覧化済みだが facts 抽出に進めない」という違いがある。
 
@@ -342,6 +342,7 @@ running-reverse-screen-batch の実行ログ（`log_path`）・failed リスト�
 | 生成済み | 一覧が生成・検証済み（screen はさらに画面単位の反復工程へ進む） |
 | 対象外 | アーキテクチャ調査書で実在しないと判定（excluded-kinds.json に記載） |
 | 後続未対応 | 実在し一覧化済みだが、facts抽出以降の工程が未対応のため一覧確立の時点で終端 |
+| 詳細設計生成済み | api種別限定。facts工程を経由しない原本読解型のAPI詳細設計著述が完了し終端 |
 
 管理者の最終報告には、全6種別それぞれについてアーキテクチャ調査書の実在判定（実在する／実在しない・理由）と対応する成果物パス（一覧HTML または `<種別>一覧（該当なし）.md`）を記す種別判定結果の報告義務を含める（書式は orchestrating-reverse-docs-flow SKILL.md の「報告書式（3表テンプレート）」表1を正とする）。
 

@@ -290,7 +290,7 @@ bash shared/scripts/build-portal.sh \
 
 - global_step: 17
 - tool: Read / Bash
-- condition: screen種別のみ。その他5種別は「後続未対応」で終端
+- condition: screen種別は本Step以降のfacts工程へ進む。api種別はfacts工程を経由せず原本読解型のStep 5-13（API詳細設計著述）へ分岐する。table・batch・report・external の4種別は設計書生成スキルが実在しないため「後続未対応」で終端する
 
 対象画面IDを一覧マニフェストで検証し、`target_file_paths` の合計行数とファイル数を実測して authoring_mode を決定する（合計1,500行超または4ファイル超なら `large-two-pass`、それ以外は `standard`）。画面未開通は静的処理の阻害条件にしない。通常の画面ループは `facts_profile=auto|screen` のどちらでも常に `profile=screen` を渡し、対象ファイルが全件 `.py` でも python へ自動変更しない。`facts_profile=python` は global Step 2 の明示Python facts-only経路で終端済みのため本ループへ到達しない。スキャフォールディングは事実封印完了（facts_ref確定）後に1回だけ実施し（`bash <scaffold_script_path> <output_dir> <画面ID> [<画面名>]` を画面ディレクトリ未存在時のみ実行。既存の場合は `--verify` のみで健全性確認する）、facts抽出より前へ移動してはならない。
 
@@ -411,6 +411,26 @@ global Step 26の該当起動から、standardは最終返却status=AUTHORED、l
 この後でのみ画面レジストリの当該エントリを作成または更新して status=authored とする。その後にURLの有無にかかわらず `verification_mode` を評価する。docs-onlyはここで「静的リバース完了」として終端し、global Step 29〜30を起動しない。single-pass|iterativeだけ動的検証へ進む。
 
 **完了**: facts・基本設計・詳細設計が完成し、docs-only終端または動的検証への分岐が確定している。
+
+## Step 5-13: API詳細設計の著述
+
+- global_step: 31
+- tool: Skill
+- condition: unit_kind=api。画面ループの外・画面バッチへの委譲の外で、全画面の処理が終わったあとに1回だけ実行する。`verification_mode` に依存せず、docs-onlyでも実行する
+
+global Step 9（API一覧の確立）が完了していることを前提に、generating-api-detail-design-for-reverse-docs を起動する。API一覧マニフェスト（`一覧/API一覧/api-manifest.ext.json`）に載るAPI1本ごとにAPI詳細設計書.mdを生成する。本Stepはfacts工程を経由しない原本読解型であり、往復検証の対象にはならない。
+
+**完了**: API一覧に載る全APIについてAPI詳細設計書.mdが生成されている。APIが0件の場合は生成せず完了とする。
+
+## Step 5-14: 機能設計の著述
+
+- global_step: 32
+- tool: Skill
+- condition: unit_kind=feature。画面ループの外・画面バッチへの委譲の外で、Step 5-13のあとに1回だけ実行する。`verification_mode` に依存せず、docs-onlyでも実行する
+
+global Step 10（機能一覧の確立）とStep 5-12（画面詳細設計）・Step 5-13（API詳細設計）が先に完了していることを前提に、generating-feature-design-for-reverse-docs を起動する。機能一覧マニフェスト（`一覧/機能一覧/feature-manifest.json`）に載る機能1件ごとに機能設計書.mdを生成する。機能設計書は構成要素の設計書をパスで参照する集約設計書のため、参照先が実在する状態で実行する。機能は派生一覧であり `unit_kinds_present` の判定対象外である。種別ループには載せず、機能一覧の確立を前提に単独で起動する。
+
+**完了**: 機能一覧に載る全機能について機能設計書.mdが生成されている。機能が0件の場合は生成せず完了とする。
 
 ## Phase 6: 動的往復検証
 
