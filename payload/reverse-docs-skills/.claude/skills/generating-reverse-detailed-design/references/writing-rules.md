@@ -121,7 +121,7 @@ facts の value 内の `\n` エスケープを fenced code block（` ``` ` で�
 画面キャプチャ参照（`![](./original.png)` 等）は作業ワークスペースに画像実体が存在する場合のみ残す。存在しない場合は参照行を削除し、次の読者向け placeholder を置く。
 
 ```html
-<div class="screen-capture-placeholder" role="img" aria-label="画面キャプチャは未取得です。後続の画面確認で追加します。" style="box-sizing:border-box;display:flex;align-items:center;justify-content:center;min-height:180px;padding:24px;color:#64748b;background:#f8fafc;border:2px dashed #94a3b8;border-radius:8px;text-align:center;">画面キャプチャは未取得です。後続の画面確認で追加します。</div>
+<div class="screen-capture-placeholder" role="img" aria-label="画面キャプチャは未取得です。後続の画面確認で追加します。" style="box-sizing:border-box;display:flex;align-items:center;justify-content:center;min-height:180px;padding:24px;color:#64748b;background:#f8fafc;border:2px dashed #94a3b8;border-radius:0;text-align:center;">画面キャプチャは未取得です。後続の画面確認で追加します。</div>
 ```
 
 placeholder は読者に状態と今後の予定を伝える本文であり、執筆工程の内部語（`実測委譲`、`measurement_pending` 等）を含めない。`measurement_pending` の機械情報は、初期表示値・DOM 順・要素位置・レイアウト等の実測対象を扱う別契約であり、画面キャプチャ未取得の表示とは分離する。実体のない相対参照を残さない。

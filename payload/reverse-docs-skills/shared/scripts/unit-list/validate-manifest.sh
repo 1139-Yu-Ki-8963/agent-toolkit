@@ -241,16 +241,29 @@ run_validate() {
   # 4. <source>-実在 (screen: entryFile-実在 / screen以外: sourceFile-実在)
   #    screen: kind=route/embedded-view の entryFile を検査
   #    screen以外: kind!=unresolved の sourceFile を検査
-  #    sourceDirが相対パスの場合、解決の基準はマニフェストファイル自身の所在ディレクトリに
-  #    固定する(呼び出し元のカレントディレクトリに依存させない)。sourceDirが絶対パスの場合は
-  #    従来どおりsourceDirをそのまま基準にする(1-10)。
+  #    sourceDirが相対パスの場合、解決の基準は対象リポジトリのルートとする。マニフェストの
+  #    所在ディレクトリから上へ辿り、最初に .git を持つディレクトリをルートとみなす。見つから
+  #    ない場合だけ呼び出し元のカレントディレクトリを基準にする。sourceDirが絶対パスの場合は
+  #    従来どおりsourceDirをそのまま基準にする。
+  #    マニフェスト自身の所在ディレクトリを基準にすると、sourceDirを対象リポジトリのルート
+  #    起点で書く既存の書式が二重に連結されて解決に失敗する。
   #    strategy.sourceExternal=trueの場合、対象コードが別リポジトリにあり参照できないことの
   #    宣言として扱い、実在確認そのものを省略してPASS扱いで記録だけ残す(1-18)。
   # ---------------------------------------------------------------------------
-  local source_dir check4_label manifest_dir source_external
+  local source_dir check4_label manifest_dir resolve_base probe source_external
   source_dir="$(jq -r '.sourceDir // ""' "$MANIFEST")"
   check4_label="${SOURCE_FIELD}-実在"
   manifest_dir="$(cd "$(dirname "$MANIFEST")" && pwd)"
+  resolve_base=""
+  probe="$manifest_dir"
+  while [ -n "$probe" ] && [ "$probe" != "/" ]; do
+    if [ -e "$probe/.git" ]; then
+      resolve_base="$probe"
+      break
+    fi
+    probe="$(dirname "$probe")"
+  done
+  [ -z "$resolve_base" ] && resolve_base="$PWD"
   source_external="$(jq -r '(.strategy.sourceExternal == true)' "$MANIFEST" 2>/dev/null || echo false)"
 
   local missing_keys_raw="" missing_detail="" row key ef path
@@ -272,8 +285,8 @@ run_validate() {
         *)
           case "$source_dir" in
             /*) path="${source_dir%/}/$ef" ;;
-            "") path="${manifest_dir%/}/$ef" ;;
-            *) path="${manifest_dir%/}/${source_dir%/}/$ef" ;;
+            "") path="${resolve_base%/}/$ef" ;;
+            *) path="${resolve_base%/}/${source_dir%/}/$ef" ;;
           esac
           ;;
       esac
@@ -1258,35 +1271,52 @@ JSON
     echo "  [PASS] 設計書URL陰性: scheme・//・制御文字を含むURLをFAIL"
   fi
 
-  # ---- entryFile-実在の相対sourceDir解決基準確認(1-10) ----
-  # マニフェストファイル自身の所在ディレクトリを $tmp/rel-manifest-dir に置き、そこから見た
-  # 相対sourceDirを指定する。呼び出し元のカレントディレクトリ(/tmp)を変えても判定が
-  # 変わらないことを確認する。
-  mkdir -p "$tmp/rel-manifest-dir/rel-src/src/screens"
-  cat > "$tmp/rel-manifest-dir/rel-src/src/screens/Home.tsx" <<'EOF'
+  # ---- entryFile-実在の相対sourceDir解決基準確認 ----
+  # sourceDirを対象リポジトリのルート起点で書いたマニフェストを、リポジトリ内の下層
+  # ディレクトリへ置く。呼び出し元のカレントディレクトリを変えても、リポジトリのルートを
+  # 基準に解決することを確認する。
+  mkdir -p "$tmp/fake-repo/.git" "$tmp/fake-repo/rel-src/src/screens" "$tmp/fake-repo/docs/list"
+  cat > "$tmp/fake-repo/rel-src/src/screens/Home.tsx" <<'EOF'
 export function Home() { return null; }
 EOF
-  local screen_relative_manifest="$tmp/rel-manifest-dir/screen-manifest.json"
+  local screen_relative_manifest="$tmp/fake-repo/docs/list/screen-manifest.json"
   jq '.sourceDir = "rel-src"' "$screen_pass" > "$screen_relative_manifest"
   if (cd /tmp && run_validate "$screen_relative_manifest" "" "screen" >/dev/null 2>&1); then
-    echo "  [PASS] entryFile-実在(相対sourceDir): マニフェスト所在ディレクトリ基準で解決しcwdに依存しない"
+    echo "  [PASS] entryFile-実在(相対sourceDir): 対象リポジトリのルート基準で解決しcwdに依存しない"
   else
-    echo "  [FAIL] entryFile-実在(相対sourceDir): マニフェスト所在ディレクトリ基準の解決に失敗した" >&2
+    echo "  [FAIL] entryFile-実在(相対sourceDir): 対象リポジトリのルート基準の解決に失敗した" >&2
     rc=1
   fi
 
-  local screen_relative_missing="$tmp/rel-manifest-dir/screen-manifest-missing.json"
+  local screen_relative_missing="$tmp/fake-repo/docs/list/screen-manifest-missing.json"
   jq '.screens[0].entryFile = "src/screens/DoesNotExist.tsx"' "$screen_relative_manifest" > "$screen_relative_missing"
   local relative_missing_output
   relative_missing_output="$(run_validate "$screen_relative_missing" "" "screen" 2>&1)"
   if run_validate "$screen_relative_missing" "" "screen" >/dev/null 2>&1; then
     echo "  [FAIL] entryFile-実在失敗メッセージ: 実在しないentryFileなのにPASSした" >&2
     rc=1
-  elif echo "$relative_missing_output" | grep -q "解決後: $tmp/rel-manifest-dir/rel-src/src/screens/DoesNotExist.tsx"; then
+  elif echo "$relative_missing_output" | grep -q "解決後: $tmp/fake-repo/rel-src/src/screens/DoesNotExist.tsx"; then
     echo "  [PASS] entryFile-実在失敗メッセージ: 解決後の絶対パスがFAILメッセージに含まれる"
   else
     echo "  [FAIL] entryFile-実在失敗メッセージ: 解決後パスがメッセージに含まれない" >&2
     echo "$relative_missing_output" | grep "${SOURCE_FIELD:-entryFile}-実在" >&2
+    rc=1
+  fi
+
+  # ---- 配布物のサンプルが実在検査を通ることの確認 ----
+  # sourceDirをリポジトリのルート起点で書いた実物のサンプルで、二重連結が起きないことを見る。
+  local gold_screen_manifest="$SCRIPT_DIR/../../../shared/samples/一覧/画面一覧/screen-manifest.json"
+  if [ -f "$gold_screen_manifest" ]; then
+    local gold_output
+    gold_output="$(cd /tmp && run_validate "$gold_screen_manifest" "" "screen" 2>&1)"
+    if echo "$gold_output" | grep -q '^\[PASS\] entryFile-実在'; then
+      echo "  [PASS] entryFile-実在(サンプル): リポジトリのルート起点sourceDirが二重連結されない"
+    else
+      echo "  [FAIL] entryFile-実在(サンプル): リポジトリのルート起点sourceDirの解決に失敗した" >&2
+      rc=1
+    fi
+  else
+    echo "  [FAIL] entryFile-実在(サンプル): サンプルのマニフェストが見つからない: $gold_screen_manifest" >&2
     rc=1
   fi
 

@@ -356,12 +356,22 @@ if [ -d "$target" ]; then
     -not -path '*/fixtures/*' \
     -not -path '*/shared/samples/規約提案/*' \
     -not -path '*/shared/templates/rule-proposal/*' \
+    -not -path '*/.claude/skills/*' \
+    -not -path '*/shared/templates/partials/*' \
+    -not -path '*/docs/reverse-docs-overview.html' \
+    -not -path '*/docs/design/ポータル設計基盤.html' \
     | sort)
-    # shared/samples/規約提案/ と shared/templates/rule-proposal/ 配下はポータルのページ
-    # ではなく、リポジトリ外へ出力して現場のエンジニアが判定するための独立した成果物
-    # （テンプレートとその生成物）である。ポータル共通シェルを使わず意匠も別に定義されて
-    # いるため、本規約の検査対象から外す
+    # 除外はいずれもポータルのページではないものである
     # （.claude/rules/scoped/portal/page-conventions/rule.md「## 適用対象」参照）。
+    # shared/samples/規約提案/ と shared/templates/rule-proposal/ 配下は、リポジトリ外へ
+    # 出力して現場のエンジニアが判定するための独立した成果物（テンプレートとその生成物）
+    # である。ポータル共通シェルを使わず、意匠も別に定義されている。
+    # .claude/skills/ 配下はスキルの説明書であり、読み手も用途もポータルと異なる。
+    # shared/templates/partials/ 配下はページへ埋め込む断片であり、単体では明暗の色定義も
+    # 全画面レイアウトも持ちえない。
+    # docs/reverse-docs-overview.html と docs/design/ポータル設計基盤.html はこの
+    # リポジトリ自身の説明資料である。対象リポジトリでは docs/ 配下にポータルのページが
+    # 置かれることがあるため、ディレクトリではなくファイル名で指定する。
 else
   check_file "$target"
 fi
