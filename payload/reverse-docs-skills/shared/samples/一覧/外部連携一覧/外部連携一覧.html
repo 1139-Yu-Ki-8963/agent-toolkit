@@ -701,6 +701,11 @@ a.pt-brand-list-item:hover { background: var(--panel3); color: var(--text); text
   .detail-grid { display: grid; grid-template-columns: max-content 1fr; gap: 3px 14px; }
   .detail-grid dt { color: var(--text-muted); font-size: 0.78rem; white-space: nowrap; }
   .detail-grid dd { margin: 0; font-size: 0.84rem; word-break: break-all; }
+
+  .prov-badge { display: inline-block; font-size: 0.7em; padding: 1px 4px; margin-left: 4px; border: 1px solid; }
+  .prov-badge.prov-measured { color: var(--accent); border-color: var(--accent); }
+  .prov-badge.prov-inferred { color: var(--stamp); border-color: var(--stamp); }
+  .prov-badge.prov-confirmed { color: var(--green); border-color: var(--green); }
 </style>
 </head>
 <body>
@@ -714,9 +719,9 @@ a.pt-brand-list-item:hover { background: var(--panel3); color: var(--text); text
   <div class="pt-brand">
     <div class="pt-brand-stamp">DESIGN PORTAL</div>
     <div class="pt-brand-switch" id="pt-brand-switch">
-      <div class="pt-brand-name">sample-project</div>
+      <div class="pt-brand-name"></div>
     </div>
-    <div class="pt-brand-sub">設計台帳 · 全51資料</div>
+    <div class="pt-brand-sub">設計台帳 · 全59資料</div>
   </div>
   <nav class="pt-nav" id="pt-nav" aria-label="資料カテゴリ"></nav>
   
@@ -726,7 +731,7 @@ a.pt-brand-list-item:hover { background: var(--panel3); color: var(--text); text
   <div class="pt-sidebar-meta">更新 <span id="pt-sidebar-date">2026-07-30T00:00:00Z</span><span id="pt-meta-commit"><br>コミット </span></div>
 </aside>
 <div class="pt-sidebar-scrim" id="pt-sidebar-scrim" hidden></div>
-<script type="application/json" id="pt-nav-data">[{"key":"project","num":"01","label":"基盤情報","count":5},{"key":"standards","num":"02","label":"規約","count":20},{"key":"design","num":"03","label":"設計書","count":5},{"key":"list","num":"04","label":"一覧・設計図","count":13},{"key":"cross","num":"05","label":"マトリクス・対応表","count":4},{"key":"ai","num":"06","label":"AI設定資産","count":1},{"key":"design-tools","num":"07","label":"デザイン","count":3}]</script>
+<script type="application/json" id="pt-nav-data">[{"key":"project","num":"01","label":"基盤情報","count":4},{"key":"standards","num":"02","label":"規約","count":27},{"key":"design","num":"03","label":"設計書","count":5},{"key":"list","num":"04","label":"一覧・設計図","count":14},{"key":"cross","num":"05","label":"マトリクス・対応表","count":5},{"key":"ai","num":"06","label":"AI設定資産","count":1},{"key":"design-tools","num":"07","label":"デザイン","count":3}]</script>
 <script type="application/json" id="pt-sites-data">[]</script>
 <script>
 (function () {
@@ -981,27 +986,27 @@ a.pt-brand-list-item:hover { background: var(--panel3); color: var(--text); text
             <tr data-unit-id="ext-payment-gateway" data-unit-key="payment-gateway">
 <td>決済ゲートウェイ送信</td>
 <td><code>payment_gateway_client</code></td>
-<td><span class="badge kind-generic">API連携</span></td>
+<td><span class="badge kind-generic">client</span></td>
 </tr><tr data-unit-id="ext-mail-delivery" data-unit-key="mail-delivery">
 <td>メール配信送信</td>
 <td><code>mail_delivery_client</code></td>
-<td><span class="badge kind-generic">API連携</span></td>
+<td><span class="badge kind-generic">client</span></td>
 </tr><tr data-unit-id="ext-address-verify" data-unit-key="address-verify">
 <td>住所検証送信</td>
 <td><code>address_verify_client</code></td>
-<td><span class="badge kind-generic">API連携</span></td>
+<td><span class="badge kind-generic">client</span></td>
 </tr><tr data-unit-id="ext-sales-sftp" data-unit-key="sales-sftp">
 <td>売上データSFTP受信</td>
 <td><code>sales_sftp_receiver</code></td>
-<td><span class="badge kind-generic">ファイル連携</span></td>
+<td><span class="badge kind-generic">webhook</span></td>
 </tr><tr data-unit-id="ext-order-webhook" data-unit-key="order-webhook">
 <td>Webhook受注受信</td>
 <td><code>order_webhook_handler</code></td>
-<td><span class="badge kind-generic">API連携</span></td>
+<td><span class="badge kind-generic">webhook</span></td>
 </tr><tr data-unit-id="ext-sso-auth" data-unit-key="sso-auth">
 <td>SSO認証連携</td>
 <td><code>sso_auth_client</code></td>
-<td><span class="badge kind-generic">API連携</span></td>
+<td><span class="badge kind-generic">client</span></td>
 </tr>
           </tbody>
         </table>
@@ -1025,16 +1030,16 @@ a.pt-brand-list-item:hover { background: var(--panel3); color: var(--text); text
       </div>
 
       <script type="application/json" id="unit-manifest">
-{"generatedAt":"2026-07-30T00:00:00Z","sourceDir":"shared/samples/一覧/外部連携一覧/fixtures","unitKind":"external","strategy":{"extractionMethod":"static-analysis","approvedByUser":true,"unitIdRegex":null},"detectionSummary":{"unitCount":6,"unresolvedCount":0},"units":[{"unitId":"ext-payment-gateway","unitKey":"payment-gateway","kind":"API連携","unitNameGuess":"決済ゲートウェイ送信","identifier":"payment_gateway_client","detectionMethod":"sdk-import","confidence":"HIGH","fileCount":3,"sourceFile":"src/integrations/payment_gateway.py","direction":"送信","protocol":"REST","authMethod":"APIキー"},{"unitId":"ext-mail-delivery","unitKey":"mail-delivery","kind":"API連携","unitNameGuess":"メール配信送信","identifier":"mail_delivery_client","detectionMethod":"sdk-import","confidence":"HIGH","fileCount":2,"sourceFile":"src/integrations/mail_delivery.py","direction":"送信","protocol":"REST","authMethod":"APIキー"},{"unitId":"ext-address-verify","unitKey":"address-verify","kind":"API連携","unitNameGuess":"住所検証送信","identifier":"address_verify_client","detectionMethod":"http-call","confidence":"MEDIUM","fileCount":1,"sourceFile":"src/integrations/address_verify.py","direction":"送信","protocol":"REST","authMethod":"Basic"},{"unitId":"ext-sales-sftp","unitKey":"sales-sftp","kind":"ファイル連携","unitNameGuess":"売上データSFTP受信","identifier":"sales_sftp_receiver","detectionMethod":"config-scan","confidence":"HIGH","fileCount":2,"sourceFile":"src/integrations/sales_sftp.py","direction":"受信","protocol":"SFTP","authMethod":"Basic"},{"unitId":"ext-order-webhook","unitKey":"order-webhook","kind":"API連携","unitNameGuess":"Webhook受注受信","identifier":"order_webhook_handler","detectionMethod":"route-scan","confidence":"HIGH","fileCount":2,"sourceFile":"src/integrations/order_webhook.py","direction":"受信","protocol":"Webhook","authMethod":"APIキー"},{"unitId":"ext-sso-auth","unitKey":"sso-auth","kind":"API連携","unitNameGuess":"SSO認証連携","identifier":"sso_auth_client","detectionMethod":"sdk-import","confidence":"HIGH","fileCount":3,"sourceFile":"src/integrations/sso_auth.py","direction":"送信","protocol":"REST","authMethod":"OAuth2"}]}
+{"generatedAt":"2026-07-30T00:00:00Z","sourceDir":"shared/samples/一覧/外部連携一覧/fixtures","unitKind":"external","strategy":{"extractionMethod":"static-analysis","approvedByUser":true,"unitIdRegex":null},"detectionSummary":{"unitCount":6,"unresolvedCount":0},"units":[{"unitId":"ext-payment-gateway","unitKey":"payment-gateway","kind":"client","unitNameGuess":"決済ゲートウェイ送信","identifier":"payment_gateway_client","detectionMethod":"sdk-import","confidence":"HIGH","fileCount":3,"sourceFile":"src/integrations/payment_gateway.py","direction":"送信","protocol":"REST","authMethod":"APIキー","businessClass":"API連携"},{"unitId":"ext-mail-delivery","unitKey":"mail-delivery","kind":"client","unitNameGuess":"メール配信送信","identifier":"mail_delivery_client","detectionMethod":"sdk-import","confidence":"HIGH","fileCount":2,"sourceFile":"src/integrations/mail_delivery.py","direction":"送信","protocol":"REST","authMethod":"APIキー","businessClass":"API連携"},{"unitId":"ext-address-verify","unitKey":"address-verify","kind":"client","unitNameGuess":"住所検証送信","identifier":"address_verify_client","detectionMethod":"http-call","confidence":"MEDIUM","fileCount":1,"sourceFile":"src/integrations/address_verify.py","direction":"送信","protocol":"REST","authMethod":"Basic","businessClass":"API連携"},{"unitId":"ext-sales-sftp","unitKey":"sales-sftp","kind":"webhook","unitNameGuess":"売上データSFTP受信","identifier":"sales_sftp_receiver","detectionMethod":"config-scan","confidence":"HIGH","fileCount":2,"sourceFile":"src/integrations/sales_sftp.py","direction":"受信","protocol":"SFTP","authMethod":"Basic","businessClass":"ファイル連携"},{"unitId":"ext-order-webhook","unitKey":"order-webhook","kind":"webhook","unitNameGuess":"Webhook受注受信","identifier":"order_webhook_handler","detectionMethod":"route-scan","confidence":"HIGH","fileCount":2,"sourceFile":"src/integrations/order_webhook.py","direction":"受信","protocol":"Webhook","authMethod":"APIキー","businessClass":"API連携"},{"unitId":"ext-sso-auth","unitKey":"sso-auth","kind":"client","unitNameGuess":"SSO認証連携","identifier":"sso_auth_client","detectionMethod":"sdk-import","confidence":"HIGH","fileCount":3,"sourceFile":"src/integrations/sso_auth.py","direction":"送信","protocol":"REST","authMethod":"OAuth2","businessClass":"API連携"}]}
       </script>
       <script type="application/json" id="column-spec">
-{"specVersion":1,"axes":[],"columns":[{"key":"direction","label":"方向","appliesTo":["external"],"order":10},{"key":"protocol","label":"プロトコル","appliesTo":["external"],"order":20},{"key":"authMethod","label":"認証方式","appliesTo":["external"],"order":30}]}
+{"specVersion":1,"axes":[],"columns":[{"key":"direction","label":"方向","appliesTo":["external"],"order":10},{"key":"protocol","label":"プロトコル","appliesTo":["external"],"order":20},{"key":"authMethod","label":"認証方式","appliesTo":["external"],"order":30},{"key":"responseTimeout","label":"応答待ち時間","appliesTo":["external"],"order":40},{"key":"retryCount","label":"再試行回数","appliesTo":["external"],"order":50},{"key":"businessClass","label":"業務区分","appliesTo":["table","api","batch","external","report"],"order":100}]}
       </script>
     </main>
   </div>
   <footer class="pt-footer">
   <span class="pt-footer-stamp">REVERSE-DOCS REGISTER</span>
-  <span class="pt-footer-meta">sample-project · 更新 <span id="pt-footer-date">2026-07-30T00:00:00Z</span><span id="pt-footer-commit"> · コミット </span></span>
+  <span class="pt-footer-meta"> · 更新 <span id="pt-footer-date">2026-07-30T00:00:00Z</span><span id="pt-footer-commit"> · コミット </span></span>
   <span class="pt-footer-gen">生成: shared/scripts/unit-list/build-unit-list.sh</span>
 </footer>
 </div>
@@ -1170,6 +1175,14 @@ a.pt-brand-list-item:hover { background: var(--panel3); color: var(--text); text
       if (typeof v === 'object') {
         td.textContent = (v.readable !== undefined && v.readable !== null) ? String(v.readable) : '';
         if (v.cron) td.title = String(v.cron);
+        /* 1-170: confirmedScheduleでの上書きがなく、cron検出(measured)の場合のみ実測バッジを表示する */
+        if (fieldName === 'schedule' && u && !u.confirmedSchedule
+            && u.valueProvenance && u.valueProvenance.schedule === 'measured') {
+          var scheduleBadge = document.createElement('span');
+          scheduleBadge.className = 'prov-badge prov-measured';
+          scheduleBadge.textContent = '実測';
+          td.appendChild(scheduleBadge);
+        }
         return;
       }
       if (fieldName === 'designDocStatus') {
@@ -1191,7 +1204,11 @@ a.pt-brand-list-item:hover { background: var(--panel3); color: var(--text); text
       bodyRows.forEach(function (tr) {
         var td = document.createElement('td');
         var u = findUnit(tr);
-        if (u) renderValue(td, f, u[f.key], u);
+        if (u) {
+          /* 1-170: scheduleは人間確定値(confirmedSchedule)を推定/実測値より優先して表示する */
+          var fieldValue = (f.key === 'schedule' && u.confirmedSchedule) ? u.confirmedSchedule : u[f.key];
+          renderValue(td, f, fieldValue, u);
+        }
         tr.appendChild(td);
       });
     });
@@ -1220,6 +1237,49 @@ a.pt-brand-list-item:hover { background: var(--panel3); color: var(--text); text
       extraCols += 1;
     }
     optTable.style.minWidth = (900 + extraCols * 140) + 'px';
+  })();
+</script>
+
+<script>
+  /* 1-170: unitKind=batch のみ、nameConfidence由来の確認済/推定バッジを名称セルに追加する。
+     任意列(axes/column-spec)の有無に関わらず動作させるため、上のIIFEとは独立させる。 */
+  (function () {
+    var nameManifestEl = document.getElementById('unit-manifest');
+    if (!nameManifestEl) return;
+    var nameManifest;
+    try { nameManifest = JSON.parse(nameManifestEl.textContent); } catch (e) { return; }
+    if (!nameManifest || nameManifest.unitKind !== 'batch') return;
+
+    var nameTable = document.getElementById('unit-table');
+    if (!nameTable) return;
+    var nameRows = Array.prototype.slice.call(nameTable.querySelectorAll('tbody tr'));
+
+    var nameById = {};
+    var nameByKey = {};
+    (nameManifest.units || []).forEach(function (u) {
+      if (u.unitId !== undefined && u.unitId !== null) nameById[String(u.unitId)] = u;
+      if (u.unitKey !== undefined && u.unitKey !== null) nameByKey[String(u.unitKey)] = u;
+    });
+
+    nameRows.forEach(function (tr) {
+      var idAttr = tr.getAttribute('data-unit-id') || '';
+      var keyAttr = tr.getAttribute('data-unit-key') || '';
+      var u = (idAttr && nameById[idAttr]) || (keyAttr && nameByKey[keyAttr]) || null;
+      if (!u || !u.nameConfidence) return;
+      var nameCell = tr.children[0];
+      if (!nameCell) return;
+      var badge = document.createElement('span');
+      if (u.nameConfidence === 'confirmed') {
+        badge.className = 'prov-badge prov-confirmed';
+        badge.textContent = '確認済';
+      } else if (u.nameConfidence === 'inferred') {
+        badge.className = 'prov-badge prov-inferred';
+        badge.textContent = '推定';
+      } else {
+        return;
+      }
+      nameCell.appendChild(badge);
+    });
   })();
 </script>
 

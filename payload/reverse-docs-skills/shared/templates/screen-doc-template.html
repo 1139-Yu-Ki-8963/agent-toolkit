@@ -197,6 +197,7 @@ table.data-table code {
   var lines = src.split('\n');
   var html = [];
   var inTable = false;
+  var tableColCount = 0;
   var inList = false;
   var listType = '';
   var inBlockquote = false;
@@ -231,6 +232,26 @@ table.data-table code {
     return s;
   }
 
+  // 表のセル分割: インラインコード（`...`）内の縦棒は列区切りとして扱わない
+  function splitTableRow(line) {
+    var masked = line.replace(/`[^`]*`/g, function (m) { return m.replace(/\|/g, '\u0001'); });
+    return masked.split('|')
+      .filter(function (c, j, a) { return j > 0 && j < a.length - 1; })
+      .map(function (c) { return c.replace(/\u0001/g, '|'); });
+  }
+  // 見出しの列数とデータ行の列数を照合し、食い違う行は最後の列へ寄せる（または不足分を空欄で補う）
+  function normalizeRowCells(cells, colCount) {
+    if (!colCount || cells.length === colCount) return cells;
+    if (cells.length > colCount) {
+      var head = cells.slice(0, colCount - 1);
+      var tail = cells.slice(colCount - 1).join('|');
+      return head.concat([tail]);
+    }
+    var padded = cells.slice();
+    while (padded.length < colCount) padded.push('');
+    return padded;
+  }
+
   function closeList() {
     if (inList) { html.push(listType === 'ul' ? '</ul>' : '</ol>'); inList = false; }
   }
@@ -238,7 +259,7 @@ table.data-table code {
     if (inBlockquote) { html.push('</blockquote>'); inBlockquote = false; }
   }
   function closeTable() {
-    if (inTable) { html.push('</tbody></table></div>'); inTable = false; }
+    if (inTable) { html.push('</tbody></table></div>'); inTable = false; tableColCount = 0; }
   }
   function closeFence() {
     html.push('<div class="code-block"><pre><code>' + escHtml(fenceLines.join('\n')) + '</code></pre></div>');
@@ -276,14 +297,16 @@ table.data-table code {
     // テーブル
     if (trimmed.indexOf('|') !== -1 && trimmed.charAt(0) === '|') {
       closeList(); closeBlockquote();
-      var cells = trimmed.split('|').filter(function(c,j,a){ return j > 0 && j < a.length - 1; });
       if (/^[\s|:-]+$/.test(trimmed)) continue; // separator 行
+      var cells = splitTableRow(trimmed);
       if (!inTable) {
+        tableColCount = cells.length;
         html.push('<div class="table-wrap"><table><thead><tr>');
         cells.forEach(function(c) { html.push('<th>' + inlineFormat(c.trim()) + '</th>'); });
         html.push('</tr></thead><tbody>');
         inTable = true;
       } else {
+        cells = normalizeRowCells(cells, tableColCount);
         html.push('<tr>');
         cells.forEach(function(c) { html.push('<td>' + inlineFormat(c.trim()) + '</td>'); });
         html.push('</tr>');

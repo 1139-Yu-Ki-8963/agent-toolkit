@@ -119,3 +119,7 @@ Phase 1（スタック・API規約の特定）で調査すべき対象と検出�
 - `identifier` の形式は対象形態で分ける。HTTP 系は「HTTP メソッド + パス」とし、パスは prefix 結合後の最終形で記録する（例: `GET /users/:id`）。非 HTTP 系は実行ファイルの相対パス（例: `bin/order_entry`）、ディスパッチ表の行は「実行ファイル名 + コード値」（例: `order_entry#TX0421`）、公開関数は「ヘッダ名 + 関数名」（例: `order_api.h:submit_order`）とする。いずれも実装に実在する識別子だけを使い、独自に採番しない
 - `unitKey` は連番禁止。内容を要約した意味語キーを付ける（例: `ユーザー-詳細取得`）
 - 動的に構築されるルート（変数結合・ループ登録）は、展開ロジックを追跡して最終パスを確定できた場合のみ `endpoint` とし、できなければ `unresolved` に降格する
+
+## businessClass（業務区分。任意フィールド。1-9）
+
+`REST` 等の業務上の分類は、`kind`（上表の技術的な種類）ではなく任意フィールド `businessClass` へ記録する。スキーマ定義は `shared/references/manifest-schema-extensions.md` の「apis（API）」節を参照する。

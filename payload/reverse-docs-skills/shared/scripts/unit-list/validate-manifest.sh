@@ -21,10 +21,16 @@
 #                                   screen以外: 上記に unitKind を追加 / unitKey,kind,identifier,
 #                                   sourceFile,confidence)
 #   2. strategy-承認            : strategy.extractionMethod 非空 かつ strategy.approvedByUser == true
+#                                  (unit_kind=messageのみ例外でapprovedByUser == falseを要求する。
+#                                   定義書からの機械的な転記で人間承認の工程が無いため。1-17)
 #   3. 重複-route+entryFile     : (route, entryFile) 組の重複0件
 #                                  (screen以外は (identifier, sourceFile) 組の重複0件)
 #   4. entryFile-実在           : kind=route/embedded-view の entryFile がファイルとして実在するか
 #                                  (screen以外は kind!=unresolved の sourceFile が実在するかを検査。
+#                                   sourceDirが相対パスの場合はマニフェストファイル自身の所在
+#                                   ディレクトリを基準に解決する(1-10)。
+#                                   strategy.sourceExternal=trueの場合は対象コードが別リポジトリに
+#                                   あり参照できない宣言として実在確認自体を省略しPASS扱い(1-18)。
 #                                   --fix指定時は不在行を kind=unresolved・confidence=low に降格し
 #                                   detectionSummaryを再計算した修正版JSONを出力してPASS扱い)
 #   5. 意味キー-品質            : screenKeyが連番ID規約(数字のみ/-数字終わり/前後ハイフン/連続ハイフン)に違反していないか
@@ -47,12 +53,19 @@
 #                                   存在する場合のみ型を検査する(不在はエラーにしない。後方互換):
 #                                   - 文字列配列: permissions/confirmedPermissions/relatedApis/callers/
 #                                     foreignKeys/mainColumns/targetTables/downstreamJobs
-#                                   - boolean: authRequired/hasTemplate/isProcessingEndpoint / 数値: columnCount
+#                                   - boolean: authRequired/hasTemplate/isProcessingEndpoint/triggerConfirmed
+#                                     / 数値: columnCount/retryCount
 #                                   - 文字列: method/ioSummary/designDocStatus/category/format/
-#                                     trigger/direction/protocol/authMethod/execMethod/operationClass
+#                                     trigger/direction/protocol/authMethod/execMethod/operationClass/
+#                                     businessClass/responseTimeout
 #                                   - object({cron, readable}を持つ): schedule/confirmedSchedule
 #                                   - 2値制約: designDocStatus(着手済/未着手)・trigger(画面/バッチ)・
 #                                     direction(送信/受信)
+#   8.5 kind-値域(1-9)          : kindは業務区分ではなく検証器の制御フィールド(項目4の絞り込み等に
+#                                   使う技術的な種類)である。table/api/batch/external/reportの5種別は
+#                                   各*-detection.mdが規約する固定小集合(例: table は
+#                                   table/view/migration/unresolved)の値域外をFAILする。
+#                                   screen/feature/message等は対象外でスキップしPASS扱い
 #   9. 名称-一意性               : 表示名(screen: confirmedScreenName優先・無ければscreenNameGuess /
 #                                   screen以外: unitNameGuess)が空でない要素間で重複していないか。
 #                                   任意フィールド nameScope(未指定は空文字列)が判定範囲を定める。
@@ -182,17 +195,29 @@ run_validate() {
 
   # ---------------------------------------------------------------------------
   # 2. strategy-承認
+  #    approvedByUserの期待値はunit_kindで切り替える(1-17)。screen/api/table/batch/report/
+  #    external/featureは検出戦略をAskUserQuestionで人間が承認する工程を経るためtrueを要求する。
+  #    messageは定義書からの機械的な転記(convert-message-doc-to-manifest.sh)であり人間承認の
+  #    工程が無いため、その事実をfalseとして正直に記録することを要求する(専用検証器
+  #    validate-message-manifest.shの要求と統一する)。
   # ---------------------------------------------------------------------------
-  local extraction_nonempty approved_true id_regex_contract_ok
+  local extraction_nonempty approved_ok id_regex_contract_ok expected_approved_label expected_approved_query
   extraction_nonempty="$(jq -r '((.strategy.extractionMethod // "") | length) > 0' "$MANIFEST")"
-  approved_true="$(jq -r '(.strategy.approvedByUser == true)' "$MANIFEST")"
+  if [ "$UNIT_KIND" = "message" ]; then
+    expected_approved_label="false(機械的な転記のため人間承認の工程が無い)"
+    expected_approved_query='(.strategy.approvedByUser == false)'
+  else
+    expected_approved_label="true"
+    expected_approved_query='(.strategy.approvedByUser == true)'
+  fi
+  approved_ok="$(jq -r "$expected_approved_query" "$MANIFEST")"
   id_regex_contract_ok="$(jq -r --arg f "$ID_REGEX_FIELD" '(.strategy | has($f)) and ((.strategy[$f] == null) or (.strategy[$f] | type) == "string")' "$MANIFEST" 2>/dev/null || echo false)"
 
-  if [ "$extraction_nonempty" != "true" ] || [ "$approved_true" != "true" ] || [ "$id_regex_contract_ok" != "true" ]; then
+  if [ "$extraction_nonempty" != "true" ] || [ "$approved_ok" != "true" ] || [ "$id_regex_contract_ok" != "true" ]; then
     overall_fail=1
-    echo "[FAIL] strategy-承認 — extractionMethod・approvedByUser=true・${ID_REGEX_FIELD}(nullまたは文字列)が必要です" >&2
+    echo "[FAIL] strategy-承認 — extractionMethod・approvedByUser=${expected_approved_label}・${ID_REGEX_FIELD}(nullまたは文字列)が必要です" >&2
   else
-    echo "[PASS] strategy-承認 — extractionMethod設定済み・approvedByUser=true・${ID_REGEX_FIELD}が契約どおり" >&2
+    echo "[PASS] strategy-承認 — extractionMethod設定済み・approvedByUser=${expected_approved_label}・${ID_REGEX_FIELD}が契約どおり" >&2
   fi
 
   # ---------------------------------------------------------------------------
@@ -216,80 +241,97 @@ run_validate() {
   # 4. <source>-実在 (screen: entryFile-実在 / screen以外: sourceFile-実在)
   #    screen: kind=route/embedded-view の entryFile を検査
   #    screen以外: kind!=unresolved の sourceFile を検査
+  #    sourceDirが相対パスの場合、解決の基準はマニフェストファイル自身の所在ディレクトリに
+  #    固定する(呼び出し元のカレントディレクトリに依存させない)。sourceDirが絶対パスの場合は
+  #    従来どおりsourceDirをそのまま基準にする(1-10)。
+  #    strategy.sourceExternal=trueの場合、対象コードが別リポジトリにあり参照できないことの
+  #    宣言として扱い、実在確認そのものを省略してPASS扱いで記録だけ残す(1-18)。
   # ---------------------------------------------------------------------------
-  local source_dir check4_label
+  local source_dir check4_label manifest_dir source_external
   source_dir="$(jq -r '.sourceDir // ""' "$MANIFEST")"
   check4_label="${SOURCE_FIELD}-実在"
+  manifest_dir="$(cd "$(dirname "$MANIFEST")" && pwd)"
+  source_external="$(jq -r '(.strategy.sourceExternal == true)' "$MANIFEST" 2>/dev/null || echo false)"
 
   local missing_keys_raw="" missing_detail="" row key ef path
-  while IFS= read -r row; do
-    [ -z "$row" ] && continue
-    key="$(jq -r --arg f "$ITEM_KEY_FIELD" '.[$f] // "?"' <<<"$row")"
-    ef="$(jq -r --arg f "$SOURCE_FIELD" '.[$f] // ""' <<<"$row")"
-    if [ -z "$ef" ]; then
-      missing_keys_raw="${missing_keys_raw}${key}
-"
-      missing_detail="${missing_detail}${key}:(empty ${SOURCE_FIELD}); "
-      continue
-    fi
-    case "$ef" in
-      /*) path="$ef" ;;
-      *) path="${source_dir%/}/$ef" ;;
-    esac
-    if [ ! -f "$path" ]; then
-      missing_keys_raw="${missing_keys_raw}${key}
-"
-      missing_detail="${missing_detail}${key}:${ef}; "
-    fi
-  done < <(
-    if [ "$UNIT_KIND" = "screen" ]; then
-      jq -c '.screens[]? | select(.kind == "route" or .kind == "embedded-view")' "$MANIFEST"
-    else
-      jq -c '.units[]? | select(.kind != "unresolved")' "$MANIFEST"
-    fi
-  )
-
-  local check4_pass=1
-  if [ -n "$missing_keys_raw" ]; then
-    if [ -n "$FIX_OUT" ]; then
-      local missing_keys_json
-      missing_keys_json="$(printf '%s' "$missing_keys_raw" | jq -R -s 'split("\n") | map(select(length > 0))')"
-      if [ "$UNIT_KIND" = "screen" ]; then
-        jq --argjson missing "$missing_keys_json" '
-          .screens = [
-            .screens[] |
-            if (.kind == "route" or .kind == "embedded-view") and ((.screenKey // "?") as $k | ($missing | index($k)) != null)
-            then .kind = "unresolved" | .confidence = "low"
-            else .
-            end
-          ]
-          | .detectionSummary.screenCount = (.screens | length)
-          | .detectionSummary.clusterCount = (.screens | map(.clusterId) | map(select(. != null)) | unique | length)
-          | .detectionSummary.sharedScreenCount = (.screens | map(select((.sharedWith // []) | length > 0)) | length)
-          | .detectionSummary.embeddedCandidateCount = (.screens | map(select(.kind == "embedded-view")) | length)
-          | .detectionSummary.unresolvedCount = (.screens | map(select(.kind == "unresolved")) | length)
-        ' "$MANIFEST" > "$FIX_OUT"
-      else
-        jq --argjson missing "$missing_keys_json" '
-          .units = [
-            .units[] |
-            if (.kind != "unresolved") and ((.unitKey // "?") as $k | ($missing | index($k)) != null)
-            then .kind = "unresolved" | .confidence = "low"
-            else .
-            end
-          ]
-          | .detectionSummary.unitCount = (.units | length)
-          | .detectionSummary.unresolvedCount = (.units | map(select(.kind == "unresolved")) | length)
-        ' "$MANIFEST" > "$FIX_OUT"
-      fi
-      echo "[PASS] ${check4_label} — 不在エントリを修正: unresolvedへ降格し summary 再計算のうえ ${FIX_OUT} に出力しました(${missing_detail})" >&2
-    else
-      overall_fail=1
-      check4_pass=0
-      echo "[FAIL] ${check4_label} — 実在しない${SOURCE_FIELD}: ${missing_detail}" >&2
-    fi
+  if [ "$source_external" = "true" ]; then
+    echo "[PASS] ${check4_label} — strategy.sourceExternal=trueのため実在確認を省略(対象コードは別リポジトリにあり参照不可という宣言を記録)" >&2
   else
-    echo "[PASS] ${check4_label} — 全${SOURCE_FIELD}が実在" >&2
+    while IFS= read -r row; do
+      [ -z "$row" ] && continue
+      key="$(jq -r --arg f "$ITEM_KEY_FIELD" '.[$f] // "?"' <<<"$row")"
+      ef="$(jq -r --arg f "$SOURCE_FIELD" '.[$f] // ""' <<<"$row")"
+      if [ -z "$ef" ]; then
+        missing_keys_raw="${missing_keys_raw}${key}
+"
+        missing_detail="${missing_detail}${key}:(empty ${SOURCE_FIELD}); "
+        continue
+      fi
+      case "$ef" in
+        /*) path="$ef" ;;
+        *)
+          case "$source_dir" in
+            /*) path="${source_dir%/}/$ef" ;;
+            "") path="${manifest_dir%/}/$ef" ;;
+            *) path="${manifest_dir%/}/${source_dir%/}/$ef" ;;
+          esac
+          ;;
+      esac
+      if [ ! -f "$path" ]; then
+        missing_keys_raw="${missing_keys_raw}${key}
+"
+        missing_detail="${missing_detail}${key}:${ef} (解決後: ${path}); "
+      fi
+    done < <(
+      if [ "$UNIT_KIND" = "screen" ]; then
+        jq -c '.screens[]? | select(.kind == "route" or .kind == "embedded-view")' "$MANIFEST"
+      else
+        jq -c '.units[]? | select(.kind != "unresolved")' "$MANIFEST"
+      fi
+    )
+
+    local check4_pass=1
+    if [ -n "$missing_keys_raw" ]; then
+      if [ -n "$FIX_OUT" ]; then
+        local missing_keys_json
+        missing_keys_json="$(printf '%s' "$missing_keys_raw" | jq -R -s 'split("\n") | map(select(length > 0))')"
+        if [ "$UNIT_KIND" = "screen" ]; then
+          jq --argjson missing "$missing_keys_json" '
+            .screens = [
+              .screens[] |
+              if (.kind == "route" or .kind == "embedded-view") and ((.screenKey // "?") as $k | ($missing | index($k)) != null)
+              then .kind = "unresolved" | .confidence = "low"
+              else .
+              end
+            ]
+            | .detectionSummary.screenCount = (.screens | length)
+            | .detectionSummary.clusterCount = (.screens | map(.clusterId) | map(select(. != null)) | unique | length)
+            | .detectionSummary.sharedScreenCount = (.screens | map(select((.sharedWith // []) | length > 0)) | length)
+            | .detectionSummary.embeddedCandidateCount = (.screens | map(select(.kind == "embedded-view")) | length)
+            | .detectionSummary.unresolvedCount = (.screens | map(select(.kind == "unresolved")) | length)
+          ' "$MANIFEST" > "$FIX_OUT"
+        else
+          jq --argjson missing "$missing_keys_json" '
+            .units = [
+              .units[] |
+              if (.kind != "unresolved") and ((.unitKey // "?") as $k | ($missing | index($k)) != null)
+              then .kind = "unresolved" | .confidence = "low"
+              else .
+              end
+            ]
+            | .detectionSummary.unitCount = (.units | length)
+            | .detectionSummary.unresolvedCount = (.units | map(select(.kind == "unresolved")) | length)
+          ' "$MANIFEST" > "$FIX_OUT"
+        fi
+        echo "[PASS] ${check4_label} — 不在エントリを修正: unresolvedへ降格し summary 再計算のうえ ${FIX_OUT} に出力しました(${missing_detail})" >&2
+      else
+        overall_fail=1
+        check4_pass=0
+        echo "[FAIL] ${check4_label} — 実在しない${SOURCE_FIELD}: ${missing_detail}" >&2
+      fi
+    else
+      echo "[PASS] ${check4_label} — 全${SOURCE_FIELD}が実在" >&2
+    fi
   fi
 
   # ---------------------------------------------------------------------------
@@ -495,12 +537,13 @@ run_validate() {
           [ ("permissions","confirmedPermissions","relatedApis","callers","foreignKeys","mainColumns","targetTables","downstreamJobs") as $f
             | select(has($f) and (.[$f] != null)) | select((.[$f] | is_str_arr) | not)
             | $f + "が文字列配列でない" ]
-        + [ ("authRequired","hasTemplate","isProcessingEndpoint") as $f
+        + [ ("authRequired","hasTemplate","isProcessingEndpoint","triggerConfirmed") as $f
             | select(has($f) and (.[$f] != null)) | select((.[$f] | type) != "boolean")
             | $f + "がbooleanでない" ]
-        + [ select(has("columnCount") and (.columnCount != null)) | select((.columnCount | type) != "number")
-            | "columnCountが数値でない" ]
-        + [ ("method","ioSummary","designDocStatus","category","format","trigger","direction","protocol","authMethod","execMethod","operationClass") as $f
+        + [ ("columnCount","retryCount") as $f
+            | select(has($f) and (.[$f] != null)) | select((.[$f] | type) != "number")
+            | $f + "が数値でない" ]
+        + [ ("method","ioSummary","designDocStatus","category","format","trigger","direction","protocol","authMethod","execMethod","operationClass","businessClass","responseTimeout") as $f
             | select(has($f) and (.[$f] != null)) | select((.[$f] | type) != "string")
             | $f + "が文字列でない" ]
         + [ ("designDocPath","detailDocPath","sequencePath","testCasePath",
@@ -538,6 +581,58 @@ run_validate() {
     echo "[FAIL] 任意フィールド-型 — 型違反: ${type_issues}" >&2
   else
     echo "[PASS] 任意フィールド-型 — 拡張任意フィールドの型違反0件" >&2
+  fi
+
+  # ---------------------------------------------------------------------------
+  # 8.5. kind-値域(1-9)
+  #    kindは検証器の制御フィールド(項目4のentryFile/sourceFile実在検査の絞り込み等に使う
+  #    技術的な種類)であり、業務区分(マスタ/トランザクション等)を混入させると項目4の
+  #    unresolved除外が機能しなくなる。値域は各generating-<種別>-list-for-reverse-docsの
+  #    検出手順書(*-detection.md)が規約する固定小集合であり、宣言ファイル(unit-axes.json)には
+  #    置かない(1つのkeyに対し種別ごとに異なる値域を持たせられないため。同じ理由で
+  #    businessClass等の業務区分は別フィールドへ分離し、kindの値域はここで直接検査する)。
+  #    対象外のunit_kind(screen/feature/message等)はスキップしPASS扱いとする。
+  # ---------------------------------------------------------------------------
+  local kind_domain_issues kind_domain_label="kind-値域"
+  if [ "$UNIT_KIND" = "screen" ]; then
+    : # screenはscreens[].kindの値域を検査対象としない(route/embedded-view/unresolved等は別観点)
+    echo "[PASS] ${kind_domain_label} — screenは対象外のためスキップ" >&2
+  else
+    kind_domain_issues="$(jq -r --arg items "$ITEMS_KEY" --arg keyfield "$ITEM_KEY_FIELD" --arg kind "$UNIT_KIND" '
+      def kind_allowed:
+        {
+          "table":    ["table","view","migration","unresolved"],
+          "api":      ["endpoint","entrypoint","dispatch-entry","exported-function","middleware","unresolved"],
+          "batch":    ["scheduled","triggered","unresolved"],
+          "external": ["client","webhook","unresolved"],
+          "report":   ["template","generator","unresolved"]
+        };
+      (kind_allowed[$kind]) as $allowed
+      | if $allowed == null then []
+        else
+          [ .[$items][]? |
+            (.[$keyfield] // "?") as $k
+            | (.kind // "") as $v
+            | select(($allowed | index($v)) == null)
+            | $k + ":kind=" + $v + "(値域外)"
+          ]
+        end
+      | join("; ")
+    ' "$MANIFEST" 2>/dev/null)"
+
+    if [ -n "$kind_domain_issues" ]; then
+      overall_fail=1
+      echo "[FAIL] ${kind_domain_label} — ${kind_domain_issues}" >&2
+    else
+      case "$UNIT_KIND" in
+        table|api|batch|external|report)
+          echo "[PASS] ${kind_domain_label} — 全kindが規約値域内" >&2
+          ;;
+        *)
+          echo "[PASS] ${kind_domain_label} — unit_kind=${UNIT_KIND}は値域検査の対象外のためスキップ" >&2
+          ;;
+      esac
+    fi
   fi
 
   # ---------------------------------------------------------------------------
@@ -603,9 +698,9 @@ run_validate() {
   #    項目数(total_items)は増やさない。screenType/accountGroup/accountSubType以外の
   #    closed/identifier軸(device等)は項目12(accountGroup-値域)にまとめて検査する。
   # ---------------------------------------------------------------------------
-  local total_items=13
+  local total_items=14
   if [ "$UNIT_KIND" = "screen" ]; then
-    total_items=17
+    total_items=18
 
     local axes_json="" axes_resolved
     if axes_resolved="$(resolve_unit_axes "$MANIFEST" "${AXES_FILE:-}" 2>/dev/null)"; then
@@ -1163,6 +1258,57 @@ JSON
     echo "  [PASS] 設計書URL陰性: scheme・//・制御文字を含むURLをFAIL"
   fi
 
+  # ---- entryFile-実在の相対sourceDir解決基準確認(1-10) ----
+  # マニフェストファイル自身の所在ディレクトリを $tmp/rel-manifest-dir に置き、そこから見た
+  # 相対sourceDirを指定する。呼び出し元のカレントディレクトリ(/tmp)を変えても判定が
+  # 変わらないことを確認する。
+  mkdir -p "$tmp/rel-manifest-dir/rel-src/src/screens"
+  cat > "$tmp/rel-manifest-dir/rel-src/src/screens/Home.tsx" <<'EOF'
+export function Home() { return null; }
+EOF
+  local screen_relative_manifest="$tmp/rel-manifest-dir/screen-manifest.json"
+  jq '.sourceDir = "rel-src"' "$screen_pass" > "$screen_relative_manifest"
+  if (cd /tmp && run_validate "$screen_relative_manifest" "" "screen" >/dev/null 2>&1); then
+    echo "  [PASS] entryFile-実在(相対sourceDir): マニフェスト所在ディレクトリ基準で解決しcwdに依存しない"
+  else
+    echo "  [FAIL] entryFile-実在(相対sourceDir): マニフェスト所在ディレクトリ基準の解決に失敗した" >&2
+    rc=1
+  fi
+
+  local screen_relative_missing="$tmp/rel-manifest-dir/screen-manifest-missing.json"
+  jq '.screens[0].entryFile = "src/screens/DoesNotExist.tsx"' "$screen_relative_manifest" > "$screen_relative_missing"
+  local relative_missing_output
+  relative_missing_output="$(run_validate "$screen_relative_missing" "" "screen" 2>&1)"
+  if run_validate "$screen_relative_missing" "" "screen" >/dev/null 2>&1; then
+    echo "  [FAIL] entryFile-実在失敗メッセージ: 実在しないentryFileなのにPASSした" >&2
+    rc=1
+  elif echo "$relative_missing_output" | grep -q "解決後: $tmp/rel-manifest-dir/rel-src/src/screens/DoesNotExist.tsx"; then
+    echo "  [PASS] entryFile-実在失敗メッセージ: 解決後の絶対パスがFAILメッセージに含まれる"
+  else
+    echo "  [FAIL] entryFile-実在失敗メッセージ: 解決後パスがメッセージに含まれない" >&2
+    echo "$relative_missing_output" | grep "${SOURCE_FIELD:-entryFile}-実在" >&2
+    rc=1
+  fi
+
+  # ---- strategy.sourceExternal=trueで実在確認を省略することの確認(1-18) ----
+  local screen_external="$tmp/screen-external.json"
+  jq '.strategy.sourceExternal = true | .screens[0].entryFile = "src/screens/DoesNotExist.tsx"' "$screen_pass" > "$screen_external"
+  if run_validate "$screen_external" "" "screen" >/dev/null 2>&1; then
+    echo "  [PASS] sourceExternal陽性: 別リポジトリ宣言時は実在しないentryFileでもPASS"
+  else
+    echo "  [FAIL] sourceExternal陽性: strategy.sourceExternal=trueなのにFAILした" >&2
+    rc=1
+  fi
+
+  local screen_external_absent="$tmp/screen-external-absent.json"
+  jq '.screens[0].entryFile = "src/screens/DoesNotExist.tsx"' "$screen_pass" > "$screen_external_absent"
+  if run_validate "$screen_external_absent" "" "screen" >/dev/null 2>&1; then
+    echo "  [FAIL] sourceExternal既定: 宣言なしで実在しないentryFileなのにPASSした" >&2
+    rc=1
+  else
+    echo "  [PASS] sourceExternal既定: 宣言なしは従来どおり実在確認しFAIL"
+  fi
+
   # ---- api フィクスチャ: unitKind=apiでの汎用パス確認 ----
   mkdir -p "$tmp/api-src/routes"
   cat > "$tmp/api-src/routes/users.ts" <<'EOF'
@@ -1278,6 +1424,25 @@ JSON
   else
     echo "  [FAIL] unitKind自動判定: 期待='api' 実測='${resolved_kind}'" >&2
     rc=1
+  fi
+
+  # ---- strategy-承認: unitKind=messageのapprovedByUser期待値切り替えの確認(1-17) ----
+  local message_pass="$tmp/message-pass.json"
+  jq '.unitKind = "message" | .strategy.approvedByUser = false' "$api_pass" > "$message_pass"
+  if run_validate "$message_pass" "" "message" >/dev/null 2>&1; then
+    echo "  [PASS] strategy-承認message陽性: unitKind=messageはapprovedByUser=falseでPASS"
+  else
+    echo "  [FAIL] strategy-承認message陽性: unitKind=messageのapprovedByUser=falseがFAILした" >&2
+    rc=1
+  fi
+
+  local message_bad_approved="$tmp/message-bad-approved.json"
+  jq '.unitKind = "message" | .strategy.approvedByUser = true' "$api_pass" > "$message_bad_approved"
+  if run_validate "$message_bad_approved" "" "message" >/dev/null 2>&1; then
+    echo "  [FAIL] strategy-承認message陰性: unitKind=messageでapprovedByUser=trueを受け入れた" >&2
+    rc=1
+  else
+    echo "  [PASS] strategy-承認message陰性: unitKind=messageのapprovedByUser=trueでFAIL"
   fi
 
   # 検査4(sourceFile-実在)のFAIL確認: sourceFileが実在しないunitsを混入させる

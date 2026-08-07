@@ -579,16 +579,16 @@ EOF
     sourceDir: $sourceDir,
     unitKind: "batch",
     strategy: {extractionMethod: "custom", approvedByUser: true, unitIdRegex: null, excludePatterns: []},
-    detectionSummary: {unitCount: 3, unresolvedCount: 0},
+    detectionSummary: {unitCount: 3, unresolvedCount: 1},
     units: [
-      {unitKey: "daily-summary", kind: "job", identifier: "daily_summary", unitNameGuess: "日次集計",
+      {unitKey: "daily-summary", kind: "scheduled", identifier: "daily_summary", unitNameGuess: "日次集計",
        sourceFile: $sf, confidence: "high", nameConfidence: "confirmed",
        schedule: {cron: "0 3 * * *", readable: "毎日 3:00"}, valueProvenance: {schedule: "measured"}},
-      {unitKey: "weekly-report", kind: "job", identifier: "weekly_report", unitNameGuess: "推定週次処理",
+      {unitKey: "weekly-report", kind: "scheduled", identifier: "weekly_report", unitNameGuess: "推定週次処理",
        sourceFile: $sf, confidence: "medium", nameConfidence: "inferred",
        schedule: {cron: "0 4 * * 1", readable: "毎週1曜 4:00"},
        confirmedSchedule: {cron: "0 5 * * 1", readable: "毎週1曜 5:00"}, valueProvenance: {schedule: "measured"}},
-      {unitKey: "monthly-close", kind: "job", identifier: "monthly_close", unitNameGuess: "月次締め",
+      {unitKey: "monthly-close", kind: "unresolved", identifier: "monthly_close", unitNameGuess: "月次締め",
        sourceFile: $sf, confidence: "high"}
     ]
   }' > "$batch_manifest"

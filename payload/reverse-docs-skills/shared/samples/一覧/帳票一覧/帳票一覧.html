@@ -701,6 +701,11 @@ a.pt-brand-list-item:hover { background: var(--panel3); color: var(--text); text
   .detail-grid { display: grid; grid-template-columns: max-content 1fr; gap: 3px 14px; }
   .detail-grid dt { color: var(--text-muted); font-size: 0.78rem; white-space: nowrap; }
   .detail-grid dd { margin: 0; font-size: 0.84rem; word-break: break-all; }
+
+  .prov-badge { display: inline-block; font-size: 0.7em; padding: 1px 4px; margin-left: 4px; border: 1px solid; }
+  .prov-badge.prov-measured { color: var(--accent); border-color: var(--accent); }
+  .prov-badge.prov-inferred { color: var(--stamp); border-color: var(--stamp); }
+  .prov-badge.prov-confirmed { color: var(--green); border-color: var(--green); }
 </style>
 </head>
 <body>
@@ -714,9 +719,9 @@ a.pt-brand-list-item:hover { background: var(--panel3); color: var(--text); text
   <div class="pt-brand">
     <div class="pt-brand-stamp">DESIGN PORTAL</div>
     <div class="pt-brand-switch" id="pt-brand-switch">
-      <div class="pt-brand-name">sample-project</div>
+      <div class="pt-brand-name"></div>
     </div>
-    <div class="pt-brand-sub">設計台帳 · 全51資料</div>
+    <div class="pt-brand-sub">設計台帳 · 全59資料</div>
   </div>
   <nav class="pt-nav" id="pt-nav" aria-label="資料カテゴリ"></nav>
   
@@ -726,7 +731,7 @@ a.pt-brand-list-item:hover { background: var(--panel3); color: var(--text); text
   <div class="pt-sidebar-meta">更新 <span id="pt-sidebar-date">2026-07-30T00:00:00Z</span><span id="pt-meta-commit"><br>コミット </span></div>
 </aside>
 <div class="pt-sidebar-scrim" id="pt-sidebar-scrim" hidden></div>
-<script type="application/json" id="pt-nav-data">[{"key":"project","num":"01","label":"基盤情報","count":5},{"key":"standards","num":"02","label":"規約","count":20},{"key":"design","num":"03","label":"設計書","count":5},{"key":"list","num":"04","label":"一覧・設計図","count":13},{"key":"cross","num":"05","label":"マトリクス・対応表","count":4},{"key":"ai","num":"06","label":"AI設定資産","count":1},{"key":"design-tools","num":"07","label":"デザイン","count":3}]</script>
+<script type="application/json" id="pt-nav-data">[{"key":"project","num":"01","label":"基盤情報","count":4},{"key":"standards","num":"02","label":"規約","count":27},{"key":"design","num":"03","label":"設計書","count":5},{"key":"list","num":"04","label":"一覧・設計図","count":14},{"key":"cross","num":"05","label":"マトリクス・対応表","count":5},{"key":"ai","num":"06","label":"AI設定資産","count":1},{"key":"design-tools","num":"07","label":"デザイン","count":3}]</script>
 <script type="application/json" id="pt-sites-data">[]</script>
 <script>
 (function () {
@@ -981,35 +986,35 @@ a.pt-brand-list-item:hover { background: var(--panel3); color: var(--text); text
             <tr data-unit-id="report-invoice" data-unit-key="invoice">
 <td>請求書</td>
 <td><code>invoice_report</code></td>
-<td><span class="badge kind-generic">定型</span></td>
+<td><span class="badge kind-generic">template</span></td>
 </tr><tr data-unit-id="report-monthly-sales" data-unit-key="monthly-sales">
 <td>月次売上レポート</td>
 <td><code>monthly_sales_report</code></td>
-<td><span class="badge kind-generic">定型</span></td>
+<td><span class="badge kind-generic">template</span></td>
 </tr><tr data-unit-id="report-user-roster" data-unit-key="user-roster">
 <td>ユーザー名簿</td>
 <td><code>user_roster</code></td>
-<td><span class="badge kind-generic">随時</span></td>
+<td><span class="badge kind-generic">generator</span></td>
 </tr><tr data-unit-id="report-audit-trail" data-unit-key="audit-trail">
 <td>監査証跡</td>
 <td><code>audit_trail_report</code></td>
-<td><span class="badge kind-generic">定型</span></td>
+<td><span class="badge kind-generic">template</span></td>
 </tr><tr data-unit-id="report-post-stats" data-unit-key="post-stats">
 <td>投稿統計</td>
 <td><code>post_stats</code></td>
-<td><span class="badge kind-generic">随時</span></td>
+<td><span class="badge kind-generic">generator</span></td>
 </tr><tr data-unit-id="report-inventory" data-unit-key="inventory">
 <td>在庫一覧</td>
 <td><code>inventory_list</code></td>
-<td><span class="badge kind-generic">随時</span></td>
+<td><span class="badge kind-generic">generator</span></td>
 </tr><tr data-unit-id="report-org-summary" data-unit-key="org-summary">
 <td>組織別集計</td>
 <td><code>org_summary_report</code></td>
-<td><span class="badge kind-generic">定型</span></td>
+<td><span class="badge kind-generic">template</span></td>
 </tr><tr data-unit-id="report-annual" data-unit-key="annual-report">
 <td>年次報告</td>
 <td><code>annual_report</code></td>
-<td><span class="badge kind-generic">定型</span></td>
+<td><span class="badge kind-generic">template</span></td>
 </tr>
           </tbody>
         </table>
@@ -1033,16 +1038,16 @@ a.pt-brand-list-item:hover { background: var(--panel3); color: var(--text); text
       </div>
 
       <script type="application/json" id="unit-manifest">
-{"generatedAt":"2026-07-30T00:00:00Z","sourceDir":"shared/samples/一覧/帳票一覧/fixtures","unitKind":"report","strategy":{"extractionMethod":"static-analysis","approvedByUser":true,"unitIdRegex":null},"detectionSummary":{"unitCount":8,"unresolvedCount":0},"units":[{"unitId":"report-invoice","unitKey":"invoice","kind":"定型","unitNameGuess":"請求書","identifier":"invoice_report","detectionMethod":"template-scan","confidence":"HIGH","fileCount":3,"sourceFile":"src/reports/invoice.py","format":"PDF","trigger":"画面"},{"unitId":"report-monthly-sales","unitKey":"monthly-sales","kind":"定型","unitNameGuess":"月次売上レポート","identifier":"monthly_sales_report","detectionMethod":"template-scan","confidence":"HIGH","fileCount":2,"sourceFile":"src/reports/monthly_sales.py","format":"Excel","trigger":"バッチ","relatedBatch":"daily-report"},{"unitId":"report-user-roster","unitKey":"user-roster","kind":"随時","unitNameGuess":"ユーザー名簿","identifier":"user_roster","detectionMethod":"query-scan","confidence":"MEDIUM","fileCount":2,"sourceFile":"src/reports/user_roster.py","format":"CSV","trigger":"画面"},{"unitId":"report-audit-trail","unitKey":"audit-trail","kind":"定型","unitNameGuess":"監査証跡","identifier":"audit_trail_report","detectionMethod":"template-scan","confidence":"HIGH","fileCount":2,"sourceFile":"src/reports/audit_trail.py","format":"PDF","trigger":"バッチ","relatedBatch":"audit-archive"},{"unitId":"report-post-stats","unitKey":"post-stats","kind":"随時","unitNameGuess":"投稿統計","identifier":"post_stats","detectionMethod":"query-scan","confidence":"MEDIUM","fileCount":1,"sourceFile":"src/reports/post_stats.py","format":"CSV","trigger":"画面"},{"unitId":"report-inventory","unitKey":"inventory","kind":"随時","unitNameGuess":"在庫一覧","identifier":"inventory_list","detectionMethod":"query-scan","confidence":"MEDIUM","fileCount":2,"sourceFile":"src/reports/inventory.py","format":"Excel","trigger":"画面"},{"unitId":"report-org-summary","unitKey":"org-summary","kind":"定型","unitNameGuess":"組織別集計","identifier":"org_summary_report","detectionMethod":"template-scan","confidence":"HIGH","fileCount":3,"sourceFile":"src/reports/org_summary.py","format":"Excel","trigger":"バッチ","relatedBatch":"data-export"},{"unitId":"report-annual","unitKey":"annual-report","kind":"定型","unitNameGuess":"年次報告","identifier":"annual_report","detectionMethod":"template-scan","confidence":"HIGH","fileCount":4,"sourceFile":"src/reports/annual.py","format":"PDF","trigger":"バッチ","relatedBatch":"data-export"}]}
+{"generatedAt":"2026-07-30T00:00:00Z","sourceDir":"shared/samples/一覧/帳票一覧/fixtures","unitKind":"report","strategy":{"extractionMethod":"static-analysis","approvedByUser":true,"unitIdRegex":null},"detectionSummary":{"unitCount":8,"unresolvedCount":0},"units":[{"unitId":"report-invoice","unitKey":"invoice","kind":"template","unitNameGuess":"請求書","identifier":"invoice_report","detectionMethod":"template-scan","confidence":"HIGH","fileCount":3,"sourceFile":"src/reports/invoice.py","format":"PDF","trigger":"画面","businessClass":"定型"},{"unitId":"report-monthly-sales","unitKey":"monthly-sales","kind":"template","unitNameGuess":"月次売上レポート","identifier":"monthly_sales_report","detectionMethod":"template-scan","confidence":"HIGH","fileCount":2,"sourceFile":"src/reports/monthly_sales.py","format":"Excel","trigger":"バッチ","relatedBatch":"daily-report","businessClass":"定型"},{"unitId":"report-user-roster","unitKey":"user-roster","kind":"generator","unitNameGuess":"ユーザー名簿","identifier":"user_roster","detectionMethod":"query-scan","confidence":"MEDIUM","fileCount":2,"sourceFile":"src/reports/user_roster.py","format":"CSV","trigger":"画面","businessClass":"随時"},{"unitId":"report-audit-trail","unitKey":"audit-trail","kind":"template","unitNameGuess":"監査証跡","identifier":"audit_trail_report","detectionMethod":"template-scan","confidence":"HIGH","fileCount":2,"sourceFile":"src/reports/audit_trail.py","format":"PDF","trigger":"バッチ","relatedBatch":"audit-archive","businessClass":"定型"},{"unitId":"report-post-stats","unitKey":"post-stats","kind":"generator","unitNameGuess":"投稿統計","identifier":"post_stats","detectionMethod":"query-scan","confidence":"MEDIUM","fileCount":1,"sourceFile":"src/reports/post_stats.py","format":"CSV","trigger":"画面","businessClass":"随時"},{"unitId":"report-inventory","unitKey":"inventory","kind":"generator","unitNameGuess":"在庫一覧","identifier":"inventory_list","detectionMethod":"query-scan","confidence":"MEDIUM","fileCount":2,"sourceFile":"src/reports/inventory.py","format":"Excel","trigger":"画面","businessClass":"随時"},{"unitId":"report-org-summary","unitKey":"org-summary","kind":"template","unitNameGuess":"組織別集計","identifier":"org_summary_report","detectionMethod":"template-scan","confidence":"HIGH","fileCount":3,"sourceFile":"src/reports/org_summary.py","format":"Excel","trigger":"バッチ","relatedBatch":"data-export","businessClass":"定型"},{"unitId":"report-annual","unitKey":"annual-report","kind":"template","unitNameGuess":"年次報告","identifier":"annual_report","detectionMethod":"template-scan","confidence":"HIGH","fileCount":4,"sourceFile":"src/reports/annual.py","format":"PDF","trigger":"バッチ","relatedBatch":"data-export","businessClass":"定型"}]}
       </script>
       <script type="application/json" id="column-spec">
-{"specVersion":1,"axes":[],"columns":[{"key":"format","label":"出力形式","appliesTo":["report"],"order":10},{"key":"trigger","label":"出力契機","appliesTo":["report"],"order":20}]}
+{"specVersion":1,"axes":[],"columns":[{"key":"format","label":"出力形式","appliesTo":["report"],"order":10},{"key":"trigger","label":"出力契機","appliesTo":["report"],"order":20},{"key":"businessClass","label":"業務区分","appliesTo":["table","api","batch","external","report"],"order":100}]}
       </script>
     </main>
   </div>
   <footer class="pt-footer">
   <span class="pt-footer-stamp">REVERSE-DOCS REGISTER</span>
-  <span class="pt-footer-meta">sample-project · 更新 <span id="pt-footer-date">2026-07-30T00:00:00Z</span><span id="pt-footer-commit"> · コミット </span></span>
+  <span class="pt-footer-meta"> · 更新 <span id="pt-footer-date">2026-07-30T00:00:00Z</span><span id="pt-footer-commit"> · コミット </span></span>
   <span class="pt-footer-gen">生成: shared/scripts/unit-list/build-unit-list.sh</span>
 </footer>
 </div>
@@ -1178,6 +1183,14 @@ a.pt-brand-list-item:hover { background: var(--panel3); color: var(--text); text
       if (typeof v === 'object') {
         td.textContent = (v.readable !== undefined && v.readable !== null) ? String(v.readable) : '';
         if (v.cron) td.title = String(v.cron);
+        /* 1-170: confirmedScheduleでの上書きがなく、cron検出(measured)の場合のみ実測バッジを表示する */
+        if (fieldName === 'schedule' && u && !u.confirmedSchedule
+            && u.valueProvenance && u.valueProvenance.schedule === 'measured') {
+          var scheduleBadge = document.createElement('span');
+          scheduleBadge.className = 'prov-badge prov-measured';
+          scheduleBadge.textContent = '実測';
+          td.appendChild(scheduleBadge);
+        }
         return;
       }
       if (fieldName === 'designDocStatus') {
@@ -1199,7 +1212,11 @@ a.pt-brand-list-item:hover { background: var(--panel3); color: var(--text); text
       bodyRows.forEach(function (tr) {
         var td = document.createElement('td');
         var u = findUnit(tr);
-        if (u) renderValue(td, f, u[f.key], u);
+        if (u) {
+          /* 1-170: scheduleは人間確定値(confirmedSchedule)を推定/実測値より優先して表示する */
+          var fieldValue = (f.key === 'schedule' && u.confirmedSchedule) ? u.confirmedSchedule : u[f.key];
+          renderValue(td, f, fieldValue, u);
+        }
         tr.appendChild(td);
       });
     });
@@ -1228,6 +1245,49 @@ a.pt-brand-list-item:hover { background: var(--panel3); color: var(--text); text
       extraCols += 1;
     }
     optTable.style.minWidth = (900 + extraCols * 140) + 'px';
+  })();
+</script>
+
+<script>
+  /* 1-170: unitKind=batch のみ、nameConfidence由来の確認済/推定バッジを名称セルに追加する。
+     任意列(axes/column-spec)の有無に関わらず動作させるため、上のIIFEとは独立させる。 */
+  (function () {
+    var nameManifestEl = document.getElementById('unit-manifest');
+    if (!nameManifestEl) return;
+    var nameManifest;
+    try { nameManifest = JSON.parse(nameManifestEl.textContent); } catch (e) { return; }
+    if (!nameManifest || nameManifest.unitKind !== 'batch') return;
+
+    var nameTable = document.getElementById('unit-table');
+    if (!nameTable) return;
+    var nameRows = Array.prototype.slice.call(nameTable.querySelectorAll('tbody tr'));
+
+    var nameById = {};
+    var nameByKey = {};
+    (nameManifest.units || []).forEach(function (u) {
+      if (u.unitId !== undefined && u.unitId !== null) nameById[String(u.unitId)] = u;
+      if (u.unitKey !== undefined && u.unitKey !== null) nameByKey[String(u.unitKey)] = u;
+    });
+
+    nameRows.forEach(function (tr) {
+      var idAttr = tr.getAttribute('data-unit-id') || '';
+      var keyAttr = tr.getAttribute('data-unit-key') || '';
+      var u = (idAttr && nameById[idAttr]) || (keyAttr && nameByKey[keyAttr]) || null;
+      if (!u || !u.nameConfidence) return;
+      var nameCell = tr.children[0];
+      if (!nameCell) return;
+      var badge = document.createElement('span');
+      if (u.nameConfidence === 'confirmed') {
+        badge.className = 'prov-badge prov-confirmed';
+        badge.textContent = '確認済';
+      } else if (u.nameConfidence === 'inferred') {
+        badge.className = 'prov-badge prov-inferred';
+        badge.textContent = '推定';
+      } else {
+        return;
+      }
+      nameCell.appendChild(badge);
+    });
   })();
 </script>
 

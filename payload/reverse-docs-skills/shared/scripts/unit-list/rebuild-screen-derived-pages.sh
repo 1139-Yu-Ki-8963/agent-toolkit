@@ -92,7 +92,7 @@ managed=(
   "マトリクス・対応表/権限画面マトリクス/権限画面マトリクス.html"
   "マトリクス・対応表/権限機能マトリクス/権限機能マトリクス.html"
   "マトリクス・対応表/CRUD図/CRUD図.html"
-  "マトリクス・対応表/追跡可能性/追跡可能性.html"
+  "マトリクス・対応表/画面-API-テーブル対応表/画面-API-テーブル対応表.html"
   "index.html"
 )
 
@@ -227,7 +227,7 @@ build_matrix() {
 build_matrix permission-screen "$matrix_dir/permission-matrix.json" "$transaction_root/マトリクス・対応表/権限画面マトリクス/権限画面マトリクス.html"
 build_matrix permission-function "$matrix_dir/permission-function-matrix.json" "$transaction_root/マトリクス・対応表/権限機能マトリクス/権限機能マトリクス.html"
 build_matrix crud "$matrix_dir/crud-matrix.json" "$transaction_root/マトリクス・対応表/CRUD図/CRUD図.html"
-build_matrix traceability "$matrix_dir/traceability.json" "$transaction_root/マトリクス・対応表/追跡可能性/追跡可能性.html"
+build_matrix traceability "$matrix_dir/traceability.json" "$transaction_root/マトリクス・対応表/画面-API-テーブル対応表/画面-API-テーブル対応表.html"
 
 portal_args=("$target_repo" "$transaction_root" "$transaction_root" --portal-only --generated-at "$generated_at" --screen-manifest "$ext")
 [ -n "$catalog" ] && portal_args+=(--catalog "$catalog")
@@ -240,7 +240,7 @@ snapshot_unmanaged "$transaction_root" "$backup_root/unmanaged-after"
 cmp "$backup_root/unmanaged-before" "$backup_root/unmanaged-after" \
   || { echo "ERROR: child changed unmanaged output" >&2; exit 1; }
 
-# マトリクス・対応表配下の各ページ専用ディレクトリ内HTML(権限画面/権限機能/CRUD図/追跡可能性)は
+# マトリクス・対応表配下の各ページ専用ディレクトリ内HTML(権限画面/権限機能/CRUD図/画面-API-テーブル対応表)は
 # build-matrix-pages.sh が必須成分すべて0件のとき生成をスキップ(exit 0・既存ファイルは削除)する
 # 任意出力である(写真指摘1-101)。パスの列挙ではなく「マトリクス・対応表/<ページ専用dir>/*.html」という
 # ディレクトリ構造で判定する(data/*.json は常時生成される必須出力のため対象外)。

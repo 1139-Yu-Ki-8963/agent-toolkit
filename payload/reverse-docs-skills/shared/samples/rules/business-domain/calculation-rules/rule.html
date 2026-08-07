@@ -651,6 +651,10 @@ table.data-table code {
   margin: 0; padding: 12px 14px; overflow-x: auto;
   font-family: var(--mono); font-size: 12px; line-height: 1.8; color: var(--codetext);
 }
+#doc-content .code-block code {
+  display: block; padding: 0; border: 0; background: transparent;
+  color: inherit; font: inherit; white-space: pre;
+}
 .code-block .kw { color: #CBA6F7; }
 .code-block .fn { color: #89B4FA; }
 .code-block .str { color: #A6E3A1; }
@@ -675,11 +679,11 @@ table.data-table code {
     <button type="button" class="pt-sidebar-toggle" id="pt-sidebar-toggle" aria-expanded="false" aria-controls="pt-sidebar-aside" aria-label="ナビゲーションを開く">
   <span></span><span></span><span></span>
 </button>
-<aside class="pt-sidebar" id="pt-sidebar-aside" data-portal-href="../../../../rules-only-portal/index.html" data-active-category="standards">
+<aside class="pt-sidebar" id="pt-sidebar-aside" data-portal-href="../../../../portal/index.html" data-active-category="standards">
   <div class="pt-brand">
     <div class="pt-brand-stamp">DESIGN PORTAL</div>
     <div class="pt-brand-switch" id="pt-brand-switch">
-      <div class="pt-brand-name">reverse-docs-skills</div>
+      <div class="pt-brand-name">repo</div>
     </div>
     <div class="pt-brand-sub">設計台帳 · 全33資料</div>
   </div>
@@ -688,7 +692,7 @@ table.data-table code {
   <button type="button" class="pt-theme" id="pt-theme-toggle">
     <span id="pt-theme-label">テーマ: ダーク</span><span class="pt-theme-next" id="pt-theme-next">→ LIGHT</span>
   </button>
-  <div class="pt-sidebar-meta">更新 <span id="pt-sidebar-date">2026-08-02</span><span id="pt-meta-commit"><br>コミット </span></div>
+  <div class="pt-sidebar-meta">更新 <span id="pt-sidebar-date">2026-08-08</span><span id="pt-meta-commit"><br>コミット </span></div>
 </aside>
 <div class="pt-sidebar-scrim" id="pt-sidebar-scrim" hidden></div>
 <script type="application/json" id="pt-nav-data">[{"key":"project","num":"01","label":"基盤情報","count":0},{"key":"standards","num":"02","label":"規約","count":27},{"key":"design","num":"03","label":"設計書","count":0},{"key":"list","num":"04","label":"一覧・設計図","count":6},{"key":"cross","num":"05","label":"マトリクス・対応表","count":0},{"key":"ai","num":"06","label":"AI設定資産","count":0},{"key":"design-tools","num":"07","label":"デザイン","count":0}]</script>
@@ -908,7 +912,7 @@ table.data-table code {
 </script>
     <main class="pt-main" id="main-scroll">
       <div class="pt-head">
-        <div class="pt-crumb"><a href="../../../../rules-only-portal/index.html">TOP</a> ／ 設計書 ／ <span class="pt-crumb-current">計算規則（下書き）</span></div>
+        <div class="pt-crumb"><a href="../../../../portal/index.html">TOP</a> ／ 設計書 ／ <span class="pt-crumb-current">計算規則（下書き）</span></div>
         <div class="pt-title-row">
           <h1 class="pt-title" id="dp-hero-title">計算規則（下書き）</h1>
         </div>
@@ -922,12 +926,12 @@ table.data-table code {
   </div>
   <footer class="pt-footer">
   <span class="pt-footer-stamp">REVERSE-DOCS REGISTER</span>
-  <span class="pt-footer-meta">reverse-docs-skills · 更新 <span id="pt-footer-date">2026-08-02</span><span id="pt-footer-commit"> · コミット </span></span>
+  <span class="pt-footer-meta">repo · 更新 <span id="pt-footer-date">2026-08-08</span><span id="pt-footer-commit"> · コミット </span></span>
   <span class="pt-footer-gen">生成: shared/scripts/build-portal.sh</span>
 </footer>
 </div>
 
-<script type="application/json" id="doc-md">"\n# 計算規則\n\n\n## 概要\n\n金額・数量などの計算ロジックとその根拠の取り決め。\n\n（未記入）\n\n## 規則\n\n| 規則 | 内容 | 根拠 |\n|---|---|---|\n| （未記入） | （未記入） | （未記入） |\n\n記入規則: 各規則行には、対象リポジトリの実装から観測した根拠を添える。実装に現れない規則を発明しない。\n\n## 未記入の理由\n\n（未記入）。この規約は rule-taxonomy.json の宣言から機械生成した雛形であり、対象リポジトリの実態を調査してから記入する。"</script>
+<script type="application/json" id="doc-md">"\n# 計算規則\n\n\n## 概要\n\n金額・数量などの計算ロジックとその根拠の取り決め。\n\n（未記入）\n\n## 規則\n\n| 規則 | 内容 | 根拠 |\n|---|---|---|\n| （未記入） | （未記入） | （未記入） |\n\n記入規則: 各規則行には、対象リポジトリの実装から観測した根拠を添える。実装に現れない規則を発明しない。"</script>
 
 <script>
 (function () {
@@ -939,19 +943,60 @@ table.data-table code {
   var lines = src.split('\n');
   var html = [];
   var inTable = false;
+  var tableColCount = 0;
   var inList = false;
   var listType = '';
   var inBlockquote = false;
+  var inFence = false;
+  var fenceLines = [];
 
   function escHtml(s) {
     return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   }
+  function escAttr(s) {
+    return s.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+  function safeUrl(s) {
+    var value = s.replace(/[\u0000-\u001f\u007f]+/g, '').trim();
+    var scheme = value.match(/^([a-z][a-z0-9+.-]*):/i);
+    if (scheme && !/^(?:https?|mailto)$/i.test(scheme[1])) return '';
+    return escAttr(value);
+  }
+  // 取り消し線（~~text~~）は screen-doc-template.html でも未対応のため対象外とする
   function inlineFormat(s) {
     s = escHtml(s);
     s = s.replace(/`([^`]+)`/g, '<code>$1</code>');
+    s = s.replace(/!\[([^\]]*)\]\(([^()\s]+)\)/g, function(_, alt, url) {
+      var sanitizedUrl = safeUrl(url);
+      return sanitizedUrl ? '<img src="' + sanitizedUrl + '" alt="' + escAttr(alt) + '" style="max-width:100%">' : alt;
+    });
+    s = s.replace(/\[([^\]]+)\]\(([^()\s]+)\)/g, function(_, label, url) {
+      var sanitizedUrl = safeUrl(url);
+      return sanitizedUrl ? '<a href="' + sanitizedUrl + '">' + label + '</a>' : label;
+    });
     s = s.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
     s = s.replace(/\*([^*]+)\*/g, '<em>$1</em>');
     return s;
+  }
+
+  // 表のセル分割: インラインコード（`...`）内の縦棒は列区切りとして扱わない
+  function splitTableRow(line) {
+    var masked = line.replace(/`[^`]*`/g, function (m) { return m.replace(/\|/g, '\u0001'); });
+    return masked.split('|')
+      .filter(function (c, j, a) { return j > 0 && j < a.length - 1; })
+      .map(function (c) { return c.replace(/\u0001/g, '|'); });
+  }
+  // 見出しの列数とデータ行の列数を照合し、食い違う行は最後の列へ寄せる（または不足分を空欄で補う）
+  function normalizeRowCells(cells, colCount) {
+    if (!colCount || cells.length === colCount) return cells;
+    if (cells.length > colCount) {
+      var head = cells.slice(0, colCount - 1);
+      var tail = cells.slice(colCount - 1).join('|');
+      return head.concat([tail]);
+    }
+    var padded = cells.slice();
+    while (padded.length < colCount) padded.push('');
+    return padded;
   }
 
   function closeList() {
@@ -961,12 +1006,30 @@ table.data-table code {
     if (inBlockquote) { html.push('</blockquote>'); inBlockquote = false; }
   }
   function closeTable() {
-    if (inTable) { html.push('</tbody></table></div>'); inTable = false; }
+    if (inTable) { html.push('</tbody></table></div>'); inTable = false; tableColCount = 0; }
+  }
+  function closeFence() {
+    html.push('<div class="code-block"><pre><code>' + escHtml(fenceLines.join('\n')) + '</code></pre></div>');
+    inFence = false;
+    fenceLines = [];
   }
 
   for (var i = 0; i < lines.length; i++) {
     var line = lines[i];
     var trimmed = line.trim();
+
+    // フェンス内はMarkdownとして解釈せず、終了行まで文字列のまま保持する
+    if (inFence) {
+      if (/^```\s*$/.test(trimmed)) closeFence();
+      else fenceLines.push(line);
+      continue;
+    }
+    if (/^```(?:\s*[^`\s]+)?\s*$/.test(trimmed)) {
+      closeList(); closeBlockquote(); closeTable();
+      inFence = true;
+      fenceLines = [];
+      continue;
+    }
 
     // 空行
     if (!trimmed) { closeList(); closeBlockquote(); continue; }
@@ -981,14 +1044,16 @@ table.data-table code {
     // テーブル
     if (trimmed.indexOf('|') !== -1 && trimmed.charAt(0) === '|') {
       closeList(); closeBlockquote();
-      var cells = trimmed.split('|').filter(function(c,j,a){ return j > 0 && j < a.length - 1; });
       if (/^[\s|:-]+$/.test(trimmed)) continue; // separator 行
+      var cells = splitTableRow(trimmed);
       if (!inTable) {
+        tableColCount = cells.length;
         html.push('<div class="table-wrap"><table><thead><tr>');
         cells.forEach(function(c) { html.push('<th>' + inlineFormat(c.trim()) + '</th>'); });
         html.push('</tr></thead><tbody>');
         inTable = true;
       } else {
+        cells = normalizeRowCells(cells, tableColCount);
         html.push('<tr>');
         cells.forEach(function(c) { html.push('<td>' + inlineFormat(c.trim()) + '</td>'); });
         html.push('</tr>');
@@ -1025,6 +1090,7 @@ table.data-table code {
     closeList(); closeTable(); closeBlockquote();
     html.push('<p>' + inlineFormat(trimmed) + '</p>');
   }
+  if (inFence) closeFence();
   closeList(); closeTable(); closeBlockquote();
 
   document.getElementById('doc-content').innerHTML = html.join('\n');

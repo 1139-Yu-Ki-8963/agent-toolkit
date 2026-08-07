@@ -61,3 +61,7 @@ Phase 1（スタック・バッチ規約の特定）で調査すべき対象と�
 | `scheduled` | 定期実行ジョブ。cron 式・実行間隔で自動起動される |
 | `triggered` | トリガー起動ジョブ。イベント・キュー投入・手動実行（CLI コマンド）で起動される |
 | `unresolved` | 定義は検出したが起動方式・実体ファイルを確定できないもの。実在するかのように断定せず隔離する |
+
+## businessClass・triggerConfirmed（任意フィールド。1-9・1-19）
+
+`定期` / `手動` 等の業務上の分類は、`kind`（上表の技術的な種類）ではなく任意フィールド `businessClass` へ記録する。また、実行契機（`kind` が示す起動方式の裏付けとなる cron 定義・イベント登録等）を人間が確認済みかどうかは `triggerConfirmed`（boolean）へ記録する。`execMethod`（手動実行のコマンド手順）とは別概念であり、契機そのものの確認状況を表す。スキーマ定義は `shared/references/manifest-schema-extensions.md` の「batches（バッチ）」節を参照する。

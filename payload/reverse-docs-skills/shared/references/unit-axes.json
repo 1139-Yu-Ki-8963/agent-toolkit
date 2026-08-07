@@ -100,6 +100,7 @@
     { "key": "targetTables", "label": "対象テーブル", "appliesTo": ["batch"], "order": 20 },
     { "key": "downstreamJobs", "label": "後続ジョブ", "appliesTo": ["batch"], "order": 30 },
     { "key": "execMethod", "label": "実行方法", "appliesTo": ["batch"], "order": 40 },
+    { "key": "triggerConfirmed", "label": "契機確認", "appliesTo": ["batch"], "order": 50, "trueLabel": "確認済み", "falseLabel": "未確認" },
 
     { "key": "format", "label": "出力形式", "appliesTo": ["report"], "order": 10 },
     { "key": "trigger", "label": "出力契機", "appliesTo": ["report"], "order": 20 },
@@ -107,12 +108,16 @@
     { "key": "direction", "label": "方向", "appliesTo": ["external"], "order": 10 },
     { "key": "protocol", "label": "プロトコル", "appliesTo": ["external"], "order": 20 },
     { "key": "authMethod", "label": "認証方式", "appliesTo": ["external"], "order": 30 },
+    { "key": "responseTimeout", "label": "応答待ち時間", "appliesTo": ["external"], "order": 40 },
+    { "key": "retryCount", "label": "再試行回数", "appliesTo": ["external"], "order": 50 },
 
     { "key": "sourceFile", "label": "抽出元", "appliesTo": ["message"], "order": 10 },
     { "key": "usedScreen", "label": "使用画面", "appliesTo": ["message"], "order": 20 },
 
     { "key": "testType", "label": "テスト種別", "appliesTo": ["test_case", "test_viewpoint"], "order": 10 },
 
-    { "key": "operationClass", "label": "操作区分", "appliesTo": ["feature"], "order": 10 }
+    { "key": "operationClass", "label": "操作区分", "appliesTo": ["feature"], "order": 10 },
+
+    { "key": "businessClass", "label": "業務区分", "appliesTo": ["table", "api", "batch", "external", "report"], "order": 100 }
   ]
 }

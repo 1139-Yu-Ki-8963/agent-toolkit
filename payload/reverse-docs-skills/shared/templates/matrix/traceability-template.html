@@ -1,13 +1,13 @@
 <!DOCTYPE html>
 <!--
-  追跡可能性（画面→API→テーブル連鎖）.HTML の静的シェル(テンプレート)
+  画面-API-テーブル対応表（画面→API→テーブル連鎖）.HTML の静的シェル(テンプレート)
 
   答える質問:
     「この画面を変えたら何に波及するか」「このテーブルはどの画面から使われているか」
 
   使い方:
     プレースホルダ・注入マーカーは将来のビルドスクリプトが注入する。手作業置換禁止。
-    ビルドスクリプトが追跡可能性マニフェストJSONをパースし、以下のマーカーを
+    ビルドスクリプトが画面-API-テーブル対応表マニフェストJSONをパースし、以下のマーカーを
     機械的に置換して決定的にHTMLを生成する。
 
   プレースホルダ(二重置換事故を避けるため本コメントでは波括弧・HTMLコメント記法を
@@ -41,7 +41,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>追跡可能性（画面→API→テーブル）</title>
+<title>画面-API-テーブル対応表</title>
 <style>
 /* TOKENS_CSS */
 /* SHELL_CSS */
@@ -123,9 +123,9 @@ table.matrix tbody tr:hover td { background: var(--panel3); }
     <!--SHELL_SIDEBAR-->
     <main class="pt-main is-fixed">
       <div class="pt-head">
-        <div class="pt-crumb"><a href="{{BACK_LINK}}">TOP</a> ／ マトリクス・対応表 ／ <span class="pt-crumb-current">追跡可能性</span></div>
+        <div class="pt-crumb"><a href="{{BACK_LINK}}">TOP</a> ／ マトリクス・対応表 ／ <span class="pt-crumb-current">画面-API-テーブル対応表</span></div>
         <div class="pt-title-row">
-          <h1 class="pt-title">追跡可能性（画面→API→テーブル）</h1>
+          <h1 class="pt-title">画面-API-テーブル対応表</h1>
           <span class="pt-title-sub">更新 {{GENERATED_AT}}</span>
         </div>
       </div>

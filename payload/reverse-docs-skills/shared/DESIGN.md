@@ -128,7 +128,7 @@
 | `matrix/crud-matrix-template.html` | CRUD図型 |
 | `matrix/permission-function-matrix-template.html` | 権限機能マトリクス型 |
 | `matrix/permission-screen-matrix-template.html` | 権限画面マトリクス型 |
-| `matrix/traceability-template.html` | 追跡可能性型 |
+| `matrix/traceability-template.html` | 画面-API-テーブル対応表型 |
 | `unit-list/feature-list-template.html` | 一覧型（機能一覧、検索・ソート付き） |
 | `unit-list/screen-list-template.html` | 一覧型（画面一覧、検索・ソート付き） |
 | `unit-list/unit-list-template.html` | 一覧型（API・テーブル・バッチ・帳票・外部連携一覧、検索・ソート付き） |

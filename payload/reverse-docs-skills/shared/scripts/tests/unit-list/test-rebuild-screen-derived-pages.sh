@@ -163,7 +163,7 @@ managed=(
   "マトリクス・対応表/権限画面マトリクス/権限画面マトリクス.html"
   "マトリクス・対応表/権限機能マトリクス/権限機能マトリクス.html"
   "マトリクス・対応表/CRUD図/CRUD図.html"
-  "マトリクス・対応表/追跡可能性/追跡可能性.html" "index.html"
+  "マトリクス・対応表/画面-API-テーブル対応表/画面-API-テーブル対応表.html" "index.html"
 )
 record() {
   local root="$1" out="$2" rel

@@ -154,8 +154,11 @@ extract_rules() {
   local f
   while IFS= read -r f; do
     [ -f "$f" ] || continue
-    local rule_name layer section declared mechanical tags summary relative generated_entry
-    rule_name="$(sed -n 's/^# //p' "$f" | head -1)"
+    local rule_name layer section declared mechanical tags summary relative generated_entry scan_f
+    # scan_f: 非UTF-8原本ならUTF-8一時コピー(改善課題1-131)。fはパス判定・生成物照合に使うため
+    # 変更しない。内容走査には常にscan_fを使う
+    scan_f="$(to_utf8_for_scan "$f" "$SCAN_WORKDIR")"
+    rule_name="$(sed -n 's/^# //p' "$scan_f" | head -1)"
     [ -n "$rule_name" ] || continue
     case "$f" in
       */rules/always/*) layer="always" ;;
@@ -174,7 +177,7 @@ extract_rules() {
         echo "ERROR: generated rule is not owned by index: $relative" >&2
         return 1
       }
-      grep -q "^generatedBy: generate-rules-from-common-docs.sh$" "$f" || {
+      grep -q "^generatedBy: generate-rules-from-common-docs.sh$" "$scan_f" || {
         echo "ERROR: generated rule marker mismatch: $relative" >&2
         return 1
       }
@@ -183,7 +186,7 @@ extract_rules() {
       mechanical="false"
       tags="[]"
     else
-      section="$(enforcement_section "$f")"
+      section="$(enforcement_section "$scan_f")"
       if grep -qE 'exit 2|decision:block' <<<"$section"; then
         declared="block"
       elif grep -q 'advisory' <<<"$section"; then
@@ -200,7 +203,7 @@ extract_rules() {
         fi
       done < <(printf '%s\n' "$section" | grep -oE '`[^`]+\.sh`' | tr -d '`' | while IFS= read -r script; do basename "$script"; done || true)
       tags="$(tags_json_from_text "$section")"
-      summary="$(first_paragraph_sentence "$f")"
+      summary="$(first_paragraph_sentence "$scan_f")"
     fi
     jq -n -c \
       --arg ruleName "$rule_name" \
@@ -223,8 +226,10 @@ extract_skills() {
   local f
   while IFS= read -r f; do
     [ -f "$f" ] || continue
-    local fm skill_name category desc trigger summary phase_count
-    fm="$(frontmatter_of "$f")"
+    local fm skill_name category desc trigger summary phase_count scan_f
+    # scan_f: 非UTF-8原本ならUTF-8一時コピー(改善課題1-131)。内容走査には常にscan_fを使う
+    scan_f="$(to_utf8_for_scan "$f" "$SCAN_WORKDIR")"
+    fm="$(frontmatter_of "$scan_f")"
     skill_name="$(sed -n 's/^name:[[:space:]]*//p' <<<"$fm" | head -1)"
     [ -n "$skill_name" ] || continue
     category="$(skill_category "$skill_name")"
@@ -252,7 +257,7 @@ extract_skills() {
     # summary: 'TRIGGER when:' より前の本文の最初の非空行
     summary="$(printf '%s\n' "${desc%%TRIGGER when:*}" \
       | sed 's/^[[:space:]]*//; s/[[:space:]]*$//' | { grep -m1 . || true; })"
-    phase_count="$(grep -c '^## Phase' "$f" || true)"
+    phase_count="$(grep -c '^## Phase' "$scan_f" || true)"
     jq -n -c \
       --arg skillName "$skill_name" \
       --arg category "$category" \
@@ -275,8 +280,10 @@ extract_subagents() {
   local f
   while IFS= read -r f; do
     [ -f "$f" ] || continue
-    local fm name desc
-    fm="$(frontmatter_of "$f")"
+    local fm name desc scan_f
+    # scan_f: 非UTF-8原本ならUTF-8一時コピー(改善課題1-131)。内容走査には常にscan_fを使う
+    scan_f="$(to_utf8_for_scan "$f" "$SCAN_WORKDIR")"
+    fm="$(frontmatter_of "$scan_f")"
     name="$(sed -n 's/^name:[[:space:]]*//p' <<<"$fm" | head -1)"
     [ -n "$name" ] || name="$(basename "$f" .md)"
     desc="$(sed -n 's/^description:[[:space:]]*//p' <<<"$fm" | head -1)"
@@ -300,7 +307,7 @@ extract_hooks() {
   jq -e '.hooks | type == "object"' "$settings" >/dev/null 2>&1 || return 0
   local entry
   while IFS= read -r entry; do
-    local timing matcher command script script_path header tags behavior summary
+    local timing matcher command script script_path header tags behavior summary scan_script
     timing="$(jq -r '.timing' <<<"$entry")"
     matcher="$(jq -r '.matcher // "—"' <<<"$entry")"
     command="$(jq -r '.command // ""' <<<"$entry")"
@@ -315,14 +322,16 @@ extract_hooks() {
     behavior=""
     summary=""
     if [ -n "$script_path" ] && [ -f "$script_path" ]; then
-      header="$(head -40 "$script_path")"
+      # scan_script: 非UTF-8原本ならUTF-8一時コピー(改善課題1-131)。内容走査には常にscan_scriptを使う
+      scan_script="$(to_utf8_for_scan "$script_path" "$SCAN_WORKDIR")"
+      header="$(head -40 "$scan_script")"
       tags="$(tags_json_from_text "$header")"
       if grep -qE 'exit 2|decision:block' <<<"$header"; then
         behavior="block"
       elif grep -q 'advisory' <<<"$header"; then
         behavior="advisory"
       fi
-      summary="$(sed -n '2s/^#[[:space:]]*//p' "$script_path")"
+      summary="$(sed -n '2s/^#[[:space:]]*//p' "$scan_script")"
     fi
     jq -n -c \
       --arg script "$script" \
@@ -674,5 +683,12 @@ if [ ! -d "$REPO_ROOT" ]; then
   exit 1
 fi
 REPO_ROOT="$(cd "$REPO_ROOT" && pwd)"
+
+# --- 非UTF-8原本の走査対応(改善課題1-131): detect-encoding.sh の走査ヘルパーを読み込む ---
+_EXTRACT_AI_ASSETS_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=../detect-encoding.sh
+source "$_EXTRACT_AI_ASSETS_SCRIPT_DIR/../detect-encoding.sh"
+SCAN_WORKDIR="$(mktemp -d "${TMPDIR:-/tmp}/extract-ai-assets-scan.XXXXXX")"
+trap 'rm -rf "$SCAN_WORKDIR"' EXIT
 
 run_extract "$REPO_ROOT" "$OUTPUT_JSON"

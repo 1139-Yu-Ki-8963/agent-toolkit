@@ -2,7 +2,7 @@
 
 ## 目的と背景
 
-ポータル設計基盤の 2 ページ目で「△＝マニフェスト等データ源の拡張が必要」と分類した機能は、既存マニフェスト（screen-manifest / unit-manifest）が持つ最小フィールドだけでは実現できない。本仕様は、一覧ページの△機能（設計書状態列・関連 API 列・認証要否列・スケジュール列等）とマトリクス・対応表 4 ページ（権限×画面・権限×機能・CRUD 図・追跡可能性）が必要とするデータを、種別ごとの追加フィールドと新規データファイルとして定義する。
+ポータル設計基盤の 2 ページ目は、一部の機能を「△＝マニフェスト等データ源の拡張が必要」と分類した。これらは既存マニフェスト（screen-manifest / unit-manifest）が持つ最小フィールドだけでは実現できない。本仕様は、その不足分を種別ごとの追加フィールドと新規データファイルとして定義する。対象は 2 つある。一覧ページの△機能（設計書状態列・関連 API 列・認証要否列・スケジュール列等）と、マトリクス・対応表 4 ページ（権限×画面・権限×機能・CRUD 図・画面-API-テーブル対応表）である。
 
 ## 種別ごとの追加フィールド定義
 
@@ -39,6 +39,21 @@
 `schedule` の出所対応（extract-batch-metadata.sh が付与）:
 - cron 検出 = `measured`
 - `confirmed` を生産する抽出処理は現状無く、`confirmedSchedule` は人手上書き用の解決口としてのみ定義する
+
+### 全種別共通（値の未確認と不在の区別）
+
+「値をまだ確認していない」と「値が存在しない（対象ゼロ）」は異なる状態であり、両方を単純な欠落やフィールド不在だけで表現すると区別できなくなる。本仕様は次の 2 規則を全フィールド共通の表現規則として定める。既存の `targetTables`・`foreignKeys` の個別記載（各表を参照）はこの規則の具体例であり、矛盾しない。
+
+- 配列型フィールドでは、空配列 `[]` は「調査済みで対象ゼロという正の観測結果」を意味する。フィールド自体の欠落は「調査・走査ができなかった、または未実施（未確認）」を意味する。`foreignKeys`（tables）・`targetTables`（apis/batches）に既存適用済みである。他の配列型フィールド（`permissions`・`relatedApis`・`mainColumns`・`downstreamJobs` 等）にも同様に適用する
+- 非配列（スカラー・boolean・object）型フィールドでは、フィールド自体の欠落は「値を確認していない（未確認）」を意味する。値が明示的に設定されている場合はその値を確定値として扱う。「調査はしたが値を確定できなかった」という第三の状態を表現する必要がある種別固有フィールドは、`kind` の `unresolved` のように専用の識別可能な値を各フィールドの値域として定義する。これによってフィールド欠落（未確認）と区別する
+
+### strategy（検出戦略宣言）
+
+`screens[]` / `units[]` の要素ではなく、マニフェスト直下の `strategy` オブジェクトに追加するフィールド。
+
+| フィールド名 | 型 | 必須/任意 | 説明 | 抽出元の想定 |
+|---|---|---|---|---|
+| sourceExternal | boolean | 任意 | `true` の場合、対象コードが別リポジトリにあり本リポジトリから参照できないことを宣言する。`validate-manifest.sh` の検査4（`<source>-実在`）はこの宣言を見て entryFile/sourceFile の実在確認そのものを省略し、PASS 扱いで記録だけを残す。未指定は `false` 相当で、従来どおり実在確認を行う | 原本が別リポジトリに存在し参照できない状態でマニフェストを生成する場合に、生成側が明示的に設定する。無関係でも実在するファイルを出典に書く回避を防ぐための宣言 |
 
 ### screens（画面）
 
@@ -80,6 +95,7 @@ designDocStatus（着手済/未着手）・trigger（画面/バッチ）・direc
 | callers | string[] | 任意 | 呼び出し元画面の screenKey 配列（screens.relatedApis の逆引き） | relatedApis 抽出結果からの機械生成 |
 | targetTables | string[] | 任意 | 読み書きするテーブルの unitKey 配列。空配列は調査済みゼロを表す | エンドポイント実装のクエリ・モデル操作 |
 | ioSummary | string | 任意 | 受け取る入力と返す出力の 1 行要約 | リクエスト/レスポンスの型定義・スキーマ |
+| businessClass | string | 任意 | 業務区分（例: `REST`）。値は種別ごとに自由記述とする。`kind`（endpoint/entrypoint/dispatch-entry/exported-function/middleware/unresolved の技術的な種類）とは別概念であり、混同しない | API 規約・呼出し形態に関する人間判断 |
 
 `build-matrix-data.sh` は、存在する `method` / `targetTables` の値を全 API units で検査する。
 この値検査には `kind: "unresolved"` も含む。
@@ -102,6 +118,7 @@ feature-manifest がない場合、`targetTables` キー欠落と `targetTables:
 | foreignKeys | string[] | 任意 | FK 参照先テーブルの unitKey 配列。空配列 [] は「REFERENCES を走査した結果 FK ゼロ件」という正の観測を意味し、フィールド欠落は「走査自体ができなかった（sourceFile 不在等）」を意味する | マイグレーション・モデルの FK 定義（ER 図生成と同一の抽出元） |
 | columnCount | number | 任意 | カラム数 | マイグレーション・スキーマ定義 |
 | mainColumns | string[] | 任意 | 主要カラム名の配列（PK・業務キー中心に 5 個程度） | 同上 |
+| businessClass | string | 任意 | 業務区分（例: `マスタ` / `トランザクション` / `関連`）。値は種別ごとに自由記述とする。`kind`（table/view/migration/unresolved の技術的な種類。`validate-manifest.sh` 検査4・検査8.5の制御に使う固定小集合）とは別概念であり、混同しない | 命名規約・テーブルの用途に関する人間判断 |
 
 ### batches（バッチ）
 
@@ -111,6 +128,8 @@ feature-manifest がない場合、`targetTables` キー欠落と `targetTables:
 | targetTables | string[] | 任意 | 読み書きするテーブルの unitKey 配列 | バッチ本体のクエリ・モデル操作 |
 | downstreamJobs | string[] | 任意 | 後続ジョブの unitKey 配列（失敗時の影響範囲提示用） | ジョブ依存定義・パイプライン設定 |
 | execMethod | string | 任意 | 手動実行の手順（コマンド例 1 行） | README・運用手順・エントリポイント定義 |
+| triggerConfirmed | boolean | 任意 | 実行契機（`kind`が示す起動方式の裏付けとなる cron 定義・イベント登録等）を人間が確認済みかどうか。`execMethod`（手動実行のコマンド手順）とは別概念であり、契機の確認状況を表す | 設計書・ヒアリングでの人手確認（自動生成する仕組みは無い） |
+| businessClass | string | 任意 | 業務区分（例: `定期` / `手動`）。値は種別ごとに自由記述とする。`kind`（scheduled/triggered/unresolved の技術的な種類）とは別概念であり、混同しない | 運用手順・ジョブの用途に関する人間判断 |
 
 ### reports（帳票）
 
@@ -118,6 +137,7 @@ feature-manifest がない場合、`targetTables` キー欠落と `targetTables:
 |---|---|---|---|---|
 | format | string | 任意 | 出力形式（`PDF` / `CSV` / `Excel` 等） | 帳票生成ライブラリの呼び出し |
 | trigger | string | 任意 | 出力契機。`画面` / `バッチ` の 2 値 | 呼び出し元コードの所在（画面ハンドラかジョブか） |
+| businessClass | string | 任意 | 業務区分（例: `定型` / `随時`）。値は種別ごとに自由記述とする。`kind`（template/generator/unresolved の技術的な種類）とは別概念であり、混同しない | 帳票の運用形態に関する人間判断 |
 
 ### externals（外部連携）
 
@@ -126,6 +146,9 @@ feature-manifest がない場合、`targetTables` キー欠落と `targetTables:
 | direction | string | 任意 | `送信` / `受信` の 2 値 | クライアント実装（送信）か受け口エンドポイント（受信）か |
 | protocol | string | 任意 | 通信方式（`REST` / `SFTP` / `Webhook` 等） | 接続ライブラリ・設定ファイル |
 | authMethod | string | 任意 | 認証方式（`APIキー` / `OAuth2` / `Basic` 等） | 認証ヘッダ組み立て・資格情報設定 |
+| responseTimeout | string | 任意 | 応答待ち時間（例: `30秒` / `5000ms`）。表記単位は種別ごとに自由とする | 接続ライブラリのタイムアウト設定・SDK 初期化オプション |
+| retryCount | number | 任意 | 再試行回数（通信失敗時に自動リトライする回数） | 接続ライブラリのリトライ設定 |
+| businessClass | string | 任意 | 業務区分（例: `API連携` / `ファイル連携`）。値は種別ごとに自由記述とする。`kind`（client/webhook/unresolved の技術的な種類）とは別概念であり、混同しない | 連携方式に関する人間判断 |
 
 ### features（機能・補足）
 
@@ -316,7 +339,7 @@ build-*.sh の実在ファイルは以下の 5 本（`.claude/skills/*/scripts/`
 | build-screen-list.sh | shared/scripts/unit-list/ | 行生成は無改修。任意列はテンプレート内 JS が埋め込みマニフェストから描画する（欠落時は列非表示） |
 | build-feature-list.sh | shared/scripts/unit-list/ | 行生成は無改修。任意列はテンプレート内 JS が埋め込みマニフェストから描画する（欠落時は列非表示） |
 | build-detail-page.sh | shared/scripts/detail-pages/ | 関連エンティティ相互参照を実装済み（フィールド不在時は現行出力と一致） |
-| validate-manifest.sh | shared/scripts/unit-list/ | 追加フィールドの型検査を実装済み（存在する場合のみ検査） |
+| validate-manifest.sh | shared/scripts/unit-list/ | 追加フィールドの型検査を実装済み（存在する場合のみ検査）。table/api/batch/external/report は `kind` の値域検査（検査8.5）も実装済み |
 | build-matrix-pages.sh | shared/scripts/matrix/ | 新設。マトリクス・対応表4ページ + AI設定資産ページの生成（テンプレートへの JSON 埋め込みとメタ置換） |
 
 ## 段階的移行方針

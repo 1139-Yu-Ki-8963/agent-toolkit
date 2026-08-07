@@ -66,3 +66,7 @@ Phase 1（スタック・連携規約の特定）で調査すべき対象と検�
 - `client`: 外部システムへの送信側（API クライアント・SDK 統合・キュー発行）
 - `webhook`: 外部システムからの受信側（webhook ハンドラ・キューコンシューマ）
 - `unresolved`: 連携の形跡はあるが主ファイル・連携先を確定できなかったもの（隔離用）
+
+## businessClass・responseTimeout・retryCount（任意フィールド。1-9・1-19）
+
+`API連携` / `ファイル連携` 等の業務上の分類は、`kind`（上記の技術的な種類）ではなく任意フィールド `businessClass` へ記録する。また、応答待ち時間は `responseTimeout`（string）、再試行回数は `retryCount`（number）へ記録する。スキーマ定義は `shared/references/manifest-schema-extensions.md` の「externals（外部連携）」節を参照する。

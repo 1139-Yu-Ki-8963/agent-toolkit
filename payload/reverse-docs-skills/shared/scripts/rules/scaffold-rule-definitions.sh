@@ -133,6 +133,11 @@ EOF
 
 build_draft_rule_md() {
   local key="$1" title="$2" parent="$3" summary="$4"
+  # enforcement: このスキャフォールドが生成する空雛形は常に none（機械検知しない
+  # 取り決め）として配る。設計（shared/references/規約定義と派生生成の設計.md
+  # 3節）は「## 違反時の手順」節を enforcement: advisory のときのみ必須とし、
+  # none のときは置かないと定める。値をローカル変数に持ち、下の分岐で判定する。
+  local enforcement="none"
   cat <<EOF
 ---
 key: ${key}
@@ -141,7 +146,7 @@ parent: ${parent}
 summary: ${summary}
 scope: always
 globs: ["**/*"]
-enforcement: none
+enforcement: ${enforcement}
 checkable: false
 checker: null
 uncheckableReason: 未記入の雛形のため検査対象がない。規約本文が確定してから検査の要否を判断する。
@@ -167,11 +172,15 @@ ${summary}
 | （未記入） | （未記入） | （未記入） |
 
 記入規則: 各規則行には、対象リポジトリの実装から観測した根拠を添える。実装に現れない規則を発明しない。
-
-## 未記入の理由
-
-（未記入）。この規約は rule-taxonomy.json の宣言から機械生成した雛形であり、対象リポジトリの実態を調査してから記入する。
 EOF
+  if [ "$enforcement" != "none" ]; then
+    cat <<EOF
+
+## 違反時の手順
+
+1. （未記入）
+EOF
+  fi
 }
 
 # ツール側が本文を書いて納品する規約。既存テンプレートの本文（概要・規則表）を
@@ -503,6 +512,70 @@ EOF
     rc=1
   fi
   rm -f "$diff_log"
+
+  # ケース9: enforcement の値ごとに「## 違反時の手順」節の有無が
+  #   テンプレート・生成スクリプト出力・shared/samples/rules の三者で
+  #   設計（規約定義と派生生成の設計.md 3節）どおりに揃っている（節構成の
+  #   三者乖離の再発防止。改善課題1-3）
+  local ok9=1
+
+  # 9a. テンプレート: advisory時の雛形として「違反時の手順」節と、
+  #     enforcement: none に変えた場合の削除注記を両方持つ（Option A）
+  local template_file="${REPO_ROOT}/shared/templates/rules/rule-template.md"
+  if [ ! -f "$template_file" ]; then
+    echo "  [FAIL] ケース9a: テンプレートが見つからない: ${template_file}" >&2
+    ok9=0
+  else
+    if ! grep -q '^## 違反時の手順$' "$template_file"; then
+      echo "  [FAIL] ケース9a: テンプレートに『## 違反時の手順』節が無い" >&2
+      ok9=0
+    fi
+    if ! grep -q 'enforcement: none に変えるならこの節ごと削除する' "$template_file"; then
+      echo "  [FAIL] ケース9a: テンプレートに enforcement: none 時の削除注記が無い" >&2
+      ok9=0
+    fi
+  fi
+
+  # 9b. 生成スクリプト出力: enforcement: none で生成した rule.md（ケース3で
+  #     出力済みの $rule_files）に「違反時の手順」節が混入していない
+  local gen_leak=0 rf9
+  while IFS= read -r rf9; do
+    [ -n "$rf9" ] || continue
+    grep -q '^## 違反時の手順$' "$rf9" && gen_leak=$((gen_leak + 1))
+  done <<EOF
+$rule_files
+EOF
+  if [ "$gen_leak" -ne 0 ]; then
+    echo "  [FAIL] ケース9b: 生成スクリプト出力の enforcement: none rule.md に『違反時の手順』節が ${gen_leak} 件混入" >&2
+    ok9=0
+  fi
+
+  # 9c. サンプル: shared/samples/rules 配下の全rule.mdで、enforcement の値と
+  #     「違反時の手順」節の有無が一致する
+  local sample_files sf9 sf9_enf sf9_has
+  sample_files="$(find "${REPO_ROOT}/shared/samples/rules" -type f -name 'rule.md' 2>/dev/null | sort)"
+  while IFS= read -r sf9; do
+    [ -n "$sf9" ] || continue
+    sf9_enf="$(sed -n 's/^enforcement: //p' "$sf9" | head -1)"
+    sf9_has=0
+    grep -q '^## 違反時の手順$' "$sf9" && sf9_has=1
+    if [ "$sf9_enf" = "none" ] && [ "$sf9_has" -eq 1 ]; then
+      echo "  [FAIL] ケース9c: ${sf9} は enforcement: none だが『違反時の手順』節がある" >&2
+      ok9=0
+    fi
+    if [ "$sf9_enf" = "advisory" ] && [ "$sf9_has" -eq 0 ]; then
+      echo "  [FAIL] ケース9c: ${sf9} は enforcement: advisory だが『違反時の手順』節が無い" >&2
+      ok9=0
+    fi
+  done <<EOF
+$sample_files
+EOF
+
+  if [ "$ok9" -eq 1 ]; then
+    echo "  [PASS] ケース9: enforcement の値ごとに『違反時の手順』節の有無がテンプレート・生成出力・サンプルで一致する"
+  else
+    rc=1
+  fi
 
   rm -rf "$out1" "$out2"
 

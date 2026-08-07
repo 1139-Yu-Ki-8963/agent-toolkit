@@ -63,3 +63,7 @@ Phase 1（スタック・帳票規約の特定）で調査すべき対象と検�
 | `template` | テンプレートファイルが帳票の主体（Jasper/BIRT/Crystal 等の定義ファイル、HTML テンプレート等） |
 | `generator` | 生成コードが帳票の主体（pdfkit/ExcelJS 等でコードから直接組み立てる方式） |
 | `unresolved` | 帳票の存在は確認できたが主ファイルを解決できなかったもの（隔離用） |
+
+## businessClass（業務区分。任意フィールド。1-9）
+
+`定型` / `随時` 等の業務上の分類は、`kind`（上表の技術的な種類）ではなく任意フィールド `businessClass` へ記録する。スキーマ定義は `shared/references/manifest-schema-extensions.md` の「reports（帳票）」節を参照する。

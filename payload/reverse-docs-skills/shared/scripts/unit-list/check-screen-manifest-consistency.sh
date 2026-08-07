@@ -158,7 +158,7 @@ html_specs=(
   "マトリクス・対応表/権限画面マトリクス/権限画面マトリクス.html|matrix-manifest"
   "マトリクス・対応表/権限機能マトリクス/権限機能マトリクス.html|matrix-manifest"
   "マトリクス・対応表/CRUD図/CRUD図.html|matrix-manifest"
-  "マトリクス・対応表/追跡可能性/追跡可能性.html|matrix-manifest"
+  "マトリクス・対応表/画面-API-テーブル対応表/画面-API-テーブル対応表.html|matrix-manifest"
 )
 for spec in "${html_specs[@]}"; do
   rel="${spec%%|*}"; id="${spec#*|}"; html="$root/$rel"

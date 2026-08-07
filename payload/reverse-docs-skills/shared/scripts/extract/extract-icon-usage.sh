@@ -213,7 +213,14 @@ if [ ! -d "$SOURCE_DIR" ]; then
 fi
 
 TMP_DIR="$(mktemp -d)"
-trap 'rm -rf "$TMP_DIR"' EXIT
+
+# --- 非UTF-8原本の走査対応(改善課題1-131): detect-encoding.sh の走査ヘルパーを読み込む ---
+_EXTRACT_ICON_USAGE_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=../detect-encoding.sh
+source "$_EXTRACT_ICON_USAGE_SCRIPT_DIR/../detect-encoding.sh"
+SCAN_WORKDIR="$(mktemp -d "${TMPDIR:-/tmp}/extract-icon-usage-scan.XXXXXX")"
+
+trap 'rm -rf "$TMP_DIR" "$SCAN_WORKDIR"' EXIT
 
 RAW_HITS="$TMP_DIR/raw-hits.tsv"
 : > "$RAW_HITS"
@@ -223,59 +230,65 @@ RAW_HITS="$TMP_DIR/raw-hits.tsv"
 #    アイコン名(タグ内テキスト、または class 指定直後のトークン)を抽出する
 # ---------------------------------------------------------------------------
 extract_material_icons() {
-  # ディレクトリ横断の再帰走査は1ファイルずつのUTF-8変換を適用できないため、
-  # LC_ALL=C でバイト単位走査にし、非UTF-8原本でも「不正なマルチバイト列」警告と
-  # 誤ったバイナリ判定を避ける(改善課題1-131。抽出対象パターンはASCIIのためバイト一致で足りる)。
-  { LC_ALL=C grep -rnE 'material-symbols-outlined|material-icons' \
-    --include='*.tsx' --include='*.ts' --include='*.jsx' --include='*.js' --include='*.html' \
-    "$SOURCE_DIR" 2>/dev/null || true; } | while IFS=: read -r file line content; do
-    # タグ内テキスト: <span class="material-symbols-outlined">home</span> 等
-    # content は非UTF-8原本の行をLC_ALL=Cで拾ったバイト列のため、後段のgrepも
-    # LC_ALL=Cで統一し「不正なマルチバイト列」による不一致・警告を避ける(改善課題1-131)。
-    name="$(printf '%s' "$content" | LC_ALL=C grep -oE '(material-symbols-outlined|material-icons)[^>]*>[[:space:]]*[A-Za-z0-9_]+' \
-      | LC_ALL=C grep -oE '[A-Za-z0-9_]+$' | head -1 || true)"
-    if [ -n "$name" ]; then
-      printf '%s\t%s\t%s\tmaterial\n' "$name" "$file" "$line" >> "$RAW_HITS"
-    fi
-  done
+  # 非UTF-8原本の走査対応(改善課題1-131): ファイルを1つずつ列挙し、to_utf8_for_scanで
+  # UTF-8化した一時コピーに対して走査する。file自体はRAW_HITSへの記録用パスのため変更しない。
+  local file scan_file line content name
+  while IFS= read -r -d '' file; do
+    scan_file="$(to_utf8_for_scan "$file" "$SCAN_WORKDIR")"
+    while IFS=: read -r line content; do
+      [ -z "$line" ] && continue
+      # タグ内テキスト: <span class="material-symbols-outlined">home</span> 等
+      name="$(printf '%s' "$content" | grep -oE '(material-symbols-outlined|material-icons)[^>]*>[[:space:]]*[A-Za-z0-9_]+' \
+        | grep -oE '[A-Za-z0-9_]+$' | head -1 || true)"
+      if [ -n "$name" ]; then
+        printf '%s\t%s\t%s\tmaterial\n' "$name" "$file" "$line" >> "$RAW_HITS"
+      fi
+    done < <(grep -nE 'material-symbols-outlined|material-icons' "$scan_file" 2>/dev/null || true)
+  done < <(find "$SOURCE_DIR" \
+    \( -name '*.tsx' -o -name '*.ts' -o -name '*.jsx' -o -name '*.js' -o -name '*.html' \) \
+    -type f -print0 2>/dev/null)
 }
 
 # ---------------------------------------------------------------------------
 # b. SVG import: import X from '....svg' のファイル名(拡張子込み)を抽出する
 # ---------------------------------------------------------------------------
 extract_svg_imports() {
-  # ディレクトリ横断の再帰走査は1ファイルずつのUTF-8変換を適用できないため、
-  # LC_ALL=C でバイト単位走査にし、非UTF-8原本でも「不正なマルチバイト列」警告と
-  # 誤ったバイナリ判定を避ける(改善課題1-131。抽出対象パターンはASCIIのためバイト一致で足りる)。
-  { LC_ALL=C grep -rnE "import.*from.*\.svg" \
-    --include='*.tsx' --include='*.ts' --include='*.jsx' --include='*.js' \
-    "$SOURCE_DIR" 2>/dev/null || true; } | while IFS=: read -r file line content; do
-    # content は非UTF-8原本の行をLC_ALL=Cで拾ったバイト列のため、後段のgrepも
-    # LC_ALL=Cで統一し「不正なマルチバイト列」による不一致・警告を避ける(改善課題1-131)。
-    name="$(printf '%s' "$content" | LC_ALL=C grep -oE "[A-Za-z0-9_.-]+\.svg" | head -1 || true)"
-    if [ -n "$name" ]; then
-      printf '%s\t%s\t%s\tsvg\n' "$name" "$file" "$line" >> "$RAW_HITS"
-    fi
-  done
+  # 非UTF-8原本の走査対応(改善課題1-131): ファイルを1つずつ列挙し、to_utf8_for_scanで
+  # UTF-8化した一時コピーに対して走査する。file自体はRAW_HITSへの記録用パスのため変更しない。
+  local file scan_file line content name
+  while IFS= read -r -d '' file; do
+    scan_file="$(to_utf8_for_scan "$file" "$SCAN_WORKDIR")"
+    while IFS=: read -r line content; do
+      [ -z "$line" ] && continue
+      name="$(printf '%s' "$content" | grep -oE "[A-Za-z0-9_.-]+\.svg" | head -1 || true)"
+      if [ -n "$name" ]; then
+        printf '%s\t%s\t%s\tsvg\n' "$name" "$file" "$line" >> "$RAW_HITS"
+      fi
+    done < <(grep -nE "import.*from.*\.svg" "$scan_file" 2>/dev/null || true)
+  done < <(find "$SOURCE_DIR" \
+    \( -name '*.tsx' -o -name '*.ts' -o -name '*.jsx' -o -name '*.js' \) \
+    -type f -print0 2>/dev/null)
 }
 
 # ---------------------------------------------------------------------------
 # c. React icons: <Lucide*/<Hero*/<FontAwesome* のコンポーネント名を抽出する
 # ---------------------------------------------------------------------------
 extract_react_icons() {
-  # ディレクトリ横断の再帰走査は1ファイルずつのUTF-8変換を適用できないため、
-  # LC_ALL=C でバイト単位走査にし、非UTF-8原本でも「不正なマルチバイト列」警告と
-  # 誤ったバイナリ判定を避ける(改善課題1-131。抽出対象パターンはASCIIのためバイト一致で足りる)。
-  { LC_ALL=C grep -rnE '<(Lucide|Hero|FontAwesome)[A-Za-z0-9_]+' \
-    --include='*.tsx' --include='*.ts' --include='*.jsx' --include='*.js' \
-    "$SOURCE_DIR" 2>/dev/null || true; } | while IFS=: read -r file line content; do
-    # content は非UTF-8原本の行をLC_ALL=Cで拾ったバイト列のため、後段のgrepも
-    # LC_ALL=Cで統一し「不正なマルチバイト列」による不一致・警告を避ける(改善課題1-131)。
-    name="$(printf '%s' "$content" | LC_ALL=C grep -oE '<(Lucide|Hero|FontAwesome)[A-Za-z0-9_]+' | head -1 | sed 's/^<//' || true)"
-    if [ -n "$name" ]; then
-      printf '%s\t%s\t%s\treact-icons\n' "$name" "$file" "$line" >> "$RAW_HITS"
-    fi
-  done
+  # 非UTF-8原本の走査対応(改善課題1-131): ファイルを1つずつ列挙し、to_utf8_for_scanで
+  # UTF-8化した一時コピーに対して走査する。file自体はRAW_HITSへの記録用パスのため変更しない。
+  local file scan_file line content name
+  while IFS= read -r -d '' file; do
+    scan_file="$(to_utf8_for_scan "$file" "$SCAN_WORKDIR")"
+    while IFS=: read -r line content; do
+      [ -z "$line" ] && continue
+      name="$(printf '%s' "$content" | grep -oE '<(Lucide|Hero|FontAwesome)[A-Za-z0-9_]+' | head -1 | sed 's/^<//' || true)"
+      if [ -n "$name" ]; then
+        printf '%s\t%s\t%s\treact-icons\n' "$name" "$file" "$line" >> "$RAW_HITS"
+      fi
+    done < <(grep -nE '<(Lucide|Hero|FontAwesome)[A-Za-z0-9_]+' "$scan_file" 2>/dev/null || true)
+  done < <(find "$SOURCE_DIR" \
+    \( -name '*.tsx' -o -name '*.ts' -o -name '*.jsx' -o -name '*.js' \) \
+    -type f -print0 2>/dev/null)
 }
 
 extract_material_icons

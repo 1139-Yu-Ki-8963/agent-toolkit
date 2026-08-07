@@ -65,6 +65,8 @@ allowed-tools: [Bash, Read, Write]
 
 - **Step 2** — `summary.totalIcons`・`summary.totalUsages`・`summary.bySource` を確認する。完了条件: 抽出結果を確認済み
 
+**非UTF-8原本への対応**: 原本が UTF-8 以外のエンコーディングで書かれている場合、通常の文字列検索はバイナリ扱いとなりマッチ 0 件を返す。走査の前に `shared/scripts/detect-encoding.sh encoding <file>` でエンコーディングを確定し、UTF-8 以外なら `detect-encoding.sh to-utf8` で変換した一時コピーに対して走査する。変換結果は永続化せず一時コピーで足りる。マッチ 0 件を「該当なし」と結論する前に、エンコーディングが原因でないことを確認する。
+
 page-data.json の保存先は `$CLAUDE_JOB_DIR/tmp/icon-catalog-page-data.json` とする。未設定時は `${TMPDIR:-/tmp}/claude-job-${session}/tmp/` 配下に置く。
 
 **完了**: アイコン参照が抽出済み、抽出結果（総数・使用回数・参照元内訳）を確認済み
@@ -138,7 +140,7 @@ page-data.json の保存先は `$CLAUDE_JOB_DIR/tmp/icon-catalog-page-data.json`
 ## 予想を裏切る挙動
 
 - 抽出対象は Material Icons（`material-symbols-outlined`/`material-icons` タグ内）・SVG import（`.svg` ファイル名込み）・React icons コンポーネント（`<Lucide*`/`<Hero*`/`<FontAwesome*`）の 3 パターンに固定される。これ以外の独自アイコン参照方式（CSS `background-image` 等）は抽出対象外であり、0 件でも異常ではない
-- grep 該当が 0 件の場合もエラーにせず `icons:[]` で正常終了する（fail-safe）。ただし本スキルの Phase 1 は事前に存在確認を行うため、Phase 2 到達後の 0 件は想定外の乖離として扱い、Phase 1 の判定条件を見直す
+- grep 該当が 0 件の場合もエラーにせず `icons:[]` で正常終了する（fail-safe）。ただし本スキルの Phase 1 は事前に存在確認を行うため、Phase 2 到達後の 0 件は想定外の乖離として扱い、Phase 1 の判定条件を見直す。走査結果が 0 件のときは、対象が存在しないのか走査できていないのかを区別して確認する（上記「非UTF-8原本への対応」）
 
 ## 完了報告
 

@@ -719,9 +719,9 @@ a.pt-brand-list-item:hover { background: var(--panel3); color: var(--text); text
   <div class="pt-brand">
     <div class="pt-brand-stamp">DESIGN PORTAL</div>
     <div class="pt-brand-switch" id="pt-brand-switch">
-      <div class="pt-brand-name">sample-project</div>
+      <div class="pt-brand-name"></div>
     </div>
-    <div class="pt-brand-sub">設計台帳 · 全51資料</div>
+    <div class="pt-brand-sub">設計台帳 · 全59資料</div>
   </div>
   <nav class="pt-nav" id="pt-nav" aria-label="資料カテゴリ"></nav>
   
@@ -731,7 +731,7 @@ a.pt-brand-list-item:hover { background: var(--panel3); color: var(--text); text
   <div class="pt-sidebar-meta">更新 <span id="pt-sidebar-date">2026-07-30T00:00:00Z</span><span id="pt-meta-commit"><br>コミット </span></div>
 </aside>
 <div class="pt-sidebar-scrim" id="pt-sidebar-scrim" hidden></div>
-<script type="application/json" id="pt-nav-data">[{"key":"project","num":"01","label":"基盤情報","count":5},{"key":"standards","num":"02","label":"規約","count":20},{"key":"design","num":"03","label":"設計書","count":5},{"key":"list","num":"04","label":"一覧・設計図","count":13},{"key":"cross","num":"05","label":"マトリクス・対応表","count":4},{"key":"ai","num":"06","label":"AI設定資産","count":1},{"key":"design-tools","num":"07","label":"デザイン","count":3}]</script>
+<script type="application/json" id="pt-nav-data">[{"key":"project","num":"01","label":"基盤情報","count":4},{"key":"standards","num":"02","label":"規約","count":27},{"key":"design","num":"03","label":"設計書","count":5},{"key":"list","num":"04","label":"一覧・設計図","count":14},{"key":"cross","num":"05","label":"マトリクス・対応表","count":5},{"key":"ai","num":"06","label":"AI設定資産","count":1},{"key":"design-tools","num":"07","label":"デザイン","count":3}]</script>
 <script type="application/json" id="pt-sites-data">[]</script>
 <script>
 (function () {
@@ -986,43 +986,43 @@ a.pt-brand-list-item:hover { background: var(--panel3); color: var(--text); text
             <tr data-unit-id="batch-cleanup" data-unit-key="cleanup">
 <td>データクリーンアップ</td>
 <td><code>cleanup_job</code></td>
-<td><span class="badge kind-generic">定期</span></td>
+<td><span class="badge kind-generic">scheduled</span></td>
 </tr><tr data-unit-id="batch-daily-report" data-unit-key="daily-report">
 <td>日次レポート生成</td>
 <td><code>daily_report</code></td>
-<td><span class="badge kind-generic">定期</span></td>
+<td><span class="badge kind-generic">scheduled</span></td>
 </tr><tr data-unit-id="batch-weekly-digest" data-unit-key="weekly-digest">
 <td>週次ダイジェスト送信</td>
 <td><code>weekly_digest</code></td>
-<td><span class="badge kind-generic">定期</span></td>
+<td><span class="badge kind-generic">scheduled</span></td>
 </tr><tr data-unit-id="batch-session-cleanup" data-unit-key="session-cleanup">
 <td>期限切れセッション削除</td>
 <td><code>session_cleanup</code></td>
-<td><span class="badge kind-generic">定期</span></td>
+<td><span class="badge kind-generic">scheduled</span></td>
 </tr><tr data-unit-id="batch-notification-send" data-unit-key="notification-send">
 <td>通知一括送信</td>
 <td><code>notification_batch_send</code></td>
-<td><span class="badge kind-generic">定期</span></td>
+<td><span class="badge kind-generic">scheduled</span></td>
 </tr><tr data-unit-id="batch-data-export" data-unit-key="data-export">
 <td>データエクスポート</td>
 <td><code>data_export</code></td>
-<td><span class="badge kind-generic">手動</span></td>
+<td><span class="badge kind-generic">triggered</span></td>
 </tr><tr data-unit-id="batch-backup" data-unit-key="db-backup">
 <td>データベースバックアップ</td>
 <td><code>db_backup</code></td>
-<td><span class="badge kind-generic">定期</span></td>
+<td><span class="badge kind-generic">scheduled</span></td>
 </tr><tr data-unit-id="batch-sync-external" data-unit-key="sync-external">
 <td>外部データ同期</td>
 <td><code>sync_external_data</code></td>
-<td><span class="badge kind-generic">手動</span></td>
+<td><span class="badge kind-generic">triggered</span></td>
 </tr><tr data-unit-id="batch-cache-warmup" data-unit-key="cache-warmup">
 <td>キャッシュウォームアップ</td>
 <td><code>cache_warmup</code></td>
-<td><span class="badge kind-generic">定期</span></td>
+<td><span class="badge kind-generic">scheduled</span></td>
 </tr><tr data-unit-id="batch-audit-archive" data-unit-key="audit-archive">
 <td>監査ログアーカイブ</td>
 <td><code>audit_log_archive</code></td>
-<td><span class="badge kind-generic">定期</span></td>
+<td><span class="badge kind-generic">scheduled</span></td>
 </tr>
           </tbody>
         </table>
@@ -1046,16 +1046,16 @@ a.pt-brand-list-item:hover { background: var(--panel3); color: var(--text); text
       </div>
 
       <script type="application/json" id="unit-manifest">
-{"generatedAt":"2026-07-30T00:00:00Z","sourceDir":"shared/samples/一覧/バッチ一覧/fixtures","unitKind":"batch","strategy":{"extractionMethod":"static-analysis","approvedByUser":true,"unitIdRegex":null},"detectionSummary":{"unitCount":10,"unresolvedCount":0},"units":[{"unitId":"batch-cleanup","unitKey":"cleanup","kind":"定期","unitNameGuess":"データクリーンアップ","identifier":"cleanup_job","detectionMethod":"cron-config","confidence":"HIGH","fileCount":2,"sourceFile":"src/jobs/cleanup.py","schedule":{"cron":"0 4 * * *","readable":"毎日 4:00"},"targetTables":["sessions","files"],"downstreamJobs":[],"execMethod":"python -m jobs.cleanup"},{"unitId":"batch-daily-report","unitKey":"daily-report","kind":"定期","unitNameGuess":"日次レポート生成","identifier":"daily_report","detectionMethod":"cron-config","confidence":"HIGH","fileCount":3,"sourceFile":"src/jobs/daily_report.py","schedule":{"cron":"0 6 * * *","readable":"毎日 6:00"},"targetTables":["posts","users","audit-logs"],"downstreamJobs":["weekly-digest"],"execMethod":"python -m jobs.daily_report"},{"unitId":"batch-weekly-digest","unitKey":"weekly-digest","kind":"定期","unitNameGuess":"週次ダイジェスト送信","identifier":"weekly_digest","detectionMethod":"cron-config","confidence":"HIGH","fileCount":2,"sourceFile":"src/jobs/weekly_digest.py","schedule":{"cron":"0 7 * * 1","readable":"毎週月曜 7:00"},"targetTables":["posts","notifications"],"downstreamJobs":[],"execMethod":"python -m jobs.weekly_digest"},{"unitId":"batch-session-cleanup","unitKey":"session-cleanup","kind":"定期","unitNameGuess":"期限切れセッション削除","identifier":"session_cleanup","detectionMethod":"cron-config","confidence":"HIGH","fileCount":1,"sourceFile":"src/jobs/session_cleanup.py","schedule":{"cron":"*/30 * * * *","readable":"30分ごと"},"targetTables":["sessions"],"downstreamJobs":[],"execMethod":"python -m jobs.session_cleanup"},{"unitId":"batch-notification-send","unitKey":"notification-send","kind":"定期","unitNameGuess":"通知一括送信","identifier":"notification_batch_send","detectionMethod":"cron-config","confidence":"HIGH","fileCount":3,"sourceFile":"src/jobs/notification_send.py","schedule":{"cron":"*/5 * * * *","readable":"5分ごと"},"targetTables":["notifications","users"],"downstreamJobs":[],"execMethod":"python -m jobs.notification_send"},{"unitId":"batch-data-export","unitKey":"data-export","kind":"手動","unitNameGuess":"データエクスポート","identifier":"data_export","detectionMethod":"script","confidence":"MEDIUM","fileCount":4,"sourceFile":"src/jobs/data_export.py","targetTables":["users","posts","comments"],"downstreamJobs":[],"execMethod":"python -m jobs.data_export --format csv"},{"unitId":"batch-backup","unitKey":"db-backup","kind":"定期","unitNameGuess":"データベースバックアップ","identifier":"db_backup","detectionMethod":"cron-config","confidence":"HIGH","fileCount":2,"sourceFile":"src/jobs/db_backup.py","schedule":{"cron":"0 2 * * *","readable":"毎日 2:00"},"targetTables":["users","posts","audit-logs"],"downstreamJobs":["audit-archive"],"execMethod":"python -m jobs.db_backup"},{"unitId":"batch-sync-external","unitKey":"sync-external","kind":"手動","unitNameGuess":"外部データ同期","identifier":"sync_external_data","detectionMethod":"script","confidence":"MEDIUM","fileCount":2,"sourceFile":"src/jobs/sync_external.py","targetTables":["users","organizations"],"downstreamJobs":[],"execMethod":"python -m jobs.sync_external --source crm"},{"unitId":"batch-cache-warmup","unitKey":"cache-warmup","kind":"定期","unitNameGuess":"キャッシュウォームアップ","identifier":"cache_warmup","detectionMethod":"cron-config","confidence":"HIGH","fileCount":1,"sourceFile":"src/jobs/cache_warmup.py","schedule":{"cron":"0 5 * * *","readable":"毎日 5:00"},"targetTables":["posts","categories"],"downstreamJobs":[],"execMethod":"python -m jobs.cache_warmup"},{"unitId":"batch-audit-archive","unitKey":"audit-archive","kind":"定期","unitNameGuess":"監査ログアーカイブ","identifier":"audit_log_archive","detectionMethod":"cron-config","confidence":"HIGH","fileCount":2,"sourceFile":"src/jobs/audit_archive.py","schedule":{"cron":"0 3 1 * *","readable":"毎月1日 3:00"},"targetTables":["audit-logs"],"downstreamJobs":[],"execMethod":"python -m jobs.audit_archive"}]}
+{"generatedAt":"2026-07-30T00:00:00Z","sourceDir":"shared/samples/一覧/バッチ一覧/fixtures","unitKind":"batch","strategy":{"extractionMethod":"static-analysis","approvedByUser":true,"unitIdRegex":null},"detectionSummary":{"unitCount":10,"unresolvedCount":0},"units":[{"unitId":"batch-cleanup","unitKey":"cleanup","kind":"scheduled","unitNameGuess":"データクリーンアップ","identifier":"cleanup_job","detectionMethod":"cron-config","confidence":"HIGH","fileCount":2,"sourceFile":"src/jobs/cleanup.py","schedule":{"cron":"0 4 * * *","readable":"毎日 4:00"},"targetTables":["sessions","files"],"downstreamJobs":[],"execMethod":"python -m jobs.cleanup","businessClass":"定期"},{"unitId":"batch-daily-report","unitKey":"daily-report","kind":"scheduled","unitNameGuess":"日次レポート生成","identifier":"daily_report","detectionMethod":"cron-config","confidence":"HIGH","fileCount":3,"sourceFile":"src/jobs/daily_report.py","schedule":{"cron":"0 6 * * *","readable":"毎日 6:00"},"targetTables":["posts","users","audit-logs"],"downstreamJobs":["weekly-digest"],"execMethod":"python -m jobs.daily_report","businessClass":"定期"},{"unitId":"batch-weekly-digest","unitKey":"weekly-digest","kind":"scheduled","unitNameGuess":"週次ダイジェスト送信","identifier":"weekly_digest","detectionMethod":"cron-config","confidence":"HIGH","fileCount":2,"sourceFile":"src/jobs/weekly_digest.py","schedule":{"cron":"0 7 * * 1","readable":"毎週月曜 7:00"},"targetTables":["posts","notifications"],"downstreamJobs":[],"execMethod":"python -m jobs.weekly_digest","businessClass":"定期"},{"unitId":"batch-session-cleanup","unitKey":"session-cleanup","kind":"scheduled","unitNameGuess":"期限切れセッション削除","identifier":"session_cleanup","detectionMethod":"cron-config","confidence":"HIGH","fileCount":1,"sourceFile":"src/jobs/session_cleanup.py","schedule":{"cron":"*/30 * * * *","readable":"30分ごと"},"targetTables":["sessions"],"downstreamJobs":[],"execMethod":"python -m jobs.session_cleanup","businessClass":"定期"},{"unitId":"batch-notification-send","unitKey":"notification-send","kind":"scheduled","unitNameGuess":"通知一括送信","identifier":"notification_batch_send","detectionMethod":"cron-config","confidence":"HIGH","fileCount":3,"sourceFile":"src/jobs/notification_send.py","schedule":{"cron":"*/5 * * * *","readable":"5分ごと"},"targetTables":["notifications","users"],"downstreamJobs":[],"execMethod":"python -m jobs.notification_send","businessClass":"定期"},{"unitId":"batch-data-export","unitKey":"data-export","kind":"triggered","unitNameGuess":"データエクスポート","identifier":"data_export","detectionMethod":"script","confidence":"MEDIUM","fileCount":4,"sourceFile":"src/jobs/data_export.py","targetTables":["users","posts","comments"],"downstreamJobs":[],"execMethod":"python -m jobs.data_export --format csv","businessClass":"手動"},{"unitId":"batch-backup","unitKey":"db-backup","kind":"scheduled","unitNameGuess":"データベースバックアップ","identifier":"db_backup","detectionMethod":"cron-config","confidence":"HIGH","fileCount":2,"sourceFile":"src/jobs/db_backup.py","schedule":{"cron":"0 2 * * *","readable":"毎日 2:00"},"targetTables":["users","posts","audit-logs"],"downstreamJobs":["audit-archive"],"execMethod":"python -m jobs.db_backup","businessClass":"定期"},{"unitId":"batch-sync-external","unitKey":"sync-external","kind":"triggered","unitNameGuess":"外部データ同期","identifier":"sync_external_data","detectionMethod":"script","confidence":"MEDIUM","fileCount":2,"sourceFile":"src/jobs/sync_external.py","targetTables":["users","organizations"],"downstreamJobs":[],"execMethod":"python -m jobs.sync_external --source crm","businessClass":"手動"},{"unitId":"batch-cache-warmup","unitKey":"cache-warmup","kind":"scheduled","unitNameGuess":"キャッシュウォームアップ","identifier":"cache_warmup","detectionMethod":"cron-config","confidence":"HIGH","fileCount":1,"sourceFile":"src/jobs/cache_warmup.py","schedule":{"cron":"0 5 * * *","readable":"毎日 5:00"},"targetTables":["posts","categories"],"downstreamJobs":[],"execMethod":"python -m jobs.cache_warmup","businessClass":"定期"},{"unitId":"batch-audit-archive","unitKey":"audit-archive","kind":"scheduled","unitNameGuess":"監査ログアーカイブ","identifier":"audit_log_archive","detectionMethod":"cron-config","confidence":"HIGH","fileCount":2,"sourceFile":"src/jobs/audit_archive.py","schedule":{"cron":"0 3 1 * *","readable":"毎月1日 3:00"},"targetTables":["audit-logs"],"downstreamJobs":[],"execMethod":"python -m jobs.audit_archive","businessClass":"定期"}]}
       </script>
       <script type="application/json" id="column-spec">
-{"specVersion":1,"axes":[],"columns":[{"key":"schedule","label":"スケジュール","appliesTo":["batch"],"order":10},{"key":"targetTables","label":"対象テーブル","appliesTo":["batch"],"order":20},{"key":"downstreamJobs","label":"後続ジョブ","appliesTo":["batch"],"order":30},{"key":"execMethod","label":"実行方法","appliesTo":["batch"],"order":40}]}
+{"specVersion":1,"axes":[],"columns":[{"key":"schedule","label":"スケジュール","appliesTo":["batch"],"order":10},{"key":"targetTables","label":"対象テーブル","appliesTo":["batch"],"order":20},{"key":"downstreamJobs","label":"後続ジョブ","appliesTo":["batch"],"order":30},{"key":"execMethod","label":"実行方法","appliesTo":["batch"],"order":40},{"key":"triggerConfirmed","label":"契機確認","appliesTo":["batch"],"order":50,"trueLabel":"確認済み","falseLabel":"未確認"},{"key":"businessClass","label":"業務区分","appliesTo":["table","api","batch","external","report"],"order":100}]}
       </script>
     </main>
   </div>
   <footer class="pt-footer">
   <span class="pt-footer-stamp">REVERSE-DOCS REGISTER</span>
-  <span class="pt-footer-meta">sample-project · 更新 <span id="pt-footer-date">2026-07-30T00:00:00Z</span><span id="pt-footer-commit"> · コミット </span></span>
+  <span class="pt-footer-meta"> · 更新 <span id="pt-footer-date">2026-07-30T00:00:00Z</span><span id="pt-footer-commit"> · コミット </span></span>
   <span class="pt-footer-gen">生成: shared/scripts/unit-list/build-unit-list.sh</span>
 </footer>
 </div>

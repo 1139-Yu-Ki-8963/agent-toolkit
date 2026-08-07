@@ -1,6 +1,6 @@
 ---
 name: generating-cross-views-for-reverse-docs
-description: "マトリクス・対応表とAI設定資産ページをmanifest群から機械生成する。 TRIGGER when: マトリクス・対応表生成、権限マトリクス作成、CRUD図作成、追跡可能性ページ作成、AI設定資産ページ作成。 SKIP: 画面/API/テーブル/機能一覧自体の作成（→各対応する一覧生成スキル）、往復検証/同期/実装。"
+description: "マトリクス・対応表とAI設定資産ページをmanifest群から機械生成する。 TRIGGER when: マトリクス・対応表生成、権限マトリクス作成、CRUD図作成、画面-API-テーブル対応表ページ作成、AI設定資産ページ作成。 SKIP: 画面/API/テーブル/機能一覧自体の作成（→各対応する一覧生成スキル）、往復検証/同期/実装。"
 invocation: generating-cross-views-for-reverse-docs
 type: transform
 allowed-tools: [Bash, Read, Write]
@@ -8,7 +8,7 @@ allowed-tools: [Bash, Read, Write]
 
 # マトリクス・対応表生成スキル
 
-工程全体は orchestrating-reverse-docs-flow が案内する。本スキルはポータルの「マトリクス・対応表」カテゴリ4ページ（権限画面マトリクス・権限機能マトリクス・CRUD図・追跡可能性）と「AI設定資産」カテゴリ1ページの、あわせて5ページを担い、単独起動できる（起動引数を渡せば動く）。
+工程全体は orchestrating-reverse-docs-flow が案内する。本スキルはポータルの「マトリクス・対応表」カテゴリ4ページ（権限画面マトリクス・権限機能マトリクス・CRUD図・画面-API-テーブル対応表）と「AI設定資産」カテゴリ1ページの、あわせて5ページを担い、単独起動できる（起動引数を渡せば動く）。
 
 既に確立済みの種別別一覧（画面一覧・API一覧・テーブル一覧・機能一覧）の manifest を突き合わせ、権限・CRUD・画面-API-テーブルの連鎖関係を導出する。**本スキルはソースコードを新規に読み解いて画面・API・テーブルを検出する一覧生成の役割は持たない**。既存 manifest の再構成と、対象リポジトリの `.claude/` 配下（AI設定資産のみ）の走査に限定する。
 
@@ -25,7 +25,7 @@ allowed-tools: [Bash, Read, Write]
 | permission-screen | `<output_dir>/マトリクス・対応表/権限画面マトリクス/権限画面マトリクス.html` |
 | permission-function | `<output_dir>/マトリクス・対応表/権限機能マトリクス/権限機能マトリクス.html` |
 | crud | `<output_dir>/マトリクス・対応表/CRUD図/CRUD図.html` |
-| traceability | `<output_dir>/マトリクス・対応表/追跡可能性/追跡可能性.html` |
+| traceability | `<output_dir>/マトリクス・対応表/画面-API-テーブル対応表/画面-API-テーブル対応表.html` |
 | ai-assets | `<output_dir>/AI設定資産/AI設定資産.html` |
 
 `build-portal.sh` はこの5パスの実在有無だけでカードを出す（不在時はセクション自体が非表示になる fail-safe）。パスをこの表からずらすとカードが無言で出ない事故になるため厳守する。
@@ -123,6 +123,8 @@ allowed-tools: [Bash, Read, Write]
   ../../../shared/scripts/extract/extract-ai-assets.sh <target_repo_path> ai-assets-data.json
   ```
 
+**非UTF-8原本への対応**: 原本が UTF-8 以外のエンコーディングで書かれている場合、通常の文字列検索はバイナリ扱いとなりマッチ 0 件を返す。走査の前に `shared/scripts/detect-encoding.sh encoding <file>` でエンコーディングを確定し、UTF-8 以外なら `detect-encoding.sh to-utf8` で変換した一時コピーに対して走査する。変換結果は永続化せず一時コピーで足りる。マッチ 0 件を「該当なし」と結論する前に、エンコーディングが原因でないことを確認する。
+
 **完了**: `ai-assets-data.json` が生成済み
 
 ## Phase 4: ページHTML生成
@@ -136,7 +138,7 @@ allowed-tools: [Bash, Read, Write]
   ```bash
   ../../../shared/scripts/matrix/build-matrix-pages.sh permission-screen permission-matrix.json "<output_dir>/マトリクス・対応表/権限画面マトリクス/権限画面マトリクス.html"
   ../../../shared/scripts/matrix/build-matrix-pages.sh crud crud-matrix.json "<output_dir>/マトリクス・対応表/CRUD図/CRUD図.html"
-  ../../../shared/scripts/matrix/build-matrix-pages.sh traceability traceability.json "<output_dir>/マトリクス・対応表/追跡可能性/追跡可能性.html"
+  ../../../shared/scripts/matrix/build-matrix-pages.sh traceability traceability.json "<output_dir>/マトリクス・対応表/画面-API-テーブル対応表/画面-API-テーブル対応表.html"
   ../../../shared/scripts/matrix/build-matrix-pages.sh ai-assets ai-assets-data.json "<output_dir>/AI設定資産/AI設定資産.html"
   ```
 
@@ -196,6 +198,7 @@ allowed-tools: [Bash, Read, Write]
 - **permission-functionのデータ形状ギャップは変換器で閉じる**。roles文字列は`{key,name}`へ、features[].unitKeyはfunctionKey/functionNameへ写像し、categoryは空文字列、CRUDは`CRU-`形式へ正規化する。推測値を追加せず、重複・型不正・CRUD外文字を拒否する
 - feature-manifest（機能一覧）は任意入力であり、不在でも他の交差データは生成できる（`build-matrix-data.sh` の fail-safe。feature 関連フィールドのみ空扱いになる）
 - `portal_output_dir` 未指定時は `build-portal.sh` を実行しない。生成済みページはそのまま残り、次回ポータル生成時に自動でカード化される
+- `ai-assets-data.json` の rules/skills/subagents/hooks いずれかが 0 件の場合、対象が存在しないのか走査できていないのかを区別して確認する（上記「非UTF-8原本への対応」）
 
 ## 設計判断
 

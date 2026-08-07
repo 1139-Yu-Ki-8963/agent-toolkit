@@ -87,7 +87,7 @@
 
 - status: `DONE | STOPPED | ERROR`
 - 拡張: artifacts（生成した各ページの絶対パス配列）、generated_pages（生成した page-type の配列。`permission-screen`/`permission-function`/`crud`/`traceability`/`ai-assets` の部分集合）、skipped_pages（未生成の page-type と理由の配列）、portal_rebuilt（真偽値。`portal_output_dir` 指定時に build-portal.sh を再実行したか）
-- マトリクス・対応表4ページ（権限画面マトリクス・権限機能マトリクス・CRUD図・追跡可能性）とAI設定資産ページは、機能一覧と同様に既存一覧の派生補完であり、unit_kinds_present の存在判定対象外。excluded-kinds.json の allKinds にも含めない
+- マトリクス・対応表4ページ（権限画面マトリクス・権限機能マトリクス・CRUD図・画面-API-テーブル対応表）とAI設定資産ページは、機能一覧と同様に既存一覧の派生補完であり、unit_kinds_present の存在判定対象外。excluded-kinds.json の allKinds にも含めない
 - 入力前提: `<output_dir>/一覧/画面一覧/screen-manifest.json`・同`screen-manifest.ext.json`・`<output_dir>/一覧/API一覧/API一覧.html`が存在し、raw/extのschemaとhashが一致すること（いずれか不在・不合格時はstatus=STOPPEDでhintに前提スキルを記録して返す）
 - permission-function（権限機能マトリクス）は、導出エンジン（`shared/scripts/extract/build-matrix-data.sh`）の出力形状がテンプレート要求形状と一致しない既知の制約により、生成できない場合がある。その場合も status=DONE のまま skipped_pages に記録する（他4ページが1件以上生成できていれば ERROR にしない）
 
@@ -526,7 +526,7 @@ feature（機能一覧）は派生一覧のため本ファイルの管理対象�
 | permission-screen | `<output_dir>/マトリクス・対応表/権限画面マトリクス/権限画面マトリクス.html` |
 | permission-function | `<output_dir>/マトリクス・対応表/権限機能マトリクス/権限機能マトリクス.html`（データ形状ギャップにより未生成の場合あり。既知の制約） |
 | crud | `<output_dir>/マトリクス・対応表/CRUD図/CRUD図.html` |
-| traceability | `<output_dir>/マトリクス・対応表/追跡可能性/追跡可能性.html` |
+| traceability | `<output_dir>/マトリクス・対応表/画面-API-テーブル対応表/画面-API-テーブル対応表.html` |
 | ai-assets | `<output_dir>/AI設定資産/AI設定資産.html` |
 
 `portal_output_dir` を指定した場合、本スキルは生成後に `build-portal.sh` を再実行してカードへ反映する。
