@@ -25,10 +25,10 @@ allowed-tools: [Bash, Read, Write]
 
 ## 生成に使う実行資産
 
-`docs/rules-tooling/` 配下に配布されるスクリプトを呼ぶ。スクリプトの実体はこの1か所にしか置かない。
+`docs/rules/tooling/` 配下に配布されるスクリプトを呼ぶ。スクリプトの実体はこの1か所にしか置かない。
 
-- `docs/rules-tooling/validate-rule-definitions.sh`：定義の整合検査。`build-derived-rules.sh` の内部からも自動で呼ばれる
-- `docs/rules-tooling/build-derived-rules.sh <rules_root> <出力先リポジトリルート> [--apply]`：生成本体。**`--dry-run` という引数は存在しない**。`--apply` を付けなければ生成予定の一覧を表示するだけで書き込みが起きない。この省略状態が既定のドライラン扱いになる
+- `docs/rules/tooling/validate-rule-definitions.sh`：定義の整合検査。`build-derived-rules.sh` の内部からも自動で呼ばれる
+- `docs/rules/tooling/build-derived-rules.sh <rules_root> <出力先リポジトリルート> [--apply]`：生成本体。**`--dry-run` という引数は存在しない**。`--apply` を付けなければ生成予定の一覧を表示するだけで書き込みが起きない。この省略状態が既定のドライラン扱いになる
 
 `build-derived-rules.sh` は実行の最初に `validate-rule-definitions.sh` を呼び、不合格なら何も生成せず終了する。`status: draft` の規約は生成対象から除外され、除外件数を `非承認(draft)除外: N件` として出力する。この除外は `build-derived-rules.sh` 自身が行うため、本スキル側で重ねて絞り込む必要はない。
 
@@ -51,33 +51,33 @@ allowed-tools: [Bash, Read, Write]
 
 **生成予定と現状の差**。`mktemp -d` で作業用の一時ディレクトリを作る。実リポジトリではなくこの一時ディレクトリへ向けて `build-derived-rules.sh <rules_root> <一時ディレクトリ> --apply` を実行する。これにより、現在の定義から生成される内容を、実リポジトリの書き換えなしに得られる。この一時ディレクトリの内容と、実リポジトリの派生ファイル一式を突き合わせる。追加予定・変更予定・（定義から消えたための）削除予定を報告する。
 
-**手作業編集の検知**。`docs/rules-tooling/derived-fingerprints.json` の台帳と、実リポジトリ側の対象2種類の現在のハッシュ値（`shasum -a 256`）を突き合わせる。判定は内容のハッシュだけで行い、更新日時は使わない。`git checkout` や別のツールでもファイルの更新日時は動くため、日時では手作業編集の有無を判定できない。台帳が対象2種類に絞る理由は、それ以外の派生ファイルがマーカーで挟んだ一部だけを差し替える方式だからである。ファイル全体のハッシュを取ると、対象外の箇所への正当な手作業編集まで「ずれ」として誤検知する。
+**手作業編集の検知**。`docs/rules/tooling/derived-rule-fingerprints.json` の台帳と、実リポジトリ側の対象2種類の現在のハッシュ値（`shasum -a 256`）を突き合わせる。判定は内容のハッシュだけで行い、更新日時は使わない。`git checkout` や別のツールでもファイルの更新日時は動くため、日時では手作業編集の有無を判定できない。台帳が対象2種類に絞る理由は、それ以外の派生ファイルがマーカーで挟んだ一部だけを差し替える方式だからである。ファイル全体のハッシュを取ると、対象外の箇所への正当な手作業編集まで「ずれ」として誤検知する。
 
 台帳が存在しない場合は「未記録」として報告し、ずれの有無は判定しない。
 
 ### apply
 
-最初に `build-derived-rules.sh --deploy-tooling <実リポジトリルート>` を実行し、`docs/rules-tooling/` へ2本を配備する。既に配備済みでも最新の内容で上書きする。
+最初に `build-derived-rules.sh --deploy-tooling <実リポジトリルート>` を実行し、`docs/rules/tooling/` へ2本を配備する。既に配備済みでも最新の内容で上書きする。
 
 続けて `status` と同じ確認をし、結果を示す。
 
-実リポジトリに現存する派生ファイル一式を `docs/rules-tooling/backups/<実行時刻>/` へまるごと複製する。生成前に必ずこの複製を取ってから次へ進む。
+実リポジトリに現存する派生ファイル一式を `docs/rules/tooling/backups/<実行時刻>/` へまるごと複製する。生成前に必ずこの複製を取ってから次へ進む。
 
 複製の後、`build-derived-rules.sh <rules_root> <実リポジトリルート> --apply` を実行する。`status: draft` の規約は生成対象から除外され、その件数は上記のとおりスクリプト自身が報告する。
 
 承認済みの規約が0件でも、`AGENTS.md` の索引ブロックは空の内容で書き換わる。書き込み自体は必ず起きる。
 
-生成が終わったら、台帳の対象2種類のハッシュを取り直す。ハッシュは `docs/rules-tooling/derived-fingerprints.json` へ記録する。記録の形式は「相対パスをキー、`sha256` ハッシュ値を値とするJSONオブジェクト」とする。
+生成が終わったら、台帳の対象2種類のハッシュを取り直す。ハッシュは `docs/rules/tooling/derived-rule-fingerprints.json` へ記録する。記録の形式は `specVersion`（台帳のスキーマ版数）・`recordedAt`（記録時刻、ISO 8601）・`entries` を持つJSONオブジェクトとする。`entries` は `path` と `sha256` を持つオブジェクトの配列で、`path` の昇順で並べる。同じ入力からは常に同じ台帳が生成される（並び順が `path` 昇順に固定されているため）。
 
 ### restore
 
-`docs/rules-tooling/backups/` の直下を新しい順に列挙し、利用できる複製の一覧を示す。`backup_id` の指定があればそれを使い、無ければ最新のものを使う。どちらを戻すかを示してから実行する。無条件に最新へ戻してはならない。
+`docs/rules/tooling/backups/` の直下を新しい順に列挙し、利用できる複製の一覧を示す。`backup_id` の指定があればそれを使い、無ければ最新のものを使う。どちらを戻すかを示してから実行する。無条件に最新へ戻してはならない。
 
 戻す対象が定まったら、その複製の内容で派生ファイル一式を上書きする。上書き後、台帳の対象2種類のハッシュを取り直し、台帳を戻した内容に合わせて更新する。
 
 ## Phase 1: 前提条件の確認
 
-`mode` が3値のいずれかであることを確認する。無指定・不明な値であれば、指定必須である旨を返して停止する。`rules_root`（既定 `docs/rules`）が実在することを確認する。`restore` の場合は `docs/rules-tooling/backups/` が1件以上の複製を持つことを確認する。1件も無ければ「戻す先が無い」旨を報告して停止する。
+`mode` が3値のいずれかであることを確認する。無指定・不明な値であれば、指定必須である旨を返して停止する。`rules_root`（既定 `docs/rules`）が実在することを確認する。`restore` の場合は `docs/rules/tooling/backups/` が1件以上の複製を持つことを確認する。1件も無ければ「戻す先が無い」旨を報告して停止する。
 
 **完了**: `mode` の値が確定し、`rules_root` の実在を確認済み。`restore` では複製の実在も確認済み
 
@@ -113,11 +113,12 @@ allowed-tools: [Bash, Read, Write]
 - 手作業編集の検知対象は `rule.md` の複製と `.mdc` ファイルだけである。`AGENTS.md` やフック登録ファイルは一部だけを差し替える方式のため、台帳の対象に含めていない
 - `apply` は `status: draft` の規約を自動で除外する。この除外は `build-derived-rules.sh` 自身が行うため、除外漏れの規約が生成物に混ざることはない
 - `restore` は指定した時点のファイルをそのまま戻すだけであり、戻した後の内容が現在の `docs/rules/` の定義と一致しているかは再検証しない。バックアップ後に定義を変えていた場合、戻した直後に `status` を実行すると再びずれが検知されることがある
+- 台帳のファイル名と JSON の構造は、この文書ではなく `check-rule-drift.sh` の実装が定義である。手順を読んで自前で台帳を作らず、必ず `check-rule-drift.sh record` を呼ぶ。自前で作ると名前や構造がずれ、`status` が常に不一致を報告する
 
 ## 関連
 
 - `importing-rule-proposals`：`docs/rules/` へ定義を書き込むもう一方のスキル。本スキルはその定義を読むだけで書き換えない
-- `docs/rules-tooling/build-derived-rules.sh`：生成本体
-- `docs/rules-tooling/validate-rule-definitions.sh`：整合検査
-- `docs/rules-tooling/derived-fingerprints.json`：手作業編集検知の台帳
-- `docs/rules-tooling/backups/`：`apply` 実行前の複製の格納先
+- `docs/rules/tooling/build-derived-rules.sh`：生成本体
+- `docs/rules/tooling/validate-rule-definitions.sh`：整合検査
+- `docs/rules/tooling/derived-rule-fingerprints.json`：手作業編集検知の台帳
+- `docs/rules/tooling/backups/`：`apply` 実行前の複製の格納先

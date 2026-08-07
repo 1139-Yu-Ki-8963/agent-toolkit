@@ -552,6 +552,31 @@ else
   done
 fi
 
+# ---- 検査キー: 値-画面名整合 / 値-表示コミット整合（check-derived-values.sh。Phase D 保守-派生値ずれ検知）----
+DERIVED_VALUES_SCRIPT="$SCRIPT_DIR/../check-derived-values.sh"
+if [ ! -f "$DERIVED_VALUES_SCRIPT" ]; then
+  report SKIP "値-画面名整合" "全体" "check-derived-values.sh が見つからない"
+  report SKIP "値-表示コミット整合" "全体" "check-derived-values.sh が見つからない"
+else
+  screens_out="$(bash "$DERIVED_VALUES_SCRIPT" "$SAMPLES_DIR" --screens-only 2>&1)"; screens_rc=$?
+  if [ "$screens_rc" -eq 2 ]; then
+    report SKIP "値-画面名整合" "全体" "前提不足（screen-manifest.json 不在等）のため検査対象外"
+  elif [ "$screens_rc" -eq 0 ]; then
+    report PASS "値-画面名整合" "全体" "画面名の定義（screen-manifest.json）と一覧・詳細ページの表示値が一致"
+  else
+    report FAIL "値-画面名整合" "全体" "$(printf '%s' "$screens_out" | grep '^MISMATCH:' | tr '\n' ';')"
+  fi
+
+  commits_out="$(bash "$DERIVED_VALUES_SCRIPT" "$SAMPLES_DIR" --commits-only 2>&1)"; commits_rc=$?
+  if [ "$commits_rc" -eq 2 ]; then
+    report SKIP "値-表示コミット整合" "全体" "前提不足のため検査対象外"
+  elif [ "$commits_rc" -eq 0 ]; then
+    report PASS "値-表示コミット整合" "全体" "表示コミットの定義（source_ref）とポータル・画面ページの表示値が一致"
+  else
+    report FAIL "値-表示コミット整合" "全体" "$(printf '%s' "$commits_out" | grep '^MISMATCH:' | tr '\n' ';')"
+  fi
+fi
+
 # ---- サマリ ----
 echo "合計 ${TOTAL} 件 / FAIL ${FAILS} 件 / SKIP ${SKIPS} 件"
 [ "$FAILS" -eq 0 ] || exit 1

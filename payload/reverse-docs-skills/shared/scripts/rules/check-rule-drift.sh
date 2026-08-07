@@ -19,7 +19,7 @@
 #   check-rule-drift.sh status <root> [--ledger <path>]   # 台帳と突合する
 #   check-rule-drift.sh --self-test
 #
-# 台帳の既定パス: <root>/docs/rules-tooling/derived-rule-fingerprints.json
+# 台帳の既定パス: <root>/docs/rules/tooling/derived-rule-fingerprints.json
 #
 # 台帳の形式:
 #   {
@@ -134,7 +134,7 @@ self_test() {
   printf 'b content' > "$t/root/.claude/rules/scoped/bar/rule.md"
   printf 'c content' > "$t/root/.cursor/rules/foo-bar.mdc"
   printf '# AGENTS' > "$t/root/AGENTS.md"
-  ledger="$t/root/docs/rules-tooling/derived-rule-fingerprints.json"
+  ledger="$t/root/docs/rules/tooling/derived-rule-fingerprints.json"
 
   export RULE_DRIFT_RECORDED_AT="2020-01-01T00:00:00Z"
 
@@ -154,7 +154,7 @@ self_test() {
     fail=$((fail+1)); echo "  FAIL: entries の並び順" >&2
   fi
 
-  local ledger2="$t/root/docs/rules-tooling/derived-rule-fingerprints2.json"
+  local ledger2="$t/root/docs/rules/tooling/derived-rule-fingerprints2.json"
   "$0" record "$t/root" --ledger "$ledger2" >/dev/null
   if diff -q "$ledger" "$ledger2" >/dev/null 2>&1; then
     pass=$((pass+1)); echo "  PASS: 同じ入力で2回recordした結果がbyte一致"
@@ -232,7 +232,7 @@ esac
 ROOT="${1:-}"
 [ -n "$ROOT" ] && [ -d "$ROOT" ] || { echo "ERROR: root が存在しない: ${ROOT:-（未指定）}" >&2; exit 2; }
 shift
-LEDGER="$ROOT/docs/rules-tooling/derived-rule-fingerprints.json"
+LEDGER="$ROOT/docs/rules/tooling/derived-rule-fingerprints.json"
 while [ $# -gt 0 ]; do
   case "$1" in
     --ledger) LEDGER="${2:?--ledger に値が必要}"; shift 2 ;;

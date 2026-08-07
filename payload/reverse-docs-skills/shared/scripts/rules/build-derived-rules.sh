@@ -16,7 +16,7 @@ set -euo pipefail
 #   build-derived-rules.sh --self-test
 #
 # --deploy-tooling は、本スクリプトと validate-rule-definitions.sh の2本を
-# 出力先リポジトリの docs/rules-tooling/ へ複製する。複製先の先頭には
+# 出力先リポジトリの docs/rules/tooling/ へ複製する。複製先の先頭には
 # 生成物である旨のコメントを入れる。定義（docs/rules/）の生成とは独立した
 # 動作であり、docs/rules のルートを必要としない。
 #
@@ -386,7 +386,7 @@ DEPLOY_NOTICE="生成物である。直接編集しない（定義: shared/scrip
 
 deploy_tooling() {
   local out_root="$1"
-  local tooling_dir="${out_root}/docs/rules-tooling"
+  local tooling_dir="${out_root}/docs/rules/tooling"
   mkdir -p "$tooling_dir"
 
   local src name dest
@@ -679,7 +679,7 @@ self_test() {
   run_build "$src" "$out9" >/dev/null 2>&1
   ok9=1
   drift_script="${SCRIPT_DIR}/check-rule-drift.sh"
-  [ -f "${out9}/docs/rules-tooling/derived-rule-fingerprints.json" ] || ok9=0
+  [ -f "${out9}/docs/rules/tooling/derived-rule-fingerprints.json" ] || ok9=0
   if [ "$ok9" -eq 1 ]; then
     status_rc=0
     status_out="$(bash "$drift_script" status "$out9" 2>&1)" || status_rc=$?
@@ -701,18 +701,18 @@ self_test() {
   deploy_out="$(mktemp -d "${TMPDIR:-/tmp}/build-derived-rules-self-test-deploy.XXXXXX")"
   deploy_tooling "$deploy_out" >/dev/null 2>&1
   ok8=1
-  [ -x "${deploy_out}/docs/rules-tooling/build-derived-rules.sh" ] || ok8=0
-  [ -x "${deploy_out}/docs/rules-tooling/validate-rule-definitions.sh" ] || ok8=0
-  [ -x "${deploy_out}/docs/rules-tooling/check-rule-drift.sh" ] || ok8=0
+  [ -x "${deploy_out}/docs/rules/tooling/build-derived-rules.sh" ] || ok8=0
+  [ -x "${deploy_out}/docs/rules/tooling/validate-rule-definitions.sh" ] || ok8=0
+  [ -x "${deploy_out}/docs/rules/tooling/check-rule-drift.sh" ] || ok8=0
   if [ "$ok8" -eq 1 ]; then
-    bash "${deploy_out}/docs/rules-tooling/validate-rule-definitions.sh" --self-test >/dev/null 2>&1 || ok8=0
+    bash "${deploy_out}/docs/rules/tooling/validate-rule-definitions.sh" --self-test >/dev/null 2>&1 || ok8=0
   fi
   if [ "$ok8" -eq 1 ]; then
-    bash "${deploy_out}/docs/rules-tooling/check-rule-drift.sh" --self-test >/dev/null 2>&1 || ok8=0
+    bash "${deploy_out}/docs/rules/tooling/check-rule-drift.sh" --self-test >/dev/null 2>&1 || ok8=0
   fi
   if [ "$ok8" -eq 1 ]; then
     local usage_out
-    usage_out="$(bash "${deploy_out}/docs/rules-tooling/build-derived-rules.sh" 2>&1 || true)"
+    usage_out="$(bash "${deploy_out}/docs/rules/tooling/build-derived-rules.sh" 2>&1 || true)"
     printf '%s' "$usage_out" | grep -q "使い方" || ok8=0
   fi
   if [ "$ok8" -eq 1 ]; then

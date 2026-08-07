@@ -301,6 +301,9 @@ validate_parent_declarations() {
     [ -n "$pdir" ] || continue
     local parent_key_expected parent_yml
     parent_key_expected="$(basename "$pdir")"
+    if [ "$parent_key_expected" = "tooling" ]; then
+      continue
+    fi
     parent_yml="${pdir}/parent.yml"
 
     if [ ! -f "$parent_yml" ]; then
@@ -349,6 +352,9 @@ check_rules_root_hint() {
   suspect=0
   for subdir in "$root"/*/; do
     [ -d "$subdir" ] || continue
+    if [ "$(basename "$subdir")" = "tooling" ]; then
+      continue
+    fi
     if [ ! -f "${subdir}parent.yml" ]; then
       suspect=1
       break

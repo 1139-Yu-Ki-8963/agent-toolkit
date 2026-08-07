@@ -194,6 +194,21 @@
 
 `facts_profile=python`は明示指定時だけ使えるfacts-only入口である。フル実行の事前ヒアリング完了後はglobal Step 3以降へ進まず明示Python facts-only経路へ遷移し、facts抽出より先にsurvey_doc_pathを解決する。明示パスまたは`<output_dir>/プロジェクト共通/アーキテクチャ調査書.md`が実在して調査ゲートを通れば再利用し、不在ならsurveying-architecture-for-reverse-docs(mode=survey)、不合格なら同(mode=revise, revise_findings)を起動する。`status=調査確定`のartifacts[0]を再検証してから、画面一覧生成・対象画面ID実在確認・種別ループより先にextracting-unit-facts-from-codeを`profile=python`で起動する。`screen_dir`引数には実在不要の論理パス`<verification_dir>/logical/<facts_unit_id>`を渡す。`status=封印済み`、recount通過、facts.lock検証通過を検収したら「Python facts封印完了」で終端し、画面スキャフォールディング・基本設計・詳細設計・動的検証へ進まない。
 
+## 入口モード判定契約
+
+Step 1-1では、target_repo_path確定直後に `scripts/resolve-flow-mode.sh <target_repo_path>` を実行する。モノレポでは加えてサイトごとに `--site <サイトのルートディレクトリ>` を指定する。既存資産を優先させたい場合は `--output-dir <output_dir>` を付ける。標準出力のJSON1件を採用する。
+
+| フィールド | 型 | 意味 |
+|---|---|---|
+| mode | enum | `setup-only \| reverse-full \| reverse-degraded` |
+| reason | string | 判定根拠の自然文 |
+| evidence | object | `codeFileCount`（対象範囲のソースファイル数）・`screenIndicatorCount`（画面に相当する実体の検出数）・`projectForm`（`single \| monorepo \| site`） |
+| sites | array | モノレポで2件以上のサイトを検出した場合のサブプロジェクト別判定。各要素が `path`・`mode`・`reason`・`evidence` を持つ。単独プロジェクトまたは `--site` 指定時は空配列 |
+
+判定材料は既存資産を優先し、新しい種別判定基盤は作らない。`--output-dir` 指定時に `<output_dir>/一覧/excluded-kinds.json` が実在すれば、presentKindsのscreen有無を使う。`<output_dir>/プロジェクト共通/アーキテクチャ調査書.md` が実在しcheck-architecture-survey.shのゲートを通れば、§10プロジェクト形態とサイト一覧を使う。いずれも未生成の場合はtarget_repo_pathを直接走査する。走査ではソース拡張子の実在でコードの有無を判定する。画面の有無はpages/views/screens/routes/templatesディレクトリ・ルーティング定義ファイル名・ルーティングAPI呼び出しの検出で判定する。
+
+`setup-only`はPhase 1でセットアップ完了として終端する。global Step 2以降（アーキテクチャ調査以下）は起動しない。`reverse-degraded`はscreen_scopeを要求しない。画面依存工程は既存条件でそのまま素通りする。根拠はStep 5-1の既存条件（screen種別のみ処理し他5種別は後続未対応で終端）である。加えて、Step 3-2のexcluded-kinds.json記録とポータルのdisabledWhenEmptyも同じ効果を持つ。`reverse-full`は現行のglobal Step 2以降をそのまま実行する。
+
 ## 無人モード仕様
 
 管理者は`headless: boolean`（既定false）と`verification_mode: docs-only | single-pass | iterative`（既定`single-pass`）を受け取る。さらに`facts_profile: auto | screen | python`（既定`auto`）を受け取る。`auto|screen`は通常の画面フロー、`python`は上記の明示facts-only入口であり、無人モードでもこの境界を変更しない。`docs-only`は静的リバース完了で終端し、`single-pass`は動的検証を1回だけ実行し、`iterative`はFAIL後の改善反復まで許可する。無人モード時は下表の置き換えを適用する。詳細は`RUNBOOK.md`を参照する。

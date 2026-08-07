@@ -70,7 +70,7 @@ allowed-tools: [Bash, Read, Write]
 
 `status` を常に `draft` にするのは、取り込みの誤りを1段止めるためである。取り込み直後の規約は派生物の生成対象に含まれず、人が `approved` へ変えたものだけが各ツールへ写る。
 
-`summary`・`title`・`uncheckableReason` の値には、コロンに続く半角スペース（`: `）を含めてはならない。`docs/rules-tooling/validate-rule-definitions.sh` のfront matter読み取りは1行1鍵の単純な分割方式である。値の中の `: ` を鍵の区切りと誤認するため、該当箇所は読点や別の言い回しに置き換える。
+`summary`・`title`・`uncheckableReason` の値には、コロンに続く半角スペース（`: `）を含めてはならない。`docs/rules/tooling/validate-rule-definitions.sh` のfront matter読み取りは1行1鍵の単純な分割方式である。値の中の `: ` を鍵の区切りと誤認するため、該当箇所は読点や別の言い回しに置き換える。
 
 ### 検査可否の判定
 
@@ -112,7 +112,7 @@ JSONの `checkable` は提案時点の見立てであり、そのまま採用し
 
 ## Phase 4: 整合の確認
 
-`docs/rules-tooling/validate-rule-definitions.sh <rules_root>` を実行する。これは `docs/rules/` の全体を対象とする検査であり、今回書き込んだ分だけを見るわけではない。
+`docs/rules/tooling/validate-rule-definitions.sh <rules_root>` を実行する。これは `docs/rules/` の全体を対象とする検査であり、今回書き込んだ分だけを見るわけではない。
 
 不合格が出た場合、書き込んだ内容を先に報告したうえで、次の2種類に分けて示す。
 
@@ -144,4 +144,4 @@ JSONの `checkable` は提案時点の見立てであり、そのまま採用し
 
 - `syncing-derived-artifacts`：本スキルが書き込んだ定義を `.claude/`・`.cursor/`・`.codex/`・`AGENTS.md` へ反映するもう一方のスキル
 - `docs/rules/<parent>/<key>/rule.md`：本スキルが書き込む定義そのもの
-- `docs/rules-tooling/validate-rule-definitions.sh`：Phase 4で呼ぶ整合検査
+- `docs/rules/tooling/validate-rule-definitions.sh`：Phase 4で呼ぶ整合検査

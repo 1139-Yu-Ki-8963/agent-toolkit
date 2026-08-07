@@ -19,8 +19,7 @@
     "designDoc": "プロジェクト共通/DESIGN.md",
     "foundationDoc": "プロジェクト共通/基盤設計.md",
     "uiCommonDoc": "プロジェクト共通/UI共通設計.md",
-    "dataDesignDoc": "プロジェクト共通/データ設計.md",
-    "conventionRoot": "規約"
+    "dataDesignDoc": "プロジェクト共通/データ設計.md"
   },
   "kindLabels": {
     "screen": "画面",

@@ -79,7 +79,7 @@ allowed-tools: [Bash, Read, Write, Grep, Glob]
 jq -r '.parents[] | "\(.key) / \(.title)", (.children[] | "  \(.key) / \(.title)")' shared/references/rule-taxonomy.json
 ```
 
-`toolDefined: true` の2件（`ai-config-asset-management` / `portal-maintenance`）は提案の対象外である。ツール側が本文を書いて納品するため、提案して採否を問う対象ではない。
+`rule-taxonomy.json` で `toolDefined: true` を持つ子カテゴリは提案の対象外である。ツール側が本文を書いて納品するため、提案して採否を問う対象ではない。
 
 **完了**: 27カテゴリ全件に `state` が確定済み
 

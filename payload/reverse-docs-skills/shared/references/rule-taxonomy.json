@@ -37,7 +37,7 @@
       "key": "quality-assurance",
       "title": "品質保証",
       "children": [
-        { "key": "test-policy", "title": "テスト方針書", "summary": "テストの種類・カバレッジ目標・実行タイミングの取り決め。", "toolDefined": false },
+        { "key": "test-policy", "title": "テスト方針書", "summary": "テストの種類・カバレッジ目標・実行タイミングの取り決め。", "toolDefined": true },
         { "key": "review-checklist", "title": "レビュー観点表", "summary": "コードレビューで確認する観点と合格基準の一覧。", "toolDefined": false }
       ]
     },
@@ -45,7 +45,7 @@
       "key": "documentation-standards",
       "title": "文書化規約",
       "children": [
-        { "key": "document-writing", "title": "ドキュメント作成規約", "summary": "設計書・手順書などドキュメントの記述形式と更新手順の取り決め。", "toolDefined": false },
+        { "key": "document-writing", "title": "ドキュメント作成規約", "summary": "設計書・手順書などドキュメントの記述形式と更新手順の取り決め。", "toolDefined": true },
         { "key": "portal-maintenance", "title": "ポータル保守規約", "summary": "ポータルと一覧のHTMLを保守するときの取り決め。", "toolDefined": true }
       ]
     },

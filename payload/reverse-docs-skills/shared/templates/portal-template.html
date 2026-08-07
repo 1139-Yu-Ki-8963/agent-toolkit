@@ -137,6 +137,10 @@ a:hover { text-decoration: underline; }
 .card:hover { background: var(--panel3); box-shadow: inset 0 -3px 0 var(--accent); text-decoration: none; }
 .card.is-empty { color: var(--muted); cursor: default; }
 .card.is-empty:hover { background: transparent; box-shadow: none; }
+.card.is-disabled { color: var(--faint); cursor: default; border-right-style: dashed; border-bottom-style: dashed; }
+.card.is-disabled:hover { background: transparent; box-shadow: none; }
+.card.is-disabled .card-title { color: var(--faint); }
+.card.is-disabled .card-count { color: var(--faint); }
 .card-num { font-family: var(--mono); font-size: 10.5px; color: var(--faint); }
 .card-title { font-size: 14px; font-weight: 700; margin-top: 2px; }
 .card-desc { font-size: 12px; color: var(--sub); line-height: 1.6; margin-top: 4px; }
@@ -348,7 +352,9 @@ a:hover { text-decoration: underline; }
         if (isExtra) label.classList.add('is-extra');
         grid.appendChild(label);
       }
-      var card = el('a', { class: 'card is-tool', href: tool.href });
+      var card = tool.disabled
+        ? el('div', { class: 'card is-tool is-disabled', role: 'status', 'aria-disabled': 'true', 'data-disabled': 'true' })
+        : el('a', { class: 'card is-tool', href: tool.href });
       card.appendChild(el('div', { class: 'card-num' }, padNum(toolIdx + 1)));
       card.appendChild(el('div', { class: 'card-title' }, tool.title));
       card.appendChild(el('div', { class: 'card-desc' }, tool.desc));

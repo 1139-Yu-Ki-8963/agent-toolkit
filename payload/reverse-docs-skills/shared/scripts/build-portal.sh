@@ -942,7 +942,10 @@ const categories = embeddedJson(source, 'portal-categories');
 const sidebar = embeddedJson(source, 'pt-nav-data');
 assert(categories.length > 0, 'fixture must retain catalog categories');
 if (expectedAllEmpty) {
-  assert(categories.every((category) => category.tools.length === 0), 'all-zero fixture must have zero discoveries');
+  // disabledWhenEmpty: true の種別は実発見が0件でも無効プレースホルダーカードを残す。
+  // 「発見が無い」ことの検証は「実カードが無い（無効プレースホルダー以外のtoolが無い）」で行う。
+  assert(categories.every((category) => category.tools.every((tool) => tool.disabled === true)),
+    'all-zero fixture must have zero real discoveries (disabled placeholders are allowed)');
 } else {
   assert(categories.some((category) => category.tools.length > 0), 'mixed fixture must contain discovered tools');
   assert(categories.some((category) => category.tools.length === 0), 'mixed fixture must contain empty categories');
@@ -1084,8 +1087,13 @@ NODE
 TEST10HTML
   echo '{"total":100,"fe":50,"be":50,"file_count":10}' > "$test10_portal/code-metrics.json"
   "$SCRIPT_DIR/build-portal.sh" "$test10_repo" "$test10_docs" "$test10_portal" 2>/dev/null
+  # api は disabledWhenEmpty のため、0件でも無効プレースホルダーカード（title="API一覧"・
+  # disabled:true・countは「該当なし」）が常に出る。誤発見の検査は「実発見の痕跡」の不在で行う:
+  # 規模インベントリチップ（kind:"api"）・実件数表示（7 エンドポイント）・誤配置ファイルへの
+  # href のいずれも出ないことを確認する。
   if ! grep -q '"kind":"api"' "$test10_portal/index.html" \
-     && ! grep -q '"title":"API一覧"' "$test10_portal/index.html"; then
+     && ! grep -q '7 エンドポイント' "$test10_portal/index.html" \
+     && ! grep -q 'API一覧/API一覧\.html' "$test10_portal/index.html"; then
     echo "PASS: --self-test ケース10（catalog外artifact typeを暗黙発見しない）"
   else
     echo "FAIL: --self-test ケース10（catalog外artifact typeを発見した）" >&2
@@ -1314,77 +1322,47 @@ TEST17DCATALOG
   fi
   rm -rf "$test17d_dir"
 
-  echo "--- ケース18: 規約20種の正規配置をstandardsカテゴリへ反映する ---"
+  echo "--- ケース18: docs/rules（規約定義）の正規配置をstandardsカテゴリへ反映する ---"
   test18_dir="$(create_physical_tmpdir)"
   test18_repo="$test18_dir/repo"
   test18_docs="$test18_dir/docs"
   test18_portal="$test18_dir/portal"
-  mkdir -p "$test18_repo" "$test18_docs/規約" "$test18_portal"
-  test18_fixture_dir="$SCRIPT_DIR/../templates/リバース検証/規約"
-  test18_standard_names=(
-    "コーディング規約"
-    "命名規約"
-    "ディレクトリ構成規約"
-    "コンポーネント設計規約"
-    "レビュー観点表"
-    "テスト方針書"
-    "AIエージェント運用"
-    "安全な操作"
-    "セッション管理"
-    "AI設定資産管理"
-    "定型運用"
-    "開発フロー"
-    "ツール・コマンド実行"
-    "開発環境"
-    "Git運用"
-    "デリバリー"
-    "セキュリティ"
-    "ドキュメント"
-    "ポータル"
-    "コミュニケーション"
-  )
-  test18_fixture_ok=1
-  for standard_name in "${test18_standard_names[@]}"; do
-    if [ -f "$test18_fixture_dir/$standard_name.md" ]; then
-      cp "$test18_fixture_dir/$standard_name.md" "$test18_docs/規約/$standard_name.md"
-    else
-      test18_fixture_ok=0
-    fi
-  done
-  if [ "$test18_fixture_ok" -ne 1 ]; then
-    echo "FAIL: --self-test ケース18（規約雛形20種が $test18_fixture_dir に揃っていない）" >&2
+  mkdir -p "$test18_repo" "$test18_portal"
+  bash "$SCRIPT_DIR/rules/scaffold-rule-definitions.sh" "$test18_dir" --apply >/dev/null 2>&1
+  if [ ! -d "$test18_docs/rules" ]; then
+    echo "FAIL: --self-test ケース18（scaffold-rule-definitions.shがdocs/rulesを生成しない）" >&2
     rm -rf "$test18_dir"
     exit 1
   fi
   "$SCRIPT_DIR/build-portal.sh" "$test18_repo" "$test18_docs" "$test18_portal" --generated-at 2026-07-29T00:00:00Z 2>/dev/null
-  if ! node - "$test18_docs" "$test18_portal/index.html" <<'NODE'
+  test18_expected_approved="$(jq '[.parents[].children[] | select(.toolDefined == true)] | length' "$SCRIPT_DIR/../references/rule-taxonomy.json")"
+  test18_total_children="$(jq '[.parents[].children[]] | length' "$SCRIPT_DIR/../references/rule-taxonomy.json")"
+  test18_expected_draft=$((test18_total_children - test18_expected_approved))
+  if ! node - "$test18_docs" "$test18_portal/index.html" "$test18_expected_approved" "$test18_expected_draft" <<'NODE'
 const fs = require("fs");
 const path = require("path");
-const [docsRoot, portalHtml] = process.argv.slice(2);
-const standardNames = [
-  "コーディング規約", "命名規約", "ディレクトリ構成規約", "コンポーネント設計規約",
-  "レビュー観点表", "テスト方針書", "AIエージェント運用", "安全な操作",
-  "セッション管理", "AI設定資産管理", "定型運用", "開発フロー",
-  "ツール・コマンド実行", "開発環境", "Git運用", "デリバリー",
-  "セキュリティ", "ドキュメント", "ポータル", "コミュニケーション",
-];
-for (const name of standardNames) {
-  if (!fs.existsSync(path.join(docsRoot, "規約", `${name}.html`))) process.exit(1);
-}
+const [docsRoot, portalHtml, expectedApprovedArg, expectedDraftArg] = process.argv.slice(2);
+const expectedApproved = Number(expectedApprovedArg);
+const expectedDraft = Number(expectedDraftArg);
 const source = fs.readFileSync(portalHtml, "utf8");
 const match = source.match(/<script type="application\/json" id="portal-categories">([\s\S]*?)<\/script>/);
 if (!match) process.exit(1);
 const categories = JSON.parse(match[1]);
 const standards = categories.find((category) => category.id === "standards");
-if (!standards || standards.tools.length !== standardNames.length) process.exit(1);
-if (standards.tools.some((tool) => !tool.href.startsWith("../docs/規約/"))) process.exit(1);
+if (!standards || standards.tools.length !== expectedApproved + expectedDraft) process.exit(1);
+if (standards.tools.some((tool) => !tool.href.startsWith("../docs/rules/"))) process.exit(1);
+// status: draft の子カテゴリはタイトルへ「（下書き）」が付き、approvedの子カテゴリ（ツール定義）には付かない
+const draftTools = standards.tools.filter((tool) => tool.title.includes("（下書き）"));
+const approvedTools = standards.tools.filter((tool) => !tool.title.includes("（下書き）"));
+if (draftTools.length !== expectedDraft) process.exit(1);
+if (approvedTools.length !== expectedApproved) process.exit(1);
 NODE
   then
-    echo "FAIL: --self-test ケース18（規約20種の正規配置がstandardsカテゴリへ反映されない）" >&2
+    echo "FAIL: --self-test ケース18（docs/rules経由の規約（approved${test18_expected_approved}件・draft${test18_expected_draft}件）がstandardsカテゴリへ反映されない、またはdraft表示が不正）" >&2
     rm -rf "$test18_dir"
     exit 1
   fi
-  echo "PASS: --self-test ケース18（規約20種の正規配置・standards件数一致）"
+  echo "PASS: --self-test ケース18（docs/rules経由の規約（approved${test18_expected_approved}件・draft${test18_expected_draft}件）・draft表示・standards件数一致）"
   rm -rf "$test18_dir"
 
   echo "--- ケース16: ポータル規約検査 ---"
@@ -2280,48 +2258,38 @@ TEST34_D_MD
   echo "PASS: --self-test ケース34d（不正source_refを拒否しHTMLを生成しない）"
   rm -rf "$test34d_dir"
 
-  echo "--- ケース35: standardsカテゴリのdiscovery.globとoutput-layout.jsonのconventionRootの不一致を検出する（改善課題1-88） ---"
+  echo "--- ケース35: standardsカテゴリのdiscovery.globがdocs/rules/直下から解決される（規約置き場の一本化） ---"
   test35_dir="$(create_physical_tmpdir)"
-  test35_layout="$(resolve_output_layout "")" || {
-    echo "FAIL: --self-test ケース35（output-layout解決に失敗）" >&2
-    rm -rf "$test35_dir"
-    exit 1
-  }
-  test35_convention_root="$(output_layout_get "$test35_layout" conventionRoot)" || {
-    echo "FAIL: --self-test ケース35（conventionRootキーが取得できない）" >&2
-    rm -rf "$test35_dir"
-    exit 1
-  }
 
   test35_count_mismatches() {
-    local catalog_file="$1" root="$2" total=0 mismatch=0 glob
+    local catalog_file="$1" total=0 mismatch=0 glob
     while IFS= read -r glob; do
       [ -z "$glob" ] && continue
       total=$((total + 1))
       case "$glob" in
-        "$root"/*) ;;
+        rules/*) ;;
         *) mismatch=$((mismatch + 1)) ;;
       esac
     done < <(jq -r '.categories[] | select(.key=="standards") | .blueprints[].discovery.glob' "$catalog_file")
     printf '%s %s\n' "$total" "$mismatch"
   }
 
-  read -r test35_total test35_mismatch <<< "$(test35_count_mismatches "$DEFAULT_CATALOG" "$test35_convention_root")"
-  if [ "$test35_total" -eq 0 ]; then
-    echo "FAIL: --self-test ケース35（standardsカテゴリのblueprintが1件も見つからない）" >&2
+  read -r test35_total test35_mismatch <<< "$(test35_count_mismatches "$DEFAULT_CATALOG")"
+  if [ "$test35_total" -ne 27 ]; then
+    echo "FAIL: --self-test ケース35（standardsカテゴリのblueprintが27件でない: ${test35_total}件）" >&2
     rm -rf "$test35_dir"
     exit 1
   fi
   if [ "$test35_mismatch" -ne 0 ]; then
-    echo "FAIL: --self-test ケース35（standardsカテゴリのdiscovery.globが output-layout.json の conventionRoot=\"$test35_convention_root\" と不一致: ${test35_mismatch}/${test35_total}件）" >&2
+    echo "FAIL: --self-test ケース35（standardsカテゴリのdiscovery.globがrules/直下でないものを${test35_mismatch}/${test35_total}件検出）" >&2
     rm -rf "$test35_dir"
     exit 1
   fi
-  echo "PASS: --self-test ケース35a（standardsカテゴリのdiscovery.glob全${test35_total}件がconventionRoot=\"$test35_convention_root\"と一致）"
+  echo "PASS: --self-test ケース35a（standardsカテゴリのdiscovery.glob全${test35_total}件がrules/直下と一致）"
 
   test35_bad_catalog="$test35_dir/bad-catalog.json"
   jq '(.categories[] | select(.key=="standards") | .blueprints[0].discovery.glob) |= "誤った場所/コーディング規約.html"' "$DEFAULT_CATALOG" > "$test35_bad_catalog"
-  read -r test35_bad_total test35_bad_mismatch <<< "$(test35_count_mismatches "$test35_bad_catalog" "$test35_convention_root")"
+  read -r test35_bad_total test35_bad_mismatch <<< "$(test35_count_mismatches "$test35_bad_catalog")"
   if [ "$test35_bad_mismatch" -eq 0 ]; then
     echo "FAIL: --self-test ケース35b（意図的に不一致にしたglob 1件を検出できない）" >&2
     rm -rf "$test35_dir"
@@ -2400,6 +2368,126 @@ TEST34_D_MD
   fi
   rm -rf "$test37_dir"
 
+  echo "--- ケース38: disabledWhenEmptyの種別は0件でも無効カードとして残り、falseの種別は出ない ---"
+  test38_dir="$(create_physical_tmpdir)"
+  test38_repo="$test38_dir/repo"
+  test38_docs="$test38_dir/docs"
+  test38_portal="$test38_dir/portal"
+  mkdir -p "$test38_repo" "$test38_docs" "$test38_portal"
+  cat > "$test38_dir/catalog.json" <<'JSON'
+{"schemaVersion":1,"categories":[{"key":"degrade-test","label":"縮退検査","group":"Test","icon":"folder","sub":"test","blueprints":[{"kind":"keep-visible","label":"維持カード","icon":"description","desc":"0件でも残る種別。","dir":"","generator":"test-generator","unit":"件","countFormat":"detail","disabledWhenEmpty":true,"discovery":{"artifactType":"keep-visible-page","root":"output-dir","glob":"keep-visible.html","matchKind":"file","titleSource":"blueprint-label","dirSource":"blueprint","instanceKeySource":"relative-path","sort":"relative-path-bytewise"}},{"kind":"hide-when-empty","label":"消えるカード","icon":"description","desc":"0件なら出ない種別。","dir":"","generator":"test-generator","unit":"件","countFormat":"detail","discovery":{"artifactType":"hide-when-empty-page","root":"output-dir","glob":"hide-when-empty.html","matchKind":"file","titleSource":"blueprint-label","dirSource":"blueprint","instanceKeySource":"relative-path","sort":"relative-path-bytewise"}}]}]}
+JSON
+  echo '{"total":100,"fe":50,"be":50,"file_count":10}' > "$test38_portal/code-metrics.json"
+  "$SCRIPT_DIR/build-portal.sh" "$test38_repo" "$test38_docs" "$test38_portal" --catalog "$test38_dir/catalog.json" 2>/dev/null
+  if node - "$test38_portal/index.html" <<'NODE'
+const fs = require('fs');
+const assert = require('assert/strict');
+const vm = require('vm');
+const source = fs.readFileSync(process.argv[2], 'utf8');
+function embeddedJson(id) {
+  const escaped = id.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const match = source.match(new RegExp(`<script[^>]*id=["']${escaped}["'][^>]*>([\\s\\S]*?)<\\/script>`));
+  assert(match, `missing embedded JSON: ${id}`);
+  return JSON.parse(match[1]);
+}
+const categories = embeddedJson('portal-categories');
+const category = categories.find((c) => c.id === 'degrade-test');
+assert(category, 'degrade-test category must be present');
+assert.equal(category.tools.length, 1, 'only the disabledWhenEmpty=true blueprint keeps a card');
+const tool = category.tools[0];
+assert.equal(tool.title, '維持カード', 'the disabled placeholder card must retain the blueprint label');
+assert.equal(tool.disabled, true, 'the placeholder tool object must be flagged disabled');
+assert.equal(tool.count, '該当なし', 'the placeholder count text must read 該当なし');
+assert(!category.tools.some((t) => t.title === '消えるカード'), 'the blueprint without disabledWhenEmpty must not render any card when empty');
+
+// --- ランタイムDOM検査: 無効カードが data-disabled を持ち href を持たないことを確認する ---
+class TestNode {
+  constructor(tagName, text = '') {
+    this.tagName = tagName.toUpperCase();
+    this.attributes = {};
+    this.childNodes = [];
+    this._text = text;
+    this.classList = {
+      add: (...names) => {
+        const classes = new Set(this.className.split(/\s+/).filter(Boolean));
+        names.forEach((name) => classes.add(name));
+        this.className = [...classes].join(' ');
+      },
+      contains: (name) => this.className.split(/\s+/).includes(name),
+    };
+  }
+  setAttribute(name, value) { this.attributes[name] = String(value); }
+  getAttribute(name) { return Object.prototype.hasOwnProperty.call(this.attributes, name) ? this.attributes[name] : null; }
+  set className(value) { this.attributes.class = String(value); }
+  get className() { return this.attributes.class || ''; }
+  set id(value) { this.setAttribute('id', value); }
+  get id() { return this.getAttribute('id') || ''; }
+  set textContent(value) { this._text = String(value); this.childNodes = []; }
+  get textContent() { return this._text + this.childNodes.map((c) => c.textContent).join(''); }
+  appendChild(child) { this.childNodes.push(child); return child; }
+  addEventListener() {}
+  querySelectorAll(selector) { return descendants(this).filter((node) => matchesSelector(node, selector)); }
+  querySelector(selector) { return this.querySelectorAll(selector)[0] || null; }
+}
+function descendants(node) { return node.childNodes.flatMap((child) => [child, ...descendants(child)]); }
+function matchesSelector(node, selector) {
+  const parts = selector.split('.');
+  const tag = !selector.startsWith('.') ? parts.shift().toUpperCase() : '';
+  return (!tag || node.tagName === tag) && parts.filter(Boolean).every((name) => node.classList.contains(name));
+}
+const nodesById = new Map();
+function element(tag, attrs = {}) {
+  const node = new TestNode(tag);
+  Object.entries(attrs).forEach(([name, value]) => node.setAttribute(name, value));
+  return node;
+}
+const metricsMount = element('div', { id: 'metrics-mount' });
+const catsMount = element('div', { id: 'pm-cats' });
+const searchInput = element('input', { id: 'pm-search-input' });
+nodesById.set('metrics-mount', metricsMount);
+nodesById.set('pm-cats', catsMount);
+nodesById.set('pm-search-input', searchInput);
+const metricsScriptText = source.match(/<script[^>]*id=["']portal-metrics["'][^>]*>([\s\S]*?)<\/script>/)[1];
+const categoriesScriptText = source.match(/<script[^>]*id=["']portal-categories["'][^>]*>([\s\S]*?)<\/script>/)[1];
+const metricsScriptNode = element('script', { id: 'portal-metrics' });
+metricsScriptNode.textContent = metricsScriptText;
+const categoriesScriptNode = element('script', { id: 'portal-categories' });
+categoriesScriptNode.textContent = categoriesScriptText;
+nodesById.set('portal-metrics', metricsScriptNode);
+nodesById.set('portal-categories', categoriesScriptNode);
+const document = {
+  getElementById(id) { return nodesById.get(id) || null; },
+  createElement(tag) { return element(tag); },
+  createTextNode(text) { return new TestNode('#text', String(text)); },
+  addEventListener() {},
+};
+const scripts = [...source.matchAll(/<script(?![^>]*type=["']application\/json["'])[^>]*>([\s\S]*?)<\/script>/g)].map((m) => m[1]);
+const portalScript = scripts.find((s) => s.includes('var categories = JSON.parse') && s.includes('categories.forEach'));
+assert(portalScript, 'portal top runtime script must exist');
+const context = { document, window: { matchMedia() { return { matches: false }; } }, localStorage: { getItem() { return null; }, setItem() {} } };
+vm.runInNewContext(portalScript, context);
+const section = catsMount.querySelectorAll('section.pm-cat').find((s) => s.id === 'cat-degrade-test');
+assert(section, 'runtime DOM must contain the degrade-test category section');
+const disabledCards = section.querySelectorAll('.card.is-tool.is-disabled');
+assert.equal(disabledCards.length, 1, 'exactly one disabled card must be rendered at runtime');
+const disabledCard = disabledCards[0];
+assert.equal(disabledCard.getAttribute('data-disabled'), 'true', 'the disabled card must declare data-disabled="true"');
+assert.equal(disabledCard.getAttribute('href'), null, 'the disabled card must not declare an href');
+assert.equal(disabledCard.getAttribute('aria-disabled'), 'true', 'the disabled card must declare aria-disabled="true"');
+assert.equal(disabledCard.querySelector('.card-title')?.textContent, '維持カード', 'the disabled card must show the blueprint label');
+assert.equal(disabledCard.querySelector('.card-count')?.textContent, '該当なし', 'the disabled card must show 該当なし as its count');
+const allCards = section.querySelectorAll('.card.is-tool');
+assert.equal(allCards.length, 1, 'no card must be rendered for the blueprint without disabledWhenEmpty when empty');
+NODE
+  then
+    echo "PASS: --self-test ケース38（disabledWhenEmpty:trueの種別は0件でも無効カードとして残り、falseの種別は出ない）"
+  else
+    echo "FAIL: --self-test ケース38（disabledWhenEmpty:trueの種別は0件でも無効カードとして残り、falseの種別は出ない）" >&2
+    rm -rf "$test38_dir"
+    exit 1
+  fi
+  rm -rf "$test38_dir"
+
   exit 0
 fi
 
@@ -2416,7 +2504,6 @@ shift 3
 
 LAYOUT_JSON="$(resolve_output_layout "$DOCS_ROOT")" || exit 1
 LAYOUT_COMMON_ROOT="$(output_layout_get "$LAYOUT_JSON" commonRoot)" || exit 1
-LAYOUT_CONVENTION_ROOT="$(output_layout_get "$LAYOUT_JSON" conventionRoot)" || exit 1
 LAYOUT_SCREEN_LIST_DIR="$(output_layout_get "$LAYOUT_JSON" screenListDir)" || exit 1
 LAYOUT_SCREEN_UNIT_ROOT="$(output_layout_get "$LAYOUT_JSON" screenUnitRoot)" || exit 1
 assert_no_symlink_output_path "$DOCS_ROOT" "$DOCS_ROOT" || exit 1
@@ -2539,8 +2626,8 @@ fi
 # --- 2. portal catalogが一覧件数とカードを一括導出する ---
 kinds_json="[]"
 
-# --- 3. 共通文書リストの収集（standards: 規約系 / design: 設計書系 に分割。category-grouping/rule.md 準拠） ---
-common_roots=("$DOCS_ROOT/$LAYOUT_COMMON_ROOT" "$DOCS_ROOT/$LAYOUT_CONVENTION_ROOT")
+# --- 3. 共通文書リストの収集（design: 設計書系。standards: 規約系は docs/rules/ 専用ループで扱う。category-grouping/rule.md 準拠） ---
+common_roots=("$DOCS_ROOT/$LAYOUT_COMMON_ROOT")
 COMMON_DOC_TEMPLATE_FILE="$SCRIPT_DIR/../templates/common-doc-template.html"
 
 if [ "$PORTAL_ONLY" -eq 0 ]; then
@@ -2593,11 +2680,7 @@ markdown_to_script_json() {
 }
 
 for common_dir in "${common_roots[@]}"; do
-if [ "$common_dir" = "$DOCS_ROOT/規約" ]; then
-  common_category="standards"
-else
-  common_category="design"
-fi
+common_category="design"
 if [ -d "$common_dir" ]; then
   while IFS= read -r md_file; do
     md_content="$(prepare_md_content "$md_file")"
@@ -2638,6 +2721,53 @@ if [ -d "$common_dir" ]; then
   done < <(find "$common_dir" -name '*.md' -type f 2>/dev/null | sort)
 fi
 done
+
+# --- 3b. 規約定義（docs/rules/<親>/<子>/rule.md）の変換 ---
+# 規約置き場の一本化（output-layout.jsonの専用ルート廃止）に伴い、規約は docs/rules/ 配下の
+# 親子構造から読む。ファイル名が rule.md で全件揃うため、共通文書ループ（*.md 全件探索。
+# design-notes.md まで拾ってしまう）とは別に、rule.md だけを対象にする専用ループで処理する。
+# 表示名は front matter の title を使い、status: draft の規約はタイトルへ「（下書き）」を
+# 付けて未承認であることを示す（新しい色・新しいCSSクラスは導入しない）。
+RULES_ROOT="$DOCS_ROOT/rules"
+if [ -d "$RULES_ROOT" ]; then
+  while IFS= read -r rule_md; do
+    md_content="$(prepare_md_content "$rule_md")"
+    fm_title="$(frontmatter_value "$rule_md" title)"
+    fm_status="$(frontmatter_value "$rule_md" status)"
+    body_title="$(extract_md_title "$md_content" "$(basename "$(dirname "$rule_md")")")"
+    title="${fm_title:-$body_title}"
+    if [ "$fm_status" = "draft" ]; then
+      title="${title}（下書き）"
+    fi
+
+    html_file="$(dirname "$rule_md")/rule.html"
+    if [ -f "$COMMON_DOC_TEMPLATE_FILE" ]; then
+      portal_index_rel="$(python3 -c "import os,sys; print(os.path.relpath(sys.argv[1], sys.argv[2]))" "$PORTAL_DIR" "$(dirname "$rule_md")" 2>/dev/null || echo "..")"
+      portal_index_href="$portal_index_rel/index.html"
+      md_content_json="$(markdown_to_script_json "$md_content")"
+      local_render_args=(
+        "{{PROJECT_NAME}}" "$PROJECT_NAME"
+        "{{DOC_TITLE}}" "$(html_escape "$title")"
+        "{{GENERATED_DATE}}" "$GENERATED_DATE"
+        "{{COMMIT_SHORT}}" "$COMMIT_SHORT"
+        "{{PORTAL_INDEX_HREF}}" "$portal_index_href"
+      )
+      if [ -f "$TOKENS_CSS_FILE" ]; then
+        local_render_args+=("/* TOKENS_CSS */" "$(cat "$TOKENS_CSS_FILE")")
+      fi
+      if type shell_injection_args >/dev/null 2>&1; then
+        doc_sidebar_html="<nav class=\"pt-doc-nav\" aria-label=\"目次\"><div class=\"pt-doc-nav__group\">目次</div><ul class=\"pt-doc-nav__toc\" id=\"toc-list\"></ul></nav>"
+        shell_injection_args "$SCRIPT_DIR/../templates" "$CATALOG" "$portal_index_href" "$PROJECT_NAME" "$GENERATED_DATE" "$COMMIT_SHORT" "shared/scripts/build-portal.sh" "standards" "${SITES_FILE:-}" "${SITE_KEY:-}" "$(dirname "$rule_md")" "$doc_sidebar_html"
+        if [ ${#SHELL_RENDER_ARGS[@]} -gt 0 ]; then
+          local_render_args+=("${SHELL_RENDER_ARGS[@]}")
+        fi
+      fi
+      local_render_args+=("{{DOC_MARKDOWN_JSON}}" "$md_content_json")
+      doc_html="$(render_template "$(cat "$COMMON_DOC_TEMPLATE_FILE")" "${local_render_args[@]}")"
+      printf '%s\n' "$doc_html" > "$html_file"
+    fi
+  done < <(find "$RULES_ROOT" -type f -name 'rule.md' 2>/dev/null | sort)
+fi
 
 # --- 3.5. 画面設計書の変換 ---
 SCREEN_DOC_TEMPLATE_FILE="$SCRIPT_DIR/../templates/screen-doc-template.html"

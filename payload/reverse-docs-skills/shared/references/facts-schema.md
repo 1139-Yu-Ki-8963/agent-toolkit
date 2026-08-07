@@ -179,7 +179,7 @@ Phase 2（抽出）完了前に、対象ファイルごとに原本の非空・�
 
 ## 拡張予約（screen 以外のプロファイル追加余地）
 
-本スキル本体は Stage 3 の範囲で `profile: screen` のみを実装する。他プロファイル（API・テーブル・バッチ・帳票・外部連携）を追加する場合は、`sections` の12分類キー構成をプロファイルごとに拡張・差し替えできるよう、`profile` フィールド値ごとに `references/profile-<profile名>.md`（例: `references/profile-api.md`）を追加し、`recount-facts.sh` の分類別パターンを `profile` 値で切り替える設計とする。12分類の枠組み自体（意味キー・key/value/evidence の3フィールド契約・孤児参照定義・normalize規則）はプロファイル非依存で共通利用する。
+本スキル本体は Stage 3 の範囲で `profile: screen` のみを実装する。他プロファイル（API・テーブル・バッチ・帳票・外部連携）を追加する場合は、`sections` の12分類キー構成をプロファイルごとに拡張・差し替えできるよう、`profile` フィールド値ごとに `references/profile-<profile名>.md`（例: `references/profile-api.md`）を追加し、`recount-facts.sh` の分類別パターンを `profile` 値で切り替える設計とする。12分類の枠組み自体（内容要約キー・key/value/evidence の3フィールド契約・孤児参照定義・normalize規則）はプロファイル非依存で共通利用する。
 
 ## 関連
 

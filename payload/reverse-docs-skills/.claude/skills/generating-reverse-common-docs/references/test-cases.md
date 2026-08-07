@@ -5,7 +5,7 @@
 | 観点キー | 前提 | 操作 | 期待結果 | 機械検証 |
 |---|---|---|---|---|
 | 永続共通文書欠落-検出 | 永続する共通6文書のいずれかが欠落している | check-common-docs.shを実行する | 検査1がFAILしexit 1になる | check-common-docs.shのself-testケース「[PASS] 検査1: ファイル欠落でexit 1」 |
-| 非永続文書欠落-許可 | 規約4文書とサンプル記録が存在しない | check-common-docs.shを実行する | 永続する共通6文書が正常ならexit 0になる | check-common-docs.shのself-testケース「[PASS] Phase A: 規約4文書・サンプル記録なしで永続6文書がexit 0」 |
+| 非永続文書欠落-許可 | サンプル記録が存在しない（規約定義は本スキルの対象外） | check-common-docs.shを実行する | 永続する共通6文書が正常ならexit 0になる | check-common-docs.shのself-testケース「[PASS] Phase A: 規約4文書・サンプル記録なしで永続6文書がexit 0」 |
 | 記載パス未実在-検出 | backtick表記の相対パスが対象リポジトリに実在しない | check-common-docs.shを実行する | 検査3がFAILしexit 1になる | check-common-docs.shのself-testケース「[PASS] 検査3: 未実在パスでexit 1」 |
 | テンプレ残存-地の文言及は誤検出しない | TODO/TBDという語自体を地の文で言及している | check-common-docs.shを実行する | プレースホルダとして誤検出せず通過する | check-common-docs.shのself-testケース「[PASS] 検査4(1-153): TODO/TBDの地の文言及は誤検出しない」 |
 | sample記録-ゲート対象外 | sample記録にテンプレ残存がある | check-common-docs.shを実行する | 永続6文書が正常ならsample記録の内容に依存せずexit 0 | self-testの「[PASS] Phase A: sample記録の内容をゲート対象外として扱う」 |

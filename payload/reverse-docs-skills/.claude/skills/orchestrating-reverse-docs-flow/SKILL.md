@@ -68,6 +68,18 @@ AskUserQuestionツールでprofileに応じた必須項目を確定する。起�
 
 起動引数の `reverse_docs_root`・`target_repo_path`・`output_dir`・`screen_scope` を解決する。`reverse_docs_root` は配布rootの絶対パスとして実在確認し、固定インストール先を仮定しない。未指定かつ `headless=false` の場合だけ AskUserQuestion で対象プロジェクト、出力先、画面範囲を確認する。`headless=true` では引数不足を ERROR として終端し、値を推測しない。成果物の実在から16状態を順に判定し、実行対象の global Step を TaskCreate で先出し登録する。
 
+### 入口モードを判定する
+
+target_repo_path が確定した直後に `bash scripts/resolve-flow-mode.sh <target_repo_path>` を実行する。サイト定義が既にある場合は `--output-dir <output_dir>` を付けて既存資産を優先させる。実行結果から `setup-only|reverse-full|reverse-degraded` のいずれかを確定する。判定はサブプロジェクト単位でも行う。返却JSONの `sites` が2件以上ある場合、「サイトごとのループ（モノレポ・複数サイト時）」はサイトごとに確定したモードへ従う。
+
+| モード | 動作 |
+|---|---|
+| setup-only | `bash shared/scripts/rules/scaffold-rule-definitions.sh <target_repo_path> --apply --with-skills` で規約定義一式と納品スキル2本を対象リポジトリへ配り、続けて `bash shared/scripts/rules/build-derived-rules.sh <target_repo_path>/docs/rules <target_repo_path> --apply` で各AIツール設定（`.claude`・`.cursor`・`.codex`）を生成する。生成が終わったら「セットアップ完了」として本フローを終端し、global Step 2以降（アーキテクチャ調査以下のリバース工程）へは進まない |
+| reverse-degraded | screen_scope を確認せずに進む。Step 5-1 の「screen種別のみ。その他5種別は『後続未対応』で終端」という既存条件がそのまま画面依存工程を素通りさせ、Step 3-2 の excluded-kinds.json 記録とポータルの `disabledWhenEmpty` が画面カードを選べない状態で表示する。global Step 2以降は現行どおり進める |
+| reverse-full | global Step 2以降を現行どおり進める |
+
+`setup-only` の場合はここで本フローを終端し、以降の対象プロジェクトパス・出力先パス・画面範囲の確認へは進まない。
+
 `facts_profile=python`では画面範囲を尋ねず、対象プロジェクトパス・出力先パス・実行モードに加えて以下の3項目を確定する:
 
 | 項目 | 入力契約 | 既定値 |
@@ -78,7 +90,7 @@ AskUserQuestionツールでprofileに応じた必須項目を確定する。起�
 
 状態判定の冒頭で対象画面IDの実在を検証する。実在確認は永続raw正本（`<output_dir>/一覧/画面一覧/screen-manifest.json` の `screens[]` 配列）に対して行う。一覧外IDの場合は AskUserQuestion で対応を確認する。選択肢は (a) 一覧へ `kind=route`・`route=""` として追記し、route空の未解決画面として工程を継続するか、(b) エラー終端するかの2択（headless=true 時は (a) を自動選択する）。画面レジストリの `verification_url` が未実施・エラーページ・プレースホルダの場合でも、facts 抽出・基本設計・詳細設計は続行する。実レンダリング確認済みURLは動的検証へ移る時点でのみ必須とする。
 
-**完了**: `auto|screen`はtarget_repo_path・output_dir・screen_scope・実行モードが、`python`はtarget_repo_path・output_dir・target_file_paths・facts_unit_id・verification_dir・実行モードが確定し（`python`はscreen_scopeを要求しない）、現在状態の確定と実行対象タスクの登録が済んでいる。
+**完了**: `auto|screen`はtarget_repo_path・output_dir・screen_scope・実行モードが、`python`はtarget_repo_path・output_dir・target_file_paths・facts_unit_id・verification_dir・実行モードが確定し（`python`はscreen_scopeを要求しない）、現在状態の確定と実行対象タスクの登録が済んでいる。モードが `setup-only` の場合はここで「セットアップ完了」として終端している。
 
 ## Step 1-2: スコープと実行モードを確定する
 
@@ -468,7 +480,7 @@ rebuilding-code-from-docs(mode=judge)へcompare_result全文とfreeze_commitを�
 
 | Phase | 完了条件 |
 |---|---|
-| Phase 1 | `auto\|screen` は対象パス・出力先・画面範囲・実行モードが、`python` は target_repo_path・output_dir・target_file_paths・facts_unit_id・verification_dir・実行モードが確定し、状態キーの確定と TaskCreate 登録が済んでいる（`python` は明示Python facts-only経路で終端する） |
+| Phase 1 | `auto\|screen` は対象パス・出力先・画面範囲・実行モードが、`python` は target_repo_path・output_dir・target_file_paths・facts_unit_id・verification_dir・実行モードが確定し、状態キーの確定と TaskCreate 登録が済んでいる（`python` は明示Python facts-only経路で終端する。入口モードが `setup-only` の場合は規約定義とAIツール設定の生成をもって「セットアップ完了」として終端する） |
 | Phase 2 | survey_doc_path と unit_kinds_present が確定している |
 | Phase 3 | 6種別の生成済み/対象外と、生成可能な派生一覧・対応表が確定している |
 | Phase 4 | common_docs_root、ポータル、任意ページの生成/スキップ理由、画面バッチ経路が確定している |
@@ -496,7 +508,8 @@ Phase 1 の開始前に Read で `references/operations.md` を全文読み込�
 
 ## 参照資料
 
-- `references/contract.md` — 返却ブロック契約・args仕様・状態判定表・種別ループ・NG帰着3系統の配線の正本
+- `references/contract.md` — 返却ブロック契約・args仕様・状態判定表・種別ループ・NG帰着3系統の配線・入口モード判定契約の正本
+- `scripts/resolve-flow-mode.sh` — 入口モード（setup-only / reverse-full / reverse-degraded）の機械判定。Step 1-1 の「入口モードを判定する」節から呼ぶ
 - 共有資産（本スキル専有ではなくリポジトリ共通、`<reverse_docs_root>/shared/` 配下）: `shared/templates/リバース検証/`（テンプレート一式）、`shared/scripts/audit-consistency.sh`（工程間ゲート）、`shared/scripts/scaffold-screen.sh`（画面ディレクトリのテンプレート展開。正本はこの1本のみ）、`shared/scripts/seal-facts.sh`（facts封印・検証）、`shared/references/chapter-map.md`（章役割キー対応表）、`shared/references/facts-schema.md`（facts.ymlスキーマ正本）、`shared/references/リバース工程設計.md`（Phase/Step×スキル対応の正本）。各子スキルへは template_root / audit_script_path / scaffold_script_path / chapter_map_path として絶対パスを渡す
 - 画面レジストリ: `<output_dir>/一覧/reverse-screen-registry.yml`（正本定義は references/contract.md）
 - `unlocking-reverse-target-screens/manifest.yml` — 同スキルが管理するプロジェクト固有値の正本（本スキルは関知しない）

@@ -82,13 +82,13 @@ DELETED を検知する必要がある。`build-derived-rules.sh` の実行直�
 **必要性**: まっさらな対象リポジトリへ規約定義一式（親 7・子 27）を配る処理は、
 `shared/references/rule-taxonomy.json` の宣言から `docs/rules/<親>/<子>/rule.md`
 （front matter 13 鍵の空雛形）・`parent.yml`・`design-notes.md` を機械的に組み立て、
-`toolDefined: true` の 2 件（`ai-config-asset-management`・`portal-maintenance`）だけ
+`toolDefined: true` を宣言する子だけ
 本文入りで作り分ける必要がある。既存 rule.md を上書きしない保護、dry-run 既定、
 `--deploy-tooling`（`build-derived-rules.sh` を呼ぶだけで重複実装しない）の各条件を
 毎回手動で満たすのは非現実的であり、CLI から繰り返し・決定的に呼べるスクリプトが要る。
 
 **代替案を採用しなかった理由**:
-- Bash ツール直叩き: 親 7・子 27・toolDefined 2 件の作り分け・既存保護・dry-run
+- Bash ツール直叩き: 親 7・子 27・toolDefined の作り分け・既存保護・dry-run
   という複数段の分岐を対話のたびに手動再現すると、生成結果の決定性を保証できない
 - 既存 Makefile ターゲット拡張: このリポジトリに Makefile は存在せず、新規導入は
   本チェック専用の依存を増やすだけになる

@@ -36,7 +36,7 @@ output_layout_merge_files() {
 # screenUnitRoot の安全境界:
 # - Unicode general category C（制御・format等）/ Z（separator・各種空白）を含まず、`.` で始まらない単一segment
 # - 入力自体がNFCである（macOS上の正規化別名を許可しない）
-# - NFC比較で物理top-level root（unitsRoot/commonRoot/conventionRoot）と衝突しない
+# - NFC比較で物理top-level root（unitsRoot/commonRoot）と衝突しない
 # 日本語の可視文字とASCIIハイフンは許可する。
 # Unicode判定・正規化にはリポジトリ既存runtimeのNode.jsを使う。
 output_layout_validate() {
@@ -57,7 +57,7 @@ output_layout_validate() {
     if (typeof root !== "string") process.exit(1);
     if (/[\p{C}\p{Z}]/u.test(root)) process.exit(1);
     if (root.normalize("NFC") !== root) process.exit(1);
-    for (const key of ["unitsRoot", "commonRoot", "conventionRoot"]) {
+    for (const key of ["unitsRoot", "commonRoot"]) {
       const other = layout[key];
       if (typeof other === "string" && root.normalize("NFC") === other.normalize("NFC")) process.exit(1);
     }

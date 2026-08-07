@@ -175,7 +175,7 @@
 <section id="s1">
   <h2><span class="sec-num">§1</span>概要</h2>
   <p>対象リポジトリを層化サンプリングで走査し、その結果を<strong>プロジェクト共通7ファイル</strong>（共通設計書.md＋メッセージ定義書.md＋DESIGN.md＋基盤設計.md＋UI共通設計.md＋データ設計.md＋サンプル記録.md）として確定する。</p>
-  <p class="note">規約4文書（コーディング規約・命名規約・ディレクトリ構成規約・コンポーネント設計規約）はコードからの採録をやめ空雛形へ変更済みのため、雛形として複製はされるが本スキルの採録・機械ゲートの対象には含まれない。納品物の機械ゲートで必須なのは永続する共通6文書だけである。</p>
+  <p class="note">規約定義（<code>docs/rules/</code>の親子構造）は本スキルの対象外である。<code>shared/scripts/rules/scaffold-rule-definitions.sh</code>が別に配布する。納品物の機械ゲートで必須なのは永続する共通6文書だけである。</p>
   <div class="constraint">
     <strong>単独動作</strong>: 他スキルへの依存を持たない。起動引数を渡せば単独で動く。工程全体は orchestrating-reverse-docs-flow が案内する。後続工程（facts抽出・詳細設計執筆）はこのプロジェクト共通文書を前提として動く。
   </div>
@@ -218,8 +218,8 @@
   <table class="spec">
     <tr><th>引数</th><th>必須</th><th>内容</th></tr>
     <tr><td>target_repo_path</td><td>必須</td><td>対象リポジトリの絶対パス</td></tr>
-    <tr><td>output_dir</td><td>必須</td><td>出力先ルート。規約20文書は <code>&lt;output_dir&gt;/規約/</code> 配下、共通6文書は <code>&lt;output_dir&gt;/プロジェクト共通/</code> 配下に出力する</td></tr>
-    <tr><td>template_root</td><td>必須</td><td>テンプレ一式のルート。<code>&lt;template_root&gt;/規約/</code> と <code>&lt;template_root&gt;/プロジェクト共通/</code> の既存テンプレ26文書を雛形に使う</td></tr>
+    <tr><td>output_dir</td><td>必須</td><td>出力先ルート。共通6文書は <code>&lt;output_dir&gt;/プロジェクト共通/</code> 配下に出力する</td></tr>
+    <tr><td>template_root</td><td>必須</td><td>テンプレ一式のルート。<code>&lt;template_root&gt;/プロジェクト共通/</code> の既存テンプレ6文書を雛形に使う</td></tr>
     <tr><td>survey_doc_path</td><td>必須</td><td>アーキテクチャ調査書のパス（ディレクトリ責務マップを層化サンプリングの層定義に使う）</td></tr>
     <tr><td>mode</td><td>任意（既定 v0）</td><td>v0（新規）／append（NG帰着(c)の追記。append_findings を受け取り該当文書へ追記して全ゲートを再実行）</td></tr>
     <tr><td>append_findings</td><td>mode=append 時のみ必須</td><td>差し戻し元が指摘した欠落挙動・欠落文書の一覧</td></tr>
@@ -245,8 +245,8 @@
   target_repo_path・template_root・survey_doc_pathの実在を確認する
   調査書内「ユニット種別判定」節と「ディレクトリ責務マップ」節の
   実在をgrepで確認する(調査書ゲートの再実行はしない)
-  output_dir/規約/とoutput_dir/プロジェクト共通/を作成し雛形26文書を複製する
-  完了条件: 雛形26文書複製済み・調査書の2節実在確認済み
+  output_dir/プロジェクト共通/を作成し雛形6文書を複製する
+  完了条件: 雛形6文書複製済み・調査書の2節実在確認済み
    (mode=append時は既存7文書と指摘文書の特定済み)
 
 <span class="cap">Phase 2: 層化サンプリング</span>
@@ -284,12 +284,12 @@
 
 <section id="s7">
   <h2><span class="sec-num">§7</span>機械ゲート4検査</h2>
-  <p><code>check-common-docs.sh</code>は合否を exit code のみで判定する（自然文の自己申告は用いない）。検査2・検査5は規約4文書の非採録化に伴い撤去済みで、番号は繰り上げず欠番のままとする（残るのは検査1・3・4・6）。</p>
+  <p><code>check-common-docs.sh</code>は合否を exit code のみで判定する（自然文の自己申告は用いない）。検査2・検査5は規約定義の非採録化に伴い撤去済みで、番号は繰り上げず欠番のままとする（残るのは検査1・3・4・6）。</p>
   <table class="spec">
     <tr><th>検査</th><th>内容</th></tr>
-    <tr><td>検査1: 実在検査</td><td>永続する共通6文書（共通設計書.md・メッセージ定義書.md・DESIGN.md・基盤設計.md・UI共通設計.md・データ設計.md）が実在するかを確認する。規約4文書とサンプル記録は欠落を許可する</td></tr>
+    <tr><td>検査1: 実在検査</td><td>永続する共通6文書（共通設計書.md・メッセージ定義書.md・DESIGN.md・基盤設計.md・UI共通設計.md・データ設計.md）が実在するかを確認する。サンプル記録は欠落を許可する（規約定義は本スキルの対象外）</td></tr>
     <tr><td>検査3: パス実在検査</td><td>共通設計書.md・メッセージ定義書.md・DESIGN.mdのbacktick囲み相対パス全件が target_repo_path 配下に実在するかを確認する。URL・glob・プレースホルダ・絶対パス・空白や正規表現記号を含むトークンは対象外</td></tr>
-    <tr><td>検査4: テンプレ残存検査</td><td>プレースホルダ（<code>&lt;実測</code>・<code>&lt;FILL</code>・<code>TBD</code>・<code>TODO</code>）の残存ゼロを永続する共通6文書で確認する。規約4文書は空雛形へ変更済みのため、サンプル記録とあわせて本ゲートの走査対象から除外する</td></tr>
+    <tr><td>検査4: テンプレ残存検査</td><td>プレースホルダ（<code>&lt;実測</code>・<code>&lt;FILL</code>・<code>TBD</code>・<code>TODO</code>）の残存ゼロを永続する共通6文書で確認する。規約定義は本スキルの対象外のため、サンプル記録とあわせて本ゲートの走査対象から除外する</td></tr>
     <tr><td>検査6: メッセージ定義書規模突合</td><td>メッセージ定義書.md内の「総件数: &lt;N&gt;件」宣言行と、backtickメッセージ文字列を含むテーブル行の実測件数が一致するかを確認する。宣言行が無い場合もFAILとする</td></tr>
   </table>
 </section>
@@ -325,7 +325,7 @@
   <h2><span class="sec-num">§10</span>予想を裏切る挙動</h2>
   <ul>
     <li>記載パスの実在チェック（機械ゲート検査3）は、共通設計書.md・メッセージ定義書.md・DESIGN.mdのbacktickで囲んだ「/」を含む相対パスのみを対象とする。URL（<code>://</code>）・glob（<code>*</code>/<code>?</code>）・プレースホルダ（<code>&lt;</code>/<code>&gt;</code>）・絶対パス（先頭<code>/</code>）・空白や正規表現記号を含むトークン（コマンド例・grepパターン）は対象外</li>
-    <li>テンプレ残存検査（検査4）は永続する共通6文書を走査する。規約4文書はコードからの採録をやめ空雛形へ変更済みのため、サンプル記録とあわせて必須実在・テンプレ残存ゲートの対象外</li>
+    <li>テンプレ残存検査（検査4）は永続する共通6文書を走査する。規約定義は<code>docs/rules/</code>で別管理する本スキル対象外のため、サンプル記録とあわせて必須実在・テンプレ残存ゲートの対象外</li>
     <li>mode=append は指摘文書のみ追記すればよいが、機械ゲートは全項目を再実行する。部分ゲートは存在しない</li>
     <li>発散判定（同一NG理由2連続）は上限5回を消化する前でも即中断する</li>
     <li>層あたりのk値は層内ファイル数の平方根以上・3以上10以下に丸める。全層合計20ファイル未満だとPhase 2の完了条件を満たさない。詳細は references/sampling-rules.md</li>

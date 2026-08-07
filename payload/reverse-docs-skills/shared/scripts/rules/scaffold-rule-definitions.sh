@@ -8,10 +8,10 @@ set -euo pipefail
 #
 # 目的:
 #   docs/rules/ が空、または未整備の対象リポジトリに、親7フォルダ・parent.yml、
-#   子27フォルダ・rule.md（空雛形）を作る。うち2件（ai-config-asset-management・
-#   portal-maintenance）はツール側が本文を書いて納品する規約のため、空雛形にせず
+#   子27フォルダ・rule.md（空雛形）を作る。rule-taxonomy.json で toolDefined を
+#   宣言している子カテゴリはツール側が本文を書いて納品する規約のため、空雛形にせず
 #   本文入りで作る。あわせて --with-skills 指定時は納品スキル2本、
-#   検証と生成のスクリプト（docs/rules-tooling/）を配る。
+#   検証と生成のスクリプト（docs/rules/tooling/）を配る。
 #
 # 使い方:
 #   scaffold-rule-definitions.sh <出力先リポジトリルート> [--apply] [--with-skills]
@@ -32,7 +32,7 @@ set -euo pipefail
 #   front matter 直後に生成物notice comment を入れる
 #   （build-derived-rules.sh の .mdc 生成と同じ配置規約）。
 #
-# docs/rules-tooling/ の配備:
+# docs/rules/tooling/ の配備:
 #   build-derived-rules.sh --deploy-tooling を呼ぶだけで、重複実装しない
 #   （--apply指定時のみ実行。dry-runでは呼ばず計画行のみ列挙する）。
 #
@@ -54,8 +54,7 @@ REPO_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
 TAXONOMY_JSON="${REPO_ROOT}/shared/references/rule-taxonomy.json"
 BUILD_DERIVED_SCRIPT="${SCRIPT_DIR}/build-derived-rules.sh"
 SKILLS_TEMPLATE_DIR="${REPO_ROOT}/shared/templates/delivered-skills"
-TEMPLATE_AI_ASSET="${REPO_ROOT}/shared/templates/リバース検証/規約/AI設定資産管理.md"
-TEMPLATE_PORTAL="${REPO_ROOT}/shared/templates/リバース検証/規約/ポータル.md"
+TOOLDEFINED_TEMPLATE_DIR="${REPO_ROOT}/shared/templates/rules/tool-defined"
 
 APPLY=0
 WITH_SKILLS=0
@@ -106,7 +105,20 @@ build_parent_yml() {
 }
 
 build_design_notes() {
-  local title="$1"
+  local title="$1" tool_defined="${2:-false}"
+  if [ "$tool_defined" = "true" ]; then
+    cat <<EOF
+# 設計判断
+
+「${title}」はツール側が本文を定めた規約であり、規約本文は確定している。
+
+- 必要性: 規約の遵守を静的解析で判定する仕組みを持たない
+- 今後の判断: 検査の手段が見つかった時点で checkable の要否を判断する
+- 保守責任者: 人手（ユーザー）。ツール側の定義を保守する担当者
+- 廃棄条件: この規約をツール側の定義から外し、現場が記入する空雛形へ戻した時
+EOF
+    return 0
+  fi
   cat <<EOF
 # 設計判断
 
@@ -162,15 +174,24 @@ ${summary}
 EOF
 }
 
-# ツール側が本文を書いて納品する2件。既存テンプレートの本文（概要・規則表）を
+# ツール側が本文を書いて納品する規約。既存テンプレートの本文（概要・規則表）を
 # そのまま使い、front matterと見出しだけを規約定義の形式に合わせて差し替える。
 build_tooldefined_rule_md() {
   local key="$1" title="$2" parent="$3" summary="$4" uncheckable="$5" src_template="$6"
   local body
   # 1行目（テンプレート側の "# <旧見出し>"）を落とし、直後の空行だけを削る
   body="$(tail -n +2 "$src_template" | sed '/./,$!d')"
-  # 規約総数の文言をこのリポジトリの構成（27枚中25枚が空雛形）に合わせる
-  body="$(printf '%s\n' "$body" | sed 's/規約 20 枚のうち 18 枚/規約 27 枚のうち 25 枚/')"
+
+  # テンプレート内の <!-- uncheckableReason: ... --> 行から理由を取り出す。
+  # 見つからなければ引数で渡された既定値をそのまま使う。
+  local extracted_reason
+  extracted_reason="$(printf '%s\n' "$body" | grep '<!-- uncheckableReason:' | head -n1 | sed -e 's/.*uncheckableReason:[[:space:]]*//' -e 's/[[:space:]]*-->.*//' || true)"
+  if [ -n "$extracted_reason" ]; then
+    uncheckable="$extracted_reason"
+  fi
+  # 本文からuncheckableReasonコメント行だけを取り除く（他のコメント行は残す）
+  body="$(printf '%s\n' "$body" | sed '/<!-- uncheckableReason:/d')"
+
   cat <<EOF
 ---
 key: ${key}
@@ -242,12 +263,8 @@ run_scaffold() {
       local rule_content design_content
 
       if [ "$ctool" = "true" ]; then
-        local src_template=""
-        case "$ckey" in
-          ai-config-asset-management) src_template="$TEMPLATE_AI_ASSET" ;;
-          portal-maintenance) src_template="$TEMPLATE_PORTAL" ;;
-        esac
-        if [ -z "$src_template" ] || [ ! -f "$src_template" ]; then
+        local src_template="${TOOLDEFINED_TEMPLATE_DIR}/${ckey}.md"
+        if [ ! -f "$src_template" ]; then
           echo "ERROR: toolDefinedの本文テンプレートが見つかりません: ${ckey}" >&2
           return 1
         fi
@@ -255,7 +272,7 @@ run_scaffold() {
       else
         rule_content="$(build_draft_rule_md "$ckey" "$ctitle" "$pkey" "$csummary")"
       fi
-      design_content="$(build_design_notes "$ctitle")"
+      design_content="$(build_design_notes "$ctitle" "$ctool")"
 
       write_if_new "${child_dir}/rule.md" "$rule_content" "rule"
       write_if_new "${child_dir}/design-notes.md" "$design_content" "other"
@@ -271,12 +288,12 @@ EOF
   fi
 
   if [ "$APPLY" -eq 1 ]; then
-    plan_add "docs/rules-tooling/build-derived-rules.sh（--deploy-toolingで配備）"
-    plan_add "docs/rules-tooling/validate-rule-definitions.sh（--deploy-toolingで配備）"
+    plan_add "docs/rules/tooling/build-derived-rules.sh（--deploy-toolingで配備）"
+    plan_add "docs/rules/tooling/validate-rule-definitions.sh（--deploy-toolingで配備）"
     bash "$BUILD_DERIVED_SCRIPT" --deploy-tooling "$out_root"
   else
-    plan_add "${out_root}/docs/rules-tooling/build-derived-rules.sh"
-    plan_add "${out_root}/docs/rules-tooling/validate-rule-definitions.sh"
+    plan_add "${out_root}/docs/rules/tooling/build-derived-rules.sh"
+    plan_add "${out_root}/docs/rules/tooling/validate-rule-definitions.sh"
   fi
 
   if [ "$APPLY" -eq 1 ]; then
@@ -365,7 +382,7 @@ self_test() {
 
   # ケース2: 親7フォルダ・子27フォルダが作られる
   local parent_count child_count
-  parent_count="$(find "${out1}/docs/rules" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | grep -c . || true)"
+  parent_count="$(find "${out1}/docs/rules" -mindepth 1 -maxdepth 1 -type d ! -name tooling 2>/dev/null | grep -c . || true)"
   child_count="$(find "${out1}/docs/rules" -mindepth 2 -maxdepth 2 -type d 2>/dev/null | grep -c . || true)"
   if [ "$parent_count" -eq 7 ] && [ "$child_count" -eq 27 ]; then
     echo "  [PASS] ケース2: 親7フォルダ・子27フォルダが作られる"
@@ -397,7 +414,7 @@ EOF
     rc=1
   fi
 
-  # ケース4: toolDefined 2件がstatus:approvedで本文入り、残り25件がstatus:draftで（未記入）を含む
+  # ケース4: toolDefinedの子カテゴリがstatus:approvedで本文入り、残りがstatus:draftで（未記入）を含む
   local ok4=1 approved_count=0 draft_count=0
   while IFS= read -r rf; do
     [ -n "$rf" ] || continue
@@ -416,12 +433,16 @@ EOF
   done <<EOF
 $rule_files
 EOF
-  [ "$approved_count" -eq 2 ] || ok4=0
-  [ "$draft_count" -eq 25 ] || ok4=0
+  local expected_approved expected_draft total_children
+  expected_approved="$(jq '[.parents[].children[] | select(.toolDefined == true)] | length' "$TAXONOMY_JSON")"
+  total_children="$(jq '[.parents[].children[]] | length' "$TAXONOMY_JSON")"
+  expected_draft=$((total_children - expected_approved))
+  [ "$approved_count" -eq "$expected_approved" ] || ok4=0
+  [ "$draft_count" -eq "$expected_draft" ] || ok4=0
   if [ "$ok4" -eq 1 ]; then
-    echo "  [PASS] ケース4: approved 2件（本文入り・未記入なし）、draft 25件（未記入あり）"
+    echo "  [PASS] ケース4: approved ${expected_approved}件（本文入り・未記入なし）、draft ${expected_draft}件（未記入あり）"
   else
-    echo "  [FAIL] ケース4: approved=${approved_count}件 draft=${draft_count}件（期待: 2件/25件）" >&2
+    echo "  [FAIL] ケース4: approved=${approved_count}件 draft=${draft_count}件（期待: ${expected_approved}件/${expected_draft}件）" >&2
     rc=1
   fi
 
@@ -451,17 +472,17 @@ EOF
     rc=1
   fi
 
-  # ケース7: docs/rules-tooling/の2本が配られ実行できる
+  # ケース7: docs/rules/tooling/の2本が配られ実行できる
   local ok7=1
-  [ -x "${out1}/docs/rules-tooling/build-derived-rules.sh" ] || ok7=0
-  [ -x "${out1}/docs/rules-tooling/validate-rule-definitions.sh" ] || ok7=0
+  [ -x "${out1}/docs/rules/tooling/build-derived-rules.sh" ] || ok7=0
+  [ -x "${out1}/docs/rules/tooling/validate-rule-definitions.sh" ] || ok7=0
   if [ "$ok7" -eq 1 ]; then
-    bash "${out1}/docs/rules-tooling/validate-rule-definitions.sh" "${out1}/docs/rules" >/dev/null 2>&1 || ok7=0
+    bash "${out1}/docs/rules/tooling/validate-rule-definitions.sh" "${out1}/docs/rules" >/dev/null 2>&1 || ok7=0
   fi
   if [ "$ok7" -eq 1 ]; then
-    echo "  [PASS] ケース7: docs/rules-tooling/の2本が配られ、実行できる"
+    echo "  [PASS] ケース7: docs/rules/tooling/の2本が配られ、実行できる"
   else
-    echo "  [FAIL] ケース7: docs/rules-tooling/の配備または実行が不正" >&2
+    echo "  [FAIL] ケース7: docs/rules/tooling/の配備または実行が不正" >&2
     rc=1
   fi
 

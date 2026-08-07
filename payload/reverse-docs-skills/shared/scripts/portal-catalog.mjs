@@ -7,7 +7,7 @@ import assert from "node:assert/strict";
 
 const KEY_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const CATEGORY_KEYS = new Set(["key", "label", "group", "icon", "sub", "blueprints"]);
-const BLUEPRINT_KEYS = new Set(["kind", "label", "icon", "desc", "dir", "generator", "unit", "countFormat", "group", "discovery"]);
+const BLUEPRINT_KEYS = new Set(["kind", "label", "icon", "desc", "dir", "generator", "unit", "countFormat", "group", "disabledWhenEmpty", "discovery"]);
 const DISCOVERY_KEYS = new Set([
   "artifactType", "root", "glob", "matchKind", "titleSource", "dirSource",
   "instanceKeySource", "sort", "embeddedScriptId", "countJsonPointer",
@@ -68,6 +68,9 @@ export function validateCatalog(catalog) {
       if (kinds.has(blueprint.kind)) fail(`duplicate kind in ${category.key}: ${blueprint.kind}`);
       kinds.add(blueprint.kind);
       if ("group" in blueprint) assertString(blueprint.group, `${blueprintLabel}.group`);
+      if ("disabledWhenEmpty" in blueprint && typeof blueprint.disabledWhenEmpty !== "boolean") {
+        fail(`${blueprintLabel}.disabledWhenEmpty must be a boolean`);
+      }
       if (!["unit-count", "detail"].includes(blueprint.countFormat)) fail(`${blueprintLabel}.countFormat is invalid`);
       const discovery = blueprint.discovery;
       assertObject(discovery, `${blueprintLabel}.discovery`);
@@ -229,6 +232,18 @@ export function renderCatalog(catalog, outputRoot, portalDir) {
         };
         if ("group" in blueprint) tool.group = blueprint.group;
         tools.push(tool);
+      }
+      if (matches.length === 0 && blueprint.disabledWhenEmpty === true) {
+        const disabledTool = {
+          title: blueprint.label,
+          icon: blueprint.icon,
+          href: null,
+          desc: blueprint.desc,
+          count: "該当なし",
+          disabled: true,
+        };
+        if ("group" in blueprint) disabledTool.group = blueprint.group;
+        tools.push(disabledTool);
       }
       if (matches.length > 0 && blueprint.countFormat === "unit-count") {
         kinds.push({

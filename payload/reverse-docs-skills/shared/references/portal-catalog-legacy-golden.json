@@ -40,164 +40,220 @@
     "sub": "全体に適用されるルール・規約",
     "tools": [
       {
-        "title": "AIエージェント運用",
+        "title": "AIエージェント行動規約（下書き）",
         "icon": "rule",
-        "href": "./規約/AIエージェント運用.html",
+        "href": "./rules/agent-operations/ai-behavior/rule.html",
         "desc": "AIエージェントへの作業委任・役割分担・実行方式の取り決め。",
         "count": "詳細を見る",
-        "group": "エージェント運用"
+        "group": "AIエージェント運用"
       },
       {
-        "title": "安全な操作",
+        "title": "破壊的操作の安全規約（下書き）",
         "icon": "rule",
-        "href": "./規約/安全な操作.html",
-        "desc": "破壊的操作・不可逆変更を行う前の確認手順と禁止事項。",
+        "href": "./rules/agent-operations/destructive-operation-safety/rule.html",
+        "desc": "rm -rf・force push・reset --hard 等の破壊的操作を実行する前の確認と検査の取り決め。",
         "count": "詳細を見る",
-        "group": "エージェント運用"
+        "group": "AIエージェント運用"
       },
       {
-        "title": "セッション管理",
+        "title": "セッション管理規約（下書き）",
         "icon": "rule",
-        "href": "./規約/セッション管理.html",
-        "desc": "作業セッションの開始・進行・終了時に踏む手順の取り決め。",
+        "href": "./rules/agent-operations/session-management/rule.html",
+        "desc": "作業セッションの開始・終了・記録・引き継ぎに関する取り決め。",
         "count": "詳細を見る",
-        "group": "エージェント運用"
+        "group": "AIエージェント運用"
       },
       {
-        "title": "AI設定資産管理",
+        "title": "AI設定資産の管理規約",
         "icon": "rule",
-        "href": "./規約/AI設定資産管理.html",
-        "desc": "スキル・規約・フックの作成と変更の手順、および配置先の取り決め。",
+        "href": "./rules/agent-operations/ai-config-asset-management/rule.html",
+        "desc": "スキル・規約・フックなどAI設定資産の作成・変更・配置・レビューの手順。",
         "count": "詳細を見る",
-        "group": "エージェント運用"
+        "group": "AIエージェント運用"
       },
       {
-        "title": "定型運用",
+        "title": "定型運用の規約（下書き）",
         "icon": "rule",
-        "href": "./規約/定型運用.html",
-        "desc": "繰り返し実行する定型作業の手順と実行契機の定義。",
+        "href": "./rules/agent-operations/routine-operations/rule.html",
+        "desc": "定期的に繰り返す定型作業の手順と実行タイミングの取り決め。",
         "count": "詳細を見る",
-        "group": "エージェント運用"
+        "group": "AIエージェント運用"
       },
       {
-        "title": "開発フロー",
+        "title": "開発フロー規約（下書き）",
         "icon": "rule",
-        "href": "./規約/開発フロー.html",
-        "desc": "着手から統合までの工程順序と、各工程の完了条件。",
-        "count": "詳細を見る",
-        "group": "開発プロセス"
-      },
-      {
-        "title": "ツール・コマンド実行",
-        "icon": "rule",
-        "href": "./規約/ツール・コマンド実行.html",
-        "desc": "コマンド実行時の前提確認・禁止コマンド・実行環境の制約。",
+        "href": "./rules/development-process/development-flow/rule.html",
+        "desc": "設計から実装・レビュー・統合までの開発工程の順序と各段階の完了条件。",
         "count": "詳細を見る",
         "group": "開発プロセス"
       },
       {
-        "title": "開発環境",
+        "title": "ツールとコマンド実行の規約（下書き）",
         "icon": "rule",
-        "href": "./規約/開発環境.html",
-        "desc": "ローカル環境の構成・ポート割当・依存ツールの取り決め。",
+        "href": "./rules/development-process/tools-and-commands/rule.html",
+        "desc": "開発で使うツールとコマンドの実行方法・権限・実行前確認の取り決め。",
         "count": "詳細を見る",
         "group": "開発プロセス"
       },
       {
-        "title": "Git運用",
+        "title": "開発環境規約（下書き）",
         "icon": "rule",
-        "href": "./規約/Git運用.html",
-        "desc": "ブランチ運用・コミット単位・統合手順の取り決め。",
+        "href": "./rules/development-process/development-environment/rule.html",
+        "desc": "ローカル開発環境の構築手順・依存関係・環境変数の管理方法。",
         "count": "詳細を見る",
         "group": "開発プロセス"
       },
       {
-        "title": "デリバリー",
+        "title": "Git運用規約（下書き）",
         "icon": "rule",
-        "href": "./規約/デリバリー.html",
-        "desc": "リリース手順・配布物の構成・公開前の確認事項。",
+        "href": "./rules/development-process/git-operations/rule.html",
+        "desc": "コミット・ブランチ・マージ・プルリクエストの運用ルール。",
         "count": "詳細を見る",
         "group": "開発プロセス"
       },
       {
-        "title": "コーディング規約",
+        "title": "リリースとデリバリーの規約（下書き）",
         "icon": "rule",
-        "href": "./規約/コーディング規約.html",
-        "desc": "命名ケース・インデント・コメント・エラー処理の統一ルール。",
+        "href": "./rules/development-process/release-and-delivery/rule.html",
+        "desc": "リリース手順・デプロイ方法・バージョン管理の取り決め。",
         "count": "詳細を見る",
-        "group": "コード"
+        "group": "開発プロセス"
       },
       {
-        "title": "命名規約",
+        "title": "コーディング規約（下書き）",
         "icon": "rule",
-        "href": "./規約/命名規約.html",
-        "desc": "変数・クラス・ファイル・ディレクトリの命名パターンと禁止事項。",
+        "href": "./rules/code-standards/coding-style/rule.html",
+        "desc": "コードの書き方・関数分割・ファイル行数など実装スタイルの取り決め。",
         "count": "詳細を見る",
-        "group": "コード"
+        "group": "コード規約"
       },
       {
-        "title": "ディレクトリ構成規約",
+        "title": "命名規約（下書き）",
         "icon": "rule",
-        "href": "./規約/ディレクトリ構成規約.html",
-        "desc": "フォルダ階層の設計方針と各ディレクトリの責務定義。",
+        "href": "./rules/code-standards/naming/rule.html",
+        "desc": "変数・関数・ファイル・ディレクトリなど識別子の命名パターン。",
         "count": "詳細を見る",
-        "group": "コード"
+        "group": "コード規約"
       },
       {
-        "title": "コンポーネント設計規約",
+        "title": "ディレクトリ構成規約（下書き）",
         "icon": "rule",
-        "href": "./規約/コンポーネント設計規約.html",
-        "desc": "コンポーネント分割の粒度・props設計・状態管理の方針。",
+        "href": "./rules/code-standards/directory-structure/rule.html",
+        "desc": "リポジトリのディレクトリ配置とレイヤー構成の取り決め。",
         "count": "詳細を見る",
-        "group": "コード"
+        "group": "コード規約"
+      },
+      {
+        "title": "コンポーネント設計規約（下書き）",
+        "icon": "rule",
+        "href": "./rules/code-standards/component-architecture/rule.html",
+        "desc": "コンポーネントの分割方針・責務分担・依存関係の設計指針。",
+        "count": "詳細を見る",
+        "group": "コード規約"
       },
       {
         "title": "テスト方針書",
         "icon": "rule",
-        "href": "./規約/テスト方針書.html",
-        "desc": "テスト種別・カバレッジ基準・フレームワーク選定の横断ルール。",
+        "href": "./rules/quality-assurance/test-policy/rule.html",
+        "desc": "テストの種類・カバレッジ目標・実行タイミングの取り決め。",
         "count": "詳細を見る",
-        "group": "品質・文書"
+        "group": "品質保証"
       },
       {
-        "title": "レビュー観点表",
+        "title": "レビュー観点表（下書き）",
         "icon": "rule",
-        "href": "./規約/レビュー観点表.html",
-        "desc": "コードレビュー・文書レビューの合格基準と照合観点。",
+        "href": "./rules/quality-assurance/review-checklist/rule.html",
+        "desc": "コードレビューで確認する観点と合格基準の一覧。",
         "count": "詳細を見る",
-        "group": "品質・文書"
+        "group": "品質保証"
       },
       {
-        "title": "セキュリティ",
+        "title": "ドキュメント作成規約",
         "icon": "rule",
-        "href": "./規約/セキュリティ.html",
-        "desc": "秘密情報の取り扱い・権限設計・脆弱性への対処方針。",
+        "href": "./rules/documentation-standards/document-writing/rule.html",
+        "desc": "設計書・手順書などドキュメントの記述形式と更新手順の取り決め。",
         "count": "詳細を見る",
-        "group": "品質・文書"
+        "group": "文書化規約"
       },
       {
-        "title": "ドキュメント",
+        "title": "ポータル保守規約",
         "icon": "rule",
-        "href": "./規約/ドキュメント.html",
-        "desc": "文書の構成・記述粒度・更新契機の取り決め。",
+        "href": "./rules/documentation-standards/portal-maintenance/rule.html",
+        "desc": "ポータルと一覧のHTMLを保守するときの取り決め。",
         "count": "詳細を見る",
-        "group": "品質・文書"
+        "group": "文書化規約"
       },
       {
-        "title": "ポータル",
+        "title": "セキュリティ要件（下書き）",
         "icon": "rule",
-        "href": "./規約/ポータル.html",
-        "desc": "設計ポータルの構成・ページ追加手順・表示上の取り決め。",
+        "href": "./rules/non-functional-requirements/security/rule.html",
+        "desc": "認証・認可・入力検証など安全性に関する要件。",
         "count": "詳細を見る",
-        "group": "品質・文書"
+        "group": "非機能要件"
       },
       {
-        "title": "コミュニケーション",
+        "title": "性能要件（下書き）",
         "icon": "rule",
-        "href": "./規約/コミュニケーション.html",
-        "desc": "用語の統一・報告の形式・記述の読みやすさに関する取り決め。",
+        "href": "./rules/non-functional-requirements/performance/rule.html",
+        "desc": "応答時間・処理件数などパフォーマンスに関する要件。",
         "count": "詳細を見る",
-        "group": "品質・文書"
+        "group": "非機能要件"
+      },
+      {
+        "title": "可用性要件（下書き）",
+        "icon": "rule",
+        "href": "./rules/non-functional-requirements/availability/rule.html",
+        "desc": "システムの稼働継続性と障害時の復旧に関する要件。",
+        "count": "詳細を見る",
+        "group": "非機能要件"
+      },
+      {
+        "title": "拡張性要件（下書き）",
+        "icon": "rule",
+        "href": "./rules/non-functional-requirements/scalability/rule.html",
+        "desc": "利用量の増加に対応するための拡張方針に関する要件。",
+        "count": "詳細を見る",
+        "group": "非機能要件"
+      },
+      {
+        "title": "監視要件（下書き）",
+        "icon": "rule",
+        "href": "./rules/non-functional-requirements/observability/rule.html",
+        "desc": "ログ出力・監視・アラートに関する要件。",
+        "count": "詳細を見る",
+        "group": "非機能要件"
+      },
+      {
+        "title": "用語定義（下書き）",
+        "icon": "rule",
+        "href": "./rules/business-domain/glossary/rule.html",
+        "desc": "業務用語とコード上の識別子の対応関係の定義。",
+        "count": "詳細を見る",
+        "group": "業務ドメイン規約"
+      },
+      {
+        "title": "業務規則（下書き）",
+        "icon": "rule",
+        "href": "./rules/business-domain/business-rules/rule.html",
+        "desc": "業務上守るべき判定ロジックと制約の取り決め。",
+        "count": "詳細を見る",
+        "group": "業務ドメイン規約"
+      },
+      {
+        "title": "状態遷移の制約（下書き）",
+        "icon": "rule",
+        "href": "./rules/business-domain/state-transitions/rule.html",
+        "desc": "業務エンティティが取りうる状態と許可される遷移の取り決め。",
+        "count": "詳細を見る",
+        "group": "業務ドメイン規約"
+      },
+      {
+        "title": "計算規則（下書き）",
+        "icon": "rule",
+        "href": "./rules/business-domain/calculation-rules/rule.html",
+        "desc": "金額・数量などの計算ロジックとその根拠の取り決め。",
+        "count": "詳細を見る",
+        "group": "業務ドメイン規約"
       }
     ]
   },
@@ -277,7 +333,7 @@
         "title": "用語辞書",
         "icon": "dictionary",
         "href": "./一覧/用語辞書/用語辞書.html",
-        "desc": "承認済み用語の意味キー・日本語名・英語名・定義・適用範囲・分類・コード名・型名・DB名・API名・UI表示名・許容値・状態・備考を一覧化。",
+        "desc": "承認済み用語の内容要約キー・日本語名・英語名・定義・適用範囲・分類・コード名・型名・DB名・API名・UI表示名・許容値・状態・備考を一覧化。",
         "count": "詳細を見る",
         "group": "用語"
       },
