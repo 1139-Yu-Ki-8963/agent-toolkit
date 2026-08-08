@@ -176,5 +176,5 @@ jq -r '.parents[] | "\(.key) / \(.title)", (.children[] | "  \(.key) / \(.title)
 
 - `orchestrating-reverse-docs-flow`: 工程全体の案内役
 - `surveying-architecture-for-reverse-docs`: 本スキルのデータ源（アーキテクチャ調査書）を確定する前工程
-- `importing-rule-proposals`（未実装）: 判定結果JSONを読み `docs/rules/<親>/<子>/` へ書き込む取り込みスキル
-- `syncing-derived-artifacts`（未実装）: `docs/rules/` から各ツール向け派生物を生成する適用スキル
+- `importing-rule-proposals`: 判定結果JSONを読み `docs/rules/<親>/<子>/` へ書き込む取り込みスキル。実体は `shared/templates/delivered-skills/importing-rule-proposals/` にある。`scaffold-rule-definitions.sh --with-skills` が対象リポジトリへ配る
+- `syncing-derived-artifacts`: `docs/rules/` から各ツール向け派生物を生成する適用スキル。実体は `shared/templates/delivered-skills/syncing-derived-artifacts/` にある。同じ経路で配る

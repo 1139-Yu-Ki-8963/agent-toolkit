@@ -161,7 +161,7 @@ Skill(orchestrating-reverse-docs-flow)
 | Cycle 1 | 未着手 | API 縦貫。extracting-unit-facts-from-code の profile=api 追加・facts-schema 拡張 → generating-reverse-detailed-design の API 章マップ → 画面レンダリング比較に代わる検証方式（スキーマ差分・HTTP 応答突合）の設計 |
 | Cycle 2 | 未着手 | テーブル・バッチ。テーブルはスキーマ静的比較、バッチは実行契約の facts |
 | Cycle 3 | 未着手 | 帳票・外部連携。帳票レイアウト・外部連携契約 |
-| Cycle 4 | 未着手 | 上位抽象化スキル。基本設計・要件定義文書群（[納品物フォルダ体系.md](shared/references/納品物フォルダ体系.md) の未実装担当分） |
+| Cycle 4 | 一部完了 | 上位抽象化スキル。バッチ・帳票・外部連携の各基本設計書は実装済み。残りは機能要件一覧・帳票要件・バッチ要件・外部連携要件・ビジネス概要の 5 文書（[納品物フォルダ体系.md](shared/references/納品物フォルダ体系.md) の未実装担当分） |
 
 ## 正本文書
 
