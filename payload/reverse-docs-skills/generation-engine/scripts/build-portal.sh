@@ -280,6 +280,7 @@ try {
   process.stderr.write('ERROR: backfill_shell_shared_state: invalid shell_counts_json\n');
   process.exit(1);
 }
+
 const countByKey = new Map(counts.map((c) => [c.key, c.count]));
 const total = counts.reduce((sum, c) => sum + (Number(c.count) || 0), 0);
 
@@ -354,6 +355,132 @@ function processFile(filePath) {
 
 const fileList = fs.readFileSync(3, 'utf8').split('\n').map((s) => s.trim()).filter(Boolean);
 fileList.forEach(processFile);
+NODE
+}
+
+# remove_orphaned_common_html — 対応する Markdown を失った生成 HTML を限定して削除する。
+# common_roots と rules_root は .md と .html を同居させ、foundation_out_dir と
+# screen_view_root は分離出力する。どちらも同じ保護判定を通し、対応表・解決済みcatalog
+# exact output・build-portal.sh 固有のフッター要素で生成物だと判別できる範囲だけを扱う。
+#
+# 引数:
+#   $1 md_map_file — 1 行「md絶対パス<TAB>html絶対パス」の対応表
+#   $2 catalog     — portal-catalog.json
+#   $3 output_layout_file — portal-catalog と同じprefix解決に使う合成済みoutput-layout
+#   $4 docs_root   — 納品物ルート
+#   $5 foundation_out_dir — .md と .html が分離される基盤文書の出力先
+#   $6 rules_root — .md と .html を同じ場所へ置く規約文書の入力・出力先
+#   $7 screen_view_root — .md と .html が分離される画面文書の出力先
+#   $8... common_roots — .md と .html を同じ場所へ置く共通文書の入力・出力先
+remove_orphaned_common_html() {
+  local md_map_file="$1"
+  local catalog="$2"
+  local output_layout_file="$3"
+  local docs_root="$4"
+  local foundation_out_dir="$5"
+  local rules_root="$6"
+  local screen_view_root="$7"
+  shift 7
+  node - "$md_map_file" "$catalog" "$output_layout_file" "$docs_root" "$foundation_out_dir" "$rules_root" "$screen_view_root" "$@" <<'NODE'
+const fs = require('node:fs');
+const path = require('node:path');
+
+const [mapFile, catalogFile, outputLayoutFile, docsRootRaw, foundationOutDirRaw, rulesRootRaw, screenViewRootRaw, ...commonRootsRaw] = process.argv.slice(2);
+const docsRoot = path.resolve(docsRootRaw);
+const expected = new Set();
+for (const line of fs.readFileSync(mapFile, 'utf8').split('\n')) {
+  if (!line) continue;
+  const [, htmlFile] = line.split('\t');
+  if (htmlFile) expected.add(path.resolve(htmlFile));
+}
+
+const scanRoots = new Set();
+for (const root of commonRootsRaw) {
+  scanRoots.add(path.resolve(root));
+}
+scanRoots.add(path.resolve(rulesRootRaw));
+scanRoots.add(path.resolve(foundationOutDirRaw));
+scanRoots.add(path.resolve(screenViewRootRaw));
+
+// portal-catalog.mjs の resolveDefaultRootPrefix と同じ置換を行ってからexact outputを
+// 絶対パス化する。カスタムoutput-layoutでもcatalog renderと削除保護の解決先を揃える。
+const catalog = JSON.parse(fs.readFileSync(catalogFile, 'utf8'));
+const outputLayoutJson = JSON.parse(fs.readFileSync(outputLayoutFile, 'utf8'));
+const outputLayout = outputLayoutJson.layout;
+const catalogCommonOutputs = new Set();
+const catalogOtherOutputs = new Set();
+function resolveDefaultRootPrefix(value) {
+  for (const [key, prefix] of Object.entries(catalog.defaultRoots || {})) {
+    if (value === prefix || value.startsWith(`${prefix}/`)) {
+      const override = outputLayout && outputLayout[key];
+      if (typeof override === 'string' && override.length > 0) {
+        return override + value.slice(prefix.length);
+      }
+      return value;
+    }
+  }
+  return value;
+}
+for (const category of catalog.categories || []) {
+  for (const blueprint of category.blueprints || []) {
+    const rawGlob = blueprint.discovery && blueprint.discovery.glob;
+    const glob = typeof rawGlob === 'string' ? resolveDefaultRootPrefix(rawGlob) : rawGlob;
+    if (typeof glob !== 'string' || /[*?[\]{}]/.test(glob)) continue;
+    const output = path.resolve(docsRoot, glob);
+    if (['generating-reverse-common-docs', 'surveying-architecture-for-reverse-docs'].includes(blueprint.generator)) {
+      catalogCommonOutputs.add(output);
+    } else {
+      catalogOtherOutputs.add(output);
+    }
+  }
+}
+
+function underDocsRoot(candidate) {
+  const relative = path.relative(docsRoot, candidate);
+  return relative === '' || (relative !== '..' && !relative.startsWith(`..${path.sep}`) && !path.isAbsolute(relative));
+}
+
+const visited = new Set();
+function walk(root) {
+  if (!underDocsRoot(root) || !fs.existsSync(root) || !fs.lstatSync(root).isDirectory()) return;
+  for (const entry of fs.readdirSync(root, { withFileTypes: true })) {
+    const absolute = path.join(root, entry.name);
+    if (entry.isSymbolicLink()) continue;
+    if (entry.isDirectory()) {
+      walk(absolute);
+      continue;
+    }
+    if (!entry.isFile() || !entry.name.endsWith('.html') || visited.has(absolute)) continue;
+    visited.add(absolute);
+    if (expected.has(absolute) || catalogOtherOutputs.has(absolute)) continue;
+    const html = fs.readFileSync(absolute, 'utf8');
+    // コメントやコード例に生成フッターの文字列が現れても証拠にしない。
+    // 実際のHTML要素として残る専用フッターだけを旧生成物の識別子にする。
+    const generatedEvidenceHtml = html
+      .replace(/<!--[\s\S]*?-->/g, '')
+      .replace(/<(pre|code|script|style|textarea|template)\b[^>]*>[\s\S]*?<\/\1\s*>/gi, '');
+    function hasGeneratedFooter(source) {
+      const footerBlocks = source.match(/<footer\b[^>]*>[\s\S]*?<\/footer\s*>/gi) || [];
+      for (const block of footerBlocks) {
+        if (!block.startsWith('<footer class="pt-footer">')) continue;
+        const lines = new Set(block.split(/\r?\n/).map((line) => line.trim()));
+        const hasStamp = lines.has('<span class="pt-footer-stamp">REVERSE-DOCS REGISTER</span>');
+        const hasGenerator = lines.has('<span class="pt-footer-gen">生成: generation-engine/scripts/build-portal.sh</span>');
+        if (hasStamp && hasGenerator) return true;
+      }
+      return false;
+    }
+    if (!catalogCommonOutputs.has(absolute)
+      && !hasGeneratedFooter(generatedEvidenceHtml)) {
+      process.stderr.write(`WARN: retained unknown HTML outside expected generated set: ${path.relative(docsRoot, absolute).split(path.sep).join('/')}\n`);
+      continue;
+    }
+    fs.unlinkSync(absolute);
+    process.stderr.write(`WARN: removed orphaned generated HTML: ${path.relative(docsRoot, absolute).split(path.sep).join('/')}\n`);
+  }
+}
+
+for (const root of scanRoots) walk(root);
 NODE
 }
 
@@ -924,6 +1051,146 @@ EOF
   rm -rf "$test_dir"
 }
 
+run_orphaned_html_self_test() {
+  local test_dir test_repo test_root test_portal common_dir rules_dir screen_dir first_log second_log
+  local old_html new_html orphan_html late_orphan_html separated_html old_rule_html
+  local old_screen_html release_notes_html manual_note_html footer_example_html
+  if ! test_dir="$(create_physical_tmpdir "${TMPDIR:-/tmp}/build-portal-test49.XXXXXX")" \
+    || [ -z "$test_dir" ]; then
+    echo "[UNKNOWN] ケース49の一時ディレクトリを作成できません（mktempが一時領域へ書き込めませんでした。実行環境のサンドボックス制約等が原因である可能性があります）" >&2
+    return 2
+  fi
+  test_repo="$test_dir/repo"
+  test_root="$test_dir/output"
+  test_portal="$test_root/project-portal"
+  common_dir="$test_root/docs/design/common"
+  rules_dir="$test_root/docs/rules/テスト規約"
+  screen_dir="$test_root/docs/design/screens/screen-orphan"
+  first_log="$test_dir/first.log"
+  second_log="$test_dir/second.log"
+  old_html="$common_dir/旧名.html"
+  new_html="$common_dir/新名.html"
+  orphan_html="$common_dir/孤立.html"
+  late_orphan_html="$common_dir/後置孤立.html"
+  separated_html="$test_portal/基盤/共通設計書.html"
+  old_rule_html="$rules_dir/rule.html"
+  old_screen_html="$test_portal/画面/screen-orphan/基本設計/画面基本設計書.html"
+  release_notes_html="$test_portal/基盤/リリースノート.html"
+  manual_note_html="$common_dir/手動運用メモ.html"
+  footer_example_html="$common_dir/フッター記法例.html"
+
+  mkdir -p "$test_repo" "$common_dir" "$rules_dir" \
+    "$screen_dir/基本設計" "$screen_dir/詳細設計" "$test_portal"
+  printf '# 旧名\n\n改名前の本文。\n' > "$common_dir/旧名.md"
+  printf '# 共通設計書\n\n分離配置の本文。\n' > "$common_dir/共通設計書.md"
+  printf '# テスト規約\n\n旧規約の本文。\n' > "$rules_dir/rule.md"
+  printf '# 合成画面基本設計書\n\n画面の基本設計。\n' > "$screen_dir/基本設計/画面基本設計書.md"
+  printf '%s\n' \
+    '# 合成画面詳細設計書' \
+    '## §1 画面概要' '## §2 機能一覧' '## §3 画面構造' '## §5 状態管理' \
+    '## §6 データフロー' '## §7 ロジック' '## §8 疑似コード' '## §10 データ定義' \
+    '## §11 イベント処理' '## §12 領域別仕様' '## §14 エラーハンドリング' \
+    '## §15 画面遷移仕様' '## §16 非機能要件' '## §17 共通仕様への準拠' \
+    '## §18 実装契約' '## §19 関連資料' \
+    > "$screen_dir/詳細設計/画面詳細設計書.md"
+  if ! "$SCRIPT_DIR/build-portal.sh" "$test_repo" "$test_root" "$test_portal" \
+    --generated-at 2026-08-19T00:00:00Z >"$first_log" 2>&1; then
+    echo "FAIL: --self-test ケース49（初回の合成フィクスチャを生成できない）" >&2
+    cat "$first_log" >&2
+    rm -rf "$test_dir"
+    return 1
+  fi
+
+  mv "$common_dir/旧名.md" "$common_dir/新名.md"
+  rm -f "$rules_dir/rule.md"
+  rm -f "$screen_dir/基本設計/画面基本設計書.md"
+  printf '<html>\n<footer class="pt-footer">\n<span class="pt-footer-stamp">REVERSE-DOCS REGISTER</span>\n<span class="pt-footer-gen">生成: generation-engine/scripts/build-portal.sh</span>\n</footer>\n</html>\n' > "$orphan_html"
+  printf '<html>実行方法は generation-engine/scripts/build-portal.sh を参照する。</html>\n' > "$manual_note_html"
+  printf '<html><!-- <span class="pt-footer-gen">生成: generation-engine/scripts/build-portal.sh</span> --><pre><span class="pt-footer-gen">生成: generation-engine/scripts/build-portal.sh</span></pre><textarea><footer class="pt-footer"><span class="pt-footer-stamp">REVERSE-DOCS REGISTER</span><span class="pt-footer-gen">生成: generation-engine/scripts/build-portal.sh</span></footer></textarea><main><span class="pt-footer-gen">生成: generation-engine/scripts/build-portal.sh</span></main>\n<footer class="pt-footer">\n<span class="pt-footer-stamp">REVERSE-DOCS REGISTER</span>\n</footer><footer class="pt-footer">\n<span class="pt-footer-gen">生成: generation-engine/scripts/build-portal.sh</span>\n</footer>\n</html>\n' > "$footer_example_html"
+  mkdir -p "$(dirname "$release_notes_html")"
+  printf '<html>別生成器が作ったリリースノート</html>\n' > "$release_notes_html"
+  # 後置孤立HTMLを読み取り専用にし、post-build後の再走査で警告・削除されることを確認する。
+  if ! "$SCRIPT_DIR/build-portal.sh" "$test_repo" "$test_root" "$test_portal" \
+    --generated-at 2026-08-20T00:00:00Z \
+    --post-build 'late_orphan="$REVERSE_DOCS_DOCS_DIR/docs/design/common/後置孤立.html"; printf '\''<span id="pt-sidebar-date">2000-01-01</span>\n<footer class="pt-footer">\n<span class="pt-footer-stamp">REVERSE-DOCS REGISTER</span>\n<span id="pt-footer-date">2000-01-01</span>\n<span class="pt-footer-gen">生成: generation-engine/scripts/build-portal.sh</span>\n</footer>\n'\'' > "$late_orphan"; chmod 444 "$late_orphan"' \
+    >"$second_log" 2>&1; then
+    echo "FAIL: --self-test ケース49（改名・孤立HTMLを含む合成フィクスチャを再生成できない）" >&2
+    cat "$second_log" >&2
+    rm -rf "$test_dir"
+    return 1
+  fi
+
+  if [ -e "$old_html" ] || [ ! -f "$new_html" ]; then
+    echo "FAIL: --self-test ケース49a（md改名後に旧名HTMLが残る、または新名HTMLが生成されない）" >&2
+    rm -rf "$test_dir"
+    return 1
+  fi
+  echo "PASS: --self-test ケース49a（md改名後に旧名HTMLを削除し、新名HTMLを生成）"
+
+  if [ -e "$orphan_html" ] \
+    || ! grep -q 'WARN: removed orphaned generated HTML: docs/design/common/孤立.html' "$second_log"; then
+    echo "FAIL: --self-test ケース49b（孤立HTMLを削除して警告しない）" >&2
+    rm -rf "$test_dir"
+    return 1
+  fi
+  echo "PASS: --self-test ケース49b（孤立HTMLを検出し、警告して削除）"
+
+  if [ -e "$late_orphan_html" ] \
+    || ! grep -q 'WARN: removed orphaned generated HTML: docs/design/common/後置孤立.html' "$second_log"; then
+    echo "FAIL: --self-test ケース49c（post-build後の孤立HTMLを削除して警告しない）" >&2
+    rm -rf "$test_dir"
+    return 1
+  fi
+  echo "PASS: --self-test ケース49c（読み取り専用の後置孤立HTMLをバックフィル対象にせず、警告して削除）"
+
+  if [ ! -f "$separated_html" ] || ! grep -q '分離配置の本文' "$separated_html"; then
+    echo "FAIL: --self-test ケース49d（mdとhtmlの置き場が異なる共通文書を誤って削除した）" >&2
+    rm -rf "$test_dir"
+    return 1
+  fi
+  echo "PASS: --self-test ケース49d（portal-catalog対応の分離配置文書を保持）"
+
+  if [ -e "$old_rule_html" ] \
+    || ! grep -q 'WARN: removed orphaned generated HTML: docs/rules/テスト規約/rule.html' "$second_log"; then
+    echo "FAIL: --self-test ケース49e（削除済み規約の旧HTMLを削除して警告しない）" >&2
+    rm -rf "$test_dir"
+    return 1
+  fi
+  echo "PASS: --self-test ケース49e（削除済み規約の旧HTMLを検出し、警告して削除）"
+
+  if [ -e "$old_screen_html" ] \
+    || ! grep -q 'WARN: removed orphaned generated HTML: project-portal/画面/screen-orphan/基本設計/画面基本設計書.html' "$second_log"; then
+    echo "FAIL: --self-test ケース49f（削除済み画面基本設計書の旧HTMLを削除して警告しない）" >&2
+    rm -rf "$test_dir"
+    return 1
+  fi
+  echo "PASS: --self-test ケース49f（削除済み画面基本設計書の旧HTMLを検出し、警告して削除）"
+
+  if [ ! -f "$release_notes_html" ] \
+    || ! grep -q '別生成器が作ったリリースノート' "$release_notes_html"; then
+    echo "FAIL: --self-test ケース49g（catalog上の他生成器exact outputを誤って削除した）" >&2
+    rm -rf "$test_dir"
+    return 1
+  fi
+  echo "PASS: --self-test ケース49g（catalog上の他生成器exact outputを負の対照として保持）"
+
+  if [ ! -f "$manual_note_html" ] \
+    || ! grep -q '実行方法は generation-engine/scripts/build-portal.sh を参照する。' "$manual_note_html"; then
+    echo "FAIL: --self-test ケース49h（生成器のパスを説明する未知HTMLを誤って削除した）" >&2
+    rm -rf "$test_dir"
+    return 1
+  fi
+  echo "PASS: --self-test ケース49h（生成器のパスを説明する未知HTMLを負の対照として保持）"
+
+  if [ ! -f "$footer_example_html" ]; then
+    echo "FAIL: --self-test ケース49i（コメント・コード例に専用フッター文字列を持つ未知HTMLを誤って削除した）" >&2
+    rm -rf "$test_dir"
+    return 1
+  fi
+  echo "PASS: --self-test ケース49i（コメント・コード例・フッター外の生成元要素を生成物判定から除外）"
+  rm -rf "$test_dir"
+}
+
 # 改善課題1-29 検収方法: ケース41（用語辞書ページ）は node_modules の playwright パッケージを
 # 直接 require する。node_modules は .gitignore 対象で正本に含まれないため、フレッシュな
 # チェックアウトでは require が必ず失敗する。従来は「未導入なら案内してSKIP」するだけで
@@ -984,8 +1251,8 @@ if [ "${1:-}" = "--self-test-related-material-links" ]; then
 fi
 
 if [ "${1:-}" = "--self-test" ] && [ "${2:-}" = "--case" ]; then
-  if [ "$#" -ne 3 ] || { [ "${3:-}" != "36" ] && [ "${3:-}" != "48" ]; }; then
-    echo "ERROR: usage: build-portal.sh --self-test --case 36|48" >&2
+  if [ "$#" -ne 3 ] || { [ "${3:-}" != "36" ] && [ "${3:-}" != "48" ] && [ "${3:-}" != "49" ]; }; then
+    echo "ERROR: usage: build-portal.sh --self-test --case 36|48|49" >&2
     exit 2
   fi
   if [ -d "${TMPDIR:-/tmp}" ]; then
@@ -994,8 +1261,10 @@ if [ "${1:-}" = "--self-test" ] && [ "${2:-}" = "--case" ]; then
   fi
   if [ "${3:-}" = "36" ]; then
     run_project_name_self_test
-  else
+  elif [ "${3:-}" = "48" ]; then
     run_prepared_detail_pages_self_test
+  else
+    run_orphaned_html_self_test
   fi
   exit $?
 fi
@@ -4129,6 +4398,28 @@ for md_map_dir in "${common_roots[@]}"; do
     printf '%s\t%s\n' "$md_map_file" "$html_map_file" >> "$PORTAL_MD_MAP_FILE"
   done < <(find "$md_map_dir" -name '*.md' -type f 2>/dev/null | sort)
 done
+# 規約は rule.md と rule.html を同じディレクトリへ置く。画面設計書は screenUnitRoot の
+# 定義ファイルから screenViewRoot の閲覧用HTMLへ分離するため、変換ループと同じ対応を
+# 先に対応表へ加える。
+rules_map_root="$DOCS_ROOT/$LAYOUT_RULES_ROOT"
+if [ -d "$rules_map_root" ]; then
+  while IFS= read -r rule_map_file; do
+    printf '%s\t%s\n' "$rule_map_file" "$(dirname "$rule_map_file")/rule.html" >> "$PORTAL_MD_MAP_FILE"
+  done < <(find "$rules_map_root" -name 'rule.md' -type f 2>/dev/null | sort)
+fi
+for screen_map_dir in "$DOCS_ROOT/$LAYOUT_SCREEN_UNIT_ROOT"/screen-*/; do
+  [ -d "$screen_map_dir" ] || continue
+  screen_map_name="$(basename "${screen_map_dir%/}")"
+  for screen_map_md in \
+    "${screen_map_dir}基本設計/画面基本設計書.md" \
+    "${screen_map_dir}詳細設計/画面詳細設計書.md"; do
+    [ -f "$screen_map_md" ] || continue
+    screen_map_rel="${screen_map_md#"$screen_map_dir"}"
+    printf '%s\t%s\n' "$screen_map_md" \
+      "$DOCS_ROOT/$LAYOUT_SCREEN_VIEW_ROOT/$screen_map_name/${screen_map_rel%.md}.html" \
+      >> "$PORTAL_MD_MAP_FILE"
+  done
+done
 export PORTAL_MD_MAP_FILE
 
 # 1-41(7回目): 本文中の資料参照のうち、対象リポジトリのソースツリー上の実装ファイル名
@@ -4230,8 +4521,13 @@ if [ -d "$common_dir" ]; then
   done < <(find "$common_dir" -name '*.md' -type f 2>/dev/null | sort)
 fi
 done
-rm -f "$PORTAL_MD_MAP_FILE"
-unset PORTAL_MD_MAP_FILE
+
+# 改善課題1-205: 変換対象の対応表を正本として、改名・削除後に残った旧HTMLを
+# サイドバー状態のバックフィルより前に除去する。分離配置の走査範囲は
+# portal-catalog.json の共通文書生成器との対応から導く。
+remove_orphaned_common_html \
+  "$PORTAL_MD_MAP_FILE" "$CATALOG" "$OUTPUT_LAYOUT_RESOLVED_FILE" "$DOCS_ROOT" "$FOUNDATION_OUT_DIR" \
+  "$DOCS_ROOT/$LAYOUT_RULES_ROOT" "$DOCS_ROOT/$LAYOUT_SCREEN_VIEW_ROOT" "${common_roots[@]}"
 
 # --- 3a. 設計文書群の必須節・見出し順検査（改善課題1-74） ---
 # 定義ファイルにある必須節の欠落は生成を停止する。必須節をすべて持つ文書の
@@ -4515,6 +4811,14 @@ output="$(render_template "$template_content" "${render_args[@]}")"
 
 printf '%s' "$output" > "$PORTAL_DIR/index.html"
 run_pipeline_hook "--post-build" "$POST_BUILD"
+# post-build は生成完了後に任意のHTMLを追加できるため、バックフィル対象を決める前に
+# 同じ対応表で再走査し、孤立した生成HTMLを残さない。--portal-only は既存契約どおり
+# index.html 以外を変更しないため、対応表の作成・走査とも行わない。
+if [ "$PORTAL_ONLY" -eq 0 ]; then
+  remove_orphaned_common_html \
+    "$PORTAL_MD_MAP_FILE" "$CATALOG" "$OUTPUT_LAYOUT_RESOLVED_FILE" "$DOCS_ROOT" "$FOUNDATION_OUT_DIR" \
+    "$DOCS_ROOT/$LAYOUT_RULES_ROOT" "$DOCS_ROOT/$LAYOUT_SCREEN_VIEW_ROOT" "${common_roots[@]}"
+fi
 echo "OK: wrote $PORTAL_DIR/index.html" >&2
 detect_stale_portal_placeholders "$LAYOUT_JSON" "$PORTAL_DIR"
 detect_undefined_unit_phase_dirs "$LAYOUT_JSON" "$DOCS_ROOT"
@@ -4529,10 +4833,19 @@ if type shell_injection_args >/dev/null 2>&1; then
     # --portal-only は index.html 以外を変更しない既存挙動（--self-test ケース13）を維持する。
     printf '%s\n' "$PORTAL_DIR/index.html" | backfill_shell_shared_state "$shell_counts_json" "$GENERATED_DATE"
   else
-    find "$DOCS_ROOT" -name '*.html' -type f 2>/dev/null | backfill_shell_shared_state "$shell_counts_json" "$GENERATED_DATE"
+    # バックフィル対象はmd対応表・実在catalogページ・ポータルindexに限定する。
+    # catalog未発見の別生成器ページや未知HTMLは、生成元表示の有無にかかわらず含めない。
+    while IFS= read -r catalog_href; do
+      [ -n "$catalog_href" ] || continue
+      catalog_html_path="$(python3 -c 'import os,sys; print(os.path.normpath(os.path.join(sys.argv[1], sys.argv[2])))' \
+        "$PORTAL_DIR" "$catalog_href")"
+      printf 'catalog\t%s\n' "$catalog_html_path" >> "$PORTAL_MD_MAP_FILE"
+    done < <(jq -r '.categories[].tools[]?.href // empty' <<< "$catalog_render")
+    printf 'portal-index\t%s\n' "$PORTAL_DIR/index.html" >> "$PORTAL_MD_MAP_FILE"
+    cut -f2 "$PORTAL_MD_MAP_FILE" | LC_ALL=C sort -u \
+      | backfill_shell_shared_state "$shell_counts_json" "$GENERATED_DATE"
   fi
 fi
-
 # 単体配布は通常生成とシェル値のバックフィルを終えたHTMLだけを対象にする。
 # 既存の生成済み文書を一括是正せず、この実行で変換対象になった単位内HTMLだけを検査・整形する。
 if [ "$STANDALONE" -eq 1 ]; then
@@ -4540,4 +4853,8 @@ if [ "$STANDALONE" -eq 1 ]; then
     || { echo "ERROR: standalone unit preparation failed" >&2; exit 1; }
 fi
 
+if [ "${PORTAL_ONLY:-0}" -eq 0 ]; then
+  rm -f "$PORTAL_MD_MAP_FILE"
+  unset PORTAL_MD_MAP_FILE
+fi
 rm -f "$OUTPUT_LAYOUT_RESOLVED_FILE"
