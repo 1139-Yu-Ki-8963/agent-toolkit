@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<!--
+  generating-sequence-diagram-for-reverse-docs スキルガイド（単一ファイル自己完結型）
+
+  - 外部リソース（CDN・画像・link）は一切使わず、完全自己完結に保つ
+  - .claude/rules/always/skill-guide/html/rule.md（スキルガイド HTML 統一規約）準拠
+-->
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>generating-sequence-diagram-for-reverse-docs スキルガイド</title>
+<style>
+/* スキルガイド HTML（.claude/skills/*/references/guide.html）の統一意匠。
+   自己完結の単一 HTML へ丸ごと埋め込む style タグの中身。外部ファイルは参照しない。
+   版面は文書型のまま（中央寄せの最大幅・通常のページスクロール）。
+   ポータルの全画面レイアウト（サイドバー・100vh・sticky）は持ち込まない。
+   角丸は使わない（border-radius は 0 のみ）。影はぼかし半径を持たせない。
+   配色は delivery-payload/templates/tokens.css の値から取り出した派生値。
+   既定は明るい表示。暗い表示は prefers-color-scheme と data-theme="dark" の両方で切り替わる。
+   data-theme="light" を明示したときは明るい表示を固定する。 */
+
+:root, [data-theme="light"] {
+  --guide-bg: #F1F4F8;
+  --guide-panel: #FFFFFF;
+  --guide-panel2: #E9EEF4;
+  --guide-border: #D8DFE8;
+  --guide-text: #1A222E;
+  --guide-text-sub: #4B5A70;
+  --guide-muted: #6C7A8E;
+  --guide-accent: #0284C7;
+  --guide-accent-hi: #075985;
+  --guide-accent-soft: rgba(2,132,199,0.10);
+  --guide-stamp: #D9482B;
+  --guide-stamp-soft: rgba(217,72,43,0.12);
+  --guide-green: #15803D;
+  --guide-green-soft: rgba(21,128,61,0.16);
+  --guide-code-bg: #101722;
+  --guide-code-text: #C9E8FF;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --guide-bg: #0F1217;
+    --guide-panel: #161C23;
+    --guide-panel2: #1C232E;
+    --guide-border: #2B3443;
+    --guide-text: #E7ECF4;
+    --guide-text-sub: #A8B3C3;
+    --guide-muted: #8A96A7;
+    --guide-accent: #4CC2FE;
+    --guide-accent-hi: #9ADCFF;
+    --guide-accent-soft: rgba(76,194,255,0.17);
+    --guide-stamp: #FF6E4F;
+    --guide-stamp-soft: rgba(255,110,78,0.16);
+    --guide-green: #4ADE81;
+    --guide-green-soft: rgba(74,222,129,0.16);
+    --guide-code-bg: #0B0E13;
+    --guide-code-text: #C9E8FF;
+  }
+}
+
+[data-theme="dark"] {
+  --guide-bg: #0F1217;
+  --guide-panel: #161C23;
+  --guide-panel2: #1C232E;
+  --guide-border: #2B3443;
+  --guide-text: #E7ECF4;
+  --guide-text-sub: #A8B3C3;
+  --guide-muted: #8A96A7;
+  --guide-accent: #4CC2FE;
+  --guide-accent-hi: #9ADCFF;
+  --guide-accent-soft: rgba(76,194,255,0.17);
+  --guide-stamp: #FF6E4F;
+  --guide-stamp-soft: rgba(255,110,78,0.16);
+  --guide-green: #4ADE81;
+  --guide-green-soft: rgba(74,222,129,0.16);
+  --guide-code-bg: #0B0E13;
+  --guide-code-text: #C9E8FF;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0 auto;
+  padding: 0 24px 96px;
+  max-width: 980px;
+  font-family: system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif;
+  line-height: 1.85;
+  color: var(--guide-text);
+  background: var(--guide-bg);
+}
+
+header {
+  padding: 56px 0 24px;
+  border-bottom: 3px solid var(--guide-text);
+}
+header h1 { font-size: 1.9rem; margin: 0 0 10px; letter-spacing: 0.01em; }
+header p { margin: 6px 0 0; color: var(--guide-text-sub); }
+
+h1 { font-size: 1.9rem; margin: 0 0 10px; }
+h2 {
+  font-size: 1.35rem;
+  padding-bottom: 8px;
+  margin-bottom: 20px;
+  border-bottom: 2px solid var(--guide-text);
+}
+h3 { font-size: 1.05rem; margin: 32px 0 10px; }
+
+.skill-name {
+  display: inline-block;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 1rem;
+  background: var(--guide-text);
+  color: var(--guide-bg);
+  padding: 2px 10px;
+  border-radius: 0;
+  vertical-align: middle;
+}
+
+.meta-table { margin-top: 16px; font-size: 0.9rem; color: var(--guide-text-sub); }
+.meta-table td { padding: 3px 18px 3px 0; vertical-align: top; }
+
+nav { margin-top: 32px; padding: 18px 22px; background: var(--guide-panel); border: 1px solid var(--guide-border); border-radius: 0; }
+.toc { margin-top: 32px; padding: 18px 22px; background: var(--guide-panel); border: 1px solid var(--guide-border); border-radius: 0; }
+.toc-title { font-weight: 700; margin-bottom: 6px; }
+.toc ol, nav ol { margin: 0; padding-left: 1.4em; columns: 2; column-gap: 40px; }
+.toc li, nav li { margin: 2px 0; }
+
+section { margin-top: 64px; }
+section > h2 .sec-num { display: inline-block; }
+.sec-num {
+  display: inline-block;
+  min-width: 2.4em;
+  margin-right: 10px;
+  font-family: ui-monospace, monospace;
+  font-size: 0.95rem;
+  background: var(--guide-text);
+  color: var(--guide-bg);
+  text-align: center;
+  padding: 1px 8px;
+  border-radius: 0;
+  vertical-align: 2px;
+}
+
+.note { color: var(--guide-text-sub); font-size: 0.92rem; }
+
+a { color: var(--guide-accent); }
+.toc a, nav a { color: var(--guide-text); text-decoration: none; border-bottom: 1px dotted var(--guide-muted); }
+.toc a:hover, nav a:hover { border-bottom-style: solid; }
+table a, .spec a { color: var(--guide-accent); }
+
+table { border-collapse: collapse; width: 100%; }
+th, td { border: 1px solid var(--guide-border); padding: 8px 12px; text-align: left; vertical-align: top; }
+th { background: var(--guide-panel2); font-weight: 700; }
+
+.spec { border-collapse: collapse; width: 100%; margin: 14px 0; background: var(--guide-panel); font-size: 0.93rem; }
+.spec th, .spec td { border: 1px solid var(--guide-border); padding: 8px 12px; text-align: left; vertical-align: top; }
+.spec th { background: var(--guide-panel2); font-weight: 700; }
+
+ul, ol { margin: 0.5em 0 0.5em 1.4em; padding: 0; }
+li { margin: 2px 0; }
+
+pre {
+  background: var(--guide-code-bg);
+  color: var(--guide-code-text);
+  border-radius: 0;
+  padding: 18px;
+  overflow-x: auto;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.86rem;
+  line-height: 1.6;
+}
+.flow {
+  background: var(--guide-code-bg);
+  color: var(--guide-code-text);
+  border-radius: 0;
+  padding: 20px 24px;
+  overflow-x: auto;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.82rem;
+  line-height: 1.55;
+}
+.cap { color: var(--guide-muted); }
+
+code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.86em;
+  background: var(--guide-panel2);
+  color: var(--guide-text);
+  padding: 1px 5px;
+  border-radius: 0;
+}
+pre code, .flow code { background: transparent; color: inherit; padding: 0; }
+
+.def {
+  background: var(--guide-panel);
+  border: 1px solid var(--guide-border);
+  border-left: 4px solid var(--guide-accent);
+  padding: 12px 18px;
+  margin: 14px 0;
+  border-radius: 0;
+}
+.def dt { font-weight: 700; margin-top: 8px; }
+.def dt:first-child { margin-top: 0; }
+.def dd { margin: 2px 0 10px; color: var(--guide-text-sub); }
+
+.constraint {
+  background: var(--guide-accent-soft);
+  border: 1px solid var(--guide-accent);
+  border-radius: 0;
+  padding: 12px 18px;
+  margin: 16px 0;
+  font-size: 0.93rem;
+}
+.constraint strong:first-child { color: var(--guide-accent-hi); }
+
+.warn {
+  background: var(--guide-stamp-soft);
+  border: 1px solid var(--guide-stamp);
+  border-radius: 0;
+  padding: 12px 18px;
+  margin: 16px 0;
+  font-size: 0.93rem;
+}
+.warn strong:first-child { color: var(--guide-stamp); }
+
+.tag {
+  display: inline-block;
+  font-family: ui-monospace, monospace;
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 0 8px;
+  border-radius: 0;
+  border: 1px solid transparent;
+}
+.tag.pass  { background: var(--guide-green-soft); color: var(--guide-green); border-color: var(--guide-green); }
+.tag.fail  { background: var(--guide-stamp-soft); color: var(--guide-stamp); border-color: var(--guide-stamp); }
+.tag.error { background: var(--guide-stamp-soft); color: var(--guide-stamp); border-color: var(--guide-stamp); }
+.tag.mode  { background: var(--guide-accent-soft); color: var(--guide-accent-hi); border-color: var(--guide-accent); }
+
+.diagram {
+  margin: 20px 0;
+  padding: 8px;
+  background: var(--guide-panel);
+  border: 1px solid var(--guide-border);
+  border-radius: 0;
+}
+.diagram svg { width: 100%; height: auto; display: block; cursor: zoom-in; }
+.diagram figcaption { padding: 8px 10px 2px; }
+
+.zoom-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(0,0,0,0.82);
+  overflow: auto;
+  padding: 24px;
+  cursor: zoom-out;
+  -webkit-overflow-scrolling: touch;
+}
+.zoom-overlay svg {
+  width: 1880px;
+  max-width: none;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+  background: var(--guide-panel);
+  border-radius: 0;
+}
+
+@media (max-width: 640px) {
+  body { padding-inline: 14px; }
+  .toc ol, nav ol { columns: 1; }
+  .meta-table, .spec, table { font-size: 0.84rem; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>シーケンス図生成スキル<br><span class="skill-name">generating-sequence-diagram-for-reverse-docs</span></h1>
+  <p>画面・API・機能の設計単位について、確定済みfactsまたは設計文書の順序表をシーケンス図へ機械変換するスキルの確定仕様。画面はfactsのcall_order、APIはAPI詳細設計書§4.1、機能は機能設計書§3.1だけを順序の定義元とする。</p>
+
+  <div class="def">
+    <dt>こんな人向け</dt>
+    <dd>
+      リバース設計で画面・API・機能の呼び出し順序を図として確立したい人 ／
+      順序を導けない種別の一覧からシーケンス図欄を省きたい人
+    </dd>
+    <dt>こんな場面で使う</dt>
+    <dd>
+      画面facts.yml、API詳細設計書§4.1、機能設計書§3.1、または手書きpage-dataに順序が明示されているとき ／
+      table・batch・report・external・messageの一覧でシーケンス図欄を省くとき
+    </dd>
+  </div>
+
+  <table class="meta-table">
+    <tr><td>対応 OS</td><td>Windows WSL2 環境</td></tr>
+    <tr><td>検証状況</td><td>2026-08-19: API・機能の合成ユニットでHTML生成PASS、非対象5種別のテストデータで<code>sequencePath</code>削除後のリンク表示0件、既存data／DOM／SVG各15件・artifact 5件・分割3件PASS</td></tr>
+    <tr><td>依存</td><td><code>render-template.sh</code> / <code>screen-sequence-template.html</code> / <code>sequence-kind-policy.json</code> / 画面factsのcall_order / API§4.1 / 機能§3.1</td></tr>
+    <tr><td>関連資料</td><td><code>generating-entity-state-for-reverse-docs</code>, <code>delivery-payload/references/facts-schema.md</code></td></tr>
+  </table>
+</header>
+
+<nav class="toc">
+  <div class="toc-title">目次</div>
+  <ol>
+    <li><a href="#s1">概要</a></li>
+    <li><a href="#s2">出力</a></li>
+    <li><a href="#s3">使用タイミング</a></li>
+    <li><a href="#s4">用語・page-data の形状</a></li>
+    <li><a href="#s5">Phase 手順</a></li>
+    <li><a href="#s6">重要な注意事項・予想を裏切る挙動</a></li>
+    <li><a href="#s7">関連スキル・規約</a></li>
+  </ol>
+</nav>
+
+<section id="s1">
+  <h2><span class="sec-num">§1</span>概要</h2>
+  <p>画面・API・機能の設計単位ごとに、確定済みfactsまたは設計文書の順序表をシーケンス図へ変換する。画面はfactsの<code>call_order</code>、APIはAPI詳細設計書§4.1、機能は機能設計書§3.1を順序の定義元とする。</p>
+  <p class="note">テーブル・バッチ・帳票・外部連携・メッセージは順序表を持たないため生成しない。一覧マニフェストから<code>sequencePath</code>を省き、空欄や未作成表示も出さない。</p>
+</section>
+
+<section id="s2">
+  <h2><span class="sec-num">§2</span>出力</h2>
+  <p>本スキルを実行すると、順序を導ける対象単位ごとに以下の成果物が生まれる。</p>
+  <div class="def">
+    <dt>シーケンス図.html</dt>
+    <dd>
+      screenは<code>screenViewRoot/screen-&lt;ID&gt;</code>へ生成する。
+      api・featureは各UnitRootの<code>&lt;unit-dir&gt;</code>へ生成する。
+      unit-dirは安全なunitIdを優先し、不正値なら停止する。
+      unitIdが空なら、検証済みのunitKeyを無変換で種別prefixへ連結する。
+      HTMLの実在確認後だけ一覧マニフェストへ<code>sequencePath</code>を設定する。
+    </dd>
+  </div>
+</section>
+
+<section id="s3">
+  <h2><span class="sec-num">§3</span>使用タイミング</h2>
+  <table class="spec">
+    <tr><th>区分</th><th>内容</th></tr>
+    <tr><td>前提</td><td>screenのfacts.yml、API詳細設計書§4.1、機能設計書§3.1、または手書きpage-dataのいずれかに順序が明示されていること</td></tr>
+    <tr><td>起動引数</td><td><code>output_dir</code>・対象種別（screen/api/feature）・対象ユニットID（複数可）</td></tr>
+    <tr><td>対象外</td><td>table・batch・report・external・message。<code>references/sequence-kind-policy.json</code>を本スキル内の生成可否定義とする</td></tr>
+  </table>
+</section>
+
+<section id="s4">
+  <h2><span class="sec-num">§4</span>用語・page-data の形状</h2>
+  <p>各設計単位のpage-dataは<code>unitKind</code>・<code>unitId</code>・<code>unitLabel</code>を共通キーに持つ。既存画面の<code>screenId</code>・<code>screenLabel</code>も後方互換で受け入れる。</p>
+  <pre class="flow"><span class="cap">── シーケンス図-data.json の形状 ─────────────────────────</span>
+{
+  "unitKind": "screen",
+  "unitId": "screen-order-list",
+  "unitKey": "order-list",
+  "unitLabel": "注文一覧",
+  "screenId": "screen-order-list",
+  "screenLabel": "注文一覧",
+  "generatedAt": "ISO8601",
+  "lanes": [
+    {"key": "user", "label": "利用者"},
+    {"key": "screen", "label": "画面"},
+    {"key": "api", "label": "API"},
+    {"key": "table", "label": "テーブル"}
+  ],
+  "operations": [
+    {
+      "key": "save-click",
+      "label": "保存ボタン押下",
+      "handler": "handler-onSave-保存",
+      "lanes": [
+        {"key": "user", "label": "利用者"},
+        {"key": "screen", "label": "画面"},
+        {"key": "api", "label": "API"},
+        {"key": "table", "label": "テーブル"}
+      ],
+      "steps": [
+        {"seq": 1, "from": "user", "to": "screen", "label": "操作開始", "kind": "trigger"},
+        {"seq": 2, "from": "screen", "to": "api", "label": "注文登録", "sourceRef": "src/screens/Order.tsx:42"},
+        {"seq": 3, "from": "api", "to": "table", "label": "注文レコード登録", "sourceRef": "server/orders.ts:10"},
+        {"seq": 4, "from": "api", "to": "screen", "label": "登録完了 → 一覧再取得", "kind": "return", "sourceRef": "src/screens/Order.tsx:42"}
+      ]
+    }
+  ]
+}</pre>
+  <table class="spec">
+    <tr><th>用語</th><th>内容</th></tr>
+    <tr><td>レーン（ライフライン）</td><td><code>operation.lanes</code>、page-data直下の<code>lanes</code>、固定4本（<code>user</code>=利用者 / <code>screen</code>=画面 / <code>api</code>=API / <code>table</code>=テーブル）の順で採用する。page-data直下の定義は後方互換fallback</td></tr>
+    <tr><td><code>kind: "trigger"</code></td><td>各operationの開始step。screenは利用者→画面の「操作開始」、apiはcaller→apiの合成stepで、どちらも<code>sourceRef</code>を持たない。featureはuser→最初の構成要素とし、§3.1の表行を<code>sourceRef</code>に持つ</td></tr>
+    <tr><td>ステップ表示文言</td><td>呼び出し先の業務名（原本の日本語コメント、または関数名・BL 名から導出）。代入式・引数・分類タグは含めない。導出できない場合は識別子のみを使い、根拠のない機能名は作らない</td></tr>
+    <tr><td><code>kind: "return"</code></td><td>破線で描画されるステップ。省略時は実線</td></tr>
+    <tr><td><code>sourceRef</code></td><td>screenの合成triggerを除くfacts由来step、apiの合成triggerを除く設計書由来step、およびfeatureの全stepで省略しない。設計書由来は相対pathと節・表行を記録する。手書きpage-dataで根拠が無い場合のみ省略可</td></tr>
+    <tr><td>sourceRef境界</td><td>「操作開始」を除くstepに存在するsourceRefを行番号除去して正規化する。一意パス数が1ならAPI endpointを<code>internal</code>へ機械置換し「内部処理」レーンを使う。複数ならAPI endpointとレーンを維持する。0なら単一判定を適用せず、手書きpage-data等の既存endpointを変換しない</td></tr>
+    <tr><td>call_order</td><td>facts.yml の⑤handler item が持つ任意フィールド。形式 <code>"&lt;連番&gt;:&lt;api分類のkey&gt;@&lt;file:line&gt;; ..."</code>。<code>delivery-payload/references/facts-schema.md</code> が定義元</td></tr>
+    <tr><td>1 operation あたりの分割上限</td><td>1 handler の <code>call_order</code> が 15 ステップを超える場合、機能単位・コメント区切り・15 ステップ機械区切りの優先順で複数 <code>operations[]</code> へ分割する。分割後のキーは連番禁止で内容要約語とする</td></tr>
+  </table>
+</section>
+
+<section id="s5">
+  <h2><span class="sec-num">§5</span>Phase 手順</h2>
+  <p>スキル開始時に <code>TaskCreate</code> で Phase 1〜3 のタスクを登録する。各 Phase 開始時に該当タスクを <code>in_progress</code> に、完了時に <code>completed</code> へ <code>TaskUpdate</code> で更新する。</p>
+  <table class="spec">
+    <tr><th>Phase</th><th>内容</th><th>完了条件</th></tr>
+    <tr><td>1. page-data の確保</td><td>policyで対象種別を判定し、screenはcall_order、apiは§4.1、featureは§3.1を順番どおり変換する</td><td>順序を導ける単位のjq検証が通過し、導けない単位は生成省略済み</td></tr>
+    <tr><td>2. DOC_NAV の組み立て</td><td>各種別の一覧への戻るリンクと、実在する設計書項目だけを組み立てる</td><td>対象単位ごとにdoc_navが確定済み</td></tr>
+    <tr><td>3. HTML・一覧反映</td><td>api・featureは各UnitRootのunit-dir直下へ生成する。unit-dirはunitIdをそのまま使い、空なら種別prefix＋unitKeyとする。一覧HTMLの親からの相対pathをrawマニフェストへ設定し、派生マニフェストと一覧を再生成する。非対象種別はキーを削除する</td><td>生成対象のリンクが現れ、非対象種別にはシーケンス図欄がない</td></tr>
+  </table>
+  <p class="note"><strong>手作業でのプレースホルダ置換（sed・perl 直書き等）は禁止する</strong>。<code>render_template</code> は最短前方一致で置換するため、値の中に他プレースホルダ文字列が偶然含まれても誤爆しない。新規 <code>.sh</code> スクリプトファイルは作らない。</p>
+</section>
+
+<section id="s6">
+  <h2><span class="sec-num">§6</span>重要な注意事項・予想を裏切る挙動</h2>
+  <div class="constraint">
+    <strong>順序を推測しない。</strong>APIは§4.1、機能は§3.1以外の節から順序を補わない。表が空・プレースホルダのみ・順番号不正なら生成しない。非対象種別へ空の図や「未作成」欄を作らない。
+  </div>
+  <table class="spec">
+    <tr><th>予想を裏切る挙動</th><th>内容</th></tr>
+    <tr><td>出力先の階層</td><td>screenは<code>screenViewRoot</code>、api・featureは各UnitRootの設計単位ディレクトリへ出す。pageKind体系は適用しない</td></tr>
+    <tr><td>DOC_NAV の担当分担</td><td><code>build-portal.sh</code> は画面設計書（基本設計・詳細設計）側の DOC_NAV にのみシーケンス図項目を追加する。シーケンス図.html 自体の DOC_NAV は本スキルの Phase 2/3 が組み立てる（<code>build-portal.sh</code> の担当範囲外）</td></tr>
+  </table>
+</section>
+
+<section id="s7">
+  <h2><span class="sec-num">§7</span>関連スキル・規約</h2>
+  <table class="spec">
+    <tr><th>名前</th><th>関係</th></tr>
+    <tr><td>extracting-unit-facts-from-code</td><td>facts.yml（⑤handler の call_order）を確定させる先行スキル。本スキルは call_order を読み取るのみで書き換えない</td></tr>
+    <tr><td>generating-entity-state-for-reverse-docs</td><td>同じくポータルの将来ページ受け口を担う単独起動可能なスキル。エンジンスクリプト（<code>build-detail-page.sh</code>）は共用しない（シーケンス図は画面ごとの複数生成のため別エンジン）</td></tr>
+    <tr><td>orchestrating-ai-development-setup</td><td>工程全体の呼び出し元</td></tr>
+    <tr><td>delivery-payload/references/facts-schema.md</td><td>call_order（⑤handler の任意フィールド）の形式を定義している</td></tr>
+    <tr><td>delivery-payload/templates/screen-sequence-template.html</td><td>シーケンス図.html のテンプレート本体</td></tr>
+  </table>
+</section>
+
+</body>
+</html>

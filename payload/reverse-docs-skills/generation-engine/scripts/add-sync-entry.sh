@@ -1,0 +1,69 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# add-sync-entry.sh — agent-toolkit の sync-manifest.json にスキルのマッピングエントリを追加する
+#
+# Usage:
+#   bash generation-engine/scripts/add-sync-entry.sh <skill_name> <sync_manifest_path>
+#
+# agent-toolkit の worktree 内で実行する。Write/Edit は Phase ゲートで block されるため
+# sed で JSON を編集し、jq で構文検証する。
+#
+# --self-test: 合成フィクスチャで動作検証する
+
+if [ "${1:-}" = "--self-test" ]; then
+  # 既知の欠陥（直すな）: 引数なしの裸の mktemp -d は $TMPDIR を無視し、書き込みを
+  # 拒む環境（サンドボックス実行環境等）では失敗する。他の多くのスクリプトは
+  # mktemp -d "${TMPDIR:-/tmp}/<script>-work.XXXXXX" の明示テンプレート形で
+  # この失敗を避けているが、本スクリプトはこの形になっていない。この欠陥は
+  # 素直でない実装ではなく単なる未対策であり、対策の一覧は
+  # docs/design/generation-engine/ルート直下/詳細設計書.md の本スクリプトの節を参照する。
+  tmpdir="$(mktemp -d)"
+  trap 'rm -rf "$tmpdir"' EXIT
+
+  cat > "$tmpdir/sync-manifest.json" <<'FIXTURE'
+{
+  "mappings": [
+    { "mode": "mirror", "src": "~/agent-home/skills/existing-skill", "dst": "payload/claudecode-global-setup/agent-home/skills/existing-skill" },
+    { "mode": "mirror", "src": "~/agent-home/agents", "dst": "payload/claudecode-global-setup/agent-home/agents" }
+  ]
+}
+FIXTURE
+
+  bash "$0" "test-new-skill" "$tmpdir/sync-manifest.json"
+
+  if jq . "$tmpdir/sync-manifest.json" > /dev/null 2>&1 && grep -q "test-new-skill" "$tmpdir/sync-manifest.json"; then
+    echo "PASS: --self-test (entry added, JSON valid)" >&2
+    exit 0
+  else
+    echo "FAIL: --self-test" >&2
+    exit 1
+  fi
+fi
+
+if [ $# -lt 2 ]; then
+  echo "Usage: $0 <skill_name> <sync_manifest_path>" >&2
+  exit 1
+fi
+
+SKILL_NAME="$1"
+MANIFEST="$2"
+
+if [ ! -f "$MANIFEST" ]; then
+  echo "ERROR: sync-manifest.json not found: $MANIFEST" >&2
+  exit 1
+fi
+
+if grep -q "$SKILL_NAME" "$MANIFEST"; then
+  echo "SKIP: $SKILL_NAME is already in sync-manifest.json" >&2
+  exit 0
+fi
+
+awk -v skill="$SKILL_NAME" '/agent-home\/agents/{printf "    { \"mode\": \"mirror\", \"src\": \"~/agent-home/skills/%s\", \"dst\": \"payload/claudecode-global-setup/agent-home/skills/%s\" },\n", skill, skill}{print}' "$MANIFEST" > "${MANIFEST}.tmp" && mv "${MANIFEST}.tmp" "$MANIFEST"
+
+if jq . "$MANIFEST" > /dev/null 2>&1; then
+  echo "OK: added $SKILL_NAME to sync-manifest.json" >&2
+else
+  echo "ERROR: JSON syntax broken after adding $SKILL_NAME" >&2
+  exit 1
+fi

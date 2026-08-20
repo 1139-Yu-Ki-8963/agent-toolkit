@@ -1,0 +1,54 @@
+# セッションワークフロー起動ゲート（SESSION-WORKFLOW-GATE）設計判断・経緯（非注入サイドカー）
+
+## check-session-workflow-gate.sh（2026-07-23 作成）
+
+**必要性**: SessionStart hook から Skill() を直接呼べない設計制約があり、advisory 注入だけでは Claude が無視する可能性がある。PreToolUse hook で実作業を block することで managing-session-workflow の 100% 起動を機械的に保証する。hook は毎セッションの全 Write/Edit/Bash 呼び出しで発火するため、スクリプト化以外に確実な機械強制の手段がない。
+
+**代替案を採用しなかった理由**:
+- Bash ツール直叩き: PreToolUse のフック発火点に Bash ツール単体では接続できず、毎回手動再現するのは非現実的
+- 既存 Makefile ターゲット拡張: `~/.claude/rules/` 配下に Makefile は存在せず、新規導入は本チェック専用の依存を増やすだけになる
+- advisory のみ（exit 0）: 過去の実績（902 セッション中 0 回発火）から advisory だけでは遵守されない
+
+**保守責任者**: 人手（ユーザー）
+
+**廃棄条件**: SessionStart hook から Skill() を直接呼べるようになった時、または managing-session-workflow が Claude Code 本体の標準機能として組み込まれた時
+
+## 3 層化の経緯（2026-07-23）
+
+当初は check-session-workflow-gate.sh（PreToolUse(Write|Edit|MultiEdit|Bash) block）のみで「実作業までに起動」は保証したが、会話のみのセッションでは実作業ツールが呼ばれず未起動のまま応答が終わる穴があった。そこで (1) UserPromptSubmit の毎発話全文注入、(2) 実作業 block、(3) Stop block の 3 層に拡張した。旧 Stop の3回自動解除は現ターン hash 取得不能でも通過し得るため撤去し、供給を確認できるまで block する。
+
+## check-session-workflow-prompt.sh（2026-07-23 作成）
+
+**必要性**: managing-session-workflow 未起動のセッションでは、実作業（Write/Edit/MultiEdit/Bash）が発生するまで起動が促されない。会話のみで完結するセッションでは第 2 層（check-session-workflow-gate.sh）が一度も発火せず、未起動のまま進んでしまう。UserPromptSubmit で毎発話ごとに起動指示を注入することで、実作業の有無に関わらず早期に起動を促す。
+
+**代替案を採用しなかった理由**:
+- Bash ツール直叩き: UserPromptSubmit のフック発火点に Bash ツール単体では接続できず、毎発話の手動確認は非現実的
+- 既存 Makefile ターゲット拡張: `~/.claude/rules/` 配下に Makefile は存在せず、新規導入は本チェック専用の依存を増やすだけになる
+- block 化（exit 2）: UserPromptSubmit はユーザー発話そのものを block する手段を持たず、advisory 注入が唯一の選択肢
+
+**保守責任者**: 人手（ユーザー）
+
+**廃棄条件**: SessionStart hook から Skill() を直接呼べるようになった時、または managing-session-workflow が Claude Code 本体の標準機能として組み込まれた時
+
+## check-session-workflow-stop.sh（2026-07-23 作成）
+
+**必要性**: 第 1 層（advisory）・第 2 層（実作業 block）だけでは、会話のみで完結し実作業が一度も発生しないセッションで managing-session-workflow が未起動のまま応答が終わる穴が残る。Stop hook で応答終了時点の未起動を検知し decision:block で書き直しを強制することで、100% の起動保証を実現する。
+
+**代替案を採用しなかった理由**:
+- Bash ツール直叩き: Stop のフック発火点に Bash ツール単体では接続できず、毎回手動再現するのは非現実的
+- 既存 Makefile ターゲット拡張: `~/.claude/rules/` 配下に Makefile は存在せず、新規導入は本チェック専用の依存を増やすだけになる
+- マーカーファイルでの連続 block カウント: コーディング原則（マーカーファイル禁止）に反するため、transcript 内の自タグ出現数走査で代替した
+
+**保守責任者**: 人手（ユーザー）
+
+**廃棄条件**: SessionStart hook から Skill() を直接呼べるようになった時、または managing-session-workflow が Claude Code 本体の標準機能として組み込まれた時
+
+## タグ命名の派生一致例外（2026-07-23 レビュー指摘への裁定）
+
+check-session-workflow-prompt.sh のタグ [SESSION-WORKFLOW-FORCE] / [SESSION-FACILITATOR] は
+slug（session-workflow-prompt）からの派生一致（common-principles 原則 6）に従っていない。
+理由: 本スクリプトは 1 ファイルで 2 モード（未起動→起動強制 / 起動済み→進行係リマインド）を
+持ち、意味の異なる 2 種の注入を slug 由来の単一タグで表すと受信側の対応手順が曖昧になるため、
+モードの意味を表す語を採用した。既存前例: check-port-launch.sh → [PORT-ALLOCATION-BLOCK]。
+2026-07-27: skill-log の名前一致だけでは Skill 本文が読まれたことも当該ターンで再評価されたことも証明できず、Codex adapter が偽の bootstrap 実行記録を作る事故を許した。UserPromptSubmit で全文を供給し、prompt/SKILL checksum を持つ context supplied 記録へ分離した。記録は tmp 配下の派生状態であり、Skill 実行完了ログとして再利用しない。PreToolUse/Stop はこの記録と現在の正本 checksum を照合する。
+2026-07-27 reviewer追補: セッション単位の記録だけでは次ターンに stale PASS するため、requestTypeHint・handoffContractKeys・workflowExecutionStatus=not-recorded を記録し、現ターン prompt hash との一致を必須化した。Codex は後続イベントに prompt が無い場合があるため adapter の turn-state を使い、Claude は入力 prompt または transcript 最新 user message を使う。いずれも得られない場合は安全側で block する。

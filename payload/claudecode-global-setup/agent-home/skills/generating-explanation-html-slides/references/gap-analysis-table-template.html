@@ -1,0 +1,338 @@
+<!--
+  gap-analysis-table-template デザイントークン+部品カタログ（現状vs理想 対比型の定義）
+
+  argument-table-template.html の派生。「カテゴリ / 現状 / 理想 / ギャップ」の
+  4列＋順序チップ列で、依存順に沿った段階的整備計画を1枚で提示する。
+
+  使用規則:
+  1. :root のトークン値は変更しない。色は必ず var(--...) 経由で使う
+  2. このファイルは部品カタログ。SAMPLE と書かれたテキストを実データに差し替える
+  3. 外部リソース（CDN・Webフォント・外部画像・fetch）の追加は禁止
+  4. 先頭の <meta charset="utf-8"> を必ず残す
+  5. 表は5行まで。入らないときは2枚に分割する
+  6. 現状列: 1行目に赤バッジ（badge-critical）でキーファクト、2行目に補足説明
+  7. 理想列: 1行目に白バッジ（badge-path）で配置先・手段、2行目に効果説明
+  8. ギャップ列: 矢印付きアクション（gap-action）で埋めるべき差分を記述
+  9. 順序チップ（step-chip）は依存順を示す。番号の根拠をキャプションに明記する
+  10. .slide-meta は区切り線と下端余白のみを提供する。内容は入れない
+  11. 想定読み手に対し説明なしの専門用語を使わない（語彙-読み手整合）
+-->
+<meta charset="utf-8">
+<title>SAMPLE: ページタイトル（名詞句14〜20字）</title>
+<style>
+  /* ==== デザイントークン（slide-template.html :root をそのまま使用） ==== */
+  :root {
+    --page: #EDF0F4;
+    --surface: #FFFFFF;
+    --ink: #1C2B3A;
+    --ink-2: #55667A;
+    --ink-3: #8494A6;
+    --border: #D9E0E8;
+    --grid: #E9EDF2;
+    --critical: #C0392B;
+    --critical-soft: #FAECEA;
+    --good: #1F7A46;
+    --good-soft: #EAF4EE;
+    --tag-bg: #EDF1F6;
+    --claude: #D97757;
+    --claude-deep: #BC5B3B;
+    --claude-soft: #FBF0EA;
+    --cursor: #23282E;
+    --cursor-soft: #EFF1F4;
+  }
+
+  html, body { height: 100%; overflow: hidden; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: var(--page); }
+
+  /* ==== スライド枠（16:9 固定・slide-template.html と同一） ==== */
+  .slide-viewport {
+    width: 100vw; height: 100vh;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--page); overflow: hidden;
+  }
+  .slide {
+    position: absolute;
+    top: 50%; left: 50%;
+    width: 1280px;
+    height: 720px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    box-shadow: 0 4px 24px rgba(28, 43, 58, 0.08);
+    display: flex; flex-direction: column;
+    padding: 40px 48px;
+    gap: 18px;
+    font-family: system-ui, -apple-system, 'Segoe UI', 'Hiragino Sans', sans-serif;
+    transform: translate(-50%, -50%) scale(var(--slide-scale, 1));
+    transform-origin: center center;
+  }
+
+  /* ==== ヘッダ（slide-template.html と同一） ==== */
+  .slide-header {
+    display: flex; flex-direction: column; gap: 4px;
+    padding-bottom: 14px;
+    border-bottom: 2px solid var(--ink);
+  }
+  .slide-eyebrow { font-size: 13px; font-weight: 700; letter-spacing: 0.12em; color: var(--ink-3); }
+  .slide-title { font-size: 32px; font-weight: 700; line-height: 1.25; color: var(--ink); text-wrap: balance; }
+
+  /* ==== リード帯（argument-table-template.html と同一） ==== */
+  .lead-band {
+    background: var(--ink);
+    color: var(--surface);
+    border-radius: 6px;
+    padding: 12px 20px;
+    font-size: 19px;
+    font-weight: 700;
+    text-align: center;
+    letter-spacing: 0.02em;
+  }
+
+  /* ==== ヘッドメッセージ（argument-table-template.html と同一） ==== */
+  .head-message { display: flex; flex-direction: column; gap: 5px; }
+  .head-message p {
+    display: flex; gap: 7px;
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 1.55;
+    color: var(--ink);
+  }
+  .head-message .mark { color: var(--claude-deep); flex-shrink: 0; }
+
+  /* ==== 論証テーブル（5列カスタム: 順序 / カテゴリ / 現状 / 理想 / ギャップ） ====
+     採用理由: 「現状（赤バッジ）→理想（白バッジ）→ギャップ（矢印）」を
+     左から右に読むだけで問題・目標・次の一手が1行で完結する構造にするため。
+     順序チップ列で依存順を明示し、上から順に整備する導線を示す。 */
+  .argument-table {
+    width: 100%;
+    flex: 1;
+    border-collapse: collapse;
+    table-layout: fixed;
+  }
+  .argument-table caption {
+    text-align: left;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--ink-3);
+    padding-bottom: 6px;
+  }
+  .argument-table th {
+    background: var(--ink);
+    color: var(--surface);
+    font-size: 13px;
+    font-weight: 700;
+    text-align: left;
+    padding: 7px 12px;
+  }
+  .argument-table th:first-child { border-top-left-radius: 6px; border-bottom-left-radius: 6px; }
+  .argument-table th:last-child  { border-top-right-radius: 6px; border-bottom-right-radius: 6px; }
+
+  .col-step     { width: 5%; }
+  .col-category { width: 11%; }
+  .col-current  { width: 28%; }
+  .col-ideal    { width: 29%; }
+  .col-gap      { width: 27%; }
+
+  .argument-table td {
+    vertical-align: top;
+    border-bottom: 1px solid var(--border);
+    padding: 9px 12px;
+    font-size: 12px;
+    color: var(--ink-2);
+    line-height: 1.5;
+  }
+  .argument-table tbody tr:nth-child(even) td { background: var(--tag-bg); }
+
+  .cell-issue { font-weight: 700; color: var(--ink); }
+
+  /* ==== 部品（新規）: 順序チップ ====
+     採用理由: 行の依存順（上流→下流）を視覚的に示し、
+     どの順で整備すべきかを番号だけで伝えるため。 */
+  .step-chip {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    background: var(--claude);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+    margin: 0 auto;
+  }
+
+  /* ==== 部品（新規）: 赤バッジ — 現状列のキーファクト ====
+     採用理由: 現状列を縦にスキャンしたとき、
+     赤バッジだけ拾い読みすれば問題の全体像が分かるようにするため。 */
+  .badge-critical {
+    display: inline-block;
+    font-family: 'SF Mono', 'Cascadia Code', 'Consolas', 'Menlo', monospace;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 4px;
+    background: var(--critical-soft);
+    color: var(--critical);
+    line-height: 1.5;
+    white-space: nowrap;
+  }
+
+  /* ==== 部品（新規）: 白バッジ — 理想列の配置先・手段 ====
+     採用理由: 理想列を縦にスキャンしたとき、
+     白バッジだけ拾い読みすれば何を用意すればいいか分かるようにするため。 */
+  .badge-path {
+    display: inline-block;
+    font-family: 'SF Mono', 'Cascadia Code', 'Consolas', 'Menlo', monospace;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 4px;
+    background: var(--surface);
+    color: var(--ink);
+    border: 1px solid var(--border);
+    line-height: 1.5;
+    white-space: nowrap;
+  }
+
+  /* ==== 部品（新規）: セル補足テキスト ==== */
+  .cell-note {
+    display: block;
+    margin-top: 4px;
+    font-size: 11.5px;
+    color: var(--ink-2);
+    line-height: 1.45;
+  }
+  .cell-note strong { color: var(--ink); font-weight: 600; }
+
+  /* ==== 部品（新規）: ギャップ列の矢印付きアクション ====
+     採用理由: 矢印（→）を色付きで前置することで、
+     ギャップ列を縦にスキャンしたとき「やるべきこと」が即座に読めるため。 */
+  .gap-action {
+    position: relative;
+    padding-left: 14px;
+    font-size: 12px;
+    color: var(--ink-2);
+    line-height: 1.5;
+  }
+  .gap-action::before {
+    content: '\2192';
+    position: absolute; left: 0; top: 0;
+    color: var(--claude);
+    font-weight: 700;
+  }
+
+  /* ==== 出典行（argument-table-template.html と同一） ==== */
+  .source-line {
+    font-size: 11px;
+    color: var(--ink-3);
+    border-top: 1px solid var(--border);
+    padding-top: 6px;
+  }
+
+  /* ==== メタデータフッター（区切り線 + 下端余白） ==== */
+  .slide-meta {
+    height: 24px;
+    padding-top: 6px;
+    border-top: 1px solid var(--border);
+  }
+</style>
+
+<div class="slide-viewport">
+  <div class="slide">
+
+    <header class="slide-header">
+      <span class="slide-eyebrow">SAMPLE: 資料の分類名</span>
+      <h1 class="slide-title">SAMPLE: ページタイトル（名詞句14〜20字）</h1>
+    </header>
+
+    <div class="lead-band">SAMPLE: 主張を1文・30字前後で言い切る</div>
+
+    <section class="head-message">
+      <p><span class="mark">■</span><span>SAMPLE: 現状の事実を断定する文</span></p>
+      <p><span class="mark">■</span><span>SAMPLE: 整備の必要性を断定する文</span></p>
+    </section>
+
+    <table class="argument-table">
+      <caption>SAMPLE: テーブルの補足タイトル（順序の根拠を明記する）</caption>
+      <colgroup>
+        <col class="col-step"><col class="col-category"><col class="col-current"><col class="col-ideal"><col class="col-gap">
+      </colgroup>
+      <thead>
+        <tr>
+          <th scope="col"></th>
+          <th scope="col">カテゴリ</th>
+          <th scope="col">現状</th>
+          <th scope="col">理想</th>
+          <th scope="col">ギャップ</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="step-chip">1</span></td>
+          <td class="cell-issue">SAMPLE: カテゴリ名（読み手の語彙で）</td>
+          <td>
+            <span class="badge-critical">SAMPLE: キーファクト</span>
+            <span class="cell-note">SAMPLE: 問題の補足説明（事実と数字のみ）</span>
+          </td>
+          <td>
+            <span class="badge-path">SAMPLE: 配置先・手段</span>
+            <span class="cell-note">SAMPLE: 効果の説明（<strong>強調語</strong>は太字）</span>
+          </td>
+          <td>
+            <span class="gap-action">SAMPLE: 埋めるべき差分を具体的に記述</span>
+          </td>
+        </tr>
+        <tr>
+          <td><span class="step-chip">2</span></td>
+          <td class="cell-issue">SAMPLE: カテゴリ名</td>
+          <td>
+            <span class="badge-critical">SAMPLE: キーファクト</span>
+            <span class="cell-note">SAMPLE: 補足説明</span>
+          </td>
+          <td>
+            <span class="badge-path">SAMPLE: 配置先・手段</span>
+            <span class="cell-note">SAMPLE: 効果の説明</span>
+          </td>
+          <td>
+            <span class="gap-action">SAMPLE: 具体的なアクション</span>
+          </td>
+        </tr>
+        <tr>
+          <td><span class="step-chip">3</span></td>
+          <td class="cell-issue">SAMPLE: カテゴリ名</td>
+          <td>
+            <span class="badge-critical">SAMPLE: キーファクト</span>
+            <span class="cell-note">SAMPLE: 補足説明</span>
+          </td>
+          <td>
+            <span class="badge-path">SAMPLE: 配置先・手段</span>
+            <span class="cell-note">SAMPLE: 効果の説明</span>
+          </td>
+          <td>
+            <span class="gap-action">SAMPLE: 具体的なアクション</span>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p class="source-line">SAMPLE: 出典：◯◯の実地調査に基づく（YYYY年M月時点）</p>
+
+    <footer class="slide-meta"></footer>
+
+  </div>
+</div>
+
+<!-- ==== スケーリング（常時必須・1ページでも削除禁止） ==== -->
+<script>
+(function(){
+  function f(){
+    document.documentElement.style.setProperty(
+      '--slide-scale',
+      Math.min(innerWidth/1280, innerHeight/720)
+    );
+  }
+  addEventListener('resize', f);
+  f();
+})();
+</script>

@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run test *)",
+      "Bash(npm run lint *)",
+      "Bash(npx jest *)",
+      "Bash(npx vitest *)"
+    ]
+  },
+  "env": {
+    "EXAMPLE_API_URL": "https://api.example.com"
+  }
+}

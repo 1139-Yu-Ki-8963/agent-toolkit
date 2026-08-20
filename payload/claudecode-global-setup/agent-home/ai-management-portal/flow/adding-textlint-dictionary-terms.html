@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>用語辞書の登録と置換 — AI マネジメントポータル</title>
+  <link rel="stylesheet" href="../style.css" />
+  <script type="module" src="../src/common/header.js"></script>
+</head>
+<body>
+  <div class="pm-page">
+    <main class="pm-main">
+      <div class="doc-crumbs"><a href="../index.html">TOP</a> / <a href="../category/flow.html">フロー一覧</a> / 用語辞書の登録と置換</div>
+      <div class="section-header">
+        <h2 class="section-title">用語辞書の登録と置換</h2>
+        <span class="card-badge">辞書</span>
+      </div>
+      <p class="flow-summary">カタカナビジネス用語・英語バズワードを置き換え辞書（tools/linter/prh.yml）に登録し、リポジトリ内の既存使用箇所も一括で整合させる。</p>
+      <div class="flow-trigger">
+        <span class="flow-trigger-label">発火タイミング</span>
+        <span class="flow-trigger-body">「&lt;語&gt;を置き換え辞書に登録」「prh.yml に追加」「平易な日本語に置換したい」と言われたとき。技術略語（API・JSON・SDK 等）は対象外。</span>
+      </div>
+      <div class="cat-sub-head"><h3 class="cat-sub-title">ステップ</h3><span class="cat-sub-count">3</span></div>
+      <div class="cards">
+        <div class="card is-visual group-flow flow-step">
+          <div class="card-head">
+            <span class="flow-step-no">1</span>
+            <span class="card-title">重複確認</span>
+            <span class="card-badge">adding-textlint-dictionary-terms</span>
+          </div>
+          <div class="card-desc">prh.yml に既存エントリがないか確認する。</div>
+        </div>
+        <div class="card is-visual group-flow flow-step">
+          <div class="card-head">
+            <span class="flow-step-no">2</span>
+            <span class="card-title">辞書登録</span>
+            
+          </div>
+          <div class="card-desc">prh.yml の末尾に置き換えエントリを追加する。</div>
+        </div>
+        <div class="card is-visual group-flow flow-step">
+          <div class="card-head">
+            <span class="flow-step-no">3</span>
+            <span class="card-title">既存箇所の置換</span>
+            
+          </div>
+          <div class="card-desc">リポジトリ内の既存使用箇所を Edit で一括置換する。</div>
+        </div>
+      </div>
+      <div class="cat-sub-head"><h3 class="cat-sub-title">フロー図</h3></div>
+      <pre class="flow-diagram">重複確認 → prh.yml へ追加 → 既存使用箇所を一括置換</pre>
+      <div class="cat-sub-head"><h3 class="cat-sub-title">関連スキル・hook</h3></div>
+      <div class="flow-chips">
+          <span class="flow-chip">adding-textlint-dictionary-terms</span>
+      </div>
+
+      <div class="back-link"><a href="../category/flow.html">← フロー一覧へ戻る</a></div>
+    </main>
+  </div>
+</body>
+</html>

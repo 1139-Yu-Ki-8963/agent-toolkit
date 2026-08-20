@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{TITLE}} — 設計ポータル</title>
+<!--
+  detail-pages T3 属性表型テンプレート — 設計スキル群
+  生成: generation-engine/scripts/detail-pages/build-detail-page.sh
+  プレースホルダ置換は build-detail-page.sh の render_template() が行う。
+  手作業によるプレースホルダ置換は禁止。生成は必ずスクリプト経由で行う。
+
+  保守注記: トークン・共通シェル(サイドバー・フッター・全画面レイアウトのCSS)は
+  delivery-payload/templates/partials 配下の共通ファイルを注入マーカー経由で読み込む。
+  テーマ切替はサイドバー側に一本化されており、本テンプレートに複製は無い。
+
+  プレースホルダ(build-detail-page.shが注入。実際のマーカー記法は
+  scripts/detail-pages/build-detail-page.sh 冒頭コメントを正本とする。本コメントでは
+  二重置換事故を避けるため意図的に波括弧を外して記載する):
+    TITLE (ページ見出しマーカー)          : page-data.json の title
+    DESCRIPTION (ページ概要マーカー)      : page-data.json の description
+    BACK_LINK (ポータルTOPへの戻りリンク) : ポータルからの相対パス
+    PAGE_DATA_JSON (page-data埋め込みマーカー) : page-data.json の内容全体(本ファイル物理末尾のscriptタグへ注入)
+    PROJECT_NAME・GENERATED_AT・COMMIT_SHORT は本ファイル本体では使わず、共通シェル
+    (サイドバー・フッター)側でのみ消費される。
+-->
+<style>
+/* TOKENS_CSS */
+/* SHELL_CSS */
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+html, body { margin: 0; padding: 0; }
+
+.sec-label {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  color: var(--muted);
+  margin: 24px 0 10px;
+}
+.sec-label:first-of-type { margin-top: 6px; }
+
+.tile-grid { flex: none; display: grid; grid-template-columns: repeat(auto-fill, minmax(168px, 1fr)); gap: 14px; margin-bottom: 6px; min-width: 0; }
+.tile-card { background: var(--panel); border: 1.5px solid var(--line2); min-width: 0; padding: 14px 16px 13px; }
+.tile-label { font-size: 11.5px; font-weight: 700; letter-spacing: 0.02em; color: var(--sub); margin-bottom: 4px; }
+.tile-value { font-size: 24px; font-weight: 800; line-height: 1.15; font-family: var(--mono); color: var(--text); overflow-wrap: break-word; }
+.tile-note { font-size: 11.5px; color: var(--muted); margin-top: 5px; }
+
+.dp-controls { flex: none; display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin: 4px 0 14px; }
+.dp-controls .pt-input { flex: 1; min-width: 220px; }
+
+.dp-tablewrap { flex: 1; min-height: 0; }
+#detail-table code { font-family: var(--mono); font-size: 11.5px; color: var(--accent); }
+
+.note-box {
+  font-size: 12.5px;
+  color: var(--sub);
+  background: var(--panel3);
+  border: 1px solid var(--line2);
+  padding: 10px 14px;
+  margin: 14px 0 0;
+}
+
+.absent-rows-section { flex: none; }
+.absent-table { width: 100%; border-collapse: collapse; }
+.absent-table th, .absent-table td { text-align: left; padding: 6px 10px; font-size: 12.5px; border-bottom: 1px solid var(--line2); }
+.absent-table code { font-family: var(--mono); font-size: 11.5px; color: var(--accent); }
+
+#unresolved-mount, .related-entities { flex: none; }
+
+.hidden { display: none !important; }
+
+@media (max-width: 760px) {
+  .tile-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+  .dp-controls .pt-input { min-width: 0; }
+}
+@media (max-width: 560px) {
+  .tile-grid { grid-template-columns: 1fr 1fr; }
+}
+</style>
+</head>
+<body>
+<div class="pt">
+  <div class="pt-grid"></div>
+  <div class="pt-row">
+    <!--SHELL_SIDEBAR-->
+    <main class="pt-main is-fixed">
+      <div class="pt-head">
+        <div class="pt-crumb"><a href="{{BACK_LINK}}">TOP</a> ／ {{ACTIVE_CATEGORY_LABEL}} ／ <span class="pt-crumb-current">{{TITLE}}</span></div>
+        <div class="pt-title-row">
+          <h1 class="pt-title">{{TITLE}}</h1>
+          <span class="pt-title-sub">{{DESCRIPTION}}</span>
+        </div>
+      </div>
+
+      <div class="sec-label">要約</div>
+      <div class="tile-grid" id="tiles-mount"></div>
+
+      <div class="sec-label">明細</div>
+      <div class="dp-controls">
+        <input type="search" id="detail-search" class="pt-input" placeholder="項目・値・出所で絞り込み">
+        <span class="pt-count" id="detail-count"></span>
+      </div>
+      <div class="pt-tablewrap dp-tablewrap">
+        <table id="detail-table">
+          <thead id="detail-table-head"></thead>
+          <tbody id="detail-table-body"></tbody>
+        </table>
+      </div>
+
+      <!--ABSENT_ROWS-->
+      <!--RELATED_ENTITIES--><div id="unresolved-mount"></div>
+    </main>
+  </div>
+  <!--SHELL_FOOTER-->
+</div>
+
+<script type="application/json" id="page-data">
+{{PAGE_DATA_JSON}}
+</script>
+
+<script>
+(function() {
+  var data = JSON.parse(document.getElementById('page-data').textContent);
+
+  function el(tag, attrs, children) {
+    var node = document.createElement(tag);
+    if (attrs) Object.keys(attrs).forEach(function(k) {
+      if (k === 'html') node.innerHTML = attrs[k];
+      else node.setAttribute(k, attrs[k]);
+    });
+    if (children) {
+      if (!Array.isArray(children)) children = [children];
+      children.forEach(function(c) {
+        if (typeof c === 'string') node.appendChild(document.createTextNode(c));
+        else if (c) node.appendChild(c);
+      });
+    }
+    return node;
+  }
+
+  // --- 要約タイル(tiles[]) ---
+  var tilesMount = document.getElementById('tiles-mount');
+  (data.tiles || []).forEach(function(t) {
+    var card = el('div', { class: 'tile-card' });
+    card.appendChild(el('div', { class: 'tile-label' }, t.label || ''));
+    card.appendChild(el('div', { class: 'tile-value' }, String(t.value != null ? t.value : '')));
+    if (t.note) card.appendChild(el('div', { class: 'tile-note' }, t.note));
+    tilesMount.appendChild(card);
+  });
+
+  // --- 明細表(columns + rows[]) ---
+  var columns = data.columns || { item: '項目', value: '値', sourceRef: '出所' };
+  var theadRow = el('tr', null, [
+    el('th', null, columns.item || '項目'),
+    el('th', null, columns.value || '値'),
+    el('th', null, columns.sourceRef || '出所')
+  ]);
+  document.getElementById('detail-table-head').appendChild(theadRow);
+
+  var tbody = document.getElementById('detail-table-body');
+  var rows = data.rows || [];
+  var rowEls = [];
+  if (rows.length === 0) {
+    tbody.appendChild(el('tr', null, el('td', { colspan: '3' }, 'なし')));
+  } else {
+    rows.forEach(function(r) {
+      var tr = el('tr', null, [
+        el('td', null, String(r.item != null ? r.item : '')),
+        el('td', null, String(r.value != null ? r.value : '')),
+        el('td', null, el('code', null, String(r.sourceRef != null ? r.sourceRef : '')))
+      ]);
+      tbody.appendChild(tr);
+      rowEls.push(tr);
+    });
+  }
+
+  // --- 検索(部分一致) + 件数表示 ---
+  function updateCount() {
+    var visible = rowEls.filter(function(tr) { return tr.style.display !== 'none'; }).length;
+    var countEl = document.getElementById('detail-count');
+    if (countEl) countEl.textContent = visible + ' / ' + rowEls.length + ' 件';
+  }
+  function applyFilter() {
+    var q = (document.getElementById('detail-search').value || '').trim().toLowerCase();
+    rowEls.forEach(function(tr) {
+      tr.style.display = (q === '' || tr.textContent.toLowerCase().indexOf(q) !== -1) ? '' : 'none';
+    });
+    updateCount();
+  }
+  applyFilter();
+  var searchInput = document.getElementById('detail-search');
+  if (searchInput) searchInput.addEventListener('input', applyFilter);
+
+  // --- 未解決節(unresolved[]) ---
+  var unresolvedMount = document.getElementById('unresolved-mount');
+  var unresolved = data.unresolved || [];
+  if (unresolved.length > 0) {
+    unresolvedMount.appendChild(el('div', { class: 'sec-label' }, '未解決'));
+    var box = el('div', { class: 'note-box' });
+    unresolved.forEach(function(u) {
+      var line = (u.label || '') + '（' + (u.reason || '') + '）';
+      box.appendChild(el('div', null, line));
+    });
+    unresolvedMount.appendChild(box);
+  }
+})();
+</script>
+</body>
+</html>

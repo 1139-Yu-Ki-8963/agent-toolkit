@@ -1,0 +1,65 @@
+# .claude/rules/always/project-context/flow-values.yml
+# orchestrating-dev-flow がプロジェクト固有のコンテキストを注入するための設定ファイル。
+# スキーマ正本は ~/.claude/rules/scoped/agent-config/project-structure/rule.md を参照。
+# このファイルを .claude/rules/always/project-context/flow-values.yml にコピーしてプロジェクトに合わせて編集する。
+# コマンド体系は別ファイル layers.yml に分離する。
+
+# ドメイン知識（Phase 3 で Read）
+domain_glossary: docs/知識ベース/glossary.js
+design_system: DESIGN.md
+test_conventions: null
+adr_dir: null
+
+# ソース構造
+design_docs: docs/個別設計
+portal_dir: project-portal
+# 画面ドキュメント定義（任意）。未設定時は orchestrating-dev-flow の Phase 4-1b が
+# 正本 ~/agent-home/templates/project-docs/02_画面基本設計/ から骨格を複製する
+# screen_docs:
+#   base_dir: docs/02_画面基本設計
+#   files_per_screen:
+#     - 画面基本設計書.md
+#     - DESIGN.md
+#     - 単体テスト観点表.md
+#     - 結合テスト観点表.md
+
+# レビューゲート（未設定ならスキップ）
+# 値が "module-" prefix なら orchestrating-dev-flow 組み込みの references/<値>.md を Read する。
+# それ以外はレビュー観点名。managing-review-sets が利用可能ならプロファイルとして呼び出し、
+# 未提供時は利用可能な独立 reviewer または通常承認へ縮退して同じ gate 証拠を残す。
+review_gates:
+  pre_impl: pre-impl-review
+  impl_quality: impl-quality-review
+  pre_push: pre-push-review
+  e2e: module-running-e2e
+
+# レビュアー定義ファイル（未設定なら各モジュールの汎用観点にフォールバック）
+review_agents: {}
+
+# PR 設定
+pr:
+  template: .github/pull_request_template.md
+  required_sections:
+    - "## 概要"
+    - "## なぜこの実装か"
+    - "## 影響範囲"
+    - "## 確認方法"
+    - "## テスト"
+  critical_globs:
+    - "frontend/src/components/**"
+    - "backend/app/api/**"
+    - "supabase/migrations/**"
+  skip_globs: []
+
+# ルート判定の閾値（Phase 1 で使用）
+classify:
+  quick_max_files: 2
+  quick_excludes:
+    - migration
+    - schema_change
+    - api_contract
+    - ui_component
+
+# プリフライトチェック設定（references/module-preflight-check.md が参照）
+preflight:
+  skip_tools: []          # OPTIONAL ツールのスキップ（例: [gitleaks, lychee]）

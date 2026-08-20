@@ -1,0 +1,159 @@
+{
+  "proposalId": "sample-app-api",
+  "title": "サンプルアプリ API規約提案",
+  "lead": "架空のサンプルアプリのAPI実装を分析し、規約化候補を提案する見本である。",
+  "isSample": true,
+  "meta": {
+    "positioning": "サンプルアプリのAPI実装から抽出した規約候補",
+    "scope": "src/api/ 配下のAPIクライアント実装",
+    "verification": "自己テストの入力データを土台にした見本であり、実在するリポジトリの分析結果ではない。"
+  },
+  "crossFindings": [
+    {
+      "severity": "reference",
+      "title": "命名規則は全社共通規約に従う",
+      "body": "レスポンスフィールドの命名はサンプルアプリ固有ではなく、全社共通のコーディング規約が対象とする。"
+    }
+  ],
+  "chapters": [
+    {
+      "index": 1,
+      "title": "認証とエラー処理",
+      "slug": "auth-and-error",
+      "description": "認証トークンの渡し方とエラー応答の扱いを検討する章である。",
+      "categories": [
+        {
+          "key": "auth-token-header",
+          "title": "認証トークンのヘッダー方式",
+          "state": "proposal",
+          "summary": "認証トークンをAuthorizationヘッダーのBearer形式で渡す実装に統一されている。",
+          "observations": [
+            "<code>src/api/client.ts:42</code> でBearerトークンをAuthorizationヘッダーに設定している。",
+            "<code>src/api/legacy-client.ts:18</code> でも同じ形式を使っている。"
+          ],
+          "proposedRule": "認証トークンは常にAuthorizationヘッダーへ`Bearer <token>`形式で渡す。",
+          "sources": [
+            "src/api/client.ts:42",
+            "src/api/legacy-client.ts:18"
+          ],
+          "scope": "scoped",
+          "paths": [
+            "src/api/**"
+          ],
+          "enforcement": "advisory",
+          "checkable": true,
+          "checkMethod": "Authorizationヘッダーの値がBearerで始まるかを検査する。",
+          "reason": ""
+        },
+        {
+          "key": "error-status-code-mapping",
+          "title": "HTTPステータスコードとエラー種別の対応",
+          "state": "proposal",
+          "summary": "業務エラーと通信基盤のエラーをHTTPステータスコードで明確に区別している。",
+          "observations": [
+            "<code>src/api/error-handler.ts:12</code> で400番台を業務エラー、500番台を通信基盤のエラーとして分岐している。",
+            "<code>src/api/error-handler.ts:35</code> で404を「対象が存在しない」の意味に限定して使っている。"
+          ],
+          "proposedRule": "400番台は業務エラー、500番台は通信基盤のエラーとして扱い、404は対象不存在の意味に限定する。",
+          "sources": [
+            "src/api/error-handler.ts:12",
+            "src/api/error-handler.ts:35"
+          ],
+          "scope": "scoped",
+          "paths": [
+            "src/api/error-handler.ts"
+          ],
+          "enforcement": "advisory",
+          "checkable": true,
+          "checkMethod": "エラーハンドラのcase分岐が400番台と500番台で異なる処理を持つかを検査する。",
+          "reason": ""
+        },
+        {
+          "key": "error-response-shape",
+          "title": "エラー応答の形式",
+          "state": "na",
+          "summary": "",
+          "observations": [],
+          "proposedRule": "",
+          "sources": [],
+          "scope": "always",
+          "paths": [],
+          "enforcement": "advisory",
+          "checkable": false,
+          "checkMethod": "",
+          "reason": "エラー応答の形式は共通基盤ライブラリが強制しており、個別アプリでの規約提案の対象にならない。"
+        }
+      ]
+    },
+    {
+      "index": 2,
+      "title": "命名とページング",
+      "slug": "naming-and-paging",
+      "description": "一覧系APIのページング方式とフィールド命名を検討する章である。",
+      "categories": [
+        {
+          "key": "pagination-cursor",
+          "title": "一覧のページング方式",
+          "state": "proposal",
+          "summary": "一覧系APIはカーソル方式のページングで統一されている。",
+          "observations": [
+            "<code>src/api/list-items.ts:30</code> で`cursor`と`limit`パラメータを受け取っている。",
+            "<code>src/api/list-orders.ts:25</code> でも同じ`cursor`パラメータ名を使っている。"
+          ],
+          "proposedRule": "一覧系APIのページングは`cursor`と`limit`のクエリパラメータで統一する。オフセット方式は使わない。",
+          "sources": [
+            "src/api/list-items.ts:30",
+            "src/api/list-orders.ts:25"
+          ],
+          "scope": "scoped",
+          "paths": [
+            "src/api/list-*.ts"
+          ],
+          "enforcement": "advisory",
+          "checkable": true,
+          "checkMethod": "一覧系APIのクエリパラメータに`offset`が使われていないかを検査する。",
+          "reason": ""
+        },
+        {
+          "key": "request-timeout-config",
+          "title": "外部APIへのリクエストタイムアウト設定",
+          "state": "proposal",
+          "summary": "外部APIへのリクエストは呼び出し元ごとにタイムアウト値を明示している。",
+          "observations": [
+            "<code>src/api/external-client.ts:20</code> で`timeout: 5000`を明示している。",
+            "<code>src/api/payment-client.ts:15</code> でも同様に`timeout`を明示している。"
+          ],
+          "proposedRule": "外部APIへのリクエストには必ずtimeoutを明示する。既定値に頼らない。",
+          "sources": [
+            "src/api/external-client.ts:20",
+            "src/api/payment-client.ts:15"
+          ],
+          "scope": "scoped",
+          "paths": [
+            "src/api/external-client.ts",
+            "src/api/payment-client.ts"
+          ],
+          "enforcement": "advisory",
+          "checkable": true,
+          "checkMethod": "外部呼び出しの近傍にtimeout指定があるかを検査する。",
+          "reason": ""
+        },
+        {
+          "key": "field-naming-case",
+          "title": "レスポンスフィールドの命名規則",
+          "state": "common",
+          "summary": "",
+          "observations": [],
+          "proposedRule": "",
+          "sources": [],
+          "scope": "always",
+          "paths": [],
+          "enforcement": "advisory",
+          "checkable": false,
+          "checkMethod": "",
+          "reason": "レスポンスフィールドのcamelCase命名は全社共通のコーディング規約が既に定めており、共通規約を参照する。"
+        }
+      ]
+    }
+  ]
+}

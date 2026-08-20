@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{TITLE}} — 設計ポータル</title>
+<!--
+  detail-pages T5 手順型テンプレート — 設計スキル群
+  生成: generation-engine/scripts/detail-pages/build-detail-page.sh
+  プレースホルダ置換は build-detail-page.sh の render_template() が行う。
+  手作業によるプレースホルダ置換は禁止。生成は必ずスクリプト経由で行う。
+
+  保守注記: トークン・共通シェル(サイドバー・フッター・全画面レイアウトのCSS)は
+  delivery-payload/templates/partials 配下の共通ファイルを注入マーカー経由で読み込む。
+  テーマ切替はサイドバー側に一本化されており、本テンプレートに複製は無い。
+  本ページは縦に読む文書型のため、他のdetail-pagesと異なり全画面固定(is-fixed)は使わず、
+  メインペイン自体がスクロールする。
+
+  プレースホルダ(build-detail-page.shが注入。実際のマーカー記法は
+  scripts/detail-pages/build-detail-page.sh 冒頭コメントを正本とする。本コメントでは
+  二重置換事故を避けるため意図的に波括弧を外して記載する):
+    TITLE (ページ見出しマーカー)          : page-data.json の title
+    DESCRIPTION (ページ概要マーカー)      : page-data.json の description
+    BACK_LINK (ポータルTOPへの戻りリンク) : ポータルからの相対パス
+    PAGE_DATA_JSON (page-data埋め込みマーカー) : page-data.json の内容全体(本ファイル物理末尾のscriptタグへ注入)
+    PROJECT_NAME・GENERATED_AT・COMMIT_SHORT は本ファイル本体では使わず、共通シェル
+    (サイドバー・フッター)側でのみ消費される。
+-->
+<style>
+/* TOKENS_CSS */
+/* SHELL_CSS */
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+html, body { margin: 0; padding: 0; }
+
+.sec-label {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  color: var(--muted);
+  margin: 24px 0 10px;
+}
+
+.doc-grid { display: grid; grid-template-columns: 200px 1fr; gap: 36px; padding: 28px 0 60px; align-items: start; }
+.doc-toc { position: sticky; top: 24px; display: flex; flex-direction: column; border-left: 1.5px solid var(--line2); }
+.doc-toc-item { padding: 8px 16px; font-size: 12.5px; color: var(--sub); border-left: 2px solid transparent; margin-left: -1.5px; }
+.doc-toc-item:hover { color: var(--accent); border-left-color: var(--accent); background: var(--accent-soft); text-decoration: none; }
+
+.doc-body { max-width: none; padding: 32px 40px; background: var(--panel); border: 1.5px solid var(--line2); }
+
+.doc-h { display: flex; align-items: baseline; gap: 10px; margin: 30px 0 14px; padding-bottom: 8px; border-bottom: 1px solid var(--line); }
+.doc-h:first-child { margin-top: 0; }
+.doc-h-num { font-family: var(--mono); font-size: 12px; font-weight: 600; color: var(--stamp); }
+.doc-h h2 { font-size: 16.5px; font-weight: 700; margin: 0; }
+
+.table-wrap {
+  overflow-x: auto;
+  background:
+    linear-gradient(to right, var(--panel), transparent) left center / 24px 100% no-repeat local,
+    linear-gradient(to left, var(--panel), transparent) right center / 24px 100% no-repeat local,
+    linear-gradient(to right, var(--line2), transparent) left center / 10px 100% no-repeat scroll,
+    linear-gradient(to left, var(--line2), transparent) right center / 10px 100% no-repeat scroll;
+}
+table.data-table {
+  width: 100%; min-width: 420px; border-collapse: collapse; font-size: 13px;
+  background: var(--panel); border: 1px solid var(--line2);
+}
+table.data-table th {
+  text-align: left; font-size: 11.5px; font-weight: 700; color: var(--sub);
+  background: var(--panel2); padding: 8px 12px; border-bottom: 1px solid var(--line2);
+  white-space: nowrap;
+}
+table.data-table td { padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+table.data-table tr:last-child td { border-bottom: none; }
+table.data-table code {
+  background: var(--code); color: var(--codetext);
+  font-family: var(--mono); font-size: 12px; line-height: 1.8;
+  padding: 2px 8px;
+}
+.step-order {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 20px; height: 20px;
+  background: var(--accent-soft); color: var(--accent); font-size: 11px; font-weight: 700;
+}
+
+.note-box {
+  font-size: 12.5px; color: var(--sub); background: var(--panel3);
+  border: 1px solid var(--line2); padding: 10px 14px; margin: 20px 0 0;
+}
+.note-box div { position: relative; padding-left: 16px; }
+.note-box div::before {
+  content: ""; position: absolute; left: 1px; top: 4px;
+  width: 0; height: 0;
+  border-top: 4px solid transparent; border-bottom: 4px solid transparent;
+  border-left: 5px solid var(--accent);
+}
+
+.hidden { display: none !important; }
+
+@media (max-width: 760px) {
+  .doc-grid { grid-template-columns: 1fr; gap: 20px; padding: 20px 0 40px; }
+  .doc-toc { position: static; border-left: none; flex-direction: row; flex-wrap: wrap; }
+  .doc-toc-item { border-left: none; border-bottom: 2px solid transparent; margin-left: 0; }
+  .doc-toc-item:hover { border-left: none; border-bottom-color: var(--accent); }
+  .doc-body { padding: 20px; }
+}
+</style>
+</head>
+<body>
+<div class="pt">
+  <div class="pt-grid"></div>
+  <div class="pt-row">
+    <!--SHELL_SIDEBAR-->
+    <main class="pt-main">
+      <div class="pt-head">
+        <div class="pt-crumb"><a href="{{BACK_LINK}}">TOP</a> ／ {{ACTIVE_CATEGORY_LABEL}} ／ <span class="pt-crumb-current">{{TITLE}}</span></div>
+        <div class="pt-title-row">
+          <h1 class="pt-title">{{TITLE}}</h1>
+          <span class="pt-title-sub">{{DESCRIPTION}}</span>
+        </div>
+      </div>
+
+      <div class="doc-grid">
+        <nav class="doc-toc">
+          <a href="#sec-prereq" class="doc-toc-item">前提ツール</a>
+          <a href="#sec-env" class="doc-toc-item">実行環境</a>
+          <a href="#sec-steps" class="doc-toc-item">実行手順</a>
+          <a href="#sec-alloc" class="doc-toc-item">割当</a>
+        </nav>
+        <div class="doc-body">
+          <div class="doc-h" id="sec-prereq"><span class="doc-h-num">01</span><h2>前提ツール</h2></div>
+          <div class="table-wrap">
+            <table class="data-table" id="prereq-table">
+              <thead><tr><th>ツール</th><th>備考</th></tr></thead>
+              <tbody id="prereq-table-body"></tbody>
+            </table>
+          </div>
+
+          <div class="doc-h" id="sec-env"><span class="doc-h-num">02</span><h2>実行環境</h2></div>
+          <div class="table-wrap">
+            <table class="data-table" id="env-table">
+              <thead><tr><th>項目</th><th>値</th></tr></thead>
+              <tbody id="env-table-body"></tbody>
+            </table>
+          </div>
+
+          <div class="doc-h" id="sec-steps"><span class="doc-h-num">03</span><h2>実行手順</h2></div>
+          <div class="table-wrap">
+            <table class="data-table" id="steps-table">
+              <thead><tr><th>番号</th><th>コマンド</th><th>備考</th></tr></thead>
+              <tbody id="steps-table-body"></tbody>
+            </table>
+          </div>
+
+          <div class="doc-h" id="sec-alloc"><span class="doc-h-num">04</span><h2>割当</h2></div>
+          <div class="table-wrap">
+            <table class="data-table" id="alloc-table">
+              <thead><tr><th>対象</th><th>値</th><th>出所</th></tr></thead>
+              <tbody id="alloc-table-body"></tbody>
+            </table>
+          </div>
+
+          <!--RELATED_ENTITIES--><div id="unresolved-mount"></div>
+        </div>
+      </div>
+    </main>
+  </div>
+  <!--SHELL_FOOTER-->
+</div>
+
+<script type="application/json" id="page-data">
+{{PAGE_DATA_JSON}}
+</script>
+
+<script>
+(function() {
+  var data = JSON.parse(document.getElementById('page-data').textContent);
+
+  function el(tag, attrs, children) {
+    var node = document.createElement(tag);
+    if (attrs) Object.keys(attrs).forEach(function(k) {
+      if (k === 'html') node.innerHTML = attrs[k];
+      else node.setAttribute(k, attrs[k]);
+    });
+    if (children) {
+      if (!Array.isArray(children)) children = [children];
+      children.forEach(function(c) {
+        if (typeof c === 'string') node.appendChild(document.createTextNode(c));
+        else if (c) node.appendChild(c);
+      });
+    }
+    return node;
+  }
+
+  // --- 前提ツール表(prerequisites[]) ---
+  var prereqBody = document.getElementById('prereq-table-body');
+  var prerequisites = data.prerequisites || [];
+  if (prerequisites.length === 0) {
+    prereqBody.appendChild(el('tr', null, el('td', { colspan: '2' }, 'なし')));
+  } else {
+    prerequisites.forEach(function(p) {
+      prereqBody.appendChild(el('tr', null, [
+        el('td', null, p.name || ''),
+        el('td', null, p.note || '')
+      ]));
+    });
+  }
+
+  // --- 実行環境表(environment[]) ---
+  var envBody = document.getElementById('env-table-body');
+  var environment = data.environment || [];
+  if (environment.length === 0) {
+    envBody.appendChild(el('tr', null, el('td', { colspan: '2' }, 'なし')));
+  } else {
+    environment.forEach(function(e) {
+      envBody.appendChild(el('tr', null, [
+        el('td', null, e.name || ''),
+        el('td', null, e.value || '')
+      ]));
+    });
+  }
+
+  // --- 手順表(steps[]。番号 = 実行順) ---
+  var stepsBody = document.getElementById('steps-table-body');
+  var steps = (data.steps || []).slice().sort(function(a, b) {
+    return (a.order != null ? a.order : 0) - (b.order != null ? b.order : 0);
+  });
+  if (steps.length === 0) {
+    stepsBody.appendChild(el('tr', null, el('td', { colspan: '3' }, 'なし')));
+  } else {
+    steps.forEach(function(s, idx) {
+      stepsBody.appendChild(el('tr', null, [
+        el('td', null, el('span', { class: 'step-order' }, String(idx + 1))),
+        el('td', null, el('code', null, s.command || '')),
+        el('td', null, s.note || '')
+      ]));
+    });
+  }
+
+  // --- 割当表(allocations[]) ---
+  var allocBody = document.getElementById('alloc-table-body');
+  var allocations = data.allocations || [];
+  if (allocations.length === 0) {
+    allocBody.appendChild(el('tr', null, el('td', { colspan: '3' }, 'なし')));
+  } else {
+    allocations.forEach(function(a) {
+      allocBody.appendChild(el('tr', null, [
+        el('td', null, a.target || ''),
+        el('td', null, a.value || ''),
+        el('td', null, el('code', null, a.sourceRef || ''))
+      ]));
+    });
+  }
+
+  // --- 未解決節(unresolved[]) ---
+  var unresolvedMount = document.getElementById('unresolved-mount');
+  var unresolved = data.unresolved || [];
+  if (unresolved.length > 0) {
+    unresolvedMount.appendChild(el('div', { class: 'sec-label' }, '未解決'));
+    var box = el('div', { class: 'note-box' });
+    unresolved.forEach(function(u) {
+      var line = (u.label || '') + '（' + (u.reason || '') + '）';
+      box.appendChild(el('div', null, line));
+    });
+    unresolvedMount.appendChild(box);
+  }
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,6 @@
+{
+  "terms": ["リバース", "派生", "種別", "単位", "工程", "ポータル", "manifest"],
+  "glossaryDocument": "README.md",
+  "glossaryHeading": "## 言葉",
+  "referringDocuments": ["RUNBOOK.md"]
+}

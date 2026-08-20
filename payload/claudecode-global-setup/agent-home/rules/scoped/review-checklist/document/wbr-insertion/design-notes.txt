@@ -1,0 +1,66 @@
+# 設計判断: 文節改行基準（WBR-INSERTION-STANDARDS）
+
+## 必要性
+
+解説スライド HTML の見出し・帯テキストで日本語の改行位置が不自然になる問題が観測された。
+BudouX（Google の文節分割ライブラリ）を調査した結果、ライブラリ導入ではなく Claude が
+生成時に `<wbr>` を文節境界に挿入する運用を採用した。理由:
+- BudouX は完全ローカル（外部送信なし・約 15KB）だが、スキルの CDN 禁止規約と
+  テンプレートサイズ増加を考慮し、Claude の日本語文節判断能力で代替可能と判断した
+- 判断基準の明文化と機械検証により、ライブラリなしでも品質を担保できる
+
+## 2 箇所配置の理由
+
+ユーザー指示により、同じ基準をスキル側（references/wbr-insertion-rules.md）と
+ルール側（本ファイルの rule.md）に独立して配置する。
+- スキル側: 配布時に自己完結するため外部参照を持てない
+- ルール側: スライドに限らず全 HTML 成果物のレビューで適用するため
+
+## 代替案を採用しなかった理由
+
+- BudouX JS をテンプレートにインライン埋め込み: CDN 禁止規約に準拠するが約 15KB 増加。
+  Claude の文節判断で十分な品質が見込めるためオーバーヘッドが不要
+- BudouX を npm 依存に追加: スキルの成果物（単一 HTML）に Node.js ビルドステップを
+  要求することになり、自己完結性が崩れる
+
+## 保守責任者
+
+人手（ユーザー）。挿入位置・禁則ルールを変更する場合は本 rule.md と
+スキル側の wbr-insertion-rules.md を同時に更新する。
+
+## 廃棄条件
+
+Claude Code 本体が日本語文節改行を標準機能として提供した時、または
+BudouX 相当のローカル文節分割がスキルの標準基盤に組み込まれた時。
+
+## 経緯
+
+- 2026-07-19: 初版作成（BudouX 調査 → Claude 挿入運用への方針決定）
+
+## hook 登録しない判断（check-wbr-quality.sh）
+
+check-wbr-quality.sh は Phase 4 Step 4-1 で引数モードによる直接実行のみを用途とする。
+PreToolUse(Bash) hook としての settings.json 登録は行わない。
+
+### 理由: 既存の enforcement architecture で十分
+
+スキルの品質強制は「個別観点ごとの hook」ではなく「レビュープロセス完了の検査」で
+構造的に担保されている:
+
+1. Phase 4 Step 4-2: document-reviewer が観点レビュー表（slide-review-checklist.md）の
+   全行を照合し、wbr-文節改行 を含む全観点の PASS/NG を独立判定する
+2. commit 時: check-slide-evidence.sh が「検査記録.md の存在」「document-reviewer の
+   判定記録の存在」「検証用スクリーンショットの存在・寸法」を検査し、
+   レビュープロセスが未完了なら block する
+
+この構造により、wbr-文節改行 観点も document-reviewer の判定を経ないと commit できない。
+既存の 11 観点（文字切れ-全数目視・自己完結-外部参照なし 等）も同じ仕組みで運用されており、
+個別の hook を持たない。
+
+check-wbr-quality.sh の役割は Phase 4 Step 4-1 での機械的な事前チェック
+（document-reviewer に渡す前に明らかな禁則違反を潰す補助ツール）に限定される。
+
+### 配布時の制約
+
+加えて、generating-explanation-html-slides スキルは単体で配布する前提があり、
+settings.json への hook 登録に依存すると配布先の環境設定が必要になる。

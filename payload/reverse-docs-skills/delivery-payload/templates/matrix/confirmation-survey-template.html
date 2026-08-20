@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<!--
+  確認事項質問票.HTML の静的シェル(テンプレート)
+
+  答える質問:
+    「人間にしか確定できない欠落は何か」「どのファイルのどの判定式が根拠か」
+
+  背景(改善課題1-169):
+    バッチ一覧の推定名称・要手動確認・権限×画面マトリクスの権限未設定・
+    画面詳細設計書の要確認事項一覧という4系統の「人間確認待ち」データが
+    別々のページに散らばっており、横断集約して1つの質問票として提示する
+    成果物が無かった。本テンプレートはその横断集約結果を1ページで示す。
+
+  使い方:
+    プレースホルダ・注入マーカーは将来のビルドスクリプトが注入する。手作業置換禁止。
+    ビルドスクリプトが確認事項質問票マニフェストJSONをパースし、以下のマーカーを
+    機械的に置換して決定的にHTMLを生成する。
+
+  プレースホルダ(二重置換事故を避けるため本コメントでは波括弧・HTMLコメント記法を
+  意図的に外して記載する):
+    GENERATED_AT (生成日時マーカー)   : ISO8601 生成日時
+    DATA_SOURCE (データ源マーカー)    : 導出に使った入力マニフェスト・データファイルの取得元
+    MATRIX_JSON (マトリクスJSON埋め込みマーカー) :
+      script#matrix-manifest の中身として manifest JSON をそのまま埋め込む
+      (二重管理・ドリフト禁止。スキーマ定義: delivery-payload/references/manifest-schema-extensions.md
+      「confirmation-survey.json」節)。構造:
+        questions: [{ questionKey, targetUnit, question, evidence, answerTarget }]
+      questions が0件でも「確認が必要な事項はない」という結果を示すページ自体は
+      常に生成する(他のマトリクス・対応表3種と異なり、必須成分0件でもSKIPしない契約。
+      build-matrix-pages.sh の ALWAYS_GENERATE 分岐を参照)。
+
+  表構造:
+    行 = 質問1件 / 列 = 質問キー・対象ユニット・質問・根拠・回答反映先(計5列)
+    質問が0件の場合は「注意」コールアウト(caution・infoアイコン)で
+    「現時点で確認が必要な事項はありません」の旨を示し、表は空のまま表示する
+    (0件は良い状態のため警告色にしない)。
+    質問が1件以上の場合は「警告」コールアウト(warning・warningアイコン)で
+    「N件の確認事項があります」の見出しを表示してから表を描画する。
+    URLSearchParams の q を検索窓に反映する受け口あり(?q=キーワード)
+
+  保守注記: トークン・共通シェル(サイドバー・フッター・全画面レイアウトのCSS)は
+  delivery-payload/templates/partials 配下の共通ファイルを注入マーカー経由で読み込む。
+  テーマ切替はサイドバー側に一本化されており、本テンプレートに複製は無い。
+
+  制約:
+    - 外部リソース(CDN・フォント・画像)は一切使わない。単一ファイル自己完結
+    - <script id="matrix-manifest"> の中身は確定結果(manifest JSON)と完全に一致させる
+-->
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>確認事項質問票</title>
+<style>
+/* TOKENS_CSS */
+/* SHELL_CSS */
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+
+.toolbar-area { flex-shrink: 0; padding: 8px 0 0; }
+.toolbar { display: flex; gap: 10px; margin: 0 0 10px; align-items: center; flex-wrap: wrap; }
+.toolbar .pt-input { width: 260px; flex: none; }
+.toolbar .note { font-size: 0.82rem; color: var(--muted); }
+.toolbar .pt-count { margin-left: auto; }
+
+.table-area { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 8px; }
+
+.survey-callout { margin: 0; padding: 10px 14px; font-size: 0.85rem; line-height: 1.5; }
+.survey-callout p { margin: 0; }
+.survey-callout[hidden] { display: none; }
+
+table.matrix { table-layout: fixed; width: 100%; min-width: 840px; border-collapse: collapse; font-size: 0.88rem; }
+table.matrix th, table.matrix td { border-top: 1px solid var(--line); padding: 7px 10px; text-align: left; vertical-align: top; }
+table.matrix thead th { position: sticky; top: 0; z-index: 2; background: var(--panel); }
+table.matrix td.cell-key { font-family: var(--mono); font-size: 0.85em; overflow-wrap: break-word; word-break: break-all; }
+table.matrix td.cell-target { font-family: var(--mono); font-size: 0.85em; }
+table.matrix td.cell-question { white-space: pre-wrap; }
+table.matrix td.cell-evidence {
+  font-family: var(--mono); font-size: 0.8em; color: var(--muted);
+  overflow-wrap: break-word; word-break: break-all;
+}
+table.matrix td.cell-answer { color: var(--faint); }
+
+.copy-btn { background: none; border: none; cursor: pointer; padding: 1px 3px; color: var(--muted); opacity: .35; vertical-align: middle; }
+tr:hover .copy-btn, .copy-btn:focus { opacity: 1; }
+.copy-btn:hover { color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="pt">
+  <div class="pt-grid"></div>
+  <div class="pt-row">
+    <!--SHELL_SIDEBAR-->
+    <main class="pt-main is-fixed">
+      <div class="pt-head">
+        <div class="pt-crumb"><a href="{{BACK_LINK}}">TOP</a> ／ {{ACTIVE_CATEGORY_LABEL}} ／ <span class="pt-crumb-current">確認事項質問票</span></div>
+        <div class="pt-title-row">
+          <h1 class="pt-title">確認事項質問票</h1>
+          <span class="pt-title-sub">更新 {{GENERATED_AT}}</span>
+        </div>
+      </div>
+
+      <div class="toolbar-area">
+        <div class="toolbar">
+          <input type="search" id="matrix-search" class="pt-input" placeholder="質問キー・対象ユニット・質問文で絞り込み">
+          <span class="note">推定名称・要手動確認・権限未設定・要確認事項の4系統を横断集約した質問票</span>
+          <span class="pt-count" id="matrix-count"></span>
+        </div>
+      </div>
+
+      <div class="table-area">
+        <div id="survey-empty-callout" class="pt-callout pt-callout--caution survey-callout" role="status" hidden>
+          <p><span class="material-symbols-outlined pt-callout__icon" aria-hidden="true">info</span><span>現時点で確認が必要な事項はありません。</span></p>
+        </div>
+        <div id="survey-warning-callout" class="pt-callout pt-callout--warning survey-callout" role="status" hidden>
+          <p><span class="material-symbols-outlined pt-callout__icon" aria-hidden="true">warning</span><span id="survey-warning-callout-msg"></span></p>
+        </div>
+        <div class="pt-tablewrap">
+          <table class="matrix" id="matrix-table">
+            <thead>
+              <tr>
+                <th>質問キー</th>
+                <th>対象ユニット</th>
+                <th>質問</th>
+                <th>根拠</th>
+                <th>回答反映先</th>
+              </tr>
+            </thead>
+            <tbody id="matrix-body">
+              <!-- JSがmatrix-manifestから行を描画する -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
+  <!--SHELL_FOOTER-->
+</div>
+
+<script type="application/json" id="matrix-manifest">
+<!--MATRIX_JSON-->
+</script>
+
+<script>
+  (function () {
+    var manifestEl = document.getElementById('matrix-manifest');
+    var manifest = null;
+    try { manifest = JSON.parse(manifestEl.textContent); } catch (e) { /* プレースホルダ未注入時は描画しない */ }
+    if (!manifest || !manifest.questions) return;
+
+    var questions = manifest.questions;
+
+    var emptyCallout = document.getElementById('survey-empty-callout');
+    var warningCallout = document.getElementById('survey-warning-callout');
+    if (questions.length === 0) {
+      if (emptyCallout) emptyCallout.hidden = false;
+    } else {
+      if (warningCallout) {
+        var msgEl = document.getElementById('survey-warning-callout-msg');
+        if (msgEl) msgEl.textContent = questions.length + '件の確認事項があります。';
+        warningCallout.hidden = false;
+      }
+    }
+
+    var tbody = document.getElementById('matrix-body');
+    var countEl = document.getElementById('matrix-count');
+    var search = document.getElementById('matrix-search');
+
+    if (countEl) countEl.textContent = '質問 ' + questions.length + '件';
+
+    /* コピーボタン(一覧ページと同じ inline SVG 方式) */
+    var COPY_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>';
+    var CHECK_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+
+    function fallbackCopy(text) {
+      var ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand('copy'); } catch (e) { /* ignore */ }
+      document.body.removeChild(ta);
+    }
+
+    function copyCellText(text, btn) {
+      function showDone() {
+        btn.innerHTML = CHECK_SVG;
+        setTimeout(function () { btn.innerHTML = COPY_SVG; }, 1200);
+      }
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(showDone, function () { fallbackCopy(text); showDone(); });
+      } else {
+        fallbackCopy(text);
+        showDone();
+      }
+    }
+
+    function buildCopyBtn(text) {
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'copy-btn';
+      btn.setAttribute('aria-label', 'コピー');
+      btn.innerHTML = COPY_SVG;
+      btn.addEventListener('click', function (ev) {
+        ev.stopPropagation();
+        copyCellText(text, btn);
+      });
+      return btn;
+    }
+
+    function buildTextCell(className, text) {
+      var td = document.createElement('td');
+      td.className = className;
+      var span = document.createElement('span');
+      span.textContent = text || '';
+      td.appendChild(span);
+      td.appendChild(buildCopyBtn(text || ''));
+      return td;
+    }
+
+    /* 行(質問) */
+    var rows = [];
+    questions.forEach(function (q) {
+      var tr = document.createElement('tr');
+      tr.appendChild(buildTextCell('cell-key', q.questionKey));
+      tr.appendChild(buildTextCell('cell-target', q.targetUnit));
+      tr.appendChild(buildTextCell('cell-question', q.question));
+      tr.appendChild(buildTextCell('cell-evidence', q.evidence));
+      tr.appendChild(buildTextCell('cell-answer', q.answerTarget));
+      rows.push({ tr: tr, question: q });
+      tbody.appendChild(tr);
+    });
+
+    function applyFilter() {
+      var q = search ? search.value.trim().toLowerCase() : '';
+      rows.forEach(function (row) {
+        var textHit = !q || row.tr.textContent.toLowerCase().indexOf(q) !== -1;
+        row.tr.style.display = textHit ? '' : 'none';
+      });
+    }
+
+    if (search) search.addEventListener('input', applyFilter);
+
+    /* URLSearchParams の q を検索窓に反映する受け口(?q=キーワード) */
+    try {
+      var qParam = new URLSearchParams(location.search).get('q');
+      if (qParam && search) { search.value = qParam; applyFilter(); }
+    } catch (e) { /* ignore */ }
+  })();
+</script>
+
+</body>
+</html>

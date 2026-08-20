@@ -1,0 +1,417 @@
+/* 設計ポータルの共通シェル。サイドバー・メインペイン・フッター・方眼紙背景・ページヘッダの
+   共通クラスを定義する。色と寸法は tokens.css のトークンだけを参照し、実値を直書きしない。
+   本ファイルの全文は、ビルド時に各テンプレートのシェル注入マーカーへ差し込まれる。 */
+
+.pt {
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 13px;
+  line-height: 1.7;
+}
+.pt *, .pt *::before, .pt *::after { box-sizing: border-box; }
+.pt a { color: var(--accent); text-decoration: none; }
+.pt a:hover { color: var(--accent-hi); text-decoration: underline; }
+.pt ::selection { background: var(--accent-soft); }
+.pt :focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+.pt-grid {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background-image:
+    linear-gradient(var(--grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: var(--grid-size) var(--grid-size);
+}
+
+.pt-row {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  align-items: stretch;
+}
+
+/* サイドバー */
+.pt-sidebar {
+  width: var(--sidebar-w);
+  flex: none;
+  border-right: 1.5px solid var(--line2);
+  background: var(--panel3);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+.pt-brand { padding: 20px 20px 16px; border-bottom: 1.5px solid var(--line2); }
+.pt-brand-stamp { font-family: var(--mono); font-size: 10px; letter-spacing: 3px; color: var(--stamp); font-weight: 600; }
+.pt-brand-name { font-size: 16px; font-weight: 700; letter-spacing: 0.5px; margin-top: 4px; line-height: 1.35; }
+.pt-brand-sub { font-family: var(--mono); font-size: 10.5px; color: var(--muted); margin-top: 5px; }
+
+/* サイト切替（モノレポ複数サイト時のみ JS が pt-brand-name を差し替える） */
+.pt-brand-switch { position: relative; }
+.pt-brand-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  margin-top: 4px;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  appearance: none;
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  line-height: 1.35;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+.pt-brand-toggle:hover { color: var(--accent); }
+.pt-brand-caret {
+  flex: none;
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 5px solid var(--text-muted);
+  transition: transform 0.12s;
+}
+.pt-brand-toggle[aria-expanded="true"] .pt-brand-caret { transform: rotate(180deg); }
+.pt-brand-list {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 100%;
+  margin-top: 8px;
+  border: 1.5px solid var(--border);
+  background: var(--panel-2);
+  z-index: 2;
+}
+.pt-brand-list-item {
+  display: block;
+  padding: 8px 12px;
+  font-size: 12px;
+  color: var(--text-sub);
+}
+a.pt-brand-list-item:hover { background: var(--panel3); color: var(--text); text-decoration: none; }
+.pt-brand-list-item.is-current { color: var(--text-muted); font-weight: 600; cursor: default; }
+
+.pt-nav { padding: 14px 12px; display: flex; flex-direction: column; gap: 2px; }
+.pt-nav-group { font-family: var(--mono); font-size: 9.5px; letter-spacing: 2px; color: var(--faint); padding: 14px 10px 5px; }
+.pt-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  font-size: 12.5px;
+  color: var(--sub);
+  border-left: 3px solid transparent;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.pt-nav-item:hover { background: var(--panel2); color: var(--text); text-decoration: none; }
+.pt-nav-item.is-active { color: var(--navon); background: var(--accent-soft); border-left-color: var(--accent); font-weight: 600; }
+.pt-nav-num { font-family: var(--mono); font-size: 10px; color: var(--muted); }
+.pt-nav-count { margin-left: auto; font-family: var(--mono); font-size: 10px; color: var(--faint); font-variant-numeric: tabular-nums; }
+
+/* 現在地のナビ項目に限り、番号と件数の文字色をコントラスト基準（4.5:1）を満たす値へ個別に上げる（改善課題1-49）。
+   --muted/--faint 本体は変更しない（他の使用箇所へ影響するため）。tokens.css と同じ4ブロック切り替えに揃える。 */
+:root {
+  --nav-current-num: #919DAE;
+  --nav-current-count: #929DAF;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --nav-current-num: #5E6B7E;
+    --nav-current-count: #5B6C80;
+  }
+}
+[data-theme="light"] {
+  --nav-current-num: #5E6B7E;
+  --nav-current-count: #5B6C80;
+}
+[data-theme="dark"] {
+  --nav-current-num: #919DAE;
+  --nav-current-count: #929DAF;
+}
+.pt-nav-item.is-active .pt-nav-num { color: var(--nav-current-num); }
+.pt-nav-item.is-active .pt-nav-count { color: var(--nav-current-count); }
+
+/* 文書ビューア型ページの章目次ブロック（旧 .dp-toc を共通サイドバーへ統合） */
+.pt-doc-nav { padding: 14px 12px; display: flex; flex-direction: column; gap: 2px; border-top: 1.5px solid var(--line2); }
+.pt-doc-nav__group { font-family: var(--mono); font-size: 9.5px; letter-spacing: 2px; color: var(--faint); padding: 14px 10px 5px; }
+.pt-doc-nav .nav-item,
+.pt-doc-nav .back-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  font-size: 12.5px;
+  color: var(--sub);
+  border-left: 3px solid transparent;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.pt-doc-nav .nav-item:hover,
+.pt-doc-nav .back-link:hover { background: var(--panel2); color: var(--text); text-decoration: none; }
+.pt-doc-nav .nav-item.active { color: var(--navon); background: var(--accent-soft); border-left-color: var(--accent); font-weight: 600; }
+.pt-doc-nav__toc { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 1px; }
+.pt-doc-nav__toc a {
+  display: block;
+  padding: 6px 10px 6px 20px;
+  font-size: 11px;
+  color: var(--sub);
+  border-left: 3px solid transparent;
+  transition: all 0.12s;
+}
+.pt-doc-nav__toc a:hover { background: var(--panel2); color: var(--text); text-decoration: none; }
+.pt-doc-nav__toc a.active { color: var(--navon); border-left-color: var(--accent); font-weight: 600; }
+
+.pt-theme {
+  margin: auto 12px 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: calc(100% - 24px);
+  border: 1px solid var(--line2);
+  background: transparent;
+  padding: 8px 12px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--sub);
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.pt-theme:hover { border-color: var(--accent); color: var(--accent); }
+.pt-theme-next { font-family: var(--mono); font-size: 10px; color: var(--faint); }
+.pt-sidebar-meta { padding: 14px 20px; font-family: var(--mono); font-size: 10px; color: var(--muted); line-height: 1.9; }
+
+/* サイドバー開閉ボタン（狭幅時のみ表示。広幅では常に非表示） */
+.pt-sidebar-toggle {
+  display: none;
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  z-index: 30;
+  width: 40px;
+  height: 40px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  border: 1.5px solid var(--line2);
+  background: var(--panel3);
+  padding: 0;
+  cursor: pointer;
+}
+.pt-sidebar-toggle span { display: block; width: 20px; height: 2px; background: var(--text); }
+
+/* サイドバー開放中に背後を覆うオーバーレイ */
+.pt-sidebar-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 15;
+  background: rgba(0, 0, 0, 0.5);
+}
+.pt-sidebar-scrim[hidden] { display: none; }
+
+@media (max-width: 900px) {
+  :root { --page-gutter: 16px; }
+  .pt-sidebar-toggle { display: flex; }
+  .pt-sidebar {
+    position: fixed;
+    inset: 0 auto 0 0;
+    z-index: 20;
+    width: var(--sidebar-w);
+    max-width: 82vw;
+    transform: translateX(-100%);
+    transition: transform 0.2s ease;
+  }
+  .pt-sidebar.is-open { transform: translateX(0); }
+  .pt-main { padding-top: 64px; }
+}
+
+/* メインペイン */
+.pt-main {
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+  padding: 0 var(--page-gutter) 72px;
+}
+.pt-main.is-fixed { overflow-y: hidden; display: flex; flex-direction: column; padding-bottom: 24px; }
+
+/* ページヘッダ */
+.pt-head { flex: none; padding: 32px 0 16px; border-bottom: 2px solid var(--line2); }
+.pt-crumb { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+.pt-crumb-current { color: var(--text); }
+.pt-title-row { display: flex; align-items: baseline; gap: 16px; margin-top: 10px; flex-wrap: wrap; }
+.pt-title { margin: 0; font-size: 26px; font-weight: 700; letter-spacing: 1px; }
+.pt-title-sub { font-size: 12px; color: var(--muted); }
+
+/* 汎用パーツ */
+.pt-panel { background: var(--panel); border: 1.5px solid var(--line2); }
+.pt-input {
+  border: 1.5px solid var(--line2);
+  background: var(--panel);
+  padding: 8px 13px;
+  font-family: var(--font-body);
+  font-size: 12.5px;
+  color: var(--text);
+  outline: none;
+  transition: all 0.12s;
+}
+.pt-input:focus { border-color: var(--accent); box-shadow: 3px 3px 0 var(--accent-soft); }
+.pt-seg { display: flex; border: 1px solid var(--line2); }
+.pt-seg button {
+  border: 0;
+  border-right: 1px solid var(--line);
+  padding: 7px 16px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  background: var(--panel);
+  color: var(--sub);
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.pt-seg button:last-child { border-right: 0; }
+.pt-seg button.is-active { background: var(--accent); color: var(--chipontext); }
+.pt-chip { font-size: 11px; border: 1px solid var(--line); background: var(--panel3); padding: 2px 8px; font-family: var(--mono); }
+.pt-badge { font-size: 10.5px; font-weight: 600; padding: 2px 9px; }
+.pt-badge.is-done { color: var(--accent); background: var(--accent-soft); }
+.pt-badge.is-stale { color: var(--stamp); background: var(--stamp-soft); }
+.pt-badge.is-todo { color: var(--muted); background: var(--neutral-soft); }
+.pt-count { font-family: var(--mono); font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+/* Google Fonts障害時も3段階アイコンを保つ、公式サブセットのローカルフォールバック */
+@font-face {
+  font-family: "Material Symbols Outlined Local";
+  font-style: normal;
+  font-weight: 400;
+  font-display: block;
+  src: url("data:font/ttf;base64,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") format("truetype");
+}
+
+/* 重要度コールアウト。見出しを先頭要素に置き、色帯とMaterial Symbolsを併用する */
+.pt-callout {
+  --callout-color: var(--accent);
+  --callout-soft: var(--accent-soft);
+  position: relative;
+  background: var(--callout-soft);
+  color: var(--text);
+  box-shadow: inset 5px 0 0 var(--callout-color);
+}
+.pt-callout__icon {
+  display: none;
+  margin-right: 0.55em;
+  color: var(--callout-color);
+  font-family: "Material Symbols Outlined", "Material Symbols Outlined Local";
+  font-size: 1.45em;
+  font-style: normal;
+  font-weight: 400;
+  font-variation-settings: "FILL" 0, "wght" 500, "GRAD" 0, "opsz" 24;
+  line-height: 1;
+  vertical-align: -0.12em;
+}
+.pt-callout > :first-child > .pt-callout__icon { display: inline-block; }
+.pt-callout--caution {
+  --callout-color: var(--accent);
+  --callout-soft: var(--accent-soft);
+}
+.pt-callout--warning {
+  --callout-color: var(--stamp);
+  --callout-soft: var(--stamp-soft);
+}
+.pt-callout--important {
+  --callout-color: var(--green);
+  --callout-soft: var(--green-soft);
+}
+
+/* 表 */
+/* 横スクロール可能な表であることを示す端フェード（JS不要のCSSのみの手掛かり）。
+   background-attachment の local/scroll の組合せで、覆いレイヤー(local)はスクロール量に
+   応じて中身と一緒に動き、影レイヤー(scroll)は要素の表示領域に固定されたまま覆いの下に隠れる。
+   これにより端まで到達すると自動的に影が消え、途中では両端に影が現れる。 */
+.pt-tablewrap {
+  flex: 0 1 auto; min-height: 0; overflow: auto; border: 1.5px solid var(--line2);
+  background-color: var(--panel);
+  background-image:
+    linear-gradient(to right, var(--panel) 40%, transparent),
+    linear-gradient(to left, var(--panel) 40%, transparent),
+    linear-gradient(to right, color-mix(in srgb, var(--text) 22%, transparent), transparent),
+    linear-gradient(to left, color-mix(in srgb, var(--text) 22%, transparent), transparent);
+  background-repeat: no-repeat;
+  background-size: 30px 100%, 30px 100%, 14px 100%, 14px 100%;
+  background-position: left, right, left, right;
+  background-attachment: local, local, scroll, scroll;
+}
+/* 固定列を持つ表専用の横スクロール手掛かり。
+   固定列（position:sticky）は不透明な背景を持つため、影を表そのものの background として
+   置くと固定列の下に隠れてしまう（背景は常に子要素より奥の層に描画されるため、子要素の
+   z-index をどれだけ上げても背景の上に出てくることはない）。
+   代わりに表を包む専用のラッパーを置き、その ::before/::after を固定列より高い z-index で
+   重ねることで、固定列の陰にならない位置に手掛かりを出す。表示のON/OFFはスクロール量に応じて
+   共通ホスト（partials/shell-sidebar.html）の JS が can-scroll-left / can-scroll-right を切り替える。 */
+.pt-scroll-shell { position: relative; min-width: 0; }
+.pt-scroll-shell::before,
+.pt-scroll-shell::after {
+  content: ""; position: absolute; z-index: 20; top: 0; bottom: 0; width: 30px;
+  opacity: 0; pointer-events: none; transition: opacity .12s;
+}
+.pt-scroll-shell::before {
+  left: 0; background: linear-gradient(to right, color-mix(in srgb, var(--text) 22%, transparent), transparent);
+}
+.pt-scroll-shell::after {
+  right: 0; background: linear-gradient(to left, color-mix(in srgb, var(--text) 22%, transparent), transparent);
+}
+.pt-scroll-shell.can-scroll-left::before,
+.pt-scroll-shell.can-scroll-right::after { opacity: 1; }
+
+.pt-tablewrap table { width: 100%; border-collapse: separate; border-spacing: 0; }
+.pt-tablewrap thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--head);
+  color: var(--headtext);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-align: left;
+  padding: 9px 14px;
+}
+.pt-tablewrap tbody td { border-top: 1px solid var(--line); padding: 10px 14px; font-size: 13px; }
+.pt-tablewrap tbody tr:hover td { background: var(--panel3); }
+.pt-tablewrap tbody tr.is-open td { background: var(--rowopen); }
+.pt-mono { font-family: var(--mono); font-size: 11.5px; color: var(--sub); }
+
+/* フッター */
+.pt-footer {
+  position: relative;
+  z-index: 1;
+  flex: none;
+  border-top: 1.5px solid var(--line2);
+  background: var(--panel3);
+  padding: 12px var(--page-gutter);
+  display: flex;
+  gap: 20px;
+  align-items: baseline;
+  flex-wrap: wrap;
+}
+.pt-footer-stamp { font-family: var(--mono); font-size: 10.5px; letter-spacing: 2px; color: var(--stamp); font-weight: 600; }
+.pt-footer-meta { font-family: var(--mono); font-size: 10.5px; color: var(--muted); }
+.pt-footer-gen { margin-left: auto; font-size: 10.5px; color: var(--muted); }
+
+@media (prefers-reduced-motion: reduce) {
+  .pt *, .pt *::before, .pt *::after { transition: none !important; }
+}

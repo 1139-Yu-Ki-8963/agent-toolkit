@@ -1,0 +1,169 @@
+# syncing-reverse-env の可変値設定
+# 値の階層: 普遍のルール＝SKILL.md / プロジェクト単位＝本ファイル / 画面単位＝設計書 frontmatter
+
+defaults:
+  ports:
+    band_start: 9100      # reverse スロット帯のベースポート（per-scope モードでは original もこの帯）
+    slot_stride: 20        # スロット 1 個あたりの占有帯幅
+    reverse_offset: 10     # スロット内の reverse オフセット（per-scope モードでは original→reverse 加算値）
+    max_slots: 5           # 同時並行できる画面スロット数の上限
+    # 共有オリジナル方式（original_sharing=by-source-ref）用の専用帯。reverse 帯（9100〜）と非重複。
+    original_shared_band_start: 9000   # 共有オリジナル専用帯のベースポート
+    original_shared_slot_stride: 10     # 共有オリジナル 1 個あたりの占有幅
+    max_shared_originals: 5             # 同時に立てられる共有オリジナル（system@sha 単位）の上限
+  services:                # 並び順 = ポートオフセット（0..9）。未使用分類は書かない
+    - frontend
+  launch:
+    frontend: "npm run dev -- --port {port}"  # 起動コマンドの既定形
+  l3_threshold_percent: 0.1   # L3 視覚比較の許容差分画素率
+  max_loop: 3                 # 収束ループ上限の既定値
+  tag_namespace: reverse-baseline
+  diff_exclude:               # 静的比較の除外リスト
+    - .git/
+    - node_modules/
+    - dist/
+    - .next/
+    - "*.lock"
+    - ".env*"                 # ポート設定を含む環境ファイル（env-file-parity で別途直接比較する）
+    - .reverse-port-slot       # スロット番号記録ファイル（開発用 .port-slot とは別物）
+    - .shared-original-slot     # 共有オリジナルのオリジナルスロット番号記録
+    - .shared-original-refcount.d/   # 共有オリジナルの参照カウント（session-pid ごとのエントリ）
+    - .shared-original-lock.d/       # 共有オリジナルの mkdir 原子ロック
+  original_sharing: by-source-ref  # by-source-ref（既定・同一 system かつ同一解決 source_ref SHA・同一起動プロファイル・オリジナルがリクエスト独立、の画面群で 1 つの読み取り専用オリジナルを共有。複数画面の並行検証で元コードの二重化を避ける） /
+                                   # per-scope（従来・画面ごとに original も作る。障害隔離が要る/オリジナルがステートフルな運用向け）
+                                   # 前提条件を満たさない画面は自動で per-scope に degrade する
+  install_command: "npm ci"     # 整列と修復の依存インストール（node_modules_strategy=npm_ci 時。projects で上書き可）
+  env_file_globs: [".env", ".env.*"]   # env-file-parity の比較対象
+  bundler_cache_dirs:            # 整列後に削除するバンドラキャッシュ
+    - node_modules/.vite
+    - node_modules/.cache
+  artifacts_root: null  # 証跡ルート。null（既定）なら <verification_dir>/screen-<画面ID>/<実行日時>/ に出力
+  output_dir: null                                       # リバース検証設計書の展開先ルート。projects.<system>.output_dir で上書き必須
+  # 環境差を吸収する 3 値。既定はすべて auto（Phase 2 プリフライトが実行時に検出して解決）。
+  # 人間が値を書かなくても環境に合わせて自動決定される。明示値は強制上書きとして機能する。
+  node_modules_strategy: auto    # auto（既定・常に npm_ci に解決＝各環境で独立インストール。本スキルの核心は「2 環境の完全独立の証明」のため、drvfs でも symlink_main を自動選択しない） /
+                                 # npm_ci（強制・各環境で独立インストール） /
+                                 # symlink_main（強制・source_repo の node_modules へ symlink。速いが node_modules が独立性の証明対象から外れる＝独立性を犠牲にする判断のため人間の明示 opt-in に限る）
+                                 # ⚠警告: symlink_main は node_modules/.vite（依存最適化キャッシュ）も両環境で共有するため、共有キャッシュのレースコンディションにより
+                                 #   片方の環境（どちらになるかは実行順・タイミング次第の非対称パターン）が持続的に描画失敗することがある（実測）。
+                                 #   navigate リトライでも dev サーバープロセス再起動でも直らない場合がある。これは「独立性を諦める」穏当なトレードオフではなく、
+                                 #   検証結果自体を信頼不能にする（片方がランダムに壊れる）副作用。対処: 該当環境の node_modules を独立 npm ci に切り替えると解消する。
+                                 # 注: source_repo が drvfs（/mnt/*）上だと npm_ci は低速になる。auto はこの時「symlink_main で高速化できるが独立性を犠牲にし描画が不安定になりうる」旨を WARN で報告するだけで、自動切替はしない
+  allow_mnt_fs: auto             # auto（既定・source_repo が /mnt/* 配下なら性能 WARN で続行 / それ以外は論点なし） /
+                                 # true（強制・/mnt/* でも WARN で続行） /
+                                 # false（強制・/mnt/* を ERROR で止める）
+  playwright_exec:
+    mode: auto                   # auto（既定・Playwright MCP が利用可能なら mcp / 非接続なら node-script に自動フォールバック） /
+                                 # mcp（強制・Playwright MCP ツールを使用） /
+                                 # node-script（強制・下記 command_template を Bash で直接実行）
+    node_path: null              # null（既定・下記の再現可能な順で自動解決。全て不在なら runtime-deps-ready を NO-GO とし人間に node_path 明示を促す） /
+                                 # 明示パス（強制・NODE_PATH へ渡す「playwright を含む node_modules」を固定）
+                                 # node_path 自動解決順（node-script mode 時。テスト対象アプリの多くは playwright を自依存に持たないため ②③ が主経路）:
+                                 #   ① reverse worktree で `node -e "require.resolve('playwright')"` が成功すれば、その解決先を含む node_modules
+                                 #   ② グローバル: `npm root -g` 配下に playwright/ があればその node_modules
+                                 #   ③ npx キャッシュを実探索（曖昧さなし）:
+                                 #      find "${npm_config_cache:-$HOME/.npm}/_npx" -type d -path '*/node_modules/playwright' 2>/dev/null | head -1
+                                 #      にヒットしたら、その playwright の親（.../node_modules）を node_path に採用
+                                 #   ④ ①〜③ いずれも不在 → NO-GO（node_path を人間が明示するまで node-script は実行不可）
+    # 調整可能な数値（command_template の {nav_timeout} / {ready_timeout} / {settle_wait} に展開される）。
+    # プロジェクト毎に変えたい場合は projects.<system>.playwright_exec で同名キーを上書きする（projects が常に優先）。
+    nav_timeout_ms: 60000        # page.goto の待受タイムアウト。dev サーバー再起動直後の初回は Vite の依存遅延変換で 40〜50 秒かかるため既定 60 秒。大規模アプリは projects で延長する
+    ready_timeout_ms: 60000      # readiness gate: ready セレクタが可視になるまでの待受上限。到達しなければ NOT_RENDERED（未描画）
+    settle_wait_ms: 10000        # ready セレクタ未指定時のみ使う弱いフォールバック待ち（描画安定）。ready 指定が本筋
+    # readiness gate の anti-spinner 既定セレクタ。ここに一致する要素が可視で残っていたら「未描画（NOT_RENDERED）」と判定する。
+    # 画面固有の ready 条件は設計書 frontmatter の scenarios[].ready で指定する（projects で本既定を上書き可）。
+    loading_selectors:
+      - "[aria-busy='true']"
+      - "[role='progressbar']"
+      - ".spinner"
+      - ".loading"
+    # command_template（node-script mode 用）の実機検証で判明した固定事項（変更禁止）:
+    #   - waitUntil: "load"（networkidle だと Vite dev server の HMR 用 WebSocket が繋がりっぱなしで永久タイムアウト）
+    #   - page.locator("body").ariaSnapshot()（page.accessibility.snapshot() は Playwright 1.61 系で撤去済み）
+    #   - navigate 先の URL は呼び出し側で必ず 127.0.0.1 を使う（localhost だと WSL2 の Chromium が名前解決待ちでタイムアウト）
+    #   - try/finally で browser.close() を必ず呼ぶ（失敗時に .catch だけで exit すると Chromium が孤児化して残存する）
+    #   - readiness gate: ready セレクタが可視になるまで待つ（無ければ settle_wait のフォールバック）。loading セレクタが可視で残れば NOT_RENDERED を出力し、一致判定に進ませない
+    #   - 内容抽出: assertTables / assertTexts の各セレクタの innerText を正規化して CAP_CONTENT に書き出す（スキルが両環境の内容を突合する）
+    #   - {nav_timeout} / {ready_timeout} / {settle_wait} は上の同名 config 値に展開。シナリオ引数（url・ready・assert・loading・operations）はスキルが CAP_SCENARIO に JSON で書き出して渡す
+    #   - operations（任意・L5 操作シーケンス突合用）: 初回 extract() の後に click/fill/selectOption/press を順に実行し、
+    #     settle_wait 分待ってから同じ extract() を再実行して postContent として content に追加する（無ければ従来どおり postContent なし）
+    command_template: |
+      CAP_SCENARIO={scenario} CAP_SHOT={screenshot} CAP_CLOG={console_log} CAP_SNAP={snapshot} CAP_CONTENT={content} NODE_PATH={node_path} node -e '
+      const { chromium } = require("playwright");
+      const fs = require("fs");
+      const env = process.env;
+      const S = JSON.parse(fs.readFileSync(env.CAP_SCENARIO, "utf8"));
+      (async () => {
+        const browser = await chromium.launch();
+        try {
+          const page = await browser.newPage();
+          const logs = [];
+          page.on("console", m => logs.push({ type: m.type(), text: m.text() }));
+          page.on("pageerror", e => logs.push({ type: "pageerror", text: String(e) }));
+          await page.goto(S.url, { waitUntil: "load", timeout: {nav_timeout} });
+          let rendered = true, reason = "";
+          try {
+            if (S.readySelector) await page.waitForSelector(S.readySelector, { state: "visible", timeout: {ready_timeout} });
+            else await page.waitForTimeout({settle_wait});
+            for (const sel of (S.loadingSelectors || [])) {
+              const still = await page.locator(sel).first().isVisible().catch(() => false);
+              if (still) { rendered = false; reason = "loading-visible:" + sel; break; }
+            }
+          } catch (e) { rendered = false; reason = "ready-timeout:" + (S.readySelector || "(none)"); }
+          const norm = t => String(t == null ? "" : t).replace(/\s+/g, " ").trim();
+          const extract = async (sels) => {
+            const out = {};
+            for (const sel of (sels || [])) {
+              const loc = page.locator(sel);
+              const n = await loc.count().catch(() => 0);
+              const items = [];
+              for (let i = 0; i < n; i++) items.push(norm(await loc.nth(i).innerText().catch(() => "")));
+              out[sel] = items;
+            }
+            return out;
+          };
+          const content = { rendered, reason, tables: await extract(S.assertTables), texts: await extract(S.assertTexts) };
+          if (S.operations && S.operations.length) {
+            for (const op of S.operations) {
+              if (op.action === "click") await page.click(op.selector);
+              else if (op.action === "fill") await page.fill(op.selector, op.value);
+              else if (op.action === "selectOption") await page.selectOption(op.selector, op.value);
+              else if (op.action === "press") { if (op.selector) await page.press(op.selector, op.key); else await page.keyboard.press(op.key); }
+              else throw new Error("unknown op");
+            }
+            await page.waitForTimeout({settle_wait});
+            content.postContent = { tables: await extract(S.assertTables), texts: await extract(S.assertTexts) };
+          }
+          await page.screenshot({ path: env.CAP_SHOT, fullPage: true });
+          const snap = await page.locator("body").ariaSnapshot();
+          fs.writeFileSync(env.CAP_SNAP, snap);
+          fs.writeFileSync(env.CAP_CLOG, JSON.stringify(logs, null, 2));
+          fs.writeFileSync(env.CAP_CONTENT, JSON.stringify(content, null, 2));
+          console.log(rendered ? "L1_OK" : "NOT_RENDERED " + reason);
+        } finally {
+          await browser.close();
+        }
+      })().catch(e => { console.error("CAPTURE_FAILED", e); process.exit(1); });
+      '
+
+projects: {}                  # プロジェクト（<system>）単位の上書き（任意）
+  # 環境差（drvfs / MCP 非接続 / node_path）は既定の auto がプリフライトで自動検出するため、
+  # 通常は projects を書かなくてよい。auto の判定を強制的に上書きしたい場合のみ追記する。
+  # 具体的な絶対パスを含む実エントリはデプロイ先ローカルの config.yml に置く（本 payload には汎用例のみ）。
+  # 起動コマンドだけはアプリ固有のため、非既定のサービス構成なら services / launch を指定する:
+  # "<system>":
+  #   services: [backend, frontend]
+  #   launch:
+  #     backend: "cd <backend repo path> && SERVER_PORT={port} ./gradlew bootRun --args='--spring.profiles.active=<profile>'"
+  #     frontend: "npm run dev -- --port {port}"
+  #   output_dir: "~/Projects/<project>/docs/リバース検証"
+  #   # 以下はすべて任意（既定 auto の検出結果を強制上書きしたい時だけ）:
+  #   # allow_mnt_fs: true
+  #   # node_modules_strategy: symlink_main
+  #   # playwright_exec:
+  #   #   mode: node-script
+  #   #   node_path: "<playwright を解決できる node_modules パス>"
+  #   #   nav_timeout_ms: 90000        # 特に重いルートを持つプロジェクトはここで延長（defaults を上書き）
+  #   #   settle_wait_ms: 15000
+  #   # l3_threshold_percent: 0.3      # 数値系の defaults はどれも projects で上書きできる（有効値 = defaults ← projects の深いマージ。projects 優先）
+  #   # max_loop: 5

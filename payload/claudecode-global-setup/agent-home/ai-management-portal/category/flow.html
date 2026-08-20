@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>フロー一覧 — AI マネジメントポータル</title>
+  <link rel="stylesheet" href="../style.css" />
+  <script type="module" src="../src/common/header.js"></script>
+</head>
+<body>
+  <div class="pm-page">
+    <main class="pm-main">
+      <div class="doc-crumbs"><a href="../index.html">TOP</a> / フロー一覧</div>
+      <div class="section-header">
+        <h2 class="section-title">フロー一覧</h2>
+        <span class="section-sub">実装・レビュー・運用・機械強制・文章品質・観測の各フロー</span>
+      </div>
+      <section class="cat-subsection">
+        <div class="cat-sub-head">
+          <h3 class="cat-sub-title">統合フロー</h3>
+          <span class="cat-sub-desc">全開発フローを束ねる統合起点</span>
+          <span class="cat-sub-count">1</span>
+        </div>
+        <div class="cards">
+          <a class="card is-visual group-flow" href="../flow/orchestrating-dev-flow.html">
+            <div class="card-head">
+              <span class="card-title">orchestrating-dev-flow（統合実装フロー）</span>
+              <span class="card-badge">統合</span>
+            </div>
+            <div class="card-desc">5 ルート × 13 Phase の統合開発フロー</div>
+          </a>
+        </div>
+      </section>
+      <section class="cat-subsection">
+        <div class="cat-sub-head">
+          <h3 class="cat-sub-title">実装・PR</h3>
+          <span class="cat-sub-desc">issue 着手から PR・マージまで</span>
+          <span class="cat-sub-count">5</span>
+        </div>
+        <div class="cards">
+          <a class="card is-visual group-flow" href="../flow/managing-github-issues.html">
+            <div class="card-head">
+              <span class="card-title">issue 選択 → 実装着手（pick モード）</span>
+              <span class="card-badge">起点</span>
+            </div>
+            <div class="card-desc">GitHub issue 一覧を表形式で表示し、番号選択から orchestrating-dev-flow を起動する。</div>
+          </a>
+          <a class="card is-visual group-flow" href="../flow/parallel-dev-worktree.html">
+            <div class="card-head">
+              <span class="card-title">worktree 開発フロー</span>
+              <span class="card-badge">実装</span>
+            </div>
+            <div class="card-desc">origin から worktree を切って実装し、PR 作成後に畳む。規模を問わず適用。</div>
+          </a>
+          <a class="card is-visual group-flow" href="../flow/grouping-commits.html">
+            <div class="card-head">
+              <span class="card-title">コミット整形</span>
+              <span class="card-badge">commit</span>
+            </div>
+            <div class="card-desc">変更ファイルを目的別に分類し、単一目的のコミットを複数作成する。</div>
+          </a>
+          <a class="card is-visual group-flow" href="../flow/formatting-pr.html">
+            <div class="card-head">
+              <span class="card-title">PR 本文整形</span>
+              <span class="card-badge">PR</span>
+            </div>
+            <div class="card-desc">PR テンプレートに厳密準拠した本文を組み立て、gh pr create する。</div>
+          </a>
+          <a class="card is-visual group-flow" href="../flow/fixing-review-findings.html">
+            <div class="card-head">
+              <span class="card-title">レビュー指摘の自動修正</span>
+              <span class="card-badge">fix</span>
+            </div>
+            <div class="card-desc">レビューの警告・critical を worktree 内で修正し、再レビュー・自動マージまで進める。</div>
+          </a>
+        </div>
+      </section>
+      <section class="cat-subsection">
+        <div class="cat-sub-head">
+          <h3 class="cat-sub-title">レビュー</h3>
+          <span class="cat-sub-desc">PR レビューと自動修正</span>
+          <span class="cat-sub-count">2</span>
+        </div>
+        <div class="cards">
+          <a class="card is-visual group-flow" href="../flow/pr-review-workflow.html">
+            <div class="card-head">
+              <span class="card-title">複数 PR 一括レビュー</span>
+              <span class="card-badge">一括</span>
+            </div>
+            <div class="card-desc">open PR を選び、Reviewer と Fixer のサブエージェントを並列起動して LGTM まで完結する。</div>
+          </a>
+          <a class="card is-visual group-flow" href="../flow/reviewing-prs.html">
+            <div class="card-head">
+              <span class="card-title">単一 PR レビュー</span>
+              <span class="card-badge">review</span>
+            </div>
+            <div class="card-desc">差分確認・コメント投稿・インラインコメント・自動フルレビューを gh で実行する。</div>
+          </a>
+        </div>
+      </section>
+      <section class="cat-subsection">
+        <div class="cat-sub-head">
+          <h3 class="cat-sub-title">運用</h3>
+          <span class="cat-sub-desc">手動起動の運用操作</span>
+          <span class="cat-sub-count">1</span>
+        </div>
+        <div class="cards">
+          <a class="card is-visual group-flow" href="../flow/seed-deploy.html">
+            <div class="card-head">
+              <span class="card-title">seed 即反映</span>
+              <span class="card-badge">運用</span>
+            </div>
+            <div class="card-desc">supabase/seeds 変更を worktree→commit→PR→マージ→db reset→再起動まで自走する。</div>
+          </a>
+        </div>
+      </section>
+      <section class="cat-subsection">
+        <div class="cat-sub-head">
+          <h3 class="cat-sub-title">文章品質</h3>
+          <span class="cat-sub-desc">textlint・曖昧表現・用語辞書</span>
+          <span class="cat-sub-count">1</span>
+        </div>
+        <div class="cards">
+          <a class="card is-visual group-flow" href="../flow/adding-textlint-dictionary-terms.html">
+            <div class="card-head">
+              <span class="card-title">用語辞書の登録と置換</span>
+              <span class="card-badge">辞書</span>
+            </div>
+            <div class="card-desc">カタカナ・英語バズワードを prh.yml に登録し、既存使用箇所を一括置換する。</div>
+          </a>
+        </div>
+      </section>
+      <section class="cat-subsection">
+        <div class="cat-sub-head">
+          <h3 class="cat-sub-title">機械強制（hook）</h3>
+          <span class="cat-sub-desc">Edit/commit/push を hook が制御</span>
+          <span class="cat-sub-count">4</span>
+        </div>
+        <div class="cards">
+          <a class="card is-visual group-flow" href="../flow/worktree-required.html">
+            <div class="card-head">
+              <span class="card-title">WORKTREE 強制</span>
+              <span class="card-badge">hook</span>
+            </div>
+            <div class="card-desc">worktree 未作成のままの編集を block し、parallel-dev-worktree の起動を促す。</div>
+          </a>
+          <a class="card is-visual group-flow" href="../flow/no-delegation.html">
+            <div class="card-head">
+              <span class="card-title">NO-DELEGATION 強制</span>
+              <span class="card-badge">hook</span>
+            </div>
+            <div class="card-desc">ユーザーへの操作依頼を禁止し、対話ログインは token 代替へ書き換えさせる。</div>
+          </a>
+          <a class="card is-visual group-flow" href="../flow/no-deferral.html">
+            <div class="card-head">
+              <span class="card-title">NO-DEFERRAL 強制</span>
+              <span class="card-badge">hook</span>
+            </div>
+            <div class="card-desc">「別 PR で対応」等の先送り表現を PR/issue/応答から排除する。</div>
+          </a>
+          <a class="card is-visual group-flow" href="../flow/author-guard.html">
+            <div class="card-head">
+              <span class="card-title">AUTHOR 強制</span>
+              <span class="card-badge">hook</span>
+            </div>
+            <div class="card-desc">commit/push の author を y__u 名義 1 件に限定し、逸脱を block する。</div>
+          </a>
+        </div>
+      </section>
+      <section class="cat-subsection">
+        <div class="cat-sub-head">
+          <h3 class="cat-sub-title">観測・ログ</h3>
+          <span class="cat-sub-desc">スキル発火ログとセッション要約</span>
+          <span class="cat-sub-count">2</span>
+        </div>
+        <div class="cards">
+          <a class="card is-visual group-flow" href="../flow/skill-log.html">
+            <div class="card-head">
+              <span class="card-title">スキル発火ログ</span>
+              <span class="card-badge">観測</span>
+            </div>
+            <div class="card-desc">PreToolUse(Skill) が発火のたびに JSONL を追記し、回数を集計可能にする。</div>
+          </a>
+          <a class="card is-visual group-flow" href="../flow/session-summary.html">
+            <div class="card-head">
+              <span class="card-title">セッション要約</span>
+              <span class="card-badge">観測</span>
+            </div>
+            <div class="card-desc">SessionEnd で headless プロセスがセッションを Markdown 要約として残す。</div>
+          </a>
+        </div>
+      </section>
+      <div class="back-link"><a href="../index.html">← カテゴリ一覧へ戻る</a></div>
+    </main>
+  </div>
+</body>
+</html>

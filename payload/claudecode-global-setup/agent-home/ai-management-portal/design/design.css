@@ -1,0 +1,58 @@
+/* ai-management-portal design/ 共通スタイル（design.css）
+   design/ 配下の文書ページ（sd-* コンポーネント）で共有する基礎ルールを集約したもの。
+   ページ固有の追加・上書きルールは各ページの <style> に残す。 */
+
+.sd-wrap { max-width: var(--content-max); margin: 0 auto; padding: 20px; }
+.sd-layout { display: grid; grid-template-columns: 220px 1fr; gap: 24px; align-items: start; }
+.sd-toc { position: sticky; top: 16px; background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; font-size: 12.5px; }
+.sd-toc h3 { font-size: 11px; margin: 0 0 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700; }
+.sd-toc ul { list-style: none; padding: 0; margin: 0; }
+.sd-toc li { margin: 0; }
+.sd-toc a { display: flex; align-items: baseline; gap: 7px; padding: 5px 8px; border-radius: 5px; color: var(--text-sub); font-size: 12px; text-decoration: none; line-height: 1.5; transition: background 0.12s; }
+.sd-toc a:hover { background: var(--accent-soft); color: var(--accent); text-decoration: none; }
+.sd-toc .toc-num { font-family: var(--mono); font-size: 10px; font-weight: 700; color: var(--accent); flex-shrink: 0; min-width: 18px; }
+.sd-toc .toc-sep { border-top: 1px solid var(--border); margin: 8px 0; }
+.sd-body { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px 32px; box-shadow: var(--shadow-sm); min-width: 0; }
+.sd-section { margin-bottom: 48px; }
+.sd-section:last-child { margin-bottom: 0; }
+.sd-h2 { display: flex; align-items: center; gap: 12px; font-size: 18px; font-weight: 800; margin: 0 0 16px; padding: 10px 16px; background: var(--accent-soft); border-left: 4px solid var(--accent); border-radius: 0 var(--radius-sm) var(--radius-sm) 0; scroll-margin-top: 20px; }
+.sd-h2 .sec-num { font-family: var(--mono); font-size: 12px; font-weight: 800; background: var(--accent); color: var(--panel); padding: 2px 8px; border-radius: 999px; }
+.sd-h3 { font-size: 14.5px; font-weight: 700; color: var(--accent); margin: 24px 0 8px; padding-bottom: 4px; border-bottom: 1px dashed var(--border-strong); }
+.sd-def { background: var(--panel-2); border: 1px solid var(--accent-border); border-left: 4px solid var(--accent); border-radius: 0 var(--radius-sm) var(--radius-sm) 0; padding: 12px 16px; margin: 12px 0 16px; font-size: 13.5px; color: var(--text); line-height: 1.75; }
+.sd-code { background: var(--code-bg); color: var(--code-fg); border-radius: var(--radius-sm); padding: 14px 18px; font-family: var(--mono); font-size: 12.5px; line-height: 1.65; overflow-x: auto; margin: 10px 0 16px; white-space: pre; }
+.sd-code-label { font-size: 10.5px; font-weight: 700; color: var(--text-muted); font-family: var(--mono); letter-spacing: 0.04em; margin-bottom: 4px; }
+.sd-flow { background: var(--code-bg); color: var(--code-fg); border-radius: var(--radius-sm); padding: 16px 20px; font-family: var(--mono); font-size: 12.5px; line-height: 2; overflow-x: auto; white-space: pre; margin: 12px 0 16px; }
+code { background: var(--accent-soft); color: var(--accent); padding: 1px 6px; border-radius: 4px; font-size: 0.9em; font-family: var(--mono); }
+/* display:block + overflow-x:auto は常時有効にする。table-layout:auto は
+   セル内の分割不可なトークン（コード・ファイル名等）がある場合に
+   width:100% を超えて描画されることがあり、これを自身のコンテナ内で
+   スクロールさせページ全体への横はみ出しを防ぐ（768px 未満限定にはしない） */
+.sd-table { display: block; width: 100%; overflow-x: auto; border-collapse: collapse; font-size: 12.5px; margin: 12px 0 16px; border: 1px solid var(--border); border-radius: var(--radius-sm); }
+.sd-table th, .sd-table td { border: 1px solid var(--border); padding: 8px 12px; text-align: left; vertical-align: top; }
+.sd-table th { background: var(--accent-soft); color: var(--accent); font-weight: 700; white-space: nowrap; }
+.sd-table tr:nth-child(even) td { background: var(--panel-2); }
+.sd-body ul, .sd-body ol { padding-left: 22px; margin: 8px 0 12px; line-height: 1.8; }
+.sd-body li { margin: 3px 0; font-size: 13.5px; color: var(--text-sub); }
+.sd-body li strong { color: var(--text); }
+.sd-gotcha { background: var(--gold-soft); border: 1px solid var(--gold-border); border-left: 4px solid var(--gold); border-radius: 0 var(--radius-sm) var(--radius-sm) 0; padding: 12px 16px; margin: 10px 0 14px; }
+.sd-gotcha-title { font-size: 11.5px; font-weight: 800; color: var(--gold); letter-spacing: 0.04em; margin-bottom: 8px; }
+.sd-gotcha ul { margin: 0; padding-left: 18px; }
+.sd-gotcha li { font-size: 12.5px; color: var(--text-sub); line-height: 1.75; }
+.badge-ok { display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 10px; border-radius: 999px; font-family: var(--mono); background: var(--success-soft); color: var(--success); border: 1px solid var(--success-border); white-space: nowrap; }
+.badge-ng { display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 10px; border-radius: 999px; font-family: var(--mono); background: var(--danger-soft); color: var(--danger); border: 1px solid var(--danger-border); white-space: nowrap; }
+.sd-note { font-size: 12px; color: var(--text-muted); background: var(--panel-2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 8px 12px; margin: 8px 0 12px; line-height: 1.7; }
+.sd-quote { font-size: 12.5px; color: var(--text-sub); background: var(--panel-2); border-left: 3px solid var(--text-muted); padding: 8px 14px; margin: 10px 0 14px; line-height: 1.75; font-style: italic; }
+.layer-badge { display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 10px; border-radius: 999px; font-family: var(--mono); white-space: nowrap; }
+.sd-tree { background: var(--code-bg); color: var(--code-fg); border-radius: var(--radius-sm); padding: 14px 18px; font-family: var(--mono); font-size: 12.5px; line-height: 1.75; overflow-x: auto; white-space: pre; margin: 10px 0 16px; }
+
+@media (max-width: 768px) {
+  .sd-layout { grid-template-columns: 1fr; }
+  .sd-toc { position: static; }
+  .sd-body { padding: 18px 20px; }
+  .sd-table { display: block; overflow-x: auto; white-space: nowrap; }
+}
+@media (max-width: 480px) {
+  .sd-wrap { padding: 12px; }
+  .sd-body { padding: 14px 14px; }
+  .sd-h2 { font-size: 15px; }
+}

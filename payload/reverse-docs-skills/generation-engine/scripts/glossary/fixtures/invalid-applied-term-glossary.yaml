@@ -1,0 +1,79 @@
+schema_version: 1.0.0
+content_version: 2.0.0
+glossary_key: commerce_platform
+title: Commerce platform glossary
+scope:
+  level: product
+  includes: [commerce_platform]
+  excludes: []
+scope_catalog:
+  - key: commerce_platform
+    level: product
+    parent_key: null
+    source_ref: docs/domain/commerce.md
+default_language: ja
+terms:
+  - key: customer
+    label: 顧客
+    definition: 承認済み提案と異なる内容へ改ざんされた顧客概念
+    kind: entity
+    category: business
+    scope:
+      level: product
+      includes: [commerce_platform]
+      excludes: []
+    representations:
+      - channel: code
+        value: Customer
+        symbol_kind: class
+        location: src/domain/customer.ts:12
+    aliases:
+      - value: お客様
+        type: synonym
+        language: ja
+        usage: allowed
+    relations:
+      - type: has_identifier
+        target_key: customer_id
+    lifecycle:
+      status: active
+      introduced_in: 1.0.0
+    stewardship:
+      approvers: [business_approver:domain-reviewer, technical_approver:architecture-reviewer]
+    provenance:
+      publication_status: approved
+      decision_ref: proposals/customer_update_from_document
+      change_ref: changes/update_customer_from_proposal
+      sources:
+        - type: domain_document
+          ref: docs/domain/customer.md#customer
+          supports: definition
+  - key: customer_id
+    label: 顧客ID
+    definition: 顧客を他の顧客から一意に識別する値
+    kind: identifier
+    category: business
+    scope:
+      level: product
+      includes: [commerce_platform]
+      excludes: []
+    representations:
+      - channel: database
+        value: customers.customer_id
+        location: db/schema.sql:41
+    lifecycle:
+      status: active
+      introduced_in: 1.0.0
+    stewardship:
+      approvers: [business_approver:domain-reviewer, technical_approver:architecture-reviewer]
+    provenance:
+      publication_status: approved
+      decision_ref: proposals/customer_id_from_schema
+      change_ref: changes/add_customer_id_from_schema
+      sources:
+        - type: database_schema
+          ref: db/schema.sql:41
+          supports: representation
+metadata:
+  created_at: '2026-08-01T00:00:00Z'
+  updated_at: '2026-08-01T00:00:00Z'

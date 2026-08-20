@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<!--
+  スキルガイド（単一ファイル自己完結型）
+
+  managing-session-workflow: セッション開始時に状態を読み取り、
+  適切なスキルへ誘導する管理スキルのガイド。
+-->
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>managing-session-workflow スキルガイド</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 0 24px 96px;
+    font-family: system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif;
+    line-height: 1.85; color: #1a1a1a; background: #fafafa;
+    max-width: 980px; margin-inline: auto;
+  }
+  header { padding: 56px 0 24px; border-bottom: 3px solid #1a1a1a; }
+  header h1 { font-size: 1.9rem; margin: 0 0 10px; letter-spacing: 0.01em; }
+  header .skill-name {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 1.0rem; background: #1a1a1a; color: #fafafa;
+    padding: 2px 10px; border-radius: 4px; vertical-align: middle;
+  }
+  header p { margin: 6px 0 0; color: #555; }
+  .meta-table { margin-top: 16px; font-size: 0.9rem; color: #555; }
+  .meta-table td { padding: 1px 16px 1px 0; }
+
+  nav.toc {
+    margin-top: 32px; padding: 18px 22px;
+    background: #fff; border: 1px solid #e0e0e0; border-radius: 8px;
+  }
+  nav.toc .toc-title { font-weight: 700; margin-bottom: 6px; }
+  nav.toc ol { margin: 0; padding-left: 1.4em; columns: 2; column-gap: 40px; }
+  nav.toc li { margin: 2px 0; }
+  nav.toc a { color: #1a1a1a; text-decoration: none; border-bottom: 1px dotted #999; }
+  nav.toc a:hover { border-bottom-style: solid; }
+
+  section { margin-top: 64px; }
+  section > h2 {
+    font-size: 1.35rem; padding-bottom: 8px; margin-bottom: 20px;
+    border-bottom: 2px solid #1a1a1a;
+  }
+  section > h2 .sec-num {
+    display: inline-block; min-width: 2.4em; margin-right: 10px;
+    font-family: ui-monospace, monospace; font-size: 0.95rem;
+    background: #1a1a1a; color: #fafafa; text-align: center;
+    padding: 1px 8px; border-radius: 4px; vertical-align: 2px;
+  }
+  h3 { font-size: 1.05rem; margin: 32px 0 10px; }
+  .note { color: #555; font-size: 0.92rem; }
+
+  table.spec { border-collapse: collapse; width: 100%; margin: 14px 0; background: #fff; font-size: 0.93rem; }
+  table.spec th, table.spec td { border: 1px solid #d8d8d8; padding: 8px 12px; text-align: left; vertical-align: top; }
+  table.spec th { background: #f0f0ee; font-weight: 700; white-space: nowrap; }
+  table.spec td code, li code, p code, table.spec th code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.86em; background: #eeeeea; padding: 1px 5px; border-radius: 3px;
+  }
+
+  pre.flow {
+    background: #16211c; color: #d7e6dc; border-radius: 8px;
+    padding: 20px 24px; overflow-x: auto;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.82rem; line-height: 1.55;
+  }
+  pre.flow .cap { color: #8fb8a0; }
+
+  figure.diagram { margin: 20px 0; padding: 8px; background: #fff;
+    border: 1px solid #e0e0e0; border-radius: 8px; }
+  figure.diagram svg { width: 100%; height: auto; display: block; cursor: zoom-in; }
+  figure.diagram figcaption { padding: 8px 10px 2px; }
+
+  .zoom-overlay {
+    position: fixed; inset: 0; z-index: 1000;
+    background: rgba(15, 23, 42, 0.93);
+    overflow: auto; padding: 24px; cursor: zoom-out;
+    -webkit-overflow-scrolling: touch;
+  }
+  .zoom-overlay svg {
+    width: 1880px; max-width: none; height: auto;
+    display: block; margin: 0 auto;
+    background: #fff; border-radius: 8px;
+  }
+
+  .def {
+    background: #fff; border-left: 4px solid #1a1a1a;
+    padding: 12px 18px; margin: 14px 0; border-radius: 0 6px 6px 0;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  }
+  .def dt { font-weight: 700; margin-top: 8px; }
+  .def dt:first-child { margin-top: 0; }
+  .def dd { margin: 2px 0 0 0; color: #333; }
+
+  .constraint {
+    background: #eef2f7; border: 1px solid #c8d4e3; border-radius: 8px;
+    padding: 12px 18px; margin: 16px 0; font-size: 0.93rem;
+  }
+  .constraint strong:first-child { color: #2a4a7a; }
+
+  .tag {
+    display: inline-block; font-family: ui-monospace, monospace; font-size: 0.78rem;
+    font-weight: 700; padding: 0 8px; border-radius: 3px; border: 1px solid transparent;
+  }
+  .tag.pass  { background: #e7f3e7; color: #23662a; border-color: #b9d9ba; }
+  .tag.fail  { background: #fbe9e7; color: #9c2b1a; border-color: #ecc0b8; }
+  .tag.error { background: #fdf3d7; color: #7a5d10; border-color: #e8d59a; }
+  .tag.mode  { background: #e8eef7; color: #2a4a7a; border-color: #c2d2e8; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>セッションワークフロー管理<br><span class="skill-name">managing-session-workflow</span></h1>
+  <p>毎ユーザーターンで目的・訂正・完了条件・公開条件を再評価し、共通 handoff で専門 Skill へ引き継ぐ進行管理スキル。</p>
+
+  <div class="def">
+    <dt>こんな人向け</dt>
+    <dd>セッション冒頭で「前回何をしていたか」「次に何をすべきか」を毎回自分で調べ直している人。</dd>
+    <dt>こんな場面で使う</dt>
+    <dd>SessionStart hook（<code>suggest-session-workflow.sh</code>）が advisory を注入した直後、または手動でセッション冒頭に状況把握と誘導を行いたい場面。</dd>
+  </div>
+
+  <table class="meta-table">
+    <tr><td>対応 OS</td><td>macOS（agent-home の各スキルと同じ実行環境を前提とする）</td></tr>
+    <tr><td>検証状況</td><td>2026-07-27: session-workflow-gate.test.sh PASS（2ターンstale拒否・訂正原文/正規化/反映先の再生成・全文供給・runtime表・画像2段階確認からhandoffへの接続）</td></tr>
+    <tr><td>使用ツール</td><td>
+      <code>Read</code>: flow-values.yml・skill-log 等の状態ファイル読み取り /
+      <code>Bash</code>: git status・gh pr list 等のコマンド実行 /
+      <code>Grep</code>: skill-log JSON Lines からの履歴検索 /
+      <code>Glob</code>: worktree・計画ファイルの存在確認 /
+      <code>Skill</code>: Phase 3 の判定結果に基づくスキル起動 /
+      <code>Agent</code>: 必要時のサブエージェント呼び出し（本スキルでは基本委任不要） /
+      <code>AskUserQuestion</code>: 判定できない場合のユーザー確認 /
+      <code>TaskCreate</code>: 誘導先スキルのタスク登録 /
+      <code>TaskUpdate</code>: タスク進捗更新
+    </td></tr>
+    <tr><td>参照ファイル</td><td>
+      <code>~/agent-home/sessions/.skill-log/*.jsonl</code>（直近セッションのスキル発火履歴） /
+      <code>.claude/rules/always/project-context/flow-values.yml</code>（<code>context_a</code> / <code>context_b</code> の必読ファイル定義）
+    </td></tr>
+  </table>
+</header>
+
+<nav class="toc">
+  <div class="toc-title">目次</div>
+  <ol>
+    <li><a href="#s1">概要・設計思想</a></li>
+    <li><a href="#s2">出力</a></li>
+    <li><a href="#s3">Phase 1: 状態の読み取り</a></li>
+    <li><a href="#s4">Phase 2: 状況の報告</a></li>
+    <li><a href="#s5">Phase 3: フロー判定と誘導</a></li>
+    <li><a href="#s6">Phase 4: コンテキスト提案</a></li>
+    <li><a href="#s7">起動方法</a></li>
+    <li><a href="#s8">完了条件</a></li>
+    <li><a href="#s9">サブエージェント委任・ループ設計・実行方式</a></li>
+    <li><a href="#s10">完了報告</a></li>
+  </ol>
+</nav>
+
+<section id="s1">
+  <h2><span class="sec-num">§1</span>概要・設計思想</h2>
+  <p>本スキルは毎ターンの発話を新規・追加・訂正・置換・質問へ分類し、purpose・Goal・completionCriteria・constraints・routing・handoff・tracking・final判定だけを担う。実装や調査自体は専門 Skill へ委任する。</p>
+  <div class="constraint">
+    <strong>役割分担</strong><br>
+    UserPromptSubmit hook は本 Skill 全文と現ターン checksum を供給するが、Skill 実行完了は記録しない。後続 Skill には必須7キーの共通 handoff を渡し、公開条件を含む実測証拠が揃うまで complete にしない。
+  </div>
+</section>
+
+<section id="s2">
+  <h2><span class="sec-num">§2</span>出力</h2>
+  <p>本スキルを実行すると、以下が生まれる。</p>
+  <div class="def">
+    <dt>状況要約</dt>
+    <dd>プロジェクト名・前回セッションの最終状態・未完了レビューの有無・未コミット変更の有無・並走 PR の有無・推奨する次のアクションを 5 行以内でまとめたユーザー向け報告。</dd>
+    <dt>後続ルーティング</dt>
+    <dd>ユーザーの要望と読み取った状態から、利用可能な専門スキルを優先して起動する。該当スキルが存在しない場合は標準 reviewer・実行担当・通常応答へ縮退し、同じ completionCriteria と証拠条件を渡す。</dd>
+    <dt>必読ファイルの提案</dt>
+    <dd>flow-values.yml の <code>context_a</code>（調査前提）/ <code>context_b</code>（計画前提）から、現在の Phase に必要なファイルの提案リスト。自動読み込みはせず、ユーザーが承認したものだけを Read する。</dd>
+    <dt>共通 handoff</dt>
+    <dd>goal・purpose・completionCriteria・constraints・userCorrections・inputs・publication を持つ、後続 Skill 用の正規化契約。訂正は original/normalized/target、actionable画像は2段階確認結果の scopeConfirmation を保持する。</dd>
+  </div>
+</section>
+
+<section id="s3">
+  <h2><span class="sec-num">§3</span>Phase 1: 状態の読み取り（読み取り専用）</h2>
+  <table class="spec">
+    <tr><th>Step</th><th>内容</th></tr>
+    <tr><td>Step 1-1: プロジェクト判定</td><td>cwd からプロジェクトを判定する。flow-values.yml の有無と内容を確認する。</td></tr>
+    <tr><td>Step 1-2: フロー状態の確認</td><td>skill-log（<code>~/agent-home/sessions/.skill-log/</code> 配下の JSON Lines 形式ファイル）から直近セッションの履歴を取得する（mtime ソートで直近ファイルを特定）。git log から未完了フローの痕跡（未マージのブランチ、worktree の存在）を確認する。全情報源が不在の場合は「新規セッション」として扱う。</td></tr>
+    <tr><td>Step 1-3: 作業環境の確認</td><td>git status で未コミット変更を確認する。<code>gh pr list --state open</code> で並走 PR を確認する（オフラインの場合はスキップ）。</td></tr>
+  </table>
+  <p class="note">完了条件: プロジェクト名・フロー状態・作業環境の 3 軸の情報が揃っている（または「新規セッション」と判定されている）。</p>
+</section>
+
+<section id="s4">
+  <h2><span class="sec-num">§4</span>Phase 2: 状況の報告</h2>
+  <p>Step 2-1 で以下の情報を 5 行以内でユーザーに報告する。</p>
+  <ul>
+    <li>プロジェクト名と前回セッションの最終状態</li>
+    <li>未完了のレビュー・品質確認の有無</li>
+    <li>未コミット変更の有無</li>
+    <li>並走 PR の有無</li>
+    <li>推奨する次のアクション</li>
+  </ul>
+  <p class="note">完了条件: ユーザーが現在の状況を把握している。</p>
+</section>
+
+<section id="s5">
+  <h2><span class="sec-num">§5</span>Phase 3: フロー判定と誘導</h2>
+  <h3>Step 3-1: フロー判定</h3>
+  <p>ユーザーの要望と Phase 1 の状態から、適切なスキルを 1 つ特定する。</p>
+  <table class="spec">
+    <tr><th>状況</th><th>誘導先</th></tr>
+    <tr><td>前回の続きあり（skill-log + git log で検知）</td><td>該当スキルの該当 Phase から再開</td></tr>
+    <tr><td>前回の続き + 新規要望が同時</td><td>AskUserQuestion でどちらを優先するか確認</td></tr>
+    <tr><td>新機能追加 / バグ修正 / リファクタ</td><td><code>orchestrating-dev-flow</code></td></tr>
+    <tr><td>スキル / ルール / hook 作成</td><td><code>managing-agent-configs</code></td></tr>
+    <tr><td>レビュー依頼</td><td><code>managing-review-sets</code></td></tr>
+    <tr><td>計画の提示</td><td><code>presenting-plan-with-artifacts</code></td></tr>
+    <tr><td>issue 作成 / 着手</td><td><code>managing-github-issues</code></td></tr>
+    <tr><td>単純な質問 / 小規模修正</td><td>フロー不要。直接対応（スキルを起動しない）</td></tr>
+    <tr><td>判断できない</td><td>AskUserQuestion でユーザーに確認</td></tr>
+  </table>
+  <h3>Step 3-2: 先回り検知</h3>
+  <p>フロー判定に関わらず、以下を検知して先回りで対応する。</p>
+  <ul>
+    <li>計画ファイル（<code>plans/*.md</code>）があるがレビュー未実行 → <code>managing-review-sets</code> を先に起動</li>
+    <li>未コミット変更があるが前回のフローが完了している → コミット / PR 作成を提案</li>
+    <li>並走 PR が存在する → 競合の可能性を報告</li>
+  </ul>
+  <h3>Step 3-3: スキル起動</h3>
+  <p>判定結果に基づいて Skill() で該当スキルを起動する。「フロー不要」の場合はスキルを起動せず直接対応する。</p>
+  <p class="note">完了条件: 適切なスキルが起動されている、または直接対応が開始されている。</p>
+</section>
+
+<section id="s6">
+  <h2><span class="sec-num">§6</span>Phase 4: コンテキスト提案</h2>
+  <p>Step 4-1: flow-values.yml の <code>context_a</code>（調査前提: 地図と語彙）/ <code>context_b</code>（計画前提: 配置・命名・テスト等の規約）から、現在の Phase に必要なファイルを提案する。</p>
+  <div class="constraint">
+    <strong>コンテキスト消費の制御</strong><br>
+    提案のみ行い、自動読み込みはしない。ユーザーが承認したものだけ Read する。
+  </div>
+  <p class="note">完了条件: 必読ファイルの提案が提示されている。</p>
+</section>
+
+<section id="s7">
+  <h2><span class="sec-num">§7</span>起動方法</h2>
+  <p>SessionStart hook（<code>scripts/suggest-session-workflow.sh</code>）が advisory を注入する。hook からは Skill() を呼べないため、Claude が注入を受けて <code>Skill("managing-session-workflow")</code> を自発的に呼ぶ。手動起動（<code>/managing-session-workflow</code>）も可能。</p>
+</section>
+
+<section id="s8">
+  <h2><span class="sec-num">§8</span>完了条件</h2>
+  <table class="spec">
+    <tr><th>Phase</th><th>完了条件</th></tr>
+    <tr><td>Phase 1</td><td>プロジェクト名・フロー状態・作業環境の情報が揃っている</td></tr>
+    <tr><td>Phase 2</td><td>ユーザーに状況要約を 5 行以内で報告済み</td></tr>
+    <tr><td>Phase 3</td><td>適切なスキルが起動されている</td></tr>
+    <tr><td>Phase 4</td><td>必読ファイルの提案が提示されている</td></tr>
+    <tr><td><strong>Goal</strong></td><td>ユーザーが正しいフローに乗り、必要なコンテキストを把握した状態で作業を開始できる</td></tr>
+  </table>
+</section>
+
+<section id="s9">
+  <h2><span class="sec-num">§9</span>サブエージェント委任・ループ設計・実行方式</h2>
+  <div class="def">
+    <dt>サブエージェント委任仕様</dt>
+    <dd>Phase 1 の情報収集は軽量なため委任不要（メイン自身が Read / Bash で実行）。Phase 3 のスキル起動は Skill() で直接呼び出す。</dd>
+    <dt>ループ設計</dt>
+    <dd>本スキル自体にループはない（セッション開始時に 1 回実行して完了）。Phase 3 で起動した先のスキルがそれぞれ独自のループを持つ。</dd>
+    <dt>実行方式</dt>
+    <dd>main-session（Skill / TaskCreate / AskUserQuestion を使用）。</dd>
+  </div>
+</section>
+
+<section id="s10">
+  <h2><span class="sec-num">§10</span>完了報告</h2>
+  <p><code>~/agent-home/skills/managing-agent-configs/references/skills/completion-report-format.md</code> の共通骨格に従う。固有の検証行: 判定されたプロジェクト名・前回状態・誘導先スキル名・先回り検知の有無。</p>
+</section>
+
+<div id="zoom-overlay" class="zoom-overlay" hidden></div>
+<script>
+  (function () {
+    var overlay = document.getElementById('zoom-overlay');
+    if (!overlay) return;
+    document.querySelectorAll('figure.diagram svg').forEach(function (svg) {
+      svg.addEventListener('click', function () {
+        overlay.innerHTML = '';
+        overlay.appendChild(svg.cloneNode(true));
+        overlay.hidden = false;
+        document.body.style.overflow = 'hidden';
+      });
+    });
+    overlay.addEventListener('click', function () {
+      overlay.hidden = true;
+      overlay.innerHTML = '';
+      document.body.style.overflow = '';
+    });
+  })();
+</script>
+
+</body>
+</html>

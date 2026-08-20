@@ -1,0 +1,14 @@
+change_key: retire_customer
+glossary_key: commerce_platform
+change_type: retire
+affected_term_keys: [customer]
+proposal_key: null
+base_content_version: 2.0.0
+target_content_version: 2.1.0
+before_hash: sha256:d40cef18de1030153a4cbdea7d660562680eba6289b582d54ef4e0f34e5be800
+after_hash: sha256:d6662250e4c2a1ce5428fbabb10618855812150af594bb3fdc5c9bd8e6fd5476
+requested_by: customer-domain-team
+approved_by: [business_approver:domain-reviewer, technical_approver:architecture-reviewer]
+reason: 顧客概念を廃止し顧客IDへ統合するため
+applied_at: '2026-08-03T01:00:00Z'
+applied_revision: retire123

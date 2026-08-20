@@ -1,0 +1,11 @@
+.flow-progress.json
+.claude/markers/
+.port-slot
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+credentials*.json
+auth.json
+secrets/

@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>worktree 開発フロー — AI マネジメントポータル</title>
+  <link rel="stylesheet" href="../style.css" />
+  <script type="module" src="../src/common/header.js"></script>
+</head>
+<body>
+  <div class="pm-page">
+    <main class="pm-main">
+      <div class="doc-crumbs"><a href="../index.html">TOP</a> / <a href="../category/flow.html">フロー一覧</a> / worktree 開発フロー</div>
+      <div class="section-header">
+        <h2 class="section-title">worktree 開発フロー</h2>
+        <span class="card-badge">実装</span>
+      </div>
+      <p class="flow-summary">origin から git worktree を切って隔離環境で実装し、PR 作成後に worktree を畳む。typo 修正・1 行変更も含め規模を問わず適用する。</p>
+      <div class="flow-trigger">
+        <span class="flow-trigger-label">発火タイミング</span>
+        <span class="flow-trigger-body">「実装」「修正」「直して」「対応」「issue 解決」と指示され、worktree が未作成のとき。読み取りのみの調査や、ユーザーが「main で直接」と明示した場合はスキップ。</span>
+      </div>
+      <div class="cat-sub-head"><h3 class="cat-sub-title">ステップ</h3><span class="cat-sub-count">7</span></div>
+      <div class="cards">
+        <div class="card is-visual group-flow flow-step">
+          <div class="card-head">
+            <span class="flow-step-no">1</span>
+            <span class="card-title">worktree 作成</span>
+            <span class="card-badge">parallel-dev-worktree</span>
+          </div>
+          <div class="card-desc">origin/main から新しいブランチの worktree を切る。命名は命名規約（rules: always/naming/commit-branch）に従う。</div>
+        </div>
+        <div class="card is-visual group-flow flow-step">
+          <div class="card-head">
+            <span class="flow-step-no">2</span>
+            <span class="card-title">着手前チェック</span>
+            
+          </div>
+          <div class="card-desc">対象範囲とコンフリクト可能性を確認する。</div>
+        </div>
+        <div class="card is-visual group-flow flow-step">
+          <div class="card-head">
+            <span class="flow-step-no">3</span>
+            <span class="card-title">実装</span>
+            
+          </div>
+          <div class="card-desc">worktree 内でコードを編集する。最小差分で根本から直す。</div>
+        </div>
+        <div class="card is-visual group-flow flow-step">
+          <div class="card-head">
+            <span class="flow-step-no">4</span>
+            <span class="card-title">テスト</span>
+            
+          </div>
+          <div class="card-desc">ユニット・E2E を実行し、動作を実証する。</div>
+        </div>
+        <div class="card is-visual group-flow flow-step">
+          <div class="card-head">
+            <span class="flow-step-no">5</span>
+            <span class="card-title">コミット整形</span>
+            <span class="card-badge">grouping-commits</span>
+          </div>
+          <div class="card-desc">grouping-commits で目的別コミットを作成する。</div>
+        </div>
+        <div class="card is-visual group-flow flow-step">
+          <div class="card-head">
+            <span class="flow-step-no">6</span>
+            <span class="card-title">PR 作成</span>
+            <span class="card-badge">module-formatting-pr</span>
+          </div>
+          <div class="card-desc">formatting-pr で PR 本文を整形し gh pr create する。</div>
+        </div>
+        <div class="card is-visual group-flow flow-step">
+          <div class="card-head">
+            <span class="flow-step-no">7</span>
+            <span class="card-title">worktree 削除</span>
+            
+          </div>
+          <div class="card-desc">PR 作成後に git worktree remove で畳む。</div>
+        </div>
+      </div>
+      <div class="cat-sub-head"><h3 class="cat-sub-title">フロー図</h3></div>
+      <pre class="flow-diagram">worktree作成 → 着手前チェック → 実装 → テスト → grouping-commits → formatting-pr → review → worktree remove</pre>
+      <div class="cat-sub-head"><h3 class="cat-sub-title">関連スキル・hook</h3></div>
+      <div class="flow-chips">
+          <span class="flow-chip">parallel-dev-worktree</span>
+          <span class="flow-chip">grouping-commits</span>
+          <span class="flow-chip">module-formatting-pr</span>
+      </div>
+      <div class="cat-sub-head"><h3 class="cat-sub-title">注意・例外</h3></div>
+      <ul class="flow-notes">
+          <li>~/.claude/* ~/agent-home/* と git 管理外パスは WORKTREE 強制の例外パス。</li>
+          <li>既存ブランチ継続中の追加コミットには適用しない。</li>
+      </ul>
+      <div class="back-link"><a href="../category/flow.html">← フロー一覧へ戻る</a></div>
+    </main>
+  </div>
+</body>
+</html>

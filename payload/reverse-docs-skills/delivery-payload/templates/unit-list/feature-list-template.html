@@ -1,0 +1,970 @@
+<!DOCTYPE html>
+<!--
+  機能一覧.HTML の静的シェル(テンプレート)
+
+  使い方(機能一覧生成スキル):
+    scripts/build-feature-list.sh <manifest.json> <output-html-path> を実行する。
+    build-feature-list.sh が本テンプレートを土台に、jqでマニフェストJSONをパースして
+    プレースホルダ・注入マーカーを機械的に置換し、決定的にHTMLを生成する。
+    Claude(手作業)によるプレースホルダ置換は禁止。生成は必ずスクリプト経由で行う。
+    build-unit-list.sh から unit_kind=feature として本テンプレートに委譲される。
+
+  保守注記: トークン・共通シェル(サイドバー・フッター・全画面レイアウトのCSS)は
+  delivery-payload/templates/partials 配下の共通ファイルを注入マーカー経由で読み込む。
+  テーマ切替はサイドバー側に一本化されており、本テンプレートに複製は無い。
+
+  プレースホルダ(build-feature-list.shが注入。実際のマーカー記法は
+  scripts/build-feature-list.sh 冒頭コメントを正本とする。本コメントでは
+  二重置換事故を避けるため意図的に波括弧・HTMLコメント記法を外して記載する):
+    GENERATED_AT (生成日時マーカー)             : ISO8601 生成日時
+    CATEGORY_COUNT (大分類数タイルマーカー)     : 検出された大分類の数
+    UNIT_COUNT (検出機能数タイルマーカー)       : detectionSummary.unitCount
+    UNRESOLVED_COUNT (要確認数タイルマーカー)   : detectionSummary.unresolvedCount
+    EMPTY_RELATION_COUNT (関連空機能数タイルマーカー) : detectionSummary.diagnostics.emptyRelation.count(1-152)
+    EXTRA_DIAGNOSTICS (診断マーカー・任意)      : emptyRelation(1-152)の比率コールアウト。
+                                                   閾値超過時は pt-callout--warning、それ以外は note
+    CATEGORY_SECTIONS (大分類セクションマーカー): 大分類ごとの details.module-group + table を丸ごと挿入
+    UNRESOLVED_SECTION (要手動確認セクションマーカー) : kind=unresolved の一覧テーブル、0件なら「なし」の文言
+    MANIFEST_JSON (マニフェストJSON埋め込みマーカー) : manifest.json の内容をそのまま埋め込み(二重管理・ドリフト禁止)
+
+  テーブル列順(固定・全3列): 機能名 / 概要 / 区分(任意列はクライアント側OPTIONAL_FIELDSが動的追加)。
+  行の<tr>には data-unit-id / data-unit-key 属性を持たせ、展開行JSがマニフェストJSONから
+  該当機能を引けるようにする(不可視属性のため3列制約には抵触しない)。カテゴリ別<details>は残す。
+
+  制約:
+    - 外部リソースはMaterial Symbols OutlinedのGoogle Fonts CDNだけを許可する。その他のCDN・フォント・画像は使わない
+    - <script id="unit-manifest"> の中身は確定結果(manifest.json)と完全に一致させる
+    - 本テンプレートは機能一覧.HTMLの生成のみを対象とする。設計書の雛形展開・生成は本スキルの範囲外
+-->
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>機能一覧</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined&amp;icon_names=info,priority_high,warning&amp;display=block" />
+<style>
+  /* TOKENS_CSS */
+  /* SHELL_CSS */
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+
+  .summary-tiles { display: flex; gap: 14px; margin: 16px 0 0; flex-wrap: wrap; }
+  .tile {
+    flex: 1; background: var(--panel); border: 1.5px solid var(--line2);
+    padding: 10px 18px; font-size: 0.85rem; color: var(--text-sub);
+  }
+  .tile strong { display: block; font-size: 1.3rem; color: var(--text); }
+
+  .toolbar-area { flex-shrink: 0; padding: 8px 0; }
+  .toolbar { display: flex; gap: 10px; margin: 10px 0; align-items: center; flex-wrap: wrap; }
+  .toolbar input[type="search"] { flex: 1; min-width: 220px; }
+  .toolbar .note { font-size: 0.82rem; color: var(--text-muted); }
+
+  .table-area { flex: 1; min-height: 0; overflow-y: auto; }
+  .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  table.units thead { position: sticky; top: 0; z-index: 3; }
+
+  details.module-group { margin: 18px 0; background: var(--panel); border: 1.5px solid var(--line2); min-width: 0; }
+  details.module-group > summary {
+    cursor: pointer; padding: 12px 16px; font-weight: 700; list-style: none;
+  }
+  details.module-group > summary::-webkit-details-marker { display: none; }
+  details.module-group > summary::before {
+    content: "";
+    display: inline-block;
+    width: 0;
+    height: 0;
+    margin-right: 6px;
+    vertical-align: middle;
+    border-top: 5px solid transparent;
+    border-bottom: 5px solid transparent;
+    border-left: 6px solid var(--text-muted);
+    transition: transform 0.12s;
+  }
+  details.module-group[open] > summary::before { transform: rotate(90deg); }
+  @media (prefers-reduced-motion: reduce) {
+    details.module-group > summary::before { transition: none; }
+  }
+
+  table.units {
+    table-layout: fixed; width: 100%; min-width: 1000px; border-collapse: collapse; font-size: 0.88rem;
+  }
+  table.units th {
+    border-top: 1px solid var(--border); padding: 8px 10px; text-align: left; vertical-align: top;
+    white-space: normal; overflow: visible; font-size: 0.8em;
+  }
+  table.units td {
+    border-top: 1px solid var(--border); padding: 6px 8px; text-align: left; vertical-align: top;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  table.units th {
+    background: var(--panel-2); font-weight: 700; cursor: pointer; user-select: none;
+  }
+  table.units th:hover { background: var(--accent-soft); cursor: pointer; }
+  table.units td code {
+    font-family: var(--mono);
+    font-size: 0.85em; background: var(--panel-2); padding: 1px 5px;
+  }
+
+  /* 列幅の明示指定（data-key属性でシェブロン列挿入に影響されない。キー名はbuild-feature-list.sh準拠） */
+  table.units th[data-key="unitNameGuess"] { width: 25%; }
+  table.units th[data-key="summary"] { width: 45%; }
+  table.units th[data-key="kind"] { width: 10%; }
+
+  /* 固定列（シェブロン列・機能名列・概要列）: 横スクロール時も左端に固定する */
+  table.units thead th:nth-child(1), table.units tbody td:nth-child(1) {
+    position: sticky; left: 0; z-index: 2; background: var(--panel);
+  }
+  table.units thead th:nth-child(2), table.units tbody td:nth-child(2) {
+    position: sticky; left: 32px; z-index: 2; background: var(--panel);
+  }
+  table.units thead th:nth-child(3), table.units tbody td:nth-child(3) {
+    position: sticky; left: calc(32px + 25%); z-index: 2; background: var(--panel);
+  }
+  table.units thead th:nth-child(1),
+  table.units thead th:nth-child(2),
+  table.units thead th:nth-child(3) {
+    background: var(--panel-2); z-index: 4;
+  }
+
+  /* ゼブラストライプ */
+  table.units tbody tr:nth-child(even) {
+    background: color-mix(in srgb, var(--panel-2) 40%, transparent);
+  }
+  /* 行ホバー */
+  table.units tbody tr:hover {
+    background: var(--accent-soft);
+  }
+
+  td code { overflow-wrap: break-word; word-break: break-all; }
+  .badge { display: inline-block; font-size: 0.76rem; font-weight: 700; padding: 1px 8px; }
+  .badge.high   { background: var(--success-soft); color: var(--success); }
+  .badge.medium { background: var(--gold-soft); color: var(--gold); }
+  .badge.low    { background: var(--accent-soft); color: var(--accent); }
+
+  section.unresolved { margin-top: 24px; padding: 12px 16px; min-width: 0; }
+  section.unresolved.empty { background: var(--panel-2); border: 1px solid var(--border); color: var(--text-muted); }
+  section.unresolved.empty h2 { color: var(--text-muted); font-size: 0.95rem; margin: 0; }
+  section.unresolved.has-items { background: var(--danger-soft); border: 1px solid var(--danger); color: var(--danger); }
+  section.unresolved.has-items h2 { color: var(--danger); font-size: 0.95rem; margin: 0 0 8px; }
+  #category-sections { min-width: 0; }
+  /* build-feature-list.sh が大分類ごとに生成する内側の .table-area(data-split-axis)は、
+     .table-area の overflow-y:auto 指定により(overflow-x/yの相互依存規則で)overflow-xも
+     暗黙にautoへ計算され、独自の横スクロール領域を作ってしまう。外側の #category-sections
+     (.table-wrap。pt-scroll-shellが監視する実スクロール要素)が横スクロールを検知できなく
+     なるため、内側は素通しにし、横スクロールは外側の table-wrap に一本化する。 */
+  #category-sections > .table-area { overflow: visible; }
+
+  .pagination { display: flex; gap: 8px; align-items: center; justify-content: center; margin: 16px 0; font-size: 0.85rem; }
+  .pagination button { background: var(--panel-2); border: 1px solid var(--border); color: var(--text-sub); cursor: pointer; padding: 4px 10px; font-family: inherit; font-size: 0.82rem; }
+  .pagination button:hover { background: var(--accent-soft); color: var(--accent); border-color: var(--accent-border); }
+  .pagination button:disabled { opacity: 0.4; cursor: not-allowed; }
+  .pagination .page-info { color: var(--text-muted); }
+
+  /* 一覧UI拡張（コピーボタン・フィルタチップ・行クリック展開・CSVエクスポート） */
+  .copy-btn { background: none; border: none; cursor: pointer; padding: 1px 3px; color: var(--text-muted); opacity: .35; vertical-align: middle; }
+  tr:hover .copy-btn, .copy-btn:focus { opacity: 1; }
+  .copy-btn:hover { color: var(--accent); }
+  .filter-chips { display: flex; gap: 6px; flex-wrap: wrap; margin: 4px 0 8px; align-items: center; }
+  .chip { font-size: .78rem; padding: 2px 10px; border: 1px solid var(--line2); background: var(--panel); color: var(--text-sub); cursor: pointer; font-family: inherit; }
+  .chip[aria-pressed="true"] { background: var(--accent); color: var(--chipontext); border-color: var(--accent); font-weight: 700; }
+  .chip-group-label { font-size: .72rem; color: var(--text-muted); }
+  a.opt-tag { display: inline-block; font-size: .72rem; padding: 1px 6px; background: var(--panel-2); margin: 1px 3px 1px 0; color: inherit; text-decoration: none; }
+  a.opt-tag:hover { text-decoration: underline; color: var(--accent); }
+  tr.row-detail > td { background: var(--panel-2); font-size: .82rem; white-space: normal; border-left: 3px solid var(--accent); }
+  .row-detail dl { display: grid; grid-template-columns: max-content 1fr; gap: 2px 12px; margin: 4px 0; }
+  .row-detail dt { color: var(--text-muted); }
+  .row-detail dd { margin: 0; word-break: break-all; }
+  table.units tbody tr, table.screens tbody tr { cursor: pointer; }
+  .expand-cell { transition: color 0.15s; }
+  tr:hover .expand-cell { color: var(--accent); }
+  tr[data-expanded="true"] .chevron svg { transform: rotate(90deg); }
+
+  .detail-inner { padding: 12px 16px 14px 20px; }
+  .detail-group { margin-bottom: 12px; }
+  .detail-group:last-child { margin-bottom: 0; }
+  .detail-group-label { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.06em; color: var(--text-muted); margin-bottom: 6px; padding-bottom: 4px; border-bottom: 1px solid var(--border); }
+  .detail-group-label.evidence { color: var(--gold); border-bottom-color: var(--gold-soft); }
+  .detail-grid { display: grid; grid-template-columns: max-content 1fr; gap: 3px 14px; }
+  .detail-grid dt { color: var(--text-muted); font-size: 0.78rem; white-space: nowrap; }
+  .detail-grid dd { margin: 0; font-size: 0.84rem; word-break: break-all; }
+  .csv-btn {
+    background: var(--panel-2); border: 1px solid var(--border);
+    color: var(--text-sub); cursor: pointer; padding: 5px 12px; font-size: 0.82rem; font-family: inherit;
+  }
+  .csv-btn:hover { background: var(--accent-soft); color: var(--accent); border-color: var(--accent-border); }
+  .unit-view-link { display: inline-block; margin-left: 8px; font-size: .75rem; color: var(--accent); text-decoration: none; }
+  .unit-view-link:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+<div class="pt">
+  <div class="pt-grid"></div>
+  <div class="pt-row">
+    <!--SHELL_SIDEBAR-->
+    <main class="pt-main is-fixed">
+      <div class="pt-head">
+        <div class="pt-crumb"><a href="{{PORTAL_RELATIVE}}">TOP</a> ／ {{ACTIVE_CATEGORY_LABEL}} ／ <span class="pt-crumb-current">機能一覧</span></div>
+        <div class="pt-title-row">
+          <h1 class="pt-title">機能一覧</h1>
+          <span class="pt-title-sub">更新 {{GENERATED_AT}}</span>
+        </div>
+        <div class="summary-tiles">
+          <div class="tile"><strong>{{CATEGORY_COUNT}}</strong>大分類数</div>
+          <div class="tile"><strong>{{UNIT_COUNT}}</strong>検出機能数</div>
+          <div class="tile"><strong>{{UNRESOLVED_COUNT}}</strong>要手動確認数</div>
+          <div class="tile"><strong>{{EMPTY_RELATION_COUNT}}</strong>関連空機能数</div>
+        </div>
+      </div>
+
+      <!--EXTRA_DIAGNOSTICS-->
+
+      <div class="toolbar-area">
+        <div class="toolbar">
+          <input type="search" id="unit-search" class="pt-input" placeholder="キー・概要で絞り込み">
+          <span class="note">列見出しクリックでソート</span>
+        </div>
+      </div>
+
+      <div class="table-area">
+      <div class="pt-scroll-shell">
+      <div id="category-sections" class="table-wrap">
+      <!--CATEGORY_SECTIONS-->
+      </div>
+      </div>
+
+      <section class="unresolved {{UNRESOLVED_CLASS}}">
+        <h2><span class="material-symbols-outlined pt-callout__icon" aria-hidden="true">warning</span>要手動確認</h2>
+        <div class="pt-scroll-shell">
+        <div class="table-wrap">
+        <!--UNRESOLVED_SECTION-->
+        </div>
+        </div>
+      </section>
+      </div>
+
+      <script type="application/json" id="unit-manifest">
+{{MANIFEST_JSON}}
+      </script>
+      <script type="application/json" id="column-spec">
+<!--COLUMN_SPEC_JSON-->
+      </script>
+    </main>
+  </div>
+  <!--SHELL_FOOTER-->
+</div>
+
+<script>
+  /* 任意列描画（マニフェストスキーマ拡張。仕様定義: delivery-payload/references/manifest-schema-extensions.md）
+     一覧制御スクリプトより前に実行し、copy/chips/CSV 初期化前に追加セルを存在させる。
+     マニフェストに対象フィールドが 1 件も無ければ何も追加しない（後方互換）。 */
+  (function () {
+    var manifestEl = document.getElementById('unit-manifest');
+    var manifest = {};
+    try { manifest = JSON.parse(manifestEl.textContent); } catch (e) { return; }
+    var units = manifest.units || manifest.screens || [];
+    if (!units.length) return;
+
+    var specEl = document.getElementById('column-spec');
+    if (!specEl) return;
+    var spec;
+    try { spec = JSON.parse(specEl.textContent); } catch (e) { return; }
+    if (!spec) return;
+    var FIELDS = []
+      .concat((spec.axes || []).filter(function (a) { return ((a.column || {}).show || 'auto') !== 'never'; }))
+      .concat(spec.columns || [])
+      .sort(function (a, b) { return (a.order || 999) - (b.order || 999); });
+    if (!FIELDS.length) return;
+    /* 文字列値 → バッジ色クラスの対応（該当しない文字列はそのまま表示） */
+    var ENUM_BADGES = {
+      /* 6値: 照会/登録/更新/削除/承認/その他。opt-badge クラスは accent/gold/success/danger の
+         4色のみのため、照会と承認は accent を共用する（badge のテキスト自体で値は区別できる）。
+         「その他」は該当エントリなしのまま無色のプレーンテキスト表示にフォールバックする */
+      operationClass: { '照会': 'accent', '登録': 'success', '更新': 'gold', '削除': 'danger', '承認': 'accent' },
+      designDocStatus: { '未着手': 'danger', '着手済': 'success' }
+    };
+
+    function hasValue(v, field) {
+      if (v === null || v === undefined) return false;
+      if (Object.prototype.toString.call(v) === '[object Array]') {
+        return (field && field.presence === 'arrayOrEmptyLabel') ? true : v.length > 0;
+      }
+      if (typeof v === 'string') return v !== '';
+      return true;
+    }
+    function labelOf(field, raw) {
+      var vals = (field && field.values) || [];
+      for (var i = 0; i < vals.length; i++) {
+        if (vals[i].key === raw) return vals[i].label;
+      }
+      return String(raw);
+    }
+    /* 配列内で 1 件でも値を持つフィールドだけ列を追加する */
+    var active = FIELDS.filter(function (f) {
+      return ((f.column || {}).show === 'always')
+          || units.some(function (u) { return hasValue(u[f.key], f); });
+    });
+    if (!active.length) return;
+
+    var style = document.createElement('style');
+    style.textContent =
+      '.opt-tag { display: inline-block; font-size: .72rem; padding: 1px 6px; background: var(--panel-2); margin: 1px 3px 1px 0; }' +
+      '.opt-badge { display: inline-block; font-size: .76rem; font-weight: 700; padding: 1px 8px; }' +
+      '.opt-badge.accent { background: var(--accent-soft); color: var(--accent); }' +
+      '.opt-badge.gold { background: var(--gold-soft); color: var(--gold); }' +
+      '.opt-badge.success { background: var(--success-soft); color: var(--success); }' +
+      '.opt-badge.danger { background: var(--danger-soft); color: var(--danger); }' +
+      '.opt-muted { color: var(--text-muted); }';
+    document.head.appendChild(style);
+
+    /* 行照合: 1列目テキスト = unitId/screenId。null の要素は 2列目 = unitKey/screenKey で照合 */
+    var byId = {}, byKey = {};
+    units.forEach(function (u) {
+      var id = (u.unitId !== undefined) ? u.unitId : u.screenId;
+      var key = (u.unitKey !== undefined) ? u.unitKey : u.screenKey;
+      if (id !== null && id !== undefined && id !== '') byId[String(id)] = u;
+      else if (key !== null && key !== undefined && key !== '') byKey[String(key)] = u;
+    });
+
+    function renderValue(td, field, value) {
+      if (!hasValue(value, field)) return;
+      var badgeMap = ENUM_BADGES[field.key];
+      if (badgeMap && typeof value === 'string' && badgeMap[value]) {
+        var b = document.createElement('span');
+        b.className = 'opt-badge ' + badgeMap[value];
+        b.textContent = value;
+        td.appendChild(b);
+        return;
+      }
+      if (Array.isArray(value)) {
+        value.forEach(function (v) {
+          var t = document.createElement('span');
+          t.className = 'opt-tag';
+          t.textContent = String(v);
+          td.appendChild(t);
+        });
+        return;
+      }
+      if (typeof value === 'boolean') {
+        var span = document.createElement('span');
+        span.className = value ? 'opt-badge gold' : 'opt-muted';
+        span.textContent = value ? '要' : '不要';
+        td.appendChild(span);
+        return;
+      }
+      if (typeof value === 'object') {
+        var s = document.createElement('span');
+        var displayText = (value.readable !== undefined) ? String(value.readable) : JSON.stringify(value);
+        s.textContent = displayText;
+        if (value.cron) s.title = value.cron;
+        td.title = displayText;
+        td.appendChild(s);
+        return;
+      }
+      var text = labelOf(field, value);
+      td.textContent = text;
+      td.title = text;
+    }
+
+    /* 全テーブルを走査（カテゴリごとの複数テーブル対応）。thead 末尾に th、各行末尾に td を追加。
+       既存列のインデックスは変えない。照合できない行は空セルで列数だけ揃える */
+    document.querySelectorAll('table.units, table.data-table').forEach(function (table) {
+      var headRow = table.querySelector('thead tr');
+      var tbody = table.querySelector('tbody');
+      if (!headRow || !tbody) return;
+      active.forEach(function (field) {
+        var th = document.createElement('th');
+        th.textContent = field.label;
+        headRow.appendChild(th);
+      });
+      Array.prototype.slice.call(tbody.querySelectorAll('tr')).forEach(function (tr) {
+        var idText = tr.getAttribute('data-unit-id') || '';
+        var keyText = tr.getAttribute('data-unit-key') || '';
+        var unit = byId[idText] || byKey[keyText] || null;
+        active.forEach(function (field) {
+          var td = document.createElement('td');
+          if (unit) renderValue(td, field, unit[field.key]);
+          tr.appendChild(td);
+        });
+      });
+    });
+  })();
+</script>
+
+<script>
+  /* 相互参照リンク化: 関連画面・関連API・関連テーブル列の値を対応する一覧ページへの ?q= リンクに変換する。
+     カンマ区切りの複数値は分割して個別リンクにする。値が「—」・空のセルはリンク化しない。
+     一覧制御スクリプトより前に実行し、コピーボタン・CSV 初期化前にリンクを存在させる。 */
+  (function () {
+    var LINK_COLUMNS = {
+      '関連画面': '../画面一覧/画面一覧.html',
+      '関連API': '../API一覧/API一覧.html',
+      '関連テーブル': '../テーブル一覧/テーブル一覧.html'
+    };
+    document.querySelectorAll('table.units, table.data-table').forEach(function (table) {
+      var headRow = table.querySelector('thead tr');
+      var tbody = table.querySelector('tbody');
+      if (!headRow || !tbody) return;
+      var targets = [];
+      Array.prototype.slice.call(headRow.children).forEach(function (th, i) {
+        var name = th.textContent.trim();
+        if (LINK_COLUMNS[name]) targets.push({ index: i, page: LINK_COLUMNS[name] });
+      });
+      if (!targets.length) return;
+      tbody.querySelectorAll('tr').forEach(function (tr) {
+        targets.forEach(function (t) {
+          var td = tr.children[t.index];
+          if (!td) return;
+          var text = td.textContent.trim();
+          if (text === '' || text === '—') return;
+          var values = text.split(/[,、]\s*/).filter(function (v) { return v !== '' && v !== '—'; });
+          if (!values.length) return;
+          td.textContent = '';
+          values.forEach(function (v) {
+            var a = document.createElement('a');
+            a.className = 'opt-tag';
+            a.href = t.page + '?q=' + encodeURIComponent(v);
+            a.textContent = v;
+            td.appendChild(a);
+          });
+        });
+      });
+    });
+  })();
+</script>
+
+<script>
+  (function () {
+    var manifestEl = document.getElementById('unit-manifest');
+    var manifest = {};
+    try { manifest = JSON.parse(manifestEl.textContent); } catch (e) { /* ignore */ }
+
+    var search = document.getElementById('unit-search');
+    var PAGE_SIZE = 50;
+    var tableStates = [];
+
+    /* ===== 一覧UI拡張（コピーボタン・フィルタチップ・行クリック展開・CSVエクスポート） ===== */
+    /* チップ対象の列見出し名（任意列スクリプトが追加した列も指定できる） */
+    var CHIP_COLUMNS = ['区分', '操作区分'];
+    var chipSelected = { category: {} };
+    CHIP_COLUMNS.forEach(function (c) { chipSelected[c] = {}; });
+    var chipBar = null, chipClearBtn = null;
+
+    var COPY_SVG = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>';
+    var CHECK_SVG = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"></path></svg>';
+
+    function legacyCopy(text) {
+      var ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand('copy'); } catch (e) { /* ignore */ }
+      document.body.removeChild(ta);
+    }
+    function copyText(text, done) {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(done, function () { legacyCopy(text); done(); });
+      } else {
+        legacyCopy(text);
+        done();
+      }
+    }
+    /* セルの表示テキスト取得（.opt-tag リンク/タグはカンマ区切りで連結。コピー・CSV・展開行で共用） */
+    function cellText(el) {
+      var tags = el.querySelectorAll('a.opt-tag, span.opt-tag');
+      if (tags.length) {
+        return Array.prototype.slice.call(tags).map(function (t) { return t.textContent.trim(); }).join(', ');
+      }
+      return el.textContent.trim();
+    }
+    function copyableValue(el) {
+      var t = el.textContent.trim();
+      return t !== '' && t !== '—';
+    }
+    function makeCopyBtn(target) {
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'copy-btn';
+      btn.setAttribute('aria-label', 'コピー');
+      btn.innerHTML = COPY_SVG;
+      btn.addEventListener('click', function (ev) {
+        ev.stopPropagation();
+        ev.preventDefault();
+        copyText(cellText(target), function () {
+          btn.innerHTML = CHECK_SVG;
+          setTimeout(function () { btn.innerHTML = COPY_SVG; }, 1200);
+        });
+      });
+      return btn;
+    }
+    /* 全セルコピー: 空・「—」以外のすべての td にコピーボタンを付ける */
+    function addCopyButtons(row) {
+      Array.prototype.slice.call(row.children).forEach(function (td) {
+        if (td.querySelector('.copy-btn') || !copyableValue(td)) return;
+        td.appendChild(makeCopyBtn(td));
+      });
+    }
+
+    function selectedKeys(map) {
+      return Object.keys(map).filter(function (k) { return map[k]; });
+    }
+    function rowMatchesChips(tr, state) {
+      for (var i = 0; i < CHIP_COLUMNS.length; i++) {
+        var col = CHIP_COLUMNS[i];
+        var sel = selectedKeys(chipSelected[col]);
+        if (!sel.length) continue;
+        var idx = state ? state.colIndex[col] : undefined;
+        var cell = (idx !== undefined) ? tr.children[idx] : null;
+        var v = cell ? cell.textContent.trim() : '';
+        if (sel.indexOf(v) === -1) return false;
+      }
+      return true;
+    }
+    function categoryOf(table) {
+      var det = table.closest ? table.closest('details') : null;
+      if (!det) return '';
+      var nameEl = det.querySelector('summary .cat-name');
+      return nameEl ? nameEl.textContent.trim() : '';
+    }
+    function applyCategoryFilter() {
+      var cats = selectedKeys(chipSelected.category);
+      Array.prototype.slice.call(document.querySelectorAll('#category-sections details')).forEach(function (det) {
+        var nameEl = det.querySelector('summary .cat-name');
+        var name = nameEl ? nameEl.textContent.trim() : '';
+        det.style.display = (cats.length && cats.indexOf(name) === -1) ? 'none' : '';
+      });
+    }
+    function updateChipClearBtn() {
+      if (!chipClearBtn) return;
+      var any = selectedKeys(chipSelected.category).length;
+      CHIP_COLUMNS.forEach(function (c) { if (selectedKeys(chipSelected[c]).length) any = 1; });
+      chipClearBtn.style.display = any ? '' : 'none';
+    }
+    function rerenderAll() {
+      applyCategoryFilter();
+      tableStates.forEach(function (state) { state.currentPage = 0; renderPage(state); });
+      updateChipClearBtn();
+    }
+    function makeChip(group, value) {
+      var chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'chip';
+      chip.textContent = value;
+      chip.setAttribute('aria-pressed', 'false');
+      chip.addEventListener('click', function () {
+        var on = chip.getAttribute('aria-pressed') === 'true';
+        chip.setAttribute('aria-pressed', on ? 'false' : 'true');
+        chipSelected[group][value] = !on;
+        rerenderAll();
+      });
+      return chip;
+    }
+    function buildChipBar() {
+      var toolbar = document.querySelector('.toolbar');
+      if (!toolbar) return;
+      var groups = [];
+      var cats = [];
+      Array.prototype.slice.call(document.querySelectorAll('#category-sections details summary .cat-name')).forEach(function (el) {
+        var v = el.textContent.trim();
+        if (v && cats.indexOf(v) === -1) cats.push(v);
+      });
+      if (cats.length) groups.push({ label: 'カテゴリ', group: 'category', values: cats });
+      /* 列見出し名指定のチップ（任意列スクリプトが追加した列も対象になる） */
+      CHIP_COLUMNS.forEach(function (col) {
+        var vals = [];
+        tableStates.forEach(function (state) {
+          var idx = state.colIndex[col];
+          if (idx === undefined) return;
+          state.allRows.forEach(function (tr) {
+            var cell = tr.children[idx];
+            var v = cell ? cell.textContent.trim() : '';
+            if (v && v !== '—' && vals.indexOf(v) === -1) vals.push(v);
+          });
+        });
+        if (vals.length) groups.push({ label: col, group: col, values: vals });
+      });
+      if (!groups.length) return;
+      chipBar = document.createElement('div');
+      chipBar.className = 'filter-chips';
+      groups.forEach(function (g) {
+        var lab = document.createElement('span');
+        lab.className = 'chip-group-label';
+        lab.textContent = g.label;
+        chipBar.appendChild(lab);
+        g.values.forEach(function (v) { chipBar.appendChild(makeChip(g.group, v)); });
+      });
+      chipClearBtn = document.createElement('button');
+      chipClearBtn.type = 'button';
+      chipClearBtn.className = 'chip chip-clear';
+      chipClearBtn.textContent = 'クリア';
+      chipClearBtn.style.marginLeft = 'auto';
+      chipClearBtn.style.display = 'none';
+      chipClearBtn.addEventListener('click', function () {
+        chipSelected = { category: {} };
+        CHIP_COLUMNS.forEach(function (c) { chipSelected[c] = {}; });
+        Array.prototype.slice.call(chipBar.querySelectorAll('.chip[aria-pressed]')).forEach(function (c) { c.setAttribute('aria-pressed', 'false'); });
+        rerenderAll();
+      });
+      chipBar.appendChild(chipClearBtn);
+      toolbar.parentNode.insertBefore(chipBar, toolbar.nextSibling);
+    }
+
+    function removeDetailRows(tbody) {
+      Array.prototype.slice.call(tbody.querySelectorAll('tr.row-detail')).forEach(function (tr) {
+        tr.parentNode.removeChild(tr);
+      });
+    }
+
+    /* --- 行クリック展開: マニフェストJSONを直接参照し「仕様」「エビデンス」2グループに分離表示 --- */
+    var DETAIL_SPEC_FIELDS = [
+      ['relatedScreens', '関連画面'],
+      ['relatedApis', '関連API'],
+      ['relatedTables', '関連テーブル']
+    ];
+    var DETAIL_LINK_TARGETS = {
+      relatedScreens: '../画面一覧/画面一覧.html',
+      relatedApis: '../API一覧/API一覧.html',
+      relatedTables: '../テーブル一覧/テーブル一覧.html'
+    };
+    var EVIDENCE_FIELDS = [
+      ['confidence', 'confidence'],
+      ['detectionMethod', '検出方式'],
+      ['fileCount', '構成ファイル数'],
+      ['sourceFile', '主ファイル'],
+      ['unitId', (manifest.unitKind || '') + 'ID'],
+      ['unitKey', (manifest.unitKind || '') + 'キー']
+    ];
+    var detailById = {}, detailByKey = {};
+    (manifest.units || []).forEach(function (u) {
+      if (u.unitId !== undefined && u.unitId !== null) detailById[String(u.unitId)] = u;
+      if (u.unitKey !== undefined && u.unitKey !== null) detailByKey[String(u.unitKey)] = u;
+    });
+    function findDetailUnit(tr) {
+      var idAttr = tr.getAttribute('data-unit-id') || '';
+      if (idAttr && detailById[idAttr]) return detailById[idAttr];
+      var keyAttr = tr.getAttribute('data-unit-key') || '';
+      if (keyAttr && detailByKey[keyAttr]) return detailByKey[keyAttr];
+      return null;
+    }
+    function detailHasValue(v) {
+      if (v === undefined || v === null || v === '') return false;
+      if (Array.isArray(v)) return v.length > 0;
+      return true;
+    }
+    function renderConfidenceValue(dd, v) {
+      if (!detailHasValue(v)) { dd.textContent = '—'; return; }
+      var badge = document.createElement('span');
+      var cls = String(v).toLowerCase();
+      badge.className = 'badge ' + (cls === 'high' || cls === 'medium' || cls === 'low' ? cls : 'medium');
+      badge.textContent = String(v);
+      dd.appendChild(badge);
+    }
+    function renderDetailValue(dd, fieldName, v) {
+      if (!detailHasValue(v)) { dd.textContent = '—'; return; }
+      if (Array.isArray(v)) {
+        var linkBase = DETAIL_LINK_TARGETS[fieldName];
+        v.forEach(function (item) {
+          var text = String(item);
+          var el;
+          if (linkBase && text && text !== '—') {
+            el = document.createElement('a');
+            el.href = linkBase + '?q=' + encodeURIComponent(text);
+          } else {
+            el = document.createElement('span');
+          }
+          el.className = 'opt-tag';
+          el.textContent = text;
+          dd.appendChild(el);
+        });
+        return;
+      }
+      if (fieldName === 'sourceFile') {
+        var code = document.createElement('code');
+        code.textContent = String(v);
+        dd.appendChild(code);
+        return;
+      }
+      dd.textContent = String(v);
+    }
+    function buildDetailGroup(labelText, isEvidence, fieldPairs, unit) {
+      var group = document.createElement('div');
+      group.className = 'detail-group';
+      var label = document.createElement('div');
+      label.className = 'detail-group-label' + (isEvidence ? ' evidence' : '');
+      label.textContent = labelText;
+      group.appendChild(label);
+      var dl = document.createElement('dl');
+      dl.className = 'detail-grid';
+      fieldPairs.forEach(function (pair) {
+        var fieldName = pair[0], fieldLabel = pair[1];
+        var dt = document.createElement('dt');
+        dt.textContent = fieldLabel;
+        var dd = document.createElement('dd');
+        var val = unit ? unit[fieldName] : undefined;
+        if (fieldName === 'confidence') { renderConfidenceValue(dd, val); }
+        else { renderDetailValue(dd, fieldName, val); }
+        if (copyableValue(dd)) dd.appendChild(makeCopyBtn(dd));
+        dl.appendChild(dt);
+        dl.appendChild(dd);
+      });
+      group.appendChild(dl);
+      return group;
+    }
+
+    function bindRowExpansion(state) {
+      state.tbody.addEventListener('click', function (ev) {
+        if (ev.target.closest && ev.target.closest('.copy-btn,a,button')) return;
+        var tr = ev.target.closest ? ev.target.closest('tr') : null;
+        if (!tr || tr.classList.contains('row-detail') || tr.parentNode !== state.tbody) return;
+        var next = tr.nextElementSibling;
+        if (next && next.classList.contains('row-detail')) {
+          next.parentNode.removeChild(next);
+          tr.removeAttribute('data-expanded');
+          return;
+        }
+        var unit = findDetailUnit(tr);
+        var detail = document.createElement('tr');
+        detail.className = 'row-detail';
+        var td = document.createElement('td');
+        td.colSpan = tr.children.length;
+        var inner = document.createElement('div');
+        inner.className = 'detail-inner';
+        inner.appendChild(buildDetailGroup('仕様', false, DETAIL_SPEC_FIELDS, unit));
+        inner.appendChild(buildDetailGroup('エビデンス（検出メタデータ）', true, EVIDENCE_FIELDS, unit));
+        td.appendChild(inner);
+        detail.appendChild(td);
+        tr.parentNode.insertBefore(detail, tr.nextSibling);
+        tr.setAttribute('data-expanded', 'true');
+      });
+    }
+
+    function csvEscape(v) {
+      if (/[",\n\r]/.test(v)) return '"' + v.replace(/"/g, '""') + '"';
+      return v;
+    }
+    function exportCsv() {
+      var q = search ? search.value.trim().toLowerCase() : '';
+      var cats = selectedKeys(chipSelected.category);
+      var lines = [];
+      var headerDone = false;
+      tableStates.forEach(function (state) {
+        var catName = categoryOf(state.table);
+        if (cats.length && catName !== '' && cats.indexOf(catName) === -1) return;
+        if (!headerDone) {
+          var heads = Array.prototype.slice.call(state.table.querySelectorAll('thead th')).map(function (th) { return th.textContent.trim(); });
+          lines.push(['カテゴリ'].concat(heads).map(csvEscape).join(','));
+          headerDone = true;
+        }
+        state.allRows.forEach(function (tr) {
+          if (!rowMatchesChips(tr, state)) return;
+          if (q && tr.textContent.toLowerCase().indexOf(q) === -1) return;
+          /* リンク化後もテキスト値のみを出力する（アンカーの textContent を使う） */
+          var cells = Array.prototype.slice.call(tr.children).map(function (td) { return cellText(td); });
+          lines.push([catName].concat(cells).map(csvEscape).join(','));
+        });
+      });
+      var blob = new Blob(['\uFEFF' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = document.title + '.csv';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
+    }
+    function buildCsvButton() {
+      var toolbar = document.querySelector('.toolbar');
+      if (!toolbar) return;
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'csv-btn';
+      btn.textContent = 'CSV';
+      btn.title = 'CSVエクスポート（フィルタ・検索適用後の全行）';
+      btn.addEventListener('click', exportCsv);
+      toolbar.appendChild(btn);
+    }
+    /* ===== 一覧UI拡張ここまで ===== */
+
+    function renderPage(state) {
+      removeDetailRows(state.tbody);
+      var q = search ? search.value.trim().toLowerCase() : '';
+      var visible = state.allRows.filter(function (tr) {
+        if (!rowMatchesChips(tr, state)) return false;
+        return !q || tr.textContent.toLowerCase().indexOf(q) !== -1;
+      });
+
+      if (state.sortCol >= 0) {
+        visible.sort(function (a, b) {
+          var av = a.children[state.sortCol].textContent.trim();
+          var bv = b.children[state.sortCol].textContent.trim();
+          var an = parseFloat(av), bn = parseFloat(bv);
+          var cmp = (!isNaN(an) && !isNaN(bn)) ? (an - bn) : av.localeCompare(bv, 'ja');
+          return state.sortAsc ? cmp : -cmp;
+        });
+      }
+
+      var totalPages = Math.max(1, Math.ceil(visible.length / PAGE_SIZE));
+      if (state.currentPage >= totalPages) state.currentPage = totalPages - 1;
+      if (state.currentPage < 0) state.currentPage = 0;
+      var start = state.currentPage * PAGE_SIZE;
+      var end = start + PAGE_SIZE;
+
+      state.allRows.forEach(function (tr) { tr.style.display = 'none'; });
+      visible.forEach(function (tr, i) {
+        tr.style.display = (i >= start && i < end) ? '' : 'none';
+        state.tbody.appendChild(tr);
+      });
+
+      state.pagEl.style.display = visible.length <= PAGE_SIZE ? 'none' : '';
+      state.pageInfo.textContent = (state.currentPage + 1) + ' / ' + totalPages + '（' + visible.length + '件）';
+      state.btnFirst.disabled = state.currentPage === 0;
+      state.btnPrev.disabled = state.currentPage === 0;
+      state.btnNext.disabled = state.currentPage >= totalPages - 1;
+      state.btnLast.disabled = state.currentPage >= totalPages - 1;
+    }
+
+    /* 1-36: 個別ページへの実在パスを持つ行にだけ、行内のリンク要素で遷移を追加する。
+       行クリックはこれまで通りページ内展開のみを担う(a要素へのクリックは bindRowExpansion が
+       ev.target.closest('.copy-btn,a,button') で除外する)。個別ページの生成経路は種別ごとに
+       異なり、このテンプレートは経路の新設を行わない。マニフェスト側が既に安全な相対URLとして
+       持つ designDocPath の有無だけで実在を判定する(screen-list-template.html の関連資料リンクと
+       同じ isSafeRelativeUrl 判定基準)。 */
+    function isSafeRelativeUrl(v) {
+      return typeof v === 'string' &&
+        v.length > 0 &&
+        v === v.trim() &&
+        !/[\x00-\x1f\x7f]/.test(v) &&
+        !/^[A-Za-z][A-Za-z0-9+.-]*:/.test(v) &&
+        !/^[\/\\]/.test(v) &&
+        v.indexOf('\\') === -1;
+    }
+    var viewById = {}, viewByKey = {};
+    (manifest.units || []).forEach(function (u) {
+      if (u.unitId !== undefined && u.unitId !== null) viewById[String(u.unitId)] = u;
+      if (u.unitKey !== undefined && u.unitKey !== null) viewByKey[String(u.unitKey)] = u;
+    });
+    function addViewLink(tr) {
+      var idAttr = tr.getAttribute('data-unit-id') || '';
+      var keyAttr = tr.getAttribute('data-unit-key') || '';
+      var unit = (idAttr && viewById[idAttr]) || (keyAttr && viewByKey[keyAttr]) || null;
+      var path = unit ? unit.designDocPath : null;
+      if (!isSafeRelativeUrl(path)) return;
+      var firstTd = tr.querySelector('td');
+      if (!firstTd) return;
+      var link = document.createElement('a');
+      link.href = path;
+      link.className = 'unit-view-link';
+      link.title = '個別ページを開く';
+      link.textContent = '個別ページ';
+      firstTd.appendChild(link);
+    }
+
+    document.querySelectorAll('table.units, table.data-table').forEach(function (table) {
+      var tbody = table.querySelector('tbody');
+      if (!tbody) return;
+      var allRows = Array.prototype.slice.call(tbody.querySelectorAll('tr'));
+      allRows.forEach(addViewLink);
+
+      /* ===== 展開インジケータ（シェブロン列） ===== */
+      (function () {
+        var headRow = table.querySelector('thead tr');
+        if (headRow) {
+          var chTh = document.createElement('th');
+          chTh.style.width = '32px';
+          chTh.style.padding = '8px 4px';
+          headRow.insertBefore(chTh, headRow.firstChild);
+        }
+        var CHEVRON_SVG = '<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" style="vertical-align:middle;transition:transform .15s"><path d="M6.22 3.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042L9.94 8 6.22 4.28a.75.75 0 0 1 0-1.06Z"/></svg>';
+        allRows.forEach(function (tr) {
+          var chTd = document.createElement('td');
+          chTd.style.width = '32px';
+          chTd.style.textAlign = 'center';
+          chTd.style.color = 'var(--text-muted)';
+          chTd.style.padding = '8px 4px';
+          chTd.className = 'expand-cell';
+          chTd.innerHTML = '<span class="chevron">' + CHEVRON_SVG + '</span>';
+          tr.insertBefore(chTd, tr.firstChild);
+        });
+      })();
+
+      /* 列見出し名 → 列インデックス（任意列スクリプト適用後の thead を参照） */
+      var colIndex = {};
+      Array.prototype.slice.call(table.querySelectorAll('thead th')).forEach(function (th, i) {
+        var name = th.textContent.trim();
+        if (colIndex[name] === undefined) colIndex[name] = i;
+      });
+
+      var pagEl = document.createElement('div');
+      pagEl.className = 'pagination';
+      pagEl.innerHTML =
+        '<button type="button" class="page-first" title="先頭">≪</button>' +
+        '<button type="button" class="page-prev" title="前">＜</button>' +
+        '<span class="page-info"></span>' +
+        '<button type="button" class="page-next" title="次">＞</button>' +
+        '<button type="button" class="page-last" title="最後">≫</button>';
+      table.parentNode.insertBefore(pagEl, table.nextSibling);
+
+      var state = {
+        table: table,
+        tbody: tbody,
+        allRows: allRows,
+        colIndex: colIndex,
+        currentPage: 0,
+        sortCol: -1,
+        sortAsc: true,
+        pagEl: pagEl,
+        pageInfo: pagEl.querySelector('.page-info'),
+        btnFirst: pagEl.querySelector('.page-first'),
+        btnPrev: pagEl.querySelector('.page-prev'),
+        btnNext: pagEl.querySelector('.page-next'),
+        btnLast: pagEl.querySelector('.page-last')
+      };
+      tableStates.push(state);
+
+      allRows.forEach(addCopyButtons);
+      bindRowExpansion(state);
+
+      state.btnFirst.addEventListener('click', function () { state.currentPage = 0; renderPage(state); });
+      state.btnPrev.addEventListener('click', function () { state.currentPage--; renderPage(state); });
+      state.btnNext.addEventListener('click', function () { state.currentPage++; renderPage(state); });
+      state.btnLast.addEventListener('click', function () {
+        var q = search ? search.value.trim().toLowerCase() : '';
+        var cnt = state.allRows.filter(function (tr) { return rowMatchesChips(tr, state) && (!q || tr.textContent.toLowerCase().indexOf(q) !== -1); }).length;
+        state.currentPage = Math.max(0, Math.ceil(cnt / PAGE_SIZE) - 1);
+        renderPage(state);
+      });
+
+      table.querySelectorAll('th[data-key]').forEach(function (th) {
+        var colIndex = Array.prototype.indexOf.call(th.parentNode.children, th);
+        th.addEventListener('click', function () {
+          if (state.sortCol === colIndex) { state.sortAsc = !state.sortAsc; } else { state.sortCol = colIndex; state.sortAsc = true; }
+          table.querySelectorAll('th[data-key]').forEach(function (t) { t.removeAttribute('data-asc'); });
+          th.setAttribute('data-asc', state.sortAsc);
+          state.currentPage = 0;
+          renderPage(state);
+        });
+      });
+    });
+
+    if (search) {
+      search.addEventListener('input', function () {
+        tableStates.forEach(function (state) { state.currentPage = 0; renderPage(state); });
+      });
+    }
+
+    buildChipBar();
+    buildCsvButton();
+    /* URL クエリ ?q= を検索窓に反映して絞り込みを発火する（他一覧ページからの相互参照リンクの受け口） */
+    try {
+      var initialQ = new URLSearchParams(location.search).get('q');
+      if (initialQ && search) search.value = initialQ;
+    } catch (e) { /* ignore */ }
+    tableStates.forEach(function (state) { renderPage(state); });
+  })();
+</script>
+
+</body>
+</html>

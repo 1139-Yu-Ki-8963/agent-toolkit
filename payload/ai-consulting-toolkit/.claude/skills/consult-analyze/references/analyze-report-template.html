@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<!--
+  プロジェクト解析レポートHTMLのテンプレート
+
+  使い方:
+    1. このファイルをコピーして clients/<案件名>/プロジェクト解析_<YYYYMMDD>.html に配置する
+    2. {{...}} プレースホルダをすべて実データで置換する
+    3. コンサル環境の固有情報（利用者名・内部パス）を書かない
+
+  制約:
+    - 外部リソース禁止（CDN・画像・link・script src は一切使わない。完全自己完結）
+    - <style> とページ末尾のズーム script は変更しない
+-->
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{repo-name}} プロジェクト解析レポート</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 0 24px 96px;
+    font-family: system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif;
+    line-height: 1.85; color: #1a1a1a; background: #fafafa;
+    max-width: 980px; margin-inline: auto;
+  }
+  header { padding: 56px 0 24px; border-bottom: 3px solid #1a1a1a; }
+  header h1 { font-size: 1.9rem; margin: 0 0 10px; letter-spacing: 0.01em; }
+  header .case-badge {
+    display: inline-block; font-size: 0.85rem; font-weight: 700;
+    background: #1a1a1a; color: #fafafa; padding: 3px 12px; border-radius: 999px;
+    vertical-align: middle; margin-right: 10px;
+  }
+  header p { margin: 6px 0 0; color: #555; }
+  .meta-table { margin-top: 16px; font-size: 0.9rem; color: #555; }
+  .meta-table td { padding: 1px 16px 1px 0; }
+
+  nav.toc {
+    margin-top: 32px; padding: 18px 22px;
+    background: #fff; border: 1px solid #e0e0e0; border-radius: 8px;
+  }
+  nav.toc .toc-title { font-weight: 700; margin-bottom: 6px; }
+  nav.toc ol { margin: 0; padding-left: 1.4em; columns: 2; column-gap: 40px; }
+  nav.toc li { margin: 2px 0; }
+  nav.toc a { color: #1a1a1a; text-decoration: none; border-bottom: 1px dotted #999; }
+  nav.toc a:hover { border-bottom-style: solid; }
+
+  section { margin-top: 64px; }
+  section > h2 {
+    font-size: 1.35rem; padding-bottom: 8px; margin-bottom: 20px;
+    border-bottom: 2px solid #1a1a1a;
+  }
+  section > h2 .sec-num {
+    display: inline-block; min-width: 2.4em; margin-right: 10px;
+    font-family: ui-monospace, monospace; font-size: 0.95rem;
+    background: #1a1a1a; color: #fafafa; text-align: center;
+    padding: 1px 8px; border-radius: 4px; vertical-align: 2px;
+  }
+  h3 { font-size: 1.05rem; margin: 32px 0 10px; }
+  .note { color: #555; font-size: 0.92rem; }
+
+  table.spec { border-collapse: collapse; width: 100%; margin: 14px 0; background: #fff; font-size: 0.93rem; }
+  table.spec th, table.spec td { border: 1px solid #d8d8d8; padding: 8px 12px; text-align: left; vertical-align: top; }
+  table.spec th { background: #f0f0ee; font-weight: 700; white-space: nowrap; }
+  table.spec td code, li code, p code, table.spec th code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.86em; background: #eeeeea; padding: 1px 5px; border-radius: 3px;
+  }
+
+  pre.flow {
+    background: #16211c; color: #d7e6dc; border-radius: 8px;
+    padding: 20px 24px; overflow-x: auto;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.82rem; line-height: 1.55;
+  }
+  pre.flow .cap { color: #8fb8a0; }
+
+  figure.diagram { margin: 20px 0; padding: 8px; background: #fff;
+    border: 1px solid #e0e0e0; border-radius: 8px; }
+  figure.diagram svg { width: 100%; height: auto; display: block; cursor: zoom-in; }
+  figure.diagram figcaption { padding: 8px 10px 2px; }
+
+  .zoom-overlay {
+    position: fixed; inset: 0; z-index: 1000;
+    background: rgba(15, 23, 42, 0.93);
+    overflow: auto; padding: 24px; cursor: zoom-out;
+    -webkit-overflow-scrolling: touch;
+  }
+  .zoom-overlay svg {
+    width: 1880px; max-width: none; height: auto;
+    display: block; margin: 0 auto;
+    background: #fff; border-radius: 8px;
+  }
+
+  .def {
+    background: #fff; border-left: 4px solid #1a1a1a;
+    padding: 12px 18px; margin: 14px 0; border-radius: 0 6px 6px 0;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  }
+  .def dt { font-weight: 700; margin-top: 8px; }
+  .def dt:first-child { margin-top: 0; }
+  .def dd { margin: 2px 0 0 0; color: #333; }
+
+  .constraint {
+    background: #eef2f7; border: 1px solid #c8d4e3; border-radius: 8px;
+    padding: 12px 18px; margin: 16px 0; font-size: 0.93rem;
+  }
+  .constraint strong:first-child { color: #2a4a7a; }
+
+  .tag {
+    display: inline-block; font-family: ui-monospace, monospace; font-size: 0.78rem;
+    font-weight: 700; padding: 0 8px; border-radius: 3px; border: 1px solid transparent;
+  }
+  .tag.pass  { background: #e7f3e7; color: #23662a; border-color: #b9d9ba; }
+  .tag.fail  { background: #fbe9e7; color: #9c2b1a; border-color: #ecc0b8; }
+  .tag.error { background: #fdf3d7; color: #7a5d10; border-color: #e8d59a; }
+  .tag.mode  { background: #e8eef7; color: #2a4a7a; border-color: #c2d2e8; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1><span class="case-badge">プロジェクト解析レポート</span>{{repo-name}}</h1>
+
+  <table class="meta-table">
+    <tr><td>解析日</td><td>{{analyze-date}}</td></tr>
+    <tr><td>主要言語</td><td>{{main-language}}</td></tr>
+    <tr><td>枠組み</td><td>{{framework}}</td></tr>
+  </table>
+</header>
+
+<nav class="toc">
+  <div class="toc-title">目次</div>
+  <ol>
+    <li><a href="#s1">概要</a></li>
+    <li><a href="#s2">ディレクトリ構成</a></li>
+    <li><a href="#s3">ファイル分布</a></li>
+    <li><a href="#s4">規模上位</a></li>
+    <li><a href="#s5">品質基盤</a></li>
+    <li><a href="#s6">依存関係</a></li>
+    <li><a href="#s7">所見</a></li>
+  </ol>
+</nav>
+
+<section id="s1">
+  <h2><span class="sec-num">§1</span>概要</h2>
+  <!-- {{s1-summary}}: 主要言語・枠組み・総ファイル数・総行数を3〜5行で要約する -->
+</section>
+
+<section id="s2">
+  <h2><span class="sec-num">§2</span>ディレクトリ構成</h2>
+  <pre class="flow">{{directory-tree}}</pre>
+</section>
+
+<section id="s3">
+  <h2><span class="sec-num">§3</span>ファイル分布</h2>
+  <table class="spec">
+    <thead>
+      <tr><th>拡張子</th><th>件数</th></tr>
+    </thead>
+    <tbody>
+      {{file-distribution}}
+    </tbody>
+  </table>
+</section>
+
+<section id="s4">
+  <h2><span class="sec-num">§4</span>規模上位</h2>
+  <!-- {{top-files}}: 行数上位10ファイルの表 -->
+  <table class="spec">
+    <thead>
+      <tr><th>順位</th><th>ファイル</th><th>行数</th></tr>
+    </thead>
+    <tbody>
+      {{top-files}}
+    </tbody>
+  </table>
+</section>
+
+<section id="s5">
+  <h2><span class="sec-num">§5</span>品質基盤</h2>
+  <!-- {{quality-table}}: テスト・lint・CI・規約の有無を4行で示す。ある/なしを .tag.pass / .tag.fail で色分けする -->
+  <table class="spec">
+    <thead>
+      <tr><th>項目</th><th>有無</th><th>検出内容</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>テスト</td><td><span class="tag {{test-tag}}">{{test-status}}</span></td><td>{{test-detail}}</td></tr>
+      <tr><td>lint設定</td><td><span class="tag {{lint-tag}}">{{lint-status}}</span></td><td>{{lint-detail}}</td></tr>
+      <tr><td>CI設定</td><td><span class="tag {{ci-tag}}">{{ci-status}}</span></td><td>{{ci-detail}}</td></tr>
+      <tr><td>規約</td><td><span class="tag {{rules-tag}}">{{rules-status}}</span></td><td>{{rules-detail}}</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="s6">
+  <h2><span class="sec-num">§6</span>依存関係</h2>
+  <!-- {{dependencies}}: 依存パッケージの数と主要な依存の表 -->
+  <table class="spec">
+    <thead>
+      <tr><th>種別</th><th>件数</th><th>主要な依存</th></tr>
+    </thead>
+    <tbody>
+      {{dependencies}}
+    </tbody>
+  </table>
+</section>
+
+<section id="s7">
+  <h2><span class="sec-num">§7</span>所見</h2>
+  <!-- {{findings}}: 解析事実から読み取れる所見を箇条書きで3〜5点。推測ではなく検出事実だけ書く -->
+  <ul>
+    {{findings}}
+  </ul>
+</section>
+
+<div id="zoom-overlay" class="zoom-overlay" hidden></div>
+<script>
+  (function () {
+    var overlay = document.getElementById('zoom-overlay');
+    if (!overlay) return;
+    document.querySelectorAll('figure.diagram svg').forEach(function (svg) {
+      svg.addEventListener('click', function () {
+        overlay.innerHTML = '';
+        overlay.appendChild(svg.cloneNode(true));
+        overlay.hidden = false;
+        document.body.style.overflow = 'hidden';
+      });
+    });
+    overlay.addEventListener('click', function () {
+      overlay.hidden = true;
+      overlay.innerHTML = '';
+      document.body.style.overflow = '';
+    });
+  })();
+</script>
+
+</body>
+</html>

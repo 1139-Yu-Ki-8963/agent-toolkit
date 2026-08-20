@@ -1,0 +1,125 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://example.invalid/schemas/semantic-glossary-proposal/1.0.0"
+title: Semantic Glossary Proposal
+description: 解析Skillが出力する用語候補のYAML構造案。実装前の設計成果物。
+type: object
+additionalProperties: false
+required:
+  - proposal_key
+  - proposal_schema_version
+  - target_glossary_key
+  - base_content_version
+  - target_content_version
+  - merge_key
+  - proposed_term
+  - proposal
+properties:
+  proposal_key:
+    $ref: "https://example.invalid/schemas/semantic-glossary/1.0.0#/$defs/semantic_key"
+  proposal_schema_version:
+    type: string
+    pattern: "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+  target_glossary_key:
+    $ref: "https://example.invalid/schemas/semantic-glossary/1.0.0#/$defs/semantic_key"
+  base_content_version:
+    $ref: "https://example.invalid/schemas/semantic-glossary/1.0.0#/$defs/semver"
+  target_content_version:
+    $ref: "https://example.invalid/schemas/semantic-glossary/1.0.0#/$defs/semver"
+  merge_key:
+    $ref: "https://example.invalid/schemas/semantic-glossary/1.0.0#/$defs/semantic_key"
+  proposed_term:
+    $ref: "https://example.invalid/schemas/semantic-glossary/1.0.0#/$defs/term"
+  proposal:
+    type: object
+    additionalProperties: false
+    required: [extracted_facts, inferences, evidence, confidence, approval, detected_by]
+    properties:
+      extracted_facts:
+        type: array
+        minItems: 1
+        items:
+          type: object
+          additionalProperties: false
+          required: [subject, predicate, object, evidence_ref]
+          properties:
+            subject: {type: string, minLength: 1}
+            predicate: {type: string, minLength: 1}
+            object: {type: string, minLength: 1}
+            evidence_ref: {type: string, minLength: 1}
+      inferences:
+        type: array
+        items:
+          type: object
+          additionalProperties: false
+          required: [field, statement, basis]
+          properties:
+            field: {type: string, minLength: 1}
+            statement: {type: string, minLength: 1}
+            basis: {type: string, minLength: 1}
+      evidence:
+        type: array
+        minItems: 1
+        items:
+          type: object
+          additionalProperties: false
+          required: [ref, excerpt_hash, observed_at, source_revision]
+          properties:
+            ref: {type: string, minLength: 1}
+            excerpt_hash: {type: string, pattern: "^sha256:[a-f0-9]+$"}
+            observed_at: {type: string, format: date-time}
+            source_revision: {type: string, minLength: 1}
+      confidence:
+        type: object
+        additionalProperties: false
+        required: [score, level, rationale]
+        properties:
+          score: {type: number, minimum: 0, maximum: 1}
+          level: {enum: [low, medium, high]}
+          rationale: {type: string, minLength: 1}
+      approval:
+        type: object
+        additionalProperties: false
+        required: [status, reviewers, reviewed_at, decision_reason, events]
+        properties:
+          status:
+            enum: [detected, needs_review, changes_requested, approved, rejected, deferred, merged]
+          reviewers:
+            type: array
+            items:
+              type: object
+              additionalProperties: false
+              required: [actor, role, decision, decided_at]
+              properties:
+                actor: {type: string, minLength: 1}
+                role: {enum: [business_approver, technical_approver]}
+                decision: {enum: [approved, rejected, changes_requested, deferred]}
+                decided_at: {type: string, format: date-time}
+          reviewed_at:
+            anyOf:
+              - {type: string, format: date-time}
+              - {type: "null"}
+          decision_reason: {type: [string, "null"]}
+          events:
+            type: array
+            items:
+              type: object
+              additionalProperties: false
+              required: [from, to, actor, actor_role, occurred_at, reason]
+              properties:
+                from: {type: [string, "null"]}
+                to:
+                  enum: [detected, needs_review, changes_requested, approved, rejected, deferred, merged]
+                actor: {type: string, minLength: 1}
+                actor_role:
+                  enum: [analyzer, maintainer, steward, business_approver, technical_approver]
+                occurred_at: {type: string, format: date-time}
+                reason: {type: string, minLength: 1}
+      detected_by:
+        type: object
+        additionalProperties: false
+        required: [skill, version]
+        properties:
+          skill: {type: string, minLength: 1}
+          version: {type: string, pattern: "^[0-9]+\\.[0-9]+\\.[0-9]+$"}
+  merged_revision:
+    type: [string, "null"]

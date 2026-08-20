@@ -1,0 +1,388 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Rules 一覧 — agent-home</title>
+  <link rel="stylesheet" href="../style.css" />
+  <script type="module" src="../src/common/header.js"></script>
+  <style>
+    .page-hero.compact { padding: 12px 0 8px; }
+    .page-hero.compact .header-top { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+    .page-hero.compact h1 { font-size: 1.3rem; margin: 0; }
+    .page-hero.compact .meta-inline { font-size: 0.75rem; color: var(--text-muted); margin: 6px 0 0; }
+
+    .summary-tiles { display: flex; gap: 10px; flex-wrap: wrap; }
+    .summary-tiles .tile {
+      background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius-sm);
+      padding: 4px 12px; font-size: 0.78rem; color: var(--text-sub);
+    }
+    .summary-tiles .tile strong { font-size: 1rem; color: var(--text); margin-right: 4px; }
+
+    .toolbar-area { padding: 8px 0; }
+    .toolbar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    .toolbar input[type="search"] {
+      flex: 1; min-width: 220px; padding: 8px 12px; font-size: 0.92rem;
+      border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--panel); color: var(--text);
+    }
+    .toolbar .note { font-size: 0.82rem; color: var(--text-muted); white-space: nowrap; }
+
+    section.module-group { margin: 18px 0; background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 20px; }
+    section.module-group h2 { font-size: 1.05rem; margin: 0 0 12px; }
+
+    .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    table.screens { table-layout: fixed; width: 100%; min-width: 640px; border-collapse: collapse; font-size: 0.88rem; }
+    table.screens thead { position: sticky; top: 0; z-index: 3; }
+    table.screens th {
+      border-top: 1px solid var(--border); padding: 8px 10px; text-align: left; vertical-align: top;
+      background: var(--panel-2); font-weight: 700; cursor: pointer; user-select: none; font-size: 0.85em;
+    }
+    table.screens th:hover { background: var(--accent-soft); }
+    table.screens th[data-asc="true"]::after { content: " \25B2"; font-size: 0.7em; }
+    table.screens th[data-asc="false"]::after { content: " \25BC"; font-size: 0.7em; }
+    table.screens th[data-key="id"] { width: 20%; }
+    table.screens th[data-key="cat"] { width: 14%; }
+    table.screens th[data-key="summary"] { width: 46%; }
+    table.screens th[data-key="tags"] { width: 20%; }
+    table.screens td {
+      border-top: 1px solid var(--border); padding: 6px 8px; text-align: left; vertical-align: top;
+      overflow: hidden; text-overflow: ellipsis; white-space: normal; word-break: break-word;
+    }
+    table.screens td code {
+      font-family: var(--mono); font-size: 0.85em; background: var(--panel-2); padding: 1px 5px; border-radius: 3px;
+    }
+    table.screens tbody tr:nth-child(even) { background: color-mix(in srgb, var(--panel-2) 40%, transparent); }
+    table.screens tbody tr:hover { background: var(--accent-soft); }
+    table.screens tbody tr { cursor: pointer; }
+
+    .expand-cell { text-align: center; color: var(--text-muted); transition: color 0.15s; }
+    tr:hover .expand-cell { color: var(--accent); }
+    tr[data-expanded="true"] .chevron svg { transform: rotate(90deg); }
+    .chevron svg { transition: transform 0.15s; vertical-align: middle; }
+
+    .badge { display: inline-block; font-size: 0.76rem; font-weight: 700; padding: 1px 8px; border-radius: 3px; }
+
+    .copy-btn { background: none; border: none; cursor: pointer; padding: 1px 3px; color: var(--text-muted); opacity: .35; vertical-align: middle; }
+    tr:hover .copy-btn, .copy-btn:focus { opacity: 1; }
+    .copy-btn:hover { color: var(--accent); }
+
+    tr.row-detail > td { background: var(--panel-2); font-size: .86rem; white-space: normal; border-left: 3px solid var(--accent); }
+    .detail-grid { display: grid; grid-template-columns: max-content 1fr; gap: 4px 14px; margin: 4px 0; padding: 10px 14px; }
+    .detail-grid dt { color: var(--text-muted); font-size: 0.78rem; white-space: nowrap; }
+    .detail-grid dd { margin: 0; font-size: 0.84rem; word-break: break-word; }
+    .detail-grid a { color: var(--accent); }
+  </style>
+</head>
+<body>
+  <div class="cat-wrap">
+    <section class="page-hero compact">
+      <nav style="margin: 16px 0 0; font-size: 0.85rem;">
+        <a href="../index.html" style="color: var(--text-sub); text-decoration: none; border-bottom: 1px dotted var(--text-muted);">← ポータルへ戻る</a>
+      </nav>
+      <div class="header-top">
+        <h1>Rules 一覧</h1>
+        <div class="summary-tiles">
+          <div class="tile"><strong id="tile-total">0</strong>ルール数</div>
+          <div class="tile"><strong id="tile-cat">0</strong>カテゴリ数</div>
+        </div>
+      </div>
+      <p class="meta-inline">~/.claude/rules/ で管理しているルール（rule.md）をカテゴリ別に一覧化したものです。</p>
+    </section>
+
+    <div class="toolbar-area">
+      <div class="toolbar">
+        <input type="search" id="filter" placeholder="ルール名・説明で絞り込み…" autocomplete="off" />
+        <span class="note" id="total"></span>
+      </div>
+    </div>
+
+    <div class="table-area">
+      <section class="module-group">
+        <h2>Rules 一覧</h2>
+        <div class="table-wrap">
+          <table class="screens" id="data-table">
+            <thead>
+              <tr>
+                <th style="width:32px;padding:8px 4px;"></th>
+                <th data-key="id">ルール ID</th>
+                <th data-key="cat">カテゴリ</th>
+                <th data-key="summary">概要</th>
+                <th data-key="tags">機械強制</th>
+              </tr>
+            </thead>
+            <tbody id="table-body"></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <script type="module">
+    // カテゴリ定義（表示順）
+    const CATEGORIES = [
+      { id: "protection", name: "保護・配置",       desc: "ファイル配置・hook 構成・CLAUDE.md への不正書き込みを機械強制で防ぐ" },
+      { id: "quality",    name: "品質・応答",        desc: "応答品質の2軸（操作依頼禁止・先送り禁止）とテスト完了判定" },
+      { id: "validation", name: "命名・検査",        desc: "Bash 実行前の共通ディスパッチャとスクリプト作成方針" },
+      { id: "config",     name: "設定・配置判定",    desc: "設定層の使い分けを7層・8問の決定木でガイド" },
+      { id: "infra",      name: "委任・基盤",        desc: "サブエージェント委任規範とセッション基盤の自動処理" },
+      { id: "devflow",  name: "開発フロー",        desc: "worktree 必須運用・ポート管理・先送り禁止など開発フローの制約" },
+    ];
+
+    // ルール定義（id, cat, summary, tags, path）
+    const RULES = [
+      // 保護・配置
+      { id: "CLAUDE-MD-GUARD",        cat: "protection", summary: "CLAUDE.md への無断書き込みと存在しないセクション番号参照を2層で機械強制する。",                                                                        tags: "permissions.ask + PreToolUse",                              path: "~/.claude/rules/scoped/agent-config/claude-md/rule.md" },
+      { id: "FILE-GUARD",             cat: "protection", summary: "ファイルの配置先と書き出し先を機械強制。CWD直下への撒き散らし禁止と $HOME/.claude/ 直下へのマーカー禁止の2軸。",                                       tags: "PreToolUse(Screenshot/Bash) + SessionEnd",                  path: "~/.claude/rules/always/placement/file-guard/rule.md" },
+      { id: "HOOKS-ARCHITECTURE",     cat: "protection", summary: "Hook script は rule・skill と同じフォルダに置く。flat な hooks/ バケットへの新規作成を block する。",                                               tags: "PreToolUse(Write/Edit)",                                    path: "~/.claude/rules/scoped/agent-config/hooks/rule.md" },
+      // 品質・応答
+      { id: "RESPONSE-GUARD",         cat: "quality",    summary: "応答品質を機械強制する2軸: ユーザー操作依頼禁止（NO-DELEGATION）と先送り表現禁止（NO-DEFERRAL）。",                                                   tags: "PreToolUse + PostToolUse + Stop",                           path: "~/.claude/rules/always/response/guard/rule.md" },
+      { id: "ROUTINE-TEST-COMPLETION",cat: "quality",    summary: "ルーティンテストで PASS を宣言する前に満たすべき必須条件（2連続PASS・Layer3調査・残課題ゼロ）を定義。",                                               tags: "規約のみ（hook なし）",                                     path: "~/.claude/rules/scoped/routines/test-completion/rule.md" },
+      { id: "PORTAL-PAGE-CONVENTIONS", cat: "quality",    summary: "ポータルページ構成規約。ページファミリー4分類・ツール名英語表記・並び順の正本。paths **/ai-management-portal/** で agent-home 限定注入。",                     tags: "PostToolUse(Write|Edit|MultiEdit)",                         path: "~/.claude/rules/scoped/portal/page-conventions/rule.md" },
+      { id: "CODE-REVIEW-STANDARDS",  cat: "quality",    summary: "コードレビュー共通基準。重要度3段階と14カテゴリ（セキュリティ/エッジケース/公開インターフェース/依存追加/DB変更/過剰設計等）の合格基準。担当: code-reviewer",      tags: "規約のみ（hook なし）",                                     path: "~/.claude/rules/scoped/review-checklist/code/common/rule.md" },
+      { id: "CODE-TEST-STANDARDS",    cat: "quality",    summary: "テストコード基準。検出力（弱体化/写経/恒真の禁止）・網羅（境界値/異常系）・独立性・可読性。担当: code-reviewer",                                     tags: "規約のみ（hook なし）",                                     path: "~/.claude/rules/scoped/review-checklist/code/test/rule.md" },
+      { id: "CODE-UI-STANDARDS",      cat: "quality",    summary: "UI実装基準。アイコン（Material Symbols必須・Unicode記号/絵文字禁止）等。tsx/jsx/vue/html/css/scss に適用。担当: code-reviewer",                          tags: "規約のみ（hook なし）",                                     path: "~/.claude/rules/scoped/review-checklist/code/ui/rule.md" },
+      { id: "SINGLE-HTML-OUTPUT",     cat: "quality",    summary: "単一HTML成果物の観点規約。汎用HTML化を禁止し、図解候補の全件調査・設計領域11領域・合格基準（被覆/図解/構造/体裁/自己完結）を義務付ける。担当: document-reviewer",                 tags: "規約のみ（hook なし）",                                     path: "~/.claude/rules/scoped/review-checklist/document/html-output/rule.md" },
+      { id: "DOCUMENT-COMMON-STANDARDS", cat: "quality", summary: "ドキュメント共通観点。構成・読み手第一・参照実在・鮮度整合・用語誤字。docs/**/*.md と README.md に適用。担当: document-reviewer",                        tags: "規約のみ（hook なし）",                                     path: "~/.claude/rules/scoped/review-checklist/document/common/rule.md" },
+      { id: "REPORT-COMMON-STANDARDS",   cat: "quality", summary: "調査報告共通観点。チェックリスト完了性・証拠の存在・事実と推測の分離・再現可能性の4観点と合否基準。報告文はファイル外のため report-reviewer への直接委任が主経路。担当: report-reviewer", tags: "規約のみ（hook なし）",                                     path: "~/.claude/rules/scoped/review-checklist/report/common/rule.md" },
+      { id: "REVIEW-CHECKLIST-STRUCTURE", cat: "config", summary: "レビュー観点フォルダの統治規約。scoped=専門家1対1・always=横断観点・全rule分類義務。仕分け台帳（rule-classification.txt）を所有。",           tags: "audit-review-coverage.sh で機械監査",                       path: "~/.claude/rules/scoped/agent-config/review-checklist/rule.md" },
+      // 命名・検査
+      { id: "PRE-BASH-DISPATCH",      cat: "validation", summary: "Bash実行前の共通ディスパッチャ。git commit/branch/mkdir/gh pr に対し textlint・命名規則・公開可否を検査。",                                           tags: "PreToolUse(Bash)",                                          path: "~/.claude/rules/always/infra/pre-bash-dispatch/rule.md" },
+      { id: "SECURITY",               cat: "validation", summary: "スクリプトファイル作成方針: .sh のみ許可、AI単独判断での作成禁止、設計判断（ADR）記載必須。",                                                           tags: "permissions.ask(Write **.sh)",                              path: "~/.claude/rules/scoped/tooling/shell/rule.md" },
+      { id: "MEANINGFUL-KEY-NAMING",           cat: "validation", summary: "管理簿・観点表・決定記録の行識別子に連番 ID（UT-01 等）を禁止し、内容を要約した意味語キーを必須とする。連番は AI にとって不透明なトークンのため。",                  tags: "規約のみ（hook なし）",                                     path: "~/.claude/rules/always/review-checklist/meaningful-key-naming/rule.md" },
+      // 設定・配置判定
+      { id: "CONFIG-PLACEMENT",       cat: "config",     summary: "CLAUDE.md / Rules / Skills / Subagents / Hooks / Output styles の7層を8問の決定木で使い分ける横断ガイド。",                                           tags: "規約のみ（hook なし）",                                     path: "~/.claude/rules/scoped/agent-config/placement/rule.md" },
+      { id: "PROJECT-STRUCTURE",      cat: "config",     summary: "プロジェクト標準構成規約。.claude/rules/（実体ディレクトリ）・必須 project-context 2 ファイル・flow-values.yml スキーマの正本。許可リストは project-context の節に統合。",              tags: "dev-flow ゲート + flow-context-guard で強制",               path: "~/.claude/rules/scoped/agent-config/project-structure/rule.md" },
+      // 委任・基盤
+      { id: "SUBAGENT-DELEGATION",    cat: "infra",      summary: "重い作業を適切なサブエージェント（brain/researcher/worker-sonnet/worker-haiku）に委任するための行動規範。",                                            tags: "UserPromptSubmit + PreToolUse(Write/Edit/Bash)",            path: "~/.claude/rules/always/agent/subagent-selection/rule.md" },
+      { id: "SESSION-INFRA",          cat: "infra",      summary: "セッション中のサイレント基盤処理。スキル発火ログ記録とセルフ project-settings 自動削除。",                                                               tags: "PreToolUse(Skill) + SessionStart + Stop",                   path: "~/.claude/rules/always/session/infra/rule.md" },
+      // 開発フロー
+      { id: "WORKTREE-REQUIRED",      cat: "devflow",    summary: "orchestrating-dev-flow 発動時は worktree 内での作業を必須化。main 直接編集はフロー管轄外の調査・質問のみ許可。",                                        tags: "PreToolUse(Write/Edit)",                                    path: "~/.claude/rules/scoped/dev-flow/worktree/rule.md" },
+      { id: "PHASE-STEP-TASK",        cat: "devflow",    summary: "phase/step フローで次 phase 突入前に step 単位の TaskCreate を義務化。subject 形式（Phase N Step N-M: 内容）を強制し、登録不足の phase 宣言を block。", tags: "PreToolUse(Bash) / PostToolUse(TaskCreate)",                path: "~/.claude/rules/always/gate/phase-step-task/rule.md" },
+      { id: "PORT-MANAGEMENT",        cat: "devflow",    summary: "開発サーバーのポート番号を「ベースポート + worktree スロットオフセット + サービスオフセット」の計算式で一意に決定。",                                       tags: "規約のみ（hook なし）",                                     path: "~/.claude/rules/always/local-environment/port-management/rule.md" },
+    ];
+
+    const tbody = document.getElementById("table-body");
+    const table = document.getElementById("data-table");
+    const filterEl = document.getElementById("filter");
+    const totalEl = document.getElementById("total");
+    const tileTotalEl = document.getElementById("tile-total");
+    const tileCatEl = document.getElementById("tile-cat");
+
+    tileTotalEl.textContent = RULES.length;
+    tileCatEl.textContent = CATEGORIES.length;
+
+    const CAT_PALETTE = ["#2563eb", "#059669", "#7c3aed", "#d97706", "#db2777", "#0891b2", "#65a30d", "#dc2626", "#4f46e5", "#0d9488"];
+
+    function categoryInfo(catId) {
+      const idx = CATEGORIES.findIndex((c) => c.id === catId);
+      if (idx === -1) return { name: catId, color: "#767b85" };
+      return { name: CATEGORIES[idx].name, color: CAT_PALETTE[idx % CAT_PALETTE.length] };
+    }
+
+    function categoryBadge(catId) {
+      const info = categoryInfo(catId);
+      const span = document.createElement("span");
+      span.className = "badge";
+      span.textContent = info.name;
+      span.style.background = info.color + "22";
+      span.style.color = info.color;
+      return span;
+    }
+
+    const CHEVRON_SVG = '<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M6.22 3.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042L9.94 8 6.22 4.28a.75.75 0 0 1 0-1.06Z"/></svg>';
+    const COPY_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>';
+    const CHECK_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+
+    function fallbackCopy(text) {
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand("copy"); } catch (e) { /* ignore */ }
+      document.body.removeChild(ta);
+    }
+
+    function copyCellText(text, btn) {
+      function showDone() {
+        btn.innerHTML = CHECK_SVG;
+        setTimeout(() => { btn.innerHTML = COPY_SVG; }, 1200);
+      }
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(showDone, () => { fallbackCopy(text); showDone(); });
+      } else {
+        fallbackCopy(text);
+        showDone();
+      }
+    }
+
+    function makeCopyBtn(getText) {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "copy-btn";
+      btn.setAttribute("aria-label", "コピー");
+      btn.innerHTML = COPY_SVG;
+      btn.addEventListener("click", (ev) => {
+        ev.stopPropagation();
+        ev.preventDefault();
+        copyCellText(getText(), btn);
+      });
+      return btn;
+    }
+
+    function buildDetailRow(r) {
+      const detail = document.createElement("tr");
+      detail.className = "row-detail";
+      const td = document.createElement("td");
+      td.colSpan = 5;
+      const dl = document.createElement("dl");
+      dl.className = "detail-grid";
+
+      function addPair(label, buildValue) {
+        const dt = document.createElement("dt");
+        dt.textContent = label;
+        const dd = document.createElement("dd");
+        buildValue(dd);
+        dl.appendChild(dt);
+        dl.appendChild(dd);
+      }
+
+      addPair("id", (dd) => {
+        const code = document.createElement("code");
+        code.textContent = r.id;
+        dd.appendChild(code);
+        dd.appendChild(makeCopyBtn(() => r.id));
+      });
+      addPair("パス", (dd) => {
+        const code = document.createElement("code");
+        code.textContent = r.path;
+        dd.appendChild(code);
+        dd.appendChild(makeCopyBtn(() => r.path));
+      });
+      addPair("概要", (dd) => { dd.textContent = r.summary; });
+      addPair("機械強制", (dd) => {
+        const code = document.createElement("code");
+        code.textContent = r.tags;
+        dd.appendChild(code);
+      });
+
+      td.appendChild(dl);
+      detail.appendChild(td);
+      return detail;
+    }
+
+    function toggleDetail(tr, r) {
+      const next = tr.nextElementSibling;
+      if (next && next.classList.contains("row-detail")) {
+        next.remove();
+        tr.removeAttribute("data-expanded");
+        return;
+      }
+      const detail = buildDetailRow(r);
+      tr.after(detail);
+      tr.setAttribute("data-expanded", "true");
+    }
+
+    function makeRow(r) {
+      const tr = document.createElement("tr");
+      tr.dataset.key = (r.id + " " + r.summary + " " + r.tags).toLowerCase();
+
+      const chTd = document.createElement("td");
+      chTd.className = "expand-cell";
+      chTd.innerHTML = '<span class="chevron">' + CHEVRON_SVG + "</span>";
+      tr.appendChild(chTd);
+
+      const idTd = document.createElement("td");
+      const code = document.createElement("code");
+      code.textContent = r.id;
+      idTd.appendChild(code);
+      idTd.appendChild(makeCopyBtn(() => r.id));
+      tr.appendChild(idTd);
+
+      const catTd = document.createElement("td");
+      catTd.appendChild(categoryBadge(r.cat));
+      tr.appendChild(catTd);
+
+      const sumTd = document.createElement("td");
+      sumTd.textContent = r.summary;
+      tr.appendChild(sumTd);
+
+      const tagsTd = document.createElement("td");
+      const tagsCode = document.createElement("code");
+      tagsCode.textContent = r.tags;
+      tagsTd.appendChild(tagsCode);
+      tr.appendChild(tagsTd);
+
+      tr.addEventListener("click", (ev) => {
+        if (ev.target.closest(".copy-btn,a,button")) return;
+        toggleDetail(tr, r);
+      });
+
+      return tr;
+    }
+
+    const allRows = RULES.map(makeRow);
+
+    let sortKey = null;
+    let sortAsc = true;
+    const COL_INDEX = { id: 1, cat: 2, summary: 3, tags: 4 };
+
+    function closeAllDetails() {
+      tbody.querySelectorAll("tr.row-detail").forEach((r) => r.remove());
+      allRows.forEach((tr) => tr.removeAttribute("data-expanded"));
+    }
+
+    function computeVisible() {
+      const q = filterEl.value.trim().toLowerCase();
+      let visible = allRows.filter((tr) => !q || tr.dataset.key.includes(q));
+      if (sortKey) {
+        const idx = COL_INDEX[sortKey];
+        visible = visible.slice().sort((a, b) => {
+          const av = a.children[idx].textContent.trim();
+          const bv = b.children[idx].textContent.trim();
+          const cmp = av.localeCompare(bv, "ja");
+          return sortAsc ? cmp : -cmp;
+        });
+      }
+      return visible;
+    }
+
+    function updateCount(shownCount) {
+      const q = filterEl.value.trim();
+      totalEl.textContent = q
+        ? shownCount + " 件ヒット / " + RULES.length + " ルール"
+        : RULES.length + " ルール / " + CATEGORIES.length + " カテゴリ";
+    }
+
+    function render() {
+      closeAllDetails();
+      const visible = computeVisible();
+      allRows.forEach((tr) => { tr.style.display = "none"; });
+      visible.forEach((tr) => {
+        tr.style.display = "";
+        tbody.appendChild(tr);
+      });
+      updateCount(visible.length);
+    }
+
+    table.querySelectorAll("th[data-key]").forEach((th) => {
+      th.addEventListener("click", () => {
+        const key = th.dataset.key;
+        if (sortKey === key) { sortAsc = !sortAsc; } else { sortKey = key; sortAsc = true; }
+        table.querySelectorAll("th[data-key]").forEach((t) => t.removeAttribute("data-asc"));
+        th.setAttribute("data-asc", sortAsc);
+        render();
+      });
+    });
+
+    let debounceTimer;
+    filterEl.addEventListener("input", () => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(render, 120);
+    });
+
+    render();
+  </script>
+</body>
+</html>

@@ -1,0 +1,104 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://example.invalid/schemas/semantic-glossary-change/1.0.0"
+title: Semantic Glossary Change Record
+description: 用語変更と審査判断を追跡する履歴YAMLの構造案。実装前の設計成果物。
+type: object
+additionalProperties: false
+allOf:
+  - if:
+      required: [proposal_key]
+      properties:
+        proposal_key:
+          $ref: "https://example.invalid/schemas/semantic-glossary/1.0.0#/$defs/semantic_key"
+    then:
+      required: [evidence, proposal_audit]
+required:
+  - change_key
+  - glossary_key
+  - change_type
+  - affected_term_keys
+  - base_content_version
+  - target_content_version
+  - requested_by
+  - approved_by
+  - reason
+  - after_hash
+  - applied_at
+  - applied_revision
+properties:
+  change_key:
+    $ref: "https://example.invalid/schemas/semantic-glossary/1.0.0#/$defs/semantic_key"
+  glossary_key:
+    $ref: "https://example.invalid/schemas/semantic-glossary/1.0.0#/$defs/semantic_key"
+  change_type:
+    enum: [add, update, deprecate, retire, split, merge]
+  affected_term_keys:
+    type: array
+    minItems: 1
+    uniqueItems: true
+    items:
+      $ref: "https://example.invalid/schemas/semantic-glossary/1.0.0#/$defs/semantic_key"
+  proposal_key:
+    anyOf:
+      - {$ref: "https://example.invalid/schemas/semantic-glossary/1.0.0#/$defs/semantic_key"}
+      - {type: "null"}
+  base_content_version:
+    $ref: "https://example.invalid/schemas/semantic-glossary/1.0.0#/$defs/semver"
+  target_content_version:
+    $ref: "https://example.invalid/schemas/semantic-glossary/1.0.0#/$defs/semver"
+  before_hash: {type: [string, "null"]}
+  after_hash: {type: string, minLength: 1}
+  requested_by: {type: string, minLength: 1}
+  approved_by:
+    type: array
+    minItems: 1
+    uniqueItems: true
+    items: {type: string, minLength: 1}
+  reason: {type: string, minLength: 1}
+  evidence:
+    type: array
+    items:
+      type: object
+      required: [ref, excerpt_hash, observed_at, source_revision]
+      properties:
+        ref: {type: string, minLength: 1}
+        excerpt_hash: {type: string, pattern: "^sha256:[a-f0-9]+$"}
+        observed_at: {type: string, format: date-time}
+        source_revision: {type: string, minLength: 1}
+  proposal_audit:
+    type: object
+    additionalProperties: false
+    required: [inferences, confidence, reviewers, approval_events, detected_by]
+    properties:
+      inferences:
+        type: array
+        items: {type: object}
+      confidence:
+        type: object
+        required: [score, level, rationale]
+        properties:
+          score: {type: number, minimum: 0, maximum: 1}
+          level: {enum: [low, medium, high]}
+          rationale: {type: string, minLength: 1}
+      reviewers:
+        type: array
+        minItems: 2
+        items:
+          type: object
+          required: [actor, role, decision, decided_at]
+          properties:
+            actor: {type: string, minLength: 1}
+            role: {enum: [business_approver, technical_approver]}
+            decision: {enum: [approved, rejected, changes_requested, deferred]}
+            decided_at: {type: string, format: date-time}
+      approval_events:
+        type: array
+        items: {type: object}
+      detected_by:
+        type: object
+        required: [skill, version]
+        properties:
+          skill: {type: string, minLength: 1}
+          version: {$ref: "https://example.invalid/schemas/semantic-glossary/1.0.0#/$defs/semver"}
+  applied_at: {type: string, format: date-time}
+  applied_revision: {type: string, minLength: 1}

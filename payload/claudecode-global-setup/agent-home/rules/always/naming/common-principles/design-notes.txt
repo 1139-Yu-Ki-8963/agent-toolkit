@@ -1,0 +1,34 @@
+# 共通命名原則の設計判断
+
+## 必要性
+
+2026-07-08 時点で「名は体を表す」思想が semantic-key・skills conventions・subagents conventions・worktree conventions の 4 箇所に独立再掲されていた。casing 横断表・言語選択基準・語順規則・略語制限・同義語/同名異義の禁止・命名判定フローを全対象に貫く上位規約が存在せず、形式（ケース・文字数）中心で意味の質を規定する層がなかった。
+
+## main の 2 義衝突（実害の記録）
+
+check-main-agent-direct-work.sh の "main" はメインエージェントの意だが、marker-path.sh は "main" を main ツリー（worktree でない側）の意で使用。同一コードベースで同じ語が 2 つの異なる意味を持ち、AI が文脈判断を誤るリスクが実在した。
+
+解消語として `main-agent` 複合語を採用。`orchestrator` 等の新語は発明しない（正式名称主義＝同義語の発明禁止と整合）。
+
+## 採用しなかった代替案
+
+- orchestrator / coordinator: 同義語の発明に該当。正式名称主義に反する
+- primary: main と同じ多義性を持ち解消にならない
+- シェルローカル変数への適用: YAGNI。スクリプト内部のローカル変数は外部から参照されず誤読の実害がない
+
+## 再掲の一元化
+
+semantic-key/rule.md・skills/conventions.md・subagents/conventions.md・commit-branch/rule.md の「名前だけで意味が取れる」系の記述を本規約への参照 1 行に置換する計画。各対象固有の規定（semantic-key のドキュメント行キー形式、commit-branch のファイル名表等）は各規約に残す。
+
+## 機械化しない範囲
+
+- シェルローカル変数: 外部から参照されないため誤読の実害なし（YAGNI）
+- 意味の妥当性判断: 形式が一意で誤検知ゼロのものだけ hook で block し、意味の妥当性はレビュー観点に委ねる
+
+## 保守責任者
+
+人手（ユーザー）。多義語表・許可略語リストの更新は managing-agent-configs（種別 rules）のゲート経由。
+
+## 廃棄条件
+
+全サーフェスの命名が型システムまたは AST ベースの lint で構造的に保証されるようになった時（現実的には廃棄されない普遍的規約）。

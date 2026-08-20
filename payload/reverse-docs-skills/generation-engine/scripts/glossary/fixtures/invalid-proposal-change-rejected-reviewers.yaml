@@ -1,0 +1,29 @@
+change_key: update_customer_from_rejected_proposal
+glossary_key: commerce_platform
+change_type: update
+affected_term_keys: [customer]
+proposal_key: customer_update_from_document
+proposal_content_hash: sha256:2d36e68387a20982a38a5a5fcc58085cdfe4302eeca2225d914059ac828cc6b7
+base_content_version: 1.9.0
+target_content_version: 2.0.0
+before_hash: sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+after_hash: sha256:6264d9ff274c0e52e8cf676cd885bab48f64f61933095433e14398a5c06fca77
+requested_by: customer-domain-team
+approved_by: [business_approver:domain-reviewer, technical_approver:architecture-reviewer]
+reason: 却下判断を含む監査snapshotの拒否検証
+evidence:
+  - {ref: docs/domain/customer.md#customer, excerpt_hash: 'sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef', observed_at: '2026-08-02T00:00:00Z', source_revision: def5678}
+proposal_audit:
+  decision_reason: 二者承認を完了
+  inferences: []
+  confidence: {score: 0.9, level: high, rationale: 業務文書と既存コード表現が一致する}
+  reviewers:
+    - {actor: domain-reviewer, role: business_approver, decision: rejected, decided_at: '2026-08-02T01:00:00Z'}
+    - {actor: architecture-reviewer, role: technical_approver, decision: rejected, decided_at: '2026-08-02T01:10:00Z'}
+  approval_events:
+    - {from: null, to: detected, actor: document-analyzer, actor_role: analyzer, occurred_at: '2026-08-02T00:00:00Z', reason: 定義差分を検出}
+    - {from: detected, to: needs_review, actor: glossary-maintainer, actor_role: maintainer, occurred_at: '2026-08-02T00:10:00Z', reason: 審査開始}
+    - {from: needs_review, to: approved, actor: glossary-maintainer, actor_role: maintainer, occurred_at: '2026-08-02T01:20:00Z', reason: 二者承認を確認}
+  detected_by: {skill: analyzing-document-glossary-candidates, version: 1.0.0}
+applied_at: '2026-08-02T02:00:00Z'
+applied_revision: fed9876

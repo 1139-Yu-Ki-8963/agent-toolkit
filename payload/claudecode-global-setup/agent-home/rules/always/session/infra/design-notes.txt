@@ -1,0 +1,30 @@
+# セッション基盤（SESSION-INFRA）設計ノート（非注入サイドカー）
+# rule.md から分離した保守者向け記録。規約の挙動には影響しない。
+
+## 設計判断
+
+### skill-log-recorder.sh
+
+**必要性**: スキル発火履歴をセッション単位で記録しておくことで、後続の summary / flow-report ルーティンがスキル使用状況を集計できる。また `parallel-dev-worktree` 発火時に impl-session マーカーを書くことで、他の hook がそのセッションが「実装セッション」であるかを判定できる。PreToolUse(Skill) イベントへのバインドが必要であり Bash ツール直叩きでは実現不可。インライン 1 行では `marker-path.sh` の source・jq によるフィールド抽出・再帰防止の複数分岐を収められない。
+
+**代替案を採用しなかった理由**:
+- Bash ツール直叩き: PreToolUse(Skill) イベントに自動バインドできない
+- PostToolUse(Skill): スキル実行後のタイミングでは impl-session マーカーを「スキル開始時」に立てる意味が薄れる
+- インラインコマンド（settings.json 直書き）: `marker-path.sh` の source・複数分岐・jq 安全処理を 1 行に収めると保守不能
+
+**保守責任者**: 人手（ユーザー）
+
+**廃棄条件**: スキル発火ログが Claude Code 本体の telemetry として取得できるようになった時、または `parallel-dev-worktree` skill の impl-session マーカーが別の機構で管理されるようになった時。
+
+### delete-nested-claude-dir.sh
+
+**必要性**: Claude Code 本体の project-scope settings 保存動作は設定で抑制できない仕様。発生するたびに手動削除するのは運用コストが高く、SessionStart / Stop に hook を挟んで自動削除するのが唯一の現実的な対処。symlink・通常ファイル・ディレクトリの 3 形態を個別に処理する必要があり、かつ read-only 化への対抗（`chmod -R u+rwx`）も必要なため、Bash 直叩き 1 行では収まらない。
+
+**代替案を採用しなかった理由**:
+- Bash ツール直叩き: SessionStart / Stop hook は harness 自動起動であり Bash ツール経由では発火不可
+- `permissions.deny` で Write を block: Claude Code 本体の内部書き込みは permissions 機構の対象外
+- 手動清掃: 発生 → 気づく → 削除のサイクルが属人的で運用破綻する
+
+**保守責任者**: 人手（ユーザー）
+
+**廃棄条件**: Claude Code 本体が project-scope settings の保存先を設定で変更できる公式機能を提供した時、または `cwd=$HOME/.claude` 起動を構造的に抑制できるようになった時。

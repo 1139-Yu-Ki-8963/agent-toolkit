@@ -1,0 +1,3294 @@
+#!/usr/bin/env bash
+# generating-screen-list-for-reverse-docs: Phase 1 画面境界検出
+#
+# Usage: detect-screens.sh <source-dir> <manifest-out-path> \
+#          [--screen-id-regex <ERE>] [--view-switch-pattern <ERE>] \
+#          [--exclude <ERE>] [--strategy-json <file>] [--account-group-map <file>]
+#        detect-screens.sh --profile <manifest> <source-dir> <profile-out> \
+#          --recount-script <path> --repo-root <path>
+#        detect-screens.sh --self-test
+#
+# --screen-id-regex <ERE>:
+#   entryFile の basename(拡張子なし) から grep -oE で画面IDを抽出するパターン
+#   (例: 'T-[A-Z]+-[0-9]+(-[0-9]+)*')。未指定なら screenId は null。
+# --view-switch-pattern <ERE>:
+#   埋め込みビュー検出用の grep パターン(例: 'setEditView|setModalView')。
+#   未指定なら埋め込みビュー検出をスキップする。
+# --exclude <ERE>:
+#   デフォルト除外(node_modules/tests/__tests__/test/stories/__mocks__ ディレクトリ、
+#   *.test.*/*.spec.*/*.stories.* ファイル)に追加する除外パターン(grep -Ev に合成)。
+# --strategy-json <file>:
+#   指定した JSON ファイルの中身をマニフェストの "strategy" フィールドにそのまま埋め込む。
+#   未指定時は screenIdRegex/viewSwitchPattern/extractionMethod/approvedByUser を自動合成する。
+# --account-group-map <file>:
+#   classify_screen() の accountGroup 判定に使う外部設定ファイル(グロブパターン\t分類値の
+#   TSV、1行1パターン、detectionMethod に対して上から順に最初に一致した行を採用)。
+#   未指定/ファイル不在の場合は detectionMethod の値をそのまま accountGroup とする。
+#
+# --resolve-files <manifest-in> <source-dir> <manifest-out>:
+#   既存マニフェストの kind=route/embedded-view で entryFile が非空の画面それぞれについて、
+#   import 文を BFS(幅優先探索)で再帰的に追跡し、画面専有ファイル集合(files/fileCount)を
+#   再解決する後処理サブコマンド(strategy を差し替えて再解決したい場合等に使う)。
+#   strategy の以下のフィールドを読む:
+#     - sharedDirPatterns: 共有資産として除外する ERE の配列(ソースルート相対パスに対して照合)
+#     - pathAliases: エイリアス前方一致テーブル({"@/": "src/"} 形式。値はソースルート相対)
+#     - importTraversalMaxDepth: BFS の深さ上限(未指定なら既定 6)
+#   entryFile がディレクトリの場合(慣習ディレクトリ検出)は従来のディレクトリ収集を維持する。
+#
+# --self-test:
+#   resolve_screen_files(import 再帰追跡)と --resolve-files サブコマンドの自己診断テストを
+#   実行する。全PASSでexit 0、FAILがあればexit 1。
+#
+# 検出優先順位:
+#   1. Next.js App Router (app/**/page.{tsx,jsx,js})
+#   2. Next.js Pages Router (pages/**/*.{tsx,jsx,js}, _app/_document/api 除外)
+#   3. React Router (createBrowserRouter/createHashRouter/useRoutes/<Route> のフラット path 抽出。
+#      useRoutes(識別子)/createBrowserRouter(識別子) 形式は1段の import 追跡で定義ファイルを解決する)
+#   4. フォールバック: pages/screens/views 慣習ディレクトリ直下を1画面として扱う
+#   5. 1-4すべて0件ならハード停止 (exit 3)。画面を捏造しない
+#
+# デフォルト除外: tests/__tests__/test/stories/__mocks__ ディレクトリ配下と
+#   *.test.*/*.spec.*/*.stories.* ファイルは全検出方式の find/grep 結果から除外する。
+#
+# 画面キー生成アルゴリズム(意味キー規約準拠・連番サフィックス禁止):
+#   1. ルートの静的セグメントのみ抽出(動的パラメータ・ワイルドカード除外)
+#   2. 末尾1セグメントを仮キーとする
+#   3. 衝突時は末尾からのセグメント数を1つずつ増やして再判定
+#   4. 全セグメントを使っても衝突する場合、エントリディレクトリのパスで具体化する
+#   5. それでも衝突する場合、entry_file の basename(拡張子なし・小文字化)で具体化する
+#   6. ルートが `/` または静的セグメント無しの場合は `top`
+#
+# ファイル収集: entryFile がファイルの場合は import 文を BFS(幅優先探索)で再帰的に
+# 追跡し(resolve_screen_files)、strategy の sharedDirPatterns/pathAliases/
+# importTraversalMaxDepth/screenIdRegex に従って画面専有ファイル集合を解決する。
+# entryFile がディレクトリの場合(慣習ディレクトリ検出)は、エントリと同一ディレクトリ
+# 直下 + 直下の components/(_components/) 1階層のみを収集する(フォールバック互換)。
+#
+# 重複マージ: 同一 (route, entryFile) の行は 1 行にマージし、出現回数を routeDupCount として保持する。
+# 共有クラスタ: 異なる screenKey が同一 entryFile を共有する場合、sharedWith / clusterId を付与する。
+# 埋め込みビュー: --view-switch-pattern 指定時、条件分岐で切り替えられる子ビューを kind: "embedded-view" として
+#   独立行で出力する(1階層 import grep による best-effort 解決)。
+
+set -euo pipefail
+
+# ============================================================================
+# 8-4: import 再帰追跡(resolve_screen_files)と --resolve-files サブコマンド
+# ============================================================================
+#
+# resolve_screen_files は、エントリファイルから import グラフを BFS で辿り、
+# 画面専有ファイル集合を算出する。BFS 本体・ファイル存在プローブは単一 awk
+# プロセス内で完結させ(getline の可否判定によるプローブ)、ファイルごとの
+# 外部コマンド fork は発生させない。
+#
+# 既知の限界: 拡張子解決の候補パス(base+.tsx 等)がディレクトリと偶然同名の
+# 場合、one-true-awk は「getline で読めたがclose時にI/Oエラー」を検知すると
+# プロセスを異常終了させる(close()がエラーで即abortする実装挙動を確認済み)。
+# JS/TS の実運用でディレクトリ名が .tsx/.ts/.jsx/.js で終わることは事実上
+# 無いため許容する。この既知の限界を避けるため、拡張子なしの仕様(bare spec)
+# を裸のまま getline することはしない(必ず拡張子または/indexを付けてから
+# プローブする)。
+
+RESOLVE_COMMON_AWK_FILE="$(mktemp)"
+RESOLVE_AWK_FILE="$(mktemp)"
+RESOLVE_BATCH_AWK_FILE="$(mktemp)"
+trap 'rm -f "$RESOLVE_COMMON_AWK_FILE" "$RESOLVE_AWK_FILE" "$RESOLVE_BATCH_AWK_FILE"' EXIT
+
+# RESOLVE_COMMON_AWK_FILE: resolve_screen_files(単一画面)と
+# resolve_files_subcommand の一括BFS(9-3)が共有するヘルパー関数群。
+# 単一/一括いずれの awk 呼び出しも `-f COMMON -f 本体` の順で読み込む。
+cat > "$RESOLVE_COMMON_AWK_FILE" <<'AWKEOF'
+function try_exists(f,    line, rc) {
+  rc = (getline line < f)
+  close(f)
+  return (rc >= 0) ? 1 : 0
+}
+
+function has_any_ext(p) {
+  return (p ~ /\.[A-Za-z0-9]+$/)
+}
+
+function has_code_ext(p) {
+  return (p ~ /\.(tsx|ts|jsx|js)$/)
+}
+
+function dirname_of(p,    d) {
+  d = p
+  sub(/\/[^\/]*$/, "", d)
+  if (d == "") d = "/"
+  return d
+}
+
+# 相対パスの正規化(./ の除去・../ の巻き戻し)。split後の空要素(先頭/連続/)は
+# ループ内でスキップされるため、多重スラッシュ・絶対パスの前提を壊さない。
+function normalize_path(p,    n, i, parts, top, out, seg, stack) {
+  n = split(p, parts, "/")
+  top = 0
+  for (i = 1; i <= n; i++) {
+    seg = parts[i]
+    if (seg == "" || seg == ".") continue
+    if (seg == "..") {
+      if (top > 0) top--
+    } else {
+      top++
+      stack[top] = seg
+    }
+  }
+  out = ""
+  for (i = 1; i <= top; i++) out = out "/" stack[i]
+  if (out == "") out = "/"
+  return out
+}
+
+# 指定子抽出: from '...' / import('...') / require('...')。SPECS(グローバル配列)へ
+# 書き込み、件数を返す。コメント除去は行わない(この探索の対象は決定的なコード追跡の
+# best-effort であり、既存の他検出処理と同水準の割り切り)。
+function extract_specs(file,    codeline, s, seg, spec, cnt) {
+  cnt = 0
+  while ((getline codeline < file) > 0) {
+    s = codeline
+    while (match(s, /from[ \t]*['"][^'"]+['"]/)) {
+      seg = substr(s, RSTART, RLENGTH)
+      if (match(seg, /['"][^'"]+['"]/)) {
+        spec = substr(seg, RSTART + 1, RLENGTH - 2)
+        cnt++; SPECS[cnt] = spec
+      }
+      s = substr(s, RSTART + RLENGTH)
+    }
+    s = codeline
+    while (match(s, /import\([ \t]*['"][^'"]+['"]/)) {
+      seg = substr(s, RSTART, RLENGTH)
+      if (match(seg, /['"][^'"]+['"]/)) {
+        spec = substr(seg, RSTART + 1, RLENGTH - 2)
+        cnt++; SPECS[cnt] = spec
+      }
+      s = substr(s, RSTART + RLENGTH)
+    }
+    s = codeline
+    while (match(s, /require\([ \t]*['"][^'"]+['"]/)) {
+      seg = substr(s, RSTART, RLENGTH)
+      if (match(seg, /['"][^'"]+['"]/)) {
+        spec = substr(seg, RSTART + 1, RLENGTH - 2)
+        cnt++; SPECS[cnt] = spec
+      }
+      s = substr(s, RSTART + RLENGTH)
+    }
+  }
+  close(file)
+  return cnt
+}
+AWKEOF
+
+# RESOLVE_AWK_FILE: 単一画面のBFS本体(resolve_screen_files が使用)。
+# RESOLVE_COMMON_AWK_FILE の関数群を前提とする(呼び出し側で -f を2つ渡す)。
+cat > "$RESOLVE_AWK_FILE" <<'AWKEOF'
+BEGIN {
+  # scalar 値は awk -v の escape 処理(バックスラッシュ解釈)を避けるため
+  # ファイル経由で読む(screenidregex 等に \ を含む可能性への安全策)。
+  getline entry < paramsfile
+  getline srcdir < paramsfile
+  getline maxdepth < paramsfile
+  getline screenidregex < paramsfile
+  getline ownscreenid < paramsfile
+  close(paramsfile)
+  maxdepth += 0
+  if (maxdepth <= 0) maxdepth = 6
+
+  n_shared = 0
+  while ((getline line < sharedfile) > 0) {
+    if (line != "") { n_shared++; shared[n_shared] = line }
+  }
+  close(sharedfile)
+
+  while ((getline line < othersfile) > 0) {
+    if (line != "") { others[line] = 1 }
+  }
+  close(othersfile)
+
+  n_alias = 0
+  while ((getline line < aliasfile) > 0) {
+    if (line == "") continue
+    split(line, ap, "\t")
+    n_alias++
+    alias_prefix[n_alias] = ap[1]
+    alias_target[n_alias] = ap[2]
+  }
+  close(aliasfile)
+
+  codeext[1] = ".tsx"; codeext[2] = ".ts"; codeext[3] = ".jsx"; codeext[4] = ".js"
+
+  # entry は常に含める(境界チェックの対象外)。BFS depth 0。
+  qhead = 1; qtail = 1
+  queue_file[1] = entry
+  queue_depth[1] = 0
+  visited[entry] = 1
+  result_n = 1
+  result[1] = entry
+
+  while (qhead <= qtail) {
+    curfile = queue_file[qhead]
+    curdepth = queue_depth[qhead]
+    qhead++
+
+    # 深さ上限: curdepth == maxdepth のノードは結果に含まれるが、その先の
+    # import は追跡しない(自身のimport抽出をスキップする)。
+    if (curdepth + 0 >= maxdepth + 0) continue
+
+    n_specs = extract_specs(curfile)
+    curdir = dirname_of(curfile)
+
+    for (si = 1; si <= n_specs; si++) {
+      spec = SPECS[si]
+
+      base = ""
+      matched_ai = 0
+      matched_len = -1
+      for (ai = 1; ai <= n_alias; ai++) {
+        if (index(spec, alias_prefix[ai]) == 1 && length(alias_prefix[ai]) > matched_len) {
+          matched_len = length(alias_prefix[ai])
+          matched_ai = ai
+        }
+      }
+      if (matched_ai > 0) {
+        # エイリアス解決(前方一致・最長一致)。alias_target は呼び出し側で
+        # ソースルート相対から絶対パスへ解決済み。"/" を明示挿入することで
+        # target/rest 双方の trailing/leading slash 有無に依存しない。
+        base = normalize_path(alias_target[matched_ai] "/" substr(spec, length(alias_prefix[matched_ai]) + 1))
+      } else if (substr(spec, 1, 1) == ".") {
+        base = normalize_path(curdir "/" spec)
+      } else {
+        # bare import(パッケージ名等の相対/エイリアス解決不能な指定子)は追跡しない。
+        continue
+      }
+
+      # 拡張子解決順: そのまま(既に拡張子を含む場合のみ)→.tsx→.ts→.jsx→.js→
+      # /index.{tsx,ts,jsx,js}。コード拡張子のみ追跡する(非コード拡張子=CSS/JSON/
+      # 画像等は resolved を確定させない)。拡張子なしのbare specを裸のまま
+      # getlineすることはしない(直上コメント参照の既知の限界回避)。
+      # 非コード拡張子(css/scss/json/画像等)は候補付与しても対応ファイルが
+      # 存在しないため resolved が空のまま=集合に含まれない(意図的除外)。
+      resolved = ""
+      if (has_code_ext(base)) {
+        if (try_exists(base)) resolved = base
+      } else {
+        for (ei = 1; ei <= 4; ei++) {
+          cand = base codeext[ei]
+          if (try_exists(cand)) { resolved = cand; break }
+        }
+        if (resolved == "") {
+          for (ei = 1; ei <= 4; ei++) {
+            cand = base "/index" codeext[ei]
+            if (try_exists(cand)) { resolved = cand; break }
+          }
+        }
+      }
+      if (resolved == "") continue
+
+      if (resolved in visited) continue
+      visited[resolved] = 1
+
+      # ソースルート外は追跡しない。
+      if (!(resolved == srcdir || index(resolved, srcdir "/") == 1)) continue
+
+      # 境界(a): 共有ディレクトリパターン(ERE)一致は除外し、その先も辿らない。
+      # ソースルート相対パスに対して照合する(9-1: `^shared/` 等の ^ アンカー付き
+      # パターンが絶対パス照合では常に不一致になっていた不具合の修正)。
+      rel = (resolved == srcdir) ? "" : substr(resolved, length(srcdir) + 2)
+      is_shared = 0
+      for (shi = 1; shi <= n_shared; shi++) {
+        if (rel ~ shared[shi]) { is_shared = 1; break }
+      }
+      if (is_shared) continue
+
+      # 境界(b): 他画面のentryFile集合(自画面のentryは既にvisitedで除外済み)。
+      if (resolved in others) continue
+
+      # 境界(c): screenIdRegex設定時、basenameから抽出した画面IDが自画面と異なるもの。
+      if (screenidregex != "") {
+        bn = resolved
+        sub(/.*\//, "", bn)
+        sub(/\.[^.]*$/, "", bn)
+        if (match(bn, screenidregex)) {
+          extracted = substr(bn, RSTART, RLENGTH)
+          if (extracted != "" && extracted != ownscreenid) continue
+        }
+      }
+
+      result_n++
+      result[result_n] = resolved
+      qtail++
+      queue_file[qtail] = resolved
+      queue_depth[qtail] = curdepth + 1
+    }
+  }
+
+  for (i = 1; i <= result_n; i++) print result[i]
+}
+AWKEOF
+
+# RESOLVE_BATCH_AWK_FILE: 複数画面分のBFSを単一awkプロセス内で連続処理する(9-3)。
+# resolve_files_subcommand が --resolve-files の対象画面をまとめて処理する際に使う。
+# srcdir/maxdepth/screenidregex/共有パターン/エイリアス表はマニフェスト単位で共通のため
+# 一度だけ読み込み、画面ごとの entry/ownscreenid のみを screensfile(TSV)から読む。
+# visited/queue/result は画面ごとに delete でリセットする(BFSの状態を画面間で共有しない)。
+# 境界(b)の「他画面entryFile集合」は自画面のentryも含めて一括で読み込む: 自画面のentryは
+# BFS開始時に既にvisitedへ登録済みのため、visited判定が境界(b)判定より必ず先に効き、
+# 自画面entryを誤って除外することはない(単一画面版の自画面除外グレップは冗長だった)。
+cat > "$RESOLVE_BATCH_AWK_FILE" <<'AWKEOF'
+BEGIN {
+  getline srcdir < paramsfile
+  getline maxdepth < paramsfile
+  getline screenidregex < paramsfile
+  close(paramsfile)
+  maxdepth += 0
+  if (maxdepth <= 0) maxdepth = 6
+
+  n_shared = 0
+  while ((getline line < sharedfile) > 0) {
+    if (line != "") { n_shared++; shared[n_shared] = line }
+  }
+  close(sharedfile)
+
+  n_alias = 0
+  while ((getline line < aliasfile) > 0) {
+    if (line == "") continue
+    split(line, ap, "\t")
+    n_alias++
+    alias_prefix[n_alias] = ap[1]
+    alias_target[n_alias] = ap[2]
+  }
+  close(aliasfile)
+
+  codeext[1] = ".tsx"; codeext[2] = ".ts"; codeext[3] = ".jsx"; codeext[4] = ".js"
+
+  n_screens = 0
+  while ((getline line < screensfile) > 0) {
+    if (line == "") continue
+    split(line, sf, "\t")
+    n_screens++
+    all_key[n_screens] = sf[1]
+    all_entry[n_screens] = sf[2]
+    all_ownid[n_screens] = sf[3]
+    others[sf[2]] = 1
+  }
+  close(screensfile)
+
+  for (sidx = 1; sidx <= n_screens; sidx++) {
+    key = all_key[sidx]
+    entry = all_entry[sidx]
+    ownscreenid = all_ownid[sidx]
+
+    delete visited
+    delete queue_file
+    delete queue_depth
+    delete result
+
+    qhead = 1; qtail = 1
+    queue_file[1] = entry
+    queue_depth[1] = 0
+    visited[entry] = 1
+    result_n = 1
+    result[1] = entry
+
+    while (qhead <= qtail) {
+      curfile = queue_file[qhead]
+      curdepth = queue_depth[qhead]
+      qhead++
+
+      if (curdepth + 0 >= maxdepth + 0) continue
+
+      n_specs = extract_specs(curfile)
+      curdir = dirname_of(curfile)
+
+      for (si = 1; si <= n_specs; si++) {
+        spec = SPECS[si]
+
+        base = ""
+        matched_ai = 0
+        matched_len = -1
+        for (ai = 1; ai <= n_alias; ai++) {
+          if (index(spec, alias_prefix[ai]) == 1 && length(alias_prefix[ai]) > matched_len) {
+            matched_len = length(alias_prefix[ai])
+            matched_ai = ai
+          }
+        }
+        if (matched_ai > 0) {
+          base = normalize_path(alias_target[matched_ai] "/" substr(spec, length(alias_prefix[matched_ai]) + 1))
+        } else if (substr(spec, 1, 1) == ".") {
+          base = normalize_path(curdir "/" spec)
+        } else {
+          continue
+        }
+
+        resolved = ""
+        if (has_code_ext(base)) {
+          if (try_exists(base)) resolved = base
+        } else {
+          for (ei = 1; ei <= 4; ei++) {
+            cand = base codeext[ei]
+            if (try_exists(cand)) { resolved = cand; break }
+          }
+          if (resolved == "") {
+            for (ei = 1; ei <= 4; ei++) {
+              cand = base "/index" codeext[ei]
+              if (try_exists(cand)) { resolved = cand; break }
+            }
+          }
+        }
+        if (resolved == "") continue
+
+        if (resolved in visited) continue
+        visited[resolved] = 1
+
+        if (!(resolved == srcdir || index(resolved, srcdir "/") == 1)) continue
+
+        # 境界(a): 9-1と同一の相対化照合。
+        rel = (resolved == srcdir) ? "" : substr(resolved, length(srcdir) + 2)
+        is_shared = 0
+        for (shi = 1; shi <= n_shared; shi++) {
+          if (rel ~ shared[shi]) { is_shared = 1; break }
+        }
+        if (is_shared) continue
+
+        if (resolved in others) continue
+
+        if (screenidregex != "") {
+          bn = resolved
+          sub(/.*\//, "", bn)
+          sub(/\.[^.]*$/, "", bn)
+          if (match(bn, screenidregex)) {
+            extracted = substr(bn, RSTART, RLENGTH)
+            if (extracted != "" && extracted != ownscreenid) continue
+          }
+        }
+
+        result_n++
+        result[result_n] = resolved
+        qtail++
+        queue_file[qtail] = resolved
+        queue_depth[qtail] = curdepth + 1
+      }
+    }
+
+    delete outseen
+    for (i = 1; i <= result_n; i++) {
+      if (!(result[i] in outseen)) {
+        outseen[result[i]] = 1
+        print key "\t" result[i]
+      }
+    }
+  }
+}
+AWKEOF
+
+# resolve_screen_files: エントリファイルからBFSで画面専有ファイル集合を算出する。
+# 引数:
+#   $1 entry           絶対パスのエントリファイル
+#   $2 srcdir          絶対パスのソースルート(末尾スラッシュなし)
+#   $3 maxdepth         BFS深さ上限(空なら既定6)
+#   $4 shared_file      共有ディレクトリERE(改行区切り)を書いたファイル(空文字可)
+#   $5 others_file      他画面entryFile(絶対パス・改行区切り、自画面除く)を書いたファイル(空文字可)
+#   $6 screenidregex    画面ID抽出ERE(空文字可)
+#   $7 ownscreenid      自画面の画面ID(空文字可)
+#   $8 alias_file       エイリアスTSV(prefix\t絶対パスtarget、改行区切り)を書いたファイル(空文字可)
+# 出力: 解決済み絶対パスを1行1件、重複なしで標準出力へ(entry含む)。
+resolve_screen_files() {
+  local entry="$1" srcdir="$2" maxdepth="${3:-6}"
+  local shared_file="${4:-}" others_file="${5:-}"
+  local screenidregex="${6:-}" ownscreenid="${7:-}" alias_file="${8:-}"
+  case "$maxdepth" in ''|*[!0-9]*) maxdepth=6 ;; esac
+
+  local params_file empty_file
+  params_file="$(mktemp)"
+  empty_file="$(mktemp)"
+  {
+    printf '%s\n' "$entry"
+    printf '%s\n' "$srcdir"
+    printf '%s\n' "$maxdepth"
+    printf '%s\n' "$screenidregex"
+    printf '%s\n' "$ownscreenid"
+  } > "$params_file"
+
+  local sf="$shared_file" of="$others_file" af="$alias_file"
+  [ -n "$sf" ] && [ -f "$sf" ] || sf="$empty_file"
+  [ -n "$of" ] && [ -f "$of" ] || of="$empty_file"
+  [ -n "$af" ] && [ -f "$af" ] || af="$empty_file"
+
+  awk -v paramsfile="$params_file" -v sharedfile="$sf" -v othersfile="$of" -v aliasfile="$af" \
+    -f "$RESOLVE_COMMON_AWK_FILE" -f "$RESOLVE_AWK_FILE" | sort -u
+
+  rm -f "$params_file" "$empty_file"
+}
+
+# resolve_files_subcommand: --resolve-files サブコマンド本体。
+# 既存マニフェストの kind=route/embedded-view で entryFile 非空の画面に対して
+# resolve_screen_files を適用し、files/fileCountのみを更新した新マニフェストを書き出す。
+# jqの値受け渡しは一時ファイル+--slurpfileで行う(引数長・エスケープ事故を避ける)。
+resolve_files_subcommand() {
+  local manifest_in="$1" source_dir="$2" manifest_out="$3"
+
+  if [ ! -f "$manifest_in" ]; then
+    echo "ERROR: manifest not found: $manifest_in" >&2
+    exit 1
+  fi
+  if [ ! -d "$source_dir" ]; then
+    echo "ERROR: source-dir not found: $source_dir" >&2
+    exit 1
+  fi
+  source_dir="$(cd "$source_dir" && pwd)"
+
+  local max_depth
+  max_depth="$(jq -r '.strategy.importTraversalMaxDepth // 6' "$manifest_in" 2>/dev/null || true)"
+  case "$max_depth" in ''|*[!0-9]*) max_depth=6 ;; esac
+
+  local screen_id_regex
+  screen_id_regex="$(jq -r '.strategy.screenIdRegex // ""' "$manifest_in" 2>/dev/null || true)"
+  [ "$screen_id_regex" = "null" ] && screen_id_regex=""
+
+  local rf_shared_file rf_alias_file rf_screens_all_file rf_screens_valid_file
+  local rf_params_file rf_batch_result_file rf_updates_file
+  rf_shared_file="$(mktemp)"
+  rf_alias_file="$(mktemp)"
+  rf_screens_all_file="$(mktemp)"
+  rf_screens_valid_file="$(mktemp)"
+  rf_params_file="$(mktemp)"
+  rf_batch_result_file="$(mktemp)"
+  rf_updates_file="$(mktemp)"
+
+  jq -r '(.strategy.sharedDirPatterns // [])[]' "$manifest_in" > "$rf_shared_file" 2>/dev/null || true
+
+  : > "$rf_alias_file"
+  jq -r '(.strategy.pathAliases // {}) | to_entries[] | "\(.key)\t\(.value)"' "$manifest_in" 2>/dev/null \
+    | while IFS=$'\t' read -r prefix target; do
+        [ -z "$prefix" ] && continue
+        case "$target" in
+          /*) abs_target="$target" ;;
+          "") abs_target="$source_dir" ;;
+          *) abs_target="$source_dir/$target" ;;
+        esac
+        printf '%s\t%s\n' "$prefix" "$abs_target"
+      done > "$rf_alias_file" || true
+
+  # 9-3: 全対象画面の screenKey・entryFile(絶対パス化)・screenId を1回のjq呼び出しで
+  # TSVへ一括書き出しする(画面ごとのjq呼び出しをやめ、定数回のjq呼び出しに抑える)。
+  jq -r --arg srcdir "$source_dir" '
+    [.screens[] | select((.kind=="route" or .kind=="embedded-view") and .entryFile != "" and .entryFile != null)
+     | {screenKey, screenId: (.screenId // ""), entryFile}]
+    | .[]
+    | [.screenKey,
+       (if (.entryFile | startswith("/")) then .entryFile else ($srcdir + "/" + .entryFile) end),
+       .screenId]
+    | @tsv
+  ' "$manifest_in" > "$rf_screens_all_file"
+
+  local n_targets=0
+  : > "$rf_screens_valid_file"
+  while IFS=$'\t' read -r key abs_entry own_id; do
+    [ -z "$key" ] && continue
+    n_targets=$((n_targets + 1))
+    if [ ! -f "$abs_entry" ]; then
+      echo "WARN: --resolve-files: entryFile not found, skip: $abs_entry (screenKey=$key)" >&2
+      continue
+    fi
+    printf '%s\t%s\t%s\n' "$key" "$abs_entry" "$own_id" >> "$rf_screens_valid_file"
+  done < "$rf_screens_all_file"
+
+  local resolved_count
+  resolved_count="$(grep -ac . "$rf_screens_valid_file" || true)"
+  [ -z "$resolved_count" ] && resolved_count=0
+
+  {
+    printf '%s\n' "$source_dir"
+    printf '%s\n' "$max_depth"
+    printf '%s\n' "$screen_id_regex"
+  } > "$rf_params_file"
+
+  # 9-3: 全画面分のBFSを単一awkプロセスで連続処理する(画面ごとのawk起動を廃止)。
+  : > "$rf_batch_result_file"
+  if [ -s "$rf_screens_valid_file" ]; then
+    awk -v paramsfile="$rf_params_file" -v sharedfile="$rf_shared_file" -v aliasfile="$rf_alias_file" \
+      -v screensfile="$rf_screens_valid_file" \
+      -f "$RESOLVE_COMMON_AWK_FILE" -f "$RESOLVE_BATCH_AWK_FILE" > "$rf_batch_result_file"
+  fi
+
+  # 9-3: 結果マージも1回のjq呼び出しで {screenKey: {files, fileCount}} を組み立てる。
+  jq -R -s '
+    split("\n") | map(select(length > 0) | split("\t") | {key: .[0], file: .[1]})
+    | group_by(.key)
+    | map({(.[0].key): {files: (map(.file) | sort), fileCount: (map(.file) | length)}})
+    | add // {}
+  ' "$rf_batch_result_file" > "$rf_updates_file"
+
+  jq --slurpfile updates "$rf_updates_file" '
+    .screens |= map(
+      . as $s | ($updates[0][$s.screenKey]) as $u |
+      if $u then $s + {files: $u.files, fileCount: $u.fileCount} else $s end
+    )
+  ' "$manifest_in" > "$manifest_out"
+
+  rm -f "$rf_shared_file" "$rf_alias_file" "$rf_screens_all_file" "$rf_screens_valid_file" \
+    "$rf_params_file" "$rf_batch_result_file" "$rf_updates_file"
+  echo "OK: --resolve-files updated $resolved_count/$n_targets screens -> $manifest_out" >&2
+}
+
+# ============================================================================
+# 8-6: 画面ごとの複雑度プロファイリング(run_detect_screens_profile / --profile)
+# ============================================================================
+#
+#   detect-screens.sh --profile <manifest> <source-dir> <profile-out> \
+#     --recount-script <path> --repo-root <path>
+#
+# 処理:
+#   1. 対象は kind=route/embedded-view の画面のみ。各画面の files[] を
+#      repo-root 相対パスへ変換する(files[] が空の画面はスコア対象外として除外し、
+#      stderr に警告 + 出力の diagnostics[] に記録する)。
+#   2. --recount-script(recount-facts.sh の --recount-only)を画面単位で1回呼び、
+#      LOC(loc行)+8軸(import/export_type/const/state/handler/jsx/style/api)を
+#      計測する。8軸の値は画面ごとに axisBreakdown{8軸} として保持しつつ、
+#      単純合算してaxisSumとする。
+#   3. score = locWeight×loc + axisWeight×axisSum(重み既定 1/1、現状は固定値)。
+#   4. 六分位境界は nearest-rank-ceil-sextile 方式: q_i_rank = ceil(N×i/6) (i=1..5)
+#      (整数演算: (N*i+5)/6)をスコア昇順ソート後の1始まり順位として取り、
+#      その順位の値を境界値とする。score<=Q1→G1 / <=Q2→G2 / <=Q3→G3 / <=Q4→G4
+#      / <=Q5→G5 / それ以外→G6。
+#      N<6 の場合は全画面 layer=ALL・quantiles=null・stratified=false に縮退する。
+#   5. 層内サンプリング: layer(層)ごとに k=ceil(sqrt(層内件数))・下限3・上限10、
+#      層内件数<k なら全数を対象とする。screenKey の辞書順先頭k件を採用する。
+#      結果は layers.<層名> = {n, sampleK, sampledScreenKeys[]} として出力する。
+#   6. 出力JSON(確定仕様)を <profile-out> に書き出す:
+#      screens[](axisBreakdown・layerを含む) / layers{G1,G2,G3,G4,G5,G6|ALL}
+#      / n / scoreFormula{locWeight,axisWeight,axes[8]} / sourceManifest
+#      / quantileMethod:"nearest-rank-ceil-sextile" / stratified / diagnostics[]
+#
+# --profile の自己テストは run_self_tests() 内(8-6-profile-*)に統合済み。
+
+# ceil(sqrt(n)) を計算する(n>=0の整数)。
+sqrt_ceil() {
+  awk -v n="$1" 'BEGIN { r = sqrt(n); i = int(r); if (i * i < n) i++; print i }'
+}
+
+run_detect_screens_profile() {
+  local manifest="" source_dir="" profile_out="" recount_script="" repo_root=""
+  local positional=()
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --recount-script)
+        recount_script="${2:-}"
+        shift 2
+        ;;
+      --repo-root)
+        repo_root="${2:-}"
+        shift 2
+        ;;
+      -*)
+        echo "ERROR: --profile: unknown option: $1" >&2
+        return 1
+        ;;
+      *)
+        positional+=("$1")
+        shift
+        ;;
+    esac
+  done
+
+  if [ "${#positional[@]}" -lt 3 ]; then
+    echo "Usage: detect-screens.sh --profile <manifest> <source-dir> <profile-out> --recount-script <path> --repo-root <path>" >&2
+    return 1
+  fi
+  manifest="${positional[0]}"
+  source_dir="${positional[1]}"
+  profile_out="${positional[2]}"
+
+  if [ -z "$recount_script" ] || [ ! -f "$recount_script" ]; then
+    echo "ERROR: --recount-script が見つかりません: $recount_script" >&2
+    return 1
+  fi
+  if [ -z "$repo_root" ] || [ ! -d "$repo_root" ]; then
+    echo "ERROR: --repo-root が見つかりません: $repo_root" >&2
+    return 1
+  fi
+  if [ ! -f "$manifest" ]; then
+    echo "ERROR: manifest が見つかりません: $manifest" >&2
+    return 1
+  fi
+  if [ ! -d "$source_dir" ]; then
+    echo "ERROR: source-dir が見つかりません: $source_dir" >&2
+    return 1
+  fi
+  if ! command -v jq >/dev/null 2>&1; then
+    echo "ERROR: jq is required but not found in PATH" >&2
+    return 1
+  fi
+
+  repo_root="$(cd "$repo_root" && pwd)"
+
+  local loc_weight=1
+  local axis_weight=1
+
+  local rows_tmp jsonl_tmp diag_tmp
+  rows_tmp="$(mktemp)"
+  jsonl_tmp="$(mktemp)"
+  diag_tmp="$(mktemp)"
+  _cleanup_detect_screens_profile_tmp() { rm -f "$rows_tmp" "$jsonl_tmp" "$diag_tmp"; }
+  trap '_cleanup_detect_screens_profile_tmp' RETURN
+
+  : > "$rows_tmp"
+  : > "$diag_tmp"
+  while IFS= read -r row; do
+    [ -z "$row" ] && continue
+    local screen_key kind file_count
+    screen_key="$(jq -r '.screenKey' <<<"$row")"
+    kind="$(jq -r '.kind' <<<"$row")"
+    file_count="$(jq -r '.files | length' <<<"$row")"
+    if [ "$file_count" -eq 0 ]; then
+      echo "WARN: --profile: files[]が空のためスコア対象から除外します: $screen_key" >&2
+      printf '%s\n' "files[]が空のためスコア対象から除外: ${screen_key}" >> "$diag_tmp"
+      continue
+    fi
+    local rel_files=()
+    while IFS= read -r f; do
+      [ -z "$f" ] && continue
+      rel_files+=("${f#"$repo_root"/}")
+    done < <(jq -r '.files[]' <<<"$row")
+
+    local recount_out loc=0 axis_sum=0 sec val
+    local import_cnt=0 export_type_cnt=0 const_cnt=0 state_cnt=0 handler_cnt=0 jsx_cnt=0 style_cnt=0 api_cnt=0
+    recount_out="$(bash "$recount_script" --recount-only "$repo_root" "${rel_files[@]}")"
+    while IFS=' ' read -r sec val; do
+      [ -z "$sec" ] && continue
+      case "$sec" in
+        loc) loc="$val" ;;
+        import) import_cnt="$val"; axis_sum=$((axis_sum + val)) ;;
+        export_type) export_type_cnt="$val"; axis_sum=$((axis_sum + val)) ;;
+        const) const_cnt="$val"; axis_sum=$((axis_sum + val)) ;;
+        state) state_cnt="$val"; axis_sum=$((axis_sum + val)) ;;
+        handler) handler_cnt="$val"; axis_sum=$((axis_sum + val)) ;;
+        jsx) jsx_cnt="$val"; axis_sum=$((axis_sum + val)) ;;
+        style) style_cnt="$val"; axis_sum=$((axis_sum + val)) ;;
+        api) api_cnt="$val"; axis_sum=$((axis_sum + val)) ;;
+        *) axis_sum=$((axis_sum + val)) ;;
+      esac
+    done <<< "$recount_out"
+
+    local score=$((loc_weight * loc + axis_weight * axis_sum))
+    jq -n -c \
+      --arg key "$screen_key" --arg kind "$kind" \
+      --argjson loc "$loc" --argjson axisSum "$axis_sum" --argjson score "$score" \
+      --argjson importC "$import_cnt" --argjson exportC "$export_type_cnt" --argjson constC "$const_cnt" \
+      --argjson stateC "$state_cnt" --argjson handlerC "$handler_cnt" --argjson jsxC "$jsx_cnt" \
+      --argjson styleC "$style_cnt" --argjson apiC "$api_cnt" \
+      '{screenKey:$key, kind:$kind, loc:$loc, axisSum:$axisSum, score:$score,
+        axisBreakdown:{import:$importC, export_type:$exportC, const:$constC, state:$stateC,
+                        handler:$handlerC, jsx:$jsxC, style:$styleC, api:$apiC}}' >> "$rows_tmp"
+  done < <(jq -c '.screens[] | select(.kind=="route" or .kind=="embedded-view")' "$manifest")
+
+  local n
+  n="$(wc -l < "$rows_tmp" | tr -d ' ')"
+
+  local q1="" q2="" q3="" q4="" q5="" quantiles_json="null" stratified="false"
+  if [ "$n" -ge 6 ]; then
+    stratified="true"
+    local sorted_scores q1_rank q2_rank q3_rank q4_rank q5_rank
+    sorted_scores="$(jq -r '.score' "$rows_tmp" | sort -n)"
+    q1_rank=$(( (n * 1 + 5) / 6 ))
+    q2_rank=$(( (n * 2 + 5) / 6 ))
+    q3_rank=$(( (n * 3 + 5) / 6 ))
+    q4_rank=$(( (n * 4 + 5) / 6 ))
+    q5_rank=$(( (n * 5 + 5) / 6 ))
+    q1="$(printf '%s\n' "$sorted_scores" | sed -n "${q1_rank}p")"
+    q2="$(printf '%s\n' "$sorted_scores" | sed -n "${q2_rank}p")"
+    q3="$(printf '%s\n' "$sorted_scores" | sed -n "${q3_rank}p")"
+    q4="$(printf '%s\n' "$sorted_scores" | sed -n "${q4_rank}p")"
+    q5="$(printf '%s\n' "$sorted_scores" | sed -n "${q5_rank}p")"
+    quantiles_json="$(jq -n --argjson q1 "$q1" --argjson q2 "$q2" --argjson q3 "$q3" --argjson q4 "$q4" --argjson q5 "$q5" '{q1:$q1,q2:$q2,q3:$q3,q4:$q4,q5:$q5}')"
+  fi
+
+  : > "$jsonl_tmp"
+  while IFS= read -r row; do
+    [ -z "$row" ] && continue
+    local score layer
+    score="$(jq -r '.score' <<<"$row")"
+    if [ "$n" -lt 6 ]; then
+      layer="ALL"
+    elif [ "$score" -le "$q1" ]; then
+      layer="G1"
+    elif [ "$score" -le "$q2" ]; then
+      layer="G2"
+    elif [ "$score" -le "$q3" ]; then
+      layer="G3"
+    elif [ "$score" -le "$q4" ]; then
+      layer="G4"
+    elif [ "$score" -le "$q5" ]; then
+      layer="G5"
+    else
+      layer="G6"
+    fi
+    jq -c --arg layer "$layer" '. + {layer:$layer}' <<<"$row" >> "$jsonl_tmp"
+  done < "$rows_tmp"
+
+  local layers_json="{}"
+  if [ -s "$jsonl_tmp" ]; then
+    local layer_names layer_tmp
+    layer_names="$(jq -r '.layer' "$jsonl_tmp" | sort -u)"
+    layer_tmp="$(mktemp)"
+    : > "$layer_tmp"
+    while IFS= read -r layer_name; do
+      [ -z "$layer_name" ] && continue
+      local layer_keys layer_n k sampled sampled_json
+      layer_keys="$(jq -r --arg t "$layer_name" 'select(.layer==$t) | .screenKey' "$jsonl_tmp" | sort)"
+      layer_n="$(printf '%s\n' "$layer_keys" | grep -ac . || true)"
+      k="$(sqrt_ceil "$layer_n")"
+      [ "$k" -lt 3 ] && k=3
+      [ "$k" -gt 10 ] && k=10
+      [ "$k" -gt "$layer_n" ] && k="$layer_n"
+      sampled="$(printf '%s\n' "$layer_keys" | head -n "$k")"
+      sampled_json="$(printf '%s\n' "$sampled" | jq -R -s 'split("\n") | map(select(length>0))')"
+      jq -n --arg t "$layer_name" --argjson n "$layer_n" --argjson sampleK "$k" --argjson keys "$sampled_json" \
+        '{($t): {n:$n, sampleK:$sampleK, sampledScreenKeys:$keys}}' >> "$layer_tmp"
+    done <<< "$layer_names"
+    layers_json="$(jq -s 'add // {}' "$layer_tmp")"
+    rm -f "$layer_tmp"
+  fi
+
+  local manifest_abs
+  manifest_abs="$(cd "$(dirname "$manifest")" && pwd)/$(basename "$manifest")"
+
+  local diagnostics_json
+  diagnostics_json="$(jq -R -s 'split("\n") | map(select(length>0))' "$diag_tmp")"
+
+  mkdir -p "$(dirname "$profile_out")"
+  jq -n \
+    --arg generatedAt "$(date +%Y-%m-%dT%H:%M:%S%z)" \
+    --arg repoRoot "$repo_root" \
+    --arg sourceManifest "$manifest_abs" \
+    --argjson locWeight "$loc_weight" \
+    --argjson axisWeight "$axis_weight" \
+    --argjson n "$n" \
+    --argjson quantiles "$quantiles_json" \
+    --argjson stratified "$stratified" \
+    --slurpfile screens "$jsonl_tmp" \
+    --argjson layers "$layers_json" \
+    --argjson diagnostics "$diagnostics_json" \
+    '{generatedAt:$generatedAt, repoRoot:$repoRoot, sourceManifest:$sourceManifest,
+      quantileMethod:"nearest-rank-ceil-sextile",
+      scoreFormula:{locWeight:$locWeight, axisWeight:$axisWeight,
+                    axes:["import","export_type","const","state","handler","jsx","style","api"]},
+      n:$n, quantiles:$quantiles, stratified:$stratified,
+      screens:$screens, layers:$layers, diagnostics:$diagnostics}' \
+    > "$profile_out"
+
+  echo "OK: profiled $n screens -> $profile_out" >&2
+  return 0
+}
+
+# extract_route_paths() は本来 React Router 検出セクション(後方)に属するが、
+# --self-test 分岐は run_self_tests() 呼び出し後に本スクリプトを exit するため、
+# 後方定義のままだと自己テスト内(10-3)からの呼び出し時点で未定義になる。
+# そのため定義をここ(self-test セクション直前)へ前倒しする。
+extract_route_paths() {
+  # $1: 対象ファイル。path: "..." / path= "..." 形式を抽出する。
+  # 行コメント(行頭//のみ)とブロックコメント(単一行/* */)を除去してから抽出。
+  # 行中インライン//はURL等で使われるため除去しない(行頭//のみ対象)。
+  local f="$1"
+  sed -E 's|^[[:space:]]*//.*||; s|/\*[^*]*\*/||g' "$f" 2>/dev/null \
+    | grep -aoE 'path[[:space:]]*[:=][[:space:]]*["'"'"'\`][^"'"'"'\`]+["'"'"'\`]' \
+    | sed -E 's/^path[[:space:]]*[:=][[:space:]]*["'"'"'\`]//; s/["'"'"'\`]$//' || true
+}
+
+# 1-25〜1-27: screenNameGuess の末尾 OK マーカー除去。
+# 除去対象は、末尾の空白+OK、(OK)、(OK)+識別子、全角閉じ括弧直後のOKだけに
+# 限定する。業務用語としての OK(「決済OK着地」等、語中・語頭のもの)は維持する。
+# extract_route_paths() と同様の理由(--self-test は run_self_tests() 呼び出し後に
+# 本スクリプトを exit するため、後方定義のままだと自己テスト内からの呼び出し時点で
+# 未定義になる)で、定義をここ(self-test セクション直前)へ前倒しする。
+strip_ok_marker() {
+  printf '%s' "$1" | sed -E '
+    s/[[:space:]]*\(OK\)[[:space:]]+\([^()]+\)[[:space:]]*$//
+    s/[[:space:]]*\(OK\)[[:space:]]+[[:alnum:]_.-]+[[:space:]]*$//
+    s/(）)OK[[:space:]]*$/\1/
+    s/[[:space:]]+OK[[:space:]]*$//
+    s/[[:space:]]*\(OK\)[[:space:]]*$//
+  ' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//'
+}
+
+# --- --self-test: resolve_screen_files / --resolve-files の自己診断 ---
+PASS_COUNT=0
+FAIL_COUNT=0
+
+test_report() {
+  local name="$1" ok="$2" detail="${3:-}"
+  if [ "$ok" -eq 0 ]; then
+    PASS_COUNT=$((PASS_COUNT + 1))
+    echo "PASS: $name" >&2
+  else
+    FAIL_COUNT=$((FAIL_COUNT + 1))
+    echo "FAIL: $name -- $detail" >&2
+  fi
+}
+
+assert_set_equal() {
+  local name="$1" expected="$2" actual="$3"
+  local exp_sorted act_sorted
+  exp_sorted="$(printf '%s\n' "$expected" | grep -av '^$' | sort -u || true)"
+  act_sorted="$(printf '%s\n' "$actual" | grep -av '^$' | sort -u || true)"
+  if [ "$exp_sorted" = "$act_sorted" ]; then
+    test_report "$name" 0
+  else
+    test_report "$name" 1 "expected=[$exp_sorted] actual=[$act_sorted]"
+  fi
+}
+
+has_ui_rendering_evidence() {
+  local file="$1"
+  grep -aqE '((return|=>)[[:space:]]*\(?[[:space:]]*<([a-z][[:alnum:]:-]*[[:space:]>]|[A-Z][[:alnum:]_.:-]*[^>]*\/>)|</[A-Za-z][[:alnum:]_.:-]*[[:space:]]*>|React\.createElement[[:space:]]*\(|(render|render_template|renderToString|template|view|include|includeTemplate)[[:space:]]*\(|<(html|body|template|main|section|div|form|table|dialog)[[:space:]>])' "$file" 2>/dev/null
+}
+
+run_self_tests() {
+  local root
+  root="$(mktemp -d)"
+  PASS_COUNT=0
+  FAIL_COUNT=0
+
+  # --- 陽性1: エイリアス解決 ---
+  local t1="$root/t1"
+  mkdir -p "$t1/src/screens/foo" "$t1/src/shared"
+  printf "import { Button } from '@/shared/Button'\n" > "$t1/src/screens/foo/index.tsx"
+  printf "export const Button = () => null\n" > "$t1/src/shared/Button.tsx"
+  local t1_alias_file
+  t1_alias_file="$(mktemp)"
+  printf '@/\t%s\n' "$t1/src" > "$t1_alias_file"
+  local t1_result
+  t1_result="$(resolve_screen_files "$t1/src/screens/foo/index.tsx" "$t1/src" 6 "" "" "" "" "$t1_alias_file")"
+  assert_set_equal "8-4-エイリアス解決" \
+"$t1/src/screens/foo/index.tsx
+$t1/src/shared/Button.tsx" \
+    "$t1_result"
+  rm -f "$t1_alias_file"
+
+  # --- 陽性2: 共有除外 ---
+  local t2="$root/t2"
+  mkdir -p "$t2/src/screens/foo" "$t2/src/shared"
+  printf "import { Widget } from '../../shared/Widget'\n" > "$t2/src/screens/foo/index.tsx"
+  printf "export const Widget = () => null\n" > "$t2/src/shared/Widget.tsx"
+  local t2_shared_file
+  t2_shared_file="$(mktemp)"
+  printf '(^|/)shared/\n' > "$t2_shared_file"
+  local t2_result
+  t2_result="$(resolve_screen_files "$t2/src/screens/foo/index.tsx" "$t2/src" 6 "$t2_shared_file" "" "" "" "")"
+  assert_set_equal "8-4-共有除外" \
+"$t2/src/screens/foo/index.tsx" \
+    "$t2_result"
+  rm -f "$t2_shared_file"
+
+  # --- 陽性2b(9-1): ^アンカー付き共有パターンはソースルート相対パスで照合される ---
+  # 絶対パス照合のままだと "^shared/" は tmpdir プレフィックスのせいで常に不一致になる。
+  local t2b="$root/t2b"
+  mkdir -p "$t2b/src/screens/foo" "$t2b/src/shared"
+  printf "import { Widget } from '../../shared/Widget'\n" > "$t2b/src/screens/foo/index.tsx"
+  printf "export const Widget = () => null\n" > "$t2b/src/shared/Widget.tsx"
+  local t2b_shared_file
+  t2b_shared_file="$(mktemp)"
+  printf '^shared/\n' > "$t2b_shared_file"
+  local t2b_result
+  t2b_result="$(resolve_screen_files "$t2b/src/screens/foo/index.tsx" "$t2b/src" 6 "$t2b_shared_file" "" "" "" "")"
+  assert_set_equal "9-1-共有除外-アンカー付きパターン相対化" \
+"$t2b/src/screens/foo/index.tsx" \
+    "$t2b_result"
+  rm -f "$t2b_shared_file"
+
+  # --- 陽性3: bare import 不追跡 ---
+  local t3="$root/t3"
+  mkdir -p "$t3/src/screens/foo"
+  printf "import React from 'react'\nimport { Local } from './Local'\n" > "$t3/src/screens/foo/index.tsx"
+  printf "export const Local = () => null\n" > "$t3/src/screens/foo/Local.tsx"
+  local t3_result
+  t3_result="$(resolve_screen_files "$t3/src/screens/foo/index.tsx" "$t3/src" 6 "" "" "" "" "")"
+  assert_set_equal "8-4-bare-import不追跡" \
+"$t3/src/screens/foo/index.tsx
+$t3/src/screens/foo/Local.tsx" \
+    "$t3_result"
+
+  # --- 陽性4: 循環収束 ---
+  local t4="$root/t4"
+  mkdir -p "$t4/src/screens/foo"
+  printf "import { A } from './A'\n" > "$t4/src/screens/foo/index.tsx"
+  printf "import { B } from './B'\n" > "$t4/src/screens/foo/A.tsx"
+  printf "import { A } from './A'\n" > "$t4/src/screens/foo/B.tsx"
+  local t4_result
+  t4_result="$(resolve_screen_files "$t4/src/screens/foo/index.tsx" "$t4/src" 6 "" "" "" "" "")"
+  assert_set_equal "8-4-循環収束" \
+"$t4/src/screens/foo/index.tsx
+$t4/src/screens/foo/A.tsx
+$t4/src/screens/foo/B.tsx" \
+    "$t4_result"
+
+  # --- 陽性5: 深さ上限(maxdepth=2ならentry/f1/f2のみ) ---
+  local t5="$root/t5"
+  mkdir -p "$t5/src/screens/foo"
+  printf "import { F1 } from './f1'\n" > "$t5/src/screens/foo/index.tsx"
+  printf "import { F2 } from './f2'\n" > "$t5/src/screens/foo/f1.tsx"
+  printf "import { F3 } from './f3'\n" > "$t5/src/screens/foo/f2.tsx"
+  printf "import { F4 } from './f4'\n" > "$t5/src/screens/foo/f3.tsx"
+  printf "export const F4 = 1\n" > "$t5/src/screens/foo/f4.tsx"
+  local t5_result
+  t5_result="$(resolve_screen_files "$t5/src/screens/foo/index.tsx" "$t5/src" 2 "" "" "" "" "")"
+  assert_set_equal "8-4-深さ上限" \
+"$t5/src/screens/foo/index.tsx
+$t5/src/screens/foo/f1.tsx
+$t5/src/screens/foo/f2.tsx" \
+    "$t5_result"
+
+  # --- 陽性6: 他画面エントリ境界 ---
+  local t6="$root/t6"
+  mkdir -p "$t6/src/screens/foo" "$t6/src/screens/bar"
+  printf "import Bar from '../bar/index'\n" > "$t6/src/screens/foo/index.tsx"
+  printf "import { BarOnly } from './BarOnly'\n" > "$t6/src/screens/bar/index.tsx"
+  printf "export const BarOnly = 1\n" > "$t6/src/screens/bar/BarOnly.tsx"
+  local t6_others_file
+  t6_others_file="$(mktemp)"
+  printf '%s\n' "$t6/src/screens/bar/index.tsx" > "$t6_others_file"
+  local t6_result
+  t6_result="$(resolve_screen_files "$t6/src/screens/foo/index.tsx" "$t6/src" 6 "" "$t6_others_file" "" "" "")"
+  assert_set_equal "8-4-他画面エントリ境界" \
+"$t6/src/screens/foo/index.tsx" \
+    "$t6_result"
+  rm -f "$t6_others_file"
+
+  # --- 陽性7: 他画面ID境界 ---
+  local t7="$root/t7"
+  mkdir -p "$t7/src/screens/foo"
+  printf "import { Detail } from './T-001-detail'\nimport { Other } from './T-002-other'\n" > "$t7/src/screens/foo/T-001-index.tsx"
+  printf "export const Detail = 1\n" > "$t7/src/screens/foo/T-001-detail.tsx"
+  printf "import { Leak } from './T-002-leak'\n" > "$t7/src/screens/foo/T-002-other.tsx"
+  printf "export const Leak = 1\n" > "$t7/src/screens/foo/T-002-leak.tsx"
+  local t7_result
+  t7_result="$(resolve_screen_files "$t7/src/screens/foo/T-001-index.tsx" "$t7/src" 6 "" "" 'T-[0-9]+' "T-001" "")"
+  assert_set_equal "8-4-他画面ID境界" \
+"$t7/src/screens/foo/T-001-index.tsx
+$t7/src/screens/foo/T-001-detail.tsx" \
+    "$t7_result"
+
+  # --- 陰性1: entryFile不在で無クラッシュ ---
+  local n1_result n1_status
+  set +e
+  n1_result="$(resolve_screen_files "$root/does-not-exist/index.tsx" "$root/does-not-exist" 6 "" "" "" "" "")"
+  n1_status=$?
+  set -e
+  if [ "$n1_status" -eq 0 ] && [ "$n1_result" = "$root/does-not-exist/index.tsx" ]; then
+    test_report "8-4-entryFile不在で無クラッシュ" 0
+  else
+    test_report "8-4-entryFile不在で無クラッシュ" 1 "status=$n1_status result=[$n1_result]"
+  fi
+
+  # --- 陰性2: 共有パターンがentry自身に一致しても含まれる ---
+  local t8="$root/t8"
+  mkdir -p "$t8/src/screens/foo"
+  printf "export const Foo = 1\n" > "$t8/src/screens/foo/index.tsx"
+  local t8_shared_file
+  t8_shared_file="$(mktemp)"
+  printf '(^|/)screens/foo/\n' > "$t8_shared_file"
+  local t8_result
+  t8_result="$(resolve_screen_files "$t8/src/screens/foo/index.tsx" "$t8/src" 6 "$t8_shared_file" "" "" "" "")"
+  assert_set_equal "8-4-共有パターンentry自身包含" \
+"$t8/src/screens/foo/index.tsx" \
+    "$t8_result"
+  rm -f "$t8_shared_file"
+
+  # --- 陽性8(10-1): ドット入り非コード拡張子(.zustand)でも候補付与される ---
+  local t12="$root/t12"
+  mkdir -p "$t12/src/screens/foo"
+  printf "import { store } from './store.zustand'\n" > "$t12/src/screens/foo/index.tsx"
+  printf "export const store = {}\n" > "$t12/src/screens/foo/store.zustand.tsx"
+  local t12_result
+  t12_result="$(resolve_screen_files "$t12/src/screens/foo/index.tsx" "$t12/src" 6 "" "" "" "" "")"
+  assert_set_equal "10-1-ドット入り非コード拡張子-候補付与" \
+"$t12/src/screens/foo/index.tsx
+$t12/src/screens/foo/store.zustand.tsx" \
+    "$t12_result"
+
+  # --- 陽性9(10-1): ドット入り .data も候補付与される ---
+  local t13="$root/t13"
+  mkdir -p "$t13/src/screens/foo"
+  printf "import { data } from './foo.data'\n" > "$t13/src/screens/foo/index.tsx"
+  printf "export const data = {}\n" > "$t13/src/screens/foo/foo.data.ts"
+  local t13_result
+  t13_result="$(resolve_screen_files "$t13/src/screens/foo/index.tsx" "$t13/src" 6 "" "" "" "" "")"
+  assert_set_equal "10-1-ドット入り.data-候補付与" \
+"$t13/src/screens/foo/index.tsx
+$t13/src/screens/foo/foo.data.ts" \
+    "$t13_result"
+
+  # --- 陰性3(10-1): 非コード拡張子(CSS)は集合に含まれない ---
+  local t14="$root/t14"
+  mkdir -p "$t14/src/screens/foo"
+  printf "import './style.css'\n" > "$t14/src/screens/foo/index.tsx"
+  printf "body { color: red }\n" > "$t14/src/screens/foo/style.css"
+  local t14_result
+  t14_result="$(resolve_screen_files "$t14/src/screens/foo/index.tsx" "$t14/src" 6 "" "" "" "" "")"
+  assert_set_equal "10-1-非コード拡張子CSS-集合外" \
+"$t14/src/screens/foo/index.tsx" \
+    "$t14_result"
+
+  # --- 陰性4(10-3): コメントアウトされたルートは検出されない ---
+  local t15="$root/t15"
+  mkdir -p "$t15"
+  printf '  // { path: "/old-route", element: <OldPage /> },\n  { path: "/active-route", element: <ActivePage /> },\n' > "$t15/routes.tsx"
+  local t15_result
+  t15_result="$(extract_route_paths "$t15/routes.tsx")"
+  if [ "$t15_result" = "/active-route" ]; then
+    test_report "10-3-コメントアウトルート除外" 0
+  else
+    test_report "10-3-コメントアウトルート除外" 1 "got='$t15_result'"
+  fi
+
+  # --- 追加: --resolve-files サブコマンドの疎通確認 ---
+  local t9="$root/t9"
+  mkdir -p "$t9/src/screens/foo" "$t9/src/shared"
+  printf "import { Button } from '@/shared/Button'\n" > "$t9/src/screens/foo/index.tsx"
+  printf "export const Button = () => null\n" > "$t9/src/shared/Button.tsx"
+  local t9_manifest_in t9_manifest_out
+  t9_manifest_in="$(mktemp)"
+  t9_manifest_out="$(mktemp)"
+  cat > "$t9_manifest_in" <<EOF
+{
+  "generatedAt": null,
+  "sourceDir": "$t9/src",
+  "strategy": {"pathAliases": {"@/": ""}, "importTraversalMaxDepth": 6},
+  "detectionSummary": {"method": "nextjs-app", "screenCount": 1},
+  "screens": [
+    {"screenKey": "foo", "kind": "route", "route": "/foo", "entryFile": "$t9/src/screens/foo/index.tsx", "files": [], "fileCount": 0}
+  ]
+}
+EOF
+  resolve_files_subcommand "$t9_manifest_in" "$t9/src" "$t9_manifest_out"
+  local t9_count t9_files t9_expected
+  t9_count="$(jq -r '.screens[0].fileCount' "$t9_manifest_out")"
+  t9_files="$(jq -r '.screens[0].files | sort | join(",")' "$t9_manifest_out")"
+  t9_expected="$(printf '%s\n%s\n' "$t9/src/screens/foo/index.tsx" "$t9/src/shared/Button.tsx" | sort | paste -sd, -)"
+  if [ "$t9_count" = "2" ] && [ "$t9_files" = "$t9_expected" ]; then
+    test_report "8-4-resolve-filesサブコマンド" 0
+  else
+    test_report "8-4-resolve-filesサブコマンド" 1 "count=$t9_count files=$t9_files expected=$t9_expected"
+  fi
+  rm -f "$t9_manifest_in" "$t9_manifest_out"
+
+  # --- 追加(9-3): --resolve-files の複数画面一括処理(バッチBFS)の疎通確認 ---
+  # 画面foo が 他画面(bar)のentryFile と ^アンカー付き共有パターン一致のファイルを
+  # 同時にimportするフィクスチャで、境界(b)(他画面entryFile)と境界(a)(9-1の相対化
+  # 照合)がバッチ処理経路でも機能することを検証する(単一画面版のt2b/t6は
+  # resolve_screen_files直接呼び出しのみを検証しており、--resolve-filesのバッチ
+  # awk処理経路を通していなかったギャップを埋める)。
+  local t10="$root/t10"
+  mkdir -p "$t10/src/screens/foo" "$t10/src/screens/bar" "$t10/src/shared"
+  printf "import Bar from '../bar/index'\nimport { Widget } from '../../shared/Widget'\n" > "$t10/src/screens/foo/index.tsx"
+  printf "export const Bar = 1\n" > "$t10/src/screens/bar/index.tsx"
+  printf "export const Widget = () => null\n" > "$t10/src/shared/Widget.tsx"
+  local t10_manifest_in t10_manifest_out
+  t10_manifest_in="$(mktemp)"
+  t10_manifest_out="$(mktemp)"
+  cat > "$t10_manifest_in" <<EOF
+{
+  "generatedAt": null,
+  "sourceDir": "$t10/src",
+  "strategy": {"sharedDirPatterns": ["^shared/"], "importTraversalMaxDepth": 6},
+  "detectionSummary": {"method": "nextjs-app", "screenCount": 2},
+  "screens": [
+    {"screenKey": "foo", "kind": "route", "route": "/foo", "entryFile": "$t10/src/screens/foo/index.tsx", "files": [], "fileCount": 0},
+    {"screenKey": "bar", "kind": "route", "route": "/bar", "entryFile": "$t10/src/screens/bar/index.tsx", "files": [], "fileCount": 0}
+  ]
+}
+EOF
+  resolve_files_subcommand "$t10_manifest_in" "$t10/src" "$t10_manifest_out"
+  local t10_foo_files t10_bar_files
+  t10_foo_files="$(jq -r '.screens[] | select(.screenKey=="foo") | .files | sort | join(",")' "$t10_manifest_out")"
+  t10_bar_files="$(jq -r '.screens[] | select(.screenKey=="bar") | .files | sort | join(",")' "$t10_manifest_out")"
+  if [ "$t10_foo_files" = "$t10/src/screens/foo/index.tsx" ] && [ "$t10_bar_files" = "$t10/src/screens/bar/index.tsx" ]; then
+    test_report "9-3-resolve-files複数画面バッチ境界維持" 0
+  else
+    test_report "9-3-resolve-files複数画面バッチ境界維持" 1 "foo=$t10_foo_files bar=$t10_bar_files"
+  fi
+  rm -f "$t10_manifest_in" "$t10_manifest_out"
+
+  # --- 既存検出の最小回帰(Next.js App Routerの最小フィクスチャで従来フローが壊れていないこと) ---
+  local reg="$root/reg"
+  mkdir -p "$reg/app/dashboard"
+  printf "module.exports = {}\n" > "$reg/next.config.js"
+  printf "export default function Page() { return null }\n" > "$reg/app/dashboard/page.tsx"
+  local reg_manifest reg_status
+  reg_manifest="$(mktemp)"
+  reg_status=0
+  bash "$0" "$reg" "$reg_manifest" >/dev/null 2>&1 || reg_status=$?
+  local reg_screen_count reg_route
+  reg_screen_count="$(jq -r '.detectionSummary.screenCount' "$reg_manifest" 2>/dev/null || echo -1)"
+  reg_route="$(jq -r '.screens[0].route' "$reg_manifest" 2>/dev/null || echo "")"
+  if [ "$reg_status" -eq 0 ] && [ "$reg_screen_count" = "1" ] && [ "$reg_route" = "/dashboard" ]; then
+    test_report "8-4-既存検出の最小回帰" 0
+  else
+    test_report "8-4-既存検出の最小回帰" 1 "status=$reg_status count=$reg_screen_count route=$reg_route"
+  fi
+  rm -f "$reg_manifest"
+
+  # --- 追加: 組み込み検出フロー生成マニフェスト → --resolve-files CLI の疎通確認 ---
+  # (t9はハンドクラフトしたマニフェストでresolve_files_subcommand単体を検証するのに対し、
+  #  こちらは実際にbuiltin検出器が出力したマニフェストをCLI経由の--resolve-filesに渡し、
+  #  スキーマが噛み合うこと・fileCountがディレクトリ収集より増えることを検証する)
+  local chain="$root/chain"
+  mkdir -p "$chain/app/dashboard" "$chain/app/shared"
+  printf "module.exports = {}\n" > "$chain/next.config.js"
+  printf "import { Widget } from '../shared/Widget'\nexport default function Page(){return null}\n" > "$chain/app/dashboard/page.tsx"
+  printf "export const Widget = () => null\n" > "$chain/app/shared/Widget.tsx"
+  local chain_manifest chain_manifest_out chain_status
+  chain_manifest="$(mktemp)"
+  chain_manifest_out="$(mktemp)"
+  chain_status=0
+  bash "$0" "$chain" "$chain_manifest" >/dev/null 2>&1 || chain_status=$?
+  bash "$0" --resolve-files "$chain_manifest" "$chain" "$chain_manifest_out" >/dev/null 2>&1 || chain_status=$?
+  local chain_count chain_files
+  chain_count="$(jq -r '.screens[0].fileCount' "$chain_manifest_out" 2>/dev/null || echo -1)"
+  chain_files="$(jq -r '.screens[0].files | sort | join(",")' "$chain_manifest_out" 2>/dev/null || echo "")"
+  if [ "$chain_status" -eq 0 ] && [ "$chain_count" = "2" ] \
+    && printf '%s' "$chain_files" | grep -aqF "$chain/app/dashboard/page.tsx" \
+    && printf '%s' "$chain_files" | grep -aqF "$chain/app/shared/Widget.tsx"; then
+    test_report "8-4-builtin検出からresolve-files連結" 0
+  else
+    test_report "8-4-builtin検出からresolve-files連結" 1 "status=$chain_status count=$chain_count files=$chain_files"
+  fi
+  rm -f "$chain_manifest" "$chain_manifest_out"
+
+  # --- 追加(9-2): 通常検出フロー(2引数起動、--resolve-files を経由しない)でも
+  # BFS(import 再帰追跡)によりファイル集合が解決され、共有ディレクトリが除外されること。
+  # --strategy-json で sharedDirPatterns/pathAliases を明示しないと、合成strategyには
+  # 両フィールドが存在せず共有除外が機能しないため、必ず --strategy-json 経由で検証する。
+  local t11="$root/t11"
+  mkdir -p "$t11/app/dashboard" "$t11/shared"
+  printf "module.exports = {}\n" > "$t11/next.config.js"
+  printf "import { Widget } from '@/shared/Widget'\nexport default function Page(){return null}\n" > "$t11/app/dashboard/page.tsx"
+  printf "export const Widget = () => null\n" > "$t11/shared/Widget.tsx"
+  local t11_strategy_file t11_manifest t11_status
+  t11_strategy_file="$(mktemp)"
+  cat > "$t11_strategy_file" <<EOF
+{"sharedDirPatterns": ["^shared/"], "pathAliases": {"@/": ""}, "importTraversalMaxDepth": 6}
+EOF
+  t11_manifest="$(mktemp)"
+  t11_status=0
+  bash "$0" "$t11" "$t11_manifest" --strategy-json "$t11_strategy_file" >/dev/null 2>&1 || t11_status=$?
+  local t11_count t11_files
+  t11_count="$(jq -r '.screens[0].fileCount' "$t11_manifest" 2>/dev/null || echo -1)"
+  t11_files="$(jq -r '.screens[0].files | sort | join(",")' "$t11_manifest" 2>/dev/null || echo "")"
+  if [ "$t11_status" -eq 0 ] && [ "$t11_count" = "1" ] && [ "$t11_files" = "$t11/app/dashboard/page.tsx" ]; then
+    test_report "9-2-通常検出フローへのBFS統合-共有除外" 0
+  else
+    test_report "9-2-通常検出フローへのBFS統合-共有除外" 1 "status=$t11_status count=$t11_count files=$t11_files"
+  fi
+  rm -f "$t11_strategy_file" "$t11_manifest"
+
+  # --- 追加: --profile サブコマンドの複雑度プロファイリング(8-6) ---
+  build_profile_fixture_file() {
+    local path="$1" fn="$2"
+    mkdir -p "$(dirname "$path")"
+    # n=250 の大規模自己テストでも、行ごとに Bash を往復せず一括生成する。
+    # import 数は複雑度プロファイルの入力値なので、生成内容は従来と同一に保つ。
+    awk -v n="$fn" 'BEGIN {
+      for (i = 0; i < n; i++) print "import { sym" i " } from '\''./sym" i "'\'';"
+    }' > "$path"
+  }
+
+  local profile_recount_script
+  profile_recount_script="$(cd "$(dirname "$0")/../../../.claude/skills/extracting-unit-facts-from-code/scripts" && pwd)/recount-facts.sh"
+
+  local prepo="$root/profile-repo"
+  build_profile_fixture_file "$prepo/src/screens/ScreenA/Foo.tsx" 2
+  build_profile_fixture_file "$prepo/src/screens/ScreenB/Foo.tsx" 5
+  build_profile_fixture_file "$prepo/src/screens/ScreenC/Foo.tsx" 10
+  build_profile_fixture_file "$prepo/src/screens/ScreenD/Foo.tsx" 20
+  build_profile_fixture_file "$prepo/src/screens/ScreenF/Foo.tsx" 30
+  build_profile_fixture_file "$prepo/src/screens/ScreenG/Foo.tsx" 40
+  build_profile_fixture_file "$prepo/src/screens/ScreenH/Foo.tsx" 50
+
+  local pmanifest="$root/profile-manifest.json"
+  jq -n \
+    --arg fa "$prepo/src/screens/ScreenA/Foo.tsx" \
+    --arg fb "$prepo/src/screens/ScreenB/Foo.tsx" \
+    --arg fc "$prepo/src/screens/ScreenC/Foo.tsx" \
+    --arg fd "$prepo/src/screens/ScreenD/Foo.tsx" \
+    --arg ff "$prepo/src/screens/ScreenF/Foo.tsx" \
+    --arg fg "$prepo/src/screens/ScreenG/Foo.tsx" \
+    --arg fh "$prepo/src/screens/ScreenH/Foo.tsx" \
+    '{generatedAt:null, sourceDir:"dummy", screens:[
+      {screenKey:"screen-a",kind:"route",files:[$fa]},
+      {screenKey:"screen-b",kind:"route",files:[$fb]},
+      {screenKey:"screen-c",kind:"route",files:[$fc]},
+      {screenKey:"screen-d",kind:"route",files:[$fd]},
+      {screenKey:"screen-f",kind:"route",files:[$ff]},
+      {screenKey:"screen-g",kind:"route",files:[$fg]},
+      {screenKey:"screen-h",kind:"route",files:[$fh]}
+    ]}' > "$pmanifest"
+
+  local pout="$root/profile-out.json" pstatus=0
+  bash "$0" --profile "$pmanifest" "$prepo" "$pout" --recount-script "$profile_recount_script" --repo-root "$prepo" >/dev/null 2>&1 || pstatus=$?
+  if [ "$pstatus" -eq 0 ]; then
+    local pt_n pt_stratified pt_all_g
+    pt_n="$(jq -r '.n' "$pout")"
+    pt_stratified="$(jq -r '.stratified' "$pout")"
+    pt_all_g="$(jq -r '[.screens[].layer] | all(. as $l | (["G1","G2","G3","G4","G5","G6"] | index($l)) != null)' "$pout")"
+    if [ "$pt_n" = "7" ] && [ "$pt_stratified" = "true" ] && [ "$pt_all_g" = "true" ]; then
+      test_report "12-1-profile-G1-G6割当" 0
+    else
+      test_report "12-1-profile-G1-G6割当" 1 "n=$pt_n stratified=$pt_stratified all_g=$pt_all_g"
+    fi
+  else
+    test_report "12-1-profile-G1-G6割当" 1 "status=$pstatus"
+  fi
+
+  if [ "$pstatus" -eq 0 ]; then
+    local has_screens has_layers has_axis has_quantiles
+    has_screens="$(jq -r 'has("screens")' "$pout")"
+    has_layers="$(jq -r 'has("layers")' "$pout")"
+    has_axis="$(jq -r '.screens[0] | has("axisBreakdown")' "$pout")"
+    has_quantiles="$(jq -r 'has("quantiles")' "$pout")"
+    if [ "$has_screens" = "true" ] && [ "$has_layers" = "true" ] && [ "$has_axis" = "true" ] && [ "$has_quantiles" = "true" ]; then
+      test_report "8-6-profile-出力スキーマ確定" 0
+    else
+      test_report "8-6-profile-出力スキーマ確定" 1 "has_screens=$has_screens has_layers=$has_layers has_axis=$has_axis has_quantiles=$has_quantiles"
+    fi
+  else
+    test_report "8-6-profile-出力スキーマ確定" 1 "status=$pstatus"
+  fi
+
+  if [ "$pstatus" -eq 0 ]; then
+    local sk_type sk_match
+    sk_type="$(jq -r '.layers | to_entries[0].value.sampleK | type' "$pout")"
+    sk_match="$(jq -r '.layers | to_entries[0].value | (.sampleK == (.sampledScreenKeys | length))' "$pout")"
+    if [ "$sk_type" = "number" ] && [ "$sk_match" = "true" ]; then
+      test_report "10-2-sampleK数値一致" 0
+    else
+      test_report "10-2-sampleK数値一致" 1 "type=$sk_type match=$sk_match"
+    fi
+  else
+    test_report "10-2-sampleK数値一致" 1 "status=$pstatus"
+  fi
+
+  local pmanifest_small="$root/profile-manifest-small.json"
+  jq -n \
+    --arg fa "$prepo/src/screens/ScreenA/Foo.tsx" \
+    --arg fb "$prepo/src/screens/ScreenB/Foo.tsx" \
+    --arg fc "$prepo/src/screens/ScreenC/Foo.tsx" \
+    --arg fd "$prepo/src/screens/ScreenD/Foo.tsx" \
+    --arg ff "$prepo/src/screens/ScreenF/Foo.tsx" \
+    '{generatedAt:null, sourceDir:"dummy", screens:[
+      {screenKey:"screen-a",kind:"route",files:[$fa]},
+      {screenKey:"screen-b",kind:"route",files:[$fb]},
+      {screenKey:"screen-c",kind:"route",files:[$fc]},
+      {screenKey:"screen-d",kind:"route",files:[$fd]},
+      {screenKey:"screen-f",kind:"route",files:[$ff]}
+    ]}' > "$pmanifest_small"
+  local pout_small="$root/profile-out-small.json" pstatus_small=0
+  bash "$0" --profile "$pmanifest_small" "$prepo" "$pout_small" --recount-script "$profile_recount_script" --repo-root "$prepo" >/dev/null 2>&1 || pstatus_small=$?
+  if [ "$pstatus_small" -eq 0 ]; then
+    local pts_all_all pts_q pts_stratified
+    pts_all_all="$(jq -r '[.screens[].layer] | all(. == "ALL")' "$pout_small")"
+    pts_q="$(jq -c '.quantiles' "$pout_small")"
+    pts_stratified="$(jq -r '.stratified' "$pout_small")"
+    if [ "$pts_all_all" = "true" ] && [ "$pts_q" = "null" ] && [ "$pts_stratified" = "false" ]; then
+      test_report "12-1-profile-N6未満ALL縮退" 0
+    else
+      test_report "12-1-profile-N6未満ALL縮退" 1 "all_all=$pts_all_all quantiles=$pts_q stratified=$pts_stratified"
+    fi
+  else
+    test_report "12-1-profile-N6未満ALL縮退" 1 "status=$pstatus_small"
+  fi
+
+  build_profile_fixture_file "$prepo/src/screens/ScreenE1/Foo.tsx" 5
+  build_profile_fixture_file "$prepo/src/screens/ScreenE2/Foo.tsx" 5
+  build_profile_fixture_file "$prepo/src/screens/ScreenE3/Foo.tsx" 5
+  build_profile_fixture_file "$prepo/src/screens/ScreenE4/Foo.tsx" 5
+  build_profile_fixture_file "$prepo/src/screens/ScreenE5/Foo.tsx" 5
+  build_profile_fixture_file "$prepo/src/screens/ScreenE6/Foo.tsx" 5
+  local pmanifest_flat="$root/profile-manifest-flat.json"
+  jq -n \
+    --arg f1 "$prepo/src/screens/ScreenE1/Foo.tsx" \
+    --arg f2 "$prepo/src/screens/ScreenE2/Foo.tsx" \
+    --arg f3 "$prepo/src/screens/ScreenE3/Foo.tsx" \
+    --arg f4 "$prepo/src/screens/ScreenE4/Foo.tsx" \
+    --arg f5 "$prepo/src/screens/ScreenE5/Foo.tsx" \
+    --arg f6 "$prepo/src/screens/ScreenE6/Foo.tsx" \
+    '{generatedAt:null, sourceDir:"dummy", screens:[
+      {screenKey:"screen-e1",kind:"route",files:[$f1]},
+      {screenKey:"screen-e2",kind:"route",files:[$f2]},
+      {screenKey:"screen-e3",kind:"route",files:[$f3]},
+      {screenKey:"screen-e4",kind:"route",files:[$f4]},
+      {screenKey:"screen-e5",kind:"route",files:[$f5]},
+      {screenKey:"screen-e6",kind:"route",files:[$f6]}
+    ]}' > "$pmanifest_flat"
+  local pout_flat="$root/profile-out-flat.json" pstatus_flat=0
+  bash "$0" --profile "$pmanifest_flat" "$prepo" "$pout_flat" --recount-script "$profile_recount_script" --repo-root "$prepo" >/dev/null 2>&1 || pstatus_flat=$?
+  if [ "$pstatus_flat" -eq 0 ]; then
+    local ptf_count ptf_tier ptf_q1 ptf_q2 ptf_q3
+    ptf_count="$(jq -r '[.screens[].layer] | unique | length' "$pout_flat")"
+    ptf_tier="$(jq -r '.screens[0].layer' "$pout_flat")"
+    ptf_q1="$(jq -r '.quantiles.q1' "$pout_flat")"
+    ptf_q2="$(jq -r '.quantiles.q2' "$pout_flat")"
+    ptf_q3="$(jq -r '.quantiles.q3' "$pout_flat")"
+    if [ "$ptf_count" = "1" ] && [ "$ptf_tier" = "G1" ] && [ "$ptf_q1" = "$ptf_q2" ] && [ "$ptf_q2" = "$ptf_q3" ]; then
+      test_report "8-6-profile-全同値縮退" 0
+    else
+      test_report "8-6-profile-全同値縮退" 1 "tier種別数=$ptf_count tier=$ptf_tier q1=$ptf_q1 q2=$ptf_q2 q3=$ptf_q3"
+    fi
+  else
+    test_report "8-6-profile-全同値縮退" 1 "status=$pstatus_flat"
+  fi
+
+  local pbad_status=0
+  bash "$0" --profile "$pmanifest" "$prepo" "$root/profile-out-bad.json" --recount-script "$root/no-such-recount.sh" --repo-root "$prepo" >/dev/null 2>&1 || pbad_status=$?
+  if [ "$pbad_status" -ne 0 ]; then
+    test_report "8-6-profile-recount-script不在でexit非0" 0
+  else
+    test_report "8-6-profile-recount-script不在でexit非0" 1 "status=$pbad_status"
+  fi
+
+  # --- 追加: 六分位化(sextile)の境界挙動を検証する回帰テスト群(12-2) ---
+
+  # 12-2-1: n=5(N<6)で全画面 layer=ALL・stratified=false に縮退する。
+  build_profile_fixture_file "$prepo/src/screens/ScreenNA/Foo.tsx" 3
+  build_profile_fixture_file "$prepo/src/screens/ScreenNB/Foo.tsx" 6
+  build_profile_fixture_file "$prepo/src/screens/ScreenNC/Foo.tsx" 9
+  build_profile_fixture_file "$prepo/src/screens/ScreenND/Foo.tsx" 12
+  build_profile_fixture_file "$prepo/src/screens/ScreenNE/Foo.tsx" 15
+  local pmanifest_n5="$root/profile-manifest-n5.json"
+  jq -n \
+    --arg f1 "$prepo/src/screens/ScreenNA/Foo.tsx" \
+    --arg f2 "$prepo/src/screens/ScreenNB/Foo.tsx" \
+    --arg f3 "$prepo/src/screens/ScreenNC/Foo.tsx" \
+    --arg f4 "$prepo/src/screens/ScreenND/Foo.tsx" \
+    --arg f5 "$prepo/src/screens/ScreenNE/Foo.tsx" \
+    '{generatedAt:null, sourceDir:"dummy", screens:[
+      {screenKey:"n5-a",kind:"route",files:[$f1]},
+      {screenKey:"n5-b",kind:"route",files:[$f2]},
+      {screenKey:"n5-c",kind:"route",files:[$f3]},
+      {screenKey:"n5-d",kind:"route",files:[$f4]},
+      {screenKey:"n5-e",kind:"route",files:[$f5]}
+    ]}' > "$pmanifest_n5"
+  local pout_n5="$root/profile-out-n5.json" pstatus_n5=0
+  bash "$0" --profile "$pmanifest_n5" "$prepo" "$pout_n5" --recount-script "$profile_recount_script" --repo-root "$prepo" >/dev/null 2>&1 || pstatus_n5=$?
+  if [ "$pstatus_n5" -eq 0 ]; then
+    local n5_all_all n5_stratified
+    n5_all_all="$(jq -r '[.screens[].layer] | all(. == "ALL")' "$pout_n5")"
+    n5_stratified="$(jq -r '.stratified' "$pout_n5")"
+    if [ "$n5_all_all" = "true" ] && [ "$n5_stratified" = "false" ]; then
+      test_report "12-2-profile-n5縮退" 0
+    else
+      test_report "12-2-profile-n5縮退" 1 "all_all=$n5_all_all stratified=$n5_stratified"
+    fi
+  else
+    test_report "12-2-profile-n5縮退" 1 "status=$pstatus_n5"
+  fi
+
+  # 12-2-2: n=6でスコア昇順に各層(G1〜G6)がちょうど1件ずつ割り当たる。
+  local pmanifest_n6="$root/profile-manifest-n6.json"
+  local i6 pf6
+  for i6 in 1 2 3 4 5 6; do
+    pf6="$prepo/src/screens/ScreenN6_${i6}/Foo.tsx"
+    build_profile_fixture_file "$pf6" "$i6"
+  done
+  jq -n \
+    --arg f1 "$prepo/src/screens/ScreenN6_1/Foo.tsx" \
+    --arg f2 "$prepo/src/screens/ScreenN6_2/Foo.tsx" \
+    --arg f3 "$prepo/src/screens/ScreenN6_3/Foo.tsx" \
+    --arg f4 "$prepo/src/screens/ScreenN6_4/Foo.tsx" \
+    --arg f5 "$prepo/src/screens/ScreenN6_5/Foo.tsx" \
+    --arg f6 "$prepo/src/screens/ScreenN6_6/Foo.tsx" \
+    '{generatedAt:null, sourceDir:"dummy", screens:[
+      {screenKey:"n6-1",kind:"route",files:[$f1]},
+      {screenKey:"n6-2",kind:"route",files:[$f2]},
+      {screenKey:"n6-3",kind:"route",files:[$f3]},
+      {screenKey:"n6-4",kind:"route",files:[$f4]},
+      {screenKey:"n6-5",kind:"route",files:[$f5]},
+      {screenKey:"n6-6",kind:"route",files:[$f6]}
+    ]}' > "$pmanifest_n6"
+  local pout_n6="$root/profile-out-n6.json" pstatus_n6=0
+  bash "$0" --profile "$pmanifest_n6" "$prepo" "$pout_n6" --recount-script "$profile_recount_script" --repo-root "$prepo" >/dev/null 2>&1 || pstatus_n6=$?
+  if [ "$pstatus_n6" -eq 0 ]; then
+    local n6_keys n6_each_one
+    n6_keys="$(jq -r '.layers | keys | sort | join(",")' "$pout_n6")"
+    n6_each_one="$(jq -r '[.layers[].n] | all(. == 1)' "$pout_n6")"
+    if [ "$n6_keys" = "G1,G2,G3,G4,G5,G6" ] && [ "$n6_each_one" = "true" ]; then
+      test_report "12-2-profile-n6各層1件" 0
+    else
+      test_report "12-2-profile-n6各層1件" 1 "keys=$n6_keys each_one=$n6_each_one"
+    fi
+  else
+    test_report "12-2-profile-n6各層1件" 1 "status=$pstatus_n6"
+  fi
+
+  # 12-2-3: n=7で層件数の合計が7と一致する(割当漏れ・重複割当が無い)。
+  local pmanifest_n7="$root/profile-manifest-n7.json"
+  local i7 pf7
+  for i7 in 1 2 3 4 5 6 7; do
+    pf7="$prepo/src/screens/ScreenN7_${i7}/Foo.tsx"
+    build_profile_fixture_file "$pf7" "$i7"
+  done
+  jq -n \
+    --arg f1 "$prepo/src/screens/ScreenN7_1/Foo.tsx" \
+    --arg f2 "$prepo/src/screens/ScreenN7_2/Foo.tsx" \
+    --arg f3 "$prepo/src/screens/ScreenN7_3/Foo.tsx" \
+    --arg f4 "$prepo/src/screens/ScreenN7_4/Foo.tsx" \
+    --arg f5 "$prepo/src/screens/ScreenN7_5/Foo.tsx" \
+    --arg f6 "$prepo/src/screens/ScreenN7_6/Foo.tsx" \
+    --arg f7 "$prepo/src/screens/ScreenN7_7/Foo.tsx" \
+    '{generatedAt:null, sourceDir:"dummy", screens:[
+      {screenKey:"n7-1",kind:"route",files:[$f1]},
+      {screenKey:"n7-2",kind:"route",files:[$f2]},
+      {screenKey:"n7-3",kind:"route",files:[$f3]},
+      {screenKey:"n7-4",kind:"route",files:[$f4]},
+      {screenKey:"n7-5",kind:"route",files:[$f5]},
+      {screenKey:"n7-6",kind:"route",files:[$f6]},
+      {screenKey:"n7-7",kind:"route",files:[$f7]}
+    ]}' > "$pmanifest_n7"
+  local pout_n7="$root/profile-out-n7.json" pstatus_n7=0
+  bash "$0" --profile "$pmanifest_n7" "$prepo" "$pout_n7" --recount-script "$profile_recount_script" --repo-root "$prepo" >/dev/null 2>&1 || pstatus_n7=$?
+  if [ "$pstatus_n7" -eq 0 ]; then
+    local n7_sum
+    n7_sum="$(jq -r '[.layers[].n] | add' "$pout_n7")"
+    if [ "$n7_sum" = "7" ]; then
+      test_report "12-2-profile-n7割当検証" 0
+    else
+      test_report "12-2-profile-n7割当検証" 1 "sum=$n7_sum"
+    fi
+  else
+    test_report "12-2-profile-n7割当検証" 1 "status=$pstatus_n7"
+  fi
+
+  # 12-2-4: n=12でq1<=q2<=q3<=q4<=q5(境界値の単調非減少)を検証する。
+  local pmanifest_n12="$root/profile-manifest-n12.json"
+  local i12 pf12 screens_n12
+  screens_n12=""
+  for i12 in 1 2 3 4 5 6 7 8 9 10 11 12; do
+    pf12="$prepo/src/screens/ScreenN12_${i12}/Foo.tsx"
+    build_profile_fixture_file "$pf12" "$i12"
+    screens_n12="${screens_n12}{\"screenKey\":\"n12-${i12}\",\"kind\":\"route\",\"files\":[\"${pf12}\"]},"
+  done
+  screens_n12="[${screens_n12%,}]"
+  jq -n --argjson screens "$screens_n12" '{generatedAt:null, sourceDir:"dummy", screens:$screens}' > "$pmanifest_n12"
+  local pout_n12="$root/profile-out-n12.json" pstatus_n12=0
+  bash "$0" --profile "$pmanifest_n12" "$prepo" "$pout_n12" --recount-script "$profile_recount_script" --repo-root "$prepo" >/dev/null 2>&1 || pstatus_n12=$?
+  if [ "$pstatus_n12" -eq 0 ]; then
+    local n12_monotonic
+    n12_monotonic="$(jq -r '.quantiles | (.q1 <= .q2) and (.q2 <= .q3) and (.q3 <= .q4) and (.q4 <= .q5)' "$pout_n12")"
+    if [ "$n12_monotonic" = "true" ]; then
+      test_report "12-2-profile-n12単調非減少" 0
+    else
+      test_report "12-2-profile-n12単調非減少" 1 "monotonic=$n12_monotonic quantiles=$(jq -c '.quantiles' "$pout_n12")"
+    fi
+  else
+    test_report "12-2-profile-n12単調非減少" 1 "status=$pstatus_n12"
+  fi
+
+  # 12-2-5: 同点スコアが境界を跨ぐ場合でも、二重割当・無割当が発生しない。
+  local pmanifest_tie="$root/profile-manifest-tie.json"
+  local itie pftie screens_tie tie_idx
+  screens_tie=""
+  tie_idx=0
+  for itie in 1 1 2 2 3 3 4 4; do
+    tie_idx=$((tie_idx + 1))
+    pftie="$prepo/src/screens/ScreenTie_${tie_idx}/Foo.tsx"
+    build_profile_fixture_file "$pftie" "$itie"
+    screens_tie="${screens_tie}{\"screenKey\":\"tie-${tie_idx}\",\"kind\":\"route\",\"files\":[\"${pftie}\"]},"
+  done
+  screens_tie="[${screens_tie%,}]"
+  jq -n --argjson screens "$screens_tie" '{generatedAt:null, sourceDir:"dummy", screens:$screens}' > "$pmanifest_tie"
+  local pout_tie="$root/profile-out-tie.json" pstatus_tie=0
+  bash "$0" --profile "$pmanifest_tie" "$prepo" "$pout_tie" --recount-script "$profile_recount_script" --repo-root "$prepo" >/dev/null 2>&1 || pstatus_tie=$?
+  if [ "$pstatus_tie" -eq 0 ]; then
+    local tie_sum tie_no_null
+    tie_sum="$(jq -r '[.layers[].n] | add' "$pout_tie")"
+    tie_no_null="$(jq -r '[.screens[] | select(.layer == null)] | length' "$pout_tie")"
+    if [ "$tie_sum" = "8" ] && [ "$tie_no_null" = "0" ]; then
+      test_report "12-2-profile-同点境界" 0
+    else
+      test_report "12-2-profile-同点境界" 1 "sum=$tie_sum no_null_violations=$tie_no_null"
+    fi
+  else
+    test_report "12-2-profile-同点境界" 1 "status=$pstatus_tie"
+  fi
+
+  # 12-2-6: n=250の大規模データで層件数の合計がnと一致し、G1〜G6が全て非空になる。
+  local pmanifest_big="$root/profile-manifest-big.json"
+  local ibig pfbig screens_big_tmp profile_recount_fast_script
+  # 大規模ケースは層分けの完全性を検証するための入力であり、recount-facts.sh
+  # 自体の再計数は上の小規模ケースで実行済み。250件で同じ再計数を繰り返すと
+  # 自己テストの終了を不必要に妨げるため、screenKey由来の再現可能なスコアを返す
+  # 軽量スタブをこのケースに限って使用する。
+  profile_recount_fast_script="$root/profile-recount-fast.sh"
+  printf '%s\n' \
+    '#!/usr/bin/env bash' \
+    'set -euo pipefail' \
+    'target="${!#}"' \
+    'value="${target#*ScreenBig_}"' \
+    'value="${value%%/*}"' \
+    'case "$value" in ""|*[!0-9]*) value=0 ;; esac' \
+    'printf "loc %s\\nimport 0\\nexport_type 0\\nconst 0\\nstate 0\\nhandler 0\\njsx 0\\nstyle 0\\napi 0\\n" "$value"' \
+    > "$profile_recount_fast_script"
+  screens_big_tmp="$(mktemp)"
+  : > "$screens_big_tmp"
+  for ibig in $(seq 1 250); do
+    pfbig="$prepo/src/screens/ScreenBig_${ibig}/Foo.tsx"
+    build_profile_fixture_file "$pfbig" "$ibig"
+    printf '{"screenKey":"big-%s","kind":"route","files":["%s"]}\n' "$ibig" "$pfbig" >> "$screens_big_tmp"
+  done
+  jq -s '{generatedAt:null, sourceDir:"dummy", screens:.}' "$screens_big_tmp" > "$pmanifest_big"
+  rm -f "$screens_big_tmp"
+  local pout_big="$root/profile-out-big.json" pstatus_big=0
+  bash "$0" --profile "$pmanifest_big" "$prepo" "$pout_big" --recount-script "$profile_recount_fast_script" --repo-root "$prepo" >/dev/null 2>&1 || pstatus_big=$?
+  if [ "$pstatus_big" -eq 0 ]; then
+    local big_n big_sum big_all_nonempty
+    big_n="$(jq -r '.n' "$pout_big")"
+    big_sum="$(jq -r '[.layers[].n] | add' "$pout_big")"
+    big_all_nonempty="$(jq -r '(["G1","G2","G3","G4","G5","G6"] - (.layers | keys)) | length == 0' "$pout_big")"
+    if [ "$big_n" = "250" ] && [ "$big_sum" = "250" ] && [ "$big_all_nonempty" = "true" ]; then
+      test_report "12-2-profile-n250大規模" 0
+    else
+      test_report "12-2-profile-n250大規模" 1 "n=$big_n sum=$big_sum all_nonempty=$big_all_nonempty"
+    fi
+  else
+    test_report "12-2-profile-n250大規模" 1 "status=$pstatus_big"
+  fi
+
+  # --- 1-8: screenNameGuess の OK マーカー除去 ---
+  local ok_t1 ok_t2 ok_t3 ok_t4 ok_t5 ok_t6
+  ok_t1="$(strip_ok_marker "トップ OK")"
+  if [ "$ok_t1" = "トップ" ]; then
+    test_report "1-8-OKマーカー除去-末尾スペース区切り" 0
+  else
+    test_report "1-8-OKマーカー除去-末尾スペース区切り" 1 "got='$ok_t1'"
+  fi
+
+  ok_t2="$(strip_ok_marker "トップ(OK)")"
+  if [ "$ok_t2" = "トップ" ]; then
+    test_report "1-8-OKマーカー除去-括弧付き" 0
+  else
+    test_report "1-8-OKマーカー除去-括弧付き" 1 "got='$ok_t2'"
+  fi
+
+  ok_t3="$(strip_ok_marker "トップ(OK) T-001")"
+  if [ "$ok_t3" = "トップ" ]; then
+    test_report "1-25-OKマーカー除去-括弧付き識別子" 0
+  else
+    test_report "1-25-OKマーカー除去-括弧付き識別子" 1 "got='$ok_t3'"
+  fi
+
+  ok_t4="$(strip_ok_marker "トップ（暫定）OK")"
+  if [ "$ok_t4" = "トップ（暫定）" ]; then
+    test_report "1-25-OKマーカー除去-全角閉じ括弧直後" 0
+  else
+    test_report "1-25-OKマーカー除去-全角閉じ括弧直後" 1 "got='$ok_t4'"
+  fi
+
+  ok_t5="$(strip_ok_marker "docomo(sp)決済OK着地")"
+  if [ "$ok_t5" = "docomo(sp)決済OK着地" ]; then
+    test_report "1-8-OKマーカー除去-業務用語維持-着地" 0
+  else
+    test_report "1-8-OKマーカー除去-業務用語維持-着地" 1 "got='$ok_t5'"
+  fi
+
+  ok_t6="$(strip_ok_marker "OK処理")"
+  if [ "$ok_t6" = "OK処理" ]; then
+    test_report "1-8-OKマーカー除去-業務用語維持-先頭" 0
+  else
+    test_report "1-8-OKマーカー除去-業務用語維持-先頭" 1 "got='$ok_t6'"
+  fi
+
+  # --- 1-55: 括弧付き識別子「(OK) (identA)」形式への対応 ---
+  local ok_t7 ok_t8 ok_t9 ok_t10 ok_t11 ok_t12 ok_t13
+  ok_t7="$(strip_ok_marker "名称A(OK) (identA)")"
+  if [ "$ok_t7" = "名称A" ]; then
+    test_report "1-55-OKマーカー除去-括弧付き識別子二重括弧" 0
+  else
+    test_report "1-55-OKマーカー除去-括弧付き識別子二重括弧" 1 "got='$ok_t7'"
+  fi
+
+  ok_t8="$(strip_ok_marker "名称F(OK) identF")"
+  if [ "$ok_t8" = "名称F" ]; then
+    test_report "1-55-OKマーカー除去-括弧付き識別子非括弧" 0
+  else
+    test_report "1-55-OKマーカー除去-括弧付き識別子非括弧" 1 "got='$ok_t8'"
+  fi
+
+  ok_t9="$(strip_ok_marker "名称B(OK)")"
+  if [ "$ok_t9" = "名称B" ]; then
+    test_report "1-55-OKマーカー除去-括弧単体" 0
+  else
+    test_report "1-55-OKマーカー除去-括弧単体" 1 "got='$ok_t9'"
+  fi
+
+  ok_t10="$(strip_ok_marker "名称C（内訳） OK")"
+  if [ "$ok_t10" = "名称C（内訳）" ]; then
+    test_report "1-55-OKマーカー除去-全角括弧補足後スペースOK" 0
+  else
+    test_report "1-55-OKマーカー除去-全角括弧補足後スペースOK" 1 "got='$ok_t10'"
+  fi
+
+  ok_t11="$(strip_ok_marker "名称D OK")"
+  if [ "$ok_t11" = "名称D" ]; then
+    test_report "1-55-OKマーカー除去-末尾スペースOK" 0
+  else
+    test_report "1-55-OKマーカー除去-末尾スペースOK" 1 "got='$ok_t11'"
+  fi
+
+  ok_t12="$(strip_ok_marker "決済OK着地")"
+  if [ "$ok_t12" = "決済OK着地" ]; then
+    test_report "1-55-OKマーカー除去-業務用語維持-着地" 0
+  else
+    test_report "1-55-OKマーカー除去-業務用語維持-着地" 1 "got='$ok_t12'"
+  fi
+
+  ok_t13="$(strip_ok_marker "OK処理")"
+  if [ "$ok_t13" = "OK処理" ]; then
+    test_report "1-55-OKマーカー除去-業務用語維持-先頭" 0
+  else
+    test_report "1-55-OKマーカー除去-業務用語維持-先頭" 1 "got='$ok_t13'"
+  fi
+
+  # --- 1-8-5: screenNameGuess → nodes[].label 転記への連動確認
+  # (generating-screen-transition-for-reverse-docs の Step 1 は label = screenNameGuess を
+  #  そのまま転記する規約のため、ここでは detect-screens.sh の実出力 JSON の
+  #  screenNameGuess フィールド自体に OK 除去が反映されることを検証する) ---
+  local ok5="$root/ok5"
+  mkdir -p "$ok5/app/トップ-OK"
+  printf "module.exports = {}\n" > "$ok5/next.config.js"
+  printf "export default function Page() { return null }\n" > "$ok5/app/トップ-OK/page.tsx"
+  local ok5_manifest ok5_status ok5_name
+  ok5_manifest="$(mktemp)"
+  ok5_status=0
+  bash "$0" "$ok5" "$ok5_manifest" >/dev/null 2>&1 || ok5_status=$?
+  ok5_name="$(jq -r '.screens[0].screenNameGuess' "$ok5_manifest" 2>/dev/null || echo "")"
+  if [ "$ok5_status" -eq 0 ] && [ "$ok5_name" = "トップ" ]; then
+    test_report "1-8-OKマーカー除去-JSON出力screenNameGuess反映(label転記元)" 0
+  else
+    test_report "1-8-OKマーカー除去-JSON出力screenNameGuess反映(label転記元)" 1 "status=$ok5_status name='$ok5_name'"
+  fi
+  rm -f "$ok5_manifest"
+
+  # --- 追加: screenNameGuess の親セグメント補足(異リソース同名対策) ---
+  # 葉ディレクトリ名(edit)が複数リソースで重複しても、親セグメント(users/orders)を
+  # 結合することで screenNameGuess が識別可能な個別値になることを検証する。
+  local tname="$root/tname"
+  mkdir -p "$tname/app/users/edit" "$tname/app/orders/edit"
+  printf "module.exports = {}\n" > "$tname/next.config.js"
+  printf "export default function Page() { return null }\n" > "$tname/app/users/edit/page.tsx"
+  printf "export default function Page() { return null }\n" > "$tname/app/orders/edit/page.tsx"
+  local tname_manifest tname_status tname_users tname_orders
+  tname_manifest="$(mktemp)"
+  tname_status=0
+  bash "$0" "$tname" "$tname_manifest" >/dev/null 2>&1 || tname_status=$?
+  tname_users="$(jq -r '.screens[] | select(.route=="/users/edit") | .screenNameGuess' "$tname_manifest" 2>/dev/null || echo "")"
+  tname_orders="$(jq -r '.screens[] | select(.route=="/orders/edit") | .screenNameGuess' "$tname_manifest" 2>/dev/null || echo "")"
+  if [ "$tname_status" -eq 0 ] && [ "$tname_users" = "users edit" ] && [ "$tname_orders" = "orders edit" ] && [ "$tname_users" != "$tname_orders" ]; then
+    test_report "1-8-6-screenNameGuess親セグメント補足-異リソース同名" 0
+  else
+    test_report "1-8-6-screenNameGuess親セグメント補足-異リソース同名" 1 "status=$tname_status users='$tname_users' orders='$tname_orders'"
+  fi
+  rm -f "$tname_manifest"
+
+  # --- 追加: screenNameGuess の共有クラスタ個別値化(一律"(共有: ..."上書きの廃止) ---
+  # 同一 entryFile(router.tsx)を参照する2ルートがクラスタを形成しても、
+  # screenNameGuess が screenKey 由来の個別値になり、"(共有: " での一律上書きにならないことを検証する。
+  local tshared="$root/tshared"
+  mkdir -p "$tshared"
+  printf '%s\n' \
+    'import { createBrowserRouter } from "react-router-dom"' \
+    '' \
+    'export const router = createBrowserRouter([' \
+    '  { path: "/alpha", element: <AlphaPage /> },' \
+    '  { path: "/beta", element: <BetaPage /> },' \
+    '])' > "$tshared/router.tsx"
+  local tshared_manifest tshared_status tshared_alpha tshared_beta tshared_alpha_shared tshared_beta_shared
+  tshared_manifest="$(mktemp)"
+  tshared_status=0
+  bash "$0" "$tshared" "$tshared_manifest" >/dev/null 2>&1 || tshared_status=$?
+  tshared_alpha="$(jq -r '.screens[] | select(.route=="/alpha") | .screenNameGuess' "$tshared_manifest" 2>/dev/null || echo "")"
+  tshared_beta="$(jq -r '.screens[] | select(.route=="/beta") | .screenNameGuess' "$tshared_manifest" 2>/dev/null || echo "")"
+  case "$tshared_alpha" in "(共有: "*) tshared_alpha_shared=1 ;; *) tshared_alpha_shared=0 ;; esac
+  case "$tshared_beta" in "(共有: "*) tshared_beta_shared=1 ;; *) tshared_beta_shared=0 ;; esac
+  if [ "$tshared_status" -eq 0 ] && [ "$tshared_alpha_shared" -eq 0 ] && [ "$tshared_beta_shared" -eq 0 ] \
+    && [ -n "$tshared_alpha" ] && [ -n "$tshared_beta" ] && [ "$tshared_alpha" != "$tshared_beta" ]; then
+    test_report "1-8-7-screenNameGuess共有クラスタ個別値化" 0
+  else
+    test_report "1-8-7-screenNameGuess共有クラスタ個別値化" 1 "status=$tshared_status alpha='$tshared_alpha' beta='$tshared_beta'"
+  fi
+  rm -f "$tshared_manifest"
+
+  # --- 陽性: 非UTF-8(Shift_JIS)テンプレートの grep -a 挙動差検証 ---
+  local t_enc="$root/t_enc"
+  mkdir -p "$t_enc/src/screens/foo"
+  # Shift_JIS でエンコードされた <form> を含むファイルを合成
+  # \x83\x74\x83\x48\x81\x5b\x83\x80 = "フォーム" in Shift_JIS
+  printf '<html>\n<body>\n<form action="/submit">\n\x83\x74\x83\x48\x81\x5b\x83\x80\n</form>\n</body>\n</html>' > "$t_enc/src/screens/foo/index.html"
+  # -a 付きなら検出できる
+  local enc_with_a enc_without_a
+  enc_with_a="$(grep -ac '<form' "$t_enc/src/screens/foo/index.html" 2>/dev/null || echo 0)"
+  enc_without_a="$(grep -c '<form' "$t_enc/src/screens/foo/index.html" 2>/dev/null || echo 0)"
+  if [ "$enc_with_a" -ge 1 ]; then
+    test_report "1-11-非UTF8-grep-a付き検出" 0
+  else
+    test_report "1-11-非UTF8-grep-a付き検出" 1 "enc_with_a=$enc_with_a"
+  fi
+
+  # --- 陽性: モーダル画面を祖先ディレクトリの実在親キーへ紐付ける ---
+  local t_modal="$root/t_modal"
+  mkdir -p "$t_modal/app/user/edit-modal" "$t_modal/app/user/components"
+  printf "module.exports = {}\n" > "$t_modal/next.config.js"
+  printf '%s\n' \
+    'import ScreenBody from "./components/ScreenBody"' \
+    'export default function Page() { return <ScreenBody /> }' > "$t_modal/app/user/page.tsx"
+  printf '%s\n' \
+    'export default function ScreenBody() {' \
+    '  const onClose = () => {}' \
+    '  return <main onClick={onClose}>User</main>' \
+    '}' > "$t_modal/app/user/components/ScreenBody.tsx"
+  printf 'export default function Page() { return <form><input /></form> }\n' > "$t_modal/app/user/edit-modal/page.tsx"
+  local t_modal_manifest t_modal_status t_modal_parent t_modal_parent_exists t_modal_child_key t_modal_child_type t_modal_user_parent t_modal_user_component_type
+  t_modal_manifest="$(mktemp)"
+  t_modal_status=0
+  bash "$0" "$t_modal" "$t_modal_manifest" >/dev/null 2>&1 || t_modal_status=$?
+  t_modal_parent="$(jq -r '.screens[] | select(.screenKey == "edit-modal") | .parentScreen' "$t_modal_manifest" 2>/dev/null || true)"
+  t_modal_parent_exists="$(jq -r --arg p "$t_modal_parent" '[.screens[].screenKey] | index($p) != null' "$t_modal_manifest" 2>/dev/null || echo false)"
+  t_modal_child_key="$(jq -r '.screens[] | select(.screenKey == "user") | .childComponents[]? | .screenKey' "$t_modal_manifest" 2>/dev/null | sed -n '1p' || true)"
+  t_modal_child_type="$(jq -r '.screens[] | select(.screenKey == "user") | .childComponents[]? | .componentType' "$t_modal_manifest" 2>/dev/null | sed -n '1p' || true)"
+  t_modal_user_parent="$(jq -r '.screens[] | select(.screenKey == "user") | .parentScreen' "$t_modal_manifest" 2>/dev/null || true)"
+  t_modal_user_component_type="$(jq -r '.screens[] | select(.screenKey == "user") | .componentType // empty' "$t_modal_manifest" 2>/dev/null || true)"
+  if [ "$t_modal_status" -eq 0 ] && [ "$t_modal_parent" = "user" ] && [ "$t_modal_parent_exists" = "true" ] && [ "$t_modal_child_key" = "edit-modal" ] && [ "$t_modal_child_type" = "modal" ] && [ "$t_modal_user_parent" = "null" ] && [ -z "$t_modal_user_component_type" ]; then
+    test_report "1-9-モーダル判定-実在親キーとcomponentType" 0
+  else
+    test_report "1-9-モーダル判定-実在親キーとcomponentType" 1 "status=$t_modal_status parent='$t_modal_parent' exists=$t_modal_parent_exists child='$t_modal_child_key' type='$t_modal_child_type' user_parent='$t_modal_user_parent' user_type='$t_modal_user_component_type'"
+  fi
+  rm -f "$t_modal_manifest"
+
+  # --- 反例: embedded-viewのスラッシュなしrouteで親探索が停止し、検出が完走する ---
+  local t_embedded="$root/t_embedded"
+  mkdir -p "$t_embedded/app"
+  printf "module.exports = {}\n" > "$t_embedded/next.config.js"
+  printf '%s\n' \
+    'import SettingsModal from "./SettingsModal"' \
+    'export default function Page() { return isOpen ? <SettingsModal /> : <main>Home</main> }' > "$t_embedded/app/page.tsx"
+  printf 'export default function SettingsModal() { return <dialog>Settings</dialog> }\n' > "$t_embedded/app/SettingsModal.tsx"
+  local t_embedded_manifest t_embedded_status t_embedded_key
+  t_embedded_manifest="$(mktemp)"
+  t_embedded_status=0
+  perl -e 'alarm shift; exec @ARGV' 15 bash "$0" "$t_embedded" "$t_embedded_manifest" --view-switch-pattern 'isOpen' >/dev/null 2>&1 || t_embedded_status=$?
+  t_embedded_key="$(jq -r '.screens[] | select(.kind == "embedded-view") | .screenKey' "$t_embedded_manifest" 2>/dev/null | sed -n '1p' || true)"
+  if [ "$t_embedded_status" -eq 0 ] && [ "$t_embedded_key" = "settings-modal" ]; then
+    test_report "1-9-埋め込みビュー-スラッシュなしrouteの親探索停止" 0
+  else
+    test_report "1-9-埋め込みビュー-スラッシュなしrouteの親探索停止" 1 "status=$t_embedded_status key='$t_embedded_key'"
+  fi
+  rm -f "$t_embedded_manifest"
+
+  # --- 反例: React.createElementを返すpage.jsを処理エンドポイントに誤分類しない ---
+  local t_react_element="$root/t_react_element"
+  mkdir -p "$t_react_element/app/ui"
+  printf "module.exports = {}\n" > "$t_react_element/next.config.js"
+  printf '%s\n' \
+    'import React from "react"' \
+    'export default function Page() { return React.createElement("main", null, "UI") }' > "$t_react_element/app/ui/page.js"
+  local t_react_element_manifest t_react_element_status t_react_element_type t_react_element_processing t_react_element_template
+  t_react_element_manifest="$(mktemp)"
+  t_react_element_status=0
+  bash "$0" "$t_react_element" "$t_react_element_manifest" >/dev/null 2>&1 || t_react_element_status=$?
+  t_react_element_type="$(jq -r '.screens[] | select(.route == "/ui") | .screenType' "$t_react_element_manifest" 2>/dev/null || true)"
+  t_react_element_processing="$(jq -r '.screens[] | select(.route == "/ui") | .isProcessingEndpoint' "$t_react_element_manifest" 2>/dev/null || true)"
+  t_react_element_template="$(jq -r '.screens[] | select(.route == "/ui") | .hasTemplate' "$t_react_element_manifest" 2>/dev/null || true)"
+  if [ "$t_react_element_status" -eq 0 ] && [ "$t_react_element_type" = "detail" ] && [ "$t_react_element_processing" = "false" ] && [ "$t_react_element_template" = "true" ]; then
+    test_report "1-9-UI返却page.js-処理エンドポイント誤分類防止" 0
+  else
+    test_report "1-9-UI返却page.js-処理エンドポイント誤分類防止" 1 "status=$t_react_element_status type='$t_react_element_type' processing='$t_react_element_processing' template='$t_react_element_template'"
+  fi
+  rm -f "$t_react_element_manifest"
+
+  # --- 陰性: BFSで解決した子モーダルの実装だけでは親画面をモーダル扱いしない ---
+  local t_modal_parent="$root/t_modal_parent"
+  mkdir -p "$t_modal_parent/app/home"
+  printf "module.exports = {}\n" > "$t_modal_parent/next.config.js"
+  printf '%s\n' \
+    'import EditModal from "./EditModal"' \
+    'export default function Page() { return <main><EditModal /></main> }' > "$t_modal_parent/app/home/page.tsx"
+  printf '%s\n' \
+    'export default function EditModal({ onClose }) {' \
+    '  return <div role="dialog"><button onClick={onClose}>閉じる</button></div>' \
+    '}' > "$t_modal_parent/app/home/EditModal.tsx"
+  local t_modal_parent_manifest t_modal_parent_status t_modal_parent_value t_modal_parent_children
+  t_modal_parent_manifest="$(mktemp)"
+  t_modal_parent_status=0
+  bash "$0" "$t_modal_parent" "$t_modal_parent_manifest" >/dev/null 2>&1 || t_modal_parent_status=$?
+  t_modal_parent_value="$(jq -r '.screens[] | select(.screenKey == "home") | .parentScreen' "$t_modal_parent_manifest" 2>/dev/null || true)"
+  t_modal_parent_children="$(jq -r '.screens[] | select(.screenKey == "home") | (.childComponents | length)' "$t_modal_parent_manifest" 2>/dev/null || true)"
+  if [ "$t_modal_parent_status" -eq 0 ] && [ "$t_modal_parent_value" = "null" ] && [ "$t_modal_parent_children" = "0" ]; then
+    test_report "1-10-モーダル判定-BFS子実装で親を誤分類しない" 0
+  else
+    test_report "1-10-モーダル判定-BFS子実装で親を誤分類しない" 1 "status=$t_modal_parent_status parent='$t_modal_parent_value' children='$t_modal_parent_children'"
+  fi
+  rm -f "$t_modal_parent_manifest"
+
+  # --- 反例: 通常route自身のonCloseで同一entryFileの別routeを親にしない ---
+  local t_route_onclose="$root/t_route_onclose"
+  mkdir -p "$t_route_onclose/src"
+  printf '%s\n' \
+    'import { createBrowserRouter } from "react-router-dom"' \
+    'const Top = () => <main>Top</main>' \
+    'const Orders = () => {' \
+    '  const onClose = () => {}' \
+    '  return <main onClick={onClose}>Orders</main>' \
+    '}' \
+    'export const router = createBrowserRouter([' \
+    '  { path: "/top", element: <Top /> },' \
+    '  { path: "/orders", element: <Orders /> }' \
+    '])' > "$t_route_onclose/src/router.tsx"
+  local t_route_onclose_manifest t_route_onclose_status t_route_onclose_parent t_route_onclose_type
+  t_route_onclose_manifest="$(mktemp)"
+  t_route_onclose_status=0
+  bash "$0" "$t_route_onclose" "$t_route_onclose_manifest" >/dev/null 2>&1 || t_route_onclose_status=$?
+  t_route_onclose_parent="$(jq -r '.screens[] | select(.route == "/orders") | .parentScreen' "$t_route_onclose_manifest" 2>/dev/null || true)"
+  t_route_onclose_type="$(jq -r '.screens[] | select(.route == "/orders") | .componentType' "$t_route_onclose_manifest" 2>/dev/null || true)"
+  if [ "$t_route_onclose_status" -eq 0 ] && [ "$t_route_onclose_parent" = "null" ] && [ "$t_route_onclose_type" = "null" ]; then
+    test_report "1-10-モーダル判定-通常route自身のonCloseを除外" 0
+  else
+    test_report "1-10-モーダル判定-通常route自身のonCloseを除外" 1 "status=$t_route_onclose_status parent='$t_route_onclose_parent' type='$t_route_onclose_type'"
+  fi
+  rm -f "$t_route_onclose_manifest"
+
+  # --- 陽性: UIを返すpage.jsはテンプレートありであり、処理エンドポイントにしない ---
+  local t_page_js="$root/t_page_js"
+  mkdir -p "$t_page_js/app/dashboard"
+  printf "module.exports = {}\n" > "$t_page_js/next.config.js"
+  printf '%s\n' \
+    'import React from "react"' \
+    'export default function Page() { return React.createElement("main", null, "Dashboard") }' > "$t_page_js/app/dashboard/page.js"
+  local t_page_js_manifest t_page_js_status t_page_js_template t_page_js_endpoint
+  t_page_js_manifest="$(mktemp)"
+  t_page_js_status=0
+  bash "$0" "$t_page_js" "$t_page_js_manifest" >/dev/null 2>&1 || t_page_js_status=$?
+  t_page_js_template="$(jq -r '.screens[] | select(.screenKey == "dashboard") | .hasTemplate' "$t_page_js_manifest" 2>/dev/null || true)"
+  t_page_js_endpoint="$(jq -r '.screens[] | select(.screenKey == "dashboard") | .isProcessingEndpoint' "$t_page_js_manifest" 2>/dev/null || true)"
+  if [ "$t_page_js_status" -eq 0 ] && [ "$t_page_js_template" = "true" ] && [ "$t_page_js_endpoint" = "false" ]; then
+    test_report "1-9-page.js-UIを処理エンドポイントに誤分類しない" 0
+  else
+    test_report "1-9-page.js-UIを処理エンドポイントに誤分類しない" 1 "status=$t_page_js_status template='$t_page_js_template' endpoint='$t_page_js_endpoint'"
+  fi
+  rm -f "$t_page_js_manifest"
+
+  # --- 陽性: App Routerのpage.*でもrouteを補助根拠に確認画面へ分類する ---
+  local t_confirm_page="$root/t_confirm_page"
+  mkdir -p "$t_confirm_page/app/confirm"
+  printf "module.exports = {}\n" > "$t_confirm_page/next.config.js"
+  printf '%s\n' \
+    'export default function Page() { return <main>Confirm</main> }' > "$t_confirm_page/app/confirm/page.tsx"
+  local t_confirm_manifest t_confirm_status t_confirm_type t_confirm_endpoint
+  t_confirm_manifest="$(mktemp)"
+  t_confirm_status=0
+  bash "$0" "$t_confirm_page" "$t_confirm_manifest" >/dev/null 2>&1 || t_confirm_status=$?
+  t_confirm_type="$(jq -r '.screens[] | select(.route == "/confirm") | .screenType' "$t_confirm_manifest" 2>/dev/null || true)"
+  t_confirm_endpoint="$(jq -r '.screens[] | select(.route == "/confirm") | .isProcessingEndpoint' "$t_confirm_manifest" 2>/dev/null || true)"
+  if [ "$t_confirm_status" -eq 0 ] && [ "$t_confirm_type" = "confirm" ] && [ "$t_confirm_endpoint" = "false" ]; then
+    test_report "1-9-AppRouter-page.tsx-route補助でconfirm分類" 0
+  else
+    test_report "1-9-AppRouter-page.tsx-route補助でconfirm分類" 1 "status=$t_confirm_status type='$t_confirm_type' endpoint='$t_confirm_endpoint'"
+  fi
+  rm -f "$t_confirm_manifest"
+
+  # --- 陽性: BFSで解決した分離テンプレートと権限分岐を分類に反映する ---
+  local t_bfs="$root/t_bfs"
+  mkdir -p "$t_bfs/app/admin"
+  printf "module.exports = {}\n" > "$t_bfs/next.config.js"
+  printf '%s\n' \
+    'import ScreenBody from "./ScreenBody"' \
+    'export default function Page() { return <ScreenBody /> }' > "$t_bfs/app/admin/page.tsx"
+  printf '%s\n' \
+    'export default function ScreenBody() {' \
+    '  if (role === "admin") return <form><input /></form>' \
+    '  return <form><input /></form>' \
+    '}' > "$t_bfs/app/admin/ScreenBody.tsx"
+  printf '*\tfeature_phone\n' > "$t_bfs/account-group-map.tsv"
+  local t_bfs_manifest t_bfs_status t_bfs_type t_bfs_subtype t_bfs_group
+  t_bfs_manifest="$(mktemp)"
+  t_bfs_status=0
+  bash "$0" "$t_bfs" "$t_bfs_manifest" --account-group-map "$t_bfs/account-group-map.tsv" >/dev/null 2>&1 || t_bfs_status=$?
+  t_bfs_type="$(jq -r '.screens[] | select(.route=="/admin") | .screenType' "$t_bfs_manifest" 2>/dev/null || true)"
+  t_bfs_subtype="$(jq -r '.screens[] | select(.route=="/admin") | .accountSubType' "$t_bfs_manifest" 2>/dev/null || true)"
+  t_bfs_group="$(jq -r '.screens[] | select(.route=="/admin") | .accountGroup' "$t_bfs_manifest" 2>/dev/null || true)"
+  if [ "$t_bfs_status" -eq 0 ] && [ "$t_bfs_type" = "form" ] && [ "$t_bfs_subtype" = "role_checked" ] && [ "$t_bfs_group" = "common" ]; then
+    test_report "1-12-BFS分類-分離テンプレート権限分岐と無効map正規化" 0
+  else
+    test_report "1-12-BFS分類-分離テンプレート権限分岐と無効map正規化" 1 "status=$t_bfs_status type='$t_bfs_type' subtype='$t_bfs_subtype' group='$t_bfs_group'"
+  fi
+  rm -f "$t_bfs_manifest"
+
+  # --- 1-12: 後続の明示roleを、先行する分岐ヒントより優先する ---
+  local t_role_priority="$root/t_role_priority"
+  mkdir -p "$t_role_priority/app/role-priority" "$t_role_priority/app/role-dynamic" \
+    "$t_role_priority/app/roles-array" "$t_role_priority/app/has-role" \
+    "$t_role_priority/app/has-role-first" "$t_role_priority/app/role-literal"
+  printf 'module.exports = {}\n' > "$t_role_priority/next.config.js"
+  printf '%s\n' \
+    'export default function Page() {' \
+    '  if (role === "viewer") return <main>Viewer</main>' \
+    '  requireRole("admin")' \
+    '  return <main>Admin</main>' \
+    '}' > "$t_role_priority/app/role-priority/page.tsx"
+  printf '%s\n' \
+    'export default function Page() {' \
+    '  role = getCurrentRole()' \
+    '  role = user.role' \
+    '  return <main>Dynamic</main>' \
+    '}' > "$t_role_priority/app/role-dynamic/page.tsx"
+  printf 'export default function Page() { const policy = { roles: ["admin", "editor"], label: "settings" }; return <main>{policy.roles[0]}</main> }\n' > "$t_role_priority/app/roles-array/page.tsx"
+  printf 'export default function Page() { return hasRole(currentUser, "admin") ? <main title="Report">Admin</main> : <main>User</main> }\n' > "$t_role_priority/app/has-role/page.tsx"
+  printf 'export default function Page() { return hasRole("admin", "tenant-a") ? <main title="Report">Admin</main> : <main>User</main> }\n' > "$t_role_priority/app/has-role-first/page.tsx"
+  printf 'export default function Page() { role = "admin"; return <main>Admin</main> }\n' > "$t_role_priority/app/role-literal/page.tsx"
+  local t_role_priority_manifest t_role_priority_status t_role_priority_subtype t_role_dynamic_subtype
+  local t_roles_array_subtype t_has_role_subtype t_has_role_first_subtype t_role_literal_subtype
+  t_role_priority_manifest="$(mktemp)"
+  t_role_priority_status=0
+  bash "$0" "$t_role_priority" "$t_role_priority_manifest" >/dev/null 2>&1 || t_role_priority_status=$?
+  t_role_priority_subtype="$(jq -r '.screens[] | select(.route == "/role-priority") | .accountSubType' "$t_role_priority_manifest" 2>/dev/null || true)"
+  t_role_dynamic_subtype="$(jq -r '.screens[] | select(.route == "/role-dynamic") | .accountSubType' "$t_role_priority_manifest" 2>/dev/null || true)"
+  t_roles_array_subtype="$(jq -r '.screens[] | select(.route == "/roles-array") | .accountSubType' "$t_role_priority_manifest" 2>/dev/null || true)"
+  t_has_role_subtype="$(jq -r '.screens[] | select(.route == "/has-role") | .accountSubType' "$t_role_priority_manifest" 2>/dev/null || true)"
+  t_has_role_first_subtype="$(jq -r '.screens[] | select(.route == "/has-role-first") | .accountSubType' "$t_role_priority_manifest" 2>/dev/null || true)"
+  t_role_literal_subtype="$(jq -r '.screens[] | select(.route == "/role-literal") | .accountSubType' "$t_role_priority_manifest" 2>/dev/null || true)"
+  if [ "$t_role_priority_status" -eq 0 ] \
+    && [ "$t_role_priority_subtype" = "admin" ] && [ "$t_roles_array_subtype" = "admin" ] \
+    && [ "$t_has_role_subtype" = "admin" ] && [ "$t_has_role_first_subtype" = "admin" ] \
+    && [ "$t_role_literal_subtype" = "admin" ] \
+    && [ "$t_role_dynamic_subtype" = "common" ]; then
+    test_report "1-12-明示role-分岐ヒント優先順位" 0
+  else
+    test_report "1-12-明示role-分岐ヒント優先順位" 1 "status=$t_role_priority_status require='$t_role_priority_subtype' roles='$t_roles_array_subtype' hasRole='$t_has_role_subtype/$t_has_role_first_subtype' literal='$t_role_literal_subtype' dynamic='$t_role_dynamic_subtype'"
+  fi
+  rm -f "$t_role_priority_manifest"
+
+  # --- 1-12: パイプ容量を超えるDOM一致でもform/table/template分類を維持する ---
+  local t_dom_stress="$root/t_dom_stress"
+  mkdir -p "$t_dom_stress/app/mass-form" "$t_dom_stress/app/mass-table"
+  printf 'module.exports = {}\n' > "$t_dom_stress/next.config.js"
+  printf 'import Body from "./Body"\nexport default function Page() { return <Body /> }\n' > "$t_dom_stress/app/mass-form/page.tsx"
+  printf 'import Body from "./Body"\nexport default function Page() { return <Body /> }\n' > "$t_dom_stress/app/mass-table/page.tsx"
+  {
+    printf 'export default function Body() { return <main>\n'
+    for ((n = 1; n <= 12000; n++)); do
+      printf '<form><input name="field-%04d" /></form>\n' "$n"
+    done
+    printf '</main> }\n'
+  } > "$t_dom_stress/app/mass-form/Body.tsx"
+  {
+    printf 'export default function Body() { return <main>\n'
+    for ((n = 1; n <= 12000; n++)); do
+      printf '<table><tr><td>row-%04d</td></tr></table>\n' "$n"
+    done
+    printf '</main> }\n'
+  } > "$t_dom_stress/app/mass-table/Body.tsx"
+  local t_dom_stress_manifest t_dom_stress_status t_dom_form_type t_dom_form_template t_dom_table_type t_dom_table_template t_dom_form_bytes t_dom_table_bytes
+  t_dom_stress_manifest="$(mktemp)"
+  t_dom_stress_status=0
+  bash "$0" "$t_dom_stress" "$t_dom_stress_manifest" >/dev/null 2>&1 || t_dom_stress_status=$?
+  t_dom_form_type="$(jq -r '.screens[] | select(.route == "/mass-form") | .screenType' "$t_dom_stress_manifest" 2>/dev/null || true)"
+  t_dom_form_template="$(jq -r '.screens[] | select(.route == "/mass-form") | .hasTemplate' "$t_dom_stress_manifest" 2>/dev/null || true)"
+  t_dom_table_type="$(jq -r '.screens[] | select(.route == "/mass-table") | .screenType' "$t_dom_stress_manifest" 2>/dev/null || true)"
+  t_dom_table_template="$(jq -r '.screens[] | select(.route == "/mass-table") | .hasTemplate' "$t_dom_stress_manifest" 2>/dev/null || true)"
+  t_dom_form_bytes="$(wc -c < "$t_dom_stress/app/mass-form/Body.tsx" | tr -d ' ')"
+  t_dom_table_bytes="$(wc -c < "$t_dom_stress/app/mass-table/Body.tsx" | tr -d ' ')"
+  if [ "$t_dom_stress_status" -eq 0 ] \
+    && [ "$t_dom_form_bytes" -gt 131072 ] && [ "$t_dom_table_bytes" -gt 131072 ] \
+    && [ "$t_dom_form_type" = "form" ] && [ "$t_dom_form_template" = "true" ] \
+    && [ "$t_dom_table_type" = "list" ] && [ "$t_dom_table_template" = "true" ]; then
+    test_report "1-12-大量DOM一致-pipefail回帰" 0
+  else
+    test_report "1-12-大量DOM一致-pipefail回帰" 1 "status=$t_dom_stress_status bytes='$t_dom_form_bytes/$t_dom_table_bytes' form='$t_dom_form_type/$t_dom_form_template' table='$t_dom_table_type/$t_dom_table_template'"
+  fi
+  rm -f "$t_dom_stress_manifest"
+
+  # --- 1-9: 1,001件超の人工テンプレートをBFSで解決してhasTemplateを維持する ---
+  # 実データの件数を示すものではなく、拡張子・JSXを横断する合成テスト用入力である。
+  local t_template_bulk="$root/t_template_bulk"
+  mkdir -p "$t_template_bulk/app/bulk/templates"
+  printf 'module.exports = {}\n' > "$t_template_bulk/next.config.js"
+  {
+    for ((n = 1; n <= 1001; n++)); do
+      printf 'import Template%04d from "./templates/Template%04d"\n' "$n" "$n"
+    done
+    printf 'export default function Page() { return <main>bulk</main> }\n'
+  } > "$t_template_bulk/app/bulk/page.tsx"
+  for ((n = 1; n <= 1001; n++)); do
+    printf 'export default function Template%04d() { return <section>template %04d</section> }\n' "$n" "$n" \
+      > "$t_template_bulk/app/bulk/templates/Template$(printf '%04d' "$n").tsx"
+  done
+  local t_template_bulk_manifest t_template_bulk_status t_template_bulk_has_template t_template_bulk_count
+  t_template_bulk_manifest="$(mktemp)"
+  t_template_bulk_status=0
+  bash "$0" "$t_template_bulk" "$t_template_bulk_manifest" >/dev/null 2>&1 || t_template_bulk_status=$?
+  t_template_bulk_has_template="$(jq -r '.screens[] | select(.route == "/bulk") | .hasTemplate' "$t_template_bulk_manifest" 2>/dev/null || true)"
+  t_template_bulk_count="$(jq -r '.screens[] | select(.route == "/bulk") | .fileCount' "$t_template_bulk_manifest" 2>/dev/null || true)"
+  if [ "$t_template_bulk_status" -eq 0 ] && [ "$t_template_bulk_has_template" = "true" ] && [ "$t_template_bulk_count" -eq 1002 ]; then
+    test_report "1-9-hasTemplate-1001件超合成テスト用入力" 0
+  else
+    test_report "1-9-hasTemplate-1001件超合成テスト用入力" 1 "status=$t_template_bulk_status hasTemplate='$t_template_bulk_has_template' fileCount='$t_template_bulk_count'"
+  fi
+  rm -f "$t_template_bulk_manifest"
+
+  # --- 1-10: 通常routeがimportするテンプレートの新規window呼出しを親子判定に使う ---
+  local t_template_popup="$root/t_template_popup"
+  mkdir -p "$t_template_popup/app/user/print" "$t_template_popup/app/user/templates"
+  printf 'module.exports = {}\n' > "$t_template_popup/next.config.js"
+  printf 'export default function Page() { return <main>User</main> }\n' > "$t_template_popup/app/user/page.tsx"
+  printf '%s\n' \
+    'import PopupTemplate from "../templates/PopupTemplate"' \
+    'export default function Page() { return <PopupTemplate /> }' > "$t_template_popup/app/user/print/page.tsx"
+  printf '%s\n' \
+    'export default function PopupTemplate() {' \
+    '  window.open("/print-preview")' \
+    '  return <main>Preview</main>' \
+    '}' > "$t_template_popup/app/user/templates/PopupTemplate.tsx"
+  local t_template_popup_manifest t_template_popup_status t_template_popup_parent t_template_popup_child t_template_popup_type
+  t_template_popup_manifest="$(mktemp)"
+  t_template_popup_status=0
+  bash "$0" "$t_template_popup" "$t_template_popup_manifest" >/dev/null 2>&1 || t_template_popup_status=$?
+  t_template_popup_parent="$(jq -r '.screens[] | select(.screenKey == "print") | .parentScreen' "$t_template_popup_manifest" 2>/dev/null || true)"
+  t_template_popup_child="$(jq -r '.screens[] | select(.screenKey == "user") | .childComponents[]? | select(.screenKey == "print") | .screenKey' "$t_template_popup_manifest" 2>/dev/null || true)"
+  t_template_popup_type="$(jq -r '.screens[] | select(.screenKey == "user") | .childComponents[]? | select(.screenKey == "print") | .componentType' "$t_template_popup_manifest" 2>/dev/null || true)"
+  if [ "$t_template_popup_status" -eq 0 ] && [ "$t_template_popup_parent" = "user" ] && [ "$t_template_popup_child" = "print" ] && [ "$t_template_popup_type" = "popup" ]; then
+    test_report "1-10-通常route-分離テンプレートpopup判定" 0
+  else
+    test_report "1-10-通常route-分離テンプレートpopup判定" 1 "status=$t_template_popup_status parent='$t_template_popup_parent' child='$t_template_popup_child' type='$t_template_popup_type'"
+  fi
+  rm -f "$t_template_popup_manifest"
+
+  # --- 1-10: entry自身のwindow.openは、import先に根拠がなければpopup判定しない ---
+  local t_entry_popup="$root/t_entry_popup"
+  mkdir -p "$t_entry_popup/app/reports/print" "$t_entry_popup/app/reports/templates"
+  printf 'module.exports = {}\n' > "$t_entry_popup/next.config.js"
+  printf 'export default function Page() { return <main>Reports</main> }\n' > "$t_entry_popup/app/reports/page.tsx"
+  printf '%s\n' \
+    'import PrintBody from "../templates/PrintBody"' \
+    'export default function Page() { window.open("/self"); return <PrintBody /> }' > "$t_entry_popup/app/reports/print/page.tsx"
+  printf 'export default function PrintBody() { return <main>Body</main> }\n' > "$t_entry_popup/app/reports/templates/PrintBody.tsx"
+  local t_entry_popup_manifest t_entry_popup_status t_entry_popup_parent t_entry_popup_children
+  t_entry_popup_manifest="$(mktemp)"
+  t_entry_popup_status=0
+  bash "$0" "$t_entry_popup" "$t_entry_popup_manifest" >/dev/null 2>&1 || t_entry_popup_status=$?
+  t_entry_popup_parent="$(jq -r '.screens[] | select(.route == "/reports/print") | .parentScreen' "$t_entry_popup_manifest" 2>/dev/null || true)"
+  t_entry_popup_children="$(jq -r '[.screens[] | select(.route == "/reports") | .childComponents[]? | select(.componentType == "popup")] | length' "$t_entry_popup_manifest" 2>/dev/null || true)"
+  if [ "$t_entry_popup_status" -eq 0 ] && [ "$t_entry_popup_parent" = "null" ] && [ "$t_entry_popup_children" -eq 0 ]; then
+    test_report "1-10-entry自身window.open-popup誤判定防止" 0
+  else
+    test_report "1-10-entry自身window.open-popup誤判定防止" 1 "status=$t_entry_popup_status parent='$t_entry_popup_parent' popupChildren='$t_entry_popup_children'"
+  fi
+  rm -f "$t_entry_popup_manifest"
+
+  # --- 1-10: 非UI helperのwindow.openは、popup判定根拠にしない ---
+  local t_helper_popup="$root/t_helper_popup"
+  mkdir -p "$t_helper_popup/app/helper/print" "$t_helper_popup/app/helper/lib"
+  printf 'module.exports = {}\n' > "$t_helper_popup/next.config.js"
+  printf 'export default function Page() { return <main>Helper</main> }\n' > "$t_helper_popup/app/helper/page.tsx"
+  printf '%s\n' \
+    'import { openWindow } from "../lib/open-window"' \
+    'import { openWindowTsx } from "../lib/open-window-tsx"' \
+    'export default function Page() { return <main onClick={() => { openWindow(); openWindowTsx() }}>Print</main> }' > "$t_helper_popup/app/helper/print/page.tsx"
+  printf 'export const openWindow = () => window.open("/helper-only")\n' > "$t_helper_popup/app/helper/lib/open-window.ts"
+  printf '%s\n' \
+    'export const identity = <T>(value: T) => value' \
+    'export function assertValue(value: unknown) { window.open("/assert"); return <T>value }' \
+    'export const openWindowTsx = () => window.open("/helper-tsx-only")' > "$t_helper_popup/app/helper/lib/open-window-tsx.tsx"
+  printf 'export const View = () => <main>Lower</main>\n' > "$t_helper_popup/ui-lower.tsx"
+  printf 'export const View = () => <PreviewPane />\n' > "$t_helper_popup/ui-self-closing.tsx"
+  printf 'export const View = () => <PreviewPane>Body</PreviewPane>\n' > "$t_helper_popup/ui-closing.tsx"
+  printf 'export const View = () => React.createElement("main", null, "React")\n' > "$t_helper_popup/ui-react.js"
+  printf 'render_template("preview")\n' > "$t_helper_popup/ui-template.rb"
+  local t_helper_popup_manifest t_helper_popup_status t_helper_popup_parent t_helper_popup_children
+  t_helper_popup_manifest="$(mktemp)"
+  t_helper_popup_status=0
+  bash "$0" "$t_helper_popup" "$t_helper_popup_manifest" >/dev/null 2>&1 || t_helper_popup_status=$?
+  t_helper_popup_parent="$(jq -r '.screens[] | select(.route == "/helper/print") | .parentScreen' "$t_helper_popup_manifest" 2>/dev/null || true)"
+  t_helper_popup_children="$(jq -r '[.screens[] | select(.route == "/helper") | .childComponents[]? | select(.componentType == "popup")] | length' "$t_helper_popup_manifest" 2>/dev/null || true)"
+  if [ "$t_helper_popup_status" -eq 0 ] && [ "$t_helper_popup_parent" = "null" ] && [ "$t_helper_popup_children" -eq 0 ]; then
+    test_report "1-10-非UI-helper-window.open-popup誤判定防止" 0
+  else
+    test_report "1-10-非UI-helper-window.open-popup誤判定防止" 1 "status=$t_helper_popup_status parent='$t_helper_popup_parent' popupChildren='$t_helper_popup_children'"
+  fi
+  if ! has_ui_rendering_evidence "$t_helper_popup/app/helper/lib/open-window-tsx.tsx" \
+    && has_ui_rendering_evidence "$t_helper_popup/ui-lower.tsx" \
+    && has_ui_rendering_evidence "$t_helper_popup/ui-self-closing.tsx" \
+    && has_ui_rendering_evidence "$t_helper_popup/ui-closing.tsx" \
+    && has_ui_rendering_evidence "$t_helper_popup/ui-react.js" \
+    && has_ui_rendering_evidence "$t_helper_popup/ui-template.rb"; then
+    test_report "1-10-UI描画根拠-型アサーション境界" 0
+  else
+    test_report "1-10-UI描画根拠-型アサーション境界" 1
+  fi
+  rm -f "$t_helper_popup_manifest"
+
+  rm -rf "$root"
+
+  echo "self-test: ${PASS_COUNT} PASS, ${FAIL_COUNT} FAIL" >&2
+  [ "$FAIL_COUNT" -eq 0 ]
+}
+
+if [ "${1:-}" = "--self-test" ]; then
+  if run_self_tests; then
+    exit 0
+  else
+    exit 1
+  fi
+fi
+
+if [ "${1:-}" = "--resolve-files" ]; then
+  shift
+  if [ "$#" -ne 3 ]; then
+    echo "Usage: detect-screens.sh --resolve-files <manifest-in> <source-dir> <manifest-out>" >&2
+    exit 1
+  fi
+  resolve_files_subcommand "$1" "$2" "$3"
+  exit 0
+fi
+
+if [ "${1:-}" = "--profile" ]; then
+  shift
+  run_detect_screens_profile "$@"
+  exit $?
+fi
+
+# ============================================================================
+# 既存の画面検出フロー(変更なし)
+# ============================================================================
+
+SCREEN_ID_REGEX=""
+VIEW_SWITCH_PATTERN=""
+EXCLUDE_PATTERN=""
+STRATEGY_JSON_FILE=""
+ACCOUNT_GROUP_MAP_FILE=""
+POSITIONAL=()
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --screen-id-regex)
+      SCREEN_ID_REGEX="${2:-}"
+      shift 2
+      ;;
+    --view-switch-pattern)
+      VIEW_SWITCH_PATTERN="${2:-}"
+      shift 2
+      ;;
+    --exclude)
+      EXCLUDE_PATTERN="${2:-}"
+      shift 2
+      ;;
+    --strategy-json)
+      STRATEGY_JSON_FILE="${2:-}"
+      shift 2
+      ;;
+    --account-group-map)
+      ACCOUNT_GROUP_MAP_FILE="${2:-}"
+      shift 2
+      ;;
+    --)
+      shift
+      while [ $# -gt 0 ]; do
+        POSITIONAL+=("$1")
+        shift
+      done
+      ;;
+    -*)
+      echo "ERROR: unknown option: $1" >&2
+      exit 1
+      ;;
+    *)
+      POSITIONAL+=("$1")
+      shift
+      ;;
+  esac
+done
+
+if [ "${#POSITIONAL[@]}" -lt 2 ]; then
+  echo "Usage: detect-screens.sh <source-dir> <manifest-out-path> [--screen-id-regex <ERE>] [--view-switch-pattern <ERE>] [--exclude <ERE>] [--strategy-json <file>] [--account-group-map <file>]" >&2
+  exit 1
+fi
+SOURCE_DIR="${POSITIONAL[0]}"
+MANIFEST_OUT="${POSITIONAL[1]}"
+
+if [ ! -d "$SOURCE_DIR" ]; then
+  echo "ERROR: source-dir not found: $SOURCE_DIR" >&2
+  exit 1
+fi
+SOURCE_DIR="$(cd "$SOURCE_DIR" && pwd)"
+
+if [ -n "$STRATEGY_JSON_FILE" ] && [ ! -f "$STRATEGY_JSON_FILE" ]; then
+  echo "ERROR: --strategy-json file not found: $STRATEGY_JSON_FILE" >&2
+  exit 1
+fi
+
+# --- デフォルト除外(node_modules/tests/stories系ディレクトリ・test/spec/storiesファイル) ---
+DEFAULT_EXCLUDE_ERE='(^|/)(node_modules|tests|__tests__|test|__mocks__|stories)(/|$)|\.(test|spec|stories)\.[^/]+$'
+EXCLUDE_REGEX="$DEFAULT_EXCLUDE_ERE"
+if [ -n "$EXCLUDE_PATTERN" ]; then
+  EXCLUDE_REGEX="${EXCLUDE_REGEX}|${EXCLUDE_PATTERN}"
+fi
+
+# --- 検出方式の決定(戦略宣言を最優先) ---
+# strategy JSON の extractionMethod が builtin-* を指定していれば該当検出器のみを使う。
+# 未指定/custom/auto の場合は自動チェーン。ただし自動チェーンの Next.js 判定は
+# next.config.* の実在(SOURCE_DIR/その親/祖父)を必須とする。Vite+React Router プロジェクトの
+# 慣習的な src/pages/ ディレクトリを Next.js Pages Router と誤判定した実害への対策。
+FORCED_METHOD=""
+if [ -n "$STRATEGY_JSON_FILE" ]; then
+  FORCED_METHOD="$(grep -ao '"extractionMethod"[[:space:]]*:[[:space:]]*"[^"]*"' "$STRATEGY_JSON_FILE" 2>/dev/null \
+    | head -1 | sed -E 's/.*"extractionMethod"[[:space:]]*:[[:space:]]*"([^"]*)".*/\1/' || true)"
+  case "$FORCED_METHOD" in
+    builtin-nextjs-app|builtin-nextjs-pages|builtin-react-router|builtin-fallback) ;;
+    *) FORCED_METHOD="" ;;
+  esac
+fi
+
+has_next_config() {
+  local d
+  for d in "$SOURCE_DIR" "$SOURCE_DIR/.." "$SOURCE_DIR/../.."; do
+    if ls "$d"/next.config.* >/dev/null 2>&1; then
+      return 0
+    fi
+  done
+  return 1
+}
+
+allow_method() {
+  # $1: 検出器名。FORCED_METHOD 指定時はそれのみ許可。
+  # 自動チェーン時、Next.js 系は next.config.* の実在を必須とする。
+  local m="$1"
+  if [ -n "$FORCED_METHOD" ]; then
+    [ "$m" = "$FORCED_METHOD" ]
+    return
+  fi
+  case "$m" in
+    builtin-nextjs-app|builtin-nextjs-pages) has_next_config ;;
+    *) return 0 ;;
+  esac
+}
+
+TMP_ROWS="$(mktemp)"
+SEEN_KEYS_FILE="$(mktemp)"
+TMP_MERGED="$(mktemp)"
+TMP_KEYED="$(mktemp)"
+TMP_EMBEDDED="$(mktemp)"
+TMP_ALL="$(mktemp)"
+TMP_CLUSTERS="$(mktemp)"
+trap 'rm -f "$TMP_ROWS" "$SEEN_KEYS_FILE" "$TMP_MERGED" "$TMP_KEYED" "$TMP_EMBEDDED" "$TMP_ALL" "$TMP_CLUSTERS" "$RESOLVE_COMMON_AWK_FILE" "$RESOLVE_AWK_FILE" "$RESOLVE_BATCH_AWK_FILE" "${STRATEGY_SHARED_FILE:-}" "${STRATEGY_ALIAS_FILE:-}" "${STRATEGY_ALL_ENTRIES_FILE:-}"' EXIT
+
+detection_method=""
+
+# --- 1. Next.js App Router ---
+if allow_method "builtin-nextjs-app" && [ -d "$SOURCE_DIR/app" ]; then
+  pagefiles="$(find "$SOURCE_DIR/app" -type f \( -name "page.tsx" -o -name "page.jsx" -o -name "page.js" \) 2>/dev/null | grep -av node_modules | grep -aEv "$EXCLUDE_REGEX" || true)"
+  if [ -n "$pagefiles" ]; then
+    detection_method="nextjs-app"
+    while IFS= read -r pagefile; do
+      [ -z "$pagefile" ] && continue
+      rel="${pagefile#"$SOURCE_DIR"/app}"
+      rel="${rel%/page.*}"
+      [ -z "$rel" ] && rel="/"
+      route="$(printf '%s' "$rel" | sed -E 's#/\([^)]*\)##g')"
+      [ -z "$route" ] && route="/"
+      route="$(printf '%s' "$route" | sed -E 's#\[\.\.\.[^]]+\]#*#g; s#\[([^]]+)\]#:\1#g')"
+      entry_dir="$(dirname "$pagefile")"
+      printf '%s\t%s\t%s\t%s\n' "$route" "$entry_dir" "$pagefile" "high" >> "$TMP_ROWS"
+    done <<< "$pagefiles"
+  fi
+fi
+
+# --- 2. Next.js Pages Router ---
+if allow_method "builtin-nextjs-pages" && [ -z "$detection_method" ] && [ -d "$SOURCE_DIR/pages" ]; then
+  pagefiles="$(find "$SOURCE_DIR/pages" -type f \( -name "*.tsx" -o -name "*.jsx" -o -name "*.js" \) 2>/dev/null \
+    | grep -av node_modules \
+    | grep -aEv '/_app\.[jt]sx?$' \
+    | grep -aEv '/_document\.[jt]sx?$' \
+    | grep -aEv '/api/' \
+    | grep -aEv "$EXCLUDE_REGEX" || true)"
+  if [ -n "$pagefiles" ]; then
+    detection_method="nextjs-pages"
+    while IFS= read -r pagefile; do
+      [ -z "$pagefile" ] && continue
+      rel="${pagefile#"$SOURCE_DIR"/pages}"
+      rel="${rel%.*}"
+      rel="${rel%/index}"
+      [ -z "$rel" ] && rel="/"
+      route="$(printf '%s' "$rel" | sed -E 's#\[\.\.\.[^]]+\]#*#g; s#\[([^]]+)\]#:\1#g')"
+      entry_dir="$(dirname "$pagefile")"
+      printf '%s\t%s\t%s\t%s\n' "$route" "$entry_dir" "$pagefile" "high" >> "$TMP_ROWS"
+    done <<< "$pagefiles"
+  fi
+fi
+
+# --- 3. React Router (フラット抽出 + useRoutes/createBrowserRouter の1段 import 追跡) ---
+# extract_route_paths() の定義は --self-test (run_self_tests 内の 10-3 テスト)
+# から呼び出すため、self-test 分岐(--self-test 到達時に本箇所より前で exit する)
+# より前(--self-test セクション直前)へ移動済み。
+
+if allow_method "builtin-react-router" && [ -z "$detection_method" ]; then
+  router_files="$(grep -arlE 'createBrowserRouter|createHashRouter|useRoutes|<Route\b' "$SOURCE_DIR" \
+    --include='*.tsx' --include='*.jsx' --include='*.ts' --include='*.js' 2>/dev/null \
+    | grep -av node_modules | grep -aEv "$EXCLUDE_REGEX" || true)"
+  if [ -n "$router_files" ]; then
+    detection_method="react-router"
+    while IFS= read -r rf; do
+      [ -z "$rf" ] && continue
+      routes="$(extract_route_paths "$rf")"
+      resolved_file="$rf"
+      if [ -z "$routes" ]; then
+        # 2段階追跡: useRoutes(識別子) / createBrowserRouter(識別子) のように
+        # 引数がインライン配列ではなく識別子の場合、import 元を1段だけ辿って定義ファイルを解決する
+        ident="$(grep -aoE '(useRoutes|createBrowserRouter)\([[:space:]]*[A-Za-z_$][A-Za-z0-9_$]*[[:space:]]*\)' "$rf" 2>/dev/null \
+          | head -1 | sed -E 's/^(useRoutes|createBrowserRouter)\([[:space:]]*//; s/[[:space:]]*\)$//' || true)"
+        if [ -n "$ident" ]; then
+          import_line="$(grep -aE "^import[[:space:]].*\\b${ident}\\b.*from" "$rf" 2>/dev/null | head -1 || true)"
+          if [ -n "$import_line" ]; then
+            import_path="$(printf '%s' "$import_line" | grep -aoE "['\"][^'\"]+['\"]" | head -1 | sed "s/^['\"]//; s/['\"]\$//" || true)"
+            if [ -n "$import_path" ]; then
+              import_base="$(basename "$import_path")"
+              import_base="${import_base%.*}"
+              target_file="$(find "$SOURCE_DIR" -type f \( -iname "${import_base}.tsx" -o -iname "${import_base}.jsx" -o -iname "${import_base}.ts" -o -iname "${import_base}.js" \) 2>/dev/null \
+                | grep -av node_modules | grep -aEv "$EXCLUDE_REGEX" | head -1 || true)"
+              if [ -z "$target_file" ]; then
+                # import 先がディレクトリ(index.{tsx,jsx,ts,js})の場合のフォールバック解決
+                target_dir="$(find "$SOURCE_DIR" -type d -iname "$import_base" 2>/dev/null \
+                  | grep -av node_modules | grep -aEv "$EXCLUDE_REGEX" | head -1 || true)"
+                if [ -n "$target_dir" ]; then
+                  target_file="$(find "$target_dir" -maxdepth 1 -type f \( -iname "index.tsx" -o -iname "index.jsx" -o -iname "index.ts" -o -iname "index.js" \) 2>/dev/null | head -1 || true)"
+                fi
+              fi
+              if [ -n "$target_file" ]; then
+                target_routes="$(extract_route_paths "$target_file")"
+                if [ -n "$target_routes" ]; then
+                  routes="$target_routes"
+                  resolved_file="$target_file"
+                fi
+              fi
+            fi
+          fi
+        fi
+      fi
+      [ -z "$routes" ] && continue
+      while IFS= read -r route; do
+        [ -z "$route" ] && continue
+        printf '%s\t%s\t%s\t%s\n' "$route" "$(dirname "$resolved_file")" "$resolved_file" "medium" >> "$TMP_ROWS"
+      done <<< "$routes"
+    done <<< "$router_files"
+  fi
+fi
+
+# --- 4. フォールバック: 慣習ディレクトリ ---
+if allow_method "builtin-fallback" && [ -z "$detection_method" ]; then
+  for conv in pages screens views; do
+    conv_dir="$(find "$SOURCE_DIR" -maxdepth 4 -type d -iname "$conv" 2>/dev/null | grep -av node_modules | grep -aEv "$EXCLUDE_REGEX" | head -1 || true)"
+    if [ -n "$conv_dir" ]; then
+      entries="$(find "$conv_dir" -mindepth 1 -maxdepth 1 2>/dev/null | grep -aEv "$EXCLUDE_REGEX" || true)"
+      [ -z "$entries" ] && continue
+      detection_method="fallback-directory"
+      while IFS= read -r entry; do
+        [ -z "$entry" ] && continue
+        if [ -d "$entry" ]; then
+          entry_dir="$entry"
+        else
+          entry_dir="$(dirname "$entry")"
+        fi
+        printf '不明（フォールバック検出）\t%s\t%s\t%s\n' "$entry_dir" "$entry" "low" >> "$TMP_ROWS"
+      done <<< "$entries"
+      break
+    fi
+  done
+fi
+
+# --- 5. ハード停止 ---
+if [ -z "$detection_method" ] || [ ! -s "$TMP_ROWS" ]; then
+  mkdir -p "$(dirname "$MANIFEST_OUT")"
+  cat > "$MANIFEST_OUT" <<EOF
+{
+  "generatedAt": null,
+  "sourceDir": "$SOURCE_DIR",
+  "detectionSummary": {"method": "none", "screenCount": 0},
+  "screens": []
+}
+EOF
+  echo "DETECTION_FAILED: ルーティング定義も慣習ディレクトリも検出できませんでした ($SOURCE_DIR)" >&2
+  exit 3
+fi
+
+# --- 画面キー生成関数(意味キー規約準拠) ---
+# 注意: bash 3.2 (macOS標準/bin/bash) 互換のため declare -A / mapfile は使わない。
+# 空配列を printf '%s\n' "${arr[@]}" に渡すとフォーマットが1回だけ評価され
+# 空行が1行出力される bash の仕様があるため、要素数ガードを必ず入れる。
+static_segments() {
+  local route="$1"
+  local -a segs
+  IFS='/' read -ra segs <<< "$route"
+  local out=()
+  for s in "${segs[@]}"; do
+    [ -z "$s" ] && continue
+    case "$s" in
+      :*|\**) continue ;;
+    esac
+    out+=("$s")
+  done
+  if [ "${#out[@]}" -gt 0 ]; then
+    printf '%s\n' "${out[@]}"
+  fi
+}
+
+read_segments_into() {
+  # $1: route, 結果はグローバル配列 SEGS_RESULT に格納(mapfile不使用でbash3.2互換)
+  local route="$1"
+  SEGS_RESULT=()
+  local line
+  while IFS= read -r line; do
+    SEGS_RESULT+=("$line")
+  done < <(static_segments "$route")
+}
+
+key_from_tail() {
+  local route="$1" n="$2"
+  read_segments_into "$route"
+  local total="${#SEGS_RESULT[@]}"
+  if [ "$total" -eq 0 ]; then
+    echo "top"
+    return
+  fi
+  local start=$(( total - n ))
+  [ "$start" -lt 0 ] && start=0
+  local key=""
+  local i
+  for ((i=start; i<total; i++)); do
+    key="${key}${key:+-}${SEGS_RESULT[$i]}"
+  done
+  echo "$key"
+}
+
+# seen_keys は連想配列(bash4+専用)を使わず、改行区切りファイル($SEEN_KEYS_FILE)で管理する(bash3.2互換)
+key_seen() {
+  grep -aqxF "$1" "$SEEN_KEYS_FILE" 2>/dev/null
+}
+mark_seen() {
+  printf '%s\n' "$1" >> "$SEEN_KEYS_FILE"
+}
+
+# キー正規化: 連続ハイフンの縮約・先頭/末尾ハイフンの除去(意味キー品質の担保)
+norm_key() {
+  local k
+  k="$(printf '%s' "$1" | sed -E 's/-+/-/g; s/^-+//; s/-+$//')"
+  [ -z "$k" ] && k="top"
+  printf '%s' "$k"
+}
+
+# --- 完全重複の事前マージ(同一 route + entryFile を1行に集約し、routeDupCount を保持) ---
+# dirkey 経路での偶発的なキー重複バグ(問題3)を構造的に解消する: 同一 (route, entryFile) が
+# 複数回出現しても、キー生成前に1行へ縮約されるため重複キーが発生しない。
+awk -F'\t' '
+{
+  k = $1 SUBSEP $3
+  if (!(k in seen)) {
+    order[++n] = k
+    r[k] = $1
+    ed[k] = $2
+    ef[k] = $3
+    cf[k] = $4
+  }
+  seen[k]++
+}
+END {
+  for (i = 1; i <= n; i++) {
+    k = order[i]
+    printf "%s\t%s\t%s\t%s\t%d\n", r[k], ed[k], ef[k], cf[k], seen[k]
+  }
+}
+' "$TMP_ROWS" > "$TMP_MERGED"
+
+# --- キー採番(保険として dirkey 付与後も再衝突検証を行う) ---
+while IFS=$'\t' read -r route entry_dir entry_file confidence dupcount; do
+  read_segments_into "$route"
+  total="${#SEGS_RESULT[@]}"
+  n=1
+  key="$(key_from_tail "$route" "$n")"
+  while key_seen "$key"; do
+    n=$((n+1))
+    if [ "$n" -gt "$total" ]; then
+      # ソースディレクトリからの相対パスでキーを具体化する(絶対パス・ユーザー名の混入を避ける)
+      rel_dir="${entry_dir#"$SOURCE_DIR"}"
+      rel_dir="${rel_dir#/}"
+      dirkey="$(printf '%s' "$rel_dir" | sed -E 's#[/ ]+#-#g' | tr '[:upper:]' '[:lower:]')"
+      # entry_dir が SOURCE_DIR 直下等で dirkey が空になる場合は付与しない(末尾ハイフン防止)
+      [ -n "$dirkey" ] && key="${key}-${dirkey}"
+      break
+    fi
+    key="$(key_from_tail "$route" "$n")"
+  done
+  key="$(norm_key "$key")"
+  # 保険: dirkey付与後もなお衝突する場合は entry_file の basename(拡張子なし・小文字化)で具体化する
+  if key_seen "$key"; then
+    base_noext="$(basename "$entry_file")"
+    base_noext="${base_noext%.*}"
+    base_noext_lc="$(printf '%s' "$base_noext" | tr '[:upper:]' '[:lower:]')"
+    key="$(norm_key "${key}-${base_noext_lc}")"
+  fi
+  mark_seen "$key"
+  kind="route"
+  row_confidence="$confidence"
+  if [ -z "$entry_file" ]; then
+    kind="unresolved"
+    row_confidence="low"
+  fi
+  printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' "$key" "$kind" "$route" "$entry_dir" "$entry_file" "$row_confidence" "$dupcount" "" >> "$TMP_KEYED"
+done < "$TMP_MERGED"
+
+# --- JSON エスケープ (最小限: バックスラッシュとダブルクォートのみ) ---
+json_escape() {
+  printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'
+}
+
+# --- screenId 抽出 ---
+extract_screen_id() {
+  local file="$1"
+  [ -z "$SCREEN_ID_REGEX" ] && return 0
+  [ -z "$file" ] && return 0
+  local base
+  base="$(basename "$file")"
+  base="${base%.*}"
+  printf '%s' "$base" | grep -aoE "$SCREEN_ID_REGEX" | head -1 || true
+}
+
+# 画面の階層分類を判定する
+classify_screen() {
+  local screen_key="$1" entry_file="$2" detection_method="$3" route_path="$4" analysis_files="${5:-$2}"
+  local screen_type="unknown" account_group="common" account_sub_type="common"
+  local has_template="false" is_processing_endpoint="false" component_type=""
+  local has_processing_evidence="false"
+  local parent_screen="null"
+  local analysis_file analysis_file_array=()
+  while IFS= read -r analysis_file; do
+    [ -f "$analysis_file" ] && analysis_file_array+=("$analysis_file")
+  done <<< "$analysis_files"
+
+  # Level 1: 許可値へ正規化する。mapの無効値はフォールバックではなく common とする。
+  local account_group_explicit="false" map_pattern map_value
+  normalize_account_group() {
+    case "$(printf '%s' "$1" | tr '[:upper:]' '[:lower:]')" in
+      user|admin|editor|report|common) printf '%s' "$(printf '%s' "$1" | tr '[:upper:]' '[:lower:]')" ;;
+      *) printf '%s' "" ;;
+    esac
+  }
+
+  if [ -n "$ACCOUNT_GROUP_MAP_FILE" ] && [ -f "$ACCOUNT_GROUP_MAP_FILE" ]; then
+    while IFS=$'\t' read -r map_pattern map_value; do
+      [ -z "$map_pattern" ] && continue
+      case "$detection_method" in
+        $map_pattern)
+          account_group="$(normalize_account_group "$map_value")"
+          [ -n "$account_group" ] || account_group="common"
+          account_group_explicit="true"
+          break
+          ;;
+      esac
+      case "$route_path" in
+        $map_pattern)
+          account_group="$(normalize_account_group "$map_value")"
+          [ -n "$account_group" ] || account_group="common"
+          account_group_explicit="true"
+          break
+          ;;
+      esac
+    done < "$ACCOUNT_GROUP_MAP_FILE"
+  fi
+
+  if [ "$account_group_explicit" = "false" ]; then
+    case "$route_path" in
+      /admin|/admin/*) account_group="admin" ;;
+      /editor|/editor/*) account_group="editor" ;;
+      /report|/report/*|/reports|/reports/*) account_group="report" ;;
+      /user|/user/*|/users|/users/*|/member|/member/*) account_group="user" ;;
+    esac
+  fi
+  if [ "$account_group_explicit" = "false" ] && [ "$account_group" = "common" ]; then
+    case "$(printf '%s' "$detection_method" | tr '[:upper:]' '[:lower:]')" in
+      *admin*|*manage*) account_group="admin" ;;
+      *editor*) account_group="editor" ;;
+      *report*) account_group="report" ;;
+      *user*|*member*|*customer*) account_group="user" ;;
+    esac
+  fi
+
+  # Level 2: 権限区分はentryFileだけでなくBFS解決済みファイル全体から判定する。
+  local role_match branch_lines branch_role_match
+  if [ "${#analysis_file_array[@]}" -gt 0 ]; then
+    # 明示roleは全ファイルを先に検索し、分岐ヒントより常に優先する。
+    role_match="$(awk '
+      function last_quoted_literal(source,    rest, token, value) {
+        rest = source
+        value = ""
+        while (match(rest, /["\047][A-Za-z_][A-Za-z0-9_]*["\047]/)) {
+          token = substr(rest, RSTART + 1, RLENGTH - 2)
+          value = token
+          rest = substr(rest, RSTART + RLENGTH)
+        }
+        return value
+      }
+      function first_quoted_literal(source,    token) {
+        if (match(source, /["\047][A-Za-z_][A-Za-z0-9_]*["\047]/)) {
+          token = substr(source, RSTART + 1, RLENGTH - 2)
+          return token
+        }
+        return ""
+      }
+      {
+        if (match($0, /(requireRole|hasRole|@RolesAllowed)[^(]*\([^)]*\)/)) {
+          scope = substr($0, RSTART, RLENGTH)
+          value = first_quoted_literal(scope)
+          if (value != "") { print value; exit }
+          line = scope
+          sub(/.*(requireRole|hasRole|@RolesAllowed)[^[:alnum:]_]+/, "", line)
+          if (match(line, /^[A-Za-z_][A-Za-z0-9_]*/)) {
+            print substr(line, RSTART, RLENGTH)
+            exit
+          }
+        }
+        if (match($0, /roles[[:space:]]*:[[:space:]]*\[[^]]*\]/)) {
+          scope = substr($0, RSTART, RLENGTH)
+          value = first_quoted_literal(scope)
+          if (value != "") { print value; exit }
+        }
+        if (match($0, /role[[:space:]]*=[[:space:]]*["\047][A-Za-z_][A-Za-z0-9_]*["\047]/)) {
+          scope = substr($0, RSTART, RLENGTH)
+          value = last_quoted_literal(scope)
+          if (value != "") { print value; exit }
+        }
+      }
+    ' "${analysis_file_array[@]}" 2>/dev/null || true)"
+    if [ -n "$role_match" ]; then
+      account_sub_type="$role_match"
+    else
+      branch_lines="$(grep -ahm1 -E '(if|switch|case).*(role|permission|auth|access)' "${analysis_file_array[@]}" 2>/dev/null || true)"
+      branch_role_match="${branch_lines%%$'\n'*}"
+      [ -n "$branch_role_match" ] && account_sub_type="role_checked"
+    fi
+  fi
+
+  # Level 3: 分離テンプレート・副作用importも含めてDOMとテンプレート実体を判定する。
+  local has_form="false" has_table="false" dom_scan="" template_scan=""
+  if [ "${#analysis_file_array[@]}" -gt 0 ]; then
+    dom_scan="$(grep -ahoE '<form[[:space:]>]|<table[[:space:]>]' "${analysis_file_array[@]}" 2>/dev/null || true)"
+    template_scan="$(grep -ahoE '(render|render_template|renderToString|template|view|include|includeTemplate)[[:space:]]*\(|React\.createElement[[:space:]]*\(|return[[:space:]]*\(?[[:space:]]*<[[:alpha:]]' "${analysis_file_array[@]}" 2>/dev/null || true)"
+  fi
+  case "$dom_scan" in *"<form"*) has_form="true" ;; esac
+  case "$dom_scan" in *"<table"*) has_table="true" ;; esac
+  [ -n "$template_scan" ] && has_template="true"
+  for analysis_file in "${analysis_file_array[@]}"; do
+    case "$analysis_file" in
+      *.html|*.htm|*.tt|*.tx|*.tsx|*.jsx|*.vue|*.svelte) has_template="true" ;;
+    esac
+  done
+  if [ "$has_form" = "true" ]; then
+    screen_type="form"
+  elif [ "$has_table" = "true" ]; then
+    screen_type="list"
+  fi
+
+  # basename_lower: モーダル判定(2272行)でも参照するため、screenType判定の外で代入する
+  local basename_lower
+  basename_lower="$(basename "$entry_file" 2>/dev/null | tr '[:upper:]' '[:lower:]')"
+
+  # (2) 名前・routeキーワード(補助。DOMで判定できなかった場合のみ)
+  # App Router の entryFile は page.* で固定されるため、basenameだけでは
+  # /confirm/page.tsx のような画面種別を区別できない。routeとscreenKeyも
+  # 補助根拠にし、境界で区切られた語だけを扱って曖昧な部分一致を避ける。
+  if [ "$screen_type" = "unknown" ]; then
+    local screen_type_hints
+    screen_type_hints="$(printf '%s\n%s\n%s' "$basename_lower" "$screen_key" "$route_path" | tr '[:upper:]' '[:lower:]')"
+    if printf '%s\n' "$screen_type_hints" | grep -aqE '(^|[/_.-])(confirm|confirmation)([/_.-]|$)'; then
+      screen_type="confirm"
+    elif printf '%s\n' "$screen_type_hints" | grep -aqE '(^|[/_.-])(complete|completion|done|finish)([/_.-]|$)'; then
+      screen_type="complete"
+    elif printf '%s\n' "$screen_type_hints" | grep -aqE '(^|[/_.-])(error|404|500)([/_.-]|$)'; then
+      screen_type="error"
+    elif printf '%s\n' "$screen_type_hints" | grep -aqE '(^|[/_.-])(list|index|search)([/_.-]|$)'; then
+      screen_type="list"
+    elif printf '%s\n' "$screen_type_hints" | grep -aqE '(^|[/_.-])(edit|form|input|new|create|update)([/_.-]|$)'; then
+      screen_type="form"
+    elif printf '%s\n' "$screen_type_hints" | grep -aqE '(^|[/_.-])(top|home|dashboard)([/_.-]|$)'; then
+      screen_type="top"
+    elif printf '%s\n' "$screen_type_hints" | grep -aqE '(^|[/_.-])(detail|show|view)([/_.-]|$)'; then
+      screen_type="detail"
+    fi
+  fi
+
+  # unknown かつテンプレートありは、テンプレート実体がありUIを持つが一覧でも
+  # フォームでもエラーでもない画面として、最も汎用的な detail(詳細/参照画面)へ倒す
+  if [ "$screen_type" = "unknown" ] && [ "$has_template" = "true" ]; then
+    screen_type="detail"
+  fi
+
+  # isProcessingEndpoint: UI/テンプレートが見つからないだけでは処理エンドポイントに
+  # しない。entryFile自身のリダイレクトまたは非HTML応答を根拠にする。
+  if [ -f "$entry_file" ] && grep -aqE '(redirect[[:space:]]*\(|NextResponse\.redirect[[:space:]]*\(|res\.redirect[[:space:]]*\(|return[[:space:]]+new[[:space:]]+Response[[:space:]]*\(|res\.(json|send)[[:space:]]*\(|Content-Type[^[:cntrl:]]*(application/json|text/plain|application/octet-stream))' "$entry_file" 2>/dev/null; then
+    has_processing_evidence="true"
+  fi
+  if [ "$has_template" = "false" ] && [ "$screen_type" = "unknown" ] && [ "$has_processing_evidence" = "true" ]; then
+    is_processing_endpoint="true"
+    screen_type="processing_endpoint"
+  elif [ "$screen_type" = "unknown" ]; then
+    # UI/処理のどちらとも断定できないファイルは処理エンドポイントへ倒さず、
+    # 汎用の参照画面(detail)として出力する。
+    screen_type="detail"
+  fi
+
+  # parentScreen: モーダル判定は画面自身のentryFileに限定する。BFS関連ファイルは
+  # テンプレート・権限の根拠には使うが、子モーダルのonClose等を親画面の性質として
+  # 扱うと、通常画面までモーダルとして誤って親子関係を持つ。
+  local entry_basename
+  entry_basename="$basename_lower"
+  local is_modal=false
+  local analysis_basename
+  if printf '%s\n%s\n' "$screen_key" "$route_path" | grep -qiE '(^|[/._-])(modal|dialog|popup|drawer)([/._-]|$)'; then
+    is_modal=true
+    case "$(printf '%s %s' "$screen_key" "$route_path" | tr '[:upper:]' '[:lower:]')" in
+      *iframe*) component_type="iframe" ;;
+      *popup*|*window*) component_type="popup" ;;
+      *) component_type="modal" ;;
+    esac
+  fi
+  # 通常route自身の開閉イベントは、モーダルである根拠にならない。isOpen/onClose
+  # は通常画面にも現れるため、挙動の一致だけで親子関係を作ると、同一entryFile
+  # から検出された別routeを親としてしまう。一方、BFSで解決した分離テンプレート
+  # 内の明示的な新規window/popup呼出しは、通常routeでも判定根拠にする。
+  local has_template_popup=false popup_ui_files=()
+  for analysis_file in "${analysis_file_array[@]}"; do
+    [ "$analysis_file" = "$entry_file" ] && continue
+    local popup_ui_evidence=false
+    if has_ui_rendering_evidence "$analysis_file"; then
+      popup_ui_evidence=true
+    fi
+    [ "$popup_ui_evidence" = true ] && popup_ui_files+=("$analysis_file")
+  done
+  if [ "${#popup_ui_files[@]}" -gt 0 ] \
+    && grep -aqiE '(window\.open|showModal[[:space:]]*\(|openPopup[[:space:]]*\(|open[[:alnum:]_]*Window[[:space:]]*\()' "${popup_ui_files[@]}" 2>/dev/null; then
+    has_template_popup=true
+  fi
+  if [ "$detection_method" != "embedded-view-heuristic" ] && [ "$has_template_popup" = true ]; then
+    is_modal=true
+    component_type="popup"
+  fi
+  if [ "$detection_method" = "embedded-view-heuristic" ] && [ -f "$entry_file" ]; then
+    analysis_basename="$(basename "$entry_file" 2>/dev/null | tr '[:upper:]' '[:lower:]')"
+    if grep -aqiE '(window\.open|showModal|isOpen|isVisible|onClose|handleClose|position[[:space:]]*:[[:space:]]*fixed|<iframe)' "$entry_file" 2>/dev/null; then
+      is_modal=true
+      case "$analysis_basename" in
+        *iframe*|*.iframe.*) component_type="iframe" ;;
+        *popup*|*window*|*open*) [ -n "$component_type" ] || component_type="popup" ;;
+        *) [ -n "$component_type" ] || component_type="modal" ;;
+      esac
+    fi
+  fi
+  [ "$is_modal" = "true" ] && [ -z "$component_type" ] && component_type="modal"
+
+  if [ "$is_modal" = true ]; then
+    # 同一ディレクトリを優先し、見つからなければ祖先ディレクトリにある
+    # 非モーダル画面の実在screenKeyを親として解決する。App Routerでは
+    # /user/page.tsx と /user/edit-modal/page.tsx がこの関係になる。
+    local parent_dir
+    if [ -d "$entry_file" ]; then
+      parent_dir="$entry_file"
+    else
+      parent_dir=$(dirname "$entry_file")
+    fi
+    local parent_key parent_route_candidate parent_search_dir parent_next_dir
+    parent_key=""
+    parent_route_candidate="$route_path"
+    while [ -z "$parent_key" ] && [ -n "$parent_route_candidate" ] && [ "$parent_route_candidate" != "/" ]; do
+      case "$parent_route_candidate" in
+        */*) parent_route_candidate="${parent_route_candidate%/*}" ;;
+        *) parent_route_candidate="/" ;;
+      esac
+      [ -n "$parent_route_candidate" ] || parent_route_candidate="/"
+      # LC_ALL=Cで固定比較する: 既定ロケールのawkは日本語(マルチバイト)を含む
+      # フィールドの==比較を誤判定することがある。コミット
+      # 763861cd73b3b27f0e3b4c3441ead8b0155383b5「日本語比較の誤判定と配置由来の
+      # 空振りを直す」で実際に誤判定を修正した箇所であり、既定ロケールへ戻すな。
+      parent_key="$(LC_ALL=C awk -F'\t' -v child="$screen_key" -v route="$parent_route_candidate" '
+        $1 != child && $3 == route { print $1; exit }
+      ' "$TMP_ALL" 2>/dev/null || true)"
+    done
+    parent_search_dir="$parent_dir"
+    while [ -z "$parent_key" ] && [ -n "$parent_search_dir" ]; do
+      parent_key="$(LC_ALL=C awk -F'\t' -v child="$screen_key" -v dir="$parent_search_dir" '
+        $1 != child && $4 == dir && $5 !~ /(modal|dialog|popup|drawer)/ { print $1; exit }
+      ' "$TMP_ALL" 2>/dev/null || true)"
+      [ -n "$parent_key" ] && break
+      [ "$parent_search_dir" = "$SOURCE_DIR" ] && break
+      parent_next_dir="$(dirname "$parent_search_dir")"
+      [ "$parent_next_dir" = "$parent_search_dir" ] && break
+      case "$parent_next_dir" in
+        "$SOURCE_DIR"|"$SOURCE_DIR"/*) parent_search_dir="$parent_next_dir" ;;
+        *) break ;;
+      esac
+    done
+    [ -n "$parent_key" ] && parent_screen="\"$(json_escape "$parent_key")\""
+  fi
+
+  printf '%s\t%s\t%s\t%s\t%s\t%s\t%s' "$screen_type" "$account_group" "$account_sub_type" "$has_template" "$is_processing_endpoint" "$parent_screen" "$component_type"
+}
+
+# --- 既に route 画面の entryFile として検出済みの basename(拡張子なし)集合 ---
+ROUTE_ENTRY_BASENAMES="$(awk -F'\t' '$2=="route"{n=$5; sub(/.*\//,"",n); sub(/\.[^.]*$/,"",n); if (n!="") print n}' "$TMP_KEYED" | sort -u)"
+
+# --- 埋め込みビュー検出(kind: "embedded-view") ---
+# --view-switch-pattern 指定時のみ。1階層 import grep による best-effort 解決(完全な import グラフ解析はしない)。
+# 同一 entryFile を複数の親画面が共有する場合(共有クラスタ)でも1回だけ処理し、
+# embeddedIn には当該 entryFile を持つ全親キーをカンマ結合で記録する(重複行防止)。
+if [ -n "$VIEW_SWITCH_PATTERN" ]; then
+  awk -F'\t' '$2=="route" && $5!="" {
+    if (!($5 in keys)) { order[++n]=$5 }
+    keys[$5] = keys[$5] ((keys[$5]=="")?"":",") $1
+  } END { for(i=1;i<=n;i++){ f=order[i]; print f "\t" keys[f] } }' "$TMP_KEYED" > "${TMP_EMBEDDED}.parents"
+  while IFS=$'\t' read -r entry_file parent_keys; do
+    [ -f "$entry_file" ] || continue
+    first_parent="${parent_keys%%,*}"
+    matching_lines="$(grep -aE "$VIEW_SWITCH_PATTERN" "$entry_file" 2>/dev/null || true)"
+    [ -z "$matching_lines" ] && continue
+    comps="$(printf '%s\n' "$matching_lines" | grep -aoE '<[A-Z][A-Za-z0-9]*' | sed 's/^<//' | sort -u || true)"
+    [ -z "$comps" ] && continue
+    while IFS= read -r comp; do
+      [ -z "$comp" ] && continue
+      if printf '%s\n' "$ROUTE_ENTRY_BASENAMES" | grep -aqxF "$comp"; then
+        continue
+      fi
+      import_line="$(grep -aE "^import.*${comp}.*from" "$entry_file" 2>/dev/null | head -1 || true)"
+      import_path=""
+      if [ -n "$import_line" ]; then
+        import_path="$(printf '%s' "$import_line" | grep -aoE "['\"][^'\"]+['\"]" | head -1 | sed "s/^['\"]//; s/['\"]\$//" || true)"
+      fi
+      found_file="$(find "$SOURCE_DIR" -type f \( -iname "${comp}.tsx" -o -iname "${comp}.jsx" -o -iname "${comp}.ts" -o -iname "${comp}.js" \) 2>/dev/null | grep -av node_modules | grep -aEv "$EXCLUDE_REGEX" | head -1 || true)"
+      if [ -n "$found_file" ]; then
+        resolved="$found_file"
+      elif [ -n "$import_path" ]; then
+        resolved="$import_path"
+      else
+        resolved="$comp"
+      fi
+      ekey="$(printf '%s' "$comp" | sed -E 's/([a-z0-9])([A-Z])/\1-\2/g; s/([A-Z]+)([A-Z][a-z])/\1-\2/g' | tr '[:upper:]' '[:lower:]')"
+      ekey="$(norm_key "$ekey")"
+      if key_seen "$ekey"; then
+        ekey="$(norm_key "${first_parent}-${ekey}")"
+      fi
+      if key_seen "$ekey"; then
+        safeguard="$(basename "$resolved")"
+        safeguard="${safeguard%.*}"
+        safeguard_lc="$(printf '%s' "$safeguard" | tr '[:upper:]' '[:lower:]')"
+        ekey="$(norm_key "${ekey}-${safeguard_lc}")"
+      fi
+      mark_seen "$ekey"
+      edir=""
+      if [ -n "$found_file" ]; then
+        edir="$(dirname "$found_file")"
+      fi
+      printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' "$ekey" "embedded-view" "なし（埋め込みビュー）" "$edir" "$resolved" "medium" "1" "$parent_keys" >> "$TMP_EMBEDDED"
+    done <<< "$comps"
+  done < "${TMP_EMBEDDED}.parents"
+  rm -f "${TMP_EMBEDDED}.parents"
+
+  # 最終マージ: 異なる親entryFileが同一コンポーネントを参照した場合の (route+entryFile) 重複を1行に統合し、
+  # embeddedIn の親キーを結合・重複除去する
+  if [ -s "$TMP_EMBEDDED" ]; then
+    awk -F'\t' '{
+      k=$5
+      if (!(k in seen)) { order[++n]=k; k1[k]=$1; k4[k]=$4; parents[k]=$8 }
+      else { parents[k]=parents[k] "," $8 }
+      seen[k]=1
+    } END {
+      for(i=1;i<=n;i++){
+        k=order[i]
+        m=split(parents[k], arr, ",")
+        out=""; delete uniq
+        for(j=1;j<=m;j++){ if(!(arr[j] in uniq) && arr[j]!=""){ uniq[arr[j]]=1; out=out ((out=="")?"":",") arr[j] } }
+        printf "%s\tembedded-view\tなし（埋め込みビュー）\t%s\t%s\tmedium\t1\t%s\n", k1[k], k4[k], k, out
+      }
+    }' "$TMP_EMBEDDED" > "${TMP_EMBEDDED}.merged" && mv "${TMP_EMBEDDED}.merged" "$TMP_EMBEDDED"
+  fi
+fi
+
+cat "$TMP_KEYED" "$TMP_EMBEDDED" > "$TMP_ALL"
+
+# --- 共有クラスタ算出(同一 entryFile を共有する route 画面が2つ以上ある場合) ---
+awk -F'\t' '$2=="route" && $5!=""{
+  keys[$5] = keys[$5] (($5 in seen) ? "," : "") $1
+  seen[$5]=1
+}
+END {
+  for (f in keys) {
+    n = split(keys[f], arr, ",")
+    if (n >= 2) {
+      print f "\t" keys[f]
+    }
+  }
+}' "$TMP_ALL" > "${TMP_CLUSTERS}.raw"
+
+: > "$TMP_CLUSTERS"
+while IFS=$'\t' read -r efile keys_csv; do
+  sorted="$(printf '%s\n' "$keys_csv" | tr ',' '\n' | sort -u | paste -sd, -)"
+  rep="$(printf '%s' "$sorted" | cut -d, -f1)"
+  cluster_id="${rep}-shared"
+  printf '%s\t%s\t%s\n' "$efile" "$sorted" "$cluster_id" >> "$TMP_CLUSTERS"
+done < "${TMP_CLUSTERS}.raw"
+rm -f "${TMP_CLUSTERS}.raw"
+
+mkdir -p "$(dirname "$MANIFEST_OUT")"
+
+screen_count="$(wc -l < "$TMP_ALL" | tr -d ' ')"
+cluster_count="$(wc -l < "$TMP_CLUSTERS" | tr -d ' ')"
+shared_screen_count="$(awk -F'\t' '{n=split($2,a,","); sum+=n} END{print sum+0}' "$TMP_CLUSTERS")"
+embedded_candidate_count="$(wc -l < "$TMP_EMBEDDED" | tr -d ' ')"
+unresolved_count="$(awk -F'\t' '$5==""{c++} END{print c+0}' "$TMP_ALL")"
+
+# --- entryFile集中の自己診断(route画面が単一ファイルに10件以上かつ80%以上集中している場合) ---
+DIAGNOSTICS=()
+diag_line="$(awk -F'\t' '
+  $2=="route" && $5!="" { cnt[$5]++; total++ }
+  END {
+    if (total==0) { exit }
+    maxfile=""; maxcnt=0
+    for (f in cnt) { if (cnt[f]>maxcnt) { maxcnt=cnt[f]; maxfile=f } }
+    if (maxcnt>=10 && maxcnt/total>=0.8) {
+      printf "%s\t%d\t%d", maxfile, maxcnt, total
+    }
+  }
+' "$TMP_ALL")"
+if [ -n "$diag_line" ]; then
+  diag_file="$(printf '%s' "$diag_line" | cut -f1)"
+  diag_maxcnt="$(printf '%s' "$diag_line" | cut -f2)"
+  diag_msg="WARN: ${diag_maxcnt}画面のentryFileが単一ファイル ${diag_file} に集中しています。ルーター定義ファイルがentryFileになっている可能性が高く、element属性等からの実体解決(カスタム抽出パス)を検討してください"
+  echo "$diag_msg" >&2
+  DIAGNOSTICS+=("$diag_msg")
+fi
+diagnostics_json="[]"
+if [ "${#DIAGNOSTICS[@]}" -gt 0 ]; then
+  diag_items=""
+  for d in "${DIAGNOSTICS[@]}"; do
+    d_esc="$(json_escape "$d")"
+    if [ -z "$diag_items" ]; then
+      diag_items="\"$d_esc\""
+    else
+      diag_items="$diag_items,\"$d_esc\""
+    fi
+  done
+  diagnostics_json="[$diag_items]"
+fi
+
+screen_id_regex_json="null"
+[ -n "$SCREEN_ID_REGEX" ] && screen_id_regex_json="\"$(json_escape "$SCREEN_ID_REGEX")\""
+view_switch_pattern_json="null"
+[ -n "$VIEW_SWITCH_PATTERN" ] && view_switch_pattern_json="\"$(json_escape "$VIEW_SWITCH_PATTERN")\""
+
+# --- strategy フィールド(--strategy-json 指定時はファイル内容をそのまま埋め込む) ---
+if [ -n "$STRATEGY_JSON_FILE" ]; then
+  strategy_brace_count="$(grep -ac '{' "$STRATEGY_JSON_FILE" || true)"
+  if [ -z "$strategy_brace_count" ] || [ "$strategy_brace_count" -eq 0 ]; then
+    echo "ERROR: --strategy-json file is empty or invalid: $STRATEGY_JSON_FILE" >&2
+    exit 1
+  fi
+  strategy_json="$(cat "$STRATEGY_JSON_FILE")"
+else
+  strategy_json="{\"screenIdRegex\": $screen_id_regex_json, \"viewSwitchPattern\": $view_switch_pattern_json, \"extractionMethod\": \"builtin-${detection_method}\", \"approvedByUser\": false}"
+fi
+
+# --- 9-2: 通常検出フローでも import 再帰追跡(resolve_screen_files)でファイル集合を
+# 解決する。strategy の sharedDirPatterns/pathAliases/importTraversalMaxDepth/
+# screenIdRegex を読み込んで BFS に引き渡す(entryFile がディレクトリの場合の
+# 従来のディレクトリ収集はフォールバック互換として維持する)。
+STRATEGY_SHARED_FILE="$(mktemp)"
+STRATEGY_ALIAS_FILE="$(mktemp)"
+STRATEGY_ALL_ENTRIES_FILE="$(mktemp)"
+
+STRATEGY_MAX_DEPTH="$(printf '%s' "$strategy_json" | jq -r '.importTraversalMaxDepth // 6' 2>/dev/null || echo 6)"
+case "$STRATEGY_MAX_DEPTH" in ''|*[!0-9]*) STRATEGY_MAX_DEPTH=6 ;; esac
+
+# 注意: BFS境界(c)専用のローカル値。extract_screen_id() が使う既存のグローバル
+# SCREEN_ID_REGEX は書き換えない(screenId フィールドの算出ロジックへの影響を避ける)。
+STRATEGY_SCREEN_ID_REGEX="$(printf '%s' "$strategy_json" | jq -r '.screenIdRegex // ""' 2>/dev/null || echo "")"
+[ "$STRATEGY_SCREEN_ID_REGEX" = "null" ] && STRATEGY_SCREEN_ID_REGEX=""
+
+printf '%s' "$strategy_json" | jq -r '(.sharedDirPatterns // [])[]' > "$STRATEGY_SHARED_FILE" 2>/dev/null || true
+
+: > "$STRATEGY_ALIAS_FILE"
+printf '%s' "$strategy_json" | jq -r '(.pathAliases // {}) | to_entries[] | "\(.key)\t\(.value)"' 2>/dev/null \
+  | while IFS=$'\t' read -r prefix target; do
+      [ -z "$prefix" ] && continue
+      case "$target" in
+        /*) abs_target="$target" ;;
+        "") abs_target="$SOURCE_DIR" ;;
+        *) abs_target="$SOURCE_DIR/$target" ;;
+      esac
+      printf '%s\t%s\n' "$prefix" "$abs_target"
+    done > "$STRATEGY_ALIAS_FILE" || true
+
+# 境界(b)用: 全画面のentryFile集合(自画面除外は不要。visited判定が先に効くため)。
+awk -F'\t' '$5!=""{print $5}' "$TMP_ALL" | sort -u > "$STRATEGY_ALL_ENTRIES_FILE"
+
+{
+  printf '{\n'
+  printf '  "generatedAt": "%s",\n' "$(date +%Y-%m-%dT%H:%M:%S%z)"
+  printf '  "sourceDir": "%s",\n' "$(json_escape "$SOURCE_DIR")"
+  printf '  "strategy": %s,\n' "$strategy_json"
+  printf '  "diagnostics": %s,\n' "$diagnostics_json"
+  printf '  "detectionSummary": {"method": "%s", "screenCount": %d, "clusterCount": %d, "sharedScreenCount": %d, "embeddedCandidateCount": %d, "unresolvedCount": %d},\n' \
+    "$detection_method" "$screen_count" "$cluster_count" "$shared_screen_count" "$embedded_candidate_count" "$unresolved_count"
+  printf '  "screens": [\n'
+  first=1
+  while IFS=$'\t' read -r key kind route entry_dir entry_file confidence dupcount embedded_in; do
+    if [ -z "$entry_file" ]; then
+      kind="unresolved"
+      confidence="low"
+    fi
+
+    files=""
+    file_count=0
+    if [ -n "$entry_file" ] && [ -f "$entry_file" ]; then
+      # 9-2: import 再帰追跡(BFS)で画面専有ファイル集合を解決する(通常検出フローへの統合)。
+      # screenId は extract_screen_id() が使う既存のグローバル SCREEN_ID_REGEX とは
+      # 独立に、strategy 由来の STRATEGY_SCREEN_ID_REGEX から算出する(境界(c)専用値)。
+      bfs_own_screen_id=""
+      if [ -n "$STRATEGY_SCREEN_ID_REGEX" ]; then
+        bfs_base="$(basename "$entry_file")"
+        bfs_base="${bfs_base%.*}"
+        bfs_own_screen_id="$(printf '%s' "$bfs_base" | grep -aoE "$STRATEGY_SCREEN_ID_REGEX" | head -1 || true)"
+      fi
+      screen_others_file="$(mktemp)"
+      grep -avxF "$entry_file" "$STRATEGY_ALL_ENTRIES_FILE" > "$screen_others_file" 2>/dev/null || true
+      files="$(resolve_screen_files "$entry_file" "$SOURCE_DIR" "$STRATEGY_MAX_DEPTH" "$STRATEGY_SHARED_FILE" "$screen_others_file" "$STRATEGY_SCREEN_ID_REGEX" "$bfs_own_screen_id" "$STRATEGY_ALIAS_FILE")"
+      rm -f "$screen_others_file"
+      file_count="$(printf '%s\n' "$files" | grep -ac . || true)"
+    elif [ -n "$entry_dir" ] && [ -d "$entry_dir" ]; then
+      # entryFile がディレクトリの場合(慣習ディレクトリ検出): 従来のディレクトリ収集を維持(フォールバック互換)。
+      files="$( { find "$entry_dir" -maxdepth 1 -type f 2>/dev/null; find "$entry_dir/components" "$entry_dir/_components" -maxdepth 1 -type f 2>/dev/null; } | grep -av '^$' || true)"
+      file_count="$(printf '%s\n' "$files" | grep -ac . || true)"
+    fi
+    files_json="$(printf '%s\n' "$files" | grep -av '^$' | while IFS= read -r f; do printf '      "%s"' "$(json_escape "$f")"; echo; done | paste -sd, - 2>/dev/null || true)"
+
+    screen_id="$(extract_screen_id "$entry_file")"
+    screen_id_json="null"
+    [ -n "$screen_id" ] && screen_id_json="\"$(json_escape "$screen_id")\""
+
+    if [ "$kind" = "embedded-view" ]; then
+      name_guess="$(printf '%s' "$key" | sed 's/-/ /g')"
+    elif [ -n "$entry_dir" ]; then
+      # 親セグメントを1つ含めて識別可能名にする(異リソース間の葉ディレクトリ名重複対策)。
+      name_guess_parent="$(basename "$(dirname "$entry_dir")" 2>/dev/null)"
+      name_guess_leaf="$(basename "$entry_dir")"
+      case "$name_guess_parent" in
+        app|.|"") name_guess="$name_guess_leaf" ;;
+        *) name_guess="$name_guess_parent $name_guess_leaf" ;;
+      esac
+      name_guess="$(printf '%s' "$name_guess" | sed -E 's/[-_]/ /g')"
+    else
+      name_guess_parent="$(basename "$(dirname "$entry_file")" 2>/dev/null)"
+      name_guess_leaf="$(basename "$entry_file" 2>/dev/null)"
+      case "$name_guess_parent" in
+        app|.|"") name_guess="$name_guess_leaf" ;;
+        *) name_guess="$name_guess_parent $name_guess_leaf" ;;
+      esac
+      name_guess="$(printf '%s' "$name_guess" | sed -E 's/[-_]/ /g')"
+    fi
+    name_guess="$(printf '%s' "$name_guess" | sed -E 's/ +/ /g; s/^ //; s/ $//')"
+    name_guess="$(strip_ok_marker "$name_guess")"
+
+    shared_with_json="[]"
+    cluster_id_json="null"
+    if [ "$kind" = "route" ] && [ -n "$entry_file" ]; then
+      # LC_ALL=Cで固定比較する: コミット763861cd73b3b27f0e3b4c3441ead8b0155383b5
+      # 「日本語比較の誤判定と配置由来の空振りを直す」と同じ対策(2909行目参照)。
+      cluster_line="$(LC_ALL=C awk -F'\t' -v ef="$entry_file" '$1==ef{print; exit}' "$TMP_CLUSTERS" 2>/dev/null || true)"
+      if [ -n "$cluster_line" ]; then
+        cluster_keys="$(printf '%s' "$cluster_line" | cut -d "$(printf '\t')" -f2)"
+        cluster_id_val="$(printf '%s' "$cluster_line" | cut -d "$(printf '\t')" -f3)"
+        others="$(printf '%s\n' "$cluster_keys" | tr ',' '\n' | grep -avxF "$key" || true)"
+        others_json="$(printf '%s\n' "$others" | grep -av '^$' | while IFS= read -r ok; do printf '"%s"' "$(json_escape "$ok")"; echo; done | paste -sd, - 2>/dev/null || true)"
+        if [ -n "$others_json" ]; then
+          shared_with_json="[${others_json}]"
+        fi
+        cluster_id_json="\"$(json_escape "$cluster_id_val")\""
+        # screenKey の識別子部分(最後の / 以降。無ければキー全体)を個別値として保持する。
+        # screenKey が空の場合のみ一律の共有表記へフォールバックする。
+        if [ -n "$key" ]; then
+          name_guess="${key##*/}"
+        else
+          name_guess="(共有: $(basename "$entry_file"))"
+        fi
+      fi
+    fi
+    # cluster処理がscreenKey由来の名前を再代入しても、表示名の末尾マーカーを
+    # 復活させない。以後にname_guessを変更する経路はない。
+    name_guess="$(strip_ok_marker "$name_guess")"
+
+    embedded_in_json="null"
+    [ -n "$embedded_in" ] && embedded_in_json="\"$(json_escape "$embedded_in")\""
+
+    detection_method_field="$detection_method"
+    if [ "$kind" = "embedded-view" ]; then
+      detection_method_field="embedded-view-heuristic"
+    fi
+
+    IFS=$'\t' read -r classify_screen_type classify_account_group classify_account_sub_type classify_has_template classify_is_processing_endpoint classify_parent_screen classify_component_type \
+      <<< "$(classify_screen "$key" "$entry_file" "$detection_method_field" "$route" "$files")"
+
+    [ "$first" -eq 1 ] || printf ',\n'
+    first=0
+    printf '    {\n'
+    printf '      "screenKey": "%s",\n' "$(json_escape "$key")"
+    printf '      "screenId": %s,\n' "$screen_id_json"
+    printf '      "kind": "%s",\n' "$kind"
+    printf '      "screenNameGuess": "%s",\n' "$(json_escape "$name_guess")"
+    printf '      "route": "%s",\n' "$(json_escape "$route")"
+    printf '      "detectionMethod": "%s",\n' "$detection_method_field"
+    printf '      "confidence": "%s",\n' "$confidence"
+    printf '      "entryFile": "%s",\n' "$(json_escape "$entry_file")"
+    printf '      "fileCount": %d,\n' "$file_count"
+    if [ -n "$files_json" ]; then
+      printf '      "files": [\n%s\n      ],\n' "$files_json"
+    else
+      printf '      "files": [],\n'
+    fi
+    printf '      "sharedWith": %s,\n' "$shared_with_json"
+    printf '      "clusterId": %s,\n' "$cluster_id_json"
+    printf '      "embeddedIn": %s,\n' "$embedded_in_json"
+    printf '      "routeDupCount": %d,\n' "$dupcount"
+    printf '      "screenType": "%s",\n' "$(json_escape "$classify_screen_type")"
+    printf '      "accountGroup": "%s",\n' "$(json_escape "$classify_account_group")"
+    printf '      "accountSubType": "%s",\n' "$(json_escape "$classify_account_sub_type")"
+    printf '      "hasTemplate": %s,\n' "$classify_has_template"
+    printf '      "isProcessingEndpoint": %s,\n' "$classify_is_processing_endpoint"
+    printf '      "parentScreen": %s,\n' "$classify_parent_screen"
+    if [ -n "$classify_component_type" ]; then
+      printf '      "componentType": "%s",\n' "$(json_escape "$classify_component_type")"
+    else
+      printf '      "componentType": null,\n'
+    fi
+    printf '      "childComponents": []\n'
+    printf '    }'
+  done < "$TMP_ALL"
+  printf '\n  ]\n'
+  printf '}\n'
+} > "$MANIFEST_OUT"
+
+# childComponents 後処理: モーダル候補を統合前の $all から逆引きするため、候補を失わない。
+if command -v jq >/dev/null 2>&1 && [ -f "$MANIFEST_OUT" ]; then
+  tmp_manifest="${MANIFEST_OUT}.childcomp"
+  jq '
+    .screens as $all |
+    .screens |= [
+      .[] |
+      . as $s |
+      .childComponents = [$all[] | select(.parentScreen == $s.screenKey) | {
+        screenKey: .screenKey,
+        componentType: (.componentType // "modal")
+      }] |
+      del(.componentType)
+    ]
+  ' "$MANIFEST_OUT" > "$tmp_manifest" 2>/dev/null && mv "$tmp_manifest" "$MANIFEST_OUT"
+fi
+
+echo "OK: detected $screen_count screens ($cluster_count clusters, $embedded_candidate_count embedded, $unresolved_count unresolved) via $detection_method -> $MANIFEST_OUT" >&2

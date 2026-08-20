@@ -1,0 +1,237 @@
+{
+  "recordVersion": "1.0.0",
+  "skill": "managing-semantic-glossary",
+  "executedAt": "2026-08-02T12:26:47+09:00",
+  "executor": "codex-agent",
+  "prompt": "repo内fixtureだけを使い、実行可能CLIは再実行し、registry付きdry-run、registry省略、単独承認、ai_index要求はSkill契約として区分して検証してください。portal publishはprojector CLIを実行してください。",
+  "scenarios": [
+    {
+      "id": "registry-dry-run",
+      "class": "standard",
+      "evidenceMode": "cli_and_contract",
+      "inputFixtures": [
+        {
+          "ref": "generation-engine/scripts/glossary/fixtures/valid-proposal.yaml",
+          "sha256Before": "06eb312d45fc0a39ce3927553b86c3ecc4504051503636faa6ec50a2e6613e2d",
+          "sha256After": "06eb312d45fc0a39ce3927553b86c3ecc4504051503636faa6ec50a2e6613e2d"
+        },
+        {
+          "ref": "generation-engine/scripts/glossary/fixtures/valid-glossary.yaml",
+          "sha256Before": "66f351dc30d0211cf878fc940dd5c9139b213494e4ab0541d2e035009e15bea4",
+          "sha256After": "66f351dc30d0211cf878fc940dd5c9139b213494e4ab0541d2e035009e15bea4"
+        }
+      ],
+      "steps": [
+        "SKILL.md Phase 1のdry_run既定true、proposalとregistryの契約を照合した",
+        "validate-semantic-glossary.sh --kind proposal --input generation-engine/scripts/glossary/fixtures/valid-proposal.yaml --registry generation-engine/scripts/glossary/fixtures/valid-glossary.yaml --report <temporary-report> を実行した",
+        "proposal.approval.status=detected時の審査停止契約を静的に照合した"
+      ],
+      "observed": {
+        "validatorExit": 0,
+        "validatorStatus": "valid",
+        "counts": {
+          "error": 0,
+          "warning": 0,
+          "review_required": 0
+        },
+        "skillStatus": "review_required",
+        "reason": "unapproved_proposal",
+        "summary": "registry付き検証を再実行し、detected候補の適用停止契約を照合した。"
+      },
+      "artifact": {
+        "expectation": "absent",
+        "ref": null,
+        "sha256": null
+      },
+      "expected": {
+        "skillStatus": "review_required",
+        "reason": "unapproved_proposal",
+        "sourceUnchanged": true,
+        "artifactExpectation": "absent"
+      },
+      "verdict": "PASS"
+    },
+    {
+      "id": "portal-publish",
+      "class": "standard",
+      "evidenceMode": "cli_replay",
+      "inputFixtures": [
+        {
+          "ref": "generation-engine/scripts/glossary/fixtures/valid-glossary.yaml",
+          "sha256Before": "66f351dc30d0211cf878fc940dd5c9139b213494e4ab0541d2e035009e15bea4",
+          "sha256After": "66f351dc30d0211cf878fc940dd5c9139b213494e4ab0541d2e035009e15bea4"
+        },
+        {
+          "ref": "generation-engine/scripts/glossary/fixtures/canonical-registry/customer-update-proposal.yaml",
+          "sha256Before": "7bb53c5d939e2d63fcc0e805d81e4dbc9cde273aa63650a82d9d6f538cd0581a",
+          "sha256After": "7bb53c5d939e2d63fcc0e805d81e4dbc9cde273aa63650a82d9d6f538cd0581a"
+        },
+        {
+          "ref": "generation-engine/scripts/glossary/fixtures/canonical-registry/customer-update-change.yaml",
+          "sha256Before": "685c23d2048af044d18bb754324c3f2a97d0ff2ebdf40f74469bed03120c1b06",
+          "sha256After": "685c23d2048af044d18bb754324c3f2a97d0ff2ebdf40f74469bed03120c1b06"
+        },
+        {
+          "ref": "generation-engine/scripts/glossary/fixtures/canonical-registry/customer-id-proposal.yaml",
+          "sha256Before": "b6e600c8aa4dffc61cccf983c785383ca7f3b85c111b2b80ca7fe39deab96b14",
+          "sha256After": "b6e600c8aa4dffc61cccf983c785383ca7f3b85c111b2b80ca7fe39deab96b14"
+        },
+        {
+          "ref": "generation-engine/scripts/glossary/fixtures/canonical-registry/customer-id-change.yaml",
+          "sha256Before": "d9fa04e523452a8d571b355126a58e329812444b7be9a8750215d62e1a811131",
+          "sha256After": "d9fa04e523452a8d571b355126a58e329812444b7be9a8750215d62e1a811131"
+        }
+      ],
+      "steps": [
+        "publish target=portalの実行可能CLIを確定した",
+        "正式validatorへglossaryとcanonical registryを渡し、proposal/change結合後もerror/review_required 0件を確認した",
+        "project-semantic-glossary.py --input generation-engine/scripts/glossary/fixtures/valid-glossary.yaml --registry generation-engine/scripts/glossary/fixtures/canonical-registry --output <temporary-page-data> を実行し、生成物をverification/portal-page-data.jsonへ保存した"
+      ],
+      "observed": {
+        "validatorExit": 0,
+        "validatorStatus": "valid",
+        "counts": {
+          "error": 0,
+          "warning": 0,
+          "review_required": 0
+        },
+        "skillStatus": "success",
+        "reason": "portal_published",
+        "summary": "承認済みglossaryからportal page-dataを生成し、source hashが不変だった。"
+      },
+      "artifact": {
+        "expectation": "generated",
+        "ref": ".claude/skills/managing-semantic-glossary/verification/portal-page-data.json",
+        "sha256": "69cc9e0025700bb14b1299e38af781441f4a8bfe12ce29f2bcf8850e097af7cc"
+      },
+      "expected": {
+        "skillStatus": "success",
+        "reason": "portal_published",
+        "sourceUnchanged": true,
+        "artifactExpectation": "generated"
+      },
+      "verdict": "PASS"
+    },
+    {
+      "id": "registry-omitted",
+      "class": "boundary",
+      "evidenceMode": "cli_and_contract",
+      "inputFixtures": [
+        {
+          "ref": "generation-engine/scripts/glossary/fixtures/valid-proposal.yaml",
+          "sha256Before": "06eb312d45fc0a39ce3927553b86c3ecc4504051503636faa6ec50a2e6613e2d",
+          "sha256After": "06eb312d45fc0a39ce3927553b86c3ecc4504051503636faa6ec50a2e6613e2d"
+        }
+      ],
+      "steps": [
+        "registryを指定せずproposal validatorを実行しCLI観測を取得した",
+        "SKILL.md Phase 1 Step 1-1のregistry省略blocking契約を静的に照合した"
+      ],
+      "observed": {
+        "validatorExit": 0,
+        "validatorStatus": "valid",
+        "counts": {
+          "error": 0,
+          "warning": 0,
+          "review_required": 0
+        },
+        "skillStatus": "review_required",
+        "reason": "registry_required",
+        "summary": "CLI単体のvalidを再現し、registry不足時の停止契約を照合した。"
+      },
+      "artifact": {
+        "expectation": "absent",
+        "ref": null,
+        "sha256": null
+      },
+      "expected": {
+        "skillStatus": "review_required",
+        "reason": "registry_required",
+        "sourceUnchanged": true,
+        "artifactExpectation": "absent"
+      },
+      "verdict": "PASS"
+    },
+    {
+      "id": "single-approval",
+      "class": "boundary",
+      "evidenceMode": "cli_and_contract",
+      "inputFixtures": [
+        {
+          "ref": "generation-engine/scripts/glossary/fixtures/invalid-approved-proposal.yaml",
+          "sha256Before": "0c8749db49880c7ed8aab50fa388a581225be9740eaeb3ac9031660a2002edbd",
+          "sha256After": "0c8749db49880c7ed8aab50fa388a581225be9740eaeb3ac9031660a2002edbd"
+        },
+        {
+          "ref": "generation-engine/scripts/glossary/fixtures/valid-glossary.yaml",
+          "sha256Before": "66f351dc30d0211cf878fc940dd5c9139b213494e4ab0541d2e035009e15bea4",
+          "sha256After": "66f351dc30d0211cf878fc940dd5c9139b213494e4ab0541d2e035009e15bea4"
+        }
+      ],
+      "steps": [
+        "単独business承認fixtureをregistry付きで正式validatorへ渡した",
+        "SGP_TWO_PARTY_APPROVAL_REQUIREDを含むinvalid reportを確認し適用を停止した"
+      ],
+      "observed": {
+        "validatorExit": 1,
+        "validatorStatus": "invalid",
+        "counts": {
+          "error": 5,
+          "warning": 0,
+          "review_required": 1
+        },
+        "skillStatus": "invalid",
+        "reason": "two_party_approval_required",
+        "summary": "二者承認不足と承認理由不足を含む6 findingsを再現し、正式用語への適用停止契約を照合した。"
+      },
+      "artifact": {
+        "expectation": "absent",
+        "ref": null,
+        "sha256": null
+      },
+      "expected": {
+        "skillStatus": "invalid",
+        "reason": "two_party_approval_required",
+        "sourceUnchanged": true,
+        "artifactExpectation": "absent"
+      },
+      "verdict": "PASS"
+    },
+    {
+      "id": "ai-index-stop",
+      "class": "boundary",
+      "evidenceMode": "contract_only",
+      "inputFixtures": [
+        {
+          "ref": "generation-engine/scripts/glossary/fixtures/valid-glossary.yaml",
+          "sha256Before": "66f351dc30d0211cf878fc940dd5c9139b213494e4ab0541d2e035009e15bea4",
+          "sha256After": "66f351dc30d0211cf878fc940dd5c9139b213494e4ab0541d2e035009e15bea4"
+        }
+      ],
+      "steps": [
+        "publish target=ai_index要求時の契約を確認した",
+        "実行入口が未実装であるため、SKILL.md Phase 4 Step 1-1のnot_implemented停止条件だけを静的に照合した"
+      ],
+      "observed": {
+        "validatorExit": null,
+        "validatorStatus": null,
+        "counts": null,
+        "skillStatus": "review_required",
+        "reason": "not_implemented",
+        "summary": "ai_index実行入口はなく、not_implemented停止契約だけを照合した。"
+      },
+      "artifact": {
+        "expectation": "absent",
+        "ref": null,
+        "sha256": null
+      },
+      "expected": {
+        "skillStatus": "review_required",
+        "reason": "not_implemented",
+        "sourceUnchanged": true,
+        "artifactExpectation": "absent"
+      },
+      "verdict": "PASS"
+    }
+  ]
+}

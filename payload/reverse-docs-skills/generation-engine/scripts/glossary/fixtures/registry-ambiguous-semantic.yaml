@@ -1,0 +1,7 @@
+schema_version: 1.0.0
+content_version: 1.0.0
+proposal_schema_version: 1.0.0
+proposal_operation: add
+target_glossary_key: commerce_platform
+terms: []
+proposal: {}

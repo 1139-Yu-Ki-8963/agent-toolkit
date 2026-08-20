@@ -1,0 +1,1572 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{TITLE}} — 設計ポータル</title>
+<!--
+  detail-pages T4 図解型テンプレート — 画面遷移図専用テンプレート（ER図は detail-t6-er.html に分離済み）
+  生成: generation-engine/scripts/detail-pages/build-detail-page.sh
+  プレースホルダ置換は build-detail-page.sh の render_template() が行う。
+  手作業によるプレースホルダ置換は禁止。生成は必ずスクリプト経由で行う。
+
+  埋め込みJSON(script#page-data)のnodes[]/edges[]（画面遷移）から、ページ読込時にJavaScriptが
+  DOMを構築する。図(表示)とJSONは常に単一情報源。
+    - pageKind=transition: ワイヤーフレーム+遷移先テーブルのsplit-view形式。画面選択UI
+      (ドロップダウン+前後ボタン)で画面ごとのビューを切り替える。エッジは共通ナビ判定
+      (出現率30%以上)により画面固有/共通ナビ/自己ループの3層に分類する。全ノードを統一表示し、
+      入出次数0のノードのみ未接続画面一覧として別セクションに折りたたみ表示する。
+
+  保守注記: トークン・共通シェル(サイドバー・フッター・全画面レイアウトのCSS)は
+  delivery-payload/templates/partials 配下の共通ファイルを注入マーカー経由で読み込む。
+  テーマ切替はサイドバー側に一本化されており、本テンプレートに複製は無い。
+
+  プレースホルダ(build-detail-page.shが注入。実際のマーカー記法は
+  scripts/detail-pages/build-detail-page.sh 冒頭コメントを正本とする。本コメントでは
+  二重置換事故を避けるため意図的に波括弧・HTMLコメント記法を外して記載する):
+    TITLE (ページ見出しマーカー)         : page-data.json の title
+    DESCRIPTION (ページ概要マーカー)     : page-data.json の description
+    GENERATED_AT (生成日時マーカー)      : page-data.json の generatedAt(共通フッターの更新日として使用)
+    PAGE_DATA_JSON (page-data埋め込みマーカー) : page-data.json の内容全体(本ファイル物理末尾のscriptタグへ注入)
+-->
+<style>
+/* TOKENS_CSS */
+/* SHELL_CSS */
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: var(--font-body);
+  background: var(--bg); color: var(--text); line-height: 1.7; font-size: 15px;
+}
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+.sec-label {
+  font-size: 12px; font-weight: 700; letter-spacing: 0.04em; color: var(--text-sub);
+  display: flex; align-items: center; gap: 8px; margin: 26px 0 12px;
+}
+.sec-label:first-of-type { margin-top: 6px; }
+.sec-label::before { content: ""; width: 4px; height: 14px; background: var(--accent); }
+
+/* 凡例 */
+.legend-row { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 4px; min-width: 0; }
+.legend-item {
+  display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--text-sub);
+  background: var(--panel); border: 1px solid var(--border); padding: 4px 12px;
+}
+.legend-symbol { font-weight: 700; color: var(--accent); }
+
+/* SVG図。図本体だけを横スクロールさせ、ページ本体は横スクロールさせない */
+.diagram-wrap {
+  overflow-x: auto; border: 1px solid var(--border);
+  background: var(--panel); padding: 16px;
+}
+svg#diagram-svg { display: block; min-width: 100%; }
+.diagram-node-rect { fill: var(--accent-soft); stroke: var(--accent-border); stroke-width: 1.5; }
+.diagram-node-text { fill: var(--text); font-size: 12px; font-family: inherit; }
+.diagram-edge { stroke: var(--text-muted); stroke-width: 1.4; fill: none; }
+.diagram-arrow { fill: var(--text-muted); }
+.diagram-edge-label text { fill: var(--text-sub); font-size: 11px; font-family: inherit; }
+.diagram-empty { font-size: 13px; color: var(--text-muted); padding: 12px 4px; }
+
+/* 補足表。表本体だけを横スクロールさせ、ページ本体は横スクロールさせない */
+.table-wrap { overflow-x: auto; }
+table.data-table {
+  width: 100%; min-width: 480px; border-collapse: collapse; font-size: 13px;
+  background: var(--panel); border: 1px solid var(--border);
+}
+table.data-table th {
+  text-align: left; font-size: 11.5px; font-weight: 700; color: var(--text-sub);
+  background: var(--panel-2); padding: 8px 12px; border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+table.data-table td { padding: 9px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+table.data-table tr:last-child td { border-bottom: none; }
+table.data-table code {
+  background: var(--panel-2); padding: 1px 6px;
+  font-family: var(--mono); font-size: 11.5px; color: var(--text-sub);
+  border: 1px solid var(--border);
+}
+
+.note-box {
+  font-size: 12px; color: var(--text-sub); background: var(--panel-2);
+  border: 1px solid var(--border);
+  padding: 8px 12px; margin: 14px 0 0;
+}
+/* 未接続タブ: 未解決カード群 */
+.unresolved-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; margin: 8px 0 20px; }
+.unresolved-card {
+  background: var(--danger-soft); border: 1px solid var(--danger);
+  padding: 10px 14px;
+}
+.unresolved-card-label { font-size: 13px; font-weight: 600; color: var(--danger); margin-bottom: 4px; }
+.unresolved-card-reason { font-size: 12px; color: var(--danger); opacity: .85; }
+
+@media (max-width: 560px) {
+  body { font-size: 14px; }
+}
+
+.hidden { display: none !important; }
+
+/* split-view (transition) */
+.split-view { display: grid; grid-template-columns: 380px 1fr; gap: 24px; align-items: start; }
+.wireframe-panel { position: sticky; top: 24px; background: var(--panel); border: 1px solid var(--border); box-shadow: var(--shadow-sm); }
+@media (max-width: 800px) {
+  .split-view { grid-template-columns: 1fr; }
+  .wireframe-panel { position: static; }
+}
+
+/* ワイヤーフレーム構成パーツ */
+.wf-titlebar { padding: 10px 14px; border-bottom: 1px solid var(--border); font-weight: 700; font-size: 14px; display: flex; justify-content: space-between; align-items: center; }
+.wf-page-id { font-size: 11px; color: var(--text-muted); font-weight: 400; font-family: var(--mono); }
+.wf-body { padding: 12px 14px; }
+.wf-section-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin: 10px 0 6px; }
+.wf-section-label:first-child { margin-top: 0; }
+.wf-nav { display: flex; flex-direction: column; gap: 4px; }
+.wf-nav-item { border: 1px dashed var(--nav-tag); padding: 4px 8px; font-size: 12px; color: var(--nav-tag); display: flex; justify-content: space-between; align-items: center; }
+.wf-profile { background: var(--panel-2); padding: 8px 10px; margin: 8px 0; }
+.wf-link { border: 1px solid var(--highlight-border); padding: 4px 8px; font-size: 12px; color: var(--text); display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+.wf-self-link { border: 1px solid var(--self-tag); padding: 4px 8px; font-size: 12px; color: var(--self-tag); display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+.wf-placeholder { height: 8px; background: repeating-linear-gradient(90deg, var(--border) 0, var(--border) 4px, transparent 4px, transparent 8px); margin: 4px 0; }
+.wf-link-row { display: flex; flex-direction: column; gap: 4px; margin-top: 8px; }
+.wf-text-ph { height: 5px; background: var(--border); margin: 3px 0; opacity: .4; }
+.wf-img-rect { width: 100%; height: 32px; background: var(--panel-2); border: 1px solid var(--border); margin: 6px 0; }
+.wf-two-col { display: grid; grid-template-columns: 48px 1fr; gap: 8px; align-items: start; margin: 6px 0; }
+.wf-img-circle { width: 44px; height: 44px; background: var(--panel-2); border: 1px solid var(--border); }
+.wf-meta-lines { display: flex; flex-direction: column; gap: 3px; }
+.badge { display: inline-flex; width: 18px; height: 18px; font-size: 10px; font-weight: 700; align-items: center; justify-content: center; flex-shrink: 0; }
+.wf-nav-item .badge { background: var(--nav-tag); color: #fff; }
+.wf-link .badge { background: var(--highlight); color: #fff; }
+.wf-self-link .badge { background: var(--self-tag); color: #fff; }
+
+/* 3層配色トークン(--highlight/--nav-tag/--self-tag)は tokens.css に集約(DESIGN.md 参照) */
+
+/* 遷移先テーブル */
+.table-panel { min-width: 0; }
+.table-panel-header { font-size: 14px; font-weight: 700; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+.table-panel-header .count { font-size: 12px; font-weight: 400; color: var(--text-muted); }
+.trans-table { width: 100%; border-collapse: collapse; font-size: 13px; background: var(--panel); border: 1px solid var(--border); }
+.trans-table th { text-align: left; font-size: 11.5px; font-weight: 700; color: var(--text-sub); background: var(--panel-2); padding: 8px 10px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+.trans-table td { padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+.trans-table tr:last-child td { border-bottom: none; }
+.row-badge { display: inline-flex; width: 20px; height: 20px; font-size: 10px; font-weight: 700; align-items: center; justify-content: center; color: #fff; }
+.row-badge.specific { background: var(--highlight); }
+.row-badge.common { background: var(--nav-tag); }
+.row-badge.self { background: var(--self-tag); }
+
+/* 選択コンポーネント詳細カード */
+.detail-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+
+  padding: 14px 16px;
+  margin-bottom: 16px;
+  min-height: 60px;
+}
+.detail-card-empty {
+  font-size: 13px;
+  color: var(--text-muted);
+  padding: 12px 0;
+  text-align: center;
+}
+.detail-card-badge {
+  display: inline-flex;
+  width: 24px; height: 24px;
+
+  font-size: 12px; font-weight: 700;
+  align-items: center; justify-content: center;
+  color: #fff;
+  margin-right: 8px;
+  vertical-align: middle;
+}
+.detail-card-badge.specific { background: var(--highlight); }
+.detail-card-badge.common { background: var(--nav-tag); }
+.detail-card-badge.self { background: var(--self-tag); }
+.detail-card-title {
+  font-size: 15px;
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+.detail-card dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 12px;
+  font-size: 13px;
+}
+.detail-card dt {
+  color: var(--text-muted);
+  font-weight: 600;
+  font-size: 12px;
+  white-space: nowrap;
+}
+.detail-card dd {
+  margin: 0;
+}
+.detail-card dd code {
+  font-family: var(--mono);
+  font-size: 11.5px;
+  background: var(--panel-2);
+  padding: 1px 5px;
+
+  color: var(--text-sub);
+}
+
+/* 種別タグ */
+.tag { display: inline-block; font-size: 11px; font-weight: 600; padding: 1px 8px; }
+.tag-specific { color: var(--highlight); background: var(--highlight-soft); border: 1px solid var(--highlight-border); }
+.tag-nav { color: var(--nav-tag); background: var(--nav-tag-soft); border: 1px solid var(--nav-tag); }
+.tag-self { color: var(--self-tag); background: var(--self-tag-soft); border: 1px solid var(--self-tag); }
+
+/* 凡例スウォッチ */
+.legend-swatch { width: 12px; height: 12px; }
+.legend-swatch.page-specific { background: var(--highlight); }
+.legend-swatch.common-nav { background: var(--nav-tag); }
+.legend-swatch.self-loop { background: var(--self-tag); }
+
+/* 画面選択ナビ */
+.view-nav { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+.view-nav select { flex: 1; min-width: 200px; padding: 8px 12px; font-size: 13px; font-family: inherit; background: var(--panel); border: 1px solid var(--border); color: var(--text); }
+.view-search-input { width: 160px; padding: 8px 12px; font-size: 13px; font-family: inherit; background: var(--panel); border: 1px solid var(--border); color: var(--text); }
+.nav-btn { background: var(--panel-2); border: 1px solid var(--border); color: var(--text-sub); cursor: pointer; padding: 8px 16px; font-size: 13px; font-family: inherit; }
+.nav-btn:hover { background: var(--accent-soft); color: var(--accent); }
+
+/* 折りたたみ(未接続画面一覧) */
+.iso-group { margin-bottom: 8px; }
+.iso-group summary { cursor: pointer; font-size: 13px; font-weight: 600; padding: 8px 0; }
+.iso-group summary:hover { color: var(--accent); }
+
+/* 未選択時の規模要約(写真指摘1-104: 初期表示の空状態解消) */
+.summary-stat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; margin: 8px 0 20px; }
+.summary-rank-table { margin-bottom: 20px; }
+.summary-rank-row { cursor: pointer; }
+.summary-rank-row:hover td { background: var(--accent-soft); }
+
+/* モード切り替えタブ(画面別/動線別/未接続) */
+.mode-tabs { display: flex; gap: 4px; margin-bottom: 20px; border-bottom: 1px solid var(--border); }
+.mode-tab { background: none; border: none; border-bottom: 2px solid transparent; margin-bottom: -1px; padding: 10px 18px; font-size: 14px; font-weight: 600; color: var(--text-muted); cursor: pointer; font-family: inherit; transition: color .15s, border-color .15s; }
+.mode-tab:hover { color: var(--text-sub); }
+.mode-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+/* 動線別モード */
+.flow-nav { margin-bottom: 16px; }
+.flow-nav select { width: 100%; padding: 8px 12px; font-size: 13px; font-family: inherit; background: var(--panel); border: 1px solid var(--border); color: var(--text); }
+
+/* 動線カバレッジ要約 */
+.flow-coverage {
+  background: var(--panel);
+  border: 1px solid var(--border);
+
+  padding: 14px 18px;
+  margin-bottom: 12px;
+  font-size: 13px;
+  line-height: 1.7;
+}
+.flow-coverage-headline { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
+.cov-stats { display: flex; gap: 10px; margin: 10px 0; flex-wrap: wrap; }
+.cov-stat {
+  flex: 1; min-width: 100px; text-align: center;
+  background: var(--panel-2); border: 1px solid var(--border);
+  padding: 10px 8px;
+}
+.cov-stat-value { font-size: 22px; font-weight: 700; color: var(--text); }
+.cov-stat-label { font-size: 11.5px; color: var(--text-muted); margin-top: 2px; }
+.cov-bar {
+  height: 8px; background: var(--panel-2); border: 1px solid var(--border);
+ overflow: hidden; margin-top: 4px;
+}
+.cov-bar-fill { height: 100%; background: var(--accent); transition: width .2s; }
+.flow-coverage-check { margin-top: 10px; color: var(--text-sub); }
+.flow-coverage-check.flow-coverage-error {
+  color: var(--highlight);
+  font-weight: 700;
+  background: var(--highlight-soft);
+  border: 1px solid var(--highlight-border);
+
+  padding: 8px 12px;
+}
+
+/* 動線未カバー一覧(details/summaryで折りたたみ) */
+.flow-uncovered { margin-bottom: 20px; }
+.flow-uncovered > summary { cursor: pointer; font-size: 13px; font-weight: 600; padding: 8px 0; }
+.flow-uncovered > summary:hover { color: var(--accent); }
+.flow-uncovered-body { font-size: 13px; padding: 4px 0 4px 4px; }
+
+/* 動線カテゴリ(details/summaryで折りたたみ。初期表示は閉じた状態。開いた時に遅延レンダリング。
+   開閉インジケータはブラウザ既定のディスクロージャ三角に委ねる(Unicode記号の独自定義はしない)) */
+.flow-category {
+  border-left: 3px solid var(--text-muted);
+
+  background: var(--panel);
+  padding: 14px 20px;
+  margin-bottom: 16px;
+}
+.flow-category > summary {
+  cursor: pointer;
+}
+.flow-category[open] > summary { margin-bottom: 12px; }
+.flow-category-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.flow-category-title {
+  font-size: 17px;
+  font-weight: 700;
+}
+.flow-category-badge {
+  font-size: 11px;
+  color: var(--text-muted);
+  background: var(--panel-2);
+  padding: 2px 10px;
+
+  border: 1px solid var(--border);
+}
+
+/* 動線カード(個別動線1本 = 1カード。ヘッダーに動線名+ステップ数バッジ、ボディにステップのフロー表示) */
+.flow-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+
+  padding: 14px 18px;
+  margin-bottom: 12px;
+}
+.flow-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.flow-card-title { font-size: 13px; font-weight: 600; color: var(--text-sub); }
+.flow-card-badge {
+  font-size: 11px;
+  color: var(--text-muted);
+  background: var(--panel-2);
+  padding: 2px 10px;
+
+  border: 1px solid var(--border);
+  white-space: nowrap;
+}
+.flow-steps {
+  display: flex;
+  gap: 0;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  align-items: center;
+}
+.flow-node {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+
+  padding: 8px 12px;
+  min-width: 100px;
+  max-width: 160px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: box-shadow .15s;
+}
+.flow-node:hover {
+  box-shadow: 0 0 0 2px var(--accent);
+}
+.flow-node-name {
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.flow-node-action {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+.flow-edge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 6px;
+  flex-shrink: 0;
+}
+
+/* 未接続モード */
+.unconnected-summary { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; padding: 14px 16px; background: var(--panel); border: 1px solid var(--border); }
+.unconnected-count { font-size: 28px; font-weight: 700; color: var(--accent); }
+.unconnected-label { font-size: 14px; color: var(--text-muted); }
+.unconnected-ok { font-size: 14px; color: var(--accent); padding: 32px 0; text-align: center; background: var(--accent-soft); border: 1px solid var(--accent-border); }
+
+/* 未接続タブ: 孤立画面カード群 */
+.isolated-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; margin: 8px 0; }
+.isolated-card {
+  background: var(--panel); border: 1px solid var(--border);
+  padding: 10px 14px;
+}
+.isolated-card-label { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+.isolated-card-key { font-family: var(--mono); font-size: 11px; color: var(--text-muted); }
+
+/* 走査元として未走査の画面(1-145): 破線で「走査済みだが遷移0件」と描き分ける */
+.isolated-card--unscanned { border-style: dashed; }
+.unscanned-note { font-size: 12.5px; color: var(--text-muted); margin: 4px 0 10px; }
+</style>
+</head>
+<body>
+<div class="pt">
+  <div class="pt-grid"></div>
+  <div class="pt-row">
+    <!--SHELL_SIDEBAR-->
+    <main class="pt-main">
+    <div class="pt-head">
+      <div class="pt-crumb"><a href="{{BACK_LINK}}">TOP</a> ／ {{ACTIVE_CATEGORY_LABEL}} ／ <span class="pt-crumb-current">{{TITLE}}</span></div>
+      <div class="pt-title-row">
+        <h1 class="pt-title">{{TITLE}}</h1>
+        <span class="pt-title-sub">{{DESCRIPTION}}</span>
+      </div>
+    </div>
+
+    <div class="sec-label">凡例</div>
+    <div class="legend-row" id="legend-mount"></div>
+
+    <div id="er-sections">
+      <div class="sec-label">図</div>
+      <div class="diagram-wrap">
+        <svg id="diagram-svg" xmlns="http://www.w3.org/2000/svg"></svg>
+      </div>
+
+      <div class="sec-label">補足</div>
+      <div class="table-wrap">
+        <table class="data-table" id="detail-table">
+          <thead id="detail-table-head"></thead>
+          <tbody id="detail-table-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="transition-mount" class="hidden"></div>
+
+    <!--RELATED_ENTITIES-->
+    </main>
+  </div>
+  <!--SHELL_FOOTER-->
+</div>
+
+<script type="application/json" id="page-data">
+{{PAGE_DATA_JSON}}
+</script>
+
+<script>
+(function() {
+  var data = JSON.parse(document.getElementById('page-data').textContent);
+  var kind = data.pageKind === 'er' ? 'er' : 'transition';
+
+  function el(tag, attrs, children) {
+    var node = document.createElement(tag);
+    if (attrs) Object.keys(attrs).forEach(function(k) {
+      if (k === 'html') node.innerHTML = attrs[k];
+      else node.setAttribute(k, attrs[k]);
+    });
+    if (children) {
+      if (!Array.isArray(children)) children = [children];
+      children.forEach(function(c) {
+        if (typeof c === 'string') node.appendChild(document.createTextNode(c));
+        else if (c) node.appendChild(c);
+      });
+    }
+    return node;
+  }
+
+  var SVGNS = 'http://www.w3.org/2000/svg';
+  function svgEl(tag, attrs) {
+    var node = document.createElementNS(SVGNS, tag);
+    if (attrs) Object.keys(attrs).forEach(function(k) { node.setAttribute(k, attrs[k]); });
+    return node;
+  }
+
+  // --- 凡例(legend[]) ---
+  var legendMount = document.getElementById('legend-mount');
+  var legend = data.legend || [];
+  if (legend.length === 0) {
+    legendMount.appendChild(el('div', { class: 'diagram-empty' }, '凡例なし'));
+  } else {
+    legend.forEach(function(l) {
+      legendMount.appendChild(el('div', { class: 'legend-item' }, [
+        el('span', { class: 'legend-symbol' }, l.symbol || ''),
+        el('span', null, l.meaning || '')
+      ]));
+    });
+  }
+
+  // --- ノード/エッジの取り出し(pageKindで分岐) ---
+  var keyField = kind === 'transition' ? 'unitKey' : 'key';
+  var nodesRaw = kind === 'transition' ? (data.nodes || []) : (data.entities || []);
+  var edgesRaw = kind === 'transition' ? (data.edges || []) : (data.relations || []);
+  var keys = nodesRaw.map(function(n) { return n[keyField]; });
+
+  {
+  // --- transition: split-view(ワイヤーフレーム+遷移先テーブル) ---
+  // transition では旧凡例(legend[])を非表示にする(3層カラー凡例がテーブルパネル内にある)
+  var oldLegendMount = document.getElementById('legend-mount');
+  if (oldLegendMount) oldLegendMount.style.display = 'none';
+  var oldLegendLabel = oldLegendMount ? oldLegendMount.previousElementSibling : null;
+  if (oldLegendLabel && oldLegendLabel.classList.contains('sec-label')) oldLegendLabel.style.display = 'none';
+
+  document.getElementById('er-sections').classList.add('hidden');
+  var mount = document.getElementById('transition-mount');
+  mount.classList.remove('hidden');
+
+  var MAX_EDGES_PER_VIEW = 10;
+  var COMMON_NAV_RATE = 0.3;
+  var selectedBadge = null;
+
+  var nodeByKey = {};
+  nodesRaw.forEach(function(n) { nodeByKey[n[keyField]] = n; });
+
+  // 未解決参照(ノード不在)は集計・描画から除外する(ERパスと同じフェイルセーフ)
+  var edgesResolved = edgesRaw.filter(function(e) {
+    return nodeByKey[e.from] !== undefined && nodeByKey[e.to] !== undefined;
+  });
+
+  var browserBackEdges = edgesRaw.filter(function(e) {
+    return e.triggerType === 'ブラウザバック' && (!e.to || e.to === '');
+  });
+
+  // 階層区切りは '/' のみ。'-' は kebab-case の単語区切りであり階層区切りではないため分割しない。
+  // ハイフン分割を導入すると category-search → category, brand-search → brand のように
+  // 無関係な画面が語頭一致で誤グループ化される。'/' 非包含データは hasRealGroups がフラット一覧へフォールバック済み。
+  function groupName(key) {
+    var idx = (key || '').indexOf('/');
+    return idx >= 0 ? key.substring(0, idx) : (key || '');
+  }
+  function nodeLabel(key) {
+    var n = nodeByKey[key];
+    return (n && n.label) || key || '';
+  }
+
+  // --- 共通ナビゲーション判定(出現率 >= 30%) ---
+  var fromSet = {};
+  edgesResolved.forEach(function(e) { fromSet[e.from] = true; });
+  var totalFromScreens = Object.keys(fromSet).length;
+  var toFromSet = {};
+  edgesResolved.forEach(function(e) {
+    toFromSet[e.to] = toFromSet[e.to] || {};
+    toFromSet[e.to][e.from] = true;
+  });
+  var commonNavSet = {};
+  keys.forEach(function(k) {
+    var distinctFrom = toFromSet[k] ? Object.keys(toFromSet[k]).length : 0;
+    var rate = distinctFrom / Math.max(1, totalFromScreens);
+    if (rate >= COMMON_NAV_RATE) commonNavSet[k] = true;
+  });
+
+  function classify(e) {
+    if (e.from === e.to) return 'self';
+    if (commonNavSet[e.to]) return 'common';
+    return 'specific';
+  }
+  var CLASS_ORDER = { common: 0, specific: 1, self: 2 };
+  var CLASS_TAG_LABEL = { common: '共通', specific: '固有', self: '自己ループ' };
+  var CLASS_TAG_CLASS = { common: 'tag-nav', specific: 'tag-specific', self: 'tag-self' };
+  var CLASS_ROW_BADGE = { common: 'common', specific: 'specific', self: 'self' };
+  var CIRCLED_NUMS = ['①','②','③','④','⑤','⑥','⑦','⑧','⑨','⑩','⑪','⑫','⑬','⑭','⑮','⑯','⑰','⑱','⑲','⑳'];
+  function circleNum(n) { return CIRCLED_NUMS[n - 1] || ('(' + n + ')'); }
+  function confRank(c) {
+    c = (c || '').toString().toUpperCase();
+    if (c === 'HIGH') return 3;
+    if (c === 'MEDIUM') return 2;
+    if (c === 'LOW') return 1;
+    return 0;
+  }
+
+  // --- ノード分類(未接続画面/通常画面) ---
+  var outEdges = {}, outDegree = {}, inDegree = {};
+  keys.forEach(function(k) { outEdges[k] = []; outDegree[k] = 0; inDegree[k] = 0; });
+  edgesResolved.forEach(function(e) {
+    outEdges[e.from].push(e);
+    outDegree[e.from]++;
+    inDegree[e.to]++;
+  });
+  browserBackEdges.forEach(function(e) {
+    if (outEdges[e.from] !== undefined) {
+      outEdges[e.from].push(e);
+      outDegree[e.from]++;
+    }
+  });
+
+  var isolatedNodes = [], normalNodes = [];
+  keys.forEach(function(k) {
+    if (outDegree[k] + inDegree[k] === 0) isolatedNodes.push(k);
+    else normalNodes.push(k);
+  });
+
+  // --- 走査可否の区別(1-145): sourceScanned未設定は後方互換でtrue扱い(走査済み) ---
+  function isSourceScanned(k) {
+    var n = nodeByKey[k];
+    return !n || n.sourceScanned !== false;
+  }
+  var unscannedCount = kind === 'transition' ? keys.filter(function(k) { return !isSourceScanned(k); }).length : 0;
+  var unscannedTotal = kind === 'transition' ? keys.length : 0;
+  var unscannedRatio = unscannedTotal > 0 ? unscannedCount / unscannedTotal : 0;
+  var unscannedWarning = unscannedRatio > 0.5;
+
+  // --- 画面ごとのソート済みエッジ(共通->固有->自己ループ)+通し番号 ---
+  var sortedOutEdges = {};
+  keys.forEach(function(k) {
+    var list = outEdges[k].slice().sort(function(a, b) {
+      return CLASS_ORDER[classify(a)] - CLASS_ORDER[classify(b)];
+    });
+    list.forEach(function(e, idx) { e.__badge = idx + 1; e.__cls = classify(e); });
+    sortedOutEdges[k] = list;
+  });
+
+  // --- コンポーネント選択(クリックでハイライト) ---
+  var currentViewEdges = [];
+  function onItemClick(ev) {
+    var badge = parseInt(ev.currentTarget.getAttribute('data-badge'));
+    selectedBadge = (selectedBadge === badge) ? null : badge;
+    applySelection();
+  }
+  function updateDetailCard(badge) {
+    var card = document.getElementById('detail-card');
+    if (!card) return;
+    card.innerHTML = '';
+    if (badge === null) {
+      card.appendChild(el('div', { class: 'detail-card-empty' }, 'ワイヤーフレーム内のコンポーネントを選択してください'));
+      return;
+    }
+    var edge = null;
+    currentViewEdges.forEach(function(e) { if (e.__badge === badge) edge = e; });
+    if (!edge) return;
+
+    var title = el('div', { class: 'detail-card-title' }, [
+      el('span', { class: 'detail-card-badge ' + CLASS_ROW_BADGE[edge.__cls] }, String(edge.__badge)),
+      edge.trigger || nodeLabel(edge.to)
+    ]);
+    card.appendChild(title);
+
+    var dl = el('dl');
+    var toDisplay = edge.triggerType === 'ブラウザバック' ? '(前画面)' : nodeLabel(edge.to);
+    var toCode = edge.triggerType === 'ブラウザバック' ? '' : (edge.to || '');
+    dl.appendChild(el('dt', null, '遷移先'));
+    dl.appendChild(el('dd', null, [toDisplay + ' ', el('code', null, toCode)]));
+    dl.appendChild(el('dt', null, '種別'));
+    dl.appendChild(el('dd', null, CLASS_TAG_LABEL[edge.__cls]));
+    dl.appendChild(el('dt', null, 'トリガー'));
+    dl.appendChild(el('dd', null, edge.triggerType || 'リンク遷移'));
+    if (edge.condition) {
+      dl.appendChild(el('dt', null, '条件'));
+      dl.appendChild(el('dd', null, edge.condition));
+    }
+    dl.appendChild(el('dt', null, '記載箇所'));
+    dl.appendChild(el('dd', null, el('code', null, edge.sourceRef || '')));
+    card.appendChild(dl);
+  }
+  function applySelection() {
+    var items = document.querySelectorAll('[data-badge]');
+    items.forEach(function(item) {
+      var b = parseInt(item.getAttribute('data-badge'));
+      if (selectedBadge === null) {
+        item.style.boxShadow = '';
+        item.style.outline = '';
+      } else if (b === selectedBadge) {
+        item.style.boxShadow = '0 0 0 2px var(--accent)';
+      } else {
+        item.style.boxShadow = '';
+      }
+    });
+    var rows = document.querySelectorAll('#detail-table-body tr, .trans-table tbody tr');
+    rows.forEach(function(row) {
+      var b = parseInt(row.getAttribute('data-badge'));
+      if (selectedBadge === null) {
+        row.style.opacity = '';
+        row.style.background = '';
+      } else if (b === selectedBadge) {
+        row.style.opacity = '1';
+        row.style.background = 'var(--accent-soft)';
+      } else {
+        row.style.opacity = '0.3';
+        row.style.background = '';
+      }
+    });
+    updateDetailCard(selectedBadge);
+  }
+
+  // --- split-view(1画面分)構築 ---
+  function buildSplitView(key) {
+    var node = nodeByKey[key];
+    var edges = sortedOutEdges[key] || [];
+    currentViewEdges = edges;
+    var commonEdges = edges.filter(function(e) { return e.__cls === 'common'; });
+    var specificEdges = edges.filter(function(e) { return e.__cls === 'specific'; });
+    var selfEdges = edges.filter(function(e) { return e.__cls === 'self'; });
+
+    var wfBody = el('div', { class: 'wf-body' });
+    if (edges.length === 0) {
+      wfBody.appendChild(el('div', { class: 'diagram-empty' }, '遷移先なし'));
+    } else {
+      if (commonEdges.length > 0) {
+        wfBody.appendChild(el('div', { class: 'wf-section-label' }, 'ヘッダー共通リンク'));
+        var wfNav = el('div', { class: 'wf-nav' });
+        commonEdges.forEach(function(e) {
+          var item = el('div', { class: 'wf-nav-item' }, [
+            el('span', null, e.trigger || nodeLabel(e.to)),
+            el('span', { class: 'badge' }, String(e.__badge))
+          ]);
+          item.setAttribute('data-badge', e.__badge);
+          item.style.cursor = 'pointer';
+          item.addEventListener('click', onItemClick);
+          wfNav.appendChild(item);
+        });
+        wfBody.appendChild(wfNav);
+      }
+      if (specificEdges.length > 0) {
+        // メインコンテンツエリアの模式表現(アイコン + メタ情報行のプレースホルダ)
+        var sectionKeySet = {};
+        specificEdges.forEach(function(e) {
+          sectionKeySet[e.section || 'その他'] = true;
+        });
+        var sectionKeyCount = Object.keys(sectionKeySet).length;
+        var hasFormTrigger = edges.some(function(e) { return e.triggerType === 'form'; });
+        var metaWidths;
+        if (sectionKeyCount <= 1) {
+          metaWidths = [80, 60];
+        } else if (sectionKeyCount <= 3) {
+          metaWidths = [90, 70, 50];
+        } else {
+          metaWidths = [95, 80, 65, 45];
+        }
+        var wfTwoColChildren = [];
+        if (hasFormTrigger) {
+          wfTwoColChildren.push(el('div', { class: 'wf-img-circle' }));
+        }
+        wfTwoColChildren.push(el('div', { class: 'wf-meta-lines' }, metaWidths.map(function(w) {
+          return el('div', { class: 'wf-text-ph', style: 'width:' + w + '%' });
+        })));
+        wfBody.appendChild(el('div', { class: 'wf-two-col' }, wfTwoColChildren));
+
+        var sectionMap = {};
+        var sectionOrder = [];
+        specificEdges.forEach(function(e) {
+          var sec = e.section || 'その他';
+          if (!sectionMap[sec]) { sectionMap[sec] = []; sectionOrder.push(sec); }
+          sectionMap[sec].push(e);
+        });
+        sectionOrder.forEach(function(sec, idx) {
+          if (idx === 0) {
+            wfBody.appendChild(el('div', { class: 'wf-img-rect' }));
+          } else {
+            var phCount;
+            if (edges.length <= 3) {
+              phCount = 1;
+            } else if (edges.length <= 8) {
+              phCount = 2;
+            } else {
+              phCount = 3;
+            }
+            var sectionEdges = sectionMap[sec];
+            var w = Math.min(95, 50 + sectionEdges.length * 5);
+            for (var p = 0; p < phCount; p++) {
+              wfBody.appendChild(el('div', { class: 'wf-text-ph', style: 'width:' + w + '%' }));
+            }
+          }
+          var profile = el('div', { class: 'wf-profile' });
+          profile.appendChild(el('div', { class: 'wf-section-label' }, sec));
+          sectionMap[sec].forEach(function(e) {
+            var item = el('div', { class: 'wf-link' }, [
+              el('span', null, e.trigger || nodeLabel(e.to)),
+              el('span', { class: 'badge' }, String(e.__badge))
+            ]);
+            item.setAttribute('data-badge', e.__badge);
+            item.style.cursor = 'pointer';
+            item.addEventListener('click', onItemClick);
+            profile.appendChild(item);
+          });
+          wfBody.appendChild(profile);
+        });
+      }
+      if (selfEdges.length > 0) {
+        var wfLinkRow = el('div', { class: 'wf-link-row' });
+        selfEdges.forEach(function(e) {
+          var item = el('div', { class: 'wf-self-link' }, [
+            el('span', null, e.trigger || nodeLabel(e.to)),
+            el('span', { class: 'badge' }, String(e.__badge))
+          ]);
+          item.setAttribute('data-badge', e.__badge);
+          item.style.cursor = 'pointer';
+          item.addEventListener('click', onItemClick);
+          wfLinkRow.appendChild(item);
+        });
+        wfBody.appendChild(wfLinkRow);
+      }
+    }
+
+    var selectAllBtn = el('button', { class: 'nav-btn', id: 'select-all-btn', type: 'button', style: 'flex:1;font-size:12px;padding:6px 0;' }, '絞り込み解除');
+    selectAllBtn.addEventListener('click', function() { selectedBadge = null; applySelection(); });
+    var selectAllRow = el('div', { style: 'padding:6px 14px 10px;border-top:1px solid var(--border);display:flex;gap:6px;' }, selectAllBtn);
+
+    var wireframePanel = el('div', { class: 'wireframe-panel' }, [
+      el('div', { class: 'wf-titlebar' }, [
+        el('span', null, node.label || key),
+        el('span', { class: 'wf-page-id' }, key)
+      ]),
+      wfBody,
+      selectAllRow
+    ]);
+
+    var tbody2 = el('tbody');
+    if (edges.length === 0) {
+      tbody2.appendChild(el('tr', null, el('td', { colspan: '7' }, 'なし')));
+    } else {
+      edges.forEach(function(e) {
+        var toLabel = e.triggerType === 'ブラウザバック' ? '(前画面)' : nodeLabel(e.to);
+        var toCode = e.triggerType === 'ブラウザバック' ? '' : (e.to || '');
+        var tr2 = el('tr', null, [
+          el('td', null, el('span', { class: 'row-badge ' + CLASS_ROW_BADGE[e.__cls] }, String(e.__badge))),
+          el('td', null, e.trigger || toLabel),
+          el('td', null, [toLabel, el('br'), el('code', { class: 'src' }, toCode)]),
+          el('td', null, el('span', { class: 'tag ' + CLASS_TAG_CLASS[e.__cls] }, CLASS_TAG_LABEL[e.__cls])),
+          el('td', null, e.triggerType || 'リンク遷移'),
+          el('td', null, e.condition || ''),
+          el('td', null, el('code', { class: 'src' }, e.sourceRef || ''))
+        ]);
+        tr2.setAttribute('data-badge', e.__badge);
+        tbody2.appendChild(tr2);
+      });
+    }
+
+    var detailCard = el('div', { class: 'detail-card', id: 'detail-card' });
+    detailCard.appendChild(el('div', { class: 'detail-card-empty' }, 'ワイヤーフレーム内のコンポーネントを選択してください'));
+
+    var tablePanel = el('div', { class: 'table-panel' }, [
+      detailCard,
+      el('div', { class: 'table-panel-header' }, ['遷移先一覧', el('span', { class: 'count' }, edges.length + '件')]),
+      el('div', { class: 'legend-row' }, [
+        el('div', { class: 'legend-item' }, [el('div', { class: 'legend-swatch page-specific' }), '画面固有（' + specificEdges.length + '件）']),
+        el('div', { class: 'legend-item' }, [el('div', { class: 'legend-swatch common-nav' }), '共通ナビ（' + commonEdges.length + '件）']),
+        el('div', { class: 'legend-item' }, [el('div', { class: 'legend-swatch self-loop' }), '自己ループ（' + selfEdges.length + '件）'])
+      ]),
+      el('table', { class: 'trans-table' }, [
+        el('thead', null, el('tr', null, [
+          el('th'), el('th', null, 'UIの要素'), el('th', null, '遷移先'),
+          el('th', null, '種別'), el('th', null, 'トリガー'), el('th', null, '条件'), el('th', null, '記載箇所')
+        ])),
+        tbody2
+      ])
+    ]);
+
+    return el('div', { class: 'split-view' }, [wireframePanel, tablePanel]);
+  }
+
+  // --- ドロップダウン(画面選択UI)構築(グループ = unitKeyの最初のスラッシュまで) ---
+  var groupOf = {};
+  normalNodes.forEach(function(k) { groupOf[k] = groupName(k); });
+  var groupMap = {};
+  normalNodes.forEach(function(k) {
+    var g = groupOf[k];
+    groupMap[g] = groupMap[g] || [];
+    groupMap[g].push(k);
+  });
+  var groupNames = Object.keys(groupMap).sort();
+
+  // 実グループ(unitKeyが'/'を含み複数画面が同一グループに属す)があるときだけoptgroupを使う。
+  // グループ情報がないデータ(全ノードが自分自身だけのグループ)では画面名のフラットリストにする。
+  var hasRealGroups = groupNames.some(function(g) { return groupMap[g].length > 1; });
+
+  var select = el('select', { id: 'view-select' });
+  if (hasRealGroups) {
+    groupNames.forEach(function(g) {
+      var optgroup = el('optgroup', { label: g + '（' + groupMap[g].length + '図）' });
+      groupMap[g].forEach(function(k) {
+        optgroup.appendChild(el('option', { value: k }, nodeLabel(k) + ' [' + outDegree[k] + '件]'));
+      });
+      select.appendChild(optgroup);
+    });
+  } else {
+    normalNodes.slice().sort(function(a, b) {
+      return nodeLabel(a).localeCompare(nodeLabel(b), 'ja');
+    }).forEach(function(k) {
+      select.appendChild(el('option', { value: k }, nodeLabel(k) + ' [' + outDegree[k] + '件]'));
+    });
+  }
+
+  // 初期表示は未選択(placeholder)を先頭に固定する
+  var placeholder = el('option', { value: '', disabled: true, selected: true }, '画面を選択してください');
+  select.insertBefore(placeholder, select.firstChild);
+
+  var fullSelectHTML = select.innerHTML;
+
+  // --- 画面名検索(全角英数を半角化+小文字化して比較する簡易正規化) ---
+  function normalize(s) {
+    return (s || '').toString().toLowerCase().replace(/[！-～]/g, function(c) {
+      return String.fromCharCode(c.charCodeAt(0) - 0xFEE0);
+    }).trim();
+  }
+
+  function rebuildSelectOptions(query) {
+    select.innerHTML = '';
+    select.appendChild(placeholder);
+    if (hasRealGroups) {
+      groupNames.forEach(function(g) {
+        var filtered = groupMap[g].filter(function(k) {
+          return normalize(nodeLabel(k)).indexOf(query) !== -1 || normalize(k).indexOf(query) !== -1;
+        });
+        if (filtered.length === 0) return;
+        var optgroup = el('optgroup', { label: g + '（' + filtered.length + '図）' });
+        filtered.forEach(function(k) {
+          optgroup.appendChild(el('option', { value: k }, nodeLabel(k) + ' [' + outDegree[k] + '件]'));
+        });
+        select.appendChild(optgroup);
+      });
+    } else {
+      normalNodes.slice().filter(function(k) {
+        return normalize(nodeLabel(k)).indexOf(query) !== -1 || normalize(k).indexOf(query) !== -1;
+      }).sort(function(a, b) {
+        return nodeLabel(a).localeCompare(nodeLabel(b), 'ja');
+      }).forEach(function(k) {
+        select.appendChild(el('option', { value: k }, nodeLabel(k) + ' [' + outDegree[k] + '件]'));
+      });
+    }
+  }
+
+  var searchInputWrap = el('span', { html: '<input type="text" id="view-search" class="view-search-input" placeholder="画面名で検索">' });
+  var searchInput = searchInputWrap.firstChild;
+  searchInput.addEventListener('input', function() {
+    var currentValue = select.value;
+    var query = normalize(searchInput.value);
+    if (!query) {
+      select.innerHTML = fullSelectHTML;
+    } else {
+      rebuildSelectOptions(query);
+    }
+    var realOptionCount = 0;
+    for (var oi = 0; oi < select.options.length; oi++) {
+      if (select.options[oi].value !== '') realOptionCount++;
+    }
+    if (realOptionCount === 0) {
+      viewContent.innerHTML = '';
+      viewContent.appendChild(el('div', { class: 'diagram-empty' }, '該当する画面がありません'));
+      return;
+    }
+    var found = false;
+    for (var i = 0; i < select.options.length; i++) {
+      if (select.options[i].value === currentValue) { select.selectedIndex = i; found = true; break; }
+    }
+    if (!found) select.selectedIndex = 0;
+    renderView(select.value);
+  });
+
+  var prevBtn = el('button', { class: 'nav-btn', id: 'view-prev', type: 'button' }, '← 前');
+  var nextBtn = el('button', { class: 'nav-btn', id: 'view-next', type: 'button' }, '次 →');
+  var viewNav = el('div', { class: 'view-nav' }, [searchInput, select, prevBtn, nextBtn]);
+  var viewContent = el('div', { id: 'view-content' });
+
+  // --- 履歴/URL連動(ハッシュ #mode=<mode>&screen=<key>) ---
+  function parseHash() {
+    var hash = location.hash.replace(/^#/, '');
+    var params = {};
+    hash.split('&').forEach(function(pair) {
+      var kv = pair.split('=');
+      if (kv.length === 2) params[kv[0]] = decodeURIComponent(kv[1]);
+    });
+    return { mode: params.mode || 'screen', key: params.screen || '' };
+  }
+
+  function applyState(mode, key, historyAction) {
+    // モード切替
+    if (mode === 'screen' || mode === 'flow' || mode === 'unconnected') {
+      setMode(mode);
+    }
+    // 画面選択(screenモードのみ)
+    if (mode === 'screen' && key) {
+      var found = false;
+      for (var i = 0; i < select.options.length; i++) {
+        if (select.options[i].value === key) { found = true; select.selectedIndex = i; break; }
+      }
+      if (found) {
+        renderView(key);
+      } else {
+        // 不正キー: 未選択状態(placeholder)にフォールバック
+        select.selectedIndex = 0;
+        renderView('');
+      }
+    } else if (mode === 'screen' && !key) {
+      // 初期表示: placeholder(画面を選択してください)を選択したまま維持する
+      select.selectedIndex = 0;
+      renderView('');
+    }
+    // 履歴操作
+    var hashStr = '#mode=' + mode;
+    if (mode === 'screen' && select.value) hashStr += '&screen=' + encodeURIComponent(select.value);
+    if (historyAction === 'push') {
+      history.pushState(null, '', hashStr);
+    } else if (historyAction === 'replace') {
+      history.replaceState(null, '', hashStr);
+    }
+    // 'none' の場合は何もしない(ブラウザの戻る/進む操作からの呼び出し)
+  }
+
+  // --- 未選択時の規模要約(写真指摘1-104: 初期表示が空になる問題の解消) ---
+  // 「未選択時に個別の遷移図を勝手に出さない」という既存方針(870/971行目のコメント参照)は維持し、
+  // 代わりに全体を俯瞰できる要約(区分別の画面数+遷移数上位の画面)を表示する。
+  function buildCategoryBreakdown() {
+    var entries;
+    if (Array.isArray(data.flowCategories) && data.flowCategories.length > 0) {
+      entries = data.flowCategories.map(function(c) {
+        return { name: c.name || 'その他', count: c.screenCount || 0 };
+      });
+    } else {
+      var counts = {};
+      nodesRaw.forEach(function(n) {
+        var name = n.category || 'その他';
+        counts[name] = (counts[name] || 0) + 1;
+      });
+      entries = Object.keys(counts).map(function(name) { return { name: name, count: counts[name] }; });
+    }
+    return entries.sort(function(a, b) { return b.count - a.count; });
+  }
+
+  function buildSummaryView() {
+    var wrap = el('div', { class: 'view-summary' });
+    wrap.appendChild(el('div', { class: 'diagram-empty' }, '上のドロップダウンから画面を選択すると、その画面のワイヤーフレームと遷移先の一覧が表示されます。以下は全' + nodesRaw.length + '画面の規模要約です。'));
+
+    var categoryEntries = buildCategoryBreakdown();
+    if (categoryEntries.length > 0) {
+      wrap.appendChild(el('div', { class: 'sec-label' }, '区分別の画面数'));
+      var statGrid = el('div', { class: 'summary-stat-grid' });
+      categoryEntries.forEach(function(c) {
+        statGrid.appendChild(el('div', { class: 'cov-stat' }, [
+          el('div', { class: 'cov-stat-value' }, String(c.count)),
+          el('div', { class: 'cov-stat-label' }, c.name)
+        ]));
+      });
+      wrap.appendChild(statGrid);
+    }
+
+    wrap.appendChild(el('div', { class: 'sec-label' }, '遷移数上位の画面'));
+    var totalEdgeCount = edgesResolved.length + browserBackEdges.length;
+    if (totalEdgeCount === 0) {
+      var edgesEmptyMsg = data.edgesStatus === '未抽出'
+        ? '遷移は未抽出です。遷移抽出スキルの実行後に再生成すると、遷移数ランキングと個別の遷移先一覧が表示されます。'
+        : '遷移は0件です。ドロップダウンから画面を選択すると、個別の遷移先一覧を確認できます。';
+      wrap.appendChild(el('div', { class: 'diagram-empty' }, edgesEmptyMsg));
+    } else {
+      var TOP_N = 10;
+      var ranked = normalNodes.slice().sort(function(a, b) { return outDegree[b] - outDegree[a]; }).slice(0, TOP_N);
+      var tbody = el('tbody');
+      ranked.forEach(function(k, idx) {
+        var tr = el('tr', { class: 'summary-rank-row', tabindex: '0' }, [
+          el('td', null, String(idx + 1)),
+          el('td', null, nodeLabel(k)),
+          el('td', null, outDegree[k] + '件')
+        ]);
+        tr.addEventListener('click', function() {
+          for (var i = 0; i < select.options.length; i++) {
+            if (select.options[i].value === k) { select.selectedIndex = i; break; }
+          }
+          applyState('screen', k, 'push');
+        });
+        tbody.appendChild(tr);
+      });
+      wrap.appendChild(el('table', { class: 'trans-table summary-rank-table' }, [
+        el('thead', null, el('tr', null, [el('th', null, '順位'), el('th', null, '画面'), el('th', null, '遷移数')])),
+        tbody
+      ]));
+    }
+
+    return wrap;
+  }
+
+  function renderView(key) {
+    viewContent.innerHTML = '';
+    selectedBadge = null;
+    if (!key) {
+      viewContent.appendChild(buildSummaryView());
+    } else if (!nodeByKey[key]) {
+      viewContent.appendChild(el('div', { class: 'diagram-empty' }, '表示できる画面がありません'));
+    } else {
+      viewContent.appendChild(buildSplitView(key));
+    }
+  }
+
+  select.addEventListener('change', function() { applyState('screen', select.value, 'push'); });
+  // placeholder(index 0)は選択範囲から除外する
+  prevBtn.addEventListener('click', function() {
+    if (select.selectedIndex > 1) {
+      select.selectedIndex -= 1;
+      applyState('screen', select.value, 'push');
+    }
+  });
+  nextBtn.addEventListener('click', function() {
+    if (select.selectedIndex === 0) {
+      if (select.options.length > 1) {
+        select.selectedIndex = 1;
+        applyState('screen', select.value, 'push');
+      }
+    } else if (select.selectedIndex < select.options.length - 1) {
+      select.selectedIndex += 1;
+      applyState('screen', select.value, 'push');
+    }
+  });
+
+  // --- モード切り替えタブ(画面別/動線別/未接続) ---
+  function setMode(mode) {
+    ['screen', 'flow', 'unconnected'].forEach(function(m) {
+      var modeEl = document.getElementById('mode-' + m);
+      if (modeEl) modeEl.classList.toggle('hidden', m !== mode);
+    });
+    document.querySelectorAll('.mode-tab').forEach(function(t) {
+      t.classList.toggle('active', t.getAttribute('data-mode') === mode);
+    });
+  }
+  function buildModeTab(modeKey, label, isActive) {
+    var b = el('button', { class: 'mode-tab' + (isActive ? ' active' : ''), type: 'button', 'data-mode': modeKey }, label);
+    b.addEventListener('click', function() { applyState(modeKey, select.value, 'push'); });
+    return b;
+  }
+  var modeTabs = el('div', { class: 'mode-tabs' }, [
+    buildModeTab('screen', '画面別', true),
+    buildModeTab('flow', '動線別', false),
+    buildModeTab('unconnected', '未接続', false)
+  ]);
+
+  // --- 画面別モード ---
+  var modeScreen = el('div', { id: 'mode-screen' });
+  modeScreen.appendChild(el('div', { class: 'sec-label' }, '画面遷移'));
+  modeScreen.appendChild(viewNav);
+  modeScreen.appendChild(viewContent);
+  var initialState = parseHash();
+  applyState(initialState.mode, initialState.key, 'replace');
+
+  window.addEventListener('popstate', function() {
+    var state = parseHash();
+    applyState(state.mode, state.key, 'none');
+  });
+
+  // --- 動線のカテゴリ判定(グループキーノードのcategoryフィールドを使う) ---
+  // グループキー = パス中、最初に現れる非共通ナビノード(全て共通ナビなら null)。
+  // categoryOfKey(null) は「共通遷移」という専用カテゴリに集約する。
+  function categoryOfKey(k) {
+    if (k === null) return '共通遷移';
+    var n = nodeByKey[k];
+    return (n && n.category) || 'その他';
+  }
+  function flowGroupKey(path) {
+    for (var pi = 1; pi < path.length; pi++) {
+      if (!commonNavSet[path[pi]]) return path[pi];
+    }
+    return null;
+  }
+
+  // --- 動線別モード(入次数0の起点から、分岐点ごとに複数の動線を自動生成) ---
+  // 起点(入次数0のノード)からの最長パスを1本たどるだけでは、起点が1つしかない
+  // 構成(例: ログイン起点のみ)で動線が1本しか出ない。分岐点(固有遷移が複数ある
+  // ノード)ごとに未選択の候補へも動線を伸ばし、複数の動線グループを生成する。
+  function computeFlows() {
+    var MAX_DEPTH = 20;
+    var MAX_FLOWS_PER_CATEGORY = 50;
+    // 全体上限は撤廃(カテゴリごと上限に置換)。ただし無限ループ防止用の
+    // 内部安全弁として十分大きい値を残す(業務上の上限とは別物)。
+    var HARD_SAFETY_CAP = 5000;
+    var origins = keys.filter(function(k) { return inDegree[k] === 0 && outDegree[k] > 0; });
+    if (origins.length === 0) {
+      // 共通ナビへの戻りエッジを除外して疑似入次数を再計算
+      var hubSet = {};
+      keys.forEach(function(k) { if (outDegree[k] > MAX_EDGES_PER_VIEW) hubSet[k] = true; });
+      var pseudoInDegree = {};
+      keys.forEach(function(k) { pseudoInDegree[k] = 0; });
+      edgesResolved.forEach(function(e) {
+        if (!hubSet[e.to]) pseudoInDegree[e.to] = (pseudoInDegree[e.to] || 0) + 1;
+      });
+      origins = keys.filter(function(k) { return pseudoInDegree[k] === 0 && outDegree[k] > 0; });
+    }
+    if (origins.length === 0) {
+      // それでも空なら入次数が最小のノード群を起点とする
+      var minIn = Infinity;
+      keys.forEach(function(k) { if (outDegree[k] > 0 && inDegree[k] < minIn) minIn = inDegree[k]; });
+      origins = keys.filter(function(k) { return inDegree[k] === minIn && outDegree[k] > 0; });
+    }
+    var flows = [];
+    var categoryCounts = {};
+
+    // cur から未訪問ノードへ、confidence最上位の候補を選びながら末端まで歩く。
+    // path/visitedへ直接追記し、たどった辺の配列を返す。
+    function greedyWalk(path, visited) {
+      var edgesUsed = [];
+      var cur = path[path.length - 1];
+      for (var step = 0; step < MAX_DEPTH; step++) {
+        var candidates = (outEdges[cur] || []).filter(function(e) {
+          return e.from !== e.to && !visited[e.to];
+        });
+        if (candidates.length === 0) break;
+        var best = candidates[0];
+        candidates.forEach(function(e) {
+          if (confRank(e.confidence) > confRank(best.confidence)) best = e;
+        });
+        edgesUsed.push(best);
+        cur = best.to;
+        path.push(cur);
+        visited[cur] = true;
+      }
+      return edgesUsed;
+    }
+
+    // 生成済みの動線を分岐元キューへ積み、各動線の経路上の分岐点をさらに
+    // 展開する(分岐から生まれた動線自身の分岐点も再帰的にたどる)。
+    var seenPaths = {};
+    var queue = [];
+
+    function pushFlow(origin, path, edges) {
+      if (path.length <= 1 || flows.length >= HARD_SAFETY_CAP) return;
+      var sig = path.join('>');
+      if (seenPaths[sig]) return;
+      var cat = categoryOfKey(flowGroupKey(path));
+      if ((categoryCounts[cat] || 0) >= MAX_FLOWS_PER_CATEGORY) return;
+      seenPaths[sig] = true;
+      categoryCounts[cat] = (categoryCounts[cat] || 0) + 1;
+      var flow = { origin: origin, path: path, edges: edges, category: cat };
+      flows.push(flow);
+      queue.push(flow);
+    }
+
+    origins.forEach(function(origin) {
+      if (flows.length >= HARD_SAFETY_CAP) return;
+      var mainPath = [origin];
+      var mainVisited = {};
+      mainVisited[origin] = true;
+      var mainEdges = greedyWalk(mainPath, mainVisited);
+      pushFlow(origin, mainPath, mainEdges);
+    });
+
+    // 主経路・各分岐路それぞれの分岐点について、選ばれなかった候補ごとに
+    // 別の動線を生成する。同一パス内では visited 集合で訪問済みノードへの
+    // 再訪(ヘッダーのtop/search等への戻り)を除外済みのため、commonNavSet
+    // (画面別モードの表分類用。cart/product-detail等の主要画面も「共通」
+    // 扱いになりうる)はそのままでは使わない。共通ナビかつ遷移先を持たない
+    // 行き止まり(ヘルプ等)だけを、動線として価値が薄いため除外する。
+    var qi = 0;
+    while (qi < queue.length && flows.length < HARD_SAFETY_CAP) {
+      var base = queue[qi++];
+      for (var i = 0; i < base.edges.length && flows.length < HARD_SAFETY_CAP; i++) {
+        var node = base.path[i];
+        var prefixVisited = {};
+        for (var j = 0; j <= i; j++) prefixVisited[base.path[j]] = true;
+        var candidates = (outEdges[node] || []).filter(function(e) {
+          if (e.from === e.to || prefixVisited[e.to]) return false;
+          if (classify(e) === 'common' && outDegree[e.to] === 0) return false;
+          return true;
+        });
+        candidates.forEach(function(alt) {
+          if (flows.length >= HARD_SAFETY_CAP) return;
+          if (alt === base.edges[i]) return;
+          // 分岐点(base.path[i])までの経路をそのまま引き継ぎ、そこから alt へ分岐する。
+          var branchPath = base.path.slice(0, i + 1).concat([alt.to]);
+          var branchEdges = base.edges.slice(0, i).concat([alt]);
+          var branchVisited = {};
+          for (var vk in prefixVisited) branchVisited[vk] = prefixVisited[vk];
+          branchVisited[alt.to] = true;
+          var restEdges = greedyWalk(branchPath, branchVisited);
+          pushFlow(base.origin, branchPath, branchEdges.concat(restEdges));
+        });
+      }
+    }
+    return flows;
+  }
+
+  function switchToScreenMode(key) {
+    applyState('screen', key, 'push');
+  }
+
+  // --- 動線グループの表示名(ユーザー操作シナリオ名)を導出 ---
+  // グループへ到達する最初の固有(非共通ナビ)エッジのtriggerをそのままシナリオ名とし、
+  // triggerが無い場合のみ終点ラベルから「〜への遷移」を組み立てる。
+  function deriveScenarioName(flow, nodeMap) {
+    var triggerEdge = null;
+    for (var ei = 0; ei < flow.edges.length; ei++) {
+      if (!commonNavSet[flow.edges[ei].to]) { triggerEdge = flow.edges[ei]; break; }
+    }
+    var trigger = triggerEdge ? (triggerEdge.trigger || '') : '';
+    var endLabel = nodeMap[flow.path[flow.path.length - 1]] || '';
+    if (trigger) return trigger;
+    return endLabel + 'への遷移';
+  }
+
+  // --- 動線接続アイコン(SVG。Unicode三角記号は使わない) ---
+  var FLOW_EDGE_SVG = '<svg viewBox="0 0 16 10" width="16" height="10"><path d="M0,5 L10,5" fill="none" stroke="var(--text-muted)" stroke-width="1.5"/><polygon points="10,2 16,5 10,8" fill="var(--text-muted)"/></svg>';
+
+  // --- 個別動線(flow-card)のDOM構築 ---
+  function buildFlowCard(flow, nodeMap) {
+    var groupKeyOfFlow = flowGroupKey(flow.path);
+    var title = groupKeyOfFlow === null ? '共通遷移' : deriveScenarioName(flow, nodeMap);
+    var card = el('div', { class: 'flow-card' });
+    card.appendChild(el('div', { class: 'flow-card-header' }, [
+      el('span', { class: 'flow-card-title' }, title),
+      el('span', { class: 'flow-card-badge' }, flow.path.length + 'ステップ')
+    ]));
+    var body = el('div', { class: 'flow-card-body' });
+    var steps = el('div', { class: 'flow-steps' });
+    flow.path.forEach(function(k, idx) {
+      if (idx > 0) steps.appendChild(el('span', { class: 'flow-edge', html: FLOW_EDGE_SVG }));
+      var nodeChildren = [el('div', { class: 'flow-node-name' }, nodeLabel(k))];
+      if (idx < flow.edges.length) nodeChildren.push(el('div', { class: 'flow-node-action' }, flow.edges[idx].trigger || ''));
+      var node = el('div', { class: 'flow-node', 'data-key': k }, nodeChildren);
+      node.addEventListener('click', function() { switchToScreenMode(k); });
+      steps.appendChild(node);
+    });
+    body.appendChild(steps);
+    card.appendChild(body);
+    return card;
+  }
+
+  // --- 動線グループ化(カテゴリ階層 > 起点の次のノードをキーに集約。共通ナビへの分岐は「共通遷移」に集約) ---
+  // カテゴリはグループキーノードのcategoryフィールドから決まる(categoryOfKey)。
+  // カテゴリの<details>は開いた時に初めて内部の動線グループDOMを生成する(遅延レンダリング)。
+  function renderFlowMode(flowList, nodeMap) {
+    var container = document.getElementById('flow-content');
+    var select = document.getElementById('flow-select');
+    container.innerHTML = '';
+    select.innerHTML = '';
+
+    if (flowList.length === 0) {
+      container.appendChild(el('div', { class: 'diagram-empty' }, '動線を生成できる画面がありません'));
+      return;
+    }
+
+    // カテゴリ -> グループキー(node単位) -> flows[] の2階層に集約する(表示は動線カード単位)。
+    var categories = {};
+    var categoryOrder = [];
+    flowList.forEach(function(flow) {
+      var key = flowGroupKey(flow.path);
+      var groupKey = key === null ? '__common__' : key;
+      var cat = flow.category || categoryOfKey(key);
+      if (!categories[cat]) {
+        categories[cat] = { order: [], groups: {} };
+        categoryOrder.push(cat);
+      }
+      var bucket = categories[cat];
+      if (!bucket.groups[groupKey]) {
+        bucket.groups[groupKey] = [];
+        bucket.order.push(groupKey);
+      }
+      bucket.groups[groupKey].push(flow);
+    });
+    // 同一グループ内はパスの長さ順にソート
+    categoryOrder.forEach(function(cat) {
+      var bucket = categories[cat];
+      bucket.order.forEach(function(groupKey) {
+        bucket.groups[groupKey].sort(function(a, b) { return a.path.length - b.path.length; });
+      });
+    });
+    // カテゴリは50音/アルファベット順。「共通遷移」「その他」は末尾に固定する。
+    categoryOrder.sort(function(a, b) {
+      if (a === b) return 0;
+      if (a === '共通遷移') return 1;
+      if (b === '共通遷移') return -1;
+      if (a === 'その他') return 1;
+      if (b === 'その他') return -1;
+      return a.localeCompare(b, 'ja');
+    });
+
+    function categoryTotal(cat) {
+      var total = 0;
+      categories[cat].order.forEach(function(gk) { total += categories[cat].groups[gk].length; });
+      return total;
+    }
+
+    select.appendChild(el('option', { value: '' }, '全カテゴリ表示'));
+    categoryOrder.forEach(function(cat) {
+      select.appendChild(el('option', { value: cat }, cat + '（' + categoryTotal(cat) + '動線）'));
+    });
+
+    // カテゴリは<details>/<summary>で構築し、初期表示は折りたたんだ状態にする。
+    // 内部の動線グループDOMは初めて開いた時にだけ生成する(遅延レンダリング)。
+    var renderCategoryBodyMap = {};
+    categoryOrder.forEach(function(cat) {
+      var bucket = categories[cat];
+      var catDetails = el('details', { class: 'flow-category', 'data-category': cat });
+      var catSummary = el('summary', { class: 'flow-category-header' }, [
+        el('span', { class: 'flow-category-title' }, cat),
+        el('span', { class: 'flow-category-badge' }, categoryTotal(cat) + '動線')
+      ]);
+      catDetails.appendChild(catSummary);
+      var rendered = false;
+      function renderCategoryBody() {
+        if (rendered) return;
+        rendered = true;
+        bucket.order.forEach(function(groupKey) {
+          bucket.groups[groupKey].forEach(function(flow) {
+            catDetails.appendChild(buildFlowCard(flow, nodeMap));
+          });
+        });
+      }
+      renderCategoryBodyMap[cat] = renderCategoryBody;
+      catDetails.addEventListener('toggle', function() {
+        if (catDetails.open) renderCategoryBody();
+      });
+      container.appendChild(catDetails);
+    });
+
+    select.addEventListener('change', function() {
+      var val = select.value;
+      container.querySelectorAll('.flow-category').forEach(function(c) {
+        var cat = c.getAttribute('data-category');
+        var match = (!val || cat === val);
+        c.style.display = match ? '' : 'none';
+        if (val && match) {
+          c.open = true;
+          renderCategoryBodyMap[cat]();
+        }
+      });
+    });
+  }
+
+  var flows = computeFlows();
+  var nodeMap = {};
+  keys.forEach(function(k) { nodeMap[k] = nodeLabel(k); });
+
+  // --- 動線カバレッジ要約(全画面 = 動線カバー ∪ 未接続 ∪ 動線未カバー の完全分割検証) ---
+  var coveredSet = {};
+  flows.forEach(function(flow) { flow.path.forEach(function(k) { coveredSet[k] = true; }); });
+  var coveredCount = Object.keys(coveredSet).length;
+  var totalCount = keys.length;
+  var unconnectedCount = isolatedNodes.length;
+  var uncoveredKeys = keys.filter(function(k) {
+    return !coveredSet[k] && (outDegree[k] + inDegree[k]) > 0;
+  });
+  var uncoveredCount = uncoveredKeys.length;
+  var sumOk = (coveredCount + unconnectedCount + uncoveredCount) === totalCount;
+  var coveragePct = totalCount > 0 ? Math.round((coveredCount / totalCount) * 1000) / 10 : 0;
+
+  var coverageBox = el('div', { class: 'flow-coverage' });
+  coverageBox.appendChild(el('div', { class: 'flow-coverage-headline' }, '動線カバレッジ: ' + coveragePct + '%'));
+  coverageBox.appendChild(el('div', { class: 'cov-stats' }, [
+    el('div', { class: 'cov-stat' }, [
+      el('div', { class: 'cov-stat-value' }, String(coveredCount)),
+      el('div', { class: 'cov-stat-label' }, 'カバー済み')
+    ]),
+    el('div', { class: 'cov-stat' }, [
+      el('div', { class: 'cov-stat-value' }, String(uncoveredCount)),
+      el('div', { class: 'cov-stat-label' }, '未カバー')
+    ]),
+    el('div', { class: 'cov-stat' }, [
+      el('div', { class: 'cov-stat-value' }, String(totalCount)),
+      el('div', { class: 'cov-stat-label' }, '全画面')
+    ])
+  ]));
+  coverageBox.appendChild(el('div', { class: 'cov-bar' }, el('div', { class: 'cov-bar-fill', style: 'width:' + coveragePct + '%' })));
+  coverageBox.appendChild(el('div', { class: 'flow-coverage-check' + (sumOk ? '' : ' flow-coverage-error') },
+    sumOk
+      ? '内訳: 動線でカバー ' + coveredCount + ' + 未接続画面 ' + unconnectedCount + '（未接続モードで確認） + 動線未カバー ' + uncoveredCount + ' = 全 ' + totalCount + ' 画面 ✓'
+      : '⚠ 警告: 分割が不完全です（' + coveredCount + ' + ' + unconnectedCount + ' + ' + uncoveredCount + ' ≠ ' + totalCount + '）'));
+
+  var uncoveredBody = el('div', { class: 'flow-uncovered-body' });
+  if (uncoveredCount === 0) {
+    uncoveredBody.appendChild(el('div', { class: 'note-box' }, 'なし'));
+  } else {
+    uncoveredKeys.forEach(function(k) {
+      uncoveredBody.appendChild(el('div', null, nodeLabel(k) + '（' + k + '）'));
+    });
+  }
+  var uncoveredDetails = el('details', { class: 'flow-uncovered' }, [
+    el('summary', null, '動線未カバー画面（' + uncoveredCount + '件）'),
+    uncoveredBody
+  ]);
+
+  var flowSelect = el('select', { id: 'flow-select' });
+  var flowContent = el('div', { id: 'flow-content' });
+  var modeFlow = el('div', { id: 'mode-flow', class: 'hidden' }, [
+    coverageBox,
+    uncoveredDetails,
+    el('div', { class: 'flow-nav' }, flowSelect),
+    flowContent
+  ]);
+
+  // --- 未接続モード(未解決[unresolved[]] + 孤立画面[入出次数0]をまとめて表示) ---
+  var unresolved = data.unresolved || [];
+  var modeUnconnected = el('div', { id: 'mode-unconnected', class: 'hidden' });
+  var unconnectedTotal = isolatedNodes.length + unresolved.length;
+  modeUnconnected.appendChild(el('div', { class: 'unconnected-summary' }, [
+    el('span', { class: 'unconnected-count' }, unconnectedTotal + '件'),
+    el('span', { class: 'unconnected-label' }, '遷移が静的に検出されなかった画面・参照')
+  ]));
+
+  // --- 走査可否diagnostics(1-145): 0件でも必ず表示する。破線カード = 遷移元として未走査 ---
+  if (kind === 'transition') {
+    var unscannedPct = Math.round(unscannedRatio * 1000) / 10;
+    var unscannedMessage = '遷移元として走査できなかった画面 ' + unscannedCount + ' / ' + unscannedTotal + ' 件（' + unscannedPct + '%）。破線カードが該当画面です。';
+    if (unscannedWarning) {
+      modeUnconnected.appendChild(el('div', { class: 'pt-callout pt-callout--warning' }, [
+        el('span', { class: 'material-symbols-outlined pt-callout__icon', 'aria-hidden': 'true' }, 'warning'),
+        unscannedMessage
+      ]));
+    } else {
+      modeUnconnected.appendChild(el('p', { class: 'unscanned-note' }, unscannedMessage));
+    }
+  }
+
+  var unconnectedContent = el('div', { id: 'unconnected-content' });
+  if (unconnectedTotal === 0) {
+    unconnectedContent.appendChild(el('div', { class: 'unconnected-ok' }, '全画面の遷移が検出済みです'));
+  } else {
+    if (unresolved.length > 0) {
+      unconnectedContent.appendChild(el('div', { class: 'sec-label' }, '未解決（' + unresolved.length + '件）'));
+      var unresolvedGrid = el('div', { class: 'unresolved-grid' });
+      unresolved.forEach(function(u) {
+        unresolvedGrid.appendChild(el('div', { class: 'unresolved-card' }, [
+          el('div', { class: 'unresolved-card-label' }, u.label || ''),
+          el('div', { class: 'unresolved-card-reason' }, u.reason || '')
+        ]));
+      });
+      unconnectedContent.appendChild(unresolvedGrid);
+    }
+
+    if (isolatedNodes.length > 0) {
+      unconnectedContent.appendChild(el('div', { class: 'sec-label' }, '孤立画面（' + isolatedNodes.length + '件）'));
+      if (kind === 'transition' && isolatedNodes.some(function(k) { return !isSourceScanned(k); })) {
+        unconnectedContent.appendChild(el('p', { class: 'unscanned-note' }, '凡例: 破線カードは遷移元として走査できなかった画面（実線は走査済みで遷移0件）'));
+      }
+      var isoGroupMap = {};
+      isolatedNodes.forEach(function(k) {
+        var g = groupName(k);
+        isoGroupMap[g] = isoGroupMap[g] || [];
+        isoGroupMap[g].push(k);
+      });
+
+      // 実グループ(unitKeyが'/'を含み複数画面が同一グループに属す)があるときだけdetailsでグループ化する。
+      // グループ情報がないデータ(全ノードが自分自身だけのグループ)ではフラットなカード群にする。
+      var isoHasRealGroups = Object.keys(isoGroupMap).some(function(g) { return isoGroupMap[g].length > 1; });
+
+      function buildIsolatedGrid(list) {
+        var grid = el('div', { class: 'isolated-grid' });
+        list.forEach(function(k) {
+          var cardClass = 'isolated-card' + (isSourceScanned(k) ? '' : ' isolated-card--unscanned');
+          grid.appendChild(el('div', { class: cardClass }, [
+            el('div', { class: 'isolated-card-label' }, nodeLabel(k)),
+            el('code', { class: 'isolated-card-key' }, k)
+          ]));
+        });
+        return grid;
+      }
+
+      if (isoHasRealGroups) {
+        Object.keys(isoGroupMap).sort().forEach(function(g) {
+          var list = isoGroupMap[g];
+          unconnectedContent.appendChild(el('details', { class: 'iso-group' }, [
+            el('summary', null, g + '（' + list.length + '件）'),
+            buildIsolatedGrid(list)
+          ]));
+        });
+      } else {
+        unconnectedContent.appendChild(buildIsolatedGrid(isolatedNodes));
+      }
+    }
+  }
+  modeUnconnected.appendChild(unconnectedContent);
+
+  mount.appendChild(modeTabs);
+  mount.appendChild(modeScreen);
+  mount.appendChild(modeFlow);
+  mount.appendChild(modeUnconnected);
+  renderFlowMode(flows, nodeMap);
+  }
+})();
+</script>
+</body>
+</html>

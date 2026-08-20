@@ -1,0 +1,30 @@
+{
+  "specVersion": 2,
+  "description": "delivery-payload/templates/rules/tool-defined/ から生成する規約定義（rule.md・rule.html）の本文、および .claude/skills/*/SKILL.md・.claude/skills/*/references/guide.html に残してはいけない語の一覧。scope=rule-definitions は規約定義の生成物専用（generation-engine/scripts/rules/scaffold-rule-definitions.sh の scan_banned_terms が読む）。scope=skills はスキル定義とガイド専用（generation-engine/scripts/check-internal-jargon.sh が読む）。status= の右辺値・バージョン付き状態値（例: 採録v0確定）としての使用は、コードの中の識別子に相当するため走査対象から除外する。",
+  "terms": [
+    {"term": "納品", "replacement": null, "scope": ["rule-definitions"]},
+    {"term": "再納品", "replacement": null, "scope": ["rule-definitions"]},
+    {"term": "本文入り", "replacement": null, "scope": ["rule-definitions"]},
+    {"term": "上書きされる", "replacement": null, "scope": ["rule-definitions"]},
+    {"term": "機械生成", "replacement": null, "scope": ["rule-definitions"]},
+    {"term": "雛形であり", "replacement": null, "scope": ["rule-definitions"]},
+    {"term": "rule-taxonomy.json", "replacement": null, "scope": ["rule-definitions"]},
+    {"term": "束", "replacement": "まとまり", "scope": ["skills"]},
+    {"term": "検収", "replacement": "確認", "scope": ["skills"]},
+    {"term": "起こす", "replacement": "作る", "scope": ["skills"]},
+    {"term": "封印済み", "replacement": "確定済み", "scope": ["skills"]},
+    {"term": "封印", "replacement": "確定", "scope": ["skills"]},
+    {"term": "盲検分離", "replacement": "原本を見ない分離", "scope": ["skills"]},
+    {"term": "盲検", "replacement": "原本を見ない検証", "scope": ["skills"]},
+    {"term": "発火", "replacement": "実行される", "scope": ["skills"]},
+    {"term": "昇格", "replacement": "扱いを上げる", "scope": ["skills"]},
+    {"term": "降格", "replacement": "扱いを下げる", "scope": ["skills"]},
+    {"term": "起票", "replacement": "記録する", "scope": ["skills"]},
+    {"term": "スキャフォールディングスクリプト", "replacement": "雛形展開スクリプト", "scope": ["skills"]},
+    {"term": "スキャフォールディング", "replacement": "雛形の展開", "scope": ["skills"]},
+    {"term": "採録", "replacement": "書き起こす", "scope": ["skills"]},
+    {"term": "原本読解型", "replacement": "原本だけを読み取る種類", "scope": ["skills"]},
+    {"term": "gold標準", "replacement": "模範例", "scope": ["skills"]},
+    {"term": "back-edge", "replacement": "戻り方向の依存", "scope": ["skills"]}
+  ]
+}

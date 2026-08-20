@@ -1,0 +1,583 @@
+# orchestrating-ai-development-setup 契約正本
+
+この契約の正式な参照先は管理者スキル orchestrating-ai-development-setup である。子スキル群は自分の SKILL.md 内で「この契約に準拠する」と宣言するのみで、contract.md 自体は読まず args だけで動く。管理者は各子スキルの返却ブロックを本契約の共通サブセットで検収し、状態判定表に従って次工程を機械的に決定する。これにより管理者と子スキルの間には契約書という単一の仲介点だけが存在し、子スキル同士が互いの内部仕様を知る必要がない完全仲介方式が成立する。
+
+## 子スキルの内訳
+
+- 一覧生成6: 種別別一覧スキル（`generating-<種別>-list-for-reverse-docs`、例: generating-screen-list-for-reverse-docs）
+- 機能一覧1: generating-feature-list-for-reverse-docs（派生一覧）
+- マトリクス・対応表生成1: generating-cross-views-for-reverse-docs（派生補完。機能一覧確立後にマトリクス・対応表4ページ+AI設定資産ページを生成）
+- AI設定資産索引生成1: generating-agent-config-index-from-repo（入口モード確定直後、規約配布・派生生成とセットで1回実行し、対象repoの`AGENTS.md`・`CLAUDE.md`の前半索引と`RULES-INDEX`マーカーを生成する。マトリクス・対応表生成が生成する`AI設定資産.html`ページとは別物であり、置き換え関係にはない）
+- 基盤ページ生成9:
+  - generating-tech-stack-for-reverse-docs
+  - generating-env-guide-for-reverse-docs
+  - generating-screen-transition-for-reverse-docs
+  - generating-er-diagram-for-reverse-docs
+  - generating-release-notes-for-reverse-docs
+  - generating-design-system-for-reverse-docs
+  - generating-component-inventory-for-reverse-docs
+  - generating-icon-catalog-for-reverse-docs
+  - managing-semantic-glossary（承認済み用語YAMLのportal publish）
+- 図ページ生成1: generating-entity-state-for-reverse-docs（状態遷移図.html。基盤ページとは出力先が異なる派生ページ）
+- 派生一覧2: generating-message-list-for-reverse-docs（メッセージ一覧）・generating-test-viewpoint-list-for-reverse-docs（テスト観点表一覧）。種別ループ対象外、前提条件成立時のみ任意工程として起動
+- 用語候補生成互換1:
+  - generating-glossary-for-reverse-docs（対象repo外への `detected` proposal生成だけを行い、`NEEDS_REVIEW` で停止）
+- 任意計測1: counting-code-lines（Step 4-4でsurveying-local-environmentと共に必要時起動）
+- 任意環境調査1: surveying-local-environment（Step 4-4でcounting-code-linesと共に必要時起動）
+- 工程10:
+  - surveying-architecture-for-reverse-docs
+  - generating-reverse-common-docs
+  - syncing-reverse-env
+  - unlocking-reverse-target-screens
+  - extracting-unit-facts-from-code
+  - generating-reverse-basic-design
+  - generating-reverse-detailed-design
+  - rebuilding-screen-unit-from-docs
+  - rebuilding-code-from-docs
+  - running-reverse-screen-batch
+
+## グローバル工程順序
+
+全体順序は `delivery-payload/references/リバース工程設計.md` の Phase 1〜7 / Step 1〜41だけを正とする。統括SKILL.mdのローカル見出し `Step N-M` は親PhaseとPhase内順序を表し、直下の `global_step` が本契約のStep 1〜41へ一意に対応する。条件分岐は `conditional_step_id`、反復は `back_edge_id`・from/to Step・条件・上限で表現し、英字接尾辞・Phase 0・Step 0・暗黙の差し戻しを使用しない。
+
+## プレースホルダ定義
+
+- `verification_dir`: 既定値なし。`target_repo_path` の外にある絶対パス（プロジェクト内に `verification/` を作らない）。修正指示書・最終報告・テストログ・facts の出力先。
+
+## 返却ブロック共通サブセット
+
+管理者が検収に読む4キーの表。
+
+| キー | 型 | 意味 |
+|---|---|---|
+| status | enum | 各スキル固有の enum。管理者はこれで go / 差し戻しを判定する |
+| scope | string | `<system>-<画面ID>`。工程を跨いだ同一性キー |
+| artifacts | path[] | 生成物のパス（画面一覧HTML / 修正指示書.md / 最終報告.md / 証跡ディレクトリ 等） |
+| hint | string | 次工程への申し送り（差し戻し理由・不足引数・後続工程への申し送り 等） |
+
+注記: `next_request` という語は使わない。syncing-reverse-env の実返却ブロックに存在しないフィールドのため。次工程への依頼内容は hint または各スキル固有の拡張フィールドで表す。
+
+## 各スキル固有の status enum と拡張フィールド
+
+### surveying-architecture-for-reverse-docs（アーキテクチャ調査）
+
+- status: `調査確定 | 中断`
+- 拡張: survey_doc_path（調査書の絶対パス。`artifacts[0]` と同値）、unit_kinds_present（実在判定が「実在する」だった画面・API・テーブル・バッチ・帳票・外部連携の一覧）
+
+### generating-<種別>-list-for-reverse-docs（種別別一覧スキル6つ共通）
+
+- status: `DONE | ERROR`
+- 拡張: unit_list_html（= artifacts[0]）、embedded_json_ref（HTML内埋め込みマニフェストJSONへの参照）、unit_kind（生成した種別）
+- `unit_kind=screen` の場合、screen_list_html は unit_list_html のエイリアスとして有効
+- `unit_kind=screen` かつ複雑度プロファイリング（Phase 5・`--profile`）を実行した場合のみ、拡張フィールド complexity_profile_path（複雑度プロファイル.json の絶対パス）を返す。未実行の場合は本フィールドを含めない
+
+### generating-feature-list-for-reverse-docs（機能一覧・派生一覧）
+
+- status: `DONE | ERROR`
+- 拡張: unit_list_html（= artifacts[0]）、embedded_json_ref（HTML内埋め込みマニフェストJSONへの参照）、unit_kind（`feature` 固定）
+- 機能は既存一覧の派生グルーピング（派生一覧）であり、unit_kinds_present の存在判定対象外。excluded-kinds.json の allKinds にも含めない
+- 入力前提: `<output_dir>/<manifestsRoot>/screen-manifest.json`が存在し、`validate-manifest.sh --unit-kind screen`を通過すること（`manifestsRoot` は output-layout の物理配置キー。既定値 `docs/manifests`）（不在・不合格時はstatus=ERRORでhintに前提スキルを記録して返す）
+
+### generating-message-list-for-reverse-docs（メッセージ一覧・派生一覧）
+
+- status: `DONE | ERROR`
+- 拡張: unit_list_html（= artifacts[0]）、embedded_json_ref（HTML内埋め込みマニフェストJSONへの参照）、unit_kind（`message` 固定）
+- メッセージ一覧は既存文書の派生グルーピング（派生一覧）であり、unit_kinds_present の存在判定対象外。excluded-kinds.json の allKinds にも含めない
+- 入力前提: `<output_dir>/<commonRoot>/メッセージ定義書.md` が存在すること（不在時は status=ERROR で hint に前提文書を記録して返す）
+
+### generating-test-viewpoint-list-for-reverse-docs（テスト観点表一覧・派生一覧）
+
+- status: `DONE | ERROR`
+- 拡張: unit_list_html（= artifacts[0]）、embedded_json_ref（HTML内埋め込みマニフェストJSONへの参照）、unit_kind（`test_viewpoint` 固定）
+- テスト観点表一覧は既存文書の派生グルーピング（派生一覧）であり、unit_kinds_present の存在判定対象外。excluded-kinds.json の allKinds にも含めない
+- 入力前提: 各画面の `<screen_dir>/詳細設計/単体テスト観点表.md` が1件以上存在すること（不在時は status=ERROR で hint に前提工程を記録して返す）
+
+### generating-cross-views-for-reverse-docs（マトリクス・対応表生成・派生補完）
+
+- status: `DONE | STOPPED | ERROR`
+- 拡張: artifacts（生成した各ページの絶対パス配列）、generated_pages（生成した page-type の配列。`permission-screen`/`permission-function`/`crud`/`traceability`/`ai-assets` の部分集合）、skipped_pages（未生成の page-type と理由の配列）、portal_rebuilt（真偽値。`portal_output_dir` 指定時に build-portal.sh を再実行したか）
+- マトリクス・対応表4ページ（権限画面マトリクス・権限機能マトリクス・CRUD図・画面-API-テーブル対応表）とAI設定資産ページは、機能一覧と同様に既存一覧の派生補完であり、unit_kinds_present の存在判定対象外。excluded-kinds.json の allKinds にも含めない
+- 入力前提: `<output_dir>/<manifestsRoot>/screen-manifest.json`・同`screen-manifest.ext.json`・`<output_dir>/<unitListHtml>`（`unitListHtml` は output-layout の物理配置キーで {label} は「API」）が存在し、raw/extのschemaとhashが一致すること（いずれか不在・不合格時はstatus=STOPPEDでhintに前提スキルを記録して返す）
+- permission-function（権限機能マトリクス）は、導出エンジン（`generation-engine/scripts/extract/build-matrix-data.sh`）の出力形状がテンプレート要求形状と一致しない既知の制約により、生成できない場合がある。その場合も status=DONE のまま skipped_pages に記録する（他4ページが1件以上生成できていれば ERROR にしない）
+
+### generating-reverse-common-docs（プロジェクト共通採録）
+
+- status: `採録v0確定 | 追記完了 | 中断`
+- 拡張: common_docs_root（`プロジェクト共通/` の絶対パス）、sample_manifest_path（サンプル記録.md の絶対パス）
+- `mode=v0` の初回起動では `採録v0確定`、NG帰着(c)共通文書欠落からの `mode=append` 再起動では `追記完了` を返す
+
+### syncing-reverse-env
+
+- status: `PASS | FAIL | ERROR | INCOMPLETE`
+- 既存の15フィールド返却ブロックはそのまま正で改変しない。フィールドは: status / mode / scope / screen_id / slot / ports / original_code / reverse_code / baseline_tag / static_diff / dynamic / env_check / artifacts / output_dir / hint
+- 管理者が読むのは status / scope / ports / baseline_tag / output_dir / artifacts / hint
+- mode=setup の返却からは環境ブロック（env_block）として output_dir / scope / ports / slot / baseline_tag / original_code / reverse_code を抽出する
+- mode=sync,dry-run の返却が「比較結果ブロック」= static_diff / dynamic / env_check / status / hint を含む15フィールドそのもの
+
+### unlocking-reverse-target-screens
+
+- status: `BASELINE-ESTABLISHED | UNLOCKED | BLOCKED | ERROR | CONFLICT-SKIPPED`
+- `BASELINE-ESTABLISHED`（終端成功）: 開通〜画面レジストリ記帳〜`syncing-reverse-env(mode=registry)`起動〜基準タグ確立まで完走し、決定的コマンド出力（`git tag -l "reverse-baseline/<scope>"`等）で確認済み
+- `UNLOCKED`（動的検証準備完了または中間・部分完了）: `invocation_mode=dynamic-only` では画面開通・実測URL記録・設計書 frontmatter 補完まで完了し、基準確立は未実施。`standalone` では画面開通済みだが `syncing-reverse-env(mode=registry)` がPASS以外で基準タグ未確立
+- `CONFLICT-SKIPPED`（開通競合検知）: 対象画面の作業コピー・devサーバー等が既に他プロセスによって使用中と判明し、他プロセスの環境に触れず即座に処理を終了した状態。呼び出し元はこれを競合スキップとして扱い、failed とは別区分で失敗回数にカウントしない
+- 拡張: source_ref（開通確認時点のコミットハッシュ等、追跡に使う参照）、verification_url（モックAPI経由で画面が表示確認できるURL。未実施なら「未実施」）、design_doc_path（今後の設計書の想定配置パス）、baseline_tag（`BASELINE-ESTABLISHED`時のみ確定。`syncing-reverse-env`返却の`baseline_tag`をそのまま転記）
+
+### extracting-unit-facts-from-code（ユニット事実抽出）
+
+- status: `封印済み | 中断 | 共通文書帰着`
+- 拡張: facts_ref（facts ディレクトリの絶対パス＋facts.lock の sha256）、pending_measurements（⑨実測委譲キーの一覧）
+- `profile=screen|python`を実装。pythonはfacts抽出・独立再計数・封印までを終端とし、画面著述へは進まない
+
+### generating-reverse-basic-design（基本設計書著述）
+
+- status: `基本設計著述完了 | 基本設計著述失敗`
+- 拡張: facts_ref（入力で受け取った facts ディレクトリの絶対パスをそのまま転記。下流工程への追跡用）
+- 返却ブロック共通サブセット（status/scope/artifacts/hint）に準拠する
+- `status=基本設計著述失敗` は facts 未封印（`seal-facts.sh verify` exit 1）・unit_kind が screen 以外（未実装）・実装用語混入がループ上限内で解消しない等で著述不能な場合
+- `unit_kind`（`screen` のみ実装）。他の値を指定された場合も `status=基本設計著述失敗` を返す
+- `authoring_pass`: `standard | large-pass2`。`large-pass2` は `detail_design_path` と `pass1_receipt_path` を必須とし、固定証跡契約の検収失敗時は `status=基本設計著述失敗`
+
+### generating-reverse-detailed-design（設計書著述）
+
+- status: `AUTHORED | DETAIL_AUTHORED | COMPANION_AUTHORED | BLOCKED`
+- 拡張: facts_ref（入力で受け取った facts ディレクトリの絶対パスをそのまま転記。下流工程への追跡用）、measurement_pending（⑨実測系として設計書に確定せず画面単位検証へ委譲した項目の一覧）、detail_design_path、pass1_receipt_path
+- 返却ブロック共通サブセット（status/scope/artifacts/hint）に準拠する
+- `authoring_pass`: `full | detail-only | companion-docs`。`detail-only` は詳細設計書と完全性ゲート、`companion-docs` は完成済み詳細設計書を変更せず観点表・テスト仕様書だけを担当する
+- `status=BLOCKED` は facts 未封印（`seal-facts.sh verify` exit 1）・引数不足・`companion-docs` のパス1証跡不足等で著述不能な場合
+- `detail-only` は `<verification_dir>/screen-<画面ID>/authoring/detail-pass1.json` を作成する。必須フィールドは `status=DETAIL_AUTHORED`、`facts_lock_sha256`、`detail_design_path`、`coverage_check=PASS`、`audit_check=PASS`
+- `large-pass2|companion-docs` は証跡の5フィールド、詳細設計書の実在、detail_design_path の一致、現在の facts.lock の SHA-256 一致を検収する。違反時は fail-closed とする
+
+### rebuilding-screen-unit-from-docs（ファイル単位検証）
+
+- status: `差し戻し | 再現一致 | 再現不一致`
+- 拡張: instruction_doc（修正指示書.md のパス）、handoff_files（画面単位検証で要注意なファイル一覧）、saved_test_paths（本スキルが保存した最終テストコードのパス一覧。設計書リポジトリ `<画面ディレクトリ>/テスト項目書/テストコード/単体/<basename>/` 配下）
+- `status=差し戻し` の場合、hint に「generating-reverse-detailed-design を実行してから再起動せよ」等の差し戻し理由を記録する（設計書に対象ファイルの契約が無い・観点表に契約が無い・画面ディレクトリ構造が壊れている等の**内容起因**の理由に限る）
+- target_repo_path・target_branch・user-approved 等の必須引数欠落やチェックアウト失敗による**起動不可**は `status=差し戻し` を返さず、Skill 呼び出し自体の失敗として管理者へ即時報告する（generating-reverse-detailed-design の再著述では解消しないため、設計書未著述⇄ファイル単位未検証 ループの対象外）
+- 下流引き継ぎ契約: 画面単位検証（rebuilding-code-from-docs）は、上流 rebuilding-screen-unit-from-docs が `saved_test_paths` に保存した単体テストコードを **`reverse_worktree`（rebuilding-code-from-docs が操作する対象コードリポジトリ。rebuilding-screen-unit-from-docs の `target_repo_path` とは別物）へ配置して実行するのみ**とし、単体テストコードの新規作成は行わない
+
+### rebuilding-code-from-docs（画面単位検証・mode分割）
+
+- mode=implement: status = `NEED-COMPARE | INTERNAL-CONTRADICTION | ERROR | BLOCKED`。拡張フィールド compare_request { scope, design_doc（パス）, freeze_commit（凍結コミットのハッシュ）, scenarios_ready（真偽値）}。これは「比較してほしい」を表す専用フィールドで、管理者はこれを見て syncing-reverse-env を sync,dry-run で起動する
+- mode=judge: status = `PASS | FAIL | DESIGN-INCOMPLETE | DYNAMIC-UNVERIFIED`。入力 args として compare_result（= syncing-reverse-env の sync,dry-run 返却ブロック全文）を受け取る。拡張: instruction_doc（修正指示書.md）、final_report（最終報告.md）、loop_verdict（発散 / 収束の判定）
+
+### running-reverse-screen-batch（画面単位バッチ実行）
+
+- status: `BATCH-COMPLETE | BATCH-IN-PROGRESS | BATCH-ABORTED`
+- `BATCH-COMPLETE`: 全画面の処理が完了（成功件数 + failed リスト退避件数 + conflict-skip リスト退避件数の合計が対象総数に一致）
+- `BATCH-IN-PROGRESS`: バックグラウンドループが処理中（PID 生存中）
+- `BATCH-ABORTED`: 異常終了（PID 消失かつ残件あり）
+- 拡張: failed_screens（failed リストへ退避した画面ID一覧）、conflict_skip_screens（開通競合検知により競合スキップとして退避した画面ID一覧。failed_screens とは別区分で失敗回数にカウントしない）、remaining_count（未検証残数）、log_path（実行ログの絶対パス）
+- 返却ブロック共通サブセット（status/scope/artifacts/hint）に準拠する。scope は起動対象画面群を代表する `<system>-batch` を用いる
+
+## args 仕様
+
+各子スキルが単独起動で受け取る引数の全量。単独起動時はユーザーが同じ args を手渡しすれば動く。
+
+- 共通: `reverse_docs_root` は配布されたreverse-docs-skillsルートの実在する絶対パス。統括が解決し、`<reverse_docs_root>/delivery-payload/` または `<reverse_docs_root>/generation-engine/` または契約参照を必要とする全子スキルへ渡す。固定インストール先を仮定しない
+- site_key — 対象サイトのキー。単独プロジェクトなら `main`
+- sites_path — `sites.json` の絶対パス。サイトが1件なら省略
+- surveying-architecture-for-reverse-docs: target_repo_path, output_dir, template_root, target_branch（任意）, source_ref（任意）, mode（`survey`|`revise`、既定 `survey`）, revise_findings（mode=revise 時のみ必須）
+- generating-<種別>-list-for-reverse-docs（種別別一覧スキル6つ共通）: source_dir, output_dir（unit_kind はスキル名で固定されるため引数に無い。管理者は output_dir に `<output_dir>` を渡す。一覧HTMLは `<output_dir>/<unitListHtml>`（{label} に種別ラベルを代入）に出力され、ポータル `<output_dir>/index.html` への戻るリンクが張られる）, survey_doc_path（任意。unit_kind=screen のみ、Phase 1 共有ファイル・エイリアス調査の裏取り元として使用。他種別は未使用）
+- generating-feature-list-for-reverse-docs: source_dir, output_dir（管理者は `<output_dir>` を渡す。出力は `<output_dir>/<unitListHtml>`。{label}=「機能」）, survey_doc_path（任意。ルート定義等の所在特定の参考）
+- generating-cross-views-for-reverse-docs: target_repo_path, output_dir, portal_output_dir（任意。指定時は生成後に build-portal.sh を再実行してカードへ反映する）, sites_path（任意）, site_key（任意）
+- generating-reverse-common-docs: target_repo_path, output_dir, template_root, survey_doc_path, mode（`v0`|`append`、既定 `v0`）, append_findings（mode=append 時のみ必須）
+- syncing-reverse-env: design-doc, mode（setup|sync|teardown）, dry-run, reset-first, user-approved, scenarios, max-loop（既存契約のまま）
+- unlocking-reverse-target-screens: system, screen_id, reverse_worktree, ports, output_dir, user-approved, invocation_mode（`standalone|dynamic-only`、既定 `standalone`。統括の静的著述後経路は `dynamic-only`）
+- 注記: `standalone` は内部から syncing-reverse-env(mode=registry) を起動する。`dynamic-only` は設計書 frontmatter の実測項目を補完して `UNLOCKED` を返し、基準確立を管理者の後続工程へ委ねる
+- syncing-reverse-env (mode=registry): system, screen_id, reverse_worktree, ports, user-approved
+- extracting-unit-facts-from-code: target_repo_path, target_file_paths, screen_dir（実在不要、論理ID用）, verification_dir, profile（`screen|python`）, survey_doc_path, run_id（任意、既定`extract-1`）
+- generating-reverse-basic-design: screen_dir, output_dir, template_root, scaffold_script_path（管理者が generation-engine/scripts/scaffold-screen.sh を解決して渡す。audit_script_path と同型）, facts_ref, common_docs_root, unit_kind（任意、既定 `screen`。`screen` のみ実装）
+- generating-reverse-detailed-design: screen_dir, output_dir, template_root, chapter_map_path, audit_script_path, scaffold_script_path（管理者が generation-engine/scripts/scaffold-screen.sh を解決して渡す。audit_script_path と同型）, facts_ref, common_docs_root, mode, target_file_path（mode=file時）, screenshot_dir（任意・補助情報源）, verification_url（任意・開通時に実レンダリング確認済みのURL。画面レジストリの値を管理者が解決して渡す。scenarios の query/path_params の確定転記に使用する）
+- rebuilding-screen-unit-from-docs: screen_dir, target_file_path, output_dir, template_root, audit_script_path, scaffold_script_path（管理者が generation-engine/scripts/scaffold-screen.sh を解決して渡す。audit_script_path と同型）, chapter_map_path, env_block, user-approved, verification_mode（`single-pass|iterative`、既定 `single-pass`）
+- rebuilding-code-from-docs (mode=implement): screen_dir, scope, reverse_worktree, ports, baseline_tag_status, output_dir, template_root, audit_script_path, chapter_map_path, user-approved, saved_test_paths（上流 rebuilding-screen-unit-from-docs が保存した単体テストコードのパス一覧。管理者が転送する。上流未実施の画面では省略可）
+- rebuilding-code-from-docs (mode=judge): screen_dir, compare_result, reverse_worktree, freeze_commit（global Step 40 の compare_request から管理者が保持して転送する。scripts/check-freeze.sh の入力に使う）
+- running-reverse-screen-batch: target_repo_path, output_dir, screen_ids, template_root, common_docs_root, survey_doc_path, verification_mode（`docs-only|single-pass|iterative`、既定 `single-pass`。`docs-only` は前半の静的リバースだけを実行）, model（任意、既定 `claude-sonnet-5`）, wait_seconds（任意、既定 3600）, fail_limit_k（任意、`iterative` のみ使用・既定 3）, log_path（任意、既定 `<verification_dir>/バッチ運転記録/batch-log.txt`）
+
+注記: user-approved（白紙化承認）と output_dir は管理者が事前に解決して args で渡す（完全仲介方式のため子スキルはユーザーに直接聞かない）。
+
+## Python facts-only入口契約
+
+管理者の`facts_profile`は`auto|screen|python`（既定`auto`）とする。`auto|screen`は通常の画面フローを意味し、画面ループからextracting-unit-facts-from-codeへ渡すprofileは常に`screen`である。画面の対象ファイルが全件`.py`でも、拡張子だけを理由にpythonへ切り替えない。
+
+起動引数が空の対話実行ではAskUserQuestionでprofileを選ばせる。`facts_profile=python`を選択または明示した場合、screen_scopeは質問せず、target_repo_path・output_dir・target_file_paths・facts_unit_id・verification_dir・実行モードを収集する。target_file_pathsはtarget_repo_pathからの相対`.py`パスの非空配列とし、全件の実在・リポジトリ内包を検証して外部絶対パス・`..`・symlink脱出を拒否する。verification_dirは既定値を持たず、`target_repo_path`の外にある絶対パスを必須とする。これら6項目が確定するまで事前ヒアリングは未完了であり、headless=trueでは不足値を推測せず中断する。
+
+`facts_profile=python`は明示指定時だけ使えるfacts-only入口である。フル実行の事前ヒアリング完了後はglobal Step 3以降へ進まず明示Python facts-only経路へ遷移し、facts抽出より先にsurvey_doc_pathを解決する。明示パスまたは`<output_dir>/<commonRoot>/アーキテクチャ調査書.md`が実在すれば、それを候補とする。候補に対して`check-architecture-survey.sh <survey_doc_path> <target_repo_path>`を実行する。exit 0（調査ゲート通過）なら候補をsurvey_doc_pathとして再利用する。候補が不在ならsurveying-architecture-for-reverse-docsをmode=surveyで起動する。exit 1（調査ゲート不合格）なら同skillをmode=revise・revise_findings付きで起動する。revise_findingsには、直前の`check-architecture-survey.sh`が標準エラーへ出力した検査別の失敗理由（`検査N失敗: ...`、7件）をそのまま用いる。`status=調査確定`のartifacts[0]を`survey_doc_path`として記録する。記録した`survey_doc_path`に対して同じゲートを再実行し、exit 0（合格基準）を再検証する。再検証後、画面一覧生成・対象画面ID実在確認・種別ループより先にextracting-unit-facts-from-codeを`profile=python`で起動する。`screen_dir`引数には実在不要の論理パス`<verification_dir>/logical/<facts_unit_id>`を渡す。`status=封印済み`、recount通過、facts.lock検証通過を検収したら「Python facts封印完了」で終端し、画面スキャフォールディング・基本設計・詳細設計・動的検証へ進まない。
+
+## 入口モード判定契約
+
+Step 1-1では、target_repo_path確定直後に `scripts/resolve-flow-mode.sh <target_repo_path>` を実行する。モノレポでは加えてサイトごとに `--site <サイトのルートディレクトリ>` を指定する。既存資産を優先させたい場合は `--output-dir <output_dir>` を付ける。標準出力のJSON1件を採用する。
+
+| フィールド | 型 | 意味 |
+|---|---|---|
+| mode | enum | `setup-only \| reverse-full \| reverse-degraded` |
+| reason | string | 判定根拠の自然文 |
+| evidence | object | `codeFileCount`（対象範囲のソースファイル数）・`screenIndicatorCount`（画面に相当する実体の検出数）・`projectForm`（`single \| monorepo \| site`） |
+| sites | array | モノレポで2件以上のサイトを検出した場合のサブプロジェクト別判定。各要素が `path`・`mode`・`reason`・`evidence` を持つ。単独プロジェクトまたは `--site` 指定時は空配列 |
+
+判定材料は既存資産を優先し、新しい種別判定基盤は作らない。`--output-dir` 指定時に `<output_dir>/<excludedKinds>` が実在すれば、presentKindsのscreen有無を使う。調査書は `<output_dir>/<commonRoot>/アーキテクチャ調査書.md` である。これが実在しcheck-architecture-survey.shのゲートを通れば、§10プロジェクト形態とサイト一覧を使う。いずれも未生成の場合はtarget_repo_pathを直接走査する。走査ではソース拡張子の実在でコードの有無を判定する。画面の有無はpages/views/screens/routes/templatesディレクトリ・ルーティング定義ファイル名・ルーティングAPI呼び出しの検出で判定する。
+
+`setup-only`はPhase 1でセットアップ完了として終端する。global Step 2以降（アーキテクチャ調査以下）は起動しない。`reverse-degraded`はscreen_scopeを要求しない。画面依存工程は既存条件でそのまま素通りする。根拠はStep 5-1の既存条件（screen種別のみ処理し他5種別は後続未対応で終端）である。加えて、Step 3-2のexcluded-kinds.json記録とポータルのdisabledWhenEmptyも同じ効果を持つ。`reverse-full`は現行のglobal Step 2以降をそのまま実行する。
+
+## 無人モード仕様
+
+管理者は`headless: boolean`（既定false）と`verification_mode: docs-only | single-pass | iterative`（既定`single-pass`）を受け取る。さらに`facts_profile: auto | screen | python`（既定`auto`）を受け取る。`auto|screen`は通常の画面フロー、`python`は上記の明示facts-only入口であり、無人モードでもこの境界を変更しない。`docs-only`は静的リバース完了で終端し、`single-pass`は動的検証を1回だけ実行し、`iterative`はFAIL後の改善反復まで許可する。無人モード時は下表の置き換えを適用する。詳細は`RUNBOOK.md`を参照する。
+
+### 置き換え表
+
+| 通常モードの挙動 | 無人モードでの置き換え |
+|---|---|
+| 破壊的操作（白紙化等）のユーザー承認を都度取得する | 起動時フラグで一括付与済みとして扱い、各ゲートで子スキルへ承認済み（user-approved）として渡す |
+| AskUserQuestion でユーザーに選択を仰ぐ | 使用しない。スキルと契約書の既定に従い判断を実行し、その判断内容を実行レポートに記録する |
+| 「ユーザーに報告して中断」に該当する事象が起きる | 実行レポートに記録し、失敗ステータスで当該画面を終端する。バッチ実行時は次の画面へ進む |
+| 設計書ルート（output_dir）が未指定 | 即エラー終端とする（推測補完しない） |
+| generating-glossary-for-reverse-docs の用語候補生成 | `proposal_output_ref` が未指定・相対パス・対象repo内なら生成せず停止する。指定済みでも `detected` / `NEEDS_REVIEW` で停止し、自動承認・用語集適用・portal publishを行わない |
+
+### headless でも変えないもの
+
+状態判定の判定フロー・子スキルへの引数全量指定・返却ブロックのステータスのみでの検収・ループ上限と発散検知は、無人モードでも変更しない。無人モードを含む全モードで、各工程は必ず Skill ツールで子スキルを起動する。子スキルの手順を管理者が直接実行することを禁止する。Skill 起動が失敗する場合は失敗として記録し、代替実行しない。
+
+### 安全設計
+
+単一フラグによる包括承認は将来セッションを誤誘導するリスクがあるため採用しない。`headless_approved_ops` をリスト方式で管理し、明示的に列挙された操作のみを承認済みとして扱う。
+
+```yaml
+headless_approved_ops: [白紙化, 再実装, タグ更新, 環境撤去]
+```
+
+スロット枯渇時の自動回収: headless_approved_ops に `環境撤去` が含まれている場合、スロットが上限に達した時点で「基準確立済み（status=baseline-established）で最も古い環境の軽量解放（プロセス・ポートのみ解放、タグ・成果物は保持する）」を自動実行してスロットを確保する。headless_approved_ops に `環境撤去` が含まれていない場合は従来どおり ERROR で停止する。
+
+### 盲検分離の必須要件
+
+「原本コードを読む工程（Phase 5 / global Step 17〜28）」と「設計書のみから再実装・判定する工程（Phase 6〜7 / global Step 40〜41）」は、無人モードでは別プロセス（別のヘッドレス呼び出し）に分離する。同一プロセス内で両工程を連続実行することを禁止する。ファイル単位盲検検証（rebuilding-screen-unit-from-docs）は、無人モードでは任意工程ではなく必須工程として扱う。
+
+### global Step 40以降の実行主体（headless）
+
+無人（headless）実行では、`single-pass` / `iterative` の global Step 40以降の動的検証を自セッション内のサブエージェント委任で実行してはならない。サブエージェントは Agent 起動ツールを持たず、rebuilding-screen-unit-from-docs 等の内部委任を要する工程がネスト不可で失敗するため。これら動的検証モードでは画面4件以上を running-reverse-screen-batch（画面ごとに独立の claude -p を起動する無人バッチ）へ委譲する。3件以下の `single-pass` / `iterative` は無人実行では完遂できず、Agent ツールを持つ通常セッションで実行する。`docs-only` は動的検証・盲検分離・内部 Agent 委任を要しないため、画面4件以上では running-reverse-screen-batch の静的専用経路、3件以下では Phase 5 の静的逐次経路で完遂できる。
+
+### 実行レポート
+
+無人モードの実行結果は `<verification_dir>/screen-<画面ID>/<timestamp>/実行レポート.md` に保存する。
+
+### 運転記録の標準配置
+
+running-reverse-screen-batch の実行ログ（`log_path`）・failed リストの既定配置は `<verification_dir>/バッチ運転記録/` 配下とする（既定: `<verification_dir>/バッチ運転記録/batch-log.txt`。複数レーン運用時は `<verification_dir>/バッチ運転記録/batch-log-<lane_id>.txt` / `<verification_dir>/バッチ運転記録/failed-screens-<lane_id>.txt`）。運転記録は検証記録の一種であり output_dir 配下（納品物）には置かない。
+
+### 進捗可視化
+
+無人モード（headless=true）では工程の開始・完了のたびに `<verification_dir>/progress.jsonl` へ JSON 行を追記する（形式: `{"ts":"<ISO8601>","screen_id":"<画面ID>","phase":"<工程名>","status":"started|completed|failed"}`）。呼び出し元セッションや人間はこのファイルの監視で現在工程を把握できる。
+
+### 開通競合検知時の対応
+
+複数レーン・複数実行者が同一プロジェクトの画面群を並行処理する場合、他プロセスが同一画面の作業コピー・devサーバー・画面レジストリ等の共有資産を既に操作中であると検知することがある（開通競合）。開通競合を検知した場合は当該画面を**競合スキップ**として実行レポートに記録し、他プロセスの環境には一切触れず次の画面へ処理を続行する。競合スキップは失敗（failed）とは別区分とし、失敗回数にはカウントしない。
+
+### 前提事実
+
+- ヘッドレス実行では AskUserQuestion は許可指定してもモデルに提示されない（実測）
+- TaskCreate と Skill はヘッドレス実行でも利用可能（実測）
+- Agent(run_in_background: true) は headless 実行では `CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS`（既定 600 秒）でバックグラウンドプロセスが切断される（実測）。headless 時の並列起動は Skill ツールによる逐次実行に切り替える
+- **無人モードでは、いかなる工程・用途でも Agent ツールのバックグラウンド起動を使用してはならない。サブエージェントは必ず同期（フォアグラウンド）起動とする**（`CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS` による切断を待つのではなく、そもそもバックグラウンド起動自体を行わない）
+- **無人セッションは reverse-docs-skills リポジトリ（スキル・スクリプト・テンプレート・サンプル）への書き込み・コミットを一切行わない。改善が必要な欠陥を発見した場合は progress.jsonl と最終報告に記録して人間へ申し送る**（2026-07-22 実測: 無人セッションが shared/ 配下を直接編集する違反が発生）
+
+## 共有資産の排他
+
+複数レーン・複数実行者が同一プロジェクトを並行処理する場合、以下の2種の共有資産への書き込みを排他制御する。具体コマンドは全子スキル・呼び出し元で共通のこの仕様に従う。
+
+- **ファイル排他（画面レジストリ・一覧配下・progress.jsonl）**: `flock -w 60 <ロックファイル> -c '<書き込みコマンド>'` で排他する（最大60秒待機。タイムアウトした場合は取得失敗としてリトライ、または該当画面を競合スキップとして扱う）
+- **worktree 排他（`git worktree add`/`remove`）**: 同一リポジトリへの worktree 操作は `flock -w 120 <リポジトリルート>/.reverse-worktree-ops.lock -c '<git worktree add/remove コマンド>'` で直列化する（最大120秒待機。worktree の作成・削除はファイル排他より時間を要するため待機上限を長く取る）
+- **担当画面の重複禁止**: レーン間で同一画面を重複処理しない。担当画面リストの事前分割が正本（分割・レーン別ファイル分離の規約は running-reverse-screen-batch の「並列レーン運用」節）。同一画面の作業中痕跡を検知した場合は「開通競合検知時の対応」の競合スキップに従う
+
+## 状態判定表
+
+成果物の実在から次工程を決める。16状態を漏れなく被覆する。
+
+状態判定の冒頭で、対象画面IDが永続raw正本（`<docs>/<manifestsRoot>/screen-manifest.json` の `screens[]` 配列）に存在することを検証する（`manifestsRoot` は output-layout の物理配置キー。既定値 `docs/manifests`）。一覧外IDの場合は (a) 一覧へ `kind=route`・`route=""` として追記し、route空の未解決画面として工程を継続するか (b) エラー終端するかを AskUserQuestion で確認する（headless=true 時は (a) を自動選択する）。
+
+| 状態キー | 実在判定 | 次に起動する子スキル | 渡す主要 args |
+|---|---|---|---|
+| アーキ未調査 | `<output_dir>/<commonRoot>/アーキテクチャ調査書.md` が不在、または `check-architecture-survey.sh` の再実行が exit 1 | surveying-architecture-for-reverse-docs | target_repo_path, output_dir, template_root, mode（調査書が不在なら survey。調査書はあるが再実行 exit 1 なら revise・revise_findings必須）（期待返却 調査確定） |
+| 一覧未生成 | unit_kinds_present のいずれかの実在種別について `project-portal/lists/<種別ラベル>一覧/<種別ラベル>一覧.html` が不在、または excluded-kinds.json に記載の対象外種別について `<output_dir>/<unitListAbsentMd>`（`unitListAbsentMd` は output-layout の物理配置キー。`{label}` に種別ラベルを代入。既定値 `docs/manifests/<種別ラベル>一覧（該当なし）.md`）が不在 | generating-<種別>-list-for-reverse-docs（種別別一覧スキル） | source_dir, output_dir（固定値: `<output_dir>` を渡す。一覧HTMLは `<output_dir>/project-portal/lists/<種別ラベル>一覧/<種別ラベル>一覧.html` に出力される。不在種別ごとに対応スキルを起動） |
+| 共通未採録 | プロジェクト共通の6文書（共通設計書・メッセージ定義書・DESIGN.md・基盤設計.md・UI共通設計.md・データ設計.md）のいずれか不在、または `check-common-docs.sh` が exit 1 | generating-reverse-common-docs | target_repo_path, output_dir, template_root, survey_doc_path, mode（6文書が未採録なら v0。NG帰着(c)差し戻し時のみ append・append_findings必須）（期待返却 採録v0確定） |
+| ポータル未生成 | `<output_dir>/project-portal/index.html` が不在 | bash generation-engine/scripts/build-portal.sh | target_repo_path, output_dir, portal_output_dir（固定値: `<output_dir>/project-portal`）。ポータルは納品物ルート（output_dir）配下の project-portal/index.html として出力する。`<target_repo_path>/project-portal` 等の納品物ルート外への出力は定義レイアウト違反。複数サイトの場合、`<output_dir>` は当該サイトのサイトルートを指す |
+| サイト定義未生成 | サイトが2件以上あり `<納品ルート>/sites.json` が不在 | `sites.json` を書き出す（統括スキル自身が実行。子スキル起動なし） | site_key, sites_path（書き出し先。サイト一覧はアーキテクチャ調査書 §10 から転記する） |
+| 用語候補未生成（任意） | 呼び出し元が用語候補生成を要求し、対象repo外の絶対 `proposal_output_ref` が明示済みで、提案YAMLが不在 | generating-glossary-for-reverse-docs | target_repo_path, proposal_output_ref, target_glossary_key, base_content_version, source_revision（期待返却 `NEEDS_REVIEW`） |
+| 承認済み用語ページ未生成（任意） | schema検証済みかつ承認済みの `approved_glossary_ref` が明示済みで、`<output_dir>/project-portal/lists/用語辞書/用語辞書.html` が不在 | managing-semantic-glossary（portal publish） | operation=portal-publish, approved_glossary_ref, output_dir, portal_output_dir（任意） |
+| 基盤ページ未生成（任意） | 技術スタック.html・画面遷移図.html・ER図.html・環境構築手順.html・リリースノート.html・デザインシステム.html・コンポーネント棚卸し.html・アイコンカタログ.html のいずれかが output_dir 直下に不在。データ源未整備時はスキップしてよい | generating-tech-stack-for-reverse-docs / generating-env-guide-for-reverse-docs / generating-screen-transition-for-reverse-docs / generating-er-diagram-for-reverse-docs / generating-release-notes-for-reverse-docs / generating-design-system-for-reverse-docs / generating-component-inventory-for-reverse-docs / generating-icon-catalog-for-reverse-docs（不在ページに対応するスキルのみ） | target_repo_path, output_dir, portal_output_dir（任意）, sites_path（任意）, site_key（任意） |
+| 状態遷移図未生成（任意） | 状態遷移図.html が output_dir 直下に不在。データ源未整備時はスキップしてよい | generating-entity-state-for-reverse-docs | target_repo_path, output_dir, portal_output_dir（任意） |
+| シーケンス図未生成（任意） | 画面フォルダのシーケンス図.html が不在。データ源未整備時はスキップしてよい | generating-sequence-diagram-for-reverse-docs | target_repo_path, output_dir, screen_id, portal_output_dir（任意） |
+| 事実未封印 | `<verification_dir>/screen-<画面ID>/facts/*/facts.lock`が不在、または`seal-facts.sh verify`がexit 1 | extracting-unit-facts-from-code | target_repo_path, target_file_paths, screen_dir, verification_dir, profile=screen, survey_doc_path, run_id（期待返却 封印済み）。pythonは本状態表へ入る前のfacts-only入口で終端する |
+| 基本設計未著述 | standardで画面基本設計書.mdが不在、またはlarge-two-passで有効なpass1_receipt_pathがあり画面基本設計書.mdが不在 | generating-reverse-basic-design | standardはauthoring_pass=standard。large-two-passはauthoring_pass=large-pass2, detail_design_path, pass1_receipt_path（期待返却 基本設計著述完了） |
+| 設計書未著述 | standardは詳細設計の完全性ゲート成果物またはAUTHOREDが不在。large-two-passは有効なpass1_receipt_pathがなければdetail-only、証跡がありCOMPANION_AUTHOREDがなければcompanion-docsを起動する | generating-reverse-detailed-design（必須工程） | 共通argsにauthoring_passを追加。companion-docsではdetail_design_pathとpass1_receipt_pathも渡す |
+| 画面未開通 | 基本設計・詳細設計は著述済みだが、画面レジストリに実レンダリング確認済みの `verification_url` がない。`docs-only` では「静的リバース完了」の終端として扱う | unlocking-reverse-target-screens（`single-pass` / `iterative` のみ、`invocation_mode=dynamic-only`。開通と設計書 frontmatter 補完まで行い基準確立は後続へ委ねる） | invocation_mode=dynamic-only, system, screen_id, reverse_worktree, ports, output_dir, user-approved（期待返却 UNLOCKED） |
+| ファイル単位未検証 | 著述済み（設計書未著述=false）**かつ** 当該ファイルの `<verification_dir>/screen-<画面ID>/単体-<対象ファイルbasename>/` 配下に検証記録が1件以上実在する（＝rebuilding-screen-unit-from-docsに着手済み）**かつ** 直近の記録の `status` が「再現一致」でない。当該ファイルの検証記録が1件も無い場合は着手前（任意工程の未着手）であり本状態を確定させず、基準未確立/往復未検証の判定へ読み飛ばす | rebuilding-screen-unit-from-docs（任意工程。無人モードでは必須工程に上書きされる。「無人モード仕様」の「盲検分離の必須要件」を参照） | screen_dir, target_file_path, 資産paths, env_block, user-approved, verification_mode |
+| 基準未確立 | 設計書有・baseline_tag 未確立（syncing setup の baseline_tag が未実施） | syncing-reverse-env（mode=setup → sync） | design-doc, mode=setup |
+| 往復未検証 | baseline_tag有・judge の直近記録が PASS でない（judge 未実施の初回と、judge FAIL 後に再 implement 待ちの状態を区別せず同一状態として扱う。いずれも次に起動する子スキルは rebuilding-code-from-docs である）。`single-pass` で直近 judge が FAIL の場合は同じ明示起動内では終端し、自動再実行しない。後日の新しい明示起動では新たな単発検証として再開できる。**例外**: 直近の修正指示書.md が NG帰着(c)（共通文書欠落）に分類され、かつ対応する generating-reverse-common-docs の mode=append 再起動がまだ行われていない場合に限り、次に起動する子スキルを generating-reverse-common-docs（mode=append）に読み替える（詳細は下記「NG帰着3系統の配線」）。修正指示書.md 自体が無い、またはあっても NG帰着(c)以外・追記対応済みの場合はこの読み替えを評価せず、既定の rebuilding-code-from-docs を次に起動する（NG帰着(c)保留の証跡が無いことを「往復未検証＝未実施」の確定根拠とし、推測で個別分岐を補わない） | rebuilding-code-from-docs（mode=implement）→ syncing-reverse-env（mode=sync,dry-run）→ rebuilding-code-from-docs（mode=judge）。ただし上記例外時は generating-reverse-common-docs（mode=append）を先に起動する | screen_dir, scope, reverse_worktree, ports, output_dir（implement）／ design-doc, mode=sync, dry-run（sync,dry-run）／ screen_dir, compare_result, reverse_worktree, freeze_commit（judge）／ 例外時: target_repo_path, output_dir, template_root, survey_doc_path, mode=append, append_findings |
+| 検証完了 | rebuilding-code-from-docs judge が status=PASS | syncing-reverse-env（mode=sync 本番で基準タグ更新 / 依頼時 teardown。user-approved 必須） | design-doc, mode=sync, user-approved |
+
+判定は次の順に降りる判定フローで16状態を漏れなく被覆する。事実封印の検収直後、状態10より前に著述モードを確定する。large-two-passでは状態11のdetail-onlyを状態10より先に評価する。
+
+1. アーキ未調査: アーキテクチャ調査書の実在と機械ゲート
+2. 一覧未生成: 各種別の一覧HTMLと excluded-kinds.json の実在
+3. 共通未採録: プロジェクト共通6文書の実在と機械ゲート
+4. ポータル未生成: output_dir 直下の index.html の実在
+5. サイト定義未生成: サイトが2件以上あるときの `<納品ルート>/sites.json` の実在
+6. 基盤ページ未生成（任意）: 基盤ページ群の実在。スキップ時はデータ源未整備の根拠を記録する
+7. 状態遷移図未生成（任意）: 状態遷移図.html の実在。スキップ時はデータ源未整備の根拠を記録する
+8. シーケンス図未生成（任意）: 画面フォルダのシーケンス図.html の実在。スキップ時はデータ源未整備の根拠を記録する
+9. 事実未封印: facts.lock の実在と封印検証
+10. 基本設計未著述: standardは通常判定。large-two-passは有効なパス1証跡がある場合だけ判定
+11. 設計書未著述: standardはfullを判定。large-two-passはdetail-onlyを先行し、その後companion-docsを判定
+12. 画面未開通: 実レンダリング確認済み verification_url の実在
+13. ファイル単位未検証: 検証記録の実在有無と直近の再現一致有無
+14. 基準未確立: syncing setup 返却の baseline_tag
+15. 往復未検証: judge の直近記録と NG帰着(c)保留の有無
+16. 検証完了: judge の直近 PASS
+
+`verification_mode=docs-only` は、standard では基本設計著述完了+AUTHORED の検収直後（global Step 28）に成立する。large-two-passではDETAIL_AUTHORED+基本設計著述完了+COMPANION_AUTHOREDの検収直後に成立する。この場合、verification_url の有無を問わず「静的リバース完了」として必ず終端する。12〜16 および global Step 40〜41 の動的工程は判定・起動のいずれも行わない。
+
+「次に起動する子スキル」列は起動する子スキル名のみを記す。mode の選択・分岐条件は必ず「渡す主要 args」列または実在判定列を参照する（子スキル名に mode を併記しない）。
+
+**動的検証ゲート**: 画面レジストリの `verification_url` は、ファイル単位検証・基準確立・往復検証へ進む時点で、実レンダリング確認済みの実URLでなければならない。この条件は静的著述には適用しない。`docs-only` はstandardの基本設計著述完了+AUTHORED、またはlarge-two-passのDETAIL_AUTHORED+基本設計著述完了+COMPANION_AUTHOREDを検収した直後に終端する。`single-pass` は1回の明示起動につき対象画面のjudgeを最大1回に制限する。`iterative` だけが上限付きの自動反復を許可する。
+
+アーキ未調査・共通未採録はプロジェクト単位で1回だけ確定させればよく、画面ごとに繰り返さない（一覧未生成以降は画面単位の反復対象）。
+
+ファイル単位未検証が `status=差し戻し` を返した場合、`verification_mode=iterative` のときだけ設計書未著述（generating-reverse-detailed-design）へ戻す。`single-pass` では差し戻し理由を記録して停止する。
+
+設計書未著述は静的リバースの必須工程であり、詳細設計 AUTHORED なしに完了扱いしない。ファイル単位未検証は通常モードでは任意工程である。設計書が揃い、当該ファイルについて検証記録が1件も無い、または検証記録があり直近の `status` が再現一致の画面は、ファイル単位工程を実行済み・不要のいずれとしてもスキップし基準未確立/往復未検証から開始してよい。
+
+**無人モードでの上書き**: 上記「任意工程」の扱いは通常モードのものであり、無人モード（headless=true）ではファイル単位未検証（rebuilding-screen-unit-from-docs）を任意工程ではなく必須工程として扱う（正本は「無人モード仕様」の「盲検分離の必須要件」）。無人モードで当該ファイルの検証記録が1件も無い場合もスキップせず必ず実行する。
+
+基本設計未著述は任意工程ではなく必須工程である。standard では基本設計書が不在のまま後続へ進まない。large-two-pass では唯一の例外として詳細設計パス1だけを先行できるが、基本設計書が不在のままパス2合流後のファイル単位未検証・基準未確立・往復未検証へ進むことは禁止する。管理者の完了条件および最終報告には、対象画面ごとに画面基本設計書.md の実在を含める。
+
+### 種別ループ
+
+管理者は excluded-kinds.json の presentKinds に記載された各種別についてループする。種別ごとの進み方は次のとおり。
+
+- screen: 画面単位で静的リバース（facts抽出〜基本設計・詳細設計）を先に完了する。`docs-only` はここで終端し、`single-pass` / `iterative` は画面開通〜ファイル単位検証〜基準確立〜往復検証へ進む
+- api: facts工程を経由しない原本読解型の設計書著述へ進む。API詳細設計（generating-api-detail-design-for-reverse-docs）とAPI基本設計（generating-api-basic-design-for-reverse-docs）の両方を生成し、その完了をもって終端する（往復検証の対象にはならない）。table / batch / report / external: facts工程を経由しない原本読解型の基本設計と詳細設計へ進み、両方の生成をもって終端する（往復検証の対象にはならない）。
+
+「後続未対応」は excluded-kinds.json の「対象外」（アーキテクチャ調査書で実在しないと判定された種別。後述の3状態の区別を参照）とは別の状態である。「対象外＝そもそも実在しない」のに対し、「後続未対応＝実在し一覧化済みだが facts 抽出に進めない」という違いがある。
+
+一覧生成は全種別について成果物を出す。unit_kinds_present に含まれる種別（present）は一覧HTMLを、含まれない種別（excluded）は `<種別>一覧（該当なし）.md`（判定理由を転記した1枚もの）を必ず生成する。成果物の実在有無だけで各種別の判定を後から復元できる状態を保つ。
+
+管理者の最終報告（Goal）には、全6種別の到達状態レポートを必ず含める。到達状態は次の5値で記す。
+
+| 到達状態 | 意味 |
+|---|---|
+| 生成済み | 一覧が生成・検証済み（screen はさらに画面単位の反復工程へ進む） |
+| 対象外 | アーキテクチャ調査書で実在しないと判定（excluded-kinds.json に記載） |
+| 後続未対応 | 実在し一覧化済みだが、facts抽出以降の工程が未対応のため一覧確立の時点で終端 |
+| 詳細設計生成済み | api種別限定。facts工程を経由しない原本読解型のAPI詳細設計著述が完了し終端 |
+| 基本設計生成済み | table/batch/report/external種別限定。facts工程を経由しない原本読解型の基本設計と詳細設計の著述が完了し終端 |
+
+管理者の最終報告には、全6種別それぞれについてアーキテクチャ調査書の実在判定（実在する／実在しない・理由）と対応する成果物パス（一覧HTML または `<種別>一覧（該当なし）.md`）を記す種別判定結果の報告義務を含める（書式は orchestrating-ai-development-setup SKILL.md の「報告書式（3表テンプレート）」表1を正とする）。
+
+管理者の最終報告には、無人モード（headless=true）実行時に限り、盲検分離の充足状況（同一プロセス実行か・分離実行か）も併せて記載する（正本は「無人モード仕様」の「盲検分離の必須要件」）。
+
+screen 以外の種別も、api と table と batch と report と external は基本設計と詳細設計の生成へ進む。feature と message は派生一覧のため単位種別の到達状態を持たない。
+
+feature（機能一覧）は種別ループの対象外である。派生一覧のため presentKinds にも excludedKinds にも載らず、global Step 10（画面一覧確立後）で生成される。到達状態の報告は 生成済み / 未生成 の2値で行う（表1に feature（派生）行として記載する）。
+
+メッセージ一覧・テスト観点表一覧（状態キー: 「派生一覧未生成（任意）」）も feature と同じ扱いで種別ループの対象外である。派生一覧のため presentKinds にも excludedKinds にも載らず、前提条件（メッセージ定義書.md（message）または per-画面の単体テスト観点表（test_viewpoint）が output_dir に存在すること）を満たした場合にのみ、任意工程として generating-message-list-for-reverse-docs / generating-test-viewpoint-list-for-reverse-docs を起動する。到達状態の報告は 生成済み / 未生成 の2値で行う（表1に派生一覧（メッセージ/テスト観点表）行として記載する）。
+
+マトリクス・対応表4ページ・AI設定資産ページ（generating-cross-views-for-reverse-docs）も種別ループの対象外である。派生補完のため presentKinds にも excludedKinds にも載らず、global Step 11（機能一覧確立後）で生成される。到達状態の報告は 生成済み / 未生成 の2値で行う（表1にマトリクス・対応表（派生補完）行として記載する）。permission-function のみデータ形状ギャップにより個別に未生成となりうるため、報告時は5ページ中の生成数（例: 4/5）を併記する。
+
+### §16未解消の扱い（補足）
+
+rebuilding-code-from-docsのPhase2が実行するaudit-consistency.shは§16要確認事項一覧の未解消行数をWARNとして記録する（既定）。既定挙動では管理者の状態判定・次工程遷移に影響しない。管理者が往復検証着手前に§16のゼロ解消を強制したい場合のみ、AUDIT_STRICT_P16=1を設定した上でaudit-consistency.shを実行するようrebuilding-code-from-docsへ指示する（この場合はexit 1となり、Phase2は「内部矛盾あり」としてPhase8へ直行する既存の分岐がそのまま適用される）。
+
+### 標準著述と大規模ユニットの2パス著述
+
+global Step 17 は `target_file_paths` の合計行数・ファイル数を実測する。合計1,500行超または4ファイル超、もしくは詳細設計書が1,000行を超える見込みを呼び出し元が根拠付きで指定した場合は `authoring_mode=large-two-pass`、それ以外は `authoring_mode=standard` とする。
+
+- `standard`: generating-reverse-basic-design（`authoring_pass=standard`）と generating-reverse-detailed-design（`authoring_pass=full`）を並列起動する。合流条件は `基本設計著述完了` と `AUTHORED`
+- `large-two-pass` パス1: generating-reverse-detailed-design（`authoring_pass=detail-only`）だけを起動し、詳細設計書の完全性ゲート通過を示す `DETAIL_AUTHORED`、`detail_design_path`、`pass1_receipt_path` を受領する
+- `large-two-pass` パス2: パス1の完了後に限り、generating-reverse-basic-design（`authoring_pass=large-pass2`）で基本設計書を、generating-reverse-detailed-design（`authoring_pass=companion-docs`）で観点表・テスト仕様書を別サブエージェントへ委任する。両方に facts_ref・`detail_design_path`・`pass1_receipt_path` を渡す。合流条件は `基本設計著述完了` と `COMPANION_AUTHORED`
+
+大規模ユニットでは状態判定の「基本設計未著述」をパス1完了まで保留し、「設計書未著述」を先に解消する。パス1未完了でパス2を開始した場合は契約違反として fail-closed に停止する。基本設計書は完成済み詳細設計書を内容の出典にはせず、パス2開始の完了証跡・整合対象として扱い、本文の出典は封印済み facts と共通文書に限定する。(d) rebuilding-screen-unit-from-docs の `status=差し戻し` は `verification_mode=iterative` の場合だけ詳細設計へ戻す（基本設計への差し戻しは発生しない）。
+
+画面manifestの永続パスは`screen_manifest_path=<output_dir>/<manifestsRoot>/screen-manifest.json`、`screen_manifest_ext_path=<output_dir>/<manifestsRoot>/screen-manifest.ext.json`に固定する。複数サイトでは`output_dir`を当該サイトのサイトルートとして同じ相対配置を適用する。新規一覧生成時は生manifestと拡張manifestをそれぞれ原子的に保存し、通常の再開はscreen_manifest_pathを直接入力にする。旧成果物の明示的な移行・復元時に限り、screen_manifest_pathが無ければ`restore-screen-manifest.sh`で画面一覧HTMLの`<script type="application/json" id="screen-manifest">`から一度だけ復元し、validate-manifest.shを通してからextract-screen-metadata.shでscreen_manifest_ext_pathを再生成する。復元・検証に失敗した場合は著述または静的完了へ進まない。
+
+著述の合流条件を満たした直後、静的完了を宣言する前に画面一覧を再生成する。管理者は output-layout.json の `layout.screenUnitRoot` を解決し、上記の永続screen_manifest_pathとともに、extract-screen-metadata.shを`--design-docs-dir <output_dir>/<screenUnitRoot> --link-base-dir <output_dir>/<screenListDir>`付きで再実行してscreen_manifest_ext_pathを更新する。続いてbuild-unit-list.shを同じ拡張マニフェスト、`--unit-kind screen --portal-dir <output_dir>`で実行する。当該画面の実在成果物だけに4リンクが付き、確定名がある場合は`confirmedScreenName`が反映され、登録件数と表行数が一致することを検収してからレジストリを`authored`へ更新する。この復元・再生成を省略した状態は`docs-only`を含め静的完了ではない。
+
+新規生成・移行復元・静的完了前の再生成のすべてで、extract-screen-metadata.shには固定したgenerated_atとrawの正規化SHA-256を`--generated-at`・`--manifest-content-hash`として渡す。extの`manifestContentHash`がrawの再計算値と一致しなければ後続へ進まない。
+
+## 画面完了の定義
+
+画面が「完了」したと判定するには、対象ファイル集合の完全性を満たす必要がある。
+
+- **対象ファイル集合の網羅判定**: エントリ（画面本体）から辿れる画面専有コンポーネントの列挙結果と、画面詳細設計書 §15.1 のファイル分割表が一致していること（両者に取りこぼしが無いこと）
+- **部分スコープの明示**: 対象ファイルの一部のみを著述した場合は「部分著述（対象ファイルn件/全m件）」を設計書・画面レジストリ・最終報告に明示し、完全著述と区別する。管理者は部分著述の画面を「検証完了」状態へ遷移させない
+- **ルーティング定義ファイルの扱い**: 対象ファイル集合の列挙時、ルーティング定義ファイルは除外する。遷移設計はプロジェクト共通文書（共通設計書）に記載し、画面設計書からは参照で引く
+
+## NG帰着3系統の配線
+
+judge（rebuilding-code-from-docs mode=judge）が `status=FAIL` を返した場合、原因を `delivery-payload/references/リバース工程設計.md` の NG帰着3系統いずれかに帰着させる。自動的な再抽出・再著述・再比較は `verification_mode=iterative` の場合だけ行う。`single-pass` では分類と改善候補を報告して停止し、`docs-only` では judge を起動しない。
+
+| 系統 | 原因 | 管理者の対応 |
+|---|---|---|
+| (a) 執筆規律不足 | 詳細設計書の執筆規律・転記精度に起因する不一致 | generating-reverse-detailed-design のスキル資産（`references/writing-rules.md` 等）の改訂が必要なため、管理者は自動配線せずユーザーに報告する |
+| (b) facts欠落 | 事実抽出プロファイルが対象コードの挙動を捕捉できていない | extracting-unit-facts-from-code のスキル資産（`references/profile-screen.md` 等）の改訂が必要なため、管理者は自動配線せずユーザーに報告する |
+| (c) 共通文書欠落 | 共通設計書等のプロジェクト共通文書に該当挙動の記載が無い | back_edge_id=common-docs-appendとしてglobal Step 14へ戻し、`mode=append`・`append_findings=`で追記後にglobal Step 40を再実行する |
+
+(a)・(b) はスキル資産（reference・プロファイル）そのものの改訂を要するため、管理者が代わりに再実行しても解消しない。(c) のみ、管理者が既存の子スキルを再起動するだけで自動的に解消できる。
+
+extracting-unit-facts-from-code が status=共通文書帰着 を返した場合、`verification_mode=iterative` のときだけ NG帰着(c)（共通文書欠落）と同じルーティングを適用する: generating-reverse-common-docs を mode=append で再起動し、追記完了後に extracting-unit-facts-from-code を再実行する。`docs-only` / `single-pass` では不足内容と改善候補を報告して停止し、自動反復しない。
+
+## テスト・判定の責務分界
+
+### E2Eテストの責務
+
+E2E（RT-/SM-/IT-/CMP- 系）テストは、作成とベースライン実測を rebuilding-code-from-docs（mode=implement）が担い、実行を syncing-reverse-env の dynamic 検査が担う。この分担は compare_request.scenarios_ready（implement 返却の拡張フィールド）と syncing-reverse-env の scenarios 引数に整合する確定済みの正式仕様であり、未解決の設計課題ではない。
+
+### compare_result.status の解釈責務
+
+syncing-reverse-env は計測事実（static_diff / dynamic / env_check）の報告者であり、往復検証の PASS / FAIL の意味解釈は judge（rebuilding-code-from-docs mode=judge）が単独で担う。管理者は syncing-reverse-env の返却 status を往復検証の合否として扱わず、judge の返却 status のみを合否の正とする。
+
+## 凍結検査の除外リスト
+
+rebuilding-code-from-docs（mode=judge）内部Phase 9の凍結検証（`scripts/check-freeze.sh`）は `freeze_commit` 時点の HEAD・作業ツリーとの一致を確認するが、契約はバージョン管理外の生成物配置を「作業ツリー汚染」の判定対象から除外する。除外対象は `node_modules/`・`.next/`・`dist/` 等、ビルド・依存解決の都度再生成される git 管理外ディレクトリに限る（`.gitignore` に列挙されている配置と整合させる）。凍結コミット対象（同スキル内部Phase 3の白紙化リスト内の実装ファイル）自体の変更は除外対象に含めない。
+
+## 実行環境の代替
+
+各子スキルは Skill ツールで起動する。実行環境に専用ワーカー種別（固有名を持つサブエージェント）が存在しない場合は、汎用エージェントにモデルを明示指定した上で代替起動してよい。この代替は契約の状態判定・返却ブロック仕様を変更しない。
+
+## 画面レジストリ
+
+`unlocking-reverse-target-screens` が開通を完了した画面の記帳台帳。管理者と、その委譲を受けた画面バッチの per-item 管理プロセスが状態遷移を管理する。開通の実測値に限り `unlocking-reverse-target-screens` が直接記帳する。他の著述・検証子スキルはこのファイルに直接触れず、管理プロセスが返却 status を検収して更新する。
+
+- 正本ファイル: `<output_dir>/<screenRegistry>`（スキルフォルダ外の設計書リポジトリ側。スキル同期・上書きコピーの影響を受けない）
+- キー: `<system>-<screen_id>`
+- 値: `source_ref` / `verification_url` / `design_doc_path` / `status`。統括経路は `authored` → `unlocked` → `baseline-established`。単独開通経路は `unlocked` → `baseline-established`
+- `authored`: 管理者または running-reverse-screen-batch の per-item 管理プロセスが、extracting → basic-design → detailed-design の完了 status を検収して書き込む。開通失敗後もこの状態と静的成果物を保持する
+- `unlocked`: unlocking-reverse-target-screens が実レンダリング確認済みURLを記録し、`dynamic-only` では設計書 frontmatter 補完まで完了した状態
+- `baseline-established`: 後続の syncing/rebuilding 検証が完了した後、管理プロセスが更新する。下位子スキルが `authored` や `baseline-established` を直接書き込むことは禁止する
+
+### レジストリ移行手順
+
+前回改修までの一部実装では、画面レジストリの `status` に `verification-pass`（本契約では廃止）を用いていた。旧値が残っている台帳を扱う場合は以下の手順で読み替える。
+
+1. 対象台帳（`<output_dir>/<screenRegistry>`）内の全エントリを走査し、`status: verification-pass` を検出する
+2. 検出したエントリを `status: baseline-established` に書き換える（`verification-pass` は判定意味論上 `baseline-established` と同一であり、値の統合による情報損失は無い）
+3. 書き換え後、旧値 `verification-pass` を格納する第二の台帳・キャッシュ・マーカーが別途存在しないことを確認する（二重台帳化の防止。正本は本ファイル1本のみであり、他ファイルへの転記コピーを残さない）
+4. 移行完了後は本契約の状態判定表・マーカー判定（`baseline-established` のみで判定）をそのまま適用してよい。移行前の互換読み替えロジックを恒久的なコード分岐として残さない
+
+## excluded-kinds.json
+
+アーキテクチャ調査書で「実在しない」と判定された種別を記録する成果物。管理者が `一覧/` ディレクトリに書き出す。
+
+### 形式
+
+```json
+{
+  "generatedAt": "ISO8601",
+  "surveyDocPath": "アーキテクチャ調査書の相対パス",
+  "allKinds": ["screen", "api", "table", "batch", "report", "external"],
+  "presentKinds": ["unit_kinds_present から転記"],
+  "excludedKinds": [
+    {
+      "kind": "種別キー",
+      "label": "日本語ラベル",
+      "reason": "アーキテクチャ調査書の判定理由を転記"
+    }
+  ]
+}
+```
+
+### 3状態の区別
+
+| 状態 | 判定方法 | 意味 |
+|---|---|---|
+| 生成済み | `一覧/<種別ラベル>一覧/<種別ラベル>一覧.html` が存在 | 一覧が生成・検証済み |
+| 対象外 | excluded-kinds.json の excludedKinds に記載あり | アーキテクチャ調査書で実在しないと判定。人間可読の成果物として `<output_dir>/<unitListAbsentMd>`（`unitListAbsentMd` は output-layout の物理配置キー。`{label}` に種別ラベルを代入。既定値 `docs/manifests/<種別ラベル>一覧（該当なし）.md`）も併せて生成する |
+| 未着手 | 上記いずれにも該当しない | 一覧生成が未実施 |
+
+feature（機能一覧）は派生一覧のため本ファイルの管理対象外とする。allKinds は6種のまま維持し、feature を追加しない。
+
+マトリクス・対応表4ページ・AI設定資産ページ（generating-cross-views-for-reverse-docs）も派生補完のため本ファイルの管理対象外とする。allKinds は6種のまま維持し、追加しない。
+
+## 納品物ルート（output_dir）の正本レイアウト
+
+納品物一式は `<output_dir>` を単一ルートとして自己完結する（`generation-engine/samples/` と同一構成が正）。人が読むHTMLは `project-portal/` 配下へ集約し、機械が読む定義・データは `docs/` 配下に置く。ポータル・一覧・基盤ページの配置は以下に固定する。
+
+| 成果物 | 正本パス |
+|---|---|
+| ポータル | `<output_dir>/project-portal/index.html`（portal_output_dir は `<output_dir>/project-portal` 固定） |
+| 種別別一覧 | `<output_dir>/project-portal/lists/<種別ラベル>一覧/<種別ラベル>一覧.html`（機能一覧を含む） |
+| 対象外種別の記録 | `<output_dir>/<excludedKinds>`・`<output_dir>/<unitListAbsentMd>`（`unitListAbsentMd` は output-layout の物理配置キー。`{label}` に種別ラベルを代入。既定値 `docs/manifests/<種別ラベル>一覧（該当なし）.md`） |
+| 基盤ページ6枚 | `<output_dir>/project-portal/foundation` 直下（次節「基盤ページ6枚の出力パス契約」） |
+| 図3ページ（画面遷移図・ER図・状態遷移図） | `<output_dir>/project-portal/diagrams` 直下 |
+| 対応表4ページ+AI設定資産ページ | `<output_dir>/project-portal/matrices/<ラベル>/<ラベル>.html`・`<output_dir>/AI設定資産/AI設定資産.html`（次々節「対応表4ページ+AI設定資産ページの出力パス契約」） |
+| プロジェクト共通文書 | `<output_dir>/<commonRoot>/`（`commonRoot`・`excludedKinds`・`screenRegistry` は output-layout の物理配置キー） |
+
+一覧HTMLの「ポータルへ戻る」リンクは正本レイアウトの相対位置 `../../index.html` を既定とする（`--portal-dir` 指定時は指定位置から算出）。`build-portal.sh` は件数集計・カードリンクの探索で正本レイアウトを優先し、後方互換として旧レイアウト（`<output_dir>/<種別ラベル>一覧/` 直下）も探索する。新規生成は必ず正本レイアウトに従う。
+
+### 既存資産との衝突
+
+対象アプリが `<output_dir>/project-portal/index.html` を既に持つ場合（対象アプリ自身の成果物として git 追跡下にある等）、無条件の上書きを禁止する。実在する `index.html` が `pt-nav-data` マーカー（`<script type="application/json" id="pt-nav-data">`。build-portal.sh 自身が生成物の判別に使うマーカー）を含む場合は自身の再生成対象として上書きしてよい。含まない場合は既存資産との衝突として build-portal.sh を実行せず中断し、統括スキルが別の出力先（`output_dir` の変更）をユーザーへ確認する。
+
+## 基盤ページ6枚と用語辞書の出力パス契約
+
+基盤ページ生成スキル6本は`<output_dir>/project-portal/foundation`直下へ書き出す。用語辞書は一覧ページとして`<output_dir>/project-portal/lists/用語辞書/`へ書き出す。不一致はポータルカードが無言で出ない事故になるため機械保証する。
+
+| スキル | 出力ファイル |
+|---|---|
+| generating-tech-stack-for-reverse-docs | `<output_dir>/project-portal/foundation/技術スタック.html` |
+| generating-env-guide-for-reverse-docs | `<output_dir>/project-portal/foundation/環境構築手順.html` |
+| generating-release-notes-for-reverse-docs | `<output_dir>/project-portal/foundation/リリースノート.html` |
+| generating-design-system-for-reverse-docs | `<output_dir>/project-portal/foundation/デザインシステム.html` |
+| generating-component-inventory-for-reverse-docs | `<output_dir>/project-portal/foundation/コンポーネント棚卸し.html` |
+| generating-icon-catalog-for-reverse-docs | `<output_dir>/project-portal/foundation/アイコンカタログ.html` |
+| generating-screen-transition-for-reverse-docs | `<output_dir>/project-portal/diagrams/画面遷移図.html` |
+| generating-er-diagram-for-reverse-docs | `<output_dir>/project-portal/diagrams/ER図.html` |
+| generating-entity-state-for-reverse-docs | `<output_dir>/project-portal/diagrams/状態遷移図.html` |
+| managing-semantic-glossary | `<output_dir>/project-portal/lists/用語辞書/用語辞書.html`（schema検証済みかつ承認済み用語YAMLのportal publish） |
+
+`portal_output_dir` を指定した場合、各ページ生成スキルは生成後に `build-portal.sh` を再実行してカードへ反映する。
+
+互換Skill `generating-glossary-for-reverse-docs` の出力は納品物ではない。明示された対象repo外の `<proposal_output_ref>` と隣接する diagnostics JSON だけへ出力し、`<output_dir>`、用語辞書HTML、承認済み用語YAMLには書き込まない。
+
+## 対応表4ページ+AI設定資産ページの出力パス契約
+
+対応表生成スキル generating-cross-views-for-reverse-docs（派生補完）は、下表の固定パスにHTMLを書き出す。パスは `delivery-payload/references/portal-catalog.json` の discovery.glob（対応表4ページ）および固定パス（AI設定資産ページ）と同値である。不一致はポータルカードが無言で出ない事故になるため機械保証する。
+
+| page-type | 出力ファイル |
+|---|---|
+| permission-screen | `<output_dir>/project-portal/matrices/権限画面マトリクス/権限画面マトリクス.html` |
+| permission-function | `<output_dir>/project-portal/matrices/権限機能マトリクス/権限機能マトリクス.html`（データ形状ギャップにより未生成の場合あり。既知の制約） |
+| crud | `<output_dir>/project-portal/matrices/CRUD図/CRUD図.html` |
+| traceability | `<output_dir>/project-portal/matrices/画面-API-テーブル対応表/画面-API-テーブル対応表.html` |
+| ai-assets | `<output_dir>/AI設定資産/AI設定資産.html` |
+
+`portal_output_dir` を指定した場合、本スキルは生成後に `build-portal.sh` を再実行してカードへ反映する。
+
+## スキル資産の修正規律
+
+スキルファイル群は以下の3箇所に存在する。修正は正本のみで行い、配布先・実行先での直接修正を禁止する。
+
+| 場所 | 役割 | 修正可否 |
+|---|---|---|
+| reverse-docs-skills リポジトリ | 正本 | 修正はここでのみ行う |
+| agent-toolkit の payload/reverse-docs-skills/ | 配布中継 | 直接修正禁止（sync-payload.mjs が正本から転写） |
+| 実走プロジェクトにデプロイされたコピー | 実行環境 | 直接修正禁止 |
+
+実走中に不具合を発見した場合は、実行環境で応急処置した内容を正本リポジトリに持ち帰り、正本で修正してから再配布する。実行環境のみに留まる修正は次回配布で上書き消失する。
+
+## 設計判断
+
+### check-runbook-presence.sh
+
+**必要性**: `RUNBOOK.md`（運転規約）は本契約文書・`syncing-reverse-env/SKILL.md`・`generation-engine/scripts/check-worktree-commit-guard.sh` の複数箇所から相互参照されており、`RUNBOOK.md` 側の見出し構成変更や参照元の記述変更が起きると死に参照（存在しない見出しの参照・削除済みファイルへの言及）が発生しうる。これを目視レビューだけに委ねると見落としが発生するため、実在・5 見出しの構造・各参照元での言及有無を機械的に突合する self-test を固定化する。
+
+**代替案を採用しなかった理由**:
+- Bash ツール直叩き: 5 項目の突合を毎回手書きすると条件がぶれて回帰検証ができない
+- 既存 Makefile ターゲット拡張: 本リポジトリに Makefile は存在せず、新規導入は本チェック専用の依存を増やすだけになる
+- package.json scripts 追加: 同様に本リポジトリはビルド設定を持たない
+
+**保守責任者**: 人手（ユーザー）。`RUNBOOK.md` の見出し構成、または参照元 3 ファイル（contract.md・syncing-reverse-env/SKILL.md・check-worktree-commit-guard.sh）の記述を変更した場合は本スクリプトも同時に更新する。
+
+**廃棄条件**: `RUNBOOK.md` が廃止された時、または相互参照の整合性検査を別の機構（textlint 等）に統合した時。
+
+## 関連
+
+- `RUNBOOK.md` — 運転規約（推奨配置・起動規約・安全柵・無人モード厳守事項）
+- `../../../generation-engine/scripts/check-runbook-presence.sh` — RUNBOOK.md の実在・構造・死に参照解消を検査する self-test スクリプト

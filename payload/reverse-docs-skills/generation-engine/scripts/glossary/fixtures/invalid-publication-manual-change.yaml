@@ -1,0 +1,14 @@
+change_key: update_customer_from_proposal
+glossary_key: commerce_platform
+change_type: update
+affected_term_keys: [customer]
+proposal_key: null
+base_content_version: 1.9.0
+target_content_version: 2.0.0
+before_hash: sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+after_hash: sha256:6264d9ff274c0e52e8cf676cd885bab48f64f61933095433e14398a5c06fca77
+requested_by: customer-domain-team
+approved_by: [business_approver:domain-reviewer, technical_approver:architecture-reviewer]
+reason: manual changeを公開証跡として流用できないことを検証するため
+applied_at: '2026-08-02T02:00:00Z'
+applied_revision: fed9876

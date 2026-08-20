@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<!--
+  generating-icon-catalog-for-reverse-docs スキルガイド（単一HTML型）
+
+  - 外部リソースはMaterial Symbols OutlinedのGoogle Fonts CDNだけを許可する。その他のCDN・フォント・画像は使わない
+-->
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>アイコンカタログ生成スキル</title>
+<style>
+/* スキルガイド HTML（.claude/skills/*/references/guide.html）の統一意匠。
+   自己完結の単一 HTML へ丸ごと埋め込む style タグの中身。外部ファイルは参照しない。
+   版面は文書型のまま（中央寄せの最大幅・通常のページスクロール）。
+   ポータルの全画面レイアウト（サイドバー・100vh・sticky）は持ち込まない。
+   角丸は使わない（border-radius は 0 のみ）。影はぼかし半径を持たせない。
+   配色は delivery-payload/templates/tokens.css の値から取り出した派生値。
+   既定は明るい表示。暗い表示は prefers-color-scheme と data-theme="dark" の両方で切り替わる。
+   data-theme="light" を明示したときは明るい表示を固定する。 */
+
+:root, [data-theme="light"] {
+  --guide-bg: #F1F4F8;
+  --guide-panel: #FFFFFF;
+  --guide-panel2: #E9EEF4;
+  --guide-border: #D8DFE8;
+  --guide-text: #1A222E;
+  --guide-text-sub: #4B5A70;
+  --guide-muted: #6C7A8E;
+  --guide-accent: #0284C7;
+  --guide-accent-hi: #075985;
+  --guide-accent-soft: rgba(2,132,199,0.10);
+  --guide-stamp: #D9482B;
+  --guide-stamp-soft: rgba(217,72,43,0.12);
+  --guide-green: #15803D;
+  --guide-green-soft: rgba(21,128,61,0.16);
+  --guide-code-bg: #101722;
+  --guide-code-text: #C9E8FF;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --guide-bg: #0F1217;
+    --guide-panel: #161C23;
+    --guide-panel2: #1C232E;
+    --guide-border: #2B3443;
+    --guide-text: #E7ECF4;
+    --guide-text-sub: #A8B3C3;
+    --guide-muted: #8A96A7;
+    --guide-accent: #4CC2FE;
+    --guide-accent-hi: #9ADCFF;
+    --guide-accent-soft: rgba(76,194,255,0.17);
+    --guide-stamp: #FF6E4F;
+    --guide-stamp-soft: rgba(255,110,78,0.16);
+    --guide-green: #4ADE81;
+    --guide-green-soft: rgba(74,222,129,0.16);
+    --guide-code-bg: #0B0E13;
+    --guide-code-text: #C9E8FF;
+  }
+}
+
+[data-theme="dark"] {
+  --guide-bg: #0F1217;
+  --guide-panel: #161C23;
+  --guide-panel2: #1C232E;
+  --guide-border: #2B3443;
+  --guide-text: #E7ECF4;
+  --guide-text-sub: #A8B3C3;
+  --guide-muted: #8A96A7;
+  --guide-accent: #4CC2FE;
+  --guide-accent-hi: #9ADCFF;
+  --guide-accent-soft: rgba(76,194,255,0.17);
+  --guide-stamp: #FF6E4F;
+  --guide-stamp-soft: rgba(255,110,78,0.16);
+  --guide-green: #4ADE81;
+  --guide-green-soft: rgba(74,222,129,0.16);
+  --guide-code-bg: #0B0E13;
+  --guide-code-text: #C9E8FF;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0 auto;
+  padding: 0 24px 96px;
+  max-width: 980px;
+  font-family: system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif;
+  line-height: 1.85;
+  color: var(--guide-text);
+  background: var(--guide-bg);
+}
+
+header {
+  padding: 56px 0 24px;
+  border-bottom: 3px solid var(--guide-text);
+}
+header h1 { font-size: 1.9rem; margin: 0 0 10px; letter-spacing: 0.01em; }
+header p { margin: 6px 0 0; color: var(--guide-text-sub); }
+
+h1 { font-size: 1.9rem; margin: 0 0 10px; }
+h2 {
+  font-size: 1.35rem;
+  padding-bottom: 8px;
+  margin-bottom: 20px;
+  border-bottom: 2px solid var(--guide-text);
+}
+h3 { font-size: 1.05rem; margin: 32px 0 10px; }
+
+.skill-name {
+  display: inline-block;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 1rem;
+  background: var(--guide-text);
+  color: var(--guide-bg);
+  padding: 2px 10px;
+  border-radius: 0;
+  vertical-align: middle;
+}
+
+.meta-table { margin-top: 16px; font-size: 0.9rem; color: var(--guide-text-sub); }
+.meta-table td { padding: 3px 18px 3px 0; vertical-align: top; }
+
+nav { margin-top: 32px; padding: 18px 22px; background: var(--guide-panel); border: 1px solid var(--guide-border); border-radius: 0; }
+.toc { margin-top: 32px; padding: 18px 22px; background: var(--guide-panel); border: 1px solid var(--guide-border); border-radius: 0; }
+.toc-title { font-weight: 700; margin-bottom: 6px; }
+.toc ol, nav ol { margin: 0; padding-left: 1.4em; columns: 2; column-gap: 40px; }
+.toc li, nav li { margin: 2px 0; }
+
+section { margin-top: 64px; }
+section > h2 .sec-num { display: inline-block; }
+.sec-num {
+  display: inline-block;
+  min-width: 2.4em;
+  margin-right: 10px;
+  font-family: ui-monospace, monospace;
+  font-size: 0.95rem;
+  background: var(--guide-text);
+  color: var(--guide-bg);
+  text-align: center;
+  padding: 1px 8px;
+  border-radius: 0;
+  vertical-align: 2px;
+}
+
+.note { color: var(--guide-text-sub); font-size: 0.92rem; }
+
+a { color: var(--guide-accent); }
+.toc a, nav a { color: var(--guide-text); text-decoration: none; border-bottom: 1px dotted var(--guide-muted); }
+.toc a:hover, nav a:hover { border-bottom-style: solid; }
+table a, .spec a { color: var(--guide-accent); }
+
+table { border-collapse: collapse; width: 100%; }
+th, td { border: 1px solid var(--guide-border); padding: 8px 12px; text-align: left; vertical-align: top; }
+th { background: var(--guide-panel2); font-weight: 700; }
+
+.spec { border-collapse: collapse; width: 100%; margin: 14px 0; background: var(--guide-panel); font-size: 0.93rem; }
+.spec th, .spec td { border: 1px solid var(--guide-border); padding: 8px 12px; text-align: left; vertical-align: top; }
+.spec th { background: var(--guide-panel2); font-weight: 700; }
+
+ul, ol { margin: 0.5em 0 0.5em 1.4em; padding: 0; }
+li { margin: 2px 0; }
+
+pre {
+  background: var(--guide-code-bg);
+  color: var(--guide-code-text);
+  border-radius: 0;
+  padding: 18px;
+  overflow-x: auto;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.86rem;
+  line-height: 1.6;
+}
+.flow {
+  background: var(--guide-code-bg);
+  color: var(--guide-code-text);
+  border-radius: 0;
+  padding: 20px 24px;
+  overflow-x: auto;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.82rem;
+  line-height: 1.55;
+}
+.cap { color: var(--guide-muted); }
+
+code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.86em;
+  background: var(--guide-panel2);
+  color: var(--guide-text);
+  padding: 1px 5px;
+  border-radius: 0;
+}
+pre code, .flow code { background: transparent; color: inherit; padding: 0; }
+
+.def {
+  background: var(--guide-panel);
+  border: 1px solid var(--guide-border);
+  border-left: 4px solid var(--guide-accent);
+  padding: 12px 18px;
+  margin: 14px 0;
+  border-radius: 0;
+}
+.def dt { font-weight: 700; margin-top: 8px; }
+.def dt:first-child { margin-top: 0; }
+.def dd { margin: 2px 0 10px; color: var(--guide-text-sub); }
+
+.constraint {
+  background: var(--guide-accent-soft);
+  border: 1px solid var(--guide-accent);
+  border-radius: 0;
+  padding: 12px 18px;
+  margin: 16px 0;
+  font-size: 0.93rem;
+}
+.constraint strong:first-child { color: var(--guide-accent-hi); }
+
+.warn {
+  background: var(--guide-stamp-soft);
+  border: 1px solid var(--guide-stamp);
+  border-radius: 0;
+  padding: 12px 18px;
+  margin: 16px 0;
+  font-size: 0.93rem;
+}
+.warn strong:first-child { color: var(--guide-stamp); }
+
+.tag {
+  display: inline-block;
+  font-family: ui-monospace, monospace;
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 0 8px;
+  border-radius: 0;
+  border: 1px solid transparent;
+}
+.tag.pass  { background: var(--guide-green-soft); color: var(--guide-green); border-color: var(--guide-green); }
+.tag.fail  { background: var(--guide-stamp-soft); color: var(--guide-stamp); border-color: var(--guide-stamp); }
+.tag.error { background: var(--guide-stamp-soft); color: var(--guide-stamp); border-color: var(--guide-stamp); }
+.tag.mode  { background: var(--guide-accent-soft); color: var(--guide-accent-hi); border-color: var(--guide-accent); }
+
+.diagram {
+  margin: 20px 0;
+  padding: 8px;
+  background: var(--guide-panel);
+  border: 1px solid var(--guide-border);
+  border-radius: 0;
+}
+.diagram svg { width: 100%; height: auto; display: block; cursor: zoom-in; }
+.diagram figcaption { padding: 8px 10px 2px; }
+
+.zoom-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(0,0,0,0.82);
+  overflow: auto;
+  padding: 24px;
+  cursor: zoom-out;
+  -webkit-overflow-scrolling: touch;
+}
+.zoom-overlay svg {
+  width: 1880px;
+  max-width: none;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+  background: var(--guide-panel);
+  border-radius: 0;
+}
+
+@media (max-width: 640px) {
+  body { padding-inline: 14px; }
+  .toc ol, nav ol { columns: 1; }
+  .meta-table, .spec, table { font-size: 0.84rem; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>アイコンカタログ生成スキル<br><span class="skill-name">generating-icon-catalog-for-reverse-docs</span></h1>
+  <p>対象リポジトリの JSX・HTML に現れるアイコン参照を 3 つのパターンで抽出し、<strong>アイコンカタログ.html</strong> を生成する基盤ページ生成スキルの確定仕様。</p>
+
+  <table class="meta-table">
+    <tr><td>対応 OS</td><td>Windows WSL2 環境</td></tr>
+    <tr><td>検証状況</td><td>共有エンジン（<code>validate-page-data.sh</code>・<code>build-detail-page.sh</code>）は他の詳細ページ生成スキルで動作確認済み。アイコン抽出（<code>extract-icon-usage.sh</code>）の単独実機検証は未実施。スキル専用のテストスクリプトは持たない</td></tr>
+    <tr><td>依存</td><td>共有スクリプト <code>generation-engine/scripts/extract/extract-icon-usage.sh</code>・<code>generation-engine/scripts/detail-pages/validate-page-data.sh</code>・<code>generation-engine/scripts/detail-pages/build-detail-page.sh</code> ／ 任意 <code>generation-engine/scripts/build-portal.sh</code></td></tr>
+    <tr><td>関連資料</td><td><code>SKILL.md</code>, <code>references/test-cases.md</code></td></tr>
+  </table>
+</header>
+
+<nav class="toc">
+  <div class="toc-title">目次</div>
+  <ol>
+    <li><a href="#s1">概要</a></li>
+    <li><a href="#s2">出力</a></li>
+    <li><a href="#s3">用語</a></li>
+    <li><a href="#s4">動作フロー（Phase 1〜4）</a></li>
+    <li><a href="#s5">守り（禁止事項と機械検証）</a></li>
+    <li><a href="#s6">関連スキル・資料</a></li>
+  </ol>
+</nav>
+
+<section id="s1">
+  <h2><span class="sec-num">§1</span>概要</h2>
+  <p>アイコンは画面の意味を担う要素でありながら、コード上は import 文や文字列として散在するため、全体像がつかみにくい。本スキルは対象リポジトリの JSX・HTML を走査し、アイコンの参照箇所を 1 か所に集めたアイコンカタログ.html を作成する。</p>
+  <p>抽出の対象は Material Icons の参照・SVG ファイルの import・React のアイコンコンポーネントの 3 パターンに限る。使い方が妥当か、同じ意味のアイコンが重複していないかといった評価は行わない。</p>
+
+  <div class="def">
+    <dt>本スキルがやること</dt>
+    <dd>3 パターンのアイコン参照の抽出・参照元と行番号の記録・アイコンカタログ.html の生成</dd>
+    <dt>本スキルがやらないこと</dt>
+    <dd>アイコン選定の妥当性の評価・重複の指摘（いずれも人間の判断） ／ UI 部品そのものの棚卸し（generating-component-inventory-for-reverse-docs の担当）</dd>
+  </div>
+
+  <h3>起動引数</h3>
+  <table class="spec">
+    <tr><th>引数</th><th>内容</th></tr>
+    <tr><td><code>target_repo_path</code></td><td>走査対象のリポジトリルート</td></tr>
+    <tr><td><code>output_dir</code></td><td>アイコンカタログ.html の書き出し先ディレクトリ</td></tr>
+    <tr><td><code>portal_output_dir</code></td><td>任意。渡された場合のみポータルへ反映する</td></tr>
+  </table>
+  <p class="note">対象リポジトリにアイコン参照が 1 件も無い場合、本スキルは生成せず SKIP を返す。</p>
+</section>
+
+<section id="s2">
+  <h2><span class="sec-num">§2</span>出力</h2>
+  <p>対象リポジトリ 1 つにつき、次の 1 点が生まれる。</p>
+  <div class="def">
+    <dt>アイコンカタログ.html</dt>
+    <dd>検出したアイコン参照の一覧。アイコン名・参照元のファイルパス・行番号・参照件数を持つ。<code>output_dir</code> の直下に置かれる</dd>
+  </div>
+</section>
+
+<section id="s3">
+  <h2><span class="sec-num">§3</span>用語</h2>
+  <div class="def">
+</div>
+</section>
+
+<section id="s4">
+  <h2><span class="sec-num">§4</span>動作フロー（Phase 1〜4）</h2>
+  <table class="spec">
+    <tr><th>Phase</th><th>内容</th></tr>
+    <tr><td>Phase 1 走査対象の確認</td><td><code>target_repo_path</code> 配下の JSX・HTML にアイコン参照が存在するかを確認する。0 件なら生成せず SKIP を返す</td></tr>
+    <tr><td>Phase 2 抽出</td><td><code>extract-icon-usage.sh</code> が 3 パターンのアイコン参照を抽出し、ページデータの JSON を組み立てる</td></tr>
+    <tr><td>Phase 3 整合検証（機械実行）</td><td><code>validate-page-data.sh --target-repo</code> を実行する。全項目 PASS が次へ進む条件。FAIL は 3 回まで修正を試み、超過したら Phase 2 へ差し戻す</td></tr>
+    <tr><td>Phase 4 生成</td><td><code>build-detail-page.sh</code> がアイコンカタログ.html を出力する。<code>portal_output_dir</code> が渡されていれば <code>build-portal.sh</code> でポータルへ反映する</td></tr>
+  </table>
+</section>
+
+<section id="s5">
+  <h2><span class="sec-num">§5</span>守り（禁止事項と機械検証）</h2>
+  <h3>禁止事項</h3>
+  <ul>
+    <li>抽出結果の JSON や生成後の HTML を手作業で編集しない。直すのは抽出スクリプトの側</li>
+    <li>実コードに存在しないアイコンを補完しない</li>
+    <li>3 パターン以外の参照を推測で拾わない</li>
+  </ul>
+  <h3>機械検証</h3>
+  <p>Phase 3 の <code>validate-page-data.sh</code> が全項目 PASS しない限り HTML は生成されない。3 回の修正で PASS しない場合は Phase 2 へ差し戻し、原因が抽出側にあることを明示して止まる。</p>
+</section>
+
+<section id="s6">
+  <h2><span class="sec-num">§6</span>関連スキル・資料</h2>
+  <table class="spec">
+    <tr><th>対象</th><th>内容</th></tr>
+    <tr><td><code>SKILL.md</code></td><td>本スキルの手順の定義</td></tr>
+    <tr><td><code>references/test-cases.md</code></td><td>本スキルの検証観点</td></tr>
+    <tr><td>generating-component-inventory-for-reverse-docs</td><td>同じ基盤ページ群。UI 部品の棚卸しを担当する</td></tr>
+    <tr><td>generating-design-system-for-reverse-docs</td><td>同じ基盤ページ群。CSS トークンの転記を担当する</td></tr>
+  </table>
+</section>
+
+</body>
+</html>

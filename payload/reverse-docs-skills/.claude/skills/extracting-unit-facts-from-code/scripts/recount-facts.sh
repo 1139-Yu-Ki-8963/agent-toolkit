@@ -1,0 +1,2373 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# recount-facts.sh — facts.yml の分類別件数を対象コードから独立再計数し突合する完全性ゲート（Phase 3）
+#
+# 使い方:
+#   recount-facts.sh <facts.yml> <target_repo_path> <target_file相対パス...>
+#   recount-facts.sh --recount-only [--profile screen|python|perl] <target_repo_path> <target_file相対パス...>
+#   recount-facts.sh --self-test
+#
+# --recount-only は facts.yml を介さず、①〜⑧の8分類件数とloc（対象ファイル群の
+# 合計行数）のみを「<セクション> <件数>」形式で出力する薄い出口。detect-screens.sh
+# --profile 等、突合ゲート以外の用途でコア計数関数を再利用するために設ける。
+#
+# 検査（いずれか1件でも違反があれば exit 1。fail-closed）:
+#   1. 分類別件数の乖離検査: facts.yml を読まずに①〜⑧の8分類を対象コードから独立再計数し、
+#      facts.yml内の記載件数との乖離率 |再計数-記載|/max(両者,1) が0.05を超える分類が1つでもあれば違反。
+#      ⑨measurement_pendingは再計数対象外（動的値のため）。
+#   2. 必須フィールド空欄検査: 全12分類の各項目についてkey・evidence（file:line形式）の空欄率が
+#      30%を超えれば違反。
+#   3. 孤児参照検査: evidenceのファイル部分がtarget_file_pathsの集合に含まれない項目が
+#      1件でもあれば違反。
+#
+# 分類別の抽出粒度・再計数パターンの定義は本スキル同梱 references/profile-screen.md を正本とする。
+# facts.ymlのスキーマ（構造・必須フィールド・孤児参照の定義・normalize規則）は
+# delivery-payload/references/facts-schema.md を正本とする。
+#
+# 設計判断（ADR）の正本は本スキルの SKILL.md「## 設計判断」に記載する。
+# 保守責任者: 人手（ユーザー）。再計数パターン・閾値を変更した時に更新する。
+# macOS bash 3.2 互換（mapfile 不使用）。ugrep/BSD grep 両対応のため \b は使わない。
+
+DEVIATION_THRESHOLD_NUM=5
+DEVIATION_THRESHOLD_DEN=100
+BLANK_RATE_THRESHOLD_NUM=30
+BLANK_RATE_THRESHOLD_DEN=100
+SECTIONS="import export_type const state handler jsx style api local_type effect_trigger error_handling"
+ALL_SECTIONS="import export_type const state handler jsx style api measurement_pending local_type effect_trigger error_handling"
+PYTHON_SECTIONS="import function local_assignment external_call exception_handling measurement_pending"
+# perlプロファイルはpythonと同じ分類語彙（import/function/local_assignment/external_call/
+# exception_handling）を再利用する。JS/TSのJSX・styled-components・フックのような固有構文を
+# 持たない言語（Perl相当の構文体系）向けの正規表現ベース独立再計数を提供する。
+PERL_SECTIONS="import function local_assignment external_call exception_handling measurement_pending"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PYTHON_EXTRACTOR="$SCRIPT_DIR/extract-python-facts.py"
+PYTHON_COUNTER="$SCRIPT_DIR/recount-python-facts.py"
+
+# ---- コード側の分類別独立再計数（facts.yml を読まない） ----
+#
+# 全カウント関数は「連結済み対象ファイルの実体パス」を引数に取る（パイプ経由のstdinは使わない）。
+# grep実装（ugrep/BSD grep/GNU grep）によってはstdinストリームと通常ファイルとで
+# 正規表現マッチングの挙動が異なる場合があるため、常に実ファイルを渡して再現性を担保する。
+
+# named import のシンボル計数規則（from以降除去→type除去→{}除去→* as除去→
+# カンマ分割・空トークン除外）をawk関数に抽出し、単一行経路・複数行継続経路の
+# 両方から共用する。複数行にまたがる named import（`import {` 開始行から
+# `from` を含む終端行まで）はinmulti状態で継続行を連結してから一括計数する。
+count_import() {
+  awk '
+    function count_symbols(line,    n, arr, i, tok, cnt) {
+      sub(/from.*/, "", line)
+      gsub(/type[ \t]+/, "", line)
+      gsub(/[{}]/, "", line)
+      gsub(/\*[ \t]+as[ \t]+/, "", line)
+      n = split(line, arr, ",")
+      cnt = 0
+      for (i=1;i<=n;i++) {
+        tok = arr[i]
+        gsub(/^[ \t]+|[ \t]+$/, "", tok)
+        if (tok != "") cnt++
+      }
+      return cnt
+    }
+    {
+      if (inmulti) {
+        buf = buf " " $0
+        buflines++
+        if ($0 ~ /from/) {
+          count += count_symbols(buf)
+          inmulti=0; buf=""; buflines=0
+        } else if (buflines > 40) {
+          count++
+          inmulti=0; buf=""; buflines=0
+        }
+        next
+      }
+      if ($0 ~ /^import[ \t]/) {
+        line=$0
+        sub(/^import[ \t]+/, "", line)
+        if (line !~ /from/) {
+          if (line ~ /\{/ && line !~ /\}/) {
+            inmulti=1; buf=line; buflines=1
+            next
+          }
+          count++; next
+        }
+        count += count_symbols(line)
+        next
+      }
+    }
+    END { print count+0 }
+  ' "$1"
+}
+
+count_export_type() {
+  awk '
+    /^export[ \t]/ { count++ }
+    /^(export[ \t]+)?(interface|type)[ \t]+[A-Za-z_][A-Za-z0-9_]*.*\{[ \t]*$/ { intype=1; next }
+    intype && /^[ \t]*\}[ \t]*;?[ \t]*$/ { intype=0; next }
+    intype && /^[ \t]*[A-Za-z_][A-Za-z0-9_]*\??:[ \t]*[^ \t]/ { count++ }
+    /^export[ \t]+enum[ \t]/ { inenum=1; next }
+    inenum && /^}/ { inenum=0; next }
+    inenum && /^[ \t]*[A-Za-z_]/ { count++ }
+    END { print count+0 }
+  ' "$1"
+}
+
+# 値がオブジェクトリテラル（`{...}`または`as const`オブジェクト）の場合は宣言行1件ではなく、
+# 最上位1階層（ブレース深度1）のフィールド行を1件ずつ数える（profile-screen.md③定数の分解規則）。
+# 空オブジェクト・分解不能な場合は宣言1件にフォールバックする。値がスカラーの場合は従来どおり
+# 宣言行を1件として数える。
+count_const() {
+  awk '
+    # rest（= の右辺として抽出済みのオブジェクトリテラル開始文字列）が同一行内で
+    # 閉じている場合（単一行オブジェクト定数）はgetlineせず、その場でカンマ区切り
+    # により最上位フィールド数を計算する。閉じていない場合は従来どおりgetlineで
+    # 継続行を読み進める。
+    function count_object_fields(rest,   depth, line, opens, closes, fieldcount, body, n, arr, i, tok) {
+      opens = gsub(/\{/, "{", rest)
+      closes = gsub(/\}/, "}", rest)
+      if (opens > 0 && opens == closes) {
+        body = rest
+        sub(/^[^{]*\{/, "", body)
+        sub(/\}[^}]*$/, "", body)
+        if (body ~ /^[ \t]*$/) { return 0 }
+        n = split(body, arr, ",")
+        fieldcount = 0
+        for (i = 1; i <= n; i++) {
+          tok = arr[i]
+          gsub(/^[ \t]+|[ \t]+$/, "", tok)
+          if (tok ~ /^["'"'"'`]?[A-Za-z_$][A-Za-z0-9_$]*["'"'"'`]?[ \t]*:/) fieldcount++
+        }
+        return fieldcount
+      }
+      depth = opens - closes
+      fieldcount = 0
+      while ((getline line) > 0) {
+        if (depth == 1 && line ~ /^[ \t]*["'"'"'`]?[A-Za-z_$][A-Za-z0-9_$]*["'"'"'`]?[ \t]*:[ \t]*[^ \t]/) {
+          fieldcount++
+        }
+        opens = gsub(/\{/, "{", line)
+        closes = gsub(/\}/, "}", line)
+        depth += opens - closes
+        if (depth <= 0) break
+      }
+      return fieldcount
+    }
+    /^(export[ \t]+)?const[ \t]+[A-Za-z_][A-Za-z0-9_]*/ {
+      if ($0 ~ /=[ \t]*styled\./) next
+      if ($0 ~ /use(State|Reducer|Ref)\(/) next
+      line = $0
+      # 型注釈がオブジェクト型で複数行にまたがる宣言（`const X: {...} = {...}`で
+      # 型注釈部分の"{"が改行を挟む場合）は、同一行に"="が現れるまで継続行を
+      # 連結してから型注釈部分をスキップし、値部分の"{"を取り出す。
+      contlines = 0
+      while (line !~ /=/ && contlines < 40) {
+        if ((getline nextline) <= 0) break
+        line = line " " nextline
+        contlines++
+      }
+      rest = line
+      sub(/^(export[ \t]+)?const[ \t]+[A-Za-z_][A-Za-z0-9_]*[ \t]*(:[^=]*)?=[ \t]*/, "", rest)
+      gsub(/^[ \t]+/, "", rest)
+      if (rest ~ /^\{/) {
+        n = count_object_fields(rest)
+        if (n > 0) { count += n } else { count += 1 }
+      } else {
+        count++
+      }
+    }
+    END { print count+0 }
+  ' "$1"
+}
+
+# useState/useReducer/useRef の直接呼出しは1呼出し=1件。それ以外の `use<大文字>...` 形の
+# カスタムフック（store参照フック等）への分割代入は、分割代入された識別子ごとに1件を数える
+# （import のシンボル単位カウントと同じ考え方）。多くの店舗参照フックは
+# `const { a, b, c } = useFoo();` の形で複数の状態を1回で公開するため、呼出し単位で数えると
+# 実在する状態変数が code_count に現れず構造的に検知できなくなる。
+count_state() {
+  awk '
+    # 分割代入パターンの括弧深度を計算する（gsubは渡された局所変数sのみを書き換え、
+    # 呼び出し元のlineには影響しない）。開き"{"/"["と閉じ"}"/"]"の差分を返す。
+    function count_brace_depth(s,   o, c, t) {
+      t = s
+      o = gsub(/\{/, "{", t)
+      o += gsub(/\[/, "[", t)
+      t = s
+      c = gsub(/\}/, "}", t)
+      c += gsub(/\]/, "]", t)
+      return o - c
+    }
+    function process(   hookmatch, hookname, inner, posb, posk, posmin, i, c, lastclose, n, tok, cnt, arr) {
+      if (!match(buf, /=[ \t]*use[A-Za-z0-9_]*\(/)) { return }
+      hookmatch = substr(buf, RSTART, RLENGTH)
+      hookname = hookmatch
+      sub(/^=[ \t]*/, "", hookname)
+      sub(/\($/, "", hookname)
+      if (hookname == "useState" || hookname == "useReducer" || hookname == "useRef") {
+        directcount++
+        return
+      }
+      if (hookname !~ /^use[A-Z]/) { return }
+      inner = substr(buf, 1, RSTART - 1)
+      posb = index(inner, "{")
+      posk = index(inner, "[")
+      if (posb == 0 && posk == 0) { return }
+      if (posb == 0) { posmin = posk } else if (posk == 0) { posmin = posb } else { posmin = (posb < posk ? posb : posk) }
+      inner = substr(inner, posmin + 1)
+      lastclose = 0
+      for (i = length(inner); i >= 1; i--) {
+        c = substr(inner, i, 1)
+        if (c == "}" || c == "]") { lastclose = i; break }
+      }
+      if (lastclose > 0) { inner = substr(inner, 1, lastclose - 1) }
+      gsub(/\n/, " ", inner)
+      n = split(inner, arr, ",")
+      cnt = 0
+      for (i = 1; i <= n; i++) {
+        tok = arr[i]
+        sub(/:.*/, "", tok)
+        sub(/=.*/, "", tok)
+        gsub(/^[ \t]+|[ \t]+$/, "", tok)
+        if (tok ~ /^[A-Za-z_][A-Za-z0-9_]*$/) { cnt++ }
+      }
+      statecount += cnt
+    }
+    {
+      line = $0
+      # `useParams<{ id: string }>()` のようなジェネリック型注釈は、注釈内の
+      # `{`/`}` が分割代入の終端探索（process()の末尾"}"/"]"逆走査）を狂わせ、
+      # かつ `=[ \t]*use...\(` パターンの直後に"("が来ないため呼出し自体を
+      # 検知できなくする。フック呼出し直前の `<...>` 注釈は呼出し検知に無関係
+      # なので、`(` に隣接する `<...>` を先に潰してから以降の判定に使う。
+      gsub(/<[^>]*>\(/, "(", line)
+      if (indestr == 0) {
+        if (match(line, /(^|[^A-Za-z0-9_])(useState|useReducer|useRef)(<[^>]*>)?\(/)) { directcount++ }
+        if (line !~ /(useState|useReducer|useRef)(<[^>]*>)?\(/ && match(line, /^[ \t]*(export[ \t]+)?const[ \t]+[A-Za-z_][A-Za-z0-9_]*[ \t]*=[ \t]*use[A-Z][A-Za-z0-9_]*\(/)) {
+          statecount++
+          next
+        }
+        rest = line
+        sub(/^[ \t]*(export[ \t]+)?const[ \t]+/, "", rest)
+        firstchar = substr(rest, 1, 1)
+        if ((firstchar == "{" || firstchar == "[") && line !~ /(useState|useReducer|useRef)(<[^>]*>)?\(/) {
+          indestr = 1
+          buf = line
+          buflines = 1
+          destr_depth = count_brace_depth(line)
+          if (match(buf, /=[ \t]*use[A-Za-z0-9_]*\(/)) {
+            process()
+            indestr = 0; buf = ""; buflines = 0; destr_depth = 0
+          } else if (destr_depth <= 0) {
+            # 文の完結判定: 分割代入パターンが同一行内で閉じ、かつ代入先がフック
+            # 呼出しでないと確定した（=単一行の非フック分割代入）。後続の無関係な
+            # 行のフック呼出しに誤って巻き込まれないよう直ちにバッファを破棄する。
+            indestr = 0; buf = ""; buflines = 0; destr_depth = 0
+          }
+        }
+        next
+      } else {
+        buf = buf "\n" line
+        buflines++
+        destr_depth += count_brace_depth(line)
+        if (match(line, /=[ \t]*use[A-Za-z0-9_]*\(/)) {
+          process()
+          indestr = 0; buf = ""; buflines = 0; destr_depth = 0
+        } else if (destr_depth <= 0) {
+          # 文の完結判定: 分割代入パターンの閉じ括弧まで到達済み（深度0以下）で、
+          # かつ代入先がフック呼出しでないと確定した時点で、後続の無関係な行の
+          # フック呼出しに誤って巻き込まれないよう直ちにバッファを破棄する
+          # （旧実装は次にuse...(を含む行が現れるまで無条件に連結し続け、
+          # 無関係な後続statementのフック呼出しを誤って合算していた）。
+          indestr = 0; buf = ""; buflines = 0; destr_depth = 0
+        } else if (buflines > 40) {
+          process()
+          indestr = 0; buf = ""; buflines = 0; destr_depth = 0
+        }
+        next
+      }
+    }
+    END { print (directcount + statecount) + 0 }
+  ' "$1"
+}
+
+# コメントと文字列を空白化し、コードとして評価すべきトークンだけを残す。
+# 行数を保つため、後続の行単位カウンタは元ファイルと同じ粒度で扱える。
+strip_non_code() {
+  awk '
+    {
+      out = ""
+      for (i = 1; i <= length($0); i++) {
+        c = substr($0, i, 1)
+        nextc = substr($0, i + 1, 1)
+
+        if (in_block_comment) {
+          if (c == "*" && nextc == "/") {
+            in_block_comment = 0
+            i++
+          }
+          continue
+        }
+        if (quote != "") {
+          if (escaped) {
+            escaped = 0
+          } else if (c == "\\") {
+            escaped = 1
+          } else if (c == quote) {
+            quote = ""
+          }
+          continue
+        }
+        if (in_template && template_expr_depth == 0) {
+          if (c == "\\") {
+            i++
+          } else if (c == "`") {
+            in_template = 0
+          } else if (c == "$" && nextc == "{") {
+            template_expr_depth = 1
+            i++
+          }
+          continue
+        }
+        if (c == "/" && nextc == "*") {
+          in_block_comment = 1
+          i++
+          continue
+        }
+        if (c == "/" && nextc == "/") {
+          break
+        }
+        if (c == "\"" || c == "\\047") {
+          quote = c
+          continue
+        }
+        if (c == "`") {
+          in_template = 1
+          template_expr_depth = 0
+          continue
+        }
+        if (in_template && c == "{") {
+          template_expr_depth++
+        } else if (in_template && c == "}") {
+          template_expr_depth--
+          if (template_expr_depth == 0) {
+            continue
+          }
+        }
+        out = out c
+      }
+      print out
+    }
+  ' "$1"
+}
+
+# 関数宣言単位で数える。handleX/onX 命名、JSX event prop（onClick={save} 等）から
+# 参照される宣言、または useEffect/useLayoutEffect 本体から直接呼ばれる宣言を対象にする
+# （命名規則に従わないマウント時データ取得関数も対象に含める。改善課題「シーケンス図-命名
+# 規則への依存」2026-08-11実測: 命名規則にも JSX event prop にも合致しない、useEffect
+# からのみ呼ばれる関数が API 呼出しを5件持つのにhandlerが0件と判定された）。
+# JSX 属性そのもの、inlineアロー、Reactコンポーネント、通常ヘルパーは数えない。
+#
+# 既知の限界: useEffect/useLayoutEffect本体の直接呼出し検知は「本体ブロック内で行頭に
+# 現れる裸の関数呼出し文（`identifier(...)`。レシーバ経由・use接頭辞のフック呼出しは除外）」
+# のみを対象とするテキストベースの近似である。次は検知できない: (1) 配列・オブジェクトへ
+# コールバック参照として渡すだけで呼出し文にならない形（例 `items.forEach(loadRanking)`）
+# (2) 中括弧を持たないアロー本体（`useEffect(() => fn(), [])`。ブレース差分0のため
+# in_effect自体に入らない） (3) ネストしたif/tryブロック内の呼出し（ブレース深度でしか
+# 判定していないため、複数文が同一行に並ぶケースは深度計算が崩れうる）。
+# `identifier(...).then(...)` のようにPromiseチェーンで包んでいても、行頭が
+# `identifier(` で始まる形（呼出し文自体はそのまま存在する形）は検知できる。
+count_handler() {
+  strip_non_code "$1" | awk '
+    function is_event_handler(name) {
+      return name ~ /^(handle|on)[A-Z]/ || event_refs[name]
+    }
+    function count_declaration(name) {
+      if (name !~ /^[A-Z]/ && is_event_handler(name)) {
+        count++
+      }
+    }
+    function assignment_rhs(line, i, c, nextc, prevc) {
+      for (i = 1; i <= length(line); i++) {
+        c = substr(line, i, 1)
+        nextc = substr(line, i + 1, 1)
+        prevc = substr(line, i - 1, 1)
+        if (c == "=" && nextc != ">" && prevc !~ /[=!<>]/) {
+          return substr(line, i + 1)
+        }
+      }
+      return ""
+    }
+    function count_braces(line,   n, i, c) {
+      n = 0
+      for (i = 1; i <= length(line); i++) {
+        c = substr(line, i, 1)
+        if (c == "{") n++
+        else if (c == "}") n--
+      }
+      return n
+    }
+    {
+      line = $0
+      while (match(line, /on[A-Z][A-Za-z0-9_]*[ \t]*=[ \t]*\{[ \t]*[A-Za-z_$][A-Za-z0-9_$]*[ \t]*\}/)) {
+        ref = substr(line, RSTART, RLENGTH)
+        sub(/^on[A-Za-z0-9_]*[ \t]*=[ \t]*\{[ \t]*/, "", ref)
+        sub(/[ \t]*\}$/, "", ref)
+        event_refs[ref] = 1
+        line = substr(line, RSTART + RLENGTH)
+      }
+      if (!in_effect && $0 ~ /(^|[^A-Za-z0-9_])(useEffect|useLayoutEffect)[ \t]*\(/) {
+        effect_depth = count_braces($0)
+        if (effect_depth < 0) effect_depth = 0
+        in_effect = (effect_depth > 0) ? 1 : 0
+      } else if (in_effect) {
+        stmt = $0
+        sub(/^[ \t]*/, "", stmt)
+        if (effect_depth > 0 && match(stmt, /^[A-Za-z_$][A-Za-z0-9_$]*[ \t]*\(/)) {
+          callee = substr(stmt, RSTART, RLENGTH)
+          sub(/[ \t]*\($/, "", callee)
+          if (callee !~ /^use[A-Z]/) {
+            event_refs[callee] = 1
+          }
+        }
+        effect_depth += count_braces($0)
+        if (effect_depth <= 0) in_effect = 0
+      }
+      source[NR] = $0
+    }
+    END {
+      for (i = 1; i <= NR; i++) {
+        line = source[i]
+        if (line ~ /^[ \t]*(export[ \t]+)?(async[ \t]+)?function[ \t]+[A-Za-z_$][A-Za-z0-9_$]*/) {
+          name = line
+          sub(/^[ \t]*(export[ \t]+)?(async[ \t]+)?function[ \t]+/, "", name)
+          sub(/[^A-Za-z0-9_$].*$/, "", name)
+          count_declaration(name)
+        } else if (line ~ /^[ \t]*(export[ \t]+)?const[ \t]+[A-Za-z_$][A-Za-z0-9_$]*/) {
+          name = line
+          sub(/^[ \t]*(export[ \t]+)?const[ \t]+/, "", name)
+          sub(/[^A-Za-z0-9_$].*$/, "", name)
+          rhs = assignment_rhs(line)
+          if (rhs ~ /^[ \t]*(async[ \t]+)?(\([^)]*\)|[A-Za-z_$][A-Za-z0-9_$]*)[ \t]*=>/ ||
+              rhs ~ /^[ \t]*useCallback[ \t]*\(/) {
+            count_declaration(name)
+          }
+        }
+      }
+      print count + 0
+    }
+  '
+}
+
+# JSX開始タグは属性を複数行に折り返すと `<Header` の直後が改行になり、従来の
+# 「タグ名直後に同一行内で空白/スラッシュ/> が続く」条件に一致しなくなる。行末（$）も
+# 終端条件に加えることで、属性が次行以降に続く開始タグを検知対象に含める。
+# 対象文字クラスは `[A-Za-z]` とし、ネイティブHTMLタグ（`<div>`等の小文字始まり）も
+# PascalCaseコンポーネントと同様にカウント対象へ含める。
+# ユニークタグ数に加え、早期return・三項演算子・`&&`短絡評価による複数レンダリングパスの
+# 分岐数を加算する（`count_api`がawaitと.thenを合算する既存方式を踏襲）。
+#
+# 改善課題「事実抽出-粒度の取りこぼし」（2026-08-11実測）: ネイティブHTMLタグ対応で
+# 小文字始まり識別子も対象に含めた結果、`Record<string, number>` のような型引数の
+# `<string` `number>` がタグ名直後の`>`条件に一致し、画面要素のタグとして誤計上された。
+# TypeScriptの組込みプリミティブ型名はHTMLタグ名・PascalCaseコンポーネント名として
+# 使われることが実質無いため、完全一致で除外する（除外リストはプロジェクト固有値を
+# 含まない一般的な語彙のみ）。
+count_jsx() {
+  tag_count="$(grep -oE '<[A-Za-z][A-Za-z0-9]*([[:blank:]/>]|$)' "$1" | sed -E 's/^<//; s/[[:blank:]\/>]$//' | grep -vxiE 'number|string|boolean|undefined|null|void|any|unknown|never|object|symbol|bigint' | sort -u | wc -l | tr -d ' ')"
+
+  return_jsx_count="$( { grep -cE '(^|[^A-Za-z0-9_])return[ \t]*(\(|<[A-Za-z])' "$1" || true; } )"
+  extra_return_branches=0
+  if [ "$return_jsx_count" -gt 1 ]; then
+    extra_return_branches=$((return_jsx_count - 1))
+  fi
+
+  ternary_count="$( { grep -oE '[^.][ \t]*\?[ \t]*\(?[ \t]*<[A-Za-z]' "$1" | wc -l | tr -d ' '; } || true )"
+  ternary_branches=$((ternary_count * 2))
+
+  and_render_count="$( { grep -oE '&&[ \t]*\(?[ \t]*<[A-Za-z]' "$1" | wc -l | tr -d ' '; } || true )"
+
+  total=$((tag_count + extra_return_branches + ternary_branches + and_render_count))
+  printf '%s' "$total"
+}
+
+count_style() {
+  local styled_count sx_count
+  styled_count="$(grep -cE '=[ \t]*styled\.' "$1" 2>/dev/null || true)"
+  sx_count="$(grep -cE 'sx=\{\{' "$1" 2>/dev/null || true)"
+  echo $(( styled_count + sx_count ))
+}
+
+count_local_type() {
+  awk '
+    /^(type|interface)[[:blank:]]/ && !/^export/ { count++ }
+    END { print count+0 }
+  ' "$1"
+}
+
+count_effect_trigger() {
+  { grep -cE '(^|[^A-Za-z0-9_])(useEffect|useLayoutEffect)[[:blank:]]*\(' "$1" 2>/dev/null || true; }
+}
+
+# 残る既知限界: gqlタグ定数・styled呼出形CSS・フック形API・
+# useMemo/useCallbackハンドラ・非フック分割代入・stateの計数誤差。
+# 計数単位の定義を抽出粒度と一致させる方針で解消する
+count_error_handling() {
+  strip_non_code "$1" | awk '
+    {
+      is_idiom_call = $0 ~ /(^|[^A-Za-z0-9_$])([Tt]hrow[A-Za-z0-9_$]*Error|setError)[ \t]*\(/
+      is_function_declaration = $0 ~ /^[ \t]*(export[ \t]+)?(async[ \t]+)?function[ \t]+/
+      is_arrow_declaration = $0 ~ /^[ \t]*(export[ \t]+)?(const|let|var)[ \t]+[A-Za-z_$][A-Za-z0-9_$]*[ \t]*=[ \t]*(async[ \t]+)?\([^)]*\)[ \t]*=>/
+      if ($0 ~ /(^|[^A-Za-z0-9_$])throw[ \t]/ ||
+          $0 ~ /catch[ \t]*\(/ ||
+          $0 ~ /catch[ \t]*\{/ ||
+          $0 ~ /window[.]alert[ \t]*\(/ ||
+          (is_idiom_call && !is_function_declaration && !is_arrow_declaration)) {
+        count++
+      }
+    }
+    END { print count + 0 }
+  '
+}
+
+# await を伴わない Promise チェーン形式（`api.foo(...).then(...).catch(...)`）のAPI呼出しは
+# 従来の `await <識別子>(` パターンでは構造的に検知できない（await自体が存在しないため）。
+# `.then(` の出現数を1呼出しの起点とみなして加算する（`.catch`/`.finally` は継続部のため数えない）。
+# さらに await/.then のいずれも伴わない直接呼出し（代入形 `const x = obj.method(...)` /
+# 文頭ステートメント形 `obj.method(...)`）はawait/.thenパターンでは構造的に検知できないため、
+# count_api_directで別途計上し合算する（重複計上防止のためawait/.then該当行は対象外にする）。
+count_api() {
+  awaitn="$( { grep -oE '(^|[^A-Za-z0-9_])await[[:blank:]]+[A-Za-z_][A-Za-z0-9_.]*\(' "$1" | wc -l | tr -d ' '; } || true )"
+  thenn="$( { grep -oE '\.then[[:blank:]]*\(' "$1" | wc -l | tr -d ' '; } || true )"
+  directn="$(count_api_direct "$1")"
+  echo $((awaitn + thenn + directn))
+}
+
+# 一般的な組込みオブジェクト（console/Math/JSON等）へのレシーバ、配列・文字列の
+# 汎用メソッド（map/filter/replace等）への呼出しは業務ロジック呼出しではないため除外する
+# （除外リストはプロジェクト固有値を含まない一般的な語彙のみ）。
+#
+# 直接呼出しは「呼出し形式（レシーバ経由のドット連結 / レシーバを介さない裸の関数呼出し）」
+# ×「代入形式（単純識別子への代入 / 波括弧の分割代入）」の2軸4パターンを検知する。
+# 裸の関数呼出しは、英字接頭辞+数字のモジュール名規約（例: bl1DoSomething・api2FetchX）を
+# 持つ名前のみを業務ロジック呼出しとみなす。数字を含まない一般的な語彙（ユーティリティ関数・
+# 制御構文・フック等）まで拾うと誤検知が広がるため対象外とし、フック呼出し（use大文字…）と
+# TypedArrayコンストラクタは明示的に除外する。
+#
+# 改善課題「事実抽出-粒度の取りこぼし」（2026-08-11実測）: logger.error等のログ出力
+# レシーバと、任意のレシーバから呼べる文字列比較メソッド（localeCompare）が業務API呼出し
+# として誤計上された。receiver_exclへ一般的なロガー変数名（logger/log）を、method_exclへ
+# ログ出力メソッド名（error/warn/info/debug/trace）と文字列比較・判定系の汎用メソッド名
+# （localeCompare/isEqual/isEqualNode）を追加する（いずれもプロジェクト固有値を含まない
+# 一般的な語彙のみを列挙する近似。既存の除外リスト方式を継承する）。
+count_api_direct() {
+  awk '
+    BEGIN {
+      split("console Math JSON Object Array Date Number String Promise window document localStorage sessionStorage navigator e event logger log", robj, " ")
+      for (i in robj) receiver_excl[robj[i]] = 1
+      split("map filter reduce forEach find some every includes indexOf slice splice join concat sort push pop shift unshift split replace trim toString toFixed toLowerCase toUpperCase keys values entries preventDefault stopPropagation catch finally error warn info debug trace localeCompare isEqual isEqualNode", rmeth, " ")
+      for (i in rmeth) method_excl[rmeth[i]] = 1
+      split("Int8Array Uint8Array Int16Array Uint16Array Int32Array Uint32Array Float32Array Float64Array BigInt64Array BigUint64Array", barr, " ")
+      for (i in barr) bare_excl[barr[i]] = 1
+    }
+    function check_chain(chain,   n, parts, receiver, method) {
+      n = split(chain, parts, ".")
+      if (n < 2) return 0
+      receiver = parts[1]
+      method = parts[n]
+      if (receiver in receiver_excl) return 0
+      if (method in method_excl) return 0
+      return 1
+    }
+    function check_bare(name) {
+      if (name ~ /^use[A-Z]/) return 0
+      if (name in bare_excl) return 0
+      if (name !~ /^[A-Za-z]+[0-9]+[A-Za-z0-9_]*$/) return 0
+      return 1
+    }
+    {
+      line = $0
+      if (line ~ /\.then[ \t]*\(/) next
+      if (line ~ /(^|[^A-Za-z0-9_])await([ \t]|$)/) next
+      # 代入形（LHSは単純識別子または分割代入{...}のいずれも許容）× レシーバ経由チェーン呼出し
+      if (match(line, /^[ \t]*(export[ \t]+)?(const|let|var)[ \t]+([A-Za-z_][A-Za-z0-9_]*|\{[^{}]*\})[ \t]*(:[^=]*)?=[ \t]*[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)+[ \t]*\(/)) {
+        chain = substr(line, RSTART, RLENGTH)
+        sub(/[ \t]*\($/, "", chain)
+        sub(/^.*=[ \t]*/, "", chain)
+        if (check_chain(chain)) count++
+        next
+      }
+      # 代入形（LHSは単純識別子または分割代入{...}のいずれも許容）× レシーバを介さない裸の関数呼出し
+      if (match(line, /^[ \t]*(export[ \t]+)?(const|let|var)[ \t]+([A-Za-z_][A-Za-z0-9_]*|\{[^{}]*\})[ \t]*(:[^=]*)?=[ \t]*[A-Za-z_][A-Za-z0-9_]*[ \t]*\(/)) {
+        callee = substr(line, RSTART, RLENGTH)
+        sub(/[ \t]*\($/, "", callee)
+        sub(/^.*=[ \t]*/, "", callee)
+        if (check_bare(callee)) count++
+        next
+      }
+      # 文頭ステートメント形（代入なし）× レシーバ経由チェーン呼出し
+      if (match(line, /^[ \t]*[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)+[ \t]*\(/)) {
+        chain = substr(line, RSTART, RLENGTH)
+        sub(/[ \t]*\($/, "", chain)
+        gsub(/^[ \t]+/, "", chain)
+        if (check_chain(chain)) count++
+        next
+      }
+    }
+    END { print count+0 }
+  ' "$1"
+}
+
+# 対象ファイル群を連結して一時ファイルへ書き出し、そのパスを標準出力へ返す。
+# 呼び出し側が使用後に rm すること。
+build_content_file() {
+  repo="$1"
+  shift
+  tmpfile="$(mktemp "${TMPDIR:-/tmp}/recount-facts-content.XXXXXX")"
+  for f in "$@"; do
+    cat "$repo/$f" >> "$tmpfile"
+    echo >> "$tmpfile"
+  done
+  printf '%s' "$tmpfile"
+}
+
+# コード側の分類別件数を「<セクション> <件数>」の形式で全11行出力する。
+recount_from_code() {
+  repo="$1"
+  shift
+  contentfile="$(build_content_file "$repo" "$@")"
+  trap 'rm -f "$contentfile"' RETURN
+  printf '%s %s\n' import "$(count_import "$contentfile")"
+  printf '%s %s\n' export_type "$(count_export_type "$contentfile")"
+  printf '%s %s\n' const "$(count_const "$contentfile")"
+  printf '%s %s\n' state "$(count_state "$contentfile")"
+  printf '%s %s\n' handler "$(count_handler "$contentfile")"
+  printf '%s %s\n' jsx "$(count_jsx "$contentfile")"
+  printf '%s %s\n' style "$(count_style "$contentfile")"
+  printf '%s %s\n' api "$(count_api "$contentfile")"
+  printf '%s %s\n' local_type "$(count_local_type "$contentfile")"
+  printf '%s %s\n' effect_trigger "$(count_effect_trigger "$contentfile")"
+  printf '%s %s\n' error_handling "$(count_error_handling "$contentfile")"
+}
+
+# Pythonは抽出器をimportしない独立ASTカウンターで再計数する。文字コード契約だけを
+# PEP 263で共有し、分類処理の実装を分離して同時破損による偽PASSを防ぐ。
+recount_python_from_code() {
+  repo="$1"
+  shift
+  python3 "$PYTHON_COUNTER" counts --repo "$repo" "$@"
+}
+
+# ---- Perlプロファイル: 正規表現ベースの独立再計数（AST不使用） ----
+#
+# screenプロファイルと同じ設計方針（決定的な正規表現/awkパターンによる近似計数）を
+# Perl構文（use/require・sub・my/our/local・アロー呼出し/裸呼出し・eval/die）へ適用する。
+# pythonプロファイルのようなASTベースの独立実装は持たない（Perl標準ライブラリに決定的な
+# AST解析手段がないため）。分類はmeasurement_pendingを除く5分類。measurement_pendingは
+# screenプロファイルの⑨と同じ理由（動的値のため）で再計数対象外とする（空欄率検査のみ対象）。
+# パターン定義の正本は references/profile-perl.md。
+
+count_perl_import() {
+  awk '
+    function count_symbols(line,    n, arr, i, tok, cnt) {
+      n = split(line, arr, /[ \t]+/)
+      cnt = 0
+      for (i = 1; i <= n; i++) {
+        tok = arr[i]
+        gsub(/^[ \t]+|[ \t]+$/, "", tok)
+        if (tok != "") cnt++
+      }
+      return cnt
+    }
+    /^[ \t]*use[ \t]+[A-Za-z_][A-Za-z0-9_:]*/ {
+      line = $0
+      sub(/^[ \t]*use[ \t]+[A-Za-z_][A-Za-z0-9_:]*[ \t]*/, "", line)
+      if (match(line, /qw[ \t]*\([^)]*\)/)) {
+        qw = substr(line, RSTART, RLENGTH)
+        sub(/^qw[ \t]*\(/, "", qw)
+        sub(/\)$/, "", qw)
+        count += count_symbols(qw)
+        next
+      }
+      count++
+      next
+    }
+    /^[ \t]*require[ \t]+[A-Za-z_][A-Za-z0-9_:]*[ \t]*;/ { count++ }
+    END { print count+0 }
+  ' "$1"
+}
+
+count_perl_function() {
+  awk '
+    /^[ \t]*sub[ \t]+[A-Za-z_][A-Za-z0-9_]*/ { count++ }
+    END { print count+0 }
+  ' "$1"
+}
+
+count_perl_local_assignment() {
+  awk '
+    /^[ \t]*(my|our|local)[ \t]+/ { count++ }
+    END { print count+0 }
+  ' "$1"
+}
+
+# アロー呼出し（->method(...)）を先に検知して除去してから、残りから裸の関数呼出し
+# （identifier(...)）を検知する。制御構文・宣言キーワードはブロックリストで除外する。
+# sub宣言行自体は関数定義でありcallではないため対象から除く。
+count_perl_external_call() {
+  awk '
+    BEGIN {
+      n = split("if unless while until for foreach elsif else my our local return sub eval die use require package print printf sort map grep join split push pop shift unshift keys values exists defined ref bless wantarray qw", kw, " ")
+      for (i = 1; i <= n; i++) keyword[kw[i]] = 1
+    }
+    {
+      line = $0
+      if (line ~ /^[ \t]*sub[ \t]/) next
+      work = line
+      mcount = gsub(/->[A-Za-z_][A-Za-z0-9_]*[ \t]*\(/, " ", work)
+      count += mcount
+      rest = work
+      while (match(rest, /[A-Za-z_][A-Za-z0-9_]*[ \t]*\(/)) {
+        tok = substr(rest, RSTART, RLENGTH)
+        sub(/[ \t]*\($/, "", tok)
+        if (!(tok in keyword)) count++
+        rest = substr(rest, RSTART + RLENGTH)
+      }
+    }
+    END { print count+0 }
+  ' "$1"
+}
+
+count_perl_exception_handling() {
+  awk '
+    /^[ \t]*eval[ \t]*\{/ { count++ }
+    /^[ \t]*die[ \t(]/ { count++ }
+    END { print count+0 }
+  ' "$1"
+}
+
+# Perlプロファイルの分類別件数を「<セクション> <件数>」形式で5行出力する
+# （measurement_pendingは除く。screenプロファイルの⑨と同じ理由で再計数対象外）。
+recount_perl_from_code() {
+  repo="$1"
+  shift
+  contentfile="$(build_content_file "$repo" "$@")"
+  trap 'rm -f "$contentfile"' RETURN
+  printf '%s %s\n' import "$(count_perl_import "$contentfile")"
+  printf '%s %s\n' function "$(count_perl_function "$contentfile")"
+  printf '%s %s\n' local_assignment "$(count_perl_local_assignment "$contentfile")"
+  printf '%s %s\n' external_call "$(count_perl_external_call "$contentfile")"
+  printf '%s %s\n' exception_handling "$(count_perl_exception_handling "$contentfile")"
+}
+
+facts_profile() {
+  awk '
+    /^profile:[ \t]*/ {
+      value=$0
+      sub(/^profile:[ \t]*/, "", value)
+      gsub(/^["'"'"']|["'"'"']$/, "", value)
+      print value
+      exit
+    }
+  ' "$1"
+}
+
+# ---- facts.yml 側の解析 ----
+
+# facts.yml の各セクションの記載件数を「<セクション> <件数>」の形式で出力する。
+declared_counts() {
+  awk '
+    /^sections:/ { in_sections=1; next }
+    in_sections && /^  [A-Za-z_]+:[ \t]*$/ {
+      sec=$0
+      sub(/^  /, "", sec)
+      sub(/:[ \t]*$/, "", sec)
+      cursec=sec
+      next
+    }
+    in_sections && /^      - key:/ {
+      counts[cursec]++
+    }
+    END {
+      for (s in counts) print s, counts[s]
+    }
+  ' "$1"
+}
+
+get_declared_count() {
+  facts="$1"
+  section="$2"
+  declared_counts "$facts" | awk -v s="$section" '$1==s{print $2; found=1} END{if(!found) print 0}'
+}
+
+# 全セクションの各項目について key/evidence の欠損有無を判定し「空欄数 総フィールド数」を出力する。
+blank_field_stats() {
+  awk '
+    /^sections:/ { in_sections=1; next }
+    in_sections && /^  [A-Za-z_]+:[ \t]*$/ { next }
+    in_sections && /^      - key:[ \t]*(.*)$/ {
+      if (havekey) { emit() }
+      key=$0
+      sub(/^      - key:[ \t]*/, "", key)
+      gsub(/^"|"$/, "", key)
+      value=""
+      evidence=""
+      havekey=1
+      next
+    }
+    in_sections && /^        evidence:[ \t]*(.*)$/ {
+      evidence=$0
+      sub(/^        evidence:[ \t]*/, "", evidence)
+      gsub(/^"|"$/, "", evidence)
+      next
+    }
+    in_sections && /^        value:[ \t]*(.*)$/ { next }
+    function emit() {
+      total += 2
+      if (key == "") blank++
+      if (evidence !~ /^[^ \t:]+:[0-9]+$/) blank++
+      havekey=0
+    }
+    END {
+      if (havekey) emit()
+      print blank+0, total+0
+    }
+  ' "$1"
+}
+
+# 孤児参照（evidenceのファイル部分がtarget_file_pathsに含まれない項目）の一覧を出力する。
+orphan_refs() {
+  facts="$1"
+  shift
+  targets_re="$(printf '%s\n' "$@" | awk 'BEGIN{ORS="|"} {gsub(/[].[^$*+?(){}|\\]/,"\\\\&"); print}' | sed -E 's/\|$//')"
+  awk -v key_ok="^($targets_re):[0-9]+\$" '
+    /^sections:/ { in_sections=1; next }
+    in_sections && /^      - key:[ \t]*(.*)$/ {
+      key=$0
+      sub(/^      - key:[ \t]*/, "", key)
+      gsub(/^"|"$/, "", key)
+      next
+    }
+    in_sections && /^        evidence:[ \t]*(.*)$/ {
+      evidence=$0
+      sub(/^        evidence:[ \t]*/, "", evidence)
+      gsub(/^"|"$/, "", evidence)
+      if (evidence != "" && evidence !~ key_ok) {
+        print key ": " evidence
+      }
+      next
+    }
+  ' "$facts"
+}
+
+# ---- 突合本体 ----
+
+run_check() {
+  facts="$1"
+  repo="$2"
+  shift 2
+  targets=("$@")
+  violations=0
+  profile="$(facts_profile "$facts")"
+  [ -z "$profile" ] && profile="screen"
+  case "$profile" in
+    screen)
+      active_sections="$ALL_SECTIONS"
+      recount_out="$(recount_from_code "$repo" "${targets[@]}")"
+      ;;
+    python)
+      active_sections="$PYTHON_SECTIONS"
+      recount_out="$(recount_python_from_code "$repo" "${targets[@]}")"
+      ;;
+    perl)
+      active_sections="$PERL_SECTIONS"
+      recount_out="$(recount_perl_from_code "$repo" "${targets[@]}")"
+      ;;
+    *)
+      echo "エラー: 未対応profileです: $profile" >&2
+      return 2
+      ;;
+  esac
+
+  echo "== 検査1: 分類別件数の乖離検査 =="
+  while IFS=' ' read -r sec code_count; do
+    [ -z "$sec" ] && continue
+    dec_count="$(get_declared_count "$facts" "$sec")"
+    max="$code_count"
+    [ "$dec_count" -gt "$max" ] && max="$dec_count"
+    [ "$max" -lt 1 ] && max=1
+    diff=$((code_count - dec_count))
+    [ "$diff" -lt 0 ] && diff=$((-diff))
+    # 乖離率 diff/max > 0.05 を整数演算で判定: diff*100 > 5*max
+    if [ "$((diff * DEVIATION_THRESHOLD_DEN))" -gt "$((DEVIATION_THRESHOLD_NUM * max))" ]; then
+      echo "  乖離超過: ${sec}（再計数=${code_count} 記載=${dec_count}）" >&2
+      violations=$((violations + 1))
+    else
+      echo "  OK: ${sec}（再計数=${code_count} 記載=${dec_count}）"
+    fi
+  done <<EOF
+$recount_out
+EOF
+
+  echo "== 検査2: 必須フィールド空欄検査 =="
+  blank_total=0
+  field_total=0
+  for sec in $active_sections; do
+    stats="$(awk -v target_sec="$sec" '
+      /^sections:/ { in_sections=1; next }
+      in_sections && /^  [A-Za-z_]+:[ \t]*$/ {
+        sec=$0
+        sub(/^  /, "", sec)
+        sub(/:[ \t]*$/, "", sec)
+        cursec=sec
+        next
+      }
+      cursec != target_sec { next }
+      /^      - key:[ \t]*(.*)$/ {
+        if (havekey) { total+=2; if (key=="") blank++; if (evidence !~ /^[^ \t:]+:[0-9]+$/) blank++ }
+        key=$0
+        sub(/^      - key:[ \t]*/, "", key)
+        gsub(/^"|"$/, "", key)
+        evidence=""
+        havekey=1
+        next
+      }
+      /^        evidence:[ \t]*(.*)$/ {
+        evidence=$0
+        sub(/^        evidence:[ \t]*/, "", evidence)
+        gsub(/^"|"$/, "", evidence)
+        next
+      }
+      END {
+        if (havekey) { total+=2; if (key=="") blank++; if (evidence !~ /^[^ \t:]+:[0-9]+$/) blank++ }
+        print blank+0, total+0
+      }
+    ' "$facts")"
+    b="$(printf '%s' "$stats" | awk '{print $1}')"
+    t="$(printf '%s' "$stats" | awk '{print $2}')"
+    blank_total=$((blank_total + b))
+    field_total=$((field_total + t))
+  done
+  if [ "$field_total" -eq 0 ]; then
+    echo "  対象フィールドが0件（facts.ymlに項目が1件も無い）" >&2
+    violations=$((violations + 1))
+  else
+    if [ "$((blank_total * BLANK_RATE_THRESHOLD_DEN))" -gt "$((BLANK_RATE_THRESHOLD_NUM * field_total))" ]; then
+      echo "  空欄率超過: ${blank_total}/${field_total} 件が空欄" >&2
+      violations=$((violations + 1))
+    else
+      echo "  OK: 空欄 ${blank_total}/${field_total} 件"
+    fi
+  fi
+
+  echo "== 検査3: 孤児参照検査 =="
+  orphans="$(orphan_refs "$facts" "${targets[@]}")"
+  orphan_count=0
+  if [ -n "$orphans" ]; then
+    orphan_count="$(printf '%s\n' "$orphans" | grep -c . || true)"
+    echo "  孤児参照検出:" >&2
+    printf '%s\n' "$orphans" | sed 's/^/    /' >&2
+    violations=$((violations + 1))
+  else
+    echo "  OK: 孤児参照0件"
+  fi
+
+  if [ "$profile" = "python" ]; then
+    echo "== 検査4: Python関数本文の行網羅検査 =="
+    if python3 "$PYTHON_EXTRACTOR" verify-bodies \
+      --facts "$facts" --repo "$repo" "${targets[@]}" >/dev/null; then
+      echo "  OK: 関数宣言の先頭から本体末尾までvalueに保持"
+    else
+      echo "  関数本文の欠落を検出" >&2
+      violations=$((violations + 1))
+    fi
+
+    echo "== 検査5: Python分類間source span排他検査 =="
+    span_args=()
+    for target in "${targets[@]}"; do
+      span_args+=(--target-file "$target")
+    done
+    if python3 "$PYTHON_COUNTER" validate-spans \
+        --facts "$facts" "${span_args[@]}" >/dev/null; then
+      echo "  OK: 異分類のsource span重複0件"
+    else
+      echo "  異分類のsource span重複を検出" >&2
+      violations=$((violations + 1))
+    fi
+  fi
+
+  if [ "$violations" -gt 0 ]; then
+    echo "再計数ゲート失敗: ${violations} 検査で違反を検出しました" >&2
+    return 1
+  fi
+  echo "再計数ゲート通過: profile=${profile} の全検査PASS"
+  return 0
+}
+
+# ---- 自己テスト ----
+
+self_test() {
+  tmp="$(mktemp -d "${TMPDIR:-/tmp}/recount-facts-self-test.XXXXXX")"
+  trap 'rm -rf "$tmp"' RETURN
+
+  repo="$tmp/repo/src/screens/Foo"
+  mkdir -p "$repo"
+  cat > "$repo/Foo.tsx" <<'TSX'
+import React, { useState } from 'react';
+import styled from 'styled-components';
+
+export const MAX_ROWS = 100;
+
+export interface FooRow {
+  id: string;
+  amount: number;
+}
+
+export function Foo() {
+  const [rows, setRows] = useState<FooRow[]>([]);
+
+  const handleRowClick = () => {};
+
+  return (
+    <Wrapper>
+      <Table onClick={handleRowClick}>
+        <Row />
+      </Table>
+    </Wrapper>
+  );
+}
+
+const Wrapper = styled.div`
+  padding: 16px;
+`;
+TSX
+
+  # 期待値: import=3(React,useState,styled) export_type=4(export const, export interface, id, amount, export function=5と数えると齟齬が出るため下のfacts.ymlは実測に合わせて記載する)
+  # ここでは自己テストの目的上、まずrecount_from_codeの実測値を確定させてからfacts.ymlを組み立てる。
+  actual="$(recount_from_code "$tmp/repo" "src/screens/Foo/Foo.tsx")"
+
+  get_actual() {
+    printf '%s\n' "$actual" | awk -v s="$1" '$1==s{print $2}'
+  }
+
+  # 陽性フィクスチャ: 各分類の記載件数を実測値に厳密一致させる（乖離0）。
+  build_pass_facts() {
+    out="$1"
+    {
+      echo "run_id: extract-1"
+      echo "profile: screen"
+      echo "target_repo_path: $tmp/repo"
+      echo "target_file_paths:"
+      echo "  - src/screens/Foo/Foo.tsx"
+      echo "sections:"
+      echo "  import:"
+      echo "    reason: \"\""
+      echo "    items:"
+      n="$(get_actual import)"
+      i=0
+      while [ "$i" -lt "$n" ]; do
+        echo "      - key: import-dummy-$i"
+        echo "        value: \"dummy\""
+        echo "        evidence: \"src/screens/Foo/Foo.tsx:1\""
+        i=$((i + 1))
+      done
+      for sec in export_type const state handler jsx style api; do
+        echo "  $sec:"
+        echo "    reason: \"\""
+        echo "    items:"
+        n="$(get_actual "$sec")"
+        i=0
+        while [ "$i" -lt "$n" ]; do
+          echo "      - key: ${sec}-dummy-$i"
+          echo "        value: \"dummy\""
+          echo "        evidence: \"src/screens/Foo/Foo.tsx:1\""
+          i=$((i + 1))
+        done
+      done
+      echo "  measurement_pending:"
+      echo "    reason: \"\""
+      echo "    items:"
+      echo "      - key: 初期表示-件数"
+      echo "        evidence: \"src/screens/Foo/Foo.tsx:12\""
+    } > "$out"
+  }
+
+  rc=0
+
+  pos="$tmp/pos-facts.yml"
+  build_pass_facts "$pos"
+  if run_check "$pos" "$tmp/repo" "src/screens/Foo/Foo.tsx" >/dev/null 2>&1; then
+    echo "  [PASS] 陽性: 全分類が実測値と一致しゲート通過"
+  else
+    echo "  [FAIL] 陽性: 実測値と一致しているのにゲート失敗した" >&2
+    rc=1
+  fi
+
+  # 陰性1: 乖離超過（importの記載件数を実測から大きくずらす）
+  dev="$tmp/dev-facts.yml"
+  build_pass_facts "$dev"
+  awk '
+    BEGIN{done=0}
+    /^  import:$/{print; getline; print; print "    items:"; print "      - key: import-only-one"; print "        value: \"dummy\""; print "        evidence: \"src/screens/Foo/Foo.tsx:1\""; skip=1; next}
+    skip==1 && /^  export_type:$/{skip=0}
+    skip==1{next}
+    {print}
+  ' "$dev" > "$dev.tmp" && mv "$dev.tmp" "$dev"
+  if run_check "$dev" "$tmp/repo" "src/screens/Foo/Foo.tsx" >/dev/null 2>&1; then
+    echo "  [FAIL] 陰性1: 乖離超過があるのにゲート通過した" >&2
+    rc=1
+  else
+    echo "  [PASS] 陰性1: 乖離超過でゲート失敗"
+  fi
+
+  # 陰性2: 空欄超過（evidenceを大量に空にする）
+  blank="$tmp/blank-facts.yml"
+  build_pass_facts "$blank"
+  sed -E 's/evidence: "src\/screens\/Foo\/Foo\.tsx:1"/evidence: ""/g' "$blank" > "$blank.tmp" && mv "$blank.tmp" "$blank"
+  if run_check "$blank" "$tmp/repo" "src/screens/Foo/Foo.tsx" >/dev/null 2>&1; then
+    echo "  [FAIL] 陰性2: 空欄超過があるのにゲート通過した" >&2
+    rc=1
+  else
+    echo "  [PASS] 陰性2: 空欄超過でゲート失敗"
+  fi
+
+  # 陰性3: 孤児参照（target_file_paths外のファイルをevidenceに記載）
+  orphan="$tmp/orphan-facts.yml"
+  build_pass_facts "$orphan"
+  awk '
+    /evidence: "src\/screens\/Foo\/Foo\.tsx:1"/ && !done {
+      sub(/Foo\/Foo\.tsx:1/, "Foo/Unknown.tsx:1")
+      done = 1
+    }
+    { print }
+  ' "$orphan" > "$orphan.tmp" && mv "$orphan.tmp" "$orphan"
+  if run_check "$orphan" "$tmp/repo" "src/screens/Foo/Foo.tsx" >/dev/null 2>&1; then
+    echo "  [FAIL] 陰性3: 孤児参照があるのにゲート通過した" >&2
+    rc=1
+  else
+    echo "  [PASS] 陰性3: 孤児参照でゲート失敗"
+  fi
+
+  # 追加陽性: recount-facts.shが構造的に検知できていなかった実在構文（Promiseチェーン形式の
+  # API呼出し・複数行に折り返したJSX開始タグ・カスタムフックの分割代入による状態変数）を
+  # 単体パターンで直接検知できることを確認する（数値の自己整合性ではなく実測値そのものを検証する）。
+
+  promise_file="$tmp/promise-chain.txt"
+  cat > "$promise_file" <<'EOF'
+  api.records.list({ filter }).then((res) => {
+    setRecords(res.data);
+  }).catch((err) => {
+    console.error(err);
+  }).finally(() => {
+    setLoading(false);
+  });
+EOF
+  api_count="$(count_api "$promise_file")"
+  if [ "$api_count" = "1" ]; then
+    echo "  [PASS] 追加陽性: Promiseチェーン形式のAPI呼出しを検知（.then基準で1件）"
+  else
+    echo "  [FAIL] 追加陽性: Promiseチェーン形式のAPI呼出しを検知できない（実測=${api_count} 期待=1）" >&2
+    rc=1
+  fi
+
+  jsx_file="$tmp/multiline-jsx.txt"
+  cat > "$jsx_file" <<'EOF'
+    <Header
+      title="Foo"
+      onBack={handleBack}
+    >
+      <Content />
+    </Header>
+EOF
+  jsx_count="$(count_jsx "$jsx_file")"
+  if [ "$jsx_count" = "2" ]; then
+    echo "  [PASS] 追加陽性: 複数行に折り返したJSX開始タグを検知（Header/Contentの2件）"
+  else
+    echo "  [FAIL] 追加陽性: 複数行JSX開始タグを検知できない（実測=${jsx_count} 期待=2）" >&2
+    rc=1
+  fi
+
+  hook_file="$tmp/hook-destructure.txt"
+  cat > "$hook_file" <<'EOF'
+  const {
+    filter,
+    setFilter,
+    filters,
+    isLoading,
+    error,
+    refetch,
+  } = useCurrentFilter('first');
+EOF
+  hook_count="$(count_state "$hook_file")"
+  if [ "$hook_count" = "6" ]; then
+    echo "  [PASS] 追加陽性: カスタムフックの分割代入による状態変数を検知（6件）"
+  else
+    echo "  [FAIL] 追加陽性: カスタムフックの分割代入を検知できない（実測=${hook_count} 期待=6）" >&2
+    rc=1
+  fi
+
+  # 追加陽性: ジェネリック型注釈付きフック呼出しの分割代入（例 useParams<{ id: string }>()）は、
+  # 注釈内の"{"/"}"が分割代入終端の逆走査を狂わせ、かつ"=...use...\("パターンが
+  # 直後に"("を要求するため検知できなかった構造的盲点として発見された。
+  generic_destructure_file="$tmp/generic-destructure.txt"
+  cat > "$generic_destructure_file" <<'EOF'
+  const { id } = useParams<{ id: string }>()
+EOF
+  generic_destructure_count="$(count_state "$generic_destructure_file")"
+  if [ "$generic_destructure_count" = "1" ]; then
+    echo "  [PASS] 追加陽性: ジェネリック型注釈付きフック呼出しの分割代入を検知（1件）"
+  else
+    echo "  [FAIL] 追加陽性: ジェネリック型注釈付きフック呼出しの分割代入を検知できない（実測=${generic_destructure_count} 期待=1）" >&2
+    rc=1
+  fi
+
+  # 追加陽性: フック直接呼出しの単純代入（分割代入なし・型注釈なし。例 const location = useLocation()）
+  # は、単独では既存パターンで検知できていたが、直前行がジェネリック型注釈付き分割代入だと
+  # buf継続状態に巻き込まれ独立して数えられなくなっていた事例が確認された。
+  # 実ファイルの隣接行を模した組合せで、両方が合算して数えられることを検証する。
+  simple_hook_file="$tmp/simple-hook-assignment.txt"
+  cat > "$simple_hook_file" <<'EOF'
+  const { id } = useParams<{ id: string }>()
+  const location = useLocation()
+EOF
+  simple_hook_count="$(count_state "$simple_hook_file")"
+  if [ "$simple_hook_count" = "2" ]; then
+    echo "  [PASS] 追加陽性: フック単純代入がジェネリック型注釈行に続いても独立して検知（合算2件）"
+  else
+    echo "  [FAIL] 追加陽性: フック単純代入が独立して検知できない（実測=${simple_hook_count} 期待=2）" >&2
+    rc=1
+  fi
+
+  # 回帰確認: 分割代入バッファリングの文の完結判定。複数行に折り返した非フックの
+  # 分割代入（`const { a, b } = someRegularObject;`）は、閉じ括弧到達時点で
+  # フックでないと確定した時点で直ちにバッファを破棄しなければならない。旧実装は
+  # 次に use...( を含む行が現れるまで無条件にバッファを連結し続け、無関係な後続
+  # statement（`const location = useLocation()`）のフック呼出しを誤って合算していた
+  # （期待1件のところ実測2件になる構造的欠陥）。
+  nonhook_destructure_file="$tmp/nonhook-destructure.txt"
+  cat > "$nonhook_destructure_file" <<'EOF'
+const {
+  a,
+  b
+} = someRegularObject;
+
+const location = useLocation()
+EOF
+  nonhook_destructure_count="$(count_state "$nonhook_destructure_file")"
+  if [ "$nonhook_destructure_count" = "1" ]; then
+    echo "  [PASS] 回帰確認: 非フック分割代入の文の完結判定で後続フック呼出しとの誤合算を防止（1件）"
+  else
+    echo "  [FAIL] 回帰確認: 非フック分割代入が後続フック呼出しと誤って合算されている（実測=${nonhook_destructure_count} 期待=1）" >&2
+    rc=1
+  fi
+
+  # 回帰確認: 単一行で完結する非フック分割代入（`const { a, b } = someRegularObject;`単独行）
+  # も同様に、同一行内で深度0に到達した時点で直ちにバッファを破棄する。
+  single_line_nonhook_file="$tmp/single-line-nonhook-destructure.txt"
+  cat > "$single_line_nonhook_file" <<'EOF'
+const { a, b } = someRegularObject;
+const location = useLocation()
+EOF
+  single_line_nonhook_count="$(count_state "$single_line_nonhook_file")"
+  if [ "$single_line_nonhook_count" = "1" ]; then
+    echo "  [PASS] 回帰確認: 単一行の非フック分割代入でも後続フック呼出しとの誤合算を防止（1件）"
+  else
+    echo "  [FAIL] 回帰確認: 単一行の非フック分割代入が後続フック呼出しと誤って合算されている（実測=${single_line_nonhook_count} 期待=1）" >&2
+    rc=1
+  fi
+
+  # 回帰確認: 分割代入パターン内部にデフォルト値の"="が含まれても（例 `a = 1,`）、
+  # 括弧深度がまだ閉じていない（>0）間は文の完結と誤判定せず、正規のフック
+  # 呼出し（useFoo()）まで正しくバッファを継続できる。
+  default_value_destructure_file="$tmp/default-value-destructure.txt"
+  cat > "$default_value_destructure_file" <<'EOF'
+const {
+  a = 1,
+  b
+} = useFoo();
+EOF
+  default_value_destructure_count="$(count_state "$default_value_destructure_file")"
+  if [ "$default_value_destructure_count" = "2" ]; then
+    echo "  [PASS] 回帰確認: パターン内部のデフォルト値=を文の完結と誤判定せずフック分割代入を検知（2件）"
+  else
+    echo "  [FAIL] 回帰確認: パターン内部のデフォルト値=でフック分割代入の検知が壊れている（実測=${default_value_destructure_count} 期待=2）" >&2
+    rc=1
+  fi
+
+  # 追加陽性: オブジェクト定数のフィールド分解（profile-screen.md③定数の分解規則）。
+  # 最上位2フィールドのオブジェクトリテラルは宣言行1件ではなくフィールド数（2）で数える。
+  object_const_file="$tmp/object-const.txt"
+  cat > "$object_const_file" <<'EOF'
+const cardStyle = {
+  height: "48px",
+  fontSize: "14px",
+};
+EOF
+  object_const_count="$(count_const "$object_const_file")"
+  if [ "$object_const_count" = "2" ]; then
+    echo "  [PASS] 追加陽性: オブジェクト定数のフィールド分解を検知（2件）"
+  else
+    echo "  [FAIL] 追加陽性: オブジェクト定数のフィールド分解を検知できない（実測=${object_const_count} 期待=2）" >&2
+    rc=1
+  fi
+
+  # 追加陽性: ネストオブジェクト定数（最上位1階層のみ分解し、ネスト内部までは再帰しない）。
+  # 最上位フィールドは header・footer の2件。headerの値がさらにオブジェクトでも内部は数えない。
+  nested_const_file="$tmp/nested-const.txt"
+  cat > "$nested_const_file" <<'EOF'
+const layout = {
+  header: { height: "48px", color: "#fff" },
+  footer: "bottom",
+};
+EOF
+  nested_const_count="$(count_const "$nested_const_file")"
+  if [ "$nested_const_count" = "2" ]; then
+    echo "  [PASS] 追加陽性: ネストオブジェクト定数を最上位1階層のみで分解（2件）"
+  else
+    echo "  [FAIL] 追加陽性: ネストオブジェクト定数の分解粒度が誤り（実測=${nested_const_count} 期待=2）" >&2
+    rc=1
+  fi
+
+  # 回帰確認: スカラー定数は従来どおり宣言1件のまま数える。
+  scalar_const_file="$tmp/scalar-const.txt"
+  cat > "$scalar_const_file" <<'EOF'
+const MAX_ROWS = 100;
+EOF
+  scalar_const_count="$(count_const "$scalar_const_file")"
+  if [ "$scalar_const_count" = "1" ]; then
+    echo "  [PASS] 回帰確認: スカラー定数は宣言1件のまま（1件）"
+  else
+    echo "  [FAIL] 回帰確認: スカラー定数の件数が変化した（実測=${scalar_const_count} 期待=1）" >&2
+    rc=1
+  fi
+
+  # 追加陽性: 単一行で完結するオブジェクト定数（`const x = { a: 1, b: 2 };`）。
+  # count_object_fields()がgetlineで次行を読み始めるため同一行内のフィールドを
+  # 見落としていた構造的欠陥の回帰確認。最上位2フィールドを検知する。
+  single_line_const_file="$tmp/single-line-const.txt"
+  cat > "$single_line_const_file" <<'EOF'
+const singleLineObj = { height: "48px", fontSize: "14px" };
+EOF
+  single_line_const_count="$(count_const "$single_line_const_file")"
+  if [ "$single_line_const_count" = "2" ]; then
+    echo "  [PASS] 追加陽性: 単一行オブジェクト定数のフィールド分解を検知（2件）"
+  else
+    echo "  [FAIL] 追加陽性: 単一行オブジェクト定数のフィールド分解を検知できない（実測=${single_line_const_count} 期待=2）" >&2
+    rc=1
+  fi
+
+  # 追加陽性: 型注釈がオブジェクト型で複数行にまたがる宣言（`const X: {...} = {...}`）。
+  # 型注釈部分の"{...}"をスキップし、値部分の"{...}"のフィールド（a・bの2件）を数える。
+  typed_multiline_const_file="$tmp/typed-multiline-const.txt"
+  cat > "$typed_multiline_const_file" <<'EOF'
+const config: {
+  a: string;
+  b: number;
+} = {
+  a: "1",
+  b: 2,
+};
+EOF
+  typed_multiline_const_count="$(count_const "$typed_multiline_const_file")"
+  if [ "$typed_multiline_const_count" = "2" ]; then
+    echo "  [PASS] 追加陽性: 型注釈が複数行にまたがる宣言の値部分フィールドを検知（2件）"
+  else
+    echo "  [FAIL] 追加陽性: 型注釈が複数行にまたがる宣言の値部分フィールドを検知できない（実測=${typed_multiline_const_count} 期待=2）" >&2
+    rc=1
+  fi
+
+  # 追加陽性: 小文字ネイティブHTMLタグ（<div>等）もPascalCaseコンポーネントと同様に検知する。
+  lowercase_tag_file="$tmp/lowercase-tag.txt"
+  cat > "$lowercase_tag_file" <<'EOF'
+  return (
+    <div>
+      <Header />
+    </div>
+  );
+EOF
+  lowercase_tag_count="$(count_jsx "$lowercase_tag_file")"
+  if [ "$lowercase_tag_count" = "2" ]; then
+    echo "  [PASS] 追加陽性: 小文字ネイティブタグを検知（div/Headerの2件）"
+  else
+    echo "  [FAIL] 追加陽性: 小文字ネイティブタグを検知できない（実測=${lowercase_tag_count} 期待=2）" >&2
+    rc=1
+  fi
+
+  # 追加陽性: 早期returnによる複数レンダリングパス。ユニークタグ数（div/Spinner/Card/Content=4）に
+  # 複数return文の分岐数（2件のreturn文 → 追加1件）を加算する。
+  early_return_file="$tmp/early-return.txt"
+  cat > "$early_return_file" <<'EOF'
+function Foo() {
+  if (isLoading) {
+    return (
+      <div className="spinner">
+        <Spinner />
+      </div>
+    );
+  }
+
+  return (
+    <Card>
+      <Content />
+    </Card>
+  );
+}
+EOF
+  early_return_count="$(count_jsx "$early_return_file")"
+  if [ "$early_return_count" = "5" ]; then
+    echo "  [PASS] 追加陽性: 早期returnの複数レンダリングパスを検知（4タグ+分岐1=5件）"
+  else
+    echo "  [FAIL] 追加陽性: 早期returnの分岐を検知できない（実測=${early_return_count} 期待=5）" >&2
+    rc=1
+  fi
+
+  # 追加陽性: 三項演算子による複数レンダリングパス。ユニークタグ数（Wrapper/Spinner/Content=3）に
+  # 三項2アーム分（2件）を加算する。
+  ternary_file="$tmp/ternary.txt"
+  cat > "$ternary_file" <<'EOF'
+function Foo() {
+  return (
+    <Wrapper>
+      {isLoading ? (<Spinner />) : (<Content />)}
+    </Wrapper>
+  );
+}
+EOF
+  ternary_count_result="$(count_jsx "$ternary_file")"
+  if [ "$ternary_count_result" = "5" ]; then
+    echo "  [PASS] 追加陽性: 三項演算子の複数レンダリングパスを検知（3タグ+2アーム=5件）"
+  else
+    echo "  [FAIL] 追加陽性: 三項演算子の分岐を検知できない（実測=${ternary_count_result} 期待=5）" >&2
+    rc=1
+  fi
+
+  # 追加陽性: `&&`短絡評価による条件付きレンダリング。ユニークタグ数（Wrapper/ErrorBanner=2）に
+  # 短絡評価分（1件）を加算する。
+  and_render_file="$tmp/and-render.txt"
+  cat > "$and_render_file" <<'EOF'
+function Foo() {
+  return (
+    <Wrapper>
+      {hasError && (<ErrorBanner />)}
+    </Wrapper>
+  );
+}
+EOF
+  and_render_count_result="$(count_jsx "$and_render_file")"
+  if [ "$and_render_count_result" = "3" ]; then
+    echo "  [PASS] 追加陽性: &&短絡評価の条件付きレンダリングを検知（2タグ+1=3件）"
+  else
+    echo "  [FAIL] 追加陽性: &&短絡評価の条件付きレンダリングを検知できない（実測=${and_render_count_result} 期待=3）" >&2
+    rc=1
+  fi
+
+  # 陰性（改善課題「事実抽出-粒度の取りこぼし」実測再現）: ネイティブHTMLタグ対応の
+  # 小文字許容により、`Record<string, number>` の型引数（`<string`・`number>`）が
+  # 画面要素のタグとして誤計上されないことを確認する。実タグはdivの1件のみ。
+  generic_type_arg_file="$tmp/generic-type-arg.txt"
+  cat > "$generic_type_arg_file" <<'EOF'
+function Foo() {
+  const counts: Record<string, number> = {};
+  return (
+    <div>{counts.total}</div>
+  );
+}
+EOF
+  generic_type_arg_count="$(count_jsx "$generic_type_arg_file")"
+  if [ "$generic_type_arg_count" = "1" ]; then
+    echo "  [PASS] JSX陰性: Record<string, number>の型引数をタグとして誤検知しない（div1件のみ）"
+  else
+    echo "  [FAIL] JSX陰性: 型引数の誤検知が発生した（実測=${generic_type_arg_count} 期待=1）" >&2
+    rc=1
+  fi
+
+  # 追加陽性: 複数行にまたがるnamed import（開き`{`〜`from`行終端）はシンボル単位で
+  # 継続追跡して数える。default import(React) 2 + 単一行(useMemo) + 複数行3シンボル
+  # (fetchUser/updateUser/type UserPayload) + 副作用import 1 = 合計6件。
+  multiline_import_file="$tmp/multiline-import.txt"
+  cat > "$multiline_import_file" <<'EOF'
+import React, { useMemo } from 'react';
+import {
+  fetchUser,
+  updateUser,
+  type UserPayload,
+} from './userService';
+import './styles.css';
+EOF
+  multiline_import_count="$(count_import "$multiline_import_file")"
+  if [ "$multiline_import_count" = "6" ]; then
+    echo "  [PASS] 追加陽性: 複数行named importをシンボル単位で検知（6件）"
+  else
+    echo "  [FAIL] 追加陽性: 複数行named importを検知できない（実測=${multiline_import_count} 期待=6）" >&2
+    rc=1
+  fi
+
+  # 追加陽性: await/.thenを伴わない直接呼出し（代入形・文頭形）。
+  # 業務ロジック呼出し（userService.getProfile / analytics.track）を2件計上し、
+  # 汎用メソッド（items.map）・フック（useState分割代入）は除外、await行は
+  # awaitn側で計上済みのためdirect側では重複させない（合算期待値3=await1+direct2）。
+  direct_api_file="$tmp/direct-api.txt"
+  cat > "$direct_api_file" <<'EOF'
+const profile = userService.getProfile();
+const rows = items.map((r) => r.id);
+const [open, setOpen] = useState(false);
+analytics.track('view');
+const data = await api.fetch();
+EOF
+  direct_api_count="$(count_api "$direct_api_file")"
+  if [ "$direct_api_count" = "3" ]; then
+    echo "  [PASS] 追加陽性: await/.thenを伴わない直接API呼出しを検知（await1+direct2=3件）"
+  else
+    echo "  [FAIL] 追加陽性: await/.thenを伴わない直接API呼出しを検知できない（実測=${direct_api_count} 期待=3）" >&2
+    rc=1
+  fi
+
+  # 追加陽性: 直接呼出し4パターン（呼出し形式×代入形式）を個別ケースで検証する。
+  # いずれか1パターンでも検知が壊れれば当該ケースのみFAILし、合計件数の帳尻合わせでは
+  # 隠れないようにする。
+
+  bare_simple_file="$tmp/direct-bare-simple.txt"
+  cat > "$bare_simple_file" <<'EOF'
+const profile = svc1FetchProfile();
+EOF
+  bare_simple_count="$(count_api_direct "$bare_simple_file")"
+  if [ "$bare_simple_count" = "1" ]; then
+    echo "  [PASS] 直接呼出しパターン: 裸の関数呼出し×単純代入を検知（1件）"
+  else
+    echo "  [FAIL] 直接呼出しパターン: 裸の関数呼出し×単純代入を検知できない（実測=${bare_simple_count} 期待=1）" >&2
+    rc=1
+  fi
+
+  bare_destructure_file="$tmp/direct-bare-destructure.txt"
+  cat > "$bare_destructure_file" <<'EOF'
+const { data, error } = svc2LoadItems();
+EOF
+  bare_destructure_count="$(count_api_direct "$bare_destructure_file")"
+  if [ "$bare_destructure_count" = "1" ]; then
+    echo "  [PASS] 直接呼出しパターン: 裸の関数呼出し×分割代入を検知（1件）"
+  else
+    echo "  [FAIL] 直接呼出しパターン: 裸の関数呼出し×分割代入を検知できない（実測=${bare_destructure_count} 期待=1）" >&2
+    rc=1
+  fi
+
+  receiver_simple_file="$tmp/direct-receiver-simple.txt"
+  cat > "$receiver_simple_file" <<'EOF'
+const profile = userService.getProfile();
+EOF
+  receiver_simple_count="$(count_api_direct "$receiver_simple_file")"
+  if [ "$receiver_simple_count" = "1" ]; then
+    echo "  [PASS] 直接呼出しパターン: レシーバ経由呼出し×単純代入を検知（1件）"
+  else
+    echo "  [FAIL] 直接呼出しパターン: レシーバ経由呼出し×単純代入を検知できない（実測=${receiver_simple_count} 期待=1）" >&2
+    rc=1
+  fi
+
+  receiver_destructure_file="$tmp/direct-receiver-destructure.txt"
+  cat > "$receiver_destructure_file" <<'EOF'
+const { data, error } = userService.loadItems();
+EOF
+  receiver_destructure_count="$(count_api_direct "$receiver_destructure_file")"
+  if [ "$receiver_destructure_count" = "1" ]; then
+    echo "  [PASS] 直接呼出しパターン: レシーバ経由呼出し×分割代入を検知（1件）"
+  else
+    echo "  [FAIL] 直接呼出しパターン: レシーバ経由呼出し×分割代入を検知できない（実測=${receiver_destructure_count} 期待=1）" >&2
+    rc=1
+  fi
+
+  # 陰性（改善課題「事実抽出-粒度の取りこぼし」実測再現）: logger.error はログ出力であり
+  # 業務API呼出しではない。receiver_excl（logger）・method_excl（error）の両経路で除外される。
+  logger_error_file="$tmp/direct-logger-error.txt"
+  cat > "$logger_error_file" <<'EOF'
+logger.error('failed to load');
+log.warn('retrying');
+EOF
+  logger_error_count="$(count_api_direct "$logger_error_file")"
+  if [ "$logger_error_count" = "0" ]; then
+    echo "  [PASS] 直接呼出し陰性: logger.error/log.warnをAPI呼出しとして誤検知しない（0件）"
+  else
+    echo "  [FAIL] 直接呼出し陰性: logger.error/log.warnを誤検知した（実測=${logger_error_count} 期待=0）" >&2
+    rc=1
+  fi
+
+  # 陰性（改善課題「事実抽出-粒度の取りこぼし」実測再現）: localeCompareは任意のレシーバから
+  # 呼べる文字列比較の汎用メソッドであり、業務API呼出しではない。
+  localecompare_file="$tmp/direct-localecompare.txt"
+  cat > "$localecompare_file" <<'EOF'
+const result = a.localeCompare(b);
+EOF
+  localecompare_count="$(count_api_direct "$localecompare_file")"
+  if [ "$localecompare_count" = "0" ]; then
+    echo "  [PASS] 直接呼出し陰性: localeCompareをAPI呼出しとして誤検知しない（0件）"
+  else
+    echo "  [FAIL] 直接呼出し陰性: localeCompareを誤検知した（実測=${localecompare_count} 期待=0）" >&2
+    rc=1
+  fi
+
+  # 追加陽性: export enumの宣言+メンバ分解（宣言1+メンバ3=4件）。
+  export_enum_file="$tmp/export-enum.txt"
+  cat > "$export_enum_file" <<'EOF'
+export enum Status {
+  Active,
+  Inactive,
+  Pending,
+}
+EOF
+  export_enum_count="$(count_export_type "$export_enum_file")"
+  if [ "$export_enum_count" = "4" ]; then
+    echo "  [PASS] 追加陽性: export enumの宣言+メンバ分解を検知（宣言1+メンバ3=4件）"
+  else
+    echo "  [FAIL] 追加陽性: export enumの宣言+メンバ分解を検知できない（実測=${export_enum_count} 期待=4）" >&2
+    rc=1
+  fi
+
+  # local_type: 非exportのtype/interface宣言を宣言単位で検知する（陽性）。
+  local_type_pos_file="$tmp/local-type-pos.txt"
+  cat > "$local_type_pos_file" <<'EOF'
+type LocalRow = {
+  id: string;
+};
+
+interface LocalProps {
+  label: string;
+}
+EOF
+  local_type_pos_count="$(count_local_type "$local_type_pos_file")"
+  if [ "$local_type_pos_count" = "2" ]; then
+    echo "  [PASS] local_type陽性: 非exportのtype/interface宣言を検知（2件）"
+  else
+    echo "  [FAIL] local_type陽性: 非exportのtype/interface宣言を検知できない（実測=${local_type_pos_count} 期待=2）" >&2
+    rc=1
+  fi
+
+  # local_type: export付きのtype/interfaceは対象外（陰性）。
+  local_type_neg_file="$tmp/local-type-neg.txt"
+  cat > "$local_type_neg_file" <<'EOF'
+export type ExportedRow = {
+  id: string;
+};
+
+export interface ExportedProps {
+  label: string;
+}
+EOF
+  local_type_neg_count="$(count_local_type "$local_type_neg_file")"
+  if [ "$local_type_neg_count" = "0" ]; then
+    echo "  [PASS] local_type陰性: export付きtype/interfaceを除外（0件）"
+  else
+    echo "  [FAIL] local_type陰性: export付きtype/interfaceが誤って計上された（実測=${local_type_neg_count} 期待=0）" >&2
+    rc=1
+  fi
+
+  # effect_trigger: useEffect/useLayoutEffectの呼出しを検知する（陽性）。
+  effect_trigger_pos_file="$tmp/effect-trigger-pos.txt"
+  cat > "$effect_trigger_pos_file" <<'EOF'
+useEffect(() => {
+  doSomething();
+}, []);
+useLayoutEffect(() => {
+  measure();
+}, []);
+EOF
+  effect_trigger_pos_count="$(count_effect_trigger "$effect_trigger_pos_file")"
+  if [ "$effect_trigger_pos_count" = "2" ]; then
+    echo "  [PASS] effect_trigger陽性: useEffect/useLayoutEffectを検知（2件）"
+  else
+    echo "  [FAIL] effect_trigger陽性: useEffect/useLayoutEffectを検知できない（実測=${effect_trigger_pos_count} 期待=2）" >&2
+    rc=1
+  fi
+
+  # effect_trigger: useEffect系フックが存在しない場合は0件（陰性）。
+  effect_trigger_neg_file="$tmp/effect-trigger-neg.txt"
+  cat > "$effect_trigger_neg_file" <<'EOF'
+const value = useMemo(() => compute(), []);
+const [open, setOpen] = useState(false);
+EOF
+  effect_trigger_neg_count="$(count_effect_trigger "$effect_trigger_neg_file")"
+  if [ "$effect_trigger_neg_count" = "0" ]; then
+    echo "  [PASS] effect_trigger陰性: useEffect系フック不在で0件"
+  else
+    echo "  [FAIL] effect_trigger陰性: useEffect系フックが存在しないのに誤検知した（実測=${effect_trigger_neg_count} 期待=0）" >&2
+    rc=1
+  fi
+
+  # error_handling: throw+catch+alert+引数省略catchの合算4件を検知する（陽性）。
+  error_handling_pos_file="$tmp/error-handling-pos.txt"
+  cat > "$error_handling_pos_file" <<'EOF'
+function foo() {
+  try {
+    doSomething();
+  } catch (err) {
+    window.alert('error');
+    throw err;
+  }
+}
+  try { doWork() } catch { recover() }
+EOF
+  error_handling_pos_count="$(count_error_handling "$error_handling_pos_file")"
+  if [ "$error_handling_pos_count" = "4" ]; then
+    echo "  [PASS] error_handling陽性: throw+catch+alert+引数省略catchの合算を検知（4件）"
+  else
+    echo "  [FAIL] error_handling陽性: throw+catch+alert+引数省略catchの合算を検知できない（実測=${error_handling_pos_count} 期待=4）" >&2
+    rc=1
+  fi
+
+  # error_handling: throw/catch/alertがいずれも無ければ0件（陰性）。
+  error_handling_neg_file="$tmp/error-handling-neg.txt"
+  cat > "$error_handling_neg_file" <<'EOF'
+function foo() {
+  doSomething();
+  return true;
+}
+EOF
+  error_handling_neg_count="$(count_error_handling "$error_handling_neg_file")"
+  if [ "$error_handling_neg_count" = "0" ]; then
+    echo "  [PASS] error_handling陰性: throw/catch/alert不在で0件"
+  else
+    echo "  [FAIL] error_handling陰性: throw/catch/alertが存在しないのに誤検知した（実測=${error_handling_neg_count} 期待=0）" >&2
+    rc=1
+  fi
+
+  # ⑥error_handling陽性: throwAsyncError/setError の idiom で2件。
+  error_handling_idiom_pos_file="$tmp/error-handling-idiom-pos.txt"
+  cat > "$error_handling_idiom_pos_file" <<'EOF'
+function handleError(err) {
+  throwAsyncError(err);
+}
+function validate(data) {
+  setError('validation failed');
+}
+EOF
+  error_handling_idiom_pos_count="$(count_error_handling "$error_handling_idiom_pos_file")"
+  if [ "$error_handling_idiom_pos_count" = "2" ]; then
+    echo "  [PASS] error_handling陽性（⑥）: throwAsyncError/setError idiom で2件"
+  else
+    echo "  [FAIL] error_handling陽性（⑥）: idiom 検知に失敗（実測=${error_handling_idiom_pos_count} 期待=2）" >&2
+    rc=1
+  fi
+
+  # ⑥error_handling陰性: 非呼出しの Error 識別子は0件。
+  error_handling_idiom_neg_file="$tmp/error-handling-idiom-neg.txt"
+  cat > "$error_handling_idiom_neg_file" <<'EOF'
+const errorCount = errors.length;
+const hasError = errorCount > 0;
+EOF
+  error_handling_idiom_neg_count="$(count_error_handling "$error_handling_idiom_neg_file")"
+  if [ "$error_handling_idiom_neg_count" = "0" ]; then
+    echo "  [PASS] error_handling陰性（⑥）: 非呼出し Error 識別子は0件"
+  else
+    echo "  [FAIL] error_handling陰性（⑥）: 非呼出し Error 識別子を誤検知（実測=${error_handling_idiom_neg_count} 期待=0）" >&2
+    rc=1
+  fi
+
+  # error_handling回帰: Errorを含む通常関数を除外し、対象idiomだけを数える。
+  error_handling_idiom_scope_file="$tmp/error-handling-idiom-scope.txt"
+  cat > "$error_handling_idiom_scope_file" <<'EOF'
+getErrorMessage();
+formatError();
+hasError();
+throwAsyncError(error);
+setError('real');
+EOF
+  error_handling_idiom_scope_count="$(count_error_handling "$error_handling_idiom_scope_file")"
+  if [ "$error_handling_idiom_scope_count" = "2" ]; then
+    echo "  [PASS] error_handling回帰: 対象idiomだけを検知（2件）"
+  else
+    echo "  [FAIL] error_handling回帰: 通常のError関数を誤計上した（実測=${error_handling_idiom_scope_count} 期待=2）" >&2
+    rc=1
+  fi
+
+  # ⑥error_handling回帰: 同一行 throw new Error('boom') は1件（二重計上しない）。
+  error_handling_regression_file="$tmp/error-handling-regression.txt"
+  cat > "$error_handling_regression_file" <<'EOF'
+throw new Error('boom');
+EOF
+  error_handling_regression_count="$(count_error_handling "$error_handling_regression_file")"
+  if [ "$error_handling_regression_count" = "1" ]; then
+    echo "  [PASS] error_handling回帰（⑥）: throw new Error は1件（二重計上なし）"
+  else
+    echo "  [FAIL] error_handling回帰（⑥）: throw new Error の二重計上（実測=${error_handling_regression_count} 期待=1）" >&2
+    rc=1
+  fi
+
+  # error_handling回帰: コメントと文字列内の疑似コードを除外し、実コードだけを数える。
+  error_handling_false_positive_file="$tmp/error-handling-false-positive.txt"
+  cat > "$error_handling_false_positive_file" <<'EOF'
+// throw new Error('comment');
+/* catch (err) { window.alert('comment'); } */
+const example = "throwAsyncError(err); setError('message'); window.alert('message');";
+const template = `throw new Error('template')`;
+throwAsyncError(error);
+setError('real');
+try {
+  doSomething();
+} catch (err) {
+  window.alert('real');
+  throw err;
+}
+EOF
+  error_handling_false_positive_count="$(count_error_handling "$error_handling_false_positive_file")"
+  if [ "$error_handling_false_positive_count" = "5" ]; then
+    echo "  [PASS] error_handling回帰: コメント・文字列を除外し実コード5件"
+  else
+    echo "  [FAIL] error_handling回帰: コメント・文字列を誤計上した（実測=${error_handling_false_positive_count} 期待=5）" >&2
+    rc=1
+  fi
+
+  # error_handling回帰: テンプレート通常文は除外し、${...}補間式内だけをコードとして数える。
+  error_handling_template_file="$tmp/error-handling-template.txt"
+  cat > "$error_handling_template_file" <<'EOF'
+const message = `example throwAsyncError(fake) ${throwAsyncError(error)} setError('text')`;
+EOF
+  error_handling_template_count="$(count_error_handling "$error_handling_template_file")"
+  if [ "$error_handling_template_count" = "1" ]; then
+    echo "  [PASS] error_handling回帰: テンプレート補間式内だけを検知（1件）"
+  else
+    echo "  [FAIL] error_handling回帰: テンプレート補間式の判定不正（実測=${error_handling_template_count} 期待=1）" >&2
+    rc=1
+  fi
+
+  # style: inline sx={{...}}の加算を検知する（陽性）。
+  style_sx_pos_file="$tmp/style-sx-pos.txt"
+  cat > "$style_sx_pos_file" <<'EOF'
+  <Box sx={{ padding: 2 }}>
+    <Text>Hello</Text>
+  </Box>
+EOF
+  style_sx_pos_count="$(count_style "$style_sx_pos_file")"
+  if [ "$style_sx_pos_count" = "1" ]; then
+    echo "  [PASS] style陽性: inline sxの加算を検知（1件）"
+  else
+    echo "  [FAIL] style陽性: inline sxの加算を検知できない（実測=${style_sx_pos_count} 期待=1）" >&2
+    rc=1
+  fi
+
+  # style: styled./sxのいずれも無ければ0件（陰性）。
+  style_sx_neg_file="$tmp/style-sx-neg.txt"
+  cat > "$style_sx_neg_file" <<'EOF'
+  <Box>
+    <Text>Hello</Text>
+  </Box>
+EOF
+  style_sx_neg_count="$(count_style "$style_sx_neg_file")"
+  if [ "$style_sx_neg_count" = "0" ]; then
+    echo "  [PASS] style陰性: styled./sx不在で0件"
+  else
+    echo "  [FAIL] style陰性: styled./sxが存在しないのに誤検知した（実測=${style_sx_neg_count} 期待=0）" >&2
+    rc=1
+  fi
+
+  # handler: 関数宣言+アロー関数const宣言を検知する（陽性）。
+  handler_decl_pos_file="$tmp/handler-decl-pos.txt"
+  cat > "$handler_decl_pos_file" <<'EOF'
+function handleClick(event) {
+  doSomething(event);
+}
+
+const handleSubmit = (event) => {
+  doSomethingElse(event);
+};
+EOF
+  handler_decl_pos_count="$(count_handler "$handler_decl_pos_file")"
+  if [ "$handler_decl_pos_count" = "2" ]; then
+    echo "  [PASS] handler陽性: function宣言+アロー関数const宣言を検知（2件）"
+  else
+    echo "  [FAIL] handler陽性: 関数宣言単位での検知に失敗（実測=${handler_decl_pos_count} 期待=2）" >&2
+    rc=1
+  fi
+
+  # handler: コンポーネント関数本体にインデントされた宣言（function宣言+アロー関数const宣言）
+  # も行頭アンカーの誤検知漏れなく検知する（陽性）。
+  handler_decl_indent_file="$tmp/handler-decl-indent.txt"
+  cat > "$handler_decl_indent_file" <<'EOF'
+export function Foo() {
+  function handleClick(event) {
+    doSomething(event);
+  }
+
+  const handleSubmit = (event) => {
+    doSomethingElse(event);
+  };
+
+  return null;
+}
+EOF
+  handler_decl_indent_count="$(count_handler "$handler_decl_indent_file")"
+  if [ "$handler_decl_indent_count" = "2" ]; then
+    echo "  [PASS] handler陽性: インデントされたfunction宣言+アロー関数const宣言を検知（2件）"
+  else
+    echo "  [FAIL] handler陽性: インデント定義の検知に失敗（実測=${handler_decl_indent_count} 期待=2）" >&2
+    rc=1
+  fi
+
+  # handler: JSXバインディング（onClick={handleClick}）は宣言ではないため0件（陰性）。
+  handler_decl_neg_file="$tmp/handler-decl-neg.txt"
+  cat > "$handler_decl_neg_file" <<'EOF'
+<Button onClick={handleClick}>
+  Submit
+</Button>
+EOF
+  handler_decl_neg_count="$(count_handler "$handler_decl_neg_file")"
+  if [ "$handler_decl_neg_count" = "0" ]; then
+    echo "  [PASS] handler陰性: JSXバインディングは宣言でないため0件"
+  else
+    echo "  [FAIL] handler陰性: JSXバインディングを誤って宣言として計上した（実測=${handler_decl_neg_count} 期待=0）" >&2
+    rc=1
+  fi
+
+  # ⑤handler陽性: function宣言+アロー定義を数え、コンポーネント・関数呼出し代入を除外して3件。
+  handler_mixed_pos_file="$tmp/handler-mixed-pos.txt"
+  cat > "$handler_mixed_pos_file" <<'EOF'
+function handleClick(event) {
+  doSomething(event);
+}
+
+const handleSubmit = (event) => {
+  doSomethingElse(event);
+};
+
+const handleChange = async (value) => {
+  await save(value);
+};
+
+const MyComponent = () => {
+  return <div />;
+};
+
+const result = doSomething();
+EOF
+  handler_mixed_pos_count="$(count_handler "$handler_mixed_pos_file")"
+  if [ "$handler_mixed_pos_count" = "3" ]; then
+    echo "  [PASS] handler陽性（⑤）: function宣言+アロー定義3件、コンポーネント・呼出し代入を除外"
+  else
+    echo "  [FAIL] handler陽性（⑤）: 期待3件に対し実測=${handler_mixed_pos_count}" >&2
+    rc=1
+  fi
+
+  # ⑤handler陰性: JSXインラインバインディングは0件。
+  handler_inline_neg_file="$tmp/handler-inline-neg.txt"
+  cat > "$handler_inline_neg_file" <<'EOF'
+<Button onClick={() => setOpen(true)}>Open</Button>
+<Input onChange={(e) => setValue(e.target.value)} />
+<Select onSelect={handleSelect} />
+EOF
+  handler_inline_neg_count="$(count_handler "$handler_inline_neg_file")"
+  if [ "$handler_inline_neg_count" = "0" ]; then
+    echo "  [PASS] handler陰性（⑤）: JSXインラインバインディング・prop渡しは0件"
+  else
+    echo "  [FAIL] handler陰性（⑤）: JSXインラインを誤検知（実測=${handler_inline_neg_count} 期待=0）" >&2
+    rc=1
+  fi
+
+  # handler回帰: 通常ヘルパーとコンポーネントを除外し、命名規約またはJSX event propで
+  # 参照される宣言だけを数える。
+  handler_false_positive_file="$tmp/handler-false-positive.txt"
+  cat > "$handler_false_positive_file" <<'EOF'
+function validate(value) {
+  return value.length > 0;
+}
+const computeTotal = (items) => items.length;
+const Screen = () => <div />;
+function handleSubmit() {}
+const onSave = () => {};
+function persist() {}
+<Button onClick={persist}>Save</Button>
+EOF
+  handler_false_positive_count="$(count_handler "$handler_false_positive_file")"
+  if [ "$handler_false_positive_count" = "3" ]; then
+    echo "  [PASS] handler回帰: 通常ヘルパー・コンポーネントを除外しイベント宣言3件"
+  else
+    echo "  [FAIL] handler回帰: 通常ヘルパー等を誤計上した（実測=${handler_false_positive_count} 期待=3）" >&2
+    rc=1
+  fi
+
+  # handler回帰: JSX event propから参照される非括弧アロー宣言を数える。
+  handler_single_param_arrow_file="$tmp/handler-single-param-arrow.txt"
+  cat > "$handler_single_param_arrow_file" <<'EOF'
+const persist = value => {
+  save(value);
+};
+<Button onClick={persist}>Save</Button>
+EOF
+  handler_single_param_arrow_count="$(count_handler "$handler_single_param_arrow_file")"
+  if [ "$handler_single_param_arrow_count" = "1" ]; then
+    echo "  [PASS] handler回帰: event prop参照の非括弧アロー宣言を検知（1件）"
+  else
+    echo "  [FAIL] handler回帰: 非括弧アロー宣言を検知できない（実測=${handler_single_param_arrow_count} 期待=1）" >&2
+    rc=1
+  fi
+
+  # handler回帰: 型注釈付きアローはevent prop参照時だけ数え、通常ヘルパーは除外する。
+  handler_typed_arrow_file="$tmp/handler-typed-arrow.txt"
+  cat > "$handler_typed_arrow_file" <<'EOF'
+const persist: (value: string) => void = value => {
+  save(value);
+};
+const validate: (value: string) => boolean = value => value.length > 0;
+<Button onClick={persist}>Save</Button>
+EOF
+  handler_typed_arrow_count="$(count_handler "$handler_typed_arrow_file")"
+  if [ "$handler_typed_arrow_count" = "1" ]; then
+    echo "  [PASS] handler回帰: 型注釈付きアローをevent prop参照時だけ検知（1件）"
+  else
+    echo "  [FAIL] handler回帰: 型注釈付きアローの判定不正（実測=${handler_typed_arrow_count} 期待=1）" >&2
+    rc=1
+  fi
+
+  # handler回帰: useCallback包装宣言を数え、通常の未参照memoized関数は除外する。
+  handler_use_callback_file="$tmp/handler-use-callback.txt"
+  cat > "$handler_use_callback_file" <<'EOF'
+const handleClick = useCallback((event) => {
+  submit(event);
+}, []);
+const memoized = useCallback((value) => computeTotal(value), []);
+<Button onClick={handleClick}>Submit</Button>
+EOF
+  handler_use_callback_count="$(count_handler "$handler_use_callback_file")"
+  if [ "$handler_use_callback_count" = "1" ]; then
+    echo "  [PASS] handler回帰: useCallback包装ハンドラだけを検知（1件）"
+  else
+    echo "  [FAIL] handler回帰: useCallback包装宣言の判定不正（実測=${handler_use_callback_count} 期待=1）" >&2
+    rc=1
+  fi
+
+  # 陽性（改善課題「シーケンス図-命名規則への依存」実測再現）: handle/on命名にもJSX event
+  # propにも合致しないマウント時データ取得関数（useEffectから直接呼ばれるだけ）を検知する。
+  # 「個人ランキング画面はAPI呼出し5件を持つがhandlerが0件と判定された」実測の再現フィクスチャ。
+  handler_effect_mount_file="$tmp/handler-effect-mount.txt"
+  cat > "$handler_effect_mount_file" <<'EOF'
+function loadRanking() {
+  const a = await svc1FetchA();
+  const b = await svc1FetchB();
+  const c = await svc1FetchC();
+  const d = await svc1FetchD();
+  const e = await svc1FetchE();
+}
+
+useEffect(() => {
+  loadRanking();
+}, []);
+EOF
+  handler_effect_mount_count="$(count_handler "$handler_effect_mount_file")"
+  handler_effect_mount_api_count="$(count_api "$handler_effect_mount_file")"
+  if [ "$handler_effect_mount_count" = "1" ] && [ "$handler_effect_mount_api_count" = "5" ]; then
+    echo "  [PASS] handler陽性: useEffect本体から直接呼ばれる命名規則非依存の関数を検知（handler1件・api5件）"
+  else
+    echo "  [FAIL] handler陽性: useEffect本体からの直接呼出しを検知できない（実測handler=${handler_effect_mount_count} api=${handler_effect_mount_api_count} 期待handler=1 api=5）" >&2
+    rc=1
+  fi
+
+  # 陰性: useEffect本体内でも、呼出し文にならない参照渡し（`arr.forEach(loadRanking)`）と
+  # use接頭辞のフック呼出しは対象外のまま（既知の限界として明記済みの範囲）。
+  handler_effect_ref_file="$tmp/handler-effect-ref.txt"
+  cat > "$handler_effect_ref_file" <<'EOF'
+function loadRanking() {}
+useEffect(() => {
+  useSomethingElse();
+  items.forEach(loadRanking);
+}, []);
+EOF
+  handler_effect_ref_count="$(count_handler "$handler_effect_ref_file")"
+  if [ "$handler_effect_ref_count" = "0" ]; then
+    echo "  [PASS] handler陰性: useEffect内の参照渡し・use接頭辞呼出しは対象外（既知の限界）"
+  else
+    echo "  [FAIL] handler陰性: 既知の限界の範囲外まで誤検知した（実測=${handler_effect_ref_count} 期待=0）" >&2
+    rc=1
+  fi
+
+  # 追加陽性: --recount-only サブコマンドが8軸の再計数結果に加えてlocを
+  # 「<セクション> <件数>」形式で出力し、facts.ymlを介さないrecount_from_codeの
+  # 実測値と完全一致することを確認する。
+  expected_loc="$(wc -l < "$tmp/repo/src/screens/Foo/Foo.tsx" | tr -d ' ')"
+  expected_recount_only="$(printf '%s\n%s %s' "$actual" loc "$expected_loc")"
+  recount_only_out="$(bash "$0" --recount-only "$tmp/repo" "src/screens/Foo/Foo.tsx")"
+  if [ "$recount_only_out" = "$expected_recount_only" ]; then
+    echo "  [PASS] --recount-only: 8軸が既存実測と完全一致＋loc一致"
+  else
+    echo "  [FAIL] --recount-only: 8軸+locが既存実測と一致しない" >&2
+    echo "    実測:" >&2
+    printf '%s\n' "$recount_only_out" | sed 's/^/      /' >&2
+    echo "    期待:" >&2
+    printf '%s\n' "$expected_recount_only" | sed 's/^/      /' >&2
+    rc=1
+  fi
+
+  # 追加陽性: 2ファイル指定時のlocが加法的（各ファイルのwc -lの単純合算）であることを
+  # 確認する。連結一時ファイル方式（build_content_file）は区切り用の空行を挟むため
+  # wc -lで直接数えると水増しされるが、--recount-onlyは元ファイルごとのwc -lを
+  # 合算するためその水増しが起きない。
+  bar_file="$tmp/repo/src/screens/Foo/Bar.tsx"
+  cat > "$bar_file" <<'TSX'
+export const BAR_VALUE = 1;
+export const BAR_LABEL = "bar";
+TSX
+  loc_foo="$(wc -l < "$tmp/repo/src/screens/Foo/Foo.tsx" | tr -d ' ')"
+  loc_bar="$(wc -l < "$bar_file" | tr -d ' ')"
+  expected_loc_sum=$((loc_foo + loc_bar))
+  two_file_out="$(bash "$0" --recount-only "$tmp/repo" "src/screens/Foo/Foo.tsx" "src/screens/Foo/Bar.tsx")"
+  actual_loc_sum="$(printf '%s\n' "$two_file_out" | awk '$1=="loc"{print $2}')"
+  if [ "$actual_loc_sum" = "$expected_loc_sum" ]; then
+    echo "  [PASS] --recount-only: 2ファイルのloc加法性（${expected_loc_sum}）"
+  else
+    echo "  [FAIL] --recount-only: loc加法性が崩れている（実測=${actual_loc_sum} 期待=${expected_loc_sum}）" >&2
+    rc=1
+  fi
+
+  # 陰性: repo不在でexit 2
+  if bash "$0" --recount-only "$tmp/repo-does-not-exist" "src/screens/Foo/Foo.tsx" >/dev/null 2>&1; then
+    echo "  [FAIL] --recount-only: repo不在なのにexit 0で成功した" >&2
+    rc=1
+  else
+    repo_missing_rc=$?
+    if [ "$repo_missing_rc" = "2" ]; then
+      echo "  [PASS] --recount-only: repo不在でexit 2"
+    else
+      echo "  [FAIL] --recount-only: repo不在時のexitコードが2でない（実測=${repo_missing_rc}）" >&2
+      rc=1
+    fi
+  fi
+
+  # 陰性: 対象ファイル不在でexit 2
+  if bash "$0" --recount-only "$tmp/repo" "src/screens/Foo/NoSuchFile.tsx" >/dev/null 2>&1; then
+    echo "  [FAIL] --recount-only: ファイル不在なのにexit 0で成功した" >&2
+    rc=1
+  else
+    file_missing_rc=$?
+    if [ "$file_missing_rc" = "2" ]; then
+      echo "  [PASS] --recount-only: ファイル不在でexit 2"
+    else
+      echo "  [FAIL] --recount-only: ファイル不在時のexitコードが2でない（実測=${file_missing_rc}）" >&2
+      rc=1
+    fi
+  fi
+
+  # 陰性: 対象ファイル0件でexit 2
+  if bash "$0" --recount-only "$tmp/repo" >/dev/null 2>&1; then
+    echo "  [FAIL] --recount-only: 対象0件なのにexit 0で成功した" >&2
+    rc=1
+  else
+    zero_target_rc=$?
+    if [ "$zero_target_rc" = "2" ]; then
+      echo "  [PASS] --recount-only: 対象0件でexit 2"
+    else
+      echo "  [FAIL] --recount-only: 対象0件時のexitコードが2でない（実測=${zero_target_rc}）" >&2
+      rc=1
+    fi
+  fi
+
+  # ---- perlプロファイル: JS/TS以外の言語構文でも再計数が0件に落ち込まないことの検収 ----
+  # 旧実装は11分類中8分類がJS/TS固有パターン（import文/JSX開始タグ/フック呼出し/
+  # styled-components）にのみ依存し、Perl相当の構文体系では常に0件だった（写真指摘対応）。
+  perl_dir="$tmp/repo/src/scripts/Report"
+  mkdir -p "$perl_dir"
+  cat > "$perl_dir/Report.pl" <<'PERLEOF'
+use strict;
+use warnings;
+use POSIX qw(floor ceil);
+require Data::Dumper;
+
+my $counter = 0;
+our $VERSION = '1.0';
+
+sub process_record {
+    my ($record) = @_;
+    my $result = transform($record);
+    eval {
+        risky_call($result);
+    };
+    if ($@) {
+        die "processing failed: $@";
+    }
+    return $result;
+}
+
+sub transform {
+    my ($value) = @_;
+    return $value->normalize();
+}
+PERLEOF
+
+  perl_actual="$(recount_perl_from_code "$tmp/repo" "src/scripts/Report/Report.pl")"
+  get_perl_actual() {
+    printf '%s\n' "$perl_actual" | awk -v s="$1" '$1==s{print $2}'
+  }
+
+  perl_zero_sections=""
+  for sec in import function local_assignment external_call exception_handling; do
+    v="$(get_perl_actual "$sec")"
+    if [ "${v:-0}" -le 0 ]; then
+      perl_zero_sections="${perl_zero_sections} ${sec}"
+    fi
+  done
+  if [ -z "$perl_zero_sections" ]; then
+    echo "  [PASS] perlプロファイル: JS/TS以外の構文（Perl相当）で5分類すべてが0件以外を検知（$(printf '%s' "$perl_actual" | tr '\n' ' ')）"
+  else
+    echo "  [FAIL] perlプロファイル: 0件のまま検知できない分類がある（${perl_zero_sections}）" >&2
+    rc=1
+  fi
+
+  build_perl_pass_facts() {
+    out="$1"
+    {
+      echo "run_id: extract-1"
+      echo "profile: perl"
+      echo "target_repo_path: $tmp/repo"
+      echo "target_file_paths:"
+      echo "  - src/scripts/Report/Report.pl"
+      echo "sections:"
+      for sec in import function local_assignment external_call exception_handling; do
+        echo "  $sec:"
+        echo "    reason: \"\""
+        echo "    items:"
+        n="$(get_perl_actual "$sec")"
+        i=0
+        while [ "$i" -lt "$n" ]; do
+          echo "      - key: ${sec}-dummy-$i"
+          echo "        value: \"dummy\""
+          echo "        evidence: \"src/scripts/Report/Report.pl:1\""
+          i=$((i + 1))
+        done
+      done
+      echo "  measurement_pending:"
+      echo "    reason: \"\""
+      echo "    items:"
+      echo "      - key: 実測委譲-dummy"
+      echo "        evidence: \"src/scripts/Report/Report.pl:1\""
+    } > "$out"
+  }
+
+  perl_pos="$tmp/perl-pos-facts.yml"
+  build_perl_pass_facts "$perl_pos"
+  if run_check "$perl_pos" "$tmp/repo" "src/scripts/Report/Report.pl" >/dev/null 2>&1; then
+    echo "  [PASS] perlプロファイル陽性: 全分類が実測値と一致しゲート通過"
+  else
+    echo "  [FAIL] perlプロファイル陽性: 実測値と一致しているのにゲート失敗した" >&2
+    rc=1
+  fi
+
+  # ---- 検収2: 再計数ゲート不合格時はPhase4（封印）が成立しないことの回帰確認 ----
+  # 「ゲート不合格でも封印が進む」という旧問題はSKILL.md（Phase3→4の順序契約・上限3回で
+  # status=中断）で既に解消済み。ここではその契約（ゲート失敗時はseal-facts.shを呼ばない
+  # 手順）を実行可能なコードとして固定し、封印（facts.lock生成）が成立しないことを検証する。
+  perl_gate_fail="$tmp/perl-gate-fail-facts.yml"
+  build_perl_pass_facts "$perl_gate_fail"
+  awk '
+    /^  import:$/{print; getline; print; print "    items:"; print "      - key: import-only-one"; print "        value: \"dummy\""; print "        evidence: \"src/scripts/Report/Report.pl:1\""; skip=1; next}
+    skip==1 && /^  function:$/{skip=0}
+    skip==1{next}
+    {print}
+  ' "$perl_gate_fail" > "$perl_gate_fail.tmp" && mv "$perl_gate_fail.tmp" "$perl_gate_fail"
+
+  gate_fail_dir="$tmp/perl-gate-fail-dir"
+  mkdir -p "$gate_fail_dir"
+  cp "$perl_gate_fail" "$gate_fail_dir/facts.yml"
+
+  gate_passed=0
+  if run_check "$gate_fail_dir/facts.yml" "$tmp/repo" "src/scripts/Report/Report.pl" >/dev/null 2>&1; then
+    gate_passed=1
+  fi
+
+  if [ "$gate_passed" -eq 1 ]; then
+    echo "  [FAIL] 検収2: importの記載件数を作為したのにperlプロファイルのゲートが通過した" >&2
+    rc=1
+  else
+    # SKILL.md Phase3→4契約の実行可能な固定化: ゲート通過時のみPhase4（封印）を実行する
+    if [ "$gate_passed" -eq 1 ]; then
+      bash "$SCRIPT_DIR/../../../../generation-engine/scripts/seal-facts.sh" seal "$gate_fail_dir" >/dev/null 2>&1
+    fi
+    if [ -f "$gate_fail_dir/facts.lock" ]; then
+      echo "  [FAIL] 検収2: 再計数ゲート不合格なのに封印（facts.lock生成）が成立した" >&2
+      rc=1
+    else
+      echo "  [PASS] 検収2: 再計数ゲート不合格（run_check exit!=0）でPhase4封印が成立しない（facts.lock未生成）"
+    fi
+  fi
+
+  if [ "$rc" -eq 0 ]; then
+    echo "self-test 全項目 PASS"
+  else
+    echo "self-test FAIL" >&2
+  fi
+  return "$rc"
+}
+
+if [ "${1:-}" = "--self-test" ]; then
+  self_test
+  exit $?
+fi
+
+# --recount-only: facts.ymlを介さず、対象ファイル群の8分類件数とloc（合計行数）のみを
+# 「<セクション> <件数>」形式で出力する（detect-screens.sh --profile 等、突合ゲート以外の
+# 用途でコア計数関数を再利用するための薄い出口）。
+if [ "${1:-}" = "--recount-only" ]; then
+  shift
+  recount_profile="screen"
+  if [ "${1:-}" = "--profile" ]; then
+    recount_profile="${2:-}"
+    shift 2 || true
+  fi
+  case "$recount_profile" in
+    screen|python|perl) ;;
+    *)
+      echo "エラー: --profile は screen または python または perl を指定してください: $recount_profile" >&2
+      exit 2
+      ;;
+  esac
+  repo="${1:?使い方: recount-facts.sh --recount-only <target_repo_path> <target_file相対パス...>}"
+  shift || true
+  if [ "$#" -lt 1 ]; then
+    echo "エラー: target_file相対パスを1つ以上指定してください" >&2
+    exit 2
+  fi
+  if [ ! -d "$repo" ]; then
+    echo "エラー: target_repo_path が見つかりません: $repo" >&2
+    exit 2
+  fi
+  for f in "$@"; do
+    if [ ! -f "$repo/$f" ]; then
+      echo "エラー: 対象ファイルが見つかりません: $repo/$f" >&2
+      exit 2
+    fi
+  done
+  if [ "$recount_profile" = "python" ]; then
+    recount_python_from_code "$repo" "$@"
+  elif [ "$recount_profile" = "perl" ]; then
+    recount_perl_from_code "$repo" "$@"
+  else
+    recount_from_code "$repo" "$@"
+  fi
+  # loc（合計行数）は元ファイルごとのwc -lを合算する。build_content_file が生成する
+  # 連結一時ファイルは各ファイル末尾に区切り用の空行を1行付加するため、そちらを
+  # wc -l すると件数がファイル数分水増しされる。
+  loc_total=0
+  for f in "$@"; do
+    lc="$(wc -l < "$repo/$f" | tr -d ' ')"
+    loc_total=$((loc_total + lc))
+  done
+  printf '%s %s\n' loc "$loc_total"
+  exit 0
+fi
+
+facts="${1:?使い方: recount-facts.sh <facts.yml> <target_repo_path> <target_file相対パス...>}"
+repo="${2:?使い方: recount-facts.sh <facts.yml> <target_repo_path> <target_file相対パス...>}"
+shift 2 || true
+if [ "$#" -lt 1 ]; then
+  echo "エラー: target_file相対パスを1つ以上指定してください" >&2
+  exit 2
+fi
+if [ ! -f "$facts" ]; then
+  echo "エラー: facts.yml が見つかりません: $facts" >&2
+  exit 2
+fi
+if [ ! -d "$repo" ]; then
+  echo "エラー: target_repo_path が見つかりません: $repo" >&2
+  exit 2
+fi
+for f in "$@"; do
+  if [ ! -f "$repo/$f" ]; then
+    echo "エラー: 対象ファイルが見つかりません: $repo/$f" >&2
+    exit 2
+  fi
+done
+
+run_check "$facts" "$repo" "$@"

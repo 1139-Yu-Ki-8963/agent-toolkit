@@ -1,0 +1,175 @@
+/* 設計ポータルのデザイントークン。
+   本ファイルの全文が、ビルド時に各テンプレートのトークン注入マーカーへ差し込まれる。
+   既定はダークテーマ。ライトは OS 設定または data-theme="light" で切り替える。
+   色は 26 種の基本トークンだけをテーマ別に定義し、
+   既存の別名トークンは var() 参照でテーマへ自動追従させる。 */
+
+:root {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-synthesis: none;
+
+  /* 基本色（ダーク） */
+  --bg: #0F1217;
+  --panel: #161C23;
+  --panel2: #1C232E;
+  --panel3: #141A23;
+  --line: #2B3443;
+  --line2: #3A4658;
+  --text: #E7ECF4;
+  --sub: #A8B3C3;
+  --muted: #8A96A7;
+  --faint: #798496;
+  --accent: #4CC2FE;
+  --accent-hi: #9ADCFF;
+  --accent-soft: rgba(76,194,255,0.17);
+  /* 濃色ヘッダのハイライト。背景色を差し替えず元の背景へ重ねるため、明暗どちらの配色でも文字との明度差を保つ */
+  --head-hl: rgba(255,255,255,0.16);
+  --stamp: #FF6E4F;
+  --stamp-soft: rgba(255,110,78,0.16);
+  --green: #4ADE81;
+  --green-soft: rgba(74,222,129,0.16);
+  --grid: rgba(255,255,255,0.036);
+  --head: #202B3B;
+  --headtext: #E7ECF4;
+  --code: #0B0E13;
+  --codetext: #C9E8FF;
+  --navon: #EAF6FF;
+  --chipontext: #0F1217;
+  --rowopen: #1A212B;
+  --neutral-soft: rgba(255,255,255,0.06);
+
+  /* 別名。既存テンプレートの参照を壊さないために残す。値は基本色を参照するのでテーマに自動追従する */
+  --panel-2: var(--panel2);
+  --border: var(--line);
+  --border-strong: var(--line2);
+  --text-sub: var(--sub);
+  --text-muted: var(--muted);
+  --accent-2: var(--accent-hi);
+  --accent-border: var(--accent);
+  --gold: var(--stamp);
+  --gold-soft: var(--stamp-soft);
+  --gold-border: var(--stamp);
+  --warn: var(--stamp);
+  --danger: var(--stamp);
+  --danger-soft: var(--stamp-soft);
+  --success: var(--green);
+  --success-soft: var(--green-soft);
+  --highlight: var(--accent);
+  --highlight-soft: var(--accent-soft);
+  --highlight-border: var(--accent);
+  --nav-tag: var(--faint);
+  --nav-tag-soft: var(--neutral-soft);
+  --self-tag: var(--green);
+  --self-tag-soft: var(--green-soft);
+  --code-bg: var(--code);
+  --code-fg: var(--codetext);
+  --cat-list: var(--accent);
+  --cat-standards: var(--accent);
+  --cat-design: var(--accent);
+  --cat-project: var(--accent);
+
+  /* 非色トークン。テーマで変えない */
+  --font-body: "Hiragino Kaku Gothic ProN","Hiragino Sans","Noto Sans JP","BIZ UDPGothic","Yu Gothic","Meiryo",system-ui,-apple-system,sans-serif;
+  --mono: "SFMono-Regular","Menlo","Cascadia Code","Consolas",monospace;
+  --radius: 0;
+  --radius-sm: 0;
+  --shadow-sm: 3px 3px 0 var(--accent-soft);
+  --shadow-md: 4px 4px 0 var(--accent-soft);
+  --sidebar-w: 248px;
+  --page-gutter: 40px;
+  --grid-size: 24px;
+}
+
+/* OS がライト設定で、かつダークを明示指定していない場合 */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg: #F1F4F8;
+    --panel: #FFFFFF;
+    --panel2: #E9EEF4;
+    --panel3: #F7F9FC;
+    --line: #D8DFE8;
+    --line2: #243040;
+    --text: #1A222E;
+    --sub: #4B5A70;
+    --muted: #657285;
+    --faint: #627387;
+    --accent: #0272AC;
+    --accent-hi: #075985;
+    --accent-soft: rgba(2,132,199,0.10);
+    --stamp: #BF3C22;
+    --stamp-soft: rgba(217,72,43,0.12);
+    --green: #137538;
+    --green-soft: rgba(21,128,61,0.16);
+    --grid: rgba(16,34,64,0.05);
+    --head: #243040;
+    --headtext: #F1F4F8;
+    --code: #101722;
+    --codetext: #C9E8FF;
+    --navon: #102A43;
+    --chipontext: #FFFFFF;
+    --rowopen: #F0F4F9;
+    --neutral-soft: rgba(16,34,64,0.06);
+  }
+}
+
+/* ユーザーがライトを明示指定した場合 */
+[data-theme="light"] {
+  --bg: #F1F4F8;
+  --panel: #FFFFFF;
+  --panel2: #E9EEF4;
+  --panel3: #F7F9FC;
+  --line: #D8DFE8;
+  --line2: #243040;
+  --text: #1A222E;
+  --sub: #4B5A70;
+  --muted: #657285;
+  --faint: #627387;
+  --accent: #0272AC;
+  --accent-hi: #075985;
+  --accent-soft: rgba(2,132,199,0.10);
+  --stamp: #BF3C22;
+  --stamp-soft: rgba(217,72,43,0.12);
+  --green: #137538;
+  --green-soft: rgba(21,128,61,0.16);
+  --grid: rgba(16,34,64,0.05);
+  --head: #243040;
+  --headtext: #F1F4F8;
+  --code: #101722;
+  --codetext: #C9E8FF;
+  --navon: #102A43;
+  --chipontext: #FFFFFF;
+  --rowopen: #F0F4F9;
+  --neutral-soft: rgba(16,34,64,0.06);
+}
+
+/* ユーザーがダークを明示指定した場合。OS がライトでも :root の既定値へ戻す */
+[data-theme="dark"] {
+  --bg: #0F1217;
+  --panel: #161C23;
+  --panel2: #1C232E;
+  --panel3: #141A23;
+  --line: #2B3443;
+  --line2: #3A4658;
+  --text: #E7ECF4;
+  --sub: #A8B3C3;
+  --muted: #8A96A7;
+  --faint: #798496;
+  --accent: #4CC2FE;
+  --accent-hi: #9ADCFF;
+  --accent-soft: rgba(76,194,255,0.17);
+  --stamp: #FF6E4F;
+  --stamp-soft: rgba(255,110,78,0.16);
+  --green: #4ADE81;
+  --green-soft: rgba(74,222,129,0.16);
+  --grid: rgba(255,255,255,0.036);
+  --head: #202B3B;
+  --headtext: #E7ECF4;
+  --code: #0B0E13;
+  --codetext: #C9E8FF;
+  --navon: #EAF6FF;
+  --chipontext: #0F1217;
+  --rowopen: #1A212B;
+  --neutral-soft: rgba(255,255,255,0.06);
+}

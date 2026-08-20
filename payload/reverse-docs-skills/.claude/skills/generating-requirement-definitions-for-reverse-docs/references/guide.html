@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<!--
+  generating-requirement-definitions-for-reverse-docs スキルガイド（単一HTML型）
+
+  - 外部リソースはMaterial Symbols OutlinedのGoogle Fonts CDNだけを許可する。その他のCDN・フォント・画像は使わない
+-->
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>要件定義5文書生成スキル</title>
+<style>
+/* スキルガイド HTML（.claude/skills/*/references/guide.html）の統一意匠。
+   自己完結の単一 HTML へ丸ごと埋め込む style タグの中身。外部ファイルは参照しない。
+   版面は文書型のまま（中央寄せの最大幅・通常のページスクロール）。
+   ポータルの全画面レイアウト（サイドバー・100vh・sticky）は持ち込まない。
+   角丸は使わない（border-radius は 0 のみ）。影はぼかし半径を持たせない。
+   配色は delivery-payload/templates/tokens.css の値から取り出した派生値。
+   既定は明るい表示。暗い表示は prefers-color-scheme と data-theme="dark" の両方で切り替わる。
+   data-theme="light" を明示したときは明るい表示を固定する。 */
+
+:root, [data-theme="light"] {
+  --guide-bg: #F1F4F8;
+  --guide-panel: #FFFFFF;
+  --guide-panel2: #E9EEF4;
+  --guide-border: #D8DFE8;
+  --guide-text: #1A222E;
+  --guide-text-sub: #4B5A70;
+  --guide-muted: #6C7A8E;
+  --guide-accent: #0284C7;
+  --guide-accent-hi: #075985;
+  --guide-accent-soft: rgba(2,132,199,0.10);
+  --guide-stamp: #D9482B;
+  --guide-stamp-soft: rgba(217,72,43,0.12);
+  --guide-green: #15803D;
+  --guide-green-soft: rgba(21,128,61,0.16);
+  --guide-code-bg: #101722;
+  --guide-code-text: #C9E8FF;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --guide-bg: #0F1217;
+    --guide-panel: #161C23;
+    --guide-panel2: #1C232E;
+    --guide-border: #2B3443;
+    --guide-text: #E7ECF4;
+    --guide-text-sub: #A8B3C3;
+    --guide-muted: #8A96A7;
+    --guide-accent: #4CC2FE;
+    --guide-accent-hi: #9ADCFF;
+    --guide-accent-soft: rgba(76,194,255,0.17);
+    --guide-stamp: #FF6E4F;
+    --guide-stamp-soft: rgba(255,110,78,0.16);
+    --guide-green: #4ADE81;
+    --guide-green-soft: rgba(74,222,129,0.16);
+    --guide-code-bg: #0B0E13;
+    --guide-code-text: #C9E8FF;
+  }
+}
+
+[data-theme="dark"] {
+  --guide-bg: #0F1217;
+  --guide-panel: #161C23;
+  --guide-panel2: #1C232E;
+  --guide-border: #2B3443;
+  --guide-text: #E7ECF4;
+  --guide-text-sub: #A8B3C3;
+  --guide-muted: #8A96A7;
+  --guide-accent: #4CC2FE;
+  --guide-accent-hi: #9ADCFF;
+  --guide-accent-soft: rgba(76,194,255,0.17);
+  --guide-stamp: #FF6E4F;
+  --guide-stamp-soft: rgba(255,110,78,0.16);
+  --guide-green: #4ADE81;
+  --guide-green-soft: rgba(74,222,129,0.16);
+  --guide-code-bg: #0B0E13;
+  --guide-code-text: #C9E8FF;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0 auto;
+  padding: 0 24px 96px;
+  max-width: 980px;
+  font-family: system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif;
+  line-height: 1.85;
+  color: var(--guide-text);
+  background: var(--guide-bg);
+}
+
+header {
+  padding: 56px 0 24px;
+  border-bottom: 3px solid var(--guide-text);
+}
+header h1 { font-size: 1.9rem; margin: 0 0 10px; letter-spacing: 0.01em; }
+header p { margin: 6px 0 0; color: var(--guide-text-sub); }
+
+h1 { font-size: 1.9rem; margin: 0 0 10px; }
+h2 {
+  font-size: 1.35rem;
+  padding-bottom: 8px;
+  margin-bottom: 20px;
+  border-bottom: 2px solid var(--guide-text);
+}
+h3 { font-size: 1.05rem; margin: 32px 0 10px; }
+
+.skill-name {
+  display: inline-block;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 1rem;
+  background: var(--guide-text);
+  color: var(--guide-bg);
+  padding: 2px 10px;
+  border-radius: 0;
+  vertical-align: middle;
+}
+
+.meta-table { margin-top: 16px; font-size: 0.9rem; color: var(--guide-text-sub); }
+.meta-table td { padding: 3px 18px 3px 0; vertical-align: top; }
+
+nav { margin-top: 32px; padding: 18px 22px; background: var(--guide-panel); border: 1px solid var(--guide-border); border-radius: 0; }
+.toc { margin-top: 32px; padding: 18px 22px; background: var(--guide-panel); border: 1px solid var(--guide-border); border-radius: 0; }
+.toc-title { font-weight: 700; margin-bottom: 6px; }
+.toc ol, nav ol { margin: 0; padding-left: 1.4em; columns: 2; column-gap: 40px; }
+.toc li, nav li { margin: 2px 0; }
+
+section { margin-top: 64px; }
+section > h2 .sec-num { display: inline-block; }
+.sec-num {
+  display: inline-block;
+  min-width: 2.4em;
+  margin-right: 10px;
+  font-family: ui-monospace, monospace;
+  font-size: 0.95rem;
+  background: var(--guide-text);
+  color: var(--guide-bg);
+  text-align: center;
+  padding: 1px 8px;
+  border-radius: 0;
+  vertical-align: 2px;
+}
+
+.note { color: var(--guide-text-sub); font-size: 0.92rem; }
+
+a { color: var(--guide-accent); }
+.toc a, nav a { color: var(--guide-text); text-decoration: none; border-bottom: 1px dotted var(--guide-muted); }
+.toc a:hover, nav a:hover { border-bottom-style: solid; }
+table a, .spec a { color: var(--guide-accent); }
+
+table { border-collapse: collapse; width: 100%; }
+th, td { border: 1px solid var(--guide-border); padding: 8px 12px; text-align: left; vertical-align: top; }
+th { background: var(--guide-panel2); font-weight: 700; }
+
+.spec { border-collapse: collapse; width: 100%; margin: 14px 0; background: var(--guide-panel); font-size: 0.93rem; }
+.spec th, .spec td { border: 1px solid var(--guide-border); padding: 8px 12px; text-align: left; vertical-align: top; }
+.spec th { background: var(--guide-panel2); font-weight: 700; }
+
+ul, ol { margin: 0.5em 0 0.5em 1.4em; padding: 0; }
+li { margin: 2px 0; }
+
+pre {
+  background: var(--guide-code-bg);
+  color: var(--guide-code-text);
+  border-radius: 0;
+  padding: 18px;
+  overflow-x: auto;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.86rem;
+  line-height: 1.6;
+}
+.flow {
+  background: var(--guide-code-bg);
+  color: var(--guide-code-text);
+  border-radius: 0;
+  padding: 20px 24px;
+  overflow-x: auto;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.82rem;
+  line-height: 1.55;
+}
+.cap { color: var(--guide-muted); }
+
+code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.86em;
+  background: var(--guide-panel2);
+  color: var(--guide-text);
+  padding: 1px 5px;
+  border-radius: 0;
+}
+pre code, .flow code { background: transparent; color: inherit; padding: 0; }
+
+.def {
+  background: var(--guide-panel);
+  border: 1px solid var(--guide-border);
+  border-left: 4px solid var(--guide-accent);
+  padding: 12px 18px;
+  margin: 14px 0;
+  border-radius: 0;
+}
+.def dt { font-weight: 700; margin-top: 8px; }
+.def dt:first-child { margin-top: 0; }
+.def dd { margin: 2px 0 10px; color: var(--guide-text-sub); }
+
+.constraint {
+  background: var(--guide-accent-soft);
+  border: 1px solid var(--guide-accent);
+  border-radius: 0;
+  padding: 12px 18px;
+  margin: 16px 0;
+  font-size: 0.93rem;
+}
+.constraint strong:first-child { color: var(--guide-accent-hi); }
+
+.warn {
+  background: var(--guide-stamp-soft);
+  border: 1px solid var(--guide-stamp);
+  border-radius: 0;
+  padding: 12px 18px;
+  margin: 16px 0;
+  font-size: 0.93rem;
+}
+.warn strong:first-child { color: var(--guide-stamp); }
+
+.tag {
+  display: inline-block;
+  font-family: ui-monospace, monospace;
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 0 8px;
+  border-radius: 0;
+  border: 1px solid transparent;
+}
+.tag.pass  { background: var(--guide-green-soft); color: var(--guide-green); border-color: var(--guide-green); }
+.tag.fail  { background: var(--guide-stamp-soft); color: var(--guide-stamp); border-color: var(--guide-stamp); }
+.tag.error { background: var(--guide-stamp-soft); color: var(--guide-stamp); border-color: var(--guide-stamp); }
+.tag.mode  { background: var(--guide-accent-soft); color: var(--guide-accent-hi); border-color: var(--guide-accent); }
+
+.diagram {
+  margin: 20px 0;
+  padding: 8px;
+  background: var(--guide-panel);
+  border: 1px solid var(--guide-border);
+  border-radius: 0;
+}
+.diagram svg { width: 100%; height: auto; display: block; cursor: zoom-in; }
+.diagram figcaption { padding: 8px 10px 2px; }
+
+.zoom-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(0,0,0,0.82);
+  overflow: auto;
+  padding: 24px;
+  cursor: zoom-out;
+  -webkit-overflow-scrolling: touch;
+}
+.zoom-overlay svg {
+  width: 1880px;
+  max-width: none;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+  background: var(--guide-panel);
+  border-radius: 0;
+}
+
+@media (max-width: 640px) {
+  body { padding-inline: 14px; }
+  .toc ol, nav ol { columns: 1; }
+  .meta-table, .spec, table { font-size: 0.84rem; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>要件定義5文書生成スキル<br><span class="skill-name">generating-requirement-definitions-for-reverse-docs</span></h1>
+  <p>対象コードを直接読まず、既存の一覧マニフェストと個別基本設計書から観測できる事実だけで、機能要件一覧・帳票要件・バッチ要件・外部連携要件・ビジネス概要の要件定義5文書を生成するスキルの確定仕様。</p>
+
+  <table class="meta-table">
+    <tr><td>対応 OS</td><td>Windows WSL2 環境</td></tr>
+    <tr><td>検証状況</td><td>Phase 4 の機械検査6件は grep とファイル実在確認による決定的な検査として定義済みだが、本スキル専用のテストスクリプトは持たない。<code>references/test-cases.md</code> の観点のうち複数は手動確認（合成フィクスチャを要する）と記載されており、実機検証は未実施</td></tr>
+    <tr><td>依存</td><td>宣言ファイル <code>delivery-payload/references/output-layout.json</code>・<code>delivery-payload/references/design-unit-layout.json</code> を Read で参照する。生成・検証専用の外部スクリプトへの依存は持たない（Phase 4 の検査は grep と <code>test -f</code> のみで完結する）</td></tr>
+    <tr><td>関連資料</td><td><code>SKILL.md</code>, <code>references/test-cases.md</code></td></tr>
+  </table>
+</header>
+
+<nav class="toc">
+  <div class="toc-title">目次</div>
+  <ol>
+    <li><a href="#s1">概要</a></li>
+    <li><a href="#s2">出力</a></li>
+    <li><a href="#s3">用語</a></li>
+    <li><a href="#s4">動作フロー（Phase 1〜4）</a></li>
+    <li><a href="#s5">守り（禁止事項と機械検証）</a></li>
+    <li><a href="#s6">関連スキル・資料</a></li>
+  </ol>
+</nav>
+
+<section id="s1">
+  <h2><span class="sec-num">§1</span>概要</h2>
+  <p>要件定義の5文書（機能要件一覧・帳票要件・バッチ要件・外部連携要件・ビジネス概要）は、業務の目的や利用者像を扱う文書でありながら、対象コードそのものには現れない。本スキルは対象コードを一切読まず、既に生成済みの一覧マニフェストと個別基本設計書、つまり他スキルの成果物だけを情報源として、観測できる事実と業務の意図を分離しながら5文書を組み立てる。</p>
+  <p>本スキルは orchestrating-ai-development-setup の統括フローへは結線されておらず、単独起動でのみ動く。起動引数を渡せば動く。</p>
+
+  <div class="def">
+    <dt>本スキルがやること</dt>
+    <dd>一覧マニフェストと個別基本設計書からの観測事実の記入、業務の意図の要確認事項一覧への分離、要件定義5文書の生成と機械検査</dd>
+    <dt>本スキルがやらないこと</dt>
+    <dd>個別ユニットの基本設計書・詳細設計書の生成（各 generating-*-basic-design-for-reverse-docs / generating-*-detail-design-for-reverse-docs の担当） ／ 一覧マニフェスト自体の生成（各 generating-*-list-for-reverse-docs の担当） ／ 対象コード・原本ファイルパス・関数名・変数名の参照 ／ 業務の意図の推測や一般的な内容での補完</dd>
+  </div>
+
+  <h3>起動引数</h3>
+  <table class="spec">
+    <tr><th>引数</th><th>内容</th></tr>
+    <tr><td><code>output_dir</code></td><td>納品物ルートの絶対パス。一覧マニフェスト・個別基本設計書・出力先は、それぞれ <code>output-layout.json</code> の物理配置キーから解決する</td></tr>
+    <tr><td><code>template_root</code></td><td><code>&lt;template_root&gt;/リバース検証/プロジェクト共通/</code> の要件定義5文書を雛形に使う</td></tr>
+    <tr><td><code>target_docs</code></td><td>任意。既定は5件すべて。<code>functional-requirements</code>／<code>report-requirements</code>／<code>batch-requirements</code>／<code>external-requirements</code>／<code>business-overview</code> の doc_id で絞り込む</td></tr>
+  </table>
+  <p class="note">本スキルはユーザーに直接確認しない（AskUserQuestion 不使用）。単独起動時は起動引数をユーザーから直接取得する。</p>
+</section>
+
+<section id="s2">
+  <h2><span class="sec-num">§2</span>出力</h2>
+  <p>対象リポジトリ1つにつき、次の最大5点が生まれる。<code>target_docs</code> で絞り込める。個別基本設計書が未生成のユニットがある場合、該当する観測列は空欄のまま残る。</p>
+  <div class="def">
+    <dt>機能要件一覧.md</dt>
+    <dd>機能一覧マニフェストの各ユニットについて、キー・機能名・大分類・構成要素数（関連画面・API・テーブルの合計）・個別設計書の参照を記す。満たすべき要件という業務の意図は §3 要確認事項一覧へ回す</dd>
+    <dt>帳票要件.md</dt>
+    <dd>帳票一覧マニフェストと、実在する個別基本設計書の該当章（出力の条件と契機・レイアウトの要件）から、観測できる事実だけを記す</dd>
+    <dt>バッチ要件.md</dt>
+    <dd>バッチ一覧マニフェストと、実在する個別基本設計書の該当章（起動の契機と実行の周期・異常時の復旧の方針）から、観測できる事実だけを記す</dd>
+    <dt>外部連携要件.md</dt>
+    <dd>外部連携一覧マニフェストと、実在する個別基本設計書の該当章（連携先と方式・正常応答と異常応答・タイムアウトとリトライと冪等性）から、観測できる事実だけを記す</dd>
+    <dt>ビジネス概要.md</dt>
+    <dd>機能・画面・API・テーブル・バッチ・帳票・外部連携の7種別それぞれの件数、またはマニフェストも該当なし記録も無い種別は「対象外（入力なし）」を記す</dd>
+  </div>
+  <p class="note">生成された文書は <code>&lt;output_dir&gt;/&lt;commonRoot&gt;/&lt;ファイル名&gt;</code>（既定値 <code>docs/design/common</code>）に置かれる。「入力なし」と判定された文書は生成されない。</p>
+</section>
+
+<section id="s3">
+  <h2><span class="sec-num">§3</span>用語</h2>
+  <dl class="def">
+    <dt>マニフェスト</dt>
+    <dd>一覧生成エンジンが読む JSON。定義書や画面等の記述を機械が扱える形へ写したもの。種別ごとに <code>&lt;kind&gt;-manifest.json</code> または <code>&lt;kind&gt;-manifest.ext.json</code> として置かれる</dd>
+</dl>
+</section>
+
+<section id="s4">
+  <h2><span class="sec-num">§4</span>動作フロー（Phase 1〜4）</h2>
+  <table class="spec">
+    <tr><th>Phase</th><th>内容</th></tr>
+    <tr><td>Phase 1 起動引数の確認と対象文書の確定</td><td><code>output_dir</code>・<code>template_root</code> の実在を確認する。要件定義5文書のテンプレートの実在を確認する。<code>target_docs</code> から対象文書の doc_id 集合を確定する</td></tr>
+    <tr><td>Phase 2 入力の特定</td><td>機能・帳票・バッチ・外部連携要件は一覧マニフェストの入力状態（マニフェスト有／該当なし／入力なし）を判定する。帳票・バッチ・外部連携要件は個別基本設計書の有無を確認し、実在すれば該当章を読む。ビジネス概要は7種別の件数または「対象外（入力なし）」を確定する</td></tr>
+    <tr><td>Phase 3 執筆</td><td>テンプレートを出力先へ配置する。§2 の観測事実を記入する。§3 要確認事項一覧へ業務の意図と空欄理由を記入する。§2 に空欄が無ければ frontmatter の <code>status</code> を <code>draft</code> から <code>traced</code> へ更新する</td></tr>
+    <tr><td>Phase 4 機械検査（機械実行）</td><td>6つの検査を実行する。1つでも不合格なら Phase 3 へ差し戻す。上限3回で収束しなければ <code>status=ERROR</code> とする</td></tr>
+  </table>
+</section>
+
+<section id="s5">
+  <h2><span class="sec-num">§5</span>守り（禁止事項と機械検証）</h2>
+  <h3>禁止事項</h3>
+  <ul>
+    <li>対象コード・原本ファイルパス・関数名・変数名を読まない</li>
+    <li>業務の意図を推測や一般的な内容で補完しない。埋まらない欄は常に §3 要確認事項一覧へ回す</li>
+    <li>個別ユニットの基本設計書・詳細設計書そのものを生成しない（各設計書生成スキルの担当）</li>
+    <li>一覧マニフェスト自体を生成しない（各一覧生成スキルの担当）</li>
+  </ul>
+  <h3>機械検証</h3>
+  <p>Phase 4 で次の6検査を実行する。1つでも不合格なら Phase 3 へ戻り、上限3回で収束しなければ <code>status=ERROR</code> とする。</p>
+  <table class="spec">
+    <tr><th>検査</th><th>内容</th></tr>
+    <tr><td>検査1 業務語彙</td><td>本文に実装用語・内部成果物名（型構文・フレームワーク用語・原本の拡張子・<code>unitId</code>・<code>unitKey</code>・<code>detectionMethod</code>・<code>sourceFile</code>・<code>unitNameGuess</code>・<code>manifest.ext.json</code> 等）が無いことを grep で確認する</td></tr>
+    <tr><td>検査2 注記の残存</td><td>テンプレートの記入規則を書いた HTML コメント（<code>&lt;!-- --&gt;</code>）が残っていないことを確認する</td></tr>
+    <tr><td>検査3 frontmatter</td><td><code>status</code> が <code>draft</code> または <code>traced</code> のいずれかであり、Step 3-4 の判定結果と一致していることを確認する</td></tr>
+    <tr><td>検査4 章の完備</td><td>テンプレートが持つ全ての章見出し（§1〜§3）が出力に存在することを確認する</td></tr>
+    <tr><td>検査5 §3行数</td><td>機能・帳票・バッチ・外部連携要件は §3 の行数が対象ユニット数以上であることを確認する。ビジネス概要は事業概要・システム役割・対象利用者の3キーの残存を確認する</td></tr>
+    <tr><td>検査6 配置</td><td>対象文書が <code>&lt;output_dir&gt;/&lt;commonRoot&gt;/&lt;ファイル名&gt;</code> に実在することを確認する</td></tr>
+  </table>
+</section>
+
+<section id="s6">
+  <h2><span class="sec-num">§6</span>関連スキル・資料</h2>
+  <table class="spec">
+    <tr><th>対象</th><th>内容</th></tr>
+    <tr><td><code>SKILL.md</code></td><td>本スキルの手順の定義</td></tr>
+    <tr><td><code>references/test-cases.md</code></td><td>本スキルの検証観点</td></tr>
+    <tr><td>orchestrating-ai-development-setup</td><td>統括フロー。本スキルはここへ結線されておらず、単独起動でのみ動く</td></tr>
+    <tr><td>generating-feature-list-for-reverse-docs</td><td>機能要件一覧の入力となる機能一覧マニフェストの生成元</td></tr>
+    <tr><td>generating-report-list-for-reverse-docs</td><td>帳票要件の入力となる帳票一覧マニフェストの生成元</td></tr>
+    <tr><td>generating-batch-list-for-reverse-docs</td><td>バッチ要件の入力となるバッチ一覧マニフェストの生成元</td></tr>
+    <tr><td>generating-external-list-for-reverse-docs</td><td>外部連携要件の入力となる外部連携一覧マニフェストの生成元</td></tr>
+    <tr><td>generating-report-basic-design-for-reverse-docs</td><td>帳票要件の入力となる個別基本設計書の生成元</td></tr>
+    <tr><td>generating-batch-basic-design-for-reverse-docs</td><td>バッチ要件の入力となる個別基本設計書の生成元</td></tr>
+    <tr><td>generating-external-basic-design-for-reverse-docs</td><td>外部連携要件の入力となる個別基本設計書の生成元</td></tr>
+    <tr><td>generating-reverse-common-docs</td><td>出力先配置の踏襲元。同じ <code>&lt;output_dir&gt;/&lt;commonRoot&gt;/</code> へ出力する先行スキル</td></tr>
+  </table>
+</section>
+
+</body>
+</html>

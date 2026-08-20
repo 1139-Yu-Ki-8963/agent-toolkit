@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<!--
+  CRUD図.HTML の静的シェル(テンプレート)
+
+  使い方(マトリクス・対応表: 機能×テーブル):
+    将来のビルドスクリプトが本テンプレートを土台に、機能一覧・テーブル一覧の
+    マニフェストJSONを突合してプレースホルダ・注入マーカーを機械的に置換し、
+    決定的にHTMLを生成する。
+    Claude(手作業)によるプレースホルダ置換は禁止。生成は必ずスクリプト経由で行う。
+
+  保守注記: トークン・共通シェル(サイドバー・フッター・全画面レイアウトのCSS)は
+  delivery-payload/templates/partials 配下の共通ファイルを注入マーカー経由で読み込む。
+  テーマ切替はサイドバー側に一本化されており、本テンプレートに複製は無い。
+
+  プレースホルダ(将来のビルドスクリプトが注入する。手作業置換禁止。本コメントでは
+  二重置換事故を避けるため意図的に波括弧・HTMLコメント記法を外して記載する):
+    GENERATED_AT (生成日時マーカー)   : ISO8601 生成日時
+    DATA_SOURCE (データ源マーカー)    : 突合元の機能一覧・テーブル一覧マニフェストのパス
+    MATRIX_JSON (マトリクスJSON埋め込みマーカー・HTMLコメント形式) :
+      script#matrix-manifest にマトリクス・対応表JSONをそのまま埋め込む(二重管理・ドリフト禁止)。
+      形式: { "tables": [{"physicalName","logicalName"}...],
+              "features": [{"featureId","featureName","cells":{"<物理名>":"CRUD文字列"}}...] }
+
+  答える質問:
+    - このテーブルに書き込むのはどの機能か
+    - テーブル変更の影響範囲はどこまでか
+
+  制約:
+    - 外部リソース(CDN・フォント・画像)は一切使わない。単一ファイル自己完結
+    - 行=機能 / 列=テーブル / セル=C/R/U/Dの組合せ文字列(空なら空欄)
+    - 描画はJSが script#matrix-manifest のJSONから行う。HTML側に行を直書きしない
+-->
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CRUD図</title>
+<style>
+/* TOKENS_CSS */
+/* SHELL_CSS */
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+
+.toolbar-area { flex-shrink: 0; padding: 8px 0 0; }
+.toolbar { display: flex; gap: 10px; margin: 0 0 10px; align-items: center; flex-wrap: wrap; }
+.toolbar .pt-input { width: 260px; flex: none; }
+.toolbar .note { font-size: 0.82rem; color: var(--muted); }
+.toolbar .pt-count { margin-left: auto; }
+
+.legend { display: flex; gap: 18px; align-items: center; flex-wrap: wrap; margin: 0; font-size: 0.82rem; color: var(--sub); }
+.legend .swatch { display: inline-block; width: 14px; height: 14px; vertical-align: -2px; margin-right: 5px; border: 1px solid var(--line2); }
+.legend .swatch-c { background: var(--accent-soft); border-color: var(--accent); }
+.legend .swatch-d { background: var(--stamp-soft); border-color: var(--stamp); }
+
+.table-area { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 8px; }
+
+.matrix-empty-callout { margin: 0; padding: 10px 14px; font-size: 0.85rem; line-height: 1.5; }
+.matrix-empty-callout p { margin: 0; }
+.matrix-empty-callout[hidden] { display: none; }
+
+table.crud {
+  /* 幅は内容に合わせる。表示領域に収まらない場合は .pt-tablewrap の overflow で
+     表の枠内を横スクロールさせる。1 列目は sticky のため横スクロール時も固定表示が保たれる。 */
+  table-layout: fixed; width: max-content; min-width: 100%;
+  border-collapse: separate; border-spacing: 0; font-size: 0.85rem;
+}
+table.crud th, table.crud td { border-top: 1px solid var(--line); padding: 7px 10px; }
+
+table.crud thead th {
+  font-family: var(--mono); font-size: 10px; font-weight: 600; text-align: center;
+}
+
+/* 列ヘッダ(テーブル物理名)は縦書きで省スペース化。機能名列(feature-col)は横書きのまま */
+table.crud thead th.tbl-col {
+  height: auto; width: auto; min-width: 132px; vertical-align: bottom; padding: 8px 6px;
+}
+table.crud thead th.tbl-col span {
+  writing-mode: horizontal-tb; text-orientation: initial; white-space: nowrap;
+}
+table.crud thead th.tbl-col.is-vertical {
+  /* 高さは JS が最長のラベルから算出して style で与える。固定値だと長い識別子がはみ出す。 */
+  width: 40px; padding: 8px 4px;
+}
+table.crud thead th.tbl-col.is-vertical span {
+  writing-mode: vertical-rl; text-orientation: mixed;
+}
+
+/* 1列目(機能名)は sticky で固定 */
+table.crud th.feature-col, table.crud td.feature-name {
+  position: sticky; left: 0; z-index: 2;
+  background: var(--panel);
+  border-right: 2px solid var(--line2);
+  text-align: left;
+  width: 220px; min-width: 220px; max-width: 220px;
+  white-space: normal; overflow-wrap: anywhere;
+}
+table.crud thead th.feature-col { z-index: 3; color: var(--text); }
+table.crud td.feature-name { font-weight: 600; font-size: 0.85rem; }
+
+table.crud td.crud-cell {
+  text-align: center;
+  font-family: var(--mono); font-size: 11.5px; font-weight: 600; letter-spacing: 1px;
+  color: var(--sub); cursor: default;
+}
+/* C を含むセル(新規作成)はアクセントの淡色背景、D を含むセル(削除)は差し色の淡色背景 */
+table.crud td.crud-cell.has-c { background: var(--accent-soft); color: var(--accent); }
+table.crud td.crud-cell.has-d { background: var(--stamp-soft); color: var(--stamp); }
+
+/* hover で行・列を同時ハイライト(JSが .hl を付与)。
+   ヘッダは背景色を差し替えず、元の背景へ強調色を重ねる。差し替えると
+   ヘッダの淡色文字が淡色背景に乗り、明色配色で判読できなくなるため。 */
+table.crud td.hl { background: var(--panel3); }
+table.crud th.hl { background-image: linear-gradient(var(--head-hl), var(--head-hl)); }
+
+/* ?q= 指定時の該当テーブル列ハイライト(JSが .q-hit を付与。has-c/has-d の強調色が優先) */
+table.crud td.q-hit { background: var(--accent-soft); }
+table.crud th.q-hit { background-image: linear-gradient(var(--accent-soft), var(--accent-soft)); }
+
+table.crud tbody tr:hover td { background: var(--panel3); }
+
+/* 行ヘッダセルのコピーボタン(一覧ページと同じ inline SVG 方式) */
+.copy-btn { background: none; border: none; cursor: pointer; padding: 1px 3px; color: var(--muted); opacity: .35; vertical-align: middle; }
+tr:hover .copy-btn, .copy-btn:focus { opacity: 1; }
+.copy-btn:hover { color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="pt">
+  <div class="pt-grid"></div>
+  <div class="pt-row">
+    <!--SHELL_SIDEBAR-->
+    <main class="pt-main is-fixed">
+      <div class="pt-head">
+        <div class="pt-crumb"><a href="{{BACK_LINK}}">TOP</a> ／ {{ACTIVE_CATEGORY_LABEL}} ／ <span class="pt-crumb-current">CRUD図</span></div>
+        <div class="pt-title-row">
+          <h1 class="pt-title">CRUD図（機能×テーブル）</h1>
+          <span class="pt-title-sub">更新 {{GENERATED_AT}}</span>
+        </div>
+      </div>
+
+      <div class="toolbar-area">
+        <div class="toolbar">
+          <input type="search" id="matrix-search" class="pt-input" placeholder="機能名・テーブル物理名で絞り込み">
+          <span class="note">セルにマウスを重ねると行・列を同時ハイライト</span>
+          <span class="pt-count" id="matrix-count"></span>
+        </div>
+        <div class="legend">
+          <span class="legend-item"><span class="swatch swatch-c"></span>C を含むセル（新規作成あり）</span>
+          <span class="legend-item"><span class="swatch swatch-d"></span>D を含むセル（削除あり・C より優先表示）</span>
+          <span class="legend-item">C/R/U/D = 作成/参照/更新/削除。空欄はアクセスなし</span>
+        </div>
+      </div>
+
+      <div class="table-area">
+        <div id="matrix-empty-callout" class="pt-callout pt-callout--warning matrix-empty-callout" role="status" hidden>
+          <p><span class="material-symbols-outlined pt-callout__icon" aria-hidden="true">warning</span><span id="matrix-empty-callout-msg"></span></p>
+        </div>
+        <div class="pt-tablewrap">
+          <table class="crud" id="crud-matrix">
+            <thead></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
+  <!--SHELL_FOOTER-->
+</div>
+
+<script type="application/json" id="matrix-manifest">
+<!--MATRIX_JSON-->
+</script>
+
+<script>
+  (function () {
+    var data = { tables: [], features: [] };
+    try {
+      data = JSON.parse(document.getElementById('matrix-manifest').textContent);
+    } catch (e) { /* テンプレート状態(未注入)では空のまま描画 */ }
+    var tables = data.tables || [];
+    var features = data.features || [];
+
+    /* 一部成分が0件の場合は原因区分を判別できない旨を明示する空状態表示を出す
+       (写真指摘1-101: 空白の表だけを公開せず、欠けた成分と理由区分の有無を示す) */
+    var missingParts = [];
+    if (tables.length === 0) missingParts.push('テーブル');
+    if (features.length === 0) missingParts.push('機能');
+    var emptyCallout = document.getElementById('matrix-empty-callout');
+    if (emptyCallout && missingParts.length > 0) {
+      var emptyMsg = document.getElementById('matrix-empty-callout-msg');
+      if (emptyMsg) {
+        emptyMsg.textContent = missingParts.join('・') + 'が0件のため、該当する行または列がありません。' +
+          '原因区分（抽出未対応・データ不在のいずれか）は入力データからは判別できません。';
+      }
+      emptyCallout.hidden = false;
+    }
+
+    function esc(s) {
+      return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+      });
+    }
+
+    var table = document.getElementById('crud-matrix');
+    var thead = table.querySelector('thead');
+    var tbody = table.querySelector('tbody');
+    var countEl = document.getElementById('matrix-count');
+
+    /* ヘッダ描画(1列目=機能名 sticky、以降=テーブル物理名) */
+    var headHtml = '<tr><th class="feature-col">機能＼テーブル</th>';
+    /* 列ヘッダの向き。既定は横書き。データが headerOrientation: "vertical" を持つ場合だけ縦書きにする。
+       縦書きは省スペースだが長い識別子が読みにくいため、選んだ場合にのみ適用する。 */
+    var isVertical = String(data.headerOrientation || 'horizontal') === 'vertical';
+    tables.forEach(function (t) {
+      /* 可視テキストは日本語名を優先し、無ければ識別子を出す。識別子は data-table と title に残すため、
+         識別子による絞り込みと他ページからの参照は従来どおり成立する。 */
+      var headLabel = t.logicalName || t.physicalName;
+      headHtml += '<th class="tbl-col' + (isVertical ? ' is-vertical' : '') + '" data-table="' + esc(t.physicalName) + '" title="' + esc(t.physicalName) + '"><span>' + esc(headLabel) + '</span></th>';
+    });
+    headHtml += '</tr>';
+    thead.innerHTML = headHtml;
+
+    /* 縦書きを選んだ場合、最長のラベルが収まる高さを算出して与える。1 文字あたりの送りを
+       フォントサイズから見積もり、上下の余白を足す。固定値だと長い識別子がはみ出すため。 */
+    if (isVertical) {
+      var longest = 0;
+      tables.forEach(function (t) {
+        var label = String(t.logicalName || t.physicalName || '');
+        if (label.length > longest) longest = label.length;
+      });
+      var headCells = thead.querySelectorAll('th.tbl-col.is-vertical');
+      var cellHeight = Math.max(90, longest * 9 + 24);
+      Array.prototype.forEach.call(headCells, function (cell) {
+        cell.style.height = cellHeight + 'px';
+      });
+    }
+
+    /* 行描画(行=機能、セル=C/R/U/D の組合せ文字列) */
+    var bodyHtml = '';
+    features.forEach(function (f) {
+      var cells = f.cells || {};
+      var haystack = [f.featureId, f.featureName];
+      var rowHtml = '<td class="feature-name" title="' + esc(f.featureId || '') + '">' + esc(f.featureName) + '</td>';
+      tables.forEach(function (t) {
+        var v = cells[t.physicalName] || '';
+        var cls = 'crud-cell';
+        if (v.indexOf('C') !== -1) cls += ' has-c';
+        if (v.indexOf('D') !== -1) cls += ' has-d';
+        if (v) haystack.push(t.physicalName);
+        rowHtml += '<td class="' + cls + '">' + esc(v) + '</td>';
+      });
+      bodyHtml += '<tr data-search="' + esc(haystack.join(' ').toLowerCase()) + '">' + rowHtml + '</tr>';
+    });
+    tbody.innerHTML = bodyHtml;
+
+    /* 規模表示(トップバー右端) */
+    var writeCount = tables.filter(function (t) {
+      return features.some(function (f) {
+        var v = (f.cells || {})[t.physicalName] || '';
+        return /[CUD]/.test(v);
+      });
+    }).length;
+    if (countEl) countEl.textContent = '機能 ' + features.length + '件 / テーブル ' + tables.length + '件 / 書込テーブル ' + writeCount + '件';
+
+    /* 検索絞り込み(機能名・機能ID・アクセスのあるテーブル物理名) */
+    var search = document.getElementById('matrix-search');
+    if (search) {
+      search.addEventListener('input', function () {
+        var q = search.value.trim().toLowerCase();
+        Array.prototype.forEach.call(tbody.querySelectorAll('tr'), function (tr) {
+          tr.style.display = (!q || (tr.getAttribute('data-search') || '').indexOf(q) !== -1) ? '' : 'none';
+        });
+      });
+    }
+
+    /* ?q= 受け口: テーブル一覧「CRUD図参照」リンクからの遷移。検索窓へ反映して絞り込みを発火し、
+       q がテーブル物理名に一致する場合は該当列を .q-hit でハイライトする */
+    var initialQ = (new URLSearchParams(location.search).get('q') || '').trim();
+    if (initialQ && search) {
+      search.value = initialQ;
+      search.dispatchEvent(new Event('input'));
+      var qLower = initialQ.toLowerCase();
+      tables.forEach(function (t, i) {
+        if (String(t.physicalName).toLowerCase() !== qLower) return;
+        var colIdx = i + 1;
+        var headRow = thead.querySelector('tr');
+        if (headRow && headRow.children[colIdx]) headRow.children[colIdx].classList.add('q-hit');
+        Array.prototype.forEach.call(tbody.querySelectorAll('tr'), function (tr) {
+          if (tr.children[colIdx]) tr.children[colIdx].classList.add('q-hit');
+        });
+      });
+    }
+
+    /* 行ヘッダ(機能名)セルのコピーボタン(一覧ページと同じ inline SVG 方式) */
+    var COPY_ICON = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>';
+    var CHECK_ICON = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+    function fallbackCopy(text) {
+      var ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand('copy'); } catch (e) {}
+      document.body.removeChild(ta);
+    }
+    function copyText(text, done) {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(done, function () { fallbackCopy(text); done(); });
+      } else {
+        fallbackCopy(text);
+        done();
+      }
+    }
+    Array.prototype.forEach.call(tbody.querySelectorAll('td.feature-name'), function (td) {
+      var text = td.textContent.trim();
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'copy-btn';
+      btn.setAttribute('aria-label', 'コピー');
+      btn.innerHTML = COPY_ICON;
+      btn.addEventListener('click', function () {
+        copyText(text, function () {
+          btn.innerHTML = CHECK_ICON;
+          setTimeout(function () { btn.innerHTML = COPY_ICON; }, 1200);
+        });
+      });
+      td.appendChild(btn);
+    });
+
+    /* hover で行・列を同時ハイライト(同列セルに class 付与) */
+    function clearHl() {
+      Array.prototype.forEach.call(table.querySelectorAll('.hl'), function (el) {
+        el.classList.remove('hl');
+      });
+    }
+    tbody.addEventListener('mouseover', function (ev) {
+      var cell = ev.target.closest('td');
+      if (!cell || !tbody.contains(cell)) return;
+      clearHl();
+      var colIdx = cell.cellIndex;
+      Array.prototype.forEach.call(cell.parentNode.children, function (c) { c.classList.add('hl'); });
+      Array.prototype.forEach.call(tbody.querySelectorAll('tr'), function (tr) {
+        if (tr.children[colIdx]) tr.children[colIdx].classList.add('hl');
+      });
+      var th = thead.querySelector('tr').children[colIdx];
+      if (th) th.classList.add('hl');
+    });
+    tbody.addEventListener('mouseleave', clearHl);
+  })();
+</script>
+
+</body>
+</html>

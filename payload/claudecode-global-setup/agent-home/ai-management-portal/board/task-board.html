@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>タスクボード — agent-home</title>
+  <link rel="stylesheet" href="../style.css" />
+  <script type="module" src="../src/common/header.js"></script>
+  <style>
+    .metric-card.danger { border-top-color: var(--danger); }
+    .tb-note {
+      font-size: 12.5px; color: var(--text-muted);
+      background: var(--panel-2); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); padding: 10px 14px;
+      margin: 0 0 18px;
+    }
+    .tb-note code {
+      background: var(--accent-soft); color: var(--accent);
+      padding: 1px 6px; border-radius: 4px; font-size: 0.92em;
+    }
+  </style>
+</head>
+<body>
+  <div class="cat-wrap">
+    <div class="page-hero">
+      <h1>タスクボード</h1>
+      <p>
+        セッション横断で残す永続タスク（task-board）の状態を一元監視するページです。
+        正本は <code>state/task-board/board.json</code> で、本ページは task-board.mjs が出力するミラー
+        <code>state/task-board/board.js</code> を読んで表示します。
+        <a href="../index.html">← フロー・ポータルへ戻る</a>
+      </p>
+    </div>
+
+    <div id="tb-fallback" class="tb-note" style="display:none;">
+      board.js が未生成です。task-board.mjs を一度実行してください（例:
+      <code>node tools/harness/scripts/task-board.mjs add --id &lt;id&gt; --goal &lt;goal&gt;</code>）。
+      add / claim / complete / fail のいずれかを実行するとミラーが生成されます。
+    </div>
+
+    <div id="tb-body">
+      <div class="sec-label">ステータス別サマリー</div>
+      <div class="metric-grid" id="tb-summary"></div>
+
+      <div class="cat-bar">
+        <a class="cat-back" href="../index.html">← ポータル TOP</a>
+        <span class="cat-total" id="total"></span>
+        <input
+          class="cat-filter"
+          id="filter"
+          type="search"
+          placeholder="id・goal・project で絞り込み…"
+          aria-label="タスクを id・goal・project で絞り込み"
+          autocomplete="off"
+        />
+      </div>
+
+      <div class="mt-table-wrap">
+        <table class="mt-table" id="tb-table">
+          <thead>
+            <tr>
+              <th>id</th>
+              <th>status</th>
+              <th>priority</th>
+              <th>goal</th>
+              <th>project</th>
+              <th>updated_at</th>
+              <th>receipt</th>
+            </tr>
+          </thead>
+          <tbody id="tb-tbody"></tbody>
+        </table>
+        <button type="button" class="cat-back" id="tb-loadmore" style="display:none; margin-top: 12px;"></button>
+      </div>
+      <div class="mt-empty" id="tb-empty" style="display:none;">タスクはありません</div>
+    </div>
+
+    <div class="sec-label">操作ガイド</div>
+    <div class="prose">
+      <h3>タスク登録</h3>
+      <pre><code>node ~/agent-home/tools/harness/scripts/task-board.mjs add \
+  --id login-validation-fix \
+  --goal "ログイン画面のバリデーションエラー表示を修正する" \
+  --priority high \
+  --project /Users/<project>/Projects/example-app \
+  --condition "バリデーションテスト全件通過"</code></pre>
+
+      <h3>ハーネス払い出し（推奨・重量タスク）</h3>
+      <p>pending タスク 1 件を取得し、サイクルループ（planner → workers 並列 → integrator → judge）で完了まで実行する。予算フラグの指定が必須。</p>
+      <pre><code>cd ~/agent-home/tools/harness
+npx tsx src/cli.ts board --session-percent-budget 50</code></pre>
+
+      <h3>軽量払い出し（claude -p 経由）</h3>
+      <pre><code>node ~/agent-home/tools/harness/scripts/dispatch-task.mjs</code></pre>
+
+      <h3>実行ログの場所</h3>
+      <p>
+        ハーネス経由の実行ログは <code>.harness-work/state/</code>、
+        claude -p 経由の実行ログは <code>dispatch-logs/&lt;id&gt;.log</code> に残る。
+      </p>
+    </div>
+  </div>
+
+  <script
+    src="board.js"
+    onerror="window.__TB_LOAD_FAILED = true;"
+  ></script>
+  <script>
+    (function () {
+      var fallbackEl = document.getElementById("tb-fallback");
+      var bodyEl = document.getElementById("tb-body");
+      var board = window.TASK_BOARD;
+
+      if (window.__TB_LOAD_FAILED || !board || !Array.isArray(board.tasks)) {
+        fallbackEl.style.display = "block";
+        bodyEl.style.display = "none";
+        return;
+      }
+
+      var TASKS = board.tasks;
+
+      var STATUS_ORDER = ["pending", "in_progress", "done", "failed"];
+      var STATUS_LABELS = {
+        pending: "pending",
+        in_progress: "in_progress",
+        done: "done",
+        failed: "failed",
+      };
+      var STATUS_CARD_CLASS = {
+        pending: "scale",
+        in_progress: "",
+        done: "ok",
+        failed: "danger",
+      };
+      var STATUS_CHIP_CLASS = {
+        pending: "warn",
+        in_progress: "",
+        done: "ok",
+        failed: "no",
+        dispatched: "muted",
+      };
+
+      function escapeHtml(s) {
+        return String(s == null ? "" : s)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#39;");
+      }
+
+      var summaryEl = document.getElementById("tb-summary");
+      var totalEl = document.getElementById("total");
+      var tbodyEl = document.getElementById("tb-tbody");
+      var emptyEl = document.getElementById("tb-empty");
+      var tableWrapEl = document.querySelector(".mt-table-wrap");
+      var filterEl = document.getElementById("filter");
+      var loadMoreEl = document.getElementById("tb-loadmore");
+
+      // 描画状態: filterText と statusFilter が絞り込み条件、shownCount が段階描画の表示件数。
+      // statusFilter を操作する UI（サマリーカードのクリック等）は本修正の対象外のため未実装（常に null）。
+      var state = {
+        filterText: "",
+        statusFilter: null,
+        shownCount: 50,
+      };
+
+      function renderSummary() {
+        var counts = { pending: 0, in_progress: 0, done: 0, failed: 0 };
+        TASKS.forEach(function (t) {
+          if (counts.hasOwnProperty(t.status)) counts[t.status]++;
+        });
+        summaryEl.innerHTML = STATUS_ORDER.map(function (status) {
+          var cls = STATUS_CARD_CLASS[status] ? " " + STATUS_CARD_CLASS[status] : "";
+          return (
+            '<div class="metric-card' + cls + '">' +
+              '<div class="metric-label">' + STATUS_LABELS[status] + "</div>" +
+              '<div class="metric-value">' + counts[status] + '<span class="unit">件</span></div>' +
+            "</div>"
+          );
+        }).join("");
+      }
+
+      function rowHtml(t) {
+        var chipCls = STATUS_CHIP_CLASS.hasOwnProperty(t.status) ? STATUS_CHIP_CLASS[t.status] : "muted";
+        return (
+          "<tr>" +
+            "<td><code>" + escapeHtml(t.id) + "</code></td>" +
+            '<td class="mt-status"><span class="mt-chip' + (chipCls ? " " + chipCls : "") + '">' + escapeHtml(t.status) + "</span></td>" +
+            "<td>" + escapeHtml(t.priority) + "</td>" +
+            "<td>" + escapeHtml(t.goal) + "</td>" +
+            "<td>" + (t.project ? "<code>" + escapeHtml(t.project) + "</code>" : "—") + "</td>" +
+            "<td>" + escapeHtml(t.updated_at) + "</td>" +
+            "<td>" + (t.receipt ? escapeHtml(t.receipt) : "—") + "</td>" +
+          "</tr>"
+        );
+      }
+
+      function keyOf(t) {
+        return (t.id + " " + t.goal + " " + (t.project || "")).toLowerCase();
+      }
+
+      function filteredTasks() {
+        var q = state.filterText;
+        return TASKS.filter(function (t) {
+          var textHit = !q || keyOf(t).includes(q);
+          var statusHit = !state.statusFilter || t.status === state.statusFilter;
+          return textHit && statusHit;
+        });
+      }
+
+      function render() {
+        if (TASKS.length === 0) {
+          tableWrapEl.style.display = "none";
+          emptyEl.style.display = "block";
+          emptyEl.textContent = "タスクはありません";
+          totalEl.textContent = "0 件";
+          loadMoreEl.style.display = "none";
+          return;
+        }
+
+        var filtered = filteredTasks();
+
+        if (filtered.length === 0) {
+          tableWrapEl.style.display = "none";
+          emptyEl.style.display = "block";
+          emptyEl.textContent = "条件に一致するタスクがありません";
+          totalEl.textContent = "0 件 / " + TASKS.length + " 件";
+          loadMoreEl.style.display = "none";
+          return;
+        }
+
+        tableWrapEl.style.display = "";
+        emptyEl.style.display = "none";
+
+        var shown = Math.min(state.shownCount, filtered.length);
+        var visible = filtered.slice(0, shown);
+        tbodyEl.innerHTML = visible.map(rowHtml).join("");
+
+        var isFiltered = !!(state.filterText || state.statusFilter);
+        totalEl.textContent =
+          filtered.length + " 件中 " + shown + " 件を表示" +
+          (isFiltered ? "（全 " + TASKS.length + " 件）" : "");
+
+        var remaining = filtered.length - shown;
+        if (remaining > 0) {
+          loadMoreEl.style.display = "";
+          loadMoreEl.textContent = "さらに 50 件表示（残り " + remaining + " 件）";
+        } else {
+          loadMoreEl.style.display = "none";
+        }
+      }
+
+      var debounceTimer;
+      filterEl.addEventListener("input", function () {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(function () {
+          state.filterText = filterEl.value.trim().toLowerCase();
+          state.shownCount = 50;
+          render();
+        }, 120);
+      });
+
+      loadMoreEl.addEventListener("click", function () {
+        state.shownCount += 50;
+        render();
+      });
+
+      renderSummary();
+      render();
+    })();
+  </script>
+</body>
+</html>

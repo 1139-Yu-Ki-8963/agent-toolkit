@@ -1,0 +1,23 @@
+schema_version: 1.0.0
+content_version: 1.0.0
+glossary_key: unapproved_catalog
+title: Unapproved glossary
+scope: {level: application, includes: [unapproved_application], excludes: []}
+scope_catalog:
+  - {key: unapproved_application, level: application, parent_key: null, source_ref: docs/unapproved.md}
+default_language: ja
+terms:
+  - key: unapproved_customer
+    label: 未承認顧客
+    definition: 審査を完了していない顧客候補
+    kind: entity
+    category: business
+    scope: {level: application, includes: [unapproved_application], excludes: []}
+    representations:
+      - {channel: code, value: UnapprovedCustomer, location: src/unapproved.ts:1}
+    lifecycle: {status: active, introduced_in: 1.0.0}
+    stewardship: {approvers: []}
+    provenance:
+      publication_status: candidate
+      sources:
+        - {type: source_scan, ref: src/unapproved.ts:1, supports: representation}

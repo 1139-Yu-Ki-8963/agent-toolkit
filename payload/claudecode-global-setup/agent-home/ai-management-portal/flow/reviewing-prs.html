@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>単一 PR レビュー — AI マネジメントポータル</title>
+  <link rel="stylesheet" href="../style.css" />
+  <script type="module" src="../src/common/header.js"></script>
+</head>
+<body>
+  <div class="pm-page">
+    <main class="pm-main">
+      <div class="doc-crumbs"><a href="../index.html">TOP</a> / <a href="../category/flow.html">フロー一覧</a> / 単一 PR レビュー</div>
+      <div class="section-header">
+        <h2 class="section-title">単一 PR レビュー</h2>
+        <span class="card-badge">review</span>
+      </div>
+      <p class="flow-summary">PR 情報取得・行番号付き差分確認・コメント投稿・インラインコメント・返信を gh で実行する。worktree にブランチを持ち込み、AI レビュー・テスト実行・LGTM 投稿まで行う自動フルレビューも提供。</p>
+      <div class="flow-trigger">
+        <span class="flow-trigger-label">発火タイミング</span>
+        <span class="flow-trigger-body">「PR を見て」「レビューして」「コメントして」「差分を確認」「自動レビュー」「LGTM を出して」など。PR を伴わないローカル編集のみのときはスキップ。</span>
+      </div>
+      <div class="cat-sub-head"><h3 class="cat-sub-title">ステップ</h3><span class="cat-sub-count">4</span></div>
+      <div class="cards">
+        <div class="card is-visual group-flow flow-step">
+          <div class="card-head">
+            <span class="flow-step-no">1</span>
+            <span class="card-title">PR 情報取得</span>
+            <span class="card-badge">reviewing-prs</span>
+          </div>
+          <div class="card-desc">gh で PR の概要・差分・既存コメントを取得する。</div>
+        </div>
+        <div class="card is-visual group-flow flow-step">
+          <div class="card-head">
+            <span class="flow-step-no">2</span>
+            <span class="card-title">差分レビュー</span>
+            
+          </div>
+          <div class="card-desc">行番号付きで差分を確認し、観点ごとに指摘を整理する。</div>
+        </div>
+        <div class="card is-visual group-flow flow-step">
+          <div class="card-head">
+            <span class="flow-step-no">3</span>
+            <span class="card-title">worktree 持ち込み（フル時）</span>
+            
+          </div>
+          <div class="card-desc">ブランチを worktree に持ち込み、テストを実行する。</div>
+        </div>
+        <div class="card is-visual group-flow flow-step">
+          <div class="card-head">
+            <span class="flow-step-no">4</span>
+            <span class="card-title">コメント投稿</span>
+            
+          </div>
+          <div class="card-desc">インラインコメント・返信を投稿、または LGTM を出す。</div>
+        </div>
+      </div>
+      <div class="cat-sub-head"><h3 class="cat-sub-title">フロー図</h3></div>
+      <pre class="flow-diagram">PR取得 → 差分レビュー（行番号付き）→ [フル: worktree+test] → コメント/LGTM 投稿</pre>
+      <div class="cat-sub-head"><h3 class="cat-sub-title">関連スキル・hook</h3></div>
+      <div class="flow-chips">
+          <span class="flow-chip">reviewing-prs</span>
+          <span class="flow-chip">module-fixing-review-findings</span>
+          <span class="flow-chip">pr-review-workflow</span>
+      </div>
+      <div class="cat-sub-head"><h3 class="cat-sub-title">注意・例外</h3></div>
+      <ul class="flow-notes">
+          <li>警告の自動修正は fixing-review-findings に委ねる。</li>
+      </ul>
+      <div class="back-link"><a href="../category/flow.html">← フロー一覧へ戻る</a></div>
+    </main>
+  </div>
+</body>
+</html>

@@ -1,0 +1,244 @@
+{
+  "schemaVersion": 1,
+  "sourceOfTruth": {
+    "documentWritingRule": "delivery-payload/templates/rules/tool-defined/document-writing.md",
+    "requiredItemsSection": "詳細設計書節（79〜101行）の主な内容6項目",
+    "note": "詳細設計書がドキュメント作成規約上求める6項目（クラス設計・メソッド設計・ロジック設計・戻り値と引数・エラー処理・データ定義）を、種別ごとのテンプレートの章・節・表列へ対応づけた定義。design-doc-required-sections.json（節見出しの存在・順序を見る）とは関心が異なるため独立に管理する（1-230）。列の存在（構成）と値の存在（記入）の2段で検査する。applicable=false の項目は当該種別で対象外とし、reason に理由を記す。"
+  },
+  "requiredItems": [
+    "クラス設計",
+    "メソッド設計",
+    "ロジック設計",
+    "戻り値と引数",
+    "エラー処理",
+    "データ定義"
+  ],
+  "documentTypes": {
+    "screen": {
+      "画面詳細設計書.md": {
+        "items": {
+          "クラス設計": {
+            "applicable": true,
+            "sections": ["§18 実装契約", "18.1 ファイル分割と export 一覧"],
+            "requiredColumns": ["ファイルパス", "export 名", "種別", "実体形状", "配置ディレクトリ"]
+          },
+          "メソッド設計": {
+            "applicable": false,
+            "reason": "処理概要・前提条件・事後条件・入力と出力・例外を1つの表として対応づける節が無い。§11イベント処理は処理概要のみを持つ。1-190の範囲でテンプレートへ節を追加してから対象化する。"
+          },
+          "ロジック設計": {
+            "applicable": true,
+            "sections": ["§7 ロジック", "7.1 分岐", "7.2 繰り返し", "7.3 判定表", "§8 疑似コード"],
+            "requiredColumns": ["キー", "条件", "真の場合", "偽の場合"]
+          },
+          "戻り値と引数": {
+            "applicable": true,
+            "sections": ["§18 実装契約", "18.2 型定義", "§6 データフロー", "6.7 戻り値"],
+            "requiredColumns": ["型名", "フィールド名", "型", "必須/任意"]
+          },
+          "エラー処理": {
+            "applicable": true,
+            "sections": ["§14 エラーハンドリング", "14.1 ユーザー入力チェック"],
+            "requiredColumns": ["チェック対象", "条件", "エラー種別"]
+          },
+          "データ定義": {
+            "applicable": true,
+            "sections": ["§10 データ定義", "10.1 扱う内部データ構造"],
+            "requiredColumns": ["名前", "型", "有効な範囲", "寿命"]
+          }
+        }
+      }
+    },
+    "api": {
+      "API詳細設計書.md": {
+        "items": {
+          "クラス設計": {
+            "applicable": true,
+            "sections": ["§12 実装契約", "12.1 関数と役割"],
+            "requiredColumns": ["関数", "役割"]
+          },
+          "メソッド設計": {
+            "applicable": true,
+            "sections": ["§12 実装契約", "12.2 関数単位の契約"],
+            "requiredColumns": ["関数", "公開範囲", "引数", "戻り値", "前提条件", "副作用", "例外・エラー"]
+          },
+          "ロジック設計": {
+            "applicable": true,
+            "sections": ["§5 ロジック", "5.1 分岐", "5.2 繰り返し", "5.3 判定表", "§6 疑似コード"],
+            "requiredColumns": ["キー", "条件", "真の場合", "偽の場合"]
+          },
+          "戻り値と引数": {
+            "applicable": true,
+            "sections": ["§2 リクエスト", "2.4 ボディ", "§3 レスポンス", "3.1 正常系の構造"],
+            "requiredColumns": ["型", "有効な範囲", "NULL許容", "桁と精度"]
+          },
+          "エラー処理": {
+            "applicable": true,
+            "sections": ["§10 エラー", "10.1 エラー一覧"],
+            "requiredColumns": ["キー", "発生条件", "応答コード", "利用者に見える結果"]
+          },
+          "データ定義": {
+            "applicable": true,
+            "sections": ["§8 データ定義", "8.1 内部データ構造"],
+            "requiredColumns": ["名前", "型", "構成要素", "組み立てる箇所", "用途", "有効な範囲", "寿命"]
+          }
+        }
+      }
+    },
+    "table": {
+      "テーブル定義書.md": {
+        "items": {
+          "クラス設計": {
+            "applicable": true,
+            "sections": ["§1 構成要素"],
+            "requiredColumns": ["要素名", "種別", "可視性", "所在"],
+            "note": "クラスを持たない実装ではファイルと関数の単位で記す旨がテンプレート本文に明記されている"
+          },
+          "メソッド設計": {
+            "applicable": true,
+            "sections": ["§2 処理の定義"],
+            "requiredColumns": ["要素名", "処理の概要", "前提条件", "事後条件", "送出する例外"]
+          },
+          "ロジック設計": {
+            "applicable": true,
+            "sections": ["§3 ロジック", "3.1 分岐", "3.2 繰り返し", "3.3 判定表", "§4 疑似コード"],
+            "requiredColumns": ["キー", "条件", "真の場合", "偽の場合"]
+          },
+          "戻り値と引数": {
+            "applicable": true,
+            "sections": ["§5 入出力の値"],
+            "requiredColumns": ["要素名", "区分", "名前", "型", "有効な範囲", "空値の許容", "初期値", "桁と精度"]
+          },
+          "エラー処理": {
+            "applicable": true,
+            "sections": ["§6 エラー処理"],
+            "requiredColumns": ["キー", "送出または捕捉の箇所", "エラーコード", "リトライの判定", "ログの出力点"]
+          },
+          "データ定義": {
+            "applicable": true,
+            "sections": ["§7 データ定義", "7.1 カラム定義"],
+            "requiredColumns": ["物理名", "論理名", "型", "長さ", "必須", "既定値", "制約"]
+          }
+        }
+      }
+    },
+    "batch": {
+      "バッチ詳細設計書.md": {
+        "items": {
+          "クラス設計": {
+            "applicable": true,
+            "sections": ["§1 構成要素"],
+            "requiredColumns": ["要素名", "種別", "可視性", "所在"],
+            "note": "クラスを持たない実装ではファイルと関数の単位で記す旨がテンプレート本文に明記されている"
+          },
+          "メソッド設計": {
+            "applicable": true,
+            "sections": ["§2 処理の定義"],
+            "requiredColumns": ["要素名", "処理の概要", "前提条件", "事後条件", "送出する例外"]
+          },
+          "ロジック設計": {
+            "applicable": true,
+            "sections": ["§3 ロジック", "3.1 分岐", "3.2 繰り返し", "3.3 判定表", "§4 疑似コード"],
+            "requiredColumns": ["キー", "条件", "真の場合", "偽の場合"]
+          },
+          "戻り値と引数": {
+            "applicable": true,
+            "sections": ["§5 入出力の値"],
+            "requiredColumns": ["要素名", "区分", "名前", "型", "有効な範囲", "空値の許容", "初期値", "桁と精度"]
+          },
+          "エラー処理": {
+            "applicable": true,
+            "sections": ["§6 エラー処理"],
+            "requiredColumns": ["キー", "送出または捕捉の箇所", "エラーコード", "リトライの判定", "ログの出力点"]
+          },
+          "データ定義": {
+            "applicable": true,
+            "sections": ["§7 データ定義", "7.1 扱うデータ構造"],
+            "requiredColumns": ["名前", "型", "有効な範囲", "寿命"]
+          }
+        }
+      }
+    },
+    "report": {
+      "帳票詳細設計書.md": {
+        "items": {
+          "クラス設計": {
+            "applicable": true,
+            "sections": ["§1 構成要素"],
+            "requiredColumns": ["要素名", "種別", "可視性", "所在"],
+            "note": "クラスを持たない実装ではファイルと関数の単位で記す旨がテンプレート本文に明記されている"
+          },
+          "メソッド設計": {
+            "applicable": true,
+            "sections": ["§2 処理の定義"],
+            "requiredColumns": ["要素名", "処理の概要", "前提条件", "事後条件", "送出する例外"]
+          },
+          "ロジック設計": {
+            "applicable": true,
+            "sections": ["§3 ロジック", "3.1 分岐", "3.2 繰り返し", "3.3 判定表", "§4 疑似コード"],
+            "requiredColumns": ["キー", "条件", "真の場合", "偽の場合"]
+          },
+          "戻り値と引数": {
+            "applicable": true,
+            "sections": ["§5 入出力の値"],
+            "requiredColumns": ["要素名", "区分", "名前", "型", "有効な範囲", "空値の許容", "初期値", "桁と精度"]
+          },
+          "エラー処理": {
+            "applicable": true,
+            "sections": ["§6 エラー処理"],
+            "requiredColumns": ["キー", "送出または捕捉の箇所", "エラーコード", "リトライの判定", "ログの出力点"]
+          },
+          "データ定義": {
+            "applicable": true,
+            "sections": ["§7 データ定義", "7.1 出力項目の編集"],
+            "requiredColumns": ["項目", "編集の内容", "書式"],
+            "note": "帳票は出力レイアウトの定義であり型を持たない。値そのものの型・有効な範囲は§5入出力の値で扱う。データ定義としては出力項目の編集内容を対象とする"
+          }
+        }
+      }
+    },
+    "external": {
+      "外部連携詳細設計書.md": {
+        "items": {
+          "クラス設計": {
+            "applicable": true,
+            "sections": ["§1 構成要素"],
+            "requiredColumns": ["要素名", "種別", "可視性", "所在"],
+            "note": "クラスを持たない実装ではファイルと関数の単位で記す旨がテンプレート本文に明記されている"
+          },
+          "メソッド設計": {
+            "applicable": true,
+            "sections": ["§2 処理の定義"],
+            "requiredColumns": ["要素名", "処理の概要", "前提条件", "事後条件", "送出する例外"]
+          },
+          "ロジック設計": {
+            "applicable": true,
+            "sections": ["§3 ロジック", "3.1 分岐", "3.2 繰り返し", "3.3 判定表", "§4 疑似コード"],
+            "requiredColumns": ["キー", "条件", "真の場合", "偽の場合"]
+          },
+          "戻り値と引数": {
+            "applicable": true,
+            "sections": ["§5 入出力の値"],
+            "requiredColumns": ["要素名", "区分", "名前", "型", "有効な範囲", "空値の許容", "初期値", "桁と精度"]
+          },
+          "エラー処理": {
+            "applicable": true,
+            "sections": ["§6 エラー処理"],
+            "requiredColumns": ["キー", "送出または捕捉の箇所", "エラーコード", "リトライの判定", "ログの出力点"]
+          },
+          "データ定義": {
+            "applicable": true,
+            "sections": ["§7 データ定義", "7.1 電文の項目定義"],
+            "requiredColumns": ["項目", "型", "長さ", "必須", "桁と精度", "変換の規則"]
+          }
+        }
+      }
+    },
+    "feature": {
+      "機能設計書.md": {
+        "applicable": false,
+        "reason": "機能設計書は集約設計書であり、構成要素の個別仕様は各構成要素の設計書を正とするため、詳細設計に相当する段階を持たない。design-unit-layout.json の feature.detailEmptyReason と同じ理由による対象外。"
+      }
+    }
+  }
+}

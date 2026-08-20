@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>transcribing-images スキルガイド</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 0 24px 96px;
+    font-family: system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif;
+    line-height: 1.85; color: #1a1a1a; background: #fafafa;
+    max-width: 980px; margin-inline: auto;
+  }
+  header { padding: 56px 0 24px; border-bottom: 3px solid #1a1a1a; }
+  header h1 { font-size: 1.9rem; margin: 0 0 10px; letter-spacing: 0.01em; }
+  header .skill-name {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 1.0rem; background: #1a1a1a; color: #fafafa;
+    padding: 2px 10px; border-radius: 4px; vertical-align: middle;
+  }
+  header p { margin: 6px 0 0; color: #555; }
+  .meta-table { margin-top: 16px; font-size: 0.9rem; color: #555; }
+  .meta-table td { padding: 1px 16px 1px 0; }
+
+  nav.toc {
+    margin-top: 32px; padding: 18px 22px;
+    background: #fff; border: 1px solid #e0e0e0; border-radius: 8px;
+  }
+  nav.toc .toc-title { font-weight: 700; margin-bottom: 6px; }
+  nav.toc ol { margin: 0; padding-left: 1.4em; columns: 2; column-gap: 40px; }
+  nav.toc li { margin: 2px 0; }
+  nav.toc a { color: #1a1a1a; text-decoration: none; border-bottom: 1px dotted #999; }
+  nav.toc a:hover { border-bottom-style: solid; }
+
+  section { margin-top: 64px; }
+  section > h2 {
+    font-size: 1.35rem; padding-bottom: 8px; margin-bottom: 20px;
+    border-bottom: 2px solid #1a1a1a;
+  }
+  section > h2 .sec-num {
+    display: inline-block; min-width: 2.4em; margin-right: 10px;
+    font-family: ui-monospace, monospace; font-size: 0.95rem;
+    background: #1a1a1a; color: #fafafa; text-align: center;
+    padding: 1px 8px; border-radius: 4px; vertical-align: 2px;
+  }
+  h3 { font-size: 1.05rem; margin: 32px 0 10px; }
+  .note { color: #555; font-size: 0.92rem; }
+
+  table.spec { border-collapse: collapse; width: 100%; margin: 14px 0; background: #fff; font-size: 0.93rem; }
+  table.spec th, table.spec td { border: 1px solid #d8d8d8; padding: 8px 12px; text-align: left; vertical-align: top; }
+  table.spec th { background: #f0f0ee; font-weight: 700; white-space: nowrap; }
+  table.spec td code, li code, p code, table.spec th code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.86em; background: #eeeeea; padding: 1px 5px; border-radius: 3px;
+  }
+
+  pre.flow {
+    background: #16211c; color: #d7e6dc; border-radius: 8px;
+    padding: 20px 24px; overflow-x: auto;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.82rem; line-height: 1.55;
+  }
+  pre.flow .cap { color: #8fb8a0; }
+
+  figure.diagram { margin: 20px 0; padding: 8px; background: #fff;
+    border: 1px solid #e0e0e0; border-radius: 8px; }
+  figure.diagram svg { width: 100%; height: auto; display: block; cursor: zoom-in; }
+  figure.diagram figcaption { padding: 8px 10px 2px; }
+
+  .zoom-overlay {
+    position: fixed; inset: 0; z-index: 1000;
+    background: rgba(15, 23, 42, 0.93);
+    overflow: auto; padding: 24px; cursor: zoom-out;
+    -webkit-overflow-scrolling: touch;
+  }
+  .zoom-overlay svg {
+    width: 1880px; max-width: none; height: auto;
+    display: block; margin: 0 auto;
+    background: #fff; border-radius: 8px;
+  }
+
+  .def {
+    background: #fff; border-left: 4px solid #1a1a1a;
+    padding: 12px 18px; margin: 14px 0; border-radius: 0 6px 6px 0;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  }
+  .def dt { font-weight: 700; margin-top: 8px; }
+  .def dt:first-child { margin-top: 0; }
+  .def dd { margin: 2px 0 0 0; color: #333; }
+
+  .constraint {
+    background: #eef2f7; border: 1px solid #c8d4e3; border-radius: 8px;
+    padding: 12px 18px; margin: 16px 0; font-size: 0.93rem;
+  }
+  .constraint strong:first-child { color: #2a4a7a; }
+
+  .tag {
+    display: inline-block; font-family: ui-monospace, monospace; font-size: 0.78rem;
+    font-weight: 700; padding: 0 8px; border-radius: 3px; border: 1px solid transparent;
+  }
+  .tag.pass  { background: #e7f3e7; color: #23662a; border-color: #b9d9ba; }
+  .tag.fail  { background: #fbe9e7; color: #9c2b1a; border-color: #ecc0b8; }
+  .tag.error { background: #fdf3d7; color: #7a5d10; border-color: #e8d59a; }
+  .tag.mode  { background: #e8eef7; color: #2a4a7a; border-color: #c2d2e8; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>画像書き起こし<br><span class="skill-name">transcribing-images</span></h1>
+  <p>添付・アップロード画像の内容を、要約せず構造を保ったまま忠実に書き起こし、検証と次アクション提案まで行うスキル。</p>
+
+  <div class="def">
+    <dt>こんな人向け</dt>
+    <dd>スクリーンショット・手書きメモ・図表・写真の内容をテキスト化して活用したい人</dd>
+    <dt>こんな場面で使う</dt>
+    <dd>「書き起こして」「文字起こし」「transcribe」と言われた時、画像添付とともに内容のテキスト化を求められた時</dd>
+  </div>
+
+  <table class="meta-table">
+    <tr><td>対応 OS</td><td>macOS / Linux（Claude Code 標準ツールのみで完結）</td></tr>
+    <tr><td>検証状況</td><td>2026-07-27: session-workflow-gate.test.sh PASS（actionable findingsから第1確認・第2確認・scopeConfirmation付き共通handoffまでを検証）</td></tr>
+    <tr><td>使用ツール</td><td>Read（画像・アップロードファイルの読み取り）、Bash（アップロードディレクトリの存在確認・一覧取得）、AskUserQuestion（複数枚時の対象・順序確認）、Write（保存が明示的に求められた場合のみの書き出し）</td></tr>
+    <tr><td>参照ファイル</td><td>SKILL.md 内の Phase 1〜4 手順</td></tr>
+  </table>
+</header>
+
+<nav class="toc">
+  <div class="toc-title">目次</div>
+  <ol>
+    <li><a href="#s1">概要</a></li>
+    <li><a href="#s2">出力</a></li>
+    <li><a href="#s3">用語</a></li>
+    <li><a href="#s4">動作フロー</a></li>
+    <li><a href="#s5">書き起こしのマークアップ規則</a></li>
+    <li><a href="#s6">検証と要確認リスト</a></li>
+    <li><a href="#s7">次アクション提案（スキル経由）</a></li>
+    <li><a href="#s8">環境と設定</a></li>
+    <li><a href="#s9">予想を裏切る挙動</a></li>
+    <li><a href="#s10">関連スキル・規約</a></li>
+  </ol>
+</nav>
+
+<section id="s1">
+  <h2><span class="sec-num">§1</span>概要</h2>
+  <p>transcribing-images は画像を忠実に書き起こし、再照合後に actionable・findings・expectedChange・verification の構造化 handoff をセッション管理へ返す。調査・実装・テスト・公開は行わない。</p>
+  <div class="constraint">
+    <strong>対象外:</strong> 画像の加工・派生画像生成は <code>dev-flow-preparing-manual-mockup</code>、画像への注釈付けはプロジェクト側 <code>annotating-screenshots</code> が担当する。本スキルはテキスト化のみを担う。
+  </div>
+</section>
+
+<section id="s2">
+  <h2><span class="sec-num">§2</span>出力</h2>
+  <p>本スキルを実行すると、次の成果物が生成される。</p>
+  <div class="def">
+    <dt>書き起こし本文</dt>
+    <dd>原文ママ原則・構造保持のマークアップ規則に従って画像内容を再現した Markdown テキスト。ユーザーに提示される（保存は既定で行わない）。</dd>
+    <dt>要確認リスト</dt>
+    <dd>数値・固有名詞・URL・コードの再照合で確信度が低いと判断された箇所の一覧。該当がなければ「なし」と明記される。</dd>
+    <dt>次アクション提案</dt>
+    <dd>書き起こし内容の種類（改善要望メモ／仕様・設計メモ／単なる資料）に応じ、実行手段となるスキル名を明記した提案文。</dd>
+    <dt>構造化 handoff</dt>
+    <dd>actionable・findings（id/source/observation）・expectedChange・verification を持ち、実装せずセッション管理へ返す契約。セッション管理が2段階確認後に scopeConfirmation を加えて共通handoffへ統合する。</dd>
+  </div>
+</section>
+
+<section id="s3">
+  <h2><span class="sec-num">§3</span>用語</h2>
+  <table class="spec">
+    <tr><th>用語</th><th>意味</th></tr>
+    <tr><td>原文ママ原則</td><td>要約・言い換え・補完をせず、誤字も含め原文どおりに転記する方針。誤字には <code>[原文ママ]</code> を付す</td></tr>
+    <tr><td>構造保持</td><td>見出し階層・箇条書き・表・強調を Markdown で再現し、レイアウトが意味を持つ場合は配置を注記すること</td></tr>
+    <tr><td>判読不能 / 判読注意</td><td>文字が読み取れない箇所は <code>[判読不能]</code>、推測を伴う場合は <code>[判読注意: &lt;読み&gt;]</code> と明示すること</td></tr>
+    <tr><td>要確認リスト</td><td>検証工程（Phase 3）で確信度が低いと判断された箇所を書き起こし末尾にまとめたもの</td></tr>
+  </table>
+</section>
+
+<section id="s4">
+  <h2><span class="sec-num">§4</span>動作フロー</h2>
+  <pre class="flow"><span class="cap">Phase 1: 入力収集と分類</span>
+  画像を全件 Read → 種類分類（文書/UI/手書き/図表/写真）
+  複数枚 → AskUserQuestion で対象・順序確認（1枚なら即進む）
+
+<span class="cap">Phase 2: 書き起こし</span>
+  原文ママ原則 + 構造保持でMarkdown化
+  判読不能/判読注意/図の記録タグを付与
+
+<span class="cap">Phase 3: 検証</span>
+  数値・固有名詞・URL・コードを画像と再照合
+  確信度の低い箇所を要確認リストにまとめる
+
+<span class="cap">Phase 4: 提示と次アクション提案</span>
+  書き起こし全文を提示（保存は要求時のみ）
+  種類別に実行スキル名を明記した次アクションを提案</pre>
+</section>
+
+<section id="s5">
+  <h2><span class="sec-num">§5</span>書き起こしのマークアップ規則</h2>
+  <table class="spec">
+    <tr><th>記法</th><th>用途</th></tr>
+    <tr><td><code>[原文ママ]</code></td><td>原文の誤字・不自然な表現をそのまま転記した箇所に付す</td></tr>
+    <tr><td><code>[判読不能]</code></td><td>文字が読み取れない箇所</td></tr>
+    <tr><td><code>[判読注意: &lt;読み&gt;]</code></td><td>推測を伴う判読箇所。推測した読みを併記する</td></tr>
+    <tr><td><code>[図: &lt;1行説明&gt;]</code></td><td>図・写真部分の存在を記録する</td></tr>
+  </table>
+  <div class="constraint">
+    <strong>禁止事項:</strong> 要約・言い換え・補完は一切行わない。誤字脱字も直さず原文のまま転記する。
+  </div>
+</section>
+
+<section id="s6">
+  <h2><span class="sec-num">§6</span>検証と要確認リスト</h2>
+  <p>書き起こし後、数値・固有名詞・URL・コードは誤読リスクが最も高い要素として画像と再照合する。確信度の低い箇所は要約せずそのまま書き起こし末尾の「要確認リスト」にまとめ、該当がない場合も「なし」と明記する。</p>
+</section>
+
+<section id="s7">
+  <h2><span class="sec-num">§7</span>構造化 handoff と次アクション提案</h2>
+  <p>本スキルは文字起こしと構造化 handoff をセッション管理へ返すまでで完結する。後続の調査・計画・レビューはセッション管理が利用可能な専門スキルを優先し、存在しない場合は標準 reviewer・通常応答へ縮退する。</p>
+  <table class="spec">
+    <tr><th>内容の種類</th><th>提案する流れ</th></tr>
+    <tr><td>改善要望・指摘のメモ</td><td>構造化 handoff を返し、調査・計画・レビューへ進むか確認する</td></tr>
+    <tr><td>仕様・設計のメモ</td><td>構造化 handoff を返し、設計またはモック化へ進むか確認する</td></tr>
+    <tr><td>単なる資料</td><td>保存先の指定、または他の対応事項の確認</td></tr>
+  </table>
+  <div class="constraint">
+    <strong>責務境界:</strong> 本スキルは後続処理を実行せず、存在しないスキルを必須条件にしない。ルーティングと 2 段階の範囲確認はセッション管理が担う。
+  </div>
+</section>
+
+<section id="s8">
+  <h2><span class="sec-num">§8</span>環境と設定</h2>
+  <table class="spec">
+    <tr><th>項目</th><th>内容</th></tr>
+    <tr><td>入力元</td><td><code>~/.claude/uploads/&lt;session&gt;/</code> 配下の画像、およびユーザー添付の画像</td></tr>
+    <tr><td>保存の既定動作</td><td>提示のみ。ユーザーが明示的に保存を求めた場合のみ、指定先へ Write する</td></tr>
+    <tr><td>外部依存</td><td>なし（Claude Code 標準ツールのみで完結）</td></tr>
+  </table>
+</section>
+
+<section id="s9">
+  <h2><span class="sec-num">§9</span>予想を裏切る挙動</h2>
+  <ul>
+    <li>通常の文書作成と逆に、誤字・不自然な表現ほど「直さず原文のまま」転記するのが正しい挙動</li>
+    <li>1 枚のみの入力では AskUserQuestion による確認を省略し即座に書き起こしへ進む（確認は複数枚時のみ）</li>
+    <li>後続の専門スキルがない環境でも文字起こしは完了し、セッション管理が標準 reviewer・通常応答へ縮退する</li>
+  </ul>
+</section>
+
+<section id="s10">
+  <h2><span class="sec-num">§10</span>関連スキル・規約</h2>
+  <table class="spec">
+    <tr><th>関連先</th><th>関係</th></tr>
+    <tr><td><code>dev-flow-preparing-manual-mockup</code></td><td>画像の加工・派生画像生成を担当（本スキルの対象外領域）</td></tr>
+    <tr><td>プロジェクト側 <code>annotating-screenshots</code></td><td>画像への注釈付けを担当（本スキルの対象外領域）</td></tr>
+    <tr><td><code>managing-session-workflow</code></td><td>構造化 handoff を受け、利用可能な専門スキル・標準 reviewer・通常応答へルーティングする</td></tr>
+  </table>
+</section>
+
+<div id="zoom-overlay" class="zoom-overlay" hidden></div>
+<script>
+  (function () {
+    var overlay = document.getElementById('zoom-overlay');
+    if (!overlay) return;
+    document.querySelectorAll('figure.diagram svg').forEach(function (svg) {
+      svg.addEventListener('click', function () {
+        overlay.innerHTML = '';
+        overlay.appendChild(svg.cloneNode(true));
+        overlay.hidden = false;
+        document.body.style.overflow = 'hidden';
+      });
+    });
+    overlay.addEventListener('click', function () {
+      overlay.hidden = true;
+      overlay.innerHTML = '';
+      document.body.style.overflow = '';
+    });
+  })();
+</script>
+
+</body>
+</html>

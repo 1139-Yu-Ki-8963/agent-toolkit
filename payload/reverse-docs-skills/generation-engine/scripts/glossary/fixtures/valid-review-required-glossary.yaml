@@ -1,0 +1,43 @@
+schema_version: 1.0.0
+content_version: 1.0.0
+glossary_key: review_catalog
+title: Review required glossary
+scope: {level: application, includes: [review_application], excludes: []}
+scope_catalog:
+  - {key: review_application, level: application, parent_key: null, source_ref: docs/review.md}
+default_language: ja
+terms:
+  - key: customer
+    label: 顧客
+    definition: 商品またはサービスを購入する主体
+    kind: entity
+    category: business
+    scope: {level: application, includes: [review_application], excludes: []}
+    representations:
+      - {channel: code, value: Customer, location: src/customer.ts:1}
+    aliases:
+      - {value: 利用者, type: synonym, language: ja, usage: allowed}
+    lifecycle: {status: active, introduced_in: 1.0.0}
+    stewardship: {approvers: [business-reviewer]}
+    provenance:
+      publication_status: legacy_migrated
+      legacy_source_ref: legacy/customer-dictionary.yaml
+      sources:
+        - {type: domain_document, ref: docs/customer.md, supports: definition}
+  - key: service_user
+    label: サービス利用者
+    definition: サービスへ登録して機能を使用する主体
+    kind: role
+    category: business
+    scope: {level: application, includes: [review_application], excludes: []}
+    representations:
+      - {channel: code, value: ServiceUser, location: src/user.ts:1}
+    aliases:
+      - {value: 利用者, type: synonym, language: ja, usage: allowed}
+    lifecycle: {status: active, introduced_in: 1.0.0}
+    stewardship: {approvers: [business-reviewer]}
+    provenance:
+      publication_status: legacy_migrated
+      legacy_source_ref: legacy/customer-dictionary.yaml
+      sources:
+        - {type: domain_document, ref: docs/user.md, supports: definition}

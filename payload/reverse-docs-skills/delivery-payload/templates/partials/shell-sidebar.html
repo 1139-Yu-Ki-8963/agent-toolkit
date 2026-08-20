@@ -1,0 +1,295 @@
+<button type="button" class="pt-sidebar-toggle" id="pt-sidebar-toggle" aria-expanded="false" aria-controls="pt-sidebar-aside" aria-label="ナビゲーションを開く">
+  <span></span><span></span><span></span>
+</button>
+<aside class="pt-sidebar" id="pt-sidebar-aside" data-portal-href="{{PORTAL_HREF}}" data-active-category="{{ACTIVE_CATEGORY}}">
+  <div class="pt-brand">
+    <div class="pt-brand-stamp">DESIGN PORTAL</div>
+    <div class="pt-brand-switch" id="pt-brand-switch">
+      <div class="pt-brand-name">{{PROJECT_NAME}}</div>
+    </div>
+    <div class="pt-brand-sub">設計台帳 · 全{{TOTAL_ARTIFACTS}}資料</div>
+  </div>
+  <nav class="pt-nav" id="pt-nav" aria-label="資料カテゴリ"></nav>
+  {{DOC_SIDEBAR}}
+  <button type="button" class="pt-theme" id="pt-theme-toggle">
+    <span id="pt-theme-label">テーマ: ダーク</span><span class="pt-theme-next" id="pt-theme-next">→ LIGHT</span>
+  </button>
+  <div class="pt-sidebar-meta">更新 <span id="pt-sidebar-date">{{GENERATED_DATE}}</span><span id="pt-meta-commit"><br>コミット {{COMMIT_SHORT}}</span></div>
+</aside>
+<div class="pt-sidebar-scrim" id="pt-sidebar-scrim" hidden></div>
+<script type="application/json" id="pt-nav-data">/*SHELL_NAV_JSON*/</script>
+<script type="application/json" id="pt-sites-data">/*SHELL_SITES_JSON*/</script>
+<script>
+(function () {
+  var root = document.documentElement;
+  function applyTheme(t) {
+    root.setAttribute('data-theme', t);
+    var label = document.getElementById('pt-theme-label');
+    var next = document.getElementById('pt-theme-next');
+    if (label) label.textContent = t === 'dark' ? 'テーマ: ダーク' : 'テーマ: ライト';
+    if (next) next.textContent = t === 'dark' ? '→ LIGHT' : '→ DARK';
+  }
+  var saved = null;
+  try { saved = localStorage.getItem('rd-portal-theme'); } catch (e) {}
+  if (saved === 'dark' || saved === 'light') {
+    applyTheme(saved);
+  } else {
+    applyTheme(window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+  }
+  var btn = document.getElementById('pt-theme-toggle');
+  if (btn) {
+    btn.addEventListener('click', function () {
+      var next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+      applyTheme(next);
+      try { localStorage.setItem('rd-portal-theme', next); } catch (e) {}
+    });
+  }
+
+  function isCommitEmpty(text) {
+    return text.replace(/コミット/g, '').replace(/[·\s　]+/g, '') === '';
+  }
+  function removeIfEmptyCommit(id) {
+    var node = document.getElementById(id);
+    if (node && isCommitEmpty(node.textContent) && node.parentNode) {
+      node.parentNode.removeChild(node);
+    }
+  }
+  removeIfEmptyCommit('pt-meta-commit');
+
+  function formatDateOnly(text) {
+    return /^\d{4}-\d{2}-\d{2}/.test(text) ? text.slice(0, 10) : text;
+  }
+  function truncateDate(id) {
+    var node = document.getElementById(id);
+    if (node) node.textContent = formatDateOnly(node.textContent);
+  }
+  truncateDate('pt-sidebar-date');
+
+  function formatTitleSubDates() {
+    var nodes = document.querySelectorAll('.pt-title-sub');
+    for (var i = 0; i < nodes.length; i++) {
+      nodes[i].textContent = nodes[i].textContent.replace(
+        /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z/g,
+        function (m) { return m.slice(0, 10); }
+      );
+    }
+  }
+
+  function applyShellMetaFormatting() {
+    removeIfEmptyCommit('pt-footer-commit');
+    truncateDate('pt-footer-date');
+    formatTitleSubDates();
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', applyShellMetaFormatting);
+  } else {
+    applyShellMetaFormatting();
+  }
+
+  var nav = document.getElementById('pt-nav');
+  var side = document.querySelector('.pt-sidebar');
+  var dataEl = document.getElementById('pt-nav-data');
+  if (!nav || !side || !dataEl) return;
+  var cats = [];
+  try { cats = JSON.parse(dataEl.textContent) || []; } catch (e) { return; }
+  var portalHref = side.getAttribute('data-portal-href') || 'index.html';
+  var active = side.getAttribute('data-active-category') || '';
+
+  function item(href, num, label, count, isActive) {
+    var a = document.createElement('a');
+    a.className = 'pt-nav-item' + (isActive ? ' is-active' : '');
+    a.href = href;
+    var n = document.createElement('span');
+    n.className = 'pt-nav-num';
+    n.textContent = num;
+    a.appendChild(n);
+    a.appendChild(document.createTextNode(label));
+    if (count !== null && count !== undefined) {
+      var c = document.createElement('span');
+      c.className = 'pt-nav-count';
+      c.textContent = String(count);
+      a.appendChild(c);
+    }
+    return a;
+  }
+
+  nav.appendChild(item(portalHref, '00', 'ダッシュボード', null, active === ''));
+  var head = document.createElement('div');
+  head.className = 'pt-nav-group';
+  head.textContent = '資料カテゴリ';
+  nav.appendChild(head);
+  cats.forEach(function (c) {
+    nav.appendChild(item(portalHref + '#cat-' + c.key, c.num, c.label, c.count, active === c.key));
+  });
+})();
+
+(function () {
+  var switchWrap = document.getElementById('pt-brand-switch');
+  var sitesEl = document.getElementById('pt-sites-data');
+  if (!switchWrap || !sitesEl) return;
+  var sites = [];
+  try { sites = JSON.parse(sitesEl.textContent) || []; } catch (e) { return; }
+  if (!Array.isArray(sites) || sites.length < 2) return;
+
+  var nameEl = switchWrap.querySelector('.pt-brand-name');
+  var label = nameEl ? nameEl.textContent : '';
+
+  var btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'pt-brand-toggle';
+  btn.id = 'pt-brand-toggle';
+  btn.setAttribute('aria-expanded', 'false');
+  btn.setAttribute('aria-controls', 'pt-brand-list');
+
+  var text = document.createElement('span');
+  text.className = 'pt-brand-toggle-label';
+  text.textContent = label;
+  btn.appendChild(text);
+
+  var caret = document.createElement('span');
+  caret.className = 'pt-brand-caret';
+  caret.setAttribute('aria-hidden', 'true');
+  btn.appendChild(caret);
+
+  if (nameEl) {
+    switchWrap.replaceChild(btn, nameEl);
+  } else {
+    switchWrap.appendChild(btn);
+  }
+
+  var list = document.createElement('div');
+  list.className = 'pt-brand-list';
+  list.id = 'pt-brand-list';
+  list.hidden = true;
+
+  sites.forEach(function (site) {
+    if (site.current) {
+      var current = document.createElement('div');
+      current.className = 'pt-brand-list-item is-current';
+      current.textContent = site.label;
+      list.appendChild(current);
+    } else {
+      var a = document.createElement('a');
+      a.className = 'pt-brand-list-item';
+      a.href = site.href;
+      a.textContent = site.label;
+      list.appendChild(a);
+    }
+  });
+
+  switchWrap.appendChild(list);
+
+  function close() {
+    btn.setAttribute('aria-expanded', 'false');
+    list.hidden = true;
+  }
+
+  btn.addEventListener('click', function () {
+    var expanded = btn.getAttribute('aria-expanded') === 'true';
+    if (expanded) {
+      close();
+    } else {
+      btn.setAttribute('aria-expanded', 'true');
+      list.hidden = false;
+    }
+  });
+
+  document.addEventListener('click', function (e) {
+    if (!switchWrap.contains(e.target)) close();
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') close();
+  });
+})();
+
+(function () {
+  var toggle = document.getElementById('pt-sidebar-toggle');
+  var aside = document.getElementById('pt-sidebar-aside');
+  var scrim = document.getElementById('pt-sidebar-scrim');
+  if (!toggle || !aside || !scrim) return;
+
+  function openSidebar() {
+    aside.classList.add('is-open');
+    toggle.setAttribute('aria-expanded', 'true');
+    scrim.hidden = false;
+  }
+  function closeSidebar() {
+    aside.classList.remove('is-open');
+    toggle.setAttribute('aria-expanded', 'false');
+    scrim.hidden = true;
+  }
+
+  toggle.addEventListener('click', function () {
+    if (aside.classList.contains('is-open')) {
+      closeSidebar();
+    } else {
+      openSidebar();
+    }
+  });
+  scrim.addEventListener('click', closeSidebar);
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') closeSidebar();
+  });
+})();
+
+(function () {
+  /* .pt-scroll-shell（固定列を持つ表の横スクロール手掛かり）のON/OFF切替。
+     CSS の定義は partials/shell.css の .pt-scroll-shell を参照。
+     固定列に隠れないよう表の外側に置いた ::before/::after の表示・非表示を、
+     内側の実スクロール要素（.table-wrap または .pt-tablewrap）のスクロール量から判定する。
+
+     data-scroll-cues="auto" を持つホスト配下の .table-wrap / .pt-tablewrap のうち、
+     まだ .pt-scroll-shell に包まれていないものは、実行時に .pt-scroll-shell で動的に包む。
+     生成スクリプトがテーブル本体を直接組み立てるページ（画面一覧の本体テーブル等）は
+     テンプレート側で静的に .pt-scroll-shell を配置できないため、この受け口を使う。
+     本処理は DOMContentLoaded 発火後に実行する（下の呼び出し部分を参照）。ページ本体側の
+     同期スクリプト（ページャ組み立て・任意列追加）は DOMContentLoaded 発火前に完了して
+     いるため、包む時点では最終的な DOM 構造になっている。 */
+  function wrapAutoHosts() {
+    var hosts = Array.prototype.slice.call(document.querySelectorAll('[data-scroll-cues="auto"]'));
+    hosts.forEach(function (host) {
+      var wraps = Array.prototype.slice.call(host.querySelectorAll('.table-wrap, .pt-tablewrap'));
+      wraps.forEach(function (wrap) {
+        if (wrap.closest('.pt-scroll-shell')) return;
+        var shell = document.createElement('div');
+        shell.className = 'pt-scroll-shell';
+        wrap.parentNode.insertBefore(shell, wrap);
+        shell.appendChild(wrap);
+      });
+    });
+  }
+  function initScrollCues() {
+    wrapAutoHosts();
+    var shells = Array.prototype.slice.call(document.querySelectorAll('.pt-scroll-shell'));
+    if (!shells.length) return;
+    var updaters = [];
+    shells.forEach(function (shell) {
+      var wrap = shell.querySelector(':scope > .table-wrap, :scope > .pt-tablewrap');
+      if (!wrap) return;
+      function update() {
+        var overflowing = wrap.scrollWidth > wrap.clientWidth + 1;
+        var atStart = wrap.scrollLeft <= 1;
+        var atEnd = wrap.scrollLeft + wrap.clientWidth >= wrap.scrollWidth - 1;
+        shell.classList.toggle('can-scroll-left', overflowing && !atStart);
+        shell.classList.toggle('can-scroll-right', overflowing && !atEnd);
+      }
+      wrap.addEventListener('scroll', update, {passive: true});
+      /* 任意列の追加等でレイアウト後にscrollWidthが変わる場合の追従(画面一覧の
+         data-scroll-cues="auto"経路向け。対応ブラウザのみ、無ければ何もしない)。 */
+      if (window.ResizeObserver) {
+        new ResizeObserver(update).observe(wrap);
+      }
+      updaters.push(update);
+    });
+    if (!updaters.length) return;
+    function updateAll() { updaters.forEach(function (fn) { fn(); }); }
+    window.addEventListener('resize', updateAll);
+    requestAnimationFrame(updateAll);
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initScrollCues);
+  } else {
+    initScrollCues();
+  }
+})();
+</script>

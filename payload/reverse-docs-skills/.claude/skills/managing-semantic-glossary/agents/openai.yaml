@@ -1,0 +1,4 @@
+interface:
+  display_name: "用語管理"
+  short_description: "承認済み用語のライフサイクル・変更履歴・公開投影を安全に統制"
+  default_prompt: "$managing-semantic-glossary を使って用語変更案を検証し、承認後に反映してください。"

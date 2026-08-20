@@ -1,0 +1,71 @@
+# セキュリティと制限（SECURITY）設計ノート（非注入サイドカー）
+# rule.md から分離した保守者向け記録。規約の挙動には影響しない。
+
+## 設計判断
+
+### sh-adr-check
+
+**必要性**: PostToolUse(Write|Edit|MultiEdit) で新規 `.sh` ファイルを検出し、対応する正本ドキュメント（rule.md / SKILL.md）内に `## 設計判断` セクションが存在しなければ `[DESIGN-DECISION-REQUIRED]` を警告する。git untracked 判定・canon doc 探索（`*-rules/` パターン・`skills/*/scripts/` パターン）・legacy ADR ディレクトリフォールバックと複数の分岐があり、settings.json の command インラインに収める規模ではない。
+
+**代替案を採用しなかった理由**:
+- Bash ツール直叩き: PostToolUse hook として毎回の Write/Edit 発火に自動追従する必要があり、Bash ツール経由では発火経路がない
+- permissions.ask のみ: `.sh` 作成時の承認ゲートは担うが、ADR セクションの存在確認はできない
+
+**保守責任者**: 人手（ユーザー）。canon doc の探索パターン変更時に更新する。
+
+**廃棄条件**: `.sh` 新規作成ルール自体が廃止された時、または Claude Code 本体が ADR 記述を schema レベルで強制するようになった時。
+
+### shell-evasion-check
+
+**必要性**: PostToolUse(Write|Edit|MultiEdit) で Makefile / package.json scripts / justfile / Taskfile への長大シェル埋め込みを net-new 差分ベースで検出し、`[SHELL-EVASION-DETECTED]` を警告する。ファイル種別判定・package.json は jq でパース・git HEAD との差分比較・長行カウントと `&&` チェインカウントの 2 軸判定など分岐が多く、settings.json のインライン化は保守不能。
+
+**代替案を採用しなかった理由**:
+- Bash ツール直叩き: PostToolUse hook として毎回の Write/Edit 発火に自動追従する必要があり、Bash ツール経由では発火経路がない
+- sh-adr-check.sh への統合: 検査対象（`.sh` の ADR 有無 vs 既存ファイルの shell 埋め込み）が異なり、責務が独立している
+
+**保守責任者**: 人手（ユーザー）。検出ヒューリスティック（行長・チェイン数の閾値）変更時に更新する。
+
+**廃棄条件**: Makefile / package.json scripts への長大シェル埋め込みが他の linter（例: shellcheck CI 連携）で構造的に禁止された時。
+
+### call-api（旧 api-curl。2026-07-08 に語順規則＝動詞前置へ準拠のためリネーム）
+
+**必要性**: 外部 API 呼び出しに「ホスト白リスト検証済みの唯一の経路」を提供するラッパー。生 curl の外部送信は `curl-egress-check.sh` が block するため、許可ホスト（api.supabase.com 等）への API 呼び出しには検証付きの正規経路が必要。URL の https 強制・ホスト白リスト照合・複数 URL の全件検証という分岐があり、Bash 直叩きで毎回書くと検証漏れが生じる。
+
+**代替案を採用しなかった理由**:
+- Bash ツール直叩き: コマンド名が `curl` である限り curl-egress-check.sh の外部 URL 判定で block される（localhost 以外）
+- permissions の個別 allow で許可ホストを表現: `Bash(*)` の包括 allow がある構成では、個別 allow は制限として機能せず全ホストへの curl が通ってしまう
+- 既存 Makefile ターゲット拡張: グローバル横断（複数プロジェクト + agent-home）で使うためプロジェクト Makefile には置けない
+
+**保守責任者**: 人手（ユーザー）。許可ホスト追加時に ALLOWED 正規表現を更新する（settings.json の変更は不要）。
+
+**廃棄条件**: permissions がコマンド引数レベルのホワイトリスト（deny の例外指定）を公式サポートした時、または curl の外部送信統制の方針が撤回された時。
+
+### curl-egress-check
+
+**必要性**: 旧方式の deny `Bash(curl:*)` は localhost への疎通確認まで一律 block し、セッションログ調査（2026-07-03、transcript 2,078 ファイル）で延べ 218 件の localhost 誤爆と Playwright 迂回の誘発が確認された。permissions の glob では「localhost のみ許可」の例外を表現できない（deny は ask/allow に常に優先）ため、PreToolUse(Bash) hook でホスト判定を行う。複合コマンドのセグメント分割・command-word 判定・URL ホスト抽出・fail-closed 判定という分岐があり、settings.json のインラインに収まらない。自動解除カウンタは意図的に持たない（N 回試行で外部送信が通る穴になるため。no-root-marker-check.sh のカウンタ方式からの意図的逸脱）。
+
+**代替案を採用しなかった理由**:
+- deny `Bash(curl:*)` の維持: localhost 例外を表現できず、正当な開発サーバー疎通確認を 200 件超 block した実績
+- Bash ツール直叩き: PreToolUse イベントへのバインドが必要で、毎回の curl 実行に自動追従できない
+- settings.json への直列登録: rules 系 PreToolUse(Bash) はランナー集約が hooks-architecture 規約（rules-bash-runner.sh に 8 本目として dispatch）
+
+**保守責任者**: 人手（ユーザー）。許可ホスト（localhost 系）の追加時に更新する。
+
+**廃棄条件**: permissions が deny の例外指定（allow による carve-out）を公式サポートした時、または外部送信統制が Claude Code 本体のネットワークサンドボックスで代替された時。
+
+### curl-egress-check.test
+
+**必要性**: 許可 10 ケース・block 10 ケースの計 20 ケース（localhost 各形式・call-api ラッパー・複合コマンド・fail-closed・userinfo 偽装等）を bash 単体で回帰検証する。Bash ツール直叩きで 20 ケースを都度手書きすると再現性が失われ、hook 改修時の回帰検出ができない。
+
+**代替案を採用しなかった理由**:
+- Bash ツール直叩き: 20 ケース × JSON 生成 × 集計をセッション内で都度書くとトークン消費が大きく回帰テストとして機能しない
+- 既存 Makefile ターゲット拡張: `~/.claude/` 配下には Makefile がない
+- package.json scripts 追加: グローバル規約用途でありプロジェクトに属さない
+
+**保守責任者**: 人手（ユーザー）。curl-egress-check.sh の判定変更時に同時更新する。
+
+**廃棄条件**: `curl-egress-check.sh` が廃止された時。
+
+## scoped 配置の理由（2026-07-06 追記）
+
+シェルスクリプト・ビルド定義（.sh / Makefile / package.json / justfile / Taskfile）の作成・編集時にしか違反しえない規約のため paths 条件付き注入とする。curl-egress・shell-evasion 等の機械強制は rules-bash-runner / PostToolUse hook が paths 非依存で常時発火するので、防御線は scoped 化で弱まらない。

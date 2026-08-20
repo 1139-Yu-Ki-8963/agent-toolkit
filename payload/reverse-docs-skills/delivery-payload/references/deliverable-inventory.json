@@ -1,0 +1,285 @@
+{
+  "specVersion": 1,
+  "items": [
+    {
+      "kind": "tech-stack",
+      "evidenceSource": "none"
+    },
+    {
+      "kind": "environment-setup",
+      "evidenceSource": "none"
+    },
+    {
+      "kind": "release-notes",
+      "evidenceSource": "none"
+    },
+    {
+      "kind": "architecture-survey",
+      "evidenceSource": "none"
+    },
+    {
+      "kind": "rule-flow-map",
+      "evidenceSource": "none"
+    },
+    {
+      "kind": "ai-behavior-standard",
+      "evidenceSource": "none"
+    },
+    {
+      "kind": "destructive-operation-safety-standard",
+      "evidenceSource": "none"
+    },
+    {
+      "kind": "session-management-standard",
+      "evidenceSource": "none"
+    },
+    {
+      "kind": "ai-config-asset-management-standard",
+      "evidenceSource": "none"
+    },
+    {
+      "kind": "routine-operations-standard",
+      "evidenceSource": "none"
+    },
+    {
+      "kind": "development-flow-standard",
+      "evidenceSource": "none"
+    },
+    {
+      "kind": "tools-and-commands-standard",
+      "evidenceSource": "none"
+    },
+    {
+      "kind": "development-environment-standard",
+      "evidenceSource": "none"
+    },
+    {
+      "kind": "git-operations-standard",
+      "evidenceSource": "none"
+    },
+    {
+      "kind": "release-and-delivery-standard",
+      "evidenceSource": "none"
+    },
+    {
+      "kind": "coding-style-standard",
+      "evidenceSource": "none"
+    },
+    {
+      "kind": "naming-standard",
+      "evidenceSource": "none"
+    },
+    {
+      "kind": "directory-structure-standard",
+      "evidenceSource": "none"
+    },
+    {
+      "kind": "component-architecture-standard",
+      "evidenceSource": "none"
+    },
+    {
+      "kind": "test-policy-standard",
+      "evidenceSource": "none"
+    },
+    {
+      "kind": "review-checklist-standard",
+      "evidenceSource": "none"
+    },
+    {
+      "kind": "document-writing-standard",
+      "evidenceSource": "none"
+    },
+    {
+      "kind": "portal-maintenance-standard",
+      "evidenceSource": "none"
+    },
+    {
+      "kind": "security-standard",
+      "evidenceSource": "none"
+    },
+    {
+      "kind": "performance-standard",
+      "evidenceSource": "none"
+    },
+    {
+      "kind": "availability-standard",
+      "evidenceSource": "none"
+    },
+    {
+      "kind": "scalability-standard",
+      "evidenceSource": "none"
+    },
+    {
+      "kind": "observability-standard",
+      "evidenceSource": "none"
+    },
+    {
+      "kind": "glossary-standard",
+      "evidenceSource": "none"
+    },
+    {
+      "kind": "business-rules-standard",
+      "evidenceSource": "none"
+    },
+    {
+      "kind": "state-transitions-standard",
+      "evidenceSource": "none"
+    },
+    {
+      "kind": "calculation-rules-standard",
+      "evidenceSource": "none"
+    },
+    {
+      "kind": "platform-design",
+      "evidenceSource": "none"
+    },
+    {
+      "kind": "common-design",
+      "evidenceSource": "none"
+    },
+    {
+      "kind": "data-design",
+      "evidenceSource": "none"
+    },
+    {
+      "kind": "message-design",
+      "evidenceSource": "none"
+    },
+    {
+      "kind": "ui-common-design",
+      "evidenceSource": "none"
+    },
+    {
+      "kind": "common-document-evidence-ledger",
+      "layoutKey": "commonDocumentEvidenceLedger",
+      "evidenceSource": "none"
+    },
+    {
+      "kind": "unit-evidence-ledger",
+      "layoutKey": "unitEvidenceLedgerFile",
+      "evidenceSource": "none"
+    },
+    {
+      "kind": "screen",
+      "evidenceSource": "manifest",
+      "manifestKey": "screenManifest",
+      "countPointer": "/screens",
+      "unitTestDocuments": ["画面テスト設計書.md", "画面単体テスト設計書.md"],
+      "screenOnlyTestDocuments": ["操作シナリオ仕様書.md"]
+    },
+    {
+      "kind": "screen-transition",
+      "evidenceSource": "none",
+      "dependsOnKind": "screen"
+    },
+    {
+      "kind": "semantic-glossary",
+      "evidenceSource": "none"
+    },
+    {
+      "kind": "api",
+      "evidenceSource": "manifest",
+      "manifestKey": "apiManifest",
+      "countPointer": "/units",
+      "unitTestDocuments": ["APIテスト設計書.md", "API単体テスト設計書.md"]
+    },
+    {
+      "kind": "batch",
+      "evidenceSource": "manifest",
+      "manifestKey": "batchManifest",
+      "countPointer": "/units",
+      "unitTestDocuments": ["バッチテスト設計書.md", "バッチ単体テスト設計書.md"]
+    },
+    {
+      "kind": "table",
+      "evidenceSource": "manifest",
+      "manifestKey": "tableManifest",
+      "countPointer": "/units",
+      "unitTestDocuments": ["テーブルテスト設計書.md", "テーブル単体テスト設計書.md"]
+    },
+    {
+      "kind": "er-diagram",
+      "evidenceSource": "none"
+    },
+    {
+      "kind": "entity-state",
+      "evidenceSource": "none"
+    },
+    {
+      "kind": "report",
+      "evidenceSource": "manifest",
+      "manifestKey": "reportManifest",
+      "countPointer": "/units",
+      "unitTestDocuments": ["帳票テスト設計書.md", "帳票単体テスト設計書.md"]
+    },
+    {
+      "kind": "external",
+      "evidenceSource": "manifest",
+      "manifestKey": "externalManifest",
+      "countPointer": "/units",
+      "unitTestDocuments": ["外部連携テスト設計書.md", "外部連携単体テスト設計書.md"]
+    },
+    {
+      "kind": "feature",
+      "evidenceSource": "manifest",
+      "manifestKey": "featureManifest",
+      "countPointer": "/units",
+      "unitTestDocuments": ["機能テスト設計書.md", "機能単体テスト設計書.md"]
+    },
+    {
+      "kind": "message-list",
+      "evidenceSource": "none"
+    },
+    {
+      "kind": "test-viewpoint-list",
+      "evidenceSource": "none",
+      "dependsOnKind": "screen"
+    },
+    {
+      "kind": "test-case-list",
+      "evidenceSource": "none",
+      "dependsOnKind": "screen"
+    },
+    {
+      "kind": "permission-screen",
+      "evidenceSource": "none",
+      "dependsOnKind": "screen"
+    },
+    {
+      "kind": "permission-function",
+      "evidenceSource": "none",
+      "dependsOnKind": "screen"
+    },
+    {
+      "kind": "crud",
+      "evidenceSource": "none",
+      "dependsOnKind": "screen"
+    },
+    {
+      "kind": "traceability",
+      "evidenceSource": "none",
+      "dependsOnKind": "screen"
+    },
+    {
+      "kind": "confirmation-survey",
+      "evidenceSource": "none",
+      "dependsOnKind": "screen"
+    },
+    {
+      "kind": "ai-assets",
+      "evidenceSource": "none"
+    },
+    {
+      "kind": "design-system",
+      "evidenceSource": "none"
+    },
+    {
+      "kind": "component-inventory",
+      "evidenceSource": "none"
+    },
+    {
+      "kind": "icon-catalog",
+      "evidenceSource": "none"
+    }
+  ]
+}

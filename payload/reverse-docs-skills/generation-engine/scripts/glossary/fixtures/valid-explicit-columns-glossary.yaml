@@ -1,0 +1,57 @@
+schema_version: 1.0.0
+content_version: 1.0.0
+glossary_key: order_management
+title: Order management glossary
+scope:
+  level: product
+  includes: [order_management]
+  excludes: []
+scope_catalog:
+  - key: order_management
+    level: product
+    parent_key: null
+    source_ref: docs/domain/order-management.md
+default_language: ja
+terms:
+  - key: order_status
+    term_ja: 注文状態
+    term_en: Order Status
+    definition: 注文処理が現在どの段階にあるかを示す業務上の状態
+    scope: order_management
+    category: attribute
+    code_name: orderStatus
+    type_name: OrderStatus
+    db_name: order_status
+    api_name: orderStatus
+    ui_label: 注文状態
+    allowed_values: [pending, paid, shipped]
+    status: active
+    notes: APIとDBで同じ許容値集合を使用する
+    representations:
+      - channel: code
+        value: orderStatus
+        symbol_kind: property
+        location: src/domain/order.ts:12
+      - channel: database
+        value: order_status
+        location: db/schema.sql:20
+      - channel: api
+        value: orderStatus
+        location: openapi/order.yaml#/components/schemas/Order
+      - channel: ui
+        value: 注文状態
+        location: src/pages/order/detail.tsx:30
+    lifecycle:
+      status: active
+      introduced_in: 1.0.0
+    stewardship:
+      approvers: [business_approver:order-reviewer, technical_approver:architecture-reviewer]
+    provenance:
+      publication_status: candidate
+      sources:
+        - type: domain_document
+          ref: docs/domain/order-management.md#order-status
+          supports: definition
+metadata:
+  created_at: '2026-08-02T00:00:00Z'
+  updated_at: '2026-08-02T00:00:00Z'

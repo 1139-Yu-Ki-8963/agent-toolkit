@@ -1,0 +1,12 @@
+# プロジェクト実装フロー設定。値はこのプロジェクトの実態に合わせて埋める。
+domain_glossary: null  # 業務の用語をまとめた文書の場所
+design_system: null  # 配色・書体・余白の定義の場所
+test_conventions: null  # テストの書き方の取り決めの場所
+adr_dir: null  # 設計判断の記録の置き場
+design_docs: null  # 設計書の置き場
+portal_dir: null  # 生成したポータルの置き場
+review_gates: {}  # どの段階でレビューを挟むかの定義
+review_agents: {}  # レビューを誰に任せるかの定義
+pr: {}  # 変更依頼の作り方の定義
+classify: {}  # 作業の種類を判別する条件
+preflight: {}  # 着手前に確かめることの定義

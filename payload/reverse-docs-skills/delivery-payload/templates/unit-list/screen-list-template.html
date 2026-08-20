@@ -1,0 +1,1209 @@
+<!DOCTYPE html>
+<!--
+  画面一覧.HTML の静的シェル(テンプレート)
+
+  使い方(画面一覧生成スキル Phase 4):
+    scripts/build-screen-list.sh <manifest.json> <output-html-path> を実行する。
+    build-screen-list.sh が本テンプレートを土台に、jqでマニフェストJSONをパースして
+    プレースホルダ・注入マーカーを機械的に置換し、決定的にHTMLを生成する。
+    Claude(手作業)によるプレースホルダ置換は禁止。生成は必ずスクリプト経由で行う。
+
+  保守注記: トークン・共通シェル(サイドバー・フッター・全画面レイアウトのCSS)は
+  delivery-payload/templates/partials 配下の共通ファイルを注入マーカー経由で読み込む。
+  テーマ切替はサイドバー側に一本化されており、本テンプレートに複製は無い。
+
+  プレースホルダ(build-screen-list.shが注入。実際のマーカー記法は
+  scripts/build-screen-list.sh 冒頭コメントを正本とする。本コメントでは
+  二重置換事故を避けるため意図的に波括弧・HTMLコメント記法を外して記載する):
+    GENERATED_AT (生成日時マーカー)            : ISO8601 生成日時
+    TILE_SCREEN_COUNT (画面数タイルマーカー)    : detectionSummary.screenCount
+    TILE_CLUSTER_SUMMARY_HTML (クラスタ数タイル本体マーカー): detectionSummary.clusterCountと
+      detectionSummary.sharedScreenCountから組み立て済みのHTML片(<strong>数値</strong>共有クラスタ数、
+      クラスタ数が1以上の時だけ「（N画面が関与）」を付ける)。値と注記の組合せ不整合を防ぐため、
+      2つのマーカーへ分けず1つのHTML片として注入する
+    TILE_EMBEDDED_COUNT (埋め込み候補数タイルマーカー)  : detectionSummary.embeddedCandidateCount
+    TILE_UNRESOLVED_COUNT (要確認数タイルマーカー)      : detectionSummary.unresolvedCount
+    TILE_LOWCONF_COUNT (低信頼度画面数タイルマーカー)   : screens[]のconfidence=low件数(1-125)
+    LOWCONF_CALLOUT (低信頼度分布コールアウトマーカー)  : 低信頼度件数・比率・閾値超過時の警告文。
+      0件でも必ず表示し(無表示を許さない)、比率が0.5を超えた場合のみpt-callout--warningを付ける
+    SCREEN_TABLE_SECTIONS (画面テーブルセクションマーカー) : table-areaブロックの開始タグから
+      module-groupセクションの閉じまでを丸ごと注入。分割なし(--split-by none相当)なら単一の
+      module-groupセクション、分割ありなら軸の値ごとのmodule-groupブロック(折りたたみ要素)を
+      複数並べる(見本: build-feature-list.shのcategory_sections)。table-areaブロックの閉じと
+      unresolvedセクションはテンプレート側に静的に残る。分割時は最初のテーブルにのみ
+      screen-table というid属性を付ける(同一id重複禁止)
+    UNRESOLVED_SECTION (要手動確認セクションマーカー) : kind=unresolved の一覧テーブル、0件なら「なし」の文言
+    SCREEN_MANIFEST_JSON (マニフェストJSON埋め込みマーカー) : manifest.json の内容をそのまま埋め込み(二重管理・ドリフト禁止)
+    DIAGNOSTICS (診断・警告マーカー)            : diagnostics配列を警告リストとして表示。空配列なら何も出力しない
+
+  テーブル列順(固定・全3列): 画面名 / ルート / 区分(任意列はクライアント側FIELDSが動的追加)。
+    - 行の<tr>には data-screen-id / data-screen-key 属性を持たせ、展開行JSがマニフェストJSONから
+      該当画面を引けるようにする(不可視属性のため3列制約には抵触しない)
+    - sharedWith(共有画面キー一覧) / embeddedIn(埋め込み元) / routeDupCount(route定義箇所数) は
+      表示列から外し、展開行の「仕様」グループでマニフェストJSONから直接表示する
+    - 任意列(クライアント描画): manifest の category / permissions / relatedApis / designDocStatus /
+      accountGroup / screenType / hasTemplate / isProcessingEndpoint に値が1件でもあるフィールドだけ、
+      任意列スクリプトが末尾へ「画面区分 / 必要権限 / 関連API / 設計書 / アカウント区分 / 画面種別 /
+      テンプレート / 処理エンドポイント」列を追加する。全フィールドが空なら列を追加しない(後方互換)。
+      accountGroup は英字列挙値(user/admin/editor/report/common)をアカウント区分の日本語ラベルへ変換して表示する
+    - 設計書列の補助フィールド(任意): designDocPath(設計書への相対パス。designDocStatus=着手済かつ
+      パスありなら着手済バッジをリンク化) / sourceHash・designDocSourceHash(両方存在して不一致なら
+      danger色の「陳腐化」バッジを併記)
+    - 関連資料リンク(1-92〜1-94): 読者向け成果物8種類(基本設計書designDocPath・詳細設計書detailDocPath・
+      シーケンス図sequencePath・単体テスト仕様書testCasePath・単体テスト観点表unitTestViewpointPath・
+      結合テスト観点表integrationTestViewpointPath・結合テスト仕様書integrationTestCasePath・
+      操作シナリオ仕様書scenarioPath)へのリンク組み立ては window.ScreenDocLinks(共通ライブラリ)に
+      一本化し、展開パネルの「設計書」グループと主テーブル行末尾の任意列「関連資料」の両方から
+      同じ関数を呼ぶ(二重管理禁止)。関連資料列はいずれかの画面に1件でもリンクがあれば追加し、
+      colCount計算より前に実行してcolSpanのズレを防ぐ(静的theadの3列は増やさない)
+
+  制約:
+    - 外部リソースはMaterial Symbols OutlinedのGoogle Fonts CDNだけを許可する。その他のCDN・フォント・画像は使わない
+    - <script id="screen-manifest"> の中身は、build-screen-list.shへ渡された入力マニフェスト(引数<manifest.json>。
+      実運用ではscreen-manifest.ext.json=派生フィールドcategory/permissions/designDocStatus/existingTestCount/sourceHash等を
+      付与した拡張マニフェスト)と完全に一致させる。Phase 2 の生検出結果そのものではない点に注意する
+    - 本テンプレートは画面一覧.HTMLの生成のみを対象とする。設計書の雛形展開・生成は本スキルの範囲外
+-->
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>画面一覧</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined&amp;icon_names=info,priority_high,warning&amp;display=block" />
+<style>
+  /* TOKENS_CSS */
+  /* SHELL_CSS */
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+
+  .summary-tiles { display: flex; gap: 14px; margin: 16px 0 0; flex-wrap: wrap; }
+  .tile {
+    flex: 1; background: var(--panel); border: 1.5px solid var(--line2);
+    padding: 10px 18px; font-size: 0.85rem; color: var(--text-sub);
+  }
+  .tile strong { display: block; font-size: 1.3rem; color: var(--text); }
+
+  .toolbar-area { flex-shrink: 0; padding: 8px 0; }
+  .toolbar { display: flex; gap: 10px; margin: 10px 0; align-items: center; flex-wrap: wrap; }
+  .toolbar input[type="search"] { flex: 1; min-width: 220px; }
+  .toolbar .note { font-size: 0.82rem; color: var(--text-muted); }
+
+  .table-area { flex: 1; min-height: 0; overflow-y: auto; }
+  .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  table.screens thead { position: sticky; top: 0; z-index: 3; }
+
+  section.module-group { margin: 18px 0; background: var(--panel); border: 1.5px solid var(--line2); padding: 16px 20px; min-width: 0; }
+  section.module-group h2 { font-size: 1.05rem; margin: 0 0 12px; }
+
+  /* 分割一覧(--split-by)の軸値ごとのグループ */
+  details.module-group { margin: 18px 0; background: var(--panel); border: 1.5px solid var(--line2); min-width: 0; }
+  details.module-group > summary {
+    cursor: pointer; padding: 12px 16px; font-weight: 700; list-style: none;
+  }
+  .cat-header .cat-count { margin-left: 0.5em; font-weight: 400; color: var(--text-muted); }
+  details.module-group > summary::-webkit-details-marker { display: none; }
+  details.module-group > summary::before {
+    content: "";
+    display: inline-block;
+    width: 0;
+    height: 0;
+    margin-right: 6px;
+    vertical-align: middle;
+    border-top: 5px solid transparent;
+    border-bottom: 5px solid transparent;
+    border-left: 6px solid var(--text-muted);
+    transition: transform 0.12s;
+  }
+  details.module-group[open] > summary::before { transform: rotate(90deg); }
+  @media (prefers-reduced-motion: reduce) {
+    details.module-group > summary::before { transition: none; }
+  }
+  /* 実行時に .pt-scroll-shell（data-scroll-cues="auto"の受け口。partials/shell-sidebar.html参照）
+     で .table-wrap を包むため、直下(>)ではなく子孫セレクタで当てる。 */
+  details.module-group .table-wrap { padding: 0 16px 16px; }
+
+  table.screens {
+    table-layout: fixed; width: 100%; min-width: 1100px; border-collapse: collapse; font-size: 0.88rem;
+  }
+  table.screens th {
+    border-top: 1px solid var(--border); padding: 8px 10px; text-align: left; vertical-align: top;
+    white-space: normal; overflow: visible; font-size: 0.8em;
+  }
+  table.screens td {
+    border-top: 1px solid var(--border); padding: 6px 8px; text-align: left; vertical-align: top;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  table.screens th {
+    background: var(--panel-2); font-weight: 700; cursor: pointer; user-select: none;
+  }
+  table.screens th:hover { background: var(--accent-soft); cursor: pointer; }
+  table.screens td code {
+    font-family: var(--mono);
+    font-size: 0.85em; background: var(--panel-2); padding: 1px 5px;
+  }
+
+  /* 列幅の明示指定（data-key属性でシェブロン列挿入に影響されない） */
+  table.screens th[data-key="screenNameGuess"] { width: 25%; }
+  table.screens th[data-key="route"] { width: 45%; }
+  table.screens th[data-key="kind"] { width: 10%; }
+
+  /* 固定列（シェブロン列・画面名列・ルート列）: 横スクロール時も左端に固定する */
+  table.screens thead th:nth-child(1), table.screens tbody td:nth-child(1) {
+    position: sticky; left: 0; z-index: 2; background: var(--panel);
+  }
+  table.screens thead th:nth-child(2), table.screens tbody td:nth-child(2) {
+    position: sticky; left: 32px; z-index: 2; background: var(--panel);
+  }
+  table.screens thead th:nth-child(3), table.screens tbody td:nth-child(3) {
+    position: sticky; left: calc(32px + 25%); z-index: 2; background: var(--panel);
+  }
+  table.screens thead th:nth-child(1),
+  table.screens thead th:nth-child(2),
+  table.screens thead th:nth-child(3) {
+    background: var(--panel-2); z-index: 4;
+  }
+
+  /* ゼブラストライプ */
+  table.screens tbody tr:nth-child(even) {
+    background: color-mix(in srgb, var(--panel-2) 40%, transparent);
+  }
+  /* 行ホバー */
+  table.screens tbody tr:hover {
+    background: var(--accent-soft);
+  }
+
+  td code { overflow-wrap: break-word; word-break: break-all; }
+  .badge { display: inline-block; font-size: 0.76rem; font-weight: 700; padding: 1px 8px; }
+  .badge.high   { background: var(--success-soft); color: var(--success); }
+  .badge.medium { background: var(--gold-soft); color: var(--gold); }
+  .badge.low    { background: var(--accent-soft); color: var(--accent); }
+  .badge.kind-route      { background: var(--accent-soft); color: var(--accent); }
+  .badge.kind-embedded   { background: var(--gold-soft); color: var(--gold); }
+  .badge.kind-unresolved { background: var(--panel-2); color: var(--text-sub); }
+
+  .dup-note { display: block; font-size: 0.76rem; color: var(--gold); margin-top: 2px; }
+
+  .diag-warn {
+    margin: 16px 0; padding: 12px 18px; background: var(--gold-soft); border: 1px solid var(--gold-border);
+    font-size: 0.86rem; color: var(--gold);
+  }
+  .diag-warn strong { display: block; margin-bottom: 6px; }
+  .diag-warn ul { margin: 0; padding-left: 20px; }
+
+  section.unresolved { margin-top: 24px; padding: 12px 16px; min-width: 0; }
+  section.unresolved.empty { background: var(--panel-2); border: 1px solid var(--border); color: var(--text-muted); }
+  section.unresolved.empty h2 { color: var(--text-muted); font-size: 0.95rem; margin: 0; }
+  section.unresolved.has-items { background: var(--danger-soft); border: 1px solid var(--danger); color: var(--danger); }
+  section.unresolved.has-items h2 { color: var(--danger); font-size: 0.95rem; margin: 0 0 8px; }
+
+  .pagination { display: flex; gap: 8px; align-items: center; justify-content: center; margin: 16px 0; font-size: 0.85rem; }
+  .pagination button { background: var(--panel-2); border: 1px solid var(--border); color: var(--text-sub); cursor: pointer; padding: 4px 10px; font-family: inherit; font-size: 0.82rem; }
+  .pagination button:hover { background: var(--accent-soft); color: var(--accent); border-color: var(--accent-border); }
+  .pagination button:disabled { opacity: 0.4; cursor: not-allowed; }
+  .pagination .page-info { color: var(--text-muted); }
+
+  /* 追加UI: コピーボタン */
+  .copy-btn { background: none; border: none; cursor: pointer; padding: 1px 3px; color: var(--text-muted); opacity: .35; vertical-align: middle; }
+  tr:hover .copy-btn, .copy-btn:focus { opacity: 1; }
+  .copy-btn:hover { color: var(--accent); }
+
+  /* 追加UI: フィルタチップ（表題欄形式。軸ごとに罫線で仕切る） */
+  .filter-chips { display: flex; gap: 0; flex-wrap: wrap; align-items: stretch; margin: 4px 0 8px; }
+  .chip-field { display: flex; flex-direction: column; gap: 4px; padding: 2px 10px; border-left: 1px solid var(--line2); justify-content: center; }
+  .chip-field:first-child { border-left: none; padding-left: 0; }
+  .chip-field-label { font-family: var(--mono); font-size: 9.5px; letter-spacing: 2px; color: var(--text-muted); }
+  .chip-field-label.is-active { color: var(--accent); }
+  .chip-field-values { display: flex; gap: 4px; flex-wrap: wrap; }
+  .chip { font-size: .78rem; padding: 2px 10px; border: 1px solid var(--line2); background: var(--panel); color: var(--text-sub); cursor: pointer; }
+  .chip[aria-pressed="true"] { background: var(--accent); color: var(--chipontext); border-color: var(--accent); font-weight: 700; }
+  .chip-clear { align-self: center; margin-left: auto; background: var(--panel-2); border: 1px solid var(--border); color: var(--text-sub); cursor: pointer; padding: 2px 10px; font-family: inherit; font-size: .78rem; }
+  .chip-clear:hover { background: var(--accent-soft); color: var(--accent); border-color: var(--accent-border); }
+
+  /* 追加UI: 行クリック展開 */
+  tr.row-detail > td { background: var(--panel-2); font-size: .82rem; white-space: normal; border-left: 3px solid var(--accent); }
+  .row-detail dl { display: grid; grid-template-columns: max-content 1fr; gap: 2px 12px; margin: 4px 0; }
+  .row-detail dt { color: var(--text-muted); }
+  .row-detail dd { margin: 0; word-break: break-all; }
+  table.units tbody tr, table.screens tbody tr { cursor: pointer; }
+  .expand-cell { transition: color 0.15s; }
+  tr:hover .expand-cell { color: var(--accent); }
+  tr[data-expanded="true"] .chevron svg { transform: rotate(90deg); }
+
+  .detail-inner { padding: 12px 16px 14px 20px; }
+  .detail-group { margin-bottom: 12px; }
+  .detail-group:last-child { margin-bottom: 0; }
+  .detail-group-label { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.06em; color: var(--text-muted); margin-bottom: 6px; padding-bottom: 4px; border-bottom: 1px solid var(--border); }
+  .detail-group-label.evidence { color: var(--gold); border-bottom-color: var(--gold-soft); }
+  .detail-grid { display: grid; grid-template-columns: max-content 1fr; gap: 3px 14px; }
+  .detail-grid dt { color: var(--text-muted); font-size: 0.78rem; white-space: nowrap; }
+  .detail-grid dd { margin: 0; font-size: 0.84rem; word-break: break-all; }
+
+  .doc-links { display: flex; flex-wrap: wrap; gap: 8px; }
+  .doc-link {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 12.5px; color: var(--accent); background: var(--accent-soft);
+    border: 1px solid var(--accent-border);
+    padding: 5px 12px; text-decoration: none; transition: background 0.15s, border-color 0.15s;
+  }
+  .doc-link:hover { background: var(--panel); border-color: var(--accent); text-decoration: none; }
+  .doc-link.disabled {
+    color: var(--text-muted); background: var(--panel-2);
+    border-color: var(--border); pointer-events: none; opacity: 0.5;
+  }
+  .doc-link.disabled::before { background: var(--text-muted); }
+  .doc-link::before { content: ''; display: inline-block; width: 14px; height: 14px; background: currentColor; -webkit-mask-size: contain; mask-size: contain; -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat; }
+  .doc-link[data-kind="basic"]::before { -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zM13 9V3.5L18.5 9H13z'/%3E%3C/svg%3E"); mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zM13 9V3.5L18.5 9H13z'/%3E%3C/svg%3E"); }
+  .doc-link[data-kind="detail"]::before { -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M6.5 10h-2v7h2v-7zm6 0h-2v7h2v-7zm8.5 9H2v2h19v-2zm-2.5-9h-2v7h2v-7zM11.5 1L2 6v2h19V6l-9.5-5z'/%3E%3C/svg%3E"); mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M6.5 10h-2v7h2v-7zm6 0h-2v7h2v-7zm8.5 9H2v2h19v-2zm-2.5-9h-2v7h2v-7zM11.5 1L2 6v2h19V6l-9.5-5z'/%3E%3C/svg%3E"); }
+  .doc-link[data-kind="sequence"]::before { -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M22 11V3h-7v3H9V3H2v8h7V8h2v10h4v3h7v-8h-7v3h-2V8h2v3h7zM7 9H4V5h3v4zm10 6h3v4h-3v-4zm0-10h3v4h-3V5z'/%3E%3C/svg%3E"); mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M22 11V3h-7v3H9V3H2v8h7V8h2v10h4v3h7v-8h-7v3h-2V8h2v3h7zM7 9H4V5h3v4zm10 6h3v4h-3v-4zm0-10h3v4h-3V5z'/%3E%3C/svg%3E"); }
+  .doc-link[data-kind="test"]::before { -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M13 11.33L18 18H6l5-6.67V6h2m2-2H9v5.33L4 16v2c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2v-2l-5-6.67V4z'/%3E%3C/svg%3E"); mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M13 11.33L18 18H6l5-6.67V6h2m2-2H9v5.33L4 16v2c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2v-2l-5-6.67V4z'/%3E%3C/svg%3E"); }
+
+  /* 追加UI: CSVエクスポート */
+  .csv-btn {
+    background: var(--panel-2); border: 1px solid var(--border);
+    color: var(--text-sub); cursor: pointer; padding: 5px 12px; font-size: 0.82rem; font-family: inherit;
+  }
+  .csv-btn:hover { background: var(--accent-soft); color: var(--accent); border-color: var(--accent-border); }
+
+  .prov-badge { display: inline-block; font-size: 0.7em; padding: 1px 4px; margin-left: 4px; border: 1px solid; }
+  .prov-badge.prov-measured { color: var(--accent); border-color: var(--accent); }
+  .prov-badge.prov-inferred { color: var(--stamp); border-color: var(--stamp); }
+  .prov-badge.prov-confirmed { color: var(--green); border-color: var(--green); }
+</style>
+</head>
+<body>
+<div class="pt">
+  <div class="pt-grid"></div>
+  <div class="pt-row">
+    <!--SHELL_SIDEBAR-->
+    <main class="pt-main is-fixed" data-scroll-cues="auto">
+      <div class="pt-head">
+        <div class="pt-crumb">
+          <a href="{{PORTAL_RELATIVE}}" class="pt-back" aria-label="ポータルへ戻る">←</a>
+          <a href="{{PORTAL_RELATIVE}}">TOP</a> ／ {{ACTIVE_CATEGORY_LABEL}} ／ <span class="pt-crumb-current">画面一覧</span>
+        </div>
+        <div class="pt-title-row">
+          <h1 class="pt-title">画面一覧</h1>
+          <span class="pt-title-sub">更新 {{GENERATED_AT}}</span>
+        </div>
+        <div class="summary-tiles">
+          <div class="tile"><strong>{{TILE_SCREEN_COUNT}}</strong>検出画面数</div>
+          <div class="tile">{{TILE_CLUSTER_SUMMARY_HTML}}</div>
+          <div class="tile"><strong>{{TILE_EMBEDDED_COUNT}}</strong>埋め込みビュー候補数</div>
+          <div class="tile"><strong>{{TILE_UNRESOLVED_COUNT}}</strong>要手動確認数</div>
+          <div class="tile"><strong>{{TILE_LOWCONF_COUNT}}</strong>低信頼度画面数</div>
+        </div>
+      </div>
+
+      <!--LOWCONF_CALLOUT-->
+
+      <!--DIAGNOSTICS-->
+
+      <div class="toolbar-area">
+        <div class="toolbar">
+          <input type="search" id="screen-search" class="pt-input" placeholder="画面名・画面キー・画面ID・入口ファイル・ルートで絞り込み">
+          <span class="note">列見出しクリックでソート</span>
+        </div>
+      </div>
+
+      <!--SCREEN_TABLE_SECTIONS-->
+
+      <section class="unresolved {{UNRESOLVED_CLASS}}">
+        <h2><span class="material-symbols-outlined pt-callout__icon" aria-hidden="true">warning</span>要手動確認</h2>
+        <div class="table-wrap">
+        <!--UNRESOLVED_SECTION-->
+        </div>
+      </section>
+      </div>
+
+      <script type="application/json" id="screen-manifest">
+<!--SCREEN_MANIFEST_JSON-->
+      </script>
+      <script type="application/json" id="column-spec">
+<!--COLUMN_SPEC_JSON-->
+      </script>
+    </main>
+  </div>
+  <!--SHELL_FOOTER-->
+</div>
+
+<script>
+  // SCREEN_DOC_LINKS_LIB_START
+  /* 1-92/1-94: 読者向け成果物8種類のリンク定義・安全URL判定・リンク要素組み立てを1箇所に集約する
+     共有ライブラリ。展開パネル(buildDetailGroup)と主テーブル行の任意列「関連資料」の両方が
+     window.ScreenDocLinks を参照することで、リンク定義の二重管理を避ける。 */
+  window.ScreenDocLinks = (function () {
+    var DOC_DEFS = [
+      {label: '基本設計書', pathField: 'designDocPath', kind: 'basic'},
+      {label: '詳細設計書', pathField: 'detailDocPath', kind: 'detail'},
+      {label: 'シーケンス図', pathField: 'sequencePath', kind: 'sequence'},
+      {label: 'テストケース', pathField: 'testCasePath', kind: 'test'},
+      {label: '単体テスト観点表', pathField: 'unitTestViewpointPath', kind: 'unit-viewpoint'},
+      {label: '結合テスト観点表', pathField: 'integrationTestViewpointPath', kind: 'integration-viewpoint'},
+      {label: '結合テスト仕様書', pathField: 'integrationTestCasePath', kind: 'integration-case'},
+      {label: '操作シナリオ仕様書', pathField: 'scenarioPath', kind: 'scenario'}
+    ];
+
+    function isSafeRelativeUrl(value) {
+      return typeof value === 'string' &&
+        value.length > 0 &&
+        value === value.trim() &&
+        !/[\x00-\x1f\x7f]/.test(value) &&
+        !/^[A-Za-z][A-Za-z0-9+.-]*:/.test(value) &&
+        !/^[\/\\]/.test(value) &&
+        value.indexOf('\\') === -1;
+    }
+
+    function hasAnyDocLink(item) {
+      if (!item) return false;
+      for (var i = 0; i < DOC_DEFS.length; i++) {
+        if (item[DOC_DEFS[i].pathField]) return true;
+      }
+      return false;
+    }
+
+    /* item(画面) 1件分の<a>要素配列を組み立てる。実在しないリンクも disabled 状態の<a>として
+       返す(展開パネルは「未作成」提示のため常に8件必要)。呼び出し側で用途に応じて絞り込む。 */
+    function buildDocLinkElements(item) {
+      return DOC_DEFS.map(function (doc) {
+        var a = document.createElement('a');
+        a.textContent = doc.label;
+        a.setAttribute('data-kind', doc.kind);
+        var href = item[doc.pathField];
+        if (isSafeRelativeUrl(href)) {
+          a.href = href;
+          a.className = 'doc-link';
+        } else {
+          a.className = 'doc-link disabled';
+          a.title = href ? '無効なリンク' : '未作成';
+        }
+        return a;
+      });
+    }
+
+    return {
+      DOC_DEFS: DOC_DEFS,
+      isSafeRelativeUrl: isSafeRelativeUrl,
+      hasAnyDocLink: hasAnyDocLink,
+      buildDocLinkElements: buildDocLinkElements
+    };
+  })();
+  // SCREEN_DOC_LINKS_LIB_END
+</script>
+
+<script>
+  // SCREEN_DOC_LINKS_COLUMN_START
+  (function () {
+    /* 1-94: 実在する成果物リンクを、行展開を待たず主テーブルからも直接遷移できるようにする。
+       静的theadは増やさず(全3列のまま)、JSによる任意列として末尾に「関連資料」列を追加する。
+       任意列の他フィールドと同じ「値が1件でもあれば列追加」方針。リンク定義はwindow.ScreenDocLinks
+       (展開パネルと共有)を使い、二重管理を避ける。colCount計算(次スクリプト)より前に実行し、
+       展開行のcolSpanズレを防ぐ。 */
+    var linkApi = window.ScreenDocLinks;
+    if (!linkApi) return;
+    var manifestEl = document.getElementById('screen-manifest');
+    if (!manifestEl) return;
+    var manifest;
+    try { manifest = JSON.parse(manifestEl.textContent); } catch (e) { return; }
+    var items = (manifest && manifest.screens) || [];
+    if (!items.length) return;
+    if (!items.some(linkApi.hasAnyDocLink)) return;
+
+    var tables = Array.prototype.slice.call(
+      document.querySelectorAll('.table-area table[data-unit-table]')
+    );
+    var unresolvedTable = document.getElementById('unresolved-table');
+    if (unresolvedTable) tables.push(unresolvedTable);
+    if (!tables.length) return;
+
+    var byId = {};
+    var byKey = {};
+    items.forEach(function (it) {
+      if (it.screenId) byId[it.screenId] = it;
+      if (it.screenKey) byKey[it.screenKey] = it;
+    });
+
+    tables.forEach(function (tb) {
+      var hr = tb.querySelector('thead tr');
+      if (hr) {
+        var th = document.createElement('th');
+        th.textContent = '関連資料';
+        th.style.width = '170px';
+        hr.appendChild(th);
+      }
+      var rows = Array.prototype.slice.call(tb.querySelectorAll('tbody tr'));
+      rows.forEach(function (tr) {
+        var idText = tr.getAttribute('data-screen-id') || '';
+        var keyText = tr.getAttribute('data-screen-key') || '';
+        var item = byId[idText] || byKey[keyText] || null;
+        var td = document.createElement('td');
+        td.className = 'doc-links-cell';
+        if (item) {
+          linkApi.buildDocLinkElements(item).forEach(function (a) {
+            /* 主テーブル行では実在するリンクだけを表示する(未作成の8バッジ常時表示は主表示では
+               冗長なため、展開パネル側の「未作成」提示と役割を分ける)。 */
+            if (a.className.indexOf('disabled') === -1) td.appendChild(a);
+          });
+        }
+        tr.appendChild(td);
+      });
+    });
+  })();
+  // SCREEN_DOC_LINKS_COLUMN_END
+</script>
+
+<script>
+  (function () {
+    /* 任意列描画: manifest 追加フィールド(category / permissions / relatedApis / designDocStatus)のうち
+       値が1件でもあるフィールドだけ列を末尾に追加する。既存列のインデックスは変えない。
+       一覧制御スクリプトより先に実行し、追加セルが copy / chips / CSV の初期化前に存在する状態を作る。 */
+    var manifestEl = document.getElementById('screen-manifest');
+    if (!manifestEl) return;
+    var manifest;
+    try { manifest = JSON.parse(manifestEl.textContent); } catch (e) { return; }
+    var items = (manifest && manifest.screens) || [];
+    if (!items.length) return;
+
+    var specEl = document.getElementById('column-spec');
+    if (!specEl) return;
+    var spec;
+    try { spec = JSON.parse(specEl.textContent); } catch (e) { return; }
+    if (!spec) return;
+    var FIELDS = []
+      .concat((spec.axes || []).filter(function (a) { return ((a.column || {}).show || 'auto') !== 'never'; }))
+      .concat(spec.columns || [])
+      .sort(function (a, b) { return (a.order || 999) - (b.order || 999); });
+    if (!FIELDS.length) return;
+
+    function isArray(v) {
+      return Object.prototype.toString.call(v) === '[object Array]';
+    }
+
+    function hasValue(v, field) {
+      if (v === null || v === undefined) return false;
+      if (Object.prototype.toString.call(v) === '[object Array]') {
+        return (field && field.presence === 'arrayOrEmptyLabel') ? true : v.length > 0;
+      }
+      if (typeof v === 'string') return v !== '';
+      return true;
+    }
+
+    function labelOf(field, raw) {
+      var vals = (field && field.values) || [];
+      for (var i = 0; i < vals.length; i++) {
+        if (vals[i].key === raw) return vals[i].label;
+      }
+      return String(raw);
+    }
+
+    /* 対象テーブルの集合: .table-area 内の data-unit-table テーブル(分割時は複数)に加え、
+       section.unresolved 配下の要手動確認テーブル(#unresolved-table)も対象へ含める。 */
+    var tables = Array.prototype.slice.call(
+      document.querySelectorAll('.table-area table[data-unit-table]')
+    );
+    var unresolvedTable = document.getElementById('unresolved-table');
+    if (unresolvedTable) tables.push(unresolvedTable);
+    if (!tables.length) return;
+    var bodyRows = [];
+    tables.forEach(function (tb) {
+      bodyRows = bodyRows.concat(Array.prototype.slice.call(tb.querySelectorAll('tbody tr')));
+    });
+    if (!bodyRows.length) return;
+
+    var byId = {};
+    var byKey = {};
+    items.forEach(function (it) {
+      if (it.screenId) byId[it.screenId] = it;
+      if (it.screenKey) byKey[it.screenKey] = it;
+    });
+
+    function normalizeScreenName(value) {
+      return String(value || '')
+        .replace(/\s*\(OK\)\s+\([^()]+\)\s*$/, '')
+        .replace(/\s*\(OK\)\s+[A-Za-z0-9_.-]+\s*$/, '')
+        .replace(/）OK\s*$/, '）')
+        .replace(/\s+OK\s*$/, '')
+        .replace(/\s*\(OK\)\s*$/, '')
+        .trim();
+    }
+
+    /* 1-41: 画面名は埋め込みマニフェストだけを正とし、確定名を推定名より優先して再描画する。 */
+    Array.prototype.forEach.call(bodyRows, function (tr) {
+      var idText = tr.getAttribute('data-screen-id') || '';
+      var keyText = tr.getAttribute('data-screen-key') || '';
+      var item = byId[idText] || byKey[keyText] || null;
+      var nameCell = tr.querySelector('.screen-name-cell');
+      if (item && nameCell) {
+        nameCell.textContent = normalizeScreenName(item.confirmedScreenName || item.screenNameGuess || '');
+        /* 1-170: 確定名(confirmedScreenName)があれば確認済バッジ、推定名(screenNameGuess)のみなら推定バッジを付す */
+        if (item.confirmedScreenName) {
+          var confirmedBadge = document.createElement('span');
+          confirmedBadge.className = 'prov-badge prov-confirmed';
+          confirmedBadge.textContent = '確認済';
+          nameCell.appendChild(confirmedBadge);
+        } else if (item.screenNameGuess) {
+          var inferredBadge = document.createElement('span');
+          inferredBadge.className = 'prov-badge prov-inferred';
+          inferredBadge.textContent = '推定';
+          nameCell.appendChild(inferredBadge);
+        }
+      }
+    });
+
+    var active = FIELDS.filter(function (f) {
+      return ((f.column || {}).show === 'always')
+          || items.some(function (it) { return hasValue(it[f.key], f); });
+    });
+    if (!active.length) return;
+
+    /* 任意列の実幅合計だけテーブルの min-width を伸ばす。基本幅(1100px)はCSS側の
+       table.screens { min-width: 1100px } をそのまま踏襲し、JS側では上書きのみ行う。 */
+    var extraWidth = active.reduce(function (sum, f) {
+      var w = parseInt(f.width || '140', 10);
+      return sum + (isNaN(w) ? 140 : w);
+    }, 0);
+
+    var style = document.createElement('style');
+    style.textContent =
+      '.opt-tag{display:inline-block;font-size:.72rem;padding:1px 6px;background:var(--panel-2);margin:1px 3px 1px 0;}' +
+      '.opt-badge{display:inline-block;font-size:.76rem;font-weight:700;padding:1px 8px;}' +
+      '.opt-badge.danger{background:var(--danger-soft);color:var(--danger);}' +
+      '.opt-badge.success{background:var(--success-soft);color:var(--success);}' +
+      '.opt-badge.gold{background:var(--gold-soft);color:var(--gold);}' +
+      '.opt-muted{color:var(--text-muted);}' +
+      'a.opt-tag{color:inherit;text-decoration:none;cursor:pointer;}' +
+      'a.opt-tag:hover{text-decoration:underline;color:var(--accent);}' +
+      'a.opt-badge-link{text-decoration:none;}' +
+      'a.opt-badge-link:hover .opt-badge{text-decoration:underline;}' +
+      '.doc-status-row{display:inline-flex;gap:3px;}' +
+      '.doc-status-chip{font-size:10px;font-weight:700;padding:1px 5px;line-height:1.4;}' +
+      '.doc-status-chip.active{color:var(--success);background:var(--success-soft);}' +
+      '.doc-status-chip.inactive{color:var(--text-muted);background:var(--panel-2);border:1px solid var(--border);}';
+    document.head.appendChild(style);
+
+    function appendTag(td, text, href) {
+      var el = href ? document.createElement('a') : document.createElement('span');
+      el.className = 'opt-tag';
+      el.textContent = text;
+      if (href) el.href = href;
+      td.appendChild(el);
+    }
+
+    function renderValue(td, field, v, item) {
+      if (isArray(v)) {
+        if (!v.length) {
+          td.textContent = field.emptyLabel || '';
+          return;
+        }
+        v.forEach(function (entry) {
+          var entryText = String(entry);
+          var href = null;
+          if (field.key === 'relatedApis' && entryText && entryText !== '—') {
+            href = '../API一覧/API一覧.html?q=' + encodeURIComponent(entryText);
+          }
+          appendTag(td, entryText, href);
+        });
+        return;
+      }
+      if (typeof v === 'boolean') {
+        var flag = document.createElement('span');
+        var trueLabel = field.trueLabel || '要';
+        var falseLabel = field.falseLabel || '不要';
+        if (v) { flag.className = 'opt-badge gold'; flag.textContent = trueLabel; }
+        else { flag.className = 'opt-muted'; flag.textContent = falseLabel; }
+        td.appendChild(flag);
+        return;
+      }
+      if (v && typeof v === 'object') {
+        var sched = document.createElement('span');
+        sched.textContent = v.readable || '';
+        if (v.cron) sched.title = v.cron;
+        td.appendChild(sched);
+        return;
+      }
+      var text = labelOf(field, v);
+      if (field.key === 'designDocStatus') {
+        var hasDoc = text === '着手済';
+        var row = document.createElement('span');
+        row.className = 'doc-status-row';
+        var chips = [
+          {label: '基', title: '基本設計書'},
+          {label: '詳', title: '詳細設計書'},
+          {label: 'シ', title: 'シーケンス図'},
+          {label: 'テ', title: 'テストケース'}
+        ];
+        chips.forEach(function(chip) {
+          var s = document.createElement('span');
+          s.className = 'doc-status-chip ' + (hasDoc ? 'active' : 'inactive');
+          s.textContent = chip.label;
+          s.title = chip.title + (hasDoc ? '' : '（未作成）');
+          row.appendChild(s);
+        });
+        td.textContent = '';
+        td.appendChild(row);
+        return;
+      }
+      td.textContent = text;
+    }
+
+    tables.forEach(function (tb) {
+      var hr = tb.querySelector('thead tr');
+      if (!hr) return;
+      active.forEach(function (field) {
+        var th = document.createElement('th');
+        th.setAttribute('data-key', field.key);
+        th.textContent = field.label;
+        if (field.width) th.style.width = field.width;
+        hr.appendChild(th);
+      });
+      tb.style.minWidth = (1100 + extraWidth) + 'px';
+    });
+
+    Array.prototype.forEach.call(bodyRows, function (tr) {
+      var idText = tr.getAttribute('data-screen-id') || '';
+      var keyText = tr.getAttribute('data-screen-key') || '';
+      var item = byId[idText] || byKey[keyText] || null;
+      active.forEach(function (field) {
+        var td = document.createElement('td');
+        if (item && hasValue(item[field.key], field)) {
+          renderValue(td, field, item[field.key], item);
+        }
+        tr.appendChild(td);
+      });
+    });
+  })();
+</script>
+
+<script>
+  (function () {
+    var manifestEl = document.getElementById('screen-manifest');
+    var manifest = {};
+    try { manifest = JSON.parse(manifestEl.textContent); } catch (e) { /* ignore */ }
+
+    var search = document.getElementById('screen-search');
+    /* 対象テーブルの集合: .table-area 内の module-group セクションが持つ data-unit-table テーブルのみ。
+       要手動確認テーブル(#unresolved-table)は section.unresolved 配下にあり module-group ではないため対象外。 */
+    var tables = Array.prototype.slice.call(
+      document.querySelectorAll('.table-area .module-group table[data-unit-table]')
+    );
+    if (!tables.length) return;
+
+    var PAGE_SIZE = 50;
+    /* タグ化対象は column-spec の axes から動的に組み立てる。宣言(unit-axes.json)に軸を追加すると
+       自動的にタグの絞り込み候補へ反映される。「区分」(kind)は manifest 検出時の区分列であり
+       宣言の軸ではないが、絞り込みに有用なため静的に先頭へ追加する。
+       「画面名」「ルート」は自由記述に近くタグ化すると数が爆発するため対象外。 */
+    var FILTER_CHIP_LABELS = ['区分'];
+    (function () {
+      var specEl = document.getElementById('column-spec');
+      if (!specEl) return;
+      var spec;
+      try { spec = JSON.parse(specEl.textContent); } catch (e) { return; }
+      if (!spec || !spec.axes) return;
+      spec.axes
+        .filter(function (a) { return ((a.column || {}).show || 'auto') !== 'never'; })
+        .sort(function (a, b) { return (a.order || 999) - (b.order || 999); })
+        .forEach(function (a) { FILTER_CHIP_LABELS.push(a.label); });
+    })();  /* 列見出し名で指定。任意列は存在する時だけチップ化(既存判定を維持) */
+
+    var COPY_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>';
+    var CHECK_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+
+    function fallbackCopy(text) {
+      var ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand('copy'); } catch (e) { /* ignore */ }
+      document.body.removeChild(ta);
+    }
+
+    function copyCellText(text, btn) {
+      function showDone() {
+        btn.innerHTML = CHECK_SVG;
+        setTimeout(function () { btn.innerHTML = COPY_SVG; }, 1200);
+      }
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(showDone, function () { fallbackCopy(text); showDone(); });
+      } else {
+        fallbackCopy(text);
+        showDone();
+      }
+    }
+
+    function makeCopyBtn(getText) {
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'copy-btn';
+      btn.setAttribute('aria-label', 'コピー');
+      btn.innerHTML = COPY_SVG;
+      btn.addEventListener('click', function (ev) {
+        ev.stopPropagation();
+        ev.preventDefault();
+        copyCellText(getText(), btn);
+      });
+      return btn;
+    }
+
+    var toolbarEl = document.querySelector('.toolbar');
+
+    function hasChipSelection(state) {
+      for (var k in state.chipState) {
+        if (Object.keys(state.chipState[k]).length > 0) return true;
+      }
+      return false;
+    }
+
+    function matchesChips(state, tr) {
+      for (var k in state.chipState) {
+        var selected = Object.keys(state.chipState[k]);
+        if (selected.length === 0) continue;
+        var v = tr.children[k] ? tr.children[k].textContent.trim() : '';
+        if (selected.indexOf(v) === -1) return false;
+      }
+      return true;
+    }
+
+    function computeVisible(state) {
+      var q = search ? search.value.trim().toLowerCase() : '';
+      var visible = state.allRows.filter(function (tr) {
+        var searchText = (tr.textContent + ' ' + (tr.getAttribute('data-search-text') || '')).toLowerCase();
+        if (q && searchText.indexOf(q) === -1) return false;
+        return matchesChips(state, tr);
+      });
+      if (state.sortCol >= 0) {
+        visible.sort(function (a, b) {
+          var av = a.children[state.sortCol].textContent.trim();
+          var bv = b.children[state.sortCol].textContent.trim();
+          var an = parseFloat(av), bn = parseFloat(bv);
+          var cmp = (!isNaN(an) && !isNaN(bn)) ? (an - bn) : av.localeCompare(bv, 'ja');
+          return state.sortAsc ? cmp : -cmp;
+        });
+      }
+      return visible;
+    }
+
+    function closeDetailRows(state) {
+      Array.prototype.forEach.call(state.tbody.querySelectorAll('tr.row-detail'), function (r) {
+        r.parentNode.removeChild(r);
+      });
+    }
+
+    function renderPage(state) {
+      closeDetailRows(state);
+      state.chipClear.style.display = hasChipSelection(state) ? '' : 'none';
+      var visible = computeVisible(state);
+
+      var totalPages = Math.max(1, Math.ceil(visible.length / PAGE_SIZE));
+      if (state.currentPage >= totalPages) state.currentPage = totalPages - 1;
+      if (state.currentPage < 0) state.currentPage = 0;
+      var start = state.currentPage * PAGE_SIZE;
+      var end = start + PAGE_SIZE;
+
+      state.allRows.forEach(function (tr) { tr.style.display = 'none'; });
+      visible.forEach(function (tr, i) {
+        tr.style.display = (i >= start && i < end) ? '' : 'none';
+        state.tbody.appendChild(tr);
+      });
+
+      if (state.pagEl) state.pagEl.style.display = visible.length <= PAGE_SIZE ? 'none' : '';
+      if (state.pageInfo) state.pageInfo.textContent = (state.currentPage + 1) + ' / ' + totalPages + '（' + visible.length + '件）';
+      if (state.btnFirst) state.btnFirst.disabled = state.currentPage === 0;
+      if (state.btnPrev) state.btnPrev.disabled = state.currentPage === 0;
+      if (state.btnNext) state.btnNext.disabled = state.currentPage >= totalPages - 1;
+      if (state.btnLast) state.btnLast.disabled = state.currentPage >= totalPages - 1;
+    }
+
+    /* フィルタチップの選択状態はページに1つ。全テーブルの state で同一オブジェクトを共有し、
+       検索と同じく1つの操作が全テーブルへ効くようにする。 */
+    var sharedChipState = {};
+
+    var tableStates = tables.map(function (table) {
+      var tbody = table.querySelector('tbody');
+      var allRows = Array.prototype.slice.call(tbody.querySelectorAll('tr'));
+      var state = {
+        table: table,
+        tbody: tbody,
+        allRows: allRows,
+        currentPage: 0,
+        sortCol: -1,
+        sortAsc: true,
+        chipState: sharedChipState
+      };
+
+      /* ===== 展開インジケータ（シェブロン列） ===== */
+      (function () {
+        var headRow = table.querySelector('thead tr');
+        if (headRow) {
+          var chTh = document.createElement('th');
+          chTh.style.width = '32px';
+          chTh.style.padding = '8px 4px';
+          headRow.insertBefore(chTh, headRow.firstChild);
+        }
+        var CHEVRON_SVG = '<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" style="vertical-align:middle;transition:transform .15s"><path d="M6.22 3.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042L9.94 8 6.22 4.28a.75.75 0 0 1 0-1.06Z"/></svg>';
+        allRows.forEach(function (tr) {
+          var chTd = document.createElement('td');
+          chTd.style.width = '32px';
+          chTd.style.textAlign = 'center';
+          chTd.style.color = 'var(--text-muted)';
+          chTd.style.padding = '8px 4px';
+          chTd.className = 'expand-cell';
+          chTd.innerHTML = '<span class="chevron">' + CHEVRON_SVG + '</span>';
+          tr.insertBefore(chTd, tr.firstChild);
+        });
+      })();
+
+      state.colCount = table.querySelectorAll('thead th').length;
+      state.headerLabels = Array.prototype.map.call(table.querySelectorAll('thead th'), function (th) { return th.textContent.trim(); });
+
+      /* ===== 追加UI: コピーボタン ===== */
+      /* フィルタチップはページに1つだけ生成する。全テーブル横断で効かせるため、
+         テーブルごとのこのループの外(検索・CSVと同じ場所)で組み立てる。 */
+
+      /* 全セルコピー: 値のあるセル(空・「—」以外)すべてに付ける */
+      allRows.forEach(function (tr) {
+        Array.prototype.forEach.call(tr.children, function (td) {
+          var cellText = td.textContent.trim();
+          if (!cellText || cellText === '—') return;
+          td.appendChild(makeCopyBtn(function () { return td.textContent.trim(); }));
+        });
+      });
+
+      /* ===== ページャ（テーブルごとに動的生成） ===== */
+      var pagEl = document.createElement('div');
+      pagEl.className = 'pagination';
+      var btnFirst = document.createElement('button');
+      btnFirst.type = 'button';
+      btnFirst.title = '先頭';
+      btnFirst.textContent = '≪';
+      var btnPrev = document.createElement('button');
+      btnPrev.type = 'button';
+      btnPrev.title = '前';
+      btnPrev.textContent = '＜';
+      var pageInfo = document.createElement('span');
+      pageInfo.className = 'page-info';
+      var btnNext = document.createElement('button');
+      btnNext.type = 'button';
+      btnNext.title = '次';
+      btnNext.textContent = '＞';
+      var btnLast = document.createElement('button');
+      btnLast.type = 'button';
+      btnLast.title = '最後';
+      btnLast.textContent = '≫';
+      pagEl.appendChild(btnFirst);
+      pagEl.appendChild(btnPrev);
+      pagEl.appendChild(pageInfo);
+      pagEl.appendChild(btnNext);
+      pagEl.appendChild(btnLast);
+      var pagAnchor = table.parentNode;
+      /* .table-wrap のように overflow を持つラッパの内側に入れると、 */
+      /* 横スクロール時にページャも一緒に流れる。ラッパの外側へ出す。 */
+      if (pagAnchor && pagAnchor.className && pagAnchor.className.indexOf('table-wrap') !== -1) {
+        pagAnchor.parentNode.insertBefore(pagEl, pagAnchor.nextSibling);
+      } else {
+        pagAnchor.insertBefore(pagEl, table.nextSibling);
+      }
+
+      state.pagEl = pagEl;
+      state.pageInfo = pageInfo;
+      state.btnFirst = btnFirst;
+      state.btnPrev = btnPrev;
+      state.btnNext = btnNext;
+      state.btnLast = btnLast;
+
+      btnFirst.addEventListener('click', function () { state.currentPage = 0; renderPage(state); });
+      btnPrev.addEventListener('click', function () { state.currentPage--; renderPage(state); });
+      btnNext.addEventListener('click', function () { state.currentPage++; renderPage(state); });
+      btnLast.addEventListener('click', function () {
+        state.currentPage = Math.max(0, Math.ceil(computeVisible(state).length / PAGE_SIZE) - 1);
+        renderPage(state);
+      });
+
+      Array.prototype.forEach.call(table.querySelectorAll('th[data-key]'), function (th) {
+        var colIndex = Array.prototype.indexOf.call(th.parentNode.children, th);
+        th.addEventListener('click', function () {
+          if (state.sortCol === colIndex) { state.sortAsc = !state.sortAsc; } else { state.sortCol = colIndex; state.sortAsc = true; }
+          Array.prototype.forEach.call(table.querySelectorAll('th[data-key]'), function (t) { t.removeAttribute('data-asc'); });
+          th.setAttribute('data-asc', state.sortAsc);
+          state.currentPage = 0;
+          renderPage(state);
+        });
+      });
+
+      return state;
+    });
+
+    /* --- 行クリック展開: マニフェストJSONを直接参照し「仕様」「エビデンス」2グループに分離表示 ---
+       画面は種別(kind=route/embedded-view)による項目差がないため、仕様グループはunitKind別マップではなく
+       固定のフラットなフィールド一覧(sharedWith・embeddedIn・routeDupCount)を使う。 */
+    var DETAIL_SPEC_FIELDS = [
+      ['sharedWith', '共有画面'],
+      ['embeddedIn', '埋め込み元'],
+      ['routeDupCount', 'route定義箇所数'],
+      ['existingTestCount', '既存テスト件数']
+    ];
+    var EVIDENCE_FIELDS = [
+      ['confidence', 'confidence'],
+      ['detectionMethod', '検出方式'],
+      ['fileCount', '構成ファイル数'],
+      ['entryFile', '主ファイル'],
+      ['screenId', '画面ID'],
+      ['screenKey', '画面キー']
+    ];
+
+    var detailById = {};
+    var detailByKey = {};
+    (manifest.screens || []).forEach(function (s) {
+      if (s.screenId !== undefined && s.screenId !== null) detailById[String(s.screenId)] = s;
+      if (s.screenKey !== undefined && s.screenKey !== null) detailByKey[String(s.screenKey)] = s;
+    });
+
+    function findDetailScreen(tr) {
+      var idAttr = tr.getAttribute('data-screen-id') || '';
+      if (idAttr && detailById[idAttr]) return detailById[idAttr];
+      var keyAttr = tr.getAttribute('data-screen-key') || '';
+      if (keyAttr && detailByKey[keyAttr]) return detailByKey[keyAttr];
+      return null;
+    }
+
+    function detailHasValue(v) {
+      if (v === undefined || v === null || v === '') return false;
+      if (Array.isArray(v)) return v.length > 0;
+      return true;
+    }
+
+    function renderConfidenceValue(dd, v) {
+      if (!detailHasValue(v)) { dd.textContent = '—'; return; }
+      var badge = document.createElement('span');
+      var cls = String(v).toLowerCase();
+      badge.className = 'badge ' + (cls === 'high' || cls === 'medium' || cls === 'low' ? cls : 'medium');
+      badge.textContent = String(v);
+      dd.appendChild(badge);
+    }
+
+    function renderDetailValue(dd, fieldName, v) {
+      if (fieldName === 'routeDupCount') {
+        if (!v || v <= 1) { dd.textContent = '—'; return; }
+        dd.textContent = String(v) + ' 箇所';
+        return;
+      }
+      if (!detailHasValue(v)) { dd.textContent = '—'; return; }
+      if (Array.isArray(v)) {
+        v.forEach(function (item) {
+          var tag = document.createElement('span');
+          tag.className = 'opt-tag';
+          tag.textContent = String(item);
+          dd.appendChild(tag);
+        });
+        return;
+      }
+      if (fieldName === 'entryFile') {
+        var code = document.createElement('code');
+        code.textContent = String(v);
+        dd.appendChild(code);
+        return;
+      }
+      dd.textContent = String(v);
+    }
+
+    function buildDetailGroup(labelText, isEvidence, fieldPairs, item) {
+      var group = document.createElement('div');
+      group.className = 'detail-group';
+      var label = document.createElement('div');
+      label.className = 'detail-group-label' + (isEvidence ? ' evidence' : '');
+      label.textContent = labelText;
+      group.appendChild(label);
+      var dl = document.createElement('dl');
+      dl.className = 'detail-grid';
+      fieldPairs.forEach(function (pair) {
+        var fieldName = pair[0], fieldLabel = pair[1];
+        var dt = document.createElement('dt');
+        dt.textContent = fieldLabel;
+        var dd = document.createElement('dd');
+        var val = item ? item[fieldName] : undefined;
+        if (fieldName === 'confidence') { renderConfidenceValue(dd, val); }
+        else { renderDetailValue(dd, fieldName, val); }
+        if (dd.textContent !== '—' && dd.textContent !== '' ) {
+          dd.appendChild(makeCopyBtn((function (v) { return function () { return v; }; })(dd.textContent)));
+        }
+        dl.appendChild(dt);
+        dl.appendChild(dd);
+      });
+      group.appendChild(dl);
+      return group;
+    }
+
+    tableStates.forEach(function (state) {
+      state.allRows.forEach(function (tr) {
+        tr.addEventListener('click', function (ev) {
+          if (ev.target.closest && ev.target.closest('.copy-btn,a,button')) return;
+          var next = tr.nextElementSibling;
+          if (next && next.classList.contains('row-detail')) {
+            next.parentNode.removeChild(next);
+            tr.removeAttribute('data-expanded');
+            return;
+          }
+          var item = findDetailScreen(tr);
+          var detail = document.createElement('tr');
+          detail.className = 'row-detail';
+          var td = document.createElement('td');
+          td.colSpan = state.colCount;
+          var inner = document.createElement('div');
+          inner.className = 'detail-inner';
+          inner.appendChild(buildDetailGroup('仕様', false, DETAIL_SPEC_FIELDS, item));
+          inner.appendChild(buildDetailGroup('エビデンス（検出メタデータ）', true, EVIDENCE_FIELDS, item));
+          if (item) {
+            var docGroup = document.createElement('div');
+            docGroup.className = 'detail-group';
+            var docLabel = document.createElement('div');
+            docLabel.className = 'detail-group-label';
+            docLabel.textContent = '設計書';
+            docGroup.appendChild(docLabel);
+            var docLinks = document.createElement('div');
+            docLinks.className = 'doc-links';
+            /* リンク定義・安全URL判定・<a>要素組み立ては window.ScreenDocLinks(共通ライブラリ)を使う。
+               主テーブル行の任意列「関連資料」と同じ関数を呼び、二重管理を避ける(1-94)。 */
+            (window.ScreenDocLinks ? window.ScreenDocLinks.buildDocLinkElements(item) : []).forEach(function (a) {
+              docLinks.appendChild(a);
+            });
+            docGroup.appendChild(docLinks);
+            inner.appendChild(docGroup);
+          }
+          td.appendChild(inner);
+          detail.appendChild(td);
+          tr.parentNode.insertBefore(detail, tr.nextSibling);
+          tr.setAttribute('data-expanded', 'true');
+        });
+      });
+    });
+
+    /* ページ全体に1つしかないUI(検索・CSV・フィルタチップ)は全テーブルを横断して処理する */
+
+    var chipBar = document.createElement('div');
+    chipBar.className = 'filter-chips';
+    var chipClear = document.createElement('button');
+    if (toolbarEl) toolbarEl.parentNode.insertBefore(chipBar, toolbarEl.nextSibling);
+
+    var chipHeaderLabels = tableStates.length ? tableStates[0].headerLabels : [];
+    FILTER_CHIP_LABELS.forEach(function (colLabel) {
+      var ci = chipHeaderLabels.indexOf(colLabel);
+      if (ci === -1) return;
+      var values = [];
+      tableStates.forEach(function (state) {
+        state.allRows.forEach(function (tr) {
+          var v = tr.children[ci] ? tr.children[ci].textContent.trim() : '';
+          if (v && v !== '—' && values.indexOf(v) === -1) values.push(v);
+        });
+      });
+      /* 異なり値が1種類以下の軸は絞り込みに寄与しないためタグ化しない */
+      if (values.length < 2) return;
+      var field = document.createElement('div');
+      field.className = 'chip-field';
+      var fieldLabel = document.createElement('span');
+      fieldLabel.className = 'chip-field-label';
+      fieldLabel.textContent = colLabel;
+      field.appendChild(fieldLabel);
+      var fieldValues = document.createElement('div');
+      fieldValues.className = 'chip-field-values';
+      values.forEach(function (v) {
+        var chip = document.createElement('button');
+        chip.type = 'button';
+        chip.className = 'chip';
+        chip.textContent = v;
+        chip.setAttribute('aria-pressed', 'false');
+        chip.addEventListener('click', function () {
+          var pressed = chip.getAttribute('aria-pressed') === 'true';
+          chip.setAttribute('aria-pressed', pressed ? 'false' : 'true');
+          if (!sharedChipState[ci]) sharedChipState[ci] = {};
+          if (pressed) { delete sharedChipState[ci][v]; } else { sharedChipState[ci][v] = true; }
+          if (Object.keys(sharedChipState[ci]).length > 0) { fieldLabel.classList.add('is-active'); } else { fieldLabel.classList.remove('is-active'); }
+          tableStates.forEach(function (state) {
+            state.currentPage = 0;
+            renderPage(state);
+          });
+        });
+        fieldValues.appendChild(chip);
+      });
+      field.appendChild(fieldValues);
+      chipBar.appendChild(field);
+    });
+
+    chipClear.type = 'button';
+    chipClear.className = 'chip-clear';
+    chipClear.textContent = '選択を解除';
+    chipClear.style.display = 'none';
+    chipClear.addEventListener('click', function () {
+      for (var k in sharedChipState) delete sharedChipState[k];
+      Array.prototype.forEach.call(chipBar.querySelectorAll('.chip[aria-pressed="true"]'), function (c) {
+        c.setAttribute('aria-pressed', 'false');
+      });
+      Array.prototype.forEach.call(chipBar.querySelectorAll('.chip-field-label.is-active'), function (l) {
+        l.classList.remove('is-active');
+      });
+      tableStates.forEach(function (state) {
+        state.currentPage = 0;
+        renderPage(state);
+      });
+    });
+    chipBar.appendChild(chipClear);
+    tableStates.forEach(function (state) {
+      state.chipBar = chipBar;
+      state.chipClear = chipClear;
+    });
+
+    var csvBtn = document.createElement('button');
+    csvBtn.type = 'button';
+    csvBtn.className = 'csv-btn';
+    csvBtn.textContent = 'CSV';
+    csvBtn.title = '絞り込み後の全行をCSVダウンロード';
+    if (toolbarEl) toolbarEl.appendChild(csvBtn);
+    csvBtn.addEventListener('click', function () {
+      function csvEscape(v) {
+        return /[",\n\r]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v;
+      }
+      var headerLabels = tableStates.length ? tableStates[0].headerLabels : [];
+      var lines = [headerLabels.map(csvEscape).join(',')];
+      tableStates.forEach(function (state) {
+        computeVisible(state).forEach(function (tr) {
+          lines.push(Array.prototype.map.call(tr.children, function (td) {
+            return csvEscape(td.textContent.trim());
+          }).join(','));
+        });
+      });
+      var blob = new Blob(['\uFEFF' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = document.title + '.csv';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+    });
+    /* ===== 追加UIここまで ===== */
+
+    if (search) {
+      search.addEventListener('input', function () {
+        tableStates.forEach(function (state) {
+          state.currentPage = 0;
+          renderPage(state);
+        });
+      });
+      /* URLクエリ q での絞り込み受け口: <ページ>.html?q=<語> で絞り込み済み状態を開ける */
+      try {
+        var qParam = new URLSearchParams(location.search).get('q');
+        if (qParam) search.value = qParam;
+      } catch (e) { /* ignore */ }
+    }
+
+    tableStates.forEach(function (state) { renderPage(state); });
+  })();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,41 @@
+
+{
+  "screenId": "screen-home",
+  "screenLabel": "ホーム",
+  "generatedAt": "2026-07-24T00:00:00Z",
+  "operations": [
+    {
+      "key": "initial-view",
+      "label": "初期表示",
+      "handler": "handler-onMount-初期表示",
+      "lanes": [
+        {"key": "user", "label": "利用者"},
+        {"key": "screen", "label": "画面"},
+        {"key": "api", "label": "API"},
+        {"key": "table", "label": "テーブル"}
+      ],
+      "steps": [
+        {"seq": 1, "from": "user", "to": "screen", "label": "操作開始", "kind": "trigger"},
+        {"seq": 2, "from": "screen", "to": "api", "label": "GET /api/dashboard-summary", "sourceRef": "pages/HomePage.tsx:28"},
+        {"seq": 3, "from": "api", "to": "table", "label": "SELECT summary FROM dashboard_view WHERE user_id = ?", "sourceRef": "server/api/dashboard-summary.ts:15"},
+        {"seq": 4, "from": "table", "to": "api", "label": "集計レコードを返却", "sourceRef": "server/api/dashboard-summary.ts:20"},
+        {"seq": 5, "from": "api", "to": "screen", "label": "200 OK { cards, unreadNotificationCount } → 集計カード再描画", "kind": "return", "sourceRef": "pages/HomePage.tsx:34"}
+      ]
+    },
+    {
+      "key": "notification-check",
+      "label": "通知確認",
+      "handler": "handler-onNotificationBellClick-通知確認",
+      "lanes": [
+        {"key": "user", "label": "利用者"},
+        {"key": "screen", "label": "画面"},
+        {"key": "internal", "label": "内部処理"}
+      ],
+      "steps": [
+        {"seq": 1, "from": "user", "to": "screen", "label": "操作開始", "kind": "trigger"},
+        {"seq": 2, "from": "screen", "to": "internal", "label": "GET /api/notifications", "sourceRef": "components/NotificationBell.tsx:19"},
+        {"seq": 3, "from": "internal", "to": "screen", "label": "200 OK { items, unreadCount } → 通知パネル描画", "kind": "return", "sourceRef": "components/NotificationBell.tsx:25"}
+      ]
+    }
+  ]
+}

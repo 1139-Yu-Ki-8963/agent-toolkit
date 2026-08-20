@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>NO-DEFERRAL 強制 — AI マネジメントポータル</title>
+  <link rel="stylesheet" href="../style.css" />
+  <script type="module" src="../src/common/header.js"></script>
+</head>
+<body>
+  <div class="pm-page">
+    <main class="pm-main">
+      <div class="doc-crumbs"><a href="../index.html">TOP</a> / <a href="../category/flow.html">フロー一覧</a> / NO-DEFERRAL 強制</div>
+      <div class="section-header">
+        <h2 class="section-title">NO-DEFERRAL 強制</h2>
+        <span class="card-badge">hook</span>
+      </div>
+      <p class="flow-summary">「別 PR で対応」「残課題」「今後対応」等の先送り表現を PR/issue/コメント/最終応答から全面排除する。例外脱出口はない。</p>
+      <div class="flow-trigger">
+        <span class="flow-trigger-label">発火タイミング</span>
+        <span class="flow-trigger-body">gh pr/issue create/comment 発行時、Write/Edit 保存時、最終応答時に先送り句を検出したとき。</span>
+      </div>
+      <div class="cat-sub-head"><h3 class="cat-sub-title">ステップ</h3><span class="cat-sub-count">4</span></div>
+      <div class="cards">
+        <div class="card is-visual group-flow flow-step">
+          <div class="card-head">
+            <span class="flow-step-no">1</span>
+            <span class="card-title">PreToolUse</span>
+            
+          </div>
+          <div class="card-desc">[NO-DEFERRAL-BLOCK] で gh pr/issue 操作を exit 2 する。</div>
+        </div>
+        <div class="card is-visual group-flow flow-step">
+          <div class="card-head">
+            <span class="flow-step-no">2</span>
+            <span class="card-title">PostToolUse</span>
+            
+          </div>
+          <div class="card-desc">Write/Edit は成功させ、[NO-DEFERRAL] で次ターンへ警告する。</div>
+        </div>
+        <div class="card is-visual group-flow flow-step">
+          <div class="card-head">
+            <span class="flow-step-no">3</span>
+            <span class="card-title">Stop</span>
+            
+          </div>
+          <div class="card-desc">[NO-DEFERRAL-RESPONSE] で最終応答を decision:block で書き直す。</div>
+        </div>
+        <div class="card is-visual group-flow flow-step">
+          <div class="card-head">
+            <span class="flow-step-no">4</span>
+            <span class="card-title">本ターンで完遂</span>
+            
+          </div>
+          <div class="card-desc">禁止句を削除し、当該作業を本ターン内で完遂する。</div>
+        </div>
+      </div>
+      <div class="cat-sub-head"><h3 class="cat-sub-title">フロー図</h3></div>
+      <pre class="flow-diagram">先送り句検出 → [NO-DEFERRAL-BLOCK/RESPONSE] → 禁止句削除 → 本ターンで完遂</pre>
+
+      <div class="cat-sub-head"><h3 class="cat-sub-title">注意・例外</h3></div>
+      <ul class="flow-notes">
+          <li>唯一の除外: PR テンプレの「未実施・残課題」が「- なし」等の空白既定のみ。</li>
+          <li>「別 PR / 別 issue に分割」の選択肢は提示しない。</li>
+      </ul>
+      <div class="back-link"><a href="../category/flow.html">← フロー一覧へ戻る</a></div>
+    </main>
+  </div>
+</body>
+</html>

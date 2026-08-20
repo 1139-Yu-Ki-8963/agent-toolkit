@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>textlint 自動修正 — AI マネジメントポータル</title>
+  <link rel="stylesheet" href="../style.css" />
+  <script type="module" src="../src/common/header.js"></script>
+</head>
+<body>
+  <div class="pm-page">
+    <main class="pm-main">
+      <div class="doc-crumbs"><a href="../index.html">TOP</a> / <a href="../category/flow.html">フロー一覧</a> / textlint 自動修正</div>
+      <div class="section-header">
+        <h2 class="section-title">textlint 自動修正</h2>
+        <span class="card-badge">品質</span>
+      </div>
+      <p class="flow-summary">日本語長文の保存で PostToolUse の textlint が発火し、置き換え辞書規約（text-dictionary/rule.md）の違反時手順に従って違反を即修正する。</p>
+      <div class="flow-trigger">
+        <span class="flow-trigger-label">発火タイミング</span>
+        <span class="flow-trigger-body">日本語の長文（記事・ドキュメント・プランファイル）を書くとき、または [TEXTLINT] が additionalContext に注入されたとき。英語のみ・コードのみ・1〜2 文の返答はスキップ。</span>
+      </div>
+      <div class="cat-sub-head"><h3 class="cat-sub-title">ステップ</h3><span class="cat-sub-count">4</span></div>
+      <div class="cards">
+        <div class="card is-visual group-flow flow-step">
+          <div class="card-head">
+            <span class="flow-step-no">1</span>
+            <span class="card-title">.md 保存</span>
+            
+          </div>
+          <div class="card-desc">Write/Edit で日本語ドキュメントを保存する。</div>
+        </div>
+        <div class="card is-visual group-flow flow-step">
+          <div class="card-head">
+            <span class="flow-step-no">2</span>
+            <span class="card-title">textlint 発火</span>
+            
+          </div>
+          <div class="card-desc">PostToolUse hook が textlint を実行する。</div>
+        </div>
+        <div class="card is-visual group-flow flow-step">
+          <div class="card-head">
+            <span class="flow-step-no">3</span>
+            <span class="card-title">違反注入</span>
+            
+          </div>
+          <div class="card-desc">違反があれば [TEXTLINT]、gh 操作前なら [TEXTLINT-BLOCK] を注入する。</div>
+        </div>
+        <div class="card is-visual group-flow flow-step">
+          <div class="card-head">
+            <span class="flow-step-no">4</span>
+            <span class="card-title">即修正</span>
+            
+          </div>
+          <div class="card-desc">hook が注入する `~/.claude/rules/always/review-checklist/text-dictionary/rule.md` の違反時手順に従い、rules 側の指示通りに Edit 修正する（スキル呼び出し不要）。</div>
+        </div>
+      </div>
+      <div class="cat-sub-head"><h3 class="cat-sub-title">フロー図</h3></div>
+      <pre class="flow-diagram">.md 保存 → PostToolUse textlint → [TEXTLINT] 注入 → 該当ルールで即修正 → [TEXTLINT-CLEAN]</pre>
+
+      <div class="cat-sub-head"><h3 class="cat-sub-title">注意・例外</h3></div>
+      <ul class="flow-notes">
+          <li>[TEXTLINT-CLEAN] 注入は違反解消を意味する。次の作業へ即進む。</li>
+          <li>[TEXTLINT-STALE] は廃止済み。違反が残っても停止せず可能な範囲で進める。</li>
+      </ul>
+      <div class="back-link"><a href="../category/flow.html">← フロー一覧へ戻る</a></div>
+    </main>
+  </div>
+</body>
+</html>

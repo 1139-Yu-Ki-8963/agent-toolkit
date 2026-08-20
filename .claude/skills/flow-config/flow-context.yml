@@ -1,0 +1,30 @@
+# .claude/skills/flow-config/flow-context.yml
+# agent-toolkit は配布物同梱・payload 同期リポジトリであり、アプリケーションのレイヤー構造
+# （frontend/backend 等）を持たない。orchestrating-dev-flow の config-with-review-and-verify
+# ルート（設定・ドキュメント編集、コードゲート不要）を成立させるための最小構成。
+
+domain_glossary: null
+design_system: null
+adr_dir: null
+
+source:
+  design_docs: null
+  portal_dir: null
+
+review_gates: {}
+
+pr:
+  template: null
+  required_sections: []
+  critical_globs: []
+
+classify:
+  quick_max_files: 2
+  quick_excludes:
+    - migration
+    - schema_change
+    - api_contract
+    - ui_component
+
+preflight:
+  skip_tools: []

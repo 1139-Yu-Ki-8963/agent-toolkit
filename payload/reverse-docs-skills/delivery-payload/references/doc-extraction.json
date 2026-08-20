@@ -1,0 +1,208 @@
+{
+  "specVersion": 1,
+  "excluded": {
+    "screen": "frontmatterがscreenKey/route/entryFileという他6種別と異なる語彙を持つため、設計書からのマニフェスト抽出対象には含めない。画面マニフェストは既存の組み込み検出器(detect-screens.sh等)が別途生成する。"
+  },
+  "separateKindContracts": {
+    "screen": {
+      "unitRootKey": "screenUnitRoot",
+      "testDocuments": {
+        "externalBehavior": "画面テスト設計書.md",
+        "functionUnit": "画面単体テスト設計書.md",
+        "screenOnly": ["操作シナリオ仕様書.md"],
+        "directoryKey": "unitTestDesignDir"
+      }
+    }
+  },
+  "kinds": {
+    "api": {
+      "unitRootKey": "apiUnitRoot",
+      "docFileName": "API詳細設計書.md",
+      "testDocuments": {"externalBehavior": "APIテスト設計書.md", "functionUnit": "API単体テスト設計書.md", "directoryKey": "unitTestDesignDir"},
+      "mapping": {
+        "unitKey": "api_key",
+        "unitId": "api_id",
+        "sourceFile": "source_ref"
+      },
+      "identifier": {
+        "mode": "concat",
+        "fields": ["method", "path"],
+        "separator": " "
+      },
+      "kindMapping": {
+        "requiredFields": ["method", "path"],
+        "value": "endpoint"
+      },
+      "unresolvable": {
+        "kind": "unresolved",
+        "confidence": "low",
+        "detectionMethod": "未確認",
+        "fileCount": null,
+        "unitKey": "未確認",
+        "sourceFile": "未確認"
+      }
+    },
+    "table": {
+      "unitRootKey": "tableUnitRoot",
+      "docFileName": "テーブル定義書.md",
+      "testDocuments": {"externalBehavior": "テーブルテスト設計書.md", "functionUnit": "テーブル単体テスト設計書.md", "directoryKey": "unitTestDesignDir"},
+      "aggregateDocumentExtraction": {
+        "documentPath": "docs/design/tables/テーブル一覧.md",
+        "sectionStartRegex": "^##[[:space:]]+テーブル[[:space:]]*:",
+        "fieldColumns": {
+          "table_key": "キー",
+          "table_id": "ID",
+          "source_ref": "ソース参照",
+          "table_subkind": "種別"
+        },
+        "staticFields": { "unit_kind": "table" }
+      },
+      "mapping": {
+        "unitKey": "table_key",
+        "unitId": "table_id",
+        "sourceFile": "source_ref"
+      },
+      "identifier": { "mode": "unresolvable" },
+      "kindMapping": {
+        "requiredFields": ["table_subkind"],
+        "valueFrom": "table_subkind",
+        "allowedValues": ["table", "view", "migration"]
+      },
+      "unresolvable": {
+        "kind": "unresolved",
+        "confidence": "low",
+        "detectionMethod": "未確認",
+        "fileCount": null,
+        "identifier": "未確認",
+        "unitKey": "未確認",
+        "sourceFile": "未確認"
+      }
+    },
+    "batch": {
+      "unitRootKey": "batchUnitRoot",
+      "docFileName": "バッチ詳細設計書.md",
+      "testDocuments": {"externalBehavior": "バッチテスト設計書.md", "functionUnit": "バッチ単体テスト設計書.md", "directoryKey": "unitTestDesignDir"},
+      "aggregateDocumentExtraction": {
+        "documentPath": "docs/design/batches/バッチ一覧.md",
+        "sectionStartRegex": "^##[[:space:]]+バッチ[[:space:]]*:",
+        "fieldColumns": {
+          "batch_key": "キー",
+          "batch_id": "ID",
+          "source_ref": "ソース参照",
+          "batch_trigger_type": "起動種別"
+        },
+        "staticFields": { "unit_kind": "batch" }
+      },
+      "mapping": {
+        "unitKey": "batch_key",
+        "unitId": "batch_id",
+        "sourceFile": "source_ref"
+      },
+      "identifier": { "mode": "unresolvable" },
+      "kindMapping": {
+        "requiredFields": ["batch_trigger_type"],
+        "valueFrom": "batch_trigger_type",
+        "allowedValues": ["scheduled", "triggered"]
+      },
+      "unresolvable": {
+        "kind": "unresolved",
+        "confidence": "low",
+        "detectionMethod": "未確認",
+        "fileCount": null,
+        "identifier": "未確認",
+        "unitKey": "未確認",
+        "sourceFile": "未確認"
+      }
+    },
+    "report": {
+      "unitRootKey": "reportUnitRoot",
+      "docFileName": "帳票詳細設計書.md",
+      "testDocuments": {"externalBehavior": "帳票テスト設計書.md", "functionUnit": "帳票単体テスト設計書.md", "directoryKey": "unitTestDesignDir"},
+      "mapping": {
+        "unitKey": "report_key",
+        "unitId": "report_id",
+        "sourceFile": "source_ref"
+      },
+      "identifier": { "mode": "unresolvable" },
+      "kindMapping": {
+        "requiredFields": ["report_engine"],
+        "valueFrom": "report_engine",
+        "allowedValues": ["template", "generator"]
+      },
+      "unresolvable": {
+        "kind": "unresolved",
+        "confidence": "low",
+        "detectionMethod": "未確認",
+        "fileCount": null,
+        "identifier": "未確認",
+        "unitKey": "未確認",
+        "sourceFile": "未確認"
+      }
+    },
+    "external": {
+      "unitRootKey": "externalUnitRoot",
+      "docFileName": "外部連携詳細設計書.md",
+      "testDocuments": {"externalBehavior": "外部連携テスト設計書.md", "functionUnit": "外部連携単体テスト設計書.md", "directoryKey": "unitTestDesignDir"},
+      "aggregateDocumentExtraction": {
+        "documentPath": "docs/design/externals/外部連携一覧.md",
+        "sectionStartRegex": "^##[[:space:]]+外部連携[[:space:]]*:",
+        "fieldColumns": {
+          "external_key": "キー",
+          "external_id": "ID",
+          "source_ref": "ソース参照",
+          "external_direction": "方向"
+        },
+        "staticFields": { "unit_kind": "external" }
+      },
+      "mapping": {
+        "unitKey": "external_key",
+        "unitId": "external_id",
+        "sourceFile": "source_ref"
+      },
+      "identifier": { "mode": "unresolvable" },
+      "kindMapping": {
+        "requiredFields": ["external_direction"],
+        "valueFrom": "external_direction",
+        "allowedValues": ["client", "webhook"]
+      },
+      "unresolvable": {
+        "kind": "unresolved",
+        "confidence": "low",
+        "detectionMethod": "未確認",
+        "fileCount": null,
+        "identifier": "未確認",
+        "unitKey": "未確認",
+        "sourceFile": "未確認"
+      }
+    },
+    "feature": {
+      "unitRootKey": "featureUnitRoot",
+      "docFileName": "機能設計書.md",
+      "documentContract": {
+        "fileComposition": "single",
+        "splitAllowed": false,
+        "allSectionsIn": "docFileName",
+        "titleRoleNameFrom": "docFileNameWithoutExtension",
+        "titleFormat": "<対象名> <役割名>",
+        "description": "機能の設計書はdocFileNameで定める1ファイルに全節を収め、分割しない。表題の形式検査で使う役割名は、docFileNameから拡張子を除いた文字列とする。"
+      },
+      "testDocuments": {"externalBehavior": "機能テスト設計書.md", "functionUnit": "機能単体テスト設計書.md", "directoryKey": "unitTestDesignDir"},
+      "mapping": {
+        "unitKey": "feature_key",
+        "unitId": "feature_id",
+        "category": "category",
+        "sourceFile": "source_ref"
+      },
+      "identifier": { "mode": "unresolvable" },
+      "unresolvable": {
+        "kind": "unresolved",
+        "confidence": "low",
+        "detectionMethod": "未確認",
+        "fileCount": null,
+        "identifier": "未確認",
+        "unitKey": "未確認",
+        "sourceFile": "未確認"
+      }
+    }
+  }
+}

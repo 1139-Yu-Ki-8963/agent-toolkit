@@ -1,0 +1,184 @@
+{
+  "generatedAt": "2026-07-28T00:00:00Z",
+  "dataSource": "機能一覧マニフェスト + テーブル一覧マニフェスト",
+  "tables": [
+    {
+      "physicalName": "users",
+      "logicalName": "ユーザー"
+    },
+    {
+      "physicalName": "sessions",
+      "logicalName": "セッション"
+    },
+    {
+      "physicalName": "app_settings",
+      "logicalName": "設定"
+    },
+    {
+      "physicalName": "roles",
+      "logicalName": "ロール"
+    },
+    {
+      "physicalName": "permissions",
+      "logicalName": "権限"
+    },
+    {
+      "physicalName": "user_roles",
+      "logicalName": "ユーザーロール紐付"
+    },
+    {
+      "physicalName": "posts",
+      "logicalName": "投稿"
+    },
+    {
+      "physicalName": "comments",
+      "logicalName": "コメント"
+    },
+    {
+      "physicalName": "categories",
+      "logicalName": "カテゴリ"
+    },
+    {
+      "physicalName": "tags",
+      "logicalName": "タグ"
+    },
+    {
+      "physicalName": "post_tags",
+      "logicalName": "投稿タグ紐付"
+    },
+    {
+      "physicalName": "notifications",
+      "logicalName": "通知"
+    },
+    {
+      "physicalName": "audit_logs",
+      "logicalName": "監査ログ"
+    },
+    {
+      "physicalName": "uploaded_files",
+      "logicalName": "ファイル"
+    },
+    {
+      "physicalName": "organizations",
+      "logicalName": "組織"
+    },
+    {
+      "physicalName": "organization_members",
+      "logicalName": "組織メンバー紐付"
+    }
+  ],
+  "features": [
+    {
+      "featureId": "login",
+      "featureName": "ログイン",
+      "cells": {
+        "sessions": "C",
+        "users": "R"
+      }
+    },
+    {
+      "featureId": "logout",
+      "featureName": "ログアウト",
+      "cells": {
+        "sessions": "D"
+      }
+    },
+    {
+      "featureId": "signup",
+      "featureName": "新規登録",
+      "cells": {
+        "users": "C"
+      }
+    },
+    {
+      "featureId": "password-reset",
+      "featureName": "パスワードリセット",
+      "cells": {
+        "users": "U"
+      }
+    },
+    {
+      "featureId": "profile-edit",
+      "featureName": "プロフィール編集",
+      "cells": {
+        "users": "RU"
+      }
+    },
+    {
+      "featureId": "user-list",
+      "featureName": "ユーザー一覧表示",
+      "cells": {
+        "users": "R"
+      }
+    },
+    {
+      "featureId": "user-invite",
+      "featureName": "ユーザー招待",
+      "cells": {
+        "users": "C",
+        "organization_members": "C"
+      }
+    },
+    {
+      "featureId": "role-assign",
+      "featureName": "ロール割当",
+      "cells": {
+        "user_roles": "CU",
+        "roles": "R"
+      }
+    },
+    {
+      "featureId": "post-create",
+      "featureName": "投稿作成",
+      "cells": {
+        "posts": "C",
+        "categories": "R",
+        "tags": "R"
+      }
+    },
+    {
+      "featureId": "post-edit",
+      "featureName": "投稿編集",
+      "cells": {
+        "posts": "RU"
+      }
+    },
+    {
+      "featureId": "post-delete",
+      "featureName": "投稿削除",
+      "cells": {
+        "posts": "D"
+      }
+    },
+    {
+      "featureId": "comment",
+      "featureName": "コメント投稿",
+      "cells": {
+        "comments": "C",
+        "posts": "R"
+      }
+    },
+    {
+      "featureId": "file-upload",
+      "featureName": "ファイル添付",
+      "cells": {
+        "uploaded_files": "C"
+      }
+    },
+    {
+      "featureId": "notification-list",
+      "featureName": "通知一覧表示",
+      "cells": {
+        "notifications": "R"
+      }
+    },
+    {
+      "featureId": "notification-settings",
+      "featureName": "通知設定",
+      "cells": {
+        "app_settings": "RU"
+      }
+    }
+  ],
+  "manifestContentHash": "c7d90a604412f8b7f047b9d3de9c723168e34b0215ac4d27e2c63a30a089a550"
+}

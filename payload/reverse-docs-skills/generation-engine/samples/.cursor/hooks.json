@@ -1,0 +1,61 @@
+{
+  "_generatedNotice": "このエントリ群（コマンドが docs/rules/ で始まるもの）は build-derived-rules.sh が docs/rules/ から自動生成した。直接編集しないこと。",
+  "hooks": {
+    "afterFileEdit": [
+      {
+        "command": "docs/rules/agent-operations/ai-config-asset-management/check-ai-config-derivative-manual-edit.sh"
+      },
+      {
+        "command": "docs/rules/agent-operations/destructive-operation-safety/check-read-before-overwrite.sh"
+      },
+      {
+        "command": "docs/rules/business-domain/business-rules/check-business-rule-table-missing-exception.sh"
+      },
+      {
+        "command": "docs/rules/business-domain/calculation-rules/check-currency-float-type.sh"
+      },
+      {
+        "command": "docs/rules/business-domain/glossary/check-glossary-missing-forbidden-terms.sh"
+      },
+      {
+        "command": "docs/rules/business-domain/state-transitions/check-state-literal-comparison.sh"
+      },
+      {
+        "command": "docs/rules/code-standards/coding-style/check-any-type-escape-hatch.sh"
+      },
+      {
+        "command": "docs/rules/code-standards/component-architecture/check-direct-circular-import.sh"
+      },
+      {
+        "command": "docs/rules/code-standards/directory-structure/check-temp-file-tracked.sh"
+      },
+      {
+        "command": "docs/rules/code-standards/naming/check-sequential-identifier-naming.sh"
+      },
+      {
+        "command": "docs/rules/documentation-standards/document-writing/check-doc-heading-addendum.sh"
+      },
+      {
+        "command": "docs/rules/documentation-standards/portal-maintenance/check-generated-html-manual-edit.sh"
+      },
+      {
+        "command": "docs/rules/non-functional-requirements/availability/check-outbound-call-missing-timeout.sh"
+      },
+      {
+        "command": "docs/rules/non-functional-requirements/observability/check-secret-value-logging.sh"
+      },
+      {
+        "command": "docs/rules/non-functional-requirements/performance/check-loop-query-call.sh"
+      },
+      {
+        "command": "docs/rules/non-functional-requirements/security/check-secret-literal-in-code.sh"
+      },
+      {
+        "command": "docs/rules/quality-assurance/review-checklist/check-review-viewpoints-list.sh"
+      },
+      {
+        "command": "docs/rules/quality-assurance/test-policy/check-unit-test-design-doc-sections.sh"
+      }
+    ]
+  }
+}

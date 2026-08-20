@@ -1,0 +1,23 @@
+設計判断・経緯の記録（project-structure 規約）
+
+## 新設の経緯（2026-07-11）
+
+プロジェクト側の `.claude/rules/` は従来、グローバル側と異なる独自の配置慣習（`.claude/skills/flow-config/flow-context.yml` という skills 配下への実装フロー設定の混在、rules 側の scope 分離の欠如）を持っていた。ユーザーとの協議により、プロジェクト側 rules もグローバルと同じ scope 体系（always = 常時注入 / scoped = paths 条件付き注入）に統一し、プロジェクトの正本コンテキストを `always/project-context/` に一本化する設計を確定した。この設計により、プロジェクト側でも「常時注入すべきものは always、特定ファイルを触るときだけ注入すべきものは scoped」というグローバルと共通の判断軸が使えるようになり、rules 全体の学習コストと配置判断の分岐が減る。旧 `flow-context.yml` は実装フローの設定値であり本体系の `always/project-context/flow-values.yml` に吸収し、互換レイヤ（旧パスへのシムやフォールバック読み込み）は設けない。
+
+## スキーマ平坦化の根拠
+
+flow-values.yml（旧 flow-context.yml）の機械的消費者は 4 本存在するが、実装を確認したところいずれもキーの中身を読まず、ファイルの存在チェックのみを行っている（`check-dev-flow-phase-gate.sh` の block 判定・`check-flow-context-guard.sh` の advisory 判定・`generate-flow-context.sh` の雛形生成・`check-flow-context-load.sh` の読み込みマーカー判定）。つまりスキーマの内部構造（ネストの深さ・キー名）を変更しても機械強制側の挙動には影響しない。この事実を踏まえ、旧スキーマで `source.design_docs` / `source.portal_dir` という一段ネストになっていたキーをトップレベルへ平坦化し、`design_docs` / `portal_dir` として直接参照できるようにした。あわせて、これまで hook・スキーマのどちらにも存在せず文書（SKILL.md 等）だけが参照していた幽霊キー 3 系統（`test_conventions` / `review_agents` / `pr.skip_globs`）を正式キーとしてスキーマに採録し、既定値 null または空オブジェクトを与えた。これにより文書とスキーマの不整合（文書は参照するがスキーマに定義がない状態）を解消した。
+
+## agent-home を必須化対象外とした理由
+
+3 層構成のうち「agent-home」層（グローバル資産である rules/skills/routines/tools のホストリポジトリ）は、実装フロー（orchestrating-dev-flow）が想定する「アプリケーションコードを持つプロジェクト」ではない。orchestrating-dev-flow の Phase ゲートは主にアプリケーションコードの実装フローを対象にしており、agent-home のようにグローバル設定資産自体を編集するリポジトリはこのフローの対象外である。そのため agent-home には `always/project-context/` の必須化を課さず、ルート直下許可リスト（`directory-structure-rules/rule.md`）という既存の受け口のみを必須とする整理にした。これにより、実装フロー対象外のリポジトリにまで正本コンテキストファイルの作成を強制する過剰な負担を避けている。
+
+## project-rules 中立正本 + symlink 方式の撤去（2026-07-11）
+
+導入当初は「Codex 等の他 AI ツールとも rules を共有する」ことを目的に、`<repo>/project-rules/` を中立正本ディレクトリとして置き、`<repo>/.claude/rules` をそこへの相対 symlink とする方式を採っていた。運用してみると、この間接参照は次の実害を生んだ。
+
+- symlink 切れ・張り替え忘れが worktree 作成・削除のたびに発生しうる（agent-home 自身で `.claude/rules -> ../project-rules` の張り直し漏れが実際に発生した）
+- 「中立正本を直接参照する消費者を作らない」という制約を守るために、常に `.claude/rules/` 経由という 1 段のルールを全消費者に徹底する必要があり、実体と参照経路が分離しているだけの複雑さが増していた
+- 他 AI ツールとの共有という当初目的は実際には活用されておらず、間接化のコストに見合う便益がなかった
+
+以上を踏まえ、`<repo>/.claude/rules/` を symlink ではなく実体ディレクトリとして直接運用する方式に戻した。agent-home 自身も `.claude/rules` symlink を解消し、`project-rules/` の内容を `.claude/rules/` へ実体移動した。プロジェクト標準体系のツリー図・3 層構成表・制約 5・違反検知時の手順から `project-rules/` と symlink 作成手順の記述を削除している。

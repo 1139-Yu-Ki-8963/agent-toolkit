@@ -1,0 +1,462 @@
+#!/usr/bin/env node
+// 正本（~/agent-home・~/.claude）→ payload/ の乖離検知・同期スクリプト。
+// ゼロ依存。node:fs/path/os/process のみ使用。
+// 使い方: node scripts/sync-payload.mjs [--list|--check|--check-artifacts|--apply] [--only <dst-prefix>]
+//   --only <dst-prefix>: dst が指定 prefix で始まる mapping だけを対象に絞り込む
+//   （例: --only payload/reverse-docs-skills）
+
+import fs from "node:fs";
+import path from "node:path";
+import os from "node:os";
+import { fileURLToPath } from "node:url";
+import { spawnSync } from "node:child_process";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const REPO_ROOT = path.resolve(__dirname, "..");
+const MANIFEST_PATH = path.join(__dirname, "sync-manifest.json");
+const ARTIFACTS_PATH = path.join(__dirname, "payload-artifacts.json");
+
+const args = process.argv.slice(2);
+const flag = args.find((a) => ["--list", "--check", "--check-artifacts", "--apply"].includes(a));
+
+const onlyIndex = args.indexOf("--only");
+let onlyPrefix = null;
+if (onlyIndex !== -1) {
+  onlyPrefix = args[onlyIndex + 1];
+  if (!onlyPrefix || onlyPrefix.startsWith("--")) {
+    console.error("--only には dst prefix を指定してください（例: --only payload/reverse-docs-skills）");
+    process.exit(1);
+  }
+}
+
+// ── パス解決（~ を os.homedir() で解決。/Users/... のリテラルは書かない） ──
+
+function resolveHome(p) {
+  const home = os.homedir();
+  if (p === "~") return home;
+  if (p.startsWith("~/")) return path.join(home, p.slice(2));
+  return p;
+}
+
+// builder パスは REPO_ROOT 起点の相対パス（manifest の dst と同じ規約。
+// 例: "scripts/build-portal-payload.mjs"）として解決する。
+function resolveBuilder(m) {
+  return path.resolve(REPO_ROOT, m.builder);
+}
+
+function loadManifest() {
+  const text = fs.readFileSync(MANIFEST_PATH, "utf8");
+  const json = JSON.parse(text);
+  let mappings = json.mappings;
+  if (onlyPrefix !== null) {
+    mappings = mappings.filter((m) => m.dst.startsWith(onlyPrefix));
+    if (mappings.length === 0) {
+      console.error(`--only ${onlyPrefix} に一致する mapping がありません`);
+    }
+  }
+  return mappings.map((m) => ({
+    ...m,
+    // build モードは src を持たず builder のみを持つ（resolveBuilder で解決）
+    srcAbs: m.src !== undefined ? resolveHome(m.src) : undefined,
+    dstAbs: path.join(REPO_ROOT, m.dst),
+  }));
+}
+
+// ── ファイル列挙（mirror 用。node_modules・.DS_Store を除外） ──
+
+const EXCLUDE_NAMES = new Set(["node_modules", ".DS_Store", ".venv", "__pycache__"]);
+const EXCLUDE_SUFFIXES = [".local.yml"];
+
+function isExcluded(name) {
+  return EXCLUDE_NAMES.has(name) || EXCLUDE_SUFFIXES.some((suffix) => name.endsWith(suffix));
+}
+
+// ── 禁止アーティファクト（配布してはいけないプロジェクトローカル実行時生成物） ──
+// src 側の walkFiles 結果からのみ除外する（非対称）。理由: dst 側に既に紛れ込んで
+// いる場合は "extra" drift として検知・削除させたいため、dst 側は除外しない。
+// 詳細: CLAUDE.md「payload禁止アーティファクト機構」節。
+
+function loadForbiddenPatterns() {
+  const json = JSON.parse(fs.readFileSync(ARTIFACTS_PATH, "utf8"));
+  // ローカルオーバーライド（リポジトリ外・非公開）: 固有プロジェクト名などの
+  // 検査文字列は公開リポジトリに置かず、~/agent-home/state/ 側で管理する。
+  const localPath = path.join(os.homedir(), "agent-home", "state", "payload-forbidden-content.json");
+  let local = {};
+  if (fs.existsSync(localPath)) {
+    local = JSON.parse(fs.readFileSync(localPath, "utf8"));
+  }
+  return {
+    names: new Set([...(json.names || []), ...(local.names || [])]),
+    pathSuffixes: [...(json.pathSuffixes || []), ...(local.pathSuffixes || [])],
+    content: [...(json.forbiddenContent || []), ...(local.forbiddenContent || [])],
+  };
+}
+
+const FORBIDDEN = loadForbiddenPatterns();
+
+function isForbiddenArtifact(relPath) {
+  const segments = relPath.split(path.sep);
+  if (segments.some((seg) => FORBIDDEN.names.has(seg))) return true;
+  const posixRel = segments.join("/");
+  return FORBIDDEN.pathSuffixes.some(
+    (suffix) => posixRel === suffix || posixRel.endsWith("/" + suffix)
+  );
+}
+
+function walkFiles(dir) {
+  const results = [];
+  function recurse(cur) {
+    let entries;
+    try {
+      entries = fs.readdirSync(cur, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const entry of entries) {
+      if (isExcluded(entry.name)) continue;
+      const full = path.join(cur, entry.name);
+      if (entry.isDirectory()) {
+        recurse(full);
+      } else if (entry.isFile()) {
+        results.push(path.relative(dir, full));
+      }
+    }
+  }
+  recurse(dir);
+  return results;
+}
+
+// ── mirror mapping の overlay 解決 ──
+// 同じ dst ディレクトリ配下を指す file mapping は「期待されるファイル」として
+// mirror の削除対象・内容比較対象から除外し、file mapping 側の src と比較する。
+
+function buildOverlayIndex(mappings) {
+  // key: mirror mapping の dstAbs, value: Map<relPathFromMirrorDst, fileMapping>
+  const overlays = new Map();
+  const mirrorMappings = mappings.filter((m) => m.mode === "mirror");
+  const fileMappings = mappings.filter((m) => m.mode === "file");
+
+  for (const mirror of mirrorMappings) {
+    const overlayMap = new Map();
+    for (const file of fileMappings) {
+      const rel = path.relative(mirror.dstAbs, file.dstAbs);
+      // rel が ".." で始まらない = mirror.dstAbs 配下
+      if (!rel.startsWith("..") && !path.isAbsolute(rel)) {
+        overlayMap.set(rel, file);
+      }
+    }
+    overlays.set(mirror.dstAbs, overlayMap);
+  }
+  return overlays;
+}
+
+// ── --check / --apply 共通のドリフト計算 ──
+
+function compareFiles(srcAbs, dstAbs) {
+  const srcExists = fs.existsSync(srcAbs);
+  const dstExists = fs.existsSync(dstAbs);
+  if (!srcExists && !dstExists) return "same";
+  if (!srcExists || !dstExists) return "drift";
+  const srcBuf = fs.readFileSync(srcAbs);
+  const dstBuf = fs.readFileSync(dstAbs);
+  return srcBuf.equals(dstBuf) ? "same" : "drift";
+}
+
+function computeMirrorDrift(mirror, overlayMap) {
+  const drifts = [];
+  if (!fs.existsSync(mirror.srcAbs)) {
+    return { skip: true, drifts };
+  }
+
+  const srcFiles = new Set(
+    [...walkFiles(mirror.srcAbs)].filter((rel) => !isForbiddenArtifact(rel))
+  );
+  const dstFiles = fs.existsSync(mirror.dstAbs) ? new Set(walkFiles(mirror.dstAbs)) : new Set();
+
+  // src に存在するファイル: overlay があればその file mapping の src と比較、
+  // なければ mirror.srcAbs 側と比較
+  for (const rel of srcFiles) {
+    if (overlayMap.has(rel)) continue; // overlay 側の file mapping が別途担当する
+    const srcAbs = path.join(mirror.srcAbs, rel);
+    const dstAbs = path.join(mirror.dstAbs, rel);
+    if (compareFiles(srcAbs, dstAbs) === "drift") {
+      drifts.push({ type: dstFiles.has(rel) ? "modified" : "missing", rel, srcAbs, dstAbs });
+    }
+  }
+
+  // dst にのみ存在するファイル（overlay 期待ファイルは除外）→ 削除対象
+  for (const rel of dstFiles) {
+    if (overlayMap.has(rel)) continue;
+    if (!srcFiles.has(rel)) {
+      drifts.push({ type: "extra", rel, srcAbs: path.join(mirror.srcAbs, rel), dstAbs: path.join(mirror.dstAbs, rel) });
+    }
+  }
+
+  return { skip: false, drifts };
+}
+
+// ── --list ──
+
+function cmdList() {
+  const mappings = loadManifest();
+  console.log("\nsync-manifest.json マッピング一覧");
+  console.log("─".repeat(70));
+  for (const m of mappings) {
+    console.log(`  [${m.mode}] ${m.src} -> ${m.dst}`);
+    if (m.note) console.log(`      note: ${m.note}`);
+  }
+  console.log("─".repeat(70));
+  console.log(`  合計 ${mappings.length} 件`);
+}
+
+// ── --check ──
+
+function cmdCheck() {
+  const mappings = loadManifest();
+  const overlays = buildOverlayIndex(mappings);
+  let hasDrift = false;
+
+  console.log("\n乖離チェック");
+  console.log("─".repeat(70));
+
+  for (const m of mappings) {
+    if (m.mode === "manual") {
+      if (!fs.existsSync(m.srcAbs)) {
+        console.log(`  SKIP (source missing) ${m.dst}`);
+        continue;
+      }
+      let differs = "no";
+      if (fs.statSync(m.srcAbs).isDirectory()) {
+        // ディレクトリの manual は情報表示のみ（差分内容の詳細比較はしない）
+        differs = "unknown（ディレクトリ）";
+      } else {
+        differs = compareFiles(m.srcAbs, m.dstAbs) === "drift" ? "yes" : "no";
+      }
+      console.log(`  MANUAL ${m.dst} (differs: ${differs})`);
+      continue;
+    }
+
+    if (m.mode === "build") {
+      const builderAbs = resolveBuilder(m);
+      if (!fs.existsSync(builderAbs)) {
+        console.log(`  SKIP (builder missing) ${m.dst}`);
+        continue;
+      }
+      const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "sync-payload-build-"));
+      try {
+        const result = spawnSync(process.execPath, [builderAbs, tmpDir], { stdio: "inherit" });
+        if (result.status !== 0) {
+          console.log(`  ERROR (builder failed) ${m.dst}`);
+          hasDrift = true;
+          continue;
+        }
+        const { drifts } = computeMirrorDrift({ srcAbs: tmpDir, dstAbs: m.dstAbs }, new Map());
+        for (const d of drifts) {
+          console.log(`  DRIFT build ${path.join(m.dst, d.rel)} (${d.type})`);
+          hasDrift = true;
+        }
+      } finally {
+        fs.rmSync(tmpDir, { recursive: true, force: true });
+      }
+      continue;
+    }
+
+    if (m.mode === "file") {
+      if (!fs.existsSync(m.srcAbs)) {
+        console.log(`  SKIP (source missing) ${m.dst}`);
+        continue;
+      }
+      const result = compareFiles(m.srcAbs, m.dstAbs);
+      if (result === "drift") {
+        console.log(`  DRIFT file ${m.dst}`);
+        hasDrift = true;
+      }
+      continue;
+    }
+
+    if (m.mode === "mirror") {
+      const { skip, drifts } = computeMirrorDrift(m, overlays.get(m.dstAbs) || new Map());
+      if (skip) {
+        console.log(`  SKIP (source missing) ${m.dst}`);
+        continue;
+      }
+      for (const d of drifts) {
+        console.log(`  DRIFT mirror ${path.join(m.dst, d.rel)} (${d.type})`);
+        hasDrift = true;
+      }
+      continue;
+    }
+  }
+
+  console.log("─".repeat(70));
+  if (hasDrift) {
+    console.log("乖離あり。node scripts/sync-payload.mjs --apply で同期してください。");
+    process.exit(1);
+  } else {
+    console.log("乖離なし（manual は対象外）。");
+  }
+}
+
+// ── --check-artifacts ── payload/ 配下を manifest と無関係に独立スキャンし、
+// 禁止パターンに一致するファイル・ディレクトリの残存を検出する。
+
+function cmdCheckArtifacts() {
+  const payloadRoot = path.join(REPO_ROOT, "payload");
+  const files = walkFiles(payloadRoot);
+  const hits = files.filter((rel) => isForbiddenArtifact(rel));
+  let hasViolation = false;
+
+  console.log("\n禁止アーティファクトスキャン（payload/ 配下）");
+  console.log("─".repeat(70));
+  if (hits.length === 0) {
+    console.log("  該当なし。");
+  } else {
+    for (const rel of hits) {
+      console.log(`  FOUND payload/${rel}`);
+    }
+    console.log("─".repeat(70));
+    console.log(
+      `禁止アーティファクトが ${hits.length} 件見つかりました。該当ファイルを payload/ から削除して` +
+      `ください。除外パターンの追加先は ~/agent-home/state/payload-forbidden-content.json です` +
+      `（正本側の除外が漏れている場合は sync-manifest.json の mapping 見直しも検討する）。`
+    );
+    hasViolation = true;
+  }
+
+  if (FORBIDDEN.content.length > 0) {
+    const contentHits = [];
+    for (const rel of files) {
+      const fullPath = path.join(payloadRoot, rel);
+      try {
+        const content = fs.readFileSync(fullPath, "utf8");
+        for (const term of FORBIDDEN.content) {
+          if (content.includes(term)) {
+            contentHits.push({ rel, term });
+            break;
+          }
+        }
+      } catch {
+        // binary files — skip
+      }
+    }
+    if (contentHits.length > 0) {
+      console.log("\n禁止コンテンツスキャン（payload/ 配下のファイル内容）");
+      console.log("─".repeat(70));
+      for (const { rel, term } of contentHits) {
+        console.log(`  FOUND payload/${rel} (term: "${term}")`);
+      }
+      console.log("─".repeat(70));
+      console.log(
+        `禁止コンテンツが ${contentHits.length} 件見つかりました。該当ファイルから` +
+        `プロジェクト固有語を除去するか、正本側で匿名化してから再同期してください。`
+      );
+      hasViolation = true;
+    }
+  }
+
+  if (hasViolation) {
+    process.exit(1);
+  }
+}
+
+// ── --apply ──
+
+function cmdApply() {
+  const mappings = loadManifest();
+  const overlays = buildOverlayIndex(mappings);
+  let applied = 0;
+  let skippedNoSrc = 0;
+
+  console.log("\n同期を適用します（mirror / file のみ。manual は書き込みません）");
+  console.log("─".repeat(70));
+
+  for (const m of mappings) {
+    if (m.mode === "manual") {
+      console.log(`  SKIP (manual) ${m.dst}`);
+      continue;
+    }
+
+    if (m.mode === "build") {
+      const builderAbs = resolveBuilder(m);
+      if (!fs.existsSync(builderAbs)) {
+        console.log(`  SKIP (builder missing) ${m.dst}`);
+        skippedNoSrc++;
+        continue;
+      }
+      const result = spawnSync(process.execPath, [builderAbs], { stdio: "inherit" });
+      if (result.status !== 0) {
+        console.log(`  ERROR (builder failed) ${m.dst}`);
+        continue;
+      }
+      console.log(`  APPLIED build ${m.dst}`);
+      applied++;
+      continue;
+    }
+
+    if (m.mode === "file") {
+      if (!fs.existsSync(m.srcAbs)) {
+        console.log(`  SKIP (source missing) ${m.dst}`);
+        skippedNoSrc++;
+        continue;
+      }
+      const result = compareFiles(m.srcAbs, m.dstAbs);
+      if (result === "drift") {
+        fs.mkdirSync(path.dirname(m.dstAbs), { recursive: true });
+        fs.copyFileSync(m.srcAbs, m.dstAbs);
+        console.log(`  APPLIED file ${m.dst}`);
+        applied++;
+      } else {
+        console.log(`  OK file ${m.dst}`);
+      }
+      continue;
+    }
+
+    if (m.mode === "mirror") {
+      const overlayMap = overlays.get(m.dstAbs) || new Map();
+      const { skip, drifts } = computeMirrorDrift(m, overlayMap);
+      if (skip) {
+        console.log(`  SKIP (source missing) ${m.dst}`);
+        skippedNoSrc++;
+        continue;
+      }
+      for (const d of drifts) {
+        if (d.type === "extra") {
+          fs.rmSync(d.dstAbs, { force: true });
+          console.log(`  REMOVED mirror ${path.join(m.dst, d.rel)}`);
+        } else {
+          fs.mkdirSync(path.dirname(d.dstAbs), { recursive: true });
+          fs.copyFileSync(d.srcAbs, d.dstAbs);
+          console.log(`  APPLIED mirror ${path.join(m.dst, d.rel)}`);
+        }
+        applied++;
+      }
+      if (drifts.length === 0) {
+        console.log(`  OK mirror ${m.dst}`);
+      }
+      continue;
+    }
+  }
+
+  console.log("─".repeat(70));
+  console.log(`適用完了: ${applied} 件反映 / ${skippedNoSrc} 件ソースなし skip`);
+}
+
+// ── エントリポイント ──
+
+switch (flag) {
+  case "--list":
+    cmdList();
+    break;
+  case "--check":
+    cmdCheck();
+    break;
+  case "--check-artifacts":
+    cmdCheckArtifacts();
+    break;
+  case "--apply":
+    cmdApply();
+    break;
+  default:
+    console.error("使い方: node scripts/sync-payload.mjs [--list|--check|--check-artifacts|--apply] [--only <dst-prefix>]");
+    process.exit(1);
+}

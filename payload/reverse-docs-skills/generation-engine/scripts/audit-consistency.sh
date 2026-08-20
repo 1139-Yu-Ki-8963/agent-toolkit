@@ -1,0 +1,2512 @@
+#!/usr/bin/env bash
+# audit-consistency.sh — Phase 2 の機械チェック / 実装契約章のファイル一覧取得
+#
+# 用途:
+#   通常モード: 画面詳細設計書.md の内部整合性を機械的にチェックする。
+#     (a) 機能一覧章の機能キー集合と、frontmatter の unit_test_sheet /
+#         integration_test_sheet が指す観点表の機能キー集合の突合（両方向一致）
+#     (b) 未記入プレースホルダ `<...>` の検出（HTML コメント内・fenced code block 内は除外）
+#     (c) 連番キー検出（意味キー規約違反の WARN）
+#     (d) 結合テスト観点表「## 往復検証観点表」の対応失敗クラス網羅チェック（WARN）
+#     (i) §16 要確認事項一覧の未解消（状態≠解消済み）チェック（既定 WARN・
+#         AUDIT_STRICT_P16=1 で違反扱いに昇格）
+#   --list-contract-files モード: 実装契約章の「ファイル分割」表 1 列目のパス一覧を
+#     stdout に 1 行 1 パスで出力する（rebuilding Phase 3 の白紙化対象取得用）。
+#
+# 章の特定は章番号の直書きではなく「## 章マップ」表の役割キー列から解決する
+# （役割キー → §番号 の 2 段解決）。章マップ・役割キー列・該当行のいずれかが
+# 欠落している場合は暗黙フォールバックせず明示 exit 1 とする。
+#
+# 引数:
+#   $1 = 画面ディレクトリ（画面詳細設計書.md を含むディレクトリ）
+#   または: --list-contract-files <画面ディレクトリ>
+#
+# 終了コード:
+#   通常モード: 違反あり(a,b) = 1 / WARN のみ(c,d) = 0 / 正常 = 0
+#   --list-contract-files: 取得成功 = 0 / 取得不可 = 1
+#
+# 使い方:
+#   ./audit-consistency.sh <画面ディレクトリ>
+#   ./audit-consistency.sh --list-contract-files <画面ディレクトリ>
+#   ./audit-consistency.sh --self-test
+
+set -euo pipefail
+
+AUDIT_CONSISTENCY_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=output-layout.sh
+. "$AUDIT_CONSISTENCY_SCRIPT_DIR/output-layout.sh"
+
+# --- --self-test モード ---
+# 検査g（§15.2テーブル型名抽出）・検査i（§16未解消チェック）・検査q（本文相対パス
+# 参照の到達性・違反）・検査i-3（本文実測委譲件数と§16計上の突合・違反）・検査m
+# （テスト仕様書空殻検出・違反への昇格）・検査m-2（操作シナリオ仕様書fenced内実測
+# 委譲検出・違反）に加え、写真指摘1-37〜1-39を回帰保護する。最小構成の
+# 画面詳細設計書.mdフィクスチャを mktemp -d 配下に生成し、"$0" <dir> を呼び出して
+# 出力・終了コードを検証する。
+self_test() {
+  local script_path="$0"
+  local tmp fail=0
+  tmp="$(mktemp -d -p "${TMPDIR:-/tmp}")"
+  # macOS では /tmp・/var がsymlinkのため、字句パスのまま渡すと
+  # scaffold-screen.sh 内 assertNoLexicalSymlink が誤検出する（1-39用フィクスチャ）。
+  # scaffold-screen.sh 自身の自己テストと同じ実体パスへの解決を揃える。
+  tmp="$(cd "$tmp" && pwd -P)"
+
+  make_fixture() {
+    local dir="$1" p16_body="$2" subpath="${3:-画面詳細設計書.md}"
+    local target="$dir/$subpath"
+    mkdir -p "$(dirname "$target")"
+    cat > "$target" <<MDEOF
+---
+source_encoding: UTF-8
+source_line_ending: LF
+unit_test_sheet: ./none.md
+integration_test_sheet: ./none.md
+---
+
+## 章マップ
+
+| 役割キー | § |
+|---|---|
+| 機能一覧 | §2 |
+| 実装契約 | §15 |
+| 要確認事項 | §16 |
+
+## §2 機能一覧
+
+| キー | 内容 |
+|---|---|
+| foo-view | 表示 |
+
+## §15 実装契約
+
+### 15.1 ファイル分割と export 一覧
+
+| ファイルパス | export 名 | 種別 | 配置ディレクトリ |
+|---|---|---|---|
+| components/Foo.tsx | Foo | コンポーネント | components/ |
+
+### 15.2 型定義
+
+| 型名 | フィールド名 | 型 | 必須/任意 |
+|---|---|---|---|
+| \`FooValues\` | \`name\` | \`string\` | 必須 |
+| \`FooValues\` | \`age\` | \`number\` | 任意 |
+
+### 15.3 依存（import）一覧
+
+| モジュール | import 内容 | 種別 |
+|---|---|---|
+| \`./Foo\` | \`Foo\` | 内部 |
+| \`./FooValues\` | \`FooValues\` | 内部 |
+
+## §16 要確認事項一覧
+
+${p16_body}
+MDEOF
+  }
+
+  # フィクスチャ a: §16 全解消済み（6列）
+  make_fixture "$tmp/a" '| キー | 起票日 | 内容 | 暫定扱いにしている § | 解消条件 | 状態 |
+|---|---|---|---|---|---|
+| foo-issue | `2026-01-01` | 何らかの確認事項 | §15 | 実装完了 | 解消済み |'
+
+  # フィクスチャ b: §16 未解消あり（6列）
+  make_fixture "$tmp/b" '| キー | 起票日 | 内容 | 暫定扱いにしている § | 解消条件 | 状態 |
+|---|---|---|---|---|---|
+| foo-issue | `2026-01-01` | 何らかの確認事項 | §15 | 実装完了 | 未解消 |'
+
+  # フィクスチャ c: 旧5列テンプレ（状態列なし）
+  make_fixture "$tmp/c" '| キー | 起票日 | 内容 | 暫定扱いにしている § | 解消条件 |
+|---|---|---|---|---|
+| foo-issue | `2026-01-01` | 何らかの確認事項 | §15 | 実装完了 |'
+
+  # フィクスチャ d: ネスト構造（詳細設計/画面詳細設計書.md 配下配置）
+  make_fixture "$tmp/d" '| キー | 起票日 | 内容 | 暫定扱いにしている § | 解消条件 | 状態 |
+|---|---|---|---|---|---|
+| foo-issue | `2026-01-01` | 何らかの確認事項 | §15 | 実装完了 | 解消済み |' "詳細設計/画面詳細設計書.md"
+
+  # フィクスチャ e: §15.1 に「実体形状」列を追加した5列構成（配置ディレクトリ列が
+  # 5番目ではなく6番目に位置ずれする）。配置ディレクトリ未記入行を1件含める。
+  mkdir -p "$tmp/e"
+  cat > "$tmp/e/画面詳細設計書.md" <<'MDEOF'
+---
+source_encoding: UTF-8
+source_line_ending: LF
+unit_test_sheet: ./none.md
+integration_test_sheet: ./none.md
+---
+
+## 章マップ
+
+| 役割キー | § |
+|---|---|
+| 機能一覧 | §2 |
+| 実装契約 | §15 |
+| 要確認事項 | §16 |
+
+## §2 機能一覧
+
+| キー | 内容 |
+|---|---|
+| foo-view | 表示 |
+
+## §15 実装契約
+
+### 15.1 ファイル分割と export 一覧
+
+| ファイルパス | export 名 | 種別 | 実体形状 | 配置ディレクトリ |
+|---|---|---|---|---|
+| components/Foo.tsx | Foo | コンポーネント | 関数コンポーネント | components/ |
+| utils/bar.ts | bar | ユーティリティ | 関数 | <配置ディレクトリ> |
+
+### 15.2 型定義
+
+| 型名 | フィールド名 | 型 | 必須/任意 |
+|---|---|---|---|
+| `FooValues` | `name` | `string` | 必須 |
+
+### 15.3 依存（import）一覧
+
+| モジュール | import 内容 | 種別 |
+|---|---|---|
+| `./Foo` | `Foo` | 内部 |
+
+## §16 要確認事項一覧
+
+| キー | 起票日 | 内容 | 暫定扱いにしている § | 解消条件 | 状態 |
+|---|---|---|---|---|---|
+| foo-issue | `2026-01-01` | 何らかの確認事項 | §15 | 実装完了 | 解消済み |
+MDEOF
+
+  # ケース1: 検査g陽性（§15.2テーブル型名抽出 + §15.3内部import解決）
+  if out_a="$(bash "$script_path" "$tmp/a" 2>&1)"; then rc_a=0; else rc_a=$?; fi
+  if printf '%s' "$out_a" | grep -q "内部 import はすべて §15.1/§15.2 に対応が見つかりました"; then
+    echo "[PASS] 検査g陽性: §15.2テーブルの型名(FooValues)が抽出され内部importが解決される"
+  else
+    echo "[FAIL] 検査g陽性: 内部importの解決に失敗（型名抽出ロジックの回帰の疑い）"
+    fail=1
+  fi
+
+  # ケース2: 検査i陽性（全解消済み→WARN/違反なし）
+  if [ "$rc_a" -eq 0 ] && printf '%s' "$out_a" | grep -q "要確認事項一覧はすべて解消済みです"; then
+    echo "[PASS] 検査i陽性: 状態=解消済みのみでは違反・WARNが発生しない"
+  else
+    echo "[FAIL] 検査i陽性: 全解消済みフィクスチャでの判定に失敗（exit=${rc_a}）"
+    fail=1
+  fi
+
+  # ケース3: 検査i陰性1（未解消行があっても既定はWARN止まり・exit0）
+  if out_b_default="$(bash "$script_path" "$tmp/b" 2>&1)"; then rc_b_default=0; else rc_b_default=$?; fi
+  if [ "$rc_b_default" -eq 0 ] && printf '%s' "$out_b_default" | grep -q "WARN:.*要確認事項一覧に未解消"; then
+    echo "[PASS] 検査i陰性1: 未解消行があっても既定はWARN止まり(exit0)"
+  else
+    echo "[FAIL] 検査i陰性1: 期待した既定WARN挙動になっていません（exit=${rc_b_default}）"
+    fail=1
+  fi
+
+  # ケース4: 検査i陰性2（AUDIT_STRICT_P16=1で違反に昇格しexit1）
+  if out_b_strict="$(AUDIT_STRICT_P16=1 bash "$script_path" "$tmp/b" 2>&1)"; then rc_b_strict=0; else rc_b_strict=$?; fi
+  if [ "$rc_b_strict" -eq 1 ] && printf '%s' "$out_b_strict" | grep -q "違反:.*要確認事項一覧に未解消"; then
+    echo "[PASS] 検査i陰性2: AUDIT_STRICT_P16=1で未解消行が違反に昇格しexit1になる"
+  else
+    echo "[FAIL] 検査i陰性2: STRICT指定時に違反へ昇格しませんでした（exit=${rc_b_strict}）"
+    fail=1
+  fi
+
+  # ケース5: 検査i陰性3（旧5列テンプレはSTRICT指定でもexit0のまま・fail-safe）
+  if out_c_strict="$(AUDIT_STRICT_P16=1 bash "$script_path" "$tmp/c" 2>&1)"; then rc_c_strict=0; else rc_c_strict=$?; fi
+  if [ "$rc_c_strict" -eq 0 ] && printf '%s' "$out_c_strict" | grep -q "旧テンプレのため状態列で解消判定できません"; then
+    echo "[PASS] 検査i陰性3: 旧5列テンプレはAUDIT_STRICT_P16=1でも違反に昇格しない（fail-safe）"
+  else
+    echo "[FAIL] 検査i陰性3: 旧5列テンプレのfail-safe挙動が崩れています（exit=${rc_c_strict}）"
+    fail=1
+  fi
+
+  # ケース6: ネスト構造（詳細設計/画面詳細設計書.md 配下配置）でも監査が完走する
+  if out_d="$(bash "$script_path" "$tmp/d" 2>&1)"; then rc_d=0; else rc_d=$?; fi
+  if [ "$rc_d" -eq 0 ] \
+     && printf '%s' "$out_d" | grep -qF "対象設計書: $tmp/d/詳細設計/画面詳細設計書.md" \
+     && printf '%s' "$out_d" | grep -q "要確認事項一覧はすべて解消済みです"; then
+    echo "[PASS] ネスト構造陽性: 詳細設計/画面詳細設計書.md 配下配置でも監査が完走し設計書を正しく解決する"
+  else
+    echo "[FAIL] ネスト構造陽性: 詳細設計/画面詳細設計書.md 配下配置での監査完走に失敗（exit=${rc_d}）"
+    fail=1
+  fi
+
+  # ケース7: 検査f陽性（§15.1 に「実体形状」列が追加され配置ディレクトリ列の位置が
+  # ずれても、未記入行を正しく検出できる＝列固定でなくヘッダー名で解決している）
+  if out_e="$(bash "$script_path" "$tmp/e" 2>&1)"; then rc_e=0; else rc_e=$?; fi
+  if printf '%s' "$out_e" | grep -q "utils/bar.ts (配置ディレクトリ未記入)"; then
+    echo "[PASS] 検査f陽性: 実体形状列追加による配置ディレクトリ列の位置ずれでも未記入行を正しく検出する"
+  else
+    echo "[FAIL] 検査f陽性: 実体形状列追加時に配置ディレクトリ未記入行を検出できません（列固定の回帰の疑い、exit=${rc_e}）"
+    fail=1
+  fi
+
+  # --- 検査q（本文相対パス参照の到達性）・検査i-3（実測委譲件数と§16計上の突合）用フィクスチャ ---
+  # フィクスチャ f: 本文に到達不能な相対パス参照 + 実測委譲記載（§16はmp-無し） → 検査q・検査i-3ともに違反
+  mkdir -p "$tmp/f"
+  cat > "$tmp/f/画面詳細設計書.md" <<'MDEOF'
+---
+source_encoding: UTF-8
+source_line_ending: LF
+unit_test_sheet: ./none.md
+integration_test_sheet: ./none.md
+---
+
+## 章マップ
+
+| 役割キー | § |
+|---|---|
+| 機能一覧 | §2 |
+| 実装契約 | §15 |
+| 要確認事項 | §16 |
+
+## §2 機能一覧
+
+| キー | 内容 |
+|---|---|
+| foo-view | 表示 |
+
+詳細は [欠落資料](./missing-note.md) を参照。実測委譲（画面単位検証で確定）とする。
+
+## §15 実装契約
+
+### 15.1 ファイル分割と export 一覧
+
+| ファイルパス | export 名 | 種別 | 配置ディレクトリ |
+|---|---|---|---|
+| components/Foo.tsx | Foo | コンポーネント | components/ |
+
+### 15.2 型定義
+
+| 型名 | フィールド名 | 型 | 必須/任意 |
+|---|---|---|---|
+| `FooValues` | `name` | `string` | 必須 |
+
+### 15.3 依存（import）一覧
+
+| モジュール | import 内容 | 種別 |
+|---|---|---|
+| `./Foo` | `Foo` | 内部 |
+
+## §16 要確認事項一覧
+
+| キー | 起票日 | 内容 | 暫定扱いにしている § | 解消条件 | 状態 |
+|---|---|---|---|---|---|
+| foo-issue | `2026-01-01` | 何らかの確認事項 | §15 | 実装完了 | 解消済み |
+MDEOF
+
+  # フィクスチャ g: フィクスチャfと同内容だが、参照先ファイルが実在し §16 にmp-行も
+  # 存在する → 検査q・検査i-3ともに違反なし
+  mkdir -p "$tmp/g"
+  cat > "$tmp/g/note.md" <<'EOF'
+存在するファイル
+EOF
+  cat > "$tmp/g/画面詳細設計書.md" <<'MDEOF'
+---
+source_encoding: UTF-8
+source_line_ending: LF
+unit_test_sheet: ./none.md
+integration_test_sheet: ./none.md
+---
+
+## 章マップ
+
+| 役割キー | § |
+|---|---|
+| 機能一覧 | §2 |
+| 実装契約 | §15 |
+| 要確認事項 | §16 |
+
+## §2 機能一覧
+
+| キー | 内容 |
+|---|---|
+| foo-view | 表示 |
+
+詳細は [存在資料](./note.md) を参照。実測委譲（画面単位検証で確定）とする。
+
+## §15 実装契約
+
+### 15.1 ファイル分割と export 一覧
+
+| ファイルパス | export 名 | 種別 | 配置ディレクトリ |
+|---|---|---|---|
+| components/Foo.tsx | Foo | コンポーネント | components/ |
+
+### 15.2 型定義
+
+| 型名 | フィールド名 | 型 | 必須/任意 |
+|---|---|---|---|
+| `FooValues` | `name` | `string` | 必須 |
+
+### 15.3 依存（import）一覧
+
+| モジュール | import 内容 | 種別 |
+|---|---|---|
+| `./Foo` | `Foo` | 内部 |
+
+## §16 要確認事項一覧
+
+| キー | 起票日 | 内容 | 暫定扱いにしている § | 解消条件 | 状態 |
+|---|---|---|---|---|---|
+| mp-foo | `2026-01-01` | 画面単位検証での確定待ち事項 | §15 | 実測確定 | 解消済み |
+MDEOF
+
+  # --- 検査m（テスト仕様書の空殻検出・違反）・検査m-2（fenced内実測委譲・違反）用フィクスチャ ---
+  # フィクスチャ h: unit_test_spec が空殻 + operation_test_spec のfenced内に実測委譲 → 検査m・m-2ともに違反
+  mkdir -p "$tmp/h"
+  cat > "$tmp/h/unit-test-spec.md" <<'EOF'
+---
+status: implemented
+---
+
+## テストケース一覧
+
+| キー | ケース |
+|---|---|
+EOF
+  cat > "$tmp/h/optest.md" <<'EOF'
+---
+status: implemented
+---
+
+## シナリオ一覧表
+
+| 名前 | キー |
+|---|---|
+| シナリオA | scenario-a |
+
+## サンプルコード
+
+```ts
+// 実測委譲（画面単位検証で確定）
+const value = 1;
+```
+EOF
+  cat > "$tmp/h/画面詳細設計書.md" <<'MDEOF'
+---
+source_encoding: UTF-8
+source_line_ending: LF
+unit_test_sheet: ./none.md
+integration_test_sheet: ./none.md
+unit_test_spec: ./unit-test-spec.md
+operation_test_spec: ./optest.md
+---
+
+## 章マップ
+
+| 役割キー | § |
+|---|---|
+| 機能一覧 | §2 |
+| 実装契約 | §15 |
+| 要確認事項 | §16 |
+
+## §2 機能一覧
+
+| キー | 内容 |
+|---|---|
+| foo-view | 表示 |
+
+## §15 実装契約
+
+### 15.1 ファイル分割と export 一覧
+
+| ファイルパス | export 名 | 種別 | 配置ディレクトリ |
+|---|---|---|---|
+| components/Foo.tsx | Foo | コンポーネント | components/ |
+
+### 15.2 型定義
+
+| 型名 | フィールド名 | 型 | 必須/任意 |
+|---|---|---|---|
+| `FooValues` | `name` | `string` | 必須 |
+
+### 15.3 依存（import）一覧
+
+| モジュール | import 内容 | 種別 |
+|---|---|---|
+| `./Foo` | `Foo` | 内部 |
+
+## §16 要確認事項一覧
+
+| キー | 起票日 | 内容 | 暫定扱いにしている § | 解消条件 | 状態 |
+|---|---|---|---|---|---|
+| foo-issue | `2026-01-01` | 何らかの確認事項 | §15 | 実装完了 | 解消済み |
+MDEOF
+
+  # フィクスチャ i: unit_test_spec に実データ行あり + operation_test_spec のfenced内に
+  # 実測委譲なし → 検査m・m-2ともに違反なし
+  mkdir -p "$tmp/i"
+  cat > "$tmp/i/unit-test-spec.md" <<'EOF'
+---
+status: implemented
+---
+
+## テストケース一覧
+
+| キー | ケース |
+|---|---|
+| case-1 | 何らかのケース |
+EOF
+  cat > "$tmp/i/optest.md" <<'EOF'
+---
+status: implemented
+---
+
+## シナリオ一覧表
+
+| 名前 | キー |
+|---|---|
+| シナリオA | scenario-a |
+
+## サンプルコード
+
+```ts
+const value = 1;
+```
+EOF
+  cat > "$tmp/i/画面詳細設計書.md" <<'MDEOF'
+---
+source_encoding: UTF-8
+source_line_ending: LF
+unit_test_sheet: ./none.md
+integration_test_sheet: ./none.md
+unit_test_spec: ./unit-test-spec.md
+operation_test_spec: ./optest.md
+---
+
+## 章マップ
+
+| 役割キー | § |
+|---|---|
+| 機能一覧 | §2 |
+| 実装契約 | §15 |
+| 要確認事項 | §16 |
+
+## §2 機能一覧
+
+| キー | 内容 |
+|---|---|
+| foo-view | 表示 |
+
+## §15 実装契約
+
+### 15.1 ファイル分割と export 一覧
+
+| ファイルパス | export 名 | 種別 | 配置ディレクトリ |
+|---|---|---|---|
+| components/Foo.tsx | Foo | コンポーネント | components/ |
+
+### 15.2 型定義
+
+| 型名 | フィールド名 | 型 | 必須/任意 |
+|---|---|---|---|
+| `FooValues` | `name` | `string` | 必須 |
+
+### 15.3 依存（import）一覧
+
+| モジュール | import 内容 | 種別 |
+|---|---|---|
+| `./Foo` | `Foo` | 内部 |
+
+## §16 要確認事項一覧
+
+| キー | 起票日 | 内容 | 暫定扱いにしている § | 解消条件 | 状態 |
+|---|---|---|---|---|---|
+| foo-issue | `2026-01-01` | 何らかの確認事項 | §15 | 実装完了 | 解消済み |
+MDEOF
+
+  # フィクスチャ j/k: 観点キーを仕様書の同一セルへ併記した場合と、キーを一切
+  # 記載しない場合。1-38 の本文包含判定を陽性・陰性の両方で固定する。
+  make_fixture "$tmp/j" '| キー | 起票日 | 内容 | 暫定扱いにしている § | 解消条件 | 状態 |
+|---|---|---|---|---|---|
+| foo-issue | `2026-01-01` | 何らかの確認事項 | §15 | 実装完了 | 解消済み |'
+  cat > "$tmp/j/unit.md" <<'EOF'
+---
+type: unit-test-sheet
+---
+
+## 観点表
+
+| キー | 観点 |
+|---|---|
+| order-submit | 登録できる |
+| order-cancel | 取消できる |
+EOF
+  cat > "$tmp/j/spec.md" <<'EOF'
+---
+status: implemented
+---
+
+## テストケース一覧
+
+| ケース | 対応観点・期待結果 |
+|---|---|
+| 正常系 | `order-submit` と `order-cancel` を同一セルに併記して確認する |
+EOF
+  sed -i.bak \
+    -e 's#unit_test_sheet: ./none.md#unit_test_sheet: ./unit.md#' \
+    -e '/integration_test_sheet:/a\
+unit_test_spec: ./spec.md' \
+    -e 's#| foo-view | 表示 |#| order-submit | 登録 |\
+| order-cancel | 取消 |#' \
+    "$tmp/j/画面詳細設計書.md"
+  rm -f "$tmp/j/画面詳細設計書.md.bak"
+
+  cp -R "$tmp/j" "$tmp/k"
+  cat > "$tmp/k/spec.md" <<'EOF'
+---
+status: implemented
+---
+
+## テストケース一覧
+
+| ケース | 対応観点・期待結果 |
+|---|---|
+| 正常系 | 登録と取消の期待結果だけを記載し、観点キーは記載しない |
+EOF
+
+  # フィクスチャ l/m: §15.1 のリポジトリ内ファイルパスはリンクではないため
+  # 検査qから除外する。一方、通常本文の到達不能リンクは従来どおり違反にする。
+  make_fixture "$tmp/l" '| キー | 起票日 | 内容 | 暫定扱いにしている § | 解消条件 | 状態 |
+|---|---|---|---|---|---|
+| foo-issue | `2026-01-01` | 何らかの確認事項 | §15 | 実装完了 | 解消済み |'
+  sed -i.bak \
+    -e 's#| components/Foo.tsx | Foo | コンポーネント | components/ |#| `src/components/Foo.tsx` | Foo | コンポーネント | components/ |#' \
+    -e '/| foo-view | 表示 |/a\
+\
+詳細は [欠落資料](./missing-note.md) を参照。' \
+    "$tmp/l/画面詳細設計書.md"
+  rm -f "$tmp/l/画面詳細設計書.md.bak"
+
+  cp -R "$tmp/l" "$tmp/m"
+  sed -i.bak '/欠落資料/d' "$tmp/m/画面詳細設計書.md"
+  rm -f "$tmp/m/画面詳細設計書.md.bak"
+
+  # ケース8: 検査q陽性（本文の到達不能な相対パス参照を違反として検出する）
+  if out_f="$(bash "$script_path" "$tmp/f" 2>&1)"; then rc_f=0; else rc_f=$?; fi
+  if [ "$rc_f" -eq 1 ] && printf '%s' "$out_f" | grep -qF "missing-note.md"; then
+    echo "[PASS] 検査q陽性: 本文の到達不能な相対パス参照を違反として検出する"
+  else
+    echo "[FAIL] 検査q陽性: 本文の到達不能な相対パス参照を検出できません（exit=${rc_f}）"
+    fail=1
+  fi
+
+  # ケース9: 検査i-3陽性（本文に実測委譲の記載があるのに§16のmp-計上が0件なら違反）
+  if printf '%s' "$out_f" | grep -q "本文に実測委譲の記載が 1 件あるのに §16 の実測系計上（mp-接頭辞）が 0 件です"; then
+    echo "[PASS] 検査i-3陽性: 本文の実測委譲件数と§16計上の不一致を違反として検出する"
+  else
+    echo "[FAIL] 検査i-3陽性: 本文の実測委譲件数と§16計上の不一致を検出できません（exit=${rc_f}）"
+    fail=1
+  fi
+
+  # ケース10: 検査q・検査i-3陰性（参照先実在・mp-行実在なら違反なし）
+  if out_g="$(bash "$script_path" "$tmp/g" 2>&1)"; then rc_g=0; else rc_g=$?; fi
+  if [ "$rc_g" -eq 0 ] \
+     && printf '%s' "$out_g" | grep -q "本文の相対パス参照はすべて到達可能です" \
+     && printf '%s' "$out_g" | grep -q "本文の実測委譲件数と§16の実測系計上に矛盾なし"; then
+    echo "[PASS] 検査q・検査i-3陰性: 参照先実在・mp-行実在では違反が発生しない"
+  else
+    echo "[FAIL] 検査q・検査i-3陰性: 参照先実在・mp-行実在でも違反が発生しています（exit=${rc_g}）"
+    fail=1
+  fi
+
+  # ケース11: 検査m・検査m-2陽性（空殻テスト仕様書・fenced内実測委譲をともに違反として検出する）
+  if out_h="$(bash "$script_path" "$tmp/h" 2>&1)"; then rc_h=0; else rc_h=$?; fi
+  if [ "$rc_h" -eq 1 ] \
+     && printf '%s' "$out_h" | grep -q "違反: 単体テスト仕様書 が空殻です" \
+     && printf '%s' "$out_h" | grep -q "違反: 操作シナリオ仕様書のfenced code block内に実測委譲の記載が見つかりました"; then
+    echo "[PASS] 検査m・検査m-2陽性: 空殻テスト仕様書とfenced内実測委譲をともに違反として検出する"
+  else
+    echo "[FAIL] 検査m・検査m-2陽性: 空殻テスト仕様書またはfenced内実測委譲を検出できません（exit=${rc_h}）"
+    fail=1
+  fi
+
+  # ケース12: 検査m・検査m-2陰性（実データ行あり・fenced内実測委譲なしでは違反なし）
+  if out_i="$(bash "$script_path" "$tmp/i" 2>&1)"; then rc_i=0; else rc_i=$?; fi
+  if [ "$rc_i" -eq 0 ] \
+     && printf '%s' "$out_i" | grep -q "操作シナリオ仕様書のfenced code block内に実測委譲の記載なし"; then
+    echo "[PASS] 検査m・検査m-2陰性: 実データ行あり・fenced内実測委譲なしでは違反が発生しない"
+  else
+    echo "[FAIL] 検査m・検査m-2陰性: 実データ行あり・fenced内実測委譲なしでも違反が発生しています（exit=${rc_i}）"
+    fail=1
+  fi
+
+  # ケース13（1-38陽性）: 観点キーを仕様書の1セルへ併記しても本文包含で対応済みになる。
+  if out_j="$(bash "$script_path" "$tmp/j" 2>&1)"; then rc_j=0; else rc_j=$?; fi
+  if [ "$rc_j" -eq 0 ] \
+     && ! printf '%s' "$out_j" | grep -q "単体テスト観点表 の観点キーのうち"; then
+    echo "[PASS] 1-38陽性: 仕様書の同一セルに併記した観点キーを本文包含で対応済みと判定する"
+  else
+    echo "[FAIL] 1-38陽性: 併記済み観点キーが未対応と判定されました（exit=${rc_j}）"
+    fail=1
+  fi
+
+  # ケース14（1-38陰性）: 仕様書本文に観点キーが無ければ警告を維持する。
+  if out_k="$(bash "$script_path" "$tmp/k" 2>&1)"; then rc_k=0; else rc_k=$?; fi
+  if [ "$rc_k" -eq 0 ] \
+     && printf '%s' "$out_k" | grep -q "単体テスト観点表 の観点キーのうち" \
+     && printf '%s' "$out_k" | grep -q "order-submit" \
+     && printf '%s' "$out_k" | grep -q "order-cancel"; then
+    echo "[PASS] 1-38陰性: 仕様書本文に観点キーが無ければ未対応警告を維持する"
+  else
+    echo "[FAIL] 1-38陰性: 観点キー未記載を警告できません（exit=${rc_k}）"
+    fail=1
+  fi
+
+  # ケース15（1-37陰性）: §15.1 path列は除外し、通常本文の偽リンクだけを検出する。
+  if out_l="$(bash "$script_path" "$tmp/l" 2>&1)"; then rc_l=0; else rc_l=$?; fi
+  if [ "$rc_l" -eq 1 ] \
+     && printf '%s' "$out_l" | grep -qF "missing-note.md" \
+     && ! printf '%s' "$out_l" | grep -qF "    - src/components/Foo.tsx"; then
+    echo "[PASS] 1-37陰性: §15.1のrepo内path列を除外し、通常本文の偽リンクは違反として検出する"
+  else
+    echo "[FAIL] 1-37陰性: repo内path列の除外または偽リンク検出に失敗しました（exit=${rc_l}）"
+    fail=1
+  fi
+
+  # ケース16（1-37陽性）: §15.1 path列だけなら到達性違反を発生させない。
+  if out_m="$(bash "$script_path" "$tmp/m" 2>&1)"; then rc_m=0; else rc_m=$?; fi
+  if [ "$rc_m" -eq 0 ] \
+     && printf '%s' "$out_m" | grep -q "本文の相対パス参照はすべて到達可能です"; then
+    echo "[PASS] 1-37陽性: §15.1のrepo内path列だけでは相対リンク到達性違反を発生させない"
+  else
+    echo "[FAIL] 1-37陽性: §15.1のrepo内path列を相対リンクと誤判定しました（exit=${rc_m}）"
+    fail=1
+  fi
+
+  # ケース17/18（1-39）: 実テンプレートをscaffoldした直後はテンプレート由来の
+  # 未記入誤検出が0件で、明示的に残した真の未記入は検出する。
+  # 展開先は output-layout.json の screenUnitRoot（既定 docs/design/screens）から
+  # 解決する。旧配置（画面/）を直書きすると本番のscaffold-screen.shが実際に
+  # 書き出す場所と食い違い、フィクスチャが未実在パスを参照する（1-XXX相当の再発防止）。
+  local script_dir template_root scaffolded_design layout_json screen_unit_root
+  script_dir="$(cd "$(dirname "$script_path")" && pwd)"
+  template_root="$script_dir/../../delivery-payload/templates/リバース検証"
+  layout_json="$(resolve_output_layout "")" || return 1
+  screen_unit_root="$(output_layout_get "$layout_json" screenUnitRoot)" || return 1
+  mkdir -p "$tmp/n"
+  if scaffold_out="$(bash "$script_dir/scaffold-screen.sh" "$tmp/n" "p39" "プレースホルダー試験" "$template_root" 2>&1)"; then
+    scaffolded_design="$tmp/n/$screen_unit_root/screen-p39/詳細設計/画面詳細設計書.md"
+    if out_n="$(bash "$script_path" "$tmp/n/$screen_unit_root/screen-p39" 2>&1)"; then rc_n=0; else rc_n=$?; fi
+    if printf '%s' "$out_n" | grep -q "未記入プレースホルダなし"; then
+      echo "[PASS] 1-39陽性: テンプレート展開直後の未記入プレースホルダ誤検出は0件"
+    else
+      echo "[FAIL] 1-39陽性: テンプレート由来の未記入プレースホルダを誤検出しました（exit=${rc_n}）"
+      fail=1
+    fi
+    printf '\n真の未記入: <未記入>\n' >> "$scaffolded_design"
+    if out_n_bad="$(bash "$script_path" "$tmp/n/$screen_unit_root/screen-p39" 2>&1)"; then rc_n_bad=0; else rc_n_bad=$?; fi
+    if [ "$rc_n_bad" -eq 1 ] \
+       && printf '%s' "$out_n_bad" | grep -q "違反: 未記入プレースホルダが"; then
+      echo "[PASS] 1-39陰性: 明示的に残した真の未記入プレースホルダを違反として検出する"
+    else
+      echo "[FAIL] 1-39陰性: 真の未記入プレースホルダを検出できません（exit=${rc_n_bad}）"
+      fail=1
+    fi
+  else
+    echo "[FAIL] 1-39: 詳細設計テンプレートのscaffoldに失敗しました: $scaffold_out"
+    fail=1
+  fi
+
+  # --- 検査r・検査s・検査tの追加フィクスチャ ---
+  # フィクスチャ r-missing: frontmatterに原本属性キー(source_encoding/source_line_ending)が
+  # 無い → 検査rが違反を出す
+  mkdir -p "$tmp/r"
+  cat > "$tmp/r/画面詳細設計書.md" <<'MDEOF'
+---
+unit_test_sheet: ./none.md
+integration_test_sheet: ./none.md
+---
+
+## 章マップ
+
+| 役割キー | § |
+|---|---|
+| 機能一覧 | §2 |
+| 実装契約 | §15 |
+| 要確認事項 | §16 |
+
+## §2 機能一覧
+
+| キー | 内容 |
+|---|---|
+| foo-view | 表示 |
+
+## §15 実装契約
+
+### 15.1 ファイル分割と export 一覧
+
+| ファイルパス | export 名 | 種別 | 配置ディレクトリ |
+|---|---|---|---|
+| components/Foo.tsx | Foo | コンポーネント | components/ |
+
+### 15.2 型定義
+
+| 型名 | フィールド名 | 型 | 必須/任意 |
+|---|---|---|---|
+| `FooValues` | `name` | `string` | 必須 |
+
+### 15.3 依存（import）一覧
+
+| モジュール | import 内容 | 種別 |
+|---|---|---|
+| `./Foo` | `Foo` | 内部 |
+
+## §16 要確認事項一覧
+
+| キー | 起票日 | 内容 | 暫定扱いにしている § | 解消条件 | 状態 |
+|---|---|---|---|---|---|
+| foo-issue | `2026-01-01` | 何らかの確認事項 | §15 | 実装完了 | 解消済み |
+MDEOF
+
+  # フィクスチャ s-undeclared: 章マップの「正」列が実装契約の外部文書
+  # （API定義書）を宣言しているが frontmatter に対応するパス欄が無い →
+  # 検査sが違反を出す
+  mkdir -p "$tmp/s"
+  cat > "$tmp/s/画面詳細設計書.md" <<'MDEOF'
+---
+source_encoding: UTF-8
+source_line_ending: LF
+unit_test_sheet: ./none.md
+integration_test_sheet: ./none.md
+---
+
+## 章マップ
+
+| 役割キー | § | 正 |
+|---|---|---|
+| 機能一覧 | §2 | - |
+| 実装契約 | §15 | API定義書 |
+| 要確認事項 | §16 | - |
+
+## §2 機能一覧
+
+| キー | 内容 |
+|---|---|
+| foo-view | 表示 |
+
+## §15 実装契約
+
+### 15.1 ファイル分割と export 一覧
+
+| ファイルパス | export 名 | 種別 | 配置ディレクトリ |
+|---|---|---|---|
+| components/Foo.tsx | Foo | コンポーネント | components/ |
+
+### 15.2 型定義
+
+| 型名 | フィールド名 | 型 | 必須/任意 |
+|---|---|---|---|
+| `FooValues` | `name` | `string` | 必須 |
+
+### 15.3 依存（import）一覧
+
+| モジュール | import 内容 | 種別 |
+|---|---|---|
+| `./Foo` | `Foo` | 内部 |
+
+## §16 要確認事項一覧
+
+| キー | 起票日 | 内容 | 暫定扱いにしている § | 解消条件 | 状態 |
+|---|---|---|---|---|---|
+| foo-issue | `2026-01-01` | 何らかの確認事項 | §15 | 実装完了 | 解消済み |
+MDEOF
+
+  # フィクスチャ t-contradiction: 章冒頭の新書式で§6.6を非該当に集約しつつ
+  # §6.1初期表示シーケンスに状態の語（ready）が書き残されている →
+  # 検査tが違反を出す
+  mkdir -p "$tmp/t"
+  cat > "$tmp/t/画面詳細設計書.md" <<'MDEOF'
+---
+source_encoding: UTF-8
+source_line_ending: LF
+unit_test_sheet: ./none.md
+integration_test_sheet: ./none.md
+---
+
+## 章マップ
+
+| 役割キー | § |
+|---|---|
+| 機能一覧 | §2 |
+| 実装契約 | §15 |
+| 要確認事項 | §16 |
+
+## §2 機能一覧
+
+| キー | 内容 |
+|---|---|
+| foo-view | 表示 |
+
+## §6 画面仕様
+
+> 非該当項目: §6.6 画面状態の遷移（要求ごとに全体を描画するため画面内状態を持たない）
+
+### 6.1 初期表示シーケンス
+
+1. 画面をマウントする
+2. データを取得する
+3. 表示を更新する
+4. ローディングを解除する
+5. 画面状態を ready に更新
+
+## §15 実装契約
+
+### 15.1 ファイル分割と export 一覧
+
+| ファイルパス | export 名 | 種別 | 配置ディレクトリ |
+|---|---|---|---|
+| components/Foo.tsx | Foo | コンポーネント | components/ |
+
+### 15.2 型定義
+
+| 型名 | フィールド名 | 型 | 必須/任意 |
+|---|---|---|---|
+| `FooValues` | `name` | `string` | 必須 |
+
+### 15.3 依存（import）一覧
+
+| モジュール | import 内容 | 種別 |
+|---|---|---|
+| `./Foo` | `Foo` | 内部 |
+
+## §16 要確認事項一覧
+
+| キー | 起票日 | 内容 | 暫定扱いにしている § | 解消条件 | 状態 |
+|---|---|---|---|---|---|
+| foo-issue | `2026-01-01` | 何らかの確認事項 | §15 | 実装完了 | 解消済み |
+MDEOF
+
+  # フィクスチャ u: 章全体集約でも検査tが同じ矛盾を検出する
+  mkdir -p "$tmp/u"
+  awk '
+    /^> 非該当項目: §6\.6 / {
+      print "> 本領域は全項目非該当（根拠: state の全分類が0件。要求ごとに全体を描画するため画面内状態を持たない）"
+      next
+    }
+    { print }
+  ' "$tmp/t/画面詳細設計書.md" > "$tmp/u/画面詳細設計書.md"
+
+  # フィクスチャ v: 後方互換の旧個別書式でも検査tが同じ矛盾を検出する
+  mkdir -p "$tmp/v"
+  awk '
+    /^> 非該当項目: §6\.6 / {
+      print "### 6.6 画面状態の遷移"
+      print ""
+      print "該当なし（要求ごとに全体を描画するため画面内状態を持たない）"
+      next
+    }
+    { print }
+  ' "$tmp/t/画面詳細設計書.md" > "$tmp/v/画面詳細設計書.md"
+
+  # フィクスチャ w: 別項目の理由中で中黒後に§6.6参照があっても非該当宣言として誤認しない
+  mkdir -p "$tmp/w"
+  awk '
+    /^> 非該当項目: §6\.6 / {
+      print "> 非該当項目: §6.5 データ変換（正規化・§6.6の状態一覧を参照しない）"
+      next
+    }
+    { print }
+  ' "$tmp/t/画面詳細設計書.md" > "$tmp/w/画面詳細設計書.md"
+
+  # フィクスチャ x: セミコロン後の2項目目に空理由がある集約
+  mkdir -p "$tmp/x"
+  awk '
+    /^> 非該当項目: §6\.6 / {
+      print "> 非該当項目: §6.6 画面状態（画面内状態なし）; §6.5 理由なし項目（）"
+      next
+    }
+    { print }
+  ' "$tmp/t/画面詳細設計書.md" > "$tmp/x/画面詳細設計書.md"
+
+  # フィクスチャ y: セミコロン後の2項目目に節番号・理由がない集約
+  mkdir -p "$tmp/y"
+  awk '
+    /^> 非該当項目: §6\.6 / {
+      print "> 非該当項目: §6.6 画面状態（画面内状態なし）; 理由なし項目"
+      next
+    }
+    { print }
+  ' "$tmp/t/画面詳細設計書.md" > "$tmp/y/画面詳細設計書.md"
+
+  # フィクスチャ z: 章全体集約の根拠が空
+  mkdir -p "$tmp/z"
+  awk '
+    /^> 非該当項目: §6\.6 / {
+      print "> 本領域は全項目非該当（根拠: ）"
+      next
+    }
+    { print }
+  ' "$tmp/t/画面詳細設計書.md" > "$tmp/z/画面詳細設計書.md"
+
+  # ケース19: 検査r陽性（frontmatterに原本属性キーが無い場合を違反として検出する）
+  if out_r="$(bash "$script_path" "$tmp/r" 2>&1)"; then rc_r=0; else rc_r=$?; fi
+  if [ "$rc_r" -eq 1 ] && printf '%s' "$out_r" | grep -q "原本属性キーがありません"; then
+    echo "[PASS] 検査r陽性: frontmatterに原本属性キーが無い場合を違反として検出する"
+  else
+    echo "[FAIL] 検査r陽性: 原本属性キー欠落を検出できません（exit=${rc_r}）"
+    fail=1
+  fi
+
+  # フィクスチャ r-present: frontmatterに原本属性キー(source_encoding: UTF-8 /
+  # source_line_ending: LF)が揃っている → 検査rは違反を出さず通過する
+  make_fixture "$tmp/r-present" '| キー | 起票日 | 内容 | 暫定扱いにしている § | 解消条件 | 状態 |
+|---|---|---|---|---|---|
+| foo-issue | `2026-01-01` | 何らかの確認事項 | §15 | 実装完了 | 解消済み |'
+
+  # ケース19b: 検査r陰性（frontmatterに原本属性キーが揃っている場合は違反を出さず通過する）
+  if out_r_present="$(bash "$script_path" "$tmp/r-present" 2>&1)"; then rc_r_present=0; else rc_r_present=$?; fi
+  if [ "$rc_r_present" -eq 0 ] \
+     && printf '%s' "$out_r_present" | grep -q "frontmatter の原本属性キーはすべて存在します" \
+     && ! printf '%s' "$out_r_present" | grep -q "原本属性キーがありません"; then
+    echo "[PASS] 検査r陰性: frontmatterに原本属性キーが揃っている場合は違反を出さず通過する"
+  else
+    echo "[FAIL] 検査r陰性: 原本属性キーが揃っているのに通過しません（exit=${rc_r_present}）"
+    fail=1
+  fi
+
+  # ケース20: 検査s陽性（章マップの外部文書宣言に対応するfrontmatterのパス欄欠落を違反として検出する）
+  if out_s="$(bash "$script_path" "$tmp/s" 2>&1)"; then rc_s=0; else rc_s=$?; fi
+  if [ "$rc_s" -eq 1 ] && printf '%s' "$out_s" | grep -q "対応する frontmatter のパス欄がありません"; then
+    echo "[PASS] 検査s陽性: 章マップの外部文書宣言に対応するfrontmatterパス欄の欠落を違反として検出する"
+  else
+    echo "[FAIL] 検査s陽性: 外部文書宣言のfrontmatterパス欄欠落を検出できません（exit=${rc_s}）"
+    fail=1
+  fi
+
+  # ケース21: 検査t陽性（§6.6の非該当集約と他節の状態語残存の矛盾を違反として検出する）
+  if out_t="$(bash "$script_path" "$tmp/t" 2>&1)"; then rc_t=0; else rc_t=$?; fi
+  if [ "$rc_t" -eq 1 ] && printf '%s' "$out_t" | grep -q "状態の語が残っています"; then
+    echo "[PASS] 検査t陽性: 画面内状態の非該当集約と他節の状態語残存の矛盾を違反として検出する"
+  else
+    echo "[FAIL] 検査t陽性: 画面内状態の節間矛盾を検出できません（exit=${rc_t}）"
+    fail=1
+  fi
+
+  # ケース22: 検査t章全体集約互換
+  if out_u="$(bash "$script_path" "$tmp/u" 2>&1)"; then rc_u=0; else rc_u=$?; fi
+  if [ "$rc_u" -eq 1 ] && printf '%s' "$out_u" | grep -q "状態の語が残っています"; then
+    echo "[PASS] 検査t章全体集約: 全項目非該当でも他節の状態語残存を検出する"
+  else
+    echo "[FAIL] 検査t章全体集約: 節間矛盾を検出できません（exit=${rc_u}）"
+    fail=1
+  fi
+
+  # ケース23: 検査t旧個別書式互換
+  if out_v="$(bash "$script_path" "$tmp/v" 2>&1)"; then rc_v=0; else rc_v=$?; fi
+  if [ "$rc_v" -eq 1 ] && printf '%s' "$out_v" | grep -q "状態の語が残っています"; then
+    echo "[PASS] 検査t旧個別書式: 旧「該当なし」でも他節の状態語残存を検出する"
+  else
+    echo "[FAIL] 検査t旧個別書式: 節間矛盾を検出できません（exit=${rc_v}）"
+    fail=1
+  fi
+
+  # ケース24: 検査tの§6.6参照誤認防止
+  if out_w="$(bash "$script_path" "$tmp/w" 2>&1)"; then rc_w=0; else rc_w=$?; fi
+  if [ "$rc_w" -eq 0 ] && ! printf '%s' "$out_w" | grep -q "状態の語が残っています"; then
+    echo "[PASS] 検査t参照誤認防止: 理由文中の§6.6参照を非該当宣言として扱わない"
+  else
+    echo "[FAIL] 検査t参照誤認防止: §6.6参照を誤認しました（exit=${rc_w}）"
+    fail=1
+  fi
+
+  # ケース25: 検査lの項目別空理由
+  if out_x="$(bash "$script_path" "$tmp/x" 2>&1)"; then rc_x=0; else rc_x=$?; fi
+  if printf '%s' "$out_x" | grep -q "節番号または根拠を伴わない非該当記述"; then
+    echo "[PASS] 検査l空理由: 2項目目の理由が空の集約を警告する"
+  else
+    echo "[FAIL] 検査l空理由: 2項目目の空理由を検出できません（exit=${rc_x}）"
+    fail=1
+  fi
+
+  # ケース26: 検査lの項目別節番号・根拠欠落
+  if out_y="$(bash "$script_path" "$tmp/y" 2>&1)"; then rc_y=0; else rc_y=$?; fi
+  if printf '%s' "$out_y" | grep -q "節番号または根拠を伴わない非該当記述"; then
+    echo "[PASS] 検査l項目別: 2項目目だけ節番号・理由が欠ける集約を警告する"
+  else
+    echo "[FAIL] 検査l項目別: 2項目目の根拠欠落を検出できません（exit=${rc_y}）"
+    fail=1
+  fi
+
+  # ケース27: 検査lの章全体集約の空根拠
+  if out_z="$(bash "$script_path" "$tmp/z" 2>&1)"; then rc_z=0; else rc_z=$?; fi
+  if printf '%s' "$out_z" | grep -q "節番号または根拠を伴わない非該当記述"; then
+    echo "[PASS] 検査l章全体: 章全体集約の空根拠を警告する"
+  else
+    echo "[FAIL] 検査l章全体: 空根拠を検出できません（exit=${rc_z}）"
+    fail=1
+  fi
+
+  rm -rf "$tmp"
+
+  # ケース28: extract_table_column の列崩れ防止（backtick内の「|」を区切りと
+  # 見なさない）。セル内容が `grep -rlE "cron|schedule" src` のような、
+  # backtickで囲まれたOR条件（"|"を含む）を持つ場合、素朴な split($0, cols, "|")
+  # では列がずれる（.claude/skills/surveying-architecture-for-reverse-docs/
+  # scripts/check-architecture-survey.sh の table_col() が対応済みの同種問題）。
+  # extract_table_column は本ファイル内で self_test より後方に定義されており、
+  # --self-test 実行時はまだ定義前の時点で self_test が呼ばれる（load-order）。
+  # そのため関数定義だけを sed で抜き出し、呼び出しごとの subshell 内で eval
+  # してから直接呼ぶ（本体スクリプトを丸ごと source すると main モードの実行を
+  # 引き起こすため避ける）。
+  local col_fn_src col_test_table col_result_1 col_result_2 col_result_3
+  col_fn_src="$(sed -n '/^extract_table_column() {/,/^}/p' "$script_path")"
+  col_test_table='| キー | 内容 | 状態 |
+|---|---|---|
+| foo | `grep -rlE "cron|schedule" src` | 解消済み |
+| bar | 通常セル | 未解消 |'
+  col_result_1="$(eval "$col_fn_src"; extract_table_column "$col_test_table" 1 | tr '\n' ',')"
+  col_result_2="$(eval "$col_fn_src"; extract_table_column "$col_test_table" 2 | tr '\n' ',')"
+  col_result_3="$(eval "$col_fn_src"; extract_table_column "$col_test_table" 3 | tr '\n' ',')"
+  if [ "$col_result_1" = "foo,bar," ] \
+     && [ "$col_result_2" = "grep -rlE \"cron|schedule\" src,通常セル," ] \
+     && [ "$col_result_3" = "解消済み,未解消," ]; then
+    echo "[PASS] extract_table_column列崩れ防止: backtick内の\"|\"を区切りと誤認せず列がずれない"
+  else
+    echo "[FAIL] extract_table_column列崩れ防止: 列1=[${col_result_1}] 列2=[${col_result_2}] 列3=[${col_result_3}]（期待: foo,bar, / grep -rlE \"cron|schedule\" src,通常セル, / 解消済み,未解消,）" >&2
+    fail=1
+  fi
+
+  # ケース29: 整合検査-文字環境依存の回帰防止（機械強制）
+  # 重複除去・集合比較の一部コマンドは既定のロケールで多バイト文字の判定を誤り、
+  # 異なる意味語キーを同一と判定して縮退させうる。全呼び出しが決定的な文字環境を
+  # 伴うことを静的検査し、呼び出し側の環境変数指定に依存しない作りであることを
+  # 保証する。検査文自身がこのgrepに自己マッチしないよう、コメント行は走査から
+  # 除外し、探索語は連続部分文字列を直書きせず変数で組み立てる。
+  # 実測値なし（縮退を実際に再現させた実測は無い。ロケールデータの違いによる
+  # 潜在リスクとして対策済み）。環境（システムの既定ロケール設定）に依存する。
+  # 手元の環境で意味語キーの縮退が再現しないことを理由に LC_ALL=C を外すな。
+  # 過去に消えて再発した経緯: 記録なし（このケース自体が自己テストとして
+  # 最初から退行を検知する構造で導入されている）。
+  local sort_u_word comm23_word comm13_word bad_lines noncomment_src
+  sort_u_word="sort$(printf ' ')-u"
+  comm23_word="comm$(printf ' ')-23"
+  comm13_word="comm$(printf ' ')-13"
+  noncomment_src="$(grep -vE '^[[:space:]]*#' "$script_path")"
+  bad_lines="$(printf '%s\n' "$noncomment_src" \
+    | grep -F -e "$sort_u_word" -e "$comm23_word" -e "$comm13_word" \
+    | grep -v "LC_ALL=C" || true)"
+  if [ -z "$bad_lines" ]; then
+    echo "[PASS] 整合検査-文字環境依存: 重複除去・集合比較の全呼び出しが決定的な文字環境を伴う"
+  else
+    echo "[FAIL] 整合検査-文字環境依存: 決定的な文字環境を伴わない呼び出しが残っています" >&2
+    printf '%s\n' "$bad_lines" >&2
+    fail=1
+  fi
+
+  # ケース30: 検査i-列崩れ回帰（内容列(cols[4])のbacktick内「|」で状態列(cols[7])
+  # がずれない）。修正前の素朴な split($0, cols, "|") では、内容列に
+  # `grep -rlE "cron|schedule" src` のようなbacktick内「|」を含む行があると
+  # 列がずれ、解消条件列（実装完了）を状態列と誤読して解消済みの行を未解消と
+  # 誤判定していた（整合検査-列崩れが8箇所に残存）。
+  make_fixture "$tmp/o" '| キー | 起票日 | 内容 | 暫定扱いにしている § | 解消条件 | 状態 |
+|---|---|---|---|---|---|
+| cron-or条件 | `2026-01-01` | `grep -rlE "cron|schedule" src` の実行結果で確認済み | §15 | 実装完了 | 解消済み |'
+
+  if out_o="$(bash "$script_path" "$tmp/o" 2>&1)"; then rc_o=0; else rc_o=$?; fi
+  if [ "$rc_o" -eq 0 ] \
+     && printf '%s' "$out_o" | grep -q "要確認事項一覧はすべて解消済みです" \
+     && ! printf '%s' "$out_o" | grep -q "未解消（状態≠解消済み）が"; then
+    echo "[PASS] 検査i列崩れ回帰: 内容列のbacktick内\"|\"で状態列がずれず解消済みと正しく判定する"
+  else
+    echo "[FAIL] 検査i列崩れ回帰: 内容列のbacktick内\"|\"により状態列の判定がずれています（exit=${rc_o}）" >&2
+    printf '%s\n' "$out_o" >&2
+    fail=1
+  fi
+
+  if [ "$fail" -ne 0 ]; then
+    echo "=== self-test: FAIL ==="
+    return 1
+  fi
+  echo "=== self-test: すべてPASS ==="
+  return 0
+}
+
+if [ "${1:-}" = "--self-test" ]; then
+  self_test
+  exit $?
+fi
+
+LIST_CONTRACT_MODE=0
+if [ "${1:-}" = "--list-contract-files" ]; then
+  LIST_CONTRACT_MODE=1
+  SCREEN_DIR="${2:-}"
+else
+  SCREEN_DIR="${1:-}"
+fi
+
+if [ -z "$SCREEN_DIR" ]; then
+  echo "使い方: $0 <画面ディレクトリ> | $0 --list-contract-files <画面ディレクトリ>" >&2
+  exit 1
+fi
+if [ ! -d "$SCREEN_DIR" ]; then
+  echo "エラー: ディレクトリが存在しません: $SCREEN_DIR" >&2
+  exit 1
+fi
+
+# 設計書の特定: 詳細設計/画面詳細設計書.md（ネスト構造）を第一候補、
+# 直下の画面詳細設計書.md を第二候補とし、無ければ frontmatter に
+# `type: screen-detail-design` を持つ .md を探す（詳細設計/配下→直下の順）。
+# 観点表にも doc_id があるため「doc_id を含む最初の .md」では観点表を
+# 誤選択しうる（実証済みバグ）。
+DESIGN_DOC=""
+if [ -f "$SCREEN_DIR/詳細設計/画面詳細設計書.md" ]; then
+  DESIGN_DOC="$SCREEN_DIR/詳細設計/画面詳細設計書.md"
+elif [ -f "$SCREEN_DIR/画面詳細設計書.md" ]; then
+  DESIGN_DOC="$SCREEN_DIR/画面詳細設計書.md"
+else
+  for cand in "$SCREEN_DIR"/詳細設計/*.md "$SCREEN_DIR"/*.md; do
+    if [ -f "$cand" ] && grep -qE '^type: *screen-detail-design *$' "$cand" 2>/dev/null; then
+      DESIGN_DOC="$cand"
+      break
+    fi
+  done
+fi
+if [ -z "$DESIGN_DOC" ]; then
+  echo "エラー: 設計書を特定できません（画面詳細設計書.md が無く、type: screen-detail-design を持つ .md も見つかりません）: $SCREEN_DIR" >&2
+  exit 1
+fi
+DESIGN_DIR="$(dirname "$DESIGN_DOC")"
+
+# --- frontmatter から観点表パスを取得 ---
+frontmatter_value() {
+  local key="$1" raw
+  raw="$(awk -v k="$key" '
+    /^---$/ { c++; next }
+    c==1 && $0 ~ "^"k":" { sub("^"k": *", ""); print; exit }
+  ' "$DESIGN_DOC")"
+  printf '%s' "$raw" | sed 's/[[:space:]]*#.*$//; s/[[:space:]]*$//'
+}
+
+# BSD realpath（macOS）には -m が無いため、cd + pwd によるポータブルな解決を行う。
+# 相対パスの親ディレクトリが存在しない場合は空文字を返す。
+resolve_rel_path() {
+  local base_dir="$1" rel="$2" rel_dir rel_base abs_dir
+  [ -z "$rel" ] && return 1
+  rel_dir="$(dirname "$rel")"
+  rel_base="$(basename "$rel")"
+  if [ -d "$base_dir/$rel_dir" ]; then
+    abs_dir="$(cd "$base_dir/$rel_dir" && pwd)"
+    printf '%s/%s\n' "$abs_dir" "$rel_base"
+    return 0
+  fi
+  return 1
+}
+
+# --- 章マップ解決（役割キー → §番号）---
+
+# 指定ファイル内で見出し行 $2（正規表現）にマッチした行の次の行から、
+# 次の "^## " 見出し（トップレベル見出し）手前までの本文を出力する。
+# 見出し行自体・境界の "## " 行自体は含まない。
+extract_heading_body() {
+  local file="$1" heading="$2"
+  LC_ALL=C awk -v pat="$heading" '
+    $0 ~ pat { in_sec=1; next }
+    in_sec && /^## / { exit }
+    in_sec { print }
+  ' "$file"
+}
+
+# テーブル本文（extract_heading_body の出力等）から指定列（1始まり）の値を
+# 抽出する。構造的ヘッダー処理: テーブル 1 行目（ヘッダー行）は無条件スキップ、
+# 2 行目が区切り行 `^\|[ \t:|\-]+$` に一致すればスキップする。ラベル文字列に
+# 依存した除外（"キー" 等の名指し）は行わない。
+# 列分割は backtick（`）で囲まれた区間内の「|」を区切りとして扱わない
+# （.claude/skills/surveying-architecture-for-reverse-docs/scripts/check-architecture-survey.sh
+# の table_col() に倣う。素朴な split($0, cols, "|") は、セル内容が OR 条件等で
+# 「|」を含む場合に列がずれて崩れる）。
+extract_table_column() {
+  local text="$1" col="$2"
+  printf '%s\n' "$text" | awk -v col="$col" '
+    BEGIN { row=0 }
+    /^\|/ {
+      row++
+      if (row == 1) next
+      if (row == 2 && $0 ~ /^\|[ \t:|\-]+$/) next
+      n = length($0)
+      idx = 0
+      buf = ""
+      inbt = 0
+      v = ""
+      found = 0
+      for (i = 1; i <= n; i++) {
+        c = substr($0, i, 1)
+        if (c == "`") { inbt = !inbt; buf = buf c; continue }
+        if (c == "|" && inbt == 0) {
+          if (idx == col) { v = buf; found = 1 }
+          idx++
+          buf = ""
+          continue
+        }
+        buf = buf c
+      }
+      if (idx == col && !found) { v = buf; found = 1 }
+      if (!found) next
+      gsub(/^[ \t]+|[ \t]+$/, "", v)
+      gsub(/\x60/, "", v)
+      if (v != "" && v !~ /^-+$/) print v
+    }
+  '
+}
+
+# 引用符（backtick）内の「|」を区切りと誤認しない列分割（awk関数として共有）。
+# extract_table_column（上記）と同じ回避策だが、抽出先が単一列ではなく複数列
+# （キー・状態・種別等の同時参照）や、動的な列番号解決（ヘッダー走査）を要する
+# 複数の awk 起動（resolve_role_section・検査e・検査f・検査g・検査i・検査q の
+# path マスク処理）から共通で使うため、awk 関数として切り出し文字列変数に持つ。
+# split() と同じ 1 始まりの添字規約（arr[1] は先頭「|」の前の空文字列、arr[2] が
+# 最初の実データ列）を保つため、呼び出し側の既存の列番号はそのまま使える。
+# extract_table_column 自身は --self-test（ケース28）が sed で単体関数として
+# 抜き出して eval するため、本関数への依存は持たせず現状の自己完結実装を維持する。
+PIPE_SPLIT_AWK_FN='
+function split_pipe_row(line, arr,    n, idx, buf, inbt, i, c) {
+  n = length(line)
+  idx = 1
+  buf = ""
+  inbt = 0
+  for (i = 1; i <= n; i++) {
+    c = substr(line, i, 1)
+    if (c == "`") { inbt = !inbt; buf = buf c; continue }
+    if (c == "|" && inbt == 0) { arr[idx] = buf; idx++; buf = ""; continue }
+    buf = buf c
+  }
+  arr[idx] = buf
+  return idx
+}
+'
+
+# 「## 章マップ」表が存在し、1 列目のヘッダーが「役割キー」であることを検証する。
+# 章マップが無い・表が無い・役割キー列が無い場合は理由を stderr に出し 1 を返す。
+validate_chapter_map() {
+  if ! grep -qE '^## 章マップ' "$DESIGN_DOC"; then
+    echo "エラー: '## 章マップ' セクションが見つかりません: $DESIGN_DOC" >&2
+    return 1
+  fi
+  local header_line header_col1
+  header_line="$(extract_heading_body "$DESIGN_DOC" '^## 章マップ' | awk '/^\|/ { print; exit }')"
+  if [ -z "$header_line" ]; then
+    echo "エラー: '## 章マップ' セクションに表がありません: $DESIGN_DOC" >&2
+    return 1
+  fi
+  header_col1="$(printf '%s' "$header_line" | awk -F'|' '{ v=$2; gsub(/^[ \t]+|[ \t]+$/, "", v); print v }')"
+  if [ "$header_col1" != "役割キー" ]; then
+    echo "エラー: 章マップ表に役割キー列がありません（1 列目のヘッダーが '役割キー' ではなく '$header_col1' でした）: $DESIGN_DOC" >&2
+    return 1
+  fi
+  return 0
+}
+
+# 章マップ表から役割キーに対応する §番号を解決する（見つからなければ空文字）。
+# validate_chapter_map による事前検証を前提とする。
+# 章マップの § 列は `§2` のように § 記号付きで記述されるのが実テンプレートの
+# 正規形だが、`2` のような記号なし表記も許容する。取得した値の先頭の § を
+# 正規化のため除去し、残りが数字のみでなければ明示エラーとする
+# （extract_design_section_body が `## §${num}` を組み立てるため、
+# § を除去せずに渡すと `## §§2` になり全セクション抽出が失敗する）。
+resolve_role_section() {
+  local role="$1" sec
+  sec="$(extract_heading_body "$DESIGN_DOC" '^## 章マップ' | LC_ALL=C awk -v role="$role" "$PIPE_SPLIT_AWK_FN"'
+    BEGIN { row=0 }
+    /^\|/ {
+      row++
+      if (row == 1) next
+      if (row == 2 && $0 ~ /^\|[ \t:|\-]+$/) next
+      n = split_pipe_row($0, cols)
+      key = cols[2]; gsub(/^[ \t]+|[ \t]+$/, "", key)
+      val = cols[3]; gsub(/^[ \t]+|[ \t]+$/, "", val)
+      if (key == role) { print val; exit }
+    }
+  ')"
+  [ -z "$sec" ] && return 0
+  sec="${sec#§}"
+  if ! printf '%s' "$sec" | grep -qE '^[0-9]+$'; then
+    echo "エラー: 章マップの § 列の値が数字として解釈できません（役割キー '$role': '$sec'）: $DESIGN_DOC" >&2
+    return 1
+  fi
+  printf '%s\n' "$sec"
+}
+
+# 章マップで解決した §番号の章本文を抽出する（次の "^## " 見出し手前まで）。
+# 番号の直後が数字でないことを要求し、§1 が §10 に誤マッチしないようにする。
+extract_design_section_body() {
+  local num="$1"
+  local pat="^## §${num}([^0-9]|\$)"
+  extract_heading_body "$DESIGN_DOC" "$pat"
+}
+
+# 観点表ファイルの「## 観点表」セクションから機能キー（1 列目）を抽出する。
+# 観点表ファイルにはテストサイズ対応表・本書に書かないもの・観点の導出元マップ等の
+# ガイドテーブルが「## 観点表」セクションの前後に存在するため、見出し配下のみを対象にする。
+# 「## 観点表」アンカーは維持する。新設される「## 往復検証観点表」セクションは別見出し
+# のため extract_heading_body '^## 観点表' では拾われず、本検査 a の対象外となる
+# （往復検証観点表は検査 d が別途対象にする）。
+extract_sheet_keys() {
+  local sheet="$1"
+  [ -f "$sheet" ] || return 0
+  local body
+  body="$(extract_heading_body "$sheet" '^## 観点表')"
+  extract_table_column "$body" 1 | LC_ALL=C sort -u
+}
+
+# 参照先ドキュメントの種別（frontmatter type:）と必須見出しを検証する。
+# ファイル存在チェックだけでは「実体はあるが別スキル・別画面用の資産だった」
+# という取り違えを検出できないため、type: とセクション見出しの両方を確認する。
+validate_referenced_doc() {
+  local file="$1" label="$2" expected_type="$3"; shift 3
+  local actual_type h
+  actual_type="$(awk '/^---$/ { c++; next } c==1 && /^type:/ { sub(/^type: */, ""); print; exit }' "$file")"
+  if [ "$actual_type" != "$expected_type" ]; then
+    echo "  違反: ${label} の type が想定と異なります（期待: $expected_type / 実際: ${actual_type:-なし}）: $file" >&2
+    VIOLATIONS=$((VIOLATIONS + 1))
+  fi
+  for h in "$@"; do
+    if ! grep -qE "^## ${h}" "$file"; then
+      echo "  違反: ${label} に必須見出し '## ${h}' が見つかりません: $file" >&2
+      VIOLATIONS=$((VIOLATIONS + 1))
+    fi
+  done
+  return 0
+}
+
+# --- --list-contract-files モード ---
+# 実装契約章内の「ファイル分割」表（### 見出しに「ファイル分割」を含む節の表。
+# 無ければ実装契約章の最初の表）の 1 列目からファイルパスを抽出し、
+# 1 行 1 パスで stdout に出力する。取得不可条件は理由を stderr に出し 1 を返す。
+list_contract_files() {
+  if ! validate_chapter_map; then
+    return 1
+  fi
+
+  local secnum body subbody col1 total_count non_placeholder_count
+  secnum="$(resolve_role_section "実装契約")"
+  if [ -z "$secnum" ]; then
+    echo "エラー: 章マップに役割キー '実装契約' の行が見つかりません: $DESIGN_DOC" >&2
+    return 1
+  fi
+
+  body="$(extract_design_section_body "$secnum")"
+  if [ -z "$body" ]; then
+    echo "エラー: 実装契約章（§${secnum}）の本文が見つかりません: $DESIGN_DOC" >&2
+    return 1
+  fi
+
+  subbody="$(printf '%s\n' "$body" | awk '
+    /^### / && $0 ~ /ファイル分割/ { insub=1; next }
+    /^### / && insub { exit }
+    insub { print }
+  ')"
+  if [ -z "$subbody" ]; then
+    subbody="$body"
+  fi
+
+  # 行のいずれかの列に「参考情報」と明記された行（画面固有でない共有ファイル・
+  # ルーター定義ファイル等の注記行）は白紙化対象から除外する。
+  subbody="$(printf '%s\n' "$subbody" | awk '
+    /^\|/ && $0 ~ /参考情報/ { next }
+    { print }
+  ')"
+
+  col1="$(extract_table_column "$subbody" 1)"
+  total_count=$(printf '%s\n' "$col1" | grep -c . || true)
+  if [ "$total_count" -eq 0 ]; then
+    echo "エラー: 実装契約章のファイル分割表からファイルパスを抽出できません（表なし/有効行 0）: $DESIGN_DOC" >&2
+    return 1
+  fi
+
+  non_placeholder_count=$(printf '%s\n' "$col1" | grep -vE '^<.*>$' | grep -c . || true)
+  if [ "$non_placeholder_count" -eq 0 ]; then
+    echo "エラー: 実装契約章のファイル分割表が全行プレースホルダです: $DESIGN_DOC" >&2
+    return 1
+  fi
+
+  printf '%s\n' "$col1"
+  return 0
+}
+
+if [ "$LIST_CONTRACT_MODE" -eq 1 ]; then
+  if list_contract_files; then
+    exit 0
+  else
+    exit 1
+  fi
+fi
+
+echo "対象設計書: $DESIGN_DOC"
+VIOLATIONS=0
+WARNINGS=0
+
+UNIT_SHEET_REL="$(frontmatter_value unit_test_sheet)"
+INTEG_SHEET_REL="$(frontmatter_value integration_test_sheet)"
+UNIT_SHEET="$(resolve_rel_path "$DESIGN_DIR" "$UNIT_SHEET_REL" || true)"
+INTEG_SHEET="$(resolve_rel_path "$DESIGN_DIR" "$INTEG_SHEET_REL" || true)"
+
+# operation_test_spec は任意キー（L5 操作シーケンス突合が無い画面には存在しない）。
+# インラインコメント除去は frontmatter_value() 内で共通化済み。
+OPTEST_SPEC_REL="$(frontmatter_value operation_test_spec)"
+OPTEST_SPEC="$(resolve_rel_path "$DESIGN_DIR" "$OPTEST_SPEC_REL" || true)"
+
+# unit_test_spec / integration_test_spec / design_md は任意キー。検査 j・m（テスト仕様書
+# 空殻検出・DESIGN.md 実測欄検出）が使う。
+UNIT_SPEC_REL="$(frontmatter_value unit_test_spec)"
+INTEG_SPEC_REL="$(frontmatter_value integration_test_spec)"
+UNIT_SPEC="$(resolve_rel_path "$DESIGN_DIR" "$UNIT_SPEC_REL" || true)"
+INTEG_SPEC="$(resolve_rel_path "$DESIGN_DIR" "$INTEG_SPEC_REL" || true)"
+DESIGN_MD_REL="$(frontmatter_value design_md)"
+DESIGN_MD="$(resolve_rel_path "$DESIGN_DIR" "$DESIGN_MD_REL" || true)"
+
+# --- (a) 機能一覧章 × 観点表 の機能キー集合突合（両方向一致） ---
+echo ""
+echo "[検査 a] 機能一覧章 × 観点表 の機能キーの集合突合（両方向一致）"
+
+if ! validate_chapter_map; then
+  exit 1
+fi
+
+FUNC_SECNUM="$(resolve_role_section "機能一覧")"
+if [ -z "$FUNC_SECNUM" ]; then
+  echo "  エラー: 章マップに役割キー '機能一覧' の行が見つかりません: $DESIGN_DOC" >&2
+  exit 1
+fi
+
+FUNC_SECTION_BODY="$(extract_design_section_body "$FUNC_SECNUM")"
+FUNC_KEYS=$(extract_table_column "$FUNC_SECTION_BODY" 1 | LC_ALL=C sort -u)
+FUNC_COUNT=$(printf '%s\n' "$FUNC_KEYS" | grep -c . || true)
+echo "  機能一覧章（§${FUNC_SECNUM}）の機能キー数: $FUNC_COUNT"
+
+UNIT_KEYS=""
+INTEG_KEYS=""
+
+if [ -f "$UNIT_SHEET" ]; then
+  validate_referenced_doc "$UNIT_SHEET" "単体テスト観点表" "unit-test-sheet" "観点表"
+  UNIT_KEYS="$(extract_sheet_keys "$UNIT_SHEET")"
+  UNIT_COUNT=$(printf '%s\n' "$UNIT_KEYS" | grep -c . || true)
+  echo "  単体テスト観点表 ($UNIT_SHEET_REL) のキー行数: $UNIT_COUNT"
+else
+  echo "  WARN: 単体テスト観点表が見つかりません ($UNIT_SHEET_REL)" >&2
+  WARNINGS=$((WARNINGS + 1))
+fi
+
+if [ -f "$INTEG_SHEET" ]; then
+  validate_referenced_doc "$INTEG_SHEET" "結合テスト観点表" "integration-test-sheet" "観点表" "往復検証観点表"
+  INTEG_KEYS="$(extract_sheet_keys "$INTEG_SHEET")"
+  INTEG_COUNT=$(printf '%s\n' "$INTEG_KEYS" | grep -c . || true)
+  echo "  結合テスト観点表 ($INTEG_SHEET_REL) のキー行数: $INTEG_COUNT"
+else
+  echo "  WARN: 結合テスト観点表が見つかりません ($INTEG_SHEET_REL)" >&2
+  WARNINGS=$((WARNINGS + 1))
+fi
+
+if [ "$FUNC_COUNT" -eq 0 ]; then
+  echo "  違反: 機能一覧章にキーが 1 件もありません" >&2
+  VIOLATIONS=$((VIOLATIONS + 1))
+fi
+
+# --- 機能キーと観点表キーの実突合 ---
+# 観点表が単体/結合の 2 枚構成でも、機能一覧章の各機能キーが「少なくとも一方」の
+# 観点表に出現すればよい（単純な総数比較は 2 枚構成で必ずずれるため行わない）。
+# 逆に観点表側にしか無いキーは機能一覧の記載漏れとして違反にする。
+if [ -f "$UNIT_SHEET" ] || [ -f "$INTEG_SHEET" ]; then
+  ALL_SHEET_KEYS="$(printf '%s\n%s\n' "$UNIT_KEYS" "$INTEG_KEYS" | grep . | LC_ALL=C sort -u || true)"
+  FUNC_KEYS_NONEMPTY="$(printf '%s\n' "$FUNC_KEYS" | grep . || true)"
+  MISSING_IN_SHEETS="$(LC_ALL=C comm -23 <(printf '%s\n' "$FUNC_KEYS_NONEMPTY") <(printf '%s\n' "$ALL_SHEET_KEYS") || true)"
+  EXTRA_IN_SHEETS="$(LC_ALL=C comm -13 <(printf '%s\n' "$FUNC_KEYS_NONEMPTY") <(printf '%s\n' "$ALL_SHEET_KEYS") || true)"
+
+  if [ -n "$MISSING_IN_SHEETS" ]; then
+    echo "  違反: 観点表未整備のキー（機能一覧章にあるが単体/結合いずれの観点表にも無い）:" >&2
+    printf '%s\n' "$MISSING_IN_SHEETS" | sed 's/^/    - /' >&2
+    VIOLATIONS=$((VIOLATIONS + 1))
+  fi
+  if [ -n "$EXTRA_IN_SHEETS" ]; then
+    echo "  違反: 機能一覧の記載漏れ（観点表にあるが機能一覧章に無いキー）:" >&2
+    printf '%s\n' "$EXTRA_IN_SHEETS" | sed 's/^/    - /' >&2
+    VIOLATIONS=$((VIOLATIONS + 1))
+  fi
+  if [ -z "$MISSING_IN_SHEETS" ] && [ -z "$EXTRA_IN_SHEETS" ]; then
+    echo "  機能一覧章の機能キーと観点表キーの突合 OK（過不足なし）"
+  fi
+else
+  echo "  観点表が 1 枚も見つからないためキー突合をスキップします（WARN 済み）"
+fi
+
+# --- (b) 未記入プレースホルダ検出 ---
+echo ""
+echo "[検査 b] 未記入プレースホルダ検出（HTML コメント外・fenced code block 外の <...>）"
+
+# 検出方式: `<...>` の「中身（inner）」で判定する（直前文字による判定は
+# `<T>(x)` や `<Type>value`（旧式アサーション）を見逃すため廃止）。
+# inner が次のいずれかに該当すれば未記入プレースホルダとみなす:
+#   非 ASCII（日本語プレースホルダ）／ YYYY 日付／ HH:MM・MM:SS 等の時刻／
+#   vX.Y バージョン／ 全大文字ハイフン区切り（MSG-ID 等）／ " / " を含む選択肢列挙。
+# TS ジェネリクス（<T>, <T,>, Dispatch<SetStateAction<T>>, Record<string, number>,
+# styled("td")<{...}> 等）は inner がいずれの条件にも該当しないため誤検出しない。
+# 注意: 本テンプレートのプレースホルダは `<画面名>` のように単一バッククォートで
+# 囲むのが標準記法（実測: テンプレート本文の 83 行がこの記法）。バッククォート
+# 区間を丸ごと検出対象から除外する実装は、この標準記法のプレースホルダを大量に
+# 見逃す（実測: 除外ありだと 99 件中 18 件しか検出できない）ため採用しない。
+# 関数化: 検査 j（DESIGN.md への同一検出の再利用）のために切り出す。
+scan_placeholder_lines() {
+  local file="$1"
+  awk '
+    /^```/ { in_fence=!in_fence; next }
+    in_fence { next }
+    /<!--/ { in_comment=1 }
+    {
+      line=$0
+      if (in_comment) { if (line ~ /-->/) in_comment=0; next }
+      rest=line
+      while (match(rest, /<[^\/!<>][^<>]*>/)) {
+        inner=substr(rest, RSTART+1, RLENGTH-2)
+        is_html_start_tag = inner ~ /^[A-Za-z][A-Za-z0-9:-]*[[:space:]][^<>]*=/
+        if (!is_html_start_tag && (inner ~ /[^ -~]/ || inner ~ /Y{2,4}/ || inner ~ /MM-DD|HH:MM|MM:SS/ \
+            || inner ~ /^v?X\.Y/ || inner ~ /^[A-Z]+(-[A-Z]+)+$/ || inner ~ / \/ /)) {
+          print NR": "line; break
+        }
+        rest=substr(rest, RSTART+RLENGTH)
+      }
+    }
+  ' "$file" || true
+}
+
+PLACEHOLDER_LINES="$(scan_placeholder_lines "$DESIGN_DOC")"
+
+if [ -n "$PLACEHOLDER_LINES" ]; then
+  PLACEHOLDER_COUNT=$(printf '%s\n' "$PLACEHOLDER_LINES" | grep -c .)
+  echo "  違反: 未記入プレースホルダが $PLACEHOLDER_COUNT 件見つかりました" >&2
+  printf '%s\n' "$PLACEHOLDER_LINES" | head -20 >&2
+  VIOLATIONS=$((VIOLATIONS + 1))
+else
+  echo "  未記入プレースホルダなし"
+fi
+
+# --- (c) 連番キー検出（WARN） ---
+echo ""
+echo "[検査 c] 連番キー検出（意味キー規約違反の疑い・WARN）"
+
+SEQ_KEYS=$(grep -nE '\b[A-Z]{1,4}-[0-9]+\b' "$DESIGN_DOC" | grep -viE 'utf-8|sha-256|iso-8601' || true)
+ID_COLUMNS=$(grep -nE '^\| *ID *\|' "$DESIGN_DOC" || true)
+
+if [ -n "$SEQ_KEYS" ] || [ -n "$ID_COLUMNS" ]; then
+  echo "  WARN: 連番キー・ID 列の疑いがあります（意味キー規約 semantic-key-rules 参照）" >&2
+  [ -n "$SEQ_KEYS" ] && printf '%s\n' "$SEQ_KEYS" >&2
+  [ -n "$ID_COLUMNS" ] && printf '%s\n' "$ID_COLUMNS" >&2
+  WARNINGS=$((WARNINGS + 1))
+else
+  echo "  連番キー・ID 列なし"
+fi
+
+# --- (d) 往復検証観点表の対応失敗クラス網羅チェック（WARN） ---
+echo ""
+echo "[検査 d] 結合テスト観点表「## 往復検証観点表」の対応失敗クラス網羅チェック（WARN）"
+
+# 失敗クラス 10 種はスクリプト内定義。正本は ng-classification.md の表 B であり、
+# 表 B が更新された場合は本リストも追従させること。
+FAILURE_CLASSES="export-import-型不一致
+状態変数欠落・初期値差
+表示制御方式差（常時マウント vs 条件レンダー）
+イベント処理挙動差
+スタイル数値差
+文言差
+API呼び出し条件・型差
+遷移方式・パラメータ差
+定数値差
+空状態・エラー状態差"
+
+if [ -z "$INTEG_SHEET" ] || [ ! -f "$INTEG_SHEET" ]; then
+  echo "  WARN: 結合テスト観点表が見つからないため検査 d をスキップします" >&2
+  WARNINGS=$((WARNINGS + 1))
+else
+  RECIPROCAL_BODY="$(extract_heading_body "$INTEG_SHEET" '^## 往復検証観点表')"
+  if [ -z "$RECIPROCAL_BODY" ]; then
+    echo "  WARN: '## 往復検証観点表' セクションが結合テスト観点表に見つかりません: $INTEG_SHEET" >&2
+    WARNINGS=$((WARNINGS + 1))
+  else
+    PRESENT_CLASSES="$(extract_table_column "$RECIPROCAL_BODY" 2 | LC_ALL=C sort -u)"
+    MISSING_CLASSES="$(LC_ALL=C comm -23 <(printf '%s\n' "$FAILURE_CLASSES" | LC_ALL=C sort -u) <(printf '%s\n' "$PRESENT_CLASSES" | LC_ALL=C sort -u) || true)"
+    if [ -n "$MISSING_CLASSES" ]; then
+      echo "  WARN: 往復検証観点表に対応失敗クラスの欠落があります:" >&2
+      printf '%s\n' "$MISSING_CLASSES" | sed 's/^/    - /' >&2
+      WARNINGS=$((WARNINGS + 1))
+    else
+      echo "  往復検証観点表の対応失敗クラス 10 種すべて充足"
+    fi
+  fi
+fi
+
+# --- (e) 往復検証観点表の L5 観点 × 操作シナリオ仕様書のシナリオ実在チェック（WARN） ---
+echo ""
+echo "[検査 e] 往復検証観点表の L5 観点 × 操作シナリオ仕様書のシナリオ突合（WARN）"
+
+# operation_test_spec 自体が無い画面は L5 が任意機能のためスキップする（後方互換）。
+# キーはあるが実体ファイルが無い場合はここで WARN + スキップする（audit スクリプト
+# 自身の既存規約＝unit_test_sheet/integration_test_sheet 不在時の扱いに揃える。
+# rebuilding SKILL.md Phase 1 のランタイム preflight はエラー扱いだが、こちらは
+# 静的検査のため WARN に留める）。
+if [ -z "$OPTEST_SPEC_REL" ]; then
+  echo "  operation_test_spec が未設定のため検査 e をスキップします（L5 は任意機能）"
+elif [ ! -f "$OPTEST_SPEC" ]; then
+  echo "  WARN: 操作シナリオ仕様書が見つかりません ($OPTEST_SPEC_REL)" >&2
+  WARNINGS=$((WARNINGS + 1))
+elif [ -z "$INTEG_SHEET" ] || [ ! -f "$INTEG_SHEET" ]; then
+  echo "  WARN: 結合テスト観点表が見つからないため検査 e をスキップします" >&2
+  WARNINGS=$((WARNINGS + 1))
+else
+  RECIPROCAL_BODY_E="$(extract_heading_body "$INTEG_SHEET" '^## 往復検証観点表')"
+  if [ -z "$RECIPROCAL_BODY_E" ]; then
+    echo "  WARN: '## 往復検証観点表' セクションが結合テスト観点表に見つかりません: $INTEG_SHEET" >&2
+    WARNINGS=$((WARNINGS + 1))
+  else
+    # 検証層列（5列目）が L5 の行のキー（1列目）を抽出する。
+    # extract_table_column と同じヘッダー・区切り行スキップ規則を踏襲する。
+    L5_KEYS="$(printf '%s\n' "$RECIPROCAL_BODY_E" | LC_ALL=C awk "$PIPE_SPLIT_AWK_FN"'
+      BEGIN { row=0 }
+      /^\|/ {
+        row++
+        if (row == 1) next
+        if (row == 2 && $0 ~ /^\|[ \t:|\-]+$/) next
+        n = split_pipe_row($0, cols)
+        layer = cols[6]; gsub(/^[ \t]+|[ \t]+$/, "", layer)
+        key = cols[2]; gsub(/^[ \t]+|[ \t]+$/, "", key); gsub(/`/, "", key)
+        if (layer == "L5" && key != "" && key !~ /^-+$/) print key
+      }
+    ' | LC_ALL=C sort -u)"
+    L5_COUNT=$(printf '%s\n' "$L5_KEYS" | grep -c . || true)
+
+    if [ "$L5_COUNT" -eq 0 ]; then
+      echo "  往復検証観点表に L5 の行がないため検査 e は対象外です"
+    else
+      SCENARIO_BODY_E="$(extract_heading_body "$OPTEST_SPEC" '^## シナリオ一覧表')"
+      SCENARIO_KEYS="$(extract_table_column "$SCENARIO_BODY_E" 2 | sed 's/`//g' | LC_ALL=C sort -u)"
+      MISSING_L5="$(LC_ALL=C comm -23 <(printf '%s\n' "$L5_KEYS") <(printf '%s\n' "$SCENARIO_KEYS") || true)"
+      if [ -n "$MISSING_L5" ]; then
+        echo "  WARN: 往復検証観点表の L5 観点に対応するシナリオが操作シナリオ仕様書に見つかりません:" >&2
+        printf '%s\n' "$MISSING_L5" | sed 's/^/    - /' >&2
+        WARNINGS=$((WARNINGS + 1))
+      else
+        echo "  往復検証観点表の L5 観点（${L5_COUNT} 件）はすべて操作シナリオ仕様書にシナリオが存在します"
+      fi
+    fi
+  fi
+fi
+
+# --- (f) §15.1 ファイル分割表の配置ディレクトリ列の記入チェック ---
+echo ""
+echo "[検査 f] §15.1 ファイル分割表の配置ディレクトリ列の記入チェック"
+
+CONTRACT_SECNUM="$(resolve_role_section "実装契約")"
+if [ -z "$CONTRACT_SECNUM" ]; then
+  echo "  エラー: 章マップに役割キー '実装契約' の行が見つかりません: $DESIGN_DOC" >&2
+  exit 1
+fi
+CONTRACT_BODY="$(extract_design_section_body "$CONTRACT_SECNUM")"
+SPLIT_15_1="$(printf '%s\n' "$CONTRACT_BODY" | awk '
+  /^### / && $0 ~ /ファイル分割/ { insub=1; next }
+  /^### / && insub { exit }
+  insub { print }
+')"
+HDR_15_1="$(printf '%s\n' "$SPLIT_15_1" | awk '/^\|/{print; exit}')"
+if printf '%s' "$HDR_15_1" | grep -q '配置ディレクトリ'; then
+  # 配置ディレクトリ列の位置はヘッダーから動的に解決する（列固定禁止。
+  # §15.1 に「実体形状」列が追加される等、列構成が変わっても追従できるようにする）。
+  BAD_15_1="$(printf '%s\n' "$SPLIT_15_1" | LC_ALL=C awk -v hdr="$HDR_15_1" "$PIPE_SPLIT_AWK_FN"'
+    BEGIN {
+      hn = split_pipe_row(hdr, hcols)
+      for (i = 1; i <= hn; i++) {
+        v = hcols[i]; gsub(/^[ \t]+|[ \t]+$/, "", v)
+        if (v == "配置ディレクトリ") dir_col = i
+      }
+      row = 0
+    }
+    /^\|/ {
+      row++
+      if (row == 1) next
+      if (row == 2 && $0 ~ /^\|[ \t:|\-]+$/) next
+      n = split_pipe_row($0, cols)
+      p = cols[2]; gsub(/^[ \t]+|[ \t]+$/, "", p)
+      d = cols[dir_col]; gsub(/^[ \t]+|[ \t]+$/, "", d)
+      if (d == "" || d ~ /^<.*>$/) print "    - "p" (配置ディレクトリ未記入)"
+    }
+  ')"
+  if [ -n "$BAD_15_1" ]; then
+    echo "  違反: 配置ディレクトリ未記入の行があります" >&2
+    printf '%s\n' "$BAD_15_1" >&2
+    VIOLATIONS=$((VIOLATIONS + 1))
+  else
+    echo "  配置ディレクトリすべて記入済み"
+  fi
+else
+  echo "  配置ディレクトリ列なし（旧テンプレ）。検査 f をスキップします"
+fi
+
+# --- (g) §15.3 依存(import)一覧・内部モジュールの実在確認（WARN） ---
+echo ""
+echo "[検査 g] §15.3 依存(import)一覧・内部モジュールの実在確認（WARN・barrel export 等の誤検出があるため hard fail にしない）"
+
+SPLIT_15_2="$(printf '%s\n' "$CONTRACT_BODY" | awk '
+  /^### / && $0 ~ /型定義/ { insub=1; next }
+  /^### / && insub { exit }
+  insub { print }
+')"
+# §15.2はテーブル様式（型名/フィールド名/型/必須任意）。型名は1列目から抽出する。
+TYPE_NAMES="$(extract_table_column "$SPLIT_15_2" 1 | sed 's/`//g' | LC_ALL=C sort -u)"
+
+FILE_BASENAMES="$(printf '%s\n' "$SPLIT_15_1" | awk "$PIPE_SPLIT_AWK_FN"'
+  BEGIN { row=0 }
+  /^\|/ {
+    row++
+    if (row == 1) next
+    if (row == 2 && $0 ~ /^\|[ \t:|\-]+$/) next
+    n = split_pipe_row($0, cols)
+    p = cols[2]; gsub(/^[ \t]+|[ \t]+$/, "", p)
+    if (p != "" && p !~ /^<.*>$/) print p
+  }
+' | xargs -I{} basename {} 2>/dev/null | sed -E 's/\.[A-Za-z0-9]+$//' | LC_ALL=C sort -u)"
+
+SPLIT_15_3="$(printf '%s\n' "$CONTRACT_BODY" | awk '
+  /^### / && $0 ~ /依存/ && $0 ~ /import/ { insub=1; next }
+  /^### / && insub { exit }
+  insub { print }
+')"
+INTERNAL_MODULES="$(printf '%s\n' "$SPLIT_15_3" | LC_ALL=C awk "$PIPE_SPLIT_AWK_FN"'
+  BEGIN { row=0 }
+  /^\|/ {
+    row++
+    if (row == 1) next
+    if (row == 2 && $0 ~ /^\|[ \t:|\-]+$/) next
+    n = split_pipe_row($0, cols)
+    m = cols[2]; gsub(/^[ \t]+|[ \t]+$/, "", m); gsub(/`/, "", m)
+    t = cols[4]; gsub(/^[ \t]+|[ \t]+$/, "", t)
+    if (t == "内部" && m != "" && m !~ /^<.*>$/) print m
+  }
+')"
+
+UNRESOLVED_IMPORTS=""
+if [ -n "$INTERNAL_MODULES" ]; then
+  while IFS= read -r mod; do
+    [ -z "$mod" ] && continue
+    seg="$(basename "$mod")"
+    seg="${seg%.*}"
+    if ! printf '%s\n' "$FILE_BASENAMES" | grep -qxF "$seg" && ! printf '%s\n' "$TYPE_NAMES" | grep -qxF "$seg"; then
+      UNRESOLVED_IMPORTS="${UNRESOLVED_IMPORTS}${mod}
+"
+    fi
+  done <<< "$INTERNAL_MODULES"
+fi
+
+if [ -n "$(printf '%s' "$UNRESOLVED_IMPORTS" | tr -d '[:space:]')" ]; then
+  echo "  WARN: §15.1/§15.2 に対応が見つからない内部 import があります（barrel export 等の可能性）:" >&2
+  printf '%s\n' "$UNRESOLVED_IMPORTS" | grep . | LC_ALL=C sort -u | sed 's/^/    - /' >&2
+  WARNINGS=$((WARNINGS + 1))
+else
+  echo "  内部 import はすべて §15.1/§15.2 に対応が見つかりました（または内部 import なし）"
+fi
+
+# --- 状態キーの表記ゆれ検出（WARN・最小: lowercase 完全一致 + 原表記差分のみ） ---
+# 日英ゆれ・同義語は機械判定不能なため対象外とする（Claude レビューのチェックリストに委ねる）。
+echo ""
+echo "[検査] 状態管理キーの表記ゆれ検出（WARN・大小/区切りゆれのみを対象とする最小判定）"
+
+STATE_SECNUM="$(resolve_role_section "状態管理")"
+if [ -z "$STATE_SECNUM" ]; then
+  echo "  WARN: 章マップに役割キー '状態管理' の行が見つかりません。表記ゆれ検査をスキップします" >&2
+  WARNINGS=$((WARNINGS + 1))
+else
+  STATE_BODY="$(extract_design_section_body "$STATE_SECNUM")"
+  STATE_KEYS="$(printf '%s\n' "$STATE_BODY" | grep -oE '`[A-Za-z_][A-Za-z0-9_]*`' | tr -d '`' | LC_ALL=C sort -u)"
+
+  REST_BODY="$(awk -v pat="^## §${STATE_SECNUM}([^0-9]|\$)" '
+    $0 ~ pat { in_sec=1; next }
+    in_sec && /^## / { in_sec=0 }
+    !in_sec { print }
+  ' "$DESIGN_DOC")"
+  REST_KEYS="$(printf '%s\n' "$REST_BODY" | grep -oE '`[A-Za-z_][A-Za-z0-9_]*`' | tr -d '`' | LC_ALL=C sort -u)"
+
+  MISMATCHES=""
+  if [ -n "$STATE_KEYS" ] && [ -n "$REST_KEYS" ]; then
+    while IFS= read -r sk; do
+      [ -z "$sk" ] && continue
+      sk_lower="$(printf '%s' "$sk" | tr 'A-Z' 'a-z')"
+      while IFS= read -r rk; do
+        [ -z "$rk" ] && continue
+        [ "$rk" = "$sk" ] && continue
+        rk_lower="$(printf '%s' "$rk" | tr 'A-Z' 'a-z')"
+        if [ "$rk_lower" = "$sk_lower" ]; then
+          MISMATCHES="${MISMATCHES}${sk} (§${STATE_SECNUM}) <-> ${rk}
+"
+        fi
+      done <<< "$REST_KEYS"
+    done <<< "$STATE_KEYS"
+  fi
+
+  if [ -n "$(printf '%s' "$MISMATCHES" | tr -d '[:space:]')" ]; then
+    echo "  WARN: 状態キーの表記ゆれの疑いがあります（大文字小文字・区切り文字違い）:" >&2
+    printf '%s\n' "$MISMATCHES" | grep . | LC_ALL=C sort -u | sed 's/^/    - /' >&2
+    WARNINGS=$((WARNINGS + 1))
+  else
+    echo "  状態キーの表記ゆれなし"
+  fi
+fi
+
+# --- (h) 起動時初期化（§6.1.1）の記載有無チェック（条件付き WARN） ---
+echo ""
+echo "[検査 h] 起動時初期化（§6.1.1）の記載有無チェック（URL パラメータ実在 かつ 画面専用ストア実在の画面が対象）"
+
+STATE_SECNUM_H="$(resolve_role_section "状態管理")"
+FLOW_SECNUM_H="$(resolve_role_section "データフロー")"
+
+if [ -z "$STATE_SECNUM_H" ] || [ -z "$FLOW_SECNUM_H" ]; then
+  echo "  WARN: 章マップに役割キー '状態管理' または 'データフロー' の行が見つかりません。検査 h をスキップします" >&2
+  WARNINGS=$((WARNINGS + 1))
+else
+  STATE_BODY_H="$(extract_design_section_body "$STATE_SECNUM_H")"
+
+  URL_PARAM_BODY="$(printf '%s\n' "$STATE_BODY_H" | awk '
+    /^### / && $0 ~ /URL パラメータ/ { insub=1; next }
+    /^### / && insub { exit }
+    insub { print }
+  ')"
+  URL_PARAM_ROWS="$(extract_table_column "$URL_PARAM_BODY" 1 | grep -vE '^<.*>$' || true)"
+  URL_PARAM_COUNT=$(printf '%s\n' "$URL_PARAM_ROWS" | grep -c . || true)
+
+  STORE_BODY="$(printf '%s\n' "$STATE_BODY_H" | awk '
+    /^### / && $0 ~ /画面専用ストア/ { insub=1; next }
+    /^### / && insub { exit }
+    insub { print }
+  ')"
+  STORE_TEXT="$(printf '%s\n' "$STORE_BODY" | grep -v '^$' | grep -v '^<!--' || true)"
+  STORE_TEXT_COMPACT="$(printf '%s' "$STORE_TEXT" | tr -d '[:space:]')"
+  if [ -z "$STORE_TEXT_COMPACT" ] \
+     || printf '%s' "$STORE_TEXT" | grep -qE '該当なし' \
+     || printf '%s' "$STORE_TEXT" | grep -qE '^`?<[^<>]*>`?$'; then
+    STORE_FILLED=0
+  else
+    STORE_FILLED=1
+  fi
+
+  if [ "$URL_PARAM_COUNT" -eq 0 ]; then
+    echo "  URL パラメータが無い画面のため検査 h は対象外です"
+  elif [ "$STORE_FILLED" -eq 0 ]; then
+    echo "  画面専用ストアが無い画面のため検査 h は対象外です"
+  else
+    FLOW_BODY_H="$(extract_design_section_body "$FLOW_SECNUM_H")"
+    INIT_BODY="$(printf '%s\n' "$FLOW_BODY_H" | awk '
+      /^#### / && $0 ~ /起動時初期化/ { insub=1; next }
+      insub && /^#### / { exit }
+      insub && /^### / { exit }
+      insub { print }
+    ')"
+    INIT_TEXT="$(printf '%s\n' "$INIT_BODY" | grep -v '^$' | grep -v '^<!--' || true)"
+    INIT_TEXT_COMPACT="$(printf '%s' "$INIT_TEXT" | tr -d '[:space:]')"
+    if [ -z "$INIT_TEXT_COMPACT" ] \
+       || printf '%s' "$INIT_TEXT" | grep -qE '^`?<[^<>]*>`?$'; then
+      echo "  WARN: URL パラメータと画面専用ストアが存在するにもかかわらず §6.1.1 起動時初期化が未記載です" >&2
+      WARNINGS=$((WARNINGS + 1))
+    else
+      echo "  §6.1.1 起動時初期化が記載済みです"
+    fi
+  fi
+fi
+
+# --- (i) §16 要確認事項一覧の未解消チェック（既定WARN・AUDIT_STRICT_P16=1で違反扱い） ---
+echo ""
+echo "[検査 i] §16 要確認事項一覧の未解消チェック（既定WARN。AUDIT_STRICT_P16=1で違反扱い）"
+
+CONFIRM_SECNUM="$(resolve_role_section "要確認事項")"
+if [ -z "$CONFIRM_SECNUM" ]; then
+  echo "  WARN: 章マップに役割キー '要確認事項' の行が見つかりません。検査iをスキップします" >&2
+  WARNINGS=$((WARNINGS + 1))
+else
+  CONFIRM_BODY="$(extract_design_section_body "$CONFIRM_SECNUM")"
+  CONFIRM_HDR="$(printf '%s\n' "$CONFIRM_BODY" | awk '/^\|/{print; exit}')"
+
+  if printf '%s' "$CONFIRM_HDR" | grep -q '状態'; then
+    UNRESOLVED_ROWS="$(printf '%s\n' "$CONFIRM_BODY" | LC_ALL=C awk "$PIPE_SPLIT_AWK_FN"'
+      BEGIN { row=0 }
+      /^\|/ {
+        row++
+        if (row == 1) next
+        if (row == 2 && $0 ~ /^\|[ \t:|\-]+$/) next
+        n = split_pipe_row($0, cols)
+        key = cols[2]; gsub(/^[ \t]+|[ \t]+$/, "", key)
+        st  = cols[7]; gsub(/^[ \t]+|[ \t]+$/, "", st)
+        if (key != "" && key !~ /^<.*>$/ && st != "解消済み") print key" ("st")"
+      }
+    ')"
+    UNRESOLVED_COUNT=$(printf '%s\n' "$UNRESOLVED_ROWS" | grep -c . || true)
+    if [ "$UNRESOLVED_COUNT" -gt 0 ]; then
+      if [ "${AUDIT_STRICT_P16:-0}" = "1" ]; then
+        echo "  違反: §${CONFIRM_SECNUM} 要確認事項一覧に未解消（状態≠解消済み）が ${UNRESOLVED_COUNT} 件あります（AUDIT_STRICT_P16=1）:" >&2
+        printf '%s\n' "$UNRESOLVED_ROWS" | grep . | sed 's/^/    - /' >&2
+        VIOLATIONS=$((VIOLATIONS + 1))
+      else
+        echo "  WARN: §${CONFIRM_SECNUM} 要確認事項一覧に未解消（状態≠解消済み）が ${UNRESOLVED_COUNT} 件あります:" >&2
+        printf '%s\n' "$UNRESOLVED_ROWS" | grep . | sed 's/^/    - /' >&2
+        WARNINGS=$((WARNINGS + 1))
+      fi
+    else
+      echo "  §${CONFIRM_SECNUM} 要確認事項一覧はすべて解消済みです（0件を含む）"
+    fi
+  else
+    UNRESOLVED_COUNT="$(extract_table_column "$CONFIRM_BODY" 1 | grep -vE '^<.*>$' | grep -c . || true)"
+    if [ "$UNRESOLVED_COUNT" -gt 0 ]; then
+      echo "  WARN: §${CONFIRM_SECNUM} 要確認事項一覧に ${UNRESOLVED_COUNT} 件の記載があります（旧テンプレのため状態列で解消判定できません。6列テンプレへの更新を検討してください）" >&2
+      WARNINGS=$((WARNINGS + 1))
+    else
+      echo "  §${CONFIRM_SECNUM} 要確認事項一覧は0件です"
+    fi
+  fi
+fi
+
+# --- (i-2) measurement_pending の §16 計上数（mp-接頭辞キー）と返却ブロック
+#     measurement_pending[] 件数の突合（WARN・AUDIT_EXPECTED_MP_COUNT 環境変数で
+#     期待件数を指定した場合のみ判定。未指定なら計上数の出力のみ） ---
+echo ""
+echo "[検査 i-2] §16 の measurement_pending計上数（mp-接頭辞キー）と返却ブロック measurement_pending[] 件数の突合（WARN）"
+
+if [ -n "${CONFIRM_SECNUM:-}" ]; then
+  MP_COUNT="$(extract_table_column "$CONFIRM_BODY" 1 | grep -cE '^mp-' || true)"
+  echo "  §${CONFIRM_SECNUM} 要確認事項一覧の measurement_pending計上数（mp-接頭辞）: ${MP_COUNT}"
+  if [ -n "${AUDIT_EXPECTED_MP_COUNT:-}" ]; then
+    if [ "$MP_COUNT" -eq "$AUDIT_EXPECTED_MP_COUNT" ]; then
+      echo "  §16のmeasurement_pending計上数（${MP_COUNT}）と返却ブロックmeasurement_pending[]件数（${AUDIT_EXPECTED_MP_COUNT}）は一致しています"
+    else
+      echo "  WARN: §16のmeasurement_pending計上数（${MP_COUNT}）と返却ブロックmeasurement_pending[]件数（AUDIT_EXPECTED_MP_COUNT=${AUDIT_EXPECTED_MP_COUNT}）が不一致です" >&2
+      WARNINGS=$((WARNINGS + 1))
+    fi
+  else
+    echo "  AUDIT_EXPECTED_MP_COUNT未設定のため件数突合はスキップします（計上数の出力のみ）"
+  fi
+else
+  echo "  章マップに役割キー '要確認事項' の行が見つからないため検査i-2をスキップします"
+fi
+
+# --- (i-3) 本文の実測委譲件数と§16の実測系計上行数（mp-接頭辞）の突合（0計上=違反） ---
+echo ""
+echo "[検査 i-3] 本文の実測委譲件数と§16の実測系計上行数（mp-接頭辞）の突合（違反・本文に記載があるのに§16の計上が0件なら違反）"
+
+BODY_DEFER_COUNT="$(grep -cF '実測委譲（画面単位検証で確定）' "$DESIGN_DOC" || true)"
+echo "  本文の実測委譲（画面単位検証で確定）記載件数: ${BODY_DEFER_COUNT}"
+if [ "$BODY_DEFER_COUNT" -gt 0 ] && [ "${MP_COUNT:-0}" -eq 0 ]; then
+  echo "  違反: 本文に実測委譲の記載が ${BODY_DEFER_COUNT} 件あるのに §16 の実測系計上（mp-接頭辞）が 0 件です" >&2
+  VIOLATIONS=$((VIOLATIONS + 1))
+else
+  echo "  本文の実測委譲件数と§16の実測系計上に矛盾なし（本文0件、または§16に計上あり）"
+fi
+
+# --- (j) DESIGN.md の未記入プレースホルダ検出（実測値の抽出元欄等の省略。design_md 未設定なら対象外） ---
+echo ""
+echo "[検査 j] DESIGN.md の未記入プレースホルダ検出（実測値の抽出元欄等の省略。design_md 未設定なら対象外）"
+
+if [ -z "$DESIGN_MD" ]; then
+  echo "  design_md が frontmatter に未設定のため検査 j をスキップします"
+elif [ ! -f "$DESIGN_MD" ]; then
+  echo "  WARN: design_md が指すファイルが見つかりません ($DESIGN_MD_REL)" >&2
+  WARNINGS=$((WARNINGS + 1))
+else
+  DESIGN_MD_PLACEHOLDER_LINES="$(scan_placeholder_lines "$DESIGN_MD")"
+  if [ -n "$DESIGN_MD_PLACEHOLDER_LINES" ]; then
+    DESIGN_MD_PLACEHOLDER_COUNT=$(printf '%s\n' "$DESIGN_MD_PLACEHOLDER_LINES" | grep -c .)
+    echo "  違反: DESIGN.md に未記入プレースホルダが $DESIGN_MD_PLACEHOLDER_COUNT 件見つかりました（実測値の抽出元欄等の省略）:" >&2
+    printf '%s\n' "$DESIGN_MD_PLACEHOLDER_LINES" | head -20 >&2
+    VIOLATIONS=$((VIOLATIONS + 1))
+  else
+    echo "  DESIGN.md に未記入プレースホルダなし"
+  fi
+fi
+
+# --- (k) 未確定値のプレースホルダ文字列検出（根拠なしの実測委譲・TBD・TODO・未定・FIXME・PLACEHOLDER） ---
+echo ""
+echo "[検査 k] 未確定値のプレースホルダ文字列検出（根拠なしの実測委譲・TBD・TODO・未定・FIXME・PLACEHOLDER）"
+
+RAW_PLACEHOLDER_FILES="$DESIGN_DOC"
+[ -n "$DESIGN_MD" ] && [ -f "$DESIGN_MD" ] && RAW_PLACEHOLDER_FILES="$RAW_PLACEHOLDER_FILES $DESIGN_MD"
+
+# 唯一の許容表記は「実測委譲（画面単位検証で確定）」（writing-rules.md「実測委譲の書式」参照）。
+# 根拠の丸括弧を伴わない生の実測委譲・その他語彙はすべて違反とする。
+RAW_PLACEHOLDER_LINES="$(awk '
+  FNR==1 { in_fence=0 }
+  /^```/ { in_fence=!in_fence; next }
+  in_fence { next }
+  /<!-- fact:/ { next }
+  /実測委譲（画面単位検証で確定）/ { next }
+  /実測委譲|TBD|TODO|未定|FIXME|PLACEHOLDER/ { print FILENAME":"FNR":"$0 }
+' $RAW_PLACEHOLDER_FILES 2>/dev/null || true)"
+if [ -n "$RAW_PLACEHOLDER_LINES" ]; then
+  echo "  違反: 根拠のないプレースホルダ文字列が見つかりました（唯一の許容表記は「実測委譲（画面単位検証で確定）」）:" >&2
+  printf '%s\n' "$RAW_PLACEHOLDER_LINES" >&2
+  VIOLATIONS=$((VIOLATIONS + 1))
+else
+  echo "  未確定値のプレースホルダ文字列なし"
+fi
+
+# --- (l) 非該当記述の根拠併記チェック（WARN） ---
+echo ""
+echo "[検査 l] 非該当記述の根拠併記チェック（WARN・旧書式と章単位集約の両方を検査）"
+
+NO_GROUND_LINES="$(grep -nE '該当なし' "$DESIGN_DOC" | grep -vE '該当なし[[:space:]]*[（(]' || true)"
+AGGREGATE_NO_GROUND_LINES="$(awk '
+  /^> 本領域は全項目非該当/ && $0 !~ /全項目非該当[[:space:]]*[（(]根拠:[[:space:]]*[^[:space:]）)]/ {
+    print FNR ":" $0
+  }
+  /^> 非該当項目:/ {
+    line = $0
+    sub(/^> 非該当項目:[[:space:]]*/, "", line)
+    n = split(line, items, ";")
+    for (i = 1; i <= n; i++) {
+      gsub(/^[[:space:]]+|[[:space:]]+$/, "", items[i])
+      reason = items[i]
+      if (index(reason, "（") > 0 && index(reason, "）") > 0) {
+        sub(/^.*（/, "", reason)
+        sub(/）.*$/, "", reason)
+      } else if (index(reason, "(") > 0 && index(reason, ")") > 0) {
+        sub(/^.*\(/, "", reason)
+        sub(/\).*$/, "", reason)
+      } else {
+        reason = ""
+      }
+      gsub(/[[:space:]]/, "", reason)
+      has_reason = length(reason) > 0
+      if (items[i] !~ /^§[0-9]/ || !has_reason) {
+        print FNR ":" items[i]
+      }
+    }
+  }
+' "$DESIGN_DOC")"
+if [ -n "$NO_GROUND_LINES$AGGREGATE_NO_GROUND_LINES" ]; then
+  echo "  WARN: 節番号または根拠を伴わない非該当記述が見つかりました:" >&2
+  [ -n "$NO_GROUND_LINES" ] && printf '%s\n' "$NO_GROUND_LINES" >&2
+  [ -n "$AGGREGATE_NO_GROUND_LINES" ] && printf '%s\n' "$AGGREGATE_NO_GROUND_LINES" >&2
+  WARNINGS=$((WARNINGS + 1))
+else
+  echo "  非該当記述はすべて節番号と根拠を伴っています（該当箇所なしを含む）"
+fi
+
+# --- (m) テスト仕様書の空殻検出（違反）・draft据え置き検出・観点網羅チェック（WARN） ---
+echo ""
+echo "[検査 m] テスト仕様書の空殻検出（違反）・draft据え置き検出（WARN）・観点網羅チェック（WARN）"
+
+check_spec_shell() {
+  local spec="$1" label="$2" heading="$3"
+  [ -z "$spec" ] && return 0
+  [ ! -f "$spec" ] && return 0
+  local status body rows
+  status="$(awk '/^---$/ { c++; next } c==1 && /^status:/ { sub(/^status: */, ""); sub(/[[:space:]]*#.*$/, ""); print; exit }' "$spec")"
+  body="$(extract_heading_body "$spec" "$heading")"
+  rows="$(extract_table_column "$body" 1 | grep -vE '^<.*>$|^`<.*>`$' | grep -c . || true)"
+  if [ "$rows" -eq 0 ]; then
+    echo "  違反: ${label} が空殻です（プレースホルダのみで実データがありません）: $spec" >&2
+    VIOLATIONS=$((VIOLATIONS + 1))
+  elif [ "$status" = "draft" ]; then
+    echo "  WARN: ${label} は実データ記入済みですが status が draft のままです（テストコード実装後に implemented へ更新すること）: $spec" >&2
+    WARNINGS=$((WARNINGS + 1))
+  fi
+}
+
+check_spec_shell "$UNIT_SPEC" "単体テスト仕様書" '^## テストケース一覧'
+check_spec_shell "$INTEG_SPEC" "結合テスト仕様書" '^## テストケース一覧'
+check_spec_shell "$OPTEST_SPEC" "操作シナリオ仕様書" '^## シナリオ一覧表'
+
+# --- (m-2) 操作シナリオ仕様書のfenced code block内の実測委譲検出（違反） ---
+echo ""
+echo "[検査 m-2] 操作シナリオ仕様書のfenced code block内の実測委譲検出（違反・実行可能なはずのシナリオコードに未確定の実測委譲プレースホルダが混入していないか）"
+
+scan_fenced_only_defer() {
+  local file="$1"
+  awk '
+    /^```/ { in_fence=!in_fence; next }
+    in_fence && /実測委譲/ { print NR": "$0 }
+  ' "$file"
+}
+
+if [ -z "$OPTEST_SPEC_REL" ]; then
+  echo "  operation_test_spec が未設定のため検査 m-2 をスキップします（L5 は任意機能）"
+elif [ ! -f "$OPTEST_SPEC" ]; then
+  echo "  操作シナリオ仕様書が見つからないため検査 m-2 をスキップします（検査 p で到達性を報告済み）"
+else
+  FENCED_DEFER_LINES="$(scan_fenced_only_defer "$OPTEST_SPEC")"
+  if [ -n "$(printf '%s' "$FENCED_DEFER_LINES" | tr -d '[:space:]')" ]; then
+    echo "  違反: 操作シナリオ仕様書のfenced code block内に実測委譲の記載が見つかりました（実行可能コードへの未確定プレースホルダ混入）:" >&2
+    printf '%s\n' "$FENCED_DEFER_LINES" | grep . >&2
+    VIOLATIONS=$((VIOLATIONS + 1))
+  else
+    echo "  操作シナリオ仕様書のfenced code block内に実測委譲の記載なし"
+  fi
+fi
+
+check_sheet_spec_coverage() {
+  local sheet="$1" spec="$2" label="$3" heading="$4"
+  [ -f "$sheet" ] || return 0
+  local sheet_keys spec_body saved_keys uncovered key
+  sheet_keys="$(extract_sheet_keys "$sheet")"
+  [ -z "$sheet_keys" ] && return 0
+  spec_body=""
+  if [ -n "$spec" ] && [ -f "$spec" ]; then
+    # テスト仕様書は1セルへ複数の観点キーを併記できる。列値をキー集合として
+    # 完全一致比較すると併記済みでも未対応になるため、対象章の本文全体に
+    # 観点キーのliteralが含まれるかを判定する。
+    spec_body="$(extract_heading_body "$spec" "$heading")"
+  fi
+  saved_keys=""
+  if [ -d "$SCREEN_DIR/検証記録" ]; then
+    saved_keys="$(find "$SCREEN_DIR/検証記録" -type d -name 'テストコード' -exec find {} -type f \; 2>/dev/null \
+      | xargs -I{} basename {} 2>/dev/null | sed -E 's/\.[A-Za-z0-9]+$//' | LC_ALL=C sort -u)"
+  fi
+  uncovered=""
+  while IFS= read -r key; do
+    [ -z "$key" ] && continue
+    if { [ -n "$spec_body" ] && printf '%s\n' "$spec_body" | grep -Fq -- "$key"; } \
+       || printf '%s\n' "$saved_keys" | grep -Fxq -- "$key"; then
+      continue
+    fi
+    uncovered="${uncovered}${key}
+"
+  done <<< "$sheet_keys"
+  uncovered="$(printf '%s\n' "$uncovered" | grep . | LC_ALL=C sort -u || true)"
+  if [ -n "$uncovered" ]; then
+    echo "  WARN: ${label} の観点キーのうち、テスト仕様書の具体ケース・保存済みテストコードのいずれにも対応が見つからないもの:" >&2
+    printf '%s\n' "$uncovered" | sed 's/^/    - /' >&2
+    WARNINGS=$((WARNINGS + 1))
+  fi
+}
+
+check_sheet_spec_coverage "$UNIT_SHEET" "$UNIT_SPEC" "単体テスト観点表" '^## テストケース一覧'
+check_sheet_spec_coverage "$INTEG_SHEET" "$INTEG_SPEC" "結合テスト観点表" '^## テストケース一覧'
+
+# --- (n) 画面横断章（業務語彙抽象化章）の実装依存語彙逸脱検出（WARN） ---
+echo ""
+echo "[検査 n] 画面横断章の実装依存語彙逸脱検出（コード識別子・フレームワーク用語・型構文・ファイルパス・ライブラリ名。役割キーが章マップに無い章はスキップ。WARN）"
+
+BUSINESS_ROLE_KEYS="機能一覧 画面遷移"
+BUSINESS_BODY=""
+BUSINESS_CHECKED=""
+for role in $BUSINESS_ROLE_KEYS; do
+  secnum="$(resolve_role_section "$role" || true)"
+  [ -z "$secnum" ] && continue
+  BUSINESS_BODY="${BUSINESS_BODY}
+$(extract_design_section_body "$secnum")"
+  BUSINESS_CHECKED="${BUSINESS_CHECKED} §${secnum}(${role})"
+done
+
+if [ -z "$(printf '%s' "$BUSINESS_BODY" | tr -d '[:space:]')" ]; then
+  echo "  章マップに画面横断章の役割キーが見つからないため検査 n をスキップします"
+else
+  echo "  検査対象:${BUSINESS_CHECKED}（画面概要・業務ルール・非機能要件・共通仕様準拠は章マップに役割キー未登録のため対象外）"
+  IMPL_LEAK="$(printf '%s\n' "$BUSINESS_BODY" | grep -nE '\buseState\b|\buseEffect\b|\buseReducer\b|\bProps\b|styled-components|\bReact\b|\bVue\b|\bAngular\b|\binterface [A-Z]|: *(string|number|boolean)\b|/[A-Za-z0-9_-]+\.(tsx|ts|jsx|js|css)\b' || true)"
+  if [ -n "$IMPL_LEAK" ]; then
+    echo "  WARN: 画面横断章に実装依存語彙（コード識別子・フレームワーク用語・型構文・ファイルパス）の疑いがあります:" >&2
+    printf '%s\n' "$IMPL_LEAK" | sed 's/^/    - /' >&2
+    WARNINGS=$((WARNINGS + 1))
+  else
+    echo "  画面横断章に実装依存語彙の疑いなし"
+  fi
+fi
+
+# --- (o) 配布物の正本参照ヘッダ検査（デプロイ先 SKILL.md の直接修正防止） ---
+echo ""
+echo "[検査 o] 配布物の正本参照ヘッダ検査（デプロイされた SKILL.md の frontmatter 内/直後に '# 正本: reverse-docs-skills' があるか。正本リポジトリ自体ではスキップ・WARN）"
+
+# フロントマター（1行目 --- 〜 次の ---）内、またはフロントマター終了直後5行以内に
+# '# 正本: reverse-docs-skills' があるかを判定する。1行目が --- でなければ検査対象外(NOFM)。
+check_skill_canonical_header() {
+  local file="$1" first_line fm_end check_end
+  first_line="$(head -n1 "$file")"
+  if [ "$first_line" != "---" ]; then
+    echo "NOFM"
+    return
+  fi
+  fm_end="$(awk 'NR>1 && /^---$/ {print NR; exit}' "$file")"
+  if [ -z "$fm_end" ]; then
+    echo "NOFM"
+    return
+  fi
+  check_end=$((fm_end + 5))
+  if sed -n "1,${check_end}p" "$file" | grep -q '^# 正本: reverse-docs-skills'; then
+    echo "OK"
+  else
+    echo "MISSING"
+  fi
+}
+
+REPO_ROOT_O="$(cd "$SCREEN_DIR" 2>/dev/null && git rev-parse --show-toplevel 2>/dev/null || true)"
+if [ -z "$REPO_ROOT_O" ]; then
+  echo "  git リポジトリを特定できないため検査 o をスキップします"
+elif [ -f "$REPO_ROOT_O/.claude/rules/always/publish/complete/rule.md" ]; then
+  # 正本リポジトリ（reverse-docs-skills）自体の判定は basename（worktree ではリポジトリ名と
+  # 一致しないため使えない）ではなく、正本にのみ存在し配布先へは同期されないファイル
+  # （publish-complete 規約。sync-manifest.json の同期対象は .claude/skills・shared・
+  # README.md・docs/guides/reverse-docs-overview.html の4点のみで .claude/rules は含まれない）の
+  # 実在をフィンガープリントとして使う。worktree でも同一リポジトリなら実在するため正しく判定できる。
+  echo "  正本リポジトリ（reverse-docs-skills）自体での実行のため検査 o をスキップします"
+elif [ ! -d "$REPO_ROOT_O/.claude/skills" ]; then
+  echo "  .claude/skills が見つからないため検査 o をスキップします"
+else
+  MISSING_HEADER_SKILLS=""
+  while IFS= read -r skill_md; do
+    [ -z "$skill_md" ] && continue
+    if [ "$(check_skill_canonical_header "$skill_md")" = "MISSING" ]; then
+      MISSING_HEADER_SKILLS="${MISSING_HEADER_SKILLS}${skill_md}
+"
+    fi
+  done < <(find "$REPO_ROOT_O/.claude/skills" -maxdepth 2 -name 'SKILL.md' 2>/dev/null)
+
+  if [ -n "$(printf '%s' "$MISSING_HEADER_SKILLS" | tr -d '[:space:]')" ]; then
+    echo "  WARN: 正本参照ヘッダ（# 正本: reverse-docs-skills）が無い SKILL.md があります（配布先での直接修正の疑い。修正は正本リポジトリ reverse-docs-skills で行うこと）:" >&2
+    printf '%s\n' "$MISSING_HEADER_SKILLS" | grep . | sed 's/^/    - /' >&2
+    WARNINGS=$((WARNINGS + 1))
+  else
+    echo "  配布先の SKILL.md はすべて正本参照ヘッダを含んでいます（対象 0 件を含む）"
+  fi
+fi
+
+# --- (p) frontmatter 相対パス参照の到達性チェック（WARN） ---
+echo ""
+echo "[検査 p] frontmatter 相対パス参照の到達性チェック（unit_test_sheet・integration_test_sheet・operation_test_spec・design_md・common_design_md・common_spec・messages 等。解決後パスにファイルが実在するかを検査する）"
+
+COMMON_DESIGN_MD_REL="$(frontmatter_value common_design_md)"
+COMMON_SPEC_REL="$(frontmatter_value common_spec)"
+MESSAGES_REL="$(frontmatter_value messages)"
+COMMON_DESIGN_MD="$(resolve_rel_path "$DESIGN_DIR" "$COMMON_DESIGN_MD_REL" || true)"
+COMMON_SPEC="$(resolve_rel_path "$DESIGN_DIR" "$COMMON_SPEC_REL" || true)"
+MESSAGES="$(resolve_rel_path "$DESIGN_DIR" "$MESSAGES_REL" || true)"
+
+UNREACHABLE_REFS=""
+check_ref_reachable() {
+  local label="$1" rel="$2" abs="$3"
+  [ -z "$rel" ] && return 0
+  if [ -z "$abs" ] || [ ! -f "$abs" ]; then
+    UNREACHABLE_REFS="${UNREACHABLE_REFS}${label} (${rel})
+"
+  fi
+}
+check_ref_reachable "unit_test_sheet" "$UNIT_SHEET_REL" "$UNIT_SHEET"
+check_ref_reachable "integration_test_sheet" "$INTEG_SHEET_REL" "$INTEG_SHEET"
+check_ref_reachable "operation_test_spec" "$OPTEST_SPEC_REL" "$OPTEST_SPEC"
+check_ref_reachable "design_md" "$DESIGN_MD_REL" "$DESIGN_MD"
+check_ref_reachable "common_design_md" "$COMMON_DESIGN_MD_REL" "$COMMON_DESIGN_MD"
+check_ref_reachable "common_spec" "$COMMON_SPEC_REL" "$COMMON_SPEC"
+check_ref_reachable "messages" "$MESSAGES_REL" "$MESSAGES"
+
+if [ -n "$(printf '%s' "$UNREACHABLE_REFS" | tr -d '[:space:]')" ]; then
+  echo "  WARN: frontmatter の相対パス参照が到達不能です（解決後パスにファイルが存在しません）:" >&2
+  printf '%s\n' "$UNREACHABLE_REFS" | grep . | sed 's/^/    - /' >&2
+  WARNINGS=$((WARNINGS + 1))
+else
+  echo "  frontmatter の相対パス参照はすべて到達可能です（未設定キーはスキップ）"
+fi
+
+# --- (q) 本文相対パス参照の到達性チェック（違反） ---
+echo ""
+echo "[検査 q] 本文相対パス参照の到達性チェック（違反・Markdownリンク先／スラッシュと拡張子を含むバッククォート内トークンを設計書ディレクトリ起点で解決し、不在なら違反）"
+
+# frontmatter・fenced code block を除いた本文のみを対象にする。
+extract_body_no_fence() {
+  local file="$1"
+  awk '
+    /^---$/ { c++; next }
+    c<2 { next }
+    /^```/ { in_fence=!in_fence; next }
+    in_fence { next }
+    { print }
+  ' "$file"
+}
+
+BODY_NO_FENCE="$(extract_body_no_fence "$DESIGN_DOC")"
+
+# §15.1「ファイル分割」表の1列目は対象リポジトリ内のパスであり、設計書からの
+# Markdown相対リンクではない。該当セルだけを空にしてからリンク候補を抽出する。
+# 他の本文は保持するため、通常本文に書かれた偽リンクの検出能力は落とさない。
+CONTRACT_SECNUM="$(resolve_role_section "実装契約" || true)"
+BODY_FOR_PATH_SCAN="$(printf '%s\n' "$BODY_NO_FENCE" | awk -v sec="$CONTRACT_SECNUM" "$PIPE_SPLIT_AWK_FN"'
+  BEGIN { in_contract=0; in_split=0 }
+  /^## §[0-9]+/ {
+    in_contract = (sec != "" && $0 ~ ("^## §" sec "([^0-9]|$)"))
+    in_split=0
+  }
+  in_contract && /^### / {
+    in_split = ($0 ~ /ファイル分割/)
+  }
+  in_split && /^\|/ {
+    n=split_pipe_row($0, cols)
+    if (n >= 3) {
+      cols[2]=""
+      line=cols[1]
+      for (i=2; i<=n; i++) line=line "|" cols[i]
+      print line
+      next
+    }
+  }
+  { print }
+')"
+
+# 抽出対象: Markdownリンク `](path)` と、スラッシュ＋拡張子を含むバッククォート内トークン。
+# 外部URL・アンカーのみの参照・プレースホルダは対象外とする（狭い抽出範囲に留め誤検出を避ける）。
+BODY_PATH_REFS_RAW="$(printf '%s\n' "$BODY_FOR_PATH_SCAN" | grep -oE '\]\([^)]+\)' | sed -E 's/^\]\(//; s/\)$//' || true
+printf '%s\n' "$BODY_FOR_PATH_SCAN" | grep -oE '`[^`]*/[^`]*\.[A-Za-z0-9]+`' | sed -E 's/^`//; s/`$//' || true)"
+
+BODY_PATH_REFS="$(printf '%s\n' "$BODY_PATH_REFS_RAW" | sed -E 's/#.*$//' | grep -v '^https\?://' | grep -vE '^<.*>$' | grep -F '/' | grep . | LC_ALL=C sort -u || true)"
+
+UNREACHABLE_BODY_REFS=""
+if [ -n "$BODY_PATH_REFS" ]; then
+  while IFS= read -r ref; do
+    [ -z "$ref" ] && continue
+    abs="$(resolve_rel_path "$DESIGN_DIR" "$ref" || true)"
+    if [ -z "$abs" ] || [ ! -f "$abs" ]; then
+      UNREACHABLE_BODY_REFS="${UNREACHABLE_BODY_REFS}${ref}
+"
+    fi
+  done <<< "$BODY_PATH_REFS"
+fi
+
+if [ -n "$(printf '%s' "$UNREACHABLE_BODY_REFS" | tr -d '[:space:]')" ]; then
+  echo "  違反: 本文の相対パス参照が到達不能です（解決後パスにファイルが存在しません）:" >&2
+  printf '%s\n' "$UNREACHABLE_BODY_REFS" | grep . | LC_ALL=C sort -u | sed 's/^/    - /' >&2
+  VIOLATIONS=$((VIOLATIONS + 1))
+else
+  echo "  本文の相対パス参照はすべて到達可能です（参照 0 件を含む）"
+fi
+
+# --- (r) frontmatter の原本属性キーの存在チェック（違反） ---
+echo ""
+echo "[検査 r] frontmatter の原本属性キー（source_encoding・source_line_ending）の存在チェック（違反・非UTF-8 原本の再生成に必要）"
+
+FM_BLOCK_R="$(awk '/^---$/{c++; next} c==1{print} c>=2{exit}' "$DESIGN_DOC")"
+MISSING_SOURCE_ATTRS=""
+for _key in source_encoding source_line_ending; do
+  if ! printf '%s\n' "$FM_BLOCK_R" | grep -qE "^${_key}:[[:blank:]]*[^[:blank:]#]"; then
+    MISSING_SOURCE_ATTRS="${MISSING_SOURCE_ATTRS}${_key}
+"
+  fi
+done
+
+if [ -n "$(printf '%s' "$MISSING_SOURCE_ATTRS" | tr -d '[:space:]')" ]; then
+  echo "  違反: frontmatter に原本属性キーがありません（値が空の場合を含む）:" >&2
+  printf '%s\n' "$MISSING_SOURCE_ATTRS" | grep . | sed 's/^/    - /' >&2
+  VIOLATIONS=$((VIOLATIONS + 1))
+else
+  echo "  frontmatter の原本属性キーはすべて存在します"
+fi
+
+# --- (s) 章マップが宣言する外部文書の frontmatter パス欄チェック（違反） ---
+echo ""
+echo "[検査 s] 章マップの「正」列に外部文書を宣言している章について frontmatter に対応するパス欄が存在するかのチェック（違反）"
+
+CHAPTER_MAP_HEADER="$(LC_ALL=C awk '/^## 章マップ/{f=1; next} f && /^\|/{print; exit}' "$DESIGN_DOC")"
+EXTERNAL_DOC_DECLS=""
+if printf '%s' "$CHAPTER_MAP_HEADER" | grep -q '正'; then
+  SEI_COL="$(printf '%s' "$CHAPTER_MAP_HEADER" | LC_ALL=C awk -F'|' '{for(i=2;i<NF;i++){h=$i; gsub(/^[ \t]+|[ \t]+$/,"",h); if(h=="正"){print i; exit}}}')"
+  if [ -n "$SEI_COL" ]; then
+    EXTERNAL_DOC_DECLS="$(LC_ALL=C awk -F'|' -v col="$SEI_COL" '
+      /^## 章マップ/ { f=1; next }
+      f && /^## / { exit }
+      f && /^\|/ {
+        if (col > NF) next
+        v = $col
+        gsub(/^[ \t]+|[ \t]+$/, "", v)
+        if (v == "" || v == "正") next
+        if (v ~ /^-+$/) next
+        sub(/（.*$/, "", v)
+        gsub(/[ \t]/, "", v)
+        if (v == "") next
+        if (v ~ /本書/) next
+        if (v ~ /共通設計書/) next
+        print v
+      }
+    ' "$DESIGN_DOC" | LC_ALL=C sort -u)"
+  fi
+fi
+
+UNDECLARED_EXTERNAL_DOCS=""
+if [ -n "$EXTERNAL_DOC_DECLS" ]; then
+  FM_BLOCK_S="$(awk '/^---$/{c++; next} c==1{print} c>=2{exit}' "$DESIGN_DOC" | sed -E 's/#.*$//')"
+  while IFS= read -r _doc; do
+    [ -z "$_doc" ] && continue
+    if ! printf '%s\n' "$FM_BLOCK_S" | grep -F "$_doc" >/dev/null 2>&1; then
+      UNDECLARED_EXTERNAL_DOCS="${UNDECLARED_EXTERNAL_DOCS}${_doc}
+"
+    fi
+  done <<< "$EXTERNAL_DOC_DECLS"
+fi
+
+if [ -n "$(printf '%s' "$UNDECLARED_EXTERNAL_DOCS" | tr -d '[:space:]')" ]; then
+  echo "  違反: 章マップが「正」として宣言する外部文書に対応する frontmatter のパス欄がありません:" >&2
+  printf '%s\n' "$UNDECLARED_EXTERNAL_DOCS" | grep . | sed 's/^/    - /' >&2
+  echo "    宣言先の実在を確認できません。パス欄を追加するか §16 要確認事項一覧へ起票してください" >&2
+  VIOLATIONS=$((VIOLATIONS + 1))
+else
+  echo "  章マップの外部文書宣言に対応する frontmatter のパス欄はすべて存在します（宣言 0 件を含む）"
+fi
+
+# --- (t) 画面内状態の節間矛盾チェック（違反） ---
+echo ""
+echo "[検査 t] 画面内状態を非該当とした設計書で初期表示シーケンス・state 遷移シーケンスに状態の語が書き残されていないかのチェック（違反）"
+
+extract_subsection_no_comment() {
+  local file="$1" heading="$2"
+  awk -v h="$heading" '
+    index($0, h) == 1 { f=1; next }
+    f && /^#{2,4} / { exit }
+    f { print }
+  ' "$file" | awk '
+    /<!--/ { in_c=1 }
+    in_c && /-->/ { in_c=0; next }
+    in_c { next }
+    { print }
+  '
+}
+
+STATE_SECTION="$(extract_subsection_no_comment "$DESIGN_DOC" "### 6.6 ")"
+DATA_FLOW_SECTION="$(extract_design_section_body 6)"
+PARTIAL_STATE_NON_APPLICABLE="$(
+  printf '%s\n' "$DATA_FLOW_SECTION" | awk '
+    /^> 非該当項目:/ {
+      line = $0
+      sub(/^> 非該当項目:[[:space:]]*/, "", line)
+      n = split(line, items, ";")
+      for (i = 1; i <= n; i++) {
+        gsub(/^[[:space:]]+/, "", items[i])
+        if (items[i] ~ /^§6\.6([^0-9]|$)/) {
+          print "yes"
+          exit
+        }
+      }
+    }
+  '
+)"
+STATE_NON_APPLICABLE=0
+if printf '%s' "$STATE_SECTION" | grep -q '該当なし' \
+  || printf '%s\n' "$DATA_FLOW_SECTION" | grep -qE '^> 本領域は全項目非該当[（(]' \
+  || [ "$PARTIAL_STATE_NON_APPLICABLE" = "yes" ]; then
+  STATE_NON_APPLICABLE=1
+fi
+STATE_CONTRADICTIONS=""
+if [ "$STATE_NON_APPLICABLE" -eq 1 ]; then
+  for _h in "### 6.1 " "### 15.7 "; do
+    _body="$(extract_subsection_no_comment "$DESIGN_DOC" "$_h")"
+    _hits="$(printf '%s\n' "$_body" | grep -oE '(loading|ready|empty|error)' | LC_ALL=C sort -u | tr '\n' ' ' || true)"
+    if [ -n "$(printf '%s' "$_hits" | tr -d '[:space:]')" ]; then
+      STATE_CONTRADICTIONS="${STATE_CONTRADICTIONS}${_h}に残存: ${_hits}
+"
+    fi
+  done
+fi
+
+if [ -n "$(printf '%s' "$STATE_CONTRADICTIONS" | tr -d '[:space:]')" ]; then
+  echo "  違反: §6.6 で画面内状態を非該当としていますが他の節に状態の語が残っています:" >&2
+  printf '%s\n' "$STATE_CONTRADICTIONS" | grep . | sed 's/^/    - /' >&2
+  VIOLATIONS=$((VIOLATIONS + 1))
+else
+  echo "  画面内状態の節間矛盾はありません（非該当宣言なしを含む）"
+fi
+
+# --- 結果集計 ---
+echo ""
+echo "=== 検査結果 ==="
+echo "違反: $VIOLATIONS 件 / WARN: $WARNINGS 件"
+
+if [ "$VIOLATIONS" -gt 0 ]; then
+  exit 1
+fi
+exit 0

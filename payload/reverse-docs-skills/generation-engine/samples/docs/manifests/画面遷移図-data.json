@@ -1,0 +1,337 @@
+{
+  "description": "画面manifestから生成した画面一覧",
+  "edges": [],
+  "edgesStatus": "未抽出",
+  "flowCategories": [
+    {
+      "name": "一般",
+      "screenCount": 39,
+      "source": "url-segment"
+    },
+    {
+      "name": "管理",
+      "screenCount": 4,
+      "source": "url-segment"
+    }
+  ],
+  "generatedAt": "2026-07-30T00:00:00Z",
+  "legend": [
+    {
+      "meaning": "画面",
+      "symbol": "□"
+    }
+  ],
+  "manifestContentHash": "c7d90a604412f8b7f047b9d3de9c723168e34b0215ac4d27e2c63a30a089a550",
+  "manifestScreenCount": 44,
+  "nodes": [
+    {
+      "category": "一般",
+      "categorySrc": "url-segment",
+      "label": "キャンペーン一覧",
+      "route": "/settings/campaigns",
+      "unitKey": "campaign-list"
+    },
+    {
+      "category": "一般",
+      "categorySrc": "url-segment",
+      "label": "クーポン編集",
+      "route": "/settings/coupons/:couponId/edit",
+      "unitKey": "coupon-edit"
+    },
+    {
+      "category": "一般",
+      "categorySrc": "url-segment",
+      "label": "クーポン一覧",
+      "route": "/settings/coupons",
+      "unitKey": "coupon-list"
+    },
+    {
+      "category": "一般",
+      "categorySrc": "url-segment",
+      "label": "ダッシュボード",
+      "route": "/dashboard",
+      "unitKey": "dashboard"
+    },
+    {
+      "category": "一般",
+      "categorySrc": "url-segment",
+      "label": "パスワードリセット",
+      "route": "/forgot-password",
+      "unitKey": "forgot-password"
+    },
+    {
+      "category": "一般",
+      "categorySrc": "url-segment",
+      "label": "ホーム画面",
+      "route": "/",
+      "unitKey": "home"
+    },
+    {
+      "category": "一般",
+      "categorySrc": "url-segment",
+      "label": "在庫レポート",
+      "route": "/reports/inventory",
+      "unitKey": "inventory-report"
+    },
+    {
+      "category": "一般",
+      "categorySrc": "url-segment",
+      "label": "請求詳細",
+      "route": "/invoices/:invoiceId",
+      "unitKey": "invoice-detail"
+    },
+    {
+      "category": "一般",
+      "categorySrc": "url-segment",
+      "label": "請求一覧",
+      "route": "/invoices",
+      "unitKey": "invoice-list"
+    },
+    {
+      "category": "一般",
+      "categorySrc": "url-segment",
+      "label": "ログイン画面",
+      "route": "/login",
+      "unitKey": "login"
+    },
+    {
+      "category": "一般",
+      "categorySrc": "url-segment",
+      "label": "会員詳細",
+      "route": "/members/:memberId",
+      "unitKey": "member-detail"
+    },
+    {
+      "category": "一般",
+      "categorySrc": "url-segment",
+      "label": "会員編集",
+      "route": "/members/:memberId/edit",
+      "unitKey": "member-edit"
+    },
+    {
+      "category": "一般",
+      "categorySrc": "url-segment",
+      "label": "会員一覧",
+      "route": "/members",
+      "unitKey": "member-list"
+    },
+    {
+      "category": "一般",
+      "categorySrc": "url-segment",
+      "label": "会員休会・退会",
+      "route": "/members/:memberId/suspend",
+      "unitKey": "member-suspend"
+    },
+    {
+      "category": "一般",
+      "categorySrc": "url-segment",
+      "label": "通知設定",
+      "route": "/settings/notifications",
+      "unitKey": "notification-settings"
+    },
+    {
+      "category": "一般",
+      "categorySrc": "url-segment",
+      "label": "通知一覧",
+      "route": "/notifications",
+      "unitKey": "notifications"
+    },
+    {
+      "category": "一般",
+      "categorySrc": "url-segment",
+      "label": "注文キャンセル",
+      "route": "/orders/:orderId/cancel",
+      "unitKey": "order-cancel"
+    },
+    {
+      "category": "一般",
+      "categorySrc": "url-segment",
+      "label": "注文確定",
+      "route": "/orders/:orderId/confirm",
+      "unitKey": "order-confirm"
+    },
+    {
+      "category": "一般",
+      "categorySrc": "url-segment",
+      "label": "注文詳細",
+      "route": "/orders/:orderId",
+      "unitKey": "order-detail"
+    },
+    {
+      "category": "一般",
+      "categorySrc": "url-segment",
+      "label": "注文一覧",
+      "route": "/orders",
+      "unitKey": "order-list"
+    },
+    {
+      "category": "一般",
+      "categorySrc": "url-segment",
+      "label": "注文検索",
+      "route": "/orders/search",
+      "unitKey": "order-search"
+    },
+    {
+      "category": "一般",
+      "categorySrc": "url-segment",
+      "label": "支払い一覧",
+      "route": "/payments",
+      "unitKey": "payment-list"
+    },
+    {
+      "category": "一般",
+      "categorySrc": "url-segment",
+      "label": "投稿詳細",
+      "route": "/posts/:postId",
+      "unitKey": "post-detail"
+    },
+    {
+      "category": "一般",
+      "categorySrc": "url-segment",
+      "label": "投稿エディタ",
+      "route": "/posts/:postId/edit",
+      "unitKey": "post-editor"
+    },
+    {
+      "category": "一般",
+      "categorySrc": "url-segment",
+      "label": "投稿一覧",
+      "route": "/posts",
+      "unitKey": "posts-list"
+    },
+    {
+      "category": "一般",
+      "categorySrc": "url-segment",
+      "label": "商品カテゴリ管理",
+      "route": "/products/categories",
+      "unitKey": "product-category"
+    },
+    {
+      "category": "一般",
+      "categorySrc": "url-segment",
+      "label": "商品詳細",
+      "route": "/products/:productId",
+      "unitKey": "product-detail"
+    },
+    {
+      "category": "一般",
+      "categorySrc": "url-segment",
+      "label": "商品編集",
+      "route": "/products/:productId/edit",
+      "unitKey": "product-edit"
+    },
+    {
+      "category": "一般",
+      "categorySrc": "url-segment",
+      "label": "在庫管理",
+      "route": "/products/:productId/inventory",
+      "unitKey": "product-inventory"
+    },
+    {
+      "category": "一般",
+      "categorySrc": "url-segment",
+      "label": "商品一覧",
+      "route": "/products",
+      "unitKey": "product-list"
+    },
+    {
+      "category": "一般",
+      "categorySrc": "url-segment",
+      "label": "プロフィール",
+      "route": "/profile",
+      "unitKey": "profile"
+    },
+    {
+      "category": "一般",
+      "categorySrc": "url-segment",
+      "label": "返金一覧",
+      "route": "/refunds",
+      "unitKey": "refund-list"
+    },
+    {
+      "category": "一般",
+      "categorySrc": "url-segment",
+      "label": "レポート閲覧",
+      "route": "/reports/:reportId",
+      "unitKey": "report-viewer"
+    },
+    {
+      "category": "管理",
+      "categorySrc": "url-segment",
+      "label": "ロール管理",
+      "route": "/admin/roles",
+      "unitKey": "roles"
+    },
+    {
+      "category": "一般",
+      "categorySrc": "url-segment",
+      "label": "売上ダッシュボード",
+      "route": "/reports/sales",
+      "unitKey": "sales-dashboard"
+    },
+    {
+      "category": "一般",
+      "categorySrc": "url-segment",
+      "label": "売上レポート出力",
+      "route": "/reports/sales/export",
+      "unitKey": "sales-report"
+    },
+    {
+      "category": "一般",
+      "categorySrc": "url-segment",
+      "label": "検索結果",
+      "route": "/search",
+      "unitKey": "search"
+    },
+    {
+      "category": "一般",
+      "categorySrc": "url-segment",
+      "label": "設定画面",
+      "route": "/settings",
+      "unitKey": "settings"
+    },
+    {
+      "category": "一般",
+      "categorySrc": "url-segment",
+      "label": "出荷一覧",
+      "route": "/shipments",
+      "unitKey": "shipment-list"
+    },
+    {
+      "category": "一般",
+      "categorySrc": "url-segment",
+      "label": "新規登録画面",
+      "route": "/signup",
+      "unitKey": "signup"
+    },
+    {
+      "category": "管理",
+      "categorySrc": "url-segment",
+      "label": "ユーザー詳細",
+      "route": "/admin/users/:userId",
+      "unitKey": "users-detail"
+    },
+    {
+      "category": "管理",
+      "categorySrc": "url-segment",
+      "label": "ユーザー編集",
+      "route": "/admin/users/:userId/edit",
+      "unitKey": "users-edit"
+    },
+    {
+      "category": "管理",
+      "categorySrc": "url-segment",
+      "label": "ユーザー一覧",
+      "route": "/admin/users",
+      "unitKey": "users-list"
+    }
+  ],
+  "pageKind": "transition",
+  "title": "画面遷移図",
+  "unresolved": [
+    {
+      "label": "サイドバーナビ",
+      "reason": "routeが空文字列のため遷移解決不能"
+    }
+  ]
+}

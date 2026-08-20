@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<!-- maintaining-semantic-glossary の検査・影響分析・変更要求を説明する自己完結ガイド -->
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>用語保守スキルガイド</title>
+<style>
+/* スキルガイド HTML（.claude/skills/*/references/guide.html）の統一意匠。
+   自己完結の単一 HTML へ丸ごと埋め込む style タグの中身。外部ファイルは参照しない。
+   版面は文書型のまま（中央寄せの最大幅・通常のページスクロール）。
+   ポータルの全画面レイアウト（サイドバー・100vh・sticky）は持ち込まない。
+   角丸は使わない（border-radius は 0 のみ）。影はぼかし半径を持たせない。
+   配色は delivery-payload/templates/tokens.css の値から取り出した派生値。
+   既定は明るい表示。暗い表示は prefers-color-scheme と data-theme="dark" の両方で切り替わる。
+   data-theme="light" を明示したときは明るい表示を固定する。 */
+
+:root, [data-theme="light"] {
+  --guide-bg: #F1F4F8;
+  --guide-panel: #FFFFFF;
+  --guide-panel2: #E9EEF4;
+  --guide-border: #D8DFE8;
+  --guide-text: #1A222E;
+  --guide-text-sub: #4B5A70;
+  --guide-muted: #6C7A8E;
+  --guide-accent: #0284C7;
+  --guide-accent-hi: #075985;
+  --guide-accent-soft: rgba(2,132,199,0.10);
+  --guide-stamp: #D9482B;
+  --guide-stamp-soft: rgba(217,72,43,0.12);
+  --guide-green: #15803D;
+  --guide-green-soft: rgba(21,128,61,0.16);
+  --guide-code-bg: #101722;
+  --guide-code-text: #C9E8FF;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --guide-bg: #0F1217;
+    --guide-panel: #161C23;
+    --guide-panel2: #1C232E;
+    --guide-border: #2B3443;
+    --guide-text: #E7ECF4;
+    --guide-text-sub: #A8B3C3;
+    --guide-muted: #8A96A7;
+    --guide-accent: #4CC2FE;
+    --guide-accent-hi: #9ADCFF;
+    --guide-accent-soft: rgba(76,194,255,0.17);
+    --guide-stamp: #FF6E4F;
+    --guide-stamp-soft: rgba(255,110,78,0.16);
+    --guide-green: #4ADE81;
+    --guide-green-soft: rgba(74,222,129,0.16);
+    --guide-code-bg: #0B0E13;
+    --guide-code-text: #C9E8FF;
+  }
+}
+
+[data-theme="dark"] {
+  --guide-bg: #0F1217;
+  --guide-panel: #161C23;
+  --guide-panel2: #1C232E;
+  --guide-border: #2B3443;
+  --guide-text: #E7ECF4;
+  --guide-text-sub: #A8B3C3;
+  --guide-muted: #8A96A7;
+  --guide-accent: #4CC2FE;
+  --guide-accent-hi: #9ADCFF;
+  --guide-accent-soft: rgba(76,194,255,0.17);
+  --guide-stamp: #FF6E4F;
+  --guide-stamp-soft: rgba(255,110,78,0.16);
+  --guide-green: #4ADE81;
+  --guide-green-soft: rgba(74,222,129,0.16);
+  --guide-code-bg: #0B0E13;
+  --guide-code-text: #C9E8FF;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0 auto;
+  padding: 0 24px 96px;
+  max-width: 980px;
+  font-family: system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif;
+  line-height: 1.85;
+  color: var(--guide-text);
+  background: var(--guide-bg);
+}
+
+header {
+  padding: 56px 0 24px;
+  border-bottom: 3px solid var(--guide-text);
+}
+header h1 { font-size: 1.9rem; margin: 0 0 10px; letter-spacing: 0.01em; }
+header p { margin: 6px 0 0; color: var(--guide-text-sub); }
+
+h1 { font-size: 1.9rem; margin: 0 0 10px; }
+h2 {
+  font-size: 1.35rem;
+  padding-bottom: 8px;
+  margin-bottom: 20px;
+  border-bottom: 2px solid var(--guide-text);
+}
+h3 { font-size: 1.05rem; margin: 32px 0 10px; }
+
+.skill-name {
+  display: inline-block;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 1rem;
+  background: var(--guide-text);
+  color: var(--guide-bg);
+  padding: 2px 10px;
+  border-radius: 0;
+  vertical-align: middle;
+}
+
+.meta-table { margin-top: 16px; font-size: 0.9rem; color: var(--guide-text-sub); }
+.meta-table td { padding: 3px 18px 3px 0; vertical-align: top; }
+
+nav { margin-top: 32px; padding: 18px 22px; background: var(--guide-panel); border: 1px solid var(--guide-border); border-radius: 0; }
+.toc { margin-top: 32px; padding: 18px 22px; background: var(--guide-panel); border: 1px solid var(--guide-border); border-radius: 0; }
+.toc-title { font-weight: 700; margin-bottom: 6px; }
+.toc ol, nav ol { margin: 0; padding-left: 1.4em; columns: 2; column-gap: 40px; }
+.toc li, nav li { margin: 2px 0; }
+
+section { margin-top: 64px; }
+section > h2 .sec-num { display: inline-block; }
+.sec-num {
+  display: inline-block;
+  min-width: 2.4em;
+  margin-right: 10px;
+  font-family: ui-monospace, monospace;
+  font-size: 0.95rem;
+  background: var(--guide-text);
+  color: var(--guide-bg);
+  text-align: center;
+  padding: 1px 8px;
+  border-radius: 0;
+  vertical-align: 2px;
+}
+
+.note { color: var(--guide-text-sub); font-size: 0.92rem; }
+
+a { color: var(--guide-accent); }
+.toc a, nav a { color: var(--guide-text); text-decoration: none; border-bottom: 1px dotted var(--guide-muted); }
+.toc a:hover, nav a:hover { border-bottom-style: solid; }
+table a, .spec a { color: var(--guide-accent); }
+
+table { border-collapse: collapse; width: 100%; }
+th, td { border: 1px solid var(--guide-border); padding: 8px 12px; text-align: left; vertical-align: top; }
+th { background: var(--guide-panel2); font-weight: 700; }
+
+.spec { border-collapse: collapse; width: 100%; margin: 14px 0; background: var(--guide-panel); font-size: 0.93rem; }
+.spec th, .spec td { border: 1px solid var(--guide-border); padding: 8px 12px; text-align: left; vertical-align: top; }
+.spec th { background: var(--guide-panel2); font-weight: 700; }
+
+ul, ol { margin: 0.5em 0 0.5em 1.4em; padding: 0; }
+li { margin: 2px 0; }
+
+pre {
+  background: var(--guide-code-bg);
+  color: var(--guide-code-text);
+  border-radius: 0;
+  padding: 18px;
+  overflow-x: auto;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.86rem;
+  line-height: 1.6;
+}
+.flow {
+  background: var(--guide-code-bg);
+  color: var(--guide-code-text);
+  border-radius: 0;
+  padding: 20px 24px;
+  overflow-x: auto;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.82rem;
+  line-height: 1.55;
+}
+.cap { color: var(--guide-muted); }
+
+code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.86em;
+  background: var(--guide-panel2);
+  color: var(--guide-text);
+  padding: 1px 5px;
+  border-radius: 0;
+}
+pre code, .flow code { background: transparent; color: inherit; padding: 0; }
+
+.def {
+  background: var(--guide-panel);
+  border: 1px solid var(--guide-border);
+  border-left: 4px solid var(--guide-accent);
+  padding: 12px 18px;
+  margin: 14px 0;
+  border-radius: 0;
+}
+.def dt { font-weight: 700; margin-top: 8px; }
+.def dt:first-child { margin-top: 0; }
+.def dd { margin: 2px 0 10px; color: var(--guide-text-sub); }
+
+.constraint {
+  background: var(--guide-accent-soft);
+  border: 1px solid var(--guide-accent);
+  border-radius: 0;
+  padding: 12px 18px;
+  margin: 16px 0;
+  font-size: 0.93rem;
+}
+.constraint strong:first-child { color: var(--guide-accent-hi); }
+
+.warn {
+  background: var(--guide-stamp-soft);
+  border: 1px solid var(--guide-stamp);
+  border-radius: 0;
+  padding: 12px 18px;
+  margin: 16px 0;
+  font-size: 0.93rem;
+}
+.warn strong:first-child { color: var(--guide-stamp); }
+
+.tag {
+  display: inline-block;
+  font-family: ui-monospace, monospace;
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 0 8px;
+  border-radius: 0;
+  border: 1px solid transparent;
+}
+.tag.pass  { background: var(--guide-green-soft); color: var(--guide-green); border-color: var(--guide-green); }
+.tag.fail  { background: var(--guide-stamp-soft); color: var(--guide-stamp); border-color: var(--guide-stamp); }
+.tag.error { background: var(--guide-stamp-soft); color: var(--guide-stamp); border-color: var(--guide-stamp); }
+.tag.mode  { background: var(--guide-accent-soft); color: var(--guide-accent-hi); border-color: var(--guide-accent); }
+
+.diagram {
+  margin: 20px 0;
+  padding: 8px;
+  background: var(--guide-panel);
+  border: 1px solid var(--guide-border);
+  border-radius: 0;
+}
+.diagram svg { width: 100%; height: auto; display: block; cursor: zoom-in; }
+.diagram figcaption { padding: 8px 10px 2px; }
+
+.zoom-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(0,0,0,0.82);
+  overflow: auto;
+  padding: 24px;
+  cursor: zoom-out;
+  -webkit-overflow-scrolling: touch;
+}
+.zoom-overlay svg {
+  width: 1880px;
+  max-width: none;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+  background: var(--guide-panel);
+  border-radius: 0;
+}
+
+@media (max-width: 640px) {
+  body { padding-inline: 14px; }
+  .toc ol, nav ol { columns: 1; }
+  .meta-table, .spec, table { font-size: 0.84rem; }
+}
+</style>
+</head>
+<body>
+<header>
+  <h1>用語保守<br><span class="skill-name">maintaining-semantic-glossary</span></h1>
+  <p>用語変更の品質と影響を調べ、人が裁定できる変更要求へ整えるスキル。</p>
+  <div class="def"><dt>こんな人向け</dt><dd>用語steward、レビュー担当、移行計画担当</dd><dt>こんな場面で使う</dt><dd>追加・更新・廃止の事前検査、重複・未使用調査、影響分析</dd></div>
+  <table class="meta-table">
+    <tr><td>対応 OS</td><td>Windows WSL2 環境</td></tr>
+    <tr><td>検証状況</td><td>2026-08-02 指定14列の名称別衝突検査契約とSkill契約テストを実行し、保守手順とai_index境界を照合</td></tr>
+    <tr><td>依存</td><td>Python 3.13、正式validator、対象資産の読取権限</td></tr>
+    <tr><td>関連資料</td><td>semantic-glossary共通契約、用語保守Skill仕様書、用語運用ルール</td></tr>
+  </table>
+</header>
+<nav class="toc"><strong>目次</strong>
+  <ol>
+    <li><a href="#s1">概要</a></li>
+    <li><a href="#s2">出力</a></li>
+    <li><a href="#s3">操作</a></li>
+    <li><a href="#s4">検査順序</a></li>
+    <li><a href="#s5">影響分析</a></li>
+    <li><a href="#s6">未使用判定</a></li>
+    <li><a href="#s7">候補レビュー</a></li>
+    <li><a href="#s8">禁止事項</a></li>
+    <li><a href="#s9">検証</a></li>
+    <li><a href="#s10">管理Skillへの引渡し</a></li>
+  </ol>
+</nav>
+<section id="s1">
+  <h2><span class="sec-num">§1</span>概要</h2>
+  <p>正式用語集を直接編集せず、検査、影響分析、候補レビューを実行する。結果は管理Skillが消費できる変更要求へ整える。</p>
+  <div class="constraint"><strong>既定はdry-run。</strong> 保守Skillは最終承認者にも適用主体にもならない。</div>
+  <p>独立CRUD runnerや保守CLIではなく、AIがRead/Grep/Bash/Write/Editで調査と変更要求作成を行う手順である。scriptsは実行入口ではなく契約検証用テストである。</p>
+</section>
+<section id="s2">
+  <h2><span class="sec-num">§2</span>出力</h2>
+  <p>人が採否と移行可否を判断するための次の情報が生まれる。</p>
+  <div class="def"><dt>品質検査レポート</dt><dd>重複、類義、禁止語、命名、参照切れを位置と根拠付きで示す。</dd><dt>影響サマリー</dt><dd>直接・派生・意味・互換・運用影響と未走査領域を分ける。</dd><dt>変更要求</dt><dd>変更前後、理由、根拠、承認候補、移行案を管理Skillへ渡せる形にする。</dd></div>
+</section>
+<section id="s3">
+  <h2><span class="sec-num">§3</span>操作</h2>
+  <table class="spec">
+    <tr><th>群</th><th>操作</th></tr>
+    <tr><td>変更準備</td><td>add / update / deprecate / retire</td></tr>
+    <tr><td>品質監査</td><td>detect-duplicates / synonyms / forbidden-terms / naming-violations</td></tr>
+    <tr><td>利用監査</td><td>detect-unused-terms / analyze-impact</td></tr>
+    <tr><td>候補・全体</td><td>review-proposal / validate-registry</td></tr>
+  </table>
+  <p>deleteモードは持たない。review-proposal、add、update、deprecate、retireでは<code>--registry &lt;file-or-dir&gt;</code>が必須。省略時はreview_requiredとして、変更要求を管理Skillへ渡さない。</p>
+</section>
+<section id="s4">
+  <h2><span class="sec-num">§4</span>検査順序</h2>
+  <pre>正式CLI → report schema → schema → key → label正規化 → alias/禁止語 → representation → 類義候補 → 参照整合</pre>
+  <p>exit 0でもreview_requiredがあれば適用可能と判定しない。SGS/SGK/SGR/SGL/SGP/SGV/SGDのcode familyとseverityを保持する。類義語はdefinition、kind、scope、relation、representationも比較し、自動統合しない。</p>
+</section>
+<section id="s5">
+  <h2><span class="sec-num">§5</span>影響分析</h2>
+  <table class="spec">
+    <tr><th>分類</th><th>例</th></tr>
+    <tr><td>直接</td><td>key、API field、DB列</td></tr>
+    <tr><td>派生</td><td>portal、生成文書、将来のAI索引</td></tr>
+    <tr><td>意味</td><td>計算規則、状態遷移</td></tr>
+    <tr><td>互換</td><td>外部API、event、DB契約</td></tr>
+    <tr><td>運用</td><td>FAQ、手順書、教育資料</td></tr>
+  </table>
+</section>
+<section id="s6">
+  <h2><span class="sec-num">§6</span>未使用判定</h2>
+  <p>code、database、api、ui、document、event、messageを別々に走査する。機械走査できない法令、契約、教育、運用は<code>human_check_required</code>を付ける。</p>
+  <div class="constraint">全チャネル0件でも、それだけでは削除条件にならない。</div>
+</section>
+<section id="s7">
+  <h2><span class="sec-num">§7</span>候補レビュー</h2>
+  <p><code>proposal.extracted_facts[]</code>と<code>proposal.inferences[]</code>を分け、既存類似語、根拠、confidence、影響、不足情報を示す。採用・差し戻し・却下・保留は人が裁定する。外部identity provider照合は未実装で、actor/role/decisionを外部本人確認済みとは扱わない。同一actorが兼任してもrole別承認を要求し、change案のapproved_byへ<code>business_approver:&lt;actor&gt;</code>と<code>technical_approver:&lt;actor&gt;</code>の2件を記録する。</p>
+</section>
+<section id="s8">
+  <h2><span class="sec-num">§8</span>禁止事項</h2>
+  <ul>
+    <li>正式glossaryの直接編集</li>
+    <li>公開済み用語の物理削除</li>
+    <li>類義語の自動統合</li>
+    <li>未使用0件からの自動削除</li>
+    <li>解析候補を直接、扱いを上げること</li>
+  </ul>
+</section>
+<section id="s9">
+  <h2><span class="sec-num">§9</span>検証</h2>
+  <div class="def"><dt>正式test command</dt><dd><code>scripts/test-maintaining-semantic-glossary.sh</code>。deterministic CLIと手順契約を区分して検証する。</dd><dt>区分付き記録</dt><dd>互換ファイル名<code>verification/ai-forward-test.json</code>へrepo相対fixture、source SHA-256前後、CLI観測、期待判定、サンプルhashを保存する。<code>evidenceMode</code>は<code>cli_replay</code>、<code>cli_and_contract</code>、<code>contract_only</code>を区別する。</dd><dt>再実行手順</dt><dd>repo rootから正式test commandを実行する。wrapperは<code>scripts/verify-ai-forward-test.py</code>でschema検証し、実行可能CLIを再実行してfixture hashを照合する。絶対pathや機密値は記録しない。</dd><dt>責務境界</dt><dd>registry省略・dry-run変更要求・ai_index停止のうち実行入口がない部分は契約照合であり、AI実行を再現した証拠ではない。正式glossaryを直接変更しない。</dd></div>
+</section>
+<section id="s10">
+  <h2><span class="sec-num">§10</span>管理Skillへの引渡し</h2>
+  <pre>保守Skill: 検査・影響・変更要求 → 管理Skill: validator・二者承認・適用・portal公開</pre>
+  <p>errorまたはreview_requiredが残る時は適用を推奨せず、不足情報と次の判断者を返す。</p>
+</section>
+</body>
+</html>

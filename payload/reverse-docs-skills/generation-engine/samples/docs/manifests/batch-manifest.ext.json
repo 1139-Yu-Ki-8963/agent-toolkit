@@ -1,0 +1,240 @@
+{
+  "generatedAt": "2026-07-30T00:00:00Z",
+  "sourceDir": "generation-engine/samples/project-portal/一覧/バッチ一覧/fixtures",
+  "unitKind": "batch",
+  "strategy": {
+    "extractionMethod": "static-analysis",
+    "approvedByUser": true,
+    "unitIdRegex": null
+  },
+  "detectionSummary": {
+    "unitCount": 10,
+    "unresolvedCount": 0
+  },
+  "units": [
+    {
+      "unitId": "batch-cleanup",
+      "unitKey": "cleanup",
+      "kind": "scheduled",
+      "unitNameGuess": "データクリーンアップ",
+      "identifier": "cleanup_job",
+      "detectionMethod": "cron-config",
+      "confidence": "HIGH",
+      "fileCount": 2,
+      "sourceFile": "src/jobs/cleanup.py",
+      "schedule": {
+        "cron": "0 4 * * *",
+        "readable": "毎日 4:00"
+      },
+      "targetTables": [
+        "sessions",
+        "files"
+      ],
+      "downstreamJobs": [],
+      "execMethod": "python -m jobs.cleanup",
+      "businessClass": "定期",
+      "triggerConfirmed": true
+    },
+    {
+      "unitId": "batch-daily-report",
+      "unitKey": "daily-report",
+      "kind": "scheduled",
+      "unitNameGuess": "日次レポート生成",
+      "identifier": "daily_report",
+      "detectionMethod": "cron-config",
+      "confidence": "HIGH",
+      "fileCount": 3,
+      "sourceFile": "src/jobs/daily_report.py",
+      "schedule": {
+        "cron": "0 6 * * *",
+        "readable": "毎日 6:00"
+      },
+      "targetTables": [
+        "posts",
+        "users",
+        "audit-logs"
+      ],
+      "downstreamJobs": [
+        "weekly-digest"
+      ],
+      "execMethod": "python -m jobs.daily_report",
+      "businessClass": "定期",
+      "triggerConfirmed": true
+    },
+    {
+      "unitId": "batch-weekly-digest",
+      "unitKey": "weekly-digest",
+      "kind": "scheduled",
+      "unitNameGuess": "週次ダイジェスト送信",
+      "identifier": "weekly_digest",
+      "detectionMethod": "cron-config",
+      "confidence": "HIGH",
+      "fileCount": 2,
+      "sourceFile": "src/jobs/weekly_digest.py",
+      "schedule": {
+        "cron": "0 7 * * 1",
+        "readable": "毎週月曜 7:00"
+      },
+      "targetTables": [
+        "posts",
+        "notifications"
+      ],
+      "downstreamJobs": [],
+      "execMethod": "python -m jobs.weekly_digest",
+      "businessClass": "定期",
+      "triggerConfirmed": true
+    },
+    {
+      "unitId": "batch-session-cleanup",
+      "unitKey": "session-cleanup",
+      "kind": "scheduled",
+      "unitNameGuess": "期限切れセッション削除",
+      "identifier": "session_cleanup",
+      "detectionMethod": "cron-config",
+      "confidence": "HIGH",
+      "fileCount": 1,
+      "sourceFile": "src/jobs/session_cleanup.py",
+      "schedule": {
+        "cron": "*/30 * * * *",
+        "readable": "30分ごと"
+      },
+      "targetTables": [
+        "sessions"
+      ],
+      "downstreamJobs": [],
+      "execMethod": "python -m jobs.session_cleanup",
+      "businessClass": "定期",
+      "triggerConfirmed": false
+    },
+    {
+      "unitId": "batch-notification-send",
+      "unitKey": "notification-send",
+      "kind": "scheduled",
+      "unitNameGuess": "通知一括送信",
+      "identifier": "notification_batch_send",
+      "detectionMethod": "cron-config",
+      "confidence": "HIGH",
+      "fileCount": 3,
+      "sourceFile": "src/jobs/notification_send.py",
+      "schedule": {
+        "cron": "*/5 * * * *",
+        "readable": "5分ごと"
+      },
+      "targetTables": [
+        "notifications",
+        "users"
+      ],
+      "downstreamJobs": [],
+      "execMethod": "python -m jobs.notification_send",
+      "businessClass": "定期",
+      "triggerConfirmed": false
+    },
+    {
+      "unitId": "batch-data-export",
+      "unitKey": "data-export",
+      "kind": "triggered",
+      "unitNameGuess": "データエクスポート",
+      "identifier": "data_export",
+      "detectionMethod": "script",
+      "confidence": "MEDIUM",
+      "fileCount": 4,
+      "sourceFile": "src/jobs/data_export.py",
+      "targetTables": [
+        "users",
+        "posts",
+        "comments"
+      ],
+      "downstreamJobs": [],
+      "execMethod": "python -m jobs.data_export --format csv",
+      "businessClass": "手動"
+    },
+    {
+      "unitId": "batch-backup",
+      "unitKey": "db-backup",
+      "kind": "scheduled",
+      "unitNameGuess": "データベースバックアップ",
+      "identifier": "db_backup",
+      "detectionMethod": "cron-config",
+      "confidence": "HIGH",
+      "fileCount": 2,
+      "sourceFile": "src/jobs/db_backup.py",
+      "schedule": {
+        "cron": "0 2 * * *",
+        "readable": "毎日 2:00"
+      },
+      "targetTables": [
+        "users",
+        "posts",
+        "audit-logs"
+      ],
+      "downstreamJobs": [
+        "audit-archive"
+      ],
+      "execMethod": "python -m jobs.db_backup",
+      "businessClass": "定期",
+      "triggerConfirmed": true
+    },
+    {
+      "unitId": "batch-sync-external",
+      "unitKey": "sync-external",
+      "kind": "triggered",
+      "unitNameGuess": "外部データ同期",
+      "identifier": "sync_external_data",
+      "detectionMethod": "script",
+      "confidence": "MEDIUM",
+      "fileCount": 2,
+      "sourceFile": "src/jobs/sync_external.py",
+      "targetTables": [
+        "users",
+        "organizations"
+      ],
+      "downstreamJobs": [],
+      "execMethod": "python -m jobs.sync_external --source crm",
+      "businessClass": "手動"
+    },
+    {
+      "unitId": "batch-cache-warmup",
+      "unitKey": "cache-warmup",
+      "kind": "scheduled",
+      "unitNameGuess": "キャッシュウォームアップ",
+      "identifier": "cache_warmup",
+      "detectionMethod": "cron-config",
+      "confidence": "HIGH",
+      "fileCount": 1,
+      "sourceFile": "src/jobs/cache_warmup.py",
+      "schedule": {
+        "cron": "0 5 * * *",
+        "readable": "毎日 5:00"
+      },
+      "targetTables": [
+        "posts",
+        "categories"
+      ],
+      "downstreamJobs": [],
+      "execMethod": "python -m jobs.cache_warmup",
+      "businessClass": "定期",
+      "triggerConfirmed": false
+    },
+    {
+      "unitId": "batch-audit-archive",
+      "unitKey": "audit-archive",
+      "kind": "scheduled",
+      "unitNameGuess": "監査ログアーカイブ",
+      "identifier": "audit_log_archive",
+      "detectionMethod": "cron-config",
+      "confidence": "HIGH",
+      "fileCount": 2,
+      "sourceFile": "src/jobs/audit_archive.py",
+      "schedule": {
+        "cron": "0 3 1 * *",
+        "readable": "毎月1日 3:00"
+      },
+      "targetTables": [
+        "audit-logs"
+      ],
+      "downstreamJobs": [],
+      "execMethod": "python -m jobs.audit_archive",
+      "businessClass": "定期"
+    }
+  ]
+}

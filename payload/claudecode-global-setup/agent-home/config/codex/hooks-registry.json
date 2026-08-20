@@ -1,0 +1,68 @@
+{
+  "description": "Portable public Codex hooks for session workflow and development-flow gates.",
+  "commands": {
+    "session-start-reset": {
+      "sourceEvent": "SessionStart",
+      "codexEvent": "SessionStart",
+      "matcher": "*",
+      "sourceTimeout": 5,
+      "codexTimeout": 5,
+      "sourceCommand": "true",
+      "command": "true"
+    },
+    "workflow-prompt": {
+      "sourceEvent": "UserPromptSubmit",
+      "codexEvent": "UserPromptSubmit",
+      "matcher": "*",
+      "sourceTimeout": 10,
+      "codexTimeout": 10,
+      "sourceCommand": "$HOME/agent-home/rules/always/session/workflow-gate/check-session-workflow-prompt.sh",
+      "command": "$HOME/agent-home/rules/always/session/workflow-gate/check-session-workflow-prompt.sh"
+    },
+    "workflow-pretool": {
+      "sourceEvent": "PreToolUse",
+      "codexEvent": "PreToolUse",
+      "matcher": "*",
+      "sourceTimeout": 10,
+      "codexTimeout": 10,
+      "sourceCommand": "$HOME/agent-home/rules/always/session/workflow-gate/check-session-workflow-gate.sh",
+      "command": "$HOME/agent-home/rules/always/session/workflow-gate/check-session-workflow-gate.sh"
+    },
+    "dev-flow-pretool": {
+      "sourceEvent": "PreToolUse",
+      "codexEvent": "PreToolUse",
+      "matcher": "Write|Edit|MultiEdit|NotebookEdit",
+      "sourceTimeout": 10,
+      "codexTimeout": 10,
+      "sourceCommand": "$HOME/agent-home/rules/scoped/dev-flow/gate/check-dev-flow-phase-gate.sh",
+      "command": "$HOME/agent-home/rules/scoped/dev-flow/gate/check-dev-flow-phase-gate.sh"
+    },
+    "phase-entry-pretool": {
+      "sourceEvent": "PreToolUse",
+      "codexEvent": "PreToolUse",
+      "matcher": "Bash",
+      "sourceTimeout": 10,
+      "codexTimeout": 10,
+      "sourceCommand": "$HOME/agent-home/rules/always/gate/phase-step-task/check-phase-entry-tasks.sh",
+      "command": "$HOME/agent-home/rules/always/gate/phase-step-task/check-phase-entry-tasks.sh"
+    },
+    "phase-step-posttool": {
+      "sourceEvent": "PostToolUse",
+      "codexEvent": "PostToolUse",
+      "matcher": "TaskCreate",
+      "sourceTimeout": 5,
+      "codexTimeout": 5,
+      "sourceCommand": "$HOME/agent-home/rules/always/gate/phase-step-task/record-step-tasks.sh || true",
+      "command": "$HOME/agent-home/rules/always/gate/phase-step-task/record-step-tasks.sh || true"
+    },
+    "workflow-stop": {
+      "sourceEvent": "Stop",
+      "codexEvent": "Stop",
+      "matcher": "*",
+      "sourceTimeout": 10,
+      "codexTimeout": 10,
+      "sourceCommand": "cd \"$HOME\" && /bin/bash \"$HOME/agent-home/rules/always/session/workflow-gate/check-session-workflow-stop.sh\"",
+      "command": "cd \"$HOME\" && /bin/bash \"$HOME/agent-home/rules/always/session/workflow-gate/check-session-workflow-stop.sh\""
+    }
+  }
+}

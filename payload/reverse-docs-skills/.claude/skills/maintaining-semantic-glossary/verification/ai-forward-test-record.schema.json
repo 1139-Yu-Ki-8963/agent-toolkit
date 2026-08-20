@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["recordVersion", "skill", "executedAt", "executor", "prompt", "scenarios"],
+  "properties": {
+    "recordVersion": {"const": "1.0.0"},
+    "skill": {"type": "string", "minLength": 1},
+    "executedAt": {"type": "string", "format": "date-time"},
+    "executor": {"const": "codex-agent"},
+    "prompt": {"type": "string", "minLength": 1},
+    "scenarios": {
+      "type": "array",
+      "minItems": 4,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "class", "evidenceMode", "inputFixtures", "steps", "observed", "artifact", "expected", "verdict"],
+        "properties": {
+          "id": {"type": "string", "pattern": "^[a-z][a-z0-9-]+$"},
+          "class": {"enum": ["standard", "boundary"]},
+          "evidenceMode": {"enum": ["cli_replay", "cli_and_contract", "contract_only"]},
+          "inputFixtures": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["ref", "sha256Before", "sha256After"],
+              "properties": {
+                "ref": {"type": "string", "minLength": 1},
+                "sha256Before": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+                "sha256After": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+              }
+            }
+          },
+          "steps": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+          "observed": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["validatorExit", "validatorStatus", "counts", "skillStatus", "reason", "summary"],
+            "properties": {
+              "validatorExit": {"type": ["integer", "null"]},
+              "validatorStatus": {"type": ["string", "null"]},
+              "counts": {
+                "type": ["object", "null"],
+                "properties": {"error": {"type": "integer"}, "warning": {"type": "integer"}, "review_required": {"type": "integer"}},
+                "required": ["error", "warning", "review_required"],
+                "additionalProperties": false
+              },
+              "skillStatus": {"enum": ["success", "review_required", "invalid"]},
+              "reason": {"type": "string"},
+              "summary": {"type": "string", "minLength": 1}
+            }
+          },
+          "artifact": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["expectation", "ref", "sha256"],
+            "properties": {
+              "expectation": {"enum": ["generated", "absent"]},
+              "ref": {"type": ["string", "null"]},
+              "sha256": {"type": ["string", "null"], "pattern": "^[a-f0-9]{64}$"}
+            }
+          },
+          "expected": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["skillStatus", "reason", "sourceUnchanged", "artifactExpectation"],
+            "properties": {
+              "skillStatus": {"enum": ["success", "review_required", "invalid"]},
+              "reason": {"type": "string"},
+              "sourceUnchanged": {"const": true},
+              "artifactExpectation": {"enum": ["generated", "absent"]}
+            }
+          },
+          "verdict": {"const": "PASS"}
+        }
+      }
+    }
+  }
+}

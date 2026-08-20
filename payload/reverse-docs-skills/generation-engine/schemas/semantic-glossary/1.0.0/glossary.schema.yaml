@@ -1,0 +1,245 @@
+$schema: https://json-schema.org/draft/2020-12/schema
+$id: https://schemas.reverse-docs.local/semantic-glossary/1.0.0/glossary.schema.yaml
+title: Semantic Glossary
+type: object
+additionalProperties: false
+required: [schema_version, content_version, glossary_key, title, scope, scope_catalog, default_language, terms]
+properties:
+  schema_version: {const: 1.0.0}
+  content_version: {$ref: '#/$defs/semver'}
+  glossary_key: {$ref: '#/$defs/semantic_key'}
+  title: {type: string, minLength: 1}
+  default_language: {type: string, pattern: '^[a-z]{2,3}(?:-[A-Z]{2})?$'}
+  scope: {$ref: '#/$defs/scope'}
+  scope_catalog:
+    type: array
+    minItems: 1
+    items: {$ref: '#/$defs/scope_catalog_entry'}
+  terms:
+    type: array
+    items: {$ref: '#/$defs/term'}
+  metadata:
+    type: object
+    additionalProperties: false
+    properties:
+      created_at: {type: string, format: date-time}
+      updated_at: {type: string, format: date-time}
+      generated_from: {type: string, minLength: 1}
+$defs:
+  semantic_key:
+    type: string
+    pattern: '^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$'
+  semver:
+    type: string
+    pattern: '^[0-9]+\.[0-9]+\.[0-9]+$'
+  scope:
+    type: object
+    additionalProperties: false
+    required: [level, includes, excludes]
+    properties:
+      level: {enum: [organization, product, cross_application, application, module]}
+      includes:
+        type: array
+        uniqueItems: true
+        items: {$ref: '#/$defs/semantic_key'}
+      excludes:
+        type: array
+        uniqueItems: true
+        items: {$ref: '#/$defs/semantic_key'}
+  scope_catalog_entry:
+    type: object
+    additionalProperties: false
+    required: [key, level, source_ref]
+    properties:
+      key: {$ref: '#/$defs/semantic_key'}
+      level: {enum: [organization, product, application, module]}
+      parent_key:
+        oneOf:
+          - {$ref: '#/$defs/semantic_key'}
+          - {type: 'null'}
+      source_ref: {type: string, minLength: 1}
+  representation:
+    type: object
+    additionalProperties: false
+    required: [channel, value, location]
+    properties:
+      channel: {enum: [code, database, api, ui, document, event, message]}
+      value: {type: string, minLength: 1}
+      symbol_kind: {type: string, minLength: 1}
+      location: {type: string, minLength: 1}
+  alias:
+    type: object
+    additionalProperties: false
+    required: [value, type, language, usage]
+    properties:
+      value: {type: string, minLength: 1}
+      type: {enum: [synonym, abbreviation, legacy, translation, search_only]}
+      language: {type: string, minLength: 2}
+      usage: {enum: [preferred, allowed, read_only]}
+  forbidden_term:
+    type: object
+    additionalProperties: false
+    required: [value, reason, replacement_key]
+    properties:
+      value: {type: string, minLength: 1}
+      reason: {type: string, minLength: 1}
+      replacement_key: {$ref: '#/$defs/semantic_key'}
+  relation:
+    type: object
+    additionalProperties: false
+    required: [type, target_key]
+    properties:
+      type: {enum: [broader_than, narrower_than, part_of, has_part, related_to, has_identifier, replaced_by]}
+      target_key: {$ref: '#/$defs/semantic_key'}
+  lifecycle:
+    type: object
+    additionalProperties: false
+    required: [status, introduced_in]
+    properties:
+      status: {enum: [active, deprecated, retired]}
+      introduced_in: {$ref: '#/$defs/semver'}
+      deprecated_in:
+        oneOf: [{$ref: '#/$defs/semver'}, {type: 'null'}]
+      retired_in:
+        oneOf: [{$ref: '#/$defs/semver'}, {type: 'null'}]
+      migration_deadline:
+        oneOf: [{type: string, format: date}, {type: 'null'}]
+      replaced_by:
+        oneOf: [{$ref: '#/$defs/semantic_key'}, {type: 'null'}]
+      reason:
+        oneOf: [{type: string, minLength: 1}, {type: 'null'}]
+    allOf:
+      - if: {properties: {status: {const: deprecated}}, required: [status]}
+        then:
+          required: [deprecated_in, migration_deadline, replaced_by, reason]
+          properties:
+            deprecated_in: {$ref: '#/$defs/semver'}
+            migration_deadline: {type: string, format: date}
+            replaced_by: {$ref: '#/$defs/semantic_key'}
+            reason: {type: string, minLength: 1}
+      - if: {properties: {status: {const: retired}}, required: [status]}
+        then:
+          required: [retired_in, replaced_by, reason]
+          properties:
+            retired_in: {$ref: '#/$defs/semver'}
+            replaced_by: {$ref: '#/$defs/semantic_key'}
+            reason: {type: string, minLength: 1}
+  stewardship:
+    type: object
+    additionalProperties: false
+    required: [approvers]
+    properties:
+      approvers:
+        type: array
+        uniqueItems: true
+        items: {type: string, minLength: 1}
+  source:
+    type: object
+    additionalProperties: false
+    required: [type, ref, supports]
+    properties:
+      type: {type: string, minLength: 1}
+      ref: {type: string, minLength: 1}
+      supports: {enum: [label, term_ja, term_en, definition, code_name, type_name, db_name, api_name, ui_label, allowed_values, representation, relation, constraint]}
+  provenance:
+    type: object
+    additionalProperties: false
+    required: [sources]
+    properties:
+      sources:
+        type: array
+        minItems: 1
+        items: {$ref: '#/$defs/source'}
+      publication_status: {enum: [candidate, approved, legacy_migrated]}
+      decision_ref: {type: string, pattern: '^proposals/[a-z][a-z0-9]*(?:_[a-z0-9]+)*$'}
+      change_ref: {type: string, pattern: '^changes/[a-z][a-z0-9]*(?:_[a-z0-9]+)*$'}
+      legacy_source_ref: {type: string, minLength: 1}
+  term:
+    type: object
+    additionalProperties: false
+    required: [key, definition, lifecycle, stewardship, provenance]
+    properties:
+      key: {$ref: '#/$defs/semantic_key'}
+      term_ja: {type: string, minLength: 1}
+      term_en: {type: string}
+      label: {type: string, minLength: 1}
+      definition: {type: string, minLength: 8}
+      kind: {enum: [entity, attribute, identifier, status, event, process, role, value_object, rule, technical_concept]}
+      category: {enum: [entity, attribute, value, process, event, role, rule, metric, business, technical, ai, cross_cutting]}
+      scope:
+        oneOf:
+          - {type: string, pattern: '^[a-z][a-z0-9]*(?:[._][a-z0-9]+)*$'}
+          - {$ref: '#/$defs/scope'}
+      code_name: {type: string}
+      type_name:
+        oneOf: [{type: string, minLength: 1}, {type: 'null'}]
+      db_name: {type: string}
+      api_name: {type: string}
+      ui_label:
+        oneOf: [{type: string, minLength: 1}, {type: 'null'}]
+      allowed_values:
+        type: array
+        uniqueItems: true
+        items: {type: string, minLength: 1}
+      status: {enum: [active, deprecated, retired]}
+      representations:
+        type: array
+        items: {$ref: '#/$defs/representation'}
+      aliases:
+        type: array
+        items: {$ref: '#/$defs/alias'}
+      forbidden_terms:
+        type: array
+        items: {$ref: '#/$defs/forbidden_term'}
+      relations:
+        type: array
+        items: {$ref: '#/$defs/relation'}
+      examples:
+        type: array
+        items: {type: string, minLength: 1}
+      counter_examples:
+        type: array
+        items: {type: string, minLength: 1}
+      constraints:
+        type: array
+        items: {type: string, minLength: 1}
+      tags:
+        type: array
+        uniqueItems: true
+        items: {$ref: '#/$defs/semantic_key'}
+      security_classification: {enum: [public, internal, confidential, restricted]}
+      notes: {type: string}
+      lifecycle: {$ref: '#/$defs/lifecycle'}
+      stewardship: {$ref: '#/$defs/stewardship'}
+      provenance: {$ref: '#/$defs/provenance'}
+    anyOf:
+      - required: [term_ja, term_en, scope, category, code_name, type_name, db_name, api_name, ui_label, allowed_values, status, notes]
+      - required: [label, kind, category, scope, representations]
+    allOf:
+      - if:
+          properties:
+            provenance:
+              type: object
+              properties: {publication_status: {const: approved}}
+              required: [publication_status]
+          required: [provenance]
+        then:
+          properties:
+            stewardship:
+              properties:
+                approvers: {minItems: 2}
+            provenance:
+              required: [decision_ref, change_ref]
+              not:
+                required: [legacy_source_ref]
+      - if:
+          properties:
+            provenance:
+              type: object
+              properties: {publication_status: {const: legacy_migrated}}
+              required: [publication_status]
+          required: [provenance]
+        then:
+          properties:
+            provenance:
+              required: [legacy_source_ref]

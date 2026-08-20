@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Output styles 設計ガイド — agent-home</title>
+  <link rel="stylesheet" href="../style.css" />
+  <link rel="stylesheet" href="design.css" />
+  <script type="module" src="../src/common/header.js"></script>
+</head>
+<body>
+  <div class="sd-wrap">
+
+    <!-- Hero -->
+    <div class="page-hero" style="margin-bottom:20px">
+      <h1>Output styles 設計ガイド</h1>
+      <p>
+        Claude Code のシステムプロンプト全体（役割・トーン・応答形式）をセッション単位で丸ごと差し替える設定。
+        配置場所・frontmatter 仕様・有効化手順を整理する。
+        <a href="../catalog/output-styles.html">← Output styles 一覧へ</a>
+      </p>
+    </div>
+
+    <div class="sd-layout">
+
+      <!-- 左 TOC -->
+      <nav class="sd-toc">
+        <h3>目次</h3>
+        <ul>
+          <li><a href="#s1"><span class="toc-num">§1</span>Output styles の定義</a></li>
+          <li><a href="#s2"><span class="toc-num">§2</span>他ツールとの違い</a></li>
+          <li><a href="#s3"><span class="toc-num">§3</span>配置場所</a></li>
+          <li><a href="#s4"><span class="toc-num">§4</span>frontmatter 仕様</a></li>
+          <li><a href="#s5"><span class="toc-num">§5</span>有効化手順</a></li>
+          <li><a href="#s6"><span class="toc-num">§6</span>実例: fable-like</a></li>
+          <li><a href="#s7"><span class="toc-num">§7</span>出典</a></li>
+        </ul>
+        <div class="toc-sep"></div>
+        <div style="font-size:11px;color:var(--text-muted);padding:4px 8px;line-height:1.6">
+          配置先: <code>.claude/output-styles/</code><br>
+          形式: Markdown frontmatter
+        </div>
+      </nav>
+
+      <!-- 本文 -->
+      <article class="sd-body">
+
+        <!-- §1 -->
+        <section class="sd-section" id="s1">
+          <h2 class="sd-h2"><span class="sec-num">§1</span>Output styles の定義</h2>
+          <div class="sd-def">
+            Output style とは、<code>.claude/output-styles/</code> 配下に Markdown ファイルを置くだけで有効になる、
+            <strong>システムプロンプト全体を置き換える設定</strong>。
+            役割・トーン・応答形式・行動規範をセッション単位で丸ごと差し替える。
+          </div>
+          <ul>
+            <li>CLAUDE.md が「プロジェクト規約を追補するユーザーメッセージ扱いの指示」であるのに対し、Output style は system prompt 自体を置き換える点で影響範囲が異なる。</li>
+            <li>セッション開始時に読み込まれ、<code>/clear</code> で再適用される。</li>
+          </ul>
+        </section>
+
+        <!-- §2 -->
+        <section class="sd-section" id="s2">
+          <h2 class="sd-h2"><span class="sec-num">§2</span>他ツールとの違い</h2>
+          <table class="sd-table">
+            <thead><tr><th>機能</th><th>適用範囲</th><th>読み込みタイミング</th></tr></thead>
+            <tbody>
+              <tr><td>Output styles</td><td>システムプロンプト全体（役割・トーン・応答形式）</td><td>セッション開始時に読み込み、<code>/clear</code> で再適用</td></tr>
+              <tr><td>CLAUDE.md</td><td>プロジェクト規約・コードベース知識（ユーザーメッセージ扱い）</td><td>システムプロンプトの後に読み込み</td></tr>
+              <tr><td>Subagents</td><td>独立した system prompt・モデル・ツールセット</td><td>タスクごとに個別適用</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <!-- §3 -->
+        <section class="sd-section" id="s3">
+          <h2 class="sd-h2"><span class="sec-num">§3</span>配置場所</h2>
+          <table class="sd-table">
+            <thead><tr><th>スコープ</th><th>パス</th><th>拡張子</th></tr></thead>
+            <tbody>
+              <tr><td>ユーザースコープ</td><td><code>~/.claude/output-styles/</code></td><td><code>.md</code></td></tr>
+              <tr><td>プロジェクトスコープ</td><td><code>&lt;repo&gt;/.claude/output-styles/</code></td><td><code>.md</code></td></tr>
+              <tr><td>マネージドポリシー</td><td>managed settings ディレクトリ内の <code>output-styles/</code></td><td><code>.md</code></td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <!-- §4 -->
+        <section class="sd-section" id="s4">
+          <h2 class="sd-h2"><span class="sec-num">§4</span>frontmatter 仕様</h2>
+          <table class="sd-table">
+            <thead><tr><th>フィールド</th><th>用途</th><th>デフォルト値</th></tr></thead>
+            <tbody>
+              <tr><td><code>name</code></td><td>スタイルの表示名</td><td>ファイル名から自動生成</td></tr>
+              <tr><td><code>description</code></td><td><code>/config</code> のピッカーに表示する説明文</td><td>なし</td></tr>
+              <tr><td><code>keep-coding-instructions</code></td><td>Claude Code 組み込みのコーディング指示（スコープ規律・コメント規約・検証手順）を保持するか</td><td><code>false</code>（boolean）</td></tr>
+              <tr><td><code>force-for-plugin</code></td><td>プラグイン専用。有効時に自動適用</td><td><code>false</code>（boolean）</td></tr>
+            </tbody>
+          </table>
+
+          <h3 class="sd-h3">frontmatter テンプレート</h3>
+          <div class="sd-code-label">テンプレート</div>
+          <div class="sd-code">---
+name: &lt;kebab-case-name&gt;
+description: &lt;/config ピッカーに表示する説明文&gt;
+keep-coding-instructions: &lt;true | false&gt;
+---</div>
+
+          <div class="sd-gotcha">
+            <div class="sd-gotcha-title">frontmatter の注意点</div>
+            <ul>
+              <li><code>keep-coding-instructions</code> のデフォルトは <code>false</code>。既存のコーディング規律（スコープ規律・コメント規約・検証手順）を保持したまま行動規範だけを追加したい場合は明示的に <code>true</code> にする。</li>
+            </ul>
+          </div>
+        </section>
+
+        <!-- §5 -->
+        <section class="sd-section" id="s5">
+          <h2 class="sd-h2"><span class="sec-num">§5</span>有効化手順</h2>
+          <ul>
+            <li><code>.md</code> ファイルを上記いずれかのディレクトリに配置するだけで自動認識される。</li>
+            <li><code>/config</code> コマンドの Output style メニューから選択して切り替える。</li>
+            <li>または settings ファイルに <code>"outputStyle": "&lt;name&gt;"</code> を直接指定する。</li>
+          </ul>
+        </section>
+
+        <!-- §6 -->
+        <section class="sd-section" id="s6">
+          <h2 class="sd-h2"><span class="sec-num">§6</span>実例: fable-like</h2>
+          <p style="font-size:13.5px;color:var(--text-sub);margin:0 0 12px">
+            本ポータルの運用環境では <code>~/.claude/output-styles/fable-like.md</code> をユーザースコープに配置済み。
+            上位モデル（Fable 5）の既定挙動を Sonnet/Opus 向けに移植したもので、<code>keep-coding-instructions: true</code> により
+            組み込みのコーディング指示を保持したまま、以下 8 項目の行動規範を追加する。
+          </p>
+          <ul>
+            <li>結論先行 — 最初の一文で結果に答える</li>
+            <li>即行動 — 情報が揃ったら計画を並べず実行する</li>
+            <li>進捗の実証 — 主張をツール結果と突合し、未検証は明言する</li>
+            <li>スコープ規律 — 要求以上の機能追加・抽象化をしない</li>
+            <li>ターン終了規律 — 「これからします」で終えず、実行してから終える</li>
+            <li>境界 — 説明・質問への応答は評価に留め、修正は依頼後に行う</li>
+            <li>委譲 — 独立したサブタスクはサブエージェントに委譲する</li>
+            <li>長時間運用 — 最終報告は経緯の続きでなく再着地として書く</li>
+          </ul>
+          <div class="sd-note">
+            配置済みインスタンスの一覧は <a href="../catalog/output-styles.html">Output styles 一覧</a> を参照。
+          </div>
+        </section>
+
+        <!-- §7 -->
+        <section class="sd-section" id="s7">
+          <h2 class="sd-h2"><span class="sec-num">§7</span>出典</h2>
+          <p style="font-size:13.5px;color:var(--text-sub);margin:0">
+            <a href="https://code.claude.com/docs/en/output-styles.md" target="_blank" rel="noopener">Claude Code 公式ドキュメント: output-styles</a>（2026-07-04 確認）
+          </p>
+        </section>
+
+      </article>
+    </div>
+
+    <div data-md-skip style="text-align:center;margin-top:20px;font-size:12px;color:var(--text-muted)">
+      <a href="../catalog/output-styles.html">Output styles 一覧</a> &nbsp;·&nbsp;
+      <a href="../index.html">ポータル TOP</a>
+    </div>
+  </div>
+</body>
+</html>

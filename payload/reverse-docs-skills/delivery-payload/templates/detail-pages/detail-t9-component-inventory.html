@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{TITLE}} — 設計ポータル</title>
+<!--
+  detail-pages T9 コンポーネント棚卸し型テンプレート — 設計スキル群
+  生成: generation-engine/scripts/detail-pages/build-detail-page.sh
+  プレースホルダ置換は build-detail-page.sh の render_template() が行う。
+  手作業によるプレースホルダ置換は禁止。生成は必ずスクリプト経由で行う。
+
+  保守注記: トークン・共通シェル(サイドバー・フッター・全画面レイアウトのCSS)は
+  delivery-payload/templates/partials 配下の共通ファイルを注入マーカー経由で読み込む。
+  テーマ切替はサイドバー側に一本化されており、本テンプレートに複製は無い。
+
+  プレースホルダ(build-detail-page.shが注入。実際のマーカー記法は
+  scripts/detail-pages/build-detail-page.sh 冒頭コメントを定義とする。本コメントでは
+  二重置換事故を避けるため意図的に波括弧・HTMLコメント記法を外して記載する):
+    TITLE (ページ見出しマーカー)         : page-data.json の title
+    DESCRIPTION (ページ概要マーカー)     : page-data.json の description
+    GENERATED_AT (生成日時マーカー)      : page-data.json の generatedAt(共通フッターの更新日として使用)
+    PAGE_DATA_JSON (page-data埋め込みマーカー) : page-data.json の内容全体(本ファイル物理末尾のscriptタグへ注入)
+
+  pageKind: component-inventory
+  page-data.json 想定構造(本テンプレートのJSが直接参照する型別スロット。
+  定義スキーマへの追記は別件・page-data-schema.mdは本ファイルの変更対象外):
+    components: [{ name: string, file: string, hasProps: boolean, importCount: number, category: string }]
+    summary: [{ label: string, value: string, note?: string }]（任意。要約タイル）
+  category(component/page/layout/other)でグルーピングしたテーブル。列: 名前 / ファイル / Props有無 / 被参照数。
+  カテゴリフィルタチップ + 検索窓(名前・ファイルの部分一致) + importCount 降順ソートを行う。
+-->
+<style>
+/* TOKENS_CSS */
+/* SHELL_CSS */
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: var(--font-body);
+  background: var(--bg); color: var(--text); line-height: 1.7; font-size: 15px;
+}
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+.sec-label {
+  font-size: 12px; font-weight: 700; letter-spacing: 0.04em; color: var(--sub);
+  display: flex; align-items: center; gap: 8px; margin: 6px 0 12px;
+}
+.sec-label::before { content: ""; width: 4px; height: 14px; background: var(--accent); }
+
+/* 要約タイル */
+.tile-grid { flex: none; display: grid; grid-template-columns: repeat(auto-fill, minmax(168px, 1fr)); gap: 14px; margin: 16px 0; min-width: 0; }
+.tile-card {
+  background: var(--panel); border: 1.5px solid var(--line2); min-width: 0;
+  padding: 14px 16px 13px; box-shadow: 3px 3px 0 var(--accent-soft);
+}
+.tile-label { font-size: 11.5px; font-weight: 700; letter-spacing: 0.02em; color: var(--sub); margin-bottom: 4px; }
+.tile-value { font-size: 24px; font-weight: 800; line-height: 1.15; font-family: var(--mono); color: var(--text); overflow-wrap: break-word; }
+.tile-note { font-size: 11.5px; color: var(--muted); margin-top: 5px; }
+
+/* 検索ボックス + カテゴリチップ */
+.toolbar { flex: none; display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 14px; min-width: 0; }
+.toolbar .pt-input { flex: 1; min-width: 200px; }
+.chip-row { flex: none; display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+.chip {
+  font-size: 12.5px; color: var(--sub); background: var(--panel);
+  border: 1px solid var(--line2); padding: 5px 14px;
+  cursor: pointer; font-family: inherit;
+}
+.chip:hover { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); }
+.chip.active { background: var(--accent); color: var(--chipontext); border-color: var(--accent); }
+
+/* 表本体だけを枠内スクロールさせる領域 */
+.table-area { flex: 1; min-height: 0; overflow-y: auto; }
+.table-wrap { overflow-x: auto; }
+table.data-table {
+  width: 100%; min-width: 560px; border-collapse: collapse; font-size: 13px;
+  background: var(--panel); border: 1.5px solid var(--line2);
+}
+table.data-table th {
+  position: sticky; top: 0; z-index: 1;
+  text-align: left; font-size: 11.5px; font-weight: 700; color: var(--sub);
+  background: var(--panel2); padding: 8px 12px; border-bottom: 1px solid var(--line2);
+  white-space: nowrap;
+}
+table.data-table td { padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+table.data-table tr:last-child td { border-bottom: none; }
+table.data-table tr:hover td { background: var(--panel3); }
+table.data-table code {
+  background: var(--panel3); padding: 1px 6px;
+  font-family: var(--mono); font-size: 11.5px; color: var(--sub);
+  border: 1px solid var(--line);
+}
+.props-flag { font-size: 11.5px; font-weight: 700; padding: 1px 8px; }
+.props-flag.yes { background: var(--green-soft); color: var(--green); }
+.props-flag.no { background: var(--panel3); color: var(--muted); }
+
+.note-box {
+  font-size: 12px; color: var(--sub); background: var(--panel3);
+  border: 1px solid var(--line2);
+  padding: 8px 12px; margin: 14px 0 0;
+}
+
+@media (max-width: 760px) {
+  .tile-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+}
+@media (max-width: 560px) {
+  body { font-size: 14px; }
+  .tile-grid { grid-template-columns: 1fr 1fr; }
+}
+
+.hidden { display: none !important; }
+</style>
+</head>
+<body>
+<div class="pt">
+  <div class="pt-grid"></div>
+  <div class="pt-row">
+    <!--SHELL_SIDEBAR-->
+    <main class="pt-main is-fixed">
+    <div class="pt-head">
+      <div class="pt-crumb"><a href="{{BACK_LINK}}">TOP</a> ／ {{ACTIVE_CATEGORY_LABEL}} ／ <span class="pt-crumb-current">{{TITLE}}</span></div>
+      <div class="pt-title-row">
+        <h1 class="pt-title">{{TITLE}}</h1>
+        <span class="pt-title-sub">{{DESCRIPTION}}</span>
+      </div>
+    </div>
+
+    <div class="tile-grid" id="tiles-mount"></div>
+
+    <div class="toolbar">
+      <input type="search" id="component-search" class="pt-input" placeholder="名前・ファイルで絞り込み">
+      <span class="pt-count" id="component-count"></span>
+    </div>
+    <div class="chip-row" id="chips-mount"></div>
+
+    <div class="table-area">
+      <div class="table-wrap">
+        <table class="data-table" id="component-table">
+          <thead>
+            <tr>
+              <th>名前</th>
+              <th>ファイル</th>
+              <th>Props有無</th>
+              <th>被参照数</th>
+            </tr>
+          </thead>
+          <tbody id="component-table-body"></tbody>
+        </table>
+      </div>
+
+      <!--RELATED_ENTITIES--><div id="unresolved-mount"></div>
+    </div>
+    </main>
+  </div>
+  <!--SHELL_FOOTER-->
+</div>
+
+<script type="application/json" id="page-data">
+{{PAGE_DATA_JSON}}
+</script>
+
+<script>
+(function() {
+  var data = JSON.parse(document.getElementById('page-data').textContent);
+
+  function el(tag, attrs, children) {
+    var node = document.createElement(tag);
+    if (attrs) Object.keys(attrs).forEach(function(k) {
+      if (k === 'html') node.innerHTML = attrs[k];
+      else node.setAttribute(k, attrs[k]);
+    });
+    if (children) {
+      if (!Array.isArray(children)) children = [children];
+      children.forEach(function(c) {
+        if (typeof c === 'string') node.appendChild(document.createTextNode(c));
+        else if (c) node.appendChild(c);
+      });
+    }
+    return node;
+  }
+
+  // --- 要約タイル(summary[]) ---
+  var tilesMount = document.getElementById('tiles-mount');
+  (data.summary || []).forEach(function(t) {
+    var card = el('div', { class: 'tile-card' });
+    card.appendChild(el('div', { class: 'tile-label' }, t.label || ''));
+    card.appendChild(el('div', { class: 'tile-value' }, String(t.value != null ? t.value : '')));
+    if (t.note) card.appendChild(el('div', { class: 'tile-note' }, t.note));
+    tilesMount.appendChild(card);
+  });
+
+  // importCount 降順で固定ソート
+  var components = (data.components || []).slice().sort(function(a, b) {
+    return (b.importCount || 0) - (a.importCount || 0);
+  });
+  var activeCategory = 'all';
+  var rowEls = [];
+
+  // --- カテゴリチップ(components[].category から動的抽出) ---
+  var KNOWN_CATEGORIES = ['component', 'page', 'layout', 'other'];
+  var categories = [];
+  components.forEach(function(c) {
+    var cat = c.category || 'other';
+    if (categories.indexOf(cat) === -1) categories.push(cat);
+  });
+  categories.sort(function(a, b) {
+    var ai = KNOWN_CATEGORIES.indexOf(a); if (ai === -1) ai = KNOWN_CATEGORIES.length;
+    var bi = KNOWN_CATEGORIES.indexOf(b); if (bi === -1) bi = KNOWN_CATEGORIES.length;
+    return ai - bi;
+  });
+
+  var chipsMount = document.getElementById('chips-mount');
+  function renderChips() {
+    chipsMount.innerHTML = '';
+    var chips = [{ key: 'all', label: 'すべて' }].concat(categories.map(function(c) {
+      return { key: c, label: c };
+    }));
+    chips.forEach(function(c) {
+      var btn = el('button', { class: 'chip' + (activeCategory === c.key ? ' active' : ''), type: 'button' }, c.label);
+      btn.addEventListener('click', function() {
+        activeCategory = c.key;
+        renderChips();
+        applyFilter();
+      });
+      chipsMount.appendChild(btn);
+    });
+  }
+
+  // --- コンポーネント一覧(components[]) ---
+  var tbody = document.getElementById('component-table-body');
+  function renderRows() {
+    tbody.innerHTML = '';
+    rowEls = [];
+    if (components.length === 0) {
+      tbody.appendChild(el('tr', null, el('td', { colspan: '4' }, 'なし')));
+      return;
+    }
+    components.forEach(function(c) {
+      var hasProps = !!c.hasProps;
+      var flag = el('span', { class: 'props-flag ' + (hasProps ? 'yes' : 'no') }, hasProps ? 'あり' : 'なし');
+      var tr = el('tr', { 'data-category': c.category || 'other' }, [
+        el('td', null, c.name || ''),
+        el('td', null, el('code', null, c.file || '')),
+        el('td', null, flag),
+        el('td', null, String(c.importCount != null ? c.importCount : 0))
+      ]);
+      tbody.appendChild(tr);
+      rowEls.push(tr);
+    });
+  }
+
+  // --- 検索(部分一致) + カテゴリチップ絞り込み ---
+  var componentCountEl = document.getElementById('component-count');
+  function applyFilter() {
+    var q = (document.getElementById('component-search').value || '').trim().toLowerCase();
+    var visible = 0;
+    rowEls.forEach(function(tr) {
+      var catOk = activeCategory === 'all' || tr.getAttribute('data-category') === activeCategory;
+      var textOk = q === '' || tr.textContent.toLowerCase().indexOf(q) !== -1;
+      var show = catOk && textOk;
+      tr.style.display = show ? '' : 'none';
+      if (show) visible++;
+    });
+    if (componentCountEl) componentCountEl.textContent = visible + ' / ' + rowEls.length + ' 件';
+  }
+
+  renderChips();
+  renderRows();
+  applyFilter();
+  document.getElementById('component-search').addEventListener('input', applyFilter);
+
+  // --- 未解決節(unresolved[]) ---
+  var unresolvedMount = document.getElementById('unresolved-mount');
+  var unresolved = data.unresolved || [];
+  if (unresolved.length > 0) {
+    unresolvedMount.appendChild(el('div', { class: 'sec-label' }, '未解決'));
+    var box = el('div', { class: 'note-box' });
+    unresolved.forEach(function(u) {
+      var line = (u.label || '') + '（' + (u.reason || '') + '）';
+      box.appendChild(el('div', null, line));
+    });
+    unresolvedMount.appendChild(box);
+  }
+})();
+</script>
+</body>
+</html>

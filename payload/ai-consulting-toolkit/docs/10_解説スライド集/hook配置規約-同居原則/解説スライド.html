@@ -1,0 +1,366 @@
+<meta charset="utf-8">
+<title>hook は規約と同居させる — flat バケット禁止の設計思想</title>
+<style>
+  :root {
+    --page: #EDF0F4;
+    --surface: #FFFFFF;
+    --ink: #1C2B3A;
+    --ink-2: #55667A;
+    --ink-3: #8494A6;
+    --border: #D9E0E8;
+    --grid: #E9EDF2;
+    --critical: #C0392B;
+    --critical-soft: #FAECEA;
+    --good: #1F7A46;
+    --good-soft: #EAF4EE;
+    --tag-bg: #EDF1F6;
+    --claude: #D97757;
+    --claude-deep: #BC5B3B;
+    --claude-soft: #FBF0EA;
+    --cursor: #23282E;
+    --cursor-soft: #EFF1F4;
+  }
+
+  html, body { height: 100%; overflow: hidden; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: var(--page); }
+
+  .slide-viewport {
+    width: 100vw; height: 100vh;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--page); overflow: hidden;
+  }
+  .slide {
+    position: absolute;
+    top: 50%; left: 50%;
+    width: 1280px;
+    height: 720px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    box-shadow: 0 4px 24px rgba(28, 43, 58, 0.08);
+    display: flex; flex-direction: column;
+    padding: 40px 48px;
+    gap: 16px;
+    font-family: system-ui, -apple-system, 'Segoe UI', 'Hiragino Sans', sans-serif;
+    transform: translate(-50%, -50%) scale(var(--slide-scale, 1));
+    transform-origin: center center;
+  }
+
+  .slide-header {
+    display: flex; flex-direction: column; gap: 4px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid var(--ink);
+  }
+  .slide-eyebrow { font-size: 13px; font-weight: 700; letter-spacing: 0.12em; color: var(--ink-3); }
+  .slide-title { font-size: 28px; font-weight: 700; line-height: 1.25; color: var(--ink); }
+  .slide-subtitle { font-size: 14px; color: var(--ink-2); }
+
+  .content-row {
+    display: flex;
+    gap: 22px;
+    flex: 1;
+    min-height: 0;
+  }
+
+  .matrix-section {
+    flex: 0 0 680px;
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .section-head {
+    display: flex; align-items: center; gap: 8px;
+  }
+  .section-title {
+    font-size: 14px; font-weight: 700; color: var(--ink);
+  }
+
+  .matrix-wrap {
+    display: grid;
+    grid-template-columns: 76px 1fr 1fr;
+    grid-template-rows: 32px 1fr 1fr;
+    gap: 0;
+    flex: 1;
+  }
+  .m-corner {
+    background: var(--ink);
+    border-radius: 6px 0 0 0;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .m-col {
+    background: var(--ink);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 700; color: var(--surface);
+    padding: 4px 8px;
+  }
+  .m-col:last-of-type { border-radius: 0 6px 0 0; }
+  .m-row {
+    background: var(--ink);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700; color: var(--surface);
+    padding: 6px 8px;
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    letter-spacing: 0.08em;
+  }
+  .m-row-last { border-radius: 0 0 0 6px; }
+
+  .m-cell {
+    display: flex; flex-direction: column; gap: 6px;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+  }
+  .m-cell--skill { background: var(--claude-soft); }
+  .m-cell--rule { background: var(--tag-bg); }
+
+  .tree {
+    font-family: 'SF Mono', 'Cascadia Code', 'Consolas', 'Menlo', monospace;
+    font-size: 11px;
+    line-height: 1.7;
+    color: var(--ink-2);
+  }
+  .tree-line {
+    display: flex; align-items: baseline; gap: 4px;
+    white-space: nowrap;
+  }
+  .tree-indent { color: var(--ink-3); user-select: none; }
+  .tree-folder { color: var(--ink); font-weight: 600; }
+  .tree-hl { color: var(--claude-deep); font-weight: 700; }
+  .tree-hl-rule { color: var(--ink); font-weight: 700; }
+
+  .cell-coloc {
+    margin-top: auto;
+    display: flex; align-items: center; gap: 5px;
+    font-size: 11px; color: var(--good); font-weight: 600;
+  }
+
+  .right-section {
+    flex: 1; display: flex; flex-direction: column; gap: 12px;
+  }
+
+  .box {
+    border-radius: 8px;
+    padding: 12px 14px;
+    display: flex; flex-direction: column; gap: 7px;
+  }
+  .box--forbidden {
+    background: var(--critical-soft);
+    border: 1.5px solid var(--critical);
+  }
+  .box--reason {
+    background: var(--good-soft);
+    border: 1.5px solid var(--good);
+    flex: 1;
+  }
+  .box--guard {
+    background: var(--tag-bg);
+    border: 1.5px solid var(--border);
+  }
+
+  .box-title {
+    font-size: 13px; font-weight: 700;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .box--forbidden .box-title { color: var(--critical); }
+  .box--reason .box-title { color: var(--good); }
+  .box--guard .box-title { color: var(--ink); }
+
+  .box-item {
+    display: flex; align-items: flex-start; gap: 8px;
+    font-size: 12px; color: var(--ink-2); line-height: 1.5;
+  }
+  .box-item code {
+    font-family: 'SF Mono', 'Cascadia Code', 'Consolas', 'Menlo', monospace;
+    font-size: 11px;
+    background: rgba(0,0,0,0.04);
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+  .x-mark { color: var(--critical); font-weight: 700; font-size: 13px; flex-shrink: 0; }
+  .check-mark { color: var(--good); font-weight: 700; font-size: 14px; flex-shrink: 0; margin-top: 1px; }
+
+  .steps {
+    display: grid; grid-template-columns: 1fr 1fr 1fr;
+    gap: 20px; padding-top: 12px;
+    border-top: 1px solid var(--border);
+  }
+  .step { display: flex; gap: 8px; align-items: center; }
+  .step-chip {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 20px; height: 20px;
+    border-radius: 50%; font-size: 11px; font-weight: 700; color: #fff; flex-shrink: 0;
+  }
+  .step-chip--main { background: var(--claude); }
+  .step-chip--critical { background: var(--critical); }
+  .step-chip--good { background: var(--good); }
+  .step-text { font-size: 13px; line-height: 1.4; color: var(--ink-2); }
+  .step-text strong { color: var(--ink); }
+
+  .slide-meta {
+    height: 24px;
+    padding-top: 6px;
+    border-top: 1px solid var(--border);
+  }
+</style>
+
+<div class="slide-viewport">
+  <div class="slide">
+
+    <header class="slide-header">
+      <span class="slide-eyebrow">HOOKS-ARCHITECTURE</span>
+      <h1 class="slide-title">hook は規約やスキルと同じフォルダに同居させる</h1>
+      <p class="slide-subtitle">公式の .claude/hooks/ に全 hook を投げ込む flat 構造を禁止し、所属 × 範囲の4象限で配置先を決定する</p>
+    </header>
+
+    <div class="content-row">
+
+      <div class="matrix-section">
+        <div class="section-head">
+          <span class="step-chip step-chip--main">1</span>
+          <span class="section-title">4象限の配置ルール — 所属（ownership）× 範囲（scope）</span>
+        </div>
+        <div class="matrix-wrap">
+          <div class="m-corner">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <line x1="4" y1="14" x2="4" y2="2" stroke="white" stroke-width="1.3" stroke-linecap="round"/>
+              <line x1="4" y1="14" x2="14" y2="14" stroke="white" stroke-width="1.3" stroke-linecap="round"/>
+              <polyline points="2,5 4,2 6,5" stroke="white" stroke-width="1.3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+              <polyline points="11,12 14,14 11,16" stroke="white" stroke-width="1.3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <div class="m-col">全体（global）</div>
+          <div class="m-col">プロジェクト</div>
+
+          <div class="m-row">スキル延長</div>
+          <div class="m-cell m-cell--skill">
+            <div class="tree">
+              <div class="tree-line"><span class="tree-folder">~/agent-home/<span class="tree-hl">skills/</span></span></div>
+              <div class="tree-line"><span class="tree-indent">&nbsp; └─</span> &lt;skill&gt;/</div>
+              <div class="tree-line"><span class="tree-indent">&nbsp; &nbsp; &nbsp; ├─</span> <span class="tree-folder">SKILL.md</span></div>
+              <div class="tree-line"><span class="tree-indent">&nbsp; &nbsp; &nbsp; └─</span> scripts/<span class="tree-hl">&lt;hook&gt;.sh</span></div>
+            </div>
+            <div class="cell-coloc">
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M1 3V10H11V4H6L5 3H1Z" stroke="currentColor" stroke-width="1.2" fill="none"/></svg>
+              SKILL.md と同居
+            </div>
+          </div>
+          <div class="m-cell m-cell--skill">
+            <div class="tree">
+              <div class="tree-line"><span class="tree-folder">&lt;repo&gt;/.claude/<span class="tree-hl">skills/</span></span></div>
+              <div class="tree-line"><span class="tree-indent">&nbsp; └─</span> &lt;skill&gt;/</div>
+              <div class="tree-line"><span class="tree-indent">&nbsp; &nbsp; &nbsp; ├─</span> <span class="tree-folder">SKILL.md</span></div>
+              <div class="tree-line"><span class="tree-indent">&nbsp; &nbsp; &nbsp; └─</span> scripts/<span class="tree-hl">&lt;hook&gt;.sh</span></div>
+            </div>
+            <div class="cell-coloc">
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M1 3V10H11V4H6L5 3H1Z" stroke="currentColor" stroke-width="1.2" fill="none"/></svg>
+              SKILL.md と同居
+            </div>
+          </div>
+
+          <div class="m-row m-row-last">独立規約</div>
+          <div class="m-cell m-cell--rule">
+            <div class="tree">
+              <div class="tree-line"><span class="tree-folder">~/.claude/<span class="tree-hl-rule">rules/</span></span></div>
+              <div class="tree-line"><span class="tree-indent">&nbsp; └─</span> &lt;scope&gt;/&lt;topic&gt;/&lt;rule&gt;/</div>
+              <div class="tree-line"><span class="tree-indent">&nbsp; &nbsp; &nbsp; ├─</span> <span class="tree-folder">rule.md</span></div>
+              <div class="tree-line"><span class="tree-indent">&nbsp; &nbsp; &nbsp; ├─</span> <span class="tree-hl-rule">&lt;hook&gt;.sh</span></div>
+              <div class="tree-line"><span class="tree-indent">&nbsp; &nbsp; &nbsp; ├─</span> &lt;hook&gt;.test.sh</div>
+              <div class="tree-line"><span class="tree-indent">&nbsp; &nbsp; &nbsp; └─</span> design-notes.txt</div>
+            </div>
+            <div class="cell-coloc">
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M1 3V10H11V4H6L5 3H1Z" stroke="currentColor" stroke-width="1.2" fill="none"/></svg>
+              rule.md と同居
+            </div>
+          </div>
+          <div class="m-cell m-cell--rule">
+            <div class="tree">
+              <div class="tree-line"><span class="tree-folder">&lt;repo&gt;/.claude/<span class="tree-hl-rule">rules/</span></span></div>
+              <div class="tree-line"><span class="tree-indent">&nbsp; └─</span> &lt;rule&gt;-rules/</div>
+              <div class="tree-line"><span class="tree-indent">&nbsp; &nbsp; &nbsp; ├─</span> <span class="tree-folder">rule.md</span></div>
+              <div class="tree-line"><span class="tree-indent">&nbsp; &nbsp; &nbsp; └─</span> <span class="tree-hl-rule">&lt;hook&gt;.sh</span></div>
+            </div>
+            <div class="cell-coloc">
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M1 3V10H11V4H6L5 3H1Z" stroke="currentColor" stroke-width="1.2" fill="none"/></svg>
+              rule.md と同居
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="right-section">
+        <div class="box box--forbidden">
+          <div class="box-title">
+            <span class="step-chip step-chip--critical" style="width:18px;height:18px;font-size:10px;">2</span>
+            禁止パス — flat バケット
+          </div>
+          <div class="box-item"><span class="x-mark">✕</span><code>.claude/hooks/</code></div>
+          <div class="box-item"><span class="x-mark">✕</span><code>agent-home/tools/hooks/</code></div>
+          <div class="box-item"><span class="x-mark">✕</span><code>.claude/**/hooks/</code></div>
+          <div class="box-item"><span class="x-mark">✕</span><code>&lt;repo&gt;/.claude/hooks/</code></div>
+        </div>
+
+        <div class="box box--reason">
+          <div class="box-title">
+            <span class="step-chip step-chip--good" style="width:18px;height:18px;font-size:10px;">3</span>
+            なぜ同居させるか
+          </div>
+          <div class="box-item">
+            <span class="check-mark">✓</span>
+            <span>rule.md + hook.sh + test.sh + design-notes.txt が<strong style="color:var(--ink)">1フォルダで完結</strong></span>
+          </div>
+          <div class="box-item">
+            <span class="check-mark">✓</span>
+            <span>規約の追加や削除が<strong style="color:var(--ink)">フォルダ単位</strong>で済む</span>
+          </div>
+          <div class="box-item">
+            <span class="check-mark">✓</span>
+            <span>50本超の hook が flat に並ぶと<strong style="color:var(--ink)">どの規約の hook か判別できない</strong></span>
+          </div>
+        </div>
+
+        <div class="box box--guard">
+          <div class="box-title">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+              <path d="M7 1L12 4V8C12 10.5 9.5 12.5 7 13C4.5 12.5 2 10.5 2 8V4L7 1Z" stroke="var(--ink)" stroke-width="1.3" fill="none"/>
+            </svg>
+            機械強制
+          </div>
+          <div class="box-item" style="font-size:11px;">
+            <code>check-hooks-architecture.sh</code> が禁止パスへの新規作成を exit 2 で block（既存ファイルの編集は通す）
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <footer class="steps">
+      <div class="step">
+        <span class="step-chip step-chip--main">1</span>
+        <p class="step-text"><strong>配置先を決める</strong> — 所属と範囲の2軸で4象限に分類</p>
+      </div>
+      <div class="step">
+        <span class="step-chip step-chip--critical">2</span>
+        <p class="step-text"><strong>禁止パスを避ける</strong> — flat hooks/ バケットは block</p>
+      </div>
+      <div class="step">
+        <span class="step-chip step-chip--good">3</span>
+        <p class="step-text"><strong>同居の恩恵</strong> — 規約の管理がフォルダ単位で完結</p>
+      </div>
+    </footer>
+
+    <footer class="slide-meta"></footer>
+
+  </div>
+</div>
+
+<script>
+(function(){
+  function f(){
+    document.documentElement.style.setProperty(
+      '--slide-scale',
+      Math.min(innerWidth/1280, innerHeight/720)
+    );
+  }
+  addEventListener('resize', f);
+  f();
+})();
+</script>

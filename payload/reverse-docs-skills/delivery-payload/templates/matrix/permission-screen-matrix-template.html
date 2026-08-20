@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<!--
+  権限×画面マトリクス.HTML の静的シェル(テンプレート)
+
+  答える質問:
+    「このロールはどの画面を見られるか」「権限設定に漏れはないか」
+
+  使い方:
+    プレースホルダ・注入マーカーは将来のビルドスクリプトが注入する。手作業置換禁止。
+    ビルドスクリプトがマトリクスマニフェストJSONをパースし、以下のマーカーを
+    機械的に置換して決定的にHTMLを生成する。
+
+  プレースホルダ(二重置換事故を避けるため本コメントでは波括弧・HTMLコメント記法を
+  意図的に外して記載する):
+    GENERATED_AT (生成日時マーカー)   : ISO8601 生成日時
+    DATA_SOURCE (データ源マーカー)    : 画面一覧マニフェスト・権限定義の取得元
+    MATRIX_JSON (マトリクスJSON埋め込みマーカー) :
+      script#matrix-manifest の中身として manifest JSON をそのまま埋め込む
+      (二重管理・ドリフト禁止)。構造:
+        roles: ロール名の配列(列順)
+        screens: [{ screenId, screenName, route,
+                    permissions: { <ロール名>: true|false } | null }]
+        permissions が null の画面は「権限未設定」(? 表示・警告色)として扱う
+
+  表構造:
+    行 = 画面(画面名 + ルート表示) / 列 = ロール(1列目は sticky 固定) / セル = 閲覧可否
+    ○ = 閲覧可(accent色) / — = 不可(faint色) / ? = 権限未設定(warn色)
+    列ヘッダ(ロール名)クリックでそのロールが閲覧可の行だけに絞り込み(再クリックで解除)
+    ロール選択チップ(テーブル上部)で選択ロールの列だけ表示(未選択=全列表示・複数選択可)
+    URLSearchParams の q を検索窓に反映する受け口あり(?q=キーワード)
+
+  保守注記: トークン・共通シェル(サイドバー・フッター・全画面レイアウトのCSS)は
+  delivery-payload/templates/partials 配下の共通ファイルを注入マーカー経由で読み込む。
+  テーマ切替はサイドバー側に一本化されており、本テンプレートに複製は無い。
+
+  制約:
+    - 外部リソース(CDN・フォント・画像)は一切使わない。単一ファイル自己完結
+    - <script id="matrix-manifest"> の中身は確定結果(manifest JSON)と完全に一致させる
+-->
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>権限×画面マトリクス</title>
+<style>
+/* TOKENS_CSS */
+/* SHELL_CSS */
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+
+.toolbar-area { flex-shrink: 0; padding: 8px 0 0; }
+.toolbar { display: flex; gap: 10px; margin: 0 0 10px; align-items: center; flex-wrap: wrap; }
+.toolbar .pt-input { width: 260px; flex: none; }
+.toolbar .note { font-size: 0.82rem; color: var(--muted); }
+.toolbar .pt-count { margin-left: auto; }
+
+.role-chips { display: flex; gap: 8px; flex-wrap: wrap; margin: 0 0 10px; }
+.role-chip {
+  border: 1px solid var(--line2); background: var(--panel); color: var(--sub);
+  padding: 3px 12px; font-size: 0.82rem; cursor: pointer; font-family: inherit;
+}
+.role-chip:hover { border-color: var(--accent); color: var(--accent); }
+.role-chip.chip-active { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); font-weight: 700; }
+
+.table-area { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 8px; }
+
+.matrix-empty-callout { margin: 0; padding: 10px 14px; font-size: 0.85rem; line-height: 1.5; }
+.matrix-empty-callout p { margin: 0; }
+.matrix-empty-callout[hidden] { display: none; }
+
+table.matrix {
+  /* 幅は内容に合わせる。表示領域に収まらない場合は .pt-tablewrap の overflow で
+     表の枠内を横スクロールさせる。1 列目は sticky のため横スクロール時も固定表示が保たれる。 */
+  table-layout: fixed; width: max-content; min-width: 100%;
+  border-collapse: collapse; font-size: 0.88rem;
+}
+table.matrix th, table.matrix td { border-top: 1px solid var(--line); padding: 7px 10px; text-align: left; vertical-align: top; }
+table.matrix thead th.role-col {
+  font-family: var(--mono); font-size: 10px; font-weight: 600; text-align: center;
+  cursor: pointer; user-select: none;
+  height: auto; width: auto; min-width: 44px; vertical-align: bottom; padding: 8px 6px;
+}
+table.matrix thead th.role-col span {
+  writing-mode: horizontal-tb; text-orientation: initial; white-space: nowrap; pointer-events: none;
+}
+table.matrix thead th.role-col.is-vertical {
+  /* 高さは JS が最長のラベルから算出して style で与える。固定値だと長い識別子がはみ出す。 */
+  width: 44px; padding: 8px 4px;
+}
+table.matrix thead th.role-col.is-vertical span {
+  writing-mode: vertical-rl; text-orientation: mixed;
+}
+/* hover はヘッダの背景色を差し替えず、元の背景へ強調色を重ねる。差し替えると
+   ヘッダの淡色文字が淡色背景に乗り、明色配色で判読できなくなるため。 */
+table.matrix thead th.role-col:hover { background-image: linear-gradient(var(--head-hl), var(--head-hl)); }
+table.matrix thead th.role-col.filter-active { color: var(--accent); box-shadow: inset 0 -3px 0 var(--accent); }
+table.matrix td.cell-perm { text-align: center; font-family: var(--mono); font-size: 11.5px; font-weight: 600; }
+table.matrix td .perm-yes { color: var(--accent); }
+table.matrix td .perm-no { color: var(--faint); font-weight: 400; }
+table.matrix td .perm-unset {
+  display: inline-block; min-width: 1.6em;
+  background: var(--stamp-soft); color: var(--stamp);
+}
+table.matrix td .route {
+  font-family: var(--mono); font-size: 0.8em; background: var(--panel3);
+  padding: 1px 5px; overflow-wrap: break-word; word-break: break-all;
+}
+table.matrix td .screen-name { display: block; }
+
+table.matrix th.screen-col, table.matrix td.screen-col {
+  position: sticky; left: 0; z-index: 2; background: var(--panel);
+  border-right: 2px solid var(--line2); width: 150px; text-align: left;
+}
+table.matrix thead th.screen-col { z-index: 3; color: var(--text); }
+
+.copy-btn { background: none; border: none; cursor: pointer; padding: 1px 3px; color: var(--muted); opacity: .35; vertical-align: middle; }
+tr:hover .copy-btn, .copy-btn:focus { opacity: 1; }
+.copy-btn:hover { color: var(--accent); }
+
+.legend { font-size: 0.8rem; color: var(--muted); margin: 0; }
+.legend .perm-yes { color: var(--accent); font-weight: 700; }
+.legend .perm-unset { color: var(--stamp); font-weight: 700; }
+
+.prov-badge { display: inline-block; font-size: 0.7em; padding: 1px 4px; margin-left: 4px; border: 1px solid; }
+.prov-badge.prov-measured { color: var(--accent); border-color: var(--accent); }
+/* 1-170: 推定値は背景を塗って太字にし、実測・確認済の枠線のみ表示より視覚的に目立たせる */
+.prov-badge.prov-inferred { color: var(--stamp); border-color: var(--stamp); background: var(--stamp-soft); font-weight: 700; }
+.prov-badge.prov-confirmed { color: var(--green); border-color: var(--green); }
+</style>
+</head>
+<body>
+<div class="pt">
+  <div class="pt-grid"></div>
+  <div class="pt-row">
+    <!--SHELL_SIDEBAR-->
+    <main class="pt-main is-fixed">
+      <div class="pt-head">
+        <div class="pt-crumb"><a href="{{BACK_LINK}}">TOP</a> ／ {{ACTIVE_CATEGORY_LABEL}} ／ <span class="pt-crumb-current">権限×画面マトリクス</span></div>
+        <div class="pt-title-row">
+          <h1 class="pt-title">権限×画面マトリクス</h1>
+          <span class="pt-title-sub">更新 {{GENERATED_AT}}</span>
+        </div>
+      </div>
+
+      <div class="toolbar-area">
+        <div class="toolbar">
+          <input type="search" id="matrix-search" class="pt-input" placeholder="画面名・ルートで絞り込み">
+          <span class="note">ロール列見出しクリックでそのロールが閲覧可の画面だけに絞り込み（再クリックで解除）</span>
+          <span class="pt-count" id="matrix-count"></span>
+        </div>
+        <div class="role-chips" id="role-chips">
+          <!-- JSがロール名チップを描画する。選択したロールの列だけ表示（未選択=全列表示・複数選択可） -->
+        </div>
+      </div>
+
+      <div class="table-area">
+        <div id="matrix-empty-callout" class="pt-callout pt-callout--warning matrix-empty-callout" role="status" hidden>
+          <p><span class="material-symbols-outlined pt-callout__icon" aria-hidden="true">warning</span><span id="matrix-empty-callout-msg"></span></p>
+        </div>
+        <div class="pt-tablewrap">
+          <table class="matrix" id="matrix-table">
+            <thead>
+              <tr id="matrix-head-row">
+                <th class="screen-col">画面</th>
+                <!-- JSがロール列ヘッダを描画する -->
+              </tr>
+            </thead>
+            <tbody id="matrix-body">
+              <!-- JSがmatrix-manifestから行を描画する -->
+            </tbody>
+          </table>
+        </div>
+        <p class="legend">凡例: <span class="perm-yes">○</span> = 閲覧可 / — = 閲覧不可 / <span class="perm-unset">?</span> = 権限未設定（権限情報を取得できなかった画面。要確認） / <span class="prov-badge prov-inferred">推定</span> = 権限が管理画面区分等から推定された値（実測ではない）</p>
+      </div>
+    </main>
+  </div>
+  <!--SHELL_FOOTER-->
+</div>
+
+<script type="application/json" id="matrix-manifest">
+<!--MATRIX_JSON-->
+</script>
+
+<script>
+  (function () {
+    var manifestEl = document.getElementById('matrix-manifest');
+    var manifest = null;
+    try { manifest = JSON.parse(manifestEl.textContent); } catch (e) { /* プレースホルダ未注入時は描画しない */ }
+    if (!manifest || !manifest.roles || !manifest.screens) return;
+
+    var roles = manifest.roles;
+    var screens = manifest.screens;
+
+    /* 一部成分が0件の場合は原因区分を判別できない旨を明示する空状態表示を出す
+       (写真指摘1-101: 空白の表だけを公開せず、欠けた成分と理由区分の有無を示す) */
+    var missingParts = [];
+    if (roles.length === 0) missingParts.push('ロール');
+    if (screens.length === 0) missingParts.push('画面');
+    var emptyCallout = document.getElementById('matrix-empty-callout');
+    if (emptyCallout && missingParts.length > 0) {
+      var emptyMsg = document.getElementById('matrix-empty-callout-msg');
+      if (emptyMsg) {
+        emptyMsg.textContent = missingParts.join('・') + 'が0件のため、該当する行または列がありません。' +
+          '原因区分（抽出未対応・データ不在のいずれか）は入力データからは判別できません。';
+      }
+      emptyCallout.hidden = false;
+    }
+
+    var headRow = document.getElementById('matrix-head-row');
+    var tbody = document.getElementById('matrix-body');
+    var countEl = document.getElementById('matrix-count');
+    var search = document.getElementById('matrix-search');
+    var activeRole = null;
+
+    function permOf(screen, role) {
+      if (!screen.permissions) return null; /* 権限未設定 */
+      return screen.permissions[role] === true;
+    }
+
+    /* 1-170: permissionsの出所区分(measured/inferred/confirmed)。推定値だけを目立たせて識別する */
+    var PROV_LABELS = { measured: '実測', inferred: '推定', confirmed: '確認済' };
+    function permissionsProvenance(screen) {
+      return (screen.valueProvenance && screen.valueProvenance.permissions) || '';
+    }
+    function buildProvBadge(provenance) {
+      var label = PROV_LABELS[provenance];
+      if (!label) return null;
+      var badge = document.createElement('span');
+      badge.className = 'prov-badge prov-' + provenance;
+      badge.textContent = label;
+      return badge;
+    }
+
+    /* コピーボタン(一覧ページと同じ inline SVG 方式) */
+    var COPY_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>';
+    var CHECK_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+
+    function fallbackCopy(text) {
+      var ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand('copy'); } catch (e) { /* ignore */ }
+      document.body.removeChild(ta);
+    }
+
+    function copyCellText(text, btn) {
+      function showDone() {
+        btn.innerHTML = CHECK_SVG;
+        setTimeout(function () { btn.innerHTML = COPY_SVG; }, 1200);
+      }
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(showDone, function () { fallbackCopy(text); showDone(); });
+      } else {
+        fallbackCopy(text);
+        showDone();
+      }
+    }
+
+    function buildCopyBtn(text) {
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'copy-btn';
+      btn.setAttribute('aria-label', 'コピー');
+      btn.innerHTML = COPY_SVG;
+      btn.addEventListener('click', function (ev) {
+        ev.stopPropagation();
+        copyCellText(text, btn);
+      });
+      return btn;
+    }
+
+    /* 規模表示(トップバー右端): ロールごとの閲覧可能画面数 + 権限未設定数 */
+    var unsetCount = 0;
+    var roleCounts = {};
+    roles.forEach(function (r) { roleCounts[r] = 0; });
+    screens.forEach(function (s) {
+      if (!s.permissions) { unsetCount++; return; }
+      roles.forEach(function (r) { if (permOf(s, r)) roleCounts[r]++; });
+    });
+    if (countEl) {
+      var summary = '画面 ' + screens.length + '件 / ロール ' + roles.length + '件';
+      if (unsetCount > 0) summary += ' / 権限未設定 ' + unsetCount + '件';
+      countEl.textContent = summary;
+    }
+
+    /* 列ヘッダ(ロール)
+       列ヘッダの向き。既定は横書き。データが headerOrientation: "vertical" を持つ場合だけ縦書きにする。
+       縦書きは省スペースだが長い識別子が読みにくいため、選んだ場合にのみ適用する。 */
+    var isVertical = String(manifest.headerOrientation || 'horizontal') === 'vertical';
+    roles.forEach(function (r) {
+      var th = document.createElement('th');
+      th.className = 'role-col' + (isVertical ? ' is-vertical' : '');
+      var label = document.createElement('span');
+      label.textContent = r;
+      th.appendChild(label);
+      th.setAttribute('data-role', r);
+      th.title = 'クリックで「' + r + 'が閲覧可」の画面だけに絞り込み';
+      th.addEventListener('click', function () {
+        activeRole = (activeRole === r) ? null : r;
+        headRow.querySelectorAll('th.role-col').forEach(function (h) {
+          h.classList.toggle('filter-active', h.getAttribute('data-role') === activeRole);
+        });
+        applyFilter();
+      });
+      headRow.appendChild(th);
+    });
+    /* 縦書きを選んだ場合、最長のラベルが収まる高さを算出して与える。1 文字あたりの送りを
+       フォントサイズから見積もり、上下の余白を足す。固定値だと長い識別子がはみ出すため。 */
+    if (isVertical) {
+      var longestRoleName = 0;
+      roles.forEach(function (r) {
+        var label = String(r || '');
+        if (label.length > longestRoleName) longestRoleName = label.length;
+      });
+      var roleHeadCells = headRow.querySelectorAll('th.role-col.is-vertical');
+      var roleCellHeight = Math.max(90, longestRoleName * 9 + 24);
+      Array.prototype.forEach.call(roleHeadCells, function (cell) {
+        cell.style.height = roleCellHeight + 'px';
+      });
+    }
+
+    /* 行(画面) */
+    var rows = [];
+    screens.forEach(function (s) {
+      var tr = document.createElement('tr');
+      var tdScreen = document.createElement('td');
+      tdScreen.className = 'screen-col';
+      var name = document.createElement('span');
+      name.className = 'screen-name';
+      name.textContent = s.screenName;
+      name.appendChild(buildCopyBtn(s.screenName));
+      tdScreen.appendChild(name);
+      var route = document.createElement('code');
+      route.className = 'route';
+      route.textContent = s.route || '—';
+      tdScreen.appendChild(route);
+      /* 1-170: permissionsの出所区分(measured/inferred/confirmed)いずれもバッジを画面名の隣に表示する。
+         推定値(inferred)だけは背景塗り+太字(.prov-badge.prov-inferred)で視覚的に目立たせ、
+         measured/confirmedは枠線のみの控えめな表示に留める */
+      var provenance = permissionsProvenance(s);
+      var provBadge = buildProvBadge(provenance);
+      if (provBadge) tdScreen.appendChild(provBadge);
+      tr.appendChild(tdScreen);
+
+      roles.forEach(function (r) {
+        var td = document.createElement('td');
+        td.className = 'cell-perm';
+        var p = permOf(s, r);
+        var span = document.createElement('span');
+        if (p === null) { span.className = 'perm-unset'; span.textContent = '?'; span.title = '権限未設定'; }
+        else if (p) { span.className = 'perm-yes'; span.textContent = '○'; }
+        else { span.className = 'perm-no'; span.textContent = '—'; }
+        td.appendChild(span);
+        tr.appendChild(td);
+      });
+      rows.push({ tr: tr, screen: s });
+      tbody.appendChild(tr);
+    });
+
+    function applyFilter() {
+      var q = search ? search.value.trim().toLowerCase() : '';
+      rows.forEach(function (row) {
+        var textHit = !q || row.tr.textContent.toLowerCase().indexOf(q) !== -1;
+        var roleHit = !activeRole || permOf(row.screen, activeRole) === true;
+        row.tr.style.display = (textHit && roleHit) ? '' : 'none';
+      });
+    }
+
+    if (search) search.addEventListener('input', applyFilter);
+
+    /* URLSearchParams の q を検索窓に反映する受け口(?q=キーワード) */
+    try {
+      var qParam = new URLSearchParams(location.search).get('q');
+      if (qParam && search) { search.value = qParam; applyFilter(); }
+    } catch (e) { /* ignore */ }
+
+    /* ロール選択チップ: 選択したロールの列だけ表示(未選択=全列表示・複数選択可) */
+    var chipsWrap = document.getElementById('role-chips');
+    var selectedRoles = {};
+    function applyCols() {
+      var anySelected = roles.some(function (r) { return selectedRoles[r]; });
+      roles.forEach(function (r, i) {
+        var show = !anySelected || !!selectedRoles[r];
+        var colIdx = i + 1; /* 0列目=画面名 */
+        var th = headRow.children[colIdx];
+        if (th) th.style.display = show ? '' : 'none';
+        rows.forEach(function (row) {
+          var td = row.tr.children[colIdx];
+          if (td) td.style.display = show ? '' : 'none';
+        });
+      });
+    }
+    if (chipsWrap) {
+      roles.forEach(function (r) {
+        var chip = document.createElement('button');
+        chip.type = 'button';
+        chip.className = 'role-chip';
+        chip.textContent = r;
+        chip.title = '「' + r + '」の列だけ表示（複数選択可。未選択=全列表示）';
+        chip.addEventListener('click', function () {
+          selectedRoles[r] = !selectedRoles[r];
+          chip.classList.toggle('chip-active', !!selectedRoles[r]);
+          applyCols();
+        });
+        chipsWrap.appendChild(chip);
+      });
+    }
+  })();
+</script>
+
+</body>
+</html>

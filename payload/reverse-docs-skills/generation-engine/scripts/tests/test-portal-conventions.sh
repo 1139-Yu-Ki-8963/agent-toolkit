@@ -1,0 +1,420 @@
+#!/usr/bin/env bash
+# ポータル HTML 規約の自動検証スクリプト
+# 使い方: bash test-portal-conventions.sh <HTML ファイルまたはディレクトリ>
+#        bash test-portal-conventions.sh --file-list <ファイル一覧のパス>
+# 終了コード: 全 PASS → 0, 1つでも FAIL → 1
+#
+# --file-list（改善課題キー: ポータル規約検査-対象範囲）:
+#   ディレクトリ指定（既定の挙動）は配下の *.html を無差別に再帰走査するため、対象アプリの
+#   リポジトリ内で実行すると、このツール群が生成した HTML と、対象アプリが元から持つ
+#   無関係な HTML（このツール群とは無関係な既存ドキュメント等）が混ざる。--file-list は
+#   1 行 1 パスのファイル一覧（相対パスは実行時カレントディレクトリ基準）を受け取り、
+#   列挙された生成物だけを検査する。生成物の一覧は check-derived-drift.sh が保守する
+#   derived-fingerprints.json のキー（例: `jq -r '.files | keys[]' <root>/derived-fingerprints.json`
+#   に <root>/ を前置したもの）を渡すことを想定するが、本スクリプトは一覧の作り方を
+#   規定しない（ファイルパスの改行区切りテキストであればよい）。既定のディレクトリ/
+#   単一ファイル指定の挙動は変更しない（追加のオプトイン機能）。
+#
+# 集約の対象外: 本ファイルは検査対象（HTMLファイル/ディレクトリ）を
+# 引数に取る検査エンジンそのものであり、生成物の規約検査という試験用途の役割を担う
+# （build-*.sh --self-test から呼ばれる規約リンタ）。自身の正しさは
+# test-portal-conventions-regression.sh が既に回帰試験しているため、追加の
+# --self-test 実装は行わない。
+
+PASS=0
+FAIL=0
+SKIP=0
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd -P)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd -P)"
+
+pass() { PASS=$((PASS+1)); echo "  PASS: $1"; }
+fail() { FAIL=$((FAIL+1)); echo "  FAIL: $1"; }
+skip() { SKIP=$((SKIP+1)); echo "  SKIP: $1"; }
+
+OLD_COLORS_LIGHT='#F6F8FA|#D1D9E0|#AFB8C1|#0969DA|#218BFF|#DDF4FF|#54AEFF|#BC4C00|#FFF1E5|#1A7F37|#DAFBE1|#CF222E'
+OLD_COLORS_DARK='#15171C|#1C1F26|#21262D|#30363D|#484F58|#E8E5DC|#B6B3AB|#888784|#58A6FF|#79C0FF|#132D4B|#1F6FEB'
+
+check_file() {
+  local f="$1"
+  echo ""
+  echo "=== $f ==="
+
+  if grep -q 'class="pm-page"' "$f" 2>/dev/null; then
+    skip "ポータルトップ（pm-page）は対象外"
+    return
+  fi
+
+  local is_doc_viewer=0
+  grep -q 'class="doc-main"' "$f" 2>/dev/null && is_doc_viewer=1
+
+  # TOKENS_CSS マーカーを持つ source template は、生成スクリプトが
+  # delivery-payload/templates/tokens.css を注入する前の入力である。raw template に
+  # 色値を二重管理させず、トークン検査は生成済み HTML 側で行う。
+  local has_token_marker=0
+  local absolute_file
+  absolute_file="$(cd "$(dirname "$f")" && pwd -P)/$(basename "$f")"
+  if [[ "$absolute_file" == "$REPO_ROOT"/delivery-payload/templates/* ]] \
+    && grep -q '/\* TOKENS_CSS \*/' "$f" 2>/dev/null; then
+    has_token_marker=1
+  fi
+
+  # SHELL_CSS マーカーを持つ source template は、共通シェル（サイドバー・方眼紙
+  # 背景・全画面フィットの各指定）が生成時に注入される前の入力である。トークンと
+  # 同じ理由で、シェル由来の検査は生成済み HTML 側で行う。
+  local has_shell_marker=0
+  if [[ "$absolute_file" == "$REPO_ROOT"/delivery-payload/templates/* ]] \
+    && grep -q '/\* SHELL_CSS \*/' "$f" 2>/dev/null; then
+    has_shell_marker=1
+  fi
+
+  if [ "$has_token_marker" -eq 1 ]; then
+    skip "色トークン（生成時に tokens.css を注入）"
+    skip "テーマ-定義（生成時に tokens.css を注入）"
+  else
+    local old_l; old_l=$(grep -cE "$OLD_COLORS_LIGHT" "$f" 2>/dev/null || true)
+    [ "$old_l" -eq 0 ] && pass "色トークン-旧値禁止（ライト）" || fail "色トークン-旧値禁止（ライト）: ${old_l}件"
+
+    local old_d; old_d=$(grep -cE "$OLD_COLORS_DARK" "$f" 2>/dev/null || true)
+    [ "$old_d" -eq 0 ] && pass "色トークン-旧値禁止（ダーク）" || fail "色トークン-旧値禁止（ダーク）: ${old_d}件"
+
+    if grep -q '#0F1217' "$f" 2>/dev/null && grep -q '#4CC2FE' "$f" 2>/dev/null && grep -q '#FF6E4F' "$f" 2>/dev/null; then
+      pass "色トークン-新値存在"
+    else
+      fail "色トークン-新値存在"
+    fi
+
+    if grep -q 'prefers-color-scheme' "$f" 2>/dev/null && grep -q 'data-theme="dark"' "$f" 2>/dev/null && grep -q 'data-theme="light"' "$f" 2>/dev/null; then
+      pass "テーマ-定義"
+    else
+      fail "テーマ-定義"
+    fi
+  fi
+
+  if [ "$has_shell_marker" -eq 1 ]; then
+    skip "共通シェル-サイドバー（生成時に partials を注入）"
+    skip "共通シェル-方眼紙（生成時に partials を注入）"
+  else
+    grep -q 'class="pt-sidebar"' "$f" 2>/dev/null && pass "共通シェル-サイドバー" || fail "共通シェル-サイドバー"
+
+    grep -q 'background-size' "$f" 2>/dev/null && pass "共通シェル-方眼紙" || fail "共通シェル-方眼紙"
+  fi
+
+  local radius_count
+  radius_count=$(grep -cE 'border-radius:[[:space:]]*[^0[:space:];]' "$f" 2>/dev/null || true)
+  [ "$radius_count" -eq 0 ] && pass "角丸-ゼロ" || fail "角丸-ゼロ: ${radius_count}件"
+
+  local shadow_count
+  shadow_count=$(grep -cE 'box-shadow:[^;]*[0-9]px[[:space:]]+[-0-9.]+px[[:space:]]+[1-9]' "$f" 2>/dev/null || true)
+  [ "$shadow_count" -eq 0 ] && pass "影-オフセットのみ" || fail "影-オフセットのみ: ${shadow_count}件"
+
+  if [ "$has_shell_marker" -eq 1 ]; then
+    skip "全画面-高さ固定（生成時に partials を注入）"
+    skip "全画面-min-height禁止（生成時に partials を注入）"
+    skip "全画面-overflow制御（生成時に partials を注入）"
+    skip "全画面-スクロール領域（生成時に partials を注入）"
+    skip "sticky-thead（生成時に partials を注入）"
+  elif [ "$is_doc_viewer" -eq 1 ]; then
+    skip "全画面-高さ固定（文書ビューア型は適用除外）"
+    skip "全画面-min-height禁止（文書ビューア型は適用除外）"
+    skip "全画面-overflow制御（文書ビューア型は適用除外）"
+    skip "全画面-スクロール領域（文書ビューア型は適用除外）"
+    skip "sticky-thead（文書ビューア型は適用除外）"
+  else
+    grep -q 'height: 100vh' "$f" 2>/dev/null && pass "全画面-高さ固定" || fail "全画面-高さ固定"
+    grep -q 'min-height: 100vh' "$f" 2>/dev/null && fail "全画面-min-height禁止（残存）" || pass "全画面-min-height禁止"
+
+    if grep -qE 'overflow:\s*hidden|overflow: hidden' "$f" 2>/dev/null; then
+      pass "全画面-overflow制御"
+    else
+      fail "全画面-overflow制御"
+    fi
+
+    if grep -qE 'overflow-y:\s*auto|overflow:\s*auto' "$f" 2>/dev/null; then
+      pass "全画面-スクロール領域"
+    else
+      fail "全画面-スクロール領域"
+    fi
+
+    if grep -q '<table' "$f" 2>/dev/null; then
+      grep -qE 'position:\s*sticky' "$f" 2>/dev/null && pass "sticky-thead" || fail "sticky-thead"
+    else
+      skip "sticky-thead（テーブルなし）"
+    fi
+  fi
+
+  local footer_content
+  footer_content=$(awk '/<footer/,/<\/footer>/' "$f" 2>/dev/null)
+  if [ -z "$footer_content" ]; then
+    pass "フッター-空確認（footerタグなし）"
+  elif printf '%s\n' "$footer_content" | grep -qE 'スキルにより生成|により自動生成|設計スキル群'; then
+    fail "フッター-空確認"
+  else
+    pass "フッター-空確認"
+  fi
+
+  if grep -qE 'id="unit-manifest"|id="screen-manifest"' "$f" 2>/dev/null; then
+    # 最初の thead のみカウント
+    local th_count
+    th_count=$(sed -n '/<thead/,/<\/thead/{p;/<\/thead/q;}' "$f" | grep -co '<th' || true)
+    [ "$th_count" -le 6 ] && pass "一覧-列数上限（${th_count}列）" || fail "一覧-列数上限（${th_count}列）"
+
+    if grep -q 'detail-group-label' "$f" 2>/dev/null && grep -q 'evidence' "$f" 2>/dev/null; then
+      pass "一覧-展開グループ分離"
+    else
+      fail "一覧-展開グループ分離"
+    fi
+
+    if grep -q '<details.*class="module-group"' "$f" 2>/dev/null; then
+      if grep -q 'data-split-axis="[^"]\+"' "$f" 2>/dev/null; then
+        pass "一覧-details禁止（分割軸の宣言ありは許可）"
+      else
+        fail "一覧-details禁止（残存）"
+      fi
+    else
+      pass "一覧-details禁止"
+    fi
+
+    grep -q 'class="common-files"' "$f" 2>/dev/null && fail "一覧-common-files禁止" || pass "一覧-common-files禁止"
+
+    if grep -qE 'unresolved.*(empty|has-items)' "$f" 2>/dev/null; then
+      pass "unresolved-条件付き"
+    else
+      fail "unresolved-条件付き"
+    fi
+
+    if grep -qE 'class="unresolved has-items' "$f" 2>/dev/null; then
+      grep -qF 'class="unresolved has-items pt-callout pt-callout--warning"' "$f" \
+        && pass "unresolved-非空警告コールアウト" \
+        || fail "unresolved-非空警告コールアウト"
+    else
+      grep -qE 'class="unresolved empty[^"]*pt-callout' "$f" \
+        && fail "unresolved-空状態は非警告" \
+        || pass "unresolved-空状態は非警告"
+    fi
+  fi
+}
+
+check_matrix_template_tokens() {
+  local script_dir templates_dir template definitions markers
+  script_dir="$(cd "$(dirname "$0")" && pwd)"
+  templates_dir="$script_dir/../../../delivery-payload/templates/matrix"
+  echo ""
+  echo "=== matrix template token contract ==="
+  for template in \
+    permission-screen-matrix-template.html \
+    permission-function-matrix-template.html \
+    crud-matrix-template.html \
+    traceability-template.html; do
+    if [ ! -f "$templates_dir/$template" ]; then
+      fail "matrix token-template実在: $template"
+      continue
+    fi
+    definitions="$(grep -cE '^[[:space:]]*--[a-z0-9-]+[[:space:]]*:' "$templates_dir/$template" 2>/dev/null || true)"
+    markers="$(grep -cF '/* TOKENS_CSS */' "$templates_dir/$template" 2>/dev/null || true)"
+    if [ "$definitions" -eq 0 ]; then
+      pass "matrix token実値定義0件: $template"
+    else
+      fail "matrix token実値定義0件: ${template}（${definitions}件残存）"
+    fi
+    if [ "$markers" -eq 1 ]; then
+      pass "matrix token注入placeholder 1件: $template"
+    else
+      fail "matrix token注入placeholder 1件: ${template}（${markers}件）"
+    fi
+  done
+}
+
+# 改善課題 1-162: 参照先ファイルが不在の場合、grep がOS由来の
+# 「No such file or directory」を吐いて検査結果に紛れ込み、「規約違反で不合格」なのか
+# 「参照先そのものが不在」なのかを判別できなくなる。ref_exists は参照先の実在を判定し、
+# 不在の場合は fail() に「参照先ファイル不在」と明示したメッセージを渡して該当チェックを
+# 明示的な不合格として扱う（既存の「matrix token-template実在」チェックと同じ扱い）。
+# ref_exists が偽を返した呼び出し元は、実在しないファイルへの grep 自体を行わない。
+ref_exists() {
+  [ -f "$1" ]
+}
+
+check_callout_contract() {
+  local script_dir templates_dir shell_css representative builder template guide
+  local material_symbols_href expected_font_sha shell_font_sha representative_font_sha
+  script_dir="$(cd "$(dirname "$0")" && pwd)"
+  templates_dir="$script_dir/../../../delivery-payload/templates"
+  shell_css="$templates_dir/partials/shell.css"
+  representative="$script_dir/../../samples/project-portal/一覧/API一覧/API一覧.html"
+  material_symbols_href='https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined&amp;icon_names=info,priority_high,warning&amp;display=block'
+  expected_font_sha='8f1b843abe398437ce5b3194a9f060f45534414e1fd6bced2521d39ca3d5a778'
+  shell_font_sha=""
+  representative_font_sha=""
+  if ref_exists "$shell_css"; then
+    shell_font_sha="$(grep -o 'data:font/ttf;base64,[^"]*' "$shell_css" | head -1 | cut -d, -f2- | base64 --decode | shasum -a 256 | awk '{print $1}')"
+  fi
+  if ref_exists "$representative"; then
+    representative_font_sha="$(grep -o 'data:font/ttf;base64,[^"]*' "$representative" | head -1 | cut -d, -f2- | base64 --decode | shasum -a 256 | awk '{print $1}')"
+  fi
+
+  echo ""
+  echo "=== importance callout contract ==="
+
+  if ! ref_exists "$shell_css"; then
+    fail "コールアウト-3重要度CSS（参照先ファイル不在: ${shell_css}）"
+  elif grep -qF '.pt-callout {' "$shell_css" \
+    && grep -qF '.pt-callout--caution {' "$shell_css" \
+    && grep -qF '.pt-callout--warning {' "$shell_css" \
+    && grep -qF '.pt-callout--important {' "$shell_css" \
+    && grep -qF 'box-shadow: inset 5px 0 0 var(--callout-color)' "$shell_css" \
+    && grep -qF '.pt-callout__icon {' "$shell_css" \
+    && grep -A2 -F '.pt-callout__icon {' "$shell_css" | grep -qF 'display: none' \
+    && grep -qF 'font-family: "Material Symbols Outlined Local"' "$shell_css" \
+    && grep -qF 'data:font/ttf;base64,' "$shell_css" \
+    && grep -qF 'font-family: "Material Symbols Outlined", "Material Symbols Outlined Local"' "$shell_css" \
+    && [ "$shell_font_sha" = "$expected_font_sha" ] \
+    && grep -qF '.pt-callout > :first-child > .pt-callout__icon { display: inline-block; }' "$shell_css" \
+    && grep -qF -- '--callout-color: var(--accent)' "$shell_css" \
+    && grep -qF -- '--callout-color: var(--stamp)' "$shell_css" \
+    && grep -qF -- '--callout-color: var(--green)' "$shell_css"; then
+    pass "コールアウト-3重要度CSS"
+  else
+    fail "コールアウト-3重要度CSS"
+  fi
+
+  for builder in \
+    "$script_dir/../unit-list/build-unit-list.sh" \
+    "$script_dir/../unit-list/build-screen-list.sh" \
+    "$script_dir/../unit-list/build-feature-list.sh"; do
+    if ! ref_exists "$builder"; then
+      fail "コールアウト-要確認事項への生成規律: $(basename "$builder")（参照先ファイル不在: ${builder}）"
+    elif grep -qF 'unresolved_class="has-items pt-callout pt-callout--warning"' "$builder" \
+      && grep -qF 'unresolved_class="empty"' "$builder" \
+      && ! grep -qF '単一ファイル自己完結' "$builder"; then
+      pass "コールアウト-要確認事項への生成規律: $(basename "$builder")"
+    else
+      fail "コールアウト-要確認事項への生成規律: $(basename "$builder")"
+    fi
+  done
+
+  for template in \
+    "$templates_dir/unit-list/unit-list-template.html" \
+    "$templates_dir/unit-list/screen-list-template.html" \
+    "$templates_dir/unit-list/feature-list-template.html"; do
+    if ! ref_exists "$template"; then
+      fail "コールアウト-Material Symbols規律: $(basename "$template")（参照先ファイル不在: ${template}）"
+    elif grep -qF "$material_symbols_href" "$template" \
+      && grep -qF '<span class="material-symbols-outlined pt-callout__icon" aria-hidden="true">warning</span>' "$template" \
+      && ! grep -qF '外部リソース(CDN・フォント・画像)は一切使わない' "$template"; then
+      pass "コールアウト-Material Symbols規律: $(basename "$template")"
+    else
+      fail "コールアウト-Material Symbols規律: $(basename "$template")"
+    fi
+  done
+
+  for guide in \
+    "$script_dir/../../../.claude/skills/generating-api-list-for-reverse-docs/references/guide.html" \
+    "$script_dir/../../../.claude/skills/generating-screen-list-for-reverse-docs/references/guide.html" \
+    "$script_dir/../../../.claude/skills/generating-feature-list-for-reverse-docs/references/guide.html" \
+    "$script_dir/../../../.claude/skills/generating-table-list-for-reverse-docs/references/guide.html" \
+    "$script_dir/../../../.claude/skills/generating-batch-list-for-reverse-docs/references/guide.html" \
+    "$script_dir/../../../.claude/skills/generating-report-list-for-reverse-docs/references/guide.html" \
+    "$script_dir/../../../.claude/skills/generating-external-list-for-reverse-docs/references/guide.html"; do
+    if ! ref_exists "$guide"; then
+      fail "コールアウト-一覧ガイドの外部依存規律: $(basename "$guide")（参照先ファイル不在: ${guide}）"
+    elif grep -qF 'Material Symbols OutlinedのGoogle Fonts CDNだけを許可する' "$guide" \
+      && ! grep -qF '外部リソース（CDN・画像・link）は一切使わず' "$guide"; then
+      pass "コールアウト-一覧ガイドの外部依存規律: $(basename "$guide")"
+    else
+      fail "コールアウト-一覧ガイドの外部依存規律: $(basename "$guide")"
+    fi
+  done
+
+  if ! ref_exists "$representative"; then
+    fail "コールアウト-代表生成HTMLへの適用（参照先ファイル不在: ${representative}）"
+  elif grep -qF 'class="unresolved has-items pt-callout pt-callout--warning"' "$representative" \
+    && grep -qF "$material_symbols_href" "$representative" \
+    && grep -qF '<span class="material-symbols-outlined pt-callout__icon" aria-hidden="true">warning</span>' "$representative" \
+    && [ "$representative_font_sha" = "$expected_font_sha" ] \
+    && ! grep -qF '外部リソース(CDN・フォント・画像)は一切使わない' "$representative"; then
+    pass "コールアウト-代表生成HTMLへの適用"
+  else
+    fail "コールアウト-代表生成HTMLへの適用"
+  fi
+
+  local page_conventions_rule="$script_dir/../../../.claude/rules/scoped/portal/page-conventions/rule.md"
+  if ! ref_exists "$page_conventions_rule"; then
+    fail "コールアウト-重要度とアイコンの対応規律（参照先ファイル不在: ${page_conventions_rule}）"
+  elif grep -qF '| 注意 | `.pt-callout.pt-callout--caution` | `info` |' "$page_conventions_rule" \
+    && grep -qF '| 警告 | `.pt-callout.pt-callout--warning` | `warning` |' "$page_conventions_rule" \
+    && grep -qF '| 重要 | `.pt-callout.pt-callout--important` | `priority_high` |' "$page_conventions_rule"; then
+    pass "コールアウト-重要度とアイコンの対応規律"
+  else
+    fail "コールアウト-重要度とアイコンの対応規律"
+  fi
+
+  local design_foundation_doc="$script_dir/../../../docs/design/portal/ポータル設計基盤.html"
+  if ! ref_exists "$design_foundation_doc"; then
+    fail "コールアウト-ポータル設計基盤の外部依存規律（参照先ファイル不在: ${design_foundation_doc}）"
+  elif grep -qF '<span class="ex">単一HTML生成</span>' "$design_foundation_doc" \
+    && grep -qF '<span class="ex">外部依存はMaterial Symbolsのみ</span>' "$design_foundation_doc"; then
+    pass "コールアウト-ポータル設計基盤の外部依存規律"
+  else
+    fail "コールアウト-ポータル設計基盤の外部依存規律"
+  fi
+}
+
+if [ "${1:-}" = "--file-list" ]; then
+  file_list="${2:?使い方: test-portal-conventions.sh --file-list <ファイル一覧のパス>（1行1パス）}"
+  if [ ! -f "$file_list" ]; then
+    echo "エラー: --file-list に指定したファイルが見つかりません: $file_list" >&2
+    exit 2
+  fi
+  while IFS= read -r f; do
+    [ -z "$f" ] && continue
+    check_file "$f"
+  done < "$file_list"
+else
+  target="${1:-.}"
+  if [ -d "$target" ]; then
+    # 除外パターン（-not -path '*/docs/...'）は先頭に "/" を要求するため、
+    # target を絶対パスへ解決してから find する。相対パス指定（例: "docs/"）だと
+    # find の出力が "docs/guides/reverse-docs-overview.html" のように先頭スラッシュを
+    # 持たず、除外パターンが一致しないまま検査対象に混入してしまう。
+    target="$(cd "$target" && pwd -P)"
+    while IFS= read -r f; do
+      check_file "$f"
+    done < <(find "$target" -name '*.html' \
+      -not -path '*/node_modules/*' \
+      -not -path '*/fixtures/*' \
+      -not -path '*/generation-engine/samples/規約提案/*' \
+      -not -path '*/delivery-payload/templates/rule-proposal/*' \
+      -not -path '*/.claude/skills/*' \
+      -not -path '*/delivery-payload/templates/partials/*' \
+      -not -path '*/docs/guides/reverse-docs-overview.html' \
+      -not -path '*/docs/guides/納品物ガイド.html' \
+      -not -path '*/docs/design/portal/ポータル設計基盤.html' \
+      -not -path '*/docs/guides/スキル一覧.html' \
+      -not -path '*/docs/guides/スキルの変遷.html' \
+      -not -path '*/docs/portal/index.html' \
+      | sort)
+      # 除外はいずれもポータルのページではないものである
+      # （.claude/rules/scoped/portal/page-conventions/rule.md「## 適用対象」参照）。
+      # generation-engine/samples/規約提案/ と delivery-payload/templates/rule-proposal/ 配下は、リポジトリ外へ
+      # 出力して現場のエンジニアが判定するための独立した成果物（テンプレートとその生成物）
+      # である。ポータル共通シェルを使わず、意匠も別に定義されている。
+      # .claude/skills/ 配下はスキルの説明書であり、読み手も用途もポータルと異なる。
+      # delivery-payload/templates/partials/ 配下はページへ埋め込む断片であり、単体では明暗の色定義も
+      # 全画面レイアウトも持ちえない。
+      # docs/guides/reverse-docs-overview.html と docs/design/portal/ポータル設計基盤.html はこの
+      # リポジトリ自身の説明資料である。対象リポジトリでは docs/ 配下にポータルのページが
+      # 置かれることがあるため、ディレクトリではなくファイル名で指定する。
+  else
+    check_file "$target"
+  fi
+fi
+
+check_matrix_template_tokens
+check_callout_contract
+
+echo ""
+echo "========================================="
+echo "結果: PASS=$PASS  FAIL=$FAIL  SKIP=$SKIP"
+echo "========================================="
+[ "$FAIL" -gt 0 ] && exit 1
+exit 0

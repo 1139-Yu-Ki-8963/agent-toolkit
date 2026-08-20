@@ -1,0 +1,294 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://example.invalid/schemas/semantic-glossary/1.0.0"
+title: Semantic Glossary
+description: 承認済み用語集のYAML構造案。実装前の設計成果物。
+type: object
+additionalProperties: false
+required:
+  - schema_version
+  - content_version
+  - glossary_key
+  - title
+  - scope
+  - scope_catalog
+  - default_language
+  - owners
+  - terms
+properties:
+  schema_version:
+    type: string
+    pattern: "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+  content_version:
+    type: string
+    pattern: "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+  glossary_key:
+    $ref: "#/$defs/semantic_key"
+  title:
+    type: string
+    minLength: 1
+  default_language:
+    type: string
+    pattern: "^[a-z]{2,3}(-[A-Z]{2})?$"
+  scope:
+    $ref: "#/$defs/scope"
+  scope_catalog:
+    type: array
+    minItems: 1
+    items:
+      $ref: "#/$defs/scope_catalog_entry"
+  owners:
+    type: array
+    minItems: 1
+    uniqueItems: true
+    items:
+      type: string
+      minLength: 1
+  terms:
+    type: array
+    items:
+      $ref: "#/$defs/term"
+  metadata:
+    type: object
+    additionalProperties: false
+    properties:
+      created_at:
+        type: string
+        format: date-time
+      updated_at:
+        type: string
+        format: date-time
+      generated_from:
+        type: string
+$defs:
+  semantic_key:
+    type: string
+    pattern: "^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$"
+    not:
+      anyOf:
+        - pattern: "^(?:id|key|item|data|info|value|master)$"
+        - pattern: "^[0-9]+$"
+        - pattern: "^[0-9a-f]{8}-[0-9a-f-]{27,}$"
+  scope:
+    type: object
+    additionalProperties: false
+    required: [level, includes, excludes]
+    properties:
+      level:
+        enum: [organization, product, cross_application, application, module]
+      includes:
+        type: array
+        uniqueItems: true
+        items:
+          type: string
+          minLength: 1
+      excludes:
+        type: array
+        uniqueItems: true
+        items:
+          type: string
+          minLength: 1
+  scope_catalog_entry:
+    type: object
+    additionalProperties: false
+    required: [key, level, source_ref]
+    properties:
+      key:
+        $ref: "#/$defs/semantic_key"
+      level:
+        enum: [organization, product, application, module]
+      parent_key:
+        anyOf:
+          - $ref: "#/$defs/semantic_key"
+          - type: "null"
+      source_ref:
+        type: string
+        minLength: 1
+  term:
+    type: object
+    additionalProperties: false
+    required:
+      - key
+      - label
+      - definition
+      - kind
+      - category
+      - scope
+      - representations
+      - lifecycle
+      - stewardship
+      - provenance
+    properties:
+      key:
+        $ref: "#/$defs/semantic_key"
+      label:
+        type: string
+        minLength: 1
+      definition:
+        type: string
+        minLength: 8
+      kind:
+        enum: [entity, attribute, identifier, status, event, process, role, value_object, rule, technical_concept]
+      category:
+        enum: [business, technical, ai, cross_cutting]
+      scope:
+        $ref: "#/$defs/scope"
+      representations:
+        type: array
+        minItems: 1
+        items:
+          $ref: "#/$defs/representation"
+      aliases:
+        type: array
+        items:
+          $ref: "#/$defs/alias"
+      forbidden_terms:
+        type: array
+        items:
+          $ref: "#/$defs/forbidden_term"
+      relations:
+        type: array
+        items:
+          $ref: "#/$defs/relation"
+      examples:
+        type: array
+        items: {type: string, minLength: 1}
+      counter_examples:
+        type: array
+        items: {type: string, minLength: 1}
+      constraints:
+        type: array
+        items: {type: string, minLength: 1}
+      tags:
+        type: array
+        uniqueItems: true
+        items:
+          $ref: "#/$defs/semantic_key"
+      security_classification:
+        enum: [public, internal, confidential, restricted]
+      notes:
+        type: string
+      lifecycle:
+        $ref: "#/$defs/lifecycle"
+      stewardship:
+        $ref: "#/$defs/stewardship"
+      provenance:
+        $ref: "#/$defs/provenance"
+  representation:
+    type: object
+    additionalProperties: false
+    required: [channel, value, location]
+    properties:
+      channel:
+        enum: [code, database, api, ui, document, event, message]
+      value:
+        type: string
+        minLength: 1
+      symbol_kind:
+        type: string
+      location:
+        type: string
+        minLength: 1
+  alias:
+    type: object
+    additionalProperties: false
+    required: [value, type, language, usage]
+    properties:
+      value: {type: string, minLength: 1}
+      type:
+        enum: [synonym, abbreviation, legacy, translation, search_only]
+      language: {type: string, minLength: 2}
+      usage:
+        enum: [preferred, allowed, read_only]
+  forbidden_term:
+    type: object
+    additionalProperties: false
+    required: [value, reason, replacement_key]
+    properties:
+      value: {type: string, minLength: 1}
+      reason: {type: string, minLength: 1}
+      replacement_key:
+        $ref: "#/$defs/semantic_key"
+  relation:
+    type: object
+    additionalProperties: false
+    required: [type, target_key]
+    properties:
+      type:
+        enum: [broader_than, narrower_than, part_of, has_part, related_to, has_identifier, replaced_by]
+      target_key:
+        $ref: "#/$defs/semantic_key"
+  lifecycle:
+    type: object
+    additionalProperties: false
+    required: [status, introduced_in]
+    properties:
+      status:
+        enum: [active, deprecated, retired]
+      introduced_in:
+        $ref: "#/$defs/semver"
+      deprecated_in:
+        anyOf:
+          - {$ref: "#/$defs/semver"}
+          - {type: "null"}
+      retired_in:
+        anyOf:
+          - {$ref: "#/$defs/semver"}
+          - {type: "null"}
+      migration_deadline:
+        type: [string, "null"]
+        format: date
+      replaced_by:
+        anyOf:
+          - $ref: "#/$defs/semantic_key"
+          - type: "null"
+      reason: {type: [string, "null"]}
+    allOf:
+      - if:
+          properties: {status: {const: deprecated}}
+        then:
+          required: [deprecated_in, migration_deadline, replaced_by, reason]
+          properties:
+            deprecated_in: {$ref: "#/$defs/semver"}
+            migration_deadline: {type: string, format: date}
+            replaced_by: {$ref: "#/$defs/semantic_key"}
+            reason: {type: string, minLength: 1}
+      - if:
+          properties: {status: {const: retired}}
+        then:
+          required: [retired_in, replaced_by, reason]
+          properties:
+            retired_in: {$ref: "#/$defs/semver"}
+            replaced_by: {$ref: "#/$defs/semantic_key"}
+            reason: {type: string, minLength: 1}
+  stewardship:
+    type: object
+    additionalProperties: false
+    required: [owner, approvers]
+    properties:
+      owner: {type: string, minLength: 1}
+      approvers:
+        type: array
+        uniqueItems: true
+        items: {type: string, minLength: 1}
+  provenance:
+    type: object
+    additionalProperties: false
+    required: [sources]
+    properties:
+      sources:
+        type: array
+        minItems: 1
+        items:
+          type: object
+          additionalProperties: false
+          required: [type, ref, supports]
+          properties:
+            type: {type: string, minLength: 1}
+            ref: {type: string, minLength: 1}
+            supports:
+              enum: [label, definition, representation, relation, constraint]
+      decision_ref:
+        type: string
+  semver:
+    type: string
+    pattern: "^[0-9]+\\.[0-9]+\\.[0-9]+$"

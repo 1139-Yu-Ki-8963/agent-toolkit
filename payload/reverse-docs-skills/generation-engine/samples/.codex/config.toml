@@ -1,0 +1,74 @@
+# BEGIN docs/rules-generated hooks (build-derived-rules.sh) — 直接編集しないこと
+
+[[hooks]]
+event = "afterFileEdit"
+command = "docs/rules/agent-operations/ai-config-asset-management/check-ai-config-derivative-manual-edit.sh"
+
+[[hooks]]
+event = "afterFileEdit"
+command = "docs/rules/agent-operations/destructive-operation-safety/check-read-before-overwrite.sh"
+
+[[hooks]]
+event = "afterFileEdit"
+command = "docs/rules/business-domain/business-rules/check-business-rule-table-missing-exception.sh"
+
+[[hooks]]
+event = "afterFileEdit"
+command = "docs/rules/business-domain/calculation-rules/check-currency-float-type.sh"
+
+[[hooks]]
+event = "afterFileEdit"
+command = "docs/rules/business-domain/glossary/check-glossary-missing-forbidden-terms.sh"
+
+[[hooks]]
+event = "afterFileEdit"
+command = "docs/rules/business-domain/state-transitions/check-state-literal-comparison.sh"
+
+[[hooks]]
+event = "afterFileEdit"
+command = "docs/rules/code-standards/coding-style/check-any-type-escape-hatch.sh"
+
+[[hooks]]
+event = "afterFileEdit"
+command = "docs/rules/code-standards/component-architecture/check-direct-circular-import.sh"
+
+[[hooks]]
+event = "afterFileEdit"
+command = "docs/rules/code-standards/directory-structure/check-temp-file-tracked.sh"
+
+[[hooks]]
+event = "afterFileEdit"
+command = "docs/rules/code-standards/naming/check-sequential-identifier-naming.sh"
+
+[[hooks]]
+event = "afterFileEdit"
+command = "docs/rules/documentation-standards/document-writing/check-doc-heading-addendum.sh"
+
+[[hooks]]
+event = "afterFileEdit"
+command = "docs/rules/documentation-standards/portal-maintenance/check-generated-html-manual-edit.sh"
+
+[[hooks]]
+event = "afterFileEdit"
+command = "docs/rules/non-functional-requirements/availability/check-outbound-call-missing-timeout.sh"
+
+[[hooks]]
+event = "afterFileEdit"
+command = "docs/rules/non-functional-requirements/observability/check-secret-value-logging.sh"
+
+[[hooks]]
+event = "afterFileEdit"
+command = "docs/rules/non-functional-requirements/performance/check-loop-query-call.sh"
+
+[[hooks]]
+event = "afterFileEdit"
+command = "docs/rules/non-functional-requirements/security/check-secret-literal-in-code.sh"
+
+[[hooks]]
+event = "afterFileEdit"
+command = "docs/rules/quality-assurance/review-checklist/check-review-viewpoints-list.sh"
+
+[[hooks]]
+event = "afterFileEdit"
+command = "docs/rules/quality-assurance/test-policy/check-unit-test-design-doc-sections.sh"
+# END docs/rules-generated hooks

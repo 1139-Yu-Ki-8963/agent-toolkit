@@ -1,0 +1,15 @@
+schema_version: 1.0.0
+content_version: 1.0.0
+glossary_key: empty_catalog
+title: Empty glossary
+scope:
+  level: application
+  includes: [empty_application]
+  excludes: []
+scope_catalog:
+  - key: empty_application
+    level: application
+    parent_key: null
+    source_ref: docs/empty.md
+default_language: ja
+terms: []

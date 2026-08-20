@@ -1,0 +1,16 @@
+{
+  "commonEvidenceLedger": {
+    "layoutKey": "commonDocumentEvidenceLedger",
+    "inventoryKind": "common-document-evidence-ledger",
+    "label": "共通文書根拠台帳",
+    "requiredColumns": ["対象文書", "節・項目", "対象コード", "行"]
+  },
+  "documents": [
+    {"layoutKey":"commonDesignDoc","label":"共通設計書","dependsOnKinds":["screen"],"requiredSections":["本書に書かないもの","共通画面状態の規則","共通操作規則","共通レイアウト原則","要確認事項一覧"]},
+    {"layoutKey":"messageDoc","label":"メッセージ定義書","dependsOnKinds":[],"requiredSections":[]},
+    {"layoutKey":"designDoc","label":"デザインの定義","dependsOnKinds":[],"requiredSections":[]},
+    {"layoutKey":"foundationDoc","label":"基盤設計","dependsOnKinds":[],"requiredSections":[]},
+    {"layoutKey":"uiCommonDoc","label":"UI共通設計","dependsOnKinds":["screen"],"requiredSections":["本書に書かないもの","デザインシステム","共通コンポーネント一覧","レイアウト方針","テーマ・スタイル管理","アクセシビリティ方針","画面横断 UI 状態","traced の条件"]},
+    {"layoutKey":"dataDesignDoc","label":"データ設計","dependsOnKinds":[],"requiredSections":[]}
+  ]
+}

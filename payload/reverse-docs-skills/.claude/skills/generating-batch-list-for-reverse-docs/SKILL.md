@@ -1,0 +1,225 @@
+---
+name: generating-batch-list-for-reverse-docs
+日本語名: バッチの一覧を作る
+description: "既存のコードを調べて、定期実行やきっかけ起動の処理ごとに一覧のページを作る。"
+invocation: generating-batch-list-for-reverse-docs
+type: transform
+allowed-tools: [AskUserQuestion, Bash, Grep, Read, Write]
+---
+
+## いつ使うか
+
+既存のコードベースから、バッチ（定期実行のジョブ・きっかけ起動のジョブ）の一覧を作りたいとき。
+
+## いつ使わないか
+
+バッチ以外の種類の一覧を作るとき（それぞれ対応する一覧作成のスキルが担当）、コードと設計書を比べる検証や、環境の同期、実装作業を行うとき。
+
+# 正本: reverse-docs-skills
+
+# バッチ一覧生成スキル
+
+工程全体は orchestrating-ai-development-setup が案内する。本スキルはバッチ種別（`unit_kind=batch` 固定）の一覧生成のみを担い、単独起動できる（起動引数 source_dir・output_dir の2つを渡せば動く）。
+
+既存コードベースを、スタック調査→検出戦略の宣言→戦略に基づく抽出→整合検証、の順で調査し、バッチ（定期実行ジョブ・トリガー起動ジョブ・CLI コマンド）の単位にファイルをグルーピングして **バッチ一覧.html** を作成する。**本スキルの仕事はバッチ一覧.htmlの作成のみ**であり、設計書の雛形展開・生成・記入は一切行わない。
+
+他スキルへの依存を持たず、単独で動作する。
+
+## 設計原則: 固定と可変の分離
+
+マニフェストスキーマ・整合検証（`validate-manifest.sh`）・HTML生成（`build-unit-list.sh`）は決定的スクリプトに固定する。抽出（バッチ境界の検出）はプロジェクトごとに可変である。
+
+バッチ種別に組み込み検出器は存在しない。抽出は常に**カスタム抽出パス**を取る: Claude自身が Phase 1 の戦略宣言に沿ってプロジェクト専用の抽出手順を設計・実行し、スキーマ準拠のJSONマニフェスト（配列キーは `units`）を出力する。抽出方式に依らず `validate-manifest.sh` が抽出者非依存でマニフェストの整合性を機械保証する。汎用の正規表現を無条件に当てるのではなく、対象プロジェクト固有のバッチ規約を先に確認してから検出することで、境界の取り違えを防ぐ。
+
+エンジンスクリプトはスキルフォルダからの相対パスで参照する: `../../../generation-engine/scripts/unit-list/validate-manifest.sh`・`../../../generation-engine/scripts/unit-list/build-unit-list.sh`（正本リポジトリと公開先はディレクトリレイアウトが同一のため、この相対参照は両環境で成立する）。
+
+## 使用タイミング
+
+- 既存コードベースのバッチ一覧（定期実行ジョブ・トリガー起動ジョブの棚卸し）を作りたいとき
+- 起動引数: `source_dir`（ソースコードディレクトリ。探索対象）・`output_dir`（出力先ディレクトリ。バッチ一覧.htmlの書き出し先）の2つのみ
+
+## 出力仕様
+
+| 項目 | 値 |
+|---|---|
+| 種別 | batch（固定） |
+| ラベル | バッチ |
+| 出力フォルダ | `<output_dir>/<unitListDir>`（`unitListDir` は output-layout の物理配置キーで {label} は「バッチ」） |
+| 出力ファイル名 | バッチ一覧.html |
+| マニフェスト配列キー | `units` |
+
+永続マニフェスト（`batch-manifest.json`・`batch-manifest.ext.json`）は HTML と同じフォルダではなく `<output_dir>/<manifestsRoot>/` に永続化する。`manifestsRoot` は output-layout の物理配置キー（既定値 `docs/manifests`）。
+
+## 進捗管理（必須手順）
+
+スキル開始時に `TaskCreate` でPhase 1〜4のタスクを登録する。各Phase開始時に該当タスクを `in_progress` に、完了時に `completed` へ `TaskUpdate` で更新する。Phase 3からPhase 2へ差し戻す場合はPhase 2タスクを `in_progress` に戻す。実行環境にTaskCreate/TaskUpdateが存在しない場合は、出力先ディレクトリ内のタスク台帳ファイル（`task-ledger.md`）で同等のPhase遷移記録を代替する。
+
+## 動作フロー（Phase 1〜4）
+
+## Phase 1: スタック・バッチ規約の特定
+
+## Step 1-1: スタック・バッチ規約の特定
+
+**使用ツール**: AskUserQuestion / Bash / Grep / Read / Write
+
+調査項目の詳細は `references/batch-detection.md` を参照する。
+
+- **Step 1**: `package.json`・lockファイル（`package-lock.json`/`yarn.lock`/`pnpm-lock.yaml`）や依存定義（`requirements.txt`/`pyproject.toml` 等）からジョブスケジューラ・cron系ライブラリを確定する。これらが存在しないコードベースでは import 文・API 使用形跡から推定する。完了条件: ライブラリ名とバージョンが特定済み、または特定不能の根拠（推定経路）が記録済み
+- **Step 2**: バッチ定義の所在と方式を特定する（cron 定義・ジョブスケジューラ設定・CLI コマンド定義。`references/batch-detection.md` の調査対象表に従う）。定期実行の登録エントリが記載された定義ファイル（cron 設定・スケジューラ設定・付随ドキュメント等）は、Phase 2 の抽出結果（実ファイル走査で検出したユニット）との突合に使う**副次的な入力**として保持しておく（1-129。定義はあるが実装ファイルが存在しないエントリの見落とし防止）。完了条件: バッチ定義を含む実ファイルパスが列挙済み。定義ファイルが存在すればそのパスも保持済み
+- **Step 3**: バッチ固有の識別要素を調査する（ジョブ名の命名パターン・実行スケジュール（cron 式・実行間隔・トリガー条件）・入出力（処理対象データソース・出力先））。完了条件: `unit-id-regex` の候補値または「なし」が確定済み
+- **Step 4**: 除外パターンを確定する。ワンショットスクリプト・マイグレーション・`tests` 等のノイズを実際に `ls` で確認する。完了条件: `excludePatterns` 一覧が確定済み
+- **Step 5**: 検出戦略宣言を作成し、AskUserQuestionで承認を取る。宣言JSONは一時ファイルに保存する。完了条件: 戦略JSON（`unitKind: "batch"`/`extractionMethod: "custom"`/`unitIdRegex`/`excludePatterns`/`approvedByUser: true`/`notes`）が保存済み
+
+**完了**: Step 1〜4の調査完了（`references/batch-detection.md` の調査項目に準拠）。Step 5の検出戦略宣言（`unitKind`/`extractionMethod`/`unitIdRegex`/`excludePatterns`）がユーザー承認済み
+
+## Phase 2: 戦略に基づく抽出（カスタム抽出パスのみ）
+
+## Step 2-1: 戦略に基づく抽出（カスタム抽出パスのみ）
+
+- **Step 1**: Phase 1で宣言した手順（例: cron 設定ファイルのエントリ走査・ジョブ登録呼び出し（`schedule()`/`cron.schedule()` 等）の収集・CLI コマンド定義の列挙）をClaude自身がBash/Grep/Readで実行し、スキーマ準拠のマニフェストJSON（配列キー `units`）をWriteする。0件検出時は下記「0件時の分岐」節に従う。バッチを捏造しない。完了条件: マニフェストJSONが生成済み、または「0件時の分岐」節に従った処理が完了済み
+- **Step 2**: diagnosticsを確認する。警告が出た場合は抽出手順を見直し、見直し時はStep 1へ戻る。完了条件: diagnosticsが空、または警告を承知の上で続行と判断済み
+- **Step 3**: マニフェストへメタデータを付与する。`../../../generation-engine/scripts/extract/extract-batch-metadata.sh <manifest.json> <source_dir> <output_dir>/<manifestsRoot>/batch-manifest.ext.json` を実行し、各ユニットに `schedule`・`targetTables`・`downstreamJobs`・`execMethod` フィールドを追加した拡張マニフェストを一時ファイル + rename で `<output_dir>/<manifestsRoot>/batch-manifest.ext.json` へ原子的に永続化する。Step 1 で定義ファイル（cron 設定等）を保持できた場合は `--cron-file <定義ファイルのパス>` も渡し、定義エントリと実装（現マニフェストのユニット）の突合結果を `detectionSummary.diagnostics.definitionWithoutImplementation`（1-129）として拡張マニフェストへ記録する。実装のない定義エントリは一覧本体（units）には載せない。以降のPhaseでは永続化した `batch-manifest.ext.json` を使用する。完了条件: 拡張マニフェストが `<output_dir>/<manifestsRoot>/batch-manifest.ext.json` に永続化済み
+
+**非UTF-8原本への対応**: 原本が UTF-8 以外のエンコーディングで書かれている場合、通常の文字列検索はバイナリ扱いとなりマッチ 0 件を返す。走査の前に `generation-engine/scripts/detect-encoding.sh encoding <file>` でエンコーディングを確定し、UTF-8 以外なら `detect-encoding.sh to-utf8` で変換した一時コピーに対して走査する。変換結果は永続化せず一時コピーで足りる。マッチ 0 件を「該当なし」と結論する前に、エンコーディングが原因でないことを確認する。
+
+## 0件時の分岐
+
+検出0件は2つの状態を区別する。アーキテクチャ調査書（`survey_doc_path`）のバッチ種別の実在判定と突合して分岐する。エンコーディング起因の0件でないことを先に確認する（上記「非UTF-8原本への対応」）。
+
+| 調査書の判定 | 意味 | 動作 |
+|---|---|---|
+| バッチは実在しない | バッチを持たないプロジェクト | `<output_dir>/<unitListAbsentMd>`（`unitListAbsentMd` は output-layout の物理配置キー。`{label}` に「バッチ」を代入。既定値 `docs/manifests/バッチ一覧（該当なし）.md`）を判定理由の転記付きで生成し、status=`NONE` で正常終了する。呼び出し元は excluded-kinds.json の excludedKinds へ batch を記録する |
+| バッチは実在する | 検出失敗（抽出パスの不適合、境界の誤り） | 停止する。headless=false なら AskUserQuestion で報告し、headless=true なら `<verification_dir>/progress.jsonl` へ記録して status=`ERROR` を返す。手動リストは聞き出さない |
+
+`survey_doc_path` が未指定で調査書と突合できない場合は、実在判定を推測せず検出失敗として扱う（fail-closed）。
+
+**名称（name）の作り方**: マニフェストの各ユニットに付与する名称は、実装モジュール名・サブ名・ユニットキー・実装状態マーカー等の内部識別子を機械連結して生成しない。業務語のみで名称を構成する。設定ファイルのコメント等から得た業務名がそれ単体で一意にならない場合は、実装が属する機能グループを業務語へ訳して前置きする。訳語は参照テーブル名・コード内コメント・呼び出し関数名・テンプレート名等、実装コードの根拠に基づかせ、根拠のないものは推定と明示する。業務名が「テスト用」「一覧」「トップ」のように実態を表していない場合は、実装を読んでバッチの実態に即した名称を作る。設定ファイルのコメントが空欄でフォールバックが必要な場合も、＜系統名：ユニットキー（サブ名）＞のような内部識別子の連結を名称にしない。参照テーブル名・データ操作の種別・呼び出し関数名・テンプレート名・出力される固定文言を手がかりに実装から業務名を作る。実装からも業務名を断定できない場合は捏造せず、推定であることと手がかりを記録に残す。当該ユニットは名称を空にせず「業務名が未確定である」旨が利用者に伝わる表記にし、要確認として別掲する。要確認件数は成果物のサマリへ表示する。名称の根拠と確信度は次の列構成で記録する。
+
+| ユニットキー | 現行の名称 | 命名 | 根拠 | 断定可否 |
+|---|---|---|---|---|
+
+各ユニットには、上表の「断定可否」と対になる機械可読フィールド `nameConfidence` を付与する。値は `confirmed`（実装コードの根拠から業務名を断定できた）または `inferred`（根拠が弱く推定にとどまる）の2値。省略しない。
+
+#### 推定名称比率の可視化（1-128）
+
+`nameConfidence` が `inferred` のユニットが多いと、一覧の大半が推定名称で埋まる実害がある。この事実を隠さず可視化する。
+
+- 指標名は `inferredName`。値は `count`（inferred件数）・`total`（全ユニット数）・`ratio`（count/total）・`threshold`（0.5固定）・`warning`（ratio > threshold）
+- 集計は Phase 4 の HTML 生成時に `build-unit-list.sh` が manifest の `nameConfidence` から機械算出する
+- バッチ一覧.html には推定名称件数のタイルと、比率超過時のみ警告表示するコールアウトを常に表示する（0 件でも非表示にしない）
+
+#### 大量ユニット時の名称確定手順（1-128）
+
+対象コードベースの実装読解は実行時間内に収まらないことがある。ユニット数が閾値（既定100件）を超える場合は、以下の優先順位付き分割・段階的確定を行う。
+
+1. **優先順位付き分割**: `schedule.cron` が定義済み（定期実行）のユニットを最優先、次に呼び出し元・enqueue元が判明しているユニット、最後に手がかりの薄いユニットの順で3群に分ける
+2. **段階的確定**: 優先群から順に実装を読み `nameConfidence: confirmed` を積み上げる。時間内に読み切れなかった残群は `nameConfidence: inferred` のまま確定し、捏造しない
+3. **記録**: どこまで読み切ったか（優先群1〜Nまで確定・以降は推定）を完了報告の hint に残す
+
+検出結果は一時ディレクトリ（`$CLAUDE_JOB_DIR/tmp/batch-manifest.json`、未設定時は `${TMPDIR:-/tmp}/claude-job-${session}/tmp/` 配下。`${session}`はセッションIDが取得できなければ任意の一意な値でよい）に保存する。確定後は `<output_dir>/<manifestsRoot>/batch-manifest.json` へ一時ファイル + rename で原子的に永続化する。一時ファイルを後続・再開処理の入力にしてはならない。
+
+**完了**: Step 1でスキーマ準拠のマニフェストが1件以上確定、または0件検出をユーザーに報告して停止している。Step 2でdiagnosticsを確認済み。Step 3で拡張マニフェストに種別固有フィールド（schedule・targetTables・execMethod等）が付与されている。全ユニットに `nameConfidence` が付与されている
+
+## Phase 3: 整合検証（機械実行）
+
+## Step 3-1: 整合検証（機械実行）
+
+**使用ツール**: Bash
+
+- **Step 1**: `../../../generation-engine/scripts/unit-list/validate-manifest.sh <manifest.ext.json> --unit-kind batch` を実行する。完了条件: 全項目PASS
+- **Step 2**: FAIL時は指摘に応じて修正する（sourceFile不在は `--fix` でunresolvedへ扱いを下げられる）。修正後Step 1を再実行する。3回失敗したら抽出手順の再検討（Phase 2 Step 1）へ差し戻す。完了条件: exit 0
+
+`validate-manifest.sh` は抽出者非依存で同一基準の検証を行う。カスタム抽出パスであっても、この検証を通過しないマニフェストはPhase 4に進めない。
+
+**完了**: Step 1で `validate-manifest.sh --unit-kind batch` が全項目PASS。Step 2のFAIL時修正ループは3回以内
+
+## Phase 4: バッチ一覧.html 生成
+
+## Step 4-1: バッチ一覧.html 生成
+
+**使用ツール**: Bash / Write
+
+- **Step 1**: `../../../generation-engine/scripts/unit-list/build-unit-list.sh <manifest.ext.json> <output_dir>/<unitListHtml> --unit-kind batch --portal-dir <output_dir>` を実行する。`--portal-dir` にはポータル（`index.html`）の配置先＝納品物ルート（output_dir=output_dir）を渡し、「ポータルへ戻る」リンクを実在パスに解決させる。build側が内部でvalidateを再実行するため、検証を経ないmanifestからは生成できない。完了条件: HTML生成済み
+
+**手作業でのプレースホルダ置換は禁止する**（過去に `entryFile=None` の混入という実害が発生している）。HTML生成は必ずスクリプト経由の決定的処理で行う。
+
+**完了**: Step 1でバッチ一覧.htmlが生成され、埋め込みJSONがマニフェストと一致している。永続マニフェストが `<output_dir>/<manifestsRoot>/batch-manifest.json` に実在する
+
+## 完了条件
+
+| Phase | 完了条件 |
+|---|---|
+| Phase 1 | Step 1〜4の調査完了（`references/batch-detection.md` の調査項目に準拠）。Step 5の検出戦略宣言（`unitKind`/`extractionMethod`/`unitIdRegex`/`excludePatterns`）がユーザー承認済み |
+| Phase 2 | Step 1でスキーマ準拠のマニフェストが1件以上確定、または0件検出をユーザーに報告して停止している。Step 2でdiagnosticsを確認済み。Step 3で拡張マニフェストに種別固有フィールド（schedule・targetTables・execMethod等）が付与されている |
+| Phase 3 | Step 1で `validate-manifest.sh --unit-kind batch` が全項目PASS。Step 2のFAIL時修正ループは3回以内 |
+| Phase 4 | Step 1でバッチ一覧.htmlが生成され、埋め込みJSONがマニフェストと一致している。永続マニフェストが `<output_dir>/<manifestsRoot>/batch-manifest.json` に実在する |
+| **Goal** | 検証済みマニフェストのみからHTMLが生成され、未解決・診断警告が可視化され、設計書単位の判断材料が揃っている |
+
+## 返却
+
+本スキルは orchestrating-ai-development-setup の契約に準拠する。完了時に status（`DONE | NONE | ERROR`）と artifacts を返す。`DONE` の artifacts は生成したバッチ一覧.htmlのパス、`NONE` の artifacts は `<output_dir>/<unitListAbsentMd>`（`unitListAbsentMd` は output-layout の物理配置キー。`{label}` に「バッチ」を代入。既定値 `docs/manifests/バッチ一覧（該当なし）.md`）のパスである。`NONE` はバッチの実在しないことを判定済みの場合だけ返す（「0件時の分岐」節を参照）。呼び出し元は excluded-kinds.json の excludedKinds へ batch を記録する。artifacts[0] を汎用名 unit_list_html として返し、`unit_kind: batch`（固定値）、`batch_manifest_path`（永続生manifest）、`batch_manifest_ext_path`（永続拡張manifest）を返却ブロックに含める。HTML内に埋め込んだマニフェストJSONへの参照を embedded_json_ref として併せて返す。
+
+## ツールリファレンス
+
+| ツール | 用途 |
+|---|---|
+| Bash | `validate-manifest.sh`・`build-unit-list.sh` の実行（スキルフォルダ相対 `../../../generation-engine/scripts/unit-list/` 配下） |
+| Read | package.json・cron/スケジューラ設定・`references/batch-detection.md` の参照 |
+| Grep/Glob | バッチ規約（ジョブ名命名パターン・ジョブ登録呼び出し）・バッチ定義の調査、カスタム抽出パスでの物理ファイル収集 |
+| Write | 検出戦略宣言の一時保存、マニフェストJSON出力（バッチ一覧.html本体はスクリプト経由で生成） |
+| AskUserQuestion | Phase 1の検出戦略宣言確認、Phase 2の0件検出時の報告 |
+| TaskCreate/TaskUpdate | Phase 1〜4の進捗管理 |
+
+## 推奨手順
+
+- ソースディレクトリは対象プロジェクトの実コードルート（例: `backend/src`）を指定する。モノレポの場合はアーキテクチャ調査書 §10 のサイト一覧で確定した当該サイトのルートディレクトリを渡す
+- Phase 1の調査を省略して汎用の `unit-id-regex` を当てない。プロジェクトごとにジョブ命名規約・スケジューラ方式は異なる
+- 定期実行（`kind: scheduled`）とトリガー起動（`kind: triggered`）の区別はPhase 1で確定させてから抽出する。区別が付かないものは `unresolved` に隔離する
+
+## 重要な注意事項
+
+- 設計書の雛形展開・生成・記入は一切行わない。本スキルの成果物はバッチ一覧.htmlのみ
+- Phase 4のHTML手作業組み立てを禁止する。`build-unit-list.sh` を必ず経由し、プレースホルダの手動置換によるデータ混入を防ぐ
+- 0件検出時にAskUserQuestionで手動リストを聞き出さない。誤った境界を即興確定させない。該当なしの正常終了と検出失敗の停止の区別は「0件時の分岐」節の表が正である
+- Phase 2の抽出で全ツリーを対象とする文字列検索を行う場合は、走査範囲を対象拡張子で絞る。絞り込みなしの全ツリー再帰検索は、単一ディレクトリだけで数百メガバイト規模の対象があると実行時間の上限を超える。絞り込んだ拡張子と、走査対象外にした件数を抽出結果へ記録する
+
+## 予想を裏切る挙動
+
+- `validate-manifest.sh`・`build-unit-list.sh` は jq に依存する。未インストール環境では事前に導入する
+- カスタム抽出でソースを解析する際、コメントアウトされたジョブ定義・import文を除去してから抽出する（コメント内の定義を実在として誤検出した実害を防ぐ）
+- 動的に構築されるジョブ名・cron 式（変数結合等）は静的走査では確定できない。確定できないものは `confidence: low` または `unresolved` として可視化し、実在するかのように断定しない
+- マニフェストの配列キーは `screens` ではなく `units` とする
+- 出力先は `<output_dir>/<unitListHtml>`。種別ごとに独立したフォルダを作成する
+- 設計書の雛形展開・生成は行わない（本スキルのスコープ外）
+
+## 完了報告
+
+`../../../delivery-payload/references/完了報告の書き方.md` の共通骨格（作業報告型）に従う。
+
+固有の検証行:
+- validate-manifest.sh --unit-kind batch が全項目 PASS・バッチ一覧.html の生成成功
+
+## 設計判断
+
+### build-unit-list.sh（共有エンジン）
+
+**必要性**: 一覧HTML生成をClaude手作業（プレースホルダ置換）で行うと、検証なしのデータ混入が発生する（画面種別で `entryFile=None` が10件混入した実例）。JSONマニフェストからHTMLへの変換を決定的スクリプトに固定化し、手作業経路を根絶する。
+
+**代替案を採用しなかった理由**:
+- Bashツール直叩き: 毎回30行超のjq+ヒアドキュメントを手書きし、エスケープ事故が再発する
+- バッチ専用ビルダーの新設: テンプレート・カラム構成は種別間で共通化されており、種別引数で吸収できる
+
+**保守責任者**: 人手（ユーザー）
+
+**廃棄条件**: 一覧HTMLの形式が廃止された時
+
+### validate-manifest.sh（共有エンジン）
+
+**必要性**: 抽出がカスタムパス（Claude手書きJSON）であるため、品質を機械保証する独立検証が必須。マニフェストスキーマ・重複キー・unresolved隔離を抽出者非依存の同一基準で検査する。Phase 1で承認した検出戦略宣言（`approvedByUser: true`）の機械的な存在確認も本スクリプトが担う。
+
+**代替案を採用しなかった理由**:
+- Claude自己申告（検証コマンドを介さない目視確認）: 自己申告のみでの品質保証はデータ混入の実害実績があり信頼できない
+
+**保守責任者**: 人手（ユーザー）
+
+**廃棄条件**: マニフェスト形式（JSONスキーマ）が廃止された時

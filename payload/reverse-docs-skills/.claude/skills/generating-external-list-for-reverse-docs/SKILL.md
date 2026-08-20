@@ -1,0 +1,195 @@
+---
+name: generating-external-list-for-reverse-docs
+日本語名: 外部連携の一覧を作る
+description: "既にあるコードから外部との連携先を洗い出し、一覧のページを作る。"
+invocation: generating-external-list-for-reverse-docs
+type: transform
+allowed-tools: [AskUserQuestion, Bash, Grep, Read, Write]
+---
+
+## いつ使うか
+
+外部連携の一覧を作りたいとき、連携先の一覧を洗い出したいとき。
+
+## いつ使わないか
+
+他の種別の一覧を作るとき（→ 対応する種別別の一覧を作るスキルを使う）、往復の確かめ・同期・実装を行うとき。
+
+# 正本: reverse-docs-skills
+
+# 外部連携一覧生成スキル
+
+工程全体は orchestrating-ai-development-setup が案内する。本スキルは外部連携（`unit_kind=external` 固定）の一覧生成のみを担い、単独起動できる（起動引数 source_dir・output_dir の2つを渡せば動く）。
+
+既存コードベースを、スタック調査→検出戦略の宣言→戦略に基づく抽出→整合検証、の順で調査し、外部連携（APIクライアント・webhookハンドラ・メッセージキュー連携等）の単位にファイルをグルーピングして **外部連携一覧.html** を作成する。**本スキルの仕事は外部連携一覧.htmlの作成のみ**であり、設計書の雛形展開・生成・記入は一切行わない。
+
+他スキルへの依存を持たず、単独で動作する。
+
+## 設計原則: 固定と可変の分離
+
+マニフェストスキーマ・整合検証（`validate-manifest.sh`）・HTML生成（`build-unit-list.sh`）は決定的スクリプトに固定する。抽出（外部連携境界の検出）はプロジェクトごとに可変であり、**カスタム抽出パスのみ**を使う。外部連携には組み込み検出器が存在しないため、Claude自身が戦略宣言に沿ってプロジェクト専用の抽出手順を設計・実行し、スキーマ準拠のマニフェストJSON（配列キーは `units`）を出力する。
+
+抽出がClaude手作業のJSON作成であっても、`validate-manifest.sh` が抽出者非依存でマニフェストの整合性を機械保証する。汎用の正規表現を無条件に当てるのではなく、対象プロジェクト固有の連携規約を先に確認してから検出することで、境界の取り違えを防ぐ。
+
+### エンジンスクリプトの所在
+
+エンジンスクリプトはスキルフォルダ相対で参照する（正本リポジトリと公開先はディレクトリレイアウトが同一のため、この相対パスは両環境でそのまま成立する）。
+
+| 役割 | パス（スキルフォルダ起点） |
+|---|---|
+| 整合検証 | `../../../generation-engine/scripts/unit-list/validate-manifest.sh` |
+| HTML生成 | `../../../generation-engine/scripts/unit-list/build-unit-list.sh` |
+
+## 使用タイミング
+
+- 既存コードベースの外部連携一覧を作りたいとき
+- 起動引数: `source_dir`（ソースコードディレクトリ。探索対象）・`output_dir`（出力先ディレクトリ。外部連携一覧.htmlの書き出し先）の2つのみ。`unit_kind` 引数は持たない（external 固定）
+
+## 出力先
+
+`<output_dir>/<unitListHtml>`（`unitListHtml` は output-layout の物理配置キーで、{label} は「外部連携」）。外部連携専用の独立フォルダを作成する。永続マニフェスト（`external-manifest.json`・`external-manifest.ext.json`）は HTML と同じフォルダではなく `<output_dir>/<manifestsRoot>/` に永続化する。`manifestsRoot` は output-layout の物理配置キー（既定値 `docs/manifests`）。
+
+## 進捗管理（必須手順）
+
+スキル開始時に `TaskCreate` でPhase 1〜4のタスクを登録する。各Phase開始時に該当タスクを `in_progress` に、完了時に `completed` へ `TaskUpdate` で更新する。Phase 3からPhase 2へ差し戻す場合はPhase 2タスクを `in_progress` に戻す。実行環境にTaskCreate/TaskUpdateが存在しない場合は、出力先ディレクトリ内のタスク台帳ファイル（`task-ledger.md`）で同等のPhase遷移記録を代替する。
+
+## 動作フロー（Phase 1〜4）
+
+外部連携固有の調査項目・マニフェストスキーマは `references/external-detection.md` を参照する。
+
+## Phase 1: スタック・連携規約の特定
+
+## Step 1-1: スタック・連携規約の特定
+
+**使用ツール**: AskUserQuestion / Bash / Grep / Read / Write
+
+- **Step 1**: `package.json`・lockファイル（`package-lock.json`/`yarn.lock`/`pnpm-lock.yaml`）等からフレームワーク・HTTPクライアント・外部サービスSDKライブラリを確定する。これらが存在しないコードベースでは import 文・API 使用形跡から推定する。完了条件: ライブラリ名とバージョンが特定済み、または特定不能の根拠（推定経路）が記録済み
+- **Step 2**: 外部連携定義の所在を特定する（APIクライアントラッパー・SDK統合コード・webhookハンドラ・メッセージキューコンシューマの配置ディレクトリと定義方式）。連携先を列挙した定義ファイル（設定ファイル・環境変数一覧・付随ドキュメント等）が存在する場合は、Phase 2 の抽出結果（実装コードから検出したユニット）との突合に使う**副次的な入力**として保持しておく（1-129。定義はあるが消費する実装コードが存在しないエントリの見落とし防止）。完了条件: 連携定義を含む実ファイルパスが列挙済み。定義ファイルが存在すればそのパスも保持済み
+- **Step 3**: 連携先の識別パターンを調査する（接続先URL・APIキー等の環境変数名・設定ファイルの連携先定義・プロトコル種別・認証方式）。完了条件: 識別パターン候補値または「なし」が確定済み
+- **Step 4**: 除外パターンを確定する。`tests`/`mocks`/`stubs` 等のノイズディレクトリを実際に `ls` で確認する。完了条件: `excludePatterns` 一覧が確定済み
+- **Step 5**: 検出戦略宣言を作成し、AskUserQuestionで承認を取る。宣言JSONは一時ファイルに保存する。完了条件: 戦略JSON（`unitKind: "external"`/`extractionMethod: "custom"`/`unitIdRegex`/`excludePatterns`/`approvedByUser: true`/`notes`）が保存済み
+
+**完了**: Step 1〜4の調査完了（`references/external-detection.md` の調査項目に準拠）。Step 5の検出戦略宣言（`unitKind: "external"`/`unitIdRegex`/`excludePatterns`）がユーザー承認済み
+
+## Phase 2: 戦略に基づく抽出
+
+## Step 2-1: 戦略に基づく抽出
+
+- **Step 1**: 抽出方式はカスタム抽出パスに固定される（external に組み込み検出器はない）。完了条件: `custom` で確定済み
+- **Step 2**: Phase 1で宣言した手順（例: APIクライアントラッパーの走査・webhookハンドラ登録の解析・キューコンシューマ定義の収集等）をClaude自身がBash/Grep/Readで実行し、スキーマ準拠のマニフェストJSONをWriteする。走査は**読み込み宣言と実呼び出しの双方を確認する2段の走査**とする（1-139）。1段目で通信モジュールの読み込み宣言（`import requests`等）を手がかりにファイルを候補として拾い、2段目でそのファイルに実際の要求送信・受信の呼び出し（`requests.post(...)`等。既存の送信/受信パターンと同一）があるかを確認する。宣言のみで実呼び出しが無いファイルはユニットとしてマニフェストに含めず、候補ファイルパス一覧を一時ファイルに控えて Phase 2 Step 4 の `--declaration-candidates` に渡す。0件検出の場合は「0件時の分岐」節に従って処理する。連携を捏造しない。完了条件: マニフェストJSONが1件以上で生成済み、または「0件時の分岐」に従って処理済み。宣言のみで実呼び出しの無い候補ファイルがあれば一覧を保持済み
+- **Step 3**: diagnostics相当の自己点検を行う（同一 `sourceFile` への集中・`unresolved` の多発等）。問題があれば抽出手順を見直し、Step 2をやり直す。完了条件: 点検済み、または警告を承知の上で続行と判断済み
+- **Step 4**: マニフェストへメタデータを付与する。`../../../generation-engine/scripts/extract/extract-external-metadata.sh <manifest.json> <source_dir> <output_dir>/<manifestsRoot>/external-manifest.ext.json` を実行し、各ユニットに `direction`・`protocol`・`authMethod` フィールドを追加した拡張マニフェストを一時ファイル + rename で `<output_dir>/<manifestsRoot>/external-manifest.ext.json` へ原子的に永続化する。Step 2 で連携先定義ファイルを保持できた場合は `--definition-file <定義ファイルのパス>` を渡し、定義エントリと実装の突合結果を `detectionSummary.diagnostics.definitionWithoutImplementation`（1-129）として記録する。Step 2 で宣言のみの候補ファイル一覧を保持できた場合は `--declaration-candidates <一時ファイルのパス>` を渡し、宣言のみで実呼び出しの無いファイル数を `detectionSummary.diagnostics.declarationOnly`（1-139）として記録する。以降のPhaseでは永続化した `external-manifest.ext.json` を使用する。完了条件: 拡張マニフェストが `<output_dir>/<manifestsRoot>/external-manifest.ext.json` に永続化済み
+
+**非UTF-8原本への対応**: 原本が UTF-8 以外のエンコーディングで書かれている場合、通常の文字列検索はバイナリ扱いとなりマッチ 0 件を返す。走査の前に `generation-engine/scripts/detect-encoding.sh encoding <file>` でエンコーディングを確定し、UTF-8 以外なら `detect-encoding.sh to-utf8` で変換した一時コピーに対して走査する。変換結果は永続化せず一時コピーで足りる。マッチ 0 件を「該当なし」と結論する前に、エンコーディングが原因でないことを確認する。
+
+## 0件時の分岐
+
+検出0件は2つの状態を区別する。アーキテクチャ調査書（`survey_doc_path`）の外部連携の実在判定と突合して分岐する。エンコーディング起因の0件でないことを先に確認する（上記「非UTF-8原本への対応」）。
+
+| 調査書の判定 | 意味 | 動作 |
+|---|---|---|
+| 外部連携は実在しない | 外部連携を持たないプロジェクト | `<output_dir>/<unitListAbsentMd>`（`unitListAbsentMd` は output-layout の物理配置キー。`{label}` に「外部連携」を代入。既定値 `docs/manifests/外部連携一覧（該当なし）.md`）を判定理由の転記付きで生成し、status=`NONE` で正常終了する。呼び出し元は excluded-kinds.json の excludedKinds へ external を記録する |
+| 外部連携は実在する | 検出失敗（抽出パスの不適合、境界の誤り） | 停止する。headless=false なら AskUserQuestion で報告し、headless=true なら `<verification_dir>/progress.jsonl` へ記録して status=`ERROR` を返す。手動リストは聞き出さない |
+
+`survey_doc_path` が未指定で調査書と突合できない場合は、実在判定を推測せず検出失敗として扱う（fail-closed）。
+
+**名称（name）の作り方**: マニフェストの各ユニットに付与する名称は、実装モジュール名・サブ名・ユニットキー・実装状態マーカー等の内部識別子を機械連結して生成しない。業務語のみで名称を構成する。設定ファイルのコメント等から得た業務名がそれ単体で一意にならない場合は、実装が属する機能グループを業務語へ訳して前置きする。訳語は参照テーブル名・コード内コメント・呼び出し関数名・テンプレート名等、実装コードの根拠に基づかせ、根拠のないものは推定と明示する。業務名が「テスト用」「一覧」「トップ」のように実態を表していない場合は、実装を読んで連携の実態に即した名称を作る。設定ファイルのコメントが空欄でフォールバックが必要な場合も、＜系統名：ユニットキー（サブ名）＞のような内部識別子の連結を名称にしない。参照テーブル名・データ操作の種別・呼び出し関数名・テンプレート名・出力される固定文言を手がかりに実装から業務名を作る。実装からも業務名を断定できない場合は捏造せず、推定であることと手がかりを記録に残す。当該ユニットは名称を空にせず「業務名が未確定である」旨が利用者に伝わる表記にし、要確認として別掲する。要確認件数は成果物のサマリへ表示する。名称の根拠と確信度は次の列構成で記録する。
+
+| ユニットキー | 現行の名称 | 命名 | 根拠 | 断定可否 |
+|---|---|---|---|---|
+
+検出結果は一時ディレクトリ（`$CLAUDE_JOB_DIR/tmp/external-manifest.json`、未設定時は `${TMPDIR:-/tmp}/claude-job-${session}/tmp/` 配下。`${session}`はセッションIDが取得できなければ任意の一意な値でよい）に保存する。確定後は `<output_dir>/<manifestsRoot>/external-manifest.json` へ一時ファイル + rename で原子的に永続化する。一時ファイルを後続・再開処理の入力にしてはならない。
+
+**完了**: Step 2でスキーマ準拠のマニフェスト（配列キー `units`）が1件以上確定、または「0件時の分岐」に従って処理済み。Step 3で自己点検済み。Step 4で拡張マニフェストに種別固有フィールド（direction・protocol・authMethod）が付与されている
+
+## Phase 3: 整合検証（機械実行）
+
+## Step 3-1: 整合検証（機械実行）
+
+**使用ツール**: Bash
+
+- **Step 1**: `../../../generation-engine/scripts/unit-list/validate-manifest.sh <manifest.ext.json> --unit-kind external` を実行する。完了条件: 全項目PASS
+- **Step 2**: FAIL時は指摘に応じて修正する。修正後Step 1を再実行する。3回失敗したら抽出手順の再検討（Phase 2 Step 2）へ差し戻す。完了条件: exit 0
+
+`validate-manifest.sh` は抽出者非依存で検証する。カスタム抽出パスであっても、この検証を通過しないマニフェストはPhase 4に進めない。
+
+**完了**: Step 1で `validate-manifest.sh --unit-kind external` が全項目PASS。Step 2のFAIL時修正ループは3回以内
+
+## Phase 4: 外部連携一覧.html 生成
+
+## Step 4-1: 外部連携一覧.html 生成
+
+**使用ツール**: Bash / Write
+
+- **Step 1**: `../../../generation-engine/scripts/unit-list/build-unit-list.sh <manifest.ext.json> <output_dir>/<unitListHtml> --unit-kind external --portal-dir <output_dir>` を実行する。`--portal-dir` にはポータル（`index.html`）の配置先＝納品物ルート（output_dir=output_dir）を渡し、「ポータルへ戻る」リンクを実在パスに解決させる。build側が内部でvalidateを再実行するため、検証を経ないmanifestからは生成できない。完了条件: HTML生成済み
+
+**手作業でのプレースホルダ置換は禁止する**（過去に `entryFile=None` の混入という実害が発生している）。HTML生成は必ずスクリプト経由の決定的処理で行う。
+
+**完了**: Step 1で外部連携一覧.htmlが生成され、埋め込みJSONがマニフェストと一致している。永続マニフェストが `<output_dir>/<manifestsRoot>/external-manifest.json` に実在する
+
+## 完了条件
+
+| Phase | 完了条件 |
+|---|---|
+| Phase 1 | Step 1〜4の調査完了（`references/external-detection.md` の調査項目に準拠）。Step 5の検出戦略宣言（`unitKind: "external"`/`unitIdRegex`/`excludePatterns`）がユーザー承認済み |
+| Phase 2 | Step 2でスキーマ準拠のマニフェスト（配列キー `units`）が1件以上確定、または「0件時の分岐」に従って処理済み。Step 3で自己点検済み。Step 4で拡張マニフェストに種別固有フィールド（direction・protocol・authMethod）が付与されている |
+| Phase 3 | Step 1で `validate-manifest.sh --unit-kind external` が全項目PASS。Step 2のFAIL時修正ループは3回以内 |
+| Phase 4 | Step 1で外部連携一覧.htmlが生成され、埋め込みJSONがマニフェストと一致している。永続マニフェストが `<output_dir>/<manifestsRoot>/external-manifest.json` に実在する |
+| **Goal** | 検証済みマニフェストのみからHTMLが生成され、未解決・警告が可視化され、設計書単位の判断材料が揃っている |
+
+## 返却
+
+本スキルは orchestrating-ai-development-setup の契約に準拠する。完了時に以下を返す。
+
+- `status`: `DONE | NONE | ERROR`。`NONE` はアーキテクチャ調査書が外部連携の実在しないことを判定済みの場合だけ返す（「0件時の分岐」参照）
+- `artifacts`: 生成した外部連携一覧.htmlのパス。`NONE` の場合は `<output_dir>/<unitListAbsentMd>`（既定値 `docs/manifests/外部連携一覧（該当なし）.md`）のパス
+- `unit_list_html`: artifacts[0] の汎用名
+- `embedded_json_ref`: HTML内に埋め込んだマニフェストJSONへの参照
+- `unit_kind`: `external`（固定値）
+- `external_manifest_path`: 永続生マニフェスト（`<output_dir>/<manifestsRoot>/external-manifest.json`）
+- `external_manifest_ext_path`: 永続拡張マニフェスト（`<output_dir>/<manifestsRoot>/external-manifest.ext.json`）
+
+`status`が`NONE`の場合、呼び出し元はexcluded-kinds.jsonのexcludedKindsへ`external`を記録する。
+
+## ツールリファレンス
+
+| ツール | 用途 |
+|---|---|
+| Bash | `validate-manifest.sh`・`build-unit-list.sh` の実行（いずれもスキルフォルダ相対 `../../../generation-engine/scripts/unit-list/` 配下） |
+| Read | package.json・連携定義ファイル・`references/external-detection.md` の参照 |
+| Grep/Glob | 連携規約（クライアントラッパー・webhookハンドラ・キューコンシューマ・識別パターン）の調査、カスタム抽出パスでの物理ファイル収集 |
+| Write | 検出戦略宣言の一時保存、マニフェストJSON出力（外部連携一覧.html本体はスクリプト経由で生成） |
+| AskUserQuestion | Phase 1の検出戦略宣言確認、Phase 2の0件検出時の報告 |
+| TaskCreate/TaskUpdate | Phase 1〜4の進捗管理 |
+
+## 推奨手順
+
+- ソースディレクトリは対象プロジェクトの実コードルート（例: `backend/src`）を指定する。モノレポの場合はアーキテクチャ調査書 §10 のサイト一覧で確定した当該サイトのルートディレクトリを渡す
+- Phase 1の調査を省略して汎用の `unitIdRegex` を当てない。プロジェクトごとに連携の実装規約・命名規約は異なる
+- 連携先ごとに1ユニットとするか、プロトコル・機能ごとに分けるかは、Phase 1 Step 5の戦略宣言で明示してから抽出する
+
+## 重要な注意事項
+
+- 設計書の雛形展開・生成・記入は一切行わない。本スキルの成果物は外部連携一覧.htmlのみ
+- Phase 4のHTML手作業組み立てを禁止する。`build-unit-list.sh` を必ず経由し、プレースホルダの手動置換による `entryFile=None` 等のデータ混入を防ぐ
+- 0件検出時にAskUserQuestionで手動リストを聞き出さない。誤った境界を即興確定させない。該当なしの正常終了と検出失敗の停止の区別は「0件時の分岐」の表が正である
+
+## 予想を裏切る挙動
+
+- `validate-manifest.sh`・`build-unit-list.sh` は jq に依存する。未インストール環境では事前に導入する
+- カスタム抽出でソースを解析する際、コメントアウトされた連携定義・import文を除去してから抽出する（コメント内の定義を実在として誤検出した実害を防ぐ）
+- モック・スタブ（テスト用の偽クライアント等）を実連携として数えない。Phase 1 Step 4の除外パターンで先に隔離する
+- 自プロジェクト内の別モジュール呼び出しは外部連携ではない。境界は「プロセス外・組織外のシステムとの通信」に置く
+- マニフェストの配列キーは `screens` ではなく `units` とする（`screens` は画面種別専用の後方互換キー）
+- 出力先は `<output_dir>/<unitListHtml>`。他種別と混在させない
+
+## 完了報告
+
+`../../../delivery-payload/references/完了報告の書き方.md` の共通骨格（作業報告型）に従う。
+
+固有の検証行:
+- validate-manifest.sh --unit-kind external が全項目 PASS・外部連携一覧.html の生成成功
+
+## 設計判断
+
+本スキルは独自スクリプトを持たないため省略する。

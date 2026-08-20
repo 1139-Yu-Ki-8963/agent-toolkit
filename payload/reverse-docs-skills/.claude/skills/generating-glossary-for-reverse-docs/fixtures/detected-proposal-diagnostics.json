@@ -1,0 +1,12 @@
+{
+  "status": "needs_review",
+  "proposalStatus": "detected",
+  "missingSources": [],
+  "unscannedLayers": [],
+  "unresolvedCandidates": [],
+  "counts": {
+    "extractedFacts": 1,
+    "inferences": 1,
+    "evidence": 1
+  }
+}

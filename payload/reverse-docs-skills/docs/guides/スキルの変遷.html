@@ -1,0 +1,241 @@
+<!doctype html><html lang="ja"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>html,body{height:100%;margin:0}</style>
+<style>
+body{margin:0;background:#efedea;font-family:"Hiragino Sans","Noto Sans JP",system-ui,sans-serif}
+a{color:#2e64ad;text-decoration:none}a:hover{color:#1d4a86;text-decoration:underline}
+code{font-family:ui-monospace,Menlo,monospace}
+</style>
+<title>スキルの変遷</title>
+</head>
+<body>
+<div style="display:grid;grid-template-columns:280px 1fr;height:100vh;overflow:hidden;background:rgb(255,255,255)">
+
+  <div style="border-right:1px solid rgba(29,34,42,0.1);background:rgb(247,246,243);display:flex;flex-direction:column;overflow:hidden">
+    <div style="flex:1 1 0%;min-height:0px;overflow:auto;padding:22px 16px 16px 20px;display:flex;flex-direction:column;gap:16px">
+      <div>
+        <div style="font:600 10px ui-monospace,Menlo,monospace;color:rgb(46,100,173);letter-spacing:0.06em;margin-bottom:6px">reverse-docs-skills &middot; 記録</div>
+        <div style="font-size:14.5px;font-weight:700;color:rgb(29,34,42);line-height:1.45">スキルの変遷</div>
+      </div>
+      <nav style="display:flex;flex-direction:column;gap:1px;font-size:12px">
+        <a href="#s1" style="display:block;font-weight:700;color:rgb(29,34,42);padding:7px 10px;border-radius:6px">1 この文書は何か</a>
+        <a href="#s2" style="display:block;font-weight:700;color:rgb(29,34,42);padding:7px 10px;border-radius:6px">2 数の推移</a>
+        <a href="#s3" style="display:block;font-weight:700;color:rgb(29,34,42);padding:7px 10px;border-radius:6px">3 役割が広がった順序</a>
+        <a href="#s4" style="display:block;font-weight:700;color:rgb(29,34,42);padding:7px 10px;border-radius:6px">4 現在の姿</a>
+      </nav>
+      <div style="border-top:1px solid rgba(29,34,42,0.12);padding-top:12px">
+        <a href="reverse-docs-overview.html" style="display:block;font-size:11.5px;color:rgb(91,100,112);line-height:1.6">&larr; 全体ガイドへ戻る</a>
+      </div>
+    </div>
+  </div>
+
+  <div style="overflow:auto;background:rgb(255,255,255);padding:30px 36px 60px;display:flex;flex-direction:column;gap:34px">
+
+    <div>
+      <h1 style="margin:0 0 8px;font-size:20px;font-weight:700;color:rgb(29,34,42)">スキルの変遷</h1>
+      <p style="margin:0;font-size:13px;line-height:1.85;color:rgb(58,66,80);max-width:900px">reverse-docs-skills リポジトリのスキル数と役割の広がりを、実測できる記録だけで示す。</p>
+    </div>
+
+    <div id="s1">
+      <div style="display:flex;align-items:baseline;gap:12px;border-bottom:2px solid rgb(29,34,42);padding-bottom:8px;margin-bottom:16px"><span style="font:700 12px ui-monospace,Menlo,monospace;color:rgb(46,100,173)">1</span><h2 style="margin:0;font-size:17px;font-weight:700;color:rgb(29,34,42)">この文書は何か</h2></div>
+
+      <p style="margin:0 0 14px;font-size:13px;line-height:1.85;color:rgb(58,66,80);max-width:900px">この文書は、既存のコードから設計書を起こす一連のスキルが、どのように増え、どのような役割を持つようになったかを示す。</p>
+
+      <p style="margin:0 0 14px;font-size:13px;line-height:1.85;color:rgb(58,66,80);max-width:900px">はじめはコードから設計書を起こす 6 本だけだった。現在は 52 本があり、設計書の生成のほかに、一覧の作成、ポータルの組み立て、規約の提案、用語の管理までを扱う。</p>
+
+      <p style="margin:0;font-size:13px;line-height:1.85;color:rgb(58,66,80);max-width:900px">以降は、数の推移、役割が加わった順序、現在の内訳の順に示す。</p>
+    </div>
+
+    <div id="s2">
+      <div style="display:flex;align-items:baseline;gap:12px;border-bottom:2px solid rgb(29,34,42);padding-bottom:8px;margin-bottom:16px"><span style="font:700 12px ui-monospace,Menlo,monospace;color:rgb(46,100,173)">2</span><h2 style="margin:0;font-size:17px;font-weight:700;color:rgb(29,34,42)">数の推移</h2></div>
+
+      <p style="margin:0 0 16px;font-size:13px;line-height:1.85;color:rgb(58,66,80);max-width:900px">スキル数が動いた段階ごとの推移である。</p>
+
+      <div style="background:rgb(251,250,248);border:1px solid rgba(29,34,42,0.1);border-radius:12px;padding:20px 22px;max-width:1000px;margin-bottom:16px">
+
+        <div style="margin-bottom:16px">
+          <div style="display:flex;align-items:center;gap:10px">
+            <span style="width:180px;flex:0 0 auto;font-size:11px;color:rgb(91,100,112)">リバース系の移設</span>
+            <span style="width:48px;flex:0 0 auto;text-align:right;font:700 12px ui-monospace,Menlo,monospace;color:rgb(46,100,173)">6本</span>
+            <span style="flex:1 1 auto;background:rgba(46,100,173,0.08);border-radius:4px;height:16px;overflow:hidden;display:block"><span style="display:block;height:100%;width:11.5%;background:rgb(46,100,173);border-radius:4px"></span></span>
+          </div>
+          <div style="margin:4px 0 0 238px;font-size:11px;line-height:1.6;color:rgb(107,114,128)">リバース系 6 スキルの移設・<code style="font-size:10.5px">shared/</code> への切り出し（起点）</div>
+        </div>
+
+        <div style="margin-bottom:16px">
+          <div style="display:flex;align-items:center;gap:10px">
+            <span style="width:180px;flex:0 0 auto;font-size:11px;color:rgb(91,100,112)">一覧生成の分割</span>
+            <span style="width:48px;flex:0 0 auto;text-align:right;font:700 12px ui-monospace,Menlo,monospace;color:rgb(46,100,173)">17本</span>
+            <span style="flex:1 1 auto;background:rgba(46,100,173,0.08);border-radius:4px;height:16px;overflow:hidden;display:block"><span style="display:block;height:100%;width:32.7%;background:rgb(46,100,173);border-radius:4px"></span></span>
+          </div>
+          <div style="margin:4px 0 0 238px;font-size:11px;line-height:1.6;color:rgb(107,114,128)">一覧生成を 6 種別に分割</div>
+        </div>
+
+        <div style="margin-bottom:16px">
+          <div style="display:flex;align-items:center;gap:10px">
+            <span style="width:180px;flex:0 0 auto;font-size:11px;color:rgb(91,100,112)">基本設計と基盤ページ</span>
+            <span style="width:48px;flex:0 0 auto;text-align:right;font:700 12px ui-monospace,Menlo,monospace;color:rgb(46,100,173)">25本</span>
+            <span style="flex:1 1 auto;background:rgba(46,100,173,0.08);border-radius:4px;height:16px;overflow:hidden;display:block"><span style="display:block;height:100%;width:48.1%;background:rgb(46,100,173);border-radius:4px"></span></span>
+          </div>
+          <div style="margin:4px 0 0 238px;font-size:11px;line-height:1.6;color:rgb(107,114,128)">基本設計・共通設計書・基盤ページ 5 本・コード計測等の追加</div>
+        </div>
+
+        <div style="margin-bottom:16px">
+          <div style="display:flex;align-items:center;gap:10px">
+            <span style="width:180px;flex:0 0 auto;font-size:11px;color:rgb(91,100,112)">ポータル種別の拡張</span>
+            <span style="width:48px;flex:0 0 auto;text-align:right;font:700 12px ui-monospace,Menlo,monospace;color:rgb(46,100,173)">34本</span>
+            <span style="flex:1 1 auto;background:rgba(46,100,173,0.08);border-radius:4px;height:16px;overflow:hidden;display:block"><span style="display:block;height:100%;width:65.4%;background:rgb(46,100,173);border-radius:4px"></span></span>
+          </div>
+          <div style="margin:4px 0 0 238px;font-size:11px;line-height:1.6;color:rgb(107,114,128)">交差ビュー・ポータル拡張 8 成果物種別の追加</div>
+        </div>
+
+        <div style="margin-bottom:16px">
+          <div style="display:flex;align-items:center;gap:10px">
+            <span style="width:180px;flex:0 0 auto;font-size:11px;color:rgb(91,100,112)">改善課題の登録</span>
+            <span style="width:48px;flex:0 0 auto;text-align:right;font:700 12px ui-monospace,Menlo,monospace;color:rgb(46,100,173)">37本</span>
+            <span style="flex:1 1 auto;background:rgba(46,100,173,0.08);border-radius:4px;height:16px;overflow:hidden;display:block"><span style="display:block;height:100%;width:71.2%;background:rgb(46,100,173);border-radius:4px"></span></span>
+          </div>
+          <div style="margin:4px 0 0 238px;font-size:11px;line-height:1.6;color:rgb(107,114,128)">改善課題登録スキルの新設・バグ修正の集中期</div>
+        </div>
+
+        <div style="margin-bottom:16px">
+          <div style="display:flex;align-items:center;gap:10px">
+            <span style="width:180px;flex:0 0 auto;font-size:11px;color:rgb(91,100,112)">6 種別の設計を揃える</span>
+            <span style="width:48px;flex:0 0 auto;text-align:right;font:700 12px ui-monospace,Menlo,monospace;color:rgb(46,100,173)">51本</span>
+            <span style="flex:1 1 auto;background:rgba(46,100,173,0.08);border-radius:4px;height:16px;overflow:hidden;display:block"><span style="display:block;height:100%;width:98.1%;background:rgb(46,100,173);border-radius:4px"></span></span>
+          </div>
+          <div style="margin:4px 0 0 238px;font-size:11px;line-height:1.6;color:rgb(107,114,128)">6 種別の基本設計と詳細設計を全て揃える大量追加</div>
+        </div>
+
+        <div>
+          <div style="display:flex;align-items:center;gap:10px">
+            <span style="width:180px;flex:0 0 auto;font-size:11px;color:rgb(91,100,112)">要件定義の追加</span>
+            <span style="width:48px;flex:0 0 auto;text-align:right;font:700 12px ui-monospace,Menlo,monospace;color:rgb(46,100,173)">52本</span>
+            <span style="flex:1 1 auto;background:rgba(46,100,173,0.08);border-radius:4px;height:16px;overflow:hidden;display:block"><span style="display:block;height:100%;width:100%;background:rgb(46,100,173);border-radius:4px"></span></span>
+          </div>
+          <div style="margin:4px 0 0 238px;font-size:11px;line-height:1.6;color:rgb(107,114,128)">要件定義スキルの追加後、横ばい（現在）</div>
+        </div>
+
+      </div>
+
+      <p style="margin:0 0 14px;font-size:13px;line-height:1.85;color:rgb(58,66,80);max-width:900px">起点は 6 本で、次の段階で 17 本になった。最初の一段で約 3 倍に増えている。</p>
+
+      <p style="margin:0;font-size:13px;line-height:1.85;color:rgb(58,66,80);max-width:900px">51 本から 52 本の間は増えていない。</p>
+    </div>
+
+    <div id="s3">
+      <div style="display:flex;align-items:baseline;gap:12px;border-bottom:2px solid rgb(29,34,42);padding-bottom:8px;margin-bottom:16px"><span style="font:700 12px ui-monospace,Menlo,monospace;color:rgb(46,100,173)">3</span><h2 style="margin:0;font-size:17px;font-weight:700;color:rgb(29,34,42)">役割が広がった順序</h2></div>
+
+      <p style="margin:0 0 14px;font-size:13px;line-height:1.85;color:rgb(58,66,80);max-width:900px">役割が加わった順序を、代表的なスキル名とともに示す。</p>
+
+      <table style="width:100%;border-collapse:collapse;max-width:1000px;margin-bottom:16px">
+        <thead><tr>
+          <th style="text-align:left;font-size:11px;font-weight:600;color:rgb(107,114,128);padding:6px 10px;border-bottom:1px solid rgba(29,34,42,0.18);width:260px">加わった役割</th>
+          <th style="text-align:left;font-size:11px;font-weight:600;color:rgb(107,114,128);padding:6px 10px;border-bottom:1px solid rgba(29,34,42,0.18)">代表的なスキル</th>
+        </tr></thead>
+        <tbody>
+          <tr><td style="padding:7px 10px;border-bottom:1px solid rgba(29,34,42,0.08);font-size:12.5px;color:rgb(42,49,61);line-height:1.6;vertical-align:top">コードから設計書を起こす、一覧を作る、環境をそろえる（起点）</td><td style="padding:7px 10px;border-bottom:1px solid rgba(29,34,42,0.08);font-family:ui-monospace,Menlo,monospace;font-size:11px;color:rgb(42,49,61);line-height:1.7;vertical-align:top">rebuilding-code-from-docs, generating-screen-list-for-reverse-docs, syncing-reverse-env</td></tr>
+          <tr><td style="padding:7px 10px;border-bottom:1px solid rgba(29,34,42,0.08);font-size:12.5px;color:rgb(42,49,61);line-height:1.6;vertical-align:top">基本設計と共通の設計書を作る</td><td style="padding:7px 10px;border-bottom:1px solid rgba(29,34,42,0.08);font-family:ui-monospace,Menlo,monospace;font-size:11px;color:rgb(42,49,61);line-height:1.7;vertical-align:top">generating-reverse-basic-design, generating-reverse-common-docs</td></tr>
+          <tr><td style="padding:7px 10px;border-bottom:1px solid rgba(29,34,42,0.08);font-size:12.5px;color:rgb(42,49,61);line-height:1.6;vertical-align:top">ポータルと図を作る、環境とコード量を調べる、用語を集める</td><td style="padding:7px 10px;border-bottom:1px solid rgba(29,34,42,0.08);font-family:ui-monospace,Menlo,monospace;font-size:11px;color:rgb(42,49,61);line-height:1.7;vertical-align:top">generating-er-diagram-for-reverse-docs, counting-code-lines, generating-glossary-for-reverse-docs</td></tr>
+          <tr><td style="padding:7px 10px;border-bottom:1px solid rgba(29,34,42,0.08);font-size:12.5px;color:rgb(42,49,61);line-height:1.6;vertical-align:top">ポータルが扱う成果物の種別を広げる</td><td style="padding:7px 10px;border-bottom:1px solid rgba(29,34,42,0.08);font-family:ui-monospace,Menlo,monospace;font-size:11px;color:rgb(42,49,61);line-height:1.7;vertical-align:top">generating-design-system-for-reverse-docs, generating-icon-catalog-for-reverse-docs</td></tr>
+          <tr><td style="padding:7px 10px;border-bottom:1px solid rgba(29,34,42,0.08);font-size:12.5px;color:rgb(42,49,61);line-height:1.6;vertical-align:top">AI が読む設定資産を索引にする</td><td style="padding:7px 10px;border-bottom:1px solid rgba(29,34,42,0.08);font-family:ui-monospace,Menlo,monospace;font-size:11px;color:rgb(42,49,61);line-height:1.7;vertical-align:top">generating-agent-config-index-from-repo</td></tr>
+          <tr><td style="padding:7px 10px;border-bottom:1px solid rgba(29,34,42,0.08);font-size:12.5px;color:rgb(42,49,61);line-height:1.6;vertical-align:top">用語の管理を独立させる</td><td style="padding:7px 10px;border-bottom:1px solid rgba(29,34,42,0.08);font-family:ui-monospace,Menlo,monospace;font-size:11px;color:rgb(42,49,61);line-height:1.7;vertical-align:top">maintaining-semantic-glossary, managing-semantic-glossary</td></tr>
+          <tr><td style="padding:7px 10px;border-bottom:1px solid rgba(29,34,42,0.08);font-size:12.5px;color:rgb(42,49,61);line-height:1.6;vertical-align:top">納品先へ渡す規約を提案する</td><td style="padding:7px 10px;border-bottom:1px solid rgba(29,34,42,0.08);font-family:ui-monospace,Menlo,monospace;font-size:11px;color:rgb(42,49,61);line-height:1.7;vertical-align:top">generating-rule-proposals-for-reverse-docs</td></tr>
+          <tr><td style="padding:7px 10px;font-size:12.5px;color:rgb(42,49,61);line-height:1.6;vertical-align:top">開発の進め方そのものを組み立てる</td><td style="padding:7px 10px;font-family:ui-monospace,Menlo,monospace;font-size:11px;color:rgb(42,49,61);line-height:1.7;vertical-align:top">orchestrating-ai-development-setup</td></tr>
+        </tbody>
+      </table>
+
+      <p style="margin:0;font-size:13px;line-height:1.85;color:rgb(58,66,80);max-width:900px">はじめに備わったのは、コードから設計書を起こす役割だけだった。そこへ一覧、基本設計、ポータルという、作れる成果物の種類を増やす役割が加わった。その後に、規約と用語の管理という、生成の前提を扱う役割が加わっている。</p>
+    </div>
+
+    <div id="s4">
+      <div style="display:flex;align-items:baseline;gap:12px;border-bottom:2px solid rgb(29,34,42);padding-bottom:8px;margin-bottom:16px"><span style="font:700 12px ui-monospace,Menlo,monospace;color:rgb(46,100,173)">4</span><h2 style="margin:0;font-size:17px;font-weight:700;color:rgb(29,34,42)">現在の姿</h2></div>
+
+      <p style="margin:0 0 16px;font-size:13px;line-height:1.85;color:rgb(58,66,80);max-width:900px">52 本のスキルを役割ごとに数えた内訳である。</p>
+
+      <div style="background:rgb(251,250,248);border:1px solid rgba(29,34,42,0.1);border-radius:12px;padding:20px 22px;max-width:1000px;margin-bottom:16px">
+
+        <div style="display:flex;width:100%;height:26px;border-radius:6px;overflow:hidden;margin-bottom:18px">
+          <span style="width:40.4%;background:rgba(46,100,173,1)"></span><span style="width:21.2%;background:rgba(46,100,173,0.82)"></span><span style="width:19.2%;background:rgba(46,100,173,0.66)"></span><span style="width:7.7%;background:rgba(46,100,173,0.50)"></span><span style="width:5.8%;background:rgba(46,100,173,0.36)"></span><span style="width:3.8%;background:rgba(46,100,173,0.24)"></span><span style="width:1.9%;background:rgba(46,100,173,0.14)"></span>
+        </div>
+
+        <div style="margin-bottom:12px">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="width:12px;height:12px;flex:0 0 auto;border-radius:2px;background:rgba(46,100,173,1)"></span>
+            <span style="font-size:12.5px;font-weight:700;color:rgb(29,34,42)">リバース設計（基本設計・詳細設計・事実抽出等）</span>
+            <span style="font:700 12px ui-monospace,Menlo,monospace;color:rgb(46,100,173)">21本</span>
+            <span style="font-size:11px;color:rgb(138,147,160)">(40.4%)</span>
+          </div>
+          <div style="margin:3px 0 0 20px;font-family:ui-monospace,Menlo,monospace;font-size:11px;color:rgb(107,114,128);line-height:1.6">generating-reverse-basic-design, extracting-unit-facts-from-code, rebuilding-code-from-docs</div>
+        </div>
+
+        <div style="margin-bottom:12px">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="width:12px;height:12px;flex:0 0 auto;border-radius:2px;background:rgba(46,100,173,0.82)"></span>
+            <span style="font-size:12.5px;font-weight:700;color:rgb(29,34,42)">ポータル・図表生成</span>
+            <span style="font:700 12px ui-monospace,Menlo,monospace;color:rgb(46,100,173)">11本</span>
+            <span style="font-size:11px;color:rgb(138,147,160)">(21.2%)</span>
+          </div>
+          <div style="margin:3px 0 0 20px;font-family:ui-monospace,Menlo,monospace;font-size:11px;color:rgb(107,114,128);line-height:1.6">generating-design-system-for-reverse-docs, generating-er-diagram-for-reverse-docs, generating-icon-catalog-for-reverse-docs</div>
+        </div>
+
+        <div style="margin-bottom:12px">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="width:12px;height:12px;flex:0 0 auto;border-radius:2px;background:rgba(46,100,173,0.66)"></span>
+            <span style="font-size:12.5px;font-weight:700;color:rgb(29,34,42)">一覧生成</span>
+            <span style="font:700 12px ui-monospace,Menlo,monospace;color:rgb(46,100,173)">10本</span>
+            <span style="font-size:11px;color:rgb(138,147,160)">(19.2%)</span>
+          </div>
+          <div style="margin:3px 0 0 20px;font-family:ui-monospace,Menlo,monospace;font-size:11px;color:rgb(107,114,128);line-height:1.6">generating-screen-list-for-reverse-docs, generating-api-list-for-reverse-docs, generating-test-case-list-for-reverse-docs</div>
+        </div>
+
+        <div style="margin-bottom:12px">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="width:12px;height:12px;flex:0 0 auto;border-radius:2px;background:rgba(46,100,173,0.50)"></span>
+            <span style="font-size:12.5px;font-weight:700;color:rgb(29,34,42)">検証・環境・改善管理</span>
+            <span style="font:700 12px ui-monospace,Menlo,monospace;color:rgb(46,100,173)">4本</span>
+            <span style="font-size:11px;color:rgb(138,147,160)">(7.7%)</span>
+          </div>
+          <div style="margin:3px 0 0 20px;font-family:ui-monospace,Menlo,monospace;font-size:11px;color:rgb(107,114,128);line-height:1.6">counting-code-lines, surveying-local-environment, prioritizing-improvement-tasks-from-images</div>
+        </div>
+
+        <div style="margin-bottom:12px">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="width:12px;height:12px;flex:0 0 auto;border-radius:2px;background:rgba(46,100,173,0.36)"></span>
+            <span style="font-size:12.5px;font-weight:700;color:rgb(29,34,42)">用語管理</span>
+            <span style="font:700 12px ui-monospace,Menlo,monospace;color:rgb(46,100,173)">3本</span>
+            <span style="font-size:11px;color:rgb(138,147,160)">(5.8%)</span>
+          </div>
+          <div style="margin:3px 0 0 20px;font-family:ui-monospace,Menlo,monospace;font-size:11px;color:rgb(107,114,128);line-height:1.6">generating-glossary-for-reverse-docs, maintaining-semantic-glossary, managing-semantic-glossary</div>
+        </div>
+
+        <div style="margin-bottom:12px">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="width:12px;height:12px;flex:0 0 auto;border-radius:2px;background:rgba(46,100,173,0.24)"></span>
+            <span style="font-size:12.5px;font-weight:700;color:rgb(29,34,42)">規約</span>
+            <span style="font:700 12px ui-monospace,Menlo,monospace;color:rgb(46,100,173)">2本</span>
+            <span style="font-size:11px;color:rgb(138,147,160)">(3.8%)</span>
+          </div>
+          <div style="margin:3px 0 0 20px;font-family:ui-monospace,Menlo,monospace;font-size:11px;color:rgb(107,114,128);line-height:1.6">generating-rule-proposals-for-reverse-docs, generating-agent-config-index-from-repo</div>
+        </div>
+
+        <div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="width:12px;height:12px;flex:0 0 auto;border-radius:2px;background:rgba(46,100,173,0.14)"></span>
+            <span style="font-size:12.5px;font-weight:700;color:rgb(29,34,42)">開発フロー（統括）</span>
+            <span style="font:700 12px ui-monospace,Menlo,monospace;color:rgb(46,100,173)">1本</span>
+            <span style="font-size:11px;color:rgb(138,147,160)">(1.9%)</span>
+          </div>
+          <div style="margin:3px 0 0 20px;font-family:ui-monospace,Menlo,monospace;font-size:11px;color:rgb(107,114,128);line-height:1.6">orchestrating-ai-development-setup</div>
+        </div>
+
+      </div>
+
+      <p style="margin:0;font-size:13px;line-height:1.85;color:rgb(58,66,80);max-width:900px">設計書の生成、ポータルと図の生成、一覧の生成の 3 つで 42 本を占める。成果物を作る役割が中心である。</p>
+    </div>
+
+  </div>
+
+</div>
+</body></html>

@@ -1,0 +1,25 @@
+schema_version: 1.0.0
+content_version: 1.0.0
+glossary_key: warning_catalog
+title: Warning glossary
+scope: {level: application, includes: [warning_application], excludes: []}
+scope_catalog:
+  - {key: warning_application, level: application, parent_key: null, source_ref: docs/warning.md}
+default_language: ja
+terms:
+  - key: customer_relationship_status
+    label: 顧客関係状態
+    definition: 顧客関係状態を表す用語
+    kind: status
+    category: business
+    scope: {level: application, includes: [warning_application], excludes: []}
+    representations:
+      - {channel: code, value: CustomerRelationshipStatus, location: src/status.ts:1}
+    lifecycle: {status: active, introduced_in: 1.0.0}
+    stewardship: {approvers: [business-reviewer, architecture-reviewer]}
+    provenance:
+      publication_status: approved
+      decision_ref: proposals/customer_approval
+      change_ref: changes/add_customer
+      sources:
+        - {type: domain_document, ref: docs/warning.md, supports: definition}

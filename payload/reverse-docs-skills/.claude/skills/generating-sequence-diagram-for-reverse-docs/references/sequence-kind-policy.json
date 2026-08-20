@@ -1,0 +1,62 @@
+{
+  "specVersion": 1,
+  "linkField": "sequencePath",
+  "unitDirectory": {
+    "unitIdPattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$",
+    "screenUnitIdPattern": "^screen-[A-Za-z0-9][A-Za-z0-9._-]*$",
+    "fallbackField": "unitKey",
+    "fallbackUnsafeCharacters": "reject-path-separator-or-control",
+    "fallbackPrefixes": {
+      "api": "api-",
+      "feature": "feature-"
+    }
+  },
+  "kinds": {
+    "screen": {
+      "generate": true,
+      "source": "facts.call_order",
+      "orderedSection": null,
+      "unitRootKey": "screenUnitRoot",
+      "viewRootKey": "screenViewRoot"
+    },
+    "api": {
+      "generate": true,
+      "source": "API詳細設計書.md",
+      "orderedSection": "§4.1 処理順序",
+      "unitRootKey": "apiUnitRoot",
+      "viewRootKey": "apiUnitRoot"
+    },
+    "feature": {
+      "generate": true,
+      "source": "機能設計書.md",
+      "orderedSection": "§3.1 正常系フロー",
+      "unitRootKey": "featureUnitRoot",
+      "viewRootKey": "featureUnitRoot"
+    },
+    "table": {
+      "generate": false,
+      "reason": "テーブル定義書は構造を定義し、呼び出し順序を定義しない",
+      "omitListField": "sequencePath"
+    },
+    "batch": {
+      "generate": false,
+      "reason": "バッチ詳細設計書は処理定義と疑似コードを持つが、呼び出し順序表を持たない",
+      "omitListField": "sequencePath"
+    },
+    "report": {
+      "generate": false,
+      "reason": "帳票詳細設計書は編集・集計・改ページを定義し、呼び出し順序を定義しない",
+      "omitListField": "sequencePath"
+    },
+    "external": {
+      "generate": false,
+      "reason": "外部連携詳細設計書は電文・変換・タイムアウトを定義し、呼び出し順序を定義しない",
+      "omitListField": "sequencePath"
+    },
+    "message": {
+      "generate": false,
+      "reason": "メッセージは表示文言の定義であり、呼び出し順序を持たない",
+      "omitListField": "sequencePath"
+    }
+  }
+}

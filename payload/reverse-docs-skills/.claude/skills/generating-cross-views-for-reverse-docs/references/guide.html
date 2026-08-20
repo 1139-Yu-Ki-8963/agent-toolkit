@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<!--
+  generating-cross-views-for-reverse-docs スキルガイド（単一HTML型）
+
+  - 外部リソースはMaterial Symbols OutlinedのGoogle Fonts CDNだけを許可する。その他のCDN・フォント・画像は使わない
+-->
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>マトリクス・対応表生成スキル</title>
+<style>
+/* スキルガイド HTML（.claude/skills/*/references/guide.html）の統一意匠。
+   自己完結の単一 HTML へ丸ごと埋め込む style タグの中身。外部ファイルは参照しない。
+   版面は文書型のまま（中央寄せの最大幅・通常のページスクロール）。
+   ポータルの全画面レイアウト（サイドバー・100vh・sticky）は持ち込まない。
+   角丸は使わない（border-radius は 0 のみ）。影はぼかし半径を持たせない。
+   配色は delivery-payload/templates/tokens.css の値から取り出した派生値。
+   既定は明るい表示。暗い表示は prefers-color-scheme と data-theme="dark" の両方で切り替わる。
+   data-theme="light" を明示したときは明るい表示を固定する。 */
+
+:root, [data-theme="light"] {
+  --guide-bg: #F1F4F8;
+  --guide-panel: #FFFFFF;
+  --guide-panel2: #E9EEF4;
+  --guide-border: #D8DFE8;
+  --guide-text: #1A222E;
+  --guide-text-sub: #4B5A70;
+  --guide-muted: #6C7A8E;
+  --guide-accent: #0284C7;
+  --guide-accent-hi: #075985;
+  --guide-accent-soft: rgba(2,132,199,0.10);
+  --guide-stamp: #D9482B;
+  --guide-stamp-soft: rgba(217,72,43,0.12);
+  --guide-green: #15803D;
+  --guide-green-soft: rgba(21,128,61,0.16);
+  --guide-code-bg: #101722;
+  --guide-code-text: #C9E8FF;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --guide-bg: #0F1217;
+    --guide-panel: #161C23;
+    --guide-panel2: #1C232E;
+    --guide-border: #2B3443;
+    --guide-text: #E7ECF4;
+    --guide-text-sub: #A8B3C3;
+    --guide-muted: #8A96A7;
+    --guide-accent: #4CC2FE;
+    --guide-accent-hi: #9ADCFF;
+    --guide-accent-soft: rgba(76,194,255,0.17);
+    --guide-stamp: #FF6E4F;
+    --guide-stamp-soft: rgba(255,110,78,0.16);
+    --guide-green: #4ADE81;
+    --guide-green-soft: rgba(74,222,129,0.16);
+    --guide-code-bg: #0B0E13;
+    --guide-code-text: #C9E8FF;
+  }
+}
+
+[data-theme="dark"] {
+  --guide-bg: #0F1217;
+  --guide-panel: #161C23;
+  --guide-panel2: #1C232E;
+  --guide-border: #2B3443;
+  --guide-text: #E7ECF4;
+  --guide-text-sub: #A8B3C3;
+  --guide-muted: #8A96A7;
+  --guide-accent: #4CC2FE;
+  --guide-accent-hi: #9ADCFF;
+  --guide-accent-soft: rgba(76,194,255,0.17);
+  --guide-stamp: #FF6E4F;
+  --guide-stamp-soft: rgba(255,110,78,0.16);
+  --guide-green: #4ADE81;
+  --guide-green-soft: rgba(74,222,129,0.16);
+  --guide-code-bg: #0B0E13;
+  --guide-code-text: #C9E8FF;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0 auto;
+  padding: 0 24px 96px;
+  max-width: 980px;
+  font-family: system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif;
+  line-height: 1.85;
+  color: var(--guide-text);
+  background: var(--guide-bg);
+}
+
+header {
+  padding: 56px 0 24px;
+  border-bottom: 3px solid var(--guide-text);
+}
+header h1 { font-size: 1.9rem; margin: 0 0 10px; letter-spacing: 0.01em; }
+header p { margin: 6px 0 0; color: var(--guide-text-sub); }
+
+h1 { font-size: 1.9rem; margin: 0 0 10px; }
+h2 {
+  font-size: 1.35rem;
+  padding-bottom: 8px;
+  margin-bottom: 20px;
+  border-bottom: 2px solid var(--guide-text);
+}
+h3 { font-size: 1.05rem; margin: 32px 0 10px; }
+
+.skill-name {
+  display: inline-block;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 1rem;
+  background: var(--guide-text);
+  color: var(--guide-bg);
+  padding: 2px 10px;
+  border-radius: 0;
+  vertical-align: middle;
+}
+
+.meta-table { margin-top: 16px; font-size: 0.9rem; color: var(--guide-text-sub); }
+.meta-table td { padding: 3px 18px 3px 0; vertical-align: top; }
+
+nav { margin-top: 32px; padding: 18px 22px; background: var(--guide-panel); border: 1px solid var(--guide-border); border-radius: 0; }
+.toc { margin-top: 32px; padding: 18px 22px; background: var(--guide-panel); border: 1px solid var(--guide-border); border-radius: 0; }
+.toc-title { font-weight: 700; margin-bottom: 6px; }
+.toc ol, nav ol { margin: 0; padding-left: 1.4em; columns: 2; column-gap: 40px; }
+.toc li, nav li { margin: 2px 0; }
+
+section { margin-top: 64px; }
+section > h2 .sec-num { display: inline-block; }
+.sec-num {
+  display: inline-block;
+  min-width: 2.4em;
+  margin-right: 10px;
+  font-family: ui-monospace, monospace;
+  font-size: 0.95rem;
+  background: var(--guide-text);
+  color: var(--guide-bg);
+  text-align: center;
+  padding: 1px 8px;
+  border-radius: 0;
+  vertical-align: 2px;
+}
+
+.note { color: var(--guide-text-sub); font-size: 0.92rem; }
+
+a { color: var(--guide-accent); }
+.toc a, nav a { color: var(--guide-text); text-decoration: none; border-bottom: 1px dotted var(--guide-muted); }
+.toc a:hover, nav a:hover { border-bottom-style: solid; }
+table a, .spec a { color: var(--guide-accent); }
+
+table { border-collapse: collapse; width: 100%; }
+th, td { border: 1px solid var(--guide-border); padding: 8px 12px; text-align: left; vertical-align: top; }
+th { background: var(--guide-panel2); font-weight: 700; }
+
+.spec { border-collapse: collapse; width: 100%; margin: 14px 0; background: var(--guide-panel); font-size: 0.93rem; }
+.spec th, .spec td { border: 1px solid var(--guide-border); padding: 8px 12px; text-align: left; vertical-align: top; }
+.spec th { background: var(--guide-panel2); font-weight: 700; }
+
+ul, ol { margin: 0.5em 0 0.5em 1.4em; padding: 0; }
+li { margin: 2px 0; }
+
+pre {
+  background: var(--guide-code-bg);
+  color: var(--guide-code-text);
+  border-radius: 0;
+  padding: 18px;
+  overflow-x: auto;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.86rem;
+  line-height: 1.6;
+}
+.flow {
+  background: var(--guide-code-bg);
+  color: var(--guide-code-text);
+  border-radius: 0;
+  padding: 20px 24px;
+  overflow-x: auto;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.82rem;
+  line-height: 1.55;
+}
+.cap { color: var(--guide-muted); }
+
+code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.86em;
+  background: var(--guide-panel2);
+  color: var(--guide-text);
+  padding: 1px 5px;
+  border-radius: 0;
+}
+pre code, .flow code { background: transparent; color: inherit; padding: 0; }
+
+.def {
+  background: var(--guide-panel);
+  border: 1px solid var(--guide-border);
+  border-left: 4px solid var(--guide-accent);
+  padding: 12px 18px;
+  margin: 14px 0;
+  border-radius: 0;
+}
+.def dt { font-weight: 700; margin-top: 8px; }
+.def dt:first-child { margin-top: 0; }
+.def dd { margin: 2px 0 10px; color: var(--guide-text-sub); }
+
+.constraint {
+  background: var(--guide-accent-soft);
+  border: 1px solid var(--guide-accent);
+  border-radius: 0;
+  padding: 12px 18px;
+  margin: 16px 0;
+  font-size: 0.93rem;
+}
+.constraint strong:first-child { color: var(--guide-accent-hi); }
+
+.warn {
+  background: var(--guide-stamp-soft);
+  border: 1px solid var(--guide-stamp);
+  border-radius: 0;
+  padding: 12px 18px;
+  margin: 16px 0;
+  font-size: 0.93rem;
+}
+.warn strong:first-child { color: var(--guide-stamp); }
+
+.tag {
+  display: inline-block;
+  font-family: ui-monospace, monospace;
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 0 8px;
+  border-radius: 0;
+  border: 1px solid transparent;
+}
+.tag.pass  { background: var(--guide-green-soft); color: var(--guide-green); border-color: var(--guide-green); }
+.tag.fail  { background: var(--guide-stamp-soft); color: var(--guide-stamp); border-color: var(--guide-stamp); }
+.tag.error { background: var(--guide-stamp-soft); color: var(--guide-stamp); border-color: var(--guide-stamp); }
+.tag.mode  { background: var(--guide-accent-soft); color: var(--guide-accent-hi); border-color: var(--guide-accent); }
+
+.diagram {
+  margin: 20px 0;
+  padding: 8px;
+  background: var(--guide-panel);
+  border: 1px solid var(--guide-border);
+  border-radius: 0;
+}
+.diagram svg { width: 100%; height: auto; display: block; cursor: zoom-in; }
+.diagram figcaption { padding: 8px 10px 2px; }
+
+.zoom-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(0,0,0,0.82);
+  overflow: auto;
+  padding: 24px;
+  cursor: zoom-out;
+  -webkit-overflow-scrolling: touch;
+}
+.zoom-overlay svg {
+  width: 1880px;
+  max-width: none;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+  background: var(--guide-panel);
+  border-radius: 0;
+}
+
+@media (max-width: 640px) {
+  body { padding-inline: 14px; }
+  .toc ol, nav ol { columns: 1; }
+  .meta-table, .spec, table { font-size: 0.84rem; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>マトリクス・対応表生成スキル<br><span class="skill-name">generating-cross-views-for-reverse-docs</span></h1>
+  <p>既存のマニフェスト群を突き合わせ、<strong>5 つの横断ページ</strong>を機械生成する交差ビュー生成スキルの確定仕様。</p>
+
+  <table class="meta-table">
+    <tr><td>対応 OS</td><td>Windows WSL2 環境</td></tr>
+    <tr><td>検証状況</td><td>生成エンジン（<code>build-matrix-pages.sh</code>）が必須トップレベルキーの検査を内部で兼ねる。5 ページ横断での単独実機検証は未実施。スキル専用のテストスクリプトは持たない</td></tr>
+    <tr><td>依存</td><td>共有スクリプト <code>generation-engine/scripts/</code> 配下の <code>extract-screen-metadata.sh</code>・<code>extract-api-metadata.sh</code>・<code>build-matrix-data.sh</code>・<code>build-permission-function-data.sh</code>・<code>extract-ai-assets.sh</code>・<code>build-matrix-pages.sh</code> ／ 任意 <code>build-portal.sh</code></td></tr>
+    <tr><td>関連資料</td><td><code>SKILL.md</code>, <code>references/test-cases.md</code></td></tr>
+  </table>
+</header>
+
+<nav class="toc">
+  <div class="toc-title">目次</div>
+  <ol>
+    <li><a href="#s1">概要</a></li>
+    <li><a href="#s2">出力</a></li>
+    <li><a href="#s3">用語</a></li>
+    <li><a href="#s4">動作フロー（Phase 1〜4）</a></li>
+    <li><a href="#s5">守り（禁止事項と機械検証）</a></li>
+    <li><a href="#s6">関連スキル・資料</a></li>
+  </ol>
+</nav>
+
+<section id="s1">
+  <h2><span class="sec-num">§1</span>概要</h2>
+  <p>画面・API・テーブル・機能の一覧は、それぞれ単独では「何があるか」しか答えない。誰がどの画面を使えるのか、どの API がどのテーブルを触るのかといった問いに答えるには、複数の一覧を突き合わせる必要がある。本スキルは既存のマニフェスト群を交差させ、横断で引ける 5 つのページを機械生成する。</p>
+  <p>生成できるのは、元になるマニフェストが揃っているページだけである。必要な一覧が未生成なら該当ページは作らず、作れなかった事実を報告する。欠けた情報を推測で埋めることはしない。</p>
+
+  <div class="def">
+    <dt>本スキルがやること</dt>
+    <dd>既存マニフェストの突き合わせ・交差データの導出・5 ページの機械生成</dd>
+    <dt>本スキルがやらないこと</dt>
+    <dd>元になる画面・API・テーブル・機能の各一覧の作成（それぞれの一覧生成スキルの担当） ／ 権限設計の良否判定</dd>
+  </div>
+
+  <h3>起動引数</h3>
+  <table class="spec">
+    <tr><th>引数</th><th>内容</th></tr>
+    <tr><td><code>target_repo_path</code></td><td>メタデータ抽出の対象となるリポジトリルート</td></tr>
+    <tr><td><code>output_dir</code></td><td>5 ページの書き出し先ディレクトリ。既存マニフェストの所在でもある</td></tr>
+    <tr><td><code>portal_output_dir</code></td><td>任意。渡された場合のみポータルへ反映する</td></tr>
+    <tr><td><code>sites_path</code></td><td>任意。AI 設定資産の抽出に使う</td></tr>
+    <tr><td><code>site_key</code></td><td>任意。AI 設定資産の抽出に使う</td></tr>
+  </table>
+  <p class="note">元になるマニフェストが揃っていないページは生成されない。5 ページのうち一部だけが生まれることは正常な結果である。</p>
+</section>
+
+<section id="s2">
+  <h2><span class="sec-num">§2</span>出力</h2>
+  <p>元になるマニフェストが揃っている分だけ、次の 5 点が生まれる。</p>
+  <div class="def">
+    <dt>権限画面マトリクス.html</dt>
+    <dd>どの権限がどの画面に到達できるかの交差表</dd>
+    <dt>権限機能マトリクス.html</dt>
+    <dd>どの権限がどの機能を実行できるかの交差表</dd>
+    <dt>CRUD図.html</dt>
+    <dd>どの処理がどのテーブルに対して作成・参照・更新・削除のどれを行うかの対応表</dd>
+    <dt>画面-API-テーブル対応表.html</dt>
+    <dd>画面・API・テーブル・機能の間の参照関係をたどるための対応表</dd>
+    <dt>AI設定資産.html</dt>
+    <dd>対象リポジトリが持つ AI エージェント向け設定資産の一覧</dd>
+  </div>
+</section>
+
+<section id="s3">
+  <h2><span class="sec-num">§3</span>用語</h2>
+  <div class="def">
+    <dt>交差ビュー</dt>
+    <dd>複数の一覧を突き合わせて、単独の一覧では答えられない関係を示すページ</dd>
+    <dt>マニフェスト</dt>
+    <dd>各一覧生成スキルが出力した JSON。本スキルはこれを入力として読む</dd>
+  </div>
+</section>
+
+<section id="s4">
+  <h2><span class="sec-num">§4</span>動作フロー（Phase 1〜4）</h2>
+  <table class="spec">
+    <tr><th>Phase</th><th>内容</th></tr>
+    <tr><td>Phase 1 入力の確認</td><td><code>output_dir</code> 配下の各マニフェストの実在を確認し、生成できるページを確定する</td></tr>
+    <tr><td>Phase 2 メタデータ抽出（機械実行）</td><td><code>extract-screen-metadata.sh</code>・<code>extract-api-metadata.sh</code>・<code>extract-ai-assets.sh</code> が交差に必要なメタデータを取り出す</td></tr>
+    <tr><td>Phase 3 交差データの導出（機械実行）</td><td><code>build-matrix-data.sh</code>・<code>build-permission-function-data.sh</code> が交差表のデータを組み立てる</td></tr>
+    <tr><td>Phase 4 生成</td><td><code>build-matrix-pages.sh</code> が 5 ページを出力する。このスクリプトは出力前に必須トップレベルキーの検査を兼ねる。<code>portal_output_dir</code> が渡されていれば <code>build-portal.sh</code> でポータルへ反映する</td></tr>
+  </table>
+</section>
+
+<section id="s5">
+  <h2><span class="sec-num">§5</span>守り（禁止事項と機械検証）</h2>
+  <h3>禁止事項</h3>
+  <ul>
+    <li>交差データの JSON や生成後の HTML を手作業で編集しない。直すのは導出スクリプトの側</li>
+    <li>元のマニフェストに無い関係を推測で補完しない</li>
+    <li>マニフェストが欠けているページを、部分的な情報で無理に生成しない</li>
+  </ul>
+  <h3>機械検証</h3>
+  <p>Phase 4 の <code>build-matrix-pages.sh</code> が必須トップレベルキーの検査を内部で行い、検査を通らないデータからはページを出力しない。</p>
+</section>
+
+<section id="s6">
+  <h2><span class="sec-num">§6</span>関連スキル・資料</h2>
+  <table class="spec">
+    <tr><th>対象</th><th>内容</th></tr>
+    <tr><td><code>SKILL.md</code></td><td>本スキルの手順の定義</td></tr>
+    <tr><td><code>references/test-cases.md</code></td><td>本スキルの検証観点</td></tr>
+    <tr><td>generating-screen-list-for-reverse-docs</td><td>本スキルが読む画面一覧マニフェストを作る</td></tr>
+    <tr><td>generating-api-list-for-reverse-docs</td><td>本スキルが読む API 一覧マニフェストを作る</td></tr>
+    <tr><td>generating-table-list-for-reverse-docs</td><td>本スキルが読むテーブル一覧マニフェストを作る</td></tr>
+  </table>
+</section>
+
+</body>
+</html>

@@ -1,0 +1,61 @@
+# hook 配置アーキ規約（HOOKS-ARCHITECTURE）設計ノート（非注入サイドカー）
+# rule.md から分離した保守者向け記録。規約の挙動には影響しない。
+
+## 設計判断
+
+### check-hooks-architecture
+
+**必要性**: `design/hooks.html` で言語化した hook 配置アーキ規約（flat `hooks/` バケット禁止、ownership×scope の 4 象限への配置）を機械強制するため、PreToolUse(Write|Edit|MultiEdit) で新規 hook の作成パスを検証する hook が必要。文書ルールだけでは違反が再発する（2026-06-14 に `~/agent-home/tools/hooks/` 配下に 2 ファイルを規約違反で作成した実例あり）。
+
+**代替案を採用しなかった理由**:
+- `permissions.deny` だけでは「既存ファイルの編集は通すが新規作成だけ止める」net-new 判定ができず、既存 50+ ファイルの legacy 編集が不能になる
+- Bash ツール直叩きは毎回の Write/Edit 発火に対応できず運用破綻する
+- 既存 Makefile / package.json scripts は hook 機構（PreToolUse スクリプト）と整合しない
+- 既存の `worktree-required-check.sh` 等は責務が異なり、1 hook = 1 規約の原則に反する
+
+**保守責任者**: 人手（ユーザー）。規約変更時は `design/hooks.html` と本 hook を同時更新する。
+
+**廃棄条件**: 既存 legacy 50+ ファイルが全て canonical 配置に移行完了し flat `hooks/` バケットが空になった時、または Claude Code 本体が hook 配置を schema レベルで強制する機能を提供した時。
+
+### rules-bash-runner
+
+**必要性**: PreToolUse(Bash) に rules 系 hook 6 本が直列登録され、全 Bash 実行で毎回 6 プロセスの fork + 6 回の stdin JSON パースが発生していた（2026-07-02 監査で確認。timeout 未指定 1 本は既定 60s のハングリスクも保持）。本ランナーは stdin を 1 回だけ読み、各 hook のトリガー条件（上位集合ガード）に一致した場合のみ該当 hook を起動する。非該当コマンド（ls / jq / cat 等の大多数）では fork ゼロで即抜けし、直列レイテンシを約 1/6 に削減する。各 hook の正本・挙動は変更しない透過ラッパーであり、hook 単体の着脱はランナー内の 1 ブロック削除で完結する。
+
+**代替案を採用しなかった理由**:
+- 6 hook のコードを 1 ファイルに統合: 正本が分裂しドリフトする。マーカー・カウンタ等の状態管理を壊すリスクが高い
+- dispatch-pre-bash-checks.sh への統合: dispatch は命名・textlint の advisory JSON を出力するため、mkdir 等で複数 JSON が 1 hook エントリに混在し harness のパースを壊す
+- 現状維持（6 エントリ直列）: 全 Bash 実行に fork ×6 の固定税が残り、体感レイテンシの主因になる
+
+**保守責任者**: 人手（ユーザー）。集約対象 hook の追加・削除時にランナーのガード条件を同時更新する。ガードは必ず hook 内部判定の上位集合にすること。
+
+**廃棄条件**: Claude Code 本体が hook の条件付き発火（matcher のコマンドパターン指定）を提供した時、または集約対象の rules 系 hook が全廃された時。
+
+## scoped 配置の理由（2026-07-06 追記）
+
+hook の新規配置は .claude/・agent-home/skills/・agent-home/tools/・settings.json を触る作業でしか発生しない。禁止バケットへの投入は PreToolUse hook（exit 2）が paths 非依存で block するため、規約文は該当ファイルを開いた時だけの注入で足りる。
+
+## check-marker-antipattern.sh
+
+**必要性**: マーカーファイル作成は hook 設計時に自然に選択されるパターンだが、autoモード環境では機能しない。新規 hook スクリプトの作成時（PostToolUse(Write)）に静的検出することで、設計段階で代替手段への切り替えを促す。
+
+**代替案を採用しなかった理由**:
+- hard block（exit 2）: 静的パターンマッチの不精密さ（コメント内・文字列内の誤検知）で偽陽性の害が大きい。解体した commit gate と同じ轍
+- settings.json の deny パターン: `touch` コマンド全般を deny すると正当なファイル操作も巻き込む
+- ルールのみ（hook なし）: 行動規範は判断の余地を残し、サブエージェントはルールを見落とす
+
+**保守責任者**: 人手（ユーザー）。検出パターンを追加する場合は rule.md「マーカーファイル禁止」節と hook スクリプトを同時に更新する。
+
+**廃棄条件**: Claude Code 本体が hook の状態管理を標準機能として提供した時、またはマーカーファイルが autoモードで拒否されなくなった時。
+
+## transcript-query.sh
+
+**必要性**: `marker-path.sh`（マーカーファイルの書き出し先を解決するヘルパー）の廃止に伴い、その代替となる transcript 走査・skill-log 照会の関数を共有ヘルパーとして集約する必要がある。各 hook が個別に `grep -c` を書くと実装が分散し、パフォーマンス改善（`tail -n 1000` 等）を一括適用できなくなる。
+
+**代替案を採用しなかった理由**:
+- `tools/hooks/shared/` に配置: hooks-architecture 規約（`check-hooks-architecture.sh`）が新規ファイル作成を block する。既存の `marker-path.sh` は legacy 例外として許容されているが、新規ファイルには適用されない
+- 各 hook にインライン展開: 14本以上の hook に同一ロジックを複製することになり、DRY 原則に反する
+- Bash ツール直叩き: hook から source される共有ライブラリであり、Bash ツール経由では実現できない
+
+**保守責任者**: 人手（ユーザー）。関数の追加・パフォーマンス改善時に本ファイルを更新する。
+
+**廃棄条件**: Claude Code 本体が hook 間の状態共有を標準機能として提供した時。

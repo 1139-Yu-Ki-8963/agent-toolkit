@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<!--
+  generating-rule-proposals-for-reverse-docs スキルガイド（単一ファイル自己完結型）
+
+  - 外部リソース（CDN・画像・link）は一切使わず、完全自己完結に保つ
+  - 視覚言語は generating-tech-stack-for-reverse-docs の guide.html に合わせる
+-->
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>generating-rule-proposals-for-reverse-docs スキルガイド</title>
+<style>
+/* スキルガイド HTML（.claude/skills/*/references/guide.html）の統一意匠。
+   自己完結の単一 HTML へ丸ごと埋め込む style タグの中身。外部ファイルは参照しない。
+   版面は文書型のまま（中央寄せの最大幅・通常のページスクロール）。
+   ポータルの全画面レイアウト（サイドバー・100vh・sticky）は持ち込まない。
+   角丸は使わない（border-radius は 0 のみ）。影はぼかし半径を持たせない。
+   配色は delivery-payload/templates/tokens.css の値から取り出した派生値。
+   既定は明るい表示。暗い表示は prefers-color-scheme と data-theme="dark" の両方で切り替わる。
+   data-theme="light" を明示したときは明るい表示を固定する。 */
+
+:root, [data-theme="light"] {
+  --guide-bg: #F1F4F8;
+  --guide-panel: #FFFFFF;
+  --guide-panel2: #E9EEF4;
+  --guide-border: #D8DFE8;
+  --guide-text: #1A222E;
+  --guide-text-sub: #4B5A70;
+  --guide-muted: #6C7A8E;
+  --guide-accent: #0284C7;
+  --guide-accent-hi: #075985;
+  --guide-accent-soft: rgba(2,132,199,0.10);
+  --guide-stamp: #D9482B;
+  --guide-stamp-soft: rgba(217,72,43,0.12);
+  --guide-green: #15803D;
+  --guide-green-soft: rgba(21,128,61,0.16);
+  --guide-code-bg: #101722;
+  --guide-code-text: #C9E8FF;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --guide-bg: #0F1217;
+    --guide-panel: #161C23;
+    --guide-panel2: #1C232E;
+    --guide-border: #2B3443;
+    --guide-text: #E7ECF4;
+    --guide-text-sub: #A8B3C3;
+    --guide-muted: #8A96A7;
+    --guide-accent: #4CC2FE;
+    --guide-accent-hi: #9ADCFF;
+    --guide-accent-soft: rgba(76,194,255,0.17);
+    --guide-stamp: #FF6E4F;
+    --guide-stamp-soft: rgba(255,110,78,0.16);
+    --guide-green: #4ADE81;
+    --guide-green-soft: rgba(74,222,129,0.16);
+    --guide-code-bg: #0B0E13;
+    --guide-code-text: #C9E8FF;
+  }
+}
+
+[data-theme="dark"] {
+  --guide-bg: #0F1217;
+  --guide-panel: #161C23;
+  --guide-panel2: #1C232E;
+  --guide-border: #2B3443;
+  --guide-text: #E7ECF4;
+  --guide-text-sub: #A8B3C3;
+  --guide-muted: #8A96A7;
+  --guide-accent: #4CC2FE;
+  --guide-accent-hi: #9ADCFF;
+  --guide-accent-soft: rgba(76,194,255,0.17);
+  --guide-stamp: #FF6E4F;
+  --guide-stamp-soft: rgba(255,110,78,0.16);
+  --guide-green: #4ADE81;
+  --guide-green-soft: rgba(74,222,129,0.16);
+  --guide-code-bg: #0B0E13;
+  --guide-code-text: #C9E8FF;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0 auto;
+  padding: 0 24px 96px;
+  max-width: 980px;
+  font-family: system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif;
+  line-height: 1.85;
+  color: var(--guide-text);
+  background: var(--guide-bg);
+}
+
+header {
+  padding: 56px 0 24px;
+  border-bottom: 3px solid var(--guide-text);
+}
+header h1 { font-size: 1.9rem; margin: 0 0 10px; letter-spacing: 0.01em; }
+header p { margin: 6px 0 0; color: var(--guide-text-sub); }
+
+h1 { font-size: 1.9rem; margin: 0 0 10px; }
+h2 {
+  font-size: 1.35rem;
+  padding-bottom: 8px;
+  margin-bottom: 20px;
+  border-bottom: 2px solid var(--guide-text);
+}
+h3 { font-size: 1.05rem; margin: 32px 0 10px; }
+
+.skill-name {
+  display: inline-block;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 1rem;
+  background: var(--guide-text);
+  color: var(--guide-bg);
+  padding: 2px 10px;
+  border-radius: 0;
+  vertical-align: middle;
+}
+
+.meta-table { margin-top: 16px; font-size: 0.9rem; color: var(--guide-text-sub); }
+.meta-table td { padding: 3px 18px 3px 0; vertical-align: top; }
+
+nav { margin-top: 32px; padding: 18px 22px; background: var(--guide-panel); border: 1px solid var(--guide-border); border-radius: 0; }
+.toc { margin-top: 32px; padding: 18px 22px; background: var(--guide-panel); border: 1px solid var(--guide-border); border-radius: 0; }
+.toc-title { font-weight: 700; margin-bottom: 6px; }
+.toc ol, nav ol { margin: 0; padding-left: 1.4em; columns: 2; column-gap: 40px; }
+.toc li, nav li { margin: 2px 0; }
+
+section { margin-top: 64px; }
+section > h2 .sec-num { display: inline-block; }
+.sec-num {
+  display: inline-block;
+  min-width: 2.4em;
+  margin-right: 10px;
+  font-family: ui-monospace, monospace;
+  font-size: 0.95rem;
+  background: var(--guide-text);
+  color: var(--guide-bg);
+  text-align: center;
+  padding: 1px 8px;
+  border-radius: 0;
+  vertical-align: 2px;
+}
+
+.note { color: var(--guide-text-sub); font-size: 0.92rem; }
+
+a { color: var(--guide-accent); }
+.toc a, nav a { color: var(--guide-text); text-decoration: none; border-bottom: 1px dotted var(--guide-muted); }
+.toc a:hover, nav a:hover { border-bottom-style: solid; }
+table a, .spec a { color: var(--guide-accent); }
+
+table { border-collapse: collapse; width: 100%; }
+th, td { border: 1px solid var(--guide-border); padding: 8px 12px; text-align: left; vertical-align: top; }
+th { background: var(--guide-panel2); font-weight: 700; }
+
+.spec { border-collapse: collapse; width: 100%; margin: 14px 0; background: var(--guide-panel); font-size: 0.93rem; }
+.spec th, .spec td { border: 1px solid var(--guide-border); padding: 8px 12px; text-align: left; vertical-align: top; }
+.spec th { background: var(--guide-panel2); font-weight: 700; }
+
+ul, ol { margin: 0.5em 0 0.5em 1.4em; padding: 0; }
+li { margin: 2px 0; }
+
+pre {
+  background: var(--guide-code-bg);
+  color: var(--guide-code-text);
+  border-radius: 0;
+  padding: 18px;
+  overflow-x: auto;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.86rem;
+  line-height: 1.6;
+}
+.flow {
+  background: var(--guide-code-bg);
+  color: var(--guide-code-text);
+  border-radius: 0;
+  padding: 20px 24px;
+  overflow-x: auto;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.82rem;
+  line-height: 1.55;
+}
+.cap { color: var(--guide-muted); }
+
+code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.86em;
+  background: var(--guide-panel2);
+  color: var(--guide-text);
+  padding: 1px 5px;
+  border-radius: 0;
+}
+pre code, .flow code { background: transparent; color: inherit; padding: 0; }
+
+.def {
+  background: var(--guide-panel);
+  border: 1px solid var(--guide-border);
+  border-left: 4px solid var(--guide-accent);
+  padding: 12px 18px;
+  margin: 14px 0;
+  border-radius: 0;
+}
+.def dt { font-weight: 700; margin-top: 8px; }
+.def dt:first-child { margin-top: 0; }
+.def dd { margin: 2px 0 10px; color: var(--guide-text-sub); }
+
+.constraint {
+  background: var(--guide-accent-soft);
+  border: 1px solid var(--guide-accent);
+  border-radius: 0;
+  padding: 12px 18px;
+  margin: 16px 0;
+  font-size: 0.93rem;
+}
+.constraint strong:first-child { color: var(--guide-accent-hi); }
+
+.warn {
+  background: var(--guide-stamp-soft);
+  border: 1px solid var(--guide-stamp);
+  border-radius: 0;
+  padding: 12px 18px;
+  margin: 16px 0;
+  font-size: 0.93rem;
+}
+.warn strong:first-child { color: var(--guide-stamp); }
+
+.tag {
+  display: inline-block;
+  font-family: ui-monospace, monospace;
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 0 8px;
+  border-radius: 0;
+  border: 1px solid transparent;
+}
+.tag.pass  { background: var(--guide-green-soft); color: var(--guide-green); border-color: var(--guide-green); }
+.tag.fail  { background: var(--guide-stamp-soft); color: var(--guide-stamp); border-color: var(--guide-stamp); }
+.tag.error { background: var(--guide-stamp-soft); color: var(--guide-stamp); border-color: var(--guide-stamp); }
+.tag.mode  { background: var(--guide-accent-soft); color: var(--guide-accent-hi); border-color: var(--guide-accent); }
+
+.diagram {
+  margin: 20px 0;
+  padding: 8px;
+  background: var(--guide-panel);
+  border: 1px solid var(--guide-border);
+  border-radius: 0;
+}
+.diagram svg { width: 100%; height: auto; display: block; cursor: zoom-in; }
+.diagram figcaption { padding: 8px 10px 2px; }
+
+.zoom-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(0,0,0,0.82);
+  overflow: auto;
+  padding: 24px;
+  cursor: zoom-out;
+  -webkit-overflow-scrolling: touch;
+}
+.zoom-overlay svg {
+  width: 1880px;
+  max-width: none;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+  background: var(--guide-panel);
+  border-radius: 0;
+}
+
+@media (max-width: 640px) {
+  body { padding-inline: 14px; }
+  .toc ol, nav ol { columns: 1; }
+  .meta-table, .spec, table { font-size: 0.84rem; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>規約提案HTML生成スキル<br><span class="skill-name">generating-rule-proposals-for-reverse-docs</span></h1>
+  <p>対象リポジトリのコードを調査し、観測した実装慣行を規約提案HTMLとしてリポジトリ外へ出力するスキルの確定仕様。</p>
+
+  <div class="def">
+    <dt>こんな人向け</dt>
+    <dd>
+      対象リポジトリに規約が整備されていない、または実態と規約の乖離を疑っている人 ／
+      実装慣行から規約の叩き台を起こし、現場の判定に委ねたい人
+    </dd>
+    <dt>こんな場面で使う</dt>
+    <dd>
+      アーキテクチャ調査書が確定済みで、次に規約整備の材料を集めたい時 ／
+      規約提案の観測範囲と根拠を機械検証付きの成果物として残したい時
+    </dd>
+  </div>
+
+  <table class="meta-table">
+    <tr><td>対応 OS</td><td>Windows WSL2 環境</td></tr>
+    <tr><td>検証状況</td><td>エンジンスクリプト（build-rule-proposal.sh）はself-testと手動スモークテストでの動作確認済み。スキル単体の実機検証は未実施</td></tr>
+    <tr><td>依存</td><td>jq ／ <code>generation-engine/scripts/rule-proposal/build-rule-proposal.sh</code>（スキルフォルダ相対 <code>../../../generation-engine/scripts/rule-proposal/</code>）／ 生成後の静的検査には node と <code>verify-html-static.mjs</code>（不在時は警告のみでスキップ）</td></tr>
+    <tr><td>関連資料</td><td><code>SKILL.md</code>, <code>../../../delivery-payload/references/規約定義と派生生成の設計.md</code></td></tr>
+  </table>
+</header>
+
+<nav class="toc">
+  <div class="toc-title">目次</div>
+  <ol>
+    <li><a href="#s1">概要</a></li>
+    <li><a href="#s2">出力</a></li>
+    <li><a href="#s3">用語</a></li>
+    <li><a href="#s4">動作フロー</a></li>
+    <li><a href="#s5">制約と禁止事項</a></li>
+    <li><a href="#s6">関連スキル・規約</a></li>
+  </ol>
+</nav>
+
+<section id="s1">
+  <h2><span class="sec-num">§1</span>概要</h2>
+  <p>対象リポジトリに規約が無い、または規約と実態が食い違っている状態は珍しくない。本スキルは対象コードを調査し、観測できた実装慣行を規約提案HTMLとして作る係である。規約そのものを確定させる工程ではない。提案を読んだ現場のエンジニアが、カテゴリごとに採用・保留・却下を判定するための叩き台を作る。</p>
+  <p>出力先はリポジトリ外に固定する。提案は観測であって規範ではないため、リポジトリの中に置くと確定済みの規約と見分けがつかなくなる。<code>output_path</code> がリポジトリ内を指す場合、本スキルは生成せず停止する。</p>
+  <pre class="flow"><span class="cap">── 処理の全体像 ──────────────────────────────</span>
+
+  アーキテクチャ調査書.md（調査範囲の前提）
+       │  Phase 1  target_repo_path・survey_doc_path の実在確認 + output_pathの範囲確認
+       ▼
+  対象リポジトリのコード
+       │  Phase 2  親7・子27の構成を当て、カテゴリごとにstateを判定
+       ▼
+  state=proposal / proposal-limited のカテゴリ
+       │  Phase 3  実測値を伴う観測の収集（件数・パス・行番号）
+       ▼
+  観測済みカテゴリ
+       │  Phase 4  proposedRule・検査条件（scope/paths/enforcement/checkable/checkMethod）の起草
+       ▼
+  入力JSON
+       │  Phase 5  build-rule-proposal.sh による決定的生成 + 静的検査
+       ▼
+  &lt;output_path&gt;/規約提案HTML（リポジトリ外）</pre>
+  <p class="note">本スキルは規約の採否を判定しない。判定は現場のエンジニアが提案HTML上の採用・保留・却下ボタンで行う。</p>
+</section>
+
+<section id="s2">
+  <h2><span class="sec-num">§2</span>出力</h2>
+  <p>スキルを実行すると、以下の2点が生まれる。</p>
+  <div class="def">
+    <dt>規約提案HTML（<code>&lt;output_path&gt;</code>）</dt>
+    <dd>親7・子27カテゴリごとに、観測・根拠・提案文・検査条件を並べ、採用・保留・却下の判定ボタンと進捗表示を備えたページ。材料が無いカテゴリは判定ボタンを出さず、対象外の理由だけを示す。読んだ人はカテゴリを1つずつ判定しながら、判定結果をJSONとして書き出せる。</dd>
+    <dt>カテゴリ別の状態内訳</dt>
+    <dd>27カテゴリが <code>proposal</code>・<code>proposal-limited</code>・<code>na</code>・<code>common</code> のどれに分類されたかの内訳。材料の有無を隠さずに示すため、提案できたカテゴリだけでなく「観測できなかった」事実も成果物に残る。</dd>
+  </div>
+  <p class="note"><code>output_path</code> が対象リポジトリ内を指す場合、本スキルは生成を行わず停止する。この場合、規約提案HTMLは生まれない。</p>
+</section>
+
+<section id="s3">
+  <h2><span class="sec-num">§3</span>用語</h2>
+  <dl class="def">
+    <dt>state</dt>
+    <dd>カテゴリごとの判定状態。値域は <code>proposal</code>（提案あり）・<code>proposal-limited</code>（提案あり・範囲限定）・<code>na</code>（対象外）・<code>common</code>（共通規約を参照）の4つ。</dd>
+    <dt>proposedRule</dt>
+    <dd>観測を規範の文へ変えた規約提案文。<code>state</code> が <code>proposal</code> か <code>proposal-limited</code> のカテゴリだけが持つ。</dd>
+    <dt>checkable / checkMethod</dt>
+    <dd><code>checkable</code> は静的解析で判定できるかの真偽値。<code>true</code> のとき <code>checkMethod</code> に検査方法を自然文で書く。判定できないものを <code>true</code> にすると、取り込みスキルが動かない検査を作ることになる。</dd>
+</dl>
+</section>
+
+<section id="s4">
+  <h2><span class="sec-num">§4</span>動作フロー</h2>
+  <p>起動引数は <code>target_repo_path</code>・<code>output_path</code>・<code>survey_doc_path</code>（必須）と <code>proposal_id</code>（任意）の4つ。</p>
+  <table class="spec">
+    <tr><th>Phase</th><th>内容</th><th>完了条件</th></tr>
+    <tr>
+      <td><strong>Phase 1</strong><br>前提の確認</td>
+      <td>対象リポジトリ・調査書の実在確認、<code>output_path</code> がリポジトリ外を指すことの確認</td>
+      <td>3項目すべて確認済み、または不備を報告して停止</td>
+    </tr>
+    <tr>
+      <td><strong>Phase 2</strong><br>章とカテゴリの決定</td>
+      <td>親7・子27の構成を対象へ当て、カテゴリごとに材料の有無から <code>state</code> を判定</td>
+      <td>27カテゴリ全件に <code>state</code> が確定済み</td>
+    </tr>
+    <tr>
+      <td><strong>Phase 3</strong><br>観測の収集</td>
+      <td><code>proposal</code>・<code>proposal-limited</code> のカテゴリについて、件数・パス・行番号付きの観測を収集</td>
+      <td>対象カテゴリ全件に根拠付きの観測が付与済み</td>
+    </tr>
+    <tr>
+      <td><strong>Phase 4</strong><br>提案文と検査方法の起草</td>
+      <td><code>proposedRule</code> と <code>scope</code>・<code>paths</code>・<code>enforcement</code>・<code>checkable</code>・<code>checkMethod</code> を確定</td>
+      <td>対象カテゴリ全件に6項目が確定済み</td>
+    </tr>
+    <tr>
+      <td><strong>Phase 5</strong><br>生成と検査</td>
+      <td>入力JSONを組み立て <code>build-rule-proposal.sh</code> を実行。生成後の静的検査を通過</td>
+      <td>提案HTMLが生成され静的検査を通過（不在時は警告を確認）</td>
+    </tr>
+  </table>
+  <p class="note">エンジンスクリプトはスキルフォルダ相対 <code>../../../generation-engine/scripts/rule-proposal/</code> で参照する。</p>
+
+  <h3>返却（呼び出し元との契約）</h3>
+  <table class="spec">
+    <tr><th>キー</th><th>内容</th></tr>
+    <tr><td><code>status</code></td><td><code>DONE</code> | <code>STOPPED</code>（前提不備・出力先違反）| <code>ERROR</code></td></tr>
+    <tr><td><code>output_path</code></td><td>生成した提案HTMLのパス（<code>STOPPED</code>/<code>ERROR</code> 時は空）</td></tr>
+    <tr><td><code>total</code></td><td>判定対象の件数（<code>state</code> が <code>proposal</code> または <code>proposal-limited</code> のカテゴリ数）</td></tr>
+    <tr><td><code>proposalCounts</code></td><td><code>state</code> 別の内訳（4値それぞれの件数）</td></tr>
+  </table>
+</section>
+
+<section id="s5">
+  <h2><span class="sec-num">§5</span>制約と禁止事項</h2>
+  <div class="constraint">
+    <strong>手作業でのプレースホルダ置換は禁止。</strong>
+    規約提案HTMLは必ず <code>build-rule-proposal.sh</code> 経由の決定的処理で生成する。
+  </div>
+  <div class="constraint">
+    <strong>出力先はリポジトリ外に固定。</strong>
+    <code>output_path</code> が対象リポジトリ内を指す場合、生成せず停止する。既定値は持たない。
+  </div>
+  <div class="constraint">
+    <strong>規約の確定は対象外。</strong>
+    本スキルの仕事は観測と提案文の起草までであり、採否の判定は現場のエンジニアが行う。
+  </div>
+  <h3>起草時の落とし穴</h3>
+  <table class="spec">
+    <tr><th>落とし穴</th><th>対処</th></tr>
+    <tr><td>材料が薄いカテゴリを <code>proposal</code> にしてしまう</td><td><code>na</code> として理由を書く。材料の不在を書けることが工程の質である</td></tr>
+    <tr><td>判定できない検査方法に <code>checkable: true</code> を付ける</td><td>静的解析で判定できる場合だけ <code>true</code> にする。判定できないものを <code>true</code> にすると取り込み側が動かない検査を作ることになる</td></tr>
+    <tr><td><code>enforcement</code> に <code>block</code> を選んでしまう</td><td>値域は <code>advisory</code> と <code>none</code> の2つのみ。<code>block</code> は選べない</td></tr>
+    <tr><td><code>observations[]</code> へ任意のHTMLを混入させる</td><td><code>observations[]</code> と <code>crossFindings[].body</code> は生HTMLとしてそのまま出力される（<code>proposedRule</code>・<code>reason</code>・<code>checkMethod</code> はエスケープされる）。この非対称を踏まえ、観測文は事実の記述に留める</td></tr>
+  </table>
+</section>
+
+<section id="s6">
+  <h2><span class="sec-num">§6</span>関連スキル・規約</h2>
+  <table class="spec">
+    <tr><th>関連</th><th>関係</th></tr>
+    <tr><td><code>orchestrating-ai-development-setup</code></td><td>工程全体の案内役。本スキルは規約提案の生成のみを担い、単独起動もできる</td></tr>
+    <tr><td><code>surveying-architecture-for-reverse-docs</code></td><td>本スキルのデータ源（アーキテクチャ調査書）を確定する前工程。調査書不在時はこちらの先行実行が必要</td></tr>
+    <tr><td><code>importing-rule-proposals</code></td><td>本スキルが出す判定結果JSONを読み、<code>docs/rules/&lt;親&gt;/&lt;子&gt;/</code> へ書き込む取り込みスキル。実体は <code>delivery-payload/templates/delivered-skills/</code> にあり、納品先へ配られる</td></tr>
+    <tr><td><code>syncing-derived-artifacts</code></td><td><code>docs/rules/</code> から各ツール向けの派生物を生成する適用スキル。実体は <code>delivery-payload/templates/delivered-skills/</code> にあり、納品先へ配られる</td></tr>
+    <tr><td><code>規約定義と派生生成の設計.md</code></td><td>提案・取り込み・適用の全体設計、判定結果JSONのスキーマ定義</td></tr>
+  </table>
+</section>
+
+</body>
+</html>

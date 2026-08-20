@@ -1,0 +1,176 @@
+{
+  "recordVersion": "1.0.0",
+  "skill": "maintaining-semantic-glossary",
+  "executedAt": "2026-08-02T12:26:47+09:00",
+  "executor": "codex-agent",
+  "prompt": "repo内fixtureだけを使い、実行可能CLIは再実行し、registry付きdry-run変更要求、registry省略、単独承認、ai_index要求はSkill契約として区分して検証してください。",
+  "scenarios": [
+    {
+      "id": "registry-dry-run-change-request",
+      "class": "standard",
+      "evidenceMode": "cli_and_contract",
+      "inputFixtures": [
+        {
+          "ref": "generation-engine/scripts/glossary/fixtures/valid-update-proposal.yaml",
+          "sha256Before": "c39de9c2621488b3a379f3fdc6c680a90f1f65b21985610ddf5392df3d4e8dd7",
+          "sha256After": "c39de9c2621488b3a379f3fdc6c680a90f1f65b21985610ddf5392df3d4e8dd7"
+        },
+        {
+          "ref": "generation-engine/scripts/glossary/fixtures/valid-glossary.yaml",
+          "sha256Before": "66f351dc30d0211cf878fc940dd5c9139b213494e4ab0541d2e035009e15bea4",
+          "sha256After": "66f351dc30d0211cf878fc940dd5c9139b213494e4ab0541d2e035009e15bea4"
+        }
+      ],
+      "steps": [
+        "SKILL.md Phase 1のoperation=update、dry_run=true、proposalとregistryの契約を照合した",
+        "正式validatorへproposalとregistryを渡しerror/review_required 0件を確認した",
+        "影響scan scope未指定時のhumanCheckRequiredと保存済み契約サンプルを照合した"
+      ],
+      "observed": {
+        "validatorExit": 0,
+        "validatorStatus": "valid",
+        "counts": {
+          "error": 0,
+          "warning": 0,
+          "review_required": 0
+        },
+        "skillStatus": "review_required",
+        "reason": "human_review_and_impact_scan_required",
+        "summary": "validatorを再実行し、dry-run変更要求は保存済み契約サンプルとして照合した。"
+      },
+      "artifact": {
+        "expectation": "generated",
+        "ref": ".claude/skills/maintaining-semantic-glossary/verification/dry-run-change-request.json",
+        "sha256": "2d79c0d07b2a0ef0d7b4e3a9c2799e5815bc90eb90c820a1961f2edad360602c"
+      },
+      "expected": {
+        "skillStatus": "review_required",
+        "reason": "human_review_and_impact_scan_required",
+        "sourceUnchanged": true,
+        "artifactExpectation": "generated"
+      },
+      "verdict": "PASS"
+    },
+    {
+      "id": "registry-omitted",
+      "class": "boundary",
+      "evidenceMode": "cli_and_contract",
+      "inputFixtures": [
+        {
+          "ref": "generation-engine/scripts/glossary/fixtures/valid-proposal.yaml",
+          "sha256Before": "06eb312d45fc0a39ce3927553b86c3ecc4504051503636faa6ec50a2e6613e2d",
+          "sha256After": "06eb312d45fc0a39ce3927553b86c3ecc4504051503636faa6ec50a2e6613e2d"
+        }
+      ],
+      "steps": [
+        "registryを指定せずproposal validatorを実行しCLI観測を取得した",
+        "SKILL.md Phase 1のregistry省略blocking契約を静的に照合した"
+      ],
+      "observed": {
+        "validatorExit": 0,
+        "validatorStatus": "valid",
+        "counts": {
+          "error": 0,
+          "warning": 0,
+          "review_required": 0
+        },
+        "skillStatus": "review_required",
+        "reason": "registry_required",
+        "summary": "CLI単体のvalidを再現し、registry不足時のhandoff停止契約を照合した。"
+      },
+      "artifact": {
+        "expectation": "absent",
+        "ref": null,
+        "sha256": null
+      },
+      "expected": {
+        "skillStatus": "review_required",
+        "reason": "registry_required",
+        "sourceUnchanged": true,
+        "artifactExpectation": "absent"
+      },
+      "verdict": "PASS"
+    },
+    {
+      "id": "single-approval",
+      "class": "boundary",
+      "evidenceMode": "cli_and_contract",
+      "inputFixtures": [
+        {
+          "ref": "generation-engine/scripts/glossary/fixtures/invalid-approved-proposal.yaml",
+          "sha256Before": "0c8749db49880c7ed8aab50fa388a581225be9740eaeb3ac9031660a2002edbd",
+          "sha256After": "0c8749db49880c7ed8aab50fa388a581225be9740eaeb3ac9031660a2002edbd"
+        },
+        {
+          "ref": "generation-engine/scripts/glossary/fixtures/valid-glossary.yaml",
+          "sha256Before": "66f351dc30d0211cf878fc940dd5c9139b213494e4ab0541d2e035009e15bea4",
+          "sha256After": "66f351dc30d0211cf878fc940dd5c9139b213494e4ab0541d2e035009e15bea4"
+        }
+      ],
+      "steps": [
+        "単独business承認fixtureをregistry付きで正式validatorへ渡した",
+        "SGP_TWO_PARTY_APPROVAL_REQUIREDを確認し変更要求生成とhandoffを停止した"
+      ],
+      "observed": {
+        "validatorExit": 1,
+        "validatorStatus": "invalid",
+        "counts": {
+          "error": 5,
+          "warning": 0,
+          "review_required": 1
+        },
+        "skillStatus": "invalid",
+        "reason": "two_party_approval_required",
+        "summary": "二者承認不足と承認理由不足を含む6 findingsを再現し、handoff停止契約を照合した。"
+      },
+      "artifact": {
+        "expectation": "absent",
+        "ref": null,
+        "sha256": null
+      },
+      "expected": {
+        "skillStatus": "invalid",
+        "reason": "two_party_approval_required",
+        "sourceUnchanged": true,
+        "artifactExpectation": "absent"
+      },
+      "verdict": "PASS"
+    },
+    {
+      "id": "ai-index-stop",
+      "class": "boundary",
+      "evidenceMode": "contract_only",
+      "inputFixtures": [
+        {
+          "ref": "generation-engine/scripts/glossary/fixtures/valid-glossary.yaml",
+          "sha256Before": "66f351dc30d0211cf878fc940dd5c9139b213494e4ab0541d2e035009e15bea4",
+          "sha256After": "66f351dc30d0211cf878fc940dd5c9139b213494e4ab0541d2e035009e15bea4"
+        }
+      ],
+      "steps": [
+        "ai_index publish要求時の契約を確認した",
+        "実行入口が未実装であるため、SKILL.mdのnot_implemented停止条件だけを静的に照合した"
+      ],
+      "observed": {
+        "validatorExit": null,
+        "validatorStatus": null,
+        "counts": null,
+        "skillStatus": "review_required",
+        "reason": "not_implemented",
+        "summary": "ai_index実行入口はなく、成果物を作らない停止契約だけを照合した。"
+      },
+      "artifact": {
+        "expectation": "absent",
+        "ref": null,
+        "sha256": null
+      },
+      "expected": {
+        "skillStatus": "review_required",
+        "reason": "not_implemented",
+        "sourceUnchanged": true,
+        "artifactExpectation": "absent"
+      },
+      "verdict": "PASS"
+    }
+  ]
+}

@@ -1,0 +1,29 @@
+# ~/.claude/rules/scoped/portal/page-conventions/rule.md のサイドカー（非注入）。ai-management-portal のローカル配信・アクセス値の正本
+
+## アクセスURL（ブックマーク）
+
+- ローカル: http://localhost:9000/ai-management-portal/
+- 同一LAN上の他端末から: http://<Mac の LAN IP>:9000/ai-management-portal/
+  - LAN IP の確認: `ipconfig getifaddr en0`（en0 で取得できない場合は en1〜en4 を順に試す）
+
+## 起動コマンド
+
+1. 既存プロセス確認:
+   ```sh
+   lsof -i :9000
+   ```
+   使用中なら kill してから起動する。
+
+2. 起動(**必ず `agent-home` をカレントディレクトリにする**。`ai-management-portal` 配下をカレントディレクトリにして起動すると `/ai-management-portal/` パスが解決できず 404 になる):
+   ```sh
+   cd ~/agent-home && node skills/managing-agent-configs/scripts/manage-portal.mjs serve
+   ```
+
+3. ポート 9000 が使用中の場合は環境変数で変更できる:
+   ```sh
+   PORT=9010 node skills/managing-agent-configs/scripts/manage-portal.mjs serve
+   ```
+
+## ポート番号の正本
+
+9000 は `~/.claude/rules/always/local-environment/port-management/port-values.txt` のグローバルサービス表で `ai-management-portal` に割り当て済み。変更する場合はそちらも合わせて更新する。

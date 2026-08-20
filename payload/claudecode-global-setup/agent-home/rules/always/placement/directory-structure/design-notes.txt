@@ -1,0 +1,56 @@
+# ディレクトリ構成ガード（DIRECTORY-STRUCTURE）設計ノート（非注入サイドカー）
+# rule.md から分離した保守者向け記録。規約の挙動には影響しない。
+
+## 設計判断
+
+### check-mkdir-allowlist.sh
+
+**必要性**: ルート直下にディレクトリが無秩序に増殖すると、プロジェクト構造の可読性が低下し、CI/CD・ドキュメント・テストの対象判定が複雑化する。命名規則（ケバブケース advisory）は既に `dispatch-pre-bash-checks.sh` で実施しているが、「そもそも作ってよいか」の制御がなかった。
+
+**代替案を採用しなかった理由**:
+- block（exit 2）: 過度に制約的。新規ディレクトリが正当な場合に作業が止まる。advisory + 確認で十分
+- CLAUDE.md に許可リスト記載: CLAUDE.md は普遍的な作業姿勢のみを記載する方針。機械強制が必要なものは rules に閉じる
+- 全階層を許可リスト管理: ルート直下のみで十分な制御効果がある。全階層は hook の処理コストが高い
+- dispatch-pre-bash-checks.sh に統合: legacy バケットへの新規追加は hooks-architecture 規約で禁止
+
+**保守責任者**: 人手（ユーザー）。新規プロジェクト作成時に許可リストの初期 rule.md を作成する。
+
+**廃棄条件**: Claude Code 本体がディレクトリ構成の許可リスト管理を組み込んだ時。
+
+### lib-parse-allowlist.sh
+
+**必要性**: `parse_root_allowlist` と `parse_sub_allowlist` の 2 関数は `check-mkdir-allowlist.sh` と `check-write-implicit-dir.sh` の両方に存在し、Bug 1・Bug 2・W3 で修正した awk / grep パターンが両ファイルに重複していた。共通ライブラリに抽出することで修正箇所を 1 か所に集約し、将来の修正漏れを防ぐ。awk のレンジ終端パターン・grep の BRE/ERE 混在を含む複合処理であり、source 先として分離することで各 hook スクリプトの見通しを高める。
+
+**代替案を採用しなかった理由**:
+- Bash ツール直叩きで都度展開: 両 hook が PreToolUse として自動発火する性質上、関数定義を外部から渡せない。インライン展開では DRY 違反が再発する
+- check-mkdir-allowlist.sh に統合して check-write-implicit-dir.sh から source: 依存方向が不明瞭になり、どちらが「主」かが曖昧になる。独立ライブラリが最も責務が明確
+
+**保守責任者**: 人手（ユーザー）。許可リストのフォーマット変更時に awk / grep パターンを更新する。
+
+**廃棄条件**: `check-mkdir-allowlist.sh` と `check-write-implicit-dir.sh` の両方が廃止された時、または Claude Code 本体が hook 間の関数共有機構を提供した時。
+
+### lib-rule-resolver.sh
+
+**必要性**: 「プロジェクト上書き（委譲可）」を宣言した規約の hook が、プロジェクト側 `.claude/rules/` の受け口ファイルをグローバル既定より優先して読むための共通関数 `resolve_rule_file`。rules 再編（always/scoped 深さ 3 化）に伴い、プロジェクト側が旧 `<name>-rules/` 形式のままでも解決できる移行互換（新形式 → 旧形式の順で探索）が必要で、この探索順ロジックを `check-mkdir-allowlist.sh` と `check-write-implicit-dir.sh` の 2 hook にインライン展開すると修正漏れが再発する。委譲可規約が今後増えた場合も本関数を source するだけで受け口解決が統一される。
+
+**代替案を採用しなかった理由**:
+- 各 hook に固定パスをベタ書き: 旧形式フォールバックの追加で 2 ファイルに同一分岐が重複し、lib-parse-allowlist.sh 抽出以前と同じ DRY 違反が再発する
+- `~/agent-home/tools/hooks/lib/` への配置: hooks-architecture 規約が同バケットへの新規追加を禁止している（残存は marker-path.sh 1 本のみと明文化）。既存の lib-parse-allowlist.sh と同じ規約ローカル lib 形式に合わせた
+- Bash ツール直叩き: PreToolUse hook から source される関数であり、ツール経由の都度展開は不可能
+
+**保守責任者**: 人手（ユーザー）。委譲可規約の受け口パス形式変更時に更新する。
+
+**廃棄条件**: 全プロジェクトが新形式 `.claude/rules/<scope>/<topic>/<name>/` へ移行し旧形式フォールバックが不要になった上で、Claude Code 本体がプロジェクト側 rules の優先解決を組み込んだ時。
+
+### check-write-implicit-dir.sh
+
+**必要性**: Write/Edit ツールが存在しないディレクトリ配下にファイルを書く際、親ディレクトリが暗黙的に作成される。mkdir hook だけではこの経路を検出できず、許可リスト外のルート直下ディレクトリが知らぬ間に増殖する。PreToolUse(Write|Edit) で file_path のディレクトリ部分を検査し、存在しないディレクトリへの書き込みを事前に検出する必要がある。
+
+**代替案を採用しなかった理由**:
+- mkdir hook のみ: Write ツールは mkdir を経由せず直接ファイルを書くため、mkdir hook では検出不可能
+- PostToolUse(Write|Edit): 書き込み後ではディレクトリが既に作成されており、検出が手遅れ
+- permissions.deny: file_path のディレクトリ部分を検査する機能がない
+
+**保守責任者**: 人手（ユーザー）
+
+**廃棄条件**: Claude Code 本体が Write ツールのディレクトリ自動作成を制御する機能を提供した時、または check-mkdir-allowlist.sh が Write 経路もカバーするよう統合された時。

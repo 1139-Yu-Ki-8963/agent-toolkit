@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{TITLE}} — 設計ポータル</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+<!--
+  detail-pages T10 アイコンカタログ型テンプレート — 設計スキル群
+  生成: generation-engine/scripts/detail-pages/build-detail-page.sh
+  プレースホルダ置換は build-detail-page.sh の render_template() が行う。
+  手作業によるプレースホルダ置換は禁止。生成は必ずスクリプト経由で行う。
+
+  保守注記: トークン・共通シェル(サイドバー・フッター・全画面レイアウトのCSS)は
+  delivery-payload/templates/partials 配下の共通ファイルを注入マーカー経由で読み込む。
+  テーマ切替はサイドバー側に一本化されており、本テンプレートに複製は無い。
+
+  プレースホルダ(build-detail-page.shが注入。実際のマーカー記法は
+  scripts/detail-pages/build-detail-page.sh 冒頭コメントを定義とする。本コメントでは
+  二重置換事故を避けるため意図的に波括弧・HTMLコメント記法を外して記載する):
+    TITLE (ページ見出しマーカー)         : page-data.json の title
+    DESCRIPTION (ページ概要マーカー)     : page-data.json の description
+    GENERATED_AT (生成日時マーカー)      : page-data.json の generatedAt(共通フッターの更新日として使用)
+    PAGE_DATA_JSON (page-data埋め込みマーカー) : page-data.json の内容全体(本ファイル物理末尾のscriptタグへ注入)
+
+  pageKind: icon-catalog
+  page-data.json 想定構造(定義スキーマの正本は
+  generation-engine/scripts/detail-pages/page-data-schema.md の T10: icon-catalog 節):
+    icons: [{ name: string, sourceType: string, usageCount: number, files: string[] }]
+    summary: [{ label: string, value: string, note?: string }]（任意。要約タイル）
+  アイコン名でグルーピングしたカードグリッド。各カードにグリフ(sourceTypeがmaterialなら
+  Material Symbolsフォント、emojiならテキストそのもの、それ以外は代替アイコン) + アイコン名 +
+  ソース種別タグ + 使用件数 + 使用ファイル一覧(<details>展開式)を表示する。ソース種別フィルタ +
+  検索窓(名前部分一致) + usageCount 降順ソートを行う。
+-->
+<style>
+/* TOKENS_CSS */
+/* SHELL_CSS */
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: var(--font-body);
+  background: var(--bg); color: var(--text); line-height: 1.7; font-size: 15px;
+}
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  font-size: 28px;
+  line-height: 1;
+  display: inline-block;
+}
+
+.sec-label {
+  font-size: 12px; font-weight: 700; letter-spacing: 0.04em; color: var(--text-sub);
+  display: flex; align-items: center; gap: 8px; margin: 6px 0 12px;
+}
+.sec-label::before { content: ""; width: 4px; height: 14px; background: var(--accent); }
+
+/* 要約タイル */
+.tile-grid { flex: none; display: grid; grid-template-columns: repeat(auto-fill, minmax(168px, 1fr)); gap: 14px; margin: 16px 0; min-width: 0; }
+.tile-card {
+  background: var(--panel); border: 1.5px solid var(--line2); min-width: 0;
+  padding: 14px 16px 13px; box-shadow: 3px 3px 0 var(--accent-soft);
+}
+.tile-label { font-size: 11.5px; font-weight: 700; letter-spacing: 0.02em; color: var(--sub); margin-bottom: 4px; }
+.tile-value { font-size: 24px; font-weight: 800; line-height: 1.15; font-family: var(--mono); color: var(--text); overflow-wrap: break-word; }
+.tile-note { font-size: 11.5px; color: var(--muted); margin-top: 5px; }
+
+/* 検索ボックス + ソース種別チップ */
+.toolbar { flex: none; display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 14px; min-width: 0; }
+.toolbar .pt-input { flex: 1; min-width: 200px; }
+.chip-row { flex: none; display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+.chip {
+  font-size: 12.5px; color: var(--sub); background: var(--panel);
+  border: 1px solid var(--line2); padding: 5px 14px;
+  cursor: pointer; font-family: inherit;
+}
+.chip:hover { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); }
+.chip.active { background: var(--accent); color: var(--chipontext); border-color: var(--accent); }
+
+/* カタログ本体だけを枠内スクロールさせる領域 */
+.catalog-scroll { flex: 1; min-height: 0; overflow-y: auto; }
+
+/* アイコンカードグリッド(共有罫線) */
+.icon-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(148px, 1fr)); gap: 0;
+  border-left: 1.5px solid var(--line2); border-top: 1.5px solid var(--line2); background: var(--panel);
+}
+.icon-card {
+  background: var(--panel); border-right: 1.5px solid var(--line2); border-bottom: 1.5px solid var(--line2);
+  padding: 16px 16px 14px; min-width: 0; display: flex; flex-direction: column; align-items: center; text-align: center;
+  transition: background .12s;
+}
+.icon-card:hover { background: var(--panel3); box-shadow: inset 0 -3px 0 var(--accent); }
+.icon-glyph {
+  width: 56px; height: 56px; display: flex; align-items: center; justify-content: center;
+  background: var(--panel3); border: 1px solid var(--line); margin-bottom: 10px;
+  color: var(--accent);
+}
+.icon-glyph .material-symbols-outlined { font-size: 30px; }
+.icon-name { font-weight: 700; font-size: 13.5px; margin-bottom: 8px; overflow-wrap: break-word; font-family: var(--mono); }
+.icon-meta { display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
+.source-tag {
+  font-size: 11px; font-weight: 700; padding: 2px 9px;
+  background: var(--accent-soft); color: var(--accent);
+}
+.usage-count { font-size: 12px; color: var(--muted); }
+.icon-files { width: 100%; text-align: left; }
+.icon-files summary { cursor: pointer; font-size: 12px; color: var(--sub); text-align: center; }
+.icon-files summary:hover { color: var(--accent); }
+.icon-files ul { margin: 6px 0 0; padding-left: 18px; font-size: 11.5px; color: var(--muted); }
+.icon-files li { margin-bottom: 2px; overflow-wrap: break-word; }
+.icon-files code {
+  background: var(--panel3); padding: 1px 6px;
+  font-family: var(--mono); font-size: 11px; color: var(--sub);
+  border: 1px solid var(--line);
+}
+
+.empty-note {
+  font-size: 12.5px; color: var(--muted); background: var(--panel3);
+  border: 1px solid var(--line2); padding: 14px 16px;
+}
+
+.note-box {
+  font-size: 12px; color: var(--sub); background: var(--panel3);
+  border: 1px solid var(--line2);
+  padding: 8px 12px; margin: 14px 0 0;
+}
+
+@media (max-width: 760px) {
+  .tile-grid, .icon-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+}
+@media (max-width: 560px) {
+  body { font-size: 14px; }
+  .tile-grid { grid-template-columns: 1fr 1fr; }
+}
+
+.hidden { display: none !important; }
+</style>
+</head>
+<body>
+<div class="pt">
+  <div class="pt-grid"></div>
+  <div class="pt-row">
+    <!--SHELL_SIDEBAR-->
+    <main class="pt-main is-fixed">
+    <div class="pt-head">
+      <div class="pt-crumb"><a href="{{BACK_LINK}}">TOP</a> ／ {{ACTIVE_CATEGORY_LABEL}} ／ <span class="pt-crumb-current">{{TITLE}}</span></div>
+      <div class="pt-title-row">
+        <h1 class="pt-title">{{TITLE}}</h1>
+        <span class="pt-title-sub">{{DESCRIPTION}}</span>
+      </div>
+    </div>
+
+    <div class="tile-grid" id="tiles-mount"></div>
+
+    <div class="toolbar">
+      <input type="search" id="icon-search" class="pt-input" placeholder="アイコン名で絞り込み">
+      <span class="pt-count" id="icon-count"></span>
+    </div>
+    <div class="chip-row" id="chips-mount"></div>
+
+    <div class="catalog-scroll">
+      <div class="icon-grid" id="icon-mount"></div>
+      <!--RELATED_ENTITIES--><div id="unresolved-mount"></div>
+    </div>
+    </main>
+  </div>
+  <!--SHELL_FOOTER-->
+</div>
+
+<script type="application/json" id="page-data">
+{{PAGE_DATA_JSON}}
+</script>
+
+<script>
+(function() {
+  var data = JSON.parse(document.getElementById('page-data').textContent);
+
+  function el(tag, attrs, children) {
+    var node = document.createElement(tag);
+    if (attrs) Object.keys(attrs).forEach(function(k) {
+      if (k === 'html') node.innerHTML = attrs[k];
+      else node.setAttribute(k, attrs[k]);
+    });
+    if (children) {
+      if (!Array.isArray(children)) children = [children];
+      children.forEach(function(c) {
+        if (typeof c === 'string') node.appendChild(document.createTextNode(c));
+        else if (c) node.appendChild(c);
+      });
+    }
+    return node;
+  }
+
+  // --- 要約タイル(summary[]) ---
+  var tilesMount = document.getElementById('tiles-mount');
+  (data.summary || []).forEach(function(t) {
+    var card = el('div', { class: 'tile-card' });
+    card.appendChild(el('div', { class: 'tile-label' }, t.label || ''));
+    card.appendChild(el('div', { class: 'tile-value' }, String(t.value != null ? t.value : '')));
+    if (t.note) card.appendChild(el('div', { class: 'tile-note' }, t.note));
+    tilesMount.appendChild(card);
+  });
+
+  // usageCount 降順で固定ソート
+  var icons = (data.icons || []).slice().sort(function(a, b) {
+    return (b.usageCount || 0) - (a.usageCount || 0);
+  });
+  var activeSource = 'all';
+  var cardEls = [];
+
+  // --- ソース種別チップ(固定3種: material / svg / emoji) ---
+  var SOURCE_LABEL = { material: 'Material', svg: 'SVG', emoji: 'Emoji' };
+  var chipsMount = document.getElementById('chips-mount');
+  function renderChips() {
+    chipsMount.innerHTML = '';
+    var chips = [{ key: 'all', label: 'すべて' }].concat(Object.keys(SOURCE_LABEL).map(function(k) {
+      return { key: k, label: SOURCE_LABEL[k] };
+    }));
+    chips.forEach(function(c) {
+      var btn = el('button', { class: 'chip' + (activeSource === c.key ? ' active' : ''), type: 'button' }, c.label);
+      btn.addEventListener('click', function() {
+        activeSource = c.key;
+        renderChips();
+        applyFilter();
+      });
+      chipsMount.appendChild(btn);
+    });
+  }
+
+  // --- アイコンカードグリッド(icons[]) ---
+  var iconMount = document.getElementById('icon-mount');
+  function renderCards() {
+    iconMount.innerHTML = '';
+    cardEls = [];
+    if (icons.length === 0) {
+      iconMount.appendChild(el('div', { class: 'empty-note' }, 'なし'));
+      return;
+    }
+    icons.forEach(function(ic) {
+      var sourceType = ic.sourceType || 'other';
+      var files = ic.files || [];
+      var glyph = el('div', { class: 'icon-glyph' });
+      if (sourceType === 'material') {
+        glyph.appendChild(el('span', { class: 'material-symbols-outlined' }, ic.name || ''));
+      } else if (sourceType === 'emoji') {
+        glyph.appendChild(el('span', null, ic.name || ''));
+      } else {
+        glyph.appendChild(el('span', { class: 'material-symbols-outlined' }, 'image'));
+      }
+      var fileList = el('ul', null, files.map(function(f) {
+        return el('li', null, el('code', null, String(f)));
+      }));
+      var details = el('details', { class: 'icon-files' }, [
+        el('summary', null, '使用ファイル（' + files.length + '）'),
+        fileList
+      ]);
+      var card = el('div', { class: 'icon-card', 'data-source': sourceType }, [
+        glyph,
+        el('div', { class: 'icon-name' }, ic.name || ''),
+        el('div', { class: 'icon-meta' }, [
+          el('span', { class: 'source-tag' }, SOURCE_LABEL[sourceType] || sourceType),
+          el('span', { class: 'usage-count' }, '使用 ' + (ic.usageCount != null ? ic.usageCount : 0) + ' 件')
+        ]),
+        details
+      ]);
+      iconMount.appendChild(card);
+      cardEls.push(card);
+    });
+  }
+
+  // --- 検索(部分一致) + ソース種別チップ絞り込み ---
+  var iconCountEl = document.getElementById('icon-count');
+  function applyFilter() {
+    var q = (document.getElementById('icon-search').value || '').trim().toLowerCase();
+    var visible = 0;
+    cardEls.forEach(function(card) {
+      var srcOk = activeSource === 'all' || card.getAttribute('data-source') === activeSource;
+      var nameEl = card.querySelector('.icon-name');
+      var name = nameEl ? nameEl.textContent.toLowerCase() : '';
+      var textOk = q === '' || name.indexOf(q) !== -1;
+      var show = srcOk && textOk;
+      card.style.display = show ? '' : 'none';
+      if (show) visible++;
+    });
+    if (iconCountEl) iconCountEl.textContent = visible + ' / ' + cardEls.length + ' 件';
+  }
+
+  renderChips();
+  renderCards();
+  applyFilter();
+  document.getElementById('icon-search').addEventListener('input', applyFilter);
+
+  // --- 未解決節(unresolved[]) ---
+  var unresolvedMount = document.getElementById('unresolved-mount');
+  var unresolved = data.unresolved || [];
+  if (unresolved.length > 0) {
+    unresolvedMount.appendChild(el('div', { class: 'sec-label' }, '未解決'));
+    var box = el('div', { class: 'note-box' });
+    unresolved.forEach(function(u) {
+      var line = (u.label || '') + '（' + (u.reason || '') + '）';
+      box.appendChild(el('div', null, line));
+    });
+    unresolvedMount.appendChild(box);
+  }
+})();
+</script>
+</body>
+</html>

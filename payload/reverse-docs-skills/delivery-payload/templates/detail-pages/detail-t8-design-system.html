@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{TITLE}} — 設計ポータル</title>
+<!--
+  detail-pages T8 デザインシステム型テンプレート — 設計スキル群
+  生成: generation-engine/scripts/detail-pages/build-detail-page.sh
+  プレースホルダ置換は build-detail-page.sh の render_template() が行う。
+  手作業によるプレースホルダ置換は禁止。生成は必ずスクリプト経由で行う。
+
+  保守注記: トークン・共通シェル(サイドバー・フッター・全画面レイアウトのCSS)は
+  delivery-payload/templates/partials 配下の共通ファイルを注入マーカー経由で読み込む。
+  テーマ切替はサイドバー側に一本化されており、本テンプレートに複製は無い。
+
+  プレースホルダ(build-detail-page.shが注入。実際のマーカー記法は
+  scripts/detail-pages/build-detail-page.sh 冒頭コメントを定義とする。本コメントでは
+  二重置換事故を避けるため意図的に波括弧・HTMLコメント記法を外して記載する):
+    TITLE (ページ見出しマーカー)         : page-data.json の title
+    DESCRIPTION (ページ概要マーカー)     : page-data.json の description
+    GENERATED_AT (生成日時マーカー)      : page-data.json の generatedAt(共通フッターの更新日として使用)
+    PAGE_DATA_JSON (page-data埋め込みマーカー) : page-data.json の内容全体(本ファイル物理末尾のscriptタグへ注入)
+
+  pageKind: design-system
+  page-data.json 想定構造(本テンプレートのJSが直接参照する型別スロット。
+  定義スキーマへの追記は別件・page-data-schema.mdは本ファイルの変更対象外):
+    tokens: {
+      colors: [{ name: string, hex: string, usage: string }],
+      typography: [{ name: string, fontFamily: string, size?: string, weight?: string, description?: string }],
+      spacing: [{ name: string, value: string }],
+      components: [{ name: string, description: string }]
+    }
+    summary: [{ label: string, value: string, note?: string }]（任意。要約タイル）
+  4セクション(Colors / Typography / Spacing / Components)を固定順で表示する。
+  各配列が空の場合は該当セクションに「なし」を1行表示する。
+-->
+<style>
+/* TOKENS_CSS */
+/* SHELL_CSS */
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: var(--font-body);
+  background: var(--bg); color: var(--text); line-height: 1.7; font-size: 15px;
+}
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+.sec-label {
+  font-size: 12px; font-weight: 700; letter-spacing: 0.04em; color: var(--sub);
+  display: flex; align-items: center; gap: 8px; margin: 24px 0 12px;
+}
+.sec-label:first-of-type { margin-top: 0; }
+.sec-label::before { content: ""; width: 4px; height: 14px; background: var(--accent); }
+
+/* 要約タイル */
+.tile-grid { flex: none; display: grid; grid-template-columns: repeat(auto-fill, minmax(168px, 1fr)); gap: 14px; margin: 16px 0 10px; min-width: 0; }
+.tile-card {
+  background: var(--panel); border: 1.5px solid var(--line2); min-width: 0;
+  padding: 14px 16px 13px; box-shadow: 3px 3px 0 var(--accent-soft);
+}
+.tile-label { font-size: 11.5px; font-weight: 700; letter-spacing: 0.02em; color: var(--sub); margin-bottom: 4px; }
+.tile-value { font-size: 24px; font-weight: 800; line-height: 1.15; font-family: var(--mono); color: var(--text); overflow-wrap: break-word; }
+.tile-note { font-size: 11.5px; color: var(--muted); margin-top: 5px; }
+
+/* 4セクションだけを枠内スクロールさせる領域 */
+.tokens-scroll { flex: 1; min-height: 0; overflow-y: auto; }
+
+/* Colors / Components(共有罫線のカードグリッド) */
+.color-grid, .component-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(148px, 1fr)); gap: 0;
+  border-left: 1.5px solid var(--line2); border-top: 1.5px solid var(--line2); background: var(--panel);
+}
+.color-card {
+  border-right: 1.5px solid var(--line2); border-bottom: 1.5px solid var(--line2);
+  min-width: 0; transition: background .12s;
+}
+.color-card:hover { background: var(--panel3); }
+.color-swatch { height: 64px; border-bottom: 1px solid var(--line); }
+.color-info { padding: 10px 12px; }
+.color-name { font-weight: 700; font-size: 13px; }
+.color-hex { font-family: var(--mono); font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+.color-usage { font-size: 11.5px; color: var(--sub); margin-top: 6px; }
+
+/* Typography */
+.type-grid { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.type-card {
+  background: var(--panel); border: 1.5px solid var(--line2);
+  padding: 14px 18px; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+}
+.type-sample { font-size: 28px; line-height: 1; overflow-wrap: break-word; }
+.type-meta { font-size: 12px; color: var(--muted); text-align: right; }
+.type-meta .type-name { color: var(--sub); font-weight: 700; display: block; margin-bottom: 2px; }
+
+/* Spacing */
+.spacing-list { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.spacing-row { display: flex; align-items: center; gap: 12px; font-size: 12.5px; }
+.spacing-label { width: 110px; flex-shrink: 0; color: var(--sub); overflow-wrap: break-word; }
+.spacing-bar-wrap { flex: 1; background: var(--panel2); height: 14px; min-width: 40px; }
+.spacing-bar { background: var(--accent); height: 100%; }
+.spacing-value { width: 64px; text-align: right; font-family: var(--mono); color: var(--muted); flex-shrink: 0; }
+
+/* Components */
+.component-card {
+  border-right: 1.5px solid var(--line2); border-bottom: 1.5px solid var(--line2);
+  padding: 14px 16px; min-width: 0; transition: background .12s;
+}
+.component-card:hover { background: var(--panel3); }
+.component-name { font-weight: 700; font-size: 13.5px; margin-bottom: 4px; }
+.component-desc { font-size: 12px; color: var(--sub); }
+
+.empty-note {
+  font-size: 12.5px; color: var(--muted); background: var(--panel3);
+  border: 1px solid var(--line2); padding: 14px 16px;
+}
+
+.note-box {
+  font-size: 12px; color: var(--sub); background: var(--panel3);
+  border: 1px solid var(--line2);
+  padding: 8px 12px; margin: 14px 0 0;
+}
+
+@media (max-width: 760px) {
+  .tile-grid, .color-grid, .component-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+}
+@media (max-width: 560px) {
+  body { font-size: 14px; }
+  .tile-grid { grid-template-columns: 1fr 1fr; }
+  .type-card { flex-direction: column; align-items: flex-start; }
+  .type-meta { text-align: left; }
+}
+
+.hidden { display: none !important; }
+</style>
+</head>
+<body>
+<div class="pt">
+  <div class="pt-grid"></div>
+  <div class="pt-row">
+    <!--SHELL_SIDEBAR-->
+    <main class="pt-main is-fixed">
+    <div class="pt-head">
+      <div class="pt-crumb"><a href="{{BACK_LINK}}">TOP</a> ／ {{ACTIVE_CATEGORY_LABEL}} ／ <span class="pt-crumb-current">{{TITLE}}</span></div>
+      <div class="pt-title-row">
+        <h1 class="pt-title">{{TITLE}}</h1>
+        <span class="pt-title-sub">{{DESCRIPTION}}</span>
+      </div>
+    </div>
+
+    <div class="tile-grid" id="tiles-mount"></div>
+
+    <div class="tokens-scroll">
+      <div class="sec-label">Colors</div>
+      <div class="color-grid" id="colors-mount"></div>
+
+      <div class="sec-label">Typography</div>
+      <div class="type-grid" id="typography-mount"></div>
+
+      <div class="sec-label">Spacing</div>
+      <div class="spacing-list" id="spacing-mount"></div>
+
+      <div class="sec-label">Components</div>
+      <div class="component-grid" id="components-mount"></div>
+
+      <!--RELATED_ENTITIES--><div id="unresolved-mount"></div>
+    </div>
+    </main>
+  </div>
+  <!--SHELL_FOOTER-->
+</div>
+
+<script type="application/json" id="page-data">
+{{PAGE_DATA_JSON}}
+</script>
+
+<script>
+(function() {
+  var data = JSON.parse(document.getElementById('page-data').textContent);
+  var tokens = data.tokens || {};
+
+  function el(tag, attrs, children) {
+    var node = document.createElement(tag);
+    if (attrs) Object.keys(attrs).forEach(function(k) {
+      if (k === 'html') node.innerHTML = attrs[k];
+      else node.setAttribute(k, attrs[k]);
+    });
+    if (children) {
+      if (!Array.isArray(children)) children = [children];
+      children.forEach(function(c) {
+        if (typeof c === 'string') node.appendChild(document.createTextNode(c));
+        else if (c) node.appendChild(c);
+      });
+    }
+    return node;
+  }
+
+  // --- 要約タイル(summary[]) ---
+  var tilesMount = document.getElementById('tiles-mount');
+  (data.summary || []).forEach(function(t) {
+    var card = el('div', { class: 'tile-card' });
+    card.appendChild(el('div', { class: 'tile-label' }, t.label || ''));
+    card.appendChild(el('div', { class: 'tile-value' }, String(t.value != null ? t.value : '')));
+    if (t.note) card.appendChild(el('div', { class: 'tile-note' }, t.note));
+    tilesMount.appendChild(card);
+  });
+
+  // --- Colors(tokens.colors[]) ---
+  var colorsMount = document.getElementById('colors-mount');
+  var colors = tokens.colors || [];
+  if (colors.length === 0) {
+    colorsMount.appendChild(el('div', { class: 'empty-note' }, 'なし'));
+  } else {
+    colors.forEach(function(c) {
+      var swatch = el('div', { class: 'color-swatch' });
+      swatch.style.background = c.hex || 'transparent';
+      var info = el('div', { class: 'color-info' }, [
+        el('div', { class: 'color-name' }, c.name || ''),
+        el('div', { class: 'color-hex' }, c.hex || ''),
+        el('div', { class: 'color-usage' }, c.usage || '')
+      ]);
+      colorsMount.appendChild(el('div', { class: 'color-card' }, [swatch, info]));
+    });
+  }
+
+  // --- Typography(tokens.typography[]) ---
+  var typographyMount = document.getElementById('typography-mount');
+  var typography = tokens.typography || [];
+  if (typography.length === 0) {
+    typographyMount.appendChild(el('div', { class: 'empty-note' }, 'なし'));
+  } else {
+    typography.forEach(function(t) {
+      var sample = el('div', { class: 'type-sample' }, 'Aa Bb Cc');
+      if (t.fontFamily) sample.style.fontFamily = t.fontFamily;
+      if (t.size) sample.style.fontSize = t.size;
+      if (t.weight) sample.style.fontWeight = t.weight;
+      var metaLines = [el('span', { class: 'type-name' }, t.name || '')];
+      var metaParts = [];
+      if (t.fontFamily) metaParts.push(t.fontFamily);
+      if (t.size) metaParts.push(t.size);
+      if (t.weight) metaParts.push(String(t.weight));
+      metaLines.push(el('span', null, metaParts.join(' / ')));
+      if (t.description) metaLines.push(el('span', null, t.description));
+      var meta = el('div', { class: 'type-meta' }, metaLines);
+      typographyMount.appendChild(el('div', { class: 'type-card' }, [sample, meta]));
+    });
+  }
+
+  // --- Spacing(tokens.spacing[]) ---
+  var spacingMount = document.getElementById('spacing-mount');
+  var spacing = tokens.spacing || [];
+  if (spacing.length === 0) {
+    spacingMount.appendChild(el('div', { class: 'empty-note' }, 'なし'));
+  } else {
+    var maxVal = 0;
+    var numVals = spacing.map(function(s) {
+      var n = parseFloat(String(s.value != null ? s.value : '').replace(/[^0-9.]/g, ''));
+      if (!isNaN(n) && n > maxVal) maxVal = n;
+      return isNaN(n) ? 0 : n;
+    });
+    if (maxVal <= 0) maxVal = 1;
+    spacing.forEach(function(s, i) {
+      var pct = Math.min(100, Math.round((numVals[i] / maxVal) * 100));
+      var barWrap = el('div', { class: 'spacing-bar-wrap' });
+      var bar = el('div', { class: 'spacing-bar' });
+      bar.style.width = pct + '%';
+      barWrap.appendChild(bar);
+      var row = el('div', { class: 'spacing-row' }, [
+        el('div', { class: 'spacing-label' }, s.name || ''),
+        barWrap,
+        el('div', { class: 'spacing-value' }, String(s.value != null ? s.value : ''))
+      ]);
+      spacingMount.appendChild(row);
+    });
+  }
+
+  // --- Components(tokens.components[]) ---
+  var componentsMount = document.getElementById('components-mount');
+  var components = tokens.components || [];
+  if (components.length === 0) {
+    componentsMount.appendChild(el('div', { class: 'empty-note' }, 'なし'));
+  } else {
+    components.forEach(function(c) {
+      componentsMount.appendChild(el('div', { class: 'component-card' }, [
+        el('div', { class: 'component-name' }, c.name || ''),
+        el('div', { class: 'component-desc' }, c.description || '')
+      ]));
+    });
+  }
+
+  // --- 未解決節(unresolved[]) ---
+  var unresolvedMount = document.getElementById('unresolved-mount');
+  var unresolved = data.unresolved || [];
+  if (unresolved.length > 0) {
+    unresolvedMount.appendChild(el('div', { class: 'sec-label' }, '未解決'));
+    var box = el('div', { class: 'note-box' });
+    unresolved.forEach(function(u) {
+      var line = (u.label || '') + '（' + (u.reason || '') + '）';
+      box.appendChild(el('div', null, line));
+    });
+    unresolvedMount.appendChild(box);
+  }
+})();
+</script>
+</body>
+</html>

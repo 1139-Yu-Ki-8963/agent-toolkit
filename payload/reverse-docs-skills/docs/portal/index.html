@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>reverse-docs-skills 自己ポータル</title>
+<style>
+/* スキルガイド HTML（.claude/skills/*/references/guide.html）の統一意匠。
+   自己完結の単一 HTML へ丸ごと埋め込む style タグの中身。外部ファイルは参照しない。
+   版面は文書型のまま（中央寄せの最大幅・通常のページスクロール）。
+   ポータルの全画面レイアウト（サイドバー・100vh・sticky）は持ち込まない。
+   角丸は使わない（border-radius は 0 のみ）。影はぼかし半径を持たせない。
+   配色は delivery-payload/templates/tokens.css の値から取り出した派生値。
+   既定は明るい表示。暗い表示は prefers-color-scheme と data-theme="dark" の両方で切り替わる。
+   data-theme="light" を明示したときは明るい表示を固定する。 */
+
+:root, [data-theme="light"] {
+  --guide-bg: #F1F4F8;
+  --guide-panel: #FFFFFF;
+  --guide-panel2: #E9EEF4;
+  --guide-border: #D8DFE8;
+  --guide-text: #1A222E;
+  --guide-text-sub: #4B5A70;
+  --guide-muted: #6C7A8E;
+  --guide-accent: #0284C7;
+  --guide-accent-hi: #075985;
+  --guide-accent-soft: rgba(2,132,199,0.10);
+  --guide-stamp: #D9482B;
+  --guide-stamp-soft: rgba(217,72,43,0.12);
+  --guide-green: #15803D;
+  --guide-green-soft: rgba(21,128,61,0.16);
+  --guide-code-bg: #101722;
+  --guide-code-text: #C9E8FF;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --guide-bg: #0F1217;
+    --guide-panel: #161C23;
+    --guide-panel2: #1C232E;
+    --guide-border: #2B3443;
+    --guide-text: #E7ECF4;
+    --guide-text-sub: #A8B3C3;
+    --guide-muted: #8A96A7;
+    --guide-accent: #4CC2FE;
+    --guide-accent-hi: #9ADCFF;
+    --guide-accent-soft: rgba(76,194,255,0.17);
+    --guide-stamp: #FF6E4F;
+    --guide-stamp-soft: rgba(255,110,78,0.16);
+    --guide-green: #4ADE81;
+    --guide-green-soft: rgba(74,222,129,0.16);
+    --guide-code-bg: #0B0E13;
+    --guide-code-text: #C9E8FF;
+  }
+}
+
+[data-theme="dark"] {
+  --guide-bg: #0F1217;
+  --guide-panel: #161C23;
+  --guide-panel2: #1C232E;
+  --guide-border: #2B3443;
+  --guide-text: #E7ECF4;
+  --guide-text-sub: #A8B3C3;
+  --guide-muted: #8A96A7;
+  --guide-accent: #4CC2FE;
+  --guide-accent-hi: #9ADCFF;
+  --guide-accent-soft: rgba(76,194,255,0.17);
+  --guide-stamp: #FF6E4F;
+  --guide-stamp-soft: rgba(255,110,78,0.16);
+  --guide-green: #4ADE81;
+  --guide-green-soft: rgba(74,222,129,0.16);
+  --guide-code-bg: #0B0E13;
+  --guide-code-text: #C9E8FF;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0 auto;
+  padding: 0 24px 96px;
+  max-width: 980px;
+  font-family: system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif;
+  line-height: 1.85;
+  color: var(--guide-text);
+  background: var(--guide-bg);
+}
+
+header {
+  padding: 56px 0 24px;
+  border-bottom: 3px solid var(--guide-text);
+}
+header h1 { font-size: 1.9rem; margin: 0 0 10px; letter-spacing: 0.01em; }
+header p { margin: 6px 0 0; color: var(--guide-text-sub); }
+
+h1 { font-size: 1.9rem; margin: 0 0 10px; }
+h2 {
+  font-size: 1.35rem;
+  padding-bottom: 8px;
+  margin-bottom: 20px;
+  border-bottom: 2px solid var(--guide-text);
+}
+h3 { font-size: 1.05rem; margin: 32px 0 10px; }
+
+.skill-name {
+  display: inline-block;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 1rem;
+  background: var(--guide-text);
+  color: var(--guide-bg);
+  padding: 2px 10px;
+  border-radius: 0;
+  vertical-align: middle;
+}
+
+.meta-table { margin-top: 16px; font-size: 0.9rem; color: var(--guide-text-sub); }
+.meta-table td { padding: 3px 18px 3px 0; vertical-align: top; }
+
+nav { margin-top: 32px; padding: 18px 22px; background: var(--guide-panel); border: 1px solid var(--guide-border); border-radius: 0; }
+.toc { margin-top: 32px; padding: 18px 22px; background: var(--guide-panel); border: 1px solid var(--guide-border); border-radius: 0; }
+.toc-title { font-weight: 700; margin-bottom: 6px; }
+.toc ol, nav ol { margin: 0; padding-left: 1.4em; columns: 2; column-gap: 40px; }
+.toc li, nav li { margin: 2px 0; }
+
+section { margin-top: 64px; }
+section > h2 .sec-num { display: inline-block; }
+.sec-num {
+  display: inline-block;
+  min-width: 2.4em;
+  margin-right: 10px;
+  font-family: ui-monospace, monospace;
+  font-size: 0.95rem;
+  background: var(--guide-text);
+  color: var(--guide-bg);
+  text-align: center;
+  padding: 1px 8px;
+  border-radius: 0;
+  vertical-align: 2px;
+}
+
+.note { color: var(--guide-text-sub); font-size: 0.92rem; }
+
+a { color: var(--guide-accent); }
+.toc a, nav a { color: var(--guide-text); text-decoration: none; border-bottom: 1px dotted var(--guide-muted); }
+.toc a:hover, nav a:hover { border-bottom-style: solid; }
+table a, .spec a { color: var(--guide-accent); }
+
+table { border-collapse: collapse; width: 100%; }
+th, td { border: 1px solid var(--guide-border); padding: 8px 12px; text-align: left; vertical-align: top; }
+th { background: var(--guide-panel2); font-weight: 700; }
+
+.spec { border-collapse: collapse; width: 100%; margin: 14px 0; background: var(--guide-panel); font-size: 0.93rem; }
+.spec th, .spec td { border: 1px solid var(--guide-border); padding: 8px 12px; text-align: left; vertical-align: top; }
+.spec th { background: var(--guide-panel2); font-weight: 700; }
+
+ul, ol { margin: 0.5em 0 0.5em 1.4em; padding: 0; }
+li { margin: 2px 0; }
+
+pre {
+  background: var(--guide-code-bg);
+  color: var(--guide-code-text);
+  border-radius: 0;
+  padding: 18px;
+  overflow-x: auto;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.86rem;
+  line-height: 1.6;
+}
+.flow {
+  background: var(--guide-code-bg);
+  color: var(--guide-code-text);
+  border-radius: 0;
+  padding: 20px 24px;
+  overflow-x: auto;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.82rem;
+  line-height: 1.55;
+}
+.cap { color: var(--guide-muted); }
+
+code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.86em;
+  background: var(--guide-panel2);
+  color: var(--guide-text);
+  padding: 1px 5px;
+  border-radius: 0;
+}
+pre code, .flow code { background: transparent; color: inherit; padding: 0; }
+
+.def {
+  background: var(--guide-panel);
+  border: 1px solid var(--guide-border);
+  border-left: 4px solid var(--guide-accent);
+  padding: 12px 18px;
+  margin: 14px 0;
+  border-radius: 0;
+}
+.def dt { font-weight: 700; margin-top: 8px; }
+.def dt:first-child { margin-top: 0; }
+.def dd { margin: 2px 0 10px; color: var(--guide-text-sub); }
+
+.constraint {
+  background: var(--guide-accent-soft);
+  border: 1px solid var(--guide-accent);
+  border-radius: 0;
+  padding: 12px 18px;
+  margin: 16px 0;
+  font-size: 0.93rem;
+}
+.constraint strong:first-child { color: var(--guide-accent-hi); }
+
+.warn {
+  background: var(--guide-stamp-soft);
+  border: 1px solid var(--guide-stamp);
+  border-radius: 0;
+  padding: 12px 18px;
+  margin: 16px 0;
+  font-size: 0.93rem;
+}
+.warn strong:first-child { color: var(--guide-stamp); }
+
+.tag {
+  display: inline-block;
+  font-family: ui-monospace, monospace;
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 0 8px;
+  border-radius: 0;
+  border: 1px solid transparent;
+}
+.tag.pass  { background: var(--guide-green-soft); color: var(--guide-green); border-color: var(--guide-green); }
+.tag.fail  { background: var(--guide-stamp-soft); color: var(--guide-stamp); border-color: var(--guide-stamp); }
+.tag.error { background: var(--guide-stamp-soft); color: var(--guide-stamp); border-color: var(--guide-stamp); }
+.tag.mode  { background: var(--guide-accent-soft); color: var(--guide-accent-hi); border-color: var(--guide-accent); }
+
+.diagram {
+  margin: 20px 0;
+  padding: 8px;
+  background: var(--guide-panel);
+  border: 1px solid var(--guide-border);
+  border-radius: 0;
+}
+.diagram svg { width: 100%; height: auto; display: block; cursor: zoom-in; }
+.diagram figcaption { padding: 8px 10px 2px; }
+
+.zoom-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(0,0,0,0.82);
+  overflow: auto;
+  padding: 24px;
+  cursor: zoom-out;
+  -webkit-overflow-scrolling: touch;
+}
+.zoom-overlay svg {
+  width: 1880px;
+  max-width: none;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+  background: var(--guide-panel);
+  border-radius: 0;
+}
+
+@media (max-width: 640px) {
+  body { padding-inline: 14px; }
+  .toc ol, nav ol { columns: 1; }
+  .meta-table, .spec, table { font-size: 0.84rem; }
+}
+</style>
+</head>
+<body>
+<header>
+<h1>reverse-docs-skills 自己ポータル</h1>
+<p>このリポジトリ自身（reverse-docs-skills）の設計書・規約・スキル・検証記録・台帳・説明資料への索引。既存の生成器（build-portal.sh）はこのリポジトリの構成には合わず（詳細は<a href="../design/generation-engine/ポータル試行の記録.md">ポータル試行の記録</a>を参照）、専用のページとして用意した。</p>
+</header>
+<section id="idx-scripts">
+<h2><span class="sec-num">1</span>スクリプト群の設計書</h2>
+<p class="note">generation-engine/scripts/ 配下 12 群それぞれの基本設計書・詳細設計書。</p>
+<table>
+<thead><tr><th>群</th><th>基本設計書</th><th>詳細設計書</th></tr></thead>
+<tbody>
+<tr><td>ルート直下</td><td><a href="../design/generation-engine/ルート直下/基本設計書.md">基本設計書.md</a></td><td><a href="../design/generation-engine/ルート直下/詳細設計書.md">詳細設計書.md</a></td></tr>
+<tr><td>detail-pages</td><td><a href="../design/generation-engine/detail-pages/基本設計書.md">基本設計書.md</a></td><td><a href="../design/generation-engine/detail-pages/詳細設計書.md">詳細設計書.md</a></td></tr>
+<tr><td>extract</td><td><a href="../design/generation-engine/extract/基本設計書.md">基本設計書.md</a></td><td><a href="../design/generation-engine/extract/詳細設計書.md">詳細設計書.md</a></td></tr>
+<tr><td>glossary</td><td><a href="../design/generation-engine/glossary/基本設計書.md">基本設計書.md</a></td><td><a href="../design/generation-engine/glossary/詳細設計書.md">詳細設計書.md</a></td></tr>
+<tr><td>matrix</td><td><a href="../design/generation-engine/matrix/基本設計書.md">基本設計書.md</a></td><td><a href="../design/generation-engine/matrix/詳細設計書.md">詳細設計書.md</a></td></tr>
+<tr><td>portal-input</td><td><a href="../design/generation-engine/portal-input/基本設計書.md">基本設計書.md</a></td><td><a href="../design/generation-engine/portal-input/詳細設計書.md">詳細設計書.md</a></td></tr>
+<tr><td>rule-proposal</td><td><a href="../design/generation-engine/rule-proposal/基本設計書.md">基本設計書.md</a></td><td><a href="../design/generation-engine/rule-proposal/詳細設計書.md">詳細設計書.md</a></td></tr>
+<tr><td>rules</td><td><a href="../design/generation-engine/rules/基本設計書.md">基本設計書.md</a></td><td><a href="../design/generation-engine/rules/詳細設計書.md">詳細設計書.md</a></td></tr>
+<tr><td>skill-guide</td><td><a href="../design/generation-engine/skill-guide/基本設計書.md">基本設計書.md</a></td><td><a href="../design/generation-engine/skill-guide/詳細設計書.md">詳細設計書.md</a></td></tr>
+<tr><td>tests</td><td><a href="../design/generation-engine/tests/基本設計書.md">基本設計書.md</a></td><td><a href="../design/generation-engine/tests/詳細設計書.md">詳細設計書.md</a></td></tr>
+<tr><td>unit-list</td><td><a href="../design/generation-engine/unit-list/基本設計書.md">基本設計書.md</a></td><td><a href="../design/generation-engine/unit-list/詳細設計書.md">詳細設計書.md</a></td></tr>
+<tr><td>verification</td><td><a href="../design/generation-engine/verification/基本設計書.md">基本設計書.md</a></td><td><a href="../design/generation-engine/verification/詳細設計書.md">詳細設計書.md</a></td></tr>
+</tbody>
+</table>
+</section>
+<section id="idx-rules">
+<h2><span class="sec-num">2</span>規約</h2>
+<p class="note">.claude/rules/ 配下の規約定義（全 8 件）。</p>
+<ul>
+<li><a href="../../.claude/rules/always/design-record/implementation-decision/rule.md"><code>always/design-record/implementation-decision/rule.md</code></a></li>
+<li><a href="../../.claude/rules/always/portal/template-sample-sync/rule.md"><code>always/portal/template-sample-sync/rule.md</code></a></li>
+<li><a href="../../.claude/rules/always/project-context/rule.md"><code>always/project-context/rule.md</code></a></li>
+<li><a href="../../.claude/rules/always/publish/complete/rule.md"><code>always/publish/complete/rule.md</code></a></li>
+<li><a href="../../.claude/rules/always/skill-guide/html/rule.md"><code>always/skill-guide/html/rule.md</code></a></li>
+<li><a href="../../.claude/rules/always/verification/reverse-verification/rule.md"><code>always/verification/reverse-verification/rule.md</code></a></li>
+<li><a href="../../.claude/rules/scoped/portal/category-grouping/rule.md"><code>scoped/portal/category-grouping/rule.md</code></a></li>
+<li><a href="../../.claude/rules/scoped/portal/page-conventions/rule.md"><code>scoped/portal/page-conventions/rule.md</code></a></li>
+</ul>
+</section>
+<section id="idx-skills">
+<h2><span class="sec-num">3</span>スキル一覧</h2>
+<p class="note">.claude/skills/ 配下のスキル（全 52 件）。ガイド HTML（references/guide.html）への索引。</p>
+<table>
+<thead><tr><th>スキル</th><th>ガイド</th></tr></thead>
+<tbody>
+<tr><td><code>counting-code-lines</code></td><td><a href="../../.claude/skills/counting-code-lines/references/guide.html">guide.html</a></td></tr>
+<tr><td><code>extracting-unit-facts-from-code</code></td><td><a href="../../.claude/skills/extracting-unit-facts-from-code/references/guide.html">guide.html</a></td></tr>
+<tr><td><code>generating-agent-config-index-from-repo</code></td><td><a href="../../.claude/skills/generating-agent-config-index-from-repo/references/guide.html">guide.html</a></td></tr>
+<tr><td><code>generating-api-basic-design-for-reverse-docs</code></td><td><a href="../../.claude/skills/generating-api-basic-design-for-reverse-docs/references/guide.html">guide.html</a></td></tr>
+<tr><td><code>generating-api-detail-design-for-reverse-docs</code></td><td><a href="../../.claude/skills/generating-api-detail-design-for-reverse-docs/references/guide.html">guide.html</a></td></tr>
+<tr><td><code>generating-api-list-for-reverse-docs</code></td><td><a href="../../.claude/skills/generating-api-list-for-reverse-docs/references/guide.html">guide.html</a></td></tr>
+<tr><td><code>generating-batch-basic-design-for-reverse-docs</code></td><td><a href="../../.claude/skills/generating-batch-basic-design-for-reverse-docs/references/guide.html">guide.html</a></td></tr>
+<tr><td><code>generating-batch-detail-design-for-reverse-docs</code></td><td><a href="../../.claude/skills/generating-batch-detail-design-for-reverse-docs/references/guide.html">guide.html</a></td></tr>
+<tr><td><code>generating-batch-list-for-reverse-docs</code></td><td><a href="../../.claude/skills/generating-batch-list-for-reverse-docs/references/guide.html">guide.html</a></td></tr>
+<tr><td><code>generating-component-inventory-for-reverse-docs</code></td><td><a href="../../.claude/skills/generating-component-inventory-for-reverse-docs/references/guide.html">guide.html</a></td></tr>
+<tr><td><code>generating-cross-views-for-reverse-docs</code></td><td><a href="../../.claude/skills/generating-cross-views-for-reverse-docs/references/guide.html">guide.html</a></td></tr>
+<tr><td><code>generating-design-system-for-reverse-docs</code></td><td><a href="../../.claude/skills/generating-design-system-for-reverse-docs/references/guide.html">guide.html</a></td></tr>
+<tr><td><code>generating-entity-state-for-reverse-docs</code></td><td><a href="../../.claude/skills/generating-entity-state-for-reverse-docs/references/guide.html">guide.html</a></td></tr>
+<tr><td><code>generating-env-guide-for-reverse-docs</code></td><td><a href="../../.claude/skills/generating-env-guide-for-reverse-docs/references/guide.html">guide.html</a></td></tr>
+<tr><td><code>generating-er-diagram-for-reverse-docs</code></td><td><a href="../../.claude/skills/generating-er-diagram-for-reverse-docs/references/guide.html">guide.html</a></td></tr>
+<tr><td><code>generating-external-basic-design-for-reverse-docs</code></td><td><a href="../../.claude/skills/generating-external-basic-design-for-reverse-docs/references/guide.html">guide.html</a></td></tr>
+<tr><td><code>generating-external-detail-design-for-reverse-docs</code></td><td><a href="../../.claude/skills/generating-external-detail-design-for-reverse-docs/references/guide.html">guide.html</a></td></tr>
+<tr><td><code>generating-external-list-for-reverse-docs</code></td><td><a href="../../.claude/skills/generating-external-list-for-reverse-docs/references/guide.html">guide.html</a></td></tr>
+<tr><td><code>generating-feature-design-for-reverse-docs</code></td><td><a href="../../.claude/skills/generating-feature-design-for-reverse-docs/references/guide.html">guide.html</a></td></tr>
+<tr><td><code>generating-feature-list-for-reverse-docs</code></td><td><a href="../../.claude/skills/generating-feature-list-for-reverse-docs/references/guide.html">guide.html</a></td></tr>
+<tr><td><code>generating-glossary-for-reverse-docs</code></td><td><a href="../../.claude/skills/generating-glossary-for-reverse-docs/references/guide.html">guide.html</a></td></tr>
+<tr><td><code>generating-icon-catalog-for-reverse-docs</code></td><td><a href="../../.claude/skills/generating-icon-catalog-for-reverse-docs/references/guide.html">guide.html</a></td></tr>
+<tr><td><code>generating-message-list-for-reverse-docs</code></td><td><a href="../../.claude/skills/generating-message-list-for-reverse-docs/references/guide.html">guide.html</a></td></tr>
+<tr><td><code>generating-release-notes-for-reverse-docs</code></td><td><a href="../../.claude/skills/generating-release-notes-for-reverse-docs/references/guide.html">guide.html</a></td></tr>
+<tr><td><code>generating-report-basic-design-for-reverse-docs</code></td><td><a href="../../.claude/skills/generating-report-basic-design-for-reverse-docs/references/guide.html">guide.html</a></td></tr>
+<tr><td><code>generating-report-detail-design-for-reverse-docs</code></td><td><a href="../../.claude/skills/generating-report-detail-design-for-reverse-docs/references/guide.html">guide.html</a></td></tr>
+<tr><td><code>generating-report-list-for-reverse-docs</code></td><td><a href="../../.claude/skills/generating-report-list-for-reverse-docs/references/guide.html">guide.html</a></td></tr>
+<tr><td><code>generating-requirement-definitions-for-reverse-docs</code></td><td><a href="../../.claude/skills/generating-requirement-definitions-for-reverse-docs/references/guide.html">guide.html</a></td></tr>
+<tr><td><code>generating-reverse-basic-design</code></td><td><a href="../../.claude/skills/generating-reverse-basic-design/references/guide.html">guide.html</a></td></tr>
+<tr><td><code>generating-reverse-common-docs</code></td><td><a href="../../.claude/skills/generating-reverse-common-docs/references/guide.html">guide.html</a></td></tr>
+<tr><td><code>generating-reverse-detailed-design</code></td><td><a href="../../.claude/skills/generating-reverse-detailed-design/references/guide.html">guide.html</a></td></tr>
+<tr><td><code>generating-rule-proposals-for-reverse-docs</code></td><td><a href="../../.claude/skills/generating-rule-proposals-for-reverse-docs/references/guide.html">guide.html</a></td></tr>
+<tr><td><code>generating-screen-list-for-reverse-docs</code></td><td><a href="../../.claude/skills/generating-screen-list-for-reverse-docs/references/guide.html">guide.html</a></td></tr>
+<tr><td><code>generating-screen-transition-for-reverse-docs</code></td><td><a href="../../.claude/skills/generating-screen-transition-for-reverse-docs/references/guide.html">guide.html</a></td></tr>
+<tr><td><code>generating-sequence-diagram-for-reverse-docs</code></td><td><a href="../../.claude/skills/generating-sequence-diagram-for-reverse-docs/references/guide.html">guide.html</a></td></tr>
+<tr><td><code>generating-table-definition-for-reverse-docs</code></td><td><a href="../../.claude/skills/generating-table-definition-for-reverse-docs/references/guide.html">guide.html</a></td></tr>
+<tr><td><code>generating-table-list-for-reverse-docs</code></td><td><a href="../../.claude/skills/generating-table-list-for-reverse-docs/references/guide.html">guide.html</a></td></tr>
+<tr><td><code>generating-table-logical-model-for-reverse-docs</code></td><td><a href="../../.claude/skills/generating-table-logical-model-for-reverse-docs/references/guide.html">guide.html</a></td></tr>
+<tr><td><code>generating-tech-stack-for-reverse-docs</code></td><td><a href="../../.claude/skills/generating-tech-stack-for-reverse-docs/references/guide.html">guide.html</a></td></tr>
+<tr><td><code>generating-test-case-list-for-reverse-docs</code></td><td><a href="../../.claude/skills/generating-test-case-list-for-reverse-docs/references/guide.html">guide.html</a></td></tr>
+<tr><td><code>generating-test-viewpoint-list-for-reverse-docs</code></td><td><a href="../../.claude/skills/generating-test-viewpoint-list-for-reverse-docs/references/guide.html">guide.html</a></td></tr>
+<tr><td><code>maintaining-semantic-glossary</code></td><td><a href="../../.claude/skills/maintaining-semantic-glossary/references/guide.html">guide.html</a></td></tr>
+<tr><td><code>managing-semantic-glossary</code></td><td><a href="../../.claude/skills/managing-semantic-glossary/references/guide.html">guide.html</a></td></tr>
+<tr><td><code>orchestrating-ai-development-setup</code></td><td><a href="../../.claude/skills/orchestrating-ai-development-setup/references/guide.html">guide.html</a></td></tr>
+<tr><td><code>prioritizing-improvement-tasks-from-images</code></td><td><a href="../../.claude/skills/prioritizing-improvement-tasks-from-images/references/guide.html">guide.html</a></td></tr>
+<tr><td><code>rebuilding-code-from-docs</code></td><td><a href="../../.claude/skills/rebuilding-code-from-docs/references/guide.html">guide.html</a></td></tr>
+<tr><td><code>rebuilding-screen-unit-from-docs</code></td><td><a href="../../.claude/skills/rebuilding-screen-unit-from-docs/references/guide.html">guide.html</a></td></tr>
+<tr><td><code>running-reverse-screen-batch</code></td><td><a href="../../.claude/skills/running-reverse-screen-batch/references/guide.html">guide.html</a></td></tr>
+<tr><td><code>surveying-architecture-for-reverse-docs</code></td><td><a href="../../.claude/skills/surveying-architecture-for-reverse-docs/references/guide.html">guide.html</a></td></tr>
+<tr><td><code>surveying-local-environment</code></td><td><a href="../../.claude/skills/surveying-local-environment/references/guide.html">guide.html</a></td></tr>
+<tr><td><code>syncing-reverse-env</code></td><td><a href="../../.claude/skills/syncing-reverse-env/references/guide.html">guide.html</a></td></tr>
+<tr><td><code>unlocking-reverse-target-screens</code></td><td><a href="../../.claude/skills/unlocking-reverse-target-screens/references/guide.html">guide.html</a></td></tr>
+</tbody>
+</table>
+</section>
+<section id="idx-verification">
+<h2><span class="sec-num">4</span>検証の記録</h2>
+<p class="note">docs/design/reverse-verification/ 配下。往復検証（ラウンドトリップ検証）の設計と実行記録。</p>
+<ul>
+<li><a href="../design/reverse-verification/設計.md">設計.md</a></li>
+<li><a href="../design/reverse-verification/README.md">README.md</a></li>
+</ul>
+</section>
+<section id="idx-ledgers">
+<h2><span class="sec-num">5</span>台帳</h2>
+<p class="note">docs/tasks/work-records/ 配下の実行記録・退避記録等（全 4 件）。画像から起こした改善課題は指示書へ移した。</p>
+<ul>
+<li><a href="../tasks/">改善課題（画像起こし分）は指示書へ移した</a></li>
+<li><a href="../tasks/work-records/実行記録.md">実行記録.md</a></li>
+<li><a href="../tasks/work-records/退避記録.md">退避記録.md</a></li>
+<li><a href="../tasks/work-records/改善反映台帳.md">改善反映台帳.md</a></li>
+<li><a href="../tasks/work-records/AIセットアップ検証台帳.md">AIセットアップ検証台帳.md</a></li>
+</ul>
+</section>
+<section id="idx-docs">
+<h2><span class="sec-num">6</span>既存の説明資料</h2>
+<ul>
+<li><a href="../guides/reverse-docs-overview.html">reverse-docs-overview.html</a>（人間向け全体ガイド）</li>
+<li><a href="../guides/納品物ガイド.html">納品物ガイド.html</a>（納品物ガイド）</li>
+</ul>
+</section>
+</body>
+</html>

@@ -1,0 +1,43 @@
+# ~/.claude/rules/scoped/portal/page-conventions/rule.md の設計判断サイドカー（非注入）
+
+## check-portal-consistency
+
+**必要性**: ページファミリー・表記・並び順の不整合は「そのページを作る瞬間には気づけないが、サイト全体を横断すると露見する」性質を持ち、実際に 3 種類の不整合（表記ゆれ・遷移先種別混在・並び順バラバラ）が同一セッション内で発生した。`data/manifest.js`（JS オブジェクト配列）・`claude/tooling.html`（HTML テーブル）・`index.html`（HTML カード）という異なるフォーマットを横断して並び順とリンク先系統を照合する処理は、正規表現によるブロック抽出・ID→正本名マッピング・部分列判定という複数の分岐を持ち、Bash の一行コマンドや `grep` だけでは実装できない。`check-portal-consistency.mjs`（Node、既存の `manage-portal.mjs` と同じ実行環境を利用）で判定ロジックを一元化し、`check-portal-consistency.sh` は PostToolUse イベントからの起動・対象ファイル判定・advisory JSON 整形のみを担う薄いラッパーとする。表記ゆれの文脈依存判定（日本語⇔英語の一般名詞/固有名詞の区別）は機械的な誤検知が避けられないため、`tooling.html` の早見表という文脈が確定した 1 箇所のみ完全一致で検査し、それ以外は本 rule.md のレビューチェックリストに委ねる設計とした。
+
+**代替案を採用しなかった理由**:
+- Bash ツール直叩き: PostToolUse イベントに自動バインドできず、`manifest.js` / `tooling.html` / `index.html` を編集するたびに手動実行が必要になり、規約導入前の状態（目視レビュー頼み）と変わらない
+- 既存 Makefile 拡張: `agent-home/` 配下には Makefile が存在せず、新規導入は本チェック専用の依存を増やすだけになる
+- package.json scripts 追加: `ai-management-portal/` はビルドステップを持たない静的サイト（`README.md` 記載）であり、npm scripts 化はプロジェクトの無ビルド方針に反する
+- `managing-agent-configs` skill のレビューフローへの追加: 同 skill の対象種別（skills/hooks/rules/routines/subagents）に「ポータルページ」という種別が存在せず、種別判定表・`references/<type>/` 構造の拡張を要する大掛かりな変更になる。ポータルページの整合性はページ横断の構造チェックであり、hook による即時 advisory の方が編集直後にフィードバックできる
+- pre-commit 相当の単独スクリプト（commit 時のみ実行）: 編集直後ではなく commit 時まで気づけないため、修正のタイミングが遅れる。PostToolUse hook であれば Write/Edit 直後に検知できる
+
+**保守責任者**: 人手（ユーザー）。正本順序・ページファミリー分類を変更する場合は本ファイルと `check-portal-consistency.mjs` の `CANON_ORDER` / `DESIGN_ID_MAP` / `REGISTRY_ID_MAP` を同時に更新する。
+
+**廃棄条件**: `ai-management-portal` がビルドステップを持つフレームワークに移行し、型システムやテンプレートエンジンによってページファミリー・並び順が構造的に保証されるようになった時、または `ai-management-portal` 自体が廃止された時。
+
+## ページファミリーの4分類化（architecture/ の追加）
+
+2026-07-10、レビュー基盤（rules + 単一入口スキル + 専門家サブエージェントの3層構造）の仕組み解説ページを
+最初 `design/` に置いたところ、ユーザーから「design/ は書き方・仕様を置く場所であり、今回の内容（仕組みの
+解説）とは性質が違う」と指摘された。既存 `claude/`（.claude ディレクトリ自体の見取り図）にも完全には
+一致しない（レビュー基盤は agent-home 側のスキル・サブエージェントも含む横断機構のため）。そこで
+「複数レイヤーを横断する機構の解説」を担う第3分類 `architecture/*.html` を新設し、3分類を4分類に改めた。
+
+**必要性**: `design/`（単一設定層の書き方）と `claude/`（.claude 自体の構造）のどちらでもない「複数の
+config層・スキル・エージェントがどう繋がって1つの機構を成すか」を説明するページ（例: レビュー基盤・
+将来的な loop 実行基盤の全体解説等）の置き場所が規約上定義されておらず、既存分類への誤配置を招いた。
+
+**代替案を採用しなかった理由**:
+- `design/` に残して内容だけ書き方寄りに修正する: 今回のページの本質は「仕組みの俯瞰」であり、書き方
+  ガイドに書き換えると内容が痩せる。今後同種のページ（複数層を跨ぐ機構の解説）が増える見込みがあり、
+  1 ページのための場当たり対応より分類自体を追加する方が繰り返しに耐える
+- `claude/` に置く: `.claude` ディレクトリ限定の見取り図という既存の意味を壊す。レビュー基盤は
+  agent-home 側のスキル・サブエージェントを含むため `.claude` の範囲を超える
+
+**保守責任者**: 人手（ユーザー）。新分類の判定基準（design/ vs architecture/ vs claude/）が曖昧になる
+ページが出た場合は本ファイルと rule.md §1 の判定基準を見直す。
+
+**廃棄条件**: `architecture/*.html` に該当するページが今後も作られないと判断され、分類自体が過剰と
+なった場合（1 ページも増えないまま長期間経過した場合など）。
+
+2026-07-11: agent-home ローカル（.claude/rules/portal-page-conventions-rules/）からグローバルツリーへ移設。paths **/ai-management-portal/** で実質 agent-home 限定（ディレクトリ名が一意）。canary 実測でグローバル scoped rule の cwd 非依存発火を確認済み。

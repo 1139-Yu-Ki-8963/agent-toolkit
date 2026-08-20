@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<!--
+  画面-API-テーブル対応表（画面→API→テーブル連鎖）.HTML の静的シェル(テンプレート)
+
+  答える質問:
+    「この画面を変えたら何に波及するか」「このテーブルはどの画面から使われているか」
+
+  使い方:
+    プレースホルダ・注入マーカーは将来のビルドスクリプトが注入する。手作業置換禁止。
+    ビルドスクリプトが画面-API-テーブル対応表マニフェストJSONをパースし、以下のマーカーを
+    機械的に置換して決定的にHTMLを生成する。
+
+  プレースホルダ(二重置換事故を避けるため本コメントでは波括弧・HTMLコメント記法を
+  意図的に外して記載する):
+    GENERATED_AT (生成日時マーカー)   : ISO8601 生成日時
+    DATA_SOURCE (データ源マーカー)    : 画面一覧・API一覧・テーブル一覧マニフェストの取得元
+    MATRIX_JSON (マニフェストJSON埋め込みマーカー) :
+      script#matrix-manifest の中身として manifest JSON をそのまま埋め込む
+      (二重管理・ドリフト禁止)。構造:
+        screens: [{ screenId, screenName, route, apis: [apiId, ...] }]
+        apis:    [{ apiId, apiName, endpoint, tables: [tableId, ...] }]
+        tables:  [{ tableId, tableName, logicalName }]
+      画面→テーブルの対応は screens[].apis と apis[].tables から JS が導出する。
+      画面起点・テーブル起点(逆引き)の両モードとも同一のこの manifest から描画する
+      (二重データ禁止)。
+
+  表構造(2モード切替):
+    画面起点モード     : 行 = 画面 / 列 = 画面・呼び出しAPI一覧・使用テーブル一覧
+    テーブル起点モード : 行 = テーブル / 列 = テーブル・触るAPI一覧・使われる画面一覧
+    どの画面からも使われていないテーブルは「孤立」バッジ(警告色)で表示する
+
+  保守注記: トークン・共通シェル(サイドバー・フッター・全画面レイアウトのCSS)は
+  delivery-payload/templates/partials 配下の共通ファイルを注入マーカー経由で読み込む。
+  テーマ切替はサイドバー側に一本化されており、本テンプレートに複製は無い。
+
+  制約:
+    - 外部リソース(CDN・フォント・画像)は一切使わない。単一ファイル自己完結
+    - <script id="matrix-manifest"> の中身は確定結果(manifest JSON)と完全に一致させる
+-->
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>画面-API-テーブル対応表</title>
+<style>
+/* TOKENS_CSS */
+/* SHELL_CSS */
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+
+/* モード切替タブ(画面遷移図の3モード切替と同一パターン) */
+.mode-tabs { display: flex; gap: 4px; margin: 0 0 8px; border-bottom: 1px solid var(--line); }
+.mode-tab {
+  background: none; border: none; border-bottom: 2px solid transparent; margin-bottom: -1px;
+  padding: 10px 18px; font-size: 14px; font-weight: 600; color: var(--muted);
+  cursor: pointer; font-family: inherit; transition: color .15s, border-color .15s;
+}
+.mode-tab:hover { color: var(--sub); }
+.mode-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+.hidden { display: none; }
+
+.toolbar-area { flex-shrink: 0; padding: 8px 0 0; }
+.toolbar { display: flex; gap: 10px; margin: 0 0 10px; align-items: center; flex-wrap: wrap; }
+.toolbar .pt-input { width: 260px; flex: none; }
+.toolbar .note { font-size: 0.82rem; color: var(--muted); }
+.toolbar .pt-count { margin-left: auto; }
+
+.table-area { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 8px; }
+
+.matrix-empty-callout { margin: 0 0 8px; padding: 10px 14px; font-size: 0.85rem; line-height: 1.5; }
+.matrix-empty-callout p { margin: 0; }
+.matrix-empty-callout[hidden] { display: none; }
+
+table.matrix {
+  /* 幅は内容に合わせる。表示領域に収まらない場合は .pt-tablewrap の overflow で
+     表の枠内を横スクロールさせる。1 列目は sticky のため横スクロール時も固定表示が保たれる。 */
+  table-layout: fixed; width: max-content; min-width: 100%;
+  border-collapse: collapse; font-size: 0.88rem;
+}
+table.matrix th, table.matrix td { border-top: 1px solid var(--line); padding: 7px 10px; text-align: left; vertical-align: top; }
+/* 1列目(画面名/テーブル名+ルート)は sticky で固定。行ヘッダとして幅を表示領域に依存させない。 */
+table.matrix th:nth-child(1), table.matrix td:nth-child(1) {
+  position: sticky; left: 0; z-index: 2;
+  background: var(--panel);
+  border-right: 2px solid var(--line2);
+  width: 220px;
+}
+table.matrix thead th:nth-child(1) { z-index: 3; color: var(--text); }
+table.matrix th:nth-child(2), table.matrix td:nth-child(2) { width: auto; min-width: 260px; }
+table.matrix th:nth-child(3), table.matrix td:nth-child(3) { width: auto; min-width: 220px; }
+
+td .unit-name { display: block; }
+td .route {
+  font-family: var(--mono); font-size: 0.8em; background: var(--panel3);
+  padding: 1px 5px; overflow-wrap: break-word; word-break: break-all;
+}
+td .sub-name { font-size: 0.8em; color: var(--muted); }
+
+/* chip 風の複数列挙表示(.ex 相当の小タグ) */
+.ex {
+  display: inline-block; font-size: 0.76rem; line-height: 1.5;
+  padding: 1px 7px; margin: 1px 4px 1px 0;
+  border: 1px solid var(--line2); background: var(--panel3); color: var(--sub);
+  white-space: nowrap;
+}
+.ex.ex-api { font-family: var(--mono); background: var(--accent-soft); color: var(--accent); border-color: var(--accent); }
+.ex.ex-table { font-family: var(--mono); }
+.cell-empty { color: var(--muted); }
+
+/* chip を一覧ページへの ?q= リンクにする(見た目は span 時代のまま) */
+a.ex { text-decoration: none; cursor: pointer; }
+a.ex:hover { border-color: var(--accent); color: var(--accent); }
+
+/* 行ヘッダセルのコピーボタン(一覧ページと同じ inline SVG 方式) */
+.copy-btn { background: none; border: none; cursor: pointer; padding: 1px 3px; color: var(--muted); opacity: .35; vertical-align: middle; }
+tr:hover .copy-btn, .copy-btn:focus { opacity: 1; }
+.copy-btn:hover { color: var(--accent); }
+
+.badge-orphan {
+  display: inline-block; font-size: 0.74rem; font-weight: 700; padding: 1px 8px;
+  background: var(--stamp-soft); color: var(--stamp); border: 1px solid var(--stamp);
+  margin-left: 6px; vertical-align: middle;
+}
+
+.legend { font-size: 0.8rem; color: var(--muted); margin: 0; }
+
+table.matrix tbody tr:hover td { background: var(--panel3); }
+</style>
+</head>
+<body>
+<div class="pt">
+  <div class="pt-grid"></div>
+  <div class="pt-row">
+    <!--SHELL_SIDEBAR-->
+    <main class="pt-main is-fixed">
+      <div class="pt-head">
+        <div class="pt-crumb"><a href="{{BACK_LINK}}">TOP</a> ／ {{ACTIVE_CATEGORY_LABEL}} ／ <span class="pt-crumb-current">画面-API-テーブル対応表</span></div>
+        <div class="pt-title-row">
+          <h1 class="pt-title">画面-API-テーブル対応表</h1>
+          <span class="pt-title-sub">更新 {{GENERATED_AT}}</span>
+        </div>
+      </div>
+
+      <div class="toolbar-area">
+        <div class="mode-tabs" id="mode-tabs">
+          <button type="button" class="mode-tab active" data-mode="screen">画面起点</button>
+          <button type="button" class="mode-tab" data-mode="table">テーブル起点（逆引き）</button>
+        </div>
+        <div class="toolbar">
+          <input type="search" id="matrix-search" class="pt-input" placeholder="画面名・API・テーブル名で絞り込み">
+          <span class="note">画面起点=「この画面を変えたら何に波及するか」／テーブル起点=「このテーブルはどの画面から使われているか」</span>
+          <span class="pt-count" id="matrix-count"></span>
+        </div>
+      </div>
+
+      <div class="table-area">
+        <div id="matrix-empty-callout" class="pt-callout pt-callout--warning matrix-empty-callout" role="status" hidden>
+          <p><span class="material-symbols-outlined pt-callout__icon" aria-hidden="true">warning</span><span id="matrix-empty-callout-msg"></span></p>
+        </div>
+        <div id="mode-screen">
+          <div class="pt-tablewrap">
+            <table class="matrix" id="screen-table">
+              <thead>
+                <tr>
+                  <th>画面</th>
+                  <th>呼び出しAPI一覧</th>
+                  <th>使用テーブル一覧</th>
+                </tr>
+              </thead>
+              <tbody id="screen-body">
+                <!-- JSがmatrix-manifestから行を描画する -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div id="mode-table" class="hidden">
+          <div class="pt-tablewrap">
+            <table class="matrix" id="table-table">
+              <thead>
+                <tr>
+                  <th>テーブル</th>
+                  <th>触るAPI一覧</th>
+                  <th>使われる画面一覧</th>
+                </tr>
+              </thead>
+              <tbody id="table-body">
+                <!-- JSがmatrix-manifestから行を描画する -->
+              </tbody>
+            </table>
+          </div>
+          <p class="legend">凡例: <span class="badge-orphan" style="margin-left:0;">孤立</span> = どの画面からも使われていないテーブル（未使用・デッドスキーマの疑い。要確認）</p>
+        </div>
+      </div>
+    </main>
+  </div>
+  <!--SHELL_FOOTER-->
+</div>
+
+<script type="application/json" id="matrix-manifest">
+<!--MATRIX_JSON-->
+</script>
+
+<script>
+  (function () {
+    var manifestEl = document.getElementById('matrix-manifest');
+    var manifest = null;
+    try { manifest = JSON.parse(manifestEl.textContent); } catch (e) { /* プレースホルダ未注入時は描画しない */ }
+    if (!manifest || !manifest.screens || !manifest.apis || !manifest.tables) return;
+
+    var screens = manifest.screens;
+    var apis = manifest.apis;
+    var tables = manifest.tables;
+
+    /* 一部成分が0件の場合は原因区分を判別できない旨を明示する空状態表示を出す
+       (写真指摘1-101: 空白の表だけを公開せず、欠けた成分と理由区分の有無を示す) */
+    var missingParts = [];
+    if (screens.length === 0) missingParts.push('画面');
+    if (apis.length === 0) missingParts.push('API');
+    if (tables.length === 0) missingParts.push('テーブル');
+    var emptyCallout = document.getElementById('matrix-empty-callout');
+    if (emptyCallout && missingParts.length > 0) {
+      var emptyMsg = document.getElementById('matrix-empty-callout-msg');
+      if (emptyMsg) {
+        emptyMsg.textContent = missingParts.join('・') + 'が0件のため、該当する行または連鎖がありません。' +
+          '原因区分（抽出未対応・データ不在のいずれか）は入力データからは判別できません。';
+      }
+      emptyCallout.hidden = false;
+    }
+
+    /* --- 索引(単一manifestから両モードを導出。二重データ禁止) --- */
+    var apiById = {};
+    apis.forEach(function (a) { apiById[a.apiId] = a; });
+    var tableById = {};
+    tables.forEach(function (t) { tableById[t.tableId] = t; });
+
+    /* 画面 → 使用テーブルID集合(呼び出すAPIのtablesの和集合) */
+    function tablesOfScreen(s) {
+      var seen = {};
+      var list = [];
+      (s.apis || []).forEach(function (apiId) {
+        var a = apiById[apiId];
+        if (!a) return;
+        (a.tables || []).forEach(function (tid) {
+          if (!seen[tid]) { seen[tid] = true; list.push(tid); }
+        });
+      });
+      return list;
+    }
+
+    /* テーブル → 触るAPI一覧 / 使われる画面一覧(逆引き導出) */
+    var apisOfTable = {};
+    var screensOfTable = {};
+    tables.forEach(function (t) { apisOfTable[t.tableId] = []; screensOfTable[t.tableId] = []; });
+    apis.forEach(function (a) {
+      (a.tables || []).forEach(function (tid) {
+        if (apisOfTable[tid]) apisOfTable[tid].push(a.apiId);
+      });
+    });
+    screens.forEach(function (s) {
+      tablesOfScreen(s).forEach(function (tid) {
+        if (screensOfTable[tid]) screensOfTable[tid].push(s.screenId);
+      });
+    });
+
+    /* --- 規模表示(トップバー右端): 画面数・API数・テーブル数・孤立テーブル数 --- */
+    var orphanCount = 0;
+    tables.forEach(function (t) { if (screensOfTable[t.tableId].length === 0) orphanCount++; });
+
+    var countEl = document.getElementById('matrix-count');
+    if (countEl) {
+      var summary = '画面 ' + screens.length + '件 / API ' + apis.length + '件 / テーブル ' + tables.length + '件';
+      if (orphanCount > 0) summary += ' / 孤立 ' + orphanCount + '件';
+      countEl.textContent = summary;
+    }
+
+    /* --- chip 生成ヘルパー(対応する一覧ページへの ?q= リンク) --- */
+    function apiChip(apiId) {
+      var a = apiById[apiId];
+      var chip = document.createElement('a');
+      chip.className = 'ex ex-api';
+      chip.textContent = a ? a.endpoint : apiId;
+      if (a) chip.title = a.apiName;
+      chip.href = '../../一覧/API一覧/API一覧.html?q=' + encodeURIComponent(a ? a.endpoint : apiId);
+      return chip;
+    }
+    function tableChip(tableId) {
+      var t = tableById[tableId];
+      var chip = document.createElement('a');
+      chip.className = 'ex ex-table';
+      chip.textContent = t ? t.tableName : tableId;
+      if (t && t.logicalName) chip.title = t.logicalName;
+      chip.href = '../../一覧/テーブル一覧/テーブル一覧.html?q=' + encodeURIComponent(t ? t.tableName : tableId);
+      return chip;
+    }
+    function screenChip(screenId) {
+      var s = null;
+      for (var i = 0; i < screens.length; i++) { if (screens[i].screenId === screenId) { s = screens[i]; break; } }
+      var chip = document.createElement('a');
+      chip.className = 'ex';
+      chip.textContent = s ? s.screenName : screenId;
+      if (s && s.route) chip.title = s.route;
+      chip.href = '../../一覧/画面一覧/画面一覧.html?q=' + encodeURIComponent(s ? s.screenName : screenId);
+      return chip;
+    }
+    function fillChips(td, ids, maker) {
+      if (!ids || ids.length === 0) {
+        var em = document.createElement('span');
+        em.className = 'cell-empty';
+        em.textContent = '—';
+        td.appendChild(em);
+        return;
+      }
+      ids.forEach(function (id) { td.appendChild(maker(id)); });
+    }
+
+    /* --- 行ヘッダセルのコピーボタン(一覧ページと同じ inline SVG 方式) --- */
+    var COPY_ICON = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>';
+    var CHECK_ICON = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+    function fallbackCopy(text) {
+      var ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand('copy'); } catch (e) {}
+      document.body.removeChild(ta);
+    }
+    function copyText(text, done) {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(done, function () { fallbackCopy(text); done(); });
+      } else {
+        fallbackCopy(text);
+        done();
+      }
+    }
+    function makeCopyBtn(text) {
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'copy-btn';
+      btn.setAttribute('aria-label', 'コピー');
+      btn.innerHTML = COPY_ICON;
+      btn.addEventListener('click', function () {
+        copyText(text, function () {
+          btn.innerHTML = CHECK_ICON;
+          setTimeout(function () { btn.innerHTML = COPY_ICON; }, 1200);
+        });
+      });
+      return btn;
+    }
+
+    /* --- 画面起点モード: 行=画面 / 列=画面・呼び出しAPI一覧・使用テーブル一覧 --- */
+    var screenBody = document.getElementById('screen-body');
+    var screenRows = [];
+    screens.forEach(function (s) {
+      var tr = document.createElement('tr');
+
+      var tdScreen = document.createElement('td');
+      var name = document.createElement('span');
+      name.className = 'unit-name';
+      name.textContent = s.screenName;
+      name.appendChild(makeCopyBtn(s.screenName));
+      tdScreen.appendChild(name);
+      var route = document.createElement('code');
+      route.className = 'route';
+      route.textContent = s.route || '—';
+      tdScreen.appendChild(route);
+      tr.appendChild(tdScreen);
+
+      var tdApis = document.createElement('td');
+      fillChips(tdApis, s.apis || [], apiChip);
+      tr.appendChild(tdApis);
+
+      var tdTables = document.createElement('td');
+      fillChips(tdTables, tablesOfScreen(s), tableChip);
+      tr.appendChild(tdTables);
+
+      screenRows.push(tr);
+      screenBody.appendChild(tr);
+    });
+
+    /* --- テーブル起点モード(逆引き): 行=テーブル / 列=テーブル・触るAPI一覧・使われる画面一覧 --- */
+    var tableBody = document.getElementById('table-body');
+    var tableRows = [];
+    tables.forEach(function (t) {
+      var tr = document.createElement('tr');
+
+      var tdTable = document.createElement('td');
+      var name = document.createElement('span');
+      name.className = 'unit-name';
+      var code = document.createElement('code');
+      code.className = 'route';
+      code.textContent = t.tableName;
+      name.appendChild(code);
+      name.appendChild(makeCopyBtn(t.tableName));
+      if (screensOfTable[t.tableId].length === 0) {
+        var badge = document.createElement('span');
+        badge.className = 'badge-orphan';
+        badge.textContent = '孤立';
+        badge.title = 'どの画面からも使われていないテーブル';
+        name.appendChild(badge);
+      }
+      tdTable.appendChild(name);
+      if (t.logicalName) {
+        var sub = document.createElement('span');
+        sub.className = 'sub-name';
+        sub.textContent = t.logicalName;
+        tdTable.appendChild(sub);
+      }
+      tr.appendChild(tdTable);
+
+      var tdApis = document.createElement('td');
+      fillChips(tdApis, apisOfTable[t.tableId], apiChip);
+      tr.appendChild(tdApis);
+
+      var tdScreens = document.createElement('td');
+      fillChips(tdScreens, screensOfTable[t.tableId], screenChip);
+      tr.appendChild(tdScreens);
+
+      tableRows.push(tr);
+      tableBody.appendChild(tr);
+    });
+
+    /* --- モード切替(画面遷移図と同一の radio 的タブUI) --- */
+    var MODES = ['screen', 'table'];
+    var currentMode = 'screen';
+    function setMode(mode) {
+      currentMode = mode;
+      MODES.forEach(function (m) {
+        var el = document.getElementById('mode-' + m);
+        if (el) el.classList.toggle('hidden', m !== mode);
+      });
+      document.querySelectorAll('.mode-tab').forEach(function (t) {
+        t.classList.toggle('active', t.getAttribute('data-mode') === mode);
+      });
+      applyFilter();
+    }
+    document.querySelectorAll('.mode-tab').forEach(function (btn) {
+      btn.addEventListener('click', function () { setMode(btn.getAttribute('data-mode')); });
+    });
+
+    /* --- 検索絞り込み(現在モードの行に適用) --- */
+    var search = document.getElementById('matrix-search');
+    function applyFilter() {
+      var q = search ? search.value.trim().toLowerCase() : '';
+      var rows = currentMode === 'screen' ? screenRows : tableRows;
+      rows.forEach(function (tr) {
+        tr.style.display = (!q || tr.textContent.toLowerCase().indexOf(q) !== -1) ? '' : 'none';
+      });
+    }
+    if (search) search.addEventListener('input', applyFilter);
+
+    /* ?q= 受け口: 一覧ページの相互参照リンクからの遷移。検索窓へ反映して絞り込みを発火する */
+    var initialQ = (new URLSearchParams(location.search).get('q') || '').trim();
+    if (initialQ && search) {
+      search.value = initialQ;
+      applyFilter();
+    }
+  })();
+</script>
+
+</body>
+</html>

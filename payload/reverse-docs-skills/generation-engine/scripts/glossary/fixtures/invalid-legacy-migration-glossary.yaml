@@ -1,0 +1,12 @@
+pageKind: glossary
+generatedAt: '2026-08-02T00:00:00Z'
+title: 旧形式用語辞書
+description: 旧page-dataは正式glossaryへ自動昇格しない
+categories:
+  - {key: domain, label: 業務}
+terms:
+  - term: 顧客
+    definition: 商品やサービスを購入する主体
+    codeRefs: [Customer]
+    category: domain
+    sourceRef: src/customer.ts:1

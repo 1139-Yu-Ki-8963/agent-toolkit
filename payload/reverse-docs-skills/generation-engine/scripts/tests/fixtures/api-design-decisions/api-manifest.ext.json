@@ -1,0 +1,15 @@
+{
+  "unitKind": "api",
+  "units": [
+    {
+      "unitKey": "inventory-cache",
+      "unitId": "inventory-cache",
+      "kind": "endpoint",
+      "method": "POST",
+      "path": "/orders",
+      "featureKey": "order-reception",
+      "sourceFile": "comment-source.py",
+      "files": ["comment-source.py"]
+    }
+  ]
+}
