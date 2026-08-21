@@ -150,16 +150,6 @@
       "evidenceSource": "none"
     },
     {
-      "kind": "common-document-evidence-ledger",
-      "layoutKey": "commonDocumentEvidenceLedger",
-      "evidenceSource": "none"
-    },
-    {
-      "kind": "unit-evidence-ledger",
-      "layoutKey": "unitEvidenceLedgerFile",
-      "evidenceSource": "none"
-    },
-    {
       "kind": "confirmation-item-ledger",
       "layoutKey": "unitConfirmationLedgerFile",
       "evidenceSource": "none"

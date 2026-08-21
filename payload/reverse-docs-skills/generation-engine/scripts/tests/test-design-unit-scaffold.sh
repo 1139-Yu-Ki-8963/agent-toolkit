@@ -97,22 +97,39 @@ echo "PASS: symlinkを含む出力先を拒否"
 # 5. 同じ phase の通常再実行は既存ファイルを上書きしない
 docs5="$tmp/docs5"
 mkdir -p "$docs5"
+# 実装判断: 以前はここで basic フェーズの配下に API単体テスト設計書.md を
+#   置いて非上書きを検証していたが、同ファイルは test フェーズの宣言であり
+#   basic フェーズの scaffold はそれを触る経路を持たない。テスト自身が
+#   作ったファイルが消えないことを見ているだけで、検証になっていなかった。
+#   2026-08-21 に実測して判明。basic と test の両フェーズを展開し、
+#   それぞれの宣言ファイルを対象にする形へ改めた。
 bash "$SCAFFOLD" api basic "$docs5" repeat-case "リピート" >/dev/null
+bash "$SCAFFOLD" api test "$docs5" repeat-case "リピート" >/dev/null
 target5_basic="$docs5/docs/design/apis/api-repeat-case/基本設計/API基本設計書.md"
-target5_unit="$docs5/docs/design/apis/api-repeat-case/基本設計/API単体テスト設計書.md"
+target5_test="$docs5/docs/design/apis/api-repeat-case/テスト設計/APIテスト設計書.md"
+target5_unit="$docs5/docs/design/apis/api-repeat-case/テスト設計/API単体テスト設計書.md"
 printf '\n基本設計を保持するmarker\n' >> "$target5_basic"
+printf '\nテスト設計を保持するmarker\n' >> "$target5_test"
 printf '\n単体テスト設計を保持するmarker\n' >> "$target5_unit"
 checksum5_basic_before="$(cksum "$target5_basic")"
+checksum5_test_before="$(cksum "$target5_test")"
 checksum5_unit_before="$(cksum "$target5_unit")"
 if ! bash "$SCAFFOLD" api basic "$docs5" repeat-case "リピート再実行" >/dev/null 2>&1; then
   echo "FAIL: 同じphaseの通常再実行が異常終了しました" >&2
   exit 1
 fi
+if ! bash "$SCAFFOLD" api test "$docs5" repeat-case "リピート再実行" >/dev/null 2>&1; then
+  echo "FAIL: testフェーズの通常再実行が異常終了しました" >&2
+  exit 1
+fi
 checksum5_basic_after="$(cksum "$target5_basic")"
+checksum5_test_after="$(cksum "$target5_test")"
 checksum5_unit_after="$(cksum "$target5_unit")"
 if [ "$checksum5_basic_before" != "$checksum5_basic_after" ] \
+   || [ "$checksum5_test_before" != "$checksum5_test_after" ] \
    || [ "$checksum5_unit_before" != "$checksum5_unit_after" ] \
    || ! grep -q '基本設計を保持するmarker' "$target5_basic" \
+   || ! grep -q 'テスト設計を保持するmarker' "$target5_test" \
    || ! grep -q '単体テスト設計を保持するmarker' "$target5_unit"; then
   echo "FAIL: 同じphaseの通常再実行が既存ファイルを上書きしました" >&2
   exit 1
@@ -225,11 +242,11 @@ echo "PASS: 宣言ファイル自身のsymlinkを全書込モードで拒否し�
 # 12. 既存phaseのdry-runは不足宣言ファイルだけを列挙する
 docs12="$tmp/docs12"
 mkdir -p "$docs12"
-bash "$SCAFFOLD" api basic "$docs12" dryrun-existing-case "既存ドライラン" >/dev/null
-rm -f "$docs12/docs/design/apis/api-dryrun-existing-case/基本設計/API単体テスト設計書.md"
-dryrun12_out="$(bash "$SCAFFOLD" --dry-run api basic "$docs12" dryrun-existing-case "既存ドライラン")"
+bash "$SCAFFOLD" api test "$docs12" dryrun-existing-case "既存ドライラン" >/dev/null
+rm -f "$docs12/docs/design/apis/api-dryrun-existing-case/テスト設計/API単体テスト設計書.md"
+dryrun12_out="$(bash "$SCAFFOLD" --dry-run api test "$docs12" dryrun-existing-case "既存ドライラン")"
 if ! printf '%s\n' "$dryrun12_out" | grep -q 'コピー元テンプレート: .*API単体テスト設計書.md' \
-   || printf '%s\n' "$dryrun12_out" | grep -q 'コピー元テンプレート: .*API基本設計書.md'; then
+   || printf '%s\n' "$dryrun12_out" | grep -q 'コピー元テンプレート: .*/APIテスト設計書.md'; then
   echo "FAIL: 既存phaseの--dry-runが不足ファイルだけを列挙しませんでした" >&2
   exit 1
 fi
@@ -239,14 +256,14 @@ echo "PASS: 既存phaseの--dry-runは不足宣言ファイルだけを列挙"
 docs13="$tmp/docs13"
 mkdir -p "$docs13"
 before13="$(find "$docs13" | sort)"
-missing13_out="$(bash "$SCAFFOLD" --check-missing api basic "$docs13" no-template-case \
+missing13_out="$(bash "$SCAFFOLD" --check-missing api test "$docs13" no-template-case \
   "テンプレート不要" "$tmp/存在しないテンプレート" 2>&1)" && missing13_rc=0 || missing13_rc=$?
 after13="$(find "$docs13" | sort)"
-missing13_basic_count="$(printf '%s\n' "$missing13_out" | grep -c '^不足: .*API基本設計書.md$' || true)"
+missing13_test_count="$(printf '%s\n' "$missing13_out" | grep -c '^不足: .*/APIテスト設計書.md$' || true)"
 missing13_unit_count="$(printf '%s\n' "$missing13_out" | grep -c '^不足: .*API単体テスト設計書.md$' || true)"
 missing13_line_count="$(printf '%s\n' "$missing13_out" | grep -c '^不足: ' || true)"
 if [ "$missing13_rc" -eq 0 ] \
-   || [ "$missing13_basic_count" -ne 1 ] \
+   || [ "$missing13_test_count" -ne 1 ] \
    || [ "$missing13_unit_count" -ne 1 ] \
    || [ "$missing13_line_count" -ne 2 ] \
    || printf '%s\n' "$missing13_out" | grep -q 'テンプレートディレクトリが見つかりません' \

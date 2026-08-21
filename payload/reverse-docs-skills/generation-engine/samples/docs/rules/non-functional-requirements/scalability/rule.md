@@ -6,9 +6,9 @@ summary: 利用量の増加に対応するための拡張方針に関する要�
 scope: scoped
 paths: ["docs/**/basic-design/**"]
 enforcement: advisory
-checkable: false
-checker: null
-uncheckableReason: 検査の方法は規則表の検査列に書いたが、走査の対象は対象プロジェクトの構成に依存するため、検査スクリプトは配布時点では実装しない。
+checkable: true
+checker: check-full-scan-then-filter.sh
+uncheckableReason: null
 formatter: none
 status: approved
 origin: manual
@@ -38,7 +38,7 @@ origin: manual
 
 | 規則 | 内容 | 根拠 | 検査 |
 |---|---|---|---|
-| （未記入） | （未記入） | （未記入） | （未記入） |
+| 未解析 | この規約に対応する実装の慣行は、まだ観測していない。リバース解析を実行して対象コードを分析すると、その結果からこの節へ規則が起こされる。解析を待たずに規則を決めたい場合は、この節へ直接書き足してよい | 未解析: リバース解析が未実行であり、対象コードの観測結果がない | 不可: 観測の有無は解析の実行結果に依存し、静的解析で判定できない |
 
 ## 違反時の手順
 

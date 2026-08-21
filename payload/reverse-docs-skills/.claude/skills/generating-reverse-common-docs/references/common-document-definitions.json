@@ -1,10 +1,4 @@
 {
-  "commonEvidenceLedger": {
-    "layoutKey": "commonDocumentEvidenceLedger",
-    "inventoryKind": "common-document-evidence-ledger",
-    "label": "共通文書根拠台帳",
-    "requiredColumns": ["対象文書", "節・項目", "対象コード", "行"]
-  },
   "documents": [
     {"layoutKey":"commonDesignDoc","label":"共通設計書","dependsOnKinds":["screen"],"requiredSections":["本書に書かないもの","共通画面状態の規則","共通操作規則","共通レイアウト原則","要確認事項一覧"]},
     {"layoutKey":"messageDoc","label":"メッセージ定義書","dependsOnKinds":[],"requiredSections":[]},

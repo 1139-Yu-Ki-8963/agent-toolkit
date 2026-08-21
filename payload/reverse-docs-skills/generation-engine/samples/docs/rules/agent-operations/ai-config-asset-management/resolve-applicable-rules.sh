@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# 生成物である。直接編集しない（定義: delivery-payload/templates/rules/checkers/resolve-applicable-rules.sh）
 # resolve-applicable-rules.sh — 対象ファイルに適用される規約（docs/rules 配下）を解決する
 #
 # 使い方: resolve-applicable-rules.sh <対象ファイル> [<対象ファイル>...]

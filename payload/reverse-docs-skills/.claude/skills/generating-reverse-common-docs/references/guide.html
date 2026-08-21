@@ -310,8 +310,8 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
 
 <section id="s1">
   <h2><span class="sec-num">§1</span>概要</h2>
-  <p>対象リポジトリを層化サンプリングで走査し、その結果を<strong>プロジェクト共通6文書・横断根拠台帳・サンプル記録の計8ファイル</strong>として確定する。共通文書本文には対象コードの位置を書かず、文書・節・項目とコード位置の対応は横断根拠台帳で管理する。</p>
-  <p class="note">規約定義（<code>docs/rules/</code>の親子構造）は本スキルの対象外である。<code>generation-engine/scripts/rules/scaffold-rule-definitions.sh</code>が別に配布する。納品物の機械ゲートでは、永続する共通6文書に加え、別永続文書である横断根拠台帳を検査する。</p>
+  <p>対象リポジトリを層化サンプリングで走査し、その結果を<strong>プロジェクト共通6文書・サンプル記録の計7ファイル</strong>として確定する。共通文書にも別資料にも対象コードのファイルパスや行番号を記録せず、参照先は文書内の節番号に限定する。</p>
+  <p class="note">規約定義（<code>docs/rules/</code>の親子構造）は本スキルの対象外である。<code>generation-engine/scripts/rules/scaffold-rule-definitions.sh</code>が別に配布する。納品物の機械ゲートでは永続する共通6文書を検査する。</p>
   <div class="constraint">
     <strong>単独動作</strong>: 他スキルへの依存を持たない。起動引数を渡せば単独で動く。工程全体は orchestrating-ai-development-setup が案内する。後続工程（facts抽出・詳細設計執筆）はこのプロジェクト共通文書を前提として動く。
   </div>
@@ -325,14 +325,12 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
 
 <section id="s2">
   <h2><span class="sec-num">§2</span>出力</h2>
-  <p>プロジェクト全体で共通する技術方針をまとめた、共通6文書・横断根拠台帳・サンプル記録の計8ファイルが生まれる。</p>
+  <p>プロジェクト全体で共通する技術方針をまとめた、共通6文書・サンプル記録の計7ファイルが生まれる。</p>
   <div class="def">
     <dt>共通6文書</dt>
     <dd>共通設計書.md（アーキテクチャ・共通処理・状態管理・通信の実装事実）・メッセージ定義書.md（コード中の実メッセージ文字列と定義箇所）・DESIGN.md（実スタイル値）・基盤設計.md（フレームワーク構成・ビルド設定・デプロイ構成・環境変数管理等）・UI共通設計.md（デザインシステム・共通コンポーネント一覧・レイアウト方針）・データ設計.md（データモデル概要・APIスキーマ・状態遷移表）。個別の画面設計書が「前提」として参照する共通知識を体系化した文書群で、これがあることで各画面の設計書は共通部分を繰り返し書かずに済む。</dd>
     <dt>サンプル記録.md</dt>
     <dd>層化サンプリングの選定コマンドと選定ファイル一覧の記録。共通6文書の記述根拠を再現可能にする。</dd>
-    <dt>共通文書根拠台帳.md</dt>
-    <dd>共通文書の対象文書・節または項目と、対象コードの相対パス・行を対応づける横断台帳。共通文書本文の根拠列・file:line表記はこの台帳へ分離する。</dd>
   </div>
 </section>
 
@@ -380,8 +378,7 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
   調査書内「ユニット種別判定」節と「ディレクトリ責務マップ」節の
   実在をgrepで確認する(調査書ゲートの再実行はしない)
   output_dir/プロジェクト共通/を作成し雛形6文書を複製する
-  output_dir/横断設計/へ共通文書根拠台帳.mdを複製する
-  完了条件: 雛形6文書・横断根拠台帳複製済み・調査書の2節実在確認済み
+  完了条件: 雛形6文書複製済み・調査書の2節実在確認済み
    (mode=append時は既存8ファイルと指摘文書の特定済み)
 
 <span class="cap">Phase 2: 層化サンプリング</span>
@@ -396,8 +393,7 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
   共通設計書.md(アーキテクチャ・共通処理・状態管理・通信)
   メッセージ定義書.md(実メッセージ文字列と定義箇所)
   DESIGN.md(実スタイル値)・基盤設計.md・UI共通設計.md・
-  データ設計.mdを実例主義で書き起こす。対象コードの位置は
-  共通文書根拠台帳.mdへ文書・節または項目単位で記録する
+  データ設計.mdを実例主義で書き起こす。対象コードの位置は納品物へ記録しない
   完了条件: 6文書のプレースホルダ残存ゼロ・本文の根拠列とfile:line表記ゼロ・台帳の行実在確認済み
 
 <span class="cap">Phase 4: 機械ゲート</span>
@@ -428,7 +424,6 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
     <tr><td>検査4: テンプレ残存検査</td><td>プレースホルダ（<code>&lt;実測</code>・<code>&lt;FILL</code>・<code>TBD</code>・<code>TODO</code>）の残存ゼロを永続する共通6文書で確認する。規約定義は本スキルの対象外のため、サンプル記録とあわせて本ゲートの走査対象から除外する</td></tr>
     <tr><td>検査6: メッセージ定義書規模突合</td><td>メッセージ定義書.md内の「総件数: &lt;N&gt;件」宣言行と、backtickメッセージ文字列を含むテーブル行の実測件数が一致するかを確認する。宣言行が無い場合もFAILとする</td></tr>
     <tr><td>検査8: 本文根拠分離</td><td>共通6文書の表に根拠・抽出元の列および対象コードのfile:line表記がないことを確認する</td></tr>
-    <tr><td>検査9: 横断根拠台帳</td><td>台帳の対象文書・節または項目・対象コード・行を確認し、コードの相対パスと行番号が実在することを確認する</td></tr>
     <tr><td>検査10: 配置・台帳宣言整合</td><td>output-layoutとdeliverable-inventoryの台帳キー・種別がスキル定義と一致することを確認する</td></tr>
   </table>
 </section>
@@ -444,7 +439,6 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
     <tr><td>hint</td><td>次工程への申し送り、または中断理由</td></tr>
     <tr><td>common_docs_root（拡張）</td><td>プロジェクト共通/ の絶対パス</td></tr>
     <tr><td>sample_manifest_path（拡張）</td><td>サンプル記録.mdの絶対パス</td></tr>
-    <tr><td>common_evidence_ledger_path（拡張）</td><td>共通文書根拠台帳.mdの絶対パス</td></tr>
   </table>
 </section>
 

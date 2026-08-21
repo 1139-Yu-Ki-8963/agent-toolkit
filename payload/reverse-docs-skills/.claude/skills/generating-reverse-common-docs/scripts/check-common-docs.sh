@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# check-common-docs.sh — 共通6文書と横断根拠台帳の機械ゲート
+# check-common-docs.sh — 共通6文書の機械ゲート
 #
 # 使い方:
 #   check-common-docs.sh <common_docs_dir> <target_repo_path>
 #   check-common-docs.sh --self-test
 #
 # <common_docs_dir> は `<output_dir>` を指す（output-layout.json の commonRoot 配下に共通6文書を持つ親ディレクトリ）。
-# 共通文書本文の対象コードの位置は、crossCuttingDesignRoot 配下の横断根拠台帳へ分離する。
+# 共通文書本文と別資料のどちらにも、対象コードの位置は記録しない。
 # 規約4文書（コーディング規約・命名規約・ディレクトリ構成規約・コンポーネント設計規約）は
 # コードからの採録をやめ空雛形へ変更済みのため、本ゲートの走査対象から除外する。サンプル記録も対象外。
 #
@@ -30,9 +30,6 @@ set -euo pipefail
 #   7. 必須節検査: 定義ファイルで必須節を持つ文書に、Markdown見出しとして
 #      必須節がすべて無ければFAIL。
 #   8. 根拠分離検査: 共通6文書に根拠列・抽出元列・file:line 注記が無い。
-#   9. 横断根拠台帳検査: 台帳に対象文書・節/項目・対象コード・行の対応があり、
-#      対象コードの実在と行番号の範囲を確認できる。
-#  10. 宣言整合検査: output-layout と deliverable-inventory が同じ横断根拠台帳を宣言する。
 #   いずれか1件でも違反があれば exit 1（fail-closed）。全件PASSでexit 0。
 #   --self-test は合成フィクスチャで陽性exit 0・陰性(検査ごと)exit 1を自己検証する。
 #
@@ -56,15 +53,9 @@ DOCUMENT_DEFINITIONS_FILE="$SCRIPT_DIR/../references/common-document-definitions
 [ -f "$DOCUMENT_DEFINITIONS_FILE" ] || { echo "エラー: 共通文書定義が見つかりません: $DOCUMENT_DEFINITIONS_FILE" >&2; exit 1; }
 jq -e '.documents | type == "array" and length == 6' "$DOCUMENT_DEFINITIONS_FILE" >/dev/null \
   || { echo "エラー: 共通文書定義が不正です: $DOCUMENT_DEFINITIONS_FILE" >&2; exit 1; }
-jq -e '.commonEvidenceLedger | type == "object" and (.layoutKey | type == "string") and (.inventoryKind | type == "string") and (.requiredColumns == ["対象文書", "節・項目", "対象コード", "行"])' "$DOCUMENT_DEFINITIONS_FILE" >/dev/null \
-  || { echo "エラー: 横断根拠台帳の定義が不正です: $DOCUMENT_DEFINITIONS_FILE" >&2; exit 1; }
 # 検査3（パス実在検査）の対象は共通設計書・メッセージ定義書・DESIGN.mdの3文書
 PATH_CHECK_FILES="$(output_layout_get "$LAYOUT_JSON" commonDesignDoc) $(output_layout_get "$LAYOUT_JSON" messageDoc) $(output_layout_get "$LAYOUT_JSON" designDoc)"
 MESSAGE_DOC_FILE="$(output_layout_get "$LAYOUT_JSON" messageDoc)"
-COMMON_EVIDENCE_LEDGER_LAYOUT_KEY="$(jq -r '.commonEvidenceLedger.layoutKey' "$DOCUMENT_DEFINITIONS_FILE")"
-COMMON_EVIDENCE_LEDGER_INVENTORY_KIND="$(jq -r '.commonEvidenceLedger.inventoryKind' "$DOCUMENT_DEFINITIONS_FILE")"
-COMMON_EVIDENCE_LEDGER_FILE="$(output_layout_get "$LAYOUT_JSON" "$COMMON_EVIDENCE_LEDGER_LAYOUT_KEY")"
-DELIVERABLE_INVENTORY_FILE="$REPO_ROOT/delivery-payload/references/deliverable-inventory.json"
 PLACEHOLDER_RE='<実測|<FILL|TBD|TODO'
 MESSAGE_SCALE_RE='総件数[:：] *[0-9]+件'
 
@@ -416,140 +407,6 @@ parse_markdown_table_row() {
   '
 }
 
-# 検査9: 台帳の各行が本文の節・項目と実在する対象コードの行を対応づける。
-check_common_evidence_ledger() {
-  local dir="$1" repo="$2" path line parsed column_count doc section source lineno extra
-  local source_path max_line rows=0 failed=0 header_seen=0 common_root record defined_record document_applicable document_file seen_docs="" separator
-  path="$dir/$COMMON_EVIDENCE_LEDGER_FILE"
-  common_root="$(output_layout_get "$LAYOUT_JSON" commonRoot)"
-  separator="$(printf '\034')"
-  if [ ! -f "$path" ]; then
-    echo "  未実在: $COMMON_EVIDENCE_LEDGER_FILE" >&2
-    echo "検査9失敗: 横断根拠台帳がありません" >&2
-    return 1
-  fi
-  while IFS= read -r line; do
-    case "$line" in
-      '|'*) : ;;
-      *) continue ;;
-    esac
-    if ! parsed="$(printf '%s\n' "$line" | parse_markdown_table_row)"; then
-      echo "  解析不能な表行: $line" >&2
-      failed=$((failed + 1))
-      continue
-    fi
-    IFS="$separator" read -r column_count doc section source lineno extra <<EOF
-$parsed
-EOF
-    doc="$(trim_cell "$doc")"
-    section="$(trim_cell "$section")"
-    source="$(trim_cell "$source")"
-    lineno="$(trim_cell "$lineno")"
-    if [ "$doc" = "対象文書" ] || [ "$section" = "節・項目" ]; then
-      if [ "$column_count" -ne 4 ] || [ "$doc" != "対象文書" ] || [ "$section" != "節・項目" ] \
-        || [ "$source" != "対象コード" ] || [ "$lineno" != "行" ]; then
-        echo "  必須列不正: $line" >&2
-        failed=$((failed + 1))
-      else
-        header_seen=1
-      fi
-      continue
-    fi
-    is_separator_row "$line" && continue
-    [ "$header_seen" -eq 1 ] || continue
-    rows=$((rows + 1))
-    if [ "$column_count" -ne 4 ] || [ -n "${extra:-}" ] || [ -z "$doc" ] || [ -z "$section" ] \
-      || [ -z "$source" ] || ! printf '%s' "$lineno" | grep -qE '^[1-9][0-9]*$'; then
-      echo "  不正な対応行: $line" >&2
-      failed=$((failed + 1))
-      continue
-    fi
-    defined_record=""
-    document_applicable=0
-    while IFS= read -r record; do
-      document_file="$(document_path "$record")"
-      if [ "${document_file##*/}" = "$doc" ]; then
-        defined_record="$record"
-        if document_is_applicable "$dir" "$record" >/dev/null; then
-          document_applicable=1
-        fi
-        break
-      fi
-    done <<EOF
-$(document_records)
-EOF
-    if [ -z "$defined_record" ]; then
-      echo "  対象文書が定義外: $doc" >&2
-      failed=$((failed + 1))
-      continue
-    fi
-    if [ "$document_applicable" -eq 1 ]; then
-      document_file="$dir/$common_root/$doc"
-      if [ ! -f "$document_file" ]; then
-        echo "  対象文書が未実在: $common_root/$doc" >&2
-        failed=$((failed + 1))
-        continue
-      fi
-      if ! grep -Fq -- "$section" "$document_file"; then
-        echo "  節・項目が対象文書に未実在: $doc: $section" >&2
-        failed=$((failed + 1))
-        continue
-      fi
-      seen_docs="${seen_docs}${doc}
-"
-    fi
-    case "$source" in /*|../*|*'/../'*) echo "  対象コードの相対パスが不正: $source" >&2; failed=$((failed + 1)); continue ;; esac
-    source_path="$repo/$source"
-    if [ ! -f "$source_path" ]; then
-      echo "  対象コードが未実在: $source" >&2
-      failed=$((failed + 1))
-      continue
-    fi
-    max_line="$(wc -l < "$source_path" | tr -d ' ')"
-    if [ "$lineno" -gt "$max_line" ]; then
-      echo "  行番号が範囲外: $source:$lineno（最終行 $max_line）" >&2
-      failed=$((failed + 1))
-    fi
-  done < "$path"
-  if [ "$header_seen" -ne 1 ]; then
-    echo "  必須列不足: $COMMON_EVIDENCE_LEDGER_FILE" >&2
-    failed=$((failed + 1))
-  fi
-  while IFS= read -r record; do
-    document_is_applicable "$dir" "$record" >/dev/null || continue
-    document_file="$(document_path "$record")"
-    doc="${document_file##*/}"
-    if ! printf '%s' "$seen_docs" | grep -Fxq -- "$doc"; then
-      echo "  台帳に対象文書の対応行がない: $doc" >&2
-      failed=$((failed + 1))
-    fi
-  done <<EOF
-$(document_records)
-EOF
-  if [ "$rows" -eq 0 ] || [ "$failed" -gt 0 ]; then
-    echo "検査9失敗: 横断根拠台帳の対応行 ${rows} 件中 不正 ${failed} 件" >&2
-    return 1
-  fi
-  echo "検査9通過: 横断根拠台帳の対応行 ${rows} 件は対象文書・節/項目・対象コード・行を対応づける"
-  return 0
-}
-
-# 検査10: 配置宣言と納品物一覧の台帳kindを1つの定義に結びつける。
-check_common_evidence_declarations() {
-  if [ ! -f "$DELIVERABLE_INVENTORY_FILE" ]; then
-    echo "検査10失敗: 納品物一覧定義がありません: $DELIVERABLE_INVENTORY_FILE" >&2
-    return 1
-  fi
-  if ! jq -e --arg layout_key "$COMMON_EVIDENCE_LEDGER_LAYOUT_KEY" --arg inventory_kind "$COMMON_EVIDENCE_LEDGER_INVENTORY_KIND" '
-    .items | any(.kind == $inventory_kind and .layoutKey == $layout_key and .evidenceSource == "none")
-  ' "$DELIVERABLE_INVENTORY_FILE" >/dev/null; then
-    echo "検査10失敗: output-layout の $COMMON_EVIDENCE_LEDGER_LAYOUT_KEY と納品物一覧の $COMMON_EVIDENCE_LEDGER_INVENTORY_KIND が一致しません" >&2
-    return 1
-  fi
-  echo "検査10通過: output-layout と納品物一覧が横断根拠台帳を同じキーで宣言"
-  return 0
-}
-
 # 検査6: メッセージ定義書規模突合
 check_message_scale() {
   dir="$1"
@@ -585,7 +442,7 @@ check_message_scale() {
   return 0
 }
 
-# 検査1・3・4・6・7・8・9・10を実行し集約結果を返す（検査2・5は撤去済み）。
+# 検査1・3・4・6・7・8を実行し集約結果を返す（検査2・5・9・10は撤去済み）。
 # rcはlocal必須: self_test()も同名のrcを集計に使っており、非localだと
 # run_all_checksの呼び出しごとにself_test側のrc（既に検出した失敗の記録）を
 # 0へ巻き戻してしまい、後続の成功呼び出しが先行失敗を握り潰す（空振りの温床）。
@@ -599,8 +456,6 @@ run_all_checks() {
   check_message_scale "$dir" || rc=1
   check_required_sections "$dir" || rc=1
   check_common_doc_evidence_separation "$dir" || rc=1
-  check_common_evidence_ledger "$dir" "$repo" || rc=1
-  check_common_evidence_declarations || rc=1
   return "$rc"
 }
 
@@ -629,7 +484,6 @@ self_test() {
   foundation_doc="$(output_layout_get "$LAYOUT_JSON" foundationDoc)"
   ui_common_doc="$(output_layout_get "$LAYOUT_JSON" uiCommonDoc)"
   data_design_doc="$(output_layout_get "$LAYOUT_JSON" dataDesignDoc)"
-  common_evidence_ledger="$(output_layout_get "$LAYOUT_JSON" "$COMMON_EVIDENCE_LEDGER_LAYOUT_KEY")"
   excluded_kinds_file="$(output_layout_get "$LAYOUT_JSON" excludedKinds)"
   common_root="$(output_layout_get "$LAYOUT_JSON" commonRoot)"
   sample_record_doc="$common_root/サンプル記録.md"
@@ -637,7 +491,6 @@ self_test() {
   build_docs() {
     target="$1"
     mkdir -p "$(dirname "$target/$common_design_doc")"
-    mkdir -p "$(dirname "$target/$common_evidence_ledger")"
     mkdir -p "$(dirname "$target/$excluded_kinds_file")"
     cat > "$target/$excluded_kinds_file" <<'JSON'
 {"presentKinds":["screen"],"excludedKinds":[]}
@@ -722,18 +575,6 @@ MD
 
 ## §1 データモデル概要（実測）
 ユーザーエンティティを保有。
-MD
-    cat > "$target/$common_evidence_ledger" <<'MD'
-# 共通文書根拠台帳
-
-|対象文書| 節・項目|対象コード |行|
-|---|---|---|---|
-| 共通設計書.md | §1 共通画面状態の規則 | src/components/Button.tsx | 1 |
-| メッセージ定義書.md | メッセージ一覧 | src/components/Button.tsx | 1 |
-| DESIGN.md | 共通デザインシステム \| リバース版 | src/components/Button.tsx | 1 |
-| 基盤設計.md | §1 フレームワーク構成 | src/components/Button.tsx | 1 |
-| UI共通設計.md | §1 デザインシステム | src/components/Button.tsx | 1 |
-| データ設計.md | §1 データモデル概要 | src/components/Button.tsx | 1 |
 MD
     cat > "$target/$sample_record_doc" <<'MD'
 # サンプル記録
@@ -920,77 +761,6 @@ MD
     rc=1
   fi
 
-  # 検収2: 台帳が文書・節/項目・対象コード・行を対応づける。
-  if check_common_evidence_ledger "$pass_dir" "$repo" >/dev/null 2>&1; then
-    echo "  [PASS] 検査9: 横断根拠台帳が文書・節/項目・対象コード・行を対応づける"
-  else
-    echo "  [FAIL] 検査9: 正しい横断根拠台帳を不合格にした" >&2
-    rc=1
-  fi
-  fail9_dir="$tmp/fail9"
-  build_docs "$fail9_dir"
-  sed -i.bak 's#src/components/Button.tsx | 1#src/components/Missing.tsx | 99#' "$fail9_dir/$common_evidence_ledger"
-  rm -f "$fail9_dir/$common_evidence_ledger.bak"
-  if check_common_evidence_ledger "$fail9_dir" "$repo" >/dev/null 2>&1; then
-    echo "  [FAIL] 検査9: 未実在の対象コード・範囲外の行を通過した" >&2
-    rc=1
-  else
-    echo "  [PASS] 検査9: 未実在の対象コード・範囲外の行でexit 1"
-  fi
-
-  unknown_doc9_dir="$tmp/unknown-doc9"
-  build_docs "$unknown_doc9_dir"
-  sed -i.bak 's/共通設計書.md | §1 共通画面状態の規則/不存在.md | §1 共通画面状態の規則/' "$unknown_doc9_dir/$common_evidence_ledger"
-  rm -f "$unknown_doc9_dir/$common_evidence_ledger.bak"
-  if check_common_evidence_ledger "$unknown_doc9_dir" "$repo" >/dev/null 2>&1; then
-    echo "  [FAIL] 検査9: 定義外の対象文書を通過した" >&2
-    rc=1
-  else
-    echo "  [PASS] 検査9: 定義外・未実在の対象文書でexit 1"
-  fi
-
-  unknown_section9_dir="$tmp/unknown-section9"
-  build_docs "$unknown_section9_dir"
-  sed -i.bak 's/§1 共通画面状態の規則/本文に存在しない節/' "$unknown_section9_dir/$common_evidence_ledger"
-  rm -f "$unknown_section9_dir/$common_evidence_ledger.bak"
-  if check_common_evidence_ledger "$unknown_section9_dir" "$repo" >/dev/null 2>&1; then
-    echo "  [FAIL] 検査9: 対象文書に存在しない節・項目を通過した" >&2
-    rc=1
-  else
-    echo "  [PASS] 検査9: 対象文書に存在しない節・項目でexit 1"
-  fi
-
-  missing_doc9_dir="$tmp/missing-doc9"
-  build_docs "$missing_doc9_dir"
-  sed -i.bak '/| メッセージ定義書.md |/d' "$missing_doc9_dir/$common_evidence_ledger"
-  rm -f "$missing_doc9_dir/$common_evidence_ledger.bak"
-  if check_common_evidence_ledger "$missing_doc9_dir" "$repo" >/dev/null 2>&1; then
-    echo "  [FAIL] 検査9: 適用対象1文書の台帳行欠落を通過した" >&2
-    rc=1
-  else
-    echo "  [PASS] 検査9: 適用対象1文書の台帳行欠落でexit 1"
-  fi
-
-  extra_column9_dir="$tmp/extra-column9"
-  build_docs "$extra_column9_dir"
-  cat >> "$extra_column9_dir/$common_evidence_ledger" <<'MD'
-| 共通設計書.md | §1 共通画面状態の規則 | src/components/Button.tsx | 1 | 余分 |
-MD
-  if check_common_evidence_ledger "$extra_column9_dir" "$repo" >/dev/null 2>&1; then
-    echo "  [FAIL] 検査9: canonical 4列以外の台帳行を通過した" >&2
-    rc=1
-  else
-    echo "  [PASS] 検査9: canonical 4列以外の台帳行でexit 1"
-  fi
-
-  # 検収3: output-layout と納品物一覧が同じ台帳キーを宣言する。
-  if check_common_evidence_declarations >/dev/null 2>&1; then
-    echo "  [PASS] 検査10: output-layout と納品物一覧の台帳宣言が一致"
-  else
-    echo "  [FAIL] 検査10: output-layout と納品物一覧の台帳宣言が一致しない" >&2
-    rc=1
-  fi
-
   # 検収1・2: screen除外時、画面依存の2文書は未実在でも対象なしとして通過し根拠を出力する。
   excluded_screen_dir="$tmp/excluded-screen"
   build_docs "$excluded_screen_dir"
@@ -1118,7 +888,7 @@ if [ ! -d "$repo" ]; then
 fi
 
 if run_all_checks "$docs_dir" "$repo"; then
-  echo "プロジェクト共通文書ゲート: 検査1・3・4・6・7すべてPASS"
+  echo "プロジェクト共通文書ゲート: 検査1・3・4・6・7・8すべてPASS"
   exit 0
 else
   echo "プロジェクト共通文書ゲート: FAIL" >&2

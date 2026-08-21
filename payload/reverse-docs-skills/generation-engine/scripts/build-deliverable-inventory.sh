@@ -650,25 +650,6 @@ self_test() {
     rc=1
   fi
 
-  # ケース16: ネストした根拠台帳HTMLを ** glob で検出し、apiUnitRoot上書き後も出力ありにする
-  local root_j layout_json_j unit_ledger_row
-  root_j="$tmp/case16-unit-evidence-ledger"; mkdir -p "$root_j/docs/design/apis/api-order"
-  cat > "$root_j/output-layout.json" <<'JSON'
-{ "specVersion": 1, "layout": { "apiUnitRoot": "docs/design/apis" } }
-JSON
-  printf '<h1>設計単位根拠台帳</h1>\n' > "$root_j/docs/design/apis/api-order/設計単位根拠台帳.html"
-  layout_json_j="$(resolve_output_layout "$root_j")"
-  # 行の特定はkind由来のgenerator名(ASCII)で行う。label列(日本語)をawkの==で
-  # 比較すると、macOS標準awkの多バイト文字列比較の不具合で誤って別行の状態を
-  # 拾ってしまう(ケース5のコメントと同じ回避策。1-244で実際にこの誤りを踏んだ)。
-  unit_ledger_row="$(build_rows "$root_j" "$catalog" "$inventory_def" | awk -F '\t' '$3 == "generating-api-basic-design-for-reverse-docs" {state=$4} END {print state}')"
-  if [ "$unit_ledger_row" = "出力あり" ]; then
-    echo "  [PASS] ケース16: apiUnitRoot上書き後のネスト根拠台帳を出力ありと判定"
-  else
-    echo "  [FAIL] ケース16: 根拠台帳の状態が出力ありにならない(状態=${unit_ledger_row:-なし})" >&2
-    rc=1
-  fi
-
   if [ "$rc" -eq 0 ]; then
     echo "self-test 全項目 PASS"
   else

@@ -15,14 +15,13 @@ grep -qF 'TODO、過去の経緯だけを述べるコメント、却下済み案
 grep -qF '確からしさは `medium` または `low` に限り、推定に `high` を使わない' "$skill"
 grep -qF '両欄を `不明（原本に記述なし）` とする' "$skill"
 grep -qF '12.5 の推定は設計理由だけを対象とする。仕様値、型、制約、既定値を推定する例外ではない' "$skill"
-grep -qF '設計単位根拠台帳へ回す' "$skill"
+grep -qF '要確認事項一覧へ回す' "$skill"
 
 bash "$repo_root/generation-engine/scripts/scaffold-design-unit.sh" \
   api detail "$tmp/output" inventory-cache "在庫確認" \
   "$repo_root/delivery-payload/templates/リバース検証" >/dev/null
 
 doc="$tmp/output/docs/design/apis/api-inventory-cache/詳細設計/API詳細設計書.md"
-ledger="$tmp/output/docs/design/apis/api-inventory-cache/設計単位根拠台帳.md"
 node - "$fixture_dir/comment-source.py" "$fixture_dir/api-manifest.ext.json" "$doc" <<'NODE'
 const fs = require("fs");
 const [sourcePath, manifestPath, documentPath] = process.argv.slice(2);
@@ -63,27 +62,11 @@ document = `${document.slice(0, separatorIndex)}${separator}\n${row}${document.s
 fs.writeFileSync(documentPath, document);
 NODE
 
-cp "$repo_root/delivery-payload/templates/リバース検証/設計単位共通/設計単位根拠台帳.md" "$ledger"
-node - "$ledger" <<'NODE'
-const fs = require("fs");
-const ledgerPath = process.argv[2];
-let ledger = fs.readFileSync(ledgerPath, "utf8");
-ledger = ledger
-  .replace("<YYYY-MM-DD>", "2026-08-20")
-  .replace("<対象名>", "在庫確認")
-  .replace(
-    "| `<設計書名>` | `<節番号と見出し>` | `<表の項目名または記述の要約>` | `<対象コードの相対パス>` | `<行番号>` |",
-    "| API詳細設計書.md | §12.5 設計判断とその理由 | local-cache-choice | comment-source.py | 2 |",
-  );
-fs.writeFileSync(ledgerPath, ledger);
-NODE
-
 bash "$repo_root/generation-engine/scripts/scaffold-design-unit.sh" \
   --verify api detail "$tmp/output" inventory-cache "在庫確認" \
   "$repo_root/delivery-payload/templates/リバース検証" >/dev/null
 node "$repo_root/generation-engine/scripts/validate-api-design-decisions.mjs" "$doc" >/dev/null
-node "$repo_root/generation-engine/scripts/tests/check-detailed-design-conventions.cjs" \
-  --check-evidence-ledger "$ledger" "$fixture_dir" >/dev/null
+node "$repo_root/generation-engine/scripts/tests/check-detailed-design-conventions.cjs" --self-test >/dev/null
 grep -qF '| パス | /api/members |' "$doc"
 grep -qF '| local-cache-choice | ローカルキャッシュを使う | 外部在庫サービスの一時障害で注文受付を止めないため | 観測（コードコメント） |' "$doc"
 grep -qF '| 同期照会 | 外部在庫サービスの一時障害で注文受付を止めないため | high |' "$doc"
@@ -104,7 +87,10 @@ missing_reason="$tmp/missing-reason.md"
 cp "$doc" "$missing_reason"
 sed -i.bak '/| local-cache-choice |/d' "$missing_reason"
 node "$repo_root/generation-engine/scripts/validate-api-design-decisions.mjs" "$missing_reason" >/dev/null
-grep -qF '| 根拠を記録する資料 | `../設計単位根拠台帳.md` |' "$missing_reason"
+if grep -qF '根拠を記録する資料' "$missing_reason"; then
+  echo "FAIL: 廃止した根拠資料への参照が残っている" >&2
+  exit 1
+fi
 
 invalid_file_line="$tmp/invalid-file-line.md"
 cp "$doc" "$invalid_file_line"

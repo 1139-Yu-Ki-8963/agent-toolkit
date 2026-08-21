@@ -65,6 +65,9 @@ list_targets() {
 # docs/rules の定義から一時ディレクトリへ生成し直し、出力先リポジトリの現物と突合する。
 cmd_check() {
   local rules_root="$1" out_root="$2"
+  # 明示テンプレート付きmktemp -d（"${TMPDIR:-/tmp}/<name>.XXXXXX"）を使う。裸のmktemp -dは
+  # $TMPDIRを無視し書き込み許可の外にある既定領域を使うため、サンドボックス実行環境では
+  # 失敗する（改善課題「一時ディレクトリ-作成先」。手元の環境で動いても裸の形へ戻すな）。
   local tmp
   tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-rule-drift.XXXXXX")"
 
@@ -130,7 +133,7 @@ EOF
   cat > "${root}/agent-operations/ai-behavior/rule.md" <<'EOF'
 ---
 key: ai-behavior
-title: 人とAIの分担の決まり
+title: AIエージェント行動規約
 parent: agent-operations
 summary: AIエージェントへの作業委任の取り決め。
 scope: always
@@ -144,7 +147,7 @@ status: approved
 origin: proposal
 ---
 
-# 人とAIの分担の決まり
+# AIエージェント行動規約
 
 ## 概要
 

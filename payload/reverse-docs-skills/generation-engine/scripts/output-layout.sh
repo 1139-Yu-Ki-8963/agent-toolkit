@@ -108,7 +108,7 @@ output_layout_validate() {
     return 2
   fi
 
-  for key in docsRoot rulesRoot manifestsRoot scopeProgressRoot screenUnitRoot commonRoot commonDocumentEvidenceLedger unitEvidenceLedgerFile \
+  for key in docsRoot rulesRoot manifestsRoot scopeProgressRoot screenUnitRoot commonRoot \
     apiUnitRoot tableUnitRoot batchUnitRoot reportUnitRoot externalUnitRoot featureUnitRoot \
     unitTestDesignDir; do
     if ! printf '%s' "$1" | jq -e --arg k "$key" '.layout[$k] | type == "string"' >/dev/null 2>&1; then
@@ -141,20 +141,6 @@ output_layout_validate() {
     }
   ' >/dev/null 2>&1; then
     echo "ERROR: output-layout の種別ごとの物理rootは互いに、また unitsRoot・commonRoot・crossCuttingDesignRoot・plansRoot・recordsRoot とも衝突できません" >&2
-    return 2
-  fi
-  if ! printf '%s' "$1" | node -e '
-    const fs = require("fs");
-    const layout = JSON.parse(fs.readFileSync(0, "utf8")).layout || {};
-    const root = layout.crossCuttingDesignRoot;
-    const ledger = layout.commonDocumentEvidenceLedger;
-    if (typeof root !== "string" || typeof ledger !== "string" || !ledger.startsWith(`${root}/`) || !ledger.endsWith(".md")) process.exit(1);
-  ' >/dev/null 2>&1; then
-    echo "ERROR: output-layout の commonDocumentEvidenceLedger は crossCuttingDesignRoot 配下の .md ファイルで指定してください" >&2
-    return 2
-  fi
-  if ! printf '%s' "$1" | jq -e '.layout.unitEvidenceLedgerFile == "設計単位根拠台帳.md"' >/dev/null 2>&1; then
-    echo "ERROR: output-layout の unitEvidenceLedgerFile は設計単位根拠台帳.md に固定してください" >&2
     return 2
   fi
   return 0
@@ -513,13 +499,11 @@ JSON
   fi
   rm -f "$tmp/output-layout.json"
 
-  # ケース17: crossCuttingDesignRoot・plansRoot・recordsRoot と2種類の根拠台帳が既定値で解決できる
+  # ケース17: crossCuttingDesignRoot・plansRoot・recordsRoot が既定値で解決できる
   ok17=0
   ccd17="$(output_layout_get "$base" crossCuttingDesignRoot 2>/dev/null)" || true
   plans17="$(output_layout_get "$base" plansRoot 2>/dev/null)" || true
   records17="$(output_layout_get "$base" recordsRoot 2>/dev/null)" || true
-  ledger17="$(output_layout_get "$base" commonDocumentEvidenceLedger 2>/dev/null)" || true
-  unit_ledger17="$(output_layout_get "$base" unitEvidenceLedgerFile 2>/dev/null)" || true
   if [ "$ccd17" = "docs/design/cross-cutting" ]; then
     ok17=$((ok17 + 1))
   fi
@@ -529,32 +513,12 @@ JSON
   if [ "$records17" = "docs/tasks/work-records" ]; then
     ok17=$((ok17 + 1))
   fi
-  if [ "$ledger17" = "docs/design/cross-cutting/共通文書根拠台帳.md" ]; then
-    ok17=$((ok17 + 1))
-  fi
-  if [ "$unit_ledger17" = "設計単位根拠台帳.md" ]; then
-    ok17=$((ok17 + 1))
-  fi
-  if [ "$ok17" -eq 5 ]; then
-    echo "  [PASS] ケース17: crossCuttingDesignRoot・plansRoot・recordsRoot・2種類の根拠台帳が既定値で解決できる"
+  if [ "$ok17" -eq 3 ]; then
+    echo "  [PASS] ケース17: crossCuttingDesignRoot・plansRoot・recordsRootが既定値で解決できる"
   else
-    echo "  [FAIL] ケース17: crossCuttingDesignRoot/plansRoot/recordsRoot/根拠台帳の既定値解決が不正 (ccd=$ccd17 plans=$plans17 records=$records17 ledger=$ledger17 unitLedger=$unit_ledger17)" >&2
+    echo "  [FAIL] ケース17: crossCuttingDesignRoot/plansRoot/recordsRootの既定値解決が不正 (ccd=$ccd17 plans=$plans17 records=$records17)" >&2
     rc=1
   fi
-
-  # ケース18: unitEvidenceLedgerFile の別名はテンプレート・カタログ整合のため拒否する
-  cat > "$tmp/output-layout.json" <<'JSON'
-{ "specVersion": 1, "layout": { "unitEvidenceLedgerFile": "別名の根拠台帳.md" } }
-JSON
-  local _gt_c18_out
-  if _gt_c18_out="$(resolve_output_layout "$tmp" 2>&1)"; then
-    echo "  [FAIL] ケース18: unitEvidenceLedgerFileの別名を受理してしまった" >&2
-    printf '%s\n' "$_gt_c18_out" | sed 's/^/    /' >&2
-    rc=1
-  else
-    echo "  [PASS] ケース18: unitEvidenceLedgerFileの別名を拒否"
-  fi
-  rm -f "$tmp/output-layout.json"
 
   # ケース19: plansRoot が既存の物理rootと重複する場合は衝突として拒否する
   cat > "$tmp/output-layout.json" <<'JSON'

@@ -17,8 +17,6 @@
 | 共通本文根拠分離-検出 | 共通文書の表に根拠列または対象コードのfile:line表記がある | check-common-docs.shを実行する | 検査8がFAILしexit 1になる | check-common-docs.shのself-testケース「[PASS] 検査8: 根拠列またはfile:line表記でexit 1」 |
 | 共通本文根拠分離-言語非依存 | 共通文書に`src/views/App.vue:2`と`日本語/処理.sql:1`がある | check-common-docs.shを実行する | 拡張子やASCII文字に依存せず検査8がFAILしexit 1になる | check-common-docs.shのself-testケース「[PASS] 検査8: .vueと日本語パス.sqlのfile:line注記でexit 1」 |
 | 共通本文根拠分離-URL除外 | 共通文書に`https://example.com/docs/file.vue:1`がある | check-common-docs.shを実行する | URLをfile:line注記として誤検出せず検査8がexit 0になる | check-common-docs.shのself-testケース「[PASS] 検査8: URLはfile:line注記から除外」 |
-| 横断根拠台帳-対応検証 | 適用対象の共通6文書ごとに、実在する節または項目・対象コード・行を持つ台帳がある。ヘッダの空白は不統一で、セル内の縦棒は`\|`でエスケープされている | check-common-docs.shを実行する | 検査9が6文書、本文中の節・項目、コード位置およびcanonical 4列を確認してexit 0になる | check-common-docs.shのself-testケース「[PASS] 検査9: 横断根拠台帳が文書・節/項目・対象コード・行を対応づける」 |
-| 横断根拠台帳-不正位置検出 | 台帳の対象コードまたは行番号が実在しない | check-common-docs.shを実行する | 検査9がFAILしexit 1になる | check-common-docs.shのself-testケース「[PASS] 検査9: 未実在または行範囲外のコード位置でexit 1」 |
 | 横断根拠台帳-対象文書検出 | 台帳の対象文書が定義外または`commonRoot`配下に実在しない | check-common-docs.shを実行する | 検査9がFAILしexit 1になる | check-common-docs.shのself-testケース「[PASS] 検査9: 定義外・未実在の対象文書でexit 1」 |
 | 横断根拠台帳-節項目検出 | 台帳の節・項目が対象文書本文に存在しない | check-common-docs.shを実行する | 検査9がFAILしexit 1になる | check-common-docs.shのself-testケース「[PASS] 検査9: 対象文書に存在しない節・項目でexit 1」 |
 | 横断根拠台帳-文書網羅検出 | 適用対象の共通文書1件に台帳行がない | check-common-docs.shを実行する | 検査9がFAILしexit 1になる | check-common-docs.shのself-testケース「[PASS] 検査9: 適用対象1文書の台帳行欠落でexit 1」 |

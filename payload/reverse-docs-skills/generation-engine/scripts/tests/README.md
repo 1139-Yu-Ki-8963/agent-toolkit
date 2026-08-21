@@ -29,13 +29,3 @@ npm run test:semantic-glossary-page
 **保守責任者**: 人手（`reverse-docs-skills`保守者）。`validate-reverse-authoring-inputs.py`のscreen-composition判定式、または`generating-reverse-basic-design/SKILL.md`のPhase 3 grep式を変更した場合、本テストのgolden文書・grep式を同時に更新する。
 
 **廃棄条件**: この検証環境に実際にjsx構造を持つ画面（またはoriginal.png撮影済みの画面）が用意され、実データでAUTHORED到達を確認できるようになった時、または改善課題1-167自体が完全解消し台帳から削除された時。
-
-### test-api-basic-design-evidence-ledger.sh
-
-**必要性**: 課題1-199の4検収を合成フィクスチャで回帰検知する。
-
-**代替案を採用しなかった理由**: 単発Bashは回帰検知できない。`output-layout.sh`の自己テストはAPI生成物と台帳の対応を扱わない。package scriptsの追加は本テストだけの依存を増やす。
-
-**保守責任者**: `reverse-docs-skills`保守者。
-
-**廃棄条件**: API基本設計書と設計単位根拠台帳の生成契約を廃止した時、または同等の共通検査へ完全移管した時。

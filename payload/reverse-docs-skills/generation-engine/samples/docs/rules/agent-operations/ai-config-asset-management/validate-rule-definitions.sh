@@ -317,8 +317,13 @@ validate_one_rule() {
   # ' ／ ' で区切って並べるため、先頭の手段だけを見れば書式の判定になる。
   # '## このプロジェクトの規則' は対象外。リバース解析を実行するまでは
   # 「観測なし」の行しか置けず、その検査列は手段の接頭辞を持たないため。
+  # LC_ALL=C: headやcellの比較・整形は日本語（多バイト）値を扱う。デフォルトロケールの
+  # macOS標準awk（BSD awk）は多バイト文字列の等値比較を誤判定し、両辺が日本語だと
+  # 比較が常に真になる不具合があるため、バイト単位の比較へ固定して回避する
+  # （コミット eae9816d6f4a735a8881a592dab58db993b4f566 で本行を含む5箇所の
+  # LC_ALL=C指定漏れが実際に発見・修正された。手元で問題が再現しないことを理由に外すな）。
   local unlabeled_cells
-  unlabeled_cells="$(printf '%s\n' "$doc_body" | awk -F'|' '
+  unlabeled_cells="$(printf '%s\n' "$doc_body" | LC_ALL=C awk -F'|' '
     /^## 規則$/{in_rule=1; next}
     in_rule && /^## /{exit}
     in_rule && /^\|/{
@@ -499,7 +504,7 @@ EOF
   cat > "${root}/agent-operations/ai-behavior/rule.md" <<'EOF'
 ---
 key: ai-behavior
-title: 人とAIの分担の決まり
+title: AIエージェント行動規約
 parent: agent-operations
 summary: AIエージェントへの作業委任の取り決め。
 scope: always
@@ -513,7 +518,7 @@ status: approved
 origin: proposal
 ---
 
-# 人とAIの分担の決まり
+# AIエージェント行動規約
 
 ## 概要
 
@@ -539,7 +544,7 @@ EOF
   cat > "${root}/code-standards/naming/rule.md" <<'EOF'
 ---
 key: naming
-title: 名前の付け方の決まり
+title: 命名規約
 parent: code-standards
 summary: 変数・クラスの命名パターン。
 scope: scoped
@@ -553,7 +558,7 @@ status: approved
 origin: proposal
 ---
 
-# 名前の付け方の決まり
+# 命名規約
 
 ## 概要
 

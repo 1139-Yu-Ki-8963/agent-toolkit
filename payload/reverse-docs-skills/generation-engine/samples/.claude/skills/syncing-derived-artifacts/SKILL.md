@@ -3,13 +3,13 @@ name: syncing-derived-artifacts
 description: |
   docs/rules/ の定義から各AIツール向けの設定を生成し、手作業の混入を検知して復旧する。
   TRIGGER when: docs/rules/ を編集した後、「派生設定を更新して」「規約のずれを確認して」と言われた時。
-  SKIP: docs/rules/ 自体の編集（→importing-rule-proposals または人手での編集）。
+  SKIP: docs/rules/ 自体の編集（→importing-rule-proposals）。
 invocation: syncing-derived-artifacts
 type: transform
 allowed-tools: [Bash, Read, Write]
 ---
 
-<!-- 生成物: delivery-payload/templates/delivered-skills/syncing-derived-artifacts/SKILL.md から複製。直接編集しないこと -->
+<!-- 生成物: docs/skills/syncing-derived-artifacts/SKILL.md から自動生成。直接編集しないこと -->
 
 # 派生設定同期スキル
 

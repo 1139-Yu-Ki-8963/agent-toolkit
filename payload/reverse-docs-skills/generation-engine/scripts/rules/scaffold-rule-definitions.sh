@@ -41,15 +41,20 @@ set -euo pipefail
 #   マージが起きたかどうかは区別しない）。
 #
 # --with-skills:
-#   delivery-payload/templates/delivered-skills/ の3本（importing-rule-proposals・
-#   syncing-derived-artifacts・dev-flow）の SKILL.md を <出力先>/.claude/skills/<name>/SKILL.md
-#   へ複製する。front matter は Claude Code のスキル発見に必須のため先頭を保ち、
-#   front matter 直後に生成物notice comment を入れる
-#   （build-derived-rules.sh の .mdc 生成と同じ配置規約）。
+#   配る対象は delivery-payload/references/delivered-skill-catalog.json の
+#   .skills[] のみを唯一の情報源とし、対象名をスクリプトへ直接書かない。
+#   各スキルの各ファイルを2段で配る（規約の定義から派生への2段構成にスキルも揃える）。
+#     1段目（定義）: delivery-payload/templates/delivered-skills/<name>/<file> を
+#       <出力先>/<catalogのdefinitionRoot>/<name>/<file> へ複製する（既存なら上書きしない）。
+#     2段目（派生）: 1段目で置いた定義ファイルを
+#       <出力先>/<catalogのderiveRoot>/<name>/<file> へ複製する（既存でも常に上書きする）。
+#       .md ファイルは front matter を保ったまま、front matter 直後に生成物notice comment
+#       を入れる（build-derived-rules.sh の .mdc 生成と同じ配置規約）。.md 以外
+#       （scripts/apply-confirmation-answers.mjs 等）は notice comment を入れずそのまま複製する。
 #   あわせて delivery-payload/templates/delivered-agents/rule-reviewer.md を
-#   <出力先>/.claude/agents/rule-reviewer.md へ同じ規約で複製する。dev-flow の
-#   Phase5（実装後はレビューを通してから統合する）が使うレビュアーであり、
-#   スキル3本と同じく dev-flow を支える配布物のため同じフラグで配る。
+#   <出力先>/.claude/agents/rule-reviewer.md へ同じ生成物notice comment規約で複製する
+#   （こちらは1段のみ。dev-flow の Phase5（実装後はレビューを通してから統合する）が
+#   使うレビュアーであり、スキル群と同じく dev-flow を支える配布物のため同じフラグで配る）。
 #
 # docs/rules/agent-operations/ai-config-asset-management/ への検証・生成スクリプトの配備:
 #   build-derived-rules.sh --deploy-rule-scripts を呼ぶだけで、重複実装しない
@@ -78,6 +83,7 @@ TAXONOMY_JSON="${REPO_ROOT}/delivery-payload/references/rule-taxonomy.json"
 BANNED_TERMS_JSON="${REPO_ROOT}/delivery-payload/references/rule-banned-terms.json"
 BUILD_DERIVED_SCRIPT="${SCRIPT_DIR}/build-derived-rules.sh"
 SKILLS_TEMPLATE_DIR="${REPO_ROOT}/delivery-payload/templates/delivered-skills"
+SKILL_CATALOG_JSON="${REPO_ROOT}/delivery-payload/references/delivered-skill-catalog.json"
 AGENTS_TEMPLATE_DIR="${REPO_ROOT}/delivery-payload/templates/delivered-agents"
 TOOLDEFINED_TEMPLATE_DIR="${REPO_ROOT}/delivery-payload/templates/rules/tool-defined"
 CHECKERS_TEMPLATE_DIR="${REPO_ROOT}/delivery-payload/templates/rules/checkers"
@@ -738,37 +744,101 @@ EOF
   return 0
 }
 
+# delivery-payload/references/delivered-skill-catalog.json の .skills[] だけを
+# 唯一の情報源とし、対象名をスクリプトへ直接書かない。各スキルの各ファイルを
+# 1段目（定義: <出力先>/<definitionRoot>/<name>/<file>）→
+# 2段目（派生: <出力先>/<deriveRoot>/<name>/<file>）の順で deliver_skill_file へ渡す。
 deliver_skills() {
   local out_root="$1"
-  local name
-  for name in importing-rule-proposals syncing-derived-artifacts dev-flow; do
-    local src="${SKILLS_TEMPLATE_DIR}/${name}/SKILL.md"
-    local dest="${out_root}/.claude/skills/${name}/SKILL.md"
-    if [ ! -f "$src" ]; then
-      echo "ERROR: 納品スキルのテンプレートが見つかりません: ${src}" >&2
-      return 1
-    fi
-    if [ -e "$dest" ]; then
-      SKILL_EXIST=$((SKILL_EXIST + 1))
-      continue
-    fi
+
+  if [ ! -f "$SKILL_CATALOG_JSON" ]; then
+    echo "ERROR: 納品スキルカタログが見つかりません: ${SKILL_CATALOG_JSON}" >&2
+    return 1
+  fi
+
+  local definition_root derive_root
+  definition_root="$(jq -r '.definitionRoot // empty' "$SKILL_CATALOG_JSON")"
+  derive_root="$(jq -r '.deriveRoot // empty' "$SKILL_CATALOG_JSON")"
+  if [ -z "$definition_root" ] || [ -z "$derive_root" ]; then
+    echo "ERROR: 納品スキルカタログにdefinitionRoot/deriveRootが定義されていません: ${SKILL_CATALOG_JSON}" >&2
+    return 1
+  fi
+
+  local skill_lines skill_count
+  skill_lines="$(jq -c '.skills[]' "$SKILL_CATALOG_JSON" 2>/dev/null)" || skill_lines=""
+  skill_count="$(printf '%s\n' "$skill_lines" | grep -c . || true)"
+  if [ -z "$skill_lines" ] || [ "$skill_count" -eq 0 ]; then
+    echo "ERROR: 納品スキルカタログに.skillsが定義されていません: ${SKILL_CATALOG_JSON}" >&2
+    return 1
+  fi
+
+  local sline name file_lines file
+  while IFS= read -r sline; do
+    [ -n "$sline" ] || continue
+    name="$(printf '%s' "$sline" | jq -r '.name')"
+    file_lines="$(printf '%s' "$sline" | jq -r '.files[]')"
+    while IFS= read -r file; do
+      [ -n "$file" ] || continue
+      deliver_skill_file "$out_root" "$name" "$file" "$definition_root" "$derive_root" || return 1
+    done <<EOF
+$file_lines
+EOF
+  done <<EOF
+$skill_lines
+EOF
+  return 0
+}
+
+# 1本のスキルファイルを1段目（定義）・2段目（派生）の順で配る。
+# $1: 出力先リポジトリルート  $2: スキル名  $3: カタログのfilesエントリ（相対パス）
+# $4: カタログのdefinitionRoot  $5: カタログのderiveRoot
+deliver_skill_file() {
+  local out_root="$1" name="$2" file="$3" definition_root="$4" derive_root="$5"
+  local src="${SKILLS_TEMPLATE_DIR}/${name}/${file}"
+  if [ ! -f "$src" ]; then
+    echo "ERROR: 納品スキルのテンプレートが見つかりません: ${src}" >&2
+    return 1
+  fi
+
+  local def_dest="${out_root}/${definition_root}/${name}/${file}"
+  local derived_dest="${out_root}/${derive_root}/${name}/${file}"
+
+  # 1段目（定義）: 既存なら上書きしない（現場が書き込んだ内容を保護する）。
+  if [ -e "$def_dest" ]; then
+    SKILL_EXIST=$((SKILL_EXIST + 1))
+  else
     SKILL_NEW=$((SKILL_NEW + 1))
-    plan_add "$dest"
+    plan_add "$def_dest"
     if [ "$APPLY" -eq 1 ]; then
-      mkdir -p "$(dirname "$dest")"
-      # front matter は Claude Code のスキル発見に必須のため先頭を保つ。
-      # front matter 直後に生成物notice commentを挟む
-      # （build-derived-rules.shの.mdc生成と同じ配置規約）。
-      local fm body
-      fm="$(awk 'NR==1{print;next} /^---$/{print;exit} {print}' "$src")"
-      body="$(awk 'BEGIN{c=0} /^---$/{c++; next} c>=2{print}' "$src")"
-      {
-        printf '%s\n' "$fm"
-        printf '\n<!-- 生成物: delivery-payload/templates/delivered-skills/%s/SKILL.md から複製。直接編集しないこと -->\n' "$name"
-        printf '%s\n' "$body"
-      } > "$dest"
+      mkdir -p "$(dirname "$def_dest")"
+      cp "$src" "$def_dest"
     fi
-  done
+  fi
+
+  # 2段目（派生）: 定義ファイルから複製する（派生物のため既存でも常に上書きする）。
+  plan_add "$derived_dest"
+  if [ "$APPLY" -eq 1 ]; then
+    mkdir -p "$(dirname "$derived_dest")"
+    case "$file" in
+      *.md)
+        # front matter は Claude Code のスキル発見に必須のため先頭を保つ。
+        # front matter 直後に生成物notice commentを挟む
+        # （build-derived-rules.shの.mdc生成と同じ配置規約）。
+        local fm body
+        fm="$(awk 'NR==1{print;next} /^---$/{print;exit} {print}' "$def_dest")"
+        body="$(awk 'BEGIN{c=0} /^---$/{c++; next} c>=2{print}' "$def_dest")"
+        {
+          printf '%s\n' "$fm"
+          printf '\n<!-- 生成物: %s/%s/%s から自動生成。直接編集しないこと -->\n' "$definition_root" "$name" "$file"
+          printf '%s\n' "$body"
+        } > "$derived_dest"
+        ;;
+      *)
+        cp "$def_dest" "$derived_dest"
+        chmod +x "$derived_dest" 2>/dev/null || true
+        ;;
+    esac
+  fi
   return 0
 }
 
@@ -956,17 +1026,38 @@ EOF
   fi
   rm -f "$validate_out"
 
-  # ケース6: --with-skillsで.claude/skills/の3本が配られる
-  local ok6=1
-  [ -f "${out1}/.claude/skills/importing-rule-proposals/SKILL.md" ] || ok6=0
-  [ -f "${out1}/.claude/skills/syncing-derived-artifacts/SKILL.md" ] || ok6=0
-  [ -f "${out1}/.claude/skills/dev-flow/SKILL.md" ] || ok6=0
+  # ケース6: --with-skillsでカタログ（delivered-skill-catalog.json）の全スキルの全ファイルが
+  #   1段目（定義: docs/skills/）と2段目（派生: .claude/skills/）の両方へ配られ、
+  #   派生側の.mdはfront matterを保ったまま生成物notice commentを持つ
+  local ok6=1 skill6_lines sline6 name6 files6 file6 def6 der6
+  skill6_lines="$(jq -c '.skills[]' "$SKILL_CATALOG_JSON")"
+  while IFS= read -r sline6; do
+    [ -n "$sline6" ] || continue
+    name6="$(printf '%s' "$sline6" | jq -r '.name')"
+    files6="$(printf '%s' "$sline6" | jq -r '.files[]')"
+    while IFS= read -r file6; do
+      [ -n "$file6" ] || continue
+      def6="${out1}/docs/skills/${name6}/${file6}"
+      der6="${out1}/.claude/skills/${name6}/${file6}"
+      if [ ! -f "$def6" ]; then
+        ok6=0
+        echo "  [FAIL] ケース6詳細: 定義 ${def6} が無い" >&2
+      fi
+      if [ ! -f "$der6" ]; then
+        ok6=0
+        echo "  [FAIL] ケース6詳細: 派生 ${der6} が無い" >&2
+      elif [ "$file6" != "${file6%.md}" ]; then
+        head -n1 "$der6" | grep -qx -- '---' || { ok6=0; echo "  [FAIL] ケース6詳細: ${der6} の先頭がfront matterでない" >&2; }
+        grep -q '<!-- 生成物:.*から自動生成。直接編集しないこと -->' "$der6" || { ok6=0; echo "  [FAIL] ケース6詳細: ${der6} に生成物notice commentが無い" >&2; }
+      fi
+    done <<EOF
+$files6
+EOF
+  done <<EOF
+$skill6_lines
+EOF
   if [ "$ok6" -eq 1 ]; then
-    head -n1 "${out1}/.claude/skills/importing-rule-proposals/SKILL.md" | grep -qx -- '---' || ok6=0
-    head -n1 "${out1}/.claude/skills/dev-flow/SKILL.md" | grep -qx -- '---' || ok6=0
-  fi
-  if [ "$ok6" -eq 1 ]; then
-    echo "  [PASS] ケース6: --with-skillsで.claude/skills/の3本が配られ、front matterが先頭にある"
+    echo "  [PASS] ケース6: --with-skillsでカタログの全スキルが定義(docs/skills/)と派生(.claude/skills/)の両方へ配られ、派生側のfront matterと生成物notice commentが正しい"
   else
     echo "  [FAIL] ケース6: 納品スキルの配備が不正" >&2
     rc=1
