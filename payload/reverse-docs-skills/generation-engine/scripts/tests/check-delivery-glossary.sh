@@ -37,8 +37,9 @@ scan() {
   local defs="$base/$DEFS_REL"
   local total=0 violations=0
 
-  if ! command -v jq >/dev/null 2>&1; then
+  if ! _gt_out1="$(command -v jq 2>&1)"; then
     echo "[FAIL] jq が見つからない"
+    printf '%s\n' "$_gt_out1" | sed 's/^/    /' >&2
     total=$((total + 1)); violations=$((violations + 1))
     echo "検査 $total 件 / 違反 $violations 件"
     return 1
@@ -222,10 +223,11 @@ JSON
     '' \
     'README.md の「言葉」の節を見よ。' \
     > "$base/RUNBOOK.md"
-  if scan "$base" >/dev/null 2>&1; then
+  if _gt_out2="$(scan "$base" 2>&1)"; then
     echo "[PASS] 正常系はすべて合格する"; pass=$((pass + 1))
   else
     echo "[FAIL] 正常系はすべて合格する"; fail=$((fail + 1))
+    printf '%s\n' "$_gt_out2" | sed 's/^/    /' >&2
   fi
   rm -rf "$base"
 
@@ -243,8 +245,9 @@ JSON
     '' \
     'README.md の「言葉」の節を見よ。' \
     > "$base/RUNBOOK.md"
-  if scan "$base" >/dev/null 2>&1; then
+  if _gt_out3="$(scan "$base" 2>&1)"; then
     echo "[FAIL] 見出しの節が無ければ違反と判定する"; fail=$((fail + 1))
+    printf '%s\n' "$_gt_out3" | sed 's/^/    /' >&2
   else
     echo "[PASS] 見出しの節が無ければ違反と判定する"; pass=$((pass + 1))
   fi
@@ -270,8 +273,9 @@ JSON
     '' \
     'README.md の「言葉」の節を見よ。' \
     > "$base/RUNBOOK.md"
-  if scan "$base" >/dev/null 2>&1; then
+  if _gt_out4="$(scan "$base" 2>&1)"; then
     echo "[FAIL] 節内に用語が無ければ違反と判定する"; fail=$((fail + 1))
+    printf '%s\n' "$_gt_out4" | sed 's/^/    /' >&2
   else
     echo "[PASS] 節内に用語が無ければ違反と判定する"; pass=$((pass + 1))
   fi
@@ -302,8 +306,9 @@ JSON
     '' \
     'README.md の「言葉」の節を見よ。' \
     > "$base/RUNBOOK.md"
-  if scan "$base" >/dev/null 2>&1; then
+  if _gt_out5="$(scan "$base" 2>&1)"; then
     echo "[FAIL] 節より前の見出し節で用語を使っていれば違反と判定する"; fail=$((fail + 1))
+    printf '%s\n' "$_gt_out5" | sed 's/^/    /' >&2
   else
     echo "[PASS] 節より前の見出し節で用語を使っていれば違反と判定する"; pass=$((pass + 1))
   fi
@@ -332,10 +337,11 @@ JSON
     '' \
     'README.md の「言葉」の節を見よ。' \
     > "$base/RUNBOOK.md"
-  if scan "$base" >/dev/null 2>&1; then
+  if _gt_out6="$(scan "$base" 2>&1)"; then
     echo "[PASS] 見出しより前の前置き文での使用は違反にしない"; pass=$((pass + 1))
   else
     echo "[FAIL] 見出しより前の前置き文での使用は違反にしない"; fail=$((fail + 1))
+    printf '%s\n' "$_gt_out6" | sed 's/^/    /' >&2
   fi
   rm -rf "$base"
 
@@ -360,8 +366,9 @@ JSON
     '' \
     '言及なし。' \
     > "$base/RUNBOOK.md"
-  if scan "$base" >/dev/null 2>&1; then
+  if _gt_out7="$(scan "$base" 2>&1)"; then
     echo "[FAIL] 参照文書が言及していなければ違反と判定する"; fail=$((fail + 1))
+    printf '%s\n' "$_gt_out7" | sed 's/^/    /' >&2
   else
     echo "[PASS] 参照文書が言及していなければ違反と判定する"; pass=$((pass + 1))
   fi

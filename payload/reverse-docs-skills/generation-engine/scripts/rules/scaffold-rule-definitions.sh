@@ -992,16 +992,18 @@ EOF
   [ -x "${deployed_dir7}/build-derived-rules.sh" ] || ok7=0
   [ -x "${deployed_dir7}/validate-rule-definitions.sh" ] || ok7=0
   [ -x "${deployed_dir7}/resolve-applicable-rules.sh" ] || ok7=0
+  local _gt_ok7_validate_out="" _gt_ok7_resolve_out=""
   if [ "$ok7" -eq 1 ]; then
-    bash "${deployed_dir7}/validate-rule-definitions.sh" "${out1}/docs/rules" >/dev/null 2>&1 || ok7=0
+    _gt_ok7_validate_out="$(bash "${deployed_dir7}/validate-rule-definitions.sh" "${out1}/docs/rules" 2>&1)" || ok7=0
   fi
   if [ "$ok7" -eq 1 ]; then
-    bash "${deployed_dir7}/resolve-applicable-rules.sh" --self-test >/dev/null 2>&1 || ok7=0
+    _gt_ok7_resolve_out="$(bash "${deployed_dir7}/resolve-applicable-rules.sh" --self-test 2>&1)" || ok7=0
   fi
   if [ "$ok7" -eq 1 ]; then
     echo "  [PASS] ケース7: docs/rules/agent-operations/ai-config-asset-management/の3本が配られ、実行できる"
   else
     echo "  [FAIL] ケース7: docs/rules/agent-operations/ai-config-asset-management/の配備または実行が不正" >&2
+    printf '%s\n%s\n' "$_gt_ok7_validate_out" "$_gt_ok7_resolve_out" | sed 's/^/    /' >&2
     rc=1
   fi
 

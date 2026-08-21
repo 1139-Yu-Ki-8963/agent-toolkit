@@ -63,10 +63,11 @@ self_test() {
   assert() {
     local desc="$1"
     shift
-    if "$@" >/dev/null 2>&1; then
+    if _gt_out1="$("$@" 2>&1)"; then
       echo "  [PASS] $desc"
     else
       echo "  [FAIL] $desc" >&2
+      printf '%s\n' "$_gt_out1" | sed 's/^/    /' >&2
       rc=1
     fi
   }

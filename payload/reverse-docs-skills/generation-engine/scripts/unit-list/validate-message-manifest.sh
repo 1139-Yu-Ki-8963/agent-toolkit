@@ -121,53 +121,61 @@ EOF
   fi
   local bad="$tmp/bad.json"
   jq 'del(.detectionSummary) | .units[0].sourceFile = "src/auth.ts"' "$manifest" > "$bad"
-  if run_validate "$bad" >/dev/null 2>&1; then
+  if _gt_out2="$(run_validate "$bad" 2>&1)"; then
     echo "  [FAIL] 陰性: 完全契約欠落・sourceFile文字列を受け入れた" >&2; rc=1
+    printf '%s\n' "$_gt_out2" | sed 's/^/    /' >&2
   else
     echo "  [PASS] 陰性: 完全契約欠落・sourceFile文字列でFAIL"
   fi
   local required_string_key
   for required_string_key in unitKey unitNameGuess kind identifier confidence messageText messageType usedScreen; do
     jq --arg k "$required_string_key" '.units[0][$k] = null' "$manifest" > "$bad"
-    if run_validate "$bad" >/dev/null 2>&1; then
+    if _gt_out3="$(run_validate "$bad" 2>&1)"; then
       echo "  [FAIL] 陰性: ${required_string_key}=nullを受け入れた" >&2; rc=1
+      printf '%s\n' "$_gt_out3" | sed 's/^/    /' >&2
     else
       echo "  [PASS] 陰性: ${required_string_key}=nullでFAIL"
     fi
   done
   jq '.summary.totalCount = "1"' "$manifest" > "$bad"
-  if run_validate "$bad" >/dev/null 2>&1; then
+  if _gt_out4="$(run_validate "$bad" 2>&1)"; then
     echo "  [FAIL] 陰性: summary.totalCount文字列を受け入れた" >&2; rc=1
+    printf '%s\n' "$_gt_out4" | sed 's/^/    /' >&2
   else
     echo "  [PASS] 陰性: summary.totalCount文字列でFAIL"
   fi
   jq 'del(.detectionSummary.method)' "$manifest" > "$bad"
-  if run_validate "$bad" >/dev/null 2>&1; then
+  if _gt_out5="$(run_validate "$bad" 2>&1)"; then
     echo "  [FAIL] 陰性: detectionSummary.method欠落を受け入れた" >&2; rc=1
+    printf '%s\n' "$_gt_out5" | sed 's/^/    /' >&2
   else
     echo "  [PASS] 陰性: detectionSummary.method欠落でFAIL"
   fi
   jq 'del(.strategy.unitIdRegex)' "$manifest" > "$bad"
-  if run_validate "$bad" >/dev/null 2>&1; then
+  if _gt_out6="$(run_validate "$bad" 2>&1)"; then
     echo "  [FAIL] 陰性: strategy.unitIdRegex欠落を受け入れた" >&2; rc=1
+    printf '%s\n' "$_gt_out6" | sed 's/^/    /' >&2
   else
     echo "  [PASS] 陰性: strategy.unitIdRegex欠落でFAIL"
   fi
   jq '.strategy.unitIdRegex = 1' "$manifest" > "$bad"
-  if run_validate "$bad" >/dev/null 2>&1; then
+  if _gt_out7="$(run_validate "$bad" 2>&1)"; then
     echo "  [FAIL] 陰性: strategy.unitIdRegex数値を受け入れた" >&2; rc=1
+    printf '%s\n' "$_gt_out7" | sed 's/^/    /' >&2
   else
     echo "  [PASS] 陰性: strategy.unitIdRegex数値でFAIL"
   fi
   jq '.strategy.approvedByUser = true' "$manifest" > "$bad"
-  if run_validate "$bad" >/dev/null 2>&1; then
+  if _gt_out8="$(run_validate "$bad" 2>&1)"; then
     echo "  [FAIL] 陰性: approvedByUser=trueを受け入れた" >&2; rc=1
+    printf '%s\n' "$_gt_out8" | sed 's/^/    /' >&2
   else
     echo "  [PASS] 陰性: approvedByUser=trueでFAIL"
   fi
   jq '.detectionSummary.unitCount = "1" | .detectionSummary.unresolvedCount = -1' "$manifest" > "$bad"
-  if run_validate "$bad" >/dev/null 2>&1; then
+  if _gt_out9="$(run_validate "$bad" 2>&1)"; then
     echo "  [FAIL] 陰性: detectionSummary集計値の不正型・負数を受け入れた" >&2; rc=1
+    printf '%s\n' "$_gt_out9" | sed 's/^/    /' >&2
   else
     echo "  [PASS] 陰性: detectionSummary集計値の不正型・負数でFAIL"
   fi

@@ -89,17 +89,19 @@ self_test() {
   local script_dir
   script_dir="$(cd "$(dirname "$script_path")" && pwd)"
   local validate="$script_dir/../unit-list/validate-manifest.sh"
-  local tmp rc=0
+  local tmp rc=0 unknown=0
   tmp="$(mktemp -d "${TMPDIR:-/tmp}/build-matrix-data-self-test.XXXXXX")"
   trap 'rm -rf "$tmp"' RETURN
 
   assert() {
     local desc="$1"
     shift
-    if "$@" >/dev/null 2>&1; then
+    local _gt_out1
+    if _gt_out1="$("$@" 2>&1)"; then
       echo "  [PASS] $desc"
     else
       echo "  [FAIL] $desc" >&2
+      printf '%s\n' "$_gt_out1" | sed 's/^/    /' >&2
       rc=1
     fi
   }
@@ -518,13 +520,23 @@ self_test() {
   sample_api="$tmp/sample-api-manifest.json"
   sample_screen="$repo_root/generation-engine/samples/$screen_manifest_ext_rel"
   sample_out="$tmp/out-sample"
-  awk '/^[[:space:]]*<script[^>]*id="unit-manifest"/{inside=1; next} inside && /<\/script>/{exit} inside{print}' \
-    "$repo_root/generation-engine/samples/$api_list_html_rel" > "$sample_api"
-  assert "ケースm: 同梱API一覧JSONを抽出できる" jq empty "$sample_api"
-  assert "ケースm: 同梱サンプルをfeatureなしで導出できる" \
-    bash "$script_path" "$sample_out" --screen-manifest "$sample_screen" --api-manifest "$sample_api"
-  assert "ケースm: 同梱サンプルで3成果物を生成する" \
-    bash -c "[ -f '$sample_out/permission-matrix.json' ] && [ -f '$sample_out/crud-matrix.json' ] && [ -f '$sample_out/traceability.json' ]"
+  local api_list_html_abs="$repo_root/generation-engine/samples/$api_list_html_rel"
+  if [ -f "$api_list_html_abs" ]; then
+    awk '/^[[:space:]]*<script[^>]*id="unit-manifest"/{inside=1; next} inside && /<\/script>/{exit} inside{print}' \
+      "$api_list_html_abs" > "$sample_api"
+    assert "ケースm: 同梱API一覧JSONを抽出できる" jq empty "$sample_api"
+    assert "ケースm: 同梱サンプルをfeatureなしで導出できる" \
+      bash "$script_path" "$sample_out" --screen-manifest "$sample_screen" --api-manifest "$sample_api"
+    assert "ケースm: 同梱サンプルで3成果物を生成する" \
+      bash -c "[ -f '$sample_out/permission-matrix.json' ] && [ -f '$sample_out/crud-matrix.json' ] && [ -f '$sample_out/traceability.json' ]"
+  else
+    # generation-engine/samples/project-portal/一覧 配下がまだ旧配置(日本語)のままで、
+    # output-layout.jsonの既定値(project-portal/lists、英字)と食い違っているため、
+    # 解決先パスに同梱サンプルが実在しない(1-29で指摘済みの構造的な不一致。この
+    # スクリプト単体の担当範囲を超えるため、samples側の再配置は行わない)。
+    echo "  [UNKNOWN] ケースm/n: 同梱API一覧フィクスチャが解決先パス($api_list_html_rel)に実在しないため判定できません(generation-engine/samples/project-portal/一覧 配下が旧配置のまま。output-layout.jsonの既定値との不一致)" >&2
+    unknown=1
+  fi
 
   # --- ケースo: feature参照先がunresolvedならpermission/crudへ混入させない ---
   local sm_unresolved="$tmp/screen-manifest-unresolved.json" am_unresolved="$tmp/api-manifest-unresolved.json"
@@ -612,41 +624,53 @@ EOF
   local screen_sample="$repo_root/generation-engine/samples/$screen_manifest_ext_rel"
   local feature_sample="$tmp/feature-manifest-sample.json"
   local api_sample="$tmp/api-manifest-sample.json"
-  awk '/^[[:space:]]*<script[^>]*id="unit-manifest"/{inside=1; next} inside && /<\/script>/{exit} inside{print}' \
-    "$feature_html" > "$feature_sample"
-  # API だけは一覧の HTML ではなく拡張版のファイルから読む。一覧の HTML に埋め込まれた
-  # API のデータは基本版であり method の欄を持たないが、このスクリプトは作成・参照・更新・
-  # 削除の判定に method を必須とするため、一覧から読むと入口で止まる（2026-08-19 実測。
-  # 一覧版は 141 件すべてが method を持たない）。unitKey の集合は一覧版と拡張版で一致する
-  # ため、feature の relatedApis の対応を確かめる目的には影響しない。一覧へ戻さないこと。
-  cp "$repo_root/generation-engine/samples/$api_manifest_ext_rel" "$api_sample"
-  assert "ケースs: feature relatedApis は API unitKey に全件対応する" \
-    jq -s -e '(.[0].units | map(.unitKey) | unique) as $api_keys
-           | [.[1].units[] | (.relatedApis // [])[]
-              | select(. as $key | $api_keys | index($key) == null)]
-           | length == 0' "$api_sample" "$feature_sample"
+  if [ -f "$feature_html" ]; then
+    awk '/^[[:space:]]*<script[^>]*id="unit-manifest"/{inside=1; next} inside && /<\/script>/{exit} inside{print}' \
+      "$feature_html" > "$feature_sample"
+    # API だけは一覧の HTML ではなく拡張版のファイルから読む。一覧の HTML に埋め込まれた
+    # API のデータは基本版であり method の欄を持たないが、このスクリプトは作成・参照・更新・
+    # 削除の判定に method を必須とするため、一覧から読むと入口で止まる（2026-08-19 実測。
+    # 一覧版は 141 件すべてが method を持たない）。unitKey の集合は一覧版と拡張版で一致する
+    # ため、feature の relatedApis の対応を確かめる目的には影響しない。一覧へ戻さないこと。
+    cp "$repo_root/generation-engine/samples/$api_manifest_ext_rel" "$api_sample"
+    assert "ケースs: feature relatedApis は API unitKey に全件対応する" \
+      jq -s -e '(.[0].units | map(.unitKey) | unique) as $api_keys
+             | [.[1].units[] | (.relatedApis // [])[]
+                | select(. as $key | $api_keys | index($key) == null)]
+             | length == 0' "$api_sample" "$feature_sample"
 
-  local out_feature_chain="$tmp/out-feature-chain"
-  local sample_hash="aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-  assert "ケースs: 生成済み一覧からmatrix生成が成功" \
-    bash "$script_path" "$out_feature_chain" --screen-manifest "$screen_sample" --api-manifest "$api_sample" \
-      --feature-manifest "$feature_sample" --generated-at 2026-07-29T00:00:00Z \
-      --manifest-content-hash "$sample_hash"
+    local out_feature_chain="$tmp/out-feature-chain"
+    local sample_hash="aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    assert "ケースs: 生成済み一覧からmatrix生成が成功" \
+      bash "$script_path" "$out_feature_chain" --screen-manifest "$screen_sample" --api-manifest "$api_sample" \
+        --feature-manifest "$feature_sample" --generated-at 2026-07-29T00:00:00Z \
+        --manifest-content-hash "$sample_hash"
 
-  local permission_function="$out_feature_chain/permission-function.json"
-  assert "ケースs: permission-matrixから権限機能JSON生成が成功" \
-    bash "$script_dir/build-permission-function-data.sh" "$out_feature_chain/permission-matrix.json" "$permission_function" \
-      --generated-at 2026-07-29T00:00:00Z --manifest-content-hash "$sample_hash"
-  assert "ケースs: permission-matrix の features に unitKey 重複がない" \
-    jq -e '([.features[].unitKey] | length) == ([.features[].unitKey] | unique | length)' \
-      "$out_feature_chain/permission-matrix.json"
-  assert "ケースs: 権限機能JSONの functions が1件以上" \
-    jq -e '.functions | length >= 1' "$permission_function"
-
-  if [ "$rc" -eq 0 ]; then
-    echo "self-test 全項目 PASS"
+    local permission_function="$out_feature_chain/permission-function.json"
+    assert "ケースs: permission-matrixから権限機能JSON生成が成功" \
+      bash "$script_dir/build-permission-function-data.sh" "$out_feature_chain/permission-matrix.json" "$permission_function" \
+        --generated-at 2026-07-29T00:00:00Z --manifest-content-hash "$sample_hash"
+    assert "ケースs: permission-matrix の features に unitKey 重複がない" \
+      jq -e '([.features[].unitKey] | length) == ([.features[].unitKey] | unique | length)' \
+        "$out_feature_chain/permission-matrix.json"
+    assert "ケースs: 権限機能JSONの functions が1件以上" \
+      jq -e '.functions | length >= 1' "$permission_function"
   else
+    # generation-engine/samples/project-portal/一覧 配下がまだ旧配置(日本語)のままで、
+    # output-layout.jsonの既定値(project-portal/lists、英字)と食い違っているため、
+    # 解決先パスに同梱サンプルが実在しない(1-29で指摘済みの構造的な不一致。この
+    # スクリプト単体の担当範囲を超えるため、samples側の再配置は行わない)。
+    echo "  [UNKNOWN] ケースs: 同梱機能一覧フィクスチャが解決先パス($feature_list_html_rel)に実在しないため判定できません(generation-engine/samples/project-portal/一覧 配下が旧配置のまま。output-layout.jsonの既定値との不一致)" >&2
+    unknown=1
+  fi
+
+  if [ "$rc" -ne 0 ]; then
     echo "self-test FAIL" >&2
+  elif [ "$unknown" -ne 0 ]; then
+    echo "self-test UNKNOWN" >&2
+    return 2
+  else
+    echo "self-test 全項目 PASS"
   fi
   return "$rc"
 }
@@ -827,6 +851,13 @@ invalid_target_tables_apis="$(jq -n -r \
 skipped_api_keys_json="$(printf '%s\n%s\n%s\n' "$missing_method_apis" "$invalid_method_apis" "$invalid_target_tables_apis" \
   | jq -R -s 'split("\n") | map(select(length > 0)) | unique')"
 skipped_api_count="$(jq 'length' <<<"$skipped_api_keys_json")"
+# 除外API一覧はAPI件数に比例して伸びうる可変長の値のため、コマンドライン引数
+# ではなく一時ファイル経由(--slurpfile)でjqへ渡す（改善課題1-52）。
+if ! SKIPPED_API_KEYS_FILE="$(mktemp "${TMPDIR:-/tmp}/skipped-api-keys.XXXXXX")" || [ -z "$SKIPPED_API_KEYS_FILE" ]; then
+  echo "FATAL: 一時ファイルの作成に失敗しました(mktemp)" >&2
+  exit 1
+fi
+printf '%s' "$skipped_api_keys_json" > "$SKIPPED_API_KEYS_FILE"
 if [ "$skipped_api_count" -gt 0 ]; then
   echo "WARN: CRUD判定材料が不正または不足の API ${skipped_api_count}件を除外して生成を続行します:" >&2
   if [ -n "$missing_method_apis" ]; then
@@ -901,6 +932,7 @@ cleanup_matrix_transaction() {
     rm -f -- "$OUTPUT_DIR/permission-matrix.json" "$OUTPUT_DIR/crud-matrix.json" "$OUTPUT_DIR/traceability.json"
   fi
   rm -rf "$STAGING_DIR"
+  rm -f -- "$SKIPPED_API_KEYS_FILE"
   exit "$exit_code"
 }
 trap cleanup_matrix_transaction EXIT
@@ -913,7 +945,7 @@ jq -n \
   --arg manifestContentHash "$MANIFEST_CONTENT_HASH" \
   --arg dataSource "$DS_PERMISSION" \
   --argjson roles "$ROLES_JSON" \
-  --argjson skippedApiKeys "$skipped_api_keys_json" \
+  --slurpfile skippedApiKeys "$SKIPPED_API_KEYS_FILE" \
   --slurpfile screenManifest "$SCREEN_MANIFEST" \
   --slurpfile apiManifest "$API_MANIFEST" \
   --slurpfile featureManifest "$FEATURE_MANIFEST_FILE" \
@@ -944,7 +976,7 @@ jq -n \
       | select(((.relatedApis // []) | length) > 0)
       | . as $f
       | ([ $f.relatedApis[] as $k
-           | $apis[] | select(.unitKey == $k and .kind != "unresolved" and has("method") and (is_skipped($skippedApiKeys) | not))
+           | $apis[] | select(.unitKey == $k and .kind != "unresolved" and has("method") and (is_skipped($skippedApiKeys[0]) | not))
            | {unitKey: .unitKey, letters: (.method | method_letters)}
            | select((.letters | length) > 0) ]) as $fapis
       | { unitKey: $f.unitKey,
@@ -971,7 +1003,7 @@ jq -n \
   --slurpfile tableManifest "$TABLE_MANIFEST_FILE" \
   --argjson hasFeatures "$HAS_FEATURES" \
   --argjson hasTables "$HAS_TABLES" \
-  --argjson skippedApiKeys "$skipped_api_keys_json" \
+  --slurpfile skippedApiKeys "$SKIPPED_API_KEYS_FILE" \
   "$JQ_DEFS"'
   ($apiManifest[0].units // []) as $apis
   | ($featureManifest[0].units // []) as $features
@@ -983,7 +1015,7 @@ jq -n \
           | select(((.relatedApis // []) | length) > 0)
           | . as $f
           | ([ $f.relatedApis[] as $k
-               | $apis[] | select(.unitKey == $k and .kind != "unresolved" and has("method") and has("targetTables") and (is_skipped($skippedApiKeys) | not)
+               | $apis[] | select(.unitKey == $k and .kind != "unresolved" and has("method") and has("targetTables") and (is_skipped($skippedApiKeys[0]) | not)
                                   and (.targetTables | type == "array") and (.targetTables | length) > 0)
                | (.method | method_letters[]) as $l
                | .targetTables[] as $t
@@ -996,7 +1028,7 @@ jq -n \
                       | from_entries) } ]
       else
         [ $apis[]
-          | select(.kind != "unresolved" and has("method") and has("targetTables") and (is_skipped($skippedApiKeys) | not)
+          | select(.kind != "unresolved" and has("method") and has("targetTables") and (is_skipped($skippedApiKeys[0]) | not)
                    and (.targetTables | type == "array") and (.targetTables | length) > 0)
           | [(.method | method_letters[]) as $l
              | .targetTables[] | {key: ($phys[.] // .), value: $l}] as $cells
@@ -1032,12 +1064,12 @@ jq -n \
   --slurpfile apiManifest "$API_MANIFEST" \
   --slurpfile tableManifest "$TABLE_MANIFEST_FILE" \
   --argjson hasTables "$HAS_TABLES" \
-  --argjson skippedApiKeys "$skipped_api_keys_json" \
+  --slurpfile skippedApiKeys "$SKIPPED_API_KEYS_FILE" \
   "$JQ_DEFS"'
   ($screenManifest[0].screens // []) as $screens
   | ($apiManifest[0].units // []) as $apis
   | ($tableManifest[0].units // []) as $tableUnits
-  | ([$apis[] | select(is_skipped($skippedApiKeys) | not) | .unitKey]) as $includedApiKeys
+  | ([$apis[] | select(is_skipped($skippedApiKeys[0]) | not) | .unitKey]) as $includedApiKeys
   | ({ generatedAt: $generatedAt,
     dataSource: $dataSource,
     screens: [
@@ -1050,7 +1082,7 @@ jq -n \
         + (if ((.sourceHash // "") | length) > 0 then {sourceHash: .sourceHash} else {} end)
     ],
     apis: [
-      $apis[] | select(is_skipped($skippedApiKeys) | not)
+      $apis[] | select(is_skipped($skippedApiKeys[0]) | not)
       | { apiId: .unitKey,
           apiName: .unitKey,
           endpoint: (.identifier // .unitKey),
@@ -1060,7 +1092,7 @@ jq -n \
              then [ $tableUnits[]
                     | {tableId: .unitKey, tableName: (.identifier // .unitKey)}
                       + (if has("logicalName") then {logicalName: .logicalName} else {} end) ]
-             else ([ $apis[] | select(is_skipped($skippedApiKeys) | not) | .targetTables // [] | .[] ] | unique | map({tableId: ., tableName: .}))
+             else ([ $apis[] | select(is_skipped($skippedApiKeys[0]) | not) | .targetTables // [] | .[] ] | unique | map({tableId: ., tableName: .}))
              end) }
     + (if ($manifestContentHash | length) > 0 then {manifestContentHash: $manifestContentHash} else {} end))
   ' > "$STAGING_DIR/traceability.json"

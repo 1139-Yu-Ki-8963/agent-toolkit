@@ -117,18 +117,20 @@ self_test() {
   }' > "$manifest"
 
   local out="$tmp/out.json"
-  if ! bash "$script_path" "$manifest" "$tmp/src" "$out" >/dev/null 2>&1; then
+  if ! _gt_out1="$(bash "$script_path" "$manifest" "$tmp/src" "$out" 2>&1)"; then
     echo "  [FAIL] 実行: 抽出コマンド自体が失敗した" >&2
+    printf '%s\n' "$_gt_out1" | sed 's/^/    /' >&2
     echo "self-test FAIL" >&2
     return 1
   fi
 
   check() {
     local label="$1" filter="$2"
-    if jq -e "$filter" "$out" >/dev/null 2>&1; then
+    if _gt_out2="$(jq -e "$filter" "$out" 2>&1)"; then
       echo "  [PASS] $label"
     else
       echo "  [FAIL] $label" >&2
+      printf '%s\n' "$_gt_out2" | sed 's/^/    /' >&2
       rc=1
     fi
   }
@@ -159,26 +161,29 @@ self_test() {
   #  ユニット単位の追加フィールドと同様に除去してから比較する)
   jq -S 'del(.units[].operationClass) | del(.detectionSummary.diagnostics)' "$out" > "$tmp/stripped.json"
   jq -S . "$manifest" > "$tmp/orig.json"
-  if diff -q "$tmp/stripped.json" "$tmp/orig.json" >/dev/null 2>&1; then
+  if _gt_out3="$(diff -q "$tmp/stripped.json" "$tmp/orig.json" 2>&1)"; then
     echo "  [PASS] 既存フィールド不変: operationClass除去後は入力マニフェストと完全一致"
   else
     echo "  [FAIL] 既存フィールド不変: 入力マニフェストとの差分が発生した" >&2
+    printf '%s\n' "$_gt_out3" | sed 's/^/    /' >&2
     rc=1
   fi
 
-  if bash "$script_dir/../unit-list/validate-manifest.sh" "$out" --unit-kind feature >/dev/null 2>&1; then
+  if _gt_out4="$(bash "$script_dir/../unit-list/validate-manifest.sh" "$out" --unit-kind feature 2>&1)"; then
     echo "  [PASS] validate-manifest: 拡張マニフェストが全項目PASS"
   else
     echo "  [FAIL] validate-manifest: 拡張マニフェストが検証FAILした" >&2
+    printf '%s\n' "$_gt_out4" | sed 's/^/    /' >&2
     rc=1
   fi
 
   local legacy_out="$tmp/legacy-out.json"
-  if bash "$script_path" "$manifest" "$legacy_out" >/dev/null 2>&1 \
-     && jq -e '.detectionSummary.diagnostics.legacyArgumentOrder.used == true' "$legacy_out" >/dev/null 2>&1; then
+  if _gt_out5="$(bash "$script_path" "$manifest" "$legacy_out" >/dev/null 2>&1 \
+     && jq -e '.detectionSummary.diagnostics.legacyArgumentOrder.used == true' "$legacy_out" 2>&1)"; then
     echo "  [PASS] 旧引数順互換: 使用したことが出力のdiagnosticsに記録される"
   else
     echo "  [FAIL] 旧引数順互換: diagnosticsへの記録が確認できなかった" >&2
+    printf '%s\n' "$_gt_out5" | sed 's/^/    /' >&2
     rc=1
   fi
 
@@ -232,13 +237,14 @@ EOF
   }' > "$direct_feature_manifest"
 
   local direct_out="$tmp/direct/out.json"
-  if bash "$script_path" "$direct_feature_manifest" "$tmp/direct/src" "$direct_out" \
+  if _gt_out6="$(bash "$script_path" "$direct_feature_manifest" "$tmp/direct/src" "$direct_out" \
        --screen-manifest "$direct_screen_manifest" --table-manifest "$direct_table_manifest" \
        >/dev/null 2>&1 \
-     && jq -e '.units[0].relatedTables == ["widgets-table"]' "$direct_out" >/dev/null 2>&1; then
+     && jq -e '.units[0].relatedTables == ["widgets-table"]' "$direct_out" 2>&1)"; then
     echo "  [PASS] 直接データアクセス経路: 画面が直接持つ生SQLからrelatedTablesが紐付く"
   else
     echo "  [FAIL] 直接データアクセス経路: relatedTablesが期待通りに紐付かなかった" >&2
+    printf '%s\n' "$_gt_out6" | sed 's/^/    /' >&2
     rc=1
   fi
 

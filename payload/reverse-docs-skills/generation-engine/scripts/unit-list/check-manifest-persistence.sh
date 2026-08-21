@@ -96,15 +96,16 @@ run_check() {
     fi
 
     if [ -f "$ext_manifest_path" ]; then
-      if jq -e --slurpfile base "$manifest_path" '
+      if _gt_out1="$(jq -e --slurpfile base "$manifest_path" '
         (.screens // .units // []) as $extended
         | ([$extended | to_entries[] | .key as $i | .value as $after
           | ($base[0].screens // $base[0].units // [])[$i] as $before
           | select((($after | keys) - ($before | keys) | length) > 0)] | length) > 0
-      ' "$ext_manifest_path" >/dev/null 2>&1; then
+      ' "$ext_manifest_path" 2>&1)"; then
         printf '  [PASS] %s: %s (追加項目あり)\n' "$folder_name" "$ext_manifest_name"
       else
         printf '  [FAIL] %s: %s に追加項目がない\n' "$folder_name" "$ext_manifest_name" >&2
+        printf '%s\n' "$_gt_out1" | sed 's/^/    /' >&2
         this_ok=0
       fi
     else
@@ -150,10 +151,11 @@ self_test() {
   echo '{"units":[{"unitKey":"a1"}]}' > "$ok_dir/$self_test_manifests_root/api-manifest.json"
   echo '{"units":[{"unitKey":"a1","method":"GET"}]}' > "$ok_dir/$self_test_manifests_root/api-manifest.ext.json"
 
-  if run_check "$ok_dir" >/dev/null 2>&1; then
+  if _gt_out2="$(run_check "$ok_dir" 2>&1)"; then
     echo "  [PASS] 陽性: HTMLとマニフェストが揃った output_dir で終了コード0"
   else
     echo "  [FAIL] 陽性: 揃っているのにFAILした" >&2
+    printf '%s\n' "$_gt_out2" | sed 's/^/    /' >&2
     rc=1
   fi
 

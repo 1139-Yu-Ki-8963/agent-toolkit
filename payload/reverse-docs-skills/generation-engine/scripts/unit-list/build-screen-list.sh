@@ -181,19 +181,22 @@ EOF
     }' > "$manifest_a"
 
   local out_a="$tmp/out-a.html"
-  if bash "$script_path" "$manifest_a" "$out_a" >/dev/null 2>&1; then
+  local _gt_out_a_run _gt_diff_out_a
+  if _gt_out_a_run="$(bash "$script_path" "$manifest_a" "$out_a" 2>&1)"; then
     local embedded_a="$tmp/embedded-a.json"
     local expected_a="$tmp/expected-a.json"
     extract_manifest_json "$out_a" | jq -c -S . > "$embedded_a" 2>/dev/null || true
     expected_manifest_json "$manifest_a" > "$expected_a"
-    if diff -q "$embedded_a" "$expected_a" >/dev/null 2>&1; then
+    if _gt_diff_out_a="$(diff -u "$expected_a" "$embedded_a" 2>&1)"; then
       echo "  [PASS] ケースa: バックスラッシュ(\\d+)を含むdetectionMethodでも埋め込みJSONが原本と完全一致"
     else
       echo "  [FAIL] ケースa: バックスラッシュを含むdetectionMethodで埋め込みJSONが原本と不一致(誤爆の疑い)" >&2
+      printf '%s\n' "$_gt_diff_out_a" | sed 's/^/    /' >&2
       rc=1
     fi
   else
     echo "  [FAIL] ケースa: 生成コマンド自体が失敗した" >&2
+    printf '%s\n' "$_gt_out_a_run" | sed 's/^/    /' >&2
     rc=1
   fi
 
@@ -507,13 +510,14 @@ EOF
 
   local finding_row_count
   finding_row_count="$(grep -c '<tr data-screen-' "$out_findings" 2>/dev/null || true)"
-  if [ "$findings_ok" -eq 1 ] \
+  if _gt_out4="$([ "$findings_ok" -eq 1 ] \
     && [ "$finding_row_count" = "2" ] \
     && grep -Fq '<strong>2</strong>検出画面数' "$out_findings" \
-    && ! verify_rendered_screen_count 2 '<tr data-screen-id="one"></tr>' >/dev/null 2>&1; then
+    && ! verify_rendered_screen_count 2 '<tr data-screen-id="one"></tr>' 2>&1)"; then
     echo "  [PASS] 1-43: 実出力表行を再計数し、欠落行を陰性fixtureで拒否"
   else
     echo "  [FAIL] 1-43: 実出力表行数ゲートが不足(rows=$finding_row_count)" >&2
+    printf '%s\n' "$_gt_out4" | sed 's/^/    /' >&2
     rc=1
   fi
 
@@ -558,8 +562,10 @@ print(os.path.abspath(os.path.join(sys.argv[1], "index.html")))
   local out_bad_doc_url="$tmp/out-bad-doc-url.html"
   jq '.screens[0].designDocPath = "javascript:alert(1)"' \
     "$manifest_findings" > "$manifest_bad_doc_url"
-  if bash "$script_path" "$manifest_bad_doc_url" "$out_bad_doc_url" >/dev/null 2>&1; then
+  local _gt_bad_doc_url_out
+  if _gt_bad_doc_url_out="$(bash "$script_path" "$manifest_bad_doc_url" "$out_bad_doc_url" 2>&1)"; then
     echo "  [FAIL] 設計書URL陰性: javascript: URLを生成入口で受け入れた" >&2
+    printf '%s\n' "$_gt_bad_doc_url_out" | sed 's/^/    /' >&2
     rc=1
   elif ! grep -Fq 'if (isSafeRelativeUrl(href))' "$out_findings"; then
     echo "  [FAIL] 設計書URL陰性: 生成HTMLに描画時URLガードが無い" >&2
@@ -676,7 +682,8 @@ print(os.path.abspath(os.path.join(sys.argv[1], "index.html")))
     }' > "$manifest_lowconf_majority"
 
   local out_lowconf_majority="$tmp/out-lowconf-majority.html"
-  if bash "$script_path" "$manifest_lowconf_majority" "$out_lowconf_majority" >/dev/null 2>&1; then
+  local _gt_lowconf_majority_out
+  if _gt_lowconf_majority_out="$(bash "$script_path" "$manifest_lowconf_majority" "$out_lowconf_majority" 2>&1)"; then
     if grep -Fq '画面種別分類がフォールバック値へ偏っている可能性があります' "$out_lowconf_majority" && grep -Fq '低信頼度画面 <strong>2</strong> / 3 件' "$out_lowconf_majority"; then
       echo "  [PASS] 1-125: 低信頼度が過半数(2/3)の合成マニフェストで警告コールアウトと分布(2/3件)が出力される"
     else
@@ -685,6 +692,7 @@ print(os.path.abspath(os.path.join(sys.argv[1], "index.html")))
     fi
   else
     echo "  [FAIL] 1-125: 低信頼度過半数マニフェストの生成コマンド自体が失敗した" >&2
+    printf '%s\n' "$_gt_lowconf_majority_out" | sed 's/^/    /' >&2
     rc=1
   fi
 
@@ -705,7 +713,8 @@ print(os.path.abspath(os.path.join(sys.argv[1], "index.html")))
     }' > "$manifest_lowconf_zero"
 
   local out_lowconf_zero="$tmp/out-lowconf-zero.html"
-  if bash "$script_path" "$manifest_lowconf_zero" "$out_lowconf_zero" >/dev/null 2>&1; then
+  local _gt_lowconf_zero_out
+  if _gt_lowconf_zero_out="$(bash "$script_path" "$manifest_lowconf_zero" "$out_lowconf_zero" 2>&1)"; then
     if grep -Fq '画面種別分類がフォールバック値へ偏っている可能性があります' "$out_lowconf_zero"; then
       echo "  [FAIL] 1-125: 低信頼度0件なのに警告コールアウトが出力された" >&2
       rc=1
@@ -717,6 +726,7 @@ print(os.path.abspath(os.path.join(sys.argv[1], "index.html")))
     fi
   else
     echo "  [FAIL] 1-125: 低信頼度0件マニフェストの生成コマンド自体が失敗した" >&2
+    printf '%s\n' "$_gt_lowconf_zero_out" | sed 's/^/    /' >&2
     rc=1
   fi
 
@@ -749,7 +759,8 @@ print(os.path.abspath(os.path.join(sys.argv[1], "index.html")))
       ]
     }' > "$abs_manifest"
 
-  if bash "$script_path" "$abs_manifest" "$abs_out" >/dev/null 2>&1; then
+  local _gt_abs_out
+  if _gt_abs_out="$(bash "$script_path" "$abs_manifest" "$abs_out" 2>&1)"; then
     local embedded_source_dir embedded_entry_file
     embedded_source_dir="$(sed -n '/<script type="application\/json" id="screen-manifest">/,/<\/script>/p' "$abs_out" | sed '1d;$d' | jq -r '.sourceDir' 2>/dev/null || echo "FAIL")"
     embedded_entry_file="$(sed -n '/<script type="application\/json" id="screen-manifest">/,/<\/script>/p' "$abs_out" | sed '1d;$d' | jq -r '.screens[0].entryFile' 2>/dev/null || echo "FAIL")"
@@ -762,6 +773,7 @@ print(os.path.abspath(os.path.join(sys.argv[1], "index.html")))
     fi
   else
     echo "  [FAIL] 1-102: 絶対パスsourceDirを持つマニフェストの生成コマンド自体が失敗した" >&2
+    printf '%s\n' "$_gt_abs_out" | sed 's/^/    /' >&2
     rc=1
   fi
 
@@ -796,7 +808,8 @@ print(os.path.abspath(os.path.join(sys.argv[1], "index.html")))
       ]
     }' > "$prefix_manifest"
 
-  if bash "$script_path" "$prefix_manifest" "$prefix_out" >/dev/null 2>&1; then
+  local _gt_prefix_out
+  if _gt_prefix_out="$(bash "$script_path" "$prefix_manifest" "$prefix_out" 2>&1)"; then
     local embedded_entry_file_prefix
     embedded_entry_file_prefix="$(sed -n '/<script type="application\/json" id="screen-manifest">/,/<\/script>/p' "$prefix_out" | sed '1d;$d' | jq -r '.screens[0].entryFile' 2>/dev/null || echo "FAIL")"
     if [ "$embedded_entry_file_prefix" = "screens/Home.tsx" ]; then
@@ -807,6 +820,7 @@ print(os.path.abspath(os.path.join(sys.argv[1], "index.html")))
     fi
   else
     echo "  [FAIL] 1-102: sourceDir配下の絶対パスentryFileを持つマニフェストの生成コマンド自体が失敗した" >&2
+    printf '%s\n' "$_gt_prefix_out" | sed 's/^/    /' >&2
     rc=1
   fi
 

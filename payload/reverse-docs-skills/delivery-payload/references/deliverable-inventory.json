@@ -160,6 +160,11 @@
       "evidenceSource": "none"
     },
     {
+      "kind": "confirmation-item-ledger",
+      "layoutKey": "unitConfirmationLedgerFile",
+      "evidenceSource": "none"
+    },
+    {
       "kind": "screen",
       "evidenceSource": "manifest",
       "manifestKey": "screenManifest",

@@ -306,6 +306,29 @@ a.pt-brand-list-item:hover { background: var(--panel3); color: var(--text); text
 .pt-nav-num { font-family: var(--mono); font-size: 10px; color: var(--muted); }
 .pt-nav-count { margin-left: auto; font-family: var(--mono); font-size: 10px; color: var(--faint); font-variant-numeric: tabular-nums; }
 
+/* 現在地のナビ項目に限り、番号と件数の文字色をコントラスト基準（4.5:1）を満たす値へ個別に上げる（改善課題1-49）。
+   --muted/--faint 本体は変更しない（他の使用箇所へ影響するため）。tokens.css と同じ4ブロック切り替えに揃える。 */
+:root {
+  --nav-current-num: #919DAE;
+  --nav-current-count: #929DAF;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --nav-current-num: #5E6B7E;
+    --nav-current-count: #5B6C80;
+  }
+}
+[data-theme="light"] {
+  --nav-current-num: #5E6B7E;
+  --nav-current-count: #5B6C80;
+}
+[data-theme="dark"] {
+  --nav-current-num: #919DAE;
+  --nav-current-count: #929DAF;
+}
+.pt-nav-item.is-active .pt-nav-num { color: var(--nav-current-num); }
+.pt-nav-item.is-active .pt-nav-count { color: var(--nav-current-count); }
+
 /* 文書ビューア型ページの章目次ブロック（旧 .dp-toc を共通サイドバーへ統合） */
 .pt-doc-nav { padding: 14px 12px; display: flex; flex-direction: column; gap: 2px; border-top: 1.5px solid var(--line2); }
 .pt-doc-nav__group { font-family: var(--mono); font-size: 9.5px; letter-spacing: 2px; color: var(--faint); padding: 14px 10px 5px; }
@@ -645,17 +668,17 @@ table.assets tbody tr:hover td { background: var(--panel3); }
     <div class="pt-brand-switch" id="pt-brand-switch">
       <div class="pt-brand-name"></div>
     </div>
-    <div class="pt-brand-sub">設計台帳 · 全58資料</div>
+    <div class="pt-brand-sub">設計台帳 · 全62資料</div>
   </div>
   <nav class="pt-nav" id="pt-nav" aria-label="資料カテゴリ"></nav>
   
   <button type="button" class="pt-theme" id="pt-theme-toggle">
     <span id="pt-theme-label">テーマ: ダーク</span><span class="pt-theme-next" id="pt-theme-next">→ LIGHT</span>
   </button>
-  <div class="pt-sidebar-meta">更新 <span id="pt-sidebar-date">2026-08-18</span><span id="pt-meta-commit"><br>コミット </span></div>
+  <div class="pt-sidebar-meta">更新 <span id="pt-sidebar-date">2026-08-21T04:07:47+0900</span><span id="pt-meta-commit"><br>コミット </span></div>
 </aside>
 <div class="pt-sidebar-scrim" id="pt-sidebar-scrim" hidden></div>
-<script type="application/json" id="pt-nav-data">[{"key":"project","num":"01","label":"基盤情報","count":3},{"key":"standards","num":"02","label":"規約","count":27},{"key":"design","num":"03","label":"設計書","count":5},{"key":"list","num":"04","label":"一覧・設計図","count":14},{"key":"cross","num":"05","label":"マトリクス・対応表","count":5},{"key":"ai","num":"06","label":"AI設定資産","count":1},{"key":"design-tools","num":"07","label":"デザイン","count":3}]</script>
+<script type="application/json" id="pt-nav-data">[{"key":"project","num":"01","label":"基盤情報","count":5},{"key":"standards","num":"02","label":"規約","count":27},{"key":"design","num":"03","label":"設計書","count":7},{"key":"list","num":"04","label":"一覧・設計図","count":14},{"key":"cross","num":"05","label":"マトリクス・対応表","count":5},{"key":"ai","num":"06","label":"AI設定資産","count":1},{"key":"design-tools","num":"07","label":"デザイン","count":3}]</script>
 <script type="application/json" id="pt-sites-data">[]</script>
 <script>
 (function () {
@@ -936,7 +959,7 @@ table.assets tbody tr:hover td { background: var(--panel3); }
         <div class="pt-crumb"><a href="../index.html">TOP</a> ／ AI設定資産 ／ <span class="pt-crumb-current">AI設定資産</span></div>
         <div class="pt-title-row">
           <h1 class="pt-title">AI設定資産</h1>
-          <span class="pt-title-sub">更新 2026-07-30T00:00:00Z</span>
+          <span class="pt-title-sub">更新 2026-08-21T04:07:47+0900</span>
         </div>
       </div>
 
@@ -1028,173 +1051,541 @@ table.assets tbody tr:hover td { background: var(--panel3); }
   </div>
   <footer class="pt-footer">
   <span class="pt-footer-stamp">REVERSE-DOCS REGISTER</span>
-  <span class="pt-footer-meta"> · 更新 <span id="pt-footer-date">2026-08-18</span><span id="pt-footer-commit"> · コミット </span></span>
+  <span class="pt-footer-meta"> · 更新 <span id="pt-footer-date">2026-08-21T04:07:47+0900</span><span id="pt-footer-commit"> · コミット </span></span>
   <span class="pt-footer-gen">生成: generation-engine/scripts/matrix/build-matrix-pages.sh</span>
 </footer>
 </div>
 
 <script type="application/json" id="matrix-manifest">
 {
-  "generatedAt": "2026-07-30T00:00:00Z",
-  "dataSource": ".claude/rules/ ・ .claude/settings.json ・ .claude/skills/ ・ グローバルサブエージェント定義",
+  "generatedAt": "2026-08-21T04:07:47+0900",
+  "dataSource": "improve-1-49",
   "rules": [
+    {
+      "ruleName": "実装判断記録規約（IMPLEMENTATION-DECISION-RECORD）",
+      "layer": "always",
+      "declaredEnforcement": "なし",
+      "mechanicalEnforcement": false,
+      "tags": [],
+      "summary": "`generation-engine/scripts/` 配下のスクリプトのうち、素直に見えない書き方をしている箇所について、なぜその書き方を採ったかを記録させる規約。"
+    },
+    {
+      "ruleName": "外部向け文書の記述制限（AUDIENCE-SPLIT）",
+      "layer": "always",
+      "declaredEnforcement": "block",
+      "mechanicalEnforcement": true,
+      "tags": [
+        "[AUDIENCE-SPLIT-BLOCK]",
+        "[AUDIENCE-SPLIT-SKIP]"
+      ],
+      "summary": "`docs/guides/` の下に置く、このリポジトリを知らない人に向けた文書へ、内部の作業のための記述を混ぜることを禁じる規約。"
+    },
+    {
+      "ruleName": "テンプレートとサンプルの同期（TEMPLATE-SAMPLE-SYNC）",
+      "layer": "always",
+      "declaredEnforcement": "block",
+      "mechanicalEnforcement": true,
+      "tags": [
+        "[TEMPLATE-SAMPLE-SYNC-BLOCK]",
+        "[TEMPLATE-SAMPLE-SYNC-SKIP]"
+      ],
+      "summary": "`delivery-payload/templates/` のテンプレートを変更したら、同じコミットで `generation-engine/samples/` のサンプルを再生成して反映する。"
+    },
+    {
+      "ruleName": "reverse-docs-skills プロジェクトコンテキスト（PROJECT-CONTEXT）",
+      "layer": "always",
+      "declaredEnforcement": "なし",
+      "mechanicalEnforcement": false,
+      "tags": []
+    },
     {
       "ruleName": "公開完遂ガード（PUBLISH-COMPLETE）",
       "layer": "always",
-      "enforcement": "block",
+      "declaredEnforcement": "block",
+      "mechanicalEnforcement": true,
       "tags": [
         "[PUBLISH-COMPLETE-BLOCK]",
         "[PUBLISH-SYNC-REQUIRED]"
       ],
-      "summary": "正本 commit → payload 同期 → agent-toolkit の origin/main へ統合 push まで完遂してから完了報告させる。Stop で block、git commit 後の同期検査は advisory"
+      "summary": "reverse-docs-skills（正本）の作業を「正本 commit → payload 同期 → agent-toolkit の origin/main へ統合 push」まで完遂してから完了報告させるプロジェクト規約。"
+    },
+    {
+      "ruleName": "委任のときの作業場所規約（DELEGATION-WORKTREE）",
+      "layer": "always",
+      "declaredEnforcement": "block",
+      "mechanicalEnforcement": true,
+      "tags": [
+        "[DELEGATION-WORKTREE-BLOCK]",
+        "[DELEGATION-WORKTREE-SKIP]"
+      ],
+      "summary": "書き換えを伴う作業を委任するとき、委任元が作業場所（git の worktree）を用意し、そのパスを委任のプロンプトへ書くことを求める。"
+    },
+    {
+      "ruleName": "並行課題投入の運用規約（PARALLEL-ISSUE-DISPATCH）",
+      "layer": "always",
+      "declaredEnforcement": "なし",
+      "mechanicalEnforcement": false,
+      "tags": [],
+      "summary": "`docs/tasks/指摘改善一覧.md` の課題を複数の `codex exec` へ並行投入するとき、変更対象の重なりを事前に確認し、プロンプトを安全に構築し、3件同時実行の上限を守ることを求める。"
+    },
+    {
+      "ruleName": "作業者の自律規約（WORKER-AUTONOMY）",
+      "layer": "always",
+      "declaredEnforcement": "block",
+      "mechanicalEnforcement": true,
+      "tags": [
+        "[MANAGER-HANDOFF-BLOCK]",
+        "[WORKER-AUTONOMY-BLOCK]"
+      ],
+      "summary": "複数のセッションが分担して作業する体制で、作業を受け持つ側がユーザーへ判断を仰いで手を止めることを禁止する。"
     },
     {
       "ruleName": "スキルガイド HTML 統一規約（SKILL-GUIDE-HTML）",
       "layer": "always",
-      "enforcement": "なし",
+      "declaredEnforcement": "なし",
+      "mechanicalEnforcement": false,
       "tags": [],
-      "summary": ".claude/skills/*/references/guide.html のメタテーブル必須 4 行と出力セクション（§2）の構成を統一する行動規範"
+      "summary": "`.claude/skills/*/references/guide.html` の構成を統一する規約。"
     },
     {
-      "ruleName": "プロジェクトコンテキスト（PROJECT-CONTEXT）",
+      "ruleName": "コミット-課題対応規約（COMMIT-ISSUE-TRACE）",
       "layer": "always",
-      "enforcement": "なし",
+      "declaredEnforcement": "block",
+      "mechanicalEnforcement": true,
       "tags": [],
-      "summary": "プロジェクト概要・技術スタック・設定索引・ルート直下許可ディレクトリ（shared のみ）の定義"
+      "summary": "`docs/tasks/` 配下の指示書に対応する作業をコミットするとき、コミットメッセージへ対応する課題キーを含めることを定め、機械で強制する規約。"
+    },
+    {
+      "ruleName": "指示書形式規約（INSTRUCTION-FORMAT）",
+      "layer": "always",
+      "declaredEnforcement": "なし",
+      "mechanicalEnforcement": false,
+      "tags": [],
+      "summary": "`docs/tasks/` に置く指示書の形を定める。"
+    },
+    {
+      "ruleName": "指摘台帳の形式規約（ISSUE-LEDGER-FORMAT）",
+      "layer": "always",
+      "declaredEnforcement": "なし",
+      "mechanicalEnforcement": false,
+      "tags": [],
+      "summary": "`docs/tasks/指摘改善一覧.md`（画像から書き起こした指摘を集積する台帳）の形を定める。"
+    },
+    {
+      "ruleName": "検査の判定不能規約（INDETERMINATE-RESULT）",
+      "layer": "always",
+      "declaredEnforcement": "なし",
+      "mechanicalEnforcement": false,
+      "tags": [],
+      "summary": "検査スクリプトが「実行できなかった」ことと「不合格だった」ことを区別する規約。"
+    },
+    {
+      "ruleName": "リバース検証運用規約（REVERSE-VERIFICATION）",
+      "layer": "always",
+      "declaredEnforcement": "なし",
+      "mechanicalEnforcement": false,
+      "tags": [],
+      "summary": "リバース設計スキル群の検証手順を、実行側リポジトリの散文から本規約へ移し、判定の基準を機械が読める形で定義する。"
+    },
+    {
+      "ruleName": "ポータルカテゴリ内グループ化規約（PORTAL-CATEGORY-GROUPING）",
+      "layer": "scoped",
+      "declaredEnforcement": "なし",
+      "mechanicalEnforcement": false,
+      "tags": [],
+      "summary": "ポータルトップのカテゴリ節で、カード群をサブグループに分割して表示する規約。"
+    },
+    {
+      "ruleName": "ポータル HTML 規約（PORTAL-PAGE-CONVENTIONS）",
+      "layer": "scoped",
+      "declaredEnforcement": "なし",
+      "mechanicalEnforcement": false,
+      "tags": [],
+      "summary": "リバース設計ポータルの生成 HTML に適用する合格基準。"
     }
   ],
   "skills": [
     {
-      "skillName": "orchestrating-docs-flow",
-      "category": "指揮",
-      "trigger": "設計検証の進行・工程統括・画面一覧から基準確立まで",
-      "summary": "設計書往復検証フロー全体を統括する指揮役スキル"
-    },
-    {
-      "skillName": "generating-screen-list",
-      "category": "一覧生成",
-      "trigger": "画面一覧作成・画面の洗い出し",
-      "summary": "既存コードベースから画面単位の一覧フォルダ・画面一覧 HTML を生成する"
-    },
-    {
-      "skillName": "generating-api-list",
-      "category": "一覧生成",
-      "trigger": "API一覧作成・エンドポイント一覧",
-      "summary": "API 一覧フォルダ・API一覧 HTML を生成する（unit_kind=api 専用）"
-    },
-    {
-      "skillName": "generating-table-list",
-      "category": "一覧生成",
-      "trigger": "テーブル一覧作成・スキーマ一覧",
-      "summary": "テーブル種別専用の一覧フォルダ・一覧 HTML を生成する"
-    },
-    {
-      "skillName": "generating-feature-list",
-      "category": "一覧生成",
-      "trigger": "機能一覧作成・業務機能の横断目録",
-      "summary": "機能一覧フォルダ・機能一覧 HTML を生成する（unit_kind=feature 専用・派生一覧）"
-    },
-    {
-      "skillName": "generating-er-diagram",
-      "category": "基盤ページ生成",
-      "trigger": "ER図生成・テーブル関連図作成",
-      "summary": "ER図.html をテーブル一覧 manifest とマイグレーション/モデルの FK 定義から機械生成する"
-    },
-    {
-      "skillName": "surveying-architecture",
+      "skillName": "counting-code-lines",
       "category": "工程",
-      "trigger": "設計着手前の前提調査",
-      "summary": "既存リポジトリを走査しアーキテクチャ調査書を機械検証付きで確定する"
+      "summary": "対象ディレクトリのコードの行数とファイル数を、画面側と裏側の処理に分けて数え、結果を保存する。",
+      "phaseCount": 6
     },
     {
       "skillName": "extracting-unit-facts-from-code",
       "category": "工程",
-      "trigger": "設計の facts 抽出・事実表新規作成",
-      "summary": "原本コードから宣言的契約 facts を抽出し独立再計数・封印まで完走する"
+      "summary": "対象コードが持つ振る舞いの事実を元のコードから取り出し、数え直しと確定まで一貫して行う。",
+      "phaseCount": 6
     },
     {
-      "skillName": "generating-detailed-design",
+      "skillName": "generating-agent-config-index-from-repo",
       "category": "工程",
-      "trigger": "facts 封印後の設計書執筆・再執筆",
-      "summary": "封印済み facts と共通文書から画面詳細設計書を執筆する執筆役"
+      "summary": "対象のプロジェクトを調べて、作業を担うエージェント向けの案内文書の索引を作る。",
+      "phaseCount": 3
+    },
+    {
+      "skillName": "generating-api-basic-design-for-reverse-docs",
+      "category": "工程",
+      "summary": "外部とやり取りする接続窓口を1本ごとに取り上げ、業務の言葉だけで基本設計書を作る。",
+      "phaseCount": 5
+    },
+    {
+      "skillName": "generating-api-detail-design-for-reverse-docs",
+      "category": "工程",
+      "trigger": "API詳細設計書を生成・更新するとき。",
+      "summary": "接続窓口ごとに原本コードから詳細設計書を作る。",
+      "phaseCount": 4
+    },
+    {
+      "skillName": "generating-api-list-for-reverse-docs",
+      "category": "一覧生成",
+      "summary": "既存のコードを調べて、接続窓口ごとの一覧のページを作る。",
+      "phaseCount": 4
+    },
+    {
+      "skillName": "generating-batch-basic-design-for-reverse-docs",
+      "category": "工程",
+      "summary": "定期的に実行する処理（バッチ）を1本ごとに取り上げ、業務の言葉だけで基本設計書を作る。",
+      "phaseCount": 5
+    },
+    {
+      "skillName": "generating-batch-detail-design-for-reverse-docs",
+      "category": "工程",
+      "summary": "バッチを1本ごとに取り上げ、元の処理の定義を読み解いて詳細設計書を作る。",
+      "phaseCount": 4
+    },
+    {
+      "skillName": "generating-batch-list-for-reverse-docs",
+      "category": "一覧生成",
+      "summary": "既存のコードを調べて、定期実行やきっかけ起動の処理ごとに一覧のページを作る。",
+      "phaseCount": 4
+    },
+    {
+      "skillName": "generating-component-inventory-for-reverse-docs",
+      "category": "工程",
+      "summary": "対象プロジェクトの画面部品のファイルを調べて、棚卸しのページを作る。",
+      "phaseCount": 4
+    },
+    {
+      "skillName": "generating-cross-views-for-reverse-docs",
+      "category": "工程",
+      "summary": "画面・接続窓口・データの一覧をもとに、権限や関係を示す対応表と、エージェント設定のページをまとめて作る。",
+      "phaseCount": 4
+    },
+    {
+      "skillName": "generating-design-system-for-reverse-docs",
+      "category": "工程",
+      "summary": "共通の設計文書から画面の色や余白などの値を取り出し、見た目の決まりをまとめたページを作る。",
+      "phaseCount": 4
+    },
+    {
+      "skillName": "generating-entity-state-for-reverse-docs",
+      "category": "工程",
+      "summary": "データ設計文書の状態遷移表をもとに、状態の移り変わりを示す図のページを機械的に作る。",
+      "phaseCount": 4
+    },
+    {
+      "skillName": "generating-env-guide-for-reverse-docs",
+      "category": "基盤ページ生成",
+      "summary": "調査書とローカル環境の調査結果をもとに、環境構築の手順ページを機械的に作る。",
+      "phaseCount": 4
+    },
+    {
+      "skillName": "generating-er-diagram-for-reverse-docs",
+      "category": "基盤ページ生成",
+      "summary": "表の一覧と参照関係の定義をもとに、表同士のつながりを表す図を機械的に作る。",
+      "phaseCount": 4
+    },
+    {
+      "skillName": "generating-external-basic-design-for-reverse-docs",
+      "category": "工程",
+      "summary": "外部との連携一件ごとの基本設計書を、業務の言葉だけで書き起こす。",
+      "phaseCount": 5
+    },
+    {
+      "skillName": "generating-external-detail-design-for-reverse-docs",
+      "category": "工程",
+      "summary": "外部連携の詳細設計書を、元のコードの電文定義から書き起こす。",
+      "phaseCount": 4
+    },
+    {
+      "skillName": "generating-external-list-for-reverse-docs",
+      "category": "一覧生成",
+      "summary": "既にあるコードから外部との連携先を洗い出し、一覧のページを作る。",
+      "phaseCount": 4
+    },
+    {
+      "skillName": "generating-feature-design-for-reverse-docs",
+      "category": "工程",
+      "summary": "機能一覧の元データと配下の要素をもとに、機能ごとの集約した設計書を書き起こす。",
+      "phaseCount": 5
+    },
+    {
+      "skillName": "generating-feature-list-for-reverse-docs",
+      "category": "一覧生成",
+      "summary": "既にある種別ごとの一覧をもとに、画面と接続窓口を業務の機能ごとにまとめた一覧を作る。",
+      "phaseCount": 6
+    },
+    {
+      "skillName": "generating-glossary-for-reverse-docs",
+      "category": "基盤ページ生成",
+      "summary": "既にあるコードと文書から、意味を持つ用語の候補を洗い出す。",
+      "phaseCount": 4
+    },
+    {
+      "skillName": "generating-icon-catalog-for-reverse-docs",
+      "category": "工程",
+      "summary": "対象のコードからアイコンの使用箇所を洗い出し、一覧のページを作る。",
+      "phaseCount": 4
+    },
+    {
+      "skillName": "generating-message-list-for-reverse-docs",
+      "category": "一覧生成",
+      "summary": "メッセージ定義書の内容を一覧の元データに変換し、一覧のページを作る。",
+      "phaseCount": 4
+    },
+    {
+      "skillName": "generating-release-notes-for-reverse-docs",
+      "category": "工程",
+      "summary": "対象のコードの変更履歴をもとに、更新内容をまとめたページを作る。",
+      "phaseCount": 4
+    },
+    {
+      "skillName": "generating-report-basic-design-for-reverse-docs",
+      "category": "工程",
+      "summary": "帳票一件ごとの基本設計書を、業務の言葉だけで書き起こす。",
+      "phaseCount": 5
+    },
+    {
+      "skillName": "generating-report-detail-design-for-reverse-docs",
+      "category": "工程",
+      "summary": "帳票の詳細設計書を、元のコードの編集処理から書き起こす。",
+      "phaseCount": 4
+    },
+    {
+      "skillName": "generating-report-list-for-reverse-docs",
+      "category": "一覧生成",
+      "summary": "既存のコードから帳票の単位を見つけ出し、帳票一覧のページを作る。",
+      "phaseCount": 4
+    },
+    {
+      "skillName": "generating-requirement-definitions-for-reverse-docs",
+      "category": "工程",
+      "summary": "対象のコードは読まず、作成済みの一覧の元データと個別の基本設計書から確かめられる事実だけで、要件定義の5つの文書を作る。",
+      "phaseCount": 4
+    },
+    {
+      "skillName": "generating-reverse-basic-design",
+      "category": "工程",
+      "summary": "確定した事実の記録だけを使い、業務の言葉だけで基本設計書を書く。",
+      "phaseCount": 3
+    },
+    {
+      "skillName": "generating-reverse-common-docs",
+      "category": "工程",
+      "summary": "対象のコードを層ごとに抜き取り調査し、プロジェクト共通の6つの文書の最初の版を書き起こす。",
+      "phaseCount": 5
+    },
+    {
+      "skillName": "generating-reverse-detailed-design",
+      "category": "工程",
+      "summary": "確定した事実の記録と共通文書だけを使い、画面の詳細設計書を書く。",
+      "phaseCount": 6
+    },
+    {
+      "skillName": "generating-rule-proposals-for-reverse-docs",
+      "category": "工程",
+      "summary": "対象のコードの実装の慣行を観測し、規約の叩き台のページをリポジトリの外へ書き出す。",
+      "phaseCount": 5
+    },
+    {
+      "skillName": "generating-screen-list-for-reverse-docs",
+      "category": "一覧生成",
+      "summary": "既存のコードから画面ごとの単位を見つけ出し、画面一覧のページを作る。",
+      "phaseCount": 5
+    },
+    {
+      "skillName": "generating-screen-transition-for-reverse-docs",
+      "category": "基盤ページ生成",
+      "summary": "画面一覧の元データとコード内の経路の定義を突き合わせ、画面遷移図のページを機械的に作る。",
+      "phaseCount": 4
+    },
+    {
+      "skillName": "generating-sequence-diagram-for-reverse-docs",
+      "category": "工程",
+      "summary": "設計文書または確定済みの事実の記録から導ける呼び出し順序をシーケンス図にする。",
+      "phaseCount": 3
+    },
+    {
+      "skillName": "generating-table-definition-for-reverse-docs",
+      "category": "工程",
+      "summary": "テーブル一覧の元データと原本のコードから、テーブルごとの定義書を作る。",
+      "phaseCount": 4
+    },
+    {
+      "skillName": "generating-table-list-for-reverse-docs",
+      "category": "一覧生成",
+      "summary": "既存のコードからテーブルの単位を見つけ出し、テーブル一覧のページを作る。",
+      "phaseCount": 4
+    },
+    {
+      "skillName": "generating-table-logical-model-for-reverse-docs",
+      "category": "工程",
+      "summary": "テーブル一覧の元データと原本のコードから、テーブルが持つ業務上の意味を業務の言葉だけで書く。",
+      "phaseCount": 5
+    },
+    {
+      "skillName": "generating-tech-stack-for-reverse-docs",
+      "category": "基盤ページ生成",
+      "summary": "調査書の記載と定義ファイルの実測値を突き合わせ、技術スタックのページを機械的に作る。",
+      "phaseCount": 4
+    },
+    {
+      "skillName": "generating-test-case-list-for-reverse-docs",
+      "category": "一覧生成",
+      "summary": "各設計単位のテスト設計書を横断して集め、テストケース一覧を作る。",
+      "phaseCount": 4
+    },
+    {
+      "skillName": "generating-test-viewpoint-list-for-reverse-docs",
+      "category": "一覧生成",
+      "summary": "各設計単位のテスト設計書を横断して集め、テスト観点表を作る。",
+      "phaseCount": 4
+    },
+    {
+      "skillName": "maintaining-semantic-glossary",
+      "category": "工程",
+      "summary": "用語の変更を検査し、影響を分析する。",
+      "phaseCount": 5
+    },
+    {
+      "skillName": "managing-semantic-glossary",
+      "category": "工程",
+      "summary": "確定した用語の変更と公開を管理する。",
+      "phaseCount": 5
+    },
+    {
+      "skillName": "orchestrating-ai-development-setup",
+      "category": "指揮",
+      "summary": "元のコードと設計書を照合する検証の工程全体を統括する。",
+      "phaseCount": 7
+    },
+    {
+      "skillName": "prioritizing-improvement-tasks-from-images",
+      "category": "工程",
+      "summary": "改善課題の画像を書き起こして指示書へ集約し、未解決項目を調査して優先順位を確定する。",
+      "phaseCount": 7
     },
     {
       "skillName": "rebuilding-code-from-docs",
       "category": "工程",
-      "trigger": "往復品質検証",
-      "summary": "設計書だけから画面単位でコードを再生成し原本と突合して欠落を発見する"
+      "summary": "画面ごとの設計書だけからコードを作り直し、元のコードと突き合わせて欠落を見つける。",
+      "phaseCount": 9
+    },
+    {
+      "skillName": "rebuilding-screen-unit-from-docs",
+      "category": "工程",
+      "summary": "設計書だけから対象ファイルを作り直し、元のファイルと突き合わせて欠落を見つける。",
+      "phaseCount": 7
+    },
+    {
+      "skillName": "running-reverse-screen-batch",
+      "category": "工程",
+      "summary": "画面ごとの検証を無人のまとめ処理で自動的に実行する。",
+      "phaseCount": 5
+    },
+    {
+      "skillName": "surveying-architecture-for-reverse-docs",
+      "category": "工程",
+      "summary": "既存のリポジトリを調べ、機械による検証を添えてアーキテクチャ調査書を確定する。",
+      "phaseCount": 6
+    },
+    {
+      "skillName": "surveying-local-environment",
+      "category": "工程",
+      "summary": "使用しているパソコンの基本ソフトや道具の状況を調べ、結果を記録する。",
+      "phaseCount": 4
+    },
+    {
+      "skillName": "syncing-reverse-env",
+      "category": "工程",
+      "summary": "元のコードと設計書の 2 つの作業場所をそろえ、比べる基準となる時点を記録する。",
+      "phaseCount": 8
+    },
+    {
+      "skillName": "unlocking-reverse-target-screens",
+      "category": "工程",
+      "summary": "既存の画面を疑似の接続窓口で開通させ、起動モードごとの検証準備を行う。",
+      "phaseCount": 5
     }
   ],
-  "subagents": [
-    {
-      "name": "brain",
-      "classification": "計画系",
-      "verdict": "不可",
-      "mainTools": "計画立案・タスク分解・作業指示の組み立て（実行・合否判定はしない）"
-    },
-    {
-      "name": "worker-sonnet",
-      "classification": "実行系",
-      "verdict": "不可",
-      "mainTools": "Write / Edit / Bash（確定済み内容のファイル反映）"
-    },
-    {
-      "name": "worker-haiku",
-      "classification": "実行系",
-      "verdict": "不可",
-      "mainTools": "Bash（コマンド実行と結果報告のみ。編集ツールなし）"
-    },
-    {
-      "name": "investigator",
-      "classification": "調査系",
-      "verdict": "不可",
-      "mainTools": "Read / Grep（読み取り専用のローカル事実収集）"
-    },
-    {
-      "name": "researcher",
-      "classification": "調査系",
-      "verdict": "不可",
-      "mainTools": "Web 検索・外部ドキュメント収集"
-    },
-    {
-      "name": "code-reviewer",
-      "classification": "判定系",
-      "verdict": "可",
-      "mainTools": "Read / Grep + rules 照合（コード成果物の PASS / FAIL 宣言）"
-    },
-    {
-      "name": "document-reviewer",
-      "classification": "判定系",
-      "verdict": "可",
-      "mainTools": "Read / Grep + rules 照合（文書成果物の PASS / FAIL 宣言）"
-    },
-    {
-      "name": "report-reviewer",
-      "classification": "判定系",
-      "verdict": "可",
-      "mainTools": "チェックリスト照合 + 事実性検証（調査報告の PASS / FAIL 宣言）"
-    }
-  ],
+  "subagents": [],
   "hooks": [
+    {
+      "script": "check-template-sample-sync.sh",
+      "timing": "PreToolUse",
+      "matcher": "Bash",
+      "tags": [
+        "[TEMPLATE-SAMPLE-SYNC-SKIP]"
+      ],
+      "behavior": "block",
+      "summary": "PreToolUse(Bash) hook: reverse-docs-skills のテンプレート・サンプル同期ガード。"
+    },
+    {
+      "script": "check-commit-issue-trace.sh",
+      "timing": "PreToolUse",
+      "matcher": "Bash",
+      "tags": [],
+      "behavior": "block",
+      "summary": "PreToolUse(Bash) hook: reverse-docs-skills のコミット-課題対応ガード。"
+    },
+    {
+      "script": "check-audience-split.sh",
+      "timing": "PreToolUse",
+      "matcher": "Write",
+      "tags": [],
+      "summary": "check-audience-split.sh — 外部向け文書の記述制限 linter"
+    },
+    {
+      "script": "check-delegation-worktree.sh",
+      "timing": "PreToolUse",
+      "matcher": "Agent",
+      "tags": [
+        "[DELEGATION-WORKTREE-SKIP]"
+      ],
+      "summary": "委任のプロンプトに作業場所（git の worktree）のパスが含まれるかを確かめる PreToolUse hook。"
+    },
     {
       "script": "check-publish-complete.sh",
       "timing": "Stop",
-      "matcher": "—（全応答終了時）",
-      "tags": [
-        "[PUBLISH-COMPLETE-BLOCK]"
-      ],
+      "matcher": "—",
+      "tags": [],
       "behavior": "block",
-      "summary": "正本-未コミット検査。git status が空でなければ完了報告を止める（3 回連続で自動解除）"
+      "summary": "Stop hook: reverse-docs-skills の公開完遂ガード。"
+    },
+    {
+      "script": "check-worker-autonomy.sh",
+      "timing": "Stop",
+      "matcher": "—",
+      "tags": [],
+      "summary": "最終応答が判断を仰いで終わっているかを検出する Stop hook。"
+    },
+    {
+      "script": "check-manager-handoff.sh",
+      "timing": "Stop",
+      "matcher": "—",
+      "tags": [],
+      "summary": "最終応答が作業の受け渡しを未来形で述べて終わっているかを検出する Stop hook。"
     },
     {
       "script": "check-publish-sync-gate.sh",
       "timing": "PostToolUse",
-      "matcher": "Bash（git commit 成功直後）",
+      "matcher": "Bash",
       "tags": [
         "[PUBLISH-SYNC-REQUIRED]"
       ],
       "behavior": "advisory",
-      "summary": "main-未反映検査。payload/docs-skills と正本の不一致を通知する（block なし）"
+      "summary": "PostToolUse(Bash) hook: git commit 成功後に payload 同期の必要性を検出し advisory 注入する。"
     }
   ]
 }

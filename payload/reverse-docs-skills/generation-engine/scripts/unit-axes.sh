@@ -248,13 +248,14 @@ unit_axes_self_test() {
   fi
 
   # ケース2: 既定に accountGroup / device / operationClass が含まれる
-  if printf '%s' "$base" | jq -e '
+  if _gt_out1="$(printf '%s' "$base" | jq -e '
       ([.axes[].key] | index("accountGroup")) and
       ([.axes[].key] | index("device")) and
-      ([.columns[].key] | index("operationClass"))' >/dev/null 2>&1; then
+      ([.columns[].key] | index("operationClass"))' 2>&1)"; then
     echo "  [PASS] ケース2: 既定に主要キーが含まれる"
   else
     echo "  [FAIL] ケース2: 既定に主要キーが無い" >&2
+    printf '%s\n' "$_gt_out1" | sed 's/^/    /' >&2
     rc=1
   fi
 
@@ -269,20 +270,22 @@ unit_axes_self_test() {
 }
 JSON
   ov="$(resolve_unit_axes "$m")"
-  if printf '%s' "$ov" | jq -e '
-      [.axes[] | select(.key=="accountGroup") | .values[].label] == ["利用者向け","職員向け"]' >/dev/null 2>&1; then
+  if _gt_out2="$(printf '%s' "$ov" | jq -e '
+      [.axes[] | select(.key=="accountGroup") | .values[].label] == ["利用者向け","職員向け"]' 2>&1)"; then
     echo "  [PASS] ケース3: 上書きの values が丸ごと置換される"
   else
     echo "  [FAIL] ケース3: 上書きの values が反映されない" >&2
+    printf '%s\n' "$_gt_out2" | sed 's/^/    /' >&2
     rc=1
   fi
 
   # ケース4: 上書きで消していないラベル（label）は既定が残る（deep merge）
-  if printf '%s' "$ov" | jq -e '
-      [.axes[] | select(.key=="accountGroup") | .label] == ["アカウント区分"]' >/dev/null 2>&1; then
+  if _gt_out3="$(printf '%s' "$ov" | jq -e '
+      [.axes[] | select(.key=="accountGroup") | .label] == ["アカウント区分"]' 2>&1)"; then
     echo "  [PASS] ケース4: 未指定フィールドは既定が残る"
   else
     echo "  [FAIL] ケース4: 未指定フィールドが失われた" >&2
+    printf '%s\n' "$_gt_out3" | sed 's/^/    /' >&2
     rc=1
   fi
 
@@ -291,33 +294,36 @@ JSON
 { "specVersion": 1, "axes": [ { "key": "device", "disabled": true } ] }
 JSON
   dis="$(resolve_unit_axes "$m")"
-  if printf '%s' "$dis" | jq -e '([.axes[].key] | index("device")) == null' >/dev/null 2>&1; then
+  if _gt_out4="$(printf '%s' "$dis" | jq -e '([.axes[].key] | index("device")) == null' 2>&1)"; then
     echo "  [PASS] ケース5: disabled の軸が除外される"
   else
     echo "  [FAIL] ケース5: disabled の軸が残っている" >&2
+    printf '%s\n' "$_gt_out4" | sed 's/^/    /' >&2
     rc=1
   fi
 
   # ケース6: 解決済み JSON を明示指定で渡すと再マージされない（冪等・disabled が復活しない）
   printf '%s' "$dis" > "$tmp/resolved.json"
   again="$(resolve_unit_axes "$m" "$tmp/resolved.json")"
-  if printf '%s' "$again" | jq -e '([.axes[].key] | index("device")) == null' >/dev/null 2>&1; then
+  if _gt_out5="$(printf '%s' "$again" | jq -e '([.axes[].key] | index("device")) == null' 2>&1)"; then
     echo "  [PASS] ケース6: 明示指定は再マージされない（冪等）"
   else
     echo "  [FAIL] ケース6: 明示指定で除外済みの軸が復活した" >&2
+    printf '%s\n' "$_gt_out5" | sed 's/^/    /' >&2
     rc=1
   fi
   rm -f "$tmp/一覧/画面一覧/unit-axes.json"
 
   # ケース7: unit_axes_for_kind が appliesTo で絞り込む
   api="$(unit_axes_for_kind "$base" api)"
-  if printf '%s' "$api" | jq -e '
+  if _gt_out6="$(printf '%s' "$api" | jq -e '
       ([.columns[].key] | index("method")) and
       (([.columns[].key] | index("permissions")) == null) and
-      ((.axes | length) == 0)' >/dev/null 2>&1; then
+      ((.axes | length) == 0)' 2>&1)"; then
     echo "  [PASS] ケース7: appliesTo による絞り込み"
   else
     echo "  [FAIL] ケース7: appliesTo の絞り込みが不正" >&2
+    printf '%s\n' "$_gt_out6" | sed 's/^/    /' >&2
     rc=1
   fi
 
@@ -331,32 +337,37 @@ JSON
   fi
 
   # ケース9〜13: 妥当性検査の陰性
-  if unit_axes_validate '{"specVersion":2,"axes":[],"columns":[]}' >/dev/null 2>&1; then
+  if _gt_out7="$(unit_axes_validate '{"specVersion":2,"axes":[],"columns":[]}' 2>&1)"; then
     echo "  [FAIL] ケース9: specVersion=2 を通した" >&2; rc=1
+    printf '%s\n' "$_gt_out7" | sed 's/^/    /' >&2
   else
     echo "  [PASS] ケース9: specVersion 不正で ERROR"
   fi
 
-  if unit_axes_validate '{"specVersion":1,"axes":[{"key":"a","valuePolicy":"closed","values":[]}],"columns":[]}' >/dev/null 2>&1; then
+  if _gt_out8="$(unit_axes_validate '{"specVersion":1,"axes":[{"key":"a","valuePolicy":"closed","values":[]}],"columns":[]}' 2>&1)"; then
     echo "  [FAIL] ケース10: closed かつ values 空を通した" >&2; rc=1
+    printf '%s\n' "$_gt_out8" | sed 's/^/    /' >&2
   else
     echo "  [PASS] ケース10: closed かつ values 空で ERROR"
   fi
 
-  if unit_axes_validate '{"specVersion":1,"axes":[{"key":"a","valuePolicy":"open"}],"columns":[{"key":"a"}]}' >/dev/null 2>&1; then
+  if _gt_out9="$(unit_axes_validate '{"specVersion":1,"axes":[{"key":"a","valuePolicy":"open"}],"columns":[{"key":"a"}]}' 2>&1)"; then
     echo "  [FAIL] ケース11: キー重複を通した" >&2; rc=1
+    printf '%s\n' "$_gt_out9" | sed 's/^/    /' >&2
   else
     echo "  [PASS] ケース11: キー重複で ERROR"
   fi
 
-  if unit_axes_validate '{"specVersion":1,"axes":[{"key":"a","valuePolicy":"open","split":{"eligible":true,"default":true}}],"columns":[]}' >/dev/null 2>&1; then
+  if _gt_out10="$(unit_axes_validate '{"specVersion":1,"axes":[{"key":"a","valuePolicy":"open","split":{"eligible":true,"default":true}}],"columns":[]}' 2>&1)"; then
     echo "  [FAIL] ケース12: split.default=true かつ open を通した" >&2; rc=1
+    printf '%s\n' "$_gt_out10" | sed 's/^/    /' >&2
   else
     echo "  [PASS] ケース12: split.default=true かつ open で ERROR"
   fi
 
-  if unit_axes_validate '{"specVersion":1,"axes":[{"key":"none","valuePolicy":"open"}],"columns":[]}' >/dev/null 2>&1; then
+  if _gt_out11="$(unit_axes_validate '{"specVersion":1,"axes":[{"key":"none","valuePolicy":"open"}],"columns":[]}' 2>&1)"; then
     echo "  [FAIL] ケース13: 予約語 none を通した" >&2; rc=1
+    printf '%s\n' "$_gt_out11" | sed 's/^/    /' >&2
   else
     echo "  [PASS] ケース13: 予約語 none で ERROR"
   fi
@@ -372,49 +383,56 @@ JSON
 JSON
   detected="$(unit_axes_apply_detect "$base" screen "$tmp/detect-manifest.json")"
 
-  if printf '%s' "$detected" | jq -e '(.screens[] | select(.screenKey=="a") | .device) == "sp"' >/dev/null 2>&1; then
+  if _gt_out12="$(printf '%s' "$detected" | jq -e '(.screens[] | select(.screenKey=="a") | .device) == "sp"' 2>&1)"; then
     echo "  [PASS] ケース14: route の一致で device=sp を検出"
   else
     echo "  [FAIL] ケース14: route による検出が不正" >&2
+    printf '%s\n' "$_gt_out12" | sed 's/^/    /' >&2
     rc=1
   fi
 
-  if printf '%s' "$detected" | jq -e '(.screens[] | select(.screenKey=="b") | .device) == "sp"' >/dev/null 2>&1; then
+  if _gt_out13="$(printf '%s' "$detected" | jq -e '(.screens[] | select(.screenKey=="b") | .device) == "sp"' 2>&1)"; then
     echo "  [PASS] ケース15: route 不一致時に entryFile へフォールバックして検出"
   else
     echo "  [FAIL] ケース15: entryFile へのフォールバック検出が不正" >&2
+    printf '%s\n' "$_gt_out13" | sed 's/^/    /' >&2
     rc=1
   fi
 
-  if printf '%s' "$detected" | jq -e '(.screens[] | select(.screenKey=="c") | .device) == "pc"' >/dev/null 2>&1; then
+  if _gt_out14="$(printf '%s' "$detected" | jq -e '(.screens[] | select(.screenKey=="c") | .device) == "pc"' 2>&1)"; then
     echo "  [PASS] ケース16: 既存の明示値(pc)を上書きしない"
   else
     echo "  [FAIL] ケース16: 明示値が上書きされた" >&2
+    printf '%s\n' "$_gt_out14" | sed 's/^/    /' >&2
     rc=1
   fi
 
-  if printf '%s' "$detected" | jq -e '(.screens[] | select(.screenKey=="d") | has("device")) == false' >/dev/null 2>&1; then
+  if _gt_out15="$(printf '%s' "$detected" | jq -e '(.screens[] | select(.screenKey=="d") | has("device")) == false' 2>&1)"; then
     echo "  [PASS] ケース17: 一致する規則が無ければフィールドを書かない"
   else
     echo "  [FAIL] ケース17: 不一致時にフィールドが書き込まれた" >&2
+    printf '%s\n' "$_gt_out15" | sed 's/^/    /' >&2
     rc=1
   fi
 
   # ケース18〜20: detect を含む妥当性検査の陰性
-  if unit_axes_validate '{"specVersion":1,"axes":[{"key":"a","valuePolicy":"open","detect":{"source":[],"rules":[{"value":"x","match":"x"}]}}],"columns":[]}' >/dev/null 2>&1; then
+  if _gt_out16="$(unit_axes_validate '{"specVersion":1,"axes":[{"key":"a","valuePolicy":"open","detect":{"source":[],"rules":[{"value":"x","match":"x"}]}}],"columns":[]}' 2>&1)"; then
     echo "  [FAIL] ケース18: detect.source が空配列を通した" >&2; rc=1
+    printf '%s\n' "$_gt_out16" | sed 's/^/    /' >&2
   else
     echo "  [PASS] ケース18: detect.source が空配列で ERROR"
   fi
 
-  if unit_axes_validate '{"specVersion":1,"axes":[{"key":"a","valuePolicy":"open","detect":{"source":["route"],"rules":[{"match":"x"}]}}],"columns":[]}' >/dev/null 2>&1; then
+  if _gt_out17="$(unit_axes_validate '{"specVersion":1,"axes":[{"key":"a","valuePolicy":"open","detect":{"source":["route"],"rules":[{"match":"x"}]}}],"columns":[]}' 2>&1)"; then
     echo "  [FAIL] ケース19: detect.rules に value が無いものを通した" >&2; rc=1
+    printf '%s\n' "$_gt_out17" | sed 's/^/    /' >&2
   else
     echo "  [PASS] ケース19: detect.rules の value 欠落で ERROR"
   fi
 
-  if unit_axes_validate '{"specVersion":1,"axes":[{"key":"a","valuePolicy":"closed","values":[{"key":"x","label":"X"}],"detect":{"source":["route"],"rules":[{"value":"y","match":"y"}]}}],"columns":[]}' >/dev/null 2>&1; then
+  if _gt_out18="$(unit_axes_validate '{"specVersion":1,"axes":[{"key":"a","valuePolicy":"closed","values":[{"key":"x","label":"X"}],"detect":{"source":["route"],"rules":[{"value":"y","match":"y"}]}}],"columns":[]}' 2>&1)"; then
     echo "  [FAIL] ケース20: closed 軸で detect.rules[].value が values 外を通した" >&2; rc=1
+    printf '%s\n' "$_gt_out18" | sed 's/^/    /' >&2
   else
     echo "  [PASS] ケース20: closed 軸で宣言外の detect 値は ERROR"
   fi

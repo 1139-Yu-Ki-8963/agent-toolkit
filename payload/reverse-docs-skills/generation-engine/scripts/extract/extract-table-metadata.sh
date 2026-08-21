@@ -457,29 +457,32 @@ EOF
     }' > "$manifest"
 
   local out="$tmp/out.json"
-  if ! bash "$script_path" "$manifest" "$tmp/migrations" "$out" >/dev/null 2>&1; then
+  if ! _gt_out1="$(bash "$script_path" "$manifest" "$tmp/migrations" "$out" 2>&1)"; then
     echo "  [FAIL] 実行: 抽出コマンド自体が失敗した" >&2
+    printf '%s\n' "$_gt_out1" | sed 's/^/    /' >&2
     echo "self-test FAIL" >&2
     return 1
   fi
 
-  if jq -e '.units[] | select(.unitKey=="users-master")
+  if _gt_out2="$(jq -e '.units[] | select(.unitKey=="users-master")
       | .columnCount == 5
         and .mainColumns == ["id","email","name","created_at","updated_at"]
-        and .foreignKeys == []' "$out" >/dev/null 2>&1; then
+        and .foreignKeys == []' "$out" 2>&1)"; then
     echo "  [PASS] users: columnCount=5・mainColumns 先頭5列・foreignKeys=[](FK なし観測済み)"
   else
     echo "  [FAIL] users: columnCount/mainColumns/foreignKeys が期待値と不一致" >&2
+    printf '%s\n' "$_gt_out2" | sed 's/^/    /' >&2
     rc=1
   fi
 
-  if jq -e '.units[] | select(.unitKey=="posts")
+  if _gt_out3="$(jq -e '.units[] | select(.unitKey=="posts")
       | .columnCount == 6
         and .foreignKeys == ["users-master"]
-        and .mainColumns == ["id","user_id","title","body","published_at"]' "$out" >/dev/null 2>&1; then
+        and .mainColumns == ["id","user_id","title","body","published_at"]' "$out" 2>&1)"; then
     echo "  [PASS] posts: columnCount=6・foreignKeys が unitKey(users-master) へ解決・mainColumns 先頭5列"
   else
     echo "  [FAIL] posts: columnCount/foreignKeys/mainColumns が期待値と不一致" >&2
+    printf '%s\n' "$_gt_out3" | sed 's/^/    /' >&2
     rc=1
   fi
 
@@ -488,17 +491,19 @@ EOF
          | del(.detectionSummary.diagnostics.extensionExtraction)
          | if .detectionSummary.diagnostics == {} then del(.detectionSummary.diagnostics) else . end' "$out" > "$stripped" 2>/dev/null || true
   jq -S . "$manifest" > "$expected"
-  if diff -q "$stripped" "$expected" >/dev/null 2>&1; then
+  if _gt_out4="$(diff -q "$stripped" "$expected" 2>&1)"; then
     echo "  [PASS] 既存フィールド: 追加フィールドを除くと入力マニフェストと完全一致"
   else
     echo "  [FAIL] 既存フィールド: 入力マニフェストからの変化を検出した" >&2
+    printf '%s\n' "$_gt_out4" | sed 's/^/    /' >&2
     rc=1
   fi
 
-  if bash "$script_dir/../unit-list/validate-manifest.sh" "$out" --unit-kind table >/dev/null 2>&1; then
+  if _gt_out5="$(bash "$script_dir/../unit-list/validate-manifest.sh" "$out" --unit-kind table 2>&1)"; then
     echo "  [PASS] validate-manifest.sh: 拡張マニフェストが --unit-kind table で PASS"
   else
     echo "  [FAIL] validate-manifest.sh: 拡張マニフェストの検証が FAIL" >&2
+    printf '%s\n' "$_gt_out5" | sed 's/^/    /' >&2
     rc=1
   fi
 
@@ -539,8 +544,10 @@ EOF
         {unitKey: "post-tags", kind: "table", identifier: "post_tags", unitNameGuess: "投稿タグ", sourceFile: $multiFile, confidence: "high", fileCount: 1, detectionMethod: "create-table"}
       ]
     }' > "$multi_manifest"
-  if ! bash "$script_path" "$multi_manifest" "$tmp/migrations" "$multi_out" >/dev/null 2>&1; then
+  local _gt_multi16_out
+  if ! _gt_multi16_out="$(bash "$script_path" "$multi_manifest" "$tmp/migrations" "$multi_out" 2>&1)"; then
     echo "  [FAIL] 1-16: 同一DDLの3表抽出がSIGPIPEを含む異常終了" >&2
+    printf '%s\n' "$_gt_multi16_out" | sed 's/^/    /' >&2
     rc=1
   elif jq -e '
       (.units[] | select(.unitKey == "audit-logs") | .columnCount == 3)
@@ -628,15 +635,16 @@ EOF
          sourceFile: $postsFile, confidence: "high", fileCount: 1, detectionMethod: "create-table"}
       ]
     }' > "$commented_manifest"
-  if bash "$script_path" "$commented_manifest" "$tmp/migrations" "$commented_out" >/dev/null 2>&1 \
+  if _gt_out6="$(bash "$script_path" "$commented_manifest" "$tmp/migrations" "$commented_out" >/dev/null 2>&1 \
     && jq -e '.units[0]
       | .columnCount == 8
         and .mainColumns == ["real_id", "payload", "note", "escaped_note", "standard_note"]
-        and .foreignKeys == ["users-master", "posts"]' "$commented_out" >/dev/null 2>&1; then
+        and .foreignKeys == ["users-master", "posts"]' "$commented_out" 2>&1)"; then
     echo "  [PASS] DDLコメント除外: 行・ブロックコメント、単一引用、ドル引用を無視して実DDLのみ抽出。"\
 "末尾の実ALTER(post_id追加)は後続マイグレーション追随によりcolumnCount=8へ反映(mainColumnsは先頭5列のため不変)"
   else
     echo "  [FAIL] DDLコメント除外: コメントまたはSQL文字列内のCREATE TABLEを誤抽出、"\
+    printf '%s\n' "$_gt_out6" | sed 's/^/    /' >&2
 "またはpost_id追加がcolumnCountへ反映されていない" >&2
     rc=1
   fi
@@ -769,14 +777,15 @@ EOF
          sourceFile: $usersFile, confidence: "high", fileCount: 1, detectionMethod: "create-table"}
       ]
     }' > "$dialect_manifest"
-  if bash "$script_path" "$dialect_manifest" "$tmp/migrations" "$dialect_out" >/dev/null 2>&1 \
+  if _gt_out7="$(bash "$script_path" "$dialect_manifest" "$tmp/migrations" "$dialect_out" >/dev/null 2>&1 \
     && jq -e '.units[0]
       | .columnCount == 7
         and .mainColumns == ["id", "customer_id", "status", "total_amount", "note"]
-        and .foreignKeys == ["users-master"]' "$dialect_out" >/dev/null 2>&1; then
+        and .foreignKeys == ["users-master"]' "$dialect_out" 2>&1)"; then
     echo "  [PASS] 1-134 終端判定: ENGINE=/CHARSET=等の記憶域指定を挟み文末記号が数行後にある方言でも実数どおりcolumnCount=7(後続の無関係なdialect_shipmentsの列を取り込まない)"
   else
     echo "  [FAIL] 1-134 終端判定: 方言定義ファイルでcolumnCountが実数7と不一致、または後続定義を誤って取り込んだ" >&2
+    printf '%s\n' "$_gt_out7" | sed 's/^/    /' >&2
     jq -c '.units[0] | {columnCount, mainColumns, foreignKeys}' "$dialect_out" 2>/dev/null >&2 || true
     rc=1
   fi
@@ -808,13 +817,14 @@ EOF
          sourceFile: $sourceFile, confidence: "high", fileCount: 1, detectionMethod: "create-table"}
       ]
     }' > "$commented_cols_manifest"
-  if bash "$script_path" "$commented_cols_manifest" "$tmp/migrations" "$commented_cols_out" >/dev/null 2>&1 \
+  if _gt_out8="$(bash "$script_path" "$commented_cols_manifest" "$tmp/migrations" "$commented_cols_out" >/dev/null 2>&1 \
     && jq -e '.units[0]
       | .columnCount == 3
-        and .mainColumns == ["id", "name", "status"]' "$commented_cols_out" >/dev/null 2>&1; then
+        and .mainColumns == ["id", "name", "status"]' "$commented_cols_out" 2>&1)"; then
     echo "  [PASS] 1-134 行内コメント除去: --・#いずれの行内コメントもmainColumnsへ連結されずcolumnCount=3"
   else
     echo "  [FAIL] 1-134 行内コメント除去: コメント文言がmainColumnsへ混入、またはcolumnCountが不一致" >&2
+    printf '%s\n' "$_gt_out8" | sed 's/^/    /' >&2
     jq -c '.units[0] | {columnCount, mainColumns}' "$commented_cols_out" 2>/dev/null >&2 || true
     rc=1
   fi
@@ -868,14 +878,15 @@ EOF
       echo "  [FAIL] 1-127-scale: 単一走査になっていない (${scale_diag:-診断行が出力されなかった})" >&2
       rc=1
     fi
-    if jq -e '
+    if _gt_out9="$(jq -e '
         (.units[] | select(.unitKey=="scale-table-1") | .columnCount == 2 and .foreignKeys == [])
         and (.units[] | select(.unitKey=="scale-table-2") | .columnCount == 3 and .foreignKeys == ["scale-table-1"])
         and (.units[] | select(.unitKey=="scale-table-500") | .columnCount == 3 and .foreignKeys == ["scale-table-499"])
-      ' "$scale_out" >/dev/null 2>&1; then
+      ' "$scale_out" 2>&1)"; then
       echo "  [PASS] 1-127-scale: 共有ファイルのキャッシュ経由でも各ユニットの抽出結果(columnCount/foreignKeys)が個々のCREATE TABLE定義と一致"
     else
       echo "  [FAIL] 1-127-scale: 共有ファイルキャッシュ経由の抽出結果が期待値と不一致" >&2
+      printf '%s\n' "$_gt_out9" | sed 's/^/    /' >&2
       rc=1
     fi
   fi
@@ -905,13 +916,14 @@ EOF
     units: [{unitKey: "widget", kind: "table", identifier: "widget", unitNameGuess: "ウィジェット",
              sourceFile: $widgetFile, confidence: "high", fileCount: 1, detectionMethod: "create-table"}]
   }' > "$followup_manifest"
-  if bash "$script_path" "$followup_manifest" "$followup_dir/migrations" "$followup_out" >/dev/null 2>&1 \
+  if _gt_out10="$(bash "$script_path" "$followup_manifest" "$followup_dir/migrations" "$followup_out" >/dev/null 2>&1 \
     && jq -e '.units[0]
       | .columnCount == 5
-        and .mainColumns == ["id", "name", "weight_scale", "weight_offset", "in_catalog"]' "$followup_out" >/dev/null 2>&1; then
+        and .mainColumns == ["id", "name", "weight_scale", "weight_offset", "in_catalog"]' "$followup_out" 2>&1)"; then
     echo "  [PASS] 列数追随: 別ファイルの後続ALTER TABLE(1文中の複数ADD COLUMN・別文のIF NOT EXISTS)がcolumnCount=5へ反映"
   else
     echo "  [FAIL] 列数追随: 後続マイグレーションのADD COLUMNがcolumnCountへ反映されていない" >&2
+    printf '%s\n' "$_gt_out10" | sed 's/^/    /' >&2
     jq -c '.units[0] | {columnCount, mainColumns}' "$followup_out" 2>/dev/null >&2 || true
     rc=1
   fi
@@ -948,14 +960,15 @@ EOF
        sourceFile: $schemaFile, confidence: "high", fileCount: 1, detectionMethod: "create-table"}
     ]
   }' > "$fkadd_manifest"
-  if bash "$script_path" "$fkadd_manifest" "$fkadd_dir/migrations" "$fkadd_out" >/dev/null 2>&1 \
+  if _gt_out11="$(bash "$script_path" "$fkadd_manifest" "$fkadd_dir/migrations" "$fkadd_out" >/dev/null 2>&1 \
     && jq -e '.units[] | select(.unitKey=="battle-like")
       | .columnCount == 3
         and .mainColumns == ["id", "our_team_id", "season_id"]
-        and .foreignKeys == ["season-like"]' "$fkadd_out" >/dev/null 2>&1; then
+        and .foreignKeys == ["season-like"]' "$fkadd_out" 2>&1)"; then
     echo "  [PASS] 外部キー追随(欠落側): 別ファイルのALTER ADD COLUMN...REFERENCESが検出されforeignKeysに反映"
   else
     echo "  [FAIL] 外部キー追随(欠落側): 後続マイグレーションで追加されたFK(season_id)が検出されていない" >&2
+    printf '%s\n' "$_gt_out11" | sed 's/^/    /' >&2
     jq -c '.units[] | select(.unitKey=="battle-like") | {columnCount, mainColumns, foreignKeys}' "$fkadd_out" 2>/dev/null >&2 || true
     rc=1
   fi
@@ -1004,14 +1017,15 @@ EOF
   # foreignKeysから完全に消える(実在しないFKの記録=ゴーストFKの再現)。helper_likeは
   # enemy_helper_idが残るため維持される(実在するFKを落とさないことの再現)。両方向を
   # 1ケースで検証する。
-  if bash "$script_path" "$fkdrop_manifest" "$fkdrop_dir/migrations" "$fkdrop_out" >/dev/null 2>&1 \
+  if _gt_out12="$(bash "$script_path" "$fkdrop_manifest" "$fkdrop_dir/migrations" "$fkdrop_out" >/dev/null 2>&1 \
     && jq -e '.units[] | select(.unitKey=="loadout-like")
       | .columnCount == 3
         and .mainColumns == ["id", "player_id", "enemy_helper_id"]
-        and .foreignKeys == ["helper-like"]' "$fkdrop_out" >/dev/null 2>&1; then
+        and .foreignKeys == ["helper-like"]' "$fkdrop_out" 2>&1)"; then
     echo "  [PASS] 外部キー追随(ゴースト側): DROP COLUMNで削除された列のFKは除去され(supporter-likeが消える)、同一参照先を持つ残存列(enemy_helper_id)のFKは維持(helper-likeが残る)"
   else
     echo "  [FAIL] 外部キー追随(ゴースト側): DROP COLUMN後もゴーストFKが残存、または残存列のFKまで消えた" >&2
+    printf '%s\n' "$_gt_out12" | sed 's/^/    /' >&2
     jq -c '.units[] | select(.unitKey=="loadout-like") | {columnCount, mainColumns, foreignKeys}' "$fkdrop_out" 2>/dev/null >&2 || true
     rc=1
   fi
@@ -1046,15 +1060,16 @@ EOF
        sourceFile: $schemaFile, confidence: "high", fileCount: 1, detectionMethod: "create-table"}
     ]
   }' > "$misread_manifest"
-  if bash "$script_path" "$misread_manifest" "$misread_dir/migrations" "$misread_out" >/dev/null 2>&1 \
+  if _gt_out13="$(bash "$script_path" "$misread_manifest" "$misread_dir/migrations" "$misread_out" >/dev/null 2>&1 \
     && jq -e '.units[] | select(.unitKey=="assignment-like")
       | .columnCount == 4
         and .mainColumns == ["id", "our_participant_id", "enemy_participant_id", "created_at"]
         and (.mainColumns | index("references")) == null
-        and .foreignKeys == ["participant-like"]' "$misread_out" >/dev/null 2>&1; then
+        and .foreignKeys == ["participant-like"]' "$misread_out" 2>&1)"; then
     echo "  [PASS] 列名誤読なし: 列名とREFERENCES句が別行に分かれる記法でもREFERENCESを列名として取り込まずcolumnCount=4"
   else
     echo "  [FAIL] 列名誤読: REFERENCESが列名として混入、またはcolumnCount/foreignKeysが期待値と不一致" >&2
+    printf '%s\n' "$_gt_out13" | sed 's/^/    /' >&2
     jq -c '.units[] | select(.unitKey=="assignment-like") | {columnCount, mainColumns, foreignKeys}' "$misread_out" 2>/dev/null >&2 || true
     rc=1
   fi

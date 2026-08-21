@@ -79,10 +79,11 @@ self_test() {
     unresolved: []
   }' > "$data_ok"
 
-  if bash "$script_path" "$data_ok" >/dev/null 2>&1; then
+  if _gt_out2="$(bash "$script_path" "$data_ok" 2>&1)"; then
     echo "  [PASS] ケースa: columns[]の型が正しいerフィクスチャでPASS"
   else
     echo "  [FAIL] ケースa: columns[]の型が正しいerフィクスチャが誤ってFAILした" >&2
+    printf '%s\n' "$_gt_out2" | sed 's/^/    /' >&2
     rc=1
   fi
 
@@ -102,8 +103,9 @@ self_test() {
     unresolved: []
   }' > "$data_bad"
 
-  if bash "$script_path" "$data_bad" >/dev/null 2>&1; then
+  if _gt_out3="$(bash "$script_path" "$data_bad" 2>&1)"; then
     echo "  [FAIL] ケースb: columns[]の型が不正なerフィクスチャが誤ってPASSした" >&2
+    printf '%s\n' "$_gt_out3" | sed 's/^/    /' >&2
     rc=1
   else
     echo "  [PASS] ケースb: columns[]の型が不正なerフィクスチャで正しくFAIL"
@@ -124,8 +126,9 @@ self_test() {
     unresolved: []
   }' > "$data_orphan"
 
-  if bash "$script_path" "$data_orphan" >/dev/null 2>&1; then
+  if _gt_out4="$(bash "$script_path" "$data_orphan" 2>&1)"; then
     echo "  [FAIL] ケースc: 孤児edge混入のtransitionフィクスチャが誤ってPASSした" >&2
+    printf '%s\n' "$_gt_out4" | sed 's/^/    /' >&2
     rc=1
   else
     echo "  [PASS] ケースc: 孤児edge混入のtransitionフィクスチャで正しくFAIL"
@@ -146,8 +149,9 @@ self_test() {
     unresolved: []
   }' > "$data_count_bad"
 
-  if bash "$script_path" "$data_count_bad" >/dev/null 2>&1; then
+  if _gt_out5="$(bash "$script_path" "$data_count_bad" 2>&1)"; then
     echo "  [FAIL] ケースd: manifestScreenCount不一致のtransitionフィクスチャが誤ってPASSした" >&2
+    printf '%s\n' "$_gt_out5" | sed 's/^/    /' >&2
     rc=1
   else
     echo "  [PASS] ケースd: manifestScreenCount不一致のtransitionフィクスチャで正しくFAIL"
@@ -168,10 +172,11 @@ self_test() {
     unresolved: [{label: "旧画面", reason: "routeが空文字列のため遷移解決不能"}]
   }' > "$data_count_ok"
 
-  if bash "$script_path" "$data_count_ok" >/dev/null 2>&1; then
+  if _gt_out6="$(bash "$script_path" "$data_count_ok" 2>&1)"; then
     echo "  [PASS] ケースe: manifestScreenCountがnodes[]+route空文字unresolved件数と一致するtransitionフィクスチャでPASS"
   else
     echo "  [FAIL] ケースe: manifestScreenCountが正しいtransitionフィクスチャが誤ってFAILした" >&2
+    printf '%s\n' "$_gt_out6" | sed 's/^/    /' >&2
     rc=1
   fi
 
@@ -190,8 +195,9 @@ self_test() {
     allocations: []
   }' > "$data_env_gap"
 
-  if bash "$script_path" "$data_env_gap" >/dev/null 2>&1; then
+  if _gt_out7="$(bash "$script_path" "$data_env_gap" 2>&1)"; then
     echo "  [FAIL] ケースf: order欠番(1,3)のenvフィクスチャが誤ってPASSした" >&2
+    printf '%s\n' "$_gt_out7" | sed 's/^/    /' >&2
     rc=1
   else
     echo "  [PASS] ケースf: order欠番(1,3)のenvフィクスチャで正しくFAIL"
@@ -211,8 +217,9 @@ self_test() {
     allocations: []
   }' > "$data_env_prose"
 
-  if bash "$script_path" "$data_env_prose" >/dev/null 2>&1; then
+  if _gt_out8="$(bash "$script_path" "$data_env_prose" 2>&1)"; then
     echo "  [FAIL] ケースg: command欄に散文が混入したenvフィクスチャが誤ってPASSした" >&2
+    printf '%s\n' "$_gt_out8" | sed 's/^/    /' >&2
     rc=1
   else
     echo "  [PASS] ケースg: command欄に散文が混入したenvフィクスチャで正しくFAIL"
@@ -233,10 +240,11 @@ self_test() {
     allocations: []
   }' > "$data_env_ok"
 
-  if bash "$script_path" "$data_env_ok" >/dev/null 2>&1; then
+  if _gt_out9="$(bash "$script_path" "$data_env_ok" 2>&1)"; then
     echo "  [PASS] ケースi: order連番・command純粋(該当なし含む)のenvフィクスチャでPASS"
   else
     echo "  [FAIL] ケースi: order連番・command純粋なenvフィクスチャが誤ってFAILした" >&2
+    printf '%s\n' "$_gt_out9" | sed 's/^/    /' >&2
     rc=1
   fi
 
@@ -393,10 +401,11 @@ self_test() {
     description: "self-test用フィクスチャ(components[].file実在・正常系)",
     components: [{name: "Foo", file: "src/components/Foo.tsx", category: "component", hasProps: false, importCount: 0}]
   }' > "$data_component_ok"
-  if bash "$script_path" "$data_component_ok" --target-repo "$fake_repo" >/dev/null 2>&1; then
+  if _gt_out10="$(bash "$script_path" "$data_component_ok" --target-repo "$fake_repo" 2>&1)"; then
     echo "  [PASS] ケースr-1: components[].fileが実在する相対パスのフィクスチャでPASS"
   else
     echo "  [FAIL] ケースr-1: components[].fileが実在する相対パスのフィクスチャが誤ってFAILした" >&2
+    printf '%s\n' "$_gt_out10" | sed 's/^/    /' >&2
     rc=1
   fi
 
@@ -408,8 +417,9 @@ self_test() {
     description: "self-test用フィクスチャ(icons[].files[]絶対パス混入)",
     icons: [{name: "swords", sourceType: "material", usageCount: 1, files: [$absfile]}]
   }' > "$data_icon_abs"
-  if bash "$script_path" "$data_icon_abs" --target-repo "$fake_repo" >/dev/null 2>&1; then
+  if _gt_out11="$(bash "$script_path" "$data_icon_abs" --target-repo "$fake_repo" 2>&1)"; then
     echo "  [FAIL] ケースr-2: icons[].files[]に絶対パスが混入したフィクスチャが誤ってPASSした" >&2
+    printf '%s\n' "$_gt_out11" | sed 's/^/    /' >&2
     rc=1
   else
     echo "  [PASS] ケースr-2: icons[].files[]に絶対パスが混入したフィクスチャで正しくFAIL"
@@ -459,8 +469,9 @@ if [ ! -f "$MANIFEST" ]; then
 fi
 
 # --- 1. json構文 ---
-if ! jq empty "$MANIFEST" >/dev/null 2>&1; then
+if ! _gt_out12="$(jq empty "$MANIFEST" 2>&1)"; then
   echo "[FAIL] json構文 — 妥当なJSONではありません" >&2
+  printf '%s\n' "$_gt_out12" | sed 's/^/    /' >&2
   exit 1
 fi
 echo "[PASS] json構文 — 妥当なJSON" >&2

@@ -239,14 +239,16 @@ sys.stdout.buffer.write('日本語のテストです。全角文字を含みま�
   # EUC-JPとShift_JISを取り違えていないことの直接証拠: Shift_JISのバイト列は
   # EUC-JPとしては復号できないはず（逆方向も同様）。この非対称性が崩れていれば
   # 判定順序（EUC-JPが先勝ち）だけで偶然一致した誤判定を見逃す。
-  if _run_py decodable "$tmp/sjis.txt" EUC-JP >/dev/null 2>&1; then
+  if _gt_out2="$(_run_py decodable "$tmp/sjis.txt" EUC-JP 2>&1)"; then
     echo "  [FAIL] EUC-JP/Shift_JIS判別: Shift_JISのバイト列がEUC-JPとしても復号できてしまい取り違えを検出できない" >&2
+    printf '%s\n' "$_gt_out2" | sed 's/^/    /' >&2
     rc=1
   else
     echo "  [PASS] EUC-JP/Shift_JIS判別: Shift_JISのバイト列はEUC-JPとして復号不可（取り違え防止を確認）"
   fi
-  if _run_py decodable "$tmp/eucjp.txt" Shift_JIS >/dev/null 2>&1; then
+  if _gt_out3="$(_run_py decodable "$tmp/eucjp.txt" Shift_JIS 2>&1)"; then
     echo "  [FAIL] EUC-JP/Shift_JIS判別: EUC-JPのバイト列がShift_JISとしても復号できてしまい取り違えを検出できない" >&2
+    printf '%s\n' "$_gt_out3" | sed 's/^/    /' >&2
     rc=1
   else
     echo "  [PASS] EUC-JP/Shift_JIS判別: EUC-JPのバイト列はShift_JISとして復号不可（取り違え防止を確認）"
@@ -254,9 +256,15 @@ sys.stdout.buffer.write('日本語のテストです。全角文字を含みま�
 
   # --- 2. どの候補でも復号できないバイト列でUNKNOWN・exit 1 ---
   printf '\xff\xfe\x00\x01\xff\xff' > "$tmp/unknown.bin"
-  unknown_out="$(_run_py encoding "$tmp/unknown.bin" 2>/dev/null || true)"
-  if _run_py encoding "$tmp/unknown.bin" >/dev/null 2>&1; then
+  local _gt_unknown_rc _gt_unknown_err="$tmp/unknown-stderr.txt"
+  if unknown_out="$(_run_py encoding "$tmp/unknown.bin" 2>"$_gt_unknown_err")"; then
+    _gt_unknown_rc=0
+  else
+    _gt_unknown_rc=$?
+  fi
+  if [ "$_gt_unknown_rc" -eq 0 ]; then
     echo "  [FAIL] encoding: 復号不能バイト列がexit 0になった" >&2
+    { printf '%s\n' "$unknown_out"; cat "$_gt_unknown_err" 2>/dev/null; } | sed 's/^/    /' >&2
     rc=1
   elif [ "$unknown_out" = "UNKNOWN" ]; then
     echo "  [PASS] encoding: 復号不能バイト列でUNKNOWN・exit 1"
@@ -326,18 +334,20 @@ sys.stdout.buffer.write('日本語のテストです。全角文字を含みま�
   fi
 
   # to-utf8: 元のエンコーディングを判定できない場合はexit 1
-  if _run_py to-utf8 "$tmp/unknown.bin" >/dev/null 2>&1; then
+  if _gt_out4="$(_run_py to-utf8 "$tmp/unknown.bin" 2>&1)"; then
     echo "  [FAIL] to-utf8: 判定不能バイト列でexit 0になった" >&2
+    printf '%s\n' "$_gt_out4" | sed 's/^/    /' >&2
     rc=1
   else
     echo "  [PASS] to-utf8: 判定不能バイト列でexit 1"
   fi
 
   # --- decodableの陽性・陰性 ---
-  if _run_py decodable "$tmp/utf8.txt" UTF-8 >/dev/null 2>&1; then
+  if _gt_out5="$(_run_py decodable "$tmp/utf8.txt" UTF-8 2>&1)"; then
     echo "  [PASS] decodable: UTF-8ファイルはUTF-8として復号可"
   else
     echo "  [FAIL] decodable: UTF-8ファイルがUTF-8として復号不可と判定された" >&2
+    printf '%s\n' "$_gt_out5" | sed 's/^/    /' >&2
     rc=1
   fi
 

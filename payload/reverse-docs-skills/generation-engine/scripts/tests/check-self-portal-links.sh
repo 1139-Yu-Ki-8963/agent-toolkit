@@ -84,17 +84,19 @@ self_test() {
   mkdir -p "$tmp/design"
   : > "$tmp/design/target.md"
   printf '<a href="design/target.md">対象</a>\n' > "$page"
-  if scan "$page" >/dev/null 2>&1; then
+  if _gt_out1="$(scan "$page" 2>&1)"; then
     echo "[PASS] すべてのリンクが実在する場合は合格と判定する"; pass=$((pass + 1))
   else
     echo "[FAIL] すべてのリンクが実在する場合は合格と判定する"; fail=$((fail + 1))
+    printf '%s\n' "$_gt_out1" | sed 's/^/    /' >&2
   fi
   rm -f "$page"
 
   # ケース2: 実在しないリンク先を切れとして検出し不合格にする
   printf '<a href="design/missing.md">存在しない</a>\n' > "$page"
-  if scan "$page" >/dev/null 2>&1; then
+  if _gt_out2="$(scan "$page" 2>&1)"; then
     echo "[FAIL] 実在しないリンク先を切れとして検出し不合格にする"; fail=$((fail + 1))
+    printf '%s\n' "$_gt_out2" | sed 's/^/    /' >&2
   else
     echo "[PASS] 実在しないリンク先を切れとして検出し不合格にする"; pass=$((pass + 1))
   fi
@@ -102,26 +104,29 @@ self_test() {
 
   # ケース3: 外部参照とページ内アンカーのみの参照は対象外にする
   printf '<a href="https://example.com/x">外部</a>\n<a href="#top">アンカー</a>\n' > "$page"
-  if scan "$page" >/dev/null 2>&1; then
+  if _gt_out3="$(scan "$page" 2>&1)"; then
     echo "[PASS] 外部参照とページ内アンカーのみの参照は対象外にする"; pass=$((pass + 1))
   else
     echo "[FAIL] 外部参照とページ内アンカーのみの参照は対象外にする"; fail=$((fail + 1))
+    printf '%s\n' "$_gt_out3" | sed 's/^/    /' >&2
   fi
   rm -f "$page"
 
   # ケース4: フラグメント付きリンク（path#anchor）は実在確認の前に切り落として解決する
   printf '<a href="design/target.md#section">対象+アンカー</a>\n' > "$page"
-  if scan "$page" >/dev/null 2>&1; then
+  if _gt_out4="$(scan "$page" 2>&1)"; then
     echo "[PASS] フラグメント付きリンクは実在確認の前に切り落として解決する"; pass=$((pass + 1))
   else
     echo "[FAIL] フラグメント付きリンクは実在確認の前に切り落として解決する"; fail=$((fail + 1))
+    printf '%s\n' "$_gt_out4" | sed 's/^/    /' >&2
   fi
   rm -f "$page"
 
   # ケース5: 検査対象のページ自体が存在しない場合は異常終了として扱う
   rm -f "$tmp/no-such-page.html"
-  if scan "$tmp/no-such-page.html" >/dev/null 2>&1; then
+  if _gt_out5="$(scan "$tmp/no-such-page.html" 2>&1)"; then
     echo "[FAIL] 検査対象のページ自体が存在しない場合は異常終了として扱う"; fail=$((fail + 1))
+    printf '%s\n' "$_gt_out5" | sed 's/^/    /' >&2
   else
     echo "[PASS] 検査対象のページ自体が存在しない場合は異常終了として扱う"; pass=$((pass + 1))
   fi

@@ -658,7 +658,10 @@ self_test() {
 JSON
   printf '<h1>設計単位根拠台帳</h1>\n' > "$root_j/docs/design/apis/api-order/設計単位根拠台帳.html"
   layout_json_j="$(resolve_output_layout "$root_j")"
-  unit_ledger_row="$(build_rows "$root_j" "$catalog" "$inventory_def" | awk -F '\t' '$1 == "設計単位根拠台帳" {state=$4} END {print state}')"
+  # 行の特定はkind由来のgenerator名(ASCII)で行う。label列(日本語)をawkの==で
+  # 比較すると、macOS標準awkの多バイト文字列比較の不具合で誤って別行の状態を
+  # 拾ってしまう(ケース5のコメントと同じ回避策。1-244で実際にこの誤りを踏んだ)。
+  unit_ledger_row="$(build_rows "$root_j" "$catalog" "$inventory_def" | awk -F '\t' '$3 == "generating-api-basic-design-for-reverse-docs" {state=$4} END {print state}')"
   if [ "$unit_ledger_row" = "出力あり" ]; then
     echo "  [PASS] ケース16: apiUnitRoot上書き後のネスト根拠台帳を出力ありと判定"
   else

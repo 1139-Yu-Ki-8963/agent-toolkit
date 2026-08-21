@@ -21,30 +21,41 @@ self_test() {
 
   # 既定規則で追加が得られる入力: 弱根拠率は 1.0 未満で終了コード0。
   echo '{"units":[{"unitKey":"u1","method":"GET"}]}' > "$ext"
-  if bash "$0" "$base" "$ext" --rule 'method|HTTP method' >/dev/null 2>&1 \
+  local _gt_out1
+  if _gt_out1="$(bash "$0" "$base" "$ext" --rule 'method|HTTP method' 2>&1)" \
       && jq -e '.detectionSummary.diagnostics.extensionExtraction | .addedUnitCount == 1 and .weakEvidence.ratio < 1' "$ext" >/dev/null; then
     echo "  [PASS] 既定規則: 追加項目と弱根拠率を記録"
   else
-    echo "  [FAIL] 既定規則: 追加項目または弱根拠率が不正" >&2; rc=1
+    echo "  [FAIL] 既定規則: 追加項目または弱根拠率が不正" >&2
+    printf '%s\n' "$_gt_out1" | sed 's/^/    /' >&2
+    rc=1
   fi
 
   # 全体では1件追加されても、未一致規則へ同じ件数を転記しない。
   echo '{"units":[{"unitKey":"u1","method":"GET"}]}' > "$ext"
-  if bash "$0" "$base" "$ext" --rule 'method|HTTP method' --rule 'authRequired|認証指定' >/dev/null 2>&1 \
+  local _gt_out2
+  if _gt_out2="$(bash "$0" "$base" "$ext" --rule 'method|HTTP method' --rule 'authRequired|認証指定' 2>&1)" \
       && jq -e '.detectionSummary.diagnostics.extensionExtraction.rules
         | (map(select(.name == "method"))[0].matchedUnitCount == 1)
           and (map(select(.name == "authRequired"))[0].matchedUnitCount == 0)' "$ext" >/dev/null; then
     echo "  [PASS] 規則別件数: 一致規則1件・未一致規則0件を個別に記録"
   else
-    echo "  [FAIL] 規則別件数: 全体追加件数と規則ごとの一致件数を分離できない" >&2; rc=1
+    echo "  [FAIL] 規則別件数: 全体追加件数と規則ごとの一致件数を分離できない" >&2
+    printf '%s\n' "$_gt_out2" | sed 's/^/    /' >&2
+    rc=1
   fi
 
   # 既定規則で拾えない入力: 呼び出し側へ rc=2 と規則ごとの探索内容を渡す。
   echo '{"units":[{"unitKey":"u1"}]}' > "$ext"
-  if bash "$0" "$base" "$ext" --rule 'method|HTTP method' >/dev/null 2>&1; then
-    echo "  [FAIL] 弱根拠: rc=2 にならない" >&2; rc=1
+  local _gt_out3
+  if _gt_out3="$(bash "$0" "$base" "$ext" --rule 'method|HTTP method' 2>&1)"; then
+    echo "  [FAIL] 弱根拠: rc=2 にならない" >&2
+    printf '%s\n' "$_gt_out3" | sed 's/^/    /' >&2
+    rc=1
   elif [ "$?" -ne 2 ] || ! jq -e '.detectionSummary.diagnostics.extensionExtraction | .weakEvidence.warning == true and .rules[0].searchedFor == "HTTP method"' "$ext" >/dev/null; then
-    echo "  [FAIL] 弱根拠: 診断または規則別出力が不正" >&2; rc=1
+    echo "  [FAIL] 弱根拠: 診断または規則別出力が不正" >&2
+    printf '%s\n' "$_gt_out3" | sed 's/^/    /' >&2
+    rc=1
   else
     echo "  [PASS] 弱根拠: rc=2 と規則別診断を記録"
   fi
@@ -52,30 +63,41 @@ self_test() {
   # 対象側が明示した規則は、既定規則に無い構造でも追加項目として反映する。
   echo '{"unitOverrides":[{"unitKey":"u1","fields":{"authRequired":true}}]}' > "$rules"
   echo '{"units":[{"unitKey":"u1"}]}' > "$ext"
-  if bash "$0" "$base" "$ext" --rules-file "$rules" --rule 'authRequired|対象側の宣言' >/dev/null 2>&1 \
+  local _gt_out4
+  if _gt_out4="$(bash "$0" "$base" "$ext" --rules-file "$rules" --rule 'authRequired|対象側の宣言' 2>&1)" \
       && jq -e '.units[0].authRequired == true and .detectionSummary.diagnostics.extensionExtraction.addedUnitCount == 1' "$ext" >/dev/null; then
     echo "  [PASS] 対象側規則: 宣言値を追加"
   else
-    echo "  [FAIL] 対象側規則: 宣言値を追加できない" >&2; rc=1
+    echo "  [FAIL] 対象側規則: 宣言値を追加できない" >&2
+    printf '%s\n' "$_gt_out4" | sed 's/^/    /' >&2
+    rc=1
   fi
 
   # 規則未指定では unit 配列の既存値を変えず、従来どおり弱根拠として扱う。
   echo '{"units":[{"unitKey":"u1"}]}' > "$ext"
-  if bash "$0" "$base" "$ext" >/dev/null 2>&1; then
-    echo "  [FAIL] 規則未指定: rc=2 にならない" >&2; rc=1
+  local _gt_out5
+  if _gt_out5="$(bash "$0" "$base" "$ext" 2>&1)"; then
+    echo "  [FAIL] 規則未指定: rc=2 にならない" >&2
+    printf '%s\n' "$_gt_out5" | sed 's/^/    /' >&2
+    rc=1
   elif [ "$?" -ne 2 ] || ! jq -e '.units == [{"unitKey":"u1"}]' "$ext" >/dev/null; then
-    echo "  [FAIL] 規則未指定: 既存結果を維持できない" >&2; rc=1
+    echo "  [FAIL] 規則未指定: 既存結果を維持できない" >&2
+    printf '%s\n' "$_gt_out5" | sed 's/^/    /' >&2
+    rc=1
   else
     echo "  [PASS] 規則未指定: 既存結果を維持"
   fi
 
   # 既にある診断は履歴として保持し、今回の実行で上書きしない。
   echo '{"units":[{"unitKey":"u1","method":"GET"}],"detectionSummary":{"diagnostics":{"extensionExtraction":{"addedUnitCount":1,"total":1,"weakEvidence":{"count":0,"total":1,"ratio":0,"warning":false},"rules":[],"preserved":true}}}}' > "$ext"
-  if bash "$0" "$base" "$ext" --rule 'method|HTTP method' >/dev/null 2>&1 \
+  local _gt_out6
+  if _gt_out6="$(bash "$0" "$base" "$ext" --rule 'method|HTTP method' 2>&1)" \
       && jq -e '.detectionSummary.diagnostics.extensionExtraction.preserved == true' "$ext" >/dev/null; then
     echo "  [PASS] 既存診断: extensionExtractionを上書きしない"
   else
-    echo "  [FAIL] 既存診断: extensionExtractionを上書きした" >&2; rc=1
+    echo "  [FAIL] 既存診断: extensionExtractionを上書きした" >&2
+    printf '%s\n' "$_gt_out6" | sed 's/^/    /' >&2
+    rc=1
   fi
   return "$rc"
 }
@@ -121,6 +143,11 @@ if [ -n "$RULES_FILE" ]; then
   fi
 fi
 
+# overridesはRULES_FILEのunitOverridesから来る値で、対象単位1件ごとに1要素を
+# 持つ構造のため件数に比例して伸びうる。コマンドライン引数ではなく一時ファイル
+# 経由(--slurpfile)でjqへ渡す（改善課題1-52）。rulesは呼び出し側が --rule を
+# 固定個数（抽出種別ごとに3〜5個）だけ渡す設計であり件数が伸びないため
+# --argjson のまま残す。
 output_dir="$(dirname "$EXTENDED_MANIFEST")"
 # 理由：jqの直接出力は途中失敗で既存マニフェストを空または部分出力へ置き換えうるため、
 # 同一ディレクトリの一時ファイルへ完成させてからmvし、確定結果だけを反映する。
@@ -129,10 +156,13 @@ output_dir="$(dirname "$EXTENDED_MANIFEST")"
 # 手元の正常系だけを理由に、直接リダイレクトへ戻さないこと。
 # 経緯：a2c015e1導入時から一時ファイル方式だったが、理由の記録がなかった。
 tmp_output="$(mktemp "$output_dir/.finalize-extension-manifest.XXXXXX")"
-trap 'rm -f "$tmp_output"' EXIT
+overrides_tmp="$(mktemp "$output_dir/.finalize-extension-manifest-overrides.XXXXXX")"
+trap 'rm -f "$tmp_output" "$overrides_tmp"' EXIT
+printf '%s' "$OVERRIDES_JSON" > "$overrides_tmp"
 
-jq --slurpfile base "$BASE_MANIFEST" --arg array "$UNIT_ARRAY" --argjson overrides "$OVERRIDES_JSON" --argjson rules "$RULES_JSON" '
-  (reduce $overrides[] as $rule ({}; .[$rule.unitKey] = $rule.fields)) as $overrideMap
+jq --slurpfile base "$BASE_MANIFEST" --arg array "$UNIT_ARRAY" --slurpfile overridesFile "$overrides_tmp" --argjson rules "$RULES_JSON" '
+  ($overridesFile[0]) as $overrides
+  | (reduce $overrides[] as $rule ({}; .[$rule.unitKey] = $rule.fields)) as $overrideMap
   | .[$array] = [ .[$array][]? | . as $unit | (($overrideMap[($unit.unitKey // $unit.screenKey // "")] // {}) + $unit) ]
   | . as $extended
   | ([$extended[$array][]?] | length) as $total

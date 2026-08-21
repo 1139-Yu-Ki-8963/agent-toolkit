@@ -566,10 +566,11 @@ self_test() {
   # --- (4) 同じ入力で2回生成した結果がbyte一致すること ---
   local out_min_2="$tmp/min-2.html"
   bash "$script_path" "$data_min" "$out_min_2" --generated-at "2026-01-01T00:00:00Z" >/dev/null 2>&1 || true
-  if diff -q "$out_min" "$out_min_2" >/dev/null 2>&1; then
+  if _gt_out4="$(diff -q "$out_min" "$out_min_2" 2>&1)"; then
     echo "  [PASS] 4: 同一入力からの2回の生成がbyte一致(決定的生成)"
   else
     echo "  [FAIL] 4: 同一入力からの2回の生成がbyte不一致" >&2
+    printf '%s\n' "$_gt_out4" | sed 's/^/    /' >&2
     rc=1
   fi
 

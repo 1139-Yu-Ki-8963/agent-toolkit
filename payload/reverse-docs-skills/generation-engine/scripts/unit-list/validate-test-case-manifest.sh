@@ -146,17 +146,19 @@ self_test() {
 {"unitKind":"test_case","generatedAt":"2026-01-01T00:00:00Z","units":[{"unitKey":"screen-login-unit-1","screenKey":"screen-login","testType":"unit","unitNameGuess":"合計0円-登録不可","kind":"unit","caseKey":"合計0円-登録不可","viewpointKey":"金額-下限境界","input":"total: 0","steps":"","expected":"isRegisterableがfalseを返す"},{"unitKey":"screen-login-integration-1","screenKey":"screen-login","testType":"integration","unitNameGuess":"登録実行-一覧反映","kind":"integration","caseKey":"登録実行-一覧反映","viewpointKey":"登録-一覧反映","input":"必須項目入力済み","steps":"登録ボタンを押す","expected":"一覧に新規行が追加される"}],"summary":{"totalCount":2,"byTestType":{"unit":1,"integration":1},"byScreen":{"screen-login":2}}}
 JSON
 
-  if run_validate "$pass_fixture" >/dev/null 2>&1; then
+  if _gt_out4="$(run_validate "$pass_fixture" 2>&1)"; then
     echo "  [PASS] 陽性: 正当なtest_caseマニフェストで全6項目PASS"
   else
     echo "  [FAIL] 陽性: 正当なマニフェストがFAILした" >&2
+    printf '%s\n' "$_gt_out4" | sed 's/^/    /' >&2
     rc=1
   fi
 
   local missing_top="$tmp/missing-top.json"
   jq 'del(.summary)' "$pass_fixture" > "$missing_top"
-  if run_validate "$missing_top" >/dev/null 2>&1; then
+  if _gt_out5="$(run_validate "$missing_top" 2>&1)"; then
     echo "  [FAIL] 陰性(トップレベル欠落): summary欠落なのにPASSした" >&2
+    printf '%s\n' "$_gt_out5" | sed 's/^/    /' >&2
     rc=1
   else
     echo "  [PASS] 陰性(トップレベル欠落): summary欠落でFAIL"
@@ -164,8 +166,9 @@ JSON
 
   local bad_kind="$tmp/bad-kind.json"
   jq '.unitKind = "test_viewpoint"' "$pass_fixture" > "$bad_kind"
-  if run_validate "$bad_kind" >/dev/null 2>&1; then
+  if _gt_out6="$(run_validate "$bad_kind" 2>&1)"; then
     echo "  [FAIL] 陰性(unitKind不一致): unitKind不一致なのにPASSした" >&2
+    printf '%s\n' "$_gt_out6" | sed 's/^/    /' >&2
     rc=1
   else
     echo "  [PASS] 陰性(unitKind不一致): unitKind不一致でFAIL"
@@ -175,8 +178,9 @@ JSON
   for required_key in $REQUIRED_UNIT_KEYS; do
     bad_unit_missing="$tmp/missing-${required_key}.json"
     jq --arg k "$required_key" '.units[0] |= del(.[$k])' "$pass_fixture" > "$bad_unit_missing"
-    if run_validate "$bad_unit_missing" >/dev/null 2>&1; then
+    if _gt_out7="$(run_validate "$bad_unit_missing" 2>&1)"; then
       echo "  [FAIL] 陰性(ユニットキー欠落): ${required_key}欠落なのにPASSした" >&2
+      printf '%s\n' "$_gt_out7" | sed 's/^/    /' >&2
       rc=1
     else
       echo "  [PASS] 陰性(ユニットキー欠落): ${required_key}欠落でFAIL"
@@ -185,8 +189,9 @@ JSON
 
   local bad_type_value="$tmp/bad-type-value.json"
   jq '.units[0].testType = "manual"' "$pass_fixture" > "$bad_type_value"
-  if run_validate "$bad_type_value" >/dev/null 2>&1; then
+  if _gt_out8="$(run_validate "$bad_type_value" 2>&1)"; then
     echo "  [FAIL] 陰性(testType許容値): 未知のtestTypeなのにPASSした" >&2
+    printf '%s\n' "$_gt_out8" | sed 's/^/    /' >&2
     rc=1
   else
     echo "  [PASS] 陰性(testType許容値): 未知のtestTypeでFAIL"
@@ -194,8 +199,9 @@ JSON
 
   local dup_key="$tmp/dup-key.json"
   jq '.units[1].unitKey = .units[0].unitKey' "$pass_fixture" > "$dup_key"
-  if run_validate "$dup_key" >/dev/null 2>&1; then
+  if _gt_out9="$(run_validate "$dup_key" 2>&1)"; then
     echo "  [FAIL] 陰性(unitKey重複): unitKey重複なのにPASSした" >&2
+    printf '%s\n' "$_gt_out9" | sed 's/^/    /' >&2
     rc=1
   else
     echo "  [PASS] 陰性(unitKey重複): unitKey重複でFAIL"
@@ -203,8 +209,9 @@ JSON
 
   local bad_sum="$tmp/bad-sum.json"
   jq '.summary.totalCount = 99' "$pass_fixture" > "$bad_sum"
-  if run_validate "$bad_sum" >/dev/null 2>&1; then
+  if _gt_out10="$(run_validate "$bad_sum" 2>&1)"; then
     echo "  [FAIL] 陰性(summary不一致): totalCount不一致なのにPASSした" >&2
+    printf '%s\n' "$_gt_out10" | sed 's/^/    /' >&2
     rc=1
   else
     echo "  [PASS] 陰性(summary不一致): totalCount不一致でFAIL"
@@ -212,8 +219,9 @@ JSON
 
   local bad_generated_at="$tmp/bad-generated-at.json"
   jq '.generatedAt = null' "$pass_fixture" > "$bad_generated_at"
-  if run_validate "$bad_generated_at" >/dev/null 2>&1; then
+  if _gt_out11="$(run_validate "$bad_generated_at" 2>&1)"; then
     echo "  [FAIL] 陰性(generatedAt型): generatedAt=nullなのにPASSした" >&2
+    printf '%s\n' "$_gt_out11" | sed 's/^/    /' >&2
     rc=1
   else
     echo "  [PASS] 陰性(generatedAt型): generatedAt=nullでFAIL"

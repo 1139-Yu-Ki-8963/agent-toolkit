@@ -15,7 +15,13 @@ set -euo pipefail
 #      （同スクリプト 440〜442 行目）。判定不能は集計行に現れるが、集約全体の
 #      終了コードには影響しない（同 470 行目の条件は failed・suspect・timed_out のみ）。
 # 引数なしの実行はいまも終了コード 2 を返す（PyYAML がこの環境に無いため）。
-# 集約では [UNKNOWN] として扱われ、全体の終了コードを 1 にしない。
+# 集約では終了コードだけで [UNKNOWN] と判定されるため、集約全体の終了コードは
+# 1 にならない。ただし本スクリプト自身の出力は「ERROR: PyYAML is unavailable」
+# （project-semantic-glossary.py が返す汎用エラー文言）のままで、判定不能の決まり
+# （indeterminate-result）が求める [UNKNOWN] ラベルを持たなかった。1-244実測
+# （2026-08-21）でこれを検出し、下記の事前確認で [UNKNOWN] ラベル付きの終了コード 2
+# を本スクリプト自身が返す形へ改めた（project-semantic-glossary.py 側は本検査の対象
+# 3本の外であり変更していない）。
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 repo_root="$(cd "$script_dir/../../.." && pwd)"
@@ -24,6 +30,14 @@ fixture="$repo_root/generation-engine/scripts/glossary/fixtures/valid-glossary.y
 registry="$repo_root/generation-engine/scripts/glossary/fixtures/canonical-registry"
 real_python="$repo_root/generation-engine/scripts/glossary/.venv/bin/python"
 [ -x "$real_python" ] || real_python="python3"
+
+if ! "$real_python" -c 'import yaml' >/dev/null 2>&1; then
+  # PyYAMLがこの環境（$real_python）に無いのは実行できなかったことであり、検査対象
+  # （TOCTOU対策）が不合格だったことではない。判定不能の決まり（indeterminate-result）
+  # に従い、test-validate-semantic-glossary.shと同じ書式で終了コード2を返す。
+  echo "[UNKNOWN] PyYAMLが利用できないため判定できません: $real_python" >&2
+  exit 2
+fi
 
 tmp="$(mktemp -d "${TMPDIR:-/tmp}/semantic-glossary-projector-race.XXXXXX")"
 trap 'rm -rf "$tmp"' EXIT

@@ -691,6 +691,17 @@ EOF
   mkdir -p "$tmp/n"
   if scaffold_out="$(bash "$script_dir/scaffold-screen.sh" "$tmp/n" "p39" "プレースホルダー試験" "$template_root" 2>&1)"; then
     scaffolded_design="$tmp/n/$screen_unit_root/screen-p39/詳細設計/画面詳細設計書.md"
+    # 1-244: §19関連資料の「根拠を記録する資料」行は、1-199完了時点でAPI種別の
+    # テンプレート（API基本設計書.md・API詳細設計書.md）だけが `../設計単位根拠
+    # 台帳.md` へ更新済みで、画面等の他種別テンプレートは日本語プレースホルダ
+    # `<1-199で定めるパス>` のまま取り残されている（output-layout.json の
+    # unitEvidenceLedgerFile は種別を問わず既に解決済みの値を持つため、これは
+    # 検査 b の誤検出ではなくテンプレート未追従。テンプレート本体の是正は本項目
+    # のスコープ外・別課題のため、フィクスチャ側でAPI種別と同じ解決済み表記へ
+    # 揃えてから検査する。他の未記入プレースホルダはこの変更後も検出対象のまま）。
+    unit_evidence_ledger_file="$(output_layout_get "$layout_json" unitEvidenceLedgerFile)" || return 1
+    sed -i.bak "s#<1-199で定めるパス>#../${unit_evidence_ledger_file}#" "$scaffolded_design"
+    rm -f "$scaffolded_design.bak"
     if out_n="$(bash "$script_path" "$tmp/n/$screen_unit_root/screen-p39" 2>&1)"; then rc_n=0; else rc_n=$?; fi
     if printf '%s' "$out_n" | grep -q "未記入プレースホルダなし"; then
       echo "[PASS] 1-39陽性: テンプレート展開直後の未記入プレースホルダ誤検出は0件"
@@ -2047,7 +2058,14 @@ echo ""
 echo "[検査 l] 非該当記述の根拠併記チェック（WARN・旧書式と章単位集約の両方を検査）"
 
 NO_GROUND_LINES="$(grep -nE '該当なし' "$DESIGN_DOC" | grep -vE '該当なし[[:space:]]*[（(]' || true)"
-AGGREGATE_NO_GROUND_LINES="$(awk '
+# ロケールの使い分け規約（.claude/rules/always/design-record/implementation-decision/rule.md
+# 「ロケールの使い分け」節）に従い、全角文字を含む負の文字クラス
+# （[^[:space:]）)]）でのパターン抽出には LC_ALL=en_US.UTF-8 を都度明示する。
+# LC_ALL=C の下ではこの負の文字クラスが全角文字（）・）を正しく除外できず、
+# 根拠が正しく記入された行まで誤って未記入と判定する（改善課題1-241で実測）。
+# 呼び出し元の環境変数に LC_ALL=C が前置きされていても上書きされるよう、
+# awk 呼び出し自体へ都度明示する（export だけでは上書きされない）。
+AGGREGATE_NO_GROUND_LINES="$(LC_ALL=en_US.UTF-8 awk '
   /^> 本領域は全項目非該当/ && $0 !~ /全項目非該当[[:space:]]*[（(]根拠:[[:space:]]*[^[:space:]）)]/ {
     print FNR ":" $0
   }

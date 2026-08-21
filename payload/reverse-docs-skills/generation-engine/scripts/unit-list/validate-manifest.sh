@@ -1086,9 +1086,11 @@ run_validate() {
       _recompute_out_base="$(mktemp "${TMPDIR:-/tmp}/validate-manifest-table-history.XXXXXX")"
       recompute_out="${_recompute_out_base}.json"
       mv "$_recompute_out_base" "$recompute_out"
-      if ! bash "$extract_script" "$MANIFEST" "$MIGRATIONS_DIR" "$recompute_out" >/dev/null 2>&1; then
+      local _table_history_extract_out
+      if ! _table_history_extract_out="$(bash "$extract_script" "$MANIFEST" "$MIGRATIONS_DIR" "$recompute_out" 2>&1)"; then
         overall_fail=1
         echo "[FAIL] ${table_history_label} — extract-table-metadata.shの再実行に失敗しました" >&2
+        printf '%s\n' "$_table_history_extract_out" | sed 's/^/    /' >&2
       else
         table_history_issues="$(jq -rs --arg items "$ITEMS_KEY" --arg keyfield "$ITEM_KEY_FIELD" '
           (.[0][$items]) as $orig
@@ -1186,17 +1188,19 @@ EOF
 }
 JSON
 
-  if run_validate "$screen_pass" "" "screen" >/dev/null 2>&1; then
+  if _rv_out="$(run_validate "$screen_pass" "" "screen" 2>&1)"; then
     echo "  [PASS] screen陽性: 既定unitKind(screen)で全15項目PASS"
   else
     echo "  [FAIL] screen陽性: 正当なscreenマニフェストがFAILした" >&2
+    printf '%s\n' "$_rv_out" | sed 's/^/    /' >&2
     rc=1
   fi
 
   local screen_missing_top="$tmp/screen-missing-top.json"
   jq 'del(.screens)' "$screen_pass" > "$screen_missing_top"
-  if run_validate "$screen_missing_top" "" "screen" >/dev/null 2>&1; then
+  if _rv_out="$(run_validate "$screen_missing_top" "" "screen" 2>&1)"; then
     echo "  [FAIL] screen陰性: screens欠落マニフェストがPASSした" >&2
+    printf '%s\n' "$_rv_out" | sed 's/^/    /' >&2
     rc=1
   else
     echo "  [PASS] screen陰性: screens欠落でFAIL"
@@ -1204,8 +1208,9 @@ JSON
 
   local screen_bad_generated_at="$tmp/screen-bad-generated-at.json"
   jq '.generatedAt = null' "$screen_pass" > "$screen_bad_generated_at"
-  if run_validate "$screen_bad_generated_at" "" "screen" >/dev/null 2>&1; then
+  if _rv_out="$(run_validate "$screen_bad_generated_at" "" "screen" 2>&1)"; then
     echo "  [FAIL] screen陰性: generatedAt=nullを受け入れた" >&2
+    printf '%s\n' "$_rv_out" | sed 's/^/    /' >&2
     rc=1
   else
     echo "  [PASS] screen陰性: generatedAt=nullでFAIL"
@@ -1213,8 +1218,9 @@ JSON
 
   local screen_bad_kind="$tmp/screen-bad-kind.json"
   jq '.unitKind = "api"' "$screen_pass" > "$screen_bad_kind"
-  if run_validate "$screen_bad_kind" "" "screen" >/dev/null 2>&1; then
+  if _rv_out="$(run_validate "$screen_bad_kind" "" "screen" 2>&1)"; then
     echo "  [FAIL] screen陰性: unitKind=apiをscreenとして受け入れた" >&2
+    printf '%s\n' "$_rv_out" | sed 's/^/    /' >&2
     rc=1
   else
     echo "  [PASS] screen陰性: unitKind=apiをscreen指定でFAIL"
@@ -1223,8 +1229,9 @@ JSON
   # ---- 検査9(screenType-必須+値域)の確認 ----
   local screen_missing_type="$tmp/screen-missing-type.json"
   jq '.screens[0] |= del(.screenType)' "$screen_pass" > "$screen_missing_type"
-  if run_validate "$screen_missing_type" "" "screen" >/dev/null 2>&1; then
+  if _rv_out="$(run_validate "$screen_missing_type" "" "screen" 2>&1)"; then
     echo "  [FAIL] screenType陰性(不在): screenType不在なのにPASSした" >&2
+    printf '%s\n' "$_rv_out" | sed 's/^/    /' >&2
     rc=1
   else
     echo "  [PASS] screenType陰性(不在): screenType不在でFAIL"
@@ -1232,8 +1239,9 @@ JSON
 
   local screen_bad_type="$tmp/screen-bad-type.json"
   jq '.screens[0].screenType = "invalid-value"' "$screen_pass" > "$screen_bad_type"
-  if run_validate "$screen_bad_type" "" "screen" >/dev/null 2>&1; then
+  if _rv_out="$(run_validate "$screen_bad_type" "" "screen" 2>&1)"; then
     echo "  [FAIL] screenType陰性(値域外): screenType値域外なのにPASSした" >&2
+    printf '%s\n' "$_rv_out" | sed 's/^/    /' >&2
     rc=1
   else
     echo "  [PASS] screenType陰性(値域外): screenType値域外でFAIL"
@@ -1242,8 +1250,9 @@ JSON
   # ---- 分類値域と親子双方向参照の確認 ----
   local screen_bad_group="$tmp/screen-bad-group.json"
   jq '.screens[0].accountGroup = "feature_phone"' "$screen_pass" > "$screen_bad_group"
-  if run_validate "$screen_bad_group" "" "screen" >/dev/null 2>&1; then
+  if _rv_out="$(run_validate "$screen_bad_group" "" "screen" 2>&1)"; then
     echo "  [FAIL] accountGroup陰性(値域外): 無効値なのにPASSした" >&2
+    printf '%s\n' "$_rv_out" | sed 's/^/    /' >&2
     rc=1
   else
     echo "  [PASS] accountGroup陰性(値域外): 無効値でFAIL"
@@ -1252,8 +1261,9 @@ JSON
   # ---- accountSubType-値域・hasTemplate/isProcessingEndpoint-型の確認(1-71) ----
   local screen_bad_account_sub_type="$tmp/screen-bad-account-sub-type.json"
   jq '.screens[0].accountSubType = "editor role"' "$screen_pass" > "$screen_bad_account_sub_type"
-  if run_validate "$screen_bad_account_sub_type" "" "screen" >/dev/null 2>&1; then
+  if _rv_out="$(run_validate "$screen_bad_account_sub_type" "" "screen" 2>&1)"; then
     echo "  [FAIL] accountSubType陰性(値域外): 識別子形式でない値なのにPASSした" >&2
+    printf '%s\n' "$_rv_out" | sed 's/^/    /' >&2
     rc=1
   else
     echo "  [PASS] accountSubType陰性(値域外): 識別子形式でない値でFAIL"
@@ -1261,8 +1271,9 @@ JSON
 
   local screen_bad_has_template="$tmp/screen-bad-has-template.json"
   jq '.screens[0].hasTemplate = "yes"' "$screen_pass" > "$screen_bad_has_template"
-  if run_validate "$screen_bad_has_template" "" "screen" >/dev/null 2>&1; then
+  if _rv_out="$(run_validate "$screen_bad_has_template" "" "screen" 2>&1)"; then
     echo "  [FAIL] hasTemplate陰性(型不正): 文字列なのにPASSした" >&2
+    printf '%s\n' "$_rv_out" | sed 's/^/    /' >&2
     rc=1
   else
     echo "  [PASS] hasTemplate陰性(型不正): 文字列でFAIL"
@@ -1270,8 +1281,9 @@ JSON
 
   local screen_bad_is_processing_endpoint="$tmp/screen-bad-is-processing-endpoint.json"
   jq '.screens[0].isProcessingEndpoint = "no"' "$screen_pass" > "$screen_bad_is_processing_endpoint"
-  if run_validate "$screen_bad_is_processing_endpoint" "" "screen" >/dev/null 2>&1; then
+  if _rv_out="$(run_validate "$screen_bad_is_processing_endpoint" "" "screen" 2>&1)"; then
     echo "  [FAIL] isProcessingEndpoint陰性(型不正): 文字列なのにPASSした" >&2
+    printf '%s\n' "$_rv_out" | sed 's/^/    /' >&2
     rc=1
   else
     echo "  [PASS] isProcessingEndpoint陰性(型不正): 文字列でFAIL"
@@ -1282,8 +1294,9 @@ JSON
   jq '.detectionSummary.screenCount = 2
       | .screens[0].screenNameGuess = "ホーム画面"
       | .screens += [{screenKey:"home-alt", kind:"route", route:"/home-alt", entryFile:"src/screens/Home.tsx", confidence:"high", screenType:"top", accountGroup:"common", accountSubType:"common", hasTemplate:true, parentScreen:null, childComponents:[], isProcessingEndpoint:false, screenNameGuess:"ホーム画面"}]' "$screen_pass" > "$screen_dup_name"
-  if run_validate "$screen_dup_name" "" "screen" >/dev/null 2>&1; then
+  if _rv_out="$(run_validate "$screen_dup_name" "" "screen" 2>&1)"; then
     echo "  [FAIL] 名称-一意性陰性: screenNameGuessが重複するのにPASSした" >&2
+    printf '%s\n' "$_rv_out" | sed 's/^/    /' >&2
     rc=1
   else
     echo "  [PASS] 名称-一意性陰性: screenNameGuessの重複でFAIL"
@@ -1293,10 +1306,11 @@ JSON
   jq '.detectionSummary.screenCount = 2
       | .screens[0].screenNameGuess = "ホーム画面"
       | .screens += [{screenKey:"home-alt", kind:"route", route:"/home-alt", entryFile:"src/screens/Home.tsx", confidence:"high", screenType:"top", accountGroup:"common", accountSubType:"common", hasTemplate:true, parentScreen:null, childComponents:[], isProcessingEndpoint:false, screenNameGuess:"別画面"}]' "$screen_pass" > "$screen_unique_name"
-  if run_validate "$screen_unique_name" "" "screen" >/dev/null 2>&1; then
+  if _rv_out="$(run_validate "$screen_unique_name" "" "screen" 2>&1)"; then
     echo "  [PASS] 名称-一意性陽性: screenNameGuessが一意なら全項目PASS"
   else
     echo "  [FAIL] 名称-一意性陽性: 一意なscreenNameGuessがFAILした" >&2
+    printf '%s\n' "$_rv_out" | sed 's/^/    /' >&2
     rc=1
   fi
 
@@ -1306,10 +1320,11 @@ JSON
       | .screens[0].screenNameGuess = "ユーザー一覧"
       | .screens[0].nameScope = "site-a"
       | .screens += [{screenKey:"home-alt", kind:"route", route:"/home-alt", entryFile:"src/screens/Home.tsx", confidence:"high", screenType:"top", accountGroup:"common", accountSubType:"common", hasTemplate:true, parentScreen:null, childComponents:[], isProcessingEndpoint:false, screenNameGuess:"ユーザー一覧", nameScope:"site-b"}]' "$screen_pass" > "$screen_dup_name_diff_scope"
-  if run_validate "$screen_dup_name_diff_scope" "" "screen" >/dev/null 2>&1; then
+  if _rv_out="$(run_validate "$screen_dup_name_diff_scope" "" "screen" 2>&1)"; then
     echo "  [PASS] 名称-一意性スコープ限定陽性: 異なるnameScope間の同名はPASS"
   else
     echo "  [FAIL] 名称-一意性スコープ限定陽性: 異なるnameScope間の同名なのにFAILした" >&2
+    printf '%s\n' "$_rv_out" | sed 's/^/    /' >&2
     rc=1
   fi
 
@@ -1318,8 +1333,9 @@ JSON
       | .screens[0].screenNameGuess = "ユーザー一覧"
       | .screens[0].nameScope = "site-a"
       | .screens += [{screenKey:"home-alt", kind:"route", route:"/home-alt", entryFile:"src/screens/Home.tsx", confidence:"high", screenType:"top", accountGroup:"common", accountSubType:"common", hasTemplate:true, parentScreen:null, childComponents:[], isProcessingEndpoint:false, screenNameGuess:"ユーザー一覧", nameScope:"site-a"}]' "$screen_pass" > "$screen_dup_name_same_scope"
-  if run_validate "$screen_dup_name_same_scope" "" "screen" >/dev/null 2>&1; then
+  if _rv_out="$(run_validate "$screen_dup_name_same_scope" "" "screen" 2>&1)"; then
     echo "  [FAIL] 名称-一意性スコープ限定陰性: 同一nameScope内の同名なのにPASSした" >&2
+    printf '%s\n' "$_rv_out" | sed 's/^/    /' >&2
     rc=1
   else
     echo "  [PASS] 名称-一意性スコープ限定陰性: 同一nameScope内の同名でFAIL"
@@ -1329,17 +1345,19 @@ JSON
   jq '.detectionSummary.screenCount = 2
       | .screens += [{screenKey:"home-modal", kind:"route", route:"/home/modal", entryFile:"src/screens/Home.tsx", confidence:"high", screenType:"form", accountGroup:"common", accountSubType:"common", hasTemplate:true, parentScreen:"home-screen", childComponents:[], isProcessingEndpoint:false}]
       | .screens[0].childComponents = [{screenKey:"home-modal", componentType:"modal"}]' "$screen_pass" > "$screen_parent_child"
-  if run_validate "$screen_parent_child" "" "screen" >/dev/null 2>&1; then
+  if _rv_out="$(run_validate "$screen_parent_child" "" "screen" 2>&1)"; then
     echo "  [PASS] parent-child陽性: 双方向参照とcomponentTypeが整合"
   else
     echo "  [FAIL] parent-child陽性: 正当な双方向参照がFAILした" >&2
+    printf '%s\n' "$_rv_out" | sed 's/^/    /' >&2
     rc=1
   fi
 
   local screen_missing_parent_link="$tmp/screen-missing-parent-link.json"
   jq '.screens[1].parentScreen = null' "$screen_parent_child" > "$screen_missing_parent_link"
-  if run_validate "$screen_missing_parent_link" "" "screen" >/dev/null 2>&1; then
+  if _rv_out="$(run_validate "$screen_missing_parent_link" "" "screen" 2>&1)"; then
     echo "  [FAIL] parent-child陰性(親のみ): 子→親不一致なのにPASSした" >&2
+    printf '%s\n' "$_rv_out" | sed 's/^/    /' >&2
     rc=1
   else
     echo "  [PASS] parent-child陰性(親のみ): 子→親不一致でFAIL"
@@ -1347,8 +1365,9 @@ JSON
 
   local screen_missing_child_link="$tmp/screen-missing-child-link.json"
   jq '.screens[0].childComponents = []' "$screen_parent_child" > "$screen_missing_child_link"
-  if run_validate "$screen_missing_child_link" "" "screen" >/dev/null 2>&1; then
+  if _rv_out="$(run_validate "$screen_missing_child_link" "" "screen" 2>&1)"; then
     echo "  [FAIL] parent-child陰性(子のみ): 親→子不一致なのにPASSした" >&2
+    printf '%s\n' "$_rv_out" | sed 's/^/    /' >&2
     rc=1
   else
     echo "  [PASS] parent-child陰性(子のみ): 親→子不一致でFAIL"
@@ -1356,8 +1375,9 @@ JSON
 
   local screen_bad_component_type="$tmp/screen-bad-component-type.json"
   jq '.screens[0].childComponents[0].componentType = "drawer"' "$screen_parent_child" > "$screen_bad_component_type"
-  if run_validate "$screen_bad_component_type" "" "screen" >/dev/null 2>&1; then
+  if _rv_out="$(run_validate "$screen_bad_component_type" "" "screen" 2>&1)"; then
     echo "  [FAIL] componentType陰性(値域外): 無効値なのにPASSした" >&2
+    printf '%s\n' "$_rv_out" | sed 's/^/    /' >&2
     rc=1
   else
     echo "  [PASS] componentType陰性(値域外): 無効値でFAIL"
@@ -1375,10 +1395,11 @@ JSON
         integrationTestCasePath: "../../画面/home/結合テスト仕様書.html",
         scenarioPath: "../../画面/home/操作シナリオ仕様書.html"
       }' "$screen_pass" > "$screen_safe_doc_urls"
-  if run_validate "$screen_safe_doc_urls" "" "screen" >/dev/null 2>&1; then
+  if _rv_out="$(run_validate "$screen_safe_doc_urls" "" "screen" 2>&1)"; then
     echo "  [PASS] 設計書URL陽性: 安全な相対URLを受け入れる"
   else
     echo "  [FAIL] 設計書URL陽性: 安全な相対URLを拒否した" >&2
+    printf '%s\n' "$_rv_out" | sed 's/^/    /' >&2
     rc=1
   fi
 
@@ -1393,8 +1414,9 @@ JSON
         scenarioPath: "/absolute/scenario.html",
         testCasePath: "unsafe\u000aurl.html"
       }' "$screen_pass" > "$screen_bad_doc_urls"
-  if run_validate "$screen_bad_doc_urls" "" "screen" >/dev/null 2>&1; then
+  if _rv_out="$(run_validate "$screen_bad_doc_urls" "" "screen" 2>&1)"; then
     echo "  [FAIL] 設計書URL陰性: scheme・//・制御文字を含むURLを受け入れた" >&2
+    printf '%s\n' "$_rv_out" | sed 's/^/    /' >&2
     rc=1
   else
     echo "  [PASS] 設計書URL陰性: scheme・//・制御文字を含むURLをFAIL"
@@ -1410,19 +1432,25 @@ export function Home() { return null; }
 EOF
   local screen_relative_manifest="$tmp/fake-repo/docs/list/screen-manifest.json"
   jq '.sourceDir = "rel-src"' "$screen_pass" > "$screen_relative_manifest"
-  if (cd /tmp && run_validate "$screen_relative_manifest" "" "screen" >/dev/null 2>&1); then
+  if _rv_out="$(cd /tmp && run_validate "$screen_relative_manifest" "" "screen" 2>&1)"; then
     echo "  [PASS] entryFile-実在(相対sourceDir): 対象リポジトリのルート基準で解決しcwdに依存しない"
   else
     echo "  [FAIL] entryFile-実在(相対sourceDir): 対象リポジトリのルート基準の解決に失敗した" >&2
+    printf '%s\n' "$_rv_out" | sed 's/^/    /' >&2
     rc=1
   fi
 
   local screen_relative_missing="$tmp/fake-repo/docs/list/screen-manifest-missing.json"
   jq '.screens[0].entryFile = "src/screens/DoesNotExist.tsx"' "$screen_relative_manifest" > "$screen_relative_missing"
-  local relative_missing_output
-  relative_missing_output="$(run_validate "$screen_relative_missing" "" "screen" 2>&1)"
-  if run_validate "$screen_relative_missing" "" "screen" >/dev/null 2>&1; then
+  local relative_missing_output relative_missing_rc
+  if relative_missing_output="$(run_validate "$screen_relative_missing" "" "screen" 2>&1)"; then
+    relative_missing_rc=0
+  else
+    relative_missing_rc=$?
+  fi
+  if [ "$relative_missing_rc" -eq 0 ]; then
     echo "  [FAIL] entryFile-実在失敗メッセージ: 実在しないentryFileなのにPASSした" >&2
+    printf '%s\n' "$relative_missing_output" | sed 's/^/    /' >&2
     rc=1
   elif echo "$relative_missing_output" | grep -q "解決後: $tmp/fake-repo/rel-src/src/screens/DoesNotExist.tsx"; then
     echo "  [PASS] entryFile-実在失敗メッセージ: 解決後の絶対パスがFAILメッセージに含まれる"
@@ -1476,13 +1504,16 @@ EOF
   mkdir -p "$tmp/elsewhere"
 
   local nogit_from_outside=0 nogit_from_inside=0
-  (cd "$tmp/elsewhere" && run_validate "$nogit_manifest" "" "api" >/dev/null 2>&1) && nogit_from_outside=1
-  (cd "$tmp/nogit-proj" && run_validate "$nogit_manifest" "" "api" >/dev/null 2>&1) && nogit_from_inside=1
+  local nogit_outside_out nogit_inside_out
+  nogit_outside_out="$(cd "$tmp/elsewhere" && run_validate "$nogit_manifest" "" "api" 2>&1)" && nogit_from_outside=1
+  nogit_inside_out="$(cd "$tmp/nogit-proj" && run_validate "$nogit_manifest" "" "api" 2>&1)" && nogit_from_inside=1
 
   if [ "$nogit_from_outside" -eq 1 ] && [ "$nogit_from_inside" -eq 1 ]; then
     echo "  [PASS] sourceFile-実在(git祖先なし): 対象リポジトリ外のマニフェストでも呼び出し元cwdに関わらずPASS"
   else
     echo "  [FAIL] sourceFile-実在(git祖先なし): cwd=elsewhere(${nogit_from_outside}) / cwd=manifest_dir(${nogit_from_inside})で結果が食い違うか、いずれかがFAILした" >&2
+    [ "$nogit_from_outside" -eq 1 ] || printf '%s\n' "$nogit_outside_out" | sed 's/^/    [elsewhere] /' >&2
+    [ "$nogit_from_inside" -eq 1 ] || printf '%s\n' "$nogit_inside_out" | sed 's/^/    [nogit-proj] /' >&2
     rc=1
   fi
 
@@ -1499,30 +1530,35 @@ EOF
     detectionSummary: {unitCount: 1, unresolvedCount: 0},
     units: [{unitKey: "users-api", kind: "endpoint", identifier: "GET /users", unitNameGuess: "users", sourceFile: "users.ts", confidence: "high"}]
   }' > "$delivery_manifest"
-  if run_validate "$delivery_manifest" "" "api" >/dev/null 2>&1; then
+  local repo_root_default_out repo_root_scoped_out
+  if repo_root_default_out="$(run_validate "$delivery_manifest" "" "api" 2>&1)"; then
     echo "  [FAIL] --repo-root既定: 管理リポジトリ基準で不在のsourceFileをPASSした" >&2
+    printf '%s\n' "$repo_root_default_out" | sed 's/^/    /' >&2
     rc=1
-  elif run_validate "$delivery_manifest" "" "api" "" "$tmp/managed-repo/delivery" >/dev/null 2>&1; then
+  elif repo_root_scoped_out="$(run_validate "$delivery_manifest" "" "api" "" "$tmp/managed-repo/delivery" 2>&1)"; then
     echo "  [PASS] --repo-root指定: 納品フォルダ基準のsourceDirでsourceFileを解決"
   else
     echo "  [FAIL] --repo-root指定: 納品フォルダ基準のsourceDirを解決できない" >&2
+    printf '%s\n' "$repo_root_scoped_out" | sed 's/^/    /' >&2
     rc=1
   fi
 
   # ---- strategy.sourceExternal=trueで実在確認を省略することの確認(1-18) ----
   local screen_external="$tmp/screen-external.json"
   jq '.strategy.sourceExternal = true | .screens[0].entryFile = "src/screens/DoesNotExist.tsx"' "$screen_pass" > "$screen_external"
-  if run_validate "$screen_external" "" "screen" >/dev/null 2>&1; then
+  if _rv_out="$(run_validate "$screen_external" "" "screen" 2>&1)"; then
     echo "  [PASS] sourceExternal陽性: 別リポジトリ宣言時は実在しないentryFileでもPASS"
   else
     echo "  [FAIL] sourceExternal陽性: strategy.sourceExternal=trueなのにFAILした" >&2
+    printf '%s\n' "$_rv_out" | sed 's/^/    /' >&2
     rc=1
   fi
 
   local screen_external_absent="$tmp/screen-external-absent.json"
   jq '.screens[0].entryFile = "src/screens/DoesNotExist.tsx"' "$screen_pass" > "$screen_external_absent"
-  if run_validate "$screen_external_absent" "" "screen" >/dev/null 2>&1; then
+  if _rv_out="$(run_validate "$screen_external_absent" "" "screen" 2>&1)"; then
     echo "  [FAIL] sourceExternal既定: 宣言なしで実在しないentryFileなのにPASSした" >&2
+    printf '%s\n' "$_rv_out" | sed 's/^/    /' >&2
     rc=1
   else
     echo "  [PASS] sourceExternal既定: 宣言なしは従来どおり実在確認しFAIL"
@@ -1569,10 +1605,11 @@ EOF
 }
 JSON
 
-  if run_validate "$api_pass" "" "api" >/dev/null 2>&1; then
+  if _rv_out="$(run_validate "$api_pass" "" "api" 2>&1)"; then
     echo "  [PASS] api陽性: unitKind=apiで全11項目PASS"
   else
     echo "  [FAIL] api陽性: 正当なapiマニフェストがFAILした" >&2
+    printf '%s\n' "$_rv_out" | sed 's/^/    /' >&2
     rc=1
   fi
 
@@ -1601,8 +1638,9 @@ JSON
 
   local api_bad_kind="$tmp/api-bad-kind.json"
   jq '.unitKind = "table"' "$api_pass" > "$api_bad_kind"
-  if run_validate "$api_bad_kind" "" "api" >/dev/null 2>&1; then
+  if _rv_out="$(run_validate "$api_bad_kind" "" "api" 2>&1)"; then
     echo "  [FAIL] api陰性: unitKind=tableをapiとして受け入れた" >&2
+    printf '%s\n' "$_rv_out" | sed 's/^/    /' >&2
     rc=1
   else
     echo "  [PASS] api陰性: unitKind=tableをapi指定でFAIL"
@@ -1610,8 +1648,9 @@ JSON
 
   local api_bad_generated_at="$tmp/api-bad-generated-at.json"
   jq '.generatedAt = ""' "$api_pass" > "$api_bad_generated_at"
-  if run_validate "$api_bad_generated_at" "" "api" >/dev/null 2>&1; then
+  if _rv_out="$(run_validate "$api_bad_generated_at" "" "api" 2>&1)"; then
     echo "  [FAIL] api陰性: generatedAt空文字を受け入れた" >&2
+    printf '%s\n' "$_rv_out" | sed 's/^/    /' >&2
     rc=1
   else
     echo "  [PASS] api陰性: generatedAt空文字でFAIL"
@@ -1619,8 +1658,9 @@ JSON
 
   local api_missing_id_regex="$tmp/api-missing-id-regex.json"
   jq 'del(.strategy.unitIdRegex)' "$api_pass" > "$api_missing_id_regex"
-  if run_validate "$api_missing_id_regex" "" "api" >/dev/null 2>&1; then
+  if _rv_out="$(run_validate "$api_missing_id_regex" "" "api" 2>&1)"; then
     echo "  [FAIL] api陰性: strategy.unitIdRegex欠落を受け入れた" >&2
+    printf '%s\n' "$_rv_out" | sed 's/^/    /' >&2
     rc=1
   else
     echo "  [PASS] api陰性: strategy.unitIdRegex欠落でFAIL"
@@ -1628,8 +1668,9 @@ JSON
 
   local api_bad_id_regex="$tmp/api-bad-id-regex.json"
   jq '.strategy.unitIdRegex = 1' "$api_pass" > "$api_bad_id_regex"
-  if run_validate "$api_bad_id_regex" "" "api" >/dev/null 2>&1; then
+  if _rv_out="$(run_validate "$api_bad_id_regex" "" "api" 2>&1)"; then
     echo "  [FAIL] api陰性: strategy.unitIdRegex数値を受け入れた" >&2
+    printf '%s\n' "$_rv_out" | sed 's/^/    /' >&2
     rc=1
   else
     echo "  [PASS] api陰性: strategy.unitIdRegex数値でFAIL"
@@ -1648,17 +1689,19 @@ JSON
   # ---- strategy-承認: unitKind=messageのapprovedByUser期待値切り替えの確認(1-17) ----
   local message_pass="$tmp/message-pass.json"
   jq '.unitKind = "message" | .strategy.approvedByUser = false' "$api_pass" > "$message_pass"
-  if run_validate "$message_pass" "" "message" >/dev/null 2>&1; then
+  if _rv_out="$(run_validate "$message_pass" "" "message" 2>&1)"; then
     echo "  [PASS] strategy-承認message陽性: unitKind=messageはapprovedByUser=falseでPASS"
   else
     echo "  [FAIL] strategy-承認message陽性: unitKind=messageのapprovedByUser=falseがFAILした" >&2
+    printf '%s\n' "$_rv_out" | sed 's/^/    /' >&2
     rc=1
   fi
 
   local message_bad_approved="$tmp/message-bad-approved.json"
   jq '.unitKind = "message" | .strategy.approvedByUser = true' "$api_pass" > "$message_bad_approved"
-  if run_validate "$message_bad_approved" "" "message" >/dev/null 2>&1; then
+  if _rv_out="$(run_validate "$message_bad_approved" "" "message" 2>&1)"; then
     echo "  [FAIL] strategy-承認message陰性: unitKind=messageでapprovedByUser=trueを受け入れた" >&2
+    printf '%s\n' "$_rv_out" | sed 's/^/    /' >&2
     rc=1
   else
     echo "  [PASS] strategy-承認message陰性: unitKind=messageのapprovedByUser=trueでFAIL"
@@ -1667,8 +1710,9 @@ JSON
   # 検査4(sourceFile-実在)のFAIL確認: sourceFileが実在しないunitsを混入させる
   local api_missing_source="$tmp/api-missing-source.json"
   jq --arg f "$tmp/api-src/routes/does-not-exist.ts" '.units[0].sourceFile = $f' "$api_pass" > "$api_missing_source"
-  if run_validate "$api_missing_source" "" "api" >/dev/null 2>&1; then
+  if _rv_out="$(run_validate "$api_missing_source" "" "api" 2>&1)"; then
     echo "  [FAIL] api陰性: sourceFile不在なのにPASSした" >&2
+    printf '%s\n' "$_rv_out" | sed 's/^/    /' >&2
     rc=1
   else
     echo "  [PASS] api陰性: sourceFile不在でFAIL"
@@ -1676,10 +1720,11 @@ JSON
 
   # --fixでunresolvedへ降格しPASSすることを確認
   local api_fixed="$tmp/api-fixed.json"
-  if run_validate "$api_missing_source" "$api_fixed" "api" >/dev/null 2>&1; then
+  if _rv_out="$(run_validate "$api_missing_source" "$api_fixed" "api" 2>&1)"; then
     echo "  [PASS] api --fix: sourceFile不在エントリをunresolvedへ降格しPASS"
   else
     echo "  [FAIL] api --fix: --fix指定時もFAILした" >&2
+    printf '%s\n' "$_rv_out" | sed 's/^/    /' >&2
     rc=1
   fi
 
@@ -1692,18 +1737,20 @@ JSON
         "callers": ["home-screen"],
         "ioSummary": "ユーザー一覧を返す"
       }' "$api_pass" > "$api_ext_pass"
-  if run_validate "$api_ext_pass" "" "api" >/dev/null 2>&1; then
+  if _rv_out="$(run_validate "$api_ext_pass" "" "api" 2>&1)"; then
     echo "  [PASS] 拡張フィールド陽性: 正しい型の任意フィールド付きでも全11項目PASS"
   else
     echo "  [FAIL] 拡張フィールド陽性: 正しい型の任意フィールドがFAILした" >&2
+    printf '%s\n' "$_rv_out" | sed 's/^/    /' >&2
     rc=1
   fi
 
   # 型違反系: authRequiredが文字列・callersが文字列配列でない場合はFAIL
   local api_ext_bad="$tmp/api-ext-bad.json"
   jq '.units[0] += {"authRequired": "yes", "callers": [1, 2]}' "$api_pass" > "$api_ext_bad"
-  if run_validate "$api_ext_bad" "" "api" >/dev/null 2>&1; then
+  if _rv_out="$(run_validate "$api_ext_bad" "" "api" 2>&1)"; then
     echo "  [FAIL] 拡張フィールド陰性: 型違反(authRequired文字列/callers数値配列)なのにPASSした" >&2
+    printf '%s\n' "$_rv_out" | sed 's/^/    /' >&2
     rc=1
   else
     echo "  [PASS] 拡張フィールド陰性: 型違反でFAIL"
@@ -1712,10 +1759,11 @@ JSON
   # null陽性系: 任意フィールドが明示的nullを持つユニットで型検査がエラーにならないこと
   local api_ext_null="$tmp/api-ext-null.json"
   jq '.units[0] += {"category": null, "authRequired": null, "columnCount": null}' "$api_pass" > "$api_ext_null"
-  if run_validate "$api_ext_null" "" "api" >/dev/null 2>&1; then
+  if _rv_out="$(run_validate "$api_ext_null" "" "api" 2>&1)"; then
     echo "  [PASS] 拡張フィールドnull陽性: 任意フィールドが明示的nullでも全11項目PASS"
   else
     echo "  [FAIL] 拡張フィールドnull陽性: 任意フィールドの明示的nullがFAILした" >&2
+    printf '%s\n' "$_rv_out" | sed 's/^/    /' >&2
     rc=1
   fi
 
@@ -1723,18 +1771,20 @@ JSON
   local api_confirmed_pass="$tmp/api-confirmed-pass.json"
   jq '.units[0] += {"confirmedPermissions": ["admin"], "confirmedSchedule": {"cron": "0 3 * * *", "readable": "毎日 3:00"}}' \
     "$api_pass" > "$api_confirmed_pass"
-  if run_validate "$api_confirmed_pass" "" "api" >/dev/null 2>&1; then
+  if _rv_out="$(run_validate "$api_confirmed_pass" "" "api" 2>&1)"; then
     echo "  [PASS] 1-170: confirmedPermissions(文字列配列)・confirmedSchedule(cron/readable)が正しい型ならPASS"
   else
     echo "  [FAIL] 1-170: 正しい型のconfirmedPermissions/confirmedScheduleがFAILした" >&2
+    printf '%s\n' "$_rv_out" | sed 's/^/    /' >&2
     rc=1
   fi
 
   local api_confirmed_bad="$tmp/api-confirmed-bad.json"
   jq '.units[0] += {"confirmedPermissions": [1, 2], "confirmedSchedule": {"cron": "0 3 * * *"}}' \
     "$api_pass" > "$api_confirmed_bad"
-  if run_validate "$api_confirmed_bad" "" "api" >/dev/null 2>&1; then
+  if _rv_out="$(run_validate "$api_confirmed_bad" "" "api" 2>&1)"; then
     echo "  [FAIL] 1-170: confirmedPermissions(数値配列)・confirmedSchedule(readable欠落)なのにPASSした" >&2
+    printf '%s\n' "$_rv_out" | sed 's/^/    /' >&2
     rc=1
   else
     echo "  [PASS] 1-170: confirmedPermissions/confirmedScheduleの型違反でFAIL"
@@ -1774,10 +1824,15 @@ EOF
   # 陰性: 置換文字(U+FFFD)を含む合成マニフェストでexit 1になり、件数が列挙されること
   local api_replacement_char="$tmp/api-replacement-char.json"
   jq '.units[0].unitNameGuess = "利用者一覧�"' "$api_pass" > "$api_replacement_char"
-  local replacement_char_output
-  replacement_char_output="$(run_validate "$api_replacement_char" "" "api" 2>&1)"
-  if run_validate "$api_replacement_char" "" "api" >/dev/null 2>&1; then
+  local replacement_char_output replacement_char_rc
+  if replacement_char_output="$(run_validate "$api_replacement_char" "" "api" 2>&1)"; then
+    replacement_char_rc=0
+  else
+    replacement_char_rc=$?
+  fi
+  if [ "$replacement_char_rc" -eq 0 ]; then
     echo "  [FAIL] 置換文字-非混入陰性: 置換文字を含むのにPASSした" >&2
+    printf '%s\n' "$replacement_char_output" | sed 's/^/    /' >&2
     rc=1
   elif echo "$replacement_char_output" | grep -q '\[FAIL\] 置換文字-非混入.*1件'; then
     echo "  [PASS] 置換文字-非混入陰性: 置換文字混入でFAILし件数が列挙される"
@@ -1788,10 +1843,11 @@ EOF
   fi
 
   # 陽性: 置換文字を含まない合成マニフェストでは従来どおり通過すること
-  if run_validate "$api_pass" "" "api" >/dev/null 2>&1; then
+  if _rv_out="$(run_validate "$api_pass" "" "api" 2>&1)"; then
     echo "  [PASS] 置換文字-非混入陽性: 置換文字を含まないマニフェストは従来どおりPASS"
   else
     echo "  [FAIL] 置換文字-非混入陽性: 置換文字を含まないのにFAILした" >&2
+    printf '%s\n' "$_rv_out" | sed 's/^/    /' >&2
     rc=1
   fi
 
@@ -1801,20 +1857,26 @@ EOF
   jq '.units[0].valueProvenance = {permissions: "measured"}
       | .units[1].valueProvenance = {schedule: "inferred", relatedField: "confirmed"}' \
     "$api_pass" > "$vp_pass"
-  if run_validate "$vp_pass" "" "api" >/dev/null 2>&1; then
+  if _rv_out="$(run_validate "$vp_pass" "" "api" 2>&1)"; then
     echo "  [PASS] valueProvenance-値域陽性: measured/inferred/confirmedのみならPASS"
   else
     echo "  [FAIL] valueProvenance-値域陽性: 正しい3値のみなのにFAILした" >&2
+    printf '%s\n' "$_rv_out" | sed 's/^/    /' >&2
     rc=1
   fi
 
   # 陰性: 値域外の値を含むマニフェストはFAILし、該当キーが列挙されること
   local vp_fail="$tmp/api-value-provenance-fail.json"
   jq '.units[0].valueProvenance = {permissions: "guessed"}' "$api_pass" > "$vp_fail"
-  local vp_fail_output
-  vp_fail_output="$(run_validate "$vp_fail" "" "api" 2>&1)"
-  if run_validate "$vp_fail" "" "api" >/dev/null 2>&1; then
+  local vp_fail_output vp_fail_rc
+  if vp_fail_output="$(run_validate "$vp_fail" "" "api" 2>&1)"; then
+    vp_fail_rc=0
+  else
+    vp_fail_rc=$?
+  fi
+  if [ "$vp_fail_rc" -eq 0 ]; then
     echo "  [FAIL] valueProvenance-値域陰性: 値域外の値を含むのにPASSした" >&2
+    printf '%s\n' "$vp_fail_output" | sed 's/^/    /' >&2
     rc=1
   elif echo "$vp_fail_output" | grep -q '\[FAIL\] valueProvenance-値域.*valueProvenance\.permissions=guessed'; then
     echo "  [PASS] valueProvenance-値域陰性: 値域外の値でFAILし該当キーが列挙される"
@@ -1854,20 +1916,26 @@ EOF
   table_hist_ext="$table_hist_dir/table-manifest.ext.json"
   bash "$extract_script" "$table_hist_manifest" "$table_hist_dir/migrations" "$table_hist_ext" >/dev/null 2>&1
 
-  if run_validate "$table_hist_ext" "" "table" "$table_hist_dir/migrations" >/dev/null 2>&1; then
+  if _rv_out="$(run_validate "$table_hist_ext" "" "table" "$table_hist_dir/migrations" 2>&1)"; then
     echo "  [PASS] table-メタデータ-履歴突き合わせ陽性: extract-table-metadata.shの再計算値そのものはPASS"
   else
     echo "  [FAIL] table-メタデータ-履歴突き合わせ陽性: 再計算値と自分自身の突き合わせでFAILした" >&2
+    printf '%s\n' "$_rv_out" | sed 's/^/    /' >&2
     rc=1
   fi
 
   # 陰性: columnCountを手動で古い値(後続ALTERを反映しない値)へ書き換えたマニフェストはFAILすること
   local table_hist_stale="$table_hist_dir/table-manifest.stale.json"
   jq '.units[0].columnCount = 2 | .units[0].mainColumns = ["id", "name"]' "$table_hist_ext" > "$table_hist_stale"
-  local table_hist_stale_output
-  table_hist_stale_output="$(run_validate "$table_hist_stale" "" "table" "$table_hist_dir/migrations" 2>&1)"
-  if run_validate "$table_hist_stale" "" "table" "$table_hist_dir/migrations" >/dev/null 2>&1; then
+  local table_hist_stale_output table_hist_stale_rc
+  if table_hist_stale_output="$(run_validate "$table_hist_stale" "" "table" "$table_hist_dir/migrations" 2>&1)"; then
+    table_hist_stale_rc=0
+  else
+    table_hist_stale_rc=$?
+  fi
+  if [ "$table_hist_stale_rc" -eq 0 ]; then
     echo "  [FAIL] table-メタデータ-履歴突き合わせ陰性: 後続ALTERを反映しない古いcolumnCountなのにPASSした" >&2
+    printf '%s\n' "$table_hist_stale_output" | sed 's/^/    /' >&2
     rc=1
   elif echo "$table_hist_stale_output" | grep -q '\[FAIL\] table-メタデータ-履歴突き合わせ.*widget\.columnCount: manifest=2 再計算=3'; then
     echo "  [PASS] table-メタデータ-履歴突き合わせ陰性: 古いcolumnCountでFAILし再計算値との差が列挙される"
@@ -1878,10 +1946,11 @@ EOF
   fi
 
   # スキップ: --migrations-dir未指定、またはunit_kind!=tableの場合はPASS扱い(素通りではなく明示スキップ)
-  if run_validate "$table_hist_ext" "" "table" >/dev/null 2>&1; then
+  if _rv_out="$(run_validate "$table_hist_ext" "" "table" 2>&1)"; then
     echo "  [PASS] table-メタデータ-履歴突き合わせスキップ: --migrations-dir未指定ならPASS扱い"
   else
     echo "  [FAIL] table-メタデータ-履歴突き合わせスキップ: --migrations-dir未指定なのにFAILした" >&2
+    printf '%s\n' "$_rv_out" | sed 's/^/    /' >&2
     rc=1
   fi
 

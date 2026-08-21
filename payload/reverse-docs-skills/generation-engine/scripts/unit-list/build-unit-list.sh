@@ -113,20 +113,23 @@ EOF
     }' > "$manifest_a"
 
   local out_a="$tmp/out-a.html"
-  if bash "$script_path" "$manifest_a" "$out_a" --unit-kind api >/dev/null 2>&1; then
+  local _gt_out_a_run _gt_diff_a
+  if _gt_out_a_run="$(bash "$script_path" "$manifest_a" "$out_a" --unit-kind api 2>&1)"; then
     local embedded_a="$tmp/embedded-a.json"
     local expected_a="$tmp/expected-a.json"
     extract_manifest_json "$out_a" | jq -c -S . > "$embedded_a" 2>/dev/null || true
     # sourceDir/sourceFileは絶対パス(1-102対応で正規化される)なので、期待値も同じ正規化を適用してから比較する
     expected_normalized_manifest "$manifest_a" > "$expected_a"
-    if diff -q "$embedded_a" "$expected_a" >/dev/null 2>&1; then
+    if _gt_diff_a="$(diff -u "$expected_a" "$embedded_a" 2>&1)"; then
       echo "  [PASS] ケースa: バックスラッシュ(\\d+)を含むidentifierでも埋め込みJSONが原本と完全一致"
     else
       echo "  [FAIL] ケースa: バックスラッシュを含むidentifierで埋め込みJSONが原本と不一致(誤爆の疑い)" >&2
+      printf '%s\n' "$_gt_diff_a" | sed 's/^/    /' >&2
       rc=1
     fi
   else
     echo "  [FAIL] ケースa: 生成コマンド自体が失敗した" >&2
+    printf '%s\n' "$_gt_out_a_run" | sed 's/^/    /' >&2
     rc=1
   fi
 
@@ -158,13 +161,14 @@ EOF
     }' > "$manifest_b"
 
   local out_b="$tmp/out-b.html"
-  if bash "$script_path" "$manifest_b" "$out_b" --unit-kind api >/dev/null 2>&1; then
+  local _gt_out_b_run _gt_diff_b
+  if _gt_out_b_run="$(bash "$script_path" "$manifest_b" "$out_b" --unit-kind api 2>&1)"; then
     local embedded_b="$tmp/embedded-b.json"
     local expected_b="$tmp/expected-b.json"
     extract_manifest_json "$out_b" | jq -c -S . > "$embedded_b" 2>/dev/null || true
     # sourceDir/sourceFileは絶対パス(1-102対応で正規化される)なので、期待値も同じ正規化を適用してから比較する
     expected_normalized_manifest "$manifest_b" > "$expected_b"
-    if diff -q "$embedded_b" "$expected_b" >/dev/null 2>&1; then
+    if _gt_diff_b="$(diff -u "$expected_b" "$embedded_b" 2>&1)"; then
       if grep -Fq 'data-unit-key="&#39;&quot; onmouseover=&quot;alert(1)&#39;"' "$out_b" \
         && ! grep -Fq 'onmouseover="alert(1)' "$out_b"; then
         echo "  [PASS] ケースb: 引用符を含むunitKeyを属性値として安全にエスケープし、埋め込みJSONも原本と完全一致"
@@ -174,10 +178,12 @@ EOF
       fi
     else
       echo "  [FAIL] ケースb: 山括弧+マーカー文字列衝突で埋め込みJSONが原本と不一致(誤爆の疑い)" >&2
+      printf '%s\n' "$_gt_diff_b" | sed 's/^/    /' >&2
       rc=1
     fi
   else
     echo "  [FAIL] ケースb: 生成コマンド自体が失敗した" >&2
+    printf '%s\n' "$_gt_out_b_run" | sed 's/^/    /' >&2
     rc=1
   fi
 
@@ -489,14 +495,16 @@ EOF
     }]
   }' > "$ext_manifest"
 
-  if bash "$script_path" "$ext_manifest" "$ext_out" --unit-kind screen >/dev/null 2>&1; then
+  local _gt_ext_run_out
+  if _gt_ext_run_out="$(bash "$script_path" "$ext_manifest" "$ext_out" --unit-kind screen 2>&1)"; then
     extract_manifest_json() { sed -n '/<script type="application\/json" id="screen-manifest">/,/<\/script>/p' "$1" | sed '1d;$d'; }
-    local embedded_keys expected_keys
+    local embedded_keys expected_keys _gt_keys_diff
     extract_manifest_json "$ext_out" | jq -r '.screens[0] | keys | sort | join(",")' > "$tmp/embedded-screen-keys.txt" 2>/dev/null || echo "FAIL" > "$tmp/embedded-screen-keys.txt"
     jq -r '.screens[0] | keys | sort | join(",")' "$ext_manifest" > "$tmp/expected-screen-keys.txt"
-    if ! diff -q "$tmp/embedded-screen-keys.txt" "$tmp/expected-screen-keys.txt" >/dev/null 2>&1; then
+    if ! _gt_keys_diff="$(diff -u "$tmp/expected-screen-keys.txt" "$tmp/embedded-screen-keys.txt" 2>&1)"; then
       roundtrip_ok=0
       echo "  [FAIL] 1-123: 拡張マニフェストの埋め込みキー集合が入力と不一致" >&2
+      printf '%s\n' "$_gt_keys_diff" | sed 's/^/    /' >&2
     fi
 
     # 埋め込みJSONのsourceDirは1-102対応でbasename化されたサニタイズ済みの値のため、
@@ -504,7 +512,8 @@ EOF
     # これによりsourceDirは実パスへ上書きされ、entryFile-実在の検証が正しく解決できる
     # (1-102随伴修正)。entryFile自体はsourceDirプレフィックス除去済みの相対パスのままなので、
     # 期待値側も同じ規則で正規化してから比較する。
-    if bash "$script_dir/restore-screen-manifest.sh" "$ext_out" "$tmp/restored-ext.json" --repo-root "$tmp/src" >/dev/null 2>&1; then
+    local _gt_restore_out
+    if _gt_restore_out="$(bash "$script_dir/restore-screen-manifest.sh" "$ext_out" "$tmp/restored-ext.json" --repo-root "$tmp/src" 2>&1)"; then
       jq -S '
         def normPath($origSd):
           if (type == "string") and startswith("/") then
@@ -522,17 +531,21 @@ EOF
           ))
       ' "$ext_manifest" > "$tmp/ext-sorted.json"
       jq -S . "$tmp/restored-ext.json" > "$tmp/restored-ext-sorted.json"
-      if ! diff -q "$tmp/ext-sorted.json" "$tmp/restored-ext-sorted.json" >/dev/null 2>&1; then
+      local _gt_roundtrip_diff
+      if ! _gt_roundtrip_diff="$(diff -u "$tmp/ext-sorted.json" "$tmp/restored-ext-sorted.json" 2>&1)"; then
         roundtrip_ok=0
         echo "  [FAIL] 1-123: 復元したマニフェストが拡張マニフェスト原本と不一致(往復非同一)" >&2
+        printf '%s\n' "$_gt_roundtrip_diff" | sed 's/^/    /' >&2
       fi
     else
       roundtrip_ok=0
       echo "  [FAIL] 1-123: restore-screen-manifest.shが--repo-root指定でも拡張マニフェスト埋め込みHTMLからの復元に失敗した" >&2
+      printf '%s\n' "$_gt_restore_out" | sed 's/^/    /' >&2
     fi
   else
     roundtrip_ok=0
     echo "  [FAIL] 1-123: 派生フィールド付き拡張マニフェストでの生成コマンド自体が失敗した" >&2
+    printf '%s\n' "$_gt_ext_run_out" | sed 's/^/    /' >&2
   fi
 
   if [ "$roundtrip_ok" -eq 1 ]; then
@@ -648,7 +661,8 @@ EOF
     ]
   }' > "$batch_manifest"
   local batch_out="$tmp/batch-list.html"
-  if bash "$script_path" "$batch_manifest" "$batch_out" --unit-kind batch >/dev/null 2>&1; then
+  local _gt_batch_out_run
+  if _gt_batch_out_run="$(bash "$script_path" "$batch_manifest" "$batch_out" --unit-kind batch 2>&1)"; then
     if grep -Fq 'prov-badge prov-confirmed' "$batch_out" \
       && grep -Fq 'prov-badge prov-inferred' "$batch_out" \
       && grep -Fq 'prov-badge prov-measured' "$batch_out" \
@@ -661,6 +675,7 @@ EOF
     fi
   else
     echo "  [FAIL] 1-170: batch一覧生成コマンド自体が失敗した" >&2
+    printf '%s\n' "$_gt_batch_out_run" | sed 's/^/    /' >&2
     rc=1
   fi
 

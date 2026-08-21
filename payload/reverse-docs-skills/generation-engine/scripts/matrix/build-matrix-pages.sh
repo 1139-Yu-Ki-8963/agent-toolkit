@@ -95,17 +95,19 @@ self_test() {
     local out="$tmp/out-$page_type.html"
     local embedded="$tmp/embedded-$page_type.json"
     local expected="$tmp/expected-$page_type.json"
-    if ! bash "$builder" "$page_type" "$fixture" "$out" >/dev/null 2>&1; then
+    if ! _gt_out1="$(bash "$builder" "$page_type" "$fixture" "$out" 2>&1)"; then
       echo "  [FAIL] $label: 生成コマンド自体が失敗した" >&2
+      printf '%s\n' "$_gt_out1" | sed 's/^/    /' >&2
       rc=1
       return
     fi
     extract_manifest_json "$out" | jq -c -S . > "$embedded" 2>/dev/null || true
     jq -c -S . "$fixture" > "$expected"
-    if diff -q "$embedded" "$expected" >/dev/null 2>&1; then
+    if _gt_out2="$(diff -q "$embedded" "$expected" 2>&1)"; then
       echo "  [PASS] $label: 埋め込みJSONが原本フィクスチャと完全一致"
     else
       echo "  [FAIL] $label: 埋め込みJSONが原本フィクスチャと不一致(誤爆の疑い)" >&2
+      printf '%s\n' "$_gt_out2" | sed 's/^/    /' >&2
       rc=1
     fi
     if [ "$page_type" != "ai-assets" ]; then
@@ -189,10 +191,11 @@ self_test() {
   local prov_expected="$tmp/expected-permission-screen-provenance.json"
   extract_manifest_json "$prov_out" | jq -c -S . > "$prov_embedded" 2>/dev/null || true
   jq -c -S . "$tmp/fixture-permission-screen-provenance.json" > "$prov_expected"
-  if diff -q "$prov_embedded" "$prov_expected" >/dev/null 2>&1; then
+  if _gt_out3="$(diff -q "$prov_embedded" "$prov_expected" 2>&1)"; then
     echo "  [PASS] 1-170: valueProvenance付きpermission-screenの埋め込みJSONが原本フィクスチャと完全一致"
   else
     echo "  [FAIL] 1-170: valueProvenance付きpermission-screenの埋め込みJSONが原本フィクスチャと不一致" >&2
+    printf '%s\n' "$_gt_out3" | sed 's/^/    /' >&2
     rc=1
   fi
 
@@ -330,21 +333,24 @@ NODE
   jq -n '{generatedAt: "2026-01-01T00:00:00Z", dataSource: "test", questions: []}' \
     > "$tmp/fixture-confirmation-survey-empty.json"
   local cs_empty_out="$tmp/out-confirmation-survey-empty.html"
-  if bash "$script_path" confirmation-survey "$tmp/fixture-confirmation-survey-empty.json" "$cs_empty_out" >/dev/null 2>&1 \
+  local _gt_cs_empty_run
+  if _gt_cs_empty_run="$(bash "$script_path" confirmation-survey "$tmp/fixture-confirmation-survey-empty.json" "$cs_empty_out" 2>&1)" \
     && [ -f "$cs_empty_out" ]; then
     echo "  [PASS] confirmation-survey(questions 0件): ALWAYS_GENERATEによりSKIPされずページを生成"
   else
     echo "  [FAIL] confirmation-survey(questions 0件): ページが生成されなかった(ALWAYS_GENERATEが機能していない)" >&2
+    printf '%s\n' "$_gt_cs_empty_run" | sed 's/^/    /' >&2
     rc=1
   fi
   local cs_empty_embedded="$tmp/embedded-confirmation-survey-empty.json"
   local cs_empty_expected="$tmp/expected-confirmation-survey-empty.json"
   extract_manifest_json "$cs_empty_out" | jq -c -S . > "$cs_empty_embedded" 2>/dev/null || true
   jq -c -S . "$tmp/fixture-confirmation-survey-empty.json" > "$cs_empty_expected"
-  if diff -q "$cs_empty_embedded" "$cs_empty_expected" >/dev/null 2>&1; then
+  if _gt_out4="$(diff -q "$cs_empty_embedded" "$cs_empty_expected" 2>&1)"; then
     echo "  [PASS] confirmation-survey(questions 0件): 埋め込みJSONが原本フィクスチャと完全一致"
   else
     echo "  [FAIL] confirmation-survey(questions 0件): 埋め込みJSONが原本フィクスチャと不一致" >&2
+    printf '%s\n' "$_gt_out4" | sed 's/^/    /' >&2
     rc=1
   fi
 
@@ -367,11 +373,13 @@ NODE
   cp "$(cd "$(dirname "$script_path")/../../../delivery-payload/templates" && pwd)"/matrix/*.html "$token_fixture_payload_root/templates/matrix/"
   cp "$(cd "$(dirname "$script_path")/../../../delivery-payload/templates" && pwd)"/partials/*.css "$(cd "$(dirname "$script_path")/../../../delivery-payload/templates" && pwd)"/partials/*.html "$token_fixture_payload_root/templates/partials/"
   printf '\n.fixture-token-proof { color: rgb(1, 2, 3); }\n' >> "$token_fixture_payload_root/templates/tokens.css"
-  if bash "$token_fixture_script" crud "$tmp/fixture-crud.json" "$token_fixture_out" >/dev/null 2>&1 \
+  local _gt_token_fixture_run
+  if _gt_token_fixture_run="$(bash "$token_fixture_script" crud "$tmp/fixture-crud.json" "$token_fixture_out" 2>&1)" \
     && grep -qF '.fixture-token-proof { color: rgb(1, 2, 3); }' "$token_fixture_out"; then
     echo "  [PASS] tokens.css変更fixture: 再生成HTMLへ正本変更が反映"
   else
     echo "  [FAIL] tokens.css変更fixture: 再生成HTMLへ正本変更が未反映" >&2
+    printf '%s\n' "$_gt_token_fixture_run" | sed 's/^/    /' >&2
     rc=1
   fi
 
@@ -443,12 +451,14 @@ NODE
          confidence: "high", relatedApis: ["users-list"]}
       ]
     }' > "$chain_dir/feature-manifest.json"
-    if ! bash "$data_script" "$chain_dir/data" \
+    local _gt_chain_data_run
+    if ! _gt_chain_data_run="$(bash "$data_script" "$chain_dir/data" \
         --screen-manifest "$chain_dir/screen-manifest.json" \
         --api-manifest "$chain_dir/api-manifest.json" \
         --table-manifest "$chain_dir/table-manifest.json" \
-        --feature-manifest "$chain_dir/feature-manifest.json" >/dev/null 2>&1; then
+        --feature-manifest "$chain_dir/feature-manifest.json" 2>&1)"; then
       echo "  [FAIL] 連結ケース: build-matrix-data.sh の実行自体が失敗した" >&2
+      printf '%s\n' "$_gt_chain_data_run" | sed 's/^/    /' >&2
       rc=1
     else
       run_case "連結(permission-screen): data実出力から生成" "permission-screen" "$chain_dir/data/permission-matrix.json"
@@ -493,16 +503,18 @@ NODE
   # --- 検証の負ケース: 必須キー欠落は非0 exitすること ---
   jq -n '{generatedAt: "2026-01-01T00:00:00Z", dataSource: "x", tables: []}' \
     > "$tmp/fixture-crud-missing.json"
-  if bash "$script_path" crud "$tmp/fixture-crud-missing.json" "$tmp/out-missing.html" >/dev/null 2>&1; then
+  if _gt_out6="$(bash "$script_path" crud "$tmp/fixture-crud-missing.json" "$tmp/out-missing.html" 2>&1)"; then
     echo "  [FAIL] 負ケース: features欠落のcrudデータが検証を素通りした" >&2
+    printf '%s\n' "$_gt_out6" | sed 's/^/    /' >&2
     rc=1
   else
     echo "  [PASS] 負ケース: features欠落のcrudデータを非0 exitで拒否"
   fi
 
   # --- 検証の負ケース: 未知のpage-typeは非0 exitすること ---
-  if bash "$script_path" unknown-type "$tmp/fixture-crud.json" "$tmp/out-unknown.html" >/dev/null 2>&1; then
+  if _gt_out7="$(bash "$script_path" unknown-type "$tmp/fixture-crud.json" "$tmp/out-unknown.html" 2>&1)"; then
     echo "  [FAIL] 負ケース: 未知のpage-typeが素通りした" >&2
+    printf '%s\n' "$_gt_out7" | sed 's/^/    /' >&2
     rc=1
   else
     echo "  [PASS] 負ケース: 未知のpage-typeを非0 exitで拒否"

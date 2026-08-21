@@ -141,18 +141,20 @@ self_test() {
   mkdir -p "$base/delivery-payload/references"
   : > "$base/delivery-payload/references/target.md"
   printf '%s\n' '参照: [対象](target.md)' > "$base/delivery-payload/references/source.md"
-  if scan "$base" >/dev/null 2>&1; then
+  if _gt_out1="$(scan "$base" 2>&1)"; then
     echo "[PASS] 実在するファイルへのMarkdownリンクは違反にしない"; pass=$((pass + 1))
   else
     echo "[FAIL] 実在するファイルへのMarkdownリンクは違反にしない"; fail=$((fail + 1))
+    printf '%s\n' "$_gt_out1" | sed 's/^/    /' >&2
   fi
   rm -rf "$base"
 
   # ケース2: 実在しないファイルへのMarkdownリンクを違反と判定する
   mkdir -p "$base/delivery-payload/references"
   printf '%s\n' '参照: [不在](absent.md)' > "$base/delivery-payload/references/source.md"
-  if scan "$base" >/dev/null 2>&1; then
+  if _gt_out2="$(scan "$base" 2>&1)"; then
     echo "[FAIL] 実在しないファイルへのMarkdownリンクを違反と判定する"; fail=$((fail + 1))
+    printf '%s\n' "$_gt_out2" | sed 's/^/    /' >&2
   else
     echo "[PASS] 実在しないファイルへのMarkdownリンクを違反と判定する"; pass=$((pass + 1))
   fi
@@ -161,18 +163,20 @@ self_test() {
   # ケース3: *.html は対象外にする（テンプレートのプレースホルダ等の誤検出を防ぐ）
   mkdir -p "$base/generation-engine/samples"
   printf '%s\n' '<a href="{{BACK_LINK}}">戻る</a>' > "$base/generation-engine/samples/page.html"
-  if scan "$base" >/dev/null 2>&1; then
+  if _gt_out3="$(scan "$base" 2>&1)"; then
     echo "[PASS] *.htmlは対象外にする"; pass=$((pass + 1))
   else
     echo "[FAIL] *.htmlは対象外にする"; fail=$((fail + 1))
+    printf '%s\n' "$_gt_out3" | sed 's/^/    /' >&2
   fi
   rm -rf "$base"
 
   # ケース4: バッククォートで囲まれた実在しないパスを違反と判定する
   mkdir -p "$base/generation-engine/scripts"
   printf '%s\n' '設計判断は `generation-engine/scripts/absent.sh` を参照する' > "$base/generation-engine/scripts/note.md"
-  if scan "$base" >/dev/null 2>&1; then
+  if _gt_out4="$(scan "$base" 2>&1)"; then
     echo "[FAIL] バッククォートの実在しないパスを違反と判定する"; fail=$((fail + 1))
+    printf '%s\n' "$_gt_out4" | sed 's/^/    /' >&2
   else
     echo "[PASS] バッククォートの実在しないパスを違反と判定する"; pass=$((pass + 1))
   fi
@@ -181,10 +185,11 @@ self_test() {
   # ケース5: 外部参照・アンカーのみ・ホーム配下は対象外にする
   mkdir -p "$base/delivery-payload"
   printf '%s\n' '[外部](https://example.com/x.md) [アンカー](#top) [ホーム](~/agent-home/foo.md)' > "$base/delivery-payload/note.md"
-  if scan "$base" >/dev/null 2>&1; then
+  if _gt_out5="$(scan "$base" 2>&1)"; then
     echo "[PASS] 外部・アンカーのみ・ホーム配下は対象外にする"; pass=$((pass + 1))
   else
     echo "[FAIL] 外部・アンカーのみ・ホーム配下は対象外にする"; fail=$((fail + 1))
+    printf '%s\n' "$_gt_out5" | sed 's/^/    /' >&2
   fi
   rm -rf "$base"
 
@@ -192,29 +197,32 @@ self_test() {
   mkdir -p "$base/generation-engine/scripts/nested" "$base/delivery-payload/references"
   : > "$base/delivery-payload/references/root-relative.md"
   printf '%s\n' '[ルート相対](delivery-payload/references/root-relative.md)' > "$base/generation-engine/scripts/nested/deep.md"
-  if scan "$base" >/dev/null 2>&1; then
+  if _gt_out6="$(scan "$base" 2>&1)"; then
     echo "[PASS] リポジトリルート起点でも解決できれば違反にしない"; pass=$((pass + 1))
   else
     echo "[FAIL] リポジトリルート起点でも解決できれば違反にしない"; fail=$((fail + 1))
+    printf '%s\n' "$_gt_out6" | sed 's/^/    /' >&2
   fi
   rm -rf "$base"
 
   # ケース7: 拡張子を持たない候補（画面名などの素の語句）は対象外にする
   mkdir -p "$base/delivery-payload/templates"
   printf '%s\n' '[画面遷移](画面遷移)' > "$base/delivery-payload/templates/detail-t4-diagram.md"
-  if scan "$base" >/dev/null 2>&1; then
+  if _gt_out7="$(scan "$base" 2>&1)"; then
     echo "[PASS] 拡張子を持たない候補は対象外にする"; pass=$((pass + 1))
   else
     echo "[FAIL] 拡張子を持たない候補は対象外にする"; fail=$((fail + 1))
+    printf '%s\n' "$_gt_out7" | sed 's/^/    /' >&2
   fi
   rm -rf "$base"
 
   # ケース8: 対象が1件も無い場合は合格と判定する
   mkdir -p "$base"
-  if scan "$base" >/dev/null 2>&1; then
+  if _gt_out8="$(scan "$base" 2>&1)"; then
     echo "[PASS] 対象が1件も無い場合は合格と判定する"; pass=$((pass + 1))
   else
     echo "[FAIL] 対象が1件も無い場合は合格と判定する"; fail=$((fail + 1))
+    printf '%s\n' "$_gt_out8" | sed 's/^/    /' >&2
   fi
   rm -rf "$base"
 

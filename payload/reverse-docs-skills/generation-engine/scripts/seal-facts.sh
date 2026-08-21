@@ -158,17 +158,20 @@ YML
   rc=0
 
   # 系1: seal → verify 成功
-  if cmd_seal "$dir" >/dev/null 2>&1 && cmd_verify "$dir" >/dev/null 2>&1; then
+  local _gt_seal1_out _gt_verify1_out
+  if _gt_seal1_out="$(cmd_seal "$dir" 2>&1)" && _gt_verify1_out="$(cmd_verify "$dir" 2>&1)"; then
     echo "  [PASS] 系1: seal直後のverifyが成功する"
   else
     echo "  [FAIL] 系1: seal直後のverifyが失敗した" >&2
+    printf '%s\n%s\n' "$_gt_seal1_out" "${_gt_verify1_out:-}" | sed 's/^/    /' >&2
     rc=1
   fi
 
   # 系2: 改ざん（実体データを書き換え）→ verify 失敗
   sed -E 's/useState/useReducer/' "$dir/facts.yml" > "$dir/facts.yml.tmp" && mv "$dir/facts.yml.tmp" "$dir/facts.yml"
-  if cmd_verify "$dir" >/dev/null 2>&1; then
+  if _gt_out2="$(cmd_verify "$dir" 2>&1)"; then
     echo "  [FAIL] 系2: facts.ymlを改ざんしたのにverifyが成功した" >&2
+    printf '%s\n' "$_gt_out2" | sed 's/^/    /' >&2
     rc=1
   else
     echo "  [PASS] 系2: facts.ymlの改ざんをverifyが検知した"
@@ -335,11 +338,12 @@ YML
   cmd_seal "$ver_dir" >/dev/null 2>&1
   sed -E 's/useEffect/useLayoutEffect/' "$ver_dir/facts.yml" > "$ver_dir/facts.yml.tmp" && mv "$ver_dir/facts.yml.tmp" "$ver_dir/facts.yml"
   ver_tamper_rc=0
-  cmd_verify "$ver_dir" >/dev/null 2>&1 || ver_tamper_rc=$?
+  ver_tamper_out="$(cmd_verify "$ver_dir" 2>&1)" || ver_tamper_rc=$?
   if [ "$ver_tamper_rc" -eq 1 ]; then
     echo "  [PASS] 1-154c: 版が一致していても内容改変は従来どおり改竄としてexit 1で検知される"
   else
     echo "  [FAIL] 1-154c: 版一致下での内容改変が改竄として検知されなかった（rc=${ver_tamper_rc}）" >&2
+    printf '%s\n' "$ver_tamper_out" | sed 's/^/    /' >&2
     rc=1
   fi
 

@@ -208,8 +208,9 @@ EOF
   }
 }
 EOF
-  if resolve_rule_scope_overrides "$tmp" >/dev/null 2>&1; then
+  if _gt_out3="$(resolve_rule_scope_overrides "$tmp" 2>&1)"; then
     echo "  [FAIL] ケース4: scope:scoped で paths 省略が不合格にならない" >&2
+    printf '%s\n' "$_gt_out3" | sed 's/^/    /' >&2
     rc=1
   else
     echo "  [PASS] ケース4: scope:scoped で paths 省略は不合格になる"
@@ -243,8 +244,9 @@ EOF
   }
 }
 EOF
-  if resolve_rule_scope_overrides "$tmp" >/dev/null 2>&1; then
+  if _gt_out4="$(resolve_rule_scope_overrides "$tmp" 2>&1)"; then
     echo "  [FAIL] ケース6: 不正な scope 値が不合格にならない" >&2
+    printf '%s\n' "$_gt_out4" | sed 's/^/    /' >&2
     rc=1
   else
     echo "  [PASS] ケース6: 不正な scope 値は不合格になる"

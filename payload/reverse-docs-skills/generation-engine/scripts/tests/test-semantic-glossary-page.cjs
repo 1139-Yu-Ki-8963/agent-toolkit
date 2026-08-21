@@ -17,13 +17,18 @@ const template = path.join(root, 'delivery-payload/templates/detail-pages/detail
 const portalCatalog = path.join(root, 'delivery-payload/references/portal-catalog.json');
 const sampleFixture = path.join(root, 'generation-engine/scripts/detail-pages/fixtures/semantic-glossary-sample-page-data.json');
 const sampleRegenerator = path.join(root, 'generation-engine/scripts/detail-pages/regenerate-semantic-glossary-sample.sh');
-const outputLayoutSh = path.join(root, 'generation-engine/scripts/output-layout.sh');
 const samplesDir = path.join(root, 'generation-engine/samples');
-const unitsRootRel = cp
-  .execFileSync('bash', ['-c', `source "$1"; layout="$(resolve_output_layout "$2")" || exit 1; output_layout_get "$layout" unitsRoot`, '--', outputLayoutSh, samplesDir])
-  .toString()
-  .trim();
-const sampleHtml = path.join(samplesDir, unitsRootRel, '用語辞書', '用語辞書.html');
+// 改善課題1-29: samplesDir（generation-engine/samples）は output-layout.json の
+// unitsRoot（対象プロジェクト向けの英字ディレクトリ規約 "project-portal/lists"）ではなく、
+// portal-catalog.json の semantic-glossary blueprint が宣言する物理配置（日本語の
+// "project-portal/一覧/用語辞書"）に実際に置かれている。output_layout_get 経由の解決は
+// samplesDir に対しては実体と一致せず ENOENT を起こすため、実体の唯一の正本である
+// portal-catalog.json の blueprint.dir を直接読む。
+const semanticGlossaryBlueprint = JSON.parse(fs.readFileSync(portalCatalog, 'utf8'))
+  .categories.flatMap(category => category.blueprints || [])
+  .find(blueprint => blueprint.kind === 'semantic-glossary');
+assert.ok(semanticGlossaryBlueprint, 'portal-catalog.json must declare a semantic-glossary blueprint');
+const sampleHtml = path.join(samplesDir, semanticGlossaryBlueprint.dir, '用語辞書.html');
 const glossaryPython = path.join(root, 'generation-engine/scripts/glossary/.venv/bin/python');
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'semantic-glossary-page-'));
 

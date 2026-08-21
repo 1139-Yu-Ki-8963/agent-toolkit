@@ -73,65 +73,74 @@ self_test() {
   : > "$base/.claude/skills/a/references/guide.html"
 
   printf '%s\n' '## 適用対象' '`docs/present.html` は対象から外す。' '`*.html` は対象である。' '## カラーシステム' > "$ruledir/rule.md"
-  if scan "$base" >/dev/null 2>&1; then
+  if _gt_out1="$(scan "$base" 2>&1)"; then
     echo "[PASS] 実在する除外先だけの規約を合格と判定する"; pass=$((pass + 1))
   else
     echo "[FAIL] 実在する除外先だけの規約を合格と判定する"; fail=$((fail + 1))
+    printf '%s\n' "$_gt_out1" | sed 's/^/    /' >&2
   fi
 
   printf '%s\n' '## 適用対象' '`.claude/skills/*/references/guide.html` は対象から外す。' '## カラーシステム' > "$ruledir/rule.md"
-  if scan "$base" >/dev/null 2>&1; then
+  if _gt_out2="$(scan "$base" 2>&1)"; then
     echo "[PASS] 星印を含む書き方を1件でも当たれば実在と判定する"; pass=$((pass + 1))
   else
     echo "[FAIL] 星印を含む書き方を1件でも当たれば実在と判定する"; fail=$((fail + 1))
+    printf '%s\n' "$_gt_out2" | sed 's/^/    /' >&2
   fi
 
   printf '%s\n' '## 適用対象' '`docs/absent.html` は対象から外す。' '## カラーシステム' > "$ruledir/rule.md"
-  if scan "$base" >/dev/null 2>&1; then
+  if _gt_out3="$(scan "$base" 2>&1)"; then
     echo "[FAIL] 不在の除外先を不合格と判定する"; fail=$((fail + 1))
+    printf '%s\n' "$_gt_out3" | sed 's/^/    /' >&2
   else
     echo "[PASS] 不在の除外先を不合格と判定する"; pass=$((pass + 1))
   fi
 
   printf '%s\n' '## 適用対象' '`docs/present.html` は対象から外す。' '## カラーシステム' '`docs/absent.html` は別の節の記述である。' > "$ruledir/rule.md"
-  if scan "$base" >/dev/null 2>&1; then
+  if _gt_out4="$(scan "$base" 2>&1)"; then
     echo "[PASS] 適用対象の節の外は見ない"; pass=$((pass + 1))
   else
     echo "[FAIL] 適用対象の節の外は見ない"; fail=$((fail + 1))
+    printf '%s\n' "$_gt_out4" | sed 's/^/    /' >&2
   fi
 
-  if scan "$tmp/none" >/dev/null 2>&1; then
+  if _gt_out5="$(scan "$tmp/none" 2>&1)"; then
     echo "[PASS] 規約が無い場合は合格と判定する"; pass=$((pass + 1))
   else
     echo "[FAIL] 規約が無い場合は合格と判定する"; fail=$((fail + 1))
+    printf '%s\n' "$_gt_out5" | sed 's/^/    /' >&2
   fi
 
   printf '%s\n' '## 適用対象' '`docs/present.html:36` は対象から外す。' '## カラーシステム' > "$ruledir/rule.md"
-  if scan "$base" >/dev/null 2>&1; then
+  if _gt_out6="$(scan "$base" 2>&1)"; then
     echo "[PASS] 実在する除外先に添えた行番号を無視して合格と判定する"; pass=$((pass + 1))
   else
     echo "[FAIL] 実在する除外先に添えた行番号を無視して合格と判定する"; fail=$((fail + 1))
+    printf '%s\n' "$_gt_out6" | sed 's/^/    /' >&2
   fi
 
   printf '%s\n' '## 適用対象' '`docs/present.html:36-42` は対象から外す。' '## カラーシステム' > "$ruledir/rule.md"
-  if scan "$base" >/dev/null 2>&1; then
+  if _gt_out7="$(scan "$base" 2>&1)"; then
     echo "[PASS] 実在する除外先に添えた行範囲を無視して合格と判定する"; pass=$((pass + 1))
   else
     echo "[FAIL] 実在する除外先に添えた行範囲を無視して合格と判定する"; fail=$((fail + 1))
+    printf '%s\n' "$_gt_out7" | sed 's/^/    /' >&2
   fi
 
   printf '%s\n' '## 適用対象' '`docs/absent.html:36-42` は対象から外す。' '## カラーシステム' > "$ruledir/rule.md"
-  if scan "$base" >/dev/null 2>&1; then
+  if _gt_out8="$(scan "$base" 2>&1)"; then
     echo "[FAIL] 不在の除外先に添えた行範囲を不合格と判定する"; fail=$((fail + 1))
+    printf '%s\n' "$_gt_out8" | sed 's/^/    /' >&2
   else
     echo "[PASS] 不在の除外先に添えた行範囲を不合格と判定する"; pass=$((pass + 1))
   fi
 
   printf '%s\n' '## 適用対象' '`docs/present.html:reference` は対象から外す。' '## カラーシステム' > "$ruledir/rule.md"
-  if scan "$base" >/dev/null 2>&1; then
+  if _gt_out9="$(scan "$base" 2>&1)"; then
     echo "[PASS] 行番号ではないコロンを含む記述を候補外と判定する"; pass=$((pass + 1))
   else
     echo "[FAIL] 行番号ではないコロンを含む記述を候補外と判定する"; fail=$((fail + 1))
+    printf '%s\n' "$_gt_out9" | sed 's/^/    /' >&2
   fi
 
   rm -rf "$tmp"

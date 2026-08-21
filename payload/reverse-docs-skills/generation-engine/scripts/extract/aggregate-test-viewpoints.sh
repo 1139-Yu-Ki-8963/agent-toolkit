@@ -96,11 +96,18 @@ EOF
     return 1
   fi
   printf '<script type="application/json">%s</script>\n' "$(jq -c . "$manifest")" > "$manifest_only"
+  # 1-244: build-portal.sh（portal-catalog.mjsのresolveDefaultRootPrefix）は
+  # test-viewpoint-list blueprintのdiscovery.glob（project-portal/一覧/テスト観点表/
+  # テスト観点表.html。旧配置）の既定接頭辞（defaultRoots.unitsRoot=project-portal/
+  # 一覧）だけをoutput-layout.jsonの現行unitsRoot（1-208でproject-portal/listsへ
+  # 英数字化済み）へ動的置換して連結先を解決する。$html の生成（55・61行目）は
+  # 既に units_root 経由で新配置に追従済みだったが、この連結確認だけが旧配置の
+  # 文字列を直書きしたまま取り残されていた。
   if jq -e '.summary.totalCount == 2 and ([.units[].testType] | sort == ["integration", "unit"])' "$manifest" >/dev/null 2>&1 \
     && has_visible_viewpoint_row "$html" "screen-orders-unit-1" "入力必須" "screen-orders" "単体" \
     && has_visible_viewpoint_row "$html" "screen-orders-integration-1" "登録遷移" "screen-orders" "結合" \
     && ! has_visible_viewpoint_row "$manifest_only" "screen-orders-unit-1" "入力必須" "screen-orders" "単体" \
-    && grep -q '一覧/テスト観点表/テスト観点表.html' "$portal/index.html"; then
+    && grep -qF "${units_root}/テスト観点表/テスト観点表.html" "$portal/index.html"; then
     echo "self-test PASS: テスト観点表の集約→検証→HTML→ポータル連結（既存正本パス維持）"
   else
     echo "self-test FAIL: テスト観点表の連結結果または正本パスが不正" >&2

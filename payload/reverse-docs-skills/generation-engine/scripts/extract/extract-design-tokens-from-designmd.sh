@@ -243,7 +243,8 @@ EOF
   # --- ケースd: 生成HTMLをNodeのDOMスタブで実行し、実行時例外が発生しないこと ---
   if command -v node >/dev/null 2>&1; then
     local outdir_html="$tmp/out-html"
-    if bash "$detail_pages_dir/build-detail-page.sh" "$out_json_fm" "$outdir_html" --page design-system >/dev/null 2>&1; then
+    local _gt_build_html_out
+    if _gt_build_html_out="$(bash "$detail_pages_dir/build-detail-page.sh" "$out_json_fm" "$outdir_html" --page design-system 2>&1)"; then
       local html_file="$outdir_html/デザインシステム.html"
       cat > "$tmp/dom-smoke.cjs" <<'NODE'
 const fs = require('fs');
@@ -319,6 +320,7 @@ NODE
       fi
     else
       echo "  [FAIL] ケースd: build-detail-page.shによるHTML生成自体が失敗した" >&2
+      printf '%s\n' "$_gt_build_html_out" | sed 's/^/    /' >&2
       rc=1
     fi
   else

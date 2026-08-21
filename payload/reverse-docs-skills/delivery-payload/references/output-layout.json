@@ -5,7 +5,7 @@
     "fileNames": "日本語を使ってよい",
     "displayHeadings": "閲覧する側に表示する見出しは、ディレクトリ名から導出せず displayLabels と kindLabels が持つ",
     "reason": "日本語のディレクトリは3つの不具合を起こす。履歴管理の道具が経路を8進数へ変換して表示するため経路の文字列での絞り込みが一致しない。経路を場所の指定へ埋め込む際に変換が要り、変換の有無が食い違うと一致しない。基本ソフトによる文字の正規化の違いで、同じ名前が合成済みと分解の2通りで記録されうる",
-    "unitPhaseLayout": "単位ディレクトリ（<kindUnitRoot>/<kind>-<unit_id>）の直下に、階層を作って配置する（1つのディレクトリへ並べる方式は採らない）。基本設計・詳細設計のフォルダ名は unitPhaseDirNames の basic・detail が指す値を正とする。単体テスト設計のフォルダ名は unitTestDesignDir を正とする（1-208で対象キー外としたため日本語のまま残す。unitPhaseDirNames に test を持たせず単一の情報源に保つ）。根拠を記録する資料（unitEvidenceLedgerFile が指すファイル名）は、これらの配置フォルダと同じ階層（単位ディレクトリの直下）に置く"
+    "unitPhaseLayout": "単位ディレクトリ（<kindUnitRoot>/<kind>-<unit_id>）の直下に、階層を作って配置する（1つのディレクトリへ並べる方式は採らない）。基本設計・詳細設計のフォルダ名は unitPhaseDirNames の basic・detail が指す値を正とする。単体テスト設計のフォルダ名は unitTestDesignDir を正とする（1-208で対象キー外としたため日本語のまま残す。unitPhaseDirNames に test を持たせず単一の情報源に保つ）。根拠を記録する資料（unitEvidenceLedgerFile が指すファイル名）と、要確認事項への回答・反映の履歴（unitConfirmationLedgerFile が指すファイル名。1-220）は、これらの配置フォルダと同じ階層（単位ディレクトリの直下）に置く"
   },
   "unitPhaseDirNames": {
     "basic": "basic-design",
@@ -42,6 +42,7 @@
     "commonRoot": "docs/design/common",
     "commonDocumentEvidenceLedger": "docs/design/cross-cutting/共通文書根拠台帳.md",
     "unitEvidenceLedgerFile": "設計単位根拠台帳.md",
+    "unitConfirmationLedgerFile": "要確認事項台帳.json",
     "unitListDir": "project-portal/lists/{labelDir}",
     "unitListHtml": "project-portal/lists/{labelDir}/{label}一覧.html",
     "unitListAbsentMd": "docs/manifests/{label}一覧（該当なし）.md",

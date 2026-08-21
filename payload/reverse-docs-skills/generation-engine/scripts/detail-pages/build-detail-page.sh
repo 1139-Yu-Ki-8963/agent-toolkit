@@ -83,17 +83,20 @@ self_test() {
     }' > "$data_a"
 
   local outdir_a="$tmp/out-a"
-  if bash "$script_path" "$data_a" "$outdir_a" --page techstack >/dev/null 2>&1; then
+  local _gt_build_a_out
+  if _gt_build_a_out="$(bash "$script_path" "$data_a" "$outdir_a" --page techstack 2>&1)"; then
     local out_html="$outdir_a/技術スタック.html"
     if [ -f "$out_html" ]; then
       local embedded_a="$tmp/embedded-a.json"
       local expected_a="$tmp/expected-a.json"
+      local _gt_diff_a
       extract_page_data_json "$out_html" | jq -c -S . > "$embedded_a" 2>/dev/null || true
       jq -c -S . "$data_a" > "$expected_a"
-      if diff -q "$embedded_a" "$expected_a" >/dev/null 2>&1; then
+      if _gt_diff_a="$(diff -u "$expected_a" "$embedded_a" 2>&1)"; then
         echo "  [PASS] ケースa: バックスラッシュ・マーカー文字列衝突を含むpage-dataでも埋め込みJSONが原本と完全一致"
       else
         echo "  [FAIL] ケースa: 埋め込みJSONが原本と不一致(誤爆の疑い)" >&2
+        printf '%s\n' "$_gt_diff_a" | sed 's/^/    /' >&2
         rc=1
       fi
       # page-data埋め込みブロック(意図的にマーカー衝突文字列を含む)を除いた範囲でのみ
@@ -114,6 +117,7 @@ self_test() {
   else
     echo "  [FAIL] ケースa: 生成コマンド自体が失敗した" >&2
     echo "  [FAIL] ケースb: 生成コマンド自体が失敗したため判定不能" >&2
+    printf '%s\n' "$_gt_build_a_out" | sed 's/^/    /' >&2
     rc=1
   fi
 
@@ -121,17 +125,19 @@ self_test() {
   local data_bad="$tmp/page-data-bad.json"
   jq '.pageKind = "unknown-kind"' "$data_a" > "$data_bad"
 
-  if bash "$script_dir/validate-page-data.sh" "$data_a" >/dev/null 2>&1 \
-     && ! bash "$script_dir/validate-page-data.sh" "$data_bad" >/dev/null 2>&1; then
+  if _gt_out2="$(bash "$script_dir/validate-page-data.sh" "$data_a" >/dev/null 2>&1 \
+     && ! bash "$script_dir/validate-page-data.sh" "$data_bad" 2>&1)"; then
     echo "  [PASS] ケースc: validate-page-dataが正常系PASS・異常系(pageKind不正)FAILを正しく返す"
   else
     echo "  [FAIL] ケースc: validate-page-dataのPASS/FAIL判定が期待通りでない" >&2
+    printf '%s\n' "$_gt_out2" | sed 's/^/    /' >&2
     rc=1
   fi
 
   local outdir_bad="$tmp/out-bad"
-  if bash "$script_path" "$data_bad" "$outdir_bad" --page techstack >/dev/null 2>&1; then
+  if _gt_out3="$(bash "$script_path" "$data_bad" "$outdir_bad" --page techstack 2>&1)"; then
     echo "  [FAIL] ケースc補: pageKind不正データの生成が誤ってPASSした" >&2
+    printf '%s\n' "$_gt_out3" | sed 's/^/    /' >&2
     rc=1
   else
     echo "  [PASS] ケースc補: pageKind不正データはbuild-detail-page.shでも正しくexit 1"
@@ -156,16 +162,18 @@ self_test() {
     unresolved: []
   }' > "$data_orphan"
 
-  if bash "$script_dir/validate-page-data.sh" "$data_orphan" >/dev/null 2>&1; then
+  if _gt_out4="$(bash "$script_dir/validate-page-data.sh" "$data_orphan" 2>&1)"; then
     echo "  [FAIL] ケースc補2: 孤児edge混入データがvalidate-page-data.shで誤ってPASSした" >&2
+    printf '%s\n' "$_gt_out4" | sed 's/^/    /' >&2
     rc=1
   else
     echo "  [PASS] ケースc補2: 孤児edge混入データはvalidate-page-data.shで正しくexit 1"
   fi
 
   local outdir_orphan="$tmp/out-orphan"
-  if bash "$script_path" "$data_orphan" "$outdir_orphan" --page transition >/dev/null 2>&1; then
+  if _gt_out5="$(bash "$script_path" "$data_orphan" "$outdir_orphan" --page transition 2>&1)"; then
     echo "  [FAIL] ケースc補2: 孤児edge混入データの生成がbuild-detail-page.shで誤ってPASSした" >&2
+    printf '%s\n' "$_gt_out5" | sed 's/^/    /' >&2
     rc=1
   else
     echo "  [PASS] ケースc補2: 孤児edge混入データはbuild-detail-page.shでも正しくexit 1"
@@ -176,8 +184,9 @@ self_test() {
     local page="$1" data_file="$2"
     local outdir="$tmp/out-$page"
     local expected_filename="$(get_page_filename "$page")"
-    if ! bash "$script_path" "$data_file" "$outdir" --page "$page" >/dev/null 2>&1; then
+    if ! _gt_out6="$(bash "$script_path" "$data_file" "$outdir" --page "$page" 2>&1)"; then
       echo "  [FAIL] ケースd(${page}): 生成コマンド自体が失敗した" >&2
+      printf '%s\n' "$_gt_out6" | sed 's/^/    /' >&2
       rc=1
       return
     fi
@@ -194,10 +203,11 @@ self_test() {
     expected="$tmp/expected-${page}.json"
     extract_page_data_json "$out_html" | jq -c -S . > "$embedded" 2>/dev/null || true
     jq -c -S . "$data_file" > "$expected"
-    if diff -q "$embedded" "$expected" >/dev/null 2>&1; then
+    if _gt_out7="$(diff -q "$embedded" "$expected" 2>&1)"; then
       echo "  [PASS] ケースd(${page}): 埋め込みJSONが原本と完全一致"
     else
       echo "  [FAIL] ケースd(${page}): 埋め込みJSONが原本と不一致(誤爆の疑い)" >&2
+      printf '%s\n' "$_gt_out7" | sed 's/^/    /' >&2
       rc=1
     fi
 
@@ -574,12 +584,14 @@ self_test() {
     fi
     local embedded_rel="$tmp/embedded-rel.json"
     local expected_rel="$tmp/expected-rel.json"
+    local _gt_diff_rel
     extract_page_data_json "$out_rel_html" | jq -c -S . > "$embedded_rel" 2>/dev/null || true
     jq -c -S . "$data_rel" > "$expected_rel"
-    if diff -q "$embedded_rel" "$expected_rel" >/dev/null 2>&1; then
+    if _gt_diff_rel="$(diff -u "$expected_rel" "$embedded_rel" 2>&1)"; then
       echo "  [PASS] ケースe(有): 拡張フィールド込みの埋め込みJSONが原本と完全一致"
     else
       echo "  [FAIL] ケースe(有): 埋め込みJSONが原本と不一致" >&2
+      printf '%s\n' "$_gt_diff_rel" | sed 's/^/    /' >&2
       rc=1
     fi
   else

@@ -46,8 +46,9 @@ self_test() {
 
   local with_marker="$tmp/with-marker.md"
   printf '# タイトル\n\n| 変数名 | 型 |\n|---|---|\n| rows | 【著述・未確認:5-型】 |\n' > "$with_marker"
-  if check_target "$with_marker" >/dev/null 2>&1; then
+  if _gt_out1="$(check_target "$with_marker" 2>&1)"; then
     echo "  [FAIL] マーカー残存時にexit 0で通過してしまった" >&2
+    printf '%s\n' "$_gt_out1" | sed 's/^/    /' >&2
     rc=1
   else
     echo "  [PASS] マーカー残存時にexit 1で検出"
@@ -55,10 +56,11 @@ self_test() {
 
   local without_marker="$tmp/without-marker.md"
   printf '# タイトル\n\n| 変数名 | 型 |\n|---|---|\n| rows | RowType[] |\n' > "$without_marker"
-  if check_target "$without_marker" >/dev/null 2>&1; then
+  if _gt_out2="$(check_target "$without_marker" 2>&1)"; then
     echo "  [PASS] マーカー全置換後にexit 0で通過"
   else
     echo "  [FAIL] マーカーが無いのにexit 1になった" >&2
+    printf '%s\n' "$_gt_out2" | sed 's/^/    /' >&2
     rc=1
   fi
 
@@ -66,16 +68,19 @@ self_test() {
   local dir="$tmp/dir"
   mkdir -p "$dir/sub"
   cp "$with_marker" "$dir/sub/design.md"
-  if check_target "$dir" >/dev/null 2>&1; then
+  if _gt_out3="$(check_target "$dir" 2>&1)"; then
     echo "  [FAIL] ディレクトリ指定でマーカー残存を検出できなかった" >&2
+    printf '%s\n' "$_gt_out3" | sed 's/^/    /' >&2
     rc=1
   else
     echo "  [PASS] ディレクトリ指定でマーカー残存を検出できた"
   fi
 
   # 対象が存在しない場合はexit 2
-  if check_target "$tmp/does-not-exist.md" >/dev/null 2>&1; then
+  local _gt_missing_out
+  if _gt_missing_out="$(check_target "$tmp/does-not-exist.md" 2>&1)"; then
     echo "  [FAIL] 対象不在なのにexit 0になった" >&2
+    printf '%s\n' "$_gt_missing_out" | sed 's/^/    /' >&2
     rc=1
   else
     missing_rc=$?

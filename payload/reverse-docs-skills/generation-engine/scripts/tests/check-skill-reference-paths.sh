@@ -74,24 +74,27 @@ self_test() {
 
   mkdir -p "$base/.claude/skills/ok/references"
   printf '%s\n' '../../../docs/present.md を参照する' 'generation-engine/scripts/present.sh を使う' > "$base/.claude/skills/ok/SKILL.md"
-  if scan "$base" >/dev/null 2>&1; then
+  if _gt_out1="$(scan "$base" 2>&1)"; then
     echo "[PASS] 実在する参照だけのスキルを合格と判定する"; pass=$((pass + 1))
   else
     echo "[FAIL] 実在する参照だけのスキルを合格と判定する"; fail=$((fail + 1))
+    printf '%s\n' "$_gt_out1" | sed 's/^/    /' >&2
   fi
 
   mkdir -p "$base/.claude/skills/home/references"
   printf '%s\n' '~/.claude/skills/other/references/foo.md を参照する' > "$base/.claude/skills/home/SKILL.md"
-  if scan "$base" >/dev/null 2>&1; then
+  if _gt_out2="$(scan "$base" 2>&1)"; then
     echo "[PASS] ホーム配下の参照は対象にしない"; pass=$((pass + 1))
   else
     echo "[FAIL] ホーム配下の参照は対象にしない"; fail=$((fail + 1))
+    printf '%s\n' "$_gt_out2" | sed 's/^/    /' >&2
   fi
 
   mkdir -p "$base/.claude/skills/relmiss/references"
   printf '%s\n' '../../../docs/absent.md を参照する' > "$base/.claude/skills/relmiss/SKILL.md"
-  if scan "$base" >/dev/null 2>&1; then
+  if _gt_out3="$(scan "$base" 2>&1)"; then
     echo "[FAIL] 不在の相対参照を不合格と判定する"; fail=$((fail + 1))
+    printf '%s\n' "$_gt_out3" | sed 's/^/    /' >&2
   else
     echo "[PASS] 不在の相対参照を不合格と判定する"; pass=$((pass + 1))
   fi
@@ -99,17 +102,19 @@ self_test() {
 
   mkdir -p "$base/.claude/skills/absmiss/references"
   printf '%s\n' 'generation-engine/scripts/absent.sh を使う' > "$base/.claude/skills/absmiss/SKILL.md"
-  if scan "$base" >/dev/null 2>&1; then
+  if _gt_out4="$(scan "$base" 2>&1)"; then
     echo "[FAIL] 不在のリポジトリ相対の参照を不合格と判定する"; fail=$((fail + 1))
+    printf '%s\n' "$_gt_out4" | sed 's/^/    /' >&2
   else
     echo "[PASS] 不在のリポジトリ相対の参照を不合格と判定する"; pass=$((pass + 1))
   fi
   rm -rf "$base/.claude/skills/absmiss"
 
-  if scan "$tmp/empty" >/dev/null 2>&1; then
+  if _gt_out5="$(scan "$tmp/empty" 2>&1)"; then
     echo "[PASS] スキルが1件も無い場合は合格と判定する"; pass=$((pass + 1))
   else
     echo "[FAIL] スキルが1件も無い場合は合格と判定する"; fail=$((fail + 1))
+    printf '%s\n' "$_gt_out5" | sed 's/^/    /' >&2
   fi
 
   rm -rf "$tmp"

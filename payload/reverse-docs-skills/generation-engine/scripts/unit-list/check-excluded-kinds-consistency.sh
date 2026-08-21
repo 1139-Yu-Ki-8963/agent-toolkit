@@ -101,30 +101,36 @@ run_check() {
     echo "  [FAIL] 対象外種別の宣言が存在しない: $excluded_path" >&2
     return 1
   fi
-  if ! jq -e '.allKinds | type == "array"' "$excluded_path" >/dev/null 2>&1 \
-    || ! jq -e '.presentKinds | type == "array"' "$excluded_path" >/dev/null 2>&1 \
-    || ! jq -e '.excludedKinds | type == "array"' "$excluded_path" >/dev/null 2>&1; then
+  local _gt_kinds_arrays_ok=1 _gt_out2a _gt_out2b _gt_out2c
+  _gt_out2a="$(jq -e '.allKinds | type == "array"' "$excluded_path" 2>&1)" || _gt_kinds_arrays_ok=0
+  _gt_out2b="$(jq -e '.presentKinds | type == "array"' "$excluded_path" 2>&1)" || _gt_kinds_arrays_ok=0
+  _gt_out2c="$(jq -e '.excludedKinds | type == "array"' "$excluded_path" 2>&1)" || _gt_kinds_arrays_ok=0
+  if [ "$_gt_kinds_arrays_ok" -ne 1 ]; then
     echo "  [FAIL] allKinds・presentKinds・excludedKinds は配列で必須: $excluded_path" >&2
+    printf '%s\n%s\n%s\n' "$_gt_out2a" "$_gt_out2b" "$_gt_out2c" | sed 's/^/    /' >&2
     return 1
   fi
 
-  if ! jq -e --argjson expected '["api","batch","external","report","screen","table"]' '
+  local _gt_out4
+  if ! _gt_out4="$(jq -e --argjson expected '["api","batch","external","report","screen","table"]' '
     ([.allKinds[]] | sort) == $expected
     and ([.presentKinds[]] | sort | unique) == ([.presentKinds[]] | sort)
     and ([.excludedKinds[].kind] | sort | unique) == ([.excludedKinds[].kind] | sort)
     and (([.presentKinds[]] + [.excludedKinds[].kind]) | sort) == $expected
     and (([.presentKinds[]] - [.excludedKinds[].kind]) | length) == (.presentKinds | length)
-  ' "$excluded_path" >/dev/null 2>&1; then
+  ' "$excluded_path" 2>&1)"; then
     echo "  [FAIL] 6種別が presentKinds と excludedKinds に重複なく完全分割されていない" >&2
+    printf '%s\n' "$_gt_out4" | sed 's/^/    /' >&2
     fail_count=$((fail_count + 1))
   fi
-  if ! jq -e '
+  if ! _gt_out3="$(jq -e '
     (.generatedAt | type == "string" and length > 0)
     and (.surveyDocPath | type == "string" and length > 0)
     and (all(.excludedKinds[]; (.label | type == "string" and length > 0)
       and (.reason | type == "string" and length > 0)))
-  ' "$excluded_path" >/dev/null 2>&1; then
+  ' "$excluded_path" 2>&1)"; then
     echo "  [FAIL] generatedAt・surveyDocPath・対象外種別のlabel・reasonは空でない文字列で必須" >&2
+    printf '%s\n' "$_gt_out3" | sed 's/^/    /' >&2
     fail_count=$((fail_count + 1))
   fi
 
@@ -263,10 +269,11 @@ self_test() {
 
   write_declaration "$tmp/declared-absent" report
   write_artifacts "$tmp/declared-absent" report
-  if run_stage1 "$tmp/declared-absent" >/dev/null 2>&1; then
+  if _gt_out5="$(run_stage1 "$tmp/declared-absent" 2>&1)"; then
     echo "  [PASS] 検収2: 対象外宣言した帳票の成果物が無ければ合格"
   else
     echo "  [FAIL] 検収2: 対象外宣言と成果物不在が一致しているのに不合格" >&2
+    printf '%s\n' "$_gt_out5" | sed 's/^/    /' >&2
     rc=1
   fi
 
@@ -297,8 +304,9 @@ self_test() {
   safe_layout="$CHECK_EXCLUDED_LAYOUT_CACHE"
   collision_layout="$(printf '%s' "$safe_layout" | jq '.layout.apiManifest = .layout.screenManifest')"
   CHECK_EXCLUDED_LAYOUT_CACHE="$collision_layout"
-  if run_check "$tmp/declared-absent" manifests >/dev/null 2>&1; then
+  if _gt_out6="$(run_check "$tmp/declared-absent" manifests 2>&1)"; then
     echo "  [FAIL] 追加回帰: 衝突するマニフェスト出力先を受理" >&2
+    printf '%s\n' "$_gt_out6" | sed 's/^/    /' >&2
     rc=1
   else
     echo "  [PASS] 追加回帰: 衝突する出力先を拒否"

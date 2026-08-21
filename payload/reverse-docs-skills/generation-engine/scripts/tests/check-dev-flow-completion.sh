@@ -189,10 +189,11 @@ self_test() {
 指摘なし。
 MD
 
-  if run_check "$ok_dir" >/dev/null 2>&1; then
+  if _gt_out1="$(run_check "$ok_dir" 2>&1)"; then
     echo "  [PASS] 陽性: 正しい記録があれば終了コード0"
   else
     echo "  [FAIL] 陽性: 正しい記録なのにFAILした" >&2
+    printf '%s\n' "$_gt_out1" | sed 's/^/    /' >&2
     rc=1
   fi
 

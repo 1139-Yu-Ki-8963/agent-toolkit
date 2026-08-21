@@ -121,8 +121,9 @@ self_test() {
   mkdir -p "$base/docs" "$base/README.md.d"
   : > "$base/docs/plan.md"
   printf '%s\n' '参照: [計画](docs/plan.md)' > "$base/README.md"
-  if scan "$base" >/dev/null 2>&1; then
+  if _gt_out1="$(scan "$base" 2>&1)"; then
     echo "[FAIL] リポジトリの docs を指すリンクを違反と判定する"; fail=$((fail + 1))
+    printf '%s\n' "$_gt_out1" | sed 's/^/    /' >&2
   else
     echo "[PASS] リポジトリの docs を指すリンクを違反と判定する"; pass=$((pass + 1))
   fi
@@ -132,10 +133,11 @@ self_test() {
   mkdir -p "$base/generation-engine/samples/project-portal" "$base/generation-engine/samples/docs/design"
   : > "$base/generation-engine/samples/docs/design/detail.md"
   printf '%s\n' 'href="../docs/design/detail.md"' > "$base/generation-engine/samples/project-portal/page.html"
-  if scan "$base" >/dev/null 2>&1; then
+  if _gt_out2="$(scan "$base" 2>&1)"; then
     echo "[PASS] 納品先の生成物の docs は違反にしない"; pass=$((pass + 1))
   else
     echo "[FAIL] 納品先の生成物の docs は違反にしない"; fail=$((fail + 1))
+    printf '%s\n' "$_gt_out2" | sed 's/^/    /' >&2
   fi
   rm -rf "$base"
 
@@ -143,19 +145,21 @@ self_test() {
   mkdir -p "$base/docs"
   : > "$base/docs/plan.md"
   printf '%s\n' 'docs/plan.md は文中にそのまま書いてあるだけ（リンクではない）' > "$base/README.md"
-  if scan "$base" >/dev/null 2>&1; then
+  if _gt_out3="$(scan "$base" 2>&1)"; then
     echo "[PASS] リンクの形でない文中のパス記載は違反にしない"; pass=$((pass + 1))
   else
     echo "[FAIL] リンクの形でない文中のパス記載は違反にしない"; fail=$((fail + 1))
+    printf '%s\n' "$_gt_out3" | sed 's/^/    /' >&2
   fi
   rm -rf "$base"
 
   # ケース4: 対象が1件も無い場合は合格と判定する
   mkdir -p "$base"
-  if scan "$base" >/dev/null 2>&1; then
+  if _gt_out4="$(scan "$base" 2>&1)"; then
     echo "[PASS] 対象が1件も無い場合は合格と判定する"; pass=$((pass + 1))
   else
     echo "[FAIL] 対象が1件も無い場合は合格と判定する"; fail=$((fail + 1))
+    printf '%s\n' "$_gt_out4" | sed 's/^/    /' >&2
   fi
   rm -rf "$base"
 

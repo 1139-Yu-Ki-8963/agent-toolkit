@@ -21,7 +21,9 @@ set -euo pipefail
 #   jsx         → §3.2 DOM 配置順序（要素名 — 目的のリスト）
 #   style       → §3.6 スタイル適用パターン（数値はDESIGN.md参照キーに実測値を併記）
 #   api         → §7.1 API 一覧
-#   measurement_pending → §16 要確認事項一覧（固定書式「実測委譲（画面単位検証で確定）」のみ）
+#   measurement_pending → 本スクリプトが末尾へ追記する「## 付録: 要確認事項一覧（実測委譲）」
+#     （固定書式「実測委譲（画面単位検証で確定）」のみ。1-223でテンプレートから旧§16
+#     要確認事項一覧の節が削除されたため、テンプレート側のアンカーには依存しない）
 #   §6.4 データ更新トリガーの分類／§12.1 遷移先一覧 → handler由来のevidenceのみ補助転記
 #     （facts全キー突合のカウント対象外。あくまで補助情報）
 #
@@ -525,7 +527,12 @@ pass1_insert() { # $1=facts.yml $2=in_md $3=out_md $4=workdir
   nxt="$workdir/step07.md"; insert_list_rows  "$cur" '^### [0-9]+\.[0-9]+ DOM' "$workdir/rows_jsx.txt" "$nxt"; cur="$nxt"
   nxt="$workdir/step08.md"; insert_table_rows "$cur" '^### [0-9]+\.[0-9]+ スタイル適用パターン' "$workdir/rows_style.txt" "$nxt"; cur="$nxt"
   nxt="$workdir/step09.md"; insert_table_rows "$cur" '^### [0-9]+\.[0-9]+ API 一覧' "$workdir/rows_api.txt" "$nxt"; cur="$nxt"
-  nxt="$workdir/step10.md"; insert_table_rows "$cur" '^## §[0-9]+ 要確認事項一覧' "$workdir/rows_mp.txt" "$nxt"; cur="$nxt"
+  # measurement_pending（rows_mp.txt）はここでは転記しない。1-223でテンプレートから
+  # 旧「## §N 要確認事項一覧」節が削除され、転記先アンカーがテンプレート側に存在しなくなった
+  # ため（1-244実測: 2026-08-19時点でinsert_table_rowsがANCHOR_NOT_FOUNDで終了コード2を返し、
+  # set -euo pipefail によりPass1全体が中断し、他の全分類の転記も失われていた）。
+  # main() が append_multiline_literal_blocks と同じ「テンプレートに無い節は本スクリプトが
+  # 付録として末尾へ追記する」方式で rows_mp.txt を出力する。
   nxt="$workdir/step11.md"; insert_table_rows "$cur" '^### [0-9]+\.[0-9]+ データ更新トリガーの分類' "$workdir/rows_dataflow_combined.txt" "$nxt"; cur="$nxt"
   nxt="$workdir/step12.md"; insert_table_rows "$cur" '^### [0-9]+\.[0-9]+ 遷移先一覧' "$workdir/rows_transition.txt" "$nxt"; cur="$nxt"
   nxt="$workdir/step13.md"; insert_table_rows "$cur" '^### [0-9]+\.[0-9]+ エラーメッセージ' "$workdir/rows_error_handling.txt" "$nxt"; cur="$nxt"
@@ -617,6 +624,34 @@ append_multiline_literal_blocks() { # $1=facts.yml $2=design.md
     cat "$blocks" >> "$design"
   fi
   rm -f "$blocks"
+}
+
+# measurement_pending（rows_mp.txt）を末尾の付録節として追記する。
+#
+# 実装判断（素直な形＝テンプレート側のアンカーへinsert_table_rowsで挿入する、を避けた理由）:
+#   旧仕様は測定保留項目を「## §16 要確認事項一覧」というテンプレート側の既存節へ
+#   insert_table_rowsで挿入していた。1-223（テンプレートの未確定事項節を全種別から除去する
+#   改善）により、画面詳細設計書テンプレートから当該節そのものが削除され、転記先アンカーが
+#   テンプレート側に存在しなくなった（1-199・1-223いずれも「完了」。要確認事項は単位ごとの
+#   根拠を記録する資料へ移す整理）。本スクリプトはfacts.ymlと画面詳細設計書.mdの2引数しか
+#   受け取らず、根拠を記録する資料への出力経路を持たないため、当該資料への転記までは範囲外
+#   とし、facts全キー突合（total_fact_items との一致検査）からmeasurement_pendingを
+#   落とさないよう、append_multiline_literal_blocksと同じ「テンプレートに無い節は本スクリプト
+#   が末尾へ付録として追記する」方式を採る。
+#   過去に消えて再発した経緯: テンプレート側アンカーの削除は1-223（2026-08-20完了）。
+#   本対応（付録化）は1-244（2026-08-21実測・ANCHOR_NOT_FOUNDで終了コード1、Pass1全体が
+#   set -euo pipefail により中断し他の11分類の転記結果も連鎖して失われていた）。
+append_measurement_pending_appendix() { # $1=design.md $2=rows_mp.txt
+  local design="$1" rows_mp="$2" n
+  n="$(grep -c . "$rows_mp" 2>/dev/null || true)"; [ -z "$n" ] && n=0
+  [ "$n" -eq 0 ] && return 0
+  {
+    printf '\n## 付録: 要確認事項一覧（実測委譲）\n\n'
+    printf '転記先の節がテンプレートに存在しないmeasurement_pending項目をここへ集約する。\n\n'
+    printf '| キー | 起票日 | 内容 | 暫定扱いにしている§ | 解消条件 | 状態 |\n'
+    printf '|---|---|---|---|---|---|\n'
+    cat "$rows_mp"
+  } >> "$design"
 }
 
 # Markdown表はヘッダー行と全データ行のセル数を一致させる。追跡用HTMLコメントは
@@ -732,6 +767,7 @@ main() {
   pass1_insert "$facts" "$design_md" "$workdir/pass1.md" "$workdir"
   pass2_sweep "$workdir/pass1.md" "$workdir/pass2.md"
   append_multiline_literal_blocks "$facts" "$workdir/pass2.md"
+  append_measurement_pending_appendix "$workdir/pass2.md" "$workdir/rows_mp.txt"
 
   # 終端self-verify（1: プレースホルダ残存なし　2: facts全キーの転記行数突合）
   local total_facts rows_total remaining n
@@ -921,10 +957,11 @@ YML
     rc=1
   fi
 
-  if validate_markdown_table_widths "$design_md" >/dev/null 2>&1; then
+  if _gt_out1="$(validate_markdown_table_widths "$design_md" 2>&1)"; then
     echo "  [PASS] 1-34: 全Markdown表でヘッダーとデータ行のセル数が一致"
   else
     echo "  [FAIL] 1-34: Markdown表のセル数不一致" >&2
+    printf '%s\n' "$_gt_out1" | sed 's/^/    /' >&2
     rc=1
   fi
 
@@ -949,12 +986,14 @@ YML
     rc=1
   fi
 
-  if extract_section "$design_md" '^## §[0-9]+ 要確認事項一覧' | grep -q 'mp-初期表示-件数' \
-    && extract_section "$design_md" '^## §[0-9]+ 要確認事項一覧' | grep -q '実測委譲（画面単位検証で確定）' \
-    && extract_section "$design_md" '^## §[0-9]+ 要確認事項一覧' | grep -q '未解消'; then
-    echo "  [PASS] 陽性: measurement_pending が §16 へ固定書式で計上された"
+  # 1-244: 旧アンカー「## §N 要確認事項一覧」は1-223でテンプレートから削除済み。
+  # 本スクリプトが末尾へ追記する付録節「## 付録: 要確認事項一覧（実測委譲）」を検査する。
+  if extract_section "$design_md" '^## 付録: 要確認事項一覧（実測委譲）' | grep -q 'mp-初期表示-件数' \
+    && extract_section "$design_md" '^## 付録: 要確認事項一覧（実測委譲）' | grep -q '実測委譲（画面単位検証で確定）' \
+    && extract_section "$design_md" '^## 付録: 要確認事項一覧（実測委譲）' | grep -q '未解消'; then
+    echo "  [PASS] 陽性: measurement_pending が付録節へ固定書式で計上された"
   else
-    echo "  [FAIL] 陽性: measurement_pending が §16 へ正しく計上されていない" >&2
+    echo "  [FAIL] 陽性: measurement_pending が付録節へ正しく計上されていない" >&2
     rc=1
   fi
 

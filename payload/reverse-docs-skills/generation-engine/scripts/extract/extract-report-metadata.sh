@@ -97,18 +97,20 @@ EOF
   }' > "$manifest"
 
   local out="$tmp/out.json"
-  if ! bash "$script_path" "$manifest" "$tmp/src" "$out" >/dev/null 2>&1; then
+  if ! _gt_out1="$(bash "$script_path" "$manifest" "$tmp/src" "$out" 2>&1)"; then
     echo "  [FAIL] 実行: 抽出コマンド自体が失敗した" >&2
+    printf '%s\n' "$_gt_out1" | sed 's/^/    /' >&2
     echo "self-test FAIL" >&2
     return 1
   fi
 
   check() {
     local label="$1" filter="$2"
-    if jq -e "$filter" "$out" >/dev/null 2>&1; then
+    if _gt_out2="$(jq -e "$filter" "$out" 2>&1)"; then
       echo "  [PASS] $label"
     else
       echo "  [FAIL] $label" >&2
+      printf '%s\n' "$_gt_out2" | sed 's/^/    /' >&2
       rc=1
     fi
   }
@@ -128,17 +130,19 @@ EOF
          | del(.detectionSummary.diagnostics.extensionExtraction)
          | if .detectionSummary.diagnostics == {} then del(.detectionSummary.diagnostics) else . end' "$out" > "$tmp/stripped.json"
   jq -S . "$manifest" > "$tmp/orig.json"
-  if diff -q "$tmp/stripped.json" "$tmp/orig.json" >/dev/null 2>&1; then
+  if _gt_out3="$(diff -q "$tmp/stripped.json" "$tmp/orig.json" 2>&1)"; then
     echo "  [PASS] 既存フィールド不変: 追加フィールド除去後は入力マニフェストと完全一致"
   else
     echo "  [FAIL] 既存フィールド不変: 入力マニフェストとの差分が発生した" >&2
+    printf '%s\n' "$_gt_out3" | sed 's/^/    /' >&2
     rc=1
   fi
 
-  if bash "$script_dir/../unit-list/validate-manifest.sh" "$out" --unit-kind report >/dev/null 2>&1; then
+  if _gt_out4="$(bash "$script_dir/../unit-list/validate-manifest.sh" "$out" --unit-kind report 2>&1)"; then
     echo "  [PASS] validate-manifest: 拡張マニフェストが全項目PASS"
   else
     echo "  [FAIL] validate-manifest: 拡張マニフェストが検証FAILした" >&2
+    printf '%s\n' "$_gt_out4" | sed 's/^/    /' >&2
     rc=1
   fi
 

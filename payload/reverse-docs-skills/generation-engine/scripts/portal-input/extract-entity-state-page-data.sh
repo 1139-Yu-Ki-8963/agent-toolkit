@@ -6,10 +6,19 @@
 # 状態遷移図の生成(build-detail-page.sh --page entity-state)はpage-data.jsonを要求するが、
 # これまでこの入力データを組み立てる決定的な経路が存在せず、
 # generating-entity-state-for-reverse-docsスキルの対話的な抽出(Claude自身のRead/Write)にのみ
-# 依存していた。データ設計.md §6の「根拠パス」列は欄の新設なしに既に読める形で存在するため、
-# 本スクリプトはこの列を機械的に読み、page-data.jsonを組み立てる決定的な処理を提供する。
+# 依存していた。本スクリプトはデータ設計.md §6状態遷移表（エンティティ/状態/遷移前/契機/
+# 遷移後の5列）を機械的に読み、page-data.jsonを組み立てる決定的な処理を提供する。
 # データ設計.mdテンプレート側(delivery-payload/templates/リバース検証/プロジェクト共通/データ設計.md)
 # には一切手を入れない(段階1の禁止事項)。
+#
+# 列構成の変遷(改善課題1-240): 段階1新設時点のテンプレートは6列(末尾に「根拠パス」列)
+# だったが、改善課題1-234でテンプレートの§6状態遷移表から根拠パス列が削除され、現行は
+# 5列(エンティティ/状態/遷移前/契機/遷移後)のみになった。現行テンプレートに証跡パスを
+# 持つ列は存在しないため、edges[].sourceRefは値を持たない設計(常に空文字列)とする。
+# 別の列から証跡パス相当の情報を拾う設計は採らない(5列のいずれも証跡パスの性質を
+# 持たないため)。sourceRefキー自体はpage-data-schema.mdのT7スキーマ・
+# build-detail-page.shの表示側(detail-t7-entity-state.html。`e.sourceRef || ''`で
+# 空文字列を許容する)と整合させるため残す。
 #
 # Usage:
 #   extract-entity-state-page-data.sh <output_dir> <出力page-data.jsonのパス>
@@ -43,7 +52,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 . "$SCRIPT_DIR/../output-layout.sh"
 
 # データ設計.md から §6 状態遷移表のデータ行を
-# TSV(entity\tstate\tbefore\ttrigger\tafter\tsourceRef)として抽出する。
+# TSV(entity\tstate\tbefore\ttrigger\tafter)として抽出する(改善課題1-240: 現行テンプレートは
+# 5列で「根拠パス」列を持たないため、抽出対象も5列とする)。
 #
 # 見出しの一致は「## §6 状態遷移表」で始まる行の前方一致とする(テンプレート側の
 # 「（実測）」サフィックスの有無を問わない。指示書4.3節の実測どおり、生成済み文書では
@@ -74,21 +84,22 @@ extract_state_transition_rows() {
       sub(/^\|/, "", line)
       sub(/\|[ \t]*$/, "", line)
       n = split(line, cols, "|")
-      if (n < 6) { next }
+      if (n < 5) { next }
       entity = strip_backtick(trim(cols[1]))
       state = strip_backtick(trim(cols[2]))
       before = strip_backtick(trim(cols[3]))
       trigger = strip_backtick(trim(cols[4]))
       after = strip_backtick(trim(cols[5]))
-      sourceref = strip_backtick(trim(cols[6]))
-      if (entity ~ /<実測/ || state ~ /<実測/ || before ~ /<実測/ || trigger ~ /<実測/ || after ~ /<実測/ || sourceref ~ /<実測/) { next }
+      if (entity ~ /<実測/ || state ~ /<実測/ || before ~ /<実測/ || trigger ~ /<実測/ || after ~ /<実測/) { next }
       if (entity == "" || state == "" || before == "" || after == "") { next }
-      printf "%s\t%s\t%s\t%s\t%s\t%s\n", entity, state, before, trigger, after, sourceref
+      printf "%s\t%s\t%s\t%s\t%s\n", entity, state, before, trigger, after
     }
   ' "$doc_file"
 }
 
-# TSV行(entity/state/before/trigger/after/sourceRef)からnodes[]/edges[]を組み立てる。
+# TSV行(entity/state/before/trigger/after)からnodes[]/edges[]を組み立てる。
+# 現行テンプレート(5列)は証跡パスに相当する列を持たないため、edges[].sourceRefは
+# 常に空文字列とする(改善課題1-240)。
 #
 # nodes[] の集め方は generating-entity-state-for-reverse-docs スキル(Phase 2 Step 1)と
 # 同じ規則にする(既存の生成済みサンプル generation-engine/samples/project-portal/図/状態遷移図.html
@@ -103,7 +114,7 @@ build_page_data_from_rows() {
   local rows_json
   rows_json="$(printf '%s' "$rows_tsv" | jq -R -s '
     split("\n") | map(select(length > 0)) | map(split("\t")) |
-    map({entity: .[0], state: .[1], before: .[2], trigger: .[3], after: .[4], sourceRef: (.[5] // "")})
+    map({entity: .[0], state: .[1], before: .[2], trigger: .[3], after: .[4]})
   ')" || return 1
 
   printf '%s' "$rows_json" | jq '
@@ -119,7 +130,7 @@ build_page_data_from_rows() {
           from: ($r.entity + "." + $r.before),
           to: ($r.entity + "." + $r.after),
           trigger: $r.trigger,
-          sourceRef: $r.sourceRef,
+          sourceRef: "",
           entity: $r.entity
         }]
     )) as $acc
@@ -190,11 +201,11 @@ updated: 2026-08-17
 
 ## §6 状態遷移表（実測）
 
-| エンティティ | 状態 | 遷移前 | 契機 | 遷移後 | 根拠パス |
-|---|---|---|---|---|---|
-| 注文 | 確定 | 下書き | 注文確認画面の確定操作 | 確定 | `src/pages/orders/OrderConfirmPage.tsx` |
-| 注文 | 出荷済 | 確定 | 出荷バッチ（日次） | 出荷済 | `server/batch/shipOrders.ts` |
-| 注文 | キャンセル | 確定 | POST /api/orders/:id/cancel | キャンセル | `server/routes/orders.ts` |
+| エンティティ | 状態 | 遷移前 | 契機 | 遷移後 |
+|---|---|---|---|---|
+| 注文 | 確定 | 下書き | 注文確認画面の確定操作 | 確定 |
+| 注文 | 出荷済 | 確定 | 出荷バッチ（日次） | 出荷済 |
+| 注文 | キャンセル | 確定 | POST /api/orders/:id/cancel | キャンセル |
 
 ---
 
@@ -230,15 +241,16 @@ EOF
     fail=$((fail + 1))
   fi
 
-  # 検査2: edgesのfrom/to/sourceRef(バッククォート除去)が正しく組み立つこと
+  # 検査2: edgesのfrom/toが正しく組み立ち、sourceRefは値を持たない設計(常に空文字列)
+  # であること(改善課題1-240: 現行テンプレート5列に証跡パス列が無いため)
   local ok2=1
   [ "$(jq -r '.edges[0].from' "$out" 2>/dev/null)" = "注文.下書き" ] || ok2=0
   [ "$(jq -r '.edges[0].to' "$out" 2>/dev/null)" = "注文.確定" ] || ok2=0
-  [ "$(jq -r '.edges[0].sourceRef' "$out" 2>/dev/null)" = "src/pages/orders/OrderConfirmPage.tsx" ] || ok2=0
+  [ "$(jq -r '.edges[0].sourceRef' "$out" 2>/dev/null)" = "" ] || ok2=0
   [ "$(jq -r '.edges | length' "$out" 2>/dev/null)" = "3" ] || ok2=0
   [ "$(jq -r '.pageKind' "$out" 2>/dev/null)" = "entity-state" ] || ok2=0
   if [ "$ok2" -eq 1 ]; then
-    echo "  [PASS] 検査2: edgesのfrom/to/sourceRefが正しく組み立つ" >&2
+    echo "  [PASS] 検査2: edgesのfrom/toが正しく組み立ち、sourceRefは空文字列である" >&2
     pass=$((pass + 1))
   else
     echo "  [FAIL] 検査2: edgesの組み立てに不一致がある" >&2
@@ -273,9 +285,9 @@ EOF
   cat > "$t4_root/docs/design/common/データ設計.md" <<'EOF'
 ## §6 状態遷移表（実測）
 
-| エンティティ | 状態 | 遷移前 | 契機 | 遷移後 | 根拠パス |
-|---|---|---|---|---|---|
-| `<実測: エンティティ名>` | `<実測: 状態名>` | `<実測: 遷移前の状態>` | `<実測: 遷移の契機（イベント・操作）>` | `<実測: 遷移後の状態>` | `<実測: 根拠パス>` |
+| エンティティ | 状態 | 遷移前 | 契機 | 遷移後 |
+|---|---|---|---|---|
+| `<実測: エンティティ名>` | `<実測: 状態名>` | `<実測: 遷移前の状態>` | `<実測: 遷移の契機（イベント・操作）>` | `<実測: 遷移後の状態>` |
 EOF
   local t4_dest="$t4_root/out/page-data.json"
   t4_output="$(bash "$self_path" "$t4_root" "$t4_dest" 2>&1)"

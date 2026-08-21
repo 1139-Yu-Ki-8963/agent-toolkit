@@ -512,9 +512,10 @@ EOF
   }' > "$table_manifest"
 
   local out="$tmp/api-manifest-extended.json"
-  if ! bash "$script_path" "$api_manifest" "$tmp/src" "$out" \
-       --screen-manifest "$screen_manifest" --table-manifest "$table_manifest" >/dev/null 2>&1; then
+  if ! _gt_out1="$(bash "$script_path" "$api_manifest" "$tmp/src" "$out" \
+       --screen-manifest "$screen_manifest" --table-manifest "$table_manifest" 2>&1)"; then
     echo "  [FAIL] 実行: 抽出コマンド自体が失敗した" >&2
+    printf '%s\n' "$_gt_out1" | sed 's/^/    /' >&2
     echo "self-test FAIL" >&2
     return 1
   fi
@@ -610,10 +611,11 @@ EOF
   jq -S '.units = [.units[] | del(.method, .authRequired, .callers, .targetTables, .ioSummary)]
          | del(.detectionSummary.diagnostics)' "$out" > "$stripped"
   jq -S . "$api_manifest" > "$expected"
-  if diff -q "$stripped" "$expected" >/dev/null 2>&1; then
+  if _gt_out2="$(diff -q "$stripped" "$expected" 2>&1)"; then
     echo "  [PASS] 既存フィールド無変更: 追加フィールド除去後に入力マニフェストと完全一致"
   else
     echo "  [FAIL] 既存フィールド無変更: 入力マニフェストとの差分が発生した" >&2
+    printf '%s\n' "$_gt_out2" | sed 's/^/    /' >&2
     rc=1
   fi
 
@@ -626,10 +628,11 @@ EOF
   check "fallback診断: threshold=0.5" '.detectionSummary.diagnostics.fallback.threshold == 0.5'
   check "fallback診断: ratio>0.5でwarning: true" '.detectionSummary.diagnostics.fallback.warning == true'
 
-  if bash "$validate" "$out" --unit-kind api >/dev/null 2>&1; then
+  if _gt_out3="$(bash "$validate" "$out" --unit-kind api 2>&1)"; then
     echo "  [PASS] validate-manifest.sh: 拡張マニフェストが --unit-kind api で PASS"
   else
     echo "  [FAIL] validate-manifest.sh: 拡張マニフェストの検証が FAIL" >&2
+    printf '%s\n' "$_gt_out3" | sed 's/^/    /' >&2
     rc=1
   fi
 

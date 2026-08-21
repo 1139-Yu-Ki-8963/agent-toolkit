@@ -92,18 +92,20 @@ EOF
 EOF
   cp "$tmp/skills-before/fake-screen-list-skill/SKILL.md" "$tmp/skills-after/fake-screen-list-skill/SKILL.md"
 
-  if run_check "$tmp/catalog.json" "$tmp/skills-after" >/dev/null 2>&1; then
+  if _gt_out1="$(run_check "$tmp/catalog.json" "$tmp/skills-after" 2>&1)"; then
     echo "  [PASS] 修正後フィクスチャ: 記述を実態へ揃えた SKILL.md は検出されずexit 0"
   else
     echo "  [FAIL] 修正後フィクスチャ: 記述を揃えたはずなのにFAILになった" >&2
+    printf '%s\n' "$_gt_out1" | sed 's/^/    /' >&2
     rc=1
   fi
 
   # --- 現行リポジトリの実データ: 現時点で配線済み記述ずれが無いことを確認する ---
-  if run_check "$DEFAULT_CATALOG" "$DEFAULT_SKILLS_DIR" >/dev/null 2>&1; then
+  if _gt_out2="$(run_check "$DEFAULT_CATALOG" "$DEFAULT_SKILLS_DIR" 2>&1)"; then
     echo "  [PASS] 現行リポジトリ: 配線済み受け口を「未配線」と記述するSKILL.mdは存在しない"
   else
     echo "  [FAIL] 現行リポジトリ: 配線済み受け口を「未配線」と記述するSKILL.mdが存在する" >&2
+    printf '%s\n' "$_gt_out2" | sed 's/^/    /' >&2
     rc=1
   fi
 

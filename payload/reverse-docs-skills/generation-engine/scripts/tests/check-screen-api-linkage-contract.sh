@@ -54,14 +54,16 @@ extract-screen-metadata.sh <raw> <source_dir> <ext> --design-docs-dir <dir> を�
 ## Phase 3: 整合検証
 MD
 
-  if check_step_section "$tmp/orch-before.md" "^## Step 3-1" "^## Step 3-2" "--api-manifest" "修正前フィクスチャ(orchestrator)はFAILするべき" >/dev/null 2>&1; then
+  if _gt_out1="$(check_step_section "$tmp/orch-before.md" "^## Step 3-1" "^## Step 3-2" "--api-manifest" "修正前フィクスチャ(orchestrator)はFAILするべき" 2>&1)"; then
     echo "  [FAIL] 修正前フィクスチャ(orchestrator)がPASSしてしまった（検査が機能していない）" >&2
+    printf '%s\n' "$_gt_out1" | sed 's/^/    /' >&2
     rc=1
   else
     echo "  [PASS] 修正前フィクスチャ(orchestrator)は期待どおりFAILする"
   fi
-  if check_step_section "$tmp/screenlist-before.md" "^## Step 2-4" "^## Phase 3" "--api-manifest" "修正前フィクスチャ(screenlist)はFAILするべき" >/dev/null 2>&1; then
+  if _gt_out2="$(check_step_section "$tmp/screenlist-before.md" "^## Step 2-4" "^## Phase 3" "--api-manifest" "修正前フィクスチャ(screenlist)はFAILするべき" 2>&1)"; then
     echo "  [FAIL] 修正前フィクスチャ(screenlist)がPASSしてしまった（検査が機能していない）" >&2
+    printf '%s\n' "$_gt_out2" | sed 's/^/    /' >&2
     rc=1
   else
     echo "  [PASS] 修正前フィクスチャ(screenlist)は期待どおりFAILする"

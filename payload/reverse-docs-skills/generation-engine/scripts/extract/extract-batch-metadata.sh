@@ -127,19 +127,21 @@ EOF
   }' > "$manifest"
 
   local out="$tmp/out.json"
-  if ! bash "$script_path" "$manifest" "$tmp/src" "$out" \
-        --cron-file "$tmp/crontab.txt" --table-manifest "$tmp/table-manifest.json" >/dev/null 2>&1; then
+  if ! _gt_out1="$(bash "$script_path" "$manifest" "$tmp/src" "$out" \
+        --cron-file "$tmp/crontab.txt" --table-manifest "$tmp/table-manifest.json" 2>&1)"; then
     echo "  [FAIL] 実行: 抽出コマンド自体が失敗した" >&2
+    printf '%s\n' "$_gt_out1" | sed 's/^/    /' >&2
     echo "self-test FAIL" >&2
     return 1
   fi
 
   check() {
     local label="$1" filter="$2"
-    if jq -e "$filter" "$out" >/dev/null 2>&1; then
+    if _gt_out2="$(jq -e "$filter" "$out" 2>&1)"; then
       echo "  [PASS] $label"
     else
       echo "  [FAIL] $label" >&2
+      printf '%s\n' "$_gt_out2" | sed 's/^/    /' >&2
       rc=1
     fi
   }
@@ -178,17 +180,19 @@ EOF
          | del(.detectionSummary.diagnostics)' \
     "$out" > "$tmp/stripped.json"
   jq -S . "$manifest" > "$tmp/orig.json"
-  if diff -q "$tmp/stripped.json" "$tmp/orig.json" >/dev/null 2>&1; then
+  if _gt_out3="$(diff -q "$tmp/stripped.json" "$tmp/orig.json" 2>&1)"; then
     echo "  [PASS] 既存フィールド不変: 追加フィールド除去後は入力マニフェストと完全一致"
   else
     echo "  [FAIL] 既存フィールド不変: 入力マニフェストとの差分が発生した" >&2
+    printf '%s\n' "$_gt_out3" | sed 's/^/    /' >&2
     rc=1
   fi
 
-  if bash "$script_dir/../unit-list/validate-manifest.sh" "$out" --unit-kind batch >/dev/null 2>&1; then
+  if _gt_out4="$(bash "$script_dir/../unit-list/validate-manifest.sh" "$out" --unit-kind batch 2>&1)"; then
     echo "  [PASS] validate-manifest: 拡張マニフェストが全項目PASS"
   else
     echo "  [FAIL] validate-manifest: 拡張マニフェストが検証FAILした" >&2
+    printf '%s\n' "$_gt_out4" | sed 's/^/    /' >&2
     rc=1
   fi
 
@@ -259,23 +263,28 @@ EOF
     ]
   }' > "$multi_manifest"
 
-  if ! bash "$script_path" "$multi_manifest" "$tmp/multi" "$multi_out" \
-        --table-manifest "$tmp/multi/table-manifest.json" >/dev/null 2>&1; then
+  local _gt_multi_out_run
+  if ! _gt_multi_out_run="$(bash "$script_path" "$multi_manifest" "$tmp/multi" "$multi_out" \
+        --table-manifest "$tmp/multi/table-manifest.json" 2>&1)"; then
     echo "  [FAIL] 1-127: 複数ユニット抽出コマンド自体が失敗した" >&2
+    printf '%s\n' "$_gt_multi_out_run" | sed 's/^/    /' >&2
     rc=1
   else
-    if jq -e '.units[] | select(.unitKey=="job-a") | .targetTables == ["invoices-table","orders-table"]' \
-        "$multi_out" >/dev/null 2>&1; then
+    local _gt_target_tables _gt_downstream_jobs
+    _gt_target_tables="$(jq -c '.units[] | select(.unitKey=="job-a") | .targetTables' "$multi_out" 2>&1)"
+    if [ "$_gt_target_tables" = '["invoices-table","orders-table"]' ]; then
       echo "  [PASS] 1-127 targetTables: 単一grepでも一部テーブルのみヒットし他は除外"
     else
       echo "  [FAIL] 1-127 targetTables: 期待値と不一致" >&2
+      printf '%s\n' "$_gt_target_tables" | sed 's/^/    実際の値: /' >&2
       rc=1
     fi
-    if jq -e '.units[] | select(.unitKey=="job-a") | .downstreamJobs == ["job-b","job-c"]' \
-        "$multi_out" >/dev/null 2>&1; then
+    _gt_downstream_jobs="$(jq -c '.units[] | select(.unitKey=="job-a") | .downstreamJobs' "$multi_out" 2>&1)"
+    if [ "$_gt_downstream_jobs" = '["job-b","job-c"]' ]; then
       echo "  [PASS] 1-127 downstreamJobs: identifier一致とunitKey一致の双方を検出し自ユニットは除外"
     else
       echo "  [FAIL] 1-127 downstreamJobs: 期待値と不一致" >&2
+      printf '%s\n' "$_gt_downstream_jobs" | sed 's/^/    実際の値: /' >&2
       rc=1
     fi
   fi
@@ -320,11 +329,12 @@ EOF
     units: $units
   }' > "$scale_table_manifest"
 
-  if bash "$script_path" "$scale_batch_manifest" "$scale_dir" "$scale_out" \
-        --table-manifest "$scale_table_manifest" >/dev/null 2>&1; then
+  if _gt_out6="$(bash "$script_path" "$scale_batch_manifest" "$scale_dir" "$scale_out" \
+        --table-manifest "$scale_table_manifest" 2>&1)"; then
     echo "  [PASS] 1-127-scale: 500ユニット規模でも抽出コマンドが終了コード0で完了"
   else
     echo "  [FAIL] 1-127-scale: 500ユニット規模の抽出コマンドが完了しなかった" >&2
+    printf '%s\n' "$_gt_out6" | sed 's/^/    /' >&2
     rc=1
   fi
 

@@ -224,7 +224,7 @@ extract_new_scenario_yaml_contract_awk='
 
 self_test() {
   local script_path="$0" script_dir tmp docs manifest html portal
-  local layout_json screen_unit_root api_unit_root
+  local layout_json screen_unit_root api_unit_root units_root
   if [ -d "${TMPDIR:-/tmp}" ]; then
     TMPDIR="$(cd "${TMPDIR:-/tmp}" && pwd -P)"
     export TMPDIR
@@ -239,7 +239,20 @@ self_test() {
   trap 'rm -rf "$tmp"' RETURN
   docs="$tmp/docs"
   manifest="$tmp/test-case-manifest.json"
-  html="$docs/$(output_layout_get "$layout_json" unitListHtml "テストケース")" || return 1
+  # 1-244: 「テストケース」は screen/api/table/... の8種別（kindLabels/kindDirNames、
+  # 1-208で新設）に属さない集約カテゴリであり、output_layout_get の {labelDir} 解決
+  # （kindLabels の逆引き）には対応しない。実際に build-portal.sh（portal-catalog.mjs
+  # の resolveDefaultRootPrefix）がこのHTMLを発見・連結する先は、portal-catalog.json
+  # の test-case-list blueprint が持つ discovery.glob の既定接頭辞（defaultRoots.
+  # unitsRoot="project-portal/一覧"、旧配置）を output-layout.json の現行 unitsRoot
+  # （1-208で"project-portal/lists"へ英数字化済み）へ動的に置換した経路であり、
+  # 接頭辞だけが新配置、日本語のサブディレクトリ名・ファイル名は旧glob由来のまま
+  # 残る（1-209でportal-catalog.json自体の日本語ディレクトリ名は対象外と確定済み）。
+  # unitListHtml の新配置テンプレート（project-portal/lists/{labelDir}/{label}一覧.html、
+  # 1-208新設）とは無関係で、labelDir解決に失敗するため使えない。unitsRoot が今後も
+  # 変わりうるため、値は直書きせず output_layout_get から取得する。
+  units_root="$(output_layout_get "$layout_json" unitsRoot)" || return 1
+  html="$docs/${units_root}/テストケース一覧/テストケース一覧.html"
   portal="$tmp/portal"
   has_visible_case_row() {
     local file="$1" unit_key="$2" name="$3"
@@ -309,7 +322,7 @@ EOF
     && has_visible_case_row "$html" "screen-orders-unit-1" "合計0円-登録不可" \
     && has_visible_case_row "$html" "screen-orders-integration-1" "登録実行-一覧反映" \
     && has_visible_case_row "$html" "screen-orders-scenario-1" "検索条件の絞り込み" \
-    && grep -q '一覧/テストケース一覧/テストケース一覧.html' "$portal/index.html" \
+    && grep -qF "${units_root}/テストケース一覧/テストケース一覧.html" "$portal/index.html" \
     && [ "$(jq -r '.units[] | select(.testType == "integration") | .steps' "$manifest")" = "登録ボタンを押す" ] \
     && [ "$(jq -r '.units[] | select(.testType == "scenario") | .expected' "$manifest")" = "検索実行後、一覧テーブルが即座に更新される。" ]; then
     echo "self-test PASS: テストケースの集約→検証→HTML→ポータル連結（単体/結合/操作シナリオ）"

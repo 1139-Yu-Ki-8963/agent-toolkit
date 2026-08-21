@@ -63,6 +63,8 @@ DEFAULT_TARGET="$(cd "$SCRIPT_DIR/.." && pwd)"
 # 該当する行が無ければ本検査はFAILする。安全な固定長の値だと判断した
 # 場合のみ、レビューのうえで行を追記する。
 ALLOWLIST_TSV="$(cat <<'EOF'
+build-deliverable-inventory.sh	keys	$required_layout_keys
+build-deliverable-inventory.sh	layout	$layout_json
 build-deliverable-inventory.sh	p	$jq_path_json
 build-portal.sh	be	$be_lines
 build-portal.sh	behind	$freshness_behind
@@ -109,6 +111,7 @@ extract/extract-external-metadata.sh	diag	$diagnostics_json
 extract/extract-external-metadata.sh	t	$decl_total
 extract/extract-external-metadata.sh	t	$def_total
 extract/extract-feature-metadata.sh	er	$empty_relation_json
+extract/extract-feature-metadata.sh	legacy_argument_order	$LEGACY_ARGUMENT_ORDER
 extract/extract-feature-metadata.sh	t	$found_tables
 extract/extract-icon-usage.sh	dynamicRefCount	$DYNAMIC_REF_COUNT
 extract/extract-screen-metadata.sh	add	$add
@@ -120,6 +123,7 @@ extract/extract-table-metadata.sh	f	$fk_keys
 extract/extract-table-metadata.sh	largeCount	$large_count
 extract/extract-table-metadata.sh	n	$col_count
 extract/extract-table-metadata.sh	n	$large_count
+extract/finalize-extension-manifest.sh	rules	$RULES_JSON
 portal-input/build-manifests-from-docs.sh	u	$unit_obj
 portal-input/build-manifests-from-docs.sh	unitCount	$unit_count
 portal-input/build-manifests-from-docs.sh	units	$units_json
@@ -129,6 +133,8 @@ rules/build-rule-flow-map.sh	known	$known_json
 shell-injection.sh	counts	$shell_counts_json
 unit-axes.sh	detectAxes	$detect_axes
 unit-list/build-screen-list.sh	declared	$split_declared_keys_json
+unit-list/check-excluded-kinds-consistency.sh	excluded	$excluded_json
+unit-list/check-excluded-kinds-consistency.sh	present	$present_json
 unit-list/check-screen-manifest-consistency.sh	allowed	$allowed
 unit-list/detect-screens.sh	apiC	$api_cnt
 unit-list/detect-screens.sh	axisSum	$axis_sum
@@ -304,20 +310,22 @@ EOF
 add="$(jq -c --argjson n "$col_count" '. + {columnCount: $n}' <<<"$add")"
 EOF
   ALLOWLIST["fake-extract.sh"$'\x01'"n"$'\x01'"\$col_count"]=1
-  if run_check "$tmp/safe-only" >/dev/null 2>&1; then
+  if _gt_out1="$(run_check "$tmp/safe-only" 2>&1)"; then
     echo "  [PASS] 合成データ(登録済みのnのみ): 違反なしでexit 0"
   else
     echo "  [FAIL] 合成データ(登録済みのnのみ): 違反0件のはずがexit 1になった" >&2
+    printf '%s\n' "$_gt_out1" | sed 's/^/    /' >&2
     rc=1
   fi
   unset 'ALLOWLIST[fake-extract.sh'$'\x01''n'$'\x01''$col_count]'
 
   # 現行リポジトリ(generation-engine/scripts/配下)を対象にした実データ検査。
   # 許可リストは105件の既存使用箇所を反映済みのため、違反0件で通るはず。
-  if run_check "$DEFAULT_TARGET" >/dev/null 2>&1; then
+  if _gt_out2="$(run_check "$DEFAULT_TARGET" 2>&1)"; then
     echo "  [PASS] 現行リポジトリ: generation-engine/scripts/配下に許可リスト外の --argjson 使用は無い"
   else
     echo "  [FAIL] 現行リポジトリ: 許可リスト外の --argjson 使用が見つかった" >&2
+    printf '%s\n' "$_gt_out2" | sed 's/^/    /' >&2
     rc=1
   fi
 

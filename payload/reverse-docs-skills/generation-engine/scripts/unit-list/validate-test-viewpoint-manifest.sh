@@ -129,17 +129,19 @@ self_test() {
 {"unitKind":"test_viewpoint","generatedAt":"2026-01-01T00:00:00Z","units":[{"unitKey":"login-submit-1","screenKey":"screen-login","testType":"unit","category":"境界値","viewpoint":"金額下限"},{"unitKey":"login-empty-2","screenKey":"screen-login","testType":"unit","category":"異常系","viewpoint":"空入力"}],"summary":{"totalCount":2,"byTestType":{"unit":2},"byScreen":{"screen-login":2}}}
 JSON
 
-  if run_validate "$pass_fixture" >/dev/null 2>&1; then
+  if _gt_out3="$(run_validate "$pass_fixture" 2>&1)"; then
     echo "  [PASS] 陽性: 正当なtest_viewpointマニフェストで全5項目PASS"
   else
     echo "  [FAIL] 陽性: 正当なマニフェストがFAILした" >&2
+    printf '%s\n' "$_gt_out3" | sed 's/^/    /' >&2
     rc=1
   fi
 
   local missing_top="$tmp/missing-top.json"
   jq 'del(.summary)' "$pass_fixture" > "$missing_top"
-  if run_validate "$missing_top" >/dev/null 2>&1; then
+  if _gt_out4="$(run_validate "$missing_top" 2>&1)"; then
     echo "  [FAIL] 陰性(トップレベル欠落): summary欠落なのにPASSした" >&2
+    printf '%s\n' "$_gt_out4" | sed 's/^/    /' >&2
     rc=1
   else
     echo "  [PASS] 陰性(トップレベル欠落): summary欠落でFAIL"
@@ -147,8 +149,9 @@ JSON
 
   local bad_units_type="$tmp/bad-units-type.json"
   jq '.units = {} | .summary.totalCount = 0' "$pass_fixture" > "$bad_units_type"
-  if run_validate "$bad_units_type" >/dev/null 2>&1; then
+  if _gt_out5="$(run_validate "$bad_units_type" 2>&1)"; then
     echo "  [FAIL] 陰性(units型): unitsがobjectなのにPASSした" >&2
+    printf '%s\n' "$_gt_out5" | sed 's/^/    /' >&2
     rc=1
   else
     echo "  [PASS] 陰性(units型): unitsがobjectでFAIL"
@@ -156,8 +159,9 @@ JSON
 
   local bad_kind="$tmp/bad-kind.json"
   jq '.unitKind = "screen"' "$pass_fixture" > "$bad_kind"
-  if run_validate "$bad_kind" >/dev/null 2>&1; then
+  if _gt_out6="$(run_validate "$bad_kind" 2>&1)"; then
     echo "  [FAIL] 陰性(unitKind不一致): unitKind不一致なのにPASSした" >&2
+    printf '%s\n' "$_gt_out6" | sed 's/^/    /' >&2
     rc=1
   else
     echo "  [PASS] 陰性(unitKind不一致): unitKind不一致でFAIL"
@@ -165,8 +169,9 @@ JSON
 
   local missing_unit_key="$tmp/missing-unit-key.json"
   jq '.units[0] |= del(.viewpoint)' "$pass_fixture" > "$missing_unit_key"
-  if run_validate "$missing_unit_key" >/dev/null 2>&1; then
+  if _gt_out7="$(run_validate "$missing_unit_key" 2>&1)"; then
     echo "  [FAIL] 陰性(ユニットキー欠落): viewpoint欠落なのにPASSした" >&2
+    printf '%s\n' "$_gt_out7" | sed 's/^/    /' >&2
     rc=1
   else
     echo "  [PASS] 陰性(ユニットキー欠落): viewpoint欠落でFAIL"
@@ -176,8 +181,9 @@ JSON
   for required_key in unitKey screenKey testType category viewpoint; do
     bad_unit_type="$tmp/bad-unit-type-${required_key}.json"
     jq --arg k "$required_key" '.units[0][$k] = null' "$pass_fixture" > "$bad_unit_type"
-    if run_validate "$bad_unit_type" >/dev/null 2>&1; then
+    if _gt_out8="$(run_validate "$bad_unit_type" 2>&1)"; then
       echo "  [FAIL] 陰性(ユニット値型): ${required_key}=nullなのにPASSした" >&2
+      printf '%s\n' "$_gt_out8" | sed 's/^/    /' >&2
       rc=1
     else
       echo "  [PASS] 陰性(ユニット値型): ${required_key}=nullでFAIL"
@@ -186,8 +192,9 @@ JSON
 
   local dup_key="$tmp/dup-key.json"
   jq '.units[1].unitKey = .units[0].unitKey' "$pass_fixture" > "$dup_key"
-  if run_validate "$dup_key" >/dev/null 2>&1; then
+  if _gt_out9="$(run_validate "$dup_key" 2>&1)"; then
     echo "  [FAIL] 陰性(unitKey重複): unitKey重複なのにPASSした" >&2
+    printf '%s\n' "$_gt_out9" | sed 's/^/    /' >&2
     rc=1
   else
     echo "  [PASS] 陰性(unitKey重複): unitKey重複でFAIL"
@@ -195,8 +202,9 @@ JSON
 
   local bad_sum="$tmp/bad-sum.json"
   jq '.summary.totalCount = 99' "$pass_fixture" > "$bad_sum"
-  if run_validate "$bad_sum" >/dev/null 2>&1; then
+  if _gt_out10="$(run_validate "$bad_sum" 2>&1)"; then
     echo "  [FAIL] 陰性(summary不一致): totalCount不一致なのにPASSした" >&2
+    printf '%s\n' "$_gt_out10" | sed 's/^/    /' >&2
     rc=1
   else
     echo "  [PASS] 陰性(summary不一致): totalCount不一致でFAIL"
@@ -204,8 +212,9 @@ JSON
 
   local bad_sum_type="$tmp/bad-sum-type.json"
   jq '.summary.totalCount = "2"' "$pass_fixture" > "$bad_sum_type"
-  if run_validate "$bad_sum_type" >/dev/null 2>&1; then
+  if _gt_out11="$(run_validate "$bad_sum_type" 2>&1)"; then
     echo "  [FAIL] 陰性(summary型): totalCountが文字列なのにPASSした" >&2
+    printf '%s\n' "$_gt_out11" | sed 's/^/    /' >&2
     rc=1
   else
     echo "  [PASS] 陰性(summary型): totalCountが文字列でFAIL"
@@ -213,8 +222,9 @@ JSON
 
   local bad_generated_at="$tmp/bad-generated-at.json"
   jq '.generatedAt = null' "$pass_fixture" > "$bad_generated_at"
-  if run_validate "$bad_generated_at" >/dev/null 2>&1; then
+  if _gt_out12="$(run_validate "$bad_generated_at" 2>&1)"; then
     echo "  [FAIL] 陰性(generatedAt型): generatedAt=nullなのにPASSした" >&2
+    printf '%s\n' "$_gt_out12" | sed 's/^/    /' >&2
     rc=1
   else
     echo "  [PASS] 陰性(generatedAt型): generatedAt=nullでFAIL"
@@ -222,8 +232,9 @@ JSON
 
   local bad_aggregates="$tmp/bad-aggregates.json"
   jq '.summary.byTestType = [] | .summary.byScreen = "broken"' "$pass_fixture" > "$bad_aggregates"
-  if run_validate "$bad_aggregates" >/dev/null 2>&1; then
+  if _gt_out13="$(run_validate "$bad_aggregates" 2>&1)"; then
     echo "  [FAIL] 陰性(summary集計型): byTestType/byScreen不正型なのにPASSした" >&2
+    printf '%s\n' "$_gt_out13" | sed 's/^/    /' >&2
     rc=1
   else
     echo "  [PASS] 陰性(summary集計型): byTestType/byScreen不正型でFAIL"

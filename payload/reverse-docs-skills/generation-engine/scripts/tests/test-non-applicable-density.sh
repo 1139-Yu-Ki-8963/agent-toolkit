@@ -40,8 +40,13 @@ grep -qF '章内の全下位項目が対象外なら' "$WRITING_RULES"
 grep -qF 'facts に項目が1件以上ある節、`measurement_pending`、未確認事項' "$WRITING_RULES"
 echo "[PASS] テンプレートと執筆規律: 全項目・一部項目の集約書式と集約禁止条件を確認"
 
+# ロケールの使い分け規約（.claude/rules/always/design-record/implementation-decision/rule.md
+# 「ロケールの使い分け」節）に従い、全角文字を含む負の文字クラス
+# （[^[:space:]）)]）でのパターン抽出には LC_ALL=en_US.UTF-8 を都度明示する。
+# LC_ALL=C の下ではこの負の文字クラスが全角文字（）・）を正しく除外できず、
+# 根拠が正しく記入された行まで誤って未記入と判定する（改善課題1-241で実測）。
 summary_count="$(
-  awk '
+  LC_ALL=en_US.UTF-8 awk '
     /^> (非該当項目:|本領域は全項目非該当)/ &&
       $0 ~ /measurement_pending|実測委譲|未確認/ {
       print "[FAIL] 集約禁止情報が非該当行へ混入: " $0 > "/dev/stderr"

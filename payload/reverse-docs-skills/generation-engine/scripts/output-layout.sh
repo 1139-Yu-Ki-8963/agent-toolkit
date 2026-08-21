@@ -21,18 +21,24 @@
 OUTPUT_LAYOUT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 OUTPUT_LAYOUT_DEFAULT="$OUTPUT_LAYOUT_DIR/../../delivery-payload/references/output-layout.json"
 
-# 複数の宣言ファイルをキー単位で deep merge する（layout オブジェクトのキー単位で後勝ち）。
+# 複数の宣言ファイルをキー単位で deep merge する（各トップレベルキーのオブジェクトを
+# キー単位で後勝ちマージする）。
+#
+# 1-242: 以前はトップレベルキーを名前で列挙していたため、output-layout.json へ
+# 新設したキー（kindDirNames・directoryNamePolicy・displayLabels・unitPhaseDirNames）を
+# 追記し忘れると合成結果から静かに削り落とされ、{labelDir} 等の解決が空文字になる事故を
+# 同一セッション内で3回発生させた。列挙をやめ、入力ファイル群が実際に持つトップレベル
+# キーの和集合を動的に求めて合成することで、新設キーを追記漏れなく取り込む。
+# specVersion のみ最初のファイルの値を採用する特別扱いとし、それ以外の全キーは
+# オブジェクトとして `*`（jq の深いマージ演算子）でキー単位マージする。
 output_layout_merge_files() {
   jq -s '
-    {
-      specVersion: (.[0].specVersion // 1),
-      layout: (reduce .[] as $f ({}; . * ($f.layout // {}))),
-      kindLabels: (reduce .[] as $f ({}; . * ($f.kindLabels // {}))),
-      kindDirNames: (reduce .[] as $f ({}; . * ($f.kindDirNames // {}))),
-      directoryNamePolicy: (reduce .[] as $f ({}; . * ($f.directoryNamePolicy // {}))),
-      displayLabels: (reduce .[] as $f ({}; . * ($f.displayLabels // {}))),
-      unitPhaseDirNames: (reduce .[] as $f ({}; . * ($f.unitPhaseDirNames // {})))
-    }
+    . as $files
+    | ($files | map(keys[]) | unique | map(select(. != "specVersion"))) as $keys
+    | reduce $keys[] as $k (
+        {specVersion: ($files[0].specVersion // 1)};
+        . + { ($k): (reduce $files[] as $f ({}; . * ($f[$k] // {}))) }
+      )
   ' "$@"
 }
 
@@ -242,11 +248,13 @@ output_layout_self_test() {
   rc=0
 
   # ケース1: 既定のみでキーが取れる
-  base="$(resolve_output_layout "$tmp")" || true
+  base="$(resolve_output_layout "$tmp" 2>"$tmp/.resolve-err")" || true
+  _gt_resolve_err="$(cat "$tmp/.resolve-err" 2>/dev/null)"
   if [ -n "$base" ] && printf '%s' "$base" | jq -e '.layout.unitsRoot == "project-portal/lists"' >/dev/null 2>&1; then
     echo "  [PASS] ケース1: 既定解決でキーが取れる"
   else
     echo "  [FAIL] ケース1: 既定解決に失敗" >&2
+    { printf '%s\n' "$_gt_resolve_err"; printf 'base=%s\n' "$base"; } | sed 's/^/    /' >&2
     rc=1
   fi
 
@@ -495,8 +503,10 @@ JSON
   cat > "$tmp/output-layout.json" <<'JSON'
 { "specVersion": 1, "layout": { "apiUnitRoot": "docs/design/tables" } }
 JSON
-  if resolve_output_layout "$tmp" >/dev/null 2>&1; then
+  local _gt_c16_out
+  if _gt_c16_out="$(resolve_output_layout "$tmp" 2>&1)"; then
     echo "  [FAIL] ケース16: apiUnitRootとtableUnitRootの重複値を受理してしまった" >&2
+    printf '%s\n' "$_gt_c16_out" | sed 's/^/    /' >&2
     rc=1
   else
     echo "  [PASS] ケース16: 種別ごとの物理root同士の重複値を拒否"
@@ -536,8 +546,10 @@ JSON
   cat > "$tmp/output-layout.json" <<'JSON'
 { "specVersion": 1, "layout": { "unitEvidenceLedgerFile": "別名の根拠台帳.md" } }
 JSON
-  if resolve_output_layout "$tmp" >/dev/null 2>&1; then
+  local _gt_c18_out
+  if _gt_c18_out="$(resolve_output_layout "$tmp" 2>&1)"; then
     echo "  [FAIL] ケース18: unitEvidenceLedgerFileの別名を受理してしまった" >&2
+    printf '%s\n' "$_gt_c18_out" | sed 's/^/    /' >&2
     rc=1
   else
     echo "  [PASS] ケース18: unitEvidenceLedgerFileの別名を拒否"
@@ -548,13 +560,47 @@ JSON
   cat > "$tmp/output-layout.json" <<'JSON'
 { "specVersion": 1, "layout": { "plansRoot": "docs/design/common" } }
 JSON
-  if resolve_output_layout "$tmp" >/dev/null 2>&1; then
+  local _gt_c19_out
+  if _gt_c19_out="$(resolve_output_layout "$tmp" 2>&1)"; then
     echo "  [FAIL] ケース19: plansRootとcommonRootの重複値を受理してしまった" >&2
+    printf '%s\n' "$_gt_c19_out" | sed 's/^/    /' >&2
     rc=1
   else
     echo "  [PASS] ケース19: plansRootと既存物理rootの重複値を拒否"
   fi
   rm -f "$tmp/output-layout.json"
+
+  # ケース20: 1-242 合成対象外の新規トップレベルキーを持つフィクスチャでも、
+  #           動的合成によりそのキーが合成結果へ含まれ空文字にならない
+  cat > "$tmp/output-layout.json" <<'JSON'
+{ "specVersion": 1, "brandNewTopLevelKey": { "foo": "bar" } }
+JSON
+  ov20="$(output_layout_merge_files "$OUTPUT_LAYOUT_DEFAULT" "$tmp/output-layout.json")" || true
+  v20="$(printf '%s' "$ov20" | jq -r '.brandNewTopLevelKey.foo // ""' 2>/dev/null)"
+  if [ "$v20" = "bar" ]; then
+    echo "  [PASS] ケース20: 合成対象外の新規トップレベルキーが動的合成で取り込まれる"
+  else
+    echo "  [FAIL] ケース20: 新規トップレベルキーの合成結果が不正: '$v20'" >&2
+    rc=1
+  fi
+  rm -f "$tmp/output-layout.json"
+
+  # ケース21: 既存の kindDirNames・directoryNamePolicy・displayLabels・
+  #           unitPhaseDirNames の4キーが合成結果に含まれ、値が空でないこと
+  ok21=0
+  for key21 in kindDirNames directoryNamePolicy displayLabels unitPhaseDirNames; do
+    if printf '%s' "$base" | jq -e --arg k "$key21" '.[$k] != null and (.[$k] | type == "object") and (.[$k] | length > 0)' >/dev/null 2>&1; then
+      ok21=$((ok21 + 1))
+    else
+      echo "  [FAIL] ケース21: $key21 が合成結果に含まれないか空です" >&2
+    fi
+  done
+  if [ "$ok21" -eq 4 ]; then
+    echo "  [PASS] ケース21: kindDirNames・directoryNamePolicy・displayLabels・unitPhaseDirNamesの4キーが合成結果に含まれる"
+  else
+    echo "  [FAIL] ケース21: 4キーのうち${ok21}/4件のみ合成結果に含まれた" >&2
+    rc=1
+  fi
 
   if [ "$rc" -eq 0 ]; then
     echo "self-test 全項目 PASS"

@@ -106,20 +106,23 @@ EOF
     }' > "$manifest_a"
 
   local out_a="$tmp/out-a.html"
-  if bash "$script_path" "$manifest_a" "$out_a" >/dev/null 2>&1; then
+  local _gt_out_a_run _gt_diff_a
+  if _gt_out_a_run="$(bash "$script_path" "$manifest_a" "$out_a" 2>&1)"; then
     local embedded_a="$tmp/embedded-a.json"
     local expected_a="$tmp/expected-a.json"
     extract_manifest_json "$out_a" | jq -c -S . > "$embedded_a" 2>/dev/null || true
     # sourceDir/sourceFileは絶対パス(1-102対応で正規化される)なので、期待値も同じ正規化を適用してから比較する
     expected_normalized_manifest "$manifest_a" > "$expected_a"
-    if diff -q "$embedded_a" "$expected_a" >/dev/null 2>&1; then
+    if _gt_diff_a="$(diff -u "$expected_a" "$embedded_a" 2>&1)"; then
       echo "  [PASS] ケースa: バックスラッシュ(\\d+)を含むidentifierでも埋め込みJSONが原本と完全一致"
     else
       echo "  [FAIL] ケースa: バックスラッシュを含むidentifierで埋め込みJSONが原本と不一致(誤爆の疑い)" >&2
+      printf '%s\n' "$_gt_diff_a" | sed 's/^/    /' >&2
       rc=1
     fi
   else
     echo "  [FAIL] ケースa: 生成コマンド自体が失敗した" >&2
+    printf '%s\n' "$_gt_out_a_run" | sed 's/^/    /' >&2
     rc=1
   fi
 

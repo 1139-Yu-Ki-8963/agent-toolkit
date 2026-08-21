@@ -60,24 +60,27 @@ self_test() {
 
   mkdir -p "$tmp/base/.claude/skills/a/references"
   printf '%s\n' '<code>generation-engine/scripts/present.sh</code>' > "$tmp/base/.claude/skills/a/references/guide.html"
-  if scan_dir "$tmp/base/.claude/skills" "$tmp/base" >/dev/null 2>&1; then
+  if _gt_out1="$(scan_dir "$tmp/base/.claude/skills" "$tmp/base" 2>&1)"; then
     echo "[PASS] 実在するパスだけのガイドを合格と判定する"; pass=$((pass + 1))
   else
     echo "[FAIL] 実在するパスだけのガイドを合格と判定する"; fail=$((fail + 1))
+    printf '%s\n' "$_gt_out1" | sed 's/^/    /' >&2
   fi
 
   mkdir -p "$tmp/base/.claude/skills/b/references"
   printf '%s\n' '<code>generation-engine/scripts/absent.sh</code>' > "$tmp/base/.claude/skills/b/references/guide.html"
-  if scan_dir "$tmp/base/.claude/skills" "$tmp/base" >/dev/null 2>&1; then
+  if _gt_out2="$(scan_dir "$tmp/base/.claude/skills" "$tmp/base" 2>&1)"; then
     echo "[FAIL] 不在のパスを持つガイドを不合格と判定する"; fail=$((fail + 1))
+    printf '%s\n' "$_gt_out2" | sed 's/^/    /' >&2
   else
     echo "[PASS] 不在のパスを持つガイドを不合格と判定する"; pass=$((pass + 1))
   fi
 
-  if scan_dir "$tmp/base/.claude/skills/none" "$tmp/base" >/dev/null 2>&1; then
+  if _gt_out3="$(scan_dir "$tmp/base/.claude/skills/none" "$tmp/base" 2>&1)"; then
     echo "[PASS] ガイドが1件も無い場合は合格と判定する"; pass=$((pass + 1))
   else
     echo "[FAIL] ガイドが1件も無い場合は合格と判定する"; fail=$((fail + 1))
+    printf '%s\n' "$_gt_out3" | sed 's/^/    /' >&2
   fi
 
   rm -rf "$tmp"

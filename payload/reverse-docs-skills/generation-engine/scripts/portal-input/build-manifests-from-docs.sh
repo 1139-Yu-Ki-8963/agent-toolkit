@@ -352,7 +352,17 @@ build_manifest_for_kind() {
         local target_tables_json
         target_tables_json="$(extract_api_target_tables "$file")" || return 1
         if [ "$(printf '%s' "$target_tables_json" | jq 'length')" -gt 0 ]; then
-          unit_obj="$(printf '%s' "$unit_obj" | jq --argjson tables "$target_tables_json" '.targetTables = $tables')"
+          # target_tables_jsonは設計書§7の表の行数に比例して伸びうる可変長の値
+          # のため、コマンドライン引数ではなく一時ファイル経由(--slurpfile)で
+          # jqへ渡す（改善課題1-52）。
+          local target_tables_file
+          if ! target_tables_file="$(mktemp "${TMPDIR:-/tmp}/build-manifests-target-tables.XXXXXX")" || [ -z "$target_tables_file" ]; then
+            echo "ERROR: 一時ファイルの作成に失敗しました(mktemp)" >&2
+            return 1
+          fi
+          printf '%s' "$target_tables_json" > "$target_tables_file"
+          unit_obj="$(printf '%s' "$unit_obj" | jq --slurpfile tablesFile "$target_tables_file" '.targetTables = $tablesFile[0]')"
+          rm -f -- "$target_tables_file"
         fi
       fi
 

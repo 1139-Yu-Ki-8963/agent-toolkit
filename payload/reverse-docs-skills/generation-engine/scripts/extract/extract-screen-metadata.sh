@@ -479,7 +479,7 @@ EOF
 
   # --- ケースa: オプションなし(relatedApis は生パス格納) ---
   local out_a="$tmp/out-a.json"
-  if bash "$script_path" "$manifest" "$tmp/src" "$out_a" >/dev/null 2>&1; then
+  if _gt_out2="$(bash "$script_path" "$manifest" "$tmp/src" "$out_a" 2>&1)"; then
     check "ケースa: 管理画面 category=管理" '.screens[0].category == "管理"' "$out_a"
     check "ケースa: 管理画面 permissions=[\"admin\"](requireRole検出)" '.screens[0].permissions == ["admin"]' "$out_a"
     check "1-170: requireRole検出 permissions は valueProvenance=measured" '.screens[0].valueProvenance.permissions == "measured"' "$out_a"
@@ -494,14 +494,15 @@ EOF
     check "画面とAPIの対応づけ-担当不在: 共通クライアント関数経由のrelatedApis=[\"/api/teams\"](生パス、修正前は0件)" '.screens[3].relatedApis == ["/api/teams"]' "$out_a"
   else
     echo "  [FAIL] ケースa: 抽出コマンド自体が失敗した" >&2
+    printf '%s\n' "$_gt_out2" | sed 's/^/    /' >&2
     rc=1
   fi
 
   # --- ケースb: --api-manifest + --design-docs-dir 指定 ---
   local out_b="$tmp/out-b.json"
-  if bash "$script_path" "$manifest" "$tmp/src" "$out_b" \
+  if _gt_out3="$(bash "$script_path" "$manifest" "$tmp/src" "$out_b" \
       --api-manifest "$api_manifest" --design-docs-dir "$docs_root" \
-      --link-base-dir "$list_dir" >/dev/null 2>&1; then
+      --link-base-dir "$list_dir" 2>&1)"; then
     check "ケースb: relatedApis が unitKey に解決" '.screens[0].relatedApis == ["users-list"]' "$out_b"
     check "画面とAPIの対応づけ-担当不在: 共通クライアント関数経由のrelatedApisもunitKeyに解決" '.screens[3].relatedApis == ["teams-list"]' "$out_b"
     check "ケースb: 管理画面 designDocStatus=着手済" '.screens[0].designDocStatus == "着手済"' "$out_b"
@@ -540,15 +541,17 @@ EOF
     ' "$out_b"
   else
     echo "  [FAIL] ケースb: 抽出コマンド自体が失敗した" >&2
+    printf '%s\n' "$_gt_out3" | sed 's/^/    /' >&2
     rc=1
   fi
 
   # --- 出力が validate-manifest.sh で検証可能であること ---
   local validator="$script_dir/../unit-list/validate-manifest.sh"
-  if bash "$validator" "$out_b" --unit-kind screen >/dev/null 2>&1; then
+  if _gt_out4="$(bash "$validator" "$out_b" --unit-kind screen 2>&1)"; then
     echo "  [PASS] validate-manifest.sh: 拡張マニフェストが全項目PASS"
   else
     echo "  [FAIL] validate-manifest.sh: 拡張マニフェストが検証FAIL" >&2
+    printf '%s\n' "$_gt_out4" | sed 's/^/    /' >&2
     rc=1
   fi
 
