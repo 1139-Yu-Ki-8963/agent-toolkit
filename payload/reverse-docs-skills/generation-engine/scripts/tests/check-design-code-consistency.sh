@@ -141,9 +141,20 @@ self_test() {
     if [ "$want" = "$actual" ]; then
       echo "  [PASS] $name"; pass=$((pass + 1))
     else
-      echo "  [FAIL] $name（期待=$want 実際=$actual）" >&2; fail=$((fail + 1))
+      # 全角文字との境界を明示し、LC_ALLの変更で変数名として誤読されるのを防ぐ。
+      echo "  [FAIL] ${name}（期待=$want 実際=${actual}）" >&2; fail=$((fail + 1))
     fi
   }
+
+  local saved_lc_all="$LC_ALL"
+  LC_ALL=zh_CN.UTF-8
+  out="$(assert_rc "全角文字に隣接する変数名" 0 1 2>&1)"
+  LC_ALL="$saved_lc_all"
+  if printf '%s' "$out" | grep -qF '  [FAIL] 全角文字に隣接する変数名（期待=0 実際=1）'; then
+    echo "  [PASS] 失敗メッセージの変数境界を維持"; pass=$((pass + 1))
+  else
+    echo "  [FAIL] 失敗メッセージの変数境界が壊れている" >&2; fail=$((fail + 1))
+  fi
 
   mkdir -p "$tmp/pass/docs/design/apis/api-order/detail-design" "$tmp/pass/docs/design/apis/api-order/テスト設計"
   cat > "$tmp/pass/docs/design/apis/api-order/detail-design/API詳細設計書.md" <<'MD'

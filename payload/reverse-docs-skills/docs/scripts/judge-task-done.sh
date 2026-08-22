@@ -253,7 +253,8 @@ judge_publish() {
     return
   fi
   if [ ! -d "$TOOLKIT_DIR" ]; then
-    PUBLISH_MSG="未反映（agent-toolkitが見当たらない: $TOOLKIT_DIR）"
+    # 全角文字との境界を明示し、LC_ALLの変更で変数名として誤読されるのを防ぐ。
+    PUBLISH_MSG="未反映（agent-toolkitが見当たらない: ${TOOLKIT_DIR}）"
     return
   fi
   if ! git -C "$TOOLKIT_DIR" rev-parse --verify --quiet origin/main >/dev/null 2>&1; then
@@ -1012,7 +1013,7 @@ run_self_test() {
     fi
   }
 
-  echo "実行 22 件"
+  echo "実行 23 件"
 
   # 0. 確かめる手段がバッククォート囲み（rule.mdの見本と同じ書き方） -> 中身のコマンドとして実行され満たす
   #    （囲みを剥がさずに実行すると、バッククォート付き文字列がコマンド置換として実行され、
@@ -1371,6 +1372,29 @@ run_self_test() {
     echo "[FAIL] --writeが判定不能の行を未着手へ降格させない"
     echo "       中身:"
     sed 's/^/       /' "$f21"
+    fail=$((fail + 1))
+  fi
+
+  # 22. UTF-8ロケールでも全角文字直前のTOOLKIT_DIRを正しく展開する。
+  local saved_toolkit_dir="$TOOLKIT_DIR" saved_lc_all="${LC_ALL-}" lc_all_was_set=0
+  if [ "${LC_ALL+x}" = "x" ]; then
+    lc_all_was_set=1
+  fi
+  TOOLKIT_DIR="$tmpdir/missing-toolkit"
+  LC_ALL=zh_CN.UTF-8
+  PUBLISH_MSG=""
+  judge_publish
+  if [ "$lc_all_was_set" -eq 1 ]; then
+    LC_ALL="$saved_lc_all"
+  else
+    unset LC_ALL
+  fi
+  TOOLKIT_DIR="$saved_toolkit_dir"
+  if [ "$PUBLISH_MSG" = "未反映（agent-toolkitが見当たらない: ${tmpdir}/missing-toolkit）" ]; then
+    echo "[PASS] 公開判定の変数境界を維持する"
+    pass=$((pass + 1))
+  else
+    echo "[FAIL] 公開判定の変数境界が壊れている"
     fail=$((fail + 1))
   fi
 
